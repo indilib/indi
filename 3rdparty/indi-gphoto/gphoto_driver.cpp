@@ -1,20 +1,21 @@
 /*******************************************************************************
   Copyright(c) 2009 Geoffrey Hausheer. All rights reserved.
-  
+  Copyright(c) 2012-2016 Jasem Mutlaq. All rights reserved.
+
   This program is free software; you can redistribute it and/or modify it
   under the terms of the GNU General Public License as published by the Free
   Software Foundation; either version 2 of the License, or (at your option)
   any later version.
-  
+
   This program is distributed in the hope that it will be useful, but WITHOUT
   ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
   FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
   more details.
-  
+
   You should have received a copy of the GNU General Public License along with
   this program; if not, write to the Free Software Foundation, Inc., 59
   Temple Place - Suite 330, Boston, MA  02111-1307, USA.
-  
+
   The full GNU General Public License is included in this distribution in the
   file called LICENSE.
 *******************************************************************************/
@@ -62,6 +63,7 @@ struct _gphoto_driver
     gphoto_widget	*bulb_widget;
     gphoto_widget	*autoexposuremode_widget;
     gphoto_widget	*capturetarget_widget;
+    gphoto_widget	*viewfinder_widget;
 
     char            bulb_port[256];
     int             bulb_fd;
@@ -232,7 +234,7 @@ out:
     return NULL;
 }
 
-void show_widget(gphoto_widget *widget, char *prefix) {
+void show_widget(gphoto_widget *widget, const char *prefix) {
     int i;
     struct tm *tm;
     switch(widget->type) {
@@ -533,23 +535,38 @@ void gphoto_set_upload_settings(gphoto_driver *gphoto, int setting)
     gphoto->upload_settings = setting;
 }
 
-static void download_image(gphoto_driver *gphoto, CameraFilePath *fn, int fd)
+static int download_image(gphoto_driver *gphoto, CameraFilePath *fn, int fd)
 {
     int result;
     CameraFileInfo info;
 
     strncpy(gphoto->filename, fn->name, sizeof(gphoto->filename));
 
-    if (fd < 0) {
+    if (fd < 0)
+    {
         result = gp_file_new(&gphoto->camerafile);
-    } else {
-        result = gp_file_new_from_fd(&gphoto->camerafile, fd);
+        DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG,"gp_file_new result: %d", result);
     }
-    DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG,"  Retval: %d", result);
+    else
+    {
+        result = gp_file_new_from_fd(&gphoto->camerafile, fd);
+        DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG,"gp_file_new_from_fd result: %d", result);
+    }
+
+
     DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG,"Downloading %s/%s", fn->folder, fn->name);
-    result = gp_camera_file_get(gphoto->camera, fn->folder, fn->name,
-                                GP_FILE_TYPE_NORMAL, gphoto->camerafile, gphoto->context);
-    DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG,"  Retval: %d", result);
+
+    result = gp_camera_file_get(gphoto->camera, fn->folder, fn->name, GP_FILE_TYPE_NORMAL, gphoto->camerafile, gphoto->context);
+
+    DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG,"Downloading result: %d", result);
+
+    if (result != GP_OK)
+    {
+        DEBUGFDEVICE(device, INDI::Logger::DBG_ERROR,"Error downloading image from camera: %s", gp_result_as_string(result));
+        gp_file_free(gphoto->camerafile);
+        gphoto->camerafile = NULL;
+        return result;
+    }
 
     gp_camera_file_get_info (gphoto->camera, fn->folder, fn->name, &info, gphoto->context);
     gphoto->width = info.file.width;
@@ -570,10 +587,12 @@ static void download_image(gphoto_driver *gphoto, CameraFilePath *fn, int fd)
         gp_file_free(gphoto->camerafile);
         gphoto->camerafile = NULL;
     }
+
+    return GP_OK;
 }
 
 int gphoto_mirrorlock(gphoto_driver *gphoto, int msec)
-{    
+{
     // If already set to BULB, set eosremoterelease to 2, then 4, then sleep
     //if (gphoto->autoexposuremode_widget && gphoto->autoexposuremode_widget->value.index == 4)
     if (gphoto->bulb_widget && !strcmp(gphoto->bulb_widget->name, "eosremoterelease"))
@@ -632,7 +651,7 @@ int gphoto_start_exposure(gphoto_driver *gphoto, unsigned int exptime_msec, int 
     //if (exptime_msec > 5000 || (gphoto->autoexposuremode_widget != NULL && gphoto->autoexposuremode_widget->value.index == 4))
 
     // If exposure time is more than 1 second AND we have BULB widget OR we have bulb in exposure widget then do bulb
-    if ((exptime_msec > 1000) && (gphoto->bulb_port[0]) || (gphoto->bulb_widget != NULL))
+    if ((exptime_msec > 1000) && ( (gphoto->bulb_port[0]) || (gphoto->bulb_widget != NULL)) )
     {
         //Bulb mode is supported
 
@@ -753,12 +772,12 @@ int gphoto_read_exposure_fd(gphoto_driver *gphoto, int fd)
         pthread_cond_wait(&gphoto->signal, &gphoto->mutex);
     DEBUGDEVICE(device, INDI::Logger::DBG_DEBUG,"Exposure complete");
     if (gphoto->command & DSLR_CMD_CAPTURE) {
-        download_image(gphoto, &gphoto->camerapath, fd);
+        result = download_image(gphoto, &gphoto->camerapath, fd);
         gphoto->command = 0;
         //Set exposure back to original value
         reset_settings(gphoto);
         pthread_mutex_unlock(&gphoto->mutex);
-        return 0;
+        return result;
     }
 
     //Bulb mode
@@ -779,12 +798,12 @@ int gphoto_read_exposure_fd(gphoto_driver *gphoto, int fd)
         case GP_EVENT_FILE_ADDED:
             DEBUGDEVICE(device, INDI::Logger::DBG_DEBUG,"Captured an image");
             fn = (CameraFilePath*)data;
-            download_image(gphoto, fn, fd);
+            result = download_image(gphoto, fn, fd);
             //Set exposure back to original value
             reset_settings(gphoto);
 
             pthread_mutex_unlock(&gphoto->mutex);
-            return 0;
+            return result;
             break;
         case GP_EVENT_UNKNOWN:
             break;
@@ -979,6 +998,13 @@ gphoto_driver *gphoto_open(const char *shutter_release_port)
             DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG,"Capture Target Widget: %s", gphoto->capturetarget_widget->name);
     }
 
+    // Check viewfinder widget to force mirror down after live preview if needed
+    if ( (gphoto->viewfinder_widget = find_widget(gphoto,"viewfinder")) != NULL )
+    {
+        DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG,"ViewFinder Widget: %s", gphoto->viewfinder_widget->name);
+        DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG,"Current ViewFinder Value: %s", (gphoto->viewfinder_widget->value.toggle == 0) ? "Off" : "On");
+    }
+
     // Check for user
     if(shutter_release_port)
     {
@@ -1036,6 +1062,8 @@ int gphoto_close(gphoto_driver *gphoto)
         widget_free(gphoto->bulb_widget);
     if (gphoto->autoexposuremode_widget)
         widget_free(gphoto->autoexposuremode_widget);
+    if (gphoto->viewfinder_widget)
+        widget_free(gphoto->viewfinder_widget);
 
     while(gphoto->widgets) {
         gphoto_widget_list *next = gphoto->widgets->next;
@@ -1279,6 +1307,18 @@ int gphoto_capture_preview(gphoto_driver *gphoto,  CameraFile* previewFile, char
     return rc;
 }
 
+int gphoto_stop_preview(gphoto_driver *gphoto)
+{
+   int rc = GP_OK;
+
+   // If viewfinder not found, nothing to do
+   if (gphoto->viewfinder_widget == NULL)
+       return rc;
+
+   rc = gphoto_set_widget_num(gphoto, gphoto->viewfinder_widget, 0);
+
+   return rc;
+}
 
 /* Manual focusing a camera...
  * xx is -3 / -2 / -1 / 0 / 1 / 2 / 3

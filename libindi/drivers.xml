@@ -219,6 +219,10 @@
                 <driver name="Filter Simulator">indi_simulator_wheel</driver>
                 <version>1.0</version>
         </device>
+        <device label="Optec IFW">
+            <driver name="Optec IFW">indi_optec_wheel</driver>
+            <version>0.2</version>
+        </device>
 </devGroup>
 <devGroup group="Video">
         <device label="STV Guider">

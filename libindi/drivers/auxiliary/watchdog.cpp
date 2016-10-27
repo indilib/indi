@@ -218,7 +218,7 @@ bool WatchDog::ISNewNumber (const char *dev, const char *name, double values[], 
                 IDSetNumber(&HeartBeatNP, NULL);
                 DEBUG(INDI::Logger::DBG_ERROR, "Cannot change heart beat while shutdown is in progress...");
                 return true;
-            }
+            }            
 
             IUUpdateNumber(&HeartBeatNP, values, names, n);
             HeartBeatNP.s = IPS_OK;
@@ -384,6 +384,8 @@ void WatchDog::TimerHit()
         DEBUG(INDI::Logger::DBG_SESSION, "Shutdown procedure complete.");
         ShutdownProcedureSP.s = IPS_OK;
         IDSetSwitch(&ShutdownProcedureSP, NULL);
+        watchdogClient->disconnectServer();
+        shutdownStage = WATCHDOG_IDLE;
         return;
 
     case WATCHDOG_ERROR:

@@ -1,3 +1,25 @@
+/*******************************************************************************
+  Copyright(c) 2009 Geoffrey Hausheer. All rights reserved.
+  Copyright(c) 2012-2016 Jasem Mutlaq. All rights reserved.
+
+  This program is free software; you can redistribute it and/or modify it
+  under the terms of the GNU General Public License as published by the Free
+  Software Foundation; either version 2 of the License, or (at your option)
+  any later version.
+
+  This program is distributed in the hope that it will be useful, but WITHOUT
+  ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+  FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
+  more details.
+
+  You should have received a copy of the GNU General Public License along with
+  this program; if not, write to the Free Software Foundation, Inc., 59
+  Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+
+  The full GNU General Public License is included in this distribution in the
+  file called LICENSE.
+*******************************************************************************/
+
 #ifndef _GPHOTO_DRIVER_H_
 #define _GPHOTO_DRIVER_H_
 
@@ -9,23 +31,23 @@
 
 typedef struct
 {
-	CameraWidget		*widget;
-	CameraWidgetType	type;
-	const char		*name;
-	const char		*parent;
-	int			readonly;
-	union {
-		int		toggle;
-		char		index;
-		char		*text;
-		float		num;
-		int		date;
-	} value;
-	int			choice_cnt;
+    CameraWidget		*widget;
+    CameraWidgetType	type;
+    const char		*name;
+    const char		*parent;
+    int			readonly;
+    union {
+        int		toggle;
+        char		index;
+        char		*text;
+        float		num;
+        int		date;
+    } value;
+    int			choice_cnt;
     char        **choices;
-	float			min;
-	float			max;
-	float			step;
+    float			min;
+    float			max;
+    float			step;
 } gphoto_widget;
 
 // EOS Release buttons settings
@@ -63,6 +85,7 @@ int gphoto_get_dimensions(gphoto_driver *gphoto, int *width, int *height);
 int gphoto_auto_focus(gphoto_driver *gphoto);
 int gphoto_manual_focus (gphoto_driver *gphoto, int xx, char *errMsg);
 int gphoto_capture_preview(gphoto_driver *gphoto,  CameraFile* previewFile, char *errMsg);
+int gphoto_stop_preview(gphoto_driver *gphoto);
 void gphoto_set_debug(const char *name);
 int gphoto_mirrorlock(gphoto_driver *gphoto, int msec);
 

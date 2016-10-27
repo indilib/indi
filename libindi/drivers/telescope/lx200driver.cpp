@@ -322,7 +322,7 @@ int getCommandString(int fd, char *data, const char* cmd)
 int isSlewComplete(int fd)
 {
     DEBUGFDEVICE(lx200Name, DBG_SCOPE, "<%s>", __FUNCTION__);
-    char data[8];
+    char data[8] = {0};
     int error_type;
     int nbytes_write=0, nbytes_read=0;
     const char *cmd = ":D#";
@@ -336,14 +336,14 @@ int isSlewComplete(int fd)
    tcflush(fd, TCIOFLUSH);
 
     if (error_type != TTY_OK)
-    return error_type;
+        return error_type;
 
     DEBUGFDEVICE(lx200Name, DBG_SCOPE, "RES <%s>", data);
 
     if (data[0] == '#')
-        return 0;
-    else
         return 1;
+    else
+        return 0;
 
 }
 
@@ -887,7 +887,7 @@ int setSiteLongitude(int fd, double Long)
 
    getSexComponents(Long, &d, &m, &s);
 
-   snprintf(temp_string, sizeof( temp_string ), ":Sg%+03d:%02d#", d, m);	//azwing must be with sign
+   snprintf(temp_string, sizeof( temp_string ), ":Sg%03d:%02d#", d, m);
 
    return (setStandardProcedure(fd, temp_string));
 }

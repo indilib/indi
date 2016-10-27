@@ -21,6 +21,9 @@
 #include "indilogger.h"
 #include <indicom.h>
 #include <cstdio>
+#include <dirent.h>
+#include <limits.h>
+#include <sys/stat.h>
 
 #include <iostream>
 
@@ -70,9 +73,35 @@ unsigned int Logger::fileVerbosityLevel_=Logger::defaultlevel;
 unsigned int Logger::screenVerbosityLevel_=Logger::defaultlevel;
 unsigned int Logger::rememberscreenlevel_=Logger::defaultlevel;
 Logger::loggerConf Logger::configuration_= Logger::screen_on | Logger::file_off;
+std::string Logger::logDir_;
 std::string Logger::logFile_;
 unsigned int Logger::nDevices=0;
 unsigned int Logger::customLevel=4;
+
+// Create dir recursively
+static int _mkdir(const char *dir, mode_t mode)
+{
+    char tmp[PATH_MAX];
+    char *p = NULL;
+    size_t len;
+
+    snprintf(tmp, sizeof(tmp),"%s",dir);
+    len = strlen(tmp);
+    if(tmp[len - 1] == '/')
+        tmp[len - 1] = 0;
+    for(p = tmp + 1; *p; p++)
+        if(*p == '/')
+        {
+            *p = 0;
+            if (mkdir(tmp, mode) == -1 && errno != EEXIST)
+                return -1;
+            *p = '/';
+        }
+    if (mkdir(tmp, mode) == -1 && errno != EEXIST)
+        return -1;
+
+    return 0;
+}
 
 int Logger::addDebugLevel(const char *debugLevelName, const char * loggingLevelName)
 {
@@ -306,14 +335,30 @@ void Logger::configure (const std::string&	outputFile,
 		// Compute a new file name, if needed
         if (outputFile != logFile_)
         {
-            char logFileBuf[512];
-            snprintf(logFileBuf, 512, "%s_%s.log", outputFile.c_str(), timestamp());
+            char ts_date[32], ts_time[32];
+            struct tm *tp;
+            time_t t;
+
+            time (&t);
+            tp = gmtime (&t);
+            strftime (ts_date, sizeof(ts_date), "%Y-%m-%d", tp);
+            strftime (ts_time, sizeof(ts_time), "%H:%M:%S", tp);
+
+            char dir[MAXRBUF];
+            snprintf(dir, MAXRBUF, "%s/.indi/logs/%s/%s", getenv("HOME"), ts_date, outputFile.c_str());
+            logDir_ = dir;
+
+            char logFileBuf[MAXRBUF];
+            snprintf(logFileBuf, MAXRBUF, "%s/%s_%s.log", dir, outputFile.c_str(), ts_time);
             logFile_ = logFileBuf;
 		}
 
 		// Open a new stream, if needed
         if (configuration&file_on)
+        {
+            _mkdir(logDir_.c_str(), 0775);
 			out_.open(logFile_.c_str(), std::ios::app);
+        }
 
 		configuration_ = configuration;
 		configured_ = true;

@@ -76,7 +76,7 @@ public:
 
     virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n);
     virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n);
-    virtual bool ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n);    
+    virtual bool ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n);
 
     static void ExposureUpdate(void *vp);
     void ExposureUpdate();
@@ -96,7 +96,8 @@ protected:
     IPState MoveFocuser(FocusDirection dir, int speed, uint16_t duration);
 
     // Preview
-    bool capturePreview();
+    bool startLivePreview();
+    bool stopLivePreview();
 
 private:
     ISwitch *create_switch(const char *basestr, char **options, int max_opts, int setidx);
@@ -122,12 +123,12 @@ private:
     char *on_off[2];
     int timerID;
     bool frameInitialized;
-    
+
     ISwitch mConnectS[2];
     ISwitchVectorProperty mConnectSP;
     IText mPortT[1];
     ITextVectorProperty PortTP;
-    
+
     INumber mMirrorLockN[1];
     INumberVectorProperty mMirrorLockNP;
 

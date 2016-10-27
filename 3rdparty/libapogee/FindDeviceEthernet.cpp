@@ -1,26 +1,26 @@
-/*! 
+/*!
 * This Source Code Form is subject to the terms of the Mozilla Public
 * License, v. 2.0. If a copy of the MPL was not distributed with this file,
 * You can obtain one at http://mozilla.org/MPL/2.0/.
 *
-* Copyright(c) 2009 Apogee Instruments, Inc. 
-* \class FindDeviceEthernet 
-* \brief class that tries to find apogee devices on the ethernet 
-* 
-*/ 
+* Copyright(c) 2009 Apogee Instruments, Inc.
+* \class FindDeviceEthernet
+* \brief class that tries to find apogee devices on the ethernet
+*
+*/
 
-#include "FindDeviceEthernet.h" 
-#include "UdpSocketBase.h" 
+#include "FindDeviceEthernet.h"
+#include "UdpSocketBase.h"
 
-#include "CamHelpers.h" 
-#include "apgHelper.h" 
+#include "CamHelpers.h"
+#include "apgHelper.h"
 #include "helpers.h"
-#include "CameraInfo.h" 
+#include "CameraInfo.h"
 
 #include <sstream>
 
 #if defined (WIN_OS)
-    #include "UdpSocketWin.h" 
+    #include "UdpSocketWin.h"
 #else
      #include "UdpSocketLinux.h"
 #endif
@@ -31,47 +31,47 @@ namespace
     const uint16_t APOGEE_IP_PORT_NUMBER = 2571;
 }
 
-//////////////////////////// 
-// CTOR 
+////////////////////////////
+// CTOR
 FindDeviceEthernet::FindDeviceEthernet() : m_fileName(__FILE__),
                                            m_CamResponse("Discovery::Response: \"Apogee\"; 0x12345678;"),
                                            m_socketPtr(0)
 
-{ 
-    //create the right type of 
+{
+    //create the right type of
     //socket for the platform
     #if defined (WIN_OS)
         m_socketPtr = new UdpSocketWin();
-	#else
+    #else
         m_socketPtr = new UdpSocketLinux();
     #endif
 
-} 
+}
 
-//////////////////////////// 
-// DTOR 
-FindDeviceEthernet::~FindDeviceEthernet() 
-{ 
+////////////////////////////
+// DTOR
+FindDeviceEthernet::~FindDeviceEthernet()
+{
     delete m_socketPtr;
     m_socketPtr = 0;
-} 
+}
 
-//////////////////////////// 
+////////////////////////////
 // GET  ELAPSED   SECS
 int32_t FindDeviceEthernet::GetElapsedSecs()
 {
     return m_socketPtr->GetElapsedSecs();
 }
 
-//////////////////////////// 
+////////////////////////////
 // GET  TIMEOUT
 int32_t FindDeviceEthernet::GetTimeout()
 {
     return m_socketPtr->GetTimeout();
 }
 
-//////////////////////////// 
-// FIND 
+////////////////////////////
+// FIND
 std::string FindDeviceEthernet::Find(const std::string & subnet)
 {
 
@@ -86,7 +86,7 @@ std::string FindDeviceEthernet::Find(const std::string & subnet)
         return noop;
     }
 
-    
+
     //loop through each message and build up
     //the device string
     std::string devices;
@@ -120,8 +120,8 @@ std::string FindDeviceEthernet::Find(const std::string & subnet)
     return devices;
 }
 
-//////////////////////////// 
-// MAKE     DEVICE      STR 
+////////////////////////////
+// MAKE     DEVICE      STR
 std::string FindDeviceEthernet::MakeDeviceStr(const std::string & input)
 {
 
@@ -146,7 +146,7 @@ std::string FindDeviceEthernet::MakeDeviceStr(const std::string & input)
         GetMacAddr((*iter), mac );
         GetInterfaceStatus((*iter), interfaceStatus );
     }
-    
+
     std::string result = "<d>interface=ethernet,deviceType=camera,address=" + ipAddr  +
         ",port=" + port + ",mac=" + mac + ",interfaceStatus=" + interfaceStatus + "," +
         CameraInfo(id, firmwareRev) +"</d>";
@@ -154,8 +154,8 @@ std::string FindDeviceEthernet::MakeDeviceStr(const std::string & input)
     return result;
 }
 
-//////////////////////////// 
-// GET  ID 
+////////////////////////////
+// GET  ID
 void FindDeviceEthernet::GetId( const std::string & input, std::string & id )
 {
     if( input.find("CameraModel:") != std::string::npos )
@@ -165,9 +165,9 @@ void FindDeviceEthernet::GetId( const std::string & input, std::string & id )
     }
 }
 
-//////////////////////////// 
-// GET          FIRMWARE        REV 
-void FindDeviceEthernet::GetFirmwareRev( const std::string & input, 
+////////////////////////////
+// GET          FIRMWARE        REV
+void FindDeviceEthernet::GetFirmwareRev( const std::string & input,
                                         std::string & firmwareRev )
 {
     if( input.find("FirmwareRev:") != std::string::npos )
@@ -177,10 +177,10 @@ void FindDeviceEthernet::GetFirmwareRev( const std::string & input,
         firmwareRev = ff.at(1);
     }
 }
-        
-//////////////////////////// 
+
+////////////////////////////
 //GET   IP  ADDR
-void FindDeviceEthernet::GetIpAddr( const std::string & input, 
+void FindDeviceEthernet::GetIpAddr( const std::string & input,
                                    std::string & ipAddr )
 {
     if( input.find("Configure-Tcp-Ip::IPv4-Address-1-Current:") != std::string::npos )
@@ -190,10 +190,10 @@ void FindDeviceEthernet::GetIpAddr( const std::string & input,
         ipAddr = ff.at(1);
     }
 }
-        
-//////////////////////////// 
+
+////////////////////////////
 // GET  PORT
-void FindDeviceEthernet::GetPort( const std::string & input, 
+void FindDeviceEthernet::GetPort( const std::string & input,
                                  std::string & port )
 {
     if( input.find("Configure-Tcp-Ip::IPv4-Port-1:") != std::string::npos )
@@ -203,8 +203,8 @@ void FindDeviceEthernet::GetPort( const std::string & input,
         port = ff.at(1);
     }
 }
-        
-//////////////////////////// 
+
+////////////////////////////
 // GET  MAC ADDR
 void FindDeviceEthernet::GetMacAddr( const std::string & input, std::string & mac )
 {
@@ -215,11 +215,11 @@ void FindDeviceEthernet::GetMacAddr( const std::string & input, std::string & ma
         mac = ff.at(1);
 
         //remove the " on the mac
-        std::string searchString( "\"" ); 
+        std::string searchString( "\"" );
         std::string replaceString( "" );
 
         std::string::size_type pos = 0;
-        while ( (pos = mac.find(searchString, pos)) != std::string::npos ) 
+        while ( (pos = mac.find(searchString, pos)) != std::string::npos )
         {
             mac.replace( pos, searchString.size(), replaceString );
             ++pos;
@@ -227,9 +227,9 @@ void FindDeviceEthernet::GetMacAddr( const std::string & input, std::string & ma
     }
 }
 
-//////////////////////////// 
+////////////////////////////
 // GET  INTERFACE   STATUS
-void FindDeviceEthernet::GetInterfaceStatus( const std::string & input, 
+void FindDeviceEthernet::GetInterfaceStatus( const std::string & input,
                         std::string & interfaceStatus )
 {
     if( input.find("InterfaceStatus:") != std::string::npos )
@@ -239,11 +239,11 @@ void FindDeviceEthernet::GetInterfaceStatus( const std::string & input,
         interfaceStatus = ff.at(1);
 
         //remove the " on the interfaceStatus
-        std::string searchString( "\"" ); 
+        std::string searchString( "\"" );
         std::string replaceString( "" );
 
         std::string::size_type pos = 0;
-        while ( (pos = interfaceStatus.find(searchString, pos)) != std::string::npos ) 
+        while ( (pos = interfaceStatus.find(searchString, pos)) != std::string::npos )
         {
             interfaceStatus.replace( pos, searchString.size(), replaceString );
             ++pos;
@@ -251,12 +251,12 @@ void FindDeviceEthernet::GetInterfaceStatus( const std::string & input,
     }
 }
 
-//////////////////////////// 
+////////////////////////////
 // CAMERA     INFO
-std::string FindDeviceEthernet::CameraInfo(const std::string & rawIdStr, 
+std::string FindDeviceEthernet::CameraInfo(const std::string & rawIdStr,
                                            const std::string & frmwRevStr)
 {
-    
+
     const uint16_t rev = help::Str2uShort( frmwRevStr );
 
     // AltaE's don't send the firmware rev, so if
@@ -268,13 +268,13 @@ std::string FindDeviceEthernet::CameraInfo(const std::string & rawIdStr,
     {
         tempRev = 33;
     }
-    
+
     uint16_t fixedId = 6500;
 
     if( std::string::npos != rawIdStr.find("0x") )
     {
         const uint16_t rawId = help::Str2uShort( rawIdStr, true );
-        fixedId = CamModel::MaskRawId( tempRev, rawId );  
+        fixedId = CamModel::MaskRawId( tempRev, rawId );
     }
     else
     {
@@ -290,7 +290,7 @@ std::string FindDeviceEthernet::CameraInfo(const std::string & rawIdStr,
     revStr << std::hex << std::showbase << rev;
 
     std::string modelStr = CamModel::GetPlatformStr( fixedId, true  );
-   
+
     std::string camInfoStr = "id=" + idStr.str() +",firmwareRev=" + revStr.str() +
         ",model=" + modelStr+ "-" + CamModel::GetModelStr(fixedId);
 

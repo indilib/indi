@@ -439,7 +439,7 @@ bool LX200Generic::Disconnect()
 
 bool LX200Generic::isSlewComplete()
 {
-    return ::isSlewComplete(PortFD);
+    return (::isSlewComplete(PortFD) == 1);
 }
 
 bool LX200Generic::ReadScopeStatus()

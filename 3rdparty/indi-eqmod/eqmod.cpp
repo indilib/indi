@@ -41,10 +41,6 @@
 
 #include <indicom.h>
 
-#if defined(__APPLE__)
-#include "mach_gettime.h"
-#endif
-
 #include "eqmod.h"
 #include "eqmoderror.h"
 #include "config.h"

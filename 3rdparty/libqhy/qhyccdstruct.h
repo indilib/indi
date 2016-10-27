@@ -185,7 +185,11 @@ enum CONTROL_ID
 	CAM_VIEW_MODE,
 
 	CONTROL_CFWSLOTSNUM,         //!< check CFW slots number
-	IS_EXPOSING_DONE
+	IS_EXPOSING_DONE,
+	ScreenStretchB,
+	ScreenStretchW,
+	CONTROL_DDR,
+	CAM_LIGHT_PERFORMANCE_MODE
 };
 
 /**

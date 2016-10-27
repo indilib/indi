@@ -40,7 +40,7 @@
 
 #include <errno.h>
 
-#define MAXINDIBUF 8192
+#define MAXINDIBUF 49152
 
 #if defined(  _MSC_VER )
 #define snprintf _snprintf
@@ -119,17 +119,17 @@ bool INDI::BaseClientQt::connectServer()
                 std::cerr << getProp.toLatin1().constData() << std::endl;
         }
     }
-    setlocale(LC_NUMERIC,orig);    
+    setlocale(LC_NUMERIC,orig);
 
-    return true;    
+    return true;
 }
 
 bool INDI::BaseClientQt::disconnectServer()
-{    
+{
     if (sConnected == false)
         return true;
 
-    sConnected = false;    
+    sConnected = false;
 
     client_socket.close();
     if (lillp)
@@ -221,6 +221,10 @@ void INDI::BaseClientQt::listenINDI()
     char buffer[MAXINDIBUF];
     char errorMsg[MAXRBUF];
     int err_code=0;
+    
+    XMLEle **nodes;
+    XMLEle *root;
+    int inode=0;
 
     if (sConnected == false)
         return;
@@ -230,34 +234,39 @@ void INDI::BaseClientQt::listenINDI()
         qint64 readBytes = client_socket.read(buffer, MAXINDIBUF - 1);
         if ( readBytes > 0 )
             buffer[ readBytes ] = '\0';
-
-        for (int i = 0; i < readBytes; i++)
-        {
-            XMLEle *root = readXMLEle (lillp, buffer[i], errorMsg);
-            if (root)
-            {
-                if (verbose)
-                    prXMLEle(stderr, root, 0);
-
-                if ( (err_code = dispatchCommand(root, errorMsg)) < 0)
-                {
-                        // Silenty ignore property duplication errors
-                        if (err_code != INDI_PROPERTY_DUPLICATED)
-                        {
-                            IDLog("Dispatch command error(%d): %s\n", err_code, errorMsg);
-                            prXMLEle (stderr, root, 0);
-                        }
-                }
-
-                delXMLEle (root);	// not yet, delete and continue
-            }
-            else if (errorMsg[0])
-            {
-                IDLog("Bad XML from %s/%d: %s\n%s\n", cServer.c_str(), cPort, errorMsg, buffer);
-                return;
-            }
-        }
-    }    
+	
+	nodes=parseXMLChunk(lillp, buffer, readBytes, errorMsg);
+	if (!nodes) {
+	  if (errorMsg[0])
+	    {
+	      fprintf (stderr, "Bad XML from %s/%d: %s\n%s\n", cServer.c_str(), cPort, errorMsg, buffer);
+	      return;
+	    }
+	  return;
+	}
+	root=nodes[inode];
+	while (root)
+	  {
+	    if (verbose)
+	      prXMLEle(stderr, root, 0);
+	    
+	    if ( (err_code = dispatchCommand(root, errorMsg)) < 0)
+	      {
+		// Silenty ignore property duplication errors
+		if (err_code != INDI_PROPERTY_DUPLICATED)
+		  {
+		    IDLog("Dispatch command error(%d): %s\n", err_code, errorMsg);
+		    prXMLEle (stderr, root, 0);
+		  }
+	      }
+	    
+	    
+	    delXMLEle (root);	// not yet, delete and continue
+	    inode++; root=nodes[inode];
+	  }
+	free(nodes);
+	inode=0;
+    }
 }
 
 int INDI::BaseClientQt::dispatchCommand(XMLEle *root, char * errmsg)
@@ -266,6 +275,9 @@ int INDI::BaseClientQt::dispatchCommand(XMLEle *root, char * errmsg)
         return messageCmd(root, errmsg);
     else if  (!strcmp (tagXMLEle(root), "delProperty"))
         return delPropertyCmd(root, errmsg);
+    // Just ignore any getProperties we might get
+    else if  (!strcmp (tagXMLEle(root), "getProperties"))
+        return INDI_PROPERTY_DUPLICATED;
 
     /* Get the device, if not available, create it */
     INDI::BaseDevice *dp = findDev (root, 1, errmsg);
@@ -466,7 +478,7 @@ void INDI::BaseClientQt::sendNewText (ITextVectorProperty *tvp)
     }
     prop += QString("</newTextVector>\n");
 
-    client_socket.write(prop.toLatin1());    
+    client_socket.write(prop.toLatin1());
 
     setlocale(LC_NUMERIC,orig);
 }
@@ -514,7 +526,7 @@ void INDI::BaseClientQt::sendNewNumber (INumberVectorProperty *nvp)
     }
     prop += QString("</newNumberVector>\n");
 
-    client_socket.write(prop.toLatin1());    
+    client_socket.write(prop.toLatin1());
 
    setlocale(LC_NUMERIC,orig);
 }
@@ -545,7 +557,7 @@ void INDI::BaseClientQt::sendNewNumber (const char *deviceName, const char *prop
 void INDI::BaseClientQt::sendNewSwitch (ISwitchVectorProperty *svp)
 {
     svp->s = IPS_BUSY;
-    ISwitch *onSwitch = IUFindOnSwitch(svp);    
+    ISwitch *onSwitch = IUFindOnSwitch(svp);
 
     QString prop;
 
@@ -609,7 +621,7 @@ void INDI::BaseClientQt::startBlob( const char *devName, const char *propName, c
     prop += QString("  name='%1'\n").arg(propName);
     prop += QString("  timestamp='%1'>\n").arg(timestamp);
 
-    client_socket.write(prop.toLatin1());    
+    client_socket.write(prop.toLatin1());
 }
 
 void INDI::BaseClientQt::sendOneBlob( const char *blobName, unsigned int blobSize, const char *blobFormat, void * blobBuffer)
@@ -625,7 +637,7 @@ void INDI::BaseClientQt::sendOneBlob( const char *blobName, unsigned int blobSiz
 
     client_socket.write(static_cast<char *>(blobBuffer), blobSize);
 
-    client_socket.write("   </oneBLOB>\n");    
+    client_socket.write("   </oneBLOB>\n");
 }
 
 void INDI::BaseClientQt::finishBlob()
@@ -634,7 +646,7 @@ void INDI::BaseClientQt::finishBlob()
 }
 
 void INDI::BaseClientQt::setBLOBMode(BLOBHandling blobH, const char *dev, const char *prop)
-{   
+{
     if (!dev[0])
         return;
 
@@ -658,7 +670,7 @@ void INDI::BaseClientQt::setBLOBMode(BLOBHandling blobH, const char *dev, const 
          break;
      }
 
-     client_socket.write(blobEnableTag.toLatin1());  
+     client_socket.write(blobEnableTag.toLatin1());
 }
 
 void INDI::BaseClientQt::processSocketError( QAbstractSocket::SocketError socketError )

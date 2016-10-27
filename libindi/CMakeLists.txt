@@ -13,9 +13,14 @@ set(CMAKE_INCLUDE_CURRENT_DIR ON)
 include(GNUInstallDirs)
 include(FeatureSummary)
 
-if (NOT WIN32)
+if(ANDROID OR "${CMAKE_SYSTEM_NAME}" STREQUAL "Android")
+  set(ANDROID ON)
+  add_definitions(-DANDROID)
+endif()
+
+if (NOT WIN32 AND NOT ANDROID)
 set(CMAKE_CXX_FLAGS "-std=c++0x ${CMAKE_CXX_FLAGS}")
-endif(NOT WIN32)
+endif(NOT WIN32 AND NOT ANDROID)
 
 #####################################  INDI version  ################################################
 
@@ -48,6 +53,7 @@ set(UDEVRULES_INSTALL_DIR "/lib/udev/rules.d" CACHE STRING "Base directory for u
 #####################################  Build Options  ##############################################
 
 OPTION (INDI_BUILD_UNITTESTS "Build INDI tests" OFF)
+OPTION (INDI_FAST_BLOB "Build INDI with Fast BLOB support" ON)
 
 #####################################  Dependencies  ##############################################
 # ZLib compression Library
@@ -77,6 +83,7 @@ else(WIN32)
 # Math Library
 FIND_LIBRARY(M_LIB m)
 
+if(NOT ANDROID)
 # libusb 1.0+ for USB devices
 FIND_PACKAGE(USB-1 REQUIRED)
 
@@ -91,6 +98,7 @@ if (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
   FIND_PACKAGE(JPEG REQUIRED)
 endif (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
 
+endif(NOT ANDROID)
 endif(WIN32)
 
 # Generate config.h from template
@@ -155,7 +163,7 @@ set (indiclientqt_SRCS
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/baseclientqt.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indiproperty.cpp
     )
-
+if(NOT ANDROID)
 set (indidriver_SRCS
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/basedevice.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/defaultdevice.cpp
@@ -177,6 +185,7 @@ set (indidriver_SRCS
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indicontroller.cpp
 
     )
+endif(NOT ANDROID)
 
 set (lx_SRCS
      ${CMAKE_CURRENT_SOURCE_DIR}/libs/lx/Lx.cpp
@@ -195,33 +204,36 @@ ENDIF()
 # To offer lilxml and communination routines    #
 # Mostly used by generic clients                #
 #################################################
-if (WIN32)
-add_library(indi STATIC ${libindicom_SRCS} ${liblilxml_SRCS})
-else(WIN32)
-add_library(indi SHARED ${libindicom_SRCS} ${liblilxml_SRCS})
-set_target_properties(indi PROPERTIES COMPILE_FLAGS "-fPIC")
-endif(WIN32)
+if (WIN32 OR ANDROID)
+    add_library(indi STATIC ${libindicom_SRCS} ${liblilxml_SRCS})
+else(WIN32 OR ANDROID)
+    add_library(indi SHARED ${libindicom_SRCS} ${liblilxml_SRCS})
+endif(WIN32 OR ANDROID)
+
+if (NOT WIN32)
+    set_target_properties(indi PROPERTIES COMPILE_FLAGS "-fPIC") #Used for Android and Linux
+endif(NOT WIN32)
 
 set_target_properties(indi PROPERTIES VERSION ${CMAKE_INDI_VERSION_STRING} SOVERSION ${INDI_SOVERSION})
 
 target_link_libraries(indi ${NOVA_LIBRARIES} ${M_LIB} ${ZLIB_LIBRARY} ${CFITSIO_LIBRARIES})
 
-if (WIN32)
+if (WIN32 OR ANDROID)
 install(TARGETS indi ARCHIVE DESTINATION lib)
-else(WIN32)
+else(WIN32 OR ANDROID)
 install(TARGETS indi LIBRARY DESTINATION ${LIB_DESTINATION})
-endif(WIN32)
+endif(WIN32 OR ANDROID)
 
 ##################################################
 ########### INDI Client Static Library ###########
 ##################################################
 
-if (NOT WIN32)
+if (NOT WIN32 AND NOT ANDROID)
 add_library(indiclient STATIC ${indiclient_SRCS})
 SET_TARGET_PROPERTIES(indiclient PROPERTIES COMPILE_FLAGS "-fPIC")
 target_link_libraries(indiclient indi ${CMAKE_THREAD_LIBS_INIT})
 install(TARGETS indiclient ARCHIVE DESTINATION ${LIB_DESTINATION})
-endif(NOT WIN32)
+endif(NOT WIN32 AND NOT ANDROID)
 
 ##################################################
 #### INDI Client Static Library Qt5 Backend ######
@@ -239,16 +251,16 @@ target_link_libraries(indiclientqt indi ${CMAKE_THREAD_LIBS_INIT})
 
 qt5_use_modules(indiclientqt Network)
 
-if (WIN32)
+if (WIN32 OR ANDROID)
 install(TARGETS indiclientqt ARCHIVE DESTINATION lib)
-else(WIN32)
+else(WIN32 OR ANDROID)
 install(TARGETS indiclientqt ARCHIVE DESTINATION ${LIB_DESTINATION})
-endif(WIN32)
+endif(WIN32 OR ANDROID)
 
 endif(Qt5Network_FOUND)
 
 # Do not build INDI server and drivers for Windows
-if (NOT WIN32)
+if (NOT WIN32 AND NOT ANDROID)
 ######################################
 ########### INDI SERVER ##############
 ######################################
@@ -290,9 +302,7 @@ install(TARGETS indidriverstatic ARCHIVE DESTINATION ${LIB_DESTINATION})
 ##################################################
 ########### INDI Alignment Subsystem #############
 ##################################################
-if (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/alignment)
-endif()
 
 #####################################
 ######## AGENT GROUP #########
@@ -646,6 +656,16 @@ add_executable(indi_simulator_wheel ${filtersimulator_SRCS})
 target_link_libraries(indi_simulator_wheel indidriver)
 install(TARGETS indi_simulator_wheel RUNTIME DESTINATION bin )
 
+########## Optec Wheel IFW ############
+set(optecwheel_SRCS
+        ${indimain_SRCS}
+        ${CMAKE_CURRENT_SOURCE_DIR}/drivers/filter_wheel/ifwoptec.cpp
+   )
+
+add_executable(indi_optec_wheel ${optecwheel_SRCS})
+target_link_libraries(indi_optec_wheel indidriver)
+install(TARGETS indi_optec_wheel RUNTIME DESTINATION bin )
+
 #################################################################################
 
 #####################################
@@ -720,7 +740,6 @@ add_executable(indi_v4l2_ccd ${v4l2driverccd_SRCS} ${libwebcam_SRCS} ${lx_SRCS})
 target_link_libraries(indi_v4l2_ccd ${JPEG_LIBRARY} indidriver)
 
 install(TARGETS indi_v4l2_ccd RUNTIME DESTINATION bin )
-
 
 endif (CFITSIO_FOUND)
 endif (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
@@ -916,7 +935,10 @@ configure_file(${CMAKE_CURRENT_SOURCE_DIR}/libindi.pc.cmake ${CMAKE_CURRENT_BINA
 install(FILES ${CMAKE_CURRENT_BINARY_DIR}/libindi.pc DESTINATION ${PKGCONFIG_INSTALL_PREFIX})
 
 # End INDI server/drivers/tools build for POSIX systems
-endif (NOT WIN32)
+endif (NOT WIN32 AND NOT ANDROID)
+
+# Do not build anything from the following stuff for Android
+if (NOT ANDROID)
 
 install( FILES
     ${CMAKE_CURRENT_SOURCE_DIR}/indiapi.h
@@ -969,6 +991,14 @@ if (Qt5Network_FOUND)
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/baseclientqt.h
         DESTINATION ${INCLUDE_INSTALL_DIR}/libindi COMPONENT Devel)
 endif(Qt5Network_FOUND)
+
+###################################################################################################
+#########################################  Fast Blob  #############################################
+###################################################################################################
+IF (INDI_FAST_BLOB)
+add_definitions(-DWITH_ENCLEN)
+ENDIF(INDI_FAST_BLOB)
+
 ###################################################################################################
 #########################################  Tests  #################################################
 ###################################################################################################
@@ -985,5 +1015,6 @@ IF (GTEST_FOUND)
 ELSE()
   MESSAGE (STATUS  "GTEST  not found, not building unit tests")
 ENDIF (GTEST_FOUND)
+endif(NOT ANDROID) # End not build anything from the following stuff for Android
 
 feature_summary(WHAT ALL FATAL_ON_MISSING_REQUIRED_PACKAGES)

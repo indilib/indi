@@ -187,6 +187,9 @@ bool XAGYLWheel::Connect()
         int fwver=0;
         int fw_rc = sscanf(resp, "%d", &fwver);
 
+        if (fw_rc != 1)
+            fw_rc = sscanf(resp, "FW %d", &fwver);
+
         if (fw_rc > 0)
         {
             firmwareVersion = fwver;

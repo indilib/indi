@@ -1448,19 +1448,16 @@ void IUSaveConfigBLOB (FILE *fp, const IBLOBVectorProperty *bvp)
         fprintf (fp, "    name='%s'\n", bp->name);
         fprintf (fp, "    size='%d'\n", bp->size);
         fprintf (fp, "    format='%s'>\n", bp->format);
-        fflush(fp); // need to flush - blob will be written unbuffered
 
         encblob = malloc (4*bp->bloblen/3+4);
         l = to64frombits(encblob, bp->blob, bp->bloblen);
-        int fh = fileno(fp);
         size_t written = 0;
         size_t towrite = l;
         while (written < l) {
-            size_t wr = write(fh, encblob + written, towrite);
-            if (wr > 0) {
-                towrite -= wr;
-                written += wr;
-            }
+            towrite = ((l - written) > 72) ? 72 : l - written;
+            size_t wr = fwrite(encblob + written, 1, towrite, fp);
+            fputc('\n',fp);
+            if (wr > 0) written += wr;
         }
         free (encblob);
 
@@ -1917,60 +1914,68 @@ IDSetLight (const ILightVectorProperty *lvp, const char *fmt, ...)
 void
 IDSetBLOB (const IBLOBVectorProperty *bvp, const char *fmt, ...)
 {
-        int i;
+    int i;
 
-        pthread_mutex_lock(&stdout_mutex);
+    pthread_mutex_lock(&stdout_mutex);
 
-        xmlv1();
-        char *orig = setlocale(LC_NUMERIC,"C");
-        printf ("<setBLOBVector\n");
-        printf ("  device='%s'\n", bvp->device);
-        printf ("  name='%s'\n", bvp->name);
-        printf ("  state='%s'\n", pstateStr(bvp->s));
-        printf ("  timeout='%g'\n", bvp->timeout);
-        printf ("  timestamp='%s'\n", timestamp());
-        if (fmt) {
-            va_list ap;
-            va_start (ap, fmt);
-            printf ("  message='");
-            vprintf (fmt, ap);
-            printf ("'\n");
-            va_end (ap);
+    xmlv1();
+    char *orig = setlocale(LC_NUMERIC,"C");
+    printf ("<setBLOBVector\n");
+    printf ("  device='%s'\n", bvp->device);
+    printf ("  name='%s'\n", bvp->name);
+    printf ("  state='%s'\n", pstateStr(bvp->s));
+    printf ("  timeout='%g'\n", bvp->timeout);
+    printf ("  timestamp='%s'\n", timestamp());
+    if (fmt)
+    {
+        va_list ap;
+        va_start (ap, fmt);
+        printf ("  message='");
+        vprintf (fmt, ap);
+        printf ("'\n");
+        va_end (ap);
+    }
+    printf (">\n");
+
+    for (i = 0; i < bvp->nbp; i++)
+    {
+        IBLOB *bp = &bvp->bp[i];
+        unsigned char *encblob;
+        int l;
+
+        printf ("  <oneBLOB\n");
+        printf ("    name='%s'\n", bp->name);
+        printf ("    size='%d'\n", bp->size);
+        //printf ("    format='%s'>\n", bp->format);
+
+        encblob = malloc (4*bp->bloblen/3+4);
+        l = to64frombits(encblob, bp->blob, bp->bloblen);
+        printf ("    enclen='%d'\n", l);
+        printf ("    format='%s'>\n", bp->format);
+        size_t written = 0;
+        size_t towrite = l;
+        while (written < l)
+        {
+            towrite = ((l - written) > 72) ? 72 : l - written;
+            size_t wr = fwrite(encblob + written, 1, towrite, stdout);
+            if (wr > 0) written += wr;
+            if ((written % 72) == 0)
+                fputc('\n', stdout);
         }
-        printf (">\n");
 
-        for (i = 0; i < bvp->nbp; i++) {
-            IBLOB *bp = &bvp->bp[i];
-            unsigned char *encblob;
-            int j, l;
+        if ((written % 72) != 0)
+            fputc('\n', stdout);
 
-            printf ("  <oneBLOB\n");
-            printf ("    name='%s'\n", bp->name);
-            printf ("    size='%d'\n", bp->size);
-            printf ("    format='%s'>\n", bp->format);
-            fflush(stdout); // need to flush - blob will be written unbuffered
+        free (encblob);
 
-            encblob = malloc (4*bp->bloblen/3+4);
-            l = to64frombits(encblob, bp->blob, bp->bloblen);
-            size_t written = 0;
-            size_t towrite = l;
-            while (written < l) {
-                size_t wr = write(1, encblob + written, towrite);
-                if (wr > 0) {
-                    towrite -= wr;
-                    written += wr;
-                }
-            }
-            free (encblob);
+        printf ("  </oneBLOB>\n");
+    }
 
-            printf ("  </oneBLOB>\n");
-        }
+    printf ("</setBLOBVector>\n");
+    setlocale(LC_NUMERIC,orig);
+    fflush (stdout);
 
-  printf ("</setBLOBVector>\n");
-  setlocale(LC_NUMERIC,orig);
-  fflush (stdout);
-
-  pthread_mutex_unlock(&stdout_mutex);
+    pthread_mutex_unlock(&stdout_mutex);
 }
 
 /* tell client to update min/max elements of an existing number vector property */

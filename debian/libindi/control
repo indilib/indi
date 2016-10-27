@@ -5,7 +5,7 @@ Maintainer: Jasem Mutlaq <mutlaqja@ikarustech.com>
 Build-Depends: debhelper (>= 8.1.3~),
  cdbs,
  cmake (>= 2.4.7),
- libcfitsio3-dev,
+ libcfitsio-dev,
  libnova-dev,
  libusb-1.0-0-dev,
  zlib1g-dev,
@@ -24,8 +24,8 @@ Depends: ${shlibs:Depends}, ${misc:Depends},
  indi-bin (>= ${source:Version})
 Pre-Depends: ${misc:Pre-Depends}
 Multi-Arch: same
-conflicts: libindi0
-replaces: libindi0
+conflicts: libindi0, libindi-plugins
+replaces: libindi0, libindi-plugins
 Description: Instrument-Neutral Device Interface library -- shared library
  INDI (Instrument-Neutral Device Interface) is a distributed XML-based
  control protocol designed to operate astronomical instrumentation.

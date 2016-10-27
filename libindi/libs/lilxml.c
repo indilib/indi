@@ -91,6 +91,7 @@ struct _LilXML {
     int delim;				/* attribute value delimiter */
     int lastc;				/* last char (just used wiht skipping)*/
     int skipping;			/* in comment or declaration */
+    int inblob;                         /* in oneBLOB element */
 };
 
 /* internal representation of a (possibly nested) XML element */
@@ -197,6 +198,143 @@ delXMLEle (XMLEle *ep)
 
         /* delete ep itself */
         (*myfree) (ep);
+}
+
+
+//#define WITH_MEMCHR
+XMLEle **parseXMLChunk(LilXML *lp, char *buf, int size, char ynot[]) {
+  XMLEle **nodes=(XMLEle **)malloc(sizeof(XMLEle *));
+  int nnodes=1;
+  *nodes=NULL;
+  char *curr=buf;
+  int s;
+  ynot[0] = '\0';
+
+  if (lp->inblob) {
+    #ifdef WITH_ENCLEN
+    if (size < lp->ce->pcdata.sm - lp->ce->pcdata.sl) {
+      memcpy((void *)(lp->ce->pcdata.s + lp->ce->pcdata.sl), (const void *)buf, size);
+      lp->ce->pcdata.sl += size;
+      return nodes;
+    } else
+      lp->inblob=0;
+    #endif
+    #ifdef WITH_MEMCHR
+    char *ltpos=memchr(buf, '<', size);
+    if (!ltpos) {
+      lp->ce->pcdata.s=(char *)moremem(lp->ce->pcdata.s, lp->ce->pcdata.sm+size);
+      lp->ce->pcdata.sm+=size;
+      memcpy((void *)(lp->ce->pcdata.s + lp->ce->pcdata.sl), (const void *)buf, size);
+      lp->ce->pcdata.sl += size;
+      return nodes;
+    } else
+      lp->inblob=0;
+    #endif    
+  } else { 
+    if (lp->ce) {
+      char *ctag=tagXMLEle(lp->ce);
+      if (ctag && !(strcmp(ctag, "oneBLOB")) && (lp->cs==INCON)) {
+    #ifdef WITH_ENCLEN
+	XMLAtt *blenatt=findXMLAtt (lp->ce, "enclen");
+	if (blenatt) {
+	  int blen;
+	  sscanf(valuXMLAtt(blenatt), "%d", &blen);
+      // if (lp->ce->pcdata.sm < blen) { // always realloc
+	    if (blen % 72 != 0)
+	      blen += (blen/72) + 1; // add room for those '\n'
+	    else
+	      blen += (blen/72);
+	    lp->ce->pcdata.s=(char *)moremem(lp->ce->pcdata.s, blen);
+	    lp->ce->pcdata.sm=blen;  // or always set sm
+	    //}
+	  if (size < blen - lp->ce->pcdata.sl) {
+	    memcpy((void *)(lp->ce->pcdata.s + lp->ce->pcdata.sl), (const void *)buf, size);
+	    lp->ce->pcdata.sl += size;
+	    lp->inblob=1;
+	    return nodes;
+	  }
+	}
+    #endif
+    #ifdef WITH_MEMCHR
+	char *ltpos=memchr(buf, '<', size);
+	if (!ltpos) {
+	  lp->ce->pcdata.s=(char *)moremem(lp->ce->pcdata.s, lp->ce->pcdata.sm+size);
+	  lp->ce->pcdata.sm+=size;
+	  memcpy((void *)(lp->ce->pcdata.s + lp->ce->pcdata.sl), (const void *)buf, size);
+	  lp->ce->pcdata.sl += size;
+	  lp->inblob=1;
+	  return nodes;
+	} else
+	  lp->inblob=0;
+    #endif    	
+      }
+    }
+  }
+  while (curr - buf <size) {
+    char newc=*curr;
+    /* EOF? */
+    if (newc == 0) {
+      sprintf (ynot, "Line %d: early XML EOF", lp->ln);
+      initParser(lp);
+      curr++; continue;
+     }
+
+    /* new line? */
+    if (newc == '\n')
+      lp->ln++;
+
+    /* skip comments and declarations. requires 1 char history */
+    if (!lp->skipping && lp->lastc == '<' && (newc == '?' || newc == '!')) {
+      lp->skipping = 1;
+      lp->lastc = newc;
+      curr++; continue;
+     }
+    if (lp->skipping) {
+      if (newc == '>')
+	lp->skipping = 0;
+      lp->lastc = newc;
+      curr++; continue;
+     }
+    if (newc == '<') {
+      lp->lastc = '<';
+      curr++; continue;
+     }
+
+    /* do a pending '<' first then newc */
+    if (lp->lastc == '<') {
+      if (oneXMLchar (lp, '<', ynot) < 0) {
+	initParser(lp);
+	curr++; continue;
+      }
+      /* N.B. we assume '<' will never result in closure */
+    }
+
+    /* process newc (at last!) */
+    s = oneXMLchar (lp, newc, ynot);
+    if (s == 0) {
+      lp->lastc = newc;
+      curr++; continue;
+    }
+    if (s < 0) {
+      initParser(lp);
+      curr++; continue;
+    }
+    
+    /* Ok! store ce in nodes and we start over.
+     * N.B. up to caller to call delXMLEle with what we return.
+     */
+    nodes[nnodes-1]=lp->ce;
+    nodes=(XMLEle **)realloc(nodes, (nnodes+1)*sizeof(XMLEle *));
+    nodes[nnodes]=NULL;
+    nnodes+=1;
+    lp->ce = NULL;
+    initParser(lp);
+    curr++;
+  }    
+  /* 
+   * N.B. up to caller to free nodes.
+   */  
+  return nodes;
 }
 
 /* process one more character of an XML file.

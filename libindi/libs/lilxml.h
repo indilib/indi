@@ -92,8 +92,17 @@ extern void delLilXML (LilXML *lp);
     \return a pointer to the XML Element to be deleted.
 */
 extern void delXMLEle (XMLEle *e);
+  
+/** \brief Process an XML chunk.
+    \param lp a pointer to a lilxml parser.
+    \param buf buffer to process.
+    \param size size of buf
+    \param errmsg a buffer to store error messages if an error in parsing is encountered.
+    \return return a pointer to a NULL terminated array of parsed XML elements. An array of size 1 with on a NULL element means there is nothing to parse or a parsing is still in progress. A NULL pointer may be returned if a parsing error occurs. Check errmsg for errors if NULL is returned. 
+ */
+extern XMLEle **parseXMLChunk(LilXML *lp, char *buf, int size, char errmsg[]);
 
-/** \brief Process an XML one char at a time.
+  /** \brief Process an XML one char at a time.
     \param lp a pointer to a lilxml parser.
     \param c one character to process.
     \param errmsg a buffer to store error messages if an error in parsing is encounterd.

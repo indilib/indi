@@ -184,7 +184,7 @@ bool GPhotoCCD::initProperties()
 
   IUFillText(&mPortT[0], "PORT" , "Port", "");
   IUFillTextVector(&PortTP, mPortT, NARRAY(mPortT), getDeviceName(),	"DEVICE_PORT" , "Shutter Release", MAIN_CONTROL_TAB, IP_RW, 0, IPS_IDLE);
-  
+
   IUFillNumber(&mMirrorLockN[0], "MIRROR_LOCK_SECONDS" , "Seconds", "%1.0f", 0, 10, 1, 0);
   IUFillNumberVector(&mMirrorLockNP, mMirrorLockN, 1, getDeviceName(),	"MIRROR_LOCK" , "Mirror Lock", MAIN_CONTROL_TAB, IP_RW, 60, IPS_IDLE);
 
@@ -267,7 +267,7 @@ bool GPhotoCCD::updateProperties()
   INDI::CCD::updateProperties();
 
   if (isConnected())
-  {      
+  {
       if (mIsoSP.nsp > 0)
         defineSwitch(&mIsoSP);
       if (mFormatSP.nsp > 0)
@@ -309,7 +309,7 @@ bool GPhotoCCD::updateProperties()
     deleteProperty(mMirrorLockNP.name);
 
     deleteProperty(livePreviewSP.name);
-    deleteProperty(autoFocusSP.name);    
+    deleteProperty(autoFocusSP.name);
     deleteProperty(transferFormatSP.name);
     deleteProperty(FocusMotionSP.name);
     deleteProperty(FocusSpeedNP.name);
@@ -383,7 +383,7 @@ bool GPhotoCCD::ISNewSwitch(const char *dev, const char *name, ISState *states, 
               }
           }
       }
-      
+
       if (!strcmp(name, mFormatSP.name))
       {
           int prevSwitch = IUFindOnSwitchIndex(&mFormatSP);
@@ -460,7 +460,10 @@ bool GPhotoCCD::ISNewSwitch(const char *dev, const char *name, ISState *states, 
               SetTimer(STREAMPOLLMS);
           }
           else
+          {
+              stopLivePreview();
               livePreviewSP.s = IPS_IDLE;
+          }
           IDSetSwitch(&livePreviewSP, NULL);
           return true;
       }
@@ -509,7 +512,7 @@ bool GPhotoCCD::ISNewSwitch(const char *dev, const char *name, ISState *states, 
           opt->prop.sw.s = IPS_OK;
           IDSetSwitch(&opt->prop.sw, NULL);
           return true;
-      }            
+      }
   }
 
   return INDI::CCD::ISNewSwitch(dev, name, states, names, n);
@@ -522,8 +525,8 @@ bool GPhotoCCD::ISNewNumber(const char *dev, const char *name, double values[], 
   {
       if (strstr(name, "FOCUS_"))
           return processFocuserNumber(dev, name, values, names, n);
-      
-      
+
+
       if (!strcmp(name, mMirrorLockNP.name))
       {
           IUUpdateNumber(&mMirrorLockNP, values, names, n);
@@ -570,11 +573,11 @@ bool GPhotoCCD::Connect()
 
   if(PortTP.tp[0].text && strlen(PortTP.tp[0].text)) {
       port = PortTP.tp[0].text;
-      
+
   }
   if (sim == false && ! (gphotodrv = gphoto_open(port)))
   {
-      DEBUG(INDI::Logger::DBG_ERROR, "Can not open camera: Power OK?");
+      DEBUG(INDI::Logger::DBG_ERROR, "Can not open camera: Power OK? If camera is auto-mounted as external disk storage, please unmount it and disable auto-mount.");
       return false;
   }
 
@@ -645,7 +648,7 @@ bool GPhotoCCD::Connect()
     options = gphoto_get_iso(gphotodrv, &max_opts);
   }
 
-  mIsoS = create_switch("ISO", options, max_opts, setidx);    
+  mIsoS = create_switch("ISO", options, max_opts, setidx);
   mIsoSP.sp = mIsoS;
   mIsoSP.nsp = max_opts;
 
@@ -749,7 +752,7 @@ void GPhotoCCD::TimerHit()
 
     if (livePreviewSP.s == IPS_BUSY)
     {
-        bool rc = capturePreview();
+        bool rc = startLivePreview();
 
         if (rc)
             timerID = SetTimer(STREAMPOLLMS);
@@ -847,19 +850,19 @@ void GPhotoCCD::UpdateExtendedOptions (void *p)
 
 void GPhotoCCD::UpdateExtendedOptions (bool force)
 {
-	map<string, cam_opt *>::iterator it;
+    map<string, cam_opt *>::iterator it;
     if(! expTID)
     {
-		for ( it = CamOptions.begin() ; it != CamOptions.end(); it++ )
-		{
-			cam_opt *opt = (*it).second;
+        for ( it = CamOptions.begin() ; it != CamOptions.end(); it++ )
+        {
+            cam_opt *opt = (*it).second;
             if(force || gphoto_widget_changed(opt->widget))
             {
-				gphoto_read_widget(opt->widget);
-				UpdateWidget(opt);
-			}
-		}
-	}
+                gphoto_read_widget(opt->widget);
+                UpdateWidget(opt);
+            }
+        }
+    }
 
     optTID = IEAddTimer (1000, GPhotoCCD::UpdateExtendedOptions, this);
 }
@@ -868,7 +871,7 @@ bool GPhotoCCD::grabImage()
 {
     //char ext[16];
     uint8_t *memptr = PrimaryCCD.getFrameBuffer();
-	size_t memsize;
+    size_t memsize;
     int fd, naxis=2, w, h, bpp=8;
 
     if (sim)
@@ -909,7 +912,7 @@ bool GPhotoCCD::grabImage()
 
     if (transferFormatS[0].s == ISS_ON)
     {
-	    
+
         char tmpfile[] = "/tmp/indi_XXXXXX";
 
         //dcraw can't read from stdin, so we need to write to disk then read it back
@@ -935,8 +938,8 @@ bool GPhotoCCD::grabImage()
 
         /* We're done exposing */
         DEBUG(INDI::Logger::DBG_SESSION, "Exposure done, downloading image...");
-    
-    
+
+
         if(strcasecmp(gphoto_get_file_extension(gphotodrv), "jpg") == 0 ||
            strcasecmp(gphoto_get_file_extension(gphotodrv), "jpeg") == 0)
         {
@@ -957,7 +960,7 @@ bool GPhotoCCD::grabImage()
                     unlink(tmpfile);
                     return false;
                 }
-		
+
                 DEBUGF(INDI::Logger::DBG_DEBUG, "read_dcraw: memsize (%d) naxis (%d) w (%d) h (%d) bpp (%d)", memsize, naxis, w, h, bpp);
 
                 unlink(tmpfile);
@@ -968,6 +971,8 @@ bool GPhotoCCD::grabImage()
         // If subframing is requested
         if (frameInitialized && (PrimaryCCD.getSubH() < PrimaryCCD.getYRes() || PrimaryCCD.getSubW() < PrimaryCCD.getXRes()))
         {
+            DEBUG(INDI::Logger::DBG_DEBUG, "Subframing...");
+
             int subFrameSize  = PrimaryCCD.getSubW() * PrimaryCCD.getSubH() * bpp/8 * ((naxis == 3) ? 3 : 1);
             int oneFrameSize  = PrimaryCCD.getSubW() * PrimaryCCD.getSubH() * bpp/8;
             uint8_t *subframeBuf = (uint8_t *) malloc(subFrameSize);
@@ -1030,7 +1035,7 @@ bool GPhotoCCD::grabImage()
 
     }
     else
-    {        
+    {
         int rc = gphoto_read_exposure(gphotodrv);
 
         if (rc != 0)
@@ -1038,7 +1043,7 @@ bool GPhotoCCD::grabImage()
             DEBUG(INDI::Logger::DBG_ERROR, "Failed to expose.");
             return rc;
         }
-	
+
         /* We're done exposing */
          DEBUG(INDI::Logger::DBG_DEBUG, "Exposure done, downloading image...");
          uint8_t *newMemptr = NULL;
@@ -1066,8 +1071,8 @@ bool GPhotoCCD::grabImage()
 
 ISwitch *GPhotoCCD::create_switch(const char *basestr, char **options, int max_opts, int setidx)
 {
-	int i;
-	ISwitch *sw = (ISwitch *)calloc(sizeof(ISwitch), max_opts);
+    int i;
+    ISwitch *sw = (ISwitch *)calloc(sizeof(ISwitch), max_opts);
     ISwitch *one_sw = sw;
 
     char sw_name[MAXINDINAME];
@@ -1081,121 +1086,121 @@ ISwitch *GPhotoCCD::create_switch(const char *basestr, char **options, int max_o
         sw_state = (i == setidx) ? ISS_ON : ISS_OFF;
 
         IUFillSwitch(one_sw++, sw_name, sw_label, sw_state);
-	}
-	return sw;
+    }
+    return sw;
 }
 
 void GPhotoCCD::UpdateWidget(cam_opt *opt)
 {
-	struct tm *tm;
+    struct tm *tm;
 
     switch(opt->widget->type)
     {
-	case GP_WIDGET_RADIO:
-	case GP_WIDGET_MENU:
-		for (int i = 0; i < opt->widget->choice_cnt; i++)
-			opt->item.sw[i].s = opt->widget->value.index == i ? ISS_ON : ISS_OFF;
-		IDSetSwitch(&opt->prop.sw, NULL);
-		break;
-	case GP_WIDGET_TEXT:
-		free(opt->item.text.text);
-		opt->item.text.text = strdup(opt->widget->value.text);
-		IDSetText(&opt->prop.text, NULL);
-		break;
-	case GP_WIDGET_TOGGLE:
-		if(opt->widget->value.toggle) {
-			opt->item.sw[0].s = ISS_ON;
-			opt->item.sw[0].s = ISS_OFF;
+    case GP_WIDGET_RADIO:
+    case GP_WIDGET_MENU:
+        for (int i = 0; i < opt->widget->choice_cnt; i++)
+            opt->item.sw[i].s = opt->widget->value.index == i ? ISS_ON : ISS_OFF;
+        IDSetSwitch(&opt->prop.sw, NULL);
+        break;
+    case GP_WIDGET_TEXT:
+        free(opt->item.text.text);
+        opt->item.text.text = strdup(opt->widget->value.text);
+        IDSetText(&opt->prop.text, NULL);
+        break;
+    case GP_WIDGET_TOGGLE:
+        if(opt->widget->value.toggle) {
+            opt->item.sw[0].s = ISS_ON;
+            opt->item.sw[0].s = ISS_OFF;
         } else
         {
-			opt->item.sw[0].s = ISS_OFF;
-			opt->item.sw[0].s = ISS_ON;
-		}
-		IDSetSwitch(&opt->prop.sw, NULL);
-		break;
-	case GP_WIDGET_RANGE:
-		opt->item.num.value = opt->widget->value.num;
-		IDSetNumber(&opt->prop.num, NULL);
-		break;
-	case GP_WIDGET_DATE:
-		free(opt->item.text.text);
-		tm = gmtime((time_t *)&opt->widget->value.date);
-		opt->item.text.text = strdup(asctime(tm));
-		IDSetText(&opt->prop.text, NULL);
-		break;
-	default:
-		delete opt;
-		return;
-	}
+            opt->item.sw[0].s = ISS_OFF;
+            opt->item.sw[0].s = ISS_ON;
+        }
+        IDSetSwitch(&opt->prop.sw, NULL);
+        break;
+    case GP_WIDGET_RANGE:
+        opt->item.num.value = opt->widget->value.num;
+        IDSetNumber(&opt->prop.num, NULL);
+        break;
+    case GP_WIDGET_DATE:
+        free(opt->item.text.text);
+        tm = gmtime((time_t *)&opt->widget->value.date);
+        opt->item.text.text = strdup(asctime(tm));
+        IDSetText(&opt->prop.text, NULL);
+        break;
+    default:
+        delete opt;
+        return;
+    }
 }
 
 void GPhotoCCD::AddWidget(gphoto_widget *widget)
 {
-	IPerm perm;
-	struct tm *tm;
+    IPerm perm;
+    struct tm *tm;
 
-	if(! widget)
-		return;
+    if(! widget)
+        return;
 
-	perm = widget->readonly ? IP_RO : IP_RW;
+    perm = widget->readonly ? IP_RO : IP_RW;
 
-	cam_opt *opt = new cam_opt();
-	opt->widget = widget;
+    cam_opt *opt = new cam_opt();
+    opt->widget = widget;
 
     switch(widget->type)
     {
-	case GP_WIDGET_RADIO:
-	case GP_WIDGET_MENU:
-		opt->item.sw = create_switch(widget->name, widget->choices, widget->choice_cnt, widget->value.index);
+    case GP_WIDGET_RADIO:
+    case GP_WIDGET_MENU:
+        opt->item.sw = create_switch(widget->name, widget->choices, widget->choice_cnt, widget->value.index);
         IUFillSwitchVector(&opt->prop.sw, opt->item.sw, widget->choice_cnt, getDeviceName(),
-			widget->name, widget->name, widget->parent, perm, ISR_1OFMANY, 60, IPS_IDLE);
-		IDDefSwitch(&opt->prop.sw, NULL);
-		break;
-	case GP_WIDGET_TEXT:
-		IUFillText(&opt->item.text, widget->name, widget->name, widget->value.text);
+            widget->name, widget->name, widget->parent, perm, ISR_1OFMANY, 60, IPS_IDLE);
+        IDDefSwitch(&opt->prop.sw, NULL);
+        break;
+    case GP_WIDGET_TEXT:
+        IUFillText(&opt->item.text, widget->name, widget->name, widget->value.text);
         IUFillTextVector(&opt->prop.text, &opt->item.text, 1, getDeviceName(),
-			widget->name, widget->name, widget->parent, perm, 60, IPS_IDLE);
-		IDDefText(&opt->prop.text, NULL);
-		break;
-	case GP_WIDGET_TOGGLE:
+            widget->name, widget->name, widget->parent, perm, 60, IPS_IDLE);
+        IDDefText(&opt->prop.text, NULL);
+        break;
+    case GP_WIDGET_TOGGLE:
         opt->item.sw = create_switch(widget->name, (char **)on_off, 2, widget->value.toggle ? 0 : 1);
         IUFillSwitchVector(&opt->prop.sw, opt->item.sw, 2, getDeviceName(),
-			widget->name, widget->name, widget->parent, perm, ISR_1OFMANY, 60, IPS_IDLE);
-		IDDefSwitch(&opt->prop.sw, NULL);
-		break;
-	case GP_WIDGET_RANGE:
-		IUFillNumber(&opt->item.num, widget->name, widget->name, "%5.2f",
-			widget->min, widget->max, widget->step, widget->value.num);
+            widget->name, widget->name, widget->parent, perm, ISR_1OFMANY, 60, IPS_IDLE);
+        IDDefSwitch(&opt->prop.sw, NULL);
+        break;
+    case GP_WIDGET_RANGE:
+        IUFillNumber(&opt->item.num, widget->name, widget->name, "%5.2f",
+            widget->min, widget->max, widget->step, widget->value.num);
         IUFillNumberVector(&opt->prop.num, &opt->item.num, 1, getDeviceName(),
-			widget->name, widget->name, widget->parent, perm, 60, IPS_IDLE);
-		break;
-	case GP_WIDGET_DATE:
-		tm = gmtime((time_t *)&widget->value.date);
-		IUFillText(&opt->item.text, widget->name, widget->name, asctime(tm));
+            widget->name, widget->name, widget->parent, perm, 60, IPS_IDLE);
+        break;
+    case GP_WIDGET_DATE:
+        tm = gmtime((time_t *)&widget->value.date);
+        IUFillText(&opt->item.text, widget->name, widget->name, asctime(tm));
         IUFillTextVector(&opt->prop.text, &opt->item.text, 1, getDeviceName(),
-			widget->name, widget->name, widget->parent, perm, 60, IPS_IDLE);
-		IDDefText(&opt->prop.text, NULL);
-		break;
-	default:
-		delete opt;
-		return;
-	}
-	
-	CamOptions[widget->name] = opt;
-	
+            widget->name, widget->name, widget->parent, perm, 60, IPS_IDLE);
+        IDDefText(&opt->prop.text, NULL);
+        break;
+    default:
+        delete opt;
+        return;
+    }
+
+    CamOptions[widget->name] = opt;
+
 }
 
 void
 GPhotoCCD::ShowExtendedOptions(void)
 {
-	gphoto_widget_list *iter;
+    gphoto_widget_list *iter;
 
-	iter = gphoto_find_all_widgets(gphotodrv);
+    iter = gphoto_find_all_widgets(gphotodrv);
     while(iter)
     {
-		gphoto_widget *widget = gphoto_get_widget_info(gphotodrv, &iter);
-		AddWidget(widget);
-	}
+        gphoto_widget *widget = gphoto_get_widget_info(gphotodrv, &iter);
+        AddWidget(widget);
+    }
 
     gphoto_show_options(gphotodrv);
 
@@ -1207,42 +1212,42 @@ GPhotoCCD::HideExtendedOptions(void)
 {
     if (optTID)
     {
-		IERmTimer(optTID);
-		optTID = 0;
-	}
+        IERmTimer(optTID);
+        optTID = 0;
+    }
 
     while (CamOptions.begin() != CamOptions.end())
     {
-		cam_opt *opt = (*CamOptions.begin()).second;
+        cam_opt *opt = (*CamOptions.begin()).second;
         IDDelete(getDeviceName(), (*CamOptions.begin()).first.c_str(), NULL);
 
         switch(opt->widget->type)
         {
-		case GP_WIDGET_RADIO:
-		case GP_WIDGET_MENU:
-		case GP_WIDGET_TOGGLE:
-			free(opt->item.sw);
-			break;
-		case GP_WIDGET_TEXT:
-		case GP_WIDGET_DATE:
-			free(opt->item.text.text);
-			break;
-		default:
-			break;
-		}
+        case GP_WIDGET_RADIO:
+        case GP_WIDGET_MENU:
+        case GP_WIDGET_TOGGLE:
+            free(opt->item.sw);
+            break;
+        case GP_WIDGET_TEXT:
+        case GP_WIDGET_DATE:
+            free(opt->item.text.text);
+            break;
+        default:
+            break;
+        }
 
-		delete opt;
-		CamOptions.erase(CamOptions.begin());
-	}
+        delete opt;
+        CamOptions.erase(CamOptions.begin());
+    }
 }
 
 IPState GPhotoCCD::MoveFocuser(FocusDirection dir, int speed, uint16_t duration)
 {
- 
+
     INDI_UNUSED(duration);
 
-   /* gphoto works with steps */ 
-   
+   /* gphoto works with steps */
+
     if (sim || speed == 0)
         return IPS_OK;
 
@@ -1275,7 +1280,7 @@ bool GPhotoCCD::SetFocuserSpeed(int speed)
     return false;
 }
 
-bool GPhotoCCD::capturePreview()
+bool GPhotoCCD::startLivePreview()
 {
 
     if (sim)
@@ -1336,6 +1341,14 @@ bool GPhotoCCD::capturePreview()
     }
 
     return true;
+}
+
+bool GPhotoCCD::stopLivePreview()
+{
+    if (sim)
+        return false;
+
+    return (gphoto_stop_preview(gphotodrv) == GP_OK);
 }
 
 bool GPhotoCCD::saveConfigItems(FILE *fp)
