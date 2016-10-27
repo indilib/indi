@@ -1601,15 +1601,11 @@ void INDI::CCD::addFITSKeywords(fitsfile *fptr, CCDChip *targetChip)
     char frame_s[32];
     char dev_name[32];
     char exp_start[32];
-    double min_val, max_val;
     double exposureDuration;
     double pixSize1,pixSize2;
     unsigned int xbin, ybin;
 
     char *orig = setlocale(LC_NUMERIC,"C");
-
-    if (targetChip->getNAxis() == 2)
-        getMinMax(&min_val, &max_val, targetChip);
 
     xbin = targetChip->getBinX();
     ybin = targetChip->getBinY();
@@ -1662,11 +1658,16 @@ void INDI::CCD::addFITSKeywords(fitsfile *fptr, CCDChip *targetChip)
         fits_update_key_s(fptr, TSTRING, "FILTER", filter, "Filter", &status);
     }
 
+#ifdef WITH_MINMAX
     if (targetChip->getNAxis() == 2)
     {
+        double min_val, max_val;
+        getMinMax(&min_val, &max_val, targetChip);
+
         fits_update_key_s(fptr, TDOUBLE, "DATAMIN", &min_val, "Minimum value", &status);
         fits_update_key_s(fptr, TDOUBLE, "DATAMAX", &max_val, "Maximum value", &status);
     }
+#endif
 
     if (HasBayer() && targetChip->getNAxis() == 2)
     {

@@ -54,6 +54,7 @@ set(UDEVRULES_INSTALL_DIR "/lib/udev/rules.d" CACHE STRING "Base directory for u
 
 OPTION (INDI_BUILD_UNITTESTS "Build INDI tests" OFF)
 OPTION (INDI_FAST_BLOB "Build INDI with Fast BLOB support" ON)
+OPTION (INDI_CALCULATE_MINMAX "Calculate and store image minimum and maximum values in FITS header" OFF)
 
 #####################################  Dependencies  ##############################################
 # ZLib compression Library
@@ -996,9 +997,17 @@ endif(Qt5Network_FOUND)
 #########################################  Fast Blob  #############################################
 ###################################################################################################
 IF (INDI_FAST_BLOB)
+# Append ENCLEN attribute to outgoing BLOB elements to enable fast parsing by clients
 add_definitions(-DWITH_ENCLEN)
 ENDIF(INDI_FAST_BLOB)
 
+###################################################################################################
+######################################  Calculate Min/Max #########################################
+###################################################################################################
+IF (INDI_CALCULATE_MINMAX)
+# Calculate Min/Max values to store them in FITS header
+add_definitions(-DWITH_MINMAX)
+ENDIF(INDI_CALCULATE_MINMAX)
 ###################################################################################################
 #########################################  Tests  #################################################
 ###################################################################################################
