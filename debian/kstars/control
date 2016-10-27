@@ -28,6 +28,7 @@ Build-Depends: cmake,
                libindi-dev (>= 1.2.0),
                indi-bin (>= 1.2.0),
                wcslib-dev
+               libraw-dev
 Standards-Version: 3.9.3
 Homepage: http://edu.kde.org/
 
