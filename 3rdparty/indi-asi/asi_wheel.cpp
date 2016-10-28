@@ -63,7 +63,8 @@ void ISInit() {
 				EFWGetID(i, &id);
 				EFWGetProperty(id, &info);
 				EFWClose(i);
-				wheels[i] = new ASIWHEEL(i, info);
+				/* Enumerate FWs if more than one ASI EFW is connected */
+				wheels[i] = new ASIWHEEL(i, info, (bool)(num_wheels-1));
 			}
 		}
 		isInit = true;
@@ -140,15 +141,21 @@ void ISSnoopDevice(XMLEle *root) {
 }
 
 
-ASIWHEEL::ASIWHEEL(int index, EFW_INFO info) {
+ASIWHEEL::ASIWHEEL(int index, EFW_INFO info, bool enumerate) {
+	char str[NAME_MAX];
+	if (enumerate)
+		snprintf(str, sizeof(str), "%s-%d", info.Name, index);
+	else
+		strncpy(str, info.Name, sizeof(str));
+
 	fw_id = -1;
 	fw_index = index;
 	slot_num = info.slotNum;
 	CurrentFilter = 1;
 	FilterSlotN[0].min = 1;
 	FilterSlotN[0].max = info.slotNum;
-	strncpy(name,info.Name,sizeof(name));
-	setDeviceName(info.Name);
+	strncpy(name, str, sizeof(name));
+	setDeviceName(str);
 	setVersion(ASI_VERSION_MAJOR, ASI_VERSION_MINOR);
 }
 

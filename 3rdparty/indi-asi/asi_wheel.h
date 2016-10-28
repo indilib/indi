@@ -24,6 +24,8 @@
 #ifndef __ASI_WHEEL_H
 #define __ASI_WHEEL_H
 
+#define NAME_MAX 100
+
 #include <indifilterwheel.h>
 
 class ASIWHEEL: public INDI::FilterWheel {
@@ -33,7 +35,7 @@ class ASIWHEEL: public INDI::FilterWheel {
 		int slot_num;
 
 	public:
-		ASIWHEEL(int index, EFW_INFO info);
+		ASIWHEEL(int index, EFW_INFO info, bool enumerate);
 		~ASIWHEEL();
 
 		void debugTriggered(bool enable);
@@ -53,7 +55,7 @@ class ASIWHEEL: public INDI::FilterWheel {
 		virtual bool SetFilterNames() { return true; }
 		bool GetFilterNames(const char *);
 
-		char name[100];
+		char name[NAME_MAX];
 };
 
 #endif // __ASI_WHEEL_H
