@@ -29,9 +29,11 @@
 class ASIWHEEL: public INDI::FilterWheel {
 	private:
 		int fw_id;
+		int fw_index;
+		int slot_num;
 
 	public:
-		ASIWHEEL();
+		ASIWHEEL(int index, EFW_INFO info);
 		~ASIWHEEL();
 
 		void debugTriggered(bool enable);
@@ -50,6 +52,8 @@ class ASIWHEEL: public INDI::FilterWheel {
 		void TimerHit();
 		virtual bool SetFilterNames() { return true; }
 		bool GetFilterNames(const char *);
+
+		char name[100];
 };
 
 #endif // __ASI_WHEEL_H
