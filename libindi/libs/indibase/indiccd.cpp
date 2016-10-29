@@ -960,7 +960,7 @@ bool INDI::CCD::ISNewNumber (const char *dev, const char *name, double values[],
 
             if (PrimaryCCD.ImageExposureNP.s==IPS_BUSY)
             {
-                if (AbortExposure() == false)
+                if (CanAbort() && AbortExposure() == false)
                     DEBUG(INDI::Logger::DBG_WARNING, "Warning: Aborting exposure failed.");
             }
 
