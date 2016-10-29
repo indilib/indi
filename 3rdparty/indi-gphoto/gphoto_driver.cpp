@@ -600,7 +600,7 @@ int gphoto_mirrorlock(gphoto_driver *gphoto, int msec)
     //if (gphoto->autoexposuremode_widget && gphoto->autoexposuremode_widget->value.index == 4)
     if (gphoto->bulb_widget && !strcmp(gphoto->bulb_widget->name, "eosremoterelease"))
     {
-        DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG,"eosremoterelease Mirror Lock for %g secs", msec / 1000);
+        DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG,"eosremoterelease Mirror Lock for %g secs", msec / 1000.0);
 
         gphoto_set_widget_num (gphoto, gphoto->bulb_widget, EOS_PRESS_FULL);
         gphoto_set_widget_num (gphoto, gphoto->bulb_widget, EOS_RELEASE_FULL);
