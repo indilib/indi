@@ -1040,7 +1040,7 @@ bool GPhotoCCD::grabImage()
         if (rc != 0)
         {
             DEBUG(INDI::Logger::DBG_ERROR, "Failed to expose.");
-            return rc;
+            return false;
         }
 
         /* We're done exposing */
