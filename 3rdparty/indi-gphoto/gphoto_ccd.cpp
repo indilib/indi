@@ -1040,6 +1040,8 @@ bool GPhotoCCD::grabImage()
         if (rc != 0)
         {
             DEBUG(INDI::Logger::DBG_ERROR, "Failed to expose.");
+            if (strstr(gphoto_get_manufacturer(gphotodrv), "Canon") && mMirrorLockN[0].value == 0)
+                DEBUG(INDI::Logger::DBG_WARNING, "If your camera mirror lock is enabled, you must set a value for the mirror locking duration.");
             return false;
         }
 
