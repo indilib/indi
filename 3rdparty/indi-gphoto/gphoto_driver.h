@@ -88,5 +88,7 @@ int gphoto_capture_preview(gphoto_driver *gphoto,  CameraFile* previewFile, char
 int gphoto_stop_preview(gphoto_driver *gphoto);
 void gphoto_set_debug(const char *name);
 int gphoto_mirrorlock(gphoto_driver *gphoto, int msec);
+const char *gphoto_get_manufacturer(gphoto_driver *gphoto);
+const char *gphoto_get_model(gphoto_driver *gphoto);
 
 #endif

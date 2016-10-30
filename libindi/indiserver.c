@@ -1078,7 +1078,8 @@ readFromClient (ClInfo *cp)
 
     /* read client */
     nr = read (cp->s, buf, sizeof(buf));
-    if (nr <= 0) {
+    if (nr <= 0)
+    {
         if (nr < 0)
         fprintf (stderr, "%s: Client %d: read: %s\n", indi_tstamp(NULL),
                             cp->s, strerror(errno));
@@ -1090,20 +1091,25 @@ readFromClient (ClInfo *cp)
     }
 
     /* process XML, sending when find closure */
-    for (i = 0; i < nr; i++) {
+    for (i = 0; i < nr; i++)
+    {
         char err[1024];
         XMLEle *root = readXMLEle (cp->lp, buf[i], err);
-        if (root) {
+        if (root)
+        {
         char *roottag = tagXMLEle(root);
         const char *dev = findXMLAttValu (root, "device");
         const char *name = findXMLAttValu (root, "name");
         int isblob = !strcmp (tagXMLEle(root), "setBLOBVector");
         Msg *mp;
 
-        if (verbose > 2) {
+        if (verbose > 2)
+        {
             fprintf (stderr, "%s: Client %d: read ",indi_tstamp(NULL),cp->s);
             traceMsg (root);
-        } else if (verbose > 1) {
+        }
+        else if (verbose > 1)
+        {
             fprintf (stderr, "%s: Client %d: read <%s device='%s' name='%s'>\n",
                     indi_tstamp(NULL), cp->s, tagXMLEle(root),
                     findXMLAttValu (root, "device"),
@@ -1115,14 +1121,13 @@ readFromClient (ClInfo *cp)
          *   remote client connections start returning too much.
          */
         if (dev[0])
-                    addClDevice (cp, dev, name, isblob);
+            addClDevice (cp, dev, name, isblob);
         else if (!strcmp (roottag, "getProperties") && !cp->nprops)
             cp->allprops = 1;
 
         /* snag enableBLOB -- send to remote drivers too */
         if (!strcmp (roottag, "enableBLOB"))
-                   // crackBLOB (pcdataXMLEle(root), &cp->blob);
-                     crackBLOBHandling (dev, name, pcdataXMLEle(root), cp);
+            crackBLOBHandling (dev, name, pcdataXMLEle(root), cp);
 
         /* build a new message -- set content iff anyone cares */
         mp = newMsg();
@@ -1138,9 +1143,10 @@ readFromClient (ClInfo *cp)
             q2SDrivers (isblob, dev, name, mp, root);
 
         /* echo new* commands back to other clients */
-        if (!strncmp (roottag, "new", 3)) {
-                    if (q2Clients (cp, isblob, dev, name, mp, root) < 0)
-            shutany++;
+        if (!strncmp (roottag, "new", 3))
+        {
+            if (q2Clients (cp, isblob, dev, name, mp, root) < 0)
+                shutany++;
         }
 
         /* set message content if anyone cares else forget it */
@@ -1150,12 +1156,12 @@ readFromClient (ClInfo *cp)
             freeMsg (mp);
         delXMLEle (root);
 
-        } else if (err[0]) {
+        }
+        else if (err[0])
+        {
         char *ts = indi_tstamp(NULL);
-        fprintf (stderr, "%s: Client %d: XML error: %s\n", ts,
-                                cp->s, err);
-        fprintf (stderr, "%s: Client %d: XML read: %.*s\n", ts,
-                                cp->s, (int)nr, buf);
+        fprintf (stderr, "%s: Client %d: XML error: %s\n", ts, cp->s, err);
+        fprintf (stderr, "%s: Client %d: XML read: %.*s\n", ts, cp->s, (int)nr, buf);
         shutdownClient (cp);
         return (-1);
         }
@@ -1181,82 +1187,81 @@ readFromDriver (DvrInfo *dp)
     
     /* read driver */
     nr = read (dp->rfd, buf, sizeof(buf));
-    if (nr <= 0) {
+    if (nr <= 0)
+    {
         if (nr < 0)
-        fprintf (stderr, "%s: Driver %s: stdin %s\n", indi_tstamp(NULL),
-                            dp->name, strerror(errno));
+            fprintf (stderr, "%s: Driver %s: stdin %s\n", indi_tstamp(NULL), dp->name, strerror(errno));
         else
-        fprintf (stderr, "%s: Driver %s: stdin EOF\n",
-                            indi_tstamp(NULL), dp->name);
-            shutdownDvr (dp, 1);
+            fprintf (stderr, "%s: Driver %s: stdin EOF\n", indi_tstamp(NULL), dp->name);
+
+        shutdownDvr (dp, 1);
         return (-1);
     }
 
     /* process XML chunk */
     nodes=parseXMLChunk(dp->lp, buf, nr, err);
 
-    if (!nodes) {
-      if (err[0]) {
+    if (!nodes)
+    {
+      if (err[0])
+      {
         char *ts = indi_tstamp(NULL);
-        fprintf (stderr, "%s: Driver %s: XML error: %s\n", ts,
-                                dp->name, err);
-        fprintf (stderr, "%s: Driver %s: XML read: %.*s\n", ts,
-                                dp->name, (int)nr, buf);
-                shutdownDvr (dp, 1);
+        fprintf (stderr, "%s: Driver %s: XML error: %s\n", ts, dp->name, err);
+        fprintf (stderr, "%s: Driver %s: XML read: %.*s\n", ts,  dp->name, (int)nr, buf);
+        shutdownDvr (dp, 1);
         return (-1);
-        }
+      }
       return -1;
     }
+
     root=nodes[inode];
     while (root)
     {
-      char *roottag = tagXMLEle(root);
-      const char *dev = findXMLAttValu (root, "device");
-      const char *name = findXMLAttValu (root, "name");
-      int isblob = !strcmp (tagXMLEle(root), "setBLOBVector");
-      Msg *mp;
+        char *roottag = tagXMLEle(root);
+        const char *dev = findXMLAttValu (root, "device");
+        const char *name = findXMLAttValu (root, "name");
+        int isblob = !strcmp (tagXMLEle(root), "setBLOBVector");
+        Msg *mp;
 
-      if (verbose > 2)
+        if (verbose > 2)
         {
-	  fprintf(stderr, "%s: Driver %s: read ", indi_tstamp(0),dp->name);
-	  traceMsg (root);
-        } else
-	if (verbose > 1) {
-	  fprintf (stderr, "%s: Driver %s: read <%s device='%s' name='%s'>\n",
-		   indi_tstamp(NULL), dp->name, tagXMLEle(root),
-		   findXMLAttValu (root, "device"),
-		   findXMLAttValu (root, "name"));
-	}
-      
+            fprintf(stderr, "%s: Driver %s: read ", indi_tstamp(0),dp->name);
+            traceMsg (root);
+        } else if (verbose > 1)
+        {
+                fprintf (stderr, "%s: Driver %s: read <%s device='%s' name='%s'>\n", indi_tstamp(NULL), dp->name, tagXMLEle(root),
+                         findXMLAttValu (root, "device"),
+                         findXMLAttValu (root, "name"));
+        }
 
       /* that's all if driver is just registering a snoop */
       /* JM 2016-05-18: Send getProperties to upstream chained servers as well.*/
       if (!strcmp (roottag, "getProperties"))
-        {
-	  addSDevice (dp, dev, name);
-	  mp = newMsg();
-	  /* send to interested chained servers upstream */
-	  if (q2Servers(NULL, mp, root) < 0)
-	    shutany++;
-	  if (mp->count > 0)
-	    setMsgXMLEle (mp, root);
-	  else
-	    freeMsg (mp);
-	  delXMLEle (root);
-	  inode++; root=nodes[inode];
-	  continue;
-        }
+      {
+          addSDevice (dp, dev, name);
+          mp = newMsg();
+          /* send to interested chained servers upstream */
+          if (q2Servers(NULL, mp, root) < 0)
+              shutany++;
+          if (mp->count > 0)
+              setMsgXMLEle (mp, root);
+          else
+              freeMsg (mp);
+          delXMLEle (root);
+          inode++; root=nodes[inode];
+          continue;
+      }
 
-      /* that's all if driver is just registering a BLOB mode */
+      /* that's all if driver desires to snoop BLOBs from other drivers */
       if (!strcmp (roottag, "enableBLOB"))
-        {
-	  Property *sp = findSDevice (dp, dev, name);
-	  if (sp)
-            crackBLOB (pcdataXMLEle (root), &sp->blob);
-	  delXMLEle (root);
-	  inode++; root=nodes[inode];
-	  continue;
-        }
+      {
+          Property *sp = findSDevice (dp, dev, name);
+          if (sp)
+              crackBLOB (pcdataXMLEle (root), &sp->blob);
+          delXMLEle (root);
+          inode++; root=nodes[inode];
+          continue;
+      }
 
       /* Found a new device? Let's add it to driver info */
       if (dev[0] && isDeviceInDriver(dev, dp) == 0)
@@ -1441,31 +1446,44 @@ q2RDrivers (const char *dev, Msg *mp, XMLEle *root)
 {
     int sawremote = 0;
     DvrInfo *dp;
+    char *roottag = tagXMLEle(root);
 
     /* queue message to each interested driver.
      * N.B. don't send generic getProps to more than one remote driver,
      *   otherwise they all fan out and we get multiple responses back.
      */
-    for (dp = dvrinfo; dp < &dvrinfo[ndvrinfo]; dp++) {
+    for (dp = dvrinfo; dp < &dvrinfo[ndvrinfo]; dp++)
+    {
         int isremote = (dp->pid == REMOTEDVR);
-            if (dp->active == 0)
-                continue;
-        //if (dev[0] && dp->dev[0] && strcmp (dev, dp->dev))
-            if (dev[0] && isDeviceInDriver(dev, dp) == 0)
-                continue;	/* driver known to not support this dev */
+
+        if (dp->active == 0)
+            continue;
+
+        /* driver known to not support this dev */
+        if (dev[0] && isDeviceInDriver(dev, dp) == 0)
+            continue;
+
+        /* already sent generic to another remote */
         if (!dev[0] && isremote && sawremote)
-        continue;	/* already sent generic to another remote */
+            continue;
+
+        /* JM 2016-10-30: Only send enableBLOB to remote drivers */
+        if (isremote == 0 && !strcmp(roottag, "enableBLOB"))
+            continue;
+
         if (isremote)
-        sawremote = 1;
+            sawremote = 1;
 
         /* ok: queue message to this driver */
         mp->count++;
         pushFQ (dp->msgq, mp);
         if (verbose > 1)
-        fprintf (stderr, "%s: Driver %s: queuing responsible for <%s device='%s' name='%s'>\n",
-                    indi_tstamp(NULL), dp->name, tagXMLEle(root),
-                    findXMLAttValu (root, "device"),
-                    findXMLAttValu (root, "name"));
+        {
+            fprintf (stderr, "%s: Driver %s: queuing responsible for <%s device='%s' name='%s'>\n",
+                     indi_tstamp(NULL), dp->name, tagXMLEle(root),
+                     findXMLAttValu (root, "device"),
+                     findXMLAttValu (root, "name"));
+        }
     }
 }
 

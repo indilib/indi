@@ -252,10 +252,8 @@ void GPhotoCCD::ISGetProperties(const char *dev)
 
       ShowExtendedOptions();
 
-      ITextVectorProperty *modelTP = getText("model");
-      if (modelTP && !strcmp(modelTP->label, "model") && strstr(modelTP->tp[0].text, "Canon"))
+      if (strstr(gphoto_get_manufacturer(gphotodrv), "Canon"))
           defineNumber(&mMirrorLockNP);
-
   }
 
   // Add Debug, Simulator, and Configuration controls
@@ -285,16 +283,14 @@ bool GPhotoCCD::updateProperties()
       imageB=imageBP->bp;
 
       // Dummy values until first capture is done
-      SetCCDParams(1280, 1024, 8, 5.4, 5.4);
+      //SetCCDParams(1280, 1024, 8, 5.4, 5.4);
 
     if (sim == false)
     {
         ShowExtendedOptions();
         DEBUG(INDI::Logger::DBG_SESSION, "Please update the camera pixel size in the Image Info section. The camera resolution will be updated after the first exposure is complete.");
 
-        // Only show mirror lock if the camera is canon
-        ITextVectorProperty *modelTP = getText("model");
-        if (modelTP && !strcmp(modelTP->label, "model") && strstr(modelTP->tp[0].text, "Canon"))
+        if (strstr(gphoto_get_manufacturer(gphotodrv), "Canon"))
             defineNumber(&mMirrorLockNP);
     }
 
@@ -653,6 +649,9 @@ bool GPhotoCCD::Connect()
   mIsoSP.nsp = max_opts;
 
   DEBUGF(INDI::Logger::DBG_SESSION, "%s is online.", getDeviceName());
+
+  if (!sim && gphoto_get_manufacturer(gphotodrv) && gphoto_get_model(gphotodrv))
+      DEBUGF(INDI::Logger::DBG_SESSION,"Detected %s Model %s.", gphoto_get_manufacturer(gphotodrv), gphoto_get_model(gphotodrv));
 
   frameInitialized = false;
 
@@ -1041,7 +1040,9 @@ bool GPhotoCCD::grabImage()
         if (rc != 0)
         {
             DEBUG(INDI::Logger::DBG_ERROR, "Failed to expose.");
-            return rc;
+            if (strstr(gphoto_get_manufacturer(gphotodrv), "Canon") && mMirrorLockN[0].value == 0)
+                DEBUG(INDI::Logger::DBG_WARNING, "If your camera mirror lock is enabled, you must set a value for the mirror locking duration.");
+            return false;
         }
 
         /* We're done exposing */
@@ -1355,23 +1356,32 @@ bool GPhotoCCD::saveConfigItems(FILE *fp)
 {
     // First save Device Port
     IUSaveConfigText(fp, &PortTP);
+
     // Second save the CCD Info property
     IUSaveConfigNumber(fp, PrimaryCCD.getCCDInfo());
 
+    // Save regular CCD properties
     INDI::CCD::saveConfigItems(fp);
 
+    // Mirror Locking
     IUSaveConfigNumber(fp, &mMirrorLockNP);
+
+    // ISO Settings
     if (mIsoSP.nsp > 0)
           IUSaveConfigSwitch(fp, &mIsoSP);
+
+    // Format Settings
     if (mFormatSP.nsp > 0)
         IUSaveConfigSwitch(fp, &mFormatSP);
+
+    // Transfer Format
+    IUSaveConfigSwitch(fp, &transferFormatSP);
 
     return true;
 }
 
 void GPhotoCCD::addFITSKeywords(fitsfile *fptr, CCDChip *targetChip)
 {
-
     INDI::CCD::addFITSKeywords(fptr, targetChip);
 
     int status=0;

@@ -1569,6 +1569,9 @@ void* ASICCD::streamVideo()
 
       if ( (ret = ASIGetVideoData(m_camInfo->CameraID, targetFrame, totalBytes, waitMS)) != ASI_SUCCESS)
       {
+          if (ret == ASI_ERROR_TIMEOUT)
+              continue;
+
           DEBUGF(INDI::Logger::DBG_ERROR, "Error reading video data (%d)", ret);
           streamPredicate=0;
           streamer->setStream(false);

@@ -8,6 +8,8 @@ Standards-Version: 3.9.2
 Package: indi-sx
 Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends}, libindi1
+conflicts: firmware-ccd
+replaces: firmware-ccd
 Description: INDI Starlight Xpress CCD and Filter Wheel driver.
  Driver for Startlight XPress CCD and Filter Wheel.
  .

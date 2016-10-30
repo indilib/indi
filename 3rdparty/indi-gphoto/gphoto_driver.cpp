@@ -77,6 +77,9 @@ struct _gphoto_driver
     int             format;
     int             upload_settings;
 
+    char            *model;
+    char            *manufacturer;
+
     gphoto_widget_list	*widgets;
     gphoto_widget_list	*iter;
 
@@ -299,7 +302,7 @@ int gphoto_set_widget_num(gphoto_driver *gphoto, gphoto_widget *widget, float va
 {
     int		ret;
     int		ival = value;
-    const char	*ptr;
+    const char	*ptr = 0;
 
     if (! widget)
     {
@@ -597,7 +600,7 @@ int gphoto_mirrorlock(gphoto_driver *gphoto, int msec)
     //if (gphoto->autoexposuremode_widget && gphoto->autoexposuremode_widget->value.index == 4)
     if (gphoto->bulb_widget && !strcmp(gphoto->bulb_widget->name, "eosremoterelease"))
     {
-        DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG,"eosremoterelease Mirror Lock for %g secs", msec / 1000);
+        DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG,"eosremoterelease Mirror Lock for %g secs", msec / 1000.0);
 
         gphoto_set_widget_num (gphoto, gphoto->bulb_widget, EOS_PRESS_FULL);
         gphoto_set_widget_num (gphoto, gphoto->bulb_widget, EOS_RELEASE_FULL);
@@ -609,7 +612,20 @@ int gphoto_mirrorlock(gphoto_driver *gphoto, int msec)
         return 0;
     }
 
-    // TODO add support for remote serial shutter and other camera types
+    if (gphoto->bulb_port[0]) {
+        DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG, "Locking mirror by opening remote serial shutter port: %s ...", gphoto->bulb_port);
+        gphoto->bulb_fd = open(gphoto->bulb_port, O_RDWR, O_NONBLOCK);
+        if(gphoto->bulb_fd < 0) {
+            DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG, "Failed to open serial port: %s", gphoto->bulb_port);
+            //pthread_mutex_unlock(&gphoto->mutex);
+            return -1;
+        }
+        usleep(20000);
+        close(gphoto->bulb_fd);
+        gphoto->bulb_fd = -1;
+        usleep(msec*1000 - 20000);
+        return 0;
+    }
 
     // Otherwise fail gracefully
     DEBUGDEVICE(device, INDI::Logger::DBG_ERROR,"Mirror lock feature is not yet implemented for this camera model.");
@@ -639,8 +655,8 @@ int gphoto_start_exposure(gphoto_driver *gphoto, unsigned int exptime_msec, int 
     // Set Capture Target
     if (gphoto->capturetarget_widget)
     {
-        // Use RAM
-        if (gphoto->upload_settings == GP_UPLOAD_CLIENT)
+        // Use RAM but NOT on Nikon as it can only work when saving to SD Card
+        if (gphoto->upload_settings == GP_UPLOAD_CLIENT && (strstr(gphoto->manufacturer, "Nikon") == NULL) )
             gphoto_set_widget_num(gphoto, gphoto->capturetarget_widget, 0);
         else
         // Store in SD Card in Camera
@@ -673,10 +689,6 @@ int gphoto_start_exposure(gphoto_driver *gphoto, unsigned int exptime_msec, int 
             }
         }
 
-        // If we have mirror lock enabled, let's lock mirror. Return on failure
-        if (mirror_lock && gphoto_mirrorlock(gphoto, mirror_lock*1000))
-            return -1;
-
         // We set bulb setting for exposure widget if it is defined by the camera
         if (gphoto->bulb_exposure_index != -1)
         {
@@ -687,6 +699,10 @@ int gphoto_start_exposure(gphoto_driver *gphoto, unsigned int exptime_msec, int 
                 gphoto_set_widget_num(gphoto, gphoto->exposure_widget, gphoto->bulb_exposure_index);
             }
         }
+
+        // If we have mirror lock enabled, let's lock mirror. Return on failure
+        if (mirror_lock && gphoto_mirrorlock(gphoto, mirror_lock*1000))
+            return -1;
 
         // If bulb port is specified, let's open it
         if (gphoto->bulb_port[0])
@@ -731,14 +747,6 @@ int gphoto_start_exposure(gphoto_driver *gphoto, unsigned int exptime_msec, int 
         return 0;
     }
 
-    /* FIXME Can't do mirror lock yet in this mode. To be implemented later
-    if (mirror_lock)
-    {
-        // Let's perform mirror locking if required
-        if( gphoto_mirrorlock(gphoto, mirror_lock*1000) || gphoto_mirrorlock(gphoto, 10) )
-            return 1;
-    }*/
-
     DEBUGDEVICE(device, INDI::Logger::DBG_DEBUG,"Using camera predefined exposure ranges.");
 
     // NOT using bulb mode so let's find an exposure time that would closely match the requested exposure time
@@ -747,6 +755,33 @@ int gphoto_start_exposure(gphoto_driver *gphoto, unsigned int exptime_msec, int 
     gphoto_set_widget_num(gphoto, gphoto->exposure_widget, idx);
     DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG,"Using predefined exposure time: %g seconds", gphoto->exposure[idx]);
 
+    // Lock the mirror if required.
+    if (mirror_lock && gphoto_mirrorlock(gphoto, mirror_lock*1000))
+      return -1;
+
+    // If bulb port is specified, a serial shutter control is required to start the exposure. Treat this as a bulb exposure.
+    if (gphoto->bulb_port[0]) {
+        DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG, "Opening remote serial shutter port: %s ...", gphoto->bulb_port);
+        gphoto->bulb_fd = open(gphoto->bulb_port, O_RDWR, O_NONBLOCK);
+        if (gphoto->bulb_fd < 0) {
+            DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG, "Failed to open serial port: %s", gphoto->bulb_port);
+            pthread_mutex_unlock(&gphoto->mutex);
+            return -1;
+        }
+        // Preparing exposure: we let stop_bulb() close the serial port although this could be done here as well
+        // because the camera closes the shutter.
+        gettimeofday(&gphoto->bulb_end, NULL);
+        unsigned int usec = gphoto->bulb_end.tv_usec + exptime_msec % 1000 * 1000;
+        gphoto->bulb_end.tv_sec = gphoto->bulb_end.tv_sec + exptime_msec / 1000 + usec / 1000000;
+        gphoto->bulb_end.tv_usec = usec % 1000000;
+
+        // Start actual exposure
+        gphoto->command = DSLR_CMD_BULB_CAPTURE;
+        pthread_cond_signal(&gphoto->signal);
+        pthread_mutex_unlock(&gphoto->mutex);
+        DEBUGDEVICE(device, INDI::Logger::DBG_DEBUG,"Exposure started");
+        return 0;
+    }
     gphoto->command = DSLR_CMD_CAPTURE;
     pthread_cond_signal(&gphoto->signal);
     pthread_mutex_unlock(&gphoto->mutex);
@@ -948,6 +983,8 @@ gphoto_driver *gphoto_open(const char *shutter_release_port)
 
     gphoto->format_widget = find_widget(gphoto, "imageformat");
     gphoto->format = -1;
+    gphoto->manufacturer = NULL;
+    gphoto->model = NULL;
     gphoto->upload_settings = GP_UPLOAD_CLIENT;
 
     if (gphoto->format_widget != NULL)
@@ -1003,7 +1040,24 @@ gphoto_driver *gphoto_open(const char *shutter_release_port)
     {
         DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG,"ViewFinder Widget: %s", gphoto->viewfinder_widget->name);
         DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG,"Current ViewFinder Value: %s", (gphoto->viewfinder_widget->value.toggle == 0) ? "Off" : "On");
+    }    
+
+    // Find Manufacturer
+    if ( (widget = find_widget(gphoto,"manufacturer")) != NULL )
+    {
+        DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG,"Manufacturer: %s", widget->value.text);
+        gphoto->manufacturer = widget->value.text;
     }
+
+    // Find Model
+    if ( (widget = find_widget(gphoto,"cameramodel")) != NULL || (widget = find_widget(gphoto,"model")) != NULL )
+    {
+        DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG,"Model: %s", widget->value.text);
+        gphoto->model = widget->value.text;
+    }
+    // Make sure manufacturer is set to something useful
+    if (gphoto->manufacturer == NULL)
+        gphoto->manufacturer = gphoto->model;
 
     // Check for user
     if(shutter_release_port)
@@ -1021,7 +1075,7 @@ gphoto_driver *gphoto_open(const char *shutter_release_port)
 
     gphoto->bulb_fd = -1;
 
-    DEBUGDEVICE(device, INDI::Logger::DBG_DEBUG,"GPhoto initialized.");
+    DEBUGDEVICE(device, INDI::Logger::DBG_DEBUG,"GPhoto initialized.");    
 
     pthread_mutex_init(&gphoto->mutex, NULL);
     pthread_cond_init(&gphoto->signal, NULL);
@@ -1438,6 +1492,15 @@ out:
     return ret;
 }
 
+const char *gphoto_get_manufacturer(gphoto_driver *gphoto)
+{
+    return gphoto->manufacturer;
+}
+
+const char *gphoto_get_model(gphoto_driver *gphoto)
+{
+    return gphoto->model;
+}
 
 #ifdef GPHOTO_TEST
 #include <getopt.h>
