@@ -23,6 +23,6 @@ install:
 
 script:
     - pwd
-    - cd build/libindi/test
+    - cd libindi/test
     - ctest -V
 
