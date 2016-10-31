@@ -62,7 +62,7 @@ void ISInit() {
 				EFWOpen(i);
 				EFWGetID(i, &id);
 				EFWGetProperty(id, &info);
-				EFWClose(i);
+				EFWClose(id);
 				/* Enumerate FWs if more than one ASI EFW is connected */
 				wheels[i] = new ASIWHEEL(i, info, (bool)(num_wheels-1));
 			}
