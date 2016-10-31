@@ -598,12 +598,9 @@ bool QHYCCD::Connect()
         ret &= IsQHYCCDControlAvailable(camhandle,CAM_BIN2X2MODE);
         ret &= IsQHYCCDControlAvailable(camhandle,CAM_BIN3X3MODE);
         ret &= IsQHYCCDControlAvailable(camhandle,CAM_BIN4X4MODE);
-        if(ret == QHYCCD_SUCCESS)
-        {
-            cap |= CCD_CAN_BIN;
-        }
-        else
-            useSoftBin = true;
+
+        // Only use software binning if NOT supported by hardware
+        useSoftBin = !(ret == QHYCCD_SUCCESS);
 
         DEBUGF(INDI::Logger::DBG_DEBUG, "Binning Control: %s", cap & CCD_CAN_BIN ? "True" : "False");        
 
@@ -923,12 +920,9 @@ bool QHYCCD::UpdateCCDBin(int hor, int ver)
         return false;
     }
 
-    //PrimaryCCD.setBin(hor,ver);
-    //camxbin = hor;
-    //camybin = ver;
-    //return UpdateCCDFrame(PrimaryCCD.getSubX(), PrimaryCCD.getSubY(), PrimaryCCD.getSubW(), PrimaryCCD.getSubH());
-
-    if(hor == 1 && ver == 1)
+    if (useSoftBin)
+        ret = QHYCCD_SUCCESS;
+    else if(hor == 1 && ver == 1)
     {
         ret = IsQHYCCDControlAvailable(camhandle,CAM_BIN1X1MODE);
     }
