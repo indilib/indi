@@ -69,54 +69,6 @@
 		593445CD1CF8EFC8008AD945 /* qhy_ccd.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 593445C91CF8EFC8008AD945 /* qhy_ccd.cpp */; };
 		593445CE1CF8EFC8008AD945 /* qhy_fw.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 593445CB1CF8EFC8008AD945 /* qhy_fw.cpp */; };
 		593445CF1CF8EFCE008AD945 /* indi_qhy.xml in Resources */ = {isa = PBXBuildFile; fileRef = 593445C81CF8EFC8008AD945 /* indi_qhy.xml */; };
-		593445D21CF8F008008AD945 /* indi_qhy_ccd in Copy Files (33 items) (53 items) */ = {isa = PBXBuildFile; fileRef = 593445C51CF8EF62008AD945 /* indi_qhy_ccd */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
-		593446031CF8F029008AD945 /* IC90A.HEX in Resources */ = {isa = PBXBuildFile; fileRef = 593445D41CF8F029008AD945 /* IC90A.HEX */; };
-		593446041CF8F029008AD945 /* IC8300.HEX in Resources */ = {isa = PBXBuildFile; fileRef = 593445D51CF8F029008AD945 /* IC8300.HEX */; };
-		593446051CF8F029008AD945 /* IC16200A.HEX in Resources */ = {isa = PBXBuildFile; fileRef = 593445D61CF8F029008AD945 /* IC16200A.HEX */; };
-		593446061CF8F029008AD945 /* IC16803.HEX in Resources */ = {isa = PBXBuildFile; fileRef = 593445D71CF8F029008AD945 /* IC16803.HEX */; };
-		593446071CF8F029008AD945 /* IMG0H.HEX in Resources */ = {isa = PBXBuildFile; fileRef = 593445D81CF8F029008AD945 /* IMG0H.HEX */; };
-		593446081CF8F029008AD945 /* IMG2P.HEX in Resources */ = {isa = PBXBuildFile; fileRef = 593445D91CF8F029008AD945 /* IMG2P.HEX */; };
-		593446091CF8F029008AD945 /* IMG2S.HEX in Resources */ = {isa = PBXBuildFile; fileRef = 593445DA1CF8F029008AD945 /* IMG2S.HEX */; };
-		5934460A1CF8F029008AD945 /* IMG50.HEX in Resources */ = {isa = PBXBuildFile; fileRef = 593445DB1CF8F029008AD945 /* IMG50.HEX */; };
-		5934460B1CF8F029008AD945 /* miniCam5.HEX in Resources */ = {isa = PBXBuildFile; fileRef = 593445DC1CF8F029008AD945 /* miniCam5.HEX */; };
-		5934460C1CF8F029008AD945 /* POLEMASTER.HEX in Resources */ = {isa = PBXBuildFile; fileRef = 593445DD1CF8F029008AD945 /* POLEMASTER.HEX */; };
-		5934460D1CF8F029008AD945 /* QHY2.HEX in Resources */ = {isa = PBXBuildFile; fileRef = 593445DE1CF8F029008AD945 /* QHY2.HEX */; };
-		5934460E1CF8F029008AD945 /* QHY2E.HEX in Resources */ = {isa = PBXBuildFile; fileRef = 593445DF1CF8F029008AD945 /* QHY2E.HEX */; };
-		5934460F1CF8F029008AD945 /* QHY2PRO.HEX in Resources */ = {isa = PBXBuildFile; fileRef = 593445E01CF8F029008AD945 /* QHY2PRO.HEX */; };
-		593446101CF8F029008AD945 /* QHY5.HEX in Resources */ = {isa = PBXBuildFile; fileRef = 593445E11CF8F029008AD945 /* QHY5.HEX */; };
-		593446111CF8F029008AD945 /* QHY5II.HEX in Resources */ = {isa = PBXBuildFile; fileRef = 593445E21CF8F029008AD945 /* QHY5II.HEX */; };
-		593446121CF8F029008AD945 /* QHY5III174.img in Resources */ = {isa = PBXBuildFile; fileRef = 593445E31CF8F029008AD945 /* QHY5III174.img */; };
-		593446131CF8F029008AD945 /* QHY5III178.img in Resources */ = {isa = PBXBuildFile; fileRef = 593445E41CF8F029008AD945 /* QHY5III178.img */; };
-		593446141CF8F029008AD945 /* QHY5III185.img in Resources */ = {isa = PBXBuildFile; fileRef = 593445E51CF8F029008AD945 /* QHY5III185.img */; };
-		593446151CF8F029008AD945 /* QHY5III224.img in Resources */ = {isa = PBXBuildFile; fileRef = 593445E61CF8F029008AD945 /* QHY5III224.img */; };
-		593446161CF8F029008AD945 /* QHY5III290.img in Resources */ = {isa = PBXBuildFile; fileRef = 593445E71CF8F029008AD945 /* QHY5III290.img */; };
-		593446171CF8F029008AD945 /* QHY5LOADER.HEX in Resources */ = {isa = PBXBuildFile; fileRef = 593445E81CF8F029008AD945 /* QHY5LOADER.HEX */; };
-		593446181CF8F029008AD945 /* QHY6.HEX in Resources */ = {isa = PBXBuildFile; fileRef = 593445E91CF8F029008AD945 /* QHY6.HEX */; };
-		593446191CF8F029008AD945 /* QHY7.HEX in Resources */ = {isa = PBXBuildFile; fileRef = 593445EA1CF8F029008AD945 /* QHY7.HEX */; };
-		5934461A1CF8F029008AD945 /* QHY8.HEX in Resources */ = {isa = PBXBuildFile; fileRef = 593445EB1CF8F029008AD945 /* QHY8.HEX */; };
-		5934461B1CF8F029008AD945 /* QHY8L.HEX in Resources */ = {isa = PBXBuildFile; fileRef = 593445EC1CF8F029008AD945 /* QHY8L.HEX */; };
-		5934461C1CF8F029008AD945 /* QHY8M.HEX in Resources */ = {isa = PBXBuildFile; fileRef = 593445ED1CF8F029008AD945 /* QHY8M.HEX */; };
-		5934461D1CF8F029008AD945 /* QHY8PRO.HEX in Resources */ = {isa = PBXBuildFile; fileRef = 593445EE1CF8F029008AD945 /* QHY8PRO.HEX */; };
-		5934461E1CF8F029008AD945 /* QHY9S.HEX in Resources */ = {isa = PBXBuildFile; fileRef = 593445EF1CF8F029008AD945 /* QHY9S.HEX */; };
-		5934461F1CF8F029008AD945 /* QHY10.HEX in Resources */ = {isa = PBXBuildFile; fileRef = 593445F01CF8F029008AD945 /* QHY10.HEX */; };
-		593446201CF8F029008AD945 /* QHY11.HEX in Resources */ = {isa = PBXBuildFile; fileRef = 593445F11CF8F029008AD945 /* QHY11.HEX */; };
-		593446211CF8F029008AD945 /* QHY12.HEX in Resources */ = {isa = PBXBuildFile; fileRef = 593445F21CF8F029008AD945 /* QHY12.HEX */; };
-		593446221CF8F029008AD945 /* QHY15.HEX in Resources */ = {isa = PBXBuildFile; fileRef = 593445F31CF8F029008AD945 /* QHY15.HEX */; };
-		593446231CF8F029008AD945 /* QHY16.HEX in Resources */ = {isa = PBXBuildFile; fileRef = 593445F41CF8F029008AD945 /* QHY16.HEX */; };
-		593446241CF8F029008AD945 /* QHY20.HEX in Resources */ = {isa = PBXBuildFile; fileRef = 593445F51CF8F029008AD945 /* QHY20.HEX */; };
-		593446251CF8F029008AD945 /* QHY21.HEX in Resources */ = {isa = PBXBuildFile; fileRef = 593445F61CF8F029008AD945 /* QHY21.HEX */; };
-		593446261CF8F029008AD945 /* QHY22.HEX in Resources */ = {isa = PBXBuildFile; fileRef = 593445F71CF8F029008AD945 /* QHY22.HEX */; };
-		593446271CF8F029008AD945 /* QHY23.HEX in Resources */ = {isa = PBXBuildFile; fileRef = 593445F81CF8F029008AD945 /* QHY23.HEX */; };
-		593446281CF8F029008AD945 /* QHY27.HEX in Resources */ = {isa = PBXBuildFile; fileRef = 593445F91CF8F029008AD945 /* QHY27.HEX */; };
-		593446291CF8F029008AD945 /* QHY28.HEX in Resources */ = {isa = PBXBuildFile; fileRef = 593445FA1CF8F029008AD945 /* QHY28.HEX */; };
-		5934462A1CF8F029008AD945 /* QHY29.HEX in Resources */ = {isa = PBXBuildFile; fileRef = 593445FB1CF8F029008AD945 /* QHY29.HEX */; };
-		5934462B1CF8F029008AD945 /* QHY163.img in Resources */ = {isa = PBXBuildFile; fileRef = 593445FC1CF8F029008AD945 /* QHY163.img */; };
-		5934462C1CF8F029008AD945 /* QHY174.img in Resources */ = {isa = PBXBuildFile; fileRef = 593445FD1CF8F029008AD945 /* QHY174.img */; };
-		5934462D1CF8F029008AD945 /* QHY178.img in Resources */ = {isa = PBXBuildFile; fileRef = 593445FE1CF8F029008AD945 /* QHY178.img */; };
-		5934462E1CF8F029008AD945 /* QHY224.img in Resources */ = {isa = PBXBuildFile; fileRef = 593445FF1CF8F029008AD945 /* QHY224.img */; };
-		5934462F1CF8F029008AD945 /* QHY290.img in Resources */ = {isa = PBXBuildFile; fileRef = 593446001CF8F029008AD945 /* QHY290.img */; };
-		593446301CF8F029008AD945 /* QHY16000.HEX in Resources */ = {isa = PBXBuildFile; fileRef = 593446011CF8F029008AD945 /* QHY16000.HEX */; };
-		593446311CF8F029008AD945 /* QHY160002AD.HEX in Resources */ = {isa = PBXBuildFile; fileRef = 593446021CF8F029008AD945 /* QHY160002AD.HEX */; };
 		593447B11CF8F2BB008AD945 /* cjson.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 593446F41CF8F2BB008AD945 /* cjson.cpp */; };
 		593447B21CF8F2BB008AD945 /* cmosdll.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 593446F61CF8F2BB008AD945 /* cmosdll.cpp */; };
 		593447B31CF8F2BB008AD945 /* dithercontrol.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 593446F81CF8F2BB008AD945 /* dithercontrol.cpp */; };
@@ -947,13 +899,6 @@
 			proxyType = 1;
 			remoteGlobalIDString = 9DDA43A81A8CD3190004AA95;
 			remoteInfo = indi;
-		};
-		593445D01CF8EFFC008AD945 /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = 594D0B2B188300ED00B50F4E /* Project object */;
-			proxyType = 1;
-			remoteGlobalIDString = 593445B11CF8EF62008AD945;
-			remoteInfo = indi_qhy_ccd;
 		};
 		593448151CF9E4E6008AD945 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -2614,7 +2559,6 @@
 				590AD2DC1CFDFE30008D5367 /* indi_smartfocus_focus in Copy Files (33 items) (53 items) */,
 				590AD2C71CFDFD12008D5367 /* indi_skywatcherAPIMount in Copy Files (33 items) (53 items) */,
 				593448241CF9E508008AD945 /* indi_script_telescope in Copy Files (33 items) (53 items) */,
-				593445D21CF8F008008AD945 /* indi_qhy_ccd in Copy Files (33 items) (53 items) */,
 				59563CCC1CF20A3800DE1A54 /* indi_ssag_ccd in Copy Files (33 items) (53 items) */,
 				59C3D6811CF07E7200974D80 /* indi_nstep_focus in Copy Files (33 items) (53 items) */,
 				598786B81CE735FF00DF2294 /* indi_fli_ccd in Copy Files (33 items) (53 items) */,
@@ -6019,7 +5963,6 @@
 				590AD2DB1CFDFE22008D5367 /* PBXTargetDependency */,
 				590AD2C61CFDFD05008D5367 /* PBXTargetDependency */,
 				593448261CF9E510008AD945 /* PBXTargetDependency */,
-				593445D11CF8EFFC008AD945 /* PBXTargetDependency */,
 				59563CCB1CF20A2A00DE1A54 /* PBXTargetDependency */,
 				59C3D6831CF07E7B00974D80 /* PBXTargetDependency */,
 				598786BC1CE7361000DF2294 /* PBXTargetDependency */,
@@ -7428,80 +7371,33 @@
 			files = (
 				590AD30C1CFE01D0008D5367 /* indi-shelyak.xml in Resources */,
 				59563CC91CF209F600DE1A54 /* indi_ssag.xml in Resources */,
-				593446031CF8F029008AD945 /* IC90A.HEX in Resources */,
-				5934461E1CF8F029008AD945 /* QHY9S.HEX in Resources */,
-				5934460F1CF8F029008AD945 /* QHY2PRO.HEX in Resources */,
-				5934461B1CF8F029008AD945 /* QHY8L.HEX in Resources */,
-				5934462A1CF8F029008AD945 /* QHY29.HEX in Resources */,
-				593446181CF8F029008AD945 /* QHY6.HEX in Resources */,
 				591C90EA1C13746D00FCE596 /* indi_sbig.xml in Resources */,
 				594499611C136CE300E0E281 /* indi_asi.xml in Resources */,
-				593446211CF8F029008AD945 /* QHY12.HEX in Resources */,
-				593446171CF8F029008AD945 /* QHY5LOADER.HEX in Resources */,
 				59567C5C1A8D34E90057A35A /* indi_aagcloudwatcher_sk.xml in Resources */,
-				5934462F1CF8F029008AD945 /* QHY290.img in Resources */,
-				5934460E1CF8F029008AD945 /* QHY2E.HEX in Resources */,
 				5924ACFF1C8B458500750816 /* indi_nexstarevo.xml in Resources */,
 				59567CB21A8D3D3B0057A35A /* indi_spectracyber.xml in Resources */,
-				593446091CF8F029008AD945 /* IMG2S.HEX in Resources */,
-				593446291CF8F029008AD945 /* QHY28.HEX in Resources */,
 				59567C981A8D3B900057A35A /* indi_eqmod_scope_limits_sk.xml in Resources */,
-				593446311CF8F029008AD945 /* QHY160002AD.HEX in Resources */,
 				9D0B2A8D1A8D21B300ED17BF /* indi_tcfs_sk.xml in Resources */,
-				593446301CF8F029008AD945 /* QHY16000.HEX in Resources */,
-				593446081CF8F029008AD945 /* IMG2P.HEX in Resources */,
-				593446241CF8F029008AD945 /* QHY20.HEX in Resources */,
 				598786161CE7204B00DF2294 /* indi_fli.xml in Resources */,
 				59567C5D1A8D34E90057A35A /* indi_aagcloudwatcher.xml in Resources */,
 				59567C971A8D3B900057A35A /* indi_eqmod.xml in Resources */,
-				593446061CF8F029008AD945 /* IC16803.HEX in Resources */,
-				593446071CF8F029008AD945 /* IMG0H.HEX in Resources */,
 				596EBB59188AC60700190323 /* InfoPlist.strings in Resources */,
 				59C11FC319B50AEE00B21125 /* AppIcon.icns in Resources */,
 				59567CAB1A8D3CC20057A35A /* AlignData.xml in Resources */,
-				5934462C1CF8F029008AD945 /* QHY174.img in Resources */,
 				596556E91C4A4A0B0044680B /* indi_qsi.xml in Resources */,
-				5934462E1CF8F029008AD945 /* QHY224.img in Resources */,
-				593446161CF8F029008AD945 /* QHY5III290.img in Resources */,
 				59567CAC1A8D3CC20057A35A /* indi_align_sk.xml in Resources */,
-				593446201CF8F029008AD945 /* QHY11.HEX in Resources */,
 				596EBB58188AC60700190323 /* Credits.rtf in Resources */,
-				593446151CF8F029008AD945 /* QHY5III224.img in Resources */,
-				593446221CF8F029008AD945 /* QHY15.HEX in Resources */,
-				5934460A1CF8F029008AD945 /* IMG50.HEX in Resources */,
-				593446281CF8F029008AD945 /* QHY27.HEX in Resources */,
-				5934460B1CF8F029008AD945 /* miniCam5.HEX in Resources */,
 				59567C991A8D3B900057A35A /* indi_eqmod_simulator_sk.xml in Resources */,
-				593446131CF8F029008AD945 /* QHY5III178.img in Resources */,
 				9DDA440C1A8D00E10004AA95 /* drivers.xml in Resources */,
-				5934461F1CF8F029008AD945 /* QHY10.HEX in Resources */,
-				593446041CF8F029008AD945 /* IC8300.HEX in Resources */,
 				59567C5B1A8D34E40057A35A /* indi_sx.xml in Resources */,
 				59567C961A8D3B900057A35A /* indi_eqmod_sk.xml in Resources */,
 				59567CF61A8D40BC0057A35A /* indi_shoestring.xml in Resources */,
-				593446101CF8F029008AD945 /* QHY5.HEX in Resources */,
-				5934462B1CF8F029008AD945 /* QHY163.img in Resources */,
-				5934462D1CF8F029008AD945 /* QHY178.img in Resources */,
-				593446231CF8F029008AD945 /* QHY16.HEX in Resources */,
-				593446271CF8F029008AD945 /* QHY23.HEX in Resources */,
 				59567CF21A8D409E0057A35A /* indi_usbfocus.xml in Resources */,
 				59567CB11A8D3D3B0057A35A /* indi_spectracyber_sk.xml in Resources */,
-				593446121CF8F029008AD945 /* QHY5III174.img in Resources */,
-				593446191CF8F029008AD945 /* QHY7.HEX in Resources */,
-				593446261CF8F029008AD945 /* QHY22.HEX in Resources */,
-				5934460D1CF8F029008AD945 /* QHY2.HEX in Resources */,
-				5934461D1CF8F029008AD945 /* QHY8PRO.HEX in Resources */,
-				593446111CF8F029008AD945 /* QHY5II.HEX in Resources */,
-				593446051CF8F029008AD945 /* IC16200A.HEX in Resources */,
 				593445CF1CF8EFCE008AD945 /* indi_qhy.xml in Resources */,
-				593446141CF8F029008AD945 /* QHY5III185.img in Resources */,
 				59567CFD1A8D41000057A35A /* indi_atik.xml in Resources */,
-				5934460C1CF8F029008AD945 /* POLEMASTER.HEX in Resources */,
-				5934461A1CF8F029008AD945 /* QHY8.HEX in Resources */,
 				5979B2F9188ACE7200360C07 /* MainMenu.xib in Resources */,
 				59567CB51A8D3D500057A35A /* indi_maxdomeii.xml in Resources */,
-				5934461C1CF8F029008AD945 /* QHY8M.HEX in Resources */,
-				593446251CF8F029008AD945 /* QHY21.HEX in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -7520,7 +7416,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "cd \"${BUILT_PRODUCTS_DIR}/${CONTENTS_FOLDER_PATH}/MacOS\"\n\nrm -f indi_lx200classic indi_lx200autostar indi_lx200_16 indi_lx200gps indi_lx200ap indi_lx200gemini indi_lx200zeq25 indi_lx200pulsar2 indi_lx200fs2 indi_lx200ss2000pc indi_tcfs3_focus\n\nln -s indi_lx200generic indi_lx200classic\nln -s indi_lx200generic indi_lx200autostar\nln -s indi_lx200generic indi_lx200_16\nln -s indi_lx200generic indi_lx200gps\nln -s indi_lx200generic indi_lx200ap\nln -s indi_lx200generic indi_lx200gemini\nln -s indi_lx200generic indi_lx200zeq25\nln -s indi_lx200generic indi_lx200fs2\nln -s indi_lx200generic indi_lx200pulsar2\nln -s indi_lx200generic indi_lx200ss2000pc\nln -s indi_tcfs_focus indi_tcfs3_focus\n\n\n";
+			shellScript = "cd \"${BUILT_PRODUCTS_DIR}/${CONTENTS_FOLDER_PATH}/MacOS\"\n\nrm -f indi_lx200classic indi_lx200autostar indi_lx200_16 indi_lx200gps indi_lx200ap indi_lx200gemini indi_lx200zeq25 indi_lx200pulsar2 indi_lx200fs2 indi_lx200ss2000pc indi_tcfs3_focus indi_lx200_OnStep\n\nln -s indi_lx200generic indi_lx200classic\nln -s indi_lx200generic indi_lx200autostar\nln -s indi_lx200generic indi_lx200_16\nln -s indi_lx200generic indi_lx200gps\nln -s indi_lx200generic indi_lx200ap\nln -s indi_lx200generic indi_lx200gemini\nln -s indi_lx200generic indi_lx200zeq25\nln -s indi_lx200generic indi_lx200fs2\nln -s indi_lx200generic indi_lx200pulsar2\nln -s indi_lx200generic indi_lx200ss2000pc\nln -s indi_lx200generic indi_lx200_OnStep\nln -s indi_tcfs_focus indi_tcfs3_focus\n\n\n";
 		};
 /* End PBXShellScriptBuildPhase section */
 
@@ -8595,11 +8491,6 @@
 			isa = PBXTargetDependency;
 			target = 9DDA43A81A8CD3190004AA95 /* indi */;
 			targetProxy = 593445B91CF8EF62008AD945 /* PBXContainerItemProxy */;
-		};
-		593445D11CF8EFFC008AD945 /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			target = 593445B11CF8EF62008AD945 /* indi_qhy_ccd */;
-			targetProxy = 593445D01CF8EFFC008AD945 /* PBXContainerItemProxy */;
 		};
 		593448141CF9E4E6008AD945 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
