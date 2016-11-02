@@ -1370,8 +1370,9 @@ void ASICCD::createControls(int piNumberOfControls)
         // Update Min/Max exposure as supported by the camera
         if (!strcmp(oneControlCap->Name, "Exposure"))
         {
-            PrimaryCCD.setMinMaxStep("CCD_EXPOSURE", "CCD_EXPOSURE_VALUE", oneControlCap->MinValue, oneControlCap->MaxValue, 1);
-            minimumExposureDuration = oneControlCap->MinValue;
+            minimumExposureDuration = oneControlCap->MinValue / 1000000.0;
+            PrimaryCCD.setMinMaxStep("CCD_EXPOSURE", "CCD_EXPOSURE_VALUE", minimumExposureDuration, oneControlCap->MaxValue/1000000.0, 1);
+
             continue;
         }
 
