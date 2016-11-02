@@ -806,18 +806,6 @@ bool ASICCD::StartExposure(float duration)
 {
   ASI_ERROR_CODE errCode= ASI_SUCCESS;
 
-  if (duration < minimumExposureDuration)
-  {
-    DEBUGF(INDI::Logger::DBG_WARNING, "Exposure shorter than minimum duration %g s requested. Setting exposure time to %g s.", duration, minimumExposureDuration);
-    duration = minimumExposureDuration;
-  }
-
-  if (PrimaryCCD.getFrameType() == CCDChip::BIAS_FRAME)
-  {
-    duration = minimumExposureDuration;
-    DEBUGF(INDI::Logger::DBG_SESSION, "Bias Frame (s) : %g", minimumExposureDuration);
-  }
-
   PrimaryCCD.setExposureDuration(duration);
   ExposureRequest = duration;
 
