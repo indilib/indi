@@ -880,10 +880,21 @@ bool QHYCCD::UpdateCCDFrame(int x, int y, int w, int h)
 
   camroix = x;
   camroiy = y;
-  camroiwidth = w/ PrimaryCCD.getBinX();
-  camroiheight = h/ PrimaryCCD.getBinY();
 
-  DEBUGF(INDI::Logger::DBG_DEBUG, "The Final image area is (%d, %d), (%d, %d)", camroix, camroiy, camroiwidth, camroiheight);
+  if (useSoftBin)
+  {
+      camroiwidth = w;
+      camroiheight = h;
+
+      DEBUGF(INDI::Logger::DBG_DEBUG, "The Final image area is (%d, %d), (%d, %d)", camroix, camroiy, camroiwidth/ PrimaryCCD.getBinX(), camroiheight/ PrimaryCCD.getBinY());
+  }
+  else
+  {
+      camroiwidth = w/ PrimaryCCD.getBinX();
+      camroiheight = h/ PrimaryCCD.getBinY();
+
+      DEBUGF(INDI::Logger::DBG_DEBUG, "The Final image area is (%d, %d), (%d, %d)", camroix, camroiy, camroiwidth, camroiheight);
+  }
 
   // Set UNBINNED coords
   PrimaryCCD.setFrame(x, y, w,  h);
