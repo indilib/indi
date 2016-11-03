@@ -32,7 +32,6 @@ class ASIWHEEL: public INDI::FilterWheel {
 	private:
 		int fw_id;
 		int fw_index;
-		int slot_num;
 
 	public:
 		ASIWHEEL(int index, EFW_INFO info, bool enumerate);

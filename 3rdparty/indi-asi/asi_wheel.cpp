@@ -59,10 +59,8 @@ void ISInit() {
 		} else {
 			for(int i = 0; i < num_wheels; i++) {
 				int id;
-				EFWOpen(i);
 				EFWGetID(i, &id);
 				EFWGetProperty(id, &info);
-				EFWClose(id);
 				/* Enumerate FWs if more than one ASI EFW is connected */
 				wheels[i] = new ASIWHEEL(i, info, (bool)(num_wheels-1));
 			}
@@ -150,10 +148,9 @@ ASIWHEEL::ASIWHEEL(int index, EFW_INFO info, bool enumerate) {
 
 	fw_id = -1;
 	fw_index = index;
-	slot_num = info.slotNum;
-	CurrentFilter = 1;
-	FilterSlotN[0].min = 1;
-	FilterSlotN[0].max = info.slotNum;
+	CurrentFilter = 0;
+	FilterSlotN[0].min = 0;
+	FilterSlotN[0].max = 0;
 	strncpy(name, str, sizeof(name));
 	setDeviceName(str);
 	setVersion(ASI_VERSION_MAJOR, ASI_VERSION_MINOR);
@@ -219,8 +216,10 @@ bool ASIWHEEL::Connect() {
 			return false;
 		}
 
+		EFW_INFO info;
+		EFWGetProperty(fw_index, &info);
 		FilterSlotN[0].min = 1;
-		FilterSlotN[0].max = slot_num;
+		FilterSlotN[0].max = info.slotNum;
 
 		// get current filter
 		int current;
