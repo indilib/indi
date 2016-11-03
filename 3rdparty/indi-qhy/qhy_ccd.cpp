@@ -787,7 +787,7 @@ bool QHYCCD::StartExposure(float duration)
       }
   }
 
-  if (sim)
+  if (sim || useSoftBin)
       ret = QHYCCD_SUCCESS;
   else
       ret = SetQHYCCDBinMode(camhandle,camxbin,camybin);
