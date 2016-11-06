@@ -584,8 +584,10 @@ bool QHYCCD::Connect()
         camxbin = 1;
         camybin = 1;
 
-        useSoftBin = false;
+        // Always use INDI software binning
+        useSoftBin = true;
 
+        /*
         ret = IsQHYCCDControlAvailable(camhandle,CAM_BIN1X1MODE);
         if(ret == QHYCCD_SUCCESS)
         {
@@ -602,7 +604,10 @@ bool QHYCCD::Connect()
         // Only use software binning if NOT supported by hardware
         useSoftBin = !(ret == QHYCCD_SUCCESS);
 
-        DEBUGF(INDI::Logger::DBG_DEBUG, "Binning Control: %s", cap & CCD_CAN_BIN ? "True" : "False");        
+        */
+
+        DEBUGF(INDI::Logger::DBG_DEBUG, "Binning Control: %s", cap & CCD_CAN_BIN ? "True" : "False");
+
 
         ret= IsQHYCCDControlAvailable(camhandle, CONTROL_USBTRAFFIC);
         if (ret == QHYCCD_SUCCESS)
