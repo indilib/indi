@@ -285,6 +285,7 @@ bool TemmaMount::ReadScopeStatus()
 		//  lets see if our goto has finished
 		if(strstr(str,"F")) {
 			fprintf(stderr,"Goto finished\n");
+			TrackState = SCOPE_TRACKING;
 			GotoInProgress=false;
 			if(ParkInProgress) {
 				SetParked(true);
@@ -408,7 +409,10 @@ bool TemmaMount::Goto(double ra,double d)
 		GotoInProgress=false;
 		return false;
     }
+
+	TrackState = SCOPE_SLEWING;
 	GotoInProgress=true;
+
 	return true;
 }
 
