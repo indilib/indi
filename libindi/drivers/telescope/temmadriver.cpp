@@ -70,6 +70,7 @@ void ISNewBLOB (const char *dev, const char *name, int sizes[], int blobsizes[],
   INDI_UNUSED(names);
   INDI_UNUSED(n);
 }
+
 void ISSnoopDevice (XMLEle *root)
 {
     INDI_UNUSED(root);
@@ -105,7 +106,6 @@ bool TemmaMount::Connect()
  
     return rc;
 }
-
 
 const char * TemmaMount::getDefaultName()
 {
@@ -144,17 +144,19 @@ bool TemmaMount::initProperties()
 
     return r;
 }
+
 void TemmaMount::ISGetProperties (const char *dev)
 {
     /* First we let our parent populate */
     INDI::Telescope::ISGetProperties(dev);
 
-        defineNumber(&GuideNSNP);
-        defineNumber(&GuideWENP);
-        defineNumber(&GuideRateNP);
+    // defineNumber(&GuideNSNP);
+    // defineNumber(&GuideWENP);
+    // defineNumber(&GuideRateNP);
 
     return;
 }
+
 bool TemmaMount::ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n)
 {
     if(strcmp(dev,getDeviceName())==0)
@@ -238,9 +240,9 @@ fprintf(stderr,"Setting park data to default\n");
             SetAxis2ParkDefault(60);
         }
 
-        defineNumber(&GuideNSNP);
-        defineNumber(&GuideWENP);
-        defineNumber(&GuideRateNP);
+        // defineNumber(&GuideNSNP);
+        // defineNumber(&GuideWENP);
+        // defineNumber(&GuideRateNP);
 
     }
     else
@@ -283,6 +285,7 @@ bool TemmaMount::ReadScopeStatus()
 		//  lets see if our goto has finished
 		if(strstr(str,"F")) {
 			fprintf(stderr,"Goto finished\n");
+			TrackState = SCOPE_TRACKING;
 			GotoInProgress=false;
 			if(ParkInProgress) {
 				SetParked(true);
@@ -406,7 +409,10 @@ bool TemmaMount::Goto(double ra,double d)
 		GotoInProgress=false;
 		return false;
     }
+
+	TrackState = SCOPE_SLEWING;
 	GotoInProgress=true;
+
 	return true;
 }
 
