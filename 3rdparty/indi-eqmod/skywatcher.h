@@ -60,7 +60,9 @@ public:
     void setDebug (bool enable);
     const char *getDeviceName ();
 
-
+    bool HasHomeIndexers();
+    bool HasAuxEncoders();
+    
     unsigned long GetRAEncoder()  throw (EQModError);
     unsigned long GetDEEncoder()  throw (EQModError);
     unsigned long GetRAEncoderZero();
@@ -73,7 +75,8 @@ public:
     unsigned long GetDEPeriod()  throw (EQModError);
     void GetRAMotorStatus(ILightVectorProperty *motorLP) throw (EQModError);
     void GetDEMotorStatus(ILightVectorProperty *motorLP) throw (EQModError);
-    void InquireBoardVersion(ITextVectorProperty *boardTP) throw (EQModError); 
+    void InquireBoardVersion(ITextVectorProperty *boardTP) throw (EQModError);
+    void InquireFeatures() throw (EQModError);
     void InquireRAEncoderInfo(INumberVectorProperty *encoderNP) throw (EQModError); 
     void InquireDEEncoderInfo(INumberVectorProperty *encoderNP) throw (EQModError); 
     void Init() throw (EQModError);
@@ -106,13 +109,15 @@ public:
     
     unsigned long GetlastreadRAIndexer()  throw (EQModError);
     unsigned long GetlastreadDEIndexer()  throw (EQModError);
-    void SetRAAuxEncoder(unsigned long command) throw (EQModError);
-    void SetDEAuxEncoder(unsigned long command) throw (EQModError);
-    void SetRAIndexer(unsigned long command) throw (EQModError);
-    void SetDEIndexer(unsigned long command) throw (EQModError);
+    void TurnRAEncoder(bool on) throw (EQModError);
+    void TurnDEEncoder(bool on) throw (EQModError);
+    void ResetRAIndexer() throw (EQModError);
+    void ResetDEIndexer() throw (EQModError);
+    void GetRAIndexer() throw (EQModError);
+    void GetDEIndexer() throw (EQModError);
     void SetRAAxisPosition(unsigned long step) throw (EQModError);
     void SetDEAxisPosition(unsigned long step) throw (EQModError);
-    
+
  private: 
 
     // Official Skywatcher Protocol
@@ -148,9 +153,9 @@ public:
       GetStepPeriod='D', // See Merlin protocol http://www.papywizard.org/wiki/DevelopGuide
       ActivateMotor='B', // See eq6direct implementation http://pierre.nerzic.free.fr/INDI/
       SetGuideRate='P',  // See EQASCOM driver
-      Deactivate='d',    // Not sure
-      SetEncoderCmd='W', // EQ8/AZEQ6 only
-      SetIndexerCmd='q', // EQ8/AZEQ6 only
+      GetHomePosition='d',    // Get Home position encoder count (default at startup)
+      SetFeatureCmd='W', // EQ8/AZEQ6/AZEQ5 only
+      GetFeatureCmd='q', // EQ8/AZEQ6/AZEQ5 only
       NUMBER_OF_SkywatcherCommand
     };
     
@@ -164,6 +169,27 @@ public:
     enum SkywatcherDirection {BACKWARD=0, FORWARD=1};
     enum SkywatcherSlewMode { SLEW=0, GOTO=1  };
     enum SkywatcherSpeedMode { LOWSPEED=0, HIGHSPEED=1  };
+    
+    typedef struct SkyWatcherFeatures {
+      bool inPPECTraining;
+      bool inPPEC;
+      bool hasEncoder;
+      bool hasPPEC;
+      bool hasHomeIndexer;
+      bool isAZEQ;
+      bool hasPolarLed;
+      bool hasCommonSlewStart; // supports :J3
+      bool hasHalfCurrentTracking;
+      bool hasWifi;
+    } SkyWatcherFeatures;
+    
+    enum SkywatcherGetFeatureCmd {GET_INDEXER_CMD=0x00, GET_FEATURES_CMD=0x01};
+    enum SkywatcherSetFeatureCmd {START_PPEC_TRAINING_CMD=0x00, STOP_PPEC_TRAINING_CMD=0x01,
+				  TURN_PPEC_ON_CMD=0x02, TURN_PPEC_OFF_CMD=0X03,
+				  ENCODER_ON_CMD=0x04, ENCODER_OFF_CMD=0x05,
+				  DISABLE_FULL_CURRENT_LOW_SPEED_CMD=0x0006, ENABLE_FULL_CURRENT_LOW_SPEED_CMD=0x0106,
+				  RESET_HOME_INDEXER_CMD=0x08};
+
     typedef struct SkywatcherAxisStatus {SkywatcherDirection direction; SkywatcherSlewMode slewmode; SkywatcherSpeedMode speedmode; } SkywatcherAxisStatus;
     enum SkywatcherError { NO_ERROR, ER_1, ER_2, ER_3 };
   
@@ -183,8 +209,11 @@ public:
     void StopMotor(SkywatcherAxis axis)  throw (EQModError);
     void InstantStopMotor(SkywatcherAxis axis)  throw (EQModError);
     void StopWaitMotor(SkywatcherAxis axis) throw (EQModError);
-    void SetAuxEncoder(SkywatcherAxis axis, unsigned long command) throw (EQModError);
-    void SetIndexer(SkywatcherAxis axis, unsigned long command) throw (EQModError);
+    void SetFeature(SkywatcherAxis axis, unsigned long command) throw (EQModError);
+    void GetFeature(SkywatcherAxis axis, unsigned long command) throw (EQModError);
+    void TurnEncoder(SkywatcherAxis axis, bool on) throw (EQModError);
+    void ResetIndexer(SkywatcherAxis axis) throw (EQModError);
+    void GetIndexer(SkywatcherAxis axis) throw (EQModError);
     void SetAxisPosition(SkywatcherAxis axis, unsigned long step) throw (EQModError);
 
     bool read_eqmod()  throw (EQModError);
@@ -223,6 +252,7 @@ public:
     bool RAInitialized, DEInitialized, RARunning, DERunning;
     bool wasinitialized;
     SkywatcherAxisStatus RAStatus, DEStatus;
+    SkyWatcherFeatures AxisFeatures[NUMBER_OF_SKYWATCHERAXIS];
 
     int fd;
     char command[SKYWATCHER_MAX_CMD];

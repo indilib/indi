@@ -385,6 +385,7 @@ bool EQMod::loadProperties()
     BacklashNP=getNumber("BACKLASH");
     UseBacklashSP=getSwitch("USEBACKLASH");
     AutoHomeSP=getSwitch("AUTOHOME");
+    AuxEncoderSP=getSwitch("AUXENCODER");
 #if defined WITH_ALIGN && defined WITH_ALIGN_GEEHALEL
     IUFillSwitch(&AlignMethodS[0], "ALIGN_METHOD_EQMOD", "EQMod Align", ISS_ON);
     IUFillSwitch(&AlignMethodS[1], "ALIGN_METHOD_SUBSYSTEM", "Alignment Subsystem", ISS_OFF);
@@ -462,9 +463,22 @@ bool EQMod::updateProperties()
 	      DEBUGF(INDI::Logger::DBG_DEBUG,"Got Encoder Property %s: %.0f", SteppersNP->np[i].label, SteppersNP->np[i].value);
 	  }
 
-	  if (!strcmp(MountInformationTP->tp[0].text, "EQ8") || !strcmp(MountInformationTP->tp[0].text, "AZEQ6"))
+	  mount->InquireFeatures();
+	  //if (!strcmp(MountInformationTP->tp[0].text, "EQ8") || !strcmp(MountInformationTP->tp[0].text, "AZEQ6"))
+	  if (mount->HasHomeIndexers())
+	    {
+	    DEBUG(INDI::Logger::DBG_SESSION,"Mount has home indexers. Enabling Autohome.");
 	    defineSwitch(AutoHomeSP);
-	      
+	    }
+	  
+	  if (mount->HasAuxEncoders())
+	    {
+	    defineSwitch(AuxEncoderSP);
+	    DEBUG(INDI::Logger::DBG_SESSION,"Mount has auxiliary encoders. Turning them off.");
+	    mount->TurnRAEncoder(false);
+	    mount->TurnDEEncoder(false);
+	    }
+	  
 	  mount->Init();
 	
 	  zeroRAEncoder=mount->GetRAEncoderZero();
@@ -514,8 +528,12 @@ bool EQMod::updateProperties()
 	  deleteProperty(TrackDefaultSP->name);
 	  deleteProperty(BacklashNP->name);
 	  deleteProperty(UseBacklashSP->name);
-	  if (!strcmp(MountInformationTP->tp[0].text, "EQ8") || !strcmp(MountInformationTP->tp[0].text, "AZEQ6"))
+	  //if (!strcmp(MountInformationTP->tp[0].text, "EQ8") || !strcmp(MountInformationTP->tp[0].text, "AZEQ6"))
+	  if (mount->HasHomeIndexers())
 	    deleteProperty(AutoHomeSP->name);
+	  if (mount->HasAuxEncoders())
+	    deleteProperty(AuxEncoderSP->name);
+	  
 #if defined WITH_ALIGN && defined WITH_ALIGN_GEEHALEL
 	  deleteProperty(AlignMethodSP.name);
 #endif
@@ -869,8 +887,8 @@ bool EQMod::ReadScopeStatus() {
 	if (!(mount->IsRARunning()) && !(mount->IsDERunning())) {
 	  DEBUG(INDI::Logger::DBG_SESSION, "Autohome phase 1: end");
 	  DEBUG(INDI::Logger::DBG_SESSION, "AutoHome phase 2: reading home position indexes for extra moves");
-	  mount->SetRAIndexer(0x0);
-	  mount->SetDEIndexer(0x0);
+	  mount->GetRAIndexer();
+	  mount->GetDEIndexer();
 	  unsigned long raindex=mount->GetlastreadRAIndexer();
 	  unsigned long deindex=mount->GetlastreadDEIndexer();
 	  DEBUGF(INDI::Logger::DBG_SESSION, "AutoHome phase 2: read home position indexes: RA=0x%x DE=0x%x",
@@ -914,25 +932,25 @@ bool EQMod::ReadScopeStatus() {
 	  DEBUG(INDI::Logger::DBG_SESSION, "AutoHome phase 3: resetting home position indexes");
 	  if (ah_bIndexChanged_RA){
 	    unsigned long raindex=mount->GetlastreadRAIndexer();
-	    mount->SetRAAuxEncoder(0x08);
-	    mount->SetRAIndexer(0x0);
+	    mount->ResetRAIndexer();
+	    mount->GetRAIndexer();
 	    DEBUGF(INDI::Logger::DBG_SESSION, "AutoHome phase 3: resetting RA home index: 0x%x (was 0x%x)", mount->GetlastreadRAIndexer(), raindex);
 	  }
 	  if (ah_bIndexChanged_DE) {
 	    unsigned long deindex=mount->GetlastreadDEIndexer();
-	    mount->SetDEAuxEncoder(0x08);
-	    mount->SetDEIndexer(0x0);
+	    mount->ResetDEIndexer();
+	    mount->GetDEIndexer();
 	    DEBUGF(INDI::Logger::DBG_SESSION, "AutoHome phase 3: resetting DE home index: 0x%x (was 0x%x)", mount->GetlastreadDEIndexer(), deindex);
 	  }
 	  DEBUG(INDI::Logger::DBG_SESSION, "AutoHome phase 3: reading home position indexes to update directions");
 	  if (ah_bIndexChanged_RA) {
-	    mount->SetRAIndexer(0x00);
+	    mount->GetRAIndexer();
 	    if (mount->GetlastreadRAIndexer()==0) ah_bSlewingUp_RA = false; else ah_bSlewingUp_RA = true;
 	    DEBUGF(INDI::Logger::DBG_SESSION, "AutoHome phase 3: reading RA home position index: RA=0x%x up=%c",
 		   mount->GetlastreadRAIndexer(), (ah_bSlewingUp_RA?'1':'0'));
 	  }
 	  if (ah_bIndexChanged_DE) {
-	    mount->SetDEIndexer(0x00);
+	    mount->GetDEIndexer();
 	    if (mount->GetlastreadDEIndexer()==0) ah_bSlewingUp_DE = false; else ah_bSlewingUp_DE = true;
 	    DEBUGF(INDI::Logger::DBG_SESSION, "AutoHome phase 3: reading DE home position index: DE=0x%x up=%c",
 		   mount->GetlastreadDEIndexer(), (ah_bSlewingUp_DE?'1':'0'));
@@ -957,7 +975,7 @@ bool EQMod::ReadScopeStatus() {
 	unsigned long indexRA, indexDE;
 	if (mount->IsRARunning()) {
 	  if (ah_waitRA < 0) {
-	    mount->SetRAIndexer(0x0);
+	    mount->GetRAIndexer();
 	    if ((indexRA=mount->GetlastreadRAIndexer())!=0xFFFFFF) {
 	      ah_waitRA = 3000 / POLLMS;
 	      DEBUGF(INDI::Logger::DBG_SESSION, "Autohome phase 3: detected RA Index changed, waiting %d poll periods", ah_waitRA);
@@ -971,7 +989,7 @@ bool EQMod::ReadScopeStatus() {
 	}
 	if (mount->IsDERunning()) {
 	  if (ah_waitDE < 0) {
-	    mount->SetDEIndexer(0x0);
+	    mount->GetDEIndexer();
 	    if ((indexDE=mount->GetlastreadDEIndexer())!=0xFFFFFF) {
 	      ah_waitDE = 3000 / POLLMS;
 	      DEBUGF(INDI::Logger::DBG_SESSION, "Autohome phase 3: detected DE Index changed, waiting %d poll periods", ah_waitDE);
@@ -985,14 +1003,14 @@ bool EQMod::ReadScopeStatus() {
 	}	
 	if (!(mount->IsRARunning()) && !(mount->IsDERunning())) {
 	  if (!ah_bSlewingUp_RA) {
-	    mount->SetRAAuxEncoder(0x08);
-	    mount->SetRAIndexer(0x0);
+	    mount->ResetRAIndexer();
+	    mount->GetRAIndexer();
 	    DEBUGF(INDI::Logger::DBG_SESSION, "AutoHome phase 3: resetting RA home index: 0x%x (was 0x%x)", mount->GetlastreadRAIndexer(), indexRA);
 	    ah_bSlewingUp_RA=true;
 	  }
 	  if (!ah_bSlewingUp_DE) {
-	    mount->SetDEAuxEncoder(0x08);
-	    mount->SetDEIndexer(0x0);
+	    mount->ResetDEIndexer();
+	    mount->GetDEIndexer();
 	    DEBUGF(INDI::Logger::DBG_SESSION, "AutoHome phase 3: resetting DE home index: 0x%x (was 0x%x)", mount->GetlastreadDEIndexer(), indexDE);
 	    ah_bSlewingUp_DE=true;
 	  }
@@ -1012,7 +1030,7 @@ bool EQMod::ReadScopeStatus() {
 	break;
       case AUTO_HOME_WAIT_PHASE4:
 	if (!ah_bIndexChanged_RA) {
-	  mount->SetRAIndexer(0x0);
+	  mount->GetRAIndexer();
 	  ah_iPosition_RA=mount->GetlastreadRAIndexer();
 	  if (ah_iPosition_RA != 0) {
 	    ah_bIndexChanged_RA=true;
@@ -1022,7 +1040,7 @@ bool EQMod::ReadScopeStatus() {
 	  }
 	}
 	if (!ah_bIndexChanged_DE) {
-	  mount->SetDEIndexer(0x0);
+	  mount->GetDEIndexer();
 	  ah_iPosition_DE=mount->GetlastreadDEIndexer();
 	  if (ah_iPosition_DE != 0) {
 	    ah_bIndexChanged_DE = true;
@@ -2075,7 +2093,9 @@ bool EQMod::ISNewSwitch (const char *dev, const char *name, ISState *states, cha
 
       }
       
-      if (MountInformationTP && MountInformationTP->tp && (!strcmp(MountInformationTP->tp[0].text, "EQ8") || !strcmp(MountInformationTP->tp[0].text, "AZEQ6"))) {
+      //if (MountInformationTP && MountInformationTP->tp && (!strcmp(MountInformationTP->tp[0].text, "EQ8") || !strcmp(MountInformationTP->tp[0].text, "AZEQ6"))) {
+      if (mount->HasHomeIndexers())
+	{
 	if (AutoHomeSP && strcmp(name, AutoHomeSP->name)==0) {
 	  if ((TrackState != SCOPE_IDLE) && (TrackState != SCOPE_AUTOHOMING))
           {
@@ -2098,7 +2118,7 @@ bool EQMod::ISNewSwitch (const char *dev, const char *name, ISState *states, cha
 	  }
 
 	  if (AutohomeState == AUTO_HOME_IDLE) {
-              AutoHomeSP->s=IPS_IDLE;
+              AutoHomeSP->s=IPS_OK;
 	      IUResetSwitch(AutoHomeSP);
               IDSetSwitch(AutoHomeSP,NULL);
               DEBUG(INDI::Logger::DBG_WARNING, "*** AutoHome NOT TESTED. Press PERFORM AGAIN TO CONFIRM. ***");
@@ -2114,14 +2134,14 @@ bool EQMod::ISNewSwitch (const char *dev, const char *name, ISState *states, cha
 	   TrackState=SCOPE_AUTOHOMING;
 	   try {
 	     DEBUG(INDI::Logger::DBG_SESSION, "AutoHome phase 1: turning off aux encoders");
-	     mount->SetRAAuxEncoder(0x05);
-	     mount->SetDEAuxEncoder(0x05);
+	     mount->TurnRAEncoder(false);
+	     mount->TurnDEEncoder(false);
 	     DEBUG(INDI::Logger::DBG_SESSION, "AutoHome phase 1: resetting home position indexes");
-	     mount->SetRAAuxEncoder(0x08);
-	     mount->SetDEAuxEncoder(0x08);
+	     mount->ResetRAIndexer();
+	     mount->ResetDEIndexer();
 	     DEBUG(INDI::Logger::DBG_SESSION, "AutoHome phase 1: reading home position indexes to set directions");
-	     mount->SetRAIndexer(0x0);
-	     mount->SetDEIndexer(0x0);
+	     mount->GetRAIndexer();
+	     mount->GetDEIndexer();
 	     DEBUGF(INDI::Logger::DBG_SESSION, "AutoHome phase 1: read home position indexes: RA=0x%x DE=0x%x",
 		   mount->GetlastreadRAIndexer(), mount->GetlastreadDEIndexer());
 	     if (mount->GetlastreadRAIndexer()==0) ah_bSlewingUp_RA = true; else ah_bSlewingUp_RA = false;
@@ -2153,7 +2173,29 @@ bool EQMod::ISNewSwitch (const char *dev, const char *name, ISState *states, cha
 	   }  
 	 }
 	}
-      }
+	}
+
+      if (mount->HasAuxEncoders())
+	{
+	if (AuxEncoderSP && strcmp(name, AuxEncoderSP->name)==0)
+	  {
+	    IUUpdateSwitch(AuxEncoderSP,states,names,n);
+	    if (AuxEncoderSP->sp[1].s == ISS_ON)
+	      {
+		AuxEncoderSP->s=IPS_OK;
+		DEBUG(INDI::Logger::DBG_DEBUG,"Turning auxiliary encoders on.");
+		mount->TurnRAEncoder(true);
+		mount->TurnDEEncoder(true);
+	      } else {
+    	        AuxEncoderSP->s=IPS_IDLE;
+	        DEBUG(INDI::Logger::DBG_DEBUG,"Turning auxiliary encoders off.");
+	        mount->TurnRAEncoder(false);
+	        mount->TurnDEEncoder(false);
+	    }
+	    IDSetSwitch(AuxEncoderSP, NULL);
+	  }
+	}
+      
  #if defined WITH_ALIGN || defined WITH_ALIGN_GEEHALEL     
       if (AlignSyncModeSP && strcmp(name, AlignSyncModeSP->name)==0)
 	{
@@ -2405,7 +2447,7 @@ bool EQMod::Abort()
   AutoHomeSP->s=IPS_IDLE;
   IUResetSwitch(AutoHomeSP);
   IDSetSwitch(AutoHomeSP,NULL);
-  
+  TrackState = SCOPE_IDLE;
   if (gotoparams.completed == false) gotoparams.completed=true;  
   
   return true;

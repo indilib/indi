@@ -426,6 +426,57 @@ void Skywatcher::InquireBoardVersion(ITextVectorProperty *boardTP) throw (EQModE
   free(boardinfo[0]); free(boardinfo[1]); 
 }
 
+void Skywatcher::InquireFeatures() throw (EQModError)
+{
+  unsigned long rafeatures=0, defeatures=0;
+  try {
+    GetFeature(Axis1, GET_FEATURES_CMD);
+    rafeatures=Revu24str2long(response+1);
+    GetFeature(Axis2, GET_FEATURES_CMD);
+    defeatures=Revu24str2long(response+1);
+  } catch (EQModError e) {
+    DEBUGF(INDI::Logger::DBG_DEBUG, "%s(): Mount does not support query features  (%c command)", __FUNCTION__, GetFeatureCmd); 
+  }
+  if ((rafeatures & 0x000000F0) != (defeatures & 0x000000F0)) {
+    DEBUGF(INDI::Logger::DBG_WARNING, "%s(): Found different features for RA (%d) and DEC (%d)", __FUNCTION__, rafeatures, defeatures); 
+  }
+  if (rafeatures & 0x00000010) {
+    DEBUGF(INDI::Logger::DBG_WARNING, "%s(): Found RA PPEC training on", __FUNCTION__); 
+  }
+  if (defeatures & 0x00000010) {
+    DEBUGF(INDI::Logger::DBG_WARNING, "%s(): Found DE PPEC training on", __FUNCTION__); 
+  }
+  AxisFeatures[Axis1].inPPECTraining=rafeatures & 0x00000010;
+  AxisFeatures[Axis1].inPPEC=rafeatures & 0x00000020;
+  AxisFeatures[Axis1].hasEncoder=rafeatures & 0x00000001;
+  AxisFeatures[Axis1].hasPPEC=rafeatures & 0x00000002;
+  AxisFeatures[Axis1].hasHomeIndexer=rafeatures & 0x00000004;
+  AxisFeatures[Axis1].isAZEQ=rafeatures & 0x00000008;
+  AxisFeatures[Axis1].hasPolarLed=rafeatures & 0x00001000;
+  AxisFeatures[Axis1].hasCommonSlewStart=rafeatures & 0x00002000; // supports :J3
+  AxisFeatures[Axis1].hasHalfCurrentTracking=rafeatures & 0x00004000;
+  AxisFeatures[Axis1].hasWifi=rafeatures & 0x00008000;
+  AxisFeatures[Axis2].inPPECTraining=defeatures & 0x00000010;
+  AxisFeatures[Axis2].inPPEC=defeatures & 0x00000020;
+  AxisFeatures[Axis2].hasEncoder=defeatures & 0x00000001;
+  AxisFeatures[Axis2].hasPPEC=defeatures & 0x00000002;
+  AxisFeatures[Axis2].hasHomeIndexer=defeatures & 0x00000004;
+  AxisFeatures[Axis2].isAZEQ=defeatures & 0x00000008;
+  AxisFeatures[Axis2].hasPolarLed=defeatures & 0x00001000;
+  AxisFeatures[Axis2].hasCommonSlewStart=defeatures & 0x00002000; // supports :J3
+  AxisFeatures[Axis2].hasHalfCurrentTracking=defeatures & 0x00004000;
+  AxisFeatures[Axis2].hasWifi=defeatures & 0x00008000;  
+}
+bool Skywatcher::HasHomeIndexers()
+{
+  return (AxisFeatures[Axis1].hasHomeIndexer) && (AxisFeatures[Axis2].hasHomeIndexer);
+}
+
+bool Skywatcher::HasAuxEncoders()
+{
+  return (AxisFeatures[Axis1].hasEncoder) && (AxisFeatures[Axis2].hasEncoder);
+}
+
 void Skywatcher::InquireRAEncoderInfo(INumberVectorProperty *encoderNP) throw (EQModError) {
   double steppersvalues[3];
   const char *steppersnames[]={"RASteps360", "RAStepsWorm","RAHighspeedRatio"};
@@ -864,45 +915,78 @@ void Skywatcher::SetAbsTargetBreaks(SkywatcherAxis axis, unsigned long breakstep
   TargetBreaks[axis]=breakstep;
 }
 
-void Skywatcher::SetAuxEncoder(SkywatcherAxis axis, unsigned long command) throw (EQModError)
+
+
+void Skywatcher::SetFeature(SkywatcherAxis axis, unsigned long command) throw (EQModError)
 {
   char cmd[7];
   DEBUGF(DBG_MOUNT, "%s() : Axis = %c -- command=%ld", __FUNCTION__, axis, command);
   long2Revu24str(command, cmd);
   //IDLog("Setting target for axis %c  to %d\n", axis, increment);
-  dispatch_command(SetEncoderCmd, axis, cmd);
+  dispatch_command(SetFeatureCmd, axis, cmd);
   read_eqmod();  
 }
 
-void Skywatcher::SetRAAuxEncoder(unsigned long command) throw (EQModError)
-{
-  SetAuxEncoder(Axis1, command);
-}
-
-void Skywatcher::SetDEAuxEncoder(unsigned long command) throw (EQModError)
-{
-  SetAuxEncoder(Axis2, command);
-}
-
-void Skywatcher::SetIndexer(SkywatcherAxis axis, unsigned long command) throw (EQModError)
+void Skywatcher::GetFeature(SkywatcherAxis axis, unsigned long command) throw (EQModError)
 {
   char cmd[7];
   DEBUGF(DBG_MOUNT, "%s() : Axis = %c -- command=%ld", __FUNCTION__, axis, command);
   long2Revu24str(command, cmd);
   //IDLog("Setting target for axis %c  to %d\n", axis, increment);
-  dispatch_command(SetIndexerCmd, axis, cmd);
+  dispatch_command(GetFeatureCmd, axis, cmd);
   read_eqmod();
+}
+
+
+void Skywatcher::GetIndexer(SkywatcherAxis axis) throw (EQModError)
+{
+
+  GetFeature(axis, GET_INDEXER_CMD);
   lastreadIndexer[axis]=Revu24str2long(response+1);
 }
 
-void Skywatcher::SetRAIndexer(unsigned long command) throw (EQModError)
+void Skywatcher::GetRAIndexer() throw (EQModError)
 {
-  SetIndexer(Axis1, command);
+  GetIndexer(Axis1);
 }
 
-void Skywatcher::SetDEIndexer(unsigned long command) throw (EQModError)
+void Skywatcher::GetDEIndexer() throw (EQModError)
 {
-  SetIndexer(Axis2, command);
+  GetIndexer(Axis2);
+}
+
+void Skywatcher::ResetIndexer(SkywatcherAxis axis) throw (EQModError)
+{
+
+  SetFeature(axis, RESET_HOME_INDEXER_CMD);
+}
+
+void Skywatcher::ResetRAIndexer() throw (EQModError)
+{
+  ResetIndexer(Axis1);
+}
+
+void Skywatcher::ResetDEIndexer() throw (EQModError)
+{
+  ResetIndexer(Axis2);
+}
+
+
+void Skywatcher::TurnEncoder(SkywatcherAxis axis, bool on) throw (EQModError)
+{
+  unsigned long command;
+  if (on) command=ENCODER_ON_CMD; else command=ENCODER_OFF_CMD;
+  SetFeature(axis, command); 
+}
+
+void Skywatcher::TurnRAEncoder(bool on) throw (EQModError)
+{
+  TurnEncoder(Axis1, on);
+}
+
+void Skywatcher::TurnDEEncoder(bool on) throw (EQModError)
+{
+  TurnEncoder(Axis2, on);
 }
 
 void Skywatcher::SetAxisPosition(SkywatcherAxis axis, unsigned long step) throw (EQModError)

@@ -238,4 +238,12 @@ On
 Off
 </defSwitch>
 </defSwitchVector>
+<defSwitchVector device="EQMod Mount" name="AUXENCODER" label="Aux. Encoders" group="Options" state="Idle" perm="rw" rule="OneOfMany">
+<defSwitch name="AUXENCODER_OFF" label="Off">
+On
+</defSwitch>
+<defSwitch name="AUXENCODER_ON" label="On">
+Off
+</defSwitch>
+</defSwitchVector>
 </INDIDriver>
