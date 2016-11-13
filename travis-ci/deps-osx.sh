@@ -29,7 +29,8 @@ brew install \
 			wget
 
 if [ ! -z $BUILD_INSTALL_GTEST ]; then
-  /bin/bash install-gtest.sh
+  DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+  /bin/bash ${DIR}/install-gtest.sh
 else
   echo "==> BUILD_INSTALL_GTEST not specified"
 fi
