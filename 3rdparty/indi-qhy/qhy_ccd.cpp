@@ -792,7 +792,7 @@ bool QHYCCD::StartExposure(float duration)
       }
   }
 
-  if (sim || useSoftBin)
+  if (sim)
       ret = QHYCCD_SUCCESS;
   else
       ret = SetQHYCCDBinMode(camhandle,camxbin,camybin);
@@ -802,7 +802,7 @@ bool QHYCCD::StartExposure(float duration)
       return false;
   }
 
-  DEBUGF(INDI::Logger::DBG_DEBUG, "SetQHYCCDBinMode %dx%d", camxbin, camybin);
+  DEBUGF(INDI::Logger::DBG_DEBUG, "SetQHYCCDBinMode (%dx%d). Software binning (%dx%d)", camxbin, camybin, PrimaryCCD.getBinX(), PrimaryCCD.getBinY());
 
   if (sim)
       ret = QHYCCD_SUCCESS;
@@ -951,9 +951,12 @@ bool QHYCCD::UpdateCCDBin(int hor, int ver)
         useSoftBin = true;
     }
 
+    // We always use software binning so QHY binning is always at 1x1
+    camxbin = 1;
+    camybin = 1;
+
     PrimaryCCD.setBin(hor,ver);
-    camxbin = hor;
-    camybin = ver;
+
     return UpdateCCDFrame(PrimaryCCD.getSubX(), PrimaryCCD.getSubY(), PrimaryCCD.getSubW(), PrimaryCCD.getSubH());
 }
 
