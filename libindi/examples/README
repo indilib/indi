@@ -40,7 +40,7 @@ Enter "127.0.0.1" in the host name and "8000" in the port entry (without the quo
 
 ------------------------------------------------------------------------------------------
 
-3. In the src/examples/tutorial_xxx directory, run each tutorial 
+3. In the libindi/examples/tutorial_xxx directory, run each tutorial 
 
 $ indiserver -v -p 8000 ./tutorial_NUM
 
@@ -73,7 +73,7 @@ Then open another console tab, and run the client:
 $ ./tutorial_client
 
 You can connect to tutorial_three via a GUI client (e.g. KStars) before running tutorial_client. This will enable you to watch 
-changes in the driver as they occur from tutorial_client. Make sure to set the port to 7624 in KStars.
+changes in the driver as they occur from tutorial_client. Make sure to set the port to 7624 in KStars for this tutorial.
 
 ------------------------------------------------------------------------------------------
 
