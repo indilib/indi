@@ -123,6 +123,14 @@ public:
     */
     void setBLOBMode(BLOBHandling blobH, const char *dev, const char *prop = NULL);
 
+    /**
+     * @brief getBLOBMode Get Binary Large Object policy mode IF set previously by setBLOBMode
+     * @param dev name of device.
+     * @param prop property name, can be NULL to return overall device policy if it exists.
+     * @return BLOB Policy, if not found, it always returns B_ALSO
+     */
+    BLOBHandling getBLOBMode(const char *dev, const char *prop = NULL);
+
     // Update
     static void * listenHelper(void *context);
 
@@ -192,12 +200,21 @@ protected:
 
 private:
 
+    typedef struct
+    {
+        string device;
+        string property;
+        BLOBHandling blobMode;
+    } BLOBMode;
+
+    BLOBMode *findBLOBMode(string device, string property);
+
     /** \brief Connect/Disconnect to INDI driver
         \param status If true, the client will attempt to turn on CONNECTION property within the driver (i.e. turn on the device).
          Otherwise, CONNECTION will be turned off.
         \param deviceName Name of the device to connect to.
     */
-    void setDriverConnection(bool status, const char *deviceName);    
+    void setDriverConnection(bool status, const char *deviceName);
 
     pthread_t listen_thread;
 
@@ -212,6 +229,7 @@ private:
 
     vector<INDI::BaseDevice *> cDevices;
     vector<string> cDeviceNames;
+    vector<BLOBMode*> blobModes;
 
     string cServer;
     unsigned int cPort;
@@ -222,6 +240,7 @@ private:
 
     LilXML *lillp;			/* XML parser context */
     uint32_t timeout_sec, timeout_us;
+
 
 };
 
