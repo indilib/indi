@@ -810,7 +810,7 @@ bool QHYCCD::StartExposure(float duration)
      ret = SetQHYCCDResolution(camhandle,camroix,camroiy,camroiwidth,camroiheight);
   if(ret != QHYCCD_SUCCESS)
   {
-      DEBUGF(INDI::Logger::DBG_SESSION, "Set QHYCCD ROI resolution failed (%d)", ret);
+      DEBUGF(INDI::Logger::DBG_SESSION, "Set QHYCCD ROI resolution (%d,%d) (%d,%d) failed (%d)", camroix, camroiy, camroiwidth, camroiheight, ret);
       return false;
   }
 
@@ -885,21 +885,11 @@ bool QHYCCD::UpdateCCDFrame(int x, int y, int w, int h)
 
   camroix = x;
   camroiy = y;
+  camroiwidth = w;
+  camroiheight = h;
 
-  if (useSoftBin)
-  {
-      camroiwidth = w;
-      camroiheight = h;
-
-      DEBUGF(INDI::Logger::DBG_DEBUG, "The Final image area is (%d, %d), (%d, %d)", camroix, camroiy, camroiwidth/ PrimaryCCD.getBinX(), camroiheight/ PrimaryCCD.getBinY());
-  }
-  else
-  {
-      camroiwidth = w/ PrimaryCCD.getBinX();
-      camroiheight = h/ PrimaryCCD.getBinY();
-
-      DEBUGF(INDI::Logger::DBG_DEBUG, "The Final image area is (%d, %d), (%d, %d)", camroix, camroiy, camroiwidth, camroiheight);
-  }
+  DEBUGF(INDI::Logger::DBG_DEBUG, "Final binned (%dx%d) image area is (%d, %d), (%d, %d)", PrimaryCCD.getBinX(), PrimaryCCD.getBinY(), camroix/PrimaryCCD.getBinX(), camroiy/PrimaryCCD.getBinY(),
+         camroiwidth/PrimaryCCD.getBinX(), camroiheight/PrimaryCCD.getBinY());
 
   // Set UNBINNED coords
   PrimaryCCD.setFrame(x, y, w,  h);
