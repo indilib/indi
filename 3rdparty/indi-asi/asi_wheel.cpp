@@ -62,7 +62,7 @@ void ISInit() {
 				EFWGetID(i, &id);
 				EFWGetProperty(id, &info);
 				/* Enumerate FWs if more than one ASI EFW is connected */
-				wheels[i] = new ASIWHEEL(i, info, (bool)(num_wheels-1));
+				wheels[i] = new ASIWHEEL(id, info, (bool)(num_wheels-1));
 			}
 		}
 		isInit = true;
@@ -139,15 +139,14 @@ void ISSnoopDevice(XMLEle *root) {
 }
 
 
-ASIWHEEL::ASIWHEEL(int index, EFW_INFO info, bool enumerate) {
+ASIWHEEL::ASIWHEEL(int id, EFW_INFO info, bool enumerate) {
 	char str[NAME_MAX];
 	if (enumerate)
-		snprintf(str, sizeof(str), "%s-%d", info.Name, index);
+		snprintf(str, sizeof(str), "%s %d", info.Name, id);
 	else
 		strncpy(str, info.Name, sizeof(str));
 
-	fw_id = -1;
-	fw_index = index;
+	fw_id = id;
 	CurrentFilter = 0;
 	FilterSlotN[0].min = 0;
 	FilterSlotN[0].max = 0;
@@ -203,21 +202,15 @@ bool ASIWHEEL::Connect() {
 	if (isSimulation()) {
 		IDMessage(getDeviceName(), "simulation: connected");
 		fw_id = 0;
-	} else if (fw_id < 0) {
-		result = EFWOpen(fw_index);
+	} else if (fw_id >= 0) {
+		result = EFWOpen(fw_id);
 		if (result != EFW_SUCCESS) {
 			DEBUGF(INDI::Logger::DBG_ERROR, "%s(): EFWOpen() = %d", __FUNCTION__, result);
 			return false;
 		}
 
-		result = EFWGetID(fw_index, &fw_id);
-		if (fw_id < 0) {
-			DEBUGF(INDI::Logger::DBG_ERROR, "%s(): EFWGetID() = %d", __FUNCTION__, result);
-			return false;
-		}
-
 		EFW_INFO info;
-		EFWGetProperty(fw_index, &info);
+		EFWGetProperty(fw_id, &info);
 		FilterSlotN[0].min = 1;
 		FilterSlotN[0].max = info.slotNum;
 
