@@ -23,11 +23,13 @@ set(CMAKE_CXX_FLAGS "-std=c++0x ${CMAKE_CXX_FLAGS}")
 endif(NOT WIN32 AND NOT ANDROID)
 
 #####################################  INDI version  ################################################
+# N.B. DO NOT Forget to update version also in indiapi.h
+# Proper way is to use indiversion.h.cmake file but this would break make existing applications so let us stick to the old proven way
 
 set(INDI_SOVERSION "1")
 set(CMAKE_INDI_VERSION_MAJOR 1)
 set(CMAKE_INDI_VERSION_MINOR 3)
-set(CMAKE_INDI_VERSION_RELEASE 0)
+set(CMAKE_INDI_VERSION_RELEASE 1)
 set(CMAKE_INDI_VERSION_STRING "${CMAKE_INDI_VERSION_MAJOR}.${CMAKE_INDI_VERSION_MINOR}.${CMAKE_INDI_VERSION_RELEASE}")
 
 ########################################  Paths  ###################################################
