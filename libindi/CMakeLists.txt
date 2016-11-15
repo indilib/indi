@@ -780,6 +780,17 @@ if (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
 install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/drivers/auxiliary/99-flipflat.rules DESTINATION ${UDEVRULES_INSTALL_DIR})
 endif (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
 
+########### Sky Quality Meter ###############
+
+set(sqm_SRCS
+        ${CMAKE_CURRENT_SOURCE_DIR}/drivers/auxiliary/sqm.cpp
+   )
+
+add_executable(indi_sqm ${sqm_SRCS})
+
+target_link_libraries(indi_sqm indidriver)
+install(TARGETS indi_sqm RUNTIME DESTINATION bin )
+
 
 ########### STAR2000 Driver ###############
 
