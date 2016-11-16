@@ -33,4 +33,4 @@ ATTR{product}=="ASI290MC-Cool" ATTR{idVendor}=="03c3" ATTR{idProduct}=="290c" GR
 ATTR{product}=="ASI290MM-Cool" ATTR{idVendor}=="03c3" ATTR{idProduct}=="290d" GROUP="users", MODE="0666"
 
 # FILTER WHEELS
-ATTR{product}=="ZWO EFW" ATTR{idVendor}=="03c3" ATTR{idProduct}=="1f01" GROUP="users", MODE="0666"
+KERNEL=="hidraw*", ATTRS{idVendor}=="03c3", ATTRS{idProduct}=="1f01", GROUP="users", MODE="0666"
