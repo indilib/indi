@@ -41,7 +41,6 @@ class SQM : public INDI::DefaultDevice
     virtual bool ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n);
     virtual bool ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n);
     virtual bool ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n);
-    virtual bool ISSnoopDevice (XMLEle *root);
 
     protected:
 
@@ -55,23 +54,22 @@ class SQM : public INDI::DefaultDevice
 
 private:
 
-    bool getStatus();
+    bool getReadings();
     bool getDeviceInfo();
 
     // IP Address/Port
     ITextVectorProperty AddressTP;
     IText AddressT[2];
 
-    // Status
-    INumberVectorProperty StatusNP;
-    INumber StatusN[4];
+    // Readings
+    INumberVectorProperty AverageReadingNP;
+    INumber AverageReadingN[5];
 
-    // Device Information TODO
-    ITextVectorProperty DeviceInfoTP;
-    IText DeviceInfoT[4];
+    // Device Information
+    INumberVectorProperty UnitInfoNP;
+    INumber UnitInfoN[4];
 
     int sockfd=-1;
-
 };
 
 #endif

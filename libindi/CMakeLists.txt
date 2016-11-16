@@ -786,11 +786,10 @@ set(sqm_SRCS
         ${CMAKE_CURRENT_SOURCE_DIR}/drivers/auxiliary/sqm.cpp
    )
 
-add_executable(indi_sqm ${sqm_SRCS})
+add_executable(indi_sqm_weather ${sqm_SRCS})
 
-target_link_libraries(indi_sqm indidriver)
-install(TARGETS indi_sqm RUNTIME DESTINATION bin )
-
+target_link_libraries(indi_sqm_weather indidriver)
+install(TARGETS indi_sqm_weather RUNTIME DESTINATION bin )
 
 ########### STAR2000 Driver ###############
 

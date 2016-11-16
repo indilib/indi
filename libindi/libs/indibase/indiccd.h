@@ -710,6 +710,9 @@ class INDI::CCD : public INDI::DefaultDevice, INDI::GuiderInterface
         float ExposureTime;
         float GuiderExposureTime;
 
+        // Sky Quality
+        float MPSAS=-1000;
+
         std::vector<std::string> FilterNames;
         int CurrentFilterSlot;
 
@@ -723,7 +726,7 @@ class INDI::CCD : public INDI::DefaultDevice, INDI::GuiderInterface
         INumber EqN[2];
 
         ITextVectorProperty ActiveDeviceTP;
-        IText ActiveDeviceT[3];
+        IText ActiveDeviceT[4];
 
         // Astrometry
 

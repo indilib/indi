@@ -17,8 +17,8 @@
 		<driver name="LX200 Classic">indi_lx200classic</driver>
                 <version>2.0</version>
 	</device>
-        <device label="LX200 OnStep" focal_length="" aperture="">^M
-                <driver name="LX200 OnStep">indi_lx200_OnStep</driver>^M
+        <device label="LX200 OnStep" focal_length="" aperture="">
+                <driver name="LX200 OnStep">indi_lx200_OnStep</driver>
                 <version>0.0</version>
         </device>	
 	<device label="LX200 16" focal_length="4064" aperture="406.4">
@@ -279,6 +279,10 @@
         </device>
 </devGroup>
 <devGroup group="Weather">
+        <device label="SQM">
+                <driver name="SQM">indi_sqm_weather</driver>
+                <version>1.0</version>
+        </device>
         <device label="Weather Meta">
                 <driver name="Weather Meta">indi_meta_weather</driver>
                 <version>1.0</version>

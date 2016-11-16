@@ -23,6 +23,7 @@
 *******************************************************************************/
 
 #include <stdlib.h>
+#include <stdio.h>
 #include <string.h>
 #include <unistd.h>
 #include <memory>
@@ -38,7 +39,8 @@
 // We declare an auto pointer to SQM.
 std::unique_ptr<SQM> sqm(new SQM());
 
-#define SQM_TIMEOUT    3
+#define UNIT_TAB        "Unit"
+#define SQM_TIMEOUT     3
 #define POLLMS          1000
 
 void ISGetProperties(const char *dev)
@@ -89,7 +91,27 @@ SQM::~SQM()
 
 bool SQM::initProperties()
 {
-    INDI::DefaultDevice::initProperties();   
+    INDI::DefaultDevice::initProperties();
+
+    // Address/Port
+    IUFillText(&AddressT[0],"IP","IP","192.168.1.1");
+    IUFillText(&AddressT[1],"PORT","Port","10001");
+    IUFillTextVector(&AddressTP,AddressT,2,getDeviceName(),"IPADDRESS_PORT","SQM Server", MAIN_CONTROL_TAB,IP_RW,60,IPS_IDLE);
+
+    // Average Readings
+    IUFillNumber(&AverageReadingN[0], "SKY_BRIGHTNESS", "Quality (mag/arcsec^2)", "%6.2f", -20, 30, 0, 0);
+    IUFillNumber(&AverageReadingN[1], "SENSOR_FREQUENCY", "Freq (Hz)", "%6.2f", 0, 1000000, 0, 0);
+    IUFillNumber(&AverageReadingN[2], "SENSOR_COUNTS", "Period (counts)", "%6.2f", 0, 1000000, 0, 0);
+    IUFillNumber(&AverageReadingN[3], "SENSOR_PERIOD", "Period (s)", "%6.2f", 0, 1000000, 0, 0);
+    IUFillNumber(&AverageReadingN[4], "SKY_TEMPERATURE", "Temperature (C)", "%6.2f", -50, 80, 0, 0);
+    IUFillNumberVector(&AverageReadingNP, AverageReadingN, 5, getDeviceName(), "SKY_QUALITY", "Readings", MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE);
+
+    // Unit Info
+    IUFillNumber(&UnitInfoN[0], "Protocol", "", "%.f", 0, 1000000, 0, 0);
+    IUFillNumber(&UnitInfoN[1], "Model", "", "%.f", 0, 1000000, 0, 0);
+    IUFillNumber(&UnitInfoN[2], "Feature", "", "%.f", 0, 1000000, 0, 0);
+    IUFillNumber(&UnitInfoN[3], "Serial", "", "%.f", 0, 1000000, 0, 0);
+    IUFillNumberVector(&UnitInfoNP, UnitInfoN, 4, getDeviceName(), "Unit Info", "", UNIT_TAB, IP_RW, 0, IPS_IDLE);
 
     addDebugControl();
 
@@ -110,12 +132,15 @@ bool SQM::updateProperties()
 
     if (isConnected())
     {
+        getDeviceInfo();
 
-
+        defineNumber(&AverageReadingNP);
+        defineNumber(&UnitInfoNP);
     }
     else
     {
-
+        deleteProperty(AverageReadingNP.name);
+        deleteProperty(UnitInfoNP.name);
     }
 
     return true;
@@ -133,11 +158,11 @@ bool SQM::Connect()
         close(sockfd);
 
     struct timeval ts;
-    ts.tv_sec = 3;
-    ts.tv_usec =0;
+    ts.tv_sec =SQM_TIMEOUT;
+    ts.tv_usec=0;
 
     struct sockaddr_in serv_addr;
-    struct hostent *hp;
+    struct hostent *hp = NULL;
     int ret = 0;
 
     /* lookup host address */
@@ -146,13 +171,15 @@ bool SQM::Connect()
     {
         DEBUG(INDI::Logger::DBG_ERROR, "Failed to lookup IP Address or hostname.");
         return false;
-    }
+    }    
 
-    /* create a socket to the INDI server */
-    (void) memset ((char *)&serv_addr, 0, sizeof(serv_addr));
+    // Address info
+    memset (&serv_addr, 0, sizeof(serv_addr));
     serv_addr.sin_family = AF_INET;
     serv_addr.sin_addr.s_addr = ((struct in_addr *)(hp->h_addr_list[0]))->s_addr;
     serv_addr.sin_port = htons(atoi(AddressT[1].text));
+
+    /* create a socket to the SQM server */
     if ((sockfd = socket (AF_INET, SOCK_STREAM, 0)) < 0)
     {
         DEBUG(INDI::Logger::DBG_ERROR, "Failed to create socket.");
@@ -160,15 +187,15 @@ bool SQM::Connect()
     }
 
     /* connect */
-    if ( (ret = ::connect (sockfd,(struct sockaddr *)&serv_addr,sizeof(serv_addr))) <0)
+    if ( (ret = ::connect (sockfd,(struct sockaddr *)&serv_addr,sizeof(serv_addr))) < 0)
     {
-        if (errno != EINPROGRESS)
-        {
-            DEBUG(INDI::Logger::DBG_ERROR, "Failed to connect to SQM server.");
-            close(sockfd);
-            return false;
-        }
+        DEBUGF(INDI::Logger::DBG_ERROR, "Failed to connect to SQM server %s@%s: %s.", AddressT[0].text, AddressT[1].text, strerror(errno));
+        close(sockfd);
+        return false;
     }
+
+    // Set socket timeout
+    setsockopt(sockfd, SOL_SOCKET, SO_RCVTIMEO, (char *)&ts,sizeof(struct timeval));
 
     DEBUGF(INDI::Logger::DBG_SESSION, "Connected successfuly to %s.", getDeviceName());
 
@@ -210,16 +237,7 @@ bool SQM::ISNewText (const char *dev, const char *name, char *texts[], char *nam
 
 bool SQM::ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n)
 {
-    if(strcmp(dev,getDeviceName())==0)
-    {        
-    }
-
     return INDI::DefaultDevice::ISNewSwitch(dev, name, states, names, n);
-}
-
-bool SQM::ISSnoopDevice (XMLEle *root)
-{
-    return INDI::DefaultDevice::ISSnoopDevice(root);
 }
 
 bool SQM::saveConfigItems(FILE *fp)
@@ -228,14 +246,113 @@ bool SQM::saveConfigItems(FILE *fp)
     return true;
 }
 
-bool SQM::getStatus()
+bool SQM::getReadings()
 {        
+    const char *cmd = "rx";
+    char buffer[57];
+
+    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD: %s", cmd);
+
+    ssize_t written = write(sockfd, cmd, 2);
+
+    if (written < 2)
+    {
+        DEBUGF(INDI::Logger::DBG_ERROR, "Error getting device readings: %s", strerror(errno));
+        return false;
+    }
+
+    ssize_t received = 0;
+
+    while (received < 57)
+    {
+        ssize_t response = read(sockfd, buffer+received, 57-received);
+        if (response < 0)
+        {
+            DEBUGF(INDI::Logger::DBG_ERROR, "Error getting device readings: %s", strerror(errno));
+            return false;
+        }
+
+        received += response;
+    }
+
+    if (received < 57)
+    {
+        DEBUG(INDI::Logger::DBG_ERROR, "Error getting device readings");
+        return false;
+    }
+
+    DEBUGF(INDI::Logger::DBG_DEBUG, "RES: %s", buffer);
+
+    float mpsas,period_seconds,temperature;
+    int frequency, period_counts;
+    int rc = sscanf(buffer, "r,%fm,%dHz,%dc,%fs,%fC", &mpsas, &frequency, &period_counts, &period_seconds, &temperature);
+
+    if (rc < 5)
+    {
+        DEBUGF(INDI::Logger::DBG_ERROR, "Failed to parse input %s", buffer);
+        return false;
+    }
+
+    AverageReadingN[0].value = mpsas;
+    AverageReadingN[1].value = frequency;
+    AverageReadingN[2].value = period_counts;
+    AverageReadingN[3].value = period_seconds;
+    AverageReadingN[4].value = temperature;
 
     return true;
 }
 
 bool SQM::getDeviceInfo()
-{    
+{
+    const char *cmd = "ix";
+    char buffer[39];
+
+    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD: %s", cmd);
+
+    ssize_t written = write(sockfd, cmd, 2);
+
+    if (written < 2)
+    {
+        DEBUGF(INDI::Logger::DBG_ERROR, "Error getting device info: %s", strerror(errno));
+        return false;
+    }
+
+    ssize_t received = 0;
+
+    while (received < 39)
+    {
+        ssize_t response = read(sockfd, buffer+received, 39-received);
+        if (response < 0)
+        {
+            DEBUGF(INDI::Logger::DBG_ERROR, "Error getting device info: %s", strerror(errno));
+            return false;
+        }
+
+        received += response;
+    }
+
+    if (received < 39)
+    {
+        DEBUG(INDI::Logger::DBG_ERROR, "Error getting device info");
+        return false;
+    }
+
+    DEBUGF(INDI::Logger::DBG_DEBUG, "RES: %s", buffer);
+
+    int protocol, model, feature, serial;
+    int rc = sscanf(buffer, "i,%d,%d,%d,%d", &protocol, &model, &feature, &serial);
+
+    if (rc < 4)
+    {
+        DEBUGF(INDI::Logger::DBG_ERROR, "Failed to parse input %s", buffer);
+        return false;
+    }
+
+    UnitInfoN[0].value = protocol;
+    UnitInfoN[1].value = model;
+    UnitInfoN[2].value = feature;
+    UnitInfoN[3].value = serial;
+
     return true;
 }
 
@@ -244,7 +361,10 @@ void SQM::TimerHit()
     if (isConnected() == false)
         return;
 
-    getStatus();
+    bool rc = getReadings();
+
+    AverageReadingNP.s = rc ? IPS_OK : IPS_ALERT;
+    IDSetNumber(&AverageReadingNP, NULL);
 
     SetTimer(POLLMS);
 }
