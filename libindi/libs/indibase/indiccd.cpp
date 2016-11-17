@@ -382,6 +382,7 @@ INDI::CCD::CCD()
 
     RA=-1000;
     Dec=-1000;
+    MPSAS=-1000;
     Aperture=FocalLength=-1;
 
     streamer = NULL;
