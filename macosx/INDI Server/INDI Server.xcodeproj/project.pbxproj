@@ -11,6 +11,15 @@
 		59019DE41DDF894400CCB3ED /* libgslcblas.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 59019DE21DDF894400CCB3ED /* libgslcblas.dylib */; };
 		59019DE51DDF8A0300CCB3ED /* libgsl.dylib in Copy Files (33 items) (53 items) */ = {isa = PBXBuildFile; fileRef = 59019DE11DDF894400CCB3ED /* libgsl.dylib */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
 		59019DE61DDF8A0300CCB3ED /* libgslcblas.dylib in Copy Files (33 items) (53 items) */ = {isa = PBXBuildFile; fileRef = 59019DE21DDF894400CCB3ED /* libgslcblas.dylib */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
+		59019DF61DDF8C9A00CCB3ED /* libz.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = 5944995F1C136C9100E0E281 /* libz.tbd */; };
+		59019DF71DDF8C9A00CCB3ED /* libASICamera2.lib in Frameworks */ = {isa = PBXBuildFile; fileRef = 5944994B1C13651F00E0E281 /* libASICamera2.lib */; };
+		59019DF81DDF8C9A00CCB3ED /* libcfitsio.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 9DDA43181A8CC5F90004AA95 /* libcfitsio.dylib */; };
+		59019DF91DDF8C9A00CCB3ED /* libusb.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 9DDA438B1A8CCD030004AA95 /* libusb.dylib */; };
+		59019DFA1DDF8C9A00CCB3ED /* libindi.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 9DDA43A91A8CD3190004AA95 /* libindi.dylib */; };
+		59019DFB1DDF8C9A00CCB3ED /* libnova.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 9DDA422C1A8CB6920004AA95 /* libnova.dylib */; };
+		59019E031DDF8CDB00CCB3ED /* asi_wheel.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 59019E011DDF8CDB00CCB3ED /* asi_wheel.cpp */; };
+		59019E051DDF8D0200CCB3ED /* libEFWFilter.lib in Frameworks */ = {isa = PBXBuildFile; fileRef = 59019E041DDF8D0200CCB3ED /* libEFWFilter.lib */; };
+		59019E081DDF8D2300CCB3ED /* indi_asi_wheel in Copy Files (33 items) (53 items) */ = {isa = PBXBuildFile; fileRef = 59019E001DDF8C9A00CCB3ED /* indi_asi_wheel */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
 		5909A8241D31803200F74CF2 /* libindi.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 9DDA43A91A8CD3190004AA95 /* libindi.dylib */; };
 		5909A8251D31803200F74CF2 /* libnova.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 9DDA422C1A8CB6920004AA95 /* libnova.dylib */; };
 		5909A82D1D31807D00F74CF2 /* microtouch.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 5909A82B1D31807D00F74CF2 /* microtouch.cpp */; };
@@ -754,6 +763,41 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
+		59019DE91DDF8C9A00CCB3ED /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 594D0B2B188300ED00B50F4E /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 9DDA43171A8CC5F90004AA95;
+			remoteInfo = cfitsio;
+		};
+		59019DEB1DDF8C9A00CCB3ED /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 594D0B2B188300ED00B50F4E /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 9DDA438A1A8CCD030004AA95;
+			remoteInfo = usb;
+		};
+		59019DED1DDF8C9A00CCB3ED /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 594D0B2B188300ED00B50F4E /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 9DDA422B1A8CB6920004AA95;
+			remoteInfo = nova;
+		};
+		59019DEF1DDF8C9A00CCB3ED /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 594D0B2B188300ED00B50F4E /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 9DDA43A81A8CD3190004AA95;
+			remoteInfo = indi;
+		};
+		59019E061DDF8D1700CCB3ED /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 594D0B2B188300ED00B50F4E /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 59019DE71DDF8C9A00CCB3ED;
+			remoteInfo = indi_asi_wheel;
+		};
 		5909A81E1D31803200F74CF2 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = 594D0B2B188300ED00B50F4E /* Project object */;
@@ -2227,6 +2271,15 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXCopyFilesBuildPhase section */
+		59019DFC1DDF8C9A00CCB3ED /* CopyFiles */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = /usr/share/man/man1/;
+			dstSubfolderSpec = 0;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 1;
+		};
 		5909A8261D31803200F74CF2 /* CopyFiles */ = {
 			isa = PBXCopyFilesBuildPhase;
 			buildActionMask = 2147483647;
@@ -2575,6 +2628,7 @@
 			dstPath = "";
 			dstSubfolderSpec = 6;
 			files = (
+				59019E081DDF8D2300CCB3ED /* indi_asi_wheel in Copy Files (33 items) (53 items) */,
 				59019DE51DDF8A0300CCB3ED /* libgsl.dylib in Copy Files (33 items) (53 items) */,
 				59019DE61DDF8A0300CCB3ED /* libgslcblas.dylib in Copy Files (33 items) (53 items) */,
 				59F755F11DCD3024002CFC82 /* indi_qhy_ccd in Copy Files (33 items) (53 items) */,
@@ -2843,6 +2897,10 @@
 /* Begin PBXFileReference section */
 		59019DE11DDF894400CCB3ED /* libgsl.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; path = libgsl.dylib; sourceTree = "<group>"; };
 		59019DE21DDF894400CCB3ED /* libgslcblas.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; path = libgslcblas.dylib; sourceTree = "<group>"; };
+		59019E001DDF8C9A00CCB3ED /* indi_asi_wheel */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = indi_asi_wheel; sourceTree = BUILT_PRODUCTS_DIR; };
+		59019E011DDF8CDB00CCB3ED /* asi_wheel.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = asi_wheel.cpp; sourceTree = "<group>"; };
+		59019E021DDF8CDB00CCB3ED /* asi_wheel.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = asi_wheel.h; sourceTree = "<group>"; };
+		59019E041DDF8D0200CCB3ED /* libEFWFilter.lib */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libEFWFilter.lib; path = macuni/libEFWFilter.lib; sourceTree = "<group>"; };
 		5909A82A1D31803200F74CF2 /* indi_microtouch_focus */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = indi_microtouch_focus; sourceTree = BUILT_PRODUCTS_DIR; };
 		5909A82B1D31807D00F74CF2 /* microtouch.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = microtouch.cpp; sourceTree = "<group>"; };
 		5909A82C1D31807D00F74CF2 /* microtouch.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = microtouch.h; sourceTree = "<group>"; };
@@ -3671,6 +3729,20 @@
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
+		59019DF51DDF8C9A00CCB3ED /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				59019DF61DDF8C9A00CCB3ED /* libz.tbd in Frameworks */,
+				59019DF71DDF8C9A00CCB3ED /* libASICamera2.lib in Frameworks */,
+				59019DF81DDF8C9A00CCB3ED /* libcfitsio.dylib in Frameworks */,
+				59019DF91DDF8C9A00CCB3ED /* libusb.dylib in Frameworks */,
+				59019DFA1DDF8C9A00CCB3ED /* libindi.dylib in Frameworks */,
+				59019DFB1DDF8C9A00CCB3ED /* libnova.dylib in Frameworks */,
+				59019E051DDF8D0200CCB3ED /* libEFWFilter.lib in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		5909A8231D31803200F74CF2 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
@@ -4675,7 +4747,10 @@
 				595FA8BC1C54C0FD003869DE /* asi_ccd.h */,
 				594499461C13643F00E0E281 /* asi_ccd.cpp */,
 				594499471C13643F00E0E281 /* indi_asi.xml */,
+				59019E011DDF8CDB00CCB3ED /* asi_wheel.cpp */,
+				59019E021DDF8CDB00CCB3ED /* asi_wheel.h */,
 				5944994B1C13651F00E0E281 /* libASICamera2.lib */,
+				59019E041DDF8D0200CCB3ED /* libEFWFilter.lib */,
 			);
 			path = "indi-asi";
 			sourceTree = "<group>";
@@ -4791,6 +4866,7 @@
 				590AD3021CFE0118008D5367 /* indi_shelyakeshel_spectrograph */,
 				9D967F751D2A5DA500EF200A /* indi_script_dome */,
 				5909A82A1D31803200F74CF2 /* indi_microtouch_focus */,
+				59019E001DDF8C9A00CCB3ED /* indi_asi_wheel */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -5627,6 +5703,27 @@
 /* End PBXHeadersBuildPhase section */
 
 /* Begin PBXNativeTarget section */
+		59019DE71DDF8C9A00CCB3ED /* indi_asi_wheel */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 59019DFD1DDF8C9A00CCB3ED /* Build configuration list for PBXNativeTarget "indi_asi_wheel" */;
+			buildPhases = (
+				59019DF01DDF8C9A00CCB3ED /* Sources */,
+				59019DF51DDF8C9A00CCB3ED /* Frameworks */,
+				59019DFC1DDF8C9A00CCB3ED /* CopyFiles */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				59019DE81DDF8C9A00CCB3ED /* PBXTargetDependency */,
+				59019DEA1DDF8C9A00CCB3ED /* PBXTargetDependency */,
+				59019DEC1DDF8C9A00CCB3ED /* PBXTargetDependency */,
+				59019DEE1DDF8C9A00CCB3ED /* PBXTargetDependency */,
+			);
+			name = indi_asi_wheel;
+			productName = indi_lxbasic;
+			productReference = 59019E001DDF8C9A00CCB3ED /* indi_asi_wheel */;
+			productType = "com.apple.product-type.tool";
+		};
 		5909A81C1D31803200F74CF2 /* indi_microtouch_focus */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = 5909A8271D31803200F74CF2 /* Build configuration list for PBXNativeTarget "indi_microtouch_focus" */;
@@ -6006,6 +6103,7 @@
 			buildRules = (
 			);
 			dependencies = (
+				59019E071DDF8D1700CCB3ED /* PBXTargetDependency */,
 				59F755F01DCD3013002CFC82 /* PBXTargetDependency */,
 				5909A82F1D3180A300F74CF2 /* PBXTargetDependency */,
 				598BF81D1D2AF19D00DCD8CF /* PBXTargetDependency */,
@@ -7034,6 +7132,10 @@
 				LastUpgradeCheck = 0710;
 				ORGANIZATIONNAME = CloudMaker;
 				TargetAttributes = {
+					59019DE71DDF8C9A00CCB3ED = {
+						DevelopmentTeam = AG8BXW65A2;
+						ProvisioningStyle = Manual;
+					};
 					5909A81C1D31803200F74CF2 = {
 						DevelopmentTeam = AG8BXW65A2;
 						ProvisioningStyle = Manual;
@@ -7396,6 +7498,7 @@
 				594498D41C13626C00E0E281 /* indi_vantage_weather */,
 				594498E31C13627C00E0E281 /* indi_wunderground_weather */,
 				594499301C1363C400E0E281 /* indi_asi_ccd */,
+				59019DE71DDF8C9A00CCB3ED /* indi_asi_wheel */,
 				591C90CC1C13741B00FCE596 /* indi_sbig_ccd */,
 				596556631C4A3E530044680B /* indi_qsi_ccd */,
 				5924ACE91C8B44FD00750816 /* indi_nexstarevo_telescope */,
@@ -7472,6 +7575,14 @@
 /* End PBXShellScriptBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
+		59019DF01DDF8C9A00CCB3ED /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				59019E031DDF8CDB00CCB3ED /* asi_wheel.cpp in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		5909A8211D31803200F74CF2 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -8438,6 +8549,31 @@
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
+		59019DE81DDF8C9A00CCB3ED /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 9DDA43171A8CC5F90004AA95 /* cfitsio */;
+			targetProxy = 59019DE91DDF8C9A00CCB3ED /* PBXContainerItemProxy */;
+		};
+		59019DEA1DDF8C9A00CCB3ED /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 9DDA438A1A8CCD030004AA95 /* usb */;
+			targetProxy = 59019DEB1DDF8C9A00CCB3ED /* PBXContainerItemProxy */;
+		};
+		59019DEC1DDF8C9A00CCB3ED /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 9DDA422B1A8CB6920004AA95 /* nova */;
+			targetProxy = 59019DED1DDF8C9A00CCB3ED /* PBXContainerItemProxy */;
+		};
+		59019DEE1DDF8C9A00CCB3ED /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 9DDA43A81A8CD3190004AA95 /* indi */;
+			targetProxy = 59019DEF1DDF8C9A00CCB3ED /* PBXContainerItemProxy */;
+		};
+		59019E071DDF8D1700CCB3ED /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 59019DE71DDF8C9A00CCB3ED /* indi_asi_wheel */;
+			targetProxy = 59019E061DDF8D1700CCB3ED /* PBXContainerItemProxy */;
+		};
 		5909A81D1D31803200F74CF2 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			target = 9DDA422B1A8CB6920004AA95 /* nova */;
@@ -9518,6 +9654,63 @@
 /* End PBXVariantGroup section */
 
 /* Begin XCBuildConfiguration section */
+		59019DFE1DDF8C9A00CCB3ED /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				DEVELOPMENT_TEAM = AG8BXW65A2;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_SYMBOLS_PRIVATE_EXTERN = NO;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				HEADER_SEARCH_PATHS = (
+					"$(inherited)",
+					"/Applications/Xcode-Beta.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include",
+					"../../../libnova-0.15.0/src",
+					"../../../libnova-0.15.0/src/libnova",
+					"../../../libusb-1.0.19/libusb",
+					../../../cfitsio,
+					../../libindi/libs/indibase,
+					../../libindi/libs,
+					../../libindi,
+				);
+				MTL_ENABLE_DEBUG_INFO = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Debug;
+		};
+		59019DFF1DDF8C9A00CCB3ED /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				DEVELOPMENT_TEAM = AG8BXW65A2;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_SYMBOLS_PRIVATE_EXTERN = NO;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				HEADER_SEARCH_PATHS = (
+					"$(inherited)",
+					"/Applications/Xcode-Beta.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include",
+					"../../../libnova-0.15.0/src",
+					"../../../libnova-0.15.0/src/libnova",
+					"../../../libusb-1.0.19/libusb",
+					../../../cfitsio,
+					../../libindi/libs/indibase,
+					../../libindi/libs,
+					../../libindi,
+				);
+				MTL_ENABLE_DEBUG_INFO = NO;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Release;
+		};
 		5909A8281D31803200F74CF2 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -13689,6 +13882,15 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
+		59019DFD1DDF8C9A00CCB3ED /* Build configuration list for PBXNativeTarget "indi_asi_wheel" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				59019DFE1DDF8C9A00CCB3ED /* Debug */,
+				59019DFF1DDF8C9A00CCB3ED /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
 		5909A8271D31803200F74CF2 /* Build configuration list for PBXNativeTarget "indi_microtouch_focus" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
