@@ -40,7 +40,6 @@
 #define TEMP_THRESHOLD          .25		/* Differential temperature threshold (C)*/
 #define MAX_DEVICES             4       /* Max device cameraCount */
 #define MAX_EXP_RETRIES         3
-#define MIN_DURATION            0.001
 #define VERBOSE_EXPOSURE        3
 
 #define CONTROL_TAB     "Controls"
@@ -248,7 +247,7 @@ bool ASICCD::initProperties()
   }
 
   PrimaryCCD.setResolution(m_camInfo->MaxWidth, m_camInfo->MaxHeight);
-  PrimaryCCD.setMinMaxStep("CCD_EXPOSURE", "CCD_EXPOSURE_VALUE", MIN_DURATION, 3600, 1, false);
+  PrimaryCCD.setMinMaxStep("CCD_EXPOSURE", "CCD_EXPOSURE_VALUE", 0, 3600, 1, false);
   PrimaryCCD.setMinMaxStep("CCD_BINNING", "HOR_BIN", 1, maxBin, 1, false);
   PrimaryCCD.setMinMaxStep("CCD_BINNING", "VER_BIN", 1, maxBin, 1, false);    
 
@@ -807,18 +806,6 @@ bool ASICCD::StartExposure(float duration)
 {
   ASI_ERROR_CODE errCode= ASI_SUCCESS;
 
-  if (duration < MIN_DURATION)
-  {
-    DEBUGF(INDI::Logger::DBG_WARNING, "Exposure shorter than minimum duration %g s requested. Setting exposure time to %g s.", duration, MIN_DURATION);
-    duration = MIN_DURATION;
-  }
-
-  if (PrimaryCCD.getFrameType() == CCDChip::BIAS_FRAME)
-  {
-    duration = MIN_DURATION;
-    DEBUGF(INDI::Logger::DBG_SESSION, "Bias Frame (s) : %g", MIN_DURATION);
-  }
-
   PrimaryCCD.setExposureDuration(duration);
   ExposureRequest = duration;
 
@@ -1368,8 +1355,14 @@ void ASICCD::createControls(int piNumberOfControls)
         if (oneControlCap->IsWritable == ASI_FALSE || oneControlCap->ControlType == ASI_TARGET_TEMP || oneControlCap->ControlType == ASI_COOLER_ON)
             continue;
 
+        // Update Min/Max exposure as supported by the camera
         if (!strcmp(oneControlCap->Name, "Exposure"))
+        {
+            minimumExposureDuration = oneControlCap->MinValue / 1000000.0;
+            PrimaryCCD.setMinMaxStep("CCD_EXPOSURE", "CCD_EXPOSURE_VALUE", minimumExposureDuration, oneControlCap->MaxValue/1000000.0, 1);
+
             continue;
+        }
 
         long pValue=0;
         ASI_BOOL isAuto= ASI_FALSE;

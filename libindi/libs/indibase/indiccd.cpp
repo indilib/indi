@@ -297,20 +297,26 @@ void CCDChip::binFrame()
     {
         uint8_t *bin_buf = BinFrame;
         uint8_t val;
+        // Try to average pixels since in 8bit they get saturated pretty quickly
+        double factor = (BinX*BinX)/2;
+        double accumulator=0;
         for (int i=0; i < SubH; i+= BinX)
             for (int j=0; j < SubW; j+= BinX)
             {
+                accumulator=0;
                 for (int k=0; k < BinX; k++)
                 {
                     for (int l=0; l < BinX; l++)
                     {
-                        val = *(RawFrame + j + (i+k) * SubW + l);
-                        if (val + *bin_buf > UINT8_MAX)
-                            *bin_buf = UINT8_MAX;
-                        else
-                            *bin_buf  += val;
+                        accumulator += *(RawFrame + j + (i+k) * SubW + l);
                     }
                 }
+
+                accumulator /= factor;
+                if (accumulator > UINT8_MAX)
+                    *bin_buf = UINT8_MAX;
+                else
+                    *bin_buf  += static_cast<uint8_t>(accumulator);
                 bin_buf++;
             }
     }
@@ -376,6 +382,7 @@ INDI::CCD::CCD()
 
     RA=-1000;
     Dec=-1000;
+    MPSAS=-1000;
     Aperture=FocalLength=-1;
 
     streamer = NULL;
@@ -613,7 +620,8 @@ bool INDI::CCD::initProperties()
     IUFillText(&ActiveDeviceT[0],"ACTIVE_TELESCOPE","Telescope","Telescope Simulator");
     IUFillText(&ActiveDeviceT[1],"ACTIVE_FOCUSER","Focuser","Focuser Simulator");
     IUFillText(&ActiveDeviceT[2],"ACTIVE_FILTER","Filter","CCD Simulator");
-    IUFillTextVector(&ActiveDeviceTP,ActiveDeviceT,3,getDeviceName(),"ACTIVE_DEVICES","Snoop devices",OPTIONS_TAB,IP_RW,60,IPS_IDLE);
+    IUFillText(&ActiveDeviceT[3],"ACTIVE_SKYQUALITY","Sky Quality","SQM");
+    IUFillTextVector(&ActiveDeviceTP,ActiveDeviceT,4,getDeviceName(),"ACTIVE_DEVICES","Snoop devices",OPTIONS_TAB,IP_RW,60,IPS_IDLE);
 
     // Snooped RA/DEC Property
     IUFillNumber(&EqN[0],"RA","Ra (hh:mm:ss)","%010.6m",0,24,0,0);
@@ -625,6 +633,7 @@ bool INDI::CCD::initProperties()
     IDSnoopDevice(ActiveDeviceT[0].text,"TELESCOPE_INFO");
     IDSnoopDevice(ActiveDeviceT[2].text,"FILTER_SLOT");
     IDSnoopDevice(ActiveDeviceT[2].text,"FILTER_NAME");
+    IDSnoopDevice(ActiveDeviceT[3].text,"SKY_QUALITY");
 
     // Guider Interface
     initGuiderProperties(getDeviceName(), GUIDE_CONTROL_TAB);
@@ -867,6 +876,19 @@ bool INDI::CCD::ISSnoopDevice (XMLEle *root)
          for (ep = nextXMLEle(root, 1) ; ep != NULL ; ep = nextXMLEle(root, 0))
              CurrentFilterSlot = atoi(pcdataXMLEle(ep));
      }
+     else if (!strcmp(propName, "SKY_QUALITY"))
+     {
+         for (ep = nextXMLEle(root, 1) ; ep != NULL ; ep = nextXMLEle(root, 0))
+         {
+             const char *name = findXMLAttValu(ep, "name");
+
+             if (!strcmp(name, "SKY_BRIGHTNESS"))
+             {
+                 MPSAS = atof(pcdataXMLEle(ep));
+                 break;
+             }
+         }
+     }
 
      return INDI::DefaultDevice::ISSnoopDevice(root);
  }
@@ -893,6 +915,7 @@ bool INDI::CCD::ISNewText (const char *dev, const char *name, char *texts[], cha
             IDSnoopDevice(ActiveDeviceT[0].text,"TELESCOPE_INFO");
             IDSnoopDevice(ActiveDeviceT[2].text,"FILTER_SLOT");
             IDSnoopDevice(ActiveDeviceT[2].text,"FILTER_NAME");
+            IDSnoopDevice(ActiveDeviceT[3].text,"SKY_QUALITY");
 
             // Tell children active devices was updated.
             activeDevicesUpdated();
@@ -1681,6 +1704,11 @@ void INDI::CCD::addFITSKeywords(fitsfile *fptr, CCDChip *targetChip)
 
     if (FocalLength != -1)
         fits_update_key_s(fptr, TDOUBLE, "FOCALLEN", &FocalLength, "Focal Length (mm)", &status);
+
+    if (MPSAS != -1000)
+    {
+        fits_update_key_s(fptr, TDOUBLE, "MPSAS", &MPSAS, "Sky Quality (mag per arcsec^2)", &status);
+    }
 
     if (targetChip->getFrameType() == CCDChip::LIGHT_FRAME && RA != -1000 && Dec != -1000)
     {

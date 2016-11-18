@@ -117,6 +117,7 @@ private:
   ISwitch *VideoFormatS;
   ISwitchVectorProperty VideoFormatSP;
 
+  double minimumExposureDuration = 0;
   struct timeval ExpStart;
   float ExposureRequest;
   float TemperatureRequest;
