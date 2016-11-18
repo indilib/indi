@@ -7,6 +7,10 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		59019DE31DDF894400CCB3ED /* libgsl.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 59019DE11DDF894400CCB3ED /* libgsl.dylib */; };
+		59019DE41DDF894400CCB3ED /* libgslcblas.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 59019DE21DDF894400CCB3ED /* libgslcblas.dylib */; };
+		59019DE51DDF8A0300CCB3ED /* libgsl.dylib in Copy Files (33 items) (53 items) */ = {isa = PBXBuildFile; fileRef = 59019DE11DDF894400CCB3ED /* libgsl.dylib */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
+		59019DE61DDF8A0300CCB3ED /* libgslcblas.dylib in Copy Files (33 items) (53 items) */ = {isa = PBXBuildFile; fileRef = 59019DE21DDF894400CCB3ED /* libgslcblas.dylib */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
 		5909A8241D31803200F74CF2 /* libindi.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 9DDA43A91A8CD3190004AA95 /* libindi.dylib */; };
 		5909A8251D31803200F74CF2 /* libnova.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 9DDA422C1A8CB6920004AA95 /* libnova.dylib */; };
 		5909A82D1D31807D00F74CF2 /* microtouch.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 5909A82B1D31807D00F74CF2 /* microtouch.cpp */; };
@@ -509,8 +513,19 @@
 		59E5F8DE1C3F0B30008DAB80 /* MathPlugin.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 59E5F8DD1C3F0B30008DAB80 /* MathPlugin.cpp */; };
 		59E5F8E01C3F0B37008DAB80 /* MathPluginManagement.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 59E5F8DF1C3F0B37008DAB80 /* MathPluginManagement.cpp */; };
 		59E5F91E1C3F17B9008DAB80 /* libobjc.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = 59E5F91D1C3F17B9008DAB80 /* libobjc.tbd */; };
-		59E5F9221C3F185D008DAB80 /* libgsl.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 59E5F9211C3F185D008DAB80 /* libgsl.a */; };
 		59E5F9241C3F1940008DAB80 /* libz.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = 5944995F1C136C9100E0E281 /* libz.tbd */; };
+		59F755D91DCD2EAC002CFC82 /* qhy5iii178coolbase.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 59F755C71DCD2EA6002CFC82 /* qhy5iii178coolbase.cpp */; };
+		59F755DA1DCD2EAC002CFC82 /* qhy5iii224coolbase.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 59F755C81DCD2EA6002CFC82 /* qhy5iii224coolbase.cpp */; };
+		59F755DB1DCD2EAC002CFC82 /* qhy5iii247base.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 59F755C91DCD2EA6002CFC82 /* qhy5iii247base.cpp */; };
+		59F755DC1DCD2EAC002CFC82 /* qhy5iii290coolbase.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 59F755CA1DCD2EA6002CFC82 /* qhy5iii290coolbase.cpp */; };
+		59F755DD1DCD2EAC002CFC82 /* qhy5iiicommon.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 59F755CB1DCD2EA6002CFC82 /* qhy5iiicommon.cpp */; };
+		59F755DE1DCD2EAC002CFC82 /* qhy5iiiddrcoolbase.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 59F755CC1DCD2EA6002CFC82 /* qhy5iiiddrcoolbase.cpp */; };
+		59F755DF1DCD2EAC002CFC82 /* minicam5base.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 59F755C41DCD2E6E002CFC82 /* minicam5base.cpp */; };
+		59F755EA1DCD2F00002CFC82 /* qhy247c.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 59F755E21DCD2EF4002CFC82 /* qhy247c.cpp */; };
+		59F755EB1DCD2F00002CFC82 /* qhy814a.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 59F755E31DCD2EF4002CFC82 /* qhy814a.cpp */; };
+		59F755EE1DCD2FFD002CFC82 /* qhy16803a.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 59F755E41DCD2EF4002CFC82 /* qhy16803a.cpp */; };
+		59F755F11DCD3024002CFC82 /* indi_qhy_ccd in Copy Files (33 items) (53 items) */ = {isa = PBXBuildFile; fileRef = 593445C51CF8EF62008AD945 /* indi_qhy_ccd */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
+		59F755F21DCD3038002CFC82 /* QHY5II.HEX in Resources */ = {isa = PBXBuildFile; fileRef = 593445E21CF8F029008AD945 /* QHY5II.HEX */; };
 		9D0B29C01A8D1E9400ED17BF /* libindi.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 9DDA43A91A8CD3190004AA95 /* libindi.dylib */; };
 		9D0B29C11A8D1E9400ED17BF /* libnova.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 9DDA422C1A8CB6920004AA95 /* libnova.dylib */; };
 		9D0B29CA1A8D1EC400ED17BF /* celestrongps.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 9D0B29C81A8D1EC400ED17BF /* celestrongps.cpp */; };
@@ -1803,6 +1818,13 @@
 			remoteGlobalIDString = 59C3D6711CF07D8C00974D80;
 			remoteInfo = indi_nstep_focus;
 		};
+		59F755EF1DCD3013002CFC82 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 594D0B2B188300ED00B50F4E /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 593445B11CF8EF62008AD945;
+			remoteInfo = indi_qhy_ccd;
+		};
 		9D0B29B91A8D1E9400ED17BF /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = 594D0B2B188300ED00B50F4E /* Project object */;
@@ -2553,6 +2575,9 @@
 			dstPath = "";
 			dstSubfolderSpec = 6;
 			files = (
+				59019DE51DDF8A0300CCB3ED /* libgsl.dylib in Copy Files (33 items) (53 items) */,
+				59019DE61DDF8A0300CCB3ED /* libgslcblas.dylib in Copy Files (33 items) (53 items) */,
+				59F755F11DCD3024002CFC82 /* indi_qhy_ccd in Copy Files (33 items) (53 items) */,
 				5909A8301D3180AF00F74CF2 /* indi_microtouch_focus in Copy Files (33 items) (53 items) */,
 				598BF81E1D2AF1A900DCD8CF /* indi_script_dome in Copy Files (33 items) (53 items) */,
 				590AD30B1CFE01B2008D5367 /* indi_shelyakeshel_spectrograph in Copy Files (33 items) (53 items) */,
@@ -2816,6 +2841,8 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		59019DE11DDF894400CCB3ED /* libgsl.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; path = libgsl.dylib; sourceTree = "<group>"; };
+		59019DE21DDF894400CCB3ED /* libgslcblas.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; path = libgslcblas.dylib; sourceTree = "<group>"; };
 		5909A82A1D31803200F74CF2 /* indi_microtouch_focus */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = indi_microtouch_focus; sourceTree = BUILT_PRODUCTS_DIR; };
 		5909A82B1D31807D00F74CF2 /* microtouch.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = microtouch.cpp; sourceTree = "<group>"; };
 		5909A82C1D31807D00F74CF2 /* microtouch.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = microtouch.h; sourceTree = "<group>"; };
@@ -3433,9 +3460,19 @@
 		59E5F8DD1C3F0B30008DAB80 /* MathPlugin.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = MathPlugin.cpp; sourceTree = "<group>"; };
 		59E5F8DF1C3F0B37008DAB80 /* MathPluginManagement.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = MathPluginManagement.cpp; sourceTree = "<group>"; };
 		59E5F91D1C3F17B9008DAB80 /* libobjc.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libobjc.tbd; path = usr/lib/libobjc.tbd; sourceTree = SDKROOT; };
-		59E5F9211C3F185D008DAB80 /* libgsl.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; path = libgsl.a; sourceTree = "<group>"; };
 		59F64B5B1D0F4A5500F53B3C /* config.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = config.h; sourceTree = "<group>"; };
 		59F64B5C1D0F4AA400F53B3C /* config.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = config.h; sourceTree = "<group>"; };
+		59F755C41DCD2E6E002CFC82 /* minicam5base.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = minicam5base.cpp; sourceTree = "<group>"; };
+		59F755C71DCD2EA6002CFC82 /* qhy5iii178coolbase.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = qhy5iii178coolbase.cpp; sourceTree = "<group>"; };
+		59F755C81DCD2EA6002CFC82 /* qhy5iii224coolbase.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = qhy5iii224coolbase.cpp; sourceTree = "<group>"; };
+		59F755C91DCD2EA6002CFC82 /* qhy5iii247base.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = qhy5iii247base.cpp; sourceTree = "<group>"; };
+		59F755CA1DCD2EA6002CFC82 /* qhy5iii290coolbase.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = qhy5iii290coolbase.cpp; sourceTree = "<group>"; };
+		59F755CB1DCD2EA6002CFC82 /* qhy5iiicommon.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = qhy5iiicommon.cpp; sourceTree = "<group>"; };
+		59F755CC1DCD2EA6002CFC82 /* qhy5iiiddrcoolbase.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = qhy5iiiddrcoolbase.cpp; sourceTree = "<group>"; };
+		59F755E21DCD2EF4002CFC82 /* qhy247c.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = qhy247c.cpp; sourceTree = "<group>"; };
+		59F755E31DCD2EF4002CFC82 /* qhy814a.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = qhy814a.cpp; sourceTree = "<group>"; };
+		59F755E41DCD2EF4002CFC82 /* qhy16803a.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = qhy16803a.cpp; sourceTree = "<group>"; };
+		59F755EC1DCD2F70002CFC82 /* CMakeLists.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = CMakeLists.txt; sourceTree = "<group>"; };
 		9D0B29C61A8D1E9400ED17BF /* indi_celestron_gps */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = indi_celestron_gps; sourceTree = BUILT_PRODUCTS_DIR; };
 		9D0B29C81A8D1EC400ED17BF /* celestrongps.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = celestrongps.cpp; sourceTree = "<group>"; };
 		9D0B29DC1A8D1ED100ED17BF /* indi_temma */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = indi_temma; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -4258,10 +4295,11 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				59E5F9221C3F185D008DAB80 /* libgsl.a in Frameworks */,
 				9DDA43F01A8CF7210004AA95 /* libcfitsio.dylib in Frameworks */,
 				9DDA43EF1A8CF71D0004AA95 /* libusb.dylib in Frameworks */,
 				9DDA43C51A8CEBBF0004AA95 /* libnova.dylib in Frameworks */,
+				59019DE31DDF894400CCB3ED /* libgsl.dylib in Frameworks */,
+				59019DE41DDF894400CCB3ED /* libgslcblas.dylib in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -4412,6 +4450,17 @@
 		593446321CF8F02D008AD945 /* libqhy */ = {
 			isa = PBXGroup;
 			children = (
+				59F755EC1DCD2F70002CFC82 /* CMakeLists.txt */,
+				59F755E21DCD2EF4002CFC82 /* qhy247c.cpp */,
+				59F755E31DCD2EF4002CFC82 /* qhy814a.cpp */,
+				59F755E41DCD2EF4002CFC82 /* qhy16803a.cpp */,
+				59F755C71DCD2EA6002CFC82 /* qhy5iii178coolbase.cpp */,
+				59F755C81DCD2EA6002CFC82 /* qhy5iii224coolbase.cpp */,
+				59F755C91DCD2EA6002CFC82 /* qhy5iii247base.cpp */,
+				59F755CA1DCD2EA6002CFC82 /* qhy5iii290coolbase.cpp */,
+				59F755CB1DCD2EA6002CFC82 /* qhy5iiicommon.cpp */,
+				59F755CC1DCD2EA6002CFC82 /* qhy5iiiddrcoolbase.cpp */,
+				59F755C41DCD2E6E002CFC82 /* minicam5base.cpp */,
 				593446F41CF8F2BB008AD945 /* cjson.cpp */,
 				593446F51CF8F2BB008AD945 /* cjson.h */,
 				593446F61CF8F2BB008AD945 /* cmosdll.cpp */,
@@ -4751,9 +4800,10 @@
 			children = (
 				5987865D1CE72C1F00DF2294 /* IOKit.framework */,
 				5987865B1CE72BFC00DF2294 /* CoreFoundation.framework */,
+				59019DE11DDF894400CCB3ED /* libgsl.dylib */,
+				59019DE21DDF894400CCB3ED /* libgslcblas.dylib */,
 				5944995F1C136C9100E0E281 /* libz.tbd */,
 				59E5F91D1C3F17B9008DAB80 /* libobjc.tbd */,
-				59E5F9211C3F185D008DAB80 /* libgsl.a */,
 				596556E31C4A499E0044680B /* libftd2xx.a */,
 				591C90ED1C1375D700FCE596 /* SBIGUDrv.framework */,
 				597B89111887E77F0093873A /* ServiceManagement.framework */,
@@ -4960,6 +5010,7 @@
 		59567CEC1A8D40150057A35A /* cloudmakers */ = {
 			isa = PBXGroup;
 			children = (
+				59567CEF1A8D40780057A35A /* indi-usbfocus */,
 				59567CEE1A8D40540057A35A /* indi-shoestring */,
 				59567CED1A8D40250057A35A /* indi-atik */,
 			);
@@ -5012,8 +5063,7 @@
 				597A04F31BFBCCA2005CF806 /* usbfocus.h */,
 				59567CF11A8D409C0057A35A /* usbfocus.cpp */,
 			);
-			name = "indi-usbfocus";
-			path = "../../indi-usbfocus";
+			path = "indi-usbfocus";
 			sourceTree = "<group>";
 		};
 		596556621C4A3DCD0044680B /* indi-qsi */ = {
@@ -5440,7 +5490,6 @@
 		9DDA43AD1A8CD3240004AA95 /* libindi */ = {
 			isa = PBXGroup;
 			children = (
-				59567CEF1A8D40780057A35A /* indi-usbfocus */,
 				590AD2AE1CFDFB20008D5367 /* CMakeLists.txt */,
 				9DDA440B1A8D00E10004AA95 /* drivers.xml */,
 				9DDA43BE1A8CDADD0004AA95 /* base64.c */,
@@ -5957,6 +6006,7 @@
 			buildRules = (
 			);
 			dependencies = (
+				59F755F01DCD3013002CFC82 /* PBXTargetDependency */,
 				5909A82F1D3180A300F74CF2 /* PBXTargetDependency */,
 				598BF81D1D2AF19D00DCD8CF /* PBXTargetDependency */,
 				590AD30A1CFE01A5008D5367 /* PBXTargetDependency */,
@@ -7369,6 +7419,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				59F755F21DCD3038002CFC82 /* QHY5II.HEX in Resources */,
 				590AD30C1CFE01D0008D5367 /* indi-shelyak.xml in Resources */,
 				59563CC91CF209F600DE1A54 /* indi_ssag.xml in Resources */,
 				591C90EA1C13746D00FCE596 /* indi_sbig.xml in Resources */,
@@ -7479,6 +7530,7 @@
 				593447BA1CF8F2BB008AD945 /* img132e.cpp in Sources */,
 				593448061CF8F2BB008AD945 /* qhy16200a.cpp in Sources */,
 				593447BC1CF8F2BB008AD945 /* minicam5f_m.cpp in Sources */,
+				59F755DF1DCD2EAC002CFC82 /* minicam5base.cpp in Sources */,
 				593447F11CF8F2BB008AD945 /* qhy28.cpp in Sources */,
 				593447ED1CF8F2BB008AD945 /* qhy21.cpp in Sources */,
 				593447FD1CF8F2BB008AD945 /* qhy224c.cpp in Sources */,
@@ -7493,6 +7545,7 @@
 				593448001CF8F2BB008AD945 /* qhy367c.cpp in Sources */,
 				593445CD1CF8EFC8008AD945 /* qhy_ccd.cpp in Sources */,
 				593447D61CF8F2BB008AD945 /* qhy5iii367base.cpp in Sources */,
+				59F755EE1DCD2FFD002CFC82 /* qhy16803a.cpp in Sources */,
 				593447E81CF8F2BB008AD945 /* qhy10.cpp in Sources */,
 				593447B61CF8F2BB008AD945 /* ic8300.cpp in Sources */,
 				593447CA1CF8F2BB008AD945 /* qhy5iii178base.cpp in Sources */,
@@ -7505,6 +7558,7 @@
 				5934480A1CF8F2BB008AD945 /* qhycam.cpp in Sources */,
 				593447E11CF8F2BB008AD945 /* qhy6.cpp in Sources */,
 				593447BB1CF8F2BB008AD945 /* log4z.cpp in Sources */,
+				59F755EA1DCD2F00002CFC82 /* qhy247c.cpp in Sources */,
 				593447C61CF8F2BB008AD945 /* qhy5iii165base.cpp in Sources */,
 				593447DF1CF8F2BB008AD945 /* qhy5rii_m.cpp in Sources */,
 				593447D11CF8F2BB008AD945 /* qhy5iii224c.cpp in Sources */,
@@ -7516,6 +7570,7 @@
 				593447F61CF8F2BB008AD945 /* qhy163m.cpp in Sources */,
 				593447EB1CF8F2BB008AD945 /* qhy15.cpp in Sources */,
 				593447DC1CF8F2BB008AD945 /* qhy5liibase.cpp in Sources */,
+				59F755DA1DCD2EAC002CFC82 /* qhy5iii224coolbase.cpp in Sources */,
 				593447BD1CF8F2BB008AD945 /* minicam5s_c.cpp in Sources */,
 				593447CD1CF8F2BB008AD945 /* qhy5iii183base.cpp in Sources */,
 				5934480C1CF8F2BB008AD945 /* qhyccdimgprocess.cpp in Sources */,
@@ -7530,6 +7585,7 @@
 				593448031CF8F2BB008AD945 /* qhy08050g.cpp in Sources */,
 				593447D51CF8F2BB008AD945 /* qhy5iii290m.cpp in Sources */,
 				593447FE1CF8F2BB008AD945 /* qhy290c.cpp in Sources */,
+				59F755DC1DCD2EAC002CFC82 /* qhy5iii290coolbase.cpp in Sources */,
 				593447D41CF8F2BB008AD945 /* qhy5iii290c.cpp in Sources */,
 				593447D21CF8F2BB008AD945 /* qhy5iii236c.cpp in Sources */,
 				593448101CF8F2BB008AD945 /* unlockimagequeue.cpp in Sources */,
@@ -7544,13 +7600,16 @@
 				593447E51CF8F2BB008AD945 /* qhy8pro.cpp in Sources */,
 				593447CC1CF8F2BB008AD945 /* qhy5iii178m.cpp in Sources */,
 				593447F01CF8F2BB008AD945 /* qhy27.cpp in Sources */,
+				59F755DD1DCD2EAC002CFC82 /* qhy5iiicommon.cpp in Sources */,
 				593447DB1CF8F2BB008AD945 /* qhy5lii_m.cpp in Sources */,
+				59F755EB1DCD2F00002CFC82 /* qhy814a.cpp in Sources */,
 				593447DE1CF8F2BB008AD945 /* qhy5pii_m.cpp in Sources */,
 				593448081CF8F2BB008AD945 /* qhyabase.cpp in Sources */,
 				593447E01CF8F2BB008AD945 /* qhy5tii_c.cpp in Sources */,
 				593447EE1CF8F2BB008AD945 /* qhy22.cpp in Sources */,
 				593447C11CF8F2BB008AD945 /* qhy5.cpp in Sources */,
 				593447C51CF8F2BB008AD945 /* qhy5iii163base.cpp in Sources */,
+				59F755D91DCD2EAC002CFC82 /* qhy5iii178coolbase.cpp in Sources */,
 				593447C71CF8F2BB008AD945 /* qhy5iii174base.cpp in Sources */,
 				593448051CF8F2BB008AD945 /* qhy16000g.cpp in Sources */,
 				593447F51CF8F2BB008AD945 /* qhy163c.cpp in Sources */,
@@ -7570,7 +7629,9 @@
 				593447E21CF8F2BB008AD945 /* qhy7.cpp in Sources */,
 				593447EF1CF8F2BB008AD945 /* qhy23.cpp in Sources */,
 				593447D91CF8F2BB008AD945 /* qhy5iiig400m.cpp in Sources */,
+				59F755DE1DCD2EAC002CFC82 /* qhy5iiiddrcoolbase.cpp in Sources */,
 				593447EC1CF8F2BB008AD945 /* qhy16.cpp in Sources */,
+				59F755DB1DCD2EAC002CFC82 /* qhy5iii247base.cpp in Sources */,
 				5934480E1CF8F2BB008AD945 /* solar800g.cpp in Sources */,
 				593448091CF8F2BB008AD945 /* qhybase.cpp in Sources */,
 			);
@@ -9136,6 +9197,11 @@
 			isa = PBXTargetDependency;
 			target = 59C3D6711CF07D8C00974D80 /* indi_nstep_focus */;
 			targetProxy = 59C3D6821CF07E7B00974D80 /* PBXContainerItemProxy */;
+		};
+		59F755F01DCD3013002CFC82 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 593445B11CF8EF62008AD945 /* indi_qhy_ccd */;
+			targetProxy = 59F755EF1DCD3013002CFC82 /* PBXContainerItemProxy */;
 		};
 		9D0B29B81A8D1E9400ED17BF /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
