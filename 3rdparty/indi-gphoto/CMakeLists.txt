@@ -24,14 +24,14 @@ find_package(LibRaw REQUIRED)
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/config.h.cmake ${CMAKE_CURRENT_BINARY_DIR}/config.h )
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/indi_gphoto.xml.cmake ${CMAKE_CURRENT_BINARY_DIR}/indi_gphoto.xml )
 
-find_program(DCRAW_EXECUTABLE NAMES dcraw
-    PATHS
-    /usr/bin
-    /usr/local/bin)
+#find_program(DCRAW_EXECUTABLE NAMES dcraw
+#    PATHS
+#    /usr/bin
+#    /usr/local/bin)
 
-if (NOT DCRAW_EXECUTABLE)
-    message(FATAL_ERROR "dcraw not found. Please install dcraw and try again.")
-endif (NOT DCRAW_EXECUTABLE)
+#if (NOT DCRAW_EXECUTABLE)
+#    message(FATAL_ERROR "dcraw not found. Please install dcraw and try again.")
+#endif (NOT DCRAW_EXECUTABLE)
 
 include_directories( ${CMAKE_CURRENT_BINARY_DIR})
 include_directories( ${CMAKE_CURRENT_SOURCE_DIR})
