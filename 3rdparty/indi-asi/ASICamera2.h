@@ -144,7 +144,7 @@ typedef enum ASI_CONTROL_TYPE{ //Control type//
 	ASI_MONO_BIN,//lead to less grid at software bin mode for color camera
 	ASI_FAN_ON,
 	ASI_PATTERN_ADJUST,
-	ASI_LENS_HEAT
+	ASI_ANTI_DEW_HEATER
 }ASI_CONTROL_TYPE;
 
 typedef struct _ASI_CONTROL_CAPS
