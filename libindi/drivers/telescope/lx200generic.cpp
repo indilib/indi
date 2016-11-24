@@ -1209,7 +1209,7 @@ void LX200Generic::mountSim ()
 
     default:
 	    break;
-	}
+    }
 
     NewRaDec(currentRA, currentDEC);
 

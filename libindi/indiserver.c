@@ -870,11 +870,10 @@ static void newFIFO(void)
      if (verbose)
             fprintf(stderr, "FIFO: %s\n", line);
 
-     char cmd[MAXSBUF], arg[4][1], var[4][MAXSBUF], tDriver[MAXSBUF], tName[MAXSBUF], envDev[MAXSBUF], envConfig[MAXSBUF], envSkel[MAXSBUF], envPrefix[MAXSBUF];
+     char cmd[MAXSBUF], arg[4][1], var[4][MAXSBUF], tDriver[MAXSBUF], tName[MAXSBUF], envConfig[MAXSBUF], envSkel[MAXSBUF], envPrefix[MAXSBUF];
 
      memset(&tDriver[0], 0, sizeof(MAXSBUF));
      memset(&tName[0], 0, sizeof(MAXSBUF));
-     memset(&envDev[0], 0, sizeof(MAXSBUF));
      memset(&envConfig[0], 0, sizeof(MAXSBUF));
      memset(&envSkel[0], 0, sizeof(MAXSBUF));
      memset(&envPrefix[0], 0, sizeof(MAXSBUF));
@@ -920,7 +919,7 @@ static void newFIFO(void)
              tName[MAXSBUF-1] = '\0';
 
              if (verbose)
-                fprintf(stderr, "With name: %s\n", envDev);
+                fprintf(stderr, "With name: %s\n", tName);
          }
          else if (arg[j][0] == 'c')
          {
