@@ -109,7 +109,9 @@ bool HitecAstroDCFocuser::Connect()
         _handle ? "HitecAstroDCFocuser opened." : "HitecAstroDCFocuser failed."
     );
     
-    if(_handle) {
+    if(_handle)
+    {
+        DEBUG(INDI::Logger::DBG_SESSION, "Experimental driver. Report issues to https://github.com/A-j-K/hitecastrodcfocuser/issues");
         SetTimer(POLLMS);
         return true;
     }
