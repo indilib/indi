@@ -1242,6 +1242,9 @@ readFromDriver (DvrInfo *dp)
           /* send to interested chained servers upstream */
           if (q2Servers(NULL, mp, root) < 0)
               shutany++;
+          /* Send to snooped drivers if they exist so that they can echo back the snooped propertly immediately */
+          q2RDrivers(dev, mp, root);
+
           if (mp->count > 0)
               setMsgXMLEle (mp, root);
           else

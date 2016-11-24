@@ -20,7 +20,6 @@
 
 #endif
 
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>
@@ -44,16 +43,19 @@ pthread_mutex_t stdout_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 #define MAXRBUF 2048
 
-/* Return 1 is property is already cached, 0 otherwise */
+/*! INDI property type */
+enum {INDI_NUMBER, INDI_SWITCH, INDI_TEXT, INDI_LIGHT, INDI_BLOB, INDI_UNKNOWN};
+
+/* Return index of property property if already cached, -1 otherwise */
 int isPropDefined(const char *property_name)
 {
     int i=0;
 
-    for (i=0; i < nroCheck; i++)
-        if (!strcmp(property_name, roCheck[i].propName))
-            return 1;
+    for (i=0; i < nPropCache; i++)
+        if (!strcmp(property_name, propCache[i].propName))
+            return i;
 
-    return 0;
+    return -1;
 }
 
 /* output a string expanding special characters into xml/html escape sequences */
@@ -134,10 +136,9 @@ IDSnoopDevice (const char *snooped_device_name, const char *snooped_property_nam
     pthread_mutex_lock(&stdout_mutex);
 	xmlv1();
 	if (snooped_property_name && snooped_property_name[0])
-	    printf ("<getProperties device='%s' name='%s'/>\n",
-				    snooped_device_name, snooped_property_name);
+        printf ("<getProperties version='%g' device='%s' name='%s'/>\n", INDIV, snooped_device_name, snooped_property_name);
 	else
-	    printf ("<getProperties device='%s'/>\n", snooped_device_name);
+        printf ("<getProperties version='%g' device='%s'/>\n", INDIV, snooped_device_name);
 	fflush (stdout);
     pthread_mutex_unlock(&stdout_mutex);
 }
@@ -878,7 +879,7 @@ dispatch (XMLEle *root, char msg[])
 
     if (!strcmp (rtag, "getProperties"))
     {
-        XMLAtt *ap;
+        XMLAtt *ap, *name;
         double v;
 
         /* check version */
@@ -895,8 +896,43 @@ dispatch (XMLEle *root, char msg[])
             exit(1);
         }
 
+        name = findXMLAtt (root, "name");
+        if (name)
+        {
+            int index = isPropDefined(valuXMLAtt(name));
+            if (index < 0)
+                return 0;
+
+            ROSC *prop = propCache + index;
+            switch (prop->type)
+            {
+            case INDI_NUMBER:
+                IDSetNumber((INumberVectorProperty*)(prop->ptr), NULL);
+                return 0;
+                break;
+
+            case INDI_SWITCH:
+                IDSetSwitch((ISwitchVectorProperty*)(prop->ptr), NULL);
+                return 0;
+                break;
+
+            case INDI_TEXT:
+                IDSetText((ITextVectorProperty*)(prop->ptr), NULL);
+                return 0;
+                break;
+
+            case INDI_BLOB:
+                IDSetBLOB((IBLOBVectorProperty*)(prop->ptr), NULL);
+                return 0;
+                break;
+            default:
+                return 0;
+            }
+        }
         /* ok */
         ap = findXMLAtt (root, "device");
+
+
         ISGetProperties (ap ? valuXMLAtt(ap) : NULL);
         return (0);
     }
@@ -926,18 +962,18 @@ dispatch (XMLEle *root, char msg[])
     if (crackDN (root, &dev, &name, msg) < 0)
         return (-1);
 
-    if (!isPropDefined(name))
+    if (isPropDefined(name) < 0)
     {
         snprintf(msg, MAXRBUF, "Property %s is not defined.", name);
         return -1;
     }
 
     /* ensure property is not RO */
-    for (i=0; i < nroCheck; i++)
+    for (i=0; i < nPropCache; i++)
     {
-        if (!strcmp(roCheck[i].propName, name))
+        if (!strcmp(propCache[i].propName, name))
         {
-            if (roCheck[i].perm == IP_RO)
+            if (propCache[i].perm == IP_RO)
             {
                 snprintf(msg, MAXRBUF, "Cannot set read-only property %s", name);
                 return -1;
@@ -1494,15 +1530,17 @@ IDDefText (const ITextVectorProperty *tvp, const char *fmt, ...)
 
         printf ("</defTextVector>\n");
 
-        if (!isPropDefined(tvp->name))
+        if (isPropDefined(tvp->name) < 0)
         {
                 /* Add this property to insure proper sanity check */
-                roCheck = roCheck ? (ROSC *) realloc ( roCheck, sizeof(ROSC) * (nroCheck+1))
+                propCache = propCache ? (ROSC *) realloc ( propCache, sizeof(ROSC) * (nPropCache+1))
                                 : (ROSC *) malloc  ( sizeof(ROSC));
-                SC      = &roCheck[nroCheck++];
+                SC      = &propCache[nPropCache++];
 
                 strcpy(SC->propName, tvp->name);
                 SC->perm = tvp->p;
+                SC->ptr = tvp;
+                SC->type= INDI_TEXT;
         }
 
         setlocale(LC_NUMERIC,orig);
@@ -1562,16 +1600,17 @@ IDDefNumber (const INumberVectorProperty *n, const char *fmt, ...)
 
         printf ("</defNumberVector>\n");
 
-        if (!isPropDefined(n->name))
+        if (isPropDefined(n->name) < 0)
         {
                 /* Add this property to insure proper sanity check */
-                roCheck = roCheck ? (ROSC *) realloc ( roCheck, sizeof(ROSC) * (nroCheck+1))
+                propCache = propCache ? (ROSC *) realloc ( propCache, sizeof(ROSC) * (nPropCache+1))
                                 : (ROSC *) malloc  ( sizeof(ROSC));
-                SC      = &roCheck[nroCheck++];
+                SC      = &propCache[nPropCache++];
 
                 strcpy(SC->propName, n->name);
                 SC->perm = n->p;
-
+                SC->ptr = n;
+                SC->type= INDI_NUMBER;
         }
 
         setlocale(LC_NUMERIC,orig);
@@ -1623,15 +1662,17 @@ IDDefSwitch (const ISwitchVectorProperty *s, const char *fmt, ...)
 
         printf ("</defSwitchVector>\n");
 
-        if (!isPropDefined(s->name))
+        if (isPropDefined(s->name) < 0)
         {
                 /* Add this property to insure proper sanity check */
-                roCheck = roCheck ? (ROSC *) realloc ( roCheck, sizeof(ROSC) * (nroCheck+1))
+                propCache = propCache ? (ROSC *) realloc ( propCache, sizeof(ROSC) * (nPropCache+1))
                                 : (ROSC *) malloc  ( sizeof(ROSC));
-                SC      = &roCheck[nroCheck++];
+                SC      = &propCache[nPropCache++];
 
                 strcpy(SC->propName, s->name);
                 SC->perm = s->p;
+                SC->ptr = s;
+                SC->type= INDI_SWITCH;
         }
 
         setlocale(LC_NUMERIC,orig);
@@ -1721,15 +1762,17 @@ IDDefBLOB (const IBLOBVectorProperty *b, const char *fmt, ...)
 
         printf ("</defBLOBVector>\n");
 
-        if (!isPropDefined(b->name))
+        if (isPropDefined(b->name) < 0)
         {
                 /* Add this property to insure proper sanity check */
-                roCheck = roCheck ? (ROSC *) realloc ( roCheck, sizeof(ROSC) * (nroCheck+1))
+                propCache = propCache ? (ROSC *) realloc ( propCache, sizeof(ROSC) * (nPropCache+1))
                                 : (ROSC *) malloc  ( sizeof(ROSC));
-                SC      = &roCheck[nroCheck++];
+                SC      = &propCache[nPropCache++];
 
                 strcpy(SC->propName, b->name);
                 SC->perm = b->p;
+                SC->ptr = b;
+                SC->type= INDI_BLOB;
         }
 
         setlocale(LC_NUMERIC,orig);
