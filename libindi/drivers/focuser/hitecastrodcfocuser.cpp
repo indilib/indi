@@ -94,20 +94,20 @@ bool HitecAstroDCFocuser::Connect()
 {
     sim = isSimulation();
 
-    if (sim) {
+    if (sim)
+    {
         SetTimer(POLLMS);
         return true;
     }
     
-    if(hid_init()) {
-        DEBUG(INDI::Logger::DBG_DEBUG, "hid_init() failed.");
+    if(hid_init())
+    {
+        DEBUG(INDI::Logger::DBG_ERROR, "hid_init() failed.");
     }
     
     _handle = hid_open(0x04D8, 0xFAC2,0);
 
-    DEBUG(INDI::Logger::DBG_DEBUG, 
-        _handle ? "HitecAstroDCFocuser opened." : "HitecAstroDCFocuser failed."
-    );
+    DEBUG(INDI::Logger::DBG_DEBUG, _handle ? "HitecAstroDCFocuser opened." : "HitecAstroDCFocuser failed.");
     
     if(_handle)
     {
@@ -116,16 +116,19 @@ bool HitecAstroDCFocuser::Connect()
         return true;
     }
 
+    DEBUGF(INDI::Logger::DBG_ERROR, "Failed to connect to focuser: %s", hid_error(_handle));
     return false;
 }
 
 bool 
 HitecAstroDCFocuser::Disconnect()
 {
-    if (!sim && _handle) {
+    if (!sim && _handle)
+    {
         hid_close(_handle);
         _handle = 0;
     }
+
     DEBUG(INDI::Logger::DBG_DEBUG, "HitecAstroDCFocuser closed.");
     return true;
 }
@@ -140,7 +143,7 @@ void
 HitecAstroDCFocuser::ISGetProperties (const char *dev)
 {
     INDI::Focuser::ISGetProperties(dev);
-    DEBUG(INDI::Logger::DBG_DEBUG, "HitecAstroDCFocuser::ISGetProperties()");
+    //DEBUG(INDI::Logger::DBG_DEBUG, "HitecAstroDCFocuser::ISGetProperties()");
     deleteProperty(PortTP.name);
 }
 
@@ -149,7 +152,7 @@ HitecAstroDCFocuser::initProperties()
 {
     INDI::Focuser::initProperties();
 
-    IDMessage(getDeviceName(), "HitecAstroDCFocuser::initProperties()");
+    //IDMessage(getDeviceName(), "HitecAstroDCFocuser::initProperties()");
     
     addDebugControl();
     addSimulationControl();

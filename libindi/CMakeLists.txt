@@ -598,12 +598,12 @@ if (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
 install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/drivers/focuser/99-perfectstar.rules DESTINATION ${UDEVRULES_INSTALL_DIR})
 endif (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
 
-################ PerfectStar Focuser ################
+################ hitechfocus Focuser ################
 set(hitecastrodcfocuser_SRCS
         ${CMAKE_CURRENT_SOURCE_DIR}/drivers/focuser/hitecastrodcfocuser.cpp
    )
 
-add_executable(indi_hitecastrodc_focus ${perfectstar_SRCS})
+add_executable(indi_hitecastrodc_focus ${hitecastrodcfocuser_SRCS})
 target_link_libraries(indi_hitecastrodc_focus indidriver)
 install(TARGETS indi_hitecastrodc_focus RUNTIME DESTINATION bin )
 if (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
