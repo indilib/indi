@@ -785,7 +785,9 @@ bool V4L2_Driver::setManualExposure(double duration)
   }
   
   /* N.B. Check how this differs from one camera to another. This is just a proof of concept for now */
-  if (duration * 10000 != AbsExposureN->value) {
+  /* With DMx 21A04.AS, exposing twice with the same duration causes an incomplete frame to pop in the buffer list
+   * This can be worked around by verifying the buffer size, but it won't work for anything else than Y8/Y16, so set exposure unconditionally */
+  /*if (duration * 10000 != AbsExposureN->value)*/ {
     double curVal = AbsExposureN->value;
     AbsExposureN->value = duration * 10000;
     ctrl_id = *((unsigned int *)  AbsExposureN->aux0);
