@@ -825,11 +825,18 @@ int gphoto_read_exposure_fd(gphoto_driver *gphoto, int fd)
     while (1)
     {
         // Wait for image to be ready to download
-        result = gp_camera_wait_for_event(gphoto->camera, 500, &event, &data, gphoto->context);
+        result = gp_camera_wait_for_event(gphoto->camera, 1000, &event, &data, gphoto->context);
         if (result != GP_OK)
         {
             DEBUGDEVICE(device, INDI::Logger::DBG_WARNING, "WARNING: Could not wait for event.");
-            return (result);
+            timeoutCounter++;
+            if (timeoutCounter >= 10)
+            {
+                pthread_mutex_unlock(&gphoto->mutex);
+                return -1;
+            }
+
+            continue;
         }
 
         switch (event)
