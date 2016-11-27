@@ -453,12 +453,12 @@ bool INDI::CCD::initProperties()
     IUFillNumberVector(&PrimaryCCD.ImageBinNP,PrimaryCCD.ImageBinN,2,getDeviceName(),"CCD_BINNING","Binning",IMAGE_SETTINGS_TAB,IP_RW,60,IPS_IDLE);
 
     // Primary CCD Info
-    IUFillNumber(&PrimaryCCD.ImagePixelSizeN[0],"CCD_MAX_X","Resolution x","%4.0f",1,16000,0,0);
-    IUFillNumber(&PrimaryCCD.ImagePixelSizeN[1],"CCD_MAX_Y","Resolution y","%4.0f",1,16000,0,0);
-    IUFillNumber(&PrimaryCCD.ImagePixelSizeN[2],"CCD_PIXEL_SIZE","Pixel size (um)","%5.2f",1,40,0,0);
-    IUFillNumber(&PrimaryCCD.ImagePixelSizeN[3],"CCD_PIXEL_SIZE_X","Pixel size X","%5.2f",1,40,0,0);
-    IUFillNumber(&PrimaryCCD.ImagePixelSizeN[4],"CCD_PIXEL_SIZE_Y","Pixel size Y","%5.2f",1,40,0,0);
-    IUFillNumber(&PrimaryCCD.ImagePixelSizeN[5],"CCD_BITSPERPIXEL","Bits per pixel","%3.0f",8,64,0,0);
+    IUFillNumber(&PrimaryCCD.ImagePixelSizeN[CCDChip::CCD_MAX_X],"CCD_MAX_X","Resolution x","%4.0f",1,16000,0,0);
+    IUFillNumber(&PrimaryCCD.ImagePixelSizeN[CCDChip::CCD_MAX_Y],"CCD_MAX_Y","Resolution y","%4.0f",1,16000,0,0);
+    IUFillNumber(&PrimaryCCD.ImagePixelSizeN[CCDChip::CCD_PIXEL_SIZE],"CCD_PIXEL_SIZE","Pixel size (um)","%5.2f",1,40,0,0);
+    IUFillNumber(&PrimaryCCD.ImagePixelSizeN[CCDChip::CCD_PIXEL_SIZE_X],"CCD_PIXEL_SIZE_X","Pixel size X","%5.2f",1,40,0,0);
+    IUFillNumber(&PrimaryCCD.ImagePixelSizeN[CCDChip::CCD_PIXEL_SIZE_Y],"CCD_PIXEL_SIZE_Y","Pixel size Y","%5.2f",1,40,0,0);
+    IUFillNumber(&PrimaryCCD.ImagePixelSizeN[CCDChip::CCD_BITSPERPIXEL],"CCD_BITSPERPIXEL","Bits per pixel","%3.0f",8,64,0,0);
     IUFillNumberVector(&PrimaryCCD.ImagePixelSizeNP,PrimaryCCD.ImagePixelSizeN,6,getDeviceName(),"CCD_INFO","CCD Information",IMAGE_INFO_TAB,IP_RO,60,IPS_IDLE);
 
     // Primary CCD Compression Options
@@ -513,12 +513,12 @@ bool INDI::CCD::initProperties()
     IUFillNumber(&GuideCCD.ImageBinN[1],"VER_BIN","Y","%2.0f",1,4,1,1);
     IUFillNumberVector(&GuideCCD.ImageBinNP,GuideCCD.ImageBinN,2,getDeviceName(),"GUIDER_BINNING","Binning",GUIDE_HEAD_TAB,IP_RW,60,IPS_IDLE);
 
-    IUFillNumber(&GuideCCD.ImagePixelSizeN[0],"CCD_MAX_X","Resolution x","%4.0f",1,16000,0,0);
-    IUFillNumber(&GuideCCD.ImagePixelSizeN[1],"CCD_MAX_Y","Resolution y","%4.0f",1,16000,0,0);
-    IUFillNumber(&GuideCCD.ImagePixelSizeN[2],"CCD_PIXEL_SIZE","Pixel size (um)","%5.2f",1,40,0,0);
-    IUFillNumber(&GuideCCD.ImagePixelSizeN[3],"CCD_PIXEL_SIZE_X","Pixel size X","%5.2f",1,40,0,0);
-    IUFillNumber(&GuideCCD.ImagePixelSizeN[4],"CCD_PIXEL_SIZE_Y","Pixel size Y","%5.2f",1,40,0,0);
-    IUFillNumber(&GuideCCD.ImagePixelSizeN[5],"CCD_BITSPERPIXEL","Bits per pixel","%3.0f",8,64,0,0);
+    IUFillNumber(&GuideCCD.ImagePixelSizeN[CCDChip::CCD_MAX_X],"CCD_MAX_X","Resolution x","%4.0f",1,16000,0,0);
+    IUFillNumber(&GuideCCD.ImagePixelSizeN[CCDChip::CCD_MAX_Y],"CCD_MAX_Y","Resolution y","%4.0f",1,16000,0,0);
+    IUFillNumber(&GuideCCD.ImagePixelSizeN[CCDChip::CCD_PIXEL_SIZE],"CCD_PIXEL_SIZE","Pixel size (um)","%5.2f",1,40,0,0);
+    IUFillNumber(&GuideCCD.ImagePixelSizeN[CCDChip::CCD_PIXEL_SIZE_X],"CCD_PIXEL_SIZE_X","Pixel size X","%5.2f",1,40,0,0);
+    IUFillNumber(&GuideCCD.ImagePixelSizeN[CCDChip::CCD_PIXEL_SIZE_Y],"CCD_PIXEL_SIZE_Y","Pixel size Y","%5.2f",1,40,0,0);
+    IUFillNumber(&GuideCCD.ImagePixelSizeN[CCDChip::CCD_BITSPERPIXEL],"CCD_BITSPERPIXEL","Bits per pixel","%3.0f",8,64,0,0);
     IUFillNumberVector(&GuideCCD.ImagePixelSizeNP,GuideCCD.ImagePixelSizeN,6,getDeviceName(),"GUIDER_INFO", "Guide Info",IMAGE_INFO_TAB,IP_RO,60,IPS_IDLE);
 
     IUFillSwitch(&GuideCCD.FrameTypeS[0],"FRAME_LIGHT","Light",ISS_ON);
@@ -1188,7 +1188,7 @@ bool INDI::CCD::ISNewNumber (const char *dev, const char *name, double values[],
         {
             IUUpdateNumber(&PrimaryCCD.ImagePixelSizeNP, values, names, n);
             PrimaryCCD.ImagePixelSizeNP.s = IPS_OK;
-            SetCCDParams(PrimaryCCD.ImagePixelSizeNP.np[0].value, PrimaryCCD.ImagePixelSizeNP.np[1].value, PrimaryCCD.getBPP(), PrimaryCCD.ImagePixelSizeNP.np[2].value, PrimaryCCD.ImagePixelSizeNP.np[3].value);
+            SetCCDParams(PrimaryCCD.ImagePixelSizeNP.np[CCDChip::CCD_MAX_X].value, PrimaryCCD.ImagePixelSizeNP.np[CCDChip::CCD_MAX_Y].value, PrimaryCCD.getBPP(), PrimaryCCD.ImagePixelSizeNP.np[CCDChip::CCD_PIXEL_SIZE_X].value, PrimaryCCD.ImagePixelSizeNP.np[CCDChip::CCD_PIXEL_SIZE_Y].value);
             IDSetNumber(&PrimaryCCD.ImagePixelSizeNP, NULL);
             return true;
         }
@@ -1198,7 +1198,7 @@ bool INDI::CCD::ISNewNumber (const char *dev, const char *name, double values[],
         {
             IUUpdateNumber(&GuideCCD.ImagePixelSizeNP, values, names, n);
             GuideCCD.ImagePixelSizeNP.s = IPS_OK;
-            SetGuiderParams(GuideCCD.ImagePixelSizeNP.np[0].value, GuideCCD.ImagePixelSizeNP.np[1].value, GuideCCD.getBPP(), GuideCCD.ImagePixelSizeNP.np[2].value, GuideCCD.ImagePixelSizeNP.np[3].value);
+            SetGuiderParams(GuideCCD.ImagePixelSizeNP.np[CCDChip::CCD_MAX_X].value, GuideCCD.ImagePixelSizeNP.np[CCDChip::CCD_MAX_Y].value, GuideCCD.getBPP(), GuideCCD.ImagePixelSizeNP.np[CCDChip::CCD_PIXEL_SIZE_X].value, GuideCCD.ImagePixelSizeNP.np[CCDChip::CCD_PIXEL_SIZE_Y].value);
             IDSetNumber(&GuideCCD.ImagePixelSizeNP, NULL);
             return true;
         }
