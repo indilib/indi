@@ -246,4 +246,12 @@ On
 Off
 </defSwitch>
 </defSwitchVector>
+<defNumberVector device="EQMod Mount" name="AUXENCODERVALUES" label="Aux. Encoders" group="Motor Status" state="Idle" perm="ro">
+<defNumber name="AUXENCRASteps" label="RA Steps" format="%.0f" min="0.0" max="16777215.0" step="1.0">
+1.0
+</defNumber>
+<defNumber name="AUXENCDESteps" label="DE Steps" format="%.0f" min="0.0" max="16777215.0" step="1.0">
+1.0
+</defNumber>
+</defNumberVector>
 </INDIDriver>

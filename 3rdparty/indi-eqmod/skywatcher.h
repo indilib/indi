@@ -109,6 +109,8 @@ public:
     
     unsigned long GetlastreadRAIndexer()  throw (EQModError);
     unsigned long GetlastreadDEIndexer()  throw (EQModError);
+    unsigned long GetRAAuxEncoder()  throw (EQModError);
+    unsigned long GetDEAuxEncoder()  throw (EQModError);
     void TurnRAEncoder(bool on) throw (EQModError);
     void TurnDEEncoder(bool on) throw (EQModError);
     void ResetRAIndexer() throw (EQModError);
@@ -156,6 +158,7 @@ public:
       GetHomePosition='d',    // Get Home position encoder count (default at startup)
       SetFeatureCmd='W', // EQ8/AZEQ6/AZEQ5 only
       GetFeatureCmd='q', // EQ8/AZEQ6/AZEQ5 only
+      InquireAuxEncoder='d', // EQ8/AZEQ6/AZEQ5 only
       NUMBER_OF_SkywatcherCommand
     };
     
@@ -212,6 +215,7 @@ public:
     void SetFeature(SkywatcherAxis axis, unsigned long command) throw (EQModError);
     void GetFeature(SkywatcherAxis axis, unsigned long command) throw (EQModError);
     void TurnEncoder(SkywatcherAxis axis, bool on) throw (EQModError);
+    unsigned long ReadEncoder(SkywatcherAxis axis) throw (EQModError);
     void ResetIndexer(SkywatcherAxis axis) throw (EQModError);
     void GetIndexer(SkywatcherAxis axis) throw (EQModError);
     void SetAxisPosition(SkywatcherAxis axis, unsigned long step) throw (EQModError);

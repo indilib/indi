@@ -989,6 +989,21 @@ void Skywatcher::TurnDEEncoder(bool on) throw (EQModError)
   TurnEncoder(Axis2, on);
 }
 
+unsigned long Skywatcher::ReadEncoder(SkywatcherAxis axis)  throw (EQModError)
+{
+  dispatch_command(InquireAuxEncoder, axis, NULL);
+  read_eqmod();
+  return Revu24str2long(response+1);
+}
+
+unsigned long Skywatcher::GetRAAuxEncoder()  throw (EQModError) {
+  return ReadEncoder(Axis1);
+}
+    
+unsigned long Skywatcher::GetDEAuxEncoder()  throw (EQModError) {
+  return ReadEncoder(Axis2);
+}
+
 void Skywatcher::SetAxisPosition(SkywatcherAxis axis, unsigned long step) throw (EQModError)
 {
   char cmd[7];

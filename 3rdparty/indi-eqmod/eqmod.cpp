@@ -386,6 +386,7 @@ bool EQMod::loadProperties()
     UseBacklashSP=getSwitch("USEBACKLASH");
     AutoHomeSP=getSwitch("AUTOHOME");
     AuxEncoderSP=getSwitch("AUXENCODER");
+    AuxEncoderNP=getNumber("AUXENCODERVALUES");
 #if defined WITH_ALIGN && defined WITH_ALIGN_GEEHALEL
     IUFillSwitch(&AlignMethodS[0], "ALIGN_METHOD_EQMOD", "EQMod Align", ISS_ON);
     IUFillSwitch(&AlignMethodS[1], "ALIGN_METHOD_SUBSYSTEM", "Alignment Subsystem", ISS_OFF);
@@ -474,6 +475,7 @@ bool EQMod::updateProperties()
 	  if (mount->HasAuxEncoders())
 	    {
 	    defineSwitch(AuxEncoderSP);
+	    defineNumber(AuxEncoderNP);
 	    DEBUG(INDI::Logger::DBG_SESSION,"Mount has auxiliary encoders. Turning them off.");
 	    mount->TurnRAEncoder(false);
 	    mount->TurnDEEncoder(false);
@@ -531,9 +533,10 @@ bool EQMod::updateProperties()
 	  //if (!strcmp(MountInformationTP->tp[0].text, "EQ8") || !strcmp(MountInformationTP->tp[0].text, "AZEQ6"))
 	  if (mount->HasHomeIndexers())
 	    deleteProperty(AutoHomeSP->name);
-	  if (mount->HasAuxEncoders())
+	  if (mount->HasAuxEncoders()) {
 	    deleteProperty(AuxEncoderSP->name);
-	  
+	    deleteProperty(AuxEncoderNP->name);
+	  }
 #if defined WITH_ALIGN && defined WITH_ALIGN_GEEHALEL
 	  deleteProperty(AlignMethodSP.name);
 #endif
@@ -662,7 +665,7 @@ bool EQMod::ReadScopeStatus() {
   const char *horiznames[2]={"AZ", "ALT"};
   double steppervalues[2];
   const char *steppernames[]={"RAStepsCurrent", "DEStepsCurrent"};
-  
+
   juliandate=getJulianDate();
   lst=getLst(juliandate, getLongitude()); 
   
@@ -786,6 +789,16 @@ bool EQMod::ReadScopeStatus() {
     IUUpdateNumber(PeriodsNP, periods, (char **)periodsnames, 2);
     IDSetNumber(PeriodsNP, NULL);
 
+    if (mount->HasAuxEncoders())
+      {
+      double auxencodervalues[2];
+      const char *auxencodernames[]={"AUXENCRASteps", "AUXENCDESteps"};  
+      auxencodervalues[0]=mount->GetRAAuxEncoder();
+      auxencodervalues[1]=mount->GetDEAuxEncoder();
+      IUUpdateNumber(AuxEncoderNP, auxencodervalues, (char **)auxencodernames, 2);
+      IDSetNumber(AuxEncoderNP, NULL);      
+      }
+    
     if (gotoInProgress()) {
       if (!(mount->IsRARunning()) && !(mount->IsDERunning())) {
 	// Goto iteration
