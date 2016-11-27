@@ -706,6 +706,8 @@ bool INDI::Dome::ISSnoopDevice (XMLEle *root)
 
 bool INDI::Dome::saveConfigItems(FILE *fp)
 {
+    DefaultDevice::saveConfigItems(fp);
+
     IUSaveConfigText(fp, &ActiveDeviceTP);
     IUSaveConfigText(fp, &PortTP);
     IUSaveConfigNumber(fp, &PresetNP);

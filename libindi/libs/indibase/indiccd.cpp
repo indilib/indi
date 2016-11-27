@@ -2359,6 +2359,8 @@ void INDI::CCD::SetGuiderParams(int x,int y,int bpp,float xf,float yf)
 
 bool INDI::CCD::saveConfigItems(FILE *fp)
 {
+    DefaultDevice::saveConfigItems(fp);
+
     IUSaveConfigText(fp, &ActiveDeviceTP);
     IUSaveConfigSwitch(fp, &UploadSP);
     IUSaveConfigText(fp, &UploadSettingsTP);

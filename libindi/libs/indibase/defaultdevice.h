@@ -260,7 +260,21 @@ protected:
         \return True if successful, false otherwise.
     */
     virtual bool saveConfig(bool silent=false);
+
+    /**
+     * @brief saveConfigItems Save specific properties in the provide config file handler. Child class usually override this function to save their own properties and the base class
+     * saveConfigItems(fp) must be explicitly called by each child class. The Default Device saveConfigItems(fp) only save Debug properties options in the config file.
+     * @param fp Pointer to config file handler
+     * @return True if successful, false otherwise.
+     */
     virtual bool saveConfigItems(FILE *fp);
+
+    /**
+     * @brief saveAllConfigItems Save all the drivers' properties in the configuration file
+     * @param fp pointer to config file handler
+     * @return  True if successful, false otherwise.
+     */
+    virtual bool saveAllConfigItems(FILE *fp);
 
     /** \brief Load the default configuration file
         \return True if successful, false otherwise.

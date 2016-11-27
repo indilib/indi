@@ -324,6 +324,8 @@ bool INDI::Telescope::ISSnoopDevice(XMLEle *root)
 
 bool INDI::Telescope::saveConfigItems(FILE *fp)
 {
+    DefaultDevice::saveConfigItems(fp);
+
     IUSaveConfigText(fp, &ActiveDeviceTP);
     IUSaveConfigText(fp, &PortTP);
     IUSaveConfigSwitch(fp, &BaudRateSP);
