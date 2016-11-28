@@ -119,6 +119,8 @@ public:
     void GetDEIndexer() throw (EQModError);
     void SetRAAxisPosition(unsigned long step) throw (EQModError);
     void SetDEAxisPosition(unsigned long step) throw (EQModError);
+    void SetST4RAGuideRate(unsigned char r) throw (EQModError);
+    void SetST4DEGuideRate(unsigned char r) throw (EQModError);
 
  private: 
 
@@ -154,7 +156,7 @@ public:
       StartMotion='J',
       GetStepPeriod='D', // See Merlin protocol http://www.papywizard.org/wiki/DevelopGuide
       ActivateMotor='B', // See eq6direct implementation http://pierre.nerzic.free.fr/INDI/
-      SetGuideRate='P',  // See EQASCOM driver
+      SetST4GuideRateCmd='P',  
       GetHomePosition='d',    // Get Home position encoder count (default at startup)
       SetFeatureCmd='W', // EQ8/AZEQ6/AZEQ5 only
       GetFeatureCmd='q', // EQ8/AZEQ6/AZEQ5 only
@@ -218,6 +220,7 @@ public:
     unsigned long ReadEncoder(SkywatcherAxis axis) throw (EQModError);
     void ResetIndexer(SkywatcherAxis axis) throw (EQModError);
     void GetIndexer(SkywatcherAxis axis) throw (EQModError);
+    void SetST4GuideRate(SkywatcherAxis axis, unsigned char r) throw (EQModError);
     void SetAxisPosition(SkywatcherAxis axis, unsigned long step) throw (EQModError);
 
     bool read_eqmod()  throw (EQModError);
@@ -266,6 +269,7 @@ public:
     const char *deviceName;
     bool debugnextread;
     EQMod *telescope;
+    bool reconnect;
 
     // Backlash
     unsigned long Backlash[NUMBER_OF_SKYWATCHERAXIS];

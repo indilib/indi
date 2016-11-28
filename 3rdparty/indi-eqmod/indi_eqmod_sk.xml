@@ -254,4 +254,32 @@ Off
 1.0
 </defNumber>
 </defNumberVector>
+<defSwitchVector device="EQMod Mount" name="ST4_GUIDE_RATE_NS" label="ST4 Rate N/S" group="Motion Control" state="Idle" perm="rw" rule="OneOfMany">
+<defSwitch name="ST4_RATE_NS_0" label="1.00x">
+Off
+</defSwitch>
+<defSwitch name="ST4_RATE_NS_1" label="0.75x">
+Off
+</defSwitch>
+<defSwitch name="ST4_RATE_NS_2" label="0.50x">
+On
+</defSwitch>
+<defSwitch name="ST4_RATE_NS_3" label="0.25x">
+Off
+</defSwitch>
+</defSwitchVector>
+<defSwitchVector device="EQMod Mount" name="ST4_GUIDE_RATE_WE" label="ST4 Rate W/E" group="Motion Control" state="Idle" perm="rw" rule="OneOfMany">
+<defSwitch name="ST4_RATE_WE_0" label="1.00x">
+Off
+</defSwitch>
+<defSwitch name="ST4_RATE_WE_1" label="0.75x">
+Off
+</defSwitch>
+<defSwitch name="ST4_RATE_WE_2" label="0.50x">
+On
+</defSwitch>
+<defSwitch name="ST4_RATE_WE_3" label="0.25x">
+Off
+</defSwitch>
+</defSwitchVector>
 </INDIDriver>

@@ -387,6 +387,8 @@ bool EQMod::loadProperties()
     AutoHomeSP=getSwitch("AUTOHOME");
     AuxEncoderSP=getSwitch("AUXENCODER");
     AuxEncoderNP=getNumber("AUXENCODERVALUES");
+    ST4GuideRateNSSP=getSwitch("ST4_GUIDE_RATE_NS");
+    ST4GuideRateWESP=getSwitch("ST4_GUIDE_RATE_WE");
 #if defined WITH_ALIGN && defined WITH_ALIGN_GEEHALEL
     IUFillSwitch(&AlignMethodS[0], "ALIGN_METHOD_EQMOD", "EQMod Align", ISS_ON);
     IUFillSwitch(&AlignMethodS[1], "ALIGN_METHOD_SUBSYSTEM", "Alignment Subsystem", ISS_OFF);
@@ -443,6 +445,8 @@ bool EQMod::updateProperties()
 	defineNumber(BacklashNP);
 	defineSwitch(UseBacklashSP);
 	defineSwitch(TrackDefaultSP);
+	defineSwitch(ST4GuideRateNSSP);
+	defineSwitch(ST4GuideRateWESP);
 #if defined WITH_ALIGN && defined WITH_ALIGN_GEEHALEL
 	defineSwitch(&AlignMethodSP);
 #endif
@@ -530,6 +534,8 @@ bool EQMod::updateProperties()
 	  deleteProperty(TrackDefaultSP->name);
 	  deleteProperty(BacklashNP->name);
 	  deleteProperty(UseBacklashSP->name);
+	  deleteProperty(ST4GuideRateNSSP->name);
+	  deleteProperty(ST4GuideRateWESP->name);
 	  //if (!strcmp(MountInformationTP->tp[0].text, "EQ8") || !strcmp(MountInformationTP->tp[0].text, "AZEQ6"))
 	  if (mount->HasHomeIndexers())
 	    deleteProperty(AutoHomeSP->name);
@@ -2061,6 +2067,38 @@ bool EQMod::ISNewSwitch (const char *dev, const char *name, ISState *states, cha
 	  return true;
 	}
 
+      if(strcmp(name,"ST4_GUIDE_RATE_WE")==0)
+ 	{  
+	  ISwitch *swbefore, *swafter;
+	  swbefore=IUFindOnSwitch(ST4GuideRateWESP);
+	  IUUpdateSwitch(ST4GuideRateWESP,states,names,n);
+	  swafter=IUFindOnSwitch(ST4GuideRateWESP);
+	  if (swbefore != swafter) {
+	    unsigned char rate='0' + (unsigned char)IUFindOnSwitchIndex(ST4GuideRateWESP);
+	    mount->SetST4RAGuideRate(rate);
+	    ST4GuideRateWESP->s=IPS_IDLE;
+	    IDSetSwitch(ST4GuideRateWESP,NULL);
+	    DEBUGF(INDI::Logger::DBG_SESSION,"Changed ST4 Guide rate WE (from %s to %s).", swbefore->label, swafter->label);
+	  }
+	  return true;
+	}
+      
+      if(strcmp(name,"ST4_GUIDE_RATE_NS")==0)
+ 	{  
+	  ISwitch *swbefore, *swafter;
+	  swbefore=IUFindOnSwitch(ST4GuideRateNSSP);
+	  IUUpdateSwitch(ST4GuideRateNSSP,states,names,n);
+	  swafter=IUFindOnSwitch(ST4GuideRateNSSP);
+	  if (swbefore != swafter) {
+	    unsigned char rate='0' + (unsigned char)IUFindOnSwitchIndex(ST4GuideRateNSSP);
+	    mount->SetST4DEGuideRate(rate);
+	    ST4GuideRateNSSP->s=IPS_IDLE;
+	    IDSetSwitch(ST4GuideRateNSSP,NULL);
+	    DEBUGF(INDI::Logger::DBG_SESSION,"Changed ST4 Guide rate NS (from %s to %s).", swbefore->label, swafter->label);
+	  }
+	  return true;
+	}
+      
      if (!strcmp(name, "SYNCMANAGE"))
 	{
 	  ISwitchVectorProperty *svp = getSwitch(name);

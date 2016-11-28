@@ -54,6 +54,7 @@ Skywatcher::Skywatcher(EQMod *t)
   debugnextread=false;
   simulation=false;
   telescope = t;
+  reconnect=false;
 
 }
 
@@ -316,7 +317,16 @@ void Skywatcher::Init() throw (EQModError)
   }
   DEBUGF(INDI::Logger::DBG_DEBUG, "%s() : Setting Home steps RAHome=%ld DEHome = %ld",
 	 __FUNCTION__, RAStepHome, DEStepHome);
-
+  
+  if (not(reconnect)) {
+    reconnect=true;
+    DEBUGF(INDI::Logger::DBG_WARNING, "%s() : First Initialization for this driver instance", __FUNCTION__);    
+    // Initialize unreadable mount feature
+    SetST4RAGuideRate('2');
+    SetST4DEGuideRate('2');
+    DEBUGF(INDI::Logger::DBG_WARNING, "%s() : Setting both ST4 guide rates to  0.5x (2)", __FUNCTION__);    
+  }
+  
   //Park status
   if (telescope->InitPark() == false)
   {
@@ -1002,6 +1012,23 @@ unsigned long Skywatcher::GetRAAuxEncoder()  throw (EQModError) {
     
 unsigned long Skywatcher::GetDEAuxEncoder()  throw (EQModError) {
   return ReadEncoder(Axis2);
+}
+
+void Skywatcher::SetST4RAGuideRate(unsigned char r) throw (EQModError) {
+  SetST4GuideRate(Axis1, r);
+}
+
+void Skywatcher::SetST4DEGuideRate(unsigned char r) throw (EQModError) {
+  SetST4GuideRate(Axis2, r);
+}
+
+void Skywatcher::SetST4GuideRate(SkywatcherAxis axis, unsigned char r) throw (EQModError) {
+  char cmd[2];
+  DEBUGF(DBG_MOUNT, "%s() : Axis = %c -- rate=%c", __FUNCTION__, axis, r);
+  cmd[0]=r; cmd[1]='\0';
+  //IDLog("Setting target for axis %c  to %d\n", axis, increment);
+  dispatch_command(SetST4GuideRateCmd, axis, cmd);
+  read_eqmod();  
 }
 
 void Skywatcher::SetAxisPosition(SkywatcherAxis axis, unsigned long step) throw (EQModError)

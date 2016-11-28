@@ -136,6 +136,9 @@ class EQMod : public INDI::Telescope, public INDI::GuiderInterface
 	ISwitchVectorProperty *AuxEncoderSP;
 	INumberVectorProperty *AuxEncoderNP;
 	
+	ISwitchVectorProperty *ST4GuideRateNSSP;
+	ISwitchVectorProperty *ST4GuideRateWESP;
+	
 	enum Hemisphere {NORTH=0, SOUTH=1 };
 	enum PierSide {WEST=0, EAST=1};
 	typedef struct GotoParams {
