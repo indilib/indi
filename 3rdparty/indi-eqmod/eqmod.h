@@ -138,6 +138,11 @@ class EQMod : public INDI::Telescope, public INDI::GuiderInterface
 	
 	ISwitchVectorProperty *ST4GuideRateNSSP;
 	ISwitchVectorProperty *ST4GuideRateWESP;
+
+	ISwitchVectorProperty *RAPPECTrainingSP;
+	ISwitchVectorProperty *DEPPECTrainingSP;
+	ISwitchVectorProperty *RAPPECSP;
+	ISwitchVectorProperty *DEPPECSP;	
 	
 	enum Hemisphere {NORTH=0, SOUTH=1 };
 	enum PierSide {WEST=0, EAST=1};
@@ -179,7 +184,8 @@ class EQMod : public INDI::Telescope, public INDI::GuiderInterface
 	double GetDESlew();
 	bool gotoInProgress();
 
-    bool loadProperties();
+	bool loadProperties();
+
 	void setStepperSimulation (bool enable);
 
 	void computePolarAlign(SyncData s1, SyncData s2, double lat, double *tpaalt, double *tpaaz);

@@ -282,4 +282,36 @@ On
 Off
 </defSwitch>
 </defSwitchVector>
+<defSwitchVector device="EQMod Mount" name="RA_PPEC_TRAINING" label="RA PPEC Training" group="Permanent PEC" state="Idle" perm="rw" rule="OneOfMany">
+<defSwitch name="RA_PPEC_TRAINING_OFF" label="Off">
+On
+</defSwitch>
+<defSwitch name="RA_PPEC_TRAINING_ON" label="On">
+Off
+</defSwitch>
+</defSwitchVector>
+<defSwitchVector device="EQMod Mount" name="RA_PPEC" label="Turn RA PPEC" group="Permanent PEC" state="Idle" perm="rw" rule="OneOfMany">
+<defSwitch name="RA_PPEC_OFF" label="Off">
+On
+</defSwitch>
+<defSwitch name="RA_PPEC_ON" label="On">
+Off
+</defSwitch>
+</defSwitchVector>
+<defSwitchVector device="EQMod Mount" name="DE_PPEC_TRAINING" label="DE PPEC Training" group="Permanent PEC" state="Idle" perm="rw" rule="OneOfMany">
+<defSwitch name="DE_PPEC_TRAINING_OFF" label="Off">
+On
+</defSwitch>
+<defSwitch name="DE_PPEC_TRAINING_ON" label="On">
+Off
+</defSwitch>
+</defSwitchVector>
+<defSwitchVector device="EQMod Mount" name="DE_PPEC" label="Turn DE PPEC" group="Permanent PEC" state="Idle" perm="rw" rule="OneOfMany">
+<defSwitch name="DE_PPEC_OFF" label="Off">
+On
+</defSwitch>
+<defSwitch name="DE_PPEC_ON" label="On">
+Off
+</defSwitch>
+</defSwitchVector>
 </INDIDriver>

@@ -62,6 +62,7 @@ public:
 
     bool HasHomeIndexers();
     bool HasAuxEncoders();
+    bool HasPPEC();
     
     unsigned long GetRAEncoder()  throw (EQModError);
     unsigned long GetDEEncoder()  throw (EQModError);
@@ -113,6 +114,12 @@ public:
     unsigned long GetDEAuxEncoder()  throw (EQModError);
     void TurnRAEncoder(bool on) throw (EQModError);
     void TurnDEEncoder(bool on) throw (EQModError);
+    void TurnRAPPECTraining(bool on) throw (EQModError);
+    void TurnDEPPECTraining(bool on) throw (EQModError);
+    void TurnRAPPEC(bool on) throw (EQModError);
+    void TurnDEPPEC(bool on) throw (EQModError);
+    void GetRAPPECStatus(bool &intraining, bool &inppec) throw (EQModError);
+    void GetDEPPECStatus(bool &intraining, bool &inppec) throw (EQModError);
     void ResetRAIndexer() throw (EQModError);
     void ResetDEIndexer() throw (EQModError);
     void GetRAIndexer() throw (EQModError);
@@ -187,7 +194,7 @@ public:
       bool hasHalfCurrentTracking;
       bool hasWifi;
     } SkyWatcherFeatures;
-    
+
     enum SkywatcherGetFeatureCmd {GET_INDEXER_CMD=0x00, GET_FEATURES_CMD=0x01};
     enum SkywatcherSetFeatureCmd {START_PPEC_TRAINING_CMD=0x00, STOP_PPEC_TRAINING_CMD=0x01,
 				  TURN_PPEC_ON_CMD=0x02, TURN_PPEC_OFF_CMD=0X03,
@@ -222,7 +229,10 @@ public:
     void GetIndexer(SkywatcherAxis axis) throw (EQModError);
     void SetST4GuideRate(SkywatcherAxis axis, unsigned char r) throw (EQModError);
     void SetAxisPosition(SkywatcherAxis axis, unsigned long step) throw (EQModError);
-
+    void TurnPPECTraining(SkywatcherAxis axis, bool on) throw (EQModError);
+    void TurnPPEC(SkywatcherAxis axis, bool on) throw (EQModError);
+    void GetPPECStatus(SkywatcherAxis axis, bool &intraining, bool &inppec) throw (EQModError);
+    
     bool read_eqmod()  throw (EQModError);
     bool dispatch_command(SkywatcherCommand cmd, SkywatcherAxis axis, char *arg)  throw (EQModError);
 

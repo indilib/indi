@@ -340,22 +340,8 @@ bool EQMod::initProperties()
     getSwitch("ALIGNMENT_SUBSYSTEM_ACTIVE")->sp[0].s = ISS_ON;
     
 #endif
-    return true;
-}
-
-void EQMod::ISGetProperties(const char *dev)
-{
-    INDI::Telescope::ISGetProperties(dev);
-
-    /* Add debug controls so we may debug driver if necessary */
-    addDebugControl();
-    #ifdef WITH_SIMULATOR
-    addSimulationControl();
-    #endif
-}
-
-bool EQMod::loadProperties()
-{
+    /*
+    // buildSkeleton emits new property signals so can not be used here    
     buildSkeleton("indi_eqmod_sk.xml");
 
     GuideRateNP=getNumber("GUIDE_RATE");
@@ -405,6 +391,131 @@ bool EQMod::loadProperties()
       if (!horizon->initProperties()) return false;
     }
 #endif
+*/
+    return true;
+}
+
+void EQMod::ISGetProperties(const char *dev)
+{
+    INDI::Telescope::ISGetProperties(dev);
+
+    /* Add debug controls so we may debug driver if necessary */
+    addDebugControl();
+    #ifdef WITH_SIMULATOR
+    addSimulationControl();
+    #endif
+
+    if (isConnected())
+    {
+          defineNumber(&GuideNSNP);
+    defineNumber(&GuideWENP);
+	defineNumber(SlewSpeedsNP);
+	defineNumber(GuideRateNP);
+	defineText(MountInformationTP);
+	defineNumber(SteppersNP);
+	defineNumber(CurrentSteppersNP);
+	defineNumber(PeriodsNP);
+	defineNumber(JulianNP);
+	defineNumber(TimeLSTNP);
+	defineLight(RAStatusLP);
+	defineLight(DEStatusLP);
+	defineSwitch(HemisphereSP);
+	defineSwitch(TrackModeSP);
+
+	defineNumber(TrackRatesNP);
+	defineNumber(HorizontalCoordNP);
+	defineSwitch(PierSideSP);
+    defineSwitch(ReverseDECSP);
+	defineNumber(StandardSyncNP);
+	defineNumber(StandardSyncPointNP);
+	defineNumber(SyncPolarAlignNP);
+	defineSwitch(SyncManageSP);
+	defineNumber(BacklashNP);
+	defineSwitch(UseBacklashSP);
+	defineSwitch(TrackDefaultSP);
+	defineSwitch(ST4GuideRateNSSP);
+	defineSwitch(ST4GuideRateWESP);
+#if defined WITH_ALIGN && defined WITH_ALIGN_GEEHALEL
+	defineSwitch(&AlignMethodSP);
+#endif
+#if defined WITH_ALIGN || defined WITH_ALIGN_GEEHALEL
+	defineSwitch(AlignSyncModeSP);
+#endif
+	if (mount->HasHomeIndexers())
+	  {
+	    defineSwitch(AutoHomeSP);
+	  }
+	  
+	if (mount->HasAuxEncoders())
+	  {
+	    defineSwitch(AuxEncoderSP);
+	    defineNumber(AuxEncoderNP);
+	  }
+	if (mount->HasPPEC())
+	  {
+	    defineSwitch(RAPPECTrainingSP);
+	    defineSwitch(RAPPECSP);
+	    defineSwitch(DEPPECTrainingSP);
+	    defineSwitch(DEPPECSP);
+	  	  }	 
+    }
+}
+
+bool EQMod::loadProperties()
+{
+    buildSkeleton("indi_eqmod_sk.xml");
+
+    GuideRateNP=getNumber("GUIDE_RATE");
+    GuideRateN=GuideRateNP->np;
+
+    MountInformationTP=getText("MOUNTINFORMATION");
+    SteppersNP=getNumber("STEPPERS");
+    CurrentSteppersNP=getNumber("CURRENTSTEPPERS");
+    PeriodsNP=getNumber("PERIODS");
+    JulianNP=getNumber("JULIAN");
+    TimeLSTNP=getNumber("TIME_LST");
+    RAStatusLP=getLight("RASTATUS");
+    DEStatusLP=getLight("DESTATUS");
+    SlewSpeedsNP=getNumber("SLEWSPEEDS");
+    HemisphereSP=getSwitch("HEMISPHERE");
+    PierSideSP=getSwitch("TELESCOPE_PIER_SIDE");
+    TrackModeSP=getSwitch("TELESCOPE_TRACK_RATE");
+    TrackDefaultSP=getSwitch("TRACKDEFAULT");
+    TrackRatesNP=getNumber("TRACKRATES");
+    ReverseDECSP=getSwitch("REVERSEDEC");
+
+    HorizontalCoordNP=getNumber("HORIZONTAL_COORD");   
+    StandardSyncNP=getNumber("STANDARDSYNC");
+    StandardSyncPointNP=getNumber("STANDARDSYNCPOINT");
+    SyncPolarAlignNP=getNumber("SYNCPOLARALIGN");
+    SyncManageSP=getSwitch("SYNCMANAGE");
+    BacklashNP=getNumber("BACKLASH");
+    UseBacklashSP=getSwitch("USEBACKLASH");
+    AutoHomeSP=getSwitch("AUTOHOME");
+    AuxEncoderSP=getSwitch("AUXENCODER");
+    AuxEncoderNP=getNumber("AUXENCODERVALUES");
+    ST4GuideRateNSSP=getSwitch("ST4_GUIDE_RATE_NS");
+    ST4GuideRateWESP=getSwitch("ST4_GUIDE_RATE_WE");
+    RAPPECTrainingSP=getSwitch("RA_PPEC_TRAINING");
+    RAPPECSP=getSwitch("RA_PPEC");
+    DEPPECTrainingSP=getSwitch("DE_PPEC_TRAINING");
+    DEPPECSP=getSwitch("DE_PPEC");
+#if defined WITH_ALIGN && defined WITH_ALIGN_GEEHALEL
+    IUFillSwitch(&AlignMethodS[0], "ALIGN_METHOD_EQMOD", "EQMod Align", ISS_ON);
+    IUFillSwitch(&AlignMethodS[1], "ALIGN_METHOD_SUBSYSTEM", "Alignment Subsystem", ISS_OFF);
+    IUFillSwitchVector(&AlignMethodSP, AlignMethodS, NARRAY(AlignMethodS), getDeviceName(), "ALIGN_METHOD", "Align Method", OPTIONS_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+#endif
+#if defined WITH_ALIGN || defined WITH_ALIGN_GEEHALEL
+    AlignSyncModeSP=getSwitch("ALIGNSYNCMODE");
+#endif
+    
+    INDI::GuiderInterface::initGuiderProperties(this->getDeviceName(), MOTION_TAB);    
+
+#ifdef WITH_SCOPE_LIMITS
+    if (horizon) {
+      if (!horizon->initProperties()) return false;
+    }
+#endif
 
     return true;
 }
@@ -417,7 +528,7 @@ bool EQMod::updateProperties()
 
     if (isConnected())
     {
-    loadProperties();
+      loadProperties();
 
     defineNumber(&GuideNSNP);
     defineNumber(&GuideWENP);
@@ -484,6 +595,14 @@ bool EQMod::updateProperties()
 	    mount->TurnRAEncoder(false);
 	    mount->TurnDEEncoder(false);
 	    }
+	  if (mount->HasPPEC())
+	    {
+	    defineSwitch(RAPPECTrainingSP);
+	    defineSwitch(RAPPECSP);
+	    defineSwitch(DEPPECTrainingSP);
+	    defineSwitch(DEPPECSP);
+	    DEBUG(INDI::Logger::DBG_SESSION,"Mount has PPEC.");
+	    }	  
 	  
 	  mount->Init();
 	
@@ -508,7 +627,7 @@ bool EQMod::updateProperties()
       }
     else
       {        
-	if (MountInformationTP) {
+	//if (MountInformationTP) {
       deleteProperty(GuideNSNP.name);
       deleteProperty(GuideWENP.name);
 	  deleteProperty(GuideRateNP->name);
@@ -543,14 +662,20 @@ bool EQMod::updateProperties()
 	    deleteProperty(AuxEncoderSP->name);
 	    deleteProperty(AuxEncoderNP->name);
 	  }
+	  if (mount->HasPPEC()) {
+	    deleteProperty(RAPPECTrainingSP->name);
+	    deleteProperty(RAPPECSP->name);
+	    deleteProperty(DEPPECTrainingSP->name);
+	    deleteProperty(DEPPECSP->name);	    
+	  }
 #if defined WITH_ALIGN && defined WITH_ALIGN_GEEHALEL
 	  deleteProperty(AlignMethodSP.name);
 #endif
 #if defined WITH_ALIGN || defined WITH_ALIGN_GEEHALEL
 	  deleteProperty(AlignSyncModeSP->name);
 #endif
-	  MountInformationTP=NULL;
-	} 
+	  //MountInformationTP=NULL;
+	  //}
       }
 #ifdef WITH_ALIGN_GEEHALEL
     if (align) {
