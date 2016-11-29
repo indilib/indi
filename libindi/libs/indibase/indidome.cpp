@@ -22,7 +22,6 @@
 
 #include <wordexp.h>
 #include <math.h>
-#include <string.h>
 
 #include "indidome.h"
 #include "indicom.h"
@@ -49,6 +48,7 @@ INDI::Dome::Dome()
     parkDataType = PARK_NONE;
     Parkdatafile= "~/.indi/ParkData.xml";
     IsParked=false;
+    IsLocked = true;
     HaveLatLong=false;
     HaveRaDec=false;
 }
@@ -85,6 +85,11 @@ bool INDI::Dome::initProperties()
     IUFillText(&ActiveDeviceT[0],"ACTIVE_TELESCOPE","Telescope","Telescope Simulator");
     IUFillText(&ActiveDeviceT[1],"ACTIVE_WEATHER","Weather","WunderGround");
     IUFillTextVector(&ActiveDeviceTP,ActiveDeviceT,2,getDeviceName(),"ACTIVE_DEVICES","Snoop devices",OPTIONS_TAB,IP_RW,60,IPS_IDLE);
+
+    // Use locking if telescope is unparked
+    IUFillSwitch(&TelescopeClosedLockT[0],"NO_ACTION","Ignore Telescope",ISS_ON);
+    IUFillSwitch(&TelescopeClosedLockT[1],"LOCK_PARKING","Telescope locks",ISS_OFF);
+    IUFillSwitchVector(&TelescopeClosedLockTP,TelescopeClosedLockT,2,getDeviceName(),"TELESCOPE_POLICY","Telescope parking policy",OPTIONS_TAB,IP_RW,ISR_1OFMANY,60,IPS_IDLE);
 
     // Measurements
     IUFillNumber(&DomeMeasurementsN[DM_DOME_RADIUS],"DM_DOME_RADIUS","Radius (m)","%6.2f",0.0,50.0,1.0,0.0);
@@ -145,6 +150,7 @@ bool INDI::Dome::initProperties()
 
     IDSnoopDevice(ActiveDeviceT[0].text,"EQUATORIAL_EOD_COORD");
     IDSnoopDevice(ActiveDeviceT[0].text,"GEOGRAPHIC_COORD");
+    IDSnoopDevice(ActiveDeviceT[0].text,"TELESCOPE_PARK");
 
     IDSnoopDevice(ActiveDeviceT[1].text,"WEATHER_STATUS");
 
@@ -162,6 +168,8 @@ void INDI::Dome::ISGetProperties (const char *dev)
     loadConfig(true, "DEVICE_PORT");
     defineText(&ActiveDeviceTP);
     loadConfig(true, "ACTIVE_DEVICES");
+    defineSwitch(&TelescopeClosedLockTP);
+    loadConfig(true, "TELESCOPE_POLICY");
 
     controller->ISGetProperties(dev);
     return;
@@ -530,6 +538,24 @@ bool INDI::Dome::ISNewSwitch (const char *dev, const char *name, ISState *states
 
             return true;
         }
+
+        // Telescope parking policy
+        if (!strcmp(name, TelescopeClosedLockTP.name))
+        {
+            if (n == 1)
+            {
+                if (!strcmp(names[0], TelescopeClosedLockT[0].name))
+                    DEBUG(INDI::Logger::DBG_SESSION, "Telescope parking policy set to: Ignore Telescope");
+                else if (!strcmp(names[0], TelescopeClosedLockT[1].name))
+                    DEBUG(INDI::Logger::DBG_SESSION, "Warning: Telescope parking policy set to: Telescope locks. This disallows the dome from parking when telescope is unparked, and can lead to damage to hardware if it rains!");
+            }
+            IUUpdateSwitch(&TelescopeClosedLockTP, states, names, n);
+            TelescopeClosedLockTP.s = IPS_OK;
+            IDSetSwitch(&TelescopeClosedLockTP, NULL);
+
+            triggerSnoop(strdup(ActiveDeviceT[0].text), strdup("TELESCOPE_PARK"));
+            return true;
+        }
     }
 
     controller->ISNewSwitch(dev, name, states, names, n);
@@ -559,6 +585,7 @@ bool INDI::Dome::ISNewText (const char *dev, const char *name, char *texts[], ch
             IDSnoopDevice(ActiveDeviceT[0].text,"EQUATORIAL_EOD_COORD");
             IDSnoopDevice(ActiveDeviceT[0].text,"TARGET_EOD_COORD");
             IDSnoopDevice(ActiveDeviceT[0].text,"GEOGRAPHIC_COORD");            
+            IDSnoopDevice(ActiveDeviceT[0].text,"TELESCOPE_PARK");
             IDSnoopDevice(ActiveDeviceT[1].text,"WEATHER_STATUS");
 
             return true;
@@ -676,6 +703,28 @@ bool INDI::Dome::ISSnoopDevice (XMLEle *root)
         return true;
      }
 
+    // Check Telescope Park status
+    if (!strcmp("TELESCOPE_PARK", propName))
+    {
+        if (!strcmp(findXMLAttValu(root, "state"), "Ok"))
+        {
+            bool prevState = IsLocked;
+            for (ep = nextXMLEle(root, 1) ; ep != NULL ; ep = nextXMLEle(root, 0))
+            {
+                const char *elemName = findXMLAttValu(ep, "name");
+
+                if (IsLocked && !strcmp(elemName, "PARK") && !strcmp(pcdataXMLEle(ep), "On"))
+                    IsLocked = false;
+                else if (!IsLocked && !strcmp(elemName, "UNPARK") && !strcmp(pcdataXMLEle(ep), "On"))
+                    IsLocked = true;
+            }
+            if (prevState != IsLocked && TelescopeClosedLockT[1].s == ISS_ON)
+                DEBUGF(INDI::Logger::DBG_SESSION, "Telescope status changed. Lock is set to: %s"
+                    , IsLocked ? "locked" : "unlocked");
+        }
+        return true;
+    }
+
     // Weather Status
     if (!strcmp("WEATHER_STATUS", propName))
     {
@@ -710,6 +759,7 @@ bool INDI::Dome::saveConfigItems(FILE *fp)
 
     IUSaveConfigText(fp, &ActiveDeviceTP);
     IUSaveConfigText(fp, &PortTP);
+    IUSaveConfigSwitch(fp, &TelescopeClosedLockTP);
     IUSaveConfigNumber(fp, &PresetNP);
     IUSaveConfigNumber(fp, &DomeParamNP);
     IUSaveConfigNumber(fp, &DomeMeasurementsNP);
@@ -719,6 +769,17 @@ bool INDI::Dome::saveConfigItems(FILE *fp)
     controller->saveConfigItems(fp);
 
     return true;
+}
+
+void INDI::Dome::triggerSnoop(char *driverName, char *snoopedProp)
+{
+    DEBUGF(INDI::Logger::DBG_DEBUG, "Active Snoop, driver: %s, property: %s", driverName, snoopedProp);
+    IDSnoopDevice(driverName, snoopedProp);
+}
+
+bool INDI::Dome::isLocked()
+{
+    return TelescopeClosedLockT[1].s == ISS_ON && IsLocked;
 }
 
 void INDI::Dome::buttonHelper(const char *button_n, ISState state, void *context)
