@@ -1045,7 +1045,7 @@ void Skywatcher::SetST4GuideRate(SkywatcherAxis axis, unsigned char r) throw (EQ
 void Skywatcher::TurnPPECTraining(SkywatcherAxis axis, bool on) throw (EQModError)
 {
   unsigned long command;
-  if (on) command=START_PPEC_TRAINING_CMD; else STOP_PPEC_TRAINING_CMD;
+  if (on) command=START_PPEC_TRAINING_CMD; else command=STOP_PPEC_TRAINING_CMD;
   SetFeature(axis, command); 
 }
 
@@ -1058,7 +1058,7 @@ void Skywatcher::TurnDEPPECTraining(bool on) throw (EQModError) {
 
 void Skywatcher::TurnPPEC(SkywatcherAxis axis, bool on) throw (EQModError) {
   unsigned long command;
-  if (on) command=TURN_PPEC_ON_CMD; else TURN_PPEC_OFF_CMD;
+  if (on) command=TURN_PPEC_ON_CMD; else command=TURN_PPEC_OFF_CMD;
   SetFeature(axis, command);   
 }
 
@@ -1069,18 +1069,18 @@ void Skywatcher::TurnDEPPEC(bool on) throw (EQModError) {
   TurnPPEC(Axis2, on);
 }
 
-void Skywatcher::GetPPECStatus(SkywatcherAxis axis, bool &intraining, bool &inppec) throw (EQModError) {
+void Skywatcher::GetPPECStatus(SkywatcherAxis axis, bool *intraining, bool *inppec) throw (EQModError) {
   unsigned long features=0;
   GetFeature(axis, GET_FEATURES_CMD);
   features=Revu24str2long(response+1);
-  AxisFeatures[axis].inPPECTraining=features & 0x00000010;
-  AxisFeatures[axis].inPPEC=features & 0x00000020;
+  *intraining=AxisFeatures[axis].inPPECTraining=features & 0x00000010;
+  *inppec=AxisFeatures[axis].inPPEC=features & 0x00000020;
 }
-void Skywatcher::GetRAPPECStatus(bool &intraining, bool &inppec) throw (EQModError) {
+void Skywatcher::GetRAPPECStatus(bool *intraining, bool *inppec) throw (EQModError) {
   return GetPPECStatus(Axis1, intraining, inppec);
 }
 
-void Skywatcher::GetDEPPECStatus(bool &intraining, bool &inppec) throw (EQModError) {
+void Skywatcher::GetDEPPECStatus(bool *intraining, bool *inppec) throw (EQModError) {
   return GetPPECStatus(Axis2, intraining, inppec);
 }
 

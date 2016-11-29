@@ -118,8 +118,8 @@ public:
     void TurnDEPPECTraining(bool on) throw (EQModError);
     void TurnRAPPEC(bool on) throw (EQModError);
     void TurnDEPPEC(bool on) throw (EQModError);
-    void GetRAPPECStatus(bool &intraining, bool &inppec) throw (EQModError);
-    void GetDEPPECStatus(bool &intraining, bool &inppec) throw (EQModError);
+    void GetRAPPECStatus(bool *intraining, bool *inppec) throw (EQModError);
+    void GetDEPPECStatus(bool *intraining, bool *inppec) throw (EQModError);
     void ResetRAIndexer() throw (EQModError);
     void ResetDEIndexer() throw (EQModError);
     void GetRAIndexer() throw (EQModError);
@@ -231,7 +231,7 @@ public:
     void SetAxisPosition(SkywatcherAxis axis, unsigned long step) throw (EQModError);
     void TurnPPECTraining(SkywatcherAxis axis, bool on) throw (EQModError);
     void TurnPPEC(SkywatcherAxis axis, bool on) throw (EQModError);
-    void GetPPECStatus(SkywatcherAxis axis, bool &intraining, bool &inppec) throw (EQModError);
+    void GetPPECStatus(SkywatcherAxis axis, bool *intraining, bool *inppec) throw (EQModError);
     
     bool read_eqmod()  throw (EQModError);
     bool dispatch_command(SkywatcherCommand cmd, SkywatcherAxis axis, char *arg)  throw (EQModError);

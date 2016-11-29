@@ -597,11 +597,38 @@ bool EQMod::updateProperties()
 	    }
 	  if (mount->HasPPEC())
 	    {
+	      bool intraining, inppec;
 	    defineSwitch(RAPPECTrainingSP);
 	    defineSwitch(RAPPECSP);
 	    defineSwitch(DEPPECTrainingSP);
 	    defineSwitch(DEPPECSP);
 	    DEBUG(INDI::Logger::DBG_SESSION,"Mount has PPEC.");
+	    mount->GetRAPPECStatus(&intraining, &inppec);
+	    if (intraining)
+	      {
+	      RAPPECTrainingSP->sp[0].s=ISS_OFF;
+	      RAPPECTrainingSP->sp[1].s=ISS_ON;
+	      IDSetSwitch(RAPPECTrainingSP, NULL);
+	      }
+	    if (inppec)
+	      {
+	      RAPPECSP->sp[0].s=ISS_OFF;
+	      RAPPECSP->sp[1].s=ISS_ON;
+	      IDSetSwitch(RAPPECSP, NULL);
+	      }
+	    mount->GetDEPPECStatus(&intraining, &inppec);
+	    if (intraining)
+	      {
+	      DEPPECTrainingSP->sp[0].s=ISS_OFF;
+	      DEPPECTrainingSP->sp[1].s=ISS_ON;
+	      IDSetSwitch(DEPPECTrainingSP, NULL);
+	      }
+	    if (inppec)
+	      {
+	      DEPPECSP->sp[0].s=ISS_OFF;
+	      DEPPECSP->sp[1].s=ISS_ON;
+	      IDSetSwitch(DEPPECSP, NULL);
+	      }
 	    }	  
 	  
 	  mount->Init();
@@ -2371,7 +2398,105 @@ bool EQMod::ISNewSwitch (const char *dev, const char *name, ISState *states, cha
 	    IDSetSwitch(AuxEncoderSP, NULL);
 	  }
 	}
-      
+
+      if (mount->HasPPEC())
+	{
+	if (RAPPECTrainingSP && strcmp(name,RAPPECTrainingSP->name)==0)
+	  {
+	    IUUpdateSwitch(RAPPECTrainingSP,states,names,n);
+	    if (RAPPECTrainingSP->sp[1].s == ISS_ON)
+	      {
+		if (TrackState != SCOPE_TRACKING) {
+		  RAPPECTrainingSP->s=IPS_IDLE;
+		  DEBUG(INDI::Logger::DBG_WARNING,"Can not start RA PPEC Training. Scope not tracking");
+		  IUResetSwitch(RAPPECTrainingSP);
+		  RAPPECTrainingSP->sp[0].s == ISS_ON;
+		  RAPPECTrainingSP->sp[1].s == ISS_OFF;
+		}  else {
+		  RAPPECTrainingSP->s=IPS_BUSY;
+		  DEBUG(INDI::Logger::DBG_DEBUG,"Turning RA PPEC Training on.");
+		  try {
+		    mount->TurnRAPPECTraining(true);
+		  } catch (EQModError e) {
+		    DEBUG(INDI::Logger::DBG_WARNING,"Unable to start RA PPEC Training.");
+		    RAPPECTrainingSP->s=IPS_ALERT;
+		    RAPPECTrainingSP->sp[0].s == ISS_ON;
+		    RAPPECTrainingSP->sp[1].s == ISS_OFF;		    
+		  }
+		}
+	      } else {
+    	        RAPPECTrainingSP->s=IPS_IDLE;
+	        DEBUG(INDI::Logger::DBG_DEBUG,"Turning RA PPEC Training off.");
+	        mount->TurnRAPPECTraining(false);
+	    }
+	    IDSetSwitch(RAPPECTrainingSP, NULL);
+	    return true;
+	  }
+	if (RAPPECSP && strcmp(name,RAPPECSP->name)==0)
+	  {
+	    IUUpdateSwitch(RAPPECSP,states,names,n);
+	    if (RAPPECSP->sp[1].s == ISS_ON)
+	      {
+		RAPPECSP->s=IPS_BUSY;
+		DEBUG(INDI::Logger::DBG_DEBUG,"Turning RA PPEC on.");
+		mount->TurnRAPPEC(true);
+	      } else {
+    	        RAPPECSP->s=IPS_IDLE;
+	        DEBUG(INDI::Logger::DBG_DEBUG,"Turning RA PPEC off.");
+	        mount->TurnRAPPEC(false);
+	    }
+	    IDSetSwitch(RAPPECSP, NULL);
+	    return true;
+	  }	
+	if (DEPPECTrainingSP && strcmp(name,DEPPECTrainingSP->name)==0)
+	  {
+	    IUUpdateSwitch(DEPPECTrainingSP,states,names,n);
+	    if (DEPPECTrainingSP->sp[1].s == ISS_ON)
+	      {
+		if (TrackState != SCOPE_TRACKING) {
+		  DEPPECTrainingSP->s=IPS_IDLE;
+		  DEBUG(INDI::Logger::DBG_WARNING,"Can not start DEC PPEC Training. Scope not tracking");
+		  IUResetSwitch(DEPPECTrainingSP);
+		  DEPPECTrainingSP->sp[0].s == ISS_ON;
+		  DEPPECTrainingSP->sp[1].s == ISS_OFF;
+		}  else {
+		  DEPPECTrainingSP->s=IPS_BUSY;
+		  DEBUG(INDI::Logger::DBG_DEBUG,"Turning DEC PPEC Training on.");
+		  try {
+		    mount->TurnDEPPECTraining(true);
+		  } catch (EQModError e) {
+		    DEBUG(INDI::Logger::DBG_WARNING,"Unable to start DEC PPEC Training.");
+		    DEPPECTrainingSP->s=IPS_ALERT;
+		    DEPPECTrainingSP->sp[0].s == ISS_ON;
+		    DEPPECTrainingSP->sp[1].s == ISS_OFF;		    
+		  }
+		}
+	      } else {
+    	        DEPPECTrainingSP->s=IPS_IDLE;
+	        DEBUG(INDI::Logger::DBG_DEBUG,"Turning DEC PPEC Training off.");
+	        mount->TurnDEPPECTraining(false);
+	    }
+	    IDSetSwitch(DEPPECTrainingSP, NULL);
+	    return true;
+	  }
+	if (DEPPECSP && strcmp(name,DEPPECSP->name)==0)
+	  {
+	    IUUpdateSwitch(DEPPECSP,states,names,n);
+	    if (DEPPECSP->sp[1].s == ISS_ON)
+	      {
+		DEPPECSP->s=IPS_BUSY;
+		DEBUG(INDI::Logger::DBG_DEBUG,"Turning DEC PPEC on.");
+		mount->TurnDEPPEC(true);
+	      } else {
+    	        DEPPECSP->s=IPS_IDLE;
+	        DEBUG(INDI::Logger::DBG_DEBUG,"Turning DEC PPEC off.");
+	        mount->TurnDEPPEC(false);
+	    }
+	    IDSetSwitch(DEPPECSP, NULL);
+	    return true;
+	  }	
+	}
+	   
  #if defined WITH_ALIGN || defined WITH_ALIGN_GEEHALEL     
       if (AlignSyncModeSP && strcmp(name, AlignSyncModeSP->name)==0)
 	{
