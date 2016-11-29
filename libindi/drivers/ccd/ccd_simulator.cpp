@@ -432,7 +432,7 @@ void CCDSim::TimerHit()
                     }
                 } else
                 {
-                    IDLog("Not sending guide frame cuz of abort\n");
+                    //IDLog("Not sending guide frame cuz of abort\n");
                 }
                 AbortGuideFrame=false;
             } else
@@ -1128,8 +1128,7 @@ bool CCDSim::ISSnoopDevice (XMLEle *root)
      {
            seeing = FWHMNP.np[0].value;
 
-           if (isDebug())
-                IDLog("CCD Simulator: New FWHM value of %g\n", seeing);
+           //IDLog("CCD Simulator: New FWHM value of %g\n", seeing);
            return true;
      }     
 
@@ -1153,8 +1152,7 @@ bool CCDSim::ISSnoopDevice (XMLEle *root)
 
              usePE = true;
 
-            if (isDebug())
-                IDLog("raPE %g  decPE %g Snooped raPE %g  decPE %g\n",raPE,decPE,newra,newdec);
+            DEBUGF(INDI::Logger::DBG_DEBUG, "raPE %g  decPE %g Snooped raPE %g  decPE %g",raPE,decPE,newra,newdec);
 
             return true;
 
