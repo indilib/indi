@@ -19,6 +19,7 @@ tutorial_three:  We create a simple CCD simulator, and establish a data channel 
 tutorial_four: We demonstrate use of skeleton files to define properties.
 tutorial_five: We create two devices (Rain Detector and Dome) to demonstrate inter-driver communication in INDI. 
 tutorial_six: We create a simple client to set the temperature of a CCD simulator (tutorial_three).
+tuturial_seven: Simple telescope simulator based on INDI Alignment Subsystem which is used to improve pointing performance of mounts.
 
 Usage
 --------
@@ -39,21 +40,31 @@ Enter "127.0.0.1" in the host name and "8000" in the port entry (without the quo
 
 ------------------------------------------------------------------------------------------
 
-3. In the src/examples/tutorial_xxx directory, run each tutorial 
+3. In the libindi/examples/tutorial_xxx directory, run each tutorial 
 
 $ indiserver -v -p 8000 ./tutorial_NUM
 
 where num is the tutorial number (tutorial_one, tutorial_two...etc)
 
 ------------------------------------------------------------------------------------------
+For tutorial four, a skeleton file needs to be specified first. The tutorial skeleton file is located under examples/tutorial_four/tutorial_four_sk.xml
+Let's assume for this example that the full path to libindi sources is this: /home/jasem/indi/libindi,
+and full path to libindi build directory is this: /home/jasem/build/libindi
 
-For the inter-driver communications tutorial, type instead:
+Open a console and go to the build directory then type:
+$ cd examples/tutorial_four
+$ export INDISKEL=/home/jasem/indi/libindi/examples/tutorial_four/tutorial_four_sk.xml
+$ indiserver -v -p 8000 ./tutorial_four
+
+Now Tutorial Four shall run and load the Skeleton file. Usually skeleton files for drivers are stored under /usr/share/indi/ and end with _sk.xml
+------------------------------------------------------------------------------------------
+For the inter-driver communications tutorial where it shows have a dome driver and a rain detector driver share information between each other, type the folliwng:
 
 $ indiserver -v -p 8000 ./tutorial_dome ./tutorial_rain
 
 ------------------------------------------------------------------------------------------
 
-For tutorial_client. Run tutorial_three first:
+For tutorial_client. Run tutorial_three (Simple CCD) first:
 
 $ indiserver -v ./tutorial_three
 
@@ -62,7 +73,7 @@ Then open another console tab, and run the client:
 $ ./tutorial_client
 
 You can connect to tutorial_three via a GUI client (e.g. KStars) before running tutorial_client. This will enable you to watch 
-changes in the driver as they occur from tutorial_client. Make sure to set the port to 7624 in KStars.
+changes in the driver as they occur from tutorial_client. Make sure to set the port to 7624 in KStars for this tutorial.
 
 ------------------------------------------------------------------------------------------
 

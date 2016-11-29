@@ -128,6 +128,11 @@ bool TemmaMount::initProperties()
     IUFillSwitch(&SlewRateS[1], "SLEW_MAX", "Max", ISS_ON);
     IUFillSwitchVector(&SlewRateSP, SlewRateS, 2, getDeviceName(), "TELESCOPE_SLEW_RATE", "Slew Rate", MOTION_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
+    /* How fast do we guide compared to sidereal rate */
+    IUFillNumber(&GuideRateN[0], "GUIDE_RATE_WE", "W/E Rate", "%g", 0, 1, 0.1, 0.3);
+    IUFillNumber(&GuideRateN[1], "GUIDE_RATE_NS", "N/S Rate", "%g", 0, 1, 0.1, 0.3);
+    IUFillNumberVector(&GuideRateNP, GuideRateN, 2, getDeviceName(), "GUIDE_RATE", "Guiding Rate", MOTION_TAB, IP_RW, 0, IPS_IDLE);
+
     //  probably want to debug this
     //addDebugControl();
 
@@ -151,7 +156,9 @@ void TemmaMount::ISGetProperties (const char *dev)
 
         defineNumber(&GuideNSNP);
         defineNumber(&GuideWENP);
-        defineNumber(&GuideRateNP);
+
+        // JM 2016-11-10: This is not used anywhere in the code now. Enable it again when you use it
+        //defineNumber(&GuideRateNP);
 
     return;
 }
@@ -162,7 +169,7 @@ bool TemmaMount::ISNewNumber (const char *dev, const char *name, double values[]
 
 		// It is for us
 		//  call upstream for guider properties
-		if(strcmp(name,"GUIDE_RATE")==0)
+        if(!strcmp(name,"GUIDE_RATE"))
 		{
 			IUUpdateNumber(&GuideRateNP, values, names, n);
 			GuideRateNP.s = IPS_OK;
@@ -220,17 +227,17 @@ bool TemmaMount::updateProperties()
 
     if (isConnected())
     {
-fprintf(stderr,"Temma updating park stuff\n");
+        DEBUG(INDI::Logger::DBG_DEBUG,"Temma updating park stuff");
         if (InitPark())
         {
-fprintf(stderr,"Success loading park data\n");
+            DEBUG(INDI::Logger::DBG_DEBUG,"Success loading park data");
             // If loading parking data is successful, we just set the default parking values.
             SetAxis1ParkDefault(18);
             SetAxis2ParkDefault(60);
         }
         else
         {
-fprintf(stderr,"Setting park data to default\n");
+            DEBUG(INDI::Logger::DBG_DEBUG,"Setting park data to default");
             // Otherwise, we set all parking data to default in case no parking data is found.
             SetAxis1Park(18);
             SetAxis2Park(60);
@@ -240,7 +247,9 @@ fprintf(stderr,"Setting park data to default\n");
 
         defineNumber(&GuideNSNP);
         defineNumber(&GuideWENP);
-        defineNumber(&GuideRateNP);
+
+        // JM 2016-11-10: This is not used anywhere in the code now. Enable it again when you use it
+        //defineNumber(&GuideRateNP);
 
     }
     else
@@ -257,23 +266,23 @@ bool TemmaMount::ReadScopeStatus()
     int bytesWritten, bytesRead;
     int numread;
 
-    //fprintf(stderr,"Temma::ReadScopeStatus() %d\n",PortFD);
+    //DEBUG(INDI::Logger::DBG_DEBUG,"Temma::ReadScopeStatus() %d\n",PortFD);
 
     tty_write(PortFD,"E\r\n",3, &bytesWritten);  // Ask mount for current position
     memset(str,0,26);
     numread=TemmaRead(str,25);
-    //fprintf(stderr,"Temma read returns %d %s",numread,str);
+    //DEBUG(INDI::Logger::DBG_DEBUG,"Temma read returns %d %s",numread,str);
     //  if the first byte is not our E, return an error
     if(str[0] != 'E' ) return false;
 
     int d,m,s;
     sscanf(&str[1],"%02d%02d%02d",&d,&m,&s);
-    //fprintf(stderr,"%d  %d  %d\n",d,m,s);
+    //DEBUG(INDI::Logger::DBG_DEBUG,"%d  %d  %d\n",d,m,s);
     currentRA=d*3600+m*60+s*.6;
     currentRA/=3600;
 
     sscanf(&str[8],"%02d%02d%01d",&d,&m,&s);
-    //fprintf(stderr,"%d  %d  %d\n",d,m,s);
+    //DEBUG(INDI::Logger::DBG_DEBUG,"%d  %d  %d\n",d,m,s);
     currentDEC=d*3600+m*60+s*6;
     currentDEC/=3600;
 
@@ -282,17 +291,17 @@ bool TemmaMount::ReadScopeStatus()
 	if(GotoInProgress) {
 		//  lets see if our goto has finished
 		if(strstr(str,"F")) {
-			fprintf(stderr,"Goto finished\n");
+            DEBUG(INDI::Logger::DBG_DEBUG,"Goto finished");
 			GotoInProgress=false;
 			if(ParkInProgress) {
 				SetParked(true);
 				//  turn off the motor
-				fprintf(stderr,"Parked\n");
+                DEBUG(INDI::Logger::DBG_DEBUG,"Parked");
 				SetTemmaMotorStatus(false);
 				ParkInProgress=false;
 			}
 		} else {
-			fprintf(stderr,"Goto in Progress\n");
+            DEBUG(INDI::Logger::DBG_DEBUG,"Goto in Progress");
 		}
 	}
 
@@ -320,7 +329,7 @@ bool TemmaMount::TemmaSync(double ra,double d)
 	then we set local sideral time again
 	and finally we send the co-ordinates we are syncing on
     */
-    fprintf(stderr,"Temma::Sync()\n");
+    DEBUG(INDI::Logger::DBG_DEBUG,"Temma::Sync()");
 	SetTemmaLst();
 	tty_write(PortFD,"Z\r\n",3,&bytesWritten);
 	SetTemmaLst();
@@ -334,13 +343,13 @@ bool TemmaMount::TemmaSync(double ra,double d)
 			(int)ra,(int)(ra*(double)60)%60,((int)(ra*(double)6000))%100,sign,
 			(int)dec,(int)(dec*(double)60)%60,((int)(dec*(double)600))%10);
 
-	fprintf(stderr,"Sync command : %s",str);
+    DEBUGF(INDI::Logger::DBG_DEBUG,"Sync command : %s",str);
 	tty_write(PortFD,str,strlen(str),&bytesWritten);
 
 	//  now read the response
 	memset(str,0,26);
 	TemmaRead(str,25);
-	fprintf(stderr,"Sync response : %s",str);
+    DEBUGF(INDI::Logger::DBG_DEBUG,"Sync response : %s",str);
 	//  if the first character is an R, it's a correct response
 	if(str[0] != 'R') return false;
 	if(str[1] != '0') {
@@ -371,10 +380,10 @@ bool TemmaMount::Goto(double ra,double d)
 		first set sideral time
 		then issue the goto command
     */
-    fprintf(stderr,"Temma::Goto()\n");
+    DEBUG(INDI::Logger::DBG_DEBUG,"Temma::Goto()");
 
 	if(!MotorStatus) {
-		fprintf(stderr,"Goto turns on motors\n");
+        DEBUG(INDI::Logger::DBG_DEBUG,"Goto turns on motors");
 		SetTemmaMotorStatus(true);
 	}
 
@@ -389,13 +398,13 @@ bool TemmaMount::Goto(double ra,double d)
 			(int)ra,(int)(ra*(double)60)%60,((int)(ra*(double)6000))%100,sign,
 			(int)dec,(int)(dec*(double)60)%60,((int)(dec*(double)600))%10);
 
-	fprintf(stderr,"Goto command : %s",str);
+    DEBUGF(INDI::Logger::DBG_DEBUG,"Goto command : %s",str);
 	tty_write(PortFD,str,strlen(str),&bytesWritten);
 
 	//  now read the response
 	memset(str,0,26);
 	TemmaRead(str,25);
-	fprintf(stderr,"Goto response : %s",str);
+    DEBUGF(INDI::Logger::DBG_DEBUG,"Goto response : %s",str);
 	//  if the first character is an R, it's a correct response
 	if(str[0] != 'R') return false;
 	if(str[1] != '0') {
@@ -422,7 +431,7 @@ bool TemmaMount::Park()
 	    lst=get_local_sideral_time(Longitude);
 	    RightAscension=lst-(lha);	//  Get the park position
 	    RightAscension=range24(RightAscension);
-		fprintf(stderr,"head to Park position %4.2f %4.2f  %4.2f %4.2f\n",GetAxis1Park(),lha,RightAscension,GetAxis2Park());
+        DEBUGF(INDI::Logger::DBG_DEBUG,"head to Park position %4.2f %4.2f  %4.2f %4.2f",GetAxis1Park(),lha,RightAscension,GetAxis2Park());
 
 		Goto(RightAscension,GetAxis2Park());
 
@@ -431,7 +440,7 @@ bool TemmaMount::Park()
 	//Goto(RightAscension,90);
 	ParkInProgress=true;
 
-    //fprintf(stderr,"Temma::Park()\n");
+    //DEBUG(INDI::Logger::DBG_DEBUG,"Temma::Park()\n");
     //SetTemmaMotorStatus(false);
     //GetTemmaMotorStatus();
     //SetParked(true);
@@ -477,7 +486,7 @@ bool  TemmaMount::Abort()
 {
     char str[20];
     int bytesWritten;
-    fprintf(stderr,"Temma::Abort()\n");
+    DEBUG(INDI::Logger::DBG_DEBUG,"Temma::Abort()");
     tty_write(PortFD,"PS\r\n",4, &bytesWritten);  // Send a stop
 	//  Now lets confirm we stopped
     tty_write(PortFD,"s\r\n",3, &bytesWritten);  // check if it stopped
@@ -499,21 +508,21 @@ bool TemmaMount::MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command)
 	int bytesWritten;
 	char buf[10];
 	
-    fprintf(stderr,"Temma::MoveNS %d dir %d\n",command,dir);
+    DEBUGF(INDI::Logger::DBG_DEBUG,"Temma::MoveNS %d dir %d",command,dir);
 	if(!MotorStatus) SetTemmaMotorStatus(true);
 	if(!MotorStatus) return false;
 
 	Slewbits=0;
 	Slewbits |=64;	//  doc says always on
 
-    fprintf(stderr,"Temma::MoveNS %d dir %d\n",command,dir);
+    DEBUGF(INDI::Logger::DBG_DEBUG,"Temma::MoveNS %d dir %d",command,dir);
 	if(!command) {
 		if(SlewRate!=0) Slewbits |=1;
 		if(dir) {
-			fprintf(stderr,"Start slew Dec Up\n");
+            DEBUG(INDI::Logger::DBG_DEBUG,"Start slew Dec Up");
 			Slewbits |=16;
 		} else {
-			fprintf(stderr,"Start Slew Dec down\n");
+            DEBUG(INDI::Logger::DBG_DEBUG,"Start Slew Dec down");
 			Slewbits |=8;
 		}
 		//sprintf(buf,"M \r\n");
@@ -522,7 +531,7 @@ bool TemmaMount::MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command)
 		SlewActive=true;
 	} else {
 		//  No direction bytes to turn it off
-		fprintf(stderr,"Abort slew e/w\n");
+        DEBUG(INDI::Logger::DBG_DEBUG,"Abort slew e/w");
 		//Abort();
 		SlewActive=false;
 	}
@@ -544,14 +553,14 @@ bool TemmaMount::MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command)
 	Slewbits=0;
 	Slewbits |=64;	//  doc says always on
 
-    fprintf(stderr,"Temma::MoveWE %d dir %d\n",command,dir);
+    DEBUGF(INDI::Logger::DBG_DEBUG,"Temma::MoveWE %d dir %d",command,dir);
 	if(!command) {
 		if(SlewRate!=0) Slewbits |=1;
 		if(dir) {
-			fprintf(stderr,"Start slew East\n");
+            DEBUG(INDI::Logger::DBG_DEBUG,"Start slew East");
 			Slewbits |=2;
 		} else {
-			fprintf(stderr,"Start Slew West\n");
+            DEBUG(INDI::Logger::DBG_DEBUG,"Start Slew West");
 			Slewbits |=4;
 		}
 		//sprintf(buf,"M \r\n");
@@ -560,7 +569,7 @@ bool TemmaMount::MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command)
 		SlewActive=true;
 	} else {
 		//  No direction bytes to turn it off
-		fprintf(stderr,"Abort slew e/w\n");
+        DEBUG(INDI::Logger::DBG_DEBUG,"Abort slew e/w");
 		//Abort();
 		SlewActive=false;
 	}
@@ -573,7 +582,7 @@ bool TemmaMount::MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command)
 
 bool TemmaMount::SetSlewRate(int s)
 {
-    fprintf(stderr,"Temma::Slew rate %d\n",s);
+    DEBUGF(INDI::Logger::DBG_DEBUG,"Temma::Slew rate %d",s);
 	SlewRate=s;
     return true;
 }
@@ -584,7 +593,7 @@ IPState TemmaMount::GuideNorth(float ms)
 	char buf[10];
 	char bits;
 
-	fprintf(stderr,"Guide North %4.0f\n",ms);
+    DEBUGF(INDI::Logger::DBG_DEBUG,"Guide North %4.0f",ms);
 	if(!MotorStatus) return IPS_ALERT;
 	if(SlewActive) return IPS_ALERT;
 
@@ -607,7 +616,7 @@ IPState TemmaMount::GuideSouth(float ms)
 	int bytesWritten;
 	char buf[10];
 	char bits;
-	fprintf(stderr,"Guide South %4.0f\n",ms);
+    DEBUGF(INDI::Logger::DBG_DEBUG,"Guide South %4.0f",ms);
 	if(!MotorStatus) return IPS_ALERT;
 	if(SlewActive) return IPS_ALERT;
 
@@ -629,7 +638,7 @@ IPState TemmaMount::GuideEast(float ms)
 	int bytesWritten;
 	char buf[10];
 	char bits;
-	fprintf(stderr,"Guide East %4.0f\n",ms);
+    DEBUGF(INDI::Logger::DBG_DEBUG,"Guide East %4.0f",ms);
 	if(!MotorStatus) return IPS_ALERT;
 	if(SlewActive) return IPS_ALERT;
 
@@ -651,7 +660,7 @@ IPState TemmaMount::GuideWest(float ms)
 	int bytesWritten;
 	char buf[10];
 	char bits;
-	fprintf(stderr,"Guide West %4.0f\n",ms);
+    DEBUGF(INDI::Logger::DBG_DEBUG,"Guide West %4.0f",ms);
 	if(!MotorStatus) return IPS_ALERT;
 	if(SlewActive) return IPS_ALERT;
 
@@ -675,7 +684,7 @@ bool TemmaMount::updateTime(ln_date *utc, double utc_offset)
     int bytesWritten, bytesRead;
     int numread;
 
-    fprintf(stderr,"Temma::UpdateTime()\n");
+    DEBUG(INDI::Logger::DBG_DEBUG,"Temma::UpdateTime()");
     return true;
 }
 
@@ -690,7 +699,7 @@ bool TemmaMount::updateLocation(double latitude, double longitude, double elevat
 	Longitude=longitude;
 	Lattitude=latitude;
 
-fprintf(stderr,"Temma::updateLocation\n");
+DEBUG(INDI::Logger::DBG_DEBUG,"Temma::updateLocation");
 //  A temma mount must have the LST and Lattitude set
 //  Prior to these being set, reads will return garbage
 	if(!TemmaInitialized) {
@@ -707,14 +716,14 @@ fprintf(stderr,"Temma::updateLocation\n");
 	    lst=get_local_sideral_time(Longitude);
 	    RightAscension=lst-(-6);	//  Hour angle is negative 6 in this case
 	    RightAscension=range24(RightAscension);
-		fprintf(stderr,"Initial sync on %4.2f\n",RightAscension);
+        DEBUGF(INDI::Logger::DBG_DEBUG,"Initial sync on %4.2f",RightAscension);
 
 		TemmaSync(RightAscension,90);
 
 	}
 	lst=get_local_sideral_time(longitude);
 	
-	fprintf(stderr,"lst here is %4.1f\n",lst);
+    DEBUGF(INDI::Logger::DBG_DEBUG,"lst here is %4.1f",lst);
 //  if the mount is parked, then we should sync it on our park position
 	if(isParked()) {
 		//  Here we have to sync on our park position
@@ -722,14 +731,14 @@ fprintf(stderr,"Temma::updateLocation\n");
 	    lst=get_local_sideral_time(Longitude);
 	    RightAscension=lst-(rangeHA(GetAxis1Park()));	//  Get the park position
 	    RightAscension=range24(RightAscension);
-		fprintf(stderr,"Sync to Park position %4.2f %4.2f  %4.2f\n",GetAxis1Park(),RightAscension,GetAxis2Park());
+        DEBUGF(INDI::Logger::DBG_DEBUG,"Sync to Park position %4.2f %4.2f  %4.2f",GetAxis1Park(),RightAscension,GetAxis2Park());
 		TemmaSync(RightAscension,GetAxis2Park());
-		fprintf(stderr,"Turn motors off\n");
+        DEBUG(INDI::Logger::DBG_DEBUG,"Turn motors off");
 		SetTemmaMotorStatus(false);
 
 	} else {
 		sleep(1);
-		fprintf(stderr,"Mount is not parked\n");
+        DEBUG(INDI::Logger::DBG_DEBUG,"Mount is not parked");
 		//SetTemmaMotorStatus(true);
 	}
     
@@ -782,7 +791,7 @@ ln_equ_posn TemmaMount::TelescopeToSky(double ra,double dec)
 	
     	if (TransformTelescopeToCelestial( TDV, RightAscension, Declination)) {
 	    //  if we get here, the conversion was successful
-	    //fprintf(stderr,"new values %6.4f %6.4f %6.4f  %6.4f Deltas %3.0lf %3.0lf\n",ra,dec,RightAscension,Declination,(ra-RightAscension)*60,(dec-Declination)*60);
+        //DEBUG(INDI::Logger::DBG_DEBUG,"new values %6.4f %6.4f %6.4f  %6.4f Deltas %3.0lf %3.0lf\n",ra,dec,RightAscension,Declination,(ra-RightAscension)*60,(dec-Declination)*60);
     	} else {
 	    //if the conversion failed, return raw data
             RightAscension=ra;
@@ -856,7 +865,7 @@ ln_equ_posn TemmaMount::SkyToTelescope(double ra,double dec)
 	    
 
         } else {
-            DEBUGF(INDI::Logger::DBG_SESSION,"Transform failed, using raw co-ordinates %g %g\n",ra,dec);
+            DEBUGF(INDI::Logger::DBG_SESSION,"Transform failed, using raw co-ordinates %g %g",ra,dec);
 	    RightAscension=ra;
 	    Declination=dec;
         }
@@ -879,21 +888,22 @@ bool TemmaMount::GetTemmaVersion()
 
     rc=tty_write(PortFD,"v\r\n",3, &bytesWritten);  // Ask mount for current position
     //rc=tty_write(PortFD,"E\r\n",3, &bytesWritten);  // Ask mount for current position
-    fprintf(stderr,"Wrote %d of 3 bytes rc %d\n",bytesWritten,rc);
-if(rc != TTY_OK) fprintf(stderr,"got a write error\n");
+    DEBUGF(INDI::Logger::DBG_DEBUG,"Wrote %d of 3 bytes rc %d",bytesWritten,rc);
+    if(rc != TTY_OK)
+        DEBUG(INDI::Logger::DBG_DEBUG,"got a write error");
     memset(str,0,50);
     numread=TemmaRead(str,50);
 	if(numread == -1) {
-		fprintf(stderr,"get version returns bufer overflow\n");
+        DEBUG(INDI::Logger::DBG_DEBUG,"get version returns bufer overflow");
 		return false;
 	}
 	if(numread==0) {
-		fprintf(stderr,"get version returns nothing\n");
+        DEBUG(INDI::Logger::DBG_DEBUG,"get version returns nothing");
 		return false;
 	}
 	
 
-    fprintf(stderr,"Temma Version %d %s",numread,str);
+    DEBUGF(INDI::Logger::DBG_DEBUG,"Temma Version %d %s",numread,str);
     if(str[0] != 'v' ) return false;
     //if(str[0] != 'E' ) return false;
 
@@ -909,7 +919,7 @@ bool TemmaMount::GetTemmaMotorStatus()
     memset(str,0,50);
     numread=TemmaRead(str,50);
 
-    fprintf(stderr,"Temma motor %d: %s",numread,str);
+    DEBUGF(INDI::Logger::DBG_DEBUG,"Temma motor %d: %s",numread,str);
     if(strstr(str,"off")) MotorStatus=true;
 	else MotorStatus=false;
     return MotorStatus;
@@ -929,7 +939,7 @@ bool TemmaMount::SetTemmaMotorStatus(bool state)
     memset(str,0,50);
     numread=TemmaRead(str,50);
 
-    fprintf(stderr,"Temma motor status return  %d: %s",numread,str);
+    DEBUGF(INDI::Logger::DBG_DEBUG,"Temma motor status return  %d: %s",numread,str);
     //if(strncmp(str,"stn-off") return false;
 	GetTemmaMotorStatus();
     return true;
@@ -945,11 +955,10 @@ int TemmaMount::GetTemmaLst()
     tty_write(PortFD,"g\r\n",3, &bytesWritten);  // get lst
     memset(str,0,50);
     numread=TemmaRead(str,50);
-    fprintf(stderr,"TemmaLst : %d\n",numread);
+    DEBUGF(INDI::Logger::DBG_DEBUG,"TemmaLst : %d",numread);
     for(int x=0; x<numread; x++) {
-        fprintf(stderr,"%02x ",(unsigned char)str[x]);
-    }
-    fprintf(stderr,"\n");
+        DEBUGF(INDI::Logger::DBG_DEBUG,"%02x ",(unsigned char)str[x]);
+    }    
 	//  if we got ascii characters back
 	//  it's good
 	for(int x=1; x<7; x++) {
@@ -965,12 +974,12 @@ bool TemmaMount::SetTemmaLst()
     char str[50];
     int bytesWritten,numread;
     double lst;
-	fprintf(stderr,"Setting lst with %4.2f\n",Longitude);
+    DEBUGF(INDI::Logger::DBG_DEBUG,"Setting lst with %4.2f",Longitude);
     lst=get_local_sideral_time(Longitude);
     sprintf(str,"T%.2d%.2d%.2d\r\n", (int)lst,
 			((int)(lst*60))%60,
 			((int)(lst*3600))%60);
-fprintf(stderr,"SetLst : %s",str);
+    DEBUGF(INDI::Logger::DBG_DEBUG,"SetLst : %s",str);
     tty_write(PortFD,str,strlen(str), &bytesWritten);  // get lst
 
     return true;
@@ -984,11 +993,10 @@ double TemmaMount::GetTemmaLattitude()
     tty_write(PortFD,"i\r\n",3, &bytesWritten);  // get lattitude
     memset(str,0,50);
     numread=TemmaRead(str,50);
-    fprintf(stderr,"TemmaLattitude : %d\n",numread);
+    DEBUGF(INDI::Logger::DBG_DEBUG,"TemmaLattitude : %d",numread);
     for(int x=0; x<numread; x++) {
-        fprintf(stderr,"%02x ",(unsigned char)str[x]);
+        DEBUGF(INDI::Logger::DBG_DEBUG,"%02x",(unsigned char)str[x]);
     }
-    fprintf(stderr,"\n");
 
     return true;
 }
@@ -1014,7 +1022,7 @@ bool TemmaMount::SetTemmaLattitude(double lat)
     s=(int)l;
 
     sprintf(str,"I%c%.2d%.2d%.1d\r\n", sign,d,m,s);
-    fprintf(stderr,"%s",str);
+    DEBUGF(INDI::Logger::DBG_DEBUG,"%s",str);
     tty_write(PortFD,str,strlen(str),&bytesWritten);
    
     return true;
@@ -1034,27 +1042,27 @@ bool TemmaMount::Connect(const char *port, uint32_t baud)
     char errorMsg[MAXRBUF];
     bool rc;
 
-fprintf(stderr,"Connecting even parity %d baud\n",baud);
+    DEBUGF(INDI::Logger::DBG_DEBUG,"Connecting even parity %d baud",baud);
 
     if ( (connectrc = tty_connect(port, baud, 8, 1, 1, &PortFD)) != TTY_OK)
     {
         tty_error_msg(connectrc, errorMsg, MAXRBUF);
-		fprintf(stderr,"connect error %s\n",errorMsg);
+        DEBUGF(INDI::Logger::DBG_DEBUG,"connect error %s",errorMsg);
         //DEBUGF(Logger::DBG_ERROR,"Failed to connect to port %s. Error: %s", port, errorMsg);
 
         return false;
 
     }
-fprintf(stderr,"Calling get version\n");
+    DEBUG(INDI::Logger::DBG_DEBUG,"Calling get version");
     rc=GetTemmaVersion();
 	//if(!rc) {
 	//	rc=GetTemmaVersion();
 	//}
     if(!rc) {
 
-		fprintf(stderr,"Attempt clearing hack fd is %d\n",PortFD);
+        DEBUGF(INDI::Logger::DBG_DEBUG,"Attempt clearing hack fd is %d",PortFD);
 
-			fprintf(stderr,"Do disconnect\n");
+            DEBUG(INDI::Logger::DBG_DEBUG,"Do disconnect");
 			//  Start by disconnecting the port
 			tty_disconnect(PortFD);
 			sleep(1);
@@ -1064,16 +1072,16 @@ fprintf(stderr,"Calling get version\n");
    			if ( (connectrc = tty_connect(port, baud, 8, 1, 1, &PortFD)) != TTY_OK)
     		{
         		tty_error_msg(connectrc, errorMsg, MAXRBUF);
-				fprintf(stderr,"connect error on second connect %s\n",errorMsg);
+                DEBUGF(INDI::Logger::DBG_DEBUG,"connect error on second connect %s",errorMsg);
         		//DEBUGF(Logger::DBG_ERROR,"Failed to connect to port %s. Error: %s", port, errorMsg);
 
         		return false;
 
     		}
-			fprintf(stderr,"Try get version again port is %d\n",PortFD);
+            DEBUGF(INDI::Logger::DBG_DEBUG,"Try get version again port is %d",PortFD);
         	rc=GetTemmaVersion();
 			if(!rc) {
-            	fprintf(stderr,"Disconnect port\n");
+                DEBUG(INDI::Logger::DBG_DEBUG,"Disconnect port");
     	    	tty_disconnect(PortFD);
 	        	return false;
 			}
@@ -1082,10 +1090,10 @@ fprintf(stderr,"Calling get version\n");
 
 	rc=GetTemmaLst();
 	if(rc) {
-		fprintf(stderr,"Temma is intialized\n");
+        DEBUG(INDI::Logger::DBG_DEBUG,"Temma is intialized");
 		TemmaInitialized=true;
 	} else {
-		fprintf(stderr,"Temma is not initialized\n");
+        DEBUG(INDI::Logger::DBG_DEBUG,"Temma is not initialized");
 		TemmaInitialized=false;
 	}
 	GetTemmaMotorStatus();
@@ -1104,7 +1112,7 @@ int TemmaMount::TemmaRead(char *buf,int size)
 	    //  we got a byte
             count++;
             if(count > 1) {
-		//fprintf(stderr,"%d ",buf[ptr]);
+        //DEBUG(INDI::Logger::DBG_DEBUG,"%d ",buf[ptr]);
                 if(buf[ptr]==10) {
                   if(buf[ptr-1]==13) {
                       //  we have the cr/lf from the response
@@ -1116,13 +1124,11 @@ int TemmaMount::TemmaRead(char *buf,int size)
             ptr++;
             
         } else {
-           fprintf(stderr,"\nWe timed out reading bytes %d\n",count);
+           DEBUGF(INDI::Logger::DBG_DEBUG,"We timed out reading bytes %d",count);
            return 0;
         }
     }
     //  if we get here, we got more than size bytes, and still dont have a cr/lf
-	fprintf(stderr,"Read return error after %d bytes\n",bytesRead);
+    DEBUGF(INDI::Logger::DBG_DEBUG,"Read return error after %d bytes",bytesRead);
     return -1;
 }
-
-

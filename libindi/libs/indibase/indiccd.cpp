@@ -297,20 +297,26 @@ void CCDChip::binFrame()
     {
         uint8_t *bin_buf = BinFrame;
         uint8_t val;
+        // Try to average pixels since in 8bit they get saturated pretty quickly
+        double factor = (BinX*BinX)/2;
+        double accumulator=0;
         for (int i=0; i < SubH; i+= BinX)
             for (int j=0; j < SubW; j+= BinX)
             {
+                accumulator=0;
                 for (int k=0; k < BinX; k++)
                 {
                     for (int l=0; l < BinX; l++)
                     {
-                        val = *(RawFrame + j + (i+k) * SubW + l);
-                        if (val + *bin_buf > UINT8_MAX)
-                            *bin_buf = UINT8_MAX;
-                        else
-                            *bin_buf  += val;
+                        accumulator += *(RawFrame + j + (i+k) * SubW + l);
                     }
                 }
+
+                accumulator /= factor;
+                if (accumulator > UINT8_MAX)
+                    *bin_buf = UINT8_MAX;
+                else
+                    *bin_buf  += static_cast<uint8_t>(accumulator);
                 bin_buf++;
             }
     }
@@ -376,6 +382,7 @@ INDI::CCD::CCD()
 
     RA=-1000;
     Dec=-1000;
+    MPSAS=-1000;
     Aperture=FocalLength=-1;
 
     streamer = NULL;
@@ -446,12 +453,12 @@ bool INDI::CCD::initProperties()
     IUFillNumberVector(&PrimaryCCD.ImageBinNP,PrimaryCCD.ImageBinN,2,getDeviceName(),"CCD_BINNING","Binning",IMAGE_SETTINGS_TAB,IP_RW,60,IPS_IDLE);
 
     // Primary CCD Info
-    IUFillNumber(&PrimaryCCD.ImagePixelSizeN[0],"CCD_MAX_X","Resolution x","%4.0f",1,16000,0,0);
-    IUFillNumber(&PrimaryCCD.ImagePixelSizeN[1],"CCD_MAX_Y","Resolution y","%4.0f",1,16000,0,0);
-    IUFillNumber(&PrimaryCCD.ImagePixelSizeN[2],"CCD_PIXEL_SIZE","Pixel size (um)","%5.2f",1,40,0,0);
-    IUFillNumber(&PrimaryCCD.ImagePixelSizeN[3],"CCD_PIXEL_SIZE_X","Pixel size X","%5.2f",1,40,0,0);
-    IUFillNumber(&PrimaryCCD.ImagePixelSizeN[4],"CCD_PIXEL_SIZE_Y","Pixel size Y","%5.2f",1,40,0,0);
-    IUFillNumber(&PrimaryCCD.ImagePixelSizeN[5],"CCD_BITSPERPIXEL","Bits per pixel","%3.0f",8,64,0,0);
+    IUFillNumber(&PrimaryCCD.ImagePixelSizeN[CCDChip::CCD_MAX_X],"CCD_MAX_X","Resolution x","%4.0f",1,16000,0,0);
+    IUFillNumber(&PrimaryCCD.ImagePixelSizeN[CCDChip::CCD_MAX_Y],"CCD_MAX_Y","Resolution y","%4.0f",1,16000,0,0);
+    IUFillNumber(&PrimaryCCD.ImagePixelSizeN[CCDChip::CCD_PIXEL_SIZE],"CCD_PIXEL_SIZE","Pixel size (um)","%5.2f",1,40,0,0);
+    IUFillNumber(&PrimaryCCD.ImagePixelSizeN[CCDChip::CCD_PIXEL_SIZE_X],"CCD_PIXEL_SIZE_X","Pixel size X","%5.2f",1,40,0,0);
+    IUFillNumber(&PrimaryCCD.ImagePixelSizeN[CCDChip::CCD_PIXEL_SIZE_Y],"CCD_PIXEL_SIZE_Y","Pixel size Y","%5.2f",1,40,0,0);
+    IUFillNumber(&PrimaryCCD.ImagePixelSizeN[CCDChip::CCD_BITSPERPIXEL],"CCD_BITSPERPIXEL","Bits per pixel","%3.0f",8,64,0,0);
     IUFillNumberVector(&PrimaryCCD.ImagePixelSizeNP,PrimaryCCD.ImagePixelSizeN,6,getDeviceName(),"CCD_INFO","CCD Information",IMAGE_INFO_TAB,IP_RO,60,IPS_IDLE);
 
     // Primary CCD Compression Options
@@ -506,12 +513,12 @@ bool INDI::CCD::initProperties()
     IUFillNumber(&GuideCCD.ImageBinN[1],"VER_BIN","Y","%2.0f",1,4,1,1);
     IUFillNumberVector(&GuideCCD.ImageBinNP,GuideCCD.ImageBinN,2,getDeviceName(),"GUIDER_BINNING","Binning",GUIDE_HEAD_TAB,IP_RW,60,IPS_IDLE);
 
-    IUFillNumber(&GuideCCD.ImagePixelSizeN[0],"CCD_MAX_X","Resolution x","%4.0f",1,16000,0,0);
-    IUFillNumber(&GuideCCD.ImagePixelSizeN[1],"CCD_MAX_Y","Resolution y","%4.0f",1,16000,0,0);
-    IUFillNumber(&GuideCCD.ImagePixelSizeN[2],"CCD_PIXEL_SIZE","Pixel size (um)","%5.2f",1,40,0,0);
-    IUFillNumber(&GuideCCD.ImagePixelSizeN[3],"CCD_PIXEL_SIZE_X","Pixel size X","%5.2f",1,40,0,0);
-    IUFillNumber(&GuideCCD.ImagePixelSizeN[4],"CCD_PIXEL_SIZE_Y","Pixel size Y","%5.2f",1,40,0,0);
-    IUFillNumber(&GuideCCD.ImagePixelSizeN[5],"CCD_BITSPERPIXEL","Bits per pixel","%3.0f",8,64,0,0);
+    IUFillNumber(&GuideCCD.ImagePixelSizeN[CCDChip::CCD_MAX_X],"CCD_MAX_X","Resolution x","%4.0f",1,16000,0,0);
+    IUFillNumber(&GuideCCD.ImagePixelSizeN[CCDChip::CCD_MAX_Y],"CCD_MAX_Y","Resolution y","%4.0f",1,16000,0,0);
+    IUFillNumber(&GuideCCD.ImagePixelSizeN[CCDChip::CCD_PIXEL_SIZE],"CCD_PIXEL_SIZE","Pixel size (um)","%5.2f",1,40,0,0);
+    IUFillNumber(&GuideCCD.ImagePixelSizeN[CCDChip::CCD_PIXEL_SIZE_X],"CCD_PIXEL_SIZE_X","Pixel size X","%5.2f",1,40,0,0);
+    IUFillNumber(&GuideCCD.ImagePixelSizeN[CCDChip::CCD_PIXEL_SIZE_Y],"CCD_PIXEL_SIZE_Y","Pixel size Y","%5.2f",1,40,0,0);
+    IUFillNumber(&GuideCCD.ImagePixelSizeN[CCDChip::CCD_BITSPERPIXEL],"CCD_BITSPERPIXEL","Bits per pixel","%3.0f",8,64,0,0);
     IUFillNumberVector(&GuideCCD.ImagePixelSizeNP,GuideCCD.ImagePixelSizeN,6,getDeviceName(),"GUIDER_INFO", "Guide Info",IMAGE_INFO_TAB,IP_RO,60,IPS_IDLE);
 
     IUFillSwitch(&GuideCCD.FrameTypeS[0],"FRAME_LIGHT","Light",ISS_ON);
@@ -613,7 +620,8 @@ bool INDI::CCD::initProperties()
     IUFillText(&ActiveDeviceT[0],"ACTIVE_TELESCOPE","Telescope","Telescope Simulator");
     IUFillText(&ActiveDeviceT[1],"ACTIVE_FOCUSER","Focuser","Focuser Simulator");
     IUFillText(&ActiveDeviceT[2],"ACTIVE_FILTER","Filter","CCD Simulator");
-    IUFillTextVector(&ActiveDeviceTP,ActiveDeviceT,3,getDeviceName(),"ACTIVE_DEVICES","Snoop devices",OPTIONS_TAB,IP_RW,60,IPS_IDLE);
+    IUFillText(&ActiveDeviceT[3],"ACTIVE_SKYQUALITY","Sky Quality","SQM");
+    IUFillTextVector(&ActiveDeviceTP,ActiveDeviceT,4,getDeviceName(),"ACTIVE_DEVICES","Snoop devices",OPTIONS_TAB,IP_RW,60,IPS_IDLE);
 
     // Snooped RA/DEC Property
     IUFillNumber(&EqN[0],"RA","Ra (hh:mm:ss)","%010.6m",0,24,0,0);
@@ -625,6 +633,7 @@ bool INDI::CCD::initProperties()
     IDSnoopDevice(ActiveDeviceT[0].text,"TELESCOPE_INFO");
     IDSnoopDevice(ActiveDeviceT[2].text,"FILTER_SLOT");
     IDSnoopDevice(ActiveDeviceT[2].text,"FILTER_NAME");
+    IDSnoopDevice(ActiveDeviceT[3].text,"SKY_QUALITY");
 
     // Guider Interface
     initGuiderProperties(getDeviceName(), GUIDE_CONTROL_TAB);
@@ -867,6 +876,19 @@ bool INDI::CCD::ISSnoopDevice (XMLEle *root)
          for (ep = nextXMLEle(root, 1) ; ep != NULL ; ep = nextXMLEle(root, 0))
              CurrentFilterSlot = atoi(pcdataXMLEle(ep));
      }
+     else if (!strcmp(propName, "SKY_QUALITY"))
+     {
+         for (ep = nextXMLEle(root, 1) ; ep != NULL ; ep = nextXMLEle(root, 0))
+         {
+             const char *name = findXMLAttValu(ep, "name");
+
+             if (!strcmp(name, "SKY_BRIGHTNESS"))
+             {
+                 MPSAS = atof(pcdataXMLEle(ep));
+                 break;
+             }
+         }
+     }
 
      return INDI::DefaultDevice::ISSnoopDevice(root);
  }
@@ -893,6 +915,7 @@ bool INDI::CCD::ISNewText (const char *dev, const char *name, char *texts[], cha
             IDSnoopDevice(ActiveDeviceT[0].text,"TELESCOPE_INFO");
             IDSnoopDevice(ActiveDeviceT[2].text,"FILTER_SLOT");
             IDSnoopDevice(ActiveDeviceT[2].text,"FILTER_NAME");
+            IDSnoopDevice(ActiveDeviceT[3].text,"SKY_QUALITY");
 
             // Tell children active devices was updated.
             activeDevicesUpdated();
@@ -1165,7 +1188,7 @@ bool INDI::CCD::ISNewNumber (const char *dev, const char *name, double values[],
         {
             IUUpdateNumber(&PrimaryCCD.ImagePixelSizeNP, values, names, n);
             PrimaryCCD.ImagePixelSizeNP.s = IPS_OK;
-            SetCCDParams(PrimaryCCD.ImagePixelSizeNP.np[0].value, PrimaryCCD.ImagePixelSizeNP.np[1].value, PrimaryCCD.getBPP(), PrimaryCCD.ImagePixelSizeNP.np[2].value, PrimaryCCD.ImagePixelSizeNP.np[3].value);
+            SetCCDParams(PrimaryCCD.ImagePixelSizeNP.np[CCDChip::CCD_MAX_X].value, PrimaryCCD.ImagePixelSizeNP.np[CCDChip::CCD_MAX_Y].value, PrimaryCCD.getBPP(), PrimaryCCD.ImagePixelSizeNP.np[CCDChip::CCD_PIXEL_SIZE_X].value, PrimaryCCD.ImagePixelSizeNP.np[CCDChip::CCD_PIXEL_SIZE_Y].value);
             IDSetNumber(&PrimaryCCD.ImagePixelSizeNP, NULL);
             return true;
         }
@@ -1175,7 +1198,7 @@ bool INDI::CCD::ISNewNumber (const char *dev, const char *name, double values[],
         {
             IUUpdateNumber(&GuideCCD.ImagePixelSizeNP, values, names, n);
             GuideCCD.ImagePixelSizeNP.s = IPS_OK;
-            SetGuiderParams(GuideCCD.ImagePixelSizeNP.np[0].value, GuideCCD.ImagePixelSizeNP.np[1].value, GuideCCD.getBPP(), GuideCCD.ImagePixelSizeNP.np[2].value, GuideCCD.ImagePixelSizeNP.np[3].value);
+            SetGuiderParams(GuideCCD.ImagePixelSizeNP.np[CCDChip::CCD_MAX_X].value, GuideCCD.ImagePixelSizeNP.np[CCDChip::CCD_MAX_Y].value, GuideCCD.getBPP(), GuideCCD.ImagePixelSizeNP.np[CCDChip::CCD_PIXEL_SIZE_X].value, GuideCCD.ImagePixelSizeNP.np[CCDChip::CCD_PIXEL_SIZE_Y].value);
             IDSetNumber(&GuideCCD.ImagePixelSizeNP, NULL);
             return true;
         }
@@ -1681,6 +1704,11 @@ void INDI::CCD::addFITSKeywords(fitsfile *fptr, CCDChip *targetChip)
 
     if (FocalLength != -1)
         fits_update_key_s(fptr, TDOUBLE, "FOCALLEN", &FocalLength, "Focal Length (mm)", &status);
+
+    if (MPSAS != -1000)
+    {
+        fits_update_key_s(fptr, TDOUBLE, "MPSAS", &MPSAS, "Sky Quality (mag per arcsec^2)", &status);
+    }
 
     if (targetChip->getFrameType() == CCDChip::LIGHT_FRAME && RA != -1000 && Dec != -1000)
     {
@@ -2331,6 +2359,8 @@ void INDI::CCD::SetGuiderParams(int x,int y,int bpp,float xf,float yf)
 
 bool INDI::CCD::saveConfigItems(FILE *fp)
 {
+    DefaultDevice::saveConfigItems(fp);
+
     IUSaveConfigText(fp, &ActiveDeviceTP);
     IUSaveConfigSwitch(fp, &UploadSP);
     IUSaveConfigText(fp, &UploadSettingsTP);

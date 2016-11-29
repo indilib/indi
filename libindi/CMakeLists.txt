@@ -23,11 +23,13 @@ set(CMAKE_CXX_FLAGS "-std=c++0x ${CMAKE_CXX_FLAGS}")
 endif(NOT WIN32 AND NOT ANDROID)
 
 #####################################  INDI version  ################################################
+# N.B. DO NOT Forget to update version also in indiapi.h
+# Proper way is to use indiversion.h.cmake file but this would break make existing applications so let us stick to the old proven way
 
 set(INDI_SOVERSION "1")
 set(CMAKE_INDI_VERSION_MAJOR 1)
 set(CMAKE_INDI_VERSION_MINOR 3)
-set(CMAKE_INDI_VERSION_RELEASE 0)
+set(CMAKE_INDI_VERSION_RELEASE 1)
 set(CMAKE_INDI_VERSION_STRING "${CMAKE_INDI_VERSION_MAJOR}.${CMAKE_INDI_VERSION_MINOR}.${CMAKE_INDI_VERSION_RELEASE}")
 
 ########################################  Paths  ###################################################
@@ -596,6 +598,18 @@ if (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
 install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/drivers/focuser/99-perfectstar.rules DESTINATION ${UDEVRULES_INSTALL_DIR})
 endif (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
 
+################ hitechfocus Focuser ################
+set(hitecastrodcfocuser_SRCS
+        ${CMAKE_CURRENT_SOURCE_DIR}/drivers/focuser/hitecastrodcfocuser.cpp
+   )
+
+add_executable(indi_hitecastrodc_focus ${hitecastrodcfocuser_SRCS})
+target_link_libraries(indi_hitecastrodc_focus indidriver)
+install(TARGETS indi_hitecastrodc_focus RUNTIME DESTINATION bin )
+if (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
+install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/drivers/focuser/99-hitecastrodcfocuser.rules DESTINATION ${UDEVRULES_INSTALL_DIR})
+endif (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
+
 ################ JMI Smart Focus Focuser ################
 
 set(smartfocus_SRCS
@@ -778,6 +792,16 @@ if (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
 install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/drivers/auxiliary/99-flipflat.rules DESTINATION ${UDEVRULES_INSTALL_DIR})
 endif (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
 
+########### Sky Quality Meter ###############
+
+set(sqm_SRCS
+        ${CMAKE_CURRENT_SOURCE_DIR}/drivers/auxiliary/sqm.cpp
+   )
+
+add_executable(indi_sqm_weather ${sqm_SRCS})
+
+target_link_libraries(indi_sqm_weather indidriver)
+install(TARGETS indi_sqm_weather RUNTIME DESTINATION bin )
 
 ########### STAR2000 Driver ###############
 

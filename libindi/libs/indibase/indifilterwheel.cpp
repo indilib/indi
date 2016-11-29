@@ -137,6 +137,8 @@ bool INDI::FilterWheel::ISNewText (const char *dev, const char *name, char *text
 
 bool INDI::FilterWheel::saveConfigItems(FILE *fp)
 {
+    DefaultDevice::saveConfigItems(fp);
+
     IUSaveConfigNumber(fp, &FilterSlotNP);
     IUSaveConfigText(fp, FilterNameTP);
 

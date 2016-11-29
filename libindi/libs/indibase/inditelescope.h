@@ -19,6 +19,8 @@
 #ifndef INDI_TELESCOPE_H
 #define INDI_TELESCOPE_H
 
+#include <string>
+
 #include <libnova.h>
 
 #include "defaultdevice.h"
@@ -215,6 +217,12 @@ class INDI::Telescope : public INDI::DefaultDevice
          */
         void SetAxis2ParkDefault(double steps);
 
+        /**
+         * @brief isLocked is mount currently locked?
+         * @return true if lock status equals true and DomeClosedLockTP is Dome Locks or Dome Locks and Dome Parks (both).
+         */
+        bool isLocked();
+
         // Joystick helpers
         static void joystickHelper(const char * joystick_n, double mag, double angle, void *context);
         static void buttonHelper(const char * button_n, ISState state, void *context);
@@ -396,9 +404,18 @@ class INDI::Telescope : public INDI::DefaultDevice
         IText TimeT[2];
         ITextVectorProperty TimeTP;
 
-        // Active devices to snoop
+        // Active GPS device to snoop
         ITextVectorProperty ActiveDeviceTP;
         IText ActiveDeviceT[1];
+
+        // Active Dome to snoop
+        ITextVectorProperty ActiveDomeTP;
+        IText ActiveDomeT[1];
+
+        // Switch to lock if dome is closed, and or force parking if dome parks
+        ISwitchVectorProperty DomeClosedLockTP;
+        ISwitch DomeClosedLockT[4];
+
 
         ISwitch BaudRateS[6];
         ISwitchVectorProperty BaudRateSP;
@@ -415,7 +432,10 @@ private:
         bool processTimeInfo(const char *utc, const char *offset);
         bool processLocationInfo(double latitude, double longitude, double elevation);
 
+        void triggerSnoop(char *driverName, char *propertyName);
+
         TelescopeParkData parkDataType;
+        bool IsLocked;
         bool IsParked;        
         const char *ParkDeviceName;
         const char * Parkdatafile;

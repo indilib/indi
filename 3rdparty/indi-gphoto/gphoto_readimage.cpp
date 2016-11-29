@@ -11,6 +11,8 @@
 
 #include <jpeglib.h>
 #include <fitsio.h>
+#include <libraw.h>
+
 #include "gphoto_readimage.h"
 
 char dcraw_cmd[] = "dcraw";
@@ -297,6 +299,65 @@ int dcraw_parse_header_info(const char *filename, struct dcraw_header *header)
 
 	pclose(handle);
 	return 0;
+}
+
+int read_libraw(const char *filename, uint8_t **memptr, size_t *memsize, int *n_axis, int *w, int *h, int *bitsperpixel, char *bayer_pattern)
+{
+    int  ret=0;
+    // Creation of image processing object
+    LibRaw RawProcessor;
+
+    // Let us open the file
+    if( (ret = RawProcessor.open_file(filename)) != LIBRAW_SUCCESS)
+    {
+        DEBUGFDEVICE(device, INDI::Logger::DBG_ERROR, "Cannot open %s: %s", filename, libraw_strerror(ret));
+        RawProcessor.recycle();
+        return -1;
+    }
+
+    // Let us unpack the image
+    if( (ret = RawProcessor.unpack() ) != LIBRAW_SUCCESS)
+    {
+        DEBUGFDEVICE(device, INDI::Logger::DBG_ERROR, "Cannot unpack %s: %s", filename, libraw_strerror(ret));
+        RawProcessor.recycle();
+        return -1;
+    }
+
+    // Covert to image
+    if( (ret = RawProcessor.raw2image()) != LIBRAW_SUCCESS)
+    {
+        DEBUGFDEVICE(device, INDI::Logger::DBG_ERROR, "Cannot convert %s : %s", filename, libraw_strerror(ret));
+        RawProcessor.recycle();
+        return -1;
+    }
+
+    *n_axis = 2;
+    *w = RawProcessor.imgdata.rawdata.sizes.width;
+    *h = RawProcessor.imgdata.rawdata.sizes.height;
+    *bitsperpixel = 16;
+    // cdesc contains counter-clock wise e.g. RGBG CFA pattern while we want it sequential as RGGB
+    bayer_pattern[0] = RawProcessor.imgdata.idata.cdesc[0];
+    bayer_pattern[1] = RawProcessor.imgdata.idata.cdesc[1];
+    bayer_pattern[2] = RawProcessor.imgdata.idata.cdesc[3];
+    bayer_pattern[3] = RawProcessor.imgdata.idata.cdesc[2];
+    bayer_pattern[4] = '\0';
+
+    int first_visible_pixel = RawProcessor.imgdata.rawdata.sizes.raw_width*RawProcessor.imgdata.sizes.top_margin + RawProcessor.imgdata.sizes.left_margin;
+
+    *memsize = RawProcessor.imgdata.rawdata.sizes.width * RawProcessor.imgdata.rawdata.sizes.height * sizeof(uint16_t);
+    *memptr = (uint8_t *) realloc(*memptr, *memsize);
+
+    uint16_t *image = reinterpret_cast<uint16_t *>(*memptr);
+    uint16_t *src   = RawProcessor.imgdata.rawdata.raw_image + first_visible_pixel;
+
+    for (int i=0; i < RawProcessor.imgdata.rawdata.sizes.height; i++)
+    {
+        memcpy(image,  src, RawProcessor.imgdata.rawdata.sizes.width*2);
+        image += RawProcessor.imgdata.rawdata.sizes.width;
+        src   += RawProcessor.imgdata.rawdata.sizes.raw_width;
+    }
+
+    return 0;
 }
 
 int read_dcraw(const char *filename, uint8_t **memptr, size_t *memsize, int *n_axis, int *w, int *h, int *bitsperpixel)

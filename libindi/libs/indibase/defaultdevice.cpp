@@ -91,6 +91,14 @@ bool INDI::DefaultDevice::loadConfig(bool silent, const char *property)
 
 bool INDI::DefaultDevice::saveConfigItems(FILE *fp)
 {
+    IUSaveConfigSwitch(fp, &DebugSP);
+
+    return INDI::Logger::saveConfigItems(fp);
+
+}
+
+bool INDI::DefaultDevice::saveAllConfigItems(FILE *fp)
+{
     std::vector<INDI::Property *>::iterator orderi;
 
     INDI_PROPERTY_TYPE pType;
@@ -456,7 +464,7 @@ void INDI::DefaultDevice::ISGetProperties (const char *dev)
     INDI_PROPERTY_TYPE pType;
     void *pPtr;
 
-    if(isInit == 0)
+    if(isInit == false)
     {
         if(dev != NULL)
              setDeviceName(dev);
@@ -472,8 +480,6 @@ void INDI::DefaultDevice::ISGetProperties (const char *dev)
         strncpy(ConnectionSP.device, getDeviceName(), MAXINDIDEVICE);
         initProperties();
         addConfigurationControl();
-
-        isInit = 1;
     }
 
     for (orderi = pAll.begin(); orderi != pAll.end(); orderi++)
@@ -501,6 +507,17 @@ void INDI::DefaultDevice::ISGetProperties (const char *dev)
         }
     }
 
+    // Remember debug & logging settings
+    if (isInit == false)
+    {
+        loadConfig(true, "DEBUG");
+        loadConfig(true, "DEBUG_LEVEL");
+        loadConfig(true, "LOGGING_LEVEL");
+        loadConfig(true, "LOG_OUTPUT");
+
+    }
+
+    isInit = true;
 }
 
 void INDI::DefaultDevice::resetProperties()

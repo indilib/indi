@@ -1,3 +1,10 @@
+From 1.3.0 to 1.3.1
+
+      + Support for Optec IFW Filter Wheel.
+      + Added new method in base client getBLOBMode to retrieve previously set BLOB mode for a device/property pair.
+      + QHY driver use software binning by default for all cameras.
+      + Minor bug fixes and improvements across all drivers.
+
 From 1.2.0 to 1.3.0
 
       + Support for Shelyak eShel spectrograph.

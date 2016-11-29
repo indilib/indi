@@ -23,6 +23,8 @@
 #ifndef INDIDOME_H
 #define INDIDOME_H
 
+#include <string>
+
 #include <libnova.h>
 
 #include "defaultdevice.h"
@@ -188,6 +190,12 @@ class INDI::Dome : public INDI::DefaultDevice
      * @return True if dome support multiple speeds
      */
     bool HasVariableSpeed() { return capability & DOME_HAS_VARIABLE_SPEED;}
+
+    /**
+     * @brief isLocked, is the dome currently locked?
+     * @return True if lock status equals true, and TelescopeClosedLockTP is Telescope Locks.
+     */
+    bool isLocked();
 
     DomeState getDomeState() const;
     void setDomeState(const DomeState &value);
@@ -446,6 +454,10 @@ protected:
     ITextVectorProperty ActiveDeviceTP;
     IText ActiveDeviceT[2];
 
+    // Switch to lock id mount is unparked
+    ISwitchVectorProperty TelescopeClosedLockTP;
+    ISwitch TelescopeClosedLockT[2];
+
     INumber PresetN[3];
     INumberVectorProperty PresetNP;
     ISwitch PresetGotoS[3];
@@ -463,6 +475,8 @@ private:
 
         void processButton(const char * button_n, ISState state);
 
+        void triggerSnoop(char *driverName, char *propertyName);
+
         INDI::Controller *controller;
 
         DomeState domeState;
@@ -475,6 +489,7 @@ private:
         IPState weatherState;
 
         bool IsParked;
+        bool IsLocked;
         const char *ParkDeviceName;
         const char * Parkdatafile;
         XMLEle *ParkdataXmlRoot, *ParkdeviceXml, *ParkstatusXml, *ParkpositionXml, *ParkpositionAxis1Xml;

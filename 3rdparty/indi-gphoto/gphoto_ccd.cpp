@@ -950,19 +950,36 @@ bool GPhotoCCD::grabImage()
                 }
 
                 DEBUGF(INDI::Logger::DBG_DEBUG, "read_jpeg: memsize (%d) naxis (%d) w (%d) h (%d) bpp (%d)", memsize, naxis, w, h, bpp);
+
+                SetCCDCapability(GetCCDCapability() & ~CCD_HAS_BAYER);
         }
         else
         {
-                if (read_dcraw(tmpfile, &memptr, &memsize, &naxis, &w, &h, &bpp))
+            /*if (read_dcraw(tmpfile, &memptr, &memsize, &naxis, &w, &h, &bpp))
                 {
                     DEBUG(INDI::Logger::DBG_ERROR, "Exposure failed to parse raw image.");
                     unlink(tmpfile);
                     return false;
                 }
 
-                DEBUGF(INDI::Logger::DBG_DEBUG, "read_dcraw: memsize (%d) naxis (%d) w (%d) h (%d) bpp (%d)", memsize, naxis, w, h, bpp);
+                DEBUGF(INDI::Logger::DBG_DEBUG, "read_dcraw: memsize (%d) naxis (%d) w (%d) h (%d) bpp (%d)", memsize, naxis, w, h, bpp);*/
 
+            char bayer_pattern[8] = {};
+
+            if (read_libraw(tmpfile, &memptr, &memsize, &naxis, &w, &h, &bpp, bayer_pattern))
+            {
+                DEBUG(INDI::Logger::DBG_ERROR, "Exposure failed to parse raw image.");
                 unlink(tmpfile);
+                return false;
+            }
+
+            DEBUGF(INDI::Logger::DBG_DEBUG, "read_libraw: memsize (%d) naxis (%d) w (%d) h (%d) bpp (%d) pattern (%s)", memsize, naxis, w, h, bpp, bayer_pattern);
+
+            unlink(tmpfile);
+
+            IUSaveText(&BayerT[2], bayer_pattern);
+            IDSetText(&BayerTP, NULL);
+            SetCCDCapability(GetCCDCapability() | CCD_HAS_BAYER);
         }
 
         PrimaryCCD.setImageExtension("fits");
