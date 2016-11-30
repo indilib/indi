@@ -425,7 +425,8 @@ class INDI::CCD : public INDI::DefaultDevice, INDI::GuiderInterface
             ASTROMETRY_RESULTS_PIXSCALE,
             ASTROMETRY_RESULTS_ORIENTATION,
             ASTROMETRY_RESULTS_RA,
-            ASTROMETRY_RESULTS_DE
+            ASTROMETRY_RESULTS_DE,
+            ASTROMETRY_RESULTS_PARITY
         };
 
         virtual bool initProperties();
@@ -739,7 +740,7 @@ class INDI::CCD : public INDI::DefaultDevice, INDI::GuiderInterface
         ITextVectorProperty SolverSettingsTP;
 
         // Solver Results
-        INumber SolverResultN[4];
+        INumber SolverResultN[5];
         INumberVectorProperty SolverResultNP;
 
         // WCS

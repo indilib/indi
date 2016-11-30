@@ -598,7 +598,8 @@ bool INDI::CCD::initProperties()
     IUFillNumber(&SolverResultN[ASTROMETRY_RESULTS_ORIENTATION], "ASTROMETRY_RESULTS_ORIENTATION", "Orientation (E of N) °", "%g", -360, 360, 1, 0);
     IUFillNumber(&SolverResultN[ASTROMETRY_RESULTS_RA], "ASTROMETRY_RESULTS_RA", "RA (J2000)", "%g", 0, 24, 1, 0);
     IUFillNumber(&SolverResultN[ASTROMETRY_RESULTS_DE], "ASTROMETRY_RESULTS_DE", "DE (J2000)", "%g", -90, 90, 1, 0);
-    IUFillNumberVector(&SolverResultNP, SolverResultN, 4, getDeviceName(), "ASTROMETRY_RESULTS", "Results", ASTROMETRY_TAB, IP_RO, 0, IPS_IDLE);
+    IUFillNumber(&SolverResultN[ASTROMETRY_RESULTS_PARITY], "ASTROMETRY_RESULTS_PARITY", "Parity", "%g", -1, 1, 1, 0);
+    IUFillNumberVector(&SolverResultNP, SolverResultN, 5, getDeviceName(), "ASTROMETRY_RESULTS", "Results", ASTROMETRY_TAB, IP_RO, 0, IPS_IDLE);
 
     // WCS Enable/Disable
     IUFillSwitch(&WorldCoordS[0], "WCS_ENABLE", "Enable", ISS_OFF);
@@ -2554,8 +2555,8 @@ void * INDI::CCD::runSolverHelper(void *context)
 
 void INDI::CCD::runSolver()
 {
-    char cmd[MAXRBUF], line[256];
-    float ra,dec, angle, pixscale, field_w, field_h;
+    char cmd[MAXRBUF], line[256], parity_str[8];
+    float ra,dec, angle, pixscale, field_w, field_h, parity=0;
     ra=dec=angle=pixscale=field_w=field_h=-1000;
     snprintf(cmd, MAXRBUF, "%s %s -W /tmp/solution.wcs /tmp/ccdsolver.fits",SolverSettingsT[ASTROMETRY_SETTINGS_BINARY].text, SolverSettingsT[ASTROMETRY_SETTINGS_OPTIONS].text);
 
@@ -2578,17 +2579,25 @@ void INDI::CCD::runSolver()
         sscanf(line, "Field rotation angle: up is %f", &angle);
         sscanf(line, "Field center: (RA,Dec) = (%f,%f)", &ra, &dec);
         sscanf(line, "Field size: %f x %f arcminutes", &field_w, &field_h);
+        sscanf(line, "Field parity: %s", parity_str);
+
+        if (!strcmp(parity_str, "pos"))
+            parity = 1;
+        else if (!strcmp(parity_str, "neg"))
+            parity = -1;
 
         if (field_w != -1000 && ra != -1000 && dec != -1000 && angle != -1000)
         {
             // Pixscale is arcsec/pixel. Astrometry result is in arcmin
-            SolverResultN[ASTROMETRY_RESULTS_PIXSCALE].value = (field_w * 60) / PrimaryCCD.getSubW();
+            SolverResultN[ASTROMETRY_RESULTS_PIXSCALE].value = (field_w * 60) / (PrimaryCCD.getSubW() / PrimaryCCD.getBinX());
             // Astrometry.net angle, E of N
             SolverResultN[ASTROMETRY_RESULTS_ORIENTATION].value = angle;
             // Astrometry.net J2000 RA in degrees
             SolverResultN[ASTROMETRY_RESULTS_RA].value = ra;
             // Astrometry.net J2000 DEC in degrees
             SolverResultN[ASTROMETRY_RESULTS_DE].value = dec;
+            // Astrometry.net parity
+            SolverResultN[ASTROMETRY_RESULTS_PARITY].value = parity;
 
             SolverResultNP.s = IPS_OK;
             IDSetNumber(&SolverResultNP, NULL);
