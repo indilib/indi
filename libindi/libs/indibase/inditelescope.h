@@ -404,18 +404,13 @@ class INDI::Telescope : public INDI::DefaultDevice
         IText TimeT[2];
         ITextVectorProperty TimeTP;
 
-        // Active GPS device to snoop
+        // Active GPS/Dome device to snoop
         ITextVectorProperty ActiveDeviceTP;
-        IText ActiveDeviceT[1];
-
-        // Active Dome to snoop
-        ITextVectorProperty ActiveDomeTP;
-        IText ActiveDomeT[1];
+        IText ActiveDeviceT[2];
 
         // Switch to lock if dome is closed, and or force parking if dome parks
         ISwitchVectorProperty DomeClosedLockTP;
         ISwitch DomeClosedLockT[4];
-
 
         ISwitch BaudRateS[6];
         ISwitchVectorProperty BaudRateSP;
