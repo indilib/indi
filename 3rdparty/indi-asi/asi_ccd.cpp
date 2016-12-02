@@ -1542,13 +1542,13 @@ void * ASICCD::streamVideoHelper(void* context)
 void* ASICCD::streamVideo()
 {
   int ret=0;
-  pthread_mutex_lock(&condMutex);
-  //unsigned char *compressedFrame = (unsigned char *) malloc(1);
 
   while (true)
   {
+      pthread_mutex_lock(&condMutex);
+
       while (streamPredicate == 0)
-                  pthread_cond_wait(&cv, &condMutex);
+          pthread_cond_wait(&cv, &condMutex);
 
       if (terminateThread)
           break;
@@ -1570,7 +1570,6 @@ void* ASICCD::streamVideo()
           streamer->setStream(false);
           continue;
       }
-      //frameCount++;
 
       streamer->newFrame(targetFrame);
   }
