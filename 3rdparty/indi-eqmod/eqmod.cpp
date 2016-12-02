@@ -2410,23 +2410,23 @@ bool EQMod::ISNewSwitch (const char *dev, const char *name, ISState *states, cha
 		  RAPPECTrainingSP->s=IPS_IDLE;
 		  DEBUG(INDI::Logger::DBG_WARNING,"Can not start RA PPEC Training. Scope not tracking");
 		  IUResetSwitch(RAPPECTrainingSP);
-		  RAPPECTrainingSP->sp[0].s == ISS_ON;
-		  RAPPECTrainingSP->sp[1].s == ISS_OFF;
+		  RAPPECTrainingSP->sp[0].s = ISS_ON;
+		  RAPPECTrainingSP->sp[1].s = ISS_OFF;
 		}  else {
 		  RAPPECTrainingSP->s=IPS_BUSY;
-		  DEBUG(INDI::Logger::DBG_DEBUG,"Turning RA PPEC Training on.");
+		  DEBUG(INDI::Logger::DBG_SESSION,"Turning RA PPEC Training on.");
 		  try {
 		    mount->TurnRAPPECTraining(true);
 		  } catch (EQModError e) {
 		    DEBUG(INDI::Logger::DBG_WARNING,"Unable to start RA PPEC Training.");
 		    RAPPECTrainingSP->s=IPS_ALERT;
-		    RAPPECTrainingSP->sp[0].s == ISS_ON;
-		    RAPPECTrainingSP->sp[1].s == ISS_OFF;		    
+		    RAPPECTrainingSP->sp[0].s = ISS_ON;
+		    RAPPECTrainingSP->sp[1].s = ISS_OFF;		    
 		  }
 		}
 	      } else {
     	        RAPPECTrainingSP->s=IPS_IDLE;
-	        DEBUG(INDI::Logger::DBG_DEBUG,"Turning RA PPEC Training off.");
+	        DEBUG(INDI::Logger::DBG_SESSION,"Turning RA PPEC Training off.");
 	        mount->TurnRAPPECTraining(false);
 	    }
 	    IDSetSwitch(RAPPECTrainingSP, NULL);
@@ -2438,11 +2438,11 @@ bool EQMod::ISNewSwitch (const char *dev, const char *name, ISState *states, cha
 	    if (RAPPECSP->sp[1].s == ISS_ON)
 	      {
 		RAPPECSP->s=IPS_BUSY;
-		DEBUG(INDI::Logger::DBG_DEBUG,"Turning RA PPEC on.");
+		DEBUG(INDI::Logger::DBG_SESSION,"Turning RA PPEC on.");
 		mount->TurnRAPPEC(true);
 	      } else {
     	        RAPPECSP->s=IPS_IDLE;
-	        DEBUG(INDI::Logger::DBG_DEBUG,"Turning RA PPEC off.");
+	        DEBUG(INDI::Logger::DBG_SESSION,"Turning RA PPEC off.");
 	        mount->TurnRAPPEC(false);
 	    }
 	    IDSetSwitch(RAPPECSP, NULL);
@@ -2457,23 +2457,23 @@ bool EQMod::ISNewSwitch (const char *dev, const char *name, ISState *states, cha
 		  DEPPECTrainingSP->s=IPS_IDLE;
 		  DEBUG(INDI::Logger::DBG_WARNING,"Can not start DEC PPEC Training. Scope not tracking");
 		  IUResetSwitch(DEPPECTrainingSP);
-		  DEPPECTrainingSP->sp[0].s == ISS_ON;
-		  DEPPECTrainingSP->sp[1].s == ISS_OFF;
+		  DEPPECTrainingSP->sp[0].s = ISS_ON;
+		  DEPPECTrainingSP->sp[1].s = ISS_OFF;
 		}  else {
 		  DEPPECTrainingSP->s=IPS_BUSY;
-		  DEBUG(INDI::Logger::DBG_DEBUG,"Turning DEC PPEC Training on.");
+		  DEBUG(INDI::Logger::DBG_SESSION,"Turning DEC PPEC Training on.");
 		  try {
 		    mount->TurnDEPPECTraining(true);
 		  } catch (EQModError e) {
 		    DEBUG(INDI::Logger::DBG_WARNING,"Unable to start DEC PPEC Training.");
 		    DEPPECTrainingSP->s=IPS_ALERT;
-		    DEPPECTrainingSP->sp[0].s == ISS_ON;
-		    DEPPECTrainingSP->sp[1].s == ISS_OFF;		    
+		    DEPPECTrainingSP->sp[0].s = ISS_ON;
+		    DEPPECTrainingSP->sp[1].s = ISS_OFF;		    
 		  }
 		}
 	      } else {
     	        DEPPECTrainingSP->s=IPS_IDLE;
-	        DEBUG(INDI::Logger::DBG_DEBUG,"Turning DEC PPEC Training off.");
+	        DEBUG(INDI::Logger::DBG_SESSION,"Turning DEC PPEC Training off.");
 	        mount->TurnDEPPECTraining(false);
 	    }
 	    IDSetSwitch(DEPPECTrainingSP, NULL);
@@ -2485,11 +2485,11 @@ bool EQMod::ISNewSwitch (const char *dev, const char *name, ISState *states, cha
 	    if (DEPPECSP->sp[1].s == ISS_ON)
 	      {
 		DEPPECSP->s=IPS_BUSY;
-		DEBUG(INDI::Logger::DBG_DEBUG,"Turning DEC PPEC on.");
+		DEBUG(INDI::Logger::DBG_SESSION,"Turning DEC PPEC on.");
 		mount->TurnDEPPEC(true);
 	      } else {
     	        DEPPECSP->s=IPS_IDLE;
-	        DEBUG(INDI::Logger::DBG_DEBUG,"Turning DEC PPEC off.");
+	        DEBUG(INDI::Logger::DBG_SESSION,"Turning DEC PPEC off.");
 	        mount->TurnDEPPEC(false);
 	    }
 	    IDSetSwitch(DEPPECSP, NULL);
