@@ -212,7 +212,7 @@ QHYCCD::QHYCCD(const char *name)
     HasFilters = false;
     coolerEnabled = false;
 
-    snprintf(this->name, MAXINDINAME, "QHY CCD %s", name);
+    snprintf(this->name, MAXINDINAME, "QHY CCD %.15s", name);
     snprintf(this->camid,MAXINDINAME,"%s",name);
     setDeviceName(this->name);
 
@@ -637,6 +637,8 @@ bool QHYCCD::Connect()
         }
 
         SetCCDCapability(cap);
+
+        terminateThread = false;
 
 #ifndef OSX_EMBEDED_MODE
         pthread_create( &primary_thread, NULL, &streamVideoHelper, this);
@@ -1445,11 +1447,11 @@ void * QHYCCD::streamVideoHelper(void* context)
 void* QHYCCD::streamVideo()
 {
   uint32_t ret=0, w,h,bpp,channels;
-  pthread_mutex_lock(&condMutex);
-  //unsigned char *compressedFrame = (unsigned char *) malloc(1);
 
   while (true)
   {
+      pthread_mutex_lock(&condMutex);
+
       while (streamPredicate == 0)
           pthread_cond_wait(&cv, &condMutex);
 
@@ -1461,17 +1463,6 @@ void* QHYCCD::streamVideo()
 
       if ( (ret = GetQHYCCDLiveFrame(camhandle, &w, &h, &bpp, &channels, PrimaryCCD.getFrameBuffer())) == QHYCCD_SUCCESS)
           streamer->newFrame(PrimaryCCD.getFrameBuffer());
-      /*else
-      {
-          DEBUGF(INDI::Logger::DBG_ERROR, "Error reading video data (%d)", ret);
-          streamPredicate=0;
-          streamer->setStream(false);
-          continue;
-      }*/
-
-
-
-      //usleep(PrimaryCCD.getExposureDuration()*1000000);
   }
 
   pthread_mutex_unlock(&condMutex);
