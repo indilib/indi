@@ -163,6 +163,7 @@ static int terminateddrv = 0;
 static void logStartup(int ac, char *av[]);
 static void usage (void);
 static void noZombies (void);
+static void reapZombies (void);
 static void noSIGPIPE (void);
 static void indiFIFO(void);
 static void indiRun (void);
@@ -290,7 +291,8 @@ main (int ac, char *av[])
         usage();
 
     /* take care of some unixisms */
-    noZombies();
+    /*noZombies();*/
+    reapZombies();
     noSIGPIPE();
 
     /* realloc seed for client pool */
@@ -368,6 +370,34 @@ noZombies()
     sa.sa_flags = 0;
 #endif
     (void)sigaction(SIGCHLD, &sa, NULL);
+}
+
+/* reap zombies when drivers die, in order to leave SIGCHLD unmodified for subprocesses */
+static void
+zombieRaised(int signum, siginfo_t* sig, void* data)
+{
+    if(data);
+
+    switch(signum)
+    {
+        case SIGCHLD:
+            fprintf(stderr, "Child process %d died\n", sig->si_pid);
+            break;
+
+        default:
+            fprintf(stderr, "Received unexpected signal %d\n", signum);
+    }
+}
+
+/* reap zombies as they die */
+static void
+reapZombies()
+{
+  struct sigaction sa;
+  sa.sa_sigaction = zombieRaised;
+  sigemptyset(&sa.sa_mask);
+  sa.sa_flags = SA_SIGINFO;
+  (void)sigaction(SIGCHLD, &sa, NULL);
 }
 
 /* turn off SIGPIPE on bad write so we can handle it inline */
