@@ -1591,3 +1591,12 @@ void ASICCD::addFITSKeywords(fitsfile *fptr, CCDChip *targetChip)
         fits_update_key_s(fptr, TDOUBLE, "Gain", &(gainNP->value), "Gain", &status);
     }
 }
+
+bool ASICCD::saveConfigItems(FILE *fp)
+{
+    INDI::CCD::saveConfigItems(fp);
+
+    IUSaveConfigSwitch(fp, &VideoFormatSP);
+
+    return true;
+}
