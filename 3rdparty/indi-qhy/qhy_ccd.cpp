@@ -997,7 +997,11 @@ int QHYCCD::grabImage()
     ret = GetQHYCCDSingleFrame(camhandle,&w,&h,&bpp,&channels,PrimaryCCD.getFrameBuffer());
 
     if (ret != QHYCCD_SUCCESS)
+    {
         DEBUGF(INDI::Logger::DBG_ERROR, "GetQHYCCDSingleFrame error (%d)", ret);
+        PrimaryCCD.setExposureFailed();
+        return -1;
+    }
   }
 
   // Perform software binning if necessary
