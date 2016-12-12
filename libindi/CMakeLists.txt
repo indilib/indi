@@ -554,6 +554,16 @@ add_executable(indi_moonlite_focus ${moonlite_SRCS})
 target_link_libraries(indi_moonlite_focus indidriver)
 install(TARGETS indi_moonlite_focus RUNTIME DESTINATION bin )
 
+################## USB Focus V3 ##################
+
+set(usbfocusv3_SRCS
+        ${CMAKE_CURRENT_SOURCE_DIR}/drivers/focuser/usbfocusv3.cpp
+   )
+
+add_executable(indi_usbfocusv3_focus ${usbfocusv3_SRCS})
+target_link_libraries(indi_usbfocusv3_focus indidriver)
+install(TARGETS indi_usbfocusv3_focus RUNTIME DESTINATION bin )
+
 ################ Microtouch Focuser ################
 
 set(microtouch_SRCS
