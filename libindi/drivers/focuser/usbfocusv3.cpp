@@ -33,7 +33,7 @@
 
 #define POLLMS  250
 
-#define SRTUS	20000
+#define SRTUS	25000
 
 /***************************** Class USBFocusV3 *******************************/
 
