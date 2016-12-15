@@ -697,7 +697,7 @@ int CCDSim::DrawCcdFrame(CCDChip *targetChip)
                         //  equations 9.1 and 9.2
                         //  convert ra/dec to standard co-ordinates
 
-                        sx=cos(decr)*sin(srar-rar)/( cos(decr)*cos(sdecr)*cos(srar-rar)+sin(decr)*sin(sdecr) );
+                        sx=cos(sdecr)*sin(srar-rar)/( cos(decr)*cos(sdecr)*cos(srar-rar)+sin(decr)*sin(sdecr) );
                         sy=(sin(decr)*cos(sdecr)*cos(srar-rar)-cos(decr)*sin(sdecr))/( cos(decr)*cos(sdecr)*cos(srar-rar)+sin(decr)*sin(sdecr) );
 
                         //  now convert to pixels
