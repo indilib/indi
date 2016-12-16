@@ -185,8 +185,8 @@ bool CCDSim::initProperties()
     //  but the simulators are a special case
     INDI::CCD::initProperties();
 
-    IUFillNumber(&SimulatorSettingsN[0],"SIM_XRES","CCD X resolution","%4.0f",0,2048,0,1280);
-    IUFillNumber(&SimulatorSettingsN[1],"SIM_YRES","CCD Y resolution","%4.0f",0,2048,0,1024);
+    IUFillNumber(&SimulatorSettingsN[0],"SIM_XRES","CCD X resolution","%4.0f",0,4096,0,1280);
+    IUFillNumber(&SimulatorSettingsN[1],"SIM_YRES","CCD Y resolution","%4.0f",0,4096,0,1024);
     IUFillNumber(&SimulatorSettingsN[2],"SIM_XSIZE","CCD X Pixel Size","%4.2f",0,60,0,5.2);
     IUFillNumber(&SimulatorSettingsN[3],"SIM_YSIZE","CCD Y Pixel Size","%4.2f",0,60,0,5.2);
     IUFillNumber(&SimulatorSettingsN[4],"SIM_MAXVAL","CCD Maximum ADU","%4.0f",0,65000,0,65000);
@@ -697,7 +697,7 @@ int CCDSim::DrawCcdFrame(CCDChip *targetChip)
                         //  equations 9.1 and 9.2
                         //  convert ra/dec to standard co-ordinates
 
-                        sx=cos(decr)*sin(srar-rar)/( cos(decr)*cos(sdecr)*cos(srar-rar)+sin(decr)*sin(sdecr) );
+                        sx=cos(sdecr)*sin(srar-rar)/( cos(decr)*cos(sdecr)*cos(srar-rar)+sin(decr)*sin(sdecr) );
                         sy=(sin(decr)*cos(sdecr)*cos(srar-rar)-cos(decr)*sin(sdecr))/( cos(decr)*cos(sdecr)*cos(srar-rar)+sin(decr)*sin(sdecr) );
 
                         //  now convert to pixels
