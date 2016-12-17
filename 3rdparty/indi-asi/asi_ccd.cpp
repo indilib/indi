@@ -1076,7 +1076,7 @@ void ASICCD::TimerHit()
                       SetTimer(POLLMS);
                       return;*/
 
-                      DEBUGF(INDI::Logger::DBG_DEBUG, "ASIGetExpStatus failed (%d) after retry. Restarting exposure...", errCode);
+                      DEBUGF(INDI::Logger::DBG_DEBUG, "ASIGetExpStatus failed (%d). Restarting exposure...", errCode);
                       InExposure = false;
                       usleep(100000);
                       StartExposure(ExposureRequest);
