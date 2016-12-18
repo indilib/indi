@@ -133,7 +133,7 @@ private:
   int streamPredicate;
   pthread_t primary_thread;
   bool terminateThread;
-  bool exposureRetries;
+  int exposureRetries;
 
   // ST4
   bool InWEPulse;

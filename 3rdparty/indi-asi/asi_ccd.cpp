@@ -39,7 +39,7 @@
 #define TEMPERATURE_UPDATE_FREQ 4       /* Update every 4 POLLMS ~ 1 second */
 #define TEMP_THRESHOLD          .25		/* Differential temperature threshold (C)*/
 #define MAX_DEVICES             4       /* Max device cameraCount */
-#define MAX_EXP_RETRIES         3
+#define MAX_EXP_RETRIES         10
 #define VERBOSE_EXPOSURE        3
 
 #define CONTROL_TAB     "Controls"
@@ -246,7 +246,6 @@ bool ASICCD::initProperties()
           break;
   }
 
-  PrimaryCCD.setResolution(m_camInfo->MaxWidth, m_camInfo->MaxHeight);
   PrimaryCCD.setMinMaxStep("CCD_EXPOSURE", "CCD_EXPOSURE_VALUE", 0, 3600, 1, false);
   PrimaryCCD.setMinMaxStep("CCD_BINNING", "HOR_BIN", 1, maxBin, 1, false);
   PrimaryCCD.setMinMaxStep("CCD_BINNING", "VER_BIN", 1, maxBin, 1, false);
@@ -1011,207 +1010,191 @@ int ASICCD::grabImage()
 
 void ASICCD::TimerHit()
 {
-  float timeleft;
+    float timeleft;
 
-  if (isConnected() == false)
-    return;  //  No need to reset timer if we are not connected anymore
+    if (isConnected() == false)
+        return;  //  No need to reset timer if we are not connected anymore
 
-  if (InExposure)
-  {
-    timeleft = calcTimeLeft(ExposureRequest, &ExpStart);
-
-    if (timeleft < 0.05)
+    if (InExposure)
     {
-      //  it's real close now, so spin on it
-      int timeoutCounter=0;
+        timeleft = calcTimeLeft(ExposureRequest, &ExpStart);
 
-      while (true)
-      {
-              ASI_EXPOSURE_STATUS status = ASI_EXP_IDLE;
-              ASI_ERROR_CODE errCode = ASI_SUCCESS;
+        if (timeleft < 0.05)
+        {
+            while (true)
+            {
+                ASI_EXPOSURE_STATUS status = ASI_EXP_IDLE;
+                ASI_ERROR_CODE errCode = ASI_SUCCESS;
 
-              timeoutCounter++;
+                if ( (errCode = ASIGetExpStatus(m_camInfo->CameraID, &status)) != ASI_SUCCESS)
+                {
+                    DEBUGF(INDI::Logger::DBG_DEBUG, "ASIGetExpStatus error (%d)", errCode);
 
-              // Timeout is to prevent an infinte loop which can happen if the driver disconnects while a client is attempting to take an exposure and then the driver reconnects.
-              if (timeoutCounter > 100)
-              {
-                  DEBUGF(INDI::Logger::DBG_ERROR, "ASIGetExpStatus timeout out (%d)", errCode);
-                  PrimaryCCD.setExposureFailed();
-                  InExposure = false;
-                  SetTimer(POLLMS);
-                  return;
-              }
-              DEBUG(INDI::Logger::DBG_SESSION, "Checking exposure status");
-              if ( (errCode = ASIGetExpStatus(m_camInfo->CameraID, &status)) != ASI_SUCCESS)
-              {
-                  DEBUGF(INDI::Logger::DBG_DEBUG, "ASIGetExpStatus error (%d)", errCode);
-                  /*if (++exposureRetries >= MAX_EXP_RETRIES)
-                  {
-                      DEBUGF(INDI::Logger::DBG_SESSION, "Exposure failed (%d)", errCode);
-                      PrimaryCCD.setExposureFailed();
-                      InExposure = false;
-                      SetTimer(POLLMS);
-                      return;
-                  }
-                  else
-                  {
-                      InExposure = false;
-                      StartExposure(ExposureRequest);
-                      SetTimer(POLLMS);
-                      return;
-                  }*/
+                    // Maximum 10 times to try this
+                    if (++exposureRetries >= MAX_EXP_RETRIES)
+                    {
+                        DEBUGF(INDI::Logger::DBG_ERROR, "Exposure status timed out (%d)", errCode);
+                        PrimaryCCD.setExposureFailed();
+                        InExposure = false;
+                        SetTimer(POLLMS);
+                        return;
+                    }
 
-                  usleep(50000);
-                  continue;
-              }
-              else
-              {
-                  if (status == ASI_EXP_SUCCESS)
-                      break;
-                  else if (status == ASI_EXP_FAILED)
-                  {
-                      /*DEBUGF(INDI::Logger::DBG_ERROR, "ASIGetExpStatus failed (%d)", errCode);
-                      PrimaryCCD.setExposureFailed();
-                      InExposure = false;
-                      SetTimer(POLLMS);
-                      return;*/
-
-                      DEBUGF(INDI::Logger::DBG_DEBUG, "ASIGetExpStatus failed (%d). Restarting exposure...", errCode);
-                      InExposure = false;
-                      usleep(100000);
-                      StartExposure(ExposureRequest);
-                      SetTimer(POLLMS);
-                      return;
-
-                  }
-                  else
                     usleep(50000);
-              }
-          }
+                    continue;
+                }
+                else
+                {
+                    if (status == ASI_EXP_SUCCESS)
+                        break;
+                    else if (status == ASI_EXP_FAILED)
+                    {
+                        DEBUGF(INDI::Logger::DBG_DEBUG, "ASIGetExpStatus failed (%d). Restarting exposure...", errCode);
+                        InExposure = false;
+                        usleep(100000);
+                        StartExposure(ExposureRequest);
+                        SetTimer(POLLMS);
+                        return;
 
-          exposureRetries=0;
+                    }
 
-          /* We're done exposing */
-          if (ExposureRequest > VERBOSE_EXPOSURE)
-            DEBUG(INDI::Logger::DBG_SESSION,  "Exposure done, downloading image...");
+                    // Maximum 10 times to try this
+                    if (++exposureRetries >= MAX_EXP_RETRIES)
+                    {
+                        DEBUGF(INDI::Logger::DBG_ERROR, "Exposure status timed out (%d)", errCode);
+                        PrimaryCCD.setExposureFailed();
+                        InExposure = false;
+                        SetTimer(POLLMS);
+                        return;
+                    }
+                    else
+                        usleep(50000);
+                }
+            }
 
-          PrimaryCCD.setExposureLeft(0);
-          InExposure = false;
-          /* grab and save image */
-          grabImage();
+            exposureRetries=0;
+
+            /* We're done exposing */
+            if (ExposureRequest > VERBOSE_EXPOSURE)
+                DEBUG(INDI::Logger::DBG_SESSION,  "Exposure done, downloading image...");
+
+            PrimaryCCD.setExposureLeft(0);
+            InExposure = false;
+            /* grab and save image */
+            grabImage();
+        }
+        else
+        {
+            //DEBUGF(INDI::Logger::DBG_DEBUG, "With time left %ld", timeleft);
+            PrimaryCCD.setExposureLeft(timeleft);
+        }
     }
-    else
+
+    if (/*HasCooler() && */TemperatureUpdateCounter++ > TEMPERATURE_UPDATE_FREQ)
     {
-      //DEBUGF(INDI::Logger::DBG_DEBUG, "With time left %ld", timeleft);
-      PrimaryCCD.setExposureLeft(timeleft);
-    }
-  }
+        TemperatureUpdateCounter = 0;
 
-  if (/*HasCooler() && */TemperatureUpdateCounter++ > TEMPERATURE_UPDATE_FREQ)
-  {
-      TemperatureUpdateCounter = 0;
+        long ASIControlValue=0;
+        ASI_BOOL ASIControlAuto;
+        double currentTemperature=TemperatureN[0].value;
 
-      long ASIControlValue=0;
-      ASI_BOOL ASIControlAuto;
-      double currentTemperature=TemperatureN[0].value;
+        ASI_ERROR_CODE errCode = ASIGetControlValue(m_camInfo->CameraID, ASI_TEMPERATURE, &ASIControlValue, &ASIControlAuto);
+        if (errCode != ASI_SUCCESS)
+        {
+            DEBUGF(INDI::Logger::DBG_ERROR, "ASIGetControlValue ASI_TEMPERATURE error (%d)", errCode);
+            TemperatureNP.s = IPS_ALERT;
+        }
+        else
+        {
+            TemperatureN[0].value = ASIControlValue / 10.0;
+        }
 
-      ASI_ERROR_CODE errCode = ASIGetControlValue(m_camInfo->CameraID, ASI_TEMPERATURE, &ASIControlValue, &ASIControlAuto);
-      if (errCode != ASI_SUCCESS)
-      {
-          DEBUGF(INDI::Logger::DBG_ERROR, "ASIGetControlValue ASI_TEMPERATURE error (%d)", errCode);
-          TemperatureNP.s = IPS_ALERT;
-      }
-      else
-      {
-          TemperatureN[0].value = ASIControlValue / 10.0;
-      }
+        switch (TemperatureNP.s)
+        {
+        case IPS_IDLE:
+        case IPS_OK:
+            if (fabs(currentTemperature - TemperatureN[0].value) > TEMP_THRESHOLD/10.0)
+                IDSetNumber(&TemperatureNP, NULL);
+            break;
 
-      switch (TemperatureNP.s)
-      {
-      case IPS_IDLE:
-      case IPS_OK:
-          if (fabs(currentTemperature - TemperatureN[0].value) > TEMP_THRESHOLD/10.0)
+        case IPS_ALERT:
+            break;
+
+        case IPS_BUSY:
+            // If we're within threshold, let's make it BUSY ---> OK
+            if (fabs(TemperatureRequest - TemperatureN[0].value) <= TEMP_THRESHOLD)
+                TemperatureNP.s = IPS_OK;
+
             IDSetNumber(&TemperatureNP, NULL);
-          break;
+            break;
+        }
 
-      case IPS_ALERT:
-        break;
+        if (HasCooler())
+        {
+            errCode = ASIGetControlValue(m_camInfo->CameraID, ASI_COOLER_POWER_PERC, &ASIControlValue, &ASIControlAuto);
+            if (errCode != ASI_SUCCESS)
+            {
+                DEBUGF(INDI::Logger::DBG_ERROR, "ASIGetControlValue ASI_COOLER_POWER_PERC error (%d)", errCode);
+                CoolerNP.s = IPS_ALERT;
+            }
+            else
+            {
+                CoolerN[0].value = ASIControlValue;
+                if (ASIControlValue > 0)
+                    CoolerNP.s = IPS_BUSY;
+                else
+                    CoolerNP.s = IPS_IDLE;
+            }
 
-      case IPS_BUSY:
-        // If we're within threshold, let's make it BUSY ---> OK
-        if (fabs(TemperatureRequest - TemperatureN[0].value) <= TEMP_THRESHOLD)
-          TemperatureNP.s = IPS_OK;
+            IDSetNumber(&CoolerNP, NULL);
+        }
+    }
 
-        IDSetNumber(&TemperatureNP, NULL);
-        break;
-      }
+    if(InWEPulse)
+    {
+        timeleft=calcTimeLeft(WEPulseRequest, &WEPulseStart);
 
-      if (HasCooler())
-      {
-          errCode = ASIGetControlValue(m_camInfo->CameraID, ASI_COOLER_POWER_PERC, &ASIControlValue, &ASIControlAuto);
-          if (errCode != ASI_SUCCESS)
-          {
-              DEBUGF(INDI::Logger::DBG_ERROR, "ASIGetControlValue ASI_COOLER_POWER_PERC error (%d)", errCode);
-              CoolerNP.s = IPS_ALERT;
-          }
-          else
-          {
-              CoolerN[0].value = ASIControlValue;
-              if (ASIControlValue > 0)
-                  CoolerNP.s = IPS_BUSY;
-              else
-                  CoolerNP.s = IPS_IDLE;
-          }
+        if(timeleft <= (POLLMS+50)/1000.0)
+        {
+            //  it's real close now, so spin on it
+            while(timeleft > 0)
+            {
+                int slv;
+                slv=100000*timeleft;
+                usleep(slv);
+                timeleft=calcTimeLeft(WEPulseRequest, &WEPulseStart);
+            }
 
-          IDSetNumber(&CoolerNP, NULL);
-      }
-  }
+            ASIPulseGuideOff(m_camInfo->CameraID, WEDir);
+            DEBUGF(INDI::Logger::DBG_DEBUG, "Stopping %s guide.", WEDir == ASI_GUIDE_EAST ? "East" : "West");
+            InWEPulse = false;
+            GuideComplete(AXIS_RA);
+        }
+    }
 
-  if(InWEPulse)
-  {
-      timeleft=calcTimeLeft(WEPulseRequest, &WEPulseStart);
+    if(InNSPulse)
+    {
+        timeleft=calcTimeLeft(NSPulseRequest, &NSPulseStart);
 
-     if(timeleft <= (POLLMS+50)/1000.0)
-     {
-         //  it's real close now, so spin on it
-         while(timeleft > 0)
-         {
-            int slv;
-            slv=100000*timeleft;
-            usleep(slv);
-            timeleft=calcTimeLeft(WEPulseRequest, &WEPulseStart);
-         }
+        if(timeleft <= (POLLMS+50)/1000.0)
+        {
+            //  it's real close now, so spin on it
+            while(timeleft > 0)
+            {
+                int slv;
+                slv=100000*timeleft;
+                usleep(slv);
+                timeleft=calcTimeLeft(NSPulseRequest, &NSPulseStart);
+            }
 
-         ASIPulseGuideOff(m_camInfo->CameraID, WEDir);
-         DEBUGF(INDI::Logger::DBG_DEBUG, "Stopping %s guide.", WEDir == ASI_GUIDE_EAST ? "East" : "West");
-         InWEPulse = false;
-         GuideComplete(AXIS_RA);
-     }
-  }
+            ASIPulseGuideOff(m_camInfo->CameraID, NSDir);
+            DEBUGF(INDI::Logger::DBG_DEBUG, "Stopping %s guide.", NSDir == ASI_GUIDE_NORTH ? "North" : "South");
+            InNSPulse = false;
+            GuideComplete(AXIS_DE);
+        }
+    }
 
-  if(InNSPulse)
-  {
-      timeleft=calcTimeLeft(NSPulseRequest, &NSPulseStart);
-
-     if(timeleft <= (POLLMS+50)/1000.0)
-     {
-         //  it's real close now, so spin on it
-         while(timeleft > 0)
-         {
-            int slv;
-            slv=100000*timeleft;
-            usleep(slv);
-            timeleft=calcTimeLeft(NSPulseRequest, &NSPulseStart);
-         }
-
-         ASIPulseGuideOff(m_camInfo->CameraID, NSDir);
-         DEBUGF(INDI::Logger::DBG_DEBUG, "Stopping %s guide.", NSDir == ASI_GUIDE_NORTH ? "North" : "South");
-         InNSPulse = false;
-         GuideComplete(AXIS_DE);
-     }
-  }
-
-  SetTimer(POLLMS);
+    SetTimer(POLLMS);
 }
 
 IPState ASICCD::GuideNorth(float ms)
