@@ -249,7 +249,7 @@ bool ASICCD::initProperties()
   PrimaryCCD.setResolution(m_camInfo->MaxWidth, m_camInfo->MaxHeight);
   PrimaryCCD.setMinMaxStep("CCD_EXPOSURE", "CCD_EXPOSURE_VALUE", 0, 3600, 1, false);
   PrimaryCCD.setMinMaxStep("CCD_BINNING", "HOR_BIN", 1, maxBin, 1, false);
-  PrimaryCCD.setMinMaxStep("CCD_BINNING", "VER_BIN", 1, maxBin, 1, false);    
+  PrimaryCCD.setMinMaxStep("CCD_BINNING", "VER_BIN", 1, maxBin, 1, false);
 
   uint32_t cap =0;
 
@@ -292,7 +292,7 @@ bool ASICCD::updateProperties()
   INDI::CCD::updateProperties();
 
   if (isConnected())
-  {    
+  {
     if (HasCooler())
     {
         defineNumber(&CoolerNP);
@@ -374,7 +374,11 @@ bool ASICCD::Connect()
 #ifndef OSX_EMBEDED_MODE
   pthread_create( &primary_thread, NULL, &streamVideoHelper, this);
 #endif
-  
+  DEBUG(INDI::Logger::DBG_SESSION,  "Setting intital bandwidth to AUTO on connection.");
+  if ( (errCode = ASISetControlValue(m_camInfo->CameraID, ASI_BANDWIDTHOVERLOAD, 40, ASI_FALSE)) != ASI_SUCCESS)
+  {
+      DEBUGF(INDI::Logger::DBG_ERROR, "Failed to set initial bandwidth: error (%d)", errCode);
+  }
   /* Success! */
   DEBUG(INDI::Logger::DBG_SESSION,  "CCD is online. Retrieving basic data.");
 
@@ -417,7 +421,7 @@ bool ASICCD::setupParams()
 
       createControls(piNumberOfControls);
   }
-  
+
   // Set minimum ASI_BANDWIDTHOVERLOAD on ARM
   #ifdef LOW_USB_BANDWIDTH
   ASI_CONTROL_CAPS pCtrlCaps;
@@ -501,7 +505,7 @@ bool ASICCD::setupParams()
   VideoFormatSP.nsp = nVideoFormats;
   VideoFormatSP.sp  = VideoFormatS;
 
-  float x_pixel_size, y_pixel_size; 
+  float x_pixel_size, y_pixel_size;
   int x_1, y_1, x_2, y_2;
 
   x_pixel_size = m_camInfo->PixelSize;
@@ -684,7 +688,7 @@ bool ASICCD::ISNewSwitch (const char *dev, const char *name, ISState *states, ch
 
             IUUpdateSwitch(&VideoFormatSP, states, names, n);
 
-            ASI_IMG_TYPE type = getImageType();            
+            ASI_IMG_TYPE type = getImageType();
 
             switch (type)
             {
@@ -850,7 +854,7 @@ bool ASICCD::UpdateCCDFrame(int x, int y, int w, int h)
 {
   w = (w >> (PrimaryCCD.getBinX()+1)) << (PrimaryCCD.getBinX()+1);
   h = (h >> PrimaryCCD.getBinX()) << PrimaryCCD.getBinX();
-  
+
   ASI_ERROR_CODE errCode = ASI_SUCCESS;
 
   /* Add the X and Y offsets */
@@ -869,7 +873,7 @@ bool ASICCD::UpdateCCDFrame(int x, int y, int w, int h)
     DEBUGF(INDI::Logger::DBG_SESSION,  "Error: invalid height request %d", h);
     return false;
   }
-	
+
   DEBUGF(INDI::Logger::DBG_DEBUG, "UpdateCCDFrame ASISetROIFormat (%dx%d,  bin %d, type %d)", bin_width, bin_height, PrimaryCCD.getBinX(), getImageType());
   if ( (errCode = ASISetROIFormat(m_camInfo->CameraID, bin_width, bin_height, PrimaryCCD.getBinX(), getImageType())) != ASI_SUCCESS)
   {
@@ -881,7 +885,7 @@ bool ASICCD::UpdateCCDFrame(int x, int y, int w, int h)
   {
       DEBUGF(INDI::Logger::DBG_ERROR, "ASISetStartPos (%d,%d) error (%d)", x_1, y_1, errCode);
       return false;
-  } 
+  }
 
   #ifndef OSX_EMBEDED_MODE
   streamer->setRecorderSize(bin_width, bin_height);
@@ -1019,25 +1023,25 @@ void ASICCD::TimerHit()
     if (timeleft < 0.05)
     {
       //  it's real close now, so spin on it
-      //int timeoutCounter=0;
+      int timeoutCounter=0;
 
       while (true)
       {
               ASI_EXPOSURE_STATUS status = ASI_EXP_IDLE;
               ASI_ERROR_CODE errCode = ASI_SUCCESS;
 
-              /*timeoutCounter++;
+              timeoutCounter++;
 
-              // Timeout after roughly 2.5 seconds
-              if (timeoutCounter > 50)
+              // Timeout is to prevent an infinte loop which can happen if the driver disconnects while a client is attempting to take an exposure and then the driver reconnects.
+              if (timeoutCounter > 100)
               {
                   DEBUGF(INDI::Logger::DBG_ERROR, "ASIGetExpStatus timeout out (%d)", errCode);
                   PrimaryCCD.setExposureFailed();
                   InExposure = false;
                   SetTimer(POLLMS);
                   return;
-              }*/
-
+              }
+              DEBUG(INDI::Logger::DBG_SESSION, "Checking exposure status");
               if ( (errCode = ASIGetExpStatus(m_camInfo->CameraID, &status)) != ASI_SUCCESS)
               {
                   DEBUGF(INDI::Logger::DBG_DEBUG, "ASIGetExpStatus error (%d)", errCode);
