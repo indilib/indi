@@ -131,6 +131,8 @@ class V4L2_Base
   protected:
 
   int xioctl(int fd, int request, void *arg, char const * const request_str);
+  int ioctl_set_format(struct v4l2_format new_fmt, char * errmsg);
+
   int read_frame(char *errsg);
   int uninit_device(char *errmsg);
   int open_device(const char *devpath, char *errmsg);

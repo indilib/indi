@@ -183,6 +183,87 @@ int V4L2_Base::xioctl(int fd, int request, void *arg, char const * const request
     return r;
 }
 
+/* @internal Setting a V4L2 format through ioctl VIDIOC_S_FMT
+ *
+ * If the format type is non-zero, this function executes ioctl
+ * VIDIOC_S_FMT on the argument data format, and updates the instance
+ * data format on success. If an error arises, the instance data
+ * format is left unmodified.
+ *
+ * If the format type is zero, this function executes ioctl
+ * VIDIOC_G_FMT on a temporary data format, and updates the instance
+ * data format on success. If an error arises, the instance data
+ * format is left unmodified.
+ *
+ * @warning If the format type is non-zero and the device streamed
+ * at least once before the call, the device is closed and reopened
+ * before updating the format.
+ *
+ * @warning If successful, this function updates the instance data
+ * format 'fmt'.
+ *
+ * @note The frame decoder format is updated with the resulting format,
+ * and the instance depth field 'bpp' is updated with the resulting
+ * frame decoder depth.
+ *
+ * @param new_fmt is the v4l2_format to set, eventually with type set
+ * to zero to refresh the instance format with the current device format.
+ * @return 0 if ioctl is successful, or -1 with error message updated.
+ */
+int
+V4L2_Base::ioctl_set_format(struct v4l2_format new_fmt, char * errmsg)
+{
+    /* Reopen device if it streamed at least once and we want to update the format*/
+    if (streamedonce && new_fmt.type)
+    {
+        close_device();
+
+        if( !open_device(path, errmsg) )
+            return -1;
+    }
+
+    /* Trying format with VIDIOC_TRY_FMT has no interesting advantage here */
+    if( false )
+    {
+        if(-1 == XIOCTL(fd, VIDIOC_TRY_FMT, &new_fmt))
+        {
+            IDLog("%s: failed VIDIOC_TRY_FMT with " DBG_STR_FMT "\n", __FUNCTION__, DBG_FMT(new_fmt));
+            return errno_exit("VIDIOC_TRY_FMT", errmsg);
+        }
+    }
+
+    if( new_fmt.type )
+    {
+        /* Set format */
+        if( -1 == XIOCTL(fd, VIDIOC_S_FMT, &new_fmt) )
+        {
+            IDLog("%s: failed VIDIOC_S_FMT with " DBG_STR_FMT "\n", __FUNCTION__, DBG_FMT(new_fmt));
+            return errno_exit("VIDIOC_S_FMT", errmsg);
+        }
+    }
+    else
+    {
+        /* Retrieve format */
+        new_fmt.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+        if(-1 == XIOCTL(fd, VIDIOC_G_FMT, &new_fmt))
+        {
+            IDLog("%s: failed VIDIOC_G_FMT\n", __FUNCTION__);
+            return errno_exit("VIDIOC_G_FMT", errmsg);
+        }
+    }
+
+    IDLog("%s: current format " DBG_STR_FMT "\n", __FUNCTION__, DBG_FMT(new_fmt));
+
+    /* Update internals */
+    decoder->setformat(new_fmt, has_ext_pix_format);
+    this->bpp = decoder->getBpp();
+
+    /* Assign the format as current */
+    fmt = new_fmt;
+
+    return 0;
+}
+
 int V4L2_Base::errno_exit(const char *s, char *errmsg)
 {
         fprintf (stderr, "%s error %d, %s\n",
@@ -912,23 +993,9 @@ int V4L2_Base::check_device(char *errmsg) {
     // 	if (fmt.fmt.pix.sizeimage < min)
     // 		fmt.fmt.pix.sizeimage = min;
 
-  /* Let's get the actual size */
-  CLEAR(fmt);
-  
-  fmt.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
-  
-  if (-1 == XIOCTL(fd, VIDIOC_G_FMT, &fmt))
-    return errno_exit ("VIDIOC_G_FMT", errmsg);
-  decoder->setformat(fmt, has_ext_pix_format);
-  bpp=decoder->getBpp();
-  
-  
-  /*	DEBUGF(INDI::Logger::DBG_SESSION,"Current capture settings: %dx%d image size, %c%c%c%c (%s) image format",  
-	fmt.fmt.pix.width,  fmt.fmt.pix.height, (fmt.fmt.pixelformat)&0xFF, (fmt.fmt.pixelformat >> 8)&0xFF,
-	(fmt.fmt.pixelformat >> 16)&0xFF, (fmt.fmt.pixelformat >> 24)&0xFF, (decoder->issupportedformat(fmt.fmt.pixelformat)?"supported":"UNSUPPORTED"));
-  */
-
-  return 0;
+    /* Refresh the instance format with the current device format */
+    CLEAR(fmt);
+    return ioctl_set_format(fmt, errmsg);
 }
 
 int V4L2_Base::init_device(char *errmsg) {
@@ -1084,26 +1151,21 @@ void V4L2_Base::getcaptureformats(ISwitchVectorProperty *captureformatssp) {
   //IDSetSwitch(captureformatssp, "Capture format: %d. %s", initial, formats[initial].name);
 }
 
-int V4L2_Base::setcaptureformat(unsigned int captureformat, char *errmsg) {
-  unsigned int oldformat;
-  oldformat = fmt.fmt.pix.pixelformat;
-  fmt.fmt.pix.pixelformat = captureformat;
-  if (streamedonce) {
-    close_device();
-    open_device(path ,errmsg);
-  }
-    //     //fmt.fmt.pix.field       = V4L2_FIELD_INTERLACED;
-  if (-1 == XIOCTL(fd, VIDIOC_TRY_FMT, &fmt)) {
-    fmt.fmt.pix.pixelformat = oldformat;
-    return errno_exit ("VIDIOC_TRY_FMT", errmsg);
-  }
-  if (-1 == XIOCTL(fd, VIDIOC_S_FMT, &fmt)) {
-    return errno_exit ("VIDIOC_S_FMT", errmsg);
-  }
-  //decode reallocate_buffers=true;
-  decoder->setformat(fmt, has_ext_pix_format);
-  bpp=decoder->getBpp();
-  return 0;
+/* @brief Setting the pixel format of the capture.
+ *
+ * @param captureformat is the identifier of the pixel format to set.
+ * @param errmsg is the error message to return in case of failure.
+ * @return 0 if successful, else -1 with error message updated.
+ */
+int V4L2_Base::setcaptureformat(unsigned int captureformat, char *errmsg)
+{
+    struct v4l2_format new_fmt;
+    CLEAR(new_fmt);
+
+    new_fmt.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+    new_fmt.fmt.pix.pixelformat = captureformat;
+
+    return ioctl_set_format(new_fmt, errmsg);
 }
 
 void V4L2_Base::getcapturesizes(ISwitchVectorProperty *capturesizessp, INumberVectorProperty *capturesizenp) {
@@ -1157,39 +1219,21 @@ void V4L2_Base::getcapturesizes(ISwitchVectorProperty *capturesizessp, INumberVe
   }
 }
 
-int V4L2_Base::setcapturesize(unsigned int w, unsigned int h, char *errmsg) {
-  unsigned int oldw, oldh;
-  oldw = fmt.fmt.pix.width;
-  oldh = fmt.fmt.pix.height;
-  fmt.fmt.pix.width = w;
-  fmt.fmt.pix.height = h;
-    //     //fmt.fmt.pix.field       = V4L2_FIELD_INTERLACED;
-  if (streamedonce) {
-    close_device();
-    open_device(path, errmsg);
-  }
-  if (-1 == XIOCTL(fd, VIDIOC_TRY_FMT, &fmt)) {
-    fmt.fmt.pix.width = oldw;
-    fmt.fmt.pix.height = oldh;
-    return errno_exit ("VIDIOC_TRY_FMT", errmsg);
-  }
-  if (-1 == XIOCTL(fd, VIDIOC_S_FMT, &fmt)) {
-      fmt.fmt.pix.width = oldw;
-      fmt.fmt.pix.height = oldh;
-      return errno_exit ("VIDIOC_S_FMT", errmsg);
-  }
-  // Drivers may change sizes
-  if (-1 == XIOCTL(fd, VIDIOC_G_FMT, &fmt)) {
-      fmt.fmt.pix.width = oldw;
-      fmt.fmt.pix.height = oldh;
-    return errno_exit ("VIDIOC_G_FMT", errmsg);
-  }
-  decoder->setformat(fmt, has_ext_pix_format);
-  bpp=decoder->getBpp();
-  //decode reallocate_buffers=true;
-  //decode cropset=false;
-  //decode allocBuffers();
-  return 0;
+/* @brief Updating the capture dimensions.
+ *
+ * @param w is the updated width of the capture.
+ * @param h is the update height of the capture.
+ * @param errmsg is the returned error message in case of failure.
+ * @return 0 if successful, else -1 with error message updated.
+ */
+int V4L2_Base::setcapturesize(unsigned int w, unsigned int h, char *errmsg)
+{
+    struct v4l2_format new_fmt = fmt;
+
+    new_fmt.fmt.pix.width = w;
+    new_fmt.fmt.pix.height = h;
+
+    return ioctl_set_format(new_fmt, errmsg);
 }
 
 void V4L2_Base::getframerates(ISwitchVectorProperty *frameratessp, INumberVectorProperty *frameratenp) {
@@ -1334,13 +1378,24 @@ int V4L2_Base::stdsetframerate(struct v4l2_fract frate, char *errmsg)
   return 0;
 }
 
-int V4L2_Base::pwcsetframerate(struct v4l2_fract frate, char *errmsg) {
-  int fps= frate.denominator / frate.numerator;
-  fmt.fmt.pix.priv |= (fps << PWC_FPS_SHIFT);
-    if (-1 == XIOCTL(fd, VIDIOC_S_FMT, &fmt)) {
-    return errno_exit ("pwcsetframerate", errmsg);
-  }
-    frameRate=frate;
+/* @brief Setting the framerate for Philips-based PWC devices.
+ *
+ * @param frate is the v4l2_fract structure defining framerate.
+ * @param errmsg is the returned error message in case of error.
+ * @return 0 if successful, else -1 with error message updated.
+ */
+int V4L2_Base::pwcsetframerate(struct v4l2_fract frate, char *errmsg)
+{
+    int const fps = frate.denominator / frate.numerator;
+
+    struct v4l2_format new_fmt = fmt;
+    new_fmt.fmt.pix.priv |= (fps << PWC_FPS_SHIFT);
+
+    if (-1 == ioctl_set_format(new_fmt, errmsg))
+        return errno_exit("pwcsetframerate", errmsg);
+
+    frameRate = frate;
+
     return 0;
 }
 
@@ -1370,36 +1425,32 @@ void V4L2_Base::getMaxMinSize(int & x_max, int & y_max, int & x_min, int & y_min
   x_max = xmax; y_max = ymax; x_min = xmin; y_min = ymin;
 }
 
+/* @brief Setting the dimensions of the capture frame.
+ *
+ * @param x is the width of the capture frame.
+ * @param y is the height of the capture frame.
+ * @return 0 if successful, else -1.
+ */
 int V4L2_Base::setSize(int x, int y)
 {
-   char errmsg[ERRMSGSIZ];
-   int oldW, oldH;
- 
-   oldW = fmt.fmt.pix.width;
-   oldH = fmt.fmt.pix.height;
+    char errmsg[ERRMSGSIZ];
+    struct v4l2_format new_fmt = fmt;
 
-   fmt.fmt.pix.width  = x;
-   fmt.fmt.pix.height = y;
-  if (streamedonce) {
-    close_device();
-    open_device(path, errmsg);
-  }
-   if (-1 == XIOCTL(fd, VIDIOC_S_FMT, &fmt))
-   {
-        fmt.fmt.pix.width  = oldW;
-        fmt.fmt.pix.height = oldH;
-        return errno_exit ("VIDIOC_S_FMT", errmsg);
-   }
+    new_fmt.fmt.pix.width  = x;
+    new_fmt.fmt.pix.height = y;
 
-   /* PWC bug? It seems that setting the "wrong" width and height will mess something in the driver.
+    if (-1 == ioctl_set_format(new_fmt, errmsg))
+        return -1;
+
+    /* PWC bug? It seems that setting the "wrong" width and height will mess something in the driver.
       Only 160x120, 320x280, and 640x480 are accepted. If I try to set it for example to 300x200, it wii
       get set to 320x280, which is fine, but then the video information is messed up for some reason. */
-   //   XIOCTL(fd, VIDIOC_S_FMT, &fmt);
+    //   XIOCTL(fd, VIDIOC_S_FMT, &fmt);
  
   
-   //allocBuffers();
+    //allocBuffers();
 
-  return 0;
+    return 0;
 }
 
 void V4L2_Base::setColorProcessing(bool quantization, bool colorconvert, bool linearization) 
