@@ -130,7 +130,7 @@ class V4L2_Base
 
   protected:
 
-  int xioctl(int fd, int request, void *arg);
+  int xioctl(int fd, int request, void *arg, char const * const request_str);
   int read_frame(char *errsg);
   int uninit_device(char *errmsg);
   int open_device(const char *devpath, char *errmsg);

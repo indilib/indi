@@ -47,6 +47,8 @@
 
 #define CLEAR(x) memset (&(x), 0, sizeof (x))
 
+#define XIOCTL(fd,ioctl,arg) this->xioctl(fd,ioctl,arg,#ioctl)
+
 #define DBG_STR_PIX "%c%c%c%c"
 #define DBG_PIX(pf) ((pf)>>0)&0xFF, ((pf)>>8)&0xFF, ((pf)>>16)&0xFF, ((pf)>>24)&0xFF
 
@@ -135,14 +137,31 @@ V4L2_Base::~V4L2_Base()
 
 }
 
-int V4L2_Base::xioctl(int fd, int request, void *arg)
+/** @internal Helper for ioctl calls, with logging facility.
+ *
+ * This function is called by internal macro XIOCTL.
+ *
+ * @param fd is the file descriptor against which to run the ioctl.
+ * @param request is the name of the ioctl to run.
+ * @param arg is the argument structure to pass to the ioctl.
+ * @param request_str is the stringified name of the request for debug prints.
+ * @return the result of the ioctl.
+ * @note This function takes care of EINTR while running the ioctl.
+ */
+int V4L2_Base::xioctl(int fd, int request, void *arg, char const * const request_str)
 {
-        int r;
+    int r = -1;
 
-        do r = ioctl (fd, request, arg);
-        while (-1 == r && EINTR == errno);
+    do
+    {
+        r = ioctl(fd, request, arg);
+    }
+    while (-1 == r && EINTR == errno);
 
-        return r;
+    if( -1 == r )
+        IDLog("%s: ioctl 0x%08X/%s received errno %d (%s)\n",__FUNCTION__,request,request_str,errno,strerror(errno));
+
+    return r;
 }
 
 int V4L2_Base::errno_exit(const char *s, char *errmsg)
@@ -248,7 +267,7 @@ int V4L2_Base::read_frame(char *errmsg) {
     buf.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
     buf.memory = V4L2_MEMORY_MMAP;
     
-    if (-1 == xioctl (fd, VIDIOC_DQBUF, &buf)) {
+    if (-1 == XIOCTL(fd, VIDIOC_DQBUF, &buf)) {
       switch (errno) {
       case EAGAIN:
 	//cerr << "in read Frame method DQBUF EAGAIN" << endl;
@@ -266,7 +285,7 @@ int V4L2_Base::read_frame(char *errmsg) {
     /*if (dropFrame > 0)
       {
         dropFrame -= 1;
-	if (-1 == xioctl (fd, VIDIOC_QBUF, &buf))
+	if (-1 == XIOCTL(fd, VIDIOC_QBUF, &buf))
 	  return errno_exit ("ReadFrame IO_METHOD_MMAP: VIDIOC_QBUF", errmsg);
         return 0;
       }
@@ -298,7 +317,7 @@ int V4L2_Base::read_frame(char *errmsg) {
 
 
 
-    if (-1 == xioctl (fd, VIDIOC_QBUF, &buf))
+    if (-1 == XIOCTL(fd, VIDIOC_QBUF, &buf))
       return errno_exit ("ReadFrame IO_METHOD_MMAP: VIDIOC_QBUF", errmsg);
 
 
@@ -322,7 +341,7 @@ int V4L2_Base::read_frame(char *errmsg) {
     buf.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
     buf.memory = V4L2_MEMORY_USERPTR;
     
-    if (-1 == xioctl (fd, VIDIOC_DQBUF, &buf)) {
+    if (-1 == XIOCTL(fd, VIDIOC_DQBUF, &buf)) {
       switch (errno) {
       case EAGAIN:
 	return 0;
@@ -343,7 +362,7 @@ int V4L2_Base::read_frame(char *errmsg) {
     
     //process_image ((void *) buf.m.userptr);
     
-    if (-1 == xioctl (fd, VIDIOC_QBUF, &buf))
+    if (-1 == XIOCTL(fd, VIDIOC_QBUF, &buf))
       errno_exit ("ReadFrame IO_METHOD_USERPTR: VIDIOC_QBUF", errmsg);
     
     break;
@@ -374,7 +393,7 @@ int V4L2_Base::stop_capturing(char *errmsg) {
     IERmCallback(selectCallBackID);
     selectCallBackID = -1;
     streamactive = false;
-    if (-1 == xioctl (fd, VIDIOC_STREAMOFF, &type))
+    if (-1 == XIOCTL(fd, VIDIOC_STREAMOFF, &type))
       return errno_exit ("VIDIOC_STREAMOFF", errmsg);
     break;
   }
@@ -405,14 +424,14 @@ int V4L2_Base::start_capturing(char * errmsg) {
       buf.memory      = V4L2_MEMORY_MMAP;
       buf.index       = i;
       //IDLog("v4l2_start_capturing: enqueuing buffer %d for fd=%d\n", buf.index, fd);
-      /*if (-1 == xioctl (fd, VIDIOC_QBUF, &buf))
+      /*if (-1 == XIOCTL(fd, VIDIOC_QBUF, &buf))
 	return errno_exit ("StartCapturing IO_METHOD_MMAP: VIDIOC_QBUF", errmsg);*/
-      xioctl (fd, VIDIOC_QBUF, &buf);
+      XIOCTL(fd, VIDIOC_QBUF, &buf);
       
     }
     
     type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
-    if (-1 == xioctl (fd, VIDIOC_STREAMON, &type))
+    if (-1 == XIOCTL(fd, VIDIOC_STREAMON, &type))
       return errno_exit ("VIDIOC_STREAMON", errmsg);
     
     selectCallBackID = IEAddCallback(fd, newFrame, this);
@@ -431,13 +450,13 @@ int V4L2_Base::start_capturing(char * errmsg) {
       buf.m.userptr	= (unsigned long) buffers[i].start;
       buf.length      = buffers[i].length;
       
-      if (-1 == xioctl (fd, VIDIOC_QBUF, &buf))
+      if (-1 == XIOCTL(fd, VIDIOC_QBUF, &buf))
 	return errno_exit ("StartCapturing IO_METHOD_USERPTR: VIDIOC_QBUF", errmsg);
     }
      
     type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
     
-    if (-1 == xioctl (fd, VIDIOC_STREAMON, &type))
+    if (-1 == XIOCTL(fd, VIDIOC_STREAMON, &type))
       return errno_exit ("VIDIOC_STREAMON", errmsg);
     
     break;
@@ -506,7 +525,7 @@ int V4L2_Base::init_mmap(char *errmsg) {
   req.type                = V4L2_BUF_TYPE_VIDEO_CAPTURE;
   req.memory              = V4L2_MEMORY_MMAP;
   
-  if (-1 == xioctl (fd, VIDIOC_REQBUFS, &req)) {
+  if (-1 == XIOCTL(fd, VIDIOC_REQBUFS, &req)) {
     if (EINVAL == errno) {
       fprintf (stderr, "%s does not support "
 	       "memory mapping\n", dev_name);
@@ -543,7 +562,7 @@ int V4L2_Base::init_mmap(char *errmsg) {
     buf.memory      = V4L2_MEMORY_MMAP;
     buf.index       = n_buffers;
     
-    if (-1 == xioctl (fd, VIDIOC_QUERYBUF, &buf))
+    if (-1 == XIOCTL(fd, VIDIOC_QUERYBUF, &buf))
       return errno_exit ("VIDIOC_QUERYBUF", errmsg);
     
     buffers[n_buffers].length = buf.length;
@@ -571,7 +590,7 @@ void V4L2_Base::init_userp(unsigned int buffer_size) {
   req.type                = V4L2_BUF_TYPE_VIDEO_CAPTURE;
   req.memory              = V4L2_MEMORY_USERPTR;
   
-  if (-1 == xioctl (fd, VIDIOC_REQBUFS, &req)) {
+  if (-1 == XIOCTL(fd, VIDIOC_REQBUFS, &req)) {
     if (EINVAL == errno) {
       fprintf (stderr, "%s does not support "
 	       "user pointer i/o\n", dev_name);
@@ -604,7 +623,7 @@ int V4L2_Base::check_device(char *errmsg) {
   struct v4l2_input input_avail;
   ISwitch *inputs=NULL;
   
-  if (-1 == xioctl (fd, VIDIOC_QUERYCAP, &cap)) {
+  if (-1 == XIOCTL(fd, VIDIOC_QUERYCAP, &cap)) {
     if (EINVAL == errno) {
       fprintf (stderr, "%s is no V4L2 device\n",
 	       dev_name);
@@ -718,7 +737,7 @@ int V4L2_Base::check_device(char *errmsg) {
   
   cropcap.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
   cancrop=true;
-  if (-1 == xioctl (fd, VIDIOC_CROPCAP, &cropcap)) {
+  if (-1 == XIOCTL(fd, VIDIOC_CROPCAP, &cropcap)) {
     perror("VIDIOC_CROPCAP");
     crop.c.top=-1;
     cancrop=false;
@@ -736,12 +755,12 @@ int V4L2_Base::check_device(char *errmsg) {
     crop.c.left=cropcap.defrect.left;
     crop.c.width=cropcap.defrect.width;
     crop.c.height=cropcap.defrect.height;
-    if (-1 == xioctl (fd, VIDIOC_S_CROP, &crop)) {
+    if (-1 == XIOCTL(fd, VIDIOC_S_CROP, &crop)) {
       perror("VIDIOC_S_CROP");
       cancrop=false;
       /* Errors ignored. */
     }
-    if (-1 == xioctl (fd, VIDIOC_G_CROP, &crop)) {
+    if (-1 == XIOCTL(fd, VIDIOC_G_CROP, &crop)) {
       perror("VIDIOC_G_CROP");
       crop.c.top=-1;
       cancrop=false;
@@ -764,7 +783,7 @@ int V4L2_Base::check_device(char *errmsg) {
         struct v4l2_frmsizeenum frm_sizeenum;
         frm_sizeenum.pixel_format=fmt_avail.pixelformat;
         IDLog("\t  Available Frame sizes/rates for this format:\n");
-        for (frm_sizeenum.index=0; xioctl(fd, VIDIOC_ENUM_FRAMESIZES, &frm_sizeenum) != -1; frm_sizeenum.index ++) {
+        for (frm_sizeenum.index=0; XIOCTL(fd, VIDIOC_ENUM_FRAMESIZES, &frm_sizeenum) != -1; frm_sizeenum.index ++) {
           switch (frm_sizeenum.type) {
 	  case V4L2_FRMSIZE_TYPE_DISCRETE:
 	    IDLog("\t %d. (Discrete)  width %d x height %d\n", frm_sizeenum.index, frm_sizeenum.discrete.width,  frm_sizeenum.discrete.height);
@@ -799,7 +818,7 @@ int V4L2_Base::check_device(char *errmsg) {
 	    frmi_valenum.stepwise.max.numerator =0; frmi_valenum.stepwise.max.denominator = 0; 
 	    frmi_valenum.stepwise.step.numerator =0; frmi_valenum.stepwise.step.denominator = 0; 
 	    IDLog("\t    Frame intervals:");
-	    for (frmi_valenum.index=0; xioctl(fd, VIDIOC_ENUM_FRAMEINTERVALS, &frmi_valenum) != -1; frmi_valenum.index ++) {
+	    for (frmi_valenum.index=0; XIOCTL(fd, VIDIOC_ENUM_FRAMEINTERVALS, &frmi_valenum) != -1; frmi_valenum.index ++) {
 	      switch (frmi_valenum.type) {
 	      case V4L2_FRMIVAL_TYPE_DISCRETE:
 		IDLog("%d/%d s, ", frmi_valenum.discrete.numerator,  frmi_valenum.discrete.denominator);
@@ -853,7 +872,7 @@ int V4L2_Base::check_device(char *errmsg) {
 
     //    fmt.type                = V4L2_BUF_TYPE_VIDEO_CAPTURE;
 
-    //    if (-1 == xioctl (fd, VIDIOC_G_FMT, &fmt))
+    //    if (-1 == XIOCTL(fd, VIDIOC_G_FMT, &fmt))
     //         return errno_exit ("VIDIOC_G_FMT", errmsg);
 
     //     fmt.fmt.pix.width       = (width == -1)       ? fmt.fmt.pix.width : width; 
@@ -861,7 +880,7 @@ int V4L2_Base::check_device(char *errmsg) {
     //     fmt.fmt.pix.pixelformat = (pixelFormat == -1) ? fmt.fmt.pix.pixelformat : pixelFormat;
     //     //fmt.fmt.pix.field       = V4L2_FIELD_INTERLACED;
 
-    //     if (-1 == xioctl (fd, VIDIOC_S_FMT, &fmt))
+    //     if (-1 == XIOCTL(fd, VIDIOC_S_FMT, &fmt))
     //             return errno_exit ("VIDIOC_S_FMT", errmsg);
 
     //     /* Note VIDIOC_S_FMT may change width and height. */
@@ -879,7 +898,7 @@ int V4L2_Base::check_device(char *errmsg) {
   
   fmt.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
   
-  if (-1 == xioctl (fd, VIDIOC_G_FMT, &fmt))
+  if (-1 == XIOCTL(fd, VIDIOC_G_FMT, &fmt))
     return errno_exit ("VIDIOC_G_FMT", errmsg);
   decoder->setformat(fmt, has_ext_pix_format);
   bpp=decoder->getBpp();
@@ -1028,7 +1047,7 @@ void V4L2_Base::getcaptureformats(ISwitchVectorProperty *captureformatssp) {
   
   CLEAR (fmt);
   fmt.type                = V4L2_BUF_TYPE_VIDEO_CAPTURE;
-  if (-1 == xioctl (fd, VIDIOC_G_FMT, &fmt)) {
+  if (-1 == XIOCTL(fd, VIDIOC_G_FMT, &fmt)) {
     perror ("VIDIOC_G_FMT");
     exit (EXIT_FAILURE);
   }
@@ -1055,11 +1074,11 @@ int V4L2_Base::setcaptureformat(unsigned int captureformat, char *errmsg) {
     open_device(path ,errmsg);
   }
     //     //fmt.fmt.pix.field       = V4L2_FIELD_INTERLACED;
-  if (-1 == xioctl (fd, VIDIOC_TRY_FMT, &fmt)) {
+  if (-1 == XIOCTL(fd, VIDIOC_TRY_FMT, &fmt)) {
     fmt.fmt.pix.pixelformat = oldformat;
     return errno_exit ("VIDIOC_TRY_FMT", errmsg);
   }
-  if (-1 == xioctl (fd, VIDIOC_S_FMT, &fmt)) {
+  if (-1 == XIOCTL(fd, VIDIOC_S_FMT, &fmt)) {
     return errno_exit ("VIDIOC_S_FMT", errmsg);
   }
   //decode reallocate_buffers=true;
@@ -1078,7 +1097,7 @@ void V4L2_Base::getcapturesizes(ISwitchVectorProperty *capturesizessp, INumberVe
 
   frm_sizeenum.pixel_format=fmt.fmt.pix.pixelformat;
   //IDLog("\t  Available Frame sizes/rates for this format:\n");
-  for (frm_sizeenum.index=0; xioctl(fd, VIDIOC_ENUM_FRAMESIZES, &frm_sizeenum) != -1;
+  for (frm_sizeenum.index=0; XIOCTL(fd, VIDIOC_ENUM_FRAMESIZES, &frm_sizeenum) != -1;
        frm_sizeenum.index ++) {
     switch (frm_sizeenum.type) {
     case V4L2_FRMSIZE_TYPE_DISCRETE:
@@ -1130,18 +1149,18 @@ int V4L2_Base::setcapturesize(unsigned int w, unsigned int h, char *errmsg) {
     close_device();
     open_device(path, errmsg);
   }
-  if (-1 == xioctl (fd, VIDIOC_TRY_FMT, &fmt)) {
+  if (-1 == XIOCTL(fd, VIDIOC_TRY_FMT, &fmt)) {
     fmt.fmt.pix.width = oldw;
     fmt.fmt.pix.height = oldh;
     return errno_exit ("VIDIOC_TRY_FMT", errmsg);
   }
-  if (-1 == xioctl (fd, VIDIOC_S_FMT, &fmt)) {
+  if (-1 == XIOCTL(fd, VIDIOC_S_FMT, &fmt)) {
       fmt.fmt.pix.width = oldw;
       fmt.fmt.pix.height = oldh;
       return errno_exit ("VIDIOC_S_FMT", errmsg);
   }
   // Drivers may change sizes
-  if (-1 == xioctl (fd, VIDIOC_G_FMT, &fmt)) {
+  if (-1 == XIOCTL(fd, VIDIOC_G_FMT, &fmt)) {
       fmt.fmt.pix.width = oldw;
       fmt.fmt.pix.height = oldh;
     return errno_exit ("VIDIOC_G_FMT", errmsg);
@@ -1169,7 +1188,7 @@ void V4L2_Base::getframerates(ISwitchVectorProperty *frameratessp, INumberVector
   frmi_valenum.width=fmt.fmt.pix.width;
   frmi_valenum.height=fmt.fmt.pix.height;
   
-  for (frmi_valenum.index=0; xioctl(fd, VIDIOC_ENUM_FRAMEINTERVALS, &frmi_valenum) != -1;
+  for (frmi_valenum.index=0; XIOCTL(fd, VIDIOC_ENUM_FRAMEINTERVALS, &frmi_valenum) != -1;
        frmi_valenum.index ++) {
     switch (frmi_valenum.type) {
     case V4L2_FRMIVAL_TYPE_DISCRETE:
@@ -1230,10 +1249,10 @@ int V4L2_Base::setcroprect(int x, int y, int w, int h, char *errmsg) {
     decoder->resetcrop();
   } else {
     if (cancrop) {
-      if (-1 == xioctl (fd, VIDIOC_S_CROP, &crop)) {
+      if (-1 == XIOCTL(fd, VIDIOC_S_CROP, &crop)) {
 	return errno_exit ("VIDIOC_S_CROP", errmsg);
       }
-      if (-1 == xioctl (fd, VIDIOC_G_CROP, &crop)) {
+      if (-1 == XIOCTL(fd, VIDIOC_G_CROP, &crop)) {
 	return errno_exit ("VIDIOC_G_CROP", errmsg);
       } 
     }
@@ -1289,7 +1308,7 @@ int V4L2_Base::stdsetframerate(struct v4l2_fract frate, char *errmsg)
   bzero(&sparm, sizeof(struct v4l2_streamparm));
   sparm.type= V4L2_BUF_TYPE_VIDEO_CAPTURE;
   sparm.parm.capture.timeperframe=frate;
-  if (-1 == xioctl (fd, VIDIOC_S_PARM, &sparm)) {
+  if (-1 == XIOCTL(fd, VIDIOC_S_PARM, &sparm)) {
     //cansetrate=false;
     return errno_exit("VIDIOC_S_PARM", errmsg);
   }
@@ -1299,7 +1318,7 @@ int V4L2_Base::stdsetframerate(struct v4l2_fract frate, char *errmsg)
 int V4L2_Base::pwcsetframerate(struct v4l2_fract frate, char *errmsg) {
   int fps= frate.denominator / frate.numerator;
   fmt.fmt.pix.priv |= (fps << PWC_FPS_SHIFT);
-    if (-1 == xioctl (fd, VIDIOC_S_FMT, &fmt)) {
+    if (-1 == XIOCTL(fd, VIDIOC_S_FMT, &fmt)) {
     return errno_exit ("pwcsetframerate", errmsg);
   }
     frameRate=frate;
@@ -1312,7 +1331,7 @@ struct v4l2_fract V4L2_Base::stdgetframerate()
   //if (!cansetrate) return frameRate;
   bzero(&sparm, sizeof(struct v4l2_streamparm));
   sparm.type= V4L2_BUF_TYPE_VIDEO_CAPTURE;
-  if (-1 == xioctl (fd, VIDIOC_G_PARM, &sparm)) {
+  if (-1 == XIOCTL(fd, VIDIOC_G_PARM, &sparm)) {
     perror ("VIDIOC_G_PARM");
   } else {
     frameRate=sparm.parm.capture.timeperframe;
@@ -1346,7 +1365,7 @@ int V4L2_Base::setSize(int x, int y)
     close_device();
     open_device(path, errmsg);
   }
-   if (-1 == xioctl (fd, VIDIOC_S_FMT, &fmt))
+   if (-1 == XIOCTL(fd, VIDIOC_S_FMT, &fmt))
    {
         fmt.fmt.pix.width  = oldW;
         fmt.fmt.pix.height = oldH;
@@ -1356,7 +1375,7 @@ int V4L2_Base::setSize(int x, int y)
    /* PWC bug? It seems that setting the "wrong" width and height will mess something in the driver.
       Only 160x120, 320x280, and 640x480 are accepted. If I try to set it for example to 300x200, it wii
       get set to 320x280, which is fine, but then the video information is messed up for some reason. */
-   //   xioctl (fd, VIDIOC_S_FMT, &fmt);
+   //   XIOCTL(fd, VIDIOC_S_FMT, &fmt);
  
   
    //allocBuffers();
@@ -1423,7 +1442,7 @@ void V4L2_Base::findMinMax()
     tryfmt.fmt.pix.pixelformat = fmt.fmt.pix.pixelformat;
     tryfmt.fmt.pix.field       = fmt.fmt.pix.field;
 
-    if (-1 == xioctl (fd, VIDIOC_TRY_FMT, &tryfmt))
+    if (-1 == XIOCTL(fd, VIDIOC_TRY_FMT, &tryfmt))
     {
         errno_exit ("VIDIOC_TRY_FMT 1", errmsg);
         return;
@@ -1435,7 +1454,7 @@ void V4L2_Base::findMinMax()
     tryfmt.fmt.pix.width       = 1600;
     tryfmt.fmt.pix.height      = 1200;
 
-    if (-1 == xioctl (fd, VIDIOC_TRY_FMT, &tryfmt))
+    if (-1 == XIOCTL(fd, VIDIOC_TRY_FMT, &tryfmt))
     {
                 errno_exit ("VIDIOC_TRY_FMT 2", errmsg);
                 return;
@@ -1454,7 +1473,7 @@ void V4L2_Base::enumerate_ctrl (void)
 
   for (queryctrl.id = V4L2_CID_BASE; queryctrl.id < V4L2_CID_LASTP1; queryctrl.id++)
   {
-    if (0 == xioctl (fd, VIDIOC_QUERYCTRL, &queryctrl))
+    if (0 == XIOCTL(fd, VIDIOC_QUERYCTRL, &queryctrl))
       {
 	if (queryctrl.flags & V4L2_CTRL_FLAG_DISABLED) {
 	  cerr << "DISABLED--Control " << queryctrl.name << endl;
@@ -1484,7 +1503,7 @@ void V4L2_Base::enumerate_ctrl (void)
   
   for (queryctrl.id = V4L2_CID_PRIVATE_BASE;  ;  queryctrl.id++)
   {
-    if (0 == xioctl (fd, VIDIOC_QUERYCTRL, &queryctrl))
+    if (0 == XIOCTL(fd, VIDIOC_QUERYCTRL, &queryctrl))
       {
 	
 	if (queryctrl.flags & V4L2_CTRL_FLAG_DISABLED) {
@@ -1525,7 +1544,7 @@ void V4L2_Base::enumerate_menu (void)
   
   for (querymenu.index = queryctrl.minimum;  querymenu.index <= queryctrl.maximum; querymenu.index++)
     {
-      if (0 == xioctl (fd, VIDIOC_QUERYMENU, &querymenu))
+      if (0 == XIOCTL(fd, VIDIOC_QUERYMENU, &querymenu))
 	{
 	  cerr << "  " <<  querymenu.name << endl;
 	} 
@@ -1573,7 +1592,7 @@ int  V4L2_Base::query_ctrl(unsigned int ctrl_id, double & ctrl_min, double & ctr
    CLEAR(control);
    control.id = ctrl_id;
 
-   if (0 == xioctl(fd, VIDIOC_G_CTRL, &control))
+   if (0 == XIOCTL(fd, VIDIOC_G_CTRL, &control))
       ctrl_value = control.value;
 
     cerr << queryctrl.name << " -- min: " << ctrl_min << " max: " << ctrl_max << " step: " << ctrl_step << " value: " << ctrl_value << endl;
@@ -1629,7 +1648,7 @@ void  V4L2_Base::queryControls(INumberVectorProperty *nvp, unsigned int *nnumber
 	      /* Get current value if possible */
 	      CLEAR(control);
 	      control.id = queryctrl.id;
-	      if (0 == xioctl(fd, VIDIOC_G_CTRL, &control))
+	      if (0 == XIOCTL(fd, VIDIOC_G_CTRL, &control))
 		numbers[nnum].value = control.value;
 	      
 	      /* Store ID info in INumber. This is the first time ever I make use of aux0!! */
@@ -1653,7 +1672,7 @@ void  V4L2_Base::queryControls(INumberVectorProperty *nvp, unsigned int *nnumber
 	      
 	      CLEAR(control);
 	      control.id = queryctrl.id;
-	      xioctl(fd, VIDIOC_G_CTRL, &control);
+	      XIOCTL(fd, VIDIOC_G_CTRL, &control);
 
 	      IUFillSwitch(sw, swonname, "Off", (control.value?ISS_OFF:ISS_ON));
 	      IUFillSwitch(sw+1, swoffname, "On", (control.value?ISS_ON:ISS_OFF));
@@ -1679,14 +1698,14 @@ void  V4L2_Base::queryControls(INumberVectorProperty *nvp, unsigned int *nnumber
 
 	      CLEAR(control);
 	      control.id = queryctrl.id;
-	      xioctl(fd, VIDIOC_G_CTRL, &control);
+	      XIOCTL(fd, VIDIOC_G_CTRL, &control);
 
 	      CLEAR(querymenu);
 	      querymenu.id = queryctrl.id;
 	      
 	      for (querymenu.index = queryctrl.minimum;  querymenu.index <= queryctrl.maximum; querymenu.index++)
 		{
-		  if (0 == xioctl (fd, VIDIOC_QUERYMENU, &querymenu))
+		  if (0 == XIOCTL(fd, VIDIOC_QUERYMENU, &querymenu))
 		    {
 		      sw = (sw == NULL) ? (ISwitch *) malloc (sizeof(ISwitch)) :
 		      (ISwitch *) realloc (sw, (nmenuopt+1) * sizeof (ISwitch));
@@ -1751,7 +1770,7 @@ void  V4L2_Base::queryControls(INumberVectorProperty *nvp, unsigned int *nnumber
 	    /* Get current value if possible */
 	    CLEAR(control);
 	    control.id = queryctrl.id;
-	    if (0 == xioctl(fd, VIDIOC_G_CTRL, &control))
+	    if (0 == XIOCTL(fd, VIDIOC_G_CTRL, &control))
 	      numbers[nnum].value = control.value;
 	    
 	    /* Store ID info in INumber. This is the first time ever I make use of aux0!! */
@@ -1774,7 +1793,7 @@ void  V4L2_Base::queryControls(INumberVectorProperty *nvp, unsigned int *nnumber
 	      
 	      CLEAR(control);
 	      control.id = queryctrl.id;
-	      xioctl(fd, VIDIOC_G_CTRL, &control);
+	      XIOCTL(fd, VIDIOC_G_CTRL, &control);
 
 	      IUFillSwitch(sw, swonname, "On", (control.value?ISS_ON:ISS_OFF));
 	      IUFillSwitch(sw+1, swoffname, "Off", (control.value?ISS_OFF:ISS_ON));
@@ -1801,14 +1820,14 @@ void  V4L2_Base::queryControls(INumberVectorProperty *nvp, unsigned int *nnumber
 
 	      CLEAR(control);
 	      control.id = queryctrl.id;
-	      xioctl(fd, VIDIOC_G_CTRL, &control);
+	      XIOCTL(fd, VIDIOC_G_CTRL, &control);
 
 	      CLEAR(querymenu);
 	      querymenu.id = queryctrl.id;
 	      
 	      for (querymenu.index = queryctrl.minimum;  querymenu.index <= queryctrl.maximum; querymenu.index++)
 		{
-		  if (0 == xioctl (fd, VIDIOC_QUERYMENU, &querymenu))
+		  if (0 == XIOCTL(fd, VIDIOC_QUERYMENU, &querymenu))
 		    {
 		      sw = (sw == NULL) ? (ISwitch *) malloc (sizeof(ISwitch)) :
 		      (ISwitch *) realloc (sw, (nmenuopt+1) * sizeof (ISwitch));
@@ -1892,7 +1911,7 @@ int  V4L2_Base::queryINTControls(INumberVectorProperty *nvp)
                    /* Get current value if possible */
                    CLEAR(control);
                    control.id = queryctrl.id;
-                   if (0 == xioctl(fd, VIDIOC_G_CTRL, &control))
+                   if (0 == XIOCTL(fd, VIDIOC_G_CTRL, &control))
                             numbers[nnum].value = control.value;
 
                    /* Store ID info in INumber. This is the first time ever I make use of aux0!! */
@@ -1939,7 +1958,7 @@ int  V4L2_Base::queryINTControls(INumberVectorProperty *nvp)
                    /* Get current value if possible */
                    CLEAR(control);
                    control.id = queryctrl.id;
-                   if (0 == xioctl(fd, VIDIOC_G_CTRL, &control))
+                   if (0 == XIOCTL(fd, VIDIOC_G_CTRL, &control))
                             numbers[nnum].value = control.value;
 
                    /* Store ID info in INumber. This is the first time ever I make use of aux0!! */
@@ -1970,7 +1989,7 @@ int  V4L2_Base::getControl(unsigned int ctrl_id, double *value,  char *errmsg)
    CLEAR(control);
    control.id = ctrl_id;
 
-   if (-1 == xioctl(fd, VIDIOC_G_CTRL, &control))
+   if (-1 == XIOCTL(fd, VIDIOC_G_CTRL, &control))
      return errno_exit ("VIDIOC_G_CTRL", errmsg);
    *value = (double)control.value;
    return 0;
@@ -1986,7 +2005,7 @@ int  V4L2_Base::setINTControl(unsigned int ctrl_id, double new_value,  char *err
 
    control.id = ctrl_id;
    control.value = (int) new_value;
-   if (-1 == xioctl(fd, VIDIOC_S_CTRL, &control))
+   if (-1 == XIOCTL(fd, VIDIOC_S_CTRL, &control))
      return errno_exit ("VIDIOC_S_CTRL", errmsg);
    return 0;
 }
@@ -2001,7 +2020,7 @@ int  V4L2_Base::setOPTControl(unsigned int ctrl_id, unsigned int new_value, char
 
    control.id = ctrl_id;
    control.value = new_value;
-   if (-1 == xioctl(fd, VIDIOC_S_CTRL, &control))
+   if (-1 == XIOCTL(fd, VIDIOC_S_CTRL, &control))
      return errno_exit ("VIDIOC_S_CTRL", errmsg);
    return 0;
 }
@@ -2016,7 +2035,7 @@ bool V4L2_Base::enumerate_ext_ctrl (void)
   if (-1 == ioctl (fd, VIDIOC_QUERYCTRL, &queryctrl)) return false;
   
   queryctrl.id = V4L2_CTRL_FLAG_NEXT_CTRL;
-  while (0 == xioctl (fd, VIDIOC_QUERYCTRL, &queryctrl))
+  while (0 == XIOCTL(fd, VIDIOC_QUERYCTRL, &queryctrl))
       {
 	if (queryctrl.flags & V4L2_CTRL_FLAG_DISABLED) {
 	  cerr << "DISABLED--Control " << queryctrl.name << endl;
@@ -2072,7 +2091,7 @@ bool  V4L2_Base::queryExtControls(INumberVectorProperty *nvp, unsigned int *nnum
   
   CLEAR(queryctrl);
   queryctrl.id = V4L2_CTRL_FLAG_NEXT_CTRL;
-  while (0 == xioctl (fd, VIDIOC_QUERYCTRL, &queryctrl))
+  while (0 == XIOCTL(fd, VIDIOC_QUERYCTRL, &queryctrl))
     {
       
       if (queryctrl.type == V4L2_CTRL_TYPE_CTRL_CLASS) {
@@ -2108,7 +2127,7 @@ bool  V4L2_Base::queryExtControls(INumberVectorProperty *nvp, unsigned int *nnum
 	  /* Get current value if possible */
 	  CLEAR(control);
 	  control.id = queryctrl.id;
-	  if (0 == xioctl(fd, VIDIOC_G_CTRL, &control))
+	  if (0 == XIOCTL(fd, VIDIOC_G_CTRL, &control))
 	    numbers[nnum].value = control.value;
 	  
 	  /* Store ID info in INumber. This is the first time ever I make use of aux0!! */
@@ -2132,7 +2151,7 @@ bool  V4L2_Base::queryExtControls(INumberVectorProperty *nvp, unsigned int *nnum
 	  
 	  CLEAR(control);
 	  control.id = queryctrl.id;
-	  xioctl(fd, VIDIOC_G_CTRL, &control);
+	  XIOCTL(fd, VIDIOC_G_CTRL, &control);
 	  
 	  IUFillSwitch(sw, swonname, "Off", (control.value?ISS_OFF:ISS_ON));
 	  sw->aux=NULL;
@@ -2179,14 +2198,14 @@ bool  V4L2_Base::queryExtControls(INumberVectorProperty *nvp, unsigned int *nnum
 	  
 	  CLEAR(control);
 	  control.id = queryctrl.id;
-	  xioctl(fd, VIDIOC_G_CTRL, &control);
+	  XIOCTL(fd, VIDIOC_G_CTRL, &control);
 	  
 	  CLEAR(querymenu);
 	  querymenu.id = queryctrl.id;
 	  
 	  for (querymenu.index = queryctrl.minimum;  querymenu.index <= queryctrl.maximum; querymenu.index++)
 	    {
-	      if (0 == xioctl (fd, VIDIOC_QUERYMENU, &querymenu))
+	      if (0 == XIOCTL(fd, VIDIOC_QUERYMENU, &querymenu))
 		{
 		  sw = (sw == NULL) ? (ISwitch *) malloc (sizeof(ISwitch)) :
 		    (ISwitch *) realloc (sw, (nmenuopt+1) * sizeof (ISwitch));
