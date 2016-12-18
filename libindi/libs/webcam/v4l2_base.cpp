@@ -47,6 +47,39 @@
 
 #define CLEAR(x) memset (&(x), 0, sizeof (x))
 
+#define DBG_STR_PIX "%c%c%c%c"
+#define DBG_PIX(pf) ((pf)>>0)&0xFF, ((pf)>>8)&0xFF, ((pf)>>16)&0xFF, ((pf)>>24)&0xFF
+
+#define DBG_STR_FMT "%ux%u " DBG_STR_PIX " %scompressed (%ssupported)"
+#define DBG_FMT(f) (f).fmt.pix.width, (f).fmt.pix.height, \
+    DBG_PIX((f).fmt.pix.pixelformat), \
+    ((f).fmt.pix.flags & V4L2_FMT_FLAG_COMPRESSED)?"":"un", \
+    (decoder->issupportedformat((f).fmt.pix.pixelformat)?"":"un")
+
+#define DBG_STR_BUF "#%d ...%c .%c%c%c %c%c.%c .%c%c%c %c%c%c%c % 7d bytes %4.4s seq %d:%d stamp %ld.%06ld"
+#define DBG_BUF(b) (b).index, \
+    /* 0x00010000 */((b).flags & V4L2_BUF_FLAG_TSTAMP_SRC_SOE)?'S':'E', \
+    /* 0x00004000 */((b).flags & V4L2_BUF_FLAG_TIMESTAMP_COPY)?'c':'.', \
+    /* 0x00002000 */((b).flags & V4L2_BUF_FLAG_TIMESTAMP_MONOTONIC)?'m':'.', \
+    /* 0x00001000 */((b).flags & V4L2_BUF_FLAG_NO_CACHE_CLEAN)?'C':'.', \
+    /* 0x00000800 */((b).flags & V4L2_BUF_FLAG_NO_CACHE_INVALIDATE)?'I':'.', \
+    /* 0x00000400 */((b).flags & V4L2_BUF_FLAG_PREPARED)?'p':'.', \
+    /* 0x00000100 */((b).flags & V4L2_BUF_FLAG_TIMECODE)?'T':'.', \
+    /* 0x00000040 */((b).flags & V4L2_BUF_FLAG_ERROR)?'E':'.', \
+    /* 0x00000020 */((b).flags & V4L2_BUF_FLAG_BFRAME)?'B':'.', \
+    /* 0x00000010 */((b).flags & V4L2_BUF_FLAG_PFRAME)?'P':'.', \
+    /* 0x00000008 */((b).flags & V4L2_BUF_FLAG_KEYFRAME)?'K':'.', \
+    /* 0x00000004 */((b).flags & V4L2_BUF_FLAG_DONE)?'d':'.', \
+    /* 0x00000002 */((b).flags & V4L2_BUF_FLAG_QUEUED)?'q':'.', \
+    /* 0x00000001 */((b).flags & V4L2_BUF_FLAG_MAPPED)?'m':'.', \
+    (b).bytesused, \
+    ((b).memory == V4L2_MEMORY_MMAP)?"mmap": \
+        ((b).memory == V4L2_MEMORY_USERPTR)?"uptr": \
+        ((b).memory == V4L2_MEMORY_DMABUF)?"dma": \
+        ((b).memory == V4L2_MEMORY_OVERLAY)?"over":"", \
+    (b).sequence, (b).field, \
+    (b).timestamp.tv_sec, (b).timestamp.tv_usec
+
 using namespace std;
 
 /*char *entityXML(char *src) {
