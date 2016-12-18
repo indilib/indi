@@ -691,6 +691,16 @@ add_executable(indi_optec_wheel ${optecwheel_SRCS})
 target_link_libraries(indi_optec_wheel indidriver)
 install(TARGETS indi_optec_wheel RUNTIME DESTINATION bin )
 
+########## Quantum Wheel ############
+set(quantum_wheel_SRCS
+        ${indimain_SRCS}
+        ${CMAKE_CURRENT_SOURCE_DIR}/drivers/filter_wheel/quantum_wheel.cpp
+   )
+
+add_executable(indi_quantum_wheel ${quantum_wheel_SRCS})
+target_link_libraries(indi_quantum_wheel indidriver)
+install(TARGETS indi_quantum_wheel RUNTIME DESTINATION bin )
+
 #################################################################################
 
 #####################################
