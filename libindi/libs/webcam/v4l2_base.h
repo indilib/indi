@@ -193,6 +193,7 @@ class V4L2_Base
   V4L2_Decoder *decoder;
   bool dodecode;
 
+  V4L2_Record *v4l2_record;
   V4L2_Recorder *recorder;
   bool dorecord;
 

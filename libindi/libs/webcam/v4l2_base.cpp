@@ -118,10 +118,17 @@ V4L2_Base::V4L2_Base()
    cancrop=true;
    cansetrate=true;
    streamedonce=false;   
+
    v4l2_decode=new V4L2_Decode();
    decoder=v4l2_decode->getDefaultDecoder();
    decoder->init();
    dodecode=true;
+
+   v4l2_record=new V4L2_Record();
+   recorder=v4l2_record->getDefaultRecorder();
+   recorder->init();
+   dorecord = false;
+
    bpp=8; 
    has_ext_pix_format=false;
    const std::vector<unsigned int> &vsuppformats=decoder->getsupportedformats();
@@ -130,11 +137,23 @@ V4L2_Base::V4L2_Base()
      IDLog("%c%c%c%c ", (*it >> 0), (*it >> 8), (*it >>16), (*it >> 24));
    IDLog("\n");
    //DEBUGF(INDI::Logger::DBG_SESSION,"Default decoder: %s", decoder->getName());
+
+   getframerate = NULL;
+   setframerate = NULL;
+
+   reallocate_buffers = false;
+   path = NULL;
+   uptr = NULL;
+
+   lxstate = LX_ACTIVE;
+   streamactive = false;
+   cropset = false;
 }
 
 V4L2_Base::~V4L2_Base()
 {
-
+    delete v4l2_decode;
+    delete v4l2_record;
 }
 
 /** @internal Helper for ioctl calls, with logging facility.
