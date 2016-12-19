@@ -171,6 +171,7 @@ class V4L2_Base
   struct v4l2_queryctrl queryctrl;
   struct v4l2_querymenu querymenu;
   bool has_ext_pix_format;
+  bool is_compressed() const { return fmt.fmt.pix.flags & V4L2_FMT_FLAG_COMPRESSED; };
 
   WPF *callback;
   void *uptr;

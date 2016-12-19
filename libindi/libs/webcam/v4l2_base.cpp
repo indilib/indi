@@ -33,6 +33,9 @@
 #include <sys/mman.h>
 #include <string.h>
 #include <asm/types.h>          /* for videodev2.h */
+#include <time.h>
+#include <math.h>
+#include <sys/time.h>
 
 #include "ccvt.h"
 #include "v4l2_base.h"
@@ -336,8 +339,60 @@ bool V4L2_Base::isLXmodCapable()
   else return false;
 }
 
+/* @internal Calculate epoch time shift
+ *
+ * The clock CLOCK_MONOTONIC starts counting from an undefined origin (boot time
+ * for instance). This function computes the offset between the current time returned
+ * by gettimeofday and the monotonic time returned by clock_gettime in milliseconds.
+ * This value can then be used to determine the time and date of frames from their
+ * timestamp as returned by the kernel.
+ *
+ * Code provided at:
+ * http://stackoverflow.com/questions/10266451/where-does-v4l2-buffer-timestamp-value-starts-counting
+ *
+ * @return the milliseconds offset to apply to the timestamp returned by gettimeofday for
+ * it to have the same reference as clock_gettime.
+ */
+static long getEpochTimeShift()
+{
+    struct timeval epochtime = {0};
+    struct timespec vsTime = {0};
 
+    gettimeofday(&epochtime, NULL);
+    clock_gettime(CLOCK_MONOTONIC, &vsTime);
 
+    long const uptime_ms = vsTime.tv_sec* 1000 + (long) round( vsTime.tv_nsec/ 1000000.0);
+    long const epoch_ms =  epochtime.tv_sec * 1000  + (long) round( epochtime.tv_usec/1000.0);
+
+    long const epoch_shift = epoch_ms - uptime_ms;
+    IDLog("%s: epoch shift is %ld\n",__FUNCTION__,epoch_shift);
+
+    return epoch_shift;
+}
+
+/* @brief Reading a frame from the V4L2 driver.
+ *
+ * This function will attempt to read a frame with the adequate
+ * method for the device, and forward the frame read to the configured
+ * decoder and/or recorder.
+ *
+ * With the MMAP method, the first available buffer is dequeued to read
+ * the embedded frame. If the frame is marked erroneous by the driver, or
+ * the frame is known to be uncompressed but its length doesn't match the
+ * expected size, the buffer is re-enqueued immediately.
+ *
+ * Although only the MMAP method is actually supported, two other methods
+ * are also implemented:
+ * - With the READ method, the frame is read directly from the device
+ * descriptor, using the first buffer characteristics are address and
+ * length. But no processing is done actually.
+ * - With the USERPTR method, the first available buffer is dequeued, then
+ * verified against the buffer list. No processing is done actually, and
+ * the buffer is immediately requeued.
+ *
+ * @param errmsg is the error messsage updated in case of error.
+ * @return 0 if frame read is processed, or -1 with error message updated.
+ */
 int V4L2_Base::read_frame(char *errmsg) {
   
   unsigned int i;
@@ -360,79 +415,146 @@ int V4L2_Base::read_frame(char *errmsg) {
     //process_image (buffers[0].start);
     break;
   
-  case IO_METHOD_MMAP:
-    //cerr << "in read Frame method mmap" << endl;
-    CLEAR (buf);
+        case IO_METHOD_MMAP:
+            IDLog("%s: using MMAP to recover frame buffer\n",__FUNCTION__);
+            CLEAR (buf);
 
-    buf.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
-    buf.memory = V4L2_MEMORY_MMAP;
-    
-    if (-1 == XIOCTL(fd, VIDIOC_DQBUF, &buf)) {
-      switch (errno) {
-      case EAGAIN:
-	//cerr << "in read Frame method DQBUF EAGAIN" << endl;
-	return 0;
-      case EIO:
-	/* Could ignore EIO, see spec. */
-	/* fall through */
-      default:
-	return errno_exit ("ReadFrame IO_METHOD_MMAP: VIDIOC_DQBUF", errmsg);
-      }
-    }
+            buf.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+            buf.memory = V4L2_MEMORY_MMAP;
 
-    assert (buf.index < n_buffers);
-    //IDLog("drop %c %d on %d\n", (dropFrameEnabled?'Y':'N'),dropFrame, dropFrameCount);
-    /*if (dropFrame > 0)
-      {
-        dropFrame -= 1;
-	if (-1 == XIOCTL(fd, VIDIOC_QBUF, &buf))
-	  return errno_exit ("ReadFrame IO_METHOD_MMAP: VIDIOC_QBUF", errmsg);
-        return 0;
-      }
-    else
-        dropFrame = dropFrameCount;*/
+            /* For debugging purposes */
+            if(false)
+            {
+                for (i = 0; i < n_buffers; ++i)
+                {
+                    buf.index = i;
+                    if (-1 == XIOCTL(fd, VIDIOC_QUERYBUF, &buf)) switch(errno)
+                    {
+                        case EINVAL:
+                            IDLog("%s: invalid buffer query, doing as if buffer was in output queue\n",__FUNCTION__);
+                            break;
 
+                        default:
+                            return errno_exit ("ReadFrame IO_METHOD_MMAP: VIDIOC_QUERYBUF", errmsg);
+                    }
 
-    /*
-      switch (buf.flags &  V4L2_BUF_FLAG_TIMESTAMP_MASK) {
-    case V4L2_BUF_FLAG_TIMESTAMP_UNKNOWN: IDLog("Timestamp Unknown\n"); break;
-    case V4L2_BUF_FLAG_TIMESTAMP_MONOTONIC : IDLog("Timestamp Monotonic\n"); break;
-    case V4L2_BUF_FLAG_TIMESTAMP_COPY : IDLog("Timestamp Copy\n"); break;
-    default: break;
-    }
-    switch (buf.flags &  V4L2_BUF_FLAG_TSTAMP_SRC_MASK) {
-    case V4L2_BUF_FLAG_TSTAMP_SRC_EOF: IDLog("Timestamp at End of Frame\n"); break;
-    case V4L2_BUF_FLAG_TSTAMP_SRC_SOE : IDLog("Timestamp at Start of Exposure\n"); break;
-    default: break;
-    }
-    */
-    //IDLog("v4l2_base: dequeuing buffer %d, bytesused = %d, flags = 0x%X, field = %d, sequence = %d\n", buf.index, buf.bytesused, buf.flags, buf.field, buf.sequence);
-    //IDLog("v4l2_base: dequeuing buffer %d for fd=%d, cropset %c\n", buf.index, fd, (cropset?'Y':'N'));
-    //IDLog("V4L2_base read_frame: calling decoder (@ %x) %c\n", decoder, (dodecode?'Y':'N'));
-    if (dodecode) decoder->decode((unsigned char *)(buffers[buf.index].start), &buf);
-    //IDLog("V4L2_base read_frame: calling recorder(@ %x) %c\n", recorder, (dorecord?'Y':'N'));
-    if (dorecord) recorder->writeFrame((unsigned char *)(buffers[buf.index].start));
-    
-    //IDLog("lxstate is %d, dropFrame %c\n", lxstate, (dropFrame?'Y':'N'));
+                    IDLog("%s: " DBG_STR_BUF "\n",__FUNCTION__, DBG_BUF(buf));
+                }
+            }
 
+            if (-1 == XIOCTL(fd, VIDIOC_DQBUF, &buf)) switch (errno)
+            {
+                case EAGAIN:
+                    IDLog("%s: no buffer found with DQBUF ioctl (EAGAIN) - frame not ready or not requested\n",__FUNCTION__);
+                    return 0;
 
+                case EIO:
+                    /* Could ignore EIO, see spec. */
+                    /* Fall through */
+                    IDLog("%s: transitory internal error with DQBUF ioctl (EIO)\n",__FUNCTION__);
 
-    if (-1 == XIOCTL(fd, VIDIOC_QBUF, &buf))
-      return errno_exit ("ReadFrame IO_METHOD_MMAP: VIDIOC_QBUF", errmsg);
+                case EINVAL:
+                case EPIPE:
+                default:
+                    return errno_exit ("ReadFrame IO_METHOD_MMAP: VIDIOC_DQBUF", errmsg);
+            }
 
+            IDLog("%s: buffer #%d dequeued from fd:%d\n",__FUNCTION__, buf.index, fd);
 
+            if( buf.flags & V4L2_BUF_FLAG_ERROR )
+            {
+                IDLog("%s: recoverable error with DQBUF ioctl (BUF_FLAG_ERROR) - frame should be dropped\n",__FUNCTION__);
+                if (-1 == XIOCTL(fd, VIDIOC_QBUF, &buf))
+                  return errno_exit ("ReadFrame IO_METHOD_MMAP: VIDIOC_QBUF", errmsg);
+                buf.bytesused = 0;
+                return 0;
+            }
 
-    if( lxstate == LX_ACTIVE ) {
+            if( !is_compressed() && buf.bytesused != fmt.fmt.pix.sizeimage )
+            {
+                IDLog("%s: frame is %d-byte long, expected %d - frame should be dropped\n",__FUNCTION__,buf.bytesused,fmt.fmt.pix.sizeimage);
 
-      /* Call provided callback function if any */
-      //if (callback && !dorecord)
-      if (callback)
-	(*callback)(uptr);
-    }
-		
-    if( lxstate == LX_TRIGGERED )
-      lxstate = LX_ACTIVE;
-    break;
+                if(false)
+                {
+                    unsigned char const * b = (unsigned char const *) buffers[buf.index].start;
+                    unsigned char const * end = b + buf.bytesused;
+
+                    do IDLog("%s: [%p] %02X%02X%02X%02X %02X%02X%02X%02X %02X%02X%02X%02X %02X%02X%02X%02X\n",__FUNCTION__,b,b[0*4+0],b[0*4+1],b[0*4+2],b[0*4+3],b[1*4+0],b[1*4+1],b[1*4+2],b[1*4+3],b[2*4+0],b[2*4+1],b[2*4+2],b[2*4+3],b[3*4+0],b[3*4+1],b[3*4+2],b[3*4+3]);
+                    while( ( b += 16 ) < end );
+                }
+
+                if (-1 == XIOCTL(fd, VIDIOC_QBUF, &buf))
+                  return errno_exit ("ReadFrame IO_METHOD_MMAP: VIDIOC_QBUF", errmsg);
+                buf.bytesused = 0;
+                return 0;
+            }
+
+            /* TODO: the timestamp can be checked against the expected exposure to validate the frame - doesn't work, yet */
+            switch( buf.flags & V4L2_BUF_FLAG_TIMESTAMP_MASK )
+            {
+                case V4L2_BUF_FLAG_TIMESTAMP_UNKNOWN:
+                    /* FIXME: try monotonic clock when timestamp clock type is unknown */
+                case V4L2_BUF_FLAG_TIMESTAMP_MONOTONIC:
+                {
+                    struct timespec uptime = {0};
+                    clock_gettime(CLOCK_MONOTONIC,&uptime);
+
+                    struct timeval epochtime = {0};
+                    /*gettimeofday(&epochtime, NULL); uncomment this to get the timestamp from epoch start */
+
+                    float const secs = ( epochtime.tv_sec - uptime.tv_sec + buf.timestamp.tv_sec ) + (epochtime.tv_usec - uptime.tv_nsec/1000.0f + buf.timestamp.tv_usec)/1000.0f;
+
+                    if( V4L2_BUF_FLAG_TSTAMP_SRC_SOE == ( buf.flags & V4L2_BUF_FLAG_TSTAMP_SRC_MASK ) )
+                    {
+                        IDLog("%s: frame exposure started %.03f seconds ago\n",__FUNCTION__,-secs);
+                    }
+                    else if( V4L2_BUF_FLAG_TSTAMP_SRC_EOF == ( buf.flags & V4L2_BUF_FLAG_TSTAMP_SRC_MASK ) )
+                    {
+                        IDLog("%s: frame finished capturing %.03f seconds ago\n",__FUNCTION__,-secs);
+                    }
+                    else IDLog("%s: unsupported timestamp in frame\n",__FUNCTION__);
+
+                    break;
+                }
+
+                case V4L2_BUF_FLAG_TIMESTAMP_COPY:
+                default:
+                    IDLog("%s: no usable timestamp found in frame\n",__FUNCTION__);
+            }
+
+            /* TODO: there is probably a better error handling than asserting the buffer index */
+            assert(buf.index < n_buffers);
+
+            if (dodecode)
+            {
+                IDLog("%s: [%p] decoding %d-byte buffer %p cropset %c\n", __FUNCTION__, decoder, buf.bytesused, buffers[buf.index].start, cropset?'Y':'N');
+                decoder->decode((unsigned char *)(buffers[buf.index].start), &buf);
+            }
+
+            if (dorecord)
+            {
+                IDLog("%s: [%p] recording %d-byte buffer %p\n", __FUNCTION__, recorder, buf.bytesused, buffers[buf.index].start);
+                recorder->writeFrame((unsigned char *)(buffers[buf.index].start));
+            }
+
+            //IDLog("lxstate is %d, dropFrame %c\n", lxstate, (dropFrame?'Y':'N'));
+
+            /* Requeue buffer */
+            if (-1 == XIOCTL(fd, VIDIOC_QBUF, &buf))
+                return errno_exit ("ReadFrame IO_METHOD_MMAP: VIDIOC_QBUF", errmsg);
+
+            if( lxstate == LX_ACTIVE )
+            {
+                /* Call provided callback function if any */
+                //if (callback && !dorecord)
+                if (callback)
+                    (*callback)(uptr);
+            }
+
+            if( lxstate == LX_TRIGGERED )
+                lxstate = LX_ACTIVE;
+
+            break;
     
   case IO_METHOD_USERPTR:
     cerr << "in read Frame method userptr" << endl;
