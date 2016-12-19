@@ -1,0 +1,3 @@
+# FILTER WHEELS
+KERNEL=="hidraw*", ATTRS{idVendor}=="03c3", ATTRS{idProduct}=="1f01", GROUP="users", MODE="0666"
+

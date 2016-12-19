@@ -1,3 +1,20 @@
+/**************************************************
+this is the ZWO filter wheel EFW SDK
+any question feel free contact us:yang.zhou@zwoptical.com
+
+here is the suggested procedure.
+
+--> EFWGetNum
+--> EFWGetID for each camera
+
+--> EFWGetProperty
+--> EFWOpen
+--> EFWGetPosition
+--> EFWSetPosition
+	...
+--> EFWClose
+
+***************************************************/
 #ifndef EFW_FILTER_H
 #define EFW_FILTER_H
 
@@ -82,7 +99,7 @@ Paras:
 int ID: the ID of filter wheel
 
 Return: 
-EFW_ERROR_INVALID_INDEX: invalid index value
+EFW_ERROR_INVALID_ID: invalid ID value
 EFW_ERROR_GENERAL_ERROR: number of opened filter wheel reaches the maximum value.
 EFW_ERROR_REMOVED: the filter wheel is removed.
 EFW_SUCCESS: operation succeeds
@@ -119,7 +136,7 @@ this value is -1 if filter wheel is moving
 
 Return: 
 EFW_ERROR_INVALID_ID: invalid ID value
-EFW_ERROR_NOT_OPENED: not opened
+EFW_ERROR_CLOSED: not opened
 EFW_SUCCESS: operation succeeds
 EFW_ERROR_ERROR_STATE: filter wheel is in error state
 EFW_ERROR_REMOVED: filter wheel is removed
@@ -138,7 +155,7 @@ int Position:  slot position, this value is between 0 to M - 1, M is slot number
 
 Return: 
 EFW_ERROR_INVALID_ID: invalid ID value
-EFW_ERROR_NOT_OPENED: not opened
+EFW_ERROR_CLOSED: not opened
 EFW_SUCCESS: operation succeeds
 EFW_ERROR_INVALID_VALUE: Position value is invalid
 EFW_ERROR_MOVING: filter wheel is moving, should wait until idle
@@ -159,7 +176,7 @@ bool bUnidirectional: if set as true, the filter wheel will rotate along one dir
 
 Return: 
 EFW_ERROR_INVALID_ID: invalid ID value
-EFW_ERROR_NOT_OPENED: not opened
+EFW_ERROR_CLOSED: not opened
 EFW_SUCCESS: operation succeeds
 ***************************************************************************/
 EFW_API	EFW_ERROR_CODE EFWSetDirection(int ID, bool bUnidirectional);
@@ -175,7 +192,7 @@ bool *bUnidirectional: pointer to unidirection value .
 
 Return: 
 EFW_ERROR_INVALID_ID: invalid ID value
-EFW_ERROR_NOT_OPENED: not opened
+EFW_ERROR_CLOSED: not opened
 EFW_SUCCESS: operation succeeds
 ***************************************************************************/
 EFW_API	EFW_ERROR_CODE EFWGetDirection(int ID, bool *bUnidirectional);
