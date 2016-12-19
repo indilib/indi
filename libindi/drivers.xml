@@ -231,6 +231,10 @@
             <driver name="Optec IFW">indi_optec_wheel</driver>
             <version>0.2</version>
         </device>
+        <device label="Quantum Wheel">
+            <driver name="Quantum Wheel">indi_quantum_wheel</driver>
+            <version>0.1</version>
+        </device>
 </devGroup>
 <devGroup group="Video">
         <device label="STV Guider">
