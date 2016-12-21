@@ -39,7 +39,7 @@
 #define TEMPERATURE_UPDATE_FREQ 4       /* Update every 4 POLLMS ~ 1 second */
 #define TEMP_THRESHOLD          .25		/* Differential temperature threshold (C)*/
 #define MAX_DEVICES             4       /* Max device cameraCount */
-#define MAX_EXP_RETRIES         10
+#define MAX_EXP_RETRIES         3
 #define VERBOSE_EXPOSURE        3
 
 #define CONTROL_TAB     "Controls"
@@ -1011,6 +1011,7 @@ int ASICCD::grabImage()
 void ASICCD::TimerHit()
 {
     float timeleft;
+    int exposureStatusTimeout=0;
 
     if (isConnected() == false)
         return;  //  No need to reset timer if we are not connected anymore
@@ -1031,11 +1032,12 @@ void ASICCD::TimerHit()
                     DEBUGF(INDI::Logger::DBG_DEBUG, "ASIGetExpStatus error (%d)", errCode);
 
                     // Maximum 10 times to try this
-                    if (++exposureRetries >= MAX_EXP_RETRIES)
+                    if (++exposureStatusTimeout >= 10)
                     {
                         DEBUGF(INDI::Logger::DBG_ERROR, "Exposure status timed out (%d)", errCode);
                         PrimaryCCD.setExposureFailed();
                         InExposure = false;
+                        exposureRetries=0;
                         SetTimer(POLLMS);
                         return;
                     }
@@ -1045,30 +1047,31 @@ void ASICCD::TimerHit()
                 }
                 else
                 {
+                    exposureStatusTimeout=0;
+
                     if (status == ASI_EXP_SUCCESS)
                         break;
                     else if (status == ASI_EXP_FAILED)
                     {
+                        if (++exposureRetries >= MAX_EXP_RETRIES)
+                        {
+                            DEBUGF(INDI::Logger::DBG_ERROR, "Exposure failed after %d attempts.", exposureRetries);
+                            PrimaryCCD.setExposureFailed();
+                            exposureRetries=0;
+                            InExposure = false;
+                            SetTimer(POLLMS);
+                            return;
+                        }
+
                         DEBUGF(INDI::Logger::DBG_DEBUG, "ASIGetExpStatus failed (%d). Restarting exposure...", errCode);
                         InExposure = false;
                         usleep(100000);
                         StartExposure(ExposureRequest);
                         SetTimer(POLLMS);
                         return;
-
-                    }
-
-                    // Maximum 10 times to try this
-                    if (++exposureRetries >= MAX_EXP_RETRIES)
-                    {
-                        DEBUGF(INDI::Logger::DBG_ERROR, "Exposure status timed out (%d)", errCode);
-                        PrimaryCCD.setExposureFailed();
-                        InExposure = false;
-                        SetTimer(POLLMS);
-                        return;
                     }
                     else
-                        usleep(50000);
+                        usleep(10000);
                 }
             }
 
