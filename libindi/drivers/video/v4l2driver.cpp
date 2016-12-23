@@ -707,8 +707,11 @@ bool V4L2_Driver::StartExposure(float duration)
 {
     if (is_exposing)
     {
-        DEBUG(INDI::Logger::DBG_ERROR, "Can not start new exposure while exposing.");
-        return false;
+        /* Clicking the "Expose" set button while an exposure is running arrives here.
+         * But if we reply false, PrimaryCCD won't be exposing anymore and we won't be able to stop the exposure in V4L2_Base, which will loop forever.
+         * So instead of returning an error, tell the caller we're busy until the end of this exposure. */
+        DEBUG(INDI::Logger::DBG_ERROR, "Can not start new exposure, please wait for the end of exposure.");
+        return true;
     }
 
     V4LFrame->expose = duration;
@@ -1124,12 +1127,22 @@ void V4L2_Driver::newFrame()
       //if (!is_streaming && !is_recording) stop_capturing();
       if (streamer->isBusy() == false)
           stop_capturing();
+      else IDLog("%s: streamer is busy, continue capturing\n",__FUNCTION__);
 
       DEBUGF(INDI::Logger::DBG_SESSION, "Capture of one frame (%d stacked frames) took %ld.%06ld seconds.", subframeCount, current_exposure.tv_sec, current_exposure.tv_usec);
       ExposureComplete(&PrimaryCCD);
       //PrimaryCCD.setFrameBufferSize(frameBytes);
     }
     is_exposing=false;
+  }
+  else
+  {
+      /* If we arrive here, PrimaryCCD is not exposing anymore, we can't forward the frame and we can't be aborted neither, thus abort the exposure right now.
+       * That issue can be reproduced when clicking the "Set" button on the "Main Control" tab while an exposure is running.
+       * Note that the patch in StartExposure returning busy instead of error prevents the flow from coming here, so now it's only a safeguard. */
+      IDLog("%s: frame received while not exposing, force-aborting capture\n",__FUNCTION__);
+      AbortExposure();
+      is_exposing = false;
   }
 }
 
