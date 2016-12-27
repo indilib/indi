@@ -56,10 +56,13 @@
 #define DBG_PIX(pf) ((pf)>>0)&0xFF, ((pf)>>8)&0xFF, ((pf)>>16)&0xFF, ((pf)>>24)&0xFF
 
 #define DBG_STR_FMT "%ux%u " DBG_STR_PIX " %scompressed (%ssupported)"
+
+#ifdef V4L2_PIX_FMT_FLAG_PREMUL_ALPHA
 #define DBG_FMT(f) (f).fmt.pix.width, (f).fmt.pix.height, \
     DBG_PIX((f).fmt.pix.pixelformat), \
     ((f).fmt.pix.flags & V4L2_FMT_FLAG_COMPRESSED)?"":"un", \
     (decoder->issupportedformat((f).fmt.pix.pixelformat)?"":"un")
+#endif
 
 #define DBG_STR_BUF "#%d ...%c .%c%c%c %c%c.%c .%c%c%c %c%c%c%c % 7d bytes %4.4s seq %d:%d stamp %ld.%06ld"
 #define DBG_BUF(b) (b).index, \
@@ -230,7 +233,9 @@ V4L2_Base::ioctl_set_format(struct v4l2_format new_fmt, char * errmsg)
     {
         if(-1 == XIOCTL(fd, VIDIOC_TRY_FMT, &new_fmt))
         {
+            #ifdef V4L2_PIX_FMT_FLAG_PREMUL_ALPHA
             IDLog("%s: failed VIDIOC_TRY_FMT with " DBG_STR_FMT "\n", __FUNCTION__, DBG_FMT(new_fmt));
+            #endif
             return errno_exit("VIDIOC_TRY_FMT", errmsg);
         }
     }
@@ -240,7 +245,9 @@ V4L2_Base::ioctl_set_format(struct v4l2_format new_fmt, char * errmsg)
         /* Set format */
         if( -1 == XIOCTL(fd, VIDIOC_S_FMT, &new_fmt) )
         {
+            #ifdef V4L2_PIX_FMT_FLAG_PREMUL_ALPHA
             IDLog("%s: failed VIDIOC_S_FMT with " DBG_STR_FMT "\n", __FUNCTION__, DBG_FMT(new_fmt));
+            #endif
             return errno_exit("VIDIOC_S_FMT", errmsg);
         }
     }
@@ -255,7 +262,9 @@ V4L2_Base::ioctl_set_format(struct v4l2_format new_fmt, char * errmsg)
         }
     }
 
+    #ifdef V4L2_PIX_FMT_FLAG_PREMUL_ALPHA
     IDLog("%s: current format " DBG_STR_FMT "\n", __FUNCTION__, DBG_FMT(new_fmt));
+    #endif
 
     /* Update internals */
     decoder->setformat(new_fmt, has_ext_pix_format);
