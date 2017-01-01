@@ -1269,7 +1269,7 @@ void LX200Pulsar2::sendScopeTime(void) {
 
 
 void LX200Pulsar2::guideTimeoutHelper(void *p) {
-  static_cast<LX200Pulsar*>(p)->guideTimeout();
+  static_cast<LX200Pulsar2*>(p)->guideTimeout();
 }
 
 
