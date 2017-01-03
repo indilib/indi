@@ -30,18 +30,19 @@
 #include "lx200driver.h"
 
 
-#define PULSAR2_BUF             32
-#define PULSAR2_TIMEOUT         3
-
-
 extern char lx200Name[MAXINDIDEVICE];
 extern unsigned int DBG_SCOPE;
 
 
 namespace Pulsar2Commands {
-  // Reimplement some of the standard LX200 commands to solve intermittent problems
-  // with tcflush() calls on the input stream.
+  // Reimplement LX200 commands to solve intermittent problems with tcflush() calls on the input stream.
+  // This implementation parses all input received from the Pulsar controller.
   
+  static constexpr int TimeOut    = 3;
+  static constexpr int BufferSize = 32;
+
+
+  // Send a command string without waiting for any response from the Pulsar controller
   bool send(const int fd,const char* cmd) {
     DEBUGFDEVICE(lx200Name, DBG_SCOPE, "CMD <%s>", cmd);
     const int nbytes = strlen(cmd);
@@ -59,10 +60,11 @@ namespace Pulsar2Commands {
   }
 
 
-  bool confirmed(const int fd,const char* cmd,char& response) { // Single character response is expected indicating success or failure
+  // Send a command string and wait for a single character response indicating success or failure
+  bool confirmed(const int fd,const char* cmd,char& response) {
     if (send(fd,cmd)) {
       int nbytes_read = 0;
-      const int errcode = tty_read(fd,&response,1,PULSAR2_TIMEOUT,&nbytes_read);
+      const int errcode = tty_read(fd,&response,sizeof(response),TimeOut,&nbytes_read);
       if (errcode != TTY_OK) {
 	char errmsg[MAXRBUF];
 	tty_error_msg(errcode, errmsg, MAXRBUF);
@@ -79,36 +81,65 @@ namespace Pulsar2Commands {
   }
 
 
+  // Receive a response string terminate by a # character
   bool receive(const int fd,char response[]) {
+    static const char termination = '#', null = '\0';
+    response[0] = termination;
     int nbytes_read = 0;
     int retry_count;
-    for (retry_count = 0; nbytes_read < 2; ++retry_count) { // Ignore empty response strings!!
-      const int error_type = tty_read_section(fd,response,'#',PULSAR2_TIMEOUT,&nbytes_read);
-      if (error_type != TTY_OK)
+    for (retry_count = 0; nbytes_read < 2 && response[0] == termination; ++retry_count) { // Ignore empty response strings!!
+      const int errcode = tty_read_section(fd,response,termination,TimeOut,&nbytes_read);
+      if (errcode != TTY_OK) {
+	char errmsg[MAXRBUF];
+	tty_error_msg(errcode, errmsg, MAXRBUF);
+        DEBUGFDEVICE(lx200Name, DBG_SCOPE, "Error: %s (%d attempts)",errmsg,retry_count);
 	return false;
+      }
     }
-    response[nbytes_read-1] = '\0';
+    response[nbytes_read-1] = null; // Remove termination character
     DEBUGFDEVICE(lx200Name, DBG_SCOPE, "RES <%s> (%d attempts)",response,retry_count);
     return true;
   }
 
   
-  bool getString(const int fd,const char* cmd,char response[]) {
+  inline bool getString(const int fd,const char* cmd,char response[]) {
     return ( send(fd,cmd) && receive(fd,response) );
   }
 
 
-  bool getInt(int fd,const char* cmd,int* value) {
+  inline bool getVersion(const int fd,char response[]) {
+    return getString(fd,":YV#",response);
+  }
+
+
+  enum PECorrection { PECorrectionOff = 0, PECorrectionOn = 1 };
+
+  bool getPECorrection(const int fd,PECorrection* PECra,PECorrection* PECdec) {
+    char response[8];
+    bool success = getString(fd,"#:YGP#",response);
+    if (success) {
+      success = ( sscanf(response,"%1d,%1d",reinterpret_cast<int*>(PECra),reinterpret_cast<int*>(PECdec)) == 2 );
+    }
+    return success;
+  }
+
+  
+  enum RCorrection { RCorrectionOff = 0, RCorrectionOn = 1 };
+
+  bool getRCorrection(const int fd,RCorrection* Rra,RCorrection* Rdec) {
+    char response[8];
+    bool success = getString(fd,"#:YGR#",response);
+    if (success) {
+      success = ( sscanf(response,"%1d,%1d",reinterpret_cast<int*>(Rra),reinterpret_cast<int*>(Rdec)) == 2 );
+    }
+    return success;
+  }
+
+
+  bool getInt(const int fd,const char* cmd,int* value) {
     char response[16];
     bool success = getString(fd,cmd,response);
     if (success) {
-      // if (strchr(response,'.')) {
-      // 	float temp_number = 0.0;
-      // 	success = ( sscanf(response, "%f", &temp_number) == 1 );
-      // 	if (success)
-      // 	  *value = static_cast<int>(temp_number);
-      // }
-      // else
       success = ( sscanf(response, "%d", value) == 1 );
       if (success)
 	DEBUGFDEVICE(lx200Name, DBG_SCOPE, "VAL [%d]", *value);
@@ -119,13 +150,27 @@ namespace Pulsar2Commands {
   }
 
 
+  enum SideOfPier { EastOfPier = 0, WestOfPier = 1 };
+
+  inline bool getSideOfPier(const int fd,SideOfPier* side_of_pier) {
+    return getInt(fd,"#:YGN#",reinterpret_cast<int*>(side_of_pier));
+  }
+
+
+  enum PoleCrossing { PoleCrossingOff = 0, PoleCrossingOn = 1 };
+
+  inline bool getPoleCrossing(const int fd,PoleCrossing* pole_crossing) {
+    return getInt(fd,"#:YGQ#",reinterpret_cast<int*>(pole_crossing));
+  }
+  
+
   bool getSexa(const int fd,const char* cmd,double* value) {
     char response[16];
     bool success = getString(fd,cmd,response);
     if (success) {
       success = ( f_scansexa(response, value) == 0 );
       if (success)
-	DEBUGFDEVICE(lx200Name, DBG_SCOPE, "VAL [%d]", *value);
+	DEBUGFDEVICE(lx200Name, DBG_SCOPE, "VAL [%g]", *value);
       else
 	DEBUGDEVICE(lx200Name, DBG_SCOPE, "Unable to parse response");
     }
@@ -133,6 +178,66 @@ namespace Pulsar2Commands {
   }
 
 
+  inline bool getObjectRADec(const int fd,double* ra,double* dec) {
+    return ( getSexa(fd,"#:GR#",ra) && getSexa(fd,"#:GD#",dec) );
+  }
+  
+  
+  bool getDegreesMinutes(const int fd,const char* cmd,int* d,int* m) {
+    *d = *m = 0;
+    char response[16];
+    bool success = getString(fd,cmd,response);
+    if (success) {
+      success = ( sscanf(response,"%d%*c%d", d, m) == 2 );
+      if (success)
+	DEBUGFDEVICE(lx200Name, DBG_SCOPE, "VAL [%+03d:%02d]", *d, *m);
+      else
+	DEBUGDEVICE(lx200Name, DBG_SCOPE, "Unable to parse response");
+    }
+    return success;
+  }
+  
+
+  inline bool getSiteLatitude(const int fd,int *d,int *m) {
+    return getDegreesMinutes(fd,"#:Gt#",d,m);
+  }
+
+
+  inline bool getSiteLongitude(const int fd,int *d,int *m) {
+    return getDegreesMinutes(fd,"#:Gg#",d,m);
+  }
+
+  
+  bool getUTCDate(const int fd,int* m,int* d,int *y) {
+    char response[12];
+    bool success = getString(fd,"#:GC#",response);
+    if (success) {
+      success = ( sscanf(response,"%2d%*c%2d%*c%2d",m,d,y) == 3 );
+      if (success) {
+	*y += ( *y < 50 ? 2000 : 1900 );
+	DEBUGFDEVICE(lx200Name, DBG_SCOPE, "VAL [%02d/%02d/%04d]",*m,*d,*y);
+      }
+      else
+	DEBUGDEVICE(lx200Name, DBG_SCOPE, "Unable to parse date string");
+    }
+    return success;
+  }
+
+
+  bool getUTCTime(const int fd,int* h,int* m,int *s) {
+    char response[12];
+    bool success = getString(fd,"#:GL#",response);
+    if (success) {
+      success = ( sscanf(response,"%2d%*c%2d%*c%2d",h,m,s) == 3 );
+      if (success)
+	DEBUGFDEVICE(lx200Name, DBG_SCOPE, "VAL [%02d:%02d:%02d]",*h,*m,*s);
+      else
+	DEBUGDEVICE(lx200Name, DBG_SCOPE, "Unable to parse time string");
+    }
+    return success;
+  }
+
+    
   bool setDegreesMinutes(const int fd,const char* cmd,const double value) {
    int degrees, minutes, seconds;
    getSexComponents(value,&degrees,&minutes,&seconds);
@@ -143,6 +248,62 @@ namespace Pulsar2Commands {
   }
 
 
+  inline bool setSite(const int fd,const double longitude,const double latitude) {
+    return ( setDegreesMinutes(fd,"Sl",360.0-longitude) && setDegreesMinutes(fd,"St",latitude) );
+  }
+  
+
+  enum SlewMode {
+    SlewMax = 0,
+    SlewFind,
+    SlewCenter,
+    SlewGuide,
+    NumSlewRates
+  };
+
+  bool setSlewMode(const int fd,const SlewMode slewMode) {
+    static const char* commands[NumSlewRates] { "#:RS#", "#:RM#", "#:RC#", "#:RG#" };
+    return send(fd,commands[slewMode]);
+  }
+
+
+  enum Direction { North = 0, East, South, West, NumDirections };
+  static const char* DirectionName[NumDirections] = { "North", "East", "South", "West" };
+  
+  bool moveTo(const int fd,const Direction direction) {
+    static const char* commands[NumDirections] = { "#:Mn#", "#:Me#", "#:Ms#", "#:Mw#" };
+    return send(fd,commands[direction]);
+  }
+
+
+  bool haltMovement(const int fd,const Direction direction) {
+    static const char* commands[NumDirections] = { "#:Qn#", "#:Qe#", "#:Qs#", "#:Qw#" };
+    return send(fd,commands[direction]);
+  }
+
+
+  inline bool startSlew(const int fd) {
+    char response[4];
+    const bool success = ( getString(fd,"#:MS#",response) && response[0] == '0' );
+    return success;
+  }
+
+
+  inline bool abortSlew(const int fd) {
+    return send(fd,"#:Q#");
+  }
+
+
+  // Pulse guide commands are only supported by the Pulsar2 controller and not the older Pulsar controller
+  bool pulseGuide(const int fd,const Direction direction,const float ms) {
+    static const char code[NumDirections] = { 'n', 'e', 's', 'w' };
+    const int pulse = std::min( std::max( 1,static_cast<int>(1000.0*(ms + 0.5)) ), 999 );
+    char full_cmd[16];
+    snprintf(full_cmd,sizeof(full_cmd),"#:MG%c%03d3#",code[direction],pulse);
+    return send(fd,full_cmd);
+  }
+  
+  
   bool setTime(const int fd,const int h,const int m,const int s) {
     char full_cmd[32];
     snprintf(full_cmd,sizeof(full_cmd),"#:SL %02d:%02d:%02d#",h,m,s);
@@ -167,49 +328,191 @@ namespace Pulsar2Commands {
   }
 
   
+  bool ensureLongFormat(const int fd) {
+    char response[16];
+    bool success = getString(fd,"#:GR#",response);
+    if (response[5] == '.') {
+      // In case of short format, set long format
+      success = ( confirmed(fd,"#:U#",response[0]) && response[0] == '1' );
+    }
+    return success;
+  }
+
+
+  bool setObjectRA(const int fd,const double ra) {
+    int h, m, s;
+    getSexComponents(ra,&h,&m,&s);
+    char full_cmd[32];
+    snprintf(full_cmd,sizeof(full_cmd),"#:Sr %02d:%02d:%02d#",h,m,s);
+    char response;
+    return ( confirmed(fd,full_cmd,response) && response == '1' );
+  }
+
+
+  bool setObjectDEC(const int fd,const double dec) {
+    int d, m, s;
+    getSexComponents(dec,&d,&m,&s);
+    char full_cmd[32];
+    snprintf(full_cmd,sizeof(full_cmd),"#:Sd %+03d:%02d:%02d#",d,m,s);
+    char response;
+    return ( confirmed(fd,full_cmd,response) && response == '1' );
+  }
+
+
+  inline bool setObjectRADec(const int fd,const double ra,const double dec) {
+    return ( setObjectRA(fd,ra) && setObjectDEC(fd,dec) );
+  }
+
+
+  inline bool park(const int fd) {
+    int success = 0;
+    return ( getInt(fd,"#:YH#",&success) && success == 1 );
+  }
+
+  
+  inline bool unpark(const int fd) {
+    int success = 0;
+    return ( getInt(fd,"#:YL#",&success) && success == 1 );
+  }
+  
+
+  inline bool sync(const int fd) {
+    return send(fd,"#:CM#");
+  }
+
+
+  static const char OnOff[2] = { '0', '1' };
+
+  bool setSideOfPier(const int fd,const SideOfPier side_of_pier) {
+    static char cmd[] = "#:YSN_#";
+    cmd[5] = OnOff[side_of_pier];
+    char response;
+    return ( confirmed(fd,cmd,response) && response == '1' );
+  }
+
+
+  bool setPECorrection(const int fd,const PECorrection pec_ra,const PECorrection pec_dec) {
+    static char cmd[] = "#:YSP_,_#";
+    cmd[5] = OnOff[pec_ra ];
+    cmd[7] = OnOff[pec_dec];
+    char response;
+    return ( confirmed(fd,cmd,response) && response == '1' );
+  }
+
+	  
+  bool setPoleCrossing(const int fd,const PoleCrossing pole_crossing) {
+    static char cmd[] = "#:YSQ_#";
+    cmd[5] = OnOff[pole_crossing];
+    char response;
+    return ( confirmed(fd,cmd,response) && response == '1' );
+  }
+
+
+  bool setRCorrection(const int fd,const RCorrection rc_ra,const RCorrection rc_dec) {
+    static char cmd[] = "#:YSR_,_#";
+    cmd[5] = OnOff[rc_ra ];
+    cmd[7] = OnOff[rc_dec];
+    char response;
+    return ( confirmed(fd,cmd,response) && response == '1' );
+  }
+
+      
+  inline bool isHomeSet(const int fd) {
+    int is_home_set = -1;
+    return ( getInt(fd,"#:YGh#",&is_home_set) && is_home_set == 1 );
+  }
+
+
+  inline bool isParked(const int fd) {
+    int  is_parked = -1;
+    return ( getInt(fd,"#:YGk#",&is_parked) && is_parked == 1 );
+  }
+
+
+  inline bool isParking(const int fd) {
+    int  is_parking = -1;
+    return ( getInt(fd,"#:YGj#",&is_parking) && is_parking == 1 );
+  }
+
+
 };
 
 
 
 
 LX200Pulsar2::LX200Pulsar2(void)
-  : LX200Generic(), can_pulse_guide(false), just_started_slewing(false)
+  : LX200Generic(), just_started_slewing(false)
 {
   setVersion(1, 0);
   SetTelescopeCapability(TELESCOPE_CAN_SYNC | TELESCOPE_CAN_PARK | TELESCOPE_CAN_ABORT | TELESCOPE_HAS_TIME | TELESCOPE_HAS_LOCATION, 4);
 }
 
 
-bool LX200Pulsar2::updateProperties(void) {
-  LX200Generic::updateProperties();
-  
-  if (isConnected()) {
-    defineSwitch(&PierSideSP);
-    defineSwitch(&PeriodicErrorCorrectionSP);
-    defineSwitch(&PoleCrossingSP);
-    defineSwitch(&RefractionCorrectionSP);
-    // Delete unsupported properties
-    deleteProperty(AlignmentSP.name);
-    deleteProperty(FocusMotionSP.name);
-    deleteProperty(FocusTimerNP.name);
-    deleteProperty(FocusModeSP.name);
-    deleteProperty(SiteSP.name);
-    deleteProperty(SiteNameTP.name);
-    deleteProperty(TrackingFreqNP.name);
-    deleteProperty(TrackModeSP.name);
-    deleteProperty(ActiveDeviceTP.name);
-    if (!can_pulse_guide) deleteProperty(UsePulseCmdSP.name);
+const char * LX200Pulsar2::getDefaultName(void) {
+  return static_cast<const char *>("Pulsar2");
+}
 
-    getBasicData();
-  }
-  else {
-    deleteProperty(PierSideSP.name);
-    deleteProperty(PeriodicErrorCorrectionSP.name);
-    deleteProperty(PoleCrossingSP.name);
-    deleteProperty(RefractionCorrectionSP.name);
-  }
 
-  return true;
+bool LX200Pulsar2::Connect(void) {
+  const bool success = LX200Generic::Connect();
+  if (success) {
+    if (isParked()) {
+      DEBUGF(INDI::Logger::DBG_DEBUG, "%s", "Trying to wake up the mount.");
+      UnPark();
+    }
+    else
+      DEBUGF(INDI::Logger::DBG_DEBUG, "%s", "The mount is already tracking.");
+  }
+  return success;
+}
+
+
+bool LX200Pulsar2::ReadScopeStatus(void) {
+  bool success = isConnected();
+  if (success) {
+    success = isSimulation();
+    if (success)
+      mountSim();
+    else {
+      switch (TrackState) {
+      case SCOPE_SLEWING:
+        // Check if LX200 is done slewing
+        if (isSlewComplete()) {
+	  // Set slew mode to "Centering"
+	  IUResetSwitch(&SlewRateSP);
+	  SlewRateS[SLEW_CENTERING].s = ISS_ON;
+	  IDSetSwitch(&SlewRateSP, NULL);
+	  TrackState = SCOPE_TRACKING;
+	  IDMessage(getDeviceName(),"Slew is complete. Tracking...");
+        }
+	break;
+      case SCOPE_PARKING:
+        if (isSlewComplete())
+	  SetParked(true);
+      }
+      success = Pulsar2Commands::getObjectRADec(PortFD,&currentRA,&currentDEC);
+      if (success)
+	NewRaDec(currentRA, currentDEC);
+      else {
+	EqNP.s = IPS_ALERT;
+	IDSetNumber(&EqNP, "Error reading RA/DEC.");
+      }
+    }
+  }
+  return success;
+}
+
+
+void LX200Pulsar2::ISGetProperties(const char *dev) {
+  if (dev != NULL && strcmp(dev,getDeviceName()) == 0) {
+    LX200Generic::ISGetProperties(dev);
+    if (isConnected()) {
+      defineSwitch(&PierSideSP);
+      defineSwitch(&PeriodicErrorCorrectionSP);
+      defineSwitch(&PoleCrossingSP);
+      defineSwitch(&RefractionCorrectionSP);
+    }
+  }
 }
 
 
@@ -233,32 +536,34 @@ bool LX200Pulsar2::initProperties(void) {
 }
 
 
-void LX200Pulsar2::ISGetProperties(const char *dev) {
-  if (dev && strcmp(dev,getDeviceName()))
-    return;
-
-  LX200Generic::ISGetProperties(dev);
+bool LX200Pulsar2::updateProperties(void) {
+  LX200Generic::updateProperties();
   
   if (isConnected()) {
     defineSwitch(&PierSideSP);
     defineSwitch(&PeriodicErrorCorrectionSP);
     defineSwitch(&PoleCrossingSP);
     defineSwitch(&RefractionCorrectionSP);
+    // Delete unsupported properties
+    deleteProperty(AlignmentSP.name);
+    deleteProperty(FocusMotionSP.name);
+    deleteProperty(FocusTimerNP.name);
+    deleteProperty(FocusModeSP.name);
+    deleteProperty(SiteSP.name);
+    deleteProperty(SiteNameTP.name);
+    deleteProperty(TrackingFreqNP.name);
+    deleteProperty(TrackModeSP.name);
+    deleteProperty(ActiveDeviceTP.name);
+    getBasicData();
   }
-}
-
-
-bool LX200Pulsar2::Connect(void) {
-  const bool success = LX200Generic::Connect();
-  if (success) {
-    if (isParked()) {
-      DEBUGF(INDI::Logger::DBG_DEBUG, "%s", "Trying to wake up the mount.");
-      UnPark();
-    }
-    else
-      DEBUGF(INDI::Logger::DBG_DEBUG, "%s", "The mount is already tracking.");
+  else {
+    deleteProperty(PierSideSP.name);
+    deleteProperty(PeriodicErrorCorrectionSP.name);
+    deleteProperty(PoleCrossingSP.name);
+    deleteProperty(RefractionCorrectionSP.name);
   }
-  return success;
+
+  return true;
 }
 
 
@@ -270,26 +575,17 @@ bool LX200Pulsar2::ISNewSwitch (const char *dev, const char *name, ISState *stat
 
       if (!isSimulation()) {
 	// Define which side of the pier the telescope is.
-	// Required for the sync command. This is *not*
-	// related to a meridian flip.
-	static char cmd[] = "#:YSN_#";
-	cmd[5] = ( PierSideS[1].s == ISS_ON ? '1' : '0' );
-	char response;
-	if (Pulsar2Commands::confirmed(PortFD,cmd,response)) {
-	  if (response == '1') {
-	    PierSideSP.s = IPS_OK;
-	    IDSetSwitch(&PierSideSP, NULL);
-	    return true;
-	  }
-	  else {
-	    PierSideSP.s = IPS_ALERT;
-	    IDSetSwitch(&PierSideSP, "Could not set side of mount");
-	    return false;
-	  }
+	// Required for the sync command. This is *not* related to a meridian flip.
+	const bool success = Pulsar2Commands::setSideOfPier(PortFD,( PierSideS[1].s == ISS_ON ? Pulsar2Commands::WestOfPier : Pulsar2Commands::EastOfPier ));
+	if (success) {
+	  PierSideSP.s = IPS_OK;
+	  IDSetSwitch(&PierSideSP, NULL);
 	}
-	PierSideSP.s = IPS_ALERT;
-	IDSetSwitch(&PierSideSP, "Unexpected response");
-	return false;
+	else {
+	  PierSideSP.s = IPS_ALERT;
+	  IDSetSwitch(&PierSideSP, "Could not set side of mount");
+	}
+	return success;
       }
     }
 
@@ -298,25 +594,19 @@ bool LX200Pulsar2::ISNewSwitch (const char *dev, const char *name, ISState *stat
 	return false;
 
       if (!isSimulation()) {
-	// Only control PEC in RA. PEC in decl. doesn´t seem usefull.
-	static char cmd[] = "#:YSP_,0#";
-	cmd[5] = ( PeriodicErrorCorrectionS[1].s == ISS_ON ? '1' : '0' );
-	char response;
-	if (Pulsar2Commands::confirmed(PortFD,cmd,response)) {
-	  if (response == '1') {
-	    PeriodicErrorCorrectionSP.s = IPS_OK;
-	    IDSetSwitch(&PeriodicErrorCorrectionSP, NULL);
-	    return true;
-	  }
-	  else {
-	    PeriodicErrorCorrectionSP.s = IPS_ALERT;
-	    IDSetSwitch(&PeriodicErrorCorrectionSP, "Could not change the periodic error correction");
-	    return false;
-	  }
+	// Only control PEC in RA. PEC in decl. doesn't seem usefull.
+	const bool success
+	  = Pulsar2Commands::setPECorrection(PortFD,( PeriodicErrorCorrectionS[1].s == ISS_ON ? Pulsar2Commands::PECorrectionOn : Pulsar2Commands::PECorrectionOff ),
+					    Pulsar2Commands::PECorrectionOff);
+	if (success) {
+	  PeriodicErrorCorrectionSP.s = IPS_OK;
+	  IDSetSwitch(&PeriodicErrorCorrectionSP, NULL);
 	}
-	PeriodicErrorCorrectionSP.s = IPS_ALERT;
-	IDSetSwitch(&PeriodicErrorCorrectionSP, "Unexpected response");
-	return false;
+	else {
+	  PeriodicErrorCorrectionSP.s = IPS_ALERT;
+	  IDSetSwitch(&PeriodicErrorCorrectionSP, "Could not change the periodic error correction");
+	}
+	return success;
       }
     }
 
@@ -325,24 +615,16 @@ bool LX200Pulsar2::ISNewSwitch (const char *dev, const char *name, ISState *stat
 	return false;
 
       if (!isSimulation()) {
-	static char cmd[] = "#:YSQ_#";
-	cmd[5] = ( PoleCrossingS[1].s == ISS_ON ? '1' : '0' );
-	char response;
-	if (Pulsar2Commands::confirmed(PortFD,cmd,response)) {
-	  if (response == '1') {
-	    PoleCrossingSP.s = IPS_OK;
-	    IDSetSwitch(&PoleCrossingSP, NULL);
-	    return true;
-	  }
-	  else {
-	    PoleCrossingSP.s = IPS_ALERT;
-	    IDSetSwitch(&PoleCrossingSP, "Could not change the pole crossing");
-	    return false;
-	  }
+	const bool success = Pulsar2Commands::setPoleCrossing(PortFD,( PoleCrossingS[1].s == ISS_ON ? Pulsar2Commands::PoleCrossingOn : Pulsar2Commands::PoleCrossingOff ));
+	if (success) {
+	  PoleCrossingSP.s = IPS_OK;
+	  IDSetSwitch(&PoleCrossingSP, NULL);
 	}
-	PoleCrossingSP.s = IPS_ALERT;
-	IDSetSwitch(&PoleCrossingSP, "Unexpected response");
-	return false;
+	else {
+	  PoleCrossingSP.s = IPS_ALERT;
+	  IDSetSwitch(&PoleCrossingSP, "Could not change the pole crossing");
+	}
+	return success;
       }
     }
 
@@ -352,24 +634,17 @@ bool LX200Pulsar2::ISNewSwitch (const char *dev, const char *name, ISState *stat
 
       if (!isSimulation()) {
 	// Control refraction correction in both RA and decl.
-	static char cmd[] = "#:YSR_,_#";
-	cmd[7] = cmd[5] = ( RefractionCorrectionS[1].s == ISS_ON ? '1' : '0' );
-	char response;
-	if (Pulsar2Commands::confirmed(PortFD,cmd,response)) {
-	  if (response == '1') {
-	    RefractionCorrectionSP.s = IPS_OK;
-	    IDSetSwitch(&RefractionCorrectionSP, NULL);
-	    return true;
-	  }
-	  else {
-	    RefractionCorrectionSP.s = IPS_ALERT;
-	    IDSetSwitch(&RefractionCorrectionSP, "Could not change the refraction correction");
-	    return false;
-	  }
+	const Pulsar2Commands::RCorrection rc = ( RefractionCorrectionS[1].s == ISS_ON ? Pulsar2Commands::RCorrectionOn : Pulsar2Commands::RCorrectionOff );
+	const bool success = Pulsar2Commands::setRCorrection(PortFD,rc,rc);
+	if (success) {
+	  RefractionCorrectionSP.s = IPS_OK;
+	  IDSetSwitch(&RefractionCorrectionSP, NULL);
 	}
-	RefractionCorrectionSP.s = IPS_ALERT;
-	IDSetSwitch(&RefractionCorrectionSP, "Unexpected response");
-	return false;
+	else {
+	  RefractionCorrectionSP.s = IPS_ALERT;
+	  IDSetSwitch(&RefractionCorrectionSP, "Could not change the refraction correction");
+	}
+	return success;
       }
     }
   }
@@ -379,38 +654,284 @@ bool LX200Pulsar2::ISNewSwitch (const char *dev, const char *name, ISState *stat
 
 
 bool LX200Pulsar2::ISNewText(const char* dev, const char* name, char* texts[], char* names[], int n) {
-  if(strcmp(dev,getDeviceName())==0) {
+  if(strcmp(dev,getDeviceName()) == 0) {
     // Nothing to do yet
   }
   return LX200Generic::ISNewText(dev, name, texts, names, n);
 }
 
 
-const char * LX200Pulsar2::getDefaultName(void) {
-  return static_cast<const char *>("Pulsar2");
+bool LX200Pulsar2::SetSlewRate(int index) {
+  // Convert index to Meade format
+  index = 3 - index;
+  const bool success = ( isSimulation() || Pulsar2Commands::setSlewMode(PortFD,static_cast<Pulsar2Commands::SlewMode>(index)) );
+  if (success) {
+    SlewRateSP.s = IPS_OK;
+    IDSetSwitch(&SlewRateSP, NULL);
+  }
+  else {
+    SlewRateSP.s = IPS_ALERT;
+    IDSetSwitch(&SlewRateSP, "Error setting slew mode.");
+  }
+  return success;
 }
 
 
-bool LX200Pulsar2::checkConnection(void) {
-  if (LX200Generic::checkConnection()) {
-    DEBUG(INDI::Logger::DBG_DEBUG, "Checking Pulsar2 version ...");
-    for (int i = 0; i < 2; ++i) {
-      char response[PULSAR2_BUF];
-      if (Pulsar2Commands::getString(PortFD,":YV#",response)) {
-	// Determine which Pulsar2 version this is. Expected response similar to: 'PULSAR V2.66aR  ,2008.12.10.     #'
-	char version[16];
-	int  year, month, day;
-	if (sscanf(response, "PULSAR V%8s ,%4d.%2d.%2d. ", version, &year, &month, &day) == 4) {
-	  //TODO: Replace this with a check that indicates that this is a Pulsar2 which can pulse guide.
-	  can_pulse_guide = ( version[0] == '3' );
-	}
-	DEBUGF(INDI::Logger::DBG_SESSION, "%s %04d.%02d.%02d", version, year, month, day);
-	return true;
+bool LX200Pulsar2::MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command) {
+  const Pulsar2Commands::Direction current_move = ( dir == DIRECTION_NORTH ? Pulsar2Commands::North : Pulsar2Commands::South );
+  bool success = true;
+  switch (command) {
+  case MOTION_START:
+    success = ( isSimulation() || Pulsar2Commands::moveTo(PortFD, current_move) );
+    if (success)
+      DEBUGF(INDI::Logger::DBG_SESSION,"Moving toward %s.", Pulsar2Commands::DirectionName[current_move]);
+    else
+      DEBUG(INDI::Logger::DBG_ERROR, "Error starting N/S motion.");
+    break;
+  case MOTION_STOP:
+    success = ( isSimulation() || Pulsar2Commands::haltMovement(PortFD, current_move) );
+    if (success)
+      DEBUGF(INDI::Logger::DBG_SESSION, "Movement toward %s halted.", Pulsar2Commands::DirectionName[current_move]);
+    else      
+      DEBUG(INDI::Logger::DBG_ERROR, "Error stopping N/S motion.");
+    break;
+  }
+  return success;
+}
+
+
+bool LX200Pulsar2::MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command) {
+  const Pulsar2Commands::Direction current_move = ( dir == DIRECTION_WEST ? Pulsar2Commands::West : Pulsar2Commands::East );
+  bool success = true;
+  switch (command) {
+  case MOTION_START:
+    success = ( isSimulation() || Pulsar2Commands::moveTo(PortFD, current_move) );
+    if (success)
+      DEBUGF(INDI::Logger::DBG_SESSION,"Moving toward %s.", Pulsar2Commands::DirectionName[current_move]);
+    else
+      DEBUG(INDI::Logger::DBG_ERROR, "Error starting W/E motion.");
+    break;
+  case MOTION_STOP:
+    success = ( isSimulation() || Pulsar2Commands::haltMovement(PortFD, current_move) );
+    if (success)
+      DEBUGF(INDI::Logger::DBG_SESSION, "Movement toward %s halted.", Pulsar2Commands::DirectionName[current_move]);
+    else
+      DEBUG(INDI::Logger::DBG_ERROR, "Error stopping W/E motion.");
+    break;
+  }
+  return success;
+}
+
+
+bool LX200Pulsar2::Abort(void) {
+  const bool success = ( isSimulation() || Pulsar2Commands::abortSlew(PortFD) );
+  if (success) {
+    if (GuideNSNP.s == IPS_BUSY || GuideWENP.s == IPS_BUSY) {
+      GuideNSNP.s  = GuideWENP.s =  IPS_IDLE;
+      GuideNSN[0].value = GuideNSN[1].value = 0.0;
+      GuideWEN[0].value = GuideWEN[1].value = 0.0;
+      if (GuideNSTID) {
+	IERmTimer(GuideNSTID);
+	GuideNSTID = 0;
       }
-      usleep(50000);
+      if (GuideWETID) {
+	IERmTimer(GuideWETID);
+	GuideNSTID = 0;
+      }
+      IDMessage(getDeviceName(), "Guide aborted.");
+      IDSetNumber(&GuideNSNP, NULL);
+      IDSetNumber(&GuideWENP, NULL);
     }
   }
-  return false;
+  else
+    DEBUG(INDI::Logger::DBG_ERROR, "Failed to abort slew.");
+  return success;
+}
+
+
+IPState LX200Pulsar2::GuideNorth(float ms) {
+  const int use_pulse_cmd = IUFindOnSwitchIndex(&UsePulseCmdSP);
+  if (!use_pulse_cmd && (MovementNSSP.s == IPS_BUSY || MovementWESP.s == IPS_BUSY)) {
+    DEBUG(INDI::Logger::DBG_ERROR, "Cannot guide while moving.");
+    return IPS_ALERT;
+  }
+  // If already moving (no pulse command), then stop movement
+  if (MovementNSSP.s == IPS_BUSY) {
+    const int dir = IUFindOnSwitchIndex(&MovementNSSP);
+    MoveNS(dir == 0 ? DIRECTION_NORTH : DIRECTION_SOUTH, MOTION_STOP);
+  }
+  if (GuideNSTID) {
+    IERmTimer(GuideNSTID);
+    GuideNSTID = 0;
+  }
+  if (use_pulse_cmd)
+    (void) Pulsar2Commands::pulseGuide(PortFD,Pulsar2Commands::North,ms);
+  else {
+    if (!Pulsar2Commands::setSlewMode(PortFD,Pulsar2Commands::SlewGuide)) {
+      SlewRateSP.s = IPS_ALERT;
+      IDSetSwitch(&SlewRateSP, "Error setting slew mode.");
+      return IPS_ALERT;
+    }
+    MovementNSS[0].s = ISS_ON;
+    MoveNS(DIRECTION_NORTH, MOTION_START);
+  }
+  // Set slew to guiding
+  IUResetSwitch(&SlewRateSP);
+  SlewRateS[SLEW_GUIDE].s = ISS_ON;
+  IDSetSwitch(&SlewRateSP, NULL);
+  guide_direction = LX200_NORTH;
+  GuideNSTID = IEAddTimer (ms, guideTimeoutHelper, this);
+  return IPS_BUSY;
+}
+
+
+IPState LX200Pulsar2::GuideSouth(float ms) {
+  const int use_pulse_cmd = IUFindOnSwitchIndex(&UsePulseCmdSP);
+  if (!use_pulse_cmd && (MovementNSSP.s == IPS_BUSY || MovementWESP.s == IPS_BUSY)) {
+    DEBUG(INDI::Logger::DBG_ERROR, "Cannot guide while moving.");
+    return IPS_ALERT;
+  }
+  // If already moving (no pulse command), then stop movement
+  if (MovementNSSP.s == IPS_BUSY) {
+    const int dir = IUFindOnSwitchIndex(&MovementNSSP);
+    MoveNS(dir == 0 ? DIRECTION_NORTH : DIRECTION_SOUTH, MOTION_STOP);
+  }
+  if (GuideNSTID) {
+    IERmTimer(GuideNSTID);
+    GuideNSTID = 0;
+  }
+  if (use_pulse_cmd)
+    (void) Pulsar2Commands::pulseGuide(PortFD,Pulsar2Commands::South,ms);
+  else {
+    if (!Pulsar2Commands::setSlewMode(PortFD,Pulsar2Commands::SlewGuide)) {
+      SlewRateSP.s = IPS_ALERT;
+      IDSetSwitch(&SlewRateSP, "Error setting slew mode.");
+      return IPS_ALERT;
+    }
+    MovementNSS[1].s = ISS_ON;
+    MoveNS(DIRECTION_SOUTH, MOTION_START);
+  }
+  // Set slew to guiding
+  IUResetSwitch(&SlewRateSP);
+  SlewRateS[SLEW_GUIDE].s = ISS_ON;
+  IDSetSwitch(&SlewRateSP, NULL);
+  guide_direction = LX200_SOUTH;
+  GuideNSTID = IEAddTimer (ms, guideTimeoutHelper, this);
+  return IPS_BUSY;
+}
+
+
+IPState LX200Pulsar2::GuideEast(float ms) {
+  const int use_pulse_cmd = IUFindOnSwitchIndex(&UsePulseCmdSP);
+  if (!use_pulse_cmd && (MovementNSSP.s == IPS_BUSY || MovementWESP.s == IPS_BUSY)) {
+    DEBUG(INDI::Logger::DBG_ERROR, "Cannot guide while moving.");
+    return IPS_ALERT;
+  }
+  // If already moving (no pulse command), then stop movement
+  if (MovementWESP.s == IPS_BUSY) {
+    const int dir = IUFindOnSwitchIndex(&MovementWESP);
+    MoveWE(dir == 0 ? DIRECTION_WEST : DIRECTION_EAST, MOTION_STOP);
+  }
+  if (GuideWETID) {
+    IERmTimer(GuideWETID);
+    GuideWETID = 0;
+  }
+  if (use_pulse_cmd)
+    (void) Pulsar2Commands::pulseGuide(PortFD,Pulsar2Commands::East,ms);
+  else  {
+    if (!Pulsar2Commands::setSlewMode(PortFD,Pulsar2Commands::SlewGuide)) {
+      SlewRateSP.s = IPS_ALERT;
+      IDSetSwitch(&SlewRateSP, "Error setting slew mode.");
+      return IPS_ALERT;
+    }
+    MovementWES[1].s = ISS_ON;
+    MoveWE(DIRECTION_EAST, MOTION_START);
+  }
+  // Set slew to guiding
+  IUResetSwitch(&SlewRateSP);
+  SlewRateS[SLEW_GUIDE].s = ISS_ON;
+  IDSetSwitch(&SlewRateSP, NULL);
+  guide_direction = LX200_EAST;
+  GuideWETID = IEAddTimer (ms, guideTimeoutHelper, this);
+  return IPS_BUSY;
+}
+
+
+IPState LX200Pulsar2::GuideWest(float ms) {
+  const int use_pulse_cmd = IUFindOnSwitchIndex(&UsePulseCmdSP);
+  if (!use_pulse_cmd && (MovementNSSP.s == IPS_BUSY || MovementWESP.s == IPS_BUSY)) {
+    DEBUG(INDI::Logger::DBG_ERROR, "Cannot guide while moving.");
+    return IPS_ALERT;
+  }
+  // If already moving (no pulse command), then stop movement
+  if (MovementWESP.s == IPS_BUSY) {
+    const int dir = IUFindOnSwitchIndex(&MovementWESP);
+    MoveWE(dir == 0 ? DIRECTION_WEST : DIRECTION_EAST, MOTION_STOP);
+  }
+  if (GuideWETID) {
+    IERmTimer(GuideWETID);
+    GuideWETID = 0;
+  }
+  if (use_pulse_cmd)
+    (void) Pulsar2Commands::pulseGuide(PortFD,Pulsar2Commands::West,ms);
+  else {
+    if (!Pulsar2Commands::setSlewMode(PortFD,Pulsar2Commands::SlewGuide)) {
+      SlewRateSP.s = IPS_ALERT;
+      IDSetSwitch(&SlewRateSP, "Error setting slew mode.");
+      return IPS_ALERT;
+    }
+    MovementWES[0].s = ISS_ON;
+    MoveWE(DIRECTION_WEST, MOTION_START);
+  }
+  // Set slew to guiding
+  IUResetSwitch(&SlewRateSP);
+  SlewRateS[SLEW_GUIDE].s = ISS_ON;
+  IDSetSwitch(&SlewRateSP, NULL);
+  guide_direction = LX200_WEST;
+  GuideWETID = IEAddTimer (ms, guideTimeoutHelper, this);
+  return IPS_BUSY;
+}
+
+
+bool LX200Pulsar2::updateTime(ln_date * utc, double utc_offset) {
+  INDI_UNUSED(utc_offset);
+  bool success = true;
+  if (!isSimulation()) {
+    struct ln_zonedate ltm;
+    ln_date_to_zonedate(utc,&ltm,0.0); // One should use UTC only with Pulsar!
+    JD = ln_get_julian_day(utc);
+    DEBUGF(INDI::Logger::DBG_DEBUG, "New JD is %f",static_cast<float>(JD));
+    success = Pulsar2Commands::setTime(PortFD,ltm.hours,ltm.minutes,ltm.seconds);
+    if (success) {
+      success = Pulsar2Commands::setDate(PortFD,ltm.days,ltm.months,ltm.years);
+      if (success)
+	DEBUG(INDI::Logger::DBG_SESSION, "Time updated, updating planetary data...");
+      else 
+	DEBUG(INDI::Logger::DBG_ERROR, "Error setting UTC date.");
+    }
+    else
+      DEBUG(INDI::Logger::DBG_ERROR, "Error setting UTC time.");
+    // Pulsar cannot set UTC offset (?)
+  }
+  return success;
+}
+
+
+bool LX200Pulsar2::updateLocation(double latitude, double longitude,double elevation) {
+  INDI_UNUSED(elevation);
+  bool success = true;
+  if (!isSimulation()) {
+    success = Pulsar2Commands::setSite(PortFD,longitude,latitude);
+    if (success) {
+      char l[32], L[32];
+      fs_sexa(l,latitude, 3,3600);
+      fs_sexa(L,longitude,4,3600);
+      IDMessage(getDeviceName(), "Site location updated to Lat %.32s - Long %.32s", l, L);
+    }
+    else
+      DEBUG(INDI::Logger::DBG_ERROR, "Error setting site coordinates");
+  }
+  return success;
 }
 
 
@@ -421,7 +942,7 @@ bool LX200Pulsar2::Goto(double r,double d) {
 
   // If moving, let's stop it first.
   if (EqNP.s == IPS_BUSY) {
-    if (!isSimulation() && abortSlew(PortFD) < 0) {
+    if (!isSimulation() && !Pulsar2Commands::abortSlew(PortFD)) {
       AbortSP.s = IPS_ALERT;
       IDSetSwitch(&AbortSP, "Abort slew failed.");
       return false;
@@ -444,12 +965,12 @@ bool LX200Pulsar2::Goto(double r,double d) {
   }
   
   if (!isSimulation()) {
-    if (setObjectRA(PortFD, targetRA) < 0 || (setObjectDEC(PortFD, targetDEC)) < 0) {
+    if (!Pulsar2Commands::setObjectRADec(PortFD,targetRA,targetDEC)) {
       EqNP.s = IPS_ALERT;
       IDSetNumber(&EqNP, "Error setting RA/DEC.");
       return false;
     }
-    if (!startSlew()) {
+    if (!Pulsar2Commands::startSlew(PortFD)) {
       EqNP.s = IPS_ALERT;
       IDSetNumber(&EqNP, "Error Slewing to JNow RA %s - DEC %s\n", RAStr, DecStr);
       slewError(3);
@@ -465,93 +986,82 @@ bool LX200Pulsar2::Goto(double r,double d) {
 }
 
 
-bool LX200Pulsar2::isSlewComplete(void) {
-  bool result = false;
-  switch (TrackState) {
-  case SCOPE_SLEWING:
-    result = !isSlewing();
-    break;
-  case SCOPE_PARKING:
-    result = !isParking();
-    break;
-  default:
-    break;
-  }
-  return result;
-}
-
-
-void LX200Pulsar2::getBasicData(void) {
+bool LX200Pulsar2::Park(void) {
   if (!isSimulation()) {
-    if ( !Pulsar2Commands::getSexa(PortFD,"#:GR#",&currentRA) || !Pulsar2Commands::getSexa(PortFD,"#:GD#",&currentDEC) ) {
-      EqNP.s = IPS_ALERT;
-      IDSetNumber(&EqNP, "Error reading RA/DEC.");
-      return;
+    if (!Pulsar2Commands::isHomeSet(PortFD)) {
+      ParkSP.s = IPS_ALERT;
+      IDSetSwitch(&ParkSP, "No parking position defined.");
+      return false;
     }
-    NewRaDec(currentRA,currentDEC);
-
-    int west_of_pier = 0;
-    if (Pulsar2Commands::getInt(PortFD,"#:YGN#",&west_of_pier) < 0) {
-      PierSideSP.s = IPS_ALERT;
-      IDSetSwitch(&PierSideSP, "Can't check at which side of the pier the telescope is.");
+    if (Pulsar2Commands::isParked(PortFD)) {
+      ParkSP.s = IPS_ALERT;
+      IDSetSwitch(&ParkSP, "Scope has already been parked.");
+      return false;
     }
-    PierSideS[west_of_pier].s = ISS_ON;
-    IDSetSwitch(&PierSideSP, NULL);
-
-    char periodic_error_correction[PULSAR2_BUF]; // There are separate values for RA and DEC but we only use the RA value for now
-    if (!Pulsar2Commands::getString(PortFD,"#:YGP#",periodic_error_correction)) {
-      PeriodicErrorCorrectionSP.s = IPS_ALERT;
-      IDSetSwitch(&PeriodicErrorCorrectionSP, "Can't check whether PEC is enabled.");
-    }
-    PeriodicErrorCorrectionS[periodic_error_correction[0] == '1' ? 0 : 1].s = ISS_ON;
-    IDSetSwitch(&PeriodicErrorCorrectionSP, NULL);
-
-    int pole_crossing = 0;
-    if (Pulsar2Commands::getInt(PortFD,"#:YGQ#",&pole_crossing) < 0) {
-      PoleCrossingSP.s = IPS_ALERT;
-      IDSetSwitch(&PoleCrossingSP, "Can't check whether pole crossing is enabled.");
-    }
-    PoleCrossingS[pole_crossing].s = ISS_ON;
-    IDSetSwitch(&PoleCrossingSP, NULL);
-
-    char refraction_correction[PULSAR2_BUF]; // There are separate values for RA and DEC but we only use the RA value for now
-    if (!Pulsar2Commands::getString(PortFD,"#:YGR#",refraction_correction)) {
-      RefractionCorrectionSP.s = IPS_ALERT;
-      IDSetSwitch(&RefractionCorrectionSP, "Can't check whether refraction correction is enabled.");
-    }
-    RefractionCorrectionS[refraction_correction[0] == '1' ? 1 : 0].s = ISS_ON;
-    IDSetSwitch(&RefractionCorrectionSP, NULL);
   }
-  sendScopeLocation();
-  sendScopeTime();
+    
+  // If scope is moving, let's stop it first.
+  if (EqNP.s == IPS_BUSY) {
+    if (!isSimulation() && !Pulsar2Commands::abortSlew(PortFD)) {
+      AbortSP.s = IPS_ALERT;
+      IDSetSwitch(&AbortSP, "Abort slew failed.");
+      return false;
+    }
+
+    AbortSP.s    = IPS_OK;
+    EqNP.s       = IPS_IDLE;
+    IDSetSwitch(&AbortSP, "Slew aborted.");
+    IDSetNumber(&EqNP, NULL);
+    
+    if (MovementNSSP.s == IPS_BUSY || MovementWESP.s == IPS_BUSY) {
+      MovementNSSP.s  = MovementWESP.s =  IPS_IDLE;
+      EqNP.s       = IPS_IDLE;
+      IUResetSwitch(&MovementNSSP);
+      IUResetSwitch(&MovementWESP);
+      
+      IDSetSwitch(&MovementNSSP, NULL);
+      IDSetSwitch(&MovementWESP, NULL);
+    }
+    usleep(100000); // sleep for 100 msec
+  }
+
+  if (!isSimulation() && !Pulsar2Commands::park(PortFD)) {
+    ParkSP.s = IPS_ALERT;
+    IDSetSwitch(&ParkSP, "Parking Failed.");
+    return false;
+  }
+  ParkSP.s = IPS_BUSY;
+  TrackState = SCOPE_PARKING;
+  IDMessage(getDeviceName(), "Parking telescope in progress...");
+  return true;
 }
 
 
 bool LX200Pulsar2::Sync(double ra, double dec) {
   bool result = true;
   if (!isSimulation()) {
-    result = !( setObjectRA(PortFD, ra) < 0 || setObjectDEC(PortFD, dec) < 0 );
+    result = Pulsar2Commands::setObjectRADec(PortFD,ra,dec);
     if (!result) {
       EqNP.s = IPS_ALERT;
       IDSetNumber(&EqNP, "Error setting RA/DEC. Unable to Sync.");
     }
     else {
-      result = Pulsar2Commands::send(PortFD,"#:CM#");
+      result = Pulsar2Commands::sync(PortFD);
       if (result) {
 #if 1
 	// Somehow the response string is not being received. Also timeouts don't make
 	// the read stop. For now, sleep a second and then flush all input that might
-	// have received. The Pulsar2 controller has performed the sync anyways.
+	// have received. The Pulsar controller has performed the sync anyways.
 	usleep(1000000L);
 	tcflush(PortFD, TCIFLUSH);
 #else
 	DEBUG(INDI::Logger::DBG_SESSION, "Reading sync response");
-	// Pulsar2 sends coordinates separated by # characters (<RA>#<Dec>#)
-	char RAresponse[PULSAR2_BUF];
+	// Pulsar sends coordinates separated by # characters (<RA>#<Dec>#)
+	char RAresponse[Pulsar2Commands::BufferSize];
 	result = Pulsar2Commands::receive(PortFD,RAresponse);
 	if (result) {
 	  DEBUGF(INDI::Logger::DBG_DEBUG, "First synchronization string: '%s'.", RAresponse);
-	  char DECresponse[PULSAR2_BUF];
+	  char DECresponse[Pulsar2Commands::BufferSize];
 	  result = Pulsar2Commands::receive(PortFD,DECresponse);
 	  if (result)
 	    DEBUGF(INDI::Logger::DBG_DEBUG, "Second synchronization string: '%s'.", DECresponse);
@@ -577,69 +1087,14 @@ bool LX200Pulsar2::Sync(double ra, double dec) {
 }
 
 
-bool LX200Pulsar2::Park(void) {
-  if (!isSimulation()) {
-    if (!isHomeSet()) {
-      ParkSP.s = IPS_ALERT;
-      IDSetSwitch(&ParkSP, "No parking position defined.");
-      return false;
-    }
-    if (isParked()) {
-      ParkSP.s = IPS_ALERT;
-      IDSetSwitch(&ParkSP, "Scope has already been parked.");
-      return false;
-    }
-  }
-    
-  // If scope is moving, let's stop it first.
-  if (EqNP.s == IPS_BUSY) {
-    if (!isSimulation() && abortSlew(PortFD) < 0) {
-      AbortSP.s = IPS_ALERT;
-      IDSetSwitch(&AbortSP, "Abort slew failed.");
-      return false;
-    }
-
-    AbortSP.s    = IPS_OK;
-    EqNP.s       = IPS_IDLE;
-    IDSetSwitch(&AbortSP, "Slew aborted.");
-    IDSetNumber(&EqNP, NULL);
-    
-    if (MovementNSSP.s == IPS_BUSY || MovementWESP.s == IPS_BUSY) {
-      MovementNSSP.s  = MovementWESP.s =  IPS_IDLE;
-      EqNP.s       = IPS_IDLE;
-      IUResetSwitch(&MovementNSSP);
-      IUResetSwitch(&MovementWESP);
-      
-      IDSetSwitch(&MovementNSSP, NULL);
-      IDSetSwitch(&MovementWESP, NULL);
-    }
-    usleep(100000); // sleep for 100 msec
-  }
-
-  if (!isSimulation()) {
-    int success = 0;
-    if (!Pulsar2Commands::getInt(PortFD,"#:YH#",&success) || success == 0) {
-      ParkSP.s = IPS_ALERT;
-      IDSetSwitch(&ParkSP, "Parking Failed.");
-      return false;
-    }
-  }
-  ParkSP.s = IPS_BUSY;
-  TrackState = SCOPE_PARKING;
-  IDMessage(getDeviceName(), "Parking telescope in progress...");
-  return true;
-}
-
-
 bool LX200Pulsar2::UnPark(void) {
   if (!isSimulation()) {
-    if (!isParked()) {
+    if (!Pulsar2Commands::isParked(PortFD)) {
       ParkSP.s = IPS_ALERT;
       IDSetSwitch(&ParkSP, "Mount is not parked.");
       return false;
     }
-    int success = 0;
-    if (!Pulsar2Commands::getInt(PortFD,"#:YL#",&success) || success == 0) {
+    if (Pulsar2Commands::unpark(PortFD)) {
       ParkSP.s = IPS_ALERT;
       IDSetSwitch(&ParkSP, "Unparking failed.");
       return false;
@@ -653,98 +1108,245 @@ bool LX200Pulsar2::UnPark(void) {
 }
 
 
-bool LX200Pulsar2::updateLocation(double latitude, double longitude,double elevation) {
-  INDI_UNUSED(elevation);
-  bool success = true;
-  if (!isSimulation()) {
-    success = Pulsar2Commands::setDegreesMinutes(PortFD,"Sl",360.0-longitude);
-    if (success) {
-      success = Pulsar2Commands::setDegreesMinutes(PortFD,"St",latitude);
-      if (success) {
-	char l[32], L[32];
-	fs_sexa (l, latitude, 3, 3600);
-	fs_sexa (L, longitude, 4, 3600);
-	IDMessage(getDeviceName(), "Site location updated to Lat %.32s - Long %.32s", l, L);
+bool LX200Pulsar2::isSlewComplete(void) {
+  bool result = false;
+  switch (TrackState) {
+  case SCOPE_SLEWING:
+    result = !isSlewing();
+    break;
+  case SCOPE_PARKING:
+    result = !Pulsar2Commands::isParking(PortFD);
+    break;
+  default:
+    break;
+  }
+  return result;
+}
+
+
+bool LX200Pulsar2::checkConnection(void) {
+  if (LX200Generic::checkConnection()) {
+    DEBUG(INDI::Logger::DBG_DEBUG, "Checking Pulsar version ...");
+    for (int i = 0; i < 2; ++i) {
+      char response[Pulsar2Commands::BufferSize];
+      if (Pulsar2Commands::getVersion(PortFD,response)) {
+	// Determine which Pulsar version this is. Expected response similar to: 'PULSAR V2.66aR  ,2008.12.10.     #'
+	char version[16];
+	int  year, month, day;
+	(void) sscanf(response, "PULSAR V%8s ,%4d.%2d.%2d. ", version, &year, &month, &day);
+	DEBUGF(INDI::Logger::DBG_SESSION, "%s %04d.%02d.%02d", version, year, month, day);
+	return true;
       }
-      else
-	DEBUG(INDI::Logger::DBG_ERROR, "Error setting site latitude coordinates");
+      usleep(50000);
     }
-    else
-      DEBUG(INDI::Logger::DBG_ERROR, "Error setting site longitude coordinates");
   }
-  return success;
+  return false;
 }
 
 
-bool LX200Pulsar2::updateTime(ln_date * utc, double utc_offset) {
-  INDI_UNUSED(utc_offset);
-  bool success = true;
+void LX200Pulsar2::getBasicData(void) {
   if (!isSimulation()) {
-    struct ln_zonedate ltm;
-    ln_date_to_zonedate(utc,&ltm,0.0);  // One should use UTC only with Pulsar2!
-    JD = ln_get_julian_day(utc);
-    DEBUGF(INDI::Logger::DBG_DEBUG, "New JD is %f",static_cast<float>(JD));
-    success = Pulsar2Commands::setTime(PortFD,ltm.hours,ltm.minutes,ltm.seconds);
-    if (success) {
-      success = Pulsar2Commands::setDate(PortFD,ltm.days,ltm.months,ltm.years);
-      if (success)
-	DEBUG(INDI::Logger::DBG_SESSION, "Time updated, updating planetary data...");
-      else 
-	DEBUG(INDI::Logger::DBG_ERROR, "Error setting UTC date.");
+    if (!Pulsar2Commands::ensureLongFormat(PortFD)) {
+      DEBUG(INDI::Logger::DBG_DEBUG, "Failed to ensure that long format coordinates are used.");
     }
-    else
-      DEBUG(INDI::Logger::DBG_ERROR, "Error setting UTC time.");
-    // Pulsar2 cannot set UTC offset (?)
+    if (!Pulsar2Commands::getObjectRADec(PortFD,&currentRA,&currentDEC)) {
+      EqNP.s = IPS_ALERT;
+      IDSetNumber(&EqNP, "Error reading RA/DEC.");
+      return;
+    }
+    NewRaDec(currentRA,currentDEC);
+
+    Pulsar2Commands::SideOfPier side_of_pier = Pulsar2Commands::EastOfPier;
+    if (Pulsar2Commands::getSideOfPier(PortFD,&side_of_pier)) {
+      PierSideS[side_of_pier].s = ISS_ON;
+      IDSetSwitch(&PierSideSP, NULL);
+    }
+    else {
+      PierSideSP.s = IPS_ALERT;
+      IDSetSwitch(&PierSideSP, "Can't check at which side of the pier the telescope is.");
+    }
+
+    // There are separate values for RA and DEC but we only use the RA value for now
+    Pulsar2Commands::PECorrection pec_ra = Pulsar2Commands::PECorrectionOff, pec_dec = Pulsar2Commands::PECorrectionOff;
+    if (Pulsar2Commands::getPECorrection(PortFD,&pec_ra,&pec_dec)) {
+      PeriodicErrorCorrectionS[pec_ra].s = ISS_ON;
+      IDSetSwitch(&PeriodicErrorCorrectionSP, NULL);
+    }
+    else {
+      PeriodicErrorCorrectionSP.s = IPS_ALERT;
+      IDSetSwitch(&PeriodicErrorCorrectionSP, "Can't check whether PEC is enabled.");
+    }
+
+    Pulsar2Commands::PoleCrossing pole_crossing = Pulsar2Commands::PoleCrossingOff;
+    if (Pulsar2Commands::getPoleCrossing(PortFD,&pole_crossing)) {
+      PoleCrossingS[pole_crossing].s = ISS_ON;
+      IDSetSwitch(&PoleCrossingSP, NULL);
+    }
+    else {
+      PoleCrossingSP.s = IPS_ALERT;
+      IDSetSwitch(&PoleCrossingSP, "Can't check whether pole crossing is enabled.");
+    }
+
+    // There are separate values for RA and DEC but we only use the RA value for now
+    Pulsar2Commands::RCorrection rc_ra = Pulsar2Commands::RCorrectionOff, rc_dec = Pulsar2Commands::RCorrectionOn;
+    if (Pulsar2Commands::getRCorrection(PortFD,&rc_ra,&rc_dec)) {
+      RefractionCorrectionS[rc_ra].s = ISS_ON;
+      IDSetSwitch(&RefractionCorrectionSP, NULL);
+    }
+    else {
+      RefractionCorrectionSP.s = IPS_ALERT;
+      IDSetSwitch(&RefractionCorrectionSP, "Can't check whether refraction correction is enabled.");
+    }
   }
-  return success;
+  sendScopeLocation();
+  sendScopeTime();
 }
 
 
-bool LX200Pulsar2::isHomeSet(void) {
-  bool result      = false;
-  int  is_home_set = -1;
-  if (Pulsar2Commands::getInt(PortFD,"#:YGh#",&is_home_set))
-    result = ( is_home_set == 1 );
-  return result;
+void LX200Pulsar2::sendScopeLocation(void) {
+  LocationNP.s = IPS_OK;
+  int dd = 29, mm = 30;
+  if (isSimulation() || Pulsar2Commands::getSiteLatitude(PortFD, &dd, &mm)) {
+    LocationNP.np[0].value = ( dd < 0 ? -1 : 1)*( abs(dd) + mm/60.0 );
+    if (isDebug()) {
+      IDLog("Pulsar latitude: %d:%d\n", dd, mm);
+      IDLog("INDI Latitude: %g\n", LocationNP.np[0].value);
+    }
+  }
+  else {
+    IDMessage(getDeviceName(), "Failed to get site latitude from Pulsar controller.");
+    LocationNP.s = IPS_ALERT;
+  }
+  dd = 48, mm = 0;
+  if (isSimulation() || Pulsar2Commands::getSiteLongitude(PortFD, &dd, &mm)) {
+    LocationNP.np[1].value = ( dd > 0 ? 360.0 - (dd + mm/60.0) : -(dd - mm/60.0) );
+    if (isDebug()) {
+      IDLog("Pulsar longitude: %d:%d\n", dd, mm);
+      IDLog("INDI Longitude: %g\n", LocationNP.np[1].value);
+    }
+  }
+  else {
+    IDMessage(getDeviceName(), "Failed to get site longitude from Pulsar controller.");
+    LocationNP.s = IPS_ALERT;
+  }
+  IDSetNumber(&LocationNP, NULL);
 }
 
 
-bool LX200Pulsar2::isParked(void) {
-  bool result    = false;
-  int  is_parked = -1;
-  if (Pulsar2Commands::getInt(PortFD,"#:YGk#",&is_parked))
-    result = ( is_parked == 1 );
-  return result;
+void LX200Pulsar2::sendScopeTime(void) {
+  struct tm ltm;
+  if (isSimulation()) {
+    const time_t t = time(NULL);
+    if (gmtime_r(&t,&ltm) == NULL)
+      return;
+  }
+  else {
+    if (!Pulsar2Commands::getUTCTime(PortFD,&ltm.tm_hour,&ltm.tm_min,&ltm.tm_sec) || !Pulsar2Commands::getUTCDate(PortFD,&ltm.tm_mon,&ltm.tm_mday,&ltm.tm_year))
+      return;
+    ltm.tm_mon  -= 1;
+    ltm.tm_year -= 1900;
+  }
+
+  // Get time epoch and convert to TimeT
+  const time_t time_epoch = mktime(&ltm);
+  struct tm    utm;
+  localtime_r(&time_epoch, &utm);
+
+  // Format it into ISO 8601
+  char cdate[32];
+  strftime(cdate, sizeof(cdate), "%Y-%m-%dT%H:%M:%S", &utm);
+  
+  IUSaveText(&TimeT[0],cdate);
+  IUSaveText(&TimeT[1],"0"  ); // Pulsar maintains time in UTC only
+  if (isDebug()) {
+    IDLog("Telescope Local Time: %02d:%02d:%02d\n", ltm.tm_hour, ltm.tm_min, ltm.tm_sec);
+    IDLog("Telescope TimeT Offset: %s\n", TimeT[1].text);
+    IDLog("Telescope UTC Time: %s\n", TimeT[0].text);
+  }
+  // Let's send everything to the client
+  IDSetText(&TimeTP,NULL);
 }
 
 
-bool LX200Pulsar2::isParking(void) {
-  bool result     = false;
-  int  is_parking = -1;
-  if (Pulsar2Commands::getInt(PortFD,"#:YGj#",&is_parking))
-    result = ( is_parking == 1 );
-  return result;
+void LX200Pulsar2::guideTimeoutHelper(void *p) {
+  static_cast<LX200Pulsar2*>(p)->guideTimeout();
+}
+
+
+void LX200Pulsar2::guideTimeout(void) {
+  const int use_pulse_cmd= IUFindOnSwitchIndex(&UsePulseCmdSP);
+  if (guide_direction == -1) {
+    Pulsar2Commands::haltMovement(PortFD,Pulsar2Commands::North);
+    Pulsar2Commands::haltMovement(PortFD,Pulsar2Commands::South);
+    Pulsar2Commands::haltMovement(PortFD,Pulsar2Commands::East );
+    Pulsar2Commands::haltMovement(PortFD,Pulsar2Commands::West );
+    MovementNSSP.s = IPS_IDLE;
+    MovementWESP.s = IPS_IDLE;
+    IUResetSwitch(&MovementNSSP);
+    IUResetSwitch(&MovementWESP);
+    IDSetSwitch(&MovementNSSP, NULL);
+    IDSetSwitch(&MovementWESP, NULL);
+    IERmTimer(GuideNSTID);
+    IERmTimer(GuideWETID);
+  }
+  else if (!use_pulse_cmd) {
+    switch (guide_direction) {
+    case LX200_NORTH: case LX200_SOUTH:
+      MoveNS(guide_direction == LX200_NORTH ? DIRECTION_NORTH : DIRECTION_SOUTH, MOTION_STOP);
+      GuideNSNP.np[( guide_direction == LX200_NORTH ? 0 : 1 )].value = 0;
+      GuideNSNP.s = IPS_IDLE;
+      IDSetNumber(&GuideNSNP, NULL);
+      MovementNSSP.s = IPS_IDLE;
+      IUResetSwitch(&MovementNSSP);
+      IDSetSwitch(&MovementNSSP, NULL);
+      break;
+    case LX200_WEST: case LX200_EAST:
+      MoveWE(guide_direction == LX200_WEST ? DIRECTION_WEST : DIRECTION_EAST, MOTION_STOP);
+      GuideWENP.np[( guide_direction == LX200_WEST ? 0 : 1 )].value = 0;
+      GuideWENP.s = IPS_IDLE;
+      IDSetNumber(&GuideWENP, NULL);
+      MovementWESP.s = IPS_IDLE;
+      IUResetSwitch(&MovementWESP);
+      IDSetSwitch(&MovementWESP, NULL);
+      break;
+    }
+  }
+  if (guide_direction == LX200_NORTH || guide_direction == LX200_SOUTH || guide_direction == -1) {
+    GuideNSNP.np[0].value = 0;
+    GuideNSNP.np[1].value = 0;
+    GuideNSNP.s = IPS_IDLE;
+    GuideNSTID = 0;
+    IDSetNumber(&GuideNSNP, NULL);
+  }
+  if (guide_direction == LX200_WEST || guide_direction == LX200_EAST || guide_direction == -1) {
+    GuideWENP.np[0].value = 0;
+    GuideWENP.np[1].value = 0;
+    GuideWENP.s = IPS_IDLE;
+    GuideWETID = 0;
+    IDSetNumber(&GuideWENP, NULL);
+  }
 }
 
 
 bool LX200Pulsar2::isSlewing(void) {
-  bool result = false;
-  // The :YGi# command is late indicating that a slew is active by a couple of seconds.
-  // So we also check whether a slew was just started.
-  int is_slewing = -1;
-  if (Pulsar2Commands::getInt(PortFD,"#:YGi#",&is_slewing)) {
-    if (is_slewing == 1) {
-      result = true;
-      just_started_slewing = false;
+  // A problem with the Pulsar controller is that the :YGi# command starts
+  // returning the value 1 only a few seconds after a slew has been started.
+  // This also means that a (short) slew can end before this happens.
+  auto mount_is_off_target = [this] (void) { return ( fabs(currentRA - targetRA) > 1.0/3600.0 || fabs(currentDEC - targetDEC) > 5.0/3600.0 ); };
+  // Detect the end of a short slew
+  bool result = ( just_started_slewing ? mount_is_off_target() : true );
+  if (result) {
+    int is_slewing = -1;
+    if (Pulsar2Commands::getInt(PortFD,"#:YGi#",&is_slewing)) {
+      if (is_slewing == 1) // When the Pulsar controller indicates that it is slewing, we can rely on it from now on
+	result = true, just_started_slewing = false;
+      else // ... otherwise we have to rely on the value of the attribute just_started_slewing
+	result = just_started_slewing;
     }
+    else // Fallback in case of error
+      result = mount_is_off_target();
   }
-  if (!result) result = just_started_slewing;
+  // Make sure that just_started_slewing is reset at the end of a slew
+  if (!result) just_started_slewing = false;
   return result;
-}
-
-
-bool LX200Pulsar2::startSlew(void) {
-  char response[4];
-  const bool success = ( Pulsar2Commands::getString(PortFD,"#:MS#",response) && response[0] == '0' );
-  return success;
 }

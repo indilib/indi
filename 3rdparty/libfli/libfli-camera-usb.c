@@ -2403,12 +2403,13 @@ long fli_camera_usb_get_cooler_power(flidev_t dev, double *power)
 		{
 			short pwm;
 
-			if (DEVICE->devinfo.fwrev == 0x0100)
-			{
-				r = -EFAULT;
-			}
-			else
-			{
+			// Commented this block as it prevents PL9000 form working
+			//if (DEVICE->devinfo.fwrev == 0x0100)
+			//{
+			///	r = -EFAULT;
+			//}
+			//else
+			//{
 
 				rlen = 14; wlen = 2;
 				IOWRITE_U16(buf, 0, PROLINE_COMMAND_GET_TEMPERATURE);
@@ -2416,7 +2417,7 @@ long fli_camera_usb_get_cooler_power(flidev_t dev, double *power)
 
 				IOREAD_U16(buf, 4, pwm);
 				*power = (double) pwm;
-			}
+			//}
 		}
 		break;
 

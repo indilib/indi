@@ -554,6 +554,16 @@ add_executable(indi_moonlite_focus ${moonlite_SRCS})
 target_link_libraries(indi_moonlite_focus indidriver)
 install(TARGETS indi_moonlite_focus RUNTIME DESTINATION bin )
 
+################## USB Focus V3 ##################
+
+set(usbfocusv3_SRCS
+        ${CMAKE_CURRENT_SOURCE_DIR}/drivers/focuser/usbfocusv3.cpp
+   )
+
+add_executable(indi_usbfocusv3_focus ${usbfocusv3_SRCS})
+target_link_libraries(indi_usbfocusv3_focus indidriver)
+install(TARGETS indi_usbfocusv3_focus RUNTIME DESTINATION bin )
+
 ################ Microtouch Focuser ################
 
 set(microtouch_SRCS
@@ -680,6 +690,16 @@ set(optecwheel_SRCS
 add_executable(indi_optec_wheel ${optecwheel_SRCS})
 target_link_libraries(indi_optec_wheel indidriver)
 install(TARGETS indi_optec_wheel RUNTIME DESTINATION bin )
+
+########## Quantum Wheel ############
+set(quantum_wheel_SRCS
+        ${indimain_SRCS}
+        ${CMAKE_CURRENT_SOURCE_DIR}/drivers/filter_wheel/quantum_wheel.cpp
+   )
+
+add_executable(indi_quantum_wheel ${quantum_wheel_SRCS})
+target_link_libraries(indi_quantum_wheel indidriver)
+install(TARGETS indi_quantum_wheel RUNTIME DESTINATION bin )
 
 #################################################################################
 

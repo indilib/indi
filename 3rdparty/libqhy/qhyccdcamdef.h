@@ -343,6 +343,10 @@
 #define DEVICETYPE_QHY247C      4048
 
 /**
+ * Type define for MINICAM6F*/
+#define DEVICETYPE_MINICAM6F    4049
+
+/**
  * Type define for QHY5IIIEND*/
 #define DEVICETYPE_QHY5IIIEND   4999
 

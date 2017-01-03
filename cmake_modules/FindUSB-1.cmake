@@ -56,6 +56,7 @@ else (LIBUSB_1_LIBRARIES AND LIBUSB_1_INCLUDE_DIRS)
       /usr/local/include
       /usr/local/include/libusb-1.0
       /opt/local/include
+      /opt/local/include/libusb-1.0
       /sw/include
   )
 
