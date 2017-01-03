@@ -7,10 +7,6 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		59019DE31DDF894400CCB3ED /* libgsl.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 59019DE11DDF894400CCB3ED /* libgsl.dylib */; };
-		59019DE41DDF894400CCB3ED /* libgslcblas.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 59019DE21DDF894400CCB3ED /* libgslcblas.dylib */; };
-		59019DE51DDF8A0300CCB3ED /* libgsl.dylib in Copy Files (33 items) (53 items) */ = {isa = PBXBuildFile; fileRef = 59019DE11DDF894400CCB3ED /* libgsl.dylib */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
-		59019DE61DDF8A0300CCB3ED /* libgslcblas.dylib in Copy Files (33 items) (53 items) */ = {isa = PBXBuildFile; fileRef = 59019DE21DDF894400CCB3ED /* libgslcblas.dylib */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
 		59019DF61DDF8C9A00CCB3ED /* libz.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = 5944995F1C136C9100E0E281 /* libz.tbd */; };
 		59019DF71DDF8C9A00CCB3ED /* libASICamera2.lib in Frameworks */ = {isa = PBXBuildFile; fileRef = 5944994B1C13651F00E0E281 /* libASICamera2.lib */; };
 		59019DF81DDF8C9A00CCB3ED /* libcfitsio.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 9DDA43181A8CC5F90004AA95 /* libcfitsio.dylib */; };
@@ -535,6 +531,8 @@
 		59F755EE1DCD2FFD002CFC82 /* qhy16803a.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 59F755E41DCD2EF4002CFC82 /* qhy16803a.cpp */; };
 		59F755F11DCD3024002CFC82 /* indi_qhy_ccd in Copy Files (33 items) (53 items) */ = {isa = PBXBuildFile; fileRef = 593445C51CF8EF62008AD945 /* indi_qhy_ccd */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
 		59F755F21DCD3038002CFC82 /* QHY5II.HEX in Resources */ = {isa = PBXBuildFile; fileRef = 593445E21CF8F029008AD945 /* QHY5II.HEX */; };
+		59FC29FA1E1C4DD000B616EB /* libgslblas.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 59FC29F81E1C4DD000B616EB /* libgslblas.a */; };
+		59FC29FB1E1C4DD000B616EB /* libgsl.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 59FC29F91E1C4DD000B616EB /* libgsl.a */; };
 		9D0B29C01A8D1E9400ED17BF /* libindi.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 9DDA43A91A8CD3190004AA95 /* libindi.dylib */; };
 		9D0B29C11A8D1E9400ED17BF /* libnova.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 9DDA422C1A8CB6920004AA95 /* libnova.dylib */; };
 		9D0B29CA1A8D1EC400ED17BF /* celestrongps.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 9D0B29C81A8D1EC400ED17BF /* celestrongps.cpp */; };
@@ -2629,8 +2627,6 @@
 			dstSubfolderSpec = 6;
 			files = (
 				59019E081DDF8D2300CCB3ED /* indi_asi_wheel in Copy Files (33 items) (53 items) */,
-				59019DE51DDF8A0300CCB3ED /* libgsl.dylib in Copy Files (33 items) (53 items) */,
-				59019DE61DDF8A0300CCB3ED /* libgslcblas.dylib in Copy Files (33 items) (53 items) */,
 				59F755F11DCD3024002CFC82 /* indi_qhy_ccd in Copy Files (33 items) (53 items) */,
 				5909A8301D3180AF00F74CF2 /* indi_microtouch_focus in Copy Files (33 items) (53 items) */,
 				598BF81E1D2AF1A900DCD8CF /* indi_script_dome in Copy Files (33 items) (53 items) */,
@@ -2895,8 +2891,6 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
-		59019DE11DDF894400CCB3ED /* libgsl.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; path = libgsl.dylib; sourceTree = "<group>"; };
-		59019DE21DDF894400CCB3ED /* libgslcblas.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; path = libgslcblas.dylib; sourceTree = "<group>"; };
 		59019E001DDF8C9A00CCB3ED /* indi_asi_wheel */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = indi_asi_wheel; sourceTree = BUILT_PRODUCTS_DIR; };
 		59019E011DDF8CDB00CCB3ED /* asi_wheel.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = asi_wheel.cpp; sourceTree = "<group>"; };
 		59019E021DDF8CDB00CCB3ED /* asi_wheel.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = asi_wheel.h; sourceTree = "<group>"; };
@@ -3531,6 +3525,8 @@
 		59F755E31DCD2EF4002CFC82 /* qhy814a.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = qhy814a.cpp; sourceTree = "<group>"; };
 		59F755E41DCD2EF4002CFC82 /* qhy16803a.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = qhy16803a.cpp; sourceTree = "<group>"; };
 		59F755EC1DCD2F70002CFC82 /* CMakeLists.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = CMakeLists.txt; sourceTree = "<group>"; };
+		59FC29F81E1C4DD000B616EB /* libgslblas.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; path = libgslblas.a; sourceTree = "<group>"; };
+		59FC29F91E1C4DD000B616EB /* libgsl.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; path = libgsl.a; sourceTree = "<group>"; };
 		9D0B29C61A8D1E9400ED17BF /* indi_celestron_gps */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = indi_celestron_gps; sourceTree = BUILT_PRODUCTS_DIR; };
 		9D0B29C81A8D1EC400ED17BF /* celestrongps.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = celestrongps.cpp; sourceTree = "<group>"; };
 		9D0B29DC1A8D1ED100ED17BF /* indi_temma */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = indi_temma; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -4367,11 +4363,11 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				59FC29FB1E1C4DD000B616EB /* libgsl.a in Frameworks */,
 				9DDA43F01A8CF7210004AA95 /* libcfitsio.dylib in Frameworks */,
 				9DDA43EF1A8CF71D0004AA95 /* libusb.dylib in Frameworks */,
+				59FC29FA1E1C4DD000B616EB /* libgslblas.a in Frameworks */,
 				9DDA43C51A8CEBBF0004AA95 /* libnova.dylib in Frameworks */,
-				59019DE31DDF894400CCB3ED /* libgsl.dylib in Frameworks */,
-				59019DE41DDF894400CCB3ED /* libgslcblas.dylib in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -4876,11 +4872,11 @@
 			children = (
 				5987865D1CE72C1F00DF2294 /* IOKit.framework */,
 				5987865B1CE72BFC00DF2294 /* CoreFoundation.framework */,
-				59019DE11DDF894400CCB3ED /* libgsl.dylib */,
-				59019DE21DDF894400CCB3ED /* libgslcblas.dylib */,
 				5944995F1C136C9100E0E281 /* libz.tbd */,
 				59E5F91D1C3F17B9008DAB80 /* libobjc.tbd */,
 				596556E31C4A499E0044680B /* libftd2xx.a */,
+				59FC29F81E1C4DD000B616EB /* libgslblas.a */,
+				59FC29F91E1C4DD000B616EB /* libgsl.a */,
 				591C90ED1C1375D700FCE596 /* SBIGUDrv.framework */,
 				597B89111887E77F0093873A /* ServiceManagement.framework */,
 				597B890D1887E6FF0093873A /* Security.framework */,
