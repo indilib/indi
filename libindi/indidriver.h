@@ -32,10 +32,12 @@ typedef struct
 {
  char propName[MAXINDINAME];
  IPerm perm;
+ const void *ptr;
+ int type;
 } ROSC;
 
-extern ROSC *roCheck;
-extern int nroCheck;			/* # of elements in roCheck */
+extern ROSC *propCache;
+extern int nPropCache;			/* # of elements in roCheck */
 extern int verbose;			/* chatty */
 extern char *me;				/* a.out name */
 extern LilXML *clixml;			/* XML parser context */

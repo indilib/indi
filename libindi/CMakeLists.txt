@@ -23,11 +23,13 @@ set(CMAKE_CXX_FLAGS "-std=c++0x ${CMAKE_CXX_FLAGS}")
 endif(NOT WIN32 AND NOT ANDROID)
 
 #####################################  INDI version  ################################################
+# N.B. DO NOT Forget to update version also in indiapi.h
+# Proper way is to use indiversion.h.cmake file but this would break make existing applications so let us stick to the old proven way
 
 set(INDI_SOVERSION "1")
 set(CMAKE_INDI_VERSION_MAJOR 1)
-set(CMAKE_INDI_VERSION_MINOR 2)
-set(CMAKE_INDI_VERSION_RELEASE 0)
+set(CMAKE_INDI_VERSION_MINOR 3)
+set(CMAKE_INDI_VERSION_RELEASE 1)
 set(CMAKE_INDI_VERSION_STRING "${CMAKE_INDI_VERSION_MAJOR}.${CMAKE_INDI_VERSION_MINOR}.${CMAKE_INDI_VERSION_RELEASE}")
 
 ########################################  Paths  ###################################################
@@ -54,6 +56,7 @@ set(UDEVRULES_INSTALL_DIR "/lib/udev/rules.d" CACHE STRING "Base directory for u
 
 OPTION (INDI_BUILD_UNITTESTS "Build INDI tests" OFF)
 OPTION (INDI_FAST_BLOB "Build INDI with Fast BLOB support" ON)
+OPTION (INDI_CALCULATE_MINMAX "Calculate and store image minimum and maximum values in FITS header" OFF)
 
 #####################################  Dependencies  ##############################################
 # ZLib compression Library
@@ -551,6 +554,16 @@ add_executable(indi_moonlite_focus ${moonlite_SRCS})
 target_link_libraries(indi_moonlite_focus indidriver)
 install(TARGETS indi_moonlite_focus RUNTIME DESTINATION bin )
 
+################## USB Focus V3 ##################
+
+set(usbfocusv3_SRCS
+        ${CMAKE_CURRENT_SOURCE_DIR}/drivers/focuser/usbfocusv3.cpp
+   )
+
+add_executable(indi_usbfocusv3_focus ${usbfocusv3_SRCS})
+target_link_libraries(indi_usbfocusv3_focus indidriver)
+install(TARGETS indi_usbfocusv3_focus RUNTIME DESTINATION bin )
+
 ################ Microtouch Focuser ################
 
 set(microtouch_SRCS
@@ -593,6 +606,18 @@ target_link_libraries(indi_perfectstar_focus indidriver)
 install(TARGETS indi_perfectstar_focus RUNTIME DESTINATION bin )
 if (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
 install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/drivers/focuser/99-perfectstar.rules DESTINATION ${UDEVRULES_INSTALL_DIR})
+endif (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
+
+################ hitechfocus Focuser ################
+set(hitecastrodcfocuser_SRCS
+        ${CMAKE_CURRENT_SOURCE_DIR}/drivers/focuser/hitecastrodcfocuser.cpp
+   )
+
+add_executable(indi_hitecastrodc_focus ${hitecastrodcfocuser_SRCS})
+target_link_libraries(indi_hitecastrodc_focus indidriver)
+install(TARGETS indi_hitecastrodc_focus RUNTIME DESTINATION bin )
+if (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
+install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/drivers/focuser/99-hitecastrodcfocuser.rules DESTINATION ${UDEVRULES_INSTALL_DIR})
 endif (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
 
 ################ JMI Smart Focus Focuser ################
@@ -655,6 +680,26 @@ set(filtersimulator_SRCS
 add_executable(indi_simulator_wheel ${filtersimulator_SRCS})
 target_link_libraries(indi_simulator_wheel indidriver)
 install(TARGETS indi_simulator_wheel RUNTIME DESTINATION bin )
+
+########## Optec Wheel IFW ############
+set(optecwheel_SRCS
+        ${indimain_SRCS}
+        ${CMAKE_CURRENT_SOURCE_DIR}/drivers/filter_wheel/ifwoptec.cpp
+   )
+
+add_executable(indi_optec_wheel ${optecwheel_SRCS})
+target_link_libraries(indi_optec_wheel indidriver)
+install(TARGETS indi_optec_wheel RUNTIME DESTINATION bin )
+
+########## Quantum Wheel ############
+set(quantum_wheel_SRCS
+        ${indimain_SRCS}
+        ${CMAKE_CURRENT_SOURCE_DIR}/drivers/filter_wheel/quantum_wheel.cpp
+   )
+
+add_executable(indi_quantum_wheel ${quantum_wheel_SRCS})
+target_link_libraries(indi_quantum_wheel indidriver)
+install(TARGETS indi_quantum_wheel RUNTIME DESTINATION bin )
 
 #################################################################################
 
@@ -767,6 +812,16 @@ if (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
 install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/drivers/auxiliary/99-flipflat.rules DESTINATION ${UDEVRULES_INSTALL_DIR})
 endif (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
 
+########### Sky Quality Meter ###############
+
+set(sqm_SRCS
+        ${CMAKE_CURRENT_SOURCE_DIR}/drivers/auxiliary/sqm.cpp
+   )
+
+add_executable(indi_sqm_weather ${sqm_SRCS})
+
+target_link_libraries(indi_sqm_weather indidriver)
+install(TARGETS indi_sqm_weather RUNTIME DESTINATION bin )
 
 ########### STAR2000 Driver ###############
 
@@ -986,9 +1041,17 @@ endif(Qt5Network_FOUND)
 #########################################  Fast Blob  #############################################
 ###################################################################################################
 IF (INDI_FAST_BLOB)
+# Append ENCLEN attribute to outgoing BLOB elements to enable fast parsing by clients
 add_definitions(-DWITH_ENCLEN)
 ENDIF(INDI_FAST_BLOB)
 
+###################################################################################################
+######################################  Calculate Min/Max #########################################
+###################################################################################################
+IF (INDI_CALCULATE_MINMAX)
+# Calculate Min/Max values to store them in FITS header
+add_definitions(-DWITH_MINMAX)
+ENDIF(INDI_CALCULATE_MINMAX)
 ###################################################################################################
 #########################################  Tests  #################################################
 ###################################################################################################

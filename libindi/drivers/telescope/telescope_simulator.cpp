@@ -626,6 +626,11 @@ bool ScopeSim::Park()
 
 bool ScopeSim::UnPark()
 {
+    if (INDI::Telescope::isLocked())
+    {
+        DEBUG(INDI::Logger::DBG_SESSION, "Cannot unpark mount when dome is locking. See: Dome parking policy, in options tab");
+        return false;
+    }
     SetParked(false);
     return true;
 }

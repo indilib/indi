@@ -200,6 +200,7 @@ delXMLEle (XMLEle *ep)
         (*myfree) (ep);
 }
 
+
 //#define WITH_MEMCHR
 XMLEle **parseXMLChunk(LilXML *lp, char *buf, int size, char ynot[]) {
   XMLEle **nodes=(XMLEle **)malloc(sizeof(XMLEle *));
@@ -238,11 +239,14 @@ XMLEle **parseXMLChunk(LilXML *lp, char *buf, int size, char ynot[]) {
 	if (blenatt) {
 	  int blen;
 	  sscanf(valuXMLAtt(blenatt), "%d", &blen);
-	  if (lp->ce->pcdata.sm < blen) {
-	    blen += (blen/72) + 1; // add room for those '\n'
+      // if (lp->ce->pcdata.sm < blen) { // always realloc
+	    if (blen % 72 != 0)
+	      blen += (blen/72) + 1; // add room for those '\n'
+	    else
+	      blen += (blen/72);
 	    lp->ce->pcdata.s=(char *)moremem(lp->ce->pcdata.s, blen);
-	    lp->ce->pcdata.sm=blen;
-	  }
+	    lp->ce->pcdata.sm=blen;  // or always set sm
+	    //}
 	  if (size < blen - lp->ce->pcdata.sl) {
 	    memcpy((void *)(lp->ce->pcdata.s + lp->ce->pcdata.sl), (const void *)buf, size);
 	    lp->ce->pcdata.sl += size;

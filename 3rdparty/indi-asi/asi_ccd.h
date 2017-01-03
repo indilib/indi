@@ -78,6 +78,9 @@ protected:
   // ASI specific keywords
   virtual void addFITSKeywords(fitsfile *fptr, CCDChip *targetChip);
 
+  // Save config
+  virtual bool saveConfigItems(FILE *fp);
+
 private:
 
   /** Get image from CCD and send it to client */
@@ -117,6 +120,7 @@ private:
   ISwitch *VideoFormatS;
   ISwitchVectorProperty VideoFormatSP;
 
+  double minimumExposureDuration = 0;
   struct timeval ExpStart;
   float ExposureRequest;
   float TemperatureRequest;
@@ -129,7 +133,7 @@ private:
   int streamPredicate;
   pthread_t primary_thread;
   bool terminateThread;
-  bool exposureRetries;
+  int exposureRetries;
 
   // ST4
   bool InWEPulse;

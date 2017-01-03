@@ -33,28 +33,90 @@
 #include <stdio.h>
 #include <memory>
 #include <unistd.h>
+#include <string.h>
 
 #include "config.h"
 #include "EFW_filter.h"
 #include "asi_wheel.h"
 
-std::unique_ptr<ASIWHEEL> asiwheel(new ASIWHEEL());
+#define POLLMS                  250  /* Polling time (ms) */
+#define MAX_DEVICES             16   /* Max device cameraCount */
+
+static int num_wheels;
+static ASIWHEEL *wheels[MAX_DEVICES];
+
+void ISInit() {
+	static bool isInit = false;
+	if (!isInit) {
+		EFW_INFO info;
+		num_wheels = 0;
+
+		num_wheels = EFWGetNum();
+		if (num_wheels > MAX_DEVICES) num_wheels = MAX_DEVICES;
+
+		if (num_wheels <= 0) {
+			IDLog("No ASI EFW detected.");
+		} else {
+			for(int i = 0; i < num_wheels; i++) {
+				int id;
+				EFWGetID(i, &id);
+				EFWGetProperty(id, &info);
+				/* Enumerate FWs if more than one ASI EFW is connected */
+				wheels[i] = new ASIWHEEL(id, info, (bool)(num_wheels-1));
+			}
+		}
+		isInit = true;
+	}
+}
+
 
 void ISGetProperties(const char *dev) {
-	asiwheel->ISGetProperties(dev);
+	ISInit();
+	for (int i = 0; i < num_wheels; i++) {
+		ASIWHEEL *wheel = wheels[i];
+		if (dev == NULL || !strcmp(dev, wheel->name)) {
+			wheel->ISGetProperties(dev);
+			if (dev != NULL) break;
+		}
+	}
 }
+
 
 void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int num) {
-	asiwheel->ISNewSwitch(dev, name, states, names, num);
+	ISInit();
+	for (int i = 0; i < num_wheels; i++) {
+		ASIWHEEL *wheel = wheels[i];
+		if (dev == NULL || !strcmp(dev, wheel->name)) {
+			wheel->ISNewSwitch(dev, name, states, names, num);
+			if (dev != NULL) break;
+		}
+	}
 }
+
 
 void ISNewText(const char *dev, const char *name, char *texts[], char *names[], int num) {
-	asiwheel->ISNewText(dev, name, texts, names, num);
+	ISInit();
+	for (int i = 0; i < num_wheels; i++) {
+		ASIWHEEL *wheel = wheels[i];
+		if (dev == NULL || !strcmp(dev, wheel->name)) {
+			wheel->ISNewText(dev, name, texts, names, num);
+			if (dev != NULL) break;
+		}
+	}
 }
 
+
 void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int num) {
-	asiwheel->ISNewNumber(dev, name, values, names, num);
+	ISInit();
+	for (int i = 0; i < num_wheels; i++) {
+		ASIWHEEL *wheel = wheels[i];
+		if (dev == NULL || !strcmp(dev, wheel->name)) {
+			wheel->ISNewNumber(dev, name, values, names, num);
+			if (dev != NULL) break;
+		}
+	}
 }
+
 
 void ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[], char *names[], int n) {
 	INDI_UNUSED(dev);
@@ -66,22 +128,35 @@ void ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], 
 	INDI_UNUSED(names);
 	INDI_UNUSED(n);
 }
+
+
 void ISSnoopDevice(XMLEle *root) {
-	asiwheel->ISSnoopDevice(root);
+	ISInit();
+	for (int i = 0; i < num_wheels; i++) {
+		ASIWHEEL *wheel = wheels[i];
+		wheel->ISSnoopDevice(root);
+	}
 }
 
-ASIWHEEL::ASIWHEEL() {
-	DEBUG(INDI::Logger::DBG_DEBUG, "Entering ASIWHEEL::ASIWHEEL");
-	FilterSlotN[0].min = 1;
-	FilterSlotN[0].max = -1;
-	CurrentFilter = 1;
-	fw_id = -1;
-	setDeviceName(getDefaultName());
+
+ASIWHEEL::ASIWHEEL(int id, EFW_INFO info, bool enumerate) {
+	char str[NAME_MAX];
+	if (enumerate)
+		snprintf(str, sizeof(str), "%s %d", info.Name, id);
+	else
+		strncpy(str, info.Name, sizeof(str));
+
+	fw_id = id;
+	CurrentFilter = 0;
+	FilterSlotN[0].min = 0;
+	FilterSlotN[0].max = 0;
+	strncpy(name, str, sizeof(name));
+	setDeviceName(str);
 	setVersion(ASI_VERSION_MAJOR, ASI_VERSION_MINOR);
 }
 
+
 ASIWHEEL::~ASIWHEEL() {
-	DEBUG(INDI::Logger::DBG_DEBUG, "Entering ASIWHEEL::~ASIWHEEL");
 	if (isSimulation()) {
 		IDMessage(getDeviceName(), "simulation: disconnected");
 	} else { 
@@ -89,17 +164,21 @@ ASIWHEEL::~ASIWHEEL() {
 	}
 }
 
+
 void ASIWHEEL::debugTriggered(bool enable) {
 	INDI_UNUSED(enable);
 }
+
 
 void ASIWHEEL::simulationTriggered(bool enable) {
 	INDI_UNUSED(enable);
 }
 
+
 const char * ASIWHEEL::getDefaultName() {
 	return (char *) "ASI Wheel";
 }
+
 
 bool ASIWHEEL::GetFilterNames(const char* groupName) {
 	char filterName[MAXINDINAME];
@@ -116,69 +195,55 @@ bool ASIWHEEL::GetFilterNames(const char* groupName) {
 	return true;
 }
 
+
 bool ASIWHEEL::Connect() {
-	DEBUG(INDI::Logger::DBG_SESSION, "Entering ASIWHEEL::Connect");
+	EFW_ERROR_CODE result;
+
 	if (isSimulation()) {
 		IDMessage(getDeviceName(), "simulation: connected");
 		fw_id = 0;
-	} else if (fw_id<0) {
-		int EFW_count = EFWGetNum();
-		if (EFW_count <= 0) {
-			DEBUG(INDI::Logger::DBG_SESSION, "ASIWHEEL::Connect no filter wheels found");
+	} else if (fw_id >= 0) {
+		result = EFWOpen(fw_id);
+		if (result != EFW_SUCCESS) {
+			DEBUGF(INDI::Logger::DBG_ERROR, "%s(): EFWOpen() = %d", __FUNCTION__, result);
 			return false;
 		}
-		DEBUG(INDI::Logger::DBG_DEBUG, "Entering ASIWHEEL::Connect EFWOpen");
-		if (EFWOpen(0) != EFW_SUCCESS) {
-			DEBUG(INDI::Logger::DBG_SESSION, "ASIWHEEL::Connect cannot EFWOpen");
-			return false;
-		}
-		DEBUG(INDI::Logger::DBG_DEBUG, "Entering ASIWHEEL::Connect EFWGetID");
-		EFWGetID(0, &fw_id);
-		if (fw_id < 0) {
-			DEBUG(INDI::Logger::DBG_SESSION, "ASIWHEEL::Connect cannot EFWGetID");
-			return false;
-		}
-		DEBUGF(INDI::Logger::DBG_SESSION, "ASIWHEEL::Connect id %d", fw_id);
 
-		// get number of filter slots
-		DEBUG(INDI::Logger::DBG_DEBUG, "Entering ASIWHEEL::Connect EFWGetProperty");
-		EFW_INFO EFWInfo;
-		EFW_ERROR_CODE err;
-		while (1) {
-			err = EFWGetProperty(fw_id, &EFWInfo);
-			if (err != EFW_ERROR_MOVING )
-				break;
-			usleep(500);
-		}
-		DEBUGF(INDI::Logger::DBG_SESSION, "ASIWHEEL::Connect %d filter slots", EFWInfo.slotNum);
-		FilterSlotN[0].max = EFWInfo.slotNum;
+		EFW_INFO info;
+		EFWGetProperty(fw_id, &info);
+		FilterSlotN[0].min = 1;
+		FilterSlotN[0].max = info.slotNum;
 
 		// get current filter
-		DEBUG(INDI::Logger::DBG_DEBUG, "Entering ASIWHEEL::Connect EFWGetPosition");
-		int currentSlot;
-		while (1) {
-			err = EFWGetPosition(fw_id, &currentSlot);
-			if(err != EFW_SUCCESS || currentSlot != -1 )
-				break;
-			usleep(500);
+		int current;
+		result = EFWGetPosition(fw_id, &current);
+		if(result != EFW_SUCCESS) {
+			DEBUGF(INDI::Logger::DBG_ERROR,"%s(): EFWGetPosition() = %d", __FUNCTION__, result);
+			return false;
 		}
-		CurrentFilter = currentSlot + 1; // Note: + 1
-		DEBUGF(INDI::Logger::DBG_SESSION, "ASIWHEEL::Connect current filter position %d", CurrentFilter);
+		SelectFilter(current+1);
+		DEBUGF(INDI::Logger::DBG_DEBUG, "%s(): current filter position %d", __FUNCTION__, CurrentFilter);
 	}
 	return true;
 }
 
+
 bool ASIWHEEL::Disconnect() {
-	DEBUG(INDI::Logger::DBG_SESSION, "Entering ASIWHEEL::Disconnect\n");
+	EFW_ERROR_CODE result;
+
 	if (isSimulation()) {
 		IDMessage(getDeviceName(), "simulation: disconnected");
 	} else if(fw_id >= 0) {
-		// MORE TODO!!!
-		EFWClose(fw_id);
+		result = EFWClose(fw_id);
+		if(result != EFW_SUCCESS) {
+			DEBUGF(INDI::Logger::DBG_ERROR, "%s(): EFWClose() = %d", __FUNCTION__, result);
+			return false;
+		}
 	}
 	fw_id = -1;
 	return true;
 }
+
 
 bool ASIWHEEL::initProperties() {
 	INDI::FilterWheel::initProperties();
@@ -187,55 +252,60 @@ bool ASIWHEEL::initProperties() {
 	return true;
 }
 
+
 void ASIWHEEL::ISGetProperties(const char *dev) {
 	INDI::FilterWheel::ISGetProperties(dev);
 	return;
 }
 
+
 int ASIWHEEL::QueryFilter() {
-	DEBUG(INDI::Logger::DBG_DEBUG, "Entering ASIWHEEL::QueryFilter");
+	EFW_ERROR_CODE result;
 	if (!isSimulation() && fw_id >= 0)
-		// MORE TODO!!!
-		EFWGetPosition(fw_id, &CurrentFilter);
-	return ++CurrentFilter;
+	result = EFWGetPosition(fw_id, &CurrentFilter);
+	CurrentFilter++;
+	if (result != EFW_SUCCESS) {
+		DEBUGF(INDI::Logger::DBG_ERROR,"%s(): EFWSetPosition() = %d", __FUNCTION__, result);
+		return 0;
+	}
+	return CurrentFilter;
 }
 
+
 bool ASIWHEEL::SelectFilter(int f) {
-	DEBUGF(INDI::Logger::DBG_SESSION,"Entering ASIWHEEL::SelectFilter target %d", f);
 	TargetFilter = f;
 	if (isSimulation()) {
 		CurrentFilter = TargetFilter;
 	} else if (fw_id >= 0) {
-		EFW_ERROR_CODE err;
-		err = EFWSetPosition(fw_id, f - 1);
-		if (err == EFW_SUCCESS) {
-			DEBUG(INDI::Logger::DBG_DEBUG,"ASIWHEEL::SelectFilter Moving...");
-			SetTimer(3500);
-			while (1) {
-				err = EFWGetPosition(fw_id, &CurrentFilter);
-				if (err != EFW_SUCCESS || CurrentFilter != -1)
-					break;
-				DEBUG(INDI::Logger::DBG_DEBUG,"ASIWHEEL::SelectFilter Still Moving");
-				sleep(1);
+		EFW_ERROR_CODE result;
+		result = EFWSetPosition(fw_id, f - 1);
+		if (result == EFW_SUCCESS) {
+			SetTimer(POLLMS);
+			do {
+				result = EFWGetPosition(fw_id, &CurrentFilter);
+				CurrentFilter++;
+				usleep(POLLMS*1000);
+			} while (result == EFW_SUCCESS && CurrentFilter != TargetFilter);
+			if (result != EFW_SUCCESS) {
+				DEBUGF(INDI::Logger::DBG_ERROR,"%s(): EFWSetPosition() = %d", __FUNCTION__, result);
+				return false;
 			}
-			DEBUGF(INDI::Logger::DBG_SESSION, "ASIWHEEL::SelectFilter Done moving to %d", ++CurrentFilter);
-			// Note: no need to set CurrentFilter = TargetFilter as EFWGetPosition already did that
 		} else {
-			DEBUG(INDI::Logger::DBG_SESSION,"ASIWHEEL::SelectFilter EFWSetPosition error");
+			DEBUGF(INDI::Logger::DBG_ERROR,"%s(): EFWSetPosition() = %d", __FUNCTION__, result);
 			return false;
 		}
 	} else {
-		DEBUG(INDI::Logger::DBG_SESSION,"ASIWHEEL::SelectFilter no fw_id");
+		DEBUGF(INDI::Logger::DBG_SESSION,"%s(): no fw_id", __FUNCTION__);
 		return false;
 	}
 	return true;
 }
 
+
 void ASIWHEEL::TimerHit() {
-	DEBUG(INDI::Logger::DBG_DEBUG, "Entering ASIWHEEL::TimerHit");
 	QueryFilter();
 	if (CurrentFilter != TargetFilter) {
-		SetTimer(3500);
+		SetTimer(POLLMS);
 	} else {
 		SelectFilterDone(CurrentFilter);
 	}

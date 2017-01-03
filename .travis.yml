@@ -3,17 +3,20 @@ compiler: gcc
 language: cpp
 sudo: required
 dist: trusty
-os: linux
+os: 
+ - linux
+ - osx
 
 branches:
   only:
     - develop
     - master
-    - refactor/unittest 
+    - refactor/unittest
+    - feature/travisosx
 
 before_install:
     - echo Install dependencies
-    - travis-ci/deps.sh
+    - travis-ci/deps-${TRAVIS_OS_NAME}.sh
 
 install:
     - echo Building INDI Core
@@ -23,6 +26,6 @@ install:
 
 script:
     - pwd
-    - cd build/libindi/test
+    - cd libindi/test
     - ctest -V
 

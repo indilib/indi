@@ -1,0 +1,96 @@
+GigE CCD Driver
+===============
+
+This package provides basic support for most GigE machine vision cameras through Project Aravis.
+
+
+Requirtments
+============
+
++ INDI >= v1.2.0 (https://github.com/indilib/indi)
+
+	You need to install both indi and indi-devel to build this package.
+	
++ cfitsio
+
+	cfitsio-devel is required to compile support for FITS.
+	
++ aravis >= v0.6
+
+	aravis is required, see https://github.com/AravisProject/aravis
+
+* glib-2.0, gobject-2.0
+    
+    Required through aravis
+	
+
+Installation
+============
+
+	See INSTALL
+	
+Use Notes
+=========
+    
+    Machine vision GigE cameras are designed towards throughput, and hence provide emphasis
+    on high-speed video streaming. The main design goal for this driver is to use these
+    cameras as primary imager or for guiding. Therefore, the main goal of this driver is
+    not to provide high-speed video streams, but to control these cameras more or less as
+    a generic CCD camera with a manual trigger and manual exposure controls.
+
+    Many of the pre-processing features found on many of these cameras have therefore been
+    not exposed. 
+	
+    
+    To run the driver from the command line:
+	
+	$ indiserver indi_gige_ccd
+	
+
+GigE machine vision overview
+============================
+
+    Gigabit Ethernet machine vision cameras can be controlled in two ways:
+        (1) Genicam standard, which accesses the camera's onboard XML file
+        (2) CSR (Control Register) based:
+            (2a) IIDC standard set
+            (2b) Vendor specific set
+
+    Project Aravis only uses genicam standard. For some features you need to
+    access the CSR directly. These can easily be queried with arv-tool-0.6  that come
+    with aravis, i.e.
+        $ arv-tool-0.6 control R[0xF0F00A00] R[0xF0F00A04] R[0xF0F00A08] R[0xF0F00A10] R[0xF0F00A14]
+
+            Point Grey Research-16048874
+            R[0xf0f00a00] = 0x08000600
+            R[0xf0f00a04] = 0x00040002
+            R[0xf0f00a08] = 0x00000000
+            R[0xf0f00a10] = 0x0a000000
+            R[0xf0f00a14] = 0x84780000
+
+    and refer to the camera register manual. 
+
+    For Grey Point blackfly cameras you can sometimes set raw mode and disable framerate through CSR only.
+    This is done by subclassing the AvrGeneric class, see BlackFly.cpp for reference.
+
+    If you are unsure, use the vendor's capture tool, and use wireshark to dump the traffic to the camera.
+    This way, you can quickly and easily deduce what each register is used for, and how settings are
+    programmed for your specific camera.
+
+Known issues
+============
+    
+    (1) Currently, only a single camera is supported, although with GigE cameras you can have
+    as many as you like in your network. Aravis library fully supports many cameras at once.
+    It is rather easy to make this change, if you need it. Simply adapt the source code in
+    indi_gige.cpp and ArvFactory.cpp to provide the necessary iteration. 
+
+    (2) Sometimes, with larger exposure times (>= 5s), the first frame is dropped. This
+    will generate a black frame. Subsequent frames are OK. I have no idea why, it seems
+    related to my particular camera behavior. 
+
+    (3) Probably only BLACKFLY cameras work, because AFAIK all machine vision cameras work 
+    with exposure times slaved to the framerate. If you want to access longer exposure times,
+    you need to disable automatic frame rate control. Unfortunately, how to do this is 
+    camera-specific.
+

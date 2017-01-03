@@ -17,8 +17,8 @@
 		<driver name="LX200 Classic">indi_lx200classic</driver>
                 <version>2.0</version>
 	</device>
-        <device label="LX200 OnStep" focal_length="" aperture="">^M
-                <driver name="LX200 OnStep">indi_lx200_OnStep</driver>^M
+        <device label="LX200 OnStep" focal_length="" aperture="">
+                <driver name="LX200 OnStep">indi_lx200_OnStep</driver>
                 <version>0.0</version>
         </device>	
 	<device label="LX200 16" focal_length="4064" aperture="406.4">
@@ -163,6 +163,10 @@
                 <driver name="MoonLite">indi_moonlite_focus</driver>
                 <version>1.0</version>
         </device>
+        <device label="USBFocusV3">
+                <driver name="USBFocusV3">indi_usbfocusv3_focus</driver>
+                <version>0.1</version>
+        </device>
         <device label="Microtouch">
                 <driver name="Microtouch">indi_microtouch_focus</driver>
                 <version>0.1</version>
@@ -170,6 +174,10 @@
         <device label="Baader SteelDrive">
                 <driver name="Baader SteelDrive">indi_steeldrive_focus</driver>
                 <version>1.0</version>
+        </device>
+        <device label="HitecAstro DC">
+                <driver name="HitecAstro DC">indi_hitecastrodc_focus</driver>
+                <version>0.1</version>
         </device>
         <device label="SmartFocus">
                 <driver name="SmartFocus">indi_smartfocus_focus</driver>
@@ -218,6 +226,14 @@
         <device label="Filter Simulator">
                 <driver name="Filter Simulator">indi_simulator_wheel</driver>
                 <version>1.0</version>
+        </device>
+        <device label="Optec IFW">
+            <driver name="Optec IFW">indi_optec_wheel</driver>
+            <version>0.2</version>
+        </device>
+        <device label="Quantum Wheel">
+            <driver name="Quantum Wheel">indi_quantum_wheel</driver>
+            <version>0.1</version>
         </device>
 </devGroup>
 <devGroup group="Video">
@@ -275,6 +291,10 @@
         </device>
 </devGroup>
 <devGroup group="Weather">
+        <device label="SQM">
+                <driver name="SQM">indi_sqm_weather</driver>
+                <version>1.0</version>
+        </device>
         <device label="Weather Meta">
                 <driver name="Weather Meta">indi_meta_weather</driver>
                 <version>1.0</version>

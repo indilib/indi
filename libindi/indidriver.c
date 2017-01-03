@@ -20,7 +20,6 @@
 
 #endif
 
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>
@@ -44,16 +43,19 @@ pthread_mutex_t stdout_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 #define MAXRBUF 2048
 
-/* Return 1 is property is already cached, 0 otherwise */
+/*! INDI property type */
+enum {INDI_NUMBER, INDI_SWITCH, INDI_TEXT, INDI_LIGHT, INDI_BLOB, INDI_UNKNOWN};
+
+/* Return index of property property if already cached, -1 otherwise */
 int isPropDefined(const char *property_name)
 {
     int i=0;
 
-    for (i=0; i < nroCheck; i++)
-        if (!strcmp(property_name, roCheck[i].propName))
-            return 1;
+    for (i=0; i < nPropCache; i++)
+        if (!strcmp(property_name, propCache[i].propName))
+            return i;
 
-    return 0;
+    return -1;
 }
 
 /* output a string expanding special characters into xml/html escape sequences */
@@ -134,10 +136,9 @@ IDSnoopDevice (const char *snooped_device_name, const char *snooped_property_nam
     pthread_mutex_lock(&stdout_mutex);
 	xmlv1();
 	if (snooped_property_name && snooped_property_name[0])
-	    printf ("<getProperties device='%s' name='%s'/>\n",
-				    snooped_device_name, snooped_property_name);
+        printf ("<getProperties version='%g' device='%s' name='%s'/>\n", INDIV, snooped_device_name, snooped_property_name);
 	else
-	    printf ("<getProperties device='%s'/>\n", snooped_device_name);
+        printf ("<getProperties version='%g' device='%s'/>\n", INDIV, snooped_device_name);
 	fflush (stdout);
     pthread_mutex_unlock(&stdout_mutex);
 }
@@ -833,7 +834,7 @@ IUSnoopBLOB (XMLEle *root, IBLOBVectorProperty *bvp)
 void
 clientMsgCB (int fd, void *arg)
 {
-	char buf[1024], msg[1024], *bp;
+    char buf[MAXRBUF], msg[MAXRBUF], *bp;
 	int nr;
 	arg=arg;
 
@@ -869,308 +870,328 @@ clientMsgCB (int fd, void *arg)
 int
 dispatch (XMLEle *root, char msg[])
 {
+    char *rtag = tagXMLEle(root);
+    XMLEle *ep;
+    int n,i=0;
 
+    if (verbose)
+        prXMLEle (stderr, root, 0);
 
-        char *rtag = tagXMLEle(root);
-        XMLEle *ep;
-        int n,i=0;
+    if (!strcmp (rtag, "getProperties"))
+    {
+        XMLAtt *ap, *name;
+        double v;
 
-        if (verbose)
-            prXMLEle (stderr, root, 0);
+        /* check version */
+        ap = findXMLAtt (root, "version");
+        if (!ap)
+        {
+            fprintf (stderr, "%s: getProperties missing version\n", me);
+            exit(1);
+        }
+        v = atof (valuXMLAtt(ap));
+        if (v > INDIV)
+        {
+            fprintf (stderr, "%s: client version %g > %g\n", me, v, INDIV);
+            exit(1);
+        }
 
-        /* check tag in surmised decreasing order of likelyhood */
+        name = findXMLAtt (root, "name");
+        if (name)
+        {
+            int index = isPropDefined(valuXMLAtt(name));
+            if (index < 0)
+                return 0;
 
-        if (!strcmp (rtag, "newNumberVector")) {
-            static double *doubles;
-            static char **names;
-            static int maxn;
-            char *dev, *name;
-
-            /* pull out device and name */
-            if (crackDN (root, &dev, &name, msg) < 0)
-                return (-1);
-
-            if (!isPropDefined(name))
-                return -1;
-
-            /* ensure property is not RO */
-            for (i=0; i < nroCheck; i++)
+            ROSC *prop = propCache + index;
+            switch (prop->type)
             {
-              if (!strcmp(roCheck[i].propName, name))
-              {
-               if (roCheck[i].perm == IP_RO)
-                 return -1;
-               else
-                   break;
-              }
-            }
+            case INDI_NUMBER:
+                IDSetNumber((INumberVectorProperty*)(prop->ptr), NULL);
+                return 0;
+                break;
 
-            /* seed for reallocs */
-            if (!doubles) {
-                doubles = (double *) malloc (1);
-                names = (char **) malloc (1);
-            }
+            case INDI_SWITCH:
+                IDSetSwitch((ISwitchVectorProperty*)(prop->ptr), NULL);
+                return 0;
+                break;
 
-            /* pull out each name/value pair */
-            char *orig = setlocale(LC_NUMERIC,"C");
-            for (n = 0, ep = nextXMLEle(root,1); ep; ep = nextXMLEle(root,0)) {
-                if (strcmp (tagXMLEle(ep), "oneNumber") == 0) {
-                    XMLAtt *na = findXMLAtt (ep, "name");
-                    if (na) {
-                        if (n >= maxn) {
-                            /* grow for this and another */
-                            int newsz = (maxn=n+1)*sizeof(double);
-                            doubles = (double *) realloc(doubles,newsz);
-                            newsz = maxn*sizeof(char *);
-                            names = (char **) realloc (names, newsz);
-                        }
-                        if (f_scansexa (pcdataXMLEle(ep), &doubles[n]) < 0)
-                            IDMessage (dev,"%s: Bad format %s", name,
-                                                            pcdataXMLEle(ep));
-                        else
-                            names[n++] = valuXMLAtt(na);
-                    }
-                }
-            }
-            setlocale(LC_NUMERIC,orig);
+            case INDI_TEXT:
+                IDSetText((ITextVectorProperty*)(prop->ptr), NULL);
+                return 0;
+                break;
 
-            /* invoke driver if something to do, but not an error if not */
-            if (n > 0)
-                ISNewNumber (dev, name, doubles, names, n);
-            else
-                IDMessage(dev,"%s: newNumberVector with no valid members",name);
-            return (0);
+            case INDI_BLOB:
+                IDSetBLOB((IBLOBVectorProperty*)(prop->ptr), NULL);
+                return 0;
+                break;
+            default:
+                return 0;
+            }
         }
+        /* ok */
+        ap = findXMLAtt (root, "device");
 
-        if (!strcmp (rtag, "newSwitchVector")) {
-            static ISState *states;
-            static char **names;
-            static int maxn;
-            char *dev, *name;
-            XMLEle *ep;
 
-            /* pull out device and name */
-            if (crackDN (root, &dev, &name, msg) < 0)
-                return (-1);
+        ISGetProperties (ap ? valuXMLAtt(ap) : NULL);
+        return (0);
+    }
 
-            if (!isPropDefined(name))
-                return -1;
-
-            /* ensure property is not RO */
-            for (i=0; i < nroCheck; i++)
-            {
-              if (!strcmp(roCheck[i].propName, name))
-              {
-               if (roCheck[i].perm == IP_RO)
-                 return -1;
-               else
-                   break;
-              }
-            }
-
-            /* seed for reallocs */
-            if (!states) {
-                states = (ISState *) malloc (1);
-                names = (char **) malloc (1);
-            }
-
-            /* pull out each name/state pair */
-            for (n = 0, ep = nextXMLEle(root,1); ep; ep = nextXMLEle(root,0)) {
-                if (strcmp (tagXMLEle(ep), "oneSwitch") == 0) {
-                    XMLAtt *na = findXMLAtt (ep, "name");
-                    if (na) {
-                        if (n >= maxn) {
-                            int newsz = (maxn=n+1)*sizeof(ISState);
-                            states = (ISState *) realloc(states, newsz);
-                            newsz = maxn*sizeof(char *);
-                            names = (char **) realloc (names, newsz);
-                        }
-                        if (strcmp (pcdataXMLEle(ep),"On") == 0) {
-                            states[n] = ISS_ON;
-                            names[n] = valuXMLAtt(na);
-                            n++;
-                        } else if (strcmp (pcdataXMLEle(ep),"Off") == 0) {
-                            states[n] = ISS_OFF;
-                            names[n] = valuXMLAtt(na);
-                            n++;
-                        } else
-                            IDMessage (dev, "%s: must be On or Off: %s", name,
-                                                            pcdataXMLEle(ep));
-                    }
-                }
-            }
-
-            /* invoke driver if something to do, but not an error if not */
-            if (n > 0)
-                ISNewSwitch (dev, name, states, names, n);
-            else
-                IDMessage(dev,"%s: newSwitchVector with no valid members",name);
-            return (0);
-        }
-
-        if (!strcmp (rtag, "newTextVector")) {
-            static char **texts;
-            static char **names;
-            static int maxn;
-            char *dev, *name;
-
-            /* pull out device and name */
-            if (crackDN (root, &dev, &name, msg) < 0)
-                return (-1);
-
-            if (!isPropDefined(name))
-                return -1;
-
-            /* ensure property is not RO */
-            for (i=0; i < nroCheck; i++)
-            {
-              if (!strcmp(roCheck[i].propName, name))
-              {
-               if (roCheck[i].perm == IP_RO)
-                 return -1;
-               else
-                   break;
-              }
-            }
-
-            /* seed for reallocs */
-            if (!texts) {
-                texts = (char **) malloc (1);
-                names = (char **) malloc (1);
-            }
-
-            /* pull out each name/text pair */
-            for (n = 0, ep = nextXMLEle(root,1); ep; ep = nextXMLEle(root,0)) {
-                if (strcmp (tagXMLEle(ep), "oneText") == 0) {
-                    XMLAtt *na = findXMLAtt (ep, "name");
-                    if (na) {
-                        if (n >= maxn) {
-                            int newsz = (maxn=n+1)*sizeof(char *);
-                            texts = (char **) realloc (texts, newsz);
-                            names = (char **) realloc (names, newsz);
-                        }
-                        texts[n] = pcdataXMLEle(ep);
-                        names[n] = valuXMLAtt(na);
-                        n++;
-                    }
-                }
-            }
-
-            /* invoke driver if something to do, but not an error if not */
-            if (n > 0)
-                ISNewText (dev, name, texts, names, n);
-            else
-                IDMessage (dev, "%s: set with no valid members", name);
-            return (0);
-        }
-
-        if (!strcmp (rtag, "newBLOBVector")) {
-            static char **blobs;
-            static char **names;
-            static char **formats;
-            static int *blobsizes;
-            static int *sizes;
-            static int maxn;
-            char *dev, *name;
-            int i;
-
-            /* pull out device and name */
-            if (crackDN (root, &dev, &name, msg) < 0)
-                return (-1);
-
-            if (!isPropDefined(name))
-                return -1;
-
-            /* seed for reallocs */
-            if (!blobs) {
-                blobs = (char **) malloc (1);
-                names = (char **) malloc (1);
-                formats = (char **) malloc (1);
-                blobsizes = (int *) malloc (1);
-                sizes = (int *) malloc (1);
-            }
-
-            /* pull out each name/BLOB pair, decode */
-            for (n = 0, ep = nextXMLEle(root,1); ep; ep = nextXMLEle(root,0)) {
-                if (strcmp (tagXMLEle(ep), "oneBLOB") == 0) {
-                    XMLAtt *na = findXMLAtt (ep, "name");
-                    XMLAtt *fa = findXMLAtt (ep, "format");
-                    XMLAtt *sa = findXMLAtt (ep, "size");
-                    if (na && fa && sa) {
-                        if (n >= maxn) {
-                            int newsz = (maxn=n+1)*sizeof(char *);
-                            blobs = (char **) realloc (blobs, newsz);
-                            names = (char **) realloc (names, newsz);
-                            formats = (char **) realloc(formats,newsz);
-                            newsz = maxn*sizeof(int);
-                            sizes = (int *) realloc(sizes,newsz);
-                            blobsizes = (int *) realloc(blobsizes,newsz);
-                        }
-                        int bloblen = pcdatalenXMLEle(ep);
-                        blobs[n] = malloc (3*bloblen/4);
-                        blobsizes[n] = from64tobits_fast(blobs[n], pcdataXMLEle(ep), bloblen);
-                        names[n] = valuXMLAtt(na);
-                        formats[n] = valuXMLAtt(fa);
-                        sizes[n] = atoi(valuXMLAtt(sa));
-                        n++;
-                    }
-                }
-            }
-
-            /* invoke driver if something to do, but not an error if not */
-            if (n > 0) {
-                ISNewBLOB (dev, name, sizes, blobsizes, blobs, formats,names,n);
-                for (i = 0; i < n; i++)
-                    free (blobs[i]);
-            } else
-                IDMessage (dev, "%s: newBLOBVector with no valid members",name);
-            return (0);
-        }
-
-        if (!strcmp (rtag, "getProperties")) {
-            XMLAtt *ap;
-            double v;
-
-            /* check version */
-            ap = findXMLAtt (root, "version");
-            if (!ap) {
-                fprintf (stderr, "%s: getProperties missing version\n", me);
-                exit(1);
-            }
-            v = atof (valuXMLAtt(ap));
-            if (v > INDIV) {
-                fprintf (stderr, "%s: client version %g > %g\n", me, v, INDIV);
-                exit(1);
-            }
-
-            /* ok */
-            ap = findXMLAtt (root, "device");
-            ISGetProperties (ap ? valuXMLAtt(ap) : NULL);
-            return (0);
-        }
-
-        /* other commands might be from a snooped device.
+    /* other commands might be from a snooped device.
          * we don't know here which devices are being snooped so we send
          * all remaining valid messages
          */
-        if (        !strcmp (rtag, "setNumberVector") ||
-                    !strcmp (rtag, "setTextVector") ||
-                    !strcmp (rtag, "setLightVector") ||
-                    !strcmp (rtag, "setSwitchVector") ||
-                    !strcmp (rtag, "setBLOBVector") ||
-                    !strcmp (rtag, "defNumberVector") ||
-                    !strcmp (rtag, "defTextVector") ||
-                    !strcmp (rtag, "defLightVector") ||
-                    !strcmp (rtag, "defSwitchVector") ||
-                    !strcmp (rtag, "defBLOBVector") ||
-                    !strcmp (rtag, "message") ||
-                    !strcmp (rtag, "delProperty")) {
-            ISSnoopDevice (root);
-            return (0);
+    if (        !strcmp (rtag, "setNumberVector") ||
+                !strcmp (rtag, "setTextVector") ||
+                !strcmp (rtag, "setLightVector") ||
+                !strcmp (rtag, "setSwitchVector") ||
+                !strcmp (rtag, "setBLOBVector") ||
+                !strcmp (rtag, "defNumberVector") ||
+                !strcmp (rtag, "defTextVector") ||
+                !strcmp (rtag, "defLightVector") ||
+                !strcmp (rtag, "defSwitchVector") ||
+                !strcmp (rtag, "defBLOBVector") ||
+                !strcmp (rtag, "message") ||
+                !strcmp (rtag, "delProperty")) {
+        ISSnoopDevice (root);
+        return (0);
+    }
+
+    char *dev, *name;
+    /* pull out device and name */
+    if (crackDN (root, &dev, &name, msg) < 0)
+        return (-1);
+
+    if (isPropDefined(name) < 0)
+    {
+        snprintf(msg, MAXRBUF, "Property %s is not defined.", name);
+        return -1;
+    }
+
+    /* ensure property is not RO */
+    for (i=0; i < nPropCache; i++)
+    {
+        if (!strcmp(propCache[i].propName, name))
+        {
+            if (propCache[i].perm == IP_RO)
+            {
+                snprintf(msg, MAXRBUF, "Cannot set read-only property %s", name);
+                return -1;
+            }
+            else
+                break;
+        }
+    }
+
+    /* check tag in surmised decreasing order of likelyhood */
+
+    if (!strcmp (rtag, "newNumberVector"))
+    {
+        static double *doubles;
+        static char **names;
+        static int maxn;
+
+        /* seed for reallocs */
+        if (!doubles)
+        {
+            doubles = (double *) malloc (1);
+            names = (char **) malloc (1);
         }
 
-        sprintf (msg, "Unknown command: %s", rtag);
-        return(1);
+        // Set locale to C and save previous value
+        char *orig = setlocale(LC_NUMERIC,"C");
+
+        /* pull out each name/value pair */
+        for (n = 0, ep = nextXMLEle(root,1); ep; ep = nextXMLEle(root,0))
+        {
+            if (strcmp (tagXMLEle(ep), "oneNumber") == 0)
+            {
+                XMLAtt *na = findXMLAtt (ep, "name");
+                if (na)
+                {
+                    if (n >= maxn)
+                    {
+                        /* grow for this and another */
+                        int newsz = (maxn=n+1)*sizeof(double);
+                        doubles = (double *) realloc(doubles,newsz);
+                        newsz = maxn*sizeof(char *);
+                        names = (char **) realloc (names, newsz);
+                    }
+                    if (f_scansexa (pcdataXMLEle(ep), &doubles[n]) < 0)
+                        IDMessage (dev,"%s: Bad format %s", name,
+                                   pcdataXMLEle(ep));
+                    else
+                        names[n++] = valuXMLAtt(na);
+                }
+            }
+        }
+
+        // Reset locale settings to original value
+        setlocale(LC_NUMERIC,orig);
+
+        /* invoke driver if something to do, but not an error if not */
+        if (n > 0)
+            ISNewNumber (dev, name, doubles, names, n);
+        else
+            IDMessage(dev,"%s: newNumberVector with no valid members",name);
+        return (0);
+    }
+
+    if (!strcmp (rtag, "newSwitchVector"))
+    {
+        static ISState *states;
+        static char **names;
+        static int maxn;
+        XMLEle *ep;
+
+        /* seed for reallocs */
+        if (!states)
+        {
+            states = (ISState *) malloc (1);
+            names = (char **) malloc (1);
+        }
+
+        /* pull out each name/state pair */
+        for (n = 0, ep = nextXMLEle(root,1); ep; ep = nextXMLEle(root,0))
+        {
+            if (strcmp (tagXMLEle(ep), "oneSwitch") == 0)
+            {
+                XMLAtt *na = findXMLAtt (ep, "name");
+                if (na)
+                {
+                    if (n >= maxn)
+                    {
+                        int newsz = (maxn=n+1)*sizeof(ISState);
+                        states = (ISState *) realloc(states, newsz);
+                        newsz = maxn*sizeof(char *);
+                        names = (char **) realloc (names, newsz);
+                    }
+                    if (strcmp (pcdataXMLEle(ep),"On") == 0)
+                    {
+                        states[n] = ISS_ON;
+                        names[n] = valuXMLAtt(na);
+                        n++;
+                    } else if (strcmp (pcdataXMLEle(ep),"Off") == 0)
+                    {
+                        states[n] = ISS_OFF;
+                        names[n] = valuXMLAtt(na);
+                        n++;
+                    } else
+                        IDMessage (dev, "%s: must be On or Off: %s", name,
+                                   pcdataXMLEle(ep));
+                }
+            }
+        }
+
+        /* invoke driver if something to do, but not an error if not */
+        if (n > 0)
+            ISNewSwitch (dev, name, states, names, n);
+        else
+            IDMessage(dev,"%s: newSwitchVector with no valid members",name);
+        return (0);
+    }
+
+    if (!strcmp (rtag, "newTextVector"))
+    {
+        static char **texts;
+        static char **names;
+        static int maxn;
+
+        /* seed for reallocs */
+        if (!texts)
+        {
+            texts = (char **) malloc (1);
+            names = (char **) malloc (1);
+        }
+
+        /* pull out each name/text pair */
+        for (n = 0, ep = nextXMLEle(root,1); ep; ep = nextXMLEle(root,0))
+        {
+            if (strcmp (tagXMLEle(ep), "oneText") == 0) {
+                XMLAtt *na = findXMLAtt (ep, "name");
+                if (na)
+                {
+                    if (n >= maxn)
+                    {
+                        int newsz = (maxn=n+1)*sizeof(char *);
+                        texts = (char **) realloc (texts, newsz);
+                        names = (char **) realloc (names, newsz);
+                    }
+                    texts[n] = pcdataXMLEle(ep);
+                    names[n] = valuXMLAtt(na);
+                    n++;
+                }
+            }
+        }
+
+        /* invoke driver if something to do, but not an error if not */
+        if (n > 0)
+            ISNewText (dev, name, texts, names, n);
+        else
+            IDMessage (dev, "%s: set with no valid members", name);
+        return (0);
+    }
+
+    if (!strcmp (rtag, "newBLOBVector"))
+    {
+        static char **blobs;
+        static char **names;
+        static char **formats;
+        static int *blobsizes;
+        static int *sizes;
+        static int maxn;
+        int i;
+
+        /* seed for reallocs */
+        if (!blobs) {
+            blobs = (char **) malloc (1);
+            names = (char **) malloc (1);
+            formats = (char **) malloc (1);
+            blobsizes = (int *) malloc (1);
+            sizes = (int *) malloc (1);
+        }
+
+        /* pull out each name/BLOB pair, decode */
+        for (n = 0, ep = nextXMLEle(root,1); ep; ep = nextXMLEle(root,0))
+        {
+            if (strcmp (tagXMLEle(ep), "oneBLOB") == 0) {
+                XMLAtt *na = findXMLAtt (ep, "name");
+                XMLAtt *fa = findXMLAtt (ep, "format");
+                XMLAtt *sa = findXMLAtt (ep, "size");
+                if (na && fa && sa) {
+                    if (n >= maxn) {
+                        int newsz = (maxn=n+1)*sizeof(char *);
+                        blobs = (char **) realloc (blobs, newsz);
+                        names = (char **) realloc (names, newsz);
+                        formats = (char **) realloc(formats,newsz);
+                        newsz = maxn*sizeof(int);
+                        sizes = (int *) realloc(sizes,newsz);
+                        blobsizes = (int *) realloc(blobsizes,newsz);
+                    }
+                    int bloblen = pcdatalenXMLEle(ep);
+                    blobs[n] = malloc (3*bloblen/4);
+                    blobsizes[n] = from64tobits_fast(blobs[n], pcdataXMLEle(ep), bloblen);
+                    names[n] = valuXMLAtt(na);
+                    formats[n] = valuXMLAtt(fa);
+                    sizes[n] = atoi(valuXMLAtt(sa));
+                    n++;
+                }
+            }
+        }
+
+        /* invoke driver if something to do, but not an error if not */
+        if (n > 0)
+        {
+            ISNewBLOB (dev, name, sizes, blobsizes, blobs, formats,names,n);
+            for (i = 0; i < n; i++)
+                free (blobs[i]);
+        } else
+            IDMessage (dev, "%s: newBLOBVector with no valid members",name);
+        return (0);
+    }
+
+    sprintf (msg, "Unknown command: %s", rtag);
+    return(1);
 }
 
 int IUReadConfig(const char *filename, const char *dev, const char *property, int silent, char errmsg[])
@@ -1509,15 +1530,17 @@ IDDefText (const ITextVectorProperty *tvp, const char *fmt, ...)
 
         printf ("</defTextVector>\n");
 
-        if (!isPropDefined(tvp->name))
+        if (isPropDefined(tvp->name) < 0)
         {
                 /* Add this property to insure proper sanity check */
-                roCheck = roCheck ? (ROSC *) realloc ( roCheck, sizeof(ROSC) * (nroCheck+1))
+                propCache = propCache ? (ROSC *) realloc ( propCache, sizeof(ROSC) * (nPropCache+1))
                                 : (ROSC *) malloc  ( sizeof(ROSC));
-                SC      = &roCheck[nroCheck++];
+                SC      = &propCache[nPropCache++];
 
                 strcpy(SC->propName, tvp->name);
                 SC->perm = tvp->p;
+                SC->ptr = tvp;
+                SC->type= INDI_TEXT;
         }
 
         setlocale(LC_NUMERIC,orig);
@@ -1577,16 +1600,17 @@ IDDefNumber (const INumberVectorProperty *n, const char *fmt, ...)
 
         printf ("</defNumberVector>\n");
 
-        if (!isPropDefined(n->name))
+        if (isPropDefined(n->name) < 0)
         {
                 /* Add this property to insure proper sanity check */
-                roCheck = roCheck ? (ROSC *) realloc ( roCheck, sizeof(ROSC) * (nroCheck+1))
+                propCache = propCache ? (ROSC *) realloc ( propCache, sizeof(ROSC) * (nPropCache+1))
                                 : (ROSC *) malloc  ( sizeof(ROSC));
-                SC      = &roCheck[nroCheck++];
+                SC      = &propCache[nPropCache++];
 
                 strcpy(SC->propName, n->name);
                 SC->perm = n->p;
-
+                SC->ptr = n;
+                SC->type= INDI_NUMBER;
         }
 
         setlocale(LC_NUMERIC,orig);
@@ -1638,15 +1662,17 @@ IDDefSwitch (const ISwitchVectorProperty *s, const char *fmt, ...)
 
         printf ("</defSwitchVector>\n");
 
-        if (!isPropDefined(s->name))
+        if (isPropDefined(s->name) < 0)
         {
                 /* Add this property to insure proper sanity check */
-                roCheck = roCheck ? (ROSC *) realloc ( roCheck, sizeof(ROSC) * (nroCheck+1))
+                propCache = propCache ? (ROSC *) realloc ( propCache, sizeof(ROSC) * (nPropCache+1))
                                 : (ROSC *) malloc  ( sizeof(ROSC));
-                SC      = &roCheck[nroCheck++];
+                SC      = &propCache[nPropCache++];
 
                 strcpy(SC->propName, s->name);
                 SC->perm = s->p;
+                SC->ptr = s;
+                SC->type= INDI_SWITCH;
         }
 
         setlocale(LC_NUMERIC,orig);
@@ -1736,15 +1762,17 @@ IDDefBLOB (const IBLOBVectorProperty *b, const char *fmt, ...)
 
         printf ("</defBLOBVector>\n");
 
-        if (!isPropDefined(b->name))
+        if (isPropDefined(b->name) < 0)
         {
                 /* Add this property to insure proper sanity check */
-                roCheck = roCheck ? (ROSC *) realloc ( roCheck, sizeof(ROSC) * (nroCheck+1))
+                propCache = propCache ? (ROSC *) realloc ( propCache, sizeof(ROSC) * (nPropCache+1))
                                 : (ROSC *) malloc  ( sizeof(ROSC));
-                SC      = &roCheck[nroCheck++];
+                SC      = &propCache[nPropCache++];
 
                 strcpy(SC->propName, b->name);
                 SC->perm = b->p;
+                SC->ptr = b;
+                SC->type= INDI_BLOB;
         }
 
         setlocale(LC_NUMERIC,orig);
@@ -1914,60 +1942,68 @@ IDSetLight (const ILightVectorProperty *lvp, const char *fmt, ...)
 void
 IDSetBLOB (const IBLOBVectorProperty *bvp, const char *fmt, ...)
 {
-        int i;
+    int i;
 
-        pthread_mutex_lock(&stdout_mutex);
+    pthread_mutex_lock(&stdout_mutex);
 
-        xmlv1();
-        char *orig = setlocale(LC_NUMERIC,"C");
-        printf ("<setBLOBVector\n");
-        printf ("  device='%s'\n", bvp->device);
-        printf ("  name='%s'\n", bvp->name);
-        printf ("  state='%s'\n", pstateStr(bvp->s));
-        printf ("  timeout='%g'\n", bvp->timeout);
-        printf ("  timestamp='%s'\n", timestamp());
-        if (fmt) {
-            va_list ap;
-            va_start (ap, fmt);
-            printf ("  message='");
-            vprintf (fmt, ap);
-            printf ("'\n");
-            va_end (ap);
-        }
-        printf (">\n");
+    xmlv1();
+    char *orig = setlocale(LC_NUMERIC,"C");
+    printf ("<setBLOBVector\n");
+    printf ("  device='%s'\n", bvp->device);
+    printf ("  name='%s'\n", bvp->name);
+    printf ("  state='%s'\n", pstateStr(bvp->s));
+    printf ("  timeout='%g'\n", bvp->timeout);
+    printf ("  timestamp='%s'\n", timestamp());
+    if (fmt)
+    {
+        va_list ap;
+        va_start (ap, fmt);
+        printf ("  message='");
+        vprintf (fmt, ap);
+        printf ("'\n");
+        va_end (ap);
+    }
+    printf (">\n");
 
-        for (i = 0; i < bvp->nbp; i++) {
-            IBLOB *bp = &bvp->bp[i];
-            unsigned char *encblob;
-            int j, l;
+    for (i = 0; i < bvp->nbp; i++)
+    {
+        IBLOB *bp = &bvp->bp[i];
+        unsigned char *encblob;
+        int l;
 
-            printf ("  <oneBLOB\n");
-            printf ("    name='%s'\n", bp->name);
-            printf ("    size='%d'\n", bp->size);
-            //printf ("    format='%s'>\n", bp->format);
+        printf ("  <oneBLOB\n");
+        printf ("    name='%s'\n", bp->name);
+        printf ("    size='%d'\n", bp->size);
+        //printf ("    format='%s'>\n", bp->format);
 
-            encblob = malloc (4*bp->bloblen/3+4);
-            l = to64frombits(encblob, bp->blob, bp->bloblen);
-	    printf ("    enclen='%d'\n", l);
-	    printf ("    format='%s'>\n", bp->format);
-            size_t written = 0;
-            size_t towrite = l;
-            while (written < l) {
-                towrite = ((l - written) > 72) ? 72 : l - written;
-                size_t wr = fwrite(encblob + written, 1, towrite, stdout);
+        encblob = malloc (4*bp->bloblen/3+4);
+        l = to64frombits(encblob, bp->blob, bp->bloblen);
+        printf ("    enclen='%d'\n", l);
+        printf ("    format='%s'>\n", bp->format);
+        size_t written = 0;
+        size_t towrite = l;
+        while (written < l)
+        {
+            towrite = ((l - written) > 72) ? 72 : l - written;
+            size_t wr = fwrite(encblob + written, 1, towrite, stdout);
+            if (wr > 0) written += wr;
+            if ((written % 72) == 0)
                 fputc('\n', stdout);
-                if (wr > 0) written += wr;
-            }
-            free (encblob);
-
-            printf ("  </oneBLOB>\n");
         }
 
-  printf ("</setBLOBVector>\n");
-  setlocale(LC_NUMERIC,orig);
-  fflush (stdout);
+        if ((written % 72) != 0)
+            fputc('\n', stdout);
 
-  pthread_mutex_unlock(&stdout_mutex);
+        free (encblob);
+
+        printf ("  </oneBLOB>\n");
+    }
+
+    printf ("</setBLOBVector>\n");
+    setlocale(LC_NUMERIC,orig);
+    fflush (stdout);
+
+    pthread_mutex_unlock(&stdout_mutex);
 }
 
 /* tell client to update min/max elements of an existing number vector property */

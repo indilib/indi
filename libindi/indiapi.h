@@ -104,11 +104,10 @@ You can find information on INDI development in the <a href="http://www.indilib.
 
 #define	INDIV	1.7
 
-
 /* INDI Library version */
 #define INDI_VERSION_MAJOR      1
-#define INDI_VERSION_MINOR      2
-#define INDI_VERSION_RELEASE	0
+#define INDI_VERSION_MINOR      3
+#define INDI_VERSION_RELEASE	1
 
 /*******************************************************************************
  * Manifest constants
@@ -119,9 +118,9 @@ You can find information on INDI development in the <a href="http://www.indilib.
 */
 typedef enum 
 {
-    ISS_OFF,		/*!< Switch is OFF */
+    ISS_OFF,        /*!< Switch is OFF */
     ISS_ON          /*!< Switch is ON */
-} ISState;				/* switch state */
+} ISState;          /* switch state */
 
 /** \typedef IPState
     \brief Property state.

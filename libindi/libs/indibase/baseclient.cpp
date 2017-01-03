@@ -49,11 +49,12 @@ INDI::BaseClient::BaseClient()
 
 }
 
-
 INDI::BaseClient::~BaseClient()
 {
-    // close(m_sendFd);
-    // close(m_receiveFd);
+    while(!cDevices.empty()) delete cDevices.back(), cDevices.pop_back();
+    cDevices.clear();
+    while(!blobModes.empty()) delete blobModes.back(), blobModes.pop_back();
+    blobModes.clear();
 }
 
 
@@ -194,7 +195,6 @@ bool INDI::BaseClient::connectServer()
         return false;
     }
 
-
     serverConnected();
 
     return true;
@@ -216,7 +216,11 @@ bool INDI::BaseClient::disconnectServer()
             fclose(svrwfp);
     svrwfp = NULL;
 
+    while(!cDevices.empty()) delete cDevices.back(), cDevices.pop_back();
     cDevices.clear();
+    while(!blobModes.empty()) delete blobModes.back(), blobModes.pop_back();
+    blobModes.clear();
+
     cDeviceNames.clear();
 
     pthread_join(listen_thread, NULL);
@@ -799,6 +803,25 @@ void INDI::BaseClient::setBLOBMode(BLOBHandling blobH, const char *dev, const ch
     if (!dev[0])
         return;
 
+    BLOBMode *bMode = findBLOBMode(string(dev), prop ? string(prop) : string());
+
+    if (bMode == NULL)
+    {
+        BLOBMode *newMode = new BLOBMode();
+        newMode->device   = string(dev);
+        newMode->property = prop ? string(prop) : string();
+        newMode->blobMode = blobH;
+        blobModes.push_back(newMode);
+    }
+    else
+    {
+        // If nothing changed, nothing to to do
+        if (bMode->blobMode == blobH)
+            return;
+
+        bMode->blobMode = blobH;
+    }
+
     if (prop != NULL)
         snprintf(blobOpenTag, MAXRBUF, "<enableBLOB device='%s' name='%s'>", dev, prop);
     else
@@ -820,5 +843,28 @@ void INDI::BaseClient::setBLOBMode(BLOBHandling blobH, const char *dev, const ch
     fflush(svrwfp);
 }
 
+BLOBHandling INDI::BaseClient::getBLOBMode(const char *dev, const char *prop)
+{
+    BLOBHandling bHandle = B_ALSO;
 
+    BLOBMode *bMode = findBLOBMode(dev, prop ? string(prop) : string());
+
+    if (bMode)
+        bHandle = bMode->blobMode;
+
+    return bHandle;
+}
+
+INDI::BaseClient::BLOBMode *INDI::BaseClient::findBLOBMode(string device, string property)
+{
+    std::vector<BLOBMode *>::iterator blobby;
+
+    for (blobby =blobModes.begin(); blobby != blobModes.end(); blobby++)
+    {
+        if ( (*blobby)->device == device && (*blobby)->property == property)
+            return (*blobby);
+    }
+
+    return NULL;
+}
 
