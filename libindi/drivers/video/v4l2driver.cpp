@@ -119,6 +119,8 @@ bool V4L2_Driver::initProperties()
 
   SetCCDCapability(CCD_CAN_BIN | CCD_CAN_SUBFRAME | CCD_HAS_STREAMING);
 
+  strncpy(v4l_base->deviceName, getDeviceName(), MAXINDIDEVICE);
+
   return true;
 }
 
