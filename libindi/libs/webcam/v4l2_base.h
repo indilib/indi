@@ -172,11 +172,7 @@ class V4L2_Base
   struct v4l2_querymenu querymenu;
   bool has_ext_pix_format;
 
-  // N.B. This is disabled under Raspbian as of 2017-01-04 since the V4L2 headers lack the V4L2_PIX_FMT_FLAG
-  // Once Raspbian is updated to a more recent Linux kernel, it should be supported again.
-  #ifdef V4L2_PIX_FMT_FLAG_PREMUL_ALPHA
-  bool is_compressed() const { return fmt.fmt.pix.flags & V4L2_FMT_FLAG_COMPRESSED; }
-  #endif
+  bool is_compressed() const;
 
   WPF *callback;
   void *uptr;

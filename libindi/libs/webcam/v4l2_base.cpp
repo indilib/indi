@@ -47,6 +47,9 @@
 /* PWC framerate support*/
 #include "pwc-ioctl.h"
 
+/* Kernel headers version */
+#include <linux/version.h>
+
 #define ERRMSGSIZ	1024
 
 #define CLEAR(x) memset (&(x), 0, sizeof (x))
@@ -56,19 +59,17 @@
 #define DBG_STR_PIX "%c%c%c%c"
 #define DBG_PIX(pf) ((pf)>>0)&0xFF, ((pf)>>8)&0xFF, ((pf)>>16)&0xFF, ((pf)>>24)&0xFF
 
-#define DBG_STR_FMT "%ux%u " DBG_STR_PIX " %scompressed (%ssupported)"
 
-// N.B. This is disabled under Raspbian as of 2017-01-04 since the V4L2 headers lack the V4L2_PIX_FMT_FLAG
-// Once Raspbian is updated to a more recent Linux kernel, it should be supported again.
-#ifdef V4L2_PIX_FMT_FLAG_PREMUL_ALPHA
-#define DBG_FMT(f) (f).fmt.pix.width, (f).fmt.pix.height, \
-    DBG_PIX((f).fmt.pix.pixelformat), \
-    ((f).fmt.pix.flags & V4L2_FMT_FLAG_COMPRESSED)?"":"un", \
-    (decoder->issupportedformat((f).fmt.pix.pixelformat)?"":"un")
-#endif
+/* TODO: Before 3.17, the only way to determine a format is compressed is to
+ * consolidate a matrix with v4l2_pix_format::pixelformat and v4l2_fourcc
+ * values. After 3.17, field 'flags' in v4l2_pix_format is assumed to be
+ * properly filled. For now we rely on 'flags', but we could just check the
+ * most used pixel formats in a CCD whitelist (YUVx, RGBxxx...).
+ */
 
-#define DBG_STR_BUF "#%d ...%c .%c%c%c %c%c.%c .%c%c%c %c%c%c%c % 7d bytes %4.4s seq %d:%d stamp %ld.%06ld"
-#define DBG_BUF(b) (b).index, \
+#if ( LINUX_VERSION_CODE >= KERNEL_VERSION(3,17,0) )
+# define DBG_STR_FLAGS "...%c .%c%c%c %c%c.%c .%c%c%c %c%c%c%c"
+# define DBG_FLAGS(b) \
     /* 0x00010000 */((b).flags & V4L2_BUF_FLAG_TSTAMP_SRC_SOE)?'S':'E', \
     /* 0x00004000 */((b).flags & V4L2_BUF_FLAG_TIMESTAMP_COPY)?'c':'.', \
     /* 0x00002000 */((b).flags & V4L2_BUF_FLAG_TIMESTAMP_MONOTONIC)?'m':'.', \
@@ -82,11 +83,31 @@
     /* 0x00000008 */((b).flags & V4L2_BUF_FLAG_KEYFRAME)?'K':'.', \
     /* 0x00000004 */((b).flags & V4L2_BUF_FLAG_DONE)?'d':'.', \
     /* 0x00000002 */((b).flags & V4L2_BUF_FLAG_QUEUED)?'q':'.', \
-    /* 0x00000001 */((b).flags & V4L2_BUF_FLAG_MAPPED)?'m':'.', \
-    (b).bytesused, \
+    /* 0x00000001 */((b).flags & V4L2_BUF_FLAG_MAPPED)?'m':'.'
+#else
+# define DBG_STR_FLAGS "%s"
+# define DBG_FLAGS(b) ""
+#endif
+ 
+#if ( LINUX_VERSION_CODE >= KERNEL_VERSION(3,17,0) )
+# define DBG_STR_FMT "%ux%u " DBG_STR_PIX " %scompressed (%ssupported)"
+# define DBG_FMT(f) (f).fmt.pix.width, (f).fmt.pix.height, \
+    DBG_PIX((f).fmt.pix.pixelformat), \
+    ((f).fmt.pix.flags & V4L2_FMT_FLAG_COMPRESSED)?"":"un", \
+    (decoder->issupportedformat((f).fmt.pix.pixelformat)?"":"un")
+#else
+# define DBG_STR_FMT "%ux%u " DBG_STR_PIX " (%ssupported)"
+# define DBG_FMT(f) (f).fmt.pix.width, (f).fmt.pix.height, \
+    DBG_PIX((f).fmt.pix.pixelformat), \
+    (decoder->issupportedformat((f).fmt.pix.pixelformat)?"":"un")
+#endif
+
+#define DBG_STR_BUF "#%d " DBG_STR_FLAGS " % 7d bytes %4.4s seq %d:%d stamp %ld.%06ld"
+#define DBG_BUF(b) (b).index, \
+    DBG_FLAGS(b), (b).bytesused, \
     ((b).memory == V4L2_MEMORY_MMAP)?"mmap": \
         ((b).memory == V4L2_MEMORY_USERPTR)?"uptr": \
-        ((b).memory == V4L2_MEMORY_DMABUF)?"dma": \
+        ((b).memory == 4 /* kernel 3.8.0: V4L2_MEMORY_DMABUF */ )?"dma": \
         ((b).memory == V4L2_MEMORY_OVERLAY)?"over":"", \
     (b).sequence, (b).field, \
     (b).timestamp.tv_sec, (b).timestamp.tv_usec
@@ -164,6 +185,35 @@ V4L2_Base::~V4L2_Base()
     delete v4l2_record;
 }
 
+/** @brief Helper indicating whether current pixel format is compressed or not.
+ *
+ * This function is used in read_frame to check for corrupted frames.
+ *
+ * @return true if pixel format is considered compressed by the driver, else
+ * false.
+ *
+ * @warning If kernel headers 3.17 or later are available, this function will
+ * rely on field 'flags', else will compare the current pixel format against an
+ * arbitrary list of known format codes.
+ */
+bool V4L2_Base::is_compressed() const
+{
+    /* See note at top of this file */
+#if ( LINUX_VERSION_CODE >= KERNEL_VERSION(3,17,0) )
+    return fmt.fmt.pix.flags & V4L2_FMT_FLAG_COMPRESSED;
+#else
+    switch(fmt.fmt.pix.pixelformat)
+    {
+        case V4L2_PIX_FMT_GREY:
+        /* case V4L2_PIX_FMT... add other uncompressed and supported formats here */
+            return false;
+
+        default:
+            return true;
+    }
+#endif
+}
+
 /** @internal Helper for ioctl calls, with logging facility.
  *
  * This function is called by internal macro XIOCTL.
@@ -235,11 +285,7 @@ V4L2_Base::ioctl_set_format(struct v4l2_format new_fmt, char * errmsg)
     {
         if(-1 == XIOCTL(fd, VIDIOC_TRY_FMT, &new_fmt))
         {
-            // N.B. This is disabled under Raspbian as of 2017-01-04 since the V4L2 headers lack the V4L2_PIX_FMT_FLAG
-            // Once Raspbian is updated to a more recent Linux kernel, it should be supported again.
-            #ifdef V4L2_PIX_FMT_FLAG_PREMUL_ALPHA
             DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG,"%s: failed VIDIOC_TRY_FMT with " DBG_STR_FMT, __FUNCTION__, DBG_FMT(new_fmt));
-            #endif
             return errno_exit("VIDIOC_TRY_FMT", errmsg);
         }
     }
@@ -249,11 +295,7 @@ V4L2_Base::ioctl_set_format(struct v4l2_format new_fmt, char * errmsg)
         /* Set format */
         if( -1 == XIOCTL(fd, VIDIOC_S_FMT, &new_fmt) )
         {
-            // N.B. This is disabled under Raspbian as of 2017-01-04 since the V4L2 headers lack the V4L2_PIX_FMT_FLAG
-            // Once Raspbian is updated to a more recent Linux kernel, it should be supported again.
-            #ifdef V4L2_PIX_FMT_FLAG_PREMUL_ALPHA
             DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG,"%s: failed VIDIOC_S_FMT with " DBG_STR_FMT, __FUNCTION__, DBG_FMT(new_fmt));
-            #endif
             return errno_exit("VIDIOC_S_FMT", errmsg);
         }
     }
@@ -268,11 +310,7 @@ V4L2_Base::ioctl_set_format(struct v4l2_format new_fmt, char * errmsg)
         }
     }
 
-    // N.B. This is disabled under Raspbian as of 2017-01-04 since the V4L2 headers lack the V4L2_PIX_FMT_FLAG
-    // Once Raspbian is updated to a more recent Linux kernel, it should be supported again.
-    #ifdef V4L2_PIX_FMT_FLAG_PREMUL_ALPHA
     DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG,"%s: current format " DBG_STR_FMT, __FUNCTION__, DBG_FMT(new_fmt));
-    #endif
 
     /* Update internals */
     decoder->setformat(new_fmt, has_ext_pix_format);
@@ -485,9 +523,6 @@ int V4L2_Base::read_frame(char *errmsg) {
                 return 0;
             }
 
-            // N.B. This is disabled under Raspbian as of 2017-01-04 since the V4L2 headers lack the V4L2_PIX_FMT_FLAG
-            // Once Raspbian is updated to a more recent Linux kernel, it should be supported again.
-            #ifdef V4L2_PIX_FMT_FLAG_PREMUL_ALPHA
             if( !is_compressed() && buf.bytesused != fmt.fmt.pix.sizeimage )
             {
                 DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG,"%s: frame is %d-byte long, expected %d - frame should be dropped",__FUNCTION__,buf.bytesused,fmt.fmt.pix.sizeimage);
@@ -506,8 +541,8 @@ int V4L2_Base::read_frame(char *errmsg) {
                 buf.bytesused = 0;
                 return 0;
             }
-            #endif
 
+#if ( LINUX_VERSION_CODE >= KERNEL_VERSION(3,15,0) )
             /* TODO: the timestamp can be checked against the expected exposure to validate the frame - doesn't work, yet */
             switch( buf.flags & V4L2_BUF_FLAG_TIMESTAMP_MASK )
             {
@@ -540,6 +575,7 @@ int V4L2_Base::read_frame(char *errmsg) {
                 default:
                     DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG,"%s: no usable timestamp found in frame",__FUNCTION__);
             }
+#endif
 
             /* TODO: there is probably a better error handling than asserting the buffer index */
             assert(buf.index < n_buffers);
