@@ -2647,6 +2647,9 @@ void EQMod::SetDefaultPark()
 bool EQMod::saveConfigItems(FILE *fp)
 {
     INDI::Telescope::saveConfigItems(fp);
+
+    IUSaveConfigNumber(fp, BacklashNP);
+
 #ifdef WITH_ALIGN_GEEHALEL
     if (align)
         align->saveConfigItems(fp);
