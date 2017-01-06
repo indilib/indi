@@ -15,15 +15,15 @@ find_package(USB-1 REQUIRED)
 find_package(Threads REQUIRED)
 
 set(INDI_MI_VERSION_MAJOR 1)
-set(INDI_MI_VERSION_MINOR 2)
+set(INDI_MI_VERSION_MINOR 3)
 
-configure_file(${CMAKE_CURRENT_SOURCE_DIR}/config.h.cmake ${CMAKE_CURRENT_BINARY_DIR}/config.h )
-configure_file(${CMAKE_CURRENT_SOURCE_DIR}/indi_miccd.xml.cmake ${CMAKE_CURRENT_BINARY_DIR}/indi_miccd.xml )
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/config.h.cmake ${CMAKE_CURRENT_BINARY_DIR}/config.h)
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/indi_miccd.xml.cmake ${CMAKE_CURRENT_BINARY_DIR}/indi_miccd.xml)
 
-include_directories( ${CMAKE_CURRENT_BINARY_DIR})
-include_directories( ${CMAKE_CURRENT_SOURCE_DIR})
-include_directories( ${INDI_INCLUDE_DIR})
-include_directories( ${CFITSIO_INCLUDE_DIR})
+include_directories(${CMAKE_CURRENT_BINARY_DIR})
+include_directories(${CMAKE_CURRENT_SOURCE_DIR})
+include_directories(${INDI_INCLUDE_DIR})
+include_directories(${CFITSIO_INCLUDE_DIR})
 
 if (CMAKE_HOST_SYSTEM_PROCESSOR MATCHES "armv6l")
     set(MILIB ${CMAKE_CURRENT_SOURCE_DIR}/libgxccdarmv6.bin)
