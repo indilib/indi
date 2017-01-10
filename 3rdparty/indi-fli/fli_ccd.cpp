@@ -590,14 +590,17 @@ bool FLICCD::grabImage()
     }
     else
     {
+        bool success = true;
         for (int i=0; i < height ; i++)
         {
             if ( (err = FLIGrabRow(fli_dev, image + (i * row_size), width)))
             {
-                DEBUGF(INDI::Logger::DBG_ERROR, "FLIGrabRow() failed at row %d. %s.", i, strerror((int)-err));
-                return false;
+                /* print this error once but read to the end to flush the array */
+                if (success) DEBUGF(INDI::Logger::DBG_ERROR, "FLIGrabRow() failed at row %d. %s.", i, strerror((int)-err));
+                success = false;
             }
         }
+        if (!success) return false;
     }
 
     DEBUG(INDI::Logger::DBG_SESSION, "Download complete.");
@@ -657,7 +660,7 @@ void FLICCD::TimerHit()
         else
         {
             DEBUGF(INDI::Logger::DBG_DEBUG,"Exposure in progress. Time left: %ld seconds", timeleft/1000);
-            PrimaryCCD.setExposureLeft(timeleft);
+            PrimaryCCD.setExposureLeft(timeleft/1000.0);
         }
       }
     }
