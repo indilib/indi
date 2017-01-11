@@ -504,14 +504,15 @@ bool LX200Pulsar2::ReadScopeStatus(void) {
 
 
 void LX200Pulsar2::ISGetProperties(const char *dev) {
-  if (dev != NULL && strcmp(dev,getDeviceName()) == 0) {
-    LX200Generic::ISGetProperties(dev);
-    if (isConnected()) {
-      defineSwitch(&PierSideSP);
-      defineSwitch(&PeriodicErrorCorrectionSP);
-      defineSwitch(&PoleCrossingSP);
-      defineSwitch(&RefractionCorrectionSP);
-    }
+  if (dev && strcmp(dev,getDeviceName()))
+    return;
+
+  LX200Generic::ISGetProperties(dev);
+  if (isConnected()) {
+    defineSwitch(&PierSideSP);
+    defineSwitch(&PeriodicErrorCorrectionSP);
+    defineSwitch(&PoleCrossingSP);
+    defineSwitch(&RefractionCorrectionSP);
   }
 }
 
