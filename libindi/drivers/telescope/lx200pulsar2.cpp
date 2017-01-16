@@ -63,19 +63,22 @@ namespace Pulsar2Commands {
   // Send a command string and wait for a single character response indicating success or failure
   bool confirmed(const int fd,const char* cmd,char& response) {
     if (send(fd,cmd)) {
-      int nbytes_read = 0;
-      const int errcode = tty_read(fd,&response,sizeof(response),TimeOut,&nbytes_read);
-      if (errcode != TTY_OK) {
-	char errmsg[MAXRBUF];
-	tty_error_msg(errcode, errmsg, MAXRBUF);
-	DEBUGFDEVICE(lx200Name, DBG_SCOPE, "Error: %s", errmsg);
-	return false;
+      for (int retry = 0; retry < 2; ++retry) {
+        int nbytes_read = 0;
+        const int errcode = tty_read(fd,&response,sizeof(response),TimeOut,&nbytes_read);
+        if (errcode != TTY_OK) {
+	  char errmsg[MAXRBUF];
+	  tty_error_msg(errcode, errmsg, MAXRBUF);
+	  DEBUGFDEVICE(lx200Name, DBG_SCOPE, "Error: %s", errmsg);
+	  return false;
+        }
+        if (nbytes_read == 1) {
+	  DEBUGFDEVICE(lx200Name, DBG_SCOPE, "RES <%c> (attempt %d)", response,retry);
+	  if (response != '#') return true;
+        }
+        else
+	  DEBUGFDEVICE(lx200Name, DBG_SCOPE, "Received %d bytes, expected 1.", nbytes_read);
       }
-      if (nbytes_read == 1) {
-	DEBUGFDEVICE(lx200Name, DBG_SCOPE, "RES <%c>", response);
-	return true;
-      }
-      DEBUGFDEVICE(lx200Name, DBG_SCOPE, "Received %d bytes, expected 1.", nbytes_read);
     }
     return false;
   }
