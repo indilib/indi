@@ -344,8 +344,15 @@ int read_libraw(const char *filename, uint8_t **memptr, size_t *memsize, int *n_
 
     int first_visible_pixel = RawProcessor.imgdata.rawdata.sizes.raw_width*RawProcessor.imgdata.sizes.top_margin + RawProcessor.imgdata.sizes.left_margin;
 
+    DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG, "read_libraw: raw_width: %d top_margin %d left_margin %d first_visible_pixel %d",
+                RawProcessor.imgdata.rawdata.sizes.raw_width, RawProcessor.imgdata.sizes.top_margin, RawProcessor.imgdata.sizes.left_margin,
+                first_visible_pixel);
+
     *memsize = RawProcessor.imgdata.rawdata.sizes.width * RawProcessor.imgdata.rawdata.sizes.height * sizeof(uint16_t);
     *memptr = (uint8_t *) realloc(*memptr, *memsize);
+
+    DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG, "read_libraw: rawdata.sizes.width: %d rawdata.sizes.height %d memsize %d bayer_pattern %s",
+                RawProcessor.imgdata.rawdata.sizes.width, RawProcessor.imgdata.rawdata.sizes.height, *memsize, bayer_pattern);
 
     uint16_t *image = reinterpret_cast<uint16_t *>(*memptr);
     uint16_t *src   = RawProcessor.imgdata.rawdata.raw_image + first_visible_pixel;
