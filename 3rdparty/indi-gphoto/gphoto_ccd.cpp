@@ -195,9 +195,9 @@ bool GPhotoCCD::initProperties()
   IUFillSwitch(&autoFocusS[0], "Set", "", ISS_OFF);
   IUFillSwitchVector(&autoFocusSP, autoFocusS, 1, getDeviceName(), "Auto Focus", "", FOCUS_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
-  IUFillSwitch(&transferFormatS[0], "FITS", "", ISS_ON);
-  IUFillSwitch(&transferFormatS[1], "Native", "", ISS_OFF);
-  IUFillSwitchVector(&transferFormatSP, transferFormatS, 2, getDeviceName(), "Transfer Format", "", IMAGE_SETTINGS_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+  IUFillSwitch(&transferFormatS[0], "FORMAT_FITS", "FITS", ISS_ON);
+  IUFillSwitch(&transferFormatS[1], "FORMAT_NATIVE", "Native", ISS_OFF);
+  IUFillSwitchVector(&transferFormatSP, transferFormatS, 2, getDeviceName(), "CCD_TRANSFER_FORMAT", "Transfer Format", IMAGE_SETTINGS_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
   IUFillSwitch(&livePreviewS[0], "Enable", "", ISS_OFF);
   IUFillSwitch(&livePreviewS[1], "Disable", "", ISS_ON);
@@ -420,7 +420,8 @@ bool GPhotoCCD::ISNewSwitch(const char *dev, const char *name, ISState *states, 
           transferFormatSP.s = IPS_OK;
           IDSetSwitch(&transferFormatSP, NULL);
           // We need to get frame W and H if transfer format changes
-          frameInitialized = false;
+          // 2017-01-17: Do we? transform format change should not affect W and H
+          //frameInitialized = false;
           return true;
       }
 
