@@ -72,7 +72,7 @@ void ISNewBLOB (const char *dev, const char *name, int sizes[], int blobsizes[],
 }
 void ISSnoopDevice (XMLEle *root)
 {
-    INDI_UNUSED(root);
+   temma->ISSnoopDevice(root);
 }
 
 TemmaMount::TemmaMount()

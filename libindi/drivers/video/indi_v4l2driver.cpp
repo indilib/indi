@@ -68,4 +68,7 @@ void ISNewNumber (const char *dev, const char *name, double values[], char *name
 }
 
 void ISNewBLOB (const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[], char *names[], int n) {}
-void ISSnoopDevice (XMLEle *root) {}
+void ISSnoopDevice (XMLEle *root)
+{
+    MainCam->ISSnoopDevice(root);
+}
