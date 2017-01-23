@@ -982,10 +982,9 @@ void V4L2_Driver::newFrame()
           }
         }
 
-        if (ImageColorS[0].s == ISS_ON)
-            streamer->newFrame(buffer);
-        else
-            streamer->newFrame(buffer);
+        streamer->newFrame(buffer);
+
+        return;
     }
 
   if (PrimaryCCD.isExposing())
