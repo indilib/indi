@@ -7,7 +7,7 @@
 	</device>
 </devGroup>
 <devGroup group="Filter Wheels">
-        <device label="ASI Wheel">
+        <device label="ASI Wheel" mdpd="true">
                 <driver name="ASI Wheel">indi_asi_wheel</driver>
                 <version>@ASI_VERSION_MAJOR@.@ASI_VERSION_MINOR@</version>
         </device>
