@@ -410,8 +410,10 @@ bool QHYCCD::updateProperties()
           //Define the Filter Slot and name properties
           defineNumber(&FilterSlotNP);
 
-          GetFilterNames(FILTER_TAB);
-          defineText(FilterNameTP);
+          if (FilterNameT == NULL)
+              GetFilterNames(FILTER_TAB);
+          if (FilterNameT)
+              defineText(FilterNameTP);
       }
 
       if (HasUSBTraffic)

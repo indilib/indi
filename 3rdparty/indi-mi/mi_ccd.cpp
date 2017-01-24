@@ -326,8 +326,10 @@ bool MICCD::updateProperties()
         {
             //Define the Filter Slot and name properties
             defineNumber(&FilterSlotNP);
-            GetFilterNames(FILTER_TAB);
-            defineText(FilterNameTP);
+            if (FilterNameT == NULL)
+                GetFilterNames(FILTER_TAB);
+            if (FilterNameT)
+                defineText(FilterNameTP);
         }
 
         // Let's get parameters now from CCD

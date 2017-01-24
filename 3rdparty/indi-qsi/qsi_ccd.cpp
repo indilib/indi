@@ -318,7 +318,8 @@ bool QSICCD::setupParams()
     FilterSP.s = IPS_OK;
     IDSetSwitch(&FilterSP,NULL);
 
-    GetFilterNames(FILTER_TAB);
+    if (FilterNameT == NULL)
+        GetFilterNames(FILTER_TAB);
 
     double minDuration=0;
 

@@ -155,7 +155,9 @@ bool CCDSim::SetupParms()
     nbuf += 512;
     PrimaryCCD.setFrameBufferSize(nbuf);
 
-    GetFilterNames(FILTER_TAB);
+    // Only generate filter names if there are none initially
+    if (FilterNameT == NULL)
+        GetFilterNames(FILTER_TAB);
 
     return true;
 }
