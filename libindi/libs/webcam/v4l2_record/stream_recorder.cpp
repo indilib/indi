@@ -654,5 +654,10 @@ bool StreamRecorder::setStream(bool enable)
     return true;
 }
 
-
+bool StreamRecorder::saveConfigItems(FILE *fp)
+{
+    IUSaveConfigText(fp, &RecordFileTP);
+    IUSaveConfigNumber(fp, &RecordOptionsNP);
+    return true;
+}
 

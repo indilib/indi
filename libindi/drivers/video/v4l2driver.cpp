@@ -1368,3 +1368,10 @@ bool V4L2_Driver::StopStreaming()
     stop_capturing();
     return true;
 }
+
+bool V4L2_Driver::saveConfigItems(FILE *fp)
+{
+    INDI::CCD::saveConfigItems(fp);
+
+    return streamer->saveConfigItems(fp);
+}

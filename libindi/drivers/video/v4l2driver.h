@@ -98,6 +98,8 @@ class V4L2_Driver: public INDI::CCD
     virtual bool UpdateCCDFrame(int x, int y, int w, int h);
     virtual bool UpdateCCDBin(int hor, int ver);
 
+    virtual bool saveConfigItems(FILE *fp);
+
     virtual bool StartStreaming();
     virtual bool StopStreaming();
 

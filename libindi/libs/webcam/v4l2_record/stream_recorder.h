@@ -53,6 +53,8 @@ public:
     virtual bool initProperties();
     virtual bool updateProperties();
 
+    virtual bool saveConfigItems(FILE *fp);
+
     /**
      * @brief newFrame CCD drivers calls this function when a new frame is received.
      */
