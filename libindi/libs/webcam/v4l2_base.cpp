@@ -1644,10 +1644,10 @@ unsigned char * V4L2_Base::getV()
   return decoder->getV();
 }
 
-unsigned char * V4L2_Base::getColorBuffer()
+/*unsigned char * V4L2_Base::getColorBuffer()
 {
-  return decoder->getColorBuffer();
-}
+  return decoder->geColorBuffer();
+}*/
 
 unsigned char * V4L2_Base::getRGBBuffer()
 {
@@ -1658,7 +1658,6 @@ float * V4L2_Base::getLinearY()
 {
   return decoder->getLinearY();
 }
-
 
 void V4L2_Base::registerCallback(WPF *fp, void *ud)
 {

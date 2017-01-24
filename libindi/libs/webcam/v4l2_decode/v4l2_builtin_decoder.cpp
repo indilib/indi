@@ -582,10 +582,11 @@ unsigned char * V4L2_Builtin_Decoder::getV()
 }
 
 /* used for streaming/exposure */
-unsigned char * V4L2_Builtin_Decoder::getColorBuffer()
+#if 0
+unsigned char * V4L2_Builtin_Decoder::geColorBuffer()
 {
   //cerr << "in get color buffer " << endl;
-  //IDLog("Decoder getColorBuffer %s\n", (doCrop?"true":"false"));
+  //IDLog("Decoder geRGBBuffer %s\n", (doCrop?"true":"false"));
   if (!colorBuffer) colorBuffer = new unsigned char[(bufwidth * bufheight) * (bpp / 8) * 4];
   switch (fmt.fmt.pix.pixelformat) {
   case V4L2_PIX_FMT_GREY:
@@ -651,11 +652,13 @@ unsigned char * V4L2_Builtin_Decoder::getColorBuffer()
   }
   return colorBuffer;
 }
+#endif
+
 /* used for SER recorder */
 unsigned char * V4L2_Builtin_Decoder::getRGBBuffer()
 {
   //cerr << "in get color buffer " << endl;
-  //IDLog("Decoder getColorBuffer %s\n", (doCrop?"true":"false"));
+  //IDLog("Decoder geRGBBuffer %s\n", (doCrop?"true":"false"));
   if (!rgb24_buffer) rgb24_buffer = new unsigned char[(bufwidth * bufheight) * 3];
   switch (fmt.fmt.pix.pixelformat) {
   case V4L2_PIX_FMT_GREY:
@@ -671,9 +674,10 @@ unsigned char * V4L2_Builtin_Decoder::getRGBBuffer()
   case V4L2_PIX_FMT_UYVY:
   case V4L2_PIX_FMT_VYUY: 
   case V4L2_PIX_FMT_YVYU: 
-    if (!colorBuffer) colorBuffer = new unsigned char[(bufwidth * bufheight) * 4];
-    ccvt_yuyv_bgr32(bufwidth, bufheight, yuyvBuffer, (void*)colorBuffer);
-    ccvt_bgr32_rgb24(bufwidth, bufheight, colorBuffer, (void*)rgb24_buffer);
+    //if (!colorBuffer) colorBuffer = new unsigned char[(bufwidth * bufheight) * 4];
+    //ccvt_yuyv_bgr32(bufwidth, bufheight, yuyvBuffer, rgb24_buffer);
+    //ccvt_bgr32_rgb24(bufwidth, bufheight, colorBuffer, (void*)rgb24_buffer);
+    ccvt_yuyv_rgb24(bufwidth, bufheight, yuyvBuffer, (void*)rgb24_buffer);
     break;
   case V4L2_PIX_FMT_RGB24:
   case V4L2_PIX_FMT_RGB555:

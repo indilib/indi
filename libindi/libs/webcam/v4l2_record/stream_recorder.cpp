@@ -227,29 +227,13 @@ bool StreamRecorder::uploadStream(uint8_t *buffer)
     uLongf compressedBytes = 0;
     uLong totalBytes = ccd->PrimaryCCD.getFrameBufferSize() / (ccd->PrimaryCCD.getBinX()*ccd->PrimaryCCD.getBinY());
 
-    //if (ccd->PrimaryCCD.getNAxis() == 2)
-        memcpy(ccd->PrimaryCCD.getFrameBuffer(), buffer, ccd->PrimaryCCD.getFrameBufferSize());
-    /*else
-    {
-      uint8_t *src, *dest;
-     // Binning not supported in color images for now
-     src = buffer;
-     dest = ccd->PrimaryCCD.getFrameBuffer();
-     uint8_t *red = dest;
-     uint8_t *green = dest + ccd->PrimaryCCD.getSubW() * ccd->PrimaryCCD.getSubH() * (ccd->PrimaryCCD.getBPP() / 8);
-     uint8_t *blue = dest +  ccd->PrimaryCCD.getSubW() * ccd->PrimaryCCD.getSubH() * (ccd->PrimaryCCD.getBPP() / 8) * 2;
+    memcpy(ccd->PrimaryCCD.getFrameBuffer(), buffer, ccd->PrimaryCCD.getFrameBufferSize());
 
-     for (int i=0; i <  ccd->PrimaryCCD.getFrameBufferSize(); i+=4)
-     {
-         *(blue++) = *(src+i);
-         *(green++) = *(src+i+1);
-         *(red++) = *(src+i+2);
-     }
-   }*/
+    // Binning for grayscale frames only for now
+    if (ccd->PrimaryCCD.getNAxis() == 2)
+        ccd->PrimaryCCD.binFrame();
 
-    ccd->PrimaryCCD.binFrame();
-
-    /* Do we want to compress ? */
+    // Do we want to compress ?
      if (ccd->PrimaryCCD.isCompressed())
      {
         /* Compress frame */
@@ -264,7 +248,7 @@ bool StreamRecorder::uploadStream(uint8_t *buffer)
              return false;
          }
 
-        /* #3.A Send it compressed */
+        // Send it compressed
         imageB->blob = compressedFrame;
         imageB->bloblen = compressedBytes;
         imageB->size = totalBytes;
@@ -272,13 +256,14 @@ bool StreamRecorder::uploadStream(uint8_t *buffer)
       }
       else
       {
-        /* #3.B Send it uncompressed */
+        // Send it uncompressed
          imageB->blob = ccd->PrimaryCCD.getFrameBuffer();
          imageB->bloblen = totalBytes;
          imageB->size = totalBytes;
          strcpy(imageB->format, ".stream");
       }
 
+    // Upload to client now
     imageBP->s = IPS_OK;
     IDSetBLOB (imageBP, NULL);
     return true;
@@ -433,7 +418,7 @@ bool StreamRecorder::startRecording()
   }
   else
   {
-    //if (ImageColorS[0].s == ISS_ON)
+    //if (ImageColorS[IMAGE_GRAYSCALE].s == ISS_ON)
       if (ccd->PrimaryCCD.getNAxis() == 2)
       recorder->setDefaultMono();
     else

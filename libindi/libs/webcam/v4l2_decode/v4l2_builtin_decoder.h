@@ -50,7 +50,7 @@ class V4L2_Builtin_Decoder: public V4L2_Decoder
   virtual unsigned char * getY();
   virtual unsigned char * getU();
   virtual unsigned char * getV();
-  virtual unsigned char * getColorBuffer();
+  //virtual unsigned char * getColorBuffer();
   virtual unsigned char * getRGBBuffer();
   virtual float *getLinearY();
   virtual int getBpp();
