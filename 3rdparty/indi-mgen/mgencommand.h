@@ -16,7 +16,11 @@
 
 #include "mgenautoguider.h"
 
-template < enum MGenAutoguider::OpMode OPM, enum MGenAutoguider::CommandByte CB >
+template
+<
+    enum MGenAutoguider::OpMode OPM,
+    enum MGenAutoguider::CommandByte CB
+>
 class MGenCommand
 {
 protected:

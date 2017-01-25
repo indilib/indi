@@ -86,6 +86,7 @@ public:
 //    };
 
 protected:
+    //ITextVectorProperty *DevPathSP;
     char dev_path[MAXINDINAME];
     int fd;
 
@@ -101,6 +102,9 @@ protected:
             unsigned short camera_firmware;
         } version;
     } connectionStatus;
+
+protected:
+    bool initProperties();
 
 protected:
     bool Connect();
@@ -126,6 +130,7 @@ protected:
     int queryDevice( enum CommandByte commandByte, char * buffer, int buffer_len, int * io_len );
     int getOpModeBaudRate( enum MGenAutoguider::OpMode ) const;
     unsigned char getOpCode( enum MGenAutoguider::CommandByte );
+    bool verifyOpCode(enum CommandByte commandByte, char const *buffer, int bytes_read);
     int const getOpCodeAnswerLength( enum CommandByte command ) const;
     char const * const getOpCodeString( enum MGenAutoguider::CommandByte ) const;
 };

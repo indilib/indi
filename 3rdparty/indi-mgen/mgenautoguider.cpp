@@ -23,6 +23,8 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <termios.h>
+#include <sys/ioctl.h>
+#include <linux/serial.h>
 
 #include <memory>
 #include <string>
@@ -45,6 +47,7 @@ std::unique_ptr<MGenAutoguider> mgenAutoguider(new MGenAutoguider());
 ***************************************************************************************/
 void ISGetProperties (const char *dev)
 {
+    IDLog("%s: get properties.", __FUNCTION__);
     mgenAutoguider->ISGetProperties(dev);
 }
 
@@ -53,6 +56,7 @@ void ISGetProperties (const char *dev)
 ***************************************************************************************/
 void ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n)
 {
+    IDLog("%s: new switch '%s'.", __FUNCTION__, name);
     mgenAutoguider->ISNewSwitch(dev, name, states, names, n);
 }
 
@@ -61,6 +65,7 @@ void ISNewSwitch (const char *dev, const char *name, ISState *states, char *name
 ***************************************************************************************/
 void ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n)
 {
+    IDLog("%s: get new text '%s'.", __FUNCTION__, name);
     mgenAutoguider->ISNewText(dev, name, texts, names, n);
 }
 
@@ -69,6 +74,7 @@ void ISNewText (const char *dev, const char *name, char *texts[], char *names[],
 ***************************************************************************************/
 void ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n)
 {
+    IDLog("%s: new number '%s'.", __FUNCTION__, name);
     mgenAutoguider->ISNewNumber(dev, name, values, names, n);
 }
 
@@ -77,6 +83,7 @@ void ISNewNumber (const char *dev, const char *name, double values[], char *name
 ***************************************************************************************/
 void ISNewBLOB (const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[], char *names[], int n)
 {
+    IDLog("%s: get new blob '%s'.", __FUNCTION__, name);
     mgenAutoguider->ISNewBLOB(dev, name, sizes, blobsizes, blobs, formats, names, n);
 }
 
@@ -88,7 +95,8 @@ void ISSnoopDevice (XMLEle *root)
     INDI_UNUSED(root);
 }
 
-MGenAutoguider::MGenAutoguider() 
+MGenAutoguider::MGenAutoguider()
+: fd(-1)
 {
     strncpy(dev_path, "/dev/tty.mgen", MAXINDINAME);
 }
@@ -98,13 +106,21 @@ MGenAutoguider::~MGenAutoguider()
     Disconnect();
 }
 
+bool MGenAutoguider::initProperties()
+{
+    INDI::DefaultDevice::initProperties();
+
+    addDebugControl();
+
+    return true;
+}
+
 /**************************************************************************************
 ** Client is asking us to establish connection to the device
 ***************************************************************************************/
 bool MGenAutoguider::Connect()
 {
-    /* Spec chapter 2: 8 bits, 1 stop, no parity */
-    DEBUGF(INDI::Logger::DBG_DEBUG, "%s: initiating connection.", __FUNCTION__);
+    DEBUGF(INDI::Logger::DBG_SESSION, "%s: initiating connection.", __FUNCTION__);
 
     unsigned long int thread = 0;
     //struct threadData arg = { NULL, MGenAutoguider::MGCMD_NOP0 };
@@ -114,11 +130,10 @@ bool MGenAutoguider::Connect()
     {
         if( !pthread_create(&thread, NULL, &MGenAutoguider::connectionThreadWrapper, this) )
         {
-
+            DEBUGF(INDI::Logger::DBG_SESSION, "%s: connection thread %p started successfully.", __FUNCTION__, thread);
         }
     }
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "%s: connected successfully.", __FUNCTION__);
     return true;
 }
 
@@ -127,9 +142,11 @@ bool MGenAutoguider::Connect()
 ***************************************************************************************/
 bool MGenAutoguider::Disconnect()
 {
-    DEBUGF(INDI::Logger::DBG_DEBUG, "%s: initiating disconnection.", __FUNCTION__);
+    DEBUGF(INDI::Logger::DBG_SESSION, "%s: initiating disconnection.", __FUNCTION__);
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "%s: disconnected successfully.", __FUNCTION__);
+    connectionStatus.is_active = false;
+    sleep(1);
+
     return true;
 }
 
@@ -164,8 +181,12 @@ int MGenAutoguider::getOpModeBaudRate( enum OpMode mode ) const
 void* MGenAutoguider::connectionThreadWrapper( void* arg )
 {
     MGenAutoguider * const _this = reinterpret_cast<MGenAutoguider*>(arg);
+    INDI::Logger::getInstance().print(_this->getDeviceName(), INDI::Logger::DBG_SESSION, __FILE__, __LINE__, "%s: connection thread wrapper.", __FUNCTION__);
+
     if(_this)
         _this->connectionThread();
+
+    INDI::Logger::getInstance().print(_this->getDeviceName(), INDI::Logger::DBG_SESSION, __FILE__, __LINE__, "%s: connection thread terminated.", __FUNCTION__);
     return _this;
 }
 
@@ -176,25 +197,29 @@ void MGenAutoguider::connectionThread()
     size_t const buffer_len = sizeof(buffer)/sizeof(buffer[0]);
     int bytes_read = 0;
 
+    DEBUGF(INDI::Logger::DBG_SESSION, "%s: connection thread starting.", __FUNCTION__);
+    connectionStatus.is_active = true;
+
+    tty_set_debug(1);
+
     while( connectionStatus.is_active )
     {
-        DEBUGF(INDI::Logger::DBG_DEBUG, "%s: initiating device connection", __FUNCTION__);
-
-        /* Unknown mode, try to connect in COMPATIBLE mode first */
         switch( connectionStatus.mode )
         {
+            /* Unknown mode, try to connect in COMPATIBLE mode first */
             case OPM_UNKNOWN:
+                DEBUGF(INDI::Logger::DBG_SESSION, "%s: initiating device connection on '%s'", __FUNCTION__, dev_path);
                 switch( tty_connect(dev_path, getOpModeBaudRate(MGenAutoguider::OPM_COMPATIBLE), 8, 0, 1, &fd) )
                 {
                     case TTY_OK:
                         /* OK, device descriptor is usable, flush input next */
-                        DEBUGF(INDI::Logger::DBG_DEBUG, "%s: device connected on '%s' using %d-8-N-1 successfully", __FUNCTION__, dev_path,getOpModeBaudRate(MGenAutoguider::OPM_COMPATIBLE));
+                        DEBUGF(INDI::Logger::DBG_SESSION, "%s: device connected on '%s' using %d-8-N-1 successfully", __FUNCTION__, dev_path,getOpModeBaudRate(MGenAutoguider::OPM_COMPATIBLE));
                         break;
 
                     case TTY_PARAM_ERROR:
                     default:
                         /* TODO: Not good, the device doesn't support our settings - out of spec, bail out */
-                        DEBUGF(INDI::Logger::DBG_DEBUG, "%s: failed connecting device on '%s' using %d-8-N-1, bailing out", __FUNCTION__, dev_path,getOpModeBaudRate(MGenAutoguider::OPM_COMPATIBLE));
+                        DEBUGF(INDI::Logger::DBG_SESSION, "%s: failed connecting device on '%s' using %d-8-N-1, bailing out", __FUNCTION__, dev_path,getOpModeBaudRate(MGenAutoguider::OPM_COMPATIBLE));
                         connectionStatus.is_active = false;
                         continue;
                 }
@@ -210,23 +235,25 @@ void MGenAutoguider::connectionThread()
                     case TTY_TIME_OUT:
                     case TTY_READ_ERROR:
                         /* OK, there is a device connected here, and we maybe read stuff, so try to run an identification next */
-                        DEBUGF(INDI::Logger::DBG_DEBUG, "%s: flushed device data from '%s', identifying", __FUNCTION__, dev_path);
+                        DEBUGF(INDI::Logger::DBG_SESSION, "%s: flushed device data from '%s', identifying", __FUNCTION__, dev_path);
                         break;
 
                     case TTY_OK:
                         /* TODO: Not good, we've read the whole buffer, so perhaps we're in the middle of something - reboot the device? */
-                        DEBUGF(INDI::Logger::DBG_DEBUG, "%s: too much data from '%s', bailing out", __FUNCTION__, dev_path);
+                        DEBUGF(INDI::Logger::DBG_SESSION, "%s: too much data from '%s', bailing out", __FUNCTION__, dev_path);
                         connectionStatus.is_active = false;
                         continue;
 
                     /* case TTY_ERRNO: */
                     default:
                         /* TODO: Not good, we've lost the device */
-                        DEBUGF(INDI::Logger::DBG_DEBUG, "%s: device disconnected from '%s', bailing out", __FUNCTION__, dev_path);
+                        DEBUGF(INDI::Logger::DBG_SESSION, "%s: device disconnected from '%s', bailing out", __FUNCTION__, dev_path);
                         connectionStatus.is_active = false;
                         continue;
                 }
 #endif
+
+                DEBUGF(INDI::Logger::DBG_SESSION, "%s: running device identification.", __FUNCTION__);
 
                 /* Run an identification */
                 buffer[0] = getOpCode(MGCP_QUERY_DEVICE);
@@ -239,37 +266,137 @@ void MGenAutoguider::connectionThread()
                         break;
 
                     default:
-                        DEBUGF(INDI::Logger::DBG_DEBUG, "%s: device disconnected from '%s', bailing out", __FUNCTION__, dev_path);
+                        DEBUGF(INDI::Logger::DBG_SESSION, "%s: device disconnected from '%s', bailing out", __FUNCTION__, dev_path);
                         connectionStatus.is_active = false;
                         continue;
                 }
 
+                DEBUGF(INDI::Logger::DBG_SESSION, "%s: reading identification results.", __FUNCTION__);
                 switch( tty_read(fd, buffer, 5, 1, &bytes_read) )
                 {
                     case TTY_OK:
-                        /* Got an ack with 3 bytes? */
-                        if( ~getOpCode(MGCP_QUERY_DEVICE) == buffer[0] && 3 == buffer[1] )
+                        /* Verify opcode answer */
+                        if( verifyOpCode(MGCP_QUERY_DEVICE, buffer, bytes_read) )
                         {
+                            DEBUGF(INDI::Logger::DBG_SESSION, "%s: device acknowledged identification, analyzing '%02X%02X%02X'.", __FUNCTION__, (unsigned char) buffer[2], (unsigned char) buffer[3], (unsigned char) buffer[4]);
+
                             /* Check whether we are in applicative mode */
                             unsigned char const app_mode_answer[] = { 0x01, 0x80, 0x02 };
                             if( !memcmp(&buffer[2], &app_mode_answer, sizeof(app_mode_answer)/sizeof(app_mode_answer[0])) )
                             {
                                 /* Applicative mode, next switch to higher baudrate */
+                                DEBUGF(INDI::Logger::DBG_SESSION, "%s: identified applicative mode.", __FUNCTION__);
                                 connectionStatus.mode = OPM_APPLICATION;
-                                continue;
+                                break;
                             }
 
                             /* Check whether we are in boot mode */
                             unsigned char const boot_mode_answer[] = { 0x01, 0x80, 0x01 };
-                            if( !memcmp(buffer, &boot_mode_answer, sizeof(boot_mode_answer)/sizeof(boot_mode_answer[0])) )
+                            if( !memcmp(&buffer[2], &boot_mode_answer, sizeof(boot_mode_answer)/sizeof(boot_mode_answer[0])) )
                             {
                                 /* Boot mode, next switch to applicative mode */
+                                DEBUGF(INDI::Logger::DBG_SESSION, "%s: identified boot mode.", __FUNCTION__);
+                                connectionStatus.mode = OPM_BOOT;
+                                break;
+
                             }
+                        }
+                        else
+                        {
+                            DEBUGF(INDI::Logger::DBG_SESSION, "%s: device identification failed (%d bytes read, opcode 0x%02X)", __FUNCTION__, bytes_read, (unsigned char) buffer[0]);
                         }
                         /* No-break */
 
+                    case TTY_PARAM_ERROR:
+                    case TTY_READ_ERROR:
+                    case TTY_TIME_OUT:
                     default:
-                        DEBUGF(INDI::Logger::DBG_DEBUG, "%s: device disconnected from '%s', bailing out", __FUNCTION__, dev_path);
+                        DEBUGF(INDI::Logger::DBG_SESSION, "%s: device disconnected from '%s', bailing out", __FUNCTION__, dev_path);
+                        connectionStatus.is_active = false;
+                        continue;
+                }
+
+                DEBUGF(INDI::Logger::DBG_SESSION, "%s: done identifying.", __FUNCTION__);
+
+                if( OPM_APPLICATION == connectionStatus.mode )
+                {
+                    DEBUGF(INDI::Logger::DBG_SESSION, "%s: switching tty to application baudrate.", __FUNCTION__);
+
+                    /* Update tty applicative baudrate */
+                    //struct termios tty_setting = {0};
+                    //tcgetattr(fd, &tty_setting);
+                    //cfsetspeed(&tty_setting,B2500000);
+                    //tcsetattr(fd, TCSANOW, &tty_setting);
+                    struct serial_struct tty_special = {0};
+                    if( !ioctl(fd, TIOCGSERIAL, &tty_special) )
+                    {
+                        DEBUGF(INDI::Logger::DBG_SESSION, "%s: tty base baudrate is %d.", __FUNCTION__, tty_special.baud_base);
+
+                        tty_special.flags = ( tty_special.flags & ~ASYNC_SPD_MASK ) | ASYNC_SPD_CUST;
+                        tty_special.custom_divisor = ( tty_special.baud_base + (getOpModeBaudRate(OPM_APPLICATION)/2) ) / getOpModeBaudRate(OPM_APPLICATION);
+
+                        if( !ioctl(fd,TIOCSSERIAL,&tty_special) )
+                        {
+                            if( !ioctl(fd, TIOCGSERIAL, &tty_special) )
+                            {
+                                DEBUGF(INDI::Logger::DBG_SESSION, "%s: tty configured with baudrate base %d custom divisor %d = %d.", __FUNCTION__, tty_special.baud_base, tty_special.custom_divisor, tty_special.baud_base / tty_special.custom_divisor);
+
+                                if( getOpModeBaudRate(OPM_APPLICATION) == tty_special.baud_base / tty_special.custom_divisor )
+                                {
+                                    DEBUGF(INDI::Logger::DBG_SESSION, "%s: successfully switched tty to baudrate %d.", __FUNCTION__, getOpModeBaudRate(OPM_APPLICATION));
+                                }
+                                else
+                                {
+                                    DEBUGF(INDI::Logger::DBG_SESSION, "%s: failed configuring device connection on '%s' to %d bauds, bailing out", __FUNCTION__, dev_path,getOpModeBaudRate(MGenAutoguider::OPM_APPLICATION));
+                                    connectionStatus.is_active = false;
+                                    continue;
+                                }
+                            }
+                        }
+                        else
+                        {
+                            DEBUGF(INDI::Logger::DBG_SESSION, "%s: failed updating device connection on '%s' using %d bauds, bailing out", __FUNCTION__, dev_path,getOpModeBaudRate(MGenAutoguider::OPM_APPLICATION));
+                            connectionStatus.is_active = false;
+                            continue;
+                        }
+                    }
+                    else
+                    {
+                        DEBUGF(INDI::Logger::DBG_SESSION, "%s: failed reading device connection characteristics on '%s', bailing out", __FUNCTION__);
+                        connectionStatus.is_active = false;
+                        continue;
+                    }
+//                    tty_disconnect(fd);
+//                    switch( tty_connect(dev_path, getOpModeBaudRate(MGenAutoguider::OPM_APPLICATION), 8, 0, 1, &fd) )
+//                    {
+//                        case TTY_OK:
+//                            /* OK, device descriptor is in applicative mode */
+//                            DEBUGF(INDI::Logger::DBG_SESSION, "%s: device connected on '%s' using %d-8-N-1 successfully", __FUNCTION__, dev_path,getOpModeBaudRate(MGenAutoguider::OPM_APPLICATION));
+//                            break;
+//
+//                        case TTY_PARAM_ERROR:
+//                        default:
+//                            /* TODO: Not good, the device doesn't support our settings - out of spec, bail out */
+//                            DEBUGF(INDI::Logger::DBG_SESSION, "%s: failed connecting device on '%s' using %d-8-N-1, bailing out", __FUNCTION__, dev_path,getOpModeBaudRate(MGenAutoguider::OPM_APPLICATION));
+//                            connectionStatus.is_active = false;
+//                            continue;
+//                    }
+                }
+
+                break;
+
+            case OPM_BOOT:
+                /* Switch to applicative mode */
+                buffer[0] = getOpCode(MGCP_ENTER_NORMAL_MODE);
+                switch( tty_write(fd, buffer, 1, &bytes_read) )
+                {
+                    case TTY_OK:
+                        /* OK, wait 100ms and reconnect */
+                        usleep(100000);
+                        break;
+
+                    default:
+                        DEBUGF(INDI::Logger::DBG_SESSION, "%s: device disconnected from '%s', bailing out", __FUNCTION__, dev_path);
                         connectionStatus.is_active = false;
                         continue;
                 }
@@ -280,13 +407,53 @@ void MGenAutoguider::connectionThread()
                 {
                     case TTY_OK:
                         /* OK, device descriptor is in applicative mode */
-                        DEBUGF(INDI::Logger::DBG_DEBUG, "%s: device connected on '%s' using %d-8-N-1 successfully", __FUNCTION__, dev_path,getOpModeBaudRate(MGenAutoguider::OPM_APPLICATION));
+                        DEBUGF(INDI::Logger::DBG_SESSION, "%s: device connected on '%s' using %d-8-N-1 successfully", __FUNCTION__, dev_path,getOpModeBaudRate(MGenAutoguider::OPM_APPLICATION));
                         break;
 
                     case TTY_PARAM_ERROR:
                     default:
                         /* TODO: Not good, the device doesn't support our settings - out of spec, bail out */
-                        DEBUGF(INDI::Logger::DBG_DEBUG, "%s: failed connecting device on '%s' using %d-8-N-1, bailing out", __FUNCTION__, dev_path,getOpModeBaudRate(MGenAutoguider::OPM_APPLICATION));
+                        DEBUGF(INDI::Logger::DBG_SESSION, "%s: failed connecting device on '%s' using %d-8-N-1, bailing out", __FUNCTION__, dev_path, getOpModeBaudRate(MGenAutoguider::OPM_APPLICATION));
+                        connectionStatus.is_active = false;
+                        continue;
+                }
+
+                break;
+
+            case OPM_APPLICATION:
+                sleep(5);
+
+                /* Heartbeat */
+                buffer[0] = getOpCode(MGCMD_NOP1);
+                switch( tty_write(fd, buffer, 1, &bytes_read) )
+                {
+                    case TTY_OK:
+                        DEBUGF(INDI::Logger::DBG_SESSION, "%s: reading heartbeat result.", __FUNCTION__);
+                        switch( tty_read(fd, buffer, 1, 1, &bytes_read) )
+                        {
+                            case TTY_OK:
+                                if( verifyOpCode(MGCMD_NOP0, buffer, bytes_read) )
+                                {
+                                    DEBUGF(INDI::Logger::DBG_SESSION, "%s: received heartbeat ack.", __FUNCTION__);
+                                    break;
+                                }
+                                /* No-break */
+
+                            case TTY_PARAM_ERROR:
+                            case TTY_READ_ERROR:
+                            case TTY_TIME_OUT:
+                            default:
+                                DEBUGF(INDI::Logger::DBG_SESSION, "%s: device disconnected from '%s', bailing out", __FUNCTION__, dev_path);
+                                /*connectionStatus.is_active = false;*/
+                                continue;
+                        }
+
+                        /* OK, wait 1s and retry */
+                        sleep(5);
+                        break;
+
+                    default:
+                        DEBUGF(INDI::Logger::DBG_SESSION, "%s: device disconnected from '%s', bailing out", __FUNCTION__, dev_path);
                         connectionStatus.is_active = false;
                         continue;
                 }
@@ -302,6 +469,7 @@ void MGenAutoguider::connectionThread()
     if( 0 <= fd )
         tty_disconnect(fd);
 
+    DEBUGF(INDI::Logger::DBG_SESSION, "%s: disconnected successfully.", __FUNCTION__);
     //return 0;
 }
 
@@ -360,10 +528,11 @@ int MGenAutoguider::queryDevice( enum CommandByte commandByte, std::vector<char>
 }
 #endif
 
-unsigned char MGenAutoguider::getOpCode(enum CommandByte commandByte) 
+unsigned char MGenAutoguider::getOpCode(enum CommandByte commandByte)
 {
     switch( this->connectionStatus.mode )
     {
+        case OPM_UNKNOWN:
         case OPM_COMPATIBLE:
             /* From spec, no particular version to support */
             switch( commandByte )
@@ -371,7 +540,7 @@ unsigned char MGenAutoguider::getOpCode(enum CommandByte commandByte)
                 case MGCP_QUERY_DEVICE:             return 0xAA;
                 case MGCP_ENTER_NORMAL_MODE:        return 0x42;
                 default:
-                    DEBUGF(INDI::Logger::DBG_DEBUG, "%s: mode OPM_COMPATIBLE doesn't support opcode '%s'.", __FUNCTION__, getOpCodeString(commandByte));
+                    DEBUGF(INDI::Logger::DBG_SESSION, "%s: mode OPM_COMPATIBLE doesn't support opcode '%s'.", __FUNCTION__, getOpCodeString(commandByte));
                     break;
             }
             break;
@@ -388,7 +557,75 @@ unsigned char MGenAutoguider::getOpCode(enum CommandByte commandByte)
                 case MGCMDB_RUN_FIRMWARE:           return 0xE1;
                 case MGCMDB_POWER_OFF:              return 0xE2;
                 default:
-                    DEBUGF(INDI::Logger::DBG_DEBUG, "%s: mode OPM_BOOT doesn't support opcode '%s'.", __FUNCTION__, getOpCodeString(commandByte) );
+                    DEBUGF(INDI::Logger::DBG_SESSION, "%s: mode OPM_BOOT doesn't support opcode '%s'.", __FUNCTION__, getOpCodeString(commandByte) );
+                    break;
+            }
+            break;
+
+        case OPM_APPLICATION:
+            switch( commandByte )
+            {
+                case MGCMD_NOP0:                    return 0x00;
+                case MGCMD_NOP1:                    return 0xFF;
+                default:
+                    DEBUGF(INDI::Logger::DBG_SESSION, "%s: mode OPM_APPLICATION doesn't support opcode '%s'.", __FUNCTION__, getOpCodeString(commandByte) );
+                    break;
+            }
+
+            break;
+
+        default:
+            DEBUGF(INDI::Logger::DBG_SESSION, "%s: invalid mode OPM_UNKNOWN for opcode '%s'.", __FUNCTION__, getOpCodeString(commandByte) );
+            break;
+    }
+
+    /* Return NOP0 as fallback */
+    return 0x00;
+}
+
+bool MGenAutoguider::verifyOpCode(enum CommandByte commandByte, char const *buffer, int bytes_read)
+{
+    switch( this->connectionStatus.mode )
+    {
+        case OPM_UNKNOWN:
+        case OPM_COMPATIBLE:
+            switch( commandByte )
+            {
+                case MGCP_QUERY_DEVICE:
+                    return buffer[0] == (unsigned char) ~getOpCode(commandByte) && 5 == bytes_read;
+
+                case MGCP_ENTER_NORMAL_MODE:
+                    return 0 == bytes_read;
+
+                default:
+                    DEBUGF(INDI::Logger::DBG_SESSION, "%s: mode OPM_COMPATIBLE doesn't support opcode '%s'.", __FUNCTION__, getOpCodeString(commandByte));
+                    break;
+            }
+            break;
+
+        case OPM_BOOT:
+            /* Spec chapter 4 */
+            switch( commandByte )
+            {
+                case MGCMD_NOP0:
+                case MGCMD_NOP1:
+                    return buffer[0] == (unsigned char) ~getOpCode(commandByte) && 1 == bytes_read;
+
+                case MGCMDB_GET_VERSION:
+                    return buffer[0] == (unsigned char) getOpCode(commandByte) && 3 == bytes_read;
+
+                case MGCMDB_GET_FW_VERSION:
+                    return buffer[0] == (unsigned char) getOpCode(commandByte) && ( 1 == bytes_read || 3 == bytes_read );
+
+                case MGCMDB_GET_CAMERA_VERSIONS:
+                    return buffer[0] == (unsigned char) getOpCode(commandByte) && ( 1 == bytes_read || 2 == bytes_read );
+
+                case MGCMDB_RUN_FIRMWARE:
+                case MGCMDB_POWER_OFF:
+                    return 0 == bytes_read;
+
+                default:
+                    DEBUGF(INDI::Logger::DBG_SESSION, "%s: mode OPM_BOOT doesn't support opcode '%s'.", __FUNCTION__, getOpCodeString(commandByte) );
                     break;
             }
             break;
@@ -400,9 +637,8 @@ unsigned char MGenAutoguider::getOpCode(enum CommandByte commandByte)
 
             break;
 
-        case OPM_UNKNOWN:
         default:
-            DEBUGF(INDI::Logger::DBG_DEBUG, "%s: invalid mode OPM_UNKNOWN for opcode '%s'.", __FUNCTION__, getOpCodeString(commandByte) );
+            DEBUGF(INDI::Logger::DBG_SESSION, "%s: invalid mode OPM_UNKNOWN for opcode '%s'.", __FUNCTION__, getOpCodeString(commandByte) );
             break;
     }
 
