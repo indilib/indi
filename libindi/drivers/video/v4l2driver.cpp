@@ -995,7 +995,9 @@ void V4L2_Driver::newFrame()
           }
         }
 
-        streamer->newFrame(buffer);
+        memcpy(PrimaryCCD.getFrameBuffer(), buffer, frameBytes);
+
+        streamer->newFrame();
 
         return;
     }
@@ -1024,8 +1026,9 @@ void V4L2_Driver::newFrame()
             unsigned char *src, *dest;
             src = v4l_base->getY();
             dest = (unsigned char *)PrimaryCCD.getFrameBuffer();
-            for (i=0; i< frameBytes; i++)
-                *(dest++) = *(src++);
+            memcpy(dest, src, frameBytes);
+            //for (i=0; i< frameBytes; i++)
+                //*(dest++) = *(src++);
 
             PrimaryCCD.binFrame();
        }

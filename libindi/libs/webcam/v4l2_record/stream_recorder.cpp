@@ -159,7 +159,7 @@ bool StreamRecorder::updateProperties()
     return true;
 }
 
-void StreamRecorder::newFrame(unsigned char *buffer)
+void StreamRecorder::newFrame()
 {
     double ms1, ms2, deltams;
 
@@ -194,14 +194,14 @@ void StreamRecorder::newFrame(unsigned char *buffer)
       streamframeCount++;
       if (streamframeCount >= StreamOptionsN[0].value)
       {
-        uploadStream(buffer);
+        uploadStream();
         streamframeCount = 0;
       }
     }
 
     if (RecordStreamSP.s == IPS_BUSY)
     {
-      recordStream(deltams, buffer);
+      recordStream(deltams);
     }
 }
 
@@ -221,17 +221,20 @@ bool StreamRecorder::setPixelFormat(uint32_t format)
     return true;
 }
 
-bool StreamRecorder::uploadStream(uint8_t *buffer)
+bool StreamRecorder::uploadStream()
 {
     int ret=0;
     uLongf compressedBytes = 0;
-    uLong totalBytes = ccd->PrimaryCCD.getFrameBufferSize() / (ccd->PrimaryCCD.getBinX()*ccd->PrimaryCCD.getBinY());
+    uLong totalBytes = ccd->PrimaryCCD.getFrameBufferSize();
 
-    memcpy(ccd->PrimaryCCD.getFrameBuffer(), buffer, ccd->PrimaryCCD.getFrameBufferSize());
+    //memcpy(ccd->PrimaryCCD.getFrameBuffer(), buffer, ccd->PrimaryCCD.getFrameBufferSize());
 
     // Binning for grayscale frames only for now
     if (ccd->PrimaryCCD.getNAxis() == 2)
+    {
         ccd->PrimaryCCD.binFrame();
+        totalBytes /= (ccd->PrimaryCCD.getBinX()*ccd->PrimaryCCD.getBinY());
+    }
 
     // Do we want to compress ?
      if (ccd->PrimaryCCD.isCompressed())
@@ -269,15 +272,15 @@ bool StreamRecorder::uploadStream(uint8_t *buffer)
     return true;
 }
 
-void StreamRecorder::recordStream(double deltams, unsigned char *buffer)
+void StreamRecorder::recordStream(double deltams)
 {
   if (!is_recording)
       return;
 
   if (ccd->PrimaryCCD.getNAxis() == 2)
-    recorder->writeFrameMono(buffer);
+    recorder->writeFrameMono(ccd->PrimaryCCD.getFrameBuffer());
   else
-    recorder->writeFrameColor(buffer);
+    recorder->writeFrameColor(ccd->PrimaryCCD.getFrameBuffer());
 
   recordDuration+=deltams;
   recordframeCount+=1;

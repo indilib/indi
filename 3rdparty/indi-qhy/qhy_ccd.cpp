@@ -1478,7 +1478,7 @@ void* QHYCCD::streamVideo()
       pthread_mutex_unlock(&condMutex);
 
       if ( (ret = GetQHYCCDLiveFrame(camhandle, &w, &h, &bpp, &channels, PrimaryCCD.getFrameBuffer())) == QHYCCD_SUCCESS)
-          streamer->newFrame(PrimaryCCD.getFrameBuffer());
+          streamer->newFrame();
   }
 
   pthread_mutex_unlock(&condMutex);

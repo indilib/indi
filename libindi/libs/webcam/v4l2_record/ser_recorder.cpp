@@ -215,7 +215,7 @@ bool SER_Recorder::setsize(unsigned int width, unsigned int height) {
   if (streaming_active) return false;
   serh.ImageWidth=width;
   serh.ImageHeight=height;
-  IDLog("recorder: setsize %dx%d\n", serh.ImageWidth, serh.ImageHeight);
+  //IDLog("recorder: setsize %dx%d\n", serh.ImageWidth, serh.ImageHeight);
   return true;
 }
 

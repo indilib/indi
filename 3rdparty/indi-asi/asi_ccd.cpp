@@ -1561,7 +1561,7 @@ void* ASICCD::streamVideo()
           continue;
       }
 
-      streamer->newFrame(targetFrame);
+      streamer->newFrame();
   }
 
   pthread_mutex_unlock(&condMutex);
