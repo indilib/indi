@@ -608,12 +608,14 @@ bool EQMod::updateProperties()
 	      {
 	      RAPPECTrainingSP->sp[0].s=ISS_OFF;
 	      RAPPECTrainingSP->sp[1].s=ISS_ON;
+	      RAPPECTrainingSP->s=IPS_BUSY;
 	      IDSetSwitch(RAPPECTrainingSP, NULL);
 	      }
 	    if (inppec)
 	      {
 	      RAPPECSP->sp[0].s=ISS_OFF;
 	      RAPPECSP->sp[1].s=ISS_ON;
+	      RAPPECSP->s=IPS_BUSY;
 	      IDSetSwitch(RAPPECSP, NULL);
 	      }
 	    mount->GetDEPPECStatus(&intraining, &inppec);
@@ -621,12 +623,14 @@ bool EQMod::updateProperties()
 	      {
 	      DEPPECTrainingSP->sp[0].s=ISS_OFF;
 	      DEPPECTrainingSP->sp[1].s=ISS_ON;
+	      DEPPECTrainingSP->s=IPS_BUSY;
 	      IDSetSwitch(DEPPECTrainingSP, NULL);
 	      }
 	    if (inppec)
 	      {
 	      DEPPECSP->sp[0].s=ISS_OFF;
 	      DEPPECSP->sp[1].s=ISS_ON;
+	      DEPPECSP->s=IPS_BUSY;
 	      IDSetSwitch(DEPPECSP, NULL);
 	      }
 	    }	  
@@ -1036,6 +1040,34 @@ bool EQMod::ReadScopeStatus() {
       }
     }
 
+    if (mount->HasPPEC()) {
+      if (RAPPECTrainingSP->s==IPS_BUSY) {
+	bool intraining, inppec;
+	mount->GetRAPPECStatus(&intraining, &inppec);
+	if (!(intraining))
+	  {
+	    DEBUG(INDI::Logger::DBG_SESSION,"RA PPEC Training completed.");
+	    RAPPECTrainingSP->sp[0].s=ISS_ON;
+	    RAPPECTrainingSP->sp[1].s=ISS_OFF;
+	    RAPPECTrainingSP->s=IPS_IDLE;
+	    IDSetSwitch(RAPPECTrainingSP, NULL);
+	  }
+      }
+      if (DEPPECTrainingSP->s==IPS_BUSY) {
+	bool intraining, inppec;
+	mount->GetDEPPECStatus(&intraining, &inppec);
+	if (!(intraining))
+	  {
+	    DEBUG(INDI::Logger::DBG_SESSION,"DE PPEC Training completed.");
+	    DEPPECTrainingSP->sp[0].s=ISS_ON;
+	    DEPPECTrainingSP->sp[1].s=ISS_OFF;
+	    DEPPECTrainingSP->s=IPS_IDLE;
+	    IDSetSwitch(DEPPECTrainingSP, NULL);
+	  }
+      }      
+    }
+
+      
     if (AutohomeState == AUTO_HOME_CONFIRM) {
       if (ah_confirm_timeout > 0)
 	ah_confirm_timeout -= 1;
