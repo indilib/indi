@@ -425,7 +425,8 @@ class INDI::CCD : public INDI::DefaultDevice, INDI::GuiderInterface
             ASTROMETRY_RESULTS_PIXSCALE,
             ASTROMETRY_RESULTS_ORIENTATION,
             ASTROMETRY_RESULTS_RA,
-            ASTROMETRY_RESULTS_DE
+            ASTROMETRY_RESULTS_DE,
+            ASTROMETRY_RESULTS_PARITY
         };
 
         virtual bool initProperties();
@@ -710,6 +711,9 @@ class INDI::CCD : public INDI::DefaultDevice, INDI::GuiderInterface
         float ExposureTime;
         float GuiderExposureTime;
 
+        // Sky Quality
+        double MPSAS;
+
         std::vector<std::string> FilterNames;
         int CurrentFilterSlot;
 
@@ -723,7 +727,7 @@ class INDI::CCD : public INDI::DefaultDevice, INDI::GuiderInterface
         INumber EqN[2];
 
         ITextVectorProperty ActiveDeviceTP;
-        IText ActiveDeviceT[3];
+        IText ActiveDeviceT[4];
 
         // Astrometry
 
@@ -736,7 +740,7 @@ class INDI::CCD : public INDI::DefaultDevice, INDI::GuiderInterface
         ITextVectorProperty SolverSettingsTP;
 
         // Solver Results
-        INumber SolverResultN[4];
+        INumber SolverResultN[5];
         INumberVectorProperty SolverResultNP;
 
         // WCS

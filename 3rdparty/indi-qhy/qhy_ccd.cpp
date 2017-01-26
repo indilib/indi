@@ -212,7 +212,7 @@ QHYCCD::QHYCCD(const char *name)
     HasFilters = false;
     coolerEnabled = false;
 
-    snprintf(this->name, MAXINDINAME, "QHY CCD %s", name);
+    snprintf(this->name, MAXINDINAME, "QHY CCD %.15s", name);
     snprintf(this->camid,MAXINDINAME,"%s",name);
     setDeviceName(this->name);
 
@@ -410,8 +410,10 @@ bool QHYCCD::updateProperties()
           //Define the Filter Slot and name properties
           defineNumber(&FilterSlotNP);
 
-          GetFilterNames(FILTER_TAB);
-          defineText(FilterNameTP);
+          if (FilterNameT == NULL)
+              GetFilterNames(FILTER_TAB);
+          if (FilterNameT)
+              defineText(FilterNameTP);
       }
 
       if (HasUSBTraffic)
@@ -638,6 +640,8 @@ bool QHYCCD::Connect()
 
         SetCCDCapability(cap);
 
+        terminateThread = false;
+
 #ifndef OSX_EMBEDED_MODE
         pthread_create( &primary_thread, NULL, &streamVideoHelper, this);
 #endif
@@ -792,7 +796,7 @@ bool QHYCCD::StartExposure(float duration)
       }
   }
 
-  if (sim || useSoftBin)
+  if (sim)
       ret = QHYCCD_SUCCESS;
   else
       ret = SetQHYCCDBinMode(camhandle,camxbin,camybin);
@@ -802,7 +806,7 @@ bool QHYCCD::StartExposure(float duration)
       return false;
   }
 
-  DEBUGF(INDI::Logger::DBG_DEBUG, "SetQHYCCDBinMode %dx%d", camxbin, camybin);
+  DEBUGF(INDI::Logger::DBG_DEBUG, "SetQHYCCDBinMode (%dx%d). Software binning (%dx%d)", camxbin, camybin, PrimaryCCD.getBinX(), PrimaryCCD.getBinY());
 
   if (sim)
       ret = QHYCCD_SUCCESS;
@@ -810,7 +814,7 @@ bool QHYCCD::StartExposure(float duration)
      ret = SetQHYCCDResolution(camhandle,camroix,camroiy,camroiwidth,camroiheight);
   if(ret != QHYCCD_SUCCESS)
   {
-      DEBUGF(INDI::Logger::DBG_SESSION, "Set QHYCCD ROI resolution failed (%d)", ret);
+      DEBUGF(INDI::Logger::DBG_SESSION, "Set QHYCCD ROI resolution (%d,%d) (%d,%d) failed (%d)", camroix, camroiy, camroiwidth, camroiheight, ret);
       return false;
   }
 
@@ -885,21 +889,11 @@ bool QHYCCD::UpdateCCDFrame(int x, int y, int w, int h)
 
   camroix = x;
   camroiy = y;
+  camroiwidth = w;
+  camroiheight = h;
 
-  if (useSoftBin)
-  {
-      camroiwidth = w;
-      camroiheight = h;
-
-      DEBUGF(INDI::Logger::DBG_DEBUG, "The Final image area is (%d, %d), (%d, %d)", camroix, camroiy, camroiwidth/ PrimaryCCD.getBinX(), camroiheight/ PrimaryCCD.getBinY());
-  }
-  else
-  {
-      camroiwidth = w/ PrimaryCCD.getBinX();
-      camroiheight = h/ PrimaryCCD.getBinY();
-
-      DEBUGF(INDI::Logger::DBG_DEBUG, "The Final image area is (%d, %d), (%d, %d)", camroix, camroiy, camroiwidth, camroiheight);
-  }
+  DEBUGF(INDI::Logger::DBG_DEBUG, "Final binned (%dx%d) image area is (%d, %d), (%d, %d)", PrimaryCCD.getBinX(), PrimaryCCD.getBinY(), camroix/PrimaryCCD.getBinX(), camroiy/PrimaryCCD.getBinY(),
+         camroiwidth/PrimaryCCD.getBinX(), camroiheight/PrimaryCCD.getBinY());
 
   // Set UNBINNED coords
   PrimaryCCD.setFrame(x, y, w,  h);
@@ -961,9 +955,12 @@ bool QHYCCD::UpdateCCDBin(int hor, int ver)
         useSoftBin = true;
     }
 
+    // We always use software binning so QHY binning is always at 1x1
+    camxbin = 1;
+    camybin = 1;
+
     PrimaryCCD.setBin(hor,ver);
-    camxbin = hor;
-    camybin = ver;
+
     return UpdateCCDFrame(PrimaryCCD.getSubX(), PrimaryCCD.getSubY(), PrimaryCCD.getSubW(), PrimaryCCD.getSubH());
 }
 
@@ -1002,7 +999,11 @@ int QHYCCD::grabImage()
     ret = GetQHYCCDSingleFrame(camhandle,&w,&h,&bpp,&channels,PrimaryCCD.getFrameBuffer());
 
     if (ret != QHYCCD_SUCCESS)
+    {
         DEBUGF(INDI::Logger::DBG_ERROR, "GetQHYCCDSingleFrame error (%d)", ret);
+        PrimaryCCD.setExposureFailed();
+        return -1;
+    }
   }
 
   // Perform software binning if necessary
@@ -1419,13 +1420,23 @@ bool QHYCCD::StartStreaming()
 
     DEBUGF(INDI::Logger::DBG_SESSION, "Starting streaming with a period of %g seconds.", PrimaryCCD.getExposureDuration());
 
+    // N.B. There is no corresponding value for GBGR. It is odd that QHY selects this as the default as no one seems to process it
+    const std::map<const char *, uint32_t> formats = { { "GBGR", V4L2_PIX_FMT_GREY} , {"GRGB", V4L2_PIX_FMT_SGRBG8}, { "BGGR", V4L2_PIX_FMT_SBGGR8},
+                                                       {"RGGB", V4L2_PIX_FMT_SRGGB8} };
+
+
+    uint32_t qhyFormat = V4L2_PIX_FMT_GREY;
+    if (BayerT[2].text[0] && formats.count(BayerT[2].text) != 0)
+        qhyFormat = formats.at(BayerT[2].text);
+
+    streamer->setPixelFormat(qhyFormat);
+
     SetQHYCCDStreamMode(camhandle, 0x01);
     BeginQHYCCDLive(camhandle);
     pthread_mutex_lock(&condMutex);
     streamPredicate = 1;
     pthread_mutex_unlock(&condMutex);
     pthread_cond_signal(&cv);
-
 
     return true;
 }
@@ -1452,11 +1463,11 @@ void * QHYCCD::streamVideoHelper(void* context)
 void* QHYCCD::streamVideo()
 {
   uint32_t ret=0, w,h,bpp,channels;
-  pthread_mutex_lock(&condMutex);
-  //unsigned char *compressedFrame = (unsigned char *) malloc(1);
 
   while (true)
   {
+      pthread_mutex_lock(&condMutex);
+
       while (streamPredicate == 0)
           pthread_cond_wait(&cv, &condMutex);
 
@@ -1467,18 +1478,7 @@ void* QHYCCD::streamVideo()
       pthread_mutex_unlock(&condMutex);
 
       if ( (ret = GetQHYCCDLiveFrame(camhandle, &w, &h, &bpp, &channels, PrimaryCCD.getFrameBuffer())) == QHYCCD_SUCCESS)
-          streamer->newFrame(PrimaryCCD.getFrameBuffer());
-      /*else
-      {
-          DEBUGF(INDI::Logger::DBG_ERROR, "Error reading video data (%d)", ret);
-          streamPredicate=0;
-          streamer->setStream(false);
-          continue;
-      }*/
-
-
-
-      //usleep(PrimaryCCD.getExposureDuration()*1000000);
+          streamer->newFrame();
   }
 
   pthread_mutex_unlock(&condMutex);

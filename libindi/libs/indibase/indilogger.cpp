@@ -143,27 +143,35 @@ bool Logger::initProperties(DefaultDevice *device)
 
 bool Logger::updateProperties(bool enable)
 {
-  if (enable)
+    if (enable)
     {
+        parentDevice->defineSwitch(&DebugLevelSP);
+        parentDevice->defineSwitch(&LoggingLevelSP);
 
-    parentDevice->defineSwitch(&DebugLevelSP);
-    parentDevice->defineSwitch(&LoggingLevelSP);
+        screenVerbosityLevel_=rememberscreenlevel_;
 
-    screenVerbosityLevel_=rememberscreenlevel_;
+        parentDevice->defineSwitch(&ConfigurationSP);
 
-    parentDevice->defineSwitch(&ConfigurationSP);
+    }
+    else
+    {
+        parentDevice->deleteProperty(DebugLevelSP.name);
+        parentDevice->deleteProperty(LoggingLevelSP.name);
+        parentDevice->deleteProperty(ConfigurationSP.name);
+        rememberscreenlevel_=screenVerbosityLevel_;
+        screenVerbosityLevel_=defaultlevel;
+    }
 
-    } 
-  else 
-  {
-      parentDevice->deleteProperty(DebugLevelSP.name);
-      parentDevice->deleteProperty(LoggingLevelSP.name);
-      parentDevice->deleteProperty(ConfigurationSP.name);
-      rememberscreenlevel_=screenVerbosityLevel_;
-      screenVerbosityLevel_=defaultlevel;
-  }
+    return true;
+}
 
-  return true;
+bool Logger::saveConfigItems(FILE *fp)
+{
+    IUSaveConfigSwitch(fp, &DebugLevelSP);
+    IUSaveConfigSwitch(fp, &LoggingLevelSP);
+    IUSaveConfigSwitch(fp, &ConfigurationSP);
+
+    return true;
 }
 
 bool Logger::ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n)

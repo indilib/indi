@@ -195,6 +195,7 @@ class Logger
     static std::string getLogFile() { return logFile_;}
     static loggerConf_ getConfiguration() {return configuration_;}
     static Logger& getInstance();
+    static bool saveConfigItems(FILE *fp);
 
     /**
      * @brief Adds a new debugging level to the driver.

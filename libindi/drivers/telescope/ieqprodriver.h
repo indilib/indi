@@ -136,6 +136,8 @@ bool start_ieqpro_guide(int fd,  IEQ_DIRECTION dir, int ms);
 **************************************************************************/
 bool set_ieqpro_longitude(int fd, double longitude);
 bool set_ieqpro_latitude(int fd, double latitude);
+bool get_ieqpro_longitude(int fd, double *longitude);
+bool get_ieqpro_latitude(int fd, double *latitude);
 bool set_ieqpro_local_date(int fd, int yy, int mm, int dd);
 bool set_ieqpro_local_time(int fd, int hh, int mm, int ss);
 bool set_ieqpro_utc_offset(int fd, double offset_hours);

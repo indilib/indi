@@ -76,7 +76,6 @@ RollOff::RollOff()
 {
 	fullOpenLimitSwitch   = ISS_ON;
 	fullClosedLimitSwitch = ISS_OFF;
-	IsTelescopeParked=false;
 	MotionRequest=0;
 
 	SetDomeCapability(DOME_CAN_ABORT | DOME_CAN_PARK);
@@ -93,39 +92,11 @@ bool RollOff::initProperties()
 
     addAuxControls();
     
-    IDSnoopDevice(ActiveDeviceT[0].text,"TELESCOPE_PARK");
-    IUFillSwitch(&ParkableWhenScopeUnparkedS[0], "Enable", "", ISS_OFF);
-    IUFillSwitch(&ParkableWhenScopeUnparkedS[1], "Disable", "", ISS_ON);
-    IUFillSwitchVector(&ParkableWhenScopeUnparkedSP, ParkableWhenScopeUnparkedS, 2, getDeviceName(), "DOME_PARKABLEWHENSCOPEUNPARKED", "Scope park aware", OPTIONS_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
-
     return true;
 }
 
 bool RollOff::ISSnoopDevice (XMLEle *root)
 {
-	XMLEle *ep=NULL;
-    const char *propName = findXMLAttValu(root, "name");
-    if (!strcmp("TELESCOPE_PARK", propName))
-    {
-	for (ep = nextXMLEle(root, 1) ; ep != NULL ; ep = nextXMLEle(root, 0))
-        {
-            const char *elemName = findXMLAttValu(ep, "name");
-            if (!strcmp(elemName, "PARK"))
-            {
-                if (!strcmp(pcdataXMLEle(ep), "On"))
-                {
-                    DEBUG(INDI::Logger::DBG_DEBUG, "snooped park state PARKED");
-					IsTelescopeParked = true;
-                }
-                else
-                {
-                    DEBUG(INDI::Logger::DBG_DEBUG, "snooped park state UNPARKED");
-					IsTelescopeParked = false;
-                }
-            }
-        }
-        return true;
-    }
 	return INDI::Dome::ISSnoopDevice(root);
 }
 
@@ -175,24 +146,6 @@ const char * RollOff::getDefaultName()
 
 bool RollOff::ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n)
 {
-    if(strcmp(dev,getDeviceName())==0)
-    {
-		if (!strcmp(name, ParkableWhenScopeUnparkedSP.name))
-        {
-            IUUpdateSwitch(&ParkableWhenScopeUnparkedSP, states, names, n);
-
-            ParkableWhenScopeUnparkedSP.s = IPS_OK;
-
-            if (ParkableWhenScopeUnparkedS[0].s == ISS_ON)
-                DEBUG(INDI::Logger::DBG_WARNING, "Scope park aware is enabled. Roof will not close when a snooped unparked telescope exists");
-            else
-                DEBUG(INDI::Logger::DBG_SESSION, "Scope park aware is disabled. Roof can close when scope unparked or unknown. Only enable this option is parking the dome at any time will not cause damage to any equipment.");
-
-            IDSetSwitch(&ParkableWhenScopeUnparkedSP, NULL);
-
-            return true;
-        }
-	}
 	return INDI::Dome::ISNewSwitch(dev, name, states, names, n);
 }
 
@@ -203,10 +156,6 @@ bool RollOff::updateProperties()
     if (isConnected())
     {
         SetupParms();
-        defineSwitch(&ParkableWhenScopeUnparkedSP);
-    } else 
-    {
-		deleteProperty(ParkableWhenScopeUnparkedSP.name);
 	}
 
     return true;
@@ -216,12 +165,6 @@ bool RollOff::Disconnect()
 {
     return true;
 }
-
-bool RollOff::isTelescopeParked()
-{
-  return IsTelescopeParked;
-}
-
 
 void RollOff::TimerHit()
 {
@@ -269,7 +212,6 @@ void RollOff::TimerHit()
 
 bool RollOff::saveConfigItems(FILE *fp)
 {
-    IUSaveConfigSwitch(fp, &ParkableWhenScopeUnparkedSP);
     return INDI::Dome::saveConfigItems(fp);
 }
 
@@ -295,9 +237,9 @@ IPState RollOff::Move(DomeDirection dir, DomeMotionCommand operation)
             DEBUG(INDI::Logger::DBG_WARNING, "Roof is already fully closed.");
             return IPS_ALERT;
         }
-        else if (dir == DOME_CCW && isTelescopeParked() == false && ParkableWhenScopeUnparkedS[0].s == ISS_ON)
+        else if (dir == DOME_CCW && INDI::Dome::isLocked())
         {
-            DEBUG(INDI::Logger::DBG_WARNING, "Cannot close roof until the telescope is parked. Please park the scope or disable Scope park aware in the options");
+            DEBUG(INDI::Logger::DBG_WARNING, "Cannot close dome when mount is locking. See: Telescope parkng policy, in options tab");
             return IPS_ALERT;
         }
 

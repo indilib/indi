@@ -59,8 +59,11 @@ void INDI::FilterWheel::ISGetProperties (const char *dev)
     {
         defineNumber(&FilterSlotNP);
 
-        if (GetFilterNames(FILTER_TAB))
-            defineText(FilterNameTP);
+        if (FilterNameT == NULL)
+            GetFilterNames(FILTER_TAB);
+
+        if (FilterNameT)
+           defineText(FilterNameTP);
     }
 
     controller->ISGetProperties(dev);
@@ -76,7 +79,11 @@ bool INDI::FilterWheel::updateProperties()
     {
         //initFilterProperties(getDeviceName(), FILTER_TAB);
         defineNumber(&FilterSlotNP);
-        if (GetFilterNames(FILTER_TAB))
+
+        if (FilterNameT == NULL)
+            GetFilterNames(FILTER_TAB);
+
+        if (FilterNameT)
             defineText(FilterNameTP);
     } else
     {
@@ -137,6 +144,8 @@ bool INDI::FilterWheel::ISNewText (const char *dev, const char *name, char *text
 
 bool INDI::FilterWheel::saveConfigItems(FILE *fp)
 {
+    DefaultDevice::saveConfigItems(fp);
+
     IUSaveConfigNumber(fp, &FilterSlotNP);
     IUSaveConfigText(fp, FilterNameTP);
 

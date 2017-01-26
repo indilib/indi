@@ -85,7 +85,8 @@ class V4L2_Base
   unsigned char * getY();
   unsigned char * getU();
   unsigned char * getV();
-  unsigned char * getColorBuffer();
+  // 2017-01-24 JM: Deprecated RGBA (32bit) buffer. Should use RGB24 buffer to save space
+  //unsigned char * getColorBuffer();
   unsigned char * getRGBBuffer();
   float * getLinearY();
 
@@ -130,7 +131,9 @@ class V4L2_Base
 
   protected:
 
-  int xioctl(int fd, int request, void *arg);
+  int xioctl(int fd, int request, void *arg, char const * const request_str);
+  int ioctl_set_format(struct v4l2_format new_fmt, char * errmsg);
+
   int read_frame(char *errsg);
   int uninit_device(char *errmsg);
   int open_device(const char *devpath, char *errmsg);
@@ -170,6 +173,8 @@ class V4L2_Base
   struct v4l2_querymenu querymenu;
   bool has_ext_pix_format;
 
+  bool is_compressed() const;
+
   WPF *callback;
   void *uptr;
   char          dev_name[64];
@@ -193,12 +198,15 @@ class V4L2_Base
   V4L2_Decoder *decoder;
   bool dodecode;
 
+  V4L2_Record *v4l2_record;
   V4L2_Recorder *recorder;
   bool dorecord;
 
   int bpp;
 
   friend class V4L2_Driver;
+
+  char deviceName[MAXINDIDEVICE];
 };
    
 #endif

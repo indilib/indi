@@ -31,10 +31,9 @@
 class ASIWHEEL: public INDI::FilterWheel {
 	private:
 		int fw_id;
-		int fw_index;
 
 	public:
-		ASIWHEEL(int index, EFW_INFO info, bool enumerate);
+		ASIWHEEL(int id, EFW_INFO info, bool enumerate);
 		~ASIWHEEL();
 
 		void debugTriggered(bool enable);

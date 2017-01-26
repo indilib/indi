@@ -192,6 +192,8 @@ bool NSTEP::Disconnect() {
     IDMessage(getDeviceName(), "NStep is disconnected.");
     return true;
   }
+
+  return false;
 }
 
 bool NSTEP::initProperties() {

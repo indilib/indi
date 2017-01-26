@@ -53,12 +53,14 @@ public:
     virtual bool initProperties();
     virtual bool updateProperties();
 
+    virtual bool saveConfigItems(FILE *fp);
+
     /**
      * @brief newFrame CCD drivers calls this function when a new frame is received.
      */
-    void newFrame(unsigned char *buffer);
+    void newFrame();
 
-    void recordStream(double deltams, unsigned char *buffer);
+    void recordStream(double deltams);
 
    bool setStream(bool enable);
    // uint8_t getFramesToDrop() { return (uint8_t) FramestoDropN[0].value; }
@@ -87,7 +89,7 @@ private:
     bool startRecording();
     bool stopRecording();
 
-    bool uploadStream(uint8_t *buffer);
+    bool uploadStream();
 
     /* Stream switch */
     ISwitch StreamS[2];

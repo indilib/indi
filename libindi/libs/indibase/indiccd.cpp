@@ -382,6 +382,7 @@ INDI::CCD::CCD()
 
     RA=-1000;
     Dec=-1000;
+    MPSAS=-1000;
     Aperture=FocalLength=-1;
 
     streamer = NULL;
@@ -452,12 +453,12 @@ bool INDI::CCD::initProperties()
     IUFillNumberVector(&PrimaryCCD.ImageBinNP,PrimaryCCD.ImageBinN,2,getDeviceName(),"CCD_BINNING","Binning",IMAGE_SETTINGS_TAB,IP_RW,60,IPS_IDLE);
 
     // Primary CCD Info
-    IUFillNumber(&PrimaryCCD.ImagePixelSizeN[0],"CCD_MAX_X","Resolution x","%4.0f",1,16000,0,0);
-    IUFillNumber(&PrimaryCCD.ImagePixelSizeN[1],"CCD_MAX_Y","Resolution y","%4.0f",1,16000,0,0);
-    IUFillNumber(&PrimaryCCD.ImagePixelSizeN[2],"CCD_PIXEL_SIZE","Pixel size (um)","%5.2f",1,40,0,0);
-    IUFillNumber(&PrimaryCCD.ImagePixelSizeN[3],"CCD_PIXEL_SIZE_X","Pixel size X","%5.2f",1,40,0,0);
-    IUFillNumber(&PrimaryCCD.ImagePixelSizeN[4],"CCD_PIXEL_SIZE_Y","Pixel size Y","%5.2f",1,40,0,0);
-    IUFillNumber(&PrimaryCCD.ImagePixelSizeN[5],"CCD_BITSPERPIXEL","Bits per pixel","%3.0f",8,64,0,0);
+    IUFillNumber(&PrimaryCCD.ImagePixelSizeN[CCDChip::CCD_MAX_X],"CCD_MAX_X","Resolution x","%4.0f",1,16000,0,0);
+    IUFillNumber(&PrimaryCCD.ImagePixelSizeN[CCDChip::CCD_MAX_Y],"CCD_MAX_Y","Resolution y","%4.0f",1,16000,0,0);
+    IUFillNumber(&PrimaryCCD.ImagePixelSizeN[CCDChip::CCD_PIXEL_SIZE],"CCD_PIXEL_SIZE","Pixel size (um)","%5.2f",1,40,0,0);
+    IUFillNumber(&PrimaryCCD.ImagePixelSizeN[CCDChip::CCD_PIXEL_SIZE_X],"CCD_PIXEL_SIZE_X","Pixel size X","%5.2f",1,40,0,0);
+    IUFillNumber(&PrimaryCCD.ImagePixelSizeN[CCDChip::CCD_PIXEL_SIZE_Y],"CCD_PIXEL_SIZE_Y","Pixel size Y","%5.2f",1,40,0,0);
+    IUFillNumber(&PrimaryCCD.ImagePixelSizeN[CCDChip::CCD_BITSPERPIXEL],"CCD_BITSPERPIXEL","Bits per pixel","%3.0f",8,64,0,0);
     IUFillNumberVector(&PrimaryCCD.ImagePixelSizeNP,PrimaryCCD.ImagePixelSizeN,6,getDeviceName(),"CCD_INFO","CCD Information",IMAGE_INFO_TAB,IP_RO,60,IPS_IDLE);
 
     // Primary CCD Compression Options
@@ -512,12 +513,12 @@ bool INDI::CCD::initProperties()
     IUFillNumber(&GuideCCD.ImageBinN[1],"VER_BIN","Y","%2.0f",1,4,1,1);
     IUFillNumberVector(&GuideCCD.ImageBinNP,GuideCCD.ImageBinN,2,getDeviceName(),"GUIDER_BINNING","Binning",GUIDE_HEAD_TAB,IP_RW,60,IPS_IDLE);
 
-    IUFillNumber(&GuideCCD.ImagePixelSizeN[0],"CCD_MAX_X","Resolution x","%4.0f",1,16000,0,0);
-    IUFillNumber(&GuideCCD.ImagePixelSizeN[1],"CCD_MAX_Y","Resolution y","%4.0f",1,16000,0,0);
-    IUFillNumber(&GuideCCD.ImagePixelSizeN[2],"CCD_PIXEL_SIZE","Pixel size (um)","%5.2f",1,40,0,0);
-    IUFillNumber(&GuideCCD.ImagePixelSizeN[3],"CCD_PIXEL_SIZE_X","Pixel size X","%5.2f",1,40,0,0);
-    IUFillNumber(&GuideCCD.ImagePixelSizeN[4],"CCD_PIXEL_SIZE_Y","Pixel size Y","%5.2f",1,40,0,0);
-    IUFillNumber(&GuideCCD.ImagePixelSizeN[5],"CCD_BITSPERPIXEL","Bits per pixel","%3.0f",8,64,0,0);
+    IUFillNumber(&GuideCCD.ImagePixelSizeN[CCDChip::CCD_MAX_X],"CCD_MAX_X","Resolution x","%4.0f",1,16000,0,0);
+    IUFillNumber(&GuideCCD.ImagePixelSizeN[CCDChip::CCD_MAX_Y],"CCD_MAX_Y","Resolution y","%4.0f",1,16000,0,0);
+    IUFillNumber(&GuideCCD.ImagePixelSizeN[CCDChip::CCD_PIXEL_SIZE],"CCD_PIXEL_SIZE","Pixel size (um)","%5.2f",1,40,0,0);
+    IUFillNumber(&GuideCCD.ImagePixelSizeN[CCDChip::CCD_PIXEL_SIZE_X],"CCD_PIXEL_SIZE_X","Pixel size X","%5.2f",1,40,0,0);
+    IUFillNumber(&GuideCCD.ImagePixelSizeN[CCDChip::CCD_PIXEL_SIZE_Y],"CCD_PIXEL_SIZE_Y","Pixel size Y","%5.2f",1,40,0,0);
+    IUFillNumber(&GuideCCD.ImagePixelSizeN[CCDChip::CCD_BITSPERPIXEL],"CCD_BITSPERPIXEL","Bits per pixel","%3.0f",8,64,0,0);
     IUFillNumberVector(&GuideCCD.ImagePixelSizeNP,GuideCCD.ImagePixelSizeN,6,getDeviceName(),"GUIDER_INFO", "Guide Info",IMAGE_INFO_TAB,IP_RO,60,IPS_IDLE);
 
     IUFillSwitch(&GuideCCD.FrameTypeS[0],"FRAME_LIGHT","Light",ISS_ON);
@@ -597,7 +598,8 @@ bool INDI::CCD::initProperties()
     IUFillNumber(&SolverResultN[ASTROMETRY_RESULTS_ORIENTATION], "ASTROMETRY_RESULTS_ORIENTATION", "Orientation (E of N) °", "%g", -360, 360, 1, 0);
     IUFillNumber(&SolverResultN[ASTROMETRY_RESULTS_RA], "ASTROMETRY_RESULTS_RA", "RA (J2000)", "%g", 0, 24, 1, 0);
     IUFillNumber(&SolverResultN[ASTROMETRY_RESULTS_DE], "ASTROMETRY_RESULTS_DE", "DE (J2000)", "%g", -90, 90, 1, 0);
-    IUFillNumberVector(&SolverResultNP, SolverResultN, 4, getDeviceName(), "ASTROMETRY_RESULTS", "Results", ASTROMETRY_TAB, IP_RO, 0, IPS_IDLE);
+    IUFillNumber(&SolverResultN[ASTROMETRY_RESULTS_PARITY], "ASTROMETRY_RESULTS_PARITY", "Parity", "%g", -1, 1, 1, 0);
+    IUFillNumberVector(&SolverResultNP, SolverResultN, 5, getDeviceName(), "ASTROMETRY_RESULTS", "Results", ASTROMETRY_TAB, IP_RO, 0, IPS_IDLE);
 
     // WCS Enable/Disable
     IUFillSwitch(&WorldCoordS[0], "WCS_ENABLE", "Enable", ISS_OFF);
@@ -619,7 +621,8 @@ bool INDI::CCD::initProperties()
     IUFillText(&ActiveDeviceT[0],"ACTIVE_TELESCOPE","Telescope","Telescope Simulator");
     IUFillText(&ActiveDeviceT[1],"ACTIVE_FOCUSER","Focuser","Focuser Simulator");
     IUFillText(&ActiveDeviceT[2],"ACTIVE_FILTER","Filter","CCD Simulator");
-    IUFillTextVector(&ActiveDeviceTP,ActiveDeviceT,3,getDeviceName(),"ACTIVE_DEVICES","Snoop devices",OPTIONS_TAB,IP_RW,60,IPS_IDLE);
+    IUFillText(&ActiveDeviceT[3],"ACTIVE_SKYQUALITY","Sky Quality","SQM");
+    IUFillTextVector(&ActiveDeviceTP,ActiveDeviceT,4,getDeviceName(),"ACTIVE_DEVICES","Snoop devices",OPTIONS_TAB,IP_RW,60,IPS_IDLE);
 
     // Snooped RA/DEC Property
     IUFillNumber(&EqN[0],"RA","Ra (hh:mm:ss)","%010.6m",0,24,0,0);
@@ -631,6 +634,7 @@ bool INDI::CCD::initProperties()
     IDSnoopDevice(ActiveDeviceT[0].text,"TELESCOPE_INFO");
     IDSnoopDevice(ActiveDeviceT[2].text,"FILTER_SLOT");
     IDSnoopDevice(ActiveDeviceT[2].text,"FILTER_NAME");
+    IDSnoopDevice(ActiveDeviceT[3].text,"SKY_QUALITY");
 
     // Guider Interface
     initGuiderProperties(getDeviceName(), GUIDE_CONTROL_TAB);
@@ -873,6 +877,19 @@ bool INDI::CCD::ISSnoopDevice (XMLEle *root)
          for (ep = nextXMLEle(root, 1) ; ep != NULL ; ep = nextXMLEle(root, 0))
              CurrentFilterSlot = atoi(pcdataXMLEle(ep));
      }
+     else if (!strcmp(propName, "SKY_QUALITY"))
+     {
+         for (ep = nextXMLEle(root, 1) ; ep != NULL ; ep = nextXMLEle(root, 0))
+         {
+             const char *name = findXMLAttValu(ep, "name");
+
+             if (!strcmp(name, "SKY_BRIGHTNESS"))
+             {
+                 MPSAS = atof(pcdataXMLEle(ep));
+                 break;
+             }
+         }
+     }
 
      return INDI::DefaultDevice::ISSnoopDevice(root);
  }
@@ -899,6 +916,7 @@ bool INDI::CCD::ISNewText (const char *dev, const char *name, char *texts[], cha
             IDSnoopDevice(ActiveDeviceT[0].text,"TELESCOPE_INFO");
             IDSnoopDevice(ActiveDeviceT[2].text,"FILTER_SLOT");
             IDSnoopDevice(ActiveDeviceT[2].text,"FILTER_NAME");
+            IDSnoopDevice(ActiveDeviceT[3].text,"SKY_QUALITY");
 
             // Tell children active devices was updated.
             activeDevicesUpdated();
@@ -1171,7 +1189,7 @@ bool INDI::CCD::ISNewNumber (const char *dev, const char *name, double values[],
         {
             IUUpdateNumber(&PrimaryCCD.ImagePixelSizeNP, values, names, n);
             PrimaryCCD.ImagePixelSizeNP.s = IPS_OK;
-            SetCCDParams(PrimaryCCD.ImagePixelSizeNP.np[0].value, PrimaryCCD.ImagePixelSizeNP.np[1].value, PrimaryCCD.getBPP(), PrimaryCCD.ImagePixelSizeNP.np[2].value, PrimaryCCD.ImagePixelSizeNP.np[3].value);
+            SetCCDParams(PrimaryCCD.ImagePixelSizeNP.np[CCDChip::CCD_MAX_X].value, PrimaryCCD.ImagePixelSizeNP.np[CCDChip::CCD_MAX_Y].value, PrimaryCCD.getBPP(), PrimaryCCD.ImagePixelSizeNP.np[CCDChip::CCD_PIXEL_SIZE_X].value, PrimaryCCD.ImagePixelSizeNP.np[CCDChip::CCD_PIXEL_SIZE_Y].value);
             IDSetNumber(&PrimaryCCD.ImagePixelSizeNP, NULL);
             return true;
         }
@@ -1181,7 +1199,7 @@ bool INDI::CCD::ISNewNumber (const char *dev, const char *name, double values[],
         {
             IUUpdateNumber(&GuideCCD.ImagePixelSizeNP, values, names, n);
             GuideCCD.ImagePixelSizeNP.s = IPS_OK;
-            SetGuiderParams(GuideCCD.ImagePixelSizeNP.np[0].value, GuideCCD.ImagePixelSizeNP.np[1].value, GuideCCD.getBPP(), GuideCCD.ImagePixelSizeNP.np[2].value, GuideCCD.ImagePixelSizeNP.np[3].value);
+            SetGuiderParams(GuideCCD.ImagePixelSizeNP.np[CCDChip::CCD_MAX_X].value, GuideCCD.ImagePixelSizeNP.np[CCDChip::CCD_MAX_Y].value, GuideCCD.getBPP(), GuideCCD.ImagePixelSizeNP.np[CCDChip::CCD_PIXEL_SIZE_X].value, GuideCCD.ImagePixelSizeNP.np[CCDChip::CCD_PIXEL_SIZE_Y].value);
             IDSetNumber(&GuideCCD.ImagePixelSizeNP, NULL);
             return true;
         }
@@ -1687,6 +1705,11 @@ void INDI::CCD::addFITSKeywords(fitsfile *fptr, CCDChip *targetChip)
 
     if (FocalLength != -1)
         fits_update_key_s(fptr, TDOUBLE, "FOCALLEN", &FocalLength, "Focal Length (mm)", &status);
+
+    if (MPSAS != -1000)
+    {
+        fits_update_key_s(fptr, TDOUBLE, "MPSAS", &MPSAS, "Sky Quality (mag per arcsec^2)", &status);
+    }
 
     if (targetChip->getFrameType() == CCDChip::LIGHT_FRAME && RA != -1000 && Dec != -1000)
     {
@@ -2337,6 +2360,8 @@ void INDI::CCD::SetGuiderParams(int x,int y,int bpp,float xf,float yf)
 
 bool INDI::CCD::saveConfigItems(FILE *fp)
 {
+    DefaultDevice::saveConfigItems(fp);
+
     IUSaveConfigText(fp, &ActiveDeviceTP);
     IUSaveConfigSwitch(fp, &UploadSP);
     IUSaveConfigText(fp, &UploadSettingsTP);
@@ -2530,8 +2555,8 @@ void * INDI::CCD::runSolverHelper(void *context)
 
 void INDI::CCD::runSolver()
 {
-    char cmd[MAXRBUF], line[256];
-    float ra,dec, angle, pixscale, field_w, field_h;
+    char cmd[MAXRBUF], line[256], parity_str[8];
+    float ra,dec, angle, pixscale, field_w, field_h, parity=0;
     ra=dec=angle=pixscale=field_w=field_h=-1000;
     snprintf(cmd, MAXRBUF, "%s %s -W /tmp/solution.wcs /tmp/ccdsolver.fits",SolverSettingsT[ASTROMETRY_SETTINGS_BINARY].text, SolverSettingsT[ASTROMETRY_SETTINGS_OPTIONS].text);
 
@@ -2554,17 +2579,25 @@ void INDI::CCD::runSolver()
         sscanf(line, "Field rotation angle: up is %f", &angle);
         sscanf(line, "Field center: (RA,Dec) = (%f,%f)", &ra, &dec);
         sscanf(line, "Field size: %f x %f arcminutes", &field_w, &field_h);
+        sscanf(line, "Field parity: %s", parity_str);
+
+        if (!strcmp(parity_str, "pos"))
+            parity = 1;
+        else if (!strcmp(parity_str, "neg"))
+            parity = -1;
 
         if (field_w != -1000 && ra != -1000 && dec != -1000 && angle != -1000)
         {
             // Pixscale is arcsec/pixel. Astrometry result is in arcmin
-            SolverResultN[ASTROMETRY_RESULTS_PIXSCALE].value = (field_w * 60) / PrimaryCCD.getSubW();
+            SolverResultN[ASTROMETRY_RESULTS_PIXSCALE].value = (field_w * 60) / (PrimaryCCD.getSubW() / PrimaryCCD.getBinX());
             // Astrometry.net angle, E of N
             SolverResultN[ASTROMETRY_RESULTS_ORIENTATION].value = angle;
             // Astrometry.net J2000 RA in degrees
             SolverResultN[ASTROMETRY_RESULTS_RA].value = ra;
             // Astrometry.net J2000 DEC in degrees
             SolverResultN[ASTROMETRY_RESULTS_DE].value = dec;
+            // Astrometry.net parity
+            SolverResultN[ASTROMETRY_RESULTS_PARITY].value = parity;
 
             SolverResultNP.s = IPS_OK;
             IDSetNumber(&SolverResultNP, NULL);

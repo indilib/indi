@@ -97,6 +97,10 @@ void ccvt_420p_rgb32(int width, int height, const void *src, void *dst);
 void ccvt_yuyv_rgb32(int width, int height, const void *src, void *dst);
 /** 4:2:2 YUYV interlaced to RGB/BGR */
 void ccvt_yuyv_bgr32(int width, int height, const void *src, void *dst);
+/** 4:2:2 YUYV interlaced to BGR24 */
+void ccvt_yuyv_bgr24(int width, int height, const void *src, void *dst);
+/** 4:2:2 YUYV interlaced to RGB24 */
+void ccvt_yuyv_rgb24(int width, int height, const void *src, void *dst);
 
 /** 4:2:2 YUYV interlaced to 4:2:0 YUV planar */
 void ccvt_yuyv_420p(int width, int height, const void *src, void *dsty, void *dstu, void *dstv);

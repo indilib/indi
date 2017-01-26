@@ -1021,6 +1021,12 @@ bool CelestronGPS::Park()
 
 bool CelestronGPS::UnPark()
 {    
+    if (INDI::Telescope::isLocked())
+    {
+        DEBUG(INDI::Logger::DBG_SESSION, "Cannot unpark mount when dome is locking. See: Dome parking policy, in options tab");
+        return false;
+    }
+
     double parkAZ  = GetAxis1Park();
     double parkAlt = GetAxis2Park();
 

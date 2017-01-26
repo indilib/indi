@@ -326,8 +326,10 @@ bool MICCD::updateProperties()
         {
             //Define the Filter Slot and name properties
             defineNumber(&FilterSlotNP);
-            GetFilterNames(FILTER_TAB);
-            defineText(FilterNameTP);
+            if (FilterNameT == NULL)
+                GetFilterNames(FILTER_TAB);
+            if (FilterNameT)
+                defineText(FilterNameTP);
         }
 
         // Let's get parameters now from CCD
@@ -532,8 +534,12 @@ bool MICCD::StartExposure(float duration)
         else
             mode = prm - IUFindOnSwitchIndex(&ReadModeSP);
         gxccd_set_read_mode(cameraHandle, mode);
-
-        gxccd_start_exposure(cameraHandle, duration, useShutter, PrimaryCCD.getSubX(), PrimaryCCD.getSubY(), PrimaryCCD.getSubW(), PrimaryCCD.getSubH());
+        // send binned coords
+        int x = PrimaryCCD.getSubX() / PrimaryCCD.getBinX();
+        int y = PrimaryCCD.getSubY() / PrimaryCCD.getBinY();
+        int w = PrimaryCCD.getSubW() / PrimaryCCD.getBinX();
+        int d = PrimaryCCD.getSubH() / PrimaryCCD.getBinY();
+        gxccd_start_exposure(cameraHandle, duration, useShutter, x, y, w, d);
     }
 
     ExposureRequest = duration;
@@ -568,20 +574,20 @@ bool MICCD::AbortExposure()
 bool MICCD::UpdateCCDFrame(int x, int y, int w, int h)
 {
     /* Add the X and Y offsets */
-    long x_1 = x;
-    long y_1 = y;
+    long x_1 = x / PrimaryCCD.getBinX();
+    long y_1 = y / PrimaryCCD.getBinY();
 
     long x_2 = x_1 + (w / PrimaryCCD.getBinX());
     long y_2 = y_1 + (h / PrimaryCCD.getBinY());
 
-    if (x_2 > PrimaryCCD.getXRes() / PrimaryCCD.getBinX())
+    if (x_2 > PrimaryCCD.getXRes())
     {
-        DEBUGF(INDI::Logger::DBG_ERROR, "Error: invalid width requested %ld", x_2);
+        DEBUGF(INDI::Logger::DBG_ERROR, "Error: Requested width out of bounds %ld", x_2);
         return false;
     }
-    else if (y_2 > PrimaryCCD.getYRes() / PrimaryCCD.getBinY())
+    else if (y_2 > PrimaryCCD.getYRes())
     {
-        DEBUGF(INDI::Logger::DBG_ERROR, "Error: invalid height request %ld", y_2);
+        DEBUGF(INDI::Logger::DBG_ERROR, "Error: Requested height out of bounds %ld", y_2);
         return false;
     }
 
@@ -593,7 +599,7 @@ bool MICCD::UpdateCCDFrame(int x, int y, int w, int h)
     // Set UNBINNED coords
     PrimaryCCD.setFrame(x, y, w, h);
     int nbuf = imageWidth * imageHeight * PrimaryCCD.getBPP() / 8; //  this is pixel count
-    nbuf += 512;                      //  leave a little extra at the end
+    nbuf += 512; //  leave a little extra at the end
     PrimaryCCD.setFrameBufferSize(nbuf);
 
     return true;

@@ -133,6 +133,8 @@ typedef struct {
     char envConfig[MAXSBUF];
     char envSkel[MAXSBUF];
     char envPrefix[MAXSBUF];
+    char host[MAXSBUF];
+    int port;
     //char dev[MAXINDIDEVICE];		/* device served by this driver */
     char **dev;             /* device served by this driver */
     int ndev;               /* number of devices served by this driver */
@@ -163,6 +165,7 @@ static int terminateddrv = 0;
 static void logStartup(int ac, char *av[]);
 static void usage (void);
 static void noZombies (void);
+static void reapZombies (void);
 static void noSIGPIPE (void);
 static void indiFIFO(void);
 static void indiRun (void);
@@ -179,11 +182,9 @@ static int openINDIServer (char host[], int indi_port);
 static void shutdownDvr (DvrInfo *dp, int restart);
 static int isDeviceInDriver(const char *dev, DvrInfo *dp);
 static void q2RDrivers (const char *dev, Msg *mp, XMLEle *root);
-static void q2SDrivers (int isblob, const char *dev, const char *name, Msg *mp,
-    XMLEle *root);
-static int q2Clients (ClInfo *notme, int isblob, const char *dev, const char *name,
-    Msg *mp, XMLEle *root);
-static int q2Servers (ClInfo *notme, Msg *mp, XMLEle *root);
+static void q2SDrivers (DvrInfo *me, int isblob, const char *dev, const char *name, Msg *mp, XMLEle *root);
+static int q2Clients (ClInfo *notme, int isblob, const char *dev, const char *name, Msg *mp, XMLEle *root);
+static int q2Servers (DvrInfo *me, Msg *mp, XMLEle *root);
 static void addSDevice (DvrInfo *dp, const char *dev, const char *name);
 static Property *findSDevice (DvrInfo *dp, const char *dev, const char *name);
 static void addClDevice (ClInfo *cp, const char *dev, const char *name, int isblob);
@@ -290,7 +291,8 @@ main (int ac, char *av[])
         usage();
 
     /* take care of some unixisms */
-    noZombies();
+    /*noZombies();*/
+    reapZombies();
     noSIGPIPE();
 
     /* realloc seed for client pool */
@@ -368,6 +370,34 @@ noZombies()
     sa.sa_flags = 0;
 #endif
     (void)sigaction(SIGCHLD, &sa, NULL);
+}
+
+/* reap zombies when drivers die, in order to leave SIGCHLD unmodified for subprocesses */
+static void
+zombieRaised(int signum, siginfo_t* sig, void* data)
+{
+    if(data);
+
+    switch(signum)
+    {
+        case SIGCHLD:
+            fprintf(stderr, "Child process %d died\n", sig->si_pid);
+            break;
+
+        default:
+            fprintf(stderr, "Received unexpected signal %d\n", signum);
+    }
+}
+
+/* reap zombies as they die */
+static void
+reapZombies()
+{
+  struct sigaction sa;
+  sa.sa_sigaction = zombieRaised;
+  sigemptyset(&sa.sa_mask);
+  sa.sa_flags = SA_SIGINFO;
+  (void)sigaction(SIGCHLD, &sa, NULL);
 }
 
 /* turn off SIGPIPE on bad write so we can handle it inline */
@@ -519,6 +549,8 @@ startLocalDvr (DvrInfo *dp)
 
     /* record pid, io channels, init lp and snoop list */
     dp->pid = pid;
+    strncpy(dp->host, "localhost", MAXSBUF);
+    dp->port = -1;
     dp->rfd = rp[0];
     dp->wfd = wp[1];
     dp->efd = ep[0];
@@ -552,9 +584,9 @@ static void
 startRemoteDvr (DvrInfo *dp)
 {
     Msg *mp;
-    char dev[1024];
-    char host[1024];
-    char buf[1024];
+    char dev[MAXINDIDEVICE];
+    char host[MAXSBUF];
+    char buf[MAXSBUF];
     int indi_port, sockfd;
 
     /* extract host and port */
@@ -569,6 +601,8 @@ startRemoteDvr (DvrInfo *dp)
 
     /* record flag pid, io channels, init lp and snoop list */
     dp->pid = REMOTEDVR;
+    strncpy(dp->host, host, MAXSBUF);
+    dp->port = indi_port;
     dp->rfd = sockfd;
     dp->wfd = sockfd;
     dp->lp = newLilXML();
@@ -870,11 +904,10 @@ static void newFIFO(void)
      if (verbose)
             fprintf(stderr, "FIFO: %s\n", line);
 
-     char cmd[MAXSBUF], arg[4][1], var[4][MAXSBUF], tDriver[MAXSBUF], tName[MAXSBUF], envDev[MAXSBUF], envConfig[MAXSBUF], envSkel[MAXSBUF], envPrefix[MAXSBUF];
+     char cmd[MAXSBUF], arg[4][1], var[4][MAXSBUF], tDriver[MAXSBUF], tName[MAXSBUF], envConfig[MAXSBUF], envSkel[MAXSBUF], envPrefix[MAXSBUF];
 
      memset(&tDriver[0], 0, sizeof(MAXSBUF));
      memset(&tName[0], 0, sizeof(MAXSBUF));
-     memset(&envDev[0], 0, sizeof(MAXSBUF));
      memset(&envConfig[0], 0, sizeof(MAXSBUF));
      memset(&envSkel[0], 0, sizeof(MAXSBUF));
      memset(&envPrefix[0], 0, sizeof(MAXSBUF));
@@ -920,7 +953,7 @@ static void newFIFO(void)
              tName[MAXSBUF-1] = '\0';
 
              if (verbose)
-                fprintf(stderr, "With name: %s\n", envDev);
+                fprintf(stderr, "With name: %s\n", tName);
          }
          else if (arg[j][0] == 'c')
          {
@@ -1140,7 +1173,7 @@ readFromClient (ClInfo *cp)
         /* send to snooping drivers. */
         // JM 2016-05-26: Only forward setXXX messages
         if (!strncmp (roottag, "set", 3))
-            q2SDrivers (isblob, dev, name, mp, root);
+            q2SDrivers (NULL, isblob, dev, name, mp, root);
 
         /* echo new* commands back to other clients */
         if (!strncmp (roottag, "new", 3))
@@ -1241,8 +1274,11 @@ readFromDriver (DvrInfo *dp)
           addSDevice (dp, dev, name);
           mp = newMsg();
           /* send to interested chained servers upstream */
-          if (q2Servers(NULL, mp, root) < 0)
+          if (q2Servers(dp, mp, root) < 0)
               shutany++;
+          /* Send to snooped drivers if they exist so that they can echo back the snooped propertly immediately */
+          q2RDrivers(dev, mp, root);
+
           if (mp->count > 0)
               setMsgXMLEle (mp, root);
           else
@@ -1292,7 +1328,7 @@ readFromDriver (DvrInfo *dp)
 	shutany++;
       
       /* send to snooping drivers */
-      q2SDrivers (isblob, dev, name, mp, root);
+      q2SDrivers (dp, isblob, dev, name, mp, root);
       
       /* set message content if anyone cares else forget it */
       if (mp->count > 0)
@@ -1444,9 +1480,11 @@ shutdownDvr (DvrInfo *dp, int restart)
 static void
 q2RDrivers (const char *dev, Msg *mp, XMLEle *root)
 {
-    int sawremote = 0;
     DvrInfo *dp;
     char *roottag = tagXMLEle(root);
+
+    char lastRemoteHost[MAXSBUF];
+    int  lastRemotePort= -1;
 
     /* queue message to each interested driver.
      * N.B. don't send generic getProps to more than one remote driver,
@@ -1454,7 +1492,7 @@ q2RDrivers (const char *dev, Msg *mp, XMLEle *root)
      */
     for (dp = dvrinfo; dp < &dvrinfo[ndvrinfo]; dp++)
     {
-        int isremote = (dp->pid == REMOTEDVR);
+        int isRemote = (dp->pid == REMOTEDVR);
 
         if (dp->active == 0)
             continue;
@@ -1463,16 +1501,22 @@ q2RDrivers (const char *dev, Msg *mp, XMLEle *root)
         if (dev[0] && isDeviceInDriver(dev, dp) == 0)
             continue;
 
-        /* already sent generic to another remote */
-        if (!dev[0] && isremote && sawremote)
+        /* Only send message to each *unique* remote driver at a particular host:port
+         * Since it will be propogated to all other devices there */
+        if (!dev[0] && isRemote && !strcmp(lastRemoteHost, dp->host) && lastRemotePort == dp->port)
             continue;
 
         /* JM 2016-10-30: Only send enableBLOB to remote drivers */
-        if (isremote == 0 && !strcmp(roottag, "enableBLOB"))
+        if (isRemote == 0 && !strcmp(roottag, "enableBLOB"))
             continue;
 
-        if (isremote)
-            sawremote = 1;
+        /* Retain last remote driver data so that we do not send the same info again to a driver
+         * residing on the same host:port */
+        if (isRemote)
+        {
+            strncpy(lastRemoteHost, dp->host, MAXSBUF);
+            lastRemotePort = dp->port;
+        }
 
         /* ok: queue message to this driver */
         mp->count++;
@@ -1491,9 +1535,9 @@ q2RDrivers (const char *dev, Msg *mp, XMLEle *root)
  * if BLOB always honor current mode.
  */
 static void
-q2SDrivers (int isblob, const char *dev, const char *name, Msg *mp, XMLEle *root)
+q2SDrivers (DvrInfo *me, int isblob, const char *dev, const char *name, Msg *mp, XMLEle *root)
 {
-    DvrInfo *dp;
+    DvrInfo *dp=NULL;
 
     for (dp = dvrinfo; dp < &dvrinfo[ndvrinfo]; dp++) {
             Property *sp = findSDevice (dp, dev, name);
@@ -1503,6 +1547,13 @@ q2SDrivers (int isblob, const char *dev, const char *name, Msg *mp, XMLEle *root
         continue;
         if ((isblob && sp->blob==B_NEVER) || (!isblob && sp->blob==B_ONLY))
         continue;
+        if (me && me->pid == REMOTEDVR && dp->pid == REMOTEDVR)
+        {
+            // Do not send snoop data to remote drivers at the same host
+            // since they will manage their own snoops remotely
+            if (!strcmp(me->host, dp->host) && me->port == dp->port)
+                continue;
+        }
 
         /* ok: queue message to this device */
         mp->count++;
@@ -1522,7 +1573,7 @@ q2SDrivers (int isblob, const char *dev, const char *name, Msg *mp, XMLEle *root
 static void
 addSDevice (DvrInfo *dp, const char *dev, const char *name)
 {
-        Property *sp;
+    Property *sp;
     char *ip;
 
     /* no dups */
@@ -1531,8 +1582,7 @@ addSDevice (DvrInfo *dp, const char *dev, const char *name)
         return;
 
     /* add dev to sdevs list */
-    dp->sprops = (Property*) realloc (dp->sprops,
-                                            (dp->nsprops+1)*sizeof(Property));
+    dp->sprops = (Property*) realloc (dp->sprops, (dp->nsprops+1)*sizeof(Property));
     sp = &dp->sprops[dp->nsprops++];
 
     ip = sp->dev;
@@ -1546,8 +1596,7 @@ addSDevice (DvrInfo *dp, const char *dev, const char *name)
     sp->blob = B_NEVER;
 
     if (verbose)
-        fprintf (stderr, "%s: Driver %s: snooping on %s.%s\n", indi_tstamp(NULL),
-                            dp->name, dev, name);
+        fprintf (stderr, "%s: Driver %s: snooping on %s.%s\n", indi_tstamp(NULL), dp->name, dev, name);
 }
 
 /* return Property if dp is snooping dev/name, else NULL.
@@ -1642,17 +1691,39 @@ q2Clients (ClInfo *notme, int isblob, const char *dev, const char *name, Msg *mp
   * return -1 if had to shut down any clients, else 0.
  */
 static int
-q2Servers (ClInfo *notme, Msg *mp, XMLEle *root)
+q2Servers (DvrInfo *me, Msg *mp, XMLEle *root)
 {
-    int shutany = 0;
+    int shutany = 0, i=0, devFound=0;
     ClInfo *cp;
     int ql=0;
 
     /* queue message to each interested client */
     for (cp = clinfo; cp < &clinfo[nclinfo]; cp++)
     {
-        /* cp in use? notme? chained server? */
-        if (!cp->active || cp == notme || cp->allprops == 1)
+        /* cp in use? not chained server? */
+        if (!cp->active || cp->allprops == 1)
+            continue;
+
+        // Only send the message to the upstream server that is connected specfically to the device in driver dp
+        for (i = 0; i < cp->nprops; i++)
+        {
+            Property *pp = &cp->props[i];
+            int j=0;
+            for (j=0; j < me->ndev; j++)
+            {
+                if (!strcmp (pp->dev, me->dev[j]))
+                    break;
+            }
+
+            if (j != me->ndev)
+            {
+                devFound = 1;
+                break;
+            }
+        }
+
+        // If no matching device found, continue
+        if (devFound == 0)
             continue;
 
         /* shut down this client if its q is already too large */
@@ -1861,12 +1932,12 @@ findClDevice (ClInfo *cp, const char *dev, const char *name)
     int i;
 
         if (cp->allprops || !dev[0])
-        return (0);
+            return (0);
         for (i = 0; i < cp->nprops; i++)
         {
             Property *pp = &cp->props[i];
             if (!strcmp (pp->dev, dev) && (!pp->name[0] || !strcmp(pp->name, name)))
-        return (0);
+                return (0);
     }
     return (-1);
 }

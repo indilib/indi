@@ -227,6 +227,8 @@ bool INDI::Focuser::ISSnoopDevice (XMLEle *root)
 
 bool INDI::Focuser::saveConfigItems(FILE *fp)
 {
+    DefaultDevice::saveConfigItems(fp);
+
     IUSaveConfigText(fp, &PortTP);
     IUSaveConfigNumber(fp, &PresetNP);
 

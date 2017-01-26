@@ -797,7 +797,7 @@ int gphoto_read_exposure_fd(gphoto_driver *gphoto, int fd)
     int result;
 
     // Wait for exposure to complete
-    DEBUGDEVICE(device, INDI::Logger::DBG_DEBUG,"Reading exposure");
+    DEBUGDEVICE(device, INDI::Logger::DBG_DEBUG,"Reading exposure...");
     pthread_mutex_lock(&gphoto->mutex);
     if (gphoto->camerafile) {
         gp_file_free(gphoto->camerafile);
@@ -805,8 +805,11 @@ int gphoto_read_exposure_fd(gphoto_driver *gphoto, int fd)
     }
     if(! (gphoto->command & DSLR_CMD_DONE))
         pthread_cond_wait(&gphoto->signal, &gphoto->mutex);
+
     DEBUGDEVICE(device, INDI::Logger::DBG_DEBUG,"Exposure complete");
-    if (gphoto->command & DSLR_CMD_CAPTURE) {
+
+    if (gphoto->command & DSLR_CMD_CAPTURE)
+    {
         result = download_image(gphoto, &gphoto->camerapath, fd);
         gphoto->command = 0;
         //Set exposure back to original value
@@ -816,22 +819,33 @@ int gphoto_read_exposure_fd(gphoto_driver *gphoto, int fd)
     }
 
     //Bulb mode
+    int timeoutCounter=0;
     gphoto->command = 0;
-    while (1) {
+
+    while (1)
+    {
         // Wait for image to be ready to download
-        result = gp_camera_wait_for_event(gphoto->camera, 500, &event, &data, gphoto->context);
-        if (result != GP_OK) {
-            DEBUGDEVICE(device, INDI::Logger::DBG_DEBUG, "WARNING: Could not wait for event.");
-            return (result);
+        result = gp_camera_wait_for_event(gphoto->camera, 1000, &event, &data, gphoto->context);
+        if (result != GP_OK)
+        {
+            DEBUGDEVICE(device, INDI::Logger::DBG_WARNING, "WARNING: Could not wait for event.");
+            timeoutCounter++;
+            if (timeoutCounter >= 10)
+            {
+                pthread_mutex_unlock(&gphoto->mutex);
+                return -1;
+            }
+
+            continue;
         }
 
-        switch (event) {
-
+        switch (event)
+        {
         case GP_EVENT_CAPTURE_COMPLETE:
-            DEBUGDEVICE(device, INDI::Logger::DBG_DEBUG,"Capture completed");
+            DEBUGDEVICE(device, INDI::Logger::DBG_DEBUG,"Capture event completed.");
             break;
         case GP_EVENT_FILE_ADDED:
-            DEBUGDEVICE(device, INDI::Logger::DBG_DEBUG,"Captured an image");
+            DEBUGDEVICE(device, INDI::Logger::DBG_DEBUG,"File added event completed.");
             fn = (CameraFilePath*)data;
             result = download_image(gphoto, fn, fd);
             //Set exposure back to original value
@@ -841,7 +855,18 @@ int gphoto_read_exposure_fd(gphoto_driver *gphoto, int fd)
             return result;
             break;
         case GP_EVENT_UNKNOWN:
+            DEBUGDEVICE(device, INDI::Logger::DBG_DEBUG,"Unknown event.");
             break;
+        case GP_EVENT_TIMEOUT:
+            DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG,"Event timed out #%d, retrying...", ++timeoutCounter);
+            // So retry for 5 seconds before giving up
+            if (timeoutCounter >= 10)
+            {
+                pthread_mutex_unlock(&gphoto->mutex);
+                return -1;
+            }
+            break;
+
         default:
             DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG,"Got unexpected message: %d", event);
         }

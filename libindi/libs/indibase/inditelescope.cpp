@@ -30,6 +30,7 @@ INDI::Telescope::Telescope()
     parkDataType = PARK_NONE;
     Parkdatafile= "~/.indi/ParkData.xml";
     IsParked=false;
+    IsLocked=true;
 
     nSlewRate=0;
     SlewRateS = NULL;
@@ -51,7 +52,15 @@ bool INDI::Telescope::initProperties()
 
     // Active Devices
     IUFillText(&ActiveDeviceT[0],"ACTIVE_GPS","GPS","GPS Simulator");
-    IUFillTextVector(&ActiveDeviceTP,ActiveDeviceT,1,getDeviceName(),"ACTIVE_DEVICES","Snoop devices",OPTIONS_TAB,IP_RW,60,IPS_IDLE);
+    IUFillText(&ActiveDeviceT[1],"ACTIVE_DOME","DOME","Dome Simulator");
+    IUFillTextVector(&ActiveDeviceTP,ActiveDeviceT,2,getDeviceName(),"ACTIVE_DEVICES","Snoop devices",OPTIONS_TAB,IP_RW,60,IPS_IDLE);
+
+    // Use locking if dome is closed (and or) park scope if dome is closing
+    IUFillSwitch(&DomeClosedLockT[0],"NO_ACTION","Ignore dome",ISS_ON);
+    IUFillSwitch(&DomeClosedLockT[1],"LOCK_PARKING","Dome locks",ISS_OFF);
+    IUFillSwitch(&DomeClosedLockT[2],"FORCE_CLOSE","Dome parks",ISS_OFF);
+    IUFillSwitch(&DomeClosedLockT[3],"LOCK_AND_FORCE","Both",ISS_OFF);
+    IUFillSwitchVector(&DomeClosedLockTP,DomeClosedLockT,4,getDeviceName(),"DOME_POLICY","Dome parking policy",OPTIONS_TAB,IP_RW,ISR_1OFMANY,60,IPS_IDLE);
 
     IUFillNumber(&EqN[AXIS_RA],"RA","RA (hh:mm:ss)","%010.6m",0,24,0,0);
     IUFillNumber(&EqN[AXIS_DE],"DEC","DEC (dd:mm:ss)","%010.6m",-90,90,0,0);
@@ -116,9 +125,9 @@ bool INDI::Telescope::initProperties()
     IUFillSwitchVector(&MovementWESP, MovementWES, 2, getDeviceName(),"TELESCOPE_MOTION_WE", "Motion W/E", MOTION_TAB, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
 
     IUFillNumber(&ScopeParametersN[0],"TELESCOPE_APERTURE","Aperture (mm)","%g",10,5000,0,0.0);
-    IUFillNumber(&ScopeParametersN[1],"TELESCOPE_FOCAL_LENGTH","Focal Length (mm)","%g",100,10000,0,0.0 );
+    IUFillNumber(&ScopeParametersN[1],"TELESCOPE_FOCAL_LENGTH","Focal Length (mm)","%g",10,10000,0,0.0 );
     IUFillNumber(&ScopeParametersN[2],"GUIDER_APERTURE","Guider Aperture (mm)","%g",10,5000,0,0.0);
-    IUFillNumber(&ScopeParametersN[3],"GUIDER_FOCAL_LENGTH","Guider Focal Length (mm)","%g",100,10000,0,0.0 );
+    IUFillNumber(&ScopeParametersN[3],"GUIDER_FOCAL_LENGTH","Guider Focal Length (mm)","%g",10,10000,0,0.0 );
     IUFillNumberVector(&ScopeParametersNP,ScopeParametersN,4,getDeviceName(),"TELESCOPE_INFO","Scope Properties",OPTIONS_TAB,IP_RW,60,IPS_OK);
 
     controller->initProperties();
@@ -130,6 +139,9 @@ bool INDI::Telescope::initProperties()
     IDSnoopDevice(ActiveDeviceT[0].text,"GEOGRAPHIC_COORD");
     IDSnoopDevice(ActiveDeviceT[0].text,"TIME_UTC");
 
+    IDSnoopDevice(ActiveDeviceT[1].text,"DOME_PARK");
+    IDSnoopDevice(ActiveDeviceT[1].text,"DOME_SHUTTER");
+
     return true;
 }
 
@@ -140,13 +152,15 @@ void INDI::Telescope::ISGetProperties (const char *dev)
 
     defineText(&PortTP);
     loadConfig(true, "DEVICE_PORT");
+
     defineSwitch(&BaudRateSP);
     loadConfig(true, "TELESCOPE_BAUD_RATE");
-    if (HasTime() && HasLocation())
-    {
-        defineText(&ActiveDeviceTP);
-        loadConfig(true, "ACTIVE_DEVICES");
-    }
+
+    defineText(&ActiveDeviceTP);
+    loadConfig(true, "ACTIVE_DEVICES");
+
+    defineSwitch(&DomeClosedLockTP);
+    loadConfig(true, "DOME_POLICY");
 
     if(isConnected())
     {
@@ -316,15 +330,52 @@ bool INDI::Telescope::ISSnoopDevice(XMLEle *root)
             }
 
             return processTimeInfo(utc, offset);
+        } else if (!strcmp(propName, "DOME_PARK") || !strcmp(propName, "DOME_SHUTTER"))
+        {
+            if (strcmp(findXMLAttValu(root, "state"), "Ok"))
+            {
+                // Dome options is dome parks or both and dome is parking.
+                if ((DomeClosedLockT[2].s == ISS_ON || DomeClosedLockT[3].s == ISS_ON) && !IsLocked && !IsParked)
+                {
+                    Park();
+                    DEBUG(INDI::Logger::DBG_SESSION, "Dome is closing, parking mount...");
+                }
+            } // Dome is changing state and Dome options is lock or both. d
+            else if (!strcmp(findXMLAttValu(root, "state"), "Ok"))
+            {
+                bool prevState = IsLocked;
+                for (ep = nextXMLEle(root, 1) ; ep != NULL ; ep = nextXMLEle(root, 0))
+                {
+                    const char *elemName = findXMLAttValu(ep, "name");
+
+                    if (!IsLocked && (!strcmp(elemName, "PARK")) && !strcmp(pcdataXMLEle(ep), "On"))
+                        IsLocked = true;
+                    else if (IsLocked && (!strcmp(elemName, "UNPARK")) && !strcmp(pcdataXMLEle(ep), "On"))
+                        IsLocked = false;
+                }
+                if (prevState != IsLocked && (DomeClosedLockT[1].s == ISS_ON || DomeClosedLockT[3].s == ISS_ON))
+                    DEBUGF(INDI::Logger::DBG_SESSION, "Dome status changed. Lock is set to: %s"
+                        , IsLocked ? "locked" : "unlock");
+            }
+            return true;
         }
     }
 
     return INDI::DefaultDevice::ISSnoopDevice(root);
 }
 
+void INDI::Telescope::triggerSnoop(char *driverName, char *snoopedProp)
+{
+    DEBUGF(INDI::Logger::DBG_DEBUG, "Active Snoop, driver: %s, property: %s", driverName, snoopedProp);
+    IDSnoopDevice(driverName, snoopedProp);
+}
+
 bool INDI::Telescope::saveConfigItems(FILE *fp)
 {
+    DefaultDevice::saveConfigItems(fp);
+
     IUSaveConfigText(fp, &ActiveDeviceTP);
+    IUSaveConfigSwitch(fp, &DomeClosedLockTP);
     IUSaveConfigText(fp, &PortTP);
     IUSaveConfigSwitch(fp, &BaudRateSP);
     if (HasLocation())
@@ -434,8 +485,12 @@ bool INDI::Telescope::ISNewText (const char *dev, const char *name, char *texts[
 
           IDSnoopDevice(ActiveDeviceT[0].text,"GEOGRAPHIC_COORD");
           IDSnoopDevice(ActiveDeviceT[0].text,"TIME_UTC");
+
+          IDSnoopDevice(ActiveDeviceT[1].text,"DOME_PARK");
+          IDSnoopDevice(ActiveDeviceT[1].text,"DOME_SHUTTER");
           return true;
       }
+
     }
 
     controller->ISNewText(dev, name, texts, names, n);
@@ -870,6 +925,27 @@ bool INDI::Telescope::ISNewSwitch (const char *dev, const char *name, ISState *s
           return true;
       }
 
+      // Dome parking policy
+      if (!strcmp(name, DomeClosedLockTP.name))
+      {
+          if (n == 1)
+          {
+              if (!strcmp(names[0], DomeClosedLockT[0].name))
+                  DEBUG(INDI::Logger::DBG_SESSION, "Dome parking policy set to: Ignore dome");
+              else if (!strcmp(names[0], DomeClosedLockT[1].name))
+                  DEBUG(INDI::Logger::DBG_SESSION, "Warning: Dome parking policy set to: Dome locks. This disallows the scope from unparking when dome is parked");
+              else if (!strcmp(names[0], DomeClosedLockT[2].name))
+                  DEBUG(INDI::Logger::DBG_SESSION, "Warning: Dome parking policy set to: Dome parks. This tells scope to park if dome is parking. This will disable the locking for dome parking, EVEN IF MOUNT PARKING FAILS");
+              else if (!strcmp(names[0], DomeClosedLockT[3].name))
+                  DEBUG(INDI::Logger::DBG_SESSION, "Warning: Dome parking policy set to: Both. This disallows the scope from unparking when dome is parked, and tells scope to park if dome is parking. This will disable the locking for dome parking, EVEN IF MOUNT PARKING FAILS.");
+          }
+          IUUpdateSwitch(&DomeClosedLockTP, states, names, n);
+          DomeClosedLockTP.s = IPS_OK;
+          IDSetSwitch(&DomeClosedLockTP, NULL);
+
+          triggerSnoop(strdup(ActiveDeviceT[1].text), strdup("DOME_PARK"));
+          return true;
+      }
     }
 
     controller->ISNewSwitch(dev, name, states, names, n);
@@ -1369,6 +1445,11 @@ void INDI::Telescope::SetAxis2Park(double value)
 void INDI::Telescope::SetAxis2ParkDefault(double value)
 {
   Axis2DefaultParkPosition=value;
+}
+
+bool INDI::Telescope::isLocked()
+{
+    return (DomeClosedLockT[1].s == ISS_ON || DomeClosedLockT[3].s == ISS_ON) && IsLocked;
 }
 
 bool INDI::Telescope::SetSlewRate(int index)
