@@ -451,6 +451,7 @@ void Skywatcher::InquireFeatures() throw (EQModError)
     defeatures=Revu24str2long(response+1);
   } catch (EQModError e) {
     DEBUGF(INDI::Logger::DBG_DEBUG, "%s(): Mount does not support query features  (%c command)", __FUNCTION__, GetFeatureCmd);
+    rafeatures=0; defeatures=0;
   }
   if ((rafeatures & 0x000000F0) != (defeatures & 0x000000F0)) {
     DEBUGF(INDI::Logger::DBG_WARNING, "%s(): Found different features for RA (%d) and DEC (%d)", __FUNCTION__, rafeatures, defeatures); 
