@@ -1,7 +1,7 @@
 /*
     Pulsar 2 INDI driver
 
-    Copyright (C) 2016 Jasem Mutlaq and Camiel Severijns
+    Copyright (C) 2016, 2017 Jasem Mutlaq and Camiel Severijns
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
