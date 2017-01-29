@@ -29,6 +29,9 @@
  * All newXXX() received from one Client are echoed to all other Clients who
  *   have shown an interest in the same Device and property.
  *
+ * 2017-01-29 JM: Added option to drop stream blobs if client blob queue is
+ * higher than maxstreamsiz bytes
+ *
  * Implementation notes:
  *
  * We fork each driver and open a server socket listening for INDI clients.
@@ -70,6 +73,7 @@
 #define	MAXRBUF         49152	/* max read buffering here */
 #define	MAXWSIZ         49152	/* max bytes/write */
 #define	DEFMAXQSIZ      128		/* default max q behind, MB */
+#define	DEFMAXSSIZ      5		/* default max stream behind, MB */
 #define DEFMAXRESTART   10      /* default max restarts */
 
 #ifdef OSX_EMBEDED_MODE
@@ -159,6 +163,7 @@ static int verbose;			/* chattiness */
 static int lsocket;			/* listen socket */
 static char *ldir;			/* where to log driver messages */
 static int maxqsiz = (DEFMAXQSIZ*1024*1024); /* kill if these bytes behind */
+static int maxstreamsiz = (DEFMAXSSIZ*1024*1024); /* drop blobs if these bytes behind while streaming*/
 static int maxrestarts = DEFMAXRESTART;
 static int terminateddrv = 0;
 
@@ -258,6 +263,14 @@ main (int ac, char *av[])
                 port = atoi(*++av);
                 ac--;
                 break;
+            case 'd':
+                if (ac < 2) {
+                    fprintf (stderr, "-d requires max stream MB behind\n");
+                    usage();
+                }
+                maxstreamsiz = 1024*1024*atoi(*++av);
+                ac--;
+                break;
             case 'f':
                 if (ac < 2) {
                     fprintf (stderr, "-f requires fifo node\n");
@@ -346,6 +359,7 @@ usage(void)
     fprintf (stderr, "Options:\n");
         fprintf (stderr, " -l d     : log driver messages to <d>/YYYY-MM-DD.islog\n");
         fprintf (stderr, " -m m     : kill client if gets more than this many MB behind, default %d\n", DEFMAXQSIZ);
+        fprintf (stderr, " -d m     : drop streaming blobs if client gets more than this many MB behind, default %d. 0 to disable\n", DEFMAXSSIZ);
         fprintf (stderr, " -p p     : alternate IP port, default %d\n", INDIPORT);
         fprintf (stderr, " -r r     : maximum driver restarts on error, default %d\n", DEFMAXRESTART);
         fprintf (stderr, " -f path  : Path to fifo for dynamic startup and shutdown of drivers.\n");
@@ -1656,7 +1670,7 @@ q2Clients (ClInfo *notme, int isblob, const char *dev, const char *name, Msg *mp
                     }
                 }
 
-                if ( (blob_found && pp->blob == B_NEVER) || (blob_found==0 && cp->blob == B_NEVER) )
+                if ( (blob_found && pp->blob == B_NEVER) || (blob_found==0 && cp->blob == B_NEVER))
                     continue;
                }
                else if (cp->blob == B_NEVER)
@@ -1665,7 +1679,34 @@ q2Clients (ClInfo *notme, int isblob, const char *dev, const char *name, Msg *mp
 
         /* shut down this client if its q is already too large */
         ql = msgQSize(cp->msgq);
-        if (ql > maxqsiz) {
+        if (isblob && maxstreamsiz > 0 && ql > maxstreamsiz)
+        {
+            // Drop frames for streaming blobs
+            /* pull out each name/BLOB pair, decode */
+            XMLEle *ep=NULL;
+            int streamFound=0;
+            for (ep = nextXMLEle(root,1); ep; ep = nextXMLEle(root,0))
+            {
+                if (strcmp (tagXMLEle(ep), "oneBLOB") == 0)
+                {
+                    XMLAtt *fa = findXMLAtt (ep, "format");
+
+                    if (fa && strstr(valuXMLAtt(fa), "stream"))
+                    {
+                        streamFound = 1;
+                        break;
+                    }
+                }
+            }
+            if (streamFound)
+            {
+                if (verbose > 1)
+                    fprintf (stderr, "%s: Client %d: %d bytes behind. Dropping stream BLOB...\n", indi_tstamp(NULL), cp->s, ql);
+                continue;
+            }
+        }
+        if (ql > maxqsiz)
+        {
         if (verbose)
             fprintf (stderr, "%s: Client %d: %d bytes behind, shutting down\n",
                             indi_tstamp(NULL), cp->s, ql);
