@@ -1426,7 +1426,7 @@ bool QHYCCD::StartStreaming()
 
 
     uint32_t qhyFormat = V4L2_PIX_FMT_GREY;
-    if (BayerT[2].text[0] && formats.count(BayerT[2].text) != 0)
+    if (BayerT[2].text && formats.count(BayerT[2].text) != 0)
         qhyFormat = formats.at(BayerT[2].text);
 
     streamer->setPixelFormat(qhyFormat);
