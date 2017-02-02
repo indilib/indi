@@ -135,7 +135,7 @@ class EQMod : public INDI::Telescope, public INDI::GuiderInterface
 	ISwitchVectorProperty *AutoHomeSP;
 	
 	enum Hemisphere {NORTH=0, SOUTH=1 };
-	enum PierSide {WEST=0, EAST=1};
+	enum PierSide {UNKNOWN=-1, WEST=0, EAST=1};
 	typedef struct GotoParams {
 	  double ratarget, detarget, racurrent, decurrent;
 	  unsigned long ratargetencoder, detargetencoder, racurrentencoder, decurrentencoder;
@@ -145,7 +145,7 @@ class EQMod : public INDI::Telescope, public INDI::GuiderInterface
 	} GotoParams;
 
 	Hemisphere Hemisphere;
-    PierSide pierside, lastPierSide;
+    PierSide pierside, lastPierSide, currentPierSide;
 	bool RAInverted, DEInverted;
         GotoParams gotoparams;
 	SyncData syncdata, syncdata2;
@@ -163,7 +163,7 @@ class EQMod : public INDI::Telescope, public INDI::GuiderInterface
 				      unsigned long initstep, unsigned long totalstep, enum Hemisphere h);
 	void EncoderTarget(GotoParams *g);
     void SetSouthernHemisphere(bool southern);
-	PierSide SideOfPier(double ha);
+	PierSide SideOfPier();
 	double GetRATrackRate();
 	double GetDETrackRate();
 	double GetDefaultRATrackRate();
