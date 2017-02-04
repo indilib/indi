@@ -5,7 +5,7 @@ import signal
 import socket
 import sys
 from socket import SOL_SOCKET, SO_BROADCAST, SO_REUSEADDR
-from nse_telescope import NexStarScope
+from nse_telescope import NexStarScope, repr_angle
 
 import curses
 
@@ -94,6 +94,103 @@ async def handle_port2000(reader, writer):
 
 #signal.signal(signal.SIGINT, signal_handler)
 
+def to_be(n, size):
+    b=bytearray(size)
+    i=size-1
+    while i >= 0:
+        b[i] = n % 256
+        n = n >> 8
+        i -= 1
+    return b
+def from_be(b):
+    n=0
+    for i in range(len(b)):
+        n = (n << 8) + b[i]
+    return n
+def to_le(n, size):
+    b=bytearray(size)
+    i=0
+    while i < size:
+        b[i] = n % 256
+        n = n >> 8
+        i += 1
+    return b
+def from_le(b):
+    n=0
+    for i in range(len(b)-1, -1, -1):
+        n = (n << 8) + b[i]
+    return n
+
+
+def handle_stellarium_cmd(tel, d):
+    import time
+    p=0
+    while p < len(d)-2:
+        psize=from_le(d[p:p+2]) 
+        if (psize > len(d) - p):
+            break
+        ptype=from_le(d[p+2:p+4])
+        if ptype == 0:
+            micros=from_le(d[p+4:p+12])
+            if abs((micros/1000000.0) - int(time.time())) > 60.0:
+                tel.print_msg('Client clock differs for more than one minute: '+str(int(micros/1000000.0))+'/'+str(int(time.time())))
+            targetraint=from_le(d[p+12:p+16])
+            targetdecint=from_le(d[p+16:p+20])
+            if (targetdecint > (4294967296 / 2)):
+                targetdecint = - (4294967296 - targetdecint)
+            targetra=(targetraint * 24.0) / 4294967296.0
+            targetdec=(targetdecint * 360.0) / 4294967296.0
+            tel.print_msg('GoTo {} {}'.format(repr_angle(targetra/360),
+                                                repr_angle(targetdec/360)))
+            p+=psize
+        else:
+            # No such cmd
+            tel.print_msg('Stellarium: got unknown command ({})'.format(ptype))
+            p+=psize
+    return p
+
+def make_stellarium_status(tel,obs):
+    import math
+    import time
+    import ephem
+    from math import pi
+    
+    alt=tel.alt
+    azm=tel.azm
+    obs.date=ephem.now()
+    rajnow, decjnow=obs.radec_of(azm*2*pi, alt*2*pi)
+    rajnow/=2*pi
+    decjnow/=2*pi
+    status=0
+    msg=bytearray(24)
+    msg[0:2]=to_le(24, 2)
+    msg[2:4]=to_le(0, 2)
+    tstamp=int(time.time())
+    msg[4:12]=to_le(tstamp, 8)
+    msg[12:16]=to_le(int(math.floor(rajnow * 4294967296.0)), 4)
+    msg[16:20]=to_le(int(math.floor(decjnow * 4294967296.0)), 4)
+    msg[20:24]=to_le(status, 4)
+    return msg
+    
+
+async def stellarium_server(reader,writer):
+    global telescope
+    from asyncio import shield, wait_for, TimeoutError
+    import ephem
+    
+    obs = ephem.Observer()
+    obs.lon, obs.lat = '20:02', '50:05'
+    while True:
+        try:
+            data = await shield(wait_for(reader.read(1024),0.1))
+            handle_stellarium_cmd(telescope,data)
+        except TimeoutError:
+            pass
+        writer.write(make_stellarium_status(telescope,obs))
+        await writer.drain()
+        
+    
+
 def main(stdscr):
 
     global telescope 
@@ -104,11 +201,11 @@ def main(stdscr):
 
     loop = asyncio.get_event_loop()
     scope = loop.run_until_complete(asyncio.start_server(handle_port2000, host='', port=2000))
+    stell = loop.run_until_complete(asyncio.start_server(stellarium_server, host='', port=10001))
     telescope.print_msg('NSE simulator strted on {}.'.format(scope.sockets[0].getsockname()))
     telescope.print_msg('Hit CTRL-C to stop.')
     asyncio.ensure_future(broadcast())
     asyncio.ensure_future(timer(0.1,telescope))
-    #asyncio.ensure_future(scope)
 
     try :
         loop.run_forever()
