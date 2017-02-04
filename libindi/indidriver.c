@@ -240,9 +240,9 @@ IUUpdateSwitch(ISwitchVectorProperty *svp, ISState *states, char *names[], int n
 	 
    if (!sp)
    {
-              svp->s = IPS_IDLE;
-	      IDSetSwitch(svp, "Error: %s is not a member of %s property.", names[i], svp->name);
-	      return -1;
+       svp->s = IPS_IDLE;
+       IDSetSwitch(svp, "Error: %s is not a member of %s (%s) property.", names[i], svp->label, svp->name);
+       return -1;
    }
 	 
    sp->s = states[i]; 
@@ -263,7 +263,7 @@ IUUpdateSwitch(ISwitchVectorProperty *svp, ISState *states, char *names[], int n
 		sp = IUFindSwitch(svp, sn);
 		if (sp) sp->s = ISS_ON;
 		svp->s = IPS_IDLE;
-		IDSetSwitch(svp, "Error: invalid state switch for property %s. %s.", svp->name, t_count == 0 ? "No switch is on" : "Too many switches are on");
+        IDSetSwitch(svp, "Error: invalid state switch for property %s (%s). %s.", svp->label, svp->name, t_count == 0 ? "No switch is on" : "Too many switches are on");
 		return -1;
 	}
  }
@@ -284,15 +284,15 @@ int IUUpdateNumber(INumberVectorProperty *nvp, double values[], char *names[], i
     np = IUFindNumber(nvp, names[i]);
     if (!np)
     {
-    	nvp->s = IPS_IDLE;
-	IDSetNumber(nvp, "Error: %s is not a member of %s property.", names[i], nvp->name);
-	return -1;
+        nvp->s = IPS_IDLE;
+        IDSetNumber(nvp, "Error: %s is not a member of %s (%s) property.", names[i], nvp->label, nvp->name);
+        return -1;
     }
     
     if (values[i] < np->min || values[i] > np->max)
     {
        nvp->s = IPS_ALERT;
-       IDSetNumber(nvp, "Error: Invalid range for %s. Valid range is from %g to %g. Requested value is %g", np->name, np->min, np->max, values[i]);
+       IDSetNumber(nvp, "Error: Invalid range for %s (%s). Valid range is from %g to %g. Requested value is %g", np->label, np->name, np->min, np->max, values[i]);
        return -1;
     }
       
@@ -322,8 +322,8 @@ int IUUpdateText(ITextVectorProperty *tvp, char * texts[], char *names[], int n)
     if (!tp)
     {
     	tvp->s = IPS_IDLE;
-	IDSetText(tvp, "Error: %s is not a member of %s property.", names[i], tvp->name);
-	return -1;
+        IDSetText(tvp, "Error: %s is not a member of %s (%s) property.", names[i], tvp->label, tvp->name);
+        return -1;
     }
   }
 
@@ -352,8 +352,8 @@ int IUUpdateBLOB(IBLOBVectorProperty *bvp, int sizes[], int blobsizes[], char *b
     if (!bp)
     {
         bvp->s = IPS_IDLE;
-    IDSetBLOB(bvp, "Error: %s is not a member of %s property.", names[i], bvp->name);
-    return -1;
+        IDSetBLOB(bvp, "Error: %s is not a member of %s (%s) property.", names[i], bvp->label, bvp->name);
+        return -1;
     }
   }
 
