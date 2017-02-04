@@ -180,7 +180,8 @@ EQMod::EQMod()
   SetTelescopeCapability(TELESCOPE_CAN_PARK | TELESCOPE_CAN_SYNC | TELESCOPE_CAN_ABORT | TELESCOPE_HAS_TIME | TELESCOPE_HAS_LOCATION,SLEWMODES);
 
   pierside = EAST;
-  lastPierSide = WEST;
+  currentPierSide = EAST;
+  lastPierSide = UNKNOWN;
   RAInverted = DEInverted = false;
   bzero(&syncdata, sizeof(syncdata));
   bzero(&syncdata2, sizeof(syncdata2));
@@ -738,7 +739,7 @@ bool EQMod::ReadScopeStatus() {
     IDSetNumber(HorizontalCoordNP, NULL);
 
     /* TODO should we consider currentHA after alignment ? */
-    pierside=SideOfPier(currentHA);
+    pierside=SideOfPier();
     if (pierside == EAST) {
       piersidevalues[0]=ISS_ON; piersidevalues[1]=ISS_OFF;
       IUUpdateSwitch(PierSideSP, piersidevalues, (char **)piersidenames, 2);
@@ -1098,10 +1099,18 @@ void EQMod::EncodersToRADec(unsigned long rastep, unsigned long destep, double l
   DECurrent=EncoderToDegrees(destep, zeroDEEncoder, totalDEEncoder, Hemisphere);
   //IDLog("EncodersToRADec: destep=%6X zeroDEncoder=%6X totalDEEncoder=%6x DECurrent=%f\n", destep, zeroDEEncoder , totalDEEncoder, DECurrent);
   if (Hemisphere==NORTH) {
-    if ((DECurrent > 90.0) && (DECurrent <= 270.0)) RACurrent = RACurrent - 12.0;
+    if ((DECurrent > 90.0) && (DECurrent <= 270.0)) {
+        RACurrent = RACurrent - 12.0;
+        currentPierSide = EAST;
+    }
+    else currentPierSide = WEST;
   }
   else
-    if ((DECurrent <= 90.0) || (DECurrent > 270.0)) RACurrent = RACurrent + 12.0;
+    if ((DECurrent <= 90.0) || (DECurrent > 270.0)) {
+        RACurrent = RACurrent + 12.0;
+        currentPierSide = EAST;
+    }
+    else currentPierSide = WEST;
   HACurrent = rangeHA(HACurrent);
   RACurrent = range24(RACurrent);
   DECurrent = rangeDec(DECurrent); 
@@ -1215,10 +1224,8 @@ void EQMod::SetSouthernHemisphere(bool southern) {
   IDSetSwitch(HemisphereSP, NULL);
 }
 
-EQMod::PierSide EQMod::SideOfPier(double ha) {
-  double shiftha;
-  shiftha=rangeHA(ha - 6.0);
-  if (shiftha >= 0.0) return EAST; else return WEST; 
+EQMod::PierSide EQMod::SideOfPier() {
+    return currentPierSide;
 }
 
 void EQMod::EncoderTarget(GotoParams *g)
