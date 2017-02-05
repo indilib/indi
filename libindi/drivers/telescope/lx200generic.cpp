@@ -221,9 +221,7 @@ LX200Generic::LX200Generic()
    currentSiteNum = 1;
    trackingMode   = LX200_TRACK_SIDEREAL;
    GuideNSTID     = 0;
-   GuideWETID     = 0;
-
-   updatePeriodMS = 1000;
+   GuideWETID     = 0;   
 
    DBG_SCOPE = INDI::Logger::getInstance().addDebugLevel("Scope Verbose", "SCOPE");
 
@@ -391,20 +389,6 @@ bool LX200Generic::updateProperties()
     return true;
 }
 
-bool LX200Generic::Connect()
-{
-    bool rc=false;
-
-    if(isConnected()) return true;
-
-    rc=Connect(PortT[0].text, atoi(IUFindOnSwitch(&BaudRateSP)->name));
-
-    if(rc)
-        SetTimer(updatePeriodMS);
-
-    return rc;
-}
-
 bool LX200Generic::checkConnection()
 {
     return (check_lx200_connection(PortFD) == 0);
@@ -424,7 +408,6 @@ bool LX200Generic::Connect(const char *port, uint32_t baud)
       return false;
     }
 
-
     if (checkConnection() == false)
     {
         DEBUG(INDI::Logger::DBG_ERROR, "Error connecting to Telescope. Telescope is offline.");
@@ -436,13 +419,6 @@ bool LX200Generic::Connect(const char *port, uint32_t baud)
    DEBUGF (INDI::Logger::DBG_SESSION, "%s is online. Retrieving basic data...", getDeviceName());
 
    return true;
-}
-
-bool LX200Generic::Disconnect()
-{
-    if (isSimulation() == false)
-        tty_disconnect(PortFD);
-    return true;
 }
 
 bool LX200Generic::isSlewComplete()

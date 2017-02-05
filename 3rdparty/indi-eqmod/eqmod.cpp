@@ -549,9 +549,13 @@ bool EQMod::Connect()
 {
     bool rc=false;
 
-    if(isConnected()) return true;
+    if(isConnected()) return true;       
 
-    rc=Connect(PortT[0].text, atoi(IUFindOnSwitch(&BaudRateSP)->name));
+    // Check if TCP Address exists and not empty
+    if (AddressT[0].text && AddressT[0].text[0] && AddressT[1].text && AddressT[1].text[0])
+        rc =Connect(AddressT[0].text, AddressT[1].text);
+    else
+        rc=Connect(PortT[0].text, atoi(IUFindOnSwitch(&BaudRateSP)->name));
 
     if(rc) {
  
@@ -579,6 +583,27 @@ bool EQMod::Connect(const char *port, uint32_t baud)
 
  DEBUG(INDI::Logger::DBG_SESSION, "Successfully connected to EQMod Mount.");
   return true;
+}
+
+bool EQMod::Connect(const char *hostname, const char *port)
+{
+    DEBUGF(INDI::Logger::DBG_SESSION, "Connecting to %s@%s ...", hostname, port);
+
+    try
+    {
+       mount->Connect(hostname, port);
+       // Mount initialisation is in updateProperties as it sets directly Indi properties which should be defined
+     } catch(EQModError e) {
+       return(e.DefaultHandleException(this));
+     }
+
+   #ifdef WITH_ALIGN
+    // Set this according to mount type
+    SetApproximateMountAlignmentFromMountType(EQUATORIAL);
+   #endif
+
+    DEBUG(INDI::Logger::DBG_SESSION, "Successfully connected to EQMod Mount.");
+     return true;
 }
 
 bool EQMod::Disconnect()

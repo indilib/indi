@@ -34,9 +34,6 @@
 #include "lx200_10micron.h"
 #include "lx200driver.h"
 
-const int LX200_10MICRON::SocketTimeout = 3; // In seconds.
-const int LX200_10MICRON::Pollms = 1000; // In milliseconds.
-
 LX200_10MICRON::LX200_10MICRON(void)
   : LX200Generic()
 {
@@ -49,114 +46,18 @@ const char *LX200_10MICRON::getDefaultName(void)
 }
 
 bool LX200_10MICRON::initProperties(void) {
-    const bool result = LX200Generic::initProperties();
-    if (result) {
-
-        // Address/Port
-        IUFillText(&AddressT[0], "ADDRESS", "Address", "192.168.100.73");
-        IUFillText(&AddressT[1], "PORT",    "Port",    "3490");
-        IUFillTextVector(&AddressTP, AddressT, 2, getDeviceName(), "IPADDRESS_PORT", "10micron mount", OPTIONS_TAB, IP_RW, 60, IPS_IDLE);
-
-        return true;
-    }
-    return false;
+    const bool result = LX200Generic::initProperties();    
+    return result;
 }
 
 void LX200_10MICRON::ISGetProperties (const char *dev)
 {
     LX200Generic::ISGetProperties(dev);
-
-    defineText(&AddressTP);
-//    loadConfig(true, "IPADDRESS_PORT");
 }
 
 bool LX200_10MICRON::updateProperties(void) {
     bool result = LX200Generic::updateProperties();
-
-    defineText(&AddressTP);
-
     return result;
-}
-
-bool LX200_10MICRON::Connect(void)
-{
-    bool rc = false;
-
-    if (isConnected() )
-        return true;
-
-    // allow connect options like TCP or Serial
-    // TODO
-    rc = ConnectTCP();
-
-    return rc;
-}
-
-bool LX200_10MICRON::ConnectTCP(void)
-{
-    if (sockfd != -1)
-        close(sockfd);
-
-    struct timeval ts;
-    ts.tv_sec = SocketTimeout;
-    ts.tv_usec=0;
-
-    struct sockaddr_in serv_addr;
-    struct hostent *hp = NULL;
-    int ret = 0;
-
-    // Lookup host name or IPv4 address
-    hp = gethostbyname(AddressT[0].text);
-    if (!hp)
-    {
-        DEBUG(INDI::Logger::DBG_ERROR, "Failed to lookup IP Address or hostname.");
-        return false;
-    }    
-
-    memset (&serv_addr, 0, sizeof(serv_addr));
-    serv_addr.sin_family = AF_INET;
-    serv_addr.sin_addr.s_addr = ((struct in_addr *)(hp->h_addr_list[0]))->s_addr;
-    serv_addr.sin_port = htons(atoi(AddressT[1].text));
-
-    if ((sockfd = socket(AF_INET, SOCK_STREAM, 0)) < 0)
-    {
-        DEBUG(INDI::Logger::DBG_ERROR, "Failed to create socket.");
-        return false;
-    }
-
-    // Connect to the mount
-    if ( (ret = ::connect (sockfd,(struct sockaddr *)&serv_addr,sizeof(serv_addr))) < 0)
-    {
-        DEBUGF(INDI::Logger::DBG_ERROR, "Failed to connect to mount %s@%s: %s.", AddressT[0].text, AddressT[1].text, strerror(errno));
-        close(sockfd);
-        return false;
-    }
-
-    // Set the socket receiving and sending timeouts
-    setsockopt(sockfd, SOL_SOCKET, SO_RCVTIMEO, (char *)&ts,sizeof(struct timeval));
-    setsockopt(sockfd, SOL_SOCKET, SO_SNDTIMEO, (char *)&ts,sizeof(struct timeval));
-
-    DEBUGF(INDI::Logger::DBG_SESSION, "Connected successfuly to %s.", getDeviceName());
-
-    SetTimer(Pollms);
-
-    // now let the rest of INDI::Telescope use our socket as if it were a serial port
-    PortFD = sockfd;
-
-    return true;
-}
-
-bool LX200_10MICRON::Disconnect(void)
-{
-    // allow connect options like TCP or Serial
-    // TODO
-    close(sockfd);
-    sockfd=-1;
-    PortFD = sockfd;
-
-    DEBUGF(INDI::Logger::DBG_SESSION,"%s is offline.", getDeviceName());
-
-    return true;
 }
 
 bool LX200_10MICRON::getMountInfo(void)

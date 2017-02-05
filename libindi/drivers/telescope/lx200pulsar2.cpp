@@ -522,7 +522,7 @@ const char * LX200Pulsar2::getDefaultName(void) {
 
 
 bool LX200Pulsar2::Connect(void) {
-  const bool success = LX200Generic::Connect();
+  const bool success = INDI::Telescope::Connect();
   if (success) {
     if (isParked()) {
       DEBUGF(INDI::Logger::DBG_DEBUG, "%s", "Trying to wake up the mount.");

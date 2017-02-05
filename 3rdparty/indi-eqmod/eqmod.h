@@ -198,6 +198,7 @@ class EQMod : public INDI::Telescope, public INDI::GuiderInterface
         virtual const char *getDefaultName();
         virtual bool Connect();
         virtual bool Connect(const char *port, uint32_t baud);
+        virtual bool Connect(const char *hostname, const char *port);
         virtual bool Disconnect();
         virtual void TimerHit();
         virtual bool ReadScopeStatus();
