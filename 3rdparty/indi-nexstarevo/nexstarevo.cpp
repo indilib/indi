@@ -160,7 +160,7 @@ bool NexStarEvo::Park()
     // Park at the southern horizon 
     // This is a designated by celestron parking position
     Abort();
-    scope->GoToFast(long(0),long(0),false);
+    scope->Park();
     TrackState = SCOPE_PARKING;
     ParkSP.s=IPS_BUSY;
     IDSetSwitch(&ParkSP, NULL);

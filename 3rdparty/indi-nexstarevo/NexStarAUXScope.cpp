@@ -278,7 +278,6 @@ bool NexStarAUXScope::detectScope(){
 
 
 bool NexStarAUXScope::Connect(){
-    fprintf(stderr,"Connecting...");
     if (sock > 0) {
         // We are connected. Nothing to do!
         return true;
@@ -296,6 +295,8 @@ bool NexStarAUXScope::Connect(){
       return false;
     }
 
+    fprintf(stderr,"Connecting to %s:%d ...",
+                    inet_ntoa(addr.sin_addr), ntohs(addr.sin_port));
     // Connect to the scope
     if(connect(sock, (struct sockaddr *)&addr, sizeof addr) < 0)
     {
@@ -392,6 +393,9 @@ bool NexStarAUXScope::GoToFast(long alt, long az, bool track){
     AUXCommand altcmd(MC_GOTO_FAST,APP,ALT);
     AUXCommand azmcmd(MC_GOTO_FAST,APP,AZM);
     altcmd.setPosition(alt);
+    // N-based azimuth
+    az += STEPS_PER_REVOLUTION/2;
+    az %= STEPS_PER_REVOLUTION;
     azmcmd.setPosition(az);
     sendCmd(&altcmd);
     sendCmd(&azmcmd);
@@ -399,6 +403,11 @@ bool NexStarAUXScope::GoToFast(long alt, long az, bool track){
     //DEBUG=false;
     return true;
 };
+
+bool NexStarAUXScope::Park(){
+    GoToFast(long(0),STEPS_PER_REVOLUTION/2,false);
+    return true;
+}
 
 bool NexStarAUXScope::GoToSlow(long alt, long az, bool track){
     //DEBUG=false;
@@ -410,6 +419,9 @@ bool NexStarAUXScope::GoToSlow(long alt, long az, bool track){
     AUXCommand altcmd(MC_GOTO_SLOW,APP,ALT);
     AUXCommand azmcmd(MC_GOTO_SLOW,APP,AZM);
     altcmd.setPosition(alt);
+    // N-based azimuth
+    az += STEPS_PER_REVOLUTION/2;
+    az %= STEPS_PER_REVOLUTION;
     azmcmd.setPosition(az);
     sendCmd(&altcmd);
     sendCmd(&azmcmd);
@@ -586,6 +598,9 @@ void NexStarAUXScope::processMsgs(){
                         break;
                     case AZM:
                         Az=m->getPosition();
+                        // Celestron uses N as zero Azimuth!
+                        Az += STEPS_PER_REVOLUTION/2;
+                        Az %= STEPS_PER_REVOLUTION;
                         break;
                     default: break;
                 }

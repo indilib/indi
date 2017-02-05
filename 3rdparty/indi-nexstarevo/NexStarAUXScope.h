@@ -89,6 +89,7 @@ public:
     bool Track(long altRate, long azRate);
     bool TimerTick(double dt);
     bool UpdateLocation(double lat, double lon, double elev);
+    bool Park();
     bool Connect();
     bool Disconnect();
     
