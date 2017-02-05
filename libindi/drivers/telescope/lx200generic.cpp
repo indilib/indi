@@ -46,6 +46,7 @@
 #include "lx200fs2.h"
 #include "lx200ss2000pc.h"
 #include "lx200_OnStep.h"
+#include "lx200_10micron.h"
 					       
 // We declare an auto pointer to LX200Generic.
 std::unique_ptr<LX200Generic> telescope;
@@ -153,6 +154,13 @@ void ISInit()
        IDLog("initializing from Astro-Electronic FS-2...\n");
 
        if(telescope.get() == 0) telescope.reset(new LX200FS2());
+
+ }
+ else if (strstr(me, "indi_lx200_10Micron"))
+ {
+       IDLog("initializing for 10Micron mount...\n");
+
+       if(telescope.get() == 0) telescope.reset(new LX200_10MICRON());
 
  }
  // be nice and give them a generic device

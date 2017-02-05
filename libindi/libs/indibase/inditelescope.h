@@ -340,6 +340,7 @@ class INDI::Telescope : public INDI::DefaultDevice
         //  We put the serial helper into the base telescope class
         //  One less piece to worry about in the hardware specific
         //  low level stuff
+        //  Mounts with ethernet can copy the socket fd into PortFD and override Connect and Disconnect.
         int PortFD;
 
         //  This is a variable filled in by the ReadStatus telescope
