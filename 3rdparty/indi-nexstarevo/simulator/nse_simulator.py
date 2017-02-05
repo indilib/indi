@@ -145,7 +145,7 @@ def handle_stellarium_cmd(tel, d):
             p+=psize
         else:
             # No such cmd
-            tel.print_msg('Stellarium: got unknown command ({})'.format(ptype))
+            tel.print_msg('Stellarium: unknown command ({})'.format(ptype))
             p+=psize
     return p
 
@@ -173,39 +173,71 @@ def make_stellarium_status(tel,obs):
     return msg
     
 
-async def stellarium_server(reader,writer):
-    global telescope
-    from asyncio import shield, wait_for, TimeoutError
+connections = []
+
+async def report_scope_pos(sleep=0.1, scope=None, obs=None):
+    while True:
+        await asyncio.sleep(sleep)
+        for tr in connections:
+            tr.write(make_stellarium_status(scope,obs))
+
+
+class StellariumServer(asyncio.Protocol):
+
+    def __init__(self, *arg, **kwarg):
+        import ephem
+        global telescope
+        
+        self.obs = ephem.Observer()
+        self.obs.lon, self.obs.lat = '20:02', '50:05'
+        self.telescope=telescope
+        asyncio.Protocol.__init__(self,*arg,**kwarg)
+
+    def connection_made(self, transport):
+        peername = transport.get_extra_info('peername')
+        if self.telescope is not None:
+            self.telescope.print_msg('Stellarium from {}\n'.format(peername))
+        self.transport = transport
+        connections.append(transport)
+        
+    def connection_lost(self, exc):
+        try:
+            connections.remove(self.transport)
+            self.telescope.print_msg('Stellarium connection closed\n')
+        except ValueError:
+            pass
+
+    def data_received(self,data):
+        if self.telescope is not None:
+            handle_stellarium_cmd(telescope,data)
+    
+def main(stdscr):
     import ephem
     
+    global telescope 
+
     obs = ephem.Observer()
     obs.lon, obs.lat = '20:02', '50:05'
-    while True:
-        try:
-            data = await shield(wait_for(reader.read(1024),0.1))
-            handle_stellarium_cmd(telescope,data)
-        except TimeoutError:
-            pass
-        writer.write(make_stellarium_status(telescope,obs))
-        await writer.drain()
-        
-    
 
-def main(stdscr):
-
-    global telescope 
     if len(sys.argv) >1 and sys.argv[1]=='t':
         telescope = NexStarScope(stdscr=None)
     else :
         telescope = NexStarScope(stdscr=stdscr)
 
     loop = asyncio.get_event_loop()
-    scope = loop.run_until_complete(asyncio.start_server(handle_port2000, host='', port=2000))
-    stell = loop.run_until_complete(asyncio.start_server(stellarium_server, host='', port=10001))
+    
+    scope = loop.run_until_complete(
+                asyncio.start_server(handle_port2000, host='', port=2000))
+    
+    stell = loop.run_until_complete(
+                loop.create_server(StellariumServer,host='',port=10001))
+    
     telescope.print_msg('NSE simulator strted on {}.'.format(scope.sockets[0].getsockname()))
     telescope.print_msg('Hit CTRL-C to stop.')
+    
     asyncio.ensure_future(broadcast())
     asyncio.ensure_future(timer(0.1,telescope))
+    asyncio.ensure_future(report_scope_pos(0.1,telescope,obs))
 
     try :
         loop.run_forever()
@@ -214,6 +246,8 @@ def main(stdscr):
     telescope.print_msg('Simulator shutting down')
     scope.close()
     loop.run_until_complete(scope.wait_closed())
+    stell.close()
+    loop.run_until_complete(stell.wait_closed())
 
     #loop.run_until_complete(asyncio.wait([broadcast(), timer(0.2), scope]))
     loop.close()
