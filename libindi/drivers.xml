@@ -129,8 +129,8 @@
                 <driver name="Pulsar2">indi_lx200pulsar2</driver>
                 <version>1.0</version>
         </device>
-        <device label="LX200 10Micron" focal_length="" aperture="">
-                <driver name="LX200 10Micron">indi_lx200_10Micron</driver>
+        <device label="LX200 10micron" focal_length="" aperture="">
+                <driver name="LX200 10micron">indi_lx200_10micron</driver>
                 <version>1.0</version>
         </device>
         <device label="Telescope Simulator" focal_length="" aperture="">
