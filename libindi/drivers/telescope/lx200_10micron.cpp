@@ -1,5 +1,5 @@
 /*
-    10Micron INDI driver
+    10micron INDI driver
     GM1000HPS GM2000QCI GM2000HPS GM3000HPS GM4000QCI GM4000HPS AZ2000
     Mount Command Protocol 2.14.11
 
@@ -31,7 +31,7 @@
 
 
 #include "indicom.h"
-#include "lx200_10Micron.h"
+#include "lx200_10micron.h"
 #include "lx200driver.h"
 
 const int LX200_10MICRON::SocketTimeout = 3; // In seconds.
@@ -45,7 +45,7 @@ LX200_10MICRON::LX200_10MICRON(void)
 
 const char *LX200_10MICRON::getDefaultName(void)
 {
-    return (const char *) "10Micron";
+    return (const char *) "10micron";
 }
 
 bool LX200_10MICRON::initProperties(void) {
@@ -55,7 +55,7 @@ bool LX200_10MICRON::initProperties(void) {
         // Address/Port
         IUFillText(&AddressT[0], "ADDRESS", "Address", "192.168.100.73");
         IUFillText(&AddressT[1], "PORT",    "Port",    "3490");
-        IUFillTextVector(&AddressTP, AddressT, 2, getDeviceName(), "IPADDRESS_PORT", "10Micron mount", OPTIONS_TAB, IP_RW, 60, IPS_IDLE);
+        IUFillTextVector(&AddressTP, AddressT, 2, getDeviceName(), "IPADDRESS_PORT", "10micron mount", OPTIONS_TAB, IP_RW, 60, IPS_IDLE);
 
         return true;
     }

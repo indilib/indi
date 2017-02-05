@@ -46,7 +46,7 @@
 #include "lx200fs2.h"
 #include "lx200ss2000pc.h"
 #include "lx200_OnStep.h"
-#include "lx200_10Micron.h"
+#include "lx200_10micron.h"
 					       
 // We declare an auto pointer to LX200Generic.
 std::unique_ptr<LX200Generic> telescope;

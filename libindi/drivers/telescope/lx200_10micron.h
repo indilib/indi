@@ -1,5 +1,5 @@
 /*
-    10Micron INDI driver
+    10micron INDI driver
 
     Copyright (C) 2017 Hans Lambermont
 
