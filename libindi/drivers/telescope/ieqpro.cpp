@@ -270,6 +270,21 @@ void IEQPro::getStartupData()
         IDSetText(&TimeTP, NULL);
     }
 
+    // Get Longitude and Latitude from mount
+    double longitude=0,latitude=0;
+    if (get_ieqpro_latitude(PortFD, &latitude) && get_ieqpro_longitude(PortFD, &longitude))
+    {
+        // Convert to INDI standard longitude (0 to 360 Eastward)
+        if (longitude < 0)
+            longitude += 360;
+
+        LocationN[LOCATION_LATITUDE].value = latitude;
+        LocationN[LOCATION_LONGITUDE].value= longitude;
+        LocationNP.s = IPS_OK;
+
+        IDSetNumber(&LocationNP, NULL);
+    }
+
     if (isSimulation())
     {
         if (isParked())
@@ -734,7 +749,7 @@ bool IEQPro::updateLocation(double latitude, double longitude, double elevation)
     fs_sexa (l, latitude, 3, 3600);
     fs_sexa (L, longitude, 4, 3600);
 
-    IDMessage(getDeviceName(), "Site location updated to Lat %.32s - Long %.32s", l, L);
+    DEBUGF(INDI::Logger::DBG_SESSION, "Site location updated to Lat %.32s - Long %.32s", l, L);
 
     locationUpdated = true;
 

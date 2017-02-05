@@ -425,7 +425,8 @@ class INDI::CCD : public INDI::DefaultDevice, INDI::GuiderInterface
             ASTROMETRY_RESULTS_PIXSCALE,
             ASTROMETRY_RESULTS_ORIENTATION,
             ASTROMETRY_RESULTS_RA,
-            ASTROMETRY_RESULTS_DE
+            ASTROMETRY_RESULTS_DE,
+            ASTROMETRY_RESULTS_PARITY
         };
 
         virtual bool initProperties();
@@ -694,7 +695,7 @@ class INDI::CCD : public INDI::DefaultDevice, INDI::GuiderInterface
         void GuideComplete(INDI_EQ_AXIS axis);                
 
         double RA, Dec;
-        double FocalLength, Aperture;
+        double primaryFocalLength, primaryAperture, guiderFocalLength, guiderAperture;
         bool InExposure;
         bool InGuideExposure;
         bool RapidGuideEnabled;
@@ -739,7 +740,7 @@ class INDI::CCD : public INDI::DefaultDevice, INDI::GuiderInterface
         ITextVectorProperty SolverSettingsTP;
 
         // Solver Results
-        INumber SolverResultN[4];
+        INumber SolverResultN[5];
         INumberVectorProperty SolverResultNP;
 
         // WCS
@@ -752,6 +753,7 @@ class INDI::CCD : public INDI::DefaultDevice, INDI::GuiderInterface
 
         ISwitch TelescopeTypeS[2];
         ISwitchVectorProperty TelescopeTypeSP;
+        enum { TELESCOPE_PRIMARY, TELESCOPE_GUIDE };
 
         INumber                 TemperatureN[1];
         INumberVectorProperty   TemperatureNP;

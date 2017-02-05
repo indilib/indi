@@ -29,6 +29,9 @@
  * All newXXX() received from one Client are echoed to all other Clients who
  *   have shown an interest in the same Device and property.
  *
+ * 2017-01-29 JM: Added option to drop stream blobs if client blob queue is
+ * higher than maxstreamsiz bytes
+ *
  * Implementation notes:
  *
  * We fork each driver and open a server socket listening for INDI clients.
@@ -70,6 +73,7 @@
 #define	MAXRBUF         49152	/* max read buffering here */
 #define	MAXWSIZ         49152	/* max bytes/write */
 #define	DEFMAXQSIZ      128		/* default max q behind, MB */
+#define	DEFMAXSSIZ      5		/* default max stream behind, MB */
 #define DEFMAXRESTART   10      /* default max restarts */
 
 #ifdef OSX_EMBEDED_MODE
@@ -133,6 +137,8 @@ typedef struct {
     char envConfig[MAXSBUF];
     char envSkel[MAXSBUF];
     char envPrefix[MAXSBUF];
+    char host[MAXSBUF];
+    int port;
     //char dev[MAXINDIDEVICE];		/* device served by this driver */
     char **dev;             /* device served by this driver */
     int ndev;               /* number of devices served by this driver */
@@ -157,12 +163,14 @@ static int verbose;			/* chattiness */
 static int lsocket;			/* listen socket */
 static char *ldir;			/* where to log driver messages */
 static int maxqsiz = (DEFMAXQSIZ*1024*1024); /* kill if these bytes behind */
+static int maxstreamsiz = (DEFMAXSSIZ*1024*1024); /* drop blobs if these bytes behind while streaming*/
 static int maxrestarts = DEFMAXRESTART;
 static int terminateddrv = 0;
 
 static void logStartup(int ac, char *av[]);
 static void usage (void);
 static void noZombies (void);
+static void reapZombies (void);
 static void noSIGPIPE (void);
 static void indiFIFO(void);
 static void indiRun (void);
@@ -179,11 +187,9 @@ static int openINDIServer (char host[], int indi_port);
 static void shutdownDvr (DvrInfo *dp, int restart);
 static int isDeviceInDriver(const char *dev, DvrInfo *dp);
 static void q2RDrivers (const char *dev, Msg *mp, XMLEle *root);
-static void q2SDrivers (int isblob, const char *dev, const char *name, Msg *mp,
-    XMLEle *root);
-static int q2Clients (ClInfo *notme, int isblob, const char *dev, const char *name,
-    Msg *mp, XMLEle *root);
-static int q2Servers (ClInfo *notme, Msg *mp, XMLEle *root);
+static void q2SDrivers (DvrInfo *me, int isblob, const char *dev, const char *name, Msg *mp, XMLEle *root);
+static int q2Clients (ClInfo *notme, int isblob, const char *dev, const char *name, Msg *mp, XMLEle *root);
+static int q2Servers (DvrInfo *me, Msg *mp, XMLEle *root);
 static void addSDevice (DvrInfo *dp, const char *dev, const char *name);
 static Property *findSDevice (DvrInfo *dp, const char *dev, const char *name);
 static void addClDevice (ClInfo *cp, const char *dev, const char *name, int isblob);
@@ -257,6 +263,14 @@ main (int ac, char *av[])
                 port = atoi(*++av);
                 ac--;
                 break;
+            case 'd':
+                if (ac < 2) {
+                    fprintf (stderr, "-d requires max stream MB behind\n");
+                    usage();
+                }
+                maxstreamsiz = 1024*1024*atoi(*++av);
+                ac--;
+                break;
             case 'f':
                 if (ac < 2) {
                     fprintf (stderr, "-f requires fifo node\n");
@@ -290,7 +304,8 @@ main (int ac, char *av[])
         usage();
 
     /* take care of some unixisms */
-    noZombies();
+    /*noZombies();*/
+    reapZombies();
     noSIGPIPE();
 
     /* realloc seed for client pool */
@@ -344,6 +359,7 @@ usage(void)
     fprintf (stderr, "Options:\n");
         fprintf (stderr, " -l d     : log driver messages to <d>/YYYY-MM-DD.islog\n");
         fprintf (stderr, " -m m     : kill client if gets more than this many MB behind, default %d\n", DEFMAXQSIZ);
+        fprintf (stderr, " -d m     : drop streaming blobs if client gets more than this many MB behind, default %d. 0 to disable\n", DEFMAXSSIZ);
         fprintf (stderr, " -p p     : alternate IP port, default %d\n", INDIPORT);
         fprintf (stderr, " -r r     : maximum driver restarts on error, default %d\n", DEFMAXRESTART);
         fprintf (stderr, " -f path  : Path to fifo for dynamic startup and shutdown of drivers.\n");
@@ -368,6 +384,34 @@ noZombies()
     sa.sa_flags = 0;
 #endif
     (void)sigaction(SIGCHLD, &sa, NULL);
+}
+
+/* reap zombies when drivers die, in order to leave SIGCHLD unmodified for subprocesses */
+static void
+zombieRaised(int signum, siginfo_t* sig, void* data)
+{
+    if(data);
+
+    switch(signum)
+    {
+        case SIGCHLD:
+            fprintf(stderr, "Child process %d died\n", sig->si_pid);
+            break;
+
+        default:
+            fprintf(stderr, "Received unexpected signal %d\n", signum);
+    }
+}
+
+/* reap zombies as they die */
+static void
+reapZombies()
+{
+  struct sigaction sa;
+  sa.sa_sigaction = zombieRaised;
+  sigemptyset(&sa.sa_mask);
+  sa.sa_flags = SA_SIGINFO;
+  (void)sigaction(SIGCHLD, &sa, NULL);
 }
 
 /* turn off SIGPIPE on bad write so we can handle it inline */
@@ -519,6 +563,8 @@ startLocalDvr (DvrInfo *dp)
 
     /* record pid, io channels, init lp and snoop list */
     dp->pid = pid;
+    strncpy(dp->host, "localhost", MAXSBUF);
+    dp->port = -1;
     dp->rfd = rp[0];
     dp->wfd = wp[1];
     dp->efd = ep[0];
@@ -552,9 +598,9 @@ static void
 startRemoteDvr (DvrInfo *dp)
 {
     Msg *mp;
-    char dev[1024];
-    char host[1024];
-    char buf[1024];
+    char dev[MAXINDIDEVICE];
+    char host[MAXSBUF];
+    char buf[MAXSBUF];
     int indi_port, sockfd;
 
     /* extract host and port */
@@ -569,6 +615,8 @@ startRemoteDvr (DvrInfo *dp)
 
     /* record flag pid, io channels, init lp and snoop list */
     dp->pid = REMOTEDVR;
+    strncpy(dp->host, host, MAXSBUF);
+    dp->port = indi_port;
     dp->rfd = sockfd;
     dp->wfd = sockfd;
     dp->lp = newLilXML();
@@ -1139,7 +1187,7 @@ readFromClient (ClInfo *cp)
         /* send to snooping drivers. */
         // JM 2016-05-26: Only forward setXXX messages
         if (!strncmp (roottag, "set", 3))
-            q2SDrivers (isblob, dev, name, mp, root);
+            q2SDrivers (NULL, isblob, dev, name, mp, root);
 
         /* echo new* commands back to other clients */
         if (!strncmp (roottag, "new", 3))
@@ -1240,7 +1288,7 @@ readFromDriver (DvrInfo *dp)
           addSDevice (dp, dev, name);
           mp = newMsg();
           /* send to interested chained servers upstream */
-          if (q2Servers(NULL, mp, root) < 0)
+          if (q2Servers(dp, mp, root) < 0)
               shutany++;
           /* Send to snooped drivers if they exist so that they can echo back the snooped propertly immediately */
           q2RDrivers(dev, mp, root);
@@ -1294,7 +1342,7 @@ readFromDriver (DvrInfo *dp)
 	shutany++;
       
       /* send to snooping drivers */
-      q2SDrivers (isblob, dev, name, mp, root);
+      q2SDrivers (dp, isblob, dev, name, mp, root);
       
       /* set message content if anyone cares else forget it */
       if (mp->count > 0)
@@ -1446,9 +1494,11 @@ shutdownDvr (DvrInfo *dp, int restart)
 static void
 q2RDrivers (const char *dev, Msg *mp, XMLEle *root)
 {
-    int sawremote = 0;
     DvrInfo *dp;
     char *roottag = tagXMLEle(root);
+
+    char lastRemoteHost[MAXSBUF];
+    int  lastRemotePort= -1;
 
     /* queue message to each interested driver.
      * N.B. don't send generic getProps to more than one remote driver,
@@ -1456,7 +1506,7 @@ q2RDrivers (const char *dev, Msg *mp, XMLEle *root)
      */
     for (dp = dvrinfo; dp < &dvrinfo[ndvrinfo]; dp++)
     {
-        int isremote = (dp->pid == REMOTEDVR);
+        int isRemote = (dp->pid == REMOTEDVR);
 
         if (dp->active == 0)
             continue;
@@ -1465,16 +1515,22 @@ q2RDrivers (const char *dev, Msg *mp, XMLEle *root)
         if (dev[0] && isDeviceInDriver(dev, dp) == 0)
             continue;
 
-        /* already sent generic to another remote */
-        if (!dev[0] && isremote && sawremote)
+        /* Only send message to each *unique* remote driver at a particular host:port
+         * Since it will be propogated to all other devices there */
+        if (!dev[0] && isRemote && !strcmp(lastRemoteHost, dp->host) && lastRemotePort == dp->port)
             continue;
 
         /* JM 2016-10-30: Only send enableBLOB to remote drivers */
-        if (isremote == 0 && !strcmp(roottag, "enableBLOB"))
+        if (isRemote == 0 && !strcmp(roottag, "enableBLOB"))
             continue;
 
-        if (isremote)
-            sawremote = 1;
+        /* Retain last remote driver data so that we do not send the same info again to a driver
+         * residing on the same host:port */
+        if (isRemote)
+        {
+            strncpy(lastRemoteHost, dp->host, MAXSBUF);
+            lastRemotePort = dp->port;
+        }
 
         /* ok: queue message to this driver */
         mp->count++;
@@ -1493,9 +1549,9 @@ q2RDrivers (const char *dev, Msg *mp, XMLEle *root)
  * if BLOB always honor current mode.
  */
 static void
-q2SDrivers (int isblob, const char *dev, const char *name, Msg *mp, XMLEle *root)
+q2SDrivers (DvrInfo *me, int isblob, const char *dev, const char *name, Msg *mp, XMLEle *root)
 {
-    DvrInfo *dp;
+    DvrInfo *dp=NULL;
 
     for (dp = dvrinfo; dp < &dvrinfo[ndvrinfo]; dp++) {
             Property *sp = findSDevice (dp, dev, name);
@@ -1505,6 +1561,13 @@ q2SDrivers (int isblob, const char *dev, const char *name, Msg *mp, XMLEle *root
         continue;
         if ((isblob && sp->blob==B_NEVER) || (!isblob && sp->blob==B_ONLY))
         continue;
+        if (me && me->pid == REMOTEDVR && dp->pid == REMOTEDVR)
+        {
+            // Do not send snoop data to remote drivers at the same host
+            // since they will manage their own snoops remotely
+            if (!strcmp(me->host, dp->host) && me->port == dp->port)
+                continue;
+        }
 
         /* ok: queue message to this device */
         mp->count++;
@@ -1524,7 +1587,7 @@ q2SDrivers (int isblob, const char *dev, const char *name, Msg *mp, XMLEle *root
 static void
 addSDevice (DvrInfo *dp, const char *dev, const char *name)
 {
-        Property *sp;
+    Property *sp;
     char *ip;
 
     /* no dups */
@@ -1533,8 +1596,7 @@ addSDevice (DvrInfo *dp, const char *dev, const char *name)
         return;
 
     /* add dev to sdevs list */
-    dp->sprops = (Property*) realloc (dp->sprops,
-                                            (dp->nsprops+1)*sizeof(Property));
+    dp->sprops = (Property*) realloc (dp->sprops, (dp->nsprops+1)*sizeof(Property));
     sp = &dp->sprops[dp->nsprops++];
 
     ip = sp->dev;
@@ -1548,8 +1610,7 @@ addSDevice (DvrInfo *dp, const char *dev, const char *name)
     sp->blob = B_NEVER;
 
     if (verbose)
-        fprintf (stderr, "%s: Driver %s: snooping on %s.%s\n", indi_tstamp(NULL),
-                            dp->name, dev, name);
+        fprintf (stderr, "%s: Driver %s: snooping on %s.%s\n", indi_tstamp(NULL), dp->name, dev, name);
 }
 
 /* return Property if dp is snooping dev/name, else NULL.
@@ -1609,7 +1670,7 @@ q2Clients (ClInfo *notme, int isblob, const char *dev, const char *name, Msg *mp
                     }
                 }
 
-                if ( (blob_found && pp->blob == B_NEVER) || (blob_found==0 && cp->blob == B_NEVER) )
+                if ( (blob_found && pp->blob == B_NEVER) || (blob_found==0 && cp->blob == B_NEVER))
                     continue;
                }
                else if (cp->blob == B_NEVER)
@@ -1618,7 +1679,34 @@ q2Clients (ClInfo *notme, int isblob, const char *dev, const char *name, Msg *mp
 
         /* shut down this client if its q is already too large */
         ql = msgQSize(cp->msgq);
-        if (ql > maxqsiz) {
+        if (isblob && maxstreamsiz > 0 && ql > maxstreamsiz)
+        {
+            // Drop frames for streaming blobs
+            /* pull out each name/BLOB pair, decode */
+            XMLEle *ep=NULL;
+            int streamFound=0;
+            for (ep = nextXMLEle(root,1); ep; ep = nextXMLEle(root,0))
+            {
+                if (strcmp (tagXMLEle(ep), "oneBLOB") == 0)
+                {
+                    XMLAtt *fa = findXMLAtt (ep, "format");
+
+                    if (fa && strstr(valuXMLAtt(fa), "stream"))
+                    {
+                        streamFound = 1;
+                        break;
+                    }
+                }
+            }
+            if (streamFound)
+            {
+                if (verbose > 1)
+                    fprintf (stderr, "%s: Client %d: %d bytes behind. Dropping stream BLOB...\n", indi_tstamp(NULL), cp->s, ql);
+                continue;
+            }
+        }
+        if (ql > maxqsiz)
+        {
         if (verbose)
             fprintf (stderr, "%s: Client %d: %d bytes behind, shutting down\n",
                             indi_tstamp(NULL), cp->s, ql);
@@ -1644,17 +1732,39 @@ q2Clients (ClInfo *notme, int isblob, const char *dev, const char *name, Msg *mp
   * return -1 if had to shut down any clients, else 0.
  */
 static int
-q2Servers (ClInfo *notme, Msg *mp, XMLEle *root)
+q2Servers (DvrInfo *me, Msg *mp, XMLEle *root)
 {
-    int shutany = 0;
+    int shutany = 0, i=0, devFound=0;
     ClInfo *cp;
     int ql=0;
 
     /* queue message to each interested client */
     for (cp = clinfo; cp < &clinfo[nclinfo]; cp++)
     {
-        /* cp in use? notme? chained server? */
-        if (!cp->active || cp == notme || cp->allprops == 1)
+        /* cp in use? not chained server? */
+        if (!cp->active || cp->allprops == 1)
+            continue;
+
+        // Only send the message to the upstream server that is connected specfically to the device in driver dp
+        for (i = 0; i < cp->nprops; i++)
+        {
+            Property *pp = &cp->props[i];
+            int j=0;
+            for (j=0; j < me->ndev; j++)
+            {
+                if (!strcmp (pp->dev, me->dev[j]))
+                    break;
+            }
+
+            if (j != me->ndev)
+            {
+                devFound = 1;
+                break;
+            }
+        }
+
+        // If no matching device found, continue
+        if (devFound == 0)
             continue;
 
         /* shut down this client if its q is already too large */
@@ -1863,12 +1973,12 @@ findClDevice (ClInfo *cp, const char *dev, const char *name)
     int i;
 
         if (cp->allprops || !dev[0])
-        return (0);
+            return (0);
         for (i = 0; i < cp->nprops; i++)
         {
             Property *pp = &cp->props[i];
             if (!strcmp (pp->dev, dev) && (!pp->name[0] || !strcmp(pp->name, name)))
-        return (0);
+                return (0);
     }
     return (-1);
 }

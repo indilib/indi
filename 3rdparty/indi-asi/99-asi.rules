@@ -1,4 +1,3 @@
-# CAMERAS
 ACTION=="add", ATTR{idVendor}=="03c3", RUN+="/bin/sh -c '/bin/echo 200 >/sys/module/usbcore/parameters/usbfs_memory_mb'"
 ATTR{product}=="ASI120MM" ATTR{idVendor}=="03c3" ATTR{idProduct}=="120a" GROUP="users", MODE="0666"
 ATTR{product}=="ASI120MC" ATTR{idVendor}=="03c3" ATTR{idProduct}=="120b" GROUP="users", MODE="0666"
@@ -31,6 +30,4 @@ ATTR{product}=="ASI290MC" ATTR{idVendor}=="03c3" ATTR{idProduct}=="290a" GROUP="
 ATTR{product}=="ASI290MM" ATTR{idVendor}=="03c3" ATTR{idProduct}=="290b" GROUP="users", MODE="0666"
 ATTR{product}=="ASI290MC-Cool" ATTR{idVendor}=="03c3" ATTR{idProduct}=="290c" GROUP="users", MODE="0666"
 ATTR{product}=="ASI290MM-Cool" ATTR{idVendor}=="03c3" ATTR{idProduct}=="290d" GROUP="users", MODE="0666"
-
-# FILTER WHEELS
-KERNEL=="hidraw*", ATTRS{idVendor}=="03c3", ATTRS{idProduct}=="1f01", GROUP="users", MODE="0666"
+ATTR{product}=="ASI071MC-Cool" ATTR{idVendor}=="03c3" ATTR{idProduct}=="071a" GROUP="users", MODE="0666"

@@ -20,19 +20,19 @@ char device[64];
 
 #define err_printf IDLog,
 struct dcraw_header {
-	time_t time;
-	float exposure;
-	int width;
-	int height;
-	int cfa_type;
-	float wbr;
-	float wbg;
-	float wbgp;
-	float wbb;
+    time_t time;
+    float exposure;
+    int width;
+    int height;
+    int cfa_type;
+    float wbr;
+    float wbg;
+    float wbgp;
+    float wbb;
 };
 
 enum {
-	CFA_RGGB,
+    CFA_RGGB,
 };
 
 void gphoto_read_set_debug(const char *name)
@@ -43,12 +43,12 @@ void gphoto_read_set_debug(const char *name)
 void *tstrealloc(void *ptr, size_t size)
 {
     DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG, "Realloc: %lu", (unsigned long)size);
-	return realloc(ptr, size);
+    return realloc(ptr, size);
 }
 
 static void skip_line( FILE *fp )
 {
-	int ch;
+    int ch;
 
     //while( (ch = fgetc( fp )) != '' );
     while( (ch = fgetc( fp )) != '\n' );
@@ -56,40 +56,40 @@ static void skip_line( FILE *fp )
 
 static void skip_white_space( FILE * fp )
 {
-	int ch;
-	while( isspace( ch = fgetc( fp ) ) )
-		;
-	ungetc( ch, fp );
+    int ch;
+    while( isspace( ch = fgetc( fp ) ) )
+        ;
+    ungetc( ch, fp );
 
-	if( ch == '#' ) {
-		skip_line( fp );
-		skip_white_space( fp );
-	}
+    if( ch == '#' ) {
+        skip_line( fp );
+        skip_white_space( fp );
+    }
 }
 
 static unsigned int read_uint( FILE *fp )
 {
-	int i;
-	char buf[80];
-	int ch;
+    int i;
+    char buf[80];
+    int ch;
 
-	skip_white_space( fp );
+    skip_white_space( fp );
 
-	/* Stop complaints about used-before-set on ch.
-	 */
-	ch = -1;
+    /* Stop complaints about used-before-set on ch.
+     */
+    ch = -1;
 
-	for( i = 0; i < 80 - 1 && isdigit( ch = fgetc( fp ) ); i++ )
-		buf[i] = ch;
-	buf[i] = '\0';
+    for( i = 0; i < 80 - 1 && isdigit( ch = fgetc( fp ) ); i++ )
+        buf[i] = ch;
+    buf[i] = '\0';
 
-	if( i == 0 ) {
-		return( -1 );
-	}
+    if( i == 0 ) {
+        return( -1 );
+    }
 
-	ungetc( ch, fp );
+    ungetc( ch, fp );
 
-	return( atoi( buf ) );
+    return( atoi( buf ) );
 }
 
 void addFITSKeywords(fitsfile *fptr)
@@ -102,15 +102,15 @@ void addFITSKeywords(fitsfile *fptr)
 
 int read_ppm(FILE *handle, struct dcraw_header *header, uint8_t **memptr, size_t *memsize, int *n_axis, int *w, int *h, int *bitsperpixel)
 {
-	char prefix[] = {0, 0};
-	int bpp, maxcolor, row, i;
+    char prefix[] = {0, 0};
+    int bpp, maxcolor, row, i;
     uint8_t *ppm = NULL;
     uint8_t *r_data = NULL, *g_data, *b_data;
-	int width, height;
-	int naxis = 2;
+    int width, height;
+    int naxis = 2;
 
-	prefix[0] = fgetc(handle);
-	prefix[1] = fgetc(handle);
+    prefix[0] = fgetc(handle);
+    prefix[1] = fgetc(handle);
         if (prefix[0] != 'P' || (prefix[1] != '6' && prefix[1] != '5'))
         {
             DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG, "read_ppm: got unexpected prefix %x %x", prefix[0], prefix[1]);
@@ -118,41 +118,41 @@ int read_ppm(FILE *handle, struct dcraw_header *header, uint8_t **memptr, size_t
         }
 
     if (prefix[1] == '6')
-		naxis = 3;
+        naxis = 3;
 
     *n_axis = naxis;
 
-	width = read_uint(handle);
-	height = read_uint(handle);
+    width = read_uint(handle);
+    height = read_uint(handle);
     if (width != header->width || height != header->height)
     {
         DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG, "read_ppm: Expected (%d x %d) but image is actually (%d x %d)", header->width, header->height, width, height);
         //return -1;
-	}
+    }
     *w = width;
     *h = height;
-	maxcolor = read_uint(handle);
-	fgetc(handle);
+    maxcolor = read_uint(handle);
+    fgetc(handle);
     if (maxcolor > 65535)
     {
         DEBUGDEVICE(device, INDI::Logger::DBG_DEBUG, "read_ppm: 32bit PPM isn't supported");
         return -1;
     } else if (maxcolor > 255)
     {
-		bpp = 2;
+        bpp = 2;
         *bitsperpixel = 16;
     } else
     {
-		bpp = 1;
+        bpp = 1;
         *bitsperpixel = 8;
-	}
+    }
 
     *memsize = width * height * bpp * (naxis == 2 ? 1 : 3);
-    
+
     *memptr = (uint8_t *) realloc(*memptr, *memsize);
-    
+
     uint8_t *oldmem = *memptr; // if you do some ugly pointer math, remember to restore the original pointer or some random crashes will happen. This is why I do not like pointers!!
-    
+
     ppm = (uint8_t*) malloc(width * bpp);
     if (naxis == 3)
     {
@@ -163,21 +163,21 @@ int read_ppm(FILE *handle, struct dcraw_header *header, uint8_t **memptr, size_t
 
     for (row = 0; row < height; row++)
     {
-	int len;
+    int len;
         len = fread(ppm, 1, width * bpp, handle);
         if (len != width * bpp)
         {
             DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG, "read_ppm: aborted during PPM reading at row: %d, read %d bytes", row, len);
             free(ppm);
             return -1;
-		}
+        }
         if (bpp == 2)
         {
             uint16_t *ppm16 = (uint16_t *)ppm;
             if (htons(0x55aa) != 0x55aa)
             {
-				swab(ppm, ppm,  width * bpp);
-			}
+                swab(ppm, ppm,  width * bpp);
+            }
             if (naxis == 3)
             {
 
@@ -186,14 +186,14 @@ int read_ppm(FILE *handle, struct dcraw_header *header, uint8_t **memptr, size_t
                     *(uint16_t *)r_data++ = *ppm16++;
                     *(uint16_t *)g_data++ = *ppm16++;
                     *(uint16_t *)b_data++ = *ppm16++;
-				}
+                }
 
             } else
             {
                 memcpy(*memptr, ppm16, width*bpp);
                 *memptr += width*bpp;
-			}
-			
+            }
+
         } else
         {
             uint8_t *ppm8 = ppm;
@@ -204,101 +204,101 @@ int read_ppm(FILE *handle, struct dcraw_header *header, uint8_t **memptr, size_t
                     *r_data++ = *ppm8++;
                     *g_data++ = *ppm8++;
                     *b_data++ = *ppm8++;
-				}
+                }
 
             } else
             {
                 memcpy(*memptr, ppm8, width*bpp);
                 *memptr += width*bpp;
-			}
-		}
-	}
+            }
+        }
+    }
 
     free(ppm);
-    
+
     *memptr = oldmem;
-    
-	return 0;
+
+    return 0;
 
 }
 
 int dcraw_parse_time(char *month, int day, int year, char *timestr)
 {
     char mon_map[12][4] = {
-		"Jan", "Feb", "Mar", "Apr", "May", "Jun",
-		"Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
-		};
-	struct tm tm;
-	int i;
+        "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+        "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
+        };
+    struct tm tm;
+    int i;
 
-	memset(&tm, 0, sizeof(struct tm));
+    memset(&tm, 0, sizeof(struct tm));
 
 
-	for (i = 0; i < 12; i++) {
-		if(strncmp(month, mon_map[i], 3) == 0) {
-			tm.tm_mon = i;
-			break;
-		}
-	}
-	tm.tm_year = year - 1900;
-	tm.tm_mday = day;
+    for (i = 0; i < 12; i++) {
+        if(strncmp(month, mon_map[i], 3) == 0) {
+            tm.tm_mon = i;
+            break;
+        }
+    }
+    tm.tm_year = year - 1900;
+    tm.tm_mday = day;
 
-	sscanf(timestr, "%d:%d:%d", &tm.tm_hour, &tm.tm_min, &tm.tm_sec);
-	return mktime(&tm);
+    sscanf(timestr, "%d:%d:%d", &tm.tm_hour, &tm.tm_min, &tm.tm_sec);
+    return mktime(&tm);
 }
 
 int dcraw_parse_header_info(const char *filename, struct dcraw_header *header)
 {
-	FILE *handle;
-	char line[256], cfa[80];
-	char *cmd, timestr[10], month[10], daystr[10];
-	int day, year;
-	float r, g, b, gp;
+    FILE *handle;
+    char line[256], cfa[80];
+    char *cmd, timestr[10], month[10], daystr[10];
+    int day, year;
+    float r, g, b, gp;
 
-	memset(header, 0, sizeof(struct dcraw_header));
+    memset(header, 0, sizeof(struct dcraw_header));
     asprintf(&cmd, "%s -i -t 0 -v %s 2> /dev/null", dcraw_cmd, filename);
     DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG, "%s", cmd);
-	handle = popen(cmd, "r");
-	free(cmd);
-	if (handle == NULL) {
-		return 1;
-	}
+    handle = popen(cmd, "r");
+    free(cmd);
+    if (handle == NULL) {
+        return 1;
+    }
 
     while (fgets(line, sizeof(line), handle))
     {
         DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG, "%s", line);
 
-		if (sscanf(line, "Timestamp: %s %s %d %s %d", daystr, month, &day, timestr, &year) )
-			header->time = dcraw_parse_time(month, day, year, timestr);
-		else if (sscanf(line, "Shutter: 1/%f sec", &header->exposure) )
-			header->exposure = 1.0 / header->exposure;
-		else if (sscanf(line, "Shutter: %f sec", &header->exposure) )
+        if (sscanf(line, "Timestamp: %s %s %d %s %d", daystr, month, &day, timestr, &year) )
+            header->time = dcraw_parse_time(month, day, year, timestr);
+        else if (sscanf(line, "Shutter: 1/%f sec", &header->exposure) )
+            header->exposure = 1.0 / header->exposure;
+        else if (sscanf(line, "Shutter: %f sec", &header->exposure) )
             ;
         /*#ifdef USE_THUMB_SIZE
         else if (sscanf(line, "Thumb size: %d x %d", &header->width, &header->height) )
             ;
         #else*/
-		else if (sscanf(line, "Output size: %d x %d", &header->width, &header->height) )
-			;
+        else if (sscanf(line, "Output size: %d x %d", &header->width, &header->height) )
+            ;
         //#endif
         else if (sscanf(line, "Filter pattern: %s", cfa) )
         {
             if(strncmp(cfa, "RGGBRGGBRGGBRGGB", sizeof(cfa)) == 0)
             {
-				header->cfa_type = CFA_RGGB;
-			}
-		}
-		else if (sscanf(line, "Camera multipliers: %f %f %f %f", &r, &g, &b, &gp)
-			 && r > 0.0) {
-			header->wbr = 1.0;
-			header->wbg = g/r;
-			header->wbgp = gp/r;
-			header->wbb = b/r;
-		}
-	}
+                header->cfa_type = CFA_RGGB;
+            }
+        }
+        else if (sscanf(line, "Camera multipliers: %f %f %f %f", &r, &g, &b, &gp)
+             && r > 0.0) {
+            header->wbr = 1.0;
+            header->wbg = g/r;
+            header->wbgp = gp/r;
+            header->wbb = b/r;
+        }
+    }
 
-	pclose(handle);
-	return 0;
+    pclose(handle);
+    return 0;
 }
 
 int read_libraw(const char *filename, uint8_t **memptr, size_t *memsize, int *n_axis, int *w, int *h, int *bitsperpixel, char *bayer_pattern)
@@ -344,8 +344,15 @@ int read_libraw(const char *filename, uint8_t **memptr, size_t *memsize, int *n_
 
     int first_visible_pixel = RawProcessor.imgdata.rawdata.sizes.raw_width*RawProcessor.imgdata.sizes.top_margin + RawProcessor.imgdata.sizes.left_margin;
 
+    DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG, "read_libraw: raw_width: %d top_margin %d left_margin %d first_visible_pixel %d",
+                RawProcessor.imgdata.rawdata.sizes.raw_width, RawProcessor.imgdata.sizes.top_margin, RawProcessor.imgdata.sizes.left_margin,
+                first_visible_pixel);
+
     *memsize = RawProcessor.imgdata.rawdata.sizes.width * RawProcessor.imgdata.rawdata.sizes.height * sizeof(uint16_t);
     *memptr = (uint8_t *) realloc(*memptr, *memsize);
+
+    DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG, "read_libraw: rawdata.sizes.width: %d rawdata.sizes.height %d memsize %d bayer_pattern %s",
+                RawProcessor.imgdata.rawdata.sizes.width, RawProcessor.imgdata.rawdata.sizes.height, *memsize, bayer_pattern);
 
     uint16_t *image = reinterpret_cast<uint16_t *>(*memptr);
     uint16_t *src   = RawProcessor.imgdata.rawdata.raw_image + first_visible_pixel;
@@ -362,28 +369,28 @@ int read_libraw(const char *filename, uint8_t **memptr, size_t *memsize, int *n_
 
 int read_dcraw(const char *filename, uint8_t **memptr, size_t *memsize, int *n_axis, int *w, int *h, int *bitsperpixel)
 {
-	struct dcraw_header header;
-	FILE *handle = NULL;
-	char *cmd;
+    struct dcraw_header header;
+    FILE *handle = NULL;
+    char *cmd;
 
     if (dcraw_parse_header_info(filename, &header)  || ! header.width  || ! header.height)
-	{
+    {
         DEBUGDEVICE(device, INDI::Logger::DBG_DEBUG, "read_file_from_dcraw: failed to parse header");
         return -1;
-	}
+    }
 
     DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG, "Reading exposure %d x %d", header.width, header.height);
     asprintf(&cmd, "%s -c -t 0 -4 -D %s", dcraw_cmd, filename);
 
     DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG, "%s", cmd);
 
-	handle = popen(cmd, "r");
-	free(cmd);
+    handle = popen(cmd, "r");
+    free(cmd);
     if (handle == NULL)
     {
         DEBUGDEVICE(device, INDI::Logger::DBG_DEBUG, "read_file_from_dcraw: failed to run dcraw");
         return -1;
-	}
+    }
 
     int rc= read_ppm(handle, &header, memptr, memsize, n_axis, w, h, bitsperpixel);
 
@@ -394,34 +401,32 @@ int read_dcraw(const char *filename, uint8_t **memptr, size_t *memsize, int *n_a
 
 int read_jpeg(const char *filename, uint8_t **memptr, size_t *memsize, int *naxis, int *w, int *h )
 {
-	int row;
     unsigned char *r_data = NULL, *g_data, *b_data;
 
-	/* these are standard libjpeg structures for reading(decompression) */
-	struct jpeg_decompress_struct cinfo;
-	struct jpeg_error_mgr jerr;
-	/* libjpeg data structure for storing one row, that is, scanline of an image */
-	JSAMPROW row_pointer[1] = {NULL};
-	
-	FILE *infile = fopen( filename, "rb" );
-	int i = 0;
-	
-	if ( !infile )
-	{
-        DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG, "Error opening jpeg file %s!", filename );
-		return -1;
-	}
-	/* here we set up the standard libjpeg error handler */
-	cinfo.err = jpeg_std_error( &jerr );
-	/* setup decompression process and source, then read JPEG header */
-	jpeg_create_decompress( &cinfo );
-	/* this makes the library read from infile */
-	jpeg_stdio_src( &cinfo, infile );
-	/* reading the image header which contains image information */
-	jpeg_read_header( &cinfo, TRUE );
+    /* these are standard libjpeg structures for reading(decompression) */
+    struct jpeg_decompress_struct cinfo;
+    struct jpeg_error_mgr jerr;
+    /* libjpeg data structure for storing one row, that is, scanline of an image */
+    JSAMPROW row_pointer[1] = {NULL};
 
-	/* Start decompression jpeg here */
-	jpeg_start_decompress( &cinfo );
+    FILE *infile = fopen( filename, "rb" );
+
+    if ( !infile )
+    {
+        DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG, "Error opening jpeg file %s!", filename );
+        return -1;
+    }
+    /* here we set up the standard libjpeg error handler */
+    cinfo.err = jpeg_std_error( &jerr );
+    /* setup decompression process and source, then read JPEG header */
+    jpeg_create_decompress( &cinfo );
+    /* this makes the library read from infile */
+    jpeg_stdio_src( &cinfo, infile );
+    /* reading the image header which contains image information */
+    jpeg_read_header( &cinfo, TRUE );
+
+    /* Start decompression jpeg here */
+    jpeg_start_decompress( &cinfo );
 
     *memsize = cinfo.output_width * cinfo.output_height * cinfo.num_components;
     *memptr = (uint8_t *) realloc(*memptr, *memsize);
@@ -430,48 +435,99 @@ int read_jpeg(const char *filename, uint8_t **memptr, size_t *memsize, int *naxi
     *w = cinfo.output_width;
     *h = cinfo.output_height;
 
-	/* now actually read the jpeg into the raw buffer */
-	row_pointer[0] = (unsigned char *)malloc( cinfo.output_width*cinfo.num_components );
+    /* now actually read the jpeg into the raw buffer */
+    row_pointer[0] = (unsigned char *)malloc( cinfo.output_width*cinfo.num_components );
     if (cinfo.num_components)
     {
         r_data = (unsigned char *) *memptr;
         g_data = r_data + cinfo.output_width * cinfo.output_height;
         b_data = r_data + 2 * cinfo.output_width * cinfo.output_height;
-	}
-	/* read one scan line at a time */
-	for (row = 0; row < cinfo.image_height; row++)
-	{
-		unsigned char *ppm8 = row_pointer[0];
-		jpeg_read_scanlines( &cinfo, row_pointer, 1 );
+    }
+    /* read one scan line at a time */
+    for (unsigned int row = 0; row < cinfo.image_height; row++)
+    {
+        unsigned char *ppm8 = row_pointer[0];
+        jpeg_read_scanlines( &cinfo, row_pointer, 1 );
 
         if (cinfo.num_components == 3)
         {
-            for (i = 0; i < cinfo.output_width; i++)
+            for (unsigned int i = 0; i < cinfo.output_width; i++)
             {
                 *r_data++ = *ppm8++;
                 *g_data++ = *ppm8++;
                 *b_data++ = *ppm8++;
-			}
+            }
         }
         else
         {
             memcpy(*memptr, ppm8, cinfo.output_width);
             *memptr += cinfo.output_width;
-		}
-	}
+        }
+    }
 
-	/* wrap up decompression, destroy objects, free pointers and close open files */
-	jpeg_finish_decompress( &cinfo );
-	jpeg_destroy_decompress( &cinfo );
+    /* wrap up decompression, destroy objects, free pointers and close open files */
+    jpeg_finish_decompress( &cinfo );
+    jpeg_destroy_decompress( &cinfo );
 
-	if (row_pointer[0] )
-		free( row_pointer[0] );
-	if(infile)
-		fclose( infile );
-	
+    if (row_pointer[0] )
+        free( row_pointer[0] );
+    if(infile)
+        fclose( infile );
 
-	*memptr = oldmem;
-	
-	return 0;
+
+    *memptr = oldmem;
+
+    return 0;
 }
 
+int read_jpeg_mem(unsigned char *inBuffer, unsigned long inSize, uint8_t **memptr, size_t *memsize, int *naxis, int *w, int *h )
+{
+    /* these are standard libjpeg structures for reading(decompression) */
+    struct jpeg_decompress_struct cinfo;
+    struct jpeg_error_mgr jerr;
+    /* libjpeg data structure for storing one row, that is, scanline of an image */
+    JSAMPROW row_pointer[1] = {NULL};
+
+    /* here we set up the standard libjpeg error handler */
+    cinfo.err = jpeg_std_error( &jerr );
+    /* setup decompression process and source, then read JPEG header */
+    jpeg_create_decompress( &cinfo );
+    /* this makes the library read from infile */
+    jpeg_mem_src(&cinfo, inBuffer, inSize);
+
+    /* reading the image header which contains image information */
+    jpeg_read_header( &cinfo, TRUE );
+
+    /* Start decompression jpeg here */
+    jpeg_start_decompress( &cinfo );
+
+    *memsize = cinfo.output_width * cinfo.output_height * cinfo.num_components;
+    *memptr = (uint8_t *) realloc(*memptr, *memsize);
+
+    uint8_t *destmem = *memptr;
+
+    *naxis = cinfo.num_components;
+    *w = cinfo.output_width;
+    *h = cinfo.output_height;
+
+    /* now actually read the jpeg into the raw buffer */
+    row_pointer[0] = (unsigned char *)malloc( cinfo.output_width*cinfo.num_components );
+
+    /* read one scan line at a time */
+    for (unsigned int row = 0; row < cinfo.image_height; row++)
+    {
+        unsigned char *ppm8 = row_pointer[0];
+        jpeg_read_scanlines( &cinfo, row_pointer, 1);
+        memcpy(destmem, ppm8, cinfo.output_width*cinfo.num_components);
+        destmem += cinfo.output_width*cinfo.num_components;
+    }
+
+    /* wrap up decompression, destroy objects, free pointers and close open files */
+    jpeg_finish_decompress( &cinfo );
+    jpeg_destroy_decompress( &cinfo );
+
+    if (row_pointer[0] )
+        free( row_pointer[0] );
+
+    return 0;
+}

@@ -129,6 +129,10 @@
                 <driver name="Pulsar2">indi_lx200pulsar2</driver>
                 <version>1.0</version>
         </device>
+        <device label="LX200 10micron" focal_length="" aperture="">
+                <driver name="LX200 10micron">indi_lx200_10micron</driver>
+                <version>1.0</version>
+        </device>
         <device label="Telescope Simulator" focal_length="" aperture="">
                 <driver name="Telescope Simulator">indi_simulator_telescope</driver>
                 <version>1.0</version>
@@ -162,6 +166,10 @@
         <device label="MoonLite">
                 <driver name="MoonLite">indi_moonlite_focus</driver>
                 <version>1.0</version>
+        </device>
+        <device label="USBFocusV3">
+                <driver name="USBFocusV3">indi_usbfocusv3_focus</driver>
+                <version>0.1</version>
         </device>
         <device label="Microtouch">
                 <driver name="Microtouch">indi_microtouch_focus</driver>
@@ -226,6 +234,10 @@
         <device label="Optec IFW">
             <driver name="Optec IFW">indi_optec_wheel</driver>
             <version>0.2</version>
+        </device>
+        <device label="Quantum Wheel">
+            <driver name="Quantum Wheel">indi_quantum_wheel</driver>
+            <version>0.1</version>
         </device>
 </devGroup>
 <devGroup group="Video">

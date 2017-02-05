@@ -340,6 +340,7 @@ class INDI::Telescope : public INDI::DefaultDevice
         //  We put the serial helper into the base telescope class
         //  One less piece to worry about in the hardware specific
         //  low level stuff
+        //  Mounts with ethernet can copy the socket fd into PortFD and override Connect and Disconnect.
         int PortFD;
 
         //  This is a variable filled in by the ReadStatus telescope
@@ -404,18 +405,13 @@ class INDI::Telescope : public INDI::DefaultDevice
         IText TimeT[2];
         ITextVectorProperty TimeTP;
 
-        // Active GPS device to snoop
+        // Active GPS/Dome device to snoop
         ITextVectorProperty ActiveDeviceTP;
-        IText ActiveDeviceT[1];
-
-        // Active Dome to snoop
-        ITextVectorProperty ActiveDomeTP;
-        IText ActiveDomeT[1];
+        IText ActiveDeviceT[2];
 
         // Switch to lock if dome is closed, and or force parking if dome parks
         ISwitchVectorProperty DomeClosedLockTP;
         ISwitch DomeClosedLockT[4];
-
 
         ISwitch BaudRateS[6];
         ISwitchVectorProperty BaudRateSP;

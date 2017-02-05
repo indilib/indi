@@ -356,6 +356,7 @@ set(lx200generic_SRCS
    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/telescope/lx200fs2.cpp
    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/telescope/lx200ss2000pc.cpp
    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/telescope/lx200_OnStep.cpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/drivers/telescope/lx200_10micron.cpp
 )
 
 add_executable(indi_lx200generic ${lx200generic_SRCS})
@@ -376,6 +377,7 @@ exec_program(\"${CMAKE_COMMAND}\" ARGS -E create_symlink ${BIN_INSTALL_DIR}/indi
 exec_program(\"${CMAKE_COMMAND}\" ARGS -E create_symlink ${BIN_INSTALL_DIR}/indi_lx200generic \$ENV{DESTDIR}${BIN_INSTALL_DIR}/indi_lx200fs2)\n
 exec_program(\"${CMAKE_COMMAND}\" ARGS -E create_symlink ${BIN_INSTALL_DIR}/indi_lx200generic \$ENV{DESTDIR}${BIN_INSTALL_DIR}/indi_lx200ss2000pc)\n
 exec_program(\"${CMAKE_COMMAND}\" ARGS -E create_symlink ${BIN_INSTALL_DIR}/indi_lx200generic \$ENV{DESTDIR}${BIN_INSTALL_DIR}/indi_lx200_OnStep)\n
+exec_program(\"${CMAKE_COMMAND}\" ARGS -E create_symlink ${BIN_INSTALL_DIR}/indi_lx200generic \$ENV{DESTDIR}${BIN_INSTALL_DIR}/indi_lx200_10micron)\n
 ")
 set_target_properties(indi_lx200generic PROPERTIES POST_INSTALL_SCRIPT ${CMAKE_CURRENT_BINARY_DIR}/make_lx200generic_symlink.cmake)
 #################################################################################
@@ -554,6 +556,16 @@ add_executable(indi_moonlite_focus ${moonlite_SRCS})
 target_link_libraries(indi_moonlite_focus indidriver)
 install(TARGETS indi_moonlite_focus RUNTIME DESTINATION bin )
 
+################## USB Focus V3 ##################
+
+set(usbfocusv3_SRCS
+        ${CMAKE_CURRENT_SOURCE_DIR}/drivers/focuser/usbfocusv3.cpp
+   )
+
+add_executable(indi_usbfocusv3_focus ${usbfocusv3_SRCS})
+target_link_libraries(indi_usbfocusv3_focus indidriver)
+install(TARGETS indi_usbfocusv3_focus RUNTIME DESTINATION bin )
+
 ################ Microtouch Focuser ################
 
 set(microtouch_SRCS
@@ -680,6 +692,16 @@ set(optecwheel_SRCS
 add_executable(indi_optec_wheel ${optecwheel_SRCS})
 target_link_libraries(indi_optec_wheel indidriver)
 install(TARGETS indi_optec_wheel RUNTIME DESTINATION bin )
+
+########## Quantum Wheel ############
+set(quantum_wheel_SRCS
+        ${indimain_SRCS}
+        ${CMAKE_CURRENT_SOURCE_DIR}/drivers/filter_wheel/quantum_wheel.cpp
+   )
+
+add_executable(indi_quantum_wheel ${quantum_wheel_SRCS})
+target_link_libraries(indi_quantum_wheel indidriver)
+install(TARGETS indi_quantum_wheel RUNTIME DESTINATION bin )
 
 #################################################################################
 

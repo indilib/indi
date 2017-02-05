@@ -263,7 +263,7 @@ IPState RollOff::Move(DomeDirection dir, DomeMotionCommand operation)
 IPState RollOff::Park()
 {    
     IPState rc = INDI::Dome::Move(DOME_CCW, MOTION_START);
-    if (!rc==IPS_ALERT)
+    if (rc==IPS_BUSY)
     {
         DEBUG(INDI::Logger::DBG_SESSION, "Roll off is parking...");
         return IPS_BUSY;
@@ -275,7 +275,7 @@ IPState RollOff::Park()
 IPState RollOff::UnPark()
 {
     IPState rc = INDI::Dome::Move(DOME_CW, MOTION_START);
-    if (!rc==IPS_ALERT)
+    if (rc==IPS_BUSY)
     {       
            DEBUG(INDI::Logger::DBG_SESSION, "Roll off is unparking...");
            return IPS_BUSY;
