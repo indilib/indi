@@ -1,7 +1,7 @@
 # libindi
 [![Build Status](https://travis-ci.org/indilib/indi.svg?branch=master)](https://travis-ci.org/indilib/indi)
 
-INDI is the defacto standard for open astronomical device control. INDI Library is an Open Source POSIX implementation of the [Instrument-Neutral-Device-Interface protocol](http://www.clearskyinstitute.com/INDI/INDI.pdf). The library is composed of server, tools, and device drivers for astronomical instrumentation and auxiliary devices. Core device drivers are shipped with INDI library by default. 3rd party drivers are also availabe in the repository and maintained by their respective owners.
+INDI is the defacto standard for open astronomical device control. INDI Library is an Open Source POSIX implementation of the [Instrument-Neutral-Device-Interface protocol](http://www.clearskyinstitute.com/INDI/INDI.pdf). The library is composed of server, tools, and device drivers for astronomical instrumentation and auxiliary devices. Core device drivers are shipped with INDI library by default. 3rd party drivers are also available in the repository and maintained by their respective owners.
 
 ## [Features](http://indilib.org/about/features.html)
 ## [Discover INDI](http://indilib.org/about/discover-indi.html)
@@ -103,7 +103,7 @@ INDI server is the public network access point where one or more INDI Clients ma
 
 # Unit tests
 
-In order to run the unit test suite you must first install the [Google Test Framework](https://github.com/google/googletest). You will need to build and install this from source code as Google do not recommend package managers to distribute for distros (as each build system is often unique and a one size fits all approaach doesn't work too well).
+In order to run the unit test suite you must first install the [Google Test Framework](https://github.com/google/googletest). You will need to build and install this from source code as Google does not recommend package managers for distributing distros.(This is because each build system is often unique and a one size fits all aproach does not work well).
 
 Once you have the Google Test Framework installed follow this alternative build sequence:-
 
