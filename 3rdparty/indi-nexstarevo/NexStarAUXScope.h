@@ -104,7 +104,7 @@ private:
     void processMsgs();
     void writeMsgs();
     void querryStatus();
-    bool sendCmd(AUXCommand *c);
+    bool sendCmd(AUXCommand &c);
     double Lat, Lon, Elv;
     long Alt;
     long Az;

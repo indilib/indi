@@ -343,8 +343,8 @@ bool NexStarAUXScope::Abort(){
     b[0]=0;
     AUXCommand stopAlt(MC_MOVE_POS,APP,ALT,b);
     AUXCommand stopAz(MC_MOVE_POS,APP,AZM,b);
-    sendCmd(&stopAlt);
-    sendCmd(&stopAz);
+    sendCmd(stopAlt);
+    sendCmd(stopAz);
     return true;
 };
 
@@ -368,7 +368,7 @@ bool NexStarAUXScope::slewing(){
 bool NexStarAUXScope::Slew(AUXtargets trg, int rate){
     AUXCommand cmd((rate<0) ? MC_MOVE_NEG : MC_MOVE_POS ,APP,trg);
     cmd.setRate((unsigned char)(abs(rate) & 0xFF));
-    sendCmd(&cmd);
+    sendCmd(cmd);
     readMsgs();
     return true;
 }
@@ -397,8 +397,8 @@ bool NexStarAUXScope::GoToFast(long alt, long az, bool track){
     az += STEPS_PER_REVOLUTION/2;
     az %= STEPS_PER_REVOLUTION;
     azmcmd.setPosition(az);
-    sendCmd(&altcmd);
-    sendCmd(&azmcmd);
+    sendCmd(altcmd);
+    sendCmd(azmcmd);
     readMsgs();
     //DEBUG=false;
     return true;
@@ -423,8 +423,8 @@ bool NexStarAUXScope::GoToSlow(long alt, long az, bool track){
     az += STEPS_PER_REVOLUTION/2;
     az %= STEPS_PER_REVOLUTION;
     azmcmd.setPosition(az);
-    sendCmd(&altcmd);
-    sendCmd(&azmcmd);
+    sendCmd(altcmd);
+    sendCmd(azmcmd);
     readMsgs();
     //DEBUG=false;
     return true;
@@ -445,38 +445,26 @@ bool NexStarAUXScope::Track(long altRate, long azRate){
     altcmd.setPosition(long(abs(AltRate)));
     azmcmd.setPosition(long(abs(AzRate)));
     
-    sendCmd(&altcmd);
-    sendCmd(&azmcmd);
+    sendCmd(altcmd);
+    sendCmd(azmcmd);
     readMsgs();
     return true;
 };
 
 void NexStarAUXScope::querryStatus(){
     AUXtargets trg[2]={ALT,AZM};
-    AUXCommand *cmd;
     for (int i=0; i<2; i++){
-        cmd=new AUXCommand(MC_GET_POSITION,APP,trg[i]);
-        if (not sendCmd(cmd)) {
-            fprintf(stderr,"Send failed!\n");
-        }
-        delete cmd;
+        AUXCommand cmd(MC_GET_POSITION,APP,trg[i]);
+        sendCmd(cmd);
     }
     if (slewingAlt) {
-        cmd=new AUXCommand(MC_SLEW_DONE,APP,ALT);
-        if (not sendCmd(cmd)) {
-            fprintf(stderr,"Send failed!\n");
-        }
-        delete cmd;
+        AUXCommand cmd(MC_SLEW_DONE,APP,ALT);
+        sendCmd(cmd);
     }
     if (slewingAz) {
-        cmd=new AUXCommand(MC_SLEW_DONE,APP,AZM);
-        if (not sendCmd(cmd)) {
-            fprintf(stderr,"Send failed!\n");
-        }
-        delete cmd;
+        AUXCommand cmd(MC_SLEW_DONE,APP,AZM);
+        sendCmd(cmd);
     }
-    
-    
 }
 
 void NexStarAUXScope::emulateGPS(AUXCommand *m) {
@@ -489,25 +477,19 @@ void NexStarAUXScope::emulateGPS(AUXCommand *m) {
             buffer dat(2);
             dat[0]=0x01;
             dat[1]=0x00;
-            AUXCommand *cmd=new AUXCommand(GET_VER,GPS,m->src,dat);
-            if (not sendCmd(cmd)) {
-                fprintf(stderr,"GPS: Send failed!\n");
-            }
-            delete cmd;
+            AUXCommand cmd(GET_VER,GPS,m->src,dat);
+            sendCmd(cmd);
             break;
             }
         case GPS_GET_LAT:
         case GPS_GET_LONG: {
             // fprintf(stderr,"GPS: Sending LAT/LONG Lat:%f Lon:%f\n", Lat, Lon);
-            AUXCommand *cmd=new AUXCommand(m->cmd,GPS,m->src);
+            AUXCommand cmd(m->cmd,GPS,m->src);
             if (m->cmd == GPS_GET_LAT )
-                cmd->setPosition(Lat);
+                cmd.setPosition(Lat);
             else 
-                cmd->setPosition(Lon);
-            if (not sendCmd(cmd)) {
-                fprintf(stderr,"GPS: Send failed!\n");
-            }
-            delete cmd;            
+                cmd.setPosition(Lon);
+            sendCmd(cmd);
             break;
             }
         case GPS_GET_TIME: {
@@ -521,11 +503,8 @@ void NexStarAUXScope::emulateGPS(AUXCommand *m) {
             dat[0]=unsigned(ptm->tm_hour);
             dat[1]=unsigned(ptm->tm_min);
             dat[2]=unsigned(ptm->tm_sec);
-            AUXCommand *cmd=new AUXCommand(GPS_GET_TIME,GPS,m->src,dat);
-            if (not sendCmd(cmd)) {
-                fprintf(stderr,"GPS: Send failed!\n");
-            }
-            delete cmd;            
+            AUXCommand cmd(GPS_GET_TIME,GPS,m->src,dat);
+            sendCmd(cmd);
             break;
             }
         case GPS_GET_DATE: {
@@ -538,11 +517,8 @@ void NexStarAUXScope::emulateGPS(AUXCommand *m) {
             ptm=gmtime(&gmt);
             dat[0]=unsigned(ptm->tm_mon+1);
             dat[1]=unsigned(ptm->tm_mday);
-            AUXCommand *cmd=new AUXCommand(GPS_GET_DATE,GPS,m->src,dat);
-            if (not sendCmd(cmd)) {
-                fprintf(stderr,"GPS: Send failed!\n");
-            }
-            delete cmd;            
+            AUXCommand cmd(GPS_GET_DATE,GPS,m->src,dat);
+            sendCmd(cmd);
             break;
             }
         case GPS_GET_YEAR: {
@@ -556,11 +532,8 @@ void NexStarAUXScope::emulateGPS(AUXCommand *m) {
             dat[0]=unsigned(ptm->tm_year+1900)>>8;
             dat[1]=unsigned(ptm->tm_year+1900) & 0xFF;
             // fprintf(stderr," Sending: %d [%d,%d]\n",ptm->tm_year,dat[0],dat[1]);
-            AUXCommand *cmd=new AUXCommand(GPS_GET_YEAR,GPS,m->src,dat);
-            if (not sendCmd(cmd)) {
-                fprintf(stderr,"GPS: Send failed!\n");
-            }
-            delete cmd;            
+            AUXCommand cmd(GPS_GET_YEAR,GPS,m->src,dat);
+            sendCmd(cmd);
             break;
             }
         case GPS_LINKED: {
@@ -568,11 +541,8 @@ void NexStarAUXScope::emulateGPS(AUXCommand *m) {
             buffer dat(1);
 
             dat[0]=unsigned(1);
-            AUXCommand *cmd=new AUXCommand(GPS_LINKED,GPS,m->src,dat);
-            if (not sendCmd(cmd)) {
-                fprintf(stderr,"GPS: Send failed!\n");
-            }
-            delete cmd;            
+            AUXCommand cmd(GPS_LINKED,GPS,m->src,dat);
+            sendCmd(cmd);
             break;                        
             }
         default :
@@ -694,10 +664,10 @@ int sendBuffer(int sock, buffer buf, long tout_msec){
         return 0;
 }
 
-bool NexStarAUXScope::sendCmd(AUXCommand *c){
+bool NexStarAUXScope::sendCmd(AUXCommand &c){
     buffer buf;
-    if (DEBUG) { fprintf(stderr,"Send: ");   c->dumpCmd(); }
-    c->fillBuf(buf);
+    if (DEBUG) { fprintf(stderr,"Send: ");   c.dumpCmd(); }
+    c.fillBuf(buf);
     return sendBuffer(sock, buf, 500)==buf.size();
 }
 

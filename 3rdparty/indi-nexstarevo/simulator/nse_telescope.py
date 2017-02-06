@@ -625,8 +625,8 @@ class NexStarScope:
     def alt(self,ALT):
         self.__alt=ALT
         # Altitude movement limits
-        self.__alt = min(self.__alt,0.23)
-        self.__alt = max(self.__alt,-0.03)
+        #self.__alt = min(self.__alt,0.23)
+        #self.__alt = max(self.__alt,-0.03)
         
     @property
     def azm(self):
@@ -644,8 +644,8 @@ class NexStarScope:
     def trg_alt(self,ALT):
         self.__trg_alt=ALT
         # Altitude movement limits
-        self.__trg_alt = min(self.__trg_alt,0.24)
-        self.__trg_alt = max(self.__trg_alt,-0.01)
+        #self.__trg_alt = min(self.__trg_alt,0.24)
+        #self.__trg_alt = max(self.__trg_alt,-0.01)
         
     @property
     def trg_azm(self):
