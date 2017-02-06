@@ -608,7 +608,7 @@ bool INDI::CCD::initProperties()
 
     IUFillSwitch(&TelescopeTypeS[TELESCOPE_PRIMARY], "TELESCOPE_PRIMARY", "Primary", ISS_ON);
     IUFillSwitch(&TelescopeTypeS[TELESCOPE_GUIDE], "TELESCOPE_GUIDE", "Guide", ISS_OFF);
-    IUFillSwitchVector(&TelescopeTypeSP, TelescopeTypeS, 2, getDeviceName(), "TELESCOPE_TYPE", "Telescope", ASTROMETRY_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+    IUFillSwitchVector(&TelescopeTypeSP, TelescopeTypeS, 2, getDeviceName(), "TELESCOPE_TYPE", "Telescope", OPTIONS_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
     IUFillNumber(&CCDRotationN[0],"CCD_ROTATION_VALUE","Rotation","%g",-360,360,1,0);
     IUFillNumberVector(&CCDRotationNP,CCDRotationN,1,getDeviceName(),"CCD_ROTATION","CCD FOV", ASTROMETRY_TAB,IP_RW,60,IPS_IDLE);
@@ -734,6 +734,7 @@ bool INDI::CCD::updateProperties()
           defineSwitch(&GuideCCD.RapidGuideSetupSP);
           defineNumber(&GuideCCD.RapidGuideDataNP);
         }
+        defineSwitch(&TelescopeTypeSP);
         defineSwitch(&SolverSP);
         defineText(&SolverSettingsTP);
         defineSwitch(&WorldCoordSP);
@@ -798,11 +799,12 @@ bool INDI::CCD::updateProperties()
         {
             deleteProperty(SolverResultNP.name);
         }
+        deleteProperty(TelescopeTypeSP.name);
         deleteProperty(SolverSP.name);
         deleteProperty(SolverSettingsTP.name);
+
         if (WorldCoordS[0].s == ISS_ON)
         {
-            deleteProperty(TelescopeTypeSP.name);
             deleteProperty(CCDRotationNP.name);
         }
         deleteProperty(WorldCoordSP.name);
@@ -1295,12 +1297,10 @@ bool INDI::CCD::ISNewSwitch (const char *dev, const char *name, ISState *states,
             if (WorldCoordS[0].s == ISS_ON)
             {
                 DEBUG(INDI::Logger::DBG_WARNING, "World Coordinate System is enabled. CCD rotation must be set either manually or by solving the image before proceeding to capture any frames, otherwise the WCS information may be invalid.");
-                defineSwitch(&TelescopeTypeSP);
                 defineNumber(&CCDRotationNP);
             }
             else
             {
-                deleteProperty(TelescopeTypeSP.name);
                 deleteProperty(CCDRotationNP.name);
             }
 
@@ -1699,8 +1699,10 @@ void INDI::CCD::addFITSKeywords(fitsfile *fptr, CCDChip *targetChip)
         fits_update_key_s(fptr, TSTRING, "BAYERPAT", BayerT[2].text, "Bayer color pattern", &status);
     }
 
-    if (primaryFocalLength != -1)
+    if (TelescopeTypeS[TELESCOPE_PRIMARY].s == ISS_ON && primaryFocalLength != -1)
         fits_update_key_s(fptr, TDOUBLE, "FOCALLEN", &primaryFocalLength, "Focal Length (mm)", &status);
+    else if (TelescopeTypeS[TELESCOPE_GUIDE].s == ISS_ON && guiderFocalLength != -1)
+        fits_update_key_s(fptr, TDOUBLE, "FOCALLEN", &guiderFocalLength, "Focal Length (mm)", &status);
 
     if (MPSAS != -1000)
     {
@@ -2119,7 +2121,7 @@ bool INDI::CCD::ExposureComplete(CCDChip *targetChip)
               DEBUGF(INDI::Logger::DBG_ERROR, "Error: failed to allocate memory: %lu",(unsigned long)memsize);
           }
 
-          fits_create_memfile(&fptr,&memptr,&memsize,2880,realloc,&status);                    
+          fits_create_memfile(&fptr,&memptr,&memsize,2880,realloc,&status);
 
           if(status)
           {
