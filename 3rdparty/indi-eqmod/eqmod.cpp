@@ -887,10 +887,10 @@ bool EQMod::ReadScopeStatus() {
       switch (AutohomeState) {
       case AUTO_HOME_IDLE:
       case AUTO_HOME_CONFIRM:
-	AutohomeState = AUTO_HOME_IDLE;
-	TrackState == SCOPE_IDLE;
-	DEBUG(INDI::Logger::DBG_SESSION, "Invalid status while Autohoming. Aborting");
-	break;
+          AutohomeState = AUTO_HOME_IDLE;
+          TrackState = SCOPE_IDLE;
+          DEBUG(INDI::Logger::DBG_SESSION, "Invalid status while Autohoming. Aborting");
+        break;
       case AUTO_HOME_WAIT_PHASE1:
 	if (!(mount->IsRARunning()) && !(mount->IsDERunning())) {
 	  DEBUG(INDI::Logger::DBG_SESSION, "Autohome phase 1: end");
