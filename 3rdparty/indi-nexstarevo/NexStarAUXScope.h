@@ -48,6 +48,7 @@ enum AUXtargets {
 
 class AUXCommand{
 public:
+    AUXCommand();
     AUXCommand(buffer buf);
     AUXCommand(AUXCommands c, AUXtargets s, AUXtargets d, buffer dat);
     AUXCommand(AUXCommands c, AUXtargets s, AUXtargets d);
@@ -99,9 +100,10 @@ private:
     void initScope();
     bool detectScope();
     void closeConnection();
-    void emulateGPS(AUXCommand *m);
+    void emulateGPS(AUXCommand &m);
     void readMsgs();
     void processMsgs();
+    void processCmd(AUXCommand &cmd);
     void writeMsgs();
     void querryStatus();
     bool sendCmd(AUXCommand &c);
@@ -118,7 +120,7 @@ private:
     int sock;
     struct sockaddr_in addr;
     bool simulator=false;
-    std::queue<AUXCommand *> iq, oq;
+    std::queue<AUXCommand> iq, oq;
 };
 
 

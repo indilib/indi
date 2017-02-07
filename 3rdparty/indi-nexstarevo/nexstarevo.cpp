@@ -62,7 +62,7 @@ const double NexStarEvo::STEPS_PER_DEGREE = STEPS_PER_REVOLUTION / 360.0;
 const double NexStarEvo::DEFAULT_SLEW_RATE = STEPS_PER_DEGREE * 2.0;
 const long NexStarEvo::MAX_ALT = 90.0 * STEPS_PER_DEGREE;
 const long NexStarEvo::MIN_ALT = -90.0 * STEPS_PER_DEGREE;
-const double NexStarEvo::TRACK_SCALE = 1.0;
+const double NexStarEvo::TRACK_SCALE = 1.26;
 
 NexStarEvo::NexStarEvo() : 
     AxisStatusAZ(STOPPED), AxisDirectionAZ(FORWARD),
@@ -157,7 +157,7 @@ const char * NexStarEvo::getDefaultName()
 
 bool NexStarEvo::Park()
 {
-    // Park at the southern horizon 
+    // Park at the northern horizon 
     // This is a designated by celestron parking position
     Abort();
     scope->Park();
@@ -195,11 +195,19 @@ bool NexStarEvo::Goto(double ra,double dec)
     GoToTarget.ra=ra;
     GoToTarget.dec=dec;
 
+    double timeshift=0.0;
+    if (ScopeStatus != APPROACH){ 
+        // The scope is not in slow approach mode - target should be modified
+        // for precission approach. We go to the position from some time ago,
+        // to keep the motors going in the same direction as in tracking
+        timeshift = 3.0 / (24.0 *60.0);
+    }
+
     // Call the alignment subsystem to translate the celestial reference frame coordinate
     // into a telescope reference frame coordinate
     TelescopeDirectionVector TDV;
     ln_hrz_posn AltAz;
-    if (TransformCelestialToTelescope(ra, dec, 0.0, TDV))
+    if (TransformCelestialToTelescope(ra, dec, -timeshift, TDV))
     {
         // The alignment subsystem has successfully transformed my coordinate
         AltitudeAzimuthFromTelescopeDirectionVector(TDV, AltAz);
@@ -224,7 +232,7 @@ bool NexStarEvo::Goto(double ra,double dec)
         EquatorialCoordinates.dec = dec;
         if (HavePosition)
         {
-            ln_get_hrz_from_equ(&EquatorialCoordinates, &Position, ln_get_julian_from_sys(), &AltAz);
+            ln_get_hrz_from_equ(&EquatorialCoordinates, &Position, ln_get_julian_from_sys() - timeshift, &AltAz);
             TDV = TelescopeDirectionVectorFromAltitudeAzimuth(AltAz);
             switch (GetApproximateMountAlignment())
             {
@@ -257,8 +265,8 @@ bool NexStarEvo::Goto(double ra,double dec)
         // The scope is not in slow approach mode - target should be modified
         // for precission approach.
         // TODO: This is simplistic - it should be modified close to the zenith
-        AltAz.alt+=ApproachALT/STEPS_PER_DEGREE;
-        AltAz.az+=ApproachAZ/STEPS_PER_DEGREE;
+        //AltAz.alt+=ApproachALT/STEPS_PER_DEGREE;
+        //AltAz.az+=ApproachAZ/STEPS_PER_DEGREE;
     }
 
     if (AltAz.az < 0.0)
@@ -665,7 +673,10 @@ void NexStarEvo::TimerHit()
     switch(TrackState)
     {
         case SCOPE_PARKING:
-            if (!scope->slewing()) SetParked(true);
+            if (!scope->slewing()) {
+                SetParked(true);
+                DEBUG(DBG_NSEVO, "Telescope parked.");
+            }
             break;
 
         case SCOPE_SLEWING:

@@ -49,7 +49,12 @@ void dumpMsg(buffer buf){
 //////  AUXCommand class
 ////////////////////////////////////////////////
 
+AUXCommand::AUXCommand(){
+        data.reserve(MAX_CMD_LEN);
+}
+
 AUXCommand::AUXCommand(buffer buf){
+        data.reserve(MAX_CMD_LEN);
         parseBuf(buf);
 }
     
@@ -57,7 +62,8 @@ AUXCommand::AUXCommand(AUXCommands c, AUXtargets s, AUXtargets d, buffer dat){
         cmd=c;
         src=s;
         dst=d;
-        data=buffer(dat);
+        data.reserve(MAX_CMD_LEN);
+        data=dat;
         len=3+data.size();
 }
 
@@ -65,7 +71,7 @@ AUXCommand::AUXCommand(AUXCommands c, AUXtargets s, AUXtargets d){
         cmd=c;
         src=s;
         dst=d;
-        data=buffer();
+        data.reserve(MAX_CMD_LEN);
         len=3+data.size();
 }
 
@@ -201,7 +207,7 @@ NexStarAUXScope::~NexStarAUXScope(){
 }
 
 void NexStarAUXScope::initScope(char const *ip, int port){
-    fprintf(stderr,"Preset scope IP %s:%d", ip, port);
+    fprintf(stderr,"Preset scope IP %s:%d\n", ip, port);
     bzero(&addr, sizeof(addr));
     addr.sin_family = AF_INET ;
     addr.sin_addr.s_addr=inet_addr(ip);
@@ -232,7 +238,7 @@ bool NexStarAUXScope::detectScope(){
     unsigned char buf[BUFSIZE];     /* receive buffer */
 
     /* create a UDP socket */
-
+    fprintf(stderr,"Detecting scope IP ... ");
     if ((fd = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
             perror("cannot create socket\n");
             return false;
@@ -264,7 +270,7 @@ bool NexStarAUXScope::detectScope(){
             // Scope broadcasts 110b UDP packets from port 2000 to 55555
             // we use it for detection
             if (ntohs(remaddr.sin_port) == 2000 && recvlen == 110) {
-                fprintf(stderr,"Detected scope IP %s:%d (%d)\n", inet_ntoa(remaddr.sin_addr), ntohs(remaddr.sin_port), recvlen);
+                fprintf(stderr,"%s:%d (%d)\n", inet_ntoa(remaddr.sin_addr), ntohs(remaddr.sin_port), recvlen);
                 addr.sin_addr.s_addr=remaddr.sin_addr.s_addr;
                 addr.sin_port = remaddr.sin_port;
                 close(fd);
@@ -295,7 +301,7 @@ bool NexStarAUXScope::Connect(){
       return false;
     }
 
-    fprintf(stderr,"Connecting to %s:%d ...",
+    fprintf(stderr,"Connecting to %s:%d ... ",
                     inet_ntoa(addr.sin_addr), ntohs(addr.sin_port));
     // Connect to the scope
     if(connect(sock, (struct sockaddr *)&addr, sizeof addr) < 0)
@@ -313,7 +319,7 @@ bool NexStarAUXScope::Connect(){
     fprintf(stderr, "OK\n");
     msleep(500);
     readMsgs();
-    processMsgs();
+    //processMsgs();
     return true;
 }
 
@@ -467,25 +473,25 @@ void NexStarAUXScope::querryStatus(){
     }
 }
 
-void NexStarAUXScope::emulateGPS(AUXCommand *m) {
-    if (m->dst != GPS) return;
-    if (DEBUG) fprintf(stderr,"Got 0x%02x for GPS\n", m->cmd);
+void NexStarAUXScope::emulateGPS(AUXCommand &m) {
+    if (m.dst != GPS) return;
+    if (DEBUG) fprintf(stderr,"Got 0x%02x for GPS\n", m.cmd);
 
-    switch (m->cmd) {
+    switch (m.cmd) {
         case GET_VER: { 
-            // fprintf(stderr,"GPS: GET_VER from 0x%02x\n", m->src);
+            // fprintf(stderr,"GPS: GET_VER from 0x%02x\n", m.src);
             buffer dat(2);
             dat[0]=0x01;
             dat[1]=0x00;
-            AUXCommand cmd(GET_VER,GPS,m->src,dat);
+            AUXCommand cmd(GET_VER,GPS,m.src,dat);
             sendCmd(cmd);
             break;
             }
         case GPS_GET_LAT:
         case GPS_GET_LONG: {
             // fprintf(stderr,"GPS: Sending LAT/LONG Lat:%f Lon:%f\n", Lat, Lon);
-            AUXCommand cmd(m->cmd,GPS,m->src);
-            if (m->cmd == GPS_GET_LAT )
+            AUXCommand cmd(m.cmd,GPS,m.src);
+            if (m.cmd == GPS_GET_LAT )
                 cmd.setPosition(Lat);
             else 
                 cmd.setPosition(Lon);
@@ -493,7 +499,7 @@ void NexStarAUXScope::emulateGPS(AUXCommand *m) {
             break;
             }
         case GPS_GET_TIME: {
-            // fprintf(stderr,"GPS: GET_TIME from 0x%02x\n", m->src);
+            // fprintf(stderr,"GPS: GET_TIME from 0x%02x\n", m.src);
             time_t gmt;
             struct tm * ptm;
             buffer dat(3);
@@ -503,7 +509,7 @@ void NexStarAUXScope::emulateGPS(AUXCommand *m) {
             dat[0]=unsigned(ptm->tm_hour);
             dat[1]=unsigned(ptm->tm_min);
             dat[2]=unsigned(ptm->tm_sec);
-            AUXCommand cmd(GPS_GET_TIME,GPS,m->src,dat);
+            AUXCommand cmd(GPS_GET_TIME,GPS,m.src,dat);
             sendCmd(cmd);
             break;
             }
@@ -517,7 +523,7 @@ void NexStarAUXScope::emulateGPS(AUXCommand *m) {
             ptm=gmtime(&gmt);
             dat[0]=unsigned(ptm->tm_mon+1);
             dat[1]=unsigned(ptm->tm_mday);
-            AUXCommand cmd(GPS_GET_DATE,GPS,m->src,dat);
+            AUXCommand cmd(GPS_GET_DATE,GPS,m.src,dat);
             sendCmd(cmd);
             break;
             }
@@ -532,7 +538,7 @@ void NexStarAUXScope::emulateGPS(AUXCommand *m) {
             dat[0]=unsigned(ptm->tm_year+1900)>>8;
             dat[1]=unsigned(ptm->tm_year+1900) & 0xFF;
             // fprintf(stderr," Sending: %d [%d,%d]\n",ptm->tm_year,dat[0],dat[1]);
-            AUXCommand cmd(GPS_GET_YEAR,GPS,m->src,dat);
+            AUXCommand cmd(GPS_GET_YEAR,GPS,m.src,dat);
             sendCmd(cmd);
             break;
             }
@@ -541,12 +547,12 @@ void NexStarAUXScope::emulateGPS(AUXCommand *m) {
             buffer dat(1);
 
             dat[0]=unsigned(1);
-            AUXCommand cmd(GPS_LINKED,GPS,m->src,dat);
+            AUXCommand cmd(GPS_LINKED,GPS,m.src,dat);
             sendCmd(cmd);
             break;                        
             }
         default :
-            fprintf(stderr,"Got 0x%02x for GPS\n", m->cmd);
+            fprintf(stderr,"Got 0x%02x for GPS\n", m.cmd);
             break;
     }
 
@@ -555,19 +561,19 @@ void NexStarAUXScope::emulateGPS(AUXCommand *m) {
 void NexStarAUXScope::processMsgs(){
     if (DEBUG) fprintf(stderr,"Processing msgs: %d\n", iq.size());
     while (not iq.empty()) {
-        AUXCommand *m=iq.front();
-        if (DEBUG) { fprintf(stderr,"Recv: "); m->dumpCmd(); }
-        if (m->dst == GPS) 
+        AUXCommand m=iq.front();
+        if (DEBUG) { fprintf(stderr,"Recv: "); m.dumpCmd(); }
+        if (m.dst == GPS) 
             emulateGPS(m);
         else 
-        switch (m->cmd) {
+        switch (m.cmd) {
             case MC_GET_POSITION:
-                switch (m->src) {
+                switch (m.src) {
                     case ALT:
-                        Alt=m->getPosition();
+                        Alt=m.getPosition();
                         break;
                     case AZM:
-                        Az=m->getPosition();
+                        Az=m.getPosition();
                         // Celestron uses N as zero Azimuth!
                         Az += STEPS_PER_REVOLUTION/2;
                         Az %= STEPS_PER_REVOLUTION;
@@ -576,12 +582,12 @@ void NexStarAUXScope::processMsgs(){
                 }
                 break;
             case MC_SLEW_DONE:
-                switch (m->src) {
+                switch (m.src) {
                     case ALT:
-                        slewingAlt=m->data[0]!=0xff;
+                        slewingAlt=m.data[0]!=0xff;
                         break;
                     case AZM:
-                        slewingAz=m->data[0]!=0xff;
+                        slewingAz=m.data[0]!=0xff;
                         break;
                     default: break;
                 }
@@ -590,11 +596,10 @@ void NexStarAUXScope::processMsgs(){
                 break;
         }
         iq.pop();
-        delete m;
     }
 }
 
-
+/*
 void NexStarAUXScope::readMsgs(){
     int n, i;
     unsigned char buf[BUFFER_SIZE];
@@ -621,7 +626,8 @@ void NexStarAUXScope::readMsgs(){
                     //if (DEBUG) prnBytes(buf+i,shft-i);
                     buffer b(buf+i, buf+shft);
                     //if (DEBUG) dumpMsg(b);
-                    iq.push(new AUXCommand(b));
+                    AUXCommand cmd(b);
+                    iq.push(cmd);
                     if (iq.empty()) {
                         fprintf(stderr,"Queue still empty after push!! (i=%d %d/%d)\n", i, shft, n);
                         dumpMsg(b);
@@ -646,6 +652,94 @@ void NexStarAUXScope::readMsgs(){
     }
     //fprintf(stderr,"Nothing more to read\n");
 }
+*/
+
+void NexStarAUXScope::processCmd(AUXCommand &m){
+    if (DEBUG) { fprintf(stderr,"Recv: "); m.dumpCmd(); }
+    if (m.dst == GPS) 
+        emulateGPS(m);
+    else 
+    switch (m.cmd) {
+        case MC_GET_POSITION:
+            switch (m.src) {
+                case ALT:
+                    Alt=m.getPosition();
+                    break;
+                case AZM:
+                    Az=m.getPosition();
+                    // Celestron uses N as zero Azimuth!
+                    Az += STEPS_PER_REVOLUTION/2;
+                    Az %= STEPS_PER_REVOLUTION;
+                    break;
+                default: break;
+            }
+            break;
+        case MC_SLEW_DONE:
+            switch (m.src) {
+                case ALT:
+                    slewingAlt=m.data[0]!=0xff;
+                    break;
+                case AZM:
+                    slewingAz=m.data[0]!=0xff;
+                    break;
+                default: break;
+            }
+            break;
+        default :
+            break;
+    }
+}
+
+void NexStarAUXScope::readMsgs(){
+    int n, i;
+    unsigned char buf[BUFFER_SIZE];
+    AUXCommand cmd;
+    
+    // We are not connected. Nothing to do.
+    if (sock<=0) return;
+    
+    timeval tv;
+    tv.tv_sec=0;
+    tv.tv_usec=50000;
+    setsockopt(sock, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(struct timeval));
+    while((n = recv(sock, buf, sizeof(buf),MSG_DONTWAIT|MSG_PEEK)) > 0) {
+        if (DEBUG) {
+            fprintf(stderr,"Got %d bytes: ", n);
+            for (i=0; i<n; i++) fprintf(stderr,"%02x ", buf[i]);
+            fprintf(stderr,"\n");
+        }
+        for (i=0; i<n; ){
+            //if (DEBUG) fprintf(stderr,"%d ",i);
+            if (buf[i]==0x3b) {
+                int shft;
+                shft=i+buf[i+1]+3;
+                if (shft<=n) {
+                    //if (DEBUG) prnBytes(buf+i,shft-i);
+                    buffer b(buf+i, buf+shft);
+                    //if (DEBUG) dumpMsg(b);
+                    cmd.parseBuf(b);
+                    processCmd(cmd);
+                } else {
+                    fprintf(stderr,"Partial message recv. dropping (i=%d %d/%d)\n", i, shft, n);
+                    prnBytes(buf+i,n-i);
+                    recv(sock, buf, n,MSG_DONTWAIT);
+                    break;
+                }
+                i=shft;
+            } else {
+                i++;
+            }
+        }
+        // Actually consume data we parsed. Leave the rest for later.
+        if (i>0) {
+            n=recv(sock, buf, i,MSG_DONTWAIT);
+            if (DEBUG) fprintf(stderr,"Consumed %d/%d bytes (iq.size=%d)\n", n, i, iq.size());
+                
+        }
+    }
+    //fprintf(stderr,"Nothing more to read\n");
+}
+
 
 int sendBuffer(int sock, buffer buf, long tout_msec){
     if (sock>0) {
@@ -711,7 +805,7 @@ bool NexStarAUXScope::TimerTick(double dt){
     querryStatus();
     //writeMsgs();
     readMsgs();
-    processMsgs();
+    //processMsgs();
     if (DEBUG) {if (debug_timeout<0) {DEBUG=false; debug_timeout=30;} else debug_timeout--;}
     
     if (simulator) {
