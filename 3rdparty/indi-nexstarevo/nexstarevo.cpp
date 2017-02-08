@@ -6,6 +6,7 @@
 #include <sys/time.h>
 #include <time.h>
 
+#include "config.h"
 #include "nexstarevo.h"
 #include <indicom.h>
 
@@ -83,15 +84,15 @@ NexStarEvo::NexStarEvo() :
     DBG_NSEVO(INDI::Logger::getInstance().addDebugLevel("NexStar Evo Verbose", "NSEVO"))
 {
     scope = NULL;
-
+    setVersion(NSEVO_VERSION_MAJOR, NSEVO_VERSION_MINOR);
     SetTelescopeCapability( TELESCOPE_CAN_PARK | 
                             TELESCOPE_CAN_SYNC | 
                             TELESCOPE_CAN_ABORT |
                             TELESCOPE_HAS_TIME |
                             TELESCOPE_HAS_LOCATION, 4);
-    // Approach from the top left 2deg away
-    ApproachALT=1.0*STEPS_PER_DEGREE;
-    ApproachAZ=-1.0*STEPS_PER_DEGREE;
+    // Approach from no further then 2deg away
+    ApproachALT=2.0;
+    ApproachAZ=2.0;
 }
 
 NexStarEvo::~NexStarEvo()
@@ -182,38 +183,14 @@ bool NexStarEvo::UnPark()
 }
 
 
-// TODO: Make adjustment for the approx time it takes to slew to the given pos.
-bool NexStarEvo::Goto(double ra,double dec)
+ln_hrz_posn NexStarEvo::AltAzFromRaDec(double ra, double dec, double ts)
 {
-
-    DEBUGF(DBG_NSEVO, "Goto - Celestial reference frame target right ascension %lf(%lf) declination %lf", ra * 360.0 / 24.0, ra, dec);
-    if (ISS_ON == IUFindSwitch(&CoordSP,"TRACK")->s)
-    {
-        char RAStr[32], DecStr[32];
-        fs_sexa(RAStr, ra, 2, 3600);
-        fs_sexa(DecStr, dec, 2, 3600);
-        CurrentTrackingTarget.ra = ra;
-        CurrentTrackingTarget.dec = dec;
-        NewTrackingTarget = CurrentTrackingTarget;
-        DEBUG(DBG_NSEVO, "Goto - tracking requested");
-    }
-    
-    GoToTarget.ra=ra;
-    GoToTarget.dec=dec;
-
-    double timeshift=0.0;
-    if (ScopeStatus != APPROACH){ 
-        // The scope is not in slow approach mode - target should be modified
-        // for precission approach. We go to the position from some time ago,
-        // to keep the motors going in the same direction as in tracking
-        timeshift = 3.0 / (24.0 *60.0);
-    }
-
     // Call the alignment subsystem to translate the celestial reference frame coordinate
     // into a telescope reference frame coordinate
     TelescopeDirectionVector TDV;
     ln_hrz_posn AltAz;
-    if (TransformCelestialToTelescope(ra, dec, -timeshift, TDV))
+    
+    if (TransformCelestialToTelescope(ra, dec, ts, TDV))
     {
         // The alignment subsystem has successfully transformed my coordinate
         AltitudeAzimuthFromTelescopeDirectionVector(TDV, AltAz);
@@ -238,7 +215,7 @@ bool NexStarEvo::Goto(double ra,double dec)
         EquatorialCoordinates.dec = dec;
         if (HavePosition)
         {
-            ln_get_hrz_from_equ(&EquatorialCoordinates, &Position, ln_get_julian_from_sys() - timeshift, &AltAz);
+            ln_get_hrz_from_equ(&EquatorialCoordinates, &Position, ln_get_julian_from_sys() + ts, &AltAz);
             TDV = TelescopeDirectionVectorFromAltitudeAzimuth(AltAz);
             switch (GetApproximateMountAlignment())
             {
@@ -266,24 +243,69 @@ bool NexStarEvo::Goto(double ra,double dec)
             AltitudeAzimuthFromTelescopeDirectionVector(TDV, AltAz);
         }
     }
+    return AltAz;
+}
 
+
+double anglediff(double a, double b){
+    // Signed angle difference
+    double d;
+    a = fmod(a,360.0);
+    b = fmod(b,360.0);
+    d = fmod(a-b+360.0, 360.0);
+    if (d > 180) d = 360.0 - d;
+    return d*(a - b >= 0 && a - b <= 180) || (a - b <=-180 && a- b>= -360) ? 1 : -1;
+}
+
+// TODO: Make adjustment for the approx time it takes to slew to the given pos.
+bool NexStarEvo::Goto(double ra,double dec)
+{
+
+    DEBUGF(DBG_NSEVO, "Goto - Celestial reference frame target right ascension %lf(%lf) declination %lf", ra * 360.0 / 24.0, ra, dec);
+    if (ISS_ON == IUFindSwitch(&CoordSP,"TRACK")->s)
+    {
+        char RAStr[32], DecStr[32];
+        fs_sexa(RAStr, ra, 2, 3600);
+        fs_sexa(DecStr, dec, 2, 3600);
+        CurrentTrackingTarget.ra = ra;
+        CurrentTrackingTarget.dec = dec;
+        NewTrackingTarget = CurrentTrackingTarget;
+        DEBUG(DBG_NSEVO, "Goto - tracking requested");
+    }
+    
+    GoToTarget.ra=ra;
+    GoToTarget.dec=dec;
+
+    double timeshift=0.0;
     if (ScopeStatus != APPROACH){ 
         // The scope is not in slow approach mode - target should be modified
-        // for precission approach.
-        // TODO: This is simplistic - it should be modified close to the zenith
-        //AltAz.alt+=ApproachALT/STEPS_PER_DEGREE;
-        //AltAz.az+=ApproachAZ/STEPS_PER_DEGREE;
+        // for precission approach. We go to the position from some time ago,
+        // to keep the motors going in the same direction as in tracking
+        timeshift = 3.0 / (24.0 *60.0); // Three minutes worth of tracking
     }
 
-    if (AltAz.az < 0.0)
-    {
-        // Calculated azimuth may be <0 - translate to 0-360 range
-        // of the encoder in the mount
-        AltAz.az += 360.0;
+    // Call the alignment subsystem to translate the celestial reference frame coordinate
+    // into a telescope reference frame coordinate
+    TelescopeDirectionVector TDV;
+    ln_hrz_posn AltAz, trgAltAz;
+    
+    AltAz=AltAzFromRaDec(ra, dec, -timeshift); 
+    
+    // For high Alt azimuth may change very fast. 
+    // Let us limit azimuth approach to ApproachAZ degrees
+    if (ScopeStatus != APPROACH){ 
+        ln_hrz_posn trgAltAz = AltAzFromRaDec(ra, dec, 0);
+        double d = anglediff(trgAltAz.az,AltAz.az);
+        
+        if (abs(d) > ApproachAZ){
+            AltAz.az=trgAltAz.az + (d>0)? ApproachAZ : -ApproachAZ;
+        }
     }
-
-
-    // My altitude encoder runs -90 to +90 there is no point going outside.
+    
+    // Fold Azimuth into 0-360
+    AltAz.az = fmod(AltAz.az, 360.0);
+    
+    // Altitude encoder runs -90 to +90 there is no point going outside.
     if (AltAz.alt > 90.0) AltAz.alt=90.0 ;
     if (AltAz.alt < -90.0) AltAz.alt=-90.0 ;
 

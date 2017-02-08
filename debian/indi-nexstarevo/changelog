@@ -8,8 +8,9 @@ indi-nexstarevo (0.3.0) UNRELEASED; urgency=medium
   * Improved stability (still a bit problematic though)
   * Improved and simplified command processing logic
   * Some code clean up
+  * Limit approach distance for AZ in high Alt
 
- -- Paweł T. Jochym <jochym@mamba.lan>  Wed, 08 Feb 2017 08:35:48 +0100
+ -- Paweł T. Jochym <jochym@wolf.ifj.edu.pl>  Wed, 08 Feb 2017 08:35:48 +0100
 
 indi-nexstarevo (0.2.3) unstable; urgency=low
 

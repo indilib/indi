@@ -26,6 +26,7 @@ protected:
     virtual bool Disconnect();
 
     virtual const char *getDefaultName();
+    virtual ln_hrz_posn AltAzFromRaDec(double ra, double dec, double ts);
 
     virtual bool Sync(double ra, double dec);
     virtual bool Goto(double ra,double dec);
