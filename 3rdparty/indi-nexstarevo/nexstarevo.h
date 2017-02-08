@@ -67,14 +67,14 @@ private:
     double AxisSlewRateALT;
     long CurrentALT;
     long GotoTargetALT;
-    long ApproachALT;
 
     AxisStatus AxisStatusAZ;
     AxisDirection AxisDirectionAZ;
     double AxisSlewRateAZ;
     long CurrentAZ;
     long GotoTargetAZ;
-    long ApproachAZ;
+
+    double maxApproach; // max approach distance
 
     // Previous motion direction
     // TODO: Switch to AltAz from N-S/W-E
@@ -89,6 +89,7 @@ private:
 
     // GoTo
     ln_equ_posn GoToTarget;
+    int slewTicks, maxSlewTicks;
 
     // Tracking
     ln_equ_posn CurrentTrackingTarget;

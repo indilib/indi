@@ -90,9 +90,11 @@ NexStarEvo::NexStarEvo() :
                             TELESCOPE_CAN_ABORT |
                             TELESCOPE_HAS_TIME |
                             TELESCOPE_HAS_LOCATION, 4);
-    // Approach from no further then 2deg away
-    ApproachALT=2.0;
-    ApproachAZ=2.0;
+    // Approach from no further then degs away
+    maxApproach=1.0;
+    
+    // Max ticks before we reissue the goto to update position
+    maxSlewTicks=15;
 }
 
 NexStarEvo::~NexStarEvo()
@@ -254,14 +256,14 @@ double anglediff(double a, double b){
     b = fmod(b,360.0);
     d = fmod(a-b+360.0, 360.0);
     if (d > 180) d = 360.0 - d;
-    return d*(a - b >= 0 && a - b <= 180) || (a - b <=-180 && a- b>= -360) ? 1 : -1;
+    return abs(d)*((a - b >= 0 && a - b <= 180) || (a - b <=-180 && a- b>= -360) ? 1 : -1);
 }
 
 // TODO: Make adjustment for the approx time it takes to slew to the given pos.
 bool NexStarEvo::Goto(double ra,double dec)
 {
 
-    DEBUGF(DBG_NSEVO, "Goto - Celestial reference frame target right ascension %lf(%lf) declination %lf", ra * 360.0 / 24.0, ra, dec);
+    DEBUGF(DBG_NSEVO, "Goto - Celestial reference frame target RA:%lf(%lf h) Dec:%lf", ra * 360.0 / 24.0, ra, dec);
     if (ISS_ON == IUFindSwitch(&CoordSP,"TRACK")->s)
     {
         char RAStr[32], DecStr[32];
@@ -292,24 +294,27 @@ bool NexStarEvo::Goto(double ra,double dec)
     AltAz=AltAzFromRaDec(ra, dec, -timeshift); 
     
     // For high Alt azimuth may change very fast. 
-    // Let us limit azimuth approach to ApproachAZ degrees
+    // Let us limit azimuth approach to maxApproach degrees
     if (ScopeStatus != APPROACH){ 
         ln_hrz_posn trgAltAz = AltAzFromRaDec(ra, dec, 0);
-        double d = anglediff(trgAltAz.az,AltAz.az);
+        double d = anglediff(AltAz.az,trgAltAz.az);
         
-        if (abs(d) > ApproachAZ){
-            AltAz.az=trgAltAz.az + (d>0)? ApproachAZ : -ApproachAZ;
+        DEBUGF(DBG_NSEVO, "Azimuth approach:  %lf (%lf)", d, maxApproach);
+        if (abs(d) > maxApproach){
+            AltAz.az=trgAltAz.az + ((d>0)? maxApproach : -maxApproach);
         }
     }
     
     // Fold Azimuth into 0-360
-    AltAz.az = fmod(AltAz.az, 360.0);
+    if (AltAz.az < 0) AltAz.az += 360.0;
+    if (AltAz.az > 360.0) AltAz.az -= 360.0;
+    // AltAz.az = fmod(AltAz.az, 360.0);
     
     // Altitude encoder runs -90 to +90 there is no point going outside.
     if (AltAz.alt > 90.0) AltAz.alt=90.0 ;
     if (AltAz.alt < -90.0) AltAz.alt=-90.0 ;
 
-    DEBUGF(DBG_NSEVO, "Goto - Scope reference frame target altitude %lf azimuth %lf", AltAz.alt, AltAz.az);
+    DEBUGF(DBG_NSEVO, "Goto: Scope reference frame target altitude %lf azimuth %lf", AltAz.alt, AltAz.az);
 
     TrackState = SCOPE_SLEWING;
     if (ScopeStatus == APPROACH) {
@@ -320,6 +325,7 @@ bool NexStarEvo::Goto(double ra,double dec)
                         ISS_ON == IUFindSwitch(&CoordSP,"TRACK")->s);
     } else {
         // Just make a standard fast slew
+        slewTicks = 0;
         ScopeStatus = SLEWING_FAST;
         scope->GoToFast(long(AltAz.alt * STEPS_PER_DEGREE),
                         long(AltAz.az * STEPS_PER_DEGREE),
@@ -708,8 +714,16 @@ void NexStarEvo::TimerHit()
             break;
 
         case SCOPE_SLEWING:
-            if (scope->slewing())
-                break; // The scope is still slewing
+            if (scope->slewing()) {
+                // The scope is still slewing
+                slewTicks++;
+                if ((ScopeStatus == SLEWING_FAST) && (slewTicks > maxSlewTicks)) {
+                    // Slewing too long, reissue GoTo to update target position
+                    Goto(GoToTarget.ra, GoToTarget.dec);
+                    slewTicks = 0;
+                }
+                break; 
+            }
             else {   
                 // The slew has finished check if that was a coarse slew
                 // or precission approach
@@ -750,6 +764,10 @@ void NexStarEvo::TimerHit()
             TelescopeDirectionVector TDV;
             ln_hrz_posn AltAz, AAzero;
             
+            AltAz=AltAzFromRaDec(CurrentTrackingTarget.ra, CurrentTrackingTarget.dec, JulianOffset);
+            AAzero=AltAzFromRaDec(CurrentTrackingTarget.ra, CurrentTrackingTarget.dec, 0);
+            if (TraceThisTick)
+                DEBUGF(DBG_NSEVO, "Tracking - Calculated Alt %lf deg ; Az %lf deg", AltAz.alt, AltAz.az);
             /* 
             TODO 
             The tracking should take into account movement of the scope
@@ -758,60 +776,11 @@ void NexStarEvo::TimerHit()
             Right now when we move the scope by HC it returns to the
             designated target by corrective tracking.
             */
-            if (TransformCelestialToTelescope(CurrentTrackingTarget.ra, 
-                                                CurrentTrackingTarget.dec,
-                                                JulianOffset, TDV)) {
-                AltitudeAzimuthFromTelescopeDirectionVector(TDV, AltAz);
-                
-                // Just for debugging
-                TransformCelestialToTelescope(CurrentTrackingTarget.ra, 
-                                                CurrentTrackingTarget.dec,
-                                                0, TDV);
-                AltitudeAzimuthFromTelescopeDirectionVector(TDV, AAzero);
-                if (TraceThisTick)
-                    DEBUGF(DBG_NSEVO, "Tracking - Calculated Alt %lf deg ; Az %lf deg", AltAz.alt, AltAz.az);
-            }
-            else {
-                // Try a conversion with the stored observatory position if any
-                bool HavePosition = false;
-                ln_lnlat_posn Position;
-                if ((NULL != IUFindNumber(&LocationNP, "LAT")) && ( 0 != IUFindNumber(&LocationNP, "LAT")->value)
-                    && (NULL != IUFindNumber(&LocationNP, "LONG")) && ( 0 != IUFindNumber(&LocationNP, "LONG")->value))
-                {
-                    // I assume that being on the equator and exactly on the prime meridian is unlikely
-                    Position.lat = IUFindNumber(&LocationNP, "LAT")->value;
-                    Position.lng = IUFindNumber(&LocationNP, "LONG")->value;
-                    HavePosition = true;
-                }
-                struct ln_equ_posn EquatorialCoordinates;
-                // libnova works in decimal degrees
-                EquatorialCoordinates.ra = CurrentTrackingTarget.ra * 360.0 / 24.0;
-                EquatorialCoordinates.dec = CurrentTrackingTarget.dec;
-                if (HavePosition) {
-                    ln_get_hrz_from_equ(&EquatorialCoordinates, &Position,
-                                            ln_get_julian_from_sys() + JulianOffset, &AltAz);
-                    // Just for debugging
-                    ln_get_hrz_from_equ(&EquatorialCoordinates, &Position,
-                                            ln_get_julian_from_sys(), &AAzero);
-                }
-                else
-                {
-                    // No sense in tracking in this case
-                    TrackState = SCOPE_IDLE;
-                    break;
-                }
-                if (TraceThisTick)
-                    DEBUGF(DBG_NSEVO, "Tracking, aligmend failed, Calculated Alt %lf deg ; Az %lf deg", AltAz.alt, AltAz.az);
-            }
 
-
-            if (AltAz.az < 0.0)
-            {
-                // DEBUG(DBG_NSEVO, "TimerHit tracking - Azimuth negative");
-                // Calculated azimuth may be <0 - translate to 0-360 range
-                // of the encoder in the mount
-                AltAz.az += 360.0;
-            }
+            // Fold Azimuth into 0-360
+            if (AltAz.az < 0) AltAz.az += 360.0;
+            if (AltAz.az > 360.0) AltAz.az -= 360.0;
+            //AltAz.az = fmod(AltAz.az, 360.0);
 
             {
                 long altRate, azRate;
