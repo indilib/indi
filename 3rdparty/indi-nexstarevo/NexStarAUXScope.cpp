@@ -125,21 +125,6 @@ unsigned char AUXCommand::checksum(buffer buf){
     //return ((~sum([ord(c) for c in msg]) + 1) ) & 0xFF
 }
 
-// This is probably wrong. The controlers return fraction of the revolution.
-// and it seems to be unsigned
-//long AUXCommand::getPosition(){
-//    if (data.size()==3) {
-//        int a= (int)data[0] << 16 | (int)data[1]<<8 | (int)data[2];
-//        if (data[0] & 0x80) { 
-//            a |= 0xff000000; 
-//        }
-//        //fprintf(stderr,"Angle: %d %08x = %d => %f\n", sizeof(a), a, a, a/pow(2,24));
-//        return a;
-//    } else {
-//        return 0;
-//    }
-//}
-
 // One definition rule (ODR) constants
 // AUX commands use 24bit integer as a representation of angle in units of 
 // fractional revolutions. Thus 2^24 steps makes full revolution.
@@ -558,101 +543,6 @@ void NexStarAUXScope::emulateGPS(AUXCommand &m) {
 
 }
 
-void NexStarAUXScope::processMsgs(){
-    if (DEBUG) fprintf(stderr,"Processing msgs: %d\n", iq.size());
-    while (not iq.empty()) {
-        AUXCommand m=iq.front();
-        if (DEBUG) { fprintf(stderr,"Recv: "); m.dumpCmd(); }
-        if (m.dst == GPS) 
-            emulateGPS(m);
-        else 
-        switch (m.cmd) {
-            case MC_GET_POSITION:
-                switch (m.src) {
-                    case ALT:
-                        Alt=m.getPosition();
-                        break;
-                    case AZM:
-                        Az=m.getPosition();
-                        // Celestron uses N as zero Azimuth!
-                        Az += STEPS_PER_REVOLUTION/2;
-                        Az %= STEPS_PER_REVOLUTION;
-                        break;
-                    default: break;
-                }
-                break;
-            case MC_SLEW_DONE:
-                switch (m.src) {
-                    case ALT:
-                        slewingAlt=m.data[0]!=0xff;
-                        break;
-                    case AZM:
-                        slewingAz=m.data[0]!=0xff;
-                        break;
-                    default: break;
-                }
-                break;
-            default :
-                break;
-        }
-        iq.pop();
-    }
-}
-
-/*
-void NexStarAUXScope::readMsgs(){
-    int n, i;
-    unsigned char buf[BUFFER_SIZE];
-    
-    // We are not connected. Nothing to do.
-    if (sock<=0) return;
-    
-    timeval tv;
-    tv.tv_sec=0;
-    tv.tv_usec=50000;
-    setsockopt(sock, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(struct timeval));
-    while((n = recv(sock, buf, sizeof(buf),MSG_DONTWAIT|MSG_PEEK)) > 0) {
-        if (DEBUG) {
-            fprintf(stderr,"Got %d bytes: ", n);
-            for (i=0; i<n; i++) fprintf(stderr,"%02x ", buf[i]);
-            fprintf(stderr,"\n");
-        }
-        for (i=0; i<n; ){
-            //if (DEBUG) fprintf(stderr,"%d ",i);
-            if (buf[i]==0x3b) {
-                int shft;
-                shft=i+buf[i+1]+3;
-                if (shft<=n) {
-                    //if (DEBUG) prnBytes(buf+i,shft-i);
-                    buffer b(buf+i, buf+shft);
-                    //if (DEBUG) dumpMsg(b);
-                    AUXCommand cmd(b);
-                    iq.push(cmd);
-                    if (iq.empty()) {
-                        fprintf(stderr,"Queue still empty after push!! (i=%d %d/%d)\n", i, shft, n);
-                        dumpMsg(b);
-                    }
-                } else {
-                    fprintf(stderr,"Partial message recv. dropping (i=%d %d/%d)\n", i, shft, n);
-                    prnBytes(buf+i,n-i);
-                    recv(sock, buf, n,MSG_DONTWAIT);
-                    break;
-                }
-                i=shft;
-            } else {
-                i++;
-            }
-        }
-        // Actually consume data we parsed. Leave the rest for later.
-        if (i>0) {
-            n=recv(sock, buf, i,MSG_DONTWAIT);
-            if (DEBUG) fprintf(stderr,"Consumed %d/%d bytes (iq.size=%d)\n", n, i, iq.size());
-                
-        }
-    }
-    //fprintf(stderr,"Nothing more to read\n");
-}
-*/
 
 void NexStarAUXScope::processCmd(AUXCommand &m){
     if (DEBUG) { fprintf(stderr,"Recv: "); m.dumpCmd(); }
@@ -733,7 +623,7 @@ void NexStarAUXScope::readMsgs(){
         // Actually consume data we parsed. Leave the rest for later.
         if (i>0) {
             n=recv(sock, buf, i,MSG_DONTWAIT);
-            if (DEBUG) fprintf(stderr,"Consumed %d/%d bytes (iq.size=%d)\n", n, i, iq.size());
+            if (DEBUG) fprintf(stderr,"Consumed %d/%d bytes \n", n, i);
                 
         }
     }
@@ -765,35 +655,6 @@ bool NexStarAUXScope::sendCmd(AUXCommand &c){
     return sendBuffer(sock, buf, 500)==buf.size();
 }
 
-void NexStarAUXScope::writeMsgs(){
-    fprintf(stderr,"=================  writeMsgs  =====================\n");
-//    buffer buf;
-//    while (not oq.empty()) {
-//        AUXCommand *m=oq.front();
-//        fprintf(stderr,"SEND: ");
-//        m->dumpCmd();
-//        m->fillBuf(buf);
-//        send(sock, buf.data(), buf.size(), 0);
-//        msleep(50);
-//        oq.pop();
-//        delete m;
-//    }
-//    return;
-//    /*
-//    if (sock<3) return;
-//    fprintf(stderr,"Sending get position\n");
-//    buffer buf;
-//    AUXCommand getALT(MC_GET_POSITION,APP,ALT);
-//    AUXCommand getAZM(MC_GET_POSITION,APP,AZM);
-//    getALT.fillBuf(buf);
-//    //fprintf(stderr,"buffer size: %d\n",buf.size());
-//    //dumpMsg(buf);
-//    send(sock, buf.data(), buf.size(), 0);
-//    getAZM.fillBuf(buf);
-//    //dumpMsg(buf);
-//    send(sock, buf.data(), buf.size(), 0);
-//    */
-}
 
 int debug_timeout=30;
 

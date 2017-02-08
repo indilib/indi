@@ -26,10 +26,13 @@ async def broadcast(sport=2000, dport=55555, host='255.255.255.255', seconds_to_
     telescope.print_msg('Stopping broadcast')
 
 async def timer(seconds_to_sleep=1,telescope=None):
+    from time import time
+    t=time()
     while True :
         await asyncio.sleep(seconds_to_sleep)
         if telescope : 
-            telescope.tick(seconds_to_sleep)
+            telescope.tick(time()-t)
+        t=time()
 
 async def handle_port2000(reader, writer):
     '''

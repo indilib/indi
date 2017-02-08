@@ -102,9 +102,7 @@ private:
     void closeConnection();
     void emulateGPS(AUXCommand &m);
     void readMsgs();
-    void processMsgs();
     void processCmd(AUXCommand &cmd);
-    void writeMsgs();
     void querryStatus();
     bool sendCmd(AUXCommand &c);
     double Lat, Lon, Elv;
@@ -120,7 +118,6 @@ private:
     int sock;
     struct sockaddr_in addr;
     bool simulator=false;
-    std::queue<AUXCommand> iq, oq;
 };
 
 

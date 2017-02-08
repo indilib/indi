@@ -62,7 +62,13 @@ const double NexStarEvo::STEPS_PER_DEGREE = STEPS_PER_REVOLUTION / 360.0;
 const double NexStarEvo::DEFAULT_SLEW_RATE = STEPS_PER_DEGREE * 2.0;
 const long NexStarEvo::MAX_ALT = 90.0 * STEPS_PER_DEGREE;
 const long NexStarEvo::MIN_ALT = -90.0 * STEPS_PER_DEGREE;
-const double NexStarEvo::TRACK_SCALE = 1.26;
+
+// The guide rate is probably (???) measured in 1000 arcmin/min
+// This is based on experimentation and guesswork.
+// The rate is calculated in steps/min - thus conversion is required.
+// The best experimental value was 1.315 which is quite close
+// to 60000/STEPS_PER_DEGREE = 1.2874603271484375.
+const double NexStarEvo::TRACK_SCALE = 60000 / STEPS_PER_DEGREE;
 
 NexStarEvo::NexStarEvo() : 
     AxisStatusAZ(STOPPED), AxisDirectionAZ(FORWARD),
@@ -520,7 +526,7 @@ bool NexStarEvo::ReadScopeStatus()
     // libnova indexes Az from south while Celestron controllers index from north
     // Never mix two controllers/drivers they will never agree perfectly.
     // Furthermore the celestron hand controler resets the position encoders
-    // on alignment and this will mess-up all arientation in the driver.
+    // on alignment and this will mess-up all orientation in the driver.
     // Here we are not attempting to make the driver agree with the hand
     // controller (That would involve adding 180deg here to the azimuth -
     // this way the celestron nexstar driver and this would agree in some
@@ -718,7 +724,6 @@ void NexStarEvo::TimerHit()
         {
             // Continue or start tracking
             // Calculate where the mount needs to be in a minute
-            // TODO may need to make this better defined
             double JulianOffset = 60.0 / (24.0 * 60 * 60); 
             TelescopeDirectionVector TDV;
             ln_hrz_posn AltAz, AAzero;
@@ -774,7 +779,7 @@ void NexStarEvo::TimerHit()
                     break;
                 }
                 if (TraceThisTick)
-                    DEBUGF(DBG_NSEVO, "Tracking, aligmend failed, Clculated Alt %lf deg ; Az %lf deg", AltAz.alt, AltAz.az);
+                    DEBUGF(DBG_NSEVO, "Tracking, aligmend failed, Calculated Alt %lf deg ; Az %lf deg", AltAz.alt, AltAz.az);
             }
 
 
@@ -788,8 +793,10 @@ void NexStarEvo::TimerHit()
 
             {
                 long altRate, azRate;
-                altRate=long(TRACK_SCALE*(AltAz.alt * STEPS_PER_DEGREE - scope->GetALT()));
-                azRate=long(TRACK_SCALE*(AltAz.az * STEPS_PER_DEGREE - scope->GetAZ()));
+                
+                // This is in steps per minute
+                altRate=long(AltAz.alt * STEPS_PER_DEGREE - scope->GetALT());
+                azRate=long(AltAz.az * STEPS_PER_DEGREE - scope->GetAZ());
 
                 if (TraceThisTick) 
                     DEBUGF(DBG_NSEVO, "Target (AltAz): %f  %f  Scope  (AltAz)  %f  %f", 
@@ -798,11 +805,18 @@ void NexStarEvo::TimerHit()
                         scope->GetALT()/ STEPS_PER_DEGREE,
                         scope->GetAZ()/ STEPS_PER_DEGREE);
                 
-                if (abs(azRate)>TRACK_SCALE*STEPS_PER_DEGREE*180) {
+                if (abs(azRate) > STEPS_PER_REVOLUTION/2) {
                     // Crossing the meridian. AZ skips from 350+ to 0+
                     // Correct for wrap-around
-                    azRate+=TRACK_SCALE*STEPS_PER_DEGREE*360;
+                    azRate += STEPS_PER_REVOLUTION;
+                    if (azRate > STEPS_PER_REVOLUTION) azRate %= STEPS_PER_REVOLUTION;
                 }
+                
+                // Track function needs rates in 1000*arcmin/minute
+                // Rates here are in steps/minute
+                // conv. factor: TRACK_SCALE = 60000/STEPS_PER_DEGREE
+                altRate=long(TRACK_SCALE*altRate);
+                azRate=long(TRACK_SCALE*azRate);
                 scope->Track(altRate,azRate);
 
                 if (TraceThisTick) DEBUGF(DBG_NSEVO, "TimerHit - Tracking AltRate %d AzRate %d ; Pos diff (deg): Alt: %f Az: %f",

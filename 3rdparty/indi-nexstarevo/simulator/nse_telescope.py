@@ -363,7 +363,8 @@ class NexStarScope:
         return bytes.fromhex('1685')
 
     def set_pos_guiderate(self, data, snd, rcv):
-        a=unpack_int3(data)/60 # (transform to rot/sec)
+        # The 1.1 factor is experimental to fit the actual hardware
+        a=1.1*(2**24/1000/360/60/60)*unpack_int3(data) # (transform to rot/sec)
         self.guiding = a>0
         if trg_names[rcv] == 'ALT':
             self.alt_guiderate=a
@@ -372,7 +373,8 @@ class NexStarScope:
         return b''
 
     def set_neg_guiderate(self, data, snd, rcv):
-        a=unpack_int3(data)/60 # (transform to rot/sec)
+        # The 1.1 factor is experimental to fit the actual hardware
+        a=1.1*(2**24/1000/360/60/60)*unpack_int3(data) # (transform to rot/sec)
         self.guiding = a>0
         if trg_names[rcv] == 'ALT':
             self.alt_guiderate=-a
