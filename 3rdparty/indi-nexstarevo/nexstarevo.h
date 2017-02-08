@@ -74,7 +74,7 @@ private:
     long CurrentAZ;
     long GotoTargetAZ;
 
-    double maxApproach; // max approach distance
+    double Approach; // approach distance
 
     // Previous motion direction
     // TODO: Switch to AltAz from N-S/W-E

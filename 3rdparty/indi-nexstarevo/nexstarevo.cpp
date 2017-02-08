@@ -91,7 +91,7 @@ NexStarEvo::NexStarEvo() :
                             TELESCOPE_HAS_TIME |
                             TELESCOPE_HAS_LOCATION, 4);
     // Approach from no further then degs away
-    maxApproach=1.0;
+    Approach=1.0;
     
     // Max ticks before we reissue the goto to update position
     maxSlewTicks=15;
@@ -297,12 +297,15 @@ bool NexStarEvo::Goto(double ra,double dec)
     // Let us limit azimuth approach to maxApproach degrees
     if (ScopeStatus != APPROACH){ 
         ln_hrz_posn trgAltAz = AltAzFromRaDec(ra, dec, 0);
-        double d = anglediff(AltAz.az,trgAltAz.az);
+        double d;
         
-        DEBUGF(DBG_NSEVO, "Azimuth approach:  %lf (%lf)", d, maxApproach);
-        if (abs(d) > maxApproach){
-            AltAz.az=trgAltAz.az + ((d>0)? maxApproach : -maxApproach);
-        }
+        d = anglediff(AltAz.az,trgAltAz.az);
+        DEBUGF(DBG_NSEVO, "Azimuth approach:  %lf (%lf)", d, Approach);
+        AltAz.az=trgAltAz.az + ((d>0)? Approach : -Approach);
+        
+        d = anglediff(AltAz.alt,trgAltAz.alt);
+        DEBUGF(DBG_NSEVO, "Altitude approach:  %lf (%lf)", d, Approach);
+        AltAz.alt=trgAltAz.alt + ((d>0)? Approach : -Approach);
     }
     
     // Fold Azimuth into 0-360
