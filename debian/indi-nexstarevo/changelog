@@ -1,4 +1,4 @@
-indi-nexstarevo (0.3.0) UNRELEASED; urgency=medium
+indi-nexstarevo (0.3.0) unstable; urgency=medium
 
   * Much better tracking performance
   * Always approach from the direction of tracking
@@ -11,7 +11,7 @@ indi-nexstarevo (0.3.0) UNRELEASED; urgency=medium
   * Constant approach distance on encoders
   * Periodically update target position on long goto
 
- -- Paweł T. Jochym <jochym@wolf.ifj.edu.pl>  Wed, 08 Feb 2017 08:35:48 +0100
+ -- Paweł T. Jochym <jochym@wolf.ifj.edu.pl>  Wed, 08 Feb 2017 20:13:35 +0100
 
 indi-nexstarevo (0.2.3) unstable; urgency=low
 
