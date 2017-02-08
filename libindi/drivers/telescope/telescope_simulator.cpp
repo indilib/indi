@@ -232,31 +232,11 @@ bool ScopeSim::updateProperties()
     return true;
 }
 
-bool ScopeSim::Connect()
-{
-    bool rc=false;
-
-    if(isConnected()) return true;
-
-    rc=Connect(PortT[0].text, atoi(IUFindOnSwitch(&BaudRateSP)->name));
-
-    if(rc)
-        SetTimer(POLLMS);
-
-    return rc;
-}
-
 bool ScopeSim::Connect(const char *port, uint32_t baud)
 {
    DEBUGF(INDI::Logger::DBG_SESSION, "Simulating connecting to port %s with speed %d", port, baud);
    DEBUG(INDI::Logger::DBG_SESSION, "Telescope simulator is online.");
    return true;
-}
-
-bool ScopeSim::Disconnect()
-{
-    DEBUG(INDI::Logger::DBG_SESSION, "Telescope simulator is offline.");
-    return true;
 }
 
 bool ScopeSim::ReadScopeStatus()

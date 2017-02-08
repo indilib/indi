@@ -30,9 +30,7 @@ public:
     LX200_10MICRON(void);
     ~LX200_10MICRON(void) {}
 
-    virtual const char *getDefaultName(void);
-    virtual bool Connect(void);
-    virtual bool Disconnect(void);
+    virtual const char *getDefaultName(void);    
     virtual bool initProperties(void);
     virtual void ISGetProperties (const char *dev);
     virtual bool updateProperties(void);
@@ -43,17 +41,7 @@ protected:
 
 private:
 
-    // IP Address/Port
-    ITextVectorProperty AddressTP;
-    IText AddressT[2];
-
-    int sockfd = -1;
-
-    virtual bool ConnectTCP(void);
     bool getMountInfo(void);
-
-    static const int SocketTimeout;
-    static const int Pollms;
 };
 
 #endif

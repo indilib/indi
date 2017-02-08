@@ -15,13 +15,20 @@
  the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
  Boston, MA 02110-1301, USA.
 *******************************************************************************/
-#include <stdlib.h>
 #include <wordexp.h>
+#include <stdlib.h>
+#include <stdio.h>
+#include <string.h>
+#include <unistd.h>
+#include <sys/ioctl.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <netdb.h>
+#include <fcntl.h>
 
 #include "inditelescope.h"
 #include "indicom.h"
-
-#define POLLMS 1000
 
 INDI::Telescope::Telescope()
 {
@@ -54,6 +61,11 @@ bool INDI::Telescope::initProperties()
     IUFillText(&ActiveDeviceT[0],"ACTIVE_GPS","GPS","GPS Simulator");
     IUFillText(&ActiveDeviceT[1],"ACTIVE_DOME","DOME","Dome Simulator");
     IUFillTextVector(&ActiveDeviceTP,ActiveDeviceT,2,getDeviceName(),"ACTIVE_DEVICES","Snoop devices",OPTIONS_TAB,IP_RW,60,IPS_IDLE);
+
+    // Address/Port
+    IUFillText(&AddressT[0], "ADDRESS", "Address", "");
+    IUFillText(&AddressT[1], "PORT",    "Port",    "");
+    IUFillTextVector(&AddressTP, AddressT, 2, getDeviceName(), "TCP_ADDRESS_PORT", "TCP Server", OPTIONS_TAB, IP_RW, 60, IPS_IDLE);
 
     // Use locking if dome is closed (and or) park scope if dome is closing
     IUFillSwitch(&DomeClosedLockT[0],"NO_ACTION","Ignore dome",ISS_ON);
@@ -155,6 +167,9 @@ void INDI::Telescope::ISGetProperties (const char *dev)
 
     defineSwitch(&BaudRateSP);
     loadConfig(true, "TELESCOPE_BAUD_RATE");
+
+    defineText(&AddressTP);
+    loadConfig(true, "TCP_IP_ADDRESS");
 
     defineText(&ActiveDeviceTP);
     loadConfig(true, "ACTIVE_DEVICES");
@@ -378,6 +393,9 @@ bool INDI::Telescope::saveConfigItems(FILE *fp)
     IUSaveConfigSwitch(fp, &DomeClosedLockTP);
     IUSaveConfigText(fp, &PortTP);
     IUSaveConfigSwitch(fp, &BaudRateSP);
+    // Exists and not empty
+    if (AddressT[0].text && AddressT[0].text[0] && AddressT[1].text && AddressT[1].text[0])
+        IUSaveConfigText(fp, &AddressTP);
     if (HasLocation())
         IUSaveConfigNumber(fp,&LocationNP);
     IUSaveConfigNumber(fp, &ScopeParametersNP);
@@ -455,7 +473,6 @@ bool INDI::Telescope::ISNewText (const char *dev, const char *name, char *texts[
     //  first check if it's for our device
     if(!strcmp(dev,getDeviceName()))
     {
-
         if(!strcmp(name,PortTP.name))
         {
             //  This is our port, so, lets process it
@@ -468,28 +485,38 @@ bool INDI::Telescope::ISNewText (const char *dev, const char *name, char *texts[
             return true;
         }
 
-      if(!strcmp(name,TimeTP.name))
-      {
-        int utcindex   = IUFindIndex("UTC", names, n);
-        int offsetindex= IUFindIndex("OFFSET", names, n);
+        // TCP Server settings
+        if (!strcmp(name, AddressTP.name))
+        {
+            IUUpdateText(&AddressTP, texts, names, n);
+            AddressTP.s = IPS_OK;
+            IDSetText(&AddressTP, NULL);
+            return true;
+        }
 
-        return processTimeInfo(texts[utcindex], texts[offsetindex]);
-      }
 
-      if(!strcmp(name,ActiveDeviceTP.name))
-      {
-          ActiveDeviceTP.s=IPS_OK;
-          IUUpdateText(&ActiveDeviceTP,texts,names,n);
-          //  Update client display
-          IDSetText(&ActiveDeviceTP,NULL);
+        if(!strcmp(name,TimeTP.name))
+        {
+            int utcindex   = IUFindIndex("UTC", names, n);
+            int offsetindex= IUFindIndex("OFFSET", names, n);
 
-          IDSnoopDevice(ActiveDeviceT[0].text,"GEOGRAPHIC_COORD");
-          IDSnoopDevice(ActiveDeviceT[0].text,"TIME_UTC");
+            return processTimeInfo(texts[utcindex], texts[offsetindex]);
+        }
 
-          IDSnoopDevice(ActiveDeviceT[1].text,"DOME_PARK");
-          IDSnoopDevice(ActiveDeviceT[1].text,"DOME_SHUTTER");
-          return true;
-      }
+        if(!strcmp(name,ActiveDeviceTP.name))
+        {
+            ActiveDeviceTP.s=IPS_OK;
+            IUUpdateText(&ActiveDeviceTP,texts,names,n);
+            //  Update client display
+            IDSetText(&ActiveDeviceTP,NULL);
+
+            IDSnoopDevice(ActiveDeviceT[0].text,"GEOGRAPHIC_COORD");
+            IDSnoopDevice(ActiveDeviceT[0].text,"TIME_UTC");
+
+            IDSnoopDevice(ActiveDeviceT[1].text,"DOME_PARK");
+            IDSnoopDevice(ActiveDeviceT[1].text,"DOME_SHUTTER");
+            return true;
+        }
 
     }
 
@@ -959,13 +986,17 @@ bool INDI::Telescope::Connect()
 {
     bool rc=false;
 
-    if(isConnected())
+    if(isConnected() || isSimulation())
         return true;
 
-    rc=Connect(PortT[0].text, atoi(IUFindOnSwitch(&BaudRateSP)->name));
+    // Check if TCP Address exists and not empty
+    if (AddressT[0].text && AddressT[0].text[0] && AddressT[1].text && AddressT[1].text[0])
+        rc = Connect(AddressT[0].text, AddressT[1].text);
+    else
+        rc = Connect(PortT[0].text, atoi(IUFindOnSwitch(&BaudRateSP)->name));
 
     if(rc)
-        SetTimer(POLLMS);
+        SetTimer(updatePeriodMS);
     return rc;
 }
 
@@ -1008,12 +1039,75 @@ bool INDI::Telescope::Connect(const char *port, uint32_t baud)
     return false;
 }
 
+bool INDI::Telescope::Connect(const char *hostname, const char *port)
+{
+    if (sockfd != -1)
+        close(sockfd);
+
+    struct timeval ts;
+    ts.tv_sec = SOCKET_TIMEOUT;
+    ts.tv_usec=0;
+
+    DEBUGF(INDI::Logger::DBG_SESSION, "Connecting to %s@%s ...", hostname, port);
+
+    struct sockaddr_in serv_addr;
+    struct hostent *hp = NULL;
+    int ret = 0;
+
+    // Lookup host name or IPv4 address
+    hp = gethostbyname(hostname);
+    if (!hp)
+    {
+        DEBUG(INDI::Logger::DBG_ERROR, "Failed to lookup IP Address or hostname.");
+        return false;
+    }
+
+    memset (&serv_addr, 0, sizeof(serv_addr));
+    serv_addr.sin_family = AF_INET;
+    serv_addr.sin_addr.s_addr = ((struct in_addr *)(hp->h_addr_list[0]))->s_addr;
+    serv_addr.sin_port = htons(atoi(port));
+
+    if ((sockfd = socket(AF_INET, SOCK_STREAM, 0)) < 0)
+    {
+        DEBUG(INDI::Logger::DBG_ERROR, "Failed to create socket.");
+        return false;
+    }
+
+    // Connect to the mount
+    if ( (ret = ::connect (sockfd,(struct sockaddr *)&serv_addr,sizeof(serv_addr))) < 0)
+    {
+        DEBUGF(INDI::Logger::DBG_ERROR, "Failed to connect to mount %s@%s: %s.", hostname, port, strerror(errno));
+        close(sockfd);
+        sockfd=-1;
+        return false;
+    }
+
+    // Set the socket receiving and sending timeouts
+    setsockopt(sockfd, SOL_SOCKET, SO_RCVTIMEO, (char *)&ts,sizeof(struct timeval));
+    setsockopt(sockfd, SOL_SOCKET, SO_SNDTIMEO, (char *)&ts,sizeof(struct timeval));
+
+    DEBUGF(INDI::Logger::DBG_SESSION, "Connected successfuly to %s.", getDeviceName());
+
+    // now let the rest of INDI::Telescope use our socket as if it were a serial port
+    PortFD = sockfd;
+
+    return true;
+}
+
 bool INDI::Telescope::Disconnect()
 {
-    DEBUG(Logger::DBG_DEBUG, "INDI::Telescope Disconnect\n");
-
-    tty_disconnect(PortFD);
     DEBUG(Logger::DBG_SESSION,"Telescope is offline.");
+
+    if (isSimulation())
+        return true;
+
+    if (sockfd != -1)
+    {
+        close(sockfd);
+        sockfd = -1;
+    }
+    else
+        tty_disconnect(PortFD);
 
     return true;
 }
@@ -1034,7 +1128,7 @@ void INDI::Telescope::TimerHit()
             IDSetNumber(&EqNP, NULL);
         }
 
-        SetTimer(POLLMS);
+        SetTimer(updatePeriodMS);
     }
 }
 

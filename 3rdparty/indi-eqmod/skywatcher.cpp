@@ -26,9 +26,15 @@
 #include <sys/time.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <sys/socket.h>
+#include <sys/ioctl.h>
+#include <netinet/in.h>
 #include <termios.h>
 #include <memory>
 #include <wordexp.h>
+#include <netdb.h>
+#include <fcntl.h>
+
 
 #include <libnova.h>
 
@@ -125,6 +131,79 @@ bool Skywatcher::Connect(const char *port, uint32_t baud)  throw (EQModError)
   return true;
 }
 
+bool Skywatcher::Connect(const char *hostname, const char *port) throw (EQModError)
+{
+    unsigned long tmpMCVersion=0;
+  #ifdef WITH_SIMULATOR
+    if (!(isSimulation())) {
+  #endif
+        if (sockfd != -1)
+            close(sockfd);
+
+        struct timeval ts;
+        ts.tv_sec =5;
+        ts.tv_usec=0;
+
+        struct sockaddr_in serv_addr;
+        struct hostent *hp = NULL;
+        int ret = 0;
+
+        // Lookup host name or IPv4 address
+        hp = gethostbyname(hostname);
+        if (!hp)
+        {
+            throw EQModError(EQModError::ErrDisconnect, "Failed to lookup IP Address or hostname.");
+            return false;
+        }
+
+        memset (&serv_addr, 0, sizeof(serv_addr));
+        serv_addr.sin_family = AF_INET;
+        serv_addr.sin_addr.s_addr = ((struct in_addr *)(hp->h_addr_list[0]))->s_addr;
+        serv_addr.sin_port = htons(atoi(port));
+
+        if ((sockfd = socket(AF_INET, SOCK_STREAM, 0)) < 0)
+        {
+            throw EQModError(EQModError::ErrDisconnect, "Failed to create socket.");
+            return false;
+        }
+
+        // Connect to the mount
+        if ( (ret = ::connect (sockfd,(struct sockaddr *)&serv_addr,sizeof(serv_addr))) < 0)
+        {
+            throw EQModError(EQModError::ErrDisconnect, "Failed to connect to mount %s@%s: %s.",
+                     hostname, port, strerror(errno));
+            close(sockfd);
+            sockfd=-1;
+            return false;
+        }
+
+        // Set the socket receiving and sending timeouts
+        setsockopt(sockfd, SOL_SOCKET, SO_RCVTIMEO, (char *)&ts,sizeof(struct timeval));
+        setsockopt(sockfd, SOL_SOCKET, SO_SNDTIMEO, (char *)&ts,sizeof(struct timeval));
+
+        // now let the rest of INDI::Telescope use our socket as if it were a serial port
+        fd = sockfd;
+  #ifdef WITH_SIMULATOR
+    } else {
+      telescope->simulator->Connect();
+    }
+  #endif
+    dispatch_command(InquireMotorBoardVersion, Axis1, NULL);
+    read_eqmod();
+    tmpMCVersion=Revu24str2long(response+1);
+    MCVersion = ((tmpMCVersion & 0xFF) << 16) | ((tmpMCVersion & 0xFF00)) | ((tmpMCVersion & 0xFF0000) >> 16);
+    MountCode=MCVersion & 0xFF;
+    /* Check supported mounts here */
+    if ((MountCode == 0x80) || (MountCode == 0x81) /*|| (MountCode == 0x82)*/ || (MountCode == 0x90)) {
+
+      throw EQModError(EQModError::ErrDisconnect, "Mount not supported: mount code 0x%x (0x80=GT, 0x81=MF, 0x82=114GT, 0x90=DOB)",
+               MountCode);
+      return false;
+    }
+
+    return true;
+
+}
 
 bool Skywatcher::Disconnect() throw (EQModError)
 {
@@ -141,7 +220,13 @@ bool Skywatcher::Disconnect() throw (EQModError)
 #ifdef WITH_SIMULATOR
   if (!isSimulation()) {
 #endif
-  tty_disconnect(fd);
+  if (sockfd != -1)
+  {
+      close(sockfd);
+      sockfd=-1;
+  }
+  else
+      tty_disconnect(fd);
   fd=-1;
 #ifdef WITH_SIMULATOR
     }
