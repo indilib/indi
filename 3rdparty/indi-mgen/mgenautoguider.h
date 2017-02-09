@@ -128,11 +128,13 @@ protected:
 
 protected:
     int queryDevice( enum CommandByte commandByte, char * buffer, int buffer_len, int * io_len );
-    int getOpModeBaudRate( enum MGenAutoguider::OpMode ) const;
     unsigned char getOpCode( enum MGenAutoguider::CommandByte );
-    bool verifyOpCode(enum CommandByte commandByte, char const *buffer, int bytes_read);
+    bool verifyOpCode(enum CommandByte commandByte, unsigned char const *buffer, int bytes_read);
     int const getOpCodeAnswerLength( enum CommandByte command ) const;
-    char const * const getOpCodeString( enum MGenAutoguider::CommandByte ) const;
+    char const * const getOpCodeString(enum CommandByte) const;
+    char const * const getOpModeString(enum OpMode) const;
+    int heartbeat(struct ftdi_context * const ftdi);
+    int setOpModeBaudRate(struct ftdi_context * const ftdi, enum MGenAutoguider::OpMode const mode);
 };
 
 #endif // MGENAUTOGUIDER_H
