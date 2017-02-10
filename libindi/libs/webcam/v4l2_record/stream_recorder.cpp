@@ -217,6 +217,7 @@ void StreamRecorder::newFrame()
 void StreamRecorder::setRecorderSize(uint16_t width, uint16_t height)
 {
     recorder->setSize(width, height);
+    recorder->setFrame(0,0, width, height);
 
     int binFactor=1;
     if (ccd->PrimaryCCD.getNAxis() == 2)
@@ -227,8 +228,10 @@ void StreamRecorder::setRecorderSize(uint16_t width, uint16_t height)
     StreamFrameN[CCDChip::FRAME_Y].value = 0;
     StreamFrameN[CCDChip::FRAME_Y].max   = height-1;
     StreamFrameN[CCDChip::FRAME_W].value = width/binFactor;
+    StreamFrameN[CCDChip::FRAME_W].min   = 10;
     StreamFrameN[CCDChip::FRAME_W].max   = width;
     StreamFrameN[CCDChip::FRAME_H].value = height/binFactor;
+    StreamFrameN[CCDChip::FRAME_H].min   = 10;
     StreamFrameN[CCDChip::FRAME_H].max   = height;
 
     IUUpdateMinMax(&StreamFrameNP);
@@ -688,6 +691,9 @@ bool StreamRecorder::ISNewNumber (const char *dev, const char *name, double valu
         if (StreamFrameN[CCDChip::FRAME_Y].value + StreamFrameN[CCDChip::FRAME_H].value > subH)
             StreamFrameN[CCDChip::FRAME_H].value = subH - StreamFrameN[CCDChip::FRAME_Y].value;
 
+        recorder->setFrame(StreamFrameN[CCDChip::FRAME_X].value, StreamFrameN[CCDChip::FRAME_Y].value,
+                          StreamFrameN[CCDChip::FRAME_W].value, StreamFrameN[CCDChip::FRAME_H].value);
+
         IDSetNumber(&StreamFrameNP, NULL);
         return true;
     }
@@ -734,6 +740,8 @@ bool StreamRecorder::setStream(bool enable)
             is_streaming=true;
             IUResetSwitch(&StreamSP);
             StreamS[0].s = ISS_ON;
+
+            recorder->setStreamEnabled(true);
         }
     }
     else
@@ -758,6 +766,8 @@ bool StreamRecorder::setStream(bool enable)
             IUResetSwitch(&StreamSP);
             StreamS[1].s = ISS_ON;
             is_streaming=false;
+
+            recorder->setStreamEnabled(false);
         }
     }
 

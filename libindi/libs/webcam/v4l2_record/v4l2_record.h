@@ -56,6 +56,8 @@ public:
     virtual bool setPixelFormat(uint32_t pixformat)=0;
     // set image size in pixels
     virtual bool setSize(uint16_t width, uint16_t height)=0;
+    // Set subframe frame dimensions that gets recorded
+    virtual bool setFrame(uint16_t x, uint16_t y, uint16_t width, uint16_t height)=0;
     virtual bool open(const char *filename, char *errmsg)=0;
     virtual bool close()=0;
     // when frame is in known encoding format
@@ -68,6 +70,10 @@ public:
     virtual void setDefaultMono()=0;
     // prepare to write RGB24 frame
     virtual void setDefaultColor()=0;
+    // If streaming is enabled, then any subframing is already done by the stream recorder
+    // and no need to do any further subframing operations. Otherwise, subframing must be done.
+    // This is to reduce process time and save memory for a dedicated subframe buffer
+    virtual void setStreamEnabled(bool enable)=0;
 
 protected:
     const char *name;

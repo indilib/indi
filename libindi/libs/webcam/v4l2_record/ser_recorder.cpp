@@ -32,8 +32,8 @@
 
 #define ERRMSGSIZ	1024
 
-SER_Recorder::SER_Recorder() {
-  useSER_V3=true;
+SER_Recorder::SER_Recorder()
+{
   name="SER File Recorder";
   strncpy(serh.FileID, "LUCAM-RECORDER", 14);
   strncpy(serh.Observer,  "                        Unknown Observer", 40);
@@ -44,7 +44,7 @@ SER_Recorder::SER_Recorder() {
     serh.LittleEndian=SER_LITTLE_ENDIAN;
   else
     serh.LittleEndian=SER_BIG_ENDIAN;
-  streaming_active=false;
+  isRecordingActive=false;
 }
 
 SER_Recorder::~SER_Recorder() {
@@ -196,12 +196,10 @@ bool SER_Recorder::setPixelFormat(unsigned int format) { // V4L2_PIX_FMT used wh
     return true;
 #endif
   case V4L2_PIX_FMT_RGB24:
-    if (!useSER_V3) return false;
     number_of_planes=3;
     serh.ColorID=SER_RGB;
     return true;
   case V4L2_PIX_FMT_BGR24:
-    if (!useSER_V3) return false;
     number_of_planes=3;
     serh.ColorID=SER_BGR;
     return true;
@@ -211,16 +209,31 @@ bool SER_Recorder::setPixelFormat(unsigned int format) { // V4L2_PIX_FMT used wh
 
 }
 
-bool SER_Recorder::setSize(uint16_t width, uint16_t height) {
-  if (streaming_active) return false;
-  serh.ImageWidth=width;
-  serh.ImageHeight=height;
-  //IDLog("recorder: setsize %dx%d\n", serh.ImageWidth, serh.ImageHeight);
+bool SER_Recorder::setFrame(uint16_t x, uint16_t y, uint16_t width, uint16_t height)
+{
+    if (isRecordingActive)
+        return false;
+
+    offsetX = x;
+    offsetY = y;
+    serh.ImageWidth=width;
+    serh.ImageHeight=height;
+
+    return true;
+}
+
+bool SER_Recorder::setSize(uint16_t width, uint16_t height)
+{
+  if (isRecordingActive)
+      return false;
+
+  rawWidth = width;
+  rawHeight= height;
   return true;
 }
 
 bool SER_Recorder::open(const char *filename, char *errmsg) {
-  if (streaming_active) return false;
+  if (isRecordingActive) return false;
   serh.FrameCount = 0;
   if ((f=fopen(filename, "w")) == NULL) {
     snprintf(errmsg, ERRMSGSIZ, "recorder open error %d, %s\n", errno, strerror (errno));
@@ -231,7 +244,7 @@ bool SER_Recorder::open(const char *filename, char *errmsg) {
   serh.DateTime_UTC = getUTCTimeStamp();
   write_header(&serh);
   frame_size=serh.ImageWidth * serh.ImageHeight * (serh.PixelDepth <= 8 ? 1 : 2) * number_of_planes;
-  streaming_active = true;
+  isRecordingActive = true;
 
   frameStamps.clear();
 
@@ -252,13 +265,13 @@ bool SER_Recorder::close() {
       fclose(f);
   }
 
-  streaming_active = false;
+  isRecordingActive = false;
   return true;
 }
 
 bool SER_Recorder::writeFrame(unsigned char *frame)
 {
-  if (!streaming_active)
+  if (!isRecordingActive)
       return false;
 
   frameStamps.push_back(getUTCTimeStamp());
@@ -272,13 +285,41 @@ bool SER_Recorder::writeFrame(unsigned char *frame)
 // ajouter une gestion plus fine du mode par defaut
 // setMono/setColor appelee par ImageTypeSP
 // setPixelDepth si Mono16
-bool SER_Recorder::writeFrameMono(unsigned char *frame) {
+bool SER_Recorder::writeFrameMono(unsigned char *frame)
+{
+    if (isStreamingActive == false && (offsetX > 0 || offsetY > 0 || serh.ImageWidth != rawWidth || serh.ImageHeight != rawHeight))
+    {
+        int offset = ((rawWidth * offsetY) + offsetX);
+
+        uint8_t *srcBuffer = frame + offset;
+        uint8_t *destBuffer= frame;
+        int imageWidth = serh.ImageWidth;
+        int imageHeight= serh.ImageHeight;
+
+        for (int i=0; i < imageHeight; i++)
+            memcpy(destBuffer + i * imageWidth, srcBuffer + rawWidth * i, imageWidth);
+    }
+
   return writeFrame(frame);
 }
 
-bool SER_Recorder::writeFrameColor(unsigned char *frame) {
-  if (useSER_V3) return writeFrame(frame);
-  return false;
+bool SER_Recorder::writeFrameColor(unsigned char *frame)
+{
+    if (isStreamingActive == false && (offsetX > 0 || offsetY > 0 || serh.ImageWidth != rawWidth || serh.ImageHeight != rawHeight))
+    {
+        int offset = ((rawWidth * offsetY) + offsetX);
+
+        uint8_t *srcBuffer = frame + offset * 3;
+        uint8_t *destBuffer= frame;
+        int imageWidth = serh.ImageWidth;
+        int imageHeight= serh.ImageHeight;
+
+        // RGB
+        for (int i=0; i < imageHeight; i++)
+            memcpy(destBuffer + i * imageWidth*3, srcBuffer + rawWidth * 3 * i, imageWidth*3);
+    }
+
+  return writeFrame(frame);
 }
 
 void SER_Recorder::setDefaultMono() {
