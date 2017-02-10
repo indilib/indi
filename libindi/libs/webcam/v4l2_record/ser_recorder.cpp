@@ -99,7 +99,7 @@ void SER_Recorder::init() {
 
 }
 
-bool SER_Recorder::setpixelformat(unsigned int format) { // V4L2_PIX_FMT used when encoding
+bool SER_Recorder::setPixelFormat(unsigned int format) { // V4L2_PIX_FMT used when encoding
   IDLog("recorder: setpixelformat %d\n", format);
   serh.PixelDepth=8;
   number_of_planes=1;
@@ -211,7 +211,7 @@ bool SER_Recorder::setpixelformat(unsigned int format) { // V4L2_PIX_FMT used wh
 
 }
 
-bool SER_Recorder::setsize(unsigned int width, unsigned int height) {
+bool SER_Recorder::setSize(uint16_t width, uint16_t height) {
   if (streaming_active) return false;
   serh.ImageWidth=width;
   serh.ImageHeight=height;

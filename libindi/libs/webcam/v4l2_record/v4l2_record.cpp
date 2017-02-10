@@ -52,9 +52,11 @@ std::vector<V4L2_Recorder *> V4L2_Record::getRecorderList() {
 V4L2_Recorder *V4L2_Record::getRecorder() {
   return current_recorder;
 }
+
 V4L2_Recorder *V4L2_Record::getDefaultRecorder() {
   return default_recorder;
-};
+}
+
 void V4L2_Record::setRecorder(V4L2_Recorder *recorder) {
   current_recorder=recorder;
-};
+}

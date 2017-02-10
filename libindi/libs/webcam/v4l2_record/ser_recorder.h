@@ -73,8 +73,8 @@ class SER_Recorder: public V4L2_Recorder
   virtual ~SER_Recorder();
   
   virtual void init();
-  virtual bool setpixelformat(uint32_t f);
-  virtual bool setsize(uint32_t width, uint32_t height);
+  virtual bool setPixelFormat(uint32_t f);
+  virtual bool setSize(uint16_t width, uint16_t height);
   virtual bool open(const char *filename, char *errmsg);
   virtual bool close();
   virtual bool writeFrame(unsigned char *frame);
