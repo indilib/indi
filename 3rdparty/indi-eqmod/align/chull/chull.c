@@ -428,7 +428,7 @@ bool 	AddOne( tVertex p )
    do {
       vol = VolumeSign( f, p );
       if (debug) fprintf(stderr, 
-         "faddr: %6x   paddr: %6x   Vol = %d\n", f,p,vol);
+      		 "faddr: %6p   paddr: %6p   Vol = %d\n", f, p,vol);
       if ( vol < 0 ) {
 	 f->visible = VISIBLE;  
 	 vis = TRUE;                      
@@ -488,7 +488,7 @@ int  VolumeSign( tFace f, tVertex p )
    if ( debug ) {
       /* Compute the volume using integers for comparison. */
       voli = Volumei( f, p );
-      fprintf(stderr,"Face=%6x; Vertex=%d: vol(int) = %d, vol(double) = %lf\n",
+      fprintf(stderr,"Face=%6p; Vertex=%d: vol(int) = %d, vol(double) = %lf\n",
 	      f,p->vnum,voli,vol);
    }
 
@@ -967,7 +967,7 @@ use this:
 /*-------------------------------------------------------------------*/
 void	PrintOut( tVertex v )
 {
-   fprintf( stderr, "\nHead vertex %d = %6x :\n", v->vnum, v );
+  fprintf( stderr, "\nHead vertex %d = %6p :\n", v->vnum, v );
    PrintVertices();
    PrintEdges();
    PrintFaces();
@@ -981,12 +981,12 @@ void	PrintVertices( void )
    temp = vertices;
    fprintf (stderr, "Vertex List\n");
    if (vertices) do {
-      fprintf(stderr,"  addr %6x\t", vertices );
+       fprintf(stderr,"  addr %6p\t", vertices );
       fprintf(stderr,"  vnum %4d", vertices->vnum );
       fprintf(stderr,"   (%6d,%6d,%6d)",vertices->v[X],
 	      vertices->v[Y], vertices->v[Z] );
       fprintf(stderr,"   active:%3d", vertices->onhull );
-      fprintf(stderr,"   dup:%5x", vertices->duplicate );
+      fprintf(stderr,"   dup:%5p", vertices->duplicate );
       fprintf(stderr,"   mark:%2d\n", vertices->mark );
       vertices = vertices->next;
    } while ( vertices != temp );
@@ -1002,10 +1002,10 @@ void	PrintEdges( void )
    temp = edges;
    fprintf (stderr, "Edge List\n");
    if (edges) do {
-      fprintf( stderr, "  addr: %6x\t", edges );
+       fprintf( stderr, "  addr: %6p\t", edges );
       fprintf( stderr, "adj: ");
       for (i=0; i<2; ++i) 
-	 fprintf( stderr, "%6x", edges->adjface[i] );
+	fprintf( stderr, "%6p", (edges->adjface[i]) );
       fprintf( stderr, "  endpts:");
       for (i=0; i<2; ++i) 
 	 fprintf( stderr, "%4d", edges->endpts[i]->vnum);
@@ -1024,10 +1024,10 @@ void	PrintFaces( void )
    temp = faces;
    fprintf (stderr, "Face List\n");
    if (faces) do {
-      fprintf(stderr, "  addr: %10x  ", faces );
+       fprintf(stderr, "  addr: %10p  ", faces );
       fprintf(stderr, "  edges:");
       for( i=0; i<3; ++i )
-	 fprintf(stderr, "%10x ", faces->edge[i] );
+	fprintf(stderr, "%10p ", faces->edge[i] );
       fprintf(stderr, "  vert:");
       for ( i=0; i<3; ++i)
 	 fprintf(stderr, "%4d", faces->vertex[i]->vnum );
@@ -1058,7 +1058,7 @@ void	CheckEndpts ( void )
          if ( v != e->endpts[0] && v != e->endpts[1] ) {
             error = TRUE;
             fprintf(stderr,"CheckEndpts: Error!\n");
-            fprintf(stderr,"  addr: %8x;", faces );
+            fprintf(stderr,"  addr: %8p;", faces );
             fprintf(stderr,"  edges:");
             fprintf(stderr,"(%3d,%3d)", 
                e->endpts[0]->vnum,
