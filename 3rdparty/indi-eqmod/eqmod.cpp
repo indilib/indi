@@ -210,7 +210,10 @@ EQMod::EQMod()
   clock_gettime(CLOCK_MONOTONIC, &lastclockupdate);
   /* initialize random seed: */
   srand ( time(NULL) );
+  // Others
   AutohomeState=AUTO_HOME_IDLE;
+  restartguideRAPPEC=false;
+  restartguideDEPPEC=false;
 }
 
 EQMod::~EQMod()
@@ -1906,6 +1909,16 @@ IPState EQMod::GuideNorth(float ms) {
   if (DEInverted) rateshift = -rateshift;
   try {
     if (ms > 0.0) {
+      if (mount->HasPPEC())
+	{
+	  restartguideDEPPEC=false;
+	  if (DEPPECSP->s==IPS_BUSY)
+	    {
+	      restartguideDEPPEC=true;
+	      DEBUG(INDI::Logger::DBG_SESSION,"Turning DEC PPEC off while guiding.");
+	      mount->TurnDEPPEC(false);
+	    }
+	}
       mount->StartDETracking(GetDETrackRate() + rateshift);
       GuideTimerNS = IEAddTimer((int)(ms), (IE_TCF *)timedguideNSCallback, this);
     }
@@ -1924,14 +1937,24 @@ IPState EQMod::GuideSouth(float ms) {
   if (DEInverted) rateshift = -rateshift;
   try {
     if (ms > 0.0) {
+      if (mount->HasPPEC())
+	{
+	  restartguideDEPPEC=false;
+	  if (DEPPECSP->s==IPS_BUSY)
+	    {
+	      restartguideDEPPEC=true;
+	      DEBUG(INDI::Logger::DBG_SESSION,"Turning DEC PPEC off while guiding.");
+	      mount->TurnDEPPEC(false);
+	    }
+	}
       mount->StartDETracking(GetDETrackRate() - rateshift);
       GuideTimerNS = IEAddTimer((int)(ms), (IE_TCF *)timedguideNSCallback, this);
     }
-  } catch(EQModError e) {
-    e.DefaultHandleException(this);
-    return IPS_ALERT;
-  }   
-
+  } catch(EQModError e)
+    {
+      e.DefaultHandleException(this);
+      return IPS_ALERT;
+    }   
   return IPS_BUSY;
 }
 
@@ -1942,13 +1965,24 @@ IPState EQMod::GuideEast(float ms) {
   if (RAInverted) rateshift = -rateshift;
   try {
     if (ms > 0.0) {
+      if (mount->HasPPEC())
+	{
+	  restartguideRAPPEC=false;
+	  if (RAPPECSP->s==IPS_BUSY)
+	    {
+	      restartguideRAPPEC=true;
+	      DEBUG(INDI::Logger::DBG_SESSION,"Turning RA PPEC off while guiding.");
+	      mount->TurnRAPPEC(false);
+	    }
+	}      
       mount->StartRATracking(GetRATrackRate() - rateshift);
       GuideTimerWE = IEAddTimer((int)(ms), (IE_TCF *)timedguideWECallback, this);
     }
-  } catch(EQModError e) {
-    e.DefaultHandleException(this);
-    return IPS_ALERT;
-  }   
+  } catch(EQModError e)
+    {
+      e.DefaultHandleException(this);
+      return IPS_ALERT;
+    }   
 
   return IPS_BUSY;
 }
@@ -1960,13 +1994,24 @@ IPState EQMod::GuideWest(float ms) {
   if (RAInverted) rateshift = -rateshift;
   try {
     if (ms > 0.0) {
-      mount->StartRATracking(GetRATrackRate() + rateshift);
-      GuideTimerWE = IEAddTimer((int)(ms), (IE_TCF *)timedguideWECallback, this);
+	if (mount->HasPPEC())
+	  {
+	    restartguideRAPPEC=false;
+	    if (RAPPECSP->s==IPS_BUSY)
+	      {
+		restartguideRAPPEC=true;
+		DEBUG(INDI::Logger::DBG_SESSION,"Turning RA PPEC off while guiding.");
+		mount->TurnRAPPEC(false);
+	      }
+	  }   
+	mount->StartRATracking(GetRATrackRate() + rateshift);
+	GuideTimerWE = IEAddTimer((int)(ms), (IE_TCF *)timedguideWECallback, this);
     }
-  } catch(EQModError e) {
-    e.DefaultHandleException(this);
-    return IPS_ALERT;
-  }   
+  } catch(EQModError e)
+    {
+      e.DefaultHandleException(this);
+      return IPS_ALERT;
+    }   
 
   return IPS_BUSY;
 }
@@ -2791,6 +2836,15 @@ void EQMod::timedguideNSCallback(void *userpointer)
   EQMod *p = ((EQMod *)userpointer);
   try
   {
+    if (p->mount->HasPPEC())
+      {
+	if (p->restartguideDEPPEC)
+	  {
+	    p->restartguideDEPPEC=false;
+	    DEBUGDEVICE(p->getDeviceName(), INDI::Logger::DBG_SESSION,"Turning DEC PPEC on after guiding.");
+	    p->mount->TurnDEPPEC(true);
+	  }
+      }
     p->mount->StartDETracking(p->GetDETrackRate());
   } catch(EQModError e)
   {
@@ -2809,7 +2863,16 @@ void EQMod::timedguideWECallback(void *userpointer)
   EQMod *p = ((EQMod *)userpointer);
   try
   {
-  p->mount->StartRATracking(p->GetRATrackRate());
+    if (p->mount->HasPPEC())
+      {
+	if (p->restartguideRAPPEC)
+	  {
+	    p->restartguideRAPPEC=false;
+	    DEBUGDEVICE(p->getDeviceName(), INDI::Logger::DBG_SESSION,"Turning RA PPEC on after guiding.");
+	    p->mount->TurnRAPPEC(true);
+	  }
+      }
+    p->mount->StartRATracking(p->GetRATrackRate());
   } catch(EQModError e)
   {
     if (!(e.DefaultHandleException(p)))

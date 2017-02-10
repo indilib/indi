@@ -201,7 +201,11 @@ class EQMod : public INDI::Telescope, public INDI::GuiderInterface
 	bool ah_bIndexChanged_RA, ah_bIndexChanged_DE;
 	unsigned long ah_sHomeIndexPosition_RA, ah_sHomeIndexPosition_DE;
 	int ah_waitRA, ah_waitDE;
-		 
+
+	// save PPEC status when guiding
+	bool restartguideRAPPEC;
+	bool restartguideDEPPEC;
+	
     public:
         EQMod();
         virtual ~EQMod();
