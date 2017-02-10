@@ -143,6 +143,13 @@ class INDI::Telescope : public INDI::DefaultDevice
         */
         virtual bool Connect(const char *port, uint32_t baud);
 
+        /** \brief INDI::Telescope implementation of Connect() for TCP/IP connections.
+          \param hostname Host name or IP to connect to
+          \param port port
+          \return True if connection is successful, false otherwise
+          \warning Do not call this function directly, it is called by INDI::Telescope Connect() function.
+        */
+        virtual bool Connect(const char *hostname, const char *port);
 
         //Park
         /**
@@ -340,6 +347,7 @@ class INDI::Telescope : public INDI::DefaultDevice
         //  We put the serial helper into the base telescope class
         //  One less piece to worry about in the hardware specific
         //  low level stuff
+        //  Mounts with ethernet can copy the socket fd into PortFD and override Connect and Disconnect.
         int PortFD;
 
         //  This is a variable filled in by the ReadStatus telescope
@@ -412,11 +420,18 @@ class INDI::Telescope : public INDI::DefaultDevice
         ISwitchVectorProperty DomeClosedLockTP;
         ISwitch DomeClosedLockT[4];
 
+        // IP Address/Port
+        ITextVectorProperty AddressTP;
+        IText AddressT[2];
+
         ISwitch BaudRateS[6];
         ISwitchVectorProperty BaudRateSP;
 
         uint32_t capability;
         int last_we_motion, last_ns_motion;
+
+        // Period in milliseconds to call ReadScopeStatus(). 1000 milliseconds by default
+        uint32_t updatePeriodMS = 1000;
 
         //Park
         char *LoadParkData();
@@ -446,6 +461,9 @@ private:
         IPState lastEqState;
 
         INDI::Controller *controller;
+
+        int sockfd = -1;
+        const uint8_t SOCKET_TIMEOUT = 5;
 
 };
 

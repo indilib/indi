@@ -94,9 +94,9 @@ bool SQM::initProperties()
     INDI::DefaultDevice::initProperties();
 
     // Address/Port
-    IUFillText(&AddressT[0],"IP","IP","192.168.1.1");
+    IUFillText(&AddressT[0],"ADDRESS","IP","192.168.1.1");
     IUFillText(&AddressT[1],"PORT","Port","10001");
-    IUFillTextVector(&AddressTP,AddressT,2,getDeviceName(),"IPADDRESS_PORT","SQM Server", MAIN_CONTROL_TAB,IP_RW,60,IPS_IDLE);
+    IUFillTextVector(&AddressTP,AddressT,2,getDeviceName(),"TCP_ADDRESS_PORT","SQM Server", MAIN_CONTROL_TAB,IP_RW,60,IPS_IDLE);
 
     // Average Readings
     IUFillNumber(&AverageReadingN[0], "SKY_BRIGHTNESS", "Quality (mag/arcsec^2)", "%6.2f", -20, 30, 0, 0);
@@ -123,7 +123,7 @@ void SQM::ISGetProperties (const char *dev)
     INDI::DefaultDevice::ISGetProperties(dev);
 
     defineText(&AddressTP);
-    loadConfig(true, "IPADDRESS_PORT");
+    loadConfig(true, "TCP_ADDRESS_PORT");
 }
 
 bool SQM::updateProperties()

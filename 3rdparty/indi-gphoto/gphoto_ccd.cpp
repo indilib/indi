@@ -294,7 +294,6 @@ bool GPhotoCCD::updateProperties()
     if (sim == false)
     {
         ShowExtendedOptions();
-        DEBUG(INDI::Logger::DBG_SESSION, "Please update the camera pixel size in the Image Info section. The camera resolution will be updated after the first exposure is complete.");
 
         if (strstr(gphoto_get_manufacturer(gphotodrv), "Canon"))
             defineNumber(&mMirrorLockNP);
@@ -433,10 +432,14 @@ bool GPhotoCCD::ISNewSwitch(const char *dev, const char *name, ISState *states, 
       if (!strcmp(name, autoFocusSP.name))
       {
           IUResetSwitch(&autoFocusSP);
-          if (gphoto_auto_focus(gphotodrv) == GP_OK)
+          char errMsg[MAXRBUF];
+          if (gphoto_auto_focus(gphotodrv, errMsg) == GP_OK)
               autoFocusSP.s = IPS_OK;
           else
+          {
               autoFocusSP.s = IPS_ALERT;
+              DEBUGF(INDI::Logger::DBG_ERROR, "%s", errMsg);
+          }
 
           IDSetSwitch(&autoFocusSP, NULL);
           return true;
@@ -692,6 +695,12 @@ bool GPhotoCCD::Disconnect()
 
 bool GPhotoCCD::StartExposure(float duration)
 {
+    if (PrimaryCCD.getPixelSizeX() == 0)
+    {
+        DEBUG(INDI::Logger::DBG_SESSION, "Please update the CCD Information in the Image Info section before proceeding. The camera resolution shall be updated after the first exposure is complete.");
+        return false;
+    }
+
     if (PrimaryCCD.isExposing())
     {
         DEBUG(INDI::Logger::DBG_ERROR, "GPhoto driver is already exposing. Can not abort.");

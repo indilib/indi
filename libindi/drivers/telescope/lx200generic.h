@@ -36,9 +36,7 @@ class LX200Generic: public INDI::Telescope, public INDI::GuiderInterface
 
     virtual const char *getDefaultName();
     virtual const char * getDriverName();
-    virtual bool Connect();
     virtual bool Connect(const char *port, uint32_t baud);
-    virtual bool Disconnect();
     virtual bool ReadScopeStatus();
     virtual void ISGetProperties(const char *dev);
     virtual bool initProperties();
@@ -85,9 +83,7 @@ class LX200Generic: public INDI::Telescope, public INDI::GuiderInterface
     static void guideTimeoutHelper(void *p);
 
     int    GuideNSTID;
-    int    GuideWETID;
-
-    uint32_t updatePeriodMS;                        // Period in milliseconds to call ReadScopeStatus()
+    int    GuideWETID;    
 
     int timeFormat;
     int currentSiteNum;

@@ -180,7 +180,8 @@ EQMod::EQMod()
   SetTelescopeCapability(TELESCOPE_CAN_PARK | TELESCOPE_CAN_SYNC | TELESCOPE_CAN_ABORT | TELESCOPE_HAS_TIME | TELESCOPE_HAS_LOCATION,SLEWMODES);
 
   pierside = EAST;
-  lastPierSide = WEST;
+  currentPierSide = EAST;
+  lastPierSide = UNKNOWN;
   RAInverted = DEInverted = false;
   bzero(&syncdata, sizeof(syncdata));
   bzero(&syncdata2, sizeof(syncdata2));
@@ -734,9 +735,13 @@ bool EQMod::Connect()
 {
     bool rc=false;
 
-    if(isConnected()) return true;
+    if(isConnected()) return true;       
 
-    rc=Connect(PortT[0].text, atoi(IUFindOnSwitch(&BaudRateSP)->name));
+    // Check if TCP Address exists and not empty
+    if (AddressT[0].text && AddressT[0].text[0] && AddressT[1].text && AddressT[1].text[0])
+        rc =Connect(AddressT[0].text, AddressT[1].text);
+    else
+        rc=Connect(PortT[0].text, atoi(IUFindOnSwitch(&BaudRateSP)->name));
 
     if(rc) {
  
@@ -764,6 +769,27 @@ bool EQMod::Connect(const char *port, uint32_t baud)
 
  DEBUG(INDI::Logger::DBG_SESSION, "Successfully connected to EQMod Mount.");
   return true;
+}
+
+bool EQMod::Connect(const char *hostname, const char *port)
+{
+    DEBUGF(INDI::Logger::DBG_SESSION, "Connecting to %s@%s ...", hostname, port);
+
+    try
+    {
+       mount->Connect(hostname, port);
+       // Mount initialisation is in updateProperties as it sets directly Indi properties which should be defined
+     } catch(EQModError e) {
+       return(e.DefaultHandleException(this));
+     }
+
+   #ifdef WITH_ALIGN
+    // Set this according to mount type
+    SetApproximateMountAlignmentFromMountType(EQUATORIAL);
+   #endif
+
+    DEBUG(INDI::Logger::DBG_SESSION, "Successfully connected to EQMod Mount.");
+     return true;
 }
 
 bool EQMod::Disconnect()
@@ -924,7 +950,7 @@ bool EQMod::ReadScopeStatus() {
     IDSetNumber(HorizontalCoordNP, NULL);
 
     /* TODO should we consider currentHA after alignment ? */
-    pierside=SideOfPier(currentHA);
+    pierside=SideOfPier();
     if (pierside == EAST) {
       piersidevalues[0]=ISS_ON; piersidevalues[1]=ISS_OFF;
       IUUpdateSwitch(PierSideSP, piersidevalues, (char **)piersidenames, 2);
@@ -1085,10 +1111,10 @@ bool EQMod::ReadScopeStatus() {
       switch (AutohomeState) {
       case AUTO_HOME_IDLE:
       case AUTO_HOME_CONFIRM:
-	AutohomeState = AUTO_HOME_IDLE;
-	TrackState == SCOPE_IDLE;
-	DEBUG(INDI::Logger::DBG_SESSION, "Invalid status while Autohoming. Aborting");
-	break;
+          AutohomeState = AUTO_HOME_IDLE;
+          TrackState = SCOPE_IDLE;
+          DEBUG(INDI::Logger::DBG_SESSION, "Invalid status while Autohoming. Aborting");
+        break;
       case AUTO_HOME_WAIT_PHASE1:
 	if (!(mount->IsRARunning()) && !(mount->IsDERunning())) {
 	  DEBUG(INDI::Logger::DBG_SESSION, "Autohome phase 1: end");
@@ -1322,10 +1348,18 @@ void EQMod::EncodersToRADec(unsigned long rastep, unsigned long destep, double l
   DECurrent=EncoderToDegrees(destep, zeroDEEncoder, totalDEEncoder, Hemisphere);
   //IDLog("EncodersToRADec: destep=%6X zeroDEncoder=%6X totalDEEncoder=%6x DECurrent=%f\n", destep, zeroDEEncoder , totalDEEncoder, DECurrent);
   if (Hemisphere==NORTH) {
-    if ((DECurrent > 90.0) && (DECurrent <= 270.0)) RACurrent = RACurrent - 12.0;
+    if ((DECurrent > 90.0) && (DECurrent <= 270.0)) {
+        RACurrent = RACurrent - 12.0;
+        currentPierSide = EAST;
+    }
+    else currentPierSide = WEST;
   }
   else
-    if ((DECurrent <= 90.0) || (DECurrent > 270.0)) RACurrent = RACurrent + 12.0;
+    if ((DECurrent <= 90.0) || (DECurrent > 270.0)) {
+        RACurrent = RACurrent + 12.0;
+        currentPierSide = EAST;
+    }
+    else currentPierSide = WEST;
   HACurrent = rangeHA(HACurrent);
   RACurrent = range24(RACurrent);
   DECurrent = rangeDec(DECurrent); 
@@ -1439,10 +1473,8 @@ void EQMod::SetSouthernHemisphere(bool southern) {
   IDSetSwitch(HemisphereSP, NULL);
 }
 
-EQMod::PierSide EQMod::SideOfPier(double ha) {
-  double shiftha;
-  shiftha=rangeHA(ha - 6.0);
-  if (shiftha >= 0.0) return EAST; else return WEST; 
+EQMod::PierSide EQMod::SideOfPier() {
+    return currentPierSide;
 }
 
 void EQMod::EncoderTarget(GotoParams *g)

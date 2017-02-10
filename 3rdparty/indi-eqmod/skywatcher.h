@@ -56,6 +56,7 @@ public:
     ~Skywatcher();
    
     bool Connect(const char *port, uint32_t baud) throw (EQModError);
+    bool Connect(const char *hostname, const char *port) throw (EQModError);
     bool Disconnect() throw (EQModError);
     void setDebug (bool enable);
     const char *getDeviceName ();
@@ -272,6 +273,7 @@ public:
     SkyWatcherFeatures AxisFeatures[NUMBER_OF_SKYWATCHERAXIS];
 
     int fd;
+    int sockfd=-1;
     char command[SKYWATCHER_MAX_CMD];
     char response[SKYWATCHER_MAX_CMD];
 

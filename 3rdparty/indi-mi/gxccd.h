@@ -1,5 +1,5 @@
 /*
- * The Moravian Instruments (MI) CCD Camera library.
+ * The Moravian Instruments (MI) camera library.
  *
  * Copyright 2016, Moravian Instruments <http://www.gxccd.com, linux@gxccd.com>
  * All rights reserved.
@@ -14,6 +14,7 @@ extern "C" {
 
 #include <stdbool.h>
 #include <stdint.h>
+#include <stdio.h>
 
 /*
  * Default ETH Adapter IP address and port.
@@ -48,6 +49,7 @@ typedef struct camera camera_t;
   SendTimeout = 3000
   ReceiveTimeout = 30000
   MicrometerFilterOffsets = false
+  ClearTime = 15
 
   [filters]
   Luminance, LGray, 0
@@ -67,6 +69,10 @@ typedef struct camera camera_t;
  * All these values apply in erroneous states (network failure, adapter failure,
  * etc.) and it is not necessary to change them.
  * "MicrometerFilterOffsets" is explained in the following section.
+ * "ClearTime" is interval in seconds in which the driver periodically clears
+ * the CCD chip. There is no need to change the default value (15 seconds).
+ * If you want to use advanced USB functions below, you can turn this feature by
+ * setting "ClearTime" to 0 or -1 and clear the CCD manualy with gxusb_clear().
  *------------------------------------------------------------------------------
  * Section [filters] is for G2/G3/G4 camera filter wheel configuration.
  * There is no way how to determine the actual filters in the filter wheel
@@ -147,7 +153,8 @@ void gxccd_enumerate_eth(enum_callback_t callback);
  * This function returns pointer to initialized structure or NULL in case of
  * error.
  * "camera_id" is camera indentifier (e.g. obtained by gxccd_enumerate_*()
- * function) and is required.
+ * function) and is required. If you have one camera connected, you can pass -1
+ * as "camera_id".
  */
 /* USB variant */
 camera_t *gxccd_initialize_usb(int camera_id);
@@ -178,8 +185,8 @@ enum {
   GBP_COOLER,             /* true if camera is equipped with active CCD cooler */
   GBP_FAN,                /* true if camera fan can be controlled */
   GBP_FILTERS,            /* true if camera controls filter wheel */
-  GBP_GUIDE,              /* true if camera is capable to guide the telescope */
-                          /* mount */
+  GBP_GUIDE,              /* true if camera is capable to guide the telescope
+                             mount */
   GBP_WINDOW_HEATING,     /* true if camera can control the CCD window heating */
   GBP_PREFLASH,           /* true if camera can use CCD preflash */
   GBP_ASYMMETRIC_BINNING, /* true if camera horizontal and vertical binning
@@ -264,7 +271,7 @@ enum {
                                  in deg. Celsius */
  GV_SUPPLY_VOLTAGE = 10,      /* Current voltage of the camera power supply */
  GV_POWER_UTILIZATION,        /* Current utilization of the CCD cooler
-                                 (number 0 to 1) */
+                                 (rational number from 0.0 to 1.0) */
  GV_ADC_GAIN = 20             /* Current gain of A/D converter in electrons/ADU */
 };
 
@@ -307,14 +314,15 @@ int gxccd_set_preflash(camera_t *camera, double preflash_time,
 /*
  * Starts new exposure.
  * "exp_time" is the required exposure time in seconds. "use_shutter" parameter
- * tells the driver of the dark frame (without light) has to be acquired
- * (false), or the shutter has to be opened and closed to acquire normal light
- * image (true). Sub-frame coordinates are passed in "x", "y", "w" and "d".
+ * tells the driver the dark frame (without light) has to be acquired (false),
+ * or the shutter has to be opened and closed to acquire normal light image (true).
+ * Sub-frame coordinates are passed in "x", "y", "w" and "h".
  * If the camera does not support sub-frame read, "x" and "y" must be 0 and "w"
- * and "d" must be the chip pixel dimensions.
+ * and "h" must be the chip pixel dimensions.
+ * The y-axis grows down, 0 is at the top.
  */
 int gxccd_start_exposure(camera_t *camera, double exp_time, bool use_shutter,
-                         int x, int y, int w, int d);
+                         int x, int y, int w, int h);
 
 /*
  * When the exposure already started by gxccd_start_exposure() call has to be
@@ -345,7 +353,26 @@ int gxccd_image_ready(camera_t *camera, bool *ready);
  * allocate any memory. The "size" parameter specifies allocated memory block
  * length in bytes (not in pixels!). It has to be greater or equal to image size
  * in bytes else the function fails.
- * Application can use: size = wanted_w * wanted_d * 2;
+ * Application can use: size = wanted_w * 2 * wanted_h;
+ *
+ * Format of the returned buffer:
+ *   - one-dimensional array formed from lines (rows) stacked one after another
+ *   - orientation of the image is similar to Cartesian coordinate system,
+ *     pixel [0, 0] (first line) is located at bottom left of the resulting image,
+ *     x coordinate grows right and y coordinate grows up
+ *   - data is in little-endian encoding -> lower byte first
+ *
+ * Example with width = 2000px and height = 1000px:
+ *   - allocate one-dimensional buffer: malloc(2000*2*1000) (malloc(width*2*height))
+ *   - bottom left pixel's lower byte is located at buffer[0] and higher byte is
+ *     at buffer[1]
+ *   - first line has width = 2000 * 2 (bytes) -> bottom right pixel is located
+ *     at buffer[3998] and buffer[3999] (width * 2 - 2 and width * 2 - 1)
+ *   - top left pixel is at buffer[3996000] and buffer[3996001]
+ *     ((height - 1) * width * 2 and (height - 1) * width * 2 + 1)
+ *   - top right pixel is at buffer[3999998] and buffer[3999999]
+ *     ((height - 1) * width * 2 + width * 2 - 2 and (height - 1) * width * 2
+ *     + width * 2 - 1)
  */
 int gxccd_read_image(camera_t *camera, void *buf, size_t size);
 
@@ -428,7 +455,7 @@ int gxccd_move_in_progress(camera_t *camera, bool *moving);
 /*
  * If any call fails (returns -1), this function returns failure description
  * in parameter buf.
- * The caller must specify the size of the buffer in parameter size.
+ * The caller must specify the size of the buffer in parameter "size".
  */
 void gxccd_get_last_error(camera_t *camera, char *buf, size_t size);
 

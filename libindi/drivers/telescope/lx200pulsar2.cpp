@@ -1,7 +1,7 @@
 /*
     Pulsar2 INDI driver
 
-    Copyright (C) 2016 Jasem Mutlaq and Camiel Severijns
+    Copyright (C) 2016, 2017 Jasem Mutlaq and Camiel Severijns
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -19,6 +19,7 @@
 */
 
 #include <cmath>
+#include <cerrno>
 #include <fcntl.h>
 #include <stdio.h>
 #include <termios.h>
@@ -38,12 +39,62 @@ namespace Pulsar2Commands {
   // Reimplement LX200 commands to solve intermittent problems with tcflush() calls on the input stream.
   // This implementation parses all input received from the Pulsar controller.
   
-  static constexpr int TimeOut    = 3;
-  static constexpr int BufferSize = 32;
+  static constexpr int TimeOut     = 1;
+  static constexpr int BufferSize  = 32;
+  static constexpr int MaxAttempts = 3;
 
+  static constexpr char Null        = '\0';
+  static constexpr char Acknowledge = '\006';
+  static constexpr char Termination = '#';
+  
+  static bool resynchronize_needed = false; // Indicates whether the input and output on the port needs to be resynchronized due to a timeout error.
+
+  int ACK(const int fd) {
+    DEBUGFDEVICE(lx200Name, DBG_SCOPE, "CMD <%02X>", Acknowledge);
+    if (write(fd,&Acknowledge,sizeof(Acknowledge)) < 0) {
+      DEBUGFDEVICE(lx200Name, DBG_SCOPE, "Error sending ACK: %s", strerror(errno));
+      return -1;
+    }
+    char MountAlign[2];
+    int  nbytes_read = 0;
+    const int error_type = tty_read(fd, MountAlign, 1, TimeOut, &nbytes_read);
+    if (error_type != TTY_OK)
+      DEBUGFDEVICE(lx200Name, DBG_SCOPE, "Error receiving ACK: %s", strerror(errno));
+    else
+      DEBUGFDEVICE(lx200Name, DBG_SCOPE, "RES <%c>", MountAlign[0]);
+    return ( nbytes_read == 1 ? MountAlign[0] : error_type );
+  }
+
+  
+  void resynchronize(const int fd) {
+    class ACKChecker {
+    public:
+      ACKChecker(void) : previous(Null) {}
+      bool operator()(const int c) {
+	// We need two successful acknowledges
+	bool result = false;
+	if (previous == Null) {
+	  if (c == 'P' || c == 'A' || c == 'L') previous = c; // Remember first acknowledge response
+	}
+	else {
+	  result   = ( c == previous ); // Second acknowledge response must equal to previous one
+	  previous = Null; // Both on success or failure, reset the previous character
+	}
+	return result;
+      }
+    private:
+      int previous;
+    };
+    DEBUGDEVICE(lx200Name, DBG_SCOPE, "RESYNC");
+    ACKChecker valid;
+    for (int c = ACK(fd); !valid(c); c = ACK(fd)) tcflush(fd,TCIFLUSH);
+    resynchronize_needed = false;
+  }
+  
 
   // Send a command string without waiting for any response from the Pulsar controller
   bool send(const int fd,const char* cmd) {
+    if (resynchronize_needed) resynchronize(fd);
     DEBUGFDEVICE(lx200Name, DBG_SCOPE, "CMD <%s>", cmd);
     const int nbytes = strlen(cmd);
     int       nbytes_written = 0;
@@ -52,55 +103,69 @@ namespace Pulsar2Commands {
       if (errcode != TTY_OK) {
 	char errmsg[MAXRBUF];
 	tty_error_msg(errcode, errmsg, MAXRBUF);
-	DEBUGFDEVICE(lx200Name, DBG_SCOPE, "Error: %s", errmsg);
+	DEBUGFDEVICE(lx200Name, DBG_SCOPE, "Error: %s (%s)", errmsg, strerror(errno));
 	return false;
       }
-    } while (nbytes_written < nbytes);
+    } while (nbytes_written < nbytes); // Ensure that all characters have been sent
     return true;
   }
 
 
   // Send a command string and wait for a single character response indicating success or failure
+  // Ignore leading # characters
   bool confirmed(const int fd,const char* cmd,char& response) {
+    response = Termination;
     if (send(fd,cmd)) {
-      for (int retry = 0; retry < 2; ++retry) {
-        int nbytes_read = 0;
-        const int errcode = tty_read(fd,&response,sizeof(response),TimeOut,&nbytes_read);
-        if (errcode != TTY_OK) {
+      for (int attempt = 0; response == Termination; ++attempt) {
+	int nbytes_read = 0;
+	const int errcode = tty_read(fd,&response,sizeof(response),TimeOut,&nbytes_read);
+	if (errcode != TTY_OK) {
 	  char errmsg[MAXRBUF];
 	  tty_error_msg(errcode, errmsg, MAXRBUF);
-	  DEBUGFDEVICE(lx200Name, DBG_SCOPE, "Error: %s", errmsg);
-	  return false;
-        }
-        if (nbytes_read == 1) {
-	  DEBUGFDEVICE(lx200Name, DBG_SCOPE, "RES <%c> (attempt %d)", response,retry);
-	  if (response != '#') return true;
-        }
-        else
-	  DEBUGFDEVICE(lx200Name, DBG_SCOPE, "Received %d bytes, expected 1.", nbytes_read);
+	  DEBUGFDEVICE(lx200Name, DBG_SCOPE, "Error: %s (%s, attempt %d)", errmsg, strerror(errno), attempt);
+	  if (attempt == MaxAttempts-1) {
+	    resynchronize_needed = true;
+	    return false;
+	  }
+	}
+	else // tty_read was successful and nbytes_read is garantueed to be 1
+	  DEBUGFDEVICE(lx200Name, DBG_SCOPE, "RES <%c> (attempt %d)", response,attempt);
       }
     }
-    return false;
+    return true;
   }
 
 
-  // Receive a response string terminate by a # character
+  // Receive a terminated response string
   bool receive(const int fd,char response[]) {
-    static const char termination = '#', null = '\0';
-    response[0] = termination;
-    int nbytes_read = 0;
-    int retry_count;
-    for (retry_count = 0; nbytes_read < 2 && response[0] == termination; ++retry_count) { // Ignore empty response strings!!
-      const int errcode = tty_read_section(fd,response,termination,TimeOut,&nbytes_read);
+    response[0] = Null;
+    bool done = false;
+    int  nbytes_read_total = 0;
+    int  attempt;
+    for (attempt = 0; !done; ++attempt) {
+      int nbytes_read = 0;
+      const int errcode = tty_read_section(fd,response+nbytes_read_total,Termination,TimeOut,&nbytes_read);
       if (errcode != TTY_OK) {
 	char errmsg[MAXRBUF];
 	tty_error_msg(errcode, errmsg, MAXRBUF);
-        DEBUGFDEVICE(lx200Name, DBG_SCOPE, "Error: %s (%d attempts)",errmsg,retry_count);
-	return false;
+        DEBUGFDEVICE(lx200Name, DBG_SCOPE, "Error: %s (%s, attempt %d)",errmsg,strerror(errno),attempt);
+	nbytes_read_total += nbytes_read; // Keep track of how many characters have been read successfully despite the error
+	if (attempt == MaxAttempts-1) {
+	  resynchronize_needed = ( errcode == TTY_TIME_OUT );
+	  response[nbytes_read_total] = Null;
+	  return false;
+	}
+      }
+      else {
+	// Skip response strings consisting of a single termination character
+	if (nbytes_read_total == 0 && response[0] == Termination)
+	  response[0] = Null;
+	else
+	  done = true;
       }
     }
-    response[nbytes_read-1] = null; // Remove termination character
-    DEBUGFDEVICE(lx200Name, DBG_SCOPE, "RES <%s> (%d attempts)",response,retry_count);
+    response[nbytes_read_total-1] = Null; // Remove the termination character
+    DEBUGFDEVICE(lx200Name, DBG_SCOPE, "RES <%s> (attempt %d)",response,attempt);
     return true;
   }
 
@@ -324,8 +389,8 @@ namespace Pulsar2Commands {
       // Read dumped data
       char dumpPlanetaryUpdateString[64];
       int  nbytes_read = 0;
-      (void) tty_read_section(fd,dumpPlanetaryUpdateString,'#',1,&nbytes_read);
-      (void) tty_read_section(fd,dumpPlanetaryUpdateString,'#',1,&nbytes_read);
+      (void) tty_read_section(fd,dumpPlanetaryUpdateString,Termination,1,&nbytes_read);
+      (void) tty_read_section(fd,dumpPlanetaryUpdateString,Termination,1,&nbytes_read);
     }
     return success;
   }
@@ -457,7 +522,7 @@ const char * LX200Pulsar2::getDefaultName(void) {
 
 
 bool LX200Pulsar2::Connect(void) {
-  const bool success = LX200Generic::Connect();
+  const bool success = INDI::Telescope::Connect();
   if (success) {
     if (isParked()) {
       DEBUGF(INDI::Logger::DBG_DEBUG, "%s", "Trying to wake up the mount.");
@@ -509,7 +574,6 @@ bool LX200Pulsar2::ReadScopeStatus(void) {
 void LX200Pulsar2::ISGetProperties(const char *dev) {
   if (dev && strcmp(dev,getDeviceName()))
     return;
-
   LX200Generic::ISGetProperties(dev);
   if (isConnected()) {
     defineSwitch(&PierSideSP);
@@ -1050,15 +1114,9 @@ bool LX200Pulsar2::Sync(double ra, double dec) {
       IDSetNumber(&EqNP, "Error setting RA/DEC. Unable to Sync.");
     }
     else {
+      usleep(300000L); // This seems to be necessary
       result = Pulsar2Commands::sync(PortFD);
       if (result) {
-#if 1
-	// Somehow the response string is not being received. Also timeouts don't make
-	// the read stop. For now, sleep a second and then flush all input that might
-	// have received. The Pulsar controller has performed the sync anyways.
-	usleep(1000000L);
-	tcflush(PortFD, TCIFLUSH);
-#else
 	DEBUG(INDI::Logger::DBG_SESSION, "Reading sync response");
 	// Pulsar sends coordinates separated by # characters (<RA>#<Dec>#)
 	char RAresponse[Pulsar2Commands::BufferSize];
@@ -1075,7 +1133,6 @@ bool LX200Pulsar2::Sync(double ra, double dec) {
 	  EqNP.s = IPS_ALERT;
 	  IDSetNumber(&EqNP , "Synchronization failed.");
 	}
-#endif
       }
     }
   }
@@ -1098,7 +1155,7 @@ bool LX200Pulsar2::UnPark(void) {
       IDSetSwitch(&ParkSP, "Mount is not parked.");
       return false;
     }
-    if (Pulsar2Commands::unpark(PortFD)) {
+    if (!Pulsar2Commands::unpark(PortFD)) {
       ParkSP.s = IPS_ALERT;
       IDSetSwitch(&ParkSP, "Unparking failed.");
       return false;
@@ -1138,7 +1195,7 @@ bool LX200Pulsar2::checkConnection(void) {
 	char version[16];
 	int  year, month, day;
 	(void) sscanf(response, "PULSAR V%8s ,%4d.%2d.%2d. ", version, &year, &month, &day);
-	DEBUGF(INDI::Logger::DBG_SESSION, "%s %04d.%02d.%02d", version, year, month, day);
+	DEBUGF(INDI::Logger::DBG_SESSION, "%s version %s dated %04d.%02d.%02d", (version[0] > '2' ? "Pulsar2" : "Pulsar"), version, year, month, day);
 	return true;
       }
       usleep(50000);
