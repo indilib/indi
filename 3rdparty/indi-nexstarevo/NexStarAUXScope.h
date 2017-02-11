@@ -48,6 +48,7 @@ enum AUXtargets {
 
 class AUXCommand{
 public:
+    AUXCommand();
     AUXCommand(buffer buf);
     AUXCommand(AUXCommands c, AUXtargets s, AUXtargets d, buffer dat);
     AUXCommand(AUXCommands c, AUXtargets s, AUXtargets d);
@@ -89,6 +90,7 @@ public:
     bool Track(long altRate, long azRate);
     bool TimerTick(double dt);
     bool UpdateLocation(double lat, double lon, double elev);
+    bool Park();
     bool Connect();
     bool Disconnect();
     
@@ -96,13 +98,13 @@ private:
     static const long STEPS_PER_REVOLUTION = 16777216; 
     void initScope(char const *ip, int port);
     void initScope();
+    bool detectScope();
     void closeConnection();
-    void emulateGPS(AUXCommand *m);
+    void emulateGPS(AUXCommand &m);
     void readMsgs();
-    void processMsgs();
-    void writeMsgs();
+    void processCmd(AUXCommand &cmd);
     void querryStatus();
-    bool sendCmd(AUXCommand *c);
+    bool sendCmd(AUXCommand &c);
     double Lat, Lon, Elv;
     long Alt;
     long Az;
@@ -116,7 +118,6 @@ private:
     int sock;
     struct sockaddr_in addr;
     bool simulator=false;
-    std::queue<AUXCommand *> iq, oq;
 };
 
 

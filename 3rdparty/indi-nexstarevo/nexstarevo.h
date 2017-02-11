@@ -26,6 +26,7 @@ protected:
     virtual bool Disconnect();
 
     virtual const char *getDefaultName();
+    virtual ln_hrz_posn AltAzFromRaDec(double ra, double dec, double ts);
 
     virtual bool Sync(double ra, double dec);
     virtual bool Goto(double ra,double dec);
@@ -66,14 +67,14 @@ private:
     double AxisSlewRateALT;
     long CurrentALT;
     long GotoTargetALT;
-    long ApproachALT;
 
     AxisStatus AxisStatusAZ;
     AxisDirection AxisDirectionAZ;
     double AxisSlewRateAZ;
     long CurrentAZ;
     long GotoTargetAZ;
-    long ApproachAZ;
+
+    double Approach; // approach distance
 
     // Previous motion direction
     // TODO: Switch to AltAz from N-S/W-E
@@ -88,6 +89,7 @@ private:
 
     // GoTo
     ln_equ_posn GoToTarget;
+    int slewTicks, maxSlewTicks;
 
     // Tracking
     ln_equ_posn CurrentTrackingTarget;

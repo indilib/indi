@@ -14,7 +14,7 @@ find_package(Nova REQUIRED)
 find_package(ZLIB REQUIRED)
 
 set(NSEVO_VERSION_MAJOR 0)
-set(NSEVO_VERSION_MINOR 2)
+set(NSEVO_VERSION_MINOR 3)
 
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/config.h.cmake ${CMAKE_CURRENT_BINARY_DIR}/config.h )
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/indi_nexstarevo.xml.cmake ${CMAKE_CURRENT_BINARY_DIR}/indi_nexstarevo.xml )

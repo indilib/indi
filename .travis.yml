@@ -1,4 +1,3 @@
-language: cpp
 compiler: gcc
 language: cpp
 sudo: required
@@ -11,6 +10,7 @@ branches:
   only:
     - develop
     - master
+    - nse
     - refactor/unittest
     - feature/travisosx
 
@@ -22,7 +22,7 @@ install:
     - echo Building INDI Core
     - travis-ci/build-core.sh 
     - travis-ci/build-3rdparty.sh
-    - travis-ci/build-deb-packages.sh
+    - travis-ci/build-deb-packages.sh 
 
 script:
     - pwd
