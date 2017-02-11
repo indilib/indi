@@ -239,6 +239,12 @@ bool ScopeSim::Connect(const char *port, uint32_t baud)
    return true;
 }
 
+bool ScopeSim::Disconnect()
+{
+    DEBUG(INDI::Logger::DBG_SESSION,"Telescope Simualtor is offline.");
+    return true;
+}
+
 bool ScopeSim::ReadScopeStatus()
 {
     static struct timeval ltv;
