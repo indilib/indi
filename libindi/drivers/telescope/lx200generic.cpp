@@ -156,7 +156,7 @@ void ISInit()
        if(telescope.get() == 0) telescope.reset(new LX200FS2());
 
  }
- else if (strstr(me, "indi_lx200_10Micron"))
+ else if (strstr(me, "indi_lx200_10micron"))
  {
        IDLog("initializing for 10Micron mount...\n");
 
