@@ -214,7 +214,7 @@ void DomeScript::TimerHit() {
       setDomeState(DOME_SYNCED);
       IDSetNumber(&DomeAbsPosNP, NULL);
     }
-    if (shutterState == SHUTTER_OPEN) {
+    if (shutterState == SHUTTER_OPENED) {
       if (shutter == 0) {
         shutterState = SHUTTER_CLOSED;
         DomeShutterSP.s = IPS_OK;
