@@ -26,8 +26,7 @@ brew install \
 			libusb \
 			polakovic/astronomy/libcfitsio \
 			polakovic/astronomy/libnova 
-			# wget
-
+			
 if [ ! -z $BUILD_INSTALL_GTEST ]; then
   DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
   /bin/bash ${DIR}/install-gtest.sh
