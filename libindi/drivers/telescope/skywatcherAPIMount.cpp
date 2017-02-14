@@ -1025,7 +1025,12 @@ void SkywatcherAPIMount::UpdateDetailedMountInformation(bool InformClient)
             NewMountType = MT_DOB;
             break;
         default:
-            NewMountType = MT_UNKNOWN;
+            // My Virtuoso mount says it is an "AllView"...
+            if (MountCode > 0x90)
+                NewMountType = MT_DOB;
+            else
+                NewMountType = MT_UNKNOWN;
+
             break;
     }
     if (OldMountType != NewMountType)
