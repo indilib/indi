@@ -192,7 +192,7 @@ bool Controller::ISNewText (const char *dev, const char *name, char *texts[], ch
         }
     }
 
-    return true;
+    return false;
 
 }
 
@@ -257,7 +257,7 @@ bool Controller::ISSnoopDevice(XMLEle *root)
         joystickCallbackFunc(setting, mag, angle, device);
     }
 
-    return true;
+    return false;
 }
 
 

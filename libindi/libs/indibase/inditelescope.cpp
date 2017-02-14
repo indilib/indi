@@ -144,7 +144,7 @@ bool INDI::Telescope::initProperties()
 
     // Lock Axis
     IUFillSwitch(&LockAxisS[0],"LOCK_AXIS","Locked",ISS_OFF);
-    IUFillSwitchVector(&LockAxisSP,LockAxisS,1,getDeviceName(),"JOYSTICK_LOCK_AXIS","Lock Axis", "Joystick" ,IP_RW,ISR_ATMOST1,60,IPS_IDLE);
+    IUFillSwitchVector(&LockAxisSP,LockAxisS,1,getDeviceName(),"JOYSTICK_LOCK_AXIS","Lock Axis", "Joystick" ,IP_RW,ISR_NOFMANY,60,IPS_IDLE);
 
     controller->initProperties();
 
@@ -992,6 +992,15 @@ bool INDI::Telescope::ISNewSwitch (const char *dev, const char *name, ISState *s
           IDSetSwitch(&DomeClosedLockTP, NULL);
 
           triggerSnoop(strdup(ActiveDeviceT[1].text), strdup("DOME_PARK"));
+          return true;
+      }
+
+      // Lock Axis
+      if (!strcmp(name, LockAxisSP.name))
+      {
+          IUUpdateSwitch(&LockAxisSP, states, names, n);
+          LockAxisSP.s = IPS_OK;
+          IDSetSwitch(&LockAxisSP, NULL);
           return true;
       }
     }
