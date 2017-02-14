@@ -82,19 +82,25 @@ SkywatcherAPI::~SkywatcherAPI()
 
 // Public methods
 
-long SkywatcherAPI::BCDstr2long(std::string &String)
+unsigned long SkywatcherAPI::BCDstr2long(std::string &String)
 {
-// =020782 => 8521474
-    // Funny BCD :-) string is pairs of hex chars with each pair representing a 8 bit hex number. The whole
-    // string being treated as least significant hex digit pair first!
-    const char *str = String.c_str();
-    long value = 0;
-    for (int i = 0; i < String.length(); i += 2)
+    if (String.size() != 6)
     {
-        long hexpair;
-        sscanf(str + i, "%2lx", &hexpair);
-        value += hexpair << i * 4;
+        return 0;
     }
+    unsigned long value = 0;
+
+#define HEX(c) (((c) < 'A')?((c)-'0'):((c) - 'A') + 10)
+
+    value = HEX(String[4]); value <<= 4;
+    value |= HEX(String[5]); value <<= 4;
+    value |= HEX(String[2]); value <<= 4;
+    value |= HEX(String[3]); value <<= 4;
+    value |= HEX(String[0]); value <<= 4;
+    value |= HEX(String[1]);
+
+#undef HEX
+
     return value;
 }
 
@@ -222,10 +228,9 @@ bool SkywatcherAPI::GetMotorBoardVersion(AXISID Axis)
     if (!TalkWithAxis(Axis, 'e', Parameters, Response))
         return false;
 
-    long tmpMCVersion = BCDstr2long(Response);
+    unsigned long tmpMCVersion = BCDstr2long(Response);
 
     MCVersion = ((tmpMCVersion & 0xFF) << 16) | ((tmpMCVersion & 0xFF00)) | ((tmpMCVersion & 0xFF0000) >> 16);
-
     return true;
 }
 
