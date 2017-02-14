@@ -143,10 +143,12 @@ bool Controller::ISNewSwitch (const char *dev, const char *name, ISState *states
                 disableJoystick();
 
             IDSetSwitch(&UseJoystickSP, NULL);
+
+            return true;
         }
     }
 
-    return true;
+    return false;
 }
 
 bool Controller::ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n)

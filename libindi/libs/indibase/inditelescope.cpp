@@ -142,6 +142,10 @@ bool INDI::Telescope::initProperties()
     IUFillNumber(&ScopeParametersN[3],"GUIDER_FOCAL_LENGTH","Guider Focal Length (mm)","%g",10,10000,0,0.0 );
     IUFillNumberVector(&ScopeParametersNP,ScopeParametersN,4,getDeviceName(),"TELESCOPE_INFO","Scope Properties",OPTIONS_TAB,IP_RW,60,IPS_OK);
 
+    // Lock Axis
+    IUFillSwitch(&LockAxisS[0],"LOCK_AXIS","Locked",ISS_OFF);
+    IUFillSwitchVector(&LockAxisSP,LockAxisS,1,getDeviceName(),"JOYSTICK_LOCK_AXIS","Lock Axis", "Joystick" ,IP_RW,ISR_ATMOST1,60,IPS_IDLE);
+
     controller->initProperties();
 
     TrackState=SCOPE_IDLE;
@@ -258,8 +262,7 @@ bool INDI::Telescope::updateProperties()
             }
         }
         defineNumber(&ScopeParametersNP);
-        defineNumber(&TargetNP);        
-
+        defineNumber(&TargetNP);
     }
     else
     {
@@ -290,6 +293,22 @@ bool INDI::Telescope::updateProperties()
     }
 
     controller->updateProperties();
+    ISwitchVectorProperty *useJoystick = getSwitch("USEJOYSTICK");
+    if (useJoystick)
+    {
+        if (isConnected())
+        {
+            if (useJoystick->sp[0].s == ISS_ON)
+            {
+                defineSwitch(&LockAxisSP);
+                loadConfig(true, "LOCK_AXIS");
+            }
+            else
+                deleteProperty(LockAxisSP.name);
+        }
+        else
+            deleteProperty(LockAxisSP.name);
+    }
 
     return true;
 }
@@ -401,6 +420,8 @@ bool INDI::Telescope::saveConfigItems(FILE *fp)
     IUSaveConfigNumber(fp, &ScopeParametersNP);
 
     controller->saveConfigItems(fp);
+
+    IUSaveConfigSwitch(fp, &LockAxisSP);
 
     return true;
 }
@@ -975,7 +996,15 @@ bool INDI::Telescope::ISNewSwitch (const char *dev, const char *name, ISState *s
       }
     }
 
-    controller->ISNewSwitch(dev, name, states, names, n);
+    bool rc = controller->ISNewSwitch(dev, name, states, names, n);
+    if (rc)
+    {
+        ISwitchVectorProperty *useJoystick = getSwitch("USEJOYSTICK");
+        if (useJoystick && useJoystick->sp[0].s == ISS_ON)
+            defineSwitch(&LockAxisSP);
+        else
+            deleteProperty(LockAxisSP.name);
+    }
 
     //  Nobody has claimed this, so, ignore it
     return DefaultDevice::ISNewSwitch(dev,name,states,names,n);
@@ -1646,6 +1675,23 @@ void INDI::Telescope::processNSWE(double mag, double angle)
     // Put high threshold
     else if (mag > 0.9)
     {
+        // Only one axis can move at a time
+        if (LockAxisS[0].s == ISS_ON)
+        {
+            // North
+            if (angle >= 45 && angle<= 135)
+                angle = 90;
+            // South
+            else if (angle >= 225 && angle <= 315)
+                angle = 270;
+            // West
+            else if (angle >= 135 && angle <= 225)
+                angle = 180;
+            // East
+            else
+                angle = 0;
+        }
+
         // North
         if (angle > 0 && angle < 180)
         {
@@ -1666,12 +1712,12 @@ void INDI::Telescope::processNSWE(double mag, double angle)
         if (angle > 180 && angle < 360)
         {
             // Don't try to move if you're busy and moving in the same direction
-           if (MovementNSSP.s != IPS_BUSY  || MovementNSS[1].s != ISS_ON)
-            MoveNS(DIRECTION_SOUTH, MOTION_START);
+            if (MovementNSSP.s != IPS_BUSY  || MovementNSS[1].s != ISS_ON)
+                MoveNS(DIRECTION_SOUTH, MOTION_START);
 
-           // If angle is close to 270, make it exactly 270 to reduce noise that could trigger east/west motion as well
-           if (angle > 260 && angle < 280)
-               angle = 270;
+            // If angle is close to 270, make it exactly 270 to reduce noise that could trigger east/west motion as well
+            if (angle > 260 && angle < 280)
+                angle = 270;
 
             MovementNSSP.s = IPS_BUSY;
             MovementNSSP.sp[DIRECTION_NORTH].s = ISS_OFF;
@@ -1682,13 +1728,13 @@ void INDI::Telescope::processNSWE(double mag, double angle)
         if (angle < 90 || angle > 270)
         {
             // Don't try to move if you're busy and moving in the same direction
-           if (MovementWESP.s != IPS_BUSY  || MovementWES[1].s != ISS_ON)
+            if (MovementWESP.s != IPS_BUSY  || MovementWES[1].s != ISS_ON)
                 MoveWE(DIRECTION_EAST, MOTION_START);
 
-           MovementWESP.s = IPS_BUSY;
-           MovementWESP.sp[DIRECTION_WEST].s = ISS_OFF;
-           MovementWESP.sp[DIRECTION_EAST].s = ISS_ON;
-           IDSetSwitch(&MovementWESP, NULL);
+            MovementWESP.s = IPS_BUSY;
+            MovementWESP.sp[DIRECTION_WEST].s = ISS_OFF;
+            MovementWESP.sp[DIRECTION_EAST].s = ISS_ON;
+            IDSetSwitch(&MovementWESP, NULL);
         }
 
         // West
@@ -1696,13 +1742,13 @@ void INDI::Telescope::processNSWE(double mag, double angle)
         {
 
             // Don't try to move if you're busy and moving in the same direction
-           if (MovementWESP.s != IPS_BUSY  || MovementWES[0].s != ISS_ON)
+            if (MovementWESP.s != IPS_BUSY  || MovementWES[0].s != ISS_ON)
                 MoveWE(DIRECTION_WEST, MOTION_START);
 
-           MovementWESP.s = IPS_BUSY;
-           MovementWESP.sp[DIRECTION_WEST].s = ISS_ON;
-           MovementWESP.sp[DIRECTION_EAST].s = ISS_OFF;
-           IDSetSwitch(&MovementWESP, NULL);
+            MovementWESP.s = IPS_BUSY;
+            MovementWESP.sp[DIRECTION_WEST].s = ISS_ON;
+            MovementWESP.sp[DIRECTION_EAST].s = ISS_OFF;
+            IDSetSwitch(&MovementWESP, NULL);
         }
     }
 }
