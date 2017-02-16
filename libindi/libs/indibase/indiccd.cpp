@@ -901,12 +901,9 @@ bool INDI::CCD::ISNewText (const char *dev, const char *name, char *texts[], cha
         //  Now lets see if it's something we process here
         if(!strcmp(name,ActiveDeviceTP.name))
         {
-            int rc;
             ActiveDeviceTP.s=IPS_OK;
-            rc=IUUpdateText(&ActiveDeviceTP,texts,names,n);
-            //  Update client display
+            IUUpdateText(&ActiveDeviceTP,texts,names,n);
             IDSetText(&ActiveDeviceTP,NULL);
-            //saveConfig();
 
             // Update the property name!
             strncpy(EqNP.device, ActiveDeviceT[0].text, MAXINDIDEVICE);
@@ -2307,6 +2304,7 @@ bool INDI::CCD::uploadFile(CCDChip * targetChip, const void *fitsData, size_t to
         {
             /* this should NEVER happen */
             DEBUG(INDI::Logger::DBG_ERROR, "Error: Failed to compress image");
+            free(compressedData);
             return false;
         }
 
@@ -2417,7 +2415,7 @@ void INDI::CCD::getMinMax(double *min, double *max, CCDChip *targetChip)
     int ind=0, i, j;
     int imageHeight = targetChip->getSubH() / targetChip->getBinY();
     int imageWidth  = targetChip->getSubW() / targetChip->getBinX();
-    double lmin, lmax;
+    double lmin=0, lmax=0;
 
     switch (targetChip->getBPP())
     {

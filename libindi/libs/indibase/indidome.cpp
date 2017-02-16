@@ -686,7 +686,7 @@ bool INDI::Dome::ISSnoopDevice (XMLEle *root)
             if (!strcmp(elemName, "LONG"))
             {
                 double indiLong;
-                int rc_Long = f_scansexa(pcdataXMLEle(ep), &indiLong);
+                f_scansexa(pcdataXMLEle(ep), &indiLong);
                 if (indiLong > 180)
                     indiLong -= 360;
                 observer.lng = indiLong;
