@@ -739,6 +739,16 @@ set(baaderdome_SRCS
 add_executable(indi_baader_dome ${baaderdome_SRCS})
 target_link_libraries(indi_baader_dome indidriver)
 install(TARGETS indi_baader_dome RUNTIME DESTINATION bin )
+
+########### Dome Scripting Gateway ##############
+set(domescript_SRCS
+        ${CMAKE_CURRENT_SOURCE_DIR}/drivers/dome/dome_script.cpp
+   )
+
+add_executable(indi_script_dome ${domescript_SRCS})
+target_link_libraries(indi_script_dome indidriver)
+install(TARGETS indi_script_dome RUNTIME DESTINATION bin )
+
 #################################################################################
 
 #########################################

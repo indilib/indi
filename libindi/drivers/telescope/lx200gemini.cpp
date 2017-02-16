@@ -62,7 +62,12 @@ bool LX200Gemini::isSlewComplete()
 {
     const double dx = targetRA - currentRA;
     const double dy = targetDEC - currentDEC;
-    return fabs(dx) <= (SlewAccuracyN[0].value/(900.0)) && fabs(dy) <= (SlewAccuracyN[1].value/60.0);
+    bool isComplete = (fabs(dx) <= (SlewAccuracyN[0].value/(900.0))) && (fabs(dy) <= (SlewAccuracyN[1].value/60.0));
+
+    DEBUGF(INDI::Logger::DBG_DEBUG, "targetRA: %g currentRA: %g targetDEC: %d currentDEC: %g", targetRA, currentRA, targetDEC, currentDEC);
+    DEBUGF(INDI::Logger::DBG_DEBUG, "isSlewComplete? %s dx: %g dy: %g", isComplete ? "true" : "false", dx, dy);
+
+    return isComplete;
 }
 
 bool LX200Gemini::saveConfigItems(FILE *fp)

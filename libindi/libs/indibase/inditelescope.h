@@ -427,6 +427,10 @@ class INDI::Telescope : public INDI::DefaultDevice
         ISwitch BaudRateS[6];
         ISwitchVectorProperty BaudRateSP;
 
+        // Lock Joystick Axis to one direciton only
+        ISwitch LockAxisS[1];
+        ISwitchVectorProperty LockAxisSP;
+
         uint32_t capability;
         int last_we_motion, last_ns_motion;
 

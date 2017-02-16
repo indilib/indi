@@ -143,10 +143,12 @@ bool Controller::ISNewSwitch (const char *dev, const char *name, ISState *states
                 disableJoystick();
 
             IDSetSwitch(&UseJoystickSP, NULL);
+
+            return true;
         }
     }
 
-    return true;
+    return false;
 }
 
 bool Controller::ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n)
@@ -190,7 +192,7 @@ bool Controller::ISNewText (const char *dev, const char *name, char *texts[], ch
         }
     }
 
-    return true;
+    return false;
 
 }
 
@@ -255,7 +257,7 @@ bool Controller::ISSnoopDevice(XMLEle *root)
         joystickCallbackFunc(setting, mag, angle, device);
     }
 
-    return true;
+    return false;
 }
 
 
