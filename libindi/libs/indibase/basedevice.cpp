@@ -526,8 +526,8 @@ bool INDI::BaseDevice::buildSkeleton(const char *filename)
 
 int INDI::BaseDevice::buildProp(XMLEle *root, char *errmsg)
 {
-    IPerm perm;
-    IPState state;
+    IPerm perm = IP_RO;
+    IPState state = IPS_IDLE;
     XMLEle *ep = NULL;
     char *rtag, *rname, *rdev;
     double timeout=0;
@@ -637,7 +637,11 @@ int INDI::BaseDevice::buildProp(XMLEle *root, char *errmsg)
             mediator->newProperty(indiProp);
     }
     else
+    {
         IDLog("%s: newNumberVector with no valid members\n",rname);
+        delete (nvp);
+        delete (indiProp);
+    }
 
     setlocale(LC_NUMERIC,orig);
   }
@@ -701,10 +705,14 @@ int INDI::BaseDevice::buildProp(XMLEle *root, char *errmsg)
                 mediator->newProperty(indiProp);
         }
         else
+        {
             IDLog("%s: newSwitchVector with no valid members\n",rname);
+            delete (svp);
+            delete (indiProp);
+        }
     }
 
-else if (!strcmp (rtag, "defTextVector"))
+    else if (!strcmp (rtag, "defTextVector"))
     {
 
         INDI::Property *indiProp = new INDI::Property();
@@ -763,9 +771,13 @@ else if (!strcmp (rtag, "defTextVector"))
             mediator->newProperty(indiProp);
     }
     else
+    {
         IDLog("%s: newTextVector with no valid members\n",rname);
-}
-else if (!strcmp (rtag, "defLightVector"))
+        delete (tvp);
+        delete (indiProp);
+    }
+    }
+    else if (!strcmp (rtag, "defLightVector"))
     {
 
         INDI::Property *indiProp = new INDI::Property();
@@ -821,9 +833,13 @@ else if (!strcmp (rtag, "defLightVector"))
             mediator->newProperty(indiProp);
     }
     else
+    {
         IDLog("%s: newLightVector with no valid members\n",rname);
+        delete (lvp);
+        delete (indiProp);
+    }
 }
-else if (!strcmp (rtag, "defBLOBVector"))
+    else if (!strcmp (rtag, "defBLOBVector"))
     {
         INDI::Property *indiProp = new INDI::Property();
         IBLOBVectorProperty *bvp = new IBLOBVectorProperty;
@@ -887,7 +903,11 @@ else if (!strcmp (rtag, "defBLOBVector"))
             mediator->newProperty(indiProp);
     }
     else
+    {
         IDLog("%s: newBLOBVector with no valid members\n",rname);
+        delete (bvp);
+        delete (indiProp);
+    }
  }
 
 return (0);
@@ -1109,11 +1129,11 @@ int INDI::BaseDevice::setBLOB(IBLOBVectorProperty *bvp, XMLEle * root, char * er
     IBLOB *blobEL;
     unsigned char * dataBuffer=NULL;
     XMLEle *ep;
-    int n=0, r=0;
+    int r=0;
     uLongf dataSize=0;
 
     /* pull out each name/BLOB pair, decode */
-    for (n = 0, ep = nextXMLEle(root,1); ep; ep = nextXMLEle(root,0))
+    for (ep = nextXMLEle(root,1); ep; ep = nextXMLEle(root,0))
     {
         if (strcmp (tagXMLEle(ep), "oneBLOB") == 0)
         {
