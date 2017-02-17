@@ -34,6 +34,7 @@
 
 #include <libnova.h>
 #include <fitsio.h>
+#include <indicom.h>
 
 #ifdef __linux__
 #include "webcam/v4l2_record/stream_recorder.h"
@@ -1718,9 +1719,17 @@ void INDI::CCD::addFITSKeywords(fitsfile *fptr, CCDChip *targetChip)
 
         double raJ2000  = J2000Pos.ra/15.0;
         double decJ2000 = J2000Pos.dec;
+        char ra_str[32], de_str[32];
 
-        fits_update_key_s(fptr, TDOUBLE, "OBJCTRA", &raJ2000, "Object RA", &status);
-        fits_update_key_s(fptr, TDOUBLE, "OBJCTDEC", &decJ2000, "Object DEC", &status);
+        fs_sexa(ra_str, raJ2000, 2, 360000);
+        fs_sexa(de_str, decJ2000, 2, 360000);
+
+        char *raPtr = ra_str, *dePtr = de_str;
+        while (*raPtr != '\0') { if (*raPtr == ':') *raPtr = ' '; *raPtr++; }
+        while (*dePtr != '\0') { if (*dePtr == ':') *dePtr = ' '; *dePtr++; }
+
+        fits_update_key_s(fptr, TSTRING, "OBJCTRA", ra_str, "Object RA", &status);
+        fits_update_key_s(fptr, TSTRING, "OBJCTDEC", de_str, "Object DEC", &status);
 
         int epoch = 2000;
 
