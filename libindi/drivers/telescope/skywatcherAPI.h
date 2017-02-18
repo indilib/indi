@@ -58,6 +58,7 @@ public:
     virtual ~SkywatcherAPI();
 
     unsigned long BCDstr2long(std::string &String);
+    unsigned long Highstr2long(std::string &String);
     bool CheckIfDCMotor();
 
     /// \brief Convert a slewing rate in degrees per second into the required

@@ -104,6 +104,24 @@ unsigned long SkywatcherAPI::BCDstr2long(std::string &String)
     return value;
 }
 
+unsigned long SkywatcherAPI::Highstr2long(std::string &String)
+{
+    if (String.size() < 2)
+    {
+        return 0;
+    }
+   unsigned long res = 0;
+
+#define HEX(c) (((c) < 'A')?((c)-'0'):((c) - 'A') + 10)
+
+   res = HEX(String[0]); res <<= 4;
+   res |= HEX(String[1]);
+
+#undef HEX
+
+   return res;
+}
+
 bool SkywatcherAPI::CheckIfDCMotor()
 {
     MYDEBUG(DBG_SCOPE, "CheckIfDCMotor");
@@ -173,7 +191,7 @@ bool SkywatcherAPI::GetHighSpeedRatio(AXISID Axis)
     if (!TalkWithAxis(Axis, 'g', Parameters, Response))
         return false;
 
-    long highSpeedRatio = BCDstr2long(Response);
+    unsigned long highSpeedRatio = Highstr2long(Response);
     HighSpeedRatio[(int)Axis] = highSpeedRatio;
 
     return true;
