@@ -216,6 +216,11 @@ private:
     */
     void setDriverConnection(bool status, const char *deviceName);
 
+    /**
+     * @brief clear Clear devices and blob modes
+     */
+    void clear();
+
     pthread_t listen_thread;
 
     FILE *svrwfp;			/* FILE * to talk to server */

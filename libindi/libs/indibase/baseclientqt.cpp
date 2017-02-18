@@ -66,6 +66,11 @@ INDI::BaseClientQt::BaseClientQt()
 
 INDI::BaseClientQt::~BaseClientQt()
 {
+    clear();
+}
+
+void INDI::BaseClientQt::clear()
+{
     while(!cDevices.empty()) delete cDevices.back(), cDevices.pop_back();
     cDevices.clear();
     while(!blobModes.empty()) delete blobModes.back(), blobModes.pop_back();
@@ -92,6 +97,8 @@ bool INDI::BaseClientQt::connectServer()
         sConnected = false;
         return false;
     }
+
+    clear();
 
     lillp = newLilXML();
 
@@ -141,10 +148,7 @@ bool INDI::BaseClientQt::disconnectServer()
        lillp=NULL;
     }
 
-    while(!cDevices.empty()) delete cDevices.back(), cDevices.pop_back();
-    cDevices.clear();
-    while(!blobModes.empty()) delete blobModes.back(), blobModes.pop_back();
-    blobModes.clear();
+    clear();
 
     cDeviceNames.clear();
 
@@ -733,7 +737,9 @@ void INDI::BaseClientQt::processSocketError( QAbstractSocket::SocketError socket
     INDI_UNUSED(socketError);
     IDLog("Socket Error: %s\n", client_socket.errorString().toLatin1().constData());
     fprintf (stderr,"INDI server %s/%d disconnected.\n", cServer.c_str(), cPort);
-    disconnectServer();
+    delLilXML(lillp);
+    client_socket.close();
+    // Let client handle server disconnection
     serverDisconnected(-1);
 }
 
