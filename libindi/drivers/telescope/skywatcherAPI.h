@@ -57,7 +57,8 @@ public:
     SkywatcherAPI();
     virtual ~SkywatcherAPI();
 
-    long BCDstr2long(std::string &String);
+    unsigned long BCDstr2long(std::string &String);
+    unsigned long Highstr2long(std::string &String);
     bool CheckIfDCMotor();
 
     /// \brief Convert a slewing rate in degrees per second into the required
@@ -230,10 +231,10 @@ public:
     bool TalkWithAxis(AXISID Axis, char Command, std::string& cmdDataStr, std::string& responseStr);
 
     // Skywatcher mount status variables
-    long MCVersion; // Motor control board firmware version
+    unsigned long MCVersion; // Motor control board firmware version
 
     enum MountType { EQ6=0x00, HEQ5=0x01, EQ5=0x02, EQ3=0x03, GT=0x80, MF=0x81, _114GT=0x82, DOB=0x90 };
-    long MountCode;
+    unsigned long MountCode;
     bool IsDCMotor;
 
     // Values from mount
