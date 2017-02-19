@@ -158,6 +158,11 @@ bool SkywatcherAPI::CheckIfDCMotor()
 	return false;
 }
 
+bool SkywatcherAPI::IsVirtuosoMount() const
+{
+  return MountCode >= 0x90;
+}
+
 long SkywatcherAPI::DegreesPerSecondToClocksTicksPerMicrostep(AXISID Axis, double DegreesPerSecond)
 {
     double MicrostepsPerSecond = DegreesPerSecond * MicrostepsPerDegree[Axis];
@@ -405,7 +410,7 @@ bool SkywatcherAPI::InitMount()
     ZeroPositionEncoders[AXIS1] = CurrentEncoders[AXIS1];
     // The Virtuoso (AltAz) mounts must be switched on in north-south alignment and
     // The zero position vector is valid for axis1, but axis2 should not be calculated.
-    if (MountCode < 0x90)
+    if (!IsVirtuosoMount())
     {
         ZeroPositionEncoders[AXIS2] = CurrentEncoders[AXIS2];
     }

@@ -61,6 +61,10 @@ public:
     unsigned long Highstr2long(std::string &String);
     bool CheckIfDCMotor();
 
+    /// \brief Check if the current mount is an AltAz (Virtuoso)
+    /// \return True if the current mount is Virtuoso otherwise false.
+    bool IsVirtuosoMount() const;
+
     /// \brief Convert a slewing rate in degrees per second into the required
     /// clock ticks per microstep setting.
     /// \param[in] Axis - The axis to use.
