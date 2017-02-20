@@ -400,11 +400,15 @@ bool SkywatcherAPI::InitMount()
         return false;
     MYDEBUGF(DBG_SCOPE, "Encoders before init Axis1 %ld Axis2 %ld", CurrentEncoders[AXIS1], CurrentEncoders[AXIS2]);
 
-    // Set initial axis posiitons
-    // These are used to define the arbitary zero position vector for the axis
+    // Set initial axis positions
+    // These are used to define the arbitrary zero position vector for the axis
     ZeroPositionEncoders[AXIS1] = CurrentEncoders[AXIS1];
-    ZeroPositionEncoders[AXIS2] = CurrentEncoders[AXIS2];
-
+    // The Virtuoso (AltAz) mounts must be switched on in north-south alignment and
+    // The zero position vector is valid for axis1, but axis2 should not be calculated.
+    if (MountCode < 0x90)
+    {
+        ZeroPositionEncoders[AXIS2] = CurrentEncoders[AXIS2];
+    }
 
     if (!InitializeMC())
         return false;

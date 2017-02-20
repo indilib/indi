@@ -254,8 +254,8 @@ public:
     long LastSlewToTarget[2];
 
     // Encoder values
-    long CurrentEncoders[2]; // Current encoder value (microsteps).
-    long ZeroPositionEncoders[2]; // Zero position (initial) encoder value (microsteps).
+    unsigned long CurrentEncoders[2]; // Current encoder value (microsteps).
+    unsigned long ZeroPositionEncoders[2]; // Zero position (initial) encoder value (microsteps).
 
     AXISSTATUS AxesStatus[2];
     double SlewingSpeed[2];
