@@ -492,7 +492,7 @@ bool MoonLite::sync(uint16_t offset)
     char errstr[MAXRBUF];
     char cmd[9];
 
-    snprintf(cmd, 9, ":SP%04d#", offset);
+    snprintf(cmd, 9, ":SP%04X#", offset);
 
     // Set Position
     if ( (rc = tty_write(PortFD, cmd, 8, &nbytes_written)) != TTY_OK)
