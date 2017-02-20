@@ -118,9 +118,9 @@ bool MoonLite::initProperties()
     IUFillSwitch(&TemperatureCompensateS[1], "Disable", "", ISS_ON);
     IUFillSwitchVector(&TemperatureCompensateSP, TemperatureCompensateS, 2, getDeviceName(), "Temperature Compensate", "", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
-    // Reset
-    IUFillSwitch(&ResetS[0], "Zero", "", ISS_OFF);
-    IUFillSwitchVector(&ResetSP, ResetS, 1, getDeviceName(), "Reset", "", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+    // Sync
+    IUFillNumber(&SyncN[0], "FOCUS_SYNC_OFFSET", "Offset", "%6.0f", 0, 60000., 0., 0.);
+    IUFillNumberVector(&SyncNP, SyncN, 1, getDeviceName(), "FOCUS_SYNC", "Sync", MAIN_CONTROL_TAB, IP_RW, 0, IPS_IDLE );
 
     /* Relative and absolute movement */
     FocusRelPosN[0].min = 0.;
@@ -150,7 +150,7 @@ bool MoonLite::updateProperties()
         defineSwitch(&StepModeSP);
         defineNumber(&TemperatureSettingNP);
         defineSwitch(&TemperatureCompensateSP);
-        defineSwitch(&ResetSP);
+        defineNumber(&SyncNP);
 
         GetFocusParams();
 
@@ -166,7 +166,7 @@ bool MoonLite::updateProperties()
         deleteProperty(StepModeSP.name);
         deleteProperty(TemperatureSettingNP.name);
         deleteProperty(TemperatureCompensateSP.name);
-        deleteProperty(ResetSP.name);
+        deleteProperty(SyncNP.name);
     }
 
     return true;
@@ -486,13 +486,13 @@ bool MoonLite::setTemperatureCoefficient(double coefficient)
 
 }
 
-bool MoonLite::reset()
+bool MoonLite::sync(uint16_t offset)
 {
     int nbytes_written=0, rc=-1;
     char errstr[MAXRBUF];
     char cmd[9];
 
-    strncpy(cmd, ":SP0000#", 9);
+    snprintf(cmd, 9, ":SP%04d#", offset);
 
     // Set Position
     if ( (rc = tty_write(PortFD, cmd, 8, &nbytes_written)) != TTY_OK)
@@ -670,20 +670,6 @@ bool MoonLite::ISNewSwitch (const char *dev, const char *name, ISState *states, 
             IDSetSwitch(&TemperatureCompensateSP, NULL);
             return true;
         }
-
-        if (!strcmp(ResetSP.name, name))
-        {
-            IUResetSwitch(&ResetSP);
-
-            if (reset())
-                ResetSP.s = IPS_OK;
-            else
-                ResetSP.s = IPS_ALERT;
-
-            IDSetSwitch(&ResetSP, NULL);
-            return true;
-        }
-
     }
 
 
@@ -692,10 +678,19 @@ bool MoonLite::ISNewSwitch (const char *dev, const char *name, ISState *states, 
 
 bool MoonLite::ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n)
 {
-    int nset=0,i=0;
-
     if(strcmp(dev,getDeviceName())==0)
-    {        
+    {
+        if (!strcmp (name, SyncNP.name))
+        {
+             IUUpdateNumber(&SyncNP, values, names, n);
+             if (sync(SyncN[0].value))
+                 SyncNP.s = IPS_OK;
+             else
+                 SyncNP.s = IPS_ALERT;
+             IDSetNumber(&SyncNP, NULL);
+             return true;
+        }
+
         if (!strcmp (name, MaxTravelNP.name))
         {
              IUUpdateNumber(&MaxTravelNP, values, names, n);
