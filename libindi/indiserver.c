@@ -545,7 +545,12 @@ startLocalDvr (DvrInfo *dp)
         {
           if (fifo.fd > 0)
             unsetenv("INDIPREFIX");
-          execlp (dp->name, dp->name, NULL);
+          if (dp->name[0] == '.') {
+            snprintf(executable, MAXSBUF, "%s/%s", dirname(me), dp->name);
+            execlp (executable, dp->name, NULL);
+          } else {
+            execlp (dp->name, dp->name, NULL);
+          }
         }
 
 #ifdef OSX_EMBEDED_MODE
