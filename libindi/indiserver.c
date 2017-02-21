@@ -62,6 +62,7 @@
 #include <netinet/in.h>
 #include <netdb.h>
 #include <arpa/inet.h>
+#include <libgen.h>
 
 #include "lilxml.h"
 #include "indiapi.h"
