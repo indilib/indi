@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 2.8)
+cmake_minimum_required(VERSION 3.0)
 PROJECT(libindi C CXX)
 
 # Tell CMake to run moc when necessary:
@@ -7,9 +7,6 @@ set(CMAKE_AUTOMOC ON)
 # to always look for includes there:
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
 
- cmake_policy(SET CMP0003 NEW)
-#FIXME the following requires CMake v3.0
-#cmake_policy(SET CMP0042 OLD)
 include(GNUInstallDirs)
 include(FeatureSummary)
 
@@ -28,9 +25,10 @@ endif(NOT WIN32 AND NOT ANDROID)
 
 set(INDI_SOVERSION "1")
 set(CMAKE_INDI_VERSION_MAJOR 1)
-set(CMAKE_INDI_VERSION_MINOR 3)
-set(CMAKE_INDI_VERSION_RELEASE 1)
+set(CMAKE_INDI_VERSION_MINOR 4)
+set(CMAKE_INDI_VERSION_RELEASE 0)
 set(CMAKE_INDI_VERSION_STRING "${CMAKE_INDI_VERSION_MAJOR}.${CMAKE_INDI_VERSION_MINOR}.${CMAKE_INDI_VERSION_RELEASE}")
+set(INDI_VERSION ${CMAKE_INDI_VERSION_MAJOR}.${CMAKE_INDI_VERSION_MINOR}.${CMAKE_INDI_VERSION_RELEASE})
 
 ########################################  Paths  ###################################################
 
@@ -53,86 +51,196 @@ set(PKGCONFIG_INSTALL_PREFIX "${LIB_DESTINATION}/pkgconfig/")
 set(UDEVRULES_INSTALL_DIR "/lib/udev/rules.d" CACHE STRING "Base directory for udev rules")
 
 #####################################  Build Options  ##############################################
+# Select which components to build and what options to apply
 
+OPTION (INDI_BUILD_SERVER "Build INDI Server" ON)
+OPTION (INDI_BUILD_DRIVERS "Build INDI Drivers, Tools, and Examples" ON)
+OPTION (INDI_BUILD_POSIX_CLIENT "Build INDI POSIX Client" ON)
+OPTION (INDI_BUILD_QT5_CLIENT "Build INDI Qt5 Client" OFF)
 OPTION (INDI_BUILD_UNITTESTS "Build INDI tests" OFF)
 OPTION (INDI_FAST_BLOB "Build INDI with Fast BLOB support" ON)
 OPTION (INDI_CALCULATE_MINMAX "Calculate and store image minimum and maximum values in FITS header" OFF)
 
-#####################################  Dependencies  ##############################################
-# ZLib compression Library
-FIND_PACKAGE(ZLIB REQUIRED)
+###################################################################################################
+#########################################  Fast Blob  #############################################
+###################################################################################################
+IF (INDI_FAST_BLOB)
+# Append ENCLEN attribute to outgoing BLOB elements to enable fast parsing by clients
+add_definitions(-DWITH_ENCLEN)
+ENDIF(INDI_FAST_BLOB)
 
-# libcfitsio for FITS IO
-FIND_PACKAGE(CFITSIO REQUIRED)
+###################################################################################################
+######################################  Calculate Min/Max #########################################
+###################################################################################################
+IF (INDI_CALCULATE_MINMAX)
+# Calculate Min/Max values to store them in FITS header
+add_definitions(-DWITH_MINMAX)
+ENDIF(INDI_CALCULATE_MINMAX)
 
-if (NOT CFITSIO_FOUND OR CFITSIO_VERSION_MAJOR LESS 3)
-  message(FATAL_ERROR "CFITSIO version too old, Please install cfitsio 3.x and try again. http://heasarc.gsfc.nasa.gov/fitsio/fitsio.html")
-endif (NOT CFITSIO_FOUND OR CFITSIO_VERSION_MAJOR LESS 3)
-
-set_package_properties(CFITSIO PROPERTIES DESCRIPTION "A library for reading and writing data files in FITS (Flexible Image Transport System) data format" URL "http://heasarc.gsfc.nasa.gov/fitsio/fitsio.html" TYPE REQUIRED PURPOSE "Provides INDI with FITS I/O support.")
-
-# libnova for astronomical formulae
-FIND_PACKAGE(Nova REQUIRED)
-
-set_package_properties(Nova PROPERTIES DESCRIPTION "A general purpose, double precision, Celestial Mechanics, Astrometry and Astrodynamics library" URL "http://libnova.sourceforge.net" TYPE REQUIRED PURPOSE "Provides INDI with astrodynamics library.")
-
-# To build INDI Client Qt5 backend
-FIND_PACKAGE(Qt5Network)
-
-if (WIN32)
-set(M_LIB "")
-else(WIN32)
-
-# Math Library
-FIND_LIBRARY(M_LIB m)
-
-if(NOT ANDROID)
-# libusb 1.0+ for USB devices
-FIND_PACKAGE(USB-1 REQUIRED)
-
-# libcurl to make web requests
-FIND_PACKAGE(CURL REQUIRED)
-
-# Phreads for multithreading
-FIND_PACKAGE(Threads REQUIRED)
-
-# libjpeg for V4L2
-if (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
-  FIND_PACKAGE(JPEG REQUIRED)
-endif (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
-
-endif(NOT ANDROID)
-endif(WIN32)
-
+#######################################  config.h  #################################################
 # Generate config.h from template
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/config.h.cmake ${CMAKE_CURRENT_BINARY_DIR}/config.h )
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/indiversion.h.cmake ${CMAKE_CURRENT_BINARY_DIR}/indiversion.h )
 
-##################################  Include Directories  ##########################################
+###################################################################################################
+#####################################  Components  ################################################
+###################################################################################################
 
+set_package_properties(Nova PROPERTIES DESCRIPTION "A general purpose, double precision, Celestial Mechanics, Astrometry and Astrodynamics library" URL "http://libnova.sourceforge.net" TYPE REQUIRED PURPOSE "Provides INDI with astrodynamics library.")
+set_package_properties(CFITSIO PROPERTIES DESCRIPTION "A library for reading and writing data files in FITS (Flexible Image Transport System) data format" URL "http://heasarc.gsfc.nasa.gov/fitsio/fitsio.html" TYPE REQUIRED PURPOSE "Provides INDI with FITS I/O support.")
+
+####################################################################################################
+#
+# Component   : INDI Server
+# Dependencies: pthreads
+# Supported OS: Linux, BSD, MacOS, Cygwin
+#
+#################################################################################################
+if (INDI_BUILD_SERVER)
+if (WIN32 OR ANDROID)
+    message(FATAL_ERROR "INDI Server is only supported under Linux, BSD, MacOS, and Cygwin while current system is " ${CMAKE_SYSTEM_NAME})
+endif (WIN32 OR ANDROID)
+# 1. Dependencies
+FIND_PACKAGE(Threads REQUIRED)
+# 2. Includes
+include_directories( ${CMAKE_CURRENT_SOURCE_DIR})
+# 3. Build
+add_executable(indiserver
+    ${CMAKE_CURRENT_SOURCE_DIR}/indiserver.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/fq.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/libs/lilxml.c
+    )
+target_link_libraries(indiserver ${CMAKE_THREAD_LIBS_INIT})
+install(TARGETS indiserver RUNTIME DESTINATION bin)
+endif (INDI_BUILD_SERVER)
+
+#################################################################################################
+#
+# Component   : INDI POSIX Client
+# Dependencies: pthreads, zLib, cfitsio, nova
+# Supported OS: Linux, BSD, MacOS, Cygwin
+#
+#################################################################################################
+if (INDI_BUILD_POSIX_CLIENT)
+    if (WIN32 OR ANDROID)
+        message(FATAL_ERROR "INDI POSIX Client is only supported under Linux, BSD, MacOS, and Cygwin while current system is " ${CMAKE_SYSTEM_NAME})
+    endif (WIN32 OR ANDROID)
+
+# 1. Dependencies
+FIND_PACKAGE(Threads REQUIRED)
+FIND_PACKAGE(ZLIB REQUIRED)
+FIND_PACKAGE(CFITSIO REQUIRED)
+FIND_PACKAGE(Nova REQUIRED)
+# 2. Includes
 include_directories( ${CMAKE_CURRENT_BINARY_DIR})
 include_directories( ${CMAKE_CURRENT_SOURCE_DIR})
 include_directories( ${CMAKE_CURRENT_SOURCE_DIR}/libs)
 include_directories( ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase)
+include_directories( ${CFITSIO_INCLUDE_DIR})
+include_directories( ${NOVA_INCLUDE_DIR})
+# 3. Build
+add_library(indiclient STATIC
+    ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/basedevice.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/baseclient.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indiproperty.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/libs/lilxml.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/libs/indicom.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/base64.c)
+set_target_properties(indiclient PROPERTIES COMPILE_FLAGS "-fPIC")
+target_link_libraries(indiclient indi ${CMAKE_THREAD_LIBS_INIT})
+install(TARGETS indiclient ARCHIVE DESTINATION ${LIB_DESTINATION})
+endif (INDI_BUILD_POSIX_CLIENT)
 
+#################################################################################################
+#
+# Component   : INDI Qt5 Client
+# Dependencies: Qt5Network, zlib, cfitsio, nova
+# Supported OS: Linux, BSD, MacOS, Cygwin, Windows, Android
+#
+#################################################################################################
+if (INDI_BUILD_QT5_CLIENT)
+# 1. Dependencies
+FIND_PACKAGE(Qt5Network)
+FIND_PACKAGE(ZLIB REQUIRED)
+FIND_PACKAGE(CFITSIO REQUIRED)
+FIND_PACKAGE(Nova REQUIRED)
+# 2. Includes
+include_directories( ${CMAKE_CURRENT_BINARY_DIR})
+include_directories( ${CMAKE_CURRENT_SOURCE_DIR})
+include_directories( ${CMAKE_CURRENT_SOURCE_DIR}/libs)
+include_directories( ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase)
+include_directories( ${CFITSIO_INCLUDE_DIR})
+include_directories( ${NOVA_INCLUDE_DIR})
+# 3. Build
+message(STATUS "Building INDI Client with Qt5 support")
+add_library(indiclientqt STATIC
+    ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/basedevice.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/baseclientqt.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indiproperty.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/libs/lilxml.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/libs/indicom.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/base64.c
+    )
+if (NOT WIN32)
+set_target_properties(indiclientqt PROPERTIES COMPILE_FLAGS "-fPIC")
+endif(NOT WIN32)
+qt5_use_modules(indiclientqt Network)
+if (WIN32 OR ANDROID)
+install(TARGETS indiclientqt ARCHIVE DESTINATION lib)
+else(WIN32 OR ANDROID)
+install(TARGETS indiclientqt ARCHIVE DESTINATION ${LIB_DESTINATION})
+endif(WIN32 OR ANDROID)
+install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/baseclientqt.h DESTINATION ${INCLUDE_INSTALL_DIR}/libindi COMPONENT Devel)
+endif (INDI_BUILD_QT5_CLIENT)
+
+#################################################################################################
+#
+# Component   : INDI Drivers, Tools, and Examples
+# Dependencies: pthreads, usb1, zLib, cfitsio, nova, curl, jpeg (Linux Only)
+# Supported OS: Linux, BSD, MacOS, Cygwin
+# N.B. Webcam drivers only supported under Linux (Video4Linux2). Joystick support only under Linux
+#
+#################################################################################################
+if (INDI_BUILD_DRIVERS)
+    if (WIN32 OR ANDROID)
+        message(FATAL_ERROR "INDI POSIX Client is only supported under Linux, BSD, MacOS, and Cygwin while current system is " ${CMAKE_SYSTEM_NAME})
+    endif (WIN32 OR ANDROID)
+# 1. Dependencies
+FIND_PACKAGE(Threads REQUIRED)
+FIND_PACKAGE(ZLIB REQUIRED)
+FIND_PACKAGE(CFITSIO REQUIRED)
+FIND_PACKAGE(Nova REQUIRED)
+FIND_PACKAGE(USB-1 REQUIRED)
+FIND_PACKAGE(CURL REQUIRED)
+# libjpeg for V4L2
+if (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
+  FIND_PACKAGE(JPEG REQUIRED)
+endif()
+# Math Library
+FIND_LIBRARY(M_LIB m)
+# 2. Includes
+include_directories( ${CMAKE_CURRENT_BINARY_DIR})
+include_directories( ${CMAKE_CURRENT_SOURCE_DIR})
+include_directories( ${CMAKE_CURRENT_SOURCE_DIR}/libs)
+include_directories( ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase)
+include_directories( ${CFITSIO_INCLUDE_DIR})
+include_directories( ${NOVA_INCLUDE_DIR})
+include_directories(${LIBUSB_1_INCLUDE_DIRS})
 if (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
 include_directories( ${CMAKE_CURRENT_SOURCE_DIR}/libs/webcam)
   include_directories( ${JPEG_INCLUDE_DIR} )
 endif()
 
-include_directories(${CFITSIO_INCLUDE_DIR})
-include_directories(${LIBUSB_1_INCLUDE_DIRS})
-include_directories(${NOVA_INCLUDE_DIR})
-
 ###################################################################################################
 ########################################  Sources  ################################################
 ###################################################################################################
-
-set(liblilxml_SRCS  ${CMAKE_CURRENT_SOURCE_DIR}/libs/lilxml.c )
-
-set(libindicom_SRCS
-        ${CMAKE_CURRENT_SOURCE_DIR}/libs/indicom.c
-        ${CMAKE_CURRENT_SOURCE_DIR}/base64.c
-	)
+IF (APPLE)
+set(hidapi_SRCS ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/hid_mac.c)
+ELSEIF (WIN32)
+set(hidapi_SRCS ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/hid_win.c)
+ELSE ()
+set(hidapi_SRCS ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/hid_libusb.c)
+ENDIF()
 
 if (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
 set(libwebcam_SRCS
@@ -149,25 +257,13 @@ set(libwebcam_SRCS
 	)
 endif()
 
-set (indimain_SRCS
+set (indidriver_SRCS
         ${CMAKE_CURRENT_SOURCE_DIR}/indidriver.c
         ${CMAKE_CURRENT_SOURCE_DIR}/indidrivermain.c
         ${CMAKE_CURRENT_SOURCE_DIR}/eventloop.c
-    )
-
-set (indiclient_SRCS
-        ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/basedevice.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/baseclient.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indiproperty.cpp
-    )
-
-set (indiclientqt_SRCS
-        ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/basedevice.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/baseclientqt.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indiproperty.cpp
-    )
-if(NOT ANDROID)
-set (indidriver_SRCS
+        ${CMAKE_CURRENT_SOURCE_DIR}/libs/lilxml.c
+        ${CMAKE_CURRENT_SOURCE_DIR}/libs/indicom.c
+        ${CMAKE_CURRENT_SOURCE_DIR}/base64.c
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/basedevice.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/defaultdevice.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indiproperty.cpp
@@ -188,115 +284,19 @@ set (indidriver_SRCS
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indicontroller.cpp
 
     )
-endif(NOT ANDROID)
-
-set (lx_SRCS
-     ${CMAKE_CURRENT_SOURCE_DIR}/libs/lx/Lx.cpp
-)
-
-IF (APPLE)
-set(hidapi_SRCS ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/hid_mac.c)
-ELSEIF (WIN32)
-set(hidapi_SRCS ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/hid_win.c)
-ELSE ()
-set(hidapi_SRCS ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/hid_libusb.c)
-ENDIF()
-
-#################################################
-############# INDI Shared Library ###############
-# To offer lilxml and communination routines    #
-# Mostly used by generic clients                #
-#################################################
-if (WIN32 OR ANDROID)
-    add_library(indi STATIC ${libindicom_SRCS} ${liblilxml_SRCS})
-else(WIN32 OR ANDROID)
-    add_library(indi SHARED ${libindicom_SRCS} ${liblilxml_SRCS})
-endif(WIN32 OR ANDROID)
-
-if (NOT WIN32)
-    set_target_properties(indi PROPERTIES COMPILE_FLAGS "-fPIC") #Used for Android and Linux
-endif(NOT WIN32)
-
-set_target_properties(indi PROPERTIES VERSION ${CMAKE_INDI_VERSION_STRING} SOVERSION ${INDI_SOVERSION})
-
-target_link_libraries(indi ${NOVA_LIBRARIES} ${M_LIB} ${ZLIB_LIBRARY} ${CFITSIO_LIBRARIES})
-
-if (WIN32 OR ANDROID)
-install(TARGETS indi ARCHIVE DESTINATION lib)
-else(WIN32 OR ANDROID)
-install(TARGETS indi LIBRARY DESTINATION ${LIB_DESTINATION})
-endif(WIN32 OR ANDROID)
-
-##################################################
-########### INDI Client Static Library ###########
-##################################################
-
-if (NOT WIN32 AND NOT ANDROID)
-add_library(indiclient STATIC ${indiclient_SRCS})
-SET_TARGET_PROPERTIES(indiclient PROPERTIES COMPILE_FLAGS "-fPIC")
-target_link_libraries(indiclient indi ${CMAKE_THREAD_LIBS_INIT})
-install(TARGETS indiclient ARCHIVE DESTINATION ${LIB_DESTINATION})
-endif(NOT WIN32 AND NOT ANDROID)
-
-##################################################
-#### INDI Client Static Library Qt5 Backend ######
-##################################################
-if (Qt5Network_FOUND)
-message(STATUS "Building INDI Client with Qt5 support")
-
-add_library(indiclientqt STATIC ${indiclientqt_SRCS})
-
-if (NOT WIN32)
-SET_TARGET_PROPERTIES(indiclientqt PROPERTIES COMPILE_FLAGS "-fPIC")
-endif(NOT WIN32)
-
-target_link_libraries(indiclientqt indi ${CMAKE_THREAD_LIBS_INIT})
-
-qt5_use_modules(indiclientqt Network)
-
-if (WIN32 OR ANDROID)
-install(TARGETS indiclientqt ARCHIVE DESTINATION lib)
-else(WIN32 OR ANDROID)
-install(TARGETS indiclientqt ARCHIVE DESTINATION ${LIB_DESTINATION})
-endif(WIN32 OR ANDROID)
-
-endif(Qt5Network_FOUND)
-
-# Do not build INDI server and drivers for Windows
-if (NOT WIN32 AND NOT ANDROID)
-######################################
-########### INDI SERVER ##############
-######################################
-set(indiserver_SRCS indiserver.c fq.c)
-
-add_executable(indiserver ${indiserver_SRCS} ${liblilxml_SRCS})
-
-target_link_libraries(indiserver ${CMAKE_THREAD_LIBS_INIT})
-
-install(TARGETS indiserver RUNTIME DESTINATION bin)
 
 ##################################################
 ########## INDI Default Driver Library ###########
-# To link with main() and indibase classes  ######
 ##################################################
-if (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
-add_library(indidriver SHARED ${libindicom_SRCS} ${liblilxml_SRCS} ${indimain_SRCS} ${indidriver_SRCS} ${libwebcam_SRCS} ${hidapi_SRCS})
-SET_TARGET_PROPERTIES(indidriver PROPERTIES COMPILE_FLAGS "-fPIC")
+## Dynamic indidriver Library
+add_library(indidriver SHARED ${indidriver_SRCS} ${libwebcam_SRCS} ${hidapi_SRCS})
+set_target_properties(indidriver PROPERTIES COMPILE_FLAGS "-fPIC")
 target_link_libraries(indidriver ${LIBUSB_1_LIBRARIES} ${NOVA_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${CFITSIO_LIBRARIES} ${M_LIB} ${ZLIB_LIBRARY} ${JPEG_LIBRARY})
-add_library(indidriverstatic STATIC ${libindicom_SRCS} ${liblilxml_SRCS} ${indimain_SRCS} ${indidriver_SRCS} ${libwebcam_SRCS} ${hidapi_SRCS})
-SET_TARGET_PROPERTIES(indidriverstatic PROPERTIES COMPILE_FLAGS "-fPIC")
-target_link_libraries(indidriverstatic ${LIBUSB_1_LIBRARIES} ${NOVA_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${CFITSIO_LIBRARIES} ${M_LIB} ${ZLIB_LIBRARY} ${JPEG_LIBRARY})
-else()
-add_library(indidriver SHARED ${libindicom_SRCS} ${liblilxml_SRCS} ${indimain_SRCS} ${indidriver_SRCS} ${hidapi_SRCS})
-target_link_libraries(indidriver ${LIBUSB_1_LIBRARIES} ${NOVA_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${CFITSIO_LIBRARIES} ${M_LIB} ${ZLIB_LIBRARY})
-add_library(indidriverstatic STATIC ${libindicom_SRCS} ${liblilxml_SRCS} ${indimain_SRCS} ${indidriver_SRCS} ${hidapi_SRCS})
-target_link_libraries(indidriverstatic ${LIBUSB_1_LIBRARIES} ${NOVA_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${CFITSIO_LIBRARIES} ${M_LIB} ${ZLIB_LIBRARY})
-endif (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
 
-#if (Qt5Network_FOUND)
-#qt5_use_modules(indidriver Network)
-#qt5_use_modules(indidriverstatic Network)
-#endif(Qt5Network_FOUND)
+## Static indidriver Library
+add_library(indidriverstatic STATIC ${indidriver_SRCS} ${libwebcam_SRCS} ${hidapi_SRCS})
+set_target_properties(indidriverstatic PROPERTIES COMPILE_FLAGS "-fPIC")
+target_link_libraries(indidriverstatic ${LIBUSB_1_LIBRARIES} ${NOVA_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${CFITSIO_LIBRARIES} ${M_LIB} ${ZLIB_LIBRARY} ${JPEG_LIBRARY})
 
 set_target_properties(indidriver indidriverstatic PROPERTIES VERSION ${CMAKE_INDI_VERSION_STRING} SOVERSION ${INDI_SOVERSION} OUTPUT_NAME indidriver)
 install(TARGETS indidriver LIBRARY DESTINATION ${LIB_DESTINATION})
@@ -308,7 +308,7 @@ install(TARGETS indidriverstatic ARCHIVE DESTINATION ${LIB_DESTINATION})
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/alignment)
 
 #####################################
-######## AGENT GROUP #########
+######## AGENT GROUP ################
 #####################################
 
 ########### Imager ##############
@@ -328,11 +328,10 @@ install(TARGETS indi_imager_agent RUNTIME DESTINATION bin )
 
 ########### LX200 Basic #############
 set(lx200basic_SRCS
-   ${indimain_SRCS}
    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/telescope/lx200driver.cpp
    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/telescope/lx200basic.cpp )
 
-add_executable(indi_lx200basic ${lx200basic_SRCS} ${liblilxml_SRCS} ${libindicom_SRCS})
+add_executable(indi_lx200basic ${lx200basic_SRCS})
 
 target_link_libraries(indi_lx200basic indidriver)
 
@@ -408,30 +407,6 @@ target_link_libraries(indi_temma indidriver AlignmentDriver )
 install(TARGETS indi_temma RUNTIME DESTINATION bin )
 #################################################################################
 
-########### Sky Commander #############
-set(skycommander_SRCS
-   ${indimain_SRCS}
-   ${CMAKE_CURRENT_SOURCE_DIR}/drivers/telescope/skycommander.c )
-
-add_executable(indi_skycommander ${skycommander_SRCS}  ${liblilxml_SRCS} ${libindicom_SRCS})
-
-target_link_libraries(indi_skycommander  ${NOVA_LIBRARIES} ${M_LIB} )
-
-install(TARGETS indi_skycommander  RUNTIME DESTINATION bin )
-
-#################################################################################
-
-########### Intelliscope ###############
-set(intelliscope_SRCS
-   ${indimain_SRCS}
-   ${CMAKE_CURRENT_SOURCE_DIR}/drivers/telescope/intelliscope.c )
-
-add_executable(indi_intelliscope ${intelliscope_SRCS} ${liblilxml_SRCS} ${libindicom_SRCS})
-
-target_link_libraries(indi_intelliscope ${NOVA_LIBRARIES} ${M_LIB} )
-
-install(TARGETS indi_intelliscope RUNTIME DESTINATION bin )
-
 ########### Syncscan ###############
 set(synscan_SRCS
    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/telescope/synscanmount.cpp )
@@ -440,18 +415,6 @@ add_executable(indi_synscan ${synscan_SRCS})
 target_link_libraries(indi_synscan indidriver AlignmentDriver)
 
 install(TARGETS indi_synscan RUNTIME DESTINATION bin )
-
-########### Magellan I #############
-set(magellan_SRCS
-   ${indimain_SRCS}
-   ${CMAKE_CURRENT_SOURCE_DIR}/drivers/telescope/magellandriver.c
-   ${CMAKE_CURRENT_SOURCE_DIR}/drivers/telescope/magellan1.cpp )
-
-add_executable(indi_magellan1 ${magellan_SRCS} ${liblilxml_SRCS} ${libindicom_SRCS})
-
-target_link_libraries(indi_magellan1 ${NOVA_LIBRARIES})
-
-install(TARGETS indi_magellan1 RUNTIME DESTINATION bin )
 
 ########### IEQ Pro / CEM60 #############
 set(ieq_SRCS
@@ -484,8 +447,6 @@ target_link_libraries(indi_script_telescope indidriver)
 install(TARGETS indi_script_telescope RUNTIME DESTINATION bin )
 
 ########### CCD Simulator ##############
-if (CFITSIO_FOUND)
-
 set(ccdsimulator_SRCS
         ${CMAKE_CURRENT_SOURCE_DIR}/drivers/ccd/ccd_simulator.cpp
    )
@@ -493,9 +454,6 @@ set(ccdsimulator_SRCS
 add_executable(indi_simulator_ccd ${ccdsimulator_SRCS})
 target_link_libraries(indi_simulator_ccd indidriver)
 install(TARGETS indi_simulator_ccd RUNTIME DESTINATION bin )
-
-endif (CFITSIO_FOUND)
-
 
 #####################################
 ########## FOCUSER GROUP ############
@@ -653,19 +611,7 @@ set_target_properties(indi_tcfs_focus PROPERTIES POST_INSTALL_SCRIPT ${CMAKE_CUR
 ######## FILTER WHEEL GROUP #########
 #####################################
 
-########## True Technology Wheel ############
-set(trutechwheel_SRCS
-	${indimain_SRCS}
-        ${CMAKE_CURRENT_SOURCE_DIR}/drivers/filter_wheel/trutech_wheel.c
-   )
-
-add_executable(indi_trutech_wheel ${trutechwheel_SRCS}  ${liblilxml_SRCS} ${libindicom_SRCS})
-
-target_link_libraries(indi_trutech_wheel ${NOVA_LIBRARIES} ${M_LIB} ${ZLIB_LIBRARY})
-
-install(TARGETS indi_trutech_wheel RUNTIME DESTINATION bin )
-
-########### Filter Simulator ##############
+########### XAGYL Wheel ##############
 set(xagylwheel_SRCS
         ${CMAKE_CURRENT_SOURCE_DIR}/drivers/filter_wheel/xagyl_wheel.cpp
    )
@@ -755,40 +701,20 @@ install(TARGETS indi_script_dome RUNTIME DESTINATION bin )
 ########### VIDEO GROUP   ###############
 #########################################
 
-########### STV #######################
-if (CFITSIO_FOUND)
-
-set(stv_SRCS
-   ${indimain_SRCS}
-   ${CMAKE_CURRENT_SOURCE_DIR}/drivers/video/stvdriver.c
-   ${CMAKE_CURRENT_SOURCE_DIR}/drivers/video/stv.c )
-
-add_executable(indi_sbig_stv ${stv_SRCS} ${liblilxml_SRCS} ${libindicom_SRCS})
-
-target_link_libraries(indi_sbig_stv ${NOVA_LIBRARIES} ${CFITSIO_LIBRARIES} ${M_LIB} ${ZLIB_LIBRARY} ${CMAKE_THREAD_LIBS_INIT})
-
-install(TARGETS indi_sbig_stv RUNTIME DESTINATION bin )
-
-endif(CFITSIO_FOUND)
-
-#################################################################################
-
 ########### INDI::CCD V4L Driver ###############
 if (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
-if (CFITSIO_FOUND)
 
 set(v4l2driverccd_SRCS
-        ${lx_SRCS}
+        ${CMAKE_CURRENT_SOURCE_DIR}/libs/lx/Lx.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/drivers/video/v4l2driver.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/drivers/video/indi_v4l2driver.cpp)
 
-add_executable(indi_v4l2_ccd ${v4l2driverccd_SRCS} ${libwebcam_SRCS} ${lx_SRCS})
+add_executable(indi_v4l2_ccd ${v4l2driverccd_SRCS} ${libwebcam_SRCS})
 
 target_link_libraries(indi_v4l2_ccd ${JPEG_LIBRARY} indidriver)
 
 install(TARGETS indi_v4l2_ccd RUNTIME DESTINATION bin )
 
-endif (CFITSIO_FOUND)
 endif (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
 
 #################################################################################
@@ -798,7 +724,7 @@ endif (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
 #####################################
 
 ########### Watch dog ###############
-
+if (INDI_BUILD_POSIX_CLIENT)
 set(watchdog_SRCS
         ${CMAKE_CURRENT_SOURCE_DIR}/drivers/auxiliary/watchdog.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/drivers/auxiliary/watchdogclient.cpp
@@ -808,6 +734,9 @@ add_executable(indi_watchdog ${watchdog_SRCS})
 
 target_link_libraries(indi_watchdog indidriver indiclient)
 install(TARGETS indi_watchdog RUNTIME DESTINATION bin )
+else()
+    message(WARNING "Skipping build of INDI WatchDog driver since INDI POSIX Client is not built")
+endif (INDI_BUILD_POSIX_CLIENT)
 
 ########### Flip Flat & Flip Man Driver ###############
 
@@ -862,10 +791,8 @@ if (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
 install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/drivers/auxiliary/99-gpusb.rules DESTINATION ${UDEVRULES_INSTALL_DIR})
 endif (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
 
-if (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
-
 ########### Joystick Driver ###############
-
+if (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
 set(joystick_SRCS
         ${CMAKE_CURRENT_SOURCE_DIR}/drivers/auxiliary/joystickdriver.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/drivers/auxiliary/joystick.cpp
@@ -875,7 +802,6 @@ add_executable(indi_joystick ${joystick_SRCS})
 
 target_link_libraries(indi_joystick indidriver)
 install(TARGETS indi_joystick RUNTIME DESTINATION bin )
-
 
 endif (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
 
@@ -935,14 +861,16 @@ install(TARGETS indi_wunderground_weather RUNTIME DESTINATION bin )
 ############ INDI TOOLS #############
 #####################################
 
-
 ########### getINDI ##############
 set(getindi_SRCS
         ${CMAKE_CURRENT_SOURCE_DIR}/eventloop.c
+        ${CMAKE_CURRENT_SOURCE_DIR}/base64.c
         ${CMAKE_CURRENT_SOURCE_DIR}/tools/getINDIproperty.c
-   )
+        ${CMAKE_CURRENT_SOURCE_DIR}/libs/lilxml.c
+        ${CMAKE_CURRENT_SOURCE_DIR}/libs/indicom.c
+        )
 
-add_executable(indi_getprop ${getindi_SRCS} ${liblilxml_SRCS} ${libindicom_SRCS})
+add_executable(indi_getprop ${getindi_SRCS})
 
 target_link_libraries(indi_getprop ${NOVA_LIBRARIES} ${M_LIB} ${ZLIB_LIBRARY})
 
@@ -951,12 +879,12 @@ install(TARGETS indi_getprop RUNTIME DESTINATION bin )
 #################################################################################
 
 ########### setINDI ##############
-set(setindi_SRCS
-        ${CMAKE_CURRENT_SOURCE_DIR}/eventloop.c
-        ${CMAKE_CURRENT_SOURCE_DIR}/tools/setINDIproperty.c
-   )
-
-add_executable(indi_setprop ${setindi_SRCS} ${liblilxml_SRCS} ${libindicom_SRCS})
+add_executable(indi_setprop
+    ${CMAKE_CURRENT_SOURCE_DIR}/eventloop.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/base64.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/tools/setINDIproperty.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/libs/lilxml.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/libs/indicom.c)
 
 target_link_libraries(indi_setprop ${NOVA_LIBRARIES} ${M_LIB} ${ZLIB_LIBRARY})
 
@@ -965,23 +893,25 @@ install(TARGETS indi_setprop RUNTIME DESTINATION bin )
 #################################################################################
 
 ########### evelINDI ##############
-set(evalindi_SRCS
-        ${CMAKE_CURRENT_SOURCE_DIR}/eventloop.c
-        ${CMAKE_CURRENT_SOURCE_DIR}/tools/compiler.c
-        ${CMAKE_CURRENT_SOURCE_DIR}/tools/evalINDI.c
-   )
-
-add_executable(indi_eval ${evalindi_SRCS} ${liblilxml_SRCS} ${libindicom_SRCS})
+add_executable(indi_eval
+    ${CMAKE_CURRENT_SOURCE_DIR}/eventloop.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/base64.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/tools/compiler.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/tools/evalINDI.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/libs/lilxml.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/libs/indicom.c)
 
 target_link_libraries(indi_eval ${NOVA_LIBRARIES} ${M_LIB} ${ZLIB_LIBRARY})
 
 install(TARGETS indi_eval RUNTIME DESTINATION bin )
 
 #################################################################################
-## Build Examples. Not installation
+## Build Examples
 
-if (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
+if (INDI_BUILD_POSIX_CLIENT)
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/examples)
+else()
+    message(WARNING "Skipping build of examples since INDI POSIX client is not built")
 endif()
 
 #################################################################################
@@ -990,12 +920,7 @@ install( FILES drivers.xml ${CMAKE_CURRENT_SOURCE_DIR}/drivers/focuser/indi_tcfs
 
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/libindi.pc.cmake ${CMAKE_CURRENT_BINARY_DIR}/libindi.pc @ONLY)
 install(FILES ${CMAKE_CURRENT_BINARY_DIR}/libindi.pc DESTINATION ${PKGCONFIG_INSTALL_PREFIX})
-
-# End INDI server/drivers/tools build for POSIX systems
-endif (NOT WIN32 AND NOT ANDROID)
-
-# Do not build anything from the following stuff for Android
-if (NOT ANDROID)
+install(FILES ${CMAKE_CURRENT_BINARY_DIR}/indiversion.h DESTINATION ${INCLUDE_INSTALL_DIR}/libindi COMPONENT Devel)
 
 install( FILES
     ${CMAKE_CURRENT_SOURCE_DIR}/indiapi.h
@@ -1028,7 +953,7 @@ install( FILES
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/hidapi.h
     DESTINATION ${INCLUDE_INSTALL_DIR}/libindi COMPONENT Devel)
 
-if (NOT WIN32)
+if (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
     install( FILES
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/baseclient.h
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/webcam/ccvt.h
@@ -1041,29 +966,8 @@ if (NOT WIN32)
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/webcam/ccvt_types.h ${CMAKE_CURRENT_SOURCE_DIR}/libs/webcam/v4l2_colorspace.h
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/webcam/jpegutils.h
     DESTINATION ${INCLUDE_INSTALL_DIR}/libindi COMPONENT Devel)
-endif(NOT WIN32)
+endif()
 
-if (Qt5Network_FOUND)
-    install(FILES
-        ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/baseclientqt.h
-        DESTINATION ${INCLUDE_INSTALL_DIR}/libindi COMPONENT Devel)
-endif(Qt5Network_FOUND)
-
-###################################################################################################
-#########################################  Fast Blob  #############################################
-###################################################################################################
-IF (INDI_FAST_BLOB)
-# Append ENCLEN attribute to outgoing BLOB elements to enable fast parsing by clients
-add_definitions(-DWITH_ENCLEN)
-ENDIF(INDI_FAST_BLOB)
-
-###################################################################################################
-######################################  Calculate Min/Max #########################################
-###################################################################################################
-IF (INDI_CALCULATE_MINMAX)
-# Calculate Min/Max values to store them in FITS header
-add_definitions(-DWITH_MINMAX)
-ENDIF(INDI_CALCULATE_MINMAX)
 ###################################################################################################
 #########################################  Tests  #################################################
 ###################################################################################################
@@ -1078,8 +982,23 @@ IF (GTEST_FOUND)
     MESSAGE (STATUS  "Not building unit tests")
   ENDIF (INDI_BUILD_UNITTESTS)
 ELSE()
-  MESSAGE (STATUS  "GTEST  not found, not building unit tests")
+  MESSAGE (STATUS  "GTEST not found, not building unit tests")
 ENDIF (GTEST_FOUND)
-endif(NOT ANDROID) # End not build anything from the following stuff for Android
+
+endif(INDI_BUILD_DRIVERS)
 
 feature_summary(WHAT ALL FATAL_ON_MISSING_REQUIRED_PACKAGES)
+
+message(STATUS "The following components are going to be built:")
+if (INDI_BUILD_SERVER)
+    message(STATUS "## INDI Server")
+endif()
+if (INDI_BUILD_DRIVERS)
+    message(STATUS "## INDI Drivers, Tools, and Examples")
+endif()
+if (INDI_BUILD_POSIX_CLIENT)
+    message(STATUS "## INDI POSIX Client")
+endif()
+if (INDI_BUILD_QT5_CLIENT)
+    message(STATUS "## INDI Qt5 Client")
+endif()
