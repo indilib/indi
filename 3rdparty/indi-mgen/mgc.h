@@ -35,14 +35,17 @@ public:
 
     class IOError: std::exception
     {
+    protected:
+        std::string const _what;
     public:
-        int code;
-        IOError(int code): std::exception(), code(code) {};
+        virtual const char * what() const noexcept { return _what.c_str(); }
+        IOError(int code): std::exception(), _what(std::string("I/O error code ") + std::to_string(code)) {};
     };
 
 public:
     virtual enum MGenAutoguider::CommandByte commandByte() const = 0;
     virtual enum MGenAutoguider::OpMode opMode() const = 0;
+    virtual CommandResult ask(struct ftdi_context * const ftdi) throw (IOError) = 0;
 
 public:
     typedef std::vector<unsigned char> IOBuffer;
@@ -55,13 +58,16 @@ public:
     unsigned char opCode() const { return root.getOpCode(commandByte()); }
     char const * name() const { return root.getOpCodeString(commandByte()); }
 
+protected:
+    MGenAutoguider::OpMode current_mode() const { return root.connectionStatus.mode; }
+
 public:
     virtual int write(struct ftdi_context * const ftdi) throw (IOError)
     {
-        if( !ftdi )
+        if(!ftdi)
             return -1;
 
-        if( opMode() != root.connectionStatus.mode )
+        if(opMode() != MGenAutoguider::OPM_UNKNOWN && opMode() != root.connectionStatus.mode)
         {
             _L("operating mode '%s' doesn't support command '%s'", root.getOpModeString(opMode()), name());
             return -1;
@@ -79,10 +85,10 @@ public:
 public:
     virtual int read(struct ftdi_context * const ftdi) throw (IOError)
     {
-        if( !ftdi )
+        if(!ftdi)
             return -1;
 
-        if( opMode() != root.connectionStatus.mode )
+        if(opMode() != MGenAutoguider::OPM_UNKNOWN && opMode() != root.connectionStatus.mode)
         {
             _L("operating mode '%s' doesn't support command '%s'", root.getOpModeString(opMode()), name());
             return -1;
@@ -130,6 +136,8 @@ public:
             return CR_FAILURE;
         }
 
+        _L("device acknowledged identification, analyzing '%02X%02X%02X'", answer[2], answer[3], answer[4]);
+
         IOBuffer const app_mode_answer { 0x01, 0x80, 0x02 };
         IOBuffer const boot_mode_answer { 0x01, 0x80, 0x01 };
 
@@ -147,6 +155,48 @@ public:
 public:
     MGCP_QUERY_DEVICE( MGenAutoguider& root ):
         MGC(root, IOBuffer { root.getOpCode(commandByte()), 1, 1 }, IOBuffer (5) ) {};
+};
+
+class MGCMD_NOP1: MGC
+{
+public:
+    virtual enum MGenAutoguider::CommandByte commandByte() const { return MGenAutoguider::MGCMD_NOP1; }
+    virtual enum MGenAutoguider::OpMode opMode() const { return MGenAutoguider::OPM_UNKNOWN; }
+
+public:
+    MGC::CommandResult ask(struct ftdi_context * const ftdi) throw (IOError)
+    {
+        write(ftdi);
+
+        int const bytes_read = read(ftdi);
+        switch( current_mode() )
+        {
+            case MGenAutoguider::OPM_BOOT:
+                if(answer[0] != ~query[0] || 1 != bytes_read)
+                {
+                    _L("no heartbeat ack (%d bytes read)", bytes_read);
+                    return CR_FAILURE;
+                }
+                break;
+
+            case MGenAutoguider::OPM_APPLICATION:
+                if(answer[0] != query[0] || 1 != bytes_read)
+                {
+                    _L("no heartbeat ack (%d bytes read)", bytes_read);
+                    return CR_FAILURE;
+                }
+                break;
+
+            default: return CR_FAILURE; /* FIXME */
+        }
+
+        _L("received heartbeat ack", "");
+        return CR_SUCCESS;
+    }
+
+public:
+    MGCMD_NOP1( MGenAutoguider& root ):
+        MGC(root, IOBuffer { root.getOpCode(commandByte()), 1, 1 }, IOBuffer (1) ) {};
 };
 
 #endif /* 3RDPARTY_INDI_MGEN_MGENCOMMAND_HPP_ */

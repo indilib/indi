@@ -327,177 +327,133 @@ void MGenAutoguider::connectionThread()
 
     /* TODO: EXPERIMENTAL: turn the autoguider on if not connected yet - chapter 6.2.2 */
 
-    while( connectionStatus.is_active )
+    try
     {
-        switch( connectionStatus.mode )
+        while( connectionStatus.is_active )
         {
-            /* Unknown mode, try to connect in COMPATIBLE mode first */
-            case OPM_UNKNOWN:
-                { DEBUGF(INDI::Logger::DBG_SESSION, "%s: running device identification", __FUNCTION__); usleep(100000); }
+            switch( connectionStatus.mode )
+            {
+                /* Unknown mode, try to connect in COMPATIBLE mode first */
+                case OPM_UNKNOWN:
+                    { DEBUGF(INDI::Logger::DBG_SESSION, "%s: running device identification", __FUNCTION__); usleep(100000); }
 
-#if 1
-                /* Run an identification - failing this is not a problem, we'll try to communicate in applicative mode next */
-                {
-                switch(::MGCP_QUERY_DEVICE(*this).ask(ftdi))
-                {
-                    case MGC::CR_SUCCESS:
-                        connectionStatus.mode = OPM_COMPATIBLE;
-                        continue;
-
-                    case MGC::CR_IO_ERROR:
-                        connectionStatus.is_active = false;
-                        continue;
-
-                    default: break;
-                }
-                }
-#else
-                /* Run an identification */
-                buffer[0] = getOpCode(MGCP_QUERY_DEVICE);
-                buffer[1] = 0x01; /* Length of parameters */
-                buffer[2] = 0x01; /* Query device ID sub-comand */
-                { DEBUGF(INDI::Logger::DBG_SESSION, "%s: writing identification request to device %02X %02X %02X", __FUNCTION__, buffer[0], buffer[1], buffer[2]); usleep(100000); }
-                if(ftdi_write_data(ftdi, buffer, 3) < 0)
-                {
-                    { DEBUGF(INDI::Logger::DBG_SESSION, "%s: failed writing identification request to device", __FUNCTION__); usleep(100000); }
-                    connectionStatus.is_active = false;
-                    continue;
-                }
-
-                { DEBUGF(INDI::Logger::DBG_SESSION, "%s: reading identification results", __FUNCTION__); usleep(100000); }
-                if(( bytes_read = ftdi_read_data(ftdi, buffer, 5) ) < 0)
-                {
-                    { DEBUGF(INDI::Logger::DBG_SESSION, "%s: failed reading identification from device", __FUNCTION__); usleep(100000); }
-                    connectionStatus.is_active = false;
-                    continue;
-                }
-
-                /* Verify opcode answer in case we got something */
-                if(verifyOpCode(MGCP_QUERY_DEVICE, buffer, bytes_read))
-                {
-                    { DEBUGF(INDI::Logger::DBG_SESSION, "%s: device acknowledged identification, analyzing '%02X%02X%02X'", __FUNCTION__, (unsigned char) buffer[2], (unsigned char) buffer[3], (unsigned char) buffer[4]); usleep(100000); }
-
-                    unsigned char const app_mode_answer[] = { 0x01, 0x80, 0x02 };
-                    size_t const app_mode_len = sizeof(app_mode_answer)/sizeof(app_mode_answer[0]);
-                    unsigned char const boot_mode_answer[] = { 0x01, 0x80, 0x01 };
-                    size_t const boot_mode_len = sizeof(boot_mode_answer)/sizeof(boot_mode_answer[0]);
-
-                    /* Check integrity of answer */
-                    if( memcmp(&buffer[2], &app_mode_answer, app_mode_len) && memcmp(&buffer[2], &boot_mode_answer, boot_mode_len) )
+                    /* Run an identification - failing this is not a problem, we'll try to communicate in applicative mode next */
+                    switch(::MGCP_QUERY_DEVICE(*this).ask(ftdi))
                     {
-                        { DEBUGF(INDI::Logger::DBG_SESSION, "%s: device identification returned unknown mode (%d bytes read)", __FUNCTION__, bytes_read); usleep(100000); }
+                        case MGC::CR_SUCCESS:
+                            { DEBUGF(INDI::Logger::DBG_SESSION, "%s: identified boot/compatible mode", __FUNCTION__); usleep(100000); }
+                            connectionStatus.mode = OPM_COMPATIBLE;
+                            continue;
+
+                        default: break;
+                    }
+
+                    { DEBUGF(INDI::Logger::DBG_SESSION, "%s: identification failed, try to communicate in applicative mode", __FUNCTION__); usleep(100000); }
+                    connectionStatus.mode = OPM_APPLICATION;
+
+                    if(setOpModeBaudRate(ftdi, connectionStatus.mode))
+                    {
+                        /* TODO: Not good, the device doesn't support our settings - out of spec, bail out */
+                        { DEBUGF(INDI::Logger::DBG_SESSION, "%s: failed adjusting device line", __FUNCTION__); usleep(100000); }
                         connectionStatus.is_active = false;
                         continue;
                     }
 
-                    /* Compatible mode, switch to normal mode as if we were in boot mode */
-                    { DEBUGF(INDI::Logger::DBG_SESSION, "%s: identified boot/compatible mode", __FUNCTION__); usleep(100000); }
-                    connectionStatus.mode = OPM_COMPATIBLE;
-                    continue;
-                }
-#endif
+                    if(heartbeat(ftdi))
+                    {
+                        connectionStatus.is_active = false;
+                        continue;
+                    }
 
-                { DEBUGF(INDI::Logger::DBG_SESSION, "%s: identification failed, try to communicate in applicative mode", __FUNCTION__); usleep(100000); }
-                connectionStatus.mode = OPM_APPLICATION;
+                    break;
 
-                if(setOpModeBaudRate(ftdi, connectionStatus.mode))
-                {
-                    /* TODO: Not good, the device doesn't support our settings - out of spec, bail out */
-                    { DEBUGF(INDI::Logger::DBG_SESSION, "%s: failed adjusting device line", __FUNCTION__); usleep(100000); }
-                    connectionStatus.is_active = false;
-                    continue;
-                }
+                /*case OPM_BOOT:*/
+                case OPM_COMPATIBLE:
+                    { DEBUGF(INDI::Logger::DBG_SESSION, "%s: switching from compatible to normal mode", __FUNCTION__); usleep(100000); }
 
-                if(heartbeat(ftdi))
-                {
-                    connectionStatus.is_active = false;
-                    continue;
-                }
-
-                break;
-
-            /*case OPM_BOOT:*/
-            case OPM_COMPATIBLE:
-                { DEBUGF(INDI::Logger::DBG_SESSION, "%s: switching from compatible to normal mode", __FUNCTION__); usleep(100000); }
-
-                /* Switch to applicative mode */
-                buffer[0] = getOpCode(MGCP_ENTER_NORMAL_MODE);
-                if(ftdi_write_data(ftdi, buffer, 1) < 0)
-                {
-                    { DEBUGF(INDI::Logger::DBG_SESSION, "%s: device disconnected while entering applicative mode", __FUNCTION__); usleep(100000); }
-                    connectionStatus.is_active = false;
-                    continue;
-                }
-
-                sleep(1);
-
-                connectionStatus.mode = OPM_APPLICATION;
-
-                if(setOpModeBaudRate(ftdi, connectionStatus.mode))
-                {
-                    /* TODO: Not good, the device doesn't support our settings - out of spec, bail out */
-                    { DEBUGF(INDI::Logger::DBG_SESSION, "%s: failed updating device connection", __FUNCTION__); usleep(100000); }
-                    connectionStatus.is_active = false;
-                    continue;
-                }
-
-                { DEBUGF(INDI::Logger::DBG_SESSION, "%s: device is in now expected to be in applicative mode", __FUNCTION__); usleep(100000); }
-
-                if(heartbeat(ftdi))
-                {
-                    connectionStatus.is_active = false;
-                    continue;
-                }
-
-                break;
-
-            case OPM_APPLICATION:
-                /* If we didn't get the firmware version, ask */
-                if( !connectionStatus.version.uploaded_firmware )
-                {
-                    buffer[0] = getOpCode(MGCMD_GET_FW_VERSION);
+                    /* Switch to applicative mode */
+                    buffer[0] = getOpCode(MGCP_ENTER_NORMAL_MODE);
                     if(ftdi_write_data(ftdi, buffer, 1) < 0)
                     {
-                        { DEBUGF(INDI::Logger::DBG_SESSION, "%s: device disconnected while writing GET_FW_VERSION", __FUNCTION__); usleep(100000); }
+                        { DEBUGF(INDI::Logger::DBG_SESSION, "%s: device disconnected while entering applicative mode", __FUNCTION__); usleep(100000); }
                         connectionStatus.is_active = false;
                         continue;
                     }
 
-                    { DEBUGF(INDI::Logger::DBG_SESSION, "%s: reading version result.", __FUNCTION__); usleep(100000); }
-                    if((bytes_read = ftdi_read_data(ftdi, buffer, getOpCodeAnswerLength(MGCMD_GET_FW_VERSION))) < 0)
+                    sleep(1);
+
+                    connectionStatus.mode = OPM_APPLICATION;
+
+                    if(setOpModeBaudRate(ftdi, connectionStatus.mode))
                     {
-                        { DEBUGF(INDI::Logger::DBG_SESSION, "%s: device disconnected while reading version", __FUNCTION__); usleep(100000); }
+                        /* TODO: Not good, the device doesn't support our settings - out of spec, bail out */
+                        { DEBUGF(INDI::Logger::DBG_SESSION, "%s: failed updating device connection", __FUNCTION__); usleep(100000); }
                         connectionStatus.is_active = false;
                         continue;
                     }
 
-                    if(verifyOpCode(MGCMD_GET_FW_VERSION, buffer, bytes_read))
+                    { DEBUGF(INDI::Logger::DBG_SESSION, "%s: device is in now expected to be in applicative mode", __FUNCTION__); usleep(100000); }
+
+                    if(heartbeat(ftdi))
                     {
-                        connectionStatus.version.uploaded_firmware = (buffer[2]<<8) | buffer[1];
-
-                        { DEBUGF(INDI::Logger::DBG_SESSION, "%s: received version 0x%04X", __FUNCTION__, connectionStatus.version.uploaded_firmware); usleep(100000); }
-
-                        break;
+                        connectionStatus.is_active = false;
+                        continue;
                     }
-                    else { DEBUGF(INDI::Logger::DBG_SESSION, "%s: no version ack (%d bytes read, ack 0x%02X)", __FUNCTION__, bytes_read, bytes_read?buffer[0]:0x00); usleep(100000); }
-                }
 
-                /* Heartbeat */
-                if(heartbeat(ftdi))
-                {
-                    connectionStatus.is_active = false;
-                    continue;
-                }
+                    break;
 
-                /* OK, wait a few seconds and retry heartbeat */
-                for( int i = 0; i < 10; i++ )
-                    if( connectionStatus.is_active )
-                        usleep(500000);
+                case OPM_APPLICATION:
+                    /* If we didn't get the firmware version, ask */
+                    if( !connectionStatus.version.uploaded_firmware )
+                    {
+                        buffer[0] = getOpCode(MGCMD_GET_FW_VERSION);
+                        if(ftdi_write_data(ftdi, buffer, 1) < 0)
+                        {
+                            { DEBUGF(INDI::Logger::DBG_SESSION, "%s: device disconnected while writing GET_FW_VERSION", __FUNCTION__); usleep(100000); }
+                            connectionStatus.is_active = false;
+                            continue;
+                        }
 
-                break;
+                        { DEBUGF(INDI::Logger::DBG_SESSION, "%s: reading version result.", __FUNCTION__); usleep(100000); }
+                        if((bytes_read = ftdi_read_data(ftdi, buffer, getOpCodeAnswerLength(MGCMD_GET_FW_VERSION))) < 0)
+                        {
+                            { DEBUGF(INDI::Logger::DBG_SESSION, "%s: device disconnected while reading version", __FUNCTION__); usleep(100000); }
+                            connectionStatus.is_active = false;
+                            continue;
+                        }
+
+                        if(verifyOpCode(MGCMD_GET_FW_VERSION, buffer, bytes_read))
+                        {
+                            connectionStatus.version.uploaded_firmware = (buffer[2]<<8) | buffer[1];
+
+                            { DEBUGF(INDI::Logger::DBG_SESSION, "%s: received version 0x%04X", __FUNCTION__, connectionStatus.version.uploaded_firmware); usleep(100000); }
+
+                            break;
+                        }
+                        else { DEBUGF(INDI::Logger::DBG_SESSION, "%s: no version ack (%d bytes read, ack 0x%02X)", __FUNCTION__, bytes_read, bytes_read?buffer[0]:0x00); usleep(100000); }
+                    }
+
+                    /* Heartbeat */
+                    if(MGC::CR_SUCCESS != ::MGCMD_NOP1(*this).ask(ftdi))
+                    {
+                        connectionStatus.is_active = false;
+                        continue;
+                    }
+
+                    /* OK, wait a few seconds and retry heartbeat */
+                    for( int i = 0; i < 10; i++ )
+                        if( connectionStatus.is_active )
+                            usleep(500000);
+
+                    break;
+            }
         }
     }
-
+    catch(MGC::IOError &e)
+    {
+        { DEBUGF(INDI::Logger::DBG_SESSION, "%s: device disconnected (%s)", __FUNCTION__, e.what()); usleep(100000); }
+        connectionStatus.is_active = false;
+    }
 
     if(ftdi)
     {
@@ -512,57 +468,6 @@ void MGenAutoguider::connectionThread()
 /**************************************************************************************
  * Helpers
  **************************************************************************************/
-#if 0
-
-struct MessageBuffer
-{
-public:
-    MGenAutoguider guider;
-    char buffer[1024];
-
-public:
-    MessageBuffer( MGenAutoguider& guider, enum MGenAutoguider::CommandByte commandByte )
-    : guider(guider)
-    {
-        memset(buffer,0,sizeof(buffer)/sizeof(buffer[0]));
-        buffer[0] = guider.getOpCode(commandByte);
-    }
-    ~MessageBuffer();
-};
-
-int MGenAutoguider::queryDevice( enum CommandByte commandByte, std::vector<char>& payload, int * io_len )
-{
-    if( !io_len || !buffer )
-        return 1;
-
-    buffer[0] = getOpCode(commandByte);
-    buffer[1] = *io_len;
-
-    switch( tty_write(fd, buffer, 2 + *io_len, io_len) )
-    {
-        case TTY_OK:
-            /* OK, read back result next */
-            break;
-
-        default: return 1;
-    }
-
-    int const expected_length = getOpCodeAnswerLength(commandByte);
-
-    if( 0 < expected_length ) switch( tty_read(fd, buffer, expected_length, 1, io_len) )
-    {
-        case TTY_OK:
-            /* Did we receive an ack? */
-            if( ~getOpCode(commandByte) == buffer[0] )
-                break;
-            /* no-break */
-
-        default: return 1;
-    }
-
-    return 0;
-}
-#endif
 
 unsigned char MGenAutoguider::getOpCode(enum CommandByte commandByte)
 {
