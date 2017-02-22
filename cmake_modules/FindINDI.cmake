@@ -15,12 +15,14 @@
 #
 # The following variables will be defined for your use:
 #   - INDI_FOUND             : were all of your specified components found (include dependencies)?
-#   - INDI_INCLUDE_DIRS      : INDI include directory
+#   - INDI_INCLUDE_DIR       : INDI include directory
+#   - INDI_DATA_DIR          : INDI include directory
 #   - INDI_LIBRARIES         : INDI libraries
+#   - INDI_DRIVER_LIBRARIES  : Same as above maintained for backward compatibility
 #   - INDI_VERSION           : complete version of INDI (x.y.z)
 #   - INDI_MAJOR_VERSION     : major version of INDI
 #   - INDI_MINOR_VERSION     : minor version of INDI
-#   - INDI_PATCH_VERSION     : patch version of INDI
+#   - INDI_RELEASE_VERSION   : release version of INDI
 #   - INDI_<COMPONENT>_FOUND : were <COMPONENT> found? (FALSE for non specified component if it is not a dependency)
 #
 # For windows or non standard installation, define INDI_ROOT variable to point to the root installation of INDI. Two ways:
@@ -44,13 +46,37 @@
 #     find_package(INDI 1.4 REQUIRED)
 #
 #   if(INDI_FOUND)
-#      include_directories(${INDI_INCLUDE_DIRS})
+#      include_directories(${INDI_INCLUDE_DIR})
 #      add_executable(myapp myapp.cpp)
 #      target_link_libraries(myapp ${INDI_LIBRARIES})
 #   endif(INDI_FOUND)
-
+#
+#
+# Using Components:
+#
+# You can search for specific components. Currently, the following components are available
+# * driver
+# * align
+# * client
+# * clientqt5
+#
+# By default, if you do not specify any components, driver and align components are searched.
+#
+# Example:
+#
+# To use INDI Qt5 Client library only in your application:
+#
+# find_package(INDI CLIENTQT5 REQUIRED)
+#
+#   if(INDI_FOUND)
+#      include_directories(${INDI_INCLUDE_DIR})
+#      add_executable(myapp myapp.cpp)
+#      target_link_libraries(myapp ${INDI_CLIENTQT5_LIBRARIES})
+#   endif(INDI_FOUND)
+#
 #=============================================================================
 # Copyright (c) 2011-2013, julp
+# Copyright (c) 2017 Jasem Mutlaq
 #
 # Distributed under the OSI-approved BSD License
 #
@@ -105,25 +131,25 @@ macro(INDI_declare_component _NAME)
     set("${INDI_PRIVATE_VAR_NS}_COMPONENTS_${_NAME}" ${ARGN})
 endmacro(INDI_declare_component)
 
-INDI_declare_component(server    INDIServer)
-INDI_declare_component(drivers   INDIDrivers)
-INDI_declare_component(client    INDIClient)
-INDI_declare_component(qt5client INDIQt5Client)
+INDI_declare_component(driver  indidriver)
+INDI_declare_component(align   indiAlignmentDriver)
+INDI_declare_component(client  indiclient)
+INDI_declare_component(clientqt5 indiclientqt5)
 
 ########## Public ##########
 set(${INDI_PUBLIC_VAR_NS}_FOUND TRUE)
 set(${INDI_PUBLIC_VAR_NS}_LIBRARIES )
-set(${INDI_PUBLIC_VAR_NS}_INCLUDE_DIRS )
+set(${INDI_PUBLIC_VAR_NS}_INCLUDE_DIR )
 foreach(${INDI_PRIVATE_VAR_NS}_COMPONENT ${${INDI_PRIVATE_VAR_NS}_COMPONENTS})
     string(TOUPPER "${${INDI_PRIVATE_VAR_NS}_COMPONENT}" ${INDI_PRIVATE_VAR_NS}_UPPER_COMPONENT)
     set("${INDI_PUBLIC_VAR_NS}_${${INDI_PRIVATE_VAR_NS}_UPPER_COMPONENT}_FOUND" FALSE) # may be done in the INDI_declare_component macro
 endforeach(${INDI_PRIVATE_VAR_NS}_COMPONENT)
 
 # Check components
-if(NOT ${INDI_PUBLIC_VAR_NS}_FIND_COMPONENTS) # server and drivers requierd at least
-    set(${INDI_PUBLIC_VAR_NS}_FIND_COMPONENTS server drivers)
+if(NOT ${INDI_PUBLIC_VAR_NS}_FIND_COMPONENTS) # driver and posix client by default
+    set(${INDI_PUBLIC_VAR_NS}_FIND_COMPONENTS driver align)
 else(NOT ${INDI_PUBLIC_VAR_NS}_FIND_COMPONENTS)
-    list(APPEND ${INDI_PUBLIC_VAR_NS}_FIND_COMPONENTS uc)
+    #list(APPEND ${INDI_PUBLIC_VAR_NS}_FIND_COMPONENTS uc)
     list(REMOVE_DUPLICATES ${INDI_PUBLIC_VAR_NS}_FIND_COMPONENTS)
     foreach(${INDI_PRIVATE_VAR_NS}_COMPONENT ${${INDI_PUBLIC_VAR_NS}_FIND_COMPONENTS})
         if(NOT DEFINED ${INDI_PRIVATE_VAR_NS}_COMPONENTS_${${INDI_PRIVATE_VAR_NS}_COMPONENT})
@@ -134,55 +160,37 @@ endif(NOT ${INDI_PUBLIC_VAR_NS}_FIND_COMPONENTS)
 
 # Includes
 find_path(
-    ${INDI_PUBLIC_VAR_NS}_INCLUDE_DIRS
+    ${INDI_PUBLIC_VAR_NS}_INCLUDE_DIR
     indidevapi.h
     PATH_SUFFIXES libindi
-    ${PC_INDI_INCLUDE_DIRS}
+    ${PC_INDI_INCLUDE_DIR}
     ${_obIncDir}
     ${GNUWIN32_DIR}/include
     HINTS ${${INDI_PRIVATE_VAR_NS}_ROOT}
-    DOC "Include directories for INDI"
+    DOC "Include directory for INDI"
 )
 
-message("Include Directory : " ${${INDI_PUBLIC_VAR_NS}_INCLUDE_DIRS})
-if(${INDI_PUBLIC_VAR_NS}_INCLUDE_DIRS)
-    if(EXISTS "${${INDI_PUBLIC_VAR_NS}_INCLUDE_DIRS}/indiversion.h") # INDI >= 1.4
-        file(READ "${${INDI_PUBLIC_VAR_NS}_INCLUDE_DIRS}/indiversion.h" ${INDI_PRIVATE_VAR_NS}_VERSION_HEADER_CONTENTS)
+find_path(${INDI_PUBLIC_VAR_NS}_DATA_DIR
+    drivers.xml
+    PATH_SUFFIXES share/indi
+    DOC "Data directory for INDI"
+    )
+
+if(${INDI_PUBLIC_VAR_NS}_INCLUDE_DIR)
+    if(EXISTS "${${INDI_PUBLIC_VAR_NS}_INCLUDE_DIR}/indiversion.h") # INDI >= 1.4
+        file(READ "${${INDI_PUBLIC_VAR_NS}_INCLUDE_DIR}/indiversion.h" ${INDI_PRIVATE_VAR_NS}_VERSION_HEADER_CONTENTS)
     else()
         message(FATAL_ERROR "INDI version header not found")
     endif()
 
-    if(${INDI_PRIVATE_VAR_NS}_VERSION_HEADER_CONTENTS MATCHES ".*# *define *INDI_VERSION *\"(([0-9]+)(\\.[0-9]+)*)\".*") # INDI
-        set(${INDI_PRIVATE_VAR_NS}_FULL_VERSION "${CMAKE_MATCH_1}") # copy CMAKE_MATCH_1, no longer valid on the following if
-        if(${INDI_PRIVATE_VAR_NS}_FULL_VERSION MATCHES "^([0-9]+)\\.([0-9]+)$")
+    if(${INDI_PRIVATE_VAR_NS}_VERSION_HEADER_CONTENTS MATCHES ".*INDI_VERSION ([0-9]+).([0-9]+).([0-9]+)")
             set(${INDI_PUBLIC_VAR_NS}_MAJOR_VERSION "${CMAKE_MATCH_1}")
             set(${INDI_PUBLIC_VAR_NS}_MINOR_VERSION "${CMAKE_MATCH_2}")
-            set(${INDI_PUBLIC_VAR_NS}_PATCH_VERSION "0")
-        elseif(${INDI_PRIVATE_VAR_NS}_FULL_VERSION MATCHES "^([0-9]+)\\.([0-9]+)\\.([0-9]+)")
-            set(${INDI_PUBLIC_VAR_NS}_MAJOR_VERSION "${CMAKE_MATCH_1}")
-            set(${INDI_PUBLIC_VAR_NS}_MINOR_VERSION "${CMAKE_MATCH_2}")
-            set(${INDI_PUBLIC_VAR_NS}_PATCH_VERSION "${CMAKE_MATCH_3}")
-        endif()
+            set(${INDI_PUBLIC_VAR_NS}_RELEASE_VERSION "${CMAKE_MATCH_3}")
     else()
         message(FATAL_ERROR "failed to detect INDI version")
     endif()
-    set(${INDI_PUBLIC_VAR_NS}_VERSION "${${INDI_PUBLIC_VAR_NS}_MAJOR_VERSION}.${${INDI_PUBLIC_VAR_NS}_MINOR_VERSION}.${${INDI_PUBLIC_VAR_NS}_PATCH_VERSION}")
-
-    # Check dependencies (implies pkg-config)
-    if(PKG_CONFIG_FOUND)
-        set(${INDI_PRIVATE_VAR_NS}_COMPONENTS_DUP ${${INDI_PUBLIC_VAR_NS}_FIND_COMPONENTS})
-        foreach(${INDI_PRIVATE_VAR_NS}_COMPONENT ${${INDI_PRIVATE_VAR_NS}_COMPONENTS_DUP})
-            pkg_check_modules(PC_INDI_PRIVATE_VAR_NS "INDI-${${INDI_PRIVATE_VAR_NS}_COMPONENT}" QUIET)
-
-            if(${PC_INDI_PRIVATE_VAR_NS}_FOUND)
-                foreach(${PC_INDI_PRIVATE_VAR_NS}_LIBRARY ${PC_INDI_LIBRARIES})
-                    string(REGEX REPLACE "^INDI" "" ${PC_INDI_PRIVATE_VAR_NS}_STRIPPED_LIBRARY ${${PC_INDI_PRIVATE_VAR_NS}_LIBRARY})
-                    list(APPEND ${INDI_PUBLIC_VAR_NS}_FIND_COMPONENTS ${${PC_INDI_PRIVATE_VAR_NS}_STRIPPED_LIBRARY})
-                endforeach(${PC_INDI_PRIVATE_VAR_NS}_LIBRARY)
-            endif(${PC_INDI_PRIVATE_VAR_NS}_FOUND)
-        endforeach(${INDI_PRIVATE_VAR_NS}_COMPONENT)
-        list(REMOVE_DUPLICATES ${INDI_PUBLIC_VAR_NS}_FIND_COMPONENTS)
-    endif(PKG_CONFIG_FOUND)
+    set(${INDI_PUBLIC_VAR_NS}_VERSION "${${INDI_PUBLIC_VAR_NS}_MAJOR_VERSION}.${${INDI_PUBLIC_VAR_NS}_MINOR_VERSION}.${${INDI_PUBLIC_VAR_NS}_RELEASE_VERSION}")
 
     # Check libraries
     foreach(${INDI_PRIVATE_VAR_NS}_COMPONENT ${${INDI_PUBLIC_VAR_NS}_FIND_COMPONENTS})
@@ -236,21 +244,21 @@ if(${INDI_PUBLIC_VAR_NS}_INCLUDE_DIRS)
     if(${INDI_PUBLIC_VAR_NS}_FIND_REQUIRED AND NOT ${INDI_PUBLIC_VAR_NS}_FIND_QUIETLY)
         find_package_handle_standard_args(
             ${INDI_PUBLIC_VAR_NS}
-            REQUIRED_VARS ${INDI_PUBLIC_VAR_NS}_LIBRARIES ${INDI_PUBLIC_VAR_NS}_INCLUDE_DIRS
+            REQUIRED_VARS ${INDI_PUBLIC_VAR_NS}_LIBRARIES ${INDI_PUBLIC_VAR_NS}_INCLUDE_DIR
             VERSION_VAR ${INDI_PUBLIC_VAR_NS}_VERSION
         )
     else(${INDI_PUBLIC_VAR_NS}_FIND_REQUIRED AND NOT ${INDI_PUBLIC_VAR_NS}_FIND_QUIETLY)
-        find_package_handle_standard_args(${INDI_PUBLIC_VAR_NS} "INDI not found" ${INDI_PUBLIC_VAR_NS}_LIBRARIES ${INDI_PUBLIC_VAR_NS}_INCLUDE_DIRS)
+        find_package_handle_standard_args(${INDI_PUBLIC_VAR_NS} "INDI not found" ${INDI_PUBLIC_VAR_NS}_LIBRARIES ${INDI_PUBLIC_VAR_NS}_INCLUDE_DIR)
     endif(${INDI_PUBLIC_VAR_NS}_FIND_REQUIRED AND NOT ${INDI_PUBLIC_VAR_NS}_FIND_QUIETLY)
-else(${INDI_PUBLIC_VAR_NS}_INCLUDE_DIRS)
+else(${INDI_PUBLIC_VAR_NS}_INCLUDE_DIR)
     set("${INDI_PUBLIC_VAR_NS}_FOUND" FALSE)
     if(${INDI_PUBLIC_VAR_NS}_FIND_REQUIRED AND NOT ${INDI_PUBLIC_VAR_NS}_FIND_QUIETLY)
         message(FATAL_ERROR "Could not find INDI include directory")
     endif(${INDI_PUBLIC_VAR_NS}_FIND_REQUIRED AND NOT ${INDI_PUBLIC_VAR_NS}_FIND_QUIETLY)
-endif(${INDI_PUBLIC_VAR_NS}_INCLUDE_DIRS)
+endif(${INDI_PUBLIC_VAR_NS}_INCLUDE_DIR)
 
 mark_as_advanced(
-    ${INDI_PUBLIC_VAR_NS}_INCLUDE_DIRS
+    ${INDI_PUBLIC_VAR_NS}_INCLUDE_DIR
     ${INDI_PUBLIC_VAR_NS}_LIBRARIES
 )
 
@@ -268,10 +276,14 @@ indidebug("CLIENT_FOUND")
 indidebug("QT5CLIENT_FOUND")
 
 # Linking
-indidebug("INCLUDE_DIRS")
+indidebug("INCLUDE_DIR")
+indidebug("DATA_DIR")
 indidebug("LIBRARIES")
+# Backward compatibility
+set(${INDI_PUBLIC_VAR_NS}_DRIVER_LIBRARIES ${${INDI_PUBLIC_VAR_NS}_LIBRARIES})
+indidebug("DRIVER_LIBRARIES")
 # Version
 indidebug("MAJOR_VERSION")
 indidebug("MINOR_VERSION")
-indidebug("PATCH_VERSION")
+indidebug("RELEASE_VERSION")
 indidebug("VERSION")

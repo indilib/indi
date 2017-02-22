@@ -101,7 +101,7 @@ if (WIN32 OR ANDROID)
     message(FATAL_ERROR "INDI Server is only supported under Linux, BSD, MacOS, and Cygwin while current system is " ${CMAKE_SYSTEM_NAME})
 endif (WIN32 OR ANDROID)
 # 1. Dependencies
-FIND_PACKAGE(Threads REQUIRED)
+find_package(Threads REQUIRED)
 # 2. Includes
 include_directories( ${CMAKE_CURRENT_SOURCE_DIR})
 # 3. Build
@@ -117,7 +117,7 @@ endif (INDI_BUILD_SERVER)
 #################################################################################################
 #
 # Component   : INDI POSIX Client
-# Dependencies: pthreads, zLib, cfitsio, nova
+# Dependencies: pthreads, zlib, cfitsio, nova
 # Supported OS: Linux, BSD, MacOS, Cygwin
 #
 #################################################################################################
@@ -127,10 +127,10 @@ if (INDI_BUILD_POSIX_CLIENT)
     endif (WIN32 OR ANDROID)
 
 # 1. Dependencies
-FIND_PACKAGE(Threads REQUIRED)
-FIND_PACKAGE(ZLIB REQUIRED)
-FIND_PACKAGE(CFITSIO REQUIRED)
-FIND_PACKAGE(Nova REQUIRED)
+find_package(Threads REQUIRED)
+find_package(ZLIB REQUIRED)
+find_package(CFITSIO REQUIRED)
+find_package(Nova REQUIRED)
 # 2. Includes
 include_directories( ${CMAKE_CURRENT_BINARY_DIR})
 include_directories( ${CMAKE_CURRENT_SOURCE_DIR})
@@ -160,10 +160,10 @@ endif (INDI_BUILD_POSIX_CLIENT)
 #################################################################################################
 if (INDI_BUILD_QT5_CLIENT)
 # 1. Dependencies
-FIND_PACKAGE(Qt5Network)
-FIND_PACKAGE(ZLIB REQUIRED)
-FIND_PACKAGE(CFITSIO REQUIRED)
-FIND_PACKAGE(Nova REQUIRED)
+find_package(Qt5Network)
+find_package(ZLIB REQUIRED)
+find_package(CFITSIO REQUIRED)
+find_package(Nova REQUIRED)
 # 2. Includes
 include_directories( ${CMAKE_CURRENT_BINARY_DIR})
 include_directories( ${CMAKE_CURRENT_SOURCE_DIR})
@@ -206,15 +206,15 @@ if (INDI_BUILD_DRIVERS)
         message(FATAL_ERROR "INDI POSIX Client is only supported under Linux, BSD, MacOS, and Cygwin while current system is " ${CMAKE_SYSTEM_NAME})
     endif (WIN32 OR ANDROID)
 # 1. Dependencies
-FIND_PACKAGE(Threads REQUIRED)
-FIND_PACKAGE(ZLIB REQUIRED)
-FIND_PACKAGE(CFITSIO REQUIRED)
-FIND_PACKAGE(Nova REQUIRED)
-FIND_PACKAGE(USB-1 REQUIRED)
-FIND_PACKAGE(CURL REQUIRED)
+find_package(Threads REQUIRED)
+find_package(ZLIB REQUIRED)
+find_package(CFITSIO REQUIRED)
+find_package(Nova REQUIRED)
+find_package(USB-1 REQUIRED)
+find_package(CURL REQUIRED)
 # libjpeg for V4L2
 if (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
-  FIND_PACKAGE(JPEG REQUIRED)
+  find_package(JPEG REQUIRED)
 endif()
 # Math Library
 FIND_LIBRARY(M_LIB m)
@@ -972,8 +972,8 @@ endif()
 #########################################  Tests  #################################################
 ###################################################################################################
 
-FIND_PACKAGE (GTest)
-FIND_PACKAGE (GMock)
+find_package (GTest)
+find_package (GMock)
 IF (GTEST_FOUND)
   IF (INDI_BUILD_UNITTESTS)
     MESSAGE (STATUS  "Building unit tests")

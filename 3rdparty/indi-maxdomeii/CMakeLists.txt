@@ -30,7 +30,7 @@ set(indimaxdomeii_SRCS
 
 add_executable(indi_maxdomeii ${indimaxdomeii_SRCS})
 
-target_link_libraries(indi_maxdomeii ${INDI_DRIVER_LIBRARIES} ${NOVA_LIBRARIES})
+target_link_libraries(indi_maxdomeii ${INDI_LIBRARIES} ${NOVA_LIBRARIES})
 
 install(TARGETS indi_maxdomeii RUNTIME DESTINATION bin )
 

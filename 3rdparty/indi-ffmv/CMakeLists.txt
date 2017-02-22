@@ -32,7 +32,7 @@ set(indiffmv_SRCS
 
 add_executable(indi_ffmv_ccd ${indiffmv_SRCS})
 
-target_link_libraries(indi_ffmv_ccd ${INDI_DRIVER_LIBRARIES} ${CFITSIO_LIBRARIES} ${DC1394_LIBRARIES} )
+target_link_libraries(indi_ffmv_ccd ${INDI_LIBRARIES} ${CFITSIO_LIBRARIES} ${DC1394_LIBRARIES} )
 
 install(TARGETS indi_ffmv_ccd RUNTIME DESTINATION bin )
 

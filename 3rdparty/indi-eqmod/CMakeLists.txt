@@ -57,12 +57,12 @@ endif(WITH_SCOPE_LIMITS)
 add_executable(indi_eqmod_telescope ${eqmod_SRCS})
 
 if(WITH_ALIGN)
-  find_library(INDI_ALIGN_LIBRARIES NAMES indiAlignmentDriver
-      HINTS ${PC_INDI_LIBRARY_DIRS}
-  )
-  target_link_libraries(indi_eqmod_telescope ${INDI_LIBRARIES} ${INDI_DRIVER_LIBRARIES} ${NOVA_LIBRARIES} ${INDI_ALIGN_LIBRARIES})
+  #find_library(INDI_ALIGN_LIBRARIES NAMES indiAlignmentDriver
+  #    HINTS ${PC_INDI_LIBRARY_DIRS}
+  #)
+  target_link_libraries(indi_eqmod_telescope ${INDI_LIBRARIES} ${NOVA_LIBRARIES} ${INDI_ALIGN_LIBRARIES})
 else(WITH_ALIGN)
-  target_link_libraries(indi_eqmod_telescope ${INDI_LIBRARIES} ${INDI_DRIVER_LIBRARIES} ${NOVA_LIBRARIES})
+  target_link_libraries(indi_eqmod_telescope ${INDI_LIBRARIES} ${NOVA_LIBRARIES})
 endif(WITH_ALIGN)
 
 if (CMAKE_HOST_SYSTEM_PROCESSOR MATCHES "arm*")

@@ -26,7 +26,7 @@ include_directories( ${NOVA_INCLUDE_DIR})
 include_directories( ${EV_INCLUDE_DIR})
 
 add_executable(indi_nexstarevo_telescope nexstarevo.cpp NexStarAUXScope.cpp)
-target_link_libraries(indi_nexstarevo_telescope indiAlignmentDriver ${INDI_LIBRARIES} ${INDI_DRIVER_LIBRARIES} ${NOVA_LIBRARIES})
+target_link_libraries(indi_nexstarevo_telescope indiAlignmentDriver ${INDI_LIBRARIES} ${INDI_LIBRARIES} ${NOVA_LIBRARIES})
 install(TARGETS indi_nexstarevo_telescope RUNTIME DESTINATION bin )
 
 install( FILES  ${CMAKE_CURRENT_BINARY_DIR}/indi_nexstarevo.xml DESTINATION ${INDI_DATA_DIR})

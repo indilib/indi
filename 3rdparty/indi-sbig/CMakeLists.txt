@@ -31,7 +31,7 @@ set(sbigccd_SRCS
 
 add_executable(indi_sbig_ccd ${sbigccd_SRCS})
 
-target_link_libraries(indi_sbig_ccd ${INDI_DRIVER_LIBRARIES} ${CFITSIO_LIBRARIES} ${SBIG_LIBRARIES} ${M_LIB} ${ZLIB_LIBRARY} ${CMAKE_THREAD_LIBS_INIT})
+target_link_libraries(indi_sbig_ccd ${INDI_LIBRARIES} ${CFITSIO_LIBRARIES} ${SBIG_LIBRARIES} ${M_LIB} ${ZLIB_LIBRARY} ${CMAKE_THREAD_LIBS_INIT})
 
 install(TARGETS indi_sbig_ccd RUNTIME DESTINATION bin)
 
