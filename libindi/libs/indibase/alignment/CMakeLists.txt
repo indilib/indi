@@ -36,7 +36,11 @@ set (AlignmentDriver_SRCS
 
 add_library(AlignmentDriver SHARED ${AlignmentDriver_SRCS})
 set_target_properties(AlignmentDriver PROPERTIES COMPILE_FLAGS "-fPIC")
+if (APPLE)
+target_link_libraries(AlignmentDriver dl -L/usr/local/lib ${GSL_LIBRARIES})
+else()
 target_link_libraries(AlignmentDriver dl ${GSL_LIBRARIES})
+endif()
 
 
 if (INDI_BUILD_QT5)

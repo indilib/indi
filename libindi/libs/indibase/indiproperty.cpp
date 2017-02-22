@@ -346,6 +346,9 @@ IPerm INDI::Property::getPermission() const
      return ((IBLOBVectorProperty *) pPtr)->p;
     break;
 
+    default:
+        break;
+
   }
 
   return IP_RO;

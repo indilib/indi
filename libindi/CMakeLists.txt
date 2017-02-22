@@ -147,7 +147,7 @@ add_library(indiclient STATIC
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indicom.c
     ${CMAKE_CURRENT_SOURCE_DIR}/base64.c)
 set_target_properties(indiclient PROPERTIES COMPILE_FLAGS "-fPIC")
-target_link_libraries(indiclient indi ${CMAKE_THREAD_LIBS_INIT})
+target_link_libraries(indiclient ${CMAKE_THREAD_LIBS_INIT})
 install(TARGETS indiclient ARCHIVE DESTINATION ${LIB_DESTINATION})
 endif (INDI_BUILD_POSIX_CLIENT)
 
@@ -213,9 +213,6 @@ find_package(Nova REQUIRED)
 find_package(USB-1 REQUIRED)
 find_package(CURL REQUIRED)
 find_package(GSL REQUIRED)
-if (APPLE)
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -L/usr/local/lib")
-endif()
 # libjpeg for V4L2
 if (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
   find_package(JPEG REQUIRED)
