@@ -709,7 +709,7 @@ bool INDI::Telescope::ISNewSwitch (const char *dev, const char *name, ISState *s
             if (TrackState == SCOPE_PARKING)
             {
                 IUResetSwitch(&ParkSP);
-                ParkSP.s == IPS_ALERT;
+                ParkSP.s = IPS_ALERT;
                 Abort();
                 DEBUG(INDI::Logger::DBG_SESSION, "Parking/Unparking aborted.");
                 IDSetSwitch(&ParkSP, NULL);

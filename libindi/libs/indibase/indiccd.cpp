@@ -961,11 +961,9 @@ bool INDI::CCD::ISNewNumber (const char *dev, const char *name, double values[],
     //IDLog("INDI::CCD::ISNewNumber %s\n",name);
     if(strcmp(dev,getDeviceName())==0)
     {
-        //  This is for our device
-        //  Now lets see if it's something we process here
-        if(strcmp(name,"CCD_EXPOSURE")==0)
+        if(!strcmp(name,"CCD_EXPOSURE"))
         {
-            if (PrimaryCCD.getFrameType() != CCDChip::BIAS_FRAME && values[0] <  PrimaryCCD.ImageExposureN[0].min || values[0] > PrimaryCCD.ImageExposureN[0].max)
+            if (PrimaryCCD.getFrameType() != CCDChip::BIAS_FRAME && (values[0] <  PrimaryCCD.ImageExposureN[0].min || values[0] > PrimaryCCD.ImageExposureN[0].max))
             {
                 DEBUGF(INDI::Logger::DBG_ERROR, "Requested exposure value (%g) seconds out of bounds [%g,%g].", values[0], PrimaryCCD.ImageExposureN[0].min, PrimaryCCD.ImageExposureN[0].max);
                 PrimaryCCD.ImageExposureNP.s=IPS_ALERT;
@@ -992,9 +990,9 @@ bool INDI::CCD::ISNewNumber (const char *dev, const char *name, double values[],
             return true;
         }
 
-        if(strcmp(name,"GUIDER_EXPOSURE")==0)
+        if(!strcmp(name,"GUIDER_EXPOSURE"))
         {
-            if (GuideCCD.getFrameType() != CCDChip::BIAS_FRAME && values[0] <  GuideCCD.ImageExposureN[0].min || values[0] > GuideCCD.ImageExposureN[0].max)
+            if (GuideCCD.getFrameType() != CCDChip::BIAS_FRAME && (values[0] <  GuideCCD.ImageExposureN[0].min || values[0] > GuideCCD.ImageExposureN[0].max))
             {
                 DEBUGF(INDI::Logger::DBG_ERROR, "Requested guide exposure value (%g) seconds out of bounds [%g,%g].", values[0], GuideCCD.ImageExposureN[0].min, GuideCCD.ImageExposureN[0].max);
                 GuideCCD.ImageExposureNP.s=IPS_ALERT;
@@ -1016,7 +1014,7 @@ bool INDI::CCD::ISNewNumber (const char *dev, const char *name, double values[],
             return true;
         }
 
-        if(strcmp(name,"CCD_BINNING")==0)
+        if(!strcmp(name,"CCD_BINNING"))
         {
             //  We are being asked to set camera binning
             INumber *np = IUFindNumber(&PrimaryCCD.ImageBinNP, names[0]);
@@ -1054,7 +1052,7 @@ bool INDI::CCD::ISNewNumber (const char *dev, const char *name, double values[],
 
         }
 
-        if(strcmp(name,"GUIDER_BINNING")==0)
+        if(!strcmp(name,"GUIDER_BINNING"))
         {
             //  We are being asked to set camera binning
             INumber *np = IUFindNumber(&GuideCCD.ImageBinNP, names[0]);
@@ -1093,7 +1091,7 @@ bool INDI::CCD::ISNewNumber (const char *dev, const char *name, double values[],
 
         }
 
-        if(strcmp(name,"CCD_FRAME")==0)
+        if(!strcmp(name,"CCD_FRAME"))
         {
             //  We are being asked to set CCD Frame
             if (IUUpdateNumber(&PrimaryCCD.ImageFrameNP,values,names,n) < 0)
@@ -1111,7 +1109,7 @@ bool INDI::CCD::ISNewNumber (const char *dev, const char *name, double values[],
             return true;
         }
 
-        if(strcmp(name,"GUIDER_FRAME")==0)
+        if(!strcmp(name,"GUIDER_FRAME"))
         {
             //  We are being asked to set guide frame
             if (IUUpdateNumber(&GuideCCD.ImageFrameNP,values,names,n) < 0)
@@ -1131,7 +1129,7 @@ bool INDI::CCD::ISNewNumber (const char *dev, const char *name, double values[],
             return true;
         }
 
-        if(strcmp(name,"CCD_GUIDESTAR")==0)
+        if(!strcmp(name,"CCD_GUIDESTAR"))
         {
             PrimaryCCD.RapidGuideDataNP.s=IPS_OK;
             IUUpdateNumber(&PrimaryCCD.RapidGuideDataNP,values,names,n);
@@ -1139,7 +1137,7 @@ bool INDI::CCD::ISNewNumber (const char *dev, const char *name, double values[],
             return true;
         }
 
-        if(strcmp(name,"GUIDER_GUIDESTAR")==0)
+        if(!strcmp(name,"GUIDER_GUIDESTAR"))
         {
             GuideCCD.RapidGuideDataNP.s=IPS_OK;
             IUUpdateNumber(&GuideCCD.RapidGuideDataNP,values,names,n);
@@ -2508,7 +2506,7 @@ int INDI::CCD::getFileIndex(const char *dir, const char *prefix, const char *ext
     dpdf = opendir(dir);
     if (dpdf != NULL)
     {
-       while (epdf = readdir(dpdf))
+       while ( (epdf = readdir(dpdf)) )
        {
           if (strstr(epdf->d_name, prefixSearch.c_str()))
               files.push_back(epdf->d_name);

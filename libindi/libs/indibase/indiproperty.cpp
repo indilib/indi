@@ -314,6 +314,9 @@ IPState INDI::Property::getState() const
      return ((IBLOBVectorProperty *) pPtr)->s;
     break;
 
+    default:
+        break;
+
   }
 
   return IPS_IDLE;

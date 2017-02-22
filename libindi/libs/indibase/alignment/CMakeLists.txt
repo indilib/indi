@@ -1,13 +1,5 @@
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/CMakeModules)
 
-find_package(GSL REQUIRED)
-
-if (GSL_FOUND)
-	include_directories(${GSL_INCLUDE_DIRS})
-	set_property(DIRECTORY APPEND PROPERTY COMPILE_DEFINITIONS GSL_FOUND)
-	set(CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS} ${CMAKE_GSL_CXX_FLAGS})
-endif (GSL_FOUND)
-
 set(INDI_MATH_PLUGINS_DIRECTORY "${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}/indi/MathPlugins")
 
 set_property(DIRECTORY APPEND PROPERTY COMPILE_DEFINITIONS INDI_MATH_PLUGINS_DIRECTORY="${INDI_MATH_PLUGINS_DIRECTORY}")
@@ -43,11 +35,9 @@ set (AlignmentDriver_SRCS
     )
 
 add_library(AlignmentDriver SHARED ${AlignmentDriver_SRCS})
-SET_TARGET_PROPERTIES(AlignmentDriver PROPERTIES COMPILE_FLAGS "-fPIC")
-target_link_libraries(AlignmentDriver dl)
-if (GSL_FOUND)
-	target_link_libraries(AlignmentDriver ${GSL_LIBRARIES})
-endif (GSL_FOUND)
+set_target_properties(AlignmentDriver PROPERTIES COMPILE_FLAGS "-fPIC")
+target_link_libraries(AlignmentDriver dl ${GSL_LIBRARIES})
+
 
 if (INDI_BUILD_QT5)
 qt5_use_modules(AlignmentDriver Network)
