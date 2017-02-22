@@ -37,7 +37,8 @@
 #include "indilogger.h"
 
 #include "mgenautoguider.h"
-#include "mgencommand.h"
+
+#include "mgc.h"
 
 #define ERROR_MSG_LENGTH 250
 
@@ -334,10 +335,28 @@ void MGenAutoguider::connectionThread()
             case OPM_UNKNOWN:
                 { DEBUGF(INDI::Logger::DBG_SESSION, "%s: running device identification", __FUNCTION__); usleep(100000); }
 
+#if 1
+                /* Run an identification - failing this is not a problem, we'll try to communicate in applicative mode next */
+                {
+                switch(::MGCP_QUERY_DEVICE(*this).ask(ftdi))
+                {
+                    case MGC::CR_SUCCESS:
+                        connectionStatus.mode = OPM_COMPATIBLE;
+                        continue;
+
+                    case MGC::CR_IO_ERROR:
+                        connectionStatus.is_active = false;
+                        continue;
+
+                    default: break;
+                }
+                }
+#else
                 /* Run an identification */
                 buffer[0] = getOpCode(MGCP_QUERY_DEVICE);
                 buffer[1] = 0x01; /* Length of parameters */
                 buffer[2] = 0x01; /* Query device ID sub-comand */
+                { DEBUGF(INDI::Logger::DBG_SESSION, "%s: writing identification request to device %02X %02X %02X", __FUNCTION__, buffer[0], buffer[1], buffer[2]); usleep(100000); }
                 if(ftdi_write_data(ftdi, buffer, 3) < 0)
                 {
                     { DEBUGF(INDI::Logger::DBG_SESSION, "%s: failed writing identification request to device", __FUNCTION__); usleep(100000); }
@@ -376,6 +395,7 @@ void MGenAutoguider::connectionThread()
                     connectionStatus.mode = OPM_COMPATIBLE;
                     continue;
                 }
+#endif
 
                 { DEBUGF(INDI::Logger::DBG_SESSION, "%s: identification failed, try to communicate in applicative mode", __FUNCTION__); usleep(100000); }
                 connectionStatus.mode = OPM_APPLICATION;
