@@ -399,7 +399,7 @@ bool INDI::Telescope::ISSnoopDevice(XMLEle *root)
     return INDI::DefaultDevice::ISSnoopDevice(root);
 }
 
-void INDI::Telescope::triggerSnoop(char *driverName, char *snoopedProp)
+void INDI::Telescope::triggerSnoop(const char *driverName, const char *snoopedProp)
 {
     DEBUGF(INDI::Logger::DBG_DEBUG, "Active Snoop, driver: %s, property: %s", driverName, snoopedProp);
     IDSnoopDevice(driverName, snoopedProp);
@@ -988,7 +988,7 @@ bool INDI::Telescope::ISNewSwitch (const char *dev, const char *name, ISState *s
           DomeClosedLockTP.s = IPS_OK;
           IDSetSwitch(&DomeClosedLockTP, NULL);
 
-          triggerSnoop(strdup(ActiveDeviceT[1].text), strdup("DOME_PARK"));
+          triggerSnoop(ActiveDeviceT[1].text, "DOME_PARK");
           return true;
       }
 

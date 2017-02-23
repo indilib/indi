@@ -43,11 +43,9 @@ set(CMAKE_SHARED_LINKER_FLAGS "-undefined dynamic_lookup")
 ENDIF(APPLE)
 
 ##################################  Install Directories  ###########################################
-set (LIB_DESTINATION "${CMAKE_INSTALL_LIBDIR}")
-
 ## the following are directories where stuff will be installed to
 set(INCLUDE_INSTALL_DIR      "${CMAKE_INSTALL_PREFIX}/include/")
-set(PKGCONFIG_INSTALL_PREFIX "${LIB_DESTINATION}/pkgconfig/")
+set(PKGCONFIG_INSTALL_PREFIX "${CMAKE_INSTALL_LIBDIR}/pkgconfig/")
 set(UDEVRULES_INSTALL_DIR "/lib/udev/rules.d" CACHE STRING "Base directory for udev rules")
 
 #####################################  Build Options  ##############################################
@@ -98,8 +96,9 @@ set_package_properties(CFITSIO PROPERTIES DESCRIPTION "A library for reading and
 #################################################################################################
 if (INDI_BUILD_SERVER)
 if (WIN32 OR ANDROID)
-    message(FATAL_ERROR "INDI Server is only supported under Linux, BSD, MacOS, and Cygwin while current system is " ${CMAKE_SYSTEM_NAME})
-endif (WIN32 OR ANDROID)
+    message(WARNING "INDI Server is only supported under Linux, BSD, MacOS, and Cygwin while current system is " ${CMAKE_SYSTEM_NAME})
+else()
+
 # 1. Dependencies
 find_package(Threads REQUIRED)
 # 2. Includes
@@ -112,6 +111,7 @@ add_executable(indiserver
     )
 target_link_libraries(indiserver ${CMAKE_THREAD_LIBS_INIT})
 install(TARGETS indiserver RUNTIME DESTINATION bin)
+endif (WIN32 OR ANDROID)
 endif (INDI_BUILD_SERVER)
 
 #################################################################################################
@@ -122,10 +122,9 @@ endif (INDI_BUILD_SERVER)
 #
 #################################################################################################
 if (INDI_BUILD_POSIX_CLIENT)
-    if (WIN32 OR ANDROID)
-        message(FATAL_ERROR "INDI POSIX Client is only supported under Linux, BSD, MacOS, and Cygwin while current system is " ${CMAKE_SYSTEM_NAME})
-    endif (WIN32 OR ANDROID)
-
+if (WIN32 OR ANDROID)
+    message(WARNING "INDI POSIX Client is only supported under Linux, BSD, MacOS, and Cygwin while current system is " ${CMAKE_SYSTEM_NAME})
+else()
 # 1. Dependencies
 find_package(Threads REQUIRED)
 find_package(ZLIB REQUIRED)
@@ -146,9 +145,12 @@ add_library(indiclient STATIC
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/lilxml.c
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indicom.c
     ${CMAKE_CURRENT_SOURCE_DIR}/base64.c)
+if (NOT CYGWIN AND NOT WIN32)
 set_target_properties(indiclient PROPERTIES COMPILE_FLAGS "-fPIC")
+endif (NOT CYGWIN AND NOT WIN32)
 target_link_libraries(indiclient ${CMAKE_THREAD_LIBS_INIT})
-install(TARGETS indiclient ARCHIVE DESTINATION ${LIB_DESTINATION})
+install(TARGETS indiclient ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR})
+endif (WIN32 OR ANDROID)
 endif (INDI_BUILD_POSIX_CLIENT)
 
 #################################################################################################
@@ -181,14 +183,14 @@ add_library(indiclientqt STATIC
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indicom.c
     ${CMAKE_CURRENT_SOURCE_DIR}/base64.c
     )
-if (NOT WIN32)
+if (NOT CYGWIN AND NOT WIN32)
 set_target_properties(indiclientqt PROPERTIES COMPILE_FLAGS "-fPIC")
-endif(NOT WIN32)
+endif(NOT CYGWIN AND NOT WIN32)
 qt5_use_modules(indiclientqt Network)
 if (WIN32 OR ANDROID)
 install(TARGETS indiclientqt ARCHIVE DESTINATION lib)
 else(WIN32 OR ANDROID)
-install(TARGETS indiclientqt ARCHIVE DESTINATION ${LIB_DESTINATION})
+install(TARGETS indiclientqt ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR})
 endif(WIN32 OR ANDROID)
 install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/baseclientqt.h DESTINATION ${INCLUDE_INSTALL_DIR}/libindi COMPONENT Devel)
 endif (INDI_BUILD_QT5_CLIENT)
@@ -202,9 +204,9 @@ endif (INDI_BUILD_QT5_CLIENT)
 #
 #################################################################################################
 if (INDI_BUILD_DRIVERS)
-    if (WIN32 OR ANDROID)
-        message(FATAL_ERROR "INDI POSIX Client is only supported under Linux, BSD, MacOS, and Cygwin while current system is " ${CMAKE_SYSTEM_NAME})
-    endif (WIN32 OR ANDROID)
+if (WIN32 OR ANDROID)
+    message(WARNING "INDI drivers are only supported under Linux, BSD, MacOS, and Cygwin while current system is " ${CMAKE_SYSTEM_NAME})
+else()
 # 1. Dependencies
 find_package(Threads REQUIRED)
 find_package(ZLIB REQUIRED)
@@ -290,19 +292,30 @@ set (indidriver_SRCS
 ##################################################
 ########## INDI Default Driver Library ###########
 ##################################################
-## Dynamic indidriver Library
-add_library(indidriver SHARED ${indidriver_SRCS} ${libwebcam_SRCS} ${hidapi_SRCS})
-set_target_properties(indidriver PROPERTIES COMPILE_FLAGS "-fPIC")
-target_link_libraries(indidriver ${LIBUSB_1_LIBRARIES} ${NOVA_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${CFITSIO_LIBRARIES} ${M_LIB} ${ZLIB_LIBRARY} ${JPEG_LIBRARY})
 
+if (CYGWIN)
+## For Cygwin we only build static library
+add_definitions(-U__STRICT_ANSI__)
+find_package(Iconv REQUIRED)
+add_library(indidriver STATIC ${indidriver_SRCS} ${hidapi_SRCS})
+set_target_properties(indidriver PROPERTIES VERSION ${CMAKE_INDI_VERSION_STRING} SOVERSION ${INDI_SOVERSION} OUTPUT_NAME indidriver)
+target_link_libraries(indidriver ${ICONV_LIBRARIES} ${LIBUSB_1_LIBRARIES} ${NOVA_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${CFITSIO_LIBRARIES} ${M_LIB} ${ZLIB_LIBRARY} ${JPEG_LIBRARY})
+install(TARGETS indidriver ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR})
+else()
 ## Static indidriver Library
 add_library(indidriverstatic STATIC ${indidriver_SRCS} ${libwebcam_SRCS} ${hidapi_SRCS})
 set_target_properties(indidriverstatic PROPERTIES COMPILE_FLAGS "-fPIC")
+set_target_properties(indidriverstatic PROPERTIES VERSION ${CMAKE_INDI_VERSION_STRING} SOVERSION ${INDI_SOVERSION} OUTPUT_NAME indidriver)
 target_link_libraries(indidriverstatic ${LIBUSB_1_LIBRARIES} ${NOVA_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${CFITSIO_LIBRARIES} ${M_LIB} ${ZLIB_LIBRARY} ${JPEG_LIBRARY})
+install(TARGETS indidriverstatic ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR})
+## Dynamic indidriver Library
+add_library(indidriver SHARED ${indidriver_SRCS} ${libwebcam_SRCS} ${hidapi_SRCS})
+set_target_properties(indidriver PROPERTIES COMPILE_FLAGS "-fPIC")
+set_target_properties(indidriver PROPERTIES VERSION ${CMAKE_INDI_VERSION_STRING} SOVERSION ${INDI_SOVERSION} OUTPUT_NAME indidriver)
+target_link_libraries(indidriver ${LIBUSB_1_LIBRARIES} ${NOVA_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${CFITSIO_LIBRARIES} ${M_LIB} ${ZLIB_LIBRARY} ${JPEG_LIBRARY})
+install(TARGETS indidriver LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR})
+endif(CYGWIN)
 
-set_target_properties(indidriver indidriverstatic PROPERTIES VERSION ${CMAKE_INDI_VERSION_STRING} SOVERSION ${INDI_SOVERSION} OUTPUT_NAME indidriver)
-install(TARGETS indidriver LIBRARY DESTINATION ${LIB_DESTINATION})
-install(TARGETS indidriverstatic ARCHIVE DESTINATION ${LIB_DESTINATION})
 
 ##################################################
 ########### INDI Alignment Subsystem #############
@@ -987,6 +1000,7 @@ ELSE()
   MESSAGE (STATUS  "GTEST not found, not building unit tests")
 ENDIF (GTEST_FOUND)
 
+endif (WIN32 OR ANDROID)
 endif(INDI_BUILD_DRIVERS)
 
 feature_summary(WHAT ALL FATAL_ON_MISSING_REQUIRED_PACKAGES)
