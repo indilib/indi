@@ -537,6 +537,9 @@ bool SkywatcherAPIMount::MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command)
     double speed = (dir == DIRECTION_WEST) ? GetSlewRate()*LOW_SPEED_MARGIN / 2 : -GetSlewRate()*LOW_SPEED_MARGIN / 2;
     const char *dirStr = (dir == DIRECTION_WEST) ? "West" : "East";
 
+    if (MountCode >= 0x90)
+        speed = -speed;
+
     switch (command)
     {
         case MOTION_START:
@@ -590,6 +593,13 @@ bool SkywatcherAPIMount::ReadScopeStatus()
     // Calculate new RA DEC
     struct ln_hrz_posn AltAz;
     AltAz.alt = MicrostepsToDegrees(AXIS2, CurrentEncoders[AXIS2] - ZeroPositionEncoders[AXIS2]);
+    if (MountCode >= 0x90)
+    {
+        // The altitude degrees in the Virtuoso Alt-Az mount are inverted.
+        double MountDegree = AltAz.alt-3430;
+
+        AltAz.alt = 3420-MountDegree;
+    }
     DEBUGF(INDI::AlignmentSubsystem::DBG_ALIGNMENT, "Axis2 encoder %ld initial %ld alt(degrees) %lf", CurrentEncoders[AXIS2], ZeroPositionEncoders[AXIS2], AltAz.alt);
     AltAz.az = MicrostepsToDegrees(AXIS1, CurrentEncoders[AXIS1] - ZeroPositionEncoders[AXIS1]);
     DEBUGF(INDI::AlignmentSubsystem::DBG_ALIGNMENT, "Axis1 encoder %ld initial %ld az(degrees) %lf", CurrentEncoders[AXIS1], ZeroPositionEncoders[AXIS1], AltAz.az);
