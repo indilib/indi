@@ -1,4 +1,5 @@
 /*.user*
+*/**/.idea
 3rdparty/*.user*
 3rdparty/indi-aagcloudwatcher/*.user*
 3rdparty/fliusb/*.user*
@@ -50,6 +51,7 @@
 3rdparty/libqsi/doc/*.user*
 3rdparty/sbig/*.user*
 cmake_modules/*.user*
+cmake-build-debug/
 debian/*.user*
 debian/astrometry.net/*.user*
 debian/astrometry.net/source/*.user*

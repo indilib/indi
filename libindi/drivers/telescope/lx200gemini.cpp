@@ -1,5 +1,9 @@
 #include <math.h>
+#include <termio.h>
 #include "lx200gemini.h"
+#include "lx200driver.h"
+
+#define GEMINI_TIMEOUT	5
 
 LX200Gemini::LX200Gemini()
 {
@@ -60,12 +64,34 @@ const char * LX200Gemini::getDefaultName()
 
 bool LX200Gemini::isSlewComplete()
 {
-    const double dx = targetRA - currentRA;
-    const double dy = targetDEC - currentDEC;
-    bool isComplete = (fabs(dx) <= (SlewAccuracyN[0].value/(900.0))) && (fabs(dy) <= (SlewAccuracyN[1].value/60.0));
+    // The gemini can tell us when the slew has stopped
+    int error_type;
+    int nbytes_write = 4;
+    if ( (error_type = tty_write_string(PortFD, ":Gv#", &nbytes_write)) != TTY_OK)
+        return error_type > 0;
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "targetRA: %g currentRA: %g targetDEC: %d currentDEC: %g", targetRA, currentRA, targetDEC, currentDEC);
-    DEBUGF(INDI::Logger::DBG_DEBUG, "isSlewComplete? %s dx: %g dy: %g", isComplete ? "true" : "false", dx, dy);
+    int nbytes_read = 255;
+    char temp_string[256];
+    error_type = tty_read_section(PortFD, temp_string, '#', GEMINI_TIMEOUT, &nbytes_read);
+
+    tcflush(PortFD, TCIFLUSH);
+
+    if (nbytes_read < 1)
+        return error_type > 0;
+
+    // Allowed values back from the gemini are
+    // N - Stopped
+    // T - Tracking
+    // G - Guiding
+    // C - Centering
+    // S - Slewing
+
+    // The slew has stopped when the mount is tracking.  It is possible
+    // that the mount my be stopped (Terrestrial mode), but then it
+    // isn't really ready to use for astronomy either
+    bool isComplete = (temp_string[0] == 'T');
+
+    DEBUGF(INDI::Logger::DBG_DEBUG, "isSlewComplete? %s", isComplete ? "true" : "false");
 
     return isComplete;
 }
@@ -78,3 +104,4 @@ bool LX200Gemini::saveConfigItems(FILE *fp)
 
     return true;
 }
+
