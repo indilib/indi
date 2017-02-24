@@ -73,8 +73,11 @@ public:
             return -1;
         }
 
-        _L("writing %d bytes to device: %02X %02X %02X %02X %02X ...", query.size(), query.size()>0?query[0]:0, query.size()>0?query[1]:0, query.size()>2?query[2]:0, query.size()>3?query[3]:0, query.size()>4?query[4]:0);
+        _L("writing %d bytes to device: %02X %02X %02X %02X %02X ...", query.size(), query.size()>0?query[0]:0, query.size()>1?query[1]:0, query.size()>2?query[2]:0, query.size()>3?query[3]:0, query.size()>4?query[4]:0);
         int const bytes_written = ftdi_write_data(ftdi, query.data(), query.size());
+
+        /* FIXME: Adjust this to optimize how long device absorb the command for */
+        usleep(10000);
 
         if(bytes_written < 0)
             throw IOError(bytes_written);
@@ -130,26 +133,26 @@ public:
         write(ftdi);
 
         int const bytes_read = read(ftdi);
-        if(answer[0] != ~query[0] || 5 != bytes_read)
+        if(answer[0] == ~query[0] && 5 == bytes_read)
         {
-            _L("invalid identification response from device (%d bytes read)", bytes_read);
-            return CR_FAILURE;
+            _L("device acknowledged identification, analyzing '%02X%02X%02X'", answer[2], answer[3], answer[4]);
+
+            IOBuffer const app_mode_answer { 0x01, 0x80, 0x02 };
+            IOBuffer const boot_mode_answer { 0x01, 0x80, 0x01 };
+
+            if( answer != app_mode_answer && answer != boot_mode_answer )
+            {
+                _L("device identification returned unknown mode","");
+                return CR_FAILURE;
+            }
+
+            _L("identified boot/compatible mode", "");
+            /* TODO: indicate boot/compatible to caller */
+            return CR_SUCCESS;
         }
 
-        _L("device acknowledged identification, analyzing '%02X%02X%02X'", answer[2], answer[3], answer[4]);
-
-        IOBuffer const app_mode_answer { 0x01, 0x80, 0x02 };
-        IOBuffer const boot_mode_answer { 0x01, 0x80, 0x01 };
-
-        if( answer != app_mode_answer && answer != boot_mode_answer )
-        {
-            _L("device identification returned unknown mode","");
-            return CR_FAILURE;
-        }
-
-        _L("identified boot/compatible mode", "");
-        /* TODO: indicate boot/compatible to caller */
-        return CR_SUCCESS;
+        _L("invalid identification response from device (%d bytes read)", bytes_read);
+        return CR_FAILURE;
     }
 
 public:
@@ -157,11 +160,12 @@ public:
         MGC(root, IOBuffer { root.getOpCode(commandByte()), 1, 1 }, IOBuffer (5) ) {};
 };
 
+
 class MGCMD_NOP1: MGC
 {
 public:
     virtual enum MGenAutoguider::CommandByte commandByte() const { return MGenAutoguider::MGCMD_NOP1; }
-    virtual enum MGenAutoguider::OpMode opMode() const { return MGenAutoguider::OPM_UNKNOWN; }
+    virtual enum MGenAutoguider::OpMode opMode() const { return MGenAutoguider::OPM_APPLICATION; }
 
 public:
     MGC::CommandResult ask(struct ftdi_context * const ftdi) throw (IOError)
@@ -169,34 +173,50 @@ public:
         write(ftdi);
 
         int const bytes_read = read(ftdi);
-        switch( current_mode() )
+        if(answer[0] == query[0] && 1 == bytes_read)
         {
-            case MGenAutoguider::OPM_BOOT:
-                if(answer[0] != ~query[0] || 1 != bytes_read)
-                {
-                    _L("no heartbeat ack (%d bytes read)", bytes_read);
-                    return CR_FAILURE;
-                }
-                break;
-
-            case MGenAutoguider::OPM_APPLICATION:
-                if(answer[0] != query[0] || 1 != bytes_read)
-                {
-                    _L("no heartbeat ack (%d bytes read)", bytes_read);
-                    return CR_FAILURE;
-                }
-                break;
-
-            default: return CR_FAILURE; /* FIXME */
+            _L("received heartbeat ack", "");
+            return CR_SUCCESS;
         }
 
-        _L("received heartbeat ack", "");
-        return CR_SUCCESS;
+        _L("no heartbeat ack (%d bytes read)", bytes_read);
+        return CR_FAILURE;
     }
 
 public:
     MGCMD_NOP1( MGenAutoguider& root ):
-        MGC(root, IOBuffer { root.getOpCode(commandByte()), 1, 1 }, IOBuffer (1) ) {};
+        MGC(root, IOBuffer { root.getOpCode(commandByte()) }, IOBuffer (1) ) {};
+};
+
+
+class MGCMD_GET_FW_VERSION: MGC
+{
+public:
+    virtual enum MGenAutoguider::CommandByte commandByte() const { return MGenAutoguider::MGCMD_GET_FW_VERSION; }
+    virtual enum MGenAutoguider::OpMode opMode() const { return MGenAutoguider::OPM_APPLICATION; }
+
+public:
+    unsigned short fw_version() const { return (unsigned short) (answer[2]<<8) | answer[1]; }
+
+public:
+    MGC::CommandResult ask(struct ftdi_context * const ftdi) throw (IOError)
+    {
+        write(ftdi);
+
+        int const bytes_read = read(ftdi);
+        if(answer[0] == query[0] && ( 1 == bytes_read || 3 == bytes_read ))
+        {
+            _L("received firwmare version ack", "");
+            return CR_SUCCESS;
+        }
+
+        _L("no firmware version ack (%d bytes read)", bytes_read);
+        return CR_FAILURE;
+    }
+
+public:
+    MGCMD_GET_FW_VERSION( MGenAutoguider& root ):
+        MGC(root, IOBuffer { root.getOpCode(commandByte()) }, IOBuffer (1+1+2) ) {};
 };
 
 #endif /* 3RDPARTY_INDI_MGEN_MGENCOMMAND_HPP_ */

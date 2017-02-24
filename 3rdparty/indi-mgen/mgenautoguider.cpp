@@ -338,17 +338,14 @@ void MGenAutoguider::connectionThread()
                     { DEBUGF(INDI::Logger::DBG_SESSION, "%s: running device identification", __FUNCTION__); usleep(100000); }
 
                     /* Run an identification - failing this is not a problem, we'll try to communicate in applicative mode next */
-                    switch(::MGCP_QUERY_DEVICE(*this).ask(ftdi))
+                    if(MGC::CR_SUCCESS == ::MGCP_QUERY_DEVICE(*this).ask(ftdi))
                     {
-                        case MGC::CR_SUCCESS:
-                            { DEBUGF(INDI::Logger::DBG_SESSION, "%s: identified boot/compatible mode", __FUNCTION__); usleep(100000); }
-                            connectionStatus.mode = OPM_COMPATIBLE;
-                            continue;
-
-                        default: break;
+                        { DEBUGF(INDI::Logger::DBG_SESSION, "%s: identified boot/compatible mode", __FUNCTION__); usleep(100000); }
+                        connectionStatus.mode = OPM_COMPATIBLE;
+                        continue;
                     }
 
-                    { DEBUGF(INDI::Logger::DBG_SESSION, "%s: identification failed, try to communicate in applicative mode", __FUNCTION__); usleep(100000); }
+                    { DEBUGF(INDI::Logger::DBG_SESSION, "%s: identification failed, try to communicate as if in applicative mode", __FUNCTION__); usleep(100000); }
                     connectionStatus.mode = OPM_APPLICATION;
 
                     if(setOpModeBaudRate(ftdi, connectionStatus.mode))
@@ -359,10 +356,35 @@ void MGenAutoguider::connectionThread()
                         continue;
                     }
 
-                    if(heartbeat(ftdi))
+                    /* Run a basic exchange */
+                    if(MGC::CR_SUCCESS != ::MGCMD_NOP1(*this).ask(ftdi))
                     {
-                        connectionStatus.is_active = false;
-                        continue;
+                        /* Perhaps the device is not turned on, so try to press ESC for a short time */
+                        { DEBUGF(INDI::Logger::DBG_SESSION, "%s: no answer from device, trying to turn it on", __FUNCTION__); usleep(100000); }
+
+                        unsigned char cbus_dir = 1<<1, cbus_val = 1<<1; /* Spec uses unitialized variables here */
+
+                        if(ftdi_set_bitmode(ftdi, (cbus_dir<<4)+cbus_val, 0x20) < 0)
+                        {
+                            { DEBUGF(INDI::Logger::DBG_SESSION, "%s: failed depressing ESC to turn device on", __FUNCTION__); usleep(100000); }
+                            connectionStatus.is_active = false;
+                            continue;
+                        }
+
+                        usleep(250000);
+                        cbus_val &= ~(1<<1);
+
+                        if(ftdi_set_bitmode(ftdi, (cbus_dir<<4)+cbus_val, 0x20) < 0)
+                        {
+                            { DEBUGF(INDI::Logger::DBG_SESSION, "%s: failed releasing ESC to turn device on", __FUNCTION__); usleep(100000); }
+                            connectionStatus.is_active = false;
+                            continue;
+                        }
+
+                        usleep(500000);
+
+                        { DEBUGF(INDI::Logger::DBG_SESSION, "%s: turned device on, retrying identification", __FUNCTION__); usleep(100000); }
+                        connectionStatus.mode = OPM_UNKNOWN;
                     }
 
                     break;
@@ -406,31 +428,16 @@ void MGenAutoguider::connectionThread()
                     /* If we didn't get the firmware version, ask */
                     if( !connectionStatus.version.uploaded_firmware )
                     {
-                        buffer[0] = getOpCode(MGCMD_GET_FW_VERSION);
-                        if(ftdi_write_data(ftdi, buffer, 1) < 0)
+                        ::MGCMD_GET_FW_VERSION cmd(*this);
+                        if(MGC::CR_SUCCESS == cmd.ask(ftdi))
                         {
-                            { DEBUGF(INDI::Logger::DBG_SESSION, "%s: device disconnected while writing GET_FW_VERSION", __FUNCTION__); usleep(100000); }
-                            connectionStatus.is_active = false;
-                            continue;
-                        }
-
-                        { DEBUGF(INDI::Logger::DBG_SESSION, "%s: reading version result.", __FUNCTION__); usleep(100000); }
-                        if((bytes_read = ftdi_read_data(ftdi, buffer, getOpCodeAnswerLength(MGCMD_GET_FW_VERSION))) < 0)
-                        {
-                            { DEBUGF(INDI::Logger::DBG_SESSION, "%s: device disconnected while reading version", __FUNCTION__); usleep(100000); }
-                            connectionStatus.is_active = false;
-                            continue;
-                        }
-
-                        if(verifyOpCode(MGCMD_GET_FW_VERSION, buffer, bytes_read))
-                        {
-                            connectionStatus.version.uploaded_firmware = (buffer[2]<<8) | buffer[1];
+                            connectionStatus.version.uploaded_firmware = cmd.fw_version();
 
                             { DEBUGF(INDI::Logger::DBG_SESSION, "%s: received version 0x%04X", __FUNCTION__, connectionStatus.version.uploaded_firmware); usleep(100000); }
 
                             break;
                         }
-                        else { DEBUGF(INDI::Logger::DBG_SESSION, "%s: no version ack (%d bytes read, ack 0x%02X)", __FUNCTION__, bytes_read, bytes_read?buffer[0]:0x00); usleep(100000); }
+                        else { DEBUGF(INDI::Logger::DBG_SESSION, "%s: failed retrieving firmware version", __FUNCTION__); usleep(100000); }
                     }
 
                     /* Heartbeat */
