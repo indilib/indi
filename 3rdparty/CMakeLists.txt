@@ -5,6 +5,14 @@ LIST(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake_modules/")
 LIST(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/../cmake_modules/")
 include(GNUInstallDirs)
 
+## libnova.h is in /usr/local/include but it includes other files like <libnova/ln_types.h> while ln_types.h
+## is in the same directory on libnova.h. On Linux, this is fine since /usr/include is already included and therefore
+## <libnova/ln_types.h> is resolved. But on Mac it has to be explicitly added. Ideal solution would be for libnova
+## to include header files without libnova prefix since they reside as the same directory.
+if (APPLE)
+include_directories( "/usr/local/include")
+endif(APPLE)
+
 set(LIBRARIES_FOUND TRUE)
 
 option(WITH_EQMOD "Install EQMod Driver" On)
@@ -64,18 +72,6 @@ SET(LIBRARIES_FOUND FALSE)
 endif (QSI_FOUND)
 endif (WITH_QSI)
 
-## Apogee
-option(WITH_APOGEE "Install Apogee Driver" On)
-if (WITH_APOGEE)
-find_package(APOGEE)
-if (APOGEE_FOUND)
-add_subdirectory(indi-apogee)
-else (APOGEE_FOUND)
-add_subdirectory(libapogee)
-SET(LIBRARIES_FOUND FALSE)
-endif (APOGEE_FOUND)
-endif(WITH_APOGEE)
-
 endif()
 
 if (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
@@ -103,6 +99,18 @@ add_subdirectory(libfli)
 SET(LIBRARIES_FOUND FALSE)
 endif (FLI_FOUND)
 endif(WITH_FLI)
+
+## Apogee
+option(WITH_APOGEE "Install Apogee Driver" On)
+if (WITH_APOGEE)
+find_package(APOGEE)
+if (APOGEE_FOUND)
+add_subdirectory(indi-apogee)
+else (APOGEE_FOUND)
+add_subdirectory(libapogee)
+SET(LIBRARIES_FOUND FALSE)
+endif (APOGEE_FOUND)
+endif(WITH_APOGEE)
 
 ## Moravian
 option(WITH_MI "Install Moravian Driver" On)

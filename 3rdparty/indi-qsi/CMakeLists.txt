@@ -36,5 +36,7 @@ target_link_libraries(indi_qsi_ccd ${INDI_LIBRARIES} ${CFITSIO_LIBRARIES} ${QSI_
 install(TARGETS indi_qsi_ccd RUNTIME DESTINATION bin )
 
 install(FILES ${CMAKE_CURRENT_BINARY_DIR}/indi_qsi.xml DESTINATION ${INDI_DATA_DIR})
-install(FILES 99-qsi.rules DESTINATION ${RULES_INSTALL_DIR})
 
+if (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
+install(FILES 99-qsi.rules DESTINATION ${RULES_INSTALL_DIR})
+endif()

@@ -1,6 +1,6 @@
 ########### NexStar Evolution INDI driver ##############
 PROJECT(indi-nexstarevo C CXX)
-cmake_minimum_required(VERSION 2.4.7)
+cmake_minimum_required(VERSION 2.8)
 
 include(GNUInstallDirs)
 
@@ -26,7 +26,7 @@ include_directories( ${NOVA_INCLUDE_DIR})
 include_directories( ${EV_INCLUDE_DIR})
 
 add_executable(indi_nexstarevo_telescope nexstarevo.cpp NexStarAUXScope.cpp)
-target_link_libraries(indi_nexstarevo_telescope indiAlignmentDriver ${INDI_LIBRARIES} ${INDI_LIBRARIES} ${NOVA_LIBRARIES})
+target_link_libraries(indi_nexstarevo_telescope ${INDI_LIBRARIES} ${NOVA_LIBRARIES})
 install(TARGETS indi_nexstarevo_telescope RUNTIME DESTINATION bin )
 
 install( FILES  ${CMAKE_CURRENT_BINARY_DIR}/indi_nexstarevo.xml DESTINATION ${INDI_DATA_DIR})
