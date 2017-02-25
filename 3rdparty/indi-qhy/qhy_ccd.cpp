@@ -410,8 +410,10 @@ bool QHYCCD::updateProperties()
           //Define the Filter Slot and name properties
           defineNumber(&FilterSlotNP);
 
-          GetFilterNames(FILTER_TAB);
-          defineText(FilterNameTP);
+          if (FilterNameT == NULL)
+              GetFilterNames(FILTER_TAB);
+          if (FilterNameT)
+              defineText(FilterNameTP);
       }
 
       if (HasUSBTraffic)
@@ -1418,13 +1420,23 @@ bool QHYCCD::StartStreaming()
 
     DEBUGF(INDI::Logger::DBG_SESSION, "Starting streaming with a period of %g seconds.", PrimaryCCD.getExposureDuration());
 
+    // N.B. There is no corresponding value for GBGR. It is odd that QHY selects this as the default as no one seems to process it
+    const std::map<const char *, uint32_t> formats = { { "GBGR", V4L2_PIX_FMT_GREY} , {"GRGB", V4L2_PIX_FMT_SGRBG8}, { "BGGR", V4L2_PIX_FMT_SBGGR8},
+                                                       {"RGGB", V4L2_PIX_FMT_SRGGB8} };
+
+
+    uint32_t qhyFormat = V4L2_PIX_FMT_GREY;
+    if (BayerT[2].text && formats.count(BayerT[2].text) != 0)
+        qhyFormat = formats.at(BayerT[2].text);
+
+    streamer->setPixelFormat(qhyFormat);
+
     SetQHYCCDStreamMode(camhandle, 0x01);
     BeginQHYCCDLive(camhandle);
     pthread_mutex_lock(&condMutex);
     streamPredicate = 1;
     pthread_mutex_unlock(&condMutex);
     pthread_cond_signal(&cv);
-
 
     return true;
 }
@@ -1466,7 +1478,7 @@ void* QHYCCD::streamVideo()
       pthread_mutex_unlock(&condMutex);
 
       if ( (ret = GetQHYCCDLiveFrame(camhandle, &w, &h, &bpp, &channels, PrimaryCCD.getFrameBuffer())) == QHYCCD_SUCCESS)
-          streamer->newFrame(PrimaryCCD.getFrameBuffer());
+          streamer->newFrame();
   }
 
   pthread_mutex_unlock(&condMutex);

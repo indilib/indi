@@ -82,20 +82,44 @@ SkywatcherAPI::~SkywatcherAPI()
 
 // Public methods
 
-long SkywatcherAPI::BCDstr2long(std::string &String)
+unsigned long SkywatcherAPI::BCDstr2long(std::string &String)
 {
-// =020782 => 8521474
-    // Funny BCD :-) string is pairs of hex chars with each pair representing a 8 bit hex number. The whole
-    // string being treated as least significant hex digit pair first!
-    const char *str = String.c_str();
-    long value = 0;
-    for (int i = 0; i < String.length(); i += 2)
+    if (String.size() != 6)
     {
-        long hexpair;
-        sscanf(str + i, "%2lx", &hexpair);
-        value += hexpair << i * 4;
+        return 0;
     }
+    unsigned long value = 0;
+
+#define HEX(c) (((c) < 'A')?((c)-'0'):((c) - 'A') + 10)
+
+    value = HEX(String[4]); value <<= 4;
+    value |= HEX(String[5]); value <<= 4;
+    value |= HEX(String[2]); value <<= 4;
+    value |= HEX(String[3]); value <<= 4;
+    value |= HEX(String[0]); value <<= 4;
+    value |= HEX(String[1]);
+
+#undef HEX
+
     return value;
+}
+
+unsigned long SkywatcherAPI::Highstr2long(std::string &String)
+{
+    if (String.size() < 2)
+    {
+        return 0;
+    }
+   unsigned long res = 0;
+
+#define HEX(c) (((c) < 'A')?((c)-'0'):((c) - 'A') + 10)
+
+   res = HEX(String[0]); res <<= 4;
+   res |= HEX(String[1]);
+
+#undef HEX
+
+   return res;
 }
 
 bool SkywatcherAPI::CheckIfDCMotor()
@@ -167,7 +191,7 @@ bool SkywatcherAPI::GetHighSpeedRatio(AXISID Axis)
     if (!TalkWithAxis(Axis, 'g', Parameters, Response))
         return false;
 
-    long highSpeedRatio = BCDstr2long(Response);
+    unsigned long highSpeedRatio = Highstr2long(Response);
     HighSpeedRatio[(int)Axis] = highSpeedRatio;
 
     return true;
@@ -222,10 +246,9 @@ bool SkywatcherAPI::GetMotorBoardVersion(AXISID Axis)
     if (!TalkWithAxis(Axis, 'e', Parameters, Response))
         return false;
 
-    long tmpMCVersion = BCDstr2long(Response);
+    unsigned long tmpMCVersion = BCDstr2long(Response);
 
     MCVersion = ((tmpMCVersion & 0xFF) << 16) | ((tmpMCVersion & 0xFF00)) | ((tmpMCVersion & 0xFF0000) >> 16);
-
     return true;
 }
 
@@ -377,11 +400,15 @@ bool SkywatcherAPI::InitMount()
         return false;
     MYDEBUGF(DBG_SCOPE, "Encoders before init Axis1 %ld Axis2 %ld", CurrentEncoders[AXIS1], CurrentEncoders[AXIS2]);
 
-    // Set initial axis posiitons
-    // These are used to define the arbitary zero position vector for the axis
+    // Set initial axis positions
+    // These are used to define the arbitrary zero position vector for the axis
     ZeroPositionEncoders[AXIS1] = CurrentEncoders[AXIS1];
-    ZeroPositionEncoders[AXIS2] = CurrentEncoders[AXIS2];
-
+    // The Virtuoso (AltAz) mounts must be switched on in north-south alignment and
+    // The zero position vector is valid for axis1, but axis2 should not be calculated.
+    if (MountCode < 0x90)
+    {
+        ZeroPositionEncoders[AXIS2] = CurrentEncoders[AXIS2];
+    }
 
     if (!InitializeMC())
         return false;

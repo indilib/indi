@@ -1374,14 +1374,50 @@ int checkLX200Format(int fd)
 
   DEBUGFDEVICE(lx200Name, DBG_SCOPE, "RES <%s>", temp_string);
 
-  /* Check whether it's short or long */
+  /* If it's short format, try to toggle to high precision format */
+  if (temp_string[5] == '.')
+  {
+      DEBUGDEVICE(lx200Name, DBG_SCOPE, "Detected low precision format, attempting to switch to high precision.");
+      if ( (error_type = tty_write_string(fd, ":U#", &nbytes_write)) != TTY_OK)
+          return error_type;
+  }
+  else
+  {
+      controller_format = LX200_LONG_FORMAT;
+      DEBUGDEVICE(lx200Name, DBG_SCOPE, "Coordinate format is high precision.");
+      return 0;
+  }
+
+  DEBUGFDEVICE(lx200Name, DBG_SCOPE, "CMD <%s>", ":GR#");
+
+  if ( (error_type = tty_write_string(fd, ":GR#", &nbytes_write)) != TTY_OK)
+           return error_type;
+
+  error_type = tty_read_section(fd, temp_string, '#', LX200_TIMEOUT, &nbytes_read);
+
+  if (nbytes_read < 1)
+  {
+      DEBUGFDEVICE(lx200Name, DBG_SCOPE, "RES ERROR <%d>", error_type);
+      return error_type;
+  }
+
+  temp_string[nbytes_read - 1] = '\0';
+
+  DEBUGFDEVICE(lx200Name, DBG_SCOPE, "RES <%s>", temp_string);
+
   if (temp_string[5] == '.')
   {
      controller_format = LX200_SHORT_FORMAT;
-      return 0;
+     DEBUGDEVICE(lx200Name, DBG_SCOPE, "Coordinate format is low precision.");
+
   }
   else
-     return 0;
+  {
+    controller_format = LX200_LONG_FORMAT;
+    DEBUGDEVICE(lx200Name, DBG_SCOPE, "Coordinate format is high precision.");
+  }
+
+  return 0;
 }
 
 int selectTrackingMode(int fd, int trackMode)

@@ -51,12 +51,16 @@ INDI::BaseClient::BaseClient()
 
 INDI::BaseClient::~BaseClient()
 {
+    clear();
+}
+
+void INDI::BaseClient::clear()
+{
     while(!cDevices.empty()) delete cDevices.back(), cDevices.pop_back();
     cDevices.clear();
     while(!blobModes.empty()) delete blobModes.back(), blobModes.pop_back();
     blobModes.clear();
 }
-
 
 void INDI::BaseClient::setServer(const char * hostname, unsigned int port)
 {
@@ -216,10 +220,7 @@ bool INDI::BaseClient::disconnectServer()
             fclose(svrwfp);
     svrwfp = NULL;
 
-    while(!cDevices.empty()) delete cDevices.back(), cDevices.pop_back();
-    cDevices.clear();
-    while(!blobModes.empty()) delete blobModes.back(), blobModes.pop_back();
-    blobModes.clear();
+    clear();
 
     cDeviceNames.clear();
 
@@ -347,6 +348,7 @@ void INDI::BaseClient::listenINDI()
         maxfd = m_receiveFd;
 
 
+    clear();
     lillp = newLilXML();
 
     /* read from server, exit if find all requested properties */

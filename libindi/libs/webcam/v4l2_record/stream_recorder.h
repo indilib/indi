@@ -53,17 +53,19 @@ public:
     virtual bool initProperties();
     virtual bool updateProperties();
 
+    virtual bool saveConfigItems(FILE *fp);
+
     /**
      * @brief newFrame CCD drivers calls this function when a new frame is received.
      */
-    void newFrame(unsigned char *buffer);
+    void newFrame();
 
-    void recordStream(double deltams, unsigned char *buffer);
+    void recordStream(double deltams);
 
    bool setStream(bool enable);
    // uint8_t getFramesToDrop() { return (uint8_t) FramestoDropN[0].value; }
 
-    V4L2_Recorder *getRecorder() { return recorder; }
+    V4L2_Recorder *getRecorder() { return recorder; }    
     bool isDirectRecording() { return direct_record; }
     bool isStreaming() { return is_streaming; }
     bool isRecording() { return is_recording; }
@@ -72,6 +74,7 @@ public:
 
     void setRecorderSize(uint16_t width, uint16_t height);
     bool setPixelFormat(uint32_t format);
+    void getStreamFrame(uint16_t *x, uint16_t *y, uint16_t *w, uint16_t *h);
     bool close();
 
 protected:
@@ -87,7 +90,7 @@ private:
     bool startRecording();
     bool stopRecording();
 
-    bool uploadStream(uint8_t *buffer);
+    bool uploadStream();
 
     /* Stream switch */
     ISwitch StreamS[2];
@@ -116,6 +119,10 @@ private:
     /* Record Options */
     INumber RecordOptionsN[2];
     INumberVectorProperty RecordOptionsNP;
+
+    // Stream Frame
+    INumberVectorProperty StreamFrameNP;
+    INumber StreamFrameN[4];
 
     /* BLOBs */
     IBLOBVectorProperty *imageBP;

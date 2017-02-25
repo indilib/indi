@@ -98,6 +98,8 @@ class V4L2_Driver: public INDI::CCD
     virtual bool UpdateCCDFrame(int x, int y, int w, int h);
     virtual bool UpdateCCDBin(int hor, int ver);
 
+    virtual bool saveConfigItems(FILE *fp);
+
     virtual bool StartStreaming();
     virtual bool StopStreaming();
 
@@ -111,7 +113,7 @@ class V4L2_Driver: public INDI::CCD
 	unsigned char  *Y;
 	unsigned char  *U;
 	unsigned char  *V;
-	unsigned char  *colorBuffer;
+    unsigned char  *RGB24Buffer;
 	unsigned char  *compressedFrame;
 	float  *stackedFrame;
 	float  *darkFrame;
@@ -123,6 +125,7 @@ class V4L2_Driver: public INDI::CCD
 
     ISwitch *CompressS;
     ISwitch ImageColorS[2];
+    enum { IMAGE_GRAYSCALE, IMAGE_COLOR };
     ISwitch ImageDepthS[2];
     ISwitch StackModeS[5];    
     ISwitch ColorProcessingS[3];
@@ -191,7 +194,6 @@ class V4L2_Driver: public INDI::CCD
    V4L2_Base *v4l_base;
 
    char device_name[MAXINDIDEVICE];
-   unsigned char *fitsData;		/* Buffer to hold the FITS file */
 
    int subframeCount;			/* For stacking */
    int frameCount;
@@ -212,7 +214,6 @@ class V4L2_Driver: public INDI::CCD
    int lxtimer;
 
    short lxstate;
-
 
 };
    

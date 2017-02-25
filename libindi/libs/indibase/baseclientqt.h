@@ -217,7 +217,12 @@ private:
          Otherwise, CONNECTION will be turned off.
         \param deviceName Name of the device to connect to.
     */
-    void setDriverConnection(bool status, const char *deviceName);    
+    void setDriverConnection(bool status, const char *deviceName);
+
+    /**
+     * @brief clear Clear devices and blob modes
+     */
+    void clear();
 
     QTcpSocket client_socket;
 

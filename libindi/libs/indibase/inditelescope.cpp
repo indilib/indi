@@ -15,13 +15,20 @@
  the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
  Boston, MA 02110-1301, USA.
 *******************************************************************************/
-#include <stdlib.h>
 #include <wordexp.h>
+#include <stdlib.h>
+#include <stdio.h>
+#include <string.h>
+#include <unistd.h>
+#include <sys/ioctl.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <netdb.h>
+#include <fcntl.h>
 
 #include "inditelescope.h"
 #include "indicom.h"
-
-#define POLLMS 1000
 
 INDI::Telescope::Telescope()
 {
@@ -54,6 +61,11 @@ bool INDI::Telescope::initProperties()
     IUFillText(&ActiveDeviceT[0],"ACTIVE_GPS","GPS","GPS Simulator");
     IUFillText(&ActiveDeviceT[1],"ACTIVE_DOME","DOME","Dome Simulator");
     IUFillTextVector(&ActiveDeviceTP,ActiveDeviceT,2,getDeviceName(),"ACTIVE_DEVICES","Snoop devices",OPTIONS_TAB,IP_RW,60,IPS_IDLE);
+
+    // Address/Port
+    IUFillText(&AddressT[0], "ADDRESS", "Address", "");
+    IUFillText(&AddressT[1], "PORT",    "Port",    "");
+    IUFillTextVector(&AddressTP, AddressT, 2, getDeviceName(), "TCP_ADDRESS_PORT", "TCP Server", OPTIONS_TAB, IP_RW, 60, IPS_IDLE);
 
     // Use locking if dome is closed (and or) park scope if dome is closing
     IUFillSwitch(&DomeClosedLockT[0],"NO_ACTION","Ignore dome",ISS_ON);
@@ -130,6 +142,11 @@ bool INDI::Telescope::initProperties()
     IUFillNumber(&ScopeParametersN[3],"GUIDER_FOCAL_LENGTH","Guider Focal Length (mm)","%g",10,10000,0,0.0 );
     IUFillNumberVector(&ScopeParametersNP,ScopeParametersN,4,getDeviceName(),"TELESCOPE_INFO","Scope Properties",OPTIONS_TAB,IP_RW,60,IPS_OK);
 
+    // Lock Axis
+    IUFillSwitch(&LockAxisS[0],"LOCK_AXIS_1","West/East",ISS_OFF);
+    IUFillSwitch(&LockAxisS[1],"LOCK_AXIS_2","North/South",ISS_OFF);
+    IUFillSwitchVector(&LockAxisSP,LockAxisS,2,getDeviceName(),"JOYSTICK_LOCK_AXIS","Lock Axis", "Joystick" ,IP_RW,ISR_ATMOST1,60,IPS_IDLE);
+
     controller->initProperties();
 
     TrackState=SCOPE_IDLE;
@@ -155,6 +172,9 @@ void INDI::Telescope::ISGetProperties (const char *dev)
 
     defineSwitch(&BaudRateSP);
     loadConfig(true, "TELESCOPE_BAUD_RATE");
+
+    defineText(&AddressTP);
+    loadConfig(true, "TCP_IP_ADDRESS");
 
     defineText(&ActiveDeviceTP);
     loadConfig(true, "ACTIVE_DEVICES");
@@ -243,8 +263,7 @@ bool INDI::Telescope::updateProperties()
             }
         }
         defineNumber(&ScopeParametersNP);
-        defineNumber(&TargetNP);        
-
+        defineNumber(&TargetNP);
     }
     else
     {
@@ -275,6 +294,22 @@ bool INDI::Telescope::updateProperties()
     }
 
     controller->updateProperties();
+    ISwitchVectorProperty *useJoystick = getSwitch("USEJOYSTICK");
+    if (useJoystick)
+    {
+        if (isConnected())
+        {
+            if (useJoystick->sp[0].s == ISS_ON)
+            {
+                defineSwitch(&LockAxisSP);
+                loadConfig(true, "LOCK_AXIS");
+            }
+            else
+                deleteProperty(LockAxisSP.name);
+        }
+        else
+            deleteProperty(LockAxisSP.name);
+    }
 
     return true;
 }
@@ -378,11 +413,16 @@ bool INDI::Telescope::saveConfigItems(FILE *fp)
     IUSaveConfigSwitch(fp, &DomeClosedLockTP);
     IUSaveConfigText(fp, &PortTP);
     IUSaveConfigSwitch(fp, &BaudRateSP);
+    // Exists and not empty
+    if (AddressT[0].text && AddressT[0].text[0] && AddressT[1].text && AddressT[1].text[0])
+        IUSaveConfigText(fp, &AddressTP);
     if (HasLocation())
         IUSaveConfigNumber(fp,&LocationNP);
     IUSaveConfigNumber(fp, &ScopeParametersNP);
 
     controller->saveConfigItems(fp);
+
+    IUSaveConfigSwitch(fp, &LockAxisSP);
 
     return true;
 }
@@ -455,41 +495,46 @@ bool INDI::Telescope::ISNewText (const char *dev, const char *name, char *texts[
     //  first check if it's for our device
     if(!strcmp(dev,getDeviceName()))
     {
-
+        // Serial Port
         if(!strcmp(name,PortTP.name))
         {
-            //  This is our port, so, lets process it
-            int rc;
+            IUUpdateText(&PortTP,texts,names,n);
             PortTP.s=IPS_OK;
-            rc=IUUpdateText(&PortTP,texts,names,n);
-            //  Update client display
             IDSetText(&PortTP,NULL);
-            //  We processed this one, so, tell the world we did it
             return true;
         }
 
-      if(!strcmp(name,TimeTP.name))
-      {
-        int utcindex   = IUFindIndex("UTC", names, n);
-        int offsetindex= IUFindIndex("OFFSET", names, n);
+        // TCP Server settings
+        if (!strcmp(name, AddressTP.name))
+        {
+            IUUpdateText(&AddressTP, texts, names, n);
+            AddressTP.s = IPS_OK;
+            IDSetText(&AddressTP, NULL);
+            return true;
+        }
 
-        return processTimeInfo(texts[utcindex], texts[offsetindex]);
-      }
+        if(!strcmp(name,TimeTP.name))
+        {
+            int utcindex   = IUFindIndex("UTC", names, n);
+            int offsetindex= IUFindIndex("OFFSET", names, n);
 
-      if(!strcmp(name,ActiveDeviceTP.name))
-      {
-          ActiveDeviceTP.s=IPS_OK;
-          IUUpdateText(&ActiveDeviceTP,texts,names,n);
-          //  Update client display
-          IDSetText(&ActiveDeviceTP,NULL);
+            return processTimeInfo(texts[utcindex], texts[offsetindex]);
+        }
 
-          IDSnoopDevice(ActiveDeviceT[0].text,"GEOGRAPHIC_COORD");
-          IDSnoopDevice(ActiveDeviceT[0].text,"TIME_UTC");
+        if(!strcmp(name,ActiveDeviceTP.name))
+        {
+            ActiveDeviceTP.s=IPS_OK;
+            IUUpdateText(&ActiveDeviceTP,texts,names,n);
+            //  Update client display
+            IDSetText(&ActiveDeviceTP,NULL);
 
-          IDSnoopDevice(ActiveDeviceT[1].text,"DOME_PARK");
-          IDSnoopDevice(ActiveDeviceT[1].text,"DOME_SHUTTER");
-          return true;
-      }
+            IDSnoopDevice(ActiveDeviceT[0].text,"GEOGRAPHIC_COORD");
+            IDSnoopDevice(ActiveDeviceT[0].text,"TIME_UTC");
+
+            IDSnoopDevice(ActiveDeviceT[1].text,"DOME_PARK");
+            IDSnoopDevice(ActiveDeviceT[1].text,"DOME_SHUTTER");
+            return true;
+        }
 
     }
 
@@ -946,9 +991,32 @@ bool INDI::Telescope::ISNewSwitch (const char *dev, const char *name, ISState *s
           triggerSnoop(strdup(ActiveDeviceT[1].text), strdup("DOME_PARK"));
           return true;
       }
+
+      // Lock Axis
+      if (!strcmp(name, LockAxisSP.name))
+      {
+          IUUpdateSwitch(&LockAxisSP, states, names, n);
+          LockAxisSP.s = IPS_OK;
+          IDSetSwitch(&LockAxisSP, NULL);
+          if (LockAxisS[AXIS_RA].s == ISS_ON)
+              DEBUG(INDI::Logger::DBG_SESSION, "Joystick motion is locked to West/East axis only.");
+          else if (LockAxisS[AXIS_DE].s == ISS_ON)
+              DEBUG(INDI::Logger::DBG_SESSION, "Joystick motion is locked to North/South axis only.");
+          else
+              DEBUG(INDI::Logger::DBG_SESSION, "Joystick motion is unlocked.");
+          return true;
+      }
     }
 
-    controller->ISNewSwitch(dev, name, states, names, n);
+    bool rc = controller->ISNewSwitch(dev, name, states, names, n);
+    if (rc)
+    {
+        ISwitchVectorProperty *useJoystick = getSwitch("USEJOYSTICK");
+        if (useJoystick && useJoystick->sp[0].s == ISS_ON)
+            defineSwitch(&LockAxisSP);
+        else
+            deleteProperty(LockAxisSP.name);
+    }
 
     //  Nobody has claimed this, so, ignore it
     return DefaultDevice::ISNewSwitch(dev,name,states,names,n);
@@ -959,13 +1027,17 @@ bool INDI::Telescope::Connect()
 {
     bool rc=false;
 
-    if(isConnected())
+    if(isConnected() || isSimulation())
         return true;
 
-    rc=Connect(PortT[0].text, atoi(IUFindOnSwitch(&BaudRateSP)->name));
+    // Check if TCP Address exists and not empty
+    if (AddressT[0].text && AddressT[0].text[0] && AddressT[1].text && AddressT[1].text[0])
+        rc = Connect(AddressT[0].text, AddressT[1].text);
+    else
+        rc = Connect(PortT[0].text, atoi(IUFindOnSwitch(&BaudRateSP)->name));
 
     if(rc)
-        SetTimer(POLLMS);
+        SetTimer(updatePeriodMS);
     return rc;
 }
 
@@ -1008,12 +1080,75 @@ bool INDI::Telescope::Connect(const char *port, uint32_t baud)
     return false;
 }
 
+bool INDI::Telescope::Connect(const char *hostname, const char *port)
+{
+    if (sockfd != -1)
+        close(sockfd);
+
+    struct timeval ts;
+    ts.tv_sec = SOCKET_TIMEOUT;
+    ts.tv_usec=0;
+
+    DEBUGF(INDI::Logger::DBG_SESSION, "Connecting to %s@%s ...", hostname, port);
+
+    struct sockaddr_in serv_addr;
+    struct hostent *hp = NULL;
+    int ret = 0;
+
+    // Lookup host name or IPv4 address
+    hp = gethostbyname(hostname);
+    if (!hp)
+    {
+        DEBUG(INDI::Logger::DBG_ERROR, "Failed to lookup IP Address or hostname.");
+        return false;
+    }
+
+    memset (&serv_addr, 0, sizeof(serv_addr));
+    serv_addr.sin_family = AF_INET;
+    serv_addr.sin_addr.s_addr = ((struct in_addr *)(hp->h_addr_list[0]))->s_addr;
+    serv_addr.sin_port = htons(atoi(port));
+
+    if ((sockfd = socket(AF_INET, SOCK_STREAM, 0)) < 0)
+    {
+        DEBUG(INDI::Logger::DBG_ERROR, "Failed to create socket.");
+        return false;
+    }
+
+    // Connect to the mount
+    if ( (ret = ::connect (sockfd,(struct sockaddr *)&serv_addr,sizeof(serv_addr))) < 0)
+    {
+        DEBUGF(INDI::Logger::DBG_ERROR, "Failed to connect to mount %s@%s: %s.", hostname, port, strerror(errno));
+        close(sockfd);
+        sockfd=-1;
+        return false;
+    }
+
+    // Set the socket receiving and sending timeouts
+    setsockopt(sockfd, SOL_SOCKET, SO_RCVTIMEO, (char *)&ts,sizeof(struct timeval));
+    setsockopt(sockfd, SOL_SOCKET, SO_SNDTIMEO, (char *)&ts,sizeof(struct timeval));
+
+    DEBUGF(INDI::Logger::DBG_SESSION, "Connected successfuly to %s.", getDeviceName());
+
+    // now let the rest of INDI::Telescope use our socket as if it were a serial port
+    PortFD = sockfd;
+
+    return true;
+}
+
 bool INDI::Telescope::Disconnect()
 {
-    DEBUG(Logger::DBG_DEBUG, "INDI::Telescope Disconnect\n");
-
-    tty_disconnect(PortFD);
     DEBUG(Logger::DBG_SESSION,"Telescope is offline.");
+
+    if (isSimulation())
+        return true;
+
+    if (sockfd != -1)
+    {
+        close(sockfd);
+        sockfd = -1;
+    }
+    else
+        tty_disconnect(PortFD);
 
     return true;
 }
@@ -1034,7 +1169,7 @@ void INDI::Telescope::TimerHit()
             IDSetNumber(&EqNP, NULL);
         }
 
-        SetTimer(POLLMS);
+        SetTimer(updatePeriodMS);
     }
 }
 
@@ -1552,6 +1687,26 @@ void INDI::Telescope::processNSWE(double mag, double angle)
     // Put high threshold
     else if (mag > 0.9)
     {
+        // Only one axis can move at a time
+        if (LockAxisS[AXIS_RA].s == ISS_ON)
+        {
+            // West
+            if (angle >= 90 && angle <= 270)
+                angle = 180;
+            // East
+            else
+                angle = 0;
+        }
+        else if (LockAxisS[AXIS_DE].s == ISS_ON)
+        {
+            // North
+            if (angle >= 0 && angle<= 180)
+                angle = 90;
+            // South
+            else
+                angle = 270;            
+        }
+
         // North
         if (angle > 0 && angle < 180)
         {
@@ -1572,12 +1727,12 @@ void INDI::Telescope::processNSWE(double mag, double angle)
         if (angle > 180 && angle < 360)
         {
             // Don't try to move if you're busy and moving in the same direction
-           if (MovementNSSP.s != IPS_BUSY  || MovementNSS[1].s != ISS_ON)
-            MoveNS(DIRECTION_SOUTH, MOTION_START);
+            if (MovementNSSP.s != IPS_BUSY  || MovementNSS[1].s != ISS_ON)
+                MoveNS(DIRECTION_SOUTH, MOTION_START);
 
-           // If angle is close to 270, make it exactly 270 to reduce noise that could trigger east/west motion as well
-           if (angle > 260 && angle < 280)
-               angle = 270;
+            // If angle is close to 270, make it exactly 270 to reduce noise that could trigger east/west motion as well
+            if (angle > 260 && angle < 280)
+                angle = 270;
 
             MovementNSSP.s = IPS_BUSY;
             MovementNSSP.sp[DIRECTION_NORTH].s = ISS_OFF;
@@ -1588,13 +1743,13 @@ void INDI::Telescope::processNSWE(double mag, double angle)
         if (angle < 90 || angle > 270)
         {
             // Don't try to move if you're busy and moving in the same direction
-           if (MovementWESP.s != IPS_BUSY  || MovementWES[1].s != ISS_ON)
+            if (MovementWESP.s != IPS_BUSY  || MovementWES[1].s != ISS_ON)
                 MoveWE(DIRECTION_EAST, MOTION_START);
 
-           MovementWESP.s = IPS_BUSY;
-           MovementWESP.sp[DIRECTION_WEST].s = ISS_OFF;
-           MovementWESP.sp[DIRECTION_EAST].s = ISS_ON;
-           IDSetSwitch(&MovementWESP, NULL);
+            MovementWESP.s = IPS_BUSY;
+            MovementWESP.sp[DIRECTION_WEST].s = ISS_OFF;
+            MovementWESP.sp[DIRECTION_EAST].s = ISS_ON;
+            IDSetSwitch(&MovementWESP, NULL);
         }
 
         // West
@@ -1602,13 +1757,13 @@ void INDI::Telescope::processNSWE(double mag, double angle)
         {
 
             // Don't try to move if you're busy and moving in the same direction
-           if (MovementWESP.s != IPS_BUSY  || MovementWES[0].s != ISS_ON)
+            if (MovementWESP.s != IPS_BUSY  || MovementWES[0].s != ISS_ON)
                 MoveWE(DIRECTION_WEST, MOTION_START);
 
-           MovementWESP.s = IPS_BUSY;
-           MovementWESP.sp[DIRECTION_WEST].s = ISS_ON;
-           MovementWESP.sp[DIRECTION_EAST].s = ISS_OFF;
-           IDSetSwitch(&MovementWESP, NULL);
+            MovementWESP.s = IPS_BUSY;
+            MovementWESP.sp[DIRECTION_WEST].s = ISS_ON;
+            MovementWESP.sp[DIRECTION_EAST].s = ISS_OFF;
+            IDSetSwitch(&MovementWESP, NULL);
         }
     }
 }

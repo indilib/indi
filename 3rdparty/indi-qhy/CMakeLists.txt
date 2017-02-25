@@ -1,6 +1,10 @@
 cmake_minimum_required(VERSION 2.8)
 PROJECT(indi_qhy CXX C)
 
+if (NOT WIN32 AND NOT ANDROID)
+set(CMAKE_CXX_FLAGS "-std=c++0x ${CMAKE_CXX_FLAGS}")
+endif(NOT WIN32 AND NOT ANDROID)
+
 LIST(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake_modules/")
 LIST(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/../../cmake_modules/")
 include(GNUInstallDirs)

@@ -28,11 +28,12 @@
 #include "ser_recorder.h"
 #include <string.h>
 #include <errno.h>
+#include <ctime>
 
 #define ERRMSGSIZ	1024
 
-SER_Recorder::SER_Recorder() {
-  useSER_V3=true;
+SER_Recorder::SER_Recorder()
+{
   name="SER File Recorder";
   strncpy(serh.FileID, "LUCAM-RECORDER", 14);
   strncpy(serh.Observer,  "                        Unknown Observer", 40);
@@ -43,7 +44,7 @@ SER_Recorder::SER_Recorder() {
     serh.LittleEndian=SER_LITTLE_ENDIAN;
   else
     serh.LittleEndian=SER_BIG_ENDIAN;
-  streaming_active=false;
+  isRecordingActive=false;
 }
 
 SER_Recorder::~SER_Recorder() {
@@ -56,9 +57,9 @@ bool SER_Recorder::is_little_endian() {
   return black_magic == 0x01;
 }
  
-void SER_Recorder::write_int_le(unsigned int *i) {
+void SER_Recorder::write_int_le(uint32_t *i) {
   if (is_little_endian())
-    fwrite((const void *)(i), sizeof(int), 1, f);
+    fwrite((const void *)(i), sizeof(uint32_t), 1, f);
   else {
     unsigned char *c=(unsigned char *)i;
     fwrite((const void *)(c+3), sizeof(char), 1, f);
@@ -68,13 +69,13 @@ void SER_Recorder::write_int_le(unsigned int *i) {
   }
 }
 
-void SER_Recorder::write_long_int_le(unsigned long *i) {
+void SER_Recorder::write_long_int_le(uint64_t *i) {
   if (is_little_endian()) {
-    fwrite((const void *)((unsigned int *)i), sizeof(int), 1, f);
-    fwrite((const void *)((unsigned int *)(i) + 1), sizeof(int), 1, f);
+    fwrite((const void *)((uint32_t *)i), sizeof(int), 1, f);
+    fwrite((const void *)((uint32_t *)(i) + 1), sizeof(int), 1, f);
   } else {
-    write_int_le((unsigned int *)(i) + 1);
-    write_int_le((unsigned int *)(i));
+    write_int_le((uint32_t *)(i) + 1);
+    write_int_le((uint32_t *)(i));
   }
 }
 
@@ -98,7 +99,7 @@ void SER_Recorder::init() {
 
 }
 
-bool SER_Recorder::setpixelformat(unsigned int format) { // V4L2_PIX_FMT used when encoding
+bool SER_Recorder::setPixelFormat(unsigned int format) { // V4L2_PIX_FMT used when encoding
   IDLog("recorder: setpixelformat %d\n", format);
   serh.PixelDepth=8;
   number_of_planes=1;
@@ -195,12 +196,10 @@ bool SER_Recorder::setpixelformat(unsigned int format) { // V4L2_PIX_FMT used wh
     return true;
 #endif
   case V4L2_PIX_FMT_RGB24:
-    if (!useSER_V3) return false;
     number_of_planes=3;
     serh.ColorID=SER_RGB;
     return true;
   case V4L2_PIX_FMT_BGR24:
-    if (!useSER_V3) return false;
     number_of_planes=3;
     serh.ColorID=SER_BGR;
     return true;
@@ -210,44 +209,73 @@ bool SER_Recorder::setpixelformat(unsigned int format) { // V4L2_PIX_FMT used wh
 
 }
 
-bool SER_Recorder::setsize(unsigned int width, unsigned int height) {
-  if (streaming_active) return false;
-  serh.ImageWidth=width;
-  serh.ImageHeight=height;
-  IDLog("recorder: setsize %dx%d\n", serh.ImageWidth, serh.ImageHeight);
+bool SER_Recorder::setFrame(uint16_t x, uint16_t y, uint16_t width, uint16_t height)
+{
+    if (isRecordingActive)
+        return false;
+
+    offsetX = x;
+    offsetY = y;
+    serh.ImageWidth=width;
+    serh.ImageHeight=height;
+
+    return true;
+}
+
+bool SER_Recorder::setSize(uint16_t width, uint16_t height)
+{
+  if (isRecordingActive)
+      return false;
+
+  rawWidth = width;
+  rawHeight= height;
   return true;
 }
 
 bool SER_Recorder::open(const char *filename, char *errmsg) {
-  if (streaming_active) return false;
+  if (isRecordingActive) return false;
   serh.FrameCount = 0;
-  serh.DateTime=0; // no timestamp
-  serh.DateTime_UTC=0; // no timestamp
   if ((f=fopen(filename, "w")) == NULL) {
     snprintf(errmsg, ERRMSGSIZ, "recorder open error %d, %s\n", errno, strerror (errno));
     return false;
-  }
+  }  
+
+  serh.DateTime = getLocalTimeStamp();
+  serh.DateTime_UTC = getUTCTimeStamp();
   write_header(&serh);
   frame_size=serh.ImageWidth * serh.ImageHeight * (serh.PixelDepth <= 8 ? 1 : 2) * number_of_planes;
-  streaming_active = true;
+  isRecordingActive = true;
+
+  frameStamps.clear();
+
   return true;
 }
 
 bool SER_Recorder::close() {
   if (f)
   {
+      // Write all timestamps
+      for (auto value: frameStamps)
+          write_long_int_le(&value);
+
+      frameStamps.clear();
+
       fseek(f, 0L, SEEK_SET);
       write_header(&serh);
       fclose(f);
   }
 
-  streaming_active = false;
+  isRecordingActive = false;
   return true;
 }
 
-bool SER_Recorder::writeFrame(unsigned char *frame) {
-  if (!streaming_active) return false;
-  //IDLog("recorder: writeFrame @ %p\n", frame);
+bool SER_Recorder::writeFrame(unsigned char *frame)
+{
+  if (!isRecordingActive)
+      return false;
+
+  frameStamps.push_back(getUTCTimeStamp());
+
   fwrite(frame, frame_size, 1, f);
   serh.FrameCount+=1;
   return true;
@@ -257,13 +285,41 @@ bool SER_Recorder::writeFrame(unsigned char *frame) {
 // ajouter une gestion plus fine du mode par defaut
 // setMono/setColor appelee par ImageTypeSP
 // setPixelDepth si Mono16
-bool SER_Recorder::writeFrameMono(unsigned char *frame) {
+bool SER_Recorder::writeFrameMono(unsigned char *frame)
+{
+    if (isStreamingActive == false && (offsetX > 0 || offsetY > 0 || serh.ImageWidth != rawWidth || serh.ImageHeight != rawHeight))
+    {
+        int offset = ((rawWidth * offsetY) + offsetX);
+
+        uint8_t *srcBuffer = frame + offset;
+        uint8_t *destBuffer= frame;
+        int imageWidth = serh.ImageWidth;
+        int imageHeight= serh.ImageHeight;
+
+        for (int i=0; i < imageHeight; i++)
+            memcpy(destBuffer + i * imageWidth, srcBuffer + rawWidth * i, imageWidth);
+    }
+
   return writeFrame(frame);
 }
 
-bool SER_Recorder::writeFrameColor(unsigned char *frame) {
-  if (useSER_V3) return writeFrame(frame);
-  return false;
+bool SER_Recorder::writeFrameColor(unsigned char *frame)
+{
+    if (isStreamingActive == false && (offsetX > 0 || offsetY > 0 || serh.ImageWidth != rawWidth || serh.ImageHeight != rawHeight))
+    {
+        int offset = ((rawWidth * offsetY) + offsetX);
+
+        uint8_t *srcBuffer = frame + offset * 3;
+        uint8_t *destBuffer= frame;
+        int imageWidth = serh.ImageWidth;
+        int imageHeight= serh.ImageHeight;
+
+        // RGB
+        for (int i=0; i < imageHeight; i++)
+            memcpy(destBuffer + i * imageWidth*3, srcBuffer + rawWidth * 3 * i, imageWidth*3);
+    }
+
+  return writeFrame(frame);
 }
 
 void SER_Recorder::setDefaultMono() {
@@ -276,4 +332,132 @@ void SER_Recorder::setDefaultColor() {
   number_of_planes=3;
   serh.PixelDepth =8;
   serh.ColorID=SER_RGB;
+}
+
+// Copyright (C) 2015 Chris Garry
+//
+
+//
+// Calculate if a year is a leap yer
+//
+bool SER_Recorder::is_leap_year(uint32_t year)
+{
+    if ((year % 400) == 0) {
+        // If year is divisible by 400 then is_leap_year
+        return true;
+    } else if ((year % 100) == 0) {
+        // Else if year is divisible by 100 then not_leap_year
+        return false;
+    } else if ((year % 4) == 0) {
+        // Else if year is divisible by 4 then is_leap_year
+        return true;
+    } else {
+        // Else not_leap_year
+        return false;
+    }
+}
+
+uint64_t SER_Recorder::getUTCTimeStamp()
+{
+    uint64_t utcTS;
+
+    // Get starting time
+    timeval currentTime;
+    gettimeofday(&currentTime, NULL);
+
+    struct tm *tp;
+    time_t    t = (time_t) currentTime.tv_sec;
+    uint32_t  u = currentTime.tv_usec;
+
+    // UTC Time
+    tp = gmtime(&t);
+
+    dateTo64BitTS(tp->tm_year, tp->tm_mon, tp->tm_mday, tp->tm_hour, tp->tm_min, tp->tm_sec, u, &utcTS);
+
+    return utcTS;
+}
+
+uint64_t SER_Recorder::getLocalTimeStamp()
+{
+    uint64_t localTS;
+
+    // Get starting time
+    timeval currentTime;
+    gettimeofday(&currentTime, NULL);
+
+    struct tm *tp;
+    time_t    t = (time_t) currentTime.tv_sec;
+    uint32_t  u = currentTime.tv_usec;
+
+    // Local Time
+    tp = localtime(&t);
+
+    dateTo64BitTS(tp->tm_year, tp->tm_mon, tp->tm_mday, tp->tm_hour, tp->tm_min, tp->tm_sec, u, &localTS);
+
+    return localTS;
+}
+
+// Convert real time to timestamp
+//
+void SER_Recorder::dateTo64BitTS(int32_t year,int32_t month,int32_t day,int32_t hour,int32_t minute,int32_t second,
+    int32_t microsec,uint64_t *p_ts)
+{
+    uint64_t ts = 0;
+    int32_t yr;
+
+    // Add 400 year blocks
+    for (yr = 1; yr < (year - 400); yr += 400) {
+        ts += m_septaseconds_per_400_years;
+    }
+
+    // Add 1 years
+    for ( ; yr < year; yr++) {
+        uint32_t days_this_year = 365;
+        if (is_leap_year(yr)) {
+            days_this_year = 366;
+        }
+
+        ts += (days_this_year * m_septaseconds_per_day);
+    }
+
+    // Add months
+    for (int mon = 1; mon < month; mon++) {
+        switch (mon) {
+        case 4:   // April
+        case 6:   // June
+        case 9:   // September
+        case 11:  // Novenber
+            ts += (30 * m_septaseconds_per_day);
+            break;
+        case 2:  // Feburary
+            if (is_leap_year(year)) {
+                ts += (29 * m_septaseconds_per_day);
+            } else {
+                ts += (28 * m_septaseconds_per_day);
+            }
+
+            break;
+        default:
+            ts += (31 * m_septaseconds_per_day);
+            break;
+        }
+    }
+
+    // Add days
+    ts += ((day - 1) * m_septaseconds_per_day);
+
+    // Add hours
+    ts += (hour * m_septaseconds_per_hour);
+
+    // Add minutes
+    ts += (minute * m_septaseconds_per_minute);
+
+    // Add seconds
+    ts += (second * C_SEPASECONDS_PER_SECOND);
+
+    // Micro seconds
+    ts += (microsec * m_sepaseconds_per_microsecond);
+
+    // Output result
+    *p_ts = ts;
 }

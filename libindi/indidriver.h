@@ -31,6 +31,7 @@ extern "C" {
 typedef struct
 {
  char propName[MAXINDINAME];
+ char devName[MAXINDIDEVICE];
  IPerm perm;
  const void *ptr;
  int type;

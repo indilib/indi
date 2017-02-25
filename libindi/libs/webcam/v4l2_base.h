@@ -85,7 +85,8 @@ class V4L2_Base
   unsigned char * getY();
   unsigned char * getU();
   unsigned char * getV();
-  unsigned char * getColorBuffer();
+  // 2017-01-24 JM: Deprecated RGBA (32bit) buffer. Should use RGB24 buffer to save space
+  //unsigned char * getColorBuffer();
   unsigned char * getRGBBuffer();
   float * getLinearY();
 
@@ -171,7 +172,8 @@ class V4L2_Base
   struct v4l2_queryctrl queryctrl;
   struct v4l2_querymenu querymenu;
   bool has_ext_pix_format;
-  bool is_compressed() const { return fmt.fmt.pix.flags & V4L2_FMT_FLAG_COMPRESSED; };
+
+  bool is_compressed() const;
 
   WPF *callback;
   void *uptr;
@@ -203,6 +205,8 @@ class V4L2_Base
   int bpp;
 
   friend class V4L2_Driver;
+
+  char deviceName[MAXINDIDEVICE];
 };
    
 #endif

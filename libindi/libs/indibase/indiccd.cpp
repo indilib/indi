@@ -34,6 +34,7 @@
 
 #include <libnova.h>
 #include <fitsio.h>
+#include <indicom.h>
 
 #ifdef __linux__
 #include "webcam/v4l2_record/stream_recorder.h"
@@ -383,7 +384,7 @@ INDI::CCD::CCD()
     RA=-1000;
     Dec=-1000;
     MPSAS=-1000;
-    Aperture=FocalLength=-1;
+    primaryAperture=primaryFocalLength=guiderAperture=guiderFocalLength-1;
 
     streamer = NULL;
 }
@@ -453,8 +454,8 @@ bool INDI::CCD::initProperties()
     IUFillNumberVector(&PrimaryCCD.ImageBinNP,PrimaryCCD.ImageBinN,2,getDeviceName(),"CCD_BINNING","Binning",IMAGE_SETTINGS_TAB,IP_RW,60,IPS_IDLE);
 
     // Primary CCD Info
-    IUFillNumber(&PrimaryCCD.ImagePixelSizeN[CCDChip::CCD_MAX_X],"CCD_MAX_X","Resolution x","%4.0f",1,16000,0,0);
-    IUFillNumber(&PrimaryCCD.ImagePixelSizeN[CCDChip::CCD_MAX_Y],"CCD_MAX_Y","Resolution y","%4.0f",1,16000,0,0);
+    IUFillNumber(&PrimaryCCD.ImagePixelSizeN[CCDChip::CCD_MAX_X],"CCD_MAX_X","Max. Width","%4.0f",1,16000,0,0);
+    IUFillNumber(&PrimaryCCD.ImagePixelSizeN[CCDChip::CCD_MAX_Y],"CCD_MAX_Y","Max. Height","%4.0f",1,16000,0,0);
     IUFillNumber(&PrimaryCCD.ImagePixelSizeN[CCDChip::CCD_PIXEL_SIZE],"CCD_PIXEL_SIZE","Pixel size (um)","%5.2f",1,40,0,0);
     IUFillNumber(&PrimaryCCD.ImagePixelSizeN[CCDChip::CCD_PIXEL_SIZE_X],"CCD_PIXEL_SIZE_X","Pixel size X","%5.2f",1,40,0,0);
     IUFillNumber(&PrimaryCCD.ImagePixelSizeN[CCDChip::CCD_PIXEL_SIZE_Y],"CCD_PIXEL_SIZE_Y","Pixel size Y","%5.2f",1,40,0,0);
@@ -513,8 +514,8 @@ bool INDI::CCD::initProperties()
     IUFillNumber(&GuideCCD.ImageBinN[1],"VER_BIN","Y","%2.0f",1,4,1,1);
     IUFillNumberVector(&GuideCCD.ImageBinNP,GuideCCD.ImageBinN,2,getDeviceName(),"GUIDER_BINNING","Binning",GUIDE_HEAD_TAB,IP_RW,60,IPS_IDLE);
 
-    IUFillNumber(&GuideCCD.ImagePixelSizeN[CCDChip::CCD_MAX_X],"CCD_MAX_X","Resolution x","%4.0f",1,16000,0,0);
-    IUFillNumber(&GuideCCD.ImagePixelSizeN[CCDChip::CCD_MAX_Y],"CCD_MAX_Y","Resolution y","%4.0f",1,16000,0,0);
+    IUFillNumber(&GuideCCD.ImagePixelSizeN[CCDChip::CCD_MAX_X],"CCD_MAX_X","Max. Width","%4.0f",1,16000,0,0);
+    IUFillNumber(&GuideCCD.ImagePixelSizeN[CCDChip::CCD_MAX_Y],"CCD_MAX_Y","Max. Height","%4.0f",1,16000,0,0);
     IUFillNumber(&GuideCCD.ImagePixelSizeN[CCDChip::CCD_PIXEL_SIZE],"CCD_PIXEL_SIZE","Pixel size (um)","%5.2f",1,40,0,0);
     IUFillNumber(&GuideCCD.ImagePixelSizeN[CCDChip::CCD_PIXEL_SIZE_X],"CCD_PIXEL_SIZE_X","Pixel size X","%5.2f",1,40,0,0);
     IUFillNumber(&GuideCCD.ImagePixelSizeN[CCDChip::CCD_PIXEL_SIZE_Y],"CCD_PIXEL_SIZE_Y","Pixel size Y","%5.2f",1,40,0,0);
@@ -606,9 +607,9 @@ bool INDI::CCD::initProperties()
     IUFillSwitch(&WorldCoordS[1], "WCS_DISABLE", "Disable", ISS_ON);
     IUFillSwitchVector(&WorldCoordSP, WorldCoordS, 2, getDeviceName(), "WCS_CONTROL", "WCS", ASTROMETRY_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
-    IUFillSwitch(&TelescopeTypeS[0], "TELESCOPE_PRIMARY", "Primary", ISS_ON);
-    IUFillSwitch(&TelescopeTypeS[1], "TELESCOPE_GUIDE", "Guide", ISS_OFF);
-    IUFillSwitchVector(&TelescopeTypeSP, TelescopeTypeS, 2, getDeviceName(), "TELESCOPE_TYPE", "Telescope", ASTROMETRY_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+    IUFillSwitch(&TelescopeTypeS[TELESCOPE_PRIMARY], "TELESCOPE_PRIMARY", "Primary", ISS_ON);
+    IUFillSwitch(&TelescopeTypeS[TELESCOPE_GUIDE], "TELESCOPE_GUIDE", "Guide", ISS_OFF);
+    IUFillSwitchVector(&TelescopeTypeSP, TelescopeTypeS, 2, getDeviceName(), "TELESCOPE_TYPE", "Telescope", OPTIONS_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
     IUFillNumber(&CCDRotationN[0],"CCD_ROTATION_VALUE","Rotation","%g",-360,360,1,0);
     IUFillNumberVector(&CCDRotationNP,CCDRotationN,1,getDeviceName(),"CCD_ROTATION","CCD FOV", ASTROMETRY_TAB,IP_RW,60,IPS_IDLE);
@@ -734,6 +735,7 @@ bool INDI::CCD::updateProperties()
           defineSwitch(&GuideCCD.RapidGuideSetupSP);
           defineNumber(&GuideCCD.RapidGuideDataNP);
         }
+        defineSwitch(&TelescopeTypeSP);
         defineSwitch(&SolverSP);
         defineText(&SolverSettingsTP);
         defineSwitch(&WorldCoordSP);
@@ -798,11 +800,12 @@ bool INDI::CCD::updateProperties()
         {
             deleteProperty(SolverResultNP.name);
         }
+        deleteProperty(TelescopeTypeSP.name);
         deleteProperty(SolverSP.name);
         deleteProperty(SolverSettingsTP.name);
+
         if (WorldCoordS[0].s == ISS_ON)
         {
-            deleteProperty(TelescopeTypeSP.name);
             deleteProperty(CCDRotationNP.name);
         }
         deleteProperty(WorldCoordSP.name);
@@ -844,23 +847,19 @@ bool INDI::CCD::ISSnoopDevice (XMLEle *root)
 
               if (!strcmp(name, "TELESCOPE_APERTURE"))
               {
-                  if (TelescopeTypeS[0].s == ISS_ON)
-                      Aperture = atof(pcdataXMLEle(ep));
+                  primaryAperture = atof(pcdataXMLEle(ep));
               }
               else if (!strcmp(name, "TELESCOPE_FOCAL_LENGTH"))
               {
-                  if (TelescopeTypeS[0].s == ISS_ON)
-                      FocalLength = atof(pcdataXMLEle(ep));
+                  primaryFocalLength = atof(pcdataXMLEle(ep));
               }
               else if (!strcmp(name, "GUIDER_APERTURE"))
               {
-                  if (TelescopeTypeS[1].s == ISS_ON)
-                      Aperture = atof(pcdataXMLEle(ep));
+                  guiderAperture = atof(pcdataXMLEle(ep));
               }
               else if (!strcmp(name, "GUIDER_FOCAL_LENGTH"))
               {
-                  if (TelescopeTypeS[1].s == ISS_ON)
-                      FocalLength = atof(pcdataXMLEle(ep));
+                  guiderFocalLength = atof(pcdataXMLEle(ep));
               }
           }
      }
@@ -903,12 +902,9 @@ bool INDI::CCD::ISNewText (const char *dev, const char *name, char *texts[], cha
         //  Now lets see if it's something we process here
         if(!strcmp(name,ActiveDeviceTP.name))
         {
-            int rc;
             ActiveDeviceTP.s=IPS_OK;
-            rc=IUUpdateText(&ActiveDeviceTP,texts,names,n);
-            //  Update client display
+            IUUpdateText(&ActiveDeviceTP,texts,names,n);
             IDSetText(&ActiveDeviceTP,NULL);
-            //saveConfig();
 
             // Update the property name!
             strncpy(EqNP.device, ActiveDeviceT[0].text, MAXINDIDEVICE);
@@ -1299,12 +1295,10 @@ bool INDI::CCD::ISNewSwitch (const char *dev, const char *name, ISState *states,
             if (WorldCoordS[0].s == ISS_ON)
             {
                 DEBUG(INDI::Logger::DBG_WARNING, "World Coordinate System is enabled. CCD rotation must be set either manually or by solving the image before proceeding to capture any frames, otherwise the WCS information may be invalid.");
-                defineSwitch(&TelescopeTypeSP);
                 defineNumber(&CCDRotationNP);
             }
             else
             {
-                deleteProperty(TelescopeTypeSP.name);
                 deleteProperty(CCDRotationNP.name);
             }
 
@@ -1703,8 +1697,10 @@ void INDI::CCD::addFITSKeywords(fitsfile *fptr, CCDChip *targetChip)
         fits_update_key_s(fptr, TSTRING, "BAYERPAT", BayerT[2].text, "Bayer color pattern", &status);
     }
 
-    if (FocalLength != -1)
-        fits_update_key_s(fptr, TDOUBLE, "FOCALLEN", &FocalLength, "Focal Length (mm)", &status);
+    if (TelescopeTypeS[TELESCOPE_PRIMARY].s == ISS_ON && primaryFocalLength != -1)
+        fits_update_key_s(fptr, TDOUBLE, "FOCALLEN", &primaryFocalLength, "Focal Length (mm)", &status);
+    else if (TelescopeTypeS[TELESCOPE_GUIDE].s == ISS_ON && guiderFocalLength != -1)
+        fits_update_key_s(fptr, TDOUBLE, "FOCALLEN", &guiderFocalLength, "Focal Length (mm)", &status);
 
     if (MPSAS != -1000)
     {
@@ -1723,9 +1719,17 @@ void INDI::CCD::addFITSKeywords(fitsfile *fptr, CCDChip *targetChip)
 
         double raJ2000  = J2000Pos.ra/15.0;
         double decJ2000 = J2000Pos.dec;
+        char ra_str[32], de_str[32];
 
-        fits_update_key_s(fptr, TDOUBLE, "OBJCTRA", &raJ2000, "Object RA", &status);
-        fits_update_key_s(fptr, TDOUBLE, "OBJCTDEC", &decJ2000, "Object DEC", &status);
+        fs_sexa(ra_str, raJ2000, 2, 360000);
+        fs_sexa(de_str, decJ2000, 2, 360000);
+
+        char *raPtr = ra_str, *dePtr = de_str;
+        while (*raPtr != '\0') { if (*raPtr == ':') *raPtr = ' '; *raPtr++; }
+        while (*dePtr != '\0') { if (*dePtr == ':') *dePtr = ' '; *dePtr++; }
+
+        fits_update_key_s(fptr, TSTRING, "OBJCTRA", ra_str, "Object RA", &status);
+        fits_update_key_s(fptr, TSTRING, "OBJCTDEC", de_str, "Object DEC", &status);
 
         int epoch = 2000;
 
@@ -1734,7 +1738,7 @@ void INDI::CCD::addFITSKeywords(fitsfile *fptr, CCDChip *targetChip)
 
 
         // Add WCS Info
-        if (WorldCoordS[0].s == ISS_ON && ValidCCDRotation && FocalLength != -1)
+        if (WorldCoordS[0].s == ISS_ON && ValidCCDRotation && primaryFocalLength != -1)
         {
             raJ2000 *= 15;
             fits_update_key_s(fptr, TDOUBLE, "CRVAL1", &raJ2000, "CRVAL1", &status);
@@ -1754,8 +1758,8 @@ void INDI::CCD::addFITSKeywords(fitsfile *fptr, CCDChip *targetChip)
             fits_update_key_s(fptr, TDOUBLE, "CRPIX1", &crpix1, "CRPIX1", &status);
             fits_update_key_s(fptr, TDOUBLE, "CRPIX2", &crpix2, "CRPIX2", &status);
 
-            double secpix1 = pixSize1 / FocalLength * 206.3 * targetChip->getBinX();
-            double secpix2 = pixSize2 / FocalLength * 206.3 * targetChip->getBinY();
+            double secpix1 = pixSize1 / primaryFocalLength * 206.3 * targetChip->getBinX();
+            double secpix2 = pixSize2 / primaryFocalLength * 206.3 * targetChip->getBinY();
 
             //double secpix1 = pixSize1 / FocalLength * 206.3;
             //double secpix2 = pixSize2 / FocalLength * 206.3;
@@ -2123,7 +2127,7 @@ bool INDI::CCD::ExposureComplete(CCDChip *targetChip)
               DEBUGF(INDI::Logger::DBG_ERROR, "Error: failed to allocate memory: %lu",(unsigned long)memsize);
           }
 
-          fits_create_memfile(&fptr,&memptr,&memsize,2880,realloc,&status);                    
+          fits_create_memfile(&fptr,&memptr,&memsize,2880,realloc,&status);
 
           if(status)
           {
@@ -2309,6 +2313,7 @@ bool INDI::CCD::uploadFile(CCDChip * targetChip, const void *fitsData, size_t to
         {
             /* this should NEVER happen */
             DEBUG(INDI::Logger::DBG_ERROR, "Error: Failed to compress image");
+            free(compressedData);
             return false;
         }
 
@@ -2419,7 +2424,7 @@ void INDI::CCD::getMinMax(double *min, double *max, CCDChip *targetChip)
     int ind=0, i, j;
     int imageHeight = targetChip->getSubH() / targetChip->getBinY();
     int imageWidth  = targetChip->getSubW() / targetChip->getBinX();
-    double lmin, lmax;
+    double lmin=0, lmax=0;
 
     switch (targetChip->getBPP())
     {

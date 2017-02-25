@@ -27,6 +27,10 @@ using namespace INDI::AlignmentSubsystem;
 // We declare an auto pointer to SkywatcherAPIMount.
 std::unique_ptr<SkywatcherAPIMount> SkywatcherAPIMountPtr(new SkywatcherAPIMount());
 
+/* Preset Slew Speeds */
+#define SLEWMODES 9
+double SlewSpeeds[SLEWMODES] = { 1.0, 2.0, 4.0, 8.0, 16.0, 32.0, 64.0, 128.0, 600.0 };
+
 void ISPoll(void *p);
 
 void ISGetProperties(const char *dev)
@@ -75,7 +79,7 @@ SkywatcherAPIMount::SkywatcherAPIMount()
     OldTrackingTarget[0] = 0;
     OldTrackingTarget[1] = 0;
 
-    SetTelescopeCapability(TELESCOPE_CAN_PARK | TELESCOPE_CAN_SYNC | TELESCOPE_CAN_ABORT | TELESCOPE_HAS_TIME | TELESCOPE_HAS_LOCATION);
+    SetTelescopeCapability(TELESCOPE_CAN_PARK | TELESCOPE_CAN_SYNC | TELESCOPE_CAN_ABORT | TELESCOPE_HAS_TIME | TELESCOPE_HAS_LOCATION, SLEWMODES);
 }
 
 // destructor
@@ -236,6 +240,13 @@ bool SkywatcherAPIMount::initProperties()
 
     // Allow the base class to initialise its visible before connection properties
     INDI::Telescope::initProperties();
+
+    for (unsigned int i = 0; i < SlewRateSP.nsp; ++i)
+    {
+        sprintf(SlewRateSP.sp[i].label, "%.fx", SlewSpeeds[i]);
+        SlewRateSP.sp[i].aux = (void*)&SlewSpeeds[i];
+    }
+    strncpy(SlewRateSP.sp[SlewRateSP.nsp-1].name, "SLEW_MAX", MAXINDINAME);
 
     // Add default properties
     addDebugControl();
@@ -488,11 +499,19 @@ bool SkywatcherAPIMount::ISNewText (const char *dev, const char *name, char *tex
     return INDI::Telescope::ISNewText(dev, name, texts, names, n);
 }
 
+double SkywatcherAPIMount::GetSlewRate()
+{
+    ISwitch* Switch = IUFindOnSwitch(&SlewRateSP);
+    double Rate = *((double*)Switch->aux);
+
+    return Rate;
+}
+
 bool SkywatcherAPIMount::MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command)
 {
     DEBUG(DBG_SCOPE, "SkywatcherAPIMount::MoveNS");
 
-    double speed = (dir == DIRECTION_NORTH) ? (LOW_SPEED_MARGIN / 2) : -(LOW_SPEED_MARGIN / 2);
+    double speed = (dir == DIRECTION_NORTH) ? GetSlewRate()*LOW_SPEED_MARGIN / 2 : -GetSlewRate()*LOW_SPEED_MARGIN / 2;
     const char *dirStr = (dir == DIRECTION_NORTH) ? "North" : "South";
 
     switch (command)
@@ -515,8 +534,11 @@ bool SkywatcherAPIMount::MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command)
 {
     DEBUG(DBG_SCOPE, "SkywatcherAPIMount::MoveWE");
 
-    double speed = (dir == DIRECTION_WEST) ? (LOW_SPEED_MARGIN / 2) : -(LOW_SPEED_MARGIN / 2);
+    double speed = (dir == DIRECTION_WEST) ? GetSlewRate()*LOW_SPEED_MARGIN / 2 : -GetSlewRate()*LOW_SPEED_MARGIN / 2;
     const char *dirStr = (dir == DIRECTION_WEST) ? "West" : "East";
+
+    if (MountCode >= 0x90)
+        speed = -speed;
 
     switch (command)
     {
@@ -571,6 +593,13 @@ bool SkywatcherAPIMount::ReadScopeStatus()
     // Calculate new RA DEC
     struct ln_hrz_posn AltAz;
     AltAz.alt = MicrostepsToDegrees(AXIS2, CurrentEncoders[AXIS2] - ZeroPositionEncoders[AXIS2]);
+    if (MountCode >= 0x90)
+    {
+        // The altitude degrees in the Virtuoso Alt-Az mount are inverted.
+        double MountDegree = AltAz.alt-3430;
+
+        AltAz.alt = 3420-MountDegree;
+    }
     DEBUGF(INDI::AlignmentSubsystem::DBG_ALIGNMENT, "Axis2 encoder %ld initial %ld alt(degrees) %lf", CurrentEncoders[AXIS2], ZeroPositionEncoders[AXIS2], AltAz.alt);
     AltAz.az = MicrostepsToDegrees(AXIS1, CurrentEncoders[AXIS1] - ZeroPositionEncoders[AXIS1]);
     DEBUGF(INDI::AlignmentSubsystem::DBG_ALIGNMENT, "Axis1 encoder %ld initial %ld az(degrees) %lf", CurrentEncoders[AXIS1], ZeroPositionEncoders[AXIS1], AltAz.az);
@@ -1025,7 +1054,12 @@ void SkywatcherAPIMount::UpdateDetailedMountInformation(bool InformClient)
             NewMountType = MT_DOB;
             break;
         default:
-            NewMountType = MT_UNKNOWN;
+            // My Virtuoso mount says it is an "AllView"...
+            if (MountCode > 0x90)
+                NewMountType = MT_DOB;
+            else
+                NewMountType = MT_UNKNOWN;
+
             break;
     }
     if (OldMountType != NewMountType)

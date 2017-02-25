@@ -93,7 +93,14 @@ protected:
 
     // Focusing
     bool SetFocuserSpeed(int speed);
-    IPState MoveFocuser(FocusDirection dir, int speed, uint16_t duration);
+    IPState MoveFocuser(FocusDirection dir, int speed, uint16_t duration);    
+
+    // Streaming
+    #ifdef __linux__
+    bool StartStreaming();
+    bool StopStreaming();
+    bool captureLiveVideo();
+    #endif
 
     // Preview
     bool startLivePreview();
@@ -150,7 +157,7 @@ private:
     ISwitchVectorProperty livePreviewSP;
 
     IBLOBVectorProperty *imageBP;
-    IBLOB *imageB;
+    IBLOB *imageB;    
 
     friend void ::ISSnoopDevice(XMLEle *root);
     friend void ::ISGetProperties(const char *dev);

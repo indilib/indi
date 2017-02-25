@@ -90,9 +90,8 @@ void INDI::FilterInterface::processFilterSlot(const char *deviceName, double val
 
 void INDI::FilterInterface::processFilterName(const char *deviceName, char *texts[], char *names[], int n)
 {
-    int rc;
     FilterNameTP->s=IPS_OK;
-    rc=IUUpdateText(FilterNameTP,texts,names,n);
+    IUUpdateText(FilterNameTP,texts,names,n);
 
     if (SetFilterNames() == true)
         IDSetText(FilterNameTP,NULL);
@@ -104,7 +103,3 @@ void INDI::FilterInterface::processFilterName(const char *deviceName, char *text
     }
 
 }
-
-
-
-

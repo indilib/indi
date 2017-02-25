@@ -1320,7 +1320,7 @@ static int _lookup_widget(CameraWidget*widget, const char *key, CameraWidget **c
 }
 
 /* calls the Nikon DSLR or Canon DSLR autofocus method. */
-int gphoto_auto_focus(gphoto_driver *gphoto)
+int gphoto_auto_focus(gphoto_driver *gphoto, char *errMsg)
 {
     CameraWidget		*widget = NULL, *child = NULL;
     CameraWidgetType	type;
@@ -1328,45 +1328,45 @@ int gphoto_auto_focus(gphoto_driver *gphoto)
 
     ret = gp_camera_get_config (gphoto->camera, &widget, gphoto->context);
     if (ret < GP_OK) {
-        fprintf (stderr, "camera_get_config failed: %d", ret);
+        snprintf(errMsg, MAXRBUF, "camera_get_config failed: %d", ret);
         return ret;
     }
     ret = _lookup_widget (widget, "autofocusdrive", &child);
     if (ret < GP_OK) {
-        fprintf (stderr, "lookup 'autofocusdrive' failed: %d", ret);
+        snprintf(errMsg, MAXRBUF, "lookup 'autofocusdrive' failed: %d", ret);
         goto out;
     }
 
     /* check that this is a toggle */
     ret = gp_widget_get_type (child, &type);
     if (ret < GP_OK) {
-        fprintf (stderr, "widget get type failed: %d", ret);
+        snprintf(errMsg, MAXRBUF, "widget get type failed: %d", ret);
         goto out;
     }
     switch (type) {
     case GP_WIDGET_TOGGLE:
         break;
     default:
-        fprintf (stderr, "widget has bad type %d", type);
+        snprintf(errMsg, MAXRBUF, "widget has bad type %d", type);
         ret = GP_ERROR_BAD_PARAMETERS;
         goto out;
     }
 
     ret = gp_widget_get_value (child, &val);
     if (ret < GP_OK) {
-        fprintf (stderr, "could not get widget value: %d", ret);
+        snprintf(errMsg, MAXRBUF, "could not get widget value: %d", ret);
         goto out;
     }
     val++;
     ret = gp_widget_set_value (child, &val);
     if (ret < GP_OK) {
-        fprintf (stderr, "could not set widget value to 1: %d", ret);
+        snprintf(errMsg, MAXRBUF, "could not set widget value to 1: %d", ret);
         goto out;
     }
 
     ret = gp_camera_set_config (gphoto->camera, widget, gphoto->context);
     if (ret < GP_OK) {
-        fprintf (stderr, "could not set config tree to autofocus: %d", ret);
+        snprintf(errMsg, MAXRBUF, "could not set config tree to autofocus: %d", ret);
         goto out;
     }
 out:

@@ -719,7 +719,7 @@ bool ASICCD::StartStreaming()
 {
     ASI_IMG_TYPE type = getImageType();
 
-    if (type != ASI_IMG_Y8)
+    if (type != ASI_IMG_Y8 && type != ASI_IMG_RGB24)
     {
         IUResetSwitch(&VideoFormatSP);
         ISwitch *vf = IUFindSwitch(&VideoFormatSP,"ASI_IMG_Y8");
@@ -1561,7 +1561,7 @@ void* ASICCD::streamVideo()
           continue;
       }
 
-      streamer->newFrame(targetFrame);
+      streamer->newFrame();
   }
 
   pthread_mutex_unlock(&condMutex);

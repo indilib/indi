@@ -102,7 +102,7 @@ CCDSim::CCDSim()
     minpix =65000;
     limitingmag=11.5;
     saturationmag=2;
-    FocalLength=1280;   //  focal length of the telescope in millimeters
+    primaryFocalLength=1280;   //  focal length of the telescope in millimeters
     OAGoffset=0;    //  An oag is offset this much from center of scope position (arcminutes);
     skyglow=40;
 
@@ -155,7 +155,9 @@ bool CCDSim::SetupParms()
     nbuf += 512;
     PrimaryCCD.setFrameBufferSize(nbuf);
 
-    GetFilterNames(FILTER_TAB);
+    // Only generate filter names if there are none initially
+    if (FilterNameT == NULL)
+        GetFilterNames(FILTER_TAB);
 
     return true;
 }
@@ -490,7 +492,10 @@ int CCDSim::DrawCcdFrame(CCDChip *targetChip)
     else
         ExposureTime = ExposureRequest;
 
-    targetFocalLength = FocalLength;
+    if (TelescopeTypeS[TELESCOPE_PRIMARY].s == ISS_ON)
+        targetFocalLength = primaryFocalLength;
+    else
+        targetFocalLength = guiderFocalLength;
 
     if(ShowStarField)
     {

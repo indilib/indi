@@ -6,6 +6,7 @@
 #include <sys/time.h>
 #include <time.h>
 
+#include "config.h"
 #include "nexstarevo.h"
 #include <indicom.h>
 
@@ -62,7 +63,13 @@ const double NexStarEvo::STEPS_PER_DEGREE = STEPS_PER_REVOLUTION / 360.0;
 const double NexStarEvo::DEFAULT_SLEW_RATE = STEPS_PER_DEGREE * 2.0;
 const long NexStarEvo::MAX_ALT = 90.0 * STEPS_PER_DEGREE;
 const long NexStarEvo::MIN_ALT = -90.0 * STEPS_PER_DEGREE;
-const double NexStarEvo::TRACK_SCALE = 1.0;
+
+// The guide rate is probably (???) measured in 1000 arcmin/min
+// This is based on experimentation and guesswork.
+// The rate is calculated in steps/min - thus conversion is required.
+// The best experimental value was 1.315 which is quite close
+// to 60000/STEPS_PER_DEGREE = 1.2874603271484375.
+const double NexStarEvo::TRACK_SCALE = 60000 / STEPS_PER_DEGREE;
 
 NexStarEvo::NexStarEvo() : 
     AxisStatusAZ(STOPPED), AxisDirectionAZ(FORWARD),
@@ -77,15 +84,17 @@ NexStarEvo::NexStarEvo() :
     DBG_NSEVO(INDI::Logger::getInstance().addDebugLevel("NexStar Evo Verbose", "NSEVO"))
 {
     scope = NULL;
-
+    setVersion(NSEVO_VERSION_MAJOR, NSEVO_VERSION_MINOR);
     SetTelescopeCapability( TELESCOPE_CAN_PARK | 
                             TELESCOPE_CAN_SYNC | 
                             TELESCOPE_CAN_ABORT |
                             TELESCOPE_HAS_TIME |
                             TELESCOPE_HAS_LOCATION, 4);
-    // Approach from the top left 2deg away
-    ApproachALT=1.0*STEPS_PER_DEGREE;
-    ApproachAZ=-1.0*STEPS_PER_DEGREE;
+    // Approach from no further then degs away
+    Approach=1.0;
+    
+    // Max ticks before we reissue the goto to update position
+    maxSlewTicks=15;
 }
 
 NexStarEvo::~NexStarEvo()
@@ -157,10 +166,10 @@ const char * NexStarEvo::getDefaultName()
 
 bool NexStarEvo::Park()
 {
-    // Park at the southern horizon 
+    // Park at the northern horizon 
     // This is a designated by celestron parking position
     Abort();
-    scope->GoToFast(long(0),long(0),false);
+    scope->Park();
     TrackState = SCOPE_PARKING;
     ParkSP.s=IPS_BUSY;
     IDSetSwitch(&ParkSP, NULL);
@@ -176,30 +185,14 @@ bool NexStarEvo::UnPark()
 }
 
 
-// TODO: Make adjustment for the approx time it takes to slew to the given pos.
-bool NexStarEvo::Goto(double ra,double dec)
+ln_hrz_posn NexStarEvo::AltAzFromRaDec(double ra, double dec, double ts)
 {
-
-    DEBUGF(DBG_NSEVO, "Goto - Celestial reference frame target right ascension %lf(%lf) declination %lf", ra * 360.0 / 24.0, ra, dec);
-    if (ISS_ON == IUFindSwitch(&CoordSP,"TRACK")->s)
-    {
-        char RAStr[32], DecStr[32];
-        fs_sexa(RAStr, ra, 2, 3600);
-        fs_sexa(DecStr, dec, 2, 3600);
-        CurrentTrackingTarget.ra = ra;
-        CurrentTrackingTarget.dec = dec;
-        NewTrackingTarget = CurrentTrackingTarget;
-        DEBUG(DBG_NSEVO, "Goto - tracking requested");
-    }
-    
-    GoToTarget.ra=ra;
-    GoToTarget.dec=dec;
-
     // Call the alignment subsystem to translate the celestial reference frame coordinate
     // into a telescope reference frame coordinate
     TelescopeDirectionVector TDV;
     ln_hrz_posn AltAz;
-    if (TransformCelestialToTelescope(ra, dec, 0.0, TDV))
+    
+    if (TransformCelestialToTelescope(ra, dec, ts, TDV))
     {
         // The alignment subsystem has successfully transformed my coordinate
         AltitudeAzimuthFromTelescopeDirectionVector(TDV, AltAz);
@@ -224,7 +217,7 @@ bool NexStarEvo::Goto(double ra,double dec)
         EquatorialCoordinates.dec = dec;
         if (HavePosition)
         {
-            ln_get_hrz_from_equ(&EquatorialCoordinates, &Position, ln_get_julian_from_sys(), &AltAz);
+            ln_get_hrz_from_equ(&EquatorialCoordinates, &Position, ln_get_julian_from_sys() + ts, &AltAz);
             TDV = TelescopeDirectionVectorFromAltitudeAzimuth(AltAz);
             switch (GetApproximateMountAlignment())
             {
@@ -252,28 +245,79 @@ bool NexStarEvo::Goto(double ra,double dec)
             AltitudeAzimuthFromTelescopeDirectionVector(TDV, AltAz);
         }
     }
+    return AltAz;
+}
 
+
+double anglediff(double a, double b){
+    // Signed angle difference
+    double d;
+    a = fmod(a,360.0);
+    b = fmod(b,360.0);
+    d = fmod(a-b+360.0, 360.0);
+    if (d > 180) d = 360.0 - d;
+    return abs(d)*((a - b >= 0 && a - b <= 180) || (a - b <=-180 && a- b>= -360) ? 1 : -1);
+}
+
+// TODO: Make adjustment for the approx time it takes to slew to the given pos.
+bool NexStarEvo::Goto(double ra,double dec)
+{
+
+    DEBUGF(DBG_NSEVO, "Goto - Celestial reference frame target RA:%lf(%lf h) Dec:%lf", ra * 360.0 / 24.0, ra, dec);
+    if (ISS_ON == IUFindSwitch(&CoordSP,"TRACK")->s)
+    {
+        char RAStr[32], DecStr[32];
+        fs_sexa(RAStr, ra, 2, 3600);
+        fs_sexa(DecStr, dec, 2, 3600);
+        CurrentTrackingTarget.ra = ra;
+        CurrentTrackingTarget.dec = dec;
+        NewTrackingTarget = CurrentTrackingTarget;
+        DEBUG(DBG_NSEVO, "Goto - tracking requested");
+    }
+    
+    GoToTarget.ra=ra;
+    GoToTarget.dec=dec;
+
+    double timeshift=0.0;
     if (ScopeStatus != APPROACH){ 
         // The scope is not in slow approach mode - target should be modified
-        // for precission approach.
-        // TODO: This is simplistic - it should be modified close to the zenith
-        AltAz.alt+=ApproachALT/STEPS_PER_DEGREE;
-        AltAz.az+=ApproachAZ/STEPS_PER_DEGREE;
+        // for precission approach. We go to the position from some time ago,
+        // to keep the motors going in the same direction as in tracking
+        timeshift = 3.0 / (24.0 *60.0); // Three minutes worth of tracking
     }
 
-    if (AltAz.az < 0.0)
-    {
-        // Calculated azimuth may be <0 - translate to 0-360 range
-        // of the encoder in the mount
-        AltAz.az += 360.0;
+    // Call the alignment subsystem to translate the celestial reference frame coordinate
+    // into a telescope reference frame coordinate
+    TelescopeDirectionVector TDV;
+    ln_hrz_posn AltAz, trgAltAz;
+    
+    AltAz=AltAzFromRaDec(ra, dec, -timeshift); 
+    
+    // For high Alt azimuth may change very fast. 
+    // Let us limit azimuth approach to maxApproach degrees
+    if (ScopeStatus != APPROACH){ 
+        ln_hrz_posn trgAltAz = AltAzFromRaDec(ra, dec, 0);
+        double d;
+        
+        d = anglediff(AltAz.az,trgAltAz.az);
+        DEBUGF(DBG_NSEVO, "Azimuth approach:  %lf (%lf)", d, Approach);
+        AltAz.az=trgAltAz.az + ((d>0)? Approach : -Approach);
+        
+        d = anglediff(AltAz.alt,trgAltAz.alt);
+        DEBUGF(DBG_NSEVO, "Altitude approach:  %lf (%lf)", d, Approach);
+        AltAz.alt=trgAltAz.alt + ((d>0)? Approach : -Approach);
     }
-
-
-    // My altitude encoder runs -90 to +90 there is no point going outside.
+    
+    // Fold Azimuth into 0-360
+    if (AltAz.az < 0) AltAz.az += 360.0;
+    if (AltAz.az > 360.0) AltAz.az -= 360.0;
+    // AltAz.az = fmod(AltAz.az, 360.0);
+    
+    // Altitude encoder runs -90 to +90 there is no point going outside.
     if (AltAz.alt > 90.0) AltAz.alt=90.0 ;
     if (AltAz.alt < -90.0) AltAz.alt=-90.0 ;
 
-    DEBUGF(DBG_NSEVO, "Goto - Scope reference frame target altitude %lf azimuth %lf", AltAz.alt, AltAz.az);
+    DEBUGF(DBG_NSEVO, "Goto: Scope reference frame target altitude %lf azimuth %lf", AltAz.alt, AltAz.az);
 
     TrackState = SCOPE_SLEWING;
     if (ScopeStatus == APPROACH) {
@@ -284,6 +328,7 @@ bool NexStarEvo::Goto(double ra,double dec)
                         ISS_ON == IUFindSwitch(&CoordSP,"TRACK")->s);
     } else {
         // Just make a standard fast slew
+        slewTicks = 0;
         ScopeStatus = SLEWING_FAST;
         scope->GoToFast(long(AltAz.alt * STEPS_PER_DEGREE),
                         long(AltAz.az * STEPS_PER_DEGREE),
@@ -512,7 +557,7 @@ bool NexStarEvo::ReadScopeStatus()
     // libnova indexes Az from south while Celestron controllers index from north
     // Never mix two controllers/drivers they will never agree perfectly.
     // Furthermore the celestron hand controler resets the position encoders
-    // on alignment and this will mess-up all arientation in the driver.
+    // on alignment and this will mess-up all orientation in the driver.
     // Here we are not attempting to make the driver agree with the hand
     // controller (That would involve adding 180deg here to the azimuth -
     // this way the celestron nexstar driver and this would agree in some
@@ -665,12 +710,23 @@ void NexStarEvo::TimerHit()
     switch(TrackState)
     {
         case SCOPE_PARKING:
-            if (!scope->slewing()) SetParked(true);
+            if (!scope->slewing()) {
+                SetParked(true);
+                DEBUG(DBG_NSEVO, "Telescope parked.");
+            }
             break;
 
         case SCOPE_SLEWING:
-            if (scope->slewing())
-                break; // The scope is still slewing
+            if (scope->slewing()) {
+                // The scope is still slewing
+                slewTicks++;
+                if ((ScopeStatus == SLEWING_FAST) && (slewTicks > maxSlewTicks)) {
+                    // Slewing too long, reissue GoTo to update target position
+                    Goto(GoToTarget.ra, GoToTarget.dec);
+                    slewTicks = 0;
+                }
+                break; 
+            }
             else {   
                 // The slew has finished check if that was a coarse slew
                 // or precission approach
@@ -707,11 +763,14 @@ void NexStarEvo::TimerHit()
         {
             // Continue or start tracking
             // Calculate where the mount needs to be in a minute
-            // TODO may need to make this better defined
             double JulianOffset = 60.0 / (24.0 * 60 * 60); 
             TelescopeDirectionVector TDV;
             ln_hrz_posn AltAz, AAzero;
             
+            AltAz=AltAzFromRaDec(CurrentTrackingTarget.ra, CurrentTrackingTarget.dec, JulianOffset);
+            AAzero=AltAzFromRaDec(CurrentTrackingTarget.ra, CurrentTrackingTarget.dec, 0);
+            if (TraceThisTick)
+                DEBUGF(DBG_NSEVO, "Tracking - Calculated Alt %lf deg ; Az %lf deg", AltAz.alt, AltAz.az);
             /* 
             TODO 
             The tracking should take into account movement of the scope
@@ -720,65 +779,18 @@ void NexStarEvo::TimerHit()
             Right now when we move the scope by HC it returns to the
             designated target by corrective tracking.
             */
-            if (TransformCelestialToTelescope(CurrentTrackingTarget.ra, 
-                                                CurrentTrackingTarget.dec,
-                                                JulianOffset, TDV)) {
-                AltitudeAzimuthFromTelescopeDirectionVector(TDV, AltAz);
-                
-                // Just for debugging
-                TransformCelestialToTelescope(CurrentTrackingTarget.ra, 
-                                                CurrentTrackingTarget.dec,
-                                                0, TDV);
-                AltitudeAzimuthFromTelescopeDirectionVector(TDV, AAzero);
-                if (TraceThisTick)
-                    DEBUGF(DBG_NSEVO, "Tracking - Calculated Alt %lf deg ; Az %lf deg", AltAz.alt, AltAz.az);
-            }
-            else {
-                // Try a conversion with the stored observatory position if any
-                bool HavePosition = false;
-                ln_lnlat_posn Position;
-                if ((NULL != IUFindNumber(&LocationNP, "LAT")) && ( 0 != IUFindNumber(&LocationNP, "LAT")->value)
-                    && (NULL != IUFindNumber(&LocationNP, "LONG")) && ( 0 != IUFindNumber(&LocationNP, "LONG")->value))
-                {
-                    // I assume that being on the equator and exactly on the prime meridian is unlikely
-                    Position.lat = IUFindNumber(&LocationNP, "LAT")->value;
-                    Position.lng = IUFindNumber(&LocationNP, "LONG")->value;
-                    HavePosition = true;
-                }
-                struct ln_equ_posn EquatorialCoordinates;
-                // libnova works in decimal degrees
-                EquatorialCoordinates.ra = CurrentTrackingTarget.ra * 360.0 / 24.0;
-                EquatorialCoordinates.dec = CurrentTrackingTarget.dec;
-                if (HavePosition) {
-                    ln_get_hrz_from_equ(&EquatorialCoordinates, &Position,
-                                            ln_get_julian_from_sys() + JulianOffset, &AltAz);
-                    // Just for debugging
-                    ln_get_hrz_from_equ(&EquatorialCoordinates, &Position,
-                                            ln_get_julian_from_sys(), &AAzero);
-                }
-                else
-                {
-                    // No sense in tracking in this case
-                    TrackState = SCOPE_IDLE;
-                    break;
-                }
-                if (TraceThisTick)
-                    DEBUGF(DBG_NSEVO, "Tracking, aligmend failed, Clculated Alt %lf deg ; Az %lf deg", AltAz.alt, AltAz.az);
-            }
 
-
-            if (AltAz.az < 0.0)
-            {
-                // DEBUG(DBG_NSEVO, "TimerHit tracking - Azimuth negative");
-                // Calculated azimuth may be <0 - translate to 0-360 range
-                // of the encoder in the mount
-                AltAz.az += 360.0;
-            }
+            // Fold Azimuth into 0-360
+            if (AltAz.az < 0) AltAz.az += 360.0;
+            if (AltAz.az > 360.0) AltAz.az -= 360.0;
+            //AltAz.az = fmod(AltAz.az, 360.0);
 
             {
                 long altRate, azRate;
-                altRate=long(TRACK_SCALE*(AltAz.alt * STEPS_PER_DEGREE - scope->GetALT()));
-                azRate=long(TRACK_SCALE*(AltAz.az * STEPS_PER_DEGREE - scope->GetAZ()));
+                
+                // This is in steps per minute
+                altRate=long(AltAz.alt * STEPS_PER_DEGREE - scope->GetALT());
+                azRate=long(AltAz.az * STEPS_PER_DEGREE - scope->GetAZ());
 
                 if (TraceThisTick) 
                     DEBUGF(DBG_NSEVO, "Target (AltAz): %f  %f  Scope  (AltAz)  %f  %f", 
@@ -787,11 +799,18 @@ void NexStarEvo::TimerHit()
                         scope->GetALT()/ STEPS_PER_DEGREE,
                         scope->GetAZ()/ STEPS_PER_DEGREE);
                 
-                if (abs(azRate)>TRACK_SCALE*STEPS_PER_DEGREE*180) {
+                if (abs(azRate) > STEPS_PER_REVOLUTION/2) {
                     // Crossing the meridian. AZ skips from 350+ to 0+
                     // Correct for wrap-around
-                    azRate+=TRACK_SCALE*STEPS_PER_DEGREE*360;
+                    azRate += STEPS_PER_REVOLUTION;
+                    if (azRate > STEPS_PER_REVOLUTION) azRate %= STEPS_PER_REVOLUTION;
                 }
+                
+                // Track function needs rates in 1000*arcmin/minute
+                // Rates here are in steps/minute
+                // conv. factor: TRACK_SCALE = 60000/STEPS_PER_DEGREE
+                altRate=long(TRACK_SCALE*altRate);
+                azRate=long(TRACK_SCALE*azRate);
                 scope->Track(altRate,azRate);
 
                 if (TraceThisTick) DEBUGF(DBG_NSEVO, "TimerHit - Tracking AltRate %d AzRate %d ; Pos diff (deg): Alt: %f Az: %f",

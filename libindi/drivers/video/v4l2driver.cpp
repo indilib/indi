@@ -61,7 +61,7 @@ bool V4L2_Driver::initProperties()
   IUFillTextVector(&PortTP, PortT, NARRAY(PortT), getDeviceName(), "DEVICE_PORT", "Ports", OPTIONS_TAB, IP_RW, 0, IPS_IDLE);
 
   /* Color space */
-  IUFillSwitch(&ImageColorS[0], "CCD_COLOR_GRAY", "Gray", ISS_ON);
+  IUFillSwitch(&ImageColorS[IMAGE_GRAYSCALE], "CCD_COLOR_GRAY", "Gray", ISS_ON);
   IUFillSwitch(&ImageColorS[1], "CCD_COLOR_RGB", "Color", ISS_OFF);
   IUFillSwitchVector(&ImageColorSP, ImageColorS, NARRAY(ImageColorS), getDeviceName(), "CCD_COLOR_SPACE", "Image Type", IMAGE_SETTINGS_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
@@ -118,6 +118,8 @@ bool V4L2_Driver::initProperties()
     DEBUG(INDI::Logger::DBG_WARNING, "Can not init Long Exposure");
 
   SetCCDCapability(CCD_CAN_BIN | CCD_CAN_SUBFRAME | CCD_HAS_STREAMING);
+
+  strncpy(v4l_base->deviceName, getDeviceName(), MAXINDIDEVICE);
 
   return true;
 }
@@ -406,10 +408,10 @@ bool V4L2_Driver::ISNewSwitch (const char *dev, const char *name, ISState *state
       V4LFrame->width = w;
       V4LFrame->height= h;
       PrimaryCCD.setResolution(w, h);
-      if (ImageColorS[0].s == ISS_ON)
+      if (ImageColorS[IMAGE_GRAYSCALE].s == ISS_ON)
         PrimaryCCD.setFrameBufferSize(w*h*PrimaryCCD.getBPP()/8);
       else
-          PrimaryCCD.setFrameBufferSize(w*h*PrimaryCCD.getBPP()/8 * 4);
+          PrimaryCCD.setFrameBufferSize(w*h*PrimaryCCD.getBPP()/8 * 3);
       
       //recorder->setsize(w, h);
       streamer->setRecorderSize(w,h);
@@ -460,7 +462,7 @@ bool V4L2_Driver::ISNewSwitch (const char *dev, const char *name, ISState *state
     IUResetSwitch(&ImageColorSP);
     IUUpdateSwitch(&ImageColorSP, states, names, n);
     ImageColorSP.s = IPS_OK;
-    if (ImageColorS[0].s == ISS_ON) {
+    if (ImageColorS[IMAGE_GRAYSCALE].s == ISS_ON) {
       //PrimaryCCD.setBPP(8);
       PrimaryCCD.setNAxis(2);
     } else {
@@ -469,8 +471,8 @@ bool V4L2_Driver::ISNewSwitch (const char *dev, const char *name, ISState *state
       PrimaryCCD.setNAxis(3);
     }
     
-    frameBytes  = (ImageColorS[0].s == ISS_ON) ? (PrimaryCCD.getSubW() * PrimaryCCD.getSubH() * (PrimaryCCD.getBPP() / 8)):
-      (PrimaryCCD.getSubW() * PrimaryCCD.getSubH() * (PrimaryCCD.getBPP() / 8) * 4);
+    frameBytes  = (ImageColorS[IMAGE_GRAYSCALE].s == ISS_ON) ? (PrimaryCCD.getSubW() * PrimaryCCD.getSubH() * (PrimaryCCD.getBPP() / 8)):
+      (PrimaryCCD.getSubW() * PrimaryCCD.getSubH() * (PrimaryCCD.getBPP() / 8) * 3);
     PrimaryCCD.setFrameBufferSize(frameBytes);
     
     IDSetSwitch(&ImageColorSP, NULL);
@@ -556,7 +558,7 @@ bool V4L2_Driver::ISNewSwitch (const char *dev, const char *name, ISState *state
   /* ColorProcessing */
   if (!strcmp(name, ColorProcessingSP.name))
   {
-    if (ImageColorS[0].s == ISS_ON) {
+    if (ImageColorS[IMAGE_GRAYSCALE].s == ISS_ON) {
       IUUpdateSwitch(&ColorProcessingSP, states, names, n);
       v4l_base->setColorProcessing(ColorProcessingS[0].s == ISS_ON, ColorProcessingS[1].s == ISS_ON, ColorProcessingS[2].s == ISS_ON);
       ColorProcessingSP.s = IPS_OK;
@@ -564,8 +566,8 @@ bool V4L2_Driver::ISNewSwitch (const char *dev, const char *name, ISState *state
       V4LFrame->bpp = v4l_base->getBpp();
       PrimaryCCD.setBPP(V4LFrame->bpp);
       PrimaryCCD.setBPP(V4LFrame->bpp);
-      frameBytes  = (ImageColorS[0].s == ISS_ON) ? (PrimaryCCD.getSubW() * PrimaryCCD.getSubH() * (PrimaryCCD.getBPP() / 8)):
-	(PrimaryCCD.getSubW() * PrimaryCCD.getSubH() * (PrimaryCCD.getBPP() / 8) * 4);
+      frameBytes  = (ImageColorS[IMAGE_GRAYSCALE].s == ISS_ON) ? (PrimaryCCD.getSubW() * PrimaryCCD.getSubH() * (PrimaryCCD.getBPP() / 8)):
+    (PrimaryCCD.getSubW() * PrimaryCCD.getSubH() * (PrimaryCCD.getBPP() / 8) * 3);
       PrimaryCCD.setFrameBufferSize(frameBytes);
       return true;
     } else {
@@ -657,8 +659,8 @@ bool V4L2_Driver::ISNewNumber (const char *dev, const char *name, double values[
 	   V4LFrame->height= h;
 	   PrimaryCCD.setResolution(w, h);
 	   CaptureSizesNP.s = IPS_OK;
-	   frameBytes  = (ImageColorS[0].s == ISS_ON) ? (PrimaryCCD.getSubW() * PrimaryCCD.getSubH() * (PrimaryCCD.getBPP() / 8)):
-	     (PrimaryCCD.getSubW() * PrimaryCCD.getSubH() * (PrimaryCCD.getBPP() / 8) * 4);
+       frameBytes  = (ImageColorS[IMAGE_GRAYSCALE].s == ISS_ON) ? (PrimaryCCD.getSubW() * PrimaryCCD.getSubH() * (PrimaryCCD.getBPP() / 8)):
+         (PrimaryCCD.getSubW() * PrimaryCCD.getSubH() * (PrimaryCCD.getBPP() / 8) * 3);
 	   PrimaryCCD.setFrameBufferSize(frameBytes);
      
        streamer->setRecorderSize(w,h);
@@ -851,6 +853,12 @@ void V4L2_Driver::lxtimerCallback(void *userpointer)
 
 bool V4L2_Driver::UpdateCCDBin(int hor, int ver)
 {
+    if (ImageColorS[IMAGE_COLOR].s == ISS_ON)
+    {
+        DEBUG(INDI::Logger::DBG_WARNING, "Binning color frames is currently not supported.");
+        return false;
+    }
+
     if (hor != ver)
     {
         DEBUGF(INDI::Logger::DBG_WARNING, "Cannot accept asymmetrical binning %dx%d.", hor, ver);
@@ -887,8 +895,8 @@ bool V4L2_Driver::UpdateCCDFrame(int x, int y, int w, int h)
     V4LFrame->width = crect.width;
     V4LFrame->height= crect.height;
     PrimaryCCD.setFrame(x, y, w, h);
-    frameBytes  = (ImageColorS[0].s == ISS_ON) ? (PrimaryCCD.getSubW() * PrimaryCCD.getSubH() * (PrimaryCCD.getBPP() / 8)):
-      (PrimaryCCD.getSubW() * PrimaryCCD.getSubH() * (PrimaryCCD.getBPP() / 8) * 4);
+    frameBytes  = (ImageColorS[IMAGE_GRAYSCALE].s == ISS_ON) ? (PrimaryCCD.getSubW() * PrimaryCCD.getSubH() * (PrimaryCCD.getBPP() / 8)):
+      (PrimaryCCD.getSubW() * PrimaryCCD.getSubH() * (PrimaryCCD.getBPP() / 8) * 3);
     PrimaryCCD.setFrameBufferSize(frameBytes);
     //recorder->setsize(w, h);
     streamer->setRecorderSize(w,h);
@@ -936,20 +944,27 @@ void V4L2_Driver::stackFrame()
 
 void V4L2_Driver::newFrame()
 {
-    if (streamer->isBusy())
+  if (streamer->isBusy())
     {
         int width  = v4l_base->getWidth();
         int height = v4l_base->getHeight();
         int bpp = v4l_base->getBpp();
         int dbpp=8;
+        int totalBytes=0;
+        unsigned char *buffer=NULL;
 
-        if (ImageColorS[0].s == ISS_ON)
+        if (ImageColorS[IMAGE_GRAYSCALE].s == ISS_ON)
+        {
            V4LFrame->Y      		= v4l_base->getY();
+           totalBytes               = width * height * (dbpp / 8);
+           buffer                   = V4LFrame->Y;
+        }
         else
-           V4LFrame->colorBuffer 	= v4l_base->getColorBuffer();
-
-        int totalBytes  = ImageColorS[0].s == ISS_ON ? width * height * (dbpp / 8) : width * height * (dbpp / 8) * 4;
-        unsigned char *buffer = ImageColorS[0].s == ISS_ON ? V4LFrame->Y : V4LFrame->colorBuffer;
+        {
+           V4LFrame->RGB24Buffer 	= v4l_base->getRGBBuffer();
+           totalBytes               = width * height * (dbpp / 8) * 3;
+           buffer                   = V4LFrame->RGB24Buffer;
+        }
 
         // downscale Y10 Y12 Y16
         if (bpp > dbpp)
@@ -980,10 +995,11 @@ void V4L2_Driver::newFrame()
           }
         }
 
-        if (ImageColorS[0].s == ISS_ON)
-            streamer->newFrame(buffer);
-        else
-            streamer->newFrame(buffer);
+        memcpy(PrimaryCCD.getFrameBuffer(), buffer, frameBytes);
+
+        streamer->newFrame();
+
+        return;
     }
 
   if (PrimaryCCD.isExposing())
@@ -1003,15 +1019,16 @@ void V4L2_Driver::newFrame()
       return; // go on stacking
 
     //IDLog("Copying frame.\n");
-     if (ImageColorS[0].s == ISS_ON)
+     if (ImageColorS[IMAGE_GRAYSCALE].s == ISS_ON)
      {
        if (!stackMode)
        {
             unsigned char *src, *dest;
             src = v4l_base->getY();
             dest = (unsigned char *)PrimaryCCD.getFrameBuffer();
-            for (i=0; i< frameBytes; i++)
-                *(dest++) = *(src++);
+            memcpy(dest, src, frameBytes);
+            //for (i=0; i< frameBytes; i++)
+                //*(dest++) = *(src++);
 
             PrimaryCCD.binFrame();
        }
@@ -1093,20 +1110,23 @@ void V4L2_Driver::newFrame()
      {
        unsigned char *src, *dest;
       // Binning not supported in color images for now
-      src = v4l_base->getColorBuffer();
+      src = v4l_base->getRGBBuffer();
       dest = (unsigned char *)PrimaryCCD.getFrameBuffer();
+
+      // We have RGB RGB RGB data but for FITS file we need each color in separate plane. i.e. RRR GGG BBB ..etc
       unsigned char *red = dest;
       unsigned char *green = dest + v4l_base->getWidth() * v4l_base->getHeight() * (v4l_base->getBpp() / 8);
       unsigned char *blue = dest + v4l_base->getWidth() * v4l_base->getHeight() * (v4l_base->getBpp() / 8) * 2;
       
-      for (int i=0; i <  frameBytes; i+=4)
+      for (int i=0; i <  frameBytes; i+=3)
       {
-          *(blue++) = *(src+i);
+          *(red++) = *(src+i);
           *(green++) = *(src+i+1);
-          *(red++) = *(src+i+2);
+          *(blue++) = *(src+i+2);
       }
 
-      PrimaryCCD.binFrame();
+      // TODO NO BINNING YET for color frames. We can bin each plane above separately it should be fine
+      //PrimaryCCD.binFrame();
     }
      //IDLog("Copy frame finished.\n");
     frameCount+=1;
@@ -1246,8 +1266,8 @@ void V4L2_Driver::getBasicData()
   PrimaryCCD.setResolution(w, h);
   PrimaryCCD.setFrame(0,0, w,h);
   PrimaryCCD.setBPP(V4LFrame->bpp);
-  frameBytes  = (ImageColorS[0].s == ISS_ON) ? (PrimaryCCD.getSubW() * PrimaryCCD.getSubH() * (PrimaryCCD.getBPP() / 8)):
-                                              (PrimaryCCD.getSubW() * PrimaryCCD.getSubH() * (PrimaryCCD.getBPP() / 8) * 4);
+  frameBytes  = (ImageColorS[IMAGE_GRAYSCALE].s == ISS_ON) ? (PrimaryCCD.getSubW() * PrimaryCCD.getSubH() * (PrimaryCCD.getBPP() / 8)):
+                                              (PrimaryCCD.getSubW() * PrimaryCCD.getSubH() * (PrimaryCCD.getBPP() / 8) * 3);
   PrimaryCCD.setFrameBufferSize(frameBytes);
 
   //direct_record=recorder->setpixelformat(v4l_base->fmt.fmt.pix.pixelformat);
@@ -1300,34 +1320,25 @@ void V4L2_Driver::updateV4L2Controls()
 
 void V4L2_Driver::allocateBuffers()
 {
-     V4LFrame = (img_t *) malloc (sizeof(img_t));
+     V4LFrame = new img_t;
  
      if (V4LFrame == NULL)
      {
-       IDMessage(NULL, "Error: unable to initialize driver. Low memory.");
-       IDLog("Error: unable to initialize driver. Low memory.");
+       DEBUG(INDI::Logger::DBG_ERROR, "Critial Error: Unable to initialize driver. Low memory.");
        exit(-1);
      }
 
-     fitsData			= (unsigned char *) malloc (sizeof(unsigned char) * 1);
-     V4LFrame->Y                = (unsigned char *) malloc (sizeof(unsigned char) * 1);
-     V4LFrame->U                = (unsigned char *) malloc (sizeof(unsigned char) * 1);
-     V4LFrame->V                = (unsigned char *) malloc (sizeof(unsigned char) * 1);
-     V4LFrame->colorBuffer      = (unsigned char *) malloc (sizeof(unsigned char) * 1);
-     //V4LFrame->compressedFrame  = (unsigned char *) malloc (sizeof(unsigned char) * 1);
-     V4LFrame->stackedFrame  = NULL;
-     V4LFrame->darkFrame  = NULL;
+     V4LFrame->Y                = NULL;
+     V4LFrame->U                = NULL;
+     V4LFrame->V                = NULL;
+     V4LFrame->RGB24Buffer      = NULL;
+     V4LFrame->stackedFrame     = NULL;
+     V4LFrame->darkFrame        = NULL;
 }
 
 void V4L2_Driver::releaseBuffers()
 {
-  free(fitsData);
-  free(V4LFrame->Y);
-  free(V4LFrame->U);
-  free(V4LFrame->V);
-  free(V4LFrame->colorBuffer);
-  //free(V4LFrame->compressedFrame);
-  free (V4LFrame);
+  delete (V4LFrame);
 }
 
 bool V4L2_Driver::StartStreaming()
@@ -1361,3 +1372,9 @@ bool V4L2_Driver::StopStreaming()
     return true;
 }
 
+bool V4L2_Driver::saveConfigItems(FILE *fp)
+{
+    INDI::CCD::saveConfigItems(fp);
+
+    return streamer->saveConfigItems(fp);
+}

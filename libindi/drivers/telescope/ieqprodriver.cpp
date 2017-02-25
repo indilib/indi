@@ -134,6 +134,8 @@ bool check_ieqpro_connection(int fd)
       }
       else
       {
+          tcflush(fd, TCIFLUSH);
+
           if ( (errcode = tty_write(fd, initCMD, 3, &nbytes_written)) != TTY_OK)
           {
               tty_error_msg(errcode, errmsg, MAXRBUF);
@@ -184,6 +186,8 @@ bool get_ieqpro_status(int fd, IEQInfo *info)
     }
     else
     {
+        tcflush(fd, TCIFLUSH);
+
         if ( (errcode = tty_write(fd, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
         {
             tty_error_msg(errcode, errmsg, MAXRBUF);
@@ -260,6 +264,8 @@ bool get_ieqpro_model (int fd, FirmwareInfo *info)
     }
     else
     {
+        tcflush(fd, TCIFLUSH);
+
         if ( (errcode = tty_write(fd, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
         {
             tty_error_msg(errcode, errmsg, MAXRBUF);
@@ -324,6 +330,8 @@ bool get_ieqpro_main_firmware(int fd, FirmwareInfo *info)
     }
     else
     {
+        tcflush(fd, TCIFLUSH);
+
         if ( (errcode = tty_write(fd, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
         {
             tty_error_msg(errcode, errmsg, MAXRBUF);
@@ -382,6 +390,8 @@ bool get_ieqpro_radec_firmware(int fd, FirmwareInfo *info)
     }
     else
     {
+        tcflush(fd, TCIFLUSH);
+
         if ( (errcode = tty_write(fd, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
         {
             tty_error_msg(errcode, errmsg, MAXRBUF);
@@ -450,6 +460,8 @@ bool start_ieqpro_motion(int fd, IEQ_DIRECTION dir)
    if (ieqpro_simulation)
        return true;
 
+   tcflush(fd, TCIFLUSH);
+
    if ( (errcode = tty_write(fd, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
    {
        tty_error_msg(errcode, errmsg, MAXRBUF);
@@ -492,6 +504,8 @@ bool stop_ieqpro_motion(int fd, IEQ_DIRECTION dir)
     }
     else
     {
+        tcflush(fd, TCIFLUSH);
+
         if ( (errcode = tty_write(fd, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
         {
             tty_error_msg(errcode, errmsg, MAXRBUF);
@@ -538,6 +552,8 @@ bool find_ieqpro_home(int fd)
     }
     else
     {
+        tcflush(fd, TCIFLUSH);
+
         if ( (errcode = tty_write(fd, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
         {
             tty_error_msg(errcode, errmsg, MAXRBUF);
@@ -585,6 +601,8 @@ bool goto_ieqpro_home(int fd)
     }
     else
     {
+        tcflush(fd, TCIFLUSH);
+
         if ( (errcode = tty_write(fd, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
         {
             tty_error_msg(errcode, errmsg, MAXRBUF);
@@ -631,6 +649,8 @@ bool set_ieqpro_current_home(int fd)
     }
     else
     {
+        tcflush(fd, TCIFLUSH);
+
         if ( (errcode = tty_write(fd, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
         {
             tty_error_msg(errcode, errmsg, MAXRBUF);
@@ -681,6 +701,8 @@ bool set_ieqpro_slew_rate(int fd, IEQ_SLEW_RATE rate)
     }
     else
     {
+        tcflush(fd, TCIFLUSH);
+
         if ( (errcode = tty_write(fd, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
         {
             tty_error_msg(errcode, errmsg, MAXRBUF);
@@ -746,6 +768,8 @@ bool set_ieqpro_track_mode(int fd, IEQ_TRACK_RATE rate)
     }
     else
     {
+        tcflush(fd, TCIFLUSH);
+
         if ( (errcode = tty_write(fd, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
         {
             tty_error_msg(errcode, errmsg, MAXRBUF);
@@ -800,6 +824,8 @@ bool set_ieqpro_custom_track_rate(int fd, double rate)
     }
     else
     {
+        tcflush(fd, TCIFLUSH);
+
         if ( (errcode = tty_write(fd, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
         {
             tty_error_msg(errcode, errmsg, MAXRBUF);
@@ -850,6 +876,8 @@ bool set_ieqpro_guide_rate(int fd, double rate)
     }
     else
     {
+        tcflush(fd, TCIFLUSH);
+
         if ( (errcode = tty_write(fd, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
         {
             tty_error_msg(errcode, errmsg, MAXRBUF);
@@ -896,6 +924,8 @@ bool get_ieqpro_guide_rate(int fd, double *rate)
     }
     else
     {
+        tcflush(fd, TCIFLUSH);
+
         if ( (errcode = tty_write(fd, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
         {
             tty_error_msg(errcode, errmsg, MAXRBUF);
@@ -973,6 +1003,8 @@ bool start_ieqpro_guide(int fd,  IEQ_DIRECTION dir, int ms)
         return true;
     else
     {
+        tcflush(fd, TCIFLUSH);
+
         if ( (errcode = tty_write(fd, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
         {
             tty_error_msg(errcode, errmsg, MAXRBUF);
@@ -1005,6 +1037,8 @@ bool park_ieqpro(int fd)
     }
     else
     {
+        tcflush(fd, TCIFLUSH);
+
         if ( (errcode = tty_write(fd, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
         {
             tty_error_msg(errcode, errmsg, MAXRBUF);
@@ -1061,6 +1095,8 @@ bool unpark_ieqpro(int fd)
     }
     else
     {
+        tcflush(fd, TCIFLUSH);
+
         if ( (errcode = tty_write(fd, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
         {
             tty_error_msg(errcode, errmsg, MAXRBUF);
@@ -1108,6 +1144,8 @@ bool abort_ieqpro(int fd)
     }
     else
     {
+        tcflush(fd, TCIFLUSH);
+
         if ( (errcode = tty_write(fd, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
         {
             tty_error_msg(errcode, errmsg, MAXRBUF);
@@ -1155,6 +1193,8 @@ bool slew_ieqpro(int fd)
     }
     else
     {
+        tcflush(fd, TCIFLUSH);
+
         if ( (errcode = tty_write(fd, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
         {
             tty_error_msg(errcode, errmsg, MAXRBUF);
@@ -1211,6 +1251,8 @@ bool sync_ieqpro(int fd)
     }
     else
     {
+        tcflush(fd, TCIFLUSH);
+
         if ( (errcode = tty_write(fd, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
         {
             tty_error_msg(errcode, errmsg, MAXRBUF);
@@ -1263,6 +1305,8 @@ bool set_ieqpro_ra(int fd, double ra)
     }
     else
     {
+        tcflush(fd, TCIFLUSH);
+
         if ( (errcode = tty_write(fd, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
         {
             tty_error_msg(errcode, errmsg, MAXRBUF);
@@ -1321,6 +1365,8 @@ bool set_ieqpro_dec(int fd, double dec)
     }
     else
     {
+        tcflush(fd, TCIFLUSH);
+
         if ( (errcode = tty_write(fd, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
         {
             tty_error_msg(errcode, errmsg, MAXRBUF);
@@ -1376,6 +1422,8 @@ bool set_ieqpro_longitude(int fd, double longitude)
     }
     else
     {
+        tcflush(fd, TCIFLUSH);
+
         if ( (errcode = tty_write(fd, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
         {
             tty_error_msg(errcode, errmsg, MAXRBUF);
@@ -1432,6 +1480,8 @@ bool set_ieqpro_latitude(int fd, double latitude)
     }
     else
     {
+        tcflush(fd, TCIFLUSH);
+
         if ( (errcode = tty_write(fd, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
         {
             tty_error_msg(errcode, errmsg, MAXRBUF);
@@ -1460,6 +1510,124 @@ bool set_ieqpro_latitude(int fd, double latitude)
     return false;
 }
 
+bool get_ieqpro_longitude(int fd, double *longitude)
+{
+    char cmd[16];
+    int errcode = 0;
+    char errmsg[MAXRBUF];
+    char response[8];
+    int nbytes_read=0;
+    int nbytes_written=0;
+
+    strcpy(cmd, ":Gg#");
+
+    DEBUGFDEVICE(ieqpro_device, INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
+
+    if (ieqpro_simulation)
+    {
+        strcpy(response, "+172800");
+        nbytes_read = strlen(response);
+    }
+    else
+    {
+        tcflush(fd, TCIFLUSH);
+
+        if ( (errcode = tty_write(fd, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
+        {
+            tty_error_msg(errcode, errmsg, MAXRBUF);
+            DEBUGFDEVICE(ieqpro_device, INDI::Logger::DBG_ERROR, "%s", errmsg);
+            return false;
+        }
+        if ( (errcode = tty_read_section(fd, response, '#', IEQPRO_TIMEOUT, &nbytes_read)))
+        {
+            tty_error_msg(errcode, errmsg, MAXRBUF);
+            DEBUGFDEVICE(ieqpro_device, INDI::Logger::DBG_ERROR, "%s", errmsg);
+            return false;
+        }
+    }
+
+    if (nbytes_read > 0)
+    {
+      response[nbytes_read] = '\0';
+      DEBUGFDEVICE(ieqpro_device, INDI::Logger::DBG_DEBUG, "RES (%s)", response);
+
+      tcflush(fd, TCIFLUSH);
+
+      int longitude_arcsecs=0;
+
+      if (sscanf(response, "%d#", &longitude_arcsecs) > 0)
+      {
+          *longitude = longitude_arcsecs / 3600.0;
+          return true;
+      }
+
+      DEBUGFDEVICE(ieqpro_device, INDI::Logger::DBG_ERROR, "Error: Malformed result (%s).", response);
+      return false;
+    }
+
+    DEBUGFDEVICE(ieqpro_device, INDI::Logger::DBG_ERROR, "Only received #%d bytes, expected 8.", nbytes_read);
+    return false;
+}
+
+bool get_ieqpro_latitude(int fd, double *latitude)
+{
+    char cmd[16];
+    int errcode = 0;
+    char errmsg[MAXRBUF];
+    char response[8];
+    int nbytes_read=0;
+    int nbytes_written=0;
+
+    strcpy(cmd, ":Gt#");
+
+    DEBUGFDEVICE(ieqpro_device, INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
+
+    if (ieqpro_simulation)
+    {
+        strcpy(response, "+106200");
+        nbytes_read = strlen(response);
+    }
+    else
+    {
+        tcflush(fd, TCIFLUSH);
+
+        if ( (errcode = tty_write(fd, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
+        {
+            tty_error_msg(errcode, errmsg, MAXRBUF);
+            DEBUGFDEVICE(ieqpro_device, INDI::Logger::DBG_ERROR, "%s", errmsg);
+            return false;
+        }
+        if ( (errcode = tty_read_section(fd, response, '#', IEQPRO_TIMEOUT, &nbytes_read)))
+        {
+            tty_error_msg(errcode, errmsg, MAXRBUF);
+            DEBUGFDEVICE(ieqpro_device, INDI::Logger::DBG_ERROR, "%s", errmsg);
+            return false;
+        }
+    }
+
+    if (nbytes_read > 0)
+    {
+      response[nbytes_read] = '\0';
+      DEBUGFDEVICE(ieqpro_device, INDI::Logger::DBG_DEBUG, "RES (%s)", response);
+
+      tcflush(fd, TCIFLUSH);
+
+      int latitude_arcsecs=0;
+
+      if (sscanf(response, "%d#", &latitude_arcsecs) > 0)
+      {
+          *latitude = latitude_arcsecs / 3600.0;
+          return true;
+      }
+
+      DEBUGFDEVICE(ieqpro_device, INDI::Logger::DBG_ERROR, "Error: Malformed result (%s).", response);
+      return false;
+    }
+
+    DEBUGFDEVICE(ieqpro_device, INDI::Logger::DBG_ERROR, "Only received #%d bytes, expected 8.", nbytes_read);
+    return false;
+}
+
 bool set_ieqpro_local_date(int fd, int yy, int mm, int dd)
 {
     char cmd[16];
@@ -1480,6 +1648,8 @@ bool set_ieqpro_local_date(int fd, int yy, int mm, int dd)
     }
     else
     {
+        tcflush(fd, TCIFLUSH);
+
         if ( (errcode = tty_write(fd, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
         {
             tty_error_msg(errcode, errmsg, MAXRBUF);
@@ -1528,6 +1698,8 @@ bool set_ieqpro_local_time(int fd, int hh, int mm, int ss)
     }
     else
     {
+        tcflush(fd, TCIFLUSH);
+
         if ( (errcode = tty_write(fd, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
         {
             tty_error_msg(errcode, errmsg, MAXRBUF);
@@ -1579,6 +1751,8 @@ bool set_ieqpro_daylight_saving(int fd, bool enabled)
     }
     else
     {
+        tcflush(fd, TCIFLUSH);
+
         if ( (errcode = tty_write(fd, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
         {
             tty_error_msg(errcode, errmsg, MAXRBUF);
@@ -1635,6 +1809,8 @@ bool set_ieqpro_utc_offset(int fd, double offset)
     }
     else
     {
+        tcflush(fd, TCIFLUSH);
+
         if ( (errcode = tty_write(fd, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
         {
             tty_error_msg(errcode, errmsg, MAXRBUF);
@@ -1696,6 +1872,8 @@ bool get_ieqpro_coords(int fd, double *ra, double *dec)
     }
     else
     {
+        tcflush(fd, TCIFLUSH);
+
         if ( (errcode = tty_write(fd, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
         {
             tty_error_msg(errcode, errmsg, MAXRBUF);
@@ -1747,13 +1925,19 @@ bool get_ieqpro_utc_date_time(int fd, double *utc_hours, int *yy, int *mm, int *
 
     DEBUGFDEVICE(ieqpro_device, INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
 
+    // Format according to Manual is sMMMYYMMDDHHMMSS#
+    // However as pointed out by user Shepherd on INDI forums, actual format is
+    // sMMMxYYMMDDHHMMSS#
+    // Where x is either 0 or 1 denoting daying savings
     if (ieqpro_simulation)
     {
-        strncpy(response, "+180150331173000#" , 32);
+        strncpy(response, "+1800150331173000#" , 32);
         nbytes_read = strlen(response);
     }
     else
     {
+        tcflush(fd, TCIFLUSH);
+
         if ( (errcode = tty_write(fd, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
         {
             tty_error_msg(errcode, errmsg, MAXRBUF);
@@ -1775,15 +1959,24 @@ bool get_ieqpro_utc_date_time(int fd, double *utc_hours, int *yy, int *mm, int *
       response[nbytes_read] = '\0';
       DEBUGFDEVICE(ieqpro_device, INDI::Logger::DBG_DEBUG, "RES (%s)", response);
 
-      char utc_str[4], yy_str[2], mm_str[2], dd_str[2], hh_str[2], minute_str[2], ss_str[2];
+      char utc_str[4], yy_str[2], mm_str[2], dd_str[2], hh_str[2], minute_str[2], ss_str[2], dst_str[1];
 
+      // UTC Offset
       strncpy(utc_str, response, 4);
-      strncpy(yy_str, response+4, 2);
-      strncpy(mm_str, response+6, 2);
-      strncpy(dd_str, response+8, 2);
-      strncpy(hh_str, response+10, 2);
-      strncpy(minute_str, response+12, 2);
-      strncpy(ss_str, response+14, 2);
+      // Daylight savings
+      strncpy(dst_str, response+4, 1);
+      // Year
+      strncpy(yy_str, response+5, 2);
+      // Month
+      strncpy(mm_str, response+7, 2);
+      // Day
+      strncpy(dd_str, response+9, 2);
+      // Hour
+      strncpy(hh_str, response+11, 2);
+      // Minute
+      strncpy(minute_str, response+13, 2);
+      // Second
+      strncpy(ss_str, response+15, 2);
 
       *utc_hours = atoi(utc_str) / 60.0;
       *yy        = atoi(yy_str) + 2000;
