@@ -76,23 +76,11 @@
 	<device label="Temma Takahashi" focal_length="" aperture="">
 		<driver name="Temma">indi_temma</driver>
 	  	<version>0.1</version>
-	</device>
-	<device label="Sky Commander" focal_length="" aperture="">
-		<driver name="Sky Commander">indi_skycommander</driver>
-		<version>0.1</version>
-	</device>
+        </device>
 	<device label="Argo Navis" focal_length="" aperture="">
 		<driver name="LX200 Basic">indi_lx200basic</driver>
 		<version>1.0</version>
-	</device>
-	<device label="Intelliscope" focal_length="" aperture="">
-		<driver name="Intelliscope">indi_intelliscope</driver>
-		<version>0.2</version>
-	</device>
-	<device label="SkyWizard" focal_length="" aperture="">
-		<driver name="Intelliscope">indi_intelliscope</driver>
-		<version>0.2</version>
-	</device>        
+	</device>	
         <device label="SynScan" focal_length="" aperture="">
                 <driver name="SynScan">indi_synscan</driver>
                 <version>1.0</version>
@@ -100,10 +88,6 @@
         <device label="SkySensor2000PC" focal_length="" aperture="">
                 <driver name="SkySensor2000PC">indi_lx200ss2000pc</driver>
                 <version>0.1</version>
-        </device>
-        <device label="Magellan I" focal_length="" aperture="">
-                <driver name="Magellan I">indi_magellan1</driver>
-                <version>1.0</version>
         </device>
         <device label="iEQ45 Pro" focal_length="" aperture="">
                 <driver name="iEQ">indi_ieq_telescope</driver>
@@ -219,10 +203,6 @@
         </device>
 </devGroup>
 <devGroup group="Filter Wheels">
-	<device label="TruTech Wheel">
-		<driver name="TruTech Wheel">indi_trutech_wheel</driver>
-		<version>0.1</version>
-    	</device>
         <device label="XAGYL Wheel">
                 <driver name="XAGYL Wheel">indi_xagyl_wheel</driver>
                 <version>0.1</version>
@@ -239,12 +219,6 @@
             <driver name="Quantum Wheel">indi_quantum_wheel</driver>
             <version>0.1</version>
         </device>
-</devGroup>
-<devGroup group="Video">
-        <device label="STV Guider">
-		<driver name="STV Guider">indi_sbig_stv</driver>
-		<version>0.1</version>
-	</device>
 </devGroup>
 <devGroup group="Auxiliary">
         <device label="WatchDog">
