@@ -35,12 +35,12 @@
    Implementing a basic telescope driver involves the child class performing the following steps:
    <ul>
    <li>The child class should define the telescope capabilities via the TelescopeCapability structure and sets in the default constructor.</li>
-   <li>If the telescope has additional properties, the child class should override initProperties and initilize the respective additional properties.</li>
+   <li>If the telescope has additional properties, the child class should override initProperties and initialize the respective additional properties.</li>
    <li>Once the parent class calls Connect(), the child class attempts to connect to the telescope and return either success of failure</li>
    <li>INDI::Telescope calls updateProperties() to enable the child class to define which properties to send to the client upon connection</li>
    <li>INDI::Telescope calls ReadScopeStatus() to check the link to the telescope and update its state and position. The child class should call newRaDec() whenever
    a new value is read from the telescope.</li>
-   <li>The child class should implmenet Goto() and Sync(), and Park()/UnPark() if applicable.</li>
+   <li>The child class should implement Goto() and Sync(), and Park()/UnPark() if applicable.</li>
    <li>INDI::Telescope calls disconnect() when the client request a disconnection. The child class should remove any additional properties it defined in updateProperties() if applicable</li>
    </ul>
 

@@ -513,6 +513,7 @@ LX200Pulsar2::LX200Pulsar2(void)
 {
   setVersion(1, 0);
   SetTelescopeCapability(TELESCOPE_CAN_SYNC | TELESCOPE_CAN_PARK | TELESCOPE_CAN_ABORT | TELESCOPE_HAS_TIME | TELESCOPE_HAS_LOCATION, 4);
+  hasFocus=false;
 }
 
 
@@ -614,9 +615,6 @@ bool LX200Pulsar2::updateProperties(void) {
     defineSwitch(&RefractionCorrectionSP);
     // Delete unsupported properties
     deleteProperty(AlignmentSP.name);
-    deleteProperty(FocusMotionSP.name);
-    deleteProperty(FocusTimerNP.name);
-    deleteProperty(FocusModeSP.name);
     deleteProperty(SiteSP.name);
     deleteProperty(SiteNameTP.name);
     deleteProperty(TrackingFreqNP.name);
