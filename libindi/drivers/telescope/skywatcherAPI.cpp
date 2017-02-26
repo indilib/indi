@@ -59,7 +59,7 @@ const double SkywatcherAPI::MAX_SPEED = 500.0; // Radians per second
 
 // Constructor
 
-SkywatcherAPI::SkywatcherAPI()
+SkywatcherAPI::SkywatcherAPI() : SilentSlewMode(false)
 {
     // I add an additional debug level so I can log verbose scope status
     DBG_SCOPE = INDI::Logger::getInstance().addDebugLevel("Scope Verbose", "SCOPE");
@@ -620,7 +620,7 @@ bool SkywatcherAPI::SetSwitch(bool OnOff)
     return true;
 }
 
-void SkywatcherAPI::Slew(AXISID Axis, double SpeedInRadiansPerSecond)
+void SkywatcherAPI::Slew(AXISID Axis, double SpeedInRadiansPerSecond, bool IgnoreSilentMode)
 {
     MYDEBUG(DBG_SCOPE, "Slew");
     // Clamp to MAX_SPEED
@@ -650,7 +650,8 @@ void SkywatcherAPI::Slew(AXISID Axis, double SpeedInRadiansPerSecond)
     }
 
     bool HighSpeed = false;
-    if (InternalSpeed > LOW_SPEED_MARGIN)
+
+    if (InternalSpeed > LOW_SPEED_MARGIN && (IgnoreSilentMode || !SilentSlewMode))
     {
         InternalSpeed = InternalSpeed / (double)HighSpeedRatio[Axis];
         HighSpeed = true;
@@ -695,11 +696,10 @@ void SkywatcherAPI::SlewTo(AXISID Axis, long OffsetInMicrosteps)
         OffsetInMicrosteps = -OffsetInMicrosteps;
     }
 
-    bool HighSpeed;
-    if (OffsetInMicrosteps > LowSpeedGotoMargin[Axis])
+    bool HighSpeed = false;
+
+    if (OffsetInMicrosteps > LowSpeedGotoMargin[Axis] && !SilentSlewMode)
         HighSpeed = true;
-    else
-        HighSpeed = false;
 
     if (!GetStatus(Axis))
         return;

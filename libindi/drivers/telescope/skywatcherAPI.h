@@ -212,8 +212,9 @@ public:
 
     /// \brief Start the axis slewing at the given rate
     /// \param[in] Axis - The axis to use.
-    /// \param[in] SpeedInRadiansPerSecond - the slewiing speed
-    void Slew(AXISID Axis, double SpeedInRadiansPerSecond);
+    /// \param[in] SpeedInRadiansPerSecond - the slewing speed
+    /// \param[in] IgnoreSilentMode - ignore the silent mode even if set
+    void Slew(AXISID Axis, double SpeedInRadiansPerSecond, bool IgnoreSilentMode = true);
 
     /// \brief Slew to the given offset and stop
     /// \param[in] Axis - The axis to use.
@@ -240,6 +241,7 @@ public:
     enum MountType { EQ6=0x00, HEQ5=0x01, EQ5=0x02, EQ3=0x03, GT=0x80, MF=0x81, _114GT=0x82, DOB=0x90 };
     unsigned long MountCode;
     bool IsDCMotor;
+    bool SilentSlewMode;
 
     // Values from mount
     long MicrostepsPerRevolution[2]; // Number of microsteps for 360 degree revolution

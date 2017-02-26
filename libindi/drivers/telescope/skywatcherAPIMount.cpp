@@ -111,7 +111,16 @@ bool  SkywatcherAPIMount::Connect()
     //SetSerialPort(PortFD); Hacked in ReadScopeStatus
 
     DEBUG(DBG_SCOPE, "SkywatcherAPIMount::Connect - Call InitMount");
-	return InitMount();
+	bool Result = InitMount();
+
+    // The default slew mode is silent on Virtuoso mounts.
+    if (Result && IsVirtuosoMount() &&
+        IUFindSwitch(&SlewModesSP, "SLEW_SILENT") && IUFindSwitch(&SlewModesSP, "SLEW_NORMAL"))
+    {
+        IUFindSwitch(&SlewModesSP, "SLEW_SILENT")->s = ISS_ON;
+        IUFindSwitch(&SlewModesSP, "SLEW_NORMAL")->s = ISS_OFF;
+    }
+    return Result;
 }
 
 const char * SkywatcherAPIMount::getDefaultName()
@@ -236,6 +245,12 @@ bool SkywatcherAPIMount::Goto(double ra, double dec)
     DEBUGF(INDI::AlignmentSubsystem::DBG_ALIGNMENT, "Altitude offset %ld microsteps Azimuth offset %ld microsteps",
                                                     AltitudeOffsetMicrosteps, AzimuthOffsetMicrosteps);
 
+    if (IUFindSwitch(&SlewModesSP, "SLEW_SILENT") && IUFindSwitch(&SlewModesSP, "SLEW_SILENT")->s == ISS_ON)
+    {
+        SilentSlewMode = true;
+    } else {
+        SilentSlewMode = false;
+    }
     SlewTo(AXIS1, AzimuthOffsetMicrosteps);
     SlewTo(AXIS2, AltitudeOffsetMicrosteps);
 
@@ -440,6 +455,10 @@ bool SkywatcherAPIMount::initProperties()
                         DetailedMountInfoPage, IP_RO, 60, IPS_IDLE);
     // Register any visible before connection properties
 
+    IUFillSwitch(&SlewModes[SLEW_SILENT], "SLEW_SILENT", "Silent", ISS_OFF);
+    IUFillSwitch(&SlewModes[SLEW_NORMAL], "SLEW_NORMAL", "Normal", ISS_ON);
+    IUFillSwitchVector(&SlewModesSP, SlewModes, 2, getDeviceName(), "TELESCOPE_MOTION_SLEWMODE", "Slew Mode",
+                       MOTION_TAB, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
     return true;
 }
 
@@ -464,6 +483,7 @@ void SkywatcherAPIMount::ISGetProperties (const char *dev)
         defineSwitch(&AxisTwoStateV);
         defineNumber(&AxisOneEncoderValuesV);
         defineNumber(&AxisTwoEncoderValuesV);
+        defineSwitch(&SlewModesSP);
     }
     return;
 }
@@ -530,7 +550,8 @@ bool SkywatcherAPIMount::MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command)
     {
         case MOTION_START:
         DEBUGF(DBG_SCOPE, "Starting Slew %s", dirStr);
-        Slew(AXIS2, speed);
+        // Ignore the silent mode because MoveNS() is called by the manual motion UI controls.
+        Slew(AXIS2, speed, false);
         break;
 
         case MOTION_STOP:
@@ -556,7 +577,8 @@ bool SkywatcherAPIMount::MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command)
     {
         case MOTION_START:
         DEBUGF(DBG_SCOPE, "Starting Slew %s", dirStr);
-        Slew(AXIS1, speed);
+        // Ignore the silent mode because MoveNS() is called by the manual motion UI controls.
+        Slew(AXIS1, speed, false);
         break;
 
         case MOTION_STOP:
@@ -972,7 +994,7 @@ bool SkywatcherAPIMount::updateProperties()
 
         // Define our connected only properties to the base driver
         // e.g. defineNumber(MyNumberVectorPointer);
-        // This will register our properties and send a IDDefXXXX mewssage to any connected clients
+        // This will register our properties and send a IDDefXXXX message to any connected clients
         // I have now idea why I have to do this here as well as in ISGetProperties. It makes me
         // concerned there is a design or implementation flaw somewhere.
         defineNumber(&BasicMountInfoV);
@@ -983,6 +1005,7 @@ bool SkywatcherAPIMount::updateProperties()
         defineSwitch(&AxisTwoStateV);
         defineNumber(&AxisOneEncoderValuesV);
         defineNumber(&AxisTwoEncoderValuesV);
+        defineSwitch(&SlewModesSP);
 
         // Start the timer if we need one
         // SetTimer(POLLMS);
@@ -1000,6 +1023,7 @@ bool SkywatcherAPIMount::updateProperties()
         deleteProperty(AxisTwoStateV.name);
         deleteProperty(AxisOneEncoderValuesV.name);
         deleteProperty(AxisTwoEncoderValuesV.name);
+        deleteProperty(SlewModesSP.name);
         return true;
     }
 }

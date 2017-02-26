@@ -84,6 +84,11 @@ private:
     INumber AxisTwoEncoderValues[3];
     INumberVectorProperty AxisTwoEncoderValuesV;
 
+    // A switch for silent/highspeed slewing modes
+    enum { SLEW_SILENT, SLEW_NORMAL };
+    ISwitch SlewModes[2];
+    ISwitchVectorProperty SlewModesSP;
+
     // Previous motion direction
     typedef enum { PREVIOUS_NS_MOTION_NORTH = DIRECTION_NORTH,
                     PREVIOUS_NS_MOTION_SOUTH = DIRECTION_SOUTH,
