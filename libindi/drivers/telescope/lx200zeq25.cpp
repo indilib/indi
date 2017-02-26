@@ -29,6 +29,7 @@
 LX200ZEQ25::LX200ZEQ25()
 {
     setVersion(1, 0);
+    hasFocus=false;
 }
 
 bool LX200ZEQ25::updateProperties()
@@ -39,9 +40,6 @@ bool LX200ZEQ25::updateProperties()
     {
         // Delete unsupported properties
         deleteProperty(AlignmentSP.name);
-        deleteProperty(FocusMotionSP.name);
-        deleteProperty(FocusTimerNP.name);
-        deleteProperty(FocusModeSP.name);
         deleteProperty(SiteSP.name);
         deleteProperty(SiteNameTP.name);
     }

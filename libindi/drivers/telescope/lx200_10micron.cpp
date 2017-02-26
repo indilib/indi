@@ -40,11 +40,7 @@ LX200_10MICRON::LX200_10MICRON(void)
   : LX200Generic()
 {
     // TODO define the telescope capabilities via the TelescopeCapability
-
-    // these things still pop up
-    deleteProperty(FocusMotionSP.name);
-    deleteProperty(FocusModeSP.name);
-    deleteProperty(FocusTimerNP.name);
+    hasFocus=false;
 
     setVersion(1, 0);
 }
@@ -60,26 +56,9 @@ const char *LX200_10MICRON::getDefaultName(void)
 bool LX200_10MICRON::initProperties(void) {
     const bool result = LX200Generic::initProperties();    
 
-    // these things still pop up
-    deleteProperty(FocusMotionSP.name);
-    deleteProperty(FocusModeSP.name);
-    deleteProperty(FocusTimerNP.name);
-
     // TODO initialize properties additional to INDI::Telescope
 
     return result;
-}
-
-// Called by INDI::Telescope::ISGetProperties to define properties for when the device is in a disconnected state
-// This includes new connections, fi an indi_getprop
-void LX200_10MICRON::ISGetProperties (const char *dev)
-{
-    LX200Generic::ISGetProperties(dev);
-
-    // these things still pop up
-    deleteProperty(FocusMotionSP.name);
-    deleteProperty(FocusModeSP.name);
-    deleteProperty(FocusTimerNP.name);
 }
 
 // this should move to some generic library
@@ -116,12 +95,6 @@ int LX200_10MICRON::monthToNumber(const char *monthName)
 // Called by INDI::Telescope when connected state changes to add/remove properties
 bool LX200_10MICRON::updateProperties(void) {
     bool result = LX200Generic::updateProperties();
-
-    // LX200Generic::updateProperties just created some properties we don't have, so remove them
-    // these things still pop up
-    deleteProperty(FocusMotionSP.name);
-    deleteProperty(FocusModeSP.name);
-    deleteProperty(FocusTimerNP.name);
 
     if (isConnected()) {
         char ProductName[80];

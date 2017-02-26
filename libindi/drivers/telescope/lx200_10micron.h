@@ -32,7 +32,6 @@ public:
 
     virtual const char *getDefaultName(void);    
     virtual bool initProperties(void);
-    virtual void ISGetProperties (const char *dev);
     virtual bool updateProperties(void);
 
     // TODO move this thing elsewhere
