@@ -938,12 +938,8 @@ install(FILES ${CMAKE_CURRENT_BINARY_DIR}/libindi.pc DESTINATION ${PKGCONFIG_INS
 install(FILES ${CMAKE_CURRENT_BINARY_DIR}/indiversion.h DESTINATION ${INCLUDE_INSTALL_DIR}/libindi COMPONENT Devel)
 
 install( FILES
-    ${CMAKE_CURRENT_SOURCE_DIR}/indiapi.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/indidevapi.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/base64.h
     ${CMAKE_CURRENT_SOURCE_DIR}/eventloop.h
     ${CMAKE_CURRENT_SOURCE_DIR}/indidriver.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/libs/lilxml.h
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indibase.h
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indibasetypes.h
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/basedevice.h
@@ -961,7 +957,6 @@ install( FILES
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indilightboxinterface.h
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indidustcapinterface.h
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indiweather.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/libs/indicom.h
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indilogger.h
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indicontroller.h
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indiusbdevice.h
@@ -1002,6 +997,17 @@ ENDIF (GTEST_FOUND)
 
 endif (WIN32 OR ANDROID)
 endif(INDI_BUILD_DRIVERS)
+
+# Install common dev files for all except server
+if (INDI_BUILD_DRIVERS OR INDI_BUILD_POSIX_CLIENT OR INDI_BUILD_QT5_CLIENT)
+    install( FILES
+        ${CMAKE_CURRENT_SOURCE_DIR}/indiapi.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/indidevapi.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/base64.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/libs/lilxml.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/libs/indicom.h
+        DESTINATION ${INCLUDE_INSTALL_DIR}/libindi COMPONENT Devel)
+endif (INDI_BUILD_DRIVERS OR INDI_BUILD_POSIX_CLIENT OR INDI_BUILD_QT5_CLIENT)
 
 feature_summary(WHAT ALL FATAL_ON_MISSING_REQUIRED_PACKAGES)
 
