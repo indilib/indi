@@ -150,6 +150,7 @@ set_target_properties(indiclient PROPERTIES COMPILE_FLAGS "-fPIC")
 endif (NOT CYGWIN AND NOT WIN32)
 target_link_libraries(indiclient ${CMAKE_THREAD_LIBS_INIT})
 install(TARGETS indiclient ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR})
+install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/baseclient.h DESTINATION ${INCLUDE_INSTALL_DIR}/libindi COMPONENT Devel)
 endif (WIN32 OR ANDROID)
 endif (INDI_BUILD_POSIX_CLIENT)
 
@@ -935,37 +936,9 @@ install( FILES drivers.xml ${CMAKE_CURRENT_SOURCE_DIR}/drivers/focuser/indi_tcfs
 
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/libindi.pc.cmake ${CMAKE_CURRENT_BINARY_DIR}/libindi.pc @ONLY)
 install(FILES ${CMAKE_CURRENT_BINARY_DIR}/libindi.pc DESTINATION ${PKGCONFIG_INSTALL_PREFIX})
-install(FILES ${CMAKE_CURRENT_BINARY_DIR}/indiversion.h DESTINATION ${INCLUDE_INSTALL_DIR}/libindi COMPONENT Devel)
-
-install( FILES
-    ${CMAKE_CURRENT_SOURCE_DIR}/eventloop.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/indidriver.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indibase.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indibasetypes.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/basedevice.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/defaultdevice.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indiccd.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indifilterwheel.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indifocuserinterface.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indifocuser.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/inditelescope.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indiguiderinterface.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indifilterinterface.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indiproperty.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indidome.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indigps.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indilightboxinterface.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indidustcapinterface.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indiweather.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indilogger.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indicontroller.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indiusbdevice.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/hidapi.h
-    DESTINATION ${INCLUDE_INSTALL_DIR}/libindi COMPONENT Devel)
 
 if (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
     install( FILES
-    ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/baseclient.h
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/webcam/ccvt.h
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/webcam/ccvt_types.h
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/webcam/v4l2_record/v4l2_record.h
@@ -973,7 +946,8 @@ if (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/webcam/v4l2_decode/v4l2_decode.h
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/webcam/v4l2_decode/v4l2_builtin_decoder.h
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/webcam/v4l2_record/stream_recorder.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/libs/webcam/ccvt_types.h ${CMAKE_CURRENT_SOURCE_DIR}/libs/webcam/v4l2_colorspace.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/libs/webcam/ccvt_types.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/libs/webcam/v4l2_colorspace.h
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/webcam/jpegutils.h
     DESTINATION ${INCLUDE_INSTALL_DIR}/libindi COMPONENT Devel)
 endif()
@@ -1000,12 +974,36 @@ endif(INDI_BUILD_DRIVERS)
 
 # Install common dev files for all except server
 if (INDI_BUILD_DRIVERS OR INDI_BUILD_POSIX_CLIENT OR INDI_BUILD_QT5_CLIENT)
+    install(FILES ${CMAKE_CURRENT_BINARY_DIR}/indiversion.h DESTINATION ${INCLUDE_INSTALL_DIR}/libindi COMPONENT Devel)
     install( FILES
         ${CMAKE_CURRENT_SOURCE_DIR}/indiapi.h
         ${CMAKE_CURRENT_SOURCE_DIR}/indidevapi.h
         ${CMAKE_CURRENT_SOURCE_DIR}/base64.h
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/lilxml.h
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/indicom.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/eventloop.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/indidriver.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indibase.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indibasetypes.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/basedevice.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/defaultdevice.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indiccd.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indifilterwheel.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indifocuserinterface.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indifocuser.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/inditelescope.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indiguiderinterface.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indifilterinterface.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indiproperty.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indidome.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indigps.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indilightboxinterface.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indidustcapinterface.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indiweather.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indilogger.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indicontroller.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indiusbdevice.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/hidapi.h
         DESTINATION ${INCLUDE_INSTALL_DIR}/libindi COMPONENT Devel)
 endif (INDI_BUILD_DRIVERS OR INDI_BUILD_POSIX_CLIENT OR INDI_BUILD_QT5_CLIENT)
 
