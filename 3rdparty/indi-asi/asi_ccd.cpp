@@ -25,7 +25,7 @@
 #include <unistd.h>
 #include <sys/time.h>
 
-#ifndef OSX_EMBEDED_MODE
+#if !defined(OSX_EMBEDED_MODE) && !defined(__CYGWIN__)
 #include <stream_recorder.h>
 #endif
 
@@ -270,7 +270,7 @@ bool ASICCD::initProperties()
   if (m_camInfo->IsColorCam)
       cap |= CCD_HAS_BAYER;
 
-  #ifndef OSX_EMBEDED_MODE
+  #if !defined(OSX_EMBEDED_MODE) && !defined(__CYGWIN__)
   cap |= CCD_HAS_STREAMING;
   #endif
 
@@ -370,7 +370,7 @@ bool ASICCD::Connect()
 
   TemperatureUpdateCounter = 0;
 
-#ifndef OSX_EMBEDED_MODE
+#if !defined(OSX_EMBEDED_MODE) && !defined(__CYGWIN__)
   pthread_create( &primary_thread, NULL, &streamVideoHelper, this);
 #endif
   DEBUG(INDI::Logger::DBG_SESSION,  "Setting intital bandwidth to AUTO on connection.");
@@ -541,7 +541,7 @@ bool ASICCD::setupParams()
   DEBUGF(INDI::Logger::DBG_DEBUG, "setupParams ASISetROIFormat (%dx%d,  bin %d, type %d)", m_camInfo->MaxWidth, m_camInfo->MaxHeight, 1, imgType);
   ASISetROIFormat(m_camInfo->CameraID, m_camInfo->MaxWidth, m_camInfo->MaxHeight, 1, imgType);
 
-  #ifndef OSX_EMBEDED_MODE
+  #if !defined(OSX_EMBEDED_MODE) && !defined(__CYGWIN__)
   updateRecorderFormat();
   streamer->setRecorderSize(w,h);
   #endif
@@ -675,7 +675,7 @@ bool ASICCD::ISNewSwitch (const char *dev, const char *name, ISState *states, ch
 
         if (!strcmp(name, VideoFormatSP.name))
         {
-            #ifndef OSX_EMBEDED_MODE
+            #if !defined(OSX_EMBEDED_MODE) && !defined(__CYGWIN__)
             if (streamer->isBusy())
             {
                 VideoFormatSP.s = IPS_ALERT;
@@ -714,7 +714,7 @@ bool ASICCD::ISNewSwitch (const char *dev, const char *name, ISState *states, ch
    return INDI::CCD::ISNewSwitch(dev,name,states,names,n);
 }
 
-#ifndef OSX_EMBEDED_MODE
+#if !defined(OSX_EMBEDED_MODE) && !defined(__CYGWIN__)
 bool ASICCD::StartStreaming()
 {
     ASI_IMG_TYPE type = getImageType();
@@ -752,7 +752,7 @@ bool ASICCD::StartStreaming()
 }
 #endif
 
-#ifndef OSX_EMBEDED_MODE
+#if !defined(OSX_EMBEDED_MODE) && !defined(__CYGWIN__)
 bool ASICCD::StopStreaming()
 {
     pthread_mutex_lock(&condMutex);
@@ -886,7 +886,7 @@ bool ASICCD::UpdateCCDFrame(int x, int y, int w, int h)
       return false;
   }
 
-  #ifndef OSX_EMBEDED_MODE
+  #if !defined(OSX_EMBEDED_MODE) && !defined(__CYGWIN__)
   streamer->setRecorderSize(bin_width, bin_height);
   #endif
 
@@ -1487,7 +1487,7 @@ void ASICCD::updateControls()
 void ASICCD::updateRecorderFormat()
 {
 
-    #ifndef OSX_EMBEDED_MODE
+    #if !defined(OSX_EMBEDED_MODE) && !defined(__CYGWIN__)
     switch (getImageType())
     {
       case ASI_IMG_Y8:
@@ -1523,7 +1523,7 @@ void ASICCD::updateRecorderFormat()
 
 }
 
-#ifndef OSX_EMBEDED_MODE
+#if !defined(OSX_EMBEDED_MODE) && !defined(__CYGWIN__)
 void * ASICCD::streamVideoHelper(void* context)
 {
     return ((ASICCD*)context)->streamVideo();

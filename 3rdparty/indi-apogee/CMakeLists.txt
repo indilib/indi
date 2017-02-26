@@ -32,7 +32,7 @@ set(indiapogee_SRCS
 
 add_executable(indi_apogee_ccd ${indiapogee_SRCS})
 
-target_link_libraries(indi_apogee_ccd ${INDI_DRIVER_LIBRARIES} ${CFITSIO_LIBRARIES} ${APOGEE_LIBRARY})
+target_link_libraries(indi_apogee_ccd ${INDI_LIBRARIES} ${CFITSIO_LIBRARIES} ${APOGEE_LIBRARY})
 
 install(TARGETS indi_apogee_ccd RUNTIME DESTINATION bin )
 

@@ -64,16 +64,16 @@ set(indi_asi_SRCS
 
 add_executable(indi_asi_ccd ${indi_asi_SRCS})
 
-target_link_libraries(indi_asi_ccd ${INDI_DRIVER_LIBRARIES} ${CFITSIO_LIBRARIES} ${ASICAMLIB} ${LIBUSB_1_LIBRARIES} ${ZLIB_LIBRARY} ${CMAKE_THREAD_LIBS_INIT})
+target_link_libraries(indi_asi_ccd ${INDI_LIBRARIES} ${CFITSIO_LIBRARIES} ${ASICAMLIB} ${LIBUSB_1_LIBRARIES} ${ZLIB_LIBRARY} ${CMAKE_THREAD_LIBS_INIT})
 
 
 ########### indi_asi_wheel ###########
 add_executable(indi_asi_wheel ${CMAKE_CURRENT_SOURCE_DIR}/asi_wheel.cpp)
 IF (APPLE)
 set(CMAKE_EXE_LINKER_FLAGS "-framework IOKit -framework CoreFoundation")
-target_link_libraries(indi_asi_wheel ${INDI_DRIVER_LIBRARIES} ${LIBUSB_LIBRARIES})
+target_link_libraries(indi_asi_wheel ${INDI_LIBRARIES} ${LIBUSB_LIBRARIES})
 ELSE()
-target_link_libraries(indi_asi_wheel ${INDI_DRIVER_LIBRARIES} ${ASIFWLIB} ${LIBUSB_1_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT})
+target_link_libraries(indi_asi_wheel ${INDI_LIBRARIES} ${ASIFWLIB} ${LIBUSB_1_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT})
 ENDIF()
 
 

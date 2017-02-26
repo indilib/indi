@@ -446,7 +446,7 @@ private:
         bool processTimeInfo(const char *utc, const char *offset);
         bool processLocationInfo(double latitude, double longitude, double elevation);
 
-        void triggerSnoop(char *driverName, char *propertyName);
+        void triggerSnoop(const char *driverName, const char *propertyName);
 
         TelescopeParkData parkDataType;
         bool IsLocked;

@@ -42,7 +42,7 @@ set(indidsi_SRCS
 
 add_executable(indi_dsi_ccd ${indidsi_SRCS})
 
-target_link_libraries(indi_dsi_ccd ${INDI_DRIVER_LIBRARIES} ${CFITSIO_LIBRARIES} ${LIBUSB_1_LIBRARIES} )
+target_link_libraries(indi_dsi_ccd ${INDI_LIBRARIES} ${CFITSIO_LIBRARIES} ${LIBUSB_1_LIBRARIES} )
 
 install(TARGETS indi_dsi_ccd RUNTIME DESTINATION bin )
 
