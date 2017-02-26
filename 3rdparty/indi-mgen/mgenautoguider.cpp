@@ -41,6 +41,8 @@
 #include "mgc.h"
 
 #define ERROR_MSG_LENGTH 250
+#undef _L
+#define _L(msg, ...) INDI::Logger::getInstance().print(getDeviceName(), INDI::Logger::DBG_SESSION, __FILE__, __LINE__, "%s: " msg, __FUNCTION__, __VA_ARGS__)
 
 using namespace std;
 std::unique_ptr<MGenAutoguider> mgenAutoguider(new MGenAutoguider());
@@ -125,11 +127,11 @@ bool MGenAutoguider::Connect()
 {
     if(connectionStatus.is_active)
     {
-        { DEBUGF(INDI::Logger::DBG_SESSION, "%s: ignoring connection request received while already connected.", __FUNCTION__); usleep(100000); }
+        _L("ignoring connection request received while already connected.","");
         return true;
     }
 
-    { DEBUGF(INDI::Logger::DBG_SESSION, "%s: initiating connection.", __FUNCTION__); usleep(100000); }
+    _L("initiating connection.","");
 
     unsigned long int thread = 0;
     //struct threadData arg = { NULL, MGenAutoguider::MGCMD_NOP0 };
@@ -144,7 +146,7 @@ bool MGenAutoguider::Connect()
     {
         if( !pthread_create(&thread, NULL, &MGenAutoguider::connectionThreadWrapper, this) )
         {
-            { DEBUGF(INDI::Logger::DBG_SESSION, "%s: connection thread %p started successfully.", __FUNCTION__, thread); usleep(100000); }
+            _L("connection thread %p started successfully.", thread);
             sleep(2);
         }
     }
@@ -159,10 +161,10 @@ bool MGenAutoguider::Disconnect()
 {
     if( connectionStatus.is_active )
     {
-        { DEBUGF(INDI::Logger::DBG_SESSION, "%s: initiating disconnection.", __FUNCTION__); usleep(100000); }
+        _L("initiating disconnection.","");
 
         connectionStatus.is_active = false;
-        sleep(5);
+        sleep(10);
     }
 
     return !connectionStatus.is_active;
@@ -201,39 +203,39 @@ int MGenAutoguider::setOpModeBaudRate(struct ftdi_context * const ftdi, enum MGe
             break;
     }
 
-    { DEBUGF(INDI::Logger::DBG_SESSION, "%s: switching device to baudrate %d", __FUNCTION__, baudrate); usleep(100000); }
+    _L("switching device to baudrate %d", baudrate);
 
     int res = 0;
 
     if((res = ftdi_set_baudrate(ftdi, baudrate)) < 0)
     {
         /* TODO: Not good, the device doesn't support our settings - out of spec, bail out */
-        { DEBUGF(INDI::Logger::DBG_SESSION, "%s: failed updating device connection using %d bauds (%d: %s)", __FUNCTION__, baudrate, res, ftdi_get_error_string(ftdi)); usleep(100000); }
+        _L("failed updating device connection using %d bauds (%d: %s)", baudrate, res, ftdi_get_error_string(ftdi));
         return 1;
     }
 
     if((res = ftdi_set_line_property(ftdi, BITS_8, STOP_BIT_1, NONE)) < 0)
     {
         /* TODO: Not good, the device doesn't support our settings - out of spec, bail out */
-        { DEBUGF(INDI::Logger::DBG_SESSION, "%s: failed setting device line properties to 8-N-1 (%d: %s)", __FUNCTION__, res, ftdi_get_error_string(ftdi)); usleep(100000); }
+        _L("failed setting device line properties to 8-N-1 (%d: %s)", res, ftdi_get_error_string(ftdi));
         return 1;
     }
 
     /* Purge I/O buffers */
     if((res = ftdi_usb_purge_buffers(ftdi)) < 0 )
     {
-        { DEBUGF(INDI::Logger::DBG_SESSION, "%s: failed purging I/O buffers (%d: %s)", __FUNCTION__, res, ftdi_get_error_string(ftdi)); usleep(100000); }
+        _L("failed purging I/O buffers (%d: %s)", res, ftdi_get_error_string(ftdi));
         return 1;
     }
 
     /* Set latency to minimal 2ms */
     if((res = ftdi_set_latency_timer(ftdi, 2)) < 0 )
     {
-        { DEBUGF(INDI::Logger::DBG_SESSION, "%s: failed setting latency timer (%d: %s)", __FUNCTION__, res, ftdi_get_error_string(ftdi)); usleep(100000); }
+        _L("failed setting latency timer (%d: %s)", res, ftdi_get_error_string(ftdi));
         return 1;
     }
 
-    { DEBUGF(INDI::Logger::DBG_SESSION, "%s: successfully switched device to baudrate %d.", __FUNCTION__, baudrate); usleep(100000); }
+    _L("successfully switched device to baudrate %d.", baudrate);
     return 0;
 }
 
@@ -260,7 +262,7 @@ void MGenAutoguider::connectionThread()
     int bytes_read = 0;
 
     struct ftdi_version_info version = ftdi_get_library_version();
-    { DEBUGF(INDI::Logger::DBG_SESSION, "%s: connection thread starting, using FTDI '%s' v%d.%d.%d snapshot '%s'", __FUNCTION__, version.version_str, version.major, version.minor, version.micro, version.snapshot_str); usleep(100000); }
+    _L("connection thread starting, using FTDI '%s' v%d.%d.%d snapshot '%s'", version.version_str, version.major, version.minor, version.micro, version.snapshot_str);
 
     int  const vid = 0x0403, pid = 0x6001;
 
@@ -268,28 +270,28 @@ void MGenAutoguider::connectionThread()
     struct ftdi_context *ftdi = ftdi_new();
     if( !ftdi )
     {
-        { DEBUGF(INDI::Logger::DBG_SESSION, "%s: ftdi context initialization failed", __FUNCTION__); usleep(100000); }
+        _L("ftdi context initialization failed","");
         connectionStatus.is_active = false;
     }
     else if((res = ftdi_set_interface(ftdi, INTERFACE_ANY)) < 0)
     {
-        { DEBUGF(INDI::Logger::DBG_SESSION, "%s: failed setting FTDI interface to ANY (%d: %s)", __FUNCTION__, res, ftdi_get_error_string(ftdi)); usleep(100000); }
+        _L("failed setting FTDI interface to ANY (%d: %s)", res, ftdi_get_error_string(ftdi));
         connectionStatus.is_active = false;
     }
     else if((res = ftdi_usb_open(ftdi, vid, pid)) < 0)
     {
-        { DEBUGF(INDI::Logger::DBG_SESSION, "%s: device 0x%04X:0x%04X not found (%d: %s)", __FUNCTION__, vid, pid, res, ftdi_get_error_string(ftdi)); usleep(100000); }
+        _L("device 0x%04X:0x%04X not found (%d: %s)", vid, pid, res, ftdi_get_error_string(ftdi));
 
         if((res = ftdi_set_interface(ftdi, INTERFACE_ANY)) < 0)
         {
-            { DEBUGF(INDI::Logger::DBG_SESSION, "%s: failed setting FTDI interface to ANY (%d: %s)", __FUNCTION__, res, ftdi_get_error_string(ftdi)); usleep(100000); }
+            _L("failed setting FTDI interface to ANY (%d: %s)", res, ftdi_get_error_string(ftdi));
         }
         else
         {
             struct ftdi_device_list *devlist;
             if((res = ftdi_usb_find_all(ftdi, &devlist, 0, 0)) < 0)
             {
-                { DEBUGF(INDI::Logger::DBG_SESSION, "%s: no FTDI device found (%d: %s)", __FUNCTION__, res, ftdi_get_error_string(ftdi)); usleep(100000); }
+                _L("no FTDI device found (%d: %s)", res, ftdi_get_error_string(ftdi));
             }
             else
             {
@@ -299,13 +301,13 @@ void MGenAutoguider::connectionThread()
 
                     if(libusb_get_device_descriptor(dev_index->dev, &desc) < 0)
                     {
-                        { DEBUGF(INDI::Logger::DBG_SESSION, "%s: device %p returned by libftdi is unreadable", __FUNCTION__, dev_index->dev); usleep(100000); }
+                        _L("device %p returned by libftdi is unreadable", dev_index->dev);
                         continue;
                     }
 
-                    { DEBUGF(INDI::Logger::DBG_SESSION, "%s: detected device 0x%04X:0x%04X", __FUNCTION__, desc.idVendor, desc.idProduct); usleep(100000); }
+                    _L("detected device 0x%04X:0x%04X", desc.idVendor, desc.idProduct);
                 }
-                else { DEBUGF(INDI::Logger::DBG_SESSION, "%s: no FTDI device enumerated", __FUNCTION__); usleep(100000); }
+                else _L("no FTDI device enumerated","");
 
                 ftdi_list_free(&devlist);
             }
@@ -316,12 +318,12 @@ void MGenAutoguider::connectionThread()
     else if(setOpModeBaudRate(ftdi, OPM_COMPATIBLE) < 0)
     {
         /* TODO: Not good, the device doesn't support our settings - out of spec, bail out */
-        { DEBUGF(INDI::Logger::DBG_SESSION, "%s: failed setting up device line", __FUNCTION__); usleep(100000); }
+        _L("failed setting up device line","");
         connectionStatus.is_active = false;
     }
     else
     {
-        { DEBUGF(INDI::Logger::DBG_SESSION, "%s: device 0x%04X:0x%04X connected successfully", __FUNCTION__, vid, pid); usleep(100000); }
+        _L("device 0x%04X:0x%04X connected successfully", vid, pid);
         connectionStatus.is_active = true;
     }
 
@@ -335,23 +337,23 @@ void MGenAutoguider::connectionThread()
             {
                 /* Unknown mode, try to connect in COMPATIBLE mode first */
                 case OPM_UNKNOWN:
-                    { DEBUGF(INDI::Logger::DBG_SESSION, "%s: running device identification", __FUNCTION__); usleep(100000); }
+                    _L("running device identification","");
 
                     /* Run an identification - failing this is not a problem, we'll try to communicate in applicative mode next */
                     if(MGC::CR_SUCCESS == ::MGCP_QUERY_DEVICE(*this).ask(ftdi))
                     {
-                        { DEBUGF(INDI::Logger::DBG_SESSION, "%s: identified boot/compatible mode", __FUNCTION__); usleep(100000); }
+                        _L("identified boot/compatible mode","");
                         connectionStatus.mode = OPM_COMPATIBLE;
                         continue;
                     }
 
-                    { DEBUGF(INDI::Logger::DBG_SESSION, "%s: identification failed, try to communicate as if in applicative mode", __FUNCTION__); usleep(100000); }
+                    _L("identification failed, try to communicate as if in applicative mode","");
                     connectionStatus.mode = OPM_APPLICATION;
 
                     if(setOpModeBaudRate(ftdi, connectionStatus.mode))
                     {
                         /* TODO: Not good, the device doesn't support our settings - out of spec, bail out */
-                        { DEBUGF(INDI::Logger::DBG_SESSION, "%s: failed adjusting device line", __FUNCTION__); usleep(100000); }
+                        _L("failed adjusting device line","");
                         connectionStatus.is_active = false;
                         continue;
                     }
@@ -359,14 +361,21 @@ void MGenAutoguider::connectionThread()
                     /* Run a basic exchange */
                     if(MGC::CR_SUCCESS != ::MGCMD_NOP1(*this).ask(ftdi))
                     {
+                        if(connectionStatus.tried_turn_on)
+                        {
+                            _L("failed heartbeat after turn on, bailing out","");
+                            connectionStatus.is_active = false;
+                            continue;
+                        }
+
                         /* Perhaps the device is not turned on, so try to press ESC for a short time */
-                        { DEBUGF(INDI::Logger::DBG_SESSION, "%s: no answer from device, trying to turn it on", __FUNCTION__); usleep(100000); }
+                        _L("no answer from device, trying to turn it on","");
 
                         unsigned char cbus_dir = 1<<1, cbus_val = 1<<1; /* Spec uses unitialized variables here */
 
                         if(ftdi_set_bitmode(ftdi, (cbus_dir<<4)+cbus_val, 0x20) < 0)
                         {
-                            { DEBUGF(INDI::Logger::DBG_SESSION, "%s: failed depressing ESC to turn device on", __FUNCTION__); usleep(100000); }
+                            _L("failed depressing ESC to turn device on","");
                             connectionStatus.is_active = false;
                             continue;
                         }
@@ -376,28 +385,29 @@ void MGenAutoguider::connectionThread()
 
                         if(ftdi_set_bitmode(ftdi, (cbus_dir<<4)+cbus_val, 0x20) < 0)
                         {
-                            { DEBUGF(INDI::Logger::DBG_SESSION, "%s: failed releasing ESC to turn device on", __FUNCTION__); usleep(100000); }
+                            _L("failed releasing ESC to turn device on","");
                             connectionStatus.is_active = false;
                             continue;
                         }
 
-                        usleep(500000);
+                        sleep(2);
 
-                        { DEBUGF(INDI::Logger::DBG_SESSION, "%s: turned device on, retrying identification", __FUNCTION__); usleep(100000); }
+                        _L("turned device on, retrying identification","");
                         connectionStatus.mode = OPM_UNKNOWN;
+                        connectionStatus.tried_turn_on = true;
                     }
 
                     break;
 
                 /*case OPM_BOOT:*/
                 case OPM_COMPATIBLE:
-                    { DEBUGF(INDI::Logger::DBG_SESSION, "%s: switching from compatible to normal mode", __FUNCTION__); usleep(100000); }
+                    _L("switching from compatible to normal mode","");
 
                     /* Switch to applicative mode */
                     buffer[0] = getOpCode(MGCP_ENTER_NORMAL_MODE);
                     if(ftdi_write_data(ftdi, buffer, 1) < 0)
                     {
-                        { DEBUGF(INDI::Logger::DBG_SESSION, "%s: device disconnected while entering applicative mode", __FUNCTION__); usleep(100000); }
+                        _L("device disconnected while entering applicative mode","");
                         connectionStatus.is_active = false;
                         continue;
                     }
@@ -409,12 +419,12 @@ void MGenAutoguider::connectionThread()
                     if(setOpModeBaudRate(ftdi, connectionStatus.mode))
                     {
                         /* TODO: Not good, the device doesn't support our settings - out of spec, bail out */
-                        { DEBUGF(INDI::Logger::DBG_SESSION, "%s: failed updating device connection", __FUNCTION__); usleep(100000); }
+                        _L("failed updating device connection","");
                         connectionStatus.is_active = false;
                         continue;
                     }
 
-                    { DEBUGF(INDI::Logger::DBG_SESSION, "%s: device is in now expected to be in applicative mode", __FUNCTION__); usleep(100000); }
+                    _L("device is in now expected to be in applicative mode","");
 
                     if(heartbeat(ftdi))
                     {
@@ -433,11 +443,11 @@ void MGenAutoguider::connectionThread()
                         {
                             connectionStatus.version.uploaded_firmware = cmd.fw_version();
 
-                            { DEBUGF(INDI::Logger::DBG_SESSION, "%s: received version 0x%04X", __FUNCTION__, connectionStatus.version.uploaded_firmware); usleep(100000); }
+                            _L("received version 0x%04X", connectionStatus.version.uploaded_firmware);
 
                             break;
                         }
-                        else { DEBUGF(INDI::Logger::DBG_SESSION, "%s: failed retrieving firmware version", __FUNCTION__); usleep(100000); }
+                        else _L("failed retrieving firmware version","");
                     }
 
                     /* Heartbeat */
@@ -445,6 +455,24 @@ void MGenAutoguider::connectionThread()
                     {
                         connectionStatus.is_active = false;
                         continue;
+                    }
+
+                    /* Update ADC values */
+                    if(connectionStatus.voltage.timestamp + 5 < time(0))
+                    {
+                        ::MGCMD_READ_ADCS adcs(*this);
+
+                        if(MGC::CR_SUCCESS == adcs.ask(ftdi))
+                        {
+                            connectionStatus.voltage.logic = adcs.logic_voltage();
+                            _L("received logic voltage %fV (spec is between 4.8V and 5.1V)", connectionStatus.voltage.logic);
+                            connectionStatus.voltage.input = adcs.input_voltage();
+                            _L("received input voltage %fV (spec is between 9V and 15V)", connectionStatus.voltage.input);
+                            connectionStatus.voltage.reference = adcs.refer_voltage();
+                            _L("received reference voltage %fV (spec is around 1.23V)", connectionStatus.voltage.reference);
+                        }
+
+                        connectionStatus.voltage.timestamp = time(0);
                     }
 
                     /* OK, wait a few seconds and retry heartbeat */
@@ -458,7 +486,7 @@ void MGenAutoguider::connectionThread()
     }
     catch(MGC::IOError &e)
     {
-        { DEBUGF(INDI::Logger::DBG_SESSION, "%s: device disconnected (%s)", __FUNCTION__, e.what()); usleep(100000); }
+        _L("device disconnected (%s)", e.what());
         connectionStatus.is_active = false;
     }
 
@@ -468,7 +496,7 @@ void MGenAutoguider::connectionThread()
         ftdi_free(ftdi);
     }
 
-    { DEBUGF(INDI::Logger::DBG_SESSION, "%s: disconnected successfully.", __FUNCTION__); usleep(100000); }
+    _L("disconnected successfully.","");
     //return 0;
 }
 
@@ -514,18 +542,19 @@ unsigned char MGenAutoguider::getOpCode(enum CommandByte commandByte)
                 case MGCMD_NOP0:                    return 0x00;
                 case MGCMD_NOP1:                    return 0xFF;
                 case MGCMD_GET_FW_VERSION:          return 0x03;
+                case MGCMD_READ_ADCS:               return 0xA0;
 
                 default: break;
             }
             break;
 
         default:
-            { DEBUGF(INDI::Logger::DBG_SESSION, "%s: invalid mode '%s' for opcode '%s'", __FUNCTION__, getOpModeString(connectionStatus.mode), getOpCodeString(commandByte)); usleep(100000); }
+            _L("invalid mode '%s' for opcode '%s'", getOpModeString(connectionStatus.mode), getOpCodeString(commandByte));
             break;
     }
 
     /* Return NOP0 as fallback */
-    { DEBUGF(INDI::Logger::DBG_SESSION, "%s: mode '%s' doesn't support opcode '%s', returning NOP0", __FUNCTION__, getOpModeString(connectionStatus.mode), getOpCodeString(commandByte)); usleep(100000); }
+    _L("mode '%s' doesn't support opcode '%s', returning NOP0", getOpModeString(connectionStatus.mode), getOpCodeString(commandByte));
     return 0x00;
 }
 
@@ -588,11 +617,11 @@ bool MGenAutoguider::verifyOpCode(enum CommandByte commandByte, unsigned char co
             break;
 
         default:
-            { DEBUGF(INDI::Logger::DBG_SESSION, "%s: invalid mode '%s' for opcode '%s'", __FUNCTION__, getOpModeString(connectionStatus.mode), getOpCodeString(commandByte)); usleep(100000); }
+            _L("invalid mode '%s' for opcode '%s'", getOpModeString(connectionStatus.mode), getOpCodeString(commandByte));
             return false;
     }
 
-    { DEBUGF(INDI::Logger::DBG_SESSION, "%s: mode '%s' doesn't support opcode '%s'", __FUNCTION__, getOpModeString(connectionStatus.mode), getOpCodeString(commandByte)); usleep(100000); }
+    _L("mode '%s' doesn't support opcode '%s'", getOpModeString(connectionStatus.mode), getOpCodeString(commandByte));
     return false;
 }
 
@@ -678,23 +707,23 @@ int MGenAutoguider::heartbeat(struct ftdi_context * const ftdi)
     /* Heartbeat */
     if(ftdi_write_data(ftdi, buffer, 1) < 0)
     {
-        { DEBUGF(INDI::Logger::DBG_SESSION, "%s: device disconnected while writing heartbeat", __FUNCTION__); usleep(100000); }
+        _L("device disconnected while writing heartbeat","");
         return 1;
     }
 
-    { DEBUGF(INDI::Logger::DBG_SESSION, "%s: reading heartbeat result.", __FUNCTION__); usleep(100000); }
+    _L("reading heartbeat result.","");
     if((bytes_read = ftdi_read_data(ftdi, buffer, 1)) < 0)
     {
-        { DEBUGF(INDI::Logger::DBG_SESSION, "%s: device disconnected while reading heartbeat", __FUNCTION__); usleep(100000); }
+        _L("device disconnected while reading heartbeat","");
         return 1;
     }
 
     if(verifyOpCode(MGCMD_NOP1, buffer, bytes_read))
     {
-        { DEBUGF(INDI::Logger::DBG_SESSION, "%s: received heartbeat ack", __FUNCTION__); usleep(100000); }
+        _L("received heartbeat ack","");
         return 0;
     }
 
-    { DEBUGF(INDI::Logger::DBG_SESSION, "%s: no heartbeat ack (%d bytes read)", __FUNCTION__, bytes_read); usleep(100000); }
+    _L("no heartbeat ack (%d bytes read)", bytes_read);
     return 1;
 }

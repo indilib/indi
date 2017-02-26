@@ -93,6 +93,7 @@ protected:
     struct connectionStatus
     {
         bool is_active;
+        bool tried_turn_on;
         enum OpMode mode;
         enum CommandByte last_command;
         enum CommandStatus last_status;
@@ -101,6 +102,13 @@ protected:
             unsigned short uploaded_firmware;
             unsigned short camera_firmware;
         } version;
+	    struct voltage
+	    {
+            time_t timestamp;
+            float logic;
+            float input;
+            float reference;
+	    } voltage;
     } connectionStatus;
 
 protected:
