@@ -553,7 +553,7 @@ bool INDI::Dome::ISNewSwitch (const char *dev, const char *name, ISState *states
             TelescopeClosedLockTP.s = IPS_OK;
             IDSetSwitch(&TelescopeClosedLockTP, NULL);
 
-            triggerSnoop(strdup(ActiveDeviceT[0].text), strdup("TELESCOPE_PARK"));
+            triggerSnoop(ActiveDeviceT[0].text, "TELESCOPE_PARK");
             return true;
         }
     }
@@ -771,7 +771,7 @@ bool INDI::Dome::saveConfigItems(FILE *fp)
     return true;
 }
 
-void INDI::Dome::triggerSnoop(char *driverName, char *snoopedProp)
+void INDI::Dome::triggerSnoop(const char *driverName, const char *snoopedProp)
 {
     DEBUGF(INDI::Logger::DBG_DEBUG, "Active Snoop, driver: %s, property: %s", driverName, snoopedProp);
     IDSnoopDevice(driverName, snoopedProp);

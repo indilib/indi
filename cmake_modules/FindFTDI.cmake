@@ -17,14 +17,18 @@ if (FTDI_INCLUDE_DIR AND FTDI_LIBRARIES)
 else (FTDI_INCLUDE_DIR AND FTDI_LIBRARIES)
 
   find_path(FTDI_INCLUDE_DIR ftdi.h
+    PATH_SUFFIXES libftdi1
     ${_obIncDir}
     ${GNUWIN32_DIR}/include
+    /usr/local/include
   )
 
-  find_library(FTDI_LIBRARIES NAMES ftdi
+message("INCLUDE STUFF" ${FTDI_INCLUDE_DIR})
+  find_library(FTDI_LIBRARIES NAMES ftdi ftdi1
     PATHS
     ${_obLinkDir}
     ${GNUWIN32_DIR}/lib
+    /usr/local/lib
   )
 
   if(FTDI_INCLUDE_DIR AND FTDI_LIBRARIES)
