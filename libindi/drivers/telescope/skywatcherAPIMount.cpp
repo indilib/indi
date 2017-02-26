@@ -120,7 +120,7 @@ const char * SkywatcherAPIMount::getDefaultName()
     return "skywatcherAPIMount";
 }
 
-bool SkywatcherAPIMount::Goto(double ra,double dec)
+bool SkywatcherAPIMount::Goto(double ra, double dec)
 {
     DEBUG(INDI::AlignmentSubsystem::DBG_ALIGNMENT, "SkywatcherAPIMount::Goto");
 
@@ -140,6 +140,7 @@ bool SkywatcherAPIMount::Goto(double ra,double dec)
     ln_hrz_posn AltAz;
     if (TransformCelestialToTelescope(ra, dec, 0.0, TDV))
     {
+        DEBUGF(INDI::AlignmentSubsystem::DBG_ALIGNMENT, "TDV x %lf y %lf z %lf", TDV.x, TDV.y, TDV.z);
         AltitudeAzimuthFromTelescopeDirectionVector(TDV, AltAz);
         DEBUG(INDI::AlignmentSubsystem::DBG_ALIGNMENT, "Conversion OK");
     }
@@ -194,6 +195,17 @@ bool SkywatcherAPIMount::Goto(double ra,double dec)
             AltitudeAzimuthFromTelescopeDirectionVector(TDV, AltAz);
         }
         DEBUGF(INDI::AlignmentSubsystem::DBG_ALIGNMENT, "Conversion Failed - HavePosition %d", HavePosition);
+    }
+    if (IsVirtuosoMount())
+    {
+        // The initial position of the Virtuoso mount is polar aligned when switched on.
+        // The altitude is corrected by the latitude.
+        if (IUFindNumber(&LocationNP, "LAT"))
+            AltAz.alt = AltAz.alt-IUFindNumber(&LocationNP, "LAT")->value;
+
+        AltAz.az = -180+AltAz.az;
+        if (AltAz.az < -180)
+            AltAz.az += 360;
     }
     DEBUGF(INDI::AlignmentSubsystem::DBG_ALIGNMENT, "New Altitude %lf degrees %ld microsteps Azimuth %lf degrees %ld microsteps",
                                     AltAz.alt, DegreesToMicrosteps(AXIS2, AltAz.alt), AltAz.az, DegreesToMicrosteps(AXIS1, AltAz.az));
@@ -595,9 +607,14 @@ bool SkywatcherAPIMount::ReadScopeStatus()
     AltAz.alt = MicrostepsToDegrees(AXIS2, CurrentEncoders[AXIS2] - ZeroPositionEncoders[AXIS2]);
     if (IsVirtuosoMount())
     {
-        // The altitude degrees in the Virtuoso Alt-Az mount are inverted.
-        double MountDegree = AltAz.alt-3430;
+        double MountDegree = AltAz.alt;
 
+        // The initial position of the Virtuoso mount is polar aligned when switched on.
+        // The altitude is corrected by the latitude.
+        if (IUFindNumber(&LocationNP, "LAT"))
+            MountDegree += IUFindNumber(&LocationNP, "LAT")->value;
+
+        // The altitude degrees in the Virtuoso Alt-Az mount are inverted.
         AltAz.alt = 3420-MountDegree;
     }
     DEBUGF(INDI::AlignmentSubsystem::DBG_ALIGNMENT, "Axis2 encoder %ld initial %ld alt(degrees) %lf", CurrentEncoders[AXIS2], ZeroPositionEncoders[AXIS2], AltAz.alt);
@@ -688,7 +705,20 @@ bool SkywatcherAPIMount::Sync(double ra, double dec)
     UpdateDetailedMountInformation(true);
 
     struct ln_hrz_posn AltAz;
+
     AltAz.alt = MicrostepsToDegrees(AXIS2, CurrentEncoders[AXIS2] - ZeroPositionEncoders[AXIS2]);
+    if (IsVirtuosoMount())
+    {
+        double MountDegree = AltAz.alt;
+
+        // The initial position of the Virtuoso mount is polar aligned when switched on.
+        // The altitude is corrected by the latitude.
+        if (IUFindNumber(&LocationNP, "LAT"))
+            MountDegree += IUFindNumber(&LocationNP, "LAT")->value;
+
+        // The altitude degrees in the Virtuoso Alt-Az mount are inverted.
+        AltAz.alt = 3420-MountDegree;
+    }
     DEBUGF(INDI::AlignmentSubsystem::DBG_ALIGNMENT, "Axis2 encoder %ld initial %ld alt(degrees) %lf", CurrentEncoders[AXIS2], ZeroPositionEncoders[AXIS2], AltAz.alt);
     AltAz.az = MicrostepsToDegrees(AXIS1, CurrentEncoders[AXIS1] - ZeroPositionEncoders[AXIS1]);
     DEBUGF(INDI::AlignmentSubsystem::DBG_ALIGNMENT, "Axis1 encoder %ld initial %ld az(degrees) %lf", CurrentEncoders[AXIS1], ZeroPositionEncoders[AXIS1], AltAz.az);
@@ -768,7 +798,10 @@ void SkywatcherAPIMount::TimerHit()
 #else
                                                 JulianOffset, TDV))
 #endif
+            {
+                DEBUGF(INDI::AlignmentSubsystem::DBG_ALIGNMENT, "TDV x %lf y %lf z %lf", TDV.x, TDV.y, TDV.z);
                 AltitudeAzimuthFromTelescopeDirectionVector(TDV, AltAz);
+            }
             else
             {
                 // Try a conversion with the stored observatory position if any
@@ -799,6 +832,17 @@ void SkywatcherAPIMount::TimerHit()
                     TrackState = SCOPE_IDLE;
                     break;
                 }
+            }
+            if (IsVirtuosoMount())
+            {
+                // The initial position of the Virtuoso mount is polar aligned when switched on.
+                // The altitude is corrected by the latitude.
+                if (IUFindNumber(&LocationNP, "LAT"))
+                    AltAz.alt = AltAz.alt-IUFindNumber(&LocationNP, "LAT")->value;
+
+                AltAz.az = -180+AltAz.az;
+                if (AltAz.az < -180)
+                    AltAz.az += 360;
             }
             DEBUGF(INDI::Logger::DBG_SESSION, "Tracking AXIS1 CurrentEncoder %ld OldTrackingTarget %ld AXIS2 CurrentEncoder %ld OldTrackingTarget %ld",
                                             CurrentEncoders[AXIS1], OldTrackingTarget[AXIS1], CurrentEncoders[AXIS2], OldTrackingTarget[AXIS2]);

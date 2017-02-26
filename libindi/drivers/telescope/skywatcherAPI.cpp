@@ -408,12 +408,7 @@ bool SkywatcherAPI::InitMount()
     // Set initial axis positions
     // These are used to define the arbitrary zero position vector for the axis
     ZeroPositionEncoders[AXIS1] = CurrentEncoders[AXIS1];
-    // The Virtuoso (AltAz) mounts must be switched on in north-south alignment and
-    // The zero position vector is valid for axis1, but axis2 should not be calculated.
-    if (!IsVirtuosoMount())
-    {
-        ZeroPositionEncoders[AXIS2] = CurrentEncoders[AXIS2];
-    }
+    ZeroPositionEncoders[AXIS2] = CurrentEncoders[AXIS2];
 
     if (!InitializeMC())
         return false;
@@ -675,7 +670,7 @@ void SkywatcherAPI::Slew(AXISID Axis, double SpeedInRadiansPerSecond)
 
 void SkywatcherAPI::SlewTo(AXISID Axis, long OffsetInMicrosteps)
 {
-    MYDEBUG(DBG_SCOPE, "SlewTo");
+    MYDEBUGF(INDI::Logger::DBG_SESSION, "SlewTo axis: %d offset: %ld", (int)Axis, OffsetInMicrosteps);
     if (0 == OffsetInMicrosteps)
         // Nothing to do
         return;
