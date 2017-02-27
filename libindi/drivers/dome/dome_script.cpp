@@ -73,6 +73,7 @@ void ISSnoopDevice (XMLEle *root) {
 
 DomeScript::DomeScript() {
   SetDomeCapability(DOME_CAN_PARK | DOME_CAN_ABORT | DOME_CAN_ABS_MOVE | DOME_HAS_SHUTTER);
+  TimeSinceUpdate = 0;
 }
 
 DomeScript::~DomeScript() {
@@ -197,18 +198,18 @@ void DomeScript::TimerHit() {
     if (parked != 0) {
       if (getDomeState() == DOME_PARKING || getDomeState() == DOME_UNPARKED) {
         SetParked(true);
-        targetAz = az;
+        TargetAz = az;
         DEBUG(INDI::Logger::DBG_SESSION, "Park succesfully executed");
       }
     } else {
       if (getDomeState() == DOME_UNPARKING || getDomeState() == DOME_PARKED) {
         SetParked(false);
-        targetAz = az;
+        TargetAz = az;
         DEBUG(INDI::Logger::DBG_SESSION, "Unpark succesfully executed");
       }
     }
-    if (round(az * 10) != round(targetAz * 10)) {
-      DEBUGF(INDI::Logger::DBG_SESSION, "Moving %g -> %g %d", round(az * 10) / 10, round(targetAz * 10) / 10, getDomeState());
+    if (round(az * 10) != round(TargetAz * 10)) {
+      DEBUGF(INDI::Logger::DBG_SESSION, "Moving %g -> %g %d", round(az * 10) / 10, round(TargetAz * 10) / 10, getDomeState());
       IDSetNumber(&DomeAbsPosNP, NULL);
     } else if (getDomeState() == DOME_MOVING) {
       setDomeState(DOME_SYNCED);
@@ -233,6 +234,11 @@ void DomeScript::TimerHit() {
     DEBUG(INDI::Logger::DBG_ERROR, "Failed to read status");
   }
   SetTimer(POLLMS);
+  if(isParked() == false && TimeSinceUpdate++ > 4)
+  {
+    TimeSinceUpdate = 0;
+    UpdateMountCoords();
+  }
 }
 
 bool DomeScript::Connect() {
@@ -241,7 +247,6 @@ bool DomeScript::Connect() {
   bool status = RunScript(SCRIPT_CONNECT, NULL);
   if (status) {
     DEBUG(INDI::Logger::DBG_SESSION, "Succesfully connected");
-    //SetTimer(POLLMS);
   }
   return status;
 }
@@ -285,7 +290,7 @@ IPState DomeScript::MoveAbs(double az) {
   snprintf(_az, 16, "%f", round(az * 10) / 10);
   bool status = RunScript(SCRIPT_GOTO, _az, NULL);
   if (status) {
-    targetAz = az;
+    TargetAz = az;
     return IPS_BUSY;
   }
   return IPS_ALERT;
@@ -295,7 +300,7 @@ IPState DomeScript::Move(DomeDirection dir, DomeMotionCommand operation) {
   if (operation == MOTION_START) {
     if (RunScript(dir == DOME_CW ? SCRIPT_MOVE_CW : SCRIPT_MOVE_CCW, NULL)) {
       DomeAbsPosNP.s = IPS_BUSY;
-      targetAz = -1;
+      TargetAz = -1;
     } else {
       DomeAbsPosNP.s = IPS_ALERT;
     }

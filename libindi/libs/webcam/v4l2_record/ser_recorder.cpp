@@ -29,6 +29,7 @@
 #include <string.h>
 #include <errno.h>
 #include <ctime>
+#include <sys/time.h>
 
 #define ERRMSGSIZ	1024
 
