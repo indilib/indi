@@ -475,7 +475,7 @@ private:
 
         void processButton(const char * button_n, ISState state);
 
-        void triggerSnoop(char *driverName, char *propertyName);
+        void triggerSnoop(const char *driverName, const char *propertyName);
 
         INDI::Controller *controller;
 

@@ -35,12 +35,12 @@
    Implementing a basic telescope driver involves the child class performing the following steps:
    <ul>
    <li>The child class should define the telescope capabilities via the TelescopeCapability structure and sets in the default constructor.</li>
-   <li>If the telescope has additional properties, the child class should override initProperties and initilize the respective additional properties.</li>
+   <li>If the telescope has additional properties, the child class should override initProperties and initialize the respective additional properties.</li>
    <li>Once the parent class calls Connect(), the child class attempts to connect to the telescope and return either success of failure</li>
    <li>INDI::Telescope calls updateProperties() to enable the child class to define which properties to send to the client upon connection</li>
    <li>INDI::Telescope calls ReadScopeStatus() to check the link to the telescope and update its state and position. The child class should call newRaDec() whenever
    a new value is read from the telescope.</li>
-   <li>The child class should implmenet Goto() and Sync(), and Park()/UnPark() if applicable.</li>
+   <li>The child class should implement Goto() and Sync(), and Park()/UnPark() if applicable.</li>
    <li>INDI::Telescope calls disconnect() when the client request a disconnection. The child class should remove any additional properties it defined in updateProperties() if applicable</li>
    </ul>
 
@@ -253,13 +253,13 @@ class INDI::Telescope : public INDI::DefaultDevice
         virtual bool ReadScopeStatus()=0;
 
         /** \brief Move the scope to the supplied RA and DEC coordinates
-            \return True if successful, false otherewise
+            \return True if successful, false otherwise
             \note This function is not implemented in INDI::Telescope, it must be implemented in the child class
         */
         virtual bool Goto(double ra,double dec)=0;
 
         /** \brief Set the telescope current RA and DEC coordinates to the supplied RA and DEC coordinates
-            \return True if successful, false otherewise
+            \return True if successful, false otherwise
             *\note This function implemented INDI::Telescope always returns false. Override the function to return true.
         */
         virtual bool Sync(double ra,double dec);
@@ -267,7 +267,7 @@ class INDI::Telescope : public INDI::DefaultDevice
         /** \brief Start or Stop the telescope motion in the direction dir.
          *  \param dir direction of motion
          *  \param command Start or Stop command
-            \return True if successful, false otherewise
+            \return True if successful, false otherwise
             \note This function is not implemented in INDI::Telescope, it must be implemented in the child class
         */
         virtual bool MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command);
@@ -275,25 +275,25 @@ class INDI::Telescope : public INDI::DefaultDevice
         /** \brief Move the telescope in the direction dir.
             \param dir direction of motion
             \param command Start or Stop command
-            \return True if successful, false otherewise
+            \return True if successful, false otherwise
             \note This function is not implemented in INDI::Telescope, it must be implemented in the child class
         */
         virtual bool MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command);
 
         /** \brief Park the telescope to its home position.
-            \return True if successful, false otherewise
+            \return True if successful, false otherwise
             *\note This function defaults to return false unless subclassed by the child class.
         */
         virtual bool Park();
 
         /** \brief Unpark the telescope if already parked.
-            \return True if successful, false otherewise
+            \return True if successful, false otherwise
             *\note This function defaults to return false unless subclassed by the child class.
         */
         virtual bool UnPark();
 
         /** \brief Abort telescope motion
-            \return True if successful, false otherewise
+            \return True if successful, false otherwise
             \note This function is not implemented in INDI::Telescope, it must be implemented in the child class
         */
         virtual bool Abort()=0;
@@ -301,7 +301,7 @@ class INDI::Telescope : public INDI::DefaultDevice
         /** \brief Update telescope time, date, and UTC offset.
          *  \param utc UTC time.
          *  \param utc_offset UTC offset in hours.
-            \return True if successful, false otherewise
+            \return True if successful, false otherwise
             \note This function performs no action unless subclassed by the child class if required.
         */
         virtual bool updateTime(ln_date *utc, double utc_offset);
@@ -310,7 +310,7 @@ class INDI::Telescope : public INDI::DefaultDevice
          *  \param latitude Site latitude in degrees.
          *  \param longitude Site latitude in degrees increasing eastward from Greenwich (0 to 360).
          *  \param elevation Site elevation in meters.
-            \return True if successful, false otherewise
+            \return True if successful, false otherwise
             \note This function performs no action unless subclassed by the child class if required.
         */
         virtual bool updateLocation(double latitude, double longitude, double elevation);        
@@ -446,7 +446,7 @@ private:
         bool processTimeInfo(const char *utc, const char *offset);
         bool processLocationInfo(double latitude, double longitude, double elevation);
 
-        void triggerSnoop(char *driverName, char *propertyName);
+        void triggerSnoop(const char *driverName, const char *propertyName);
 
         TelescopeParkData parkDataType;
         bool IsLocked;

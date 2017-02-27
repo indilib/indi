@@ -34,39 +34,119 @@
 #include "lx200_10micron.h"
 #include "lx200driver.h"
 
+#define PRODUCT_TAB   "Product"
+
 LX200_10MICRON::LX200_10MICRON(void)
   : LX200Generic()
 {
+    // TODO define the telescope capabilities via the TelescopeCapability
+    hasFocus=false;
+
     setVersion(1, 0);
 }
 
+// Called by INDI::DefaultDevice::ISGetProperties
+// Note that getDriverName calls ::getDefaultName which returns LX200 Generic
 const char *LX200_10MICRON::getDefaultName(void)
 {
     return (const char *) "10micron";
 }
 
+// Called by ISGetProperties to initialize basic properties that are required all the time
 bool LX200_10MICRON::initProperties(void) {
     const bool result = LX200Generic::initProperties();    
+
+    // TODO initialize properties additional to INDI::Telescope
+
     return result;
 }
 
-void LX200_10MICRON::ISGetProperties (const char *dev)
+// this should move to some generic library
+int LX200_10MICRON::monthToNumber(const char *monthName)
 {
-    LX200Generic::ISGetProperties(dev);
+    struct entry {
+        const char *name;
+        int id;
+    };
+    entry month_table[] = {
+        { "Jan", 1 },
+        { "Feb", 2 },
+        { "Mar", 3 },
+        { "Apr", 4 },
+        { "May", 5 },
+        { "Jun", 6 },
+        { "Jul", 7 },
+        { "Aug", 8 },
+        { "Sep", 9 },
+        { "Oct", 10 },
+        { "Nov", 11 },
+        { "Dec", 12 },
+        { NULL, 0 }
+    };
+    entry *p = month_table;
+    while (p->name != NULL) {
+      if (strcasecmp(p -> name, monthName) == 0)
+         return p->id;
+      ++p;
+    }
+    return 0;
 }
 
+// Called by INDI::Telescope when connected state changes to add/remove properties
 bool LX200_10MICRON::updateProperties(void) {
     bool result = LX200Generic::updateProperties();
+
+    if (isConnected()) {
+        char ProductName[80];
+        getCommandString(PortFD, ProductName, "#:GVP#");
+        char ControlBox[80];
+        getCommandString(PortFD, ControlBox, "#:GVZ#");
+        char FirmwareVersion[80];
+        getCommandString(PortFD, FirmwareVersion, "#:GVN#");
+        char FirmwareDate1[80];
+        getCommandString(PortFD, FirmwareDate1, "#:GVD#");
+        char FirmwareDate2[80];
+        char mon[4];
+        int dd, yyyy;
+        sscanf(FirmwareDate1, "%s %02d %04d", mon, &dd, &yyyy);
+        getCommandString(PortFD, FirmwareDate2, "#:GVT#");
+        char FirmwareDate[80];
+        snprintf(FirmwareDate, 80, "%04d-%02d-%02dT%s", yyyy, monthToNumber(mon), dd, FirmwareDate2);
+
+        IUFillText(&ProductT[0],"NAME","Product Name",ProductName);
+        IUFillText(&ProductT[1],"CONTROL_BOX","Control Box",ControlBox);
+        IUFillText(&ProductT[2],"FIRMWARE_VERSION","Firmware Version",FirmwareVersion);
+        IUFillText(&ProductT[3],"FIRMWARE_DATE","Firmware Date", FirmwareDate);
+        IUFillTextVector(&ProductTP,ProductT,4,getDeviceName(),"PRODUCT_INFO","Product",PRODUCT_TAB,IP_RO,60,IPS_IDLE);
+
+        defineText(&ProductTP);
+
+//          getBasicData();
+    } else {
+        deleteProperty(ProductTP.name);
+
+        // TODO delete new'ed stuff from getBasicData
+    }
     return result;
 }
 
-bool LX200_10MICRON::getMountInfo(void)
-{
-    return false;
-}
+// INDI::Telescope calls ReadScopeStatus() to check the link to the telescope and update its state and position. The child class should call newRaDec() whenever a new value is read from the telescope.</li>
+// This still lives in LX200Generic
+//bool LX200_10MICRON::ReadScopeStatus()
+//{
+//  return true;
+//}
 
+// Called by updateProperties
 void LX200_10MICRON::getBasicData(void)
 {
     getMountInfo();
 }
+
+// Called by getBasicData
+bool LX200_10MICRON::getMountInfo(void)
+{
+    return true;
+}
+
 

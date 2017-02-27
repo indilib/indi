@@ -192,11 +192,11 @@ to disconnect the device.
     uint16_t getMinorVersion() { return minorVersion;}
 
     /** \brief define the driver's properties to the client.
-     *  Usually, only a minumum set of properties are defined to the client in this function if the device is in disconnected state.
+     *  Usually, only a minimum set of properties are defined to the client in this function if the device is in disconnected state.
      *  Those properties should be enough to enable the client to establish a connection to the device. In addition to
      *  CONNECT/DISCONNECT, such properties may include port name, IP address, etc...
      *  You should check if the device is already connected, and if this is true, then you must define the remainder of the
-     *  the properties to the client in this function. Otherweise, the remainder of the driver's properties are defined to the
+     *  the properties to the client in this function. Otherwise, the remainder of the driver's properties are defined to the
      *  client in updateProperties() function which is called when a client connects/disconnects from a device.
       \param dev name of the device
       \note This function is called by the INDI framework, do not call it directly. See LX200 Generic driver for an example implementation

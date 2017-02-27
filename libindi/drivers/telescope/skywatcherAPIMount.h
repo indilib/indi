@@ -30,7 +30,7 @@ public:
     virtual bool Abort();    
     virtual bool Connect();
     virtual const char *getDefaultName();
-    virtual bool Goto(double,double);
+    virtual bool Goto(double ra, double dec);
     virtual bool initProperties();
     virtual void ISGetProperties (const char *dev);
     virtual bool ISNewBLOB (const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[], char *names[], int n);
@@ -83,6 +83,11 @@ private:
     INumberVectorProperty AxisOneEncoderValuesV;
     INumber AxisTwoEncoderValues[3];
     INumberVectorProperty AxisTwoEncoderValuesV;
+
+    // A switch for silent/highspeed slewing modes
+    enum { SLEW_SILENT, SLEW_NORMAL };
+    ISwitch SlewModes[2];
+    ISwitchVectorProperty SlewModesSP;
 
     // Previous motion direction
     typedef enum { PREVIOUS_NS_MOTION_NORTH = DIRECTION_NORTH,

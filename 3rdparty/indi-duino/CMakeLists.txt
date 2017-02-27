@@ -47,7 +47,7 @@ set(indiduino_SRCS
    )
 
 add_executable(indi_duino ${indiduino_SRCS})
-target_link_libraries(indi_duino ${INDI_DRIVER_LIBRARIES} firmata)
+target_link_libraries(indi_duino ${INDI_LIBRARIES} firmata)
 
 install(TARGETS indi_duino RUNTIME DESTINATION bin)
 install(FILES ${CMAKE_CURRENT_BINARY_DIR}/indi_duino.xml DESTINATION ${INDI_DATA_DIR})

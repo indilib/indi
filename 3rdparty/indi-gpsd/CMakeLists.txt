@@ -29,7 +29,7 @@ include_directories( ${INDI_INCLUDE_DIR})
 include_directories( ${NOVA_INCLUDE_DIR})
 
 add_executable(indi_gpsd gps_driver.cpp)
-target_link_libraries(indi_gpsd ${INDI_LIBRARIES} ${INDI_DRIVER_LIBRARIES} ${GPSD_LIBRARIES} ${NOVA_LIBRARIES})
+target_link_libraries(indi_gpsd ${INDI_LIBRARIES} ${GPSD_LIBRARIES} ${NOVA_LIBRARIES})
 install(TARGETS indi_gpsd RUNTIME DESTINATION bin )
 
 install( FILES  ${CMAKE_CURRENT_BINARY_DIR}/indi_gpsd.xml DESTINATION ${INDI_DATA_DIR})

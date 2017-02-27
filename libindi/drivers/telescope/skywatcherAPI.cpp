@@ -59,7 +59,7 @@ const double SkywatcherAPI::MAX_SPEED = 500.0; // Radians per second
 
 // Constructor
 
-SkywatcherAPI::SkywatcherAPI()
+SkywatcherAPI::SkywatcherAPI() : SilentSlewMode(false)
 {
     // I add an additional debug level so I can log verbose scope status
     DBG_SCOPE = INDI::Logger::getInstance().addDebugLevel("Scope Verbose", "SCOPE");
@@ -156,6 +156,11 @@ bool SkywatcherAPI::CheckIfDCMotor()
 	}
 
 	return false;
+}
+
+bool SkywatcherAPI::IsVirtuosoMount() const
+{
+  return MountCode >= 0x90;
 }
 
 long SkywatcherAPI::DegreesPerSecondToClocksTicksPerMicrostep(AXISID Axis, double DegreesPerSecond)
@@ -403,12 +408,7 @@ bool SkywatcherAPI::InitMount()
     // Set initial axis positions
     // These are used to define the arbitrary zero position vector for the axis
     ZeroPositionEncoders[AXIS1] = CurrentEncoders[AXIS1];
-    // The Virtuoso (AltAz) mounts must be switched on in north-south alignment and
-    // The zero position vector is valid for axis1, but axis2 should not be calculated.
-    if (MountCode < 0x90)
-    {
-        ZeroPositionEncoders[AXIS2] = CurrentEncoders[AXIS2];
-    }
+    ZeroPositionEncoders[AXIS2] = CurrentEncoders[AXIS2];
 
     if (!InitializeMC())
         return false;
@@ -620,7 +620,7 @@ bool SkywatcherAPI::SetSwitch(bool OnOff)
     return true;
 }
 
-void SkywatcherAPI::Slew(AXISID Axis, double SpeedInRadiansPerSecond)
+void SkywatcherAPI::Slew(AXISID Axis, double SpeedInRadiansPerSecond, bool IgnoreSilentMode)
 {
     MYDEBUG(DBG_SCOPE, "Slew");
     // Clamp to MAX_SPEED
@@ -650,7 +650,8 @@ void SkywatcherAPI::Slew(AXISID Axis, double SpeedInRadiansPerSecond)
     }
 
     bool HighSpeed = false;
-    if (InternalSpeed > LOW_SPEED_MARGIN)
+
+    if (InternalSpeed > LOW_SPEED_MARGIN && (IgnoreSilentMode || !SilentSlewMode))
     {
         InternalSpeed = InternalSpeed / (double)HighSpeedRatio[Axis];
         HighSpeed = true;
@@ -670,7 +671,7 @@ void SkywatcherAPI::Slew(AXISID Axis, double SpeedInRadiansPerSecond)
 
 void SkywatcherAPI::SlewTo(AXISID Axis, long OffsetInMicrosteps)
 {
-    MYDEBUG(DBG_SCOPE, "SlewTo");
+    MYDEBUGF(INDI::Logger::DBG_SESSION, "SlewTo axis: %d offset: %ld", (int)Axis, OffsetInMicrosteps);
     if (0 == OffsetInMicrosteps)
         // Nothing to do
         return;
@@ -695,11 +696,10 @@ void SkywatcherAPI::SlewTo(AXISID Axis, long OffsetInMicrosteps)
         OffsetInMicrosteps = -OffsetInMicrosteps;
     }
 
-    bool HighSpeed;
-    if (OffsetInMicrosteps > LowSpeedGotoMargin[Axis])
+    bool HighSpeed = false;
+
+    if (OffsetInMicrosteps > LowSpeedGotoMargin[Axis] && !SilentSlewMode)
         HighSpeed = true;
-    else
-        HighSpeed = false;
 
     if (!GetStatus(Axis))
         return;

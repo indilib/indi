@@ -38,6 +38,7 @@ LX200SS2000PC::LX200SS2000PC(void)
 {
   setVersion(1, 0);
   SetTelescopeCapability(TELESCOPE_CAN_SYNC | TELESCOPE_CAN_ABORT | TELESCOPE_HAS_TIME | TELESCOPE_HAS_LOCATION, 4);
+  hasFocus=false;
 }
 
 
@@ -50,9 +51,6 @@ bool LX200SS2000PC::updateProperties(void) {
   bool result = LX200Generic::updateProperties();
   if (isConnected()) {
     deleteProperty(AlignmentSP.name);
-    deleteProperty(FocusModeSP.name);
-    deleteProperty(FocusMotionSP.name);
-    deleteProperty(FocusTimerNP.name);
     deleteProperty(SiteSP.name);
     deleteProperty(SiteNameTP.name);
     deleteProperty(TrackingFreqNP.name);

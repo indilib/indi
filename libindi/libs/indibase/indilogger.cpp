@@ -18,14 +18,15 @@
  Boston, MA 02110-1301, USA.
 *******************************************************************************/
 
-#include "indilogger.h"
-#include <indicom.h>
 #include <cstdio>
 #include <dirent.h>
 #include <limits.h>
 #include <sys/stat.h>
-
+#include <sys/time.h>
 #include <iostream>
+
+#include <indicom.h>
+#include "indilogger.h"
 
 namespace INDI
 {

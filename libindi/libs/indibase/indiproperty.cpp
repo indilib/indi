@@ -314,6 +314,9 @@ IPState INDI::Property::getState() const
      return ((IBLOBVectorProperty *) pPtr)->s;
     break;
 
+    default:
+        break;
+
   }
 
   return IPS_IDLE;
@@ -342,6 +345,9 @@ IPerm INDI::Property::getPermission() const
     case INDI_BLOB:
      return ((IBLOBVectorProperty *) pPtr)->p;
     break;
+
+    default:
+        break;
 
   }
 
