@@ -311,7 +311,9 @@ bool ScopeSim::ReadScopeStatus()
                 currentDEC += da_dec;
             else if (MovementNSS[DIRECTION_SOUTH].s == ISS_ON)
                 currentDEC -= da_dec;
+            break;
 
+           default:
             break;
         }
 
@@ -323,7 +325,9 @@ bool ScopeSim::ReadScopeStatus()
                 currentRA += da_ra/15.;
             else if (MovementWES[DIRECTION_EAST].s == ISS_ON)
                 currentRA -= da_ra/15.;
+            break;
 
+        default:
             break;
         }
 

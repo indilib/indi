@@ -32,12 +32,17 @@ public:
 
     virtual const char *getDefaultName(void);    
     virtual bool initProperties(void);
-    virtual void ISGetProperties (const char *dev);
     virtual bool updateProperties(void);
+
+    // TODO move this thing elsewhere
+    int monthToNumber(const char *monthName);
 
 protected:
 
     virtual void getBasicData(void);
+
+    IText   ProductT[4];
+    ITextVectorProperty ProductTP;
 
 private:
 
@@ -45,4 +50,3 @@ private:
 };
 
 #endif
-

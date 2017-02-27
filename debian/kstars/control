@@ -24,12 +24,13 @@ Build-Depends: cmake,
                libkf5notifyconfig-dev,
                libeigen3-dev,
                zlib1g-dev,
-               libcfitsio3-dev (>= 3.040),
+               libcfitsio3-dev | libcfitsio-dev,
                libnova-dev,
-               libindi-dev (>= 1.3.1),
-               indi-bin (>= 1.3.1),
+               libindi-dev (>= 1.4.0),
+               indi-bin (>= 1.4.0),
                wcslib-dev,
-               libraw-dev
+               libraw-dev,
+               libgsl-dev
 Standards-Version: 3.9.3
 Homepage: http://edu.kde.org/
 

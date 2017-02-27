@@ -336,9 +336,12 @@ void LX200Generic::ISGetProperties(const char *dev)
         defineNumber(&GuideNSNP);
         defineNumber(&GuideWENP);
 
-        defineSwitch(&FocusMotionSP);
-        defineNumber(&FocusTimerNP);
-        defineSwitch(&FocusModeSP);
+        if (hasFocus)
+        {
+            defineSwitch(&FocusMotionSP);
+            defineNumber(&FocusTimerNP);
+            defineSwitch(&FocusModeSP);
+        }
     }
 
 }
@@ -360,9 +363,13 @@ bool LX200Generic::updateProperties()
         defineNumber(&GuideNSNP);
         defineNumber(&GuideWENP);
 
-        defineSwitch(&FocusMotionSP);
-        defineNumber(&FocusTimerNP);
-        defineSwitch(&FocusModeSP);
+        if (hasFocus)
+        {
+            defineSwitch(&FocusMotionSP);
+            defineNumber(&FocusTimerNP);
+            defineSwitch(&FocusModeSP);
+        }
+
 
         getBasicData();
 
@@ -381,9 +388,13 @@ bool LX200Generic::updateProperties()
         deleteProperty(GuideNSNP.name);
         deleteProperty(GuideWENP.name);
 
-        deleteProperty(FocusMotionSP.name);
-        deleteProperty(FocusTimerNP.name);
-        deleteProperty(FocusModeSP.name);
+        if (hasFocus)
+        {
+            deleteProperty(FocusMotionSP.name);
+            deleteProperty(FocusTimerNP.name);
+            deleteProperty(FocusModeSP.name);
+        }
+
     }
 
     return true;

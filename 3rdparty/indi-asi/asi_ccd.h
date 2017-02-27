@@ -49,7 +49,7 @@ public:
   bool StartExposure(float duration);
   bool AbortExposure();
 
-  #ifndef OSX_EMBEDED_MODE
+  #if !defined(OSX_EMBEDED_MODE) && !defined(__CYGWIN__)
   static void * streamVideoHelper(void* context);
   void * streamVideo();
   #endif
@@ -60,7 +60,7 @@ protected:
   bool ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n);
 
   // Streaming
-  #ifndef OSX_EMBEDED_MODE
+  #if !defined(OSX_EMBEDED_MODE) && !defined(__CYGWIN__)
   bool StartStreaming();
   bool StopStreaming();
   #endif

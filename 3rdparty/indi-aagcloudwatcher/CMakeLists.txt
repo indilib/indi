@@ -26,7 +26,7 @@ set(indiaag_SRCS
    )
 
 add_executable(indi_aagcloudwatcher ${indiaag_SRCS})
-target_link_libraries(indi_aagcloudwatcher ${INDI_DRIVER_LIBRARIES})
+target_link_libraries(indi_aagcloudwatcher ${INDI_LIBRARIES})
 
 set(test_SRCS
    ${CMAKE_CURRENT_SOURCE_DIR}/main.cpp

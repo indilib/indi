@@ -143,8 +143,9 @@ bool INDI::Telescope::initProperties()
     IUFillNumberVector(&ScopeParametersNP,ScopeParametersN,4,getDeviceName(),"TELESCOPE_INFO","Scope Properties",OPTIONS_TAB,IP_RW,60,IPS_OK);
 
     // Lock Axis
-    IUFillSwitch(&LockAxisS[0],"LOCK_AXIS","Locked",ISS_OFF);
-    IUFillSwitchVector(&LockAxisSP,LockAxisS,1,getDeviceName(),"JOYSTICK_LOCK_AXIS","Lock Axis", "Joystick" ,IP_RW,ISR_NOFMANY,60,IPS_IDLE);
+    IUFillSwitch(&LockAxisS[0],"LOCK_AXIS_1","West/East",ISS_OFF);
+    IUFillSwitch(&LockAxisS[1],"LOCK_AXIS_2","North/South",ISS_OFF);
+    IUFillSwitchVector(&LockAxisSP,LockAxisS,2,getDeviceName(),"JOYSTICK_LOCK_AXIS","Lock Axis", "Joystick" ,IP_RW,ISR_ATMOST1,60,IPS_IDLE);
 
     controller->initProperties();
 
@@ -398,7 +399,7 @@ bool INDI::Telescope::ISSnoopDevice(XMLEle *root)
     return INDI::DefaultDevice::ISSnoopDevice(root);
 }
 
-void INDI::Telescope::triggerSnoop(char *driverName, char *snoopedProp)
+void INDI::Telescope::triggerSnoop(const char *driverName, const char *snoopedProp)
 {
     DEBUGF(INDI::Logger::DBG_DEBUG, "Active Snoop, driver: %s, property: %s", driverName, snoopedProp);
     IDSnoopDevice(driverName, snoopedProp);
@@ -494,15 +495,12 @@ bool INDI::Telescope::ISNewText (const char *dev, const char *name, char *texts[
     //  first check if it's for our device
     if(!strcmp(dev,getDeviceName()))
     {
+        // Serial Port
         if(!strcmp(name,PortTP.name))
         {
-            //  This is our port, so, lets process it
-            int rc;
+            IUUpdateText(&PortTP,texts,names,n);
             PortTP.s=IPS_OK;
-            rc=IUUpdateText(&PortTP,texts,names,n);
-            //  Update client display
             IDSetText(&PortTP,NULL);
-            //  We processed this one, so, tell the world we did it
             return true;
         }
 
@@ -514,7 +512,6 @@ bool INDI::Telescope::ISNewText (const char *dev, const char *name, char *texts[
             IDSetText(&AddressTP, NULL);
             return true;
         }
-
 
         if(!strcmp(name,TimeTP.name))
         {
@@ -712,7 +709,7 @@ bool INDI::Telescope::ISNewSwitch (const char *dev, const char *name, ISState *s
             if (TrackState == SCOPE_PARKING)
             {
                 IUResetSwitch(&ParkSP);
-                ParkSP.s == IPS_ALERT;
+                ParkSP.s = IPS_ALERT;
                 Abort();
                 DEBUG(INDI::Logger::DBG_SESSION, "Parking/Unparking aborted.");
                 IDSetSwitch(&ParkSP, NULL);
@@ -991,7 +988,7 @@ bool INDI::Telescope::ISNewSwitch (const char *dev, const char *name, ISState *s
           DomeClosedLockTP.s = IPS_OK;
           IDSetSwitch(&DomeClosedLockTP, NULL);
 
-          triggerSnoop(strdup(ActiveDeviceT[1].text), strdup("DOME_PARK"));
+          triggerSnoop(ActiveDeviceT[1].text, "DOME_PARK");
           return true;
       }
 
@@ -1001,6 +998,12 @@ bool INDI::Telescope::ISNewSwitch (const char *dev, const char *name, ISState *s
           IUUpdateSwitch(&LockAxisSP, states, names, n);
           LockAxisSP.s = IPS_OK;
           IDSetSwitch(&LockAxisSP, NULL);
+          if (LockAxisS[AXIS_RA].s == ISS_ON)
+              DEBUG(INDI::Logger::DBG_SESSION, "Joystick motion is locked to West/East axis only.");
+          else if (LockAxisS[AXIS_DE].s == ISS_ON)
+              DEBUG(INDI::Logger::DBG_SESSION, "Joystick motion is locked to North/South axis only.");
+          else
+              DEBUG(INDI::Logger::DBG_SESSION, "Joystick motion is unlocked.");
           return true;
       }
     }
@@ -1685,20 +1688,23 @@ void INDI::Telescope::processNSWE(double mag, double angle)
     else if (mag > 0.9)
     {
         // Only one axis can move at a time
-        if (LockAxisS[0].s == ISS_ON)
+        if (LockAxisS[AXIS_RA].s == ISS_ON)
         {
-            // North
-            if (angle >= 45 && angle<= 135)
-                angle = 90;
-            // South
-            else if (angle >= 225 && angle <= 315)
-                angle = 270;
             // West
-            else if (angle >= 135 && angle <= 225)
+            if (angle >= 90 && angle <= 270)
                 angle = 180;
             // East
             else
                 angle = 0;
+        }
+        else if (LockAxisS[AXIS_DE].s == ISS_ON)
+        {
+            // North
+            if (angle >= 0 && angle<= 180)
+                angle = 90;
+            // South
+            else
+                angle = 270;            
         }
 
         // North

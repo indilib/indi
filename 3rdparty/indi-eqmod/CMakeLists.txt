@@ -11,9 +11,14 @@ set(CMAKE_CXX_FLAGS "-std=c++0x ${CMAKE_CXX_FLAGS}")
 find_package(INDI REQUIRED)
 find_package(Nova REQUIRED)
 find_package(ZLIB REQUIRED)
+find_package(GSL REQUIRED)
 
 set(EQMOD_VERSION_MAJOR 0)
 set(EQMOD_VERSION_MINOR 3)
+
+if (CYGWIN)
+add_definitions(-U__STRICT_ANSI__)
+endif(CYGWIN)
 
 option(WITH_ALIGN "Enable Alignment Subsystem" ON)
 option(WITH_ALIGN_GEEHALEL "Enable EQMod Alignment" ON)
@@ -30,6 +35,7 @@ include_directories( ${CMAKE_CURRENT_SOURCE_DIR})
 include_directories( ${INDI_INCLUDE_DIR})
 include_directories( ${NOVA_INCLUDE_DIR})
 include_directories( ${NOVA_INCLUDE_DIR}/..)
+include_directories( ${GSL_INCLUDE_DIR} )
 
 ########### EQMod ###############
 set(eqmod_SRCS
@@ -57,12 +63,13 @@ endif(WITH_SCOPE_LIMITS)
 add_executable(indi_eqmod_telescope ${eqmod_SRCS})
 
 if(WITH_ALIGN)
-  find_library(INDI_ALIGN_LIBRARIES NAMES indiAlignmentDriver
-      HINTS ${PC_INDI_LIBRARY_DIRS}
-  )
-  target_link_libraries(indi_eqmod_telescope ${INDI_LIBRARIES} ${INDI_DRIVER_LIBRARIES} ${NOVA_LIBRARIES} ${INDI_ALIGN_LIBRARIES})
+if (CYGWIN)
+target_link_libraries(indi_eqmod_telescope ${INDI_LIBRARIES} ${NOVA_LIBRARIES} ${INDI_ALIGN_LIBRARIES} ${GSL_LIBRARIES} ${ZLIB_LIBRARY})
+else()
+target_link_libraries(indi_eqmod_telescope ${INDI_LIBRARIES} ${NOVA_LIBRARIES} ${INDI_ALIGN_LIBRARIES})
+endif(CYGWIN)
 else(WITH_ALIGN)
-  target_link_libraries(indi_eqmod_telescope ${INDI_LIBRARIES} ${INDI_DRIVER_LIBRARIES} ${NOVA_LIBRARIES})
+  target_link_libraries(indi_eqmod_telescope ${INDI_LIBRARIES} ${NOVA_LIBRARIES})
 endif(WITH_ALIGN)
 
 if (CMAKE_HOST_SYSTEM_PROCESSOR MATCHES "arm*")
