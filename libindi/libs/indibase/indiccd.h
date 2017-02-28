@@ -388,7 +388,14 @@ private:
    connection is established with the CCD, but must be called /em before returning true in Connect()
 
    It also implements the interface to perform guiding. The class enable the ability to \e snoop on telescope equatorial coordinates and record them in the
-   FITS file before upload. Developers need to subclass INDI::CCD to implement any driver for CCD cameras within INDI.
+   FITS file before upload. It also snoops Sky-Quality-Meter devices to record sky quality in units of Magnitudes-Per-Arcsecond-Squared (MPASS) in the FITS header.
+
+   Captured images can be passed to an offline astrometry solver where they get solved and their solution parameters uploaded to clients. This enables remote astrometry operation
+   from the client's perspective.
+
+   Support for streaming is available (Linux only) and is handled by the StreamRecorder class.
+
+   Developers need to subclass INDI::CCD to implement any driver for CCD cameras within INDI.
 
    \example CCD Simulator
 

@@ -25,7 +25,7 @@
 #include "indiapi.h"
 
 /**
- * \class INDI::LightBox
+ * \class INDI::LightBoxInterface
    \brief Provides interface to implement controllable light box/switch device.
 
    Filter durations preset can be defined if the active filter name is set. Once the filter names are retrieved, the duration in seconds can be set for each filter.

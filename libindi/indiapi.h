@@ -25,15 +25,15 @@
  *
 \section Introduction
 
- INDI is a simple XML-like communications protocol described for interactive and automated remote control of diverse instrumentation.\n
+<p>INDI is a simple XML-like communications protocol described for interactive and automated remote control of diverse instrumentation. INDI is small, easy to parse, and stateless.</p>
+<p>In the INDI paradigm each Device poses all command and status functions in terms of settings and getting Properties.
+Each Property is a vector of one or more names members. Each property has a current value vector; a target value vector; provides information about how it should be sequenced with
+respect to other Properties to accomplish one coordinated unit of observation; and provides hints as to how it might be displayed for interactive manipulation in a GUI.</p>
  
- INDI is small, easy to parse, and stateless. In the INDI paradigm each Device poses all command and status functions in terms of settings and getting Properties. Each Property is a vector of one or more names members. Each property has a current value vector; a target value vector; provides information about how it should be sequenced with respect to other Properties to accomplish one coordinated unit of observation; and provides hints as to how it might be displayed for interactive manipulation in a GUI.\n
+<p>Clients learn the Properties of a particular Device at runtime using introspection. This decouples Client and Device implementation histories. Devices have a complete authority over whether to accept commands from Clients. INDI accommadates intermediate servers, broadcasting, and connection topologies ranging from one-to-one on a single system to many-to-many between systems of different genre.</p>
  
- Clients learn the Properties of a particular Device at runtime using introspection. This decouples Client and Device implementation histories. Devices have a complete authority over whether to accept commands from Clients. INDI accommadates intermediate servers, broadcasting, and connection topologies ranging from one-to-one on a single system to many-to-many between systems of different genre.\n
- 
- The INDI protocol can be nested within other XML elements such as constraints for automatic scheduling and execution.\n
- 
- For a complete review on the INDI protocol, please refer to the INDI <a href="http://www.clearskyinstitute.com/INDI/INDI.pdf">white paper</a>. 
+<p>The INDI protocol can be nested within other XML elements such as constraints for automatic scheduling and execution.
+For a complete review on the INDI protocol, please refer to the INDI <a href="http://www.clearskyinstitute.com/INDI/INDI.pdf">white paper</a>.</p>
  
 \section Audience Intended Audience 
 

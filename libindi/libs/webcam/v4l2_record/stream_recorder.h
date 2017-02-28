@@ -31,6 +31,16 @@
 #include <indidevapi.h>
 #include "v4l2_record.h"
 
+/**
+ * \class StreamRecorder
+   \brief Class to provide video streaming and recording functionality.
+
+   INDI::CCD can utilize this class to add streaming and recording functionality to their driver. Currently, only SER recording backend is supported.
+
+   \example Check V4L2 CCD and ZWO ASI drivers for example implementations.
+
+\author Jean-Luc Geehalel, Jasem Mutlaq
+*/
 class StreamRecorder
 {
 public:
@@ -56,16 +66,23 @@ public:
     virtual bool saveConfigItems(FILE *fp);
 
     /**
-     * @brief newFrame CCD drivers calls this function when a new frame is received.
+     * @brief newFrame CCD drivers call this function when a new frame is received. It is then streamed, or recorded, or both according to the settings in the streamer.
      */
     void newFrame();
-
+    /**
+     * @brief recordStream Calls the backend recorder to record a single frame.
+     * @param deltams time in milliseconds since last frame
+     */
     void recordStream(double deltams);
 
-   bool setStream(bool enable);
-   // uint8_t getFramesToDrop() { return (uint8_t) FramestoDropN[0].value; }
+    /**
+     * @brief setStream Enables (starts) or disables (stops) streaming.
+     * @param enable True to enable, false to disable
+     * @return True if operation is successful, false otherwise.
+     */
+    bool setStream(bool enable);
 
-    V4L2_Recorder *getRecorder() { return recorder; }    
+    V4L2_Recorder *getRecorder() { return recorder; }
     bool isDirectRecording() { return direct_record; }
     bool isStreaming() { return is_streaming; }
     bool isRecording() { return is_recording; }
@@ -78,7 +95,6 @@ public:
     bool close();
 
 protected:
-
     INDI::CCD *ccd;
 
 private:
@@ -99,10 +115,6 @@ private:
     /* Record switch */
     ISwitch RecordStreamS[4];
     ISwitchVectorProperty RecordStreamSP;
-
-    /* How many frames to drop */
-    //INumber FramestoDropN[1];
-    //INumberVectorProperty FramestoDropNP;
 
     /* Record File Info */
     IText RecordFileT[2];

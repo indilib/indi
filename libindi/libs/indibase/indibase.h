@@ -20,9 +20,9 @@
    <li>BaseClientQt: Qt5 based class for INDI clients. By subclassing BaseClientQt, client can easily connect to INDI server
    and handle device communication, command, and notifcation.</li>
    <li>BaseMediator: Abstract class to provide interface for event notifications in INDI::BaseClient.</li>
-   <li>BaseDriver: Base class for all INDI virtual driver as handled and stored in INDI::BaseClient.</li>
-   <li>DefaultDriver: INDI::BaseDriver with extended functionality such as debug, simulation, and configuration support.
-       It is \e only used by drivers directly, it cannot be used by clients.</li>
+   <li>BaseDevice: Base class for all INDI virtual devices as handled and stored in INDI::BaseClient. It is also the parent for all drivers.</li>
+   <li>DefaultDevice: INDI::BaseDevice with extended functionality such as debug, simulation, and configuration support.
+       It is the base class for all drivers and may \e only used by drivers directly, it cannot be used by clients.</li>
    <li>FilterInterface: Basic interface for filter wheels functions.</li>
    <li>GuiderInterface: Basic interface for guider (ST4) port functions.</li>
    <li>DustCapInterface: Basic interface remotely controlled dust covers.</li>
