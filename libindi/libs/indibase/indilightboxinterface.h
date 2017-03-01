@@ -42,6 +42,9 @@
 */
 class INDI::LightBoxInterface
 {
+public:
+
+    enum { FLAT_LIGHT_ON, FLAT_LIGHT_OFF };
 
 protected:
     LightBoxInterface(INDI::DefaultDevice *device, bool isDimmable);
