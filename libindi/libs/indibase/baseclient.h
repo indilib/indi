@@ -42,10 +42,13 @@ using namespace std;
    a set of INDI::BaseDevice devices, and read and write properties seamlessly. Event driven programming is possible due to
    notifications upon reception of new devices or properties.
 
-   \attention All notifications functions defined in INDI::BaseMediator must be implemented in the client class even if
+   Upon connecting to an INDI server, it creates a dedicated thread to handle all incoming traffic. The thread is terminated
+   when disconnectServer() is called or when a communication error occurs.
+
+   \attention All notifications functions defined in INDI::BaseMediator <b>must</b> be implemented in the client class even if
    they are not used because these are pure virtual functions.
 
-   \see <a href=http://indilib.org/index.php?title=Learn_how_to_write_INDI_clients>INDI Client Tutorial</a> for more details.
+   \see <a href="http://indilib.org/develop/tutorials/107-client-development-tutorial.html">INDI Client Tutorial</a> for more details.
    \author Jasem Mutlaq
 
  */
