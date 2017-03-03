@@ -39,7 +39,7 @@
 LX200_10MICRON::LX200_10MICRON(void)
   : LX200Generic()
 {
-    // TODO define the telescope capabilities via the TelescopeCapability
+    // LX200Generic via the TelescopeCapability settings are fine
     hasFocus=false;
 
     setVersion(1, 0);
@@ -50,6 +50,53 @@ LX200_10MICRON::LX200_10MICRON(void)
 const char *LX200_10MICRON::getDefaultName(void)
 {
     return (const char *) "10micron";
+}
+
+// Called by either TCP Connect or Serial Port Connect
+bool LX200_10MICRON::onConnect(void)
+{
+	fd = PortFD;
+
+    if (isSimulation() == true) {
+        DEBUG(INDI::Logger::DBG_SESSION, "Simulate Connect.");
+        return true;
+    }
+
+    // Set Ultra Precision Mode #:U2# , replies like 15:58:19.49 instead of 15:21.2
+    DEBUG(INDI::Logger::DBG_SESSION, "Setting Ultra Precision Mode.");
+    if (setCommandInt(fd, 2, "#:U") < 0) {
+        return false;
+    }
+
+    return true;
+}
+
+// TCP Connect
+bool LX200_10MICRON::Connect(const char *hostname, const char *port)
+{
+	if (INDI::Telescope::Connect(hostname, port) == false) {
+        DEBUG(INDI::Logger::DBG_ERROR, "::Connect failed.");
+		return false;
+	}
+	if (onConnect() == false) {
+        DEBUG(INDI::Logger::DBG_ERROR, "::onConnect failed.");
+		return false;
+	}
+	return true;
+}
+
+// Serial Port Connect
+bool LX200_10MICRON::Connect(const char *port, uint32_t baud)
+{
+	if (LX200Generic::Connect(port, baud) == false) {
+        DEBUG(INDI::Logger::DBG_ERROR, "::Connect failed.");
+		return false;
+	}
+	if (onConnect() == false) {
+        DEBUG(INDI::Logger::DBG_ERROR, "::onConnect failed.");
+		return false;
+	}
+	return true;
 }
 
 // Called by ISGetProperties to initialize basic properties that are required all the time
@@ -121,7 +168,7 @@ bool LX200_10MICRON::updateProperties(void) {
 
         defineText(&ProductTP);
 
-//          getBasicData();
+        getBasicData();
     } else {
         deleteProperty(ProductTP.name);
 
@@ -137,7 +184,7 @@ bool LX200_10MICRON::updateProperties(void) {
 //  return true;
 //}
 
-// Called by updateProperties
+// Called by updateProperties, LX200Generic version may set back to LOW precision mode so we must override here
 void LX200_10MICRON::getBasicData(void)
 {
     getMountInfo();

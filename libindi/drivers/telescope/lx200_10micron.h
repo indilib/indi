@@ -30,7 +30,9 @@ public:
     LX200_10MICRON(void);
     ~LX200_10MICRON(void) {}
 
-    virtual const char *getDefaultName(void);    
+    virtual const char *getDefaultName(void);
+    virtual bool Connect(const char *port, uint32_t baud);
+    virtual bool Connect(const char *hostname, const char *port);
     virtual bool initProperties(void);
     virtual bool updateProperties(void);
 
@@ -40,12 +42,13 @@ public:
 protected:
 
     virtual void getBasicData(void);
+    virtual bool onConnect(void);
 
     IText   ProductT[4];
     ITextVectorProperty ProductTP;
 
 private:
-
+    int fd = -1; // short notation for PortFD/sockfd
     bool getMountInfo(void);
 };
 
