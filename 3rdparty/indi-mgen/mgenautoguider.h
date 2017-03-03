@@ -94,6 +94,7 @@ protected:
     {
         bool is_active;
         bool tried_turn_on;
+        unsigned int no_ack_count;
         enum OpMode mode;
         enum CommandByte last_command;
         enum CommandStatus last_status;
@@ -109,9 +110,19 @@ protected:
             float input;
             float reference;
 	    } voltage;
+	    struct ui_frame
+	    {
+	        time_t timestamp;
+	    } ui_frame;
     } connectionStatus;
 
 protected:
+    IText VersionFirmwareT;
+    ITextVectorProperty VersionTP;
+    INumber VoltageT[3];
+    INumberVectorProperty VoltageTP;
+    IBLOB UIFrameB;
+    IBLOBVectorProperty UIFrameBP;
     bool initProperties();
 
 protected:

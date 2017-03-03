@@ -113,9 +113,31 @@ MGenAutoguider::~MGenAutoguider()
 
 bool MGenAutoguider::initProperties()
 {
+    _L("initiating properties","");
+
     INDI::DefaultDevice::initProperties();
 
     addDebugControl();
+
+    {
+        IUFillText(&VersionFirmwareT,"MGEN_FIRMWARE_VERSION","Firmware version","n/a");
+        IUFillTextVector(&VersionTP, &VersionFirmwareT, 1, getDeviceName(), "Versions", "Versions", "Main Control", IP_RO, 60, IPS_IDLE);
+        registerProperty(&VersionTP, INDI_TEXT);
+    }
+
+    {
+        IUFillNumber(&VoltageT[0], "MGEN_LOGIC_VOLTAGE", "Logic voltage", "%+02.2f V", 0, 220, 0, 0);
+        IUFillNumber(&VoltageT[1], "MGEN_INPUT_VOLTAGE", "Input voltage", "%+02.2f V", 0, 220, 0, 0);
+        IUFillNumber(&VoltageT[2], "MGEN_REFERENCE_VOLTAGE", "Reference voltage", "%+02.2f V", 0, 220, 0, 0);
+        IUFillNumberVector(&VoltageTP, VoltageT, sizeof(VoltageT)/sizeof(VoltageT[0]), getDeviceName(), "Voltages", "Voltages", "Main Control", IP_RO, 60, IPS_IDLE);
+        registerProperty(&VoltageTP, INDI_NUMBER);
+    }
+
+    {
+        IUFillBLOB(&UIFrameB,"UI Frame","Image","raw");
+        IUFillBLOBVector(&UIFrameBP, &UIFrameB, 1, getDeviceName(), "UI Frame", "UI Frame", "Main Control", IP_RO, 60, IPS_IDLE);
+        registerProperty(&UIFrameBP, INDI_BLOB);
+    }
 
     return true;
 }
@@ -390,7 +412,8 @@ void MGenAutoguider::connectionThread()
                             continue;
                         }
 
-                        sleep(2);
+                        /* Wait for the device to turn on */
+                        sleep(5);
 
                         _L("turned device on, retrying identification","");
                         connectionStatus.mode = OPM_UNKNOWN;
@@ -442,9 +465,9 @@ void MGenAutoguider::connectionThread()
                         if(MGC::CR_SUCCESS == cmd.ask(ftdi))
                         {
                             connectionStatus.version.uploaded_firmware = cmd.fw_version();
-
+                            sprintf(VersionFirmwareT.text,"%04X", connectionStatus.version.uploaded_firmware);
                             _L("received version 0x%04X", connectionStatus.version.uploaded_firmware);
-
+                            IDSetText(&VersionTP, NULL);
                             break;
                         }
                         else _L("failed retrieving firmware version","");
@@ -453,26 +476,65 @@ void MGenAutoguider::connectionThread()
                     /* Heartbeat */
                     if(MGC::CR_SUCCESS != ::MGCMD_NOP1(*this).ask(ftdi))
                     {
-                        connectionStatus.is_active = false;
-                        continue;
+                        connectionStatus.no_ack_count++;
+                        _L("%d times no ack to NOP1", connectionStatus.no_ack_count);
+                        if(5 < connectionStatus.no_ack_count)
+                        {
+                            connectionStatus.is_active = false;
+                            continue;
+                        }
                     }
+                    else connectionStatus.no_ack_count = 0;
 
                     /* Update ADC values */
-                    if(connectionStatus.voltage.timestamp + 5 < time(0))
+                    if(connectionStatus.voltage.timestamp + 20 < time(0))
                     {
                         ::MGCMD_READ_ADCS adcs(*this);
 
                         if(MGC::CR_SUCCESS == adcs.ask(ftdi))
                         {
-                            connectionStatus.voltage.logic = adcs.logic_voltage();
+                            VoltageT[0].value = connectionStatus.voltage.logic = adcs.logic_voltage();
                             _L("received logic voltage %fV (spec is between 4.8V and 5.1V)", connectionStatus.voltage.logic);
-                            connectionStatus.voltage.input = adcs.input_voltage();
+                            VoltageT[1].value = connectionStatus.voltage.input = adcs.input_voltage();
                             _L("received input voltage %fV (spec is between 9V and 15V)", connectionStatus.voltage.input);
-                            connectionStatus.voltage.reference = adcs.refer_voltage();
+                            VoltageT[2].value = connectionStatus.voltage.reference = adcs.refer_voltage();
                             _L("received reference voltage %fV (spec is around 1.23V)", connectionStatus.voltage.reference);
+
+                            /* FIXME: my device has input at 15.07... */
+                            if(4.8f <= connectionStatus.voltage.logic && connectionStatus.voltage.logic <= 5.1f)
+                                if(9.0f <= connectionStatus.voltage.input && connectionStatus.voltage.input <= 15.0f)
+                                    if(1.1 <= connectionStatus.voltage.reference && connectionStatus.voltage.reference <= 1.3)
+                                        VoltageTP.s = IPS_OK;
+                                    else VoltageTP.s = IPS_ALERT;
+                                else VoltageTP.s = IPS_ALERT;
+                            else VoltageTP.s = IPS_ALERT;
+
+                            IDSetNumber(&VoltageTP, NULL);
                         }
 
                         connectionStatus.voltage.timestamp = time(0);
+                    }
+                    /* Update ADC values */
+                    else if(connectionStatus.ui_frame.timestamp + 11 < time(0))
+                    {
+                        //::MGCMD_IO_FUNCTIONS io_func(*this);
+
+                        //if(MGC::CR_SUCCESS == io_func.ask(ftdi))
+                        {
+                            ::MGIO_READ_DISPLAY_FRAME read_frame(*this);
+
+                            if(MGC::CR_SUCCESS == read_frame.ask(ftdi))
+                            {
+                                ::MGIO_READ_DISPLAY_FRAME::ByteFrame frame;
+                                UIFrameB.blob = read_frame.get_frame(frame).data();
+                                UIFrameB.bloblen = frame.size();
+                                IDSetBLOB(&UIFrameBP, NULL);
+                            }
+                            else _L("failed reading frame","");
+                        }
+                        //else _L("failed initiating IO function","");
+
+                        connectionStatus.ui_frame.timestamp = time(0);
                     }
 
                     /* OK, wait a few seconds and retry heartbeat */
@@ -543,6 +605,9 @@ unsigned char MGenAutoguider::getOpCode(enum CommandByte commandByte)
                 case MGCMD_NOP1:                    return 0xFF;
                 case MGCMD_GET_FW_VERSION:          return 0x03;
                 case MGCMD_READ_ADCS:               return 0xA0;
+                case MGCMD_IO_FUNCTIONS:            return 0x5D;
+                case MGIO_INSERT_BUTTON:            return 0x01;
+                case MGIO_GET_LED_STATES:           return 0x0A;
 
                 default: break;
             }
