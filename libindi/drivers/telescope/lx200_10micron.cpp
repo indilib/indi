@@ -167,7 +167,7 @@ bool LX200_10MICRON::ReadScopeStatus()
         return true;
     }
 
-    // based loosely on LX200_GENERIC::getCommandString
+    // Read scope status, based loosely on LX200_GENERIC::getCommandString
     char cmd[] = "#:Ginfo#";
     char data[80];
     char *term;
@@ -189,6 +189,7 @@ bool LX200_10MICRON::ReadScopeStatus()
         return false;
     }
     DEBUGFDEVICE(getDefaultName(), DBG_SCOPE, "CMD <%s> RES <%s>", cmd, data);
+
     // Now parse the data
     float RA_JNOW = 0.0;
     float DEC_JNOW = 0.0;
@@ -203,11 +204,6 @@ bool LX200_10MICRON::ReadScopeStatus()
         return false;
     }
 
-    // TODO use #:Ginfo# instead
-//  int Gstat = 0;
-//  if (getCommandInt(fd, &Gstat, "#:Gstat#") < 0) {
-//      return false;
-//  }
     if (Gstat != OldGstat && OldGstat != -1) {
         DEBUGF(INDI::Logger::DBG_SESSION, "Gstat changed from %d to %d", OldGstat, Gstat);
     }
@@ -260,35 +256,8 @@ bool LX200_10MICRON::ReadScopeStatus()
         return false;
     }
 
-//    if (OldTrackState == SCOPE_SLEWING) {
-//        // Check if LX200 is done slewing
-//        if (isSlewComplete()) {
-//            // Set slew mode to "Centering"
-//            IUResetSwitch(&SlewRateSP);
-//            SlewRateS[SLEW_CENTERING].s = ISS_ON;
-//            IDSetSwitch(&SlewRateSP, NULL);
-//
-//            // no need for TrackState=SCOPE_TRACKING;
-//            IDMessage(getDeviceName(),"Slew is complete. Tracking...");
-//
-//        }
-//    } else if(OldTrackState == SCOPE_PARKING) {
-//        if(isSlewComplete()) {
-//            SetParked(true);
-//        }
-//    }
-//    OldTrackState = TrackState;
     OldGstat = Gstat;
-
-//    if ( getLX200RA(PortFD, &currentRA) < 0 || getLX200DEC(PortFD, &currentDEC) < 0) {
-//      EqNP.s = IPS_ALERT;
-//      IDSetNumber(&EqNP, "Error reading RA/DEC.");
-//      return false;
-//    }
-//
-//    NewRaDec(currentRA, currentDEC);
     NewRaDec(RA_JNOW, DEC_JNOW);
-
     return true;
 }
 
@@ -328,6 +297,7 @@ bool LX200_10MICRON::getMountInfo(void)
     return true;
 }
 
+// this should move to some generic library
 int LX200_10MICRON::setStandardProcedureWithoutRead(int fd, const char *data)
 {
     char bool_return[2];
