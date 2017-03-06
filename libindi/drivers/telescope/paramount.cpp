@@ -36,19 +36,19 @@
 // We declare an auto pointer to Paramount.
 std::unique_ptr<Paramount> paramount_mount(new Paramount());
 
-#define	GOTO_RATE	5				/* slew rate, degrees/s */
-#define	SLEW_RATE	0.5				/* slew rate, degrees/s */
-#define FINE_SLEW_RATE  0.1                             /* slew rate, degrees/s */
-#define SID_RATE	0.004178			/* sidereal rate, degrees/s */
+#define	GOTO_RATE           5				/* slew rate, degrees/s */
+#define	SLEW_RATE           0.5             /* slew rate, degrees/s */
+#define FINE_SLEW_RATE      0.1             /* slew rate, degrees/s */
+#define SID_RATE            0.004178        /* sidereal rate, degrees/s */
 
-#define GOTO_LIMIT      5.5                             /* Move at GOTO_RATE until distance from target is GOTO_LIMIT degrees */
-#define SLEW_LIMIT      1                               /* Move at SLEW_LIMIT until distance from target is SLEW_LIMIT degrees */
-#define FINE_SLEW_LIMIT 0.5                             /* Move at FINE_SLEW_RATE until distance from target is FINE_SLEW_LIMIT degrees */
+#define GOTO_LIMIT          5.5             /* Move at GOTO_RATE until distance from target is GOTO_LIMIT degrees */
+#define SLEW_LIMIT          1               /* Move at SLEW_LIMIT until distance from target is SLEW_LIMIT degrees */
+#define FINE_SLEW_LIMIT     0.5             /* Move at FINE_SLEW_RATE until distance from target is FINE_SLEW_LIMIT degrees */
 
-#define	POLLMS		250				/* poll period, ms */
+#define PARAMOUNT_TIMEOUT   3               /* Timeout in seconds */
 
-#define RA_AXIS         0
-#define DEC_AXIS        1
+#define RA_AXIS             0
+#define DEC_AXIS            1
 
 void ISPoll(void *p);
 
@@ -118,11 +118,11 @@ bool Paramount::initProperties()
     IUFillNumber(&JogRateN[DEC_AXIS], "JOG_RATE_NS", "N/S Rate", "%g", 0, 1, 0.1, 0.3);
     IUFillNumberVector(&JogRateNP, JogRateN, 2, getDeviceName(), "JOG_RATE", "Motion Rate", MOTION_TAB, IP_RW, 0, IPS_IDLE);
 
-    // Let's simulate it to be an F/7.5 120mm telescope
+    // Let's simulate it to be an F/7.5 120mm telescope with 50m 175mm guide scope
     ScopeParametersN[0].value = 120;
     ScopeParametersN[1].value = 900;
-    ScopeParametersN[2].value = 120;
-    ScopeParametersN[3].value = 900;
+    ScopeParametersN[2].value = 50;
+    ScopeParametersN[3].value = 175;
 
     TrackState=SCOPE_IDLE;
 
@@ -178,6 +178,48 @@ bool Paramount::updateProperties()
     else
     {
         deleteProperty(JogRateNP.name);
+    }
+
+    return true;
+}
+
+bool Paramount::Connect(const char *hostname, const char *port)
+{
+    bool serverConnection = INDI::Telescope::Connect(hostname, port);
+
+    if (serverConnection == false)
+        return false;
+
+    int rc=0, nbytes_written=0, nbytes_read=0;
+    char pCMD[MAXRBUF], pRES[MAXRBUF];
+
+    strncpy(pCMD, "/* Java Script */"
+                  "sky6RASCOMTele.Connect();"
+                  "var Out = sky6RASCOMTele.IsConnected;", MAXRBUF);
+
+    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD: %s", pCMD);
+
+    if ( (rc = tty_write_string(PortFD, pCMD, &nbytes_written)) != TTY_OK)
+    {
+        DEBUG(INDI::Logger::DBG_ERROR, "Error writing to TheSky6 TCP server.");
+        return false;
+    }
+
+    // Should we read until we encounter string terminator? or what?
+    if ( (rc == tty_read_section(PortFD, pRES, '\0', PARAMOUNT_TIMEOUT, &nbytes_read)) != TTY_OK)
+    {
+        DEBUG(INDI::Logger::DBG_ERROR, "Error reading from TheSky6 TCP server.");
+        return false;
+    }
+
+    DEBUGF(INDI::Logger::DBG_DEBUG, "RES: %s", pRES);
+    int isTelescopeConnected=0;
+
+    rc = sscanf(pRES, "Out = %d", &isTelescopeConnected);
+    if (rc <= 1 || isTelescopeConnected == 0)
+    {
+        DEBUG(INDI::Logger::DBG_ERROR, "Error connecting to telescope.");
+        return false;
     }
 
     return true;
