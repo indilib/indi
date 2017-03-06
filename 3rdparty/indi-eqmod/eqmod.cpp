@@ -3118,8 +3118,10 @@ bool EQMod::saveConfigItems(FILE *fp)
 {
     INDI::Telescope::saveConfigItems(fp);
 
-    IUSaveConfigNumber(fp, BacklashNP);
-    IUSaveConfigNumber(fp, GuideRateNP);
+    if (BacklashNP)
+        IUSaveConfigNumber(fp, BacklashNP);
+    if (GuideRateNP)
+        IUSaveConfigNumber(fp, GuideRateNP);
 
 #ifdef WITH_ALIGN_GEEHALEL
     if (align)

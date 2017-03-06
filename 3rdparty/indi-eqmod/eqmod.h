@@ -95,54 +95,52 @@ class EQMod : public INDI::Telescope, public INDI::GuiderInterface
 
 	int GuideTimerWE;
 
-    INumber *GuideRateN;
-    INumberVectorProperty *GuideRateNP;
-
-	ITextVectorProperty *MountInformationTP;
-	INumberVectorProperty *SteppersNP;
-	INumberVectorProperty *CurrentSteppersNP;
-	INumberVectorProperty *PeriodsNP;
-	INumberVectorProperty *JulianNP;
-	INumberVectorProperty *TimeLSTNP;
-	ITextVectorProperty *TimeUTCTP;
-	ILightVectorProperty *RAStatusLP;
-	ILightVectorProperty *DEStatusLP;
-	INumberVectorProperty *SlewSpeedsNP;
-	ISwitchVectorProperty *SlewModeSP;
-	ISwitchVectorProperty *HemisphereSP;
-	ISwitchVectorProperty *PierSideSP;
-	ISwitchVectorProperty *TrackModeSP;
-	ISwitchVectorProperty *TrackDefaultSP;
-       	INumberVectorProperty *TrackRatesNP;
-	//ISwitchVectorProperty *AbortMotionSP;
-	INumberVectorProperty *HorizontalCoordNP;
-	INumberVectorProperty *StandardSyncNP;
-	INumberVectorProperty *StandardSyncPointNP;
-	INumberVectorProperty *SyncPolarAlignNP;
-	ISwitchVectorProperty *SyncManageSP; 
-  	INumberVectorProperty *ParkPositionNP;
-	ISwitchVectorProperty *ParkOptionSP;
-    ISwitchVectorProperty *ReverseDECSP;
-  	INumberVectorProperty *BacklashNP;
-	ISwitchVectorProperty *UseBacklashSP;
+    INumber *GuideRateN= NULL;
+    INumberVectorProperty *GuideRateNP= NULL;
+    ITextVectorProperty *MountInformationTP= NULL;
+    INumberVectorProperty *SteppersNP= NULL;
+    INumberVectorProperty *CurrentSteppersNP= NULL;
+    INumberVectorProperty *PeriodsNP= NULL;
+    INumberVectorProperty *JulianNP= NULL;
+    INumberVectorProperty *TimeLSTNP= NULL;
+    ITextVectorProperty *TimeUTCTP= NULL;
+    ILightVectorProperty *RAStatusLP= NULL;
+    ILightVectorProperty *DEStatusLP= NULL;
+    INumberVectorProperty *SlewSpeedsNP= NULL;
+    ISwitchVectorProperty *SlewModeSP= NULL;
+    ISwitchVectorProperty *HemisphereSP= NULL;
+    ISwitchVectorProperty *PierSideSP= NULL;
+    ISwitchVectorProperty *TrackModeSP= NULL;
+    ISwitchVectorProperty *TrackDefaultSP= NULL;
+    INumberVectorProperty *TrackRatesNP= NULL;
+    INumberVectorProperty *HorizontalCoordNP= NULL;
+    INumberVectorProperty *StandardSyncNP= NULL;
+    INumberVectorProperty *StandardSyncPointNP= NULL;
+    INumberVectorProperty *SyncPolarAlignNP= NULL;
+    ISwitchVectorProperty *SyncManageSP= NULL;
+    INumberVectorProperty *ParkPositionNP= NULL;
+    ISwitchVectorProperty *ParkOptionSP= NULL;
+    ISwitchVectorProperty *ReverseDECSP= NULL;
+    INumberVectorProperty *BacklashNP= NULL;
+    ISwitchVectorProperty *UseBacklashSP= NULL;
 #if defined WITH_ALIGN && defined WITH_ALIGN_GEEHALEL
-	ISwitch AlignMethodS[2];
-	ISwitchVectorProperty AlignMethodSP;
+    ISwitch AlignMethodS[2];
+    ISwitchVectorProperty AlignMethodSP;
 #endif
 #if defined WITH_ALIGN || defined WITH_ALIGN_GEEHALEL
-	ISwitchVectorProperty *AlignSyncModeSP;
+    ISwitchVectorProperty *AlignSyncModeSP= NULL;
 #endif
-	ISwitchVectorProperty *AutoHomeSP;
-	ISwitchVectorProperty *AuxEncoderSP;
-	INumberVectorProperty *AuxEncoderNP;
+    ISwitchVectorProperty *AutoHomeSP= NULL;
+    ISwitchVectorProperty *AuxEncoderSP= NULL;
+    INumberVectorProperty *AuxEncoderNP= NULL;
 	
-	ISwitchVectorProperty *ST4GuideRateNSSP;
-	ISwitchVectorProperty *ST4GuideRateWESP;
+    ISwitchVectorProperty *ST4GuideRateNSSP= NULL;
+    ISwitchVectorProperty *ST4GuideRateWESP= NULL;
 
-	ISwitchVectorProperty *RAPPECTrainingSP;
-	ISwitchVectorProperty *DEPPECTrainingSP;
-	ISwitchVectorProperty *RAPPECSP;
-	ISwitchVectorProperty *DEPPECSP;	
+    ISwitchVectorProperty *RAPPECTrainingSP= NULL;
+    ISwitchVectorProperty *DEPPECTrainingSP= NULL;
+    ISwitchVectorProperty *RAPPECSP= NULL;
+    ISwitchVectorProperty *DEPPECSP= NULL;
 	
 	enum Hemisphere {NORTH=0, SOUTH=1 };
 	enum PierSide {UNKNOWN=-1, WEST=0, EAST=1};
