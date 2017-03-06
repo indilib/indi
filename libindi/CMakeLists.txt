@@ -423,6 +423,19 @@ target_link_libraries(indi_temma indidriver AlignmentDriver )
 install(TARGETS indi_temma RUNTIME DESTINATION bin )
 #################################################################################
 
+########### Paramount ##########
+set(paramount_SRCS
+   ${indimain_SRCS}
+   ${CMAKE_CURRENT_SOURCE_DIR}/drivers/telescope/paramount.cpp )
+
+add_executable(indi_paramount ${paramount_SRCS})
+
+target_link_libraries(indi_paramount indidriver)
+
+install(TARGETS indi_paramount RUNTIME DESTINATION bin )
+
+#################################################################################
+
 ########### Syncscan ###############
 set(synscan_SRCS
    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/telescope/synscanmount.cpp )
