@@ -36,6 +36,7 @@
    <ul>
    <li>The child class should define the telescope capabilities via the TelescopeCapability structure and sets in the default constructor.</li>
    <li>If the telescope has additional properties, the child class should override initProperties and initialize the respective additional properties.</li>
+   <li>The child class can optionally set the connection mode in initProperties(). By default the driver provide controls for both serial and TCP/IP connections.</li>
    <li>Once the parent class calls Connect(), the child class attempts to connect to the telescope and return either success of failure</li>
    <li>INDI::Telescope calls updateProperties() to enable the child class to define which properties to send to the client upon connection</li>
    <li>INDI::Telescope calls ReadScopeStatus() to check the link to the telescope and update its state and position. The child class should call newRaDec() whenever
@@ -57,6 +58,7 @@ class INDI::Telescope : public INDI::DefaultDevice
         enum TelescopeTrackMode  { TRACK_SIDEREAL, TRACK_SOLAR, TRACK_LUNAR, TRACK_CUSTOM };
         enum TelescopeParkData  { PARK_NONE, PARK_RA_DEC, PARK_AZ_ALT, PARK_RA_DEC_ENCODER, PARK_AZ_ALT_ENCODER };
         enum TelescopeLocation { LOCATION_LATITUDE, LOCATION_LONGITUDE, LOCATION_ELEVATION };
+        enum TelescopeConnection { CONNECTION_SERIAL, CONNECTION_TCP, CONNECTION_BOTH };
 
         /** \struct TelescopeCapability
             \brief Holds the capabilities of a telescope.
@@ -230,11 +232,24 @@ class INDI::Telescope : public INDI::DefaultDevice
          */
         bool isLocked();
 
+        /**
+         * @brief getConnectionMode Get telescope connection mode
+         * @return Telescope connection mode
+         */
+        TelescopeConnection getConnectionMode() const;
+
+        /**
+         * @brief setConnectionMode Set telescope connection mode. This function should be called in initProperties() to indicate connection type supported
+         * by the telescope. By default, the driver shall provide both serial/baud and TCP server control properties.
+         * @param value Desired connection mode
+         */
+        void setConnectionMode(const TelescopeConnection &value);
+
         // Joystick helpers
         static void joystickHelper(const char * joystick_n, double mag, double angle, void *context);
         static void buttonHelper(const char * button_n, ISState state, void *context);
 
-        protected:
+protected:
 
         virtual bool saveConfigItems(FILE *fp);
 
@@ -449,6 +464,7 @@ private:
         void triggerSnoop(const char *driverName, const char *propertyName);
 
         TelescopeParkData parkDataType;
+        TelescopeConnection connectionMode = CONNECTION_BOTH;
         bool IsLocked;
         bool IsParked;        
         const char *ParkDeviceName;
