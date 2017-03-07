@@ -229,6 +229,10 @@
         </device>
 </devGroup>
 <devGroup group="Auxiliary">
+        <device label="Astrometry">
+            <driver name="Astrometry">indi_astrometry</driver>
+            <version>0.1</version>
+        </device>
         <device label="WatchDog">
                 <driver name="WatchDog">indi_watchdog</driver>
                 <version>0.1</version>

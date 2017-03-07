@@ -156,6 +156,8 @@ public:
     /** \brief Send opening tag for BLOB command to server */
     void startBlob( const char *devName, const char *propName, const char *timestamp);
     /** \brief Send ONE blob content to server */
+    void sendOneBlob(IBLOB *bp);
+    /** \brief Send ONE blob content to server */
     void sendOneBlob( const char *blobName, unsigned int blobSize, const char *blobFormat, void * blobBuffer);
     /** \brief Send closing tag for BLOB command to server */
     void finishBlob();

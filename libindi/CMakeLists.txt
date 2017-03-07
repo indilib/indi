@@ -793,6 +793,18 @@ add_executable(indi_sqm_weather ${sqm_SRCS})
 target_link_libraries(indi_sqm_weather indidriver)
 install(TARGETS indi_sqm_weather RUNTIME DESTINATION bin )
 
+########### Astrometry Driver ###############
+
+set(astrometry_SRCS
+        ${CMAKE_CURRENT_SOURCE_DIR}/drivers/auxiliary/astrometrydriver.cpp
+   )
+
+add_executable(indi_astrometry ${astrometry_SRCS})
+
+target_link_libraries(indi_astrometry indidriver)
+install(TARGETS indi_astrometry RUNTIME DESTINATION bin )
+
+
 ########### STAR2000 Driver ###############
 
 set(STAR2000_SRCS

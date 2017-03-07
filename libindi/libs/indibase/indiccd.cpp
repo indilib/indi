@@ -46,7 +46,7 @@ const char *IMAGE_INFO_TAB      = "Image Info";
 const char *GUIDE_HEAD_TAB      = "Guider Head";
 const char *GUIDE_CONTROL_TAB   = "Guider Control";
 const char *RAPIDGUIDE_TAB      = "Rapid Guide";
-const char *ASTROMETRY_TAB      = "Astrometry";
+const char *WCS_TAB             = "WCS";
 
 // Create dir recursively
 static int _mkdir(const char *dir, mode_t mode)
@@ -561,6 +561,22 @@ bool INDI::CCD::initProperties()
     IUFillNumberVector(&GuideCCD.RapidGuideDataNP,GuideCCD.RapidGuideDataN,3,getDeviceName(),"GUIDER_RAPID_GUIDE_DATA","Rapid Guide Data",RAPIDGUIDE_TAB,IP_RO,60,IPS_IDLE);
 
     /**********************************************/
+    /******************** WCS *********************/
+    /**********************************************/
+
+    // WCS Enable/Disable
+    IUFillSwitch(&WorldCoordS[0], "WCS_ENABLE", "Enable", ISS_OFF);
+    IUFillSwitch(&WorldCoordS[1], "WCS_DISABLE", "Disable", ISS_ON);
+    IUFillSwitchVector(&WorldCoordSP, WorldCoordS, 2, getDeviceName(), "WCS_CONTROL", "WCS", WCS_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+
+    IUFillNumber(&CCDRotationN[0],"CCD_ROTATION_VALUE","Rotation","%g",-360,360,1,0);
+    IUFillNumberVector(&CCDRotationNP,CCDRotationN,1,getDeviceName(),"CCD_ROTATION","CCD FOV", WCS_TAB,IP_RW,60,IPS_IDLE);
+
+    IUFillSwitch(&TelescopeTypeS[TELESCOPE_PRIMARY], "TELESCOPE_PRIMARY", "Primary", ISS_ON);
+    IUFillSwitch(&TelescopeTypeS[TELESCOPE_GUIDE], "TELESCOPE_GUIDE", "Guide", ISS_OFF);
+    IUFillSwitchVector(&TelescopeTypeSP, TelescopeTypeS, 2, getDeviceName(), "TELESCOPE_TYPE", "Telescope", OPTIONS_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+
+    /**********************************************/
     /************** Upload Settings ***************/
     /**********************************************/
 
@@ -578,40 +594,6 @@ bool INDI::CCD::initProperties()
     // Upload File Path
     IUFillText(&FileNameT[0],"FILE_PATH","Path","");
     IUFillTextVector(&FileNameTP,FileNameT,1,getDeviceName(),"CCD_FILE_PATH","Filename",IMAGE_INFO_TAB,IP_RO,60,IPS_IDLE);
-
-    /**********************************************/
-    /**************** Astrometry ******************/
-    /**********************************************/
-
-    // Solver Enable/Disable
-    IUFillSwitch(&SolverS[0], "ASTROMETRY_SOLVER_ENABLE", "Enable", ISS_OFF);
-    IUFillSwitch(&SolverS[1], "ASTROMETRY_SOLVER_DISABLE", "Disable", ISS_ON);
-    IUFillSwitchVector(&SolverSP, SolverS, 2, getDeviceName(), "ASTROMETRY_SOLVER", "Solver", ASTROMETRY_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
-
-    // Solver Settings
-    IUFillText(&SolverSettingsT[ASTROMETRY_SETTINGS_BINARY], "ASTROMETRY_SETTINGS_BINARY", "Solver", "/usr/bin/solve-field");
-    IUFillText(&SolverSettingsT[ASTROMETRY_SETTINGS_OPTIONS], "ASTROMETRY_SETTINGS_OPTIONS", "Options", "--no-verify --no-plots --no-fits2fits --resort --downsample 2 -O");
-    IUFillTextVector(&SolverSettingsTP, SolverSettingsT, 2, getDeviceName(), "ASTROMETRY_SETTINGS", "Settings", ASTROMETRY_TAB, IP_WO, 0, IPS_IDLE);
-
-    // Solver Results
-    IUFillNumber(&SolverResultN[ASTROMETRY_RESULTS_PIXSCALE], "ASTROMETRY_RESULTS_PIXSCALE", "Pixscale (arcmin)", "%g", 0, 10000, 1, 0);
-    IUFillNumber(&SolverResultN[ASTROMETRY_RESULTS_ORIENTATION], "ASTROMETRY_RESULTS_ORIENTATION", "Orientation (E of N) °", "%g", -360, 360, 1, 0);
-    IUFillNumber(&SolverResultN[ASTROMETRY_RESULTS_RA], "ASTROMETRY_RESULTS_RA", "RA (J2000)", "%g", 0, 24, 1, 0);
-    IUFillNumber(&SolverResultN[ASTROMETRY_RESULTS_DE], "ASTROMETRY_RESULTS_DE", "DE (J2000)", "%g", -90, 90, 1, 0);
-    IUFillNumber(&SolverResultN[ASTROMETRY_RESULTS_PARITY], "ASTROMETRY_RESULTS_PARITY", "Parity", "%g", -1, 1, 1, 0);
-    IUFillNumberVector(&SolverResultNP, SolverResultN, 5, getDeviceName(), "ASTROMETRY_RESULTS", "Results", ASTROMETRY_TAB, IP_RO, 0, IPS_IDLE);
-
-    // WCS Enable/Disable
-    IUFillSwitch(&WorldCoordS[0], "WCS_ENABLE", "Enable", ISS_OFF);
-    IUFillSwitch(&WorldCoordS[1], "WCS_DISABLE", "Disable", ISS_ON);
-    IUFillSwitchVector(&WorldCoordSP, WorldCoordS, 2, getDeviceName(), "WCS_CONTROL", "WCS", ASTROMETRY_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
-
-    IUFillSwitch(&TelescopeTypeS[TELESCOPE_PRIMARY], "TELESCOPE_PRIMARY", "Primary", ISS_ON);
-    IUFillSwitch(&TelescopeTypeS[TELESCOPE_GUIDE], "TELESCOPE_GUIDE", "Guide", ISS_OFF);
-    IUFillSwitchVector(&TelescopeTypeSP, TelescopeTypeS, 2, getDeviceName(), "TELESCOPE_TYPE", "Telescope", OPTIONS_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
-
-    IUFillNumber(&CCDRotationN[0],"CCD_ROTATION_VALUE","Rotation","%g",-360,360,1,0);
-    IUFillNumberVector(&CCDRotationNP,CCDRotationN,1,getDeviceName(),"CCD_ROTATION","CCD FOV", ASTROMETRY_TAB,IP_RW,60,IPS_IDLE);
 
     /**********************************************/
     /**************** Snooping ********************/
@@ -735,8 +717,7 @@ bool INDI::CCD::updateProperties()
           defineNumber(&GuideCCD.RapidGuideDataNP);
         }
         defineSwitch(&TelescopeTypeSP);
-        defineSwitch(&SolverSP);
-        defineText(&SolverSettingsTP);
+
         defineSwitch(&WorldCoordSP);
         defineSwitch(&UploadSP);
 
@@ -794,14 +775,8 @@ bool INDI::CCD::updateProperties()
         if (CanBin() || CanSubFrame())
             deleteProperty(PrimaryCCD.ResetSP.name);
         if (HasBayer())
-            deleteProperty(BayerTP.name);
-        if (SolverS[0].s == ISS_ON)
-        {
-            deleteProperty(SolverResultNP.name);
-        }
+            deleteProperty(BayerTP.name);        
         deleteProperty(TelescopeTypeSP.name);
-        deleteProperty(SolverSP.name);
-        deleteProperty(SolverSettingsTP.name);
 
         if (WorldCoordS[0].s == ISS_ON)
         {
@@ -933,14 +908,6 @@ bool INDI::CCD::ISNewText (const char *dev, const char *name, char *texts[], cha
             IUUpdateText(&UploadSettingsTP, texts, names, n);
             UploadSettingsTP.s = IPS_OK;
             IDSetText(&UploadSettingsTP, NULL);
-            return true;
-        }
-
-        if (!strcmp(name, SolverSettingsTP.name))
-        {
-            IUUpdateText(&SolverSettingsTP, texts, names, n);
-            SolverSettingsTP.s = IPS_OK;
-            IDSetText(&SolverSettingsTP, NULL);
             return true;
         }
     }
@@ -1255,31 +1222,6 @@ bool INDI::CCD::ISNewSwitch (const char *dev, const char *name, ISState *states,
             IUUpdateSwitch(&TelescopeTypeSP, states, names, n);
             TelescopeTypeSP.s = IPS_OK;
             IDSetSwitch(&TelescopeTypeSP, NULL);
-            return true;
-        }
-
-        // Astrometry Enable/Disable
-        if (!strcmp(name, SolverSP.name))
-        {
-            pthread_mutex_lock(&lock);
-
-            IUUpdateSwitch(&SolverSP, states, names, n);
-            SolverSP.s = IPS_OK;
-
-            if (SolverS[0].s == ISS_ON)
-            {
-                DEBUG(INDI::Logger::DBG_SESSION, "Astrometry solver is enabled.");
-                defineNumber(&SolverResultNP);
-            }
-            else
-            {
-                DEBUG(INDI::Logger::DBG_SESSION, "Astrometry solver is disabled.");
-                deleteProperty(SolverResultNP.name);
-            }
-
-            IDSetSwitch(&SolverSP, NULL);
-
-            pthread_mutex_unlock(&lock);
             return true;
         }
 
@@ -1810,7 +1752,7 @@ bool INDI::CCD::ExposureComplete(CCDChip *targetChip)
 {
     bool sendImage = (UploadS[0].s == ISS_ON || UploadS[2].s == ISS_ON);
     bool saveImage = (UploadS[1].s == ISS_ON || UploadS[2].s == ISS_ON);
-    bool useSolver = (SolverS[0].s == ISS_ON);
+    //bool useSolver = (SolverS[0].s == ISS_ON);
     bool showMarker = false;
     bool autoLoop = false;
     bool sendData = false;
@@ -2060,7 +2002,7 @@ bool INDI::CCD::ExposureComplete(CCDChip *targetChip)
       }
     }
 
-    if (sendImage || saveImage || useSolver)
+    if (sendImage || saveImage/* || useSolver*/)
     {
       if (!strcmp(targetChip->getImageExtension(), "fits"))
       {
@@ -2158,7 +2100,7 @@ bool INDI::CCD::ExposureComplete(CCDChip *targetChip)
 
           fits_close_file(fptr,&status);
 
-          uploadFile(targetChip, memptr, memsize, sendImage, saveImage, useSolver);
+          uploadFile(targetChip, memptr, memsize, sendImage, saveImage/*, useSolver*/);
 
           free(memptr);
       }
@@ -2208,13 +2150,13 @@ bool INDI::CCD::ExposureComplete(CCDChip *targetChip)
     return true;
 }
 
-bool INDI::CCD::uploadFile(CCDChip * targetChip, const void *fitsData, size_t totalBytes, bool sendImage, bool saveImage, bool useSolver)
+bool INDI::CCD::uploadFile(CCDChip * targetChip, const void *fitsData, size_t totalBytes, bool sendImage, bool saveImage/*, bool useSolver*/)
 {
     unsigned char *compressedData = NULL;
     uLongf compressedBytes=0;
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "Uploading file. Ext: %s, Size: %d, sendImage? %s, saveImage? %s, useSolver? %s", targetChip->getImageExtension(), totalBytes,
-           sendImage ? "Yes" : "No", saveImage ? "Yes": "No", useSolver ? "Yes" : "No");
+    DEBUGF(INDI::Logger::DBG_DEBUG, "Uploading file. Ext: %s, Size: %d, sendImage? %s, saveImage? %s", targetChip->getImageExtension(), totalBytes,
+           sendImage ? "Yes" : "No", saveImage ? "Yes": "No");
 
     if (saveImage)
     {
@@ -2225,31 +2167,24 @@ bool INDI::CCD::uploadFile(CCDChip * targetChip, const void *fitsData, size_t to
         FILE *fp = NULL;
         char imageFileName[MAXRBUF];
 
-        if (useSolver)
+        std::string prefix = UploadSettingsT[1].text;
+        int maxIndex = getFileIndex(UploadSettingsT[0].text, UploadSettingsT[1].text, targetChip->FitsB.format);
+
+        if (maxIndex < 0)
         {
-            strncpy(imageFileName, "/tmp/ccdsolver.fits", MAXRBUF);
+            DEBUGF(INDI::Logger::DBG_ERROR, "Error iterating directory %s. %s", UploadSettingsT[0].text, strerror(errno));
+            return false;
         }
-        else
+
+        if (maxIndex > 0)
         {
-            std::string prefix = UploadSettingsT[1].text;
-            int maxIndex = getFileIndex(UploadSettingsT[0].text, UploadSettingsT[1].text, targetChip->FitsB.format);
-
-            if (maxIndex < 0)
-            {
-                DEBUGF(INDI::Logger::DBG_ERROR, "Error iterating directory %s. %s", UploadSettingsT[0].text, strerror(errno));
-                return false;
-            }
-
-            if (maxIndex > 0)
-            {
-                char indexString[8];
-                snprintf(indexString, 8, "%03d", maxIndex);
-                std::string prefixIndex = indexString;
-                prefix.replace(prefix.find("XXX"), std::string::npos, prefixIndex);
-            }
-
-            snprintf(imageFileName, MAXRBUF, "%s/%s%s", UploadSettingsT[0].text, prefix.c_str(), targetChip->FitsB.format);
+            char indexString[8];
+            snprintf(indexString, 8, "%03d", maxIndex);
+            std::string prefixIndex = indexString;
+            prefix.replace(prefix.find("XXX"), std::string::npos, prefixIndex);
         }
+
+        snprintf(imageFileName, MAXRBUF, "%s/%s%s", UploadSettingsT[0].text, prefix.c_str(), targetChip->FitsB.format);
 
         fp = fopen(imageFileName, "w");
         if (fp == NULL)
@@ -2267,29 +2202,9 @@ bool INDI::CCD::uploadFile(CCDChip * targetChip, const void *fitsData, size_t to
         // Save image file path
         IUSaveText(&FileNameT[0], imageFileName);
 
-        if (useSolver)
-        {
-            pthread_mutex_lock(&lock);
-            SolverSP.s = IPS_BUSY;
-            DEBUG(INDI::Logger::DBG_SESSION, "Solving image...");
-            IDSetSwitch(&SolverSP, NULL);
-            pthread_mutex_unlock(&lock);
-
-            int result = pthread_create( &solverThread, NULL, &INDI::CCD::runSolverHelper, this);
-
-            if (result != 0)
-            {
-                SolverSP.s = IPS_ALERT;
-                DEBUGF(INDI::Logger::DBG_SESSION, "Failed to create solver thread: %s", strerror(errno));
-                IDSetSwitch(&SolverSP, NULL);
-            }
-        }
-        else
-        {
-            DEBUGF(INDI::Logger::DBG_SESSION, "Image saved to %s", imageFileName);
-            FileNameTP.s = IPS_OK;
-            IDSetText(&FileNameTP, NULL);
-        }
+        DEBUGF(INDI::Logger::DBG_SESSION, "Image saved to %s", imageFileName);
+        FileNameTP.s = IPS_OK;
+        IDSetText(&FileNameTP, NULL);
     }
 
     if (targetChip->SendCompressed)
@@ -2382,8 +2297,6 @@ bool INDI::CCD::saveConfigItems(FILE *fp)
 
     if (HasBayer())
         IUSaveConfigText(fp, &BayerTP);
-
-    IUSaveConfigText(fp, &SolverSettingsTP);
 
     return true;
 }
@@ -2547,94 +2460,4 @@ bool INDI::CCD::StopStreaming()
 {
     DEBUG(INDI::Logger::DBG_ERROR, "Streaming is not supported.");
     return false;
-}
-
-void * INDI::CCD::runSolverHelper(void *context)
-{
-  (static_cast<INDI::CCD *> (context))->runSolver();
-  return NULL;
-}
-
-void INDI::CCD::runSolver()
-{
-    char cmd[MAXRBUF], line[256], parity_str[8];
-    float ra,dec, angle, pixscale, field_w, field_h, parity=0;
-    ra=dec=angle=pixscale=field_w=field_h=-1000;
-    snprintf(cmd, MAXRBUF, "%s %s -W /tmp/solution.wcs /tmp/ccdsolver.fits",SolverSettingsT[ASTROMETRY_SETTINGS_BINARY].text, SolverSettingsT[ASTROMETRY_SETTINGS_OPTIONS].text);
-
-    DEBUGF(INDI::Logger::DBG_DEBUG, "%s", cmd);
-    FILE *handle = popen(cmd, "r");
-    if (handle == NULL)
-    {
-        DEBUGF(INDI::Logger::DBG_DEBUG, "Failed to run solver: %s", strerror(errno));
-        pthread_mutex_lock(&lock);
-        SolverSP.s = IPS_ALERT;
-        IDSetSwitch(&SolverSP, NULL);
-        pthread_mutex_unlock(&lock);
-        return;
-    }
-
-    while (fgets(line, sizeof(line), handle))
-    {
-        DEBUGF(INDI::Logger::DBG_DEBUG, "%s", line);
-
-        sscanf(line, "Field rotation angle: up is %f", &angle);
-        sscanf(line, "Field center: (RA,Dec) = (%f,%f)", &ra, &dec);
-        sscanf(line, "Field size: %f x %f arcminutes", &field_w, &field_h);
-        sscanf(line, "Field parity: %s", parity_str);
-
-        if (!strcmp(parity_str, "pos"))
-            parity = 1;
-        else if (!strcmp(parity_str, "neg"))
-            parity = -1;
-
-        if (field_w != -1000 && ra != -1000 && dec != -1000 && angle != -1000)
-        {
-            // Pixscale is arcsec/pixel. Astrometry result is in arcmin
-            SolverResultN[ASTROMETRY_RESULTS_PIXSCALE].value = (field_w * 60) / (PrimaryCCD.getSubW() / PrimaryCCD.getBinX());
-            // Astrometry.net angle, E of N
-            SolverResultN[ASTROMETRY_RESULTS_ORIENTATION].value = angle;
-            // Astrometry.net J2000 RA in degrees
-            SolverResultN[ASTROMETRY_RESULTS_RA].value = ra;
-            // Astrometry.net J2000 DEC in degrees
-            SolverResultN[ASTROMETRY_RESULTS_DE].value = dec;
-            // Astrometry.net parity
-            SolverResultN[ASTROMETRY_RESULTS_PARITY].value = parity;
-
-            SolverResultNP.s = IPS_OK;
-            IDSetNumber(&SolverResultNP, NULL);
-
-            pthread_mutex_lock(&lock);
-            SolverSP.s = IPS_OK;
-            IDSetSwitch(&SolverSP, NULL);
-            pthread_mutex_unlock(&lock);
-
-            fclose(handle);
-            DEBUG(INDI::Logger::DBG_SESSION, "Solver complete.");
-            return;
-        }
-
-        pthread_mutex_lock(&lock);
-        if (SolverS[1].s == ISS_ON)
-        {
-            SolverSP.s = IPS_IDLE;
-            IDSetSwitch(&SolverSP, NULL);
-            pthread_mutex_unlock(&lock);
-            fclose(handle);
-            DEBUG(INDI::Logger::DBG_SESSION, "Solver cancelled.");
-            return;
-        }
-        pthread_mutex_unlock(&lock);
-    }
-
-    fclose(handle);
-
-    pthread_mutex_lock(&lock);
-    SolverSP.s = IPS_ALERT;
-    IDSetSwitch(&SolverSP, NULL);
-    DEBUG(INDI::Logger::DBG_SESSION, "Solver failed.");
-    pthread_mutex_unlock(&lock);
-
-    pthread_exit(0);
-
 }

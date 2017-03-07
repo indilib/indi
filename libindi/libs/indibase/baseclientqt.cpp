@@ -635,6 +635,22 @@ void INDI::BaseClientQt::startBlob( const char *devName, const char *propName, c
     client_socket.write(prop.toLatin1());
 }
 
+void INDI::BaseClientQt::sendOneBlob(IBLOB *bp)
+{
+    QString prop;
+
+    prop += QString("  <oneBLOB\n");
+    prop += QString("    name='%1'\n").arg(bp->name);
+    prop += QString("    size='%1'\n").arg(QString::number(bp->size));
+    prop += QString("    format='%1'>\n").arg(bp->format);
+
+    client_socket.write(prop.toLatin1());
+
+    client_socket.write(static_cast<char *>(bp->blob), bp->size);
+
+    client_socket.write("   </oneBLOB>\n");
+}
+
 void INDI::BaseClientQt::sendOneBlob( const char *blobName, unsigned int blobSize, const char *blobFormat, void * blobBuffer)
 {
     QString prop;

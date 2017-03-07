@@ -1980,27 +1980,35 @@ IDSetBLOB (const IBLOBVectorProperty *bvp, const char *fmt, ...)
         printf ("  <oneBLOB\n");
         printf ("    name='%s'\n", bp->name);
         printf ("    size='%d'\n", bp->size);
-        //printf ("    format='%s'>\n", bp->format);
 
-        encblob = malloc (4*bp->bloblen/3+4);
-        l = to64frombits(encblob, bp->blob, bp->bloblen);
-        printf ("    enclen='%d'\n", l);
-        printf ("    format='%s'>\n", bp->format);
-        size_t written = 0;
-        size_t towrite = l;
-        while (written < l)
+        // If size is zero, we are only sending a state-change
+        if (bp->size == 0)
         {
-            towrite = ((l - written) > 72) ? 72 : l - written;
-            size_t wr = fwrite(encblob + written, 1, towrite, stdout);
-            if (wr > 0) written += wr;
-            if ((written % 72) == 0)
-                fputc('\n', stdout);
+            printf ("    enclen='0'\n");
+            printf ("    format='%s'>\n", bp->format);
         }
+        else
+        {
+            encblob = malloc (4*bp->bloblen/3+4);
+            l = to64frombits(encblob, bp->blob, bp->bloblen);
+            printf ("    enclen='%d'\n", l);
+            printf ("    format='%s'>\n", bp->format);
+            size_t written = 0;
+            size_t towrite = l;
+            while (written < l)
+            {
+                towrite = ((l - written) > 72) ? 72 : l - written;
+                size_t wr = fwrite(encblob + written, 1, towrite, stdout);
+                if (wr > 0) written += wr;
+                if ((written % 72) == 0)
+                    fputc('\n', stdout);
+            }
 
-        if ((written % 72) != 0)
-            fputc('\n', stdout);
+            if ((written % 72) != 0)
+                fputc('\n', stdout);
 
-        free (encblob);
+            free (encblob);
+        }
 
         printf ("  </oneBLOB>\n");
     }

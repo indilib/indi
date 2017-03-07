@@ -778,6 +778,19 @@ void INDI::BaseClient::startBlob( const char *devName, const char *propName, con
     fprintf(svrwfp, "  timestamp='%s'>\n",  timestamp);
 }
 
+void INDI::BaseClient::sendOneBlob(IBLOB *bp)
+{
+    fprintf(svrwfp, "  <oneBLOB\n");
+    fprintf(svrwfp, "    name='%s'\n", bp->name);
+    fprintf(svrwfp, "    size='%ud'\n", bp->size);
+    fprintf(svrwfp, "    format='%s'>\n", bp->format);
+
+    for (unsigned i = 0; i < bp->size; i += 72)
+        fprintf(svrwfp, "    %.72s\n", ((char *) bp->blob+i));
+
+    fprintf(svrwfp, "   </oneBLOB>\n");
+}
+
 void INDI::BaseClient::sendOneBlob( const char *blobName, unsigned int blobSize, const char *blobFormat, void * blobBuffer)
 {
     fprintf(svrwfp, "  <oneBLOB\n");
