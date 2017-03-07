@@ -264,9 +264,24 @@ bool LX200_10MICRON::ReadScopeStatus()
 // Called by updateProperties
 void LX200_10MICRON::getBasicData(void)
 {
-    checkLX200Format(fd);
+    DEBUGFDEVICE(getDefaultName(), DBG_SCOPE, "<%s>", __FUNCTION__);
 
-    getMountInfo();
+    // cannot call LX200Generic::getBasicData(); as getTimeFormat :Gc# and getSiteName :GM# are not implemented on 10Micron
+    // TODO delete SiteNameT SiteNameTP
+    if (isSimulation() == false) {
+        getAlignment();
+	    checkLX200Format(fd);
+	    timeFormat = LX200_24;
+
+	    if (getTrackFreq(PortFD, &TrackFreqN[0].value) < 0)
+	        IDMessage(getDeviceName(), "Failed to get tracking frequency from device.");
+	    else
+	        IDSetNumber(&TrackingFreqNP, NULL);
+
+        getMountInfo();
+    }
+    sendScopeLocation();
+    sendScopeTime();
 }
 
 // Called by getBasicData

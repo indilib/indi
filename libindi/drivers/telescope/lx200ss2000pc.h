@@ -36,7 +36,7 @@ class LX200SS2000PC : public LX200Generic {
   virtual bool isSlewComplete(void);
   
  private:
-  bool getCalenderDate(int& year,int& month,int& day);
+  bool getCalendarDate(int& year,int& month,int& day);
   bool setCalenderDate(int  year,int  month,int  day);
   bool setUTCOffset   (const int offset_in_hours);
 

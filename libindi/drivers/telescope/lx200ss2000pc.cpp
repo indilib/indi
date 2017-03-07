@@ -110,10 +110,10 @@ bool LX200SS2000PC::isSlewComplete(void) {
 }
 
 
-bool LX200SS2000PC::getCalenderDate(int& year,int& month,int& day) {
+bool LX200SS2000PC::getCalendarDate(int& year,int& month,int& day) {
   char date[16];
   bool result = ( getCommandString(PortFD, date, ":GC#") == 0 );
-  DEBUGF(INDI::Logger::DBG_DEBUG, "LX200SS2000PC::getCalenderDate():: Date string from telescope: %s", date);
+  DEBUGF(INDI::Logger::DBG_DEBUG, "LX200SS2000PC::getCalendarDate():: Date string from telescope: %s", date);
   if (result) {
     result = ( sscanf(date, "%d%*c%d%*c%d", &month, &day, &year) == 3 ); // Meade format is MM/DD/YY
     DEBUGF(INDI::Logger::DBG_DEBUG, "setCalenderDate: Date retrieved from telescope: %02d/%02d/%02d.", month, day, year);
@@ -131,7 +131,7 @@ bool LX200SS2000PC::setCalenderDate(int year, int month, int day) {
   // takes quite some time.
   bool result = true;
   int  ss_year, ss_month, ss_day;
-  const bool send_to_skysensor = (!getCalenderDate(ss_year,ss_month,ss_day) || year != ss_year || month != ss_month || day != ss_day );
+  const bool send_to_skysensor = (!getCalendarDate(ss_year,ss_month,ss_day) || year != ss_year || month != ss_month || day != ss_day );
   DEBUGF(INDI::Logger::DBG_DEBUG, "LX200SS2000PC::setCalenderDate(): Driver date %02d/%02d/%02d, SS2000PC date %02d/%02d/%02d.", month, day, year, ss_month, ss_day, ss_year);
   if (send_to_skysensor) {
     char buffer[64];

@@ -72,7 +72,7 @@ int getSiteLatitude(int fd, int *dd, int *mm);
 /* Get site Longitude */
 int getSiteLongitude(int fd, int *ddd, int *mm);
 /* Get Calender data */
-int getCalenderDate(int fd, char *date);
+int getCalendarDate(int fd, char *date);
 /* Get site Name */
 int getSiteName(int fd, char *siteName, int siteNum);
 /* Get Home Search Status */
@@ -89,7 +89,7 @@ int getTimeFormat(int fd, int *format);
 
 /* Set Int */
 int setCommandInt(int fd, int data, const char *cmd);
-/* Set Sexigesimal */
+/* Set Sexagesimal */
 int setCommandXYZ(int fd, int x, int y, int z, const char *cmd);
 /* Common routine for Set commands */
 int setStandardProcedure(int fd, const char * writeData);
@@ -101,7 +101,7 @@ int setAlignmentMode(int fd, unsigned int alignMode);
 int setObjectRA(int fd, double ra);
 /* set Object DEC */
 int setObjectDEC(int fd, double dec);
-/* Set Calender date */
+/* Set Calendar date */
 int setCalenderDate(int fd, int dd, int mm, int yy);
 /* Set UTC offset */
 int setUTCOffset(int fd, double hours);
@@ -349,33 +349,38 @@ int isSlewComplete(int fd)
 
 }
 
-int getCalenderDate(int fd, char *date)
+int getCalendarDate(int fd, char *date)
 {
- DEBUGFDEVICE(lx200Name, DBG_SCOPE, "<%s>", __FUNCTION__);
- int dd, mm, yy;
- int error_type;
- int nbytes_read=0;
- char mell_prefix[3];
+    DEBUGFDEVICE(lx200Name, DBG_SCOPE, "<%s>", __FUNCTION__);
+    int dd, mm, yy, YYYY;
+    int error_type;
+    int nbytes_read=0;
+    char mell_prefix[3];
+    int len = 0;
 
- if ( (error_type = getCommandString(fd, date, ":GC#")) )
-   return error_type;
-
-  /* Meade format is MM/DD/YY */
-  nbytes_read = sscanf(date, "%d%*c%d%*c%d", &mm, &dd, &yy);
-  if (nbytes_read < 3)
-   return -1;
-
-  /* We consider years 50 or more to be in the last century, anything less in the 21st century.*/
-  if (yy > 50)
-	strncpy(mell_prefix, "19", 3);
-  else
-	strncpy(mell_prefix, "20", 3);
-
- /* We need to have in in YYYY/MM/DD format */
- snprintf(date, 16, "%s%02d/%02d/%02d", mell_prefix, yy, mm, dd);
-
- return (0);
-
+    if ( (error_type = getCommandString(fd, date, ":GC#")) )
+        return error_type;
+    len = strnlen(date,32);
+    if (len == 10) {
+        /* 10Micron Ultra Precision mode calendar date format is YYYY-MM-DD */
+        nbytes_read = sscanf(date, "%4d-%2d-%2d", &YYYY, &mm, &dd);
+        if (nbytes_read < 3)
+            return -1;
+        /* We're done, date is already in ISO format */
+    } else {
+        /* Meade format is MM/DD/YY */
+        nbytes_read = sscanf(date, "%d%*c%d%*c%d", &mm, &dd, &yy);
+        if (nbytes_read < 3)
+            return -1;
+        /* We consider years 50 or more to be in the last century, anything less in the 21st century.*/
+        if (yy > 50)
+	        strncpy(mell_prefix, "19", 3);
+        else
+	        strncpy(mell_prefix, "20", 3);
+        /* We need to have it in YYYY-MM-DD ISO format */
+        snprintf(date, 16, "%s%02d/%02d/%02d", mell_prefix, yy, mm, dd);
+    }
+    return (0);
 }
 
 int getTimeFormat(int fd, int *format)
