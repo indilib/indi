@@ -85,7 +85,7 @@ class AstrometryDriver : public INDI::DefaultDevice
     INumberVectorProperty SolverResultNP;
 
     ITextVectorProperty ActiveDeviceTP;
-    IText ActiveDeviceT[2];
+    IText ActiveDeviceT[1];
 
     IBLOBVectorProperty SolverDataBP;
     IBLOB SolverDataB[1];

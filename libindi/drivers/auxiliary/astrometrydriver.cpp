@@ -91,7 +91,7 @@ bool AstrometryDriver::initProperties()
     IUFillTextVector(&SolverSettingsTP, SolverSettingsT, 2, getDeviceName(), "ASTROMETRY_SETTINGS", "Settings", MAIN_CONTROL_TAB, IP_WO, 0, IPS_IDLE);
 
     // Solver Results
-    IUFillNumber(&SolverResultN[ASTROMETRY_RESULTS_PIXSCALE], "ASTROMETRY_RESULTS_PIXSCALE", "Pixscale (arcmin)", "%g", 0, 10000, 1, 0);
+    IUFillNumber(&SolverResultN[ASTROMETRY_RESULTS_PIXSCALE], "ASTROMETRY_RESULTS_PIXSCALE", "Pixscale (arcsec/pixel)", "%g", 0, 10000, 1, 0);
     IUFillNumber(&SolverResultN[ASTROMETRY_RESULTS_ORIENTATION], "ASTROMETRY_RESULTS_ORIENTATION", "Orientation (E of N) °", "%g", -360, 360, 1, 0);
     IUFillNumber(&SolverResultN[ASTROMETRY_RESULTS_RA], "ASTROMETRY_RESULTS_RA", "RA (J2000)", "%g", 0, 24, 1, 0);
     IUFillNumber(&SolverResultN[ASTROMETRY_RESULTS_DE], "ASTROMETRY_RESULTS_DE", "DE (J2000)", "%g", -90, 90, 1, 0);
@@ -107,17 +107,15 @@ bool AstrometryDriver::initProperties()
     /**********************************************/
 
     // Snooped Devices
-    IUFillText(&ActiveDeviceT[0],"ACTIVE_TELESCOPE","Telescope","Telescope Simulator");
-    IUFillText(&ActiveDeviceT[1],"ACTIVE_CCD","CCD","CCD Simulator");
-    IUFillTextVector(&ActiveDeviceTP,ActiveDeviceT,2,getDeviceName(),"ACTIVE_DEVICES","Snoop devices",OPTIONS_TAB,IP_RW,60,IPS_IDLE);
+    IUFillText(&ActiveDeviceT[0],"ACTIVE_CCD","CCD","CCD Simulator");
+    IUFillTextVector(&ActiveDeviceTP,ActiveDeviceT,1,getDeviceName(),"ACTIVE_DEVICES","Snoop devices",OPTIONS_TAB,IP_RW,60,IPS_IDLE);
 
     // Primary CCD Chip Data Blob
     IUFillBLOB(&CCDDataB[0],"CCD1","Image","");
-    IUFillBLOBVector(&CCDDataBP,CCDDataB,1,ActiveDeviceT[1].text,"CCD1","Image Data","Image Info",IP_RO,60,IPS_IDLE);
+    IUFillBLOBVector(&CCDDataBP,CCDDataB,1,ActiveDeviceT[0].text,"CCD1","Image Data","Image Info",IP_RO,60,IPS_IDLE);
 
-    IDSnoopDevice(ActiveDeviceT[0].text,"EQUATORIAL_EOD_COORD");
-    IDSnoopDevice(ActiveDeviceT[0].text,"TELESCOPE_INFO");
-    IDSnoopDevice(ActiveDeviceT[1].text,"CCD1");
+    IDSnoopDevice(ActiveDeviceT[0].text,"CCD1");
+    IDSnoopBLOBs(ActiveDeviceT[0].text, "CCD1", B_ONLY);
 
     addDebugControl();
 
@@ -164,15 +162,11 @@ const char * AstrometryDriver::getDefaultName()
 
 bool AstrometryDriver::Connect()
 {
-
-
     return true;
 }
 
 bool AstrometryDriver::Disconnect()
 {
-    DEBUGF(INDI::Logger::DBG_SESSION,"%s is offline.", getDeviceName());
-
     return true;
 }
 
@@ -190,8 +184,17 @@ bool AstrometryDriver::ISNewBLOB(const char *dev, const char *name, int sizes[],
             SolverDataBP.s = IPS_OK;
             IDSetBLOB(&SolverDataBP, NULL);
 
-            if (SolverS[0].s == ISS_ON)
-                processBLOB(reinterpret_cast<uint8_t*>(blobs[0]), static_cast<uint32_t>(blobsizes[0]));
+            // If the client explicitly uploaded the data then we solve it.
+            if (SolverS[0].s == ISS_OFF)
+            {
+                SolverS[0].s = ISS_ON;
+                SolverS[1].s = ISS_OFF;
+                SolverSP.s = IPS_BUSY;
+                DEBUG(INDI::Logger::DBG_SESSION, "Astrometry solver is enabled.");
+                defineNumber(&SolverResultNP);
+            }
+
+            processBLOB(reinterpret_cast<uint8_t*>(blobs[0]), static_cast<uint32_t>(sizes[0]));
 
             return true;
         }
@@ -213,10 +216,9 @@ bool AstrometryDriver::ISNewText (const char *dev, const char *name, char *texts
             IDSetText(&ActiveDeviceTP,NULL);
 
             // Update the property name!
-            strncpy(CCDDataBP.device, ActiveDeviceT[1].text, MAXINDIDEVICE);
-            IDSnoopDevice(ActiveDeviceT[0].text,"EQUATORIAL_EOD_COORD");
-            IDSnoopDevice(ActiveDeviceT[0].text,"TELESCOPE_INFO");
-            IDSnoopDevice(ActiveDeviceT[1].text,"CCD1");
+            strncpy(CCDDataBP.device, ActiveDeviceT[0].text, MAXINDIDEVICE);
+            IDSnoopDevice(ActiveDeviceT[0].text,"CCD1");
+            IDSnoopBLOBs(ActiveDeviceT[0].text, "CCD1", B_ONLY);
 
             //  We processed this one, so, tell the world we did it
             return true;
@@ -280,6 +282,7 @@ bool AstrometryDriver::ISSnoopDevice (XMLEle *root)
 
 bool AstrometryDriver::saveConfigItems(FILE *fp)
 {
+    IUSaveConfigText(fp, &ActiveDeviceTP);
     IUSaveConfigText(fp, &SolverSettingsTP);
     return true;
 }
@@ -353,8 +356,7 @@ void AstrometryDriver::runSolver()
         sscanf(line, "Field rotation angle: up is %f", &angle);
         sscanf(line, "Field center: (RA,Dec) = (%f,%f)", &ra, &dec);
         sscanf(line, "Field parity: %s", parity_str);
-        sscanf(line, "%*spixel scale %f arcsec/pix.", &pixscale);
-
+        sscanf(line, "%*[^p]pixel scale %f", &pixscale);
 
         if (!strcmp(parity_str, "pos"))
             parity = 1;
