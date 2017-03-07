@@ -257,9 +257,10 @@ protected:
 
     /** \brief Save the current properties in a configuration file
      *  \param silent if true, don't report any error or notification messages.
+     *  \param property Name of specific property to save while leaving all others properties in the file as is
         \return True if successful, false otherwise.
     */
-    virtual bool saveConfig(bool silent=false);
+    virtual bool saveConfig(bool silent=false, const char *property=NULL);
 
     /**
      * @brief saveConfigItems Save specific properties in the provide config file handler. Child class usually override this function to save their own properties and the base class

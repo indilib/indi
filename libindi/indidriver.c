@@ -1209,30 +1209,14 @@ dispatch (XMLEle *root, char msg[])
 
 int IUReadConfig(const char *filename, const char *dev, const char *property, int silent, char errmsg[])
 {
-    char configFileName[MAXRBUF];
     char *rname, *rdev;
     XMLEle *root = NULL, *fproot = NULL;
     LilXML *lp = newLilXML();
 
-    FILE *fp = NULL;
+    FILE *fp = IUGetConfigFP(filename, dev, "r", errmsg);
 
-    if (filename)
-         strncpy(configFileName, filename, MAXRBUF);
-     else
-    {
-        if (getenv("INDICONFIG"))
-            strncpy(configFileName, getenv("INDICONFIG"), MAXRBUF);
-        else
-           snprintf(configFileName, MAXRBUF, "%s/.indi/%s_config.xml", getenv("HOME"), dev);
-
-    }
-
-    fp = fopen(configFileName, "r");
     if (fp == NULL)
-    {
-         snprintf(errmsg, MAXRBUF, "Unable to read user config file. Error loading file %s: %s\n", configFileName, strerror(errno));
-         return -1;
-    }
+        return -1;
 
     fproot = readXMLFile(fp, lp, errmsg);
 
@@ -1351,7 +1335,7 @@ IDMessage (const char *dev, const char *fmt, ...)
      pthread_mutex_unlock(&stdout_mutex);
 }
 
-FILE * IUGetConfigFP(const char *filename, const char *dev, char errmsg[])
+FILE * IUGetConfigFP(const char *filename, const char *dev, const char *mode, char errmsg[])
 {
     char configFileName[MAXRBUF];
     char configDir[MAXRBUF];
@@ -1380,7 +1364,7 @@ FILE * IUGetConfigFP(const char *filename, const char *dev, char errmsg[])
          }
      }
 
-     fp = fopen(configFileName, "w");
+     fp = fopen(configFileName, mode);
      if (fp == NULL)
      {
           snprintf(errmsg, MAXRBUF, "Unable to open config file. Error loading file %s: %s\n", configFileName, strerror(errno));
