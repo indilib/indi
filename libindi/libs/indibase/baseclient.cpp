@@ -17,7 +17,6 @@
 *******************************************************************************/
 #include <stdlib.h>
 #include <string.h>
-
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -30,6 +29,7 @@
 
 #include "baseclient.h"
 #include "basedevice.h"
+#include "base64.h"
 #include "indicom.h"
 
 #include <errno.h>
@@ -780,26 +780,66 @@ void INDI::BaseClient::startBlob( const char *devName, const char *propName, con
 
 void INDI::BaseClient::sendOneBlob(IBLOB *bp)
 {
+    unsigned char *encblob;
+    int l;
+
+    encblob = (unsigned char *) malloc (4*bp->size/3+4);
+    l = to64frombits(encblob, reinterpret_cast<const unsigned char*>(bp->blob), bp->size);
+
     fprintf(svrwfp, "  <oneBLOB\n");
     fprintf(svrwfp, "    name='%s'\n", bp->name);
     fprintf(svrwfp, "    size='%ud'\n", bp->size);
+    fprintf (svrwfp,"    enclen='%d'\n", l);
     fprintf(svrwfp, "    format='%s'>\n", bp->format);
 
-    for (unsigned i = 0; i < bp->size; i += 72)
-        fprintf(svrwfp, "    %.72s\n", ((char *) bp->blob+i));
+    size_t written = 0;
+    size_t towrite = l;
+    while (written < l)
+    {
+        towrite = ((l - written) > 72) ? 72 : l - written;
+        size_t wr = fwrite( encblob + written, 1, towrite, svrwfp);
+        if (wr > 0) written += wr;
+        if ((written % 72) == 0)
+            fputc('\n', svrwfp);
+    }
+
+    if ((written % 72) != 0)
+        fputc('\n', svrwfp);
+
+    free (encblob);
 
     fprintf(svrwfp, "   </oneBLOB>\n");
 }
 
 void INDI::BaseClient::sendOneBlob( const char *blobName, unsigned int blobSize, const char *blobFormat, void * blobBuffer)
 {
+    unsigned char *encblob;
+    int l;
+
+    encblob = (unsigned char *) malloc (4*blobSize/3+4);
+    l = to64frombits(encblob, reinterpret_cast<const unsigned char*>(blobBuffer), blobSize);
+
     fprintf(svrwfp, "  <oneBLOB\n");
     fprintf(svrwfp, "    name='%s'\n", blobName);
     fprintf(svrwfp, "    size='%ud'\n", blobSize);
-    fprintf(svrwfp, "    format='%s'>\n", blobFormat);
+    fprintf (svrwfp, "    enclen='%d'\n", l);
+    fprintf (svrwfp, "    format='%s'>\n", blobFormat);
 
-    for (unsigned i = 0; i < blobSize; i += 72)
-        fprintf(svrwfp, "    %.72s\n", ((char *) blobBuffer+i));
+    size_t written = 0;
+    size_t towrite = l;
+    while (written < l)
+    {
+        towrite = ((l - written) > 72) ? 72 : l - written;
+        size_t wr = fwrite( encblob + written, 1, towrite, svrwfp);
+        if (wr > 0) written += wr;
+        if ((written % 72) == 0)
+            fputc('\n', svrwfp);
+    }
+
+    if ((written % 72) != 0)
+        fputc('\n', svrwfp);
+
+    free (encblob);
 
     fprintf(svrwfp, "   </oneBLOB>\n");
 }

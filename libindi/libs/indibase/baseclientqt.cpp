@@ -35,8 +35,9 @@
 #endif
 
 #include "baseclientqt.h"
-#include "basedevice.h"
-#include "indicom.h"
+#include <basedevice.h>
+#include <base64.h>
+#include <indicom.h>
 
 #include <errno.h>
 
@@ -638,31 +639,72 @@ void INDI::BaseClientQt::startBlob( const char *devName, const char *propName, c
 void INDI::BaseClientQt::sendOneBlob(IBLOB *bp)
 {
     QString prop;
+    unsigned char *encblob;
+    int l;
+
+    encblob = (unsigned char *) malloc (4*bp->size/3+4);
+    l = to64frombits(encblob, reinterpret_cast<const unsigned char*>(bp->blob), bp->size);
 
     prop += QString("  <oneBLOB\n");
     prop += QString("    name='%1'\n").arg(bp->name);
     prop += QString("    size='%1'\n").arg(QString::number(bp->size));
+    prop += QString("    enclen='%1'\n").arg(QString::number(l));
     prop += QString("    format='%1'>\n").arg(bp->format);
 
     client_socket.write(prop.toLatin1());
 
-    client_socket.write(static_cast<char *>(bp->blob), bp->size);
+    size_t written = 0;
+    size_t towrite = l;
+    while (written < l)
+    {
+        towrite = ((l - written) > 72) ? 72 : l - written;
+        size_t wr = client_socket.write( reinterpret_cast<const char *>(encblob + written), towrite);
+        if (wr > 0) written += wr;
+        if ((written % 72) == 0)
+             client_socket.write("\n");
+    }
+
+    if ((written % 72) != 0)
+        client_socket.write("\n");
+
+    free (encblob);
 
     client_socket.write("   </oneBLOB>\n");
 }
 
 void INDI::BaseClientQt::sendOneBlob( const char *blobName, unsigned int blobSize, const char *blobFormat, void * blobBuffer)
 {
+    unsigned char *encblob;
+    int l;
+
+    encblob = (unsigned char *) malloc (4*blobSize/3+4);
+    l = to64frombits(encblob, reinterpret_cast<const unsigned char*>(blobBuffer), blobSize);
+
     QString prop;
 
     prop += QString("  <oneBLOB\n");
     prop += QString("    name='%1'\n").arg(blobName);
     prop += QString("    size='%1'\n").arg(QString::number(blobSize));
+    prop += QString("    enclen='%1'\n").arg(QString::number(l));
     prop += QString("    format='%1'>\n").arg(blobFormat);
 
     client_socket.write(prop.toLatin1());
 
-    client_socket.write(static_cast<char *>(blobBuffer), blobSize);
+    size_t written = 0;
+    size_t towrite = l;
+    while (written < l)
+    {
+        towrite = ((l - written) > 72) ? 72 : l - written;
+        size_t wr = client_socket.write( reinterpret_cast<const char *>(encblob + written), towrite);
+        if (wr > 0) written += wr;
+        if ((written % 72) == 0)
+             client_socket.write("\n");
+    }
+
+    if ((written % 72) != 0)
+        client_socket.write("\n");
+
+    free (encblob);
 
     client_socket.write("   </oneBLOB>\n");
 }
