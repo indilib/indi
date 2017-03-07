@@ -388,7 +388,11 @@ private:
    connection is established with the CCD, but must be called /em before returning true in Connect()
 
    It also implements the interface to perform guiding. The class enable the ability to \e snoop on telescope equatorial coordinates and record them in the
-   FITS file before upload. Developers need to subclass INDI::CCD to implement any driver for CCD cameras within INDI.
+   FITS file before upload. It also snoops Sky-Quality-Meter devices to record sky quality in units of Magnitudes-Per-Arcsecond-Squared (MPASS) in the FITS header.
+
+   Support for streaming is available (Linux only) and is handled by the StreamRecorder class.
+
+   Developers need to subclass INDI::CCD to implement any driver for CCD cameras within INDI.
 
    \example CCD Simulator
 
@@ -414,21 +418,6 @@ class INDI::CCD : public INDI::DefaultDevice, INDI::GuiderInterface
             CCD_HAS_STREAMING       = 1 << 8        /*!< Does the CCD support live video streaming?  */
         } CCDCapability;
 
-        enum
-        {
-            ASTROMETRY_SETTINGS_BINARY,
-            ASTROMETRY_SETTINGS_OPTIONS
-        };
-
-        enum
-        {
-            ASTROMETRY_RESULTS_PIXSCALE,
-            ASTROMETRY_RESULTS_ORIENTATION,
-            ASTROMETRY_RESULTS_RA,
-            ASTROMETRY_RESULTS_DE,
-            ASTROMETRY_RESULTS_PARITY
-        };
-
         virtual bool initProperties();
         virtual bool updateProperties();
         virtual void ISGetProperties (const char *dev);
@@ -436,8 +425,6 @@ class INDI::CCD : public INDI::DefaultDevice, INDI::GuiderInterface
         virtual bool ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n);
         virtual bool ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n);
         virtual bool ISSnoopDevice (XMLEle *root);
-
-        static void * runSolverHelper(void *context);
 
      protected:
 
@@ -729,32 +716,6 @@ class INDI::CCD : public INDI::DefaultDevice, INDI::GuiderInterface
         ITextVectorProperty ActiveDeviceTP;
         IText ActiveDeviceT[4];
 
-        // Astrometry
-
-        // Enable/Disable solver
-        ISwitch SolverS[2];
-        ISwitchVectorProperty SolverSP;
-
-        // Solver Settings
-        IText SolverSettingsT[2];
-        ITextVectorProperty SolverSettingsTP;
-
-        // Solver Results
-        INumber SolverResultN[5];
-        INumberVectorProperty SolverResultNP;
-
-        // WCS
-        ISwitch WorldCoordS[2];
-        ISwitchVectorProperty WorldCoordSP;
-
-        // WCS CCD Rotation
-        INumber CCDRotationN[1];
-        INumberVectorProperty CCDRotationNP;
-
-        ISwitch TelescopeTypeS[2];
-        ISwitchVectorProperty TelescopeTypeSP;
-        enum { TELESCOPE_PRIMARY, TELESCOPE_GUIDE };
-
         INumber                 TemperatureN[1];
         INumberVectorProperty   TemperatureNP;
 
@@ -770,21 +731,26 @@ class INDI::CCD : public INDI::DefaultDevice, INDI::GuiderInterface
         IText   UploadSettingsT[2];
         ITextVectorProperty UploadSettingsTP;
 
+        ISwitch TelescopeTypeS[2];
+        ISwitchVectorProperty TelescopeTypeSP;
+        enum { TELESCOPE_PRIMARY, TELESCOPE_GUIDE };
+
+        // WCS
+        ISwitch WorldCoordS[2];
+        ISwitchVectorProperty WorldCoordSP;
+
+        // WCS CCD Rotation
+        INumber CCDRotationN[1];
+        INumberVectorProperty CCDRotationNP;
+
      private:
         uint32_t capability;
 
         bool ValidCCDRotation;
 
-        bool uploadFile(CCDChip * targetChip, const void *fitsData, size_t totalBytes, bool sendImage, bool saveImage, bool useSolver=false);
+        bool uploadFile(CCDChip * targetChip, const void *fitsData, size_t totalBytes, bool sendImage, bool saveImage);
         void getMinMax(double *min, double *max, CCDChip *targetChip);
         int getFileIndex(const char *dir, const char *prefix, const char *ext);
-        
-        // Run solver thread
-        void runSolver();
-    
-        // Thread for listenINDI()
-        pthread_t solverThread;
-        pthread_mutex_t lock;
 
         friend class ::StreamRecorder;
 

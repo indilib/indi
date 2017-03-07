@@ -214,6 +214,17 @@ void getSexComponents(double value, int *d, int *m, int *s)
    *d *= -1;
 }
 
+void getSexComponentsIID(double value, int *d, int *m, double *s)
+{
+
+  *d = (int32_t) fabs(value);
+  *m = (int32_t) ((fabs(value) - *d) * 60.0);
+  *s = (double) (((fabs(value) - *d) * 60.0 - *m) *60.0);
+
+  if (value < 0)
+   *d *= -1;
+}
+
 /* fill buf with properly formatted INumber string. return length */
 int
 numberFormat (char *buf, const char *format, double value)

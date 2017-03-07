@@ -38,8 +38,8 @@ INDI::LightBoxInterface::~LightBoxInterface()
 void INDI::LightBoxInterface::initLightBoxProperties(const char *deviceName, const char* groupName)
 {
     // Turn on/off light
-    IUFillSwitch(&LightS[0], "FLAT_LIGHT_ON", "On", ISS_OFF);
-    IUFillSwitch(&LightS[1], "FLAT_LIGHT_OFF", "Off", ISS_OFF);
+    IUFillSwitch(&LightS[FLAT_LIGHT_ON], "FLAT_LIGHT_ON", "On", ISS_OFF);
+    IUFillSwitch(&LightS[FLAT_LIGHT_OFF], "FLAT_LIGHT_OFF", "Off", ISS_OFF);
     IUFillSwitchVector(&LightSP, LightS, 2, deviceName, "FLAT_LIGHT_CONTROL", "Flat Light", groupName, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
     // Light Intensity
@@ -92,7 +92,7 @@ bool INDI::LightBoxInterface::processLightBoxSwitch (const char *dev, const char
         {
             int prevIndex = IUFindOnSwitchIndex(&LightSP);
             IUUpdateSwitch(&LightSP, states, names, n);
-            bool rc = EnableLightBox(LightS[0].s == ISS_ON ? true : false);
+            bool rc = EnableLightBox(LightS[FLAT_LIGHT_ON].s == ISS_ON ? true : false);
 
             LightSP.s = rc ? IPS_OK : IPS_ALERT;
 
