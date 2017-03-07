@@ -30,7 +30,7 @@ typedef enum {
     GSTAT_UNPARKING                   =  3,
     GSTAT_SLEWING_TO_HOME             =  4,
     GSTAT_PARKED                      =  5,
-    GSTAT_STOPPING                    =  6,
+    GSTAT_SLEWING_OR_STOPPING         =  6,
     GSTAT_NOT_TRACKING_AND_NOT_MOVING =  7,
     GSTAT_MOTORS_TOO_COLD             =  8,
     GSTAT_TRACKING_OUTSIDE_LIMITS     =  9,

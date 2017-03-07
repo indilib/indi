@@ -182,6 +182,7 @@ int extractISOTime(const char *timestr, struct ln_date *iso_date);
 #endif
 
 void getSexComponents(double value, int *d, int *m, int *s);
+void getSexComponentsIID(double value, int *d, int *m, double *s);
 
 /** \brief Fill buffer with properly formatted INumber string.
     \param buf to store the formatted string.

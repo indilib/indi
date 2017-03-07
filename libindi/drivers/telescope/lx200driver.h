@@ -27,8 +27,8 @@ enum TSlew { LX200_SLEW_MAX, LX200_SLEW_FIND, LX200_SLEW_CENTER, LX200_SLEW_GUID
 enum TAlign {  LX200_ALIGN_POLAR, LX200_ALIGN_ALTAZ, LX200_ALIGN_LAND };
   /* Directions */
 enum TDirection { LX200_NORTH, LX200_WEST, LX200_EAST, LX200_SOUTH, LX200_ALL};
-  /* Formats of Right ascention and Declenation */
-enum TFormat { LX200_SHORT_FORMAT, LX200_LONG_FORMAT};
+  /* Formats of Right Ascension and Declination */
+enum TFormat { LX200_SHORT_FORMAT, LX200_LONG_FORMAT, LX200_LONGER_FORMAT };
   /* Time Format */
 enum TTimeFormat { LX200_24, LX200_AM, LX200_PM};
   /* Focus operation */
@@ -230,8 +230,10 @@ int SendPulseCmd(int fd, int direction, int duration_msec);
 /**************************************************************************
  Other Commands
  **************************************************************************/
- /* Ensures LX200 RA/DEC format is long */
+/* Determines LX200 RA/DEC format, tries to set to long if found short */
 int checkLX200Format(int fd);
+/* return the controller_format enum value */
+int getLX200Format(void);
 /* Select a site from the LX200 controller */
 int selectSite(int fd, int siteNum);
 /* Select a catalog object */

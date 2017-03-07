@@ -491,9 +491,20 @@ bool LX200Generic::Goto(double r,double d)
     targetRA=r;
     targetDEC=d;
     char RAStr[64], DecStr[64];
+    int fracbase = 0;
 
-    fs_sexa(RAStr, targetRA, 2, 3600);
-    fs_sexa(DecStr, targetDEC, 2, 3600);
+    switch (getLX200Format()) {
+    case LX200_LONGER_FORMAT:
+        fracbase = 360000;
+    break;
+    case LX200_LONG_FORMAT:
+    case LX200_SHORT_FORMAT:
+    default:
+        fracbase = 3600;
+    break;
+    }
+    fs_sexa(RAStr, targetRA, 2, fracbase);
+    fs_sexa(DecStr, targetDEC, 2, fracbase);
 
     // If moving, let's stop it first.
     if (EqNP.s == IPS_BUSY)
