@@ -1057,7 +1057,24 @@ bool INDI::Telescope::Connect()
     if (connectionMode == CONNECTION_TCP || (AddressT[0].text && AddressT[0].text[0] && AddressT[1].text && AddressT[1].text[0]))
         rc = Connect(AddressT[0].text, AddressT[1].text);
     else
-        rc = Connect(PortT[0].text, atoi(IUFindOnSwitch(&BaudRateSP)->name));
+    {
+        uint32_t baud = atoi(IUFindOnSwitch(&BaudRateSP)->name);
+        rc = Connect(PortT[0].text, baud);
+
+        if (rc == false)
+        {
+            DEBUGF(INDI::Logger::DBG_DEBUG, "Connection to %s @ %d failed.", PortT[0].text, baud);
+            for (std::string onePort : m_Ports)
+            {
+                DEBUGF(INDI::Logger::DBG_DEBUG, "Trying connection to %s @ %d ...", onePort.c_str(), baud);
+                if (rc = Connect(onePort.c_str(), baud))
+                {
+                    saveConfig(true);
+                    break;
+                }
+            }
+        }
+    }
 
     if(rc)
         SetTimer(updatePeriodMS);

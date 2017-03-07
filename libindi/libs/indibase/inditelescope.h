@@ -485,6 +485,8 @@ private:
         int sockfd = -1;
         const uint8_t SOCKET_TIMEOUT = 5;
 
+        const std::vector<std::string> m_Ports = { "/dev/ttyUSB0" , "/dev/ttyUSB1" , "/dev/ttyUSB2", "/dev/ttyUSB3",
+                                                   "/dev/rfcomm0" , "/dev/ttyS0" , "/dev/ttyS1", "/dev/ttyS2"};
 };
 
 #endif // INDI::Telescope_H
