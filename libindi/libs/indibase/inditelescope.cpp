@@ -1071,7 +1071,9 @@ bool INDI::Telescope::Connect()
                 DEBUGF(INDI::Logger::DBG_DEBUG, "Trying connection to %s @ %d ...", onePort.c_str(), baud);
                 if (rc = Connect(onePort.c_str(), baud))
                 {
-                    saveConfig(true);
+                    IUSaveText(&PortT[0], onePort.c_str());
+                    IDSetText(&PortTP, NULL);
+                    saveConfig(true, "DEVICE_PORT");
                     break;
                 }
             }
