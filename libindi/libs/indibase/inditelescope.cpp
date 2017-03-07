@@ -188,6 +188,9 @@ void INDI::Telescope::ISGetProperties (const char *dev)
     defineSwitch(&DomeClosedLockTP);
     loadConfig(true, "DOME_POLICY");
 
+    defineNumber(&ScopeParametersNP);
+    loadConfig(true, "TELESCOPE_INFO");
+
     if(isConnected())
     {
         //  Now we add our telescope specific stuff
@@ -216,7 +219,6 @@ void INDI::Telescope::ISGetProperties (const char *dev)
         if (nSlewRate >= 4)
             defineSwitch(&SlewRateSP);
 
-        defineNumber(&ScopeParametersNP);        
         defineNumber(&TargetNP);        
 
     }
@@ -268,7 +270,6 @@ bool INDI::Telescope::updateProperties()
                 defineSwitch(&ParkOptionSP);
             }
         }
-        defineNumber(&ScopeParametersNP);
         defineNumber(&TargetNP);
     }
     else
@@ -296,7 +297,6 @@ bool INDI::Telescope::updateProperties()
                 deleteProperty(ParkOptionSP.name);
             }
         }
-        deleteProperty(ScopeParametersNP.name);
     }
 
     controller->updateProperties();
@@ -439,7 +439,9 @@ bool INDI::Telescope::saveConfigItems(FILE *fp)
 
     if (HasLocation())
         IUSaveConfigNumber(fp,&LocationNP);
-    IUSaveConfigNumber(fp, &ScopeParametersNP);
+
+    if (ScopeParametersNP.s == IPS_OK)
+        IUSaveConfigNumber(fp, &ScopeParametersNP);
 
     controller->saveConfigItems(fp);
 
