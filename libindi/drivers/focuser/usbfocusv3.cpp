@@ -943,7 +943,7 @@ bool USBFocusV3::setTemperatureCompensation(bool enable)
 {
     int nbytes_written=0, rc=-1;
     char errstr[MAXRBUF];
-    char cmd[UFOCTCLEN];
+    char cmd[UFOCTCLEN+1];
 
     if (enable)
     	snprintf(cmd, UFOCTCLEN+1, "%s", UFOCSETAUTO);
