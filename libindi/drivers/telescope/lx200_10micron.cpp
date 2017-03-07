@@ -228,7 +228,7 @@ bool LX200_10MICRON::ReadScopeStatus()
         if (isParked() == false)
             SetParked(true);
         break;
-    case GSTAT_STOPPING:
+    case GSTAT_SLEWING_OR_STOPPING:
         TrackState = SCOPE_SLEWING;
         break;
     case GSTAT_NOT_TRACKING_AND_NOT_MOVING:
@@ -261,9 +261,11 @@ bool LX200_10MICRON::ReadScopeStatus()
     return true;
 }
 
-// Called by updateProperties, Note: the LX200Generic version may set us back to LOW precision mode so we override here
+// Called by updateProperties
 void LX200_10MICRON::getBasicData(void)
 {
+    checkLX200Format(fd);
+
     getMountInfo();
 }
 
