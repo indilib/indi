@@ -55,8 +55,6 @@ class EQMod : public INDI::Telescope, public INDI::GuiderInterface
     protected:
     private:
     Skywatcher *mount;
-    
-
 
 	unsigned long currentRAEncoder, zeroRAEncoder, totalRAEncoder;
 	unsigned long currentDEEncoder, zeroDEEncoder, totalDEEncoder;
@@ -209,7 +207,6 @@ class EQMod : public INDI::Telescope, public INDI::GuiderInterface
         virtual ~EQMod();
 
         virtual const char *getDefaultName();
-        virtual bool Connect();
         virtual bool Connect(const char *port, uint32_t baud);
         virtual bool Connect(const char *hostname, const char *port);
         virtual bool Disconnect();

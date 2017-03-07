@@ -731,25 +731,6 @@ bool EQMod::updateProperties()
 }
 
 
-bool EQMod::Connect()
-{
-    bool rc=false;
-
-    if(isConnected()) return true;       
-
-    // Check if TCP Address exists and not empty
-    if (AddressT[0].text && AddressT[0].text[0] && AddressT[1].text && AddressT[1].text[0])
-        rc =Connect(AddressT[0].text, AddressT[1].text);
-    else
-        rc=Connect(PortT[0].text, atoi(IUFindOnSwitch(&BaudRateSP)->name));
-
-    if(rc) {
- 
-        SetTimer(POLLMS);
-}
-    return rc;
-}
-
 bool EQMod::Connect(const char *port, uint32_t baud)
 {
  DEBUGF(INDI::Logger::DBG_SESSION, "Connecting to port %s at speed %d" , port, baud);
