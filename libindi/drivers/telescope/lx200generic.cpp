@@ -1332,9 +1332,12 @@ void LX200Generic::sendScopeTime()
   getLocalTime24(PortFD, &ctime);
   getSexComponents(ctime, &h, &m, &s);
 
-  getCalenderDate(PortFD, cdate);
-  result = sscanf(cdate, "%d/%d/%d", &year, &month, &day);
-  if (result != 3) return;
+  getCalendarDate(PortFD, cdate);
+  result = sscanf(cdate, "%4d-%2d-%2d", &year, &month, &day);
+  if (result != 3) {
+      DEBUG(INDI::Logger::DBG_ERROR, "Error reading date from Telescope.");
+      return;
+  }
 
   // Let's fill in the local time
   ltm.tm_sec = s;
@@ -1365,8 +1368,6 @@ void LX200Generic::sendScopeTime()
 
   // Let's send everything to the client
   IDSetText(&TimeTP, NULL);
-
-
 }
 
 void LX200Generic::sendScopeLocation()
