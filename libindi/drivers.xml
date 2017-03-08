@@ -113,6 +113,14 @@
                 <driver name="ZEQ25">indi_lx200zeq25</driver>
                 <version>1.0</version>
         </device>
+        <device label="iEQ30" focal_length="" aperture="">
+                <driver name="ZEQ25">indi_lx200zeq25</driver>
+                <version>1.0</version>
+        </device>
+        <device label="iEQ45" focal_length="" aperture="">
+                <driver name="ZEQ25">indi_lx200zeq25</driver>
+                <version>1.0</version>
+        </device>
         <device label="SmartEQ" focal_length="" aperture="">
                 <driver name="ZEQ25">indi_lx200zeq25</driver>
                 <version>1.0</version>
