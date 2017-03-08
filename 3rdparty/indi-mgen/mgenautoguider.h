@@ -22,46 +22,8 @@
     A very minimal autoguider! It connects/disconnects to the autoguider, and manages operational modes.
 */
 
-
-/** @brief A protocol mode in which the command is valid */
-enum IOMode
-{
-    OPM_UNKNOWN,        /**< Unknown mode, no exchange done yet or connection error */
-    OPM_COMPATIBLE,     /**< Compatible mode, just after boot */
-    OPM_BOOT,           /**< Boot mode */
-    OPM_APPLICATION,    /**< Normal applicative mode */
-};
-
-/** @internal Debug helper to stringify an IOMode value */
-char const * const DBG_OpModeString(IOMode);
-
-
-/** @brief The result of a command */
-enum IOResult
-{
-    CR_SUCCESS,         /**< Command is successful, result is available through helpers or in field 'answer' */
-    CR_FAILURE,         /**< Command is not successful, no acknowledge or unexpected data returned */
-};
-
-
-/** @brief Exception returned when there is I/O malfunction with the device */
-class IOError: std::exception
-{
-protected:
-    std::string const _what;
-public:
-    virtual const char * what() const noexcept { return _what.c_str(); }
-    IOError(int code): std::exception(), _what(std::string("I/O error code ") + std::to_string(code)) {};
-    virtual ~IOError() {};
-};
-
-
-/** @brief One word in the I/O protocol */
-typedef unsigned char IOByte;
-
-/** @brief A buffer of protocol words */
-typedef std::vector<IOByte> IOBuffer;
-
+#include "indidevapi.h"
+#include "indiccd.h"
 
 class MGenAutoguider : public INDI::CCD
 {
@@ -70,111 +32,50 @@ public:
     virtual ~MGenAutoguider();
 
 public:
+    static MGenAutoguider & instance();
 
 protected:
-    //ITextVectorProperty *DevPathSP;
-    char dev_path[MAXINDINAME];
-    int fd;
+    class MGenDeviceState * device;
 
-    class DeviceState
+public:
+    struct version
     {
-    protected:
-        pthread_mutex_t _lock;
-    public:
-        bool lock() { return !pthread_mutex_lock(&_lock); }
-        void unlock() { pthread_mutex_unlock(&_lock); }
+        unsigned short uploaded_firmware;
+        unsigned short camera_firmware;
+        IText VersionFirmwareT;
+        ITextVectorProperty VersionTP;
+    } version;
 
-    protected:
-        bool is_active;
-    public:
-        bool isActive() const { return is_active; }
-        void enable() { if(lock()) { is_active = true; unlock(); } }
-        void disable() { if(lock()) { is_active = false; unlock(); } }
+public:
+    struct voltage
+    {
+        time_t timestamp;
+        float logic;
+        float input;
+        float reference;
+        INumber VoltageN[3];
+        INumberVectorProperty VoltageNP;
+    } voltage;
 
-    protected:
-        IOMode mode;
-    public:
-        IOMode getOpMode() const { return mode; }
-        void setOpMode(IOMode _mode) { if(lock()) { mode = _mode; unlock(); } }
+public:
+    struct ui
+    {
+        time_t timestamp;
+        IBLOB UIFrameB;
+        IBLOBVectorProperty UIFrameBP;
+        INumber UIFramerateN;
+        INumberVectorProperty UIFramerateNP;
+        ISwitch UIButtonS[6];
+        ISwitchVectorProperty UIButtonSP[2];
+    } ui;
 
-    protected:
-        std::queue<unsigned int> button_queue;
-    public:
-        bool hasButtons() const { return !button_queue.empty(); }
-        void pushButton(unsigned int _button) { if(lock()) { button_queue.push(_button); unlock(); } }
-        unsigned int popButton() { unsigned int b = -1; if(lock()) { b = button_queue.front(); button_queue.pop(); unlock(); } return b; }
-
-    public:
-        bool tried_turn_on;
-        void * usb_channel;
-
-    public:
-        unsigned int no_ack_count;
-
-    public:
-        struct version
-        {
-            unsigned short uploaded_firmware;
-            unsigned short camera_firmware;
-        } version;
-
-    public:
-        struct voltage
-        {
-            time_t timestamp;
-            float logic;
-            float input;
-            float reference;
-        } voltage;
-
-    public:
-        struct ui_frame
-        {
-            time_t timestamp;
-        } ui_frame;
-
-    public:
-        struct heartbeat
-        {
-            time_t timestamp;
-        } heartbeat;
-
-    public:
-        DeviceState():
-            is_active(false),
-            tried_turn_on(false),
-            usb_channel(NULL),
-            no_ack_count(0),
-            mode(OPM_UNKNOWN),
-            button_queue(),
-            version({0}),
-            voltage({0}),
-            ui_frame({0}),
-            heartbeat({0})
-        {
-            pthread_mutexattr_t attr;
-            pthread_mutexattr_init(&attr);
-            pthread_mutexattr_settype(&attr,PTHREAD_MUTEX_RECURSIVE);
-            pthread_mutex_init(&_lock,&attr);
-            pthread_mutexattr_destroy(&attr);
-        }
-        virtual ~DeviceState()
-        {
-            pthread_mutex_destroy(&_lock);
-        }
-    } connectionStatus;
+public:
+    struct heartbeat
+    {
+        time_t timestamp;
+    } heartbeat;
 
 protected:
-    IText VersionFirmwareT;
-    ITextVectorProperty VersionTP;
-    INumber VoltageN[3];
-    INumberVectorProperty VoltageNP;
-    INumber UIFramerateN;
-    INumberVectorProperty UIFramerateNP;
-    ISwitch UIButtonS[6];
-    ISwitchVectorProperty UIButtonSP[2];
-    IBLOB UIFrameB;
-    IBLOBVectorProperty UIFrameBP;
     bool initProperties();
 
 public:
@@ -189,15 +90,21 @@ protected:
     const char *getDefaultName();
 
 public:
-    /* @brief Write the query field of a command to the device.
+    /* @brief Returning the current operational mode of the device.
+     * @return the current operational mode of the device.
+     */
+    IOMode getOpMode() const;
+
+public:
+    /* @brief Writing the query field of a command to the device.
      * @return the number of bytes written, or -1 if the command is invalid or device is not accessible.
-     * @throw MGC::IOError when device communication is malfunctioning.
+     * @throw IOError when device communication is malfunctioning.
      */
     int write(IOBuffer const &) throw (IOError);
 
-    /* @brief Read the answer part of a command from the device.
+    /* @brief Reading the answer part of a command from the device.
      * @return the number of bytes read, or -1 if the command is invalid or device is not accessible.
-     * @throw MGC::IOError when device communication is malfunctioning.
+     * @throw IOError when device communication is malfunctioning.
      */
     int read(IOBuffer &) throw (IOError);
 
@@ -205,10 +112,7 @@ protected:
     static void* connectionThreadWrapper( void* );
     void connectionThread();
 
-    friend class MGC;
-
 protected:
-    int heartbeat(struct ftdi_context * const ftdi);
     int setOpModeBaudRate(struct ftdi_context * const ftdi, IOMode const mode);
 };
 

@@ -28,6 +28,7 @@ include_directories(${LIBUSB_1_INCLUDE_DIRS})
 ########### MGenAutoguider ###########
 set(indimgenautoguider_SRCS
    ${CMAKE_CURRENT_SOURCE_DIR}/mgenautoguider.cpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/mgen_device.cpp
    )
 
 add_executable(indi_mgenautoguider ${indimgenautoguider_SRCS})

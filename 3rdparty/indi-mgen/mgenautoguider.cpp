@@ -11,7 +11,7 @@
 
 */
 
-/** \file simpledevice.cpp
+/** \file simpledevice->cpp
     \brief Construct a basic INDI device with only one property to connect and disconnect.
     \author Jasem Mutlaq
 
@@ -22,9 +22,6 @@
 #include <pthread.h>
 #include <stdio.h>
 #include <unistd.h>
-//#include <termios.h>
-//#include <sys/ioctl.h>
-//#include <linux/serial.h>
 #include <libftdi1/ftdi.h>
 #include <libusb-1.0/libusb.h>
 
@@ -34,23 +31,23 @@
 #include <queue>
 
 #include "indidevapi.h"
-#include "indicom.h"
 #include "indilogger.h"
 #include "indiccd.h"
 
+#include "mgen.h"
 #include "mgenautoguider.h"
-
+#include "mgen_device.h"
 #include "mgc.h"
-
-#define ERROR_MSG_LENGTH 250
-#undef _L
-#define _L(msg, ...) INDI::Logger::getInstance().print(getDeviceName(), INDI::Logger::DBG_SESSION, __FILE__, __LINE__, "%s: " msg, __FUNCTION__, __VA_ARGS__)
 
 using namespace std;
 std::unique_ptr<MGenAutoguider> mgenAutoguider(new MGenAutoguider());
+MGenAutoguider & MGenAutoguider::instance() { return *mgenAutoguider; }
+
+#define ERROR_MSG_LENGTH 250
+
 
 /**************************************************************************************
-** Return properties of device.
+** Return properties of device->
 ***************************************************************************************/
 void ISGetProperties (const char *dev)
 {
@@ -102,11 +99,13 @@ void ISSnoopDevice (XMLEle *root)
     INDI_UNUSED(root);
 }
 
-MGenAutoguider::MGenAutoguider()
-: fd(-1)
+MGenAutoguider::MGenAutoguider():
+    device(NULL),
+    version({0}),
+    voltage({0}),
+    ui({0}),
+    heartbeat({0})
 {
-    strncpy(dev_path, "/dev/tty.mgen", MAXINDINAME);
-
     SetCCDParams(128,64,8,5.0f,5.0f);
     PrimaryCCD.setFrameBufferSize(PrimaryCCD.getXRes()*PrimaryCCD.getYRes()*PrimaryCCD.getBPP()/8,true);
 }
@@ -114,6 +113,8 @@ MGenAutoguider::MGenAutoguider()
 MGenAutoguider::~MGenAutoguider()
 {
     Disconnect();
+    if(device)
+        delete device;
 }
 
 bool MGenAutoguider::initProperties()
@@ -125,46 +126,46 @@ bool MGenAutoguider::initProperties()
     addDebugControl();
 
     {
-        IUFillText(&VersionFirmwareT,"MGEN_FIRMWARE_VERSION","Firmware version","n/a");
-        IUFillTextVector(&VersionTP, &VersionFirmwareT, 1, getDeviceName(), "Versions", "Versions", "Main Control", IP_RO, 60, IPS_IDLE);
-        registerProperty(&VersionTP, INDI_TEXT);
+        IUFillText(&version.VersionFirmwareT,"MGEN_FIRMWARE_VERSION","Firmware version","n/a");
+        IUFillTextVector(&version.VersionTP, &version.VersionFirmwareT, 1, getDeviceName(), "Versions", "Versions", "Main Control", IP_RO, 60, IPS_IDLE);
+        registerProperty(&version.VersionTP, INDI_TEXT);
     }
 
     {
-        IUFillNumber(&VoltageN[0], "MGEN_LOGIC_VOLTAGE", "Logic voltage", "%+02.2f V", 0, 220, 0, 0);
-        IUFillNumber(&VoltageN[1], "MGEN_INPUT_VOLTAGE", "Input voltage", "%+02.2f V", 0, 220, 0, 0);
-        IUFillNumber(&VoltageN[2], "MGEN_REFERENCE_VOLTAGE", "Reference voltage", "%+02.2f V", 0, 220, 0, 0);
-        IUFillNumberVector(&VoltageNP, VoltageN, sizeof(VoltageN)/sizeof(VoltageN[0]), getDeviceName(), "MGEN_VOLTAGES", "Voltages", "Main Control", IP_RO, 60, IPS_IDLE);
-        registerProperty(&VoltageNP, INDI_NUMBER);
+        IUFillNumber(&voltage.VoltageN[0], "MGEN_LOGIC_VOLTAGE", "Logic voltage", "%+02.2f V", 0, 220, 0, 0);
+        IUFillNumber(&voltage.VoltageN[1], "MGEN_INPUT_VOLTAGE", "Input voltage", "%+02.2f V", 0, 220, 0, 0);
+        IUFillNumber(&voltage.VoltageN[2], "MGEN_REFERENCE_VOLTAGE", "Reference voltage", "%+02.2f V", 0, 220, 0, 0);
+        IUFillNumberVector(&voltage.VoltageNP, voltage.VoltageN, sizeof(voltage.VoltageN)/sizeof(voltage.VoltageN[0]), getDeviceName(), "MGEN_VOLTAGES", "Voltages", "Main Control", IP_RO, 60, IPS_IDLE);
+        registerProperty(&voltage.VoltageNP, INDI_NUMBER);
     }
 
     {
         char const TAB[] = "Remote UI";
-        IUFillNumber(&UIFramerateN, "MGEN_UI_FRAMERATE", "Frame rate", "%+02.2f fps", 0, 10, 1, 1);
-        IUFillNumberVector(&UIFramerateNP, &UIFramerateN, 1, getDeviceName(), "MGEN_UI_OPTIONS", "UI", TAB, IP_RW, 60, IPS_IDLE);
-        registerProperty(&UIFramerateNP, INDI_NUMBER);
+        IUFillNumber(&ui.UIFramerateN, "MGEN_UI_FRAMERATE", "Frame rate", "%+02.2f fps", 0, 10, 1, 1);
+        IUFillNumberVector(&ui.UIFramerateNP, &ui.UIFramerateN, 1, getDeviceName(), "MGEN_UI_OPTIONS", "UI", TAB, IP_RW, 60, IPS_IDLE);
+        registerProperty(&ui.UIFramerateNP, INDI_NUMBER);
 
         /* ESC  ---  SET
          * ---  UP   ---
          * LEFT ---  RIGHT
          * ---  DOWN ---
          */
-        IUFillSwitch(&UIButtonS[0], "MGEN_UI_BUTTON_ESC", "ESC", ISS_OFF);
-        UIButtonS[0].aux = (void*) MGIO_INSERT_BUTTON::IOB_ESC;
-        IUFillSwitch(&UIButtonS[1], "MGEN_UI_BUTTON_SET", "SET", ISS_OFF);
-        UIButtonS[1].aux = (void*) MGIO_INSERT_BUTTON::IOB_SET;
-        IUFillSwitch(&UIButtonS[2], "MGEN_UI_BUTTON_UP", "UP", ISS_OFF);
-        UIButtonS[2].aux = (void*) MGIO_INSERT_BUTTON::IOB_UP;
-        IUFillSwitch(&UIButtonS[3], "MGEN_UI_BUTTON_LEFT", "LEFT", ISS_OFF);
-        UIButtonS[3].aux = (void*) MGIO_INSERT_BUTTON::IOB_LEFT;
-        IUFillSwitch(&UIButtonS[4], "MGEN_UI_BUTTON_RIGHT", "RIGHT", ISS_OFF);
-        UIButtonS[4].aux = (void*) MGIO_INSERT_BUTTON::IOB_RIGHT;
-        IUFillSwitch(&UIButtonS[5], "MGEN_UI_BUTTON_DOWN", "DOWN", ISS_OFF);
-        UIButtonS[5].aux = (void*) MGIO_INSERT_BUTTON::IOB_DOWN;
-        IUFillSwitchVector(&UIButtonSP[0], &UIButtonS[0], 2, getDeviceName(), "MGEN_UI_BUTTONS1", "UI Buttons", TAB, IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
-        registerProperty(&UIButtonSP[0],INDI_SWITCH);
-        IUFillSwitchVector(&UIButtonSP[1], &UIButtonS[2], 4, getDeviceName(), "MGEN_UI_BUTTONS2", "UI Buttons", TAB, IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
-        registerProperty(&UIButtonSP[1],INDI_SWITCH);
+        IUFillSwitch(&ui.UIButtonS[0], "MGEN_UI_BUTTON_ESC", "ESC", ISS_OFF);
+        ui.UIButtonS[0].aux = (void*) MGIO_INSERT_BUTTON::IOB_ESC;
+        IUFillSwitch(&ui.UIButtonS[1], "MGEN_UI_BUTTON_SET", "SET", ISS_OFF);
+        ui.UIButtonS[1].aux = (void*) MGIO_INSERT_BUTTON::IOB_SET;
+        IUFillSwitch(&ui.UIButtonS[2], "MGEN_UI_BUTTON_UP", "UP", ISS_OFF);
+        ui.UIButtonS[2].aux = (void*) MGIO_INSERT_BUTTON::IOB_UP;
+        IUFillSwitch(&ui.UIButtonS[3], "MGEN_UI_BUTTON_LEFT", "LEFT", ISS_OFF);
+        ui.UIButtonS[3].aux = (void*) MGIO_INSERT_BUTTON::IOB_LEFT;
+        IUFillSwitch(&ui.UIButtonS[4], "MGEN_UI_BUTTON_RIGHT", "RIGHT", ISS_OFF);
+        ui.UIButtonS[4].aux = (void*) MGIO_INSERT_BUTTON::IOB_RIGHT;
+        IUFillSwitch(&ui.UIButtonS[5], "MGEN_UI_BUTTON_DOWN", "DOWN", ISS_OFF);
+        ui.UIButtonS[5].aux = (void*) MGIO_INSERT_BUTTON::IOB_DOWN;
+        IUFillSwitchVector(&ui.UIButtonSP[0], &ui.UIButtonS[0], 2, getDeviceName(), "MGEN_UI_BUTTONS1", "UI Buttons", TAB, IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
+        registerProperty(&ui.UIButtonSP[0],INDI_SWITCH);
+        IUFillSwitchVector(&ui.UIButtonSP[1], &ui.UIButtonS[2], 4, getDeviceName(), "MGEN_UI_BUTTONS2", "UI Buttons", TAB, IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
+        registerProperty(&ui.UIButtonSP[1],INDI_SWITCH);
     }
 
     /*{
@@ -178,15 +179,15 @@ bool MGenAutoguider::initProperties()
 
 bool MGenAutoguider::ISNewNumber(char const * dev, char const * name, double values[], char * names[], int n)
 {
-    if(connectionStatus.isActive())
+    if(device && device->isConnected())
     {
         if(!strcmp(dev, getDeviceName()))
         {
             if(!strcmp(name, "MGEN_UI_OPTIONS"))
             {
-                IUUpdateNumber(&UIFramerateNP, values, names, n);
-                UIFramerateNP.s = IPS_OK;
-                IDSetNumber(&UIFramerateNP, NULL);
+                IUUpdateNumber(&ui.UIFramerateNP, values, names, n);
+                ui.UIFramerateNP.s = IPS_OK;
+                IDSetNumber(&ui.UIFramerateNP, NULL);
                 return true;
             }
         }
@@ -197,29 +198,27 @@ bool MGenAutoguider::ISNewNumber(char const * dev, char const * name, double val
 
 bool MGenAutoguider::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
 {
-    if(connectionStatus.isActive())
+    if(device && device->isConnected())
     {
         if(!strcmp(dev, getDeviceName()))
         {
             if(!strcmp(name, "MGEN_UI_BUTTONS1"))
             {
-                IUUpdateSwitch(&UIButtonSP[0], states, names, n);
-                ISwitch * const key_switch = IUFindOnSwitch(&UIButtonSP[0]);
-                connectionStatus.pushButton((unsigned int)key_switch->aux);
-                _L("sending key %d to remote UI",(unsigned int)key_switch->aux);
+                IUUpdateSwitch(&ui.UIButtonSP[0], states, names, n);
+                ISwitch * const key_switch = IUFindOnSwitch(&ui.UIButtonSP[0]);
+                device->pushButton((unsigned int)key_switch->aux);
                 key_switch->s = ISS_OFF;
-                UIButtonSP[0].s = IPS_OK;
-                IDSetSwitch(&UIButtonSP[0], NULL);
+                ui.UIButtonSP[0].s = IPS_OK;
+                IDSetSwitch(&ui.UIButtonSP[0], NULL);
             }
             if(!strcmp(name, "MGEN_UI_BUTTONS2"))
             {
-                IUUpdateSwitch(&UIButtonSP[1], states, names, n);
-                ISwitch * const key_switch = IUFindOnSwitch(&UIButtonSP[1]);
-                connectionStatus.pushButton((unsigned int)key_switch->aux);
-                _L("sending key %d to remote UI",(unsigned int)key_switch->aux);
+                IUUpdateSwitch(&ui.UIButtonSP[1], states, names, n);
+                ISwitch * const key_switch = IUFindOnSwitch(&ui.UIButtonSP[1]);
+                device->pushButton((unsigned int)key_switch->aux);
                 key_switch->s = ISS_OFF;
-                UIButtonSP[1].s = IPS_OK;
-                IDSetSwitch(&UIButtonSP[1], NULL);
+                ui.UIButtonSP[1].s = IPS_OK;
+                IDSetSwitch(&ui.UIButtonSP[1], NULL);
             }
         }
     }
@@ -232,7 +231,7 @@ bool MGenAutoguider::ISNewSwitch(const char *dev, const char *name, ISState *sta
 ***************************************************************************************/
 bool MGenAutoguider::Connect()
 {
-    if(connectionStatus.isActive())
+    if(device && device->isConnected())
     {
         _L("ignoring connection request received while already connected.","");
         return true;
@@ -241,11 +240,11 @@ bool MGenAutoguider::Connect()
     _L("initiating connection.","");
 
     unsigned long int thread = 0;
-    //struct threadData arg = { NULL, MGenAutoguiderMGCMD_NOP0 };
-    pthread_mutex_t lock;
 
-    connectionStatus = DeviceState();
-    connectionStatus.enable();
+    if(device)
+        delete device;
+    device = new MGenDeviceState();
+    device->enable();
 
     //if( !pthread_mutex_init(&lock,0) )
     {
@@ -256,7 +255,7 @@ bool MGenAutoguider::Connect()
         }
     }
 
-    return connectionStatus.isActive();
+    return device->isConnected();
 }
 
 /**************************************************************************************
@@ -264,15 +263,15 @@ bool MGenAutoguider::Connect()
 ***************************************************************************************/
 bool MGenAutoguider::Disconnect()
 {
-    if( connectionStatus.isActive() )
+    if( device->isConnected() )
     {
         _L("initiating disconnection.","");
 
-        connectionStatus.disable();
+        device->disable();
         sleep(10);
     }
 
-    return !connectionStatus.isActive();
+    return !device->isConnected();
 }
 
 /**************************************************************************************
@@ -286,6 +285,11 @@ const char * MGenAutoguider::getDefaultName()
 /**************************************************************************************
 ** Mode management
 ***************************************************************************************/
+
+IOMode MGenAutoguider::getOpMode() const
+{
+    return device->getOpMode();
+}
 
 int MGenAutoguider::setOpModeBaudRate(struct ftdi_context * const ftdi, IOMode const mode)
 {
@@ -366,37 +370,37 @@ void MGenAutoguider::connectionThread()
     size_t const buffer_len = sizeof(buffer)/sizeof(buffer[0]);
     int bytes_read = 0;
 
-    struct ftdi_version_info version = ftdi_get_library_version();
-    _L("connection thread starting, using FTDI '%s' v%d.%d.%d snapshot '%s'", version.version_str, version.major, version.minor, version.micro, version.snapshot_str);
+    struct ftdi_version_info ftdi_version = ftdi_get_library_version();
+    _L("connection thread starting, using FTDI '%s' v%d.%d.%d snapshot '%s'", ftdi_version.version_str, ftdi_version.major, ftdi_version.minor, ftdi_version.micro, ftdi_version.snapshot_str);
 
     int  const vid = 0x0403, pid = 0x6001;
 
     int res = 0;
-    struct ftdi_context *ftdi = ftdi_new();
-    if( !ftdi )
+    device->ftdi = ftdi_new();
+    if( !device->ftdi )
     {
         _L("ftdi context initialization failed","");
-        connectionStatus.disable();
+        device->disable();
     }
-    else if((res = ftdi_set_interface(ftdi, INTERFACE_ANY)) < 0)
+    else if((res = ftdi_set_interface(device->ftdi, INTERFACE_ANY)) < 0)
     {
-        _L("failed setting FTDI interface to ANY (%d: %s)", res, ftdi_get_error_string(ftdi));
-        connectionStatus.disable();
+        _L("failed setting FTDI interface to ANY (%d: %s)", res, ftdi_get_error_string(device->ftdi));
+        device->disable();
     }
-    else if((res = ftdi_usb_open(ftdi, vid, pid)) < 0)
+    else if((res = ftdi_usb_open(device->ftdi, vid, pid)) < 0)
     {
-        _L("device 0x%04X:0x%04X not found (%d: %s)", vid, pid, res, ftdi_get_error_string(ftdi));
+        _L("device 0x%04X:0x%04X not found (%d: %s)", vid, pid, res, ftdi_get_error_string(device->ftdi));
 
-        if((res = ftdi_set_interface(ftdi, INTERFACE_ANY)) < 0)
+        if((res = ftdi_set_interface(device->ftdi, INTERFACE_ANY)) < 0)
         {
-            _L("failed setting FTDI interface to ANY (%d: %s)", res, ftdi_get_error_string(ftdi));
+            _L("failed setting FTDI interface to ANY (%d: %s)", res, ftdi_get_error_string(device->ftdi));
         }
         else
         {
             struct ftdi_device_list *devlist;
-            if((res = ftdi_usb_find_all(ftdi, &devlist, 0, 0)) < 0)
+            if((res = ftdi_usb_find_all(device->ftdi, &devlist, 0, 0)) < 0)
             {
-                _L("no FTDI device found (%d: %s)", res, ftdi_get_error_string(ftdi));
+                _L("no FTDI device found (%d: %s)", res, ftdi_get_error_string(device->ftdi));
             }
             else
             {
@@ -418,25 +422,24 @@ void MGenAutoguider::connectionThread()
             }
         }
 
-        connectionStatus.disable();
+        device->disable();
     }
-    else if(setOpModeBaudRate(ftdi, OPM_COMPATIBLE) < 0)
+    else if(setOpModeBaudRate(device->ftdi, OPM_COMPATIBLE) < 0)
     {
         /* TODO: Not good, the device doesn't support our settings - out of spec, bail out */
         _L("failed setting up device line","");
-        connectionStatus.disable();
+        device->disable();
     }
     else
     {
         _L("device 0x%04X:0x%04X connected successfully", vid, pid);
-        connectionStatus.usb_channel = ftdi;
     }
 
     try
     {
-        while( connectionStatus.isActive() )
+        while( device->isConnected() )
         {
-            switch( connectionStatus.getOpMode() )
+            switch( getOpMode() )
             {
                 /* Unknown mode, try to connect in COMPATIBLE mode first */
                 case OPM_UNKNOWN:
@@ -446,28 +449,28 @@ void MGenAutoguider::connectionThread()
                     if(CR_SUCCESS == MGCP_QUERY_DEVICE().ask(*this))
                     {
                         _L("identified boot/compatible mode","");
-                        connectionStatus.setOpMode(OPM_COMPATIBLE);
+                        device->setOpMode(OPM_COMPATIBLE);
                         continue;
                     }
 
                     _L("identification failed, try to communicate as if in applicative mode","");
-                    connectionStatus.setOpMode(OPM_APPLICATION);
+                    device->setOpMode(OPM_APPLICATION);
 
-                    if(setOpModeBaudRate(ftdi, connectionStatus.getOpMode()))
+                    if(setOpModeBaudRate(device->ftdi, getOpMode()))
                     {
                         /* TODO: Not good, the device doesn't support our settings - out of spec, bail out */
                         _L("failed adjusting device line","");
-                        connectionStatus.disable();
+                        device->disable();
                         continue;
                     }
 
                     /* Run a basic exchange */
                     if(CR_SUCCESS != MGCMD_NOP1().ask(*this))
                     {
-                        if(connectionStatus.tried_turn_on)
+                        if(device->tried_turn_on)
                         {
                             _L("failed heartbeat after turn on, bailing out","");
-                            connectionStatus.disable();
+                            device->disable();
                             continue;
                         }
 
@@ -476,20 +479,20 @@ void MGenAutoguider::connectionThread()
 
                         unsigned char cbus_dir = 1<<1, cbus_val = 1<<1; /* Spec uses unitialized variables here */
 
-                        if(ftdi_set_bitmode(ftdi, (cbus_dir<<4)+cbus_val, 0x20) < 0)
+                        if(ftdi_set_bitmode(device->ftdi, (cbus_dir<<4)+cbus_val, 0x20) < 0)
                         {
                             _L("failed depressing ESC to turn device on","");
-                            connectionStatus.disable();
+                            device->disable();
                             continue;
                         }
 
                         usleep(250000);
                         cbus_val &= ~(1<<1);
 
-                        if(ftdi_set_bitmode(ftdi, (cbus_dir<<4)+cbus_val, 0x20) < 0)
+                        if(ftdi_set_bitmode(device->ftdi, (cbus_dir<<4)+cbus_val, 0x20) < 0)
                         {
                             _L("failed releasing ESC to turn device on","");
-                            connectionStatus.disable();
+                            device->disable();
                             continue;
                         }
 
@@ -497,8 +500,8 @@ void MGenAutoguider::connectionThread()
                         sleep(5);
 
                         _L("turned device on, retrying identification","");
-                        connectionStatus.setOpMode(OPM_UNKNOWN);
-                        connectionStatus.tried_turn_on = true;
+                        device->setOpMode(OPM_UNKNOWN);
+                        device->tried_turn_on = true;
                     }
 
                     break;
@@ -510,13 +513,13 @@ void MGenAutoguider::connectionThread()
                     /* Switch to applicative mode */
                     MGCP_ENTER_NORMAL_MODE().ask(*this);
 
-                    connectionStatus.setOpMode(OPM_APPLICATION);
+                    device->setOpMode(OPM_APPLICATION);
 
-                    if(setOpModeBaudRate(ftdi, connectionStatus.getOpMode()))
+                    if(setOpModeBaudRate(device->ftdi, getOpMode()))
                     {
                         /* TODO: Not good, the device doesn't support our settings - out of spec, bail out */
                         _L("failed updating device connection","");
-                        connectionStatus.disable();
+                        device->disable();
                         continue;
                     }
 
@@ -524,7 +527,7 @@ void MGenAutoguider::connectionThread()
 
                     if(CR_SUCCESS != MGCMD_NOP1().ask(*this))
                     {
-                        connectionStatus.disable();
+                        device->disable();
                         continue;
                     }
 
@@ -532,108 +535,97 @@ void MGenAutoguider::connectionThread()
 
                 case OPM_APPLICATION:
                     /* If we didn't get the firmware version, ask */
-                    if( !connectionStatus.version.uploaded_firmware )
+                    if( !version.uploaded_firmware )
                     {
                         MGCMD_GET_FW_VERSION cmd;
                         if(CR_SUCCESS == cmd.ask(*this))
                         {
-                            connectionStatus.version.uploaded_firmware = cmd.fw_version();
-                            sprintf(VersionFirmwareT.text,"%04X", connectionStatus.version.uploaded_firmware);
-                            _L("received version 0x%04X", connectionStatus.version.uploaded_firmware);
-                            IDSetText(&VersionTP, NULL);
+                            version.uploaded_firmware = cmd.fw_version();
+                            sprintf(version.VersionFirmwareT.text,"%04X", version.uploaded_firmware);
+                            _L("received version 0x%04X", version.uploaded_firmware);
+                            IDSetText(&version.VersionTP, NULL);
                             break;
                         }
                         else _L("failed retrieving firmware version","");
                     }
 
                     /* Heartbeat */
-                    if(connectionStatus.heartbeat.timestamp + 5 < time(0))
+                    if(heartbeat.timestamp + 5 < time(0))
                     {
                         if(CR_SUCCESS != MGCMD_NOP1().ask(*this))
                         {
-                            connectionStatus.no_ack_count++;
-                            _L("%d times no ack to NOP1", connectionStatus.no_ack_count);
-                            if(5 < connectionStatus.no_ack_count)
+                            device->no_ack_count++;
+                            _L("%d times no ack to NOP1", device->no_ack_count);
+                            if(5 < device->no_ack_count)
                             {
-                                connectionStatus.disable();
+                                device->disable();
                                 continue;
                             }
                         }
-                        else connectionStatus.no_ack_count = 0;
+                        else device->no_ack_count = 0;
 
-                        connectionStatus.heartbeat.timestamp = time(0);
+                        heartbeat.timestamp = time(0);
                     }
 
                     /* Update ADC values */
-                    if(connectionStatus.voltage.timestamp + 20 < time(0))
+                    if(voltage.timestamp + 20 < time(0))
                     {
                         MGCMD_READ_ADCS adcs;
 
                         if(CR_SUCCESS == adcs.ask(*this))
                         {
-                            VoltageN[0].value = connectionStatus.voltage.logic = adcs.logic_voltage();
-                            _L("received logic voltage %fV (spec is between 4.8V and 5.1V)", connectionStatus.voltage.logic);
-                            VoltageN[1].value = connectionStatus.voltage.input = adcs.input_voltage();
-                            _L("received input voltage %fV (spec is between 9V and 15V)", connectionStatus.voltage.input);
-                            VoltageN[2].value = connectionStatus.voltage.reference = adcs.refer_voltage();
-                            _L("received reference voltage %fV (spec is around 1.23V)", connectionStatus.voltage.reference);
+                            voltage.VoltageN[0].value = voltage.logic = adcs.logic_voltage();
+                            _L("received logic voltage %fV (spec is between 4.8V and 5.1V)", voltage.logic);
+                            voltage.VoltageN[1].value = voltage.input = adcs.input_voltage();
+                            _L("received input voltage %fV (spec is between 9V and 15V)", voltage.input);
+                            voltage.VoltageN[2].value = voltage.reference = adcs.refer_voltage();
+                            _L("received reference voltage %fV (spec is around 1.23V)", voltage.reference);
 
                             /* FIXME: my device has input at 15.07... */
-                            if(4.8f <= connectionStatus.voltage.logic && connectionStatus.voltage.logic <= 5.1f)
-                                if(9.0f <= connectionStatus.voltage.input && connectionStatus.voltage.input <= 15.0f)
-                                    if(1.1 <= connectionStatus.voltage.reference && connectionStatus.voltage.reference <= 1.3)
-                                        VoltageNP.s = IPS_OK;
-                                    else VoltageNP.s = IPS_ALERT;
-                                else VoltageNP.s = IPS_ALERT;
-                            else VoltageNP.s = IPS_ALERT;
+                            if(4.8f <= voltage.logic && voltage.logic <= 5.1f)
+                                if(9.0f <= voltage.input && voltage.input <= 15.0f)
+                                    if(1.1 <= voltage.reference && voltage.reference <= 1.3)
+                                        voltage.VoltageNP.s = IPS_OK;
+                                    else voltage.VoltageNP.s = IPS_ALERT;
+                                else voltage.VoltageNP.s = IPS_ALERT;
+                            else voltage.VoltageNP.s = IPS_ALERT;
 
-                            IDSetNumber(&VoltageNP, NULL);
+                            IDSetNumber(&voltage.VoltageNP, NULL);
                         }
 
-                        connectionStatus.voltage.timestamp = time(0);
+                        voltage.timestamp = time(0);
                     }
 
                     /* Update UI frame */
-                    if(0 < UIFramerateN.value && connectionStatus.ui_frame.timestamp + 1/UIFramerateN.value < time(0))
+                    if(0 < ui.UIFramerateN.value && ui.timestamp + 1/ui.UIFramerateN.value < time(0))
                     {
-                        //MGCMD_IO_FUNCTIONS io_func(*this);
+                        MGIO_READ_DISPLAY_FRAME read_frame;
 
-                        //if(CR_SUCCESS == io_func.ask(ftdi))
+                        if(CR_SUCCESS == read_frame.ask(*this))
                         {
-                            MGIO_READ_DISPLAY_FRAME read_frame;
-
-                            if(CR_SUCCESS == read_frame.ask(*this))
-                            {
-                                MGIO_READ_DISPLAY_FRAME::ByteFrame frame;
-                                read_frame.get_frame(frame);
-                                //UIFrameB.blob = read_frame.get_frame(frame).data();
-                                //UIFrameB.bloblen = frame.size();
-                                //IDSetBLOB(&UIFrameBP, NULL);
-                                memcpy(PrimaryCCD.getFrameBuffer(),frame.data(),frame.size());
-                                /*for(unsigned int i = 0; i < 64; i++)
-                                    for(unsigned int j = 0; j < 128; j++)
-                                        PrimaryCCD.getFrameBuffer()[i*128+j] = (i/16)+(j/16);*/
-                                //PrimaryCCD.binFrame();
-                                ExposureComplete(&PrimaryCCD);
-                            }
-                            else _L("failed reading frame","");
+                            MGIO_READ_DISPLAY_FRAME::ByteFrame frame;
+                            read_frame.get_frame(frame);
+                            memcpy(PrimaryCCD.getFrameBuffer(),frame.data(),frame.size());
+                            ExposureComplete(&PrimaryCCD);
                         }
-                        //else _L("failed initiating IO function","");
+                        else _L("failed reading frame","");
 
-                        connectionStatus.ui_frame.timestamp = time(0);
+                        ui.timestamp = time(0);
                     }
 
                     /* Send buttons */
-                    if(connectionStatus.hasButtons())
+                    if(!device->button_queue.empty())
                     {
-                        MGIO_INSERT_BUTTON((MGIO_INSERT_BUTTON::Button) connectionStatus.popButton()).ask(*this);
+                        MGIO_INSERT_BUTTON((MGIO_INSERT_BUTTON::Button) device->popButton()).ask(*this);
                     }
 
 #if 0
                     /* OK, wait a few seconds and retry heartbeat */
                     for( int i = 0; i < 10; i++ )
-                        if( connectionStatus.isActive() )
+                        if( device->isConnected() )
                             usleep(500000);
+#else
+                    usleep(10000); /* FIXME: validate against UI framerate */
 #endif
 
                     break;
@@ -643,13 +635,13 @@ void MGenAutoguider::connectionThread()
     catch(IOError &e)
     {
         _L("device disconnected (%s)", e.what());
-        connectionStatus.disable();
+        device->disable();
     }
 
-    if(ftdi)
+    if(device->ftdi)
     {
-        ftdi_usb_close(ftdi);
-        ftdi_free(ftdi);
+        ftdi_usb_close(device->ftdi);
+        ftdi_free(device->ftdi);
     }
 
     _L("disconnected successfully.","");
@@ -662,13 +654,13 @@ void MGenAutoguider::connectionThread()
 
 int MGenAutoguider::write(IOBuffer const & query) throw (IOError)
 {
-    struct ftdi_context * const ftdi = static_cast<struct ftdi_context * const> (connectionStatus.usb_channel);
+    //struct ftdi_context * const ftdi = static_cast<struct ftdi_context * const> (usb_channel);
 
-    if(!ftdi)
+    if(!device->ftdi)
         return -1;
 
     _L("writing %d bytes to device: %02X %02X %02X %02X %02X ...", query.size(), query.size()>0?query[0]:0, query.size()>1?query[1]:0, query.size()>2?query[2]:0, query.size()>3?query[3]:0, query.size()>4?query[4]:0);
-    int const bytes_written = ftdi_write_data(ftdi, query.data(), query.size());
+    int const bytes_written = ftdi_write_data(device->ftdi, query.data(), query.size());
 
     /* FIXME: Adjust this to optimize how long device absorb the command for */
     usleep(20000);
@@ -681,15 +673,15 @@ int MGenAutoguider::write(IOBuffer const & query) throw (IOError)
 
 int MGenAutoguider::read(IOBuffer & answer) throw (IOError)
 {
-    struct ftdi_context * const ftdi = static_cast<struct ftdi_context * const> (connectionStatus.usb_channel);
+    //struct ftdi_context * const ftdi = static_cast<struct ftdi_context * const> (usb_channel);
 
-    if(!ftdi)
+    if(!device->ftdi)
         return -1;
 
     if(answer.size() > 0)
     {
         _L("reading %d bytes from device", answer.size());
-        int const bytes_read = ftdi_read_data(ftdi, answer.data(), answer.size());
+        int const bytes_read = ftdi_read_data(device->ftdi, answer.data(), answer.size());
 
         if(bytes_read < 0)
             throw IOError(bytes_read);

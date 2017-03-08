@@ -11,11 +11,8 @@
 #include <iostream>
 #include <vector>
 #include <string>
-#include <libftdi1/ftdi.h>
 
 #include "mgenautoguider.h"
-
-#define _L(msg, ...) INDI::Logger::getInstance().print(name(), INDI::Logger::DBG_SESSION, std::string(__FILE__), __LINE__, "%s: " msg, __FUNCTION__, __VA_ARGS__)
 
 class MGC
 {
@@ -40,7 +37,7 @@ protected:
     /** @brief Basic verifications to call before running the actual command implementation */
     virtual IOResult ask(MGenAutoguider& root) throw (IOError)
     {
-        if(opMode() != OPM_UNKNOWN && opMode() != root.connectionStatus.getOpMode())
+        if(opMode() != OPM_UNKNOWN && opMode() != root.getOpMode())
         {
             _L("operating mode %s does not support command", DBG_OpModeString(opMode()));
             return CR_FAILURE;
