@@ -15,48 +15,20 @@
 
 #include "mgenautoguider.h"
 
-#define _L(msg, ...) INDI::Logger::getInstance().print(root.getDeviceName(), INDI::Logger::DBG_SESSION, std::string(__FILE__), __LINE__, "%s: " msg, __FUNCTION__, __VA_ARGS__)
-
-#define CHK_W(bytes, call) { bytes = (call) ; if(bytes < 0) { _L("failed writing request to device (%d)", bytes); return CR_IO_ERROR; } }
-#define CHK_R(bytes, call) { bytes = (call) ; if(bytes < 0) { _L("failed reading request from device (%d)", bytes); return CR_IO_ERROR; } }
+#define _L(msg, ...) INDI::Logger::getInstance().print(name(), INDI::Logger::DBG_SESSION, std::string(__FILE__), __LINE__, "%s: " msg, __FUNCTION__, __VA_ARGS__)
 
 class MGC
 {
-protected:
-    MGenAutoguider& root;
+public:
+    /** @internal Stringifying the name of the command */
+    char const * name() const { return typeid(*this).name(); }
 
 public:
-    enum CommandResult
-    {
-        CR_SUCCESS,
-        CR_FAILURE,
-        CR_IO_ERROR,
-    };
-
-    class IOError: std::exception
-    {
-    protected:
-        std::string const _what;
-    public:
-        virtual const char * what() const noexcept { return _what.c_str(); }
-        IOError(int code): std::exception(), _what(std::string("I/O error code ") + std::to_string(code)) {};
-    };
-
-public:
-    /** @brief A protocol mode in which the command is valid */
-    typedef enum MGenAutoguider::OpMode IOMode;
-
-    /** @brief One word in the I/O protocol */
-    typedef unsigned char IOByte;
-
-    /** @brief A buffer of protocol words */
-    typedef std::vector<IOByte> IOBuffer;
-
-public:
-    virtual enum MGenAutoguider::CommandByte commandByte() const = 0; /* Deprecate this */
+    /** @brief Returning the character operation code of the command */
     virtual IOByte opCode() const = 0;
+
+    /** @brief Returning the operation mode for this command */
     virtual IOMode opMode() const = 0;
-    virtual CommandResult ask(struct ftdi_context * const ftdi) throw (IOError) = 0;
 
 protected:
     /** @internal The I/O query buffer to be written to the device */
@@ -65,63 +37,20 @@ protected:
     /** @internal The I/O answer buffer to be read from the device */
     IOBuffer answer;
 
-public:
-    char const * name() const { return root.getOpCodeString(commandByte()); }
-
-public:
-    virtual int write(struct ftdi_context * const ftdi) throw (IOError)
+    /** @brief Basic verifications to call before running the actual command implementation */
+    virtual IOResult ask(MGenAutoguider& root) throw (IOError)
     {
-        if(!ftdi)
-            return -1;
-
-        if(opMode() != MGenAutoguider::OPM_UNKNOWN && opMode() != root.connectionStatus.getOpMode())
+        if(opMode() != OPM_UNKNOWN && opMode() != root.connectionStatus.getOpMode())
         {
-            _L("operating mode %s doesnt support command %s", root.getOpModeString(opMode()), name());
-            return -1;
+            _L("operating mode %s does not support command", DBG_OpModeString(opMode()));
+            return CR_FAILURE;
         }
 
-        _L("writing %s - %d bytes to device: %02X %02X %02X %02X %02X ...", name(), query.size(), query.size()>0?query[0]:0, query.size()>1?query[1]:0, query.size()>2?query[2]:0, query.size()>3?query[3]:0, query.size()>4?query[4]:0);
-        int const bytes_written = ftdi_write_data(ftdi, query.data(), query.size());
-
-        /* FIXME: Adjust this to optimize how long device absorb the command for */
-        usleep(20000);
-
-        if(bytes_written < 0)
-            throw IOError(bytes_written);
-
-        return bytes_written;
-    }
-
-public:
-    virtual int read(struct ftdi_context * const ftdi) throw (IOError)
-    {
-        if(!ftdi)
-            return -1;
-
-        if(opMode() != MGenAutoguider::OPM_UNKNOWN && opMode() != root.connectionStatus.getOpMode())
-        {
-            _L("operating mode %s doesnt support command %s", root.getOpModeString(opMode()), name());
-            return -1;
-        }
-
-        if(answer.size() > 0)
-        {
-            _L("reading %d bytes from device", answer.size());
-            int const bytes_read = ftdi_read_data(ftdi, answer.data(), answer.size());
-
-            if(bytes_read < 0)
-                throw IOError(bytes_read);
-
-            _L("read %d bytes from device: %02X %02X %02X %02X %02X ...", bytes_read, answer.size()>0?answer[0]:0, answer.size()>1?answer[1]:0, answer.size()>2?answer[2]:0, answer.size()>3?answer[3]:0, answer.size()>4?answer[4]:0);
-            return bytes_read;
-        }
-
-        return 0;
+        return CR_SUCCESS;
     }
 
 protected:
-    MGC( MGenAutoguider& root, IOBuffer query, IOBuffer answer ):
-        root(root),
+    MGC(IOBuffer query, IOBuffer answer):
         query(query),
         answer(answer) {};
 
@@ -132,16 +61,18 @@ protected:
 class MGCP_QUERY_DEVICE: MGC
 {
 public:
-    virtual enum MGenAutoguider::CommandByte commandByte() const { return MGenAutoguider::MGCP_QUERY_DEVICE; }
     virtual IOByte opCode() const { return 0xAA; }
-    virtual IOMode opMode() const { return MGenAutoguider::OPM_UNKNOWN; }
+    virtual IOMode opMode() const { return OPM_UNKNOWN; }
 
 public:
-    MGC::CommandResult ask(struct ftdi_context * const ftdi) throw (IOError)
+    virtual IOResult ask(MGenAutoguider& root) throw (IOError)
     {
-        write(ftdi);
+        if(CR_SUCCESS != MGC::ask(root))
+            return CR_FAILURE;
 
-        int const bytes_read = read(ftdi);
+        root.write(query);
+
+        int const bytes_read = root.read(answer);
         if(answer[0] == (unsigned char) ~query[0] && 5 == bytes_read)
         {
             _L("device acknowledged identification, analyzing '%02X%02X%02X'", answer[2], answer[3], answer[4]);
@@ -165,24 +96,26 @@ public:
     }
 
 public:
-    MGCP_QUERY_DEVICE( MGenAutoguider& root ):
-        MGC(root, IOBuffer { opCode(), 1, 1 }, IOBuffer (5) ) {};
+    MGCP_QUERY_DEVICE():
+        MGC(IOBuffer { opCode(), 1, 1 }, IOBuffer (5)) {};
 };
 
 
 class MGCMD_NOP1: MGC
 {
 public:
-    virtual enum MGenAutoguider::CommandByte commandByte() const { return MGenAutoguider::MGCMD_NOP1; }
     virtual IOByte opCode() const { return 0xFF; }
-    virtual IOMode opMode() const { return MGenAutoguider::OPM_APPLICATION; }
+    virtual IOMode opMode() const { return OPM_APPLICATION; }
 
 public:
-    MGC::CommandResult ask(struct ftdi_context * const ftdi) throw (IOError)
+    virtual IOResult ask(MGenAutoguider& root) throw (IOError)
     {
-        write(ftdi);
+        if(CR_SUCCESS != MGC::ask(root))
+            return CR_FAILURE;
 
-        int const bytes_read = read(ftdi);
+        root.write(query);
+
+        int const bytes_read = root.read(answer);
         if(answer[0] == query[0] && 1 == bytes_read)
         {
             _L("received heartbeat ack", "");
@@ -194,48 +127,52 @@ public:
     }
 
 public:
-    MGCMD_NOP1( MGenAutoguider& root ):
-        MGC(root, IOBuffer { opCode() }, IOBuffer (1) ) {};
+    MGCMD_NOP1():
+        MGC(IOBuffer { opCode() }, IOBuffer (1)) {};
 };
 
 
 class MGCP_ENTER_NORMAL_MODE: MGC
 {
 public:
-    virtual enum MGenAutoguider::CommandByte commandByte() const { return MGenAutoguider::MGCMD_GET_FW_VERSION; }
     virtual IOByte opCode() const { return 0x42; }
-    virtual IOMode opMode() const { return MGenAutoguider::OPM_COMPATIBLE; }
+    virtual IOMode opMode() const { return OPM_COMPATIBLE; }
 
 public:
-    MGC::CommandResult ask(struct ftdi_context * const ftdi) throw (IOError)
+    virtual IOResult ask(MGenAutoguider& root) throw (IOError)
     {
-        write(ftdi);
+        if(CR_SUCCESS != MGC::ask(root))
+            return CR_FAILURE;
+
+        root.write(query);
         sleep(1);
         return CR_SUCCESS;
     }
 
 public:
-    MGCP_ENTER_NORMAL_MODE( MGenAutoguider& root ):
-        MGC(root, IOBuffer { opCode() }, IOBuffer () ) {};
+    MGCP_ENTER_NORMAL_MODE():
+        MGC(IOBuffer { opCode() }, IOBuffer ()) {};
 };
 
 
 class MGCMD_GET_FW_VERSION: MGC
 {
 public:
-    virtual enum MGenAutoguider::CommandByte commandByte() const { return MGenAutoguider::MGCMD_GET_FW_VERSION; }
     virtual IOByte opCode() const { return 0x03; }
-    virtual IOMode opMode() const { return MGenAutoguider::OPM_APPLICATION; }
+    virtual IOMode opMode() const { return OPM_APPLICATION; }
 
 public:
     unsigned short fw_version() const { return (unsigned short) (answer[2]<<8) | answer[1]; }
 
 public:
-    MGC::CommandResult ask(struct ftdi_context * const ftdi) throw (IOError)
+    virtual IOResult ask(MGenAutoguider& root) throw (IOError)
     {
-        write(ftdi);
+        if(CR_SUCCESS != MGC::ask(root))
+            return CR_FAILURE;
 
-        int const bytes_read = read(ftdi);
+        root.write(query);
+
+        int const bytes_read = root.read(answer);
         if(answer[0] == query[0] && ( 1 == bytes_read || 3 == bytes_read ))
         {
             _L("received firwmare version ack", "");
@@ -247,17 +184,16 @@ public:
     }
 
 public:
-    MGCMD_GET_FW_VERSION( MGenAutoguider& root ):
-        MGC(root, IOBuffer { opCode() }, IOBuffer (1+1+2) ) {};
+    MGCMD_GET_FW_VERSION():
+        MGC(IOBuffer { opCode() }, IOBuffer (1+1+2)) {};
 };
 
 
 class MGCMD_READ_ADCS: MGC
 {
 public:
-    virtual enum MGenAutoguider::CommandByte commandByte() const { return MGenAutoguider::MGCMD_READ_ADCS; }
     virtual IOByte opCode() const { return 0xA0; }
-    virtual IOMode opMode() const { return MGenAutoguider::OPM_APPLICATION; }
+    virtual IOMode opMode() const { return OPM_APPLICATION; }
 
 public:
     float logic_voltage() const { return 1.6813e-4f * ((unsigned short) (answer[2]<<8) | answer[1]); }
@@ -265,11 +201,14 @@ public:
     float refer_voltage() const { return 3.91e-5f * ((unsigned short) (answer[10]<<8) | answer[9]); }
 
 public:
-    MGC::CommandResult ask(struct ftdi_context * const ftdi) throw (IOError)
+    virtual IOResult ask(MGenAutoguider& root) throw (IOError)
     {
-        write(ftdi);
+        if(CR_SUCCESS != MGC::ask(root))
+            return CR_FAILURE;
 
-        int const bytes_read = read(ftdi);
+        root.write(query);
+
+        int const bytes_read = root.read(answer);
         if(answer[0] == query[0] && ( 1+5*2 == bytes_read ))
         {
             _L("received ADCs ack", "");
@@ -281,17 +220,16 @@ public:
     }
 
 public:
-    MGCMD_READ_ADCS( MGenAutoguider& root ):
-        MGC(root, IOBuffer { opCode() }, IOBuffer (1+5*2) ) {};
+    MGCMD_READ_ADCS():
+        MGC(IOBuffer { opCode() }, IOBuffer (1+5*2)) {};
 };
 
 
 class MGIO_READ_DISPLAY_FRAME: MGC
 {
 public:
-    virtual enum MGenAutoguider::CommandByte commandByte() const { return MGenAutoguider::MGIO_READ_DISPLAY; }
     virtual IOByte opCode() const { return 0x5D; }
-    virtual IOMode opMode() const { return MGenAutoguider::OPM_APPLICATION; }
+    virtual IOMode opMode() const { return OPM_APPLICATION; }
 
 protected:
     static std::size_t const frame_size = (128*64)/8;
@@ -337,8 +275,11 @@ public:
     };
 
 public:
-    MGC::CommandResult ask(struct ftdi_context * const ftdi) throw (IOError)
+    virtual IOResult ask(MGenAutoguider& root) throw (IOError)
     {
+        if(CR_SUCCESS != MGC::ask(root))
+            return CR_FAILURE;
+
         bitmap_frame.clear();
 
         /* Sorted out from spec and experiment:
@@ -359,8 +300,8 @@ public:
             query[3] = (unsigned char)((block&0x03FF)>>8);
             query[4] = length;
 
-            write(ftdi);
-            if(read(ftdi) < length + 1)
+            root.write(query);
+            if(root.read(answer) < length + 1)
                 _L("failed reading frame block, pushing back nonetheless","");
             if(opCode() != answer[0])
                 _L("failed acking frame block, command is desynced, pushing back nonetheless","");
@@ -372,8 +313,8 @@ public:
 //            query[0] = (unsigned char)(((4*255)&0xFF00)>>8);
 //            query[1] = (unsigned char)(((4*255)&0x00FF)>>0);
 //            query[2] = 4;
-//            write(ftdi);
-//            if(read(ftdi) < 4 )
+//            root.write(query);
+//            if(root.read(answer) < 4 )
 //                _L("failed reading last frame block, pushing back nonetheless","");
 //            bitmap_frame.insert(bitmap_frame.end(), answer.begin(), answer.end());
 
@@ -382,24 +323,23 @@ public:
         //::MGCMD_NOP1(root).ask(ftdi);
         query.resize(2);
         query[1] = 0xFF;
-        write(ftdi);
+        root.write(query);
         answer.resize(1);
-        read(ftdi);
+        root.read(answer);
 
         return CR_SUCCESS;
     }
 
 public:
-    MGIO_READ_DISPLAY_FRAME( MGenAutoguider& root ):
-        MGC(root, IOBuffer { opCode(), 0x0D, 0, 0, 0 }, IOBuffer (1) ), bitmap_frame(frame_size) {};
+    MGIO_READ_DISPLAY_FRAME():
+        MGC(IOBuffer { opCode(), 0x0D, 0, 0, 0 }, IOBuffer (1)), bitmap_frame(frame_size) {};
 };
 
 class MGIO_INSERT_BUTTON: MGC
 {
 public:
-    virtual enum MGenAutoguider::CommandByte commandByte() const { return MGenAutoguider::MGCMD_IO_FUNCTIONS; }
     virtual IOByte opCode() const { return 0x5D; }
-    virtual IOMode opMode() const { return MGenAutoguider::OPM_APPLICATION; }
+    virtual IOMode opMode() const { return OPM_APPLICATION; }
 
 public:
     enum Button
@@ -415,21 +355,24 @@ public:
     };
 
 public:
-    MGC::CommandResult ask(struct ftdi_context * const ftdi) throw (IOError)
+    virtual IOResult ask(MGenAutoguider& root) throw (IOError)
     {
+        if(CR_SUCCESS != MGC::ask(root))
+            return CR_FAILURE;
+
         _L("sending button %d",query[2]);
         query[2] &= 0x7F;
-        write(ftdi);
-        read(ftdi);
+        root.write(query);
+        root.read(answer);
         query[2] |= 0x80;
-        write(ftdi);
-        read(ftdi);
+        root.write(query);
+        root.read(answer);
         return CR_SUCCESS;
     }
 
 public:
-    MGIO_INSERT_BUTTON( MGenAutoguider& root, Button button ):
-        MGC(root, IOBuffer {opCode(), 0x01, (unsigned char) button}, IOBuffer (2) ) {};
+    MGIO_INSERT_BUTTON(Button button):
+        MGC(IOBuffer {opCode(), 0x01, (unsigned char) button}, IOBuffer (2)) {};
 };
 
 #endif /* 3RDPARTY_INDI_MGEN_MGENCOMMAND_HPP_ */

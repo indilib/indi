@@ -22,9 +22,45 @@
     A very minimal autoguider! It connects/disconnects to the autoguider, and manages operational modes.
 */
 
-#include <queue>
 
-#include "indiccd.h"
+/** @brief A protocol mode in which the command is valid */
+enum IOMode
+{
+    OPM_UNKNOWN,        /**< Unknown mode, no exchange done yet or connection error */
+    OPM_COMPATIBLE,     /**< Compatible mode, just after boot */
+    OPM_BOOT,           /**< Boot mode */
+    OPM_APPLICATION,    /**< Normal applicative mode */
+};
+
+/** @internal Debug helper to stringify an IOMode value */
+char const * const DBG_OpModeString(IOMode);
+
+
+/** @brief The result of a command */
+enum IOResult
+{
+    CR_SUCCESS,         /**< Command is successful, result is available through helpers or in field 'answer' */
+    CR_FAILURE,         /**< Command is not successful, no acknowledge or unexpected data returned */
+};
+
+
+/** @brief Exception returned when there is I/O malfunction with the device */
+class IOError: std::exception
+{
+protected:
+    std::string const _what;
+public:
+    virtual const char * what() const noexcept { return _what.c_str(); }
+    IOError(int code): std::exception(), _what(std::string("I/O error code ") + std::to_string(code)) {};
+    virtual ~IOError() {};
+};
+
+
+/** @brief One word in the I/O protocol */
+typedef unsigned char IOByte;
+
+/** @brief A buffer of protocol words */
+typedef std::vector<IOByte> IOBuffer;
 
 
 class MGenAutoguider : public INDI::CCD
@@ -34,59 +70,6 @@ public:
     virtual ~MGenAutoguider();
 
 public:
-    typedef unsigned char FirmwareVersion[2];
-
-public:
-    enum OpMode
-    {
-        OPM_UNKNOWN,        /**< Unknown mode, no exchange done yet or connection error */
-        OPM_COMPATIBLE,     /**< Compatible mode, just after boot */
-        OPM_BOOT,           /**< Boot mode */
-        OPM_APPLICATION,    /**< Normal applicative mode */
-    };
-
-    enum CommandByte
-    {
-        MGCP_QUERY_DEVICE,          /**< [COMPATIBLE] Query device state */
-        MGCP_ENTER_NORMAL_MODE,     /**< [COMPATIBLE] Enter mode APPLICATIVE */
-        MGCMD_NOP0,                 /**< [BOOT/APP] No operation - reply is MGCMD_NOP1 in BOOT, MGCMD_NOP0 in APP */
-        MGCMD_NOP1,                 /**< [BOOT/APP] No operation - reply is MGCMD_NOP0 in BOOT, MGCMD_NOP1 in APP */
-        MGCMDB_GET_VERSION,         /**< [BOOT] Get boot software's version number */
-        MGCMDB_GET_FW_VERSION,      /**< [BOOT] Get uploaded firmware's version if any */
-        MGCMDB_GET_CAMERA_VERSIONS, /**< [BOOT] Get boot and uploaded camera's version if there is any */
-        MGCMDB_RUN_FIRMWARE,        /**< [BOOT] Try to start the uploaded firmware */
-        MGCMDB_POWER_OFF,           /**< [BOOT] Immediately makes the MGen go to power-down state */
-        MGCMD_ENTER_BOOT_MODE,      /**< [APP] After applying this the device will immediately restart in BOOT mode */
-        MGCMD_GET_FW_VERSION,       /**< [APP] Get the running firmware's version number */
-        MGCMD_READ_ADCS,            /**< [APP] Get the latest 10-bit ADC conversion values */
-        MGCMD_GET_LAST_FRAME,       /**< [APP] The last guiding frame's data from the camera */
-        MGCMD_GET_LAST_FRAME_FLAGS, /**< [APP] Flags for the last guiding frame's data from the camera */
-        MGCMD_IO_FUNCTIONS,         /**< [APP] A command that groups several input/output functions */
-        MGIO_INSERT_BUTTON,         /**< [APP] IO - Button code to insert into the button input buffer */
-        MGIO_GET_LED_STATES,        /**< [APP] IO - Flags telling what to query about the LED indicators */
-        MGIO_READ_DISPLAY,          /**< [APP] IO - Read the display buffer content */
-        MGCMD_RD_FUNCTIONS,         /**< [APP] A command that groups functions for Random Displacement feature */
-        MGCMD_EXPO_FUNCTIONS,       /**< [APP] A command that groups functions related to exposure control */
-        MGEXP_SET_EXTERNAL,         /**< [APP] EXP - Tell MGen the external exposure state */
-        MGEXP_SET_EXTERNAL_OFF,     /**< [APP] EXP - Exposure is off */
-        MGEXP_SET_EXTERNAL_ON,      /**< [APP] EXP - Exposure is on */
-    };
-
-    enum CommandStatus
-    {
-        CS_UNKNOWN,         /**< Unknown command */
-        CS_RUNNING,         /**< Command running */
-        CS_FAILURE,         /**< Command failed */
-        CS_SUCCESS,         /**< Command successful */
-    };
-
-
-//    typedef struct commandMessage
-//    {
-//        enum OpMode mode;
-//        enum CommandByte command;
-//        std::queue<unsigned char> buffer;
-//    };
 
 protected:
     //ITextVectorProperty *DevPathSP;
@@ -109,10 +92,10 @@ protected:
         void disable() { if(lock()) { is_active = false; unlock(); } }
 
     protected:
-        enum OpMode mode;
+        IOMode mode;
     public:
-        enum OpMode getOpMode() const { return mode; }
-        void setOpMode(enum OpMode _mode) { if(lock()) { mode = _mode; unlock(); } }
+        IOMode getOpMode() const { return mode; }
+        void setOpMode(IOMode _mode) { if(lock()) { mode = _mode; unlock(); } }
 
     protected:
         std::queue<unsigned int> button_queue;
@@ -123,6 +106,7 @@ protected:
 
     public:
         bool tried_turn_on;
+        void * usb_channel;
 
     public:
         unsigned int no_ack_count;
@@ -159,6 +143,7 @@ protected:
         DeviceState():
             is_active(false),
             tried_turn_on(false),
+            usb_channel(NULL),
             no_ack_count(0),
             mode(OPM_UNKNOWN),
             button_queue(),
@@ -199,15 +184,22 @@ public:
 protected:
     bool Connect();
     bool Disconnect();
+
+protected:
     const char *getDefaultName();
 
-protected:
-    unsigned short getUploadedFirmwareVersion();
+public:
+    /* @brief Write the query field of a command to the device.
+     * @return the number of bytes written, or -1 if the command is invalid or device is not accessible.
+     * @throw MGC::IOError when device communication is malfunctioning.
+     */
+    int write(IOBuffer const &) throw (IOError);
 
-protected:
-    int switchToMode( enum MGenAutoguider::OpMode );
-
-protected:
+    /* @brief Read the answer part of a command from the device.
+     * @return the number of bytes read, or -1 if the command is invalid or device is not accessible.
+     * @throw MGC::IOError when device communication is malfunctioning.
+     */
+    int read(IOBuffer &) throw (IOError);
 
 protected:
     static void* connectionThreadWrapper( void* );
@@ -216,16 +208,8 @@ protected:
     friend class MGC;
 
 protected:
-    int queryDevice( enum CommandByte commandByte, char * buffer, int buffer_len, int * io_len );
-    bool verifyOpCode(enum CommandByte commandByte, unsigned char const *buffer, int bytes_read);
-    int const getOpCodeAnswerLength( enum CommandByte command ) const;
-    char const * const getOpCodeString(enum CommandByte) const;
-    char const * const getOpModeString(enum OpMode) const;
     int heartbeat(struct ftdi_context * const ftdi);
-    int setOpModeBaudRate(struct ftdi_context * const ftdi, enum MGenAutoguider::OpMode const mode);
-
-public:
-    unsigned char getOpCode( enum MGenAutoguider::CommandByte );
+    int setOpModeBaudRate(struct ftdi_context * const ftdi, IOMode const mode);
 };
 
 #endif // MGENAUTOGUIDER_H

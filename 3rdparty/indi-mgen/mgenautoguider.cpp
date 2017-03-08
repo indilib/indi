@@ -31,10 +31,12 @@
 #include <memory>
 #include <string>
 #include <vector>
+#include <queue>
 
 #include "indidevapi.h"
 #include "indicom.h"
 #include "indilogger.h"
+#include "indiccd.h"
 
 #include "mgenautoguider.h"
 
@@ -148,17 +150,17 @@ bool MGenAutoguider::initProperties()
          * ---  DOWN ---
          */
         IUFillSwitch(&UIButtonS[0], "MGEN_UI_BUTTON_ESC", "ESC", ISS_OFF);
-        UIButtonS[0].aux = (void*) ::MGIO_INSERT_BUTTON::IOB_ESC;
+        UIButtonS[0].aux = (void*) MGIO_INSERT_BUTTON::IOB_ESC;
         IUFillSwitch(&UIButtonS[1], "MGEN_UI_BUTTON_SET", "SET", ISS_OFF);
-        UIButtonS[1].aux = (void*) ::MGIO_INSERT_BUTTON::IOB_SET;
+        UIButtonS[1].aux = (void*) MGIO_INSERT_BUTTON::IOB_SET;
         IUFillSwitch(&UIButtonS[2], "MGEN_UI_BUTTON_UP", "UP", ISS_OFF);
-        UIButtonS[2].aux = (void*) ::MGIO_INSERT_BUTTON::IOB_UP;
+        UIButtonS[2].aux = (void*) MGIO_INSERT_BUTTON::IOB_UP;
         IUFillSwitch(&UIButtonS[3], "MGEN_UI_BUTTON_LEFT", "LEFT", ISS_OFF);
-        UIButtonS[3].aux = (void*) ::MGIO_INSERT_BUTTON::IOB_LEFT;
+        UIButtonS[3].aux = (void*) MGIO_INSERT_BUTTON::IOB_LEFT;
         IUFillSwitch(&UIButtonS[4], "MGEN_UI_BUTTON_RIGHT", "RIGHT", ISS_OFF);
-        UIButtonS[4].aux = (void*) ::MGIO_INSERT_BUTTON::IOB_RIGHT;
+        UIButtonS[4].aux = (void*) MGIO_INSERT_BUTTON::IOB_RIGHT;
         IUFillSwitch(&UIButtonS[5], "MGEN_UI_BUTTON_DOWN", "DOWN", ISS_OFF);
-        UIButtonS[5].aux = (void*) ::MGIO_INSERT_BUTTON::IOB_DOWN;
+        UIButtonS[5].aux = (void*) MGIO_INSERT_BUTTON::IOB_DOWN;
         IUFillSwitchVector(&UIButtonSP[0], &UIButtonS[0], 2, getDeviceName(), "MGEN_UI_BUTTONS1", "UI Buttons", TAB, IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
         registerProperty(&UIButtonSP[0],INDI_SWITCH);
         IUFillSwitchVector(&UIButtonSP[1], &UIButtonS[2], 4, getDeviceName(), "MGEN_UI_BUTTONS2", "UI Buttons", TAB, IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
@@ -239,7 +241,7 @@ bool MGenAutoguider::Connect()
     _L("initiating connection.","");
 
     unsigned long int thread = 0;
-    //struct threadData arg = { NULL, MGenAutoguider::MGCMD_NOP0 };
+    //struct threadData arg = { NULL, MGenAutoguiderMGCMD_NOP0 };
     pthread_mutex_t lock;
 
     connectionStatus = DeviceState();
@@ -285,7 +287,7 @@ const char * MGenAutoguider::getDefaultName()
 ** Mode management
 ***************************************************************************************/
 
-int MGenAutoguider::setOpModeBaudRate(struct ftdi_context * const ftdi, enum MGenAutoguider::OpMode const mode)
+int MGenAutoguider::setOpModeBaudRate(struct ftdi_context * const ftdi, IOMode const mode)
 {
     int baudrate = 0;
 
@@ -345,7 +347,7 @@ int MGenAutoguider::setOpModeBaudRate(struct ftdi_context * const ftdi, enum MGe
 /**************************************************************************************
  * Connection thread
  **************************************************************************************/
-void* MGenAutoguider::connectionThreadWrapper( void* arg )
+void* MGenAutoguider::connectionThreadWrapper(void* arg)
 {
     MGenAutoguider * const _this = reinterpret_cast<MGenAutoguider*>(arg);
     INDI::Logger::getInstance().print(_this->getDeviceName(), INDI::Logger::DBG_SESSION, __FILE__, __LINE__, "%s: connection thread wrapper", __FUNCTION__);
@@ -427,6 +429,7 @@ void MGenAutoguider::connectionThread()
     else
     {
         _L("device 0x%04X:0x%04X connected successfully", vid, pid);
+        connectionStatus.usb_channel = ftdi;
     }
 
     try
@@ -440,7 +443,7 @@ void MGenAutoguider::connectionThread()
                     _L("running device identification","");
 
                     /* Run an identification - failing this is not a problem, we'll try to communicate in applicative mode next */
-                    if(MGC::CR_SUCCESS == ::MGCP_QUERY_DEVICE(*this).ask(ftdi))
+                    if(CR_SUCCESS == MGCP_QUERY_DEVICE().ask(*this))
                     {
                         _L("identified boot/compatible mode","");
                         connectionStatus.setOpMode(OPM_COMPATIBLE);
@@ -459,7 +462,7 @@ void MGenAutoguider::connectionThread()
                     }
 
                     /* Run a basic exchange */
-                    if(MGC::CR_SUCCESS != ::MGCMD_NOP1(*this).ask(ftdi))
+                    if(CR_SUCCESS != MGCMD_NOP1().ask(*this))
                     {
                         if(connectionStatus.tried_turn_on)
                         {
@@ -505,7 +508,7 @@ void MGenAutoguider::connectionThread()
                     _L("switching from compatible to normal mode","");
 
                     /* Switch to applicative mode */
-                    ::MGCP_ENTER_NORMAL_MODE(*this).ask(ftdi);
+                    MGCP_ENTER_NORMAL_MODE().ask(*this);
 
                     connectionStatus.setOpMode(OPM_APPLICATION);
 
@@ -519,7 +522,7 @@ void MGenAutoguider::connectionThread()
 
                     _L("device is in now expected to be in applicative mode","");
 
-                    if(MGC::CR_SUCCESS != ::MGCMD_NOP1(*this).ask(ftdi))
+                    if(CR_SUCCESS != MGCMD_NOP1().ask(*this))
                     {
                         connectionStatus.disable();
                         continue;
@@ -531,8 +534,8 @@ void MGenAutoguider::connectionThread()
                     /* If we didn't get the firmware version, ask */
                     if( !connectionStatus.version.uploaded_firmware )
                     {
-                        ::MGCMD_GET_FW_VERSION cmd(*this);
-                        if(MGC::CR_SUCCESS == cmd.ask(ftdi))
+                        MGCMD_GET_FW_VERSION cmd;
+                        if(CR_SUCCESS == cmd.ask(*this))
                         {
                             connectionStatus.version.uploaded_firmware = cmd.fw_version();
                             sprintf(VersionFirmwareT.text,"%04X", connectionStatus.version.uploaded_firmware);
@@ -546,7 +549,7 @@ void MGenAutoguider::connectionThread()
                     /* Heartbeat */
                     if(connectionStatus.heartbeat.timestamp + 5 < time(0))
                     {
-                        if(MGC::CR_SUCCESS != ::MGCMD_NOP1(*this).ask(ftdi))
+                        if(CR_SUCCESS != MGCMD_NOP1().ask(*this))
                         {
                             connectionStatus.no_ack_count++;
                             _L("%d times no ack to NOP1", connectionStatus.no_ack_count);
@@ -564,9 +567,9 @@ void MGenAutoguider::connectionThread()
                     /* Update ADC values */
                     if(connectionStatus.voltage.timestamp + 20 < time(0))
                     {
-                        ::MGCMD_READ_ADCS adcs(*this);
+                        MGCMD_READ_ADCS adcs;
 
-                        if(MGC::CR_SUCCESS == adcs.ask(ftdi))
+                        if(CR_SUCCESS == adcs.ask(*this))
                         {
                             VoltageN[0].value = connectionStatus.voltage.logic = adcs.logic_voltage();
                             _L("received logic voltage %fV (spec is between 4.8V and 5.1V)", connectionStatus.voltage.logic);
@@ -593,15 +596,15 @@ void MGenAutoguider::connectionThread()
                     /* Update UI frame */
                     if(0 < UIFramerateN.value && connectionStatus.ui_frame.timestamp + 1/UIFramerateN.value < time(0))
                     {
-                        //::MGCMD_IO_FUNCTIONS io_func(*this);
+                        //MGCMD_IO_FUNCTIONS io_func(*this);
 
-                        //if(MGC::CR_SUCCESS == io_func.ask(ftdi))
+                        //if(CR_SUCCESS == io_func.ask(ftdi))
                         {
-                            ::MGIO_READ_DISPLAY_FRAME read_frame(*this);
+                            MGIO_READ_DISPLAY_FRAME read_frame;
 
-                            if(MGC::CR_SUCCESS == read_frame.ask(ftdi))
+                            if(CR_SUCCESS == read_frame.ask(*this))
                             {
-                                ::MGIO_READ_DISPLAY_FRAME::ByteFrame frame;
+                                MGIO_READ_DISPLAY_FRAME::ByteFrame frame;
                                 read_frame.get_frame(frame);
                                 //UIFrameB.blob = read_frame.get_frame(frame).data();
                                 //UIFrameB.bloblen = frame.size();
@@ -623,7 +626,7 @@ void MGenAutoguider::connectionThread()
                     /* Send buttons */
                     if(connectionStatus.hasButtons())
                     {
-                        ::MGIO_INSERT_BUTTON(*this, (::MGIO_INSERT_BUTTON::Button) connectionStatus.popButton()).ask(ftdi);
+                        MGIO_INSERT_BUTTON((MGIO_INSERT_BUTTON::Button) connectionStatus.popButton()).ask(*this);
                     }
 
 #if 0
@@ -637,7 +640,7 @@ void MGenAutoguider::connectionThread()
             }
         }
     }
-    catch(MGC::IOError &e)
+    catch(IOError &e)
     {
         _L("device disconnected (%s)", e.what());
         connectionStatus.disable();
@@ -657,35 +660,48 @@ void MGenAutoguider::connectionThread()
  * Helpers
  **************************************************************************************/
 
-char const * const MGenAutoguider::getOpCodeString( enum CommandByte command ) const
+int MGenAutoguider::write(IOBuffer const & query) throw (IOError)
 {
-    switch( command )
-    {
-        case MGCMD_NOP0: return "MGCMD_NOP0";
-        case MGCMD_NOP1: return "MGCMD_NOP1";
-        case MGCMDB_GET_VERSION: return "MGCMDB_GET_VERSION";
-        case MGCMDB_GET_FW_VERSION: return "MGCMDB_GET_FW_VERSION";
-        case MGCMDB_GET_CAMERA_VERSIONS: return "MGCMDB_GET_CAMERA_VERSIONS";
-        case MGCMDB_RUN_FIRMWARE: return "MGCMDB_RUN_FIRMWARE";
-        case MGCMDB_POWER_OFF: return "MGCMDB_POWER_OFF";
-        case MGCMD_ENTER_BOOT_MODE: return "MGCMD_ENTER_BOOT_MODE";
-        case MGCMD_GET_FW_VERSION: return "MGCMD_GET_FW_VERSION";
-        case MGCMD_READ_ADCS: return "MGCMD_READ_ADCS";
-        case MGCMD_GET_LAST_FRAME: return "MGCMD_GET_LAST_FRAME";
-        case MGCMD_IO_FUNCTIONS: return "MGCMD_IO_FUNCTIONS";
-        case MGIO_INSERT_BUTTON: return "MGIO_INSERT_BUTTON";
-        case MGIO_GET_LED_STATES: return "MGIO_GET_LED_STATES";
-        case MGIO_READ_DISPLAY: return "MGIO_READ_DISPLAY";
-        case MGCMD_RD_FUNCTIONS: return "MGCMD_RD_FUNCTIONS";
-        case MGCMD_EXPO_FUNCTIONS: return "MGCMD_EXPO_FUNCTIONS";
-        case MGEXP_SET_EXTERNAL: return "MGEXP_SET_EXTERNAL";
-        case MGEXP_SET_EXTERNAL_OFF: return "MGEXP_SET_EXTERNAL_OFF";
-        case MGEXP_SET_EXTERNAL_ON: return "MGEXP_SET_EXTERNAL_ON";
-        default: return "???";
-    };
+    struct ftdi_context * const ftdi = static_cast<struct ftdi_context * const> (connectionStatus.usb_channel);
+
+    if(!ftdi)
+        return -1;
+
+    _L("writing %d bytes to device: %02X %02X %02X %02X %02X ...", query.size(), query.size()>0?query[0]:0, query.size()>1?query[1]:0, query.size()>2?query[2]:0, query.size()>3?query[3]:0, query.size()>4?query[4]:0);
+    int const bytes_written = ftdi_write_data(ftdi, query.data(), query.size());
+
+    /* FIXME: Adjust this to optimize how long device absorb the command for */
+    usleep(20000);
+
+    if(bytes_written < 0)
+        throw IOError(bytes_written);
+
+    return bytes_written;
 }
 
-char const * const MGenAutoguider::getOpModeString(enum OpMode mode) const
+int MGenAutoguider::read(IOBuffer & answer) throw (IOError)
+{
+    struct ftdi_context * const ftdi = static_cast<struct ftdi_context * const> (connectionStatus.usb_channel);
+
+    if(!ftdi)
+        return -1;
+
+    if(answer.size() > 0)
+    {
+        _L("reading %d bytes from device", answer.size());
+        int const bytes_read = ftdi_read_data(ftdi, answer.data(), answer.size());
+
+        if(bytes_read < 0)
+            throw IOError(bytes_read);
+
+        _L("read %d bytes from device: %02X %02X %02X %02X %02X ...", bytes_read, answer.size()>0?answer[0]:0, answer.size()>1?answer[1]:0, answer.size()>2?answer[2]:0, answer.size()>3?answer[3]:0, answer.size()>4?answer[4]:0);
+        return bytes_read;
+    }
+
+    return 0;
+}
+
+char const * const DBG_OpModeString(IOMode mode)
 {
     switch(mode)
     {
@@ -696,35 +712,3 @@ char const * const MGenAutoguider::getOpModeString(enum OpMode mode) const
         default: return "???";
     }
 }
-
-/********************/
-#if 0
-int MGenAutoguider::heartbeat(struct ftdi_context * const ftdi)
-{
-    unsigned char buffer[1] = {getOpCode(MGCMD_NOP1)};
-    int bytes_read = 0;
-
-    /* Heartbeat */
-    if(ftdi_write_data(ftdi, buffer, 1) < 0)
-    {
-        _L("device disconnected while writing heartbeat","");
-        return 1;
-    }
-
-    _L("reading heartbeat result.","");
-    if((bytes_read = ftdi_read_data(ftdi, buffer, 1)) < 0)
-    {
-        _L("device disconnected while reading heartbeat","");
-        return 1;
-    }
-
-    if(verifyOpCode(MGCMD_NOP1, buffer, bytes_read))
-    {
-        _L("received heartbeat ack","");
-        return 0;
-    }
-
-    _L("no heartbeat ack (%d bytes read)", bytes_read);
-    return 1;
-}
-#endif
