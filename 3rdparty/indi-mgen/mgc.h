@@ -68,18 +68,15 @@ protected:
 public:
     char const * name() const { return root.getOpCodeString(commandByte()); }
 
-protected:
-    MGenAutoguider::OpMode current_mode() const { return root.connectionStatus.mode; }
-
 public:
     virtual int write(struct ftdi_context * const ftdi) throw (IOError)
     {
         if(!ftdi)
             return -1;
 
-        if(opMode() != MGenAutoguider::OPM_UNKNOWN && opMode() != root.connectionStatus.mode)
+        if(opMode() != MGenAutoguider::OPM_UNKNOWN && opMode() != root.connectionStatus.getOpMode())
         {
-            _L("operating mode %s doesn't support command %s", root.getOpModeString(opMode()), name());
+            _L("operating mode %s doesnt support command %s", root.getOpModeString(opMode()), name());
             return -1;
         }
 
@@ -101,9 +98,9 @@ public:
         if(!ftdi)
             return -1;
 
-        if(opMode() != MGenAutoguider::OPM_UNKNOWN && opMode() != root.connectionStatus.mode)
+        if(opMode() != MGenAutoguider::OPM_UNKNOWN && opMode() != root.connectionStatus.getOpMode())
         {
-            _L("operating mode %s doesn't support command %s", root.getOpModeString(opMode()), name());
+            _L("operating mode %s doesnt support command %s", root.getOpModeString(opMode()), name());
             return -1;
         }
 
@@ -130,6 +127,7 @@ protected:
 
     virtual ~MGC() {};
 };
+
 
 class MGCP_QUERY_DEVICE: MGC
 {
@@ -198,6 +196,27 @@ public:
 public:
     MGCMD_NOP1( MGenAutoguider& root ):
         MGC(root, IOBuffer { opCode() }, IOBuffer (1) ) {};
+};
+
+
+class MGCP_ENTER_NORMAL_MODE: MGC
+{
+public:
+    virtual enum MGenAutoguider::CommandByte commandByte() const { return MGenAutoguider::MGCMD_GET_FW_VERSION; }
+    virtual IOByte opCode() const { return 0x42; }
+    virtual IOMode opMode() const { return MGenAutoguider::OPM_COMPATIBLE; }
+
+public:
+    MGC::CommandResult ask(struct ftdi_context * const ftdi) throw (IOError)
+    {
+        write(ftdi);
+        sleep(1);
+        return CR_SUCCESS;
+    }
+
+public:
+    MGCP_ENTER_NORMAL_MODE( MGenAutoguider& root ):
+        MGC(root, IOBuffer { opCode() }, IOBuffer () ) {};
 };
 
 
@@ -304,17 +323,7 @@ public:
 
             frame[i] = ((bitmap_frame[B] >> b) & 0x01) ? '0' : ' ';
         }
-        /*for(unsigned int i = 0; i < frame_size; i++)
-        {
-            frame[(i%128)+128*(i/128)+7*128] = 255*( ( bitmap_frame[i] >> 7 ) & 0x01 );
-            frame[(i%128)+128*(i/128)+6*128] = 255*( ( bitmap_frame[i] >> 6 ) & 0x01 );
-            frame[(i%128)+128*(i/128)+5*128] = 255*( ( bitmap_frame[i] >> 5 ) & 0x01 );
-            frame[(i%128)+128*(i/128)+4*128] = 255*( ( bitmap_frame[i] >> 4 ) & 0x01 );
-            frame[(i%128)+128*(i/128)+3*128] = 255*( ( bitmap_frame[i] >> 3 ) & 0x01 );
-            frame[(i%128)+128*(i/128)+2*128] = 255*( ( bitmap_frame[i] >> 2 ) & 0x01 );
-            frame[(i%128)+128*(i/128)+1*128] = 255*( ( bitmap_frame[i] >> 1 ) & 0x01 );
-            frame[(i%128)+128*(i/128)+0*128] = 255*( ( bitmap_frame[i] >> 0 ) & 0x01 );
-        }*/
+#if 0
         _L("    0123456789|123456789|123456789|123456789|123456789|123456789|123456789|123456789|123456789|123456789|123456789|123456789|1234567","");
         for(unsigned int i = 0; i < frame.size()/128; i++)
         {
@@ -323,6 +332,7 @@ public:
                 line[j] = frame[i*128+j];
             _L("%03d %128.128s", i, line);
         }
+#endif
         return frame;
     };
 
@@ -394,6 +404,7 @@ public:
 public:
     enum Button
     {
+        IOB_NONE = -1,
         IOB_ESC = 0,
         IOB_SET = 1,
         IOB_LEFT = 2,
@@ -406,18 +417,19 @@ public:
 public:
     MGC::CommandResult ask(struct ftdi_context * const ftdi) throw (IOError)
     {
+        _L("sending button %d",query[2]);
+        query[2] &= 0x7F;
         write(ftdi);
-        ::MGCMD_NOP1(root).ask(ftdi);
+        read(ftdi);
+        query[2] |= 0x80;
+        write(ftdi);
+        read(ftdi);
         return CR_SUCCESS;
     }
 
 public:
     MGIO_INSERT_BUTTON( MGenAutoguider& root, Button button ):
-        MGC(root, IOBuffer {
-                opCode(),
-                0x01, (unsigned char) (0x00 | (unsigned char) button),
-                0x01, (unsigned char) (0x80 | (unsigned char) button) },
-            IOBuffer (1) ) {};
+        MGC(root, IOBuffer {opCode(), 0x01, (unsigned char) button}, IOBuffer (2) ) {};
 };
 
 #endif /* 3RDPARTY_INDI_MGEN_MGENCOMMAND_HPP_ */

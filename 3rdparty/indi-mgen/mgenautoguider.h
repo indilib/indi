@@ -22,9 +22,12 @@
     A very minimal autoguider! It connects/disconnects to the autoguider, and manages operational modes.
 */
 
-#include "defaultdevice.h"
+#include <queue>
 
-class MGenAutoguider : public INDI::DefaultDevice
+#include "indiccd.h"
+
+
+class MGenAutoguider : public INDI::CCD
 {
 public:
     MGenAutoguider();
@@ -90,40 +93,108 @@ protected:
     char dev_path[MAXINDINAME];
     int fd;
 
-    struct connectionStatus
+    class DeviceState
     {
+    protected:
+        pthread_mutex_t _lock;
+    public:
+        bool lock() { return !pthread_mutex_lock(&_lock); }
+        void unlock() { pthread_mutex_unlock(&_lock); }
+
+    protected:
         bool is_active;
-        bool tried_turn_on;
-        unsigned int no_ack_count;
+    public:
+        bool isActive() const { return is_active; }
+        void enable() { if(lock()) { is_active = true; unlock(); } }
+        void disable() { if(lock()) { is_active = false; unlock(); } }
+
+    protected:
         enum OpMode mode;
-        enum CommandByte last_command;
-        enum CommandStatus last_status;
+    public:
+        enum OpMode getOpMode() const { return mode; }
+        void setOpMode(enum OpMode _mode) { if(lock()) { mode = _mode; unlock(); } }
+
+    protected:
+        std::queue<unsigned int> button_queue;
+    public:
+        bool hasButtons() const { return !button_queue.empty(); }
+        void pushButton(unsigned int _button) { if(lock()) { button_queue.push(_button); unlock(); } }
+        unsigned int popButton() { unsigned int b = -1; if(lock()) { b = button_queue.front(); button_queue.pop(); unlock(); } return b; }
+
+    public:
+        bool tried_turn_on;
+
+    public:
+        unsigned int no_ack_count;
+
+    public:
         struct version
         {
             unsigned short uploaded_firmware;
             unsigned short camera_firmware;
         } version;
-	    struct voltage
-	    {
+
+    public:
+        struct voltage
+        {
             time_t timestamp;
             float logic;
             float input;
             float reference;
-	    } voltage;
-	    struct ui_frame
-	    {
-	        time_t timestamp;
-	    } ui_frame;
+        } voltage;
+
+    public:
+        struct ui_frame
+        {
+            time_t timestamp;
+        } ui_frame;
+
+    public:
+        struct heartbeat
+        {
+            time_t timestamp;
+        } heartbeat;
+
+    public:
+        DeviceState():
+            is_active(false),
+            tried_turn_on(false),
+            no_ack_count(0),
+            mode(OPM_UNKNOWN),
+            button_queue(),
+            version({0}),
+            voltage({0}),
+            ui_frame({0}),
+            heartbeat({0})
+        {
+            pthread_mutexattr_t attr;
+            pthread_mutexattr_init(&attr);
+            pthread_mutexattr_settype(&attr,PTHREAD_MUTEX_RECURSIVE);
+            pthread_mutex_init(&_lock,&attr);
+            pthread_mutexattr_destroy(&attr);
+        }
+        virtual ~DeviceState()
+        {
+            pthread_mutex_destroy(&_lock);
+        }
     } connectionStatus;
 
 protected:
     IText VersionFirmwareT;
     ITextVectorProperty VersionTP;
-    INumber VoltageT[3];
-    INumberVectorProperty VoltageTP;
+    INumber VoltageN[3];
+    INumberVectorProperty VoltageNP;
+    INumber UIFramerateN;
+    INumberVectorProperty UIFramerateNP;
+    ISwitch UIButtonS[6];
+    ISwitchVectorProperty UIButtonSP[2];
     IBLOB UIFrameB;
     IBLOBVectorProperty UIFrameBP;
     bool initProperties();
+
+public:
+    virtual bool ISNewNumber(char const * dev, char const * name, double values[], char * names[], int n);
+    virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n);
 
 protected:
     bool Connect();
@@ -134,7 +205,6 @@ protected:
     unsigned short getUploadedFirmwareVersion();
 
 protected:
-    enum MGenAutoguider::OpMode getCurrentMode() const { return connectionStatus.mode; };
     int switchToMode( enum MGenAutoguider::OpMode );
 
 protected:
