@@ -838,7 +838,7 @@ bool LX200ZEQ25::Park()
 
     int err=0;
     /* Slew reads the '0', that is not the end of the slew */
-    if (err = Slew(PortFD))
+    if (slewZEQ25() == 0)
     {
         DEBUGF(INDI::Logger::DBG_ERROR, "Error Slewing to Az %s - Alt %s", AzStr, AltStr);
         slewError(err);
