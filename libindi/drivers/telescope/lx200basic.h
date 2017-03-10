@@ -30,9 +30,7 @@ class LX200Basic : public INDI::Telescope
  ~LX200Basic();
 
  virtual const char *getDefaultName();
- virtual bool Connect();
- virtual bool Connect(const char *port, uint32_t baud);
- virtual bool Disconnect();
+ virtual bool Handshake();
  virtual bool ReadScopeStatus();
  virtual void ISGetProperties(const char *dev);
  virtual bool initProperties();

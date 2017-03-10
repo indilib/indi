@@ -93,7 +93,16 @@ drivers directly as it is linked with main(). Virtual drivers cannot employ INDI
 class INDI::DefaultDevice : public INDI::BaseDevice
 {
 
-public:       
+public:
+
+    /*! Device Connection Mode */
+    enum ConnectionMode
+    {
+        CONNECTION_UNKNOWN = 0,
+        CONNECTION_SERIAL  = (1 << 0),
+        CONNECTION_TCP     = (1 << 1),
+        CONNECTION_USB     = (1 << 2)
+    };
 
     DefaultDevice();
     virtual ~DefaultDevice();
@@ -219,7 +228,7 @@ to disconnect the device.
       \note This function is called by the INDI framework, do not call it directly.
       \returns True if any property was successfully processed, false otherwise.
     */
-    virtual bool ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n) {return false;}
+    virtual bool ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n);
 
     /** \brief Process the client newBLOB command
       \note This function is called by the INDI framework, do not call it directly.
@@ -243,6 +252,17 @@ to disconnect the device.
      * @param value ORed list of DeviceInterface values.
      */
     void setDriverInterface(uint16_t value);
+
+    /**
+     * @brief setConnectionMode Set connection mode of device which is an ORed combination of values supported by the physical device
+     * @param value ORed combination of ConnectionMode values
+     */
+    void setConnectionMode(const uint8_t &value);
+
+    /**
+     * @return getConnectionMode Get device possible connection modes
+     */
+    uint8_t getConnectionMode() const;
 
 protected:
 
@@ -340,22 +360,55 @@ protected:
     */
     virtual bool updateProperties();
 
-    /** \brief Connect to a device. Child classes must implement this function and perform the connection
-        routine in the function.
-        \return True if connection to device is successful, false otherwise.
+    /** \brief Connect to the device. INDI::DefaultDevice implementation connects to appropiate connection interface (Serial or TCP)
+     * governed by connectionMode. If connection is successful, it procced to call Handshake() function to ensure communication with device
+     * is successfull. For other communication interface, override the method in the child class implementation
+      \return True if connection is successful, false otherwise
     */
-    virtual bool Connect()=0;
+    virtual bool Connect();
 
-    /** \brief Disconnect from a device. Child classes must implement this function and perform the disconnection
-        routine in the function.
-        \return True if disconnection from a device is successful, false otherwise.
+    /** \brief Disconnect from device
+        \return True if successful, false otherwise */
+    virtual bool Disconnect();
+
+    /** \brief Connect to serial port device. Default parameters are 8 bits, 1 stop bit, no parity. Override if different from default.
+      \param port Port to connect to.
+      \param baud Baud rate
+      \return True if connection is successful, false otherwise
+      \warning Do not call this function directly, it is called by INDI::DefaultDevice Connect() function.
     */
-    virtual bool Disconnect()=0;
+    virtual bool ConnectSerial(const char *port, uint32_t baud);
+
+    /** \brief INDI::DefaultDevice implementation of Connect() for TCP/IP connections.
+      \param hostname Host name or IP to connect to
+      \param port port
+      \return True if connection is successful, false otherwise
+      \warning Do not call this function directly, it is called by INDI::Telescope Connect() function.
+    */
+    virtual bool ConnectTCP(const char *hostname, const char *port);
+
+    /**
+     * @brief Handshake Perform communication with device to verify link is up and device is responding properly to commands.
+     * @return True if communication with device is successful, false otherwise.
+     */
+    virtual bool Handshake();
+
+    /**
+     * @brief getCandidateSerialPorts Return a list of ports to attempt communicating with in case connection to current device port is unsuccessful.
+     * This only applies if connection mode is set CONNECTION_SERIAL
+     * @return list of candidate port to attempt connection with
+     */
+    virtual std::vector<std::string> getCandidateSerialPorts() { return m_Ports; }
 
     /** \return Default name of the device. */
     virtual const char *getDefaultName()=0;
 
-private:
+    int PortFD=-1;
+
+    // Period in milliseconds to call TimerHit(). Default 1000 ms
+    uint32_t updatePeriodMS = 1000;
+
+private:   
 
     bool isInit;
     bool pDebug;
@@ -375,11 +428,27 @@ private:
     ISwitchVectorProperty ConfigProcessSP;
     ISwitchVectorProperty ConnectionSP;
 
-
     IText DriverInfoT[4];
     ITextVectorProperty DriverInfoTP;
 
+    // Device physical port
+    ITextVectorProperty PortTP;
+    IText PortT[1];
 
+    ISwitch BaudRateS[6];
+    ISwitchVectorProperty BaudRateSP;
+
+    // IP Address/Port
+    ITextVectorProperty AddressTP;
+    IText AddressT[2];
+
+    uint8_t connectionMode = CONNECTION_UNKNOWN;
+
+    int sockfd = -1;
+    const uint8_t SOCKET_TIMEOUT = 5;
+
+    const std::vector<std::string> m_Ports = { "/dev/ttyUSB0" , "/dev/ttyUSB1" , "/dev/ttyUSB2", "/dev/ttyUSB3",
+                                               "/dev/rfcomm0" , "/dev/ttyS0" , "/dev/ttyS1", "/dev/ttyS2"};
 };
 
 #endif // INDIDEFAULTDRIVER_H

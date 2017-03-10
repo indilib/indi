@@ -32,6 +32,7 @@ class LX200Pulsar2 : public LX200Generic {
     
   virtual const char *getDefaultName(void);
   virtual bool Connect         (void);
+  virtual bool Handshake();
   virtual bool ReadScopeStatus (void);
   virtual void ISGetProperties (const char *dev);
   virtual bool initProperties  (void);

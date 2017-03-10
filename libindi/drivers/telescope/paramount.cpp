@@ -185,6 +185,8 @@ bool Paramount::updateProperties()
 
 bool Paramount::Connect(const char *hostname, const char *port)
 {
+
+#if 0
     bool serverConnection = INDI::Telescope::Connect(hostname, port);
 
     if (serverConnection == false)
@@ -221,7 +223,7 @@ bool Paramount::Connect(const char *hostname, const char *port)
         DEBUG(INDI::Logger::DBG_ERROR, "Error connecting to telescope.");
         return false;
     }
-
+#endif
     return true;
 }
 

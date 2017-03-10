@@ -20,6 +20,12 @@
 #include <string.h>
 #include <errno.h>
 #include <zlib.h>
+#include <sys/ioctl.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <netdb.h>
+#include <fcntl.h>
 
 #include "defaultdevice.h"
 #include "indicom.h"
@@ -92,6 +98,14 @@ bool INDI::DefaultDevice::loadConfig(bool silent, const char *property)
 bool INDI::DefaultDevice::saveConfigItems(FILE *fp)
 {
     IUSaveConfigSwitch(fp, &DebugSP);
+    if (connectionMode & CONNECTION_SERIAL)
+    {
+        IUSaveConfigText(fp, &PortTP);
+        IUSaveConfigSwitch(fp, &BaudRateSP);
+    }
+
+    if (connectionMode & CONNECTION_TCP)
+        IUSaveConfigText(fp, &AddressTP);
 
     return INDI::Logger::saveConfigItems(fp);
 
@@ -307,6 +321,33 @@ bool INDI::DefaultDevice::loadDefaultConfig()
     return pResult;
 }
 
+bool INDI::DefaultDevice::ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n)
+{
+    //  first check if it's for our device
+    if(!strcmp(dev,getDeviceName()))
+    {
+        // Serial Port
+        if(!strcmp(name,PortTP.name))
+        {
+            IUUpdateText(&PortTP,texts,names,n);
+            PortTP.s=IPS_OK;
+            IDSetText(&PortTP,NULL);
+            return true;
+        }
+
+        // TCP Server settings
+        if (!strcmp(name, AddressTP.name))
+        {
+            IUUpdateText(&AddressTP, texts, names, n);
+            AddressTP.s = IPS_OK;
+            IDSetText(&AddressTP, NULL);
+            return true;
+        }
+    }
+
+    return false;
+}
+
 bool INDI::DefaultDevice::ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n)
 {
     // ignore if not ours //
@@ -371,6 +412,13 @@ bool INDI::DefaultDevice::ISNewSwitch (const char *dev, const char *name, ISStat
         return true;
     }
 
+     if (!strcmp(name, BaudRateSP.name))
+     {
+         IUUpdateSwitch(&BaudRateSP, states, names, n);
+         BaudRateSP.s = IPS_OK;
+         IDSetSwitch(&BaudRateSP, NULL);
+         return true;
+     }
 
     if (!strcmp(svp->name, "DEBUG"))
     {
@@ -592,10 +640,10 @@ void INDI::DefaultDevice::ISGetProperties (const char *dev)
         addConfigurationControl();
     }
 
-    for (orderi = pAll.begin(); orderi != pAll.end(); orderi++)
+    for (INDI::Property *orderi : pAll)
     {
-        pType       = (*orderi)->getType();
-        pPtr        = (*orderi)->getProperty();
+        pType       = orderi->getType();
+        pPtr        = orderi->getProperty();
 
         switch (pType)
         {
@@ -624,7 +672,21 @@ void INDI::DefaultDevice::ISGetProperties (const char *dev)
         loadConfig(true, "DEBUG_LEVEL");
         loadConfig(true, "LOGGING_LEVEL");
         loadConfig(true, "LOG_OUTPUT");
+    }
 
+    if (connectionMode & CONNECTION_SERIAL)
+    {
+        defineText(&PortTP);
+        loadConfig(true, "DEVICE_PORT");
+
+        defineSwitch(&BaudRateSP);
+        loadConfig(true, "TELESCOPE_BAUD_RATE");
+    }
+
+    if (connectionMode & CONNECTION_TCP)
+    {
+        defineText(&AddressTP);
+        loadConfig(true, "TCP_IP_ADDRESS");
     }
 
     isInit = true;
@@ -727,6 +789,16 @@ bool INDI::DefaultDevice::updateProperties()
     return true;
 }
 
+uint8_t INDI::DefaultDevice::getConnectionMode() const
+{
+    return connectionMode;
+}
+
+void INDI::DefaultDevice::setConnectionMode(const uint8_t &value)
+{
+    connectionMode = value;
+}
+
 uint16_t INDI::DefaultDevice::getDriverInterface()
 {
     return interfaceDescriptor;
@@ -773,6 +845,22 @@ bool INDI::DefaultDevice::initProperties()
     IUFillSwitch(&ConfigProcessS[1], "CONFIG_SAVE", "Save", ISS_OFF);
     IUFillSwitch(&ConfigProcessS[2], "CONFIG_DEFAULT", "Default", ISS_OFF);
     IUFillSwitchVector(&ConfigProcessSP, ConfigProcessS, NARRAY(ConfigProcessS), getDeviceName(), "CONFIG_PROCESS", "Configuration", "Options", IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
+
+    // Address/Port
+    IUFillText(&AddressT[0], "ADDRESS", "Address", "");
+    IUFillText(&AddressT[1], "PORT",    "Port",    "");
+    IUFillTextVector(&AddressTP, AddressT, 2, getDeviceName(), "TCP_ADDRESS_PORT", "TCP Server", OPTIONS_TAB, IP_RW, 60, IPS_IDLE);
+
+    IUFillText(&PortT[0],"PORT","Port","/dev/ttyUSB0");
+    IUFillTextVector(&PortTP,PortT,1,getDeviceName(),"DEVICE_PORT","Ports",OPTIONS_TAB,IP_RW,60,IPS_IDLE);
+
+    IUFillSwitch(&BaudRateS[0], "9600", "", ISS_ON);
+    IUFillSwitch(&BaudRateS[1], "19200", "", ISS_OFF);
+    IUFillSwitch(&BaudRateS[2], "38400", "", ISS_OFF);
+    IUFillSwitch(&BaudRateS[3], "57600", "", ISS_OFF);
+    IUFillSwitch(&BaudRateS[4], "115200", "", ISS_OFF);
+    IUFillSwitch(&BaudRateS[5], "230400", "", ISS_OFF);
+    IUFillSwitchVector(&BaudRateSP, BaudRateS, 6, getDeviceName(),"TELESCOPE_BAUD_RATE", "Baud Rate", OPTIONS_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
 
     INDI::Logger::initProperties(this);
 
@@ -832,4 +920,172 @@ void INDI::DefaultDevice::defineBLOB(IBLOBVectorProperty *bvp)
 {
     registerProperty(bvp, INDI_BLOB);
     IDDefBLOB(bvp, NULL);
+}
+
+bool INDI::DefaultDevice::Connect()
+{
+    if(isConnected())
+        return true;
+
+    bool rc=false;
+
+    // Check if TCP Address exists and not empty.
+    // We call the TCP function in case the connection mode is set explicitly to TCP **OR** if the address is not empty (for CONNECTION_BOTH) then
+    // TCP connection has higher priority than serial port.
+    bool validTCPAddress = (AddressT[0].text && AddressT[0].text[0] && AddressT[1].text && AddressT[1].text[0]);
+    if (connectionMode == CONNECTION_TCP && validTCPAddress == false)
+    {
+        DEBUG(INDI::Logger::DBG_ERROR, "TCP server address and port are invalid. Please fill the required parameters and try again.");
+        return false;
+    }
+
+    if ( (connectionMode & CONNECTION_TCP) && validTCPAddress)
+        rc = ConnectTCP(AddressT[0].text, AddressT[1].text);
+    else if (connectionMode & CONNECTION_SERIAL)
+    {
+        uint32_t baud = atoi(IUFindOnSwitch(&BaudRateSP)->name);
+        rc = ConnectSerial(PortT[0].text, baud);
+
+        if (rc == false)
+        {
+            DEBUGF(INDI::Logger::DBG_DEBUG, "Connection to %s @ %d failed.", PortT[0].text, baud);
+            for (std::string onePort : getCandidateSerialPorts())
+            {
+                DEBUGF(INDI::Logger::DBG_DEBUG, "Trying connection to %s @ %d ...", onePort.c_str(), baud);
+                if (rc = ConnectSerial(onePort.c_str(), baud))
+                {
+                    IUSaveText(&PortT[0], onePort.c_str());
+                    IDSetText(&PortTP, NULL);
+                    saveConfig(true, "DEVICE_PORT");
+                    break;
+                }
+            }
+        }
+    }
+    else
+    {
+        DEBUGF(INDI::Logger::DBG_ERROR, "Connection interface %d not implemented in INDI Default Device.", connectionMode);
+        return false;
+    }
+
+    if (rc == false)
+        return false;
+
+    rc = Handshake();
+    if (rc)
+        SetTimer(updatePeriodMS);
+    else
+        Disconnect();
+
+    return rc;
+}
+
+bool INDI::DefaultDevice::Handshake()
+{
+    DEBUG(INDI::Logger::DBG_ERROR, "Error handshake not implemeted in default device.");
+    return false;
+}
+
+bool INDI::DefaultDevice::ConnectSerial(const char *port, uint32_t baud)
+{
+    if (isSimulation())
+        return true;
+
+    int connectrc=0;
+    char errorMsg[MAXRBUF];
+
+    DEBUGF(Logger::DBG_DEBUG, "Connecting to %s",port);
+
+    if ( (connectrc = tty_connect(port, baud, 8, 0, 1, &PortFD)) != TTY_OK)
+    {
+        tty_error_msg(connectrc, errorMsg, MAXRBUF);
+
+        DEBUGF(Logger::DBG_ERROR,"Failed to connect to port %s. Error: %s", port, errorMsg);
+
+        return false;
+
+    }
+
+    DEBUGF(Logger::DBG_DEBUG, "Port FD %d",PortFD);
+
+    return true;
+}
+
+bool INDI::DefaultDevice::ConnectTCP(const char *hostname, const char *port)
+{
+    if (isSimulation())
+        return true;
+
+    if (sockfd != -1)
+        close(sockfd);
+
+    struct timeval ts;
+    ts.tv_sec = SOCKET_TIMEOUT;
+    ts.tv_usec=0;
+
+    DEBUGF(INDI::Logger::DBG_SESSION, "Connecting to %s@%s ...", hostname, port);
+
+    struct sockaddr_in serv_addr;
+    struct hostent *hp = NULL;
+    int ret = 0;
+
+    // Lookup host name or IPv4 address
+    hp = gethostbyname(hostname);
+    if (!hp)
+    {
+        DEBUG(INDI::Logger::DBG_ERROR, "Failed to lookup IP Address or hostname.");
+        return false;
+    }
+
+    memset (&serv_addr, 0, sizeof(serv_addr));
+    serv_addr.sin_family = AF_INET;
+    serv_addr.sin_addr.s_addr = ((struct in_addr *)(hp->h_addr_list[0]))->s_addr;
+    serv_addr.sin_port = htons(atoi(port));
+
+    if ((sockfd = socket(AF_INET, SOCK_STREAM, 0)) < 0)
+    {
+        DEBUG(INDI::Logger::DBG_ERROR, "Failed to create socket.");
+        return false;
+    }
+
+    // Connect to the mount
+    if ( (ret = ::connect (sockfd,(struct sockaddr *)&serv_addr,sizeof(serv_addr))) < 0)
+    {
+        DEBUGF(INDI::Logger::DBG_ERROR, "Failed to connect to mount %s@%s: %s.", hostname, port, strerror(errno));
+        close(sockfd);
+        sockfd=-1;
+        return false;
+    }
+
+    // Set the socket receiving and sending timeouts
+    setsockopt(sockfd, SOL_SOCKET, SO_RCVTIMEO, (char *)&ts,sizeof(struct timeval));
+    setsockopt(sockfd, SOL_SOCKET, SO_SNDTIMEO, (char *)&ts,sizeof(struct timeval));
+
+    DEBUGF(INDI::Logger::DBG_SESSION, "Connected successfuly to %s.", getDeviceName());
+
+    // now let the rest of INDI::DefaultDevice use our socket as if it were a serial port
+    PortFD = sockfd;
+
+    return true;
+}
+
+bool INDI::DefaultDevice::Disconnect()
+{
+    DEBUGF(Logger::DBG_SESSION,"%s is offline.", getDeviceName());
+
+    if (isSimulation())
+        return true;
+
+    if ( (connectionMode & CONNECTION_SERIAL) && PortFD > 0)
+    {
+        tty_disconnect(PortFD);
+        PortFD = -1;
+    }
+    if ( (connectionMode & CONNECTION_TCP) && sockfd > 0)
+    {
+        close(sockfd);
+        sockfd = -1;
+    }
+
+    return true;
 }

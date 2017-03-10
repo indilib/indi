@@ -602,7 +602,7 @@ bool LX200AstroPhysics::Goto(double r,double d)
     return true;
 }
 
-bool LX200AstroPhysics::Connect(const char *port, uint32_t baud)
+bool LX200AstroPhysics::Handshake()
 {
     if (isSimulation())
     {
@@ -610,29 +610,7 @@ bool LX200AstroPhysics::Connect(const char *port, uint32_t baud)
         return true;
     }
 
-    if (tty_connect(port, baud, 8, 0, 1, &PortFD) != TTY_OK)
-    {
-      DEBUGF(INDI::Logger::DBG_ERROR, "Error connecting to port %s. Make sure you have BOTH write and read permission to your port.", port);
-      return false;
-    }
-
-   /* if (check_lx200ap_connection(PortFD))
-    {
-        DEBUG(INDI::Logger::DBG_ERROR, "Error connecting to Telescope. Telescope is offline.");
-        return false;
-    }*/
-
-   //DEBUG(INDI::Logger::DBG_SESSION, "Telescope is online.");
-
-   if (setBasicDataPart0())
-       DEBUG(INDI::Logger::DBG_SESSION, "Telescope is online.");
-   else
-   {
-       DEBUGF(INDI::Logger::DBG_SESSION, "Error connecting to Telescope. Telescope initilization sequence failed. Please check power and ensure port %s is the correct telescope port.", port);
-       return false;
-   }
-
-   return true;
+    return setBasicDataPart0();
 }
 
 bool LX200AstroPhysics::Disconnect()

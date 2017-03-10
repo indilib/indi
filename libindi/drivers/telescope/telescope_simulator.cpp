@@ -232,19 +232,6 @@ bool ScopeSim::updateProperties()
     return true;
 }
 
-bool ScopeSim::Connect(const char *port, uint32_t baud)
-{
-   DEBUGF(INDI::Logger::DBG_SESSION, "Simulating connecting to port %s with speed %d", port, baud);
-   DEBUG(INDI::Logger::DBG_SESSION, "Telescope simulator is online.");
-   return true;
-}
-
-bool ScopeSim::Disconnect()
-{
-    DEBUG(INDI::Logger::DBG_SESSION,"Telescope Simulator is offline.");
-    return true;
-}
-
 bool ScopeSim::ReadScopeStatus()
 {
     static struct timeval ltv;

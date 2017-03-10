@@ -572,21 +572,7 @@ bool CelestronGPS::Abort()
     return abort_celestron(PortFD);
 }
 
-bool CelestronGPS::Connect()
-{
-    bool rc=false;
-
-    if(isConnected()) return true;
-
-    rc=Connect(PortT[0].text, atoi(IUFindOnSwitch(&BaudRateSP)->name));
-
-    if(rc)
-        SetTimer(POLLMS);
-
-    return rc;
-}
-
-bool CelestronGPS::Connect(const char *port, uint32_t baud)
+bool CelestronGPS::Handshake()
 {
     if (isSimulation())
     {
@@ -595,11 +581,6 @@ bool CelestronGPS::Connect(const char *port, uint32_t baud)
         set_sim_slew_rate(SR_5);
         set_sim_ra(0);
         set_sim_dec(90);
-    }
-    else if (tty_connect(port, baud, 8, 0, 1, &PortFD) != TTY_OK)
-    {
-      DEBUGF(INDI::Logger::DBG_ERROR, "Error connecting to port %s. Make sure you have BOTH write and read permission to the port.", port);
-      return false;
     }
 
     // Check if we need to wake up
@@ -616,20 +597,9 @@ bool CelestronGPS::Connect(const char *port, uint32_t baud)
 
     if (check_celestron_connection(PortFD) == false)
     {
-        DEBUGF(INDI::Logger::DBG_ERROR, "Failed to connect to telescope port %s. Ensure telescope is powered and connected.", port);
+        DEBUG(INDI::Logger::DBG_ERROR, "Failed to communicate with the mount, check the logs for details.");
         return false;
     }
-
-    DEBUG(INDI::Logger::DBG_SESSION, "Telescope is online.");
-
-    return true;
-
-}
-
-bool CelestronGPS::Disconnect()
-{
-    if (PortFD > 0)
-        tty_disconnect(PortFD);
 
     return true;
 }

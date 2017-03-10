@@ -522,10 +522,13 @@ const char * LX200Pulsar2::getDefaultName(void) {
 }
 
 
-bool LX200Pulsar2::Connect(void) {
+bool LX200Pulsar2::Connect(void)
+{
   const bool success = INDI::Telescope::Connect();
-  if (success) {
-    if (isParked()) {
+  if (success)
+  {
+    if (isParked())
+    {
       DEBUGF(INDI::Logger::DBG_DEBUG, "%s", "Trying to wake up the mount.");
       UnPark();
     }
@@ -535,6 +538,12 @@ bool LX200Pulsar2::Connect(void) {
   return success;
 }
 
+bool LX200Pulsar2::Handshake()
+{
+    // Anything needs to be done besides this? INDI::Telescope would call ReadScopeStatus but
+    // maybe we need to UnPark() before ReadScopeStatus() can return valid results?
+    return true;
+}
 
 bool LX200Pulsar2::ReadScopeStatus(void) {
   bool success = isConnected();
@@ -1183,8 +1192,13 @@ bool LX200Pulsar2::isSlewComplete(void) {
 }
 
 
-bool LX200Pulsar2::checkConnection(void) {
-  if (LX200Generic::checkConnection()) {
+bool LX200Pulsar2::checkConnection(void)
+{
+  if (isSimulation())
+      return true;
+
+  if (LX200Generic::checkConnection())
+  {
     DEBUG(INDI::Logger::DBG_DEBUG, "Checking Pulsar version ...");
     for (int i = 0; i < 2; ++i) {
       char response[Pulsar2Commands::BufferSize];

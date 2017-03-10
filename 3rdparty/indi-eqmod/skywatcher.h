@@ -27,9 +27,7 @@
 //#include "eqmod.h"
 class EQMod; // TODO
 
-#ifdef WITH_SIMULATOR
 #include "simulator/simulator.h"
-#endif
 
 #define SKYWATCHER_MAX_CMD        16
 #define SKYWATCHER_MAX_TRIES      3
@@ -55,8 +53,7 @@ public:
     Skywatcher(EQMod *t);
     ~Skywatcher();
    
-    bool Connect(const char *port, uint32_t baud) throw (EQModError);
-    bool Connect(const char *hostname, const char *port) throw (EQModError);
+    bool Handshake() throw (EQModError);
     bool Disconnect() throw (EQModError);
     void setDebug (bool enable);
     const char *getDeviceName ();
@@ -96,12 +93,9 @@ public:
     bool IsDERunning() throw (EQModError);
     // For AstroEQ (needs an explicit :G command at the end of gotos)
     void ResetMotions() throw (EQModError);
-#ifdef WITH_SIMULATOR
     void setSimulation(bool);
     bool isSimulation();
     bool simulation;
-#endif
-
 
     // Backlash
     void SetBacklashRA(unsigned long backlash);
@@ -130,7 +124,9 @@ public:
     void SetST4RAGuideRate(unsigned char r) throw (EQModError);
     void SetST4DEGuideRate(unsigned char r) throw (EQModError);
 
- private: 
+    void setPortFD(int value);
+
+private:
 
     // Official Skywatcher Protocol
     // See http://code.google.com/p/skywatcher/wiki/SkyWatcherProtocol
@@ -272,8 +268,7 @@ public:
     SkywatcherAxisStatus RAStatus, DEStatus;
     SkyWatcherFeatures AxisFeatures[NUMBER_OF_SKYWATCHERAXIS];
 
-    int fd;
-    int sockfd=-1;
+    int PortFD=-1;
     char command[SKYWATCHER_MAX_CMD];
     char response[SKYWATCHER_MAX_CMD];
 

@@ -27,9 +27,7 @@
 #ifdef WITH_ALIGN_GEEHALEL
 #include "align/align.h"
 #endif
-#ifdef WITH_SIMULATOR
 #include "simulator/simulator.h"
-#endif
 #ifdef WITH_SCOPE_LIMITS
 #include "scope-limits/scope-limits.h"
 #endif
@@ -207,8 +205,7 @@ class EQMod : public INDI::Telescope, public INDI::GuiderInterface
         virtual ~EQMod();
 
         virtual const char *getDefaultName();
-        virtual bool Connect(const char *port, uint32_t baud);
-        virtual bool Connect(const char *hostname, const char *port);
+        virtual bool Handshake();
         virtual bool Disconnect();
         virtual void TimerHit();
         virtual bool ReadScopeStatus();
@@ -247,9 +244,7 @@ class EQMod : public INDI::Telescope, public INDI::GuiderInterface
         double getJulianDate();
         double getLst(double jd, double lng);
 
-#ifdef WITH_SIMULATOR
 	EQModSimulator *simulator;
-#endif
 
 #ifdef WITH_SCOPE_LIMITS
 	HorizonLimits *horizon;
