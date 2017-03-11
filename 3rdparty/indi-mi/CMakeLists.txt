@@ -7,7 +7,9 @@ include(GNUInstallDirs)
 
 set(UDEVRULES_INSTALL_DIR "/lib/udev/rules.d" CACHE STRING "Base directory for udev rules")
 
-set(CMAKE_CXX_FLAGS "-std=c++0x ${CMAKE_CXX_FLAGS}")
+if (NOT WIN32 AND NOT ANDROID)
+set(CMAKE_CXX_FLAGS "-std=c++11 ${CMAKE_CXX_FLAGS}")
+endif(NOT WIN32 AND NOT ANDROID)
 
 find_package(CFITSIO REQUIRED)
 find_package(INDI REQUIRED)

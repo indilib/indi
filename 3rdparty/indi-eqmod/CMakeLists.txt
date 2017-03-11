@@ -6,7 +6,10 @@ LIST(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/../../cmake_modules/"
 include(GNUInstallDirs)
 
 set(BIN_INSTALL_DIR "${CMAKE_INSTALL_PREFIX}/bin")
-set(CMAKE_CXX_FLAGS "-std=c++0x ${CMAKE_CXX_FLAGS}")
+
+if (NOT WIN32 AND NOT ANDROID)
+set(CMAKE_CXX_FLAGS "-std=c++11 ${CMAKE_CXX_FLAGS}")
+endif(NOT WIN32 AND NOT ANDROID)
 
 find_package(INDI REQUIRED)
 find_package(Nova REQUIRED)

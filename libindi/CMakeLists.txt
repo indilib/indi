@@ -16,7 +16,7 @@ if(ANDROID OR "${CMAKE_SYSTEM_NAME}" STREQUAL "Android")
 endif()
 
 if (NOT WIN32 AND NOT ANDROID)
-set(CMAKE_CXX_FLAGS "-std=c++0x ${CMAKE_CXX_FLAGS}")
+set(CMAKE_CXX_FLAGS "-std=c++11 ${CMAKE_CXX_FLAGS}")
 endif(NOT WIN32 AND NOT ANDROID)
 
 #####################################  INDI version  ################################################
