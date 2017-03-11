@@ -68,8 +68,8 @@ cmd_names={value:key for key, value in commands.items()}
 
 ACK_CMDS=[0x02,0x04,0x06,0x24,]
 
-MC_ALT=0x10
-MC_AZM=0x11
+MC_ALT=0x11
+MC_AZM=0x10
 
 trg_cmds = {
     'BAT': {
@@ -142,7 +142,8 @@ def f2dms(f):
     '''
     Convert fraction of the full rotation to DMS triple (degrees).
     '''
-    d=360*f
+    s= 1 if f>0 else -1
+    d=360*abs(f)
     dd=int(d)
     mm=int((d-dd)*60)
     ss=(d-dd-mm/60)*3600
@@ -305,8 +306,8 @@ class NexStarScope:
                 return bytes([int(self.charge)])
         elif rcv == 0xb6 : # BAT
             self.bat_voltage*=0.99
-            v=struct.pack('!i',int(self.bat_voltage))[1:]
-            return bytes.fromhex('010200') + v
+            v=struct.pack('!i',int(self.bat_voltage))
+            return bytes.fromhex('0102') + v
         else :
             return b''
 
@@ -416,12 +417,10 @@ class NexStarScope:
         return b''
 
     def slew_done(self, data, snd, rcv):
-        if self.alt_rate or self.azm_rate :
-            return b'\x00'
-            self.slewing=True
-        else :
-            self.slewing=False
-            return b'\xff'
+        if rcv == MC_ALT :
+            return b'\x00' if self.alt_rate else b'\xff'
+        if rcv == MC_AZM :
+            return b'\x00' if self.azm_rate else b'\xff'
 
     def at_index(self, data, snd, rcv):
         return b'\x00'
@@ -613,10 +612,12 @@ class NexStarScope:
             self.alt_rate=s*mr
             
         if abs(self.azm_rate) < eps and abs(self.alt_rate) < eps :
-            self.alt_rate=0
-            self.azm_rate=0
             self.slewing=False
             self.goto=False
+        if abs(self.azm_rate) < eps :
+            self.azm_rate=0
+        if abs(self.alt_rate) < eps :
+            self.alt_rate=0
         self.show_status()
 
     @property
@@ -662,11 +663,11 @@ class NexStarScope:
         try :
             c,f,t,l,d,s=decode_command(cmd)
         except IndexError :
-            print("Malformed command: %r" % (cmd,))
+            self.print_msg("Malformed command: %r" % (cmd,))
             return b''
         resp=b''
         if make_checksum(cmd[:-1]) != s :
-            print("Wrong checksum. Ignoring.")
+            self.print_msg("Wrong checksum. Ignoring.")
         else :
             resp = b';' + cmd
             if t in (0x10, 0x11):

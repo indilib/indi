@@ -75,6 +75,7 @@ async def handle_port2000(reader, writer):
         else :
             # We are in command mode detect exit and get out.
             # Otherwise just echo what we got and ack.
+            message = b''
             try :
                 message = data.decode('ascii').strip()
             except UnicodeError :
