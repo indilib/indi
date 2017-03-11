@@ -34,6 +34,7 @@
 
 const char *COMMUNICATION_TAB = "Communication";
 const char *MAIN_CONTROL_TAB = "Main Control";
+const char *CONNECTION_TAB = "Connection";
 const char *MOTION_TAB = "Motion Control";
 const char *DATETIME_TAB = "Date/Time";
 const char *SITE_TAB = 	"Site Management";
@@ -98,6 +99,9 @@ bool INDI::DefaultDevice::loadConfig(bool silent, const char *property)
 bool INDI::DefaultDevice::saveConfigItems(FILE *fp)
 {
     IUSaveConfigSwitch(fp, &DebugSP);
+    if (ConnectionModeS != NULL)
+       IUSaveConfigSwitch(fp, &ConnectionModeSP);
+
     if (connectionMode & CONNECTION_SERIAL)
     {
         IUSaveConfigText(fp, &PortTP);
@@ -108,7 +112,6 @@ bool INDI::DefaultDevice::saveConfigItems(FILE *fp)
         IUSaveConfigText(fp, &AddressTP);
 
     return INDI::Logger::saveConfigItems(fp);
-
 }
 
 bool INDI::DefaultDevice::saveAllConfigItems(FILE *fp)
@@ -412,7 +415,27 @@ bool INDI::DefaultDevice::ISNewSwitch (const char *dev, const char *name, ISStat
         return true;
     }
 
-     if (!strcmp(name, BaudRateSP.name))
+     if (!strcmp(name, ConnectionModeSP.name))
+     {
+         IUUpdateSwitch(&ConnectionModeSP, states, names, n);
+         ConnectionModeSP.s = IPS_OK;
+         IDSetSwitch(&ConnectionModeSP, NULL);
+
+         ConnectionMode activeMode;
+         ISwitch *onSwitch = IUFindOnSwitch(&ConnectionModeSP);
+         if (!strcmp(onSwitch->name, "CONNECTION_SERIAL"))
+             activeMode = CONNECTION_SERIAL;
+         else if (!strcmp(onSwitch->name, "CONNECTION_TCP"))
+             activeMode = CONNECTION_TCP;
+         else if (!strcmp(onSwitch->name, "CONNECTION_USB"))
+             activeMode = CONNECTION_USB;
+         else
+             activeMode = CONNECTION_UNKNOWN;
+
+         updateConnectionModeProperties(activeMode);
+         return true;
+     }
+     else if (!strcmp(name, BaudRateSP.name))
      {
          IUUpdateSwitch(&BaudRateSP, states, names, n);
          BaudRateSP.s = IPS_OK;
@@ -674,22 +697,79 @@ void INDI::DefaultDevice::ISGetProperties (const char *dev)
         loadConfig(true, "LOG_OUTPUT");
     }
 
-    if (connectionMode & CONNECTION_SERIAL)
+    if (ConnectionModeS == NULL)
+    {
+        std::vector<std::pair<std::string, std::string>> props;
+
+        if (connectionMode & CONNECTION_SERIAL)
+        {
+            props.push_back(std::make_pair("CONNECTION_SERIAL", "Serial"));
+        }
+        if (connectionMode & CONNECTION_TCP)
+        {
+            props.push_back(std::make_pair("CONNECTION_TCP", "Ethernet"));
+        }
+        if (connectionMode & CONNECTION_USB)
+        {
+            props.push_back(std::make_pair("CONNECTION_USB", "USB"));
+        }
+
+        if (props.size() > 0)
+        {
+            ConnectionModeS = (ISwitch *) malloc(props.size() * sizeof(ISwitch));
+            ISwitch *sp = ConnectionModeS;
+            for (std::pair<std::string, std::string> oneProp : props)
+            {
+                IUFillSwitch(sp++, oneProp.first.c_str(), oneProp.second.c_str(), ISS_OFF);
+            }
+
+            ConnectionModeS[0].s = ISS_ON;
+            IUFillSwitchVector(&ConnectionModeSP, ConnectionModeS, props.size(), getDeviceName(), "CONNECTION_MODE", "Connection Mode", CONNECTION_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
+
+            defineSwitch(&ConnectionModeSP);
+            if (connectionMode & CONNECTION_SERIAL)
+                updateConnectionModeProperties(CONNECTION_SERIAL);
+            else if (connectionMode & CONNECTION_TCP)
+                updateConnectionModeProperties(CONNECTION_TCP);
+            else if (connectionMode & CONNECTION_USB)
+                updateConnectionModeProperties(CONNECTION_USB);
+            loadConfig(true, "CONNECTION_MODE");
+        }
+    }
+
+    isInit = true;
+}
+
+void INDI::DefaultDevice::updateConnectionModeProperties(ConnectionMode activeMode)
+{
+    if (activeMode == CONNECTION_SERIAL)
     {
         defineText(&PortTP);
         loadConfig(true, "DEVICE_PORT");
 
         defineSwitch(&BaudRateSP);
-        loadConfig(true, "TELESCOPE_BAUD_RATE");
+        loadConfig(true, "DEVICE_BAUD_RATE");
+    }
+    else
+    {
+        // If already defined, remove them
+        if (getProperty("DEVICE_PORT", INDI_TEXT))
+            deleteProperty("DEVICE_PORT");
+
+        if (getProperty("DEVICE_BAUD_RATE", INDI_SWITCH))
+            deleteProperty("DEVICE_BAUD_RATE");
     }
 
-    if (connectionMode & CONNECTION_TCP)
+    if (activeMode == CONNECTION_TCP)
     {
         defineText(&AddressTP);
-        loadConfig(true, "TCP_IP_ADDRESS");
+        loadConfig(true, "DEVICE_TCP_ADDRESS");
     }
-
-    isInit = true;
+    else
+    {
+        if (getProperty("DEVICE_TCP_ADDRESS", INDI_TEXT))
+            deleteProperty("DEVICE_TCP_ADDRESS");
+    }
 }
 
 void INDI::DefaultDevice::resetProperties()
@@ -830,7 +910,7 @@ bool INDI::DefaultDevice::initProperties()
     IUFillText(&DriverInfoT[1],"DRIVER_EXEC","Exec",getDriverExec());
     IUFillText(&DriverInfoT[2],"DRIVER_VERSION","Version",versionStr);
     IUFillText(&DriverInfoT[3],"DRIVER_INTERFACE","Interface", interfaceStr);
-    IUFillTextVector(&DriverInfoTP,DriverInfoT,4,getDeviceName(),"DRIVER_INFO","Driver Info",OPTIONS_TAB,IP_RO,60,IPS_IDLE);
+    IUFillTextVector(&DriverInfoTP,DriverInfoT,4,getDeviceName(),"DRIVER_INFO","Driver Info",CONNECTION_TAB,IP_RO,60,IPS_IDLE);
     registerProperty(&DriverInfoTP, INDI_TEXT);
 
     IUFillSwitch(&DebugS[0], "ENABLE", "Enable", ISS_OFF);
@@ -849,10 +929,10 @@ bool INDI::DefaultDevice::initProperties()
     // Address/Port
     IUFillText(&AddressT[0], "ADDRESS", "Address", "");
     IUFillText(&AddressT[1], "PORT",    "Port",    "");
-    IUFillTextVector(&AddressTP, AddressT, 2, getDeviceName(), "TCP_ADDRESS_PORT", "TCP Server", OPTIONS_TAB, IP_RW, 60, IPS_IDLE);
+    IUFillTextVector(&AddressTP, AddressT, 2, getDeviceName(), "DEVICE_TCP_ADDRESS", "TCP Server", CONNECTION_TAB, IP_RW, 60, IPS_IDLE);
 
     IUFillText(&PortT[0],"PORT","Port","/dev/ttyUSB0");
-    IUFillTextVector(&PortTP,PortT,1,getDeviceName(),"DEVICE_PORT","Ports",OPTIONS_TAB,IP_RW,60,IPS_IDLE);
+    IUFillTextVector(&PortTP,PortT,1,getDeviceName(),"DEVICE_PORT","Ports",CONNECTION_TAB,IP_RW,60,IPS_IDLE);
 
     IUFillSwitch(&BaudRateS[0], "9600", "", ISS_ON);
     IUFillSwitch(&BaudRateS[1], "19200", "", ISS_OFF);
@@ -860,7 +940,7 @@ bool INDI::DefaultDevice::initProperties()
     IUFillSwitch(&BaudRateS[3], "57600", "", ISS_OFF);
     IUFillSwitch(&BaudRateS[4], "115200", "", ISS_OFF);
     IUFillSwitch(&BaudRateS[5], "230400", "", ISS_OFF);
-    IUFillSwitchVector(&BaudRateSP, BaudRateS, 6, getDeviceName(),"TELESCOPE_BAUD_RATE", "Baud Rate", OPTIONS_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
+    IUFillSwitchVector(&BaudRateSP, BaudRateS, 6, getDeviceName(),"DEVICE_BAUD_RATE", "Baud Rate", CONNECTION_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
 
     INDI::Logger::initProperties(this);
 
@@ -962,6 +1042,10 @@ bool INDI::DefaultDevice::Connect()
             }
         }
     }
+    else if (connectionMode & CONNECTION_USB)
+    {
+        rc = ConnectUSB();
+    }
     else
     {
         DEBUGF(INDI::Logger::DBG_ERROR, "Connection interface %d not implemented in INDI Default Device.", connectionMode);
@@ -982,7 +1066,13 @@ bool INDI::DefaultDevice::Connect()
 
 bool INDI::DefaultDevice::Handshake()
 {
-    DEBUG(INDI::Logger::DBG_ERROR, "Error handshake not implemeted in default device.");
+    DEBUG(INDI::Logger::DBG_ERROR, "Error! handshake is not implemeted in default device.");
+    return false;
+}
+
+bool INDI::DefaultDevice::ConnectUSB()
+{
+    DEBUG(INDI::Logger::DBG_ERROR, "Error! ConnectUSB is not implemeted in default device.");
     return false;
 }
 
@@ -1003,7 +1093,6 @@ bool INDI::DefaultDevice::ConnectSerial(const char *port, uint32_t baud)
         DEBUGF(Logger::DBG_ERROR,"Failed to connect to port %s. Error: %s", port, errorMsg);
 
         return false;
-
     }
 
     DEBUGF(Logger::DBG_DEBUG, "Port FD %d",PortFD);

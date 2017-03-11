@@ -129,7 +129,9 @@ class INDI::Telescope : public INDI::DefaultDevice
         /** \brief Called when setTimer() time is up */
         virtual void TimerHit();
 
-        //Park
+        virtual std::vector<std::string> getCandidateSerialPorts() { return { "/dev/ttyUSB0" , "/dev/ttyUSB1" , "/dev/ttyUSB2", "/dev/ttyUSB3",
+                                                                              "/dev/rfcomm0" , "/dev/ttyS0" , "/dev/ttyS1", "/dev/ttyS2"}; }
+
         /**
          * \brief setParkDataType Sets the type of parking data stored in the park data file and presented to the user.
          * \param type parking data type. If PARK_NONE then no properties will be presented to the user for custom parking position.

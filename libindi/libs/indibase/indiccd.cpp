@@ -622,6 +622,7 @@ bool INDI::CCD::initProperties()
     initGuiderProperties(getDeviceName(), GUIDE_CONTROL_TAB);
 
     setDriverInterface(CCD_INTERFACE|GUIDER_INTERFACE);
+    setConnectionMode(CONNECTION_USB);
 
     return true;
 }

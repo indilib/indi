@@ -232,6 +232,16 @@ bool ScopeSim::updateProperties()
     return true;
 }
 
+bool ScopeSim::Connect()
+{
+    return true;
+}
+
+bool ScopeSim::Disconnect()
+{
+    return true;
+}
+
 bool ScopeSim::ReadScopeStatus()
 {
     static struct timeval ltv;
