@@ -219,13 +219,13 @@ to disconnect the device.
       \note This function is called by the INDI framework, do not call it directly.
       \returns True if any property was successfully processed, false otherwise.
     */
-    virtual bool ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n) {return false;}
+    virtual bool ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n);
 
     /** \brief Process the client newSwitch command
       \note This function is called by the INDI framework, do not call it directly.
       \returns True if any property was successfully processed, false otherwise.
     */
-    virtual bool ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n) {return false;}
+    virtual bool ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n);
 
     /** \brief Process the client newBLOB command
       \note This function is called by the INDI framework, do not call it directly.

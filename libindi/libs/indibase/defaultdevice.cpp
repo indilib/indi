@@ -55,7 +55,6 @@ void timerfunc(void *t)
     return;
 }
 
-
 INDI::DefaultDevice::DefaultDevice()
 {
     pDebug = false;
@@ -475,8 +474,27 @@ bool INDI::DefaultDevice::ISNewSwitch (const char *dev, const char *name, ISStat
         return rc;
     }
 
+    for (Connection::Interface *oneConnection : connections)
+        oneConnection->ISNewSwitch(dev, name, states, names, n);
+
     return false;
 
+}
+
+bool INDI::DefaultDevice::ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n)
+{
+    for (Connection::Interface *oneConnection : connections)
+        oneConnection->ISNewNumber(dev, name, values, names, n);
+
+    return false;
+}
+
+bool INDI::DefaultDevice::ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n)
+{
+    for (Connection::Interface *oneConnection : connections)
+        oneConnection->ISNewText(dev, name, texts, names, n);
+
+    return false;
 }
 
 void INDI::DefaultDevice::addDebugControl()
