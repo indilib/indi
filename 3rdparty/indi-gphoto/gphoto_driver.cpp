@@ -372,32 +372,35 @@ static double * parse_shutterspeed(gphoto_driver* gphoto, char **choices, int co
     gphoto->bulb_exposure_index=-1;
 
     if(count <= 0)
+    {
+        DEBUGFDEVICE(device, INDI::Logger::DBG_WARNING, "Shutter speed widget does not have any valid data (count=%d)", count);
         return NULL;
+    }
 
     exposure = (double*) calloc(sizeof(double), count);
 
     for(i = 0; i <  count; i++)
     {
-        //DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG, "Parsing shutter speed #%d: %s", i, choices[i]);
+        DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG, "Parsing shutter speed #%d: %s", i, choices[i]);
 
         if ( (strncasecmp(choices[i], "bulb", 4) == 0) || (strcmp(choices[i], "65535/65535") == 0))
         {
             exposure[i] = -1;
-            //DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG, "exposure[%d]= BULB", i);
+            DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG, "exposure[%d]= BULB", i);
             gphoto->bulb_exposure_index = i;
         } else if (sscanf(choices[i], "%d/%d", &num, &denom) == 2)
         {
             exposure[i] = 1.0 * num / (double)denom;
-            //DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG, "exposure[%d]=%g seconds", i, exposure[i]);
+            DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG, "exposure[%d]=%g seconds", i, exposure[i]);
         } else if ((val = strtod(choices[i], NULL)))
         {
             exposure[i] = val;
-            //DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG, "exposure[%d]=%g seconds", i, exposure[i]);
+            DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG, "exposure[%d]=%g seconds", i, exposure[i]);
         } else
         {
             // unknown
             exposure[i] = -2;
-            //DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG, "exposure[%d]= UNKNOWN", i);
+            DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG, "exposure[%d]= UNKNOWN", i);
         }
 
         if (exposure[i] > max_exposure)
@@ -511,7 +514,7 @@ int find_exposure_setting(gphoto_driver *gphoto, gphoto_widget *widget, int expt
     double delta;
     double best_match = 99999;
 
-    DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG,"Finding optimal exposure setting for %g seconds...", exptime);
+    DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG,"Finding optimal exposure setting for %g seconds in %s (count=%d)...", exptime, widget->name, widget->choice_cnt);
 
     for (i = 0; i < widget->choice_cnt; i++)
     {

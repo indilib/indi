@@ -59,7 +59,7 @@ int check_magellan_connection(int fd);
 int getCommandSexa(int fd, double *value, const char *cmd);
 
 /* Get Calender data */
-int getCalenderDate(int fd, char *date);
+int getCalendarDate(int fd, char *date);
 
 #ifdef __cplusplus
 }

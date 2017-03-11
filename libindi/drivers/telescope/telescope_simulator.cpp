@@ -241,7 +241,7 @@ bool ScopeSim::Connect(const char *port, uint32_t baud)
 
 bool ScopeSim::Disconnect()
 {
-    DEBUG(INDI::Logger::DBG_SESSION,"Telescope Simualtor is offline.");
+    DEBUG(INDI::Logger::DBG_SESSION,"Telescope Simulator is offline.");
     return true;
 }
 

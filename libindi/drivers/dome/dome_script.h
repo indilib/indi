@@ -50,8 +50,8 @@ protected:
 private:
   ITextVectorProperty ScriptsTP;
   IText ScriptsT[15];
-  double targetAz;
-  
+  double TargetAz;
+  int TimeSinceUpdate;
   bool ReadDomeStatus();
   bool RunScript(int script, ...);
 };

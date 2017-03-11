@@ -86,6 +86,7 @@ private:
     int PortFD;
     int productID;
     bool isFlipFlat;
+    uint8_t simulationWorkCounter=0;
     uint8_t prevCoverStatus, prevLightStatus, prevMotorStatus, prevBrightness;
 
 };

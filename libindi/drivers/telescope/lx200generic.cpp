@@ -491,9 +491,20 @@ bool LX200Generic::Goto(double r,double d)
     targetRA=r;
     targetDEC=d;
     char RAStr[64], DecStr[64];
+    int fracbase = 0;
 
-    fs_sexa(RAStr, targetRA, 2, 3600);
-    fs_sexa(DecStr, targetDEC, 2, 3600);
+    switch (getLX200Format()) {
+    case LX200_LONGER_FORMAT:
+        fracbase = 360000;
+    break;
+    case LX200_LONG_FORMAT:
+    case LX200_SHORT_FORMAT:
+    default:
+        fracbase = 3600;
+    break;
+    }
+    fs_sexa(RAStr, targetRA, 2, fracbase);
+    fs_sexa(DecStr, targetDEC, 2, fracbase);
 
     // If moving, let's stop it first.
     if (EqNP.s == IPS_BUSY)
@@ -1321,9 +1332,12 @@ void LX200Generic::sendScopeTime()
   getLocalTime24(PortFD, &ctime);
   getSexComponents(ctime, &h, &m, &s);
 
-  getCalenderDate(PortFD, cdate);
-  result = sscanf(cdate, "%d/%d/%d", &year, &month, &day);
-  if (result != 3) return;
+  getCalendarDate(PortFD, cdate);
+  result = sscanf(cdate, "%4d-%2d-%2d", &year, &month, &day);
+  if (result != 3) {
+      DEBUG(INDI::Logger::DBG_ERROR, "Error reading date from Telescope.");
+      return;
+  }
 
   // Let's fill in the local time
   ltm.tm_sec = s;
@@ -1354,8 +1368,6 @@ void LX200Generic::sendScopeTime()
 
   // Let's send everything to the client
   IDSetText(&TimeTP, NULL);
-
-
 }
 
 void LX200Generic::sendScopeLocation()

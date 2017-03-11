@@ -37,17 +37,17 @@ using namespace std;
 
 /**
  * \class INDI::BaseClientQt
-   \brief Class to provide basic client functionality based on Qt5 toolkit
+   \brief Class to provide basic client functionality based on Qt5 toolkit and is therefore suitable for cross-platform development.
 
    BaseClientQt enables accelerated development of INDI Clients by providing a framework that facilitates communication, device
    handling, and event notification. By subclassing BaseClientQt, clients can quickly connect to an INDI server, and query for
    a set of INDI::BaseDevice devices, and read and write properties seamlessly. Event driven programming is possible due to
    notifications upon reception of new devices or properties.
 
-   \attention All notifications functions defined in INDI::BaseMediator must be implemented in the client class even if
+   \attention All notifications functions defined in INDI::BaseMediator <b>must</b> be implemented in the client class even if
    they are not used because these are pure virtual functions.
 
-   \see <a href=http://indilib.org/index.php?title=Learn_how_to_write_INDI_clients>INDI Client Tutorial</a> for more details.
+   \see <a href="http://indilib.org/develop/tutorials/107-client-development-tutorial.html">INDI Client Tutorial</a> for more details.
    \author Jasem Mutlaq
 
  */
@@ -155,7 +155,9 @@ public:
 
     /** \brief Send opening tag for BLOB command to server */
     void startBlob( const char *devName, const char *propName, const char *timestamp);
-    /** \brief Send ONE blob content to server */
+    /** \brief Send ONE blob content to server. The BLOB data in raw binary format and will be converted to base64 and sent to server */
+    void sendOneBlob(IBLOB *bp);
+    /** \brief Send ONE blob content to server. The BLOB data in raw binary format and will be converted to base64 and sent to server */
     void sendOneBlob( const char *blobName, unsigned int blobSize, const char *blobFormat, void * blobBuffer);
     /** \brief Send closing tag for BLOB command to server */
     void finishBlob();

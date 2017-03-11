@@ -26,6 +26,12 @@ namespace INDI
 
 class BaseDevice;
 
+/**
+ * \class INDI::Property
+   \brief Provides generic container for INDI properties
+
+\author Jasem Mutlaq
+*/
 class Property
 {
 public:

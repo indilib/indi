@@ -35,6 +35,9 @@
 */
 class INDI::DustCapInterface
 {
+public:
+
+    enum { CAP_PARK, CAP_UNPARK };
 
 protected:
     DustCapInterface();
