@@ -923,7 +923,10 @@ bool INDI::DefaultDevice::Connect()
     rc = activeConnection->Connect();
 
     if (rc)
+    {
+        saveConfig(true, "CONNECTION_MODE");
         SetTimer(updatePeriodMS);
+    }
 
     return rc;
 }
