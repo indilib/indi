@@ -23,6 +23,8 @@
 
 #include "inditelescope.h"
 #include "indicom.h"
+#include "connectionplugins/connectionserial.h"
+#include "connectionplugins/connectiontcp.h"
 
 INDI::Telescope::Telescope()
 {
@@ -129,7 +131,18 @@ bool INDI::Telescope::initProperties()
     TrackState=SCOPE_IDLE;
 
     setDriverInterface(TELESCOPE_INTERFACE);
-    setConnectionMode(CONNECTION_SERIAL | CONNECTION_TCP);
+
+    serialConnection = new Connection::Serial(this);
+    serialConnection->registerHandshake([&]() { return callHandshake(); });
+    serialConnection->setCandidatePorts({ "/dev/ttyUSB0" , "/dev/ttyUSB1" , "/dev/ttyUSB2", "/dev/ttyUSB3",
+                                          "/dev/rfcomm0" , "/dev/ttyS0" , "/dev/ttyS1", "/dev/ttyS2"});
+
+    registerConnection(serialConnection);
+
+    tcpConnection = new Connection::TCP(this);
+    tcpConnection->registerHandshake([&]() { return callHandshake(); });
+
+    registerConnection(tcpConnection);
 
     IDSnoopDevice(ActiveDeviceT[0].text,"GEOGRAPHIC_COORD");
     IDSnoopDevice(ActiveDeviceT[0].text,"TIME_UTC");
@@ -964,8 +977,18 @@ bool INDI::Telescope::ISNewSwitch (const char *dev, const char *name, ISState *s
     return DefaultDevice::ISNewSwitch(dev,name,states,names,n);
 }
 
-bool INDI::Telescope::Handshake()
+bool INDI::Telescope::callHandshake()
 {
+    if (getActiveConnection() == serialConnection)
+        PortFD = serialConnection->getPortFD();
+    else
+        PortFD = tcpConnection->getPortFD();
+
+    return Handshake();
+}
+
+bool INDI::Telescope::Handshake()
+{    
     /* Test connection */
     return ReadScopeStatus();
 }

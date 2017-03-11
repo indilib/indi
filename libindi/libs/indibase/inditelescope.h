@@ -121,17 +121,13 @@ class INDI::Telescope : public INDI::DefaultDevice
         /** \brief Called to initialize basic properties required all the time */
         virtual bool initProperties();
         /** \brief Called when connected state changes, to add/remove properties */
-        virtual bool updateProperties();
+        virtual bool updateProperties();        
 
         /** \brief perform handshake with device to check communication */
         virtual bool Handshake();
 
         /** \brief Called when setTimer() time is up */
         virtual void TimerHit();
-
-        virtual std::vector<std::string> getCandidateSerialPorts() { return { "/dev/ttyUSB0" , "/dev/ttyUSB1" , "/dev/ttyUSB2", "/dev/ttyUSB3",
-                                                                              "/dev/rfcomm0" , "/dev/ttyS0" , "/dev/ttyS1", "/dev/ttyS2"}; }
-
         /**
          * \brief setParkDataType Sets the type of parking data stored in the park data file and presented to the user.
          * \param type parking data type. If PARK_NONE then no properties will be presented to the user for custom parking position.
@@ -317,6 +313,8 @@ protected:
          */
         virtual bool SetSlewRate(int index);
 
+        bool callHandshake();
+
         // Joystick
         void processNSWE(double mag, double angle);
         void processJoystick(const char * joystick_n, double mag, double angle);
@@ -398,7 +396,9 @@ protected:
 
         //Park
         char *LoadParkData();
-        bool WriteParkData();        
+        bool WriteParkData();
+
+        int PortFD=-1;
 
 private:
 
@@ -423,7 +423,10 @@ private:
 
         IPState lastEqState;
 
-        INDI::Controller *controller;
+        INDI::Controller *controller;        
+
+        Connection::Serial *serialConnection=NULL;
+        Connection::TCP *tcpConnection=NULL;
 };
 
 #endif // INDI::Telescope_H

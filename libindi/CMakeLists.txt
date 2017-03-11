@@ -287,6 +287,9 @@ set (indidriver_SRCS
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indilightboxinterface.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indilogger.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indicontroller.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/connectionplugins/connectioninterface.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/connectionplugins/connectionserial.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/connectionplugins/connectiontcp.cpp
 
     )
 
@@ -1029,6 +1032,9 @@ if (INDI_BUILD_DRIVERS OR INDI_BUILD_POSIX_CLIENT OR INDI_BUILD_QT5_CLIENT)
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indicontroller.h
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indiusbdevice.h
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/hidapi.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/connectionplugins/connectioninterface.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/connectionplugins/connectionserial.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/connectionplugins/connectiontcp.h
         DESTINATION ${INCLUDE_INSTALL_DIR}/libindi COMPONENT Devel)
 endif (INDI_BUILD_DRIVERS OR INDI_BUILD_POSIX_CLIENT OR INDI_BUILD_QT5_CLIENT)
 

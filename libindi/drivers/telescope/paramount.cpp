@@ -128,8 +128,6 @@ bool Paramount::initProperties()
 
     SetParkDataType(PARK_RA_DEC);
 
-    setConnectionMode(CONNECTION_TCP);
-
     addAuxControls();
 
     return true;
