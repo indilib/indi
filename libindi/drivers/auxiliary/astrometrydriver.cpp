@@ -99,8 +99,8 @@ bool AstrometryDriver::initProperties()
     IUFillNumberVector(&SolverResultNP, SolverResultN, 5, getDeviceName(), "ASTROMETRY_RESULTS", "Results", MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE);
 
     // Solver Data Blob
-    IUFillBLOB(&SolverDataB[0],"SOLVER_DATA_BLOB","Image","");
-    IUFillBLOBVector(&SolverDataBP,SolverDataB,1,getDeviceName(),"SOLVER_DATA","Solver Data",MAIN_CONTROL_TAB,IP_WO,60,IPS_IDLE);
+    IUFillBLOB(&SolverDataB[0],"ASTROMETRY_DATA_BLOB","Image","");
+    IUFillBLOBVector(&SolverDataBP,SolverDataB,1,getDeviceName(),"ASTROMETRY_DATA","Upload",MAIN_CONTROL_TAB,IP_WO,60,IPS_IDLE);
 
     /**********************************************/
     /**************** Snooping ********************/

@@ -142,33 +142,143 @@ bool INDI::DefaultDevice::saveAllConfigItems(FILE *fp)
 	return true;
 }
 
-bool INDI::DefaultDevice::saveConfig(bool silent)
+bool INDI::DefaultDevice::saveConfig(bool silent, const char *property)
 {
     //std::vector<orderPtr>::iterator orderi;
     char errmsg[MAXRBUF];
 
     FILE *fp = NULL;
 
-    fp = IUGetConfigFP(NULL, deviceID, errmsg);
-
-    if (fp == NULL)
+    if (property == NULL)
     {
-        if (silent == false)
-            DEBUGF(INDI::Logger::DBG_ERROR, "Error saving configuration. %s", errmsg);
-        return false;
+        fp = IUGetConfigFP(NULL, deviceID, "w", errmsg);
+
+        if (fp == NULL)
+        {
+            if (silent == false)
+                DEBUGF(INDI::Logger::DBG_ERROR, "Error saving configuration. %s", errmsg);
+            return false;
+        }
+
+        IUSaveConfigTag(fp, 0, getDeviceName(), silent ? 1 : 0);
+
+        saveConfigItems(fp);
+
+        IUSaveConfigTag(fp, 1, getDeviceName(), silent ? 1 : 0);
+
+        fclose(fp);
+
+        IUSaveDefaultConfig(NULL, NULL, deviceID);
+
+        DEBUG(INDI::Logger::DBG_DEBUG, "Configuration successfully saved.");
     }
+    else
+    {
+        fp = IUGetConfigFP(NULL, deviceID, "r", errmsg);
 
-    IUSaveConfigTag(fp, 0, getDeviceName(), silent ? 1 : 0);
+        if (fp == NULL)
+        {
+            if (silent == false)
+                DEBUGF(INDI::Logger::DBG_ERROR, "Error saving configuration. %s", errmsg);
+            return false;
+        }
 
-	saveConfigItems(fp);
+        LilXML *lp = newLilXML();
+        XMLEle *root = readXMLFile(fp, lp, errmsg);
 
-    IUSaveConfigTag(fp, 1, getDeviceName(), silent ? 1 : 0);
+        fclose(fp);
+        delLilXML(lp);
 
-    fclose(fp);
+        if (root == NULL)
+            return false;
 
-    IUSaveDefaultConfig(NULL, NULL, deviceID);
+        XMLEle *ep=NULL;
+        bool propertySaved=false;
 
-    DEBUG(INDI::Logger::DBG_DEBUG, "Configuration successfully saved.");
+        for (ep = nextXMLEle(root, 1) ; ep != NULL ; ep = nextXMLEle(root, 0))
+        {
+            const char *elemName = findXMLAttValu(ep, "name");
+            const char *tagName  = tagXMLEle(ep);
+
+            if (strcmp(elemName, property))
+                continue;
+
+            if (!strcmp(tagName, "newSwitchVector"))
+            {
+                ISwitchVectorProperty *svp = getSwitch(elemName);
+                if (svp == NULL)
+                    return false;
+
+                XMLEle *sw=NULL;
+                for (sw = nextXMLEle(ep, 1) ; sw != NULL ; sw = nextXMLEle(ep, 0))
+                {
+                    ISwitch *oneSwitch = IUFindSwitch(svp, findXMLAttValu(sw, "name"));
+                    if (oneSwitch == NULL)
+                        return false;
+                    char formatString[MAXRBUF];
+                    snprintf(formatString, MAXRBUF, "      %s\n", sstateStr(oneSwitch->s));
+                    editXMLEle(sw, formatString);
+                }
+
+                propertySaved = true;
+                break;
+            }
+            else if (!strcmp(tagName, "newNumberVector"))
+            {
+                INumberVectorProperty *nvp = getNumber(elemName);
+                if (nvp == NULL)
+                    return false;
+
+                XMLEle *np=NULL;
+                for (np = nextXMLEle(ep, 1) ; np != NULL ; np = nextXMLEle(ep, 0))
+                {
+                    INumber *oneNumber = IUFindNumber(nvp, findXMLAttValu(np, "name"));
+                    if (oneNumber == NULL)
+                        return false;
+
+                    char formatString[MAXRBUF];
+                    snprintf(formatString, MAXRBUF, "      %.20g\n", oneNumber->value);
+                    editXMLEle(np, formatString);
+                }
+
+                propertySaved = true;
+                break;
+            }
+            else if (!strcmp(tagName, "newTextVector"))
+            {
+                ITextVectorProperty *tvp = getText(elemName);
+                if (tvp == NULL)
+                    return false;
+
+                XMLEle *tp=NULL;
+                for (tp = nextXMLEle(ep, 1) ; tp != NULL ; tp = nextXMLEle(ep, 0))
+                {
+                    IText *oneText = IUFindText(tvp, findXMLAttValu(tp, "name"));
+                    if (oneText == NULL)
+                        return false;
+
+                    char formatString[MAXRBUF];
+                    snprintf(formatString, MAXRBUF, "      %s\n", oneText->text ? oneText->text : "");
+                    editXMLEle(tp, formatString);
+                }
+
+                propertySaved = true;
+                break;
+            }
+        }
+
+        if (propertySaved)
+        {
+            fp = IUGetConfigFP(NULL, deviceID, "w", errmsg);
+            prXMLEle(fp, root, 0);
+            fclose(fp);
+            DEBUGF(INDI::Logger::DBG_DEBUG, "Configuration successfully saved for %s.", property);
+            return true;
+        }
+        else
+            return false;
+
+    }
 
     return true;
 }

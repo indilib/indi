@@ -101,15 +101,6 @@ private:
     bool TraceThisTick;
 
     unsigned int DBG_NSEVO;
-    
-    // Device IP port
-    INumberVectorProperty IPPortNP;
-    INumber IPPortN[1];
-
-    // Device IP address
-    ITextVectorProperty IPAddressTP;
-    IText IPAddressT[1];
-
 
 };
 

@@ -188,6 +188,9 @@ void INDI::Telescope::ISGetProperties (const char *dev)
     defineSwitch(&DomeClosedLockTP);
     loadConfig(true, "DOME_POLICY");
 
+    defineNumber(&ScopeParametersNP);
+    loadConfig(true, "TELESCOPE_INFO");
+
     if(isConnected())
     {
         //  Now we add our telescope specific stuff
@@ -216,7 +219,6 @@ void INDI::Telescope::ISGetProperties (const char *dev)
         if (nSlewRate >= 4)
             defineSwitch(&SlewRateSP);
 
-        defineNumber(&ScopeParametersNP);        
         defineNumber(&TargetNP);        
 
     }
@@ -268,7 +270,6 @@ bool INDI::Telescope::updateProperties()
                 defineSwitch(&ParkOptionSP);
             }
         }
-        defineNumber(&ScopeParametersNP);
         defineNumber(&TargetNP);
     }
     else
@@ -296,7 +297,6 @@ bool INDI::Telescope::updateProperties()
                 deleteProperty(ParkOptionSP.name);
             }
         }
-        deleteProperty(ScopeParametersNP.name);
     }
 
     controller->updateProperties();
@@ -439,7 +439,9 @@ bool INDI::Telescope::saveConfigItems(FILE *fp)
 
     if (HasLocation())
         IUSaveConfigNumber(fp,&LocationNP);
-    IUSaveConfigNumber(fp, &ScopeParametersNP);
+
+    if (ScopeParametersNP.s == IPS_OK)
+        IUSaveConfigNumber(fp, &ScopeParametersNP);
 
     controller->saveConfigItems(fp);
 
@@ -1057,7 +1059,26 @@ bool INDI::Telescope::Connect()
     if (connectionMode == CONNECTION_TCP || (AddressT[0].text && AddressT[0].text[0] && AddressT[1].text && AddressT[1].text[0]))
         rc = Connect(AddressT[0].text, AddressT[1].text);
     else
-        rc = Connect(PortT[0].text, atoi(IUFindOnSwitch(&BaudRateSP)->name));
+    {
+        uint32_t baud = atoi(IUFindOnSwitch(&BaudRateSP)->name);
+        rc = Connect(PortT[0].text, baud);
+
+        if (rc == false)
+        {
+            DEBUGF(INDI::Logger::DBG_DEBUG, "Connection to %s @ %d failed.", PortT[0].text, baud);
+            for (std::string onePort : m_Ports)
+            {
+                DEBUGF(INDI::Logger::DBG_DEBUG, "Trying connection to %s @ %d ...", onePort.c_str(), baud);
+                if (rc = Connect(onePort.c_str(), baud))
+                {
+                    IUSaveText(&PortT[0], onePort.c_str());
+                    IDSetText(&PortTP, NULL);
+                    saveConfig(true, "DEVICE_PORT");
+                    break;
+                }
+            }
+        }
+    }
 
     if(rc)
         SetTimer(updatePeriodMS);
