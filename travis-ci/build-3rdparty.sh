@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set -x
+set -x -e
 
 if [ ! -z $BUILD_THIRD_PARTY ]; then
   echo "==> BUILD_THIRD_PARTY activated"
