@@ -112,6 +112,19 @@ bool SkywatcherAPIMount::Handshake()
         IUFindSwitch(&SlewModesSP, "SLEW_SILENT")->s = ISS_ON;
         IUFindSwitch(&SlewModesSP, "SLEW_NORMAL")->s = ISS_OFF;
     }
+    // The default position is parking on Virtuoso mounts (the telescope is oriented to polar).
+    if (Result && IsVirtuosoMount())
+    {
+        SetParked(true);
+    }
+    // The default mode is Slew out of Track/Slew/Sync
+    if (IUFindSwitch(&CoordSP, "TRACK") && IUFindSwitch(&CoordSP, "SLEW") &&
+        IUFindSwitch(&CoordSP, "SYNC"))
+    {
+        IUFindSwitch(&CoordSP, "TRACK")->s = ISS_OFF;
+        IUFindSwitch(&CoordSP, "SLEW")->s = ISS_ON;
+        IUFindSwitch(&CoordSP, "SYNC")->s = ISS_OFF;
+    }
     return Result;
 }
 
@@ -137,8 +150,9 @@ bool SkywatcherAPIMount::Goto(double ra, double dec)
         DEBUGF(INDI::Logger::DBG_SESSION, "New Tracking target RA %s DEC %s", RAStr, DecStr);
     }
 
-    TelescopeDirectionVector TDV;
     ln_hrz_posn AltAz;
+    TelescopeDirectionVector TDV;
+
     if (TransformCelestialToTelescope(ra, dec, 0.0, TDV))
     {
         DEBUGF(INDI::AlignmentSubsystem::DBG_ALIGNMENT, "TDV x %lf y %lf z %lf", TDV.x, TDV.y, TDV.z);
@@ -204,10 +218,9 @@ bool SkywatcherAPIMount::Goto(double ra, double dec)
         if (IUFindNumber(&LocationNP, "LAT"))
             AltAz.alt = AltAz.alt-IUFindNumber(&LocationNP, "LAT")->value;
 
-        AltAz.az = -180+AltAz.az;
-        if (AltAz.az < -180)
-            AltAz.az += 360;
+        AltAz.az = 180+AltAz.az;
     }
+
     DEBUGF(INDI::AlignmentSubsystem::DBG_ALIGNMENT, "New Altitude %lf degrees %ld microsteps Azimuth %lf degrees %ld microsteps",
                                     AltAz.alt, DegreesToMicrosteps(AXIS2, AltAz.alt), AltAz.az, DegreesToMicrosteps(AXIS1, AltAz.az));
 
@@ -447,10 +460,34 @@ bool SkywatcherAPIMount::initProperties()
                         DetailedMountInfoPage, IP_RO, 60, IPS_IDLE);
     // Register any visible before connection properties
 
+    // Slew modes
     IUFillSwitch(&SlewModes[SLEW_SILENT], "SLEW_SILENT", "Silent", ISS_OFF);
     IUFillSwitch(&SlewModes[SLEW_NORMAL], "SLEW_NORMAL", "Normal", ISS_ON);
     IUFillSwitchVector(&SlewModesSP, SlewModes, 2, getDeviceName(), "TELESCOPE_MOTION_SLEWMODE", "Slew Mode",
                        MOTION_TAB, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
+
+    // Park movement directions
+    IUFillSwitch(&ParkMovementDirection[PARK_COUNTERCLOCKWISE], "PMD_COUNTERCLOCKWISE", "Counterclockwise", ISS_ON);
+    IUFillSwitch(&ParkMovementDirection[PARK_CLOCKWISE], "PMD_CLOCKWISE", "Clockwise", ISS_OFF);
+    IUFillSwitchVector(&ParkMovementDirectionSP, ParkMovementDirection, 2, getDeviceName(), "PARK_DIRECTION",
+                       "Park Direction", MOTION_TAB, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
+
+    // Park positions
+    IUFillSwitch(&ParkPosition[PARK_NORTH], "PARK_NORTH", "North", ISS_ON);
+    IUFillSwitch(&ParkPosition[PARK_EAST], "PARK_EAST", "East", ISS_OFF);
+    IUFillSwitch(&ParkPosition[PARK_SOUTH], "PARK_SOUTH", "South", ISS_OFF);
+    IUFillSwitch(&ParkPosition[PARK_WEST], "PARK_WEST", "West", ISS_OFF);
+    IUFillSwitchVector(&ParkPositionSP, ParkPosition, 4, getDeviceName(), "PARK_POSITION",
+                       "Park Position", MOTION_TAB, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
+
+    // Unpark positions
+    IUFillSwitch(&UnparkPosition[PARK_NORTH], "UNPARK_NORTH", "North", ISS_OFF);
+    IUFillSwitch(&UnparkPosition[PARK_EAST], "UNPARK_EAST", "East", ISS_OFF);
+    IUFillSwitch(&UnparkPosition[PARK_SOUTH], "UNPARK_SOUTH", "South", ISS_ON);
+    IUFillSwitch(&UnparkPosition[PARK_WEST], "UNPARK_WEST", "West", ISS_OFF);
+    IUFillSwitchVector(&UnparkPositionSP, UnparkPosition, 4, getDeviceName(), "UNPARK_POSITION",
+                       "Unpark Position", MOTION_TAB, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
+
     return true;
 }
 
@@ -476,6 +513,9 @@ void SkywatcherAPIMount::ISGetProperties (const char *dev)
         defineNumber(&AxisOneEncoderValuesV);
         defineNumber(&AxisTwoEncoderValuesV);
         defineSwitch(&SlewModesSP);
+        defineSwitch(&ParkMovementDirectionSP);
+        defineSwitch(&ParkPositionSP);
+        defineSwitch(&UnparkPositionSP);
     }
     return;
 }
@@ -504,6 +544,7 @@ bool SkywatcherAPIMount::ISNewNumber (const char *dev, const char *name, double 
 
 bool SkywatcherAPIMount::ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n)
 {
+    IUUpdateSwitch(getSwitch(name), states, names, n);
     if(strcmp(dev,getDeviceName())==0)
     {
         // It is for us
@@ -543,7 +584,7 @@ bool SkywatcherAPIMount::MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command)
         case MOTION_START:
         DEBUGF(DBG_SCOPE, "Starting Slew %s", dirStr);
         // Ignore the silent mode because MoveNS() is called by the manual motion UI controls.
-        Slew(AXIS2, speed, false);
+        Slew(AXIS2, speed, true);
         break;
 
         case MOTION_STOP:
@@ -570,7 +611,7 @@ bool SkywatcherAPIMount::MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command)
         case MOTION_START:
         DEBUGF(DBG_SCOPE, "Starting Slew %s", dirStr);
         // Ignore the silent mode because MoveNS() is called by the manual motion UI controls.
-        Slew(AXIS1, speed, false);
+        Slew(AXIS1, speed, true);
         break;
 
         case MOTION_STOP:
@@ -582,10 +623,188 @@ bool SkywatcherAPIMount::MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command)
     return true;
 }
 
+double SkywatcherAPIMount::GetParkDeltaAz(ParkDirection_t target_direction, ParkPosition_t target_position)
+{
+    double Result = 0;
+
+    DEBUGF(INDI::AlignmentSubsystem::DBG_ALIGNMENT, "GetParkDeltaAz: direction %d - position: %d",
+           (int)target_direction, (int)target_position);
+    // Calculate delta degrees (target: NORTH)
+    if (target_position == PARK_NORTH)
+    {
+        if (target_direction == PARK_COUNTERCLOCKWISE)
+        {
+            Result = -CurrentAltAz.az;
+        } else {
+            Result = 360-CurrentAltAz.az;
+        }
+    }
+    // Calculate delta degrees (target: EAST)
+    if (target_position == PARK_EAST)
+    {
+        if (target_direction == PARK_COUNTERCLOCKWISE)
+        {
+            if (CurrentAltAz.az > 0 && CurrentAltAz.az < 90)
+                Result = -270-CurrentAltAz.az;
+            else
+                Result = -CurrentAltAz.az+90;
+        } else {
+            if (CurrentAltAz.az > 0 && CurrentAltAz.az < 90)
+                Result = 90-CurrentAltAz.az;
+            else
+                Result = 360-CurrentAltAz.az+90;
+        }
+    }
+    // Calculate delta degrees (target: SOUTH)
+    if (target_position == PARK_SOUTH)
+    {
+        if (target_direction == PARK_COUNTERCLOCKWISE)
+        {
+            if (CurrentAltAz.az > 0 && CurrentAltAz.az < 180)
+                Result = -180-CurrentAltAz.az;
+            else
+                Result = -CurrentAltAz.az+180;
+        } else {
+            if (CurrentAltAz.az > 0 && CurrentAltAz.az < 180)
+                Result = 180-CurrentAltAz.az;
+            else
+                Result = 360-CurrentAltAz.az+180;
+        }
+    }
+    // Calculate delta degrees (target: WEST)
+    if (target_position == PARK_WEST)
+    {
+        if (target_direction == PARK_COUNTERCLOCKWISE)
+        {
+            if (CurrentAltAz.az > 0 && CurrentAltAz.az < 270)
+                Result = -90-CurrentAltAz.az;
+            else
+                Result = -CurrentAltAz.az+270;
+        } else {
+            if (CurrentAltAz.az > 0 && CurrentAltAz.az < 270)
+                Result = 270-CurrentAltAz.az;
+            else
+                Result = 360-CurrentAltAz.az+270;
+        }
+    }
+    if (Result >= 360)
+    {
+        Result -= 360;
+    }
+    if (Result <= -360)
+    {
+        Result += 360;
+    }
+    return Result;
+}
+
 bool SkywatcherAPIMount::Park()
 {
     DEBUG(DBG_SCOPE, "SkywatcherAPIMount::Park");
-    return false;
+    ParkPosition_t TargetPosition = PARK_NORTH;
+    ParkDirection_t TargetDirection = PARK_COUNTERCLOCKWISE;
+    double DeltaAlt = 0;
+    double DeltaAz = 0;
+
+    // Determinate the target position and direction
+    if (IUFindSwitch(&ParkPositionSP, "PARK_NORTH") && IUFindSwitch(&ParkPositionSP, "PARK_NORTH")->s == ISS_ON)
+        TargetPosition = PARK_NORTH;
+    if (IUFindSwitch(&ParkPositionSP, "PARK_EAST") && IUFindSwitch(&ParkPositionSP, "PARK_EAST")->s == ISS_ON)
+        TargetPosition = PARK_EAST;
+    if (IUFindSwitch(&ParkPositionSP, "PARK_SOUTH") && IUFindSwitch(&ParkPositionSP, "PARK_SOUTH")->s == ISS_ON)
+        TargetPosition = PARK_SOUTH;
+    if (IUFindSwitch(&ParkPositionSP, "PARK_WEST") && IUFindSwitch(&ParkPositionSP, "PARK_WEST")->s == ISS_ON)
+        TargetPosition = PARK_WEST;
+
+    if (IUFindSwitch(&ParkMovementDirectionSP, "PMD_COUNTERCLOCKWISE") &&
+        IUFindSwitch(&ParkMovementDirectionSP, "PMD_COUNTERCLOCKWISE")->s == ISS_ON)
+    {
+        TargetDirection = PARK_COUNTERCLOCKWISE;
+    }
+    if (IUFindSwitch(&ParkMovementDirectionSP, "PMD_CLOCKWISE") &&
+        IUFindSwitch(&ParkMovementDirectionSP, "PMD_CLOCKWISE")->s == ISS_ON)
+    {
+        TargetDirection = PARK_CLOCKWISE;
+    }
+    DeltaAz = GetParkDeltaAz(TargetDirection, TargetPosition);
+    // Altitude 3440 points the telescope downwards
+    DeltaAlt = CurrentAltAz.alt-3440;
+
+    // Move the telescope to the desired position
+    long AltitudeOffsetMicrosteps = DegreesToMicrosteps(AXIS2, DeltaAlt);
+    long AzimuthOffsetMicrosteps = DegreesToMicrosteps(AXIS1, DeltaAz);
+
+    DEBUGF(INDI::AlignmentSubsystem::DBG_ALIGNMENT, "Parking: Delta altitude %1.2f - delta azimuth %1.2f", DeltaAlt, DeltaAz);
+    DEBUGF(INDI::AlignmentSubsystem::DBG_ALIGNMENT, "Parking: Altitude offset %ld microsteps Azimuth offset %ld microsteps",
+                                                    AltitudeOffsetMicrosteps, AzimuthOffsetMicrosteps);
+
+    if (IUFindSwitch(&SlewModesSP, "SLEW_SILENT") && IUFindSwitch(&SlewModesSP, "SLEW_SILENT")->s == ISS_ON)
+    {
+        SilentSlewMode = true;
+    } else {
+        SilentSlewMode = false;
+    }
+    SlewTo(AXIS1, AzimuthOffsetMicrosteps);
+    SlewTo(AXIS2, AltitudeOffsetMicrosteps);
+
+    TrackState = SCOPE_PARKING;
+    return true;
+}
+
+bool SkywatcherAPIMount::UnPark()
+{
+    DEBUG(DBG_SCOPE, "SkywatcherAPIMount::UnPark");
+
+    ParkPosition_t TargetPosition = PARK_NORTH;
+    ParkDirection_t TargetDirection = PARK_COUNTERCLOCKWISE;
+    double DeltaAlt = 0;
+    double DeltaAz = 0;
+
+    // Determinate the target position and direction
+    if (IUFindSwitch(&UnparkPositionSP, "UNPARK_NORTH") && IUFindSwitch(&UnparkPositionSP, "UNPARK_NORTH")->s == ISS_ON)
+        TargetPosition = PARK_NORTH;
+    if (IUFindSwitch(&UnparkPositionSP, "UNPARK_EAST") && IUFindSwitch(&UnparkPositionSP, "UNPARK_EAST")->s == ISS_ON)
+        TargetPosition = PARK_EAST;
+    if (IUFindSwitch(&UnparkPositionSP, "UNPARK_SOUTH") && IUFindSwitch(&UnparkPositionSP, "UNPARK_SOUTH")->s == ISS_ON)
+        TargetPosition = PARK_SOUTH;
+    if (IUFindSwitch(&UnparkPositionSP, "UNPARK_WEST") && IUFindSwitch(&UnparkPositionSP, "UNPARK_WEST")->s == ISS_ON)
+        TargetPosition = PARK_WEST;
+
+    // Note: The reverse direction is used for unparking.
+    if (IUFindSwitch(&ParkMovementDirectionSP, "PMD_COUNTERCLOCKWISE") &&
+        IUFindSwitch(&ParkMovementDirectionSP, "PMD_COUNTERCLOCKWISE")->s == ISS_ON)
+    {
+        TargetDirection = PARK_CLOCKWISE;
+    }
+    if (IUFindSwitch(&ParkMovementDirectionSP, "PMD_CLOCKWISE") &&
+        IUFindSwitch(&ParkMovementDirectionSP, "PMD_CLOCKWISE")->s == ISS_ON)
+    {
+        TargetDirection = PARK_COUNTERCLOCKWISE;
+    }
+    DeltaAz = GetParkDeltaAz(TargetDirection, TargetPosition);
+    // Altitude 3360 points the telescope upwards
+    DeltaAlt = CurrentAltAz.alt-3360;
+
+    // Move the telescope to the desired position
+    long AltitudeOffsetMicrosteps = DegreesToMicrosteps(AXIS2, DeltaAlt);
+    long AzimuthOffsetMicrosteps = DegreesToMicrosteps(AXIS1, DeltaAz);
+
+    DEBUGF(INDI::AlignmentSubsystem::DBG_ALIGNMENT, "Unparking: Delta altitude %1.2f - delta azimuth %1.2f", DeltaAlt, DeltaAz);
+    DEBUGF(INDI::AlignmentSubsystem::DBG_ALIGNMENT, "Unparking: Altitude offset %ld microsteps Azimuth offset %ld microsteps",
+                                                    AltitudeOffsetMicrosteps, AzimuthOffsetMicrosteps);
+
+    if (IUFindSwitch(&SlewModesSP, "SLEW_SILENT") && IUFindSwitch(&SlewModesSP, "SLEW_SILENT")->s == ISS_ON)
+    {
+        SilentSlewMode = true;
+    } else {
+        SilentSlewMode = false;
+    }
+    SlewTo(AXIS1, AzimuthOffsetMicrosteps);
+    SlewTo(AXIS2, AltitudeOffsetMicrosteps);
+
+    SetParked(false);
+    TrackState = SCOPE_SLEWING;
+    return true;
 }
 
 bool SkywatcherAPIMount::ReadScopeStatus()
@@ -616,6 +835,14 @@ bool SkywatcherAPIMount::ReadScopeStatus()
 
     UpdateDetailedMountInformation(true);
 
+    if (TrackState == SCOPE_PARKING)
+    {
+        if (!IsInMotion(AXIS1) && !IsInMotion(AXIS2))
+        {
+            SetParked(true);
+        }
+    }
+
     // Calculate new RA DEC
     struct ln_hrz_posn AltAz;
     AltAz.alt = MicrostepsToDegrees(AXIS2, CurrentEncoders[AXIS2] - ZeroPositionEncoders[AXIS2]);
@@ -633,6 +860,12 @@ bool SkywatcherAPIMount::ReadScopeStatus()
     }
     DEBUGF(INDI::AlignmentSubsystem::DBG_ALIGNMENT, "Axis2 encoder %ld initial %ld alt(degrees) %lf", CurrentEncoders[AXIS2], ZeroPositionEncoders[AXIS2], AltAz.alt);
     AltAz.az = MicrostepsToDegrees(AXIS1, CurrentEncoders[AXIS1] - ZeroPositionEncoders[AXIS1]);
+    if (IsVirtuosoMount())
+    {
+        if (AltAz.az < 0)
+            AltAz.az += 360;
+    }
+    CurrentAltAz = AltAz;
     DEBUGF(INDI::AlignmentSubsystem::DBG_ALIGNMENT, "Axis1 encoder %ld initial %ld az(degrees) %lf", CurrentEncoders[AXIS1], ZeroPositionEncoders[AXIS1], AltAz.az);
     TelescopeDirectionVector TDV = TelescopeDirectionVectorFromAltitudeAzimuth(AltAz);
     DEBUGF(INDI::AlignmentSubsystem::DBG_ALIGNMENT, "TDV x %lf y %lf z %lf", TDV.x, TDV.y, TDV.z);
@@ -854,9 +1087,7 @@ void SkywatcherAPIMount::TimerHit()
                 if (IUFindNumber(&LocationNP, "LAT"))
                     AltAz.alt = AltAz.alt-IUFindNumber(&LocationNP, "LAT")->value;
 
-                AltAz.az = -180+AltAz.az;
-                if (AltAz.az < -180)
-                    AltAz.az += 360;
+                AltAz.az = 180+AltAz.az;
             }
             DEBUGF(INDI::Logger::DBG_SESSION, "Tracking AXIS1 CurrentEncoder %ld OldTrackingTarget %ld AXIS2 CurrentEncoder %ld OldTrackingTarget %ld",
                                             CurrentEncoders[AXIS1], OldTrackingTarget[AXIS1], CurrentEncoders[AXIS2], OldTrackingTarget[AXIS2]);
@@ -998,6 +1229,9 @@ bool SkywatcherAPIMount::updateProperties()
         defineNumber(&AxisOneEncoderValuesV);
         defineNumber(&AxisTwoEncoderValuesV);
         defineSwitch(&SlewModesSP);
+        defineSwitch(&ParkMovementDirectionSP);
+        defineSwitch(&ParkPositionSP);
+        defineSwitch(&UnparkPositionSP);
 
         // Start the timer if we need one
         // SetTimer(POLLMS);
@@ -1016,6 +1250,9 @@ bool SkywatcherAPIMount::updateProperties()
         deleteProperty(AxisOneEncoderValuesV.name);
         deleteProperty(AxisTwoEncoderValuesV.name);
         deleteProperty(SlewModesSP.name);
+        deleteProperty(ParkMovementDirectionSP.name);
+        deleteProperty(ParkPositionSP.name);
+        deleteProperty(UnparkPositionSP.name);
         return true;
     }
 }
