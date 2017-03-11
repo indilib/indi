@@ -110,10 +110,6 @@ bool RoboFocus::initProperties()
 {
     INDI::Focuser::initProperties();
 
-    /* Port */
-    IUFillText(&PortT[0], "PORT", "Port", "/dev/ttyUSB0");
-    IUFillTextVector(&PortTP, PortT, 1, getDeviceName(), "DEVICE_PORT", "Ports", MAIN_CONTROL_TAB, IP_RW, 0, IPS_IDLE);
-
     /* Focuser temperature */
     IUFillNumber(&TemperatureN[0], "TEMPERATURE", "Celsius", "%6.2f", 0, 65000., 0., 10000.);
     IUFillNumberVector(&TemperatureNP, TemperatureN, 1, getDeviceName(), "FOCUS_TEMPERATURE", "Temperature", MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE);
@@ -207,10 +203,8 @@ bool RoboFocus::updateProperties()
 
 }
 
-bool RoboFocus::Connect()
+bool RoboFocus::Handshake()
 {
-    int connectrc=0;
-    char errorMsg[MAXRBUF];
     char firmeware[]="FV0000000";
 
     if (isSimulation())
@@ -222,19 +216,6 @@ bool RoboFocus::Connect()
         return true;
     }
 
-    if ( (connectrc = tty_connect(PortT[0].text, 9600, 8, 0, 1, &PortFD)) != TTY_OK)
-    {
-        tty_error_msg(connectrc, errorMsg, MAXRBUF);
-
-        if (isDebug())
-            IDLog("Failed to connect o port %s. Error: %s", PortT[0].text, errorMsg);
-
-        DEBUGF(INDI::Logger::DBG_ERROR, "Failed to connect to port %s. Error: %s", PortT[0].text, errorMsg);
-
-        return false;
-
-    }
-
     if((updateRFFirmware(firmeware)) < 0)
     {
         /* This would be the end*/
@@ -242,21 +223,6 @@ bool RoboFocus::Connect()
         return false;
     }
 
-    timerID = SetTimer(POLLMS);
-    DEBUG(INDI::Logger::DBG_SESSION, "Robofocus is online. Getting focus parameters...");
-
-    return true;
-}
-
-bool RoboFocus::Disconnect()
-{
-
-    if (isSimulation() == false)
-        tty_disconnect(PortFD);
-
-    RemoveTimer(timerID);
-
-    DEBUG(INDI::Logger::DBG_SESSION, "RoboFocus is offline.");
     return true;
 }
 
@@ -1430,8 +1396,7 @@ IPState RoboFocus::MoveRelFocuser(FocusDirection dir, uint32_t ticks)
 }
 
 bool RoboFocus::saveConfigItems(FILE *fp)
-{        
-    IUSaveConfigText(fp, &PortTP);
+{
     IUSaveConfigNumber(fp, &SettingsNP);
     IUSaveConfigNumber(fp, &SetBacklashNP);
 

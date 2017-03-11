@@ -128,15 +128,6 @@ const char * PerfectStar::getDefaultName()
         return (char *)"PerfectStar";
 }
 
-void PerfectStar::ISGetProperties (const char *dev)
-{
-    INDI::Focuser::ISGetProperties(dev);
-
-    // We don't need port property
-    deleteProperty(PortTP.name);
-
-}
-
 bool PerfectStar::initProperties()
 {
     INDI::Focuser::initProperties();
@@ -159,6 +150,10 @@ bool PerfectStar::initProperties()
     FocusRelPosN[0].value = 100;
 
     addSimulationControl();
+
+    // Pure USB device
+    unRegisterConnection(serialConnection);
+    unRegisterConnection(tcpConnection);
 
     return true;
 }

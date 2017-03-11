@@ -952,3 +952,21 @@ void INDI::DefaultDevice::registerConnection(Connection::Interface *newConnectio
 {
     connections.push_back(newConnection);
 }
+
+bool INDI::DefaultDevice::unRegisterConnection(Connection::Interface *existingConnection)
+{
+    auto i = std::begin(connections);
+
+    while (i != std::end(connections))
+    {
+        if (*i == existingConnection)
+        {
+            i = connections.erase(i);
+            return true;
+        }
+        else
+            ++i;
+    }
+
+    return false;
+}

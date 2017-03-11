@@ -50,8 +50,7 @@ public:
   NSTEP();
   ~NSTEP();
   
-  bool Connect();
-  bool Disconnect();
+  virtual bool Handshake();
   const char *getDefaultName();
   
   bool initProperties();

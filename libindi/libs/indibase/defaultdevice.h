@@ -365,6 +365,13 @@ protected:
     void registerConnection(Connection::Interface *newConnection);
 
     /**
+     * @brief unRegisterConnection Remove connection from existing pool
+     * @param existingConnection pointer to connection interface
+     * @return True if connection is removed, false otherwise.
+     */
+    bool unRegisterConnection(Connection::Interface *existingConnection);
+
+    /**
      * @return Return actively selected connection plugin
      */
     Connection::Interface *getActiveConnection() { return activeConnection; }

@@ -46,6 +46,9 @@ public:
 
     virtual const std::string label() { return "Ethernet"; }
 
+    virtual const char* host() { return AddressT[0].text; }
+    virtual const uint32_t port() { return atoi(AddressT[0].text); }
+
     virtual bool ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n);
     virtual bool saveConfigItems(FILE *fp);
 

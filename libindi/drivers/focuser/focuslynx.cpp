@@ -153,7 +153,8 @@ bool FocusLynxF1::initProperties()
   IUFillText(&WifiT[8], "Wep key", "", "");
   IUFillTextVector(&WifiTP, WifiT, 9, getDeviceName(), "WIFI-INFO", "Wifi", HUB_SETTINGS_TAB, IP_RO, 0, IPS_IDLE); 
   
-  IUSaveText(&PortT[0], "/dev/ttyUSB1");
+  // FIXME
+  //IUSaveText(&PortT[0], "/dev/ttyUSB1");
 
   return true;
 }
@@ -195,10 +196,10 @@ bool FocusLynxF1::Connect()
      * other value = descriptor number
      */
     PortFD = -1;
-    else if ((connectrc = tty_connect(PortT[0].text, 115200, 8, 0, 1, &PortFD)) != TTY_OK)
+    else if ((connectrc = tty_connect(serialConnection->port(), 115200, 8, 0, 1, &PortFD)) != TTY_OK)
     {
       tty_error_msg(connectrc, errorMsg, MAXRBUF);   
-      DEBUGF(INDI::Logger::DBG_SESSION, "Failed to connect to port %s. Error: %s", PortT[0].text, errorMsg);
+      DEBUGF(INDI::Logger::DBG_SESSION, "Failed to connect to port %s. Error: %s", serialConnection->port(), errorMsg);
       PortFD = 0;
       return false;
     }
@@ -902,7 +903,8 @@ void FocusLynxF2::ISGetProperties(const char *dev)
 
   FocusLynxBase::ISGetProperties(dev);
   // Remove the port selector from the main tab of F2. Set only on F1 focuser
-  deleteProperty(PortTP.name);
+  // FIXME
+  //deleteProperty(PortTP.name);
 }
 
 /************************************************************************************

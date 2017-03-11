@@ -163,6 +163,18 @@ bool Serial::saveConfigItems(FILE *fp)
     return true;
 }
 
+void Serial::setDefaultPortIndex(int newIndex)
+{
+    if (newIndex < 0 || newIndex >= BaudRateSP.nsp)
+        return;
 
+    IUResetSwitch(&BaudRateSP);
+    BaudRateS[newIndex].s = ISS_ON;
+}
+
+const uint32_t Serial::baud()
+{
+    return atoi(IUFindOnSwitch(&BaudRateSP)->name);
+}
 
 }

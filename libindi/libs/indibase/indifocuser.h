@@ -22,6 +22,8 @@
 #include "defaultdevice.h"
 #include "indicontroller.h"
 #include "indifocuserinterface.h"
+#include "connectionplugins/connectionserial.h"
+#include "connectionplugins/connectiontcp.h"
 
 /**
  * \class INDI::Focuser
@@ -59,8 +61,8 @@ class INDI::Focuser : public INDI::DefaultDevice, public INDI::FocuserInterface
          */
         virtual bool saveConfigItems(FILE *fp);
 
-        ITextVectorProperty PortTP;
-        IText PortT[1];
+        /** \brief perform handshake with device to check communication */
+        virtual bool Handshake();
 
         INumber PresetN[3];
         INumberVectorProperty PresetNP;
@@ -69,7 +71,15 @@ class INDI::Focuser : public INDI::DefaultDevice, public INDI::FocuserInterface
 
         void processButton(const char * button_n, ISState state);
 
-        INDI::Controller *controller;        
+        INDI::Controller *controller;
+
+        Connection::Serial *serialConnection=NULL;
+        Connection::TCP *tcpConnection=NULL;
+
+        int PortFD=-1;
+
+private:
+        bool callHandshake();
 
 };
 

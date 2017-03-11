@@ -46,11 +46,15 @@ public:
 
     virtual const std::string label() { return "Serial"; }
 
+    virtual const char *port() { return PortT[0].text; }
+    virtual const uint32_t baud();
+
     virtual bool ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n);
     virtual bool ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n);
     virtual bool saveConfigItems(FILE *fp);
 
     void setCandidatePorts(std::vector<std::string> ports) { m_Ports = ports; }
+    void setDefaultPortIndex(int newIndex);
 
     const int getPortFD() const { return PortFD; }
 

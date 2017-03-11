@@ -30,8 +30,7 @@ class SmartFocus : public INDI::Focuser {
   bool initProperties(void);
   bool updateProperties(void);
 
-  bool Connect(void);
-  bool Disconnect(void);
+  virtual bool Handshake();
 
   virtual bool ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n);
   //virtual bool ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n);
@@ -81,7 +80,6 @@ class SmartFocus : public INDI::Focuser {
   static const char     motion_error;
   static const char     motion_stopped;
 
-  int      serial_port;
   Position position;
   State    state;
   int      timer_id;
