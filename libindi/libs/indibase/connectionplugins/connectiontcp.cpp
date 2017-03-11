@@ -127,7 +127,7 @@ bool TCP::Connect()
 
     PortFD = sockfd;
 
-    return true;
+    return Handshake();
 }
 
 bool TCP::Disconnect()
