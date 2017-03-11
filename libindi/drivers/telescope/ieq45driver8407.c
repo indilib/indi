@@ -70,7 +70,7 @@ int getSiteLatitude(int fd, int *dd, int *mm);
 /* Get site Longitude */
 int getSiteLongitude(int fd, int *ddd, int *mm);
 /* Get Calender data */
-int getCalenderDate(int fd, char *date);
+int getCalendarDate(int fd, char *date);
 /* Get site Name */
 int getSiteName(int fd, char *siteName, int siteNum);
 /* Get Number of Bars */
@@ -315,7 +315,7 @@ int getCommandString(int fd, char *data, const char* cmd)
     return 0;
 }
 
-int getCalenderDate(int fd, char *date)
+int getCalendarDate(int fd, char *date)
 {
 
  int dd, mm, yy;

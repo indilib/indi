@@ -1145,16 +1145,17 @@ int INDI::BaseDevice::setBLOB(IBLOBVectorProperty *bvp, XMLEle * root, char * er
             if (na && fa && sa)
             {
 
-                blobEL->size = atoi(valuXMLAtt(sa));
+                int blobSize = atoi(valuXMLAtt(sa));
 
                 /* Blob size = 0 when only state changes */
-                if (blobEL->size == 0)
+                if (blobSize == 0)
                 {
                     if (mediator)
                        mediator->newBLOB(blobEL);
                     continue;
                 }
 
+                 blobEL->size = blobSize;
                  int bloblen = pcdatalenXMLEle(ep);
                  blobEL->blob = (unsigned char *) realloc (blobEL->blob, 3*bloblen/4);
                  blobEL->bloblen = from64tobits_fast( static_cast<char *> (blobEL->blob), pcdataXMLEle(ep), bloblen);

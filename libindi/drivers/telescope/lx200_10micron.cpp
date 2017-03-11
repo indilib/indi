@@ -228,7 +228,7 @@ bool LX200_10MICRON::ReadScopeStatus()
         if (isParked() == false)
             SetParked(true);
         break;
-    case GSTAT_STOPPING:
+    case GSTAT_SLEWING_OR_STOPPING:
         TrackState = SCOPE_SLEWING;
         break;
     case GSTAT_NOT_TRACKING_AND_NOT_MOVING:
@@ -261,10 +261,27 @@ bool LX200_10MICRON::ReadScopeStatus()
     return true;
 }
 
-// Called by updateProperties, Note: the LX200Generic version may set us back to LOW precision mode so we override here
+// Called by updateProperties
 void LX200_10MICRON::getBasicData(void)
 {
-    getMountInfo();
+    DEBUGFDEVICE(getDefaultName(), DBG_SCOPE, "<%s>", __FUNCTION__);
+
+    // cannot call LX200Generic::getBasicData(); as getTimeFormat :Gc# and getSiteName :GM# are not implemented on 10Micron
+    // TODO delete SiteNameT SiteNameTP
+    if (isSimulation() == false) {
+        getAlignment();
+	    checkLX200Format(fd);
+	    timeFormat = LX200_24;
+
+	    if (getTrackFreq(PortFD, &TrackFreqN[0].value) < 0)
+	        IDMessage(getDeviceName(), "Failed to get tracking frequency from device.");
+	    else
+	        IDSetNumber(&TrackingFreqNP, NULL);
+
+        getMountInfo();
+    }
+    sendScopeLocation();
+    sendScopeTime();
 }
 
 // Called by getBasicData

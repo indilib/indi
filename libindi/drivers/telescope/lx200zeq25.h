@@ -31,6 +31,7 @@ public:
     ~LX200ZEQ25() {}
 
     virtual bool updateProperties();
+    virtual bool initProperties();
 
 protected:
 
@@ -40,19 +41,38 @@ protected:
     virtual bool checkConnection();
     virtual bool isSlewComplete();
 
-    virtual bool Goto(double,double);
-    virtual bool updateTime(ln_date * utc, double utc_offset);
-    virtual bool updateLocation(double latitude, double longitude, double elevation);
+    virtual bool ReadScopeStatus() override;
 
+    virtual bool SetSlewRate(int index) override;
+    virtual bool Goto(double,double) override;
+    virtual bool updateTime(ln_date * utc, double utc_offset) override;
+    virtual bool updateLocation(double latitude, double longitude, double elevation) override;
+    virtual bool MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command) override;
+    virtual bool MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command) override;
+
+    // Parking
+    virtual void SetCurrentPark() override;
+    virtual void SetDefaultPark() override;
+    virtual bool Park() override;
+    virtual bool UnPark() override;
 
 private:
     int setZEQ25StandardProcedure(int fd, const char * data);
     int setZEQ25Latitude(double Lat);
     int setZEQ25Longitude(double Long);
     int setZEQ25UTCOffset(double hours);
-    int ZEQ25Slew();
+    int slewZEQ25();
+    int moveZEQ25To(int direction);
+    int haltZEQ25Movement();
+    int getZEQ25MoveRate();
+    int setZEQ25Park();
+    int setZEQ25UnPark();
+
+
+    bool isZEQ25Parked();
 
     bool getMountInfo();
+    void mountSim();
 
 };
 
