@@ -402,34 +402,15 @@ bool LX200Generic::updateProperties()
 
 bool LX200Generic::checkConnection()
 {
+    if (isSimulation())
+        return true;
+
     return (check_lx200_connection(PortFD) == 0);
 }
 
-bool LX200Generic::Connect(const char *port, uint32_t baud)
+bool LX200Generic::Handshake()
 {
-    if (isSimulation())
-    {
-        DEBUGF (INDI::Logger::DBG_SESSION, "Simulated %s is online.", getDeviceName());
-        return true;
-    }
-
-    if (tty_connect(port, baud, 8, 0, 1, &PortFD) != TTY_OK)
-    {
-      DEBUGF(INDI::Logger::DBG_ERROR, "Error connecting to port %s. Make sure you have BOTH write and read permission to your port.", port);
-      return false;
-    }
-
-    if (checkConnection() == false)
-    {
-        DEBUG(INDI::Logger::DBG_ERROR, "Error connecting to Telescope. Telescope is offline.");
-        return false;
-    }
-
-   //*((int *) UTCOffsetN[0].aux0) = 0;
-
-   DEBUGF (INDI::Logger::DBG_SESSION, "%s is online. Retrieving basic data...", getDeviceName());
-
-   return true;
+    return checkConnection();
 }
 
 bool LX200Generic::isSlewComplete()

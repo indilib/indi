@@ -25,6 +25,12 @@
 
 #include <memory.h>
 
+namespace Connection
+{
+    class Interface;
+    class Serial;
+    class TCP;
+}
 /**
  * @brief COMMUNICATION_TAB Where all the properties required to connect/disconnect from a device are located.
  *  Usually such properties may include port number, IP address, or any property necessarily to establish a
@@ -93,7 +99,7 @@ drivers directly as it is linked with main(). Virtual drivers cannot employ INDI
 class INDI::DefaultDevice : public INDI::BaseDevice
 {
 
-public:       
+public:    
 
     DefaultDevice();
     virtual ~DefaultDevice();
@@ -213,13 +219,13 @@ to disconnect the device.
       \note This function is called by the INDI framework, do not call it directly.
       \returns True if any property was successfully processed, false otherwise.
     */
-    virtual bool ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n) {return false;}
+    virtual bool ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n);
 
     /** \brief Process the client newSwitch command
       \note This function is called by the INDI framework, do not call it directly.
       \returns True if any property was successfully processed, false otherwise.
     */
-    virtual bool ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n) {return false;}
+    virtual bool ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n);
 
     /** \brief Process the client newBLOB command
       \note This function is called by the INDI framework, do not call it directly.
@@ -340,22 +346,43 @@ protected:
     */
     virtual bool updateProperties();
 
-    /** \brief Connect to a device. Child classes must implement this function and perform the connection
-        routine in the function.
-        \return True if connection to device is successful, false otherwise.
+    /** \brief Connect to the device. INDI::DefaultDevice implementation connects to appropiate connection interface (Serial or TCP)
+     * governed by connectionMode. If connection is successful, it procced to call Handshake() function to ensure communication with device
+     * is successfull. For other communication interface, override the method in the child class implementation
+      \return True if connection is successful, false otherwise
     */
-    virtual bool Connect()=0;
+    virtual bool Connect();
 
-    /** \brief Disconnect from a device. Child classes must implement this function and perform the disconnection
-        routine in the function.
-        \return True if disconnection from a device is successful, false otherwise.
-    */
-    virtual bool Disconnect()=0;
+    /** \brief Disconnect from device
+        \return True if successful, false otherwise */
+    virtual bool Disconnect();
+
+    /**
+     * @brief registerConnection Add new connection plugin to the existing connection pool. The connection type shall be defined to the client
+     * in ISGetProperties()
+     * @param newConnection Pointer to new connection plugin
+     */
+    void registerConnection(Connection::Interface *newConnection);
+
+    /**
+     * @brief unRegisterConnection Remove connection from existing pool
+     * @param existingConnection pointer to connection interface
+     * @return True if connection is removed, false otherwise.
+     */
+    bool unRegisterConnection(Connection::Interface *existingConnection);
+
+    /**
+     * @return Return actively selected connection plugin
+     */
+    Connection::Interface *getActiveConnection() { return activeConnection; }
 
     /** \return Default name of the device. */
     virtual const char *getDefaultName()=0;
 
-private:
+    // Period in milliseconds to call TimerHit(). Default 1000 ms
+    uint32_t updatePeriodMS = 1000;
+
+private:   
 
     bool isInit;
     bool pDebug;
@@ -375,11 +402,19 @@ private:
     ISwitchVectorProperty ConfigProcessSP;
     ISwitchVectorProperty ConnectionSP;
 
-
     IText DriverInfoT[4];
     ITextVectorProperty DriverInfoTP;
 
+    // Connection modes
+    ISwitch *ConnectionModeS=NULL;
+    ISwitchVectorProperty ConnectionModeSP;
 
+    std::vector<Connection::Interface *> connections;
+    Connection::Interface *activeConnection=NULL;
+
+    // Connection Plugins
+    friend class Connection::Serial;
+    friend class Connection::TCP;
 };
 
 #endif // INDIDEFAULTDRIVER_H

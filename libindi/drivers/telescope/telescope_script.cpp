@@ -169,6 +169,11 @@ bool ScopeScript::RunScript(int script, ...) {
   }
 }
 
+bool ScopeScript::Handshake()
+{
+    return true;
+}
+
 bool ScopeScript::Connect() {
   if(isConnected())
     return true;

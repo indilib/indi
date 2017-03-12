@@ -6,7 +6,9 @@ LIST(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/../../cmake_modules/"
 include(GNUInstallDirs)
 set(RULES_INSTALL_DIR "/lib/udev/rules.d/")
 
-set(CMAKE_CXX_FLAGS "-std=c++0x ${CMAKE_CXX_FLAGS}")
+if (NOT WIN32 AND NOT ANDROID)
+set(CMAKE_CXX_FLAGS "-std=c++11 ${CMAKE_CXX_FLAGS}")
+endif(NOT WIN32 AND NOT ANDROID)
 
 set (VERSION_MAJOR 1)
 set (VERSION_MINOR 12)

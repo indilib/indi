@@ -37,15 +37,15 @@ class EQModSimulator
 {
  protected:
  private:
-  INDI::Telescope *telescope;
-  SkywatcherSimulator *sksim;
+  INDI::Telescope *telescope=NULL;
+  SkywatcherSimulator *sksim=NULL;
 
-  INumberVectorProperty *SimWormNP;
-  INumberVectorProperty *SimRatioNP;
-  INumberVectorProperty *SimMotorNP;
-  ISwitchVectorProperty *SimModeSP;
-  ISwitchVectorProperty *SimHighSpeedSP;
-  ITextVectorProperty *SimMCVersionTP;
+  INumberVectorProperty *SimWormNP=NULL;
+  INumberVectorProperty *SimRatioNP=NULL;
+  INumberVectorProperty *SimMotorNP=NULL;
+  ISwitchVectorProperty *SimModeSP=NULL;
+  ISwitchVectorProperty *SimHighSpeedSP=NULL;
+  ITextVectorProperty *SimMCVersionTP=NULL;
 
  public:
   EQModSimulator(INDI::Telescope *);

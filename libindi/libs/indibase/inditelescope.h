@@ -57,8 +57,7 @@ class INDI::Telescope : public INDI::DefaultDevice
         enum TelescopeSlewRate  { SLEW_GUIDE, SLEW_CENTERING, SLEW_FIND, SLEW_MAX };
         enum TelescopeTrackMode  { TRACK_SIDEREAL, TRACK_SOLAR, TRACK_LUNAR, TRACK_CUSTOM };
         enum TelescopeParkData  { PARK_NONE, PARK_RA_DEC, PARK_AZ_ALT, PARK_RA_DEC_ENCODER, PARK_AZ_ALT_ENCODER };
-        enum TelescopeLocation { LOCATION_LATITUDE, LOCATION_LONGITUDE, LOCATION_ELEVATION };
-        enum TelescopeConnection { CONNECTION_SERIAL, CONNECTION_TCP, CONNECTION_BOTH };
+        enum TelescopeLocation { LOCATION_LATITUDE, LOCATION_LONGITUDE, LOCATION_ELEVATION };        
 
         /** \struct TelescopeCapability
             \brief Holds the capabilities of a telescope.
@@ -122,38 +121,13 @@ class INDI::Telescope : public INDI::DefaultDevice
         /** \brief Called to initialize basic properties required all the time */
         virtual bool initProperties();
         /** \brief Called when connected state changes, to add/remove properties */
-        virtual bool updateProperties();
+        virtual bool updateProperties();        
+
+        /** \brief perform handshake with device to check communication */
+        virtual bool Handshake();
 
         /** \brief Called when setTimer() time is up */
         virtual void TimerHit();
-
-        /** \brief Connect to the telescope.
-          \return True if connection is successful, false otherwise
-        */
-        virtual bool Connect();
-
-        /** \brief Disconnect from telescope
-            \return True if successful, false otherwise */
-        virtual bool Disconnect();
-
-        /** \brief INDI::Telescope implementation of Connect() assumes 9600 baud, 8 bit word, even parity, and no stop bit. Override function if communication paramaters
-          are different
-          \param port Port to connect to
-          \param baud Baud rate
-          \return True if connection is successful, false otherwise
-          \warning Do not call this function directly, it is called by INDI::Telescope Connect() function.
-        */
-        virtual bool Connect(const char *port, uint32_t baud);
-
-        /** \brief INDI::Telescope implementation of Connect() for TCP/IP connections.
-          \param hostname Host name or IP to connect to
-          \param port port
-          \return True if connection is successful, false otherwise
-          \warning Do not call this function directly, it is called by INDI::Telescope Connect() function.
-        */
-        virtual bool Connect(const char *hostname, const char *port);
-
-        //Park
         /**
          * \brief setParkDataType Sets the type of parking data stored in the park data file and presented to the user.
          * \param type parking data type. If PARK_NONE then no properties will be presented to the user for custom parking position.
@@ -231,19 +205,6 @@ class INDI::Telescope : public INDI::DefaultDevice
          * @return true if lock status equals true and DomeClosedLockTP is Dome Locks or Dome Locks and Dome Parks (both).
          */
         bool isLocked();
-
-        /**
-         * @brief getConnectionMode Get telescope connection mode
-         * @return Telescope connection mode
-         */
-        TelescopeConnection getConnectionMode() const;
-
-        /**
-         * @brief setConnectionMode Set telescope connection mode. This function should be called in initProperties() to indicate connection type supported
-         * by the telescope. By default, the driver shall provide both serial/baud and TCP server control properties.
-         * @param value Desired connection mode
-         */
-        void setConnectionMode(const TelescopeConnection &value);
 
         // Joystick helpers
         static void joystickHelper(const char * joystick_n, double mag, double angle, void *context);
@@ -352,18 +313,13 @@ protected:
          */
         virtual bool SetSlewRate(int index);
 
+        bool callHandshake();
+
         // Joystick
         void processNSWE(double mag, double angle);
         void processJoystick(const char * joystick_n, double mag, double angle);
         void processSlewPresets(double mag, double angle);
         void processButton(const char * button_n, ISState state);
-
-        //  Since every mount I know of actually uses a serial port for control
-        //  We put the serial helper into the base telescope class
-        //  One less piece to worry about in the hardware specific
-        //  low level stuff
-        //  Mounts with ethernet can copy the socket fd into PortFD and override Connect and Disconnect.
-        int PortFD;
 
         //  This is a variable filled in by the ReadStatus telescope
         //  low level code, used to report current state
@@ -403,10 +359,6 @@ protected:
         ISwitch ParkOptionS[3];
         ISwitchVectorProperty ParkOptionSP;
 
-        // Device physical port
-        ITextVectorProperty PortTP;
-        IText PortT[1];
-
         // A switch for North/South motion
         ISwitch MovementNSS[2];
         ISwitchVectorProperty MovementNSSP;
@@ -435,13 +387,6 @@ protected:
         ISwitchVectorProperty DomeClosedLockTP;
         ISwitch DomeClosedLockT[4];
 
-        // IP Address/Port
-        ITextVectorProperty AddressTP;
-        IText AddressT[2];
-
-        ISwitch BaudRateS[6];
-        ISwitchVectorProperty BaudRateSP;
-
         // Lock Joystick Axis to one direciton only
         ISwitch LockAxisS[2];
         ISwitchVectorProperty LockAxisSP;
@@ -449,12 +394,11 @@ protected:
         uint32_t capability;
         int last_we_motion, last_ns_motion;
 
-        // Period in milliseconds to call ReadScopeStatus(). 1000 milliseconds by default
-        uint32_t updatePeriodMS = 1000;
-
         //Park
         char *LoadParkData();
-        bool WriteParkData();        
+        bool WriteParkData();
+
+        int PortFD=-1;
 
 private:
 
@@ -464,7 +408,6 @@ private:
         void triggerSnoop(const char *driverName, const char *propertyName);
 
         TelescopeParkData parkDataType;
-        TelescopeConnection connectionMode = CONNECTION_BOTH;
         bool IsLocked;
         bool IsParked;        
         const char *ParkDeviceName;
@@ -480,13 +423,10 @@ private:
 
         IPState lastEqState;
 
-        INDI::Controller *controller;
+        INDI::Controller *controller;        
 
-        int sockfd = -1;
-        const uint8_t SOCKET_TIMEOUT = 5;
-
-        const std::vector<std::string> m_Ports = { "/dev/ttyUSB0" , "/dev/ttyUSB1" , "/dev/ttyUSB2", "/dev/ttyUSB3",
-                                                   "/dev/rfcomm0" , "/dev/ttyS0" , "/dev/ttyS1", "/dev/ttyS2"};
+        Connection::Serial *serialConnection=NULL;
+        Connection::TCP *tcpConnection=NULL;
 };
 
 #endif // INDI::Telescope_H

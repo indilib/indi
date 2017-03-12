@@ -37,6 +37,7 @@ public:
   
   virtual bool Connect();
   virtual bool Disconnect();
+  virtual bool Handshake();
   const char * getDefaultName();
   virtual bool initProperties();
   virtual void ISGetProperties(const char *dev);

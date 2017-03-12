@@ -37,10 +37,6 @@ bool INDI::Focuser::initProperties()
 
     initFocuserProperties(getDeviceName(),  MAIN_CONTROL_TAB);
 
-    /* Port */
-    IUFillText(&PortT[0], "PORT", "Port", "/dev/ttyUSB0");
-    IUFillTextVector(&PortTP, PortT, 1, getDeviceName(), "DEVICE_PORT", "Ports", OPTIONS_TAB, IP_RW, 0, IPS_IDLE);
-
     // Presets
     IUFillNumber(&PresetN[0], "Preset 1", "", "%6.2f", 0, 60000, 1000, 0);
     IUFillNumber(&PresetN[1], "Preset 2", "", "%6.2f", 0, 60000, 1000, 0);
@@ -63,6 +59,18 @@ bool INDI::Focuser::initProperties()
 
     setDriverInterface(FOCUSER_INTERFACE);
 
+    serialConnection = new Connection::Serial(this);
+    serialConnection->registerHandshake([&]() { return callHandshake(); });
+    serialConnection->setCandidatePorts({ "/dev/ttyUSB0" , "/dev/ttyACM0" , "/dev/ttyUSB1", "/dev/ttyACM1",
+                                          "/dev/rfcomm0" , "/dev/ttyS0" , "/dev/ttyS1", "/dev/ttyUSB2"});
+
+    registerConnection(serialConnection);
+
+    tcpConnection = new Connection::TCP(this);
+    tcpConnection->registerHandshake([&]() { return callHandshake(); });
+
+    registerConnection(tcpConnection);
+
     return true;
 }
 
@@ -70,9 +78,6 @@ void INDI::Focuser::ISGetProperties (const char *dev)
 {
     //  First we let our parent populate
     DefaultDevice::ISGetProperties(dev);
-
-    defineText(&PortTP);
-    loadConfig(true, "DEVICE_PORT");
 
     controller->ISGetProperties(dev);
     return;
@@ -202,17 +207,6 @@ bool INDI::Focuser::ISNewSwitch (const char *dev, const char *name, ISState *sta
 
 bool INDI::Focuser::ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n)
 {
-    if(strcmp(dev,getDeviceName())==0)
-    {
-        if (!strcmp(name, PortTP.name))
-        {
-            IUUpdateText(&PortTP, texts, names, n);
-            PortTP.s = IPS_OK;
-            IDSetText(&PortTP, NULL);
-            return true;
-        }
-    }
-
     controller->ISNewText(dev, name, texts, names, n);
 
     return DefaultDevice::ISNewText(dev, name, texts, names, n);
@@ -225,11 +219,15 @@ bool INDI::Focuser::ISSnoopDevice (XMLEle *root)
     return INDI::DefaultDevice::ISSnoopDevice(root);
 }
 
+bool INDI::Focuser::Handshake()
+{
+    return false;
+}
+
 bool INDI::Focuser::saveConfigItems(FILE *fp)
 {
     DefaultDevice::saveConfigItems(fp);
 
-    IUSaveConfigText(fp, &PortTP);
     IUSaveConfigNumber(fp, &PresetNP);
 
     controller->saveConfigItems(fp);
@@ -341,4 +339,14 @@ void INDI::Focuser::processButton(const char * button_n, ISState state)
             }
         }
     }
+}
+
+bool INDI::Focuser::callHandshake()
+{
+    if (getActiveConnection() == serialConnection)
+        PortFD = serialConnection->getPortFD();
+    else
+        PortFD = tcpConnection->getPortFD();
+
+    return Handshake();
 }

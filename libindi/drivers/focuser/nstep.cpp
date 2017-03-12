@@ -155,45 +155,27 @@ const char * NSTEP::getDefaultName() {
   return "NStep";
 }
 
-bool NSTEP::Connect() {
-  if (isConnected()) {
-    return true;
-  }
-  int connectrc = 0;
-  bool rc;
-  if (isSimulation()) {
-    IDMessage(getDeviceName(), "NStep simulation is connected.");
-    SetTimer(POLLMS);
-    return true;
-  } else {
-    if ((rc = tty_connect(PortT[0].text, 9600, 8, 0, 1, &PortFD)) != TTY_OK) {
-      tty_error_msg(rc, buf, MAXRBUF);
-      IDMessage(getDeviceName(), "Failed to connect to NStep on %s (%s)", PortT[0].text, buf);
-      return false;
+bool NSTEP::Handshake()
+{
+    if (isSimulation())
+    {
+        IDMessage(getDeviceName(), "NStep simulation is connected.");
+        return true;
     }
+
     char b = 0x06;
     int actual;
     int rc = tty_write(PortFD, &b, 1, &actual);
-    if (rc == TTY_OK) {
-      rc = tty_read(PortFD, &b, 1, 5, &actual);
-      if (rc == TTY_OK && b == 'S') {
-        IDMessage(getDeviceName(), "NStep is connected on %s.", PortT[0].text);
-        SetTimer(POLLMS);
-        return true;
-      }
+    if (rc == TTY_OK)
+    {
+        rc = tty_read(PortFD, &b, 1, 5, &actual);
+        if (rc == TTY_OK && b == 'S')
+            return true;
+        else
+            return false;
     }
-  }
-  return false;
-}
 
-bool NSTEP::Disconnect() {
-  if (!isSimulation()) {
-    tty_disconnect(PortFD);
-    IDMessage(getDeviceName(), "NStep is disconnected.");
-    return true;
-  }
-
-  return false;
+    return false;
 }
 
 bool NSTEP::initProperties() {
@@ -215,9 +197,6 @@ bool NSTEP::initProperties() {
   FocusSpeedN[0].step = 1;
 
   FocusMotionSP.r = ISR_1OFMANY;
-
-  IUFillText(&PortT[0], "PORT", "Port", "/dev/ttyACM0");
-  IUFillTextVector(&PortTP, PortT, 1, getDeviceName(), "DEVICE_PORT", "Ports", MAIN_CONTROL_TAB, IP_RW, 0, IPS_IDLE);
 
   IUFillSwitch(&TempCompS[0], "ENABLED", "Temperature compensation enabled", ISS_OFF);
   IUFillSwitch(&TempCompS[1], "DISABLED", "Temperature compensation disabled", ISS_ON);

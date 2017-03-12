@@ -181,39 +181,18 @@ bool Microtouch::updateProperties()
 
 }
 
-bool Microtouch::Connect()
+bool Microtouch::Handshake()
 {
-    int connectrc=0;
-    char errorMsg[MAXRBUF];
-
-    if ( (connectrc = tty_connect(PortT[0].text, 19200, 8, 0, 1, &PortFD)) != TTY_OK)
-    {
-        tty_error_msg(connectrc, errorMsg, MAXRBUF);
-
-        DEBUGF(INDI::Logger::DBG_SESSION, "Failed to connect to port %s. Error: %s", PortT[0].text, errorMsg);
-
-        return false;
-
-    }
-
     tcflush(PortFD, TCIOFLUSH);
 
     if (Ack())
     {
         DEBUG(INDI::Logger::DBG_SESSION, "Microtouch is online. Getting focus parameters...");
-        SetTimer(POLLMS);
         return true;
     }
 
     DEBUG(INDI::Logger::DBG_SESSION, "Error retreiving data from Microtouch, please ensure Microtouch controller is powered and the port is correct.");
     return false;
-}
-
-bool Microtouch::Disconnect()
-{
-    tty_disconnect(PortFD);
-    DEBUG(INDI::Logger::DBG_SESSION, "Microtouch is offline.");
-    return true;
 }
 
 const char * Microtouch::getDefaultName()

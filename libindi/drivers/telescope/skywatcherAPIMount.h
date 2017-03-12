@@ -28,7 +28,7 @@ public:
 
     //  overrides of base class virtual functions
     virtual bool Abort();    
-    virtual bool Connect();
+    virtual bool Handshake();
     virtual const char *getDefaultName();
     virtual bool Goto(double ra, double dec);
     virtual bool initProperties();

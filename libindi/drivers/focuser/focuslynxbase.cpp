@@ -305,9 +305,27 @@ bool FocusLynxBase::updateProperties()
 /************************************************************************************
  *
 * ***********************************************************************************/
+bool FocusLynxBase::Handshake()
+{
+    if (ack())
+    {
+      DEBUG(INDI::Logger::DBG_SESSION, "FocusLynx is online. Getting focus parameters...");
+      int modelIndex = IUFindOnSwitchIndex(&ModelSP);
+      setDeviceType(modelIndex);
+      SetTimer(POLLMS);
+      return true;
+    }
+
+    DEBUG(INDI::Logger::DBG_SESSION, "Error retreiving data from FocusLynx, please ensure FocusLynxBase controller is powered and the port is correct.");
+    return false;
+}
+
+/************************************************************************************
+ *
+* ***********************************************************************************/
 bool FocusLynxBase::Connect()
 {
-  DEBUG(INDI::Logger::DBG_SESSION, "ConnectBase is called");
+  DEBUG(INDI::Logger::DBG_DEBUG, "ConnectBase is called");
 
   int connectrc=0;
   char errorMsg[MAXRBUF];
@@ -321,25 +339,17 @@ bool FocusLynxBase::Connect()
     return false;
   }
 
-  if (!isSimulation() && (connectrc = tty_connect(PortT[0].text, 115200, 8, 0, 1, &PortFD)) != TTY_OK)
+  if (!isSimulation() && (connectrc = tty_connect(serialConnection->port(), 115200, 8, 0, 1, &PortFD)) != TTY_OK)
   {
     tty_error_msg(connectrc, errorMsg, MAXRBUF);
 
-    DEBUGF(INDI::Logger::DBG_SESSION, "Failed to connect to port %s. Error: %s", PortT[0].text, errorMsg);
+    DEBUGF(INDI::Logger::DBG_SESSION, "Failed to connect to port %s. Error: %s", serialConnection->port(), errorMsg);
 
     return false;
   }
 
-  if (ack())
-  {
-    DEBUG(INDI::Logger::DBG_SESSION, "FocusLynx is online. Getting focus parameters...");
-    setDeviceType(modelIndex);
-    SetTimer(POLLMS);
-    return true;
-  }    
+  return Handshake();
 
-  DEBUG(INDI::Logger::DBG_SESSION, "Error retreiving data from FocusLynx, please ensure FocusLynxBase controller is powered and the port is correct.");
-  return false;
 }
 
 /************************************************************************************

@@ -20,15 +20,11 @@
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
-#include <sys/ioctl.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <netdb.h>
-#include <fcntl.h>
 
 #include "inditelescope.h"
 #include "indicom.h"
+#include "connectionplugins/connectionserial.h"
+#include "connectionplugins/connectiontcp.h"
 
 INDI::Telescope::Telescope()
 {
@@ -62,11 +58,6 @@ bool INDI::Telescope::initProperties()
     IUFillText(&ActiveDeviceT[1],"ACTIVE_DOME","DOME","Dome Simulator");
     IUFillTextVector(&ActiveDeviceTP,ActiveDeviceT,2,getDeviceName(),"ACTIVE_DEVICES","Snoop devices",OPTIONS_TAB,IP_RW,60,IPS_IDLE);
 
-    // Address/Port
-    IUFillText(&AddressT[0], "ADDRESS", "Address", "");
-    IUFillText(&AddressT[1], "PORT",    "Port",    "");
-    IUFillTextVector(&AddressTP, AddressT, 2, getDeviceName(), "TCP_ADDRESS_PORT", "TCP Server", OPTIONS_TAB, IP_RW, 60, IPS_IDLE);
-
     // Use locking if dome is closed (and or) park scope if dome is closing
     IUFillSwitch(&DomeClosedLockT[0],"NO_ACTION","Ignore dome",ISS_ON);
     IUFillSwitch(&DomeClosedLockT[1],"LOCK_PARKING","Dome locks",ISS_OFF);
@@ -82,7 +73,6 @@ bool INDI::Telescope::initProperties()
     IUFillNumber(&TargetN[AXIS_RA],"RA","RA (hh:mm:ss)","%010.6m",0,24,0,0);
     IUFillNumber(&TargetN[AXIS_DE],"DEC","DEC (dd:mm:ss)","%010.6m",-90,90,0,0);
     IUFillNumberVector(&TargetNP,TargetN,2,getDeviceName(),"TARGET_EOD_COORD","Slew Target",MOTION_TAB,IP_RO,60,IPS_IDLE);
-
 
     IUFillSwitch(&ParkOptionS[0],"PARK_CURRENT","Current",ISS_OFF);
     IUFillSwitch(&ParkOptionS[1],"PARK_DEFAULT","Default",ISS_OFF);
@@ -117,17 +107,6 @@ bool INDI::Telescope::initProperties()
     IUFillSwitch(&AbortS[0],"ABORT","Abort",ISS_OFF);
     IUFillSwitchVector(&AbortSP,AbortS,1,getDeviceName(),"TELESCOPE_ABORT_MOTION","Abort Motion",MAIN_CONTROL_TAB,IP_RW,ISR_ATMOST1,60,IPS_IDLE);
 
-    IUFillText(&PortT[0],"PORT","Port","/dev/ttyUSB0");
-    IUFillTextVector(&PortTP,PortT,1,getDeviceName(),"DEVICE_PORT","Ports",OPTIONS_TAB,IP_RW,60,IPS_IDLE);
-
-    IUFillSwitch(&BaudRateS[0], "9600", "", ISS_ON);
-    IUFillSwitch(&BaudRateS[1], "19200", "", ISS_OFF);
-    IUFillSwitch(&BaudRateS[2], "38400", "", ISS_OFF);
-    IUFillSwitch(&BaudRateS[3], "57600", "", ISS_OFF);
-    IUFillSwitch(&BaudRateS[4], "115200", "", ISS_OFF);
-    IUFillSwitch(&BaudRateS[5], "230400", "", ISS_OFF);
-    IUFillSwitchVector(&BaudRateSP, BaudRateS, 6, getDeviceName(),"TELESCOPE_BAUD_RATE", "Baud Rate", OPTIONS_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
-
     IUFillSwitch(&MovementNSS[DIRECTION_NORTH], "MOTION_NORTH", "North", ISS_OFF);
     IUFillSwitch(&MovementNSS[DIRECTION_SOUTH], "MOTION_SOUTH", "South", ISS_OFF);
     IUFillSwitchVector(&MovementNSSP, MovementNSS, 2, getDeviceName(),"TELESCOPE_MOTION_NS", "Motion N/S", MOTION_TAB, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
@@ -153,6 +132,18 @@ bool INDI::Telescope::initProperties()
 
     setDriverInterface(TELESCOPE_INTERFACE);
 
+    serialConnection = new Connection::Serial(this);
+    serialConnection->registerHandshake([&]() { return callHandshake(); });
+    serialConnection->setCandidatePorts({ "/dev/ttyUSB0" , "/dev/ttyUSB1" , "/dev/ttyUSB2", "/dev/ttyUSB3",
+                                          "/dev/rfcomm0" , "/dev/ttyS0" , "/dev/ttyS1", "/dev/ttyS2"});
+
+    registerConnection(serialConnection);
+
+    tcpConnection = new Connection::TCP(this);
+    tcpConnection->registerHandshake([&]() { return callHandshake(); });
+
+    registerConnection(tcpConnection);
+
     IDSnoopDevice(ActiveDeviceT[0].text,"GEOGRAPHIC_COORD");
     IDSnoopDevice(ActiveDeviceT[0].text,"TIME_UTC");
 
@@ -166,21 +157,6 @@ void INDI::Telescope::ISGetProperties (const char *dev)
 {
     //  First we let our parent populate
     DefaultDevice::ISGetProperties(dev);
-
-    if (connectionMode != CONNECTION_TCP)
-    {
-        defineText(&PortTP);
-        loadConfig(true, "DEVICE_PORT");
-
-        defineSwitch(&BaudRateSP);
-        loadConfig(true, "TELESCOPE_BAUD_RATE");
-    }
-
-    if (connectionMode != CONNECTION_SERIAL)
-    {
-        defineText(&AddressTP);
-        loadConfig(true, "TCP_IP_ADDRESS");
-    }
 
     defineText(&ActiveDeviceTP);
     loadConfig(true, "ACTIVE_DEVICES");
@@ -411,31 +387,12 @@ void INDI::Telescope::triggerSnoop(const char *driverName, const char *snoopedPr
     IDSnoopDevice(driverName, snoopedProp);
 }
 
-INDI::Telescope::TelescopeConnection INDI::Telescope::getConnectionMode() const
-{
-    return connectionMode;
-}
-
-void INDI::Telescope::setConnectionMode(const TelescopeConnection &value)
-{
-    connectionMode = value;
-}
-
 bool INDI::Telescope::saveConfigItems(FILE *fp)
 {
     DefaultDevice::saveConfigItems(fp);
 
     IUSaveConfigText(fp, &ActiveDeviceTP);
-    IUSaveConfigSwitch(fp, &DomeClosedLockTP);
-
-    if (connectionMode != CONNECTION_TCP)
-    {
-        IUSaveConfigText(fp, &PortTP);
-        IUSaveConfigSwitch(fp, &BaudRateSP);
-    }
-
-    if (connectionMode != CONNECTION_SERIAL)
-        IUSaveConfigText(fp, &AddressTP);
+    IUSaveConfigSwitch(fp, &DomeClosedLockTP);    
 
     if (HasLocation())
         IUSaveConfigNumber(fp,&LocationNP);
@@ -517,24 +474,7 @@ bool INDI::Telescope::ISNewText (const char *dev, const char *name, char *texts[
 {
     //  first check if it's for our device
     if(!strcmp(dev,getDeviceName()))
-    {
-        // Serial Port
-        if(!strcmp(name,PortTP.name))
-        {
-            IUUpdateText(&PortTP,texts,names,n);
-            PortTP.s=IPS_OK;
-            IDSetText(&PortTP,NULL);
-            return true;
-        }
-
-        // TCP Server settings
-        if (!strcmp(name, AddressTP.name))
-        {
-            IUUpdateText(&AddressTP, texts, names, n);
-            AddressTP.s = IPS_OK;
-            IDSetText(&AddressTP, NULL);
-            return true;
-        }
+    {        
 
         if(!strcmp(name,TimeTP.name))
         {
@@ -985,14 +925,6 @@ bool INDI::Telescope::ISNewSwitch (const char *dev, const char *name, ISState *s
         return true;
       }
 
-      if (!strcmp(name, BaudRateSP.name))
-      {
-          IUUpdateSwitch(&BaudRateSP, states, names, n);
-          BaudRateSP.s = IPS_OK;
-          IDSetSwitch(&BaudRateSP, NULL);
-          return true;
-      }
-
       // Dome parking policy
       if (!strcmp(name, DomeClosedLockTP.name))
       {
@@ -1045,163 +977,21 @@ bool INDI::Telescope::ISNewSwitch (const char *dev, const char *name, ISState *s
     return DefaultDevice::ISNewSwitch(dev,name,states,names,n);
 }
 
-
-bool INDI::Telescope::Connect()
+bool INDI::Telescope::callHandshake()
 {
-    bool rc=false;
-
-    if(isConnected() || isSimulation())
-        return true;
-
-    // Check if TCP Address exists and not empty.
-    // We call the TCP function in case the connection mode is set explicitly to TCP **OR** if the address is not empty (for CONNECTION_BOTH) then
-    // TCP connection has higher priority than serial port.
-    if (connectionMode == CONNECTION_TCP || (AddressT[0].text && AddressT[0].text[0] && AddressT[1].text && AddressT[1].text[0]))
-        rc = Connect(AddressT[0].text, AddressT[1].text);
+    if (getActiveConnection() == serialConnection)
+        PortFD = serialConnection->getPortFD();
     else
-    {
-        uint32_t baud = atoi(IUFindOnSwitch(&BaudRateSP)->name);
-        rc = Connect(PortT[0].text, baud);
+        PortFD = tcpConnection->getPortFD();
 
-        if (rc == false)
-        {
-            DEBUGF(INDI::Logger::DBG_DEBUG, "Connection to %s @ %d failed.", PortT[0].text, baud);
-            for (std::string onePort : m_Ports)
-            {
-                DEBUGF(INDI::Logger::DBG_DEBUG, "Trying connection to %s @ %d ...", onePort.c_str(), baud);
-                if (rc = Connect(onePort.c_str(), baud))
-                {
-                    IUSaveText(&PortT[0], onePort.c_str());
-                    IDSetText(&PortTP, NULL);
-                    saveConfig(true, "DEVICE_PORT");
-                    break;
-                }
-            }
-        }
-    }
-
-    if(rc)
-        SetTimer(updatePeriodMS);
-    return rc;
+    return Handshake();
 }
 
-bool INDI::Telescope::Connect(const char *port, uint32_t baud)
-{
-    //  We want to connect to a port
-    //  For now, we will assume it's a serial port
-    int connectrc=0;
-    char errorMsg[MAXRBUF];
-    bool rc;
-
-    DEBUGF(Logger::DBG_DEBUG, "INDI::Telescope connecting to %s",port);
-
-    if ( (connectrc = tty_connect(port, baud, 8, 0, 1, &PortFD)) != TTY_OK)
-    {
-        tty_error_msg(connectrc, errorMsg, MAXRBUF);
-
-        DEBUGF(Logger::DBG_ERROR,"Failed to connect to port %s. Error: %s", port, errorMsg);
-
-        return false;
-
-    }
-
-    DEBUGF(Logger::DBG_DEBUG, "Port FD %d",PortFD);
-
+bool INDI::Telescope::Handshake()
+{    
     /* Test connection */
-    rc=ReadScopeStatus();
-    if(rc)
-    {
-        //  We got a valid scope status read
-        DEBUG(Logger::DBG_SESSION,"Telescope is online.");
-        return rc;
-    }
-
-    //  Ok, we didn't get a valid read
-    //  So, we need to close our handle and send error messages
-    tty_disconnect(PortFD);
-
-    return false;
+    return ReadScopeStatus();
 }
-
-bool INDI::Telescope::Connect(const char *hostname, const char *port)
-{
-    if (sockfd != -1)
-        close(sockfd);
-
-    struct timeval ts;
-    ts.tv_sec = SOCKET_TIMEOUT;
-    ts.tv_usec=0;
-
-    if (!hostname || !hostname[0] || !port || !port[0])
-    {
-        DEBUG(INDI::Logger::DBG_ERROR, "TCP server address and port are invalid. Please fill the required parameters and try again.");
-        return false;
-    }
-
-    DEBUGF(INDI::Logger::DBG_SESSION, "Connecting to %s@%s ...", hostname, port);
-
-    struct sockaddr_in serv_addr;
-    struct hostent *hp = NULL;
-    int ret = 0;
-
-    // Lookup host name or IPv4 address
-    hp = gethostbyname(hostname);
-    if (!hp)
-    {
-        DEBUG(INDI::Logger::DBG_ERROR, "Failed to lookup IP Address or hostname.");
-        return false;
-    }
-
-    memset (&serv_addr, 0, sizeof(serv_addr));
-    serv_addr.sin_family = AF_INET;
-    serv_addr.sin_addr.s_addr = ((struct in_addr *)(hp->h_addr_list[0]))->s_addr;
-    serv_addr.sin_port = htons(atoi(port));
-
-    if ((sockfd = socket(AF_INET, SOCK_STREAM, 0)) < 0)
-    {
-        DEBUG(INDI::Logger::DBG_ERROR, "Failed to create socket.");
-        return false;
-    }
-
-    // Connect to the mount
-    if ( (ret = ::connect (sockfd,(struct sockaddr *)&serv_addr,sizeof(serv_addr))) < 0)
-    {
-        DEBUGF(INDI::Logger::DBG_ERROR, "Failed to connect to mount %s@%s: %s.", hostname, port, strerror(errno));
-        close(sockfd);
-        sockfd=-1;
-        return false;
-    }
-
-    // Set the socket receiving and sending timeouts
-    setsockopt(sockfd, SOL_SOCKET, SO_RCVTIMEO, (char *)&ts,sizeof(struct timeval));
-    setsockopt(sockfd, SOL_SOCKET, SO_SNDTIMEO, (char *)&ts,sizeof(struct timeval));
-
-    DEBUGF(INDI::Logger::DBG_SESSION, "Connected successfuly to %s.", getDeviceName());
-
-    // now let the rest of INDI::Telescope use our socket as if it were a serial port
-    PortFD = sockfd;
-
-    return true;
-}
-
-bool INDI::Telescope::Disconnect()
-{
-    DEBUG(Logger::DBG_SESSION,"Telescope is offline.");
-
-    if (isSimulation())
-        return true;
-
-    if (sockfd != -1)
-    {
-        close(sockfd);
-        sockfd = -1;
-    }
-    else
-        tty_disconnect(PortFD);
-
-    return true;
-}
-
 
 void INDI::Telescope::TimerHit()
 {

@@ -100,8 +100,6 @@ bool SteelDrive::initProperties()
 {
     INDI::Focuser::initProperties();
 
-    IUSaveText(&PortT[0], "/dev/ttyACM0");
-
     FocusSpeedN[0].min = 350;
     FocusSpeedN[0].max = 1000;
     FocusSpeedN[0].value = 500;
@@ -210,43 +208,21 @@ bool SteelDrive::updateProperties()
 
 }
 
-bool SteelDrive::Connect()
+bool SteelDrive::Handshake()
 {
-    int connectrc=0;
-    char errorMsg[MAXRBUF];
-
-    sim = isSimulation();
-
-    if (!sim && (connectrc = tty_connect(PortT[0].text, 9600, 8, 0, 1, &PortFD)) != TTY_OK)
-    {
-        tty_error_msg(connectrc, errorMsg, MAXRBUF);
-
-        DEBUGF(INDI::Logger::DBG_SESSION, "Failed to connect to port %s. Error: %s", PortT[0].text, errorMsg);
-
-        return false;
-
-    }
+    if (isSimulation())
+        return true;
 
     if (Ack())
     {
         DEBUG(INDI::Logger::DBG_SESSION, "SteelDrive is online. Getting focus parameters...");
         temperatureUpdateCounter=0;
-        SetTimer(POLLMS);
         return true;
     }
 
 
     DEBUG(INDI::Logger::DBG_SESSION, "Error retreiving data from SteelDrive, please ensure SteelDrive controller is powered and the port is correct.");
     return false;
-}
-
-bool SteelDrive::Disconnect()
-{
-    temperatureUpdateCounter=0;
-    if (!sim)
-        tty_disconnect(PortFD);
-    DEBUG(INDI::Logger::DBG_SESSION, "SteelDrive is offline.");
-    return true;
 }
 
 const char * SteelDrive::getDefaultName()

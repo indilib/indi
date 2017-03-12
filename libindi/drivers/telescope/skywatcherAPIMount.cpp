@@ -100,18 +100,10 @@ bool  SkywatcherAPIMount::Abort()
     return true;
 }
 
-bool  SkywatcherAPIMount::Connect()
+bool SkywatcherAPIMount::Handshake()
 {
-    DEBUG(DBG_SCOPE, "SkywatcherAPIMount::Connect");
-
-	if (!INDI::Telescope::Connect())
-		return false;
-
-    // Tell SkywatcherAPI about the serial port
-    //SetSerialPort(PortFD); Hacked in ReadScopeStatus
-
     DEBUG(DBG_SCOPE, "SkywatcherAPIMount::Connect - Call InitMount");
-	bool Result = InitMount();
+    bool Result = InitMount();
 
     // The default slew mode is silent on Virtuoso mounts.
     if (Result && IsVirtuosoMount() &&
