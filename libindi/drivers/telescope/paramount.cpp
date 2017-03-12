@@ -27,6 +27,7 @@
 #include <unistd.h>
 #include <sys/time.h>
 #include <time.h>
+#include <regex>
 
 #include "paramount.h"
 #include "indicom.h"
@@ -184,12 +185,13 @@ bool Paramount::updateProperties()
 
 bool Paramount::Handshake()
 {
-    int rc=0, nbytes_written=0, nbytes_read=0;
+    int rc=0, nbytes_written=0, nbytes_read=0, errorCode=0;
     char pCMD[MAXRBUF], pRES[MAXRBUF];
 
     strncpy(pCMD, "/* Java Script */"
+                  "var Out;"
                   "sky6RASCOMTele.Connect();"
-                  "var Out = sky6RASCOMTele.IsConnected;", MAXRBUF);
+                  "Out = sky6RASCOMTele.IsConnected;", MAXRBUF);
 
     DEBUGF(INDI::Logger::DBG_DEBUG, "CMD: %s", pCMD);
 
@@ -207,12 +209,17 @@ bool Paramount::Handshake()
     }
 
     DEBUGF(INDI::Logger::DBG_DEBUG, "RES: %s", pRES);
-    int isTelescopeConnected=0;
+    int isTelescopeConnected=-1;
 
-    rc = sscanf(pRES, "Out = %d", &isTelescopeConnected);
-    if (rc <= 1 || isTelescopeConnected == 0)
+    std::regex rgx("(\\d+)\\|(.+)\\. Error = (\\d+)\\.");
+    std::smatch match;
+    std::string input(pRES);
+    if (std::regex_search(input, match, rgx))
+        isTelescopeConnected = atoi(match.str(1).c_str());
+
+    if (isTelescopeConnected <= 0)
     {
-        DEBUG(INDI::Logger::DBG_ERROR, "Error connecting to telescope.");
+        DEBUGF(INDI::Logger::DBG_ERROR, "Error connecting to telescope: %s (%d).", match.str(1).c_str(), atoi(match.str(2).c_str()));
         return false;
     }
 
