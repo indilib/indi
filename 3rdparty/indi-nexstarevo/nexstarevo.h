@@ -22,7 +22,8 @@ public:
 protected:
     virtual bool initProperties();
     virtual bool saveConfigItems(FILE *fp);
-    virtual bool Connect();
+    //virtual bool Connect();
+    virtual bool Handshake();
     virtual bool Disconnect();
 
     virtual const char *getDefaultName();

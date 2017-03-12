@@ -9,6 +9,8 @@
 #include "config.h"
 #include "nexstarevo.h"
 #include <indicom.h>
+#include <connectiontcp.h>
+#include <connectionserial.h>
 
 #include "NexStarAUXScope.h"
 
@@ -139,6 +141,7 @@ bool NexStarEvo::Abort()
     return true;
 }
 
+#if 0
 bool NexStarEvo::Connect()
 {
     SetTimer(POLLMS);
@@ -149,8 +152,7 @@ bool NexStarEvo::Connect()
     TelescopeConnection mode = getConnectionMode();
     if (mode == CONNECTION_TCP && (AddressT[0].text && AddressT[0].text[0] && AddressT[1].text && AddressT[1].text[0])) {
         // We have the proposed IP:port let us pass that
-        if (scope == NULL)
-            scope = new NexStarAUXScope(AddressT[0].text,atoi(AddressT[1].text));
+
     } else if (mode == CONNECTION_TCP ) {
         // TCP mode but no IP fields - use detection/default IP:port
         if (scope == NULL)
@@ -161,13 +163,24 @@ bool NexStarEvo::Connect()
     }
     return true;
 }
+#endif
+
+bool NexStarEvo::Handshake()
+{
+    if (scope == NULL)
+        scope = new NexStarAUXScope(tcpConnection->host(), tcpConnection->port());
+
+     return scope->Connect();
+}
 
 bool NexStarEvo::Disconnect()
 {
-    if (scope != NULL) {
+    if (scope != NULL)
+    {
         scope->Disconnect();
     }
-    return true;
+
+    return INDI::Telescope::Disconnect();
 }
 
 const char * NexStarEvo::getDefaultName()
@@ -364,7 +377,9 @@ bool NexStarEvo::initProperties()
     IUFillSwitchVector(&SlewRateSP, SlewRateS, 4, getDeviceName(), "SLEWMODE", "Slew Rate", MOTION_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
     TrackState=SCOPE_IDLE;
-    setConnectionMode(CONNECTION_TCP);
+
+    // We don't want serial port for now
+    unRegisterConnection(serialConnection);
 
     /* Add debug controls so we may debug driver if necessary */
     addDebugControl();
