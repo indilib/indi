@@ -30,6 +30,10 @@ Serial::Serial(INDI::DefaultDevice *dev) : Interface(dev)
     IUFillText(&PortT[0],"PORT","Port","/dev/ttyUSB0");
     IUFillTextVector(&PortTP,PortT,1, dev->getDeviceName(),"DEVICE_PORT","Ports",CONNECTION_TAB,IP_RW,60,IPS_IDLE);
 
+    IUFillSwitch(&AutoSearchS[0], "ENABLED", "Enabled", ISS_ON);
+    IUFillSwitch(&AutoSearchS[1], "DISABLED", "Disabled", ISS_OFF);
+    IUFillSwitchVector(&AutoSearchSP, AutoSearchS, 2, dev->getDeviceName(),"DEVICE_AUTO_SEARCH", "Auto Search", CONNECTION_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
+
     IUFillSwitch(&BaudRateS[0], "9600", "", ISS_ON);
     IUFillSwitch(&BaudRateS[1], "19200", "", ISS_OFF);
     IUFillSwitch(&BaudRateS[2], "38400", "", ISS_OFF);
@@ -72,6 +76,14 @@ bool Serial::ISNewSwitch (const char *dev, const char *name, ISState *states, ch
             IDSetSwitch(&BaudRateSP, NULL);
             return true;
         }
+
+        if (!strcmp(name, AutoSearchSP.name))
+        {
+            IUUpdateSwitch(&AutoSearchSP, states, names, n);
+            AutoSearchSP.s = IPS_OK;
+            IDSetSwitch(&AutoSearchSP, NULL);
+            return true;
+        }
     }
 
     return false;
@@ -82,9 +94,9 @@ bool Serial::Connect()
     uint32_t baud = atoi(IUFindOnSwitch(&BaudRateSP)->name);
     bool rc = Connect(PortT[0].text, baud);
 
-    if (rc == false)
+    if (rc == false && AutoSearchS[0].s == ISS_ON)
     {
-        DEBUGF(INDI::Logger::DBG_DEBUG, "Connection to %s @ %d failed.", PortT[0].text, baud);
+        DEBUGF(INDI::Logger::DBG_WARNING, "Connection to %s @ %d failed. Starting Auto Search...", PortT[0].text, baud);
         for (std::string onePort : m_Ports)
         {
             DEBUGF(INDI::Logger::DBG_DEBUG, "Trying connection to %s @ %d ...", onePort.c_str(), baud);
@@ -92,7 +104,6 @@ bool Serial::Connect()
             {
                 IUSaveText(&PortT[0], onePort.c_str());
                 IDSetText(&PortTP, NULL);
-                device->saveConfig(true, "DEVICE_PORT");
                 break;
             }
         }
@@ -100,7 +111,16 @@ bool Serial::Connect()
 
     if (rc)
     {
-        return Handshake();
+        DEBUG(INDI::Logger::DBG_DEBUG, "Connection successful, attempting handshake...");
+        rc = Handshake();
+        if (rc)
+        {
+            DEBUGF(INDI::Logger::DBG_SESSION, "%s is online.", getDeviceName());
+            device->saveConfig(true, "DEVICE_PORT");
+            device->saveConfig(true, "DEVICE_BAUD_RATE");
+        }
+        else
+            DEBUG(INDI::Logger::DBG_DEBUG, "Handshake failed.");
     }
 
     return rc;
@@ -137,6 +157,8 @@ bool Serial::Disconnect()
         tty_disconnect(PortFD);
         PortFD = -1;
     }
+
+    return true;
 }
 
 void Serial::Activated()
@@ -146,19 +168,23 @@ void Serial::Activated()
 
     device->defineSwitch(&BaudRateSP);
     device->loadConfig(true, "DEVICE_BAUD_RATE");
+
+    device->defineSwitch(&AutoSearchSP);
+    device->loadConfig(true, "DEVICE_AUTO_SEARCH");
 }
 
 void Serial::Deactivated()
 {
     device->deleteProperty(PortTP.name);
     device->deleteProperty(BaudRateSP.name);
-
+    device->deleteProperty(AutoSearchSP.name);
 }
 
 bool Serial::saveConfigItems(FILE *fp)
 {
     IUSaveConfigText(fp, &PortTP);
     IUSaveConfigSwitch(fp, &BaudRateSP);
+    IUSaveConfigSwitch(fp, &AutoSearchSP);
 
     return true;
 }

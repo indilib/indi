@@ -75,6 +75,11 @@ protected:
     ISwitch BaudRateS[6];
     ISwitchVectorProperty BaudRateSP;
 
+    // Should serial connection attempt to try connecting with the candiate ports (enabled) or just fail when
+    // connection to current port fails (disabled)
+    ISwitch AutoSearchS[6];
+    ISwitchVectorProperty AutoSearchSP;
+
     int PortFD=-1;
 
     std::vector<std::string> m_Ports;

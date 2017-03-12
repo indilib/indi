@@ -70,64 +70,73 @@ bool TCP::Connect()
     {
         DEBUG(INDI::Logger::DBG_ERROR, "Error! Server address is missing or invalid.");
         return false;
-    }
-
-    if (device->isSimulation())
-        return true;
+    }    
 
     const char *hostname = AddressT[0].text;
     const char *port     = AddressT[1].text;
 
-    if (sockfd != -1)
-        close(sockfd);
-
-    struct timeval ts;
-    ts.tv_sec = SOCKET_TIMEOUT;
-    ts.tv_usec=0;
-
     DEBUGF(INDI::Logger::DBG_SESSION, "Connecting to %s@%s ...", hostname, port);
 
-    struct sockaddr_in serv_addr;
-    struct hostent *hp = NULL;
-    int ret = 0;
-
-    // Lookup host name or IPv4 address
-    hp = gethostbyname(hostname);
-    if (!hp)
+    if (device->isSimulation() == false)
     {
-        DEBUG(INDI::Logger::DBG_ERROR, "Failed to lookup IP Address or hostname.");
-        return false;
+        struct sockaddr_in serv_addr;
+        struct hostent *hp = NULL;
+        int ret = 0;
+
+        struct timeval ts;
+        ts.tv_sec = SOCKET_TIMEOUT;
+        ts.tv_usec=0;
+
+        if (sockfd != -1)
+            close(sockfd);
+
+        // Lookup host name or IPv4 address
+        hp = gethostbyname(hostname);
+        if (!hp)
+        {
+            DEBUG(INDI::Logger::DBG_ERROR, "Failed to lookup IP Address or hostname.");
+            return false;
+        }
+
+        memset (&serv_addr, 0, sizeof(serv_addr));
+        serv_addr.sin_family = AF_INET;
+        serv_addr.sin_addr.s_addr = ((struct in_addr *)(hp->h_addr_list[0]))->s_addr;
+        serv_addr.sin_port = htons(atoi(port));
+
+        if ((sockfd = socket(AF_INET, SOCK_STREAM, 0)) < 0)
+        {
+            DEBUG(INDI::Logger::DBG_ERROR, "Failed to create socket.");
+            return false;
+        }
+
+        // Connect to the mount
+        if ( (ret = ::connect (sockfd,(struct sockaddr *)&serv_addr,sizeof(serv_addr))) < 0)
+        {
+            DEBUGF(INDI::Logger::DBG_ERROR, "Failed to connect to mount %s@%s: %s.", hostname, port, strerror(errno));
+            close(sockfd);
+            sockfd=-1;
+            return false;
+        }
+
+        // Set the socket receiving and sending timeouts
+        setsockopt(sockfd, SOL_SOCKET, SO_RCVTIMEO, (char *)&ts,sizeof(struct timeval));
+        setsockopt(sockfd, SOL_SOCKET, SO_SNDTIMEO, (char *)&ts,sizeof(struct timeval));
     }
-
-    memset (&serv_addr, 0, sizeof(serv_addr));
-    serv_addr.sin_family = AF_INET;
-    serv_addr.sin_addr.s_addr = ((struct in_addr *)(hp->h_addr_list[0]))->s_addr;
-    serv_addr.sin_port = htons(atoi(port));
-
-    if ((sockfd = socket(AF_INET, SOCK_STREAM, 0)) < 0)
-    {
-        DEBUG(INDI::Logger::DBG_ERROR, "Failed to create socket.");
-        return false;
-    }
-
-    // Connect to the mount
-    if ( (ret = ::connect (sockfd,(struct sockaddr *)&serv_addr,sizeof(serv_addr))) < 0)
-    {
-        DEBUGF(INDI::Logger::DBG_ERROR, "Failed to connect to mount %s@%s: %s.", hostname, port, strerror(errno));
-        close(sockfd);
-        sockfd=-1;
-        return false;
-    }
-
-    // Set the socket receiving and sending timeouts
-    setsockopt(sockfd, SOL_SOCKET, SO_RCVTIMEO, (char *)&ts,sizeof(struct timeval));
-    setsockopt(sockfd, SOL_SOCKET, SO_SNDTIMEO, (char *)&ts,sizeof(struct timeval));
-
-    DEBUGF(INDI::Logger::DBG_SESSION, "Connected successfuly to %s.", getDeviceName());
 
     PortFD = sockfd;
 
-    return Handshake();
+    DEBUG(INDI::Logger::DBG_DEBUG, "Connection successful, attempting handshake...");
+    bool rc = Handshake();
+
+    if (rc)
+    {
+        DEBUGF(INDI::Logger::DBG_SESSION, "%s is online.", getDeviceName());
+        device->saveConfig(true, "DEVICE_TCP_ADDRESS");
+    }
+    else
+        DEBUG(INDI::Logger::DBG_DEBUG, "Handshake failed.");
+
+    return true;
 }
 
 bool TCP::Disconnect()
@@ -135,8 +144,10 @@ bool TCP::Disconnect()
     if (sockfd > 0)
     {
         close(sockfd);
-        sockfd = -1;
+        sockfd = PortFD = -1;
     }
+
+    return true;
 }
 
 void TCP::Activated()
