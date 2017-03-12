@@ -313,6 +313,10 @@ protected:
          */
         virtual bool SetSlewRate(int index);
 
+        /**
+         * @brief callHandshake Helper function that sets the port file descriptor before calling the actual Handshack function impmenented in drivers
+         * @return Result of actual device Handshake()
+         */
         bool callHandshake();
 
         // Joystick
@@ -399,6 +403,8 @@ protected:
         bool WriteParkData();
 
         int PortFD=-1;
+        Connection::Serial *serialConnection=NULL;
+        Connection::TCP *tcpConnection=NULL;
 
 private:
 
@@ -423,10 +429,7 @@ private:
 
         IPState lastEqState;
 
-        INDI::Controller *controller;        
-
-        Connection::Serial *serialConnection=NULL;
-        Connection::TCP *tcpConnection=NULL;
+        INDI::Controller *controller;
 };
 
 #endif // INDI::Telescope_H
