@@ -48,8 +48,7 @@ public:
     ~LX200_10MICRON(void) {}
 
     virtual const char *getDefaultName(void);
-    virtual bool Connect(const char *port, uint32_t baud);
-    virtual bool Connect(const char *hostname, const char *port);
+    virtual bool Handshake() override;
     virtual bool initProperties(void);
     virtual bool updateProperties(void);
     virtual bool ReadScopeStatus(void);
@@ -63,7 +62,6 @@ public:
 protected:
 
     virtual void getBasicData(void);
-    virtual bool onConnect(void);
 
     IText               ProductT[4];
     ITextVectorProperty ProductTP;

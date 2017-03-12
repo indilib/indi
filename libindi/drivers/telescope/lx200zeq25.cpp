@@ -69,6 +69,9 @@ const char * LX200ZEQ25::getDefaultName()
 
 bool LX200ZEQ25::checkConnection()
 {
+    if (isSimulation())
+        return true;
+
     char initCMD[] = ":V#";
     int errcode = 0;
     char errmsg[MAXRBUF];

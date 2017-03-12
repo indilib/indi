@@ -26,8 +26,12 @@
 #include "base64.h"
 #include "indiproperty.h"
 
+#include "connectionplugins/connectionserial.h"
+#include "connectionplugins/connectiontcp.h"
+
 const char *COMMUNICATION_TAB = "Communication";
 const char *MAIN_CONTROL_TAB = "Main Control";
+const char *CONNECTION_TAB = "Connection";
 const char *MOTION_TAB = "Motion Control";
 const char *DATETIME_TAB = "Date/Time";
 const char *SITE_TAB = 	"Site Management";
@@ -50,7 +54,6 @@ void timerfunc(void *t)
     }
     return;
 }
-
 
 INDI::DefaultDevice::DefaultDevice()
 {
@@ -92,9 +95,13 @@ bool INDI::DefaultDevice::loadConfig(bool silent, const char *property)
 bool INDI::DefaultDevice::saveConfigItems(FILE *fp)
 {
     IUSaveConfigSwitch(fp, &DebugSP);
+    if (ConnectionModeS != NULL)
+       IUSaveConfigSwitch(fp, &ConnectionModeSP);
+
+    if (activeConnection)
+        activeConnection->saveConfigItems(fp);
 
     return INDI::Logger::saveConfigItems(fp);
-
 }
 
 bool INDI::DefaultDevice::saveAllConfigItems(FILE *fp)
@@ -371,6 +378,34 @@ bool INDI::DefaultDevice::ISNewSwitch (const char *dev, const char *name, ISStat
         return true;
     }
 
+     if (!strcmp(name, ConnectionModeSP.name))
+     {
+         IUUpdateSwitch(&ConnectionModeSP, states, names, n);         
+
+         int activeConnectionIndex = IUFindOnSwitchIndex(&ConnectionModeSP);
+
+         if (activeConnectionIndex >= 0 && activeConnectionIndex < connections.size())
+         {
+             activeConnection = connections[activeConnectionIndex];
+             activeConnection->Activated();
+
+             for(Connection::Interface *oneConnection : connections)
+             {
+                 if (oneConnection == activeConnection)
+                     continue;
+
+                 oneConnection->Deactivated();
+             }
+
+             ConnectionModeSP.s = IPS_OK;
+         }
+         else
+             ConnectionModeSP.s = IPS_ALERT;
+
+         IDSetSwitch(&ConnectionModeSP, NULL);
+
+         return true;
+     }
 
     if (!strcmp(svp->name, "DEBUG"))
     {
@@ -439,8 +474,27 @@ bool INDI::DefaultDevice::ISNewSwitch (const char *dev, const char *name, ISStat
         return rc;
     }
 
+    for (Connection::Interface *oneConnection : connections)
+        oneConnection->ISNewSwitch(dev, name, states, names, n);
+
     return false;
 
+}
+
+bool INDI::DefaultDevice::ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n)
+{
+    for (Connection::Interface *oneConnection : connections)
+        oneConnection->ISNewNumber(dev, name, values, names, n);
+
+    return false;
+}
+
+bool INDI::DefaultDevice::ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n)
+{
+    for (Connection::Interface *oneConnection : connections)
+        oneConnection->ISNewText(dev, name, texts, names, n);
+
+    return false;
 }
 
 void INDI::DefaultDevice::addDebugControl()
@@ -570,7 +624,6 @@ void INDI::DefaultDevice::simulationTriggered(bool enable)
 
 void INDI::DefaultDevice::ISGetProperties (const char *dev)
 {
-    std::vector<INDI::Property *>::iterator orderi;
     INDI_PROPERTY_TYPE pType;
     void *pPtr;
 
@@ -592,10 +645,10 @@ void INDI::DefaultDevice::ISGetProperties (const char *dev)
         addConfigurationControl();
     }
 
-    for (orderi = pAll.begin(); orderi != pAll.end(); orderi++)
+    for (INDI::Property *oneProperty : pAll)
     {
-        pType       = (*orderi)->getType();
-        pPtr        = (*orderi)->getProperty();
+        pType       = oneProperty->getType();
+        pPtr        = oneProperty->getProperty();
 
         switch (pType)
         {
@@ -624,7 +677,27 @@ void INDI::DefaultDevice::ISGetProperties (const char *dev)
         loadConfig(true, "DEBUG_LEVEL");
         loadConfig(true, "LOGGING_LEVEL");
         loadConfig(true, "LOG_OUTPUT");
+    }
 
+    if (ConnectionModeS == NULL)
+    {        
+        if (connections.size() > 0)
+        {
+            ConnectionModeS = (ISwitch *) malloc(connections.size() * sizeof(ISwitch));
+            ISwitch *sp = ConnectionModeS;
+            for (Connection::Interface *oneConnection: connections)
+            {
+                IUFillSwitch(sp++, oneConnection->name().c_str(), oneConnection->label().c_str(), ISS_OFF);
+            }
+
+            activeConnection = connections[0];
+            ConnectionModeS[0].s = ISS_ON;
+            IUFillSwitchVector(&ConnectionModeSP, ConnectionModeS, connections.size(), getDeviceName(), "CONNECTION_MODE", "Connection Mode", CONNECTION_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
+
+            defineSwitch(&ConnectionModeSP);
+            activeConnection->Activated();
+            loadConfig(true, "CONNECTION_MODE");
+        }
     }
 
     isInit = true;
@@ -758,7 +831,7 @@ bool INDI::DefaultDevice::initProperties()
     IUFillText(&DriverInfoT[1],"DRIVER_EXEC","Exec",getDriverExec());
     IUFillText(&DriverInfoT[2],"DRIVER_VERSION","Version",versionStr);
     IUFillText(&DriverInfoT[3],"DRIVER_INTERFACE","Interface", interfaceStr);
-    IUFillTextVector(&DriverInfoTP,DriverInfoT,4,getDeviceName(),"DRIVER_INFO","Driver Info",OPTIONS_TAB,IP_RO,60,IPS_IDLE);
+    IUFillTextVector(&DriverInfoTP,DriverInfoT,4,getDeviceName(),"DRIVER_INFO","Driver Info",CONNECTION_TAB,IP_RO,60,IPS_IDLE);
     registerProperty(&DriverInfoTP, INDI_TEXT);
 
     IUFillSwitch(&DebugS[0], "ENABLE", "Enable", ISS_OFF);
@@ -832,4 +905,71 @@ void INDI::DefaultDevice::defineBLOB(IBLOBVectorProperty *bvp)
 {
     registerProperty(bvp, INDI_BLOB);
     IDDefBLOB(bvp, NULL);
+}
+
+bool INDI::DefaultDevice::Connect()
+{
+    if(isConnected())
+        return true;
+
+    if (activeConnection == NULL)
+    {
+        DEBUG(INDI::Logger::DBG_ERROR, "No active connection defined.");
+        return false;
+    }
+
+    bool rc=false;
+
+    rc = activeConnection->Connect();
+
+    if (rc)
+    {
+        saveConfig(true, "CONNECTION_MODE");
+        SetTimer(updatePeriodMS);
+    }
+
+    return rc;
+}
+
+bool INDI::DefaultDevice::Disconnect()
+{    
+    if (isSimulation())
+    {
+        DEBUGF(Logger::DBG_SESSION,"%s is offline.", getDeviceName());
+        return true;
+    }
+
+    if (activeConnection)
+    {
+        bool rc = activeConnection->Disconnect();
+        if (rc)
+            DEBUGF(Logger::DBG_SESSION,"%s is offline.", getDeviceName());
+        else
+            return false;
+    }
+
+    return false;
+}
+
+void INDI::DefaultDevice::registerConnection(Connection::Interface *newConnection)
+{
+    connections.push_back(newConnection);
+}
+
+bool INDI::DefaultDevice::unRegisterConnection(Connection::Interface *existingConnection)
+{
+    auto i = std::begin(connections);
+
+    while (i != std::end(connections))
+    {
+        if (*i == existingConnection)
+        {
+            i = connections.erase(i);
+            return true;
+        }
+        else
+            ++i;
+    }
+
+    return false;
 }

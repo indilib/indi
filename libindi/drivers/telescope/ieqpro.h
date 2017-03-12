@@ -39,11 +39,10 @@ protected:
 
  virtual const char *getDefaultName();
 
- virtual bool initProperties();
- virtual bool updateProperties();
+ virtual bool Handshake();
 
- virtual bool Connect(const char *port, uint32_t baud);
- virtual bool Disconnect();
+ virtual bool initProperties();
+ virtual bool updateProperties(); 
 
  virtual bool ReadScopeStatus();
 
@@ -121,8 +120,6 @@ private:
  INumberVectorProperty GuideRateNP;
 
  unsigned int DBG_SCOPE;
- bool sim;
- bool timeUpdated, locationUpdated;
  double currentRA, currentDEC;
  double targetRA,targetDEC;
  double parkRA, parkDEC;

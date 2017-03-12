@@ -94,8 +94,7 @@ public:
 
     typedef enum { FOCUS_HALF_STEP, FOCUS_FULL_STEP } FocusStepMode;
 
-    virtual bool Connect();
-    virtual bool Disconnect();
+    virtual bool Handshake();
     virtual bool getControllerStatus();
     const char * getDefaultName();
     virtual bool initProperties();

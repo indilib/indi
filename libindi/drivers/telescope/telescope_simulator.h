@@ -29,8 +29,8 @@ public:
     ScopeSim();
     virtual ~ScopeSim();
 
-    virtual const char *getDefaultName();
-    virtual bool Connect(const char *port, uint32_t baud);
+    virtual const char *getDefaultName();    
+    virtual bool Connect();
     virtual bool Disconnect();
     virtual bool ReadScopeStatus();
     virtual bool initProperties();

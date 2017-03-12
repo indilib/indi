@@ -64,12 +64,8 @@ class TemmaMount : public INDI::Telescope, public INDI::GuiderInterface, public 
 		TemmaMount();
         virtual ~TemmaMount();
 
-        //  overrides of base class virtual functions
-	//  we need to override the connect function because temma wants even parity
-	//  and the default function sets no parity on the serial port
-	bool Connect(const char *port, uint32_t baud);
-
 	//bool initProperties();
+    virtual bool Handshake();
 	virtual void ISGetProperties (const char *dev);
 	virtual bool updateProperties();
 	virtual const char *getDefaultName();

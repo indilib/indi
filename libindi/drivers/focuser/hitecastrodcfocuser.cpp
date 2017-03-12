@@ -139,14 +139,6 @@ HitecAstroDCFocuser::getDefaultName()
     return (char *)"HitecAstro DC";
 }
 
-void 
-HitecAstroDCFocuser::ISGetProperties (const char *dev)
-{
-    INDI::Focuser::ISGetProperties(dev);
-    //DEBUG(INDI::Logger::DBG_DEBUG, "HitecAstroDCFocuser::ISGetProperties()");
-    deleteProperty(PortTP.name);
-}
-
 bool 
 HitecAstroDCFocuser::initProperties()
 {
@@ -186,6 +178,9 @@ HitecAstroDCFocuser::initProperties()
     FocusRelPosN[0].max = (FocusAbsPosN[0].max-FocusAbsPosN[0].min)/2;
     FocusRelPosN[0].step = FocusRelPosN[0].max/100.0;
     FocusRelPosN[0].value = 100;
+
+    unRegisterConnection(serialConnection);
+    unRegisterConnection(tcpConnection);
 
     return true;
 }

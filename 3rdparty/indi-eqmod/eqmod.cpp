@@ -190,9 +190,7 @@ EQMod::EQMod()
   align=new Align(this);
 #endif
 
-#ifdef WITH_SIMULATOR
   simulator=new EQModSimulator(this);
-#endif
 
 #ifdef WITH_SCOPE_LIMITS
   horizon=new HorizonLimits(this);
@@ -232,7 +230,6 @@ bool EQMod::isStandardSync()
 }
 #endif
 
-#ifdef WITH_SIMULATOR
 void EQMod::setStepperSimulation (bool enable) 
 {
   if ((enable && !isSimulation()) || (!enable && isSimulation())) {
@@ -242,7 +239,6 @@ void EQMod::setStepperSimulation (bool enable)
   }
   INDI::Telescope::setSimulation(enable);
 }
-#endif
 
 const char * EQMod::getDefaultName()
 {
@@ -405,9 +401,7 @@ void EQMod::ISGetProperties(const char *dev)
 
     /* Add debug controls so we may debug driver if necessary */
     addDebugControl();
-    #ifdef WITH_SIMULATOR
     addSimulationControl();
-    #endif
 
     if (isConnected())
     {
@@ -730,37 +724,15 @@ bool EQMod::updateProperties()
     return true;
 }
 
-
-bool EQMod::Connect(const char *port, uint32_t baud)
+bool EQMod::Handshake()
 {
- DEBUGF(INDI::Logger::DBG_SESSION, "Connecting to port %s at speed %d" , port, baud);
-
- try
- {
-    mount->Connect(port, baud);
-    // Mount initialisation is in updateProperties as it sets directly Indi properties which should be defined 
-  } catch(EQModError e) {
-    return(e.DefaultHandleException(this));
-  }
-
-#ifdef WITH_ALIGN
- // Set this according to mount type 
- SetApproximateMountAlignmentFromMountType(EQUATORIAL);
-#endif
-
- DEBUG(INDI::Logger::DBG_SESSION, "Successfully connected to EQMod Mount.");
-  return true;
-}
-
-bool EQMod::Connect(const char *hostname, const char *port)
-{
-    DEBUGF(INDI::Logger::DBG_SESSION, "Connecting to %s@%s ...", hostname, port);
-
     try
     {
-       mount->Connect(hostname, port);
+       mount->setPortFD(PortFD);
+       mount->Handshake();
        // Mount initialisation is in updateProperties as it sets directly Indi properties which should be defined
-     } catch(EQModError e) {
+     } catch(EQModError e)
+    {
        return(e.DefaultHandleException(this));
      }
 
@@ -770,22 +742,27 @@ bool EQMod::Connect(const char *hostname, const char *port)
    #endif
 
     DEBUG(INDI::Logger::DBG_SESSION, "Successfully connected to EQMod Mount.");
-     return true;
+    return true;
 }
 
 bool EQMod::Disconnect()
 {
-  if (isConnected()) {
-    try {
+  if (isConnected())
+  {
+    try
+    {
       mount->Disconnect();
     }
-    catch(EQModError e) {
+    catch(EQModError e)
+    {
       DEBUGF(INDI::Logger::DBG_ERROR, "Error when disconnecting mount -> %s", e.message);
       return(false);
     }
     DEBUG(INDI::Logger::DBG_SESSION,"Disconnected from EQMod Mount.");
-    return true;
-  } else return false;
+    return INDI::Telescope::Disconnect();
+  }
+  else
+      return false;
 }
 
 void EQMod::TimerHit()
@@ -2162,11 +2139,9 @@ bool EQMod::ISNewNumber (const char *dev, const char *name, double values[], cha
   if (align) { compose=align->ISNewNumber(dev,name,values,names,n); if (compose) return true;}
 #endif
   
-#ifdef WITH_SIMULATOR
   if (simulator) { 
       compose=simulator->ISNewNumber(dev,name,values,names,n); if (compose) return true;
   }
-#endif
 
 #ifdef WITH_SCOPE_LIMITS
     if (horizon) {
@@ -2187,10 +2162,8 @@ bool EQMod::ISNewSwitch (const char *dev, const char *name, ISState *states, cha
   bool compose=true;
     if(strcmp(dev,getDeviceName())==0)
     {           
-#ifdef WITH_SIMULATOR
       if (!strcmp(name, "SIMULATION"))
 	{
-
 	  ISwitchVectorProperty *svp = getSwitch(name);
 
 	  IUUpdateSwitch(svp, states, names, n);
@@ -2212,7 +2185,7 @@ bool EQMod::ISNewSwitch (const char *dev, const char *name, ISState *states, cha
 	    setStepperSimulation(false);
 	  return true;
 	}
-#endif
+
 
     if(strcmp(name,"USEBACKLASH")==0)
  	{  
@@ -2619,11 +2592,9 @@ bool EQMod::ISNewSwitch (const char *dev, const char *name, ISState *states, cha
     if (align) { compose=align->ISNewSwitch(dev,name,states,names,n); if (compose) return true;}
 #endif
     
-#ifdef WITH_SIMULATOR
     if (simulator) { 
       compose=simulator->ISNewSwitch(dev,name,states,names,n); if (compose) return true;
   }
-#endif
 #ifdef WITH_SCOPE_LIMITS
     if (horizon) {
       compose=horizon->ISNewSwitch(dev,name,states,names,n); if (compose) return true;
@@ -2645,11 +2616,9 @@ bool EQMod::ISNewText (const char *dev, const char *name, char *texts[], char *n
 #ifdef WITH_ALIGN_GEEHALEL
   if (align) { compose=align->ISNewText(dev,name,texts,names,n); if (compose) return true;}
 #endif
-#ifdef WITH_SIMULATOR
   if (simulator) { 
     compose=simulator->ISNewText(dev,name,texts,names,n); if (compose) return true;
   }
-#endif
 #ifdef WITH_SCOPE_LIMITS
     if (horizon) {
       compose=horizon->ISNewText(dev,name,texts,names,n); if (compose) return true;

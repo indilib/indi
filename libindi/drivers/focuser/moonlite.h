@@ -31,8 +31,7 @@ public:
 
     typedef enum { FOCUS_HALF_STEP, FOCUS_FULL_STEP } FocusStepMode;
 
-    virtual bool Connect();
-    virtual bool Disconnect();
+    virtual bool Handshake();
     const char * getDefaultName();
     virtual bool initProperties();
     virtual bool updateProperties();
@@ -47,7 +46,6 @@ public:
 
 private:
 
-    int PortFD;
     double targetPos, lastPos, lastTemperature;
     unsigned int currentSpeed;
 
