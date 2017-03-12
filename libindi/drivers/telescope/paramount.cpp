@@ -96,6 +96,7 @@ Paramount::Paramount()
     DBG_SCOPE = INDI::Logger::getInstance().addDebugLevel("Scope Verbose", "SCOPE");   
 
     SetTelescopeCapability(TELESCOPE_CAN_PARK | TELESCOPE_CAN_SYNC | TELESCOPE_CAN_ABORT | TELESCOPE_HAS_TIME | TELESCOPE_HAS_LOCATION , 0);
+    setTelescopeConnection(CONNECTION_TCP);
 }
 
 Paramount::~Paramount()
@@ -181,15 +182,8 @@ bool Paramount::updateProperties()
     return true;
 }
 
-bool Paramount::Connect(const char *hostname, const char *port)
+bool Paramount::Handshake()
 {
-
-#if 0
-    bool serverConnection = INDI::Telescope::Connect(hostname, port);
-
-    if (serverConnection == false)
-        return false;
-
     int rc=0, nbytes_written=0, nbytes_read=0;
     char pCMD[MAXRBUF], pRES[MAXRBUF];
 
@@ -221,7 +215,7 @@ bool Paramount::Connect(const char *hostname, const char *port)
         DEBUG(INDI::Logger::DBG_ERROR, "Error connecting to telescope.");
         return false;
     }
-#endif
+
     return true;
 }
 

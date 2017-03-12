@@ -57,7 +57,17 @@ class INDI::Telescope : public INDI::DefaultDevice
         enum TelescopeSlewRate  { SLEW_GUIDE, SLEW_CENTERING, SLEW_FIND, SLEW_MAX };
         enum TelescopeTrackMode  { TRACK_SIDEREAL, TRACK_SOLAR, TRACK_LUNAR, TRACK_CUSTOM };
         enum TelescopeParkData  { PARK_NONE, PARK_RA_DEC, PARK_AZ_ALT, PARK_RA_DEC_ENCODER, PARK_AZ_ALT_ENCODER };
-        enum TelescopeLocation { LOCATION_LATITUDE, LOCATION_LONGITUDE, LOCATION_ELEVATION };        
+        enum TelescopeLocation { LOCATION_LATITUDE, LOCATION_LONGITUDE, LOCATION_ELEVATION };
+
+        /** \struct TelescopeConnection
+            \brief Holds the connection mode of the telescope.
+        */
+        enum
+        {
+            CONNECTION_NONE   = 1 << 0,                 /** Do not use any connection plugin */
+            CONNECTION_SERIAL = 1 << 1,                 /** For regular serial and bluetooth connections */
+            CONNECTION_TCP    = 1 << 2                  /** For Wired and WiFI connections */
+        } TelescopeConnection;
 
         /** \struct TelescopeCapability
             \brief Holds the capabilities of a telescope.
@@ -209,6 +219,19 @@ class INDI::Telescope : public INDI::DefaultDevice
         // Joystick helpers
         static void joystickHelper(const char * joystick_n, double mag, double angle, void *context);
         static void buttonHelper(const char * button_n, ISState state, void *context);
+
+        /**
+         * @brief setTelescopeConnection Set telescope connection mode. Child class should call this in the constructor before INDI::Telescope registers
+         * any connection interfaces
+         * @param value ORed combination of TelescopeConnection values.
+         */
+        void setTelescopeConnection(const uint8_t &value);
+
+        /**
+         * @return Get current telescope connection mode
+         */
+        uint8_t getTelescopeConnection() const;
+
 
 protected:
 
@@ -429,6 +452,7 @@ private:
 
         IPState lastEqState;
 
+        uint8_t telescopeConnection = CONNECTION_SERIAL | CONNECTION_TCP;
         INDI::Controller *controller;
 };
 

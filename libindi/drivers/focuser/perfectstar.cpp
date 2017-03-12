@@ -78,6 +78,7 @@ void ISSnoopDevice (XMLEle *root)
 PerfectStar::PerfectStar()
 {        
     SetFocuserCapability(FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_REL_MOVE | FOCUSER_CAN_ABORT);
+    setFocuserConnection(CONNECTION_NONE);
 
     handle = 0;
 }
@@ -150,10 +151,6 @@ bool PerfectStar::initProperties()
     FocusRelPosN[0].value = 100;
 
     addSimulationControl();
-
-    // Pure USB device
-    unRegisterConnection(serialConnection);
-    unRegisterConnection(tcpConnection);
 
     return true;
 }

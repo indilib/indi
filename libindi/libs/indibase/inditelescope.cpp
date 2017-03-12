@@ -132,17 +132,23 @@ bool INDI::Telescope::initProperties()
 
     setDriverInterface(TELESCOPE_INTERFACE);
 
-    serialConnection = new Connection::Serial(this);
-    serialConnection->registerHandshake([&]() { return callHandshake(); });
-    serialConnection->setCandidatePorts({ "/dev/ttyUSB0" , "/dev/ttyUSB1" , "/dev/ttyUSB2", "/dev/ttyUSB3",
-                                          "/dev/rfcomm0" , "/dev/ttyS0" , "/dev/ttyS1", "/dev/ttyS2"});
+    if (telescopeConnection & CONNECTION_SERIAL)
+    {
+        serialConnection = new Connection::Serial(this);
+        serialConnection->registerHandshake([&]() { return callHandshake(); });
+        serialConnection->setCandidatePorts({ "/dev/ttyUSB0" , "/dev/ttyUSB1" , "/dev/ttyUSB2", "/dev/ttyUSB3",
+                                              "/dev/rfcomm0" , "/dev/ttyS0" , "/dev/ttyS1", "/dev/ttyS2"});
 
-    registerConnection(serialConnection);
+        registerConnection(serialConnection);
+    }
 
-    tcpConnection = new Connection::TCP(this);
-    tcpConnection->registerHandshake([&]() { return callHandshake(); });
+    if (telescopeConnection & CONNECTION_TCP)
+    {
+        tcpConnection = new Connection::TCP(this);
+        tcpConnection->registerHandshake([&]() { return callHandshake(); });
 
-    registerConnection(tcpConnection);
+        registerConnection(tcpConnection);
+    }
 
     IDSnoopDevice(ActiveDeviceT[0].text,"GEOGRAPHIC_COORD");
     IDSnoopDevice(ActiveDeviceT[0].text,"TIME_UTC");
@@ -387,12 +393,30 @@ void INDI::Telescope::triggerSnoop(const char *driverName, const char *snoopedPr
     IDSnoopDevice(driverName, snoopedProp);
 }
 
+uint8_t INDI::Telescope::getTelescopeConnection() const
+{
+    return telescopeConnection;
+}
+
+void INDI::Telescope::setTelescopeConnection(const uint8_t &value)
+{
+    uint8_t mask = CONNECTION_SERIAL | CONNECTION_TCP;
+
+    if (value > 0 && (mask & value) == 0)
+    {
+        DEBUGF(INDI::Logger::DBG_ERROR, "Invalid connection mode %d", value);
+        return;
+    }
+
+    telescopeConnection = value;
+}
+
 bool INDI::Telescope::saveConfigItems(FILE *fp)
 {
     DefaultDevice::saveConfigItems(fp);
 
     IUSaveConfigText(fp, &ActiveDeviceTP);
-    IUSaveConfigSwitch(fp, &DomeClosedLockTP);    
+    IUSaveConfigSwitch(fp, &DomeClosedLockTP);
 
     if (HasLocation())
         IUSaveConfigNumber(fp,&LocationNP);
@@ -979,10 +1003,13 @@ bool INDI::Telescope::ISNewSwitch (const char *dev, const char *name, ISState *s
 
 bool INDI::Telescope::callHandshake()
 {
-    if (getActiveConnection() == serialConnection)
-        PortFD = serialConnection->getPortFD();
-    else
-        PortFD = tcpConnection->getPortFD();
+    if (telescopeConnection > 0)
+    {
+        if (getActiveConnection() == serialConnection)
+            PortFD = serialConnection->getPortFD();
+        else if (getActiveConnection() == tcpConnection)
+            PortFD = tcpConnection->getPortFD();
+    }
 
     return Handshake();
 }

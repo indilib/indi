@@ -80,6 +80,7 @@ HitecAstroDCFocuser::HitecAstroDCFocuser() :
     _handle(0)
 {        
     SetFocuserCapability(FOCUSER_CAN_REL_MOVE); // | FOCUSER_HAS_VARIABLE_SPEED);
+    setFocuserConnection(CONNECTION_NONE);
 }
 
 HitecAstroDCFocuser::~HitecAstroDCFocuser()
@@ -178,9 +179,6 @@ HitecAstroDCFocuser::initProperties()
     FocusRelPosN[0].max = (FocusAbsPosN[0].max-FocusAbsPosN[0].min)/2;
     FocusRelPosN[0].step = FocusRelPosN[0].max/100.0;
     FocusRelPosN[0].value = 100;
-
-    unRegisterConnection(serialConnection);
-    unRegisterConnection(tcpConnection);
 
     return true;
 }
