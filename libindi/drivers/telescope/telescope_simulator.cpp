@@ -232,13 +232,8 @@ bool ScopeSim::updateProperties()
     return true;
 }
 
-bool ScopeSim::Connect()
-{
-    return true;
-}
-
-bool ScopeSim::Disconnect()
-{
+bool ScopeSim::Handshake()
+{    
     return true;
 }
 
