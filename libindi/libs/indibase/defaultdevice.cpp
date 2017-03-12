@@ -943,7 +943,10 @@ bool INDI::DefaultDevice::Disconnect()
     {
         bool rc = activeConnection->Disconnect();
         if (rc)
+        {
             DEBUGF(Logger::DBG_SESSION,"%s is offline.", getDeviceName());
+            return true;
+        }
         else
             return false;
     }
