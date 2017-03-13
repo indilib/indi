@@ -55,7 +55,7 @@ private:
     static const long MAX_ALT;
     static const long MIN_ALT;
 
-    NexStarAUXScope *scope;
+    NexStarAUXScope scope;
 
     enum ScopeStatus_t {IDLE, SLEWING_FAST, APPROACH, SLEWING_SLOW, SLEWING_MANUAL, TRACKING};
     ScopeStatus_t ScopeStatus;

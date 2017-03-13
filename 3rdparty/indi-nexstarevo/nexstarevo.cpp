@@ -83,9 +83,9 @@ NexStarEvo::NexStarEvo() :
     PreviousWEMotion(PREVIOUS_WE_MOTION_UNKNOWN),
     TraceThisTickCount(0),
     TraceThisTick(false),
+    scope(),
     DBG_NSEVO(INDI::Logger::getInstance().addDebugLevel("NexStar Evo Verbose", "NSEVO"))
 {
-    scope = NULL;
     setVersion(NSEVO_VERSION_MAJOR, NSEVO_VERSION_MINOR);
     SetTelescopeCapability( TELESCOPE_CAN_PARK | 
                             TELESCOPE_CAN_SYNC | 
@@ -132,7 +132,7 @@ bool NexStarEvo::Abort()
 
     AxisStatusAZ = AxisStatusALT = STOPPED; 
     ScopeStatus = IDLE ;
-    scope->Abort();
+    scope.Abort();
     AbortSP.s      = IPS_OK;
     IUResetSwitch(&AbortSP);
     IDSetSwitch(&AbortSP, NULL);
@@ -159,7 +159,7 @@ bool NexStarEvo::Connect()
             scope = new NexStarAUXScope();
     }
     if (scope != NULL) {
-        scope->Connect();
+        scope.Connect();
     }
     return true;
 }
@@ -167,19 +167,13 @@ bool NexStarEvo::Connect()
 
 bool NexStarEvo::Handshake()
 {
-    if (scope == NULL)
-        scope = new NexStarAUXScope(tcpConnection->host(), tcpConnection->port());
-
-     return scope->Connect();
+    //scope.initScope(tcpConnection->host(), tcpConnection->port());
+    return scope.Connect();
 }
 
 bool NexStarEvo::Disconnect()
 {
-    if (scope != NULL)
-    {
-        scope->Disconnect();
-    }
-
+    scope.Disconnect();
     return INDI::Telescope::Disconnect();
 }
 
@@ -194,7 +188,7 @@ bool NexStarEvo::Park()
     // Park at the northern horizon 
     // This is a designated by celestron parking position
     Abort();
-    scope->Park();
+    scope.Park();
     TrackState = SCOPE_PARKING;
     ParkSP.s=IPS_BUSY;
     IDSetSwitch(&ParkSP, NULL);
@@ -348,14 +342,14 @@ bool NexStarEvo::Goto(double ra,double dec)
     if (ScopeStatus == APPROACH) {
         // We need to make a slow slew to approach the final position
         ScopeStatus = SLEWING_SLOW;
-        scope->GoToSlow(long(AltAz.alt * STEPS_PER_DEGREE),
+        scope.GoToSlow(long(AltAz.alt * STEPS_PER_DEGREE),
                         long(AltAz.az * STEPS_PER_DEGREE),
                         ISS_ON == IUFindSwitch(&CoordSP,"TRACK")->s);
     } else {
         // Just make a standard fast slew
         slewTicks = 0;
         ScopeStatus = SLEWING_FAST;
-        scope->GoToFast(long(AltAz.alt * STEPS_PER_DEGREE),
+        scope.GoToFast(long(AltAz.alt * STEPS_PER_DEGREE),
                         long(AltAz.az * STEPS_PER_DEGREE),
                         ISS_ON == IUFindSwitch(&CoordSP,"TRACK")->s);    
     }
@@ -501,10 +495,10 @@ bool NexStarEvo::MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command)
                 rate = MAX_SLEW_RATE;
                 break;
         }
-        return scope->SlewALT(((AxisDirectionALT==FORWARD)? 1 : -1)*rate);
+        return scope.SlewALT(((AxisDirectionALT==FORWARD)? 1 : -1)*rate);
     }
     else
-        return scope->SlewALT(0);     
+        return scope.SlewALT(0);     
     
 }
 
@@ -536,10 +530,10 @@ bool NexStarEvo::MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command)
                 rate = MAX_SLEW_RATE;
                 break;
         }
-        return scope->SlewAZ(((AxisDirectionAZ==FORWARD)? -1 : 1)*rate);
+        return scope.SlewAZ(((AxisDirectionAZ==FORWARD)? -1 : 1)*rate);
     }
     else
-        return scope->SlewAZ(0);     
+        return scope.SlewAZ(0);     
 }
 
 bool NexStarEvo::trackingRequested()
@@ -552,7 +546,7 @@ bool NexStarEvo::ReadScopeStatus()
     struct ln_hrz_posn AltAz;
     double RightAscension, Declination;
 
-    AltAz.alt = double(scope->GetALT()) / STEPS_PER_DEGREE;
+    AltAz.alt = double(scope.GetALT()) / STEPS_PER_DEGREE;
     // libnova indexes Az from south while Celestron controllers index from north
     // Never mix two controllers/drivers they will never agree perfectly.
     // Furthermore the celestron hand controler resets the position encoders
@@ -561,7 +555,7 @@ bool NexStarEvo::ReadScopeStatus()
     // controller (That would involve adding 180deg here to the azimuth -
     // this way the celestron nexstar driver and this would agree in some
     // situations but not in other - better not to attepmpt impossible!).
-    AltAz.az = double(scope->GetAZ()) / STEPS_PER_DEGREE;
+    AltAz.az = double(scope.GetAZ()) / STEPS_PER_DEGREE;
     TelescopeDirectionVector TDV = TelescopeDirectionVectorFromAltitudeAzimuth(AltAz);
     
     if (TraceThisTick)
@@ -646,8 +640,8 @@ bool NexStarEvo::ReadScopeStatus()
 bool NexStarEvo::Sync(double ra, double dec)
     {
         struct ln_hrz_posn AltAz;
-        AltAz.alt = double(scope->GetALT()) / STEPS_PER_DEGREE;
-        AltAz.az = double(scope->GetAZ()) / STEPS_PER_DEGREE;
+        AltAz.alt = double(scope.GetALT()) / STEPS_PER_DEGREE;
+        AltAz.az = double(scope.GetAZ()) / STEPS_PER_DEGREE;
 
         AlignmentDatabaseEntry NewEntry;
         NewEntry.ObservationJulianDate = ln_get_julian_from_sys();
@@ -700,7 +694,7 @@ void NexStarEvo::TimerHit()
     dt = tv.tv_sec - ltv.tv_sec + (tv.tv_usec - ltv.tv_usec)/1e6;
     ltv = tv;
 
-    scope->TimerTick(dt);
+    scope.TimerTick(dt);
 
     INDI::Telescope::TimerHit(); // This will call ReadScopeStatus
 
@@ -709,14 +703,14 @@ void NexStarEvo::TimerHit()
     switch(TrackState)
     {
         case SCOPE_PARKING:
-            if (!scope->slewing()) {
+            if (!scope.slewing()) {
                 SetParked(true);
                 DEBUG(DBG_NSEVO, "Telescope parked.");
             }
             break;
 
         case SCOPE_SLEWING:
-            if (scope->slewing()) {
+            if (scope.slewing()) {
                 // The scope is still slewing
                 slewTicks++;
                 if ((ScopeStatus == SLEWING_FAST) && (slewTicks > maxSlewTicks)) {
@@ -788,15 +782,15 @@ void NexStarEvo::TimerHit()
                 long altRate, azRate;
                 
                 // This is in steps per minute
-                altRate=long(AltAz.alt * STEPS_PER_DEGREE - scope->GetALT());
-                azRate=long(AltAz.az * STEPS_PER_DEGREE - scope->GetAZ());
+                altRate=long(AltAz.alt * STEPS_PER_DEGREE - scope.GetALT());
+                azRate=long(AltAz.az * STEPS_PER_DEGREE - scope.GetAZ());
 
                 if (TraceThisTick) 
                     DEBUGF(DBG_NSEVO, "Target (AltAz): %f  %f  Scope  (AltAz)  %f  %f", 
                         AltAz.alt, 
                         AltAz.az,
-                        scope->GetALT()/ STEPS_PER_DEGREE,
-                        scope->GetAZ()/ STEPS_PER_DEGREE);
+                        scope.GetALT()/ STEPS_PER_DEGREE,
+                        scope.GetAZ()/ STEPS_PER_DEGREE);
                 
                 if (abs(azRate) > STEPS_PER_REVOLUTION/2) {
                     // Crossing the meridian. AZ skips from 350+ to 0+
@@ -810,7 +804,7 @@ void NexStarEvo::TimerHit()
                 // conv. factor: TRACK_SCALE = 60000/STEPS_PER_DEGREE
                 altRate=long(TRACK_SCALE*altRate);
                 azRate=long(TRACK_SCALE*azRate);
-                scope->Track(altRate,azRate);
+                scope.Track(altRate,azRate);
 
                 if (TraceThisTick) DEBUGF(DBG_NSEVO, "TimerHit - Tracking AltRate %d AzRate %d ; Pos diff (deg): Alt: %f Az: %f",
                         altRate, azRate, AltAz.alt-AAzero.alt, AltAz.az- AAzero.az);
@@ -828,7 +822,7 @@ void NexStarEvo::TimerHit()
 bool NexStarEvo::updateLocation(double latitude, double longitude, double elevation)
 {
     UpdateLocation(latitude, longitude, elevation);
-    scope->UpdateLocation(latitude, longitude, elevation);
+    scope.UpdateLocation(latitude, longitude, elevation);
     return true;
 }
 
