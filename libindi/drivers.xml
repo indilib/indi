@@ -235,6 +235,10 @@
             <driver name="Quantum Wheel">indi_quantum_wheel</driver>
             <version>0.1</version>
         </device>
+        <device label="TruTech Wheel">
+            <driver name="TruTech Wheel">indi_trutech_wheel</driver>
+            <version>0.1</version>
+        </device>
 </devGroup>
 <devGroup group="Auxiliary">
         <device label="Astrometry">

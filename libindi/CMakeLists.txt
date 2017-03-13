@@ -681,6 +681,16 @@ add_executable(indi_quantum_wheel ${quantum_wheel_SRCS})
 target_link_libraries(indi_quantum_wheel indidriver)
 install(TARGETS indi_quantum_wheel RUNTIME DESTINATION bin )
 
+########## TruTech Wheel ############
+set(trutechwheel_SRCS
+        ${indimain_SRCS}
+        ${CMAKE_CURRENT_SOURCE_DIR}/drivers/filter_wheel/trutech_wheel.cpp
+   )
+
+add_executable(indi_trutech_wheel ${trutechwheel_SRCS})
+target_link_libraries(indi_trutech_wheel indidriver)
+install(TARGETS indi_trutech_wheel RUNTIME DESTINATION bin )
+
 #################################################################################
 
 #####################################
