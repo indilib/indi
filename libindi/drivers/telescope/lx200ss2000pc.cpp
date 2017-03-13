@@ -55,7 +55,8 @@ bool LX200SS2000PC::updateProperties(void) {
     deleteProperty(SiteNameTP.name);
     deleteProperty(TrackingFreqNP.name);
     deleteProperty(TrackModeSP.name);
-    deleteProperty(UsePulseCmdSP.name);
+    // Enable it again for testing (http://indilib.org/forum/mounts/1821-skysensor2000pc-error-reading-ra-dec-not-in-logs.html?)
+    //deleteProperty(UsePulseCmdSP.name);
   }
   return result;
 }
