@@ -19,6 +19,7 @@
 
 #include "focuslynxbase.h"
 #include "indicom.h"
+#include "connectionplugins/connectionserial.h"
 
 #include <stdio.h>
 #include <termios.h>

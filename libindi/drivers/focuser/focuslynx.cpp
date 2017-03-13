@@ -20,6 +20,7 @@
 // using namespace std;
 
 #include "focuslynx.h"
+#include "connectionplugins/connectionserial.h"
 
 #include <stdio.h>
 #include <termios.h>

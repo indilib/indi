@@ -22,9 +22,12 @@
 #include "defaultdevice.h"
 #include "indicontroller.h"
 #include "indifocuserinterface.h"
-#include "connectionplugins/connectionserial.h"
-#include "connectionplugins/connectiontcp.h"
 
+namespace Connection
+{
+    class Serial;
+    class TCP;
+}
 /**
  * \class INDI::Focuser
    \brief Class to provide general functionality of a focuser device.

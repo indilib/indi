@@ -34,6 +34,7 @@
 #include <indicom.h>
 
 #include "tcfs.h"
+#include "connectionplugins/connectionserial.h"
 
 #define mydev                   "Optec TCF-S"
 #define currentPosition         FocusAbsPosN[0].value

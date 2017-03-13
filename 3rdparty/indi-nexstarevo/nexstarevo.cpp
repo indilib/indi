@@ -9,8 +9,8 @@
 #include "config.h"
 #include "nexstarevo.h"
 #include <indicom.h>
-#include <connectiontcp.h>
-#include <connectionserial.h>
+#include <connectionplugins/connectionserial.h>
+#include <connectionplugins/connectiontcp.h>
 
 #include "NexStarAUXScope.h"
 
