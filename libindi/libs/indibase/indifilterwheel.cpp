@@ -17,6 +17,8 @@
 *******************************************************************************/
 
 #include "indifilterwheel.h"
+#include "connectionplugins/connectionserial.h"
+#include "connectionplugins/connectiontcp.h"
 
 #include <string.h>
 
@@ -46,6 +48,24 @@ bool INDI::FilterWheel::initProperties()
     controller->initProperties();
 
     setDriverInterface(FILTER_INTERFACE);
+
+    if (filterConnection & CONNECTION_SERIAL)
+    {
+        serialConnection = new Connection::Serial(this);
+        serialConnection->registerHandshake([&]() { return callHandshake(); });
+        serialConnection->setCandidatePorts({ "/dev/ttyUSB0" , "/dev/ttyUSB1" , "/dev/ttyUSB2", "/dev/ttyUSB3",
+                                              "/dev/rfcomm0" , "/dev/ttyS0" , "/dev/ttyS1", "/dev/ttyS2"});
+
+        registerConnection(serialConnection);
+    }
+
+    if (filterConnection & CONNECTION_TCP)
+    {
+        tcpConnection = new Connection::TCP(this);
+        tcpConnection->registerHandshake([&]() { return callHandshake(); });
+
+        registerConnection(tcpConnection);
+    }
 
     return true;
 }
@@ -245,4 +265,35 @@ void INDI::FilterWheel::processButton(const char * button_n, ISState state)
         SelectFilter(TargetFilter);
     }
 
+}
+
+bool INDI::FilterWheel::Handshake()
+{
+    return false;
+}
+
+bool INDI::FilterWheel::callHandshake()
+{
+    if (filterConnection > 0)
+    {
+        if (getActiveConnection() == serialConnection)
+            PortFD = serialConnection->getPortFD();
+        else if (getActiveConnection() == tcpConnection)
+            PortFD = tcpConnection->getPortFD();
+    }
+
+    return Handshake();
+}
+
+void INDI::FilterWheel::setFilterConnection(const uint8_t &value)
+{
+    uint8_t mask = CONNECTION_SERIAL | CONNECTION_TCP;
+
+    if (value > 0 && (mask & value) == 0)
+    {
+        DEBUGF(INDI::Logger::DBG_ERROR, "Invalid connection mode %d", value);
+        return;
+    }
+
+    filterConnection = value;
 }

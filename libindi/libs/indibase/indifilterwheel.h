@@ -41,6 +41,16 @@ protected:
 
 public:
 
+    /** \struct FilterConnection
+        \brief Holds the connection mode of the Filter.
+    */
+    enum
+    {
+        CONNECTION_NONE   = 1 << 0,                 /** Do not use any connection plugin */
+        CONNECTION_SERIAL = 1 << 1,                 /** For regular serial and bluetooth connections */
+        CONNECTION_TCP    = 1 << 2                  /** For Wired and WiFI connections */
+    } FilterConnection;
+
     virtual bool initProperties();
     virtual bool updateProperties();
     virtual void ISGetProperties (const char *dev);
@@ -52,7 +62,19 @@ public:
     static void joystickHelper(const char * joystick_n, double mag, double angle, void *context);
     static void buttonHelper(const char * button_n, ISState state, void *context);
 
-   protected:
+    /**
+     * @brief setFilterConnection Set Filter connection mode. Child class should call this in the constructor before INDI::Filter registers
+     * any connection interfaces
+     * @param value ORed combination of FilterConnection values.
+     */
+    void setFilterConnection(const uint8_t &value);
+
+    /**
+     * @return Get current Filter connection mode
+     */
+    uint8_t getFilterConnection() const;
+
+protected:
 
     virtual bool saveConfigItems(FILE *fp);
     virtual int QueryFilter();
@@ -60,10 +82,23 @@ public:
     virtual bool SetFilterNames();
     virtual bool GetFilterNames(const char* groupName);
 
+    /** \brief perform handshake with device to check communication */
+    virtual bool Handshake();
+
     void processJoystick(const char * joystick_n, double mag, double angle);
     void processButton(const char * button_n, ISState state);
 
     INDI::Controller *controller;
+
+    Connection::Serial *serialConnection=NULL;
+    Connection::TCP *tcpConnection=NULL;
+
+    // For Serial & TCP connections
+    int PortFD=-1;
+
+private:
+    bool callHandshake();
+    uint8_t filterConnection = CONNECTION_NONE;
 
 };
 
