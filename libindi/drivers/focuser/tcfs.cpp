@@ -134,7 +134,7 @@ bool TCFS::initProperties()
     }
 
     // Default to 19200
-    serialConnection->setDefaultPortIndex(1);
+    serialConnection->setDefaultBaudIndex(1);
     return true;
 }
 

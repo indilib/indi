@@ -53,8 +53,9 @@ public:
     virtual bool ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n);
     virtual bool saveConfigItems(FILE *fp);
 
-    void setCandidatePorts(std::vector<std::string> ports) { m_Ports = ports; }
-    void setDefaultPortIndex(int newIndex);
+    void setDefaultPort(const char *defaultPort);
+    void setDefaultBaudIndex(int newIndex);
+    void setCandidatePorts(std::vector<std::string> ports) { m_Ports = ports; }    
 
     const int getPortFD() const { return PortFD; }
 

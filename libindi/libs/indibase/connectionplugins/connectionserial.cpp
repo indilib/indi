@@ -189,7 +189,12 @@ bool Serial::saveConfigItems(FILE *fp)
     return true;
 }
 
-void Serial::setDefaultPortIndex(int newIndex)
+void Serial::setDefaultPort(const char *defaultPort)
+{
+    IUSaveText(&PortT[0], defaultPort);
+}
+
+void Serial::setDefaultBaudIndex(int newIndex)
 {
     if (newIndex < 0 || newIndex >= BaudRateSP.nsp)
         return;
