@@ -190,8 +190,8 @@ bool Paramount::Handshake()
 
     strncpy(pCMD, "/* Java Script */"
                   "var Out;"
-                  "sky6RASCOMTele.Connect();"
-                  "Out = sky6RASCOMTele.IsConnected;", MAXRBUF);
+                  "RASCOMTele.Connect();"
+                  "Out = RASCOMTele.IsConnected;", MAXRBUF);
 
     DEBUGF(INDI::Logger::DBG_DEBUG, "CMD: %s", pCMD);
 
@@ -226,6 +226,56 @@ bool Paramount::Handshake()
     return true;
 }
 
+bool Paramount::getMountRADE()
+{
+    int rc=0, nbytes_written=0, nbytes_read=0, errorCode=0;
+    char pCMD[MAXRBUF], pRES[MAXRBUF];
+
+    strncpy(pCMD, "/* Java Script */"
+                  "var Out;"
+                  "RASCOMTele.GetRaDec();"
+                  "Out = String(RASCOMTele.dRa) + ',' + String(RASCOMTele.dDec);", MAXRBUF);
+
+    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD: %s", pCMD);
+
+    if ( (rc = tty_write_string(PortFD, pCMD, &nbytes_written)) != TTY_OK)
+    {
+        DEBUG(INDI::Logger::DBG_ERROR, "Error writing to TheSky6 TCP server.");
+        return false;
+    }
+
+    // Should we read until we encounter string terminator? or what?
+    if ( (rc == tty_read_section(PortFD, pRES, '\0', PARAMOUNT_TIMEOUT, &nbytes_read)) != TTY_OK)
+    {
+        DEBUG(INDI::Logger::DBG_ERROR, "Error reading from TheSky6 TCP server.");
+        return false;
+    }
+
+    DEBUGF(INDI::Logger::DBG_DEBUG, "RES: %s", pRES);
+
+    std::regex rgx("(.+),(.+)\\|(.+)\\. Error = (\\d+)\\.");
+    std::smatch match;
+    std::string input(pRES);
+    bool coordsOK=false;
+    if (std::regex_search(input, match, rgx))
+    {
+        errorCode = atoi(match.str(4).c_str());
+
+        if (errorCode == 0)
+        {
+            currentRA = atof(match.str(1).c_str());
+            currentDEC= atof(match.str(2).c_str());
+            coordsOK = true;
+        }
+    }
+
+    if (coordsOK)
+        return true;
+
+    DEBUGF(INDI::Logger::DBG_ERROR, "Error reading coordinates %s (%d).", match.str(3).c_str(), errorCode);
+    return false;
+}
+
 bool Paramount::ReadScopeStatus()
 {
     if (isSimulation())
@@ -233,6 +283,32 @@ bool Paramount::ReadScopeStatus()
         mountSim();
         return true;
     }
+
+    if (TrackState == SCOPE_SLEWING)
+    {
+        // Check if LX200 is done slewing
+        if (isSlewComplete())
+        {
+            // Set slew mode to "Centering"
+            IUResetSwitch(&SlewRateSP);
+            SlewRateS[SLEW_CENTERING].s = ISS_ON;
+            IDSetSwitch(&SlewRateSP, NULL);
+
+            TrackState=SCOPE_TRACKING;
+            IDMessage(getDeviceName(),"Slew is complete. Tracking...");
+
+        }
+    }
+    else if(TrackState == SCOPE_PARKING)
+    {
+        if(isSlewComplete())
+        {
+            SetParked(true);
+        }
+    }
+
+    if (getMountRADE() == false)
+        return false;
 
     char RAStr[64], DecStr[64];
 
@@ -247,6 +323,9 @@ bool Paramount::ReadScopeStatus()
 
 bool Paramount::Goto(double r,double d)
 {
+    int rc=0, nbytes_written=0, nbytes_read=0, errorCode=0;
+    char pCMD[MAXRBUF], pRES[MAXRBUF];
+
     targetRA=r;
     targetDEC=d;
     char RAStr[64], DecStr[64];
@@ -263,12 +342,97 @@ bool Paramount::Goto(double r,double d)
    double current_az  =range360(lnaltaz.az + 180);
    //double current_alt =lnaltaz.alt;
 
+   snprintf(pCMD, MAXRBUF,
+            "/* Java Script */"
+            "var Out;"
+            "RASCOMTele.Asynchronous = true;"
+            "RASCOMTele.SlewToRaDec(%g, %g,'');"
+            "Out  = 'OK';",
+            targetRA, targetDEC);
+
+   DEBUGF(INDI::Logger::DBG_DEBUG, "CMD: %s", pCMD);
+
+   if ( (rc = tty_write_string(PortFD, pCMD, &nbytes_written)) != TTY_OK)
+   {
+       DEBUG(INDI::Logger::DBG_ERROR, "Error writing to TheSky6 TCP server.");
+       return false;
+   }
+
+   // Should we read until we encounter string terminator? or what?
+   if ( (rc == tty_read_section(PortFD, pRES, '\0', PARAMOUNT_TIMEOUT, &nbytes_read)) != TTY_OK)
+   {
+       DEBUG(INDI::Logger::DBG_ERROR, "Error reading from TheSky6 TCP server.");
+       return false;
+   }
+
+   DEBUGF(INDI::Logger::DBG_DEBUG, "RES: %s", pRES);
+
+   std::regex rgx("(.+)\\|(.+)\\. Error = (\\d+)\\.");
+   std::smatch match;
+   std::string input(pRES);
+   if (std::regex_search(input, match, rgx))
+   {
+       errorCode = atoi(match.str(3).c_str());
+
+       if (errorCode != 0)
+       {
+           DEBUGF(INDI::Logger::DBG_ERROR, "Error slewing to target %s (%d).", match.str(2).c_str(), errorCode);
+           return false;
+       }
+   }
+
    TrackState = SCOPE_SLEWING;
 
    EqNP.s    = IPS_BUSY;
 
    DEBUGF(INDI::Logger::DBG_SESSION,"Slewing to RA: %s - DEC: %s", RAStr, DecStr);
    return true;
+}
+
+bool Paramount::isSlewComplete()
+{
+    int rc=0, nbytes_written=0, nbytes_read=0, errorCode=0;
+    char pCMD[MAXRBUF], pRES[MAXRBUF];
+
+    strncpy(pCMD,
+            "/* Java Script */"
+            "var Out;"
+            "Out = RASCOMTele.IsSlewComplete;",
+            MAXRBUF);
+
+    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD: %s", pCMD);
+
+    if ( (rc = tty_write_string(PortFD, pCMD, &nbytes_written)) != TTY_OK)
+    {
+        DEBUG(INDI::Logger::DBG_ERROR, "Error writing to TheSky6 TCP server.");
+        return false;
+    }
+
+    // Should we read until we encounter string terminator? or what?
+    if ( (rc == tty_read_section(PortFD, pRES, '\0', PARAMOUNT_TIMEOUT, &nbytes_read)) != TTY_OK)
+    {
+        DEBUG(INDI::Logger::DBG_ERROR, "Error reading from TheSky6 TCP server.");
+        return false;
+    }
+
+    DEBUGF(INDI::Logger::DBG_DEBUG, "RES: %s", pRES);
+
+    std::regex rgx("(.+)|(.+)\\. Error = (\\d+)\\.");
+    std::smatch match;
+    std::string input(pRES);
+    if (std::regex_search(input, match, rgx))
+    {
+        errorCode = atoi(match.str(3).c_str());
+
+        if (errorCode == 0)
+        {
+            int isComplete = atoi(match.str(1).c_str());
+            return (isComplete == 1);
+        }
+    }
+
+    DEBUGF(INDI::Logger::DBG_ERROR, "Error reading isSlewComplete %s (%d).", match.str(2).c_str(), errorCode);
+    return false;
 }
 
 bool Paramount::Sync(double ra, double dec)

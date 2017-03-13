@@ -63,6 +63,8 @@ public:
     private:
 
     void mountSim();
+    bool getMountRADE();
+    bool isSlewComplete();
 
     double currentRA;
     double currentDEC;
