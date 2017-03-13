@@ -70,7 +70,6 @@ void ISSnoopDevice (XMLEle *root)
 
 XAGYLWheel::XAGYLWheel()
 {
-    PortFD=-1;
     sim = false;
     OffsetN = NULL;
     firmwareVersion=0;
@@ -86,6 +85,8 @@ XAGYLWheel::XAGYLWheel()
     strncpy(simData.serial, "S/N: 123456", 16);
 
     setVersion(0, 1);
+
+    setFilterConnection(CONNECTION_SERIAL | CONNECTION_TCP);
 }
 
 XAGYLWheel::~XAGYLWheel()
@@ -101,10 +102,6 @@ const char *XAGYLWheel::getDefaultName()
 bool XAGYLWheel::initProperties()
 {
     INDI::FilterWheel::initProperties();
-
-    // Device port
-    IUFillText(&PortT[0],"PORT","Port","/dev/ttyUSB0");
-    IUFillTextVector(&PortTP,PortT,1,getDeviceName(),"DEVICE_PORT","Ports",OPTIONS_TAB,IP_RW,60,IPS_IDLE);
 
     // Firmware info
     IUFillText(&FirmwareInfoT[0],"Product","",NULL);
@@ -131,14 +128,6 @@ bool XAGYLWheel::initProperties()
     return true;
 }
 
-void XAGYLWheel::ISGetProperties (const char *dev)
-{
-    INDI::FilterWheel::ISGetProperties(dev);
-
-    defineText(&PortTP);
-    loadConfig(true, "DEVICE_PORT");
-}
-
 bool XAGYLWheel::updateProperties()
 {
     INDI::FilterWheel::updateProperties();
@@ -163,22 +152,8 @@ bool XAGYLWheel::updateProperties()
     return true;
 }
 
-bool XAGYLWheel::Connect()
+bool XAGYLWheel::Handshake()
 {
-    int connectrc=0;
-    char errorMsg[MAXRBUF];
-
-    sim = isSimulation();
-
-    if (!sim && (connectrc = tty_connect(PortT[0].text, 9600, 8, 0, 1, &PortFD)) != TTY_OK)
-    {
-        tty_error_msg(connectrc, errorMsg, MAXRBUF);
-
-        DEBUGF(INDI::Logger::DBG_SESSION, "Failed to connect to port %s. Error: %s", PortT[0].text, errorMsg);
-
-        return false;
-    }
-
     char resp[XAGYL_MAXBUF];
     bool rc = getCommand(INFO_FIRMWARE_VERSION, resp);
 
@@ -212,31 +187,6 @@ bool XAGYLWheel::Connect()
 
     DEBUG(INDI::Logger::DBG_SESSION, "Error retreiving data from XAGYL Filter Wheel, please ensure filter wheel is powered and the port is correct.");
     return false;
-}
-
-bool XAGYLWheel::Disconnect()
-{    
-    if (!sim)
-        tty_disconnect(PortFD);
-    DEBUG(INDI::Logger::DBG_SESSION,"XAGYL is offline.");
-
-    return true;
-}
-
-bool XAGYLWheel::ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n)
-{
-    if(strcmp(dev,getDeviceName())==0)
-    {
-        if (!strcmp(PortTP.name, name))
-        {
-            IUUpdateText(&PortTP, texts, names, n);
-            PortTP.s = IPS_OK;
-            IDSetText(&PortTP, NULL);
-            return true;
-        }
-    }
-
-    return INDI::FilterWheel::ISNewText(dev, name, texts, names, n);
 }
 
 bool XAGYLWheel::ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n)
@@ -646,15 +596,6 @@ bool XAGYLWheel::GetFilterNames(const char* groupName)
     }
 
     IUFillTextVector(FilterNameTP, FilterNameT, MaxFilter, getDeviceName(), "FILTER_NAME", "Filter", groupName, IP_RW, 0, IPS_IDLE);
-
-    return true;
-}
-
-bool XAGYLWheel::saveConfigItems(FILE *fp)
-{
-    INDI::FilterWheel::saveConfigItems(fp);
-
-    IUSaveConfigText(fp, &PortTP);
 
     return true;
 }
