@@ -1,16 +1,30 @@
 #!/bin/bash
 
-set -x
+set -x -e
 
 sudo apt-get -qq update
-sudo apt-get -q -y install libusb-1.0-0-dev libcfitsio3-dev libnova-dev
-sudo apt-get -q -y install libgphoto2-dev libgps-dev libjpeg-dev cdbs
-sudo apt-get -q -y install libopenal-dev libgsl0-dev libboost-dev
-sudo apt-get -q -y install libboost-regex-dev libftdi-dev dcraw fakeroot
-sudo apt-get -q -y install wget curl
+sudo apt-get -q -y install \
+ cdbs \
+ curl \
+ dcraw \
+ fakeroot \
+ libboost-dev \
+ libboost-regex-dev \
+ libcfitsio3-dev \
+ libftdi-dev \
+ libgphoto2-dev \
+ libgps-dev \
+ libgsl0-dev \
+ libjpeg-dev \
+ libnova-dev \
+ libopenal-dev \
+ libraw-dev \
+ libusb-1.0-0-dev \
+ wget
 
 if [ ! -z $BUILD_INSTALL_GTEST ]; then
-  /bin/bash install-gtest.sh
+  DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+  /bin/bash ${DIR}/install-gtest.sh
 else
   echo "==> BUILD_INSTALL_GTEST not specified"
 fi

@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set -x
+set -x -e
 
 echo "==> Building INDI Core"
 mkdir -p build/libindi
