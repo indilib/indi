@@ -51,20 +51,24 @@ public:
     virtual bool updateLocation(double latitude, double longitude, double elevation);
     virtual bool updateTime(ln_date *utc, double utc_offset);
 
+    bool SetParkPosition(double Axis1Value, double Axis2Value) override;
     bool Goto(double,double);
     bool Park();
     bool UnPark();
     bool Sync(double ra, double dec);
 
     // Parking
-    virtual void SetCurrentPark();
-    virtual void SetDefaultPark();
+    virtual bool SetCurrentPark();
+    virtual bool SetDefaultPark();
 
     private:
 
     void mountSim();
     bool getMountRADE();
     bool isSlewComplete();
+
+    bool sendTheSkyOKCommand(const char *command, const char *errorMessage);
+    bool isTheSkyParked();
 
     double currentRA;
     double currentDEC;
