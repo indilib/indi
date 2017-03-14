@@ -235,6 +235,11 @@ public:
 
     bool TalkWithAxis(AXISID Axis, char Command, std::string& cmdDataStr, std::string& responseStr);
 
+    /// \brief Check if an axis is moving
+    /// \param[in] Axis - The axis to check.
+    /// \return True if the axis is moving otherwise false.
+    bool IsInMotion(AXISID Axis);
+
     // Skywatcher mount status variables
     unsigned long MCVersion; // Motor control board firmware version
 
