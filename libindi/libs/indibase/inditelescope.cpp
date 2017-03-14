@@ -20,6 +20,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
+#include <cmath>
 
 #include "inditelescope.h"
 #include "indicom.h"
@@ -547,9 +548,6 @@ bool INDI::Telescope::ISNewNumber (const char *dev, const char *name, double val
 
             for (int x=0; x<n; x++)
             {
-
-                //IDLog("request stuff %s %4.2f\n",names[x],values[x]);
-
                 INumber *eqp = IUFindNumber (&EqNP, names[x]);
                 if (eqp == &EqN[AXIS_RA])
                 {
@@ -640,11 +638,36 @@ bool INDI::Telescope::ISNewNumber (const char *dev, const char *name, double val
 
       if(strcmp(name, ParkPositionNP.name) == 0)
       {
-        IUUpdateNumber(&ParkPositionNP, values, names, n);
-        ParkPositionNP.s = IPS_OK;
+          double axis1 = NAN, axis2 = NAN;
+          for (int x=0; x<n; x++)
+          {
+              INumber *parkPosAxis = IUFindNumber (&ParkPositionNP, names[x]);
+              if (parkPosAxis == &ParkPositionN[AXIS_RA])
+              {
+                  axis1 = values[x];
+              } else if (parkPosAxis == &ParkPositionN[AXIS_DE])
+              {
+                  axis2 = values[x];
+              }
+          }
 
-        Axis1ParkPosition = ParkPositionN[AXIS_RA].value;
-        Axis2ParkPosition = ParkPositionN[AXIS_DE].value;
+        if (std::isnan(axis1) == false && std::isnan(axis2) == false)
+        {
+            bool rc = false;
+
+            rc = SetParkPosition(axis1, axis2);
+
+            if (rc)
+            {
+                IUUpdateNumber(&ParkPositionNP, values, names, n);
+                Axis1ParkPosition = ParkPositionN[AXIS_RA].value;
+                Axis2ParkPosition = ParkPositionN[AXIS_DE].value;
+            }
+
+            ParkPositionNP.s = rc ? IPS_OK : IPS_ALERT;
+        }
+        else
+            ParkPositionNP.s = IPS_ALERT;
 
         IDSetNumber(&ParkPositionNP, NULL);
         return true;
@@ -919,6 +942,8 @@ bool INDI::Telescope::ISNewSwitch (const char *dev, const char *name, ISState *s
 
         IUResetSwitch(&ParkOptionSP);
 
+        bool rc = false;
+
         if ( (TrackState != SCOPE_IDLE && TrackState != SCOPE_TRACKING) || MovementNSSP.s == IPS_BUSY || MovementWESP.s == IPS_BUSY)
         {
           DEBUG(INDI::Logger::DBG_SESSION, "Can not change park position while slewing or already parked...");
@@ -929,21 +954,22 @@ bool INDI::Telescope::ISNewSwitch (const char *dev, const char *name, ISState *s
 
         if (!strcmp(sp->name, "PARK_CURRENT"))
         {
-            SetCurrentPark();
+            rc = SetCurrentPark();
         }
         else if (!strcmp(sp->name, "PARK_DEFAULT"))
         {
-            SetDefaultPark();
+            rc = SetDefaultPark();
         }
         else if (!strcmp(sp->name, "PARK_WRITE_DATA"))
         {
-          if (WriteParkData())
+          rc = WriteParkData();
+          if (rc)
             DEBUG(INDI::Logger::DBG_SESSION, "Saved Park Status/Position.");
           else
             DEBUG(INDI::Logger::DBG_WARNING, "Can not save Park Status/Position.");
         }
 
-        ParkOptionSP.s = IPS_OK;
+        ParkOptionSP.s = rc ? IPS_OK : IPS_ALERT;
         IDSetSwitch(&ParkOptionSP, NULL);
 
         return true;
@@ -1052,14 +1078,16 @@ bool  INDI::Telescope::UnPark()
     return false;
 }
 
-void INDI::Telescope::SetCurrentPark()
+bool INDI::Telescope::SetCurrentPark()
 {
     DEBUG(INDI::Logger::DBG_WARNING, "Parking is not supported.");
+    return false;
 }
 
-void INDI::Telescope::SetDefaultPark()
+bool INDI::Telescope::SetDefaultPark()
 {
     DEBUG(INDI::Logger::DBG_WARNING, "Parking is not supported.");
+    return false;
 }
 
 bool INDI::Telescope::processTimeInfo(const char *utc, const char *offset)

@@ -764,7 +764,7 @@ bool LX200ZEQ25::isZEQ25Parked()
 }
 
 
-void LX200ZEQ25::SetCurrentPark()
+bool LX200ZEQ25::SetCurrentPark()
 {
     ln_hrz_posn horizontalPos;
     // Libnova south = 0, west = 90, north = 180, east = 270
@@ -793,15 +793,19 @@ void LX200ZEQ25::SetCurrentPark()
 
     SetAxis1Park(parkAZ);
     SetAxis2Park(parkAlt);
+
+    return true;
 }
 
-void LX200ZEQ25::SetDefaultPark()
+bool LX200ZEQ25::SetDefaultPark()
 {
     // Az = 0 for North hemisphere
     SetAxis1Park(LocationN[LOCATION_LATITUDE].value > 0 ? 0 : 180);
 
     // Alt = Latitude
     SetAxis2Park(LocationN[LOCATION_LATITUDE].value);
+
+    return true;
 }
 
 bool LX200ZEQ25::Park()

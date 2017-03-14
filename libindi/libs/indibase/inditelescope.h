@@ -315,16 +315,26 @@ protected:
         virtual bool updateLocation(double latitude, double longitude, double elevation);        
 
         /**
+         * @brief SetParkPosition Set desired parking position to the supplied value. This ONLY sets the desired park position value and does not perform parking.
+         * @param Axis1Value First axis value
+         * @param Axis2Value Second axis value
+         * @return True if desired parking position is accepted and set. False otherwise.
+         * @note INDI::Telescope implementation of this function always evaluates to true. Override to implement a custom behavior.
+         */
+        virtual bool SetParkPosition(double Axis1Value, double Axis2Value) { return true; }
+        /**
          * @brief SetCurrentPark Set current coordinates/encoders value as the desired parking position
+         * @return True if current mount coordinates are set as parking position, false on error.
          * \note This function performs no action unless subclassed by the child class if required.
          */
-        virtual void SetCurrentPark();
+        virtual bool SetCurrentPark();
 
         /**
          * @brief SetDefaultPark Set default coordinates/encoders value as the desired parking position
+         * * @return True if default park coordinates are set as parking position, false on error.
          * \note This function performs no action unless subclassed by the child class if required.
          */
-        virtual void SetDefaultPark();
+        virtual bool SetDefaultPark();
 
         /**
          * @brief SetSlewRate Set desired slew rate index.

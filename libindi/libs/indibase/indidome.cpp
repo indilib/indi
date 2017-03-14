@@ -493,31 +493,34 @@ bool INDI::Dome::ISNewSwitch (const char *dev, const char *name, ISState *states
         }
 
         if (!strcmp(name, ParkOptionSP.name))
-        {
+        {          
           IUUpdateSwitch(&ParkOptionSP, states, names, n);
           ISwitch *sp = IUFindOnSwitch(&ParkOptionSP);
           if (!sp)
             return false;
 
+          bool rc = false;
+
           IUResetSwitch(&ParkOptionSP);
 
           if (!strcmp(sp->name, "PARK_CURRENT"))
           {
-              SetCurrentPark();
+              rc = SetCurrentPark();
           }
           else if (!strcmp(sp->name, "PARK_DEFAULT"))
           {
-              SetDefaultPark();
+              rc = SetDefaultPark();
           }
           else if (!strcmp(sp->name, "PARK_WRITE_DATA"))
           {
-            if (WriteParkData())
+            rc = WriteParkData();
+            if (rc)
               DEBUG( INDI::Logger::DBG_SESSION, "Saved Park Status/Position.");
             else
               DEBUG( INDI::Logger::DBG_WARNING, "Can not save Park Status/Position.");
           }
 
-          ParkOptionSP.s = IPS_OK;
+          ParkOptionSP.s = rc ? IPS_OK : IPS_ALERT;
           IDSetSwitch(&ParkOptionSP, NULL);
 
           return true;
@@ -1823,14 +1826,16 @@ IPState INDI::Dome::UnPark()
     return ParkSP.s;
 }
 
-void INDI::Dome::SetCurrentPark()
+bool INDI::Dome::SetCurrentPark()
 {
     DEBUG( INDI::Logger::DBG_WARNING, "Parking is not supported.");
+    return false;
 }
 
-void INDI::Dome::SetDefaultPark()
+bool INDI::Dome::SetDefaultPark()
 {
     DEBUG( INDI::Logger::DBG_WARNING, "Parking is not supported.");
+    return false;
 }
 
 

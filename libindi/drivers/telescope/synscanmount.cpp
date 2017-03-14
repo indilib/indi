@@ -600,20 +600,21 @@ bool SynscanMount::UnPark()
     return true;
 }
 
-void SynscanMount::SetCurrentPark()
+bool SynscanMount::SetCurrentPark()
 {
     IDMessage(getDeviceName(),"Setting Default Park Position");
-    IDMessage(getDeviceName(),"Arbitrary park positions not yet supported.");
-    SetAxis1Park(0);
-    SetAxis2Park(90);
+    IDMessage(getDeviceName(),"Arbitrary park positions not yet supported.");    
+    return false;
 }
 
-void SynscanMount::SetDefaultPark()
+bool SynscanMount::SetDefaultPark()
 {
     // By default az to north, and alt to pole
     IDMessage(getDeviceName(),"Setting Park Data to Default.");
     SetAxis1Park(0);
     SetAxis2Park(90);
+
+    return true;
 }
 
 bool  SynscanMount::Abort()

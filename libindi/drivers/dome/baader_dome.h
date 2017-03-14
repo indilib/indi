@@ -60,8 +60,8 @@ class BaaderDome : public INDI::Dome
         // Parking
         virtual IPState Park();
         virtual IPState UnPark();
-        virtual void SetCurrentPark();
-        virtual void SetDefaultPark();
+        virtual bool SetCurrentPark();
+        virtual bool SetDefaultPark();
 
     protected:
 

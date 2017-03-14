@@ -52,8 +52,8 @@ protected:
         virtual bool Abort();
 
         // Parking
-        virtual void SetCurrentPark();
-        virtual void SetDefaultPark();
+        virtual bool SetCurrentPark();
+        virtual bool SetDefaultPark();
 
 
     private:

@@ -928,13 +928,15 @@ void IEQPro::mountSim ()
 
 }
 
-void IEQPro::SetCurrentPark()
+bool IEQPro::SetCurrentPark()
 {
     SetAxis1Park(currentRA);
     SetAxis2Park(currentDEC);
+
+    return true;
 }
 
-void IEQPro::SetDefaultPark()
+bool IEQPro::SetDefaultPark()
 {
     // By default set RA to HA
     SetAxis1Park(ln_get_apparent_sidereal_time(ln_get_julian_from_sys()));
@@ -942,4 +944,5 @@ void IEQPro::SetDefaultPark()
     // Set DEC to 90 or -90 depending on the hemisphere
     SetAxis2Park( (HemisphereS[HEMI_NORTH].s == ISS_ON) ? 90 : -90);
 
+    return true;
 }

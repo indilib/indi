@@ -322,13 +322,13 @@ protected:
      * @brief SetCurrentPark Set current coordinates/encoders value as the desired parking position
      * \note This function performs no action unless subclassed by the child class if required.
      */
-    virtual void SetCurrentPark();
+    virtual bool SetCurrentPark();
 
     /**
      * @brief SetDefaultPark Set default coordinates/encoders value as the desired parking position
      * \note This function performs no action unless subclassed by the child class if required.
      */
-    virtual void SetDefaultPark();
+    virtual bool SetDefaultPark();
 
     //Park
     char *LoadParkData();

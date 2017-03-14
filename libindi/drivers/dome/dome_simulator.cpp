@@ -313,14 +313,16 @@ bool DomeSim::Abort()
     return true;
 }
 
-void DomeSim::SetCurrentPark()
+bool DomeSim::SetCurrentPark()
 {
     SetAxis1Park(DomeAbsPosN[0].value);
+    return true;
 }
 
-void DomeSim::SetDefaultPark()
+bool DomeSim::SetDefaultPark()
 {
     // By default set position to 90
     SetAxis1Park(90);
+    return true;
 }
 

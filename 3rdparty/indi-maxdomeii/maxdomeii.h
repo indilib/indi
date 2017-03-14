@@ -58,8 +58,8 @@ protected:
 
  // Parking
  IPState ConfigurePark(int nCSBP, double ParkAzimuth);
- virtual void SetCurrentPark();
- virtual void SetDefaultPark();
+ virtual bool SetCurrentPark();
+ virtual bool SetDefaultPark();
  virtual IPState ControlShutter(ShutterOperation operation);
 
  /*******************************************************/

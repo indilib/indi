@@ -84,8 +84,8 @@ class TemmaMount : public INDI::Telescope, public INDI::GuiderInterface, public 
 	//bool ReadLocation();
 	bool updateLocation(double latitude, double longitude, double elevation);        
 	bool updateTime(ln_date *utc, double utc_offset);
-	void SetCurrentPark();
-	void SetDefaultPark();
+	bool SetCurrentPark();
+	bool SetDefaultPark();
 
 	//  methods added for alignment subsystem
 	virtual bool ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n);

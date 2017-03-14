@@ -230,8 +230,8 @@ class EQMod : public INDI::Telescope, public INDI::GuiderInterface
         bool Goto(double ra,double dec);
         bool Park();
         bool UnPark();
-        void SetCurrentPark();
-        void SetDefaultPark();
+        bool SetCurrentPark();
+        bool SetDefaultPark();
         bool Sync(double ra,double dec);
 
         virtual bool saveConfigItems(FILE *fp);

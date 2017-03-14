@@ -58,8 +58,8 @@ protected:
  virtual bool Disconnect();
 
  // Parking
- virtual void SetCurrentPark();
- virtual void SetDefaultPark();
+ virtual bool SetCurrentPark();
+ virtual bool SetDefaultPark();
  virtual bool Park();
  virtual bool UnPark();
 

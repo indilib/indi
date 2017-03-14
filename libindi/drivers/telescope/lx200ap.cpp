@@ -842,7 +842,7 @@ bool LX200AstroPhysics::UnPark()
     return true;
 }
 
-void LX200AstroPhysics::SetCurrentPark()
+bool LX200AstroPhysics::SetCurrentPark()
 {
     ln_hrz_posn horizontalPos;
     // Libnova south = 0, west = 90, north = 180, east = 270
@@ -871,15 +871,19 @@ void LX200AstroPhysics::SetCurrentPark()
 
     SetAxis1Park(parkAZ);
     SetAxis2Park(parkAlt);
+
+    return true;
 }
 
-void LX200AstroPhysics::SetDefaultPark()
+bool LX200AstroPhysics::SetDefaultPark()
 {
     // Az = 0 for North hemisphere
     SetAxis1Park(LocationN[LOCATION_LATITUDE].value > 0 ? 0 : 180);
 
     // Alt = Latitude
     SetAxis2Park(LocationN[LOCATION_LATITUDE].value);
+
+    return true;
 }
 
 

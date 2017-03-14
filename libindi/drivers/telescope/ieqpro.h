@@ -65,8 +65,8 @@ protected:
  virtual void simulationTriggered(bool enable);
 
   // Parking
-  virtual void SetCurrentPark();
-  virtual void SetDefaultPark();
+  virtual bool SetCurrentPark();
+  virtual bool SetDefaultPark();
 
   // Slew Rate
   bool SetSlewRate(int index);

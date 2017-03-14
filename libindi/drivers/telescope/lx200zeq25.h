@@ -51,8 +51,8 @@ protected:
     virtual bool MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command) override;
 
     // Parking
-    virtual void SetCurrentPark() override;
-    virtual void SetDefaultPark() override;
+    virtual bool SetCurrentPark() override;
+    virtual bool SetDefaultPark() override;
     virtual bool Park() override;
     virtual bool UnPark() override;
 

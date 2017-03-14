@@ -896,18 +896,20 @@ IPState MaxDomeII::ConfigurePark(int nCSBP, double ParkAzimuth)
 /************************************************************************************
  *
 * ***********************************************************************************/
-void MaxDomeII::SetCurrentPark()
+bool MaxDomeII::SetCurrentPark()
 {
     SetAxis1Park(DomeAbsPosN[0].value);
+    return true;
 }
 /************************************************************************************
  *
 * ***********************************************************************************/
 
-void MaxDomeII::SetDefaultPark()
+bool MaxDomeII::SetDefaultPark()
 {
     // By default set position to 0
     SetAxis1Park(0);
+    return true;
 }
 
 /************************************************************************************

@@ -3044,7 +3044,7 @@ bool EQMod::updateLocation(double latitude, double longitude, double elevation)
   return true;
 }
 
-void EQMod::SetCurrentPark()
+bool EQMod::SetCurrentPark()
 {
     parkRAEncoder=currentRAEncoder;
     parkDEEncoder=currentDEEncoder;
@@ -3052,9 +3052,11 @@ void EQMod::SetCurrentPark()
     SetAxis2Park(parkDEEncoder);
     DEBUGF(INDI::Logger::DBG_SESSION, "Setting Park Position to current- RA Encoder=%ld DE Encoder=%ld",
           parkRAEncoder, parkDEEncoder);
+
+    return true;
 }
 
-void EQMod::SetDefaultPark()
+bool EQMod::SetDefaultPark()
 {
     parkRAEncoder=GetAxis1ParkDefault();
     parkDEEncoder=GetAxis2ParkDefault();
@@ -3062,6 +3064,8 @@ void EQMod::SetDefaultPark()
     SetAxis2Park(parkDEEncoder);
     DEBUGF(INDI::Logger::DBG_SESSION, "Setting Park Position to default- RA Encoder=%ld DE Encoder=%ld",
           parkRAEncoder, parkDEEncoder);
+
+    return true;
 }
 
 bool EQMod::saveConfigItems(FILE *fp)

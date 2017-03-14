@@ -1040,7 +1040,7 @@ bool CelestronGPS::UnPark()
 
 }
 
-void CelestronGPS::SetCurrentPark()
+bool CelestronGPS::SetCurrentPark()
 {
     ln_hrz_posn horizontalPos;
     // Libnova south = 0, west = 90, north = 180, east = 270
@@ -1069,15 +1069,19 @@ void CelestronGPS::SetCurrentPark()
 
     SetAxis1Park(parkAZ);
     SetAxis2Park(parkAlt);
+
+    return true;
 }
 
-void CelestronGPS::SetDefaultPark()
+bool CelestronGPS::SetDefaultPark()
 {
     // By defualt azimuth 0 for north hemisphere
     SetAxis1Park(LocationN[LOCATION_LATITUDE].value >= 0 ? 0 : 180);
 
     // Altitude = latitude of observer
     SetAxis2Park(LocationN[LOCATION_LATITUDE].value);
+
+    return true;
 }
 
 bool CelestronGPS::saveConfigItems(FILE *fp)

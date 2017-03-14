@@ -57,8 +57,8 @@ public:
     bool Sync(double ra, double dec);
 
     // Parking
-    virtual void SetCurrentPark();
-    virtual void SetDefaultPark();
+    virtual bool SetCurrentPark();
+    virtual bool SetDefaultPark();
 
     private:
 

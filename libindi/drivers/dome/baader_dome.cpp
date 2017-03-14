@@ -1110,16 +1110,18 @@ bool BaaderDome::saveConfigItems(FILE *fp)
 /************************************************************************************
  *
 * ***********************************************************************************/
-void BaaderDome::SetCurrentPark()
+bool BaaderDome::SetCurrentPark()
 {
     SetAxis1Park(DomeAbsPosN[0].value);
+    return true;
 }
 /************************************************************************************
  *
 * ***********************************************************************************/
 
-void BaaderDome::SetDefaultPark()
+bool BaaderDome::SetDefaultPark()
 {
     // By default set position to 90
     SetAxis1Park(90);
+    return true;
 }

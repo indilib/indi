@@ -455,7 +455,7 @@ bool TemmaMount::UnPark()
     return true;
 }
 
-void TemmaMount::SetCurrentPark()
+bool TemmaMount::SetCurrentPark()
 {
 	double lha;
 	double lst;
@@ -472,14 +472,18 @@ void TemmaMount::SetCurrentPark()
 	SetAxis1Park(lha);
 	SetAxis2Park(currentDEC);
 
+    return true;
+
 }
 
-void TemmaMount::SetDefaultPark()
+bool TemmaMount::SetDefaultPark()
 {
     // By default az to north, and alt to pole
     IDMessage(getDeviceName(),"Setting Park Data to Default.");
     SetAxis1Park(18);
     SetAxis2Park(90);
+
+    return true;
 }
 
 bool  TemmaMount::Abort()
