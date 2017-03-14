@@ -27,7 +27,11 @@ extern const char *CONNECTION_TAB;
 
 Serial::Serial(INDI::DefaultDevice *dev) : Interface(dev)
 {
+#ifdef __APPLE__
+    IUFillText(&PortT[0],"PORT","Port","/dev/cu.usbserial");
+#else
     IUFillText(&PortT[0],"PORT","Port","/dev/ttyUSB0");
+#endif
     IUFillTextVector(&PortTP,PortT,1, dev->getDeviceName(),"DEVICE_PORT","Ports",CONNECTION_TAB,IP_RW,60,IPS_IDLE);
 
     IUFillSwitch(&AutoSearchS[0], "ENABLED", "Enabled", ISS_ON);
@@ -94,34 +98,41 @@ bool Serial::Connect()
     uint32_t baud = atoi(IUFindOnSwitch(&BaudRateSP)->name);
     bool rc = Connect(PortT[0].text, baud);
 
-    if (rc == false && AutoSearchS[0].s == ISS_ON)
+    if (rc)
+        return processHandshake();
+
+    if (AutoSearchS[0].s == ISS_ON)
     {
         DEBUGF(INDI::Logger::DBG_WARNING, "Connection to %s @ %d failed. Starting Auto Search...", PortT[0].text, baud);
         for (std::string onePort : m_Ports)
         {
             DEBUGF(INDI::Logger::DBG_DEBUG, "Trying connection to %s @ %d ...", onePort.c_str(), baud);
-            if (rc = Connect(onePort.c_str(), baud))
+            if (Connect(onePort.c_str(), baud))
             {
                 IUSaveText(&PortT[0], onePort.c_str());
                 IDSetText(&PortTP, NULL);
-                break;
+                rc = processHandshake();
+                if (rc)
+                    return true;
             }
         }
     }
 
+    return rc;
+}
+
+bool Serial::processHandshake()
+{
+    DEBUG(INDI::Logger::DBG_DEBUG, "Connection successful, attempting handshake...");
+    bool rc = Handshake();
     if (rc)
     {
-        DEBUG(INDI::Logger::DBG_DEBUG, "Connection successful, attempting handshake...");
-        rc = Handshake();
-        if (rc)
-        {
-            DEBUGF(INDI::Logger::DBG_SESSION, "%s is online.", getDeviceName());
-            device->saveConfig(true, "DEVICE_PORT");
-            device->saveConfig(true, "DEVICE_BAUD_RATE");
-        }
-        else
-            DEBUG(INDI::Logger::DBG_DEBUG, "Handshake failed.");
+        DEBUGF(INDI::Logger::DBG_SESSION, "%s is online.", getDeviceName());
+        device->saveConfig(true, "DEVICE_PORT");
+        device->saveConfig(true, "DEVICE_BAUD_RATE");
     }
+    else
+        DEBUG(INDI::Logger::DBG_DEBUG, "Handshake failed.");
 
     return rc;
 }
@@ -140,7 +151,7 @@ bool Serial::Connect(const char *port, uint32_t baud)
     {
         tty_error_msg(connectrc, errorMsg, MAXRBUF);
 
-        DEBUGF(INDI::Logger::DBG_ERROR,"Failed to connect to port %s. Error: %s", port, errorMsg);
+        DEBUGF(INDI::Logger::DBG_ERROR,"Failed to connect to port (%s). Error: %s", port, errorMsg);
 
         return false;
     }

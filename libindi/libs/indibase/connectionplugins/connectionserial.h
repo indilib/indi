@@ -69,6 +69,8 @@ protected:
     */
     virtual bool Connect(const char *port, uint32_t baud);
 
+    virtual bool processHandshake();
+
     // Device physical port
     ITextVectorProperty PortTP;
     IText PortT[1];
