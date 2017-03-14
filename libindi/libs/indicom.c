@@ -501,7 +501,7 @@ int tty_connect(const char *device, int bit_rate, int word_size, int parity, int
     t_fd = open(device, O_RDWR | O_NOCTTY | O_NONBLOCK);
     if (t_fd == -1)
     {
-        IDLog("Error opening serial port %s - %s(%d).\n", device, strerror(errno), errno);
+        IDLog("Error opening serial port (%s) - %s(%d).\n", device, strerror(errno), errno);
         goto error;
     }
 
