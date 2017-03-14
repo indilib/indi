@@ -137,8 +137,23 @@ bool INDI::Telescope::initProperties()
     {
         serialConnection = new Connection::Serial(this);
         serialConnection->registerHandshake([&]() { return callHandshake(); });
+#if defined(__APPLE__)
+        FILE *devs = popen("ls /dev/cu*", "r");
+        std::vector<std::string> candidatePorts;
+        if (devs)
+        {
+            char line[64];
+            while(fgets(line,64,devs)!=NUL && candidatePorts.size() < 8)
+            {
+               candidatePorts.push_back(line);
+            }
+        }
+
+        serialConnection->setCandidatePorts(candidatePorts);
+#else
         serialConnection->setCandidatePorts({ "/dev/ttyUSB0" , "/dev/ttyUSB1" , "/dev/ttyUSB2", "/dev/ttyUSB3",
                                               "/dev/rfcomm0" , "/dev/ttyS0" , "/dev/ttyS1", "/dev/ttyS2"});
+#endif
 
         registerConnection(serialConnection);
     }
