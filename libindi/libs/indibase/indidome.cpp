@@ -1809,7 +1809,7 @@ IPState INDI::Dome::UnPark()
     if (weatherState == IPS_ALERT)
     {
         DEBUG(INDI::Logger::DBG_WARNING, "Weather is in the danger zone! Cannot unpark dome.");
-        ParkSP.s == IPS_OK;
+        ParkSP.s = IPS_OK;
         IDSetSwitch(&ParkSP, NULL);
         return IPS_ALERT;
     }
