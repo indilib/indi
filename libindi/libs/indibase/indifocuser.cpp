@@ -65,27 +65,6 @@ bool INDI::Focuser::initProperties()
     {
         serialConnection = new Connection::Serial(this);
         serialConnection->registerHandshake([&]() { return callHandshake(); });
-
-#if defined(__APPLE__)
-        FILE *devs = popen("ls /dev/cu.*", "r");
-        std::vector<std::string> candidatePorts;
-        if (devs)
-        {
-            char line[64];
-            while(fgets(line,64,devs)!=NULL && candidatePorts.size() < 8)
-            {
-               std::string s(line);
-               s.erase(s.find_last_not_of(" \n\r\t")+1);
-               candidatePorts.push_back(s);
-            }
-        }
-
-        serialConnection->setCandidatePorts(candidatePorts);
-#else
-        serialConnection->setCandidatePorts({ "/dev/ttyUSB0" , "/dev/ttyUSB1" , "/dev/ttyUSB2", "/dev/ttyUSB3",
-                                              "/dev/rfcomm0" , "/dev/ttyS0" , "/dev/ttyS1", "/dev/ttyS2"});
-#endif
-
         registerConnection(serialConnection);
     }
 
@@ -93,7 +72,6 @@ bool INDI::Focuser::initProperties()
     {
         tcpConnection = new Connection::TCP(this);
         tcpConnection->registerHandshake([&]() { return callHandshake(); });
-
         registerConnection(tcpConnection);
     }
 

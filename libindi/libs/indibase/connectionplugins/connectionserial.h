@@ -55,7 +55,6 @@ public:
 
     void setDefaultPort(const char *defaultPort);
     void setDefaultBaudIndex(int newIndex);
-    void setCandidatePorts(std::vector<std::string> ports) { m_Ports = ports; }    
 
     const int getPortFD() const { return PortFD; }
 
@@ -71,6 +70,8 @@ protected:
 
     virtual bool processHandshake();
 
+    bool refresh();
+
     // Device physical port
     ITextVectorProperty PortTP;
     IText PortT[1];
@@ -78,14 +79,16 @@ protected:
     ISwitch BaudRateS[6];
     ISwitchVectorProperty BaudRateSP;
 
-    // Should serial connection attempt to try connecting with the candiate ports (enabled) or just fail when
-    // connection to current port fails (disabled)
-    ISwitch AutoSearchS[6];
+    ISwitch AutoSearchS[2];
     ISwitchVectorProperty AutoSearchSP;
 
-    int PortFD=-1;
+    ISwitch *SystemPortS=NULL;
+    ISwitchVectorProperty SystemPortSP;
 
-    std::vector<std::string> m_Ports;
+    ISwitch RefreshS[1];
+    ISwitchVectorProperty RefreshSP;
+
+    int PortFD=-1;
 };
 
 }

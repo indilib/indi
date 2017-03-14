@@ -53,9 +53,6 @@ bool INDI::FilterWheel::initProperties()
     {
         serialConnection = new Connection::Serial(this);
         serialConnection->registerHandshake([&]() { return callHandshake(); });
-        serialConnection->setCandidatePorts({ "/dev/ttyUSB0" , "/dev/ttyUSB1" , "/dev/ttyUSB2", "/dev/ttyUSB3",
-                                              "/dev/rfcomm0" , "/dev/ttyS0" , "/dev/ttyS1", "/dev/ttyS2"});
-
         registerConnection(serialConnection);
     }
 
