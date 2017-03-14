@@ -232,8 +232,15 @@ bool ScopeSim::updateProperties()
     return true;
 }
 
-bool ScopeSim::Handshake()
-{    
+bool ScopeSim::Connect()
+{
+    DEBUG(INDI::Logger::DBG_SESSION, "Telescope simulator is online.");
+    return true;
+}
+
+bool ScopeSim::Disconnect()
+{
+    DEBUG(INDI::Logger::DBG_SESSION, "Telescope simulator is offline.");
     return true;
 }
 

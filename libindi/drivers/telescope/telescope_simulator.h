@@ -29,8 +29,9 @@ public:
     ScopeSim();
     virtual ~ScopeSim();
 
-    virtual const char *getDefaultName();    
-    virtual bool Handshake();
+    virtual const char *getDefaultName();
+    virtual bool Connect();
+    virtual bool Disconnect();
     virtual bool ReadScopeStatus();
     virtual bool initProperties();
     virtual void ISGetProperties (const char *dev);
