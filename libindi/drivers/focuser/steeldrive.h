@@ -62,7 +62,6 @@ public:
 
 private:
 
-    int PortFD;
     double targetPos, lastPos, lastTemperature, simPosition;
     unsigned int currentSpeed, temperatureUpdateCounter;
     bool sim;

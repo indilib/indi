@@ -47,7 +47,6 @@ protected:
 
 private:
 
-    int PortFD;
     int timerID;
     double targetPos;
     double simulatedTemperature;

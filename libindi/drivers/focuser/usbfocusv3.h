@@ -109,8 +109,6 @@ public:
 
 private:
 
-    int PortFD;
-
     unsigned int direction; // 0 standard, 1 reverse
     unsigned int stepmode;  // 0 full steps, 1 half steps
     unsigned int speed;     // 2 average, 3 slow, 4 ultra slow

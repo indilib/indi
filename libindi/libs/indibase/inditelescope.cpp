@@ -138,12 +138,12 @@ bool INDI::Telescope::initProperties()
         serialConnection = new Connection::Serial(this);
         serialConnection->registerHandshake([&]() { return callHandshake(); });
 #if defined(__APPLE__)
-        FILE *devs = popen("ls /dev/cu*", "r");
+        FILE *devs = popen("ls /dev/cu.*", "r");
         std::vector<std::string> candidatePorts;
         if (devs)
         {
             char line[64];
-            while(fgets(line,64,devs)!=NUL && candidatePorts.size() < 8)
+            while(fgets(line,64,devs)!=NULL && candidatePorts.size() < 8)
             {
                candidatePorts.push_back(line);
             }

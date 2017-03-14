@@ -28,7 +28,6 @@
 
 class NSTEP: public INDI::Focuser {
 private:
-  int PortFD;
   char buf[MAXRBUF];
   long sim_position, position;
   int temperature;

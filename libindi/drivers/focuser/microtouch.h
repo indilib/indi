@@ -64,7 +64,6 @@ public:
 
 private:
 
-    int PortFD;
     double targetPos, lastPos, lastTemperature;
     unsigned int currentSpeed;
 
