@@ -102,7 +102,9 @@ bool  SkywatcherAPIMount::Abort()
 
 bool SkywatcherAPIMount::Handshake()
 {
-    DEBUG(DBG_SCOPE, "SkywatcherAPIMount::Connect - Call InitMount");
+    DEBUG(DBG_SCOPE, "SkywatcherAPIMount::Handshake");
+    SetSerialPort(PortFD);
+
     bool Result = InitMount();
 
     // The default slew mode is silent on Virtuoso mounts.
@@ -125,6 +127,7 @@ bool SkywatcherAPIMount::Handshake()
         IUFindSwitch(&CoordSP, "SLEW")->s = ISS_ON;
         IUFindSwitch(&CoordSP, "SYNC")->s = ISS_OFF;
     }
+    DEBUGF(DBG_SCOPE, "SkywatcherAPIMount::Handshake - Result: %d", Result);
     return Result;
 }
 
@@ -810,10 +813,6 @@ bool SkywatcherAPIMount::UnPark()
 bool SkywatcherAPIMount::ReadScopeStatus()
 {
     DEBUG(INDI::AlignmentSubsystem::DBG_ALIGNMENT, "SkywatcherAPIMount::ReadScopeStatus");
-
-    // Horrible hack to get over the fact that the base class calls ReadScopeStatus from inside Connect
-    // before I have a chance to set up the serial port
-    SetSerialPort(PortFD);
 
     // leave the following stuff in for the time being it is mostly harmless
 
