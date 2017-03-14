@@ -108,7 +108,7 @@ bool Serial::ISNewSwitch (const char *dev, const char *name, ISState *states, ch
             IUUpdateSwitch(&SystemPortSP, states, names, n);
 
             ISwitch *sp = IUFindOnSwitch(&SystemPortSP);
-            if (sp && strcmp(sp->name, "--"))
+            if (sp)
             {
                 IUSaveText(&PortT[0], sp->name);
                 IDSetText(&PortTP, NULL);
@@ -135,7 +135,7 @@ bool Serial::Connect()
     if (AutoSearchS[0].s == ISS_ON)
     {
         DEBUGF(INDI::Logger::DBG_WARNING, "Connection to %s @ %d failed. Starting Auto Search...", PortT[0].text, baud);
-        for (int i=1; i < SystemPortSP.nsp; i++)
+        for (int i=0; i < SystemPortSP.nsp; i++)
         {
             DEBUGF(INDI::Logger::DBG_DEBUG, "Trying connection to %s @ %d ...", SystemPortS[i].name, baud);
             if (Connect(SystemPortS[i].name, baud))
@@ -289,15 +289,14 @@ bool Serial::refresh()
             return false;
         }
 
-        SystemPortS = new ISwitch[m_Ports.size()+1];
+        SystemPortS = new ISwitch[m_Ports.size()];
         ISwitch *sp = SystemPortS;
-        IUFillSwitch(sp++, "--", "--", ISS_ON);
         for (int i=0; i < m_Ports.size(); i++)
         {
             IUFillSwitch(sp++, m_Ports[i].c_str(), m_Ports[i].c_str(), ISS_OFF);
         }
 
-        IUFillSwitchVector(&SystemPortSP, SystemPortS, m_Ports.size()+1, device->getDeviceName(), "SYSTEM_PORTS", "System Ports", CONNECTION_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
+        IUFillSwitchVector(&SystemPortSP, SystemPortS, m_Ports.size(), device->getDeviceName(), "SYSTEM_PORTS", "System Ports", CONNECTION_TAB, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
 
         device->defineSwitch(&SystemPortSP);
 
