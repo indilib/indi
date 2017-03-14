@@ -74,7 +74,9 @@ bool INDI::Focuser::initProperties()
             char line[64];
             while(fgets(line,64,devs)!=NULL && candidatePorts.size() < 8)
             {
-               candidatePorts.push_back(line);
+               std::string s(line);
+               s.erase(s.find_last_not_of(" \n\r\t")+1);
+               candidatePorts.push_back(s);
             }
         }
 
