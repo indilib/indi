@@ -1405,6 +1405,9 @@ bool RoboFocus::saveConfigItems(FILE *fp)
 
 void RoboFocus::TimerHit()
 {
+    if (isConnected() == false)
+        return;
+
     double prevPos=currentPosition;
     double newPos=0;
 
