@@ -25,6 +25,8 @@
 
 #include "indidome.h"
 #include "indicom.h"
+#include "connectionplugins/connectionserial.h"
+#include "connectionplugins/connectiontcp.h"
 
 #define DOME_SLAVING_TAB   "Slaving"
 #define DOME_COORD_THRESHOLD    0.1             /* Only send debug messages if the differences between old and new values of Az/Alt excceds this value */
@@ -60,10 +62,6 @@ INDI::Dome::~Dome()
 bool INDI::Dome::initProperties()
 {
     DefaultDevice::initProperties();   //  let the base class flesh in what it wants
-
-    /* Port */
-    IUFillText(&PortT[0], "PORT", "Port", "/dev/ttyUSB0");
-    IUFillTextVector(&PortTP, PortT, 1, getDeviceName(), "DEVICE_PORT", "Ports", OPTIONS_TAB, IP_RW, 0, IPS_IDLE);
 
     // Presets
     IUFillNumber(&PresetN[0], "Preset 1", "", "%6.2f", 0, 360.0, 1.0, 0);
@@ -156,6 +154,20 @@ bool INDI::Dome::initProperties()
 
     setDriverInterface(DOME_INTERFACE);
 
+    if (domeConnection & CONNECTION_SERIAL)
+    {
+        serialConnection = new Connection::Serial(this);
+        serialConnection->registerHandshake([&]() { return callHandshake(); });
+        registerConnection(serialConnection);
+    }
+
+    if (domeConnection & CONNECTION_TCP)
+    {
+        tcpConnection = new Connection::TCP(this);
+        tcpConnection->registerHandshake([&]() { return callHandshake(); });
+        registerConnection(tcpConnection);
+    }
+
     return true;
 }
 
@@ -164,8 +176,6 @@ void INDI::Dome::ISGetProperties (const char *dev)
     //  First we let our parent populate
     DefaultDevice::ISGetProperties(dev);
 
-    defineText(&PortTP);
-    loadConfig(true, "DEVICE_PORT");
     defineText(&ActiveDeviceTP);
     loadConfig(true, "ACTIVE_DEVICES");
     defineSwitch(&TelescopeClosedLockTP);
@@ -571,14 +581,6 @@ bool INDI::Dome::ISNewText (const char *dev, const char *name, char *texts[], ch
 {
     if(strcmp(dev,getDeviceName())==0)
     {
-        if (!strcmp(name, PortTP.name))
-        {
-            IUUpdateText(&PortTP, texts, names, n);
-            PortTP.s = IPS_OK;
-            IDSetText(&PortTP, NULL);
-            return true;
-        }
-
         if(strcmp(name,ActiveDeviceTP.name)==0)
         {
             ActiveDeviceTP.s=IPS_OK;
@@ -760,8 +762,7 @@ bool INDI::Dome::saveConfigItems(FILE *fp)
 {
     DefaultDevice::saveConfigItems(fp);
 
-    IUSaveConfigText(fp, &ActiveDeviceTP);
-    IUSaveConfigText(fp, &PortTP);
+    IUSaveConfigText(fp, &ActiveDeviceTP);    
     IUSaveConfigSwitch(fp, &TelescopeClosedLockTP);
     IUSaveConfigNumber(fp, &PresetNP);
     IUSaveConfigNumber(fp, &DomeParamNP);
@@ -1839,4 +1840,38 @@ bool INDI::Dome::SetDefaultPark()
 }
 
 
+bool INDI::Dome::Handshake()
+{
+    return false;
+}
 
+bool INDI::Dome::callHandshake()
+{
+    if (domeConnection > 0)
+    {
+        if (getActiveConnection() == serialConnection)
+            PortFD = serialConnection->getPortFD();
+        else if (getActiveConnection() == tcpConnection)
+            PortFD = tcpConnection->getPortFD();
+    }
+
+    return Handshake();
+}
+
+uint8_t INDI::Dome::getDomeConnection() const
+{
+    return domeConnection;
+}
+
+void INDI::Dome::setDomeConnection(const uint8_t &value)
+{
+    uint8_t mask = CONNECTION_SERIAL | CONNECTION_TCP;
+
+    if (value > 0 && (mask & value) == 0)
+    {
+        DEBUGF(INDI::Logger::DBG_ERROR, "Invalid connection mode %d", value);
+        return;
+    }
+
+    domeConnection = value;
+}

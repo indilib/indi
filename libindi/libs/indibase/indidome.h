@@ -36,6 +36,12 @@ typedef struct
     double x,y,z;
 } point3D;
 
+namespace Connection
+{
+    class Serial;
+    class TCP;
+}
+
 /**
  * \class INDI::Dome
    \brief Class to provide general functionality of a Dome device.
@@ -137,6 +143,16 @@ class INDI::Dome : public INDI::DefaultDevice
         DOME_HAS_VARIABLE_SPEED     = 1 << 5            /*!< Can the dome move in different configurable speeds? */
     };
 
+    /** \struct DomeConnection
+        \brief Holds the connection mode of the Dome.
+    */
+    enum
+    {
+        CONNECTION_NONE   = 1 << 0,                 /** Do not use any connection plugin */
+        CONNECTION_SERIAL = 1 << 1,                 /** For regular serial and bluetooth connections */
+        CONNECTION_TCP    = 1 << 2                  /** For Wired and WiFI connections */
+    } DomeConnection;
+
     Dome();
     virtual ~Dome();
 
@@ -149,6 +165,18 @@ class INDI::Dome : public INDI::DefaultDevice
     virtual bool ISSnoopDevice (XMLEle *root);
 
     static void buttonHelper(const char * button_n, ISState state, void *context);
+
+    /**
+     * @brief setDomeConnection Set Dome connection mode. Child class should call this in the constructor before INDI::Dome registers
+     * any connection interfaces
+     * @param value ORed combination of DomeConnection values.
+     */
+    void setDomeConnection(const uint8_t &value);
+
+    /**
+     * @return Get current Dome connection mode
+     */
+    uint8_t getDomeConnection() const;
 
     /**
      * @brief GetDomeCapability returns the capability of the dome
@@ -408,6 +436,9 @@ protected:
      */
     virtual void UpdateAutoSync();
 
+    /** \brief perform handshake with device to check communication */
+    virtual bool Handshake();
+
     double Csc(double x);
     double Sec(double x);
 
@@ -448,9 +479,6 @@ protected:
     ShutterStatus shutterState;
     DomeParkData parkDataType;
 
-    ITextVectorProperty PortTP;
-    IText PortT[1];
-
     ITextVectorProperty ActiveDeviceTP;
     IText ActiveDeviceT[2];
 
@@ -471,34 +499,42 @@ protected:
 
     double prev_az, prev_alt, prev_ra, prev_dec;
 
+    // For Serial and TCP connections
+    int PortFD = -1;
+
+    Connection::Serial *serialConnection=NULL;
+    Connection::TCP *tcpConnection=NULL;
+
 private:
 
-        void processButton(const char * button_n, ISState state);
+    void processButton(const char * button_n, ISState state);
 
-        void triggerSnoop(const char *driverName, const char *propertyName);
+    void triggerSnoop(const char *driverName, const char *propertyName);
 
-        INDI::Controller *controller;
+    INDI::Controller *controller;
 
-        DomeState domeState;
+    DomeState domeState;
 
-        struct ln_lnlat_posn observer;
-        struct ln_hrz_posn mountHoriztonalCoords;
-        struct ln_equ_posn mountEquatorialCoords;
+    struct ln_lnlat_posn observer;
+    struct ln_hrz_posn mountHoriztonalCoords;
+    struct ln_equ_posn mountEquatorialCoords;
 
-        IPState mountState;
-        IPState weatherState;
+    IPState mountState;
+    IPState weatherState;
 
-        bool IsParked;
-        bool IsLocked;
-        const char *ParkDeviceName;
-        const char * Parkdatafile;
-        XMLEle *ParkdataXmlRoot, *ParkdeviceXml, *ParkstatusXml, *ParkpositionXml, *ParkpositionAxis1Xml;
+    bool IsParked;
+    bool IsLocked;
+    const char *ParkDeviceName;
+    const char * Parkdatafile;
+    XMLEle *ParkdataXmlRoot, *ParkdeviceXml, *ParkstatusXml, *ParkpositionXml, *ParkpositionAxis1Xml;
 
-        double Axis1ParkPosition;
-        double Axis1DefaultParkPosition;
-	bool HaveLatLong;
-	bool HaveRaDec;
+    double Axis1ParkPosition;
+    double Axis1DefaultParkPosition;
+    bool HaveLatLong;
+    bool HaveRaDec;
 
+    bool callHandshake();
+    uint8_t domeConnection = CONNECTION_SERIAL | CONNECTION_TCP;
 
 };
 
