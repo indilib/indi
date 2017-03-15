@@ -88,6 +88,11 @@ bool Serial::ISNewSwitch (const char *dev, const char *name, ISState *states, ch
         {
             IUUpdateSwitch(&AutoSearchSP, states, names, n);
             AutoSearchSP.s = IPS_OK;
+
+            if (AutoSearchS[0].s == ISS_ON)
+                DEBUG(INDI::Logger::DBG_SESSION, "Auto search is enabled. When connecting, the driver shall attempt to communicate with all available system ports until a connection is established.");
+            else
+                DEBUG(INDI::Logger::DBG_SESSION, "Auo search is disabled.");
             IDSetSwitch(&AutoSearchSP, NULL);
 
             return true;
@@ -279,13 +284,16 @@ bool Serial::refresh()
             }
         }
 
-        if (m_Ports.size() == 0)
+        int pCount = m_Ports.size();
+
+        if (pCount == 0)
         {
             DEBUG(INDI::Logger::DBG_WARNING, "No candidate ports found on the system.");
             return false;
         }
+        else
+            DEBUGF(INDI::Logger::DBG_SESSION, "Scan complete. Found %1 port(s).", pCount);
 
-        int pCount = m_Ports.size();
         SystemPortS = new ISwitch[pCount];
         ISwitch *sp = SystemPortS;
         for (int i=pCount-1; i >= 0; i--)
