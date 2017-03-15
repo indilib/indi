@@ -22,8 +22,6 @@
 #include <pthread.h>
 #include <stdio.h>
 #include <unistd.h>
-#include <libftdi1/ftdi.h>
-#include <libusb-1.0/libusb.h>
 
 #include <memory>
 #include <string>
@@ -42,8 +40,6 @@
 using namespace std;
 std::unique_ptr<MGenAutoguider> mgenAutoguider(new MGenAutoguider());
 MGenAutoguider & MGenAutoguider::instance() { return *mgenAutoguider; }
-
-#define ERROR_MSG_LENGTH 250
 
 
 /**************************************************************************************
@@ -64,6 +60,36 @@ void ISNewSwitch (const char *dev, const char *name, ISState *states, char *name
     mgenAutoguider->ISNewSwitch(dev, name, states, names, n);
 }
 
+bool MGenAutoguider::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
+{
+    if(device && device->isConnected())
+    {
+        if(!strcmp(dev, getDeviceName()))
+        {
+            if(!strcmp(name, "MGEN_UI_BUTTONS1"))
+            {
+                IUUpdateSwitch(&ui.UIButtonSP[0], states, names, n);
+                ISwitch * const key_switch = IUFindOnSwitch(&ui.UIButtonSP[0]);
+                device->pushButton((unsigned int)key_switch->aux);
+                key_switch->s = ISS_OFF;
+                ui.UIButtonSP[0].s = IPS_OK;
+                IDSetSwitch(&ui.UIButtonSP[0], NULL);
+            }
+            if(!strcmp(name, "MGEN_UI_BUTTONS2"))
+            {
+                IUUpdateSwitch(&ui.UIButtonSP[1], states, names, n);
+                ISwitch * const key_switch = IUFindOnSwitch(&ui.UIButtonSP[1]);
+                device->pushButton((unsigned int)key_switch->aux);
+                key_switch->s = ISS_OFF;
+                ui.UIButtonSP[1].s = IPS_OK;
+                IDSetSwitch(&ui.UIButtonSP[1], NULL);
+            }
+        }
+    }
+
+    return CCD::ISNewSwitch(dev, name, states, names, n);
+}
+
 /**************************************************************************************
 ** Process new text from client
 ***************************************************************************************/
@@ -80,6 +106,25 @@ void ISNewNumber (const char *dev, const char *name, double values[], char *name
 {
     IDLog("%s: new number '%s'.", __FUNCTION__, name);
     mgenAutoguider->ISNewNumber(dev, name, values, names, n);
+}
+
+bool MGenAutoguider::ISNewNumber(char const * dev, char const * name, double values[], char * names[], int n)
+{
+    if(device && device->isConnected())
+    {
+        if(!strcmp(dev, getDeviceName()))
+        {
+            if(!strcmp(name, "MGEN_UI_OPTIONS"))
+            {
+                IUUpdateNumber(&ui.UIFramerateNP, values, names, n);
+                ui.UIFramerateNP.s = IPS_OK;
+                IDSetNumber(&ui.UIFramerateNP, NULL);
+                return true;
+            }
+        }
+    }
+
+    return CCD::ISNewNumber(dev, name, values, names, n);
 }
 
 /**************************************************************************************
@@ -126,30 +171,24 @@ bool MGenAutoguider::initProperties()
     addDebugControl();
 
     {
+        char const TAB[] = "Main Control";
         IUFillText(&version.VersionFirmwareT,"MGEN_FIRMWARE_VERSION","Firmware version","n/a");
-        IUFillTextVector(&version.VersionTP, &version.VersionFirmwareT, 1, getDeviceName(), "Versions", "Versions", "Main Control", IP_RO, 60, IPS_IDLE);
-        registerProperty(&version.VersionTP, INDI_TEXT);
+        IUFillTextVector(&version.VersionTP, &version.VersionFirmwareT, 1, getDeviceName(), "Versions", "Versions", TAB, IP_RO, 60, IPS_IDLE);
     }
 
     {
+        char const TAB[] = "Voltages";
         IUFillNumber(&voltage.VoltageN[0], "MGEN_LOGIC_VOLTAGE", "Logic voltage", "%+02.2f V", 0, 220, 0, 0);
         IUFillNumber(&voltage.VoltageN[1], "MGEN_INPUT_VOLTAGE", "Input voltage", "%+02.2f V", 0, 220, 0, 0);
         IUFillNumber(&voltage.VoltageN[2], "MGEN_REFERENCE_VOLTAGE", "Reference voltage", "%+02.2f V", 0, 220, 0, 0);
-        IUFillNumberVector(&voltage.VoltageNP, voltage.VoltageN, sizeof(voltage.VoltageN)/sizeof(voltage.VoltageN[0]), getDeviceName(), "MGEN_VOLTAGES", "Voltages", "Main Control", IP_RO, 60, IPS_IDLE);
-        registerProperty(&voltage.VoltageNP, INDI_NUMBER);
+        IUFillNumberVector(&voltage.VoltageNP, voltage.VoltageN, sizeof(voltage.VoltageN)/sizeof(voltage.VoltageN[0]), getDeviceName(), "MGEN_VOLTAGES", "Voltages", TAB, IP_RO, 60, IPS_IDLE);
     }
 
     {
         char const TAB[] = "Remote UI";
         IUFillNumber(&ui.UIFramerateN, "MGEN_UI_FRAMERATE", "Frame rate", "%+02.2f fps", 0, 10, 1, 1);
         IUFillNumberVector(&ui.UIFramerateNP, &ui.UIFramerateN, 1, getDeviceName(), "MGEN_UI_OPTIONS", "UI", TAB, IP_RW, 60, IPS_IDLE);
-        registerProperty(&ui.UIFramerateNP, INDI_NUMBER);
 
-        /* ESC  ---  SET
-         * ---  UP   ---
-         * LEFT ---  RIGHT
-         * ---  DOWN ---
-         */
         IUFillSwitch(&ui.UIButtonS[0], "MGEN_UI_BUTTON_ESC", "ESC", ISS_OFF);
         ui.UIButtonS[0].aux = (void*) MGIO_INSERT_BUTTON::IOB_ESC;
         IUFillSwitch(&ui.UIButtonS[1], "MGEN_UI_BUTTON_SET", "SET", ISS_OFF);
@@ -162,68 +201,38 @@ bool MGenAutoguider::initProperties()
         ui.UIButtonS[4].aux = (void*) MGIO_INSERT_BUTTON::IOB_RIGHT;
         IUFillSwitch(&ui.UIButtonS[5], "MGEN_UI_BUTTON_DOWN", "DOWN", ISS_OFF);
         ui.UIButtonS[5].aux = (void*) MGIO_INSERT_BUTTON::IOB_DOWN;
+        /* ESC SET
+         * UP LEFT RIGHT DOWN
+         */
         IUFillSwitchVector(&ui.UIButtonSP[0], &ui.UIButtonS[0], 2, getDeviceName(), "MGEN_UI_BUTTONS1", "UI Buttons", TAB, IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
-        registerProperty(&ui.UIButtonSP[0],INDI_SWITCH);
         IUFillSwitchVector(&ui.UIButtonSP[1], &ui.UIButtonS[2], 4, getDeviceName(), "MGEN_UI_BUTTONS2", "UI Buttons", TAB, IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
-        registerProperty(&ui.UIButtonSP[1],INDI_SWITCH);
     }
-
-    /*{
-        IUFillBLOB(&UIFrameB,"UI Frame","Image","raw");
-        IUFillBLOBVector(&UIFrameBP, &UIFrameB, 1, getDeviceName(), "UI Frame", "UI Frame", "Main Control", IP_RO, 60, IPS_IDLE);
-        registerProperty(&UIFrameBP, INDI_BLOB);
-    }*/
 
     return true;
 }
 
-bool MGenAutoguider::ISNewNumber(char const * dev, char const * name, double values[], char * names[], int n)
+bool MGenAutoguider::updateProperties()
 {
-    if(device && device->isConnected())
+    CCD::updateProperties();
+
+    if(isConnected())
     {
-        if(!strcmp(dev, getDeviceName()))
-        {
-            if(!strcmp(name, "MGEN_UI_OPTIONS"))
-            {
-                IUUpdateNumber(&ui.UIFramerateNP, values, names, n);
-                ui.UIFramerateNP.s = IPS_OK;
-                IDSetNumber(&ui.UIFramerateNP, NULL);
-                return true;
-            }
-        }
+        registerProperty(&version.VersionTP, INDI_TEXT);
+        registerProperty(&voltage.VoltageNP, INDI_NUMBER);
+        registerProperty(&ui.UIFramerateNP, INDI_NUMBER);
+        registerProperty(&ui.UIButtonSP[0], INDI_SWITCH);
+        registerProperty(&ui.UIButtonSP[1], INDI_SWITCH);
+    }
+    else
+    {
+        deleteProperty(version.VersionTP.name);
+        deleteProperty(voltage.VoltageNP.name);
+        deleteProperty(ui.UIFramerateNP.name);
+        deleteProperty(ui.UIButtonSP[0].name);
+        deleteProperty(ui.UIButtonSP[1].name);
     }
 
-    return CCD::ISNewNumber(dev, name, values, names, n);
-}
-
-bool MGenAutoguider::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
-{
-    if(device && device->isConnected())
-    {
-        if(!strcmp(dev, getDeviceName()))
-        {
-            if(!strcmp(name, "MGEN_UI_BUTTONS1"))
-            {
-                IUUpdateSwitch(&ui.UIButtonSP[0], states, names, n);
-                ISwitch * const key_switch = IUFindOnSwitch(&ui.UIButtonSP[0]);
-                device->pushButton((unsigned int)key_switch->aux);
-                key_switch->s = ISS_OFF;
-                ui.UIButtonSP[0].s = IPS_OK;
-                IDSetSwitch(&ui.UIButtonSP[0], NULL);
-            }
-            if(!strcmp(name, "MGEN_UI_BUTTONS2"))
-            {
-                IUUpdateSwitch(&ui.UIButtonSP[1], states, names, n);
-                ISwitch * const key_switch = IUFindOnSwitch(&ui.UIButtonSP[1]);
-                device->pushButton((unsigned int)key_switch->aux);
-                key_switch->s = ISS_OFF;
-                ui.UIButtonSP[1].s = IPS_OK;
-                IDSetSwitch(&ui.UIButtonSP[1], NULL);
-            }
-        }
-    }
-
-    return CCD::ISNewSwitch(dev, name, states, names, n);
+    return true;
 }
 
 /**************************************************************************************
@@ -243,7 +252,7 @@ bool MGenAutoguider::Connect()
 
     if(device)
         delete device;
-    device = new MGenDeviceState();
+    device = new MGenDevice();
     device->enable();
 
     //if( !pthread_mutex_init(&lock,0) )
@@ -291,63 +300,6 @@ IOMode MGenAutoguider::getOpMode() const
     return device->getOpMode();
 }
 
-int MGenAutoguider::setOpModeBaudRate(struct ftdi_context * const ftdi, IOMode const mode)
-{
-    int baudrate = 0;
-
-    switch( mode )
-    {
-        case OPM_COMPATIBLE:
-            baudrate = 9600;
-            break;
-
-        case OPM_APPLICATION:
-            baudrate = 250000;
-            break;
-
-        case OPM_UNKNOWN:
-        case OPM_BOOT:
-        default:
-            baudrate = 9600;
-            break;
-    }
-
-    _L("switching device to baudrate %d", baudrate);
-
-    int res = 0;
-
-    if((res = ftdi_set_baudrate(ftdi, baudrate)) < 0)
-    {
-        /* TODO: Not good, the device doesn't support our settings - out of spec, bail out */
-        _L("failed updating device connection using %d bauds (%d: %s)", baudrate, res, ftdi_get_error_string(ftdi));
-        return 1;
-    }
-
-    if((res = ftdi_set_line_property(ftdi, BITS_8, STOP_BIT_1, NONE)) < 0)
-    {
-        /* TODO: Not good, the device doesn't support our settings - out of spec, bail out */
-        _L("failed setting device line properties to 8-N-1 (%d: %s)", res, ftdi_get_error_string(ftdi));
-        return 1;
-    }
-
-    /* Purge I/O buffers */
-    if((res = ftdi_usb_purge_buffers(ftdi)) < 0 )
-    {
-        _L("failed purging I/O buffers (%d: %s)", res, ftdi_get_error_string(ftdi));
-        return 1;
-    }
-
-    /* Set latency to minimal 2ms */
-    if((res = ftdi_set_latency_timer(ftdi, 2)) < 0 )
-    {
-        _L("failed setting latency timer (%d: %s)", res, ftdi_get_error_string(ftdi));
-        return 1;
-    }
-
-    _L("successfully switched device to baudrate %d.", baudrate);
-    return 0;
-}
-
 /**************************************************************************************
  * Connection thread
  **************************************************************************************/
@@ -370,70 +322,7 @@ void MGenAutoguider::connectionThread()
     size_t const buffer_len = sizeof(buffer)/sizeof(buffer[0]);
     int bytes_read = 0;
 
-    struct ftdi_version_info ftdi_version = ftdi_get_library_version();
-    _L("connection thread starting, using FTDI '%s' v%d.%d.%d snapshot '%s'", ftdi_version.version_str, ftdi_version.major, ftdi_version.minor, ftdi_version.micro, ftdi_version.snapshot_str);
-
-    int  const vid = 0x0403, pid = 0x6001;
-
-    int res = 0;
-    device->ftdi = ftdi_new();
-    if( !device->ftdi )
-    {
-        _L("ftdi context initialization failed","");
-        device->disable();
-    }
-    else if((res = ftdi_set_interface(device->ftdi, INTERFACE_ANY)) < 0)
-    {
-        _L("failed setting FTDI interface to ANY (%d: %s)", res, ftdi_get_error_string(device->ftdi));
-        device->disable();
-    }
-    else if((res = ftdi_usb_open(device->ftdi, vid, pid)) < 0)
-    {
-        _L("device 0x%04X:0x%04X not found (%d: %s)", vid, pid, res, ftdi_get_error_string(device->ftdi));
-
-        if((res = ftdi_set_interface(device->ftdi, INTERFACE_ANY)) < 0)
-        {
-            _L("failed setting FTDI interface to ANY (%d: %s)", res, ftdi_get_error_string(device->ftdi));
-        }
-        else
-        {
-            struct ftdi_device_list *devlist;
-            if((res = ftdi_usb_find_all(device->ftdi, &devlist, 0, 0)) < 0)
-            {
-                _L("no FTDI device found (%d: %s)", res, ftdi_get_error_string(device->ftdi));
-            }
-            else
-            {
-                if(devlist) for( struct ftdi_device_list const * dev_index = devlist; dev_index; dev_index = dev_index->next )
-                {
-                    struct libusb_device_descriptor desc = {0};
-
-                    if(libusb_get_device_descriptor(dev_index->dev, &desc) < 0)
-                    {
-                        _L("device %p returned by libftdi is unreadable", dev_index->dev);
-                        continue;
-                    }
-
-                    _L("detected device 0x%04X:0x%04X", desc.idVendor, desc.idProduct);
-                }
-                else _L("no FTDI device enumerated","");
-
-                ftdi_list_free(&devlist);
-            }
-        }
-
-        device->disable();
-    }
-    else if(setOpModeBaudRate(device->ftdi, OPM_COMPATIBLE) < 0)
-    {
-        /* TODO: Not good, the device doesn't support our settings - out of spec, bail out */
-        _L("failed setting up device line","");
-        device->disable();
-    }
-    else
-    {
-        _L("device 0x%04X:0x%04X connected successfully", vid, pid);
-    }
+    device->Connect(0x0403, 0x6001);
 
     try
     {
@@ -446,7 +335,7 @@ void MGenAutoguider::connectionThread()
                     _L("running device identification","");
 
                     /* Run an identification - failing this is not a problem, we'll try to communicate in applicative mode next */
-                    if(CR_SUCCESS == MGCP_QUERY_DEVICE().ask(*this))
+                    if(CR_SUCCESS == MGCP_QUERY_DEVICE().ask(*device))
                     {
                         _L("identified boot/compatible mode","");
                         device->setOpMode(OPM_COMPATIBLE);
@@ -454,9 +343,7 @@ void MGenAutoguider::connectionThread()
                     }
 
                     _L("identification failed, try to communicate as if in applicative mode","");
-                    device->setOpMode(OPM_APPLICATION);
-
-                    if(setOpModeBaudRate(device->ftdi, getOpMode()))
+                    if(device->setOpMode(OPM_APPLICATION))
                     {
                         /* TODO: Not good, the device doesn't support our settings - out of spec, bail out */
                         _L("failed adjusting device line","");
@@ -465,43 +352,14 @@ void MGenAutoguider::connectionThread()
                     }
 
                     /* Run a basic exchange */
-                    if(CR_SUCCESS != MGCMD_NOP1().ask(*this))
+                    if(CR_SUCCESS != MGCMD_NOP1().ask(*device))
                     {
-                        if(device->tried_turn_on)
+                        if(device->TurnPowerOn())
                         {
                             _L("failed heartbeat after turn on, bailing out","");
                             device->disable();
                             continue;
                         }
-
-                        /* Perhaps the device is not turned on, so try to press ESC for a short time */
-                        _L("no answer from device, trying to turn it on","");
-
-                        unsigned char cbus_dir = 1<<1, cbus_val = 1<<1; /* Spec uses unitialized variables here */
-
-                        if(ftdi_set_bitmode(device->ftdi, (cbus_dir<<4)+cbus_val, 0x20) < 0)
-                        {
-                            _L("failed depressing ESC to turn device on","");
-                            device->disable();
-                            continue;
-                        }
-
-                        usleep(250000);
-                        cbus_val &= ~(1<<1);
-
-                        if(ftdi_set_bitmode(device->ftdi, (cbus_dir<<4)+cbus_val, 0x20) < 0)
-                        {
-                            _L("failed releasing ESC to turn device on","");
-                            device->disable();
-                            continue;
-                        }
-
-                        /* Wait for the device to turn on */
-                        sleep(5);
-
-                        _L("turned device on, retrying identification","");
-                        device->setOpMode(OPM_UNKNOWN);
-                        device->tried_turn_on = true;
                     }
 
                     break;
@@ -511,11 +369,9 @@ void MGenAutoguider::connectionThread()
                     _L("switching from compatible to normal mode","");
 
                     /* Switch to applicative mode */
-                    MGCP_ENTER_NORMAL_MODE().ask(*this);
+                    MGCP_ENTER_NORMAL_MODE().ask(*device);
 
-                    device->setOpMode(OPM_APPLICATION);
-
-                    if(setOpModeBaudRate(device->ftdi, getOpMode()))
+                    if(device->setOpMode(OPM_APPLICATION))
                     {
                         /* TODO: Not good, the device doesn't support our settings - out of spec, bail out */
                         _L("failed updating device connection","");
@@ -525,7 +381,7 @@ void MGenAutoguider::connectionThread()
 
                     _L("device is in now expected to be in applicative mode","");
 
-                    if(CR_SUCCESS != MGCMD_NOP1().ask(*this))
+                    if(CR_SUCCESS != MGCMD_NOP1().ask(*device))
                     {
                         device->disable();
                         continue;
@@ -538,7 +394,7 @@ void MGenAutoguider::connectionThread()
                     if( !version.uploaded_firmware )
                     {
                         MGCMD_GET_FW_VERSION cmd;
-                        if(CR_SUCCESS == cmd.ask(*this))
+                        if(CR_SUCCESS == cmd.ask(*device))
                         {
                             version.uploaded_firmware = cmd.fw_version();
                             sprintf(version.VersionFirmwareT.text,"%04X", version.uploaded_firmware);
@@ -552,17 +408,17 @@ void MGenAutoguider::connectionThread()
                     /* Heartbeat */
                     if(heartbeat.timestamp + 5 < time(0))
                     {
-                        if(CR_SUCCESS != MGCMD_NOP1().ask(*this))
+                        if(CR_SUCCESS != MGCMD_NOP1().ask(*device))
                         {
-                            device->no_ack_count++;
-                            _L("%d times no ack to NOP1", device->no_ack_count);
-                            if(5 < device->no_ack_count)
+                            heartbeat.no_ack_count++;
+                            _L("%d times no ack to NOP1", heartbeat.no_ack_count);
+                            if(5 < heartbeat.no_ack_count)
                             {
                                 device->disable();
                                 continue;
                             }
                         }
-                        else device->no_ack_count = 0;
+                        else heartbeat.no_ack_count = 0;
 
                         heartbeat.timestamp = time(0);
                     }
@@ -572,7 +428,7 @@ void MGenAutoguider::connectionThread()
                     {
                         MGCMD_READ_ADCS adcs;
 
-                        if(CR_SUCCESS == adcs.ask(*this))
+                        if(CR_SUCCESS == adcs.ask(*device))
                         {
                             voltage.VoltageN[0].value = voltage.logic = adcs.logic_voltage();
                             _L("received logic voltage %fV (spec is between 4.8V and 5.1V)", voltage.logic);
@@ -601,7 +457,7 @@ void MGenAutoguider::connectionThread()
                     {
                         MGIO_READ_DISPLAY_FRAME read_frame;
 
-                        if(CR_SUCCESS == read_frame.ask(*this))
+                        if(CR_SUCCESS == read_frame.ask(*device))
                         {
                             MGIO_READ_DISPLAY_FRAME::ByteFrame frame;
                             read_frame.get_frame(frame);
@@ -614,10 +470,12 @@ void MGenAutoguider::connectionThread()
                     }
 
                     /* Send buttons */
+                    /*
                     if(!device->button_queue.empty())
                     {
-                        MGIO_INSERT_BUTTON((MGIO_INSERT_BUTTON::Button) device->popButton()).ask(*this);
+                        MGIO_INSERT_BUTTON((MGIO_INSERT_BUTTON::Button) device->popButton()).ask(*device);
                     }
+                    */
 
 #if 0
                     /* OK, wait a few seconds and retry heartbeat */
@@ -638,12 +496,6 @@ void MGenAutoguider::connectionThread()
         device->disable();
     }
 
-    if(device->ftdi)
-    {
-        ftdi_usb_close(device->ftdi);
-        ftdi_free(device->ftdi);
-    }
-
     _L("disconnected successfully.","");
     //return 0;
 }
@@ -652,55 +504,3 @@ void MGenAutoguider::connectionThread()
  * Helpers
  **************************************************************************************/
 
-int MGenAutoguider::write(IOBuffer const & query) throw (IOError)
-{
-    //struct ftdi_context * const ftdi = static_cast<struct ftdi_context * const> (usb_channel);
-
-    if(!device->ftdi)
-        return -1;
-
-    _L("writing %d bytes to device: %02X %02X %02X %02X %02X ...", query.size(), query.size()>0?query[0]:0, query.size()>1?query[1]:0, query.size()>2?query[2]:0, query.size()>3?query[3]:0, query.size()>4?query[4]:0);
-    int const bytes_written = ftdi_write_data(device->ftdi, query.data(), query.size());
-
-    /* FIXME: Adjust this to optimize how long device absorb the command for */
-    usleep(20000);
-
-    if(bytes_written < 0)
-        throw IOError(bytes_written);
-
-    return bytes_written;
-}
-
-int MGenAutoguider::read(IOBuffer & answer) throw (IOError)
-{
-    //struct ftdi_context * const ftdi = static_cast<struct ftdi_context * const> (usb_channel);
-
-    if(!device->ftdi)
-        return -1;
-
-    if(answer.size() > 0)
-    {
-        _L("reading %d bytes from device", answer.size());
-        int const bytes_read = ftdi_read_data(device->ftdi, answer.data(), answer.size());
-
-        if(bytes_read < 0)
-            throw IOError(bytes_read);
-
-        _L("read %d bytes from device: %02X %02X %02X %02X %02X ...", bytes_read, answer.size()>0?answer[0]:0, answer.size()>1?answer[1]:0, answer.size()>2?answer[2]:0, answer.size()>3?answer[3]:0, answer.size()>4?answer[4]:0);
-        return bytes_read;
-    }
-
-    return 0;
-}
-
-char const * const DBG_OpModeString(IOMode mode)
-{
-    switch(mode)
-    {
-        case OPM_UNKNOWN:       return "UNKNOWN";
-        case OPM_COMPATIBLE:    return "COMPATIBLE";
-        case OPM_BOOT:          return "BOOT";
-        case OPM_APPLICATION:   return "APPLICATION";
-        default: return "???";
-    }
-}

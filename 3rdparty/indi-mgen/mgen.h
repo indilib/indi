@@ -56,6 +56,6 @@ typedef std::vector<IOByte> IOBuffer;
 #define _L(msg, ...) INDI::Logger::getInstance().print(MGenAutoguider::instance().getDeviceName(), INDI::Logger::DBG_SESSION, __FILE__, __LINE__, "%s::%s: " msg, __FUNCTION__, typeid(*this).name(), __VA_ARGS__)
 
 class MGenAutoguider;
-class MGenDeviceState;
+class MGenDevice;
 
 #endif /* _3RDPARTY_INDI_MGEN_MGEN_H_ */

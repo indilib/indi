@@ -12,7 +12,7 @@
 #include <vector>
 #include <string>
 
-#include "mgenautoguider.h"
+#include "mgen_device.h"
 
 class MGC
 {
@@ -35,11 +35,11 @@ protected:
     IOBuffer answer;
 
     /** @brief Basic verifications to call before running the actual command implementation */
-    virtual IOResult ask(MGenAutoguider& root) throw (IOError)
+    virtual IOResult ask(MGenDevice& root) throw (IOError)
     {
         if(opMode() != OPM_UNKNOWN && opMode() != root.getOpMode())
         {
-            _L("operating mode %s does not support command", DBG_OpModeString(opMode()));
+            _L("operating mode %s does not support command", MGenDevice::DBG_OpModeString(opMode()));
             return CR_FAILURE;
         }
 
@@ -62,7 +62,7 @@ public:
     virtual IOMode opMode() const { return OPM_UNKNOWN; }
 
 public:
-    virtual IOResult ask(MGenAutoguider& root) throw (IOError)
+    virtual IOResult ask(MGenDevice& root) throw (IOError)
     {
         if(CR_SUCCESS != MGC::ask(root))
             return CR_FAILURE;
@@ -105,7 +105,7 @@ public:
     virtual IOMode opMode() const { return OPM_APPLICATION; }
 
 public:
-    virtual IOResult ask(MGenAutoguider& root) throw (IOError)
+    virtual IOResult ask(MGenDevice& root) throw (IOError)
     {
         if(CR_SUCCESS != MGC::ask(root))
             return CR_FAILURE;
@@ -114,12 +114,9 @@ public:
 
         int const bytes_read = root.read(answer);
         if(answer[0] == query[0] && 1 == bytes_read)
-        {
-            _L("received heartbeat ack", "");
             return CR_SUCCESS;
-        }
 
-        _L("no heartbeat ack (%d bytes read)", bytes_read);
+        _L("no ack (%d bytes read)", bytes_read);
         return CR_FAILURE;
     }
 
@@ -136,7 +133,7 @@ public:
     virtual IOMode opMode() const { return OPM_COMPATIBLE; }
 
 public:
-    virtual IOResult ask(MGenAutoguider& root) throw (IOError)
+    virtual IOResult ask(MGenDevice& root) throw (IOError)
     {
         if(CR_SUCCESS != MGC::ask(root))
             return CR_FAILURE;
@@ -162,7 +159,7 @@ public:
     unsigned short fw_version() const { return (unsigned short) (answer[2]<<8) | answer[1]; }
 
 public:
-    virtual IOResult ask(MGenAutoguider& root) throw (IOError)
+    virtual IOResult ask(MGenDevice& root) throw (IOError)
     {
         if(CR_SUCCESS != MGC::ask(root))
             return CR_FAILURE;
@@ -171,12 +168,9 @@ public:
 
         int const bytes_read = root.read(answer);
         if(answer[0] == query[0] && ( 1 == bytes_read || 3 == bytes_read ))
-        {
-            _L("received firwmare version ack", "");
             return CR_SUCCESS;
-        }
 
-        _L("no firmware version ack (%d bytes read)", bytes_read);
+        _L("no ack (%d bytes read)", bytes_read);
         return CR_FAILURE;
     }
 
@@ -198,7 +192,7 @@ public:
     float refer_voltage() const { return 3.91e-5f * ((unsigned short) (answer[10]<<8) | answer[9]); }
 
 public:
-    virtual IOResult ask(MGenAutoguider& root) throw (IOError)
+    virtual IOResult ask(MGenDevice& root) throw (IOError)
     {
         if(CR_SUCCESS != MGC::ask(root))
             return CR_FAILURE;
@@ -207,12 +201,9 @@ public:
 
         int const bytes_read = root.read(answer);
         if(answer[0] == query[0] && ( 1+5*2 == bytes_read ))
-        {
-            _L("received ADCs ack", "");
             return CR_SUCCESS;
-        }
 
-        _L("no ADCs ack (%d bytes read)", bytes_read);
+        _L("no ack (%d bytes read)", bytes_read);
         return CR_FAILURE;
     }
 
@@ -272,7 +263,7 @@ public:
     };
 
 public:
-    virtual IOResult ask(MGenAutoguider& root) throw (IOError)
+    virtual IOResult ask(MGenDevice& root) throw (IOError)
     {
         if(CR_SUCCESS != MGC::ask(root))
             return CR_FAILURE;
@@ -352,7 +343,7 @@ public:
     };
 
 public:
-    virtual IOResult ask(MGenAutoguider& root) throw (IOError)
+    virtual IOResult ask(MGenDevice& root) throw (IOError)
     {
         if(CR_SUCCESS != MGC::ask(root))
             return CR_FAILURE;

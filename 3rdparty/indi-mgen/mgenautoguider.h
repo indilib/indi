@@ -35,7 +35,7 @@ public:
     static MGenAutoguider & instance();
 
 protected:
-    class MGenDeviceState * device;
+    class MGenDevice * device;
 
 public:
     struct version
@@ -73,10 +73,12 @@ public:
     struct heartbeat
     {
         time_t timestamp;
+        unsigned int no_ack_count;
     } heartbeat;
 
 protected:
     bool initProperties();
+    bool updateProperties();
 
 public:
     virtual bool ISNewNumber(char const * dev, char const * name, double values[], char * names[], int n);
@@ -94,19 +96,6 @@ public:
      * @return the current operational mode of the device.
      */
     IOMode getOpMode() const;
-
-public:
-    /* @brief Writing the query field of a command to the device.
-     * @return the number of bytes written, or -1 if the command is invalid or device is not accessible.
-     * @throw IOError when device communication is malfunctioning.
-     */
-    int write(IOBuffer const &) throw (IOError);
-
-    /* @brief Reading the answer part of a command from the device.
-     * @return the number of bytes read, or -1 if the command is invalid or device is not accessible.
-     * @throw IOError when device communication is malfunctioning.
-     */
-    int read(IOBuffer &) throw (IOError);
 
 protected:
     static void* connectionThreadWrapper( void* );
