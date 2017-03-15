@@ -28,6 +28,12 @@
 #include <list>
 #include <defaultdevice.h>
 
+namespace Connection
+{
+    class Serial;
+    class TCP;
+}
+
 /**
  * \class INDI::Weather
    \brief Class to provide general functionality of a weather device.
@@ -54,6 +60,16 @@ class INDI::Weather : public INDI::DefaultDevice
     public:
 
     enum WeatherLocation { LOCATION_LATITUDE, LOCATION_LONGITUDE, LOCATION_ELEVATION };
+
+    /** \struct WeatherConnection
+        \brief Holds the connection mode of the Weather.
+    */
+    enum
+    {
+        CONNECTION_NONE   = 1 << 0,                 /** Do not use any connection plugin */
+        CONNECTION_SERIAL = 1 << 1,                 /** For regular serial and bluetooth connections */
+        CONNECTION_TCP    = 1 << 2                  /** For Wired and WiFI connections */
+    } WeatherConnection;
 
     Weather();
     virtual ~Weather();
@@ -119,7 +135,22 @@ class INDI::Weather : public INDI::DefaultDevice
      */
     void setParameterValue(std::string name, double value);
 
+    /**
+     * @brief setWeatherConnection Set Weather connection mode. Child class should call this in the constructor before INDI::Weather registers
+     * any connection interfaces
+     * @param value ORed combination of WeatherConnection values.
+     */
+    void setWeatherConnection(const uint8_t &value);
+
+    /**
+     * @return Get current Weather connection mode
+     */
+    uint8_t getWeatherConnection() const;
+
     virtual bool saveConfigItems(FILE *fp);
+
+    /** \brief perform handshake with device to check communication */
+    virtual bool Handshake();
 
     //  A number vector that stores lattitude and longitude
     INumberVectorProperty LocationNP;
@@ -149,11 +180,20 @@ class INDI::Weather : public INDI::DefaultDevice
     INumber UpdatePeriodN[1];
     INumberVectorProperty UpdatePeriodNP;
 
+    Connection::Serial *serialConnection=NULL;
+    Connection::TCP *tcpConnection=NULL;
+
+    int PortFD=-1;
+
 private:
     bool processLocationInfo(double latitude, double longitude, double elevation);
     void createParameterRange(std::string name, std::string label);
     void updateWeatherState();
     int updateTimerID;
+
+    bool callHandshake();
+    uint8_t weatherConnection = CONNECTION_SERIAL | CONNECTION_TCP;
+
 };
 
 #endif // INDIWeather_H

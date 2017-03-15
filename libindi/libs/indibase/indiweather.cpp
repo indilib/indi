@@ -23,6 +23,8 @@
 *******************************************************************************/
 
 #include "indiweather.h"
+#include "connectionplugins/connectionserial.h"
+#include "connectionplugins/connectiontcp.h"
 
 #define POLLMS  5000
 #define PARAMETERS_TAB  "Parameters"
@@ -80,6 +82,20 @@ bool INDI::Weather::initProperties()
     IUFillTextVector(&ActiveDeviceTP,ActiveDeviceT,1,getDeviceName(),"ACTIVE_DEVICES","Snoop devices",OPTIONS_TAB,IP_RW,60,IPS_IDLE);
 
     IDSnoopDevice(ActiveDeviceT[0].text,"GEOGRAPHIC_COORD");
+
+    if (weatherConnection & CONNECTION_SERIAL)
+    {
+        serialConnection = new Connection::Serial(this);
+        serialConnection->registerHandshake([&]() { return callHandshake(); });
+        registerConnection(serialConnection);
+    }
+
+    if (weatherConnection & CONNECTION_TCP)
+    {
+        tcpConnection = new Connection::TCP(this);
+        tcpConnection->registerHandshake([&]() { return callHandshake(); });
+        registerConnection(tcpConnection);
+    }
 
     return true;
 }
@@ -481,4 +497,40 @@ bool INDI::Weather::saveConfigItems(FILE *fp)
         IUSaveConfigNumber(fp, &ParametersRangeNP[i]);
 
     return true;
+}
+
+bool INDI::Weather::Handshake()
+{
+    return false;
+}
+
+bool INDI::Weather::callHandshake()
+{
+    if (weatherConnection > 0)
+    {
+        if (getActiveConnection() == serialConnection)
+            PortFD = serialConnection->getPortFD();
+        else if (getActiveConnection() == tcpConnection)
+            PortFD = tcpConnection->getPortFD();
+    }
+
+    return Handshake();
+}
+
+uint8_t INDI::Weather::getWeatherConnection() const
+{
+    return weatherConnection;
+}
+
+void INDI::Weather::setWeatherConnection(const uint8_t &value)
+{
+    uint8_t mask = CONNECTION_SERIAL | CONNECTION_TCP;
+
+    if (value > 0 && (mask & value) == 0)
+    {
+        DEBUGF(INDI::Logger::DBG_ERROR, "Invalid connection mode %d", value);
+        return;
+    }
+
+    weatherConnection = value;
 }
