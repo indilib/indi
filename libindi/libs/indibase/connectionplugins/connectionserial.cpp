@@ -292,7 +292,7 @@ bool Serial::refresh()
             return false;
         }
         else
-            DEBUGF(INDI::Logger::DBG_SESSION, "Scan complete. Found %1 port(s).", pCount);
+            DEBUGF(INDI::Logger::DBG_SESSION, "Scan complete. Found %d port(s).", pCount);
 
         SystemPortS = new ISwitch[pCount];
         ISwitch *sp = SystemPortS;
