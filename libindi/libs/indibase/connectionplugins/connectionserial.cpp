@@ -126,9 +126,12 @@ bool Serial::Connect()
     uint32_t baud = atoi(IUFindOnSwitch(&BaudRateSP)->name);
     bool rc = Connect(PortT[0].text, baud);
 
+    if (rc)
+        rc = processHandshake();
+
     if (rc == false && AutoSearchS[0].s == ISS_ON)
     {
-        DEBUGF(INDI::Logger::DBG_WARNING, "Connection to %s @ %d failed. Starting Auto Search...", PortT[0].text, baud);
+        DEBUGF(INDI::Logger::DBG_WARNING, "Communication with %s @ %d failed. Starting Auto Search...", PortT[0].text, baud);
         for (int i=0; i < SystemPortSP.nsp; i++)
         {
             DEBUGF(INDI::Logger::DBG_DEBUG, "Trying connection to %s @ %d ...", SystemPortS[i].name, baud);
@@ -144,9 +147,6 @@ bool Serial::Connect()
 
         return false;
     }
-
-    if (rc)
-        rc = processHandshake();
 
     return rc;
 }
