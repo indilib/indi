@@ -167,9 +167,13 @@ bool TCP::saveConfigItems(FILE *fp)
     return true;
 }
 
-void TCP::setDefaultParams(const char *addressHost, uint32_t addressPort)
+void TCP::setDefaultHost(const char *addressHost)
 {
     IUSaveText(&AddressT[0], addressHost);
+}
+
+void TCP::setDefaultPort(uint32_t addressPort)
+{
     char portStr[8];
     snprintf(portStr, 8, "%d", addressPort);
     IUSaveText(&AddressT[1], portStr);

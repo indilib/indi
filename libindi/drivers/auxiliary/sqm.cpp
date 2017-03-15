@@ -110,7 +110,8 @@ bool SQM::initProperties()
     IUFillNumberVector(&UnitInfoNP, UnitInfoN, 4, getDeviceName(), "Unit Info", "", UNIT_TAB, IP_RW, 0, IPS_IDLE);
 
     tcpConnection = new Connection::TCP(this);
-    tcpConnection->setDefaultParams("192.168.1.1", 10001);
+    tcpConnection->setDefaultHost("192.168.1.1");
+    tcpConnection->setDefaultPort(10001);
     tcpConnection->registerHandshake([&]() { return getDeviceInfo(); });
 
     registerConnection(tcpConnection);
