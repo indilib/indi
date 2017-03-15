@@ -45,8 +45,7 @@ class BaaderDome : public INDI::Dome
         virtual bool updateProperties();
         virtual bool saveConfigItems(FILE *fp);
 
-        bool Connect();
-        bool Disconnect();
+        virtual bool Handshake() override;
 
         void TimerHit();
 
@@ -85,7 +84,6 @@ class BaaderDome : public INDI::Dome
         double DomeAzToMountAz(unsigned short domeAz);
         bool SetupParms();
 
-
         DomeStatus status;
         FlapStatus flapStatus;
         CalibrationStage calibrationStage;
@@ -93,7 +91,6 @@ class BaaderDome : public INDI::Dome
         ShutterOperation targetShutter;
         FlapOperation targetFlap;
         double prev_az, prev_alt;
-        int PortFD;
 
         bool sim;
         double simShutterTimer, simFlapTimer;

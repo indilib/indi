@@ -165,43 +165,9 @@ bool BaaderDome::SetupParms()
 /************************************************************************************
  *
 * ***********************************************************************************/
-bool BaaderDome::Connect()
+bool BaaderDome::Handshake()
 {
-    int connectrc=0;
-    char errorMsg[MAXRBUF];
-
-    sim = isSimulation();
-
-    if (!sim && (connectrc = tty_connect(PortT[0].text, 9600, 8, 0, 1, &PortFD)) != TTY_OK)
-    {
-        tty_error_msg(connectrc, errorMsg, MAXRBUF);
-
-        DEBUGF(INDI::Logger::DBG_SESSION, "Failed to connect to port %s. Error: %s", PortT[0].text, errorMsg);
-
-        return false;
-
-    }
-
-    if (Ack())
-    {
-        DEBUG(INDI::Logger::DBG_SESSION, "Dome is online. Getting dome parameters...");
-        SetTimer(POLLMS);
-        return true;
-    }
-
-    DEBUG(INDI::Logger::DBG_SESSION, "Error retreiving data from dome, please ensure dome controller is powered and the port is correct.");
-    return false;
-}
-
-/************************************************************************************
- *
-* ***********************************************************************************/
-bool BaaderDome::Disconnect()
-{
-    if (!sim)
-        tty_disconnect(PortFD);
-    DEBUG(INDI::Logger::DBG_SESSION, "Dome is offline.");
-    return true;
+    return Ack();
 }
 
 /************************************************************************************
@@ -354,6 +320,8 @@ bool BaaderDome::Ack()
     char errstr[MAXRBUF];
     char resp[DOME_BUF];
     char status[DOME_BUF];
+
+    sim = isSimulation();
 
     tcflush(PortFD, TCIOFLUSH);
 

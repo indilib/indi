@@ -45,7 +45,7 @@ protected:
 
         virtual IPState Move(DomeDirection dir, DomeMotionCommand operation);
         virtual IPState MoveRel(double azDiff);
-        virtual IPState MoveAbs(double az);        
+        virtual IPState MoveAbs(double az);
         virtual IPState Park();
         virtual IPState UnPark();
         virtual IPState ControlShutter(ShutterOperation operation);
@@ -56,12 +56,12 @@ protected:
         virtual bool SetDefaultPark();
 
 
-    private:
+private:
 
         double targetAz;
         double shutterTimer;
         bool SetupParms();
-	int TimeSinceUpdate;
+        int TimeSinceUpdate;
 
 };
 

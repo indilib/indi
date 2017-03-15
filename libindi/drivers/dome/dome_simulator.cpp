@@ -126,12 +126,6 @@ bool DomeSim::SetupParms()
     return true;
 }
 
-bool DomeSim::Connect()
-{
-    SetTimer(1000);     //  start the timer
-    return true;
-}
-
 DomeSim::~DomeSim()
 {
 
@@ -151,6 +145,12 @@ bool DomeSim::updateProperties()
         SetupParms();
     }
 
+    return true;
+}
+
+bool DomeSim::Connect()
+{
+    SetTimer(1000);     //  start the timer
     return true;
 }
 
