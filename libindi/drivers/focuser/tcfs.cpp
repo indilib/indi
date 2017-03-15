@@ -135,7 +135,7 @@ bool TCFS::initProperties()
     }
 
     // Default to 19200
-    serialConnection->setDefaultBaudIndex(1);
+    serialConnection->setDefaultBaudRate(Connection::Serial::B_19200);
     return true;
 }
 
