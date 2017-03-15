@@ -235,6 +235,7 @@ bool ScopeSim::updateProperties()
 bool ScopeSim::Connect()
 {
     DEBUG(INDI::Logger::DBG_SESSION, "Telescope simulator is online.");
+    SetTimer(POLLMS);
     return true;
 }
 
