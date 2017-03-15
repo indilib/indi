@@ -53,6 +53,7 @@ public:
     virtual bool saveConfigItems(FILE *fp);
 
     const int getPortFD() const { return PortFD; }
+    void setDefaultParams(const char *addressHost, uint32_t addressPort);
 
 protected:
 

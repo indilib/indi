@@ -39,7 +39,6 @@ TCP::TCP(INDI::DefaultDevice *dev) : Interface(dev)
     IUFillText(&AddressT[0], "ADDRESS", "Address", "");
     IUFillText(&AddressT[1], "PORT",    "Port",    "");
     IUFillTextVector(&AddressTP, AddressT, 2, getDeviceName(), "DEVICE_TCP_ADDRESS", "TCP Server", CONNECTION_TAB, IP_RW, 60, IPS_IDLE);
-
 }
 
 TCP::~TCP()
@@ -168,6 +167,12 @@ bool TCP::saveConfigItems(FILE *fp)
     return true;
 }
 
-
+void TCP::setDefaultParams(const char *addressHost, uint32_t addressPort)
+{
+    IUSaveText(&AddressT[0], addressHost);
+    char portStr[8];
+    snprintf(portStr, 8, "%d", addressPort);
+    IUSaveText(&AddressT[1], portStr);
+}
 
 }
