@@ -94,7 +94,6 @@ CelestronGPS::CelestronGPS()
 
    setVersion(3, 0);
 
-   PortFD = -1;
    fwInfo.Version = "Invalid";
    fwInfo.controllerVersion = 0;
 

@@ -120,7 +120,6 @@ private:
 
  bool setTrackMode(CELESTRON_TRACK_MODE mode);
 
-  int PortFD;
   double currentRA, currentDEC, currentAZ, currentALT;
   double targetRA, targetDEC, targetAZ, targetALT;
 
