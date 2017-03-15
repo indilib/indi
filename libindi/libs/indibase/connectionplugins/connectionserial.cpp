@@ -16,6 +16,8 @@
  Boston, MA 02110-1301, USA.
 *******************************************************************************/
 
+#include <string>
+
 #include "indicom.h"
 #include "indilogger.h"
 #include "connectionserial.h"
