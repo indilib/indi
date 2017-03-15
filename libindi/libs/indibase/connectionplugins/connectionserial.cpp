@@ -126,10 +126,7 @@ bool Serial::Connect()
     uint32_t baud = atoi(IUFindOnSwitch(&BaudRateSP)->name);
     bool rc = Connect(PortT[0].text, baud);
 
-    if (rc)
-        return processHandshake();
-
-    if (AutoSearchS[0].s == ISS_ON)
+    if (rc == false && AutoSearchS[0].s == ISS_ON)
     {
         DEBUGF(INDI::Logger::DBG_WARNING, "Connection to %s @ %d failed. Starting Auto Search...", PortT[0].text, baud);
         for (int i=0; i < SystemPortSP.nsp; i++)
@@ -144,7 +141,12 @@ bool Serial::Connect()
                     return true;
             }
         }
+
+        return false;
     }
+
+    if (rc)
+        rc = processHandshake();
 
     return rc;
 }
@@ -283,14 +285,15 @@ bool Serial::refresh()
             return false;
         }
 
-        SystemPortS = new ISwitch[m_Ports.size()];
+        int pCount = m_Ports.size();
+        SystemPortS = new ISwitch[pCount];
         ISwitch *sp = SystemPortS;
-        for (int i=0; i < m_Ports.size(); i++)
+        for (int i=pCount-1; i >= 0; i--)
         {
             IUFillSwitch(sp++, m_Ports[i].c_str(), m_Ports[i].c_str(), ISS_OFF);
         }
 
-        IUFillSwitchVector(&SystemPortSP, SystemPortS, m_Ports.size(), device->getDeviceName(), "SYSTEM_PORTS", "System Ports", CONNECTION_TAB, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
+        IUFillSwitchVector(&SystemPortSP, SystemPortS, pCount, device->getDeviceName(), "SYSTEM_PORTS", "System Ports", CONNECTION_TAB, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
 
         device->defineSwitch(&SystemPortSP);
 
