@@ -61,10 +61,6 @@
                 <driver name="Paramount">indi_paramount</driver>
                 <version>0.1</version>
         </device>
-        <device label="TheSky6" focal_length="" aperture="">
-                <driver name="Paramount">indi_paramount</driver>
-                <version>0.1</version>
-        </device>
 	<device label="Orion Atlas" focal_length="" aperture="">
                 <driver name="SynScan">indi_synscan</driver>
                 <version>1.0</version>
