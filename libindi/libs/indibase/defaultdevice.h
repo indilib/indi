@@ -252,6 +252,19 @@ to disconnect the device.
 
 protected:
 
+    /**
+     * @brief setDynamicPropertiesBehavior controls handling of dynamic properties. Dyanmic properties are those generated from an external skeleton XML file
+     * By default all properties, including dynamic properties, are defined to the client in ISGetProperties()
+     * Furthermore, when deleteProperty(properyName) is called, the dynamic property is deleted by default, and can only be restored by calling
+     * buildSkeleton(filename) again.
+     * However, it is sometimes desirable to skip the definition of the dynamic properties on startup and delegate this task
+     * to the child class. To control this behavior, set enabled to false.
+     * @param defineEnabled True to define all dynamic properties in INDI::DefaultDevice own ISGetProperties() on startup. False to skip defining dynamic properties.
+     * @param deleteEnabled True to delete dynamic properties from memory in deleteProperty(name). False to keep dynamic property in the properties list, but delete it from the client
+     * @note This function has no effect on regular properties initilized directly by the driver.
+     */
+    void setDynamicPropertiesBehavior(bool defineEnabled, bool deleteEnabled) { defineDynamicProperties = defineEnabled; deleteDynamicProperties = deleteEnabled; }
+
     // Configuration
 
     /** \brief Load the last saved configuration file
@@ -415,6 +428,9 @@ private:
     // Connection Plugins
     friend class Connection::Serial;
     friend class Connection::TCP;
+
+    bool defineDynamicProperties=true;
+    bool deleteDynamicProperties=true;
 };
 
 #endif // INDIDEFAULTDRIVER_H

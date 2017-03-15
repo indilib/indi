@@ -650,6 +650,9 @@ void INDI::DefaultDevice::ISGetProperties (const char *dev)
         pType       = oneProperty->getType();
         pPtr        = oneProperty->getProperty();
 
+        if (defineDynamicProperties == false && oneProperty->isDynamic())
+            continue;
+
         switch (pType)
         {
         case INDI_NUMBER:
@@ -866,6 +869,17 @@ bool INDI::DefaultDevice::deleteProperty(const char *propertyName)
         //while(!pAll.empty()) delete bar.back(), bar.pop_back();
         IDDelete(getDeviceName(), NULL, NULL);
         return true;
+    }
+
+    // Keep dynamic properties in existing property list so they can be reused
+    if (deleteDynamicProperties == false)
+    {
+        INDI::Property *prop = getProperty(propertyName);
+        if (prop && prop->isDynamic())
+        {
+            IDDelete(getDeviceName(), propertyName ,NULL);
+            return true;
+        }
     }
 
     if (removeProperty(propertyName, errmsg) == 0)
