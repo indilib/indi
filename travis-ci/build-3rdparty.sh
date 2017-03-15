@@ -7,7 +7,7 @@ if [ ! -z $BUILD_THIRD_PARTY ]; then
   mkdir -p build/3rdparty
   pushd build/3rdparty
   bash ../../3rdparty/make_libraries
-  cmake -DCMAKE_INSTALL_PREFIX=/usr/local/ -DWITH_NSE:OPTION=ON -DWITH_MI:OPTION=OFF . ../../3rdparty/
+  cmake -DCMAKE_INSTALL_PREFIX=/usr/local/ -DWITH_NSE:OPTION=ON -DWITH_MI:OPTION=OFF -DWITH_QHY:OPTION=OFF . ../../3rdparty/
   sudo make install
   popd
 else
