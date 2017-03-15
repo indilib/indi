@@ -31,6 +31,20 @@ class Serial : public Interface
 
 public:
 
+    /** \typedef BaudRate
+        \brief Supported baud rates
+        \note: Default baud rate is 9600. To change default baud rate, use setDefaultBaudrate(..) function.
+    */
+    typedef enum
+    {
+        B_9600,
+        B_19200,
+        B_38400,
+        B_57600,
+        B_115200,
+        B_230400
+    } BaudRate;
+
     Serial(INDI::DefaultDevice *dev);
     virtual ~Serial();
 
@@ -46,17 +60,37 @@ public:
 
     virtual const std::string label() { return "Serial"; }
 
+    /**
+     * @return Currently active device port
+     */
     virtual const char *port() { return PortT[0].text; }
+
+    /**
+     * @return Curerntly active baud rate raw value (e.g. 9600, 19200..etc)
+     */
     virtual const uint32_t baud();
+
+    /**
+     * @brief setDefaultPort Set default port. Call this function in initProperties() of your driver if you want to change default port.
+     * @param defaultPort Name of desired default port
+     */
+    void setDefaultPort(const char *defaultPort);
+
+    /**
+     * @brief setDefaultBaudRate Set default baud rate. The default baud rate is 9600 unless otherwise changed by this function.
+     * Call this function in initProperties() of your driver.
+     * @param newRate Desired new rate
+     */
+    void setDefaultBaudRate(BaudRate newRate);
+
+    /**
+     * @return Return port file descriptor. If connection is successful, PortFD is a positive integer otherwise it is set to -1
+     */
+    const int getPortFD() const { return PortFD; }
 
     virtual bool ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n);
     virtual bool ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n);
     virtual bool saveConfigItems(FILE *fp);
-
-    void setDefaultPort(const char *defaultPort);
-    void setDefaultBaudIndex(int newIndex);
-
-    const int getPortFD() const { return PortFD; }
 
 protected:
 

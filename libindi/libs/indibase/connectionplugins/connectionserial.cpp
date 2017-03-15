@@ -38,7 +38,7 @@ Serial::Serial(INDI::DefaultDevice *dev) : Interface(dev)
     IUFillSwitch(&AutoSearchS[1], "DISABLED", "Disabled", ISS_OFF);
     IUFillSwitchVector(&AutoSearchSP, AutoSearchS, 2, dev->getDeviceName(),"DEVICE_AUTO_SEARCH", "Auto Search", CONNECTION_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
 
-    IUFillSwitch(&RefreshS[0], "Scan Ports", "Scan Ports", ISS_ON);
+    IUFillSwitch(&RefreshS[0], "Scan Ports", "Scan Ports", ISS_OFF);
     IUFillSwitchVector(&RefreshSP, RefreshS, 1, dev->getDeviceName(),"DEVICE_PORT_SCAN", "Refresh", CONNECTION_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
 
     IUFillSwitch(&BaudRateS[0], "9600", "", ISS_ON);
@@ -52,7 +52,7 @@ Serial::Serial(INDI::DefaultDevice *dev) : Interface(dev)
 
 Serial::~Serial()
 {
-
+    delete [] SystemPortS;
 }
 
 bool Serial::ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n)
@@ -95,11 +95,8 @@ bool Serial::ISNewSwitch (const char *dev, const char *name, ISState *states, ch
 
         if (!strcmp(name, RefreshSP.name))
         {
-            IUUpdateSwitch(&RefreshSP, states, names, n);
-
             RefreshSP.s = refresh() ? IPS_OK : IPS_ALERT;
             IDSetSwitch(&RefreshSP, NULL);
-
             return true;
         }
 
@@ -244,13 +241,10 @@ void Serial::setDefaultPort(const char *defaultPort)
     IUSaveText(&PortT[0], defaultPort);
 }
 
-void Serial::setDefaultBaudIndex(int newIndex)
+void Serial::setDefaultBaudRate(BaudRate newRate)
 {
-    if (newIndex < 0 || newIndex >= BaudRateSP.nsp)
-        return;
-
     IUResetSwitch(&BaudRateSP);
-    BaudRateS[newIndex].s = ISS_ON;
+    BaudRateS[newRate].s = ISS_ON;
 }
 
 const uint32_t Serial::baud()
@@ -285,7 +279,7 @@ bool Serial::refresh()
 
         if (m_Ports.size() == 0)
         {
-            DEBUG(INDI::Logger::DBG_WARNING, "Failed to find any candidate ports on the system.");
+            DEBUG(INDI::Logger::DBG_WARNING, "No candidate ports found on the system.");
             return false;
         }
 
