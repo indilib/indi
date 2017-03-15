@@ -20,7 +20,9 @@
 
 #ifndef CONNECTIONSERIAL_H
 #define CONNECTIONSERIAL_H
-
+#include <string>
+#include <sstream>
+#include <iostream>
 #include "connectioninterface.h"
 
 namespace Connection
