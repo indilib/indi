@@ -133,7 +133,7 @@ bool CelestronGPS::initProperties()
     IUFillSwitch(&TrackS[1], "TRACK_ALTAZ", "Alt/Az", ISS_OFF);
     IUFillSwitch(&TrackS[2], "TRACK_EQN", "Eq North", ISS_OFF);
     IUFillSwitch(&TrackS[3], "TRACK_EQS", "Eq South", ISS_OFF);
-    IUFillSwitchVector(&TrackSP, TrackS, 4, getDeviceName(), "TELESCOPE_TRACK_RATE", "Track Mode", MOUNTINFO_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+    IUFillSwitchVector(&TrackSP, TrackS, 4, getDeviceName(), "TELESCOPE_TRACK_MODE", "Track Mode", MOUNTINFO_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
     IUFillSwitch(&UseHibernateS[0], "Enable", "", ISS_OFF);
     IUFillSwitch(&UseHibernateS[1], "Disable", "", ISS_ON);
@@ -1031,7 +1031,7 @@ bool CelestronGPS::UnPark()
     if (Sync(equatorialPos.ra/15.0, equatorialPos.dec))
     {
         SetParked(false);
-        loadConfig(true, "TELESCOPE_TRACK_RATE");
+        loadConfig(true, "TELESCOPE_TRACK_MODE");
         return true;
     }
     else

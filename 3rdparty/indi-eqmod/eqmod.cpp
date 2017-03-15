@@ -430,7 +430,7 @@ void EQMod::ISGetProperties(const char *dev)
 	defineSwitch(SyncManageSP);
 	defineNumber(BacklashNP);
 	defineSwitch(UseBacklashSP);
-	defineSwitch(TrackDefaultSP);
+    defineSwitch(TrackDefaultSP);
 	defineSwitch(ST4GuideRateNSSP);
 	defineSwitch(ST4GuideRateWESP);
 #if defined WITH_ALIGN && defined WITH_ALIGN_GEEHALEL
@@ -477,9 +477,9 @@ bool EQMod::loadProperties()
     SlewSpeedsNP=getNumber("SLEWSPEEDS");
     HemisphereSP=getSwitch("HEMISPHERE");
     PierSideSP=getSwitch("TELESCOPE_PIER_SIDE");
-    TrackModeSP=getSwitch("TELESCOPE_TRACK_RATE");
-    TrackDefaultSP=getSwitch("TRACKDEFAULT");
-    TrackRatesNP=getNumber("TRACKRATES");
+    TrackModeSP=getSwitch("TELESCOPE_TRACK_MODE");
+    TrackDefaultSP=getSwitch("TELESCOPE_TRACK_DEFAULT");
+    TrackRatesNP=getNumber("TELESCOPE_TRACK_RATE");
     ReverseDECSP=getSwitch("REVERSEDEC");
 
     HorizontalCoordNP=getNumber("HORIZONTAL_COORD");   
@@ -1508,7 +1508,7 @@ double EQMod::GetRATrackRate()
   } else if (!strcmp(sw->name,"TRACK_SOLAR")) {
     rate = TRACKRATE_SOLAR;
   } else if (!strcmp(sw->name,"TRACK_CUSTOM")) {
-    rate = IUFindNumber(TrackRatesNP, "RATRACKRATE")->value;
+    rate = IUFindNumber(TrackRatesNP, "TRACK_RATE_RA")->value;
   } else return 0.0;
   if (RAInverted) rate=-rate;
   return rate;
@@ -1527,7 +1527,7 @@ double EQMod::GetDETrackRate()
   } else if (!strcmp(sw->name,"TRACK_SOLAR")) {
     rate = 0.0;
   } else if (!strcmp(sw->name,"TRACK_CUSTOM")) {
-    rate = IUFindNumber(TrackRatesNP, "DETRACKRATE")->value;
+    rate = IUFindNumber(TrackRatesNP, "TRACK_RATE_DE")->value;
   } else return 0.0;
   if (DEInverted) rate=-rate;
   return rate;
@@ -1546,7 +1546,7 @@ double EQMod::GetDefaultRATrackRate()
   } else if (!strcmp(sw->name,"TRACK_SOLAR")) {
     rate = TRACKRATE_SOLAR;
   } else if (!strcmp(sw->name,"TRACK_CUSTOM")) {
-    rate = IUFindNumber(TrackRatesNP, "RATRACKRATE")->value;
+    rate = IUFindNumber(TrackRatesNP, "TRACK_RATE_RA")->value;
   } else return 0.0;
   if (RAInverted) rate=-rate;
   return rate;
@@ -1565,7 +1565,7 @@ double EQMod::GetDefaultDETrackRate()
   } else if (!strcmp(sw->name,"TRACK_SOLAR")) {
     rate = 0.0;
   } else if (!strcmp(sw->name,"TRACK_CUSTOM")) {
-    rate = IUFindNumber(TrackRatesNP, "DETRACKRATE")->value;
+    rate = IUFindNumber(TrackRatesNP, "TRACK_RATE_DE")->value;
   } else return 0.0;
   if (DEInverted) rate=-rate;
   return rate;
@@ -2036,25 +2036,29 @@ bool EQMod::ISNewNumber (const char *dev, const char *name, double values[], cha
 	  return true;
 	}
 
-      if(strcmp(name,"TRACKRATES")==0)
+    if(strcmp(name,TrackRatesNP->name)==0)
 	{   
-	  ISwitch *sw;
-	  sw=IUFindOnSwitch(TrackModeSP);
-	  if ((!sw) && (!strcmp(sw->name, "CUSTOM"))) { 
-	    try {
-	      for (int i=0; i<n; i++) {
-		if (strcmp(names[i], "RATRACKRATE") == 0) mount->SetRARate(values[i] / SKYWATCHER_STELLAR_SPEED);
-		else if  (strcmp(names[i], "DETRACKRATE") == 0) mount->SetDERate(values[i] / SKYWATCHER_STELLAR_SPEED);
-	      }
-	    } catch(EQModError e) {
-	      return(e.DefaultHandleException(this));
-	    }   
-	  }
+        ISwitch *sw;
+        sw=IUFindOnSwitch(TrackModeSP);
+        if ((!sw) && (!strcmp(sw->name, "CUSTOM")))
+        {
+            try
+            {
+                for (int i=0; i<n; i++)
+                {
+                    if (strcmp(names[i], "TRACK_RATE_RA") == 0) mount->SetRARate(values[i] / SKYWATCHER_STELLAR_SPEED);
+                    else if  (strcmp(names[i], "TRACK_RATE_DE") == 0) mount->SetDERate(values[i] / SKYWATCHER_STELLAR_SPEED);
+                }
+            } catch(EQModError e)
+            {
+                return(e.DefaultHandleException(this));
+            }
+        }
 	  IUUpdateNumber(TrackRatesNP, values, names, n);
 	  TrackRatesNP->s = IPS_OK;
 	  IDSetNumber(TrackRatesNP, NULL);
       DEBUGF(INDI::Logger::DBG_SESSION, "Setting Custom Tracking Rates - RA=%.6f  DE=%.6f arcsec/s",
-		      IUFindNumber(TrackRatesNP,"RATRACKRATE")->value, IUFindNumber(TrackRatesNP,"DETRACKRATE")->value);
+              IUFindNumber(TrackRatesNP,"TRACK_RATE_RA")->value, IUFindNumber(TrackRatesNP,"TRACK_RATE_DE")->value);
 	  return true;
 	}
 
@@ -2280,7 +2284,7 @@ bool EQMod::ISNewSwitch (const char *dev, const char *name, ISState *states, cha
 	    DEBUGF(INDI::Logger::DBG_SESSION,"Changed Track Default (from %s to %s).", swbefore->name, swafter->name);
 	  }
 	  return true;
-	}
+    }
 
       if(strcmp(name,"ST4_GUIDE_RATE_WE")==0)
  	{  

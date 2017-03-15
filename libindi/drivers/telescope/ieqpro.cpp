@@ -121,11 +121,11 @@ bool IEQPro::initProperties()
     IUFillSwitch(&TrackModeS[TRACK_SOLAR], "TRACK_SOLAR", "Solar", ISS_OFF);
     IUFillSwitch(&TrackModeS[TRACK_LUNAR], "TRACK_LUNAR", "Lunar", ISS_OFF);
     IUFillSwitch(&TrackModeS[TRACK_CUSTOM], "TRACK_CUSTOM", "Custom", ISS_OFF);
-    IUFillSwitchVector(&TrackModeSP, TrackModeS, 4, getDeviceName(), "TELESCOPE_TRACK_RATE", "Tracking Mode", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+    IUFillSwitchVector(&TrackModeSP, TrackModeS, 4, getDeviceName(), "TELESCOPE_TRACK_MODE", "Track Mode", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
     /* Custom Tracking Rate */
-    IUFillNumber(&CustomTrackRateN[0],"CUSTOM_RATE","Rate","%g",-0.0100, 0.0100, 0.005, 0);
-    IUFillNumberVector(&CustomTrackRateNP, CustomTrackRateN,1,getDeviceName(),"CUSTOM_RATE","Custom Track",MOTION_TAB,IP_RW,60,IPS_IDLE);
+    IUFillNumber(&CustomTrackRateN[0],"TRACK_RATE_CUSTOM","Rate","%g",-0.0100, 0.0100, 0.005, 0);
+    IUFillNumberVector(&CustomTrackRateNP, CustomTrackRateN,1,getDeviceName(),"TELESCOPE_TRACK_RATE","Track Rates",MOTION_TAB,IP_RW,60,IPS_IDLE);
 
     /* GPS Status */
     IUFillSwitch(&GPSStatusS[GPS_OFF], "Off", "", ISS_ON);
