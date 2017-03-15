@@ -277,6 +277,7 @@ bool INDI::Telescope::updateProperties()
                 deleteProperty(ParkOptionSP.name);
             }
         }
+        deleteProperty(TargetNP.name);
     }
 
     controller->updateProperties();
