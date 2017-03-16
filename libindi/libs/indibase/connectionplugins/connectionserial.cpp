@@ -287,6 +287,7 @@ bool Serial::refresh()
         device->deleteProperty(SystemPortSP.name);
 
     delete [] SystemPortS;
+    SystemPortS = NULL;
     std::vector<std::string> m_Ports;
 
     struct dirent ** namelist;
