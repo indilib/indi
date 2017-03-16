@@ -267,11 +267,10 @@ int dev_file_select(const dirent *entry)
 #if defined(__APPLE__)
     static const char *filter_names[] = { "cu.", NULL};
 #else
-    static const char *filter_names[] = { "ttyUSB", "ttyACM", "rfcomm", NULL};
+    static const char *filter_names[] = { "ttyUSB", "ttyACM", "rfcomm", "ttyS", NULL};
 #endif
     const char **filter;
     for (filter = filter_names; *filter; ++filter) {
-        // fprintf(stderr,"dev_file_select: test [%s] against [%s]\n", entry->d_name, *filter);
         if (strstr(entry->d_name, *filter) != NULL) {
            return(true);
         }
@@ -290,16 +289,15 @@ bool Serial::refresh()
     struct dirent **namelist;
     int devCount = scandir("/dev", &namelist, dev_file_select, alphasort);
     if (devCount < 0) {
-        DEBUGF(INDI::Logger::DBG_ERROR,"Failed to scandir /dev. Error: %s", strerror(errno));
+        DEBUGF(INDI::Logger::DBG_ERROR,"Failed to scan directory /dev. Error: %s", strerror(errno));
     } else {
         while (devCount--) {
-            printf("%s\n", namelist[devCount]->d_name);
             if (m_Ports.size() < 10) {
                 std::string s(namelist[devCount]->d_name);
                 s.erase(s.find_last_not_of(" \n\r\t")+1);
-                m_Ports.push_back(s);
+                m_Ports.push_back("/dev/" + s);
             } else {
-                DEBUGF(INDI::Logger::DBG_WARNING, "Ignoring devices over %d : %s", m_Ports.size(), namelist[devCount]->d_name);
+                DEBUGF(INDI::Logger::DBG_DEBUG, "Ignoring devices over %d : %s", m_Ports.size(), namelist[devCount]->d_name);
             }
             free(namelist[devCount]);
         }
