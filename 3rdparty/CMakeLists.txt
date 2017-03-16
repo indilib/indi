@@ -164,8 +164,14 @@ endif(WITH_DSI)
 
 ## QHY
 if (WITH_QHY)
+find_package(QHY)
+if (QHY_FOUND)
 add_subdirectory(indi-qhy)
-endif(WITH_QHY)
+else (QHY_FOUND)
+add_subdirectory(libqhy)
+SET(LIBRARIES_FOUND FALSE)
+endif (QHY_FOUND)
+endif (WITH_QHY)
 
 ## GPSD
 if (WITH_GPSD)
@@ -191,6 +197,10 @@ message(STATUS "Not all libraries found, you must build and install all librarie
 if (WITH_QSI AND NOT QSI_FOUND)
 message(STATUS "libqsi was not found and will now be built. Please install libqsi first before running cmake again to install indi-qsi.")
 endif (WITH_QSI AND NOT QSI_FOUND)
+
+if (WITH_QHY AND NOT QHY_FOUND)
+message(STATUS "libqhy was not found and will now be built. Please install libqhy first before running cmake again to install indi-qhy.")
+endif (WITH_QHY AND NOT QHY_FOUND)
 
 if (WITH_SBIG AND NOT SBIG_FOUND)
 message(STATUS "libsbigudrv was not found and will now be built. Please install libsbigudrv first before running cmake again to install indi-sbig.")
