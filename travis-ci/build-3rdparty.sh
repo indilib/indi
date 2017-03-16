@@ -7,7 +7,11 @@ if [ ! -z $BUILD_THIRD_PARTY ]; then
   mkdir -p build/3rdparty
   pushd build/3rdparty
   bash ../../3rdparty/make_libraries
-  cmake -DCMAKE_INSTALL_PREFIX=/usr/local/ -DWITH_NSE:OPTION=ON -DWITH_MI:OPTION=OFF -DWITH_QHY:OPTION=OFF . ../../3rdparty/
+  if [ ${TRAVIS_OS_NAME}="linux" ] ; then 
+    cmake -DCMAKE_INSTALL_PREFIX=/usr/local/ -DWITH_NSE:OPTION=ON -DWITH_MI:OPTION=OFF -DWITH_QHY:OPTION=OFF . ../../3rdparty/
+  else 
+    cmake -DCMAKE_INSTALL_PREFIX=/usr/local/ -DWITH_NSE:OPTION=ON -DWITH_SBIG:OPTION=OFF . ../../3rdparty/
+  fi
   sudo make install
   popd
 else
