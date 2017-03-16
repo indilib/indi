@@ -20,7 +20,7 @@ if [ ! -z $BUILD_THIRD_PARTY ]; then
     echo "Building $lib ..."
     mkdir build_$lib
     cd build_$lib
-    cmake -DCMAKE_INSTALL_PREFIX=/usr . ../../../3rdparty/$lib
+    cmake -DCMAKE_INSTALL_PREFIX=/usr/local/ . ../../../3rdparty/$lib
     make
     sudo make install
   )
