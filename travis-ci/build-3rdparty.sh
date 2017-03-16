@@ -9,9 +9,9 @@ if [ ! -z $BUILD_THIRD_PARTY ]; then
   # bash ../../3rdparty/make_libraries
   
   if [ ${TRAVIS_OS_NAME}="linux" ] ; then 
-    LIBS="libapogee libfishcamp libfli libfli libqhy libqsi libsbig"
+    LIBS="libapogee libfishcamp libfli libqhy libqsi libsbig"
   else
-    LIBS="libfishcamp libfli libfli libqhy libqsi"
+    LIBS="libfishcamp libfli libqhy libqsi"
   fi
 
   for lib in $LIBS ; do
