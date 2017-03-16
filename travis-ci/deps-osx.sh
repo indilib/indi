@@ -27,7 +27,7 @@ brew install \
 			libgphoto2 \
 			libjpeg \
 			libusb \
-			libgpsd \
+			gpsd \
 			libraw \
 			seanhoughton/indi/libcfitsio \
 			seanhoughton/indi/libnova 
