@@ -431,11 +431,11 @@ set(paramount_SRCS
    ${indimain_SRCS}
    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/telescope/paramount.cpp )
 
-add_executable(indi_paramount ${paramount_SRCS})
+add_executable(indi_paramount_telescope ${paramount_SRCS})
 
-target_link_libraries(indi_paramount indidriver)
+target_link_libraries(indi_paramount_telescope indidriver)
 
-install(TARGETS indi_paramount RUNTIME DESTINATION bin )
+install(TARGETS indi_paramount_telescope RUNTIME DESTINATION bin )
 
 #################################################################################
 
@@ -443,10 +443,28 @@ install(TARGETS indi_paramount RUNTIME DESTINATION bin )
 set(synscan_SRCS
    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/telescope/synscanmount.cpp )
 
-add_executable(indi_synscan ${synscan_SRCS})
-target_link_libraries(indi_synscan indidriver AlignmentDriver)
+add_executable(indi_synscan_telescope ${synscan_SRCS})
+target_link_libraries(indi_synscan_telescope indidriver AlignmentDriver)
 
-install(TARGETS indi_synscan RUNTIME DESTINATION bin )
+install(TARGETS indi_synscan_telescope RUNTIME DESTINATION bin )
+
+########### Sky Commander ###############
+set(skycommander_SRCS
+   ${CMAKE_CURRENT_SOURCE_DIR}/drivers/telescope/skycommander.cpp )
+
+add_executable(indi_skycommander_telescope ${skycommander_SRCS})
+target_link_libraries(indi_skycommander_telescope indidriver)
+
+install(TARGETS indi_skycommander_telescope RUNTIME DESTINATION bin )
+
+########### Generic Digital Setting Circle ###############
+set(dsc_SRCS
+   ${CMAKE_CURRENT_SOURCE_DIR}/drivers/telescope/dsc.cpp )
+
+add_executable(indi_dsc_telescope ${dsc_SRCS})
+target_link_libraries(indi_dsc_telescope indidriver)
+
+install(TARGETS indi_dsc_telescope RUNTIME DESTINATION bin )
 
 ########### IEQ Pro / CEM60 #############
 set(ieq_SRCS

@@ -168,11 +168,14 @@ void INDI::Telescope::ISGetProperties (const char * dev)
     //  First we let our parent populate
     DefaultDevice::ISGetProperties(dev);
 
-    defineText(&ActiveDeviceTP);
-    loadConfig(true, "ACTIVE_DEVICES");
+    if (CanGOTO())
+    {
+        defineText(&ActiveDeviceTP);
+        loadConfig(true, "ACTIVE_DEVICES");
 
-    defineSwitch(&DomeClosedLockTP);
-    loadConfig(true, "DOME_POLICY");
+        defineSwitch(&DomeClosedLockTP);
+        loadConfig(true, "DOME_POLICY");
+    }
 
     defineNumber(&ScopeParametersNP);
     loadConfig(true, "TELESCOPE_INFO");
@@ -180,7 +183,9 @@ void INDI::Telescope::ISGetProperties (const char * dev)
     if(isConnected())
     {
         //  Now we add our telescope specific stuff
-        defineSwitch(&CoordSP);
+
+        if (CanGOTO())
+            defineSwitch(&CoordSP);
         defineNumber(&EqNP);
         if (CanAbort())
             defineSwitch(&AbortSP);
@@ -199,23 +204,25 @@ void INDI::Telescope::ISGetProperties (const char * dev)
                 defineSwitch(&ParkOptionSP);
             }
         }
-        defineSwitch(&MovementNSSP);
-        defineSwitch(&MovementWESP);
 
-        if (nSlewRate >= 4)
-            defineSwitch(&SlewRateSP);
+        if (CanGOTO())
+        {
+            defineSwitch(&MovementNSSP);
+            defineSwitch(&MovementWESP);
 
-        defineNumber(&TargetNP);
+            if (nSlewRate >= 4)
+                defineSwitch(&SlewRateSP);
 
+            defineNumber(&TargetNP);
+        }
     }
 
-    controller->ISGetProperties(dev);
-
+    if (CanGOTO())
+        controller->ISGetProperties(dev);
 }
 
 bool INDI::Telescope::updateProperties()
 {
-
     if(isConnected())
     {
         controller->mapController("MOTIONDIR", "N/S/W/E Control", INDI::Controller::CONTROLLER_JOYSTICK, "JOYSTICK_1");
@@ -234,14 +241,20 @@ bool INDI::Telescope::updateProperties()
         }
 
         //  Now we add our telescope specific stuff
-        defineSwitch(&CoordSP);
+        if (CanGOTO())
+            defineSwitch(&CoordSP);
         defineNumber(&EqNP);
         if (CanAbort())
             defineSwitch(&AbortSP);
-        defineSwitch(&MovementNSSP);
-        defineSwitch(&MovementWESP);
-        if (nSlewRate >= 4)
-            defineSwitch(&SlewRateSP);
+
+        if (CanGOTO())
+        {
+            defineSwitch(&MovementNSSP);
+            defineSwitch(&MovementWESP);
+            if (nSlewRate >= 4)
+                defineSwitch(&SlewRateSP);
+             defineNumber(&TargetNP);
+        }
 
         if (HasTime())
             defineText(&TimeTP);
@@ -256,18 +269,23 @@ bool INDI::Telescope::updateProperties()
                 defineSwitch(&ParkOptionSP);
             }
         }
-        defineNumber(&TargetNP);
     }
     else
     {
-        deleteProperty(CoordSP.name);
+        if (CanGOTO())
+            deleteProperty(CoordSP.name);
         deleteProperty(EqNP.name);
         if (CanAbort())
             deleteProperty(AbortSP.name);
-        deleteProperty(MovementNSSP.name);
-        deleteProperty(MovementWESP.name);
-        if (nSlewRate >= 4)
-            deleteProperty(SlewRateSP.name);
+
+        if (CanGOTO())
+        {
+            deleteProperty(MovementNSSP.name);
+            deleteProperty(MovementWESP.name);
+            if (nSlewRate >= 4)
+                deleteProperty(SlewRateSP.name);
+            deleteProperty(TargetNP.name);
+        }
 
         if (HasTime())
             deleteProperty(TimeTP.name);
@@ -283,25 +301,27 @@ bool INDI::Telescope::updateProperties()
                 deleteProperty(ParkOptionSP.name);
             }
         }
-        deleteProperty(TargetNP.name);
     }
 
-    controller->updateProperties();
-    ISwitchVectorProperty * useJoystick = getSwitch("USEJOYSTICK");
-    if (useJoystick)
+    if (CanGOTO())
     {
-        if (isConnected())
+        controller->updateProperties();
+        ISwitchVectorProperty * useJoystick = getSwitch("USEJOYSTICK");
+        if (useJoystick)
         {
-            if (useJoystick->sp[0].s == ISS_ON)
+            if (isConnected())
             {
-                defineSwitch(&LockAxisSP);
-                loadConfig(true, "LOCK_AXIS");
+                if (useJoystick->sp[0].s == ISS_ON)
+                {
+                    defineSwitch(&LockAxisSP);
+                    loadConfig(true, "LOCK_AXIS");
+                }
+                else
+                    deleteProperty(LockAxisSP.name);
             }
             else
                 deleteProperty(LockAxisSP.name);
         }
-        else
-            deleteProperty(LockAxisSP.name);
     }
 
     return true;
@@ -1075,6 +1095,20 @@ void INDI::Telescope::TimerHit()
     }
 }
 
+bool INDI::Telescope::Goto(double ra, double dec)
+{
+    INDI_UNUSED(ra);
+    INDI_UNUSED(dec);
+
+    DEBUG(INDI::Logger::DBG_WARNING, "GOTO is not supported.");
+    return false;
+}
+
+bool INDI::Telescope::Abort()
+{
+    DEBUG(INDI::Logger::DBG_WARNING, "Abort is not supported.");
+    return false;
+}
 
 bool INDI::Telescope::Park()
 {

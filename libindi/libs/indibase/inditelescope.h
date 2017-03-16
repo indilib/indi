@@ -74,11 +74,12 @@ class INDI::Telescope : public INDI::DefaultDevice
         */
         enum
         {
-            TELESCOPE_CAN_SYNC          = 1 << 0,       /** Can the telescope sync to specific coordinates? */
-            TELESCOPE_CAN_PARK          = 1 << 1,       /** Can the telescope park? */
-            TELESCOPE_CAN_ABORT         = 1 << 2,       /** Can the telescope abort motion? */
-            TELESCOPE_HAS_TIME          = 1 << 3,       /** Does the telescope have configurable date and time settings? */
-            TELESCOPE_HAS_LOCATION      = 1 << 4        /** Does the telescope have configuration location settings? */
+            TELESCOPE_CAN_GOTO          = 1 << 0,       /** Can the telescope go to to specific coordinates? */
+            TELESCOPE_CAN_SYNC          = 1 << 1,       /** Can the telescope sync to specific coordinates? */
+            TELESCOPE_CAN_PARK          = 1 << 2,       /** Can the telescope park? */
+            TELESCOPE_CAN_ABORT         = 1 << 3,       /** Can the telescope abort motion? */
+            TELESCOPE_HAS_TIME          = 1 << 4,       /** Does the telescope have configurable date and time settings? */
+            TELESCOPE_HAS_LOCATION      = 1 << 5        /** Does the telescope have configuration location settings? */
         } TelescopeCapability;
 
         Telescope();
@@ -105,6 +106,14 @@ class INDI::Telescope : public INDI::DefaultDevice
          * slew rate property TELESCOPE_SLEW_RATE with SLEW_GUIDE, SLEW_CENTERING, SLEW_FIND, and SLEW_MAX members where SLEW_GUIDE is the at the lowest setting and SLEW_MAX is at the highest.
          */
         void SetTelescopeCapability(uint32_t cap, uint8_t slewRateCount=0);
+
+        /**
+         * @return True if telescope support goto operations
+         */
+        bool CanGOTO()
+        {
+            return capability & TELESCOPE_CAN_GOTO;
+        }
 
         /**
          * @return True if telescope support sync operations
@@ -271,13 +280,13 @@ class INDI::Telescope : public INDI::DefaultDevice
 
         /** \brief Move the scope to the supplied RA and DEC coordinates
             \return True if successful, false otherwise
-            \note This function is not implemented in INDI::Telescope, it must be implemented in the child class
+            \note If not implemented by the child class, this function by default returns false with a warning message.
         */
-        virtual bool Goto(double ra,double dec)=0;
+        virtual bool Goto(double ra,double dec);
 
         /** \brief Set the telescope current RA and DEC coordinates to the supplied RA and DEC coordinates
             \return True if successful, false otherwise
-            *\note This function implemented INDI::Telescope always returns false. Override the function to return true.
+            \note If not implemented by the child class, this function by default returns false with a warning message.
         */
         virtual bool Sync(double ra,double dec);
 
@@ -285,7 +294,7 @@ class INDI::Telescope : public INDI::DefaultDevice
          *  \param dir direction of motion
          *  \param command Start or Stop command
             \return True if successful, false otherwise
-            \note This function is not implemented in INDI::Telescope, it must be implemented in the child class
+            \note If not implemented by the child class, this function by default returns false with a warning message.
         */
         virtual bool MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command);
 
@@ -293,33 +302,33 @@ class INDI::Telescope : public INDI::DefaultDevice
             \param dir direction of motion
             \param command Start or Stop command
             \return True if successful, false otherwise
-            \note This function is not implemented in INDI::Telescope, it must be implemented in the child class
+            \note If not implemented by the child class, this function by default returns false with a warning message.
         */
         virtual bool MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command);
 
         /** \brief Park the telescope to its home position.
             \return True if successful, false otherwise
-            *\note This function defaults to return false unless subclassed by the child class.
+            \note If not implemented by the child class, this function by default returns false with a warning message.
         */
         virtual bool Park();
 
         /** \brief Unpark the telescope if already parked.
             \return True if successful, false otherwise
-            *\note This function defaults to return false unless subclassed by the child class.
+            \note If not implemented by the child class, this function by default returns false with a warning message.
         */
         virtual bool UnPark();
 
         /** \brief Abort telescope motion
             \return True if successful, false otherwise
-            \note This function is not implemented in INDI::Telescope, it must be implemented in the child class
+            \note If not implemented by the child class, this function by default returns false with a warning message.
         */
-        virtual bool Abort()=0;
+        virtual bool Abort();
 
         /** \brief Update telescope time, date, and UTC offset.
          *  \param utc UTC time.
          *  \param utc_offset UTC offset in hours.
             \return True if successful, false otherwise
-            \note This function performs no action unless subclassed by the child class if required.
+            \note If not implemented by the child class, this function by default returns false with a warning message.
         */
         virtual bool updateTime(ln_date * utc, double utc_offset);
 
@@ -328,16 +337,16 @@ class INDI::Telescope : public INDI::DefaultDevice
          *  \param longitude Site latitude in degrees increasing eastward from Greenwich (0 to 360).
          *  \param elevation Site elevation in meters.
             \return True if successful, false otherwise
-            \note This function performs no action unless subclassed by the child class if required.
+            \note If not implemented by the child class, this function by default returns false with a warning message.
         */
         virtual bool updateLocation(double latitude, double longitude, double elevation);
 
         /**
-         * @brief SetParkPosition Set desired parking position to the supplied value. This ONLY sets the desired park position value and does not perform parking.
-         * @param Axis1Value First axis value
-         * @param Axis2Value Second axis value
-         * @return True if desired parking position is accepted and set. False otherwise.
-         * @note INDI::Telescope implementation of this function always evaluates to true. Override to implement a custom behavior.
+         * \brief SetParkPosition Set desired parking position to the supplied value. This ONLY sets the desired park position value and does not perform parking.
+         * \param Axis1Value First axis value
+         * \param Axis2Value Second axis value
+         * \return True if desired parking position is accepted and set. False otherwise.
+         * \note If not implemented by the child class, this function by default returns false with a warning message.
          */
         virtual bool SetParkPosition(double Axis1Value, double Axis2Value)
         {
@@ -346,14 +355,14 @@ class INDI::Telescope : public INDI::DefaultDevice
         /**
          * @brief SetCurrentPark Set current coordinates/encoders value as the desired parking position
          * @return True if current mount coordinates are set as parking position, false on error.
-         * \note This function performs no action unless subclassed by the child class if required.
+         * \note If not implemented by the child class, this function by default returns false with a warning message.
          */
         virtual bool SetCurrentPark();
 
         /**
          * @brief SetDefaultPark Set default coordinates/encoders value as the desired parking position
-         * * @return True if default park coordinates are set as parking position, false on error.
-         * \note This function performs no action unless subclassed by the child class if required.
+         * @return True if default park coordinates are set as parking position, false on error.
+         * \note If not implemented by the child class, this function by default returns false with a warning message.
          */
         virtual bool SetDefaultPark();
 

@@ -115,7 +115,7 @@ LX200Basic::LX200Basic()
     currentRA=ln_get_apparent_sidereal_time(ln_get_julian_from_sys());
     currentDEC=90;   
 
-    SetTelescopeCapability(TELESCOPE_CAN_SYNC | TELESCOPE_CAN_ABORT);
+    SetTelescopeCapability(TELESCOPE_CAN_SYNC | TELESCOPE_CAN_GOTO | TELESCOPE_CAN_ABORT);
 
     DEBUG(INDI::Logger::DBG_DEBUG, "Initializing from LX200 Basic device...");
 

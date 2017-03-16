@@ -193,7 +193,7 @@ bool CelestronGPS::updateProperties()
 {    
     if (isConnected())
     {        
-        uint32_t cap = TELESCOPE_CAN_ABORT | TELESCOPE_CAN_PARK;
+        uint32_t cap = TELESCOPE_CAN_GOTO | TELESCOPE_CAN_ABORT | TELESCOPE_CAN_PARK;
 
         if (get_celestron_firmware(PortFD, &fwInfo))
         {

@@ -88,7 +88,8 @@ NexStarEvo::NexStarEvo() :
 {
     setVersion(NSEVO_VERSION_MAJOR, NSEVO_VERSION_MINOR);
     SetTelescopeCapability( TELESCOPE_CAN_PARK | 
-                            TELESCOPE_CAN_SYNC | 
+                            TELESCOPE_CAN_SYNC |
+                            TELESCOPE_CAN_GOTO |
                             TELESCOPE_CAN_ABORT |
                             TELESCOPE_HAS_TIME |
                             TELESCOPE_HAS_LOCATION, 4);

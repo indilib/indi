@@ -137,7 +137,8 @@ bool Serial::Connect()
     if (rc)
         rc = processHandshake();
 
-    if (rc == false && AutoSearchS[0].s == ISS_ON)
+    // Start auto-search if option was selected and IF we have system ports to try connecting to
+    if (rc == false && AutoSearchS[0].s == ISS_ON && SystemPortS != NULL)
     {
         DEBUGF(INDI::Logger::DBG_WARNING, "Communication with %s @ %d failed. Starting Auto Search...", PortT[0].text, baud);
         for (int i=0; i < SystemPortSP.nsp; i++)
@@ -286,6 +287,7 @@ bool Serial::refresh()
         device->deleteProperty(SystemPortSP.name);
 
     delete [] SystemPortS;
+    SystemPortS = NULL;
     std::vector<std::string> m_Ports;
 
     struct dirent ** namelist;
