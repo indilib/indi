@@ -86,14 +86,20 @@ bool INDI::Weather::initProperties()
     if (weatherConnection & CONNECTION_SERIAL)
     {
         serialConnection = new Connection::Serial(this);
-        serialConnection->registerHandshake([&]() { return callHandshake(); });
+        serialConnection->registerHandshake([&]()
+        {
+            return callHandshake();
+        });
         registerConnection(serialConnection);
     }
 
     if (weatherConnection & CONNECTION_TCP)
     {
         tcpConnection = new Connection::TCP(this);
-        tcpConnection->registerHandshake([&]() { return callHandshake(); });
+        tcpConnection->registerHandshake([&]()
+        {
+            return callHandshake();
+        });
         registerConnection(tcpConnection);
     }
 
@@ -106,7 +112,7 @@ bool INDI::Weather::updateProperties()
 
     if (isConnected())
     {
-        updateTimerID = -1;        
+        updateTimerID = -1;
 
         if (critialParametersL)
             defineLight(&critialParametersLP);
@@ -212,7 +218,7 @@ bool INDI::Weather::ISNewNumber (const char *dev, const char *name, double value
                 DEBUG(INDI::Logger::DBG_SESSION, "Periodic updates are disabled.");
             else
             {
-                if (updateTimerID > 0)                
+                if (updateTimerID > 0)
                     RemoveTimer(updateTimerID);
 
                 updateTimerID = SetTimer(UpdatePeriodN[0].value*1000);
@@ -235,7 +241,7 @@ bool INDI::Weather::ISNewNumber (const char *dev, const char *name, double value
                 updateWeatherState();
 
                 ParametersRangeNP[i].s = IPS_OK;
-                IDSetNumber(&ParametersRangeNP[i], NULL);                
+                IDSetNumber(&ParametersRangeNP[i], NULL);
 
                 return true;
             }
@@ -294,8 +300,8 @@ void INDI::Weather::TimerHit()
 
     switch (state)
     {
-        // Ok
-        case IPS_OK:
+    // Ok
+    case IPS_OK:
 
         updateWeatherState();
         ParametersNP.s = state;
@@ -307,16 +313,16 @@ void INDI::Weather::TimerHit()
 
         return;
 
-        // Alert
-        // We retry every POLLMS until we get OK
-        case IPS_ALERT:
+    // Alert
+    // We retry every POLLMS until we get OK
+    case IPS_ALERT:
         ParametersNP.s = state;
         IDSetNumber(&ParametersNP, NULL);
         break;
 
-        // Weather update is in progress
-        default:
-            break;
+    // Weather update is in progress
+    default:
+        break;
     }
 
     updateTimerID = SetTimer(POLLMS);
@@ -458,7 +464,7 @@ void INDI::Weather::updateWeatherState()
 
         // The overall state is the worst individual state.
         if (critialParametersL[i].s > critialParametersLP.s)
-            critialParametersLP.s = critialParametersL[i].s;                
+            critialParametersLP.s = critialParametersL[i].s;
     }
 
     IDSetLight(&critialParametersLP, NULL);

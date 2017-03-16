@@ -128,16 +128,16 @@ bool INDI::FocuserInterface::processFocuserNumber (const char *dev, const char *
 
         if ( (ret = MoveAbsFocuser(newPos)) == IPS_OK)
         {
-           FocusAbsPosNP.s=IPS_OK;
-           IUUpdateNumber(&FocusAbsPosNP,values,names,n);
-           IDSetNumber(&FocusAbsPosNP, "Focuser moved to position %d", newPos);
-           return true;
+            FocusAbsPosNP.s=IPS_OK;
+            IUUpdateNumber(&FocusAbsPosNP,values,names,n);
+            IDSetNumber(&FocusAbsPosNP, "Focuser moved to position %d", newPos);
+            return true;
         }
         else if (ret == IPS_BUSY)
         {
-           FocusAbsPosNP.s=IPS_BUSY;
-           IDSetNumber(&FocusAbsPosNP, "Focuser is moving to position %d", newPos);
-           return true;
+            FocusAbsPosNP.s=IPS_BUSY;
+            IDSetNumber(&FocusAbsPosNP, "Focuser is moving to position %d", newPos);
+            return true;
         }
 
 
@@ -153,10 +153,10 @@ bool INDI::FocuserInterface::processFocuserNumber (const char *dev, const char *
 
         if (newPos <= 0)
         {
-             DEBUGDEVICE(dev, INDI::Logger::DBG_ERROR, "Relative ticks value must be greater than zero.");
-             FocusRelPosNP.s = IPS_ALERT;
-             IDSetNumber(&FocusRelPosNP, NULL);
-             return false;
+            DEBUGDEVICE(dev, INDI::Logger::DBG_ERROR, "Relative ticks value must be greater than zero.");
+            FocusRelPosNP.s = IPS_ALERT;
+            IDSetNumber(&FocusRelPosNP, NULL);
+            return false;
         }
 
         IPState ret;
@@ -187,19 +187,19 @@ bool INDI::FocuserInterface::processFocuserNumber (const char *dev, const char *
 
         if ( (ret=MoveRelFocuser( (FocusMotionS[0].s == ISS_ON ? FOCUS_INWARD : FOCUS_OUTWARD), newPos)) == IPS_OK)
         {
-           FocusRelPosNP.s=FocusAbsPosNP.s=IPS_OK;
-           IUUpdateNumber(&FocusRelPosNP,values,names,n);
-           IDSetNumber(&FocusRelPosNP, "Focuser moved %d steps %s", newPos, FocusMotionS[0].s == ISS_ON ? "inward" : "outward");
-           IDSetNumber(&FocusAbsPosNP, NULL);
-           return true;
+            FocusRelPosNP.s=FocusAbsPosNP.s=IPS_OK;
+            IUUpdateNumber(&FocusRelPosNP,values,names,n);
+            IDSetNumber(&FocusRelPosNP, "Focuser moved %d steps %s", newPos, FocusMotionS[0].s == ISS_ON ? "inward" : "outward");
+            IDSetNumber(&FocusAbsPosNP, NULL);
+            return true;
         }
         else if (ret == IPS_BUSY)
         {
-             IUUpdateNumber(&FocusRelPosNP,values,names,n);
-             FocusRelPosNP.s=FocusAbsPosNP.s=IPS_BUSY;
-             IDSetNumber(&FocusAbsPosNP, "Focuser is moving %d steps %s...", newPos, FocusMotionS[0].s == ISS_ON ? "inward" : "outward");
-             IDSetNumber(&FocusAbsPosNP, NULL);
-             return true;
+            IUUpdateNumber(&FocusRelPosNP,values,names,n);
+            FocusRelPosNP.s=FocusAbsPosNP.s=IPS_BUSY;
+            IDSetNumber(&FocusAbsPosNP, "Focuser is moving %d steps %s...", newPos, FocusMotionS[0].s == ISS_ON ? "inward" : "outward");
+            IDSetNumber(&FocusAbsPosNP, NULL);
+            return true;
         }
 
         FocusRelPosNP.s = IPS_ALERT;

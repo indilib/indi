@@ -14,8 +14,10 @@
 #include <gsl/gsl_blas.h>
 #include <cmath>
 
-namespace INDI {
-namespace AlignmentSubsystem {
+namespace INDI
+{
+namespace AlignmentSubsystem
+{
 
 void TelescopeDirectionVector::RotateAroundY(double Angle)
 {

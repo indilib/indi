@@ -15,8 +15,10 @@
 #include "indibase/basedevice.h"
 #include "indibase/baseclient.h"
 
-namespace INDI {
-namespace AlignmentSubsystem {
+namespace INDI
+{
+namespace AlignmentSubsystem
+{
 
 /*!
  * \class ClientAPIForMathPluginManagement

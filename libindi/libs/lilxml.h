@@ -1,34 +1,38 @@
 #if 0
-    liblilxml
-    Copyright (C) 2003 Elwood C. Downey
+liblilxml
+Copyright (C) 2003 Elwood C. Downey
 
-    This library is free software; you can redistribute it and/or
-    modify it under the terms of the GNU Lesser General Public
-    License as published by the Free Software Foundation; either
-    version 2.1 of the License, or (at your option) any later version.
+This library is free software;
+you can redistribute it and/or
+modify it under the terms of the GNU Lesser General Public
+License as published by the Free Software Foundation;
+either
+version 2.1 of the License, or (at your option) any later version.
 
-    This library is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-    Lesser General Public License for more details.
+This library is distributed in the hope that it will be useful,
+     but WITHOUT ANY WARRANTY;
+without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+Lesser General Public License for more details.
 
-    You should have received a copy of the GNU Lesser General Public
-    License along with this library; if not, write to the Free Software
-    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+You should have received a copy of the GNU Lesser General Public
+License along with this library;
+if not, write to the Free Software
+Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
 #endif
 
 /** \file lilxml.h
     \brief A little DOM-style library to handle parsing and processing an XML file.
-    
+
     It only handles elements, attributes and pcdata content. <! ... > and <? ... > are silently ignored. pcdata is collected into one string, sans leading whitespace first line. \n
-    
+
     The following is an example of a cannonical usage for the lilxml library. Initialize a lil xml context and read an XML file in a root element.
-    
+
     \code
-    
+
     #include <lilxml.h>
-    
+
     LilXML *lp = newLilXML();
 	char errmsg[1024];
 	XMLEle *root, *ep;
@@ -41,8 +45,8 @@
 	    if (errmsg[0])
 		error ("Error: %s\n", errmsg);
 	}
- 
-        // print the tag and pcdata content of each child element within the root 
+
+        // print the tag and pcdata content of each child element within the root
 
         for (ep = nextXMLEle (root, 1); ep != NULL; ep = nextXMLEle (root, 0))
 	    printf ("%s: %s\n", tagXMLEle(ep), pcdataXMLEle(ep));
@@ -52,9 +56,9 @@
 
 	delXMLEle (root);
 	delLilXML (lp);
-	
+
      \endcode
-    
+
  */
 
 #ifndef LILXML_H
@@ -92,22 +96,22 @@ extern void delLilXML (LilXML *lp);
     \return a pointer to the XML Element to be deleted.
 */
 extern void delXMLEle (XMLEle *e);
-  
+
 /** \brief Process an XML chunk.
     \param lp a pointer to a lilxml parser.
     \param buf buffer to process.
     \param size size of buf
     \param errmsg a buffer to store error messages if an error in parsing is encountered.
-    \return return a pointer to a NULL terminated array of parsed XML elements. An array of size 1 with on a NULL element means there is nothing to parse or a parsing is still in progress. A NULL pointer may be returned if a parsing error occurs. Check errmsg for errors if NULL is returned. 
+    \return return a pointer to a NULL terminated array of parsed XML elements. An array of size 1 with on a NULL element means there is nothing to parse or a parsing is still in progress. A NULL pointer may be returned if a parsing error occurs. Check errmsg for errors if NULL is returned.
  */
 extern XMLEle **parseXMLChunk(LilXML *lp, char *buf, int size, char errmsg[]);
 
-  /** \brief Process an XML one char at a time.
-    \param lp a pointer to a lilxml parser.
-    \param c one character to process.
-    \param errmsg a buffer to store error messages if an error in parsing is encounterd.
-    \return When the function parses a complete valid XML element, it will return a pointer to the XML element. A NULL is returned when parsing the element is still in progress, or if a parsing error occurs. Check errmsg for errors if NULL is returned. 
- */
+/** \brief Process an XML one char at a time.
+  \param lp a pointer to a lilxml parser.
+  \param c one character to process.
+  \param errmsg a buffer to store error messages if an error in parsing is encounterd.
+  \return When the function parses a complete valid XML element, it will return a pointer to the XML element. A NULL is returned when parsing the element is still in progress, or if a parsing error occurs. Check errmsg for errors if NULL is returned.
+*/
 extern XMLEle *readXMLEle (LilXML *lp, int c, char errmsg[]);
 
 /* search functions */
@@ -128,14 +132,14 @@ extern XMLEle *findXMLEle (XMLEle *e, const char *tag);
 /* iteration functions */
 /** \brief Iterate an XML element for a list of nesetd XML elements.
     \param ep a pointer to the XML element to iterate.
-    \param first the index of the starting XML element. Pass 1 to start iteration from the beginning of the XML element. Pass 0 to get the next element thereater. 
+    \param first the index of the starting XML element. Pass 1 to start iteration from the beginning of the XML element. Pass 0 to get the next element thereater.
     \return On success, a pointer to the next XML element is returned. NULL when there are no more elements.
 */
 extern XMLEle *nextXMLEle (XMLEle *ep, int first);
 
 /** \brief Iterate an XML element for a list of XML attributes.
     \param ep a pointer to the XML element to iterate.
-    \param first the index of the starting XML attribute. Pass 1 to start iteration from the beginning of the XML element. Pass 0 to get the next attribute thereater. 
+    \param first the index of the starting XML attribute. Pass 1 to start iteration from the beginning of the XML element. Pass 0 to get the next attribute thereater.
     \return On success, a pointer to the next XML attribute is returned. NULL when there are no more attributes.
 */
 extern XMLAtt *nextXMLAtt (XMLEle *ep, int first);
@@ -267,7 +271,7 @@ extern int sprlXMLEle (XMLEle *ep, int level);
 
 /* install alternatives to malloc/realloc/free */
 extern void indi_xmlMalloc (void *(*newmalloc)(size_t size),
-    void *(*newrealloc)(void *ptr, size_t size), void (*newfree)(void *ptr));
+                            void *(*newrealloc)(void *ptr, size_t size), void (*newfree)(void *ptr));
 
 /*@}*/
 
@@ -291,7 +295,7 @@ extern void indi_xmlMalloc (void *(*newmalloc)(size_t size),
 	    if (errmsg[0])
 		error ("Error: %s\n", errmsg);
 	}
- 
+
         print the tag and pcdata content of each child element within the root
 
         for (ep = nextXMLEle (root, 1); ep != NULL; ep = nextXMLEle (root, 0))

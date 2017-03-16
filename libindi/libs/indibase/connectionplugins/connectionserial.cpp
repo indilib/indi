@@ -270,9 +270,11 @@ int dev_file_select(const dirent *entry)
     static const char *filter_names[] = { "ttyUSB", "ttyACM", "rfcomm", NULL};
 #endif
     const char **filter;
-    for (filter = filter_names; *filter; ++filter) {
-        if (strstr(entry->d_name, *filter) != NULL) {
-           return(true);
+    for (filter = filter_names; *filter; ++filter)
+    {
+        if (strstr(entry->d_name, *filter) != NULL)
+        {
+            return(true);
         }
     }
     return(false);
@@ -288,15 +290,22 @@ bool Serial::refresh()
 
     struct dirent **namelist;
     int devCount = scandir("/dev", &namelist, dev_file_select, alphasort);
-    if (devCount < 0) {
+    if (devCount < 0)
+    {
         DEBUGF(INDI::Logger::DBG_ERROR,"Failed to scan directory /dev. Error: %s", strerror(errno));
-    } else {
-        while (devCount--) {
-            if (m_Ports.size() < 10) {
+    }
+    else
+    {
+        while (devCount--)
+        {
+            if (m_Ports.size() < 10)
+            {
                 std::string s(namelist[devCount]->d_name);
                 s.erase(s.find_last_not_of(" \n\r\t")+1);
                 m_Ports.push_back("/dev/" + s);
-            } else {
+            }
+            else
+            {
                 DEBUGF(INDI::Logger::DBG_DEBUG, "Ignoring devices over %d : %s", m_Ports.size(), namelist[devCount]->d_name);
             }
             free(namelist[devCount]);
@@ -304,27 +313,27 @@ bool Serial::refresh()
         free(namelist);
     }
 
-	int pCount = m_Ports.size();
-	if (pCount == 0)
-	{
-		DEBUG(INDI::Logger::DBG_WARNING, "No candidate ports found on the system.");
-		return false;
-	}
-	else
-		DEBUGF(INDI::Logger::DBG_SESSION, "Scan complete. Found %d port(s).", pCount);
+    int pCount = m_Ports.size();
+    if (pCount == 0)
+    {
+        DEBUG(INDI::Logger::DBG_WARNING, "No candidate ports found on the system.");
+        return false;
+    }
+    else
+        DEBUGF(INDI::Logger::DBG_SESSION, "Scan complete. Found %d port(s).", pCount);
 
-	SystemPortS = new ISwitch[pCount];
-	ISwitch *sp = SystemPortS;
-	for (int i=pCount-1; i >= 0; i--)
-	{
-		IUFillSwitch(sp++, m_Ports[i].c_str(), m_Ports[i].c_str(), ISS_OFF);
-	}
+    SystemPortS = new ISwitch[pCount];
+    ISwitch *sp = SystemPortS;
+    for (int i=pCount-1; i >= 0; i--)
+    {
+        IUFillSwitch(sp++, m_Ports[i].c_str(), m_Ports[i].c_str(), ISS_OFF);
+    }
 
-	IUFillSwitchVector(&SystemPortSP, SystemPortS, pCount, device->getDeviceName(), "SYSTEM_PORTS", "System Ports", CONNECTION_TAB, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
+    IUFillSwitchVector(&SystemPortSP, SystemPortS, pCount, device->getDeviceName(), "SYSTEM_PORTS", "System Ports", CONNECTION_TAB, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
 
-	device->defineSwitch(&SystemPortSP);
+    device->defineSwitch(&SystemPortSP);
 
-	return true;
+    return true;
 }
 
 }

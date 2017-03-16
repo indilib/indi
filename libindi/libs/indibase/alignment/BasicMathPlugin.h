@@ -14,8 +14,10 @@
 
 #include <gsl/gsl_matrix.h>
 
-namespace INDI {
-namespace AlignmentSubsystem {
+namespace INDI
+{
+namespace AlignmentSubsystem
+{
 
 /// \class BasicMathPlugin
 /// \brief This class implements the common functionality for the built in
@@ -34,7 +36,7 @@ public:
 
     /// \brief Override for the base class virtual function
     virtual bool TransformCelestialToTelescope(const double RightAscension, const double Declination, double JulianOffset,
-                                                    TelescopeDirectionVector& ApparentTelescopeDirectionVector);
+            TelescopeDirectionVector& ApparentTelescopeDirectionVector);
 
     /// \brief Override for the base class virtual function
     virtual bool TransformTelescopeToCelestial(const TelescopeDirectionVector& ApparentTelescopeDirectionVector, double& RightAscension, double& Declination);
@@ -51,8 +53,8 @@ protected:
     /// \param[in] pAlphaToBeta Pointer to a matrix to receive the Alpha to Beta transformation matrix
     /// \param[in] pBetaToAlpha Pointer to a matrix to receive the Beta to Alpha transformation matrix
     virtual void CalculateTransformMatrices(const TelescopeDirectionVector& Alpha1, const TelescopeDirectionVector& Alpha2, const TelescopeDirectionVector& Alpha3,
-                            const TelescopeDirectionVector& Beta1, const TelescopeDirectionVector& Beta2, const TelescopeDirectionVector& Beta3,
-                            gsl_matrix *pAlphaToBeta, gsl_matrix *pBetaToAlpha) = 0;
+                                            const TelescopeDirectionVector& Beta1, const TelescopeDirectionVector& Beta2, const TelescopeDirectionVector& Beta3,
+                                            gsl_matrix *pAlphaToBeta, gsl_matrix *pBetaToAlpha) = 0;
 
     /// \brief Print out a 3 vector to debug
     /// \param[in] Label A label to identify the vector
@@ -89,8 +91,8 @@ protected:
     /// \note The order of the vertices determine whether the triangle is facing away from or towards the origin.
     /// Intersection with triangles facing the origin will be ignored.
     bool RayTriangleIntersection(TelescopeDirectionVector& Ray, TelescopeDirectionVector& TriangleVertex1,
-                                                                TelescopeDirectionVector& TriangleVertex2,
-                                                                TelescopeDirectionVector& TriangleVertex3);
+                                 TelescopeDirectionVector& TriangleVertex2,
+                                 TelescopeDirectionVector& TriangleVertex3);
 
     // Transformation matrixes for 1, 2 and 2 sync points case
     gsl_matrix *pActualToApparentTransform;

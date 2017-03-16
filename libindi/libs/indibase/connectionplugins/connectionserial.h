@@ -58,14 +58,23 @@ public:
 
     virtual void Deactivated();
 
-    virtual const std::string name() { return "CONNECTION_SERIAL"; }
+    virtual const std::string name()
+    {
+        return "CONNECTION_SERIAL";
+    }
 
-    virtual const std::string label() { return "Serial"; }
+    virtual const std::string label()
+    {
+        return "Serial";
+    }
 
     /**
      * @return Currently active device port
      */
-    virtual const char *port() { return PortT[0].text; }
+    virtual const char *port()
+    {
+        return PortT[0].text;
+    }
 
     /**
      * @return Curerntly active baud rate raw value (e.g. 9600, 19200..etc)
@@ -88,7 +97,10 @@ public:
     /**
      * @return Return port file descriptor. If connection is successful, PortFD is a positive integer otherwise it is set to -1
      */
-    const int getPortFD() const { return PortFD; }
+    const int getPortFD() const
+    {
+        return PortFD;
+    }
 
     virtual bool ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n);
     virtual bool ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n);

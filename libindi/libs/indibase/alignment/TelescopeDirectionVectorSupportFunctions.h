@@ -13,8 +13,10 @@
 
 #include <libnova.h>
 
-namespace INDI {
-namespace AlignmentSubsystem {
+namespace INDI
+{
+namespace AlignmentSubsystem
+{
 
 /*! \class TelescopeDirectionVectorSupportFunctions
  *  \brief These functions are used to convert different coordinate systems to and from the
@@ -38,8 +40,9 @@ public:
      * from north. But ESO FITS (Clockwise from South) and SDSS FITS(Anticlockwise from South)\n
      * have different conventions. Horizontal coordinates in libnova are measured clockwise from south.
      */
-    typedef enum AzimuthAngleDirection{ CLOCKWISE, /*!< Angle is measured clockwise */
-                                ANTI_CLOCKWISE /*!< Angle is measured anti clockwise */} AzimuthAngleDirection_t;
+    typedef enum AzimuthAngleDirection { CLOCKWISE, /*!< Angle is measured clockwise */
+                                         ANTI_CLOCKWISE /*!< Angle is measured anti clockwise */
+                                       } AzimuthAngleDirection_t;
 
     /*!
      * \enum PolarAngleDirection
@@ -49,8 +52,9 @@ public:
      * - Altitude is measured FROM_AZIMUTHAL_PLANE.
      * - Altitude in libnova horizontal coordinates is measured FROM_AZIMUTHAL_PLANE.
      */
-    typedef enum PolarAngleDirection{ FROM_POLAR_AXIS, /*!< Angle is measured down from the polar axis */
-                            FROM_AZIMUTHAL_PLANE /*!< Angle is measured upwards from the azimuthal plane */} PolarAngleDirection_t;
+    typedef enum PolarAngleDirection { FROM_POLAR_AXIS, /*!< Angle is measured down from the polar axis */
+                                       FROM_AZIMUTHAL_PLANE /*!< Angle is measured upwards from the azimuthal plane */
+                                     } PolarAngleDirection_t;
 
     /*! \brief Calculates an altitude and azimuth from the supplied normalised direction vector
      * and declination.
@@ -90,7 +94,7 @@ public:
      * \note This assumes a right handed coordinate system for the direction vector with the right ascension being in the XY plane.
      */
     void EquatorialCoordinatesFromTelescopeDirectionVector(const TelescopeDirectionVector TelescopeDirectionVector,
-                                                                struct ln_equ_posn& EquatorialCoordinates)
+            struct ln_equ_posn& EquatorialCoordinates)
     {
         double AzimuthAngle;
         double PolarAngle;
@@ -106,7 +110,7 @@ public:
      * \note This assumes a right handed coordinate system for the direction vector with the right ascension being in the XY plane.
      */
     void EquatorialCoordinatesFromTelescopeDirectionVector(const TelescopeDirectionVector TelescopeDirectionVector,
-                                                                struct lnh_equ_posn& EquatorialCoordinates)
+            struct lnh_equ_posn& EquatorialCoordinates)
     {
         double AzimuthAngle;
         double PolarAngle;
@@ -122,7 +126,7 @@ public:
      * \note This assumes a right handed coordinate system for the direction vector with the hour angle being in the XY plane.
      */
     void LocalHourAngleDeclinationFromTelescopeDirectionVector(const TelescopeDirectionVector TelescopeDirectionVector,
-                                                                struct ln_equ_posn& EquatorialCoordinates)
+            struct ln_equ_posn& EquatorialCoordinates)
     {
         double AzimuthAngle;
         double PolarAngle;
@@ -138,7 +142,7 @@ public:
      * \note This assumes a right handed coordinate system for the direction vector with the hour angle being in the XY plane.
      */
     void LocalHourAngleDeclinationFromTelescopeDirectionVector(const TelescopeDirectionVector TelescopeDirectionVector,
-                                                                struct lnh_equ_posn& EquatorialCoordinates)
+            struct lnh_equ_posn& EquatorialCoordinates)
     {
         double AzimuthAngle;
         double PolarAngle;
@@ -156,8 +160,8 @@ public:
      * \note TelescopeDirectionVectors are always normalised and right handed.
      */
     void SphericalCoordinateFromTelescopeDirectionVector(const TelescopeDirectionVector TelescopeDirectionVector,
-                                                                double& AzimuthAngle, AzimuthAngleDirection_t AzimuthAngleDirection,
-                                                                double& PolarAngle, PolarAngleDirection_t PolarAngleDirection);
+            double& AzimuthAngle, AzimuthAngleDirection_t AzimuthAngleDirection,
+            double& PolarAngle, PolarAngleDirection_t PolarAngleDirection);
 
 
     /*! \brief Calculates a normalised direction vector from the supplied altitude and azimuth.
@@ -221,7 +225,7 @@ public:
      * \note TelescopeDirectionVectors are always assumed to be normalised and right handed.
      */
     const TelescopeDirectionVector TelescopeDirectionVectorFromSphericalCoordinate(const double AzimuthAngle, AzimuthAngleDirection_t AzimuthAngleDirection,
-                                                                                            const double PolarAngle, PolarAngleDirection_t PolarAngleDirection);
+            const double PolarAngle, PolarAngleDirection_t PolarAngleDirection);
 
 
 };

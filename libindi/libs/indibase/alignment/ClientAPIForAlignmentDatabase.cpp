@@ -12,27 +12,29 @@
 
 #include <indicom.h>
 
-namespace INDI {
-namespace AlignmentSubsystem {
+namespace INDI
+{
+namespace AlignmentSubsystem
+{
 
 ClientAPIForAlignmentDatabase::ClientAPIForAlignmentDatabase() :   Device(NULL),
-                                    MandatoryNumbers(NULL),
-                                    OptionalBinaryBlob(NULL),
-                                    PointsetSize(NULL),
-                                    CurrentEntry(NULL),
-                                    Action(NULL),
-                                    Commit(NULL),
-                                    DriverActionComplete(false)
+    MandatoryNumbers(NULL),
+    OptionalBinaryBlob(NULL),
+    PointsetSize(NULL),
+    CurrentEntry(NULL),
+    Action(NULL),
+    Commit(NULL),
+    DriverActionComplete(false)
 {
     pthread_cond_init(&DriverActionCompleteCondition, NULL);
     pthread_mutex_init(&DriverActionCompleteMutex, NULL);
 }
 
- ClientAPIForAlignmentDatabase::~ClientAPIForAlignmentDatabase()
- {
+ClientAPIForAlignmentDatabase::~ClientAPIForAlignmentDatabase()
+{
     pthread_cond_destroy(&DriverActionCompleteCondition);
     pthread_mutex_destroy(&DriverActionCompleteMutex);
- }
+}
 
 bool ClientAPIForAlignmentDatabase::AppendSyncPoint(const AlignmentDatabaseEntry& CurrentValues)
 {
@@ -393,12 +395,12 @@ void ClientAPIForAlignmentDatabase::ProcessNewProperty(INDI::Property *PropertyP
 
     // Tell the client when all the database proeprties have been set up
     if (GotOneOfMine
-                && (NULL != MandatoryNumbers)
-                && (NULL != OptionalBinaryBlob)
-                && (NULL != PointsetSize)
-                && (NULL != CurrentEntry)
-                && (NULL != Action)
-                && (NULL != Commit))
+            && (NULL != MandatoryNumbers)
+            && (NULL != OptionalBinaryBlob)
+            && (NULL != PointsetSize)
+            && (NULL != CurrentEntry)
+            && (NULL != Action)
+            && (NULL != Commit))
     {
         // The DriverActionComplete state variable is initialised to false
         // So I need to call this to set it to true and signal anyone
@@ -457,10 +459,10 @@ bool ClientAPIForAlignmentDatabase::ReadIncrementSyncPoint(AlignmentDatabaseEntr
     if ((IPS_OK != pCommit->s) || (IPS_OK != pMandatoryNumbers->s) || (IPS_OK != pBLOB->s) || (IPS_OK != pCurrentEntry->s))
     {
         IDLog("ReadIncrementSyncPoint - Bad Commit/Mandatory numbers/Blob/Current entry state %s %s %s %s\n",
-                                                                        pstateStr(pCommit->s),
-                                                                        pstateStr(pMandatoryNumbers->s),
-                                                                        pstateStr(pBLOB->s),
-                                                                        pstateStr(pCurrentEntry->s));
+              pstateStr(pCommit->s),
+              pstateStr(pMandatoryNumbers->s),
+              pstateStr(pBLOB->s),
+              pstateStr(pCurrentEntry->s));
         return false;
     }
 
@@ -522,8 +524,8 @@ bool ClientAPIForAlignmentDatabase::ReadSyncPoint(unsigned int Offset, Alignment
     if ((IPS_OK != pCommit->s) || (IPS_OK != pMandatoryNumbers->s) || (IPS_OK != pBLOB->s))
     {
         IDLog("ReadSyncPoint - Bad Commit/Mandatory numbers/Blob state %s %s %s\n", pstateStr(pCommit->s),
-                                                                                    pstateStr(pMandatoryNumbers->s),
-                                                                                    pstateStr(pBLOB->s));
+              pstateStr(pMandatoryNumbers->s),
+              pstateStr(pBLOB->s));
         return false;
     }
 

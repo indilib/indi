@@ -27,7 +27,10 @@ const char *CONNECTION_TAB = "Connection";
 Interface::Interface(INDI::DefaultDevice *dev) : device(dev)
 {
     // Default handshake
-    registerHandshake([]() { return true;});
+    registerHandshake([]()
+    {
+        return true;
+    });
 
 }
 

@@ -33,7 +33,7 @@
 
 
     </ul>
-    
+
     \author Jason Harris
     \author Elwood C. Downey
     \author Jasem Mutlaq
@@ -145,9 +145,9 @@ int tty_timeout(int fd, int timeout);
 /*@{*/
 
 /** \brief Converts a sexagesimal number to a string.
- 
+
    sprint the variable a in sexagesimal format into out[].
-	
+
   \param out a pointer to store the sexagesimal number.
   \param a the sexagesimal number to convert.
   \param w the number of spaces in the whole part.
@@ -157,7 +157,7 @@ int tty_timeout(int fd, int timeout);
  	  \li 3600:	\<w\>:mm:ss
  	  \li 600:	\<w\>:mm.m
  	  \li 60:	\<w\>:mm
-  
+
   \return number of characters written to out, not counting final null terminator.
  */
 int fs_sexa (char *out, double a, int w, int fracbase);
@@ -165,7 +165,7 @@ int fs_sexa (char *out, double a, int w, int fracbase);
 /** \brief convert sexagesimal string str AxBxC to double.
 
     x can be anything non-numeric. Any missing A, B or C will be assumed 0. Optional - and + can be anywhere.
-    
+
     \param str0 string containing sexagesimal number.
     \param dp pointer to a double to store the sexagesimal number.
     \return return 0 if ok, -1 if can't find a thing.

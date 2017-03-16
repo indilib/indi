@@ -86,15 +86,15 @@ void INDI::GuiderInterface::GuideComplete(INDI_EQ_AXIS axis)
 {
     switch (axis)
     {
-        case AXIS_DE:
-            GuideNSNP.s = IPS_IDLE;
-            IDSetNumber(&GuideNSNP, NULL);
-            break;
+    case AXIS_DE:
+        GuideNSNP.s = IPS_IDLE;
+        IDSetNumber(&GuideNSNP, NULL);
+        break;
 
-        case AXIS_RA:
-            GuideWENP.s = IPS_IDLE;
-            IDSetNumber(&GuideWENP, NULL);
-            break;
+    case AXIS_RA:
+        GuideWENP.s = IPS_IDLE;
+        IDSetNumber(&GuideWENP, NULL);
+        break;
     }
 }
 

@@ -16,8 +16,10 @@
 #include "MathPluginManagement.h"
 #include "TelescopeDirectionVectorSupportFunctions.h"
 
-namespace INDI {
-namespace AlignmentSubsystem {
+namespace INDI
+{
+namespace AlignmentSubsystem
+{
 
 /*!
  * \class AlignmentSubsystemForDrivers
@@ -25,7 +27,7 @@ namespace AlignmentSubsystem {
  * Drivers should inherit from this class.
  */
 class AlignmentSubsystemForDrivers : public MapPropertiesToInMemoryDatabase, public MathPluginManagement,
-                                    public TelescopeDirectionVectorSupportFunctions
+    public TelescopeDirectionVectorSupportFunctions
 {
 public:
     /// \brief Default constructor

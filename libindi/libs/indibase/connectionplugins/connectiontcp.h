@@ -42,17 +42,32 @@ public:
 
     virtual void Deactivated();
 
-    virtual const std::string name() { return "CONNECTION_TCP"; }
+    virtual const std::string name()
+    {
+        return "CONNECTION_TCP";
+    }
 
-    virtual const std::string label() { return "Ethernet"; }
+    virtual const std::string label()
+    {
+        return "Ethernet";
+    }
 
-    virtual const char* host() { return AddressT[0].text; }
-    virtual const uint32_t port() { return atoi(AddressT[0].text); }
+    virtual const char* host()
+    {
+        return AddressT[0].text;
+    }
+    virtual const uint32_t port()
+    {
+        return atoi(AddressT[0].text);
+    }
 
     virtual bool ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n);
     virtual bool saveConfigItems(FILE *fp);
 
-    const int getPortFD() const { return PortFD; }
+    const int getPortFD() const
+    {
+        return PortFD;
+    }
     void setDefaultHost(const char *addressHost);
     void setDefaultPort(uint32_t addressPort);
 

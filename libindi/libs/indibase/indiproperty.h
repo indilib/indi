@@ -44,11 +44,26 @@ public:
     void setDynamic(bool d);
     void setBaseDevice(BaseDevice *idp);
 
-    void *getProperty() { return pPtr; }
-    INDI_PROPERTY_TYPE getType() { return pType; }
-    bool getRegistered() { return pRegistered; }
-    bool isDynamic() { return pDynamic; }
-    BaseDevice *getBaseDevice() { return dp; }
+    void *getProperty()
+    {
+        return pPtr;
+    }
+    INDI_PROPERTY_TYPE getType()
+    {
+        return pType;
+    }
+    bool getRegistered()
+    {
+        return pRegistered;
+    }
+    bool isDynamic()
+    {
+        return pDynamic;
+    }
+    BaseDevice *getBaseDevice()
+    {
+        return dp;
+    }
 
     // Convenience Functions
     const char *getName() const;

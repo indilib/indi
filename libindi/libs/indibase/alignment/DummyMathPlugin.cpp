@@ -4,8 +4,10 @@
 
 #include "DummyMathPlugin.h"
 
-namespace INDI {
-namespace AlignmentSubsystem {
+namespace INDI
+{
+namespace AlignmentSubsystem
+{
 
 
 // Standard functions required for all plugins
@@ -46,7 +48,7 @@ bool DummyMathPlugin::Initialise(InMemoryDatabase* pInMemoryDatabase)
 }
 
 bool DummyMathPlugin::TransformCelestialToTelescope(const double RightAscension, const double Declination, double JulianOffset,
-                                                        TelescopeDirectionVector& ApparentTelescopeDirectionVector)
+        TelescopeDirectionVector& ApparentTelescopeDirectionVector)
 {
     return false;
 }

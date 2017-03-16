@@ -16,8 +16,10 @@
 #include <sys/types.h>
 #include <dlfcn.h>
 
-namespace INDI {
-namespace AlignmentSubsystem {
+namespace INDI
+{
+namespace AlignmentSubsystem
+{
 
 void MathPluginManagement::InitProperties(Telescope* ChildTelescope)
 {
@@ -25,27 +27,27 @@ void MathPluginManagement::InitProperties(Telescope* ChildTelescope)
     AlignmentSubsystemMathPlugins.reset(new ISwitch[MathPluginDisplayNames.size() + 1]);
     IUFillSwitch(AlignmentSubsystemMathPlugins.get(), "INBUILT_MATH_PLUGIN", "Inbuilt Math Plugin", ISS_ON);
     for (int i = 0; i < MathPluginDisplayNames.size(); i++)
-            IUFillSwitch(AlignmentSubsystemMathPlugins.get() + i + 1, MathPluginDisplayNames[i].c_str(), MathPluginDisplayNames[i].c_str(), ISS_OFF);
+        IUFillSwitch(AlignmentSubsystemMathPlugins.get() + i + 1, MathPluginDisplayNames[i].c_str(), MathPluginDisplayNames[i].c_str(), ISS_OFF);
     IUFillSwitchVector(&AlignmentSubsystemMathPluginsV, AlignmentSubsystemMathPlugins.get(), MathPluginDisplayNames.size() + 1,
-                    ChildTelescope->getDeviceName(), "ALIGNMENT_SUBSYSTEM_MATH_PLUGINS", "Math Plugins",
-                    ALIGNMENT_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
+                       ChildTelescope->getDeviceName(), "ALIGNMENT_SUBSYSTEM_MATH_PLUGINS", "Math Plugins",
+                       ALIGNMENT_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
     ChildTelescope->registerProperty(&AlignmentSubsystemMathPluginsV, INDI_SWITCH);
 
     IUFillSwitch(&AlignmentSubsystemMathPluginInitialise, "ALIGNMENT_SUBSYSTEM_MATH_PLUGIN_INITIALISE", "OK", ISS_OFF);
     IUFillSwitchVector(&AlignmentSubsystemMathPluginInitialiseV, &AlignmentSubsystemMathPluginInitialise, 1, ChildTelescope->getDeviceName(),
-                    "ALIGNMENT_SUBSYSTEM_MATH_PLUGIN_INITIALISE", "(Re)Initialise Plugin", ALIGNMENT_TAB, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
+                       "ALIGNMENT_SUBSYSTEM_MATH_PLUGIN_INITIALISE", "(Re)Initialise Plugin", ALIGNMENT_TAB, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
     ChildTelescope->registerProperty(&AlignmentSubsystemMathPluginInitialiseV, INDI_SWITCH);
 
     IUFillSwitch(&AlignmentSubsystemActive, "ALIGNMENT SUBSYSTEM ACTIVE", "Alignment Subsystem Active", ISS_OFF);
     IUFillSwitchVector(&AlignmentSubsystemActiveV, &AlignmentSubsystemActive, 1, ChildTelescope->getDeviceName(),
-                    "ALIGNMENT_SUBSYSTEM_ACTIVE", "Activate alignment subsystem", ALIGNMENT_TAB, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
+                       "ALIGNMENT_SUBSYSTEM_ACTIVE", "Activate alignment subsystem", ALIGNMENT_TAB, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
     ChildTelescope->registerProperty(&AlignmentSubsystemActiveV, INDI_SWITCH);
 
     // The following property is used for configuration purposes only and is not exposed to the client.
     IUFillText(&AlignmentSubsystemCurrentMathPlugin, "ALIGNMENT_SUBSYSTEM_CURRENT_MATH_PLUGIN", "Current Math Plugin",
-        AlignmentSubsystemMathPlugins.get()[0].label);
+               AlignmentSubsystemMathPlugins.get()[0].label);
     IUFillTextVector(&AlignmentSubsystemCurrentMathPluginV, &AlignmentSubsystemCurrentMathPlugin, 1, ChildTelescope->getDeviceName(),
-                "ALIGNMENT_SUBSYSTEM_CURRENT_MATH_PLUGIN", "Current Math Plugin", ALIGNMENT_TAB, IP_RO, 60, IPS_IDLE);
+                     "ALIGNMENT_SUBSYSTEM_CURRENT_MATH_PLUGIN", "Current Math Plugin", ALIGNMENT_TAB, IP_RO, 60, IPS_IDLE);
 }
 
 void MathPluginManagement::ProcessTextProperties(Telescope* pTelescope, const char *name, char *texts[], char *names[], int n)
@@ -294,7 +296,7 @@ void MathPluginManagement::SetApproximateMountAlignment(MountAlignment_t Approxi
 }
 
 bool MathPluginManagement::TransformCelestialToTelescope(const double RightAscension, const double Declination, double JulianOffset,
-                                                        TelescopeDirectionVector& ApparentTelescopeDirectionVector)
+        TelescopeDirectionVector& ApparentTelescopeDirectionVector)
 {
     if (AlignmentSubsystemActive.s == ISS_ON)
         return (pLoadedMathPlugin->*pTransformCelestialToTelescope)(RightAscension, Declination, JulianOffset, ApparentTelescopeDirectionVector);

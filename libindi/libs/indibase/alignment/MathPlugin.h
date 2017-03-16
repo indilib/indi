@@ -12,8 +12,10 @@
 #include "Common.h"
 #include "InMemoryDatabase.h"
 
-namespace INDI {
-namespace AlignmentSubsystem {
+namespace INDI
+{
+namespace AlignmentSubsystem
+{
 
 /*!
  * \class MathPlugin
@@ -33,7 +35,7 @@ public:
 
     /// \brief Default constructor
     MathPlugin(MountAlignment_t ApproximateAlignment = ZENITH) : ApproximateMountAlignment(ApproximateAlignment),
-                                                                pInMemoryDatabase(NULL) {}
+        pInMemoryDatabase(NULL) {}
 
     /// \brief Virtual destructor
     virtual ~MathPlugin() {}
@@ -41,7 +43,10 @@ public:
     // Public methods
     /// \brief Get the approximate alognment of the mount
     /// \return the approximate alignment
-    virtual MountAlignment_t GetApproximateMountAlignment() { return ApproximateMountAlignment; }
+    virtual MountAlignment_t GetApproximateMountAlignment()
+    {
+        return ApproximateMountAlignment;
+    }
 
     /// \brief Initialise or re-initialise the math plugin. Re-reading the in memory database as necessary.
     /// \return True if successful
@@ -49,7 +54,10 @@ public:
 
     /// \brief Set the approximate alognment of the mount
     /// \param[in] ApproximateAlignment - the approximate alignment of the mount
-    virtual void SetApproximateMountAlignment(MountAlignment_t ApproximateAlignment) { ApproximateMountAlignment = ApproximateAlignment; }
+    virtual void SetApproximateMountAlignment(MountAlignment_t ApproximateAlignment)
+    {
+        ApproximateMountAlignment = ApproximateAlignment;
+    }
 
     /// \brief Get the alignment corrected telescope pointing direction for the supplied celestial coordinates
     /// \param[in] RightAscension Right Ascension (Decimal Hours).
@@ -58,7 +66,7 @@ public:
     /// \param[out] ApparentTelescopeDirectionVector Parameter to receive the corrected telescope direction
     /// \return True if successful
     virtual bool TransformCelestialToTelescope(const double RightAscension, const double Declination, double JulianOffset,
-                                                TelescopeDirectionVector& ApparentTelescopeDirectionVector) = 0;
+            TelescopeDirectionVector& ApparentTelescopeDirectionVector) = 0;
 
     /// \brief Get the true celestial coordinates for the supplied telescope pointing direction
     /// \param[in] ApparentTelescopeDirectionVector the telescope direction

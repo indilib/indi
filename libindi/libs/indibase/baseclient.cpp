@@ -311,11 +311,11 @@ void INDI::BaseClient::listenINDI()
     int n=0, err_code=0;
     int maxfd=0;
     fd_set rs;
-    
+
     XMLEle **nodes;
     XMLEle *root;
     int inode=0;
-    
+
     char *orig = setlocale(LC_NUMERIC,"C");
     if (cDeviceNames.empty())
     {
@@ -391,7 +391,8 @@ void INDI::BaseClient::listenINDI()
 
             nodes=parseXMLChunk(lillp, buffer, n, msg);
 
-            if (!nodes) {
+            if (!nodes)
+            {
                 if (msg[0])
                 {
                     fprintf (stderr, "Bad XML from %s/%d: %s\n%s\n", cServer.c_str(), cPort, msg, buffer);
@@ -417,7 +418,8 @@ void INDI::BaseClient::listenINDI()
 
 
                 delXMLEle (root);	// not yet, delete and continue
-                inode++; root=nodes[inode];
+                inode++;
+                root=nodes[inode];
             }
             free(nodes);
             inode=0;

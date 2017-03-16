@@ -87,7 +87,7 @@ protected:
      * @param enable If true, turn on the light, otherwise turn off the light.
      * @return True if successful, false otherwise.
      */
-    virtual bool EnableLightBox(bool enable);    
+    virtual bool EnableLightBox(bool enable);
 
     // Turn on/off light
     ISwitchVectorProperty LightSP;

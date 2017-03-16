@@ -49,8 +49,10 @@ not removed.
 #include <limits>
 #include <gsl/gsl_matrix.h>
 
-namespace INDI {
-namespace AlignmentSubsystem {
+namespace INDI
+{
+namespace AlignmentSubsystem
+{
 
 /*!
  * \class ConvexHull
@@ -58,53 +60,53 @@ namespace AlignmentSubsystem {
  */
 class ConvexHull
 {
-    public:
-        ConvexHull() : vertices(NULL), edges(NULL), faces(NULL),
-                        debug(false), check(false),
-                        ScaleFactor(SAFE - 1) {}
-        virtual ~ConvexHull() {}
+public:
+    ConvexHull() : vertices(NULL), edges(NULL), faces(NULL),
+        debug(false), check(false),
+        ScaleFactor(SAFE - 1) {}
+    virtual ~ConvexHull() {}
 
     enum { X = 0, Y = 1, Z = 2 };
 
     template <class Type>
-        static void add(Type& head, Type p)
+    static void add(Type& head, Type p)
+    {
+        if (NULL != head)
         {
-            if (NULL != head)
-            {
-                p->next = head;
-                p->prev = head->prev;
-                head->prev = p;
-                p->prev->next = p;
-            }
-            else
-            {
-                head = p;
-                head->next = head->prev = p;
-            }
-        };
+            p->next = head;
+            p->prev = head->prev;
+            head->prev = p;
+            p->prev->next = p;
+        }
+        else
+        {
+            head = p;
+            head->next = head->prev = p;
+        }
+    };
 
     template <class Type>
-        static void remove(Type& head, Type p)
+    static void remove(Type& head, Type p)
+    {
+        if (NULL != head)
         {
-             if (NULL != head)
-             {
-				if ( head == head->next )
-					head = NULL;
-				else if ( p == head )
-					head = head->next;
-				p->next->prev = p->prev;
-				p->prev->next = p->next;
-				delete p;
-            }
-        };
+            if ( head == head->next )
+                head = NULL;
+            else if ( p == head )
+                head = head->next;
+            p->next->prev = p->prev;
+            p->prev->next = p->next;
+            delete p;
+        }
+    };
 
     template <class Type>
-        static void swap(Type& t, Type& x, Type& y)
-        {
-            t = x;
-            x = y;
-            y = t;
-        };
+    static void swap(Type& t, Type& x, Type& y)
+    {
+        t = x;
+        x = y;
+        y = t;
+    };
 
     // Explicit forward declarations
     struct tVertexStructure;
@@ -121,31 +123,40 @@ class ConvexHull
     typedef struct tFaceStructure tsFace;
     typedef tsFace *tFace;
 
-    struct tVertexStructure {
-       int      v[3];
-       int	    vnum;
-       tEdge    duplicate;  // pointer to incident cone edge (or NULL)
-       bool     onhull;     // True iff point on hull.
-       bool	    mark;       // True iff point already processed.
-       tVertex  next, prev;
+    struct tVertexStructure
+    {
+        int      v[3];
+        int	    vnum;
+        tEdge    duplicate;  // pointer to incident cone edge (or NULL)
+        bool     onhull;     // True iff point on hull.
+        bool	    mark;       // True iff point already processed.
+        tVertex  next, prev;
     };
 
-    struct tEdgeStructure {
-       tFace    adjface[2];
-       tVertex  endpts[2];
-       tFace    newface;    // pointer to incident cone face.
-       bool     delete_it;  //  True iff edge should be delete.
-       tEdge    next, prev;
+    struct tEdgeStructure
+    {
+        tFace    adjface[2];
+        tVertex  endpts[2];
+        tFace    newface;    // pointer to incident cone face.
+        bool     delete_it;  //  True iff edge should be delete.
+        tEdge    next, prev;
     };
 
-    struct tFaceStructure {
-       tFaceStructure() { pMatrix = gsl_matrix_alloc(3,3); }
-       ~tFaceStructure() { gsl_matrix_free(pMatrix); }
-       tEdge    edge[3];
-       tVertex  vertex[3];
-       bool	    visible;    // True iff face visible from new point.
-       tFace    next, prev;
-       gsl_matrix *pMatrix;
+    struct tFaceStructure
+    {
+        tFaceStructure()
+        {
+            pMatrix = gsl_matrix_alloc(3,3);
+        }
+        ~tFaceStructure()
+        {
+            gsl_matrix_free(pMatrix);
+        }
+        tEdge    edge[3];
+        tVertex  vertex[3];
+        bool	    visible;    // True iff face visible from new point.
+        tFace    next, prev;
+        gsl_matrix *pMatrix;
     };
 
     /* Define flags */
@@ -248,7 +259,10 @@ class ConvexHull
 
     /** \brief Set the floating point to integer scaling factor
     */
-    const int  GetScaleFactor( void ) const { return ScaleFactor; }
+    const int  GetScaleFactor( void ) const
+    {
+        return ScaleFactor;
+    }
 
     /** \brief MakeCcw puts the vertices in the face structure in counterclock wise
     order.  We want to store the vertices in the same
@@ -341,7 +355,10 @@ class ConvexHull
     mounts encoders. Whatever is used must not exceed the default value which is
     set to the constant SAFE.
     */
-    void SetScaleFactor( const int NewScaleFactor ) { ScaleFactor = NewScaleFactor; }
+    void SetScaleFactor( const int NewScaleFactor )
+    {
+        ScaleFactor = NewScaleFactor;
+    }
 
     /** \brief SubVec:  Computes a - b and puts it into c.
     */
@@ -360,7 +377,7 @@ class ConvexHull
     */
     int VolumeSign(tFace f, tVertex p);
 
-    private:
+private:
     bool debug;
     bool check;
 

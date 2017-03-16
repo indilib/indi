@@ -54,37 +54,37 @@ void INDI::FilterInterface::SelectFilterDone(int f)
 
 void INDI::FilterInterface::processFilterSlot(const char *deviceName, double values[], char *names[])
 {
-        TargetFilter = values[0];
+    TargetFilter = values[0];
 
-        INumber *np = IUFindNumber(&FilterSlotNP, names[0]);
+    INumber *np = IUFindNumber(&FilterSlotNP, names[0]);
 
-        if (!np)
-        {
-            FilterSlotNP.s = IPS_ALERT;
-            DEBUGFDEVICE(deviceName, Logger::DBG_ERROR, "Unknown error. %s is not a member of %s property.", names[0], FilterSlotNP.name);
-            IDSetNumber(&FilterSlotNP, NULL);
-            return;
-        }
-
-        if (TargetFilter < FilterSlotN[0].min || TargetFilter > FilterSlotN[0].max)
-        {
-            FilterSlotNP.s = IPS_ALERT;
-            DEBUGFDEVICE(deviceName, Logger::DBG_ERROR, "Error: valid range of filter is from %g to %g", FilterSlotN[0].min, FilterSlotN[0].max);
-            IDSetNumber(&FilterSlotNP, NULL);
-            return;
-        }
-
-        FilterSlotNP.s = IPS_BUSY;
-        DEBUGFDEVICE(deviceName, Logger::DBG_SESSION, "Setting current filter to slot %d", TargetFilter);
-
-
-        if (SelectFilter(TargetFilter) == false)
-        {
-            FilterSlotNP.s = IPS_ALERT;
-        }
-
+    if (!np)
+    {
+        FilterSlotNP.s = IPS_ALERT;
+        DEBUGFDEVICE(deviceName, Logger::DBG_ERROR, "Unknown error. %s is not a member of %s property.", names[0], FilterSlotNP.name);
         IDSetNumber(&FilterSlotNP, NULL);
         return;
+    }
+
+    if (TargetFilter < FilterSlotN[0].min || TargetFilter > FilterSlotN[0].max)
+    {
+        FilterSlotNP.s = IPS_ALERT;
+        DEBUGFDEVICE(deviceName, Logger::DBG_ERROR, "Error: valid range of filter is from %g to %g", FilterSlotN[0].min, FilterSlotN[0].max);
+        IDSetNumber(&FilterSlotNP, NULL);
+        return;
+    }
+
+    FilterSlotNP.s = IPS_BUSY;
+    DEBUGFDEVICE(deviceName, Logger::DBG_SESSION, "Setting current filter to slot %d", TargetFilter);
+
+
+    if (SelectFilter(TargetFilter) == false)
+    {
+        FilterSlotNP.s = IPS_ALERT;
+    }
+
+    IDSetNumber(&FilterSlotNP, NULL);
+    return;
 
 }
 

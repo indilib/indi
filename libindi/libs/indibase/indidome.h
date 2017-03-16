@@ -38,8 +38,8 @@ typedef struct
 
 namespace Connection
 {
-    class Serial;
-    class TCP;
+class Serial;
+class TCP;
 }
 
 /**
@@ -57,7 +57,7 @@ namespace Connection
    when the mount's current tracking position exceeds the AutoSync threshold. Therefore, slaving is performed while slewing and tracking. The user is required to fill in all required parameters before slaving can be used.
    The AutoSync threshold is the difference in degrees between the dome's azimuth angle and the mount's azimuth angle that should trigger a dome motion.
    By default, it is set to 0.5 degrees which would trigger dome motion due to any difference between the dome and mount azimuth angles that exceeds 0.5 degrees.
-   For example, if the threshold is set to 5 degrees, the dome will only start moving to sync with the mount's azimuth angle once the difference in azimuth angles is equal or exceeds 5 degrees.   
+   For example, if the threshold is set to 5 degrees, the dome will only start moving to sync with the mount's azimuth angle once the difference in azimuth angles is equal or exceeds 5 degrees.
 
    Custom parking position is available for absolute/relative position domes.
 
@@ -72,7 +72,7 @@ namespace Connection
 */
 class INDI::Dome : public INDI::DefaultDevice
 {
-    public:
+public:
 
     /** \typedef DomeMeasurements
         \brief Measurements necessary for dome-slit synchronization. All values are in meters. The displacements are measured from the true dome centre, and the dome is assumed spherical.
@@ -181,7 +181,10 @@ class INDI::Dome : public INDI::DefaultDevice
     /**
      * @brief GetDomeCapability returns the capability of the dome
      */
-    uint32_t GetDomeCapability() const { return capability;}
+    uint32_t GetDomeCapability() const
+    {
+        return capability;
+    }
 
     /**
      * @brief SetDomeCapability set the dome capabilities. All capabilities must be initialized.
@@ -192,32 +195,50 @@ class INDI::Dome : public INDI::DefaultDevice
     /**
      * @return True if dome support aborting motion
      */
-    bool CanAbort() { return capability & DOME_CAN_ABORT; }
+    bool CanAbort()
+    {
+        return capability & DOME_CAN_ABORT;
+    }
 
     /**
      * @return True if dome has absolute postion encoders.
      */
-    bool CanAbsMove() { return capability & DOME_CAN_ABS_MOVE;}
+    bool CanAbsMove()
+    {
+        return capability & DOME_CAN_ABS_MOVE;
+    }
 
     /**
      * @return True if dome has relative position encoders.
      */
-    bool CanRelMove() { return capability & DOME_CAN_REL_MOVE;}
+    bool CanRelMove()
+    {
+        return capability & DOME_CAN_REL_MOVE;
+    }
 
     /**
      * @return True if dome can park.
      */
-    bool CanPark() { return capability & DOME_CAN_PARK;}
+    bool CanPark()
+    {
+        return capability & DOME_CAN_PARK;
+    }
 
     /**
      * @return True if dome has controllable shutter door
      */
-    bool HasShutter() { return capability & DOME_HAS_SHUTTER;}
+    bool HasShutter()
+    {
+        return capability & DOME_HAS_SHUTTER;
+    }
 
     /**
      * @return True if dome support multiple speeds
      */
-    bool HasVariableSpeed() { return capability & DOME_HAS_VARIABLE_SPEED;}
+    bool HasVariableSpeed()
+    {
+        return capability & DOME_HAS_VARIABLE_SPEED;
+    }
 
     /**
      * @brief isLocked, is the dome currently locked?

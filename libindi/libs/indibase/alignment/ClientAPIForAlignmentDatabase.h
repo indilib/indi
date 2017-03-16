@@ -16,8 +16,10 @@
 
 #include <string>
 
-namespace INDI {
-namespace AlignmentSubsystem {
+namespace INDI
+{
+namespace AlignmentSubsystem
+{
 
 /*!
  * \class ClientAPIForAlignmentDatabase

@@ -109,12 +109,12 @@ void INDI::Property::setType(INDI_PROPERTY_TYPE t)
 
 void INDI::Property::setRegistered(bool r)
 {
-   pRegistered = r;
+    pRegistered = r;
 }
 
 void INDI::Property::setDynamic(bool d)
 {
-   pDynamic = d;
+    pDynamic = d;
 }
 
 void INDI::Property::setBaseDevice(BaseDevice *idp)
@@ -130,28 +130,28 @@ const char * INDI::Property::getName() const
     switch (pType)
     {
     case INDI_NUMBER:
-     return ((INumberVectorProperty *) pPtr)->name;
-     break;
+        return ((INumberVectorProperty *) pPtr)->name;
+        break;
 
     case INDI_TEXT:
-     return ((ITextVectorProperty *) pPtr)->name;
-    break;
+        return ((ITextVectorProperty *) pPtr)->name;
+        break;
 
     case INDI_SWITCH:
-     return ((ISwitchVectorProperty *) pPtr)->name;
-    break;
+        return ((ISwitchVectorProperty *) pPtr)->name;
+        break;
 
     case INDI_LIGHT:
-     return ((ILightVectorProperty *) pPtr)->name;
-    break;
+        return ((ILightVectorProperty *) pPtr)->name;
+        break;
 
     case INDI_BLOB:
-     return ((IBLOBVectorProperty *) pPtr)->name;
-    break;
+        return ((IBLOBVectorProperty *) pPtr)->name;
+        break;
 
-  }
+    }
 
-  return NULL;
+    return NULL;
 }
 
 const char * INDI::Property::getLabel() const
@@ -163,28 +163,28 @@ const char * INDI::Property::getLabel() const
     switch (pType)
     {
     case INDI_NUMBER:
-     return ((INumberVectorProperty *) pPtr)->label;
-     break;
+        return ((INumberVectorProperty *) pPtr)->label;
+        break;
 
     case INDI_TEXT:
-     return ((ITextVectorProperty *) pPtr)->label;
-    break;
+        return ((ITextVectorProperty *) pPtr)->label;
+        break;
 
     case INDI_SWITCH:
-     return ((ISwitchVectorProperty *) pPtr)->label;
-    break;
+        return ((ISwitchVectorProperty *) pPtr)->label;
+        break;
 
     case INDI_LIGHT:
-     return ((ILightVectorProperty *) pPtr)->label;
-    break;
+        return ((ILightVectorProperty *) pPtr)->label;
+        break;
 
     case INDI_BLOB:
-     return ((IBLOBVectorProperty *) pPtr)->label;
-    break;
+        return ((IBLOBVectorProperty *) pPtr)->label;
+        break;
 
-  }
+    }
 
-  return NULL;
+    return NULL;
 
 }
 
@@ -196,28 +196,28 @@ const char * INDI::Property::getGroupName() const
     switch (pType)
     {
     case INDI_NUMBER:
-     return ((INumberVectorProperty *) pPtr)->group;
-     break;
+        return ((INumberVectorProperty *) pPtr)->group;
+        break;
 
     case INDI_TEXT:
-     return ((ITextVectorProperty *) pPtr)->group;
-    break;
+        return ((ITextVectorProperty *) pPtr)->group;
+        break;
 
     case INDI_SWITCH:
-     return ((ISwitchVectorProperty *) pPtr)->group;
-    break;
+        return ((ISwitchVectorProperty *) pPtr)->group;
+        break;
 
     case INDI_LIGHT:
-     return ((ILightVectorProperty *) pPtr)->group;
-    break;
+        return ((ILightVectorProperty *) pPtr)->group;
+        break;
 
     case INDI_BLOB:
-     return ((IBLOBVectorProperty *) pPtr)->group;
-    break;
+        return ((IBLOBVectorProperty *) pPtr)->group;
+        break;
 
-  }
+    }
 
-  return NULL;
+    return NULL;
 
 }
 
@@ -229,28 +229,28 @@ const char * INDI::Property::getDeviceName() const
     switch (pType)
     {
     case INDI_NUMBER:
-     return ((INumberVectorProperty *) pPtr)->device;
-     break;
+        return ((INumberVectorProperty *) pPtr)->device;
+        break;
 
     case INDI_TEXT:
-     return ((ITextVectorProperty *) pPtr)->device;
-    break;
+        return ((ITextVectorProperty *) pPtr)->device;
+        break;
 
     case INDI_SWITCH:
-     return ((ISwitchVectorProperty *) pPtr)->device;
-    break;
+        return ((ISwitchVectorProperty *) pPtr)->device;
+        break;
 
     case INDI_LIGHT:
-     return ((ILightVectorProperty *) pPtr)->device;
-    break;
+        return ((ILightVectorProperty *) pPtr)->device;
+        break;
 
     case INDI_BLOB:
-     return ((IBLOBVectorProperty *) pPtr)->device;
-    break;
+        return ((IBLOBVectorProperty *) pPtr)->device;
+        break;
 
-  }
+    }
 
-  return NULL;
+    return NULL;
 
 }
 
@@ -295,31 +295,31 @@ IPState INDI::Property::getState() const
     switch (pType)
     {
     case INDI_NUMBER:
-     return ((INumberVectorProperty *) pPtr)->s;
-     break;
+        return ((INumberVectorProperty *) pPtr)->s;
+        break;
 
     case INDI_TEXT:
-     return ((ITextVectorProperty *) pPtr)->s;
-    break;
+        return ((ITextVectorProperty *) pPtr)->s;
+        break;
 
     case INDI_SWITCH:
-     return ((ISwitchVectorProperty *) pPtr)->s;
-    break;
+        return ((ISwitchVectorProperty *) pPtr)->s;
+        break;
 
     case INDI_LIGHT:
-     return ((ILightVectorProperty *) pPtr)->s;
-    break;
+        return ((ILightVectorProperty *) pPtr)->s;
+        break;
 
     case INDI_BLOB:
-     return ((IBLOBVectorProperty *) pPtr)->s;
-    break;
+        return ((IBLOBVectorProperty *) pPtr)->s;
+        break;
 
     default:
         break;
 
-  }
+    }
 
-  return IPS_IDLE;
+    return IPS_IDLE;
 
 }
 
@@ -328,30 +328,30 @@ IPerm INDI::Property::getPermission() const
     switch (pType)
     {
     case INDI_NUMBER:
-     return ((INumberVectorProperty *) pPtr)->p;
-     break;
+        return ((INumberVectorProperty *) pPtr)->p;
+        break;
 
     case INDI_TEXT:
-     return ((ITextVectorProperty *) pPtr)->p;
-    break;
+        return ((ITextVectorProperty *) pPtr)->p;
+        break;
 
     case INDI_SWITCH:
-     return ((ISwitchVectorProperty *) pPtr)->p;
-    break;
+        return ((ISwitchVectorProperty *) pPtr)->p;
+        break;
 
     case INDI_LIGHT:
-    break;
+        break;
 
     case INDI_BLOB:
-     return ((IBLOBVectorProperty *) pPtr)->p;
-    break;
+        return ((IBLOBVectorProperty *) pPtr)->p;
+        break;
 
     default:
         break;
 
-  }
+    }
 
-  return IP_RO;
+    return IP_RO;
 
 }
 

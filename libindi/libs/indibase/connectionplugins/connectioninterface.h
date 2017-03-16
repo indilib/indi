@@ -27,7 +27,7 @@
 
 namespace INDI
 {
-  class DefaultDevice;
+class DefaultDevice;
 }
 
 namespace Connection
@@ -50,13 +50,26 @@ public:
 
     virtual const std::string label() = 0;
 
-    virtual bool ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n) {return false;}
-    virtual bool ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n) {return false;}
-    virtual bool ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n) {return false;}
+    virtual bool ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n)
+    {
+        return false;
+    }
+    virtual bool ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n)
+    {
+        return false;
+    }
+    virtual bool ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n)
+    {
+        return false;
+    }
 
-    virtual bool saveConfigItems(FILE *fp) { INDI_UNUSED(fp); return true; }
+    virtual bool saveConfigItems(FILE *fp)
+    {
+        INDI_UNUSED(fp);
+        return true;
+    }
 
-    void registerHandshake(std::function<bool()> callback);    
+    void registerHandshake(std::function<bool()> callback);
 
 protected:
     Interface(INDI::DefaultDevice *dev);

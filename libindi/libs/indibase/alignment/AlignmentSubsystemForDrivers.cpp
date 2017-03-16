@@ -10,8 +10,10 @@
 
 #include "AlignmentSubsystemForDrivers.h"
 
-namespace INDI {
-namespace AlignmentSubsystem {
+namespace INDI
+{
+namespace AlignmentSubsystem
+{
 
 AlignmentSubsystemForDrivers::AlignmentSubsystemForDrivers()
 {

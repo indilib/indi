@@ -20,7 +20,7 @@
     reached at nemosoft@smcc.demon.nl.
 */
 
-/* 
+/*
  $Log$
  Revision 1.4  2005/04/29 16:51:20  mutlaqja
  Adding initial support for Video 4 Linux 2 drivers. This mean that KStars can probably control Meade Lunar Planetary Imager (LPI). V4L2 requires a fairly recent kernel (> 2.6.9) and many drivers don't fully support it yet. It will take sometime. KStars still supports V4L1 and will continue so until V4L1 is obselete. Please test KStars video drivers if you can. Any comments welcomed.
@@ -64,7 +64,7 @@ extern "C" {
            YYYY UU YYYY UU   even lines\n
            YYYY VV YYYY VV   odd lines\n
            U/V data is subsampled by 2 both in horizontal and vertical directions, and intermixed with the Y values.\n\n
-   
+
    420p = "4:2:0 planar"\n
            YYYYYYYY      N lines\n
            UUUU          N/2 lines\n
@@ -188,14 +188,16 @@ void bayer_rggb_2rgb24(unsigned char *dst, unsigned char *srcc, long int WIDTH, 
 }
 #endif
 
-enum Options {
-      ioNoBlock=(1<<0),
-      ioUseSelect=(1<<1),
-      haveBrightness=(1<<2),
-      haveContrast=(1<<3),
-      haveHue=(1<<4),
-      haveColor=(1<<5),
-      haveWhiteness=(1<<6) };
+enum Options
+{
+    ioNoBlock=(1<<0),
+    ioUseSelect=(1<<1),
+    haveBrightness=(1<<2),
+    haveContrast=(1<<3),
+    haveHue=(1<<4),
+    haveColor=(1<<5),
+    haveWhiteness=(1<<6)
+};
 
 
 #endif

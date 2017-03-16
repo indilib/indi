@@ -92,91 +92,100 @@ namespace  INDI
  */
 class Logger
 {
-    private:
-        /**
-         * \brief Type used for the configuration
-         */
-        enum loggerConf_	{L_nofile_	= 	1 << 0,
-                    L_file_		=	1 << 1,
-                    L_noscreen_	=	1 << 2,
-                    L_screen_	=	1 << 3};
+private:
+    /**
+     * \brief Type used for the configuration
+     */
+    enum loggerConf_	{L_nofile_	= 	1 << 0,
+                         L_file_		=	1 << 1,
+                         L_noscreen_	=	1 << 2,
+                         L_screen_	=	1 << 3
+                     };
 
-    #ifdef LOGGER_MULTITHREAD
-        /**
-         * \brief Lock for mutual exclusion between different threads
-         */
-        static pthread_mutex_t lock_;
-    #endif
+#ifdef LOGGER_MULTITHREAD
+    /**
+     * \brief Lock for mutual exclusion between different threads
+     */
+    static pthread_mutex_t lock_;
+#endif
 
-        bool configured_;
+    bool configured_;
 
-        /**
-         * \brief Pointer to the unique Logger (i.e., Singleton)
-         */
-        static Logger* m_;
+    /**
+     * \brief Pointer to the unique Logger (i.e., Singleton)
+     */
+    static Logger* m_;
 
-        /**
-         * \brief Initial part of the name of the file used for Logging.
-         * Date and time are automatically appended.
-         */
-        static std::string logFile_;
+    /**
+     * \brief Initial part of the name of the file used for Logging.
+     * Date and time are automatically appended.
+     */
+    static std::string logFile_;
 
-        /**
-         * \brief Directory where log file is stored. it is created under ~/.indi/logs/[DATE]/[DRIVER_EXEC]
-         */
-        static std::string logDir_;
+    /**
+     * \brief Directory where log file is stored. it is created under ~/.indi/logs/[DATE]/[DRIVER_EXEC]
+     */
+    static std::string logDir_;
 
-        /**
-         * \brief Current configuration of the logger.
-         * Variable to know if logging on file and on screen are enabled.
-         * Note that if the log on file is enabled, it means that the
-         * logger has been already configured, therefore the stream is
-         * already open.
-         */
-        static loggerConf_ configuration_;
+    /**
+     * \brief Current configuration of the logger.
+     * Variable to know if logging on file and on screen are enabled.
+     * Note that if the log on file is enabled, it means that the
+     * logger has been already configured, therefore the stream is
+     * already open.
+     */
+    static loggerConf_ configuration_;
 
-        /**
-         * \brief Stream used when logging on a file
-         */
-        std::ofstream out_;
+    /**
+     * \brief Stream used when logging on a file
+     */
+    std::ofstream out_;
 
-        /**
-         * \brief Initial time (used to print relative times)
-         */
-        struct timeval initialTime_;
+    /**
+     * \brief Initial time (used to print relative times)
+     */
+    struct timeval initialTime_;
 
-        /**
-         * \brief Verbosity threshold for files
-         */
-        static unsigned int fileVerbosityLevel_;
+    /**
+     * \brief Verbosity threshold for files
+     */
+    static unsigned int fileVerbosityLevel_;
 
-        /**
-         * \brief Verbosity threshold for screen
-         */
-        static unsigned int screenVerbosityLevel_;
-            static unsigned int rememberscreenlevel_;
+    /**
+     * \brief Verbosity threshold for screen
+     */
+    static unsigned int screenVerbosityLevel_;
+    static unsigned int rememberscreenlevel_;
 
-        Logger();
-        ~Logger();
+    Logger();
+    ~Logger();
 
-        /**
-         * \brief Method to lock in case of multithreading
-         */
-        inline static void lock();
+    /**
+     * \brief Method to lock in case of multithreading
+     */
+    inline static void lock();
 
-        /**
-         * \brief Method to unlock in case of multithreading
-         */
-        inline static void unlock();
+    /**
+     * \brief Method to unlock in case of multithreading
+     */
+    inline static void unlock();
 
-        static INDI::DefaultDevice *parentDevice;
+    static INDI::DefaultDevice *parentDevice;
 
- public:
-  enum VerbosityLevel
-  {DBG_ERROR=0x1, DBG_WARNING=0x2, DBG_SESSION=0x4, DBG_DEBUG=0x8, DBG_EXTRA_1=0x10,
-   DBG_EXTRA_2=0X20, DBG_EXTRA_3=0x40, DBG_EXTRA_4=0x80};
+public:
+    enum VerbosityLevel
+    {
+        DBG_ERROR=0x1, DBG_WARNING=0x2, DBG_SESSION=0x4, DBG_DEBUG=0x8, DBG_EXTRA_1=0x10,
+        DBG_EXTRA_2=0X20, DBG_EXTRA_3=0x40, DBG_EXTRA_4=0x80
+    };
 
-    struct switchinit {char name[MAXINDINAME]; char label[MAXINDILABEL]; ISState state; unsigned int levelmask;};
+    struct switchinit
+    {
+        char name[MAXINDINAME];
+        char label[MAXINDILABEL];
+        ISState state;
+        unsigned int levelmask;
+    };
     static const unsigned int defaultlevel=DBG_ERROR | DBG_WARNING | DBG_SESSION;
     static const unsigned int nlevels=8;
     static struct switchinit LoggingLevelSInit[nlevels];
@@ -192,8 +201,14 @@ class Logger
     static unsigned int customLevel;
     static unsigned int nDevices;
 
-    static std::string getLogFile() { return logFile_;}
-    static loggerConf_ getConfiguration() {return configuration_;}
+    static std::string getLogFile()
+    {
+        return logFile_;
+    }
+    static loggerConf_ getConfiguration()
+    {
+        return configuration_;
+    }
     static Logger& getInstance();
     static bool saveConfigItems(FILE *fp);
 
@@ -207,12 +222,12 @@ class Logger
     int addDebugLevel(const char *debugLevelName, const char *LoggingLevelName);
 
     void print(const char *devicename,
-     const unsigned int		verbosityLevel,
-     const std::string&	sourceFile,
-     const int 		codeLine,
-     //const std::string& 	message,
-     const char *message,
-     ...);
+               const unsigned int		verbosityLevel,
+               const std::string&	sourceFile,
+               const int 		codeLine,
+               //const std::string& 	message,
+               const char *message,
+               ...);
 
     void configure (const std::string&	outputFile,  const loggerConf configuration,  const int fileVerbosityLevel, const int	screenVerbosityLevel);
 
@@ -229,17 +244,18 @@ class Logger
 }; /* Class logger */
 
 inline Logger::loggerConf operator|
-	(Logger::loggerConf __a, Logger::loggerConf __b)
+(Logger::loggerConf __a, Logger::loggerConf __b)
 {
-	return Logger::loggerConf(static_cast<int>(__a) |
-		static_cast<int>(__b));
+    return Logger::loggerConf(static_cast<int>(__a) |
+                              static_cast<int>(__b));
 }
 
 inline Logger::loggerConf operator&
-	(Logger::loggerConf __a, Logger::loggerConf __b)
+(Logger::loggerConf __a, Logger::loggerConf __b)
 {
-	return Logger::loggerConf(static_cast<int>(__a) &
-		static_cast<int>(__b)); }
+    return Logger::loggerConf(static_cast<int>(__a) &
+                              static_cast<int>(__b));
+}
 
 
 }

@@ -43,28 +43,28 @@
  */
 namespace INDI
 {
-    class BaseMediator;
-    class BaseClient;
-    class BaseClientQt;
-    class BaseDevice;
-    class DefaultDevice;
-    class FilterInterface;
-    class GuiderInterface;
-    class FocuserInterface;
-    class DomeInterface;
-    class DustCapInterface;
-    class LightBoxInterface;
-    class CCD;
-    class Telescope;
-    class FilterWheel;
-    class Focuser;
-    class Dome;
-    class GPS;
-    class Weather;
-    class USBDevice;
-    class Property;
-    class Controller;
-    class Logger;
+class BaseMediator;
+class BaseClient;
+class BaseClientQt;
+class BaseDevice;
+class DefaultDevice;
+class FilterInterface;
+class GuiderInterface;
+class FocuserInterface;
+class DomeInterface;
+class DustCapInterface;
+class LightBoxInterface;
+class CCD;
+class Telescope;
+class FilterWheel;
+class Focuser;
+class Dome;
+class GPS;
+class Weather;
+class USBDevice;
+class Property;
+class Controller;
+class Logger;
 }
 
 /**

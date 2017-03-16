@@ -52,14 +52,20 @@ bool INDI::FilterWheel::initProperties()
     if (filterConnection & CONNECTION_SERIAL)
     {
         serialConnection = new Connection::Serial(this);
-        serialConnection->registerHandshake([&]() { return callHandshake(); });
+        serialConnection->registerHandshake([&]()
+        {
+            return callHandshake();
+        });
         registerConnection(serialConnection);
     }
 
     if (filterConnection & CONNECTION_TCP)
     {
         tcpConnection = new Connection::TCP(this);
-        tcpConnection->registerHandshake([&]() { return callHandshake(); });
+        tcpConnection->registerHandshake([&]()
+        {
+            return callHandshake();
+        });
 
         registerConnection(tcpConnection);
     }
@@ -80,7 +86,7 @@ void INDI::FilterWheel::ISGetProperties (const char *dev)
             GetFilterNames(FILTER_TAB);
 
         if (FilterNameT)
-           defineText(FilterNameTP);
+            defineText(FilterNameTP);
     }
 
     controller->ISGetProperties(dev);
@@ -102,7 +108,8 @@ bool INDI::FilterWheel::updateProperties()
 
         if (FilterNameT)
             defineText(FilterNameTP);
-    } else
+    }
+    else
     {
         deleteProperty(FilterSlotNP.name);
         deleteProperty(FilterNameTP->name);
@@ -209,7 +216,7 @@ void INDI::FilterWheel::joystickHelper(const char * joystick_n, double mag, doub
 
 void INDI::FilterWheel::buttonHelper(const char *button_n, ISState state, void *context)
 {
-     static_cast<INDI::FilterWheel *>(context)->processButton(button_n, state);
+    static_cast<INDI::FilterWheel *>(context)->processButton(button_n, state);
 }
 
 void INDI::FilterWheel::processJoystick(const char * joystick_n, double mag, double angle)
@@ -244,7 +251,7 @@ void INDI::FilterWheel::processJoystick(const char * joystick_n, double mag, dou
 
             }
 
-         }
+        }
     }
 
 }

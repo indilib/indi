@@ -18,7 +18,7 @@
     License along with this library; if not, write to the Free Software
     Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
-*/ 
+*/
 
 #ifndef STREAM_RECORDER_H
 #define STREAM_RECORDER_H
@@ -82,12 +82,30 @@ public:
      */
     bool setStream(bool enable);
 
-    V4L2_Recorder *getRecorder() { return recorder; }
-    bool isDirectRecording() { return direct_record; }
-    bool isStreaming() { return is_streaming; }
-    bool isRecording() { return is_recording; }
-    bool isBusy()      { return (isStreaming() || isRecording()); }
-    const char *getDeviceName() { return ccd->getDeviceName(); }
+    V4L2_Recorder *getRecorder()
+    {
+        return recorder;
+    }
+    bool isDirectRecording()
+    {
+        return direct_record;
+    }
+    bool isStreaming()
+    {
+        return is_streaming;
+    }
+    bool isRecording()
+    {
+        return is_recording;
+    }
+    bool isBusy()
+    {
+        return (isStreaming() || isRecording());
+    }
+    const char *getDeviceName()
+    {
+        return ccd->getDeviceName();
+    }
 
     void setRecorderSize(uint16_t width, uint16_t height);
     bool setPixelFormat(uint32_t format);

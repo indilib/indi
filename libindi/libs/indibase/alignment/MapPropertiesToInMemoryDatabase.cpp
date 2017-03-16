@@ -11,8 +11,10 @@
 #include <cfloat>
 #include <cstdlib>
 
-namespace INDI {
-namespace AlignmentSubsystem {
+namespace INDI
+{
+namespace AlignmentSubsystem
+{
 
 void MapPropertiesToInMemoryDatabase::InitProperties(Telescope* pTelescope)
 {
@@ -24,22 +26,22 @@ void MapPropertiesToInMemoryDatabase::InitProperties(Telescope* pTelescope)
     IUFillNumber(&AlignmentPointSetEntry[ENTRY_VECTOR_Y]," ALIGNMENT_POINT_ENTRY_VECTOR_Y", "Telescope direction vector y", "%g", -FLT_MAX, FLT_MAX, 0, 0);
     IUFillNumber(&AlignmentPointSetEntry[ENTRY_VECTOR_Z]," ALIGNMENT_POINT_ENTRY_VECTOR_Z", "Telescope direction vector z", "%g", -FLT_MAX, FLT_MAX, 0, 0);
     IUFillNumberVector(&AlignmentPointSetEntryV, AlignmentPointSetEntry, 6, pTelescope->getDeviceName(),
-                    "ALIGNMENT_POINT_MANDATORY_NUMBERS", "Mandatory sync point numeric fields", ALIGNMENT_TAB, IP_RW, 60, IPS_IDLE);
+                       "ALIGNMENT_POINT_MANDATORY_NUMBERS", "Mandatory sync point numeric fields", ALIGNMENT_TAB, IP_RW, 60, IPS_IDLE);
     pTelescope->registerProperty(&AlignmentPointSetEntryV, INDI_NUMBER);
 
     IUFillBLOB(&AlignmentPointSetPrivateBinaryData, "ALIGNMENT_POINT_ENTRY_PRIVATE", "Private binary data", "alignmentPrivateData");
     IUFillBLOBVector(&AlignmentPointSetPrivateBinaryDataV, &AlignmentPointSetPrivateBinaryData, 1, pTelescope->getDeviceName(),
-                    "ALIGNMENT_POINT_OPTIONAL_BINARY_BLOB", "Optional sync point binary data", ALIGNMENT_TAB, IP_RW, 60, IPS_IDLE);
+                     "ALIGNMENT_POINT_OPTIONAL_BINARY_BLOB", "Optional sync point binary data", ALIGNMENT_TAB, IP_RW, 60, IPS_IDLE);
     pTelescope->registerProperty(&AlignmentPointSetPrivateBinaryDataV, INDI_BLOB);
 
     IUFillNumber(&AlignmentPointSetSize, "ALIGNMENT_POINTSET_SIZE", "Size", "%g", 0, 100000, 0, 0);
     IUFillNumberVector(&AlignmentPointSetSizeV, &AlignmentPointSetSize, 1, pTelescope->getDeviceName(),
-                    "ALIGNMENT_POINTSET_SIZE", "Current Set", ALIGNMENT_TAB, IP_RO, 60, IPS_IDLE);
+                       "ALIGNMENT_POINTSET_SIZE", "Current Set", ALIGNMENT_TAB, IP_RO, 60, IPS_IDLE);
     pTelescope->registerProperty(&AlignmentPointSetSizeV, INDI_NUMBER);
 
     IUFillNumber(&AlignmentPointSetPointer, "ALIGNMENT_POINTSET_CURRENT_ENTRY", "Pointer", "%g", 0, 100000, 0, 0);
     IUFillNumberVector(&AlignmentPointSetPointerV, &AlignmentPointSetPointer, 1, pTelescope->getDeviceName(),
-                    "ALIGNMENT_POINTSET_CURRENT_ENTRY", "Current Set", ALIGNMENT_TAB, IP_RW, 60, IPS_IDLE);
+                       "ALIGNMENT_POINTSET_CURRENT_ENTRY", "Current Set", ALIGNMENT_TAB, IP_RW, 60, IPS_IDLE);
     pTelescope->registerProperty(&AlignmentPointSetPointerV, INDI_NUMBER);
 
     IUFillSwitch(&AlignmentPointSetAction[0], "APPEND", "Add entries at end of set", ISS_ON);
@@ -52,12 +54,12 @@ void MapPropertiesToInMemoryDatabase::InitProperties(Telescope* pTelescope)
     IUFillSwitch(&AlignmentPointSetAction[7], "LOAD DATABASE", "Load the alignment database from local storage", ISS_OFF);
     IUFillSwitch(&AlignmentPointSetAction[8], "SAVE DATABASE", "Save the alignment database to local storage", ISS_OFF);
     IUFillSwitchVector(&AlignmentPointSetActionV, AlignmentPointSetAction, 9, pTelescope->getDeviceName(),
-                    "ALIGNMENT_POINTSET_ACTION", "Action to take", ALIGNMENT_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
+                       "ALIGNMENT_POINTSET_ACTION", "Action to take", ALIGNMENT_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
     pTelescope->registerProperty(&AlignmentPointSetActionV, INDI_SWITCH);
 
     IUFillSwitch(&AlignmentPointSetCommit, "ALIGNMENT_POINTSET_COMMIT", "OK", ISS_OFF);
     IUFillSwitchVector(&AlignmentPointSetCommitV, &AlignmentPointSetCommit, 1, pTelescope->getDeviceName(),
-                    "ALIGNMENT_POINTSET_COMMIT", "Execute the action", ALIGNMENT_TAB, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
+                       "ALIGNMENT_POINTSET_COMMIT", "Execute the action", ALIGNMENT_TAB, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
     pTelescope->registerProperty(&AlignmentPointSetCommitV, INDI_SWITCH);
 }
 
@@ -78,7 +80,7 @@ void MapPropertiesToInMemoryDatabase::ProcessBlobProperties(Telescope* pTelescop
             IBLOBVectorProperty DummyBlobV;
             IUFillBLOB(&DummyBlob, "ALIGNMENT_POINT_ENTRY_PRIVATE", "Private binary data", "alignmentPrivateData");
             IUFillBLOBVector(&DummyBlobV, &DummyBlob, 1, pTelescope->getDeviceName(),
-                    "ALIGNMENT_POINT_OPTIONAL_BINARY_BLOB", "Optional sync point binary data", ALIGNMENT_TAB, IP_RW, 60, IPS_OK);
+                             "ALIGNMENT_POINT_OPTIONAL_BINARY_BLOB", "Optional sync point binary data", ALIGNMENT_TAB, IP_RW, 60, IPS_OK);
             IDSetBLOB(&DummyBlobV, NULL);
         }
     }
@@ -93,7 +95,8 @@ void MapPropertiesToInMemoryDatabase::ProcessNumberProperties(Telescope* pTelesc
         if (0 == IUUpdateNumber(&AlignmentPointSetEntryV, values, names, n))
             //  Update client
             IDSetNumber(&AlignmentPointSetEntryV, NULL);
-    } else if (strcmp(name, AlignmentPointSetPointerV.name) == 0)
+    }
+    else if (strcmp(name, AlignmentPointSetPointerV.name) == 0)
     {
         AlignmentPointSetPointerV.s = IPS_OK;
         if (0 == IUUpdateNumber(&AlignmentPointSetPointerV, values, names, n))
@@ -113,7 +116,8 @@ void MapPropertiesToInMemoryDatabase::ProcessSwitchProperties(Telescope* pTelesc
         if (0 == IUUpdateSwitch(&AlignmentPointSetActionV, states, names, n))
             //  Update client
             IDSetSwitch(&AlignmentPointSetActionV, NULL);
-    } else if (strcmp(name, AlignmentPointSetCommitV.name) == 0)
+    }
+    else if (strcmp(name, AlignmentPointSetCommitV.name) == 0)
     {
         unsigned int Offset = AlignmentPointSetPointer.value;
         AlignmentPointSetCommitV.s=IPS_OK;
@@ -181,7 +185,7 @@ void MapPropertiesToInMemoryDatabase::ProcessSwitchProperties(Telescope* pTelesc
         }
         else if ((AlignmentPointSetAction[READ].s == ISS_ON) || (AlignmentPointSetAction[READ_INCREMENT].s == ISS_ON))
         {
-             if (AlignmentPointSetAction[READ_INCREMENT].s == ISS_ON)
+            if (AlignmentPointSetAction[READ_INCREMENT].s == ISS_ON)
             {
                 AlignmentPointSetPointer.value++;
                 // Update client

@@ -12,8 +12,10 @@
 #include "../inditelescope.h"
 #include "InMemoryDatabase.h"
 
-namespace INDI {
-namespace AlignmentSubsystem {
+namespace INDI
+{
+namespace AlignmentSubsystem
+{
 
 /*!
  * \class MapPropertiesToInMemoryDatabase

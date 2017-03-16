@@ -35,20 +35,20 @@
 #include <jerror.h>
 #include <assert.h>
 
- /*
- * jpeg_data:       buffer with input / output jpeg
- * len:             Length of jpeg buffer
- * itype:           0: Not interlaced
- *                  1: Interlaced, Top field first
- *                  2: Interlaced, Bottom field first
- * ctype            Chroma format for decompression.
- *                  Currently only Y4M_CHROMA_{420JPEG,422}  are available
- * raw0             buffer with input / output raw Y channel
- * raw1             buffer with input / output raw U/Cb channel
- * raw2             buffer with input / output raw V/Cr channel
- * width            width of Y channel (width of U/V is width/2)
- * height           height of Y channel (height of U/V is height/2)
- */
+/*
+* jpeg_data:       buffer with input / output jpeg
+* len:             Length of jpeg buffer
+* itype:           0: Not interlaced
+*                  1: Interlaced, Top field first
+*                  2: Interlaced, Bottom field first
+* ctype            Chroma format for decompression.
+*                  Currently only Y4M_CHROMA_{420JPEG,422}  are available
+* raw0             buffer with input / output raw Y channel
+* raw1             buffer with input / output raw U/Cb channel
+* raw2             buffer with input / output raw V/Cr channel
+* width            width of Y channel (width of U/V is width/2)
+* height           height of Y channel (height of U/V is height/2)
+*/
 
 
 static void jpeg_buffer_src(j_decompress_ptr cinfo, unsigned char *buffer,
@@ -104,7 +104,8 @@ static boolean fill_input_buffer(j_decompress_ptr cinfo)
 
 static void skip_input_data(j_decompress_ptr cinfo, long num_bytes)
 {
-    if (num_bytes > 0) {
+    if (num_bytes > 0)
+    {
         if (num_bytes > (long) cinfo->src->bytes_in_buffer)
             num_bytes = (long) cinfo->src->bytes_in_buffer;
         cinfo->src->next_input_byte += (size_t) num_bytes;
@@ -130,17 +131,18 @@ static void term_source(j_decompress_ptr cinfo)
 
 static void jpeg_buffer_src(j_decompress_ptr cinfo, unsigned char *buffer, long num)
 {
-/* The source object and input buffer are made permanent so that a series
-* of JPEG images can be read from the same buffer by calling jpeg_buffer_src
-* only before the first one.  (If we discarded the buffer at the end of
-* one image, we'd likely lose the start of the next one.)
-* This makes it unsafe to use this manager and a different source
-* manager serially with the same JPEG object.  Caveat programmer.
-*/
-    if (cinfo->src == NULL) {    /* first time for this JPEG object? */
+    /* The source object and input buffer are made permanent so that a series
+    * of JPEG images can be read from the same buffer by calling jpeg_buffer_src
+    * only before the first one.  (If we discarded the buffer at the end of
+    * one image, we'd likely lose the start of the next one.)
+    * This makes it unsafe to use this manager and a different source
+    * manager serially with the same JPEG object.  Caveat programmer.
+    */
+    if (cinfo->src == NULL)      /* first time for this JPEG object? */
+    {
         cinfo->src = (struct jpeg_source_mgr *)
                      (*cinfo->mem->alloc_small) ((j_common_ptr) cinfo, JPOOL_PERMANENT,
-                     sizeof (struct jpeg_source_mgr));
+                             sizeof (struct jpeg_source_mgr));
     }
 
     cinfo->src->init_source = init_source;
@@ -162,8 +164,9 @@ static void jpeg_buffer_src(j_decompress_ptr cinfo, unsigned char *buffer, long 
 static void jpeg_skip_ff(j_decompress_ptr cinfo)
 {
     while (cinfo->src->bytes_in_buffer > 1
-           && cinfo->src->next_input_byte[0] == 0xff
-           && cinfo->src->next_input_byte[1] == 0xff) {
+            && cinfo->src->next_input_byte[0] == 0xff
+            && cinfo->src->next_input_byte[1] == 0xff)
+    {
         cinfo->src->bytes_in_buffer--;
         cinfo->src->next_input_byte++;
     }
@@ -234,10 +237,11 @@ static void jpeg_buffer_dest(j_compress_ptr cinfo, unsigned char *buf, long len)
     * manager serially with the same JPEG object, because their private object
     * sizes may be different.  Caveat programmer.
     */
-    if (cinfo->dest == NULL) {   /* first time for this JPEG object? */
+    if (cinfo->dest == NULL)     /* first time for this JPEG object? */
+    {
         cinfo->dest = (struct jpeg_destination_mgr *)
                       (*cinfo->mem->alloc_small) ((j_common_ptr) cinfo, JPOOL_PERMANENT,
-                      sizeof (struct jpeg_destination_mgr));
+                              sizeof (struct jpeg_destination_mgr));
     }
 
     cinfo->dest->init_destination = init_destination;
@@ -262,7 +266,8 @@ static void jpeg_buffer_dest(j_compress_ptr cinfo, unsigned char *buf, long len)
  *    example.c file in the Independent JPEG Group's JPEG software
  */
 
-struct my_error_mgr {
+struct my_error_mgr
+{
     struct jpeg_error_mgr pub;   /* "public" fields */
     jmp_buf setjmp_buffer;       /* for return to caller */
 
@@ -319,22 +324,22 @@ static void add_huff_table(j_decompress_ptr dinfo, JHUFF_TBL **htblptr,
     if (*htblptr == NULL)
         *htblptr = jpeg_alloc_huff_table((j_common_ptr) dinfo);
 
-        /* Copy the number-of-symbols-of-each-code-length counts */
-        memcpy((*htblptr)->bits, bits, sizeof((*htblptr)->bits));
+    /* Copy the number-of-symbols-of-each-code-length counts */
+    memcpy((*htblptr)->bits, bits, sizeof((*htblptr)->bits));
 
-        /* Validate the counts.  We do this here mainly so we can copy the right
-         * number of symbols from the val[] array, without risking marching off
-         * the end of memory.  jchuff.c will do a more thorough test later.
-         */
-        nsymbols = 0;
+    /* Validate the counts.  We do this here mainly so we can copy the right
+     * number of symbols from the val[] array, without risking marching off
+     * the end of memory.  jchuff.c will do a more thorough test later.
+     */
+    nsymbols = 0;
 
-        for (len = 1; len <= 16; len++)
-            nsymbols += bits[len];
+    for (len = 1; len <= 16; len++)
+        nsymbols += bits[len];
 
-        if (nsymbols < 1 || nsymbols > 256)
-            fprintf(stderr, "%s: Given jpeg buffer was too small",  __FUNCTION__);
+    if (nsymbols < 1 || nsymbols > 256)
+        fprintf(stderr, "%s: Given jpeg buffer was too small",  __FUNCTION__);
 
-        memcpy((*htblptr)->huffval, val, nsymbols * sizeof(UINT8));
+    memcpy((*htblptr)->huffval, val, nsymbols * sizeof(UINT8));
 }
 
 
@@ -356,52 +361,56 @@ static void std_huff_tables (j_decompress_ptr dinfo)
     static const UINT8 bits_ac_luminance[17] =
     { /* 0-base */ 0, 0, 2, 1, 3, 3, 2, 4, 3, 5, 5, 4, 4, 0, 0, 1, 0x7d };
     static const UINT8 val_ac_luminance[] =
-    { 0x01, 0x02, 0x03, 0x00, 0x04, 0x11, 0x05, 0x12,
-      0x21, 0x31, 0x41, 0x06, 0x13, 0x51, 0x61, 0x07,
-      0x22, 0x71, 0x14, 0x32, 0x81, 0x91, 0xa1, 0x08,
-      0x23, 0x42, 0xb1, 0xc1, 0x15, 0x52, 0xd1, 0xf0,
-      0x24, 0x33, 0x62, 0x72, 0x82, 0x09, 0x0a, 0x16,
-      0x17, 0x18, 0x19, 0x1a, 0x25, 0x26, 0x27, 0x28,
-      0x29, 0x2a, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39,
-      0x3a, 0x43, 0x44, 0x45, 0x46, 0x47, 0x48, 0x49,
-      0x4a, 0x53, 0x54, 0x55, 0x56, 0x57, 0x58, 0x59,
-      0x5a, 0x63, 0x64, 0x65, 0x66, 0x67, 0x68, 0x69,
-      0x6a, 0x73, 0x74, 0x75, 0x76, 0x77, 0x78, 0x79,
-      0x7a, 0x83, 0x84, 0x85, 0x86, 0x87, 0x88, 0x89,
-      0x8a, 0x92, 0x93, 0x94, 0x95, 0x96, 0x97, 0x98,
-      0x99, 0x9a, 0xa2, 0xa3, 0xa4, 0xa5, 0xa6, 0xa7,
-      0xa8, 0xa9, 0xaa, 0xb2, 0xb3, 0xb4, 0xb5, 0xb6,
-      0xb7, 0xb8, 0xb9, 0xba, 0xc2, 0xc3, 0xc4, 0xc5,
-      0xc6, 0xc7, 0xc8, 0xc9, 0xca, 0xd2, 0xd3, 0xd4,
-      0xd5, 0xd6, 0xd7, 0xd8, 0xd9, 0xda, 0xe1, 0xe2,
-      0xe3, 0xe4, 0xe5, 0xe6, 0xe7, 0xe8, 0xe9, 0xea,
-      0xf1, 0xf2, 0xf3, 0xf4, 0xf5, 0xf6, 0xf7, 0xf8,
-      0xf9, 0xfa };
+    {
+        0x01, 0x02, 0x03, 0x00, 0x04, 0x11, 0x05, 0x12,
+        0x21, 0x31, 0x41, 0x06, 0x13, 0x51, 0x61, 0x07,
+        0x22, 0x71, 0x14, 0x32, 0x81, 0x91, 0xa1, 0x08,
+        0x23, 0x42, 0xb1, 0xc1, 0x15, 0x52, 0xd1, 0xf0,
+        0x24, 0x33, 0x62, 0x72, 0x82, 0x09, 0x0a, 0x16,
+        0x17, 0x18, 0x19, 0x1a, 0x25, 0x26, 0x27, 0x28,
+        0x29, 0x2a, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39,
+        0x3a, 0x43, 0x44, 0x45, 0x46, 0x47, 0x48, 0x49,
+        0x4a, 0x53, 0x54, 0x55, 0x56, 0x57, 0x58, 0x59,
+        0x5a, 0x63, 0x64, 0x65, 0x66, 0x67, 0x68, 0x69,
+        0x6a, 0x73, 0x74, 0x75, 0x76, 0x77, 0x78, 0x79,
+        0x7a, 0x83, 0x84, 0x85, 0x86, 0x87, 0x88, 0x89,
+        0x8a, 0x92, 0x93, 0x94, 0x95, 0x96, 0x97, 0x98,
+        0x99, 0x9a, 0xa2, 0xa3, 0xa4, 0xa5, 0xa6, 0xa7,
+        0xa8, 0xa9, 0xaa, 0xb2, 0xb3, 0xb4, 0xb5, 0xb6,
+        0xb7, 0xb8, 0xb9, 0xba, 0xc2, 0xc3, 0xc4, 0xc5,
+        0xc6, 0xc7, 0xc8, 0xc9, 0xca, 0xd2, 0xd3, 0xd4,
+        0xd5, 0xd6, 0xd7, 0xd8, 0xd9, 0xda, 0xe1, 0xe2,
+        0xe3, 0xe4, 0xe5, 0xe6, 0xe7, 0xe8, 0xe9, 0xea,
+        0xf1, 0xf2, 0xf3, 0xf4, 0xf5, 0xf6, 0xf7, 0xf8,
+        0xf9, 0xfa
+    };
 
     static const UINT8 bits_ac_chrominance[17] =
     { /* 0-base */ 0, 0, 2, 1, 2, 4, 4, 3, 4, 7, 5, 4, 4, 0, 1, 2, 0x77 };
     static const UINT8 val_ac_chrominance[] =
-    { 0x00, 0x01, 0x02, 0x03, 0x11, 0x04, 0x05, 0x21,
-      0x31, 0x06, 0x12, 0x41, 0x51, 0x07, 0x61, 0x71,
-      0x13, 0x22, 0x32, 0x81, 0x08, 0x14, 0x42, 0x91,
-      0xa1, 0xb1, 0xc1, 0x09, 0x23, 0x33, 0x52, 0xf0,
-      0x15, 0x62, 0x72, 0xd1, 0x0a, 0x16, 0x24, 0x34,
-      0xe1, 0x25, 0xf1, 0x17, 0x18, 0x19, 0x1a, 0x26,
-      0x27, 0x28, 0x29, 0x2a, 0x35, 0x36, 0x37, 0x38,
-      0x39, 0x3a, 0x43, 0x44, 0x45, 0x46, 0x47, 0x48,
-      0x49, 0x4a, 0x53, 0x54, 0x55, 0x56, 0x57, 0x58,
-      0x59, 0x5a, 0x63, 0x64, 0x65, 0x66, 0x67, 0x68,
-      0x69, 0x6a, 0x73, 0x74, 0x75, 0x76, 0x77, 0x78,
-      0x79, 0x7a, 0x82, 0x83, 0x84, 0x85, 0x86, 0x87,
-      0x88, 0x89, 0x8a, 0x92, 0x93, 0x94, 0x95, 0x96,
-      0x97, 0x98, 0x99, 0x9a, 0xa2, 0xa3, 0xa4, 0xa5,
-      0xa6, 0xa7, 0xa8, 0xa9, 0xaa, 0xb2, 0xb3, 0xb4,
-      0xb5, 0xb6, 0xb7, 0xb8, 0xb9, 0xba, 0xc2, 0xc3,
-      0xc4, 0xc5, 0xc6, 0xc7, 0xc8, 0xc9, 0xca, 0xd2,
-      0xd3, 0xd4, 0xd5, 0xd6, 0xd7, 0xd8, 0xd9, 0xda,
-      0xe2, 0xe3, 0xe4, 0xe5, 0xe6, 0xe7, 0xe8, 0xe9,
-      0xea, 0xf2, 0xf3, 0xf4, 0xf5, 0xf6, 0xf7, 0xf8,
-      0xf9, 0xfa };
+    {
+        0x00, 0x01, 0x02, 0x03, 0x11, 0x04, 0x05, 0x21,
+        0x31, 0x06, 0x12, 0x41, 0x51, 0x07, 0x61, 0x71,
+        0x13, 0x22, 0x32, 0x81, 0x08, 0x14, 0x42, 0x91,
+        0xa1, 0xb1, 0xc1, 0x09, 0x23, 0x33, 0x52, 0xf0,
+        0x15, 0x62, 0x72, 0xd1, 0x0a, 0x16, 0x24, 0x34,
+        0xe1, 0x25, 0xf1, 0x17, 0x18, 0x19, 0x1a, 0x26,
+        0x27, 0x28, 0x29, 0x2a, 0x35, 0x36, 0x37, 0x38,
+        0x39, 0x3a, 0x43, 0x44, 0x45, 0x46, 0x47, 0x48,
+        0x49, 0x4a, 0x53, 0x54, 0x55, 0x56, 0x57, 0x58,
+        0x59, 0x5a, 0x63, 0x64, 0x65, 0x66, 0x67, 0x68,
+        0x69, 0x6a, 0x73, 0x74, 0x75, 0x76, 0x77, 0x78,
+        0x79, 0x7a, 0x82, 0x83, 0x84, 0x85, 0x86, 0x87,
+        0x88, 0x89, 0x8a, 0x92, 0x93, 0x94, 0x95, 0x96,
+        0x97, 0x98, 0x99, 0x9a, 0xa2, 0xa3, 0xa4, 0xa5,
+        0xa6, 0xa7, 0xa8, 0xa9, 0xaa, 0xb2, 0xb3, 0xb4,
+        0xb5, 0xb6, 0xb7, 0xb8, 0xb9, 0xba, 0xc2, 0xc3,
+        0xc4, 0xc5, 0xc6, 0xc7, 0xc8, 0xc9, 0xca, 0xd2,
+        0xd3, 0xd4, 0xd5, 0xd6, 0xd7, 0xd8, 0xd9, 0xda,
+        0xe2, 0xe3, 0xe4, 0xe5, 0xe6, 0xe7, 0xe8, 0xe9,
+        0xea, 0xf2, 0xf3, 0xf4, 0xf5, 0xf6, 0xf7, 0xf8,
+        0xf9, 0xfa
+    };
 
     add_huff_table(dinfo, &dinfo->dc_huff_tbl_ptrs[0],
                    bits_dc_luminance, val_dc_luminance);
@@ -418,9 +427,10 @@ static void std_huff_tables (j_decompress_ptr dinfo)
 static void guarantee_huff_tables(j_decompress_ptr dinfo)
 {
     if ((dinfo->dc_huff_tbl_ptrs[0] == NULL) &&
-        (dinfo->dc_huff_tbl_ptrs[1] == NULL) &&
-        (dinfo->ac_huff_tbl_ptrs[0] == NULL) &&
-        (dinfo->ac_huff_tbl_ptrs[1] == NULL)) {
+            (dinfo->dc_huff_tbl_ptrs[1] == NULL) &&
+            (dinfo->ac_huff_tbl_ptrs[0] == NULL) &&
+            (dinfo->ac_huff_tbl_ptrs[1] == NULL))
+    {
         std_huff_tables(dinfo);
     }
 }
@@ -441,30 +451,33 @@ static void guarantee_huff_tables(j_decompress_ptr dinfo)
  * returns:
  *	-1 on fatal error
  *	0 on success
- *	1 if jpeg lib threw a "corrupt jpeg data" warning.  
+ *	1 if jpeg lib threw a "corrupt jpeg data" warning.
  *		in this case, "a damaged output image is likely."
- *	
+ *
  */
 
 int decode_jpeg_raw (unsigned char *jpeg_data, int len,
-                     int itype, int ctype, unsigned int width, 
-                     unsigned int height, unsigned char *raw0, 
+                     int itype, int ctype, unsigned int width,
+                     unsigned int height, unsigned char *raw0,
                      unsigned char *raw1, unsigned char *raw2)
 {
     int numfields, hsf[3], field, yl, yc;
     int i, xsl, xsc, xs, hdown;
     unsigned int x, y = 0, vsf[3], xd;
-    
+
     JSAMPROW row0[16] = { buf0[0], buf0[1], buf0[2], buf0[3],
                           buf0[4], buf0[5], buf0[6], buf0[7],
                           buf0[8], buf0[9], buf0[10], buf0[11],
-                          buf0[12], buf0[13], buf0[14], buf0[15]};
+                          buf0[12], buf0[13], buf0[14], buf0[15]
+                        };
 
     JSAMPROW row1[8] = { buf1[0], buf1[1], buf1[2], buf1[3],
-			             buf1[4], buf1[5], buf1[6], buf1[7]};
+                         buf1[4], buf1[5], buf1[6], buf1[7]
+                       };
 
     JSAMPROW row2[16] = { buf2[0], buf2[1], buf2[2], buf2[3],
-                          buf2[4], buf2[5], buf2[6], buf2[7]};
+                          buf2[4], buf2[5], buf2[6], buf2[7]
+                        };
 
     JSAMPROW row1_444[16], row2_444[16];
 
@@ -482,7 +495,8 @@ int decode_jpeg_raw (unsigned char *jpeg_data, int len,
     jerr.warning_seen = 0;
 
     /* Establish the setjmp return context for my_error_exit to use. */
-    if (setjmp (jerr.setjmp_buffer)) {
+    if (setjmp (jerr.setjmp_buffer))
+    {
         /* If we get here, the JPEG code has signaled an error. */
         jpeg_destroy_decompress (&dinfo);
         return -1;
@@ -502,78 +516,95 @@ int decode_jpeg_raw (unsigned char *jpeg_data, int len,
     guarantee_huff_tables(&dinfo);
     jpeg_start_decompress (&dinfo);
 
-    if (dinfo.output_components != 3) {
+    if (dinfo.output_components != 3)
+    {
         fprintf(stderr, "%s: Output components of JPEG image = %d, must be 3",
-                   __FUNCTION__, dinfo.output_components);
+                __FUNCTION__, dinfo.output_components);
         goto ERR_EXIT;
     }
 
-    for (i = 0; i < 3; i++) {
+    for (i = 0; i < 3; i++)
+    {
         hsf[i] = dinfo.comp_info[i].h_samp_factor;
         vsf[i] = dinfo.comp_info[i].v_samp_factor;
     }
 
     if ((hsf[0] != 2 && hsf[0] != 1) || hsf[1] != 1 || hsf[2] != 1 ||
-        (vsf[0] != 1 && vsf[0] != 2) || vsf[1] != 1 || vsf[2] != 1) {
+            (vsf[0] != 1 && vsf[0] != 2) || vsf[1] != 1 || vsf[2] != 1)
+    {
         fprintf(stderr, "%s: Unsupported sampling factors, hsf=(%d, %d, %d) "
-                   "vsf=(%d, %d, %d) !", __FUNCTION__, hsf[0], hsf[1], hsf[2], vsf[0], vsf[1], vsf[2]);
+                "vsf=(%d, %d, %d) !", __FUNCTION__, hsf[0], hsf[1], hsf[2], vsf[0], vsf[1], vsf[2]);
         goto ERR_EXIT;
     }
 
-    if (hsf[0] == 1) {
-        if (height % 8 != 0) {
+    if (hsf[0] == 1)
+    {
+        if (height % 8 != 0)
+        {
             fprintf(stderr, "%s: YUV 4:4:4 sampling, but image height %d "
-                       "not dividable by 8 !", __FUNCTION__, height);
-            goto ERR_EXIT;	   
+                    "not dividable by 8 !", __FUNCTION__, height);
+            goto ERR_EXIT;
         }
 
-        for (y = 0; y < 16; y++) { // allocate a special buffer for the extra sampling depth
+        for (y = 0; y < 16; y++)   // allocate a special buffer for the extra sampling depth
+        {
             row1_444[y] = (unsigned char *)malloc(dinfo.output_width * sizeof(char));
             row2_444[y] = (unsigned char *)malloc(dinfo.output_width * sizeof(char));
         }
-        scanarray[1] = row1_444; 
-        scanarray[2] = row2_444; 
+        scanarray[1] = row1_444;
+        scanarray[2] = row2_444;
     }
 
     /* Height match image height or be exact twice the image height */
 
-    if (dinfo.output_height == height) {
+    if (dinfo.output_height == height)
+    {
         numfields = 1;
-    } else if (2 * dinfo.output_height == height) {
+    }
+    else if (2 * dinfo.output_height == height)
+    {
         numfields = 2;
-    } else {
+    }
+    else
+    {
         fprintf(stderr, "%s: Read JPEG: requested height = %d, "
-                   "height of image = %d", __FUNCTION__, height, dinfo.output_height);
+                "height of image = %d", __FUNCTION__, height, dinfo.output_height);
         goto ERR_EXIT;
     }
 
     /* Width is more flexible */
 
-    if (dinfo.output_width > MAX_LUMA_WIDTH) {
+    if (dinfo.output_width > MAX_LUMA_WIDTH)
+    {
         fprintf(stderr, "%s: Image width of %d exceeds max",
-                   __FUNCTION__, dinfo.output_width);
+                __FUNCTION__, dinfo.output_width);
         goto ERR_EXIT;
     }
 
-    if (width < 2 * dinfo.output_width / 3) {
+    if (width < 2 * dinfo.output_width / 3)
+    {
         /* Downsample 2:1 */
         hdown = 1;
         if (2 * width < dinfo.output_width)
             xsl = (dinfo.output_width - 2 * width) / 2;
         else
             xsl = 0;
-    } else if (width == 2 * dinfo.output_width / 3) {
+    }
+    else if (width == 2 * dinfo.output_width / 3)
+    {
         /* special case of 3:2 downsampling */
-      hdown = 2;
-      xsl = 0;
-    } else {
+        hdown = 2;
+        xsl = 0;
+    }
+    else
+    {
         /* No downsampling */
         hdown = 0;
         if (width < dinfo.output_width)
             xsl = (dinfo.output_width - width) / 2;
         else
             xsl = 0;
-   }
+    }
 
     /* Make xsl even, calculate xsc */
 
@@ -582,8 +613,10 @@ int decode_jpeg_raw (unsigned char *jpeg_data, int len,
 
     yl = yc = 0;
 
-    for (field = 0; field < numfields; field++) {
-        if (field > 0) {
+    for (field = 0; field < numfields; field++)
+    {
+        if (field > 0)
+        {
             jpeg_read_header (&dinfo, TRUE);
             dinfo.raw_data_out = TRUE;
             dinfo.out_color_space = JCS_YCbCr;
@@ -591,8 +624,10 @@ int decode_jpeg_raw (unsigned char *jpeg_data, int len,
             jpeg_start_decompress (&dinfo);
         }
 
-        if (numfields == 2) {
-            switch (itype) {
+        if (numfields == 2)
+        {
+            switch (itype)
+            {
             case Y4M_ILACE_TOP_FIRST:
                 yl = yc = field;
                 break;
@@ -601,134 +636,170 @@ int decode_jpeg_raw (unsigned char *jpeg_data, int len,
                 break;
             default:
                 fprintf(stderr, "%s: Input is interlaced but no interlacing set",
-                           __FUNCTION__);
+                        __FUNCTION__);
                 goto ERR_EXIT;
             }
-        } else {
+        }
+        else
+        {
             yl = yc = 0;
-        }         
+        }
 
-        while (dinfo.output_scanline < dinfo.output_height) {
+        while (dinfo.output_scanline < dinfo.output_height)
+        {
             /* read raw data */
             jpeg_read_raw_data (&dinfo, scanarray, 8 * vsf[0]);
 
-            for (y = 0; y < 8 * vsf[0]; yl += numfields, y++) {
+            for (y = 0; y < 8 * vsf[0]; yl += numfields, y++)
+            {
                 xd = yl * width;
                 xs = xsl;
 
-                if (hdown == 0) {
+                if (hdown == 0)
+                {
                     for (x = 0; x < width; x++)
                         raw0[xd++] = row0[y][xs++];
-                } else if (hdown == 1) {
+                }
+                else if (hdown == 1)
+                {
                     for (x = 0; x < width; x++, xs += 2)
                         raw0[xd++] = (row0[y][xs] + row0[y][xs + 1]) >> 1;
-                } else {
-                    for (x = 0; x < width / 2; x++, xd += 2, xs += 3) {
+                }
+                else
+                {
+                    for (x = 0; x < width / 2; x++, xd += 2, xs += 3)
+                    {
                         raw0[xd] = (2 * row0[y][xs] + row0[y][xs + 1]) / 3;
                         raw0[xd + 1] = (2 * row0[y][xs + 2] + row0[y][xs + 1]) / 3;
                     }
-                }    
+                }
             }
 
             /* Horizontal downsampling of chroma */
 
-            for (y = 0; y < 8; y++) {
+            for (y = 0; y < 8; y++)
+            {
                 xs = xsc;
 
-	            if (hsf[0] == 1)
-	                for (x = 0; x < width / 2; x++, xs++) { 		  
-		                row1[y][xs] = (row1_444[y][2*x] + row1_444[y][2*x + 1]) >> 1;
-		                row2[y][xs] = (row2_444[y][2*x] + row2_444[y][2*x + 1]) >> 1;
-		            }
+                if (hsf[0] == 1)
+                    for (x = 0; x < width / 2; x++, xs++)
+                    {
+                        row1[y][xs] = (row1_444[y][2*x] + row1_444[y][2*x + 1]) >> 1;
+                        row2[y][xs] = (row2_444[y][2*x] + row2_444[y][2*x + 1]) >> 1;
+                    }
 
                 xs = xsc;
-                if (hdown == 0) {
-                    for (x = 0; x < width / 2; x++, xs++) {
-		                chr1[y][x] = row1[y][xs];
-		                chr2[y][x] = row2[y][xs];
-                    } 
-                } else if (hdown == 1) {
-                    for (x = 0; x < width / 2; x++, xs += 2) {
+                if (hdown == 0)
+                {
+                    for (x = 0; x < width / 2; x++, xs++)
+                    {
+                        chr1[y][x] = row1[y][xs];
+                        chr2[y][x] = row2[y][xs];
+                    }
+                }
+                else if (hdown == 1)
+                {
+                    for (x = 0; x < width / 2; x++, xs += 2)
+                    {
                         chr1[y][x] = (row1[y][xs] + row1[y][xs + 1]) >> 1;
                         chr2[y][x] = (row2[y][xs] + row2[y][xs + 1]) >> 1;
-                    } 
-                } else {
-                    for (x = 0; x < width / 2; x += 2, xs += 3) {
+                    }
+                }
+                else
+                {
+                    for (x = 0; x < width / 2; x += 2, xs += 3)
+                    {
                         chr1[y][x] = (2 * row1[y][xs] + row1[y][xs + 1]) / 3;
                         chr1[y][x + 1] = (2 * row1[y][xs + 2] + row1[y][xs + 1]) / 3;
                         chr2[y][x] = (2 * row2[y][xs] + row2[y][xs + 1]) / 3;
                         chr2[y][x + 1] = (2 * row2[y][xs + 2] + row2[y][xs + 1]) / 3;
                     }
-                }    
+                }
             }
 
             /* Vertical resampling of chroma */
 
-            switch (ctype) {
+            switch (ctype)
+            {
             case Y4M_CHROMA_422:
-                if (vsf[0] == 1) {
-	                /* Just copy */
-	                for (y = 0; y < 8 /*&& yc < height */; y++, yc += numfields) {
-	                    xd = yc * width / 2;
+                if (vsf[0] == 1)
+                {
+                    /* Just copy */
+                    for (y = 0; y < 8 /*&& yc < height */; y++, yc += numfields)
+                    {
+                        xd = yc * width / 2;
 
-	                    for (x = 0; x < width / 2; x++, xd++) {
-		                    raw1[xd] = chr1[y][x];
-		                    raw2[xd] = chr2[y][x];
-	                    }
-	                }
-	            } else {
-	                /* upsample */
-	                for (y = 0; y < 8 /*&& yc < height */; y++) {
-	                    xd = yc * width / 2;
-	                
-                        for (x = 0; x < width / 2; x++, xd++) {
-		                    raw1[xd] = chr1[y][x];
-		                    raw2[xd] = chr2[y][x];
-	                    }
+                        for (x = 0; x < width / 2; x++, xd++)
+                        {
+                            raw1[xd] = chr1[y][x];
+                            raw2[xd] = chr2[y][x];
+                        }
+                    }
+                }
+                else
+                {
+                    /* upsample */
+                    for (y = 0; y < 8 /*&& yc < height */; y++)
+                    {
+                        xd = yc * width / 2;
 
-	                    yc += numfields;
-	                    xd = yc * width / 2;
+                        for (x = 0; x < width / 2; x++, xd++)
+                        {
+                            raw1[xd] = chr1[y][x];
+                            raw2[xd] = chr2[y][x];
+                        }
 
-	                    for (x = 0; x < width / 2; x++, xd++) {
-		                    raw1[xd] = chr1[y][x];
-		                    raw2[xd] = chr2[y][x];
-	                    }
+                        yc += numfields;
+                        xd = yc * width / 2;
 
-	                    yc += numfields;
-	                }
-	            }
-	            break;
-	        default:
-            /*
-            * should be case Y4M_CHROMA_420JPEG: but use default: for compatibility. Some
-            * pass things like '420' in with the expectation that anything other than
-            * Y4M_CHROMA_422 will default to 420JPEG.
-            */
-                if (vsf[0] == 1) {
-	                /* Really downsample */
-	                for (y = 0; y < 8 /*&& yc < height/2*/; y += 2, yc += numfields) {
-	                    xd = yc * width / 2;
+                        for (x = 0; x < width / 2; x++, xd++)
+                        {
+                            raw1[xd] = chr1[y][x];
+                            raw2[xd] = chr2[y][x];
+                        }
 
-	                    for (x = 0; x < width / 2; x++, xd++) {
-		                    assert(xd < (width * height / 4));
-		                    raw1[xd] = (chr1[y][x] + chr1[y + 1][x]) >> 1;
-		                    raw2[xd] = (chr2[y][x] + chr2[y + 1][x]) >> 1;
-	                    }
-	                }
+                        yc += numfields;
+                    }
+                }
+                break;
+            default:
+                /*
+                * should be case Y4M_CHROMA_420JPEG: but use default: for compatibility. Some
+                * pass things like '420' in with the expectation that anything other than
+                * Y4M_CHROMA_422 will default to 420JPEG.
+                */
+                if (vsf[0] == 1)
+                {
+                    /* Really downsample */
+                    for (y = 0; y < 8 /*&& yc < height/2*/; y += 2, yc += numfields)
+                    {
+                        xd = yc * width / 2;
 
-	            } else {
-	                /* Just copy */
-	                for (y = 0; y < 8 /*&& yc < height/2 */; y++, yc += numfields) {
-	                    xd = yc * width / 2;
-	       
-                        for (x = 0; x < width / 2; x++, xd++) {
-		                    raw1[xd] = chr1[y][x];
-		                    raw2[xd] = chr2[y][x];
-	                    }
-	                }
-	            }
-	            break;
-	        }
+                        for (x = 0; x < width / 2; x++, xd++)
+                        {
+                            assert(xd < (width * height / 4));
+                            raw1[xd] = (chr1[y][x] + chr1[y + 1][x]) >> 1;
+                            raw2[xd] = (chr2[y][x] + chr2[y + 1][x]) >> 1;
+                        }
+                    }
+
+                }
+                else
+                {
+                    /* Just copy */
+                    for (y = 0; y < 8 /*&& yc < height/2 */; y++, yc += numfields)
+                    {
+                        xd = yc * width / 2;
+
+                        for (x = 0; x < width / 2; x++, xd++)
+                        {
+                            raw1[xd] = chr1[y][x];
+                            raw2[xd] = chr2[y][x];
+                        }
+                    }
+                }
+                break;
+            }
         }
 
         (void) jpeg_finish_decompress (&dinfo);
@@ -736,11 +807,13 @@ int decode_jpeg_raw (unsigned char *jpeg_data, int len,
             jpeg_skip_ff (&dinfo);
     }
 
-    if (hsf[0] == 1) {
-        for (y = 0; y < 16; y++) { // allocate a special buffer for the extra sampling depth
+    if (hsf[0] == 1)
+    {
+        for (y = 0; y < 16; y++)   // allocate a special buffer for the extra sampling depth
+        {
             free(row1_444[y]);
-	        free(row2_444[y]);
-	    }
+            free(row2_444[y]);
+        }
     }
 
     jpeg_destroy_decompress (&dinfo);
@@ -766,8 +839,8 @@ ERR_EXIT:
  */
 
 int decode_jpeg_gray_raw(unsigned char *jpeg_data, int len,
-			             int itype, int ctype, unsigned int width, 
-                         unsigned int height, unsigned char *raw0, 
+                         int itype, int ctype, unsigned int width,
+                         unsigned int height, unsigned char *raw0,
                          unsigned char *raw1, unsigned char *raw2)
 {
     int numfields, hsf[3], field, yl, yc, xsl, xsc, xs, xd, hdown;
@@ -776,7 +849,8 @@ int decode_jpeg_gray_raw(unsigned char *jpeg_data, int len,
     JSAMPROW row0[16] = { buf0[0], buf0[1], buf0[2], buf0[3],
                           buf0[4], buf0[5], buf0[6], buf0[7],
                           buf0[8], buf0[9], buf0[10], buf0[11],
-                          buf0[12], buf0[13], buf0[14], buf0[15]};
+                          buf0[12], buf0[13], buf0[14], buf0[15]
+                        };
 
     JSAMPARRAY scanarray[3] = { row0 };
     struct jpeg_decompress_struct dinfo;
@@ -787,7 +861,8 @@ int decode_jpeg_gray_raw(unsigned char *jpeg_data, int len,
     jerr.pub.error_exit = my_error_exit;
 
     /* Establish the setjmp return context for my_error_exit to use. */
-    if (setjmp (jerr.setjmp_buffer)) {
+    if (setjmp (jerr.setjmp_buffer))
+    {
         /* If we get here, the JPEG code has signaled an error. */
         jpeg_destroy_decompress (&dinfo);
         return -1;
@@ -804,51 +879,67 @@ int decode_jpeg_gray_raw(unsigned char *jpeg_data, int len,
     dinfo.raw_data_out = TRUE;
     dinfo.out_color_space = JCS_GRAYSCALE;
     dinfo.dct_method = JDCT_IFAST;
-    
-    if (dinfo.jpeg_color_space != JCS_GRAYSCALE) { 
+
+    if (dinfo.jpeg_color_space != JCS_GRAYSCALE)
+    {
         fprintf(stderr, "%s: Expected grayscale colorspace for JPEG raw decoding",
-                   __FUNCTION__);
+                __FUNCTION__);
         goto ERR_EXIT;
     }
 
     guarantee_huff_tables(&dinfo);
     jpeg_start_decompress (&dinfo);
 
-    hsf[0] = 1; hsf[1] = 1; hsf[2] = 1;
-    vsf[0]= 1; vsf[1] = 1; vsf[2] = 1;
+    hsf[0] = 1;
+    hsf[1] = 1;
+    hsf[2] = 1;
+    vsf[0]= 1;
+    vsf[1] = 1;
+    vsf[2] = 1;
 
     /* Height match image height or be exact twice the image height */
 
-    if (dinfo.output_height == height) {
+    if (dinfo.output_height == height)
+    {
         numfields = 1;
-    } else if (2 * dinfo.output_height == height) {
+    }
+    else if (2 * dinfo.output_height == height)
+    {
         numfields = 2;
-    } else {
+    }
+    else
+    {
         fprintf(stderr, "%s: Read JPEG: requested height = %d, "
-                   "height of image = %d", __FUNCTION__, height, dinfo.output_height);
+                "height of image = %d", __FUNCTION__, height, dinfo.output_height);
         goto ERR_EXIT;
     }
 
     /* Width is more flexible */
 
-    if (dinfo.output_width > MAX_LUMA_WIDTH) {
+    if (dinfo.output_width > MAX_LUMA_WIDTH)
+    {
         fprintf(stderr, "%s: Image width of %d exceeds max",
-                   __FUNCTION__, dinfo.output_width);
+                __FUNCTION__, dinfo.output_width);
         goto ERR_EXIT;
     }
 
-    if (width < 2 * dinfo.output_width / 3) {
+    if (width < 2 * dinfo.output_width / 3)
+    {
         /* Downsample 2:1 */
         hdown = 1;
         if (2 * width < dinfo.output_width)
             xsl = (dinfo.output_width - 2 * width) / 2;
         else
             xsl = 0;
-    } else if (width == 2 * dinfo.output_width / 3) {
+    }
+    else if (width == 2 * dinfo.output_width / 3)
+    {
         /* special case of 3:2 downsampling */
         hdown = 2;
         xsl = 0;
-    } else {
+    }
+    else
+    {
         /* No downsampling */
         hdown = 0;
         if (width < dinfo.output_width)
@@ -864,8 +955,10 @@ int decode_jpeg_gray_raw(unsigned char *jpeg_data, int len,
 
     yl = yc = 0;
 
-    for (field = 0; field < numfields; field++) {
-        if (field > 0) {
+    for (field = 0; field < numfields; field++)
+    {
+        if (field > 0)
+        {
             jpeg_read_header (&dinfo, TRUE);
             dinfo.raw_data_out = TRUE;
             dinfo.out_color_space = JCS_GRAYSCALE;
@@ -873,8 +966,10 @@ int decode_jpeg_gray_raw(unsigned char *jpeg_data, int len,
             jpeg_start_decompress (&dinfo);
         }
 
-        if (numfields == 2) {
-            switch (itype) {
+        if (numfields == 2)
+        {
+            switch (itype)
+            {
             case Y4M_ILACE_TOP_FIRST:
                 yl = yc = field;
                 break;
@@ -883,124 +978,159 @@ int decode_jpeg_gray_raw(unsigned char *jpeg_data, int len,
                 break;
             default:
                 fprintf(stderr, "%s: Input is interlaced but no interlacing set",
-                           __FUNCTION__);
+                        __FUNCTION__);
                 goto ERR_EXIT;
             }
-        } else {
+        }
+        else
+        {
             yl = yc = 0;
-        }    
+        }
 
-        while (dinfo.output_scanline < dinfo.output_height) {
+        while (dinfo.output_scanline < dinfo.output_height)
+        {
             jpeg_read_raw_data (&dinfo, scanarray, 16);
 
-            for (y = 0; y < 8 * vsf[0]; yl += numfields, y++) {
+            for (y = 0; y < 8 * vsf[0]; yl += numfields, y++)
+            {
                 xd = yl * width;
                 xs = xsl;
 
-                if (hdown == 0) { // no horiz downsampling
+                if (hdown == 0)   // no horiz downsampling
+                {
                     for (x = 0; x < width; x++)
                         raw0[xd++] = row0[y][xs++];
-                } else if (hdown == 1) { // half the res
+                }
+                else if (hdown == 1)     // half the res
+                {
                     for (x = 0; x < width; x++, xs += 2)
                         raw0[xd++] = (row0[y][xs] + row0[y][xs + 1]) >> 1;
-                } else { // 2:3 downsampling
-                    for (x = 0; x < width / 2; x++, xd += 2, xs += 3) {
+                }
+                else     // 2:3 downsampling
+                {
+                    for (x = 0; x < width / 2; x++, xd += 2, xs += 3)
+                    {
                         raw0[xd] = (2 * row0[y][xs] + row0[y][xs + 1]) / 3;
                         raw0[xd + 1] = (2 * row0[y][xs + 2] + row0[y][xs + 1]) / 3;
                     }
-                }    
-            }
-
-
-            for (y = 0; y < 8; y++) {
-                xs = xsc;
-
-                if (hdown == 0) {
-                    for (x = 0; x < width / 2; x++, xs++) {
-                        chr1[y][x] = 0; //row1[y][xs];
-                        chr2[y][x] = 0; //row2[y][xs];
-                    } 
-                } else if (hdown == 1) {
-                    for (x = 0; x < width / 2; x++, xs += 2) {
-		                chr1[y][x] = 0; //(row1[y][xs] + row1[y][xs + 1]) >> 1;
-		                chr2[y][x] = 0; //(row2[y][xs] + row2[y][xs + 1]) >> 1;
-                    } 
-                } else {
-                    for (x = 0; x < width / 2; x += 2, xs += 3) {
-		                chr1[y][x] = 0; //(2 * row1[y][xs] + row1[y][xs + 1]) / 3;
-		                chr1[y][x + 1] = 0;
-		                //(2 * row1[y][xs + 2] + row1[y][xs + 1]) / 3;
-		                chr2[y][x] = 0; // (2 * row2[y][xs] + row2[y][xs + 1]) / 3;
-		                chr2[y][x + 1] = 0;
-		                //(2 * row2[y][xs + 2] + row2[y][xs + 1]) / 3;
-                    }   
                 }
             }
 
-            switch (ctype) {
+
+            for (y = 0; y < 8; y++)
+            {
+                xs = xsc;
+
+                if (hdown == 0)
+                {
+                    for (x = 0; x < width / 2; x++, xs++)
+                    {
+                        chr1[y][x] = 0; //row1[y][xs];
+                        chr2[y][x] = 0; //row2[y][xs];
+                    }
+                }
+                else if (hdown == 1)
+                {
+                    for (x = 0; x < width / 2; x++, xs += 2)
+                    {
+                        chr1[y][x] = 0; //(row1[y][xs] + row1[y][xs + 1]) >> 1;
+                        chr2[y][x] = 0; //(row2[y][xs] + row2[y][xs + 1]) >> 1;
+                    }
+                }
+                else
+                {
+                    for (x = 0; x < width / 2; x += 2, xs += 3)
+                    {
+                        chr1[y][x] = 0; //(2 * row1[y][xs] + row1[y][xs + 1]) / 3;
+                        chr1[y][x + 1] = 0;
+                        //(2 * row1[y][xs + 2] + row1[y][xs + 1]) / 3;
+                        chr2[y][x] = 0; // (2 * row2[y][xs] + row2[y][xs + 1]) / 3;
+                        chr2[y][x + 1] = 0;
+                        //(2 * row2[y][xs + 2] + row2[y][xs + 1]) / 3;
+                    }
+                }
+            }
+
+            switch (ctype)
+            {
             case Y4M_CHROMA_422:
-                if (vsf[0] == 1) {
+                if (vsf[0] == 1)
+                {
                     /* Just copy */
-                    for (y = 0; y < 8 /*&& yc < height */; y++, yc += numfields) {
+                    for (y = 0; y < 8 /*&& yc < height */; y++, yc += numfields)
+                    {
                         xd = yc * width / 2;
 
-                        for (x = 0; x < width / 2; x++, xd++) {
+                        for (x = 0; x < width / 2; x++, xd++)
+                        {
                             raw1[xd] = 127; //chr1[y][x];
                             raw2[xd] = 127; //chr2[y][x];
                         }
                     }
-                } else {
+                }
+                else
+                {
                     /* upsample */
-                    for (y = 0; y < 8 /*&& yc < height */; y++) {
+                    for (y = 0; y < 8 /*&& yc < height */; y++)
+                    {
                         xd = yc * width / 2;
-                        
-                        for (x = 0; x < width / 2; x++, xd++) {
+
+                        for (x = 0; x < width / 2; x++, xd++)
+                        {
                             raw1[xd] = 127; //chr1[y][x];
                             raw2[xd] = 127; //chr2[y][x];
                         }
 
                         yc += numfields;
                         xd = yc * width / 2;
-                        
-                        for (x = 0; x < width / 2; x++, xd++) {
+
+                        for (x = 0; x < width / 2; x++, xd++)
+                        {
                             raw1[xd] = 127; //chr1[y][x];
                             raw2[xd] = 127; //chr2[y][x];
                         }
 
                         yc += numfields;
-	                }
-	            }
-	            break;
-               /*
-                * should be case Y4M_CHROMA_420JPEG: but use default: for compatibility. Some
-                * pass things like '420' in with the expectation that anything other than
-                * Y4M_CHROMA_422 will default to 420JPEG.
-                */
-	        default:
-                if (vsf[0] == 1) {
+                    }
+                }
+                break;
+            /*
+             * should be case Y4M_CHROMA_420JPEG: but use default: for compatibility. Some
+             * pass things like '420' in with the expectation that anything other than
+             * Y4M_CHROMA_422 will default to 420JPEG.
+             */
+            default:
+                if (vsf[0] == 1)
+                {
                     /* Really downsample */
-                    for (y = 0; y < 8; y += 2, yc += numfields) {
+                    for (y = 0; y < 8; y += 2, yc += numfields)
+                    {
                         xd = yc * width / 2;
 
-                        for (x = 0; x < width / 2; x++, xd++) {
+                        for (x = 0; x < width / 2; x++, xd++)
+                        {
                             raw1[xd] = 127; //(chr1[y][x] + chr1[y + 1][x]) >> 1;
-		                    raw2[xd] = 127; //(chr2[y][x] + chr2[y + 1][x]) >> 1;
+                            raw2[xd] = 127; //(chr2[y][x] + chr2[y + 1][x]) >> 1;
                         }
-	                }
-	            } else {
-	                /* Just copy */
+                    }
+                }
+                else
+                {
+                    /* Just copy */
 
-                    for (y = 0; y < 8; y++, yc += numfields) {
+                    for (y = 0; y < 8; y++, yc += numfields)
+                    {
                         xd = yc * width / 2;
 
-                        for (x = 0; x < width / 2; x++, xd++) {
+                        for (x = 0; x < width / 2; x++, xd++)
+                        {
                             raw1[xd] = 127; //chr1[y][x];
                             raw2[xd] = 127; //chr2[y][x];
-	                    }
-	                }
-	            }
-	            break;
-	        }
+                        }
+                    }
+                }
+                break;
+            }
         }
 
         (void) jpeg_finish_decompress (&dinfo);
@@ -1024,20 +1154,20 @@ ERR_EXIT:
  *                      may be interlaced                          *
  *                                                                 *
  *******************************************************************/
- 
- /*
- * jpeg_data:       Buffer to hold output jpeg
- * len:             Length of buffer
- * itype:           0: Not interlaced
- *                  1: Interlaced, Top field first
- *                  2: Interlaced, Bottom field first
- * ctype            Chroma format for decompression.
- *                  Currently only Y4M_CHROMA_{420JPEG,422} are available
- */
+
+/*
+* jpeg_data:       Buffer to hold output jpeg
+* len:             Length of buffer
+* itype:           0: Not interlaced
+*                  1: Interlaced, Top field first
+*                  2: Interlaced, Bottom field first
+* ctype            Chroma format for decompression.
+*                  Currently only Y4M_CHROMA_{420JPEG,422} are available
+*/
 
 int encode_jpeg_raw(unsigned char *jpeg_data, int len, int quality,
-                    int itype, int ctype, unsigned int width, 
-                    unsigned int height, unsigned char *raw0, 
+                    int itype, int ctype, unsigned int width,
+                    unsigned int height, unsigned char *raw0,
                     unsigned char *raw1, unsigned char *raw2)
 {
     int numfields, field, yl, yc, y, i;
@@ -1045,13 +1175,16 @@ int encode_jpeg_raw(unsigned char *jpeg_data, int len, int quality,
     JSAMPROW row0[16] = { buf0[0], buf0[1], buf0[2], buf0[3],
                           buf0[4], buf0[5], buf0[6], buf0[7],
                           buf0[8], buf0[9], buf0[10], buf0[11],
-                          buf0[12], buf0[13], buf0[14], buf0[15]};
+                          buf0[12], buf0[13], buf0[14], buf0[15]
+                        };
 
     JSAMPROW row1[8] = { buf1[0], buf1[1], buf1[2], buf1[3],
-                         buf1[4], buf1[5], buf1[6], buf1[7]};
+                         buf1[4], buf1[5], buf1[6], buf1[7]
+                       };
 
     JSAMPROW row2[8] = { buf2[0], buf2[1], buf2[2], buf2[3],
-                         buf2[4], buf2[5], buf2[6], buf2[7]};
+                         buf2[4], buf2[5], buf2[6], buf2[7]
+                       };
 
     JSAMPARRAY scanarray[3] = { row0, row1, row2};
 
@@ -1063,7 +1196,8 @@ int encode_jpeg_raw(unsigned char *jpeg_data, int len, int quality,
     jerr.pub.error_exit = my_error_exit;
 
     /* Establish the setjmp return context for my_error_exit to use. */
-    if (setjmp (jerr.setjmp_buffer)) {
+    if (setjmp (jerr.setjmp_buffer))
+    {
         /* If we get here, the JPEG code has signaled an error. */
         jpeg_destroy_compress (&cinfo);
         return -1;
@@ -1093,30 +1227,34 @@ int encode_jpeg_raw(unsigned char *jpeg_data, int len, int quality,
     cinfo.comp_info[2].v_samp_factor = 1;
 
 
-    if ((width > 4096) || (height > 4096)) {
+    if ((width > 4096) || (height > 4096))
+    {
         fprintf(stderr, "%s: Image dimensions (%dx%d) exceed lavtools' max "
-                   "(4096x4096)", __FUNCTION__, width, height);
+                "(4096x4096)", __FUNCTION__, width, height);
         goto ERR_EXIT;
     }
 
-    if ((width % 16) || (height % 16)) {
+    if ((width % 16) || (height % 16))
+    {
         fprintf(stderr, "%s: Image dimensions (%dx%d) not multiples of 16",
-                   __FUNCTION__, width, height);
+                __FUNCTION__, width, height);
         goto ERR_EXIT;
     }
 
     cinfo.image_width = width;
 
-    switch (itype) {
+    switch (itype)
+    {
     case Y4M_ILACE_TOP_FIRST:
     case Y4M_ILACE_BOTTOM_FIRST: /* interlaced */
         numfields = 2;
         break;
     default:
         numfields = 1;
-        if (height > 2048) {
+        if (height > 2048)
+        {
             fprintf(stderr, "%s: Image height (%d) exceeds lavtools max "
-                       "for non-interlaced frames", __FUNCTION__, height);
+                    "for non-interlaced frames", __FUNCTION__, height);
             goto ERR_EXIT;
         }
     }
@@ -1125,16 +1263,19 @@ int encode_jpeg_raw(unsigned char *jpeg_data, int len, int quality,
 
     yl = yc = 0;  /* y luma, chroma */
 
-    for (field = 0; field < numfields; field++) {
+    for (field = 0; field < numfields; field++)
+    {
         jpeg_start_compress (&cinfo, FALSE);
-      
-        if (numfields == 2) {
+
+        if (numfields == 2)
+        {
             static const JOCTET marker0[40];
 
             jpeg_write_marker(&cinfo, JPEG_APP0, marker0, 14);
             jpeg_write_marker(&cinfo, JPEG_APP0 + 1, marker0, 40);
 
-            switch (itype) {
+            switch (itype)
+            {
             case Y4M_ILACE_TOP_FIRST: /* top field first */
                 yl = yc = field;
                 break;
@@ -1143,22 +1284,27 @@ int encode_jpeg_raw(unsigned char *jpeg_data, int len, int quality,
                 break;
             default:
                 fprintf(stderr, "%s: Input is interlaced but no interlacing set",
-                           __FUNCTION__);
+                        __FUNCTION__);
                 goto ERR_EXIT;
             }
 
-        } else {
+        }
+        else
+        {
             yl = yc = 0;
         }
-        
-        while (cinfo.next_scanline < cinfo.image_height) {
+
+        while (cinfo.next_scanline < cinfo.image_height)
+        {
 
             for (y = 0; y < 8 * cinfo.comp_info[0].v_samp_factor;
-                 yl += numfields, y++) {
+                    yl += numfields, y++)
+            {
                 row0[y] = &raw0[yl * width];
             }
 
-            for (y = 0; y < 8; y++) {
+            for (y = 0; y < 8; y++)
+            {
                 row1[y] = &raw1[yc * width / 2];
                 row2[y] = &raw2[yc * width / 2];
 
@@ -1173,7 +1319,7 @@ int encode_jpeg_raw(unsigned char *jpeg_data, int len, int quality,
 
         (void) jpeg_finish_compress (&cinfo);
     }
-   
+
     /* FIXME */
     i = len - cinfo.dest->free_in_buffer;
 

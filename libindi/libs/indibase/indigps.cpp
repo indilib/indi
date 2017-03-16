@@ -95,21 +95,21 @@ void INDI::GPS::TimerHit()
 
     switch (state)
     {
-        // Ok or Alert
-        case IPS_OK:
-        case IPS_ALERT:
+    // Ok or Alert
+    case IPS_OK:
+    case IPS_ALERT:
         IDSetNumber(&LocationNP, NULL);
         IDSetText(&TimeTP, NULL);
         return;
 
-        // GPS fix is in progress
-        case IPS_BUSY:
+    // GPS fix is in progress
+    case IPS_BUSY:
         IDSetNumber(&LocationNP, NULL);
         IDSetText(&TimeTP, NULL);
         break;
 
     default:
-            break;
+        break;
     }
 
     SetTimer(POLLMS);

@@ -66,7 +66,7 @@ namespace  INDI
  */
 class Controller
 {
-    public:
+public:
 
     typedef enum { CONTROLLER_JOYSTICK, CONTROLLER_AXIS, CONTROLLER_BUTTON, CONTROLLER_UNKNOWN } ControllerType;
 
@@ -135,7 +135,7 @@ class Controller
     ControllerType getControllerType(const char *name);
     const char *getControllerSetting(const char *name);
 
-    protected:
+protected:
 
     static void joystickEvent(const char * joystick_n, double mag, double angle, void*context);
     static void axisEvent(const char * axis_n, int value, void *context);
@@ -152,7 +152,7 @@ class Controller
 
     INDI::DefaultDevice *device;
 
-    private:
+private:
 
     /* Joystick Support */
     ISwitchVectorProperty UseJoystickSP;

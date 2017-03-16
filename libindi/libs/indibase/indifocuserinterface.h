@@ -52,7 +52,10 @@ public:
     /**
      * @brief GetFocuserCapability returns the capability of the focuser
      */
-    uint32_t GetFocuserCapability() const { return capability;}
+    uint32_t GetFocuserCapability() const
+    {
+        return capability;
+    }
 
     /**
      * @brief SetFocuserCapability sets the focuser capabilities. All capabilities must be initialized.
@@ -63,22 +66,34 @@ public:
     /**
      * @return True if the focuser has absolute position encoders.
      */
-    bool CanAbsMove() { return capability & FOCUSER_CAN_ABS_MOVE; }
+    bool CanAbsMove()
+    {
+        return capability & FOCUSER_CAN_ABS_MOVE;
+    }
 
     /**
      * @return True if the focuser has relative position encoders.
      */
-    bool CanRelMove() { return capability & FOCUSER_CAN_REL_MOVE; }
+    bool CanRelMove()
+    {
+        return capability & FOCUSER_CAN_REL_MOVE;
+    }
 
     /**
      * @return True if the focuser motion can be aborted.
      */
-    bool CanAbort()   { return capability & FOCUSER_CAN_ABORT; }
+    bool CanAbort()
+    {
+        return capability & FOCUSER_CAN_ABORT;
+    }
 
     /**
      * @return True if the focuser has multiple speeds.
      */
-    bool HasVariableSpeed() { return capability & FOCUSER_HAS_VARIABLE_SPEED; }
+    bool HasVariableSpeed()
+    {
+        return capability & FOCUSER_HAS_VARIABLE_SPEED;
+    }
 
 protected:
 

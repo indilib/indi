@@ -15,8 +15,10 @@
 
 #include <memory>
 
-namespace INDI {
-namespace AlignmentSubsystem {
+namespace INDI
+{
+namespace AlignmentSubsystem
+{
 
 /*!
  * \class MathPluginManagement
@@ -41,12 +43,12 @@ public:
 
     /// \brief Default constructor
     MathPluginManagement() : pGetApproximateMountAlignment(&MathPlugin::GetApproximateMountAlignment),
-                            pInitialise(&MathPlugin::Initialise),
-                            pSetApproximateMountAlignment(&MathPlugin::SetApproximateMountAlignment),
-                            pTransformCelestialToTelescope(&MathPlugin::TransformCelestialToTelescope),
-                            pTransformTelescopeToCelestial(&MathPlugin::TransformTelescopeToCelestial),
-                            pLoadedMathPlugin(&BuiltInPlugin), LoadedMathPluginHandle(NULL),
-                            CurrentInMemoryDatabase(NULL) {}
+        pInitialise(&MathPlugin::Initialise),
+        pSetApproximateMountAlignment(&MathPlugin::SetApproximateMountAlignment),
+        pTransformCelestialToTelescope(&MathPlugin::TransformCelestialToTelescope),
+        pTransformTelescopeToCelestial(&MathPlugin::TransformTelescopeToCelestial),
+        pLoadedMathPlugin(&BuiltInPlugin), LoadedMathPluginHandle(NULL),
+        CurrentInMemoryDatabase(NULL) {}
 
     /// \brief Virtual destructor
     virtual ~MathPluginManagement() {}
@@ -96,18 +98,24 @@ public:
 
     /// \brief Set the current in memory database
     /// \param[in] pDatabase A pointer to the current in memory database
-    void SetCurrentInMemoryDatabase(InMemoryDatabase* pDatabase) { CurrentInMemoryDatabase = pDatabase; }
+    void SetCurrentInMemoryDatabase(InMemoryDatabase* pDatabase)
+    {
+        CurrentInMemoryDatabase = pDatabase;
+    }
 
     /// \brief Return status of alignment subsystem
     /// \return True if active
-    const bool IsAlignmentSubsystemActive() const { return AlignmentSubsystemActive.s == ISS_ON ? true : false; }
+    const bool IsAlignmentSubsystemActive() const
+    {
+        return AlignmentSubsystemActive.s == ISS_ON ? true : false;
+    }
 
     // These must match the function signatures in MathPlugin
     MountAlignment_t GetApproximateMountAlignment();
     bool Initialise(InMemoryDatabase* pInMemoryDatabase);
     void SetApproximateMountAlignment(MountAlignment_t ApproximateAlignment);
     bool TransformCelestialToTelescope(const double RightAscension, const double Declination, double JulianOffset,
-                                            TelescopeDirectionVector& ApparentTelescopeDirectionVector);
+                                       TelescopeDirectionVector& ApparentTelescopeDirectionVector);
     bool TransformTelescopeToCelestial(const TelescopeDirectionVector& ApparentTelescopeDirectionVector, double& RightAscension, double& Declination);
 
 
@@ -136,7 +144,7 @@ private:
     bool (MathPlugin::*pInitialise)(InMemoryDatabase* pInMemoryDatabase);
     void (MathPlugin::*pSetApproximateMountAlignment)(MountAlignment_t ApproximateAlignment);
     bool (MathPlugin::*pTransformCelestialToTelescope)(const double RightAscension, const double Declination, double JulianOffset,
-                                                        TelescopeDirectionVector& TelescopeDirectionVector);
+            TelescopeDirectionVector& TelescopeDirectionVector);
     bool (MathPlugin::*pTransformTelescopeToCelestial)(const TelescopeDirectionVector& TelescopeDirectionVector, double& RightAscension, double& Declination);
     MathPlugin* pLoadedMathPlugin;
     void* LoadedMathPluginHandle;

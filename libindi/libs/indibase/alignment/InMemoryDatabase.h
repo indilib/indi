@@ -14,8 +14,10 @@
 #include <libnova.h>
 #include <vector>
 
-namespace INDI {
-namespace AlignmentSubsystem {
+namespace INDI
+{
+namespace AlignmentSubsystem
+{
 
 /// \class InMemoryDatabase
 /// \brief This class provides the driver side API to the in memory alignment database.
@@ -40,7 +42,10 @@ public:
 
     /// \brief Get a reference to the in memory database.
     /// \return A reference to the in memory database.
-    AlignmentDatabaseType& GetAlignmentDatabase() { return MySyncPoints; }
+    AlignmentDatabaseType& GetAlignmentDatabase()
+    {
+        return MySyncPoints;
+    }
 
     /// \brief Get the database reference position
     /// \param[in] Position A pointer to a ln_lnlat_posn object to retunr the current position in

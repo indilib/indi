@@ -64,14 +64,20 @@ bool INDI::Focuser::initProperties()
     if (focuserConnection & CONNECTION_SERIAL)
     {
         serialConnection = new Connection::Serial(this);
-        serialConnection->registerHandshake([&]() { return callHandshake(); });
+        serialConnection->registerHandshake([&]()
+        {
+            return callHandshake();
+        });
         registerConnection(serialConnection);
     }
 
     if (focuserConnection & CONNECTION_TCP)
     {
         tcpConnection = new Connection::TCP(this);
-        tcpConnection->registerHandshake([&]() { return callHandshake(); });
+        tcpConnection->registerHandshake([&]()
+        {
+            return callHandshake();
+        });
         registerConnection(tcpConnection);
     }
 
@@ -110,7 +116,8 @@ bool INDI::Focuser::updateProperties()
             defineNumber(&PresetNP);
             defineSwitch(&PresetGotoSP);
         }
-    } else
+    }
+    else
     {
         deleteProperty(FocusMotionSP.name);
         if (HasVariableSpeed())
@@ -241,7 +248,7 @@ bool INDI::Focuser::saveConfigItems(FILE *fp)
 
 void INDI::Focuser::buttonHelper(const char *button_n, ISState state, void *context)
 {
-     static_cast<INDI::Focuser *>(context)->processButton(button_n, state);
+    static_cast<INDI::Focuser *>(context)->processButton(button_n, state);
 }
 
 void INDI::Focuser::processButton(const char * button_n, ISState state)
@@ -292,23 +299,23 @@ void INDI::Focuser::processButton(const char * button_n, ISState state)
 
         if (HasVariableSpeed())
         {
-           rc = MoveFocuser(FOCUS_INWARD, FocusSpeedN[0].value, FocusTimerN[0].value);
-           FocusTimerNP.s = rc;
-           IDSetNumber(&FocusTimerNP,NULL);
+            rc = MoveFocuser(FOCUS_INWARD, FocusSpeedN[0].value, FocusTimerN[0].value);
+            FocusTimerNP.s = rc;
+            IDSetNumber(&FocusTimerNP,NULL);
         }
         else if (CanRelMove())
         {
             rc=MoveRelFocuser(FOCUS_INWARD, FocusRelPosN[0].value);
             if (rc == IPS_OK)
             {
-               FocusRelPosNP.s=IPS_OK;
-               IDSetNumber(&FocusRelPosNP, "Focuser moved %d steps inward", (int) FocusRelPosN[0].value);
-               IDSetNumber(&FocusAbsPosNP, NULL);
+                FocusRelPosNP.s=IPS_OK;
+                IDSetNumber(&FocusRelPosNP, "Focuser moved %d steps inward", (int) FocusRelPosN[0].value);
+                IDSetNumber(&FocusAbsPosNP, NULL);
             }
             else if (rc == IPS_BUSY)
             {
-                 FocusRelPosNP.s=IPS_BUSY;
-                 IDSetNumber(&FocusAbsPosNP, "Focuser is moving %d steps inward...", (int) FocusRelPosN[0].value);
+                FocusRelPosNP.s=IPS_BUSY;
+                IDSetNumber(&FocusAbsPosNP, "Focuser is moving %d steps inward...", (int) FocusRelPosN[0].value);
             }
         }
     }
@@ -323,23 +330,23 @@ void INDI::Focuser::processButton(const char * button_n, ISState state)
 
         if (HasVariableSpeed())
         {
-           rc = MoveFocuser(FOCUS_OUTWARD, FocusSpeedN[0].value, FocusTimerN[0].value);
-           FocusTimerNP.s = rc;
-           IDSetNumber(&FocusTimerNP,NULL);
+            rc = MoveFocuser(FOCUS_OUTWARD, FocusSpeedN[0].value, FocusTimerN[0].value);
+            FocusTimerNP.s = rc;
+            IDSetNumber(&FocusTimerNP,NULL);
         }
         else if (CanRelMove())
         {
             rc=MoveRelFocuser(FOCUS_OUTWARD, FocusRelPosN[0].value);
             if (rc == IPS_OK)
             {
-               FocusRelPosNP.s=IPS_OK;
-               IDSetNumber(&FocusRelPosNP, "Focuser moved %d steps outward", (int) FocusRelPosN[0].value);
-               IDSetNumber(&FocusAbsPosNP, NULL);
+                FocusRelPosNP.s=IPS_OK;
+                IDSetNumber(&FocusRelPosNP, "Focuser moved %d steps outward", (int) FocusRelPosN[0].value);
+                IDSetNumber(&FocusAbsPosNP, NULL);
             }
             else if (rc == IPS_BUSY)
             {
-                 FocusRelPosNP.s=IPS_BUSY;
-                 IDSetNumber(&FocusAbsPosNP, "Focuser is moving %d steps outward...", (int) FocusRelPosN[0].value);
+                FocusRelPosNP.s=IPS_BUSY;
+                IDSetNumber(&FocusAbsPosNP, "Focuser is moving %d steps outward...", (int) FocusRelPosN[0].value);
             }
         }
     }

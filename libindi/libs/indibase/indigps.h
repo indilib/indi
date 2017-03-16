@@ -44,7 +44,7 @@
 */
 class INDI::GPS : public INDI::DefaultDevice
 {
-    public:
+public:
 
     enum GPSLocation { LOCATION_LATITUDE, LOCATION_LONGITUDE, LOCATION_ELEVATION };
 
@@ -55,7 +55,7 @@ class INDI::GPS : public INDI::DefaultDevice
     virtual bool updateProperties();
     virtual bool ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n);
 
-    protected:
+protected:
 
     /**
      * @brief updateGPS Retrieve Location & Time from GPS. Update LocationNP & TimeTP properties (value and state) without sending them to the client (i.e. IDSetXXX).

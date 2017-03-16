@@ -10,12 +10,14 @@
 
 #include <cmath>
 
-namespace INDI {
-namespace AlignmentSubsystem {
+namespace INDI
+{
+namespace AlignmentSubsystem
+{
 
 void TelescopeDirectionVectorSupportFunctions::SphericalCoordinateFromTelescopeDirectionVector(const TelescopeDirectionVector TelescopeDirectionVector,
-                                                                double& AzimuthAngle, AzimuthAngleDirection AzimuthAngleDirection,
-                                                                double& PolarAngle, PolarAngleDirection PolarAngleDirection)
+        double& AzimuthAngle, AzimuthAngleDirection AzimuthAngleDirection,
+        double& PolarAngle, PolarAngleDirection PolarAngleDirection)
 {
     if (ANTI_CLOCKWISE == AzimuthAngleDirection)
     {
@@ -46,7 +48,7 @@ void TelescopeDirectionVectorSupportFunctions::SphericalCoordinateFromTelescopeD
 }
 
 const TelescopeDirectionVector TelescopeDirectionVectorSupportFunctions::TelescopeDirectionVectorFromSphericalCoordinate(const double AzimuthAngle, AzimuthAngleDirection AzimuthAngleDirection,
-                                                                                            const double PolarAngle, PolarAngleDirection PolarAngleDirection)
+        const double PolarAngle, PolarAngleDirection PolarAngleDirection)
 {
     TelescopeDirectionVector Vector;
 

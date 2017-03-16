@@ -10,8 +10,10 @@
 
 #include <cstring>
 
-namespace INDI {
-namespace AlignmentSubsystem {
+namespace INDI
+{
+namespace AlignmentSubsystem
+{
 
 // Public methods
 
@@ -54,8 +56,8 @@ void ClientAPIForMathPluginManagement::ProcessNewProperty(INDI::Property *Proper
 
     // Tell the client when all the database proeprties have been set up
     if (GotOneOfMine
-                && (NULL != MathPlugins)
-                && (NULL != PluginInitialise))
+            && (NULL != MathPlugins)
+            && (NULL != PluginInitialise))
     {
         // The DriverActionComplete state variable is initialised to false
         // So I need to call this to set it to true and signal anyone

@@ -30,8 +30,8 @@
 
 namespace Connection
 {
-    class Serial;
-    class TCP;
+class Serial;
+class TCP;
 }
 
 /**
@@ -57,7 +57,7 @@ namespace Connection
 */
 class INDI::Weather : public INDI::DefaultDevice
 {
-    public:
+public:
 
     enum WeatherLocation { LOCATION_LATITUDE, LOCATION_LONGITUDE, LOCATION_ELEVATION };
 
@@ -74,14 +74,14 @@ class INDI::Weather : public INDI::DefaultDevice
     Weather();
     virtual ~Weather();
 
-    virtual bool initProperties();    
+    virtual bool initProperties();
     virtual bool updateProperties();
     virtual bool ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n);
     virtual bool ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n);
 
     virtual bool ISSnoopDevice(XMLEle *root);
 
-    protected:
+protected:
 
     /**
      * @brief updateWeather Update weather conditions from device or service. The function should not change the state of any property in the device as this is handled by INDI::Weather. It should only update

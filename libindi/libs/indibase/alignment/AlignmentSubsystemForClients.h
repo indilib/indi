@@ -19,8 +19,10 @@
 #include "indibase/basedevice.h"
 
 
-namespace INDI {
-namespace AlignmentSubsystem {
+namespace INDI
+{
+namespace AlignmentSubsystem
+{
 
 /*!
  * \class AlignmentSubsystemForClients
@@ -28,7 +30,7 @@ namespace AlignmentSubsystem {
  * Clients should inherit from this class.
  */
 class AlignmentSubsystemForClients : public ClientAPIForMathPluginManagement, public ClientAPIForAlignmentDatabase,
-                                    public TelescopeDirectionVectorSupportFunctions
+    public TelescopeDirectionVectorSupportFunctions
 {
 public:
     /// \brief Virtual destructor

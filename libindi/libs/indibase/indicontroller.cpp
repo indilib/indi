@@ -85,7 +85,7 @@ bool Controller::initProperties()
 {
     IUFillSwitch(&UseJoystickS[0], "ENABLE", "Enable", ISS_OFF);
     IUFillSwitch(&UseJoystickS[1], "DISABLE", "Disable", ISS_ON);
-    IUFillSwitchVector(&UseJoystickSP, UseJoystickS, 2, device->getDeviceName(), "USEJOYSTICK", "Joystick", OPTIONS_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);   
+    IUFillSwitchVector(&UseJoystickSP, UseJoystickS, 2, device->getDeviceName(), "USEJOYSTICK", "Joystick", OPTIONS_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
     return true;
 }

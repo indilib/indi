@@ -1,7 +1,7 @@
-/*  CCVT_C2: Convert an image from yuv colourspace to rgb 
+/*  CCVT_C2: Convert an image from yuv colourspace to rgb
     Copyright (C) 2001 Tony Hague <no.email@noemail.com>
 
-    
+
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
     the Free Software Foundation; either version 2 of the License, or
@@ -114,21 +114,21 @@ without word alignment */
 
 void ccvt_420p_bgr32(int width, int height, const void *src, void *dst)
 {
-	WHOLE_FUNC2RGB(bgr32)
+    WHOLE_FUNC2RGB(bgr32)
 }
 
 void ccvt_420p_bgr24(int width, int height, const void *src, void *dst)
 {
-	WHOLE_FUNC2RGB(bgr24)
+    WHOLE_FUNC2RGB(bgr24)
 }
 
 void ccvt_420p_rgb32(int width, int height, const void *src, void *dst)
 {
-	WHOLE_FUNC2RGB(rgb32)
+    WHOLE_FUNC2RGB(rgb32)
 }
 
 void ccvt_420p_rgb24(int width, int height, const void *src, void *dst)
 {
-	WHOLE_FUNC2RGB(rgb24)
+    WHOLE_FUNC2RGB(rgb24)
 }
 

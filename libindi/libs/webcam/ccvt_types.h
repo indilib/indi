@@ -25,32 +25,32 @@
 
 typedef struct
 {
-		unsigned char b;
-		unsigned char g;
-		unsigned char r;
-		unsigned char z;
+    unsigned char b;
+    unsigned char g;
+    unsigned char r;
+    unsigned char z;
 } PIXTYPE_bgr32;
 
 typedef struct
 {
-		unsigned char b;
-		unsigned char g;
-		unsigned char r;
+    unsigned char b;
+    unsigned char g;
+    unsigned char r;
 } PIXTYPE_bgr24;
 
 typedef struct
 {
-		unsigned char r;
-		unsigned char g;
-		unsigned char b;
-		unsigned char z;
+    unsigned char r;
+    unsigned char g;
+    unsigned char b;
+    unsigned char z;
 } PIXTYPE_rgb32;
 
 typedef struct
 {
-		unsigned char r;
-		unsigned char g;
-		unsigned char b;
+    unsigned char r;
+    unsigned char g;
+    unsigned char b;
 } PIXTYPE_rgb24;
 
 #define SAT(c) \

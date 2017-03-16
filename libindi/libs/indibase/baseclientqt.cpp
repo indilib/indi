@@ -111,12 +111,12 @@ bool INDI::BaseClientQt::connectServer()
     QString getProp;
     if (cDeviceNames.empty())
     {
-       getProp = QString("<getProperties version='%1'/>\n").arg(QString::number(INDIV));
+        getProp = QString("<getProperties version='%1'/>\n").arg(QString::number(INDIV));
 
-       client_socket.write(getProp.toLatin1());
+        client_socket.write(getProp.toLatin1());
 
-       if (verbose)
-           std::cerr << getProp.toLatin1().constData() << std::endl;
+        if (verbose)
+            std::cerr << getProp.toLatin1().constData() << std::endl;
     }
     else
     {
@@ -145,8 +145,8 @@ bool INDI::BaseClientQt::disconnectServer()
     client_socket.close();
     if (lillp)
     {
-       delLilXML(lillp);
-       lillp=NULL;
+        delLilXML(lillp);
+        lillp=NULL;
     }
 
     clear();
@@ -224,8 +224,8 @@ INDI::BaseDevice * INDI::BaseClientQt::getDevice(const char * deviceName)
 
 void * INDI::BaseClientQt::listenHelper(void *context)
 {
-  (static_cast<INDI::BaseClientQt *> (context))->listenINDI();
-  return NULL;
+    (static_cast<INDI::BaseClientQt *> (context))->listenINDI();
+    return NULL;
 }
 
 void INDI::BaseClientQt::listenINDI()
@@ -233,7 +233,7 @@ void INDI::BaseClientQt::listenINDI()
     char buffer[MAXINDIBUF];
     char errorMsg[MAXRBUF];
     int err_code=0;
-    
+
     XMLEle **nodes;
     XMLEle *root;
     int inode=0;
@@ -246,38 +246,40 @@ void INDI::BaseClientQt::listenINDI()
         qint64 readBytes = client_socket.read(buffer, MAXINDIBUF - 1);
         if ( readBytes > 0 )
             buffer[ readBytes ] = '\0';
-	
-	nodes=parseXMLChunk(lillp, buffer, readBytes, errorMsg);
-	if (!nodes) {
-	  if (errorMsg[0])
-	    {
-	      fprintf (stderr, "Bad XML from %s/%d: %s\n%s\n", cServer.c_str(), cPort, errorMsg, buffer);
-	      return;
-	    }
-	  return;
-	}
-	root=nodes[inode];
-	while (root)
-	  {
-	    if (verbose)
-	      prXMLEle(stderr, root, 0);
-	    
-	    if ( (err_code = dispatchCommand(root, errorMsg)) < 0)
-	      {
-		// Silenty ignore property duplication errors
-		if (err_code != INDI_PROPERTY_DUPLICATED)
-		  {
-		    IDLog("Dispatch command error(%d): %s\n", err_code, errorMsg);
-		    prXMLEle (stderr, root, 0);
-		  }
-	      }
-	    
-	    
-	    delXMLEle (root);	// not yet, delete and continue
-	    inode++; root=nodes[inode];
-	  }
-	free(nodes);
-	inode=0;
+
+        nodes=parseXMLChunk(lillp, buffer, readBytes, errorMsg);
+        if (!nodes)
+        {
+            if (errorMsg[0])
+            {
+                fprintf (stderr, "Bad XML from %s/%d: %s\n%s\n", cServer.c_str(), cPort, errorMsg, buffer);
+                return;
+            }
+            return;
+        }
+        root=nodes[inode];
+        while (root)
+        {
+            if (verbose)
+                prXMLEle(stderr, root, 0);
+
+            if ( (err_code = dispatchCommand(root, errorMsg)) < 0)
+            {
+                // Silenty ignore property duplication errors
+                if (err_code != INDI_PROPERTY_DUPLICATED)
+                {
+                    IDLog("Dispatch command error(%d): %s\n", err_code, errorMsg);
+                    prXMLEle (stderr, root, 0);
+                }
+            }
+
+
+            delXMLEle (root);	// not yet, delete and continue
+            inode++;
+            root=nodes[inode];
+        }
+        free(nodes);
+        inode=0;
     }
 }
 
@@ -361,15 +363,15 @@ int INDI::BaseClientQt::deleteDevice( const char * devName, char * errmsg )
     for (devicei =cDevices.begin(); devicei != cDevices.end();)
     {
 
-      if (!strcmp(devName, (*devicei)->getDeviceName()))
-      {
-          removeDevice(*devicei);
-          delete *devicei;
-          devicei = cDevices.erase(devicei);
-          return 0;
-      }
-      else
-          ++devicei;
+        if (!strcmp(devName, (*devicei)->getDeviceName()))
+        {
+            removeDevice(*devicei);
+            delete *devicei;
+            devicei = cDevices.erase(devicei);
+            return 0;
+        }
+        else
+            ++devicei;
     }
 
     snprintf(errmsg, MAXRBUF, "Device %s not found", devName);
@@ -383,7 +385,7 @@ INDI::BaseDevice * INDI::BaseClientQt::findDev( const char * devName, char * err
     for (devicei = cDevices.begin(); devicei != cDevices.end(); devicei++)
     {
         if (!strcmp(devName, (*devicei)->getDeviceName()))
-         return (*devicei);
+            return (*devicei);
 
     }
 
@@ -519,7 +521,7 @@ void INDI::BaseClientQt::sendNewText (const char * deviceName, const char * prop
 
 void INDI::BaseClientQt::sendNewNumber (INumberVectorProperty *nvp)
 {
-   char *orig = setlocale(LC_NUMERIC,"C");
+    char *orig = setlocale(LC_NUMERIC,"C");
 
     nvp->s = IPS_BUSY;
 
@@ -540,7 +542,7 @@ void INDI::BaseClientQt::sendNewNumber (INumberVectorProperty *nvp)
 
     client_socket.write(prop.toLatin1());
 
-   setlocale(LC_NUMERIC,orig);
+    setlocale(LC_NUMERIC,orig);
 }
 
 void INDI::BaseClientQt::sendNewNumber (const char *deviceName, const char *propertyName, const char* elementName, double value)
@@ -661,7 +663,7 @@ void INDI::BaseClientQt::sendOneBlob(IBLOB *bp)
         size_t wr = client_socket.write( reinterpret_cast<const char *>(encblob + written), towrite);
         if (wr > 0) written += wr;
         if ((written % 72) == 0)
-             client_socket.write("\n");
+            client_socket.write("\n");
     }
 
     if ((written % 72) != 0)
@@ -698,7 +700,7 @@ void INDI::BaseClientQt::sendOneBlob( const char *blobName, unsigned int blobSiz
         size_t wr = client_socket.write( reinterpret_cast<const char *>(encblob + written), towrite);
         if (wr > 0) written += wr;
         if ((written % 72) == 0)
-             client_socket.write("\n");
+            client_socket.write("\n");
     }
 
     if ((written % 72) != 0)
@@ -745,20 +747,20 @@ void INDI::BaseClientQt::setBLOBMode(BLOBHandling blobH, const char *dev, const 
     else
         blobOpenTag = QString("<enableBLOB device='%1'>").arg(dev);
 
-     switch (blobH)
-     {
-     case B_NEVER:
-         blobEnableTag = QString("%1Never</enableBLOB>\n").arg(blobOpenTag);
-         break;
-     case B_ALSO:
-         blobEnableTag = QString("%1Also</enableBLOB>\n").arg(blobOpenTag);
-         break;
-     case B_ONLY:
-         blobEnableTag = QString("%1Only</enableBLOB>\n").arg(blobOpenTag);
-         break;
-     }
+    switch (blobH)
+    {
+    case B_NEVER:
+        blobEnableTag = QString("%1Never</enableBLOB>\n").arg(blobOpenTag);
+        break;
+    case B_ALSO:
+        blobEnableTag = QString("%1Also</enableBLOB>\n").arg(blobOpenTag);
+        break;
+    case B_ONLY:
+        blobEnableTag = QString("%1Only</enableBLOB>\n").arg(blobOpenTag);
+        break;
+    }
 
-     client_socket.write(blobEnableTag.toLatin1());
+    client_socket.write(blobEnableTag.toLatin1());
 }
 
 BLOBHandling INDI::BaseClientQt::getBLOBMode(const char *dev, const char *prop)

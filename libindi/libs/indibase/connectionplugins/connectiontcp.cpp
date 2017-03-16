@@ -69,7 +69,7 @@ bool TCP::Connect()
     {
         DEBUG(INDI::Logger::DBG_ERROR, "Error! Server address is missing or invalid.");
         return false;
-    }    
+    }
 
     const char *hostname = AddressT[0].text;
     const char *port     = AddressT[1].text;
