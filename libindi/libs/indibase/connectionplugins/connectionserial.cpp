@@ -267,7 +267,7 @@ int dev_file_select(const dirent *entry)
 #if defined(__APPLE__)
     static const char *filter_names[] = { "cu.", NULL};
 #else
-    static const char *filter_names[] = { "ttyUSB", "ttyACM", "rfcomm", "ttyS", NULL};
+    static const char *filter_names[] = { "ttyUSB", "ttyACM", "rfcomm", NULL};
 #endif
     const char **filter;
     for (filter = filter_names; *filter; ++filter) {
