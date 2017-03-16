@@ -9,28 +9,26 @@ if [ ! -z $BUILD_THIRD_PARTY ]; then
   mkdir -p build/3rdparty
   pushd build/3rdparty
 
-  if [ ${TRAVIS_OS_NAME} == "linux" ] ; then
-    LIBS="libapogee libfishcamp libfli libqhy libqsi libsbig"
-  else
-    LIBS="libfishcamp libqsi"
-  fi
+#  if [ ${TRAVIS_OS_NAME} == "linux" ] ; then
+#    LIBS="libapogee libfishcamp libfli libqhy libqsi libsbig"
+#  else
+#    LIBS="libfishcamp libqsi"
+#  fi
 
-  for lib in $LIBS ; do
-  (
-    echo "Building $lib ..."
-    mkdir build_$lib
-    cd build_$lib
-    cmake -DCMAKE_INSTALL_PREFIX=/usr/local/ . ../../../3rdparty/$lib
-    make
-    sudo make install
-  )
-  done
-
-  if [ ${TRAVIS_OS_NAME} == "linux" ] ; then 
-    cmake -DCMAKE_INSTALL_PREFIX=/usr/local/ -DWITH_NSE:OPTION=ON -DWITH_MI:OPTION=OFF -DWITH_QHY:OPTION=OFF . ../../3rdparty/
-  else 
-    cmake -DCMAKE_INSTALL_PREFIX=/usr/local/ -DWITH_NSE:OPTION=ON -DWITH_MI:OPTION=OFF -DWITH_QHY:OPTION=OFF -DWITH_SBIG:OPTION=OFF -DWITH_APOGEE:OPTION=OFF -DWITH_FLI:OPTION=OFF . ../../3rdparty/
-  fi
+#  for lib in $LIBS ; do
+#  (
+#    echo "Building $lib ..."
+#    mkdir build_$lib
+#    cd build_$lib
+#    cmake -DCMAKE_INSTALL_PREFIX=/usr/local/ . ../../../3rdparty/$lib
+#    make
+#    sudo make install
+#  )
+#  done
+  
+  cmake -DCMAKE_INSTALL_PREFIX=/usr/local/ -DWITH_MI:OPTION=OFF -DWITH_QHY:OPTION=OFF . ../../3rdparty/
+  sudo make install
+  cmake -DCMAKE_INSTALL_PREFIX=/usr/local/ -DWITH_MI:OPTION=OFF -DWITH_QHY:OPTION=OFF . ../../3rdparty/
   sudo make install
   popd
 else

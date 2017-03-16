@@ -15,12 +15,27 @@ endif(APPLE)
 
 set(LIBRARIES_FOUND TRUE)
 
+# Define standard set of drivers to build (default linux target)
 option(WITH_EQMOD "Install EQMod Driver" On)
 option(WITH_NSE "Install Nexstar Evo Driver" On)
 option(WITH_SX "Install StarLight Xpress Driver" On)
 option(WITH_MAXDOME "Install MaxDomeII Driver" On)
 option(WITH_SPECTRACYBER "Install Spectracyber Driver" On)
 option(WITH_CLOUDWATCHER "Install AAG Cloud Watcher Driver" On)
+option(WITH_MI "Install Moravian Driver" Off)
+option(WITH_FLI "Install FLI Driver" On)
+option(WITH_SBIG "Install SBIG Driver" On)
+option(WITH_APOGEE "Install Apogee Driver" On)
+option(WITH_QHY "Install QHY Driver" Off)
+
+# Add/remove cases for OSX
+if (APPLE)
+option(WITH_MI "Install Moravian Driver" Off)
+option(WITH_FLI "Install FLI Driver" Off)
+option(WITH_SBIG "Install SBIG Driver" Off)
+option(WITH_APOGEE "Install Apogee Driver" Off)
+option(WITH_QHY "Install QHY Driver" Off)
+endif(APPLE)
 
 ## EQMod
 if (WITH_EQMOD)
@@ -77,7 +92,6 @@ endif()
 if (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
 
 ## SBIG
-option(WITH_SBIG "Install SBIG Driver" On)
 if (WITH_SBIG)
 find_package(SBIG)
 if (SBIG_FOUND)
@@ -89,7 +103,6 @@ endif (SBIG_FOUND)
 endif (WITH_SBIG)
 
 ## FLI
-option(WITH_FLI "Install FLI Driver" On)
 if (WITH_FLI)
 find_package(FLI)
 if (FLI_FOUND)
@@ -101,7 +114,6 @@ endif (FLI_FOUND)
 endif(WITH_FLI)
 
 ## Apogee
-option(WITH_APOGEE "Install Apogee Driver" On)
 if (WITH_APOGEE)
 find_package(APOGEE)
 if (APOGEE_FOUND)
@@ -113,7 +125,6 @@ endif (APOGEE_FOUND)
 endif(WITH_APOGEE)
 
 ## Moravian
-option(WITH_MI "Install Moravian Driver" On)
 if (WITH_MI)
 add_subdirectory(indi-mi)
 endif (WITH_MI)
@@ -149,7 +160,6 @@ add_subdirectory(indi-dsi)
 endif(WITH_DSI)
 
 ## QHY
-option(WITH_QHY "Install QHY Driver" On)
 if (WITH_QHY)
 add_subdirectory(indi-qhy)
 endif(WITH_QHY)
