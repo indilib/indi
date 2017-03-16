@@ -23,7 +23,7 @@ void AlignmentSubsystemForClients::Initialise(const char * DeviceName, INDI::Bas
 
 }
 
-void AlignmentSubsystemForClients::ProcessNewBLOB(IBLOB *BLOBPointer)
+void AlignmentSubsystemForClients::ProcessNewBLOB(IBLOB * BLOBPointer)
 {
     if (!strcmp(BLOBPointer->bvp->device, DeviceName.c_str()))
     {
@@ -32,7 +32,7 @@ void AlignmentSubsystemForClients::ProcessNewBLOB(IBLOB *BLOBPointer)
     }
 }
 
-void AlignmentSubsystemForClients::ProcessNewDevice(INDI::BaseDevice *DevicePointer)
+void AlignmentSubsystemForClients::ProcessNewDevice(INDI::BaseDevice * DevicePointer)
 {
     if (!strcmp(DevicePointer->getDeviceName(), DeviceName.c_str()))
     {
@@ -42,7 +42,7 @@ void AlignmentSubsystemForClients::ProcessNewDevice(INDI::BaseDevice *DevicePoin
     }
 }
 
-void AlignmentSubsystemForClients::ProcessNewNumber(INumberVectorProperty *NumberVectorPropertyPointer)
+void AlignmentSubsystemForClients::ProcessNewNumber(INumberVectorProperty * NumberVectorPropertyPointer)
 {
     if (!strcmp(NumberVectorPropertyPointer->device, DeviceName.c_str()))
     {
@@ -51,7 +51,7 @@ void AlignmentSubsystemForClients::ProcessNewNumber(INumberVectorProperty *Numbe
     }
 }
 
-void AlignmentSubsystemForClients::ProcessNewProperty(INDI::Property *PropertyPointer)
+void AlignmentSubsystemForClients::ProcessNewProperty(INDI::Property * PropertyPointer)
 {
     if (!strcmp(PropertyPointer->getDeviceName(), DeviceName.c_str()))
     {
@@ -61,7 +61,7 @@ void AlignmentSubsystemForClients::ProcessNewProperty(INDI::Property *PropertyPo
     }
 }
 
-void AlignmentSubsystemForClients::ProcessNewSwitch(ISwitchVectorProperty *SwitchVectorPropertyPointer)
+void AlignmentSubsystemForClients::ProcessNewSwitch(ISwitchVectorProperty * SwitchVectorPropertyPointer)
 {
     if (!strcmp(SwitchVectorPropertyPointer->device, DeviceName.c_str()))
     {

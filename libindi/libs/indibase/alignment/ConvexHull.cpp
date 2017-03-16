@@ -259,14 +259,14 @@ void ConvexHull::CleanFaces( void )
     while ( f != faces );
 }
 
-void ConvexHull::CleanUp( tVertex *pvnext )
+void ConvexHull::CleanUp( tVertex * pvnext )
 {
     CleanEdges();
     CleanFaces();
     CleanVertices( pvnext );
 }
 
-void ConvexHull::CleanVertices( tVertex *pvnext )
+void ConvexHull::CleanVertices( tVertex * pvnext )
 {
     tEdge    e;
     tVertex  v, t;
@@ -809,7 +809,7 @@ void ConvexHull::Print( void )
 
 }
 
-void ConvexHull::PrintEdges( ofstream& Ofile )
+void ConvexHull::PrintEdges( ofstream &Ofile )
 {
     tEdge  temp;
     int 	  i;
@@ -832,7 +832,7 @@ void ConvexHull::PrintEdges( ofstream& Ofile )
 
 }
 
-void ConvexHull::PrintFaces( ofstream& Ofile )
+void ConvexHull::PrintFaces( ofstream &Ofile )
 {
     int 	  i;
     tFace  temp;
@@ -956,7 +956,7 @@ void ConvexHull::PrintPoint( tVertex p )
     cout << '\n';
 }
 
-void ConvexHull::PrintVertices( ofstream& Ofile )
+void ConvexHull::PrintVertices( ofstream &Ofile )
 {
     tVertex  temp;
 

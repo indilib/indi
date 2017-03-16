@@ -112,22 +112,22 @@ without word alignment */
 
 
 
-void ccvt_420p_bgr32(int width, int height, const void *src, void *dst)
+void ccvt_420p_bgr32(int width, int height, const void * src, void * dst)
 {
     WHOLE_FUNC2RGB(bgr32)
 }
 
-void ccvt_420p_bgr24(int width, int height, const void *src, void *dst)
+void ccvt_420p_bgr24(int width, int height, const void * src, void * dst)
 {
     WHOLE_FUNC2RGB(bgr24)
 }
 
-void ccvt_420p_rgb32(int width, int height, const void *src, void *dst)
+void ccvt_420p_rgb32(int width, int height, const void * src, void * dst)
 {
     WHOLE_FUNC2RGB(rgb32)
 }
 
-void ccvt_420p_rgb24(int width, int height, const void *src, void *dst)
+void ccvt_420p_rgb24(int width, int height, const void * src, void * dst)
 {
     WHOLE_FUNC2RGB(rgb24)
 }

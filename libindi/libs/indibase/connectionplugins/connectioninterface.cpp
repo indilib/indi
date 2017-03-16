@@ -22,9 +22,9 @@
 namespace Connection
 {
 
-const char *CONNECTION_TAB = "Connection";
+const char * CONNECTION_TAB = "Connection";
 
-Interface::Interface(INDI::DefaultDevice *dev) : device(dev)
+Interface::Interface(INDI::DefaultDevice * dev) : device(dev)
 {
     // Default handshake
     registerHandshake([]()
@@ -39,7 +39,7 @@ Interface::~Interface()
 
 }
 
-const char *Interface::getDeviceName()
+const char * Interface::getDeviceName()
 {
     return device->getDeviceName();
 }

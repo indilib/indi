@@ -23,13 +23,13 @@
 
 #include <string.h>
 
-IndiDevice *device=NULL;
+IndiDevice * device=NULL;
 
 
 /**************************************************************************************
 **
 ***************************************************************************************/
-void ISGetProperties (const char *dev)
+void ISGetProperties (const char * dev)
 {
     //fprintf(stderr,"Enter ISGetProperties '%s'\n",dev);
     if(device==NULL)
@@ -57,7 +57,7 @@ void ISGetProperties (const char *dev)
 /**************************************************************************************
 **
 ***************************************************************************************/
-void ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n)
+void ISNewSwitch (const char * dev, const char * name, ISState * states, char * names[], int n)
 {
     //fprintf(stderr,"Enter ISNewSwitch %s\n",dev);
 
@@ -69,7 +69,7 @@ void ISNewSwitch (const char *dev, const char *name, ISState *states, char *name
 /**************************************************************************************
 **
 ***************************************************************************************/
-void ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n)
+void ISNewText (const char * dev, const char * name, char * texts[], char * names[], int n)
 {
     //fprintf(stderr,"Enter ISNewText\n");
     //ISInit();
@@ -79,7 +79,7 @@ void ISNewText (const char *dev, const char *name, char *texts[], char *names[],
 /**************************************************************************************
 **
 ***************************************************************************************/
-void ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n)
+void ISNewNumber (const char * dev, const char * name, double values[], char * names[], int n)
 {
     //fprintf(stderr,"OutsideClass::Enter ISNewNumber\n");
     //ISInit();
@@ -89,7 +89,7 @@ void ISNewNumber (const char *dev, const char *name, double values[], char *name
 /**************************************************************************************
 **
 ***************************************************************************************/
-void ISNewBLOB (const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[], char *names[], int n)
+void ISNewBLOB (const char * dev, const char * name, int sizes[], int blobsizes[], char * blobs[], char * formats[], char * names[], int n)
 {
     INDI_UNUSED(dev);
     INDI_UNUSED(name);
@@ -104,12 +104,12 @@ void ISNewBLOB (const char *dev, const char *name, int sizes[], int blobsizes[],
 /**************************************************************************************
 **
 ***************************************************************************************/
-void ISSnoopDevice (XMLEle *root)
+void ISSnoopDevice (XMLEle * root)
 {
     return device->ISSnoopDevice(root);
 }
 
-void timerfunc(void *t)
+void timerfunc(void * t)
 {
     //fprintf(stderr,"Got a timer hit with %x\n",t);
     if(t==device)
@@ -148,13 +148,13 @@ int IndiDevice::init_properties()
     return 0;
 }
 
-bool IndiDevice::DeleteProperty(char *n)
+bool IndiDevice::DeleteProperty(char * n)
 {
     IDDelete(deviceName(),n,NULL);
     return true;
 }
 
-void IndiDevice::ISGetProperties(const char *dev)
+void IndiDevice::ISGetProperties(const char * dev)
 {
 
     //  Now lets send the ones we have defined
@@ -171,7 +171,7 @@ void IndiDevice::ISGetProperties(const char *dev)
 /**************************************************************************************
 ** Process Text properties
 ***************************************************************************************/
-bool IndiDevice::ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n)
+bool IndiDevice::ISNewText (const char * dev, const char * name, char * texts[], char * names[], int n)
 {
 
     //  And this base class doesn't actually process anything
@@ -181,7 +181,7 @@ bool IndiDevice::ISNewText (const char *dev, const char *name, char *texts[], ch
 /**************************************************************************************
 **  Process Numbers
 ***************************************************************************************/
-bool IndiDevice::ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n)
+bool IndiDevice::ISNewNumber (const char * dev, const char * name, double values[], char * names[], int n)
 {
 
     //  Our base class doesn't actually do any processing
@@ -191,7 +191,7 @@ bool IndiDevice::ISNewNumber (const char *dev, const char *name, double values[]
 /**************************************************************************************
 **  Process switches
 ***************************************************************************************/
-bool IndiDevice::ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n)
+bool IndiDevice::ISNewSwitch (const char * dev, const char * name, ISState * states, char * names[], int n)
 {
 
     //  Ok, lets Process any switches we actually handle here
@@ -330,7 +330,7 @@ bool IndiDevice::UpdateProperties()
     return true;
 }
 
-void IndiDevice::ISSnoopDevice (XMLEle *root)
+void IndiDevice::ISSnoopDevice (XMLEle * root)
 {
     INDI_UNUSED(root);
 }
@@ -342,7 +342,7 @@ bool IndiDevice::SaveConfig()
     return true;
 
     char err[MAXRBUF];
-    FILE *fp;
+    FILE * fp;
     //int rc;
 
     fp=IUGetConfigFP(NULL,deviceName(),err);
@@ -365,7 +365,7 @@ bool IndiDevice::SaveConfig()
     return false;
 }
 
-bool IndiDevice::WritePersistentConfig(FILE *f)
+bool IndiDevice::WritePersistentConfig(FILE * f)
 {
     return false;
 }

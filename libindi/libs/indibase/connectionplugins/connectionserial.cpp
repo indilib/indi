@@ -26,9 +26,9 @@
 namespace Connection
 {
 
-extern const char *CONNECTION_TAB;
+extern const char * CONNECTION_TAB;
 
-Serial::Serial(INDI::DefaultDevice *dev) : Interface(dev)
+Serial::Serial(INDI::DefaultDevice * dev) : Interface(dev)
 {
 #ifdef __APPLE__
     IUFillText(&PortT[0],"PORT","Port","/dev/cu.usbserial");
@@ -58,7 +58,7 @@ Serial::~Serial()
     delete [] SystemPortS;
 }
 
-bool Serial::ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n)
+bool Serial::ISNewText (const char * dev, const char * name, char * texts[], char * names[], int n)
 {
     if(!strcmp(dev,device->getDeviceName()))
     {
@@ -75,7 +75,7 @@ bool Serial::ISNewText (const char *dev, const char *name, char *texts[], char *
     return false;
 }
 
-bool Serial::ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n)
+bool Serial::ISNewSwitch (const char * dev, const char * name, ISState * states, char * names[], int n)
 {
     if(!strcmp(dev,device->getDeviceName()))
     {
@@ -112,7 +112,7 @@ bool Serial::ISNewSwitch (const char *dev, const char *name, ISState *states, ch
         {
             IUUpdateSwitch(&SystemPortSP, states, names, n);
 
-            ISwitch *sp = IUFindOnSwitch(&SystemPortSP);
+            ISwitch * sp = IUFindOnSwitch(&SystemPortSP);
             if (sp)
             {
                 IUSaveText(&PortT[0], sp->name);
@@ -175,7 +175,7 @@ bool Serial::processHandshake()
     return rc;
 }
 
-bool Serial::Connect(const char *port, uint32_t baud)
+bool Serial::Connect(const char * port, uint32_t baud)
 {
     if (device->isSimulation())
         return true;
@@ -237,7 +237,7 @@ void Serial::Deactivated()
     SystemPortS = NULL;
 }
 
-bool Serial::saveConfigItems(FILE *fp)
+bool Serial::saveConfigItems(FILE * fp)
 {
     IUSaveConfigText(fp, &PortTP);
     IUSaveConfigSwitch(fp, &BaudRateSP);
@@ -246,7 +246,7 @@ bool Serial::saveConfigItems(FILE *fp)
     return true;
 }
 
-void Serial::setDefaultPort(const char *defaultPort)
+void Serial::setDefaultPort(const char * defaultPort)
 {
     IUSaveText(&PortT[0], defaultPort);
 }
@@ -262,14 +262,14 @@ const uint32_t Serial::baud()
     return atoi(IUFindOnSwitch(&BaudRateSP)->name);
 }
 
-int dev_file_select(const dirent *entry)
+int dev_file_select(const dirent * entry)
 {
 #if defined(__APPLE__)
-    static const char *filter_names[] = { "cu.", NULL};
+    static const char * filter_names[] = { "cu.", NULL};
 #else
-    static const char *filter_names[] = { "ttyUSB", "ttyACM", "rfcomm", NULL};
+    static const char * filter_names[] = { "ttyUSB", "ttyACM", "rfcomm", NULL};
 #endif
-    const char **filter;
+    const char ** filter;
     for (filter = filter_names; *filter; ++filter)
     {
         if (strstr(entry->d_name, *filter) != NULL)
@@ -288,7 +288,7 @@ bool Serial::refresh()
     delete [] SystemPortS;
     std::vector<std::string> m_Ports;
 
-    struct dirent **namelist;
+    struct dirent ** namelist;
     int devCount = scandir("/dev", &namelist, dev_file_select, alphasort);
     if (devCount < 0)
     {
@@ -323,7 +323,7 @@ bool Serial::refresh()
         DEBUGF(INDI::Logger::DBG_SESSION, "Scan complete. Found %d port(s).", pCount);
 
     SystemPortS = new ISwitch[pCount];
-    ISwitch *sp = SystemPortS;
+    ISwitch * sp = SystemPortS;
     for (int i=pCount-1; i >= 0; i--)
     {
         IUFillSwitch(sp++, m_Ports[i].c_str(), m_Ports[i].c_str(), ISS_OFF);

@@ -72,7 +72,7 @@ void InitLookupTable(void);
 
 
 /* YUYV: two Y's and one U/V */
-void ccvt_yuyv_rgb32(int width, int height, const void *src, void *dst)
+void ccvt_yuyv_rgb32(int width, int height, const void * src, void * dst)
 {
     width=width;
     height=height;
@@ -82,10 +82,10 @@ void ccvt_yuyv_rgb32(int width, int height, const void *src, void *dst)
 }
 
 
-void ccvt_yuyv_bgr32(int width, int height, const void *src, void *dst)
+void ccvt_yuyv_bgr32(int width, int height, const void * src, void * dst)
 {
-    const unsigned char *s;
-    PIXTYPE_bgr32 *d;
+    const unsigned char * s;
+    PIXTYPE_bgr32 * d;
     int l, c;
     int r, g, b, cr, cg, cb, y1, y2;
 
@@ -129,10 +129,10 @@ void ccvt_yuyv_bgr32(int width, int height, const void *src, void *dst)
 
 }
 
-void ccvt_yuyv_bgr24(int width, int height, const void *src, void *dst)
+void ccvt_yuyv_bgr24(int width, int height, const void * src, void * dst)
 {
-    const unsigned char *s;
-    PIXTYPE_bgr24 *d;
+    const unsigned char * s;
+    PIXTYPE_bgr24 * d;
     int l, c;
     int r, g, b, cr, cg, cb, y1, y2;
 
@@ -175,10 +175,10 @@ void ccvt_yuyv_bgr24(int width, int height, const void *src, void *dst)
     }
 }
 
-void ccvt_yuyv_rgb24(int width, int height, const void *src, void *dst)
+void ccvt_yuyv_rgb24(int width, int height, const void * src, void * dst)
 {
-    const unsigned char *s;
-    PIXTYPE_rgb24 *d;
+    const unsigned char * s;
+    PIXTYPE_rgb24 * d;
     int l, c;
     int r, g, b, cr, cg, cb, y1, y2;
 
@@ -221,11 +221,11 @@ void ccvt_yuyv_rgb24(int width, int height, const void *src, void *dst)
     }
 }
 
-void ccvt_yuyv_420p(int width, int height, const void *src, void *dsty, void *dstu, void *dstv)
+void ccvt_yuyv_420p(int width, int height, const void * src, void * dsty, void * dstu, void * dstv)
 {
     int n, l, j;
-    const unsigned char *s1, *s2;
-    unsigned char *dy, *du, *dv;
+    const unsigned char * s1, *s2;
+    unsigned char * dy, *du, *dv;
 
     dy = (unsigned char *)dsty;
     du = (unsigned char *)dstu;
@@ -261,10 +261,10 @@ void ccvt_yuyv_420p(int width, int height, const void *src, void *dsty, void *ds
     }
 }
 
-void bayer2rgb24(unsigned char *dst, unsigned char *src, long int WIDTH, long int HEIGHT)
+void bayer2rgb24(unsigned char * dst, unsigned char * src, long int WIDTH, long int HEIGHT)
 {
     long int i;
-    unsigned char *rawpt, *scanpt;
+    unsigned char * rawpt, *scanpt;
     long int size;
 
     rawpt = src;
@@ -356,10 +356,10 @@ void bayer2rgb24(unsigned char *dst, unsigned char *src, long int WIDTH, long in
 
 }
 
-void bayer16_2_rgb24(unsigned short *dst, unsigned short *src, long int WIDTH, long int HEIGHT)
+void bayer16_2_rgb24(unsigned short * dst, unsigned short * src, long int WIDTH, long int HEIGHT)
 {
     long int i;
-    unsigned short *rawpt, *scanpt;
+    unsigned short * rawpt, *scanpt;
     long int size;
 
     rawpt = src;
@@ -452,10 +452,10 @@ void bayer16_2_rgb24(unsigned short *dst, unsigned short *src, long int WIDTH, l
 }
 
 
-void bayer_rggb_2rgb24(unsigned char *dst, unsigned char *src, long int WIDTH, long int HEIGHT)
+void bayer_rggb_2rgb24(unsigned char * dst, unsigned char * src, long int WIDTH, long int HEIGHT)
 {
     long int i;
-    unsigned char *rawpt, *scanpt;
+    unsigned char * rawpt, *scanpt;
     long int size;
 
     rawpt = src;
@@ -548,10 +548,10 @@ void bayer_rggb_2rgb24(unsigned char *dst, unsigned char *src, long int WIDTH, l
 }
 
 
-int mjpegtoyuv420p(unsigned char *map, unsigned char *cap_map, int width, int height, unsigned int size)
+int mjpegtoyuv420p(unsigned char * map, unsigned char * cap_map, int width, int height, unsigned int size)
 {
-    unsigned char *yuv[3];
-    unsigned char *y, *u, *v;
+    unsigned char * yuv[3];
+    unsigned char * y, *u, *v;
     int loop, ret;
 
     yuv[0] = malloc(width * height * sizeof(yuv[0][0]));
@@ -612,16 +612,16 @@ int mjpegtoyuv420p(unsigned char *map, unsigned char *cap_map, int width, int he
  *
  ************************************************************************/
 
-int RGB2YUV (int x_dim, int y_dim, void *bmp, void *y_out, void *u_out, void *v_out, int flip)
+int RGB2YUV (int x_dim, int y_dim, void * bmp, void * y_out, void * u_out, void * v_out, int flip)
 {
     static int init_done = 0;
 
     long i, j, size;
-    unsigned char *r, *g, *b;
-    unsigned char *y, *u, *v;
-    unsigned char *pu1, *pu2, *pv1, *pv2, *psu, *psv;
-    unsigned char *y_buffer, *u_buffer, *v_buffer;
-    unsigned char *sub_u_buf, *sub_v_buf;
+    unsigned char * r, *g, *b;
+    unsigned char * y, *u, *v;
+    unsigned char * pu1, *pu2, *pv1, *pv2, *psu, *psv;
+    unsigned char * y_buffer, *u_buffer, *v_buffer;
+    unsigned char * sub_u_buf, *sub_v_buf;
 
     if (init_done == 0)
     {

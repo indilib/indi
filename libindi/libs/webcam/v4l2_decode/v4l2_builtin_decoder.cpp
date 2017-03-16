@@ -116,360 +116,360 @@ void V4L2_Builtin_Decoder::init()
     init_supported_formats();
 };
 
-void V4L2_Builtin_Decoder::decode(unsigned char *frame, struct v4l2_buffer *buf)
+void V4L2_Builtin_Decoder::decode(unsigned char * frame, struct v4l2_buffer * buf)
 {
     //DEBUG(INDI::Logger::DBG_SESSION,"Calling builtin decoder decode");
     //IDLog("Decoding buffer at %lx, len %d, bytesused %d, bytesperpixel %d, sequence %d, flag %x, field %x, use soft crop %c, do crop %c\n", frame, buf->length, buf->bytesused, fmt.fmt.pix.bytesperline, buf->sequence, buf->flags, buf->field, (useSoftCrop?'y':'n'), (doCrop?'y':'n'));
 
     switch (fmt.fmt.pix.pixelformat)
     {
-    case V4L2_PIX_FMT_GREY:
-        if (useSoftCrop && doCrop)
-        {
-            unsigned char *src=frame + crop.c.left + (crop.c.top * fmt.fmt.pix.width);
-            unsigned char *dest=YBuf;
-            unsigned int i;
-            for (i= 0; i < crop.c.height; i++)
+        case V4L2_PIX_FMT_GREY:
+            if (useSoftCrop && doCrop)
             {
-                memcpy(dest, src, crop.c.width);
-                src += fmt.fmt.pix.width;
-                dest += crop.c.width;
-            }
-        }
-        else
-        {
-            memcpy(YBuf, frame, bufwidth * bufheight);
-        }
-        break;
-
-    case V4L2_PIX_FMT_Y16:
-        if (useSoftCrop && doCrop)
-        {
-            unsigned char *src=frame + 2*(crop.c.left) + (crop.c.top * fmt.fmt.pix.bytesperline);
-            unsigned char *dest=yuyvBuffer;
-            unsigned int i;
-            for (i= 0; i < crop.c.height; i++)
-            {
-                memcpy(dest, src, 2*crop.c.width);
-                src += fmt.fmt.pix.bytesperline;
-                dest += 2*crop.c.width;
-            }
-        }
-        else
-        {
-            memcpy(yuyvBuffer, frame, 2*bufwidth*bufheight);
-        }
-        break;
-
-    case V4L2_PIX_FMT_YUV420:
-    case V4L2_PIX_FMT_YVU420:
-        if (useSoftCrop && doCrop)
-        {
-            unsigned char *src=frame + crop.c.left + (crop.c.top * fmt.fmt.pix.width);
-            unsigned char *dest=YBuf;
-            unsigned int i;
-            //IDLog("grabImage: src=%d dest=%d\n", src, dest);
-            for (i= 0; i < crop.c.height; i++)
-            {
-                memcpy(dest, src, crop.c.width);
-                src += fmt.fmt.pix.width;
-                dest += crop.c.width;
-            }
-
-            dest=UBuf;
-            src=frame + (fmt.fmt.pix.width * fmt.fmt.pix.height) + ((crop.c.left + (crop.c.top * fmt.fmt.pix.width) / 2) / 2);
-            if (fmt.fmt.pix.pixelformat ==  V4L2_PIX_FMT_YVU420)
-            {
-                dest=VBuf;
-            }
-            for (i= 0; i < crop.c.height / 2; i++)
-            {
-                memcpy(dest, src, crop.c.width / 2);
-                src += fmt.fmt.pix.width / 2;
-                dest += crop.c.width / 2;
-            }
-
-            dest=VBuf;
-            src=frame + (fmt.fmt.pix.width * fmt.fmt.pix.height) + ((fmt.fmt.pix.width * fmt.fmt.pix.height) / 4 )+ ((crop.c.left + (crop.c.top * fmt.fmt.pix.width) / 2) / 2);
-            if (fmt.fmt.pix.pixelformat ==  V4L2_PIX_FMT_YVU420)
-            {
-                dest=UBuf;
-            }
-            for (i= 0; i < crop.c.height / 2; i++)
-            {
-                memcpy(dest, src, crop.c.width / 2);
-                src += fmt.fmt.pix.width / 2;
-                dest += crop.c.width / 2;
-            }
-        }
-        else
-        {
-            memcpy(YBuf,frame, bufwidth * bufheight);
-            if (fmt.fmt.pix.pixelformat ==  V4L2_PIX_FMT_YUV420)
-            {
-                memcpy(UBuf,frame + bufwidth * bufheight, (bufwidth/2) * (bufheight/2));
-                memcpy(VBuf,frame + bufwidth * bufheight + (bufwidth/2) * (bufheight/2), (bufwidth/2) * (bufheight/2));
+                unsigned char * src=frame + crop.c.left + (crop.c.top * fmt.fmt.pix.width);
+                unsigned char * dest=YBuf;
+                unsigned int i;
+                for (i= 0; i < crop.c.height; i++)
+                {
+                    memcpy(dest, src, crop.c.width);
+                    src += fmt.fmt.pix.width;
+                    dest += crop.c.width;
+                }
             }
             else
             {
+                memcpy(YBuf, frame, bufwidth * bufheight);
+            }
+            break;
+
+        case V4L2_PIX_FMT_Y16:
+            if (useSoftCrop && doCrop)
+            {
+                unsigned char * src=frame + 2*(crop.c.left) + (crop.c.top * fmt.fmt.pix.bytesperline);
+                unsigned char * dest=yuyvBuffer;
+                unsigned int i;
+                for (i= 0; i < crop.c.height; i++)
+                {
+                    memcpy(dest, src, 2*crop.c.width);
+                    src += fmt.fmt.pix.bytesperline;
+                    dest += 2*crop.c.width;
+                }
+            }
+            else
+            {
+                memcpy(yuyvBuffer, frame, 2*bufwidth*bufheight);
+            }
+            break;
+
+        case V4L2_PIX_FMT_YUV420:
+        case V4L2_PIX_FMT_YVU420:
+            if (useSoftCrop && doCrop)
+            {
+                unsigned char * src=frame + crop.c.left + (crop.c.top * fmt.fmt.pix.width);
+                unsigned char * dest=YBuf;
+                unsigned int i;
+                //IDLog("grabImage: src=%d dest=%d\n", src, dest);
+                for (i= 0; i < crop.c.height; i++)
+                {
+                    memcpy(dest, src, crop.c.width);
+                    src += fmt.fmt.pix.width;
+                    dest += crop.c.width;
+                }
+
+                dest=UBuf;
+                src=frame + (fmt.fmt.pix.width * fmt.fmt.pix.height) + ((crop.c.left + (crop.c.top * fmt.fmt.pix.width) / 2) / 2);
                 if (fmt.fmt.pix.pixelformat ==  V4L2_PIX_FMT_YVU420)
                 {
-                    memcpy(VBuf,frame + bufwidth * bufheight, (bufwidth/2) * (bufheight/2));
-                    memcpy(UBuf,frame + bufwidth * bufheight + (bufwidth/2) * (bufheight/2), (bufwidth/2) * (bufheight/2));
+                    dest=VBuf;
                 }
+                for (i= 0; i < crop.c.height / 2; i++)
+                {
+                    memcpy(dest, src, crop.c.width / 2);
+                    src += fmt.fmt.pix.width / 2;
+                    dest += crop.c.width / 2;
+                }
+
+                dest=VBuf;
+                src=frame + (fmt.fmt.pix.width * fmt.fmt.pix.height) + ((fmt.fmt.pix.width * fmt.fmt.pix.height) / 4 )+ ((crop.c.left + (crop.c.top * fmt.fmt.pix.width) / 2) / 2);
+                if (fmt.fmt.pix.pixelformat ==  V4L2_PIX_FMT_YVU420)
+                {
+                    dest=UBuf;
+                }
+                for (i= 0; i < crop.c.height / 2; i++)
+                {
+                    memcpy(dest, src, crop.c.width / 2);
+                    src += fmt.fmt.pix.width / 2;
+                    dest += crop.c.width / 2;
+                }
+            }
+            else
+            {
+                memcpy(YBuf,frame, bufwidth * bufheight);
+                if (fmt.fmt.pix.pixelformat ==  V4L2_PIX_FMT_YUV420)
+                {
+                    memcpy(UBuf,frame + bufwidth * bufheight, (bufwidth/2) * (bufheight/2));
+                    memcpy(VBuf,frame + bufwidth * bufheight + (bufwidth/2) * (bufheight/2), (bufwidth/2) * (bufheight/2));
+                }
+                else
+                {
+                    if (fmt.fmt.pix.pixelformat ==  V4L2_PIX_FMT_YVU420)
+                    {
+                        memcpy(VBuf,frame + bufwidth * bufheight, (bufwidth/2) * (bufheight/2));
+                        memcpy(UBuf,frame + bufwidth * bufheight + (bufwidth/2) * (bufheight/2), (bufwidth/2) * (bufheight/2));
+                    }
+                }
+            }
+            break;
+
+        case V4L2_PIX_FMT_NV12:
+        case V4L2_PIX_FMT_NV21:
+            if (useSoftCrop && doCrop)
+            {
+                unsigned char * src=frame + crop.c.left + (crop.c.top * fmt.fmt.pix.bytesperline);
+                unsigned char * dest=YBuf, *destv;
+                unsigned int i, j;
+                //IDLog("grabImage: src=%d dest=%d\n", src, dest);
+                for (i= 0; i < crop.c.height; i++)
+                {
+                    memcpy(dest, src, crop.c.width);
+                    src += fmt.fmt.pix.bytesperline;
+                    dest += crop.c.width;
+                }
+
+                dest=UBuf;
+                destv=VBuf;
+                src=frame + (fmt.fmt.pix.bytesperline * fmt.fmt.pix.height) + ((crop.c.left + (crop.c.top * fmt.fmt.pix.bytesperline)/2) / 2);
+                if (fmt.fmt.pix.pixelformat ==  V4L2_PIX_FMT_NV21)
+                {
+                    dest=VBuf;
+                    destv=UBuf;
+                }
+                for (i= 0; i < crop.c.height / 2; i++)
+                {
+                    unsigned char * s = src;
+                    for (j=0; j < crop.c.width; j+=2)
+                    {
+                        *(dest++)=*(s++);
+                        *(destv++)=*(s++);
+                    }
+                    src += fmt.fmt.pix.bytesperline;
+                }
+            }
+            else
+            {
+                unsigned char * src=frame;
+                unsigned char * dest=YBuf;
+                unsigned char * destv=VBuf;
+                unsigned int i, j;
+                unsigned char * s;
+
+                for (i=0; i< bufheight; i++)
+                {
+                    memcpy(dest,src, bufwidth);
+                    src+=fmt.fmt.pix.bytesperline;
+                    dest+=bufwidth;
+                }
+                dest=UBuf;
+                src=frame + (fmt.fmt.pix.bytesperline * bufheight);
+                if (fmt.fmt.pix.pixelformat ==  V4L2_PIX_FMT_NV21)
+                {
+                    dest=VBuf;
+                    destv=UBuf;
+                }
+                for (i= 0; i < bufheight / 2; i++)
+                {
+                    s = src;
+                    //IDLog("NV12: converting UV line %d at %p, offset %d, pUbuf %p offset %d,  pVbuf %p offset %d\n", i, s, s- (frame + (fmt.fmt.pix.bytesperline * bufheight)), dest, dest-UBuf, destv, destv-VBuf);
+                    for (j=0; j < bufwidth; j+=2)
+                    {
+                        *(dest++)=*(s++);
+                        *(destv++)=*(s++);
+                    }
+                    src += fmt.fmt.pix.bytesperline;
+                }
+            }
+            break;
+
+        case V4L2_PIX_FMT_YUYV:
+            if (useSoftCrop && doCrop)
+            {
+                unsigned char * src=frame + 2*(crop.c.left) + (crop.c.top * fmt.fmt.pix.bytesperline);
+                unsigned char * dest=yuyvBuffer;
+                unsigned int i;
+                for (i= 0; i < crop.c.height; i++)
+                {
+                    memcpy(dest, src, 2*crop.c.width);
+                    src += fmt.fmt.pix.bytesperline;
+                    dest += 2*crop.c.width;
+                }
+            }
+            else
+            {
+                memcpy(yuyvBuffer, frame, 2*bufwidth*bufheight);
+            }
+            break;
+
+        case V4L2_PIX_FMT_UYVY:
+        case V4L2_PIX_FMT_VYUY:
+        case V4L2_PIX_FMT_YVYU:
+        {
+            unsigned char * src;
+            unsigned char * dest=yuyvBuffer;
+            unsigned char * s, *s1, *s2, *s3, *s4;
+            int i, j;
+
+            if (useSoftCrop && doCrop)
+            {
+                src=frame + 2*(crop.c.left) + (crop.c.top * fmt.fmt.pix.bytesperline);
+                //IDLog("Decoding UYVY with cropping %dx%d frame at %lx\n", width, height, src);
+            }
+            else
+            {
+                src=frame;
+                //IDLog("Decoding UYVY  %dx%d frame at %lx\n", width, height, src);
+            }
+            for (i=0; i < bufheight; i++)
+            {
+                s=src;
+                switch (fmt.fmt.pix.pixelformat)
+                {
+                    case V4L2_PIX_FMT_UYVY:
+                        s1=(s+1);
+                        s2=(s);
+                        s3=(s+3);
+                        s4=(s+2);
+                        break;
+                    case V4L2_PIX_FMT_VYUY:
+                        s1=(s+1);
+                        s2=(s+2);
+                        s3=(s+3);
+                        s4=(s);
+                        break;
+                    case V4L2_PIX_FMT_YVYU:
+                        s1=(s);
+                        s2=(s+3);
+                        s3=(s+2);
+                        s4=(s+1);
+                        break;
+                }
+                for (j=0; j < (bufwidth / 2); j++)
+                {
+                    *(dest++)=*(s1);
+                    *(dest++)=*(s2);
+                    *(dest++)=*(s3);
+                    *(dest++)=*(s4);
+                    s1+=4;
+                    s2+=4;
+                    s3+=4;
+                    s4+=4;
+                }
+                src+= fmt.fmt.pix.bytesperline;
             }
         }
         break;
 
-    case V4L2_PIX_FMT_NV12:
-    case V4L2_PIX_FMT_NV21:
-        if (useSoftCrop && doCrop)
+        case V4L2_PIX_FMT_RGB24:
         {
-            unsigned char *src=frame + crop.c.left + (crop.c.top * fmt.fmt.pix.bytesperline);
-            unsigned char *dest=YBuf, *destv;
-            unsigned int i, j;
-            //IDLog("grabImage: src=%d dest=%d\n", src, dest);
-            for (i= 0; i < crop.c.height; i++)
-            {
-                memcpy(dest, src, crop.c.width);
-                src += fmt.fmt.pix.bytesperline;
-                dest += crop.c.width;
-            }
-
-            dest=UBuf;
-            destv=VBuf;
-            src=frame + (fmt.fmt.pix.bytesperline * fmt.fmt.pix.height) + ((crop.c.left + (crop.c.top * fmt.fmt.pix.bytesperline)/2) / 2);
-            if (fmt.fmt.pix.pixelformat ==  V4L2_PIX_FMT_NV21)
-            {
-                dest=VBuf;
-                destv=UBuf;
-            }
-            for (i= 0; i < crop.c.height / 2; i++)
-            {
-                unsigned char *s = src;
-                for (j=0; j < crop.c.width; j+=2)
-                {
-                    *(dest++)=*(s++);
-                    *(destv++)=*(s++);
-                }
-                src += fmt.fmt.pix.bytesperline;
-            }
-        }
-        else
-        {
-            unsigned char *src=frame;
-            unsigned char *dest=YBuf;
-            unsigned char *destv=VBuf;
-            unsigned int i, j;
-            unsigned char *s;
-
-            for (i=0; i< bufheight; i++)
-            {
-                memcpy(dest,src, bufwidth);
-                src+=fmt.fmt.pix.bytesperline;
-                dest+=bufwidth;
-            }
-            dest=UBuf;
-            src=frame + (fmt.fmt.pix.bytesperline * bufheight);
-            if (fmt.fmt.pix.pixelformat ==  V4L2_PIX_FMT_NV21)
-            {
-                dest=VBuf;
-                destv=UBuf;
-            }
-            for (i= 0; i < bufheight / 2; i++)
-            {
-                s = src;
-                //IDLog("NV12: converting UV line %d at %p, offset %d, pUbuf %p offset %d,  pVbuf %p offset %d\n", i, s, s- (frame + (fmt.fmt.pix.bytesperline * bufheight)), dest, dest-UBuf, destv, destv-VBuf);
-                for (j=0; j < bufwidth; j+=2)
-                {
-                    *(dest++)=*(s++);
-                    *(destv++)=*(s++);
-                }
-                src += fmt.fmt.pix.bytesperline;
-            }
-        }
-        break;
-
-    case V4L2_PIX_FMT_YUYV:
-        if (useSoftCrop && doCrop)
-        {
-            unsigned char *src=frame + 2*(crop.c.left) + (crop.c.top * fmt.fmt.pix.bytesperline);
-            unsigned char *dest=yuyvBuffer;
+            unsigned char * src, *dest=rgb24_buffer;
             unsigned int i;
-            for (i= 0; i < crop.c.height; i++)
+            if (useSoftCrop && doCrop)
             {
-                memcpy(dest, src, 2*crop.c.width);
+                src=frame + (3*(crop.c.left)) + (crop.c.top * fmt.fmt.pix.bytesperline);
+            }
+            else
+            {
+                src=frame;
+            }
+            for (i= 0; i < bufheight; i++)
+            {
+                memcpy(dest, src, 3*bufwidth);
                 src += fmt.fmt.pix.bytesperline;
-                dest += 2*crop.c.width;
+                dest += 3*bufwidth;
             }
-        }
-        else
-        {
-            memcpy(yuyvBuffer, frame, 2*bufwidth*bufheight);
+            //memcpy(rgb24_buffer,  frame, fmt.fmt.pix.width * fmt.fmt.pix.height * 3);
         }
         break;
 
-    case V4L2_PIX_FMT_UYVY:
-    case V4L2_PIX_FMT_VYUY:
-    case V4L2_PIX_FMT_YVYU:
-    {
-        unsigned char *src;
-        unsigned char *dest=yuyvBuffer;
-        unsigned char *s, *s1, *s2, *s3, *s4;
-        int i, j;
-
-        if (useSoftCrop && doCrop)
+        case V4L2_PIX_FMT_RGB555:
         {
-            src=frame + 2*(crop.c.left) + (crop.c.top * fmt.fmt.pix.bytesperline);
-            //IDLog("Decoding UYVY with cropping %dx%d frame at %lx\n", width, height, src);
-        }
-        else
-        {
-            src=frame;
-            //IDLog("Decoding UYVY  %dx%d frame at %lx\n", width, height, src);
-        }
-        for (i=0; i < bufheight; i++)
-        {
-            s=src;
-            switch (fmt.fmt.pix.pixelformat)
+            unsigned char * src, *dest=rgb24_buffer;
+            unsigned int i, j;
+            if (useSoftCrop && doCrop)
             {
-            case V4L2_PIX_FMT_UYVY:
-                s1=(s+1);
-                s2=(s);
-                s3=(s+3);
-                s4=(s+2);
-                break;
-            case V4L2_PIX_FMT_VYUY:
-                s1=(s+1);
-                s2=(s+2);
-                s3=(s+3);
-                s4=(s);
-                break;
-            case V4L2_PIX_FMT_YVYU:
-                s1=(s);
-                s2=(s+3);
-                s3=(s+2);
-                s4=(s+1);
-                break;
+                src=frame + (2*(crop.c.left)) + (crop.c.top * fmt.fmt.pix.bytesperline);
             }
-            for (j=0; j < (bufwidth / 2); j++)
+            else
             {
-                *(dest++)=*(s1);
-                *(dest++)=*(s2);
-                *(dest++)=*(s3);
-                *(dest++)=*(s4);
-                s1+=4;
-                s2+=4;
-                s3+=4;
-                s4+=4;
+                src=frame;
             }
-            src+= fmt.fmt.pix.bytesperline;
-        }
-    }
-    break;
-
-    case V4L2_PIX_FMT_RGB24:
-    {
-        unsigned char *src, *dest=rgb24_buffer;
-        unsigned int i;
-        if (useSoftCrop && doCrop)
-        {
-            src=frame + (3*(crop.c.left)) + (crop.c.top * fmt.fmt.pix.bytesperline);
-        }
-        else
-        {
-            src=frame;
-        }
-        for (i= 0; i < bufheight; i++)
-        {
-            memcpy(dest, src, 3*bufwidth);
-            src += fmt.fmt.pix.bytesperline;
-            dest += 3*bufwidth;
-        }
-        //memcpy(rgb24_buffer,  frame, fmt.fmt.pix.width * fmt.fmt.pix.height * 3);
-    }
-    break;
-
-    case V4L2_PIX_FMT_RGB555:
-    {
-        unsigned char *src, *dest=rgb24_buffer;
-        unsigned int i, j;
-        if (useSoftCrop && doCrop)
-        {
-            src=frame + (2*(crop.c.left)) + (crop.c.top * fmt.fmt.pix.bytesperline);
-        }
-        else
-        {
-            src=frame;
-        }
-        for (i= 0; i < bufheight; i++)
-        {
-            unsigned char *s = src;
-            for (j=0; j < bufwidth; j++)
+            for (i= 0; i < bufheight; i++)
             {
-                *(dest++) = lut5[((*(s+1)&0x7C)>>2)]; // R
-                *(dest++) = lut5[(((*(s+1)&0x03) << 3) | ((*(s)&0xE0)>>5))]; // G
-                *(dest++) = lut5[((*s) & 0x1F)]; // B
-                s+=2;
+                unsigned char * s = src;
+                for (j=0; j < bufwidth; j++)
+                {
+                    *(dest++) = lut5[((*(s+1)&0x7C)>>2)]; // R
+                    *(dest++) = lut5[(((*(s+1)&0x03) << 3) | ((*(s)&0xE0)>>5))]; // G
+                    *(dest++) = lut5[((*s) & 0x1F)]; // B
+                    s+=2;
+                }
+                src += fmt.fmt.pix.bytesperline;
             }
-            src += fmt.fmt.pix.bytesperline;
         }
-    }
-    break;
+        break;
 
-    case V4L2_PIX_FMT_RGB565:
-    {
-        unsigned char *src, *dest=rgb24_buffer;
-        unsigned int i, j;
-        if (useSoftCrop && doCrop)
+        case V4L2_PIX_FMT_RGB565:
         {
-            src=frame + (2*(crop.c.left)) + (crop.c.top * fmt.fmt.pix.bytesperline);
-        }
-        else
-        {
-            src=frame;
-        }
-        for (i= 0; i < bufheight; i++)
-        {
-            unsigned char *s = src;
-            for (j=0; j < bufwidth; j++)
+            unsigned char * src, *dest=rgb24_buffer;
+            unsigned int i, j;
+            if (useSoftCrop && doCrop)
             {
-                *(dest++) = lut5[((*(s+1)&0xF8)>>3)]; // R
-                *(dest++) = lut6[(((*(s+1)&0x07) << 3) | ((*(s)&0xE0)>>5))]; // G
-                *(dest++) = lut5[((*s) & 0x1F)]; // B
-                s+=2;
+                src=frame + (2*(crop.c.left)) + (crop.c.top * fmt.fmt.pix.bytesperline);
             }
-            src += fmt.fmt.pix.bytesperline;
+            else
+            {
+                src=frame;
+            }
+            for (i= 0; i < bufheight; i++)
+            {
+                unsigned char * s = src;
+                for (j=0; j < bufwidth; j++)
+                {
+                    *(dest++) = lut5[((*(s+1)&0xF8)>>3)]; // R
+                    *(dest++) = lut6[(((*(s+1)&0x07) << 3) | ((*(s)&0xE0)>>5))]; // G
+                    *(dest++) = lut5[((*s) & 0x1F)]; // B
+                    s+=2;
+                }
+                src += fmt.fmt.pix.bytesperline;
+            }
         }
-    }
-    break;
-
-    case V4L2_PIX_FMT_SBGGR8:
-        bayer2rgb24(rgb24_buffer, frame, fmt.fmt.pix.width, fmt.fmt.pix.height);
         break;
 
-    case V4L2_PIX_FMT_SRGGB8:
-        bayer_rggb_2rgb24(rgb24_buffer, frame, fmt.fmt.pix.width, fmt.fmt.pix.height);
-        break;
+        case V4L2_PIX_FMT_SBGGR8:
+            bayer2rgb24(rgb24_buffer, frame, fmt.fmt.pix.width, fmt.fmt.pix.height);
+            break;
 
-    case V4L2_PIX_FMT_SBGGR16:
-        bayer16_2_rgb24((unsigned short *)rgb24_buffer, (unsigned short *)frame, fmt.fmt.pix.width, fmt.fmt.pix.height);
-        break;
+        case V4L2_PIX_FMT_SRGGB8:
+            bayer_rggb_2rgb24(rgb24_buffer, frame, fmt.fmt.pix.width, fmt.fmt.pix.height);
+            break;
 
-    case V4L2_PIX_FMT_JPEG:
-    case V4L2_PIX_FMT_MJPEG:
-        //mjpegtoyuv420p(yuvBuffer, ((unsigned char *) buffers[buf.index].start), fmt.fmt.pix.width, fmt.fmt.pix.height, buffers[buf.index].length);
-        mjpegtoyuv420p(yuvBuffer, frame, fmt.fmt.pix.width, fmt.fmt.pix.height, buf->bytesused);
-        break;
-    default:
-    {
-        unsigned int i;
-        unsigned char *src=YBuf;
-        for (i = 0; i < bufheight * bufwidth; i++)
+        case V4L2_PIX_FMT_SBGGR16:
+            bayer16_2_rgb24((unsigned short *)rgb24_buffer, (unsigned short *)frame, fmt.fmt.pix.width, fmt.fmt.pix.height);
+            break;
+
+        case V4L2_PIX_FMT_JPEG:
+        case V4L2_PIX_FMT_MJPEG:
+            //mjpegtoyuv420p(yuvBuffer, ((unsigned char *) buffers[buf.index].start), fmt.fmt.pix.width, fmt.fmt.pix.height, buffers[buf.index].length);
+            mjpegtoyuv420p(yuvBuffer, frame, fmt.fmt.pix.width, fmt.fmt.pix.height, buf->bytesused);
+            break;
+        default:
         {
-            *(src++)=random() % 255;
+            unsigned int i;
+            unsigned char * src=YBuf;
+            for (i = 0; i < bufheight * bufwidth; i++)
+            {
+                *(src++)=random() % 255;
+            }
         }
-    }
     }
 }
 
@@ -565,48 +565,48 @@ void V4L2_Builtin_Decoder::allocBuffers()
 
     switch (fmt.fmt.pix.pixelformat)
     {
-    case V4L2_PIX_FMT_GREY:
-    case V4L2_PIX_FMT_JPEG:
-    case V4L2_PIX_FMT_MJPEG:
-    case V4L2_PIX_FMT_YUV420:
-    case V4L2_PIX_FMT_YVU420:
-    case V4L2_PIX_FMT_NV12:
-    case V4L2_PIX_FMT_NV21:
-        yuvBuffer=new unsigned char[(bufwidth * bufheight) + ((bufwidth * bufheight) / 2)];
-        YBuf=yuvBuffer;
-        UBuf=yuvBuffer + (bufwidth * bufheight);
-        VBuf=UBuf + ((bufwidth * bufheight) / 4);
-        // bzero(Ubuf, ((bufwidth * bufheight) / 2));
-        break;
-    case V4L2_PIX_FMT_Y16:
-    case V4L2_PIX_FMT_YUYV:
-    case V4L2_PIX_FMT_UYVY:
-    case V4L2_PIX_FMT_VYUY:
-    case V4L2_PIX_FMT_YVYU:
-        yuyvBuffer=new unsigned char[(bufwidth * bufheight) * 2];
-        break;
-    case V4L2_PIX_FMT_RGB24:
-    case V4L2_PIX_FMT_RGB555:
-    case V4L2_PIX_FMT_RGB565:
-    case V4L2_PIX_FMT_SBGGR8:
-    case V4L2_PIX_FMT_SRGGB8:
-    case V4L2_PIX_FMT_SBGGR16:
-        rgb24_buffer = new unsigned char[(bufwidth * bufheight) * (bpp / 8) * 3];
-        break;
-    default:
-        yuvBuffer=new unsigned char[(bufwidth * bufheight) + ((bufwidth * bufheight) / 2)];
-        YBuf=yuvBuffer;
-        UBuf=yuvBuffer + (bufwidth * bufheight);
-        VBuf=UBuf + ((bufwidth * bufheight) / 4);
-        break;
+        case V4L2_PIX_FMT_GREY:
+        case V4L2_PIX_FMT_JPEG:
+        case V4L2_PIX_FMT_MJPEG:
+        case V4L2_PIX_FMT_YUV420:
+        case V4L2_PIX_FMT_YVU420:
+        case V4L2_PIX_FMT_NV12:
+        case V4L2_PIX_FMT_NV21:
+            yuvBuffer=new unsigned char[(bufwidth * bufheight) + ((bufwidth * bufheight) / 2)];
+            YBuf=yuvBuffer;
+            UBuf=yuvBuffer + (bufwidth * bufheight);
+            VBuf=UBuf + ((bufwidth * bufheight) / 4);
+            // bzero(Ubuf, ((bufwidth * bufheight) / 2));
+            break;
+        case V4L2_PIX_FMT_Y16:
+        case V4L2_PIX_FMT_YUYV:
+        case V4L2_PIX_FMT_UYVY:
+        case V4L2_PIX_FMT_VYUY:
+        case V4L2_PIX_FMT_YVYU:
+            yuyvBuffer=new unsigned char[(bufwidth * bufheight) * 2];
+            break;
+        case V4L2_PIX_FMT_RGB24:
+        case V4L2_PIX_FMT_RGB555:
+        case V4L2_PIX_FMT_RGB565:
+        case V4L2_PIX_FMT_SBGGR8:
+        case V4L2_PIX_FMT_SRGGB8:
+        case V4L2_PIX_FMT_SBGGR16:
+            rgb24_buffer = new unsigned char[(bufwidth * bufheight) * (bpp / 8) * 3];
+            break;
+        default:
+            yuvBuffer=new unsigned char[(bufwidth * bufheight) + ((bufwidth * bufheight) / 2)];
+            YBuf=yuvBuffer;
+            UBuf=yuvBuffer + (bufwidth * bufheight);
+            VBuf=UBuf + ((bufwidth * bufheight) / 4);
+            break;
     }
     IDLog("Decoder allocBuffers cropping %s\n",(doCrop?"true":"false"));
 }
 
 void V4L2_Builtin_Decoder::makeLinearY()
 {
-    unsigned char *src=YBuf;
-    float *dest;
+    unsigned char * src=YBuf;
+    float * dest;
     unsigned int i;
     if (!linearBuffer)
     {
@@ -629,20 +629,20 @@ void V4L2_Builtin_Decoder::makeY()
     }
     switch (fmt.fmt.pix.pixelformat)
     {
-    case V4L2_PIX_FMT_RGB24:
-    case V4L2_PIX_FMT_RGB555:
-    case V4L2_PIX_FMT_RGB565:
-    case V4L2_PIX_FMT_SBGGR8:
-    case V4L2_PIX_FMT_SRGGB8:
-        RGB2YUV(bufwidth, bufheight, rgb24_buffer, YBuf, UBuf, VBuf, 0);
-        break;
-    case V4L2_PIX_FMT_YUYV:
-    case V4L2_PIX_FMT_UYVY:
-    case V4L2_PIX_FMT_VYUY:
-    case V4L2_PIX_FMT_YVYU:
-        // todo handcopy only Ybuf using an int, byfwidth should be even
-        ccvt_yuyv_420p(bufwidth, bufheight, yuyvBuffer, YBuf, UBuf, VBuf);
-        break;
+        case V4L2_PIX_FMT_RGB24:
+        case V4L2_PIX_FMT_RGB555:
+        case V4L2_PIX_FMT_RGB565:
+        case V4L2_PIX_FMT_SBGGR8:
+        case V4L2_PIX_FMT_SRGGB8:
+            RGB2YUV(bufwidth, bufheight, rgb24_buffer, YBuf, UBuf, VBuf, 0);
+            break;
+        case V4L2_PIX_FMT_YUYV:
+        case V4L2_PIX_FMT_UYVY:
+        case V4L2_PIX_FMT_VYUY:
+        case V4L2_PIX_FMT_YVYU:
+            // todo handcopy only Ybuf using an int, byfwidth should be even
+            ccvt_yuyv_420p(bufwidth, bufheight, yuyvBuffer, YBuf, UBuf, VBuf);
+            break;
     }
 }
 
@@ -656,8 +656,8 @@ unsigned char * V4L2_Builtin_Decoder::getY()
     if (doLinearization)
     {
         unsigned int i;
-        float *src;
-        unsigned short *dest;
+        float * src;
+        unsigned short * dest;
         if (!yuyvBuffer)
             yuyvBuffer=new unsigned char[(bufwidth * bufheight) * 2];
         makeLinearY();
@@ -698,74 +698,74 @@ unsigned char * V4L2_Builtin_Decoder::geColorBuffer()
     if (!colorBuffer) colorBuffer = new unsigned char[(bufwidth * bufheight) * (bpp / 8) * 4];
     switch (fmt.fmt.pix.pixelformat)
     {
-    case V4L2_PIX_FMT_GREY:
-    case V4L2_PIX_FMT_JPEG:
-    case V4L2_PIX_FMT_MJPEG:
-    case V4L2_PIX_FMT_YUV420:
-    case V4L2_PIX_FMT_YVU420:
-    case V4L2_PIX_FMT_NV12:
-    case V4L2_PIX_FMT_NV21:
-        ccvt_420p_bgr32(bufwidth, bufheight, (void *)yuvBuffer, (void*)colorBuffer);
-        break;
+        case V4L2_PIX_FMT_GREY:
+        case V4L2_PIX_FMT_JPEG:
+        case V4L2_PIX_FMT_MJPEG:
+        case V4L2_PIX_FMT_YUV420:
+        case V4L2_PIX_FMT_YVU420:
+        case V4L2_PIX_FMT_NV12:
+        case V4L2_PIX_FMT_NV21:
+            ccvt_420p_bgr32(bufwidth, bufheight, (void *)yuvBuffer, (void *)colorBuffer);
+            break;
 
-    case V4L2_PIX_FMT_YUYV:
-    case V4L2_PIX_FMT_UYVY:
-    case V4L2_PIX_FMT_VYUY:
-    case V4L2_PIX_FMT_YVYU:
-        ccvt_yuyv_bgr32(bufwidth, bufheight, yuyvBuffer, (void*)colorBuffer);
-        break;
-    case V4L2_PIX_FMT_RGB24:
-    case V4L2_PIX_FMT_RGB555:
-    case V4L2_PIX_FMT_RGB565:
-    case V4L2_PIX_FMT_SBGGR8:
-    case V4L2_PIX_FMT_SRGGB8:
-        ccvt_rgb24_bgr32(bufwidth, bufheight,rgb24_buffer, (void*)colorBuffer);
-        break;
-    case V4L2_PIX_FMT_Y16:
-        /* OOOps this is planar ARGB */
-        /*
-        bzero(colorBuffer, bufwidth * bufheight * 2);
-        memcpy(colorBuffer + (bufwidth * bufheight * 2), yuyvBuffer, bufwidth * bufheight * 2);
-        memcpy(colorBuffer + 2 * (bufwidth * bufheight * 2), yuyvBuffer, bufwidth * bufheight * 2);
-        memcpy(colorBuffer + 3 * (bufwidth * bufheight * 2), yuyvBuffer, bufwidth * bufheight * 2);
-        */
-    {
-        /* this is bgra , use unsigned short here... */
-        unsigned int i;
-        unsigned char *src = yuyvBuffer;
-        unsigned char *dest = colorBuffer;
-        for (i = 0; i < bufwidth * bufheight; i += 1)
+        case V4L2_PIX_FMT_YUYV:
+        case V4L2_PIX_FMT_UYVY:
+        case V4L2_PIX_FMT_VYUY:
+        case V4L2_PIX_FMT_YVYU:
+            ccvt_yuyv_bgr32(bufwidth, bufheight, yuyvBuffer, (void *)colorBuffer);
+            break;
+        case V4L2_PIX_FMT_RGB24:
+        case V4L2_PIX_FMT_RGB555:
+        case V4L2_PIX_FMT_RGB565:
+        case V4L2_PIX_FMT_SBGGR8:
+        case V4L2_PIX_FMT_SRGGB8:
+            ccvt_rgb24_bgr32(bufwidth, bufheight,rgb24_buffer, (void *)colorBuffer);
+            break;
+        case V4L2_PIX_FMT_Y16:
+            /* OOOps this is planar ARGB */
+            /*
+            bzero(colorBuffer, bufwidth * bufheight * 2);
+            memcpy(colorBuffer + (bufwidth * bufheight * 2), yuyvBuffer, bufwidth * bufheight * 2);
+            memcpy(colorBuffer + 2 * (bufwidth * bufheight * 2), yuyvBuffer, bufwidth * bufheight * 2);
+            memcpy(colorBuffer + 3 * (bufwidth * bufheight * 2), yuyvBuffer, bufwidth * bufheight * 2);
+            */
         {
-            *dest++=*src;
-            *dest++=*(src+1);
-            *dest++=*src;
-            *dest++=*(src+1);
-            *dest++=*src;
-            *dest++=*(src+1);
-            *dest++=0;
-            *dest++=0;
-            src += 2;
+            /* this is bgra , use unsigned short here... */
+            unsigned int i;
+            unsigned char * src = yuyvBuffer;
+            unsigned char * dest = colorBuffer;
+            for (i = 0; i < bufwidth * bufheight; i += 1)
+            {
+                *dest++=*src;
+                *dest++=*(src+1);
+                *dest++=*src;
+                *dest++=*(src+1);
+                *dest++=*src;
+                *dest++=*(src+1);
+                *dest++=0;
+                *dest++=0;
+                src += 2;
+            }
         }
-    }
-    break;
-    case V4L2_PIX_FMT_SBGGR16:
-    {
-        /* this is bgra , now I use unsigned short! */
-        unsigned int i;
-        unsigned short *src = (unsigned short *)rgb24_buffer;
-        unsigned short *dest = (unsigned short *)colorBuffer;
-        for (i = 0; i < bufwidth * bufheight; i += 1)
-        {
-            *dest++=*(src + 2);
-            *dest++=*(src + 1);
-            *dest++=*(src);
-            *dest++=0;
-            src += 3;
-        }
-    }
-    default:
-        ccvt_420p_bgr32(bufwidth, bufheight, (void *)yuvBuffer, (void*)colorBuffer);
         break;
+        case V4L2_PIX_FMT_SBGGR16:
+        {
+            /* this is bgra , now I use unsigned short! */
+            unsigned int i;
+            unsigned short * src = (unsigned short *)rgb24_buffer;
+            unsigned short * dest = (unsigned short *)colorBuffer;
+            for (i = 0; i < bufwidth * bufheight; i += 1)
+            {
+                *dest++=*(src + 2);
+                *dest++=*(src + 1);
+                *dest++=*(src);
+                *dest++=0;
+                src += 3;
+            }
+        }
+        default:
+            ccvt_420p_bgr32(bufwidth, bufheight, (void *)yuvBuffer, (void *)colorBuffer);
+            break;
     }
     return colorBuffer;
 }
@@ -779,34 +779,34 @@ unsigned char * V4L2_Builtin_Decoder::getRGBBuffer()
     if (!rgb24_buffer) rgb24_buffer = new unsigned char[(bufwidth * bufheight) * 3];
     switch (fmt.fmt.pix.pixelformat)
     {
-    case V4L2_PIX_FMT_GREY:
-    case V4L2_PIX_FMT_JPEG:
-    case V4L2_PIX_FMT_MJPEG:
-    case V4L2_PIX_FMT_YUV420:
-    case V4L2_PIX_FMT_YVU420:
-    case V4L2_PIX_FMT_NV12:
-    case V4L2_PIX_FMT_NV21:
-        ccvt_420p_rgb24(bufwidth, bufheight, (void *)yuvBuffer, (void*)rgb24_buffer);
-        break;
-    case V4L2_PIX_FMT_YUYV:
-    case V4L2_PIX_FMT_UYVY:
-    case V4L2_PIX_FMT_VYUY:
-    case V4L2_PIX_FMT_YVYU:
-        //if (!colorBuffer) colorBuffer = new unsigned char[(bufwidth * bufheight) * 4];
-        //ccvt_yuyv_bgr32(bufwidth, bufheight, yuyvBuffer, rgb24_buffer);
-        //ccvt_bgr32_rgb24(bufwidth, bufheight, colorBuffer, (void*)rgb24_buffer);
-        ccvt_yuyv_rgb24(bufwidth, bufheight, yuyvBuffer, (void*)rgb24_buffer);
-        break;
-    case V4L2_PIX_FMT_RGB24:
-    case V4L2_PIX_FMT_RGB555:
-    case V4L2_PIX_FMT_RGB565:
-    case V4L2_PIX_FMT_SBGGR8:
-    case V4L2_PIX_FMT_SRGGB8:
-    case V4L2_PIX_FMT_SBGGR16:
-        break;
-    default:
-        ccvt_420p_rgb24(bufwidth, bufheight, (void *)yuvBuffer, (void*)rgb24_buffer);
-        break;
+        case V4L2_PIX_FMT_GREY:
+        case V4L2_PIX_FMT_JPEG:
+        case V4L2_PIX_FMT_MJPEG:
+        case V4L2_PIX_FMT_YUV420:
+        case V4L2_PIX_FMT_YVU420:
+        case V4L2_PIX_FMT_NV12:
+        case V4L2_PIX_FMT_NV21:
+            ccvt_420p_rgb24(bufwidth, bufheight, (void *)yuvBuffer, (void *)rgb24_buffer);
+            break;
+        case V4L2_PIX_FMT_YUYV:
+        case V4L2_PIX_FMT_UYVY:
+        case V4L2_PIX_FMT_VYUY:
+        case V4L2_PIX_FMT_YVYU:
+            //if (!colorBuffer) colorBuffer = new unsigned char[(bufwidth * bufheight) * 4];
+            //ccvt_yuyv_bgr32(bufwidth, bufheight, yuyvBuffer, rgb24_buffer);
+            //ccvt_bgr32_rgb24(bufwidth, bufheight, colorBuffer, (void*)rgb24_buffer);
+            ccvt_yuyv_rgb24(bufwidth, bufheight, yuyvBuffer, (void *)rgb24_buffer);
+            break;
+        case V4L2_PIX_FMT_RGB24:
+        case V4L2_PIX_FMT_RGB555:
+        case V4L2_PIX_FMT_RGB565:
+        case V4L2_PIX_FMT_SBGGR8:
+        case V4L2_PIX_FMT_SRGGB8:
+        case V4L2_PIX_FMT_SBGGR16:
+            break;
+        default:
+            ccvt_420p_rgb24(bufwidth, bufheight, (void *)yuvBuffer, (void *)rgb24_buffer);
+            break;
     }
     return rgb24_buffer;
 }

@@ -95,21 +95,21 @@ void INDI::GPS::TimerHit()
 
     switch (state)
     {
-    // Ok or Alert
-    case IPS_OK:
-    case IPS_ALERT:
-        IDSetNumber(&LocationNP, NULL);
-        IDSetText(&TimeTP, NULL);
-        return;
+        // Ok or Alert
+        case IPS_OK:
+        case IPS_ALERT:
+            IDSetNumber(&LocationNP, NULL);
+            IDSetText(&TimeTP, NULL);
+            return;
 
-    // GPS fix is in progress
-    case IPS_BUSY:
-        IDSetNumber(&LocationNP, NULL);
-        IDSetText(&TimeTP, NULL);
-        break;
+        // GPS fix is in progress
+        case IPS_BUSY:
+            IDSetNumber(&LocationNP, NULL);
+            IDSetText(&TimeTP, NULL);
+            break;
 
-    default:
-        break;
+        default:
+            break;
     }
 
     SetTimer(POLLMS);
@@ -121,7 +121,7 @@ IPState INDI::GPS::updateGPS()
     return IPS_ALERT;
 }
 
-bool INDI::GPS::ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n)
+bool INDI::GPS::ISNewSwitch (const char * dev, const char * name, ISState * states, char * names[], int n)
 {
     if(strcmp(dev,getDeviceName())==0)
     {

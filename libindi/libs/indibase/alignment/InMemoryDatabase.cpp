@@ -21,7 +21,7 @@ namespace INDI
 namespace AlignmentSubsystem
 {
 
-const bool InMemoryDatabase::CheckForDuplicateSyncPoint(const AlignmentDatabaseEntry& CandidateEntry, double Tolerance) const
+const bool InMemoryDatabase::CheckForDuplicateSyncPoint(const AlignmentDatabaseEntry &CandidateEntry, double Tolerance) const
 {
     for (AlignmentDatabaseType::const_iterator iTr = MySyncPoints.begin(); iTr != MySyncPoints.end(); iTr++)
     {
@@ -35,7 +35,7 @@ const bool InMemoryDatabase::CheckForDuplicateSyncPoint(const AlignmentDatabaseE
     return false;
 }
 
-bool InMemoryDatabase::GetDatabaseReferencePosition(ln_lnlat_posn& Position)
+bool InMemoryDatabase::GetDatabaseReferencePosition(ln_lnlat_posn &Position)
 {
     if (DatabaseReferencePositionIsValid)
     {
@@ -46,18 +46,18 @@ bool InMemoryDatabase::GetDatabaseReferencePosition(ln_lnlat_posn& Position)
         return false;
 }
 
-bool InMemoryDatabase::LoadDatabase(const char* DeviceName)
+bool InMemoryDatabase::LoadDatabase(const char * DeviceName)
 {
     char DatabaseFileName[MAXRBUF];
     char Errmsg[MAXRBUF];
-    XMLEle *FileRoot = NULL;
-    XMLEle *EntriesRoot = NULL;
-    XMLEle *EntryRoot = NULL;
-    XMLEle *Element = NULL;
-    XMLAtt *Attribute = NULL;
-    LilXML *Parser = newLilXML();
+    XMLEle * FileRoot = NULL;
+    XMLEle * EntriesRoot = NULL;
+    XMLEle * EntryRoot = NULL;
+    XMLEle * Element = NULL;
+    XMLAtt * Attribute = NULL;
+    LilXML * Parser = newLilXML();
 
-    FILE *fp = NULL;
+    FILE * fp = NULL;
 
     snprintf(DatabaseFileName, MAXRBUF, "%s/.indi/%s_alignment_database.xml", getenv("HOME"), DeviceName);
 
@@ -156,13 +156,13 @@ bool InMemoryDatabase::LoadDatabase(const char* DeviceName)
 
 }
 
-bool InMemoryDatabase::SaveDatabase(const char* DeviceName)
+bool InMemoryDatabase::SaveDatabase(const char * DeviceName)
 {
     char ConfigDir[MAXRBUF];
     char DatabaseFileName[MAXRBUF];
     char Errmsg[MAXRBUF];
     struct stat Status;
-    FILE* fp;
+    FILE * fp;
 
     snprintf(ConfigDir, MAXRBUF, "%s/.indi/", getenv("HOME"));
     snprintf(DatabaseFileName, MAXRBUF, "%s%s_alignment_database.xml", ConfigDir, DeviceName);
@@ -222,7 +222,7 @@ void InMemoryDatabase::SetDatabaseReferencePosition(double Latitude, double Long
     DatabaseReferencePositionIsValid = true;
 }
 
-void InMemoryDatabase::SetLoadDatabaseCallback(LoadDatabaseCallbackPointer_t CallbackPointer, void *ThisPointer)
+void InMemoryDatabase::SetLoadDatabaseCallback(LoadDatabaseCallbackPointer_t CallbackPointer, void * ThisPointer)
 {
     LoadDatabaseCallback = CallbackPointer;
     LoadDatabaseCallbackThisPointer = ThisPointer;

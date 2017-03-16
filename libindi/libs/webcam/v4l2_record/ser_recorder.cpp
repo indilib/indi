@@ -60,13 +60,13 @@ bool SER_Recorder::is_little_endian()
     return black_magic == 0x01;
 }
 
-void SER_Recorder::write_int_le(uint32_t *i)
+void SER_Recorder::write_int_le(uint32_t * i)
 {
     if (is_little_endian())
         fwrite((const void *)(i), sizeof(uint32_t), 1, f);
     else
     {
-        unsigned char *c=(unsigned char *)i;
+        unsigned char * c=(unsigned char *)i;
         fwrite((const void *)(c+3), sizeof(char), 1, f);
         fwrite((const void *)(c+2), sizeof(char), 1, f);
         fwrite((const void *)(c+1), sizeof(char), 1, f);
@@ -74,7 +74,7 @@ void SER_Recorder::write_int_le(uint32_t *i)
     }
 }
 
-void SER_Recorder::write_long_int_le(uint64_t *i)
+void SER_Recorder::write_long_int_le(uint64_t * i)
 {
     if (is_little_endian())
     {
@@ -88,7 +88,7 @@ void SER_Recorder::write_long_int_le(uint64_t *i)
     }
 }
 
-void SER_Recorder::write_header(ser_header *s)
+void SER_Recorder::write_header(ser_header * s)
 {
     fwrite((const void *)(s->FileID), sizeof(char), 14, f);
     write_int_le(&(s->LuID));
@@ -117,107 +117,107 @@ bool SER_Recorder::setPixelFormat(unsigned int format)   // V4L2_PIX_FMT used wh
     number_of_planes=1;
     switch (format)
     {
-    case V4L2_PIX_FMT_GREY:
+        case V4L2_PIX_FMT_GREY:
 #ifdef V4L2_PIX_FMT_Y10
-    case V4L2_PIX_FMT_Y10:
+        case V4L2_PIX_FMT_Y10:
 #endif
 #ifdef V4L2_PIX_FMT_Y12
-    case V4L2_PIX_FMT_Y12:
+        case V4L2_PIX_FMT_Y12:
 #endif
 #ifdef V4L2_PIX_FMT_Y16
-    case V4L2_PIX_FMT_Y16:
+        case V4L2_PIX_FMT_Y16:
 #endif
-        serh.ColorID=SER_MONO;
+            serh.ColorID=SER_MONO;
 #ifdef V4L2_PIX_FMT_Y10
-        if (format == V4L2_PIX_FMT_Y10) serh.PixelDepth=10;
+            if (format == V4L2_PIX_FMT_Y10) serh.PixelDepth=10;
 #endif
 #ifdef V4L2_PIX_FMT_Y12
-        if (format == V4L2_PIX_FMT_Y12) serh.PixelDepth=12;
+            if (format == V4L2_PIX_FMT_Y12) serh.PixelDepth=12;
 #endif
 #ifdef V4L2_PIX_FMT_Y16
-        if (format == V4L2_PIX_FMT_Y16) serh.PixelDepth=16;
+            if (format == V4L2_PIX_FMT_Y16) serh.PixelDepth=16;
 #endif
-        return true;
-    case V4L2_PIX_FMT_SBGGR8:
+            return true;
+        case V4L2_PIX_FMT_SBGGR8:
 #ifdef V4L2_PIX_FMT_SBGGR10
-    case V4L2_PIX_FMT_SBGGR10:
+        case V4L2_PIX_FMT_SBGGR10:
 #endif
 #ifdef V4L2_PIX_FMT_SBGGR12
-    case V4L2_PIX_FMT_SBGGR12:
+        case V4L2_PIX_FMT_SBGGR12:
 #endif
-    case V4L2_PIX_FMT_SBGGR16:
-        serh.ColorID=SER_BAYER_BGGR;
+        case V4L2_PIX_FMT_SBGGR16:
+            serh.ColorID=SER_BAYER_BGGR;
 #ifdef V4L2_PIX_FMT_SBGGR10
-        if (format == V4L2_PIX_FMT_SBGGR10) serh.PixelDepth=10;
+            if (format == V4L2_PIX_FMT_SBGGR10) serh.PixelDepth=10;
 #endif
 #ifdef V4L2_PIX_FMT_SBGGR12
-        if (format == V4L2_PIX_FMT_SBGGR12) serh.PixelDepth=12;
+            if (format == V4L2_PIX_FMT_SBGGR12) serh.PixelDepth=12;
 #endif
-        if (format == V4L2_PIX_FMT_SBGGR16) serh.PixelDepth=16;
-        return true;
-    case V4L2_PIX_FMT_SGBRG8:
+            if (format == V4L2_PIX_FMT_SBGGR16) serh.PixelDepth=16;
+            return true;
+        case V4L2_PIX_FMT_SGBRG8:
 #ifdef V4L2_PIX_FMT_SGBRG10
-    case V4L2_PIX_FMT_SGBRG10:
+        case V4L2_PIX_FMT_SGBRG10:
 #endif
 #ifdef V4L2_PIX_FMT_SGBRG12
-    case V4L2_PIX_FMT_SGBRG12:
+        case V4L2_PIX_FMT_SGBRG12:
 #endif
-        serh.ColorID=SER_BAYER_GBRG;
+            serh.ColorID=SER_BAYER_GBRG;
 #ifdef V4L2_PIX_FMT_SGBRG10
-        if (format == V4L2_PIX_FMT_SGBRG10) serh.PixelDepth=10;
+            if (format == V4L2_PIX_FMT_SGBRG10) serh.PixelDepth=10;
 #endif
 #ifdef V4L2_PIX_FMT_SGBRG12
-        if (format == V4L2_PIX_FMT_SGBRG12) serh.PixelDepth=12;
+            if (format == V4L2_PIX_FMT_SGBRG12) serh.PixelDepth=12;
 #endif
-        return true;
+            return true;
 #if defined(V4L2_PIX_FMT_SGRBG8) || defined(V4L2_PIX_FMT_SGRBG10) || defined(V4L2_PIX_FMT_SGRBG12)
 #ifdef V4L2_PIX_FMT_SGRBG8
-    case V4L2_PIX_FMT_SGRBG8:
+        case V4L2_PIX_FMT_SGRBG8:
 #endif
 #ifdef V4L2_PIX_FMT_SGRBG10
-    case V4L2_PIX_FMT_SGRBG10:
+        case V4L2_PIX_FMT_SGRBG10:
 #endif
 #ifdef V4L2_PIX_FMT_SGRBG12
-    case V4L2_PIX_FMT_SGRBG12:
+        case V4L2_PIX_FMT_SGRBG12:
 #endif
-        serh.ColorID=SER_BAYER_GRBG;
+            serh.ColorID=SER_BAYER_GRBG;
 #ifdef V4L2_PIX_FMT_SGRBG10
-        if (format == V4L2_PIX_FMT_SGRBG10) serh.PixelDepth=10;
+            if (format == V4L2_PIX_FMT_SGRBG10) serh.PixelDepth=10;
 #endif
 #ifdef V4L2_PIX_FMT_SGRBG12
-        if (format == V4L2_PIX_FMT_SGRBG12) serh.PixelDepth=12;
+            if (format == V4L2_PIX_FMT_SGRBG12) serh.PixelDepth=12;
 #endif
-        return true;
+            return true;
 #endif
 #if defined(V4L2_PIX_FMT_SRGGB8) || defined(V4L2_PIX_FMT_SRGGB10) || defined(V4L2_PIX_FMT_SRGGB12)
 #ifdef V4L2_PIX_FMT_SRGGB8
-    case V4L2_PIX_FMT_SRGGB8:
+        case V4L2_PIX_FMT_SRGGB8:
 #endif
 #ifdef V4L2_PIX_FMT_SRGGB10
-    case V4L2_PIX_FMT_SRGGB10:
+        case V4L2_PIX_FMT_SRGGB10:
 #endif
 #ifdef V4L2_PIX_FMT_SRGGB12
-    case V4L2_PIX_FMT_SRGGB12:
+        case V4L2_PIX_FMT_SRGGB12:
 #endif
-        serh.ColorID=SER_BAYER_RGGB;
+            serh.ColorID=SER_BAYER_RGGB;
 #ifdef V4L2_PIX_FMT_SRGGB10
-        if (format == V4L2_PIX_FMT_SRGGB10) serh.PixelDepth=10;
+            if (format == V4L2_PIX_FMT_SRGGB10) serh.PixelDepth=10;
 #endif
 #ifdef V4L2_PIX_FMT_SRGGB12
-        if (format == V4L2_PIX_FMT_SRGGB12) serh.PixelDepth=12;
+            if (format == V4L2_PIX_FMT_SRGGB12) serh.PixelDepth=12;
 #endif
-        return true;
+            return true;
 #endif
-    case V4L2_PIX_FMT_RGB24:
-        number_of_planes=3;
-        serh.ColorID=SER_RGB;
-        return true;
-    case V4L2_PIX_FMT_BGR24:
-        number_of_planes=3;
-        serh.ColorID=SER_BGR;
-        return true;
-    default:
-        return false;
+        case V4L2_PIX_FMT_RGB24:
+            number_of_planes=3;
+            serh.ColorID=SER_RGB;
+            return true;
+        case V4L2_PIX_FMT_BGR24:
+            number_of_planes=3;
+            serh.ColorID=SER_BGR;
+            return true;
+        default:
+            return false;
     }
 
 }
@@ -245,7 +245,7 @@ bool SER_Recorder::setSize(uint16_t width, uint16_t height)
     return true;
 }
 
-bool SER_Recorder::open(const char *filename, char *errmsg)
+bool SER_Recorder::open(const char * filename, char * errmsg)
 {
     if (isRecordingActive) return false;
     serh.FrameCount = 0;
@@ -285,7 +285,7 @@ bool SER_Recorder::close()
     return true;
 }
 
-bool SER_Recorder::writeFrame(unsigned char *frame)
+bool SER_Recorder::writeFrame(unsigned char * frame)
 {
     if (!isRecordingActive)
         return false;
@@ -301,14 +301,14 @@ bool SER_Recorder::writeFrame(unsigned char *frame)
 // ajouter une gestion plus fine du mode par defaut
 // setMono/setColor appelee par ImageTypeSP
 // setPixelDepth si Mono16
-bool SER_Recorder::writeFrameMono(unsigned char *frame)
+bool SER_Recorder::writeFrameMono(unsigned char * frame)
 {
     if (isStreamingActive == false && (offsetX > 0 || offsetY > 0 || serh.ImageWidth != rawWidth || serh.ImageHeight != rawHeight))
     {
         int offset = ((rawWidth * offsetY) + offsetX);
 
-        uint8_t *srcBuffer = frame + offset;
-        uint8_t *destBuffer= frame;
+        uint8_t * srcBuffer = frame + offset;
+        uint8_t * destBuffer= frame;
         int imageWidth = serh.ImageWidth;
         int imageHeight= serh.ImageHeight;
 
@@ -319,14 +319,14 @@ bool SER_Recorder::writeFrameMono(unsigned char *frame)
     return writeFrame(frame);
 }
 
-bool SER_Recorder::writeFrameColor(unsigned char *frame)
+bool SER_Recorder::writeFrameColor(unsigned char * frame)
 {
     if (isStreamingActive == false && (offsetX > 0 || offsetY > 0 || serh.ImageWidth != rawWidth || serh.ImageHeight != rawHeight))
     {
         int offset = ((rawWidth * offsetY) + offsetX);
 
-        uint8_t *srcBuffer = frame + offset * 3;
-        uint8_t *destBuffer= frame;
+        uint8_t * srcBuffer = frame + offset * 3;
+        uint8_t * destBuffer= frame;
         int imageWidth = serh.ImageWidth;
         int imageHeight= serh.ImageHeight;
 
@@ -390,7 +390,7 @@ uint64_t SER_Recorder::getUTCTimeStamp()
     timeval currentTime;
     gettimeofday(&currentTime, NULL);
 
-    struct tm *tp;
+    struct tm * tp;
     time_t    t = (time_t) currentTime.tv_sec;
     uint32_t  u = currentTime.tv_usec;
 
@@ -410,7 +410,7 @@ uint64_t SER_Recorder::getLocalTimeStamp()
     timeval currentTime;
     gettimeofday(&currentTime, NULL);
 
-    struct tm *tp;
+    struct tm * tp;
     time_t    t = (time_t) currentTime.tv_sec;
     uint32_t  u = currentTime.tv_usec;
 
@@ -425,7 +425,7 @@ uint64_t SER_Recorder::getLocalTimeStamp()
 // Convert real time to timestamp
 //
 void SER_Recorder::dateTo64BitTS(int32_t year,int32_t month,int32_t day,int32_t hour,int32_t minute,int32_t second,
-                                 int32_t microsec,uint64_t *p_ts)
+                                 int32_t microsec,uint64_t * p_ts)
 {
     uint64_t ts = 0;
     int32_t yr;
@@ -453,26 +453,26 @@ void SER_Recorder::dateTo64BitTS(int32_t year,int32_t month,int32_t day,int32_t 
     {
         switch (mon)
         {
-        case 4:   // April
-        case 6:   // June
-        case 9:   // September
-        case 11:  // Novenber
-            ts += (30 * m_septaseconds_per_day);
-            break;
-        case 2:  // Feburary
-            if (is_leap_year(year))
-            {
-                ts += (29 * m_septaseconds_per_day);
-            }
-            else
-            {
-                ts += (28 * m_septaseconds_per_day);
-            }
+            case 4:   // April
+            case 6:   // June
+            case 9:   // September
+            case 11:  // Novenber
+                ts += (30 * m_septaseconds_per_day);
+                break;
+            case 2:  // Feburary
+                if (is_leap_year(year))
+                {
+                    ts += (29 * m_septaseconds_per_day);
+                }
+                else
+                {
+                    ts += (28 * m_septaseconds_per_day);
+                }
 
-            break;
-        default:
-            ts += (31 * m_septaseconds_per_day);
-            break;
+                break;
+            default:
+                ts += (31 * m_septaseconds_per_day);
+                break;
         }
     }
 

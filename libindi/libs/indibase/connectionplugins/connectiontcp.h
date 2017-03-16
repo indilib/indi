@@ -29,58 +29,58 @@ namespace Connection
 class TCP : public Interface
 {
 
-public:
+    public:
 
-    TCP(INDI::DefaultDevice *dev);
-    virtual ~TCP();
+        TCP(INDI::DefaultDevice * dev);
+        virtual ~TCP();
 
-    virtual bool Connect();
+        virtual bool Connect();
 
-    virtual bool Disconnect();
+        virtual bool Disconnect();
 
-    virtual void Activated();
+        virtual void Activated();
 
-    virtual void Deactivated();
+        virtual void Deactivated();
 
-    virtual const std::string name()
-    {
-        return "CONNECTION_TCP";
-    }
+        virtual const std::string name()
+        {
+            return "CONNECTION_TCP";
+        }
 
-    virtual const std::string label()
-    {
-        return "Ethernet";
-    }
+        virtual const std::string label()
+        {
+            return "Ethernet";
+        }
 
-    virtual const char* host()
-    {
-        return AddressT[0].text;
-    }
-    virtual const uint32_t port()
-    {
-        return atoi(AddressT[0].text);
-    }
+        virtual const char * host()
+        {
+            return AddressT[0].text;
+        }
+        virtual const uint32_t port()
+        {
+            return atoi(AddressT[0].text);
+        }
 
-    virtual bool ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n);
-    virtual bool saveConfigItems(FILE *fp);
+        virtual bool ISNewText (const char * dev, const char * name, char * texts[], char * names[], int n);
+        virtual bool saveConfigItems(FILE * fp);
 
-    const int getPortFD() const
-    {
-        return PortFD;
-    }
-    void setDefaultHost(const char *addressHost);
-    void setDefaultPort(uint32_t addressPort);
+        const int getPortFD() const
+        {
+            return PortFD;
+        }
+        void setDefaultHost(const char * addressHost);
+        void setDefaultPort(uint32_t addressPort);
 
-protected:
+    protected:
 
-    // IP Address/Port
-    ITextVectorProperty AddressTP;
-    IText AddressT[2];
+        // IP Address/Port
+        ITextVectorProperty AddressTP;
+        IText AddressT[2];
 
-    int sockfd = -1;
-    const uint8_t SOCKET_TIMEOUT = 5;
+        int sockfd = -1;
+        const uint8_t SOCKET_TIMEOUT = 5;
 
-    int PortFD=-1;
+        int PortFD=-1;
 };
 
 }

@@ -28,16 +28,16 @@
 
 #include "stream_recorder.h"
 
-const char *STREAM_TAB          = "Streaming";
+const char * STREAM_TAB          = "Streaming";
 
-StreamRecorder::StreamRecorder(INDI::CCD *mainCCD)
+StreamRecorder::StreamRecorder(INDI::CCD * mainCCD)
 {
     ccd = mainCCD;
 
     is_streaming = false;
     is_recording = false;
 
-    compressedFrame = (uint8_t* ) malloc(1);
+    compressedFrame = (uint8_t * ) malloc(1);
 
     // Timer
     // now use BSD setimer to avoi librt dependency
@@ -118,7 +118,7 @@ bool StreamRecorder::initProperties()
     return true;
 }
 
-void StreamRecorder::ISGetProperties(const char *dev)
+void StreamRecorder::ISGetProperties(const char * dev)
 {
     if (dev && strcmp (getDeviceName(), dev))
         return;
@@ -254,7 +254,7 @@ bool StreamRecorder::uploadStream()
     int ret=0;
     uLongf compressedBytes = 0;
     uLong totalBytes = ccd->PrimaryCCD.getFrameBufferSize();
-    uint8_t *buffer  = ccd->PrimaryCCD.getFrameBuffer();
+    uint8_t * buffer  = ccd->PrimaryCCD.getFrameBuffer();
 
     //memcpy(ccd->PrimaryCCD.getFrameBuffer(), buffer, ccd->PrimaryCCD.getFrameBufferSize());
 
@@ -296,8 +296,8 @@ bool StreamRecorder::uploadStream()
             int binFactor = (ccd->PrimaryCCD.getBinX()*ccd->PrimaryCCD.getBinY());
             int offset = ((subW * StreamFrameN[CCDChip::FRAME_Y].value) +  StreamFrameN[CCDChip::FRAME_X].value) / binFactor;
 
-            uint8_t *srcBuffer = buffer + offset;
-            uint8_t *destBuffer= buffer;
+            uint8_t * srcBuffer = buffer + offset;
+            uint8_t * destBuffer= buffer;
 
             for (int i=0; i < StreamFrameN[CCDChip::FRAME_H].value; i++)
                 memcpy(destBuffer + i * static_cast<int>(StreamFrameN[CCDChip::FRAME_W].value), srcBuffer + subW * i, StreamFrameN[CCDChip::FRAME_W].value);
@@ -315,8 +315,8 @@ bool StreamRecorder::uploadStream()
             // Copy each color component back into buffer. Since each subframed page is equal or small than source component
             // no need to a new buffer
 
-            uint8_t *srcBuffer  = buffer + sourceOffset * 3;
-            uint8_t *destBuffer = buffer;
+            uint8_t * srcBuffer  = buffer + sourceOffset * 3;
+            uint8_t * destBuffer = buffer;
 
             // RGB
             for (int i=0; i < StreamFrameN[CCDChip::FRAME_H].value; i++)
@@ -428,12 +428,12 @@ int StreamRecorder::mkpath(std::string s, mode_t mode)
     return mdret;
 }
 
-std::string StreamRecorder::expand(std::string fname, const std::map<std::string, std::string>& patterns)
+std::string StreamRecorder::expand(std::string fname, const std::map<std::string, std::string> &patterns)
 {
     std::string res = fname;
     std::size_t pos;
     time_t now;
-    struct tm *tm_now;
+    struct tm * tm_now;
     char val[20];
     *(val+19) = '\0';
 
@@ -560,7 +560,7 @@ bool StreamRecorder::stopRecording()
     return true;
 }
 
-bool StreamRecorder::ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n)
+bool StreamRecorder::ISNewSwitch (const char * dev, const char * name, ISState * states, char * names[], int n)
 {
     if (dev && strcmp (getDeviceName(), dev))
         return true;
@@ -638,7 +638,7 @@ bool StreamRecorder::ISNewSwitch (const char *dev, const char *name, ISState *st
     return true;
 }
 
-bool StreamRecorder::ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n)
+bool StreamRecorder::ISNewText (const char * dev, const char * name, char * texts[], char * names[], int n)
 {
     /* ignore if not ours */
     if (dev && strcmp (getDeviceName(), dev))
@@ -646,7 +646,7 @@ bool StreamRecorder::ISNewText (const char *dev, const char *name, char *texts[]
 
     if (!strcmp(name, RecordFileTP.name) )
     {
-        IText *tp = IUFindText(&RecordFileTP, "RECORD_FILE_NAME");
+        IText * tp = IUFindText(&RecordFileTP, "RECORD_FILE_NAME");
         if (strchr(tp->text, '/'))
         {
             DEBUG(INDI::Logger::DBG_WARNING, "Dir. separator (/) not allowed in filename.");
@@ -660,7 +660,7 @@ bool StreamRecorder::ISNewText (const char *dev, const char *name, char *texts[]
     return true;
 }
 
-bool StreamRecorder::ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n)
+bool StreamRecorder::ISNewNumber (const char * dev, const char * name, double values[], char * names[], int n)
 {
     /* ignore if not ours */
     if (dev && strcmp (getDeviceName(), dev))
@@ -795,14 +795,14 @@ bool StreamRecorder::setStream(bool enable)
     return true;
 }
 
-bool StreamRecorder::saveConfigItems(FILE *fp)
+bool StreamRecorder::saveConfigItems(FILE * fp)
 {
     IUSaveConfigText(fp, &RecordFileTP);
     IUSaveConfigNumber(fp, &RecordOptionsNP);
     return true;
 }
 
-void StreamRecorder::getStreamFrame(uint16_t *x, uint16_t *y, uint16_t *w, uint16_t *h)
+void StreamRecorder::getStreamFrame(uint16_t * x, uint16_t * y, uint16_t * w, uint16_t * h)
 {
     *x = StreamFrameN[CCDChip::FRAME_X].value;
     *y = StreamFrameN[CCDChip::FRAME_Y].value;

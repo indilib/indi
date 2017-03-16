@@ -102,19 +102,19 @@ typedef struct _HIDP_CAPS
     USHORT Reserved[17];
     USHORT fields_not_used_by_hidapi[10];
 } HIDP_CAPS, *PHIDP_CAPS;
-typedef void* PHIDP_PREPARSED_DATA;
+typedef void * PHIDP_PREPARSED_DATA;
 #define HIDP_STATUS_SUCCESS 0x110000
 
-typedef BOOLEAN (__stdcall *HidD_GetAttributes_)(HANDLE device, PHIDD_ATTRIBUTES attrib);
-typedef BOOLEAN (__stdcall *HidD_GetSerialNumberString_)(HANDLE device, PVOID buffer, ULONG buffer_len);
-typedef BOOLEAN (__stdcall *HidD_GetManufacturerString_)(HANDLE handle, PVOID buffer, ULONG buffer_len);
-typedef BOOLEAN (__stdcall *HidD_GetProductString_)(HANDLE handle, PVOID buffer, ULONG buffer_len);
-typedef BOOLEAN (__stdcall *HidD_SetFeature_)(HANDLE handle, PVOID data, ULONG length);
-typedef BOOLEAN (__stdcall *HidD_GetFeature_)(HANDLE handle, PVOID data, ULONG length);
-typedef BOOLEAN (__stdcall *HidD_GetIndexedString_)(HANDLE handle, ULONG string_index, PVOID buffer, ULONG buffer_len);
-typedef BOOLEAN (__stdcall *HidD_GetPreparsedData_)(HANDLE handle, PHIDP_PREPARSED_DATA *preparsed_data);
-typedef BOOLEAN (__stdcall *HidD_FreePreparsedData_)(PHIDP_PREPARSED_DATA preparsed_data);
-typedef NTSTATUS (__stdcall *HidP_GetCaps_)(PHIDP_PREPARSED_DATA preparsed_data, HIDP_CAPS *caps);
+typedef BOOLEAN (__stdcall * HidD_GetAttributes_)(HANDLE device, PHIDD_ATTRIBUTES attrib);
+typedef BOOLEAN (__stdcall * HidD_GetSerialNumberString_)(HANDLE device, PVOID buffer, ULONG buffer_len);
+typedef BOOLEAN (__stdcall * HidD_GetManufacturerString_)(HANDLE handle, PVOID buffer, ULONG buffer_len);
+typedef BOOLEAN (__stdcall * HidD_GetProductString_)(HANDLE handle, PVOID buffer, ULONG buffer_len);
+typedef BOOLEAN (__stdcall * HidD_SetFeature_)(HANDLE handle, PVOID data, ULONG length);
+typedef BOOLEAN (__stdcall * HidD_GetFeature_)(HANDLE handle, PVOID data, ULONG length);
+typedef BOOLEAN (__stdcall * HidD_GetIndexedString_)(HANDLE handle, ULONG string_index, PVOID buffer, ULONG buffer_len);
+typedef BOOLEAN (__stdcall * HidD_GetPreparsedData_)(HANDLE handle, PHIDP_PREPARSED_DATA * preparsed_data);
+typedef BOOLEAN (__stdcall * HidD_FreePreparsedData_)(PHIDP_PREPARSED_DATA preparsed_data);
+typedef NTSTATUS (__stdcall * HidP_GetCaps_)(PHIDP_PREPARSED_DATA preparsed_data, HIDP_CAPS * caps);
 
 static HidD_GetAttributes_ HidD_GetAttributes;
 static HidD_GetSerialNumberString_ HidD_GetSerialNumberString;
@@ -137,16 +137,16 @@ struct hid_device_
     BOOL blocking;
     USHORT output_report_length;
     size_t input_report_length;
-    void *last_error_str;
+    void * last_error_str;
     DWORD last_error_num;
     BOOL read_pending;
-    char *read_buf;
+    char * read_buf;
     OVERLAPPED ol;
 };
 
-static hid_device *new_hid_device()
+static hid_device * new_hid_device()
 {
-    hid_device *dev = (hid_device*) calloc(1, sizeof(hid_device));
+    hid_device * dev = (hid_device *) calloc(1, sizeof(hid_device));
     dev->device_handle = INVALID_HANDLE_VALUE;
     dev->blocking = TRUE;
     dev->output_report_length = 0;
@@ -162,9 +162,9 @@ static hid_device *new_hid_device()
 }
 
 
-static void register_error(hid_device *device, const char *op)
+static void register_error(hid_device * device, const char * op)
 {
-    WCHAR *ptr, *msg;
+    WCHAR * ptr, *msg;
 
     FormatMessageW(FORMAT_MESSAGE_ALLOCATE_BUFFER |
                    FORMAT_MESSAGE_FROM_SYSTEM |
@@ -220,7 +220,7 @@ static int lookup_functions()
 }
 #endif
 
-static HANDLE open_device(const char *path, BOOL enumerate)
+static HANDLE open_device(const char * path, BOOL enumerate)
 {
     HANDLE handle;
     DWORD desired_access = (enumerate)? 0: (GENERIC_WRITE | GENERIC_READ);
@@ -269,14 +269,14 @@ int HID_API_EXPORT hid_exit(void)
 struct hid_device_info HID_API_EXPORT * HID_API_CALL hid_enumerate(unsigned short vendor_id, unsigned short product_id)
 {
     BOOL res;
-    struct hid_device_info *root = NULL; // return object
-    struct hid_device_info *cur_dev = NULL;
+    struct hid_device_info * root = NULL; // return object
+    struct hid_device_info * cur_dev = NULL;
 
     // Windows objects for interacting with the driver.
     GUID InterfaceClassGuid = {0x4d1e55b2, 0xf16f, 0x11cf, {0x88, 0xcb, 0x00, 0x11, 0x11, 0x00, 0x00, 0x30} };
     SP_DEVINFO_DATA devinfo_data;
     SP_DEVICE_INTERFACE_DATA device_interface_data;
-    SP_DEVICE_INTERFACE_DETAIL_DATA_A *device_interface_detail_data = NULL;
+    SP_DEVICE_INTERFACE_DETAIL_DATA_A * device_interface_detail_data = NULL;
     HDEVINFO device_info_set = INVALID_HANDLE_VALUE;
     int device_index = 0;
     int i;
@@ -324,7 +324,7 @@ struct hid_device_info HID_API_EXPORT * HID_API_CALL hid_enumerate(unsigned shor
                                                NULL);
 
         // Allocate a long enough structure for device_interface_detail_data.
-        device_interface_detail_data = (SP_DEVICE_INTERFACE_DETAIL_DATA_A*) malloc(required_size);
+        device_interface_detail_data = (SP_DEVICE_INTERFACE_DETAIL_DATA_A *) malloc(required_size);
         device_interface_detail_data->cbSize = sizeof(SP_DEVICE_INTERFACE_DETAIL_DATA_A);
 
         // Get the detailed data for this device. The detail data gives us
@@ -397,8 +397,8 @@ struct hid_device_info HID_API_EXPORT * HID_API_CALL hid_enumerate(unsigned shor
         {
 
 #define WSTR_LEN 512
-            const char *str;
-            struct hid_device_info *tmp;
+            const char * str;
+            struct hid_device_info * tmp;
             PHIDP_PREPARSED_DATA pp_data = NULL;
             HIDP_CAPS caps;
             BOOLEAN res;
@@ -407,7 +407,7 @@ struct hid_device_info HID_API_EXPORT * HID_API_CALL hid_enumerate(unsigned shor
             size_t len;
 
             /* VID/PID match. Create the record. */
-            tmp = (struct hid_device_info*) calloc(1, sizeof(struct hid_device_info));
+            tmp = (struct hid_device_info *) calloc(1, sizeof(struct hid_device_info));
             if (cur_dev)
             {
                 cur_dev->next = tmp;
@@ -438,7 +438,7 @@ struct hid_device_info HID_API_EXPORT * HID_API_CALL hid_enumerate(unsigned shor
             if (str)
             {
                 len = strlen(str);
-                cur_dev->path = (char*) calloc(len+1, sizeof(char));
+                cur_dev->path = (char *) calloc(len+1, sizeof(char));
                 strncpy(cur_dev->path, str, len+1);
                 cur_dev->path[len] = '\0';
             }
@@ -484,11 +484,11 @@ struct hid_device_info HID_API_EXPORT * HID_API_CALL hid_enumerate(unsigned shor
             cur_dev->interface_number = -1;
             if (cur_dev->path)
             {
-                char *interface_component = strstr(cur_dev->path, "&mi_");
+                char * interface_component = strstr(cur_dev->path, "&mi_");
                 if (interface_component)
                 {
-                    char *hex_str = interface_component + 4;
-                    char *endptr = NULL;
+                    char * hex_str = interface_component + 4;
+                    char * endptr = NULL;
                     cur_dev->interface_number = strtol(hex_str, &endptr, 16);
                     if (endptr == hex_str)
                     {
@@ -516,13 +516,13 @@ cont:
 
 }
 
-void  HID_API_EXPORT HID_API_CALL hid_free_enumeration(struct hid_device_info *devs)
+void  HID_API_EXPORT HID_API_CALL hid_free_enumeration(struct hid_device_info * devs)
 {
     // TODO: Merge this with the Linux version. This function is platform-independent.
-    struct hid_device_info *d = devs;
+    struct hid_device_info * d = devs;
     while (d)
     {
-        struct hid_device_info *next = d->next;
+        struct hid_device_info * next = d->next;
         free(d->path);
         free(d->serial_number);
         free(d->manufacturer_string);
@@ -533,12 +533,12 @@ void  HID_API_EXPORT HID_API_CALL hid_free_enumeration(struct hid_device_info *d
 }
 
 
-HID_API_EXPORT hid_device * HID_API_CALL hid_open(unsigned short vendor_id, unsigned short product_id, const wchar_t *serial_number)
+HID_API_EXPORT hid_device * HID_API_CALL hid_open(unsigned short vendor_id, unsigned short product_id, const wchar_t * serial_number)
 {
     // TODO: Merge this functions with the Linux version. This function should be platform independent.
-    struct hid_device_info *devs, *cur_dev;
-    const char *path_to_open = NULL;
-    hid_device *handle = NULL;
+    struct hid_device_info * devs, *cur_dev;
+    const char * path_to_open = NULL;
+    hid_device * handle = NULL;
 
     devs = hid_enumerate(vendor_id, product_id);
     cur_dev = devs;
@@ -575,9 +575,9 @@ HID_API_EXPORT hid_device * HID_API_CALL hid_open(unsigned short vendor_id, unsi
     return handle;
 }
 
-HID_API_EXPORT hid_device * HID_API_CALL hid_open_path(const char *path)
+HID_API_EXPORT hid_device * HID_API_CALL hid_open_path(const char * path)
 {
-    hid_device *dev;
+    hid_device * dev;
     HIDP_CAPS caps;
     PHIDP_PREPARSED_DATA pp_data = NULL;
     BOOLEAN res;
@@ -618,7 +618,7 @@ HID_API_EXPORT hid_device * HID_API_CALL hid_open_path(const char *path)
     dev->input_report_length = caps.InputReportByteLength;
     HidD_FreePreparsedData(pp_data);
 
-    dev->read_buf = (char*) malloc(dev->input_report_length);
+    dev->read_buf = (char *) malloc(dev->input_report_length);
 
     return dev;
 
@@ -630,13 +630,13 @@ err:
     return NULL;
 }
 
-int HID_API_EXPORT HID_API_CALL hid_write(hid_device *dev, const unsigned char *data, size_t length)
+int HID_API_EXPORT HID_API_CALL hid_write(hid_device * dev, const unsigned char * data, size_t length)
 {
     DWORD bytes_written;
     BOOL res;
 
     OVERLAPPED ol;
-    unsigned char *buf;
+    unsigned char * buf;
     memset(&ol, 0, sizeof(ol));
 
     /* Make sure the right number of bytes are passed to WriteFile. Windows
@@ -692,7 +692,7 @@ end_of_function:
 }
 
 
-int HID_API_EXPORT HID_API_CALL hid_read_timeout(hid_device *dev, unsigned char *data, size_t length, int milliseconds)
+int HID_API_EXPORT HID_API_CALL hid_read_timeout(hid_device * dev, unsigned char * data, size_t length, int milliseconds)
 {
     DWORD bytes_read = 0;
     BOOL res;
@@ -772,18 +772,18 @@ end_of_function:
     return bytes_read;
 }
 
-int HID_API_EXPORT HID_API_CALL hid_read(hid_device *dev, unsigned char *data, size_t length)
+int HID_API_EXPORT HID_API_CALL hid_read(hid_device * dev, unsigned char * data, size_t length)
 {
     return hid_read_timeout(dev, data, length, (dev->blocking)? -1: 0);
 }
 
-int HID_API_EXPORT HID_API_CALL hid_set_nonblocking(hid_device *dev, int nonblock)
+int HID_API_EXPORT HID_API_CALL hid_set_nonblocking(hid_device * dev, int nonblock)
 {
     dev->blocking = !nonblock;
     return 0; /* Success */
 }
 
-int HID_API_EXPORT HID_API_CALL hid_send_feature_report(hid_device *dev, const unsigned char *data, size_t length)
+int HID_API_EXPORT HID_API_CALL hid_send_feature_report(hid_device * dev, const unsigned char * data, size_t length)
 {
     BOOL res = HidD_SetFeature(dev->device_handle, (PVOID)data, length);
     if (!res)
@@ -796,7 +796,7 @@ int HID_API_EXPORT HID_API_CALL hid_send_feature_report(hid_device *dev, const u
 }
 
 
-int HID_API_EXPORT HID_API_CALL hid_get_feature_report(hid_device *dev, unsigned char *data, size_t length)
+int HID_API_EXPORT HID_API_CALL hid_get_feature_report(hid_device * dev, unsigned char * data, size_t length)
 {
     BOOL res;
 #if 0
@@ -842,7 +842,7 @@ int HID_API_EXPORT HID_API_CALL hid_get_feature_report(hid_device *dev, unsigned
 #endif
 }
 
-void HID_API_EXPORT HID_API_CALL hid_close(hid_device *dev)
+void HID_API_EXPORT HID_API_CALL hid_close(hid_device * dev)
 {
     if (!dev)
         return;
@@ -854,7 +854,7 @@ void HID_API_EXPORT HID_API_CALL hid_close(hid_device *dev)
     free(dev);
 }
 
-int HID_API_EXPORT_CALL HID_API_CALL hid_get_manufacturer_string(hid_device *dev, wchar_t *string, size_t maxlen)
+int HID_API_EXPORT_CALL HID_API_CALL hid_get_manufacturer_string(hid_device * dev, wchar_t * string, size_t maxlen)
 {
     BOOL res;
 
@@ -868,7 +868,7 @@ int HID_API_EXPORT_CALL HID_API_CALL hid_get_manufacturer_string(hid_device *dev
     return 0;
 }
 
-int HID_API_EXPORT_CALL HID_API_CALL hid_get_product_string(hid_device *dev, wchar_t *string, size_t maxlen)
+int HID_API_EXPORT_CALL HID_API_CALL hid_get_product_string(hid_device * dev, wchar_t * string, size_t maxlen)
 {
     BOOL res;
 
@@ -882,7 +882,7 @@ int HID_API_EXPORT_CALL HID_API_CALL hid_get_product_string(hid_device *dev, wch
     return 0;
 }
 
-int HID_API_EXPORT_CALL HID_API_CALL hid_get_serial_number_string(hid_device *dev, wchar_t *string, size_t maxlen)
+int HID_API_EXPORT_CALL HID_API_CALL hid_get_serial_number_string(hid_device * dev, wchar_t * string, size_t maxlen)
 {
     BOOL res;
 
@@ -896,7 +896,7 @@ int HID_API_EXPORT_CALL HID_API_CALL hid_get_serial_number_string(hid_device *de
     return 0;
 }
 
-int HID_API_EXPORT_CALL HID_API_CALL hid_get_indexed_string(hid_device *dev, int string_index, wchar_t *string, size_t maxlen)
+int HID_API_EXPORT_CALL HID_API_CALL hid_get_indexed_string(hid_device * dev, int string_index, wchar_t * string, size_t maxlen)
 {
     BOOL res;
 
@@ -911,9 +911,9 @@ int HID_API_EXPORT_CALL HID_API_CALL hid_get_indexed_string(hid_device *dev, int
 }
 
 
-HID_API_EXPORT const wchar_t * HID_API_CALL  hid_error(hid_device *dev)
+HID_API_EXPORT const wchar_t * HID_API_CALL  hid_error(hid_device * dev)
 {
-    return (wchar_t*)dev->last_error_str;
+    return (wchar_t *)dev->last_error_str;
 }
 
 
@@ -938,7 +938,7 @@ unsigned short ProductID = 0x0033;
 
 
 #if 0
-int __cdecl main(int argc, char* argv[])
+int __cdecl main(int argc, char * argv[])
 {
     int res;
     unsigned char buf[65];

@@ -30,7 +30,7 @@ V4L2_Recorder::~V4L2_Recorder()
 {
 }
 
-const char *V4L2_Recorder::getName()
+const char * V4L2_Recorder::getName()
 {
     return name;
 }
@@ -56,17 +56,17 @@ std::vector<V4L2_Recorder *> V4L2_Record::getRecorderList()
     return recorder_list;
 }
 
-V4L2_Recorder *V4L2_Record::getRecorder()
+V4L2_Recorder * V4L2_Record::getRecorder()
 {
     return current_recorder;
 }
 
-V4L2_Recorder *V4L2_Record::getDefaultRecorder()
+V4L2_Recorder * V4L2_Record::getDefaultRecorder()
 {
     return default_recorder;
 }
 
-void V4L2_Record::setRecorder(V4L2_Recorder *recorder)
+void V4L2_Record::setRecorder(V4L2_Recorder * recorder)
 {
     current_recorder=recorder;
 }

@@ -51,9 +51,9 @@
 */
 
 
-static void jpeg_buffer_src(j_decompress_ptr cinfo, unsigned char *buffer,
+static void jpeg_buffer_src(j_decompress_ptr cinfo, unsigned char * buffer,
                             long num);
-static void jpeg_buffer_dest(j_compress_ptr cinfo, unsigned char *buffer,
+static void jpeg_buffer_dest(j_compress_ptr cinfo, unsigned char * buffer,
                              long len);
 static void jpeg_skip_ff(j_decompress_ptr cinfo);
 
@@ -129,7 +129,7 @@ static void term_source(j_decompress_ptr cinfo)
  * Prepare for input from a data buffer.
  */
 
-static void jpeg_buffer_src(j_decompress_ptr cinfo, unsigned char *buffer, long num)
+static void jpeg_buffer_src(j_decompress_ptr cinfo, unsigned char * buffer, long num)
 {
     /* The source object and input buffer are made permanent so that a series
     * of JPEG images can be read from the same buffer by calling jpeg_buffer_src
@@ -228,7 +228,7 @@ static void term_destination(j_compress_ptr cinfo)
  * for closing it after finishing compression.
  */
 
-static void jpeg_buffer_dest(j_compress_ptr cinfo, unsigned char *buf, long len)
+static void jpeg_buffer_dest(j_compress_ptr cinfo, unsigned char * buf, long len)
 {
 
     /* The destination object is made permanent so that multiple JPEG images
@@ -280,7 +280,7 @@ struct my_error_mgr
 static void my_error_exit(j_common_ptr cinfo)
 {
     /* cinfo->err really points to a my_error_mgr struct, so coerce pointer */
-    struct my_error_mgr *myerr = (struct my_error_mgr *) cinfo->err;
+    struct my_error_mgr * myerr = (struct my_error_mgr *) cinfo->err;
 
     /* Always display the message. */
     /* We could postpone this until after returning, if we chose. */
@@ -293,7 +293,7 @@ static void my_error_exit(j_common_ptr cinfo)
 static void my_emit_message(j_common_ptr cinfo, int msg_level)
 {
     /* cinfo->err really points to a my_error_mgr struct, so coerce pointer */
-    struct my_error_mgr *myerr = (struct my_error_mgr *) cinfo->err;
+    struct my_error_mgr * myerr = (struct my_error_mgr *) cinfo->err;
 
     if(msg_level < 0)
         myerr->warning_seen = 1;
@@ -315,8 +315,8 @@ static unsigned char chr2[8][MAX_CHROMA_WIDTH];
 
 #if 1  /* generation of 'std' Huffman tables... */
 
-static void add_huff_table(j_decompress_ptr dinfo, JHUFF_TBL **htblptr,
-                           const UINT8 *bits, const UINT8 *val)
+static void add_huff_table(j_decompress_ptr dinfo, JHUFF_TBL ** htblptr,
+                           const UINT8 * bits, const UINT8 * val)
 /* Define a Huffman table */
 {
     int nsymbols, len;
@@ -456,10 +456,10 @@ static void guarantee_huff_tables(j_decompress_ptr dinfo)
  *
  */
 
-int decode_jpeg_raw (unsigned char *jpeg_data, int len,
+int decode_jpeg_raw (unsigned char * jpeg_data, int len,
                      int itype, int ctype, unsigned int width,
-                     unsigned int height, unsigned char *raw0,
-                     unsigned char *raw1, unsigned char *raw2)
+                     unsigned int height, unsigned char * raw0,
+                     unsigned char * raw1, unsigned char * raw2)
 {
     int numfields, hsf[3], field, yl, yc;
     int i, xsl, xsc, xs, hdown;
@@ -628,16 +628,16 @@ int decode_jpeg_raw (unsigned char *jpeg_data, int len,
         {
             switch (itype)
             {
-            case Y4M_ILACE_TOP_FIRST:
-                yl = yc = field;
-                break;
-            case Y4M_ILACE_BOTTOM_FIRST:
-                yl = yc = (1 - field);
-                break;
-            default:
-                fprintf(stderr, "%s: Input is interlaced but no interlacing set",
-                        __FUNCTION__);
-                goto ERR_EXIT;
+                case Y4M_ILACE_TOP_FIRST:
+                    yl = yc = field;
+                    break;
+                case Y4M_ILACE_BOTTOM_FIRST:
+                    yl = yc = (1 - field);
+                    break;
+                default:
+                    fprintf(stderr, "%s: Input is interlaced but no interlacing set",
+                            __FUNCTION__);
+                    goto ERR_EXIT;
             }
         }
         else
@@ -721,84 +721,84 @@ int decode_jpeg_raw (unsigned char *jpeg_data, int len,
 
             switch (ctype)
             {
-            case Y4M_CHROMA_422:
-                if (vsf[0] == 1)
-                {
-                    /* Just copy */
-                    for (y = 0; y < 8 /*&& yc < height */; y++, yc += numfields)
+                case Y4M_CHROMA_422:
+                    if (vsf[0] == 1)
                     {
-                        xd = yc * width / 2;
-
-                        for (x = 0; x < width / 2; x++, xd++)
+                        /* Just copy */
+                        for (y = 0; y < 8 /*&& yc < height */; y++, yc += numfields)
                         {
-                            raw1[xd] = chr1[y][x];
-                            raw2[xd] = chr2[y][x];
+                            xd = yc * width / 2;
+
+                            for (x = 0; x < width / 2; x++, xd++)
+                            {
+                                raw1[xd] = chr1[y][x];
+                                raw2[xd] = chr2[y][x];
+                            }
                         }
                     }
-                }
-                else
-                {
-                    /* upsample */
-                    for (y = 0; y < 8 /*&& yc < height */; y++)
+                    else
                     {
-                        xd = yc * width / 2;
-
-                        for (x = 0; x < width / 2; x++, xd++)
+                        /* upsample */
+                        for (y = 0; y < 8 /*&& yc < height */; y++)
                         {
-                            raw1[xd] = chr1[y][x];
-                            raw2[xd] = chr2[y][x];
-                        }
+                            xd = yc * width / 2;
 
-                        yc += numfields;
-                        xd = yc * width / 2;
+                            for (x = 0; x < width / 2; x++, xd++)
+                            {
+                                raw1[xd] = chr1[y][x];
+                                raw2[xd] = chr2[y][x];
+                            }
 
-                        for (x = 0; x < width / 2; x++, xd++)
-                        {
-                            raw1[xd] = chr1[y][x];
-                            raw2[xd] = chr2[y][x];
-                        }
+                            yc += numfields;
+                            xd = yc * width / 2;
 
-                        yc += numfields;
-                    }
-                }
-                break;
-            default:
-                /*
-                * should be case Y4M_CHROMA_420JPEG: but use default: for compatibility. Some
-                * pass things like '420' in with the expectation that anything other than
-                * Y4M_CHROMA_422 will default to 420JPEG.
-                */
-                if (vsf[0] == 1)
-                {
-                    /* Really downsample */
-                    for (y = 0; y < 8 /*&& yc < height/2*/; y += 2, yc += numfields)
-                    {
-                        xd = yc * width / 2;
+                            for (x = 0; x < width / 2; x++, xd++)
+                            {
+                                raw1[xd] = chr1[y][x];
+                                raw2[xd] = chr2[y][x];
+                            }
 
-                        for (x = 0; x < width / 2; x++, xd++)
-                        {
-                            assert(xd < (width * height / 4));
-                            raw1[xd] = (chr1[y][x] + chr1[y + 1][x]) >> 1;
-                            raw2[xd] = (chr2[y][x] + chr2[y + 1][x]) >> 1;
+                            yc += numfields;
                         }
                     }
-
-                }
-                else
-                {
-                    /* Just copy */
-                    for (y = 0; y < 8 /*&& yc < height/2 */; y++, yc += numfields)
+                    break;
+                default:
+                    /*
+                    * should be case Y4M_CHROMA_420JPEG: but use default: for compatibility. Some
+                    * pass things like '420' in with the expectation that anything other than
+                    * Y4M_CHROMA_422 will default to 420JPEG.
+                    */
+                    if (vsf[0] == 1)
                     {
-                        xd = yc * width / 2;
-
-                        for (x = 0; x < width / 2; x++, xd++)
+                        /* Really downsample */
+                        for (y = 0; y < 8 /*&& yc < height/2*/; y += 2, yc += numfields)
                         {
-                            raw1[xd] = chr1[y][x];
-                            raw2[xd] = chr2[y][x];
+                            xd = yc * width / 2;
+
+                            for (x = 0; x < width / 2; x++, xd++)
+                            {
+                                assert(xd < (width * height / 4));
+                                raw1[xd] = (chr1[y][x] + chr1[y + 1][x]) >> 1;
+                                raw2[xd] = (chr2[y][x] + chr2[y + 1][x]) >> 1;
+                            }
+                        }
+
+                    }
+                    else
+                    {
+                        /* Just copy */
+                        for (y = 0; y < 8 /*&& yc < height/2 */; y++, yc += numfields)
+                        {
+                            xd = yc * width / 2;
+
+                            for (x = 0; x < width / 2; x++, xd++)
+                            {
+                                raw1[xd] = chr1[y][x];
+                                raw2[xd] = chr2[y][x];
+                            }
                         }
                     }
-                }
-                break;
+                    break;
             }
         }
 
@@ -838,10 +838,10 @@ ERR_EXIT:
  *                  Currently only Y4M_CHROMA_{420JPEG,422} are available
  */
 
-int decode_jpeg_gray_raw(unsigned char *jpeg_data, int len,
+int decode_jpeg_gray_raw(unsigned char * jpeg_data, int len,
                          int itype, int ctype, unsigned int width,
-                         unsigned int height, unsigned char *raw0,
-                         unsigned char *raw1, unsigned char *raw2)
+                         unsigned int height, unsigned char * raw0,
+                         unsigned char * raw1, unsigned char * raw2)
 {
     int numfields, hsf[3], field, yl, yc, xsl, xsc, xs, xd, hdown;
     unsigned int x, y, vsf[3];
@@ -970,16 +970,16 @@ int decode_jpeg_gray_raw(unsigned char *jpeg_data, int len,
         {
             switch (itype)
             {
-            case Y4M_ILACE_TOP_FIRST:
-                yl = yc = field;
-                break;
-            case Y4M_ILACE_BOTTOM_FIRST:
-                yl = yc = (1 - field);
-                break;
-            default:
-                fprintf(stderr, "%s: Input is interlaced but no interlacing set",
-                        __FUNCTION__);
-                goto ERR_EXIT;
+                case Y4M_ILACE_TOP_FIRST:
+                    yl = yc = field;
+                    break;
+                case Y4M_ILACE_BOTTOM_FIRST:
+                    yl = yc = (1 - field);
+                    break;
+                default:
+                    fprintf(stderr, "%s: Input is interlaced but no interlacing set",
+                            __FUNCTION__);
+                    goto ERR_EXIT;
             }
         }
         else
@@ -1053,83 +1053,83 @@ int decode_jpeg_gray_raw(unsigned char *jpeg_data, int len,
 
             switch (ctype)
             {
-            case Y4M_CHROMA_422:
-                if (vsf[0] == 1)
-                {
-                    /* Just copy */
-                    for (y = 0; y < 8 /*&& yc < height */; y++, yc += numfields)
+                case Y4M_CHROMA_422:
+                    if (vsf[0] == 1)
                     {
-                        xd = yc * width / 2;
-
-                        for (x = 0; x < width / 2; x++, xd++)
+                        /* Just copy */
+                        for (y = 0; y < 8 /*&& yc < height */; y++, yc += numfields)
                         {
-                            raw1[xd] = 127; //chr1[y][x];
-                            raw2[xd] = 127; //chr2[y][x];
+                            xd = yc * width / 2;
+
+                            for (x = 0; x < width / 2; x++, xd++)
+                            {
+                                raw1[xd] = 127; //chr1[y][x];
+                                raw2[xd] = 127; //chr2[y][x];
+                            }
                         }
                     }
-                }
-                else
-                {
-                    /* upsample */
-                    for (y = 0; y < 8 /*&& yc < height */; y++)
+                    else
                     {
-                        xd = yc * width / 2;
-
-                        for (x = 0; x < width / 2; x++, xd++)
+                        /* upsample */
+                        for (y = 0; y < 8 /*&& yc < height */; y++)
                         {
-                            raw1[xd] = 127; //chr1[y][x];
-                            raw2[xd] = 127; //chr2[y][x];
-                        }
+                            xd = yc * width / 2;
 
-                        yc += numfields;
-                        xd = yc * width / 2;
+                            for (x = 0; x < width / 2; x++, xd++)
+                            {
+                                raw1[xd] = 127; //chr1[y][x];
+                                raw2[xd] = 127; //chr2[y][x];
+                            }
 
-                        for (x = 0; x < width / 2; x++, xd++)
-                        {
-                            raw1[xd] = 127; //chr1[y][x];
-                            raw2[xd] = 127; //chr2[y][x];
-                        }
+                            yc += numfields;
+                            xd = yc * width / 2;
 
-                        yc += numfields;
-                    }
-                }
-                break;
-            /*
-             * should be case Y4M_CHROMA_420JPEG: but use default: for compatibility. Some
-             * pass things like '420' in with the expectation that anything other than
-             * Y4M_CHROMA_422 will default to 420JPEG.
-             */
-            default:
-                if (vsf[0] == 1)
-                {
-                    /* Really downsample */
-                    for (y = 0; y < 8; y += 2, yc += numfields)
-                    {
-                        xd = yc * width / 2;
+                            for (x = 0; x < width / 2; x++, xd++)
+                            {
+                                raw1[xd] = 127; //chr1[y][x];
+                                raw2[xd] = 127; //chr2[y][x];
+                            }
 
-                        for (x = 0; x < width / 2; x++, xd++)
-                        {
-                            raw1[xd] = 127; //(chr1[y][x] + chr1[y + 1][x]) >> 1;
-                            raw2[xd] = 127; //(chr2[y][x] + chr2[y + 1][x]) >> 1;
+                            yc += numfields;
                         }
                     }
-                }
-                else
-                {
-                    /* Just copy */
-
-                    for (y = 0; y < 8; y++, yc += numfields)
+                    break;
+                /*
+                 * should be case Y4M_CHROMA_420JPEG: but use default: for compatibility. Some
+                 * pass things like '420' in with the expectation that anything other than
+                 * Y4M_CHROMA_422 will default to 420JPEG.
+                 */
+                default:
+                    if (vsf[0] == 1)
                     {
-                        xd = yc * width / 2;
-
-                        for (x = 0; x < width / 2; x++, xd++)
+                        /* Really downsample */
+                        for (y = 0; y < 8; y += 2, yc += numfields)
                         {
-                            raw1[xd] = 127; //chr1[y][x];
-                            raw2[xd] = 127; //chr2[y][x];
+                            xd = yc * width / 2;
+
+                            for (x = 0; x < width / 2; x++, xd++)
+                            {
+                                raw1[xd] = 127; //(chr1[y][x] + chr1[y + 1][x]) >> 1;
+                                raw2[xd] = 127; //(chr2[y][x] + chr2[y + 1][x]) >> 1;
+                            }
                         }
                     }
-                }
-                break;
+                    else
+                    {
+                        /* Just copy */
+
+                        for (y = 0; y < 8; y++, yc += numfields)
+                        {
+                            xd = yc * width / 2;
+
+                            for (x = 0; x < width / 2; x++, xd++)
+                            {
+                                raw1[xd] = 127; //chr1[y][x];
+                                raw2[xd] = 127; //chr2[y][x];
+                            }
+                        }
+                    }
+                    break;
             }
         }
 
@@ -1165,10 +1165,10 @@ ERR_EXIT:
 *                  Currently only Y4M_CHROMA_{420JPEG,422} are available
 */
 
-int encode_jpeg_raw(unsigned char *jpeg_data, int len, int quality,
+int encode_jpeg_raw(unsigned char * jpeg_data, int len, int quality,
                     int itype, int ctype, unsigned int width,
-                    unsigned int height, unsigned char *raw0,
-                    unsigned char *raw1, unsigned char *raw2)
+                    unsigned int height, unsigned char * raw0,
+                    unsigned char * raw1, unsigned char * raw2)
 {
     int numfields, field, yl, yc, y, i;
 
@@ -1245,18 +1245,18 @@ int encode_jpeg_raw(unsigned char *jpeg_data, int len, int quality,
 
     switch (itype)
     {
-    case Y4M_ILACE_TOP_FIRST:
-    case Y4M_ILACE_BOTTOM_FIRST: /* interlaced */
-        numfields = 2;
-        break;
-    default:
-        numfields = 1;
-        if (height > 2048)
-        {
-            fprintf(stderr, "%s: Image height (%d) exceeds lavtools max "
-                    "for non-interlaced frames", __FUNCTION__, height);
-            goto ERR_EXIT;
-        }
+        case Y4M_ILACE_TOP_FIRST:
+        case Y4M_ILACE_BOTTOM_FIRST: /* interlaced */
+            numfields = 2;
+            break;
+        default:
+            numfields = 1;
+            if (height > 2048)
+            {
+                fprintf(stderr, "%s: Image height (%d) exceeds lavtools max "
+                        "for non-interlaced frames", __FUNCTION__, height);
+                goto ERR_EXIT;
+            }
     }
 
     cinfo.image_height = height / numfields;
@@ -1276,16 +1276,16 @@ int encode_jpeg_raw(unsigned char *jpeg_data, int len, int quality,
 
             switch (itype)
             {
-            case Y4M_ILACE_TOP_FIRST: /* top field first */
-                yl = yc = field;
-                break;
-            case Y4M_ILACE_BOTTOM_FIRST: /* bottom field first */
-                yl = yc = (1 - field);
-                break;
-            default:
-                fprintf(stderr, "%s: Input is interlaced but no interlacing set",
-                        __FUNCTION__);
-                goto ERR_EXIT;
+                case Y4M_ILACE_TOP_FIRST: /* top field first */
+                    yl = yc = field;
+                    break;
+                case Y4M_ILACE_BOTTOM_FIRST: /* bottom field first */
+                    yl = yc = (1 - field);
+                    break;
+                default:
+                    fprintf(stderr, "%s: Input is interlaced but no interlacing set",
+                            __FUNCTION__);
+                    goto ERR_EXIT;
             }
 
         }

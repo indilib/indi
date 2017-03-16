@@ -84,7 +84,7 @@ bool INDI::Focuser::initProperties()
     return true;
 }
 
-void INDI::Focuser::ISGetProperties (const char *dev)
+void INDI::Focuser::ISGetProperties (const char * dev)
 {
     //  First we let our parent populate
     DefaultDevice::ISGetProperties(dev);
@@ -143,7 +143,7 @@ bool INDI::Focuser::updateProperties()
 }
 
 
-bool INDI::Focuser::ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n)
+bool INDI::Focuser::ISNewNumber (const char * dev, const char * name, double values[], char * names[], int n)
 {
     //  first check if it's for our device
     if(strcmp(dev,getDeviceName())==0)
@@ -167,7 +167,7 @@ bool INDI::Focuser::ISNewNumber (const char *dev, const char *name, double value
     return DefaultDevice::ISNewNumber(dev,name,values,names,n);
 }
 
-bool INDI::Focuser::ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n)
+bool INDI::Focuser::ISNewSwitch (const char * dev, const char * name, ISState * states, char * names[], int n)
 {
     if(strcmp(dev,getDeviceName())==0)
     {
@@ -216,14 +216,14 @@ bool INDI::Focuser::ISNewSwitch (const char *dev, const char *name, ISState *sta
     return DefaultDevice::ISNewSwitch(dev,name,states,names,n);
 }
 
-bool INDI::Focuser::ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n)
+bool INDI::Focuser::ISNewText (const char * dev, const char * name, char * texts[], char * names[], int n)
 {
     controller->ISNewText(dev, name, texts, names, n);
 
     return DefaultDevice::ISNewText(dev, name, texts, names, n);
 }
 
-bool INDI::Focuser::ISSnoopDevice (XMLEle *root)
+bool INDI::Focuser::ISSnoopDevice (XMLEle * root)
 {
     controller->ISSnoopDevice(root);
 
@@ -235,7 +235,7 @@ bool INDI::Focuser::Handshake()
     return false;
 }
 
-bool INDI::Focuser::saveConfigItems(FILE *fp)
+bool INDI::Focuser::saveConfigItems(FILE * fp)
 {
     DefaultDevice::saveConfigItems(fp);
 
@@ -246,7 +246,7 @@ bool INDI::Focuser::saveConfigItems(FILE *fp)
     return true;
 }
 
-void INDI::Focuser::buttonHelper(const char *button_n, ISState state, void *context)
+void INDI::Focuser::buttonHelper(const char * button_n, ISState state, void * context)
 {
     static_cast<INDI::Focuser *>(context)->processButton(button_n, state);
 }

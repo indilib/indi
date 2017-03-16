@@ -16,8 +16,8 @@ namespace AlignmentSubsystem
 {
 
 void TelescopeDirectionVectorSupportFunctions::SphericalCoordinateFromTelescopeDirectionVector(const TelescopeDirectionVector TelescopeDirectionVector,
-        double& AzimuthAngle, AzimuthAngleDirection AzimuthAngleDirection,
-        double& PolarAngle, PolarAngleDirection PolarAngleDirection)
+        double &AzimuthAngle, AzimuthAngleDirection AzimuthAngleDirection,
+        double &PolarAngle, PolarAngleDirection PolarAngleDirection)
 {
     if (ANTI_CLOCKWISE == AzimuthAngleDirection)
     {

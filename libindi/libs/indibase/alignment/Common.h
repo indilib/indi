@@ -85,7 +85,7 @@ struct TelescopeDirectionVector
     }
 
     /// \brief Override the *= operator to return a  unary scalar product
-    inline const TelescopeDirectionVector& operator *= (const double &RHS)
+    inline const TelescopeDirectionVector &operator *= (const double &RHS)
     {
         x *= RHS;
         y *= RHS;
@@ -94,7 +94,7 @@ struct TelescopeDirectionVector
     }
 
     /// \brief Override the - operator to return a binary vector subtract
-    inline const TelescopeDirectionVector operator - (const TelescopeDirectionVector& RHS) const
+    inline const TelescopeDirectionVector operator - (const TelescopeDirectionVector &RHS) const
     {
         return TelescopeDirectionVector(x - RHS.x, y - RHS.y, z - RHS.z);
     }
@@ -141,7 +141,7 @@ struct AlignmentDatabaseEntry
         Declination(0), PrivateDataSize(0) {}
 
     /// \brief Copy constructor
-    AlignmentDatabaseEntry(const AlignmentDatabaseEntry& Source) : ObservationJulianDate(Source.ObservationJulianDate),
+    AlignmentDatabaseEntry(const AlignmentDatabaseEntry &Source) : ObservationJulianDate(Source.ObservationJulianDate),
         RightAscension(Source.RightAscension),
         Declination(Source.Declination),
         TelescopeDirection(Source.TelescopeDirection),
@@ -155,7 +155,7 @@ struct AlignmentDatabaseEntry
     }
 
     /// Override the assignment operator to provide a const version
-    inline const AlignmentDatabaseEntry& operator = (const AlignmentDatabaseEntry& RHS)
+    inline const AlignmentDatabaseEntry &operator = (const AlignmentDatabaseEntry &RHS)
     {
         ObservationJulianDate = RHS.ObservationJulianDate;
         RightAscension = RHS.RightAscension;

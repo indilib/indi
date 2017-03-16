@@ -76,7 +76,7 @@
 int tty_debug = 0;
 
 #ifndef _WIN32
-int extractISOTime(const char *timestr, struct ln_date *iso_date)
+int extractISOTime(const char * timestr, struct ln_date * iso_date)
 {
     struct tm utm;
 
@@ -108,9 +108,9 @@ int extractISOTime(const char *timestr, struct ln_date *iso_date)
  * return number of characters written to out, not counting final '\0'.
  */
 int
-fs_sexa (char *out, double a, int w, int fracbase)
+fs_sexa (char * out, double a, int w, int fracbase)
 {
-    char *out0 = out;
+    char * out0 = out;
     unsigned long n;
     int d;
     int f;
@@ -137,31 +137,31 @@ fs_sexa (char *out, double a, int w, int fracbase)
     /* do the rest */
     switch (fracbase)
     {
-    case 60:	/* dd:mm */
-        m = f/(fracbase/60);
-        out += snprintf (out, MAXINDIFORMAT, ":%02d", m);
-        break;
-    case 600:	/* dd:mm.m */
-        out += snprintf (out, MAXINDIFORMAT, ":%02d.%1d", f/10, f%10);
-        break;
-    case 3600:	/* dd:mm:ss */
-        m = f/(fracbase/60);
-        s = f%(fracbase/60);
-        out += snprintf (out, MAXINDIFORMAT, ":%02d:%02d", m, s);
-        break;
-    case 36000:	/* dd:mm:ss.s*/
-        m = f/(fracbase/60);
-        s = f%(fracbase/60);
-        out += snprintf (out, MAXINDIFORMAT, ":%02d:%02d.%1d", m, s/10, s%10);
-        break;
-    case 360000:	/* dd:mm:ss.ss */
-        m = f/(fracbase/60);
-        s = f%(fracbase/60);
-        out += snprintf (out, MAXINDIFORMAT, ":%02d:%02d.%02d", m, s/100, s%100);
-        break;
-    default:
-        printf ("fs_sexa: unknown fracbase: %d\n", fracbase);
-        return -1;
+        case 60:	/* dd:mm */
+            m = f/(fracbase/60);
+            out += snprintf (out, MAXINDIFORMAT, ":%02d", m);
+            break;
+        case 600:	/* dd:mm.m */
+            out += snprintf (out, MAXINDIFORMAT, ":%02d.%1d", f/10, f%10);
+            break;
+        case 3600:	/* dd:mm:ss */
+            m = f/(fracbase/60);
+            s = f%(fracbase/60);
+            out += snprintf (out, MAXINDIFORMAT, ":%02d:%02d", m, s);
+            break;
+        case 36000:	/* dd:mm:ss.s*/
+            m = f/(fracbase/60);
+            s = f%(fracbase/60);
+            out += snprintf (out, MAXINDIFORMAT, ":%02d:%02d.%1d", m, s/10, s%10);
+            break;
+        case 360000:	/* dd:mm:ss.ss */
+            m = f/(fracbase/60);
+            s = f%(fracbase/60);
+            out += snprintf (out, MAXINDIFORMAT, ":%02d:%02d.%02d", m, s/100, s%100);
+            break;
+        default:
+            printf ("fs_sexa: unknown fracbase: %d\n", fracbase);
+            return -1;
     }
 
     return (out - out0);
@@ -174,14 +174,14 @@ fs_sexa (char *out, double a, int w, int fracbase)
  */
 int
 f_scansexa (
-    const char *str0,	/* input string */
-    double *dp)		/* cracked value, if return 0 */
+    const char * str0,	/* input string */
+    double * dp)		/* cracked value, if return 0 */
 {
-    char *orig = setlocale(LC_NUMERIC,"C");
+    char * orig = setlocale(LC_NUMERIC,"C");
 
     double a = 0, b = 0, c = 0;
     char str[128];
-    char *neg;
+    char * neg;
     int r;
 
     /* copy str0 so we can play with it */
@@ -204,7 +204,7 @@ f_scansexa (
     return (0);
 }
 
-void getSexComponents(double value, int *d, int *m, int *s)
+void getSexComponents(double value, int * d, int * m, int * s)
 {
 
     *d = (int32_t) fabs(value);
@@ -215,7 +215,7 @@ void getSexComponents(double value, int *d, int *m, int *s)
         *d *= -1;
 }
 
-void getSexComponentsIID(double value, int *d, int *m, double *s)
+void getSexComponentsIID(double value, int * d, int * m, double * s)
 {
 
     *d = (int32_t) fabs(value);
@@ -228,7 +228,7 @@ void getSexComponentsIID(double value, int *d, int *m, double *s)
 
 /* fill buf with properly formatted INumber string. return length */
 int
-numberFormat (char *buf, const char *format, double value)
+numberFormat (char * buf, const char * format, double value)
 {
     int w, f, s;
     char m;
@@ -238,21 +238,21 @@ numberFormat (char *buf, const char *format, double value)
         /* INDI sexi format */
         switch (f)
         {
-        case 9:
-            s = 360000;
-            break;
-        case 8:
-            s = 36000;
-            break;
-        case 6:
-            s = 3600;
-            break;
-        case 5:
-            s = 600;
-            break;
-        default:
-            s = 60;
-            break;
+            case 9:
+                s = 360000;
+                break;
+            case 8:
+                s = 36000;
+                break;
+            case 6:
+                s = 3600;
+                break;
+            case 5:
+                s = 600;
+                break;
+            default:
+                s = 60;
+                break;
         }
         return (fs_sexa (buf, value, w-f, s));
     }
@@ -267,7 +267,7 @@ numberFormat (char *buf, const char *format, double value)
  * this has nothing to do with XML or any Clients.
  */
 void
-IDLog (const char *fmt, ...)
+IDLog (const char * fmt, ...)
 {
     va_list ap;
     /* JM: Since all INDI's stderr are timestampped now, we don't need to time stamp ID Log */
@@ -282,7 +282,7 @@ const char *
 timestamp()
 {
     static char ts[32];
-    struct tm *tp;
+    struct tm * tp;
     time_t t;
 
     time (&t);
@@ -332,7 +332,7 @@ int tty_timeout(int fd, int timeout)
 #endif
 }
 
-int tty_write(int fd, const char * buf, int nbytes, int *nbytes_written)
+int tty_write(int fd, const char * buf, int nbytes, int * nbytes_written)
 {
 #ifdef _WIN32
     return TTY_ERRNO;
@@ -369,7 +369,7 @@ int tty_write(int fd, const char * buf, int nbytes, int *nbytes_written)
 #endif
 }
 
-int tty_write_string(int fd, const char * buf, int *nbytes_written)
+int tty_write_string(int fd, const char * buf, int * nbytes_written)
 {
 #ifdef _WIN32
     return TTY_ERRNO;
@@ -409,7 +409,7 @@ int tty_write_string(int fd, const char * buf, int *nbytes_written)
 #endif
 }
 
-int tty_read(int fd, char *buf, int nbytes, int timeout, int *nbytes_read)
+int tty_read(int fd, char * buf, int nbytes, int timeout, int * nbytes_read)
 {
 #ifdef _WIN32
     return TTY_ERRNO;
@@ -456,7 +456,7 @@ int tty_read(int fd, char *buf, int nbytes, int timeout, int *nbytes_read)
 #endif
 }
 
-int tty_read_section(int fd, char *buf, char stop_char, int timeout, int *nbytes_read)
+int tty_read_section(int fd, char * buf, char stop_char, int timeout, int * nbytes_read)
 {
 #ifdef _WIN32
     return TTY_ERRNO;
@@ -469,7 +469,7 @@ int tty_read_section(int fd, char *buf, char stop_char, int timeout, int *nbytes
     int err = TTY_OK;
     *nbytes_read = 0;
 
-    uint8_t *read_char = 0;
+    uint8_t * read_char = 0;
 
     if (tty_debug)
         IDLog("%s: Request to read until stop char '%c' with %d timeout for fd %d\n", __FUNCTION__, stop_char, timeout, fd);
@@ -501,7 +501,7 @@ int tty_read_section(int fd, char *buf, char stop_char, int timeout, int *nbytes
 
 #if defined(BSD) && !defined(__GNU__)
 // BSD - OSX version
-int tty_connect(const char *device, int bit_rate, int word_size, int parity, int stop_bits, int *fd)
+int tty_connect(const char * device, int bit_rate, int word_size, int parity, int stop_bits, int * fd)
 {
     int	t_fd = -1;
     int bps;
@@ -558,131 +558,131 @@ int tty_connect(const char *device, int bit_rate, int word_size, int parity, int
     // The baud rate, word length, and handshake options can be set as follows:
     switch (bit_rate)
     {
-    case 0:
-        bps = B0;
-        break;
-    case 50:
-        bps = B50;
-        break;
-    case 75:
-        bps = B75;
-        break;
-    case 110:
-        bps = B110;
-        break;
-    case 134:
-        bps = B134;
-        break;
-    case 150:
-        bps = B150;
-        break;
-    case 200:
-        bps = B200;
-        break;
-    case 300:
-        bps = B300;
-        break;
-    case 600:
-        bps = B600;
-        break;
-    case 1200:
-        bps = B1200;
-        break;
-    case 1800:
-        bps = B1800;
-        break;
-    case 2400:
-        bps = B2400;
-        break;
-    case 4800:
-        bps = B4800;
-        break;
-    case 9600:
-        bps = B9600;
-        break;
-    case 19200:
-        bps = B19200;
-        break;
-    case 38400:
-        bps = B38400;
-        break;
-    case 57600:
-        bps = B57600;
-        break;
-    case 115200:
-        bps = B115200;
-        break;
-    case 230400:
-        bps = B230400;
-        break;
-    default:
-        if (snprintf(msg, sizeof(msg), "tty_connect: %d is not a valid bit rate.", bit_rate) < 0)
-            perror(NULL);
-        else
-            perror(msg);
-        return TTY_PARAM_ERROR;
+        case 0:
+            bps = B0;
+            break;
+        case 50:
+            bps = B50;
+            break;
+        case 75:
+            bps = B75;
+            break;
+        case 110:
+            bps = B110;
+            break;
+        case 134:
+            bps = B134;
+            break;
+        case 150:
+            bps = B150;
+            break;
+        case 200:
+            bps = B200;
+            break;
+        case 300:
+            bps = B300;
+            break;
+        case 600:
+            bps = B600;
+            break;
+        case 1200:
+            bps = B1200;
+            break;
+        case 1800:
+            bps = B1800;
+            break;
+        case 2400:
+            bps = B2400;
+            break;
+        case 4800:
+            bps = B4800;
+            break;
+        case 9600:
+            bps = B9600;
+            break;
+        case 19200:
+            bps = B19200;
+            break;
+        case 38400:
+            bps = B38400;
+            break;
+        case 57600:
+            bps = B57600;
+            break;
+        case 115200:
+            bps = B115200;
+            break;
+        case 230400:
+            bps = B230400;
+            break;
+        default:
+            if (snprintf(msg, sizeof(msg), "tty_connect: %d is not a valid bit rate.", bit_rate) < 0)
+                perror(NULL);
+            else
+                perror(msg);
+            return TTY_PARAM_ERROR;
     }
 
     cfsetspeed(&tty_setting, bps);		// Set baud rate
     /* word size */
     switch (word_size)
     {
-    case 5:
-        tty_setting.c_cflag |= CS5;
-        break;
-    case 6:
-        tty_setting.c_cflag |= CS6;
-        break;
-    case 7:
-        tty_setting.c_cflag |= CS7;
-        break;
-    case 8:
-        tty_setting.c_cflag |= CS8;
-        break;
-    default:
-        if (snprintf(msg, sizeof(msg), "tty_connect: %d is not a valid data bit count.", word_size) < 0)
-            perror(NULL);
-        else
-            perror(msg);
+        case 5:
+            tty_setting.c_cflag |= CS5;
+            break;
+        case 6:
+            tty_setting.c_cflag |= CS6;
+            break;
+        case 7:
+            tty_setting.c_cflag |= CS7;
+            break;
+        case 8:
+            tty_setting.c_cflag |= CS8;
+            break;
+        default:
+            if (snprintf(msg, sizeof(msg), "tty_connect: %d is not a valid data bit count.", word_size) < 0)
+                perror(NULL);
+            else
+                perror(msg);
 
-        return TTY_PARAM_ERROR;
+            return TTY_PARAM_ERROR;
     }
 
     /* parity */
     switch (parity)
     {
-    case PARITY_NONE:
-        break;
-    case PARITY_EVEN:
-        tty_setting.c_cflag |= PARENB;
-        break;
-    case PARITY_ODD:
-        tty_setting.c_cflag |= PARENB | PARODD;
-        break;
-    default:
-        if (snprintf(msg, sizeof(msg), "tty_connect: %d is not a valid parity selection value.", parity) < 0)
-            perror(NULL);
-        else
-            perror(msg);
+        case PARITY_NONE:
+            break;
+        case PARITY_EVEN:
+            tty_setting.c_cflag |= PARENB;
+            break;
+        case PARITY_ODD:
+            tty_setting.c_cflag |= PARENB | PARODD;
+            break;
+        default:
+            if (snprintf(msg, sizeof(msg), "tty_connect: %d is not a valid parity selection value.", parity) < 0)
+                perror(NULL);
+            else
+                perror(msg);
 
-        return TTY_PARAM_ERROR;
+            return TTY_PARAM_ERROR;
     }
 
     /* stop_bits */
     switch (stop_bits)
     {
-    case 1:
-        break;
-    case 2:
-        tty_setting.c_cflag |= CSTOPB;
-        break;
-    default:
-        if (snprintf(msg, sizeof(msg), "tty_connect: %d is not a valid stop bit count.", stop_bits) < 0)
-            perror(NULL);
-        else
-            perror(msg);
+        case 1:
+            break;
+        case 2:
+            tty_setting.c_cflag |= CSTOPB;
+            break;
+        default:
+            if (snprintf(msg, sizeof(msg), "tty_connect: %d is not a valid stop bit count.", stop_bits) < 0)
+                perror(NULL);
+            else
+                perror(msg);
 
-        return TTY_PARAM_ERROR;
+            return TTY_PARAM_ERROR;
     }
 
 #if defined(MAC_OS_X_VERSION_10_4) && (MAC_OS_X_VERSION_MIN_REQUIRED >= MAC_OS_X_VERSION_10_4)
@@ -768,7 +768,7 @@ error:
     return TTY_PORT_FAILURE;
 }
 #else
-int tty_connect(const char *device, int bit_rate, int word_size, int parity, int stop_bits, int *fd)
+int tty_connect(const char * device, int bit_rate, int word_size, int parity, int stop_bits, int * fd)
 {
 #ifdef _WIN32
     return TTY_PORT_FAILURE;
@@ -790,69 +790,69 @@ int tty_connect(const char *device, int bit_rate, int word_size, int parity, int
     Set bps rate */
     switch (bit_rate)
     {
-    case 0:
-        bps = B0;
-        break;
-    case 50:
-        bps = B50;
-        break;
-    case 75:
-        bps = B75;
-        break;
-    case 110:
-        bps = B110;
-        break;
-    case 134:
-        bps = B134;
-        break;
-    case 150:
-        bps = B150;
-        break;
-    case 200:
-        bps = B200;
-        break;
-    case 300:
-        bps = B300;
-        break;
-    case 600:
-        bps = B600;
-        break;
-    case 1200:
-        bps = B1200;
-        break;
-    case 1800:
-        bps = B1800;
-        break;
-    case 2400:
-        bps = B2400;
-        break;
-    case 4800:
-        bps = B4800;
-        break;
-    case 9600:
-        bps = B9600;
-        break;
-    case 19200:
-        bps = B19200;
-        break;
-    case 38400:
-        bps = B38400;
-        break;
-    case 57600:
-        bps = B57600;
-        break;
-    case 115200:
-        bps = B115200;
-        break;
-    case 230400:
-        bps = B230400;
-        break;
-    default:
-        if (snprintf(msg, sizeof(msg), "tty_connect: %d is not a valid bit rate.", bit_rate) < 0)
-            perror(NULL);
-        else
-            perror(msg);
-        return TTY_PARAM_ERROR;
+        case 0:
+            bps = B0;
+            break;
+        case 50:
+            bps = B50;
+            break;
+        case 75:
+            bps = B75;
+            break;
+        case 110:
+            bps = B110;
+            break;
+        case 134:
+            bps = B134;
+            break;
+        case 150:
+            bps = B150;
+            break;
+        case 200:
+            bps = B200;
+            break;
+        case 300:
+            bps = B300;
+            break;
+        case 600:
+            bps = B600;
+            break;
+        case 1200:
+            bps = B1200;
+            break;
+        case 1800:
+            bps = B1800;
+            break;
+        case 2400:
+            bps = B2400;
+            break;
+        case 4800:
+            bps = B4800;
+            break;
+        case 9600:
+            bps = B9600;
+            break;
+        case 19200:
+            bps = B19200;
+            break;
+        case 38400:
+            bps = B38400;
+            break;
+        case 57600:
+            bps = B57600;
+            break;
+        case 115200:
+            bps = B115200;
+            break;
+        case 230400:
+            bps = B230400;
+            break;
+        default:
+            if (snprintf(msg, sizeof(msg), "tty_connect: %d is not a valid bit rate.", bit_rate) < 0)
+                perror(NULL);
+            else
+                perror(msg);
+            return TTY_PARAM_ERROR;
     }
     if ((cfsetispeed(&tty_setting, bps) < 0) ||
             (cfsetospeed(&tty_setting, bps) < 0))
@@ -871,67 +871,67 @@ int tty_connect(const char *device, int bit_rate, int word_size, int parity, int
     /* word size */
     switch (word_size)
     {
-    case 5:
-        tty_setting.c_cflag |= CS5;
-        break;
-    case 6:
-        tty_setting.c_cflag |= CS6;
-        break;
-    case 7:
-        tty_setting.c_cflag |= CS7;
-        break;
-    case 8:
-        tty_setting.c_cflag |= CS8;
-        break;
-    default:
+        case 5:
+            tty_setting.c_cflag |= CS5;
+            break;
+        case 6:
+            tty_setting.c_cflag |= CS6;
+            break;
+        case 7:
+            tty_setting.c_cflag |= CS7;
+            break;
+        case 8:
+            tty_setting.c_cflag |= CS8;
+            break;
+        default:
 
-        fprintf( stderr, "Default\n") ;
-        if (snprintf(msg, sizeof(msg), "tty_connect: %d is not a valid data bit count.", word_size) < 0)
-            perror(NULL);
-        else
-            perror(msg);
+            fprintf( stderr, "Default\n") ;
+            if (snprintf(msg, sizeof(msg), "tty_connect: %d is not a valid data bit count.", word_size) < 0)
+                perror(NULL);
+            else
+                perror(msg);
 
-        return TTY_PARAM_ERROR;
+            return TTY_PARAM_ERROR;
     }
 
     /* parity */
     switch (parity)
     {
-    case PARITY_NONE:
-        break;
-    case PARITY_EVEN:
-        tty_setting.c_cflag |= PARENB;
-        break;
-    case PARITY_ODD:
-        tty_setting.c_cflag |= PARENB | PARODD;
-        break;
-    default:
+        case PARITY_NONE:
+            break;
+        case PARITY_EVEN:
+            tty_setting.c_cflag |= PARENB;
+            break;
+        case PARITY_ODD:
+            tty_setting.c_cflag |= PARENB | PARODD;
+            break;
+        default:
 
-        fprintf( stderr, "Default1\n") ;
-        if (snprintf(msg, sizeof(msg), "tty_connect: %d is not a valid parity selection value.", parity) < 0)
-            perror(NULL);
-        else
-            perror(msg);
+            fprintf( stderr, "Default1\n") ;
+            if (snprintf(msg, sizeof(msg), "tty_connect: %d is not a valid parity selection value.", parity) < 0)
+                perror(NULL);
+            else
+                perror(msg);
 
-        return TTY_PARAM_ERROR;
+            return TTY_PARAM_ERROR;
     }
 
     /* stop_bits */
     switch (stop_bits)
     {
-    case 1:
-        break;
-    case 2:
-        tty_setting.c_cflag |= CSTOPB;
-        break;
-    default:
-        fprintf( stderr, "Default2\n") ;
-        if (snprintf(msg, sizeof(msg), "tty_connect: %d is not a valid stop bit count.", stop_bits) < 0)
-            perror(NULL);
-        else
-            perror(msg);
+        case 1:
+            break;
+        case 2:
+            tty_setting.c_cflag |= CSTOPB;
+            break;
+        default:
+            fprintf( stderr, "Default2\n") ;
+            if (snprintf(msg, sizeof(msg), "tty_connect: %d is not a valid stop bit count.", stop_bits) < 0)
+                perror(NULL);
+            else
+                perror(msg);
 
-        return TTY_PARAM_ERROR;
+            return TTY_PARAM_ERROR;
     }
     /* Control Modes complete */
 
@@ -990,56 +990,56 @@ int tty_disconnect(int fd)
 #endif
 }
 
-void tty_error_msg(int err_code, char *err_msg, int err_msg_len)
+void tty_error_msg(int err_code, char * err_msg, int err_msg_len)
 {
     char error_string[512];
 
     switch (err_code)
     {
-    case TTY_OK:
-        strncpy(err_msg, "No Error", err_msg_len);
-        break;
+        case TTY_OK:
+            strncpy(err_msg, "No Error", err_msg_len);
+            break;
 
-    case TTY_READ_ERROR:
-        snprintf(error_string, 512, "Read Error: %s", strerror(errno));
-        strncpy(err_msg, error_string, err_msg_len);
-        break;
+        case TTY_READ_ERROR:
+            snprintf(error_string, 512, "Read Error: %s", strerror(errno));
+            strncpy(err_msg, error_string, err_msg_len);
+            break;
 
-    case TTY_WRITE_ERROR:
-        snprintf(error_string, 512, "Write Error: %s", strerror(errno));
-        strncpy(err_msg, error_string, err_msg_len);
-        break;
+        case TTY_WRITE_ERROR:
+            snprintf(error_string, 512, "Write Error: %s", strerror(errno));
+            strncpy(err_msg, error_string, err_msg_len);
+            break;
 
-    case TTY_SELECT_ERROR:
-        snprintf(error_string, 512, "Select Error: %s", strerror(errno));
-        strncpy(err_msg, error_string, err_msg_len);
-        break;
+        case TTY_SELECT_ERROR:
+            snprintf(error_string, 512, "Select Error: %s", strerror(errno));
+            strncpy(err_msg, error_string, err_msg_len);
+            break;
 
-    case TTY_TIME_OUT:
-        strncpy(err_msg, "Timeout error", err_msg_len);
-        break;
+        case TTY_TIME_OUT:
+            strncpy(err_msg, "Timeout error", err_msg_len);
+            break;
 
-    case TTY_PORT_FAILURE:
-        if (errno == EACCES)
-            snprintf(error_string, 512, "Port failure Error: %s. Try adding your user to the dialout group and restart (sudo adduser $USER dialout)", strerror(errno));
-        else
-            snprintf(error_string, 512, "Port failure Error: %s. Check if device is connected to this port.", strerror(errno));
+        case TTY_PORT_FAILURE:
+            if (errno == EACCES)
+                snprintf(error_string, 512, "Port failure Error: %s. Try adding your user to the dialout group and restart (sudo adduser $USER dialout)", strerror(errno));
+            else
+                snprintf(error_string, 512, "Port failure Error: %s. Check if device is connected to this port.", strerror(errno));
 
-        strncpy(err_msg, error_string, err_msg_len);
-        break;
+            strncpy(err_msg, error_string, err_msg_len);
+            break;
 
-    case TTY_PARAM_ERROR:
-        strncpy(err_msg, "Parameter error", err_msg_len);
-        break;
+        case TTY_PARAM_ERROR:
+            strncpy(err_msg, "Parameter error", err_msg_len);
+            break;
 
-    case TTY_ERRNO:
-        snprintf(error_string, 512, "%s", strerror(errno));
-        strncpy(err_msg, error_string, err_msg_len);
-        break;
+        case TTY_ERRNO:
+            snprintf(error_string, 512, "%s", strerror(errno));
+            strncpy(err_msg, error_string, err_msg_len);
+            break;
 
-    default:
-        strncpy(err_msg, "Error: unrecognized error code", err_msg_len);
-        break;
+        default:
+            strncpy(err_msg, "Error: unrecognized error code", err_msg_len);
+            break;
 
 
     }
@@ -1051,17 +1051,17 @@ pstateStr (IPState s)
 {
     switch (s)
     {
-    case IPS_IDLE:
-        return ("Idle");
-    case IPS_OK:
-        return ("Ok");
-    case IPS_BUSY:
-        return ("Busy");
-    case IPS_ALERT:
-        return ("Alert");
-    default:
-        fprintf (stderr, "Impossible IPState %d\n", s);
-        return NULL;
+        case IPS_IDLE:
+            return ("Idle");
+        case IPS_OK:
+            return ("Ok");
+        case IPS_BUSY:
+            return ("Busy");
+        case IPS_ALERT:
+            return ("Alert");
+        default:
+            fprintf (stderr, "Impossible IPState %d\n", s);
+            return NULL;
     }
 }
 
@@ -1069,7 +1069,7 @@ pstateStr (IPState s)
  * return 0 if ok, else -1
  */
 int
-crackIPState (const char *str, IPState *ip)
+crackIPState (const char * str, IPState * ip)
 {
     if (!strcmp (str, "Idle"))  *ip = IPS_IDLE;
     else if (!strcmp (str, "Ok"))    *ip = IPS_OK;
@@ -1083,7 +1083,7 @@ crackIPState (const char *str, IPState *ip)
  * return 0 if ok, else -1
  */
 int
-crackISState (const char *str, ISState *ip)
+crackISState (const char * str, ISState * ip)
 {
     if (!strcmp (str, "On"))  *ip = ISS_ON;
     else if (!strcmp (str, "Off")) *ip = ISS_OFF;
@@ -1092,7 +1092,7 @@ crackISState (const char *str, ISState *ip)
 }
 
 int
-crackIPerm (const char *str, IPerm *ip)
+crackIPerm (const char * str, IPerm * ip)
 {
     if (!strcmp (str, "rw"))  *ip = IP_RW;
     else if (!strcmp (str, "ro")) *ip = IP_RO;
@@ -1101,7 +1101,7 @@ crackIPerm (const char *str, IPerm *ip)
     return (0);
 }
 
-int crackISRule (const char *str, ISRule *ip)
+int crackISRule (const char * str, ISRule * ip)
 {
     if (!strcmp (str, "OneOfMany"))  *ip = ISR_1OFMANY;
     else if (!strcmp (str, "AtMostOne")) *ip = ISR_ATMOST1;
@@ -1116,13 +1116,13 @@ sstateStr (ISState s)
 {
     switch (s)
     {
-    case ISS_ON:
-        return ("On");
-    case ISS_OFF:
-        return ("Off");
-    default:
-        fprintf (stderr, "Impossible ISState %d\n", s);
-        return NULL;
+        case ISS_ON:
+            return ("On");
+        case ISS_OFF:
+            return ("Off");
+        default:
+            fprintf (stderr, "Impossible ISState %d\n", s);
+            return NULL;
     }
 }
 
@@ -1132,15 +1132,15 @@ ruleStr (ISRule r)
 {
     switch (r)
     {
-    case ISR_1OFMANY:
-        return ("OneOfMany");
-    case ISR_ATMOST1:
-        return ("AtMostOne");
-    case ISR_NOFMANY:
-        return ("AnyOfMany");
-    default:
-        fprintf (stderr, "Impossible ISRule %d\n", r);
-        return NULL;
+        case ISR_1OFMANY:
+            return ("OneOfMany");
+        case ISR_ATMOST1:
+            return ("AtMostOne");
+        case ISR_NOFMANY:
+            return ("AnyOfMany");
+        default:
+            fprintf (stderr, "Impossible ISRule %d\n", r);
+            return NULL;
     }
 }
 
@@ -1150,15 +1150,15 @@ permStr (IPerm p)
 {
     switch (p)
     {
-    case IP_RO:
-        return ("ro");
-    case IP_WO:
-        return ("wo");
-    case IP_RW:
-        return ("rw");
-    default:
-        fprintf (stderr, "Impossible IPerm %d\n", p);
-        return NULL;
+        case IP_RO:
+            return ("ro");
+        case IP_WO:
+            return ("wo");
+        case IP_RW:
+            return ("rw");
+        default:
+            fprintf (stderr, "Impossible IPerm %d\n", p);
+            return NULL;
     }
 }
 
@@ -1173,9 +1173,9 @@ xmlv1()
  * return 0 if ok else -1 with reason in msg[].
  */
 int
-crackDN (XMLEle *root, char **dev, char **name, char msg[])
+crackDN (XMLEle * root, char ** dev, char ** name, char msg[])
 {
-    XMLAtt *ap;
+    XMLAtt * ap;
 
     ap = findXMLAtt (root, "device");
     if (!ap)
@@ -1198,7 +1198,7 @@ crackDN (XMLEle *root, char **dev, char **name, char msg[])
 
 /* find a member of an IText vector, else NULL */
 IText *
-IUFindText  (const ITextVectorProperty *tvp, const char *name)
+IUFindText  (const ITextVectorProperty * tvp, const char * name)
 {
     int i;
 
@@ -1211,7 +1211,7 @@ IUFindText  (const ITextVectorProperty *tvp, const char *name)
 
 /* find a member of an INumber vector, else NULL */
 INumber *
-IUFindNumber(const INumberVectorProperty *nvp, const char *name)
+IUFindNumber(const INumberVectorProperty * nvp, const char * name)
 {
     int i;
 
@@ -1224,7 +1224,7 @@ IUFindNumber(const INumberVectorProperty *nvp, const char *name)
 
 /* find a member of an ISwitch vector, else NULL */
 ISwitch *
-IUFindSwitch(const ISwitchVectorProperty *svp, const char *name)
+IUFindSwitch(const ISwitchVectorProperty * svp, const char * name)
 {
     int i;
 
@@ -1237,7 +1237,7 @@ IUFindSwitch(const ISwitchVectorProperty *svp, const char *name)
 
 /* find a member of an ILight vector, else NULL */
 ILight *
-IUFindLight(const ILightVectorProperty *lvp, const char *name)
+IUFindLight(const ILightVectorProperty * lvp, const char * name)
 {
     int i;
 
@@ -1250,7 +1250,7 @@ IUFindLight(const ILightVectorProperty *lvp, const char *name)
 
 /* find a member of an IBLOB vector, else NULL */
 IBLOB *
-IUFindBLOB(const IBLOBVectorProperty *bvp, const char *name)
+IUFindBLOB(const IBLOBVectorProperty * bvp, const char * name)
 {
     int i;
 
@@ -1265,7 +1265,7 @@ IUFindBLOB(const IBLOBVectorProperty *bvp, const char *name)
  * N.B. user must make sense of result with ISRule in mind.
  */
 ISwitch *
-IUFindOnSwitch(const ISwitchVectorProperty *svp)
+IUFindOnSwitch(const ISwitchVectorProperty * svp)
 {
     int i;
 
@@ -1277,7 +1277,7 @@ IUFindOnSwitch(const ISwitchVectorProperty *svp)
 }
 
 /* Find index of the ON member of an ISwitchVectorProperty */
-int IUFindOnSwitchIndex(const ISwitchVectorProperty *svp)
+int IUFindOnSwitchIndex(const ISwitchVectorProperty * svp)
 {
     int i;
 
@@ -1289,7 +1289,7 @@ int IUFindOnSwitchIndex(const ISwitchVectorProperty *svp)
 
 /* Set all switches to off */
 void
-IUResetSwitch(ISwitchVectorProperty *svp)
+IUResetSwitch(ISwitchVectorProperty * svp)
 {
     int i;
 
@@ -1299,7 +1299,7 @@ IUResetSwitch(ISwitchVectorProperty *svp)
 
 /* save malloced copy of newtext in tp->text, reusing if not first time */
 void
-IUSaveText (IText *tp, const char *newtext)
+IUSaveText (IText * tp, const char * newtext)
 {
     /* seed for realloc */
     if (tp->text == NULL)

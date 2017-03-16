@@ -41,18 +41,18 @@
 class StreamRecorder {};
 #endif
 
-const char *IMAGE_SETTINGS_TAB  = "Image Settings";
-const char *IMAGE_INFO_TAB      = "Image Info";
-const char *GUIDE_HEAD_TAB      = "Guider Head";
-const char *GUIDE_CONTROL_TAB   = "Guider Control";
-const char *RAPIDGUIDE_TAB      = "Rapid Guide";
-const char *WCS_TAB             = "WCS";
+const char * IMAGE_SETTINGS_TAB  = "Image Settings";
+const char * IMAGE_INFO_TAB      = "Image Info";
+const char * GUIDE_HEAD_TAB      = "Guider Head";
+const char * GUIDE_CONTROL_TAB   = "Guider Control";
+const char * RAPIDGUIDE_TAB      = "Rapid Guide";
+const char * WCS_TAB             = "WCS";
 
 // Create dir recursively
-static int _mkdir(const char *dir, mode_t mode)
+static int _mkdir(const char * dir, mode_t mode)
 {
     char tmp[PATH_MAX];
-    char *p = NULL;
+    char * p = NULL;
     size_t len;
 
     snprintf(tmp, sizeof(tmp),"%s",dir);
@@ -155,9 +155,9 @@ void CCDChip::setBin(int hor, int ver)
 }
 
 
-void CCDChip::setMinMaxStep(const char *property, const char *element, double min, double max, double step, bool sendToClient)
+void CCDChip::setMinMaxStep(const char * property, const char * element, double min, double max, double step, bool sendToClient)
 {
-    INumberVectorProperty *nvp = NULL;
+    INumberVectorProperty * nvp = NULL;
 
     if (!strcmp(property, ImageExposureNP.name))
         nvp = &ImageExposureNP;
@@ -170,7 +170,7 @@ void CCDChip::setMinMaxStep(const char *property, const char *element, double mi
     else if (!strcmp(property, RapidGuideDataNP.name))
         nvp = &RapidGuideDataNP;
 
-    INumber *np = IUFindNumber(nvp, element);
+    INumber * np = IUFindNumber(nvp, element);
     if (np)
     {
         np->min  = min;
@@ -234,7 +234,7 @@ void CCDChip::setExposureDuration(double duration)
     gettimeofday(&startExposureTime,NULL);
 }
 
-const char *CCDChip::getFrameTypeName(CCD_FRAME fType)
+const char * CCDChip::getFrameTypeName(CCD_FRAME fType)
 {
     return FrameTypeS[fType].name;
 }
@@ -244,7 +244,7 @@ const char * CCDChip::getExposureStartTime()
     static char ts[32];
 
     char iso8601[32];
-    struct tm *tp;
+    struct tm * tp;
     time_t t = (time_t) startExposureTime.tv_sec;
     int    u = startExposureTime.tv_usec / 1000.0;
 
@@ -275,7 +275,7 @@ void CCDChip::setNAxis(int value)
     NAxis = value;
 }
 
-void CCDChip::setImageExtension(const char *ext)
+void CCDChip::setImageExtension(const char * ext)
 {
     strncpy(imageExtention, ext, MAXINDIBLOBFMT);
 }
@@ -287,72 +287,72 @@ void CCDChip::binFrame()
 
     // Jasem: Keep full frame shadow in memory to enhance performance and just swap frame pointers after operation is complete
     if (BinFrame == NULL)
-        BinFrame = (uint8_t*) malloc(RawFrameSize);
+        BinFrame = (uint8_t *) malloc(RawFrameSize);
 
     memset(BinFrame, 0, RawFrameSize);
 
     switch (getBPP())
     {
-    case 8:
-    {
-        uint8_t *bin_buf = BinFrame;
-        uint8_t val;
-        // Try to average pixels since in 8bit they get saturated pretty quickly
-        double factor = (BinX*BinX)/2;
-        double accumulator=0;
-        for (int i=0; i < SubH; i+= BinX)
-            for (int j=0; j < SubW; j+= BinX)
-            {
-                accumulator=0;
-                for (int k=0; k < BinX; k++)
+        case 8:
+        {
+            uint8_t * bin_buf = BinFrame;
+            uint8_t val;
+            // Try to average pixels since in 8bit they get saturated pretty quickly
+            double factor = (BinX*BinX)/2;
+            double accumulator=0;
+            for (int i=0; i < SubH; i+= BinX)
+                for (int j=0; j < SubW; j+= BinX)
                 {
-                    for (int l=0; l < BinX; l++)
+                    accumulator=0;
+                    for (int k=0; k < BinX; k++)
                     {
-                        accumulator += *(RawFrame + j + (i+k) * SubW + l);
+                        for (int l=0; l < BinX; l++)
+                        {
+                            accumulator += *(RawFrame + j + (i+k) * SubW + l);
+                        }
                     }
+
+                    accumulator /= factor;
+                    if (accumulator > UINT8_MAX)
+                        *bin_buf = UINT8_MAX;
+                    else
+                        *bin_buf  += static_cast<uint8_t>(accumulator);
+                    bin_buf++;
                 }
+        }
+        break;
 
-                accumulator /= factor;
-                if (accumulator > UINT8_MAX)
-                    *bin_buf = UINT8_MAX;
-                else
-                    *bin_buf  += static_cast<uint8_t>(accumulator);
-                bin_buf++;
-            }
-    }
-    break;
-
-    case 16:
-    {
-        uint16_t *bin_buf = (uint16_t*) BinFrame;
-        uint16_t *RawFrame16 = (uint16_t*) RawFrame;
-        uint16_t val;
-        for (int i=0; i < SubH; i+= BinX)
-            for (int j=0; j < SubW; j+= BinX)
-            {
-                for (int k=0; k < BinX; k++)
+        case 16:
+        {
+            uint16_t * bin_buf = (uint16_t *) BinFrame;
+            uint16_t * RawFrame16 = (uint16_t *) RawFrame;
+            uint16_t val;
+            for (int i=0; i < SubH; i+= BinX)
+                for (int j=0; j < SubW; j+= BinX)
                 {
-                    for (int l=0; l < BinX; l++)
+                    for (int k=0; k < BinX; k++)
                     {
-                        val = *(RawFrame16 + j + (i+k) * SubW + l);
-                        if (val + *bin_buf > UINT16_MAX)
-                            *bin_buf = UINT16_MAX;
-                        else
-                            *bin_buf  += val;
+                        for (int l=0; l < BinX; l++)
+                        {
+                            val = *(RawFrame16 + j + (i+k) * SubW + l);
+                            if (val + *bin_buf > UINT16_MAX)
+                                *bin_buf = UINT16_MAX;
+                            else
+                                *bin_buf  += val;
+                        }
                     }
+                    bin_buf++;
                 }
-                bin_buf++;
-            }
-    }
-    break;
+        }
+        break;
 
-    default:
-        return;
+        default:
+            return;
 
     }
 
     // Swap frame pointers
-    uint8_t *rawFramePointer = RawFrame;
+    uint8_t * rawFramePointer = RawFrame;
     RawFrame = BinFrame;
     // We just memset it next time we use it
     BinFrame = rawFramePointer;
@@ -626,7 +626,7 @@ bool INDI::CCD::initProperties()
     return true;
 }
 
-void INDI::CCD::ISGetProperties (const char *dev)
+void INDI::CCD::ISGetProperties (const char * dev)
 {
     DefaultDevice::ISGetProperties(dev);
 
@@ -796,10 +796,10 @@ bool INDI::CCD::updateProperties()
     return true;
 }
 
-bool INDI::CCD::ISSnoopDevice (XMLEle *root)
+bool INDI::CCD::ISSnoopDevice (XMLEle * root)
 {
-    XMLEle *ep=NULL;
-    const char *propName = findXMLAttValu(root, "name");
+    XMLEle * ep=NULL;
+    const char * propName = findXMLAttValu(root, "name");
 
     if(IUSnoopNumber(root,&EqNP)==0)
     {
@@ -817,7 +817,7 @@ bool INDI::CCD::ISSnoopDevice (XMLEle *root)
     {
         for (ep = nextXMLEle(root, 1) ; ep != NULL ; ep = nextXMLEle(root, 0))
         {
-            const char *name = findXMLAttValu(ep, "name");
+            const char * name = findXMLAttValu(ep, "name");
 
             if (!strcmp(name, "TELESCOPE_APERTURE"))
             {
@@ -854,7 +854,7 @@ bool INDI::CCD::ISSnoopDevice (XMLEle *root)
     {
         for (ep = nextXMLEle(root, 1) ; ep != NULL ; ep = nextXMLEle(root, 0))
         {
-            const char *name = findXMLAttValu(ep, "name");
+            const char * name = findXMLAttValu(ep, "name");
 
             if (!strcmp(name, "SKY_BRIGHTNESS"))
             {
@@ -867,7 +867,7 @@ bool INDI::CCD::ISSnoopDevice (XMLEle *root)
     return INDI::DefaultDevice::ISSnoopDevice(root);
 }
 
-bool INDI::CCD::ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n)
+bool INDI::CCD::ISNewText (const char * dev, const char * name, char * texts[], char * names[], int n)
 {
     //  first check if it's for our device
     if(strcmp(dev,getDeviceName())==0)
@@ -921,7 +921,7 @@ bool INDI::CCD::ISNewText (const char *dev, const char *name, char *texts[], cha
     return INDI::DefaultDevice::ISNewText(dev,name,texts,names,n);
 }
 
-bool INDI::CCD::ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n)
+bool INDI::CCD::ISNewNumber (const char * dev, const char * name, double values[], char * names[], int n)
 {
     //  first check if it's for our device
     //IDLog("INDI::CCD::ISNewNumber %s\n",name);
@@ -983,7 +983,7 @@ bool INDI::CCD::ISNewNumber (const char *dev, const char *name, double values[],
         if(!strcmp(name,"CCD_BINNING"))
         {
             //  We are being asked to set camera binning
-            INumber *np = IUFindNumber(&PrimaryCCD.ImageBinNP, names[0]);
+            INumber * np = IUFindNumber(&PrimaryCCD.ImageBinNP, names[0]);
             if (np == NULL)
             {
                 PrimaryCCD.ImageBinNP.s = IPS_ALERT;
@@ -1021,7 +1021,7 @@ bool INDI::CCD::ISNewNumber (const char *dev, const char *name, double values[],
         if(!strcmp(name,"GUIDER_BINNING"))
         {
             //  We are being asked to set camera binning
-            INumber *np = IUFindNumber(&GuideCCD.ImageBinNP, names[0]);
+            INumber * np = IUFindNumber(&GuideCCD.ImageBinNP, names[0]);
             if (np == NULL)
             {
                 GuideCCD.ImageBinNP.s = IPS_ALERT;
@@ -1187,7 +1187,7 @@ bool INDI::CCD::ISNewNumber (const char *dev, const char *name, double values[],
     return DefaultDevice::ISNewNumber(dev,name,values,names,n);
 }
 
-bool INDI::CCD::ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n)
+bool INDI::CCD::ISNewSwitch (const char * dev, const char * name, ISState * states, char * names[], int n)
 {
     if(strcmp(dev,getDeviceName())==0)
     {
@@ -1558,7 +1558,7 @@ bool INDI::CCD::UpdateGuiderFrameType(CCDChip::CCD_FRAME fType)
     return true;
 }
 
-void INDI::CCD::addFITSKeywords(fitsfile *fptr, CCDChip *targetChip)
+void INDI::CCD::addFITSKeywords(fitsfile * fptr, CCDChip * targetChip)
 {
     int status=0;
     char frame_s[32];
@@ -1568,7 +1568,7 @@ void INDI::CCD::addFITSKeywords(fitsfile *fptr, CCDChip *targetChip)
     double pixSize1,pixSize2;
     unsigned int xbin, ybin;
 
-    char *orig = setlocale(LC_NUMERIC,"C");
+    char * orig = setlocale(LC_NUMERIC,"C");
 
     xbin = targetChip->getBinX();
     ybin = targetChip->getBinY();
@@ -1579,18 +1579,18 @@ void INDI::CCD::addFITSKeywords(fitsfile *fptr, CCDChip *targetChip)
 
     switch (targetChip->getFrameType())
     {
-    case CCDChip::LIGHT_FRAME:
-        strcpy(frame_s, "Light");
-        break;
-    case CCDChip::BIAS_FRAME:
-        strcpy(frame_s, "Bias");
-        break;
-    case CCDChip::FLAT_FRAME:
-        strcpy(frame_s, "Flat Field");
-        break;
-    case CCDChip::DARK_FRAME:
-        strcpy(frame_s, "Dark");
-        break;
+        case CCDChip::LIGHT_FRAME:
+            strcpy(frame_s, "Light");
+            break;
+        case CCDChip::BIAS_FRAME:
+            strcpy(frame_s, "Bias");
+            break;
+        case CCDChip::FLAT_FRAME:
+            strcpy(frame_s, "Flat Field");
+            break;
+        case CCDChip::DARK_FRAME:
+            strcpy(frame_s, "Dark");
+            break;
     }
 
     exposureDuration = targetChip->getExposureDuration();
@@ -1669,7 +1669,7 @@ void INDI::CCD::addFITSKeywords(fitsfile *fptr, CCDChip *targetChip)
         fs_sexa(ra_str, raJ2000, 2, 360000);
         fs_sexa(de_str, decJ2000, 2, 360000);
 
-        char *raPtr = ra_str, *dePtr = de_str;
+        char * raPtr = ra_str, *dePtr = de_str;
         while (*raPtr != '\0')
         {
             if (*raPtr == ':') *raPtr = ' ';
@@ -1756,13 +1756,13 @@ void INDI::CCD::addFITSKeywords(fitsfile *fptr, CCDChip *targetChip)
 
 }
 
-void INDI::CCD::fits_update_key_s(fitsfile* fptr, int type, std::string name, void* p, std::string explanation, int* status)
+void INDI::CCD::fits_update_key_s(fitsfile * fptr, int type, std::string name, void * p, std::string explanation, int * status)
 {
     // this function is for removing warnings about deprecated string conversion to char* (from arg 5)
-    fits_update_key(fptr,type,name.c_str(),p, const_cast<char*>(explanation.c_str()), status);
+    fits_update_key(fptr,type,name.c_str(),p, const_cast<char *>(explanation.c_str()), status);
 }
 
-bool INDI::CCD::ExposureComplete(CCDChip *targetChip)
+bool INDI::CCD::ExposureComplete(CCDChip * targetChip)
 {
     bool sendImage = (UploadS[0].s == ISS_ON || UploadS[2].s == ISS_ON);
     bool saveImage = (UploadS[1].s == ISS_ON || UploadS[2].s == ISS_ON);
@@ -1795,7 +1795,7 @@ bool INDI::CCD::ExposureComplete(CCDChip *targetChip)
         targetChip->RapidGuideDataNP.s=IPS_BUSY;
         int width = targetChip->getSubW() / targetChip->getBinX();
         int height = targetChip->getSubH() / targetChip->getBinY();
-        void *src = (unsigned short *) targetChip->getFrameBuffer();
+        void * src = (unsigned short *) targetChip->getFrameBuffer();
         int i0, i1, i2, i3, i4, i5, i6, i7, i8;
         int ix = 0, iy = 0;
         int xM4;
@@ -1813,7 +1813,7 @@ bool INDI::CCD::ExposureComplete(CCDChip *targetChip)
         }
         if (targetChip->getBPP() == 16)
         {
-            unsigned short *p;
+            unsigned short * p;
             for (int x = minx; x < maxx; x++)
                 for (int y = miny; y < maxy; y++)
                 {
@@ -1921,7 +1921,7 @@ bool INDI::CCD::ExposureComplete(CCDChip *targetChip)
         }
         else
         {
-            unsigned char *p;
+            unsigned char * p;
             for (int x = minx; x < maxx; x++)
                 for (int y = miny; y < maxy; y++)
                 {
@@ -2043,7 +2043,7 @@ bool INDI::CCD::ExposureComplete(CCDChip *targetChip)
 
             if (targetChip->getBPP() == 16)
             {
-                unsigned short *p;
+                unsigned short * p;
                 for (int y = iy - 4; y <= iy + 4; y++)
                 {
                     p = (unsigned short *)src + y * width + ix - 4;
@@ -2072,7 +2072,7 @@ bool INDI::CCD::ExposureComplete(CCDChip *targetChip)
             }
             else
             {
-                unsigned char *p;
+                unsigned char * p;
                 for (int y = iy - 4; y <= iy + 4; y++)
                 {
                     p = (unsigned char *)src + y * width + ix - 4;
@@ -2133,7 +2133,7 @@ bool INDI::CCD::ExposureComplete(CCDChip *targetChip)
 
             if (targetChip->getBPP() == 16)
             {
-                unsigned short *p;
+                unsigned short * p;
                 if (ymin > 0)
                 {
                     p = (unsigned short *)src + ymin * width + xmin;
@@ -2166,7 +2166,7 @@ bool INDI::CCD::ExposureComplete(CCDChip *targetChip)
             }
             else
             {
-                unsigned char *p;
+                unsigned char * p;
                 if (ymin > 0)
                 {
                     p = (unsigned char *)src + ymin * width + xmin;
@@ -2205,7 +2205,7 @@ bool INDI::CCD::ExposureComplete(CCDChip *targetChip)
     {
         if (!strcmp(targetChip->getImageExtension(), "fits"))
         {
-            void *memptr;
+            void * memptr;
             size_t memsize;
             int img_type=0;
             int byte_type=0;
@@ -2216,35 +2216,35 @@ bool INDI::CCD::ExposureComplete(CCDChip *targetChip)
             std::string bit_depth;
             char error_status[MAXRBUF];
 
-            fitsfile *fptr=NULL;
+            fitsfile * fptr=NULL;
 
             naxes[0]=targetChip->getSubW()/targetChip->getBinX();
             naxes[1]=targetChip->getSubH()/targetChip->getBinY();
 
             switch (targetChip->getBPP())
             {
-            case 8:
-                byte_type = TBYTE;
-                img_type  = BYTE_IMG;
-                bit_depth = "8 bits per pixel";
-                break;
+                case 8:
+                    byte_type = TBYTE;
+                    img_type  = BYTE_IMG;
+                    bit_depth = "8 bits per pixel";
+                    break;
 
-            case 16:
-                byte_type = TUSHORT;
-                img_type = USHORT_IMG;
-                bit_depth = "16 bits per pixel";
-                break;
+                case 16:
+                    byte_type = TUSHORT;
+                    img_type = USHORT_IMG;
+                    bit_depth = "16 bits per pixel";
+                    break;
 
-            case 32:
-                byte_type = TULONG;
-                img_type = ULONG_IMG;
-                bit_depth = "32 bits per pixel";
-                break;
+                case 32:
+                    byte_type = TULONG;
+                    img_type = ULONG_IMG;
+                    bit_depth = "32 bits per pixel";
+                    break;
 
-            default:
-                DEBUGF(Logger::DBG_ERROR, "Unsupported bits per pixel value %d", targetChip->getBPP() );
-                return false;
-                break;
+                default:
+                    DEBUGF(Logger::DBG_ERROR, "Unsupported bits per pixel value %d", targetChip->getBPP() );
+                    return false;
+                    break;
             }
 
             nelements = naxes[0] * naxes[1];
@@ -2349,9 +2349,9 @@ bool INDI::CCD::ExposureComplete(CCDChip *targetChip)
     return true;
 }
 
-bool INDI::CCD::uploadFile(CCDChip * targetChip, const void *fitsData, size_t totalBytes, bool sendImage, bool saveImage/*, bool useSolver*/)
+bool INDI::CCD::uploadFile(CCDChip * targetChip, const void * fitsData, size_t totalBytes, bool sendImage, bool saveImage/*, bool useSolver*/)
 {
-    unsigned char *compressedData = NULL;
+    unsigned char * compressedData = NULL;
     uLongf compressedBytes=0;
 
     DEBUGF(INDI::Logger::DBG_DEBUG, "Uploading file. Ext: %s, Size: %d, sendImage? %s, saveImage? %s", targetChip->getImageExtension(), totalBytes,
@@ -2363,7 +2363,7 @@ bool INDI::CCD::uploadFile(CCDChip * targetChip, const void *fitsData, size_t to
         targetChip->FitsB.bloblen=totalBytes;
         snprintf(targetChip->FitsB.format, MAXINDIBLOBFMT, ".%s", targetChip->getImageExtension());
 
-        FILE *fp = NULL;
+        FILE * fp = NULL;
         char imageFileName[MAXRBUF];
 
         std::string prefix = UploadSettingsT[1].text;
@@ -2419,7 +2419,7 @@ bool INDI::CCD::uploadFile(CCDChip * targetChip, const void *fitsData, size_t to
             return false;
         }
 
-        int r = compress2(compressedData, &compressedBytes, (const Bytef*)fitsData, totalBytes, 9);
+        int r = compress2(compressedData, &compressedBytes, (const Bytef *)fitsData, totalBytes, 9);
         if (r != Z_OK)
         {
             /* this should NEVER happen */
@@ -2475,7 +2475,7 @@ void INDI::CCD::SetGuiderParams(int x,int y,int bpp,float xf,float yf)
 
 }
 
-bool INDI::CCD::saveConfigItems(FILE *fp)
+bool INDI::CCD::saveConfigItems(FILE * fp)
 {
     DefaultDevice::saveConfigItems(fp);
 
@@ -2529,7 +2529,7 @@ IPState INDI::CCD::GuideWest(float ms)
     return IPS_ALERT;
 }
 
-void INDI::CCD::getMinMax(double *min, double *max, CCDChip *targetChip)
+void INDI::CCD::getMinMax(double * min, double * max, CCDChip * targetChip)
 {
     int ind=0, i, j;
     int imageHeight = targetChip->getSubH() / targetChip->getBinY();
@@ -2538,65 +2538,65 @@ void INDI::CCD::getMinMax(double *min, double *max, CCDChip *targetChip)
 
     switch (targetChip->getBPP())
     {
-    case 8:
-    {
-        unsigned char *imageBuffer = (unsigned char *) targetChip->getFrameBuffer();
-        lmin = lmax = imageBuffer[0];
+        case 8:
+        {
+            unsigned char * imageBuffer = (unsigned char *) targetChip->getFrameBuffer();
+            lmin = lmax = imageBuffer[0];
 
 
-        for (i= 0; i < imageHeight ; i++)
-            for (j= 0; j < imageWidth; j++)
-            {
-                ind = (i * imageWidth) + j;
-                if (imageBuffer[ind] < lmin) lmin = imageBuffer[ind];
-                else if (imageBuffer[ind] > lmax) lmax = imageBuffer[ind];
-            }
+            for (i= 0; i < imageHeight ; i++)
+                for (j= 0; j < imageWidth; j++)
+                {
+                    ind = (i * imageWidth) + j;
+                    if (imageBuffer[ind] < lmin) lmin = imageBuffer[ind];
+                    else if (imageBuffer[ind] > lmax) lmax = imageBuffer[ind];
+                }
 
-    }
-    break;
+        }
+        break;
 
-    case 16:
-    {
-        unsigned short *imageBuffer = (unsigned short* ) targetChip->getFrameBuffer();
-        lmin = lmax = imageBuffer[0];
+        case 16:
+        {
+            unsigned short * imageBuffer = (unsigned short * ) targetChip->getFrameBuffer();
+            lmin = lmax = imageBuffer[0];
 
-        for (i= 0; i < imageHeight ; i++)
-            for (j= 0; j < imageWidth; j++)
-            {
-                ind = (i * imageWidth) + j;
-                if (imageBuffer[ind] < lmin) lmin = imageBuffer[ind];
-                else if (imageBuffer[ind] > lmax) lmax = imageBuffer[ind];
-            }
+            for (i= 0; i < imageHeight ; i++)
+                for (j= 0; j < imageWidth; j++)
+                {
+                    ind = (i * imageWidth) + j;
+                    if (imageBuffer[ind] < lmin) lmin = imageBuffer[ind];
+                    else if (imageBuffer[ind] > lmax) lmax = imageBuffer[ind];
+                }
 
-    }
-    break;
+        }
+        break;
 
-    case 32:
-    {
-        unsigned int *imageBuffer = (unsigned int* ) targetChip->getFrameBuffer();
-        lmin = lmax = imageBuffer[0];
+        case 32:
+        {
+            unsigned int * imageBuffer = (unsigned int * ) targetChip->getFrameBuffer();
+            lmin = lmax = imageBuffer[0];
 
-        for (i= 0; i < imageHeight ; i++)
-            for (j= 0; j < imageWidth; j++)
-            {
-                ind = (i * imageWidth) + j;
-                if (imageBuffer[ind] < lmin) lmin = imageBuffer[ind];
-                else if (imageBuffer[ind] > lmax) lmax = imageBuffer[ind];
+            for (i= 0; i < imageHeight ; i++)
+                for (j= 0; j < imageWidth; j++)
+                {
+                    ind = (i * imageWidth) + j;
+                    if (imageBuffer[ind] < lmin) lmin = imageBuffer[ind];
+                    else if (imageBuffer[ind] > lmax) lmax = imageBuffer[ind];
 
-            }
+                }
 
-    }
-    break;
+        }
+        break;
 
     }
     *min = lmin;
     *max = lmax;
 }
 
-int INDI::CCD::getFileIndex(const char *dir, const char *prefix, const char *ext)
+int INDI::CCD::getFileIndex(const char * dir, const char * prefix, const char * ext)
 {
-    DIR *dpdf;
-    struct dirent *epdf;
+    DIR * dpdf;
+    struct dirent * epdf;
     std::vector<std::string> files = std::vector<std::string>();
 
     std::string prefixIndex = prefix;

@@ -34,71 +34,71 @@
 */
 class INDI::FilterWheel: public INDI::DefaultDevice, public INDI::FilterInterface
 {
-protected:
+    protected:
 
-    FilterWheel();
-    virtual ~FilterWheel();
+        FilterWheel();
+        virtual ~FilterWheel();
 
-public:
+    public:
 
-    /** \struct FilterConnection
-        \brief Holds the connection mode of the Filter.
-    */
-    enum
-    {
-        CONNECTION_NONE   = 1 << 0,                 /** Do not use any connection plugin */
-        CONNECTION_SERIAL = 1 << 1,                 /** For regular serial and bluetooth connections */
-        CONNECTION_TCP    = 1 << 2                  /** For Wired and WiFI connections */
-    } FilterConnection;
+        /** \struct FilterConnection
+            \brief Holds the connection mode of the Filter.
+        */
+        enum
+        {
+            CONNECTION_NONE   = 1 << 0,                 /** Do not use any connection plugin */
+            CONNECTION_SERIAL = 1 << 1,                 /** For regular serial and bluetooth connections */
+            CONNECTION_TCP    = 1 << 2                  /** For Wired and WiFI connections */
+        } FilterConnection;
 
-    virtual bool initProperties();
-    virtual bool updateProperties();
-    virtual void ISGetProperties (const char *dev);
-    virtual bool ISSnoopDevice (XMLEle *root);
-    virtual bool ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n);
-    virtual bool ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n);
-    virtual bool ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n);
+        virtual bool initProperties();
+        virtual bool updateProperties();
+        virtual void ISGetProperties (const char * dev);
+        virtual bool ISSnoopDevice (XMLEle * root);
+        virtual bool ISNewSwitch (const char * dev, const char * name, ISState * states, char * names[], int n);
+        virtual bool ISNewNumber (const char * dev, const char * name, double values[], char * names[], int n);
+        virtual bool ISNewText (const char * dev, const char * name, char * texts[], char * names[], int n);
 
-    static void joystickHelper(const char * joystick_n, double mag, double angle, void *context);
-    static void buttonHelper(const char * button_n, ISState state, void *context);
+        static void joystickHelper(const char * joystick_n, double mag, double angle, void * context);
+        static void buttonHelper(const char * button_n, ISState state, void * context);
 
-    /**
-     * @brief setFilterConnection Set Filter connection mode. Child class should call this in the constructor before INDI::Filter registers
-     * any connection interfaces
-     * @param value ORed combination of FilterConnection values.
-     */
-    void setFilterConnection(const uint8_t &value);
+        /**
+         * @brief setFilterConnection Set Filter connection mode. Child class should call this in the constructor before INDI::Filter registers
+         * any connection interfaces
+         * @param value ORed combination of FilterConnection values.
+         */
+        void setFilterConnection(const uint8_t &value);
 
-    /**
-     * @return Get current Filter connection mode
-     */
-    uint8_t getFilterConnection() const;
+        /**
+         * @return Get current Filter connection mode
+         */
+        uint8_t getFilterConnection() const;
 
-protected:
+    protected:
 
-    virtual bool saveConfigItems(FILE *fp);
-    virtual int QueryFilter();
-    virtual bool SelectFilter(int);
-    virtual bool SetFilterNames();
-    virtual bool GetFilterNames(const char* groupName);
+        virtual bool saveConfigItems(FILE * fp);
+        virtual int QueryFilter();
+        virtual bool SelectFilter(int);
+        virtual bool SetFilterNames();
+        virtual bool GetFilterNames(const char * groupName);
 
-    /** \brief perform handshake with device to check communication */
-    virtual bool Handshake();
+        /** \brief perform handshake with device to check communication */
+        virtual bool Handshake();
 
-    void processJoystick(const char * joystick_n, double mag, double angle);
-    void processButton(const char * button_n, ISState state);
+        void processJoystick(const char * joystick_n, double mag, double angle);
+        void processButton(const char * button_n, ISState state);
 
-    INDI::Controller *controller;
+        INDI::Controller * controller;
 
-    Connection::Serial *serialConnection=NULL;
-    Connection::TCP *tcpConnection=NULL;
+        Connection::Serial * serialConnection=NULL;
+        Connection::TCP * tcpConnection=NULL;
 
-    // For Serial & TCP connections
-    int PortFD=-1;
+        // For Serial & TCP connections
+        int PortFD=-1;
 
-private:
-    bool callHandshake();
-    uint8_t filterConnection = CONNECTION_NONE;
+    private:
+        bool callHandshake();
+        uint8_t filterConnection = CONNECTION_NONE;
 
 };
 

@@ -291,7 +291,7 @@ struct pwc_video_command
 struct pwc_table_init_buffer
 {
     int len;
-    char *buffer;
+    char * buffer;
 
 };
 #define VIDIOCPWCGVIDTABLE	_IOR('v', 216, struct pwc_table_init_buffer)

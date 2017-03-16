@@ -163,7 +163,7 @@ bool INDI::Telescope::initProperties()
     return true;
 }
 
-void INDI::Telescope::ISGetProperties (const char *dev)
+void INDI::Telescope::ISGetProperties (const char * dev)
 {
     //  First we let our parent populate
     DefaultDevice::ISGetProperties(dev);
@@ -287,7 +287,7 @@ bool INDI::Telescope::updateProperties()
     }
 
     controller->updateProperties();
-    ISwitchVectorProperty *useJoystick = getSwitch("USEJOYSTICK");
+    ISwitchVectorProperty * useJoystick = getSwitch("USEJOYSTICK");
     if (useJoystick)
     {
         if (isConnected())
@@ -307,12 +307,12 @@ bool INDI::Telescope::updateProperties()
     return true;
 }
 
-bool INDI::Telescope::ISSnoopDevice(XMLEle *root)
+bool INDI::Telescope::ISSnoopDevice(XMLEle * root)
 {
     controller->ISSnoopDevice(root);
 
-    XMLEle *ep=NULL;
-    const char *propName = findXMLAttValu(root, "name");
+    XMLEle * ep=NULL;
+    const char * propName = findXMLAttValu(root, "name");
 
     if (isConnected())
     {
@@ -326,7 +326,7 @@ bool INDI::Telescope::ISSnoopDevice(XMLEle *root)
 
             for (ep = nextXMLEle(root, 1) ; ep != NULL ; ep = nextXMLEle(root, 0))
             {
-                const char *elemName = findXMLAttValu(ep, "name");
+                const char * elemName = findXMLAttValu(ep, "name");
 
                 if (!strcmp(elemName, "LAT"))
                     latitude = atof(pcdataXMLEle(ep));
@@ -349,7 +349,7 @@ bool INDI::Telescope::ISSnoopDevice(XMLEle *root)
 
             for (ep = nextXMLEle(root, 1) ; ep != NULL ; ep = nextXMLEle(root, 0))
             {
-                const char *elemName = findXMLAttValu(ep, "name");
+                const char * elemName = findXMLAttValu(ep, "name");
 
                 if (!strcmp(elemName, "UTC"))
                     strncpy(utc, pcdataXMLEle(ep), MAXINDITSTAMP);
@@ -375,7 +375,7 @@ bool INDI::Telescope::ISSnoopDevice(XMLEle *root)
                 bool prevState = IsLocked;
                 for (ep = nextXMLEle(root, 1) ; ep != NULL ; ep = nextXMLEle(root, 0))
                 {
-                    const char *elemName = findXMLAttValu(ep, "name");
+                    const char * elemName = findXMLAttValu(ep, "name");
 
                     if (!IsLocked && (!strcmp(elemName, "PARK")) && !strcmp(pcdataXMLEle(ep), "On"))
                         IsLocked = true;
@@ -393,7 +393,7 @@ bool INDI::Telescope::ISSnoopDevice(XMLEle *root)
     return INDI::DefaultDevice::ISSnoopDevice(root);
 }
 
-void INDI::Telescope::triggerSnoop(const char *driverName, const char *snoopedProp)
+void INDI::Telescope::triggerSnoop(const char * driverName, const char * snoopedProp)
 {
     DEBUGF(INDI::Logger::DBG_DEBUG, "Active Snoop, driver: %s, property: %s", driverName, snoopedProp);
     IDSnoopDevice(driverName, snoopedProp);
@@ -417,7 +417,7 @@ void INDI::Telescope::setTelescopeConnection(const uint8_t &value)
     telescopeConnection = value;
 }
 
-bool INDI::Telescope::saveConfigItems(FILE *fp)
+bool INDI::Telescope::saveConfigItems(FILE * fp)
 {
     DefaultDevice::saveConfigItems(fp);
 
@@ -441,21 +441,21 @@ void INDI::Telescope::NewRaDec(double ra,double dec)
 {
     switch(TrackState)
     {
-    case SCOPE_PARKED:
-    case SCOPE_IDLE:
-        EqNP.s=IPS_IDLE;
-        break;
+        case SCOPE_PARKED:
+        case SCOPE_IDLE:
+            EqNP.s=IPS_IDLE;
+            break;
 
-    case SCOPE_SLEWING:
-        EqNP.s=IPS_BUSY;
-        break;
+        case SCOPE_SLEWING:
+            EqNP.s=IPS_BUSY;
+            break;
 
-    case SCOPE_TRACKING:
-        EqNP.s=IPS_OK;
-        break;
+        case SCOPE_TRACKING:
+            EqNP.s=IPS_OK;
+            break;
 
-    default:
-        break;
+        default:
+            break;
     }
 
     if (EqN[AXIS_RA].value != ra || EqN[AXIS_DE].value != dec || EqNP.s != lastEqState)
@@ -500,7 +500,7 @@ bool INDI::Telescope::MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command)
 /**************************************************************************************
 ** Process Text properties
 ***************************************************************************************/
-bool INDI::Telescope::ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n)
+bool INDI::Telescope::ISNewText (const char * dev, const char * name, char * texts[], char * names[], int n)
 {
     //  first check if it's for our device
     if(!strcmp(dev,getDeviceName()))
@@ -539,7 +539,7 @@ bool INDI::Telescope::ISNewText (const char *dev, const char *name, char *texts[
 /**************************************************************************************
 **
 ***************************************************************************************/
-bool INDI::Telescope::ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n)
+bool INDI::Telescope::ISNewNumber (const char * dev, const char * name, double values[], char * names[], int n)
 {
     //  first check if it's for our device
     if(strcmp(dev,getDeviceName())==0)
@@ -553,7 +553,7 @@ bool INDI::Telescope::ISNewNumber (const char *dev, const char *name, double val
 
             for (int x=0; x<n; x++)
             {
-                INumber *eqp = IUFindNumber (&EqNP, names[x]);
+                INumber * eqp = IUFindNumber (&EqNP, names[x]);
                 if (eqp == &EqN[AXIS_RA])
                 {
                     ra = values[x];
@@ -580,7 +580,7 @@ bool INDI::Telescope::ISNewNumber (const char *dev, const char *name, double val
                 // Check if it can sync
                 if (CanSync())
                 {
-                    ISwitch *sw;
+                    ISwitch * sw;
                     sw=IUFindSwitch(&CoordSP,"SYNC");
                     if((sw != NULL)&&( sw->s==ISS_ON ))
                     {
@@ -650,7 +650,7 @@ bool INDI::Telescope::ISNewNumber (const char *dev, const char *name, double val
             double axis1 = NAN, axis2 = NAN;
             for (int x=0; x<n; x++)
             {
-                INumber *parkPosAxis = IUFindNumber (&ParkPositionNP, names[x]);
+                INumber * parkPosAxis = IUFindNumber (&ParkPositionNP, names[x]);
                 if (parkPosAxis == &ParkPositionN[AXIS_RA])
                 {
                     axis1 = values[x];
@@ -691,7 +691,7 @@ bool INDI::Telescope::ISNewNumber (const char *dev, const char *name, double val
 /**************************************************************************************
 **
 ***************************************************************************************/
-bool INDI::Telescope::ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n)
+bool INDI::Telescope::ISNewSwitch (const char * dev, const char * name, ISState * states, char * names[], int n)
 {
     if(strcmp(dev,getDeviceName())==0)
     {
@@ -946,7 +946,7 @@ bool INDI::Telescope::ISNewSwitch (const char *dev, const char *name, ISState *s
         if (!strcmp(name, ParkOptionSP.name))
         {
             IUUpdateSwitch(&ParkOptionSP, states, names, n);
-            ISwitch *sp = IUFindOnSwitch(&ParkOptionSP);
+            ISwitch * sp = IUFindOnSwitch(&ParkOptionSP);
             if (!sp)
                 return false;
 
@@ -1026,7 +1026,7 @@ bool INDI::Telescope::ISNewSwitch (const char *dev, const char *name, ISState *s
     bool rc = controller->ISNewSwitch(dev, name, states, names, n);
     if (rc)
     {
-        ISwitchVectorProperty *useJoystick = getSwitch("USEJOYSTICK");
+        ISwitchVectorProperty * useJoystick = getSwitch("USEJOYSTICK");
         if (useJoystick && useJoystick->sp[0].s == ISS_ON)
             defineSwitch(&LockAxisSP);
         else
@@ -1100,7 +1100,7 @@ bool INDI::Telescope::SetDefaultPark()
     return false;
 }
 
-bool INDI::Telescope::processTimeInfo(const char *utc, const char *offset)
+bool INDI::Telescope::processTimeInfo(const char * utc, const char * offset)
 {
     struct ln_date utc_date;
     double utc_offset=0;
@@ -1160,7 +1160,7 @@ bool INDI::Telescope::processLocationInfo(double latitude, double longitude, dou
     }
 }
 
-bool INDI::Telescope::updateTime(ln_date *utc, double utc_offset)
+bool INDI::Telescope::updateTime(ln_date * utc, double utc_offset)
 {
     INDI_UNUSED(utc);
     INDI_UNUSED(utc_offset);
@@ -1219,28 +1219,28 @@ void INDI::Telescope::SetParkDataType(TelescopeParkData type)
     {
         switch (parkDataType)
         {
-        case PARK_RA_DEC:
-            IUFillNumber(&ParkPositionN[AXIS_RA],"PARK_RA","RA (hh:mm:ss)","%010.6m",0,24,0,0);
-            IUFillNumber(&ParkPositionN[AXIS_DE],"PARK_DEC","DEC (dd:mm:ss)","%010.6m",-90,90,0,0);
-            break;
+            case PARK_RA_DEC:
+                IUFillNumber(&ParkPositionN[AXIS_RA],"PARK_RA","RA (hh:mm:ss)","%010.6m",0,24,0,0);
+                IUFillNumber(&ParkPositionN[AXIS_DE],"PARK_DEC","DEC (dd:mm:ss)","%010.6m",-90,90,0,0);
+                break;
 
-        case PARK_AZ_ALT:
-            IUFillNumber(&ParkPositionN[AXIS_AZ],"PARK_AZ","AZ D:M:S", "%10.6m", 0.0, 360.0, 0.0, 0);
-            IUFillNumber(&ParkPositionN[AXIS_ALT],"PARK_ALT", "Alt  D:M:S", "%10.6m", -90., 90.0, 0.0, 0);
-            break;
+            case PARK_AZ_ALT:
+                IUFillNumber(&ParkPositionN[AXIS_AZ],"PARK_AZ","AZ D:M:S", "%10.6m", 0.0, 360.0, 0.0, 0);
+                IUFillNumber(&ParkPositionN[AXIS_ALT],"PARK_ALT", "Alt  D:M:S", "%10.6m", -90., 90.0, 0.0, 0);
+                break;
 
-        case PARK_RA_DEC_ENCODER:
-            IUFillNumber(&ParkPositionN[AXIS_RA],"PARK_RA" ,"RA Encoder","%.0f" ,0,16777215,1,0);
-            IUFillNumber(&ParkPositionN[AXIS_DE],"PARK_DEC","DEC Encoder","%.0f",0,16777215,1,0);
-            break;
+            case PARK_RA_DEC_ENCODER:
+                IUFillNumber(&ParkPositionN[AXIS_RA],"PARK_RA" ,"RA Encoder","%.0f" ,0,16777215,1,0);
+                IUFillNumber(&ParkPositionN[AXIS_DE],"PARK_DEC","DEC Encoder","%.0f",0,16777215,1,0);
+                break;
 
-        case PARK_AZ_ALT_ENCODER:
-            IUFillNumber(&ParkPositionN[AXIS_RA],"PARK_AZ" ,"AZ Encoder","%.0f" ,0,16777215,1,0);
-            IUFillNumber(&ParkPositionN[AXIS_DE],"PARK_ALT","ALT Encoder","%.0f",0,16777215,1,0);
-            break;
+            case PARK_AZ_ALT_ENCODER:
+                IUFillNumber(&ParkPositionN[AXIS_RA],"PARK_AZ" ,"AZ Encoder","%.0f" ,0,16777215,1,0);
+                IUFillNumber(&ParkPositionN[AXIS_DE],"PARK_ALT","ALT Encoder","%.0f",0,16777215,1,0);
+                break;
 
-        default:
-            break;
+            default:
+                break;
         }
 
         IUFillNumberVector(&ParkPositionNP,ParkPositionN,2,getDeviceName(),"TELESCOPE_PARK_POSITION","Park Position", SITE_TAB,IP_RW,60,IPS_IDLE);
@@ -1279,7 +1279,7 @@ bool INDI::Telescope::isParked()
 
 bool INDI::Telescope::InitPark()
 {
-    char *loadres;
+    char * loadres;
     loadres=LoadParkData();
     if (loadres)
     {
@@ -1297,15 +1297,15 @@ bool INDI::Telescope::InitPark()
     return true;
 }
 
-char *INDI::Telescope::LoadParkData()
+char * INDI::Telescope::LoadParkData()
 {
     wordexp_t wexp;
-    FILE *fp;
-    LilXML *lp;
+    FILE * fp;
+    LilXML * lp;
     static char errmsg[512];
 
-    XMLEle *parkxml;
-    XMLAtt *ap;
+    XMLEle * parkxml;
+    XMLAtt * ap;
     bool devicefound=false;
 
     ParkDeviceName = getDeviceName();
@@ -1396,7 +1396,7 @@ char *INDI::Telescope::LoadParkData()
 bool INDI::Telescope::WriteParkData()
 {
     wordexp_t wexp;
-    FILE *fp;
+    FILE * fp;
     char pcdata[30];
     ParkDeviceName = getDeviceName();
 
@@ -1497,7 +1497,7 @@ bool INDI::Telescope::SetSlewRate(int index)
     return true;
 }
 
-void INDI::Telescope::processButton(const char *button_n, ISState state)
+void INDI::Telescope::processButton(const char * button_n, ISState state)
 {
     //ignore OFF
     if (state == ISS_OFF)
@@ -1505,26 +1505,26 @@ void INDI::Telescope::processButton(const char *button_n, ISState state)
 
     if (!strcmp(button_n, "ABORTBUTTON"))
     {
-        ISwitchVectorProperty *trackSW = getSwitch("TELESCOPE_TRACK_MODE");
+        ISwitchVectorProperty * trackSW = getSwitch("TELESCOPE_TRACK_MODE");
         // Only abort if we have some sort of motion going on
         if (ParkSP.s == IPS_BUSY || MovementNSSP.s == IPS_BUSY || MovementWESP.s == IPS_BUSY || EqNP.s == IPS_BUSY || (trackSW && trackSW->s == IPS_BUSY))
         {
             // Invoke parent processing so that INDI::Telescope takes care of abort cross-check
             ISState states[1] = { ISS_ON };
-            char *names[1] = { AbortS[0].name};
+            char * names[1] = { AbortS[0].name};
             ISNewSwitch(getDeviceName(), AbortSP.name, states, names, 1);
         }
     }
     else if (!strcmp(button_n, "PARKBUTTON"))
     {
         ISState states[2] = { ISS_ON, ISS_OFF };
-        char *names[2] = { ParkS[0].name, ParkS[1].name };
+        char * names[2] = { ParkS[0].name, ParkS[1].name };
         ISNewSwitch(getDeviceName(), ParkSP.name, states, names, 2);
     }
     else if (!strcmp(button_n, "UNPARKBUTTON"))
     {
         ISState states[2] = { ISS_OFF, ISS_ON };
-        char *names[2] = { ParkS[0].name, ParkS[1].name };
+        char * names[2] = { ParkS[0].name, ParkS[1].name };
         ISNewSwitch(getDeviceName(), ParkSP.name, states, names, 2);
     }
     else if (!strcmp(button_n, "SLEWPRESETUP"))
@@ -1704,12 +1704,12 @@ void INDI::Telescope::processSlewPresets(double mag, double angle)
     IDSetSwitch(&SlewRateSP, NULL);
 }
 
-void INDI::Telescope::joystickHelper(const char * joystick_n, double mag, double angle, void *context)
+void INDI::Telescope::joystickHelper(const char * joystick_n, double mag, double angle, void * context)
 {
-    static_cast<INDI::Telescope*>(context)->processJoystick(joystick_n, mag, angle);
+    static_cast<INDI::Telescope *>(context)->processJoystick(joystick_n, mag, angle);
 }
 
-void INDI::Telescope::buttonHelper(const char * button_n, ISState state, void *context)
+void INDI::Telescope::buttonHelper(const char * button_n, ISState state, void * context)
 {
-    static_cast<INDI::Telescope*>(context)->processButton(button_n, state);
+    static_cast<INDI::Telescope *>(context)->processButton(button_n, state);
 }

@@ -204,12 +204,12 @@ bool V4L2_Base::is_compressed() const
 #else
     switch(fmt.fmt.pix.pixelformat)
     {
-    case V4L2_PIX_FMT_GREY:
-        /* case V4L2_PIX_FMT... add other uncompressed and supported formats here */
-        return false;
+        case V4L2_PIX_FMT_GREY:
+            /* case V4L2_PIX_FMT... add other uncompressed and supported formats here */
+            return false;
 
-    default:
-        return true;
+        default:
+            return true;
     }
 #endif
 }
@@ -225,7 +225,7 @@ bool V4L2_Base::is_compressed() const
  * @return the result of the ioctl.
  * @note This function takes care of EINTR while running the ioctl.
  */
-int V4L2_Base::xioctl(int fd, int request, void *arg, char const * const request_str)
+int V4L2_Base::xioctl(int fd, int request, void * arg, char const * const request_str)
 {
     int r = -1;
 
@@ -322,7 +322,7 @@ V4L2_Base::ioctl_set_format(struct v4l2_format new_fmt, char * errmsg)
     return 0;
 }
 
-int V4L2_Base::errno_exit(const char *s, char *errmsg)
+int V4L2_Base::errno_exit(const char * s, char * errmsg)
 {
     fprintf (stderr, "%s error %d, %s\n", s, errno, strerror (errno));
     snprintf(errmsg, ERRMSGSIZ, "%s error %d, %s\n", s, errno, strerror (errno));
@@ -344,12 +344,12 @@ void V4L2_Base::doRecord(bool d)
 }
 
 
-void V4L2_Base::setRecorder(V4L2_Recorder *r)
+void V4L2_Base::setRecorder(V4L2_Recorder * r)
 {
     recorder=r;
 }
 
-int V4L2_Base::connectCam(const char * devpath, char *errmsg , int pixelFormat , int width , int height)
+int V4L2_Base::connectCam(const char * devpath, char * errmsg , int pixelFormat , int width , int height)
 {
     selectCallBackID = -1;
     cancrop=true;
@@ -449,7 +449,7 @@ static long getEpochTimeShift()
  * @param errmsg is the error messsage updated in case of error.
  * @return 0 if frame read is processed, or -1 with error message updated.
  */
-int V4L2_Base::read_frame(char *errmsg)
+int V4L2_Base::read_frame(char * errmsg)
 {
 
     unsigned int i;
@@ -457,233 +457,233 @@ int V4L2_Base::read_frame(char *errmsg)
 
     switch (io)
     {
-    case IO_METHOD_READ:
-        cerr << "in read Frame method read" << endl;
-        if (-1 == read (fd, buffers[0].start, buffers[0].length))
-        {
-            switch (errno)
+        case IO_METHOD_READ:
+            cerr << "in read Frame method read" << endl;
+            if (-1 == read (fd, buffers[0].start, buffers[0].length))
             {
-            case EAGAIN:
-                return 0;
-            case EIO:
-            /* Could ignore EIO, see spec. */
-            /* fall through */
-            default:
-                return errno_exit ("read", errmsg);
-            }
-        }
-        //process_image (buffers[0].start);
-        break;
-
-    case IO_METHOD_MMAP:
-        DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG,"%s: using MMAP to recover frame buffer",__FUNCTION__);
-        CLEAR (buf);
-
-        buf.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
-        buf.memory = V4L2_MEMORY_MMAP;
-
-        /* For debugging purposes */
-        if(false)
-        {
-            for (i = 0; i < n_buffers; ++i)
-            {
-                buf.index = i;
-                if (-1 == XIOCTL(fd, VIDIOC_QUERYBUF, &buf)) switch(errno)
-                    {
-                    case EINVAL:
-                        DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG,"%s: invalid buffer query, doing as if buffer was in output queue",__FUNCTION__);
-                        break;
-
+                switch (errno)
+                {
+                    case EAGAIN:
+                        return 0;
+                    case EIO:
+                    /* Could ignore EIO, see spec. */
+                    /* fall through */
                     default:
-                        return errno_exit ("ReadFrame IO_METHOD_MMAP: VIDIOC_QUERYBUF", errmsg);
-                    }
-
-                DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG,"%s: " DBG_STR_BUF,__FUNCTION__, DBG_BUF(buf));
+                        return errno_exit ("read", errmsg);
+                }
             }
-        }
+            //process_image (buffers[0].start);
+            break;
 
-        if (-1 == XIOCTL(fd, VIDIOC_DQBUF, &buf)) switch (errno)
-            {
-            case EAGAIN:
-                DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG,"%s: no buffer found with DQBUF ioctl (EAGAIN) - frame not ready or not requested",__FUNCTION__);
-                return 0;
+        case IO_METHOD_MMAP:
+            DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG,"%s: using MMAP to recover frame buffer",__FUNCTION__);
+            CLEAR (buf);
 
-            case EIO:
-                /* Could ignore EIO, see spec. */
-                /* Fall through */
-                DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG,"%s: transitory internal error with DQBUF ioctl (EIO)",__FUNCTION__);
+            buf.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+            buf.memory = V4L2_MEMORY_MMAP;
 
-            case EINVAL:
-            case EPIPE:
-            default:
-                return errno_exit ("ReadFrame IO_METHOD_MMAP: VIDIOC_DQBUF", errmsg);
-            }
-
-        DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG,"%s: buffer #%d dequeued from fd:%d\n",__FUNCTION__, buf.index, fd);
-
-        if( buf.flags & V4L2_BUF_FLAG_ERROR )
-        {
-            DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG,"%s: recoverable error with DQBUF ioctl (BUF_FLAG_ERROR) - frame should be dropped",__FUNCTION__);
-            if (-1 == XIOCTL(fd, VIDIOC_QBUF, &buf))
-                return errno_exit ("ReadFrame IO_METHOD_MMAP: VIDIOC_QBUF", errmsg);
-            buf.bytesused = 0;
-            return 0;
-        }
-
-        if( !is_compressed() && buf.bytesused != fmt.fmt.pix.sizeimage )
-        {
-            DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG,"%s: frame is %d-byte long, expected %d - frame should be dropped",__FUNCTION__,buf.bytesused,fmt.fmt.pix.sizeimage);
-
+            /* For debugging purposes */
             if(false)
             {
-                unsigned char const * b = (unsigned char const *) buffers[buf.index].start;
-                unsigned char const * end = b + buf.bytesused;
+                for (i = 0; i < n_buffers; ++i)
+                {
+                    buf.index = i;
+                    if (-1 == XIOCTL(fd, VIDIOC_QUERYBUF, &buf)) switch(errno)
+                        {
+                            case EINVAL:
+                                DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG,"%s: invalid buffer query, doing as if buffer was in output queue",__FUNCTION__);
+                                break;
 
-                do DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG,"%s: [%p] %02X%02X%02X%02X %02X%02X%02X%02X %02X%02X%02X%02X %02X%02X%02X%02X",__FUNCTION__,b,b[0*4+0],b[0*4+1],b[0*4+2],b[0*4+3],b[1*4+0],b[1*4+1],b[1*4+2],b[1*4+3],b[2*4+0],b[2*4+1],b[2*4+2],b[2*4+3],b[3*4+0],b[3*4+1],b[3*4+2],b[3*4+3]);
-                while( ( b += 16 ) < end );
+                            default:
+                                return errno_exit ("ReadFrame IO_METHOD_MMAP: VIDIOC_QUERYBUF", errmsg);
+                        }
+
+                    DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG,"%s: " DBG_STR_BUF,__FUNCTION__, DBG_BUF(buf));
+                }
             }
 
-            if (-1 == XIOCTL(fd, VIDIOC_QBUF, &buf))
-                return errno_exit ("ReadFrame IO_METHOD_MMAP: VIDIOC_QBUF", errmsg);
-            buf.bytesused = 0;
-            return 0;
-        }
+            if (-1 == XIOCTL(fd, VIDIOC_DQBUF, &buf)) switch (errno)
+                {
+                    case EAGAIN:
+                        DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG,"%s: no buffer found with DQBUF ioctl (EAGAIN) - frame not ready or not requested",__FUNCTION__);
+                        return 0;
+
+                    case EIO:
+                        /* Could ignore EIO, see spec. */
+                        /* Fall through */
+                        DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG,"%s: transitory internal error with DQBUF ioctl (EIO)",__FUNCTION__);
+
+                    case EINVAL:
+                    case EPIPE:
+                    default:
+                        return errno_exit ("ReadFrame IO_METHOD_MMAP: VIDIOC_DQBUF", errmsg);
+                }
+
+            DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG,"%s: buffer #%d dequeued from fd:%d\n",__FUNCTION__, buf.index, fd);
+
+            if( buf.flags & V4L2_BUF_FLAG_ERROR )
+            {
+                DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG,"%s: recoverable error with DQBUF ioctl (BUF_FLAG_ERROR) - frame should be dropped",__FUNCTION__);
+                if (-1 == XIOCTL(fd, VIDIOC_QBUF, &buf))
+                    return errno_exit ("ReadFrame IO_METHOD_MMAP: VIDIOC_QBUF", errmsg);
+                buf.bytesused = 0;
+                return 0;
+            }
+
+            if( !is_compressed() && buf.bytesused != fmt.fmt.pix.sizeimage )
+            {
+                DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG,"%s: frame is %d-byte long, expected %d - frame should be dropped",__FUNCTION__,buf.bytesused,fmt.fmt.pix.sizeimage);
+
+                if(false)
+                {
+                    unsigned char const * b = (unsigned char const *) buffers[buf.index].start;
+                    unsigned char const * end = b + buf.bytesused;
+
+                    do DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG,"%s: [%p] %02X%02X%02X%02X %02X%02X%02X%02X %02X%02X%02X%02X %02X%02X%02X%02X",__FUNCTION__,b,b[0*4+0],b[0*4+1],b[0*4+2],b[0*4+3],b[1*4+0],b[1*4+1],b[1*4+2],b[1*4+3],b[2*4+0],b[2*4+1],b[2*4+2],b[2*4+3],b[3*4+0],b[3*4+1],b[3*4+2],b[3*4+3]);
+                    while( ( b += 16 ) < end );
+                }
+
+                if (-1 == XIOCTL(fd, VIDIOC_QBUF, &buf))
+                    return errno_exit ("ReadFrame IO_METHOD_MMAP: VIDIOC_QBUF", errmsg);
+                buf.bytesused = 0;
+                return 0;
+            }
 
 #if ( LINUX_VERSION_CODE >= KERNEL_VERSION(3,15,0) )
-        /* TODO: the timestamp can be checked against the expected exposure to validate the frame - doesn't work, yet */
-        switch( buf.flags & V4L2_BUF_FLAG_TIMESTAMP_MASK )
-        {
-        case V4L2_BUF_FLAG_TIMESTAMP_UNKNOWN:
-        /* FIXME: try monotonic clock when timestamp clock type is unknown */
-        case V4L2_BUF_FLAG_TIMESTAMP_MONOTONIC:
-        {
-            struct timespec uptime = {0};
-            clock_gettime(CLOCK_MONOTONIC,&uptime);
-
-            struct timeval epochtime = {0};
-            /*gettimeofday(&epochtime, NULL); uncomment this to get the timestamp from epoch start */
-
-            float const secs = ( epochtime.tv_sec - uptime.tv_sec + buf.timestamp.tv_sec ) + (epochtime.tv_usec - uptime.tv_nsec/1000.0f + buf.timestamp.tv_usec)/1000.0f;
-
-            if( V4L2_BUF_FLAG_TSTAMP_SRC_SOE == ( buf.flags & V4L2_BUF_FLAG_TSTAMP_SRC_MASK ) )
+            /* TODO: the timestamp can be checked against the expected exposure to validate the frame - doesn't work, yet */
+            switch( buf.flags & V4L2_BUF_FLAG_TIMESTAMP_MASK )
             {
-                DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG,"%s: frame exposure started %.03f seconds ago",__FUNCTION__,-secs);
-            }
-            else if( V4L2_BUF_FLAG_TSTAMP_SRC_EOF == ( buf.flags & V4L2_BUF_FLAG_TSTAMP_SRC_MASK ) )
-            {
-                DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG,"%s: frame finished capturing %.03f seconds ago",__FUNCTION__,-secs);
-            }
-            else DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG,"%s: unsupported timestamp in frame",__FUNCTION__);
+                case V4L2_BUF_FLAG_TIMESTAMP_UNKNOWN:
+                /* FIXME: try monotonic clock when timestamp clock type is unknown */
+                case V4L2_BUF_FLAG_TIMESTAMP_MONOTONIC:
+                {
+                    struct timespec uptime = {0};
+                    clock_gettime(CLOCK_MONOTONIC,&uptime);
 
-            break;
-        }
+                    struct timeval epochtime = {0};
+                    /*gettimeofday(&epochtime, NULL); uncomment this to get the timestamp from epoch start */
 
-        case V4L2_BUF_FLAG_TIMESTAMP_COPY:
-        default:
-            DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG,"%s: no usable timestamp found in frame",__FUNCTION__);
-        }
+                    float const secs = ( epochtime.tv_sec - uptime.tv_sec + buf.timestamp.tv_sec ) + (epochtime.tv_usec - uptime.tv_nsec/1000.0f + buf.timestamp.tv_usec)/1000.0f;
+
+                    if( V4L2_BUF_FLAG_TSTAMP_SRC_SOE == ( buf.flags & V4L2_BUF_FLAG_TSTAMP_SRC_MASK ) )
+                    {
+                        DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG,"%s: frame exposure started %.03f seconds ago",__FUNCTION__,-secs);
+                    }
+                    else if( V4L2_BUF_FLAG_TSTAMP_SRC_EOF == ( buf.flags & V4L2_BUF_FLAG_TSTAMP_SRC_MASK ) )
+                    {
+                        DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG,"%s: frame finished capturing %.03f seconds ago",__FUNCTION__,-secs);
+                    }
+                    else DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG,"%s: unsupported timestamp in frame",__FUNCTION__);
+
+                    break;
+                }
+
+                case V4L2_BUF_FLAG_TIMESTAMP_COPY:
+                default:
+                    DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG,"%s: no usable timestamp found in frame",__FUNCTION__);
+            }
 #endif
 
-        /* TODO: there is probably a better error handling than asserting the buffer index */
-        assert(buf.index < n_buffers);
+            /* TODO: there is probably a better error handling than asserting the buffer index */
+            assert(buf.index < n_buffers);
 
-        if (dodecode)
-        {
-            DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG,"%s: [%p] decoding %d-byte buffer %p cropset %c", __FUNCTION__, decoder, buf.bytesused, buffers[buf.index].start, cropset?'Y':'N');
-            decoder->decode((unsigned char *)(buffers[buf.index].start), &buf);
-        }
-
-        if (dorecord)
-        {
-            DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG,"%s: [%p] recording %d-byte buffer %p", __FUNCTION__, recorder, buf.bytesused, buffers[buf.index].start);
-            recorder->writeFrame((unsigned char *)(buffers[buf.index].start));
-        }
-
-        //DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG,"lxstate is %d, dropFrame %c\n", lxstate, (dropFrame?'Y':'N'));
-
-        /* Requeue buffer */
-        if (-1 == XIOCTL(fd, VIDIOC_QBUF, &buf))
-            return errno_exit ("ReadFrame IO_METHOD_MMAP: VIDIOC_QBUF", errmsg);
-
-        if( lxstate == LX_ACTIVE )
-        {
-            /* Call provided callback function if any */
-            //if (callback && !dorecord)
-            if (callback)
-                (*callback)(uptr);
-        }
-
-        if( lxstate == LX_TRIGGERED )
-            lxstate = LX_ACTIVE;
-
-        break;
-
-    case IO_METHOD_USERPTR:
-        cerr << "in read Frame method userptr" << endl;
-        CLEAR (buf);
-
-        buf.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
-        buf.memory = V4L2_MEMORY_USERPTR;
-
-        if (-1 == XIOCTL(fd, VIDIOC_DQBUF, &buf))
-        {
-            switch (errno)
+            if (dodecode)
             {
-            case EAGAIN:
-                return 0;
-            case EIO:
-            /* Could ignore EIO, see spec. */
-            /* fall through */
-            default:
-                errno_exit ("VIDIOC_DQBUF", errmsg);
+                DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG,"%s: [%p] decoding %d-byte buffer %p cropset %c", __FUNCTION__, decoder, buf.bytesused, buffers[buf.index].start, cropset?'Y':'N');
+                decoder->decode((unsigned char *)(buffers[buf.index].start), &buf);
             }
-        }
 
-        for (i = 0; i < n_buffers; ++i)
-            if (buf.m.userptr == (unsigned long) buffers[i].start
-                    && buf.length == buffers[i].length)
-                break;
+            if (dorecord)
+            {
+                DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG,"%s: [%p] recording %d-byte buffer %p", __FUNCTION__, recorder, buf.bytesused, buffers[buf.index].start);
+                recorder->writeFrame((unsigned char *)(buffers[buf.index].start));
+            }
 
-        assert (i < n_buffers);
+            //DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG,"lxstate is %d, dropFrame %c\n", lxstate, (dropFrame?'Y':'N'));
 
-        //process_image ((void *) buf.m.userptr);
+            /* Requeue buffer */
+            if (-1 == XIOCTL(fd, VIDIOC_QBUF, &buf))
+                return errno_exit ("ReadFrame IO_METHOD_MMAP: VIDIOC_QBUF", errmsg);
 
-        if (-1 == XIOCTL(fd, VIDIOC_QBUF, &buf))
-            errno_exit ("ReadFrame IO_METHOD_USERPTR: VIDIOC_QBUF", errmsg);
+            if( lxstate == LX_ACTIVE )
+            {
+                /* Call provided callback function if any */
+                //if (callback && !dorecord)
+                if (callback)
+                    (*callback)(uptr);
+            }
 
-        break;
+            if( lxstate == LX_TRIGGERED )
+                lxstate = LX_ACTIVE;
+
+            break;
+
+        case IO_METHOD_USERPTR:
+            cerr << "in read Frame method userptr" << endl;
+            CLEAR (buf);
+
+            buf.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+            buf.memory = V4L2_MEMORY_USERPTR;
+
+            if (-1 == XIOCTL(fd, VIDIOC_DQBUF, &buf))
+            {
+                switch (errno)
+                {
+                    case EAGAIN:
+                        return 0;
+                    case EIO:
+                    /* Could ignore EIO, see spec. */
+                    /* fall through */
+                    default:
+                        errno_exit ("VIDIOC_DQBUF", errmsg);
+                }
+            }
+
+            for (i = 0; i < n_buffers; ++i)
+                if (buf.m.userptr == (unsigned long) buffers[i].start
+                        && buf.length == buffers[i].length)
+                    break;
+
+            assert (i < n_buffers);
+
+            //process_image ((void *) buf.m.userptr);
+
+            if (-1 == XIOCTL(fd, VIDIOC_QBUF, &buf))
+                errno_exit ("ReadFrame IO_METHOD_USERPTR: VIDIOC_QBUF", errmsg);
+
+            break;
     }
 
     return 0;
 }
 
-int V4L2_Base::stop_capturing(char *errmsg)
+int V4L2_Base::stop_capturing(char * errmsg)
 {
     enum v4l2_buf_type type;
     unsigned int i;
     switch (io)
     {
-    case IO_METHOD_READ:
-        /* Nothing to do. */
-        break;
+        case IO_METHOD_READ:
+            /* Nothing to do. */
+            break;
 
-    case IO_METHOD_MMAP:
-    /* Kernel 3.11 problem with streamoff: vb2_is_busy(queue) remains true so we can not change anything without diconnecting */
-    /* It seems that device should be closed/reopened to change any capture format settings. From V4L2 API Spec. (Data Negotiation) */
-    /* Switching the logical stream or returning into "panel mode" is possible by closing and reopening the device. */
-    /* Drivers may support a switch using VIDIOC_S_FMT. */
-    case IO_METHOD_USERPTR:
-        // N.B. I used this as a hack to solve a problem with capturing a frame
-        // long time ago. I recently tried taking this hack off, and it worked fine!
+        case IO_METHOD_MMAP:
+        /* Kernel 3.11 problem with streamoff: vb2_is_busy(queue) remains true so we can not change anything without diconnecting */
+        /* It seems that device should be closed/reopened to change any capture format settings. From V4L2 API Spec. (Data Negotiation) */
+        /* Switching the logical stream or returning into "panel mode" is possible by closing and reopening the device. */
+        /* Drivers may support a switch using VIDIOC_S_FMT. */
+        case IO_METHOD_USERPTR:
+            // N.B. I used this as a hack to solve a problem with capturing a frame
+            // long time ago. I recently tried taking this hack off, and it worked fine!
 
-        type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+            type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
 
-        IERmCallback(selectCallBackID);
-        selectCallBackID = -1;
-        streamactive = false;
-        if (-1 == XIOCTL(fd, VIDIOC_STREAMOFF, &type))
-            return errno_exit ("VIDIOC_STREAMOFF", errmsg);
-        break;
+            IERmCallback(selectCallBackID);
+            selectCallBackID = -1;
+            streamactive = false;
+            if (-1 == XIOCTL(fd, VIDIOC_STREAMOFF, &type))
+                return errno_exit ("VIDIOC_STREAMOFF", errmsg);
+            break;
     }
     //uninit_device(errmsg);
 
@@ -700,58 +700,58 @@ int V4L2_Base::start_capturing(char * errmsg)
 
     switch (io)
     {
-    case IO_METHOD_READ:
-        /* Nothing to do. */
-        break;
+        case IO_METHOD_READ:
+            /* Nothing to do. */
+            break;
 
-    case IO_METHOD_MMAP:
-        for (i = 0; i < n_buffers; ++i)
-        {
-            struct v4l2_buffer buf;
+        case IO_METHOD_MMAP:
+            for (i = 0; i < n_buffers; ++i)
+            {
+                struct v4l2_buffer buf;
 
-            CLEAR (buf);
+                CLEAR (buf);
 
-            buf.type        = V4L2_BUF_TYPE_VIDEO_CAPTURE;
-            buf.memory      = V4L2_MEMORY_MMAP;
-            buf.index       = i;
-            //DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG,"v4l2_start_capturing: enqueuing buffer %d for fd=%d\n", buf.index, fd);
-            /*if (-1 == XIOCTL(fd, VIDIOC_QBUF, &buf))
-            return errno_exit ("StartCapturing IO_METHOD_MMAP: VIDIOC_QBUF", errmsg);*/
-            XIOCTL(fd, VIDIOC_QBUF, &buf);
+                buf.type        = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+                buf.memory      = V4L2_MEMORY_MMAP;
+                buf.index       = i;
+                //DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG,"v4l2_start_capturing: enqueuing buffer %d for fd=%d\n", buf.index, fd);
+                /*if (-1 == XIOCTL(fd, VIDIOC_QBUF, &buf))
+                return errno_exit ("StartCapturing IO_METHOD_MMAP: VIDIOC_QBUF", errmsg);*/
+                XIOCTL(fd, VIDIOC_QBUF, &buf);
 
-        }
+            }
 
-        type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
-        if (-1 == XIOCTL(fd, VIDIOC_STREAMON, &type))
-            return errno_exit ("VIDIOC_STREAMON", errmsg);
+            type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+            if (-1 == XIOCTL(fd, VIDIOC_STREAMON, &type))
+                return errno_exit ("VIDIOC_STREAMON", errmsg);
 
-        selectCallBackID = IEAddCallback(fd, newFrame, this);
-        streamactive = true;
+            selectCallBackID = IEAddCallback(fd, newFrame, this);
+            streamactive = true;
 
-        break;
+            break;
 
-    case IO_METHOD_USERPTR:
-        for (i = 0; i < n_buffers; ++i)
-        {
-            struct v4l2_buffer buf;
+        case IO_METHOD_USERPTR:
+            for (i = 0; i < n_buffers; ++i)
+            {
+                struct v4l2_buffer buf;
 
-            CLEAR (buf);
+                CLEAR (buf);
 
-            buf.type        = V4L2_BUF_TYPE_VIDEO_CAPTURE;
-            buf.memory      = V4L2_MEMORY_USERPTR;
-            buf.m.userptr	= (unsigned long) buffers[i].start;
-            buf.length      = buffers[i].length;
+                buf.type        = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+                buf.memory      = V4L2_MEMORY_USERPTR;
+                buf.m.userptr	= (unsigned long) buffers[i].start;
+                buf.length      = buffers[i].length;
 
-            if (-1 == XIOCTL(fd, VIDIOC_QBUF, &buf))
-                return errno_exit ("StartCapturing IO_METHOD_USERPTR: VIDIOC_QBUF", errmsg);
-        }
+                if (-1 == XIOCTL(fd, VIDIOC_QBUF, &buf))
+                    return errno_exit ("StartCapturing IO_METHOD_USERPTR: VIDIOC_QBUF", errmsg);
+            }
 
-        type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+            type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
 
-        if (-1 == XIOCTL(fd, VIDIOC_STREAMON, &type))
-            return errno_exit ("VIDIOC_STREAMON", errmsg);
+            if (-1 == XIOCTL(fd, VIDIOC_STREAMON, &type))
+                return errno_exit ("VIDIOC_STREAMON", errmsg);
 
-        break;
+            break;
     }
     //if (dropFrameEnabled)
     //dropFrame = dropFrameCount;
@@ -759,7 +759,7 @@ int V4L2_Base::start_capturing(char * errmsg)
     return 0;
 }
 
-void V4L2_Base::newFrame(int /*fd*/, void *p)
+void V4L2_Base::newFrame(int /*fd*/, void * p)
 {
     char errmsg[ERRMSGSIZ];
 
@@ -767,25 +767,25 @@ void V4L2_Base::newFrame(int /*fd*/, void *p)
 
 }
 
-int V4L2_Base::uninit_device(char *errmsg)
+int V4L2_Base::uninit_device(char * errmsg)
 {
 
     switch (io)
     {
-    case IO_METHOD_READ:
-        free (buffers[0].start);
-        break;
+        case IO_METHOD_READ:
+            free (buffers[0].start);
+            break;
 
-    case IO_METHOD_MMAP:
-        for (unsigned int i = 0; i < n_buffers; ++i)
-            if (-1 == munmap (buffers[i].start, buffers[i].length))
-                return errno_exit ("munmap", errmsg);
-        break;
+        case IO_METHOD_MMAP:
+            for (unsigned int i = 0; i < n_buffers; ++i)
+                if (-1 == munmap (buffers[i].start, buffers[i].length))
+                    return errno_exit ("munmap", errmsg);
+            break;
 
-    case IO_METHOD_USERPTR:
-        for (unsigned int i = 0; i < n_buffers; ++i)
-            free (buffers[i].start);
-        break;
+        case IO_METHOD_USERPTR:
+            for (unsigned int i = 0; i < n_buffers; ++i)
+                free (buffers[i].start);
+            break;
     }
 
     free (buffers);
@@ -813,7 +813,7 @@ void V4L2_Base::init_read(unsigned int buffer_size)
     }
 }
 
-int V4L2_Base::init_mmap(char *errmsg)
+int V4L2_Base::init_mmap(char * errmsg)
 {
     struct v4l2_requestbuffers req;
 
@@ -932,11 +932,11 @@ void V4L2_Base::init_userp(unsigned int buffer_size)
     }
 }
 
-int V4L2_Base::check_device(char *errmsg)
+int V4L2_Base::check_device(char * errmsg)
 {
     unsigned int min;
     struct v4l2_input input_avail;
-    ISwitch *inputs=NULL;
+    ISwitch * inputs=NULL;
 
     if (-1 == XIOCTL(fd, VIDIOC_QUERYCAP, &cap))
     {
@@ -1018,25 +1018,25 @@ int V4L2_Base::check_device(char *errmsg)
 
     switch (io)
     {
-    case IO_METHOD_READ:
-        if (!(cap.capabilities & V4L2_CAP_READWRITE))
-        {
-            fprintf (stderr, "%s does not support read i/o", dev_name);
-            snprintf(errmsg, ERRMSGSIZ, "%s does not support read i/o", dev_name);
-            return -1;
-        }
-        break;
+        case IO_METHOD_READ:
+            if (!(cap.capabilities & V4L2_CAP_READWRITE))
+            {
+                fprintf (stderr, "%s does not support read i/o", dev_name);
+                snprintf(errmsg, ERRMSGSIZ, "%s does not support read i/o", dev_name);
+                return -1;
+            }
+            break;
 
-    case IO_METHOD_MMAP:
-    case IO_METHOD_USERPTR:
-        if (!(cap.capabilities & V4L2_CAP_STREAMING))
-        {
-            fprintf (stderr, "%s does not support streaming i/o", dev_name);
-            snprintf(errmsg, ERRMSGSIZ, "%s does not support streaming i/o", dev_name);
-            return -1;
-        }
+        case IO_METHOD_MMAP:
+        case IO_METHOD_USERPTR:
+            if (!(cap.capabilities & V4L2_CAP_STREAMING))
+            {
+                fprintf (stderr, "%s does not support streaming i/o", dev_name);
+                snprintf(errmsg, ERRMSGSIZ, "%s does not support streaming i/o", dev_name);
+                return -1;
+            }
 
-        break;
+            break;
     }
 
     /* Select video input, video standard and tune here. */
@@ -1115,24 +1115,24 @@ int V4L2_Base::check_device(char *errmsg)
                 {
                     switch (frm_sizeenum.type)
                     {
-                    case V4L2_FRMSIZE_TYPE_DISCRETE:
-                        DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG,"\t %d. (Discrete)  width %d x height %d\n", frm_sizeenum.index, frm_sizeenum.discrete.width,  frm_sizeenum.discrete.height);
-                        break;
-                    case V4L2_FRMSIZE_TYPE_STEPWISE:
-                        DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG,"\t  (Stepwise)  min. width %d, max. width %d step width %d", frm_sizeenum.stepwise.min_width,
-                                     frm_sizeenum.stepwise.max_width, frm_sizeenum.stepwise.step_width);
-                        DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG,"\t  (Stepwise)  min. height %d, max. height %d step height %d ", frm_sizeenum.stepwise.min_height,
-                                     frm_sizeenum.stepwise.max_height, frm_sizeenum.stepwise.step_height);
-                        break;
-                    case V4L2_FRMSIZE_TYPE_CONTINUOUS:
-                        DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG,"\t  (Continuous--step=1)  min. width %d, max. width %d", frm_sizeenum.stepwise.min_width,
-                                     frm_sizeenum.stepwise.max_width);
-                        DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG,"\t  (Continuous--step=1)  min. height %d, max. height %d ", frm_sizeenum.stepwise.min_height,
-                                     frm_sizeenum.stepwise.max_height);
-                        break;
-                    default:
-                        DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG,"Unknown Frame size type: %d\n",frm_sizeenum.type);
-                        break;
+                        case V4L2_FRMSIZE_TYPE_DISCRETE:
+                            DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG,"\t %d. (Discrete)  width %d x height %d\n", frm_sizeenum.index, frm_sizeenum.discrete.width,  frm_sizeenum.discrete.height);
+                            break;
+                        case V4L2_FRMSIZE_TYPE_STEPWISE:
+                            DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG,"\t  (Stepwise)  min. width %d, max. width %d step width %d", frm_sizeenum.stepwise.min_width,
+                                         frm_sizeenum.stepwise.max_width, frm_sizeenum.stepwise.step_width);
+                            DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG,"\t  (Stepwise)  min. height %d, max. height %d step height %d ", frm_sizeenum.stepwise.min_height,
+                                         frm_sizeenum.stepwise.max_height, frm_sizeenum.stepwise.step_height);
+                            break;
+                        case V4L2_FRMSIZE_TYPE_CONTINUOUS:
+                            DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG,"\t  (Continuous--step=1)  min. width %d, max. width %d", frm_sizeenum.stepwise.min_width,
+                                         frm_sizeenum.stepwise.max_width);
+                            DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG,"\t  (Continuous--step=1)  min. height %d, max. height %d ", frm_sizeenum.stepwise.min_height,
+                                         frm_sizeenum.stepwise.max_height);
+                            break;
+                        default:
+                            DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG,"Unknown Frame size type: %d\n",frm_sizeenum.type);
+                            break;
                     }
                     {
                         // Enumerating frame intervals available for this frame size and  this pixel format
@@ -1160,22 +1160,22 @@ int V4L2_Base::check_device(char *errmsg)
                         {
                             switch (frmi_valenum.type)
                             {
-                            case V4L2_FRMIVAL_TYPE_DISCRETE:
-                                DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG,"%d/%d s, ", frmi_valenum.discrete.numerator,  frmi_valenum.discrete.denominator);
-                                break;
-                            case V4L2_FRMIVAL_TYPE_STEPWISE:
-                                DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG,"(Stepwise)  min. %d/%ds, max. %d / %d s, step %d / %d s", frmi_valenum.stepwise.min.numerator, frmi_valenum.stepwise.min.denominator,
-                                             frmi_valenum.stepwise.max.numerator, frmi_valenum.stepwise.max.denominator,
-                                             frmi_valenum.stepwise.step.numerator, frmi_valenum.stepwise.step.denominator);
-                                break;
-                            case V4L2_FRMIVAL_TYPE_CONTINUOUS:
-                                DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG,"(Continuous)  min. %d / %d s, max. %d / %d s", frmi_valenum.stepwise.min.numerator,
-                                             frmi_valenum.stepwise.min.denominator,
-                                             frmi_valenum.stepwise.max.numerator, frmi_valenum.stepwise.max.denominator);
-                                break;
-                            default:
-                                DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG,"\t    Unknown Frame rate type: %d",frmi_valenum.type);
-                                break;
+                                case V4L2_FRMIVAL_TYPE_DISCRETE:
+                                    DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG,"%d/%d s, ", frmi_valenum.discrete.numerator,  frmi_valenum.discrete.denominator);
+                                    break;
+                                case V4L2_FRMIVAL_TYPE_STEPWISE:
+                                    DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG,"(Stepwise)  min. %d/%ds, max. %d / %d s, step %d / %d s", frmi_valenum.stepwise.min.numerator, frmi_valenum.stepwise.min.denominator,
+                                                 frmi_valenum.stepwise.max.numerator, frmi_valenum.stepwise.max.denominator,
+                                                 frmi_valenum.stepwise.step.numerator, frmi_valenum.stepwise.step.denominator);
+                                    break;
+                                case V4L2_FRMIVAL_TYPE_CONTINUOUS:
+                                    DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG,"(Continuous)  min. %d / %d s, max. %d / %d s", frmi_valenum.stepwise.min.numerator,
+                                                 frmi_valenum.stepwise.min.denominator,
+                                                 frmi_valenum.stepwise.max.numerator, frmi_valenum.stepwise.max.denominator);
+                                    break;
+                                default:
+                                    DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG,"\t    Unknown Frame rate type: %d",frmi_valenum.type);
+                                    break;
                             }
                         }
                         if (frmi_valenum.index==0)
@@ -1183,23 +1183,23 @@ int V4L2_Base::check_device(char *errmsg)
                             perror("VIDIOC_ENUM_FRAMEINTERVALS");
                             switch (frmi_valenum.type)
                             {
-                            case V4L2_FRMIVAL_TYPE_DISCRETE:
-                                DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG,"%d/%d s, ", frmi_valenum.discrete.numerator,  frmi_valenum.discrete.denominator);
-                                break;
-                            case V4L2_FRMIVAL_TYPE_STEPWISE:
-                                DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG,"(Stepwise)  min. %d/%ds, max. %d / %d s, step %d / %d s", frmi_valenum.stepwise.min.numerator,
-                                             frmi_valenum.stepwise.min.denominator,
-                                             frmi_valenum.stepwise.max.numerator, frmi_valenum.stepwise.max.denominator,
-                                             frmi_valenum.stepwise.step.numerator, frmi_valenum.stepwise.step.denominator);
-                                break;
-                            case V4L2_FRMIVAL_TYPE_CONTINUOUS:
-                                DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG,"(Continuous)  min. %d / %d s, max. %d / %d s", frmi_valenum.stepwise.min.numerator,
-                                             frmi_valenum.stepwise.min.denominator,
-                                             frmi_valenum.stepwise.max.numerator, frmi_valenum.stepwise.max.denominator);
-                                break;
-                            default:
-                                DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG,"\t    Unknown Frame rate type: %d",frmi_valenum.type);
-                                break;
+                                case V4L2_FRMIVAL_TYPE_DISCRETE:
+                                    DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG,"%d/%d s, ", frmi_valenum.discrete.numerator,  frmi_valenum.discrete.denominator);
+                                    break;
+                                case V4L2_FRMIVAL_TYPE_STEPWISE:
+                                    DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG,"(Stepwise)  min. %d/%ds, max. %d / %d s, step %d / %d s", frmi_valenum.stepwise.min.numerator,
+                                                 frmi_valenum.stepwise.min.denominator,
+                                                 frmi_valenum.stepwise.max.numerator, frmi_valenum.stepwise.max.denominator,
+                                                 frmi_valenum.stepwise.step.numerator, frmi_valenum.stepwise.step.denominator);
+                                    break;
+                                case V4L2_FRMIVAL_TYPE_CONTINUOUS:
+                                    DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG,"(Continuous)  min. %d / %d s, max. %d / %d s", frmi_valenum.stepwise.min.numerator,
+                                                 frmi_valenum.stepwise.min.denominator,
+                                                 frmi_valenum.stepwise.max.numerator, frmi_valenum.stepwise.max.denominator);
+                                    break;
+                                default:
+                                    DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG,"\t    Unknown Frame rate type: %d",frmi_valenum.type);
+                                    break;
                             }
                         }
                         //DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG,"error %d, %s\n", errno, strerror (errno));
@@ -1242,7 +1242,7 @@ int V4L2_Base::check_device(char *errmsg)
     return ioctl_set_format(fmt, errmsg);
 }
 
-int V4L2_Base::init_device(char *errmsg)
+int V4L2_Base::init_device(char * errmsg)
 {
     //findMinMax();
 
@@ -1252,17 +1252,17 @@ int V4L2_Base::init_device(char *errmsg)
 
     switch (io)
     {
-    case IO_METHOD_READ:
-        init_read (fmt.fmt.pix.sizeimage);
-        break;
+        case IO_METHOD_READ:
+            init_read (fmt.fmt.pix.sizeimage);
+            break;
 
-    case IO_METHOD_MMAP:
-        return init_mmap(errmsg);
-        break;
+        case IO_METHOD_MMAP:
+            return init_mmap(errmsg);
+            break;
 
-    case IO_METHOD_USERPTR:
-        init_userp (fmt.fmt.pix.sizeimage);
-        break;
+        case IO_METHOD_USERPTR:
+            init_userp (fmt.fmt.pix.sizeimage);
+            break;
     }
     return 0;
 }
@@ -1278,7 +1278,7 @@ void V4L2_Base::close_device(void)
     fd = -1;
 }
 
-int V4L2_Base::open_device(const char *devpath, char *errmsg)
+int V4L2_Base::open_device(const char * devpath, char * errmsg)
 {
     struct stat st;
 
@@ -1312,10 +1312,10 @@ int V4L2_Base::open_device(const char *devpath, char *errmsg)
     return 0;
 }
 
-void V4L2_Base::getinputs(ISwitchVectorProperty *inputssp)
+void V4L2_Base::getinputs(ISwitchVectorProperty * inputssp)
 {
     struct v4l2_input input_avail;
-    ISwitch *inputs=NULL;
+    ISwitch * inputs=NULL;
     for (input_avail.index=0; ioctl(fd, VIDIOC_ENUMINPUT, &input_avail) != -1;
             input_avail.index ++)
     {
@@ -1343,7 +1343,7 @@ void V4L2_Base::getinputs(ISwitchVectorProperty *inputssp)
     //IDSetSwitch(inputssp, "Current input: %d. %s", input.index, inputs[input.index].name);
 }
 
-int V4L2_Base::setinput(unsigned int inputindex, char *errmsg)
+int V4L2_Base::setinput(unsigned int inputindex, char * errmsg)
 {
     DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG,"Setting Video input to %d", inputindex);
     if (streamedonce)
@@ -1363,10 +1363,10 @@ int V4L2_Base::setinput(unsigned int inputindex, char *errmsg)
     return 0;
 }
 
-void V4L2_Base::getcaptureformats(ISwitchVectorProperty *captureformatssp)
+void V4L2_Base::getcaptureformats(ISwitchVectorProperty * captureformatssp)
 {
     struct v4l2_fmtdesc fmt_avail;
-    ISwitch *formats=NULL;
+    ISwitch * formats=NULL;
     unsigned int i;//, initial;
     if (captureformatssp->sp) free(captureformatssp->sp);
     fmt_avail.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
@@ -1417,7 +1417,7 @@ void V4L2_Base::getcaptureformats(ISwitchVectorProperty *captureformatssp)
  * @param errmsg is the error message to return in case of failure.
  * @return 0 if successful, else -1 with error message updated.
  */
-int V4L2_Base::setcaptureformat(unsigned int captureformat, char *errmsg)
+int V4L2_Base::setcaptureformat(unsigned int captureformat, char * errmsg)
 {
     struct v4l2_format new_fmt;
     CLEAR(new_fmt);
@@ -1428,11 +1428,11 @@ int V4L2_Base::setcaptureformat(unsigned int captureformat, char *errmsg)
     return ioctl_set_format(new_fmt, errmsg);
 }
 
-void V4L2_Base::getcapturesizes(ISwitchVectorProperty *capturesizessp, INumberVectorProperty *capturesizenp)
+void V4L2_Base::getcapturesizes(ISwitchVectorProperty * capturesizessp, INumberVectorProperty * capturesizenp)
 {
     struct v4l2_frmsizeenum frm_sizeenum;
-    ISwitch *sizes=NULL;
-    INumber *sizevalue=NULL;
+    ISwitch * sizes=NULL;
+    INumber * sizevalue=NULL;
     bool sizefound=false;
     if (capturesizessp->sp) free(capturesizessp->sp);
     if (capturesizenp->np) free(capturesizenp->np);
@@ -1444,33 +1444,33 @@ void V4L2_Base::getcapturesizes(ISwitchVectorProperty *capturesizessp, INumberVe
     {
         switch (frm_sizeenum.type)
         {
-        case V4L2_FRMSIZE_TYPE_DISCRETE:
-            sizes = (sizes==NULL)?(ISwitch *)malloc(sizeof(ISwitch)):
-                    (ISwitch *) realloc (sizes, (frm_sizeenum.index+1) * sizeof (ISwitch));
+            case V4L2_FRMSIZE_TYPE_DISCRETE:
+                sizes = (sizes==NULL)?(ISwitch *)malloc(sizeof(ISwitch)):
+                        (ISwitch *) realloc (sizes, (frm_sizeenum.index+1) * sizeof (ISwitch));
 
-            snprintf(sizes[frm_sizeenum.index].name, MAXINDINAME, "%dx%d", frm_sizeenum.discrete.width,  frm_sizeenum.discrete.height);
-            snprintf(sizes[frm_sizeenum.index].label, MAXINDINAME, "%dx%d", frm_sizeenum.discrete.width,  frm_sizeenum.discrete.height);
-            sizes[frm_sizeenum.index].s=ISS_OFF;
-            if (!sizefound)
-            {
-                if ((fmt.fmt.pix.width == frm_sizeenum.discrete.width) && (fmt.fmt.pix.height == frm_sizeenum.discrete.height))
+                snprintf(sizes[frm_sizeenum.index].name, MAXINDINAME, "%dx%d", frm_sizeenum.discrete.width,  frm_sizeenum.discrete.height);
+                snprintf(sizes[frm_sizeenum.index].label, MAXINDINAME, "%dx%d", frm_sizeenum.discrete.width,  frm_sizeenum.discrete.height);
+                sizes[frm_sizeenum.index].s=ISS_OFF;
+                if (!sizefound)
                 {
-                    sizes[frm_sizeenum.index].s=ISS_ON;
-                    sizefound=true;
-                    DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG,"Current capture size is (%d.)  %dx%d", frm_sizeenum.index, frm_sizeenum.discrete.width,  frm_sizeenum.discrete.height);
+                    if ((fmt.fmt.pix.width == frm_sizeenum.discrete.width) && (fmt.fmt.pix.height == frm_sizeenum.discrete.height))
+                    {
+                        sizes[frm_sizeenum.index].s=ISS_ON;
+                        sizefound=true;
+                        DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG,"Current capture size is (%d.)  %dx%d", frm_sizeenum.index, frm_sizeenum.discrete.width,  frm_sizeenum.discrete.height);
+                    }
                 }
-            }
-            break;
-        case V4L2_FRMSIZE_TYPE_STEPWISE:
-        case V4L2_FRMSIZE_TYPE_CONTINUOUS:
-            sizevalue=(INumber *)malloc(2 * sizeof(INumber));
-            IUFillNumber(sizevalue, "Width", "Width", "%.0f", frm_sizeenum.stepwise.min_width, frm_sizeenum.stepwise.max_width, frm_sizeenum.stepwise.step_width, fmt.fmt.pix.width);
-            IUFillNumber(sizevalue+1, "Height", "Height", "%.0f", frm_sizeenum.stepwise.min_height, frm_sizeenum.stepwise.max_height, frm_sizeenum.stepwise.step_height, fmt.fmt.pix.height);
-            DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG,"Current capture size is %dx%d", fmt.fmt.pix.width,  fmt.fmt.pix.height);
-            break;
-        default:
-            DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG,"Unknown Frame size type: %d",frm_sizeenum.type);
-            break;
+                break;
+            case V4L2_FRMSIZE_TYPE_STEPWISE:
+            case V4L2_FRMSIZE_TYPE_CONTINUOUS:
+                sizevalue=(INumber *)malloc(2 * sizeof(INumber));
+                IUFillNumber(sizevalue, "Width", "Width", "%.0f", frm_sizeenum.stepwise.min_width, frm_sizeenum.stepwise.max_width, frm_sizeenum.stepwise.step_width, fmt.fmt.pix.width);
+                IUFillNumber(sizevalue+1, "Height", "Height", "%.0f", frm_sizeenum.stepwise.min_height, frm_sizeenum.stepwise.max_height, frm_sizeenum.stepwise.step_height, fmt.fmt.pix.height);
+                DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG,"Current capture size is %dx%d", fmt.fmt.pix.width,  fmt.fmt.pix.height);
+                break;
+            default:
+                DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG,"Unknown Frame size type: %d",frm_sizeenum.type);
+                break;
         }
     }
 
@@ -1495,7 +1495,7 @@ void V4L2_Base::getcapturesizes(ISwitchVectorProperty *capturesizessp, INumberVe
  * @param errmsg is the returned error message in case of failure.
  * @return 0 if successful, else -1 with error message updated.
  */
-int V4L2_Base::setcapturesize(unsigned int w, unsigned int h, char *errmsg)
+int V4L2_Base::setcapturesize(unsigned int w, unsigned int h, char * errmsg)
 {
     struct v4l2_format new_fmt = fmt;
 
@@ -1505,11 +1505,11 @@ int V4L2_Base::setcapturesize(unsigned int w, unsigned int h, char *errmsg)
     return ioctl_set_format(new_fmt, errmsg);
 }
 
-void V4L2_Base::getframerates(ISwitchVectorProperty *frameratessp, INumberVectorProperty *frameratenp)
+void V4L2_Base::getframerates(ISwitchVectorProperty * frameratessp, INumberVectorProperty * frameratenp)
 {
     struct v4l2_frmivalenum frmi_valenum;
-    ISwitch *rates=NULL;
-    INumber *ratevalue=NULL;
+    ISwitch * rates=NULL;
+    INumber * ratevalue=NULL;
     struct v4l2_fract frate;
 
     if (frameratessp->sp) free(frameratessp->sp);
@@ -1526,27 +1526,27 @@ void V4L2_Base::getframerates(ISwitchVectorProperty *frameratessp, INumberVector
     {
         switch (frmi_valenum.type)
         {
-        case V4L2_FRMIVAL_TYPE_DISCRETE:
-            rates = (rates==NULL)?(ISwitch *)malloc(sizeof(ISwitch)):
-                    (ISwitch *) realloc (rates, (frmi_valenum.index+1) * sizeof (ISwitch));
-            snprintf(rates[frmi_valenum.index].name, MAXINDINAME, "%d/%d", frmi_valenum.discrete.numerator,  frmi_valenum.discrete.denominator);
-            snprintf(rates[frmi_valenum.index].label, MAXINDINAME, "%d/%d", frmi_valenum.discrete.numerator,  frmi_valenum.discrete.denominator);
-            if ((frate.numerator==frmi_valenum.discrete.numerator) &&(frate.denominator==frmi_valenum.discrete.denominator))
-            {
-                DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG,"Current frame interval is %d/%d", frmi_valenum.discrete.numerator, frmi_valenum.discrete.denominator);
-                rates[frmi_valenum.index].s=ISS_ON;
-            }
-            else
-                rates[frmi_valenum.index].s=ISS_OFF;
-            break;
-        case V4L2_FRMIVAL_TYPE_STEPWISE:
-        case V4L2_FRMIVAL_TYPE_CONTINUOUS:
-            ratevalue=(INumber *)malloc(sizeof(INumber));
-            IUFillNumber(ratevalue, "V4L2_FRAME_INTERVAL", "Frame Interval", "%.0f", frmi_valenum.stepwise.min.numerator/(double)frmi_valenum.stepwise.min.denominator, frmi_valenum.stepwise.max.numerator/(double)frmi_valenum.stepwise.max.denominator, frmi_valenum.stepwise.step.numerator/(double)frmi_valenum.stepwise.step.denominator, frate.numerator/(double)frate.denominator);
-            break;
-        default:
-            DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG,"Unknown Frame rate type: %d",frmi_valenum.type);
-            break;
+            case V4L2_FRMIVAL_TYPE_DISCRETE:
+                rates = (rates==NULL)?(ISwitch *)malloc(sizeof(ISwitch)):
+                        (ISwitch *) realloc (rates, (frmi_valenum.index+1) * sizeof (ISwitch));
+                snprintf(rates[frmi_valenum.index].name, MAXINDINAME, "%d/%d", frmi_valenum.discrete.numerator,  frmi_valenum.discrete.denominator);
+                snprintf(rates[frmi_valenum.index].label, MAXINDINAME, "%d/%d", frmi_valenum.discrete.numerator,  frmi_valenum.discrete.denominator);
+                if ((frate.numerator==frmi_valenum.discrete.numerator) &&(frate.denominator==frmi_valenum.discrete.denominator))
+                {
+                    DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG,"Current frame interval is %d/%d", frmi_valenum.discrete.numerator, frmi_valenum.discrete.denominator);
+                    rates[frmi_valenum.index].s=ISS_ON;
+                }
+                else
+                    rates[frmi_valenum.index].s=ISS_OFF;
+                break;
+            case V4L2_FRMIVAL_TYPE_STEPWISE:
+            case V4L2_FRMIVAL_TYPE_CONTINUOUS:
+                ratevalue=(INumber *)malloc(sizeof(INumber));
+                IUFillNumber(ratevalue, "V4L2_FRAME_INTERVAL", "Frame Interval", "%.0f", frmi_valenum.stepwise.min.numerator/(double)frmi_valenum.stepwise.min.denominator, frmi_valenum.stepwise.max.numerator/(double)frmi_valenum.stepwise.max.denominator, frmi_valenum.stepwise.step.numerator/(double)frmi_valenum.stepwise.step.denominator, frate.numerator/(double)frate.denominator);
+                break;
+            default:
+                DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG,"Unknown Frame rate type: %d",frmi_valenum.type);
+                break;
         }
     }
     frameratessp->sp=NULL;
@@ -1568,7 +1568,7 @@ void V4L2_Base::getframerates(ISwitchVectorProperty *frameratessp, INumberVector
     }
 }
 
-int V4L2_Base::setcroprect(int x, int y, int w, int h, char *errmsg)
+int V4L2_Base::setcroprect(int x, int y, int w, int h, char * errmsg)
 {
     struct v4l2_crop oldcrop=crop;
     bool softcrop;
@@ -1658,7 +1658,7 @@ struct v4l2_rect V4L2_Base::getcroprect()
     return crop.c;
 }
 
-int V4L2_Base::stdsetframerate(struct v4l2_fract frate, char *errmsg)
+int V4L2_Base::stdsetframerate(struct v4l2_fract frate, char * errmsg)
 {
     struct v4l2_streamparm sparm;
     //if (!cansetrate) {sprintf(errmsg, "Can not set rate"); return -1;}
@@ -1679,7 +1679,7 @@ int V4L2_Base::stdsetframerate(struct v4l2_fract frate, char *errmsg)
  * @param errmsg is the returned error message in case of error.
  * @return 0 if successful, else -1 with error message updated.
  */
-int V4L2_Base::pwcsetframerate(struct v4l2_fract frate, char *errmsg)
+int V4L2_Base::pwcsetframerate(struct v4l2_fract frate, char * errmsg)
 {
     int const fps = frate.denominator / frate.numerator;
 
@@ -1718,7 +1718,7 @@ char * V4L2_Base::getDeviceName()
     return ((char *) cap.card);
 }
 
-void V4L2_Base::getMaxMinSize(int & x_max, int & y_max, int & x_min, int & y_min)
+void V4L2_Base::getMaxMinSize(int &x_max, int &y_max, int &x_min, int &y_min)
 {
     x_max = xmax;
     y_max = ymax;
@@ -1791,7 +1791,7 @@ float * V4L2_Base::getLinearY()
     return decoder->getLinearY();
 }
 
-void V4L2_Base::registerCallback(WPF *fp, void *ud)
+void V4L2_Base::registerCallback(WPF * fp, void * ud)
 {
     callback = fp;
     uptr = ud;
@@ -1931,7 +1931,7 @@ void V4L2_Base::enumerate_menu (void)
     }
 }
 
-int  V4L2_Base::query_ctrl(unsigned int ctrl_id, double & ctrl_min, double & ctrl_max, double & ctrl_step, double & ctrl_value, char *errmsg)
+int  V4L2_Base::query_ctrl(unsigned int ctrl_id, double &ctrl_min, double &ctrl_max, double &ctrl_step, double &ctrl_value, char * errmsg)
 {
 
     struct v4l2_control control;
@@ -1977,14 +1977,14 @@ int  V4L2_Base::query_ctrl(unsigned int ctrl_id, double & ctrl_min, double & ctr
 
 }
 
-void  V4L2_Base::queryControls(INumberVectorProperty *nvp, unsigned int *nnumber, ISwitchVectorProperty **options, unsigned int *noptions, const char *dev, const char *group)
+void  V4L2_Base::queryControls(INumberVectorProperty * nvp, unsigned int * nnumber, ISwitchVectorProperty ** options, unsigned int * noptions, const char * dev, const char * group)
 {
     struct v4l2_control control;
 
-    INumber *numbers = NULL;
-    unsigned int *num_ctrls = NULL;
+    INumber * numbers = NULL;
+    unsigned int * num_ctrls = NULL;
     int nnum=0;
-    ISwitchVectorProperty *opt=NULL;
+    ISwitchVectorProperty * opt=NULL;
     unsigned int nopt=0;
     char optname[]="OPT000";
     char swonname[]="SET_OPT000";
@@ -2039,7 +2039,7 @@ void  V4L2_Base::queryControls(INumberVectorProperty *nvp, unsigned int *nnumber
             }
             if (queryctrl.type == V4L2_CTRL_TYPE_BOOLEAN)
             {
-                ISwitch *sw = (ISwitch *)malloc(2*sizeof(ISwitch));
+                ISwitch * sw = (ISwitch *)malloc(2*sizeof(ISwitch));
                 snprintf(optname+3, 4, "%03d", nopt);
                 snprintf(swonname+7, 4, "%03d", nopt);
                 snprintf(swoffname+9, 4, "%03d", nopt);
@@ -2063,7 +2063,7 @@ void  V4L2_Base::queryControls(INumberVectorProperty *nvp, unsigned int *nnumber
             }
             if (queryctrl.type == V4L2_CTRL_TYPE_MENU)
             {
-                ISwitch *sw = NULL;
+                ISwitch * sw = NULL;
                 unsigned int nmenuopt=0;
                 char sname[32];
                 snprintf(menuname+4, 4, "%03d", nopt);
@@ -2164,7 +2164,7 @@ void  V4L2_Base::queryControls(INumberVectorProperty *nvp, unsigned int *nnumber
             }
             if (queryctrl.type == V4L2_CTRL_TYPE_BOOLEAN)
             {
-                ISwitch *sw = (ISwitch *)malloc(2*sizeof(ISwitch));
+                ISwitch * sw = (ISwitch *)malloc(2*sizeof(ISwitch));
                 snprintf(optname+3, 4, "%03d", nopt);
                 snprintf(swonname+7, 4, "%03d", nopt);
                 snprintf(swoffname+9, 4, "%03d", nopt);
@@ -2189,7 +2189,7 @@ void  V4L2_Base::queryControls(INumberVectorProperty *nvp, unsigned int *nnumber
             }
             if (queryctrl.type == V4L2_CTRL_TYPE_MENU)
             {
-                ISwitch *sw = NULL;
+                ISwitch * sw = NULL;
                 unsigned int nmenuopt=0;
                 char sname[32];
                 snprintf(menuname+4, 4, "%03d", nopt);
@@ -2255,13 +2255,13 @@ void  V4L2_Base::queryControls(INumberVectorProperty *nvp, unsigned int *nnumber
 }
 
 
-int  V4L2_Base::queryINTControls(INumberVectorProperty *nvp)
+int  V4L2_Base::queryINTControls(INumberVectorProperty * nvp)
 {
     struct v4l2_control control;
     char errmsg[ERRMSGSIZ];
     CLEAR(queryctrl);
-    INumber *numbers = NULL;
-    unsigned int *num_ctrls = NULL;
+    INumber * numbers = NULL;
+    unsigned int * num_ctrls = NULL;
     int nnum=0;
 
     for (queryctrl.id = V4L2_CID_BASE; queryctrl.id < V4L2_CID_LASTP1; queryctrl.id++)
@@ -2367,7 +2367,7 @@ int  V4L2_Base::queryINTControls(INumberVectorProperty *nvp)
 
 }
 
-int  V4L2_Base::getControl(unsigned int ctrl_id, double *value,  char *errmsg)
+int  V4L2_Base::getControl(unsigned int ctrl_id, double * value,  char * errmsg)
 {
     struct v4l2_control control;
 
@@ -2380,7 +2380,7 @@ int  V4L2_Base::getControl(unsigned int ctrl_id, double *value,  char *errmsg)
     return 0;
 }
 
-int  V4L2_Base::setINTControl(unsigned int ctrl_id, double new_value,  char *errmsg)
+int  V4L2_Base::setINTControl(unsigned int ctrl_id, double new_value,  char * errmsg)
 {
     struct v4l2_control control;
 
@@ -2395,7 +2395,7 @@ int  V4L2_Base::setINTControl(unsigned int ctrl_id, double new_value,  char *err
     return 0;
 }
 
-int  V4L2_Base::setOPTControl(unsigned int ctrl_id, unsigned int new_value, char *errmsg)
+int  V4L2_Base::setOPTControl(unsigned int ctrl_id, unsigned int new_value, char * errmsg)
 {
     struct v4l2_control control;
 
@@ -2455,14 +2455,14 @@ bool V4L2_Base::enumerate_ext_ctrl (void)
 
 // TODO free opt/menu aux placeholders
 
-bool  V4L2_Base::queryExtControls(INumberVectorProperty *nvp, unsigned int *nnumber, ISwitchVectorProperty **options, unsigned int *noptions, const char *dev, const char *group)
+bool  V4L2_Base::queryExtControls(INumberVectorProperty * nvp, unsigned int * nnumber, ISwitchVectorProperty ** options, unsigned int * noptions, const char * dev, const char * group)
 {
     struct v4l2_control control;
 
-    INumber *numbers = NULL;
-    unsigned int *num_ctrls = NULL;
+    INumber * numbers = NULL;
+    unsigned int * num_ctrls = NULL;
     int nnum=0;
-    ISwitchVectorProperty *opt=NULL;
+    ISwitchVectorProperty * opt=NULL;
     unsigned int nopt=0;
     char optname[]="OPT000";
     char swonname[]="SET_OPT000";
@@ -2527,7 +2527,7 @@ bool  V4L2_Base::queryExtControls(INumberVectorProperty *nvp, unsigned int *nnum
         }
         if (queryctrl.type == V4L2_CTRL_TYPE_BOOLEAN)
         {
-            ISwitch *sw = (ISwitch *)malloc(2*sizeof(ISwitch));
+            ISwitch * sw = (ISwitch *)malloc(2*sizeof(ISwitch));
             snprintf(optname+3, 4, "%03d", nopt);
             snprintf(swonname+7, 4, "%03d", nopt);
             snprintf(swoffname+9, 4, "%03d", nopt);
@@ -2553,7 +2553,7 @@ bool  V4L2_Base::queryExtControls(INumberVectorProperty *nvp, unsigned int *nnum
         }
         if (queryctrl.type == V4L2_CTRL_TYPE_BUTTON)
         {
-            ISwitch *sw = (ISwitch *)malloc(sizeof(ISwitch));
+            ISwitch * sw = (ISwitch *)malloc(sizeof(ISwitch));
             snprintf(optname+3, 4, "%03d", nopt);
             snprintf(swonname+7, 4, "%03d", nopt);
             //snprintf(swoffname+9, 4, "%03d", nopt);
@@ -2572,7 +2572,7 @@ bool  V4L2_Base::queryExtControls(INumberVectorProperty *nvp, unsigned int *nnum
         }
         if (queryctrl.type == V4L2_CTRL_TYPE_MENU)
         {
-            ISwitch *sw = NULL;
+            ISwitch * sw = NULL;
             unsigned int nmenuopt=0;
             char sname[32];
             snprintf(menuname+4, 4, "%03d", nopt);

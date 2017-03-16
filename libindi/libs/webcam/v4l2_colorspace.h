@@ -21,14 +21,14 @@ extern "C" {
 
 
 void initColorSpace();
-const char * getColorSpaceName(struct v4l2_format *fmt);
-unsigned int getYCbCrEncoding(struct v4l2_format *fmt);
-const char * getYCbCrEncodingName(struct v4l2_format *fmt);
-unsigned int getQuantization(struct v4l2_format *fmt);
-const char * getQuantizationName(struct v4l2_format *fmt);
+const char * getColorSpaceName(struct v4l2_format * fmt);
+unsigned int getYCbCrEncoding(struct v4l2_format * fmt);
+const char * getYCbCrEncodingName(struct v4l2_format * fmt);
+unsigned int getQuantization(struct v4l2_format * fmt);
+const char * getQuantizationName(struct v4l2_format * fmt);
 
-void rangeY8(unsigned char *buf, unsigned int len);
-void linearize(float *buf, unsigned int len, struct v4l2_format *fmt);
+void rangeY8(unsigned char * buf, unsigned int len);
+void linearize(float * buf, unsigned int len, struct v4l2_format * fmt);
 
 #ifdef __cplusplus
 }

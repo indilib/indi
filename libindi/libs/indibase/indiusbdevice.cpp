@@ -32,7 +32,7 @@ const char * LIBUSB_CALL libusb_error_name(int errcode)
 }
 #endif
 
-static libusb_context *ctx = NULL;
+static libusb_context * ctx = NULL;
 
 INDI::USBDevice::USBDevice()
 {
@@ -57,10 +57,10 @@ INDI::USBDevice::~USBDevice()
     libusb_exit(ctx);
 }
 
-libusb_device* INDI::USBDevice::FindDevice(int vendor, int product, int searchindex)
+libusb_device * INDI::USBDevice::FindDevice(int vendor, int product, int searchindex)
 {
     int index = 0;
-    libusb_device **usb_devices;
+    libusb_device ** usb_devices;
     struct libusb_device_descriptor descriptor;
     ssize_t total = libusb_get_device_list(ctx, &usb_devices);
     if (total < 0)
@@ -70,7 +70,7 @@ libusb_device* INDI::USBDevice::FindDevice(int vendor, int product, int searchin
     }
     for (int i = 0; i < total; i++)
     {
-        libusb_device *device = usb_devices[i];
+        libusb_device * device = usb_devices[i];
         if (!libusb_get_device_descriptor(device, &descriptor))
         {
             if (descriptor.idVendor == vendor && descriptor.idProduct == product)
@@ -135,8 +135,8 @@ void INDI::USBDevice::Close()
 
 int INDI::USBDevice::FindEndpoints()
 {
-    struct libusb_config_descriptor *config;
-    struct libusb_interface_descriptor *interface;
+    struct libusb_config_descriptor * config;
+    struct libusb_interface_descriptor * interface;
     int rc = libusb_get_config_descriptor(dev, 0, &config);
     if (rc < 0)
     {
@@ -165,7 +165,7 @@ int INDI::USBDevice::FindEndpoints()
     return 0;
 }
 
-int INDI::USBDevice::ReadInterrupt(unsigned char *buf, int count, int timeout)
+int INDI::USBDevice::ReadInterrupt(unsigned char * buf, int count, int timeout)
 {
     int transferred;
     int rc = libusb_interrupt_transfer(usb_handle, InputEndpoint, buf, count, &transferred, timeout);
@@ -176,7 +176,7 @@ int INDI::USBDevice::ReadInterrupt(unsigned char *buf, int count, int timeout)
     return rc < 0 ? rc : transferred;
 }
 
-int INDI::USBDevice::WriteInterrupt(unsigned char *buf, int count, int timeout)
+int INDI::USBDevice::WriteInterrupt(unsigned char * buf, int count, int timeout)
 {
     int transferred;
     int rc = libusb_interrupt_transfer(usb_handle, OutputEndpoint, buf, count, &transferred, timeout);
@@ -187,7 +187,7 @@ int INDI::USBDevice::WriteInterrupt(unsigned char *buf, int count, int timeout)
     return rc < 0 ? rc : transferred;
 }
 
-int INDI::USBDevice::ReadBulk(unsigned char *buf, int count, int timeout)
+int INDI::USBDevice::ReadBulk(unsigned char * buf, int count, int timeout)
 {
     int transferred;
     int rc = libusb_bulk_transfer(usb_handle, InputEndpoint, buf, count, &transferred, timeout);
@@ -198,7 +198,7 @@ int INDI::USBDevice::ReadBulk(unsigned char *buf, int count, int timeout)
     return rc < 0 ? rc : transferred;
 }
 
-int INDI::USBDevice::WriteBulk(unsigned char *buf,int count,int timeout)
+int INDI::USBDevice::WriteBulk(unsigned char * buf,int count,int timeout)
 {
     int transferred;
     int rc = libusb_bulk_transfer(usb_handle, OutputEndpoint, buf, count, &transferred, timeout);
@@ -209,7 +209,7 @@ int INDI::USBDevice::WriteBulk(unsigned char *buf,int count,int timeout)
     return rc < 0 ? rc : transferred;
 }
 
-int INDI::USBDevice::ControlMessage(unsigned char request_type, unsigned char request, unsigned int value, unsigned int index, unsigned char *data, unsigned char len)
+int INDI::USBDevice::ControlMessage(unsigned char request_type, unsigned char request, unsigned int value, unsigned int index, unsigned char * data, unsigned char len)
 {
     int rc = libusb_control_transfer(usb_handle, request_type,	request, value, index, data, len, 5000);
     if (rc < 0)

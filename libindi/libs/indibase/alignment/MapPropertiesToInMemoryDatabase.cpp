@@ -16,7 +16,7 @@ namespace INDI
 namespace AlignmentSubsystem
 {
 
-void MapPropertiesToInMemoryDatabase::InitProperties(Telescope* pTelescope)
+void MapPropertiesToInMemoryDatabase::InitProperties(Telescope * pTelescope)
 {
 
     IUFillNumber(&AlignmentPointSetEntry[ENTRY_OBSERVATION_JULIAN_DATE], "ALIGNMENT_POINT_ENTRY_OBSERVATION_JULIAN_DATE", "Observation Julian date", "%g", 0, 60000, 0, 0);
@@ -63,7 +63,7 @@ void MapPropertiesToInMemoryDatabase::InitProperties(Telescope* pTelescope)
     pTelescope->registerProperty(&AlignmentPointSetCommitV, INDI_SWITCH);
 }
 
-void MapPropertiesToInMemoryDatabase::ProcessBlobProperties(Telescope* pTelescope, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[], char *names[], int n)
+void MapPropertiesToInMemoryDatabase::ProcessBlobProperties(Telescope * pTelescope, const char * name, int sizes[], int blobsizes[], char * blobs[], char * formats[], char * names[], int n)
 {
     DEBUGFDEVICE(pTelescope->getDeviceName(), INDI::Logger::DBG_DEBUG, "ProcessBlobProperties - name(%s)", name);
     if (strcmp(name, AlignmentPointSetPrivateBinaryDataV.name) == 0)
@@ -86,7 +86,7 @@ void MapPropertiesToInMemoryDatabase::ProcessBlobProperties(Telescope* pTelescop
     }
 }
 
-void MapPropertiesToInMemoryDatabase::ProcessNumberProperties(Telescope* pTelescope, const char *name, double values[], char *names[], int n)
+void MapPropertiesToInMemoryDatabase::ProcessNumberProperties(Telescope * pTelescope, const char * name, double values[], char * names[], int n)
 {
     DEBUGFDEVICE(pTelescope->getDeviceName(), INDI::Logger::DBG_DEBUG, "ProcessNumberProperties - name(%s)", name);
     if (strcmp(name, AlignmentPointSetEntryV.name) == 0)
@@ -106,10 +106,10 @@ void MapPropertiesToInMemoryDatabase::ProcessNumberProperties(Telescope* pTelesc
 }
 
 
-void MapPropertiesToInMemoryDatabase::ProcessSwitchProperties(Telescope* pTelescope, const char *name, ISState *states, char *names[], int n)
+void MapPropertiesToInMemoryDatabase::ProcessSwitchProperties(Telescope * pTelescope, const char * name, ISState * states, char * names[], int n)
 {
     DEBUGFDEVICE(pTelescope->getDeviceName(), INDI::Logger::DBG_DEBUG, "ProcessSwitchProperties - name(%s)", name);
-    AlignmentDatabaseType& AlignmentDatabase = GetAlignmentDatabase();
+    AlignmentDatabaseType &AlignmentDatabase = GetAlignmentDatabase();
     if (strcmp(name, AlignmentPointSetActionV.name) == 0)
     {
         AlignmentPointSetActionV.s=IPS_OK;

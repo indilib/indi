@@ -21,7 +21,7 @@ namespace INDI
 namespace AlignmentSubsystem
 {
 
-void MathPluginManagement::InitProperties(Telescope* ChildTelescope)
+void MathPluginManagement::InitProperties(Telescope * ChildTelescope)
 {
     EnumeratePlugins();
     AlignmentSubsystemMathPlugins.reset(new ISwitch[MathPluginDisplayNames.size() + 1]);
@@ -50,7 +50,7 @@ void MathPluginManagement::InitProperties(Telescope* ChildTelescope)
                      "ALIGNMENT_SUBSYSTEM_CURRENT_MATH_PLUGIN", "Current Math Plugin", ALIGNMENT_TAB, IP_RO, 60, IPS_IDLE);
 }
 
-void MathPluginManagement::ProcessTextProperties(Telescope* pTelescope, const char *name, char *texts[], char *names[], int n)
+void MathPluginManagement::ProcessTextProperties(Telescope * pTelescope, const char * name, char * texts[], char * names[], int n)
 {
     DEBUGFDEVICE(pTelescope->getDeviceName(), INDI::Logger::DBG_DEBUG, "ProcessTextProperties - name(%s)", name);
     if (strcmp(name, AlignmentSubsystemCurrentMathPluginV.name) == 0)
@@ -64,7 +64,7 @@ void MathPluginManagement::ProcessTextProperties(Telescope* pTelescope, const ch
             if (NULL != LoadedMathPluginHandle)
             {
                 typedef void Destroy_t(MathPlugin *);
-                Destroy_t* Destroy = (Destroy_t*)dlsym(LoadedMathPluginHandle, "Destroy");
+                Destroy_t * Destroy = (Destroy_t *)dlsym(LoadedMathPluginHandle, "Destroy");
                 if (NULL != Destroy)
                 {
                     Destroy(pLoadedMathPlugin);
@@ -89,8 +89,8 @@ void MathPluginManagement::ProcessTextProperties(Telescope* pTelescope, const ch
             // It is not the built in so try to load it
             if (NULL != (LoadedMathPluginHandle = dlopen(AlignmentSubsystemCurrentMathPlugin.text, RTLD_NOW)))
             {
-                typedef MathPlugin* Create_t();
-                Create_t* Create = (Create_t*)dlsym(LoadedMathPluginHandle, "Create");
+                typedef MathPlugin * Create_t();
+                Create_t * Create = (Create_t *)dlsym(LoadedMathPluginHandle, "Create");
                 if (NULL != Create)
                 {
                     pLoadedMathPlugin = Create();
@@ -130,7 +130,7 @@ void MathPluginManagement::ProcessTextProperties(Telescope* pTelescope, const ch
             if (NULL != LoadedMathPluginHandle)
             {
                 typedef void Destroy_t(MathPlugin *);
-                Destroy_t* Destroy = (Destroy_t*)dlsym(LoadedMathPluginHandle, "Destroy");
+                Destroy_t * Destroy = (Destroy_t *)dlsym(LoadedMathPluginHandle, "Destroy");
                 if (NULL != Destroy)
                 {
                     Destroy(pLoadedMathPlugin);
@@ -161,7 +161,7 @@ void MathPluginManagement::ProcessTextProperties(Telescope* pTelescope, const ch
     }
 }
 
-void MathPluginManagement::ProcessSwitchProperties(Telescope* pTelescope, const char *name, ISState *states, char *names[], int n)
+void MathPluginManagement::ProcessSwitchProperties(Telescope * pTelescope, const char * name, ISState * states, char * names[], int n)
 {
     DEBUGFDEVICE(pTelescope->getDeviceName(), INDI::Logger::DBG_DEBUG, "ProcessSwitchProperties - name(%s)", name);
     if (strcmp(name, AlignmentSubsystemMathPluginsV.name) == 0)
@@ -177,7 +177,7 @@ void MathPluginManagement::ProcessSwitchProperties(Telescope* pTelescope, const 
             if (0 != CurrentPlugin)
             {
                 typedef void Destroy_t(MathPlugin *);
-                Destroy_t* Destroy = (Destroy_t*)dlsym(LoadedMathPluginHandle, "Destroy");
+                Destroy_t * Destroy = (Destroy_t *)dlsym(LoadedMathPluginHandle, "Destroy");
                 if (NULL != Destroy)
                 {
                     Destroy(pLoadedMathPlugin);
@@ -205,8 +205,8 @@ void MathPluginManagement::ProcessSwitchProperties(Telescope* pTelescope, const 
                 std::string PluginPath(MathPluginFiles[NewPlugin - 1]);
                 if (NULL != (LoadedMathPluginHandle = dlopen(PluginPath.c_str(), RTLD_NOW)))
                 {
-                    typedef MathPlugin* Create_t();
-                    Create_t* Create = (Create_t*)dlsym(LoadedMathPluginHandle, "Create");
+                    typedef MathPlugin * Create_t();
+                    Create_t * Create = (Create_t *)dlsym(LoadedMathPluginHandle, "Create");
                     if (NULL != Create)
                     {
                         pLoadedMathPlugin = Create();
@@ -253,7 +253,7 @@ void MathPluginManagement::ProcessSwitchProperties(Telescope* pTelescope, const 
     }
 }
 
-void MathPluginManagement::SaveConfigProperties(FILE *fp)
+void MathPluginManagement::SaveConfigProperties(FILE * fp)
 {
     IUSaveConfigText(fp, &AlignmentSubsystemCurrentMathPluginV);
     IUSaveConfigSwitch(fp, &AlignmentSubsystemActiveV);
@@ -285,7 +285,7 @@ MountAlignment_t MathPluginManagement::GetApproximateMountAlignment()
     return (pLoadedMathPlugin->*pGetApproximateMountAlignment)();
 }
 
-bool MathPluginManagement::Initialise(InMemoryDatabase* pInMemoryDatabase)
+bool MathPluginManagement::Initialise(InMemoryDatabase * pInMemoryDatabase)
 {
     return (pLoadedMathPlugin->*pInitialise)(pInMemoryDatabase);
 }
@@ -296,7 +296,7 @@ void MathPluginManagement::SetApproximateMountAlignment(MountAlignment_t Approxi
 }
 
 bool MathPluginManagement::TransformCelestialToTelescope(const double RightAscension, const double Declination, double JulianOffset,
-        TelescopeDirectionVector& ApparentTelescopeDirectionVector)
+        TelescopeDirectionVector &ApparentTelescopeDirectionVector)
 {
     if (AlignmentSubsystemActive.s == ISS_ON)
         return (pLoadedMathPlugin->*pTransformCelestialToTelescope)(RightAscension, Declination, JulianOffset, ApparentTelescopeDirectionVector);
@@ -304,7 +304,7 @@ bool MathPluginManagement::TransformCelestialToTelescope(const double RightAscen
         return false;
 }
 
-bool MathPluginManagement::TransformTelescopeToCelestial(const TelescopeDirectionVector& ApparentTelescopeDirectionVector, double& RightAscension, double& Declination)
+bool MathPluginManagement::TransformTelescopeToCelestial(const TelescopeDirectionVector &ApparentTelescopeDirectionVector, double &RightAscension, double &Declination)
 {
     if (AlignmentSubsystemActive.s == ISS_ON)
         return (pLoadedMathPlugin->*pTransformTelescopeToCelestial)(ApparentTelescopeDirectionVector, RightAscension, Declination);
@@ -317,8 +317,8 @@ void MathPluginManagement::EnumeratePlugins()
     MathPluginFiles.clear();
     MathPluginDisplayNames.clear();
 #ifndef OSX_EMBEDED_MODE
-    dirent* de;
-    DIR* dp;
+    dirent * de;
+    DIR * dp;
 
     errno = 0;
     dp = opendir( INDI_MATH_PLUGINS_DIRECTORY );
@@ -326,7 +326,7 @@ void MathPluginManagement::EnumeratePlugins()
     {
         while (true)
         {
-            void *Handle;
+            void * Handle;
             std::string PluginPath(INDI_MATH_PLUGINS_DIRECTORY "/");
 
             errno = 0;
@@ -348,8 +348,8 @@ void MathPluginManagement::EnumeratePlugins()
             }
 
             // Try to get the plugin display name
-            typedef const char* GetDisplayName_t();
-            GetDisplayName_t* GetDisplayNamePtr = (GetDisplayName_t*)dlsym(Handle, "GetDisplayName");
+            typedef const char * GetDisplayName_t();
+            GetDisplayName_t * GetDisplayNamePtr = (GetDisplayName_t *)dlsym(Handle, "GetDisplayName");
             if (NULL == GetDisplayNamePtr)
             {
                 IDLog("EnumeratePlugins - cannot get plugin %s DisplayName error %s\n", PluginPath.c_str(), dlerror());

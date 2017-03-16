@@ -29,58 +29,58 @@
 class IndiDevice : public INDI::DefaultDriver
 {
 
-private:
+    private:
 
-protected:
-public:
-    IndiDevice();
-    virtual ~IndiDevice();
+    protected:
+    public:
+        IndiDevice();
+        virtual ~IndiDevice();
 
-    //  These are the properties we define, that are generic to pretty much all devices
-    //  They are public to make them available to all dervied classes and thier children
-    ISwitchVectorProperty ConnectionSV; //  Vector of switches for our connection stuff
-    ISwitch ConnectionS[2];
+        //  These are the properties we define, that are generic to pretty much all devices
+        //  They are public to make them available to all dervied classes and thier children
+        ISwitchVectorProperty ConnectionSV; //  Vector of switches for our connection stuff
+        ISwitch ConnectionS[2];
 
-    //  Helper functions that encapsulate the indi way of doing things
-    //  and give us a clean c++ class method
+        //  Helper functions that encapsulate the indi way of doing things
+        //  and give us a clean c++ class method
 
-    virtual int init_properties();
-    //  This will be called after connecting
-    //  to flesh out and update properties to the
-    //  client when the device is connected
-    virtual bool UpdateProperties();
+        virtual int init_properties();
+        //  This will be called after connecting
+        //  to flesh out and update properties to the
+        //  client when the device is connected
+        virtual bool UpdateProperties();
 
-    //  A helper for child classes
-    virtual bool DeleteProperty(char *);
+        //  A helper for child classes
+        virtual bool DeleteProperty(char *);
 
-    //  A state variable applicable to all devices
-    //  and I cant get any intelligent result from the parent
-    //  class calling isConnected or setConnected, so, we wont use it
-    bool Connected;
+        //  A state variable applicable to all devices
+        //  and I cant get any intelligent result from the parent
+        //  class calling isConnected or setConnected, so, we wont use it
+        bool Connected;
 
-    int SetTimer(int);
-    void RemoveTimer(int);
-    virtual void TimerHit();
+        int SetTimer(int);
+        void RemoveTimer(int);
+        virtual void TimerHit();
 
-    //  The function dispatchers required for all drivers
-    virtual void ISGetProperties (const char *dev);
-    virtual bool ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n);
-    virtual bool ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n);
-    virtual bool ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n);
-    virtual void ISSnoopDevice (XMLEle *root);
+        //  The function dispatchers required for all drivers
+        virtual void ISGetProperties (const char * dev);
+        virtual bool ISNewNumber (const char * dev, const char * name, double values[], char * names[], int n);
+        virtual bool ISNewText (const char * dev, const char * name, char * texts[], char * names[], int n);
+        virtual bool ISNewSwitch (const char * dev, const char * name, ISState * states, char * names[], int n);
+        virtual void ISSnoopDevice (XMLEle * root);
 
-    //  some virtual functions that our underlying classes are meant to override
-    virtual bool Connect();
-    virtual bool Disconnect();
-    virtual char *getDefaultName()=0;
+        //  some virtual functions that our underlying classes are meant to override
+        virtual bool Connect();
+        virtual bool Disconnect();
+        virtual char * getDefaultName()=0;
 
-    virtual bool SaveConfig();
-    virtual bool LoadConfig();
-    virtual bool WritePersistentConfig(FILE *);
+        virtual bool SaveConfig();
+        virtual bool LoadConfig();
+        virtual bool WritePersistentConfig(FILE *);
 
 };
 
-extern IndiDevice *device;
-extern IndiDevice *_create_device();
+extern IndiDevice * device;
+extern IndiDevice * _create_device();
 
 #endif // INDIDEVICE_H

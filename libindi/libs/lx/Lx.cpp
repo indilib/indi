@@ -26,7 +26,7 @@ bool Lx::isenabled()
     return (LxEnableS[1].s==ISS_ON);
 }
 
-bool Lx::initProperties(INDI::DefaultDevice *device)
+bool Lx::initProperties(INDI::DefaultDevice * device)
 {
 
     //IDLog("Initializing Long Exposure Properties\n");
@@ -100,7 +100,7 @@ bool Lx::updateProperties()
 {
     if (dev->isConnected())
     {
-        INDI::Property *pfound;
+        INDI::Property * pfound;
         dev->defineSwitch(&LxEnableSP);
         dev->defineSwitch(&LxModeSP);
         dev->defineText(&LxPortTP);
@@ -141,7 +141,7 @@ bool Lx::updateProperties()
     return true;
 }
 
-bool Lx::ISNewSwitch (const char *devname, const char *name, ISState *states, char *names[], int n)
+bool Lx::ISNewSwitch (const char * devname, const char * name, ISState * states, char * names[], int n)
 {
 
     /* ignore if not ours */
@@ -270,10 +270,10 @@ bool Lx::ISNewSwitch (const char *devname, const char *name, ISState *states, ch
     return true; // not ours, don't care
 }
 
-bool Lx::ISNewText (const char *devname, const char *name, char *texts[], char *names[], int n)
+bool Lx::ISNewText (const char * devname, const char * name, char * texts[], char * names[], int n)
 {
 
-    IText *tp;
+    IText * tp;
     /* ignore if not ours */
     if (devname && strcmp (device_name, devname))
         return true;
@@ -321,12 +321,12 @@ bool Lx::startLx()
     index=IUFindOnSwitchIndex(&LxModeSP);
     switch(index)
     {
-    case LXSERIAL:
-        return startLxSerial();
-    case LXLED:
-        return startLxPWC();
-    default:
-        return false;
+        case LXSERIAL:
+            return startLxSerial();
+        case LXLED:
+            return startLxPWC();
+        default:
+            return false;
     }
     return false;
 }
@@ -338,12 +338,12 @@ int Lx::stopLx()
     index=IUFindOnSwitchIndex(&LxModeSP);
     switch(index)
     {
-    case LXSERIAL:
-        return stopLxSerial();
-    case LXLED:
-        return stopLxPWC();
-    default:
-        return -1;
+        case LXSERIAL:
+            return stopLxSerial();
+        case LXLED:
+            return stopLxPWC();
+        default:
+            return -1;
     }
 
     return 0;
@@ -359,7 +359,7 @@ void Lx::closeserial(int fd)
 }
 
 
-int Lx::openserial(char *devicename)
+int Lx::openserial(char * devicename)
 {
     int fd;
     struct termios attr;
@@ -450,7 +450,7 @@ int Lx::setDTR(int fd, int level)
     return 1;
 }
 
-void Lx::getSerialOptions(unsigned int *speed, unsigned int *wordsize, unsigned int *parity, unsigned int *stops)
+void Lx::getSerialOptions(unsigned int * speed, unsigned int * wordsize, unsigned int * parity, unsigned int * stops)
 {
     unsigned int index;
     unsigned int speedopts[] = {1200, 2400, 4800, 9600, 19200, 38400, 57600, 115200, 230400 };
@@ -473,14 +473,14 @@ const char * Lx::getSerialEOL()
     index=IUFindOnSwitchIndex(&LxSerialAddeolSP);
     switch (index)
     {
-    case 0:
-        return "";
-    case 1:
-        return "\r";
-    case 2:
-        return "\n";
-    case 3:
-        return "\r\n";
+        case 0:
+            return "";
+        case 1:
+            return "\r";
+        case 2:
+            return "\n";
+        case 3:
+            return "\r\n";
     }
     return NULL;
 }
@@ -489,35 +489,35 @@ bool Lx::startLxSerial()
 {
     unsigned int index;
     unsigned int speed, wordsize, parity, stops;
-    const char *eol;
+    const char * eol;
     index=IUFindOnSwitchIndex(&LxSerialOptionSP);
 
     switch(index)
     {
-    case 0:
-        serialfd = openserial(LxPortT[0].text);
-        if (serialfd < 0) return false;
-        if (LxLogicalLevelS[0].s == ISS_ON)
-            setDTR(serialfd, 1);
-        else
-            setDTR(serialfd, 0);
-        break;
-    case 1:
-        serialfd = openserial(LxPortT[0].text);
-        if (serialfd < 0) return false;
-        if (LxLogicalLevelS[0].s == ISS_ON)
-            setRTS(serialfd, 1);
-        else
-            setRTS(serialfd, 0);
-        break;
-    case 2:
-        getSerialOptions(&speed, &wordsize, &parity, &stops);
-        eol=getSerialEOL();
-        tty_connect(LxPortT[0].text, speed, wordsize, parity, stops, &serialfd);
-        if (serialfd < 0) return false;
-        write(serialfd, LxStartStopCmdT[0].text, strlen(LxStartStopCmdT[0].text));
-        write(serialfd, eol, strlen(eol));
-        break;
+        case 0:
+            serialfd = openserial(LxPortT[0].text);
+            if (serialfd < 0) return false;
+            if (LxLogicalLevelS[0].s == ISS_ON)
+                setDTR(serialfd, 1);
+            else
+                setDTR(serialfd, 0);
+            break;
+        case 1:
+            serialfd = openserial(LxPortT[0].text);
+            if (serialfd < 0) return false;
+            if (LxLogicalLevelS[0].s == ISS_ON)
+                setRTS(serialfd, 1);
+            else
+                setRTS(serialfd, 0);
+            break;
+        case 2:
+            getSerialOptions(&speed, &wordsize, &parity, &stops);
+            eol=getSerialEOL();
+            tty_connect(LxPortT[0].text, speed, wordsize, parity, stops, &serialfd);
+            if (serialfd < 0) return false;
+            write(serialfd, LxStartStopCmdT[0].text, strlen(LxStartStopCmdT[0].text));
+            write(serialfd, eol, strlen(eol));
+            break;
     }
     return true;
 }
@@ -525,35 +525,35 @@ bool Lx::startLxSerial()
 int Lx::stopLxSerial()
 {
     unsigned int index;
-    const char *eol;
+    const char * eol;
     index=IUFindOnSwitchIndex(&LxSerialOptionSP);
     switch(index)
     {
-    case 0:
-        if (LxLogicalLevelS[0].s == ISS_ON)
-            setDTR(serialfd, 0);
-        else
-            setDTR(serialfd, 1);
-        break;
-    case 1:
-        if (LxLogicalLevelS[0].s == ISS_ON)
-            setRTS(serialfd, 0);
-        else
-            setRTS(serialfd, 1);
-        break;
-    case 2:
-        write(serialfd, LxStartStopCmdT[1].text, strlen(LxStartStopCmdT[1].text));
-        eol=getSerialEOL();
-        write(serialfd, eol, strlen(eol));
-        break;
+        case 0:
+            if (LxLogicalLevelS[0].s == ISS_ON)
+                setDTR(serialfd, 0);
+            else
+                setDTR(serialfd, 1);
+            break;
+        case 1:
+            if (LxLogicalLevelS[0].s == ISS_ON)
+                setRTS(serialfd, 0);
+            else
+                setRTS(serialfd, 1);
+            break;
+        case 2:
+            write(serialfd, LxStartStopCmdT[1].text, strlen(LxStartStopCmdT[1].text));
+            eol=getSerialEOL();
+            write(serialfd, eol, strlen(eol));
+            break;
     }
     close(serialfd);
     return 0;
 }
 
-INDI::Property *Lx::findbyLabel(INDI::DefaultDevice *dev, char *label)
+INDI::Property * Lx::findbyLabel(INDI::DefaultDevice * dev, char * label)
 {
-    std::vector< INDI::Property * > *allprops=dev->getProperties();
+    std::vector< INDI::Property * > * allprops=dev->getProperties();
 
     for (std::vector< INDI::Property *>::iterator it = allprops->begin() ; it != allprops->end(); ++it)
     {
@@ -601,7 +601,7 @@ void Lx::pwcsetLed(int on, int off)
 void Lx::pwcsetflashon()
 {
     ISState states[2]= {ISS_ON, ISS_OFF};
-    const char *names[2]= {FlashStrobeSP->sp[0].name, FlashStrobeStopSP->sp[0].name};
+    const char * names[2]= {FlashStrobeSP->sp[0].name, FlashStrobeStopSP->sp[0].name};
     dev->ISNewSwitch(device_name, FlashStrobeSP->name, &(states[0]), (char **)names, 1);
     //dev->ISNewSwitch(device_name, FlashStrobeStopSP->name, &(states[1]), (char **)(names + 1), 1);
     FlashStrobeSP->s = IPS_OK;
@@ -613,7 +613,7 @@ void Lx::pwcsetflashon()
 void Lx::pwcsetflashoff()
 {
     ISState states[2]= {ISS_OFF, ISS_ON};
-    const char *names[2]= {FlashStrobeSP->sp[0].name, FlashStrobeStopSP->sp[0].name};
+    const char * names[2]= {FlashStrobeSP->sp[0].name, FlashStrobeStopSP->sp[0].name};
     //dev->ISNewSwitch(device_name, FlashStrobeSP->name, &(states[0]), (char **)names, 1);
     dev->ISNewSwitch(device_name, FlashStrobeStopSP->name, &(states[1]), (char **)(names + 1), 1);
     FlashStrobeStopSP->s = IPS_OK;
@@ -626,18 +626,18 @@ bool Lx::startLxPWC()
 {
     switch (ledmethod)
     {
-    case PWCIOCTL:
-        if (LxLogicalLevelS[0].s == ISS_ON)
-            pwcsetLed(25500, 0);
-        else
-            pwcsetLed(0,25500);
-        return true;
-    case FLASHLED:
-        if (LxLogicalLevelS[0].s == ISS_ON)
-            pwcsetflashon();
-        else
-            pwcsetflashoff();
-        return true;
+        case PWCIOCTL:
+            if (LxLogicalLevelS[0].s == ISS_ON)
+                pwcsetLed(25500, 0);
+            else
+                pwcsetLed(0,25500);
+            return true;
+        case FLASHLED:
+            if (LxLogicalLevelS[0].s == ISS_ON)
+                pwcsetflashon();
+            else
+                pwcsetflashoff();
+            return true;
     }
 
     return false;
@@ -647,18 +647,18 @@ int Lx::stopLxPWC()
 {
     switch (ledmethod)
     {
-    case PWCIOCTL:
-        if (LxLogicalLevelS[0].s == ISS_ON)
-            pwcsetLed(0,25500);
-        else
-            pwcsetLed(25500, 0);
-        return 0;
-    case FLASHLED:
-        if (LxLogicalLevelS[0].s == ISS_ON)
-            pwcsetflashoff();
-        else
-            pwcsetflashon();
-        return 0;
+        case PWCIOCTL:
+            if (LxLogicalLevelS[0].s == ISS_ON)
+                pwcsetLed(0,25500);
+            else
+                pwcsetLed(25500, 0);
+            return 0;
+        case FLASHLED:
+            if (LxLogicalLevelS[0].s == ISS_ON)
+                pwcsetflashoff();
+            else
+                pwcsetflashon();
+            return 0;
     }
 
     return -1;

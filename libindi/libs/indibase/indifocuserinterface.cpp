@@ -32,7 +32,7 @@ INDI::FocuserInterface::~FocuserInterface()
 
 }
 
-void INDI::FocuserInterface::initFocuserProperties(const char *deviceName, const char* groupName)
+void INDI::FocuserInterface::initFocuserProperties(const char * deviceName, const char * groupName)
 {
     strncpy(focuserName, deviceName, MAXINDIDEVICE);
 
@@ -58,7 +58,7 @@ void INDI::FocuserInterface::initFocuserProperties(const char *deviceName, const
     IUFillSwitchVector(&AbortSP,AbortS,1,deviceName,"FOCUS_ABORT_MOTION","Abort Motion",groupName,IP_RW,ISR_ATMOST1,60,IPS_IDLE);
 }
 
-bool INDI::FocuserInterface::processFocuserNumber (const char *dev, const char *name, double values[], char *names[], int n)
+bool INDI::FocuserInterface::processFocuserNumber (const char * dev, const char * name, double values[], char * names[], int n)
 {
     //  This is for our device
     //  Now lets see if it's something we process here
@@ -211,7 +211,7 @@ bool INDI::FocuserInterface::processFocuserNumber (const char *dev, const char *
 
 }
 
-bool INDI::FocuserInterface::processFocuserSwitch (const char *dev, const char *name, ISState *states, char *names[], int n)
+bool INDI::FocuserInterface::processFocuserSwitch (const char * dev, const char * name, ISState * states, char * names[], int n)
 {
     //  This one is for us
     if(strcmp(name,"FOCUS_MOTION")==0)

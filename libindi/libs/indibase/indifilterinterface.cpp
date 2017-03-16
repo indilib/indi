@@ -29,7 +29,7 @@ INDI::FilterInterface::FilterInterface()
     FilterNameT  = NULL;
 }
 
-void INDI::FilterInterface::initFilterProperties(const char *deviceName, const char* groupName)
+void INDI::FilterInterface::initFilterProperties(const char * deviceName, const char * groupName)
 {
     IUFillNumber(&FilterSlotN[0],"FILTER_SLOT_VALUE","Filter","%3.0f",1.0,12.0,1.0,1.0);
     IUFillNumberVector(&FilterSlotNP,FilterSlotN,1,deviceName,"FILTER_SLOT","Filter Slot",groupName,IP_RW,60,IPS_IDLE);
@@ -52,11 +52,11 @@ void INDI::FilterInterface::SelectFilterDone(int f)
     IDSetNumber(&FilterSlotNP,NULL);
 }
 
-void INDI::FilterInterface::processFilterSlot(const char *deviceName, double values[], char *names[])
+void INDI::FilterInterface::processFilterSlot(const char * deviceName, double values[], char * names[])
 {
     TargetFilter = values[0];
 
-    INumber *np = IUFindNumber(&FilterSlotNP, names[0]);
+    INumber * np = IUFindNumber(&FilterSlotNP, names[0]);
 
     if (!np)
     {
@@ -88,7 +88,7 @@ void INDI::FilterInterface::processFilterSlot(const char *deviceName, double val
 
 }
 
-void INDI::FilterInterface::processFilterName(const char *deviceName, char *texts[], char *names[], int n)
+void INDI::FilterInterface::processFilterName(const char * deviceName, char * texts[], char * names[], int n)
 {
     FilterNameTP->s=IPS_OK;
     IUUpdateText(FilterNameTP,texts,names,n);

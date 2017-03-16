@@ -31,9 +31,9 @@
 namespace Connection
 {
 
-extern const char *CONNECTION_TAB;
+extern const char * CONNECTION_TAB;
 
-TCP::TCP(INDI::DefaultDevice *dev) : Interface(dev)
+TCP::TCP(INDI::DefaultDevice * dev) : Interface(dev)
 {
     // Address/Port
     IUFillText(&AddressT[0], "ADDRESS", "Address", "");
@@ -46,7 +46,7 @@ TCP::~TCP()
 
 }
 
-bool TCP::ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n)
+bool TCP::ISNewText (const char * dev, const char * name, char * texts[], char * names[], int n)
 {
     if(!strcmp(dev,device->getDeviceName()))
     {
@@ -71,15 +71,15 @@ bool TCP::Connect()
         return false;
     }
 
-    const char *hostname = AddressT[0].text;
-    const char *port     = AddressT[1].text;
+    const char * hostname = AddressT[0].text;
+    const char * port     = AddressT[1].text;
 
     DEBUGF(INDI::Logger::DBG_SESSION, "Connecting to %s@%s ...", hostname, port);
 
     if (device->isSimulation() == false)
     {
         struct sockaddr_in serv_addr;
-        struct hostent *hp = NULL;
+        struct hostent * hp = NULL;
         int ret = 0;
 
         struct timeval ts;
@@ -160,14 +160,14 @@ void TCP::Deactivated()
     device->deleteProperty(AddressTP.name);
 }
 
-bool TCP::saveConfigItems(FILE *fp)
+bool TCP::saveConfigItems(FILE * fp)
 {
     IUSaveConfigText(fp, &AddressTP);
 
     return true;
 }
 
-void TCP::setDefaultHost(const char *addressHost)
+void TCP::setDefaultHost(const char * addressHost)
 {
     IUSaveText(&AddressT[0], addressHost);
 }
