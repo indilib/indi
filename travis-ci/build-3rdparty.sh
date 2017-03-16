@@ -8,9 +8,8 @@ if [ ! -z $BUILD_THIRD_PARTY ]; then
   echo "==> BUILD_THIRD_PARTY activated"
   mkdir -p build/3rdparty
   pushd build/3rdparty
-  # bash ../../3rdparty/make_libraries
-  
-  if [ ${TRAVIS_OS_NAME}="linux" ] ; then 
+
+  if [ ${TRAVIS_OS_NAME} == "linux" ] ; then
     LIBS="libapogee libfishcamp libfli libqhy libqsi libsbig"
   else
     LIBS="libfishcamp libfli libqhy libqsi"
@@ -27,7 +26,7 @@ if [ ! -z $BUILD_THIRD_PARTY ]; then
   )
   done
 
-  if [ ${TRAVIS_OS_NAME}="linux" ] ; then 
+  if [ ${TRAVIS_OS_NAME} == "linux" ] ; then 
     cmake -DCMAKE_INSTALL_PREFIX=/usr/local/ -DWITH_NSE:OPTION=ON -DWITH_MI:OPTION=OFF -DWITH_QHY:OPTION=OFF . ../../3rdparty/
   else 
     cmake -DCMAKE_INSTALL_PREFIX=/usr/local/ -DWITH_NSE:OPTION=ON -DWITH_SBIG:OPTION=OFF -DWITH_APOGEE:OPTION=OFF . ../../3rdparty/
