@@ -86,14 +86,20 @@ bool INDI::Weather::initProperties()
     if (weatherConnection & CONNECTION_SERIAL)
     {
         serialConnection = new Connection::Serial(this);
-        serialConnection->registerHandshake([&]() { return callHandshake(); });
+        serialConnection->registerHandshake([&]()
+        {
+            return callHandshake();
+        });
         registerConnection(serialConnection);
     }
 
     if (weatherConnection & CONNECTION_TCP)
     {
         tcpConnection = new Connection::TCP(this);
-        tcpConnection->registerHandshake([&]() { return callHandshake(); });
+        tcpConnection->registerHandshake([&]()
+        {
+            return callHandshake();
+        });
         registerConnection(tcpConnection);
     }
 
@@ -106,7 +112,7 @@ bool INDI::Weather::updateProperties()
 
     if (isConnected())
     {
-        updateTimerID = -1;        
+        updateTimerID = -1;
 
         if (critialParametersL)
             defineLight(&critialParametersLP);
@@ -158,7 +164,7 @@ bool INDI::Weather::updateProperties()
     return true;
 }
 
-bool INDI::Weather::ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n)
+bool INDI::Weather::ISNewSwitch (const char * dev, const char * name, ISState * states, char * names[], int n)
 {
     if(strcmp(dev,getDeviceName())==0)
     {
@@ -175,7 +181,7 @@ bool INDI::Weather::ISNewSwitch (const char *dev, const char *name, ISState *sta
     return INDI::DefaultDevice::ISNewSwitch(dev, name, states, names, n);
 }
 
-bool INDI::Weather::ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n)
+bool INDI::Weather::ISNewNumber (const char * dev, const char * name, double values[], char * names[], int n)
 {
     //  first check if it's for our device
     if(strcmp(dev,getDeviceName())==0)
@@ -212,7 +218,7 @@ bool INDI::Weather::ISNewNumber (const char *dev, const char *name, double value
                 DEBUG(INDI::Logger::DBG_SESSION, "Periodic updates are disabled.");
             else
             {
-                if (updateTimerID > 0)                
+                if (updateTimerID > 0)
                     RemoveTimer(updateTimerID);
 
                 updateTimerID = SetTimer(UpdatePeriodN[0].value*1000);
@@ -235,7 +241,7 @@ bool INDI::Weather::ISNewNumber (const char *dev, const char *name, double value
                 updateWeatherState();
 
                 ParametersRangeNP[i].s = IPS_OK;
-                IDSetNumber(&ParametersRangeNP[i], NULL);                
+                IDSetNumber(&ParametersRangeNP[i], NULL);
 
                 return true;
             }
@@ -246,11 +252,11 @@ bool INDI::Weather::ISNewNumber (const char *dev, const char *name, double value
 }
 
 
-bool INDI::Weather::ISSnoopDevice(XMLEle *root)
+bool INDI::Weather::ISSnoopDevice(XMLEle * root)
 {
 
-    XMLEle *ep=NULL;
-    const char *propName = findXMLAttValu(root, "name");
+    XMLEle * ep=NULL;
+    const char * propName = findXMLAttValu(root, "name");
 
     if (isConnected())
     {
@@ -264,7 +270,7 @@ bool INDI::Weather::ISSnoopDevice(XMLEle *root)
 
             for (ep = nextXMLEle(root, 1) ; ep != NULL ; ep = nextXMLEle(root, 0))
             {
-                const char *elemName = findXMLAttValu(ep, "name");
+                const char * elemName = findXMLAttValu(ep, "name");
 
                 if (!strcmp(elemName, "LAT"))
                     latitude = atof(pcdataXMLEle(ep));
@@ -297,22 +303,22 @@ void INDI::Weather::TimerHit()
         // Ok
         case IPS_OK:
 
-        updateWeatherState();
-        ParametersNP.s = state;
-        IDSetNumber(&ParametersNP, NULL);
+            updateWeatherState();
+            ParametersNP.s = state;
+            IDSetNumber(&ParametersNP, NULL);
 
-        // If update period is set, then set up the timer
-        if (UpdatePeriodN[0].value > 0)
-            updateTimerID = SetTimer( (int) (UpdatePeriodN[0].value * 1000));
+            // If update period is set, then set up the timer
+            if (UpdatePeriodN[0].value > 0)
+                updateTimerID = SetTimer( (int) (UpdatePeriodN[0].value * 1000));
 
-        return;
+            return;
 
         // Alert
         // We retry every POLLMS until we get OK
         case IPS_ALERT:
-        ParametersNP.s = state;
-        IDSetNumber(&ParametersNP, NULL);
-        break;
+            ParametersNP.s = state;
+            IDSetNumber(&ParametersNP, NULL);
+            break;
 
         // Weather update is in progress
         default:
@@ -372,8 +378,8 @@ void INDI::Weather::addParameter(std::string name, std::string label, double min
 
     ParametersN = (ParametersN == NULL) ? (INumber *) malloc(sizeof(INumber)) : (INumber *) realloc(ParametersN, (ParametersNP.nnp+1) * sizeof(INumber));
 
-    double *minWarn = (double *) malloc(sizeof(double));
-    double *maxWarn = (double *) malloc(sizeof(double));
+    double * minWarn = (double *) malloc(sizeof(double));
+    double * maxWarn = (double *) malloc(sizeof(double));
 
     *minWarn = minimumWarning;
     *maxWarn = maximumWarning;
@@ -407,7 +413,7 @@ bool INDI::Weather::setCriticalParameter(std::string param)
     {
         if (!strcmp(ParametersN[i].name, param.c_str()))
         {
-            critialParametersL = (critialParametersL == NULL) ? (ILight*) malloc(sizeof(ILight)) : (ILight *) realloc(critialParametersL, (critialParametersLP.nlp+1) * sizeof(ILight));
+            critialParametersL = (critialParametersL == NULL) ? (ILight *) malloc(sizeof(ILight)) : (ILight *) realloc(critialParametersL, (critialParametersLP.nlp+1) * sizeof(ILight));
 
             IUFillLight(&critialParametersL[critialParametersLP.nlp], param.c_str(), ParametersN[i].label, IPS_IDLE);
 
@@ -458,7 +464,7 @@ void INDI::Weather::updateWeatherState()
 
         // The overall state is the worst individual state.
         if (critialParametersL[i].s > critialParametersLP.s)
-            critialParametersLP.s = critialParametersL[i].s;                
+            critialParametersLP.s = critialParametersL[i].s;
     }
 
     IDSetLight(&critialParametersLP, NULL);
@@ -468,7 +474,7 @@ void INDI::Weather::createParameterRange(std::string name, std::string label)
 {
     ParametersRangeNP = (ParametersRangeNP == NULL) ? (INumberVectorProperty *) malloc(sizeof(INumberVectorProperty)) : (INumberVectorProperty *) realloc(ParametersRangeNP, (nRanges+1) * sizeof(INumberVectorProperty));
 
-    INumber *rangesN = (INumber *) malloc(sizeof(INumber)*4);
+    INumber * rangesN = (INumber *) malloc(sizeof(INumber)*4);
 
     IUFillNumber(&rangesN[0], "MIN_OK", "Min OK", "%4.2f", -1e6, 1e6, 0, ParametersN[nRanges].min);
     IUFillNumber(&rangesN[1], "MAX_OK", "Max OK", "%4.2f", -1e6, 1e6, 0, ParametersN[nRanges].max);
@@ -486,7 +492,7 @@ void INDI::Weather::createParameterRange(std::string name, std::string label)
 
 }
 
-bool INDI::Weather::saveConfigItems(FILE *fp)
+bool INDI::Weather::saveConfigItems(FILE * fp)
 {
     INDI::DefaultDevice::saveConfigItems(fp);
 

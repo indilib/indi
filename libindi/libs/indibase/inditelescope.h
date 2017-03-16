@@ -84,16 +84,19 @@ class INDI::Telescope : public INDI::DefaultDevice
         Telescope();
         virtual ~Telescope();
 
-        virtual bool ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n);
-        virtual bool ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n);
-        virtual bool ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n);
-        virtual void ISGetProperties (const char *dev);
-        virtual bool ISSnoopDevice(XMLEle *root);
+        virtual bool ISNewNumber (const char * dev, const char * name, double values[], char * names[], int n);
+        virtual bool ISNewText (const char * dev, const char * name, char * texts[], char * names[], int n);
+        virtual bool ISNewSwitch (const char * dev, const char * name, ISState * states, char * names[], int n);
+        virtual void ISGetProperties (const char * dev);
+        virtual bool ISSnoopDevice(XMLEle * root);
 
         /**
          * @brief GetTelescopeCapability returns the capability of the Telescope
          */
-        uint32_t GetTelescopeCapability() const { return capability;}
+        uint32_t GetTelescopeCapability() const
+        {
+            return capability;
+        }
 
         /**
          * @brief SetTelescopeCapability sets the Telescope capabilities. All capabilities must be initialized.
@@ -106,32 +109,47 @@ class INDI::Telescope : public INDI::DefaultDevice
         /**
          * @return True if telescope support sync operations
          */
-        bool CanSync() { return capability & TELESCOPE_CAN_SYNC; }
+        bool CanSync()
+        {
+            return capability & TELESCOPE_CAN_SYNC;
+        }
 
         /**
          * @return True if telescope can abort motion.
          */
-        bool CanAbort() { return capability & TELESCOPE_CAN_ABORT; }
+        bool CanAbort()
+        {
+            return capability & TELESCOPE_CAN_ABORT;
+        }
 
         /**
          * @return True if telescope can park.
          */
-        bool CanPark() { return capability & TELESCOPE_CAN_PARK; }
+        bool CanPark()
+        {
+            return capability & TELESCOPE_CAN_PARK;
+        }
 
         /**
          * @return True if telescope time can be updated.
          */
-        bool HasTime() { return capability & TELESCOPE_HAS_TIME;}
+        bool HasTime()
+        {
+            return capability & TELESCOPE_HAS_TIME;
+        }
 
         /**
          * @return True if telescope location can be updated.
          */
-        bool HasLocation() { return capability & TELESCOPE_HAS_LOCATION; }
+        bool HasLocation()
+        {
+            return capability & TELESCOPE_HAS_LOCATION;
+        }
 
         /** \brief Called to initialize basic properties required all the time */
         virtual bool initProperties();
         /** \brief Called when connected state changes, to add/remove properties */
-        virtual bool updateProperties();        
+        virtual bool updateProperties();
 
         /** \brief perform handshake with device to check communication */
         virtual bool Handshake();
@@ -217,8 +235,8 @@ class INDI::Telescope : public INDI::DefaultDevice
         bool isLocked();
 
         // Joystick helpers
-        static void joystickHelper(const char * joystick_n, double mag, double angle, void *context);
-        static void buttonHelper(const char * button_n, ISState state, void *context);
+        static void joystickHelper(const char * joystick_n, double mag, double angle, void * context);
+        static void buttonHelper(const char * button_n, ISState state, void * context);
 
         /**
          * @brief setTelescopeConnection Set telescope connection mode. Child class should call this in the constructor before INDI::Telescope registers
@@ -233,9 +251,9 @@ class INDI::Telescope : public INDI::DefaultDevice
         uint8_t getTelescopeConnection() const;
 
 
-protected:
+    protected:
 
-        virtual bool saveConfigItems(FILE *fp);
+        virtual bool saveConfigItems(FILE * fp);
 
         /** \brief The child class calls this function when it has updates */
         void NewRaDec(double ra,double dec);
@@ -303,7 +321,7 @@ protected:
             \return True if successful, false otherwise
             \note This function performs no action unless subclassed by the child class if required.
         */
-        virtual bool updateTime(ln_date *utc, double utc_offset);
+        virtual bool updateTime(ln_date * utc, double utc_offset);
 
         /** \brief Update telescope location settings
          *  \param latitude Site latitude in degrees.
@@ -312,7 +330,7 @@ protected:
             \return True if successful, false otherwise
             \note This function performs no action unless subclassed by the child class if required.
         */
-        virtual bool updateLocation(double latitude, double longitude, double elevation);        
+        virtual bool updateLocation(double latitude, double longitude, double elevation);
 
         /**
          * @brief SetParkPosition Set desired parking position to the supplied value. This ONLY sets the desired park position value and does not perform parking.
@@ -321,7 +339,10 @@ protected:
          * @return True if desired parking position is accepted and set. False otherwise.
          * @note INDI::Telescope implementation of this function always evaluates to true. Override to implement a custom behavior.
          */
-        virtual bool SetParkPosition(double Axis1Value, double Axis2Value) { return true; }
+        virtual bool SetParkPosition(double Axis1Value, double Axis2Value)
+        {
+            return true;
+        }
         /**
          * @brief SetCurrentPark Set current coordinates/encoders value as the desired parking position
          * @return True if current mount coordinates are set as parking position, false on error.
@@ -367,8 +388,8 @@ protected:
         INumberVectorProperty EqNP;
         INumber EqN[2];
 
-	//  When a goto is issued, domes will snoop the target property
-	//  to start moving the dome when a telescope moves
+        //  When a goto is issued, domes will snoop the target property
+        //  to start moving the dome when a telescope moves
         INumberVectorProperty TargetNP;
         INumber TargetN[2];
 
@@ -406,7 +427,7 @@ protected:
 
         // Slew Rate
         ISwitchVectorProperty SlewRateSP;
-        ISwitch *SlewRateS;
+        ISwitch * SlewRateS;
 
         // Telescope & guider aperture and focal length
         INumber ScopeParametersN[4];
@@ -432,26 +453,26 @@ protected:
         int last_we_motion, last_ns_motion;
 
         //Park
-        char *LoadParkData();
+        char * LoadParkData();
         bool WriteParkData();
 
         int PortFD=-1;
-        Connection::Serial *serialConnection=NULL;
-        Connection::TCP *tcpConnection=NULL;
+        Connection::Serial * serialConnection=NULL;
+        Connection::TCP * tcpConnection=NULL;
 
-private:
+    private:
 
-        bool processTimeInfo(const char *utc, const char *offset);
+        bool processTimeInfo(const char * utc, const char * offset);
         bool processLocationInfo(double latitude, double longitude, double elevation);
 
-        void triggerSnoop(const char *driverName, const char *propertyName);
+        void triggerSnoop(const char * driverName, const char * propertyName);
 
         TelescopeParkData parkDataType;
         bool IsLocked;
-        bool IsParked;        
-        const char *ParkDeviceName;
+        bool IsParked;
+        const char * ParkDeviceName;
         const char * Parkdatafile;
-        XMLEle *ParkdataXmlRoot, *ParkdeviceXml, *ParkstatusXml, *ParkpositionXml, *ParkpositionAxis1Xml, *ParkpositionAxis2Xml;
+        XMLEle * ParkdataXmlRoot, *ParkdeviceXml, *ParkstatusXml, *ParkpositionXml, *ParkpositionAxis1Xml, *ParkpositionAxis2Xml;
 
         double Axis1ParkPosition;
         double Axis1DefaultParkPosition;
@@ -463,7 +484,7 @@ private:
         IPState lastEqState;
 
         uint8_t telescopeConnection = CONNECTION_SERIAL | CONNECTION_TCP;
-        INDI::Controller *controller;
+        INDI::Controller * controller;
 };
 
 #endif // INDI::Telescope_H

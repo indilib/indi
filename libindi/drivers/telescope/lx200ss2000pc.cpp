@@ -131,7 +131,7 @@ bool LX200SS2000PC::setCalenderDate(int year, int month, int day) {
   // of the SkySensor2000PC because the resulting update of the planetary data
   // takes quite some time.
   bool result = true;
-  int  ss_year, ss_month, ss_day;
+  int  ss_year=0, ss_month=0, ss_day=0;
   const bool send_to_skysensor = (!getCalendarDate(ss_year,ss_month,ss_day) || year != ss_year || month != ss_month || day != ss_day );
   DEBUGF(INDI::Logger::DBG_DEBUG, "LX200SS2000PC::setCalenderDate(): Driver date %02d/%02d/%02d, SS2000PC date %02d/%02d/%02d.", month, day, year, ss_month, ss_day, ss_year);
   if (send_to_skysensor) {

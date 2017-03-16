@@ -267,7 +267,7 @@ bool XAGYLWheel::ISNewNumber (const char *dev, const char *name, double values[]
 
         if (!strcmp(SettingsNP.name, name))
         {
-            double newSpeed, newJitter, newThreshold, newPulseWidth;
+            double newSpeed=0, newJitter=0, newThreshold=0, newPulseWidth=0;
             for (int i=0; i < n; i++)
             {
                 if (!strcmp(names[i], SettingsN[SET_SPEED].name))

@@ -92,12 +92,12 @@ public:
     /** \brief Connect to INDI driver
         \param deviceName Name of the device to connect to.
     */
-    void connectDevice(const char *deviceName);
+    void connectDevice(const char * deviceName);
 
     /** \brief Disconnect INDI driver
         \param deviceName Name of the device to disconnect.
     */
-    void disconnectDevice(const char *deviceName);
+    void disconnectDevice(const char * deviceName);
 
     /** \param deviceName Name of device to search for in the list of devices owned by INDI server,
          \returns If \e deviceName exists, it returns an instance of the device. Otherwise, it returns NULL.
@@ -106,7 +106,10 @@ public:
 
     /** \returns Returns a vector of all devices created in the client.
     */
-    const vector<INDI::BaseDevice *> & getDevices() const { return cDevices; }
+    const vector<INDI::BaseDevice *> &getDevices() const
+    {
+        return cDevices;
+    }
 
     /** \brief Set Binary Large Object policy mode
 
@@ -124,7 +127,7 @@ public:
       \param dev name of device, required.
       \param prop name of property, optional.
     */
-    void setBLOBMode(BLOBHandling blobH, const char *dev, const char *prop = NULL);
+    void setBLOBMode(BLOBHandling blobH, const char * dev, const char * prop = NULL);
 
     /**
      * @brief getBLOBMode Get Binary Large Object policy mode IF set previously by setBLOBMode
@@ -132,33 +135,39 @@ public:
      * @param prop property name, can be NULL to return overall device policy if it exists.
      * @return BLOB Policy, if not found, it always returns B_ALSO
      */
-    BLOBHandling getBLOBMode(const char *dev, const char *prop = NULL);
+    BLOBHandling getBLOBMode(const char * dev, const char * prop = NULL);
 
-    // Update
-    static void * listenHelper(void *context);
+// Update
+    static void * listenHelper(void * context);
 
-    const char * getHost() { return cServer.c_str();}
-    int getPort() { return cPort; }
+    const char * getHost()
+    {
+        return cServer.c_str();
+    }
+    int getPort()
+    {
+        return cPort;
+    }
 
     /** \brief Send new Text command to server */
-    void sendNewText (ITextVectorProperty *pp);
+    void sendNewText (ITextVectorProperty * pp);
     /** \brief Send new Text command to server */
-    void sendNewText (const char * deviceName, const char * propertyName, const char* elementName, const char *text);
+    void sendNewText (const char * deviceName, const char * propertyName, const char * elementName, const char * text);
     /** \brief Send new Number command to server */
-    void sendNewNumber (INumberVectorProperty *pp);
+    void sendNewNumber (INumberVectorProperty * pp);
     /** \brief Send new Number command to server */
-    void sendNewNumber (const char * deviceName, const char *propertyName, const char* elementName, double value);
+    void sendNewNumber (const char * deviceName, const char * propertyName, const char * elementName, double value);
     /** \brief Send new Switch command to server */
-    void sendNewSwitch (ISwitchVectorProperty *pp);
+    void sendNewSwitch (ISwitchVectorProperty * pp);
     /** \brief Send new Switch command to server */
-    void sendNewSwitch (const char * deviceName, const char *propertyName, const char *elementName);
+    void sendNewSwitch (const char * deviceName, const char * propertyName, const char * elementName);
 
     /** \brief Send opening tag for BLOB command to server */
-    void startBlob( const char *devName, const char *propName, const char *timestamp);
+    void startBlob( const char * devName, const char * propName, const char * timestamp);
     /** \brief Send ONE blob content to server. The BLOB data in raw binary format and will be converted to base64 and sent to server */
-    void sendOneBlob(IBLOB *bp);
+    void sendOneBlob(IBLOB * bp);
     /** \brief Send ONE blob content to server. The BLOB data in raw binary format and will be converted to base64 and sent to server */
-    void sendOneBlob( const char *blobName, unsigned int blobSize, const char *blobFormat, void * blobBuffer);
+    void sendOneBlob( const char * blobName, unsigned int blobSize, const char * blobFormat, void * blobBuffer);
     /** \brief Send closing tag for BLOB command to server */
     void finishBlob();
 
@@ -167,41 +176,51 @@ public:
      * @param enable If true, enable <b>FULL</b> verbose output. Any XML message received, including BLOBs, are printed on
      * standard output. Only use this for debugging purposes.
      */
-    void setVerbose(bool enable) { verbose = enable; }
+    void setVerbose(bool enable)
+    {
+        verbose = enable;
+    }
 
     /**
      * @brief isVerbose Is client in verbose mode?
      * @return Is client in verbose mode?
      */
-    bool isVerbose() const { return verbose; }
+    bool isVerbose() const
+    {
+        return verbose;
+    }
 
     /**
      * @brief setConnectionTimeout Set connection timeout. By default it is 3 seconds.
      * @param seconds seconds
      * @param microseconds microseconds
      */
-    void setConnectionTimeout(uint32_t seconds, uint32_t microseconds) { timeout_sec = seconds; timeout_us = microseconds;}
+    void setConnectionTimeout(uint32_t seconds, uint32_t microseconds)
+    {
+        timeout_sec = seconds;
+        timeout_us = microseconds;
+    }
 
 protected:
 
     /** \brief Dispatch command received from INDI server to respective devices handled by the client */
-    int dispatchCommand(XMLEle *root, char* errmsg);
+    int dispatchCommand(XMLEle * root, char * errmsg);
 
     /** \brief Remove device */
     int deleteDevice( const char * devName, char * errmsg );
 
     /** \brief Delete property command */
-    int delPropertyCmd (XMLEle *root, char * errmsg);
+    int delPropertyCmd (XMLEle * root, char * errmsg);
 
     /** \brief Find and return a particular device */
     INDI::BaseDevice * findDev( const char * devName, char * errmsg);
     /** \brief Add a new device */
-    INDI::BaseDevice * addDevice (XMLEle *dep, char * errmsg);
+    INDI::BaseDevice * addDevice (XMLEle * dep, char * errmsg);
     /** \brief Find a device, and if it doesn't exist, create it if create is set to 1 */
-    INDI::BaseDevice * findDev (XMLEle *root, int create, char * errmsg);
+    INDI::BaseDevice * findDev (XMLEle * root, int create, char * errmsg);
 
     /**  Process messages */
-    int messageCmd (XMLEle *root, char * errmsg);
+    int messageCmd (XMLEle * root, char * errmsg);
 
 private:
 
@@ -212,14 +231,14 @@ private:
         BLOBHandling blobMode;
     } BLOBMode;
 
-    BLOBMode *findBLOBMode(string device, string property);
+    BLOBMode * findBLOBMode(string device, string property);
 
     /** \brief Connect/Disconnect to INDI driver
         \param status If true, the client will attempt to turn on CONNECTION property within the driver (i.e. turn on the device).
          Otherwise, CONNECTION will be turned off.
         \param deviceName Name of the device to connect to.
     */
-    void setDriverConnection(bool status, const char *deviceName);
+    void setDriverConnection(bool status, const char * deviceName);
 
     /**
      * @brief clear Clear devices and blob modes
@@ -228,27 +247,27 @@ private:
 
     pthread_t listen_thread;
 
-    FILE *svrwfp;			/* FILE * to talk to server */
+    FILE * svrwfp;			/* FILE * to talk to server */
     int sockfd;
 
     int m_receiveFd;
     int m_sendFd;
 
-    // Listen to INDI server and process incoming messages
+// Listen to INDI server and process incoming messages
     void listenINDI();
 
     vector<INDI::BaseDevice *> cDevices;
     vector<string> cDeviceNames;
-    vector<BLOBMode*> blobModes;
+    vector<BLOBMode *> blobModes;
 
     string cServer;
     unsigned int cPort;
     bool sConnected;
     bool verbose;
 
-    // Parse & FILE buffers for IO
+// Parse & FILE buffers for IO
 
-    LilXML *lillp;			/* XML parser context */
+    LilXML * lillp;			/* XML parser context */
     uint32_t timeout_sec, timeout_us;
 
 

@@ -355,11 +355,9 @@ bool LX200AstroPhysics::ISNewSwitch (const char *dev, const char *name, ISState 
     // =======================================
     if (!strcmp(name, SyncCMRSP.name))
     {
-        int currentSync ;
-
         IUResetSwitch(&SyncCMRSP);
         IUUpdateSwitch(&SyncCMRSP, states, names, n);
-        currentSync = IUFindOnSwitchIndex(&SyncCMRSP);
+        IUFindOnSwitchIndex(&SyncCMRSP);
         SyncCMRSP.s = IPS_OK;
         IDSetSwitch(&SyncCMRSP, NULL);
         return true;

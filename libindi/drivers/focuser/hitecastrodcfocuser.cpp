@@ -282,6 +282,7 @@ HitecAstroDCFocuser::MoveRelFocuser(FocusDirection dir, uint32_t ticks)
     FocusRelPosNP.s = IPS_BUSY;
     IDSetNumber(&FocusRelPosNP, NULL);
     
+    // JM 2017-03-16: iticks is not used, FIXME.
     if(dir == FOCUS_INWARD) {
         iticks = ticks * -1;
     }

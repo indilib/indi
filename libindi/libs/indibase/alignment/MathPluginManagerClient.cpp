@@ -20,7 +20,7 @@ MathPluginManagerClient::~MathPluginManagerClient()
 
 // Public methods
 
-void MathPluginManagerClient::Initialise(int argc, char* argv[])
+void MathPluginManagerClient::Initialise(int argc, char * argv[])
 {
     std::string HostName("localhost");
     int Port = 7624;
@@ -78,17 +78,17 @@ void MathPluginManagerClient::Test()
 
 // Protected methods
 
-void MathPluginManagerClient::newDevice(INDI::BaseDevice *dp)
+void MathPluginManagerClient::newDevice(INDI::BaseDevice * dp)
 {
     ProcessNewDevice(dp);
 }
 
-void MathPluginManagerClient::newProperty(INDI::Property *property)
+void MathPluginManagerClient::newProperty(INDI::Property * property)
 {
     ProcessNewProperty(property);
 }
 
-void MathPluginManagerClient::newSwitch(ISwitchVectorProperty *svp)
+void MathPluginManagerClient::newSwitch(ISwitchVectorProperty * svp)
 {
     ProcessNewSwitch(svp);
 }

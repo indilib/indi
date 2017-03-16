@@ -10,19 +10,21 @@
 
 #include <cstring>
 
-namespace INDI {
-namespace AlignmentSubsystem {
+namespace INDI
+{
+namespace AlignmentSubsystem
+{
 
 // Public methods
 
-bool ClientAPIForMathPluginManagement::EnumerateMathPlugins(MathPluginsList& AvailableMathPlugins)
+bool ClientAPIForMathPluginManagement::EnumerateMathPlugins(MathPluginsList &AvailableMathPlugins)
 {
     // Wait for driver to initialise if neccessary
     WaitForDriverCompletion();
 
     AvailableMathPlugins.clear();
 
-    ISwitchVectorProperty *pPlugins = MathPlugins->getSwitch();
+    ISwitchVectorProperty * pPlugins = MathPlugins->getSwitch();
 
     for (int i = 0; i < pPlugins->nsp; i++)
         AvailableMathPlugins.push_back(std::string(pPlugins->sp[i].label));
@@ -30,17 +32,17 @@ bool ClientAPIForMathPluginManagement::EnumerateMathPlugins(MathPluginsList& Ava
     return true;
 }
 
-void ClientAPIForMathPluginManagement::Initialise(INDI::BaseClient *BaseClient)
+void ClientAPIForMathPluginManagement::Initialise(INDI::BaseClient * BaseClient)
 {
     ClientAPIForMathPluginManagement::BaseClient = BaseClient;
 }
 
-void ClientAPIForMathPluginManagement::ProcessNewDevice(INDI::BaseDevice *DevicePointer)
+void ClientAPIForMathPluginManagement::ProcessNewDevice(INDI::BaseDevice * DevicePointer)
 {
     Device = DevicePointer;
 }
 
-void ClientAPIForMathPluginManagement::ProcessNewProperty(INDI::Property *PropertyPointer)
+void ClientAPIForMathPluginManagement::ProcessNewProperty(INDI::Property * PropertyPointer)
 {
     int ReturnCode;
     bool GotOneOfMine = true;
@@ -54,8 +56,8 @@ void ClientAPIForMathPluginManagement::ProcessNewProperty(INDI::Property *Proper
 
     // Tell the client when all the database proeprties have been set up
     if (GotOneOfMine
-                && (NULL != MathPlugins)
-                && (NULL != PluginInitialise))
+            && (NULL != MathPlugins)
+            && (NULL != PluginInitialise))
     {
         // The DriverActionComplete state variable is initialised to false
         // So I need to call this to set it to true and signal anyone
@@ -64,7 +66,7 @@ void ClientAPIForMathPluginManagement::ProcessNewProperty(INDI::Property *Proper
     }
 }
 
-void ClientAPIForMathPluginManagement::ProcessNewSwitch(ISwitchVectorProperty *SwitchVectorProperty)
+void ClientAPIForMathPluginManagement::ProcessNewSwitch(ISwitchVectorProperty * SwitchVectorProperty)
 {
     if (!strcmp(SwitchVectorProperty->name, "ALIGNMENT_SUBSYSTEM_MATH_PLUGINS"))
     {
@@ -78,12 +80,12 @@ void ClientAPIForMathPluginManagement::ProcessNewSwitch(ISwitchVectorProperty *S
     }
 }
 
-bool ClientAPIForMathPluginManagement::SelectMathPlugin(const std::string& MathPluginName)
+bool ClientAPIForMathPluginManagement::SelectMathPlugin(const std::string &MathPluginName)
 {
     // Wait for driver to initialise if neccessary
     WaitForDriverCompletion();
 
-    ISwitchVectorProperty *pPlugins = MathPlugins->getSwitch();
+    ISwitchVectorProperty * pPlugins = MathPlugins->getSwitch();
 
     int i;
     for (i = 0; i < pPlugins->nsp; i++)
@@ -113,7 +115,7 @@ bool ClientAPIForMathPluginManagement::ReInitialiseMathPlugin()
     // Wait for driver to initialise if neccessary
     WaitForDriverCompletion();
 
-    ISwitchVectorProperty *pPluginInitialise = PluginInitialise->getSwitch();
+    ISwitchVectorProperty * pPluginInitialise = PluginInitialise->getSwitch();
 
     IUResetSwitch(pPluginInitialise);
     pPluginInitialise->sp[0].s = ISS_ON;

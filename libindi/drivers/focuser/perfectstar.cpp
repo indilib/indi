@@ -185,7 +185,7 @@ void PerfectStar::TimerHit()
     if (rc)
         FocusAbsPosN[0].value = currentTicks;
 
-    rc = getStatus(&status);
+    getStatus(&status);
 
     if (FocusAbsPosNP.s == IPS_BUSY || FocusRelPosNP.s == IPS_BUSY)
     {

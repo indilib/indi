@@ -8,10 +8,12 @@
 
 #include "MathPlugin.h"
 
-namespace INDI {
-namespace AlignmentSubsystem {
+namespace INDI
+{
+namespace AlignmentSubsystem
+{
 
-bool MathPlugin::Initialise(InMemoryDatabase* pInMemoryDatabase)
+bool MathPlugin::Initialise(InMemoryDatabase * pInMemoryDatabase)
 {
     MathPlugin::pInMemoryDatabase = pInMemoryDatabase;
     return true;

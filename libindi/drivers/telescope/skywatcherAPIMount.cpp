@@ -1272,8 +1272,8 @@ void SkywatcherAPIMount::SkywatcherMicrostepsFromTelescopeDirectionVector(const 
                                                             long& Axis1Microsteps, long& Axis2Microsteps)
 {
     // For the time being I assume that all skywathcer mounts share the same encoder conventions
-    double Axis1Angle;
-    double Axis2Angle;
+    double Axis1Angle=0;
+    double Axis2Angle=0;
     SphericalCoordinateFromTelescopeDirectionVector(TelescopeDirectionVector, Axis1Angle, TelescopeDirectionVectorSupportFunctions::CLOCKWISE, Axis1Angle, FROM_AZIMUTHAL_PLANE);
 
     Axis1Microsteps = RadiansToMicrosteps(AXIS1, Axis1Angle);

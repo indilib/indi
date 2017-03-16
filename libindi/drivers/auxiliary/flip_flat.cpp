@@ -192,13 +192,16 @@ bool FlipFlat::Handshake()
     i |= TIOCM_RTS;
     if (ioctl(PortFD, TIOCMBIC, &i) != 0)
     {
-            DEBUG(INDI::Logger::DBG_ERROR, "IOCTL error.");
-            return false;
+        DEBUGF(INDI::Logger::DBG_ERROR, "IOCTL error %s.", strerror(errno));
+        return false;
     }
 
     i |= TIOCM_RTS;
-    int rts=0;
-    rts = ioctl(PortFD, TIOCMGET, &i);
+    if (ioctl(PortFD, TIOCMGET, &i) != 0)
+    {
+        DEBUGF(INDI::Logger::DBG_ERROR, "IOCTL error %s.", strerror(errno));
+        return false;
+    }
 
     if (ping() == false)
     {

@@ -46,39 +46,39 @@ class INDI::GPS : public INDI::DefaultDevice
 {
     public:
 
-    enum GPSLocation { LOCATION_LATITUDE, LOCATION_LONGITUDE, LOCATION_ELEVATION };
+        enum GPSLocation { LOCATION_LATITUDE, LOCATION_LONGITUDE, LOCATION_ELEVATION };
 
-    GPS();
-    virtual ~GPS();
+        GPS();
+        virtual ~GPS();
 
-    virtual bool initProperties();
-    virtual bool updateProperties();
-    virtual bool ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n);
+        virtual bool initProperties();
+        virtual bool updateProperties();
+        virtual bool ISNewSwitch (const char * dev, const char * name, ISState * states, char * names[], int n);
 
     protected:
 
-    /**
-     * @brief updateGPS Retrieve Location & Time from GPS. Update LocationNP & TimeTP properties (value and state) without sending them to the client (i.e. IDSetXXX).
-     * @return Return overall state. The state should be IPS_OK if data is valid. IPS_BUSY if GPS fix is in progress. IPS_ALERT is there is an error. The clients will only accept values with IPS_OK state.
-     */
-    virtual IPState updateGPS();
+        /**
+         * @brief updateGPS Retrieve Location & Time from GPS. Update LocationNP & TimeTP properties (value and state) without sending them to the client (i.e. IDSetXXX).
+         * @return Return overall state. The state should be IPS_OK if data is valid. IPS_BUSY if GPS fix is in progress. IPS_ALERT is there is an error. The clients will only accept values with IPS_OK state.
+         */
+        virtual IPState updateGPS();
 
-    /**
-     * @brief TimerHit Keep calling updateGPS() until it is successfull, if it fails upon first connection.
-     */
-    virtual void TimerHit();
+        /**
+         * @brief TimerHit Keep calling updateGPS() until it is successfull, if it fails upon first connection.
+         */
+        virtual void TimerHit();
 
-    //  A number vector that stores lattitude and longitude
-    INumberVectorProperty LocationNP;
-    INumber LocationN[3];
+        //  A number vector that stores lattitude and longitude
+        INumberVectorProperty LocationNP;
+        INumber LocationN[3];
 
-    // UTC and UTC Offset
-    IText TimeT[2];
-    ITextVectorProperty TimeTP;
+        // UTC and UTC Offset
+        IText TimeT[2];
+        ITextVectorProperty TimeTP;
 
-    // Refresh data
-    ISwitch RefreshS[1];
-    ISwitchVectorProperty RefreshSP;
+        // Refresh data
+        ISwitch RefreshS[1];
+        ISwitchVectorProperty RefreshSP;
 
 };
 

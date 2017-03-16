@@ -16,24 +16,26 @@
 #include <cstring>
 #include <sys/stat.h>
 
-namespace INDI {
-namespace AlignmentSubsystem {
+namespace INDI
+{
+namespace AlignmentSubsystem
+{
 
-const bool InMemoryDatabase::CheckForDuplicateSyncPoint(const AlignmentDatabaseEntry& CandidateEntry, double Tolerance) const
+const bool InMemoryDatabase::CheckForDuplicateSyncPoint(const AlignmentDatabaseEntry &CandidateEntry, double Tolerance) const
 {
     for (AlignmentDatabaseType::const_iterator iTr = MySyncPoints.begin(); iTr != MySyncPoints.end(); iTr++)
     {
-            if (((std::abs((*iTr).RightAscension - CandidateEntry.RightAscension) < 24.0 * Tolerance / 100.0) &&
-                    (std::abs((*iTr).Declination - CandidateEntry.Declination) < 180.0 * Tolerance / 100.0)) ||
-                    ((std::abs((*iTr).TelescopeDirection.x - CandidateEntry.TelescopeDirection.x) < Tolerance / 100.0) &&
-                    (std::abs((*iTr).TelescopeDirection.y - CandidateEntry.TelescopeDirection.y) < Tolerance / 100.0) &&
-                    (std::abs((*iTr).TelescopeDirection.z - CandidateEntry.TelescopeDirection.z) < Tolerance / 100.0)))
-                return true;
+        if (((std::abs((*iTr).RightAscension - CandidateEntry.RightAscension) < 24.0 * Tolerance / 100.0) &&
+                (std::abs((*iTr).Declination - CandidateEntry.Declination) < 180.0 * Tolerance / 100.0)) ||
+                ((std::abs((*iTr).TelescopeDirection.x - CandidateEntry.TelescopeDirection.x) < Tolerance / 100.0) &&
+                 (std::abs((*iTr).TelescopeDirection.y - CandidateEntry.TelescopeDirection.y) < Tolerance / 100.0) &&
+                 (std::abs((*iTr).TelescopeDirection.z - CandidateEntry.TelescopeDirection.z) < Tolerance / 100.0)))
+            return true;
     }
     return false;
 }
 
-bool InMemoryDatabase::GetDatabaseReferencePosition(ln_lnlat_posn& Position)
+bool InMemoryDatabase::GetDatabaseReferencePosition(ln_lnlat_posn &Position)
 {
     if (DatabaseReferencePositionIsValid)
     {
@@ -44,18 +46,18 @@ bool InMemoryDatabase::GetDatabaseReferencePosition(ln_lnlat_posn& Position)
         return false;
 }
 
-bool InMemoryDatabase::LoadDatabase(const char* DeviceName)
+bool InMemoryDatabase::LoadDatabase(const char * DeviceName)
 {
     char DatabaseFileName[MAXRBUF];
     char Errmsg[MAXRBUF];
-    XMLEle *FileRoot = NULL;
-    XMLEle *EntriesRoot = NULL;
-    XMLEle *EntryRoot = NULL;
-    XMLEle *Element = NULL;
-    XMLAtt *Attribute = NULL;
-    LilXML *Parser = newLilXML();
+    XMLEle * FileRoot = NULL;
+    XMLEle * EntriesRoot = NULL;
+    XMLEle * EntryRoot = NULL;
+    XMLEle * Element = NULL;
+    XMLAtt * Attribute = NULL;
+    LilXML * Parser = newLilXML();
 
-    FILE *fp = NULL;
+    FILE * fp = NULL;
 
     snprintf(DatabaseFileName, MAXRBUF, "%s/.indi/%s_alignment_database.xml", getenv("HOME"), DeviceName);
 
@@ -63,8 +65,8 @@ bool InMemoryDatabase::LoadDatabase(const char* DeviceName)
     fp = fopen(DatabaseFileName, "r");
     if (fp == NULL)
     {
-         snprintf(Errmsg, MAXRBUF, "Unable to read alignment database file. Error loading file %s: %s\n", DatabaseFileName, strerror(errno));
-         return false;
+        snprintf(Errmsg, MAXRBUF, "Unable to read alignment database file. Error loading file %s: %s\n", DatabaseFileName, strerror(errno));
+        return false;
     }
 
     if (NULL == (FileRoot = readXMLFile(fp, Parser, Errmsg)))
@@ -154,13 +156,13 @@ bool InMemoryDatabase::LoadDatabase(const char* DeviceName)
 
 }
 
-bool InMemoryDatabase::SaveDatabase(const char* DeviceName)
+bool InMemoryDatabase::SaveDatabase(const char * DeviceName)
 {
     char ConfigDir[MAXRBUF];
     char DatabaseFileName[MAXRBUF];
     char Errmsg[MAXRBUF];
     struct stat Status;
-    FILE* fp;
+    FILE * fp;
 
     snprintf(ConfigDir, MAXRBUF, "%s/.indi/", getenv("HOME"));
     snprintf(DatabaseFileName, MAXRBUF, "%s%s_alignment_database.xml", ConfigDir, DeviceName);
@@ -185,7 +187,7 @@ bool InMemoryDatabase::SaveDatabase(const char* DeviceName)
 
     if (DatabaseReferencePositionIsValid)
         fprintf(fp, "   <DatabaseReferenceLocation latitude='%lf' longitude='%lf'/>\n",
-                            DatabaseReferencePosition.lat, DatabaseReferencePosition.lng);
+                DatabaseReferencePosition.lat, DatabaseReferencePosition.lng);
 
     fprintf(fp, "   <DatabaseEntries>\n");
     for (AlignmentDatabaseType::const_iterator Itr = MySyncPoints.begin(); Itr != MySyncPoints.end(); Itr++)
@@ -220,7 +222,7 @@ void InMemoryDatabase::SetDatabaseReferencePosition(double Latitude, double Long
     DatabaseReferencePositionIsValid = true;
 }
 
-void InMemoryDatabase::SetLoadDatabaseCallback(LoadDatabaseCallbackPointer_t CallbackPointer, void *ThisPointer)
+void InMemoryDatabase::SetLoadDatabaseCallback(LoadDatabaseCallbackPointer_t CallbackPointer, void * ThisPointer)
 {
     LoadDatabaseCallback = CallbackPointer;
     LoadDatabaseCallbackThisPointer = ThisPointer;

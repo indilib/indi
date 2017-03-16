@@ -590,7 +590,7 @@ int RoboFocus::updateRFPositionRelativeInward(double value)
     if (isSimulation())
     {
         simulatedPosition+= value;
-        value = simulatedPosition;
+        //value = simulatedPosition;
         return 0;
     }
 
@@ -624,7 +624,7 @@ int RoboFocus::updateRFPositionRelativeOutward(double value)
     if (isSimulation())
     {
         simulatedPosition-= value;
-        value = simulatedPosition;
+        //value = simulatedPosition;
         return 0;
     }
 
@@ -1425,7 +1425,8 @@ void RoboFocus::TimerHit()
     {
         float newPos=0;
         int nbytes_read=0;
-        char rf_cmd[RF_MAX_CMD] ;
+        char rf_cmd[RF_MAX_CMD] = {0};
+
 
         //nbytes_read= ReadUntilComplete(rf_cmd, RF_TIMEOUT) ;
 

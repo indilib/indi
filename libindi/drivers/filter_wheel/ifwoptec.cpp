@@ -105,6 +105,7 @@ FilterIFW::FilterIFW()
     strcpy(filterSim, filterSim5);      // For simulation mode
 
     // We add an additional debug level so we can log verbose member function starting
+    // DBG_TAG is never used. Please FIX
     int DBG_TAG = INDI::Logger::getInstance().addDebugLevel("Function tag", "Tag");
 }
 
@@ -1044,7 +1045,7 @@ bool FilterIFW::GetFirmware()
     }
 
     // remove chars fomr the string to get only the nzuméric value of the Firmware version
-    char *p;
+    char *p = NULL;
     for (int i=0; i < strlen(response); i++)
     {
         if (isdigit(response[i]))
