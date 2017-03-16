@@ -12,7 +12,7 @@ if [ ! -z $BUILD_THIRD_PARTY ]; then
   if [ ${TRAVIS_OS_NAME} == "linux" ] ; then
     LIBS="libapogee libfishcamp libfli libqhy libqsi libsbig"
   else
-    LIBS="libfishcamp libfli libqhy libqsi"
+    LIBS="libfishcamp libfli libqsi"
   fi
 
   for lib in $LIBS ; do
@@ -29,7 +29,7 @@ if [ ! -z $BUILD_THIRD_PARTY ]; then
   if [ ${TRAVIS_OS_NAME} == "linux" ] ; then 
     cmake -DCMAKE_INSTALL_PREFIX=/usr/local/ -DWITH_NSE:OPTION=ON -DWITH_MI:OPTION=OFF -DWITH_QHY:OPTION=OFF . ../../3rdparty/
   else 
-    cmake -DCMAKE_INSTALL_PREFIX=/usr/local/ -DWITH_NSE:OPTION=ON -DWITH_SBIG:OPTION=OFF -DWITH_APOGEE:OPTION=OFF . ../../3rdparty/
+    cmake -DCMAKE_INSTALL_PREFIX=/usr/local/ -DWITH_NSE:OPTION=ON -DWITH_MI:OPTION=OFF -DWITH_QHY:OPTION=OFF -DWITH_SBIG:OPTION=OFF -DWITH_APOGEE:OPTION=OFF . ../../3rdparty/
   fi
   sudo make install
   popd
