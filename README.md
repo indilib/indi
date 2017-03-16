@@ -15,7 +15,7 @@ INDI is the defacto standard for open astronomical device control. INDI Library 
 On Debian/Ubuntu:
 
 ```
-sudo apt-get install libnova-dev libcfitsio3-dev libusb-1.0-0-dev zlib1g-dev libgsl0-dev build-essential cmake git libjpeg-dev libcurl4-gnutls-dev
+sudo apt-get install libnova-dev libcfitsio-dev libusb-1.0-0-dev zlib1g-dev libgsl-dev build-essential cmake git libjpeg-dev libcurl4-gnutls-dev
 ```
 ## Get the code
 ```
@@ -48,7 +48,7 @@ sudo make install
 The complete list of system dependancies for all drivers on Debian / Ubuntu
 
 ```
-sudo apt-get install libftdi-dev libgps-dev dcraw libgphoto2-dev libboost-dev libboost-regex-dev
+sudo apt-get install libftdi-dev libgps-dev libraw-dev libgphoto2-dev libboost-dev libboost-regex-dev
 ```
 
 To build **all** 3rd party drivers, you need to run cmake and make install **twice**. First time is to install any dependencies of the 3rd party drivers (for example indi-qsi depends on libqsi), and second time to install the actual drivers themselves.
@@ -96,6 +96,7 @@ INDI server is the public network access point where one or more INDI Clients ma
 
 # Development
 
+## Code Style: All contributed code must be formatted using [AStyle](http://astyle.sourceforge.net/) with options -A1 -W3 -k2 -S -xG -C
 ## [INDI API](http://www.indilib.org/api/index.html)
 ## [INDI Developer Manual](http://indilib.org/develop/developer-manual.html)
 ## [Tutorials](http://indilib.org/develop/tutorials.html)
