@@ -2,10 +2,11 @@ compiler: gcc
 language: cpp
 sudo: required
 dist: trusty
+osx_image: xcode8.1
+
 os: 
  - linux
  - osx
-    osx_image: xcode8.1
 
 branches:
   only:
