@@ -37,7 +37,7 @@ option(WITH_DSI "Install Meade DSI Driver" On)
 option(WITH_ASICAM "Install ZWO Optics ASI Driver" On)
 
 # Add/remove cases for OSX
-if (APPLE)
+if (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
 option(WITH_MI "Install Moravian Driver" Off)
 option(WITH_FLI "Install FLI Driver" Off)
 option(WITH_SBIG "Install SBIG Driver" Off)
@@ -48,7 +48,7 @@ option(WITH_FISHCAMP "Install Fishcamp Driver" Off)
 option(WITH_GIGE "Install GiGE machine vision Driver" Off)
 option(WITH_DSI "Install Meade DSI Driver" Off)
 option(WITH_ASICAM "Install ZWO Optics ASI Driver" Off)
-endif(APPLE)
+endif()
 
 ## EQMod
 if (WITH_EQMOD)
