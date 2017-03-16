@@ -19,6 +19,7 @@ brew tap 'seanhoughton/indi'
 
 brew install \
 			curl \
+			cmake \
 			dcraw \
 			fakeroot \
 			gsl \
