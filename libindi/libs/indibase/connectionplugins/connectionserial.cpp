@@ -16,6 +16,9 @@
  Boston, MA 02110-1301, USA.
 *******************************************************************************/
 
+#include <dirent.h> // for scandir
+#include <errno.h>  // for errno
+#include <string.h> // for strerror
 #include "indicom.h"
 #include "indilogger.h"
 #include "connectionserial.h"
@@ -259,6 +262,23 @@ const uint32_t Serial::baud()
     return atoi(IUFindOnSwitch(&BaudRateSP)->name);
 }
 
+int dev_file_select(const dirent *entry)
+{
+#if defined(__APPLE__)
+    static const char *filter_names[] = { "cu.", NULL};
+#else
+    static const char *filter_names[] = { "ttyUSB", "ttyACM", "rfcomm", NULL};
+#endif
+    const char **filter;
+    for (filter = filter_names; *filter; ++filter) {
+        // fprintf(stderr,"dev_file_select: test [%s] against [%s]\n", entry->d_name, *filter);
+        if (strstr(entry->d_name, *filter) != NULL) {
+           return(true);
+        }
+    }
+    return(false);
+}
+
 bool Serial::refresh()
 {
     if (SystemPortS)
@@ -267,45 +287,46 @@ bool Serial::refresh()
     delete [] SystemPortS;
     std::vector<std::string> m_Ports;
 
-#if defined(__APPLE__)
-        FILE *devs = popen("ls /dev/cu.*", "r");
-#else
-    // regular ls has many problems here, using find
-    FILE *devs = popen("find /dev -name 'ttyUSB*' -o -name 'ttyACM*' -o -name 'rfcomm*'", "r");
-#endif
-        if (devs)
-        {
-            char line[64];
-            while(fgets(line,64,devs)!=NULL && m_Ports.size() < 10)
-            {
-               std::string s(line);
-               s.erase(s.find_last_not_of(" \n\r\t")+1);
-               m_Ports.push_back(s);
+    struct dirent **namelist;
+    int devCount = scandir("/dev", &namelist, dev_file_select, alphasort);
+    if (devCount < 0) {
+        DEBUGF(INDI::Logger::DBG_ERROR,"Failed to scandir /dev. Error: %s", strerror(errno));
+    } else {
+        while (devCount--) {
+            printf("%s\n", namelist[devCount]->d_name);
+            if (m_Ports.size() < 10) {
+                std::string s(namelist[devCount]->d_name);
+                s.erase(s.find_last_not_of(" \n\r\t")+1);
+                m_Ports.push_back(s);
+            } else {
+                DEBUGF(INDI::Logger::DBG_WARNING, "Ignoring devices over %d : %s", m_Ports.size(), namelist[devCount]->d_name);
             }
+            free(namelist[devCount]);
         }
+        free(namelist);
+    }
 
-        int pCount = m_Ports.size();
+	int pCount = m_Ports.size();
+	if (pCount == 0)
+	{
+		DEBUG(INDI::Logger::DBG_WARNING, "No candidate ports found on the system.");
+		return false;
+	}
+	else
+		DEBUGF(INDI::Logger::DBG_SESSION, "Scan complete. Found %d port(s).", pCount);
 
-        if (pCount == 0)
-        {
-            DEBUG(INDI::Logger::DBG_WARNING, "No candidate ports found on the system.");
-            return false;
-        }
-        else
-            DEBUGF(INDI::Logger::DBG_SESSION, "Scan complete. Found %d port(s).", pCount);
+	SystemPortS = new ISwitch[pCount];
+	ISwitch *sp = SystemPortS;
+	for (int i=pCount-1; i >= 0; i--)
+	{
+		IUFillSwitch(sp++, m_Ports[i].c_str(), m_Ports[i].c_str(), ISS_OFF);
+	}
 
-        SystemPortS = new ISwitch[pCount];
-        ISwitch *sp = SystemPortS;
-        for (int i=pCount-1; i >= 0; i--)
-        {
-            IUFillSwitch(sp++, m_Ports[i].c_str(), m_Ports[i].c_str(), ISS_OFF);
-        }
+	IUFillSwitchVector(&SystemPortSP, SystemPortS, pCount, device->getDeviceName(), "SYSTEM_PORTS", "System Ports", CONNECTION_TAB, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
 
-        IUFillSwitchVector(&SystemPortSP, SystemPortS, pCount, device->getDeviceName(), "SYSTEM_PORTS", "System Ports", CONNECTION_TAB, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
+	device->defineSwitch(&SystemPortSP);
 
-        device->defineSwitch(&SystemPortSP);
-
-        return true;
+	return true;
 }
 
 }
