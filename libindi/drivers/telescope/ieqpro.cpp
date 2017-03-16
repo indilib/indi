@@ -498,6 +498,7 @@ bool IEQPro::ReadScopeStatus()
                 break;
             case TR_LUNAR:
                 trackMode = TRACK_LUNAR;
+                break;
             case TR_KING:
                 trackMode = TRACK_SIDEREAL;
                 break;

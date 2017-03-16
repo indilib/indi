@@ -319,7 +319,7 @@ bool USBFocusV3::getControllerStatus()
     
     } while (oneMoreRead(resp, UFORSTLEN));
 
-    rc = sscanf(resp, "C=%u-%u-%u-%u-%u-%u-%u", &direction,&stepmode,
+    sscanf(resp, "C=%u-%u-%u-%u-%u-%u-%u", &direction,&stepmode,
                                                 &speed,&stepsdeg,
                                                 &tcomp_thr,&firmware,&maxpos);
     return true;

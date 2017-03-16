@@ -397,7 +397,7 @@ namespace Pulsar2Commands {
 
   
   bool ensureLongFormat(const int fd) {
-    char response[16];
+    char response[16] = {0};
     bool success = getString(fd,"#:GR#",response);
     if (response[5] == '.') {
       // In case of short format, set long format

@@ -224,7 +224,7 @@ bool SynscanMount::AnalyzeHandset()
 	if(rc) {
 	    CanSetLocation=true;
 	    //caps |= TELESCOPE_HAS_LOCATION;
-            rc=ReadTime();
+            ReadTime();
             //if(rc) caps |= TELESCOPE_HAS_TIME;
 	} else {
 	    //CanSetLocation=false;

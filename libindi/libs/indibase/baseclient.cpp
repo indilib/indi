@@ -795,7 +795,7 @@ void INDI::BaseClient::sendOneBlob(IBLOB * bp)
     fprintf(svrwfp, "    format='%s'>\n", bp->format);
 
     size_t written = 0;
-    size_t towrite = l;
+    size_t towrite = 0;
     while (written < l)
     {
         towrite = ((l - written) > 72) ? 72 : l - written;
@@ -828,7 +828,7 @@ void INDI::BaseClient::sendOneBlob( const char * blobName, unsigned int blobSize
     fprintf (svrwfp, "    format='%s'>\n", blobFormat);
 
     size_t written = 0;
-    size_t towrite = l;
+    size_t towrite = 0;
     while (written < l)
     {
         towrite = ((l - written) > 72) ? 72 : l - written;

@@ -1164,7 +1164,7 @@ void INDI::Dome::UpdateAutoSync()
             }
         }
 
-        double targetAz, targetAlt, minAz, maxAz;
+        double targetAz=0, targetAlt=0, minAz=0, maxAz=0;
         bool res;
         res=GetTargetAz(targetAz, targetAlt, minAz, maxAz);
         if(!res)
