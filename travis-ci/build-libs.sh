@@ -18,6 +18,10 @@ if [ .${TRAVIS_BRANCH%_*} == '.drv' ] ; then
     else 
         LIBS=""
     fi
+    if [ ${TRAVIS_OS_NAME} == "osx" ] ; then
+        echo "Cannot build one driver on OSX"
+        LIBS=""
+    fi
 fi
 
 for lib in $LIBS ; do
