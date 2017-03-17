@@ -117,7 +117,7 @@ class Serial : public Interface
 
         virtual bool processHandshake();
 
-        bool refresh();
+        bool refresh(bool silent=false);
 
         // Device physical port
         ITextVectorProperty PortTP;
