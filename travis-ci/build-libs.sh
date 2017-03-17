@@ -15,6 +15,8 @@ if [ .${TRAVIS_BRANCH%_*} == '.drv' ] ; then
     DRV=lib"${TRAVIS_BRANCH#drv_}"
     if [ -d $SRC/$DRV ] ; then
         LIBS="$DRV"
+    else 
+        LIBS=""
     fi
 fi
 
