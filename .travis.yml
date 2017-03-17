@@ -13,6 +13,7 @@ branches:
     - develop
     - master
     - drv_nexstarevo
+    - drv_gpsd
     - refactor/unittest
     - feature/travisosx
 
