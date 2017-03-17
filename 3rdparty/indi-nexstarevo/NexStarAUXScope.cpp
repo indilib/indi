@@ -358,7 +358,7 @@ bool NexStarAUXScope::slewing(){
 
 bool NexStarAUXScope::Slew(AUXtargets trg, int rate){
     AUXCommand cmd((rate<0) ? MC_MOVE_NEG : MC_MOVE_POS ,APP,trg);
-    cmd.setRate((unsigned char)(abs(rate) & 0xFF));
+    cmd.setRate((unsigned char)(std::abs(rate) & 0xFF));
     sendCmd(cmd);
     readMsgs();
     return true;
@@ -433,8 +433,8 @@ bool NexStarAUXScope::Track(long altRate, long azRate){
     //fprintf(stderr,"Set tracking rates: ALT: %ld   AZM: %ld\n", AltRate, AzRate);
     AUXCommand altcmd((altRate<0)? MC_SET_NEG_GUIDERATE : MC_SET_POS_GUIDERATE,APP,ALT);
     AUXCommand azmcmd((azRate<0)? MC_SET_NEG_GUIDERATE : MC_SET_POS_GUIDERATE,APP,AZM);
-    altcmd.setPosition(long(abs(AltRate)));
-    azmcmd.setPosition(long(abs(AzRate)));
+    altcmd.setPosition(long(std::abs(AltRate)));
+    azmcmd.setPosition(long(std::abs(AzRate)));
     
     sendCmd(altcmd);
     sendCmd(azmcmd);
@@ -674,13 +674,13 @@ bool NexStarAUXScope::TimerTick(double dt){
         if (Alt!=targetAlt){
             da=targetAlt-Alt;
             dir=(da>0)?1:-1;
-            Alt+=dir*std::max(std::min(long(abs(da)/2),slewRate),1L);
+            Alt+=dir*std::max(std::min(long(std::abs(da)/2),slewRate),1L);
             slewing=true;
         } 
         if (Az!=targetAz){
             da=targetAz-Az;
             dir=(da>0)?1:-1;
-            Az+=dir*std::max(std::min(long(abs(da)/2),slewRate),1L);
+            Az+=dir*std::max(std::min(long(std::abs(da)/2),slewRate),1L);
             slewing=true;
         }
         
