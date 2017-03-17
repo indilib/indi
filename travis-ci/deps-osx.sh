@@ -17,21 +17,14 @@ brew tap 'jochym/indi'
 # boost
 
 
-brew install \
-			curl \
-			cmake \
-			dcraw \
-			fakeroot \
-			gsl \
-			libftdi \
-			libgphoto2 \
-			libjpeg \
-			libusb \
-			gpsd \
-			libraw \
-			libcfitsio \
-			libnova 
-			
+brew install cmake dcraw fakeroot gsl libftdi libgphoto2 libusb gpsd libraw 
+# libjpeg
+
+brew install --build-bottle libcfitsio libnova libindi
+
+brew bottle libcfitsio libnova libindi
+
+
 brew cask install \
 	sbig-universal-driver
 
