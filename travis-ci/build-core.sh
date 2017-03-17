@@ -14,7 +14,7 @@ if [ ${TRAVIS_BRANCH} == 'master' ] ; then
 else 
     # Skip the build just use recent upstream version if it exists
     if [ ${TRAVIS_OS_NAME} == 'linux' ] ; then
-        sudo apt-add-repository -y ppa:mutlaqja/ppa
+        sudo apt-add-repository -y ppa:jochym/indi-devel
         sudo apt-get -qq update
         sudo apt-get -q -y install libindi-dev indi-bin indi-data
     fi
