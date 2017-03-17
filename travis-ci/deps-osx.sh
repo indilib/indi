@@ -2,11 +2,6 @@
 
 set -e
 
-if [ .${TRAVIS_BRANCH%_*} == '.drv' ] ; then 
-    echo 'Cannot build one driver on OSX'
-    exit 0
-fi
-
 brew update
 brew tap 'homebrew/homebrew-science'
 brew tap 'caskroom/drivers'
