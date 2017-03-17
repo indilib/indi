@@ -93,10 +93,18 @@ bool INDI::Telescope::initProperties()
     IUFillSwitch(&CoordS[1],"SLEW","Slew",ISS_OFF);
     IUFillSwitch(&CoordS[2],"SYNC","Sync",ISS_OFF);
 
-    if (CanSync())
+    // If both GOTO and SYNC are supported
+    if (CanGOTO() && CanSync())
         IUFillSwitchVector(&CoordSP,CoordS,3,getDeviceName(),"ON_COORD_SET","On Set",MAIN_CONTROL_TAB,IP_RW,ISR_1OFMANY,60,IPS_IDLE);
-    else
+    // If ONLY GOTO is supported
+    else if (CanGOTO())
         IUFillSwitchVector(&CoordSP,CoordS,2,getDeviceName(),"ON_COORD_SET","On Set",MAIN_CONTROL_TAB,IP_RW,ISR_1OFMANY,60,IPS_IDLE);
+    // If ONLY SYNC is supported
+    else if (CanSync())
+    {
+        IUFillSwitch(&CoordS[0],"SYNC","Sync",ISS_ON);
+        IUFillSwitchVector(&CoordSP,CoordS,1,getDeviceName(),"ON_COORD_SET","On Set",MAIN_CONTROL_TAB,IP_RW,ISR_1OFMANY,60,IPS_IDLE);
+    }
 
     if (nSlewRate >= 4)
         IUFillSwitchVector(&SlewRateSP, SlewRateS, nSlewRate, getDeviceName(), "TELESCOPE_SLEW_RATE", "Slew Rate", MOTION_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
@@ -241,7 +249,7 @@ bool INDI::Telescope::updateProperties()
         }
 
         //  Now we add our telescope specific stuff
-        if (CanGOTO())
+        if (CanGOTO() || CanSync())
             defineSwitch(&CoordSP);
         defineNumber(&EqNP);
         if (CanAbort())
@@ -272,7 +280,7 @@ bool INDI::Telescope::updateProperties()
     }
     else
     {
-        if (CanGOTO())
+        if (CanGOTO() || CanSync())
             deleteProperty(CoordSP.name);
         deleteProperty(EqNP.name);
         if (CanAbort())
@@ -467,6 +475,7 @@ void INDI::Telescope::NewRaDec(double ra,double dec)
             break;
 
         case SCOPE_SLEWING:
+        case SCOPE_PARKING:
             EqNP.s=IPS_BUSY;
             break;
 
@@ -1216,10 +1225,18 @@ void INDI::Telescope::SetTelescopeCapability(uint32_t cap, uint8_t slewRateCount
     capability = cap;
     nSlewRate = slewRateCount;
 
-    if (CanSync())
+    // If both GOTO and SYNC are supported
+    if (CanGOTO() && CanSync())
         IUFillSwitchVector(&CoordSP,CoordS,3,getDeviceName(),"ON_COORD_SET","On Set",MAIN_CONTROL_TAB,IP_RW,ISR_1OFMANY,60,IPS_IDLE);
-    else
+    // If ONLY GOTO is supported
+    else if (CanGOTO())
         IUFillSwitchVector(&CoordSP,CoordS,2,getDeviceName(),"ON_COORD_SET","On Set",MAIN_CONTROL_TAB,IP_RW,ISR_1OFMANY,60,IPS_IDLE);
+    // If ONLY SYNC is supported
+    else if (CanSync())
+    {
+        IUFillSwitch(&CoordS[0],"SYNC","Sync",ISS_ON);
+        IUFillSwitchVector(&CoordSP,CoordS,1,getDeviceName(),"ON_COORD_SET","On Set",MAIN_CONTROL_TAB,IP_RW,ISR_1OFMANY,60,IPS_IDLE);
+    }
 
     if (nSlewRate >= 4)
     {
