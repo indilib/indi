@@ -12,7 +12,7 @@ branches:
   only:
     - develop
     - master
-    - nse
+    - drv_nexstarevo
     - refactor/unittest
     - feature/travisosx
 
