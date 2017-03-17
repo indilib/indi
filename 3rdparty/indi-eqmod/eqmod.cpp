@@ -421,6 +421,8 @@ void EQMod::ISGetProperties(const char *dev)
     }
 #endif
 
+    simulator->updateProperties(isSimulation());
+
     }
 }
 
@@ -472,6 +474,8 @@ bool EQMod::loadProperties()
 #if defined WITH_ALIGN || defined WITH_ALIGN_GEEHALEL
     AlignSyncModeSP=getSwitch("ALIGNSYNCMODE");
 #endif
+
+    simulator->initProperties();
 
     INDI::GuiderInterface::initGuiderProperties(this->getDeviceName(), MOTION_TAB);
 
@@ -681,6 +685,9 @@ bool EQMod::updateProperties()
         if (!horizon->updateProperties()) return false;
     }
 #endif
+
+    simulator->updateProperties(isSimulation());
+
     return true;
 }
 

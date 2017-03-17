@@ -157,12 +157,6 @@ bool Align::updateProperties ()
       telescope->deleteProperty(AlignCountNP->name);
       telescope->deleteProperty(AlignModeSP->name);
       telescope->deleteProperty(AlignDataFileTP->name);
-      AlignDataFileTP=NULL;
-      AlignDataBP=NULL;
-      AlignPointNP=NULL;
-      AlignListSP=NULL;
-      AlignModeSP=NULL;
-      AlignTelescopeCoordsNP=NULL;
     }
   return true;
 }

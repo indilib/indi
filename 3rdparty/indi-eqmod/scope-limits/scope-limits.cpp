@@ -111,15 +111,6 @@ bool HorizonLimits::updateProperties ()
       telescope->deleteProperty(HorizonLimitsFileOperationSP->name);
       telescope->deleteProperty(HorizonLimitsOnLimitSP->name);
       telescope->deleteProperty(HorizonLimitsLimitGotoSP->name);
-
-      HorizonLimitsDataFileTP=NULL;
-      HorizonLimitsDataFitsBP=NULL;
-      HorizonLimitsPointNP=NULL;
-      HorizonLimitsTraverseSP=NULL;
-      HorizonLimitsManageSP=NULL;
-      HorizonLimitsFileOperationSP=NULL;
-      HorizonLimitsOnLimitSP=NULL;
-      HorizonLimitsLimitGotoSP=NULL;
     }
   return true;
 }
