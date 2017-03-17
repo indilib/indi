@@ -22,7 +22,6 @@
 #define CONNECTIONSERIAL_H
 
 #include <string>
-
 #include "connectioninterface.h"
 
 namespace Connection
