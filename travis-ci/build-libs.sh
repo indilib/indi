@@ -11,6 +11,13 @@ else
     LIBS="libqsi"
 fi
 
+if [ .${TRAVIS_BRANCH%_*} == '.drv' ] ; then 
+    DRV=lib"${TRAVIS_BRANCH#drv_}"
+    if [ -d $SRC/$DRV ] ; then
+        LIBS="$DRV"
+    fi
+fi
+
 for lib in $LIBS ; do
 (
     echo "Building $lib ..."
