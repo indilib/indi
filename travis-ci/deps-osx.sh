@@ -10,7 +10,7 @@ fi
 brew update
 brew tap 'homebrew/homebrew-science'
 brew tap 'caskroom/drivers'
-#brew tap 'seanhoughton/indi'
+brew tap 'jochym/indi'
 
 # Not available in homebrew:
 # cdbs
@@ -34,8 +34,8 @@ brew install \
 			libusb \
 			gpsd \
 			libraw \
-			seanhoughton/indi/libcfitsio \
-			seanhoughton/indi/libnova 
+			libcfitsio \
+			libnova 
 			
 brew cask install \
 	sbig-universal-driver
