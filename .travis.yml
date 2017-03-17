@@ -23,6 +23,7 @@ before_install:
 install:
     - echo Building INDI Core
     - travis-ci/build-core.sh 
+    - travis-ci/build-libs.sh 
     - travis-ci/build-3rdparty.sh
     - travis-ci/build-deb-packages.sh 
 
