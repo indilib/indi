@@ -408,14 +408,16 @@ void EQMod::ISGetProperties(const char *dev)
         }
 
 #ifdef WITH_ALIGN_GEEHALEL
-    if (align) {
-        if (!align->updateProperties()) return false;
+    if (align)
+    {
+       align->updateProperties();
     }
 #endif
 
 #ifdef WITH_SCOPE_LIMITS
-    if (horizon) {
-        if (!horizon->updateProperties()) return false;
+    if (horizon)
+    {
+        horizon->updateProperties();
     }
 #endif
 
