@@ -30,8 +30,6 @@
 #include <math.h>
 #include <memory>
 
-
-
 #define MICROTOUCH_TIMEOUT 3
 
 #define POLLMS  1000
@@ -142,7 +140,6 @@ bool Microtouch::initProperties()
     addDebugControl();
 
     return true;
-
 }
 
 bool Microtouch::updateProperties()
@@ -161,13 +158,10 @@ bool Microtouch::updateProperties()
 
         GetFocusParams();
 
-        loadConfig(true);
-
         DEBUG(INDI::Logger::DBG_SESSION, "Microtouch paramaters updated, focuser ready for use.");
     }
     else
     {
-
         deleteProperty(TemperatureNP.name);
         deleteProperty(MaxTravelNP.name);
         deleteProperty(MotorSpeedSP.name);
@@ -663,12 +657,6 @@ IPState Microtouch::MoveRelFocuser(FocusDirection dir, uint32_t ticks)
 
 void Microtouch::TimerHit()
 {
-    if (isConnected() == false)
-    {
-        SetTimer(POLLMS);
-        return;
-    }
-
     bool rc = updatePosition();
     if (rc)
     {
@@ -716,10 +704,7 @@ void Microtouch::TimerHit()
         }
     }
 
-
-
     SetTimer(POLLMS);
-
 }
 
 bool Microtouch::AbortFocuser()
@@ -768,7 +753,6 @@ bool Microtouch::WriteCmdGetResponse(char cmd,char* readbuffer, char numbytes)
     int nbytes_read=0, rc=-1;
     char errstr[MAXRBUF];
 
-
     if (WriteCmd(cmd))
     {
 
@@ -808,9 +792,7 @@ bool Microtouch::WriteCmdSetByte(char cmd, char val)
     write_buffer[0]=cmd;
     write_buffer[1]=val;
 
-
     DEBUGF(INDI::Logger::DBG_DEBUG, "WriteCmdSetByte : CMD %02x %02x ", write_buffer[0],write_buffer[1]);
-
 
     tcflush(PortFD, TCIOFLUSH);
 
@@ -922,4 +904,3 @@ bool Microtouch::WriteCmdSetIntAsDigits(char cmd, int val)
     return true;
 
 }
-
