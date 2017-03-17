@@ -3,7 +3,7 @@
 set -x
 
 if [ ${TRAVIS_OS_NAME} == "linux" ] ; then
-    if [ .${TRAVIS_BRANCH} == 'package' ] ; then 
+    if [ ${TRAVIS_BRANCH} == 'package' ] ; then 
       echo "==> BUILD_DEB_PACKAGES activated"
       mkdir -p build/deb_libindi
       pushd build/deb_libindi
