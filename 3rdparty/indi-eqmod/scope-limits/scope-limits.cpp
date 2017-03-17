@@ -92,7 +92,6 @@ bool HorizonLimits::updateProperties ()
   //IDLog("HorizonLimits update properties connected = %d.\n",(telescope->isConnected()?1:0) ); 
   if (telescope->isConnected())
     {
-      initProperties();
       telescope->defineText(HorizonLimitsDataFileTP);
       telescope->defineBLOB(HorizonLimitsDataFitsBP);
       telescope->defineNumber(HorizonLimitsPointNP);

@@ -449,6 +449,7 @@ bool EQMod::loadProperties()
     DEPPECTrainingSP=getSwitch("DE_PPEC_TRAINING");
     DEPPECSP=getSwitch("DE_PPEC");
 #if defined WITH_ALIGN && defined WITH_ALIGN_GEEHALEL
+    align->initProperties();
     IUFillSwitch(&AlignMethodS[0], "ALIGN_METHOD_EQMOD", "EQMod Align", ISS_ON);
     IUFillSwitch(&AlignMethodS[1], "ALIGN_METHOD_SUBSYSTEM", "Alignment Subsystem", ISS_OFF);
     IUFillSwitchVector(&AlignMethodSP, AlignMethodS, NARRAY(AlignMethodS), getDeviceName(), "ALIGN_METHOD", "Align Method", OPTIONS_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
