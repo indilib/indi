@@ -53,7 +53,9 @@ typedef unsigned char IOByte;
 /** @brief A buffer of protocol words */
 typedef std::vector<IOByte> IOBuffer;
 
-#define _L(msg, ...) INDI::Logger::getInstance().print(MGenAutoguider::instance().getDeviceName(), INDI::Logger::DBG_SESSION, __FILE__, __LINE__, "%s::%s: " msg, __FUNCTION__, typeid(*this).name(), __VA_ARGS__)
+#define _S(msg, ...) INDI::Logger::getInstance().print(MGenAutoguider::instance().getDeviceName(), INDI::Logger::DBG_SESSION, __FILE__, __LINE__, "%s::%s: " msg, __FUNCTION__, typeid(*this).name(), __VA_ARGS__)
+#define _D(msg, ...) INDI::Logger::getInstance().print(MGenAutoguider::instance().getDeviceName(), INDI::Logger::DBG_DEBUG, __FILE__, __LINE__, "%s::%s: " msg, __FUNCTION__, typeid(*this).name(), __VA_ARGS__)
+#define _E(msg, ...) INDI::Logger::getInstance().print(MGenAutoguider::instance().getDeviceName(), INDI::Logger::DBG_ERROR, __FILE__, __LINE__, "%s::%s: " msg, __FUNCTION__, typeid(*this).name(), __VA_ARGS__)
 
 class MGenAutoguider;
 class MGenDevice;

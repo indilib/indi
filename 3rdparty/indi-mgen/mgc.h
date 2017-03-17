@@ -39,7 +39,7 @@ protected:
     {
         if(opMode() != OPM_UNKNOWN && opMode() != root.getOpMode())
         {
-            _L("operating mode %s does not support command", MGenDevice::DBG_OpModeString(opMode()));
+            _E("operating mode %s does not support command", MGenDevice::DBG_OpModeString(opMode()));
             return CR_FAILURE;
         }
 
@@ -67,28 +67,35 @@ public:
         if(CR_SUCCESS != MGC::ask(root))
             return CR_FAILURE;
 
-        root.write(query);
-
-        int const bytes_read = root.read(answer);
-        if(answer[0] == (unsigned char) ~query[0] && 5 == bytes_read)
+        if(root.lock())
         {
-            _L("device acknowledged identification, analyzing '%02X%02X%02X'", answer[2], answer[3], answer[4]);
+            root.write(query);
 
-            IOBuffer const app_mode_answer { (unsigned char) ~query[0], 3, 0x01, 0x80, 0x02 };
-            IOBuffer const boot_mode_answer { (unsigned char) ~query[0], 3, 0x01, 0x80, 0x01 };
+            int const bytes_read = root.read(answer);
 
-            if( answer != app_mode_answer && answer != boot_mode_answer )
+            root.unlock();
+
+            if(answer[0] == (unsigned char) ~query[0] && 5 == bytes_read)
             {
-                _L("device identification returned unknown mode","");
-                return CR_FAILURE;
+                _D("device acknowledged identification, analyzing '%02X%02X%02X'", answer[2], answer[3], answer[4]);
+
+                IOBuffer const app_mode_answer { (unsigned char) ~query[0], 3, 0x01, 0x80, 0x02 };
+                IOBuffer const boot_mode_answer { (unsigned char) ~query[0], 3, 0x01, 0x80, 0x01 };
+
+                if( answer != app_mode_answer && answer != boot_mode_answer )
+                {
+                    _E("device identification returned unknown mode","");
+                    return CR_FAILURE;
+                }
+
+                _D("identified boot/compatible mode", "");
+                /* TODO: indicate boot/compatible to caller */
+                return CR_SUCCESS;
             }
 
-            _L("identified boot/compatible mode", "");
-            /* TODO: indicate boot/compatible to caller */
-            return CR_SUCCESS;
+            _D("invalid identification response from device (%d bytes read)", bytes_read);
         }
 
-        _L("invalid identification response from device (%d bytes read)", bytes_read);
         return CR_FAILURE;
     }
 
@@ -110,13 +117,20 @@ public:
         if(CR_SUCCESS != MGC::ask(root))
             return CR_FAILURE;
 
-        root.write(query);
+        if(root.lock())
+        {
+            root.write(query);
 
-        int const bytes_read = root.read(answer);
-        if(answer[0] == query[0] && 1 == bytes_read)
-            return CR_SUCCESS;
+            int const bytes_read = root.read(answer);
 
-        _L("no ack (%d bytes read)", bytes_read);
+            root.unlock();
+
+            if(answer[0] == query[0] && 1 == bytes_read)
+                return CR_SUCCESS;
+
+            _E("no ack (%d bytes read)", bytes_read);
+        }
+
         return CR_FAILURE;
     }
 
@@ -138,8 +152,12 @@ public:
         if(CR_SUCCESS != MGC::ask(root))
             return CR_FAILURE;
 
-        root.write(query);
-        sleep(1);
+        if(root.lock())
+        {
+            root.write(query);
+            sleep(1);
+            root.unlock();
+        }
         return CR_SUCCESS;
     }
 
@@ -164,13 +182,20 @@ public:
         if(CR_SUCCESS != MGC::ask(root))
             return CR_FAILURE;
 
-        root.write(query);
+        if(root.lock())
+        {
+            root.write(query);
 
-        int const bytes_read = root.read(answer);
-        if(answer[0] == query[0] && ( 1 == bytes_read || 3 == bytes_read ))
-            return CR_SUCCESS;
+            int const bytes_read = root.read(answer);
 
-        _L("no ack (%d bytes read)", bytes_read);
+            root.unlock();
+
+            if(answer[0] == query[0] && ( 1 == bytes_read || 3 == bytes_read ))
+                return CR_SUCCESS;
+
+            _E("no ack (%d bytes read)", bytes_read);
+        }
+
         return CR_FAILURE;
     }
 
@@ -197,13 +222,20 @@ public:
         if(CR_SUCCESS != MGC::ask(root))
             return CR_FAILURE;
 
-        root.write(query);
+        if(root.lock())
+        {
+            root.write(query);
 
-        int const bytes_read = root.read(answer);
-        if(answer[0] == query[0] && ( 1+5*2 == bytes_read ))
-            return CR_SUCCESS;
+            int const bytes_read = root.read(answer);
 
-        _L("no ack (%d bytes read)", bytes_read);
+            root.unlock();
+
+            if(answer[0] == query[0] && ( 1+5*2 == bytes_read ))
+                return CR_SUCCESS;
+
+            _E("no ack (%d bytes read)", bytes_read);
+        }
+
         return CR_FAILURE;
     }
 
@@ -250,13 +282,13 @@ public:
             frame[i] = ((bitmap_frame[B] >> b) & 0x01) ? '0' : ' ';
         }
 #if 0
-        _L("    0123456789|123456789|123456789|123456789|123456789|123456789|123456789|123456789|123456789|123456789|123456789|123456789|1234567","");
+        _D("    0123456789|123456789|123456789|123456789|123456789|123456789|123456789|123456789|123456789|123456789|123456789|123456789|1234567","");
         for(unsigned int i = 0; i < frame.size()/128; i++)
         {
             char line[128];
             for(unsigned int j = 0; j < 128; j++)
                 line[j] = frame[i*128+j];
-            _L("%03d %128.128s", i, line);
+            _D("%03d %128.128s", i, line);
         }
 #endif
         return frame;
@@ -281,39 +313,45 @@ public:
 
         /* Read the ack first, then 8 blocks of 128 bytes */
         answer.resize(1+128);
-        for(unsigned int block = 0; block < 8*128; block += 128)
+
+        if(root.lock())
         {
-            IOByte const length = 128;
-            query[2] = (unsigned char)((block&0x03FF)>>0);
-            query[3] = (unsigned char)((block&0x03FF)>>8);
-            query[4] = length;
+            for(unsigned int block = 0; block < 8*128; block += 128)
+            {
+                IOByte const length = 128;
+                query[2] = (unsigned char)((block&0x03FF)>>0);
+                query[3] = (unsigned char)((block&0x03FF)>>8);
+                query[4] = length;
 
+                root.write(query);
+                if(root.read(answer) < length + 1)
+                    _E("failed reading frame block, pushing back nonetheless","");
+                if(opCode() != answer[0])
+                    _E("failed acking frame block, command is desynced, pushing back nonetheless","");
+                bitmap_frame.insert(bitmap_frame.end(), answer.begin() + 1, answer.end());
+            }
+
+    //            /* Read the last block of 4 bytes */
+    //            answer.resize(4);
+    //            query[0] = (unsigned char)(((4*255)&0xFF00)>>8);
+    //            query[1] = (unsigned char)(((4*255)&0x00FF)>>0);
+    //            query[2] = 4;
+    //            root.write(query);
+    //            if(root.read(answer) < 4 )
+    //                _D("failed reading last frame block, pushing back nonetheless","");
+    //            bitmap_frame.insert(bitmap_frame.end(), answer.begin(), answer.end());
+
+            /* FIXME: don't ever try to reuse this command after ask() was called... */
+            /* FIXME: somehow we're forced to always send IO_FUNC first, but sending NOP1 won't get acked, as if we shouldn't have to send IO_FUNC before SUBFUNC... well, no problem, close the subfunc with NOP1 */
+            //::MGCMD_NOP1(root).ask(ftdi);
+            query.resize(2);
+            query[1] = 0xFF;
             root.write(query);
-            if(root.read(answer) < length + 1)
-                _L("failed reading frame block, pushing back nonetheless","");
-            if(opCode() != answer[0])
-                _L("failed acking frame block, command is desynced, pushing back nonetheless","");
-            bitmap_frame.insert(bitmap_frame.end(), answer.begin() + 1, answer.end());
+            answer.resize(1);
+            root.read(answer);
+
+            root.unlock();
         }
-
-//            /* Read the last block of 4 bytes */
-//            answer.resize(4);
-//            query[0] = (unsigned char)(((4*255)&0xFF00)>>8);
-//            query[1] = (unsigned char)(((4*255)&0x00FF)>>0);
-//            query[2] = 4;
-//            root.write(query);
-//            if(root.read(answer) < 4 )
-//                _L("failed reading last frame block, pushing back nonetheless","");
-//            bitmap_frame.insert(bitmap_frame.end(), answer.begin(), answer.end());
-
-        /* FIXME: don't ever try to reuse this command after ask() was called... */
-        /* FIXME: somehow we're forced to always send IO_FUNC first, but sending NOP1 won't get acked, as if we shouldn't have to send IO_FUNC before SUBFUNC... well, no problem, close the subfunc with NOP1 */
-        //::MGCMD_NOP1(root).ask(ftdi);
-        query.resize(2);
-        query[1] = 0xFF;
-        root.write(query);
-        answer.resize(1);
-        root.read(answer);
 
         return CR_SUCCESS;
     }
@@ -348,13 +386,20 @@ public:
         if(CR_SUCCESS != MGC::ask(root))
             return CR_FAILURE;
 
-        _L("sending button %d",query[2]);
-        query[2] &= 0x7F;
-        root.write(query);
-        root.read(answer);
-        query[2] |= 0x80;
-        root.write(query);
-        root.read(answer);
+        if(root.lock())
+        {
+            _D("sending button %d",query[2]);
+
+            query[2] &= 0x7F;
+            root.write(query);
+            root.read(answer);
+
+            query[2] |= 0x80;
+            root.write(query);
+            root.read(answer);
+
+            root.unlock();
+        }
         return CR_SUCCESS;
     }
 

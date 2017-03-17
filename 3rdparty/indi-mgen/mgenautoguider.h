@@ -40,45 +40,55 @@ protected:
 public:
     struct version
     {
+        int timer;
+        struct timespec timestamp;
         unsigned short uploaded_firmware;
         unsigned short camera_firmware;
-        IText VersionFirmwareT;
-        ITextVectorProperty VersionTP;
+        IText textFirmware;
+        ITextVectorProperty propVersions;
     } version;
 
 public:
     struct voltage
     {
-        time_t timestamp;
+        int timer;
+        struct timespec timestamp;
         float logic;
         float input;
         float reference;
-        INumber VoltageN[3];
-        INumberVectorProperty VoltageNP;
+        INumber numVoltages[3];
+        INumberVectorProperty propVoltages;
     } voltage;
 
 public:
     struct ui
     {
-        time_t timestamp;
-        IBLOB UIFrameB;
-        IBLOBVectorProperty UIFrameBP;
-        INumber UIFramerateN;
-        INumberVectorProperty UIFramerateNP;
-        ISwitch UIButtonS[6];
-        ISwitchVectorProperty UIButtonSP[2];
+        int timer;
+        struct timespec timestamp;
+        struct framerate
+        {
+            INumber number;
+            INumberVectorProperty property;
+        } framerate;
+        struct buttons
+        {
+            ISwitch switches[6];
+            ISwitchVectorProperty properties[2];
+        } buttons;
     } ui;
 
 public:
     struct heartbeat
     {
-        time_t timestamp;
+        int timer;
+        struct timespec timestamp;
         unsigned int no_ack_count;
     } heartbeat;
 
 protected:
     bool initProperties();
     bool updateProperties();
+    void TimerHit();
 
 public:
     virtual bool ISNewNumber(char const * dev, char const * name, double values[], char * names[], int n);
@@ -98,11 +108,7 @@ public:
     IOMode getOpMode() const;
 
 protected:
-    static void* connectionThreadWrapper( void* );
-    void connectionThread();
-
-protected:
-    int setOpModeBaudRate(struct ftdi_context * const ftdi, IOMode const mode);
+    bool getHeartbeat();
 };
 
 #endif // MGENAUTOGUIDER_H

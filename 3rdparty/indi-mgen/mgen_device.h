@@ -15,7 +15,6 @@ protected:
     bool tried_turn_on;
     IOMode mode;
     unsigned short vid, pid;
-    std::queue<unsigned int> button_queue;
 
 public:
     bool lock();
