@@ -276,7 +276,7 @@ double anglediff(double a, double b){
     b = fmod(b,360.0);
     d = fmod(a-b+360.0, 360.0);
     if (d > 180) d = 360.0 - d;
-    return abs(d)*((a - b >= 0 && a - b <= 180) || (a - b <=-180 && a- b>= -360) ? 1 : -1);
+    return std::abs(d)*((a - b >= 0 && a - b <= 180) || (a - b <=-180 && a- b>= -360) ? 1 : -1);
 }
 
 // TODO: Make adjustment for the approx time it takes to slew to the given pos.
@@ -793,7 +793,7 @@ void NexStarEvo::TimerHit()
                         scope.GetALT()/ STEPS_PER_DEGREE,
                         scope.GetAZ()/ STEPS_PER_DEGREE);
                 
-                if (abs(azRate) > STEPS_PER_REVOLUTION/2) {
+                if (std::abs(azRate) > STEPS_PER_REVOLUTION/2) {
                     // Crossing the meridian. AZ skips from 350+ to 0+
                     // Correct for wrap-around
                     azRate += STEPS_PER_REVOLUTION;

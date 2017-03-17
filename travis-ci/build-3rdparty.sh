@@ -6,10 +6,6 @@ echo ${TRAVIS_OS_NAME}
 
 # The build-libs.sh must be run first for this to work
 if [ .${TRAVIS_BRANCH%_*} == '.drv' ] ; then 
-    if [ ${TRAVIS_OS_NAME} == 'osx' ] ; then
-        echo "Cannot build one driver on OSX"
-        exit 0
-    fi
     DRV="indi-${TRAVIS_BRANCH#drv_}"
     echo "Building $DRV"
     mkdir -p build/$DRV
