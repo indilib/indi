@@ -10,7 +10,7 @@ fi
 brew update
 brew tap 'homebrew/homebrew-science'
 brew tap 'caskroom/drivers'
-brew tap 'seanhoughton/indi'
+#brew tap 'seanhoughton/indi'
 
 # Not available in homebrew:
 # cdbs
