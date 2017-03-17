@@ -4,7 +4,12 @@
 # It is *not* for general audience
 
 SRC=../../3rdparty/
-LIBS="libapogee libfishcamp libfli libqhy libqsi libsbig"
+
+if [ ${TRAVIS_OS_NAME} == "linux" ] ; then
+    LIBS="libapogee libfishcamp libfli libqhy libqsi libsbig"
+else 
+    LIBS="libqsi"
+fi
 
 for lib in $LIBS ; do
 (
