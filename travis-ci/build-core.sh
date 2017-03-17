@@ -9,7 +9,7 @@ if [ .${TRAVIS_BRANCH%_*} == '.drv' ] ; then
         sudo apt-get -qq update
         sudo apt-get -q -y install libindi-dev
     else
-        brew install seanhoughton/indi/libindi
+        brew install jochym/indi/libindi
     fi
 else
     # Build everything on master
