@@ -16,7 +16,7 @@ else
     if [ ${TRAVIS_OS_NAME} == 'linux' ] ; then
         sudo apt-add-repository -y ppa:jochym/indi-devel
         sudo apt-get -qq update
-        sudo apt-get -q -y install libindi-dev indi-bin indi-data
+        sudo apt-get -q -y install libindi-dev
     fi
 fi
 
