@@ -76,7 +76,7 @@ public:
     bool sendTheSkyOKCommand(const char *command, const char *errorMessage);
     bool isTheSkyParked();
     bool isTheSkyTracking();
-    bool startOpenLoopMotion(uint8_t motion, uint8_t rate);
+    bool startOpenLoopMotion(uint8_t motion, uint16_t rate);
     bool stopOpenLoopMotion();
     bool setTheSkyTracking(bool enable, bool isSidereal, double raRate, double deRate);
 

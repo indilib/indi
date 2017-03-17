@@ -62,6 +62,10 @@ std::unique_ptr<Paramount> paramount_mount(new Paramount());
 #define TRACKRATE_SOLAR ((360.0 * 3600.0) / SOLAR_DAY)
 #define TRACKRATE_LUNAR 14.511415
 
+/* Preset Slew Speeds */
+#define SLEWMODES 9
+const double slewspeeds[SLEWMODES] = { 1.0, 2.0, 4.0, 8.0, 32.0, 64.0, 128.0, 256.0, 512.0};
+
 void ISPoll(void *p);
 
 void ISGetProperties(const char *dev)
@@ -125,6 +129,15 @@ bool Paramount::initProperties()
 {
     /* Make sure to init parent properties first */
     INDI::Telescope::initProperties();
+
+    for (unsigned int i=0; i<SlewRateSP.nsp-1; i++)
+    {
+        sprintf(SlewRateSP.sp[i].label, "%.fx", slewspeeds[i]);
+        SlewRateSP.sp[i].aux=(void *)&slewspeeds[i];
+    }
+
+    // Set 64x as default speed
+    SlewRateSP.sp[5].s = ISS_ON;
 
     /* How fast do we guide compared to sidereal rate */
     IUFillNumber(&JogRateN[RA_AXIS], "JOG_RATE_WE", "W/E Rate (arcmin)", "%g", 0, 600, 60, 30);
@@ -714,7 +727,8 @@ bool Paramount::MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command)
     }
 
     int motion = (dir == DIRECTION_NORTH) ? PARAMOUNT_NORTH : PARAMOUNT_SOUTH;
-    int rate   = IUFindOnSwitchIndex(&SlewRateSP);
+    //int rate   = IUFindOnSwitchIndex(&SlewRateSP);
+    int rate   = slewspeeds[IUFindOnSwitchIndex(&SlewRateSP)];
 
     switch (command)
     {
@@ -779,7 +793,7 @@ bool Paramount::MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command)
     return true;
 }
 
-bool Paramount::startOpenLoopMotion(uint8_t motion, uint8_t rate)
+bool Paramount::startOpenLoopMotion(uint8_t motion, uint16_t rate)
 {
     char pCMD[MAXRBUF];
     snprintf(pCMD, MAXRBUF,
