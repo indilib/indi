@@ -311,6 +311,7 @@ bool NexStarAUXScope::Connect(){
 bool NexStarAUXScope::Disconnect(){
     fprintf(stderr,"Disconnecting\n");
     closeConnection();
+    return true;
 }
 
 bool NexStarAUXScope::UpdateLocation(double lat, double lon, double elev){
