@@ -45,7 +45,7 @@
 #include "ccvt.h"
 #define ulong unsigned long
 #else
-#include <ccvt.h>
+#include "ccvt.h"
 #endif
 #include "sbig_ccd.h"
 

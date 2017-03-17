@@ -19,6 +19,7 @@ brew tap 'seanhoughton/indi'
 
 brew install \
 			curl \
+			cmake \
 			dcraw \
 			fakeroot \
 			gsl \
@@ -26,6 +27,8 @@ brew install \
 			libgphoto2 \
 			libjpeg \
 			libusb \
+			gpsd \
+			libraw \
 			seanhoughton/indi/libcfitsio \
 			seanhoughton/indi/libnova 
 			
