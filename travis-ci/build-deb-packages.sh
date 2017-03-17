@@ -1,9 +1,11 @@
 #!/bin/bash
 
 set -x
-exit 0
-if [ ${TRAVIS_OS_NAME} == "linux" ] ; then
 
+if [ ${TRAVIS_OS_NAME} == "linux" ] ; then
+    if [ .${TRAVIS_BRANCH%_*} == '.drv' ] ; then 
+        exit 0
+    fi
     if [ ! -z $BUILD_DEB_PACKAGES ]; then
       echo "==> BUILD_DEB_PACKAGES activated"
       mkdir -p build/deb_libindi
