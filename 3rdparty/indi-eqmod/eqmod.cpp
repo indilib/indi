@@ -406,6 +406,19 @@ void EQMod::ISGetProperties(const char *dev)
             defineSwitch(DEPPECTrainingSP);
             defineSwitch(DEPPECSP);
         }
+
+#ifdef WITH_ALIGN_GEEHALEL
+    if (align) {
+        if (!align->updateProperties()) return false;
+    }
+#endif
+
+#ifdef WITH_SCOPE_LIMITS
+    if (horizon) {
+        if (!horizon->updateProperties()) return false;
+    }
+#endif
+
     }
 }
 
