@@ -11,6 +11,20 @@ else
     LIBS="libqsi"
 fi
 
+if [ .${TRAVIS_BRANCH%_*} == '.drv' ] ; then 
+    DRV=lib"${TRAVIS_BRANCH#drv_}"
+    if [ -d 3rdparty/$DRV ] ; then
+        LIBS="$DRV"
+    else 
+        LIBS=""
+    fi
+    echo "[$DRV] [$LIBS]"
+    if [ ${TRAVIS_OS_NAME} == "osx" ] ; then
+        echo "Cannot build one driver on OSX"
+        LIBS=""
+    fi
+fi
+
 for lib in $LIBS ; do
 (
     echo "Building $lib ..."

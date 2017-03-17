@@ -10,9 +10,11 @@ os:
 
 branches:
   only:
-    - develop
     - master
-    - nse
+    - develop
+    - package
+    - /drv_.*$/
+    - travis
     - refactor/unittest
     - feature/travisosx
 
@@ -21,14 +23,12 @@ before_install:
     - travis-ci/deps-${TRAVIS_OS_NAME}.sh
 
 install:
-    - echo Building INDI Core
+    - echo Building INDI Core and drivers
     - travis-ci/build-core.sh 
     - travis-ci/build-libs.sh 
     - travis-ci/build-3rdparty.sh
     - travis-ci/build-deb-packages.sh 
 
 script:
-    - pwd
-    - cd libindi/test
-    - ctest -V
+    - travis-ci/run-tests.sh 
 
