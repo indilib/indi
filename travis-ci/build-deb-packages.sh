@@ -1,7 +1,7 @@
 #!/bin/bash
 
 set -x
-
+exit 0
 if [ ${TRAVIS_OS_NAME} == "linux" ] ; then
 
     if [ ! -z $BUILD_DEB_PACKAGES ]; then
