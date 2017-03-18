@@ -38,6 +38,9 @@
 
 #include "gphoto_driver.h"
 
+static GPPortInfoList		*portinfolist = NULL;
+static CameraAbilitiesList	*abilities = NULL;
+
 struct _gphoto_widget_list
 {
     struct _gphoto_widget_list	*next;
@@ -102,27 +105,6 @@ void gphoto_set_debug(const char *name)
     strncpy(device, name, 64);
 }
 
-
-static GPContext* create_context() {
-    GPContext *context;
-
-    /* This is the mandatory part */
-    context = gp_context_new();
-
-    /* All the parts below are optional! */
-    //gp_context_set_error_func (context, ctx_error_func, NULL);
-    //gp_context_set_status_func (context, ctx_status_func, NULL);
-
-    /* also:
-    gp_context_set_cancel_func    (p->context, ctx_cancel_func,  p);
-    gp_context_set_message_func   (p->context, ctx_message_func, p);
-    if (isatty (STDOUT_FILENO))
-        gp_context_set_progress_funcs (p->context,
-            ctx_progress_start_func, ctx_progress_update_func,
-            ctx_progress_stop_func, p);
-    */
-    return context;
-}
 
 static const char *widget_name(CameraWidget *widget) {
     const char *name = NULL;
@@ -940,34 +922,132 @@ int gphoto_get_iso_current(gphoto_driver *gphoto)
     return gphoto->iso_widget->value.index;
 }
 
-gphoto_driver *gphoto_open(const char *shutter_release_port)
+gphoto_driver *gphoto_open(Camera *camera, GPContext *context, const char *model, const char *port, const char *shutter_release_port)
 {
     gphoto_driver *gphoto;
     gphoto_widget *widget;
-    Camera  *canon;
-    GPContext *canoncontext = create_context();
-    int result;
+    CameraAbilities	a;
+    GPPortInfo	pi;
+    int result=0, index=0;
 
     DEBUGDEVICE(device, INDI::Logger::DBG_DEBUG,"Opening gphoto");
     //gp_log_add_func(GP_LOG_ERROR, errordumper, NULL);
-    gp_camera_new(&canon);
+    gp_camera_new(&camera);
 
-    /* When I set GP_LOG_DEBUG instead of GP_LOG_ERROR above, I noticed that the
-     * init function seems to traverse the entire filesystem on the camera.  This
-     * is partly why it takes so long.
-     * (Marcus: the ptp2 driver does this by default currently.)
-     */
-    DEBUGDEVICE(device, INDI::Logger::DBG_DEBUG,"Camera init.  Takes about 10 seconds.");
-    result = gp_camera_init(canon, canoncontext);
-    if (result != GP_OK)
+    if (model == NULL || port == NULL)
     {
-        DEBUGFDEVICE(device, INDI::Logger::DBG_ERROR,"Camera open error (%d): %s", result, gp_result_as_string(result));
-        return NULL;
+        DEBUGDEVICE(device, INDI::Logger::DBG_DEBUG,"Camera init.  Takes about 10 seconds.");
+        result = gp_camera_init(camera, context);
+        if (result != GP_OK)
+        {
+            DEBUGFDEVICE(device, INDI::Logger::DBG_ERROR,"Camera open error (%d): %s", result, gp_result_as_string(result));
+            return NULL;
+        }
+    }
+    else
+    {
+        if (!abilities)
+        {
+            /* Load all the camera drivers we have... */
+            result = gp_abilities_list_new (&abilities);
+            if (result < GP_OK)
+            {
+                DEBUGFDEVICE(device, INDI::Logger::DBG_ERROR, "gp_abilities_list_new failed (%d): %s", result, gp_result_as_string(result));
+                return NULL;
+            }
+            result = gp_abilities_list_load (abilities, context);
+            if (result < GP_OK)
+            {
+                DEBUGFDEVICE(device, INDI::Logger::DBG_ERROR, "gp_abilities_list_load failed (%d): %s", result, gp_result_as_string(result));
+                return NULL;
+            }
+        }
+
+        /* First lookup the model / driver */
+        index = gp_abilities_list_lookup_model (abilities, model);
+        if (index < GP_OK)
+        {
+            DEBUGFDEVICE(device, INDI::Logger::DBG_ERROR, "gp_abilities_list_lookup_model failed (%d): %s", index, gp_result_as_string(index));
+            return NULL;
+        }
+
+        result = gp_abilities_list_get_abilities (abilities, index, &a);
+        if (result < GP_OK)
+        {
+            DEBUGFDEVICE(device, INDI::Logger::DBG_ERROR, "gp_abilities_list_get_abilities (%d): %s", result, gp_result_as_string(result));
+            return NULL;
+        }
+
+        result = gp_camera_set_abilities (camera, a);
+        if (result < GP_OK)
+        {
+            DEBUGFDEVICE(device, INDI::Logger::DBG_ERROR, "gp_abilities_list_get_abilities (%d): %s", result, gp_result_as_string(result));
+            return NULL;
+        }
+
+        if (!portinfolist)
+        {
+            /* Load all the port drivers we have... */
+            result = gp_port_info_list_new (&portinfolist);
+            if (result < GP_OK)
+            {
+                DEBUGFDEVICE(device, INDI::Logger::DBG_ERROR, "gp_port_info_list_new (%d): %s", result, gp_result_as_string(result));
+                return NULL;
+            }
+            result = gp_port_info_list_load (portinfolist);
+            if (result < 0)
+            {
+                DEBUGFDEVICE(device, INDI::Logger::DBG_ERROR, "gp_port_info_list_load (%d): %s", result, gp_result_as_string(result));
+                return NULL;
+            }
+            result = gp_port_info_list_count (portinfolist);
+            if (result < 0)
+            {
+                DEBUGFDEVICE(device, INDI::Logger::DBG_ERROR, "gp_port_info_list_count (%d): %s", result, gp_result_as_string(result));
+                return NULL;
+            }
+        }
+
+        /* Then associate the camera with the specified port */
+        index = gp_port_info_list_lookup_path (portinfolist, port);
+        switch (index)
+        {
+        case GP_ERROR_UNKNOWN_PORT:
+            DEBUGFDEVICE(device, INDI::Logger::DBG_ERROR,
+                            "The port you specified "
+                            "('%s') can not be found. Please "
+                            "specify one of the ports found by "
+                            "'gphoto2 --list-ports' and make "
+                            "sure the spelling is correct "
+                            "(i.e. with prefix 'serial:' or 'usb:').", port);
+            break;
+        default:
+            break;
+        }
+
+        if (index < GP_OK)
+        {
+            return NULL;
+        }
+
+        result = gp_port_info_list_get_info (portinfolist, index, &pi);
+        if (result < GP_OK)
+        {
+            DEBUGFDEVICE(device, INDI::Logger::DBG_ERROR, "gp_port_info_list_get_info (%d): %s", result, gp_result_as_string(result));
+            return NULL;
+        }
+
+        result = gp_camera_set_port_info (camera, pi);
+        if (result < GP_OK)
+        {
+            DEBUGFDEVICE(device, INDI::Logger::DBG_ERROR, "gp_port_info_list_get_info (%d): %s", result, gp_result_as_string(result));
+            return NULL;
+        }
     }
 
     gphoto = (gphoto_driver*) calloc(sizeof(gphoto_driver), 1);
-    gphoto->camera = canon;
-    gphoto->context = canoncontext;
+    gphoto->camera = camera;
+    gphoto->context = context;
 
     result = gp_camera_get_config (gphoto->camera, &gphoto->config, gphoto->context);
     if (result < GP_OK) {
