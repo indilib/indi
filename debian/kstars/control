@@ -66,7 +66,7 @@ Package: kstars-bleeding-dbg
 Architecture: any
 Section: debug
 Priority: extra
-Depends: kstars-bleeding (= ${binary:Version}), ${misc:Depends}
+Depends: kstars-bleeding (= ${binary:Version}), ${misc:Depends}, kde-runtime
 Description: debug information for the desktop planetarium for KDE
  This package contains debugging files used to investigate problems with the
  desktop planetarium for KDE.
