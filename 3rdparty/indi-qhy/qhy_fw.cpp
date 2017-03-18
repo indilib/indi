@@ -53,6 +53,7 @@ static struct uninitialized_cameras {
   { 0x16c0, 0x2986, "QHY5LOADER.HEX", "QHY5.HEX" },
   { 0x1781, 0x0c7c, "QHY5LOADER.HEX", "QHY5.HEX" },
   { 0x1618, 0x0920, NULL, "QHY5II.HEX" },
+  { 0x1618, 0x0921, NULL, "QHY5II.HEX" },
   { 0x1618, 0x0259, NULL, "QHY6.HEX" },
   { 0x1618, 0x4022, NULL, "QHY7.HEX" },
   { 0x1618, 0x6000, NULL, "QHY8.HEX" },
