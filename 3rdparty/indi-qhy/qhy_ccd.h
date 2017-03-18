@@ -119,6 +119,8 @@ private:
   bool setupParams();
   // Enable/disable cooler
   void setCooler(bool enable);
+  // Check if the camera is QHY5PII-C model
+  bool isQHY5PIIC();
 
   // Temperature update
   void updateTemperature();

@@ -20,21 +20,22 @@
  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
+#include "qhy_ccd.h"
+
+#include "qhy_fw.h"
+
+#include "config.h"
+#ifndef OSX_EMBEDED_MODE
+#include "stream_recorder.h"
+#endif
+
+#include <algorithm>
+
 #include <memory>
 #include <time.h>
 #include <math.h>
 #include <unistd.h>
 #include <sys/time.h>
-
-
-#ifndef OSX_EMBEDED_MODE
-#include "stream_recorder.h"
-#endif
-
-#include "qhy_ccd.h"
-#include "qhy_fw.h"
-
-#include "config.h"
 
 #define POLLMS                  1000        /* Polling time (ms) */
 #define TEMP_THRESHOLD          0.2         /* Differential temperature threshold (C)*/
@@ -44,13 +45,14 @@
 //NB Disable for real driver
 //#define USE_SIMULATION
 
-static int cameraCount;
+static int cameraCount = 0;
 static QHYCCD *cameras[MAX_DEVICES];
 
 pthread_cond_t      cv  = PTHREAD_COND_INITIALIZER;
 pthread_mutex_t     condMutex     = PTHREAD_MUTEX_INITIALIZER;
 
-static void cleanup()
+namespace {
+static void QhyCCDCleanup()
 {
   for (int i = 0; i < cameraCount; i++)
   {
@@ -60,59 +62,78 @@ static void cleanup()
   //ReleaseQHYCCDResource();
 }
 
+// Scan for the available devices
+std::vector<std::string> GetDevicesIDs()
+{
+  char camid[MAXINDIDEVICE];
+  int ret = QHYCCD_ERROR;
+  int deviceCount = 0;
+  std::vector<std::string> devices;
+
+#if defined(USE_SIMULATION)
+  deviceCount = 2;
+#else
+  deviceCount = ScanQHYCCD();
+#endif
+
+  for (int i = 0; i < deviceCount; i++)
+  {
+    memset(camid,'\0', MAXINDIDEVICE);
+
+#if defined(USE_SIMULATION)
+    ret = QHYCCD_SUCCESS;
+    snprintf(camid, MAXINDIDEVICE, "Model %d", i+1);
+#else
+    ret = GetQHYCCDId(i, camid);
+#endif
+    if  (ret == QHYCCD_SUCCESS)
+    {
+      devices.push_back(std::string(camid));
+    } else {
+      IDLog("#%d GetQHYCCDId error (%d)\n", i, ret);
+    }
+  }
+
+  return devices;
+}
+}
+
 void ISInit()
 {
   static bool isInit = false;
 
-  if (!isInit)
-  {
-    
-#ifdef __APPLE__
-      UploadFW();
+  if (isInit)
+    return;
+
+  for (int i = 0; i < MAX_DEVICES; ++i)
+    cameras[i] = nullptr;
+
+#if defined(__APPLE__)
+  UploadFW();
 #endif
-      char camid[MAXINDIDEVICE];
-      bool allCameraInit = true;
-      int ret = QHYCCD_ERROR;
 
-      #ifndef USE_SIMULATION
-      ret = InitQHYCCDResource();
-      if(ret != QHYCCD_SUCCESS)
-      {
-          IDLog("Init QHYCCD SDK failed (%d)\n", ret);
-          return;
-      }
-      cameraCount = ScanQHYCCD();
-     #else
-     cameraCount = 2;
-     #endif
+#if !defined(USE_SIMULATION)
+  int ret = InitQHYCCDResource();
 
-      for(int i = 0;i < cameraCount;i++)
-      {
-          memset(camid,'\0', MAXINDIDEVICE);
+  if (ret != QHYCCD_SUCCESS)
+  {
+    IDLog("Init QHYCCD SDK failed (%d)\n", ret);
+    isInit = true;
+    return;
+  }
+#endif
 
-          #ifndef USE_SIMULATION
-          ret = GetQHYCCDId(i,camid);
-          #else
-          ret = QHYCCD_SUCCESS;
-          snprintf(camid, MAXINDIDEVICE, "Model %d", i+1);
-          #endif
-          if(ret == QHYCCD_SUCCESS)
-          {
-              cameras[i] = new QHYCCD(camid);
-          }
-          else
-          {
-              IDLog("#%d GetQHYCCDId error (%d)\n", i, ret);
-              allCameraInit = false;
-              break;
-          }
-      }
+  std::vector<std::string> devices = GetDevicesIDs();
 
-      if(cameraCount > 0 && allCameraInit)
-      {
-          atexit(cleanup);
-          isInit = true;
-      }
+  cameraCount = (int)devices.size();
+  for (unsigned int i = 0; i < cameraCount; i++)
+  {
+    cameras[i] = new QHYCCD(devices[i].c_str());
+  }
+  if (cameraCount > 0)
+  {
+    atexit(QhyCCDCleanup);
+    isInit = true;
   }
 }
 
@@ -316,7 +337,6 @@ bool QHYCCD::updateProperties()
 
   if (isConnected())
   {
-
       if (HasCooler())
       {
           defineSwitch(&CoolerSP);
@@ -486,7 +506,6 @@ bool QHYCCD::updateProperties()
 
 bool QHYCCD::Connect()
 {
-
     sim = isSimulation();
 
     int ret;
@@ -507,6 +526,17 @@ bool QHYCCD::Connect()
         return true;
     }
 
+    // Query the current CCD cameras. This method makes the driver more robust and
+    // it fixes a crash with the new QHC SDK when the INDI driver reopens the same camera
+    // with OpenQHYCCD() without a ScanQHYCCD() call before.
+    std::vector<std::string> devices = GetDevicesIDs();
+
+    // The CCD device is not available anymore
+    if (std::find(devices.begin(), devices.end(), std::string(camid)) == devices.end())
+    {
+        DEBUGF(INDI::Logger::DBG_ERROR, "Error: Camera %s is not connected", camid);
+        return false;
+    }
     camhandle = OpenQHYCCD(camid);
 
     if(camhandle != NULL)
@@ -518,6 +548,13 @@ bool QHYCCD::Connect()
 #else
         cap = CCD_CAN_ABORT | CCD_CAN_SUBFRAME | CCD_HAS_STREAMING;
 #endif
+
+        // Disable the stream mode before connecting
+        ret = SetQHYCCDStreamMode(camhandle,0);
+        if (ret == QHYCCD_SUCCESS)
+        {
+          DEBUGF(INDI::Logger::DBG_ERROR, "Error: Can't disable stream mode (%d)", ret);
+        }
         ret = InitQHYCCD(camhandle);
         if(ret != QHYCCD_SUCCESS)
         {
@@ -553,6 +590,9 @@ bool QHYCCD::Connect()
         if(ret == QHYCCD_SUCCESS)
         {
             HasUSBSpeed = true;
+          // Force the speed to 0 on initialization of QHY5PII-C to avoid stuck transfer
+          if (isQHY5PIIC())
+            SetQHYCCDParam(camhandle, CONTROL_SPEED, 0);
         }
 
         DEBUGF(INDI::Logger::DBG_DEBUG, "USB Speed Control: %s", HasUSBSpeed ? "True" : "False");
@@ -615,6 +655,10 @@ bool QHYCCD::Connect()
         if (ret == QHYCCD_SUCCESS)
         {
             HasUSBTraffic = true;
+            // Force the USB traffic value to 30 on initialization of QHY5PII-C otherwise
+            // the camera has poor transfer speed.
+            if (isQHY5PIIC())
+                SetQHYCCDParam(camhandle, CONTROL_USBTRAFFIC, 30);
         }
 
         DEBUGF(INDI::Logger::DBG_DEBUG, "USB Traffic Control: %s", HasUSBTraffic ? "True" : "False");
@@ -996,7 +1040,9 @@ int QHYCCD::grabImage()
 
     uint32_t ret, w,h,bpp,channels;
 
+    DEBUG(INDI::Logger::DBG_DEBUG, "Blocking read call.");
     ret = GetQHYCCDSingleFrame(camhandle,&w,&h,&bpp,&channels,PrimaryCCD.getFrameBuffer());
+    DEBUG(INDI::Logger::DBG_DEBUG, "Blocking read call finished.");
 
     if (ret != QHYCCD_SUCCESS)
     {
@@ -1313,6 +1359,11 @@ void QHYCCD::setCooler(bool enable)
         IDSetNumber(&TemperatureNP, NULL);
         DEBUG(INDI::Logger::DBG_SESSION, "Cooler off.");
     }
+}
+
+bool QHYCCD::isQHY5PIIC()
+{
+  return std::string(camid, 9) == "QHY5PII-C";
 }
 
 void QHYCCD::updateTemperatureHelper(void *p)
