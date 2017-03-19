@@ -465,7 +465,7 @@ set(dsc_SRCS
    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/telescope/dsc.cpp )
 
 add_executable(indi_dsc_telescope ${dsc_SRCS})
-target_link_libraries(indi_dsc_telescope indidriver)
+target_link_libraries(indi_dsc_telescope indidriver AlignmentDriver)
 
 install(TARGETS indi_dsc_telescope RUNTIME DESTINATION bin )
 

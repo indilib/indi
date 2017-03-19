@@ -24,19 +24,34 @@
 #ifndef DSC_H
 #define DSC_H
 
-#include "indibase/inditelescope.h"
 #include <libnova.h>
 
-class DSC : public INDI::Telescope
+#include "indibase/inditelescope.h"
+#include <alignment/AlignmentSubsystemForDrivers.h>
+
+typedef struct SyncData
+{
+  double lst,jd;
+  double targetRA, targetDEC;
+  double telescopeRA, telescopeDEC;
+  double deltaRA, deltaDEC;
+  unsigned long targetRAEncoder, targetDECEncoder;
+  unsigned long telescopeRAEncoder, telescopeDECEncoder;
+  long deltaRAEncoder, deltaDECEncoder;
+} SyncData;
+
+class DSC : public INDI::Telescope, INDI::AlignmentSubsystem::AlignmentSubsystemForDrivers
 {
 public:
     DSC();
     virtual ~DSC();
 
+    virtual bool ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n);
     virtual bool ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n);
     virtual bool ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n);
 
 protected:
+
     virtual const char *getDefaultName();
     virtual bool Handshake();
 
@@ -51,6 +66,9 @@ protected:
     virtual void simulationTriggered(bool enable) override;
 
 private:
+
+    ln_equ_posn TelescopeToSky(double ra,double dec);
+
     INumber EncoderN[4];
     INumberVectorProperty EncoderNP;
     enum { AXIS1_ENCODER, AXIS2_ENCODER, AXIS1_RAW_ENCODER, AXIS2_RAW_ENCODER };
@@ -75,6 +93,8 @@ private:
     INumberVectorProperty SimEncoderNP;
 
     ln_lnlat_posn observer;
+
+    SyncData syncdata, syncdata2;
 };
 
 #endif

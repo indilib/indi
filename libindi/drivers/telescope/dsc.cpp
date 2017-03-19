@@ -34,6 +34,9 @@
 #define DSC_TIMEOUT    2
 #define AXIS_TAB       "Axis Settings"
 
+#include <alignment/DriverCommon.h>   // For DBG_ALIGNMENT
+using namespace INDI::AlignmentSubsystem;
+
 // We declare an auto pointer to DSC.
 std::unique_ptr<DSC> dsc(new DSC());
 
@@ -104,10 +107,10 @@ bool DSC::initProperties()
     IUFillNumberVector(&AxisSettingsNP, AxisSettingsN, 2, getDeviceName(), "AXIS_SETTINGS", "Axis Resolution", AXIS_TAB, IP_RW, 0, IPS_IDLE);
 
     // Offsets applied to raw encoder values to adjust them as necessary
-    IUFillNumber(&EncoderOffsetN[OFFSET_AXIS1_SCALE], "OFFSET_AXIS1_SCALE", "#1 Ticks Scale", "%g", 0, 1e6, 0, 0.0390625);
+    IUFillNumber(&EncoderOffsetN[OFFSET_AXIS1_SCALE], "OFFSET_AXIS1_SCALE", "#1 Ticks Scale", "%g", 0, 1e6, 0, 1);
     IUFillNumber(&EncoderOffsetN[OFFSET_AXIS1_OFFSET], "OFFSET_AXIS1_OFFSET", "#1 Ticks Offset", "%g", -1e6, 1e6, 0, 0);
     IUFillNumber(&EncoderOffsetN[AXIS1_DEGREE_OFFSET], "AXIS1_DEGREE_OFFSET", "#1 Degrees Offset", "%g", -180, 180, 30, 0);
-    IUFillNumber(&EncoderOffsetN[OFFSET_AXIS2_SCALE], "OFFSET_AIXS2_SCALE", "#2 Ticks Scale", "%g", 0, 1e6, 0, 0.0390625);
+    IUFillNumber(&EncoderOffsetN[OFFSET_AXIS2_SCALE], "OFFSET_AIXS2_SCALE", "#2 Ticks Scale", "%g", 0, 1e6, 0, 1);
     IUFillNumber(&EncoderOffsetN[OFFSET_AXIS2_OFFSET], "OFFSET_AXIS2_OFFSET", "#2 Ticks Offset", "%g", -1e6, 1e6, 0, 0);
     IUFillNumber(&EncoderOffsetN[AXIS2_DEGREE_OFFSET], "AXIS2_DEGREE_OFFSET", "#2 Degrees Offset", "%g", -180, 180, 30, 0);
     IUFillNumberVector(&EncoderOffsetNP, EncoderOffsetN, 6, getDeviceName(), "AXIS_OFFSET", "Offsets", AXIS_TAB, IP_RW, 0, IPS_IDLE);
@@ -128,6 +131,8 @@ bool DSC::initProperties()
     IUFillNumberVector(&SimEncoderNP, SimEncoderN, 2, getDeviceName(), "SIM_ENCODER", "Sim Encoders", MAIN_CONTROL_TAB, IP_RW, 0, IPS_IDLE);
 
     addAuxControls();
+
+    InitAlignmentProperties(this);
 
     return true;
 }
@@ -174,6 +179,13 @@ bool DSC::saveConfigItems(FILE *fp)
     return true;
 }
 
+bool DSC::ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n)
+{
+    ProcessAlignmentTextProperties(this, name, texts, names, n);
+
+    return INDI::Telescope::ISNewText(dev,name,texts,names,n);
+}
+
 bool DSC::ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n)
 {
     if(strcmp(dev,getDeviceName())==0)
@@ -201,6 +213,8 @@ bool DSC::ISNewNumber (const char *dev, const char *name, double values[], char 
             IDSetNumber(&SimEncoderNP, NULL);
             return true;
         }
+
+        ProcessAlignmentNumberProperties(this, name, values, names, n);
     }
 
     return INDI::Telescope::ISNewNumber(dev,name,values,names,n);
@@ -225,6 +239,8 @@ bool DSC::ISNewSwitch (const char *dev, const char *name, ISState *states, char 
             IDSetSwitch(&MountTypeSP, NULL);
             return true;
         }
+
+        ProcessAlignmentSwitchProperties(this, name, states, names, n);
     }
 
     return INDI::Telescope::ISNewSwitch(dev, name, states, names, n);
@@ -336,13 +352,13 @@ bool DSC::ReadScopeStatus()
     Axis2Degrees = range360(Axis2Degrees);
 
     double RA=0, DE=0;
+    // Adjust for LST
+    double LST = get_local_sideral_time(observer.lng);
+
     // Now we proceed depending on mount type
     if (MountTypeS[MOUNT_EQUATORIAL].s == ISS_ON)
     {
         RA = Axis1Degrees / 15.0;
-
-        // Adjust for LST
-        double LST = get_local_sideral_time(observer.lng);
 
         RA += LST;
         RA = range24(RA);
@@ -371,23 +387,97 @@ bool DSC::ReadScopeStatus()
         DE = rangeDec(equatorialPos.dec);
     }
 
-    char RAStr[64], DecStr[64];
-    fs_sexa(RAStr, RA, 2, 3600);
-    fs_sexa(DecStr, DE, 2, 3600);
-    DEBUGF(INDI::Logger::DBG_DEBUG, "Current RA: %s Current DEC: %s", RAStr, DecStr);
+    // Do alignment
+    ln_equ_posn eq = TelescopeToSky(RA,DE);
 
-    NewRaDec(RA, DE);
+    //  Now feed the rest of the system with corrected data
+    NewRaDec(eq.ra,eq.dec);
     return true;
 }
 
 bool DSC::Sync(double ra, double dec)
 {
-    DEBUG(INDI::Logger::DBG_ERROR, "Error SYNC is not implemented yet.");
+    AlignmentDatabaseEntry NewEntry;
+    struct ln_equ_posn RaDec;
+
+    double LST = get_local_sideral_time(observer.lng);
+
+    RaDec.ra = ((LST-EqN[AXIS_RA].value) * 360.0) / 24.0;
+    RaDec.dec = EqN[AXIS_DE].value;
+
+    NewEntry.ObservationJulianDate = ln_get_julian_from_sys();
+    NewEntry.RightAscension = ra;
+    NewEntry.Declination = dec;
+    NewEntry.TelescopeDirection = TelescopeDirectionVectorFromLocalHourAngleDeclination(RaDec);
+    NewEntry.PrivateDataSize = 0;
+    DEBUGF(INDI::AlignmentSubsystem::DBG_ALIGNMENT, "New sync point Date %lf RA %lf DEC %lf TDV(x %lf y %lf z %lf)",
+                    NewEntry.ObservationJulianDate, NewEntry.RightAscension, NewEntry.Declination,
+                    NewEntry.TelescopeDirection.x, NewEntry.TelescopeDirection.y, NewEntry.TelescopeDirection.z);
+    if (!CheckForDuplicateSyncPoint(NewEntry))
+    {
+        GetAlignmentDatabase().push_back(NewEntry);
+
+        // Tell the client about size change
+        UpdateSize();
+
+        // Tell the math plugin to reinitialise
+        Initialise(this);
+
+        return true;
+    }
+
     return false;
+}
+
+ln_equ_posn DSC::TelescopeToSky(double ra,double dec)
+{
+    double RightAscension,Declination;
+    ln_equ_posn eq;
+
+    if(GetAlignmentDatabase().size() > 1)
+    {
+        TelescopeDirectionVector TDV;
+
+        /*  and here we convert from ra/dec to hour angle / dec before calling alignment stuff */
+        double lha,lst;
+        lst=get_local_sideral_time(LocationN[LOCATION_LONGITUDE].value);
+        lha=get_local_hour_angle(lst,ra);
+        //  convert lha to degrees
+        lha=lha*360/24;
+        eq.ra=lha;
+        eq.dec=dec;
+        TDV=TelescopeDirectionVectorFromLocalHourAngleDeclination(eq);
+
+        if (TransformTelescopeToCelestial( TDV, RightAscension, Declination))
+        {
+            //  if we get here, the conversion was successful
+            //fprintf(stderr,"new values %6.4f %6.4f %6.4f  %6.4f Deltas %3.0lf %3.0lf\n",ra,dec,RightAscension,Declination,(ra-RightAscension)*60,(dec-Declination)*60);
+        }
+        else
+        {
+            //if the conversion failed, return raw data
+            RightAscension=ra;
+            Declination=dec;
+        }
+
+    }
+    else
+    {
+        //  With less than 2 align points
+        // Just return raw data
+        RightAscension=ra;
+        Declination=dec;
+    }
+
+    eq.ra=RightAscension;
+    eq.dec=Declination;
+    return eq;
 }
 
 bool DSC::updateLocation(double latitude, double longitude, double elevation)
 {
+  UpdateLocation(latitude, longitude, elevation);
+
   INDI_UNUSED(elevation);
   // JM: INDI Longitude is 0 to 360 increasing EAST. libnova East is Positive, West is negative
   observer.lng =  longitude;
