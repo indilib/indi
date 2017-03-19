@@ -99,18 +99,18 @@ bool DSC::initProperties()
     IUFillNumberVector(&EncoderNP, EncoderN, 4, getDeviceName(), "DCS_ENCODER", "Encoders", MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE);
 
     // Encoder Settings
-    IUFillNumber(&AxisSettingsN[AXIS1_TICKS], "AXIS1_TICKS", "#1 Resolution", "%g", 256, 1e6, 0, 4096);
-    IUFillNumber(&AxisSettingsN[AXIS1_DEGREE_OFFSET], "AXIS1_DEGREE_OFFSET", "#1 Degree Offset", "%g", -180, 180, 30, 0);
-    IUFillNumber(&AxisSettingsN[AXIS2_TICKS], "AXIS2_TICKS", "#2 Resolution", "%g", 256, 1e6, 0, 4096);
-    IUFillNumber(&AxisSettingsN[AXIS2_DEGREE_OFFSET], "AXIS2_DEGREE_OFFSET", "#2 Degree Offset", "%g", -180, 180, 30, 0);
-    IUFillNumberVector(&AxisSettingsNP, AxisSettingsN, 4, getDeviceName(), "AXIS_SETTINGS", "Axis Settings", AXIS_TAB, IP_RW, 0, IPS_IDLE);
+    IUFillNumber(&AxisSettingsN[AXIS1_TICKS], "AXIS1_TICKS", "#1 ticks/rev", "%g", 256, 1e6, 0, 4096);
+    IUFillNumber(&AxisSettingsN[AXIS2_TICKS], "AXIS2_TICKS", "#2 ticks/rev", "%g", 256, 1e6, 0, 4096);
+    IUFillNumberVector(&AxisSettingsNP, AxisSettingsN, 2, getDeviceName(), "AXIS_SETTINGS", "Axis Resolution", AXIS_TAB, IP_RW, 0, IPS_IDLE);
 
     // Offsets applied to raw encoder values to adjust them as necessary
-    IUFillNumber(&EncoderOffsetN[OFFSET_AXIS1_SCALE], "OFFSET_AXIS1_SCALE", "#1 Scale", "%g", 0, 1e6, 0, 0.0390625);
-    IUFillNumber(&EncoderOffsetN[OFFSET_AXIS1_OFFSET], "OFFSET_AXIS1_OFFSET", "#1 Offset", "%g", -1e6, 1e6, 0, 0);
-    IUFillNumber(&EncoderOffsetN[OFFSET_AXIS2_SCALE], "OFFSET_AIXS2_SCALE", "#2 Scale", "%g", 0, 1e6, 0, 0.0390625);
-    IUFillNumber(&EncoderOffsetN[OFFSET_AXIS2_OFFSET], "OFFSET_AXIS2_OFFSET", "#2 Offset", "%g", -1e6, 1e6, 0, 0);
-    IUFillNumberVector(&EncoderOffsetNP, EncoderOffsetN, 4, getDeviceName(), "AXIS_OFFSET", "Offsets", AXIS_TAB, IP_RW, 0, IPS_IDLE);
+    IUFillNumber(&EncoderOffsetN[OFFSET_AXIS1_SCALE], "OFFSET_AXIS1_SCALE", "#1 Ticks Scale", "%g", 0, 1e6, 0, 0.0390625);
+    IUFillNumber(&EncoderOffsetN[OFFSET_AXIS1_OFFSET], "OFFSET_AXIS1_OFFSET", "#1 Ticks Offset", "%g", -1e6, 1e6, 0, 0);
+    IUFillNumber(&EncoderOffsetN[AXIS1_DEGREE_OFFSET], "AXIS1_DEGREE_OFFSET", "#1 Degrees Offset", "%g", -180, 180, 30, 0);
+    IUFillNumber(&EncoderOffsetN[OFFSET_AXIS2_SCALE], "OFFSET_AIXS2_SCALE", "#2 Ticks Scale", "%g", 0, 1e6, 0, 0.0390625);
+    IUFillNumber(&EncoderOffsetN[OFFSET_AXIS2_OFFSET], "OFFSET_AXIS2_OFFSET", "#2 Ticks Offset", "%g", -1e6, 1e6, 0, 0);
+    IUFillNumber(&EncoderOffsetN[AXIS2_DEGREE_OFFSET], "AXIS2_DEGREE_OFFSET", "#2 Degrees Offset", "%g", -180, 180, 30, 0);
+    IUFillNumberVector(&EncoderOffsetNP, EncoderOffsetN, 6, getDeviceName(), "AXIS_OFFSET", "Offsets", AXIS_TAB, IP_RW, 0, IPS_IDLE);
 
     // Reverse Encoder Direction
     IUFillSwitch(&ReverseS[AXIS1_ENCODER], "AXIS1_REVERSE", "Axis 1", ISS_OFF);
@@ -329,8 +329,8 @@ bool DSC::ReadScopeStatus()
     EncoderNP.s = IPS_OK;
     IDSetNumber(&EncoderNP, NULL);
 
-    double Axis1Degrees = (Axis1 / AxisSettingsN[AXIS1_TICKS].value * 360.0) + AxisSettingsN[AXIS1_DEGREE_OFFSET].value;
-    double Axis2Degrees = (Axis2 / AxisSettingsN[AXIS2_TICKS].value * 360.0) + AxisSettingsN[AXIS2_DEGREE_OFFSET].value;
+    double Axis1Degrees = (Axis1 / AxisSettingsN[AXIS1_TICKS].value * 360.0) + EncoderOffsetN[AXIS1_DEGREE_OFFSET].value;
+    double Axis2Degrees = (Axis2 / AxisSettingsN[AXIS2_TICKS].value * 360.0) + EncoderOffsetN[AXIS2_DEGREE_OFFSET].value;
 
     Axis1Degrees = range360(Axis1Degrees);
     Axis2Degrees = range360(Axis2Degrees);
@@ -382,6 +382,7 @@ bool DSC::ReadScopeStatus()
 
 bool DSC::Sync(double ra, double dec)
 {
+    DEBUG(INDI::Logger::DBG_ERROR, "Error SYNC is not implemented yet.");
     return false;
 }
 
