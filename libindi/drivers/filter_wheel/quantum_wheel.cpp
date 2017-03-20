@@ -25,8 +25,7 @@
 #include "quantum_wheel.h"
 
 #define VERSION_MAJOR 0
-#define VERSION_MINOR 1
-#define BAUDRATE B9600 // USB serial line speed
+#define VERSION_MINOR 2
 
 std::unique_ptr<QFW> qfw(new QFW());
 
@@ -63,6 +62,7 @@ void ISSnoopDevice(XMLEle *root) {
 QFW::QFW() {
   setDeviceName(getDefaultName());
   setVersion(VERSION_MAJOR, VERSION_MINOR);
+  setFilterConnection(CONNECTION_SERIAL | CONNECTION_TCP);
 }
 
 QFW::~QFW() {
@@ -96,48 +96,28 @@ bool QFW::GetFilterNames(const char* groupName) {
   return true;
 }
 
-bool QFW::Connect() {
-	if (isSimulation()) {
-		IDMessage(getDeviceName(), "Simulation: connected");
-		fd = 1;
-	} else {
-		// open device
-		fd = open("/dev/ttyACM0", O_RDWR | O_NOCTTY | O_NDELAY);
-
-		// check serial connection
-		if(fd < 0 || !isatty(fd))
-		{
-			IDMessage(getDeviceName(), "Device /dev/ttyACM0 is not available\n");
-			return false;
-		}
-
-		// set tty params	
-		struct termios tty;
-		tty.c_cflag = BAUDRATE | CRTSCTS | CS8 | CLOCAL | CREAD;
-		tty.c_iflag = IGNPAR | ICRNL;
-		tty.c_oflag = 0;
-		tty.c_lflag = ICANON;
-		tcflush(fd, TCIFLUSH);
-		tcsetattr(fd,TCSANOW,&tty);
-	}
-	return true;
-}
-
-bool QFW::Disconnect() {
-  if (isSimulation())
-    IDMessage(getDeviceName(), "Simulation: disconnected");
-  else {
-	if (fd)
-		close(fd);	
-  }
-  fd = 0;
-  return true;
+bool QFW::Handshake()
+{
+        if (isSimulation()) {
+                IDMessage(getDeviceName(), "Simulation: connected");
+                PortFD = 1;
+        } else {
+                // check serial connection
+                if(PortFD < 0 || !isatty(PortFD))
+                {
+                        IDMessage(getDeviceName(), "Device /dev/ttyACM0 is not available\n");
+                        return false;
+                }
+        }
+        return true;
 }
 
 bool QFW::initProperties() {
   INDI::FilterWheel::initProperties();
   // addDebugControl();
   addSimulationControl();
+
+  serialConnection->setDefaultPort("/dev/ttyACM0");
 
   FilterSlotN[0].min = 1;
   FilterSlotN[0].max = 7;
@@ -176,7 +156,7 @@ bool QFW::SelectFilter(int position) {
 	sprintf(targetpos, "G%d\r\n\n", position);
 
 	// write command
-	write(fd, targetpos, strlen(targetpos));
+	write(PortFD, targetpos, strlen(targetpos));
 
 	// format target marker P[0-6]
 	sprintf(targetpos, "P%d\r\n", position);
@@ -184,7 +164,7 @@ bool QFW::SelectFilter(int position) {
 	// check current position
 	do {
 		usleep(100 * 1000);
-		res = read(fd, curpos, 255);
+		res = read(PortFD, curpos, 255);
 		curpos[res] = 0;
 	}while( strncmp(targetpos, curpos, 2) != 0 );
 
