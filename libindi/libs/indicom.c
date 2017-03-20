@@ -1354,15 +1354,8 @@ double get_local_sideral_time(double longitude)
 
 double get_local_hour_angle(double sideral_time, double ra)
 {
-
     double HA = sideral_time - ra;
-
-    if (HA > 12)
-        HA -= 24;
-    else if (HA < -12)
-        HA += 24;
-
-    return HA;
+    return rangeHA(HA);
 }
 
 #if defined(  _MSC_VER )
