@@ -103,6 +103,12 @@ class MathPluginManagement : private MathPlugin // Derive from MathPluign to for
             CurrentInMemoryDatabase = pDatabase;
         }
 
+        /**
+         * @brief SetAlignmentSubsystemActive Enable or Disable alignment subsystem
+         * @param enable True to activate Alignment Subsystem. False to deactivate Alignment subsystem.
+         */
+        void SetAlignmentSubsystemActive(bool enable);
+
         /// \brief Return status of alignment subsystem
         /// \return True if active
         const bool IsAlignmentSubsystemActive() const
