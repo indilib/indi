@@ -85,6 +85,11 @@ extern const char * GUIDE_TAB;
 extern const char * ALIGNMENT_TAB;
 
 /**
+ * @brief INFO_TAB Where all the properties for general information are located.
+ */
+extern const char * INFO_TAB;
+
+/**
  * \class INDI::DefaultDevice
    \brief Class to provide extended functionality for devices in addition
 to the functionality provided by INDI::BaseDevice. This class should \e only be subclassed by
