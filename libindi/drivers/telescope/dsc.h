@@ -67,7 +67,8 @@ protected:
 
 private:
 
-    ln_equ_posn TelescopeToSky(double ra,double dec);
+    ln_equ_posn TelescopeEquatorialToSky();
+    ln_equ_posn TelescopeHorizontalToSky();
 
     INumber EncoderN[4];
     INumberVectorProperty EncoderNP;
@@ -93,6 +94,8 @@ private:
     INumberVectorProperty SimEncoderNP;
 
     ln_lnlat_posn observer;
+    ln_hrz_posn encoderHorizontalCoordinates;
+    ln_equ_posn encoderEquatorialCoordinates;
 
     SyncData syncdata, syncdata2;
 };

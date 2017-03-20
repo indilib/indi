@@ -151,6 +151,8 @@ bool DSC::updateProperties()
 
         if (isSimulation())
             defineNumber(&SimEncoderNP);
+
+        SetAlignmentSubsystemActive(true);
     }
     else
     {
@@ -351,44 +353,49 @@ bool DSC::ReadScopeStatus()
     Axis1Degrees = range360(Axis1Degrees);
     Axis2Degrees = range360(Axis2Degrees);
 
-    double RA=0, DE=0;
     // Adjust for LST
     double LST = get_local_sideral_time(observer.lng);
+
+    // Final aligned equatorial position
+    ln_equ_posn eq;
 
     // Now we proceed depending on mount type
     if (MountTypeS[MOUNT_EQUATORIAL].s == ISS_ON)
     {
-        RA = Axis1Degrees / 15.0;
+        encoderEquatorialCoordinates.ra = Axis1Degrees / 15.0;
 
-        RA += LST;
-        RA = range24(RA);
+        encoderEquatorialCoordinates.ra += LST;
+        encoderEquatorialCoordinates.ra = range24(encoderEquatorialCoordinates.ra);
 
-        DE = rangeDec(Axis2Degrees);
+        encoderEquatorialCoordinates.dec = rangeDec(Axis2Degrees);
+
+        // Do alignment
+        eq = TelescopeEquatorialToSky();
     }
     else
     {
-        ln_hrz_posn horizontalPos;
-        // Libnova south = 0, west = 90, north = 180, east = 270
-        horizontalPos.az = Axis1Degrees + 180;
-        if (horizontalPos.az >= 360)
-            horizontalPos.az -= 360;
-        horizontalPos.alt = Axis2Degrees;
+        encoderHorizontalCoordinates.az  = Axis1Degrees;
+        encoderHorizontalCoordinates.az += 180;
+        encoderHorizontalCoordinates.az  = range360(encoderHorizontalCoordinates.az);
+
+        encoderHorizontalCoordinates.alt = Axis2Degrees;
+
+        // Do alignment
+        eq = TelescopeHorizontalToSky();
 
         char AzStr[64], AltStr[64];
-        fs_sexa(AzStr, horizontalPos.az, 2, 3600);
-        fs_sexa(AltStr, DE, horizontalPos.alt, 3600);
+        fs_sexa(AzStr, Axis1Degrees, 2, 3600);
+        fs_sexa(AltStr, Axis2Degrees, 2, 3600);
         DEBUGF(INDI::Logger::DBG_DEBUG, "Current Az: %s Current Alt: %s", AzStr, AltStr);
 
-        ln_equ_posn equatorialPos;
-        ln_get_equ_from_hrz(&horizontalPos, &observer, ln_get_julian_from_sys(), &equatorialPos);
-        equatorialPos.ra /= 15.0;
+        //ln_get_equ_from_hrz(&encoderHorizontalCoordinates, &observer, ln_get_julian_from_sys(), &encoderEquatorialCoordinates);
+        //equatorialPos.ra /= 15.0;
 
-        RA = range24(equatorialPos.ra);
-        DE = rangeDec(equatorialPos.dec);
+        //encoderEquatorialCoordinates.ra  = range24(encoderEquatorialCoordinates.ra);
+        //encoderEquatorialCoordinates.dec = rangeDec(encoderEquatorialCoordinates.dec);
     }
 
-    // Do alignment
-    ln_equ_posn eq = TelescopeToSky(RA,DE);
+
 
     //  Now feed the rest of the system with corrected data
     NewRaDec(eq.ra,eq.dec);
@@ -399,20 +406,34 @@ bool DSC::Sync(double ra, double dec)
 {
     AlignmentDatabaseEntry NewEntry;
     struct ln_equ_posn RaDec;
+    struct ln_hrz_posn AltAz;
 
-    double LST = get_local_sideral_time(observer.lng);
-
-    RaDec.ra = ((LST-EqN[AXIS_RA].value) * 360.0) / 24.0;
-    RaDec.dec = EqN[AXIS_DE].value;
+    if (MountTypeS[MOUNT_EQUATORIAL].s == ISS_ON)
+    {
+        double LST = get_local_sideral_time(observer.lng);
+        RaDec.ra = ((LST-encoderEquatorialCoordinates.ra) * 360.0) / 24.0;
+        RaDec.dec = encoderEquatorialCoordinates.dec;
+    }
+    else
+    {
+        AltAz.az = encoderHorizontalCoordinates.az;
+        AltAz.alt= encoderHorizontalCoordinates.alt;
+    }
 
     NewEntry.ObservationJulianDate = ln_get_julian_from_sys();
     NewEntry.RightAscension = ra;
     NewEntry.Declination = dec;
-    NewEntry.TelescopeDirection = TelescopeDirectionVectorFromLocalHourAngleDeclination(RaDec);
+
+    if (MountTypeS[MOUNT_EQUATORIAL].s == ISS_ON)
+        NewEntry.TelescopeDirection = TelescopeDirectionVectorFromLocalHourAngleDeclination(RaDec);
+    else
+        NewEntry.TelescopeDirection = TelescopeDirectionVectorFromAltitudeAzimuth(AltAz);
+
     NewEntry.PrivateDataSize = 0;
     DEBUGF(INDI::AlignmentSubsystem::DBG_ALIGNMENT, "New sync point Date %lf RA %lf DEC %lf TDV(x %lf y %lf z %lf)",
                     NewEntry.ObservationJulianDate, NewEntry.RightAscension, NewEntry.Declination,
                     NewEntry.TelescopeDirection.x, NewEntry.TelescopeDirection.y, NewEntry.TelescopeDirection.z);
+
     if (!CheckForDuplicateSyncPoint(NewEntry))
     {
         GetAlignmentDatabase().push_back(NewEntry);
@@ -429,7 +450,7 @@ bool DSC::Sync(double ra, double dec)
     return false;
 }
 
-ln_equ_posn DSC::TelescopeToSky(double ra,double dec)
+ln_equ_posn DSC::TelescopeEquatorialToSky()
 {
     double RightAscension,Declination;
     ln_equ_posn eq;
@@ -441,32 +462,67 @@ ln_equ_posn DSC::TelescopeToSky(double ra,double dec)
         /*  and here we convert from ra/dec to hour angle / dec before calling alignment stuff */
         double lha,lst;
         lst=get_local_sideral_time(LocationN[LOCATION_LONGITUDE].value);
-        lha=get_local_hour_angle(lst,ra);
+        lha=get_local_hour_angle(lst, encoderEquatorialCoordinates.ra);
         //  convert lha to degrees
         lha=lha*360/24;
         eq.ra=lha;
-        eq.dec=dec;
+        eq.dec=encoderEquatorialCoordinates.dec;
         TDV=TelescopeDirectionVectorFromLocalHourAngleDeclination(eq);
 
-        if (TransformTelescopeToCelestial( TDV, RightAscension, Declination))
+        if (!TransformTelescopeToCelestial( TDV, RightAscension, Declination))
         {
-            //  if we get here, the conversion was successful
-            //fprintf(stderr,"new values %6.4f %6.4f %6.4f  %6.4f Deltas %3.0lf %3.0lf\n",ra,dec,RightAscension,Declination,(ra-RightAscension)*60,(dec-Declination)*60);
+            RightAscension=encoderEquatorialCoordinates.ra;
+            Declination=encoderEquatorialCoordinates.dec;
         }
-        else
-        {
-            //if the conversion failed, return raw data
-            RightAscension=ra;
-            Declination=dec;
-        }
-
     }
     else
     {
         //  With less than 2 align points
         // Just return raw data
-        RightAscension=ra;
-        Declination=dec;
+        RightAscension=encoderEquatorialCoordinates.ra;
+        Declination=encoderEquatorialCoordinates.dec;
+    }
+
+    eq.ra=RightAscension;
+    eq.dec=Declination;
+    return eq;
+}
+
+ln_equ_posn DSC::TelescopeHorizontalToSky()
+{
+    ln_equ_posn eq;
+    TelescopeDirectionVector TDV = TelescopeDirectionVectorFromAltitudeAzimuth(encoderHorizontalCoordinates);
+
+    double RightAscension, Declination;
+    if (!TransformTelescopeToCelestial( TDV, RightAscension, Declination))
+    {
+        struct ln_equ_posn EquatorialCoordinates;
+        TelescopeDirectionVector RotatedTDV(TDV);
+        switch (GetApproximateMountAlignment())
+        {
+        case ZENITH:
+            break;
+
+        case NORTH_CELESTIAL_POLE:
+            // Rotate the TDV coordinate system anticlockwise (positive) around the y axis by 90 minus
+            // the (positive)observatory latitude. The vector itself is rotated clockwise
+            RotatedTDV.RotateAroundY(90.0 - observer.lat);
+            AltitudeAzimuthFromTelescopeDirectionVector(RotatedTDV, encoderHorizontalCoordinates);
+            break;
+
+        case SOUTH_CELESTIAL_POLE:
+            // Rotate the TDV coordinate system clockwise (negative) around the y axis by 90 plus
+            // the (negative)observatory latitude. The vector itself is rotated anticlockwise
+            RotatedTDV.RotateAroundY(-90.0 - observer.lat);
+            AltitudeAzimuthFromTelescopeDirectionVector(RotatedTDV, encoderHorizontalCoordinates);
+            break;
+        }
+
+        ln_get_equ_from_hrz(&encoderHorizontalCoordinates, &observer, ln_get_julian_from_sys(), &EquatorialCoordinates);
+
+        // libnova works in decimal degrees
+        RightAscension = EquatorialCoordinates.ra * 24.0 / 360.0;
+        Declination = EquatorialCoordinates.dec;
     }
 
     eq.ra=RightAscension;
