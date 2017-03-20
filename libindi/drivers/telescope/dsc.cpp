@@ -97,14 +97,24 @@ bool DSC::initProperties()
     // Raw encoder values
     IUFillNumber(&EncoderN[AXIS1_ENCODER], "AXIS1_ENCODER", "Axis 1", "%0.f", 0, 1e6, 0, 0);
     IUFillNumber(&EncoderN[AXIS2_ENCODER], "AXIS2_ENCODER", "Axis 2", "%0.f", 0, 1e6, 0, 0);
-    IUFillNumber(&EncoderN[AXIS1_RAW_ENCODER], "AXIS1_RAW_ENCODER", "RAW Axis 1", "%0.f", 0, 1e6, 0, 0);
-    IUFillNumber(&EncoderN[AXIS2_RAW_ENCODER], "AXIS2_RAW_ENCODER", "RAW Axis 2", "%0.f", 0, 1e6, 0, 0);
+    IUFillNumber(&EncoderN[AXIS1_RAW_ENCODER], "AXIS1_RAW_ENCODER", "RAW Axis 1", "%0.f", -1e6, 1e6, 0, 0);
+    IUFillNumber(&EncoderN[AXIS2_RAW_ENCODER], "AXIS2_RAW_ENCODER", "RAW Axis 2", "%0.f", -1e6, 1e6, 0, 0);
     IUFillNumberVector(&EncoderNP, EncoderN, 4, getDeviceName(), "DCS_ENCODER", "Encoders", MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE);
 
     // Encoder Settings
     IUFillNumber(&AxisSettingsN[AXIS1_TICKS], "AXIS1_TICKS", "#1 ticks/rev", "%g", 256, 1e6, 0, 4096);
     IUFillNumber(&AxisSettingsN[AXIS2_TICKS], "AXIS2_TICKS", "#2 ticks/rev", "%g", 256, 1e6, 0, 4096);
     IUFillNumberVector(&AxisSettingsNP, AxisSettingsN, 2, getDeviceName(), "AXIS_SETTINGS", "Axis Resolution", AXIS_TAB, IP_RW, 0, IPS_IDLE);
+
+    // Axis Range
+    IUFillSwitch(&AxisRangeS[AXIS_FULL_STEP], "AXIS_FULL_STEP", "Full Step", ISS_ON);
+    IUFillSwitch(&AxisRangeS[AXIS_HALF_STEP], "AXIS_HALF_STEP", "Half Step", ISS_OFF);
+    IUFillSwitchVector(&AxisRangeSP, AxisRangeS, 2, getDeviceName(), "AXIS_RANGE", "Axis Range", AXIS_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+
+    // Reverse Encoder Direction
+    IUFillSwitch(&ReverseS[AXIS1_ENCODER], "AXIS1_REVERSE", "Axis 1", ISS_OFF);
+    IUFillSwitch(&ReverseS[AXIS2_ENCODER], "AXIS2_REVERSE", "Axis 2", ISS_OFF);
+    IUFillSwitchVector(&ReverseSP, ReverseS, 2, getDeviceName(), "AXIS_REVERSE", "Reverse", AXIS_TAB, IP_RW, ISR_NOFMANY, 0, IPS_IDLE);
 
     // Offsets applied to raw encoder values to adjust them as necessary
     IUFillNumber(&EncoderOffsetN[OFFSET_AXIS1_SCALE], "OFFSET_AXIS1_SCALE", "#1 Ticks Scale", "%g", 0, 1e6, 0, 1);
@@ -115,19 +125,14 @@ bool DSC::initProperties()
     IUFillNumber(&EncoderOffsetN[AXIS2_DEGREE_OFFSET], "AXIS2_DEGREE_OFFSET", "#2 Degrees Offset", "%g", -180, 180, 30, 0);
     IUFillNumberVector(&EncoderOffsetNP, EncoderOffsetN, 6, getDeviceName(), "AXIS_OFFSET", "Offsets", AXIS_TAB, IP_RW, 0, IPS_IDLE);
 
-    // Reverse Encoder Direction
-    IUFillSwitch(&ReverseS[AXIS1_ENCODER], "AXIS1_REVERSE", "Axis 1", ISS_OFF);
-    IUFillSwitch(&ReverseS[AXIS2_ENCODER], "AXIS2_REVERSE", "Axis 2", ISS_OFF);
-    IUFillSwitchVector(&ReverseSP, ReverseS, 2, getDeviceName(), "AXIS_REVERSE", "Reverse", AXIS_TAB, IP_RW, ISR_NOFMANY, 0, IPS_IDLE);
-
     // Mount Type
-    IUFillSwitch(&MountTypeS[0], "MOUNT_EQUATORIAL", "Equatorial", ISS_ON);
-    IUFillSwitch(&MountTypeS[1], "MOUNT_ALTAZ", "AltAz", ISS_OFF);
+    IUFillSwitch(&MountTypeS[MOUNT_EQUATORIAL], "MOUNT_EQUATORIAL", "Equatorial", ISS_ON);
+    IUFillSwitch(&MountTypeS[MOUNT_ALTAZ], "MOUNT_ALTAZ", "AltAz", ISS_OFF);
     IUFillSwitchVector(&MountTypeSP, MountTypeS, 2, getDeviceName(), "MOUNT_TYPE", "Mount Type", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
     // Simulation encoder values
-    IUFillNumber(&SimEncoderN[AXIS1_ENCODER], "AXIS1_ENCODER", "Axis 1", "%0.f", 0, 1e6, 0, 0);
-    IUFillNumber(&SimEncoderN[AXIS2_ENCODER], "AXIS2_ENCODER", "Axis 2", "%0.f", 0, 1e6, 0, 0);
+    IUFillNumber(&SimEncoderN[AXIS1_ENCODER], "AXIS1_ENCODER", "Axis 1", "%0.f", -1e6, 1e6, 0, 0);
+    IUFillNumber(&SimEncoderN[AXIS2_ENCODER], "AXIS2_ENCODER", "Axis 2", "%0.f", -1e6, 1e6, 0, 0);
     IUFillNumberVector(&SimEncoderNP, SimEncoderN, 2, getDeviceName(), "SIM_ENCODER", "Sim Encoders", MAIN_CONTROL_TAB, IP_RW, 0, IPS_IDLE);
 
     addAuxControls();
@@ -145,8 +150,9 @@ bool DSC::updateProperties()
     {
         defineNumber(&EncoderNP);
         defineNumber(&AxisSettingsNP);
-        defineNumber(&EncoderOffsetNP);
+        defineSwitch(&AxisRangeSP);
         defineSwitch(&ReverseSP);
+        defineNumber(&EncoderOffsetNP);
         defineSwitch(&MountTypeSP);
 
         if (isSimulation())
@@ -158,8 +164,9 @@ bool DSC::updateProperties()
     {
         deleteProperty(EncoderNP.name);
         deleteProperty(AxisSettingsNP.name);
-        deleteProperty(EncoderOffsetNP.name);
+        deleteProperty(AxisRangeSP.name);
         deleteProperty(ReverseSP.name);
+        deleteProperty(EncoderOffsetNP.name);
         deleteProperty(MountTypeSP.name);
 
         if (isSimulation())
@@ -175,6 +182,7 @@ bool DSC::saveConfigItems(FILE *fp)
 
     IUSaveConfigNumber(fp, &AxisSettingsNP);
     IUSaveConfigNumber(fp, &EncoderOffsetNP);
+    IUSaveConfigSwitch(fp, &AxisRangeSP);
     IUSaveConfigSwitch(fp, &ReverseSP);
     IUSaveConfigSwitch(fp, &MountTypeSP);
 
@@ -239,6 +247,23 @@ bool DSC::ISNewSwitch (const char *dev, const char *name, ISState *states, char 
             IUUpdateSwitch(&MountTypeSP, states, names, n);
             MountTypeSP.s = IPS_OK;
             IDSetSwitch(&MountTypeSP, NULL);
+            return true;
+        }
+
+        if(!strcmp(name,AxisRangeSP.name))
+        {
+            IUUpdateSwitch(&AxisRangeSP, states, names, n);
+            AxisRangeSP.s = IPS_OK;
+
+            if (AxisRangeS[AXIS_FULL_STEP].s == ISS_ON)
+            {
+                DEBUGF(INDI::Logger::DBG_SESSION, "Axis range is from 0 to %.f", AxisSettingsN[AXIS1_TICKS].value);
+            }
+            else
+            {
+                DEBUGF(INDI::Logger::DBG_SESSION, "Axis range is from -%.f to %.f", AxisSettingsN[AXIS1_TICKS].value/2, AxisSettingsN[AXIS1_TICKS].value/2);
+            }
+            IDSetSwitch(&AxisRangeSP, NULL);
             return true;
         }
 
@@ -316,6 +341,19 @@ bool DSC::ReadScopeStatus()
 
     DEBUGF(INDI::Logger::DBG_DEBUG, "Raw Axis encoders. Axis1: %g Axis2: %g", Axis1Encoder, Axis2Encoder);
 
+    EncoderN[AXIS1_RAW_ENCODER].value = Axis1Encoder;
+    EncoderN[AXIS2_RAW_ENCODER].value = Axis2Encoder;
+
+    // Convert Half Step to Full Step
+    if (AxisRangeS[AXIS_HALF_STEP].s == ISS_ON)
+    {
+        if (Axis1Encoder < 0)
+            Axis1Encoder += AxisSettingsN[AXIS1_TICKS].value;
+
+        if (Axis2Encoder < 0)
+            Axis2Encoder += AxisSettingsN[AXIS2_TICKS].value;
+    }
+
     // Calculate reverse values
     double Axis1 = Axis1Encoder;
     if (ReverseS[AXIS1_ENCODER].s == ISS_ON)
@@ -342,8 +380,6 @@ bool DSC::ReadScopeStatus()
 
     EncoderN[AXIS1_ENCODER].value = Axis1;
     EncoderN[AXIS2_ENCODER].value = Axis2;
-    EncoderN[AXIS1_RAW_ENCODER].value = Axis1Encoder;
-    EncoderN[AXIS2_RAW_ENCODER].value = Axis2Encoder;
     EncoderNP.s = IPS_OK;
     IDSetNumber(&EncoderNP, NULL);
 

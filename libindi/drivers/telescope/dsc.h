@@ -78,6 +78,10 @@ private:
     INumberVectorProperty AxisSettingsNP;
     enum { AXIS1_TICKS, AXIS2_TICKS};
 
+    ISwitch AxisRangeS[2];
+    ISwitchVectorProperty AxisRangeSP;
+    enum { AXIS_FULL_STEP, AXIS_HALF_STEP };
+
     ISwitch ReverseS[2];
     ISwitchVectorProperty ReverseSP;
 
