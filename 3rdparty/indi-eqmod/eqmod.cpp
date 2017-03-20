@@ -3043,6 +3043,8 @@ bool EQMod::saveConfigItems(FILE *fp)
 
     if (BacklashNP)
         IUSaveConfigNumber(fp, BacklashNP);
+    if (UseBacklashSP)
+        IUSaveConfigSwitch(fp, UseBacklashSP);
     if (GuideRateNP)
         IUSaveConfigNumber(fp, GuideRateNP);
 
