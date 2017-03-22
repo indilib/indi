@@ -1002,6 +1002,10 @@ bool SkywatcherAPIMount::Sync(double ra, double dec)
 
 void SkywatcherAPIMount::TimerHit()
 {
+    static bool Slewing = false;
+    static bool Tracking = false;
+    static int TrackingSecs = 0;
+
     // By default this method is called every POLLMS milliseconds
 
     // Call the base class handler
@@ -1013,6 +1017,12 @@ void SkywatcherAPIMount::TimerHit()
     switch(TrackState)
     {
         case SCOPE_SLEWING:
+            if (!Slewing)
+            {
+                DEBUG(INDI::Logger::DBG_SESSION, "Slewing started");
+            }
+            Tracking = false;
+            Slewing = true;
             if ((AxesStatus[AXIS1].FullStop) && (AxesStatus[AXIS2].FullStop))
             {
                 if (ISS_ON == IUFindSwitch(&CoordSP,"TRACK")->s)
@@ -1027,11 +1037,22 @@ void SkywatcherAPIMount::TimerHit()
                     break;
                 }
             }
-            else
-                break;
+        break;
 
         case SCOPE_TRACKING:
         {
+            if (!Tracking)
+            {
+                DEBUG(INDI::Logger::DBG_SESSION, "Tracking started");
+                TrackingSecs = 0;
+            }
+            TrackingSecs++;
+            if (TrackingSecs % 10 == 0)
+            {
+                DEBUGF(INDI::Logger::DBG_SESSION, "Tracking in progress (%d seconds elapsed)", TrackingSecs);
+            }
+            Tracking = true;
+            Slewing = false;
             // Continue or start tracking
             // Calculate where the mount needs to be in POLLMS time
             // POLLMS is hardcoded to be one second
@@ -1088,20 +1109,20 @@ void SkywatcherAPIMount::TimerHit()
 
                 AltAz.az = 180+AltAz.az;
             }
-            DEBUGF(INDI::Logger::DBG_SESSION, "Tracking AXIS1 CurrentEncoder %ld OldTrackingTarget %ld AXIS2 CurrentEncoder %ld OldTrackingTarget %ld",
-                                            CurrentEncoders[AXIS1], OldTrackingTarget[AXIS1], CurrentEncoders[AXIS2], OldTrackingTarget[AXIS2]);
-            DEBUGF(INDI::Logger::DBG_SESSION, "New Tracking Target Altitude %lf degrees %ld microsteps Azimuth %lf degrees %ld microsteps",
-                                AltAz.alt, DegreesToMicrosteps(AXIS2, AltAz.alt), AltAz.az, DegreesToMicrosteps(AXIS1, AltAz.az));
+            DEBUGF(DBG_SCOPE, "Tracking AXIS1 CurrentEncoder %ld OldTrackingTarget %ld AXIS2 CurrentEncoder %ld OldTrackingTarget %ld",
+                   CurrentEncoders[AXIS1], OldTrackingTarget[AXIS1], CurrentEncoders[AXIS2], OldTrackingTarget[AXIS2]);
+            DEBUGF(DBG_SCOPE, "New Tracking Target Altitude %lf degrees %ld microsteps Azimuth %lf degrees %ld microsteps",
+                   AltAz.alt, DegreesToMicrosteps(AXIS2, AltAz.alt), AltAz.az, DegreesToMicrosteps(AXIS1, AltAz.az));
 
             long AltitudeOffsetMicrosteps = DegreesToMicrosteps(AXIS2, AltAz.alt) + ZeroPositionEncoders[AXIS2] - CurrentEncoders[AXIS2];
             long AzimuthOffsetMicrosteps = DegreesToMicrosteps(AXIS1, AltAz.az) + ZeroPositionEncoders[AXIS1] - CurrentEncoders[AXIS1];
 
-            DEBUGF(INDI::Logger::DBG_SESSION, "New Tracking Target AltitudeOffset %ld microsteps AzimuthOffset %ld microsteps",
-                                AltitudeOffsetMicrosteps, AzimuthOffsetMicrosteps);
+            DEBUGF(DBG_SCOPE, "New Tracking Target AltitudeOffset %ld microsteps AzimuthOffset %ld microsteps",
+                   AltitudeOffsetMicrosteps, AzimuthOffsetMicrosteps);
 
             if (AzimuthOffsetMicrosteps > MicrostepsPerRevolution[AXIS1] / 2)
             {
-                DEBUG(INDI::Logger::DBG_SESSION, "Tracking AXIS1 going long way round");
+                DEBUG(DBG_SCOPE, "Tracking AXIS1 going long way round");
                 // Going the long way round - send it the other way
                 AzimuthOffsetMicrosteps -= MicrostepsPerRevolution[AXIS1];
             }
@@ -1115,7 +1136,7 @@ void SkywatcherAPIMount::TimerHit()
                 {
                     // Direction change whilst axis running
                     // Abandon tracking for this clock tick
-                    DEBUG(INDI::Logger::DBG_SESSION, "Tracking - AXIS1 direction change");
+                    DEBUG(DBG_SCOPE, "Tracking - AXIS1 direction change");
                     SlowStop(AXIS1);
                 }
                 else
@@ -1125,25 +1146,25 @@ void SkywatcherAPIMount::TimerHit()
                     SetClockTicksPerMicrostep(AXIS1, AzimuthRate < 1 ? 1 : AzimuthRate);
                     if (AxesStatus[AXIS1].FullStop)
                     {
-                        DEBUG(INDI::Logger::DBG_SESSION, "Tracking - AXIS1 restart");
+                        DEBUG(DBG_SCOPE, "Tracking - AXIS1 restart");
                         SetMotionMode(AXIS1, '1', Direction);
                         StartMotion(AXIS1);
                     }
-                    DEBUGF(INDI::Logger::DBG_SESSION, "Tracking - AXIS1 offset %ld microsteps rate %ld direction %c",
-                                                                AzimuthOffsetMicrosteps, AzimuthRate, Direction);
+                    DEBUGF(DBG_SCOPE, "Tracking - AXIS1 offset %ld microsteps rate %ld direction %c",
+                           AzimuthOffsetMicrosteps, AzimuthRate, Direction);
                 }
             }
             else
             {
                 // Nothing to do - stop the axis
-                DEBUG(INDI::Logger::DBG_SESSION, "Tracking - AXIS1 zero offset");
+                DEBUG(DBG_SCOPE, "Tracking - AXIS1 zero offset");
                 SlowStop(AXIS1);
             }
 
             // Do I need to take out any complete revolutions before I do this test?
             if (AltitudeOffsetMicrosteps > MicrostepsPerRevolution[AXIS2] / 2)
             {
-                DEBUG(INDI::Logger::DBG_SESSION, "Tracking AXIS2 going long way round");
+                DEBUG(DBG_SCOPE, "Tracking AXIS2 going long way round");
                 // Going the long way round - send it the other way
                 AltitudeOffsetMicrosteps -= MicrostepsPerRevolution[AXIS2];
             }
@@ -1158,7 +1179,7 @@ void SkywatcherAPIMount::TimerHit()
                 {
                     // Direction change whilst axis running
                     // Abandon tracking for this clock tick
-                    DEBUG(INDI::Logger::DBG_SESSION, "Tracking - AXIS2 direction change");
+                    DEBUG(DBG_SCOPE, "Tracking - AXIS2 direction change");
                     SlowStop(AXIS2);
                 }
                 else
@@ -1168,33 +1189,44 @@ void SkywatcherAPIMount::TimerHit()
                     SetClockTicksPerMicrostep(AXIS2, AltitudeRate < 1 ? 1 : AltitudeRate);
                     if (AxesStatus[AXIS2].FullStop)
                     {
-                        DEBUG(INDI::Logger::DBG_SESSION, "Tracking - AXIS2 restart");
+                        DEBUG(DBG_SCOPE, "Tracking - AXIS2 restart");
                         SetMotionMode(AXIS2, '1', Direction);
                         StartMotion(AXIS2);
                     }
-                    DEBUGF(INDI::Logger::DBG_SESSION, "Tracking - AXIS2 offset %ld microsteps rate %ld direction %c",
-                                                                    AltitudeOffsetMicrosteps, AltitudeRate, Direction);
+                    DEBUGF(DBG_SCOPE, "Tracking - AXIS2 offset %ld microsteps rate %ld direction %c",
+                           AltitudeOffsetMicrosteps, AltitudeRate, Direction);
                 }
             }
             else
             {
                 // Nothing to do - stop the axis
-                DEBUG(INDI::Logger::DBG_SESSION, "Tracking - AXIS2 zero offset");
+                DEBUG(DBG_SCOPE, "Tracking - AXIS2 zero offset");
                 SlowStop(AXIS2);
             }
 
 
-            DEBUGF(INDI::Logger::DBG_SESSION, "Tracking - AXIS1 error %d AXIS2 error %d",
-                                                                OldTrackingTarget[AXIS1] - CurrentEncoders[AXIS1],
-                                                                OldTrackingTarget[AXIS2] - CurrentEncoders[AXIS2]);
+            DEBUGF(DBG_SCOPE, "Tracking - AXIS1 error %d AXIS2 error %d",
+                   OldTrackingTarget[AXIS1] - CurrentEncoders[AXIS1],
+                   OldTrackingTarget[AXIS2] - CurrentEncoders[AXIS2]);
 
             OldTrackingTarget[AXIS1] = AzimuthOffsetMicrosteps + CurrentEncoders[AXIS1];
             OldTrackingTarget[AXIS2] = AltitudeOffsetMicrosteps + CurrentEncoders[AXIS2];
             break;
         }
+        break;
 
         default:
-            break;
+            if (Slewing)
+            {
+                DEBUG(INDI::Logger::DBG_SESSION, "Slewing stopped");
+            }
+            if (Tracking)
+            {
+                DEBUG(INDI::Logger::DBG_SESSION, "Tracking stopped");
+            }
+            Tracking = false;
+            Slewing = false;
+        break;
     }
 }
 
