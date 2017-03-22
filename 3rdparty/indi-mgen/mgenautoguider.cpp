@@ -1,30 +1,45 @@
 /*
-   INDI Developers Manual
-   Tutorial #1
+    INDI 3rd party driver
+    Lacerta MGen Autoguider INDI driver, implemented with help from
+    Tommy (teleskopaustria@gmail.com) and Zoltan (mgen@freemail.hu).
 
-   "Hello INDI"
+    Teleskop & Mikroskop Zentrum (www.teleskop.austria.com)
+    A-1050 WIEN, Schönbrunner Strasse 96
+    +43 699 1197 0808 (Shop in Wien und Rechnungsanschrift)
+    A-4020 LINZ, Gärtnerstrasse 16
+    +43 699 1901 2165 (Shop in Linz)
 
-   We construct a most basic (and useless) device driver to illustate INDI.
+    Lacerta GmbH
+    UmsatzSt. Id. Nr.: AT U67203126
+    Firmenbuch Nr.: FN 379484s
 
-   Refer to README, which contains instruction on how to build this driver, and use it
-   with an INDI-compatible client.
+    Copyright (C) 2017 by TallFurryMan (eric.dejouhanet@gmail.com)
+
+    This library is free software; you can redistribute it and/or
+    modify it under the terms of the GNU Lesser General Public
+    License as published by the Free Software Foundation; either
+    version 2.1 of the License, or (at your option) any later version.
+
+    This library is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+    Lesser General Public License for more details.
+
+    You should have received a copy of the GNU Lesser General Public
+    License along with this library; if not, write to the Free Software
+    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
 */
 
-/** \file simpledevice->cpp
-    \brief Construct a basic INDI device with only one property to connect and disconnect.
-    \author Jasem Mutlaq
-
-    \example mgenautoguider.cpp
-    A very minimal device! It also allows you to connect/disconnect and performs no other functions.
+/** \file mgenautoguider.cpp
+    \brief INDI device able to connect to a Lacerta MGen Autoguider.
+    \author Eric Dejouhanet
 */
 
-#include <pthread.h>
 #include <stdio.h>
 #include <unistd.h>
 
 #include <memory>
-#include <string>
 #include <vector>
 #include <queue>
 
@@ -34,8 +49,15 @@
 
 #include "mgen.h"
 #include "mgenautoguider.h"
-#include "mgen_device.h"
-#include "mgc.h"
+
+#include "mgcp_enter_normal_mode.h"
+#include "mgcp_query_device.h"
+#include "mgcmd_nop1.h"
+#include "mgcmd_get_fw_version.h"
+#include "mgcmd_read_adcs.h"
+#include "mgio_read_display_frame.h"
+#include "mgio_insert_button.h"
+
 
 using namespace std;
 std::unique_ptr<MGenAutoguider> mgenAutoguider(new MGenAutoguider());
@@ -120,7 +142,8 @@ bool MGenAutoguider::ISNewNumber(char const * dev, char const * name, double val
                 ui.framerate.property.s = IPS_OK;
                 IDSetNumber(&ui.framerate.property, NULL);
                 RemoveTimer(ui.timer);
-                ui.timer = SetTimer(0 < ui.framerate.number.value ? 1000/(long)ui.framerate.number.value : 1000);
+                TimerHit();
+                _S("UI refresh rate is now %+02.2 frames per second",ui.framerate.number.value);
                 return true;
             }
         }
@@ -160,6 +183,8 @@ MGenAutoguider::MGenAutoguider():
 MGenAutoguider::~MGenAutoguider()
 {
     Disconnect();
+    setConnected(false,IPS_ALERT);
+    updateProperties();
     if(device)
         delete device;
 }
@@ -174,21 +199,22 @@ bool MGenAutoguider::initProperties()
 
     {
         char const TAB[] = "Main Control";
-        IUFillText(&version.textFirmware,"MGEN_FIRMWARE_VERSION","Firmware version","n/a");
-        IUFillTextVector(&version.propVersions, &version.textFirmware, 1, getDeviceName(), "Versions", "Versions", TAB, IP_RO, 60, IPS_IDLE);
+        IUFillText(&version.firmware.text,"MGEN_FIRMWARE_VERSION","Firmware version","n/a");
+        IUFillTextVector(&version.firmware.property, &version.firmware.text, 1, getDeviceName(), "Versions", "Versions", TAB, IP_RO, 60, IPS_IDLE);
     }
 
     {
         char const TAB[] = "Voltages";
-        IUFillNumber(&voltage.numVoltages[0], "MGEN_LOGIC_VOLTAGE", "Logic [4.8V, 5.1V]", "%+02.2f V", 0, 220, 0, 0);
-        IUFillNumber(&voltage.numVoltages[1], "MGEN_INPUT_VOLTAGE", "Input [9.0V, 15.0V]", "%+02.2f V", 0, 220, 0, 0);
-        IUFillNumber(&voltage.numVoltages[2], "MGEN_REFERENCE_VOLTAGE", "Reference [1.1V, 1.3V]", "%+02.2f V", 0, 220, 0, 0);
-        IUFillNumberVector(&voltage.propVoltages, voltage.numVoltages, sizeof(voltage.numVoltages)/sizeof(voltage.numVoltages[0]), getDeviceName(), "MGEN_VOLTAGES", "Voltages", TAB, IP_RO, 60, IPS_IDLE);
+        IUFillNumber(&voltage.levels.logic, "MGEN_LOGIC_VOLTAGE", "Logic [4.8V, 5.1V]", "%+02.2f V", 0, 220, 0, 0);
+        IUFillNumber(&voltage.levels.input, "MGEN_INPUT_VOLTAGE", "Input [9.0V, 15.0V]", "%+02.2f V", 0, 220, 0, 0);
+        IUFillNumber(&voltage.levels.reference, "MGEN_REFERENCE_VOLTAGE", "Reference [1.1V, 1.3V]", "%+02.2f V", 0, 220, 0, 0);
+        IUFillNumberVector(&voltage.property, (INumber*)&voltage.levels, 3, getDeviceName(), "MGEN_VOLTAGES", "Voltages", TAB, IP_RO, 60, IPS_IDLE);
     }
 
     {
         char const TAB[] = "Remote UI";
-        IUFillNumber(&ui.framerate.number, "MGEN_UI_FRAMERATE", "Frame rate", "%+02.2f fps", 0, 4, 1, 1); /* Warning: frame rate kills connection quickly */
+        /* FIXME frame rate kills connection quickly, make INDI::CCD blob compressed by default at the expense of server cpu power */
+        IUFillNumber(&ui.framerate.number, "MGEN_UI_FRAMERATE", "Frame rate", "%+02.2f fps", 0, 4, 0.25f, 0.25f);
         IUFillNumberVector(&ui.framerate.property, &ui.framerate.number, 1, getDeviceName(), "MGEN_UI_OPTIONS", "UI", TAB, IP_RW, 60, IPS_IDLE);
 
         IUFillSwitch(&ui.buttons.switches[0], "MGEN_UI_BUTTON_ESC", "ESC", ISS_OFF);
@@ -220,8 +246,8 @@ bool MGenAutoguider::updateProperties()
     if(isConnected())
     {
         _D("registering properties","");
-        defineText(&version.propVersions);
-        defineNumber(&voltage.propVoltages);
+        defineText(&version.firmware.property);
+        defineNumber(&voltage.property);
         defineNumber(&ui.framerate.property);
         defineSwitch(&ui.buttons.properties[0]);
         defineSwitch(&ui.buttons.properties[1]);
@@ -229,8 +255,8 @@ bool MGenAutoguider::updateProperties()
     else
     {
         _D("removing properties","");
-        deleteProperty(version.propVersions.name);
-        deleteProperty(voltage.propVoltages.name);
+        deleteProperty(version.firmware.property.name);
+        deleteProperty(voltage.property.name);
         deleteProperty(ui.framerate.property.name);
         deleteProperty(ui.buttons.properties[0].name);
         deleteProperty(ui.buttons.properties[1].name);
@@ -326,11 +352,8 @@ bool MGenAutoguider::Connect()
                     if(getHeartbeat())
                     {
                         _S("considering device connected","");
-                        /* FIXME: currently no way to tell which timer hit */
-                        //heartbeat.timer = SetTimer(5000);
-                        //version.timer = SetTimer(20000);
-                        //voltage.timer = SetTimer(10000);
-                        ui.timer = SetTimer(0 < ui.framerate.number.value ? 1000 / (long)ui.framerate.number.value : 1000);
+                        /* FIXME: currently no way to tell which timer hit, so set one for the UI only */
+                        TimerHit();
                         return device->isConnected();
                     }
                     else if(device->isConnected())
@@ -360,9 +383,6 @@ bool MGenAutoguider::Disconnect()
     if( device->isConnected() )
     {
         _D("initiating disconnection.","");
-        //RemoveTimer(heartbeat.timer);
-        //RemoveTimer(version.timer);
-        //RemoveTimer(voltage.timer);
         RemoveTimer(ui.timer);
         device->disable();
     }
@@ -399,17 +419,14 @@ void MGenAutoguider::TimerHit()
             return;
 
         /* If we didn't get the firmware version, ask */
-        if( !version.uploaded_firmware )
+        if(0 == version.timestamp.tv_sec)
         {
             MGCMD_GET_FW_VERSION cmd;
             if(CR_SUCCESS == cmd.ask(*device))
             {
-                version.uploaded_firmware = cmd.fw_version();
-                sprintf(version.textFirmware.text,"%04X", version.uploaded_firmware);
-                _D("received version 0x%04X", version.uploaded_firmware);
-                IDSetText(&version.propVersions, NULL);
-                /* FIXME: actually the timer for version will probably never fire */
-                //RemoveTimer(version.timer);
+                sprintf(version.firmware.text.text,"%04X", cmd.fw_version());
+                _D("received version %4.4s", version.firmware.text.text);
+                IDSetText(&version.firmware.property, NULL);
             }
             else _E("failed retrieving firmware version","");
 
@@ -424,67 +441,68 @@ void MGenAutoguider::TimerHit()
         }
 
         /* Update ADC values */
-        if(voltage.timestamp.tv_sec + 20 < tm.tv_sec)
+        if(0 == voltage.timestamp.tv_sec || voltage.timestamp.tv_sec + 20 < tm.tv_sec)
         {
             MGCMD_READ_ADCS adcs;
 
             if(CR_SUCCESS == adcs.ask(*device))
             {
-                voltage.numVoltages[0].value = voltage.logic = adcs.logic_voltage();
-                _D("received logic voltage %fV (spec is between 4.8V and 5.1V)", voltage.logic);
-                voltage.numVoltages[1].value = voltage.input = adcs.input_voltage();
-                _D("received input voltage %fV (spec is between 9V and 15V)", voltage.input);
-                voltage.numVoltages[2].value = voltage.reference = adcs.refer_voltage();
-                _D("received reference voltage %fV (spec is around 1.23V)", voltage.reference);
+                voltage.levels.logic.value = adcs.logic_voltage();
+                _D("received logic voltage %fV (spec is between 4.8V and 5.1V)", voltage.levels.logic.value);
+                voltage.levels.input.value = adcs.input_voltage();
+                _D("received input voltage %fV (spec is between 9V and 15V)", voltage.levels.input.value);
+                voltage.levels.reference.value = adcs.refer_voltage();
+                _D("received reference voltage %fV (spec is around 1.23V)", voltage.levels.reference.value);
 
                 /* FIXME: my device has input at 15.07... */
-                if(4.8f <= voltage.logic && voltage.logic <= 5.1f)
-                    if(9.0f <= voltage.input && voltage.input <= 15.0f)
-                        if(1.1 <= voltage.reference && voltage.reference <= 1.3)
-                            voltage.propVoltages.s = IPS_OK;
-                        else voltage.propVoltages.s = IPS_ALERT;
-                    else voltage.propVoltages.s = IPS_ALERT;
-                else voltage.propVoltages.s = IPS_ALERT;
+                if(4.8f <= voltage.levels.logic.value && voltage.levels.logic.value <= 5.1f)
+                    if(9.0f <= voltage.levels.input.value && voltage.levels.input.value <= 15.0f)
+                        if(1.1 <= voltage.levels.reference.value && voltage.levels.reference.value <= 1.3)
+                            voltage.property.s = IPS_OK;
+                        else voltage.property.s = IPS_ALERT;
+                    else voltage.property.s = IPS_ALERT;
+                else voltage.property.s = IPS_ALERT;
 
-                IDSetNumber(&voltage.propVoltages, NULL);
+                IDSetNumber(&voltage.property, NULL);
             }
             else _E("failed retrieving voltages","");
 
             voltage.timestamp = tm;
         }
 
-        /* Update UI frame */
-        if(0 < ui.framerate.number.value && (ui.timestamp.tv_sec < tm.tv_sec || ui.timestamp.tv_nsec + 1000000000/(long)ui.framerate.number.value < tm.tv_nsec))
+        /* Update UI frame - I'm trading efficiency for code clarity, sorry for the computation with doubles */
+        if(0 == ui.timestamp.tv_sec || 0 < ui.framerate.number.value)
         {
-            MGIO_READ_DISPLAY_FRAME read_frame;
+            double const ui_period = 1.0f / ui.framerate.number.value;
+            double const ui_next = (double) ui.timestamp.tv_sec + (double) ui.timestamp.tv_nsec / 1000000000.0f + ui_period;
+            double const now = tm.tv_sec + tm.tv_nsec / 1000000000.0f;
 
-            if(CR_SUCCESS == read_frame.ask(*device))
+            if(ui_next < now)
             {
-                MGIO_READ_DISPLAY_FRAME::ByteFrame frame;
-                read_frame.get_frame(frame);
-                memcpy(PrimaryCCD.getFrameBuffer(),frame.data(),frame.size());
-                ExposureComplete(&PrimaryCCD);
+                MGIO_READ_DISPLAY_FRAME read_frame;
+
+                if(CR_SUCCESS == read_frame.ask(*device))
+                {
+                    MGIO_READ_DISPLAY_FRAME::ByteFrame frame;
+                    read_frame.get_frame(frame);
+                    memcpy(PrimaryCCD.getFrameBuffer(),frame.data(),frame.size());
+                    ExposureComplete(&PrimaryCCD);
+                }
+                else _E("failed reading remote UI frame","");
+
+                ui.timestamp = tm;
             }
-            else _E("failed reading remote UI frame","");
-
-            ui.timestamp = tm;
         }
 
-        /* Send buttons */
-        /*
-        if(!device->button_queue.empty())
-        {
-            MGIO_INSERT_BUTTON((MGIO_INSERT_BUTTON::Button) device->popButton()).ask(*device);
-        }
-        */
-
-        ui.timer = SetTimer(0 < ui.framerate.number.value ? 1000 / (long)ui.framerate.number.value : 1000);
+        /* Rearm the timer, use a minimal timer period of 1s, and shorter if frame rate is higher than 1fps */
+        ui.timer = SetTimer(1.0f < ui.framerate.number.value ? (long)(1000.0f / ui.framerate.number.value) : 1000);
     }
     catch(IOError &e)
     {
         _S("device disconnected (%s)", e.what());
         device->disable();
-        /* FIXME: tell client we disconnected */
+        setConnected(false,IPS_ALERT);
+        updateProperties();
     }
 }
 
@@ -501,7 +519,8 @@ bool MGenAutoguider::getHeartbeat()
         if(5 < heartbeat.no_ack_count)
         {
             device->disable();
-            /* FIXME: tell client we disconnected */
+            setConnected(false,IPS_ALERT);
+            updateProperties();
         }
         return false;
     }

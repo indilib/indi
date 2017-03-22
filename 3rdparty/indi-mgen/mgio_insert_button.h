@@ -32,55 +32,62 @@
 */
 
 /*
- * mgencommand.h
+ * mgio_insert_button.h
  *
- *  Created on: 21 janv. 2017
+ *  Created on: 22 mars 2017
  *      Author: TallFurryMan
  */
 
-#ifndef MGENCOMMAND_HPP_
-#define MGENCOMMAND_HPP_
+#ifndef _3RDPARTY_INDI_MGEN_MGIO_INSERT_BUTTON_H_
+#define _3RDPARTY_INDI_MGEN_MGIO_INSERT_BUTTON_H_
 
-#include "mgen_device.h"
+#include "mgc.h"
 
-class MGC
+class MGIO_INSERT_BUTTON: MGC
 {
 public:
-    /** \internal Stringifying the name of the command */
-    char const * name() const { return typeid(*this).name(); }
+    virtual IOByte opCode() const { return 0x5D; }
+    virtual IOMode opMode() const { return OPM_APPLICATION; }
 
 public:
-    /** \brief Returning the character operation code of the command */
-    virtual IOByte opCode() const = 0;
+    enum Button
+    {
+        IOB_NONE = -1,
+        IOB_ESC = 0,
+        IOB_SET = 1,
+        IOB_LEFT = 2,
+        IOB_RIGHT = 3,
+        IOB_UP = 4,
+        IOB_DOWN = 5,
+        IOB_LONG_ESC = 6,
+    };
 
-    /** \brief Returning the operation mode for this command */
-    virtual IOMode opMode() const = 0;
-
-protected:
-    /** \internal The I/O query buffer to be written to the device */
-    IOBuffer query;
-
-    /** \internal The I/O answer buffer to be read from the device */
-    IOBuffer answer;
-
-    /** \brief Basic verifications to call before running the actual command implementation */
+public:
     virtual IOResult ask(MGenDevice& root) throw (IOError)
     {
-        if(opMode() != OPM_UNKNOWN && opMode() != root.getOpMode())
-        {
-            _E("operating mode %s does not support command", MGenDevice::DBG_OpModeString(opMode()));
+        if(CR_SUCCESS != MGC::ask(root))
             return CR_FAILURE;
-        }
 
+        if(root.lock())
+        {
+            _D("sending button %d",query[2]);
+
+            query[2] &= 0x7F;
+            root.write(query);
+            root.read(answer);
+
+            query[2] |= 0x80;
+            root.write(query);
+            root.read(answer);
+
+            root.unlock();
+        }
         return CR_SUCCESS;
     }
 
-protected:
-    MGC(IOBuffer query, IOBuffer answer):
-        query(query),
-        answer(answer) {};
-
-    virtual ~MGC() {};
+public:
+    MGIO_INSERT_BUTTON(Button button):
+        MGC(IOBuffer {opCode(), 0x01, (unsigned char) button}, IOBuffer (2)) {};
 };
 
-#endif /* 3RDPARTY_INDI_MGEN_MGENCOMMAND_HPP_ */
+#endif /* _3RDPARTY_INDI_MGEN_MGIO_INSERT_BUTTON_H_ */

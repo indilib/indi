@@ -32,55 +32,54 @@
 */
 
 /*
- * mgencommand.h
+ * mgcmd_read_adcs.h
  *
- *  Created on: 21 janv. 2017
+ *  Created on: 22 mars 2017
  *      Author: TallFurryMan
  */
 
-#ifndef MGENCOMMAND_HPP_
-#define MGENCOMMAND_HPP_
+#ifndef _3RDPARTY_INDI_MGEN_MGCMD_READ_ADCS_H_
+#define _3RDPARTY_INDI_MGEN_MGCMD_READ_ADCS_H_
 
-#include "mgen_device.h"
+#include "mgc.h"
 
-class MGC
+class MGCMD_READ_ADCS: MGC
 {
 public:
-    /** \internal Stringifying the name of the command */
-    char const * name() const { return typeid(*this).name(); }
+    virtual IOByte opCode() const { return 0xA0; }
+    virtual IOMode opMode() const { return OPM_APPLICATION; }
 
 public:
-    /** \brief Returning the character operation code of the command */
-    virtual IOByte opCode() const = 0;
+    float logic_voltage() const { return 1.6813e-4f * ((unsigned short) (answer[2]<<8) | answer[1]); }
+    float input_voltage() const { return 3.1364e-4f * ((unsigned short) (answer[4]<<8) | answer[3]); }
+    float refer_voltage() const { return 3.91e-5f * ((unsigned short) (answer[10]<<8) | answer[9]); }
 
-    /** \brief Returning the operation mode for this command */
-    virtual IOMode opMode() const = 0;
-
-protected:
-    /** \internal The I/O query buffer to be written to the device */
-    IOBuffer query;
-
-    /** \internal The I/O answer buffer to be read from the device */
-    IOBuffer answer;
-
-    /** \brief Basic verifications to call before running the actual command implementation */
+public:
     virtual IOResult ask(MGenDevice& root) throw (IOError)
     {
-        if(opMode() != OPM_UNKNOWN && opMode() != root.getOpMode())
-        {
-            _E("operating mode %s does not support command", MGenDevice::DBG_OpModeString(opMode()));
+        if(CR_SUCCESS != MGC::ask(root))
             return CR_FAILURE;
+
+        if(root.lock())
+        {
+            root.write(query);
+
+            int const bytes_read = root.read(answer);
+
+            root.unlock();
+
+            if(answer[0] == query[0] && ( 1+5*2 == bytes_read ))
+                return CR_SUCCESS;
+
+            _E("no ack (%d bytes read)", bytes_read);
         }
 
-        return CR_SUCCESS;
+        return CR_FAILURE;
     }
 
-protected:
-    MGC(IOBuffer query, IOBuffer answer):
-        query(query),
-        answer(answer) {};
-
-    virtual ~MGC() {};
+public:
+    MGCMD_READ_ADCS():
+        MGC(IOBuffer { opCode() }, IOBuffer (1+5*2)) {};
 };
 
-#endif /* 3RDPARTY_INDI_MGEN_MGENCOMMAND_HPP_ */
+#endif /* _3RDPARTY_INDI_MGEN_MGCMD_READ_ADCS_H_ */

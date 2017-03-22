@@ -31,56 +31,42 @@
 
 */
 
+#ifndef _3RDPARTY_INDI_MGEN_MGCP_ENTER_NORMAL_MODE_H_
+#define _3RDPARTY_INDI_MGEN_MGCP_ENTER_NORMAL_MODE_H_
+
 /*
- * mgencommand.h
+ * mgcp_enter_normal_mode.h
  *
- *  Created on: 21 janv. 2017
+ *  Created on: 22 mars 2017
  *      Author: TallFurryMan
  */
 
-#ifndef MGENCOMMAND_HPP_
-#define MGENCOMMAND_HPP_
+#include "mgc.h"
 
-#include "mgen_device.h"
-
-class MGC
+class MGCP_ENTER_NORMAL_MODE: MGC
 {
 public:
-    /** \internal Stringifying the name of the command */
-    char const * name() const { return typeid(*this).name(); }
+    virtual IOByte opCode() const { return 0x42; }
+    virtual IOMode opMode() const { return OPM_COMPATIBLE; }
 
 public:
-    /** \brief Returning the character operation code of the command */
-    virtual IOByte opCode() const = 0;
-
-    /** \brief Returning the operation mode for this command */
-    virtual IOMode opMode() const = 0;
-
-protected:
-    /** \internal The I/O query buffer to be written to the device */
-    IOBuffer query;
-
-    /** \internal The I/O answer buffer to be read from the device */
-    IOBuffer answer;
-
-    /** \brief Basic verifications to call before running the actual command implementation */
     virtual IOResult ask(MGenDevice& root) throw (IOError)
     {
-        if(opMode() != OPM_UNKNOWN && opMode() != root.getOpMode())
-        {
-            _E("operating mode %s does not support command", MGenDevice::DBG_OpModeString(opMode()));
+        if(CR_SUCCESS != MGC::ask(root))
             return CR_FAILURE;
-        }
 
+        if(root.lock())
+        {
+            root.write(query);
+            sleep(1);
+            root.unlock();
+        }
         return CR_SUCCESS;
     }
 
-protected:
-    MGC(IOBuffer query, IOBuffer answer):
-        query(query),
-        answer(answer) {};
-
-    virtual ~MGC() {};
+public:
+    MGCP_ENTER_NORMAL_MODE():
+        MGC(IOBuffer { opCode() }, IOBuffer ()) {};
 };
 
-#endif /* 3RDPARTY_INDI_MGEN_MGENCOMMAND_HPP_ */
+#endif /* _3RDPARTY_INDI_MGEN_MGCP_ENTER_NORMAL_MODE_H_ */
