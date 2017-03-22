@@ -74,9 +74,10 @@ private:
     INumberVectorProperty EncoderNP;
     enum { AXIS1_ENCODER, AXIS2_ENCODER, AXIS1_RAW_ENCODER, AXIS2_RAW_ENCODER };
 
-    INumber AxisSettingsN[2];
+    INumber AxisSettingsN[4];
     INumberVectorProperty AxisSettingsNP;
-    enum { AXIS1_TICKS, AXIS2_TICKS};
+    //enum { AXIS1_TICKS, AXIS2_TICKS};
+    enum { AXIS1_TICKS, AXIS1_DEGREE_OFFSET, AXIS2_TICKS, AXIS2_DEGREE_OFFSET};
 
     ISwitch AxisRangeS[2];
     ISwitchVectorProperty AxisRangeSP;
@@ -89,9 +90,9 @@ private:
     ISwitchVectorProperty MountTypeSP;
     enum { MOUNT_EQUATORIAL, MOUNT_ALTAZ };
 
-    INumber EncoderOffsetN[6];
-    INumberVectorProperty EncoderOffsetNP;
-    enum { OFFSET_AXIS1_SCALE, OFFSET_AXIS1_OFFSET, AXIS1_DEGREE_OFFSET, OFFSET_AXIS2_SCALE, OFFSET_AXIS2_OFFSET, AXIS2_DEGREE_OFFSET };
+    //INumber EncoderOffsetN[6];
+    //INumberVectorProperty EncoderOffsetNP;
+    //enum { OFFSET_AXIS1_SCALE, OFFSET_AXIS1_OFFSET, AXIS1_DEGREE_OFFSET, OFFSET_AXIS2_SCALE, OFFSET_AXIS2_OFFSET, AXIS2_DEGREE_OFFSET };
 
     // Simulation Only
     INumber SimEncoderN[2];
