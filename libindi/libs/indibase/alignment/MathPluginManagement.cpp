@@ -253,6 +253,13 @@ void MathPluginManagement::ProcessSwitchProperties(Telescope * pTelescope, const
     }
 }
 
+void MathPluginManagement::SetAlignmentSubsystemActive(bool enable)
+{
+    AlignmentSubsystemActive.s = enable ? ISS_ON : ISS_OFF;
+    AlignmentSubsystemActiveV.s=IPS_OK;
+    IDSetSwitch(&AlignmentSubsystemActiveV, NULL);
+}
+
 void MathPluginManagement::SaveConfigProperties(FILE * fp)
 {
     IUSaveConfigText(fp, &AlignmentSubsystemCurrentMathPluginV);

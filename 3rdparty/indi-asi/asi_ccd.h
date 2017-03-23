@@ -111,10 +111,10 @@ private:
   ISwitch CoolerS[2];
   ISwitchVectorProperty CoolerSP;
 
-  INumber *ControlN;
+  INumber *ControlN=NULL;
   INumberVectorProperty ControlNP;
 
-  ISwitch *ControlS;
+  ISwitch *ControlS=NULL;
   ISwitchVectorProperty ControlSP;
 
   ISwitch *VideoFormatS;

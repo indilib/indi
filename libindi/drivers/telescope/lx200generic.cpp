@@ -264,11 +264,13 @@ bool LX200Generic::initProperties()
     IUFillSwitch(&AlignmentS[2], "Land", "", ISS_OFF);
     IUFillSwitchVector(&AlignmentSP, AlignmentS, 3, getDeviceName(), "Alignment", "", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
+#if 0
     IUFillSwitch(&SlewRateS[SLEW_GUIDE], "SLEW_GUIDE", "Guide", ISS_OFF);
     IUFillSwitch(&SlewRateS[SLEW_CENTERING], "SLEW_CENTERING", "Centering", ISS_OFF);
     IUFillSwitch(&SlewRateS[SLEW_FIND], "SLEW_FIND", "Find", ISS_OFF);
     IUFillSwitch(&SlewRateS[SLEW_MAX], "SLEW_MAX", "Max", ISS_ON);
     IUFillSwitchVector(&SlewRateSP, SlewRateS, 4, getDeviceName(), "TELESCOPE_SLEW_RATE", "Slew Rate", MOTION_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+#endif
 
     IUFillSwitch(&TrackModeS[0], "TRACK_SIDEREAL", "Sidereal", ISS_ON);
     IUFillSwitch(&TrackModeS[1], "TRACK_SOLAR", "Solar", ISS_OFF);
@@ -991,17 +993,21 @@ bool LX200Generic::ISNewSwitch (const char *dev, const char *name, ISState *stat
           IUUpdateSwitch(&TrackModeSP, states, names, n);
           trackingMode = IUFindOnSwitchIndex(&TrackModeSP);
 
-          if (isSimulation() == false && selectTrackingMode(PortFD, trackingMode) < 0)
+          if (isSimulation() == false && SetTrackMode(trackingMode) == false)
           {
               TrackModeSP.s = IPS_ALERT;
               IDSetSwitch(&TrackModeSP, "Error setting tracking mode.");
               return false;
           }
 
-          if (isSimulation() == false)
+          // Only update tracking frequency if it is defined and not deleted by child classes
+          if (isSimulation() == false && getProperty(TrackingFreqNP.name, INDI_NUMBER) != NULL)
+          {
             getTrackFreq(PortFD, &TrackFreqN[0].value);
+            IDSetNumber(&TrackingFreqNP, NULL);
+          }
+
           TrackModeSP.s = IPS_OK;
-          IDSetNumber(&TrackingFreqNP, NULL);
           IDSetSwitch(&TrackModeSP, NULL);
           return true;
         }
@@ -1048,6 +1054,11 @@ bool LX200Generic::ISNewSwitch (const char *dev, const char *name, ISState *stat
     //  Nobody has claimed this, so pass it to the parent
     return INDI::Telescope::ISNewSwitch(dev,name,states,names,n);
 
+}
+
+bool LX200Generic::SetTrackMode(int mode)
+{
+    return (selectTrackingMode(PortFD, mode) == 0);
 }
 
 bool LX200Generic::SetSlewRate(int index)

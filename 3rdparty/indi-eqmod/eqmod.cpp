@@ -406,6 +406,23 @@ void EQMod::ISGetProperties(const char *dev)
             defineSwitch(DEPPECTrainingSP);
             defineSwitch(DEPPECSP);
         }
+
+#ifdef WITH_ALIGN_GEEHALEL
+    if (align)
+    {
+       align->updateProperties();
+    }
+#endif
+
+#ifdef WITH_SCOPE_LIMITS
+    if (horizon)
+    {
+        horizon->updateProperties();
+    }
+#endif
+
+    simulator->updateProperties(isSimulation());
+
     }
 }
 
@@ -449,6 +466,7 @@ bool EQMod::loadProperties()
     DEPPECTrainingSP=getSwitch("DE_PPEC_TRAINING");
     DEPPECSP=getSwitch("DE_PPEC");
 #if defined WITH_ALIGN && defined WITH_ALIGN_GEEHALEL
+    align->initProperties();
     IUFillSwitch(&AlignMethodS[0], "ALIGN_METHOD_EQMOD", "EQMod Align", ISS_ON);
     IUFillSwitch(&AlignMethodS[1], "ALIGN_METHOD_SUBSYSTEM", "Alignment Subsystem", ISS_OFF);
     IUFillSwitchVector(&AlignMethodSP, AlignMethodS, NARRAY(AlignMethodS), getDeviceName(), "ALIGN_METHOD", "Align Method", OPTIONS_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
@@ -456,6 +474,8 @@ bool EQMod::loadProperties()
 #if defined WITH_ALIGN || defined WITH_ALIGN_GEEHALEL
     AlignSyncModeSP=getSwitch("ALIGNSYNCMODE");
 #endif
+
+    simulator->initProperties();
 
     INDI::GuiderInterface::initGuiderProperties(this->getDeviceName(), MOTION_TAB);
 
@@ -665,6 +685,9 @@ bool EQMod::updateProperties()
         if (!horizon->updateProperties()) return false;
     }
 #endif
+
+    simulator->updateProperties(isSimulation());
+
     return true;
 }
 
@@ -3020,6 +3043,8 @@ bool EQMod::saveConfigItems(FILE *fp)
 
     if (BacklashNP)
         IUSaveConfigNumber(fp, BacklashNP);
+    if (UseBacklashSP)
+        IUSaveConfigSwitch(fp, UseBacklashSP);
     if (GuideRateNP)
         IUSaveConfigNumber(fp, GuideRateNP);
 

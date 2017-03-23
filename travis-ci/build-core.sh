@@ -9,7 +9,7 @@ if [ .${TRAVIS_BRANCH%_*} == '.drv' ] ; then
         sudo apt-get -qq update
         sudo apt-get -q -y install libindi-dev
     else
-        echo "No repos for OSX"
+        brew install jochym/indi/libindi
     fi
 else
     # Build everything on master

@@ -40,6 +40,7 @@ const char * FILTER_TAB = "Filter Wheel";
 const char * FOCUS_TAB = "Focuser";
 const char * GUIDE_TAB = "Guide";
 const char * ALIGNMENT_TAB = "Alignment";
+const char * INFO_TAB      = "General Info";
 
 void timerfunc(void * t)
 {
@@ -643,6 +644,10 @@ void INDI::DefaultDevice::ISGetProperties (const char * dev)
         strncpy(ConnectionSP.device, getDeviceName(), MAXINDIDEVICE);
         initProperties();
         addConfigurationControl();
+
+        // If we have no connections, move Driver Info to General Info tab
+        if (connections.size() == 0)
+            strncpy(DriverInfoTP.group, INFO_TAB, MAXINDINAME);
     }
 
     for (INDI::Property * oneProperty : pAll)

@@ -44,6 +44,19 @@ bool LX200ZEQ25::initProperties()
 
     SetParkDataType(PARK_AZ_ALT);
 
+    strcpy(SlewRateS[0].label, "1x");
+    strcpy(SlewRateS[1].label, "2x");
+    strcpy(SlewRateS[2].label, "8x");
+    strcpy(SlewRateS[3].label, "16x");
+    strcpy(SlewRateS[4].label, "64x");
+    strcpy(SlewRateS[5].label, "128x");
+    strcpy(SlewRateS[6].label, "256x");
+    strcpy(SlewRateS[7].label, "512x");
+    strcpy(SlewRateS[8].label, "MAX");
+
+    IUFillSwitch(&HomeS[0], "Home", "", ISS_OFF);
+    IUFillSwitchVector(&HomeSP, HomeS, 1, getDeviceName(), "Home", "Home", MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
+
     return true;
 }
 
@@ -56,7 +69,14 @@ bool LX200ZEQ25::updateProperties()
         // Delete unsupported properties
         deleteProperty(AlignmentSP.name);
         deleteProperty(SiteSP.name);
+        deleteProperty(TrackingFreqNP.name);
         deleteProperty(SiteNameTP.name);
+
+        defineSwitch(&HomeSP);
+    }
+    else
+    {
+        deleteProperty(HomeSP.name);
     }
 
     return true;
@@ -112,6 +132,73 @@ bool LX200ZEQ25::checkConnection()
     }
 
     return false;
+}
+
+bool LX200ZEQ25::ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n)
+{
+    if(strcmp(dev,getDeviceName())==0)
+    {
+        if (!strcmp(HomeSP.name, name))
+        {
+            // If already home, nothing to be done
+            if (HomeS[0].s == ISS_ON)
+            {
+                DEBUG(INDI::Logger::DBG_WARNING, "Telescope is already homed");
+                IDSetSwitch(&HomeSP, NULL);
+                return true;
+            }
+
+            if (gotoZEQ25Home() < 0)
+            {
+                HomeSP.s = IPS_ALERT;
+                DEBUG(INDI::Logger::DBG_ERROR, "Error slewing to home position.");
+            }
+            else
+            {
+                HomeSP.s = IPS_BUSY;
+                DEBUG(INDI::Logger::DBG_SESSION, "Slewing to home position.");
+            }
+
+            IDSetSwitch(&HomeSP, NULL);
+            return true;
+        }
+    }
+
+    return LX200Generic::ISNewSwitch(dev, name, states, names, n);
+}
+
+bool LX200ZEQ25::isZEQ25Home()
+{
+    char bool_return[2];
+    int error_type;
+    int nbytes_write=0, nbytes_read=0;
+
+    if (isSimulation())
+        return true;
+
+    DEBUG(DBG_SCOPE, "CMD <:AH#>");
+
+    if ( (error_type = tty_write_string(PortFD, ":AH#", &nbytes_write)) != TTY_OK)
+        return false;
+
+    error_type = tty_read(PortFD, bool_return, 1, 5, &nbytes_read);
+
+    // JM: Hack from Jon in the INDI forums to fix longitude/latitude settings failure on ZEQ25
+    usleep(10000);
+    tcflush(PortFD, TCIFLUSH);
+    usleep(10000);
+
+    if (nbytes_read < 1)
+        return false;
+
+    DEBUGF(DBG_SCOPE, "RES <%c>", bool_return[0]);
+
+    return (bool_return[0] == '1');
+}
+
+int LX200ZEQ25::gotoZEQ25Home()
+{
+    return setZEQ25StandardProcedure(PortFD, ":MH#");
 }
 
 bool LX200ZEQ25::isSlewComplete()
@@ -243,6 +330,15 @@ void LX200ZEQ25::getBasicData()
     bool isMountParked = isZEQ25Parked();
     if (isMountParked != isParked())
         SetParked(isMountParked);
+
+    // Is home?
+    if (isZEQ25Home())
+    {
+        HomeS[0].s = ISS_ON;
+        HomeSP.s = IPS_OK;
+        IDSetSwitch(&HomeSP, NULL);
+    }
+
 }
 
 bool LX200ZEQ25::Goto(double r,double d)
@@ -693,6 +789,25 @@ int LX200ZEQ25::haltZEQ25Movement()
  return 0;
 }
 
+bool LX200ZEQ25::SetTrackMode(int mode)
+{
+    return (setZEQ25TrackMode(mode) == 0);
+}
+
+int LX200ZEQ25::setZEQ25TrackMode(int mode)
+{
+    DEBUGF(DBG_SCOPE, "<%s>", __FUNCTION__);
+
+    // We don't support KING mode :RT3, so we turn mode=3 to custom :RT4#
+    if (mode == 3)
+        mode = 4;
+
+    char cmd[6];
+    snprintf(cmd, 6, ":RT%d#", mode);
+
+    return setZEQ25StandardProcedure(PortFD, cmd);
+}
+
 int LX200ZEQ25::setZEQ25Park()
 {
   DEBUGF(DBG_SCOPE, "<%s>", __FUNCTION__);
@@ -927,6 +1042,17 @@ bool LX200ZEQ25::ReadScopeStatus()
 
     //if (check_lx200_connection(PortFD))
         //return false;
+
+    if (HomeSP.s == IPS_BUSY)
+    {
+        if (isZEQ25Home())
+        {
+            HomeS[0].s = ISS_ON;
+            HomeSP.s = IPS_OK;
+            DEBUG(INDI::Logger::DBG_SESSION, "Telescope arrived at home position.");
+            IDSetSwitch(&HomeSP, NULL);
+        }
+    }
 
     if (TrackState == SCOPE_SLEWING)
     {

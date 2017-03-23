@@ -470,6 +470,14 @@ std::string StreamRecorder::expand(std::string fname, const std::map<std::string
         }
     }
 
+    // Replace all : to - to be valid filename on Windows
+    size_t start_pos = 0;
+    while((start_pos = res.find(":", start_pos)) != std::string::npos)
+    {
+            res.replace(start_pos, 1, "-");
+            start_pos++;
+    }
+
     return res;
 }
 

@@ -89,12 +89,15 @@ bool Serial::ISNewSwitch (const char * dev, const char * name, ISState * states,
 
         if (!strcmp(name, AutoSearchSP.name))
         {
+            bool wasEnabled = (AutoSearchS[0].s == ISS_ON);
+
             IUUpdateSwitch(&AutoSearchSP, states, names, n);
             AutoSearchSP.s = IPS_OK;
 
-            if (AutoSearchS[0].s == ISS_ON)
+            // Only display message if there is an actual change
+            if (wasEnabled == false && AutoSearchS[0].s == ISS_ON)
                 DEBUG(INDI::Logger::DBG_SESSION, "Auto search is enabled. When connecting, the driver shall attempt to communicate with all available system ports until a connection is established.");
-            else
+            else if (wasEnabled && AutoSearchS[1].s == ISS_ON)
                 DEBUG(INDI::Logger::DBG_SESSION, "Auo search is disabled.");
             IDSetSwitch(&AutoSearchSP, NULL);
 
@@ -223,7 +226,7 @@ void Serial::Activated()
     device->loadConfig(true, "DEVICE_AUTO_SEARCH");
 
     device->defineSwitch(&RefreshSP);
-    refresh();
+    refresh(true);
 }
 
 void Serial::Deactivated()
@@ -281,7 +284,7 @@ int dev_file_select(const dirent * entry)
     return(false);
 }
 
-bool Serial::refresh()
+bool Serial::refresh(bool silent)
 {
     if (SystemPortS)
         device->deleteProperty(SystemPortSP.name);
@@ -294,7 +297,8 @@ bool Serial::refresh()
     int devCount = scandir("/dev", &namelist, dev_file_select, alphasort);
     if (devCount < 0)
     {
-        DEBUGF(INDI::Logger::DBG_ERROR,"Failed to scan directory /dev. Error: %s", strerror(errno));
+        if (silent == false)
+            DEBUGF(INDI::Logger::DBG_ERROR,"Failed to scan directory /dev. Error: %s", strerror(errno));
     }
     else
     {
@@ -318,11 +322,15 @@ bool Serial::refresh()
     int pCount = m_Ports.size();
     if (pCount == 0)
     {
-        DEBUG(INDI::Logger::DBG_WARNING, "No candidate ports found on the system.");
+        if (silent == false)
+            DEBUG(INDI::Logger::DBG_WARNING, "No candidate ports found on the system.");
         return false;
     }
     else
-        DEBUGF(INDI::Logger::DBG_SESSION, "Scan complete. Found %d port(s).", pCount);
+    {
+        if (silent == false)
+            DEBUGF(INDI::Logger::DBG_SESSION, "Scan complete. Found %d port(s).", pCount);
+    }
 
     SystemPortS = new ISwitch[pCount];
     ISwitch * sp = SystemPortS;

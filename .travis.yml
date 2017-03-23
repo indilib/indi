@@ -10,8 +10,9 @@ os:
 
 branches:
   only:
-    - develop
     - master
+    - develop
+    - package
     - /drv_.*$/
     - travis
     - refactor/unittest
