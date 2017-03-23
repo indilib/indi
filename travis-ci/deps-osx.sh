@@ -17,12 +17,12 @@ brew tap 'jochym/indi'
 # boost
 
 
-brew install cmake dcraw fakeroot gsl libftdi libgphoto2 libusb gpsd libraw 
+brew install cmake dcraw fakeroot gsl libftdi libgphoto2 libusb gpsd libraw cfitsio
 # libjpeg
 
-brew install --build-bottle libcfitsio libnova libindi
+brew install --build-bottle libnova libindi
 
-brew bottle libcfitsio libnova libindi
+brew bottle libnova libindi
 
 
 brew cask install \
