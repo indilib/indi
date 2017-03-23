@@ -562,7 +562,12 @@ bool ASICCD::ISNewNumber (const char *dev, const char *name, double values[], ch
             for (int i=0; i < ControlNP.nnp; i++)
                 oldValues[i] = ControlN[i].value;
 
-            IUUpdateNumber(&ControlNP, values, names, n);
+            if (IUUpdateNumber(&ControlNP, values, names, n) < 0)
+            {
+                ControlNP.s = IPS_ALERT;
+                IDSetNumber(&ControlNP, NULL);
+                return true;
+            }
 
             for (int i=0; i < ControlNP.nnp; i++)
             {
@@ -620,7 +625,12 @@ bool ASICCD::ISNewSwitch (const char *dev, const char *name, ISState *states, ch
     {
         if (!strcmp(name, ControlSP.name))
         {
-           IUUpdateSwitch(&ControlSP, states, names, n);
+           if (IUUpdateSwitch(&ControlSP, states, names, n) < 0)
+           {
+               ControlSP.s = IPS_ALERT;
+               IDSetSwitch(&ControlSP, NULL);
+               return true;
+           }
 
            for (int i=0; i < ControlSP.nsp; i++)
            {
@@ -1585,6 +1595,12 @@ void ASICCD::addFITSKeywords(fitsfile *fptr, CCDChip *targetChip)
 bool ASICCD::saveConfigItems(FILE *fp)
 {
     INDI::CCD::saveConfigItems(fp);
+
+    if (ControlNP.nnp > 0)
+     IUSaveConfigNumber(fp, &ControlNP);
+
+    if (ControlSP.nsp > 0)
+      IUSaveConfigSwitch(fp, &ControlSP);
 
     IUSaveConfigSwitch(fp, &VideoFormatSP);
 

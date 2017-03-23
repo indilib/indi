@@ -596,6 +596,14 @@ bool INDI::CCD::initProperties()
     IUFillTextVector(&FileNameTP,FileNameT,1,getDeviceName(),"CCD_FILE_PATH","Filename",IMAGE_INFO_TAB,IP_RO,60,IPS_IDLE);
 
     /**********************************************/
+    /****************** FITS Header****************/
+    /**********************************************/
+
+    IUFillText(&FITSHeaderT[FITS_OBSERVER],"FITS_OBSERVER","Observer","Unknown");
+    IUFillText(&FITSHeaderT[FITS_OBJECT],"FITS_OBJECT","Object","Unknown");
+    IUFillTextVector(&FITSHeaderTP,FITSHeaderT,2,getDeviceName(),"FITS_HEADER","FITS Header", INFO_TAB,IP_RW,60,IPS_IDLE);
+
+    /**********************************************/
     /**************** Snooping ********************/
     /**********************************************/
 
@@ -657,6 +665,8 @@ bool INDI::CCD::updateProperties()
         defineNumber(&PrimaryCCD.ImageFrameNP);
         if (CanBin())
             defineNumber(&PrimaryCCD.ImageBinNP);
+
+        defineText(&FITSHeaderTP);
 
         if(HasGuideHead())
         {
@@ -744,6 +754,9 @@ bool INDI::CCD::updateProperties()
             deleteProperty(PrimaryCCD.RapidGuideSetupSP.name);
             deleteProperty(PrimaryCCD.RapidGuideDataNP.name);
         }
+
+        deleteProperty(FITSHeaderTP.name);
+
         if(HasGuideHead())
         {
             deleteProperty(GuideCCD.ImageExposureNP.name);
@@ -900,6 +913,14 @@ bool INDI::CCD::ISNewText (const char * dev, const char * name, char * texts[], 
             IUUpdateText(&BayerTP, texts, names, n);
             BayerTP.s = IPS_OK;
             IDSetText(&BayerTP, NULL);
+            return true;
+        }
+
+        if (!strcmp(name, FITSHeaderTP.name))
+        {
+            IUUpdateText(&FITSHeaderTP, texts, names, n);
+            FITSHeaderTP.s = IPS_OK;
+            IDSetText(&FITSHeaderTP, NULL);
             return true;
         }
 
@@ -1573,9 +1594,23 @@ void INDI::CCD::addFITSKeywords(fitsfile * fptr, CCDChip * targetChip)
     xbin = targetChip->getBinX();
     ybin = targetChip->getBinY();
 
-    char myDevice[MAXINDIDEVICE];
-    strncpy(myDevice, getDeviceName(), MAXINDIDEVICE);
-    fits_update_key_s(fptr, TSTRING, "INSTRUME", myDevice, "CCD Name" , &status);
+    char fitsString[MAXINDIDEVICE];
+
+    // CCD
+    strncpy(fitsString, getDeviceName(), MAXINDIDEVICE);
+    fits_update_key_s(fptr, TSTRING, "INSTRUME", fitsString, "CCD Name" , &status);
+
+    // Telescope
+    strncpy(fitsString, ActiveDeviceT[0].text, MAXINDIDEVICE);
+    fits_update_key_s(fptr, TSTRING, "TELESCOP", fitsString, "Telescope name" , &status);
+
+    // Observer
+    strncpy(fitsString, FITSHeaderT[FITS_OBSERVER].text, MAXINDIDEVICE);
+    fits_update_key_s(fptr, TSTRING, "OBSERVER", fitsString, "Observer name" , &status);
+
+    // Object
+    strncpy(fitsString, FITSHeaderT[FITS_OBJECT].text, MAXINDIDEVICE);
+    fits_update_key_s(fptr, TSTRING, "OBJECT", fitsString, "Object name" , &status);
 
     switch (targetChip->getFrameType())
     {

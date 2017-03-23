@@ -89,12 +89,15 @@ bool Serial::ISNewSwitch (const char * dev, const char * name, ISState * states,
 
         if (!strcmp(name, AutoSearchSP.name))
         {
+            bool wasEnabled = (AutoSearchS[0].s == ISS_ON);
+
             IUUpdateSwitch(&AutoSearchSP, states, names, n);
             AutoSearchSP.s = IPS_OK;
 
-            if (AutoSearchS[0].s == ISS_ON)
+            // Only display message if there is an actual change
+            if (wasEnabled == false && AutoSearchS[0].s == ISS_ON)
                 DEBUG(INDI::Logger::DBG_SESSION, "Auto search is enabled. When connecting, the driver shall attempt to communicate with all available system ports until a connection is established.");
-            else
+            else if (wasEnabled && AutoSearchS[1].s == ISS_ON)
                 DEBUG(INDI::Logger::DBG_SESSION, "Auo search is disabled.");
             IDSetSwitch(&AutoSearchSP, NULL);
 

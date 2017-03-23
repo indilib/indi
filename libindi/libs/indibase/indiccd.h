@@ -839,6 +839,11 @@ class INDI::CCD : public INDI::DefaultDevice, INDI::GuiderInterface
         INumber CCDRotationN[1];
         INumberVectorProperty CCDRotationNP;
 
+        // FITS Header
+        IText FITSHeaderT[2];
+        ITextVectorProperty FITSHeaderTP;
+        enum { FITS_OBSERVER, FITS_OBJECT };
+
     private:
         uint32_t capability;
 

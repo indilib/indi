@@ -51,6 +51,7 @@ class LX200Generic: public INDI::Telescope, public INDI::GuiderInterface
   protected:
 
     virtual bool SetSlewRate(int index);
+    virtual bool SetTrackMode(int mode);
     virtual bool MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command);
     virtual bool MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command);
     virtual bool Abort();
@@ -70,7 +71,7 @@ class LX200Generic: public INDI::Telescope, public INDI::GuiderInterface
     virtual bool isSlewComplete();
     virtual bool checkConnection();
 
-    virtual void debugTriggered(bool enable);    
+    virtual void debugTriggered(bool enable);
 
     virtual void getBasicData();
     void slewError(int slewCode);

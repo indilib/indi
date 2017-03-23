@@ -20,18 +20,18 @@
 #define QFW_H
 
 #include <indifilterwheel.h>
+#include <connectionplugins/connectionserial.h>
 
 class QFW: public INDI::FilterWheel {
 private:
 public:
-	QFW();
+    QFW();
     ~QFW();
 
     void debugTriggered(bool enable);
     void simulationTriggered(bool enable);
 
-    bool Connect();
-    bool Disconnect();
+    bool Handshake();
     const char *getDefaultName();
 
     bool initProperties();
@@ -42,7 +42,6 @@ public:
     bool SelectFilter(int);
     virtual bool SetFilterNames() { return true; }
     bool GetFilterNames(const char *);
-    int fd;
 };
 
 #endif // QFW_H
