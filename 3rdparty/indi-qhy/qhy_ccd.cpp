@@ -590,9 +590,13 @@ bool QHYCCD::Connect()
         if(ret == QHYCCD_SUCCESS)
         {
             HasUSBSpeed = true;
-          // Force the speed to 0 on initialization of QHY5PII-C to avoid stuck transfer
-          if (isQHY5PIIC())
-            SetQHYCCDParam(camhandle, CONTROL_SPEED, 0);
+
+            // Force a certain speed on initialization of QHY5PII-C:
+            // CONTROL_SPEED = 2 - Fastest, but the camera gets stuck with long exposure times.
+            // CONTROL_SPEED = 1 - This is safe with the current driver.
+            // CONTROL_SPEED = 0 - This is safe, but slower than 1.
+            if (isQHY5PIIC())
+                SetQHYCCDParam(camhandle, CONTROL_SPEED, 1);
         }
 
         DEBUGF(INDI::Logger::DBG_DEBUG, "USB Speed Control: %s", HasUSBSpeed ? "True" : "False");
