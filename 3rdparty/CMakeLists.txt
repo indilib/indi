@@ -35,6 +35,7 @@ option(WITH_GPSD "Install GPSD Driver" On)
 option(WITH_GIGE "Install GiGE machine vision Driver" Off)
 option(WITH_DSI "Install Meade DSI Driver" On)
 option(WITH_ASICAM "Install ZWO Optics ASI Driver" On)
+option(WITH_MGEN "Install MGen Autoguider" Off)
 
 # Add/remove cases for OSX
 if (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
@@ -182,6 +183,11 @@ endif (WITH_GPSD)
 if (WITH_GIGE)
 add_subdirectory(indi-gige)
 endif (WITH_GIGE)
+
+# MGen
+if (WITH_MGEN)
+add_subdirectory(indi-mgen)
+endif (WITH_MGEN)
 
 #endif (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
 
