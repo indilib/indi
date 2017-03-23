@@ -308,13 +308,22 @@ bool ASICCD::updateProperties()
     setupParams();
 
     if (ControlNP.nnp > 0)
-     defineNumber(&ControlNP);
+    {
+        defineNumber(&ControlNP);
+        loadConfig(true, "CCD_CONTROLS");
+    }
 
     if (ControlSP.nsp > 0)
+    {
         defineSwitch(&ControlSP);
+        loadConfig(true, "CCD_CONTROLS_MODE");
+    }
 
     if (VideoFormatSP.nsp > 0)
+    {
         defineSwitch(&VideoFormatSP);
+        loadConfig(true, "CCD_VIDEO_FORMAT");
+    }
 
     SetTimer(POLLMS);
   } else
