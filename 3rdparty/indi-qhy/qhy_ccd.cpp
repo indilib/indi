@@ -1064,7 +1064,11 @@ int QHYCCD::grabImage()
   if (ExposureRequest > POLLMS * 5)
       DEBUG(INDI::Logger::DBG_SESSION, "Download complete.");
 
+  PrimaryCCD.setExposureLeft(0);
+
   ExposureComplete(&PrimaryCCD);
+
+  InExposure = false;
 
   return 0;
 }
@@ -1074,6 +1078,10 @@ void QHYCCD::TimerHit()
   if (isConnected() == false)
     return;
 
+   if (!InExposure && asyncCapture.get())
+   {
+     asyncCapture.reset();
+   }
    if (InExposure)
    {
        long timeleft = calcTimeLeft();
@@ -1088,24 +1096,16 @@ void QHYCCD::TimerHit()
            }
            else
            {
-               if (timeleft > 0.07)
-               {
-                   //  use an even tighter timer
-                   SetTimer(50);
-               }
-               else
+               SetTimer(100);
+               if (!asyncCapture.get())
                {
                    /* We're done exposing */
                    DEBUG(INDI::Logger::DBG_DEBUG, "Exposure done, downloading image...");
                    // Don't spam the session log unless it is a long exposure > 5 seconds
                    if (ExposureRequest > POLLMS * 5)
                        DEBUG(INDI::Logger::DBG_SESSION, "Exposure done, downloading image...");
-
-                   PrimaryCCD.setExposureLeft(0);
-                   InExposure = false;
-                   /* grab and save image */
-                   grabImage();
-
+                   /* Grab and save image asynchronuously */
+                   asyncCapture.reset(new std::future<int>(std::async(launch::async, &QHYCCD::grabImage, this)));
                }
            }
        }
