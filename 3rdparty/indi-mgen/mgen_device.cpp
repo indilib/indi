@@ -33,7 +33,7 @@
 
 #include <stdio.h>
 #include <pthread.h>
-#include <libftdi1/ftdi.h>
+#include <ftdi.h>
 #include <libusb-1.0/libusb.h>
 #include <unistd.h>
 
