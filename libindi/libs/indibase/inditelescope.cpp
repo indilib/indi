@@ -43,6 +43,8 @@ INDI::Telescope::Telescope()
     controller->setJoystickCallback(joystickHelper);
     controller->setButtonCallback(buttonHelper);
 
+    currentPierSide = PIER_EAST;
+    lastPierSide = PIER_UNKNOWN;
 }
 
 INDI::Telescope::~Telescope()
@@ -88,6 +90,11 @@ bool INDI::Telescope::initProperties()
     IUFillNumber(&LocationN[LOCATION_LONGITUDE],"LONG","Lon (dd:mm:ss)","%010.6m",0,360,0,0.0 );
     IUFillNumber(&LocationN[LOCATION_ELEVATION],"ELEV","Elevation (m)","%g",-200,10000,0,0 );
     IUFillNumberVector(&LocationNP,LocationN,3,getDeviceName(),"GEOGRAPHIC_COORD","Scope Location",SITE_TAB,IP_RW,60,IPS_OK);
+
+    // Pier Side
+    IUFillSwitch(&PierSideS[PIER_WEST],"PIER_WEST","West (pointing east)",ISS_OFF);
+    IUFillSwitch(&PierSideS[PIER_EAST],"PIER_EAST","East (pointing west)",ISS_ON);
+    IUFillSwitchVector(&PierSideSP,PierSideS,2,getDeviceName(),"TELESCOPE_PIER_SIDE",MAIN_CONTROL_TAB, SITE_TAB,IP_RO,ISR_1OFMANY,60,IPS_IDLE);
 
     IUFillSwitch(&CoordS[0],"TRACK","Track",ISS_ON);
     IUFillSwitch(&CoordS[1],"SLEW","Slew",ISS_OFF);
@@ -223,6 +230,9 @@ void INDI::Telescope::ISGetProperties (const char * dev)
 
             defineNumber(&TargetNP);
         }
+
+        if (HasPierSide())
+            defineSwitch(&PierSideSP);
     }
 
     if (CanGOTO())
@@ -264,6 +274,9 @@ bool INDI::Telescope::updateProperties()
              defineNumber(&TargetNP);
         }
 
+        if (HasPierSide())
+            defineSwitch(&PierSideSP);
+
         if (HasTime())
             defineText(&TimeTP);
         if (HasLocation())
@@ -294,6 +307,9 @@ bool INDI::Telescope::updateProperties()
                 deleteProperty(SlewRateSP.name);
             deleteProperty(TargetNP.name);
         }
+
+        if (HasPierSide())
+            deleteProperty(PierSideSP.name);
 
         if (HasTime())
             deleteProperty(TimeTP.name);
@@ -1763,4 +1779,19 @@ void INDI::Telescope::joystickHelper(const char * joystick_n, double mag, double
 void INDI::Telescope::buttonHelper(const char * button_n, ISState state, void * context)
 {
     static_cast<INDI::Telescope *>(context)->processButton(button_n, state);
+}
+
+void INDI::Telescope::setPierSide(TelescopePierSide side)
+{
+    currentPierSide = side;
+
+    if (currentPierSide != lastPierSide)
+    {
+        PierSideS[PIER_WEST].s = (side == PIER_WEST) ? ISS_ON : ISS_OFF;
+        PierSideS[PIER_EAST].s = (side == PIER_EAST) ? ISS_ON : ISS_OFF;
+        PierSideSP.s = IPS_OK;
+        IDSetSwitch(&PierSideSP, NULL);
+
+        lastPierSide = currentPierSide;
+    }
 }

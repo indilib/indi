@@ -151,14 +151,6 @@ Off
 0.0
 </defNumber>
 </defNumberVector>
-<defSwitchVector device="EQMod Mount" name="TELESCOPE_PIER_SIDE" label="Pier Side" group="Main Control" state="Idle" perm="ro" rule="OneOfMany">
-<defSwitch name="PIER_EAST" label="East (pointing west)">
-On
-</defSwitch>
-<defSwitch name="PIER_WEST" label="West (pointing east)">
-Off
-</defSwitch>
-</defSwitchVector>
 <defSwitchVector device="EQMod Mount" name="REVERSEDEC" label="Reverse DEC" group="Main Control" state="Idle" perm="rw" rule="OneOfMany">
 <defSwitch name="ENABLE" label="Enable">
 Off

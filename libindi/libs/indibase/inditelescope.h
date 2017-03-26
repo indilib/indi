@@ -58,6 +58,7 @@ class INDI::Telescope : public INDI::DefaultDevice
         enum TelescopeTrackMode  { TRACK_SIDEREAL, TRACK_SOLAR, TRACK_LUNAR, TRACK_CUSTOM };
         enum TelescopeParkData  { PARK_NONE, PARK_RA_DEC, PARK_AZ_ALT, PARK_RA_DEC_ENCODER, PARK_AZ_ALT_ENCODER };
         enum TelescopeLocation { LOCATION_LATITUDE, LOCATION_LONGITUDE, LOCATION_ELEVATION };
+        enum TelescopePierSide { PIER_UNKNOWN=-1, PIER_WEST=0, PIER_EAST=1};
 
         /** \struct TelescopeConnection
             \brief Holds the connection mode of the telescope.
@@ -79,7 +80,8 @@ class INDI::Telescope : public INDI::DefaultDevice
             TELESCOPE_CAN_PARK          = 1 << 2,       /** Can the telescope park? */
             TELESCOPE_CAN_ABORT         = 1 << 3,       /** Can the telescope abort motion? */
             TELESCOPE_HAS_TIME          = 1 << 4,       /** Does the telescope have configurable date and time settings? */
-            TELESCOPE_HAS_LOCATION      = 1 << 5        /** Does the telescope have configuration location settings? */
+            TELESCOPE_HAS_LOCATION      = 1 << 5,       /** Does the telescope have configuration location settings? */
+            TELESCOPE_HAS_PIER_SIDE     = 1 << 6        /** Does the telescope have pier side property? */
         } TelescopeCapability;
 
         Telescope();
@@ -153,6 +155,14 @@ class INDI::Telescope : public INDI::DefaultDevice
         bool HasLocation()
         {
             return capability & TELESCOPE_HAS_LOCATION;
+        }
+
+        /**
+         * @return True if telescope supports pier side property
+         */
+        bool HasPierSide()
+        {
+            return capability & TELESCOPE_HAS_PIER_SIDE;
         }
 
         /** \brief Called to initialize basic properties required all the time */
@@ -259,6 +269,8 @@ class INDI::Telescope : public INDI::DefaultDevice
          */
         uint8_t getTelescopeConnection() const;
 
+        void setPierSide(TelescopePierSide side);
+        TelescopePierSide getPierSide() { return currentPierSide; }
 
     protected:
 
@@ -457,6 +469,13 @@ class INDI::Telescope : public INDI::DefaultDevice
         // Lock Joystick Axis to one direciton only
         ISwitch LockAxisS[2];
         ISwitchVectorProperty LockAxisSP;
+
+        // Pier Side
+        ISwitch PierSideS[2];
+        ISwitchVectorProperty PierSideSP;
+
+        // Pier Side
+        TelescopePierSide lastPierSide, currentPierSide;
 
         uint32_t capability;
         int last_we_motion, last_ns_motion;
