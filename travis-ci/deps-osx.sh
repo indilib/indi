@@ -24,6 +24,7 @@ brew install \
 			fakeroot \
 			gsl \
 			libftdi \
+			libftdi1 \
 			libgphoto2 \
 			libjpeg \
 			libusb \
