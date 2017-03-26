@@ -12,7 +12,7 @@ set(INDI_MGENAUTOGUIDER_VERSION_MINOR 1)
 
 find_package(INDI REQUIRED)
 find_package(ZLIB REQUIRED)
-find_package(FTDI1 REQUIRED)
+find_package(FTDI REQUIRED)
 find_package(USB-1 REQUIRED)
 find_package(Threads REQUIRED)
 
