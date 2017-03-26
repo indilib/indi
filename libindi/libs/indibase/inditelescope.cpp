@@ -94,7 +94,7 @@ bool INDI::Telescope::initProperties()
     // Pier Side
     IUFillSwitch(&PierSideS[PIER_WEST],"PIER_WEST","West (pointing east)",ISS_OFF);
     IUFillSwitch(&PierSideS[PIER_EAST],"PIER_EAST","East (pointing west)",ISS_ON);
-    IUFillSwitchVector(&PierSideSP,PierSideS,2,getDeviceName(),"TELESCOPE_PIER_SIDE",MAIN_CONTROL_TAB, SITE_TAB,IP_RO,ISR_1OFMANY,60,IPS_IDLE);
+    IUFillSwitchVector(&PierSideSP,PierSideS,2,getDeviceName(),"TELESCOPE_PIER_SIDE", "Pier Side", MAIN_CONTROL_TAB,IP_RO,ISR_1OFMANY,60,IPS_IDLE);
 
     IUFillSwitch(&CoordS[0],"TRACK","Track",ISS_ON);
     IUFillSwitch(&CoordS[1],"SLEW","Slew",ISS_OFF);
@@ -274,9 +274,6 @@ bool INDI::Telescope::updateProperties()
              defineNumber(&TargetNP);
         }
 
-        if (HasPierSide())
-            defineSwitch(&PierSideSP);
-
         if (HasTime())
             defineText(&TimeTP);
         if (HasLocation())
@@ -290,6 +287,9 @@ bool INDI::Telescope::updateProperties()
                 defineSwitch(&ParkOptionSP);
             }
         }
+
+        if (HasPierSide())
+            defineSwitch(&PierSideSP);
     }
     else
     {
@@ -308,9 +308,6 @@ bool INDI::Telescope::updateProperties()
             deleteProperty(TargetNP.name);
         }
 
-        if (HasPierSide())
-            deleteProperty(PierSideSP.name);
-
         if (HasTime())
             deleteProperty(TimeTP.name);
         if (HasLocation())
@@ -325,6 +322,9 @@ bool INDI::Telescope::updateProperties()
                 deleteProperty(ParkOptionSP.name);
             }
         }
+
+        if (HasPierSide())
+            deleteProperty(PierSideSP.name);
     }
 
     if (CanGOTO())

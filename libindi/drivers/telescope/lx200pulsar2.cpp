@@ -512,7 +512,7 @@ LX200Pulsar2::LX200Pulsar2(void)
   : LX200Generic(), just_started_slewing(false)
 {
   setVersion(1, 0);
-  SetTelescopeCapability(TELESCOPE_CAN_SYNC | TELESCOPE_CAN_GOTO | TELESCOPE_CAN_PARK | TELESCOPE_CAN_ABORT | TELESCOPE_HAS_TIME | TELESCOPE_HAS_LOCATION, 4);
+  SetTelescopeCapability(TELESCOPE_CAN_SYNC | TELESCOPE_CAN_GOTO | TELESCOPE_CAN_PARK | TELESCOPE_CAN_ABORT | TELESCOPE_HAS_TIME | TELESCOPE_HAS_LOCATION | TELESCOPE_HAS_PIER_SIDE, 4);
   hasFocus=false;
 }
 
@@ -585,8 +585,7 @@ void LX200Pulsar2::ISGetProperties(const char *dev) {
   if (dev && strcmp(dev,getDeviceName()))
     return;
   LX200Generic::ISGetProperties(dev);
-  if (isConnected()) {
-    defineSwitch(&PierSideSP);
+  if (isConnected()) {    
     defineSwitch(&PeriodicErrorCorrectionSP);
     defineSwitch(&PoleCrossingSP);
     defineSwitch(&RefractionCorrectionSP);
@@ -596,10 +595,7 @@ void LX200Pulsar2::ISGetProperties(const char *dev) {
 
 bool LX200Pulsar2::initProperties(void) {
   const bool result = LX200Generic::initProperties();
-  if (result) {
-    IUFillSwitch(&PierSideS[0], "EAST_OF_PIER", "East", ISS_OFF);
-    IUFillSwitch(&PierSideS[1], "WEST_OF_PIER", "West", ISS_ON);
-    IUFillSwitchVector(&PierSideSP, PierSideS, 2, getDeviceName(), "PIER_SIDE", "Side of Pier", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+  if (result) {    
     IUFillSwitch(&PeriodicErrorCorrectionS[0], "PEC_OFF", "Off", ISS_OFF);
     IUFillSwitch(&PeriodicErrorCorrectionS[1], "PEC_ON",  "On",  ISS_ON);
     IUFillSwitchVector(&PeriodicErrorCorrectionSP, PeriodicErrorCorrectionS, 2, getDeviceName(), "PE_CORRECTION", "P.E. Correction", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
@@ -617,8 +613,7 @@ bool LX200Pulsar2::initProperties(void) {
 bool LX200Pulsar2::updateProperties(void) {
   LX200Generic::updateProperties();
   
-  if (isConnected()) {
-    defineSwitch(&PierSideSP);
+  if (isConnected()) {    
     defineSwitch(&PeriodicErrorCorrectionSP);
     defineSwitch(&PoleCrossingSP);
     defineSwitch(&RefractionCorrectionSP);
@@ -632,7 +627,6 @@ bool LX200Pulsar2::updateProperties(void) {
     getBasicData();
   }
   else {
-    deleteProperty(PierSideSP.name);
     deleteProperty(PeriodicErrorCorrectionSP.name);
     deleteProperty(PoleCrossingSP.name);
     deleteProperty(RefractionCorrectionSP.name);
@@ -644,6 +638,9 @@ bool LX200Pulsar2::updateProperties(void) {
 
 bool LX200Pulsar2::ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n) {
   if (strcmp(dev, getDeviceName()) == 0) {
+
+#if 0
+// JM 2017-03-26: PierSide is a RO only property in INDI::Telescope
     if (strcmp(name, PierSideSP.name) == 0) {
       if (IUUpdateSwitch(&PierSideSP, states, names, n) < 0)
 	return false;
@@ -663,6 +660,7 @@ bool LX200Pulsar2::ISNewSwitch (const char *dev, const char *name, ISState *stat
 	return success;
       }
     }
+#endif
 
     if (strcmp(name, PeriodicErrorCorrectionSP.name) == 0) {
       if (IUUpdateSwitch(&PeriodicErrorCorrectionSP, states, names, n) < 0)
@@ -1230,9 +1228,11 @@ void LX200Pulsar2::getBasicData(void) {
     NewRaDec(currentRA,currentDEC);
 
     Pulsar2Commands::SideOfPier side_of_pier = Pulsar2Commands::EastOfPier;
-    if (Pulsar2Commands::getSideOfPier(PortFD,&side_of_pier)) {
-      PierSideS[side_of_pier].s = ISS_ON;
-      IDSetSwitch(&PierSideSP, NULL);
+    if (Pulsar2Commands::getSideOfPier(PortFD,&side_of_pier))
+    {
+      //PierSideS[side_of_pier].s = ISS_ON;
+      //IDSetSwitch(&PierSideSP, NULL);
+        setPierSide((side_of_pier == Pulsar2Commands::EastOfPier) ? PIER_EAST : PIER_WEST);
     }
     else {
       PierSideSP.s = IPS_ALERT;
