@@ -3,6 +3,7 @@
 set -x -e
 
 sudo apt-get -qq update
+
 sudo apt-get -q -y install \
  cdbs \
  curl \
@@ -12,7 +13,6 @@ sudo apt-get -q -y install \
  libboost-regex-dev \
  libcfitsio3-dev \
  libftdi-dev \
- libftdi1-dev \
  libgphoto2-dev \
  libgps-dev \
  libgsl0-dev \

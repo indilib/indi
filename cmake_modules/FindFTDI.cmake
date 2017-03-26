@@ -25,7 +25,7 @@ else (FTDI_INCLUDE_DIR AND FTDI_LIBRARIES)
     /usr/local/include
   )
 
-  find_library(FTDI_LIBRARIES NAMES ftdi
+  find_library(FTDI_LIBRARIES NAMES ftdi ftdi1
     PATHS
     ${_obLinkDir}
     ${GNUWIN32_DIR}/lib
