@@ -135,7 +135,7 @@ bool TCP::Connect()
     else
         DEBUG(INDI::Logger::DBG_DEBUG, "Handshake failed.");
 
-    return true;
+    return rc;
 }
 
 bool TCP::Disconnect()
