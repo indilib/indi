@@ -92,7 +92,8 @@ bool MGenAutoguider::ISNewSwitch(const char *dev, const char *name, ISState *sta
             {
                 IUUpdateSwitch(&ui.buttons.properties[0], states, names, n);
                 ISwitch * const key_switch = IUFindOnSwitch(&ui.buttons.properties[0]);
-                MGIO_INSERT_BUTTON((MGIO_INSERT_BUTTON::Button)(int) key_switch->aux).ask(*device);
+                MGIO_INSERT_BUTTON::Button button = static_cast<MGIO_INSERT_BUTTON::Button>(*(reinterpret_cast<int*>(key_switch->aux)));
+                MGIO_INSERT_BUTTON(button).ask(*device);
                 key_switch->s = ISS_OFF;
                 ui.buttons.properties[0].s = IPS_OK;
                 IDSetSwitch(&ui.buttons.properties[0], NULL);
@@ -101,7 +102,8 @@ bool MGenAutoguider::ISNewSwitch(const char *dev, const char *name, ISState *sta
             {
                 IUUpdateSwitch(&ui.buttons.properties[1], states, names, n);
                 ISwitch * const key_switch = IUFindOnSwitch(&ui.buttons.properties[1]);
-                MGIO_INSERT_BUTTON((MGIO_INSERT_BUTTON::Button)(int) key_switch->aux).ask(*device);
+                MGIO_INSERT_BUTTON::Button button = static_cast<MGIO_INSERT_BUTTON::Button>(*(reinterpret_cast<int*>(key_switch->aux)));
+                MGIO_INSERT_BUTTON(button).ask(*device);
                 key_switch->s = ISS_OFF;
                 ui.buttons.properties[1].s = IPS_OK;
                 IDSetSwitch(&ui.buttons.properties[1], NULL);
