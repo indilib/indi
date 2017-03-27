@@ -63,6 +63,9 @@ using namespace std;
 std::unique_ptr<MGenAutoguider> mgenAutoguider(new MGenAutoguider());
 MGenAutoguider & MGenAutoguider::instance() { return *mgenAutoguider; }
 
+const MGIO_INSERT_BUTTON::Button MGIO_Buttons[] = { MGIO_INSERT_BUTTON::IOB_ESC, MGIO_INSERT_BUTTON::IOB_SET, MGIO_INSERT_BUTTON::IOB_UP, MGIO_INSERT_BUTTON::IOB_LEFT,
+                                                    MGIO_INSERT_BUTTON::IOB_RIGHT, MGIO_INSERT_BUTTON::IOB_DOWN};
+
 
 /**************************************************************************************
 ** Return properties of device->
@@ -92,7 +95,7 @@ bool MGenAutoguider::ISNewSwitch(const char *dev, const char *name, ISState *sta
             {
                 IUUpdateSwitch(&ui.buttons.properties[0], states, names, n);
                 ISwitch * const key_switch = IUFindOnSwitch(&ui.buttons.properties[0]);
-                MGIO_INSERT_BUTTON::Button button = static_cast<MGIO_INSERT_BUTTON::Button>(*(reinterpret_cast<int*>(key_switch->aux)));
+                MGIO_INSERT_BUTTON::Button button = *(reinterpret_cast<MGIO_INSERT_BUTTON::Button*>(key_switch->aux));
                 MGIO_INSERT_BUTTON(button).ask(*device);
                 key_switch->s = ISS_OFF;
                 ui.buttons.properties[0].s = IPS_OK;
@@ -102,7 +105,7 @@ bool MGenAutoguider::ISNewSwitch(const char *dev, const char *name, ISState *sta
             {
                 IUUpdateSwitch(&ui.buttons.properties[1], states, names, n);
                 ISwitch * const key_switch = IUFindOnSwitch(&ui.buttons.properties[1]);
-                MGIO_INSERT_BUTTON::Button button = static_cast<MGIO_INSERT_BUTTON::Button>(*(reinterpret_cast<int*>(key_switch->aux)));
+                MGIO_INSERT_BUTTON::Button button = *(reinterpret_cast<MGIO_INSERT_BUTTON::Button*>(key_switch->aux));
                 MGIO_INSERT_BUTTON(button).ask(*device);
                 key_switch->s = ISS_OFF;
                 ui.buttons.properties[1].s = IPS_OK;
@@ -220,17 +223,17 @@ bool MGenAutoguider::initProperties()
         IUFillNumberVector(&ui.framerate.property, &ui.framerate.number, 1, getDeviceName(), "MGEN_UI_OPTIONS", "UI", TAB, IP_RW, 60, IPS_IDLE);
 
         IUFillSwitch(&ui.buttons.switches[0], "MGEN_UI_BUTTON_ESC", "ESC", ISS_OFF);
-        ui.buttons.switches[0].aux = (void*) MGIO_INSERT_BUTTON::IOB_ESC;
+        ui.buttons.switches[0].aux = (void *)&MGIO_Buttons[0];
         IUFillSwitch(&ui.buttons.switches[1], "MGEN_UI_BUTTON_SET", "SET", ISS_OFF);
-        ui.buttons.switches[1].aux = (void*) MGIO_INSERT_BUTTON::IOB_SET;
+        ui.buttons.switches[1].aux = (void *)&MGIO_Buttons[1];
         IUFillSwitch(&ui.buttons.switches[2], "MGEN_UI_BUTTON_UP", "UP", ISS_OFF);
-        ui.buttons.switches[2].aux = (void*) MGIO_INSERT_BUTTON::IOB_UP;
+        ui.buttons.switches[2].aux = (void *)&MGIO_Buttons[2];
         IUFillSwitch(&ui.buttons.switches[3], "MGEN_UI_BUTTON_LEFT", "LEFT", ISS_OFF);
-        ui.buttons.switches[3].aux = (void*) MGIO_INSERT_BUTTON::IOB_LEFT;
+        ui.buttons.switches[3].aux = (void *)&MGIO_Buttons[3];
         IUFillSwitch(&ui.buttons.switches[4], "MGEN_UI_BUTTON_RIGHT", "RIGHT", ISS_OFF);
-        ui.buttons.switches[4].aux = (void*) MGIO_INSERT_BUTTON::IOB_RIGHT;
+        ui.buttons.switches[4].aux = (void *)&MGIO_Buttons[4];
         IUFillSwitch(&ui.buttons.switches[5], "MGEN_UI_BUTTON_DOWN", "DOWN", ISS_OFF);
-        ui.buttons.switches[5].aux = (void*) MGIO_INSERT_BUTTON::IOB_DOWN;
+        ui.buttons.switches[5].aux = (void *)&MGIO_Buttons[5];
         /* ESC SET
          * UP LEFT RIGHT DOWN
          */
