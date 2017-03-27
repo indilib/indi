@@ -662,7 +662,6 @@ void Microtouch::TimerHit()
 {
     if (isConnected() == false)
     {
-        SetTimer(POLLMS);
         return;
     }
 
