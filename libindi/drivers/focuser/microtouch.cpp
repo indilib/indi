@@ -29,6 +29,8 @@
 #include <unistd.h>
 #include <math.h>
 #include <memory>
+#include "connectionplugins/connectionserial.h"
+
 
 #define MICROTOUCH_TIMEOUT 3
 
@@ -138,6 +140,7 @@ bool Microtouch::initProperties()
     FocusAbsPosN[0].step = 1000.;
 
     addDebugControl();
+    serialConnection->setDefaultBaudRate(Connection::Serial::B_19200);
 
     return true;
 }
@@ -196,7 +199,7 @@ const char * Microtouch::getDefaultName()
 
 bool Microtouch::Ack()
 {
-    unsigned short int pos=WriteCmdGetShortInt(CMD_GET_POSITION);
+    signed short int pos=WriteCmdGetShortInt(CMD_GET_POSITION);
     if (pos>-1)
     {
         FocusAbsPosN[0].value = pos;
@@ -657,6 +660,11 @@ IPState Microtouch::MoveRelFocuser(FocusDirection dir, uint32_t ticks)
 
 void Microtouch::TimerHit()
 {
+    if (isConnected() == false)
+    {
+        return;
+    }
+
     bool rc = updatePosition();
     if (rc)
     {
@@ -807,7 +815,7 @@ bool Microtouch::WriteCmdSetByte(char cmd, char val)
 }
 
 
-unsigned short int Microtouch::WriteCmdGetShortInt(char cmd)
+signed short int Microtouch::WriteCmdGetShortInt(char cmd)
 {
     char read[3];
 
