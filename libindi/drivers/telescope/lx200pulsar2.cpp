@@ -577,6 +577,19 @@ bool LX200Pulsar2::ReadScopeStatus(void) {
       }
     }
   }
+
+  Pulsar2Commands::SideOfPier side_of_pier = Pulsar2Commands::EastOfPier;
+  if (Pulsar2Commands::getSideOfPier(PortFD,&side_of_pier))
+  {
+    //PierSideS[side_of_pier].s = ISS_ON;
+    //IDSetSwitch(&PierSideSP, NULL);
+      setPierSide((side_of_pier == Pulsar2Commands::EastOfPier) ? PIER_EAST : PIER_WEST);
+  }
+  else {
+    PierSideSP.s = IPS_ALERT;
+    IDSetSwitch(&PierSideSP, "Can't check at which side of the pier the telescope is.");
+  }
+
   return success;
 }
 
@@ -605,6 +618,9 @@ bool LX200Pulsar2::initProperties(void) {
     IUFillSwitch(&RefractionCorrectionS[0], "REFR_CORR_OFF", "Off", ISS_OFF);
     IUFillSwitch(&RefractionCorrectionS[1], "REFR_CORR_ON",  "On",  ISS_ON);
     IUFillSwitchVector(&RefractionCorrectionSP, RefractionCorrectionS, 2, getDeviceName(), "REFR_CORRECTION", "Refraction Corr.", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+
+    // PierSide property is RW here so we override
+    PierSideSP.p = IP_RW;
   }
   return result;
 }
@@ -639,8 +655,6 @@ bool LX200Pulsar2::updateProperties(void) {
 bool LX200Pulsar2::ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n) {
   if (strcmp(dev, getDeviceName()) == 0) {
 
-#if 0
-// JM 2017-03-26: PierSide is a RO only property in INDI::Telescope
     if (strcmp(name, PierSideSP.name) == 0) {
       if (IUUpdateSwitch(&PierSideSP, states, names, n) < 0)
 	return false;
@@ -660,7 +674,6 @@ bool LX200Pulsar2::ISNewSwitch (const char *dev, const char *name, ISState *stat
 	return success;
       }
     }
-#endif
 
     if (strcmp(name, PeriodicErrorCorrectionSP.name) == 0) {
       if (IUUpdateSwitch(&PeriodicErrorCorrectionSP, states, names, n) < 0)
