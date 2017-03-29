@@ -829,6 +829,8 @@ IUSnoopBLOB (XMLEle *root, IBLOBVectorProperty *bvp)
                 from64tobits_fast(bp->blob, pcdataXMLEle(ep), enclen);
                 strncpy(bp->format, valuXMLAtt(fa), MAXINDIFORMAT);
                 bp->size = atoi(valuXMLAtt(sa));
+		bp->bloblen = atoi(valuXMLAtt(ec));
+		/* fprintf(stderr,"Snooping blob %d bytes %d compressed bytes\n",bp->size,bp->bloblen); */
             }
         }
     }
@@ -1171,7 +1173,8 @@ dispatch (XMLEle *root, char msg[])
                 XMLAtt *na = findXMLAtt (ep, "name");
                 XMLAtt *fa = findXMLAtt (ep, "format");
                 XMLAtt *sa = findXMLAtt (ep, "size");
-                if (na && fa && sa) {
+                XMLAtt *ea = findXMLAtt (ep, "enclen");
+                if (na && fa && ea && sa) {
                     if (n >= maxn) {
                         int newsz = (maxn=n+1)*sizeof(char *);
                         blobs = (char **) realloc (blobs, newsz);
@@ -1186,7 +1189,8 @@ dispatch (XMLEle *root, char msg[])
                     blobsizes[n] = from64tobits_fast(blobs[n], pcdataXMLEle(ep), bloblen);
                     names[n] = valuXMLAtt(na);
                     formats[n] = valuXMLAtt(fa);
-                    sizes[n] = atoi(valuXMLAtt(sa));
+                    sizes[n] = atoi(valuXMLAtt(ea));
+		    IDMessage(dev, "%s: newBLOBVector fetching %d bytes, real size %d", name, sizes[n], atoi(valuXMLAtt(sa)));
                     n++;
                 }
             }
