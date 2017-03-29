@@ -273,7 +273,7 @@ bool AstrometryDriver::ISSnoopDevice (XMLEle *root)
 {
      if(SolverS[0].s == ISS_ON && IUSnoopBLOB(root,&CCDDataBP)==0)
      {
-        processBLOB(reinterpret_cast<uint8_t*>(CCDDataB[0].blob), static_cast<uint32_t>(CCDDataB[0].size));
+        processBLOB(reinterpret_cast<uint8_t*>(CCDDataB[0].blob), static_cast<uint32_t>(CCDDataB[0].bloblen));
         return true;
      }
 
@@ -292,6 +292,7 @@ bool AstrometryDriver::processBLOB(const uint8_t *data, const uint32_t size)
     FILE *fp = NULL;
     char imageFileName[MAXRBUF];
 
+    DEBUGF(INDI::Logger::DBG_SESSION, "Processing %d-byte blob at %p", size, data);
     strncpy(imageFileName, "/tmp/ccdsolver.fits", MAXRBUF);
 
     fp = fopen(imageFileName, "w");
