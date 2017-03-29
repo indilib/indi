@@ -23,6 +23,7 @@
 *******************************************************************************/
 
 #include <memory>
+#include <zlib.h>
 
 #include "astrometrydriver.h"
 
@@ -194,7 +195,7 @@ bool AstrometryDriver::ISNewBLOB(const char *dev, const char *name, int sizes[],
                 defineNumber(&SolverResultNP);
             }
 
-            processBLOB(reinterpret_cast<uint8_t*>(blobs[0]), static_cast<uint32_t>(sizes[0]));
+            processBLOB(reinterpret_cast<uint8_t*>(blobs[0]), static_cast<uint32_t>(sizes[0]), static_cast<uint32_t>(blobsizes[0]));
 
             return true;
         }
@@ -273,7 +274,7 @@ bool AstrometryDriver::ISSnoopDevice (XMLEle *root)
 {
      if(SolverS[0].s == ISS_ON && IUSnoopBLOB(root,&CCDDataBP)==0)
      {
-        processBLOB(reinterpret_cast<uint8_t*>(CCDDataB[0].blob), static_cast<uint32_t>(CCDDataB[0].size));
+        processBLOB(reinterpret_cast<uint8_t*>(CCDDataB[0].blob), static_cast<uint32_t>(CCDDataB[0].size), static_cast<uint32_t>(CCDDataB[0].bloblen));
         return true;
      }
 
@@ -287,10 +288,40 @@ bool AstrometryDriver::saveConfigItems(FILE *fp)
     return true;
 }
 
-bool AstrometryDriver::processBLOB(const uint8_t *data, const uint32_t size)
+bool AstrometryDriver::processBLOB(uint8_t *data, uint32_t size, uint32_t len)
 {
     FILE *fp = NULL;
     char imageFileName[MAXRBUF];
+
+    uint8_t *processedData = data;
+
+    // If size != len then we have compressed buffer
+    if (size != len)
+    {
+        uint8_t * dataBuffer = new uint8_t[size];
+        uLongf destLen=size;
+
+        if (dataBuffer == NULL)
+        {
+            DEBUG(INDI::Logger::DBG_DEBUG, "Unable to allocate memory for data buffer");
+            return false;
+        }
+
+        int r = uncompress(dataBuffer, &destLen, data, len);
+        if (r != Z_OK)
+        {
+            DEBUGF(INDI::Logger::DBG_ERROR, "Astrometry compression error: %d", r);
+            delete [] dataBuffer;
+            return false;
+        }
+
+        if (destLen != size)
+        {
+            DEBUGF(INDI::Logger::DBG_WARNING, "Discrepency between uncompressed data size %ld and expected size %ld", size, destLen);
+        }
+
+        processedData = dataBuffer;
+    }
 
     strncpy(imageFileName, "/tmp/ccdsolver.fits", MAXRBUF);
 
@@ -303,9 +334,13 @@ bool AstrometryDriver::processBLOB(const uint8_t *data, const uint32_t size)
 
     int n=0;
     for (uint32_t nr=0; nr < size; nr += n)
-        n = fwrite( data + nr, 1, size - nr, fp);
+        n = fwrite( processedData + nr, 1, size - nr, fp);
 
     fclose(fp);
+
+    // Do not forget to release uncompressed buffer
+    if (size != len)
+        delete [] processedData;
 
     pthread_mutex_lock(&lock);
     SolverSP.s = IPS_BUSY;
