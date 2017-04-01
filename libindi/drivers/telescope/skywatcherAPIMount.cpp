@@ -67,7 +67,7 @@ const char * SkywatcherAPIMount::DetailedMountInfoPage = "Detailed Mount Informa
 
 // Constructor
 
-SkywatcherAPIMount::SkywatcherAPIMount()
+SkywatcherAPIMount::SkywatcherAPIMount() : ResetTrackingSeconds(false), TrackingSecs(0)
 {
     // Set up the logging pointer in SkyWatcherAPI
     pChildTelescope = this;
@@ -113,6 +113,13 @@ bool SkywatcherAPIMount::Handshake()
     {
         IUFindSwitch(&SlewModesSP, "SLEW_SILENT")->s = ISS_ON;
         IUFindSwitch(&SlewModesSP, "SLEW_NORMAL")->s = ISS_OFF;
+    }
+    // The SoftPEC is enabled on Virtuoso mounts by default.
+    if (Result && IsVirtuosoMount() &&
+        IUFindSwitch(&SoftPECModesSP, "SOFTPEC_ENABLED") && IUFindSwitch(&SoftPECModesSP, "SOFTPEC_DISABLED"))
+    {
+        IUFindSwitch(&SoftPECModesSP, "SOFTPEC_ENABLED")->s = ISS_ON;
+        IUFindSwitch(&SoftPECModesSP, "SOFTPEC_DISABLED")->s = ISS_OFF;
     }
     // The default position is parking on Virtuoso mounts (the telescope is oriented to polar).
     if (Result && IsVirtuosoMount())
@@ -469,6 +476,17 @@ bool SkywatcherAPIMount::initProperties()
     IUFillSwitchVector(&SlewModesSP, SlewModes, 2, getDeviceName(), "TELESCOPE_MOTION_SLEWMODE", "Slew Mode",
                        MOTION_TAB, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
 
+    // SoftPEC modes
+    IUFillSwitch(&SoftPECModes[SOFTPEC_ENABLED], "SOFTPEC_ENABLED", "Enable for tracking", ISS_OFF);
+    IUFillSwitch(&SoftPECModes[SOFTPEC_DISABLED], "SOFTPEC_DISABLED", "Disabled", ISS_ON);
+    IUFillSwitchVector(&SoftPECModesSP, SoftPECModes, 2, getDeviceName(), "TELESCOPE_MOTION_SOFTPECMODE", "SoftPEC Mode",
+                       MOTION_TAB, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
+
+    // SoftPEC value for tracking mode
+    IUFillNumber(&SoftPecN, "SOFTPEC_VALUE", "degree/minute (Alt)", "%1.3f", 0.001, 1.0, 0.001, 0.009);
+    IUFillNumberVector(&SoftPecNP, &SoftPecN, 1, getDeviceName(), "SOFTPEC",
+                       "SoftPEC Value", MOTION_TAB, IP_RW, 60, IPS_IDLE);
+
     // Park movement directions
     IUFillSwitch(&ParkMovementDirection[PARK_COUNTERCLOCKWISE], "PMD_COUNTERCLOCKWISE", "Counterclockwise", ISS_ON);
     IUFillSwitch(&ParkMovementDirection[PARK_CLOCKWISE], "PMD_CLOCKWISE", "Clockwise", ISS_OFF);
@@ -516,6 +534,8 @@ void SkywatcherAPIMount::ISGetProperties (const char *dev)
         defineNumber(&AxisOneEncoderValuesV);
         defineNumber(&AxisTwoEncoderValuesV);
         defineSwitch(&SlewModesSP);
+        defineSwitch(&SoftPECModesSP);
+        defineNumber(&SoftPecNP);
         defineSwitch(&ParkMovementDirectionSP);
         defineSwitch(&ParkPositionSP);
         defineSwitch(&UnparkPositionSP);
@@ -856,6 +876,12 @@ bool SkywatcherAPIMount::ReadScopeStatus()
 
         // The altitude degrees in the Virtuoso Alt-Az mount are inverted.
         AltAz.alt = 3420-MountDegree;
+        // Drift compensation for tracking mode (SoftPEC)
+        if (IUFindSwitch(&SoftPECModesSP, "SOFTPEC_ENABLED") && IUFindSwitch(&SoftPECModesSP, "SOFTPEC_ENABLED")->s == ISS_ON &&
+            IUFindNumber(&SoftPecNP, "SOFTPEC_VALUE"))
+        {
+            AltAz.alt = AltAz.alt+(IUFindNumber(&SoftPecNP, "SOFTPEC_VALUE")->value / 60)*TrackingSecs;
+        }
     }
     DEBUGF(INDI::AlignmentSubsystem::DBG_ALIGNMENT, "Axis2 encoder %ld initial %ld alt(degrees) %lf", CurrentEncoders[AXIS2], ZeroPositionEncoders[AXIS2], AltAz.alt);
     AltAz.az = MicrostepsToDegrees(AXIS1, CurrentEncoders[AXIS1] - ZeroPositionEncoders[AXIS1]);
@@ -947,6 +973,8 @@ bool SkywatcherAPIMount::Sync(double ra, double dec)
     if (!GetEncoder(AXIS2))
         return false;
 
+    // The tracking seconds should be reset to restart the drift compensation
+    ResetTrackingSeconds = true;
     // Might as well do this
     UpdateDetailedMountInformation(true);
 
@@ -1002,6 +1030,9 @@ bool SkywatcherAPIMount::Sync(double ra, double dec)
 
 void SkywatcherAPIMount::TimerHit()
 {
+    static bool Slewing = false;
+    static bool Tracking = false;
+
     // By default this method is called every POLLMS milliseconds
 
     // Call the base class handler
@@ -1013,6 +1044,13 @@ void SkywatcherAPIMount::TimerHit()
     switch(TrackState)
     {
         case SCOPE_SLEWING:
+            if (!Slewing)
+            {
+                DEBUG(INDI::Logger::DBG_SESSION, "Slewing started");
+            }
+            TrackingSecs = 0;
+            Tracking = false;
+            Slewing = true;
             if ((AxesStatus[AXIS1].FullStop) && (AxesStatus[AXIS2].FullStop))
             {
                 if (ISS_ON == IUFindSwitch(&CoordSP,"TRACK")->s)
@@ -1027,11 +1065,28 @@ void SkywatcherAPIMount::TimerHit()
                     break;
                 }
             }
-            else
-                break;
+        break;
 
         case SCOPE_TRACKING:
         {
+            if (!Tracking)
+            {
+                DEBUG(INDI::Logger::DBG_SESSION, "Tracking started");
+                TrackingSecs = 0;
+            }
+            // Restart the drift compensation after syncing
+            if (ResetTrackingSeconds)
+            {
+              ResetTrackingSeconds = false;
+              TrackingSecs = 0;
+            }
+            TrackingSecs++;
+            if (TrackingSecs % 20 == 0)
+            {
+                DEBUGF(INDI::Logger::DBG_SESSION, "Tracking in progress (%d seconds elapsed)", TrackingSecs);
+            }
+            Tracking = true;
+            Slewing = false;
             // Continue or start tracking
             // Calculate where the mount needs to be in POLLMS time
             // POLLMS is hardcoded to be one second
@@ -1084,24 +1139,31 @@ void SkywatcherAPIMount::TimerHit()
                 // The initial position of the Virtuoso mount is polar aligned when switched on.
                 // The altitude is corrected by the latitude.
                 if (IUFindNumber(&LocationNP, "LAT"))
+                {
                     AltAz.alt = AltAz.alt-IUFindNumber(&LocationNP, "LAT")->value;
-
+                }
+                // Drift compensation for tracking mode (SoftPEC)
+                if (IUFindSwitch(&SoftPECModesSP, "SOFTPEC_ENABLED") && IUFindSwitch(&SoftPECModesSP, "SOFTPEC_ENABLED")->s == ISS_ON &&
+                    IUFindNumber(&SoftPecNP, "SOFTPEC_VALUE"))
+                {
+                    AltAz.alt = AltAz.alt+(IUFindNumber(&SoftPecNP, "SOFTPEC_VALUE")->value / 60)*TrackingSecs;
+                }
                 AltAz.az = 180+AltAz.az;
             }
-            DEBUGF(INDI::Logger::DBG_SESSION, "Tracking AXIS1 CurrentEncoder %ld OldTrackingTarget %ld AXIS2 CurrentEncoder %ld OldTrackingTarget %ld",
-                                            CurrentEncoders[AXIS1], OldTrackingTarget[AXIS1], CurrentEncoders[AXIS2], OldTrackingTarget[AXIS2]);
-            DEBUGF(INDI::Logger::DBG_SESSION, "New Tracking Target Altitude %lf degrees %ld microsteps Azimuth %lf degrees %ld microsteps",
-                                AltAz.alt, DegreesToMicrosteps(AXIS2, AltAz.alt), AltAz.az, DegreesToMicrosteps(AXIS1, AltAz.az));
+            DEBUGF(DBG_SCOPE, "Tracking AXIS1 CurrentEncoder %ld OldTrackingTarget %ld AXIS2 CurrentEncoder %ld OldTrackingTarget %ld",
+                   CurrentEncoders[AXIS1], OldTrackingTarget[AXIS1], CurrentEncoders[AXIS2], OldTrackingTarget[AXIS2]);
+            DEBUGF(DBG_SCOPE, "New Tracking Target Altitude %lf degrees %ld microsteps Azimuth %lf degrees %ld microsteps",
+                   AltAz.alt, DegreesToMicrosteps(AXIS2, AltAz.alt), AltAz.az, DegreesToMicrosteps(AXIS1, AltAz.az));
 
             long AltitudeOffsetMicrosteps = DegreesToMicrosteps(AXIS2, AltAz.alt) + ZeroPositionEncoders[AXIS2] - CurrentEncoders[AXIS2];
             long AzimuthOffsetMicrosteps = DegreesToMicrosteps(AXIS1, AltAz.az) + ZeroPositionEncoders[AXIS1] - CurrentEncoders[AXIS1];
 
-            DEBUGF(INDI::Logger::DBG_SESSION, "New Tracking Target AltitudeOffset %ld microsteps AzimuthOffset %ld microsteps",
-                                AltitudeOffsetMicrosteps, AzimuthOffsetMicrosteps);
+            DEBUGF(DBG_SCOPE, "New Tracking Target AltitudeOffset %ld microsteps AzimuthOffset %ld microsteps",
+                   AltitudeOffsetMicrosteps, AzimuthOffsetMicrosteps);
 
             if (AzimuthOffsetMicrosteps > MicrostepsPerRevolution[AXIS1] / 2)
             {
-                DEBUG(INDI::Logger::DBG_SESSION, "Tracking AXIS1 going long way round");
+                DEBUG(DBG_SCOPE, "Tracking AXIS1 going long way round");
                 // Going the long way round - send it the other way
                 AzimuthOffsetMicrosteps -= MicrostepsPerRevolution[AXIS1];
             }
@@ -1115,7 +1177,7 @@ void SkywatcherAPIMount::TimerHit()
                 {
                     // Direction change whilst axis running
                     // Abandon tracking for this clock tick
-                    DEBUG(INDI::Logger::DBG_SESSION, "Tracking - AXIS1 direction change");
+                    DEBUG(DBG_SCOPE, "Tracking - AXIS1 direction change");
                     SlowStop(AXIS1);
                 }
                 else
@@ -1125,25 +1187,25 @@ void SkywatcherAPIMount::TimerHit()
                     SetClockTicksPerMicrostep(AXIS1, AzimuthRate < 1 ? 1 : AzimuthRate);
                     if (AxesStatus[AXIS1].FullStop)
                     {
-                        DEBUG(INDI::Logger::DBG_SESSION, "Tracking - AXIS1 restart");
+                        DEBUG(DBG_SCOPE, "Tracking - AXIS1 restart");
                         SetMotionMode(AXIS1, '1', Direction);
                         StartMotion(AXIS1);
                     }
-                    DEBUGF(INDI::Logger::DBG_SESSION, "Tracking - AXIS1 offset %ld microsteps rate %ld direction %c",
-                                                                AzimuthOffsetMicrosteps, AzimuthRate, Direction);
+                    DEBUGF(DBG_SCOPE, "Tracking - AXIS1 offset %ld microsteps rate %ld direction %c",
+                           AzimuthOffsetMicrosteps, AzimuthRate, Direction);
                 }
             }
             else
             {
                 // Nothing to do - stop the axis
-                DEBUG(INDI::Logger::DBG_SESSION, "Tracking - AXIS1 zero offset");
+                DEBUG(DBG_SCOPE, "Tracking - AXIS1 zero offset");
                 SlowStop(AXIS1);
             }
 
             // Do I need to take out any complete revolutions before I do this test?
             if (AltitudeOffsetMicrosteps > MicrostepsPerRevolution[AXIS2] / 2)
             {
-                DEBUG(INDI::Logger::DBG_SESSION, "Tracking AXIS2 going long way round");
+                DEBUG(DBG_SCOPE, "Tracking AXIS2 going long way round");
                 // Going the long way round - send it the other way
                 AltitudeOffsetMicrosteps -= MicrostepsPerRevolution[AXIS2];
             }
@@ -1158,7 +1220,7 @@ void SkywatcherAPIMount::TimerHit()
                 {
                     // Direction change whilst axis running
                     // Abandon tracking for this clock tick
-                    DEBUG(INDI::Logger::DBG_SESSION, "Tracking - AXIS2 direction change");
+                    DEBUG(DBG_SCOPE, "Tracking - AXIS2 direction change");
                     SlowStop(AXIS2);
                 }
                 else
@@ -1168,33 +1230,45 @@ void SkywatcherAPIMount::TimerHit()
                     SetClockTicksPerMicrostep(AXIS2, AltitudeRate < 1 ? 1 : AltitudeRate);
                     if (AxesStatus[AXIS2].FullStop)
                     {
-                        DEBUG(INDI::Logger::DBG_SESSION, "Tracking - AXIS2 restart");
+                        DEBUG(DBG_SCOPE, "Tracking - AXIS2 restart");
                         SetMotionMode(AXIS2, '1', Direction);
                         StartMotion(AXIS2);
                     }
-                    DEBUGF(INDI::Logger::DBG_SESSION, "Tracking - AXIS2 offset %ld microsteps rate %ld direction %c",
-                                                                    AltitudeOffsetMicrosteps, AltitudeRate, Direction);
+                    DEBUGF(DBG_SCOPE, "Tracking - AXIS2 offset %ld microsteps rate %ld direction %c",
+                           AltitudeOffsetMicrosteps, AltitudeRate, Direction);
                 }
             }
             else
             {
                 // Nothing to do - stop the axis
-                DEBUG(INDI::Logger::DBG_SESSION, "Tracking - AXIS2 zero offset");
+                DEBUG(DBG_SCOPE, "Tracking - AXIS2 zero offset");
                 SlowStop(AXIS2);
             }
 
 
-            DEBUGF(INDI::Logger::DBG_SESSION, "Tracking - AXIS1 error %d AXIS2 error %d",
-                                                                OldTrackingTarget[AXIS1] - CurrentEncoders[AXIS1],
-                                                                OldTrackingTarget[AXIS2] - CurrentEncoders[AXIS2]);
+            DEBUGF(DBG_SCOPE, "Tracking - AXIS1 error %d AXIS2 error %d",
+                   OldTrackingTarget[AXIS1] - CurrentEncoders[AXIS1],
+                   OldTrackingTarget[AXIS2] - CurrentEncoders[AXIS2]);
 
             OldTrackingTarget[AXIS1] = AzimuthOffsetMicrosteps + CurrentEncoders[AXIS1];
             OldTrackingTarget[AXIS2] = AltitudeOffsetMicrosteps + CurrentEncoders[AXIS2];
             break;
         }
+        break;
 
         default:
-            break;
+            if (Slewing)
+            {
+                DEBUG(INDI::Logger::DBG_SESSION, "Slewing stopped");
+            }
+            if (Tracking)
+            {
+                DEBUG(INDI::Logger::DBG_SESSION, "Tracking stopped");
+            }
+            TrackingSecs = 0;
+            Tracking = false;
+            Slewing = false;
+        break;
     }
 }
 
@@ -1228,6 +1302,8 @@ bool SkywatcherAPIMount::updateProperties()
         defineNumber(&AxisOneEncoderValuesV);
         defineNumber(&AxisTwoEncoderValuesV);
         defineSwitch(&SlewModesSP);
+        defineSwitch(&SoftPECModesSP);
+        defineNumber(&SoftPecNP);
         defineSwitch(&ParkMovementDirectionSP);
         defineSwitch(&ParkPositionSP);
         defineSwitch(&UnparkPositionSP);
@@ -1249,6 +1325,8 @@ bool SkywatcherAPIMount::updateProperties()
         deleteProperty(AxisOneEncoderValuesV.name);
         deleteProperty(AxisTwoEncoderValuesV.name);
         deleteProperty(SlewModesSP.name);
+        deleteProperty(SoftPECModesSP.name);
+        deleteProperty(SoftPecNP.name);
         deleteProperty(ParkMovementDirectionSP.name);
         deleteProperty(ParkPositionSP.name);
         deleteProperty(UnparkPositionSP.name);

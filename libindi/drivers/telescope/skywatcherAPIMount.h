@@ -94,6 +94,15 @@ private:
     ISwitch SlewModes[2];
     ISwitchVectorProperty SlewModesSP;
 
+    // A switch for SoftPEC modes
+    enum { SOFTPEC_ENABLED, SOFTPEC_DISABLED };
+    ISwitch SoftPECModes[2];
+    ISwitchVectorProperty SoftPECModesSP;
+
+    // SoftPEC value for tracking mode
+    INumber SoftPecN;
+    INumberVectorProperty SoftPecNP;
+
     // A switch for park movement directions (clockwise/counterclockwise)
     ISwitch ParkMovementDirection[2];
     ISwitchVectorProperty ParkMovementDirectionSP;
@@ -120,6 +129,8 @@ private:
     ln_equ_posn CurrentTrackingTarget;
     long OldTrackingTarget[2];
     struct ln_hrz_posn CurrentAltAz;
+    bool ResetTrackingSeconds;
+    int TrackingSecs;
 
 #ifdef USE_INITIAL_JULIAN_DATE
     double InitialJulianDate;
