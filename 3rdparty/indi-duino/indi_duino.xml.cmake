@@ -29,14 +29,16 @@
                 <driver name="Arduino Cosmos">indi_duino</driver>
                 <version>@DUINO_VERSION_MAJOR@.@DUINO_VERSION_MINOR@</version>
         </device>
-	<device label="Arduino MeteoStation" skel="meteostation_sk.xml">
-                <driver name="Arduino MeteoStation">indi_duino</driver>
-                <version>@DUINO_VERSION_MAJOR@.@DUINO_VERSION_MINOR@</version>
-        </device>
 	<device label="Arduino Servo" skel="servo_sk.xml">
                 <driver name="Arduino Servo">indi_duino</driver>
                 <version>@DUINO_VERSION_MAJOR@.@DUINO_VERSION_MINOR@</version>
         </device>
+</devGroup>
+<devGroup group="Weather">
+    <device label="Arduino MeteoStation" skel="meteostation_sk.xml">
+            <driver name="Arduino MeteoStation">indi_duino</driver>
+            <version>@DUINO_VERSION_MAJOR@.@DUINO_VERSION_MINOR@</version>
+    </device>
 </devGroup>
 </driversList>
 

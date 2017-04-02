@@ -30,6 +30,10 @@
 #include <eventloop.h>
 #include <indilogger.h>
 
+#ifdef __linux__
+#include <stream_recorder.h>
+#endif
+
 #include "config.h"
 
 #include "gphoto_driver.h"
@@ -44,8 +48,24 @@
 #define FOCUS_TIMER         50
 #define MAX_RETRIES         3
 
-static int cameraCount;
+extern char* me;
+
+static int cameraCount=0;
 static GPhotoCCD *cameras[MAX_DEVICES];
+static GPContext *context = gp_context_new();
+
+typedef struct
+{
+    const char *exec;
+    const char *driver;
+    const char *model;
+} CamDriverInfo;
+
+static CamDriverInfo camInfos[] =
+{ { "indi_gphoto_ccd", "GPhoto CCD", "GPhoto"},
+  { "indi_canon_ccd", "Canon DSLR", "Canon" },
+  { "indi_nikon_ccd", "Nikon DSLR", "Nikon" },
+  { NULL, NULL, NULL} };
 
 /**********************************************************
  *
@@ -66,11 +86,54 @@ void ISInit()
   {
 
       // Let's just create one camera for now
-     cameraCount = 1;
-     cameras[0] = new GPhotoCCD();
+     if (!strcmp(me, "indi_gphoto_ccd"))
+     {
+        isInit = true;
+        cameraCount = 1;
+        cameras[0] = new GPhotoCCD();
+        atexit(cleanup);
+     }
+     else
+     {
+         CameraList	*list;
+         /* Detect all the cameras that can be autodetected... */
+         int ret = gp_list_new (&list);
+         if (ret < GP_OK)
+         {
+             // Use Legacy Mode
+             IDLog("Failed to initilize list in libgphoto2\n");
+             return;
+         }
 
-    atexit(cleanup);
-    isInit = true;
+         const char	*model, *port;
+         gp_list_reset (list);
+         cameraCount = gp_camera_autodetect (list, context);
+         /* Now open all cameras we autodected for usage */
+         IDLog("Number of cameras detected: %d.\n", cameraCount);
+
+         if (cameraCount == 0)
+         {
+             IDLog("Failed to detect any cameras. Check power and make sure camera is not mounted by other programs and try again.\n");
+             // Use Legacy Mode
+#if 0
+             IDLog("No cameras detected. Using legacy mode...");
+             cameraCount = 1;
+             cameras[0] = new GPhotoCCD();
+             atexit(cleanup);
+             isInit = true;
+#endif
+             return;
+         }
+
+         for (int i = 0; i < cameraCount; i++)
+         {
+             gp_list_get_name  (list, i, &model);
+             gp_list_get_value (list, i, &port);
+             cameras[i] = new GPhotoCCD(model, port);
+         }
+         atexit(cleanup);
+         isInit = true;
+     }
   }
 }
 
@@ -148,11 +211,8 @@ void ISSnoopDevice(XMLEle *root)
 //==========================================================================
 GPhotoCCD::GPhotoCCD()
 {
-    // For now let's set name to default name. In the future, we need to to support multiple devices per one driver
-    if (*getDeviceName() == '\0')
-        strncpy(name, getDefaultName(), MAXINDINAME);
-    else
-        strncpy(name, getDeviceName(), MAXINDINAME);
+    memset(model, 0, MAXINDINAME);
+    memset(port, 0, MAXINDINAME);
 
     gphotodrv = NULL;
     frameInitialized=false;
@@ -161,13 +221,26 @@ GPhotoCCD::GPhotoCCD()
 
     setVersion(INDI_GPHOTO_VERSION_MAJOR, INDI_GPHOTO_VERSION_MINOR);
 }
+
+GPhotoCCD::GPhotoCCD(const char *model, const char *port)
+{
+    strncpy(this->port, port, MAXINDINAME);
+    strncpy(this->model, model, MAXINDINAME);
+
+    gphotodrv = NULL;
+    frameInitialized=false;
+    on_off[0] = strdup("On");
+    on_off[1] = strdup("Off");
+
+    setVersion(INDI_GPHOTO_VERSION_MAJOR, INDI_GPHOTO_VERSION_MINOR);
+}
+
 //==========================================================================
 GPhotoCCD::~GPhotoCCD()
 {
     free(on_off[0]);
     free(on_off[1]);
     expTID = 0;
-
 }
 
 const char * GPhotoCCD::getDefaultName()
@@ -177,6 +250,38 @@ const char * GPhotoCCD::getDefaultName()
 
 bool GPhotoCCD::initProperties()
 {
+    if (strcmp(me, "indi_gphoto_ccd"))
+    {
+        char prefix[MAXINDINAME];
+        bool modelFound=false;
+
+        for (int i=0; camInfos[i].exec != NULL; i++)
+        {
+            if (strstr(model, camInfos[i].model))
+            {
+                strncpy(prefix, camInfos[i].driver, MAXINDINAME);
+                snprintf(this->name, MAXINDIDEVICE, "%s %s", prefix, model+strlen(camInfos[i].model)+1);
+                setDeviceName(this->name);
+                modelFound = true;
+            }
+        }
+
+        if (modelFound == false)
+        {
+            DEBUGF(INDI::Logger::DBG_ERROR, "Failed to find model %s in %s", model, getDeviceName());
+            return false;
+        }
+    }
+    else
+    {
+        // For now let's set name to default name. In the future, we need to to support multiple devices per one driver
+        if (*getDeviceName() == '\0')
+            strncpy(name, getDefaultName(), MAXINDINAME);
+        else
+            strncpy(name, getDeviceName(), MAXINDINAME);
+        setDeviceName(this->name);
+    }
+
   // Init parent properties first
   INDI::CCD::initProperties();
 
@@ -195,20 +300,24 @@ bool GPhotoCCD::initProperties()
   IUFillSwitch(&autoFocusS[0], "Set", "", ISS_OFF);
   IUFillSwitchVector(&autoFocusSP, autoFocusS, 1, getDeviceName(), "Auto Focus", "", FOCUS_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
-  IUFillSwitch(&transferFormatS[0], "FITS", "", ISS_ON);
-  IUFillSwitch(&transferFormatS[1], "Native", "", ISS_OFF);
-  IUFillSwitchVector(&transferFormatSP, transferFormatS, 2, getDeviceName(), "Transfer Format", "", IMAGE_SETTINGS_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+  IUFillSwitch(&transferFormatS[0], "FORMAT_FITS", "FITS", ISS_ON);
+  IUFillSwitch(&transferFormatS[1], "FORMAT_NATIVE", "Native", ISS_OFF);
+  IUFillSwitchVector(&transferFormatSP, transferFormatS, 2, getDeviceName(), "CCD_TRANSFER_FORMAT", "Transfer Format", IMAGE_SETTINGS_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
   IUFillSwitch(&livePreviewS[0], "Enable", "", ISS_OFF);
   IUFillSwitch(&livePreviewS[1], "Disable", "", ISS_ON);
-  IUFillSwitchVector(&livePreviewSP, livePreviewS, 2, getDeviceName(), "VIDEO_STREAM", "Preview", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+  IUFillSwitchVector(&livePreviewSP, livePreviewS, 2, getDeviceName(), "AUX_VIDEO_STREAM", "Preview", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
   PrimaryCCD.setMinMaxStep("CCD_EXPOSURE", "CCD_EXPOSURE_VALUE", 0.001, 3600, 1, false);
 
   // Most cameras have this by default, so let's set it as default.
   IUSaveText(&BayerT[2], "RGGB");
 
+  #ifdef __linux__
+  SetCCDCapability(CCD_CAN_SUBFRAME | CCD_HAS_BAYER | CCD_HAS_STREAMING);
+  #else
   SetCCDCapability(CCD_CAN_SUBFRAME | CCD_HAS_BAYER);
+  #endif
 
   SetFocuserCapability(FOCUSER_HAS_VARIABLE_SPEED);
 
@@ -242,20 +351,17 @@ void GPhotoCCD::ISGetProperties(const char *dev)
       if (mFormatSP.nsp > 0)
         defineSwitch(&mFormatSP);
 
-      defineSwitch(&transferFormatSP);
       defineSwitch(&livePreviewSP);
+      defineSwitch(&transferFormatSP);
       defineSwitch(&autoFocusSP);
-
       defineSwitch(&FocusMotionSP);
       defineNumber(&FocusSpeedNP);
       defineNumber(&FocusTimerNP);
 
       ShowExtendedOptions();
 
-      ITextVectorProperty *modelTP = getText("model");
-      if (modelTP && !strcmp(modelTP->label, "model") && strstr(modelTP->tp[0].text, "Canon"))
+      if (strstr(gphoto_get_manufacturer(gphotodrv), "Canon"))
           defineNumber(&mMirrorLockNP);
-
   }
 
   // Add Debug, Simulator, and Configuration controls
@@ -273,10 +379,9 @@ bool GPhotoCCD::updateProperties()
       if (mFormatSP.nsp > 0)
         defineSwitch(&mFormatSP);
 
-      defineSwitch(&transferFormatSP);
       defineSwitch(&livePreviewSP);
+      defineSwitch(&transferFormatSP);
       defineSwitch(&autoFocusSP);
-
       defineSwitch(&FocusMotionSP);
       defineNumber(&FocusSpeedNP);
       defineNumber(&FocusTimerNP);
@@ -285,16 +390,13 @@ bool GPhotoCCD::updateProperties()
       imageB=imageBP->bp;
 
       // Dummy values until first capture is done
-      SetCCDParams(1280, 1024, 8, 5.4, 5.4);
+      //SetCCDParams(1280, 1024, 8, 5.4, 5.4);
 
     if (sim == false)
     {
         ShowExtendedOptions();
-        DEBUG(INDI::Logger::DBG_SESSION, "Please update the camera pixel size in the Image Info section. The camera resolution will be updated after the first exposure is complete.");
 
-        // Only show mirror lock if the camera is canon
-        ITextVectorProperty *modelTP = getText("model");
-        if (modelTP && !strcmp(modelTP->label, "model") && strstr(modelTP->tp[0].text, "Canon"))
+        if (strstr(gphoto_get_manufacturer(gphotodrv), "Canon"))
             defineNumber(&mMirrorLockNP);
     }
 
@@ -307,7 +409,6 @@ bool GPhotoCCD::updateProperties()
        deleteProperty(mFormatSP.name);
 
     deleteProperty(mMirrorLockNP.name);
-
     deleteProperty(livePreviewSP.name);
     deleteProperty(autoFocusSP.name);
     deleteProperty(transferFormatSP.name);
@@ -424,17 +525,22 @@ bool GPhotoCCD::ISNewSwitch(const char *dev, const char *name, ISState *states, 
           transferFormatSP.s = IPS_OK;
           IDSetSwitch(&transferFormatSP, NULL);
           // We need to get frame W and H if transfer format changes
-          frameInitialized = false;
+          // 2017-01-17: Do we? transform format change should not affect W and H
+          //frameInitialized = false;
           return true;
       }
 
       if (!strcmp(name, autoFocusSP.name))
       {
           IUResetSwitch(&autoFocusSP);
-          if (gphoto_auto_focus(gphotodrv) == GP_OK)
+          char errMsg[MAXRBUF];
+          if (gphoto_auto_focus(gphotodrv, errMsg) == GP_OK)
               autoFocusSP.s = IPS_OK;
           else
+          {
               autoFocusSP.s = IPS_ALERT;
+              DEBUGF(INDI::Logger::DBG_ERROR, "%s", errMsg);
+          }
 
           IDSetSwitch(&autoFocusSP, NULL);
           return true;
@@ -454,6 +560,19 @@ bool GPhotoCCD::ISNewSwitch(const char *dev, const char *name, ISState *states, 
       if (!strcmp(name, livePreviewSP.name))
       {
           IUUpdateSwitch(&livePreviewSP, states, names, n);
+
+          #ifdef __linux__
+          if (streamer->isBusy())
+          {
+              livePreviewS[0].s = ISS_OFF;
+              livePreviewS[1].s = ISS_ON;
+              livePreviewSP.s   = IPS_ALERT;
+              DEBUG(INDI::Logger::DBG_WARNING, "Cannot start live preview while video streaming is active.");
+              IDSetSwitch(&livePreviewSP, NULL);
+              return true;
+          }
+          #endif
+
           if (livePreviewS[0].s == ISS_ON)
           {
               livePreviewSP.s = IPS_BUSY;
@@ -568,17 +687,27 @@ bool GPhotoCCD::Connect()
   int setidx;
   char **options;
   int max_opts;
-  const char *port = NULL;
+  const char *shutter_release_port = NULL;
   DEBUGF(INDI::Logger::DBG_DEBUG, "Mirror lock value: %f", mMirrorLockN[0].value);
 
-  if(PortTP.tp[0].text && strlen(PortTP.tp[0].text)) {
-      port = PortTP.tp[0].text;
+  if(PortTP.tp[0].text && strlen(PortTP.tp[0].text))
+  {
+      shutter_release_port = PortTP.tp[0].text;
 
   }
-  if (sim == false && ! (gphotodrv = gphoto_open(port)))
+
+  if (sim == false)
   {
-      DEBUG(INDI::Logger::DBG_ERROR, "Can not open camera: Power OK? If camera is auto-mounted as external disk storage, please unmount it and disable auto-mount.");
-      return false;
+      // Regular detect
+      if (port[0] == '\0')
+           gphotodrv = gphoto_open(camera, context, NULL, NULL, shutter_release_port);
+      else
+           gphotodrv = gphoto_open(camera, context, model, port, shutter_release_port);
+      if (gphotodrv == NULL)
+      {
+          DEBUG(INDI::Logger::DBG_ERROR, "Can not open camera: Power OK? If camera is auto-mounted as external disk storage, please unmount it and disable auto-mount.");
+          return false;
+      }
   }
 
   if (mFormatS)
@@ -654,6 +783,9 @@ bool GPhotoCCD::Connect()
 
   DEBUGF(INDI::Logger::DBG_SESSION, "%s is online.", getDeviceName());
 
+  if (!sim && gphoto_get_manufacturer(gphotodrv) && gphoto_get_model(gphotodrv))
+      DEBUGF(INDI::Logger::DBG_SESSION,"Detected %s Model %s.", gphoto_get_manufacturer(gphotodrv), gphoto_get_model(gphotodrv));
+
   frameInitialized = false;
 
   return true;
@@ -674,6 +806,12 @@ bool GPhotoCCD::Disconnect()
 
 bool GPhotoCCD::StartExposure(float duration)
 {
+    if (PrimaryCCD.getPixelSizeX() == 0)
+    {
+        DEBUG(INDI::Logger::DBG_SESSION, "Please update the CCD Information in the Image Info section before proceeding. The camera resolution shall be updated after the first exposure is complete.");
+        return false;
+    }
+
     if (PrimaryCCD.isExposing())
     {
         DEBUG(INDI::Logger::DBG_ERROR, "GPhoto driver is already exposing. Can not abort.");
@@ -725,7 +863,6 @@ bool GPhotoCCD::UpdateCCDFrame(int x, int y, int w, int h)
     }
 
     PrimaryCCD.setFrame(x,y,w,h);
-
     return true;
 }
 
@@ -749,6 +886,21 @@ void GPhotoCCD::TimerHit()
 
     if (isConnected() == false)
         return;
+
+    #ifdef __linux__
+    if (streamer->isBusy())
+    {
+        bool rc = captureLiveVideo();
+
+        if (rc)
+            timerID = SetTimer(STREAMPOLLMS);
+        else
+        {
+            DEBUG(INDI::Logger::DBG_ERROR, "Error capturing video stream.");
+            streamer->setStream(false);
+        }
+    }
+    #endif
 
     if (livePreviewSP.s == IPS_BUSY)
     {
@@ -951,19 +1103,36 @@ bool GPhotoCCD::grabImage()
                 }
 
                 DEBUGF(INDI::Logger::DBG_DEBUG, "read_jpeg: memsize (%d) naxis (%d) w (%d) h (%d) bpp (%d)", memsize, naxis, w, h, bpp);
+
+                SetCCDCapability(GetCCDCapability() & ~CCD_HAS_BAYER);
         }
         else
         {
-                if (read_dcraw(tmpfile, &memptr, &memsize, &naxis, &w, &h, &bpp))
+            /*if (read_dcraw(tmpfile, &memptr, &memsize, &naxis, &w, &h, &bpp))
                 {
                     DEBUG(INDI::Logger::DBG_ERROR, "Exposure failed to parse raw image.");
                     unlink(tmpfile);
                     return false;
                 }
 
-                DEBUGF(INDI::Logger::DBG_DEBUG, "read_dcraw: memsize (%d) naxis (%d) w (%d) h (%d) bpp (%d)", memsize, naxis, w, h, bpp);
+                DEBUGF(INDI::Logger::DBG_DEBUG, "read_dcraw: memsize (%d) naxis (%d) w (%d) h (%d) bpp (%d)", memsize, naxis, w, h, bpp);*/
 
+            char bayer_pattern[8] = {};
+
+            if (read_libraw(tmpfile, &memptr, &memsize, &naxis, &w, &h, &bpp, bayer_pattern))
+            {
+                DEBUG(INDI::Logger::DBG_ERROR, "Exposure failed to parse raw image.");
                 unlink(tmpfile);
+                return false;
+            }
+
+            DEBUGF(INDI::Logger::DBG_DEBUG, "read_libraw: memsize (%d) naxis (%d) w (%d) h (%d) bpp (%d) pattern (%s)", memsize, naxis, w, h, bpp, bayer_pattern);
+
+            unlink(tmpfile);
+
+            IUSaveText(&BayerT[2], bayer_pattern);
+            IDSetText(&BayerTP, NULL);
+            SetCCDCapability(GetCCDCapability() | CCD_HAS_BAYER);
         }
 
         PrimaryCCD.setImageExtension("fits");
@@ -971,6 +1140,8 @@ bool GPhotoCCD::grabImage()
         // If subframing is requested
         if (frameInitialized && (PrimaryCCD.getSubH() < PrimaryCCD.getYRes() || PrimaryCCD.getSubW() < PrimaryCCD.getXRes()))
         {
+            DEBUG(INDI::Logger::DBG_DEBUG, "Subframing...");
+
             int subFrameSize  = PrimaryCCD.getSubW() * PrimaryCCD.getSubH() * bpp/8 * ((naxis == 3) ? 3 : 1);
             int oneFrameSize  = PrimaryCCD.getSubW() * PrimaryCCD.getSubH() * bpp/8;
             uint8_t *subframeBuf = (uint8_t *) malloc(subFrameSize);
@@ -1039,7 +1210,9 @@ bool GPhotoCCD::grabImage()
         if (rc != 0)
         {
             DEBUG(INDI::Logger::DBG_ERROR, "Failed to expose.");
-            return rc;
+            if (strstr(gphoto_get_manufacturer(gphotodrv), "Canon") && mMirrorLockN[0].value == 0)
+                DEBUG(INDI::Logger::DBG_WARNING, "If your camera mirror lock is enabled, you must set a value for the mirror locking duration.");
+            return false;
         }
 
         /* We're done exposing */
@@ -1278,9 +1451,128 @@ bool GPhotoCCD::SetFocuserSpeed(int speed)
     return false;
 }
 
+#ifdef __linux__
+bool GPhotoCCD::StartStreaming()
+{
+    if (livePreviewSP.s == IPS_BUSY)
+    {
+        DEBUG(INDI::Logger::DBG_ERROR, "Cannot start live video streaming while live preview is on.");
+        return false;
+    }
+
+    SetTimer(STREAMPOLLMS);
+    return true;
+}
+
+bool GPhotoCCD::StopStreaming()
+{
+    stopLivePreview();
+    return true;
+}
+
+bool GPhotoCCD::captureLiveVideo()
+{
+    static int last_naxis=-1, last_w=-1, last_h=-1;
+
+    if (sim)
+        return false;
+
+    int rc = GP_OK;
+    char errMsg[MAXRBUF];
+
+    const char* previewData;
+    unsigned long int previewSize;
+
+    CameraFile* previewFile = NULL;
+
+    rc = gp_file_new(&previewFile);
+    if (rc != GP_OK)
+    {
+       DEBUGF(INDI::Logger::DBG_ERROR, "Error creating gphoto file: %s", gp_result_as_string(rc));
+      return false;
+    }
+
+    for (int i=0; i < MAX_RETRIES; i++)
+    {
+        rc = gphoto_capture_preview(gphotodrv, previewFile, errMsg);
+        if (rc == true)
+            break;
+    }
+
+    if (rc != GP_OK)
+    {
+        DEBUGF(INDI::Logger::DBG_ERROR, "%s", errMsg);
+        return false;
+    }
+
+    if (rc >= GP_OK)
+    {
+       rc = gp_file_get_data_and_size(previewFile, &previewData, &previewSize);
+       if (rc != GP_OK)
+       {
+           DEBUGF(INDI::Logger::DBG_ERROR, "Error getting preview image data and size: %s", gp_result_as_string(rc));
+           return false;
+       }
+    }
+
+
+    uint8_t *ccdBuffer = PrimaryCCD.getFrameBuffer();
+    unsigned char *inBuffer = (unsigned char *)(const_cast<char *>(previewData));
+    size_t size=0;
+    int w,h, naxis;
+
+   // Read jpeg from memory
+   rc = read_jpeg_mem(inBuffer, previewSize, &ccdBuffer, &size, &naxis, &w, &h);
+
+   if (rc != 0)
+   {
+       DEBUG(INDI::Logger::DBG_ERROR, "Error getting live video frame.");
+
+       if (previewFile)
+       {
+          gp_file_unref(previewFile);
+          previewFile = NULL;
+       }
+       return false;
+   }
+
+   PrimaryCCD.setFrameBuffer(ccdBuffer);
+
+   if (naxis != last_naxis)
+   {
+       last_naxis = naxis;
+       if (naxis == 3)
+           streamer->setPixelFormat(V4L2_PIX_FMT_RGB24);
+       else
+           streamer->setPixelFormat(V4L2_PIX_FMT_GREY);
+
+       PrimaryCCD.setNAxis(naxis);
+   }
+
+   if (last_w != w || last_h != h)
+   {
+       streamer->setRecorderSize(w,h);
+       PrimaryCCD.setFrameBufferSize(size, false);
+       PrimaryCCD.setFrame(0,0, w, h);
+
+       last_w = w;
+       last_h = h;
+   }
+
+   if (previewFile)
+   {
+      gp_file_unref(previewFile);
+      previewFile = NULL;
+   }
+
+   streamer->newFrame();
+
+   return true;
+}
+#endif
+
 bool GPhotoCCD::startLivePreview()
 {
-
     if (sim)
         return false;
 
@@ -1353,23 +1645,32 @@ bool GPhotoCCD::saveConfigItems(FILE *fp)
 {
     // First save Device Port
     IUSaveConfigText(fp, &PortTP);
+
     // Second save the CCD Info property
     IUSaveConfigNumber(fp, PrimaryCCD.getCCDInfo());
 
+    // Save regular CCD properties
     INDI::CCD::saveConfigItems(fp);
 
+    // Mirror Locking
     IUSaveConfigNumber(fp, &mMirrorLockNP);
+
+    // ISO Settings
     if (mIsoSP.nsp > 0)
           IUSaveConfigSwitch(fp, &mIsoSP);
+
+    // Format Settings
     if (mFormatSP.nsp > 0)
         IUSaveConfigSwitch(fp, &mFormatSP);
+
+    // Transfer Format
+    IUSaveConfigSwitch(fp, &transferFormatSP);
 
     return true;
 }
 
 void GPhotoCCD::addFITSKeywords(fitsfile *fptr, CCDChip *targetChip)
 {
-
     INDI::CCD::addFITSKeywords(fptr, targetChip);
 
     int status=0;

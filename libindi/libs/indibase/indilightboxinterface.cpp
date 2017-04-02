@@ -23,7 +23,7 @@
 #include "indilightboxinterface.h"
 #include "indilogger.h"
 
-INDI::LightBoxInterface::LightBoxInterface(DefaultDevice *device, bool isDimmable)
+INDI::LightBoxInterface::LightBoxInterface(DefaultDevice * device, bool isDimmable)
 {
     this->device     = device;
     this->isDimmable = isDimmable;
@@ -35,11 +35,11 @@ INDI::LightBoxInterface::~LightBoxInterface()
 {
 }
 
-void INDI::LightBoxInterface::initLightBoxProperties(const char *deviceName, const char* groupName)
+void INDI::LightBoxInterface::initLightBoxProperties(const char * deviceName, const char * groupName)
 {
     // Turn on/off light
-    IUFillSwitch(&LightS[0], "FLAT_LIGHT_ON", "On", ISS_OFF);
-    IUFillSwitch(&LightS[1], "FLAT_LIGHT_OFF", "Off", ISS_OFF);
+    IUFillSwitch(&LightS[FLAT_LIGHT_ON], "FLAT_LIGHT_ON", "On", ISS_OFF);
+    IUFillSwitch(&LightS[FLAT_LIGHT_OFF], "FLAT_LIGHT_OFF", "Off", ISS_OFF);
     IUFillSwitchVector(&LightSP, LightS, 2, deviceName, "FLAT_LIGHT_CONTROL", "Flat Light", groupName, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
     // Light Intensity
@@ -57,7 +57,7 @@ void INDI::LightBoxInterface::initLightBoxProperties(const char *deviceName, con
     IDSnoopDevice(ActiveDeviceT[0].text,"FILTER_NAME");
 }
 
-void INDI::LightBoxInterface::isGetLightBoxProperties(const char *deviceName)
+void INDI::LightBoxInterface::isGetLightBoxProperties(const char * deviceName)
 {
     INDI_UNUSED(deviceName);
 
@@ -83,7 +83,7 @@ bool INDI::LightBoxInterface::updateLightBoxProperties()
     return true;
 }
 
-bool INDI::LightBoxInterface::processLightBoxSwitch (const char *dev, const char *name, ISState *states, char *names[], int n)
+bool INDI::LightBoxInterface::processLightBoxSwitch (const char * dev, const char * name, ISState * states, char * names[], int n)
 {
     if(strcmp(dev,device->getDeviceName())==0)
     {
@@ -92,7 +92,7 @@ bool INDI::LightBoxInterface::processLightBoxSwitch (const char *dev, const char
         {
             int prevIndex = IUFindOnSwitchIndex(&LightSP);
             IUUpdateSwitch(&LightSP, states, names, n);
-            bool rc = EnableLightBox(LightS[0].s == ISS_ON ? true : false);
+            bool rc = EnableLightBox(LightS[FLAT_LIGHT_ON].s == ISS_ON ? true : false);
 
             LightSP.s = rc ? IPS_OK : IPS_ALERT;
 
@@ -111,7 +111,7 @@ bool INDI::LightBoxInterface::processLightBoxSwitch (const char *dev, const char
     return false;
 }
 
-bool INDI::LightBoxInterface::processLightBoxNumber (const char *dev, const char *name, double values[], char *names[], int n)
+bool INDI::LightBoxInterface::processLightBoxNumber (const char * dev, const char * name, double values[], char * names[], int n)
 {
     if(strcmp(dev,device->getDeviceName())==0)
     {
@@ -158,7 +158,7 @@ bool INDI::LightBoxInterface::processLightBoxNumber (const char *dev, const char
     return false;
 }
 
-bool INDI::LightBoxInterface::processLightBoxText(const char *dev, const char *name, char *texts[], char *names[], int n)
+bool INDI::LightBoxInterface::processLightBoxText(const char * dev, const char * name, char * texts[], char * names[], int n)
 {
     if(strcmp(dev,device->getDeviceName()) == 0)
     {
@@ -192,13 +192,13 @@ bool INDI::LightBoxInterface::SetLightBoxBrightness(uint16_t value)
     return false;
 }
 
-bool INDI::LightBoxInterface::snoopLightBox(XMLEle *root)
+bool INDI::LightBoxInterface::snoopLightBox(XMLEle * root)
 {
     if (isDimmable == false)
         return false;
 
-    XMLEle *ep=NULL;
-    const char *propName = findXMLAttValu(root, "name");
+    XMLEle * ep=NULL;
+    const char * propName = findXMLAttValu(root, "name");
 
     if (FilterIntensityN == NULL && !strcmp(propName, "FILTER_NAME"))
     {
@@ -230,7 +230,7 @@ bool INDI::LightBoxInterface::snoopLightBox(XMLEle *root)
 
         for (ep = nextXMLEle(root, 1) ; ep != NULL ; ep = nextXMLEle(root, 0))
         {
-            const char *elemName = findXMLAttValu(ep, "name");
+            const char * elemName = findXMLAttValu(ep, "name");
 
             if (!strcmp(elemName, "FILTER_SLOT_VALUE"))
             {
@@ -253,7 +253,7 @@ bool INDI::LightBoxInterface::snoopLightBox(XMLEle *root)
     return false;
 }
 
-void INDI::LightBoxInterface::addFilterDuration(const char *filterName, uint16_t filterDuration)
+void INDI::LightBoxInterface::addFilterDuration(const char * filterName, uint16_t filterDuration)
 {
     if (FilterIntensityN == NULL)
     {
@@ -278,7 +278,7 @@ void INDI::LightBoxInterface::addFilterDuration(const char *filterName, uint16_t
     FilterIntensityNP.np = FilterIntensityN;
 }
 
-bool INDI::LightBoxInterface::saveLightBoxConfigItems(FILE *fp)
+bool INDI::LightBoxInterface::saveLightBoxConfigItems(FILE * fp)
 {
     IUSaveConfigText(fp, &ActiveDeviceTP);
     if (FilterIntensityN != NULL)

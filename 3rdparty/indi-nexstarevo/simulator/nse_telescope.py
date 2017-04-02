@@ -68,6 +68,9 @@ cmd_names={value:key for key, value in commands.items()}
 
 ACK_CMDS=[0x02,0x04,0x06,0x24,]
 
+MC_ALT=0x11
+MC_AZM=0x10
+
 trg_cmds = {
     'BAT': {
         0x10:'GET_VOLTAGE',
@@ -139,7 +142,8 @@ def f2dms(f):
     '''
     Convert fraction of the full rotation to DMS triple (degrees).
     '''
-    d=360*f
+    s= 1 if f>0 else -1
+    d=360*abs(f)
     dd=int(d)
     mm=int((d-dd)*60)
     ss=(d-dd-mm/60)*3600
@@ -204,6 +208,7 @@ class NexStarScope:
         self.azm_maxrate=4000
         self.use_maxrate=False
         self.cmd_log=deque(maxlen=30)
+        self.msg_log=deque(maxlen=10)
         self.bat_current=2468
         self.bat_voltage=12345678
         self.lt_logo=64
@@ -301,8 +306,8 @@ class NexStarScope:
                 return bytes([int(self.charge)])
         elif rcv == 0xb6 : # BAT
             self.bat_voltage*=0.99
-            v=struct.pack('!i',int(self.bat_voltage))[1:]
-            return bytes.fromhex('010200') + v
+            v=struct.pack('!i',int(self.bat_voltage))
+            return bytes.fromhex('0102') + v
         else :
             return b''
 
@@ -333,7 +338,10 @@ class NexStarScope:
         self.guiding=False
         self.alt_guiderate=0
         self.azm_guiderate=0
-        r=5/360
+        if rcv==MC_ALT :
+            r=self.alt_maxrate/(360e3)
+        else :
+            r=self.azm_maxrate/(360e3)
         a=unpack_int3(data)
         if trg_names[rcv] == 'ALT':
             self.trg_alt=a
@@ -356,7 +364,8 @@ class NexStarScope:
         return bytes.fromhex('1685')
 
     def set_pos_guiderate(self, data, snd, rcv):
-        a=unpack_int3(data)/60 # (transform to rot/sec)
+        # The 1.1 factor is experimental to fit the actual hardware
+        a=1.1*(2**24/1000/360/60/60)*unpack_int3(data) # (transform to rot/sec)
         self.guiding = a>0
         if trg_names[rcv] == 'ALT':
             self.alt_guiderate=a
@@ -365,7 +374,8 @@ class NexStarScope:
         return b''
 
     def set_neg_guiderate(self, data, snd, rcv):
-        a=unpack_int3(data)/60 # (transform to rot/sec)
+        # The 1.1 factor is experimental to fit the actual hardware
+        a=1.1*(2**24/1000/360/60/60)*unpack_int3(data) # (transform to rot/sec)
         self.guiding = a>0
         if trg_names[rcv] == 'ALT':
             self.alt_guiderate=-a
@@ -407,12 +417,10 @@ class NexStarScope:
         return b''
 
     def slew_done(self, data, snd, rcv):
-        if self.alt_rate or self.azm_rate :
-            return b'\x00'
-            self.slewing=True
-        else :
-            self.slewing=False
-            return b'\xff'
+        if rcv == MC_ALT :
+            return b'\x00' if self.alt_rate else b'\xff'
+        if rcv == MC_AZM :
+            return b'\x00' if self.azm_rate else b'\xff'
 
     def at_index(self, data, snd, rcv):
         return b'\x00'
@@ -501,7 +509,7 @@ class NexStarScope:
             self.rate_w=curses.newwin(4,25,5,0)
             self.guide_w=curses.newwin(4,25,5,25)
             self.other_w=curses.newwin(8,50,9,0)
-            self.msg_w=curses.newwin(10,50,17,0)
+            self.msg_w=curses.newwin(self.msg_log.maxlen+2,50,17,0)
             stdscr.refresh()
 
     def update_dsp(self):
@@ -552,11 +560,11 @@ class NexStarScope:
             self.cmd_log_w.addstr(0,1,'Commands log')
             for n,cmd in enumerate(self.cmd_log) :
                 self.cmd_log_w.addstr(n+1,1,cmd)
-                pass
             self.cmd_log_w.refresh()
             self.msg_w.border()
             self.msg_w.addstr(0,1,'Msg:')
-            self.msg_w.addstr(1,1,'')
+            for n,cmd in enumerate(self.msg_log) :
+                self.msg_w.addstr(n+1,1,cmd)
             self.msg_w.refresh()
 
     def show_status(self):
@@ -604,10 +612,12 @@ class NexStarScope:
             self.alt_rate=s*mr
             
         if abs(self.azm_rate) < eps and abs(self.alt_rate) < eps :
-            self.alt_rate=0
-            self.azm_rate=0
             self.slewing=False
             self.goto=False
+        if abs(self.azm_rate) < eps :
+            self.azm_rate=0
+        if abs(self.alt_rate) < eps :
+            self.alt_rate=0
         self.show_status()
 
     @property
@@ -618,8 +628,8 @@ class NexStarScope:
     def alt(self,ALT):
         self.__alt=ALT
         # Altitude movement limits
-        self.__alt = min(self.__alt,0.23)
-        self.__alt = max(self.__alt,-0.03)
+        #self.__alt = min(self.__alt,0.23)
+        #self.__alt = max(self.__alt,-0.03)
         
     @property
     def azm(self):
@@ -637,8 +647,8 @@ class NexStarScope:
     def trg_alt(self,ALT):
         self.__trg_alt=ALT
         # Altitude movement limits
-        self.__trg_alt = min(self.__trg_alt,0.24)
-        self.__trg_alt = max(self.__trg_alt,-0.01)
+        #self.__trg_alt = min(self.__trg_alt,0.24)
+        #self.__trg_alt = max(self.__trg_alt,-0.01)
         
     @property
     def trg_azm(self):
@@ -653,11 +663,11 @@ class NexStarScope:
         try :
             c,f,t,l,d,s=decode_command(cmd)
         except IndexError :
-            print("Malformed command: %r" % (cmd,))
+            self.print_msg("Malformed command: %r" % (cmd,))
             return b''
         resp=b''
         if make_checksum(cmd[:-1]) != s :
-            print("Wrong checksum. Ignoring.")
+            self.print_msg("Wrong checksum. Ignoring.")
         else :
             resp = b';' + cmd
             if t in (0x10, 0x11):
@@ -697,6 +707,15 @@ class NexStarScope:
                 self.cmd_log.append(s)
 
         return resp
+
+    def print_msg(self, msg):
+        if self.msg_log :
+            if msg != self.msg_log[-1] :
+                self.msg_log.append(msg)
+        else :
+            self.msg_log.append(msg)
+
+
 
     def handle_msg(self, msg):
         '''

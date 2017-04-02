@@ -165,6 +165,8 @@ EQMod::EQMod()
 {
   //ctor
   setVersion(EQMOD_VERSION_MAJOR, EQMOD_VERSION_MINOR);
+  // Do not define dynamic properties on startup, and do not delete them from memory
+  setDynamicPropertiesBehavior(false, false);
   currentRA=0;
   currentDEC=90;
   gotoparams.completed=true;
@@ -175,12 +177,10 @@ EQMod::EQMod()
   DBG_COMM         = INDI::Logger::getInstance().addDebugLevel("Serial Port", "COMM");
   DBG_MOUNT        = INDI::Logger::getInstance().addDebugLevel("Verbose Mount", "MOUNT");
 
-  mount=new Skywatcher(this); 
+  mount=new Skywatcher(this);
 
-  SetTelescopeCapability(TELESCOPE_CAN_PARK | TELESCOPE_CAN_SYNC | TELESCOPE_CAN_ABORT | TELESCOPE_HAS_TIME | TELESCOPE_HAS_LOCATION,SLEWMODES);
+  SetTelescopeCapability(TELESCOPE_CAN_PARK | TELESCOPE_CAN_SYNC | TELESCOPE_CAN_GOTO | TELESCOPE_CAN_ABORT | TELESCOPE_HAS_TIME | TELESCOPE_HAS_LOCATION | TELESCOPE_HAS_PIER_SIDE,SLEWMODES);
 
-  pierside = EAST;
-  lastPierSide = WEST;
   RAInverted = DEInverted = false;
   bzero(&syncdata, sizeof(syncdata));
   bzero(&syncdata2, sizeof(syncdata2));
@@ -189,17 +189,15 @@ EQMod::EQMod()
   align=new Align(this);
 #endif
 
-#ifdef WITH_SIMULATOR
   simulator=new EQModSimulator(this);
-#endif
 
 #ifdef WITH_SCOPE_LIMITS
   horizon=new HorizonLimits(this);
 #endif
-  
+
   /* initialize time */
   tzset();
-  gettimeofday(&lasttimeupdate, NULL); // takes care of DST 
+  gettimeofday(&lasttimeupdate, NULL); // takes care of DST
   gmtime_r(&lasttimeupdate.tv_sec, &utc);
   lndate.seconds = utc.tm_sec + ((double)lasttimeupdate.tv_usec / 1000000);
   lndate.minutes = utc.tm_min;
@@ -210,7 +208,10 @@ EQMod::EQMod()
   clock_gettime(CLOCK_MONOTONIC, &lastclockupdate);
   /* initialize random seed: */
   srand ( time(NULL) );
+  // Others
   AutohomeState=AUTO_HOME_IDLE;
+  restartguideRAPPEC=false;
+  restartguideDEPPEC=false;
 }
 
 EQMod::~EQMod()
@@ -228,29 +229,27 @@ bool EQMod::isStandardSync()
 }
 #endif
 
-#ifdef WITH_SIMULATOR
-void EQMod::setStepperSimulation (bool enable) 
+void EQMod::setStepperSimulation (bool enable)
 {
   if ((enable && !isSimulation()) || (!enable && isSimulation())) {
-    mount->setSimulation(enable); 
-    if (not simulator->updateProperties(enable)) 
+    mount->setSimulation(enable);
+    if (not simulator->updateProperties(enable))
       DEBUG(INDI::Logger::DBG_WARNING,"setStepperSimulator: Disable/Enable error");
   }
   INDI::Telescope::setSimulation(enable);
 }
-#endif
 
 const char * EQMod::getDefaultName()
 {
     return (char *)DEVICE_NAME;
 }
 
-double EQMod::getLongitude() 
+double EQMod::getLongitude()
 {
   return(IUFindNumber(&LocationNP, "LONG")->value);
 }
 
-double EQMod::getLatitude() 
+double EQMod::getLatitude()
 {
   return(IUFindNumber(&LocationNP, "LAT")->value);
 }
@@ -287,7 +286,7 @@ double EQMod::getJulianDate()
   nsecs=lndate.seconds - floor(lndate.seconds);
   utc.tm_sec=lndate.seconds;
   utc.tm_isdst = -1; // let mktime find if DST already in effect in utc
-  //IDLog("Get julian: setting UTC secs to %f", utc.tm_sec); 
+  //IDLog("Get julian: setting UTC secs to %f", utc.tm_sec);
   mktime(&utc); // normalize time
   //IDLog("Get Julian; UTC is now %s", asctime(&utc));
   ln_get_date_from_tm(&utc, &lndate);
@@ -306,7 +305,7 @@ double EQMod::getJulianDate()
 double EQMod::getLst(double jd, double lng)
 {
   double lst;
-  //lst=ln_get_mean_sidereal_time(jd); 
+  //lst=ln_get_mean_sidereal_time(jd);
   lst=ln_get_apparent_sidereal_time(jd);
   lst+=(lng / 15.0);
   lst=range24(lst);
@@ -317,6 +316,8 @@ bool EQMod::initProperties()
 {
     /* Make sure to init parent properties first */
     INDI::Telescope::initProperties();
+
+    loadProperties();
 
     for (unsigned int i=0; i<SlewRateSP.nsp-1; i++)
     {
@@ -338,8 +339,10 @@ bool EQMod::initProperties()
 
     // Force the alignment system to always be on
     getSwitch("ALIGNMENT_SUBSYSTEM_ACTIVE")->sp[0].s = ISS_ON;
-    
+
 #endif
+
+    addAuxControls();
     return true;
 }
 
@@ -347,11 +350,76 @@ void EQMod::ISGetProperties(const char *dev)
 {
     INDI::Telescope::ISGetProperties(dev);
 
-    /* Add debug controls so we may debug driver if necessary */
-    addDebugControl();
-    #ifdef WITH_SIMULATOR
-    addSimulationControl();
-    #endif
+    if (isConnected())
+    {
+        defineNumber(&GuideNSNP);
+        defineNumber(&GuideWENP);
+        defineNumber(SlewSpeedsNP);
+        defineNumber(GuideRateNP);
+        defineText(MountInformationTP);
+        defineNumber(SteppersNP);
+        defineNumber(CurrentSteppersNP);
+        defineNumber(PeriodsNP);
+        defineNumber(JulianNP);
+        defineNumber(TimeLSTNP);
+        defineLight(RAStatusLP);
+        defineLight(DEStatusLP);
+        defineSwitch(HemisphereSP);
+        defineSwitch(TrackModeSP);
+
+        defineNumber(TrackRatesNP);
+        defineNumber(HorizontalCoordNP);
+        defineSwitch(ReverseDECSP);
+        defineNumber(StandardSyncNP);
+        defineNumber(StandardSyncPointNP);
+        defineNumber(SyncPolarAlignNP);
+        defineSwitch(SyncManageSP);
+        defineNumber(BacklashNP);
+        defineSwitch(UseBacklashSP);
+        defineSwitch(TrackDefaultSP);
+        defineSwitch(ST4GuideRateNSSP);
+        defineSwitch(ST4GuideRateWESP);
+#if defined WITH_ALIGN && defined WITH_ALIGN_GEEHALEL
+        defineSwitch(&AlignMethodSP);
+#endif
+#if defined WITH_ALIGN || defined WITH_ALIGN_GEEHALEL
+        defineSwitch(AlignSyncModeSP);
+#endif
+        if (mount->HasHomeIndexers())
+        {
+            defineSwitch(AutoHomeSP);
+        }
+
+        if (mount->HasAuxEncoders())
+        {
+            defineSwitch(AuxEncoderSP);
+            defineNumber(AuxEncoderNP);
+        }
+        if (mount->HasPPEC())
+        {
+            defineSwitch(RAPPECTrainingSP);
+            defineSwitch(RAPPECSP);
+            defineSwitch(DEPPECTrainingSP);
+            defineSwitch(DEPPECSP);
+        }
+
+#ifdef WITH_ALIGN_GEEHALEL
+    if (align)
+    {
+       align->updateProperties();
+    }
+#endif
+
+#ifdef WITH_SCOPE_LIMITS
+    if (horizon)
+    {
+        horizon->updateProperties();
+    }
+#endif
+
+    simulator->updateProperties(isSimulation());
+
+    }
 }
 
 bool EQMod::loadProperties()
@@ -371,13 +439,12 @@ bool EQMod::loadProperties()
     DEStatusLP=getLight("DESTATUS");
     SlewSpeedsNP=getNumber("SLEWSPEEDS");
     HemisphereSP=getSwitch("HEMISPHERE");
-    PierSideSP=getSwitch("TELESCOPE_PIER_SIDE");
-    TrackModeSP=getSwitch("TELESCOPE_TRACK_RATE");
-    TrackDefaultSP=getSwitch("TRACKDEFAULT");
-    TrackRatesNP=getNumber("TRACKRATES");
+    TrackModeSP=getSwitch("TELESCOPE_TRACK_MODE");
+    TrackDefaultSP=getSwitch("TELESCOPE_TRACK_DEFAULT");
+    TrackRatesNP=getNumber("TELESCOPE_TRACK_RATE");
     ReverseDECSP=getSwitch("REVERSEDEC");
 
-    HorizontalCoordNP=getNumber("HORIZONTAL_COORD");   
+    HorizontalCoordNP=getNumber("HORIZONTAL_COORD");
     StandardSyncNP=getNumber("STANDARDSYNC");
     StandardSyncPointNP=getNumber("STANDARDSYNCPOINT");
     SyncPolarAlignNP=getNumber("SYNCPOLARALIGN");
@@ -385,7 +452,16 @@ bool EQMod::loadProperties()
     BacklashNP=getNumber("BACKLASH");
     UseBacklashSP=getSwitch("USEBACKLASH");
     AutoHomeSP=getSwitch("AUTOHOME");
+    AuxEncoderSP=getSwitch("AUXENCODER");
+    AuxEncoderNP=getNumber("AUXENCODERVALUES");
+    ST4GuideRateNSSP=getSwitch("ST4_GUIDE_RATE_NS");
+    ST4GuideRateWESP=getSwitch("ST4_GUIDE_RATE_WE");
+    RAPPECTrainingSP=getSwitch("RA_PPEC_TRAINING");
+    RAPPECSP=getSwitch("RA_PPEC");
+    DEPPECTrainingSP=getSwitch("DE_PPEC_TRAINING");
+    DEPPECSP=getSwitch("DE_PPEC");
 #if defined WITH_ALIGN && defined WITH_ALIGN_GEEHALEL
+    align->initProperties();
     IUFillSwitch(&AlignMethodS[0], "ALIGN_METHOD_EQMOD", "EQMod Align", ISS_ON);
     IUFillSwitch(&AlignMethodS[1], "ALIGN_METHOD_SUBSYSTEM", "Alignment Subsystem", ISS_OFF);
     IUFillSwitchVector(&AlignMethodSP, AlignMethodS, NARRAY(AlignMethodS), getDeviceName(), "ALIGN_METHOD", "Align Method", OPTIONS_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
@@ -393,8 +469,10 @@ bool EQMod::loadProperties()
 #if defined WITH_ALIGN || defined WITH_ALIGN_GEEHALEL
     AlignSyncModeSP=getSwitch("ALIGNSYNCMODE");
 #endif
-    
-    INDI::GuiderInterface::initGuiderProperties(this->getDeviceName(), MOTION_TAB);    
+
+    simulator->initProperties();
+
+    INDI::GuiderInterface::initGuiderProperties(this->getDeviceName(), MOTION_TAB);
 
 #ifdef WITH_SCOPE_LIMITS
     if (horizon) {
@@ -407,192 +485,243 @@ bool EQMod::loadProperties()
 
 bool EQMod::updateProperties()
 {
-    INumber *latitude;  
+    INumber *latitude;
 
     INDI::Telescope::updateProperties();
 
     if (isConnected())
     {
-    loadProperties();
+        defineNumber(&GuideNSNP);
+        defineNumber(&GuideWENP);
+        defineNumber(SlewSpeedsNP);
+        defineNumber(GuideRateNP);
+        defineText(MountInformationTP);
+        defineNumber(SteppersNP);
+        defineNumber(CurrentSteppersNP);
+        defineNumber(PeriodsNP);
+        defineNumber(JulianNP);
+        defineNumber(TimeLSTNP);
+        defineLight(RAStatusLP);
+        defineLight(DEStatusLP);
+        defineSwitch(HemisphereSP);
+        defineSwitch(TrackModeSP);
 
-    defineNumber(&GuideNSNP);
-    defineNumber(&GuideWENP);
-	defineNumber(SlewSpeedsNP);
-	defineNumber(GuideRateNP);
-	defineText(MountInformationTP);
-	defineNumber(SteppersNP);
-	defineNumber(CurrentSteppersNP);
-	defineNumber(PeriodsNP);
-	defineNumber(JulianNP);
-	defineNumber(TimeLSTNP);
-	defineLight(RAStatusLP);
-	defineLight(DEStatusLP);
-	defineSwitch(HemisphereSP);
-	defineSwitch(TrackModeSP);
-
-	defineNumber(TrackRatesNP);
-	defineNumber(HorizontalCoordNP);
-	defineSwitch(PierSideSP);
-    defineSwitch(ReverseDECSP);
-	defineNumber(StandardSyncNP);
-	defineNumber(StandardSyncPointNP);
-	defineNumber(SyncPolarAlignNP);
-	defineSwitch(SyncManageSP);
-	defineNumber(BacklashNP);
-	defineSwitch(UseBacklashSP);
-	defineSwitch(TrackDefaultSP);
+        defineNumber(TrackRatesNP);
+        defineNumber(HorizontalCoordNP);
+        defineSwitch(ReverseDECSP);
+        defineNumber(StandardSyncNP);
+        defineNumber(StandardSyncPointNP);
+        defineNumber(SyncPolarAlignNP);
+        defineSwitch(SyncManageSP);
+        defineNumber(BacklashNP);
+        defineSwitch(UseBacklashSP);
+        defineSwitch(TrackDefaultSP);
+        defineSwitch(ST4GuideRateNSSP);
+        defineSwitch(ST4GuideRateWESP);
 #if defined WITH_ALIGN && defined WITH_ALIGN_GEEHALEL
-	defineSwitch(&AlignMethodSP);
+        defineSwitch(&AlignMethodSP);
 #endif
 #if defined WITH_ALIGN || defined WITH_ALIGN_GEEHALEL
-	defineSwitch(AlignSyncModeSP);
+        defineSwitch(AlignSyncModeSP);
 #endif
-	try {
-	  mount->InquireBoardVersion(MountInformationTP);
+        try {
+            mount->InquireBoardVersion(MountInformationTP);
 
-	  if (isDebug()) {
-	    for (unsigned int i=0;i<MountInformationTP->ntp;i++)
-	      DEBUGF(INDI::Logger::DBG_DEBUG, "Got Board Property %s: %s", MountInformationTP->tp[i].name, MountInformationTP->tp[i].text);
-	  }
-	
-	  mount->InquireRAEncoderInfo(SteppersNP);
-	  mount->InquireDEEncoderInfo(SteppersNP);
-	  if (isDebug()) {
-	    for (unsigned int i=0;i<SteppersNP->nnp;i++)
-	      DEBUGF(INDI::Logger::DBG_DEBUG,"Got Encoder Property %s: %.0f", SteppersNP->np[i].label, SteppersNP->np[i].value);
-	  }
+            if (isDebug()) {
+                for (unsigned int i=0;i<MountInformationTP->ntp;i++)
+                    DEBUGF(INDI::Logger::DBG_DEBUG, "Got Board Property %s: %s", MountInformationTP->tp[i].name, MountInformationTP->tp[i].text);
+            }
 
-	  if (!strcmp(MountInformationTP->tp[0].text, "EQ8") || !strcmp(MountInformationTP->tp[0].text, "AZEQ6"))
-	    defineSwitch(AutoHomeSP);
-	      
-	  mount->Init();
-	
-	  zeroRAEncoder=mount->GetRAEncoderZero();
-	  totalRAEncoder=mount->GetRAEncoderTotal();
-	  homeRAEncoder=mount->GetRAEncoderHome();
-	  zeroDEEncoder=mount->GetDEEncoderZero();
-	  totalDEEncoder=mount->GetDEEncoderTotal();
-	  homeDEEncoder=mount->GetDEEncoderHome();
+            mount->InquireRAEncoderInfo(SteppersNP);
+            mount->InquireDEEncoderInfo(SteppersNP);
+            if (isDebug()) {
+                for (unsigned int i=0;i<SteppersNP->nnp;i++)
+                    DEBUGF(INDI::Logger::DBG_DEBUG,"Got Encoder Property %s: %.0f", SteppersNP->np[i].label, SteppersNP->np[i].value);
+            }
 
-      parkRAEncoder=GetAxis1Park();
-      parkDEEncoder=GetAxis2Park();
+            mount->InquireFeatures();
+            //if (!strcmp(MountInformationTP->tp[0].text, "EQ8") || !strcmp(MountInformationTP->tp[0].text, "AZEQ6"))
+            if (mount->HasHomeIndexers())
+            {
+                DEBUG(INDI::Logger::DBG_SESSION,"Mount has home indexers. Enabling Autohome.");
+                defineSwitch(AutoHomeSP);
+            }
 
-	  latitude=IUFindNumber(&LocationNP, "LAT");
-	  if ((latitude) && (latitude->value < 0.0)) SetSouthernHemisphere(true);
-	  else  SetSouthernHemisphere(false);      
+            if (mount->HasAuxEncoders())
+            {
+                defineSwitch(AuxEncoderSP);
+                defineNumber(AuxEncoderNP);
+                DEBUG(INDI::Logger::DBG_SESSION,"Mount has auxiliary encoders. Turning them off.");
+                mount->TurnRAEncoder(false);
+                mount->TurnDEEncoder(false);
+            }
+            if (mount->HasPPEC())
+            {
+                bool intraining, inppec;
+                defineSwitch(RAPPECTrainingSP);
+                defineSwitch(RAPPECSP);
+                defineSwitch(DEPPECTrainingSP);
+                defineSwitch(DEPPECSP);
+                DEBUG(INDI::Logger::DBG_SESSION,"Mount has PPEC.");
+                mount->GetRAPPECStatus(&intraining, &inppec);
+                if (intraining)
+                {
+                    RAPPECTrainingSP->sp[0].s=ISS_OFF;
+                    RAPPECTrainingSP->sp[1].s=ISS_ON;
+                    RAPPECTrainingSP->s=IPS_BUSY;
+                    IDSetSwitch(RAPPECTrainingSP, NULL);
+                }
+                if (inppec)
+                {
+                    RAPPECSP->sp[0].s=ISS_OFF;
+                    RAPPECSP->sp[1].s=ISS_ON;
+                    RAPPECSP->s=IPS_BUSY;
+                    IDSetSwitch(RAPPECSP, NULL);
+                }
+                mount->GetDEPPECStatus(&intraining, &inppec);
+                if (intraining)
+                {
+                    DEPPECTrainingSP->sp[0].s=ISS_OFF;
+                    DEPPECTrainingSP->sp[1].s=ISS_ON;
+                    DEPPECTrainingSP->s=IPS_BUSY;
+                    IDSetSwitch(DEPPECTrainingSP, NULL);
+                }
+                if (inppec)
+                {
+                    DEPPECSP->sp[0].s=ISS_OFF;
+                    DEPPECSP->sp[1].s=ISS_ON;
+                    DEPPECSP->s=IPS_BUSY;
+                    IDSetSwitch(DEPPECSP, NULL);
+                }
+            }
 
-	} 
-	catch(EQModError e) {
-	  return(e.DefaultHandleException(this));
-	}
-      }
+            mount->Init();
+
+            zeroRAEncoder=mount->GetRAEncoderZero();
+            totalRAEncoder=mount->GetRAEncoderTotal();
+            homeRAEncoder=mount->GetRAEncoderHome();
+            zeroDEEncoder=mount->GetDEEncoderZero();
+            totalDEEncoder=mount->GetDEEncoderTotal();
+            homeDEEncoder=mount->GetDEEncoderHome();
+
+            parkRAEncoder=GetAxis1Park();
+            parkDEEncoder=GetAxis2Park();
+
+            latitude=IUFindNumber(&LocationNP, "LAT");
+            if ((latitude) && (latitude->value < 0.0)) SetSouthernHemisphere(true);
+            else  SetSouthernHemisphere(false);
+
+        }
+        catch(EQModError e) {
+            return(e.DefaultHandleException(this));
+        }
+    }
     else
-      {        
-	if (MountInformationTP) {
-      deleteProperty(GuideNSNP.name);
-      deleteProperty(GuideWENP.name);
-	  deleteProperty(GuideRateNP->name);
-	  deleteProperty(MountInformationTP->name);
-	  deleteProperty(SteppersNP->name);
-	  deleteProperty(CurrentSteppersNP->name);
-	  deleteProperty(PeriodsNP->name);
-	  deleteProperty(JulianNP->name);
-	  deleteProperty(TimeLSTNP->name);
-	  deleteProperty(RAStatusLP->name);
-	  deleteProperty(DEStatusLP->name);
-	  deleteProperty(SlewSpeedsNP->name);
-	  deleteProperty(HemisphereSP->name);
-	  deleteProperty(TrackModeSP->name);
-	  deleteProperty(TrackRatesNP->name);
-	  deleteProperty(HorizontalCoordNP->name);
-	  deleteProperty(PierSideSP->name);
-      deleteProperty(ReverseDECSP->name);
-	  deleteProperty(StandardSyncNP->name);
-	  deleteProperty(StandardSyncPointNP->name);
-	  deleteProperty(SyncPolarAlignNP->name);
-	  deleteProperty(SyncManageSP->name);
-	  deleteProperty(TrackDefaultSP->name);
-	  deleteProperty(BacklashNP->name);
-	  deleteProperty(UseBacklashSP->name);
-	  if (!strcmp(MountInformationTP->tp[0].text, "EQ8") || !strcmp(MountInformationTP->tp[0].text, "AZEQ6"))
-	    deleteProperty(AutoHomeSP->name);
+    {
+        //if (MountInformationTP) {
+        deleteProperty(GuideNSNP.name);
+        deleteProperty(GuideWENP.name);
+        deleteProperty(GuideRateNP->name);
+        deleteProperty(MountInformationTP->name);
+        deleteProperty(SteppersNP->name);
+        deleteProperty(CurrentSteppersNP->name);
+        deleteProperty(PeriodsNP->name);
+        deleteProperty(JulianNP->name);
+        deleteProperty(TimeLSTNP->name);
+        deleteProperty(RAStatusLP->name);
+        deleteProperty(DEStatusLP->name);
+        deleteProperty(SlewSpeedsNP->name);
+        deleteProperty(HemisphereSP->name);
+        deleteProperty(TrackModeSP->name);
+        deleteProperty(TrackRatesNP->name);
+        deleteProperty(HorizontalCoordNP->name);        
+        deleteProperty(ReverseDECSP->name);
+        deleteProperty(StandardSyncNP->name);
+        deleteProperty(StandardSyncPointNP->name);
+        deleteProperty(SyncPolarAlignNP->name);
+        deleteProperty(SyncManageSP->name);
+        deleteProperty(TrackDefaultSP->name);
+        deleteProperty(BacklashNP->name);
+        deleteProperty(UseBacklashSP->name);
+        deleteProperty(ST4GuideRateNSSP->name);
+        deleteProperty(ST4GuideRateWESP->name);
+        //if (!strcmp(MountInformationTP->tp[0].text, "EQ8") || !strcmp(MountInformationTP->tp[0].text, "AZEQ6"))
+        if (mount->HasHomeIndexers())
+            deleteProperty(AutoHomeSP->name);
+        if (mount->HasAuxEncoders()) {
+            deleteProperty(AuxEncoderSP->name);
+            deleteProperty(AuxEncoderNP->name);
+        }
+        if (mount->HasPPEC()) {
+            deleteProperty(RAPPECTrainingSP->name);
+            deleteProperty(RAPPECSP->name);
+            deleteProperty(DEPPECTrainingSP->name);
+            deleteProperty(DEPPECSP->name);
+        }
 #if defined WITH_ALIGN && defined WITH_ALIGN_GEEHALEL
-	  deleteProperty(AlignMethodSP.name);
+        deleteProperty(AlignMethodSP.name);
 #endif
 #if defined WITH_ALIGN || defined WITH_ALIGN_GEEHALEL
-	  deleteProperty(AlignSyncModeSP->name);
+        deleteProperty(AlignSyncModeSP->name);
 #endif
-	  MountInformationTP=NULL;
-	} 
-      }
+        //MountInformationTP=NULL;
+        //}
+    }
 #ifdef WITH_ALIGN_GEEHALEL
     if (align) {
-      if (!align->updateProperties()) return false;
-    }
-#endif
-    
-#ifdef WITH_SCOPE_LIMITS
-    if (horizon) {
-      if (!horizon->updateProperties()) return false;
+        if (!align->updateProperties()) return false;
     }
 #endif
 
-    /*if (isConnected())
-        loadConfig(true);*/
+#ifdef WITH_SCOPE_LIMITS
+    if (horizon) {
+        if (!horizon->updateProperties()) return false;
+    }
+#endif
+
+    simulator->updateProperties(isSimulation());
 
     return true;
 }
 
-
-bool EQMod::Connect()
+bool EQMod::Handshake()
 {
-    bool rc=false;
+    try
+    {
+       mount->setPortFD(PortFD);
+       mount->Handshake();
+       // Mount initialisation is in updateProperties as it sets directly Indi properties which should be defined
+     } catch(EQModError e)
+    {
+       return(e.DefaultHandleException(this));
+     }
 
-    if(isConnected()) return true;
+   #ifdef WITH_ALIGN
+    // Set this according to mount type
+    SetApproximateMountAlignmentFromMountType(EQUATORIAL);
+   #endif
 
-    rc=Connect(PortT[0].text, atoi(IUFindOnSwitch(&BaudRateSP)->name));
-
-    if(rc) {
- 
-        SetTimer(POLLMS);
-}
-    return rc;
-}
-
-bool EQMod::Connect(const char *port, uint32_t baud)
-{
- DEBUGF(INDI::Logger::DBG_SESSION, "Connecting to port %s at speed %d" , port, baud);
-
- try
- {
-    mount->Connect(port, baud);
-    // Mount initialisation is in updateProperties as it sets directly Indi properties which should be defined 
-  } catch(EQModError e) {
-    return(e.DefaultHandleException(this));
-  }
-
-#ifdef WITH_ALIGN
- // Set this according to mount type 
- SetApproximateMountAlignmentFromMountType(EQUATORIAL);
-#endif
-
- DEBUG(INDI::Logger::DBG_SESSION, "Successfully connected to EQMod Mount.");
-  return true;
+    DEBUG(INDI::Logger::DBG_SESSION, "Successfully connected to EQMod Mount.");
+    return true;
 }
 
 bool EQMod::Disconnect()
 {
-  if (isConnected()) {
-    try {
+  if (isConnected())
+  {
+    try
+    {
       mount->Disconnect();
     }
-    catch(EQModError e) {
+    catch(EQModError e)
+    {
       DEBUGF(INDI::Logger::DBG_ERROR, "Error when disconnecting mount -> %s", e.message);
       return(false);
     }
-    DEBUG(INDI::Logger::DBG_SESSION,"Disconnected from EQMod Mount.");
-    return true;
-  } else return false;
+    return INDI::Telescope::Disconnect();
+  }
+  else
+      return false;
 }
 
 void EQMod::TimerHit()
@@ -600,16 +729,16 @@ void EQMod::TimerHit()
   if(isConnected())
     {
       bool rc;
-      
+
       rc=ReadScopeStatus();
       //IDLog("TrackState after read is %d\n",TrackState);
       if(rc == false)
- 	{
-	  // read was not good
-	  EqNP.s=IPS_ALERT;
-	  IDSetNumber(&EqNP, NULL);
- 	}
-      
+    {
+      // read was not good
+      EqNP.s=IPS_ALERT;
+      IDSetNumber(&EqNP, NULL);
+    }
+
       SetTimer(POLLMS);
     }
 }
@@ -621,51 +750,49 @@ bool EQMod::ReadScopeStatus() {
 
   /* update elapsed time since last poll, don't presume exactly POLLMS */
   // gettimeofday (&tv, NULL);
-  
+
   //if (ltv.tv_sec == 0 && ltv.tv_usec == 0)
   //  ltv = tv;
-  
+
   //dt = tv.tv_sec - ltv.tv_sec + (tv.tv_usec - ltv.tv_usec)/1e6;
   //ltv = tv;
   //TODO use dt to track mount desynchronisation/inactivity?
-  
+
   // Time
   double juliandate;
-  double lst; 
+  double lst;
   //double datevalues[2];
   char hrlst[12];
 
   const char *datenames[]={"LST", "JULIANDATE", "UTC"};
-  const char *piersidenames[]={"PIER_EAST", "PIER_WEST"};
-  ISState piersidevalues[2];
   double periods[2];
   const char *periodsnames[]={"RAPERIOD", "DEPERIOD"};
   double horizvalues[2];
   const char *horiznames[2]={"AZ", "ALT"};
   double steppervalues[2];
   const char *steppernames[]={"RAStepsCurrent", "DEStepsCurrent"};
-  
+
   juliandate=getJulianDate();
-  lst=getLst(juliandate, getLongitude()); 
-  
+  lst=getLst(juliandate, getLongitude());
+
   fs_sexa(hrlst, lst, 2, 360000);
   hrlst[11]='\0';
   DEBUGF(DBG_SCOPE_STATUS, "Compute local time: lst=%2.8f (%s) - julian date=%8.8f", lst, hrlst, juliandate);
 
   IUUpdateNumber(TimeLSTNP, &lst, (char **)(datenames), 1);
   TimeLSTNP->s=IPS_OK;
-  IDSetNumber(TimeLSTNP, NULL); 
+  IDSetNumber(TimeLSTNP, NULL);
 
   IUUpdateNumber(JulianNP, &juliandate, (char **)(datenames  +1), 1);
-  JulianNP->s=IPS_OK;  
-  IDSetNumber(JulianNP, NULL); 
+  JulianNP->s=IPS_OK;
+  IDSetNumber(JulianNP, NULL);
 
   char utcFormat[MAXINDINAME];
   strftime(utcFormat, MAXINDINAME, "%Y-%m-%dT%H:%M:%S", &utc);
   IUSaveText(IUFindText(&TimeTP, "UTC"), utcFormat);
   TimeTP.s=IPS_OK;
   IDSetText(&TimeTP, NULL);
- 
+
   try {
     currentRAEncoder=mount->GetRAEncoder();
     currentDEEncoder=mount->GetDEEncoder();
@@ -679,7 +806,7 @@ bool EQMod::ReadScopeStatus() {
       align->GetAlignedCoords(syncdata, juliandate, &lnobserver, currentRA, currentDEC, &ghalignedRA, &ghalignedDEC);
       aligned = true;
     }
-    //   else 
+    //   else
 #endif
 #ifdef WITH_ALIGN
     const char *maligns[3]={"ZENITH", "NORTH", "SOUTH"};
@@ -687,44 +814,44 @@ bool EQMod::ReadScopeStatus() {
     // Use HA/Dec as  telescope coordinate system
     RaDec.ra = ((lst - currentRA) * 360.0) / 24.0;
     RaDec.dec = currentDEC;
-    TelescopeDirectionVector TDV = TelescopeDirectionVectorFromLocalHourAngleDeclination(RaDec);    
+    TelescopeDirectionVector TDV = TelescopeDirectionVectorFromLocalHourAngleDeclination(RaDec);
     DEBUGF(INDI::AlignmentSubsystem::DBG_ALIGNMENT, "Status: Mnt. Algnt. %s Date %lf encoders RA=%ld DE=%ld Telescope RA %lf DEC %lf",
-	   maligns[ GetApproximateMountAlignment()], juliandate,  currentRAEncoder, currentDEEncoder, currentRA, currentDEC);
+       maligns[ GetApproximateMountAlignment()], juliandate,  currentRAEncoder, currentDEEncoder, currentRA, currentDEC);
     DEBUGF(INDI::AlignmentSubsystem::DBG_ALIGNMENT, " Direction RA(deg.)  %lf DEC %lf TDV(x %lf y %lf z %lf)",
-	   RaDec.ra, RaDec.dec, TDV.x, TDV.y, TDV.z);
+       RaDec.ra, RaDec.dec, TDV.x, TDV.y, TDV.z);
     aligned=true;
     if ((GetAlignmentDatabase().size() < 2) || (!TransformTelescopeToCelestial( TDV, alignedRA, alignedDEC))) {
     //if (!TransformTelescopeToCelestial( TDV, alignedRA, alignedDEC)) {
       aligned = false;
-      DEBUGF(INDI::AlignmentSubsystem::DBG_ALIGNMENT, "Failed TransformTelescopeToCelestial: Scope RA=%g Scope DE=%f, Aligned RA=%f DE=%f", currentRA, currentDEC, alignedRA, alignedDEC);  
+      DEBUGF(INDI::AlignmentSubsystem::DBG_ALIGNMENT, "Failed TransformTelescopeToCelestial: Scope RA=%g Scope DE=%f, Aligned RA=%f DE=%f", currentRA, currentDEC, alignedRA, alignedDEC);
     }  else {
-      DEBUGF(INDI::AlignmentSubsystem::DBG_ALIGNMENT, "TransformTelescopeToCelestial: Scope RA=%f Scope DE=%f, Aligned RA=%f DE=%f", currentRA, currentDEC, alignedRA, alignedDEC);  
+      DEBUGF(INDI::AlignmentSubsystem::DBG_ALIGNMENT, "TransformTelescopeToCelestial: Scope RA=%f Scope DE=%f, Aligned RA=%f DE=%f", currentRA, currentDEC, alignedRA, alignedDEC);
     }
 #endif
     if (!aligned && (syncdata.lst != 0.0)) {
-	DEBUGF(DBG_SCOPE_STATUS, "Aligning with last sync delta RA %g DE %g", syncdata.deltaRA, syncdata.deltaDEC);
-	// should check values are in range!
-	alignedRA += syncdata.deltaRA;
-	alignedDEC += syncdata.deltaDEC;
-	if (alignedDEC > 90.0 || alignedDEC < -90.0) {
-	  alignedRA += 12.00;
-	  if (alignedDEC > 0.0) alignedDEC = 180.0 - alignedDEC;
-	  else alignedDEC = -180.0 - alignedDEC;
-	}
-	alignedRA=range24(alignedRA);
+    DEBUGF(DBG_SCOPE_STATUS, "Aligning with last sync delta RA %g DE %g", syncdata.deltaRA, syncdata.deltaDEC);
+    // should check values are in range!
+    alignedRA += syncdata.deltaRA;
+    alignedDEC += syncdata.deltaDEC;
+    if (alignedDEC > 90.0 || alignedDEC < -90.0) {
+      alignedRA += 12.00;
+      if (alignedDEC > 0.0) alignedDEC = 180.0 - alignedDEC;
+      else alignedDEC = -180.0 - alignedDEC;
     }
-      
+    alignedRA=range24(alignedRA);
+    }
+
 #if defined WITH_ALIGN_GEEHALEL && ! defined WITH_ALIGN
       alignedRA=ghalignedRA;
       alignedDEC=ghalignedDEC;
 #endif
 #if defined WITH_ALIGN_GEEHALEL &&  defined WITH_ALIGN
       if (AlignMethodSP.sp[0].s==ISS_ON) {
-	alignedRA=ghalignedRA;
-	alignedDEC=ghalignedDEC;
+    alignedRA=ghalignedRA;
+    alignedDEC=ghalignedDEC;
       }
 #endif
-	  
+
     NewRaDec(alignedRA, alignedDEC);
     lnradec.ra =(alignedRA * 360.0) / 24.0;
     lnradec.dec =alignedDEC;
@@ -736,22 +863,6 @@ bool EQMod::ReadScopeStatus() {
     horizvalues[1]=lnaltaz.alt;
     IUUpdateNumber(HorizontalCoordNP, horizvalues, (char **)horiznames, 2);
     IDSetNumber(HorizontalCoordNP, NULL);
-
-    /* TODO should we consider currentHA after alignment ? */
-    pierside=SideOfPier(currentHA);
-    if (pierside == EAST) {
-      piersidevalues[0]=ISS_ON; piersidevalues[1]=ISS_OFF;
-      IUUpdateSwitch(PierSideSP, piersidevalues, (char **)piersidenames, 2);
-    } else {
-      piersidevalues[0]=ISS_OFF; piersidevalues[1]=ISS_ON;
-      IUUpdateSwitch(PierSideSP, piersidevalues, (char **)piersidenames, 2);
-    }
-
-    if (pierside != lastPierSide)
-    {
-        IDSetSwitch(PierSideSP, NULL);
-        lastPierSide = pierside;
-    }
 
     steppervalues[0]=currentRAEncoder;
     steppervalues[1]=currentDEEncoder;
@@ -768,76 +879,86 @@ bool EQMod::ReadScopeStatus() {
     IUUpdateNumber(PeriodsNP, periods, (char **)periodsnames, 2);
     IDSetNumber(PeriodsNP, NULL);
 
+    if (mount->HasAuxEncoders())
+      {
+      double auxencodervalues[2];
+      const char *auxencodernames[]={"AUXENCRASteps", "AUXENCDESteps"};
+      auxencodervalues[0]=mount->GetRAAuxEncoder();
+      auxencodervalues[1]=mount->GetDEAuxEncoder();
+      IUUpdateNumber(AuxEncoderNP, auxencodervalues, (char **)auxencodernames, 2);
+      IDSetNumber(AuxEncoderNP, NULL);
+      }
+
     if (gotoInProgress()) {
       if (!(mount->IsRARunning()) && !(mount->IsDERunning())) {
-	// Goto iteration
-	gotoparams.iterative_count += 1;
-	DEBUGF(INDI::Logger::DBG_SESSION, "Iterative Goto (%d): RA diff = %4.2f arcsecs DE diff = %4.2f arcsecs",
-	       gotoparams.iterative_count, 3600 * fabs(gotoparams.ratarget - currentRA),  3600 * fabs(gotoparams.detarget - currentDEC));
+    // Goto iteration
+    gotoparams.iterative_count += 1;
+    DEBUGF(INDI::Logger::DBG_SESSION, "Iterative Goto (%d): RA diff = %4.2f arcsecs DE diff = %4.2f arcsecs",
+           gotoparams.iterative_count, 3600 * fabs(gotoparams.ratarget - currentRA),  3600 * fabs(gotoparams.detarget - currentDEC));
         if ((gotoparams.iterative_count <= GOTO_ITERATIVE_LIMIT) &&
-	    (((3600 * fabs(gotoparams.ratarget - currentRA)) > RAGOTORESOLUTION) || 
-	     ((3600 * fabs(gotoparams.detarget - currentDEC)) > DEGOTORESOLUTION))) {
-	  gotoparams.racurrent = currentRA; gotoparams.decurrent = currentDEC;
-	  gotoparams.racurrentencoder = currentRAEncoder; gotoparams.decurrentencoder = currentDEEncoder;
-	  EncoderTarget(&gotoparams);
-	  // Start iterative slewing
-	  DEBUGF(INDI::Logger::DBG_SESSION, "Iterative goto (%d): slew mount to RA increment = %ld, DE increment = %ld", gotoparams.iterative_count,
-		    gotoparams.ratargetencoder - gotoparams.racurrentencoder, gotoparams.detargetencoder - gotoparams.decurrentencoder);
-	  mount->SlewTo(gotoparams.ratargetencoder - gotoparams.racurrentencoder, gotoparams.detargetencoder - gotoparams.decurrentencoder);
-
-	} else {
-	  ISwitch *sw;
-	  sw=IUFindSwitch(&CoordSP,"TRACK");
-	  if ((gotoparams.iterative_count > GOTO_ITERATIVE_LIMIT) &&
         (((3600 * fabs(gotoparams.ratarget - currentRA)) > RAGOTORESOLUTION) ||
          ((3600 * fabs(gotoparams.detarget - currentDEC)) > DEGOTORESOLUTION))) {
-	    DEBUGF(INDI::Logger::DBG_SESSION, "Iterative Goto Limit reached (%d iterations): RA diff = %4.2f arcsecs DE diff = %4.2f arcsecs",
-		   gotoparams.iterative_count, 3600 * fabs(gotoparams.ratarget - currentRA),  3600 * fabs(gotoparams.detarget - currentDEC));
-	  }
+      gotoparams.racurrent = currentRA; gotoparams.decurrent = currentDEC;
+      gotoparams.racurrentencoder = currentRAEncoder; gotoparams.decurrentencoder = currentDEEncoder;
+      EncoderTarget(&gotoparams);
+      // Start iterative slewing
+      DEBUGF(INDI::Logger::DBG_SESSION, "Iterative goto (%d): slew mount to RA increment = %ld, DE increment = %ld", gotoparams.iterative_count,
+            gotoparams.ratargetencoder - gotoparams.racurrentencoder, gotoparams.detargetencoder - gotoparams.decurrentencoder);
+      mount->SlewTo(gotoparams.ratargetencoder - gotoparams.racurrentencoder, gotoparams.detargetencoder - gotoparams.decurrentencoder);
 
-	  // For AstroEQ (needs an explicit :G command at the end of gotos)
-	  mount->ResetMotions();
-	  
-	  if ((RememberTrackState == SCOPE_TRACKING) || ((sw != NULL) && (sw->s == ISS_ON))) {
-	    char *name;
-	    TrackState = SCOPE_TRACKING;
+    } else {
+      ISwitch *sw;
+      sw=IUFindSwitch(&CoordSP,"TRACK");
+      if ((gotoparams.iterative_count > GOTO_ITERATIVE_LIMIT) &&
+        (((3600 * fabs(gotoparams.ratarget - currentRA)) > RAGOTORESOLUTION) ||
+         ((3600 * fabs(gotoparams.detarget - currentDEC)) > DEGOTORESOLUTION))) {
+        DEBUGF(INDI::Logger::DBG_SESSION, "Iterative Goto Limit reached (%d iterations): RA diff = %4.2f arcsecs DE diff = %4.2f arcsecs",
+           gotoparams.iterative_count, 3600 * fabs(gotoparams.ratarget - currentRA),  3600 * fabs(gotoparams.detarget - currentDEC));
+      }
 
-	    if (RememberTrackState == SCOPE_TRACKING) {
-	      sw = IUFindOnSwitch(TrackModeSP);
-	      name=sw->name;
-	      mount->StartRATracking(GetRATrackRate());
-	      mount->StartDETracking(GetDETrackRate());
-	    } else {
-	      ISState   	state;
-	      sw = IUFindOnSwitch(TrackDefaultSP);
-	      name=sw->name;
-	      state=ISS_ON;
-	      mount->StartRATracking(GetDefaultRATrackRate());
-	      mount->StartDETracking(GetDefaultDETrackRate());
-	      IUResetSwitch(TrackModeSP);
-	      IUUpdateSwitch(TrackModeSP,&state,&name,1);
-	      TrackModeSP->s=IPS_BUSY;
-	      IDSetSwitch(TrackModeSP,NULL);
-	    }
-	    TrackModeSP->s=IPS_BUSY;
+      // For AstroEQ (needs an explicit :G command at the end of gotos)
+      mount->ResetMotions();
+
+      if ((RememberTrackState == SCOPE_TRACKING) || ((sw != NULL) && (sw->s == ISS_ON))) {
+        char *name;
+        TrackState = SCOPE_TRACKING;
+
+        if (RememberTrackState == SCOPE_TRACKING) {
+          sw = IUFindOnSwitch(TrackModeSP);
+          name=sw->name;
+          mount->StartRATracking(GetRATrackRate());
+          mount->StartDETracking(GetDETrackRate());
+        } else {
+          ISState   	state;
+          sw = IUFindOnSwitch(TrackDefaultSP);
+          name=sw->name;
+          state=ISS_ON;
+          mount->StartRATracking(GetDefaultRATrackRate());
+          mount->StartDETracking(GetDefaultDETrackRate());
+          IUResetSwitch(TrackModeSP);
+          IUUpdateSwitch(TrackModeSP,&state,&name,1);
+          TrackModeSP->s=IPS_BUSY;
+          IDSetSwitch(TrackModeSP,NULL);
+        }
+        TrackModeSP->s=IPS_BUSY;
         IDSetSwitch(TrackModeSP,NULL);
-	    DEBUGF(INDI::Logger::DBG_SESSION, "Telescope slew is complete. Tracking %s...", name);
-	  } else {
-	    TrackState = SCOPE_IDLE;
-	    DEBUG(INDI::Logger::DBG_SESSION, "Telescope slew is complete. Stopping...");
-	  }
-	  gotoparams.completed=true;
-	  EqNP.s = IPS_OK;
+        DEBUGF(INDI::Logger::DBG_SESSION, "Telescope slew is complete. Tracking %s...", name);
+      } else {
+        TrackState = SCOPE_IDLE;
+        DEBUG(INDI::Logger::DBG_SESSION, "Telescope slew is complete. Stopping...");
+      }
+      gotoparams.completed=true;
+      EqNP.s = IPS_OK;
 
-	}
-      } 
+    }
+      }
     }
 
 #ifdef WITH_SCOPE_LIMITS
     if (horizon) {
       if (horizon->checkLimits(horizvalues[0], horizvalues[1], TrackState, gotoInProgress())) Abort();
     }
-#endif   
+#endif
 
     if (TrackState == SCOPE_PARKING)
     {
@@ -847,12 +968,40 @@ bool EQMod::ReadScopeStatus() {
       }
     }
 
+    if (mount->HasPPEC()) {
+      if (RAPPECTrainingSP->s==IPS_BUSY) {
+    bool intraining, inppec;
+    mount->GetRAPPECStatus(&intraining, &inppec);
+    if (!(intraining))
+      {
+        DEBUG(INDI::Logger::DBG_SESSION,"RA PPEC Training completed.");
+        RAPPECTrainingSP->sp[0].s=ISS_ON;
+        RAPPECTrainingSP->sp[1].s=ISS_OFF;
+        RAPPECTrainingSP->s=IPS_IDLE;
+        IDSetSwitch(RAPPECTrainingSP, NULL);
+      }
+      }
+      if (DEPPECTrainingSP->s==IPS_BUSY) {
+    bool intraining, inppec;
+    mount->GetDEPPECStatus(&intraining, &inppec);
+    if (!(intraining))
+      {
+        DEBUG(INDI::Logger::DBG_SESSION,"DE PPEC Training completed.");
+        DEPPECTrainingSP->sp[0].s=ISS_ON;
+        DEPPECTrainingSP->sp[1].s=ISS_OFF;
+        DEPPECTrainingSP->s=IPS_IDLE;
+        IDSetSwitch(DEPPECTrainingSP, NULL);
+      }
+      }
+    }
+
+
     if (AutohomeState == AUTO_HOME_CONFIRM) {
       if (ah_confirm_timeout > 0)
-	ah_confirm_timeout -= 1;
+    ah_confirm_timeout -= 1;
       if (ah_confirm_timeout == 0) {
-	AutohomeState = AUTO_HOME_IDLE;
-	DEBUG(INDI::Logger::DBG_SESSION, "Autohome confirm timeout.");
+    AutohomeState = AUTO_HOME_IDLE;
+    DEBUG(INDI::Logger::DBG_SESSION, "Autohome confirm timeout.");
       }
     }
 
@@ -861,230 +1010,230 @@ bool EQMod::ReadScopeStatus() {
       switch (AutohomeState) {
       case AUTO_HOME_IDLE:
       case AUTO_HOME_CONFIRM:
-	AutohomeState = AUTO_HOME_IDLE;
-	TrackState == SCOPE_IDLE;
-	DEBUG(INDI::Logger::DBG_SESSION, "Invalid status while Autohoming. Aborting");
-	break;
+          AutohomeState = AUTO_HOME_IDLE;
+          TrackState = SCOPE_IDLE;
+          DEBUG(INDI::Logger::DBG_SESSION, "Invalid status while Autohoming. Aborting");
+        break;
       case AUTO_HOME_WAIT_PHASE1:
-	if (!(mount->IsRARunning()) && !(mount->IsDERunning())) {
-	  DEBUG(INDI::Logger::DBG_SESSION, "Autohome phase 1: end");
-	  DEBUG(INDI::Logger::DBG_SESSION, "AutoHome phase 2: reading home position indexes for extra moves");
-	  mount->SetRAIndexer(0x0);
-	  mount->SetDEIndexer(0x0);
-	  unsigned long raindex=mount->GetlastreadRAIndexer();
-	  unsigned long deindex=mount->GetlastreadDEIndexer();
-	  DEBUGF(INDI::Logger::DBG_SESSION, "AutoHome phase 2: read home position indexes: RA=0x%x DE=0x%x",
-		 raindex, deindex);
-	  if (raindex==0 || raindex==0xFFFFFF) ah_bIndexChanged_RA = false; else ah_bIndexChanged_RA = true;
-	  if (deindex==0 || deindex==0xFFFFFF) ah_bIndexChanged_DE = false; else ah_bIndexChanged_DE = true;
-	  if (ah_bIndexChanged_RA) {
-	    DEBUGF(INDI::Logger::DBG_SESSION, "AutoHome phase 2: RA home index changed RA=0x%x, slewing again", raindex);
-	    ah_iPosition_RA = mount->GetRAEncoder();
-	    ah_iChanges = (5 * mount->GetRAEncoderTotal()) / 360 ;
-	    if (ah_bSlewingUp_RA)
-	      ah_iPosition_RA = ah_iPosition_RA - ah_iChanges;
-	    else
-	      ah_iPosition_RA = ah_iPosition_RA + ah_iChanges;
-	  }
-	  if (ah_bIndexChanged_DE) {
-	    DEBUGF(INDI::Logger::DBG_SESSION, "AutoHome phase 2: DE home index changed DE=0x%x, slewing again", deindex);
-	    ah_iPosition_DE = mount->GetDEEncoder();
-	    ah_iChanges = (5 * mount->GetDEEncoderTotal()) / 360 ;
-	    if (ah_bSlewingUp_DE)
-	      ah_iPosition_DE = ah_iPosition_DE - ah_iChanges;
-	    else
-	      ah_iPosition_DE = ah_iPosition_DE + ah_iChanges;
-	  }
-	  if ((ah_bIndexChanged_RA) || (ah_bIndexChanged_DE)) {
-	    DEBUGF(INDI::Logger::DBG_SESSION, "AutoHome phase 2: slewing to RA=0x%x (up=%c) DE=0x%x (up=%c)",
-		   ah_iPosition_RA, (ah_bSlewingUp_RA?'1':'0'), ah_iPosition_DE, (ah_bSlewingUp_DE?'1':'0'));
-	    mount->AbsSlewTo(ah_iPosition_RA, ah_iPosition_DE, ah_bSlewingUp_RA, ah_bSlewingUp_DE);
-	    DEBUG(INDI::Logger::DBG_SESSION, "Autohome phase 2: start slewing, waiting for motors to stop");
-	  } else {
-	    DEBUG(INDI::Logger::DBG_SESSION, "Autohome phase 2: nothing to do");
-	  }
-	  AutohomeState = AUTO_HOME_WAIT_PHASE2;
-	} else {
-	  DEBUG(INDI::Logger::DBG_DEBUG, "Autohome phase 1: Waiting for motors to stop");
-	}
-	break;
+    if (!(mount->IsRARunning()) && !(mount->IsDERunning())) {
+      DEBUG(INDI::Logger::DBG_SESSION, "Autohome phase 1: end");
+      DEBUG(INDI::Logger::DBG_SESSION, "AutoHome phase 2: reading home position indexes for extra moves");
+      mount->GetRAIndexer();
+      mount->GetDEIndexer();
+      unsigned long raindex=mount->GetlastreadRAIndexer();
+      unsigned long deindex=mount->GetlastreadDEIndexer();
+      DEBUGF(INDI::Logger::DBG_SESSION, "AutoHome phase 2: read home position indexes: RA=0x%x DE=0x%x",
+         raindex, deindex);
+      if (raindex==0 || raindex==0xFFFFFF) ah_bIndexChanged_RA = false; else ah_bIndexChanged_RA = true;
+      if (deindex==0 || deindex==0xFFFFFF) ah_bIndexChanged_DE = false; else ah_bIndexChanged_DE = true;
+      if (ah_bIndexChanged_RA) {
+        DEBUGF(INDI::Logger::DBG_SESSION, "AutoHome phase 2: RA home index changed RA=0x%x, slewing again", raindex);
+        ah_iPosition_RA = mount->GetRAEncoder();
+        ah_iChanges = (5 * mount->GetRAEncoderTotal()) / 360 ;
+        if (ah_bSlewingUp_RA)
+          ah_iPosition_RA = ah_iPosition_RA - ah_iChanges;
+        else
+          ah_iPosition_RA = ah_iPosition_RA + ah_iChanges;
+      }
+      if (ah_bIndexChanged_DE) {
+        DEBUGF(INDI::Logger::DBG_SESSION, "AutoHome phase 2: DE home index changed DE=0x%x, slewing again", deindex);
+        ah_iPosition_DE = mount->GetDEEncoder();
+        ah_iChanges = (5 * mount->GetDEEncoderTotal()) / 360 ;
+        if (ah_bSlewingUp_DE)
+          ah_iPosition_DE = ah_iPosition_DE - ah_iChanges;
+        else
+          ah_iPosition_DE = ah_iPosition_DE + ah_iChanges;
+      }
+      if ((ah_bIndexChanged_RA) || (ah_bIndexChanged_DE)) {
+        DEBUGF(INDI::Logger::DBG_SESSION, "AutoHome phase 2: slewing to RA=0x%x (up=%c) DE=0x%x (up=%c)",
+           ah_iPosition_RA, (ah_bSlewingUp_RA?'1':'0'), ah_iPosition_DE, (ah_bSlewingUp_DE?'1':'0'));
+        mount->AbsSlewTo(ah_iPosition_RA, ah_iPosition_DE, ah_bSlewingUp_RA, ah_bSlewingUp_DE);
+        DEBUG(INDI::Logger::DBG_SESSION, "Autohome phase 2: start slewing, waiting for motors to stop");
+      } else {
+        DEBUG(INDI::Logger::DBG_SESSION, "Autohome phase 2: nothing to do");
+      }
+      AutohomeState = AUTO_HOME_WAIT_PHASE2;
+    } else {
+      DEBUG(INDI::Logger::DBG_DEBUG, "Autohome phase 1: Waiting for motors to stop");
+    }
+    break;
       case AUTO_HOME_WAIT_PHASE2:
-	if (!(mount->IsRARunning()) && !(mount->IsDERunning())) {
-	  DEBUG(INDI::Logger::DBG_SESSION, "Autohome phase 2: end");
-	  DEBUG(INDI::Logger::DBG_SESSION, "AutoHome phase 3: resetting home position indexes");
-	  if (ah_bIndexChanged_RA){
-	    unsigned long raindex=mount->GetlastreadRAIndexer();
-	    mount->SetRAAuxEncoder(0x08);
-	    mount->SetRAIndexer(0x0);
-	    DEBUGF(INDI::Logger::DBG_SESSION, "AutoHome phase 3: resetting RA home index: 0x%x (was 0x%x)", mount->GetlastreadRAIndexer(), raindex);
-	  }
-	  if (ah_bIndexChanged_DE) {
-	    unsigned long deindex=mount->GetlastreadDEIndexer();
-	    mount->SetDEAuxEncoder(0x08);
-	    mount->SetDEIndexer(0x0);
-	    DEBUGF(INDI::Logger::DBG_SESSION, "AutoHome phase 3: resetting DE home index: 0x%x (was 0x%x)", mount->GetlastreadDEIndexer(), deindex);
-	  }
-	  DEBUG(INDI::Logger::DBG_SESSION, "AutoHome phase 3: reading home position indexes to update directions");
-	  if (ah_bIndexChanged_RA) {
-	    mount->SetRAIndexer(0x00);
-	    if (mount->GetlastreadRAIndexer()==0) ah_bSlewingUp_RA = false; else ah_bSlewingUp_RA = true;
-	    DEBUGF(INDI::Logger::DBG_SESSION, "AutoHome phase 3: reading RA home position index: RA=0x%x up=%c",
-		   mount->GetlastreadRAIndexer(), (ah_bSlewingUp_RA?'1':'0'));
-	  }
-	  if (ah_bIndexChanged_DE) {
-	    mount->SetDEIndexer(0x00);
-	    if (mount->GetlastreadDEIndexer()==0) ah_bSlewingUp_DE = false; else ah_bSlewingUp_DE = true;
-	    DEBUGF(INDI::Logger::DBG_SESSION, "AutoHome phase 3: reading DE home position index: DE=0x%x up=%c",
-		   mount->GetlastreadDEIndexer(), (ah_bSlewingUp_DE?'1':'0'));
-	  }
+    if (!(mount->IsRARunning()) && !(mount->IsDERunning())) {
+      DEBUG(INDI::Logger::DBG_SESSION, "Autohome phase 2: end");
+      DEBUG(INDI::Logger::DBG_SESSION, "AutoHome phase 3: resetting home position indexes");
+      if (ah_bIndexChanged_RA){
+        unsigned long raindex=mount->GetlastreadRAIndexer();
+        mount->ResetRAIndexer();
+        mount->GetRAIndexer();
+        DEBUGF(INDI::Logger::DBG_SESSION, "AutoHome phase 3: resetting RA home index: 0x%x (was 0x%x)", mount->GetlastreadRAIndexer(), raindex);
+      }
+      if (ah_bIndexChanged_DE) {
+        unsigned long deindex=mount->GetlastreadDEIndexer();
+        mount->ResetDEIndexer();
+        mount->GetDEIndexer();
+        DEBUGF(INDI::Logger::DBG_SESSION, "AutoHome phase 3: resetting DE home index: 0x%x (was 0x%x)", mount->GetlastreadDEIndexer(), deindex);
+      }
+      DEBUG(INDI::Logger::DBG_SESSION, "AutoHome phase 3: reading home position indexes to update directions");
+      if (ah_bIndexChanged_RA) {
+        mount->GetRAIndexer();
+        if (mount->GetlastreadRAIndexer()==0) ah_bSlewingUp_RA = false; else ah_bSlewingUp_RA = true;
+        DEBUGF(INDI::Logger::DBG_SESSION, "AutoHome phase 3: reading RA home position index: RA=0x%x up=%c",
+           mount->GetlastreadRAIndexer(), (ah_bSlewingUp_RA?'1':'0'));
+      }
+      if (ah_bIndexChanged_DE) {
+        mount->GetDEIndexer();
+        if (mount->GetlastreadDEIndexer()==0) ah_bSlewingUp_DE = false; else ah_bSlewingUp_DE = true;
+        DEBUGF(INDI::Logger::DBG_SESSION, "AutoHome phase 3: reading DE home position index: DE=0x%x up=%c",
+           mount->GetlastreadDEIndexer(), (ah_bSlewingUp_DE?'1':'0'));
+      }
 
-	  if (!ah_bSlewingUp_RA) {
-	    DEBUG(INDI::Logger::DBG_SESSION, "AutoHome phase 3: starting RA negative slewing, waiting RA home indexer");
-	    ah_waitRA=-1;
-	    mount->SlewRA(-800.0);
-	  }
-	  if (!ah_bSlewingUp_DE) {
-	    DEBUG(INDI::Logger::DBG_SESSION, "AutoHome phase 3: starting DE negative slewing, waiting DE home indexer");
-	    ah_waitDE=-1;
-	    mount->SlewDE(-800.0);
-	  }
-	  AutohomeState=AUTO_HOME_WAIT_PHASE3;
-	} else {
-	  DEBUG(INDI::Logger::DBG_DEBUG, "Autohome phase 2: Waiting for motors to stop");
-	}
-	break;
+      if (!ah_bSlewingUp_RA) {
+        DEBUG(INDI::Logger::DBG_SESSION, "AutoHome phase 3: starting RA negative slewing, waiting RA home indexer");
+        ah_waitRA=-1;
+        mount->SlewRA(-800.0);
+      }
+      if (!ah_bSlewingUp_DE) {
+        DEBUG(INDI::Logger::DBG_SESSION, "AutoHome phase 3: starting DE negative slewing, waiting DE home indexer");
+        ah_waitDE=-1;
+        mount->SlewDE(-800.0);
+      }
+      AutohomeState=AUTO_HOME_WAIT_PHASE3;
+    } else {
+      DEBUG(INDI::Logger::DBG_DEBUG, "Autohome phase 2: Waiting for motors to stop");
+    }
+    break;
       case AUTO_HOME_WAIT_PHASE3:
-	unsigned long indexRA, indexDE;
-	if (mount->IsRARunning()) {
-	  if (ah_waitRA < 0) {
-	    mount->SetRAIndexer(0x0);
-	    if ((indexRA=mount->GetlastreadRAIndexer())!=0xFFFFFF) {
-	      ah_waitRA = 3000 / POLLMS;
-	      DEBUGF(INDI::Logger::DBG_SESSION, "Autohome phase 3: detected RA Index changed, waiting %d poll periods", ah_waitRA);
-	    }
-	  } else
-	    ah_waitRA -= 1;
-	  if (ah_waitRA == 0) {
-	    DEBUG(INDI::Logger::DBG_SESSION, "Autohome phase 3: stopping RA");
-	    mount->StopRA();
-	  }
-	}
-	if (mount->IsDERunning()) {
-	  if (ah_waitDE < 0) {
-	    mount->SetDEIndexer(0x0);
-	    if ((indexDE=mount->GetlastreadDEIndexer())!=0xFFFFFF) {
-	      ah_waitDE = 3000 / POLLMS;
-	      DEBUGF(INDI::Logger::DBG_SESSION, "Autohome phase 3: detected DE Index changed, waiting %d poll periods", ah_waitDE);
-	    }
-	  } else 
-	    ah_waitDE -= 1;
-	  if (ah_waitDE == 0) {
-	    DEBUG(INDI::Logger::DBG_SESSION, "Autohome phase 3: stopping DE");
-	    mount->StopDE();
-	  }
-	}	
-	if (!(mount->IsRARunning()) && !(mount->IsDERunning())) {
-	  if (!ah_bSlewingUp_RA) {
-	    mount->SetRAAuxEncoder(0x08);
-	    mount->SetRAIndexer(0x0);
-	    DEBUGF(INDI::Logger::DBG_SESSION, "AutoHome phase 3: resetting RA home index: 0x%x (was 0x%x)", mount->GetlastreadRAIndexer(), indexRA);
-	    ah_bSlewingUp_RA=true;
-	  }
-	  if (!ah_bSlewingUp_DE) {
-	    mount->SetDEAuxEncoder(0x08);
-	    mount->SetDEIndexer(0x0);
-	    DEBUGF(INDI::Logger::DBG_SESSION, "AutoHome phase 3: resetting DE home index: 0x%x (was 0x%x)", mount->GetlastreadDEIndexer(), indexDE);
-	    ah_bSlewingUp_DE=true;
-	  }
-	  DEBUG(INDI::Logger::DBG_SESSION, "Autohome phase 3: end");
-	  DEBUG(INDI::Logger::DBG_SESSION, "Autohome phase 4: *** find the home position index ***");
-	  DEBUG(INDI::Logger::DBG_SESSION, "AutoHome phase 4: starting RA positive slewing, waiting RA home indexer");
-	  ah_waitRA=-1;
-	  ah_bIndexChanged_RA = false;
-	  mount->SlewRA(400.0);
-	  
-	  DEBUG(INDI::Logger::DBG_SESSION, "AutoHome phase 4: starting DE positive slewing, waiting DE home indexer");
-	  ah_waitDE=-1;
-	  mount->SlewDE(400.0);
-	  ah_bIndexChanged_DE = false;
-	  AutohomeState=AUTO_HOME_WAIT_PHASE4;
-	}
-	break;
-      case AUTO_HOME_WAIT_PHASE4:
-	if (!ah_bIndexChanged_RA) {
-	  mount->SetRAIndexer(0x0);
-	  ah_iPosition_RA=mount->GetlastreadRAIndexer();
-	  if (ah_iPosition_RA != 0) {
-	    ah_bIndexChanged_RA=true;
-	    ah_sHomeIndexPosition_RA = ah_iPosition_RA;
-	    DEBUGF(INDI::Logger::DBG_SESSION, "Autohome phase 4: detected RA Home index: 0x%x, stopping motor", ah_iPosition_RA);
-	    mount->StopRA();
-	  }
-	}
-	if (!ah_bIndexChanged_DE) {
-	  mount->SetDEIndexer(0x0);
-	  ah_iPosition_DE=mount->GetlastreadDEIndexer();
-	  if (ah_iPosition_DE != 0) {
-	    ah_bIndexChanged_DE = true;
-	    ah_sHomeIndexPosition_DE = ah_iPosition_DE;
-	    DEBUGF(INDI::Logger::DBG_SESSION, "Autohome phase 4: detected DE Home index: 0x%x, stopping motor", ah_iPosition_DE);
-	    mount->StopDE();
-	  }
-	}
-	if (!(mount->IsRARunning()) && !(mount->IsDERunning())) {
-	  DEBUG(INDI::Logger::DBG_SESSION, "Autohome phase 4: end");
-	  DEBUG(INDI::Logger::DBG_SESSION, "Autohome phase 5: Moving back 10 deg.");
-	  ah_iChanges = (10 * mount->GetRAEncoderTotal()) / 360 ;
-	  ah_iPosition_RA = ah_iPosition_RA - ah_iChanges;
-	  ah_iChanges = (10 * mount->GetDEEncoderTotal()) / 360 ;
-	  ah_iPosition_DE = ah_iPosition_DE - ah_iChanges;
-	  DEBUGF(INDI::Logger::DBG_SESSION, "AutoHome phase 5: slewing to RA=0x%x (up=%c) DE=0x%x (up=%c)",
-		 ah_iPosition_RA, '0', ah_iPosition_DE, '0');
-	  mount->AbsSlewTo(ah_iPosition_RA, ah_iPosition_DE, false, false);
-	  AutohomeState = AUTO_HOME_WAIT_PHASE5;
-	}
-	break;
-     case AUTO_HOME_WAIT_PHASE5:
-	if (!(mount->IsRARunning()) && !(mount->IsDERunning())) {
-	  DEBUG(INDI::Logger::DBG_SESSION, "Autohome phase 5: end");
-	  DEBUG(INDI::Logger::DBG_SESSION, "Autohome phase 6: Goto Home Position");
-	  DEBUGF(INDI::Logger::DBG_SESSION, "AutoHome phase 6: slewing to RA=0x%x (up=%c) DE=0x%x (up=%c)",
-		 ah_sHomeIndexPosition_RA, '1', ah_sHomeIndexPosition_DE, '1');
-	  mount->AbsSlewTo(ah_sHomeIndexPosition_RA, ah_sHomeIndexPosition_DE, true, true);
-	  AutohomeState = AUTO_HOME_WAIT_PHASE6;
-	} else {
-	  DEBUG(INDI::Logger::DBG_DEBUG, "Autohome phase 5: Waiting for motors to stop");
-	}
-	break;
-     case AUTO_HOME_WAIT_PHASE6:
-	if (!(mount->IsRARunning()) && !(mount->IsDERunning())) {
-	  DEBUG(INDI::Logger::DBG_SESSION, "Autohome phase 6: end");
-	  DEBUGF(INDI::Logger::DBG_SESSION, "AutoHome phase 6: Mount at RA=0x%x DE=0x%x",
-		 mount->GetRAEncoder(), mount->GetDEEncoder());
-	  DEBUGF(INDI::Logger::DBG_SESSION, "Autohome: Mount at Home Position, setting encoders RA=0x%x DE=0X%x",
-		mount->GetRAEncoderHome(), mount->GetDEEncoderHome());
-	  mount->SetRAAxisPosition(mount->GetRAEncoderHome());
-	  mount->SetDEAxisPosition(mount->GetDEEncoderHome());
-	  TrackState=SCOPE_IDLE;
-	  AutohomeState = AUTO_HOME_IDLE;
-	  AutoHomeSP->s=IPS_IDLE;
-	  IUResetSwitch(AutoHomeSP);
-	  IDSetSwitch(AutoHomeSP,NULL);
-	  DEBUG(INDI::Logger::DBG_SESSION, "Autohome: end");
-	} else {
-	  DEBUG(INDI::Logger::DBG_DEBUG, "Autohome phase 6: Waiting for motors to stop");
-	}
-	break;	
-      default:
-	DEBUGF(INDI::Logger::DBG_WARNING, "Unknown Autohome status %d: aborting", AutohomeState);
-	Abort();
-	break;
+    unsigned long indexRA, indexDE;
+    if (mount->IsRARunning()) {
+      if (ah_waitRA < 0) {
+        mount->GetRAIndexer();
+        if ((indexRA=mount->GetlastreadRAIndexer())!=0xFFFFFF) {
+          ah_waitRA = 3000 / POLLMS;
+          DEBUGF(INDI::Logger::DBG_SESSION, "Autohome phase 3: detected RA Index changed, waiting %d poll periods", ah_waitRA);
+        }
+      } else
+        ah_waitRA -= 1;
+      if (ah_waitRA == 0) {
+        DEBUG(INDI::Logger::DBG_SESSION, "Autohome phase 3: stopping RA");
+        mount->StopRA();
       }
     }
-    
+    if (mount->IsDERunning()) {
+      if (ah_waitDE < 0) {
+        mount->GetDEIndexer();
+        if ((indexDE=mount->GetlastreadDEIndexer())!=0xFFFFFF) {
+          ah_waitDE = 3000 / POLLMS;
+          DEBUGF(INDI::Logger::DBG_SESSION, "Autohome phase 3: detected DE Index changed, waiting %d poll periods", ah_waitDE);
+        }
+      } else
+        ah_waitDE -= 1;
+      if (ah_waitDE == 0) {
+        DEBUG(INDI::Logger::DBG_SESSION, "Autohome phase 3: stopping DE");
+        mount->StopDE();
+      }
+    }
+    if (!(mount->IsRARunning()) && !(mount->IsDERunning())) {
+      if (!ah_bSlewingUp_RA) {
+        mount->ResetRAIndexer();
+        mount->GetRAIndexer();
+        DEBUGF(INDI::Logger::DBG_SESSION, "AutoHome phase 3: resetting RA home index: 0x%x (was 0x%x)", mount->GetlastreadRAIndexer(), indexRA);
+        ah_bSlewingUp_RA=true;
+      }
+      if (!ah_bSlewingUp_DE) {
+        mount->ResetDEIndexer();
+        mount->GetDEIndexer();
+        DEBUGF(INDI::Logger::DBG_SESSION, "AutoHome phase 3: resetting DE home index: 0x%x (was 0x%x)", mount->GetlastreadDEIndexer(), indexDE);
+        ah_bSlewingUp_DE=true;
+      }
+      DEBUG(INDI::Logger::DBG_SESSION, "Autohome phase 3: end");
+      DEBUG(INDI::Logger::DBG_SESSION, "Autohome phase 4: *** find the home position index ***");
+      DEBUG(INDI::Logger::DBG_SESSION, "AutoHome phase 4: starting RA positive slewing, waiting RA home indexer");
+      ah_waitRA=-1;
+      ah_bIndexChanged_RA = false;
+      mount->SlewRA(400.0);
+
+      DEBUG(INDI::Logger::DBG_SESSION, "AutoHome phase 4: starting DE positive slewing, waiting DE home indexer");
+      ah_waitDE=-1;
+      mount->SlewDE(400.0);
+      ah_bIndexChanged_DE = false;
+      AutohomeState=AUTO_HOME_WAIT_PHASE4;
+    }
+    break;
+      case AUTO_HOME_WAIT_PHASE4:
+    if (!ah_bIndexChanged_RA) {
+      mount->GetRAIndexer();
+      ah_iPosition_RA=mount->GetlastreadRAIndexer();
+      if (ah_iPosition_RA != 0) {
+        ah_bIndexChanged_RA=true;
+        ah_sHomeIndexPosition_RA = ah_iPosition_RA;
+        DEBUGF(INDI::Logger::DBG_SESSION, "Autohome phase 4: detected RA Home index: 0x%x, stopping motor", ah_iPosition_RA);
+        mount->StopRA();
+      }
+    }
+    if (!ah_bIndexChanged_DE) {
+      mount->GetDEIndexer();
+      ah_iPosition_DE=mount->GetlastreadDEIndexer();
+      if (ah_iPosition_DE != 0) {
+        ah_bIndexChanged_DE = true;
+        ah_sHomeIndexPosition_DE = ah_iPosition_DE;
+        DEBUGF(INDI::Logger::DBG_SESSION, "Autohome phase 4: detected DE Home index: 0x%x, stopping motor", ah_iPosition_DE);
+        mount->StopDE();
+      }
+    }
+    if (!(mount->IsRARunning()) && !(mount->IsDERunning())) {
+      DEBUG(INDI::Logger::DBG_SESSION, "Autohome phase 4: end");
+      DEBUG(INDI::Logger::DBG_SESSION, "Autohome phase 5: Moving back 10 deg.");
+      ah_iChanges = (10 * mount->GetRAEncoderTotal()) / 360 ;
+      ah_iPosition_RA = ah_iPosition_RA - ah_iChanges;
+      ah_iChanges = (10 * mount->GetDEEncoderTotal()) / 360 ;
+      ah_iPosition_DE = ah_iPosition_DE - ah_iChanges;
+      DEBUGF(INDI::Logger::DBG_SESSION, "AutoHome phase 5: slewing to RA=0x%x (up=%c) DE=0x%x (up=%c)",
+         ah_iPosition_RA, '0', ah_iPosition_DE, '0');
+      mount->AbsSlewTo(ah_iPosition_RA, ah_iPosition_DE, false, false);
+      AutohomeState = AUTO_HOME_WAIT_PHASE5;
+    }
+    break;
+     case AUTO_HOME_WAIT_PHASE5:
+    if (!(mount->IsRARunning()) && !(mount->IsDERunning())) {
+      DEBUG(INDI::Logger::DBG_SESSION, "Autohome phase 5: end");
+      DEBUG(INDI::Logger::DBG_SESSION, "Autohome phase 6: Goto Home Position");
+      DEBUGF(INDI::Logger::DBG_SESSION, "AutoHome phase 6: slewing to RA=0x%x (up=%c) DE=0x%x (up=%c)",
+         ah_sHomeIndexPosition_RA, '1', ah_sHomeIndexPosition_DE, '1');
+      mount->AbsSlewTo(ah_sHomeIndexPosition_RA, ah_sHomeIndexPosition_DE, true, true);
+      AutohomeState = AUTO_HOME_WAIT_PHASE6;
+    } else {
+      DEBUG(INDI::Logger::DBG_DEBUG, "Autohome phase 5: Waiting for motors to stop");
+    }
+    break;
+     case AUTO_HOME_WAIT_PHASE6:
+    if (!(mount->IsRARunning()) && !(mount->IsDERunning())) {
+      DEBUG(INDI::Logger::DBG_SESSION, "Autohome phase 6: end");
+      DEBUGF(INDI::Logger::DBG_SESSION, "AutoHome phase 6: Mount at RA=0x%x DE=0x%x",
+         mount->GetRAEncoder(), mount->GetDEEncoder());
+      DEBUGF(INDI::Logger::DBG_SESSION, "Autohome: Mount at Home Position, setting encoders RA=0x%x DE=0X%x",
+        mount->GetRAEncoderHome(), mount->GetDEEncoderHome());
+      mount->SetRAAxisPosition(mount->GetRAEncoderHome());
+      mount->SetDEAxisPosition(mount->GetDEEncoderHome());
+      TrackState=SCOPE_IDLE;
+      AutohomeState = AUTO_HOME_IDLE;
+      AutoHomeSP->s=IPS_IDLE;
+      IUResetSwitch(AutoHomeSP);
+      IDSetSwitch(AutoHomeSP,NULL);
+      DEBUG(INDI::Logger::DBG_SESSION, "Autohome: end");
+    } else {
+      DEBUG(INDI::Logger::DBG_DEBUG, "Autohome phase 6: Waiting for motors to stop");
+    }
+    break;
+      default:
+    DEBUGF(INDI::Logger::DBG_WARNING, "Unknown Autohome status %d: aborting", AutohomeState);
+    Abort();
+    break;
+      }
+    }
+
   } catch(EQModError e) {
     return(e.DefaultHandleException(this));
-  }    
+  }
 
   return true;
 
@@ -1098,13 +1247,27 @@ void EQMod::EncodersToRADec(unsigned long rastep, unsigned long destep, double l
   DECurrent=EncoderToDegrees(destep, zeroDEEncoder, totalDEEncoder, Hemisphere);
   //IDLog("EncodersToRADec: destep=%6X zeroDEncoder=%6X totalDEEncoder=%6x DECurrent=%f\n", destep, zeroDEEncoder , totalDEEncoder, DECurrent);
   if (Hemisphere==NORTH) {
-    if ((DECurrent > 90.0) && (DECurrent <= 270.0)) RACurrent = RACurrent - 12.0;
+    if ((DECurrent > 90.0) && (DECurrent <= 270.0)) {
+        RACurrent = RACurrent - 12.0;
+        //currentPierSide = EAST;
+        setPierSide(PIER_EAST);
+    }
+    else
+        setPierSide(PIER_WEST);
+        //currentPierSide = WEST;
   }
   else
-    if ((DECurrent <= 90.0) || (DECurrent > 270.0)) RACurrent = RACurrent + 12.0;
+    if ((DECurrent <= 90.0) || (DECurrent > 270.0)) {
+        RACurrent = RACurrent + 12.0;
+        //currentPierSide = EAST;
+        setPierSide(PIER_EAST);
+    }
+    else
+        setPierSide(PIER_WEST);
+        //currentPierSide = WEST;
   HACurrent = rangeHA(HACurrent);
   RACurrent = range24(RACurrent);
-  DECurrent = rangeDec(DECurrent); 
+  DECurrent = rangeDec(DECurrent);
   *ra=RACurrent;
   *de=DECurrent;
   if (ha) *ha=HACurrent;
@@ -1118,13 +1281,13 @@ double EQMod::EncoderToHours(unsigned long step, unsigned long initstep, unsigne
   } else {
     result = ((double)(initstep - step) / totalstep) * 24.0;
   }
-    
+
   if (h == NORTH)
     result = range24(result + 6.0);
   else
     result = range24((24 - result) + 6.0);
   return result;
-} 
+}
 
 double EQMod::EncoderToDegrees(unsigned long step, unsigned long initstep, unsigned long totalstep, enum Hemisphere h)
 {
@@ -1135,21 +1298,21 @@ double EQMod::EncoderToDegrees(unsigned long step, unsigned long initstep, unsig
     result = ((double)(initstep - step) / totalstep) * 360.0;
     result = 360.0 - result;
   }
-  //IDLog("EncodersToDegrees: step=%6X initstep=%6x result=%f hemisphere %s \n", step, initstep, result, (h==NORTH?"North":"South"));    
+  //IDLog("EncodersToDegrees: step=%6X initstep=%6x result=%f hemisphere %s \n", step, initstep, result, (h==NORTH?"North":"South"));
   if (h == NORTH)
     result = range360(result);
   else
     result = range360(360.0 - result);
-  //IDLog("EncodersToDegrees: returning result=%f\n", result);    
+  //IDLog("EncodersToDegrees: returning result=%f\n", result);
 
   return result;
-} 
+}
 
 double EQMod::EncoderFromHour(double hour, unsigned long initstep, unsigned long totalstep, enum Hemisphere h)
 {
   double shifthour=0.0;
   shifthour=range24(hour - 6);
-  if (h == NORTH) 
+  if (h == NORTH)
     if (shifthour < 12.0)
       return (initstep - ((shifthour / 24.0) * totalstep));
     else
@@ -1161,14 +1324,14 @@ double EQMod::EncoderFromHour(double hour, unsigned long initstep, unsigned long
       return (initstep - (((24.0 - shifthour) / 24.0) * totalstep));
 }
 
-double EQMod::EncoderFromRA(double ratarget, double detarget, double lst, 
-			    unsigned long initstep, unsigned long totalstep, enum Hemisphere h)
+double EQMod::EncoderFromRA(double ratarget, double detarget, double lst,
+                unsigned long initstep, unsigned long totalstep, enum Hemisphere h)
 {
   double ha=0.0;
   ha = ratarget - lst;
 
   // used only in simulation??
-  if (h == NORTH) 
+  if (h == NORTH)
     if ((detarget > 90.0) && (detarget <= 270.0)) ha = ha - 12.0;
   if (h == SOUTH)
     if ((detarget > 90.0) && (detarget <= 270.0)) ha = ha + 12.0;
@@ -1177,22 +1340,22 @@ double EQMod::EncoderFromRA(double ratarget, double detarget, double lst,
   return EncoderFromHour(ha, initstep, totalstep, h);
 }
 
-double EQMod::EncoderFromDegree(double degree, PierSide p, unsigned long initstep, unsigned long totalstep, enum Hemisphere h)
+double EQMod::EncoderFromDegree(double degree, TelescopePierSide p, unsigned long initstep, unsigned long totalstep, enum Hemisphere h)
 {
   double target = 0.0;
   target = degree;
   if (h == SOUTH)  target = 360.0 - target;
-  if ((target > 180.0) && (p == EAST)) 
+  if ((target > 180.0) && (p == PIER_EAST))
     return (initstep - (((360.0 - target) / 360.0) * totalstep));
-  else 
+  else
     return (initstep + ((target / 360.0) * totalstep));
 }
-double EQMod::EncoderFromDec( double detarget, PierSide p, 
-			      unsigned long initstep, unsigned long totalstep, enum Hemisphere h)
+double EQMod::EncoderFromDec( double detarget, TelescopePierSide p,
+                  unsigned long initstep, unsigned long totalstep, enum Hemisphere h)
 {
   double target=0.0;
   target = detarget;
-  if (p == WEST) target = 180.0 - target;
+  if (p == PIER_WEST) target = 180.0 - target;
   return EncoderFromDegree(target, p, initstep, totalstep, h);
 }
 
@@ -1203,7 +1366,7 @@ void EQMod::SetSouthernHemisphere(bool southern) {
   if (southern) Hemisphere=SOUTH;
   else Hemisphere=NORTH;
   RAInverted = (Hemisphere==SOUTH);
-  DEInverted = ((Hemisphere==SOUTH) ^ (pierside==WEST));
+  DEInverted = ((Hemisphere==SOUTH) ^ (getPierSide()==PIER_WEST));
   if (Hemisphere == NORTH) {
     hemispherevalues[0]=ISS_ON; hemispherevalues[1]=ISS_OFF;
     IUUpdateSwitch(HemisphereSP, hemispherevalues, (char **)hemispherenames, 2);
@@ -1215,41 +1378,35 @@ void EQMod::SetSouthernHemisphere(bool southern) {
   IDSetSwitch(HemisphereSP, NULL);
 }
 
-EQMod::PierSide EQMod::SideOfPier(double ha) {
-  double shiftha;
-  shiftha=rangeHA(ha - 6.0);
-  if (shiftha >= 0.0) return EAST; else return WEST; 
-}
-
 void EQMod::EncoderTarget(GotoParams *g)
 {
   double r, d;
   double ha=0.0, targetra=0.0;
   double juliandate;
   double lst;
-  PierSide targetpier;
+  TelescopePierSide targetpier;
   unsigned long targetraencoder=0, targetdecencoder=0;
   bool outsidelimits=false;
   r = g->ratarget; d = g->detarget;
-    
+
   juliandate=getJulianDate();
-  lst=getLst(juliandate, getLongitude()); 
-  
+  lst=getLst(juliandate, getLongitude());
+
   ha = rangeHA(r - lst);
   if (ha < 0.0) {// target EAST
     if (g->forcecwup) {
-      if (Hemisphere == NORTH) targetpier = EAST; else targetpier = WEST;
+      if (Hemisphere == NORTH) targetpier = PIER_EAST; else targetpier = PIER_WEST;
       targetra = r;
     } else {
-      if (Hemisphere == NORTH) targetpier = WEST; else targetpier = EAST;
+      if (Hemisphere == NORTH) targetpier = PIER_WEST; else targetpier = PIER_EAST;
       targetra = range24(r - 12.0);
     }
   } else {
     if (g->forcecwup) {
-      if (Hemisphere == NORTH) targetpier = WEST; else targetpier = EAST;
+      if (Hemisphere == NORTH) targetpier = PIER_WEST; else targetpier = PIER_EAST;
       targetra = range24(r - 12.0);
     } else {
-      if (Hemisphere == NORTH) targetpier = EAST; else targetpier = WEST;
+      if (Hemisphere == NORTH) targetpier = PIER_EAST; else targetpier = PIER_WEST;
       targetra = r;
     }
   }
@@ -1266,11 +1423,11 @@ void EQMod::EncoderTarget(GotoParams *g)
     if (outsidelimits) {
       DEBUG(INDI::Logger::DBG_WARNING, "Goto: RA Limits prevent Counterweights-up slew.");
       if (ha < 0.0) {// target EAST
-	if (Hemisphere == NORTH) targetpier = WEST; else targetpier = EAST;
-	targetra = range24(r - 12.0);
+    if (Hemisphere == NORTH) targetpier = PIER_WEST; else targetpier = PIER_EAST;
+    targetra = range24(r - 12.0);
       } else {
-	if (Hemisphere == NORTH) targetpier = EAST; else targetpier = WEST;
-	targetra = r;
+    if (Hemisphere == NORTH) targetpier = PIER_EAST; else targetpier = PIER_WEST;
+    targetra = r;
       }
       targetraencoder=EncoderFromRA(targetra, 0.0, lst, zeroRAEncoder, totalRAEncoder, Hemisphere);
       targetdecencoder=EncoderFromDec(d, targetpier, zeroDEEncoder, totalDEEncoder, Hemisphere);
@@ -1281,7 +1438,7 @@ void EQMod::EncoderTarget(GotoParams *g)
   g->detargetencoder = targetdecencoder;
 }
 
-double EQMod::GetRATrackRate() 
+double EQMod::GetRATrackRate()
 {
   double rate = 0.0;
   ISwitch *sw;
@@ -1294,13 +1451,13 @@ double EQMod::GetRATrackRate()
   } else if (!strcmp(sw->name,"TRACK_SOLAR")) {
     rate = TRACKRATE_SOLAR;
   } else if (!strcmp(sw->name,"TRACK_CUSTOM")) {
-    rate = IUFindNumber(TrackRatesNP, "RATRACKRATE")->value;
+    rate = IUFindNumber(TrackRatesNP, "TRACK_RATE_RA")->value;
   } else return 0.0;
   if (RAInverted) rate=-rate;
   return rate;
 }
 
-double EQMod::GetDETrackRate() 
+double EQMod::GetDETrackRate()
 {
   double rate = 0.0;
   ISwitch *sw;
@@ -1313,13 +1470,13 @@ double EQMod::GetDETrackRate()
   } else if (!strcmp(sw->name,"TRACK_SOLAR")) {
     rate = 0.0;
   } else if (!strcmp(sw->name,"TRACK_CUSTOM")) {
-    rate = IUFindNumber(TrackRatesNP, "DETRACKRATE")->value;
+    rate = IUFindNumber(TrackRatesNP, "TRACK_RATE_DE")->value;
   } else return 0.0;
   if (DEInverted) rate=-rate;
   return rate;
 }
 
-double EQMod::GetDefaultRATrackRate() 
+double EQMod::GetDefaultRATrackRate()
 {
   double rate = 0.0;
   ISwitch *sw;
@@ -1332,13 +1489,13 @@ double EQMod::GetDefaultRATrackRate()
   } else if (!strcmp(sw->name,"TRACK_SOLAR")) {
     rate = TRACKRATE_SOLAR;
   } else if (!strcmp(sw->name,"TRACK_CUSTOM")) {
-    rate = IUFindNumber(TrackRatesNP, "RATRACKRATE")->value;
+    rate = IUFindNumber(TrackRatesNP, "TRACK_RATE_RA")->value;
   } else return 0.0;
   if (RAInverted) rate=-rate;
   return rate;
 }
 
-double EQMod::GetDefaultDETrackRate() 
+double EQMod::GetDefaultDETrackRate()
 {
   double rate = 0.0;
   ISwitch *sw;
@@ -1351,7 +1508,7 @@ double EQMod::GetDefaultDETrackRate()
   } else if (!strcmp(sw->name,"TRACK_SOLAR")) {
     rate = 0.0;
   } else if (!strcmp(sw->name,"TRACK_CUSTOM")) {
-    rate = IUFindNumber(TrackRatesNP, "DETRACKRATE")->value;
+    rate = IUFindNumber(TrackRatesNP, "TRACK_RATE_DE")->value;
   } else return 0.0;
   if (DEInverted) rate=-rate;
   return rate;
@@ -1381,8 +1538,8 @@ bool EQMod::Goto(double r,double d)
   }
 
   juliandate=getJulianDate();
-  lst=getLst(juliandate, getLongitude()); 
- 
+  lst=getLst(juliandate, getLongitude());
+
 
 #ifdef WITH_SCOPE_LIMITS
   gotoradec.ra =(r * 360.0) / 24.0;
@@ -1398,10 +1555,10 @@ bool EQMod::Goto(double r,double d)
       DEBUG(INDI::Logger::DBG_WARNING, "Goto outside Horizon Limits.");
       EqNP.s    = IPS_IDLE;
       IDSetNumber(&EqNP, NULL);
-      return true;     
+      return true;
     }
   }
-#endif   
+#endif
 
   DEBUGF(INDI::Logger::DBG_SESSION,"Starting Goto RA=%g DE=%g (current RA=%g DE=%g)", r, d, currentRA, currentDEC);
     targetRA=r;
@@ -1418,13 +1575,13 @@ bool EQMod::Goto(double r,double d)
     aligned = true;
     if (align) {
       align->AlignGoto(syncdata, juliandate, &lnobserver, &ghratarget, &ghdetarget);
-      DEBUGF(INDI::Logger::DBG_SESSION,"Aligned Eqmod Goto RA=%g DE=%g (target RA=%g DE=%g)", ghratarget, ghdetarget, r, d);      
+      DEBUGF(INDI::Logger::DBG_SESSION,"Aligned Eqmod Goto RA=%g DE=%g (target RA=%g DE=%g)", ghratarget, ghdetarget, r, d);
     } else {
       if (syncdata.lst != 0.0) {
-	ghratarget = gotoparams.ratarget - syncdata.deltaRA;
-	ghdetarget = gotoparams.detarget - syncdata.deltaDEC;
-	DEBUGF(INDI::Logger::DBG_SESSION,"Failed Eqmod Goto RA=%g DE=%g (target RA=%g DE=%g)", ghratarget, ghdetarget, r, d);      
-      }   
+    ghratarget = gotoparams.ratarget - syncdata.deltaRA;
+    ghdetarget = gotoparams.detarget - syncdata.deltaDEC;
+    DEBUGF(INDI::Logger::DBG_SESSION,"Failed Eqmod Goto RA=%g DE=%g (target RA=%g DE=%g)", ghratarget, ghdetarget, r, d);
+      }
     }
 #endif
 #ifdef WITH_ALIGN
@@ -1434,22 +1591,22 @@ bool EQMod::Goto(double r,double d)
     //if (!TransformCelestialToTelescope(r, d, 0.0, TDV)) {
       DEBUGF(INDI::AlignmentSubsystem::DBG_ALIGNMENT, "Failed TransformCelestialToTelescope:  RA=%lf DE=%lf, Goto RA=%lf DE=%lf", r, d, gotoparams.ratarget, gotoparams.detarget);
       if (syncdata.lst != 0.0) {
-	gotoparams.ratarget -= syncdata.deltaRA;
-	gotoparams.detarget -= syncdata.deltaDEC;
-      }   
+    gotoparams.ratarget -= syncdata.deltaRA;
+    gotoparams.detarget -= syncdata.deltaDEC;
+      }
     } else {
       struct ln_equ_posn RaDec;
       LocalHourAngleDeclinationFromTelescopeDirectionVector(TDV, RaDec);
       DEBUGF(INDI::AlignmentSubsystem::DBG_ALIGNMENT, "TransformCelestialToTelescope: RA=%lf DE=%lf, TDV (x :%lf, y: %lf, z: %lf), local hour RA %lf DEC %lf", r, d,
-	     TDV.x, TDV.y, TDV.z, RaDec.ra, RaDec.dec);
+         TDV.x, TDV.y, TDV.z, RaDec.ra, RaDec.dec);
       RaDec.ra=(RaDec.ra * 24.0) / 360.0;
       RaDec.ra=range24(lst - RaDec.ra);
 
       gotoparams.ratarget= RaDec.ra;
       gotoparams.detarget= RaDec.dec;
-      DEBUGF(INDI::AlignmentSubsystem::DBG_ALIGNMENT, "TransformCelestialToTelescope: RA=%lf DE=%lf, Goto RA=%lf DE=%lf", r, d, gotoparams.ratarget, gotoparams.detarget);    
+      DEBUGF(INDI::AlignmentSubsystem::DBG_ALIGNMENT, "TransformCelestialToTelescope: RA=%lf DE=%lf, Goto RA=%lf DE=%lf", r, d, gotoparams.ratarget, gotoparams.detarget);
     }
-#endif  
+#endif
 
     if (!aligned && (syncdata.lst != 0.0)) {
       gotoparams.ratarget -= syncdata.deltaRA;
@@ -1464,32 +1621,32 @@ bool EQMod::Goto(double r,double d)
 #endif
 #if defined WITH_ALIGN_GEEHALEL &&  defined WITH_ALIGN
     if (aligned && (AlignMethodSP.sp[0].s==ISS_ON)) {
-      DEBUGF(INDI::Logger::DBG_SESSION,"Setting Eqmod Goto RA=%g DE=%g (target RA=%g DE=%g)", ghratarget, ghdetarget, r, d);      
+      DEBUGF(INDI::Logger::DBG_SESSION,"Setting Eqmod Goto RA=%g DE=%g (target RA=%g DE=%g)", ghratarget, ghdetarget, r, d);
       gotoparams.ratarget =ghratarget;
       gotoparams.detarget =ghdetarget;
     }
 #endif
-    
+
     gotoparams.racurrentencoder = currentRAEncoder; gotoparams.decurrentencoder = currentDEEncoder;
-    gotoparams.completed = false; 
-    gotoparams.checklimits = true; 
-    gotoparams.forcecwup = false; 
-    gotoparams.outsidelimits = false; 
+    gotoparams.completed = false;
+    gotoparams.checklimits = true;
+    gotoparams.forcecwup = false;
+    gotoparams.outsidelimits = false;
     gotoparams.limiteast = zeroRAEncoder - (totalRAEncoder / 4) - (totalRAEncoder / 24); // 13h
     gotoparams.limitwest = zeroRAEncoder + (totalRAEncoder / 4) + (totalRAEncoder / 24); // 23h
     EncoderTarget(&gotoparams);
-    try {    
+    try {
       // stop motor
       mount->StopRA();
       mount->StopDE();
       // Start slewing
       DEBUGF(INDI::Logger::DBG_SESSION, "Slewing mount: RA increment = %ld, DE increment = %ld",
-		gotoparams.ratargetencoder - gotoparams.racurrentencoder, gotoparams.detargetencoder - gotoparams.decurrentencoder);
+        gotoparams.ratargetencoder - gotoparams.racurrentencoder, gotoparams.detargetencoder - gotoparams.decurrentencoder);
       mount->SlewTo(gotoparams.ratargetencoder - gotoparams.racurrentencoder, gotoparams.detargetencoder - gotoparams.decurrentencoder);
     } catch(EQModError e) {
       return(e.DefaultHandleException(this));
-    }    
-    
+    }
+
     fs_sexa(RAStr, targetRA, 2, 3600);
     fs_sexa(DecStr, targetDEC, 2, 3600);
 
@@ -1507,7 +1664,7 @@ bool EQMod::Goto(double r,double d)
 }
 
 bool EQMod::Park()
-{ 
+{
   if (!isParked())
   {
     if (TrackState == SCOPE_SLEWING)
@@ -1529,12 +1686,12 @@ bool EQMod::Park()
       parkDEEncoder=GetAxis2Park();
       // Start slewing
       DEBUGF(INDI::Logger::DBG_SESSION, "Parking mount: RA increment = %ld, DE increment = %ld",
-		parkRAEncoder - currentRAEncoder, parkDEEncoder - currentDEEncoder);
+        parkRAEncoder - currentRAEncoder, parkDEEncoder - currentDEEncoder);
       mount->SlewTo(parkRAEncoder - currentRAEncoder, parkDEEncoder - currentDEEncoder);
     } catch(EQModError e)
     {
       return(e.DefaultHandleException(this));
-    }    
+    }
     TrackModeSP->s=IPS_IDLE;
     IDSetSwitch(TrackModeSP,NULL);
     TrackState = SCOPE_PARKING;
@@ -1549,7 +1706,7 @@ bool EQMod::Park()
 }
 
 bool EQMod::UnPark()
-{    
+{
     SetParked(false);
     return true;
 }
@@ -1560,15 +1717,15 @@ bool EQMod::Sync(double ra,double dec)
   double lst;
   SyncData tmpsyncdata;
   double ha, targetra;
-  PierSide targetpier;
+  TelescopePierSide targetpier;
   double telescopeHA;
-  
+
 // get current mount position asap
   tmpsyncdata.telescopeRAEncoder=mount->GetRAEncoder();
   tmpsyncdata.telescopeDECEncoder=mount->GetDEEncoder();
 
   juliandate=getJulianDate();
-  lst=getLst(juliandate, getLongitude()); 
+  lst=getLst(juliandate, getLongitude());
 
   if (TrackState != SCOPE_TRACKING) {
     EqNP.s=IPS_ALERT;
@@ -1585,10 +1742,10 @@ bool EQMod::Sync(double ra,double dec)
 
   ha = rangeHA(ra - lst);
   if (ha < 0.0) {// target EAST
-    if (Hemisphere == NORTH) targetpier = WEST; else targetpier = EAST;
+    if (Hemisphere == NORTH) targetpier = PIER_WEST; else targetpier = PIER_EAST;
     targetra = range24(ra - 12.0);
   } else {
-    if (Hemisphere == NORTH) targetpier = EAST; else targetpier = WEST;
+    if (Hemisphere == NORTH) targetpier = PIER_EAST; else targetpier = PIER_WEST;
     targetra = ra;
   }
   tmpsyncdata.targetRAEncoder=EncoderFromRA(targetra, 0.0, lst, zeroRAEncoder, totalRAEncoder, Hemisphere);
@@ -1598,7 +1755,7 @@ bool EQMod::Sync(double ra,double dec)
     EncodersToRADec( tmpsyncdata.telescopeRAEncoder, tmpsyncdata.telescopeDECEncoder, lst, &tmpsyncdata.telescopeRA, &tmpsyncdata.telescopeDEC, &telescopeHA);
   } catch(EQModError e) {
     return(e.DefaultHandleException(this));
-  }    
+  }
 
 
   tmpsyncdata.deltaRA = tmpsyncdata.targetRA - tmpsyncdata.telescopeRA;
@@ -1612,12 +1769,12 @@ bool EQMod::Sync(double ra,double dec)
   }
 #endif
 #ifdef WITH_ALIGN
-  if (!isStandardSync()) 
+  if (!isStandardSync())
   {
     AlignmentDatabaseEntry NewEntry;
     struct ln_equ_posn RaDec;
     RaDec.ra = ((lst -tmpsyncdata.telescopeRA) * 360.0) / 24.0;
-    RaDec.dec = tmpsyncdata.telescopeDEC;    
+    RaDec.dec = tmpsyncdata.telescopeDEC;
     //NewEntry.ObservationJulianDate = ln_get_julian_from_sys();
     NewEntry.ObservationJulianDate = juliandate;
     NewEntry.RightAscension = ra;
@@ -1638,7 +1795,7 @@ bool EQMod::Sync(double ra,double dec)
         // Tell the math plugin to reinitialise
         Initialise(this);
 
-	//if (GetAlignmentDatabase().size() >= 2)  return true;
+    //if (GetAlignmentDatabase().size() >= 2)  return true;
     }
     //if (GetAlignmentDatabase().size() >= 2) return false;
   }
@@ -1664,14 +1821,14 @@ bool EQMod::Sync(double ra,double dec)
     IUFindNumber(StandardSyncPointNP, "STANDARDSYNCPOINT_TELESCOPE_RA")->value=syncdata.telescopeRA;;
     IUFindNumber(StandardSyncPointNP, "STANDARDSYNCPOINT_TELESCOPE_DE")->value=syncdata.telescopeDEC;;
     IDSetNumber(StandardSyncPointNP, NULL);
-    
+
     DEBUGF(INDI::Logger::DBG_SESSION, "Mount Synced (deltaRA = %.6f deltaDEC = %.6f)", syncdata.deltaRA, syncdata.deltaDEC);
     //IDLog("Mount Synced (deltaRA = %.6f deltaDEC = %.6f)\n", syncdata.deltaRA, syncdata.deltaDEC);
     if (syncdata2.lst!=0.0) {
       computePolarAlign(syncdata2, syncdata, getLatitude(), &tpa_alt, &tpa_az);
       IUFindNumber(SyncPolarAlignNP, "SYNCPOLARALIGN_ALT")->value=tpa_alt;
       IUFindNumber(SyncPolarAlignNP, "SYNCPOLARALIGN_AZ")->value=tpa_az;
-      IDSetNumber(SyncPolarAlignNP, NULL); 
+      IDSetNumber(SyncPolarAlignNP, NULL);
       IDLog("computePolarAlign: Telescope Polar Axis: alt = %g, az = %g\n", tpa_alt, tpa_az);
     }
   }
@@ -1685,6 +1842,16 @@ IPState EQMod::GuideNorth(float ms) {
   if (DEInverted) rateshift = -rateshift;
   try {
     if (ms > 0.0) {
+      if (mount->HasPPEC())
+    {
+      restartguideDEPPEC=false;
+      if (DEPPECSP->s==IPS_BUSY)
+        {
+          restartguideDEPPEC=true;
+          DEBUG(INDI::Logger::DBG_SESSION,"Turning DEC PPEC off while guiding.");
+          mount->TurnDEPPEC(false);
+        }
+    }
       mount->StartDETracking(GetDETrackRate() + rateshift);
       GuideTimerNS = IEAddTimer((int)(ms), (IE_TCF *)timedguideNSCallback, this);
     }
@@ -1703,14 +1870,24 @@ IPState EQMod::GuideSouth(float ms) {
   if (DEInverted) rateshift = -rateshift;
   try {
     if (ms > 0.0) {
+      if (mount->HasPPEC())
+    {
+      restartguideDEPPEC=false;
+      if (DEPPECSP->s==IPS_BUSY)
+        {
+          restartguideDEPPEC=true;
+          DEBUG(INDI::Logger::DBG_SESSION,"Turning DEC PPEC off while guiding.");
+          mount->TurnDEPPEC(false);
+        }
+    }
       mount->StartDETracking(GetDETrackRate() - rateshift);
       GuideTimerNS = IEAddTimer((int)(ms), (IE_TCF *)timedguideNSCallback, this);
     }
-  } catch(EQModError e) {
-    e.DefaultHandleException(this);
-    return IPS_ALERT;
-  }   
-
+  } catch(EQModError e)
+    {
+      e.DefaultHandleException(this);
+      return IPS_ALERT;
+    }
   return IPS_BUSY;
 }
 
@@ -1721,13 +1898,24 @@ IPState EQMod::GuideEast(float ms) {
   if (RAInverted) rateshift = -rateshift;
   try {
     if (ms > 0.0) {
+      if (mount->HasPPEC())
+    {
+      restartguideRAPPEC=false;
+      if (RAPPECSP->s==IPS_BUSY)
+        {
+          restartguideRAPPEC=true;
+          DEBUG(INDI::Logger::DBG_SESSION,"Turning RA PPEC off while guiding.");
+          mount->TurnRAPPEC(false);
+        }
+    }
       mount->StartRATracking(GetRATrackRate() - rateshift);
       GuideTimerWE = IEAddTimer((int)(ms), (IE_TCF *)timedguideWECallback, this);
     }
-  } catch(EQModError e) {
-    e.DefaultHandleException(this);
-    return IPS_ALERT;
-  }   
+  } catch(EQModError e)
+    {
+      e.DefaultHandleException(this);
+      return IPS_ALERT;
+    }
 
   return IPS_BUSY;
 }
@@ -1739,13 +1927,24 @@ IPState EQMod::GuideWest(float ms) {
   if (RAInverted) rateshift = -rateshift;
   try {
     if (ms > 0.0) {
-      mount->StartRATracking(GetRATrackRate() + rateshift);
-      GuideTimerWE = IEAddTimer((int)(ms), (IE_TCF *)timedguideWECallback, this);
+    if (mount->HasPPEC())
+      {
+        restartguideRAPPEC=false;
+        if (RAPPECSP->s==IPS_BUSY)
+          {
+        restartguideRAPPEC=true;
+        DEBUG(INDI::Logger::DBG_SESSION,"Turning RA PPEC off while guiding.");
+        mount->TurnRAPPEC(false);
+          }
+      }
+    mount->StartRATracking(GetRATrackRate() + rateshift);
+    GuideTimerWE = IEAddTimer((int)(ms), (IE_TCF *)timedguideWECallback, this);
     }
-  } catch(EQModError e) {
-    e.DefaultHandleException(this);
-    return IPS_ALERT;
-  }   
+  } catch(EQModError e)
+    {
+      e.DefaultHandleException(this);
+      return IPS_ALERT;
+    }
 
   return IPS_BUSY;
 }
@@ -1755,139 +1954,140 @@ bool EQMod::ISNewNumber (const char *dev, const char *name, double values[], cha
   bool compose=true;
   //  first check if it's for our device
   if(strcmp(dev,getDeviceName())==0)
-    {
+  {
       //  This is for our device
       //  Now lets see if it's something we process here
 
-      if(strcmp(name,"SLEWSPEEDS")==0)
-	{ 
-	  /* TODO: don't change speed in gotos gotoparams.inprogress... */
-	  if (TrackState != SCOPE_TRACKING) {
-	    try {
-	      for (int i=0; i<n; i++) {
-		if (strcmp(names[i], "RASLEW") == 0) mount->SetRARate(values[i]);
-		else if  (strcmp(names[i], "DESLEW") == 0) mount->SetDERate(values[i]);
-	      }
-	    } catch(EQModError e) {
-	      return(e.DefaultHandleException(this));
-	    }   
-	  }
-	  IUUpdateNumber(SlewSpeedsNP, values, names, n);
-	  SlewSpeedsNP->s = IPS_OK;
-	  IDSetNumber(SlewSpeedsNP, NULL);
+    if(strcmp(name,"SLEWSPEEDS")==0)
+    {
+      /* TODO: don't change speed in gotos gotoparams.inprogress... */
+      if (TrackState != SCOPE_TRACKING) {
+        try {
+          for (int i=0; i<n; i++) {
+        if (strcmp(names[i], "RASLEW") == 0) mount->SetRARate(values[i]);
+        else if  (strcmp(names[i], "DESLEW") == 0) mount->SetDERate(values[i]);
+          }
+        } catch(EQModError e) {
+          return(e.DefaultHandleException(this));
+        }
+      }
+      IUUpdateNumber(SlewSpeedsNP, values, names, n);
+      SlewSpeedsNP->s = IPS_OK;
+      IDSetNumber(SlewSpeedsNP, NULL);
       DEBUGF(INDI::Logger::DBG_SESSION, "Setting Slew rates - RA=%.2fx DE=%.2fx",
-		      IUFindNumber(SlewSpeedsNP,"RASLEW")->value, IUFindNumber(SlewSpeedsNP,"DESLEW")->value);
-	  return true;
-	}
+              IUFindNumber(SlewSpeedsNP,"RASLEW")->value, IUFindNumber(SlewSpeedsNP,"DESLEW")->value);
+      return true;
+    }
 
-      if(strcmp(name,"TRACKRATES")==0)
-	{   
-	  ISwitch *sw;
-	  sw=IUFindOnSwitch(TrackModeSP);
-	  if ((!sw) && (!strcmp(sw->name, "CUSTOM"))) { 
-	    try {
-	      for (int i=0; i<n; i++) {
-		if (strcmp(names[i], "RATRACKRATE") == 0) mount->SetRARate(values[i] / SKYWATCHER_STELLAR_SPEED);
-		else if  (strcmp(names[i], "DETRACKRATE") == 0) mount->SetDERate(values[i] / SKYWATCHER_STELLAR_SPEED);
-	      }
-	    } catch(EQModError e) {
-	      return(e.DefaultHandleException(this));
-	    }   
-	  }
-	  IUUpdateNumber(TrackRatesNP, values, names, n);
-	  TrackRatesNP->s = IPS_OK;
-	  IDSetNumber(TrackRatesNP, NULL);
+    if(strcmp(name,TrackRatesNP->name)==0)
+    {
+        ISwitch *sw;
+        sw=IUFindOnSwitch(TrackModeSP);
+        if ((!sw) && (!strcmp(sw->name, "CUSTOM")))
+        {
+            try
+            {
+                for (int i=0; i<n; i++)
+                {
+                    if (strcmp(names[i], "TRACK_RATE_RA") == 0) mount->SetRARate(values[i] / SKYWATCHER_STELLAR_SPEED);
+                    else if  (strcmp(names[i], "TRACK_RATE_DE") == 0) mount->SetDERate(values[i] / SKYWATCHER_STELLAR_SPEED);
+                }
+            } catch(EQModError e)
+            {
+                return(e.DefaultHandleException(this));
+            }
+        }
+      IUUpdateNumber(TrackRatesNP, values, names, n);
+      TrackRatesNP->s = IPS_OK;
+      IDSetNumber(TrackRatesNP, NULL);
       DEBUGF(INDI::Logger::DBG_SESSION, "Setting Custom Tracking Rates - RA=%.6f  DE=%.6f arcsec/s",
-		      IUFindNumber(TrackRatesNP,"RATRACKRATE")->value, IUFindNumber(TrackRatesNP,"DETRACKRATE")->value);
-	  return true;
-	}
+              IUFindNumber(TrackRatesNP,"TRACK_RATE_RA")->value, IUFindNumber(TrackRatesNP,"TRACK_RATE_DE")->value);
+      return true;
+    }
 
       // Guider interface
       if (!strcmp(name,GuideNSNP.name) || !strcmp(name,GuideWENP.name))
-	{
-	  // Unless we're in track mode, we don't obey guide commands.
-	  if (TrackState != SCOPE_TRACKING)
-	    {
+    {
+      // Unless we're in track mode, we don't obey guide commands.
+      if (TrackState != SCOPE_TRACKING)
+        {
           GuideNSNP.s = IPS_IDLE;
           IDSetNumber(&GuideNSNP, NULL);
           GuideWENP.s = IPS_IDLE;
           IDSetNumber(&GuideWENP, NULL);
           DEBUG(INDI::Logger::DBG_WARNING, "Can not guide if not tracking.");
-	      return true;
-	    }
+          return true;
+        }
 
-	  processGuiderProperties(name, values, names, n);
-	 
-	  return true;
-	}
+      processGuiderProperties(name, values, names, n);
 
-      if(strcmp(name,"GUIDE_RATE")==0)
-	{
-	  IUUpdateNumber(GuideRateNP, values, names, n);
-	  GuideRateNP->s = IPS_OK;
-	  IDSetNumber(GuideRateNP, NULL);
-      DEBUGF(INDI::Logger::DBG_SESSION, "Setting Custom Tracking Rates - RA=%1.1f arcsec/s DE=%1.1f arcsec/s",
-		      IUFindNumber(GuideRateNP,"GUIDE_RATE_WE")->value, IUFindNumber(GuideRateNP,"GUIDE_RATE_NS")->value);
-	  return true;
-	}
+      return true;
+    }
+      if(strcmp(name,GuideRateNP->name)==0)
+      {
+          IUUpdateNumber(GuideRateNP, values, names, n);
+          GuideRateNP->s = IPS_OK;
+          IDSetNumber(GuideRateNP, NULL);
+          DEBUGF(INDI::Logger::DBG_SESSION, "Setting Custom Tracking Rates - RA=%1.1f arcsec/s DE=%1.1f arcsec/s",
+                 IUFindNumber(GuideRateNP,"GUIDE_RATE_WE")->value, IUFindNumber(GuideRateNP,"GUIDE_RATE_NS")->value);
+          return true;
+      }
 
       if(strcmp(name,"BACKLASH")==0)
-	{
-	  IUUpdateNumber(BacklashNP, values, names, n);
-	  BacklashNP->s = IPS_OK;
-	  IDSetNumber(BacklashNP, NULL);
-	  mount->SetBacklashRA((unsigned long)(IUFindNumber(BacklashNP,"BACKLASHRA")->value));
-	  mount->SetBacklashDE((unsigned long)(IUFindNumber(BacklashNP,"BACKLASHDE")->value));
-	  DEBUGF(INDI::Logger::DBG_SESSION, "Setting Backlash compensation - RA=%.0f microsteps DE=%.0f microsteps",
-		 IUFindNumber(BacklashNP,"BACKLASHRA")->value, IUFindNumber(BacklashNP,"BACKLASHDE")->value);
-	  return true;
-	}      
+    {
+      IUUpdateNumber(BacklashNP, values, names, n);
+      BacklashNP->s = IPS_OK;
+      IDSetNumber(BacklashNP, NULL);
+      mount->SetBacklashRA((unsigned long)(IUFindNumber(BacklashNP,"BACKLASHRA")->value));
+      mount->SetBacklashDE((unsigned long)(IUFindNumber(BacklashNP,"BACKLASHDE")->value));
+      DEBUGF(INDI::Logger::DBG_SESSION, "Setting Backlash compensation - RA=%.0f microsteps DE=%.0f microsteps",
+         IUFindNumber(BacklashNP,"BACKLASHRA")->value, IUFindNumber(BacklashNP,"BACKLASHDE")->value);
+      return true;
+    }
 
      if(strcmp(name,"STANDARDSYNCPOINT")==0)
        {
-	 syncdata2=syncdata;
-	 bzero(&syncdata, sizeof(syncdata));
-	 IUUpdateNumber(StandardSyncPointNP, values, names,n);
-	 StandardSyncPointNP->s = IPS_OK;
+     syncdata2=syncdata;
+     bzero(&syncdata, sizeof(syncdata));
+     IUUpdateNumber(StandardSyncPointNP, values, names,n);
+     StandardSyncPointNP->s = IPS_OK;
 
-	 syncdata.jd=IUFindNumber(StandardSyncPointNP, "STANDARDSYNCPOINT_JD")->value;
-	 syncdata.lst=IUFindNumber(StandardSyncPointNP, "STANDARDSYNCPOINT_SYNCTIME")->value;
-	 syncdata.targetRA=IUFindNumber(StandardSyncPointNP, "STANDARDSYNCPOINT_CELESTIAL_RA")->value;
-	 syncdata.targetDEC=IUFindNumber(StandardSyncPointNP, "STANDARDSYNCPOINT_CELESTIAL_DE")->value;
-	 syncdata.telescopeRA=IUFindNumber(StandardSyncPointNP, "STANDARDSYNCPOINT_TELESCOPE_RA")->value;
-	 syncdata.telescopeDEC=IUFindNumber(StandardSyncPointNP, "STANDARDSYNCPOINT_TELESCOPE_DE")->value;
-	 syncdata.deltaRA = syncdata.targetRA - syncdata.telescopeRA;
-	 syncdata.deltaDEC = syncdata.targetDEC - syncdata.telescopeDEC;
-	 IDSetNumber(StandardSyncPointNP, NULL);
-	 IUFindNumber(StandardSyncNP, "STANDARDSYNC_RA")->value=syncdata.deltaRA;
-	 IUFindNumber(StandardSyncNP, "STANDARDSYNC_DE")->value=syncdata.deltaDEC;
-	 IDSetNumber(StandardSyncNP, NULL);
+     syncdata.jd=IUFindNumber(StandardSyncPointNP, "STANDARDSYNCPOINT_JD")->value;
+     syncdata.lst=IUFindNumber(StandardSyncPointNP, "STANDARDSYNCPOINT_SYNCTIME")->value;
+     syncdata.targetRA=IUFindNumber(StandardSyncPointNP, "STANDARDSYNCPOINT_CELESTIAL_RA")->value;
+     syncdata.targetDEC=IUFindNumber(StandardSyncPointNP, "STANDARDSYNCPOINT_CELESTIAL_DE")->value;
+     syncdata.telescopeRA=IUFindNumber(StandardSyncPointNP, "STANDARDSYNCPOINT_TELESCOPE_RA")->value;
+     syncdata.telescopeDEC=IUFindNumber(StandardSyncPointNP, "STANDARDSYNCPOINT_TELESCOPE_DE")->value;
+     syncdata.deltaRA = syncdata.targetRA - syncdata.telescopeRA;
+     syncdata.deltaDEC = syncdata.targetDEC - syncdata.telescopeDEC;
+     IDSetNumber(StandardSyncPointNP, NULL);
+     IUFindNumber(StandardSyncNP, "STANDARDSYNC_RA")->value=syncdata.deltaRA;
+     IUFindNumber(StandardSyncNP, "STANDARDSYNC_DE")->value=syncdata.deltaDEC;
+     IDSetNumber(StandardSyncNP, NULL);
 
      DEBUGF(INDI::Logger::DBG_SESSION, "Mount manually Synced (deltaRA = %.6f deltaDEC = %.6f)", syncdata.deltaRA, syncdata.deltaDEC);
-	 //IDLog("Mount Synced (deltaRA = %.6f deltaDEC = %.6f)\n", syncdata.deltaRA, syncdata.deltaDEC);
-	 if (syncdata2.lst!=0.0) {
-	   computePolarAlign(syncdata2, syncdata, getLatitude(), &tpa_alt, &tpa_az);
-	   IUFindNumber(SyncPolarAlignNP, "SYNCPOLARALIGN_ALT")->value=tpa_alt;
-	   IUFindNumber(SyncPolarAlignNP, "SYNCPOLARALIGN_AZ")->value=tpa_az;
-	   IDSetNumber(SyncPolarAlignNP, NULL); 
-	   IDLog("computePolarAlign: Telescope Polar Axis: alt = %g, az = %g\n", tpa_alt, tpa_az);
-	 }	    
+     //IDLog("Mount Synced (deltaRA = %.6f deltaDEC = %.6f)\n", syncdata.deltaRA, syncdata.deltaDEC);
+     if (syncdata2.lst!=0.0) {
+       computePolarAlign(syncdata2, syncdata, getLatitude(), &tpa_alt, &tpa_az);
+       IUFindNumber(SyncPolarAlignNP, "SYNCPOLARALIGN_ALT")->value=tpa_alt;
+       IUFindNumber(SyncPolarAlignNP, "SYNCPOLARALIGN_AZ")->value=tpa_az;
+       IDSetNumber(SyncPolarAlignNP, NULL);
+       IDLog("computePolarAlign: Telescope Polar Axis: alt = %g, az = %g\n", tpa_alt, tpa_az);
+     }
 
-	 return true;
+     return true;
 
        }
-      
+
     }
 
 #ifdef WITH_ALIGN_GEEHALEL
   if (align) { compose=align->ISNewNumber(dev,name,values,names,n); if (compose) return true;}
 #endif
-  
-#ifdef WITH_SIMULATOR
-  if (simulator) { 
+
+  if (simulator) {
       compose=simulator->ISNewNumber(dev,name,values,names,n); if (compose) return true;
   }
-#endif
 
 #ifdef WITH_SCOPE_LIMITS
     if (horizon) {
@@ -1907,18 +2107,16 @@ bool EQMod::ISNewSwitch (const char *dev, const char *name, ISState *states, cha
 {
   bool compose=true;
     if(strcmp(dev,getDeviceName())==0)
-    {           
-#ifdef WITH_SIMULATOR
+    {
       if (!strcmp(name, "SIMULATION"))
-	{
+    {
+      ISwitchVectorProperty *svp = getSwitch(name);
 
-	  ISwitchVectorProperty *svp = getSwitch(name);
+      IUUpdateSwitch(svp, states, names, n);
+      ISwitch *sp = IUFindOnSwitch(svp);
+      if (!sp)
+        return false;
 
-	  IUUpdateSwitch(svp, states, names, n);
-	  ISwitch *sp = IUFindOnSwitch(svp);
-	  if (!sp)
-	    return false;
-	  
       if (isConnected())
       {
           DEBUG(INDI::Logger::DBG_WARNING, "Mount must be disconnected before you can change simulation settings.");
@@ -1927,35 +2125,35 @@ bool EQMod::ISNewSwitch (const char *dev, const char *name, ISState *states, cha
           return false;
       }
 
-	  if (!strcmp(sp->name, "ENABLE"))
+      if (!strcmp(sp->name, "ENABLE"))
         setStepperSimulation(true);
-	  else
-	    setStepperSimulation(false);
-	  return true;
-	}
-#endif
+      else
+        setStepperSimulation(false);
+      return true;
+    }
+
 
     if(strcmp(name,"USEBACKLASH")==0)
- 	{  
-	  IUUpdateSwitch(UseBacklashSP,states,names,n);
-	  mount->SetBacklashUseRA((IUFindSwitch(UseBacklashSP, "USEBACKLASHRA")->s==ISS_ON?true:false));
-	  mount->SetBacklashUseDE((IUFindSwitch(UseBacklashSP, "USEBACKLASHDE")->s==ISS_ON?true:false));
-	  DEBUGF(INDI::Logger::DBG_SESSION, "Use Backlash :  RA: %s, DE: %s", 
-		 IUFindSwitch(UseBacklashSP, "USEBACKLASHRA")->s==ISS_ON?"True":"False",
-		 IUFindSwitch(UseBacklashSP, "USEBACKLASHDE")->s==ISS_ON?"True":"False"
-		 );
-	  UseBacklashSP->s=IPS_IDLE;
-	  IDSetSwitch(UseBacklashSP,NULL);
-	  return true;
-	}
+    {
+      IUUpdateSwitch(UseBacklashSP,states,names,n);
+      mount->SetBacklashUseRA((IUFindSwitch(UseBacklashSP, "USEBACKLASHRA")->s==ISS_ON?true:false));
+      mount->SetBacklashUseDE((IUFindSwitch(UseBacklashSP, "USEBACKLASHDE")->s==ISS_ON?true:false));
+      DEBUGF(INDI::Logger::DBG_SESSION, "Use Backlash :  RA: %s, DE: %s",
+         IUFindSwitch(UseBacklashSP, "USEBACKLASHRA")->s==ISS_ON?"True":"False",
+         IUFindSwitch(UseBacklashSP, "USEBACKLASHDE")->s==ISS_ON?"True":"False"
+         );
+      UseBacklashSP->s=IPS_IDLE;
+      IDSetSwitch(UseBacklashSP,NULL);
+      return true;
+    }
 
-      if(strcmp(name,"TELESCOPE_TRACK_RATE")==0)
- 	{ 
-	  ISwitch *swbefore, *swafter;
-	  swbefore=IUFindOnSwitch(TrackModeSP);
-	  IUUpdateSwitch(TrackModeSP,states,names,n);
-	  swafter=IUFindOnSwitch(TrackModeSP);
-	  //DEBUGF(INDI::Logger::DBG_SESSION, "Track mode :  from %s to %s.", (swbefore?swbefore->name:"None"), swafter->name);
+      if(strcmp(name,TrackModeSP->name)==0)
+    {
+      ISwitch *swbefore, *swafter;
+      swbefore=IUFindOnSwitch(TrackModeSP);
+      IUUpdateSwitch(TrackModeSP,states,names,n);
+      swafter=IUFindOnSwitch(TrackModeSP);
+      //DEBUGF(INDI::Logger::DBG_SESSION, "Track mode :  from %s to %s.", (swbefore?swbefore->name:"None"), swafter->name);
       try
       {
         // If no switch is set before, let's try to start tracking
@@ -2008,58 +2206,90 @@ bool EQMod::ISNewSwitch (const char *dev, const char *name, ISState *states, cha
                 TrackModeSP->s=IPS_BUSY;
                 IDSetSwitch(TrackModeSP,NULL);
               }
-	      }
-	    }
-	  } catch(EQModError e) {
-	    return(e.DefaultHandleException(this));
-	  }   
-	  return true;	
-	}
+          }
+        }
+      } catch(EQModError e) {
+        return(e.DefaultHandleException(this));
+      }
+      return true;
+    }
 
       if(strcmp(name,"TRACKDEFAULT")==0)
- 	{  
-	  ISwitch *swbefore, *swafter;
-	  swbefore=IUFindOnSwitch(TrackDefaultSP);
-	  IUUpdateSwitch(TrackDefaultSP,states,names,n);
-	  swafter=IUFindOnSwitch(TrackDefaultSP);
-	  if (swbefore != swafter) {
-	    TrackDefaultSP->s=IPS_IDLE;
-	    IDSetSwitch(TrackDefaultSP,NULL);
-	    DEBUGF(INDI::Logger::DBG_SESSION,"Changed Track Default (from %s to %s).", swbefore->name, swafter->name);
-	  }
-	  return true;
-	}
+    {
+      ISwitch *swbefore, *swafter;
+      swbefore=IUFindOnSwitch(TrackDefaultSP);
+      IUUpdateSwitch(TrackDefaultSP,states,names,n);
+      swafter=IUFindOnSwitch(TrackDefaultSP);
+      if (swbefore != swafter) {
+        TrackDefaultSP->s=IPS_IDLE;
+        IDSetSwitch(TrackDefaultSP,NULL);
+        DEBUGF(INDI::Logger::DBG_SESSION,"Changed Track Default (from %s to %s).", swbefore->name, swafter->name);
+      }
+      return true;
+    }
+
+      if(strcmp(name,"ST4_GUIDE_RATE_WE")==0)
+    {
+      ISwitch *swbefore, *swafter;
+      swbefore=IUFindOnSwitch(ST4GuideRateWESP);
+      IUUpdateSwitch(ST4GuideRateWESP,states,names,n);
+      swafter=IUFindOnSwitch(ST4GuideRateWESP);
+      if (swbefore != swafter) {
+        unsigned char rate='0' + (unsigned char)IUFindOnSwitchIndex(ST4GuideRateWESP);
+        mount->SetST4RAGuideRate(rate);
+        ST4GuideRateWESP->s=IPS_IDLE;
+        IDSetSwitch(ST4GuideRateWESP,NULL);
+        DEBUGF(INDI::Logger::DBG_SESSION,"Changed ST4 Guide rate WE (from %s to %s).", swbefore->label, swafter->label);
+      }
+      return true;
+    }
+
+      if(strcmp(name,"ST4_GUIDE_RATE_NS")==0)
+    {
+      ISwitch *swbefore, *swafter;
+      swbefore=IUFindOnSwitch(ST4GuideRateNSSP);
+      IUUpdateSwitch(ST4GuideRateNSSP,states,names,n);
+      swafter=IUFindOnSwitch(ST4GuideRateNSSP);
+      if (swbefore != swafter) {
+        unsigned char rate='0' + (unsigned char)IUFindOnSwitchIndex(ST4GuideRateNSSP);
+        mount->SetST4DEGuideRate(rate);
+        ST4GuideRateNSSP->s=IPS_IDLE;
+        IDSetSwitch(ST4GuideRateNSSP,NULL);
+        DEBUGF(INDI::Logger::DBG_SESSION,"Changed ST4 Guide rate NS (from %s to %s).", swbefore->label, swafter->label);
+      }
+      return true;
+    }
 
      if (!strcmp(name, "SYNCMANAGE"))
-	{
-	  ISwitchVectorProperty *svp = getSwitch(name);
-	  IUUpdateSwitch(svp, states, names, n);
-	  ISwitch *sp = IUFindOnSwitch(svp);
-	  if (!sp)
-	    return false;
-	  IDSetSwitch(svp, NULL);
+    {
+      ISwitchVectorProperty *svp = getSwitch(name);
+      IUUpdateSwitch(svp, states, names, n);
+      ISwitch *sp = IUFindOnSwitch(svp);
+      if (!sp)
+        return false;
+      IDSetSwitch(svp, NULL);
 
-	  if (!strcmp(sp->name, "SYNCCLEARDELTA")) {
-	    bzero(&syncdata, sizeof(syncdata));
-	    bzero(&syncdata2, sizeof(syncdata2));
-	    IUFindNumber(StandardSyncNP, "STANDARDSYNC_RA")->value=syncdata.deltaRA;
-	    IUFindNumber(StandardSyncNP, "STANDARDSYNC_DE")->value=syncdata.deltaDEC;
-	    IDSetNumber(StandardSyncNP, NULL);
-	    IUFindNumber(StandardSyncPointNP, "STANDARDSYNCPOINT_JD")->value=syncdata.jd;
-	    IUFindNumber(StandardSyncPointNP, "STANDARDSYNCPOINT_SYNCTIME")->value=syncdata.lst;
-	    IUFindNumber(StandardSyncPointNP, "STANDARDSYNCPOINT_CELESTIAL_RA")->value=syncdata.targetRA;;
-	    IUFindNumber(StandardSyncPointNP, "STANDARDSYNCPOINT_CELESTIAL_DE")->value=syncdata.targetDEC;;
-	    IUFindNumber(StandardSyncPointNP, "STANDARDSYNCPOINT_TELESCOPE_RA")->value=syncdata.telescopeRA;;
-	    IUFindNumber(StandardSyncPointNP, "STANDARDSYNCPOINT_TELESCOPE_DE")->value=syncdata.telescopeDEC;;
-	    IDSetNumber(StandardSyncPointNP, NULL);
+      if (!strcmp(sp->name, "SYNCCLEARDELTA")) {
+        bzero(&syncdata, sizeof(syncdata));
+        bzero(&syncdata2, sizeof(syncdata2));
+        IUFindNumber(StandardSyncNP, "STANDARDSYNC_RA")->value=syncdata.deltaRA;
+        IUFindNumber(StandardSyncNP, "STANDARDSYNC_DE")->value=syncdata.deltaDEC;
+        IDSetNumber(StandardSyncNP, NULL);
+        IUFindNumber(StandardSyncPointNP, "STANDARDSYNCPOINT_JD")->value=syncdata.jd;
+        IUFindNumber(StandardSyncPointNP, "STANDARDSYNCPOINT_SYNCTIME")->value=syncdata.lst;
+        IUFindNumber(StandardSyncPointNP, "STANDARDSYNCPOINT_CELESTIAL_RA")->value=syncdata.targetRA;;
+        IUFindNumber(StandardSyncPointNP, "STANDARDSYNCPOINT_CELESTIAL_DE")->value=syncdata.targetDEC;;
+        IUFindNumber(StandardSyncPointNP, "STANDARDSYNCPOINT_TELESCOPE_RA")->value=syncdata.telescopeRA;;
+        IUFindNumber(StandardSyncPointNP, "STANDARDSYNCPOINT_TELESCOPE_DE")->value=syncdata.telescopeDEC;;
+        IDSetNumber(StandardSyncPointNP, NULL);
         DEBUG(INDI::Logger::DBG_SESSION, "Cleared current Sync Data");
-	    tpa_alt=0.0; tpa_az=0.0;
-	    IUFindNumber(SyncPolarAlignNP, "SYNCPOLARALIGN_ALT")->value=tpa_alt;
-	    IUFindNumber(SyncPolarAlignNP, "SYNCPOLARALIGN_AZ")->value=tpa_az;
-	    IDSetNumber(SyncPolarAlignNP, NULL); 
-	    return true;
-	  }
-	}      
+        tpa_alt=0.0; tpa_az=0.0;
+        IUFindNumber(SyncPolarAlignNP, "SYNCPOLARALIGN_ALT")->value=tpa_alt;
+        IUFindNumber(SyncPolarAlignNP, "SYNCPOLARALIGN_AZ")->value=tpa_az;
+        IDSetNumber(SyncPolarAlignNP, NULL);
+        return true;
+      }
+    }
 
       if (!strcmp(name, "REVERSEDEC"))
       {
@@ -2074,123 +2304,243 @@ bool EQMod::ISNewSwitch (const char *dev, const char *name, ISState *states, cha
           IDSetSwitch(ReverseDECSP, NULL);
 
       }
-      
-      if (MountInformationTP && MountInformationTP->tp && (!strcmp(MountInformationTP->tp[0].text, "EQ8") || !strcmp(MountInformationTP->tp[0].text, "AZEQ6"))) {
-	if (AutoHomeSP && strcmp(name, AutoHomeSP->name)==0) {
-	  if ((TrackState != SCOPE_IDLE) && (TrackState != SCOPE_AUTOHOMING))
+
+      //if (MountInformationTP && MountInformationTP->tp && (!strcmp(MountInformationTP->tp[0].text, "EQ8") || !strcmp(MountInformationTP->tp[0].text, "AZEQ6"))) {
+      if (mount->HasHomeIndexers())
+    {
+    if (AutoHomeSP && strcmp(name, AutoHomeSP->name)==0) {
+      if ((TrackState != SCOPE_IDLE) && (TrackState != SCOPE_AUTOHOMING))
           {
-	      if (TrackState != SCOPE_AUTOHOMING) {
-		AutoHomeSP->s=IPS_IDLE;
-		IUResetSwitch(AutoHomeSP);
-		IDSetSwitch(AutoHomeSP,NULL);
-	      }
+          if (TrackState != SCOPE_AUTOHOMING) {
+        AutoHomeSP->s=IPS_IDLE;
+        IUResetSwitch(AutoHomeSP);
+        IDSetSwitch(AutoHomeSP,NULL);
+          }
               DEBUG(INDI::Logger::DBG_WARNING, "Can not start AutoHome. Scope not idle");
-	      return true;
+          return true;
           }
 
-	  if (TrackState == SCOPE_AUTOHOMING) {
-	    AutoHomeSP->s=IPS_IDLE;
-	    IUResetSwitch(AutoHomeSP);
-	    IDSetSwitch(AutoHomeSP,NULL);
-	    DEBUG(INDI::Logger::DBG_WARNING, "Aborting AutoHome.");
-	    Abort();
-	    return true;	  
-	  }
+      if (TrackState == SCOPE_AUTOHOMING) {
+        AutoHomeSP->s=IPS_IDLE;
+        IUResetSwitch(AutoHomeSP);
+        IDSetSwitch(AutoHomeSP,NULL);
+        DEBUG(INDI::Logger::DBG_WARNING, "Aborting AutoHome.");
+        Abort();
+        return true;
+      }
 
-	  if (AutohomeState == AUTO_HOME_IDLE) {
-              AutoHomeSP->s=IPS_IDLE;
-	      IUResetSwitch(AutoHomeSP);
+      if (AutohomeState == AUTO_HOME_IDLE) {
+              AutoHomeSP->s=IPS_OK;
+          IUResetSwitch(AutoHomeSP);
               IDSetSwitch(AutoHomeSP,NULL);
               DEBUG(INDI::Logger::DBG_WARNING, "*** AutoHome NOT TESTED. Press PERFORM AGAIN TO CONFIRM. ***");
-	      AutohomeState = AUTO_HOME_CONFIRM;
-	      ah_confirm_timeout = 10;
-	      return true;	   
-	 }
-	 if (AutohomeState == AUTO_HOME_CONFIRM) {	 
-	   IUUpdateSwitch(AutoHomeSP, states, names, n);
-	   AutoHomeSP->s = IPS_BUSY;
-	   DEBUG(INDI::Logger::DBG_SESSION, "Starting Autohome.");
-	   IDSetSwitch(AutoHomeSP, NULL);
-	   TrackState=SCOPE_AUTOHOMING;
-	   try {
-	     DEBUG(INDI::Logger::DBG_SESSION, "AutoHome phase 1: turning off aux encoders");
-	     mount->SetRAAuxEncoder(0x05);
-	     mount->SetDEAuxEncoder(0x05);
-	     DEBUG(INDI::Logger::DBG_SESSION, "AutoHome phase 1: resetting home position indexes");
-	     mount->SetRAAuxEncoder(0x08);
-	     mount->SetDEAuxEncoder(0x08);
-	     DEBUG(INDI::Logger::DBG_SESSION, "AutoHome phase 1: reading home position indexes to set directions");
-	     mount->SetRAIndexer(0x0);
-	     mount->SetDEIndexer(0x0);
-	     DEBUGF(INDI::Logger::DBG_SESSION, "AutoHome phase 1: read home position indexes: RA=0x%x DE=0x%x",
-		   mount->GetlastreadRAIndexer(), mount->GetlastreadDEIndexer());
-	     if (mount->GetlastreadRAIndexer()==0) ah_bSlewingUp_RA = true; else ah_bSlewingUp_RA = false;
-	     if (mount->GetlastreadDEIndexer()==0) ah_bSlewingUp_DE = true; else ah_bSlewingUp_DE = false;
-	     ah_iPosition_RA = mount->GetRAEncoder();
-	     ah_iPosition_DE = mount->GetDEEncoder();
-	     ah_iChanges = (5 * mount->GetRAEncoderTotal()) / 360 ;
-	     if (ah_bSlewingUp_RA)
-	       ah_iPosition_RA = ah_iPosition_RA - ah_iChanges;
-	     else
-	       ah_iPosition_RA = ah_iPosition_RA + ah_iChanges;
-	     ah_iChanges = (5 * mount->GetDEEncoderTotal()) / 360 ;
-	     if (ah_bSlewingUp_DE)
-	       ah_iPosition_DE = ah_iPosition_DE - ah_iChanges;
-	     else
-	       ah_iPosition_DE = ah_iPosition_DE + ah_iChanges;
-	     DEBUG(INDI::Logger::DBG_SESSION, "AutoHome phase 1: trying to move further away from home position");
-	     DEBUGF(INDI::Logger::DBG_SESSION, "AutoHome phase 1: slewing to RA=0x%x (up=%c) DE=0x%x (up=%c)",
-		    ah_iPosition_RA, (ah_bSlewingUp_RA?'1':'0'), ah_iPosition_DE, (ah_bSlewingUp_DE?'1':'0'));
-	     mount->AbsSlewTo(ah_iPosition_RA, ah_iPosition_DE, ah_bSlewingUp_RA, ah_bSlewingUp_DE);
-	     AutohomeState = AUTO_HOME_WAIT_PHASE1;
-	   } catch(EQModError e) {
-	     AutoHomeSP->s=IPS_ALERT;
-	     IUResetSwitch(AutoHomeSP);
-	     IDSetSwitch(AutoHomeSP,NULL);
-	     AutohomeState = AUTO_HOME_IDLE;
-	     TrackState=SCOPE_IDLE;
-	     return(e.DefaultHandleException(this));
-	   }  
-	 }
-	}
+          AutohomeState = AUTO_HOME_CONFIRM;
+          ah_confirm_timeout = 10;
+          return true;
+     }
+     if (AutohomeState == AUTO_HOME_CONFIRM) {
+       IUUpdateSwitch(AutoHomeSP, states, names, n);
+       AutoHomeSP->s = IPS_BUSY;
+       DEBUG(INDI::Logger::DBG_SESSION, "Starting Autohome.");
+       IDSetSwitch(AutoHomeSP, NULL);
+       TrackState=SCOPE_AUTOHOMING;
+       try {
+         DEBUG(INDI::Logger::DBG_SESSION, "AutoHome phase 1: turning off aux encoders");
+         mount->TurnRAEncoder(false);
+         mount->TurnDEEncoder(false);
+         DEBUG(INDI::Logger::DBG_SESSION, "AutoHome phase 1: resetting home position indexes");
+         mount->ResetRAIndexer();
+         mount->ResetDEIndexer();
+         DEBUG(INDI::Logger::DBG_SESSION, "AutoHome phase 1: reading home position indexes to set directions");
+         mount->GetRAIndexer();
+         mount->GetDEIndexer();
+         DEBUGF(INDI::Logger::DBG_SESSION, "AutoHome phase 1: read home position indexes: RA=0x%x DE=0x%x",
+           mount->GetlastreadRAIndexer(), mount->GetlastreadDEIndexer());
+         if (mount->GetlastreadRAIndexer()==0) ah_bSlewingUp_RA = true; else ah_bSlewingUp_RA = false;
+         if (mount->GetlastreadDEIndexer()==0) ah_bSlewingUp_DE = true; else ah_bSlewingUp_DE = false;
+         ah_iPosition_RA = mount->GetRAEncoder();
+         ah_iPosition_DE = mount->GetDEEncoder();
+         ah_iChanges = (5 * mount->GetRAEncoderTotal()) / 360 ;
+         if (ah_bSlewingUp_RA)
+           ah_iPosition_RA = ah_iPosition_RA - ah_iChanges;
+         else
+           ah_iPosition_RA = ah_iPosition_RA + ah_iChanges;
+         ah_iChanges = (5 * mount->GetDEEncoderTotal()) / 360 ;
+         if (ah_bSlewingUp_DE)
+           ah_iPosition_DE = ah_iPosition_DE - ah_iChanges;
+         else
+           ah_iPosition_DE = ah_iPosition_DE + ah_iChanges;
+         DEBUG(INDI::Logger::DBG_SESSION, "AutoHome phase 1: trying to move further away from home position");
+         DEBUGF(INDI::Logger::DBG_SESSION, "AutoHome phase 1: slewing to RA=0x%x (up=%c) DE=0x%x (up=%c)",
+            ah_iPosition_RA, (ah_bSlewingUp_RA?'1':'0'), ah_iPosition_DE, (ah_bSlewingUp_DE?'1':'0'));
+         mount->AbsSlewTo(ah_iPosition_RA, ah_iPosition_DE, ah_bSlewingUp_RA, ah_bSlewingUp_DE);
+         AutohomeState = AUTO_HOME_WAIT_PHASE1;
+       } catch(EQModError e) {
+         AutoHomeSP->s=IPS_ALERT;
+         IUResetSwitch(AutoHomeSP);
+         IDSetSwitch(AutoHomeSP,NULL);
+         AutohomeState = AUTO_HOME_IDLE;
+         TrackState=SCOPE_IDLE;
+         return(e.DefaultHandleException(this));
+       }
+     }
+    }
+    }
+
+      if (mount->HasAuxEncoders())
+    {
+    if (AuxEncoderSP && strcmp(name, AuxEncoderSP->name)==0)
+      {
+        IUUpdateSwitch(AuxEncoderSP,states,names,n);
+        if (AuxEncoderSP->sp[1].s == ISS_ON)
+          {
+        AuxEncoderSP->s=IPS_OK;
+        DEBUG(INDI::Logger::DBG_DEBUG,"Turning auxiliary encoders on.");
+        mount->TurnRAEncoder(true);
+        mount->TurnDEEncoder(true);
+          } else {
+                AuxEncoderSP->s=IPS_IDLE;
+            DEBUG(INDI::Logger::DBG_DEBUG,"Turning auxiliary encoders off.");
+            mount->TurnRAEncoder(false);
+            mount->TurnDEEncoder(false);
+        }
+        IDSetSwitch(AuxEncoderSP, NULL);
       }
- #if defined WITH_ALIGN || defined WITH_ALIGN_GEEHALEL     
+    }
+
+      if (mount->HasPPEC())
+    {
+    if (RAPPECTrainingSP && strcmp(name,RAPPECTrainingSP->name)==0)
+      {
+        IUUpdateSwitch(RAPPECTrainingSP,states,names,n);
+        if (RAPPECTrainingSP->sp[1].s == ISS_ON)
+          {
+        if (TrackState != SCOPE_TRACKING) {
+          RAPPECTrainingSP->s=IPS_IDLE;
+          DEBUG(INDI::Logger::DBG_WARNING,"Can not start RA PPEC Training. Scope not tracking");
+          IUResetSwitch(RAPPECTrainingSP);
+          RAPPECTrainingSP->sp[0].s = ISS_ON;
+          RAPPECTrainingSP->sp[1].s = ISS_OFF;
+        }  else {
+          RAPPECTrainingSP->s=IPS_BUSY;
+          DEBUG(INDI::Logger::DBG_SESSION,"Turning RA PPEC Training on.");
+          try {
+            mount->TurnRAPPECTraining(true);
+          } catch (EQModError e) {
+            DEBUG(INDI::Logger::DBG_WARNING,"Unable to start RA PPEC Training.");
+            RAPPECTrainingSP->s=IPS_ALERT;
+            RAPPECTrainingSP->sp[0].s = ISS_ON;
+            RAPPECTrainingSP->sp[1].s = ISS_OFF;
+          }
+        }
+          } else {
+                RAPPECTrainingSP->s=IPS_IDLE;
+            DEBUG(INDI::Logger::DBG_SESSION,"Turning RA PPEC Training off.");
+            mount->TurnRAPPECTraining(false);
+        }
+        IDSetSwitch(RAPPECTrainingSP, NULL);
+        return true;
+      }
+    if (RAPPECSP && strcmp(name,RAPPECSP->name)==0)
+      {
+        IUUpdateSwitch(RAPPECSP,states,names,n);
+        if (RAPPECSP->sp[1].s == ISS_ON)
+          {
+        RAPPECSP->s=IPS_BUSY;
+        DEBUG(INDI::Logger::DBG_SESSION,"Turning RA PPEC on.");
+        mount->TurnRAPPEC(true);
+          } else {
+                RAPPECSP->s=IPS_IDLE;
+            DEBUG(INDI::Logger::DBG_SESSION,"Turning RA PPEC off.");
+            mount->TurnRAPPEC(false);
+        }
+        IDSetSwitch(RAPPECSP, NULL);
+        return true;
+      }
+    if (DEPPECTrainingSP && strcmp(name,DEPPECTrainingSP->name)==0)
+      {
+        IUUpdateSwitch(DEPPECTrainingSP,states,names,n);
+        if (DEPPECTrainingSP->sp[1].s == ISS_ON)
+          {
+        if (TrackState != SCOPE_TRACKING) {
+          DEPPECTrainingSP->s=IPS_IDLE;
+          DEBUG(INDI::Logger::DBG_WARNING,"Can not start DEC PPEC Training. Scope not tracking");
+          IUResetSwitch(DEPPECTrainingSP);
+          DEPPECTrainingSP->sp[0].s = ISS_ON;
+          DEPPECTrainingSP->sp[1].s = ISS_OFF;
+        }  else {
+          DEPPECTrainingSP->s=IPS_BUSY;
+          DEBUG(INDI::Logger::DBG_SESSION,"Turning DEC PPEC Training on.");
+          try {
+            mount->TurnDEPPECTraining(true);
+          } catch (EQModError e) {
+            DEBUG(INDI::Logger::DBG_WARNING,"Unable to start DEC PPEC Training.");
+            DEPPECTrainingSP->s=IPS_ALERT;
+            DEPPECTrainingSP->sp[0].s = ISS_ON;
+            DEPPECTrainingSP->sp[1].s = ISS_OFF;
+          }
+        }
+          } else {
+                DEPPECTrainingSP->s=IPS_IDLE;
+            DEBUG(INDI::Logger::DBG_SESSION,"Turning DEC PPEC Training off.");
+            mount->TurnDEPPECTraining(false);
+        }
+        IDSetSwitch(DEPPECTrainingSP, NULL);
+        return true;
+      }
+    if (DEPPECSP && strcmp(name,DEPPECSP->name)==0)
+      {
+        IUUpdateSwitch(DEPPECSP,states,names,n);
+        if (DEPPECSP->sp[1].s == ISS_ON)
+          {
+        DEPPECSP->s=IPS_BUSY;
+        DEBUG(INDI::Logger::DBG_SESSION,"Turning DEC PPEC on.");
+        mount->TurnDEPPEC(true);
+          } else {
+                DEPPECSP->s=IPS_IDLE;
+            DEBUG(INDI::Logger::DBG_SESSION,"Turning DEC PPEC off.");
+            mount->TurnDEPPEC(false);
+        }
+        IDSetSwitch(DEPPECSP, NULL);
+        return true;
+      }
+    }
+
+ #if defined WITH_ALIGN || defined WITH_ALIGN_GEEHALEL
       if (AlignSyncModeSP && strcmp(name, AlignSyncModeSP->name)==0)
-	{
-	  ISwitch *sw;
-	  AlignSyncModeSP->s=IPS_OK;
-	  IUUpdateSwitch(AlignSyncModeSP,states,names,n);
-	  //for (int i=0; i < n; i++)
-	  //  IDLog("AlignSyncMode Switch %s %d\n", names[i], states[i]);
-	  sw=IUFindOnSwitch(AlignSyncModeSP);
-	  IDSetSwitch(AlignSyncModeSP, "Sync mode set to %s", sw->label);
-	  return true;
-	}
+    {
+      ISwitch *sw;
+      AlignSyncModeSP->s=IPS_OK;
+      IUUpdateSwitch(AlignSyncModeSP,states,names,n);
+      //for (int i=0; i < n; i++)
+      //  IDLog("AlignSyncMode Switch %s %d\n", names[i], states[i]);
+      sw=IUFindOnSwitch(AlignSyncModeSP);
+      IDSetSwitch(AlignSyncModeSP, "Sync mode set to %s", sw->label);
+      return true;
+    }
 #endif
 
 #if defined WITH_ALIGN_GEEHALEL &&  defined WITH_ALIGN
       if(strcmp(name, AlignMethodSP.name)==0)
-	{
-	  ISwitch *sw;
-	  AlignMethodSP.s=IPS_OK;
-	  IUUpdateSwitch(&AlignMethodSP,states,names,n);
-	  //for (int i=0; i < n; i++)
-	  //  IDLog("AlignSyncMode Switch %s %d\n", names[i], states[i]);
-	  sw=IUFindOnSwitch(&AlignMethodSP);
-	  IDSetSwitch(&AlignMethodSP, "Align method set to %s", sw->label);
-	  return true;
-	}
+    {
+      ISwitch *sw;
+      AlignMethodSP.s=IPS_OK;
+      IUUpdateSwitch(&AlignMethodSP,states,names,n);
+      //for (int i=0; i < n; i++)
+      //  IDLog("AlignSyncMode Switch %s %d\n", names[i], states[i]);
+      sw=IUFindOnSwitch(&AlignMethodSP);
+      IDSetSwitch(&AlignMethodSP, "Align method set to %s", sw->label);
+      return true;
+    }
 #endif
     }
 #ifdef WITH_ALIGN_GEEHALEL
     if (align) { compose=align->ISNewSwitch(dev,name,states,names,n); if (compose) return true;}
 #endif
-    
-#ifdef WITH_SIMULATOR
-    if (simulator) { 
+
+    if (simulator) {
       compose=simulator->ISNewSwitch(dev,name,states,names,n); if (compose) return true;
   }
-#endif
 #ifdef WITH_SCOPE_LIMITS
     if (horizon) {
       compose=horizon->ISNewSwitch(dev,name,states,names,n); if (compose) return true;
@@ -2199,24 +2549,22 @@ bool EQMod::ISNewSwitch (const char *dev, const char *name, ISState *states, cha
     #ifdef WITH_ALIGN
     ProcessAlignmentSwitchProperties(this, name, states, names, n);
     #endif
-    
+
     INDI::Logger::ISNewSwitch(dev,name,states,names,n);
 
     //  Nobody has claimed this, so, ignore it
     return INDI::Telescope::ISNewSwitch(dev,name,states,names,n);
 }
 
-bool EQMod::ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n) 
+bool EQMod::ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n)
 {
   bool compose;
 #ifdef WITH_ALIGN_GEEHALEL
   if (align) { compose=align->ISNewText(dev,name,texts,names,n); if (compose) return true;}
 #endif
-#ifdef WITH_SIMULATOR
-  if (simulator) { 
+  if (simulator) {
     compose=simulator->ISNewText(dev,name,texts,names,n); if (compose) return true;
   }
-#endif
 #ifdef WITH_SCOPE_LIMITS
     if (horizon) {
       compose=horizon->ISNewText(dev,name,texts,names,n); if (compose) return true;
@@ -2270,11 +2618,11 @@ bool EQMod::updateTime(ln_date *lndate_utc, double utc_offset)
    return true;
 }
 
-double EQMod::GetRASlew() {	  
+double EQMod::GetRASlew() {
   ISwitch *sw;
   double rate=1.0;
   sw=IUFindOnSwitch(&SlewRateSP);
-  if (!strcmp(sw->name, "SLEWCUSTOM")) 
+  if (!strcmp(sw->name, "SLEWCUSTOM"))
     rate=IUFindNumber(SlewSpeedsNP, "RASLEW")->value;
   else
     rate = *((double *)sw->aux);
@@ -2285,7 +2633,7 @@ double EQMod::GetDESlew() {
   ISwitch *sw;
   double rate=1.0;
   sw=IUFindOnSwitch(&SlewRateSP);
-  if (!strcmp(sw->name, "SLEWCUSTOM")) 
+  if (!strcmp(sw->name, "SLEWCUSTOM"))
     rate=IUFindNumber(SlewSpeedsNP, "DESLEW")->value;
   else
     rate = *((double *)sw->aux);
@@ -2322,12 +2670,12 @@ bool EQMod::MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command)
             DEBUG(INDI::Logger::DBG_SESSION, "Restarting DE Tracking...");
             TrackState = SCOPE_TRACKING;
             mount->StartDETracking(GetDETrackRate());
-        }        
+        }
         else
          TrackState = SCOPE_IDLE;
 
         break;
-	}
+    }
 
   } catch (EQModError e) {
     return e.DefaultHandleException(this);
@@ -2384,14 +2732,14 @@ bool EQMod::Abort()
   } catch(EQModError e) {
     if (!(e.DefaultHandleException(this))) {
       DEBUG(INDI::Logger::DBG_WARNING,  "Abort: error while stopping RA motor");
-    }   
-  }   
+    }
+  }
   try {
     mount->StopDE();
   } catch(EQModError e) {
     if (!(e.DefaultHandleException(this))) {
       DEBUG(INDI::Logger::DBG_WARNING,  "Abort: error while stopping DE motor");
-    }   
+    }
   }
 
   GuideNSNP.s = IPS_IDLE;
@@ -2400,14 +2748,14 @@ bool EQMod::Abort()
   IDSetNumber(&GuideWENP, NULL);
   TrackModeSP->s=IPS_IDLE;
   IUResetSwitch(TrackModeSP);
-  IDSetSwitch(TrackModeSP,NULL);    
+  IDSetSwitch(TrackModeSP,NULL);
   AutohomeState=AUTO_HOME_IDLE;
   AutoHomeSP->s=IPS_IDLE;
   IUResetSwitch(AutoHomeSP);
   IDSetSwitch(AutoHomeSP,NULL);
-  
-  if (gotoparams.completed == false) gotoparams.completed=true;  
-  
+  TrackState = SCOPE_IDLE;
+  if (gotoparams.completed == false) gotoparams.completed=true;
+
   return true;
 }
 
@@ -2416,13 +2764,22 @@ void EQMod::timedguideNSCallback(void *userpointer)
   EQMod *p = ((EQMod *)userpointer);
   try
   {
+    if (p->mount->HasPPEC())
+      {
+    if (p->restartguideDEPPEC)
+      {
+        p->restartguideDEPPEC=false;
+        DEBUGDEVICE(p->getDeviceName(), INDI::Logger::DBG_SESSION,"Turning DEC PPEC on after guiding.");
+        p->mount->TurnDEPPEC(true);
+      }
+      }
     p->mount->StartDETracking(p->GetDETrackRate());
   } catch(EQModError e)
   {
     if (!(e.DefaultHandleException(p)))
     {
       DEBUGDEVICE(p->getDeviceName(), INDI::Logger::DBG_WARNING, "Timed guide North/South Error: can not restart tracking");
-    }   
+    }
   }
   p->GuideComplete(AXIS_DE);
   DEBUGDEVICE(p->getDeviceName(), INDI::Logger::DBG_SESSION, "End Timed guide North/South");
@@ -2434,13 +2791,22 @@ void EQMod::timedguideWECallback(void *userpointer)
   EQMod *p = ((EQMod *)userpointer);
   try
   {
-  p->mount->StartRATracking(p->GetRATrackRate());
+    if (p->mount->HasPPEC())
+      {
+    if (p->restartguideRAPPEC)
+      {
+        p->restartguideRAPPEC=false;
+        DEBUGDEVICE(p->getDeviceName(), INDI::Logger::DBG_SESSION,"Turning RA PPEC on after guiding.");
+        p->mount->TurnRAPPEC(true);
+      }
+      }
+    p->mount->StartRATracking(p->GetRATrackRate());
   } catch(EQModError e)
   {
     if (!(e.DefaultHandleException(p)))
     {
       DEBUGDEVICE(p->getDeviceName(), INDI::Logger::DBG_WARNING, "Timed guide West/East Error: can not restart tracking");
-    }   
+    }
   }
   p->GuideComplete(AXIS_RA);
   DEBUGDEVICE(p->getDeviceName(), INDI::Logger::DBG_SESSION, "End Timed guide West/East");
@@ -2452,7 +2818,7 @@ void EQMod::computePolarAlign(SyncData s1, SyncData s2, double lat, double *tpaa
 From // // http://www.whim.org/nebula/math/pdf/twostar.pdf
  */
 {
-  double delta1, alpha1, delta2, alpha2; 
+  double delta1, alpha1, delta2, alpha2;
   double d1, d2; /* corrected delta1/delta2 */
   double cdelta1, calpha1, cdelta2, calpha2;
   double Delta;
@@ -2483,7 +2849,7 @@ From // // http://www.whim.org/nebula/math/pdf/twostar.pdf
   cosDelta1=sin(cdelta1) * sin(cdelta2) + (cos(cdelta1) * cos(cdelta2) * cos(calpha2 - calpha1));
   cosDelta2=sin(delta1) * sin(delta2) + (cos(delta1) * cos(delta2) * cos(alpha2 - alpha1));
 
-  if (cosDelta1 != cosDelta2) 
+  if (cosDelta1 != cosDelta2)
     DEBUGF(INDI::Logger::DBG_DEBUG, "PolarAlign -- Telescope axes are not perpendicular. Angular distances are:celestial=%g telescope=%g", acos(cosDelta1), acos(cosDelta2));
   Delta = acos(cosDelta1);
     DEBUGF(INDI::Logger::DBG_DEBUG, "Angular distance of the two stars is %g", Delta);
@@ -2500,7 +2866,7 @@ From // // http://www.whim.org/nebula/math/pdf/twostar.pdf
       if (delta2 < 0.0) d2pd1 = -d2pd1;
     }
   }
-      
+
   d2 = (d2pd1 + delta2 - delta1) / 2.0;
   d1 = d2pd1 - d2;
   DEBUGF(INDI::Logger::DBG_DEBUG,"Computed delta1 = %g (%g) delta2 = %g (%g)", d1, delta1, d2, delta2);
@@ -2535,7 +2901,7 @@ From // // http://www.whim.org/nebula/math/pdf/twostar.pdf
   *tpaalt=ln_rad_to_deg(*tpaalt);
   *tpaaz = ln_rad_to_deg(*tpaaz);
   DEBUGF(INDI::Logger::DBG_DEBUG,"Computed Telescope polar alignment (deg): alt = %g az = %g", *tpaalt, *tpaaz);
-  
+
   starPolarAlign(s2.lst, s2.targetRA, s2.targetDEC, (M_PI / 2)-tpaalpha, (M_PI / 2) - tpadelta, &s2tra, &s2tdec);
   fs_sexa(s2trasexa, s2tra, 2, 3600);
   fs_sexa(s2tdecsexa, s2tdec, 3, 3600);
@@ -2558,7 +2924,7 @@ void EQMod::starPolarAlign(double lst, double ra, double dec, double theta, doub
   double rotx[3][3];
   double mat[3][3];
 
-  double H; 
+  double H;
   double Lc, Mc, Nc;
 
   double mra, mdec;
@@ -2566,21 +2932,21 @@ void EQMod::starPolarAlign(double lst, double ra, double dec, double theta, doub
   int i, j, k;
 
   H=(lst - ra) * M_PI / 12.0;
-  dec=dec * M_PI / 180.0; 
+  dec=dec * M_PI / 180.0;
 
   rotz[0][0]=cos(theta); rotz[0][1]=-sin(theta); rotz[0][2]=0.0;
   rotz[1][0]=sin(theta); rotz[1][1]=cos(theta); rotz[1][2]=0.0;
   rotz[2][0]=0.0; rotz[2][1]=0.0; rotz[2][2]=1.0;
 
   rotx[0][0]=1.0; rotx[0][1]=0.0; rotx[0][2]=0.0;
-  rotx[1][0]=0.0; rotx[1][1]=cos(gamma); rotx[1][2]=-sin(gamma); 
+  rotx[1][0]=0.0; rotx[1][1]=cos(gamma); rotx[1][2]=-sin(gamma);
   rotx[2][0]=0.0; rotx[2][1]=sin(gamma); rotx[2][2]=cos(gamma);
 
   for (i=0; i < 3; i++) {
     for (j=0; j < 3; j++) {
       mat[i][j] = 0.0;
       for (k=0; k < 3; k++)
-	mat[i][j] += rotx[i][k] * rotz[k][j];
+    mat[i][j] += rotx[i][k] * rotz[k][j];
     }
   }
 
@@ -2613,18 +2979,18 @@ bool EQMod::updateLocation(double latitude, double longitude, double elevation)
   if (lnobserver.lng > 180)
       lnobserver.lng -= 360;
   lnobserver.lat =  latitude;
-  if (latitude < 0.0) SetSouthernHemisphere(true); 
+  if (latitude < 0.0) SetSouthernHemisphere(true);
   else SetSouthernHemisphere(false);
   #ifdef WITH_ALIGN
   INDI::AlignmentSubsystem::AlignmentSubsystemForDrivers::UpdateLocation(latitude, longitude, elevation);
-  // Set this according to mount type 
+  // Set this according to mount type
   SetApproximateMountAlignmentFromMountType(EQUATORIAL);
   #endif
   DEBUGF(INDI::Logger::DBG_SESSION,"updateLocation: long = %g lat = %g", lnobserver.lng, lnobserver.lat);
   return true;
 }
 
-void EQMod::SetCurrentPark()
+bool EQMod::SetCurrentPark()
 {
     parkRAEncoder=currentRAEncoder;
     parkDEEncoder=currentDEEncoder;
@@ -2632,9 +2998,11 @@ void EQMod::SetCurrentPark()
     SetAxis2Park(parkDEEncoder);
     DEBUGF(INDI::Logger::DBG_SESSION, "Setting Park Position to current- RA Encoder=%ld DE Encoder=%ld",
           parkRAEncoder, parkDEEncoder);
+
+    return true;
 }
 
-void EQMod::SetDefaultPark()
+bool EQMod::SetDefaultPark()
 {
     parkRAEncoder=GetAxis1ParkDefault();
     parkDEEncoder=GetAxis2ParkDefault();
@@ -2642,11 +3010,21 @@ void EQMod::SetDefaultPark()
     SetAxis2Park(parkDEEncoder);
     DEBUGF(INDI::Logger::DBG_SESSION, "Setting Park Position to default- RA Encoder=%ld DE Encoder=%ld",
           parkRAEncoder, parkDEEncoder);
+
+    return true;
 }
 
 bool EQMod::saveConfigItems(FILE *fp)
 {
     INDI::Telescope::saveConfigItems(fp);
+
+    if (BacklashNP)
+        IUSaveConfigNumber(fp, BacklashNP);
+    if (UseBacklashSP)
+        IUSaveConfigSwitch(fp, UseBacklashSP);
+    if (GuideRateNP)
+        IUSaveConfigNumber(fp, GuideRateNP);
+
 #ifdef WITH_ALIGN_GEEHALEL
     if (align)
         align->saveConfigItems(fp);

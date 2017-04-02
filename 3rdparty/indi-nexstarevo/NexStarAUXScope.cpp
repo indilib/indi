@@ -49,7 +49,12 @@ void dumpMsg(buffer buf){
 //////  AUXCommand class
 ////////////////////////////////////////////////
 
+AUXCommand::AUXCommand(){
+        data.reserve(MAX_CMD_LEN);
+}
+
 AUXCommand::AUXCommand(buffer buf){
+        data.reserve(MAX_CMD_LEN);
         parseBuf(buf);
 }
     
@@ -57,7 +62,8 @@ AUXCommand::AUXCommand(AUXCommands c, AUXtargets s, AUXtargets d, buffer dat){
         cmd=c;
         src=s;
         dst=d;
-        data=buffer(dat);
+        data.reserve(MAX_CMD_LEN);
+        data=dat;
         len=3+data.size();
 }
 
@@ -65,7 +71,7 @@ AUXCommand::AUXCommand(AUXCommands c, AUXtargets s, AUXtargets d){
         cmd=c;
         src=s;
         dst=d;
-        data=buffer();
+        data.reserve(MAX_CMD_LEN);
         len=3+data.size();
 }
 
@@ -118,21 +124,6 @@ unsigned char AUXCommand::checksum(buffer buf){
     return (unsigned char)(((~cs)+1) & 0xFF);
     //return ((~sum([ord(c) for c in msg]) + 1) ) & 0xFF
 }
-
-// This is probably wrong. The controlers return fraction of the revolution.
-// and it seems to be unsigned
-//long AUXCommand::getPosition(){
-//    if (data.size()==3) {
-//        int a= (int)data[0] << 16 | (int)data[1]<<8 | (int)data[2];
-//        if (data[0] & 0x80) { 
-//            a |= 0xff000000; 
-//        }
-//        //fprintf(stderr,"Angle: %d %08x = %d => %f\n", sizeof(a), a, a, a/pow(2,24));
-//        return a;
-//    } else {
-//        return 0;
-//    }
-//}
 
 // One definition rule (ODR) constants
 // AUX commands use 24bit integer as a representation of angle in units of 
@@ -201,7 +192,7 @@ NexStarAUXScope::~NexStarAUXScope(){
 }
 
 void NexStarAUXScope::initScope(char const *ip, int port){
-    fprintf(stderr,"Scope IP %s:%d", ip, port);
+    fprintf(stderr,"Preset scope IP %s:%d\n", ip, port);
     bzero(&addr, sizeof(addr));
     addr.sin_family = AF_INET ;
     addr.sin_addr.s_addr=inet_addr(ip);
@@ -221,13 +212,73 @@ void NexStarAUXScope::initScope() {
     sock=0;
 };
 
+bool NexStarAUXScope::detectScope(){
+    struct sockaddr_in myaddr;      /* our address */
+    struct sockaddr_in remaddr;     /* remote address */
+    socklen_t addrlen = sizeof(remaddr);            /* length of addresses */
+    int recvlen;                    /* # bytes received */
+    int fd;                         /* our socket */
+    int BUFSIZE = 2048;
+    int PORT = 55555;
+    unsigned char buf[BUFSIZE];     /* receive buffer */
+
+    /* create a UDP socket */
+    fprintf(stderr,"Detecting scope IP ... ");
+    if ((fd = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
+            perror("cannot create socket\n");
+            return false;
+    }
+
+    /* Set socket timeout */
+    timeval tv;
+    tv.tv_sec=2;
+    tv.tv_usec=0;
+    setsockopt(fd, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(struct timeval));
+
+    /* bind the socket to any valid IP address and a specific port */
+
+    memset((char *)&myaddr, 0, sizeof(myaddr));
+    myaddr.sin_family = AF_INET;
+    myaddr.sin_addr.s_addr = htonl(INADDR_ANY);
+    myaddr.sin_port = htons(PORT);
+
+    if (bind(fd, (struct sockaddr *)&myaddr, sizeof(myaddr)) < 0) {
+            perror("bind failed");
+            return false;
+    }
+
+    /* now loop, receiving data and printing what we received
+        wait max 20 sec
+    */
+    for (int n=0; n<10; n++) {
+            recvlen = recvfrom(fd, buf, BUFSIZE, 0, (struct sockaddr *)&remaddr, &addrlen);
+            // Scope broadcasts 110b UDP packets from port 2000 to 55555
+            // we use it for detection
+            if (ntohs(remaddr.sin_port) == 2000 && recvlen == 110) {
+                fprintf(stderr,"%s:%d (%d)\n", inet_ntoa(remaddr.sin_addr), ntohs(remaddr.sin_port), recvlen);
+                addr.sin_addr.s_addr=remaddr.sin_addr.s_addr;
+                addr.sin_port = remaddr.sin_port;
+                close(fd);
+                return true;
+            }
+    }
+    /* never exits */
+    close(fd);
+    return false;
+}
+
 
 bool NexStarAUXScope::Connect(){
-    fprintf(stderr,"Connecting...");
     if (sock > 0) {
         // We are connected. Nothing to do!
         return true;
     }
+    
+    // Detect the scope by UDP broadcasts from port 2000 to port 55555
+    if (! detectScope()){
+        return false;
+    }
+    
     // Create client socket
     if( (sock = socket(PF_INET, SOCK_STREAM, 0)) < 0 )
     {
@@ -235,6 +286,8 @@ bool NexStarAUXScope::Connect(){
       return false;
     }
 
+    fprintf(stderr,"Connecting to %s:%d ... ",
+                    inet_ntoa(addr.sin_addr), ntohs(addr.sin_port));
     // Connect to the scope
     if(connect(sock, (struct sockaddr *)&addr, sizeof addr) < 0)
     {
@@ -251,13 +304,14 @@ bool NexStarAUXScope::Connect(){
     fprintf(stderr, "OK\n");
     msleep(500);
     readMsgs();
-    processMsgs();
+    //processMsgs();
     return true;
 }
 
 bool NexStarAUXScope::Disconnect(){
     fprintf(stderr,"Disconnecting\n");
     closeConnection();
+    return true;
 }
 
 bool NexStarAUXScope::UpdateLocation(double lat, double lon, double elev){
@@ -281,8 +335,8 @@ bool NexStarAUXScope::Abort(){
     b[0]=0;
     AUXCommand stopAlt(MC_MOVE_POS,APP,ALT,b);
     AUXCommand stopAz(MC_MOVE_POS,APP,AZM,b);
-    sendCmd(&stopAlt);
-    sendCmd(&stopAz);
+    sendCmd(stopAlt);
+    sendCmd(stopAz);
     return true;
 };
 
@@ -305,8 +359,8 @@ bool NexStarAUXScope::slewing(){
 
 bool NexStarAUXScope::Slew(AUXtargets trg, int rate){
     AUXCommand cmd((rate<0) ? MC_MOVE_NEG : MC_MOVE_POS ,APP,trg);
-    cmd.setRate((unsigned char)(abs(rate) & 0xFF));
-    sendCmd(&cmd);
+    cmd.setRate((unsigned char)(std::abs(rate) & 0xFF));
+    sendCmd(cmd);
     readMsgs();
     return true;
 }
@@ -331,13 +385,21 @@ bool NexStarAUXScope::GoToFast(long alt, long az, bool track){
     AUXCommand altcmd(MC_GOTO_FAST,APP,ALT);
     AUXCommand azmcmd(MC_GOTO_FAST,APP,AZM);
     altcmd.setPosition(alt);
+    // N-based azimuth
+    az += STEPS_PER_REVOLUTION/2;
+    az %= STEPS_PER_REVOLUTION;
     azmcmd.setPosition(az);
-    sendCmd(&altcmd);
-    sendCmd(&azmcmd);
+    sendCmd(altcmd);
+    sendCmd(azmcmd);
     readMsgs();
     //DEBUG=false;
     return true;
 };
+
+bool NexStarAUXScope::Park(){
+    GoToFast(long(0),STEPS_PER_REVOLUTION/2,false);
+    return true;
+}
 
 bool NexStarAUXScope::GoToSlow(long alt, long az, bool track){
     //DEBUG=false;
@@ -349,9 +411,12 @@ bool NexStarAUXScope::GoToSlow(long alt, long az, bool track){
     AUXCommand altcmd(MC_GOTO_SLOW,APP,ALT);
     AUXCommand azmcmd(MC_GOTO_SLOW,APP,AZM);
     altcmd.setPosition(alt);
+    // N-based azimuth
+    az += STEPS_PER_REVOLUTION/2;
+    az %= STEPS_PER_REVOLUTION;
     azmcmd.setPosition(az);
-    sendCmd(&altcmd);
-    sendCmd(&azmcmd);
+    sendCmd(altcmd);
+    sendCmd(azmcmd);
     readMsgs();
     //DEBUG=false;
     return true;
@@ -369,76 +434,58 @@ bool NexStarAUXScope::Track(long altRate, long azRate){
     //fprintf(stderr,"Set tracking rates: ALT: %ld   AZM: %ld\n", AltRate, AzRate);
     AUXCommand altcmd((altRate<0)? MC_SET_NEG_GUIDERATE : MC_SET_POS_GUIDERATE,APP,ALT);
     AUXCommand azmcmd((azRate<0)? MC_SET_NEG_GUIDERATE : MC_SET_POS_GUIDERATE,APP,AZM);
-    altcmd.setPosition(long(abs(AltRate)));
-    azmcmd.setPosition(long(abs(AzRate)));
+    altcmd.setPosition(long(std::abs(AltRate)));
+    azmcmd.setPosition(long(std::abs(AzRate)));
     
-    sendCmd(&altcmd);
-    sendCmd(&azmcmd);
+    sendCmd(altcmd);
+    sendCmd(azmcmd);
     readMsgs();
     return true;
 };
 
 void NexStarAUXScope::querryStatus(){
     AUXtargets trg[2]={ALT,AZM};
-    AUXCommand *cmd;
     for (int i=0; i<2; i++){
-        cmd=new AUXCommand(MC_GET_POSITION,APP,trg[i]);
-        if (not sendCmd(cmd)) {
-            fprintf(stderr,"Send failed!\n");
-        }
-        delete cmd;
+        AUXCommand cmd(MC_GET_POSITION,APP,trg[i]);
+        sendCmd(cmd);
     }
     if (slewingAlt) {
-        cmd=new AUXCommand(MC_SLEW_DONE,APP,ALT);
-        if (not sendCmd(cmd)) {
-            fprintf(stderr,"Send failed!\n");
-        }
-        delete cmd;
+        AUXCommand cmd(MC_SLEW_DONE,APP,ALT);
+        sendCmd(cmd);
     }
     if (slewingAz) {
-        cmd=new AUXCommand(MC_SLEW_DONE,APP,AZM);
-        if (not sendCmd(cmd)) {
-            fprintf(stderr,"Send failed!\n");
-        }
-        delete cmd;
+        AUXCommand cmd(MC_SLEW_DONE,APP,AZM);
+        sendCmd(cmd);
     }
-    
-    
 }
 
-void NexStarAUXScope::emulateGPS(AUXCommand *m) {
-    if (m->dst != GPS) return;
-    if (DEBUG) fprintf(stderr,"Got 0x%02x for GPS\n", m->cmd);
+void NexStarAUXScope::emulateGPS(AUXCommand &m) {
+    if (m.dst != GPS) return;
+    if (DEBUG) fprintf(stderr,"Got 0x%02x for GPS\n", m.cmd);
 
-    switch (m->cmd) {
+    switch (m.cmd) {
         case GET_VER: { 
-            // fprintf(stderr,"GPS: GET_VER from 0x%02x\n", m->src);
+            // fprintf(stderr,"GPS: GET_VER from 0x%02x\n", m.src);
             buffer dat(2);
             dat[0]=0x01;
             dat[1]=0x00;
-            AUXCommand *cmd=new AUXCommand(GET_VER,GPS,m->src,dat);
-            if (not sendCmd(cmd)) {
-                fprintf(stderr,"GPS: Send failed!\n");
-            }
-            delete cmd;
+            AUXCommand cmd(GET_VER,GPS,m.src,dat);
+            sendCmd(cmd);
             break;
             }
         case GPS_GET_LAT:
         case GPS_GET_LONG: {
             // fprintf(stderr,"GPS: Sending LAT/LONG Lat:%f Lon:%f\n", Lat, Lon);
-            AUXCommand *cmd=new AUXCommand(m->cmd,GPS,m->src);
-            if (m->cmd == GPS_GET_LAT )
-                cmd->setPosition(Lat);
+            AUXCommand cmd(m.cmd,GPS,m.src);
+            if (m.cmd == GPS_GET_LAT )
+                cmd.setPosition(Lat);
             else 
-                cmd->setPosition(Lon);
-            if (not sendCmd(cmd)) {
-                fprintf(stderr,"GPS: Send failed!\n");
-            }
-            delete cmd;            
+                cmd.setPosition(Lon);
+            sendCmd(cmd);
             break;
             }
         case GPS_GET_TIME: {
-            // fprintf(stderr,"GPS: GET_TIME from 0x%02x\n", m->src);
+            // fprintf(stderr,"GPS: GET_TIME from 0x%02x\n", m.src);
             time_t gmt;
             struct tm * ptm;
             buffer dat(3);
@@ -448,11 +495,8 @@ void NexStarAUXScope::emulateGPS(AUXCommand *m) {
             dat[0]=unsigned(ptm->tm_hour);
             dat[1]=unsigned(ptm->tm_min);
             dat[2]=unsigned(ptm->tm_sec);
-            AUXCommand *cmd=new AUXCommand(GPS_GET_TIME,GPS,m->src,dat);
-            if (not sendCmd(cmd)) {
-                fprintf(stderr,"GPS: Send failed!\n");
-            }
-            delete cmd;            
+            AUXCommand cmd(GPS_GET_TIME,GPS,m.src,dat);
+            sendCmd(cmd);
             break;
             }
         case GPS_GET_DATE: {
@@ -465,11 +509,8 @@ void NexStarAUXScope::emulateGPS(AUXCommand *m) {
             ptm=gmtime(&gmt);
             dat[0]=unsigned(ptm->tm_mon+1);
             dat[1]=unsigned(ptm->tm_mday);
-            AUXCommand *cmd=new AUXCommand(GPS_GET_DATE,GPS,m->src,dat);
-            if (not sendCmd(cmd)) {
-                fprintf(stderr,"GPS: Send failed!\n");
-            }
-            delete cmd;            
+            AUXCommand cmd(GPS_GET_DATE,GPS,m.src,dat);
+            sendCmd(cmd);
             break;
             }
         case GPS_GET_YEAR: {
@@ -483,11 +524,8 @@ void NexStarAUXScope::emulateGPS(AUXCommand *m) {
             dat[0]=unsigned(ptm->tm_year+1900)>>8;
             dat[1]=unsigned(ptm->tm_year+1900) & 0xFF;
             // fprintf(stderr," Sending: %d [%d,%d]\n",ptm->tm_year,dat[0],dat[1]);
-            AUXCommand *cmd=new AUXCommand(GPS_GET_YEAR,GPS,m->src,dat);
-            if (not sendCmd(cmd)) {
-                fprintf(stderr,"GPS: Send failed!\n");
-            }
-            delete cmd;            
+            AUXCommand cmd(GPS_GET_YEAR,GPS,m.src,dat);
+            sendCmd(cmd);
             break;
             }
         case GPS_LINKED: {
@@ -495,63 +533,58 @@ void NexStarAUXScope::emulateGPS(AUXCommand *m) {
             buffer dat(1);
 
             dat[0]=unsigned(1);
-            AUXCommand *cmd=new AUXCommand(GPS_LINKED,GPS,m->src,dat);
-            if (not sendCmd(cmd)) {
-                fprintf(stderr,"GPS: Send failed!\n");
-            }
-            delete cmd;            
+            AUXCommand cmd(GPS_LINKED,GPS,m.src,dat);
+            sendCmd(cmd);
             break;                        
             }
         default :
-            fprintf(stderr,"Got 0x%02x for GPS\n", m->cmd);
+            fprintf(stderr,"Got 0x%02x for GPS\n", m.cmd);
             break;
     }
 
 }
 
-void NexStarAUXScope::processMsgs(){
-    if (DEBUG) fprintf(stderr,"Processing msgs: %d\n", iq.size());
-    while (not iq.empty()) {
-        AUXCommand *m=iq.front();
-        if (DEBUG) { fprintf(stderr,"Recv: "); m->dumpCmd(); }
-        if (m->dst == GPS) 
-            emulateGPS(m);
-        else 
-        switch (m->cmd) {
-            case MC_GET_POSITION:
-                switch (m->src) {
-                    case ALT:
-                        Alt=m->getPosition();
-                        break;
-                    case AZM:
-                        Az=m->getPosition();
-                        break;
-                    default: break;
-                }
-                break;
-            case MC_SLEW_DONE:
-                switch (m->src) {
-                    case ALT:
-                        slewingAlt=m->data[0]!=0xff;
-                        break;
-                    case AZM:
-                        slewingAz=m->data[0]!=0xff;
-                        break;
-                    default: break;
-                }
-                break;
-            default :
-                break;
-        }
-        iq.pop();
-        delete m;
+
+void NexStarAUXScope::processCmd(AUXCommand &m){
+    if (DEBUG) { fprintf(stderr,"Recv: "); m.dumpCmd(); }
+    if (m.dst == GPS) 
+        emulateGPS(m);
+    else 
+    switch (m.cmd) {
+        case MC_GET_POSITION:
+            switch (m.src) {
+                case ALT:
+                    Alt=m.getPosition();
+                    break;
+                case AZM:
+                    Az=m.getPosition();
+                    // Celestron uses N as zero Azimuth!
+                    Az += STEPS_PER_REVOLUTION/2;
+                    Az %= STEPS_PER_REVOLUTION;
+                    break;
+                default: break;
+            }
+            break;
+        case MC_SLEW_DONE:
+            switch (m.src) {
+                case ALT:
+                    slewingAlt=m.data[0]!=0xff;
+                    break;
+                case AZM:
+                    slewingAz=m.data[0]!=0xff;
+                    break;
+                default: break;
+            }
+            break;
+        default :
+            break;
     }
 }
-
 
 void NexStarAUXScope::readMsgs(){
     int n, i;
     unsigned char buf[BUFFER_SIZE];
+    AUXCommand cmd;
     
     // We are not connected. Nothing to do.
     if (sock<=0) return;
@@ -575,11 +608,8 @@ void NexStarAUXScope::readMsgs(){
                     //if (DEBUG) prnBytes(buf+i,shft-i);
                     buffer b(buf+i, buf+shft);
                     //if (DEBUG) dumpMsg(b);
-                    iq.push(new AUXCommand(b));
-                    if (iq.empty()) {
-                        fprintf(stderr,"Queue still empty after push!! (i=%d %d/%d)\n", i, shft, n);
-                        dumpMsg(b);
-                    }
+                    cmd.parseBuf(b);
+                    processCmd(cmd);
                 } else {
                     fprintf(stderr,"Partial message recv. dropping (i=%d %d/%d)\n", i, shft, n);
                     prnBytes(buf+i,n-i);
@@ -594,12 +624,13 @@ void NexStarAUXScope::readMsgs(){
         // Actually consume data we parsed. Leave the rest for later.
         if (i>0) {
             n=recv(sock, buf, i,MSG_DONTWAIT);
-            if (DEBUG) fprintf(stderr,"Consumed %d/%d bytes (iq.size=%d)\n", n, i, iq.size());
+            if (DEBUG) fprintf(stderr,"Consumed %d/%d bytes \n", n, i);
                 
         }
     }
     //fprintf(stderr,"Nothing more to read\n");
 }
+
 
 int sendBuffer(int sock, buffer buf, long tout_msec){
     if (sock>0) {
@@ -618,42 +649,13 @@ int sendBuffer(int sock, buffer buf, long tout_msec){
         return 0;
 }
 
-bool NexStarAUXScope::sendCmd(AUXCommand *c){
+bool NexStarAUXScope::sendCmd(AUXCommand &c){
     buffer buf;
-    if (DEBUG) { fprintf(stderr,"Send: ");   c->dumpCmd(); }
-    c->fillBuf(buf);
+    if (DEBUG) { fprintf(stderr,"Send: ");   c.dumpCmd(); }
+    c.fillBuf(buf);
     return sendBuffer(sock, buf, 500)==buf.size();
 }
 
-void NexStarAUXScope::writeMsgs(){
-    fprintf(stderr,"=================  writeMsgs  =====================\n");
-//    buffer buf;
-//    while (not oq.empty()) {
-//        AUXCommand *m=oq.front();
-//        fprintf(stderr,"SEND: ");
-//        m->dumpCmd();
-//        m->fillBuf(buf);
-//        send(sock, buf.data(), buf.size(), 0);
-//        msleep(50);
-//        oq.pop();
-//        delete m;
-//    }
-//    return;
-//    /*
-//    if (sock<3) return;
-//    fprintf(stderr,"Sending get position\n");
-//    buffer buf;
-//    AUXCommand getALT(MC_GET_POSITION,APP,ALT);
-//    AUXCommand getAZM(MC_GET_POSITION,APP,AZM);
-//    getALT.fillBuf(buf);
-//    //fprintf(stderr,"buffer size: %d\n",buf.size());
-//    //dumpMsg(buf);
-//    send(sock, buf.data(), buf.size(), 0);
-//    getAZM.fillBuf(buf);
-//    //dumpMsg(buf);
-//    send(sock, buf.data(), buf.size(), 0);
-//    */
-}
 
 int debug_timeout=30;
 
@@ -665,7 +667,7 @@ bool NexStarAUXScope::TimerTick(double dt){
     querryStatus();
     //writeMsgs();
     readMsgs();
-    processMsgs();
+    //processMsgs();
     if (DEBUG) {if (debug_timeout<0) {DEBUG=false; debug_timeout=30;} else debug_timeout--;}
     
     if (simulator) {
@@ -673,13 +675,13 @@ bool NexStarAUXScope::TimerTick(double dt){
         if (Alt!=targetAlt){
             da=targetAlt-Alt;
             dir=(da>0)?1:-1;
-            Alt+=dir*std::max(std::min(long(abs(da)/2),slewRate),1L);
+            Alt+=dir*std::max(std::min(long(std::abs(da)/2),slewRate),1L);
             slewing=true;
         } 
         if (Az!=targetAz){
             da=targetAz-Az;
             dir=(da>0)?1:-1;
-            Az+=dir*std::max(std::min(long(abs(da)/2),slewRate),1L);
+            Az+=dir*std::max(std::min(long(std::abs(da)/2),slewRate),1L);
             slewing=true;
         }
         

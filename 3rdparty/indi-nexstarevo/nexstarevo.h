@@ -22,10 +22,12 @@ public:
 protected:
     virtual bool initProperties();
     virtual bool saveConfigItems(FILE *fp);
-    virtual bool Connect();
+    //virtual bool Connect();
+    virtual bool Handshake();
     virtual bool Disconnect();
 
     virtual const char *getDefaultName();
+    virtual ln_hrz_posn AltAzFromRaDec(double ra, double dec, double ts);
 
     virtual bool Sync(double ra, double dec);
     virtual bool Goto(double ra,double dec);
@@ -53,7 +55,7 @@ private:
     static const long MAX_ALT;
     static const long MIN_ALT;
 
-    NexStarAUXScope *scope;
+    NexStarAUXScope scope;
 
     enum ScopeStatus_t {IDLE, SLEWING_FAST, APPROACH, SLEWING_SLOW, SLEWING_MANUAL, TRACKING};
     ScopeStatus_t ScopeStatus;
@@ -66,14 +68,14 @@ private:
     double AxisSlewRateALT;
     long CurrentALT;
     long GotoTargetALT;
-    long ApproachALT;
 
     AxisStatus AxisStatusAZ;
     AxisDirection AxisDirectionAZ;
     double AxisSlewRateAZ;
     long CurrentAZ;
     long GotoTargetAZ;
-    long ApproachAZ;
+
+    double Approach; // approach distance
 
     // Previous motion direction
     // TODO: Switch to AltAz from N-S/W-E
@@ -88,6 +90,7 @@ private:
 
     // GoTo
     ln_equ_posn GoToTarget;
+    int slewTicks, maxSlewTicks;
 
     // Tracking
     ln_equ_posn CurrentTrackingTarget;
@@ -99,15 +102,6 @@ private:
     bool TraceThisTick;
 
     unsigned int DBG_NSEVO;
-    
-    // Device IP port
-    INumberVectorProperty IPPortNP;
-    INumber IPPortN[1];
-
-    // Device IP address
-    ITextVectorProperty IPAddressTP;
-    IText IPAddressT[1];
-
 
 };
 

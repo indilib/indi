@@ -6,7 +6,9 @@ LIST(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/../../cmake_modules/"
 include(GNUInstallDirs)
 set(RULES_INSTALL_DIR "/lib/udev/rules.d/")
 
-set(CMAKE_CXX_FLAGS "-std=c++0x ${CMAKE_CXX_FLAGS}")
+if (NOT WIN32 AND NOT ANDROID)
+set(CMAKE_CXX_FLAGS "-std=c++11 ${CMAKE_CXX_FLAGS}")
+endif(NOT WIN32 AND NOT ANDROID)
 
 set (VERSION_MAJOR 1)
 set (VERSION_MINOR 12)
@@ -33,7 +35,7 @@ set(indisxccd_SRCS
    )
 
 add_executable(indi_sx_ccd ${indisxccd_SRCS})
-target_link_libraries(indi_sx_ccd ${INDI_DRIVER_LIBRARIES} ${LIBUSB_1_LIBRARIES})
+target_link_libraries(indi_sx_ccd ${INDI_LIBRARIES} ${LIBUSB_1_LIBRARIES})
 
 #IF (APPLE)
 #set(indisxwheel_SRCS
@@ -57,10 +59,10 @@ target_link_libraries(indi_sx_ccd ${INDI_DRIVER_LIBRARIES} ${LIBUSB_1_LIBRARIES}
 add_executable(indi_sx_wheel ${CMAKE_CURRENT_SOURCE_DIR}/sxwheel.cpp)
 IF (APPLE)
 set(CMAKE_EXE_LINKER_FLAGS "-framework IOKit -framework CoreFoundation")
-target_link_libraries(indi_sx_wheel ${INDI_DRIVER_LIBRARIES} ${LIBUSB_LIBRARIES})
+target_link_libraries(indi_sx_wheel ${INDI_LIBRARIES} ${LIBUSB_LIBRARIES})
 ELSEIF (WIN32)
 ELSE ()
-target_link_libraries(indi_sx_wheel ${INDI_DRIVER_LIBRARIES} ${LIBUSB_1_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT})
+target_link_libraries(indi_sx_wheel ${INDI_LIBRARIES} ${LIBUSB_1_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT})
 ENDIF()
 
 if (CMAKE_HOST_SYSTEM_PROCESSOR MATCHES "arm*")
@@ -72,7 +74,7 @@ set(indisxao_SRCS
    )
 
 add_executable(indi_sx_ao ${indisxao_SRCS})
-target_link_libraries(indi_sx_ao ${INDI_DRIVER_LIBRARIES})
+target_link_libraries(indi_sx_ao ${INDI_LIBRARIES})
 
 set(sx_ccd_test_SRCS
    ${CMAKE_CURRENT_SOURCE_DIR}/sxccdtest.cpp

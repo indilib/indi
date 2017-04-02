@@ -77,8 +77,6 @@ void ISSnoopDevice (XMLEle *root)
 /* Constructor */
 IEQPro::IEQPro()
 {
-    timeUpdated = locationUpdated = false;
-
     set_ieqpro_device(getDeviceName());
 
     //ctor
@@ -94,7 +92,7 @@ IEQPro::IEQPro()
 
     DBG_SCOPE = INDI::Logger::getInstance().addDebugLevel("Scope Verbose", "SCOPE");
 
-    SetTelescopeCapability(TELESCOPE_CAN_PARK | TELESCOPE_CAN_SYNC | TELESCOPE_CAN_ABORT | TELESCOPE_HAS_TIME | TELESCOPE_HAS_LOCATION,9);
+    SetTelescopeCapability(TELESCOPE_CAN_PARK | TELESCOPE_CAN_SYNC | TELESCOPE_CAN_GOTO | TELESCOPE_CAN_ABORT | TELESCOPE_HAS_TIME | TELESCOPE_HAS_LOCATION,9);
 }
 
 IEQPro::~IEQPro()
@@ -123,11 +121,11 @@ bool IEQPro::initProperties()
     IUFillSwitch(&TrackModeS[TRACK_SOLAR], "TRACK_SOLAR", "Solar", ISS_OFF);
     IUFillSwitch(&TrackModeS[TRACK_LUNAR], "TRACK_LUNAR", "Lunar", ISS_OFF);
     IUFillSwitch(&TrackModeS[TRACK_CUSTOM], "TRACK_CUSTOM", "Custom", ISS_OFF);
-    IUFillSwitchVector(&TrackModeSP, TrackModeS, 4, getDeviceName(), "TELESCOPE_TRACK_RATE", "Tracking Mode", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+    IUFillSwitchVector(&TrackModeSP, TrackModeS, 4, getDeviceName(), "TELESCOPE_TRACK_MODE", "Track Mode", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
     /* Custom Tracking Rate */
-    IUFillNumber(&CustomTrackRateN[0],"CUSTOM_RATE","Rate","%g",-0.0100, 0.0100, 0.005, 0);
-    IUFillNumberVector(&CustomTrackRateNP, CustomTrackRateN,1,getDeviceName(),"CUSTOM_RATE","Custom Track",MOTION_TAB,IP_RW,60,IPS_IDLE);
+    IUFillNumber(&CustomTrackRateN[0],"TRACK_RATE_CUSTOM","Rate","%g",-0.0100, 0.0100, 0.005, 0);
+    IUFillNumberVector(&CustomTrackRateNP, CustomTrackRateN,1,getDeviceName(),"TELESCOPE_TRACK_RATE","Track Rates",MOTION_TAB,IP_RW,60,IPS_IDLE);
 
     /* GPS Status */
     IUFillSwitch(&GPSStatusS[GPS_OFF], "Off", "", ISS_ON);
@@ -268,6 +266,21 @@ void IEQPro::getStartupData()
         DEBUGF(INDI::Logger::DBG_SESSION, "Mount UTC offset is %s. UTC time is %s", utcOffset, isoDateTime);
 
         IDSetText(&TimeTP, NULL);
+    }
+
+    // Get Longitude and Latitude from mount
+    double longitude=0,latitude=0;
+    if (get_ieqpro_latitude(PortFD, &latitude) && get_ieqpro_longitude(PortFD, &longitude))
+    {
+        // Convert to INDI standard longitude (0 to 360 Eastward)
+        if (longitude < 0)
+            longitude += 360;
+
+        LocationN[LOCATION_LATITUDE].value = latitude;
+        LocationN[LOCATION_LONGITUDE].value= longitude;
+        LocationNP.s = IPS_OK;
+
+        IDSetNumber(&LocationNP, NULL);
     }
 
     if (isSimulation())
@@ -485,6 +498,7 @@ bool IEQPro::ReadScopeStatus()
                 break;
             case TR_LUNAR:
                 trackMode = TRACK_LUNAR;
+                break;
             case TR_KING:
                 trackMode = TRACK_SIDEREAL;
                 break;
@@ -635,12 +649,9 @@ bool IEQPro::UnPark()
         return false;
 }
 
-bool IEQPro::Connect(const char *port, uint32_t baud)
+bool IEQPro::Handshake()
 {
-    set_ieqpro_device(getDeviceName());
-    sim = isSimulation();
-
-    if (sim)
+    if (isSimulation())
     {
        set_sim_gps_status(GPS_DATA_OK);
        set_sim_system_status(ST_STOPPED);
@@ -649,28 +660,10 @@ bool IEQPro::Connect(const char *port, uint32_t baud)
        set_sim_time_source(TS_GPS);
        set_sim_hemisphere(HEMI_NORTH);
     }
-    else if (tty_connect(port, baud, 8, 0, 1, &PortFD) != TTY_OK)
-    {
-      DEBUGF(INDI::Logger::DBG_ERROR, "Error connecting to port %s. Make sure you have BOTH write and read permission to the port.", port);
-      return false;
-    }
 
     if (check_ieqpro_connection(PortFD) == false)
         return false;
-    else
-        SetTimer(POLLMS);
 
-    DEBUG(INDI::Logger::DBG_SESSION, "Telescope is online.");
-
-    return true;
-}
-
-bool IEQPro::Disconnect()
-{
-    timeUpdated = false;
-    locationUpdated = false;
-
-    // Disconnect
     return true;
 }
 
@@ -706,8 +699,6 @@ bool IEQPro::updateTime(ln_date * utc, double utc_offset)
 
    DEBUG(INDI::Logger::DBG_SESSION, "Time and date updated.");
 
-   timeUpdated = true;
-
    return true;
 }
 
@@ -734,9 +725,7 @@ bool IEQPro::updateLocation(double latitude, double longitude, double elevation)
     fs_sexa (l, latitude, 3, 3600);
     fs_sexa (L, longitude, 4, 3600);
 
-    IDMessage(getDeviceName(), "Site location updated to Lat %.32s - Long %.32s", l, L);
-
-    locationUpdated = true;
+    DEBUGF(INDI::Logger::DBG_SESSION, "Site location updated to Lat %.32s - Long %.32s", l, L);
 
     return true;
 }
@@ -940,13 +929,15 @@ void IEQPro::mountSim ()
 
 }
 
-void IEQPro::SetCurrentPark()
+bool IEQPro::SetCurrentPark()
 {
     SetAxis1Park(currentRA);
     SetAxis2Park(currentDEC);
+
+    return true;
 }
 
-void IEQPro::SetDefaultPark()
+bool IEQPro::SetDefaultPark()
 {
     // By default set RA to HA
     SetAxis1Park(ln_get_apparent_sidereal_time(ln_get_julian_from_sys()));
@@ -954,4 +945,5 @@ void IEQPro::SetDefaultPark()
     // Set DEC to 90 or -90 depending on the hemisphere
     SetAxis2Park( (HemisphereS[HEMI_NORTH].s == ISS_ON) ? 90 : -90);
 
+    return true;
 }

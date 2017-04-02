@@ -5,7 +5,9 @@ LIST(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake_modules/")
 LIST(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/../../cmake_modules/")
 include(GNUInstallDirs)
 
-set(CMAKE_CXX_FLAGS "-std=c++0x ${CMAKE_CXX_FLAGS}")
+if (NOT WIN32 AND NOT ANDROID)
+set(CMAKE_CXX_FLAGS "-std=c++11 ${CMAKE_CXX_FLAGS}")
+endif(NOT WIN32 AND NOT ANDROID)
 
 find_package(CFITSIO REQUIRED)
 find_package(INDI REQUIRED)
@@ -31,7 +33,7 @@ set(flipdf_SRCS
 
 add_executable(indi_fli_focus ${flipdf_SRCS})
 
-target_link_libraries(indi_fli_focus ${INDI_DRIVER_LIBRARIES} ${FLI_LIBRARIES} ${M_LIB} ${ZLIB_LIBRARY})
+target_link_libraries(indi_fli_focus ${INDI_LIBRARIES} ${FLI_LIBRARIES} ${M_LIB} ${ZLIB_LIBRARY})
 
 install(TARGETS indi_fli_focus RUNTIME DESTINATION bin )
 
@@ -42,7 +44,7 @@ set(flicfw_SRCS
 
 add_executable(indi_fli_wheel ${flicfw_SRCS})
 
-target_link_libraries(indi_fli_wheel ${INDI_DRIVER_LIBRARIES} ${FLI_LIBRARIES} ${M_LIB} ${ZLIB_LIBRARY})
+target_link_libraries(indi_fli_wheel ${INDI_LIBRARIES} ${FLI_LIBRARIES} ${M_LIB} ${ZLIB_LIBRARY})
 
 install(TARGETS indi_fli_wheel RUNTIME DESTINATION bin )
 ############# FLI CCD ###############
@@ -52,7 +54,7 @@ set(fliccd_SRCS
 
 add_executable(indi_fli_ccd ${fliccd_SRCS})
 
-target_link_libraries(indi_fli_ccd ${INDI_DRIVER_LIBRARIES} ${FLI_LIBRARIES} ${CFITSIO_LIBRARIES} ${M_LIB} ${ZLIB_LIBRARY})
+target_link_libraries(indi_fli_ccd ${INDI_LIBRARIES} ${FLI_LIBRARIES} ${CFITSIO_LIBRARIES} ${M_LIB} ${ZLIB_LIBRARY})
 
 install(TARGETS indi_fli_ccd RUNTIME DESTINATION bin)
 

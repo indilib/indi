@@ -31,8 +31,7 @@ public:
 
     typedef enum { FOCUS_HALF_STEP, FOCUS_FULL_STEP } FocusStepMode;
 
-    virtual bool Connect();
-    virtual bool Disconnect();
+    virtual bool Handshake();
     const char * getDefaultName();
     virtual bool initProperties();
     virtual bool updateProperties();
@@ -47,7 +46,6 @@ public:
 
 private:
 
-    int PortFD;
     double targetPos, lastPos, lastTemperature;
     unsigned int currentSpeed;
 
@@ -55,7 +53,7 @@ private:
     float focusMoveRequest;
 
     void GetFocusParams();
-    bool reset();
+    bool sync(uint16_t offset);
     bool updateStepMode();
     bool updateTemperature();
     bool updatePosition();
@@ -86,8 +84,8 @@ private:
     ISwitch TemperatureCompensateS[2];
     ISwitchVectorProperty TemperatureCompensateSP;
 
-    ISwitch ResetS[1];
-    ISwitchVectorProperty ResetSP;
+    INumber SyncN[1];
+    INumberVectorProperty SyncNP;
 
 };
 

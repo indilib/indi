@@ -94,7 +94,6 @@ CelestronGPS::CelestronGPS()
 
    setVersion(3, 0);
 
-   PortFD = -1;
    fwInfo.Version = "Invalid";
    fwInfo.controllerVersion = 0;
 
@@ -134,7 +133,7 @@ bool CelestronGPS::initProperties()
     IUFillSwitch(&TrackS[1], "TRACK_ALTAZ", "Alt/Az", ISS_OFF);
     IUFillSwitch(&TrackS[2], "TRACK_EQN", "Eq North", ISS_OFF);
     IUFillSwitch(&TrackS[3], "TRACK_EQS", "Eq South", ISS_OFF);
-    IUFillSwitchVector(&TrackSP, TrackS, 4, getDeviceName(), "TELESCOPE_TRACK_RATE", "Track Mode", MOUNTINFO_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+    IUFillSwitchVector(&TrackSP, TrackS, 4, getDeviceName(), "TELESCOPE_TRACK_MODE", "Track Mode", MOUNTINFO_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
     IUFillSwitch(&UseHibernateS[0], "Enable", "", ISS_OFF);
     IUFillSwitch(&UseHibernateS[1], "Disable", "", ISS_ON);
@@ -194,7 +193,7 @@ bool CelestronGPS::updateProperties()
 {    
     if (isConnected())
     {        
-        uint32_t cap = TELESCOPE_CAN_ABORT | TELESCOPE_CAN_PARK;
+        uint32_t cap = TELESCOPE_CAN_GOTO | TELESCOPE_CAN_ABORT | TELESCOPE_CAN_PARK;
 
         if (get_celestron_firmware(PortFD, &fwInfo))
         {
@@ -572,21 +571,7 @@ bool CelestronGPS::Abort()
     return abort_celestron(PortFD);
 }
 
-bool CelestronGPS::Connect()
-{
-    bool rc=false;
-
-    if(isConnected()) return true;
-
-    rc=Connect(PortT[0].text, atoi(IUFindOnSwitch(&BaudRateSP)->name));
-
-    if(rc)
-        SetTimer(POLLMS);
-
-    return rc;
-}
-
-bool CelestronGPS::Connect(const char *port, uint32_t baud)
+bool CelestronGPS::Handshake()
 {
     if (isSimulation())
     {
@@ -595,11 +580,6 @@ bool CelestronGPS::Connect(const char *port, uint32_t baud)
         set_sim_slew_rate(SR_5);
         set_sim_ra(0);
         set_sim_dec(90);
-    }
-    else if (tty_connect(port, baud, 8, 0, 1, &PortFD) != TTY_OK)
-    {
-      DEBUGF(INDI::Logger::DBG_ERROR, "Error connecting to port %s. Make sure you have BOTH write and read permission to the port.", port);
-      return false;
     }
 
     // Check if we need to wake up
@@ -616,20 +596,9 @@ bool CelestronGPS::Connect(const char *port, uint32_t baud)
 
     if (check_celestron_connection(PortFD) == false)
     {
-        DEBUGF(INDI::Logger::DBG_ERROR, "Failed to connect to telescope port %s. Ensure telescope is powered and connected.", port);
+        DEBUG(INDI::Logger::DBG_ERROR, "Failed to communicate with the mount, check the logs for details.");
         return false;
     }
-
-    DEBUG(INDI::Logger::DBG_SESSION, "Telescope is online.");
-
-    return true;
-
-}
-
-bool CelestronGPS::Disconnect()
-{
-    if (PortFD > 0)
-        tty_disconnect(PortFD);
 
     return true;
 }
@@ -1021,6 +990,12 @@ bool CelestronGPS::Park()
 
 bool CelestronGPS::UnPark()
 {    
+    if (INDI::Telescope::isLocked())
+    {
+        DEBUG(INDI::Logger::DBG_SESSION, "Cannot unpark mount when dome is locking. See: Dome parking policy, in options tab");
+        return false;
+    }
+
     double parkAZ  = GetAxis1Park();
     double parkAlt = GetAxis2Park();
 
@@ -1056,7 +1031,7 @@ bool CelestronGPS::UnPark()
     if (Sync(equatorialPos.ra/15.0, equatorialPos.dec))
     {
         SetParked(false);
-        loadConfig(true, "TELESCOPE_TRACK_RATE");
+        loadConfig(true, "TELESCOPE_TRACK_MODE");
         return true;
     }
     else
@@ -1064,7 +1039,7 @@ bool CelestronGPS::UnPark()
 
 }
 
-void CelestronGPS::SetCurrentPark()
+bool CelestronGPS::SetCurrentPark()
 {
     ln_hrz_posn horizontalPos;
     // Libnova south = 0, west = 90, north = 180, east = 270
@@ -1093,15 +1068,19 @@ void CelestronGPS::SetCurrentPark()
 
     SetAxis1Park(parkAZ);
     SetAxis2Park(parkAlt);
+
+    return true;
 }
 
-void CelestronGPS::SetDefaultPark()
+bool CelestronGPS::SetDefaultPark()
 {
     // By defualt azimuth 0 for north hemisphere
     SetAxis1Park(LocationN[LOCATION_LATITUDE].value >= 0 ? 0 : 180);
 
     // Altitude = latitude of observer
     SetAxis2Park(LocationN[LOCATION_LATITUDE].value);
+
+    return true;
 }
 
 bool CelestronGPS::saveConfigItems(FILE *fp)

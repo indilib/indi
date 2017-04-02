@@ -61,7 +61,7 @@ void ISNewBLOB (const char *dev, const char *name, int sizes[], int blobsizes[],
 }
 void ISSnoopDevice (XMLEle *root)
 {
-    INDI_UNUSED(root);
+    joystick->ISSnoopDevice(root);
 }
 
 JoyStick::JoyStick()
@@ -348,3 +348,11 @@ void JoyStick::buttonEvent(int button_n, int value)
     IDSetSwitch(&ButtonSP, NULL);
 }
 
+bool JoyStick::saveConfigItems(FILE *fp)
+{
+    INDI::DefaultDevice::saveConfigItems(fp);
+
+    IUSaveConfigText(fp, &PortTP);
+
+    return true;
+}

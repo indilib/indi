@@ -1,7 +1,7 @@
 # libindi
 [![Build Status](https://travis-ci.org/indilib/indi.svg?branch=master)](https://travis-ci.org/indilib/indi)
 
-INDI is the defacto standard for open astronomical device control. INDI Library is an Open Source POSIX implementation of the [Instrument-Neutral-Device-Interface protocol](http://www.clearskyinstitute.com/INDI/INDI.pdf). The library is composed of server, tools, and device drivers for astronomical instrumentation and auxiliary devices. Core device drivers are shipped with INDI library by default. 3rd party drivers are also availabe in the repository and maintained by their respective owners.
+INDI is the defacto standard for open astronomical device control. INDI Library is an Open Source POSIX implementation of the [Instrument-Neutral-Device-Interface protocol](http://www.clearskyinstitute.com/INDI/INDI.pdf). The library is composed of server, tools, and device drivers for astronomical instrumentation and auxiliary devices. Core device drivers are shipped with INDI library by default. 3rd party drivers are also available in the repository and maintained by their respective owners.
 
 ## [Features](http://indilib.org/about/features.html)
 ## [Discover INDI](http://indilib.org/about/discover-indi.html)
@@ -15,7 +15,7 @@ INDI is the defacto standard for open astronomical device control. INDI Library 
 On Debian/Ubuntu:
 
 ```
-sudo apt-get install libnova-dev libcfitsio3-dev libusb-1.0-0-dev zlib1g-dev libgsl0-dev build-essential cmake git libjpeg-dev libcurl4-gnutls-dev
+sudo apt-get install libnova-dev libcfitsio-dev libusb-1.0-0-dev zlib1g-dev libgsl-dev build-essential cmake git libjpeg-dev libcurl4-gnutls-dev
 ```
 ## Get the code
 ```
@@ -48,7 +48,7 @@ sudo make install
 The complete list of system dependancies for all drivers on Debian / Ubuntu
 
 ```
-sudo apt-get install libftdi-dev libgps-dev dcraw libgphoto2-dev libboost-dev libboost-regex-dev
+sudo apt-get install libftdi-dev libgps-dev libraw-dev libgphoto2-dev libboost-dev libboost-regex-dev
 ```
 
 To build **all** 3rd party drivers, you need to run cmake and make install **twice**. First time is to install any dependencies of the 3rd party drivers (for example indi-qsi depends on libqsi), and second time to install the actual drivers themselves.
@@ -96,6 +96,7 @@ INDI server is the public network access point where one or more INDI Clients ma
 
 # Development
 
+## Code Style: All contributed code must be formatted using [AStyle](http://astyle.sourceforge.net/) with options -A1 -W3 -k2 -S -xG -C
 ## [INDI API](http://www.indilib.org/api/index.html)
 ## [INDI Developer Manual](http://indilib.org/develop/developer-manual.html)
 ## [Tutorials](http://indilib.org/develop/tutorials.html)
@@ -103,7 +104,7 @@ INDI server is the public network access point where one or more INDI Clients ma
 
 # Unit tests
 
-In order to run the unit test suite you must first install the [Google Test Framework](https://github.com/google/googletest). You will need to build and install this from source code as Google do not recommend package managers to distribute for distros (as each build system is often unique and a one size fits all approaach doesn't work too well).
+In order to run the unit test suite you must first install the [Google Test Framework](https://github.com/google/googletest). You will need to build and install this from source code as Google does not recommend package managers for distributing distros.(This is because each build system is often unique and a one size fits all aproach does not work well).
 
 Once you have the Google Test Framework installed follow this alternative build sequence:-
 

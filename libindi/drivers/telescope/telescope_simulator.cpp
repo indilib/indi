@@ -101,7 +101,7 @@ ScopeSim::ScopeSim()
 
     DBG_SCOPE = INDI::Logger::getInstance().addDebugLevel("Scope Verbose", "SCOPE");   
 
-    SetTelescopeCapability(TELESCOPE_CAN_PARK | TELESCOPE_CAN_SYNC | TELESCOPE_CAN_ABORT | TELESCOPE_HAS_TIME | TELESCOPE_HAS_LOCATION,4);
+    SetTelescopeCapability(TELESCOPE_CAN_PARK | TELESCOPE_CAN_SYNC | TELESCOPE_CAN_GOTO | TELESCOPE_CAN_ABORT | TELESCOPE_HAS_TIME | TELESCOPE_HAS_LOCATION,4);
 
     /* initialize random seed: */
       srand ( time(NULL) );
@@ -234,23 +234,9 @@ bool ScopeSim::updateProperties()
 
 bool ScopeSim::Connect()
 {
-    bool rc=false;
-
-    if(isConnected()) return true;
-
-    rc=Connect(PortT[0].text, atoi(IUFindOnSwitch(&BaudRateSP)->name));
-
-    if(rc)
-        SetTimer(POLLMS);
-
-    return rc;
-}
-
-bool ScopeSim::Connect(const char *port, uint32_t baud)
-{
-   DEBUGF(INDI::Logger::DBG_SESSION, "Simulating connecting to port %s with speed %d", port, baud);
-   DEBUG(INDI::Logger::DBG_SESSION, "Telescope simulator is online.");
-   return true;
+    DEBUG(INDI::Logger::DBG_SESSION, "Telescope simulator is online.");
+    SetTimer(POLLMS);
+    return true;
 }
 
 bool ScopeSim::Disconnect()
@@ -325,7 +311,9 @@ bool ScopeSim::ReadScopeStatus()
                 currentDEC += da_dec;
             else if (MovementNSS[DIRECTION_SOUTH].s == ISS_ON)
                 currentDEC -= da_dec;
+            break;
 
+           default:
             break;
         }
 
@@ -337,7 +325,9 @@ bool ScopeSim::ReadScopeStatus()
                 currentRA += da_ra/15.;
             else if (MovementWES[DIRECTION_EAST].s == ISS_ON)
                 currentRA -= da_ra/15.;
+            break;
 
+        default:
             break;
         }
 
@@ -626,6 +616,11 @@ bool ScopeSim::Park()
 
 bool ScopeSim::UnPark()
 {
+    if (INDI::Telescope::isLocked())
+    {
+        DEBUG(INDI::Logger::DBG_SESSION, "Cannot unpark mount when dome is locking. See: Dome parking policy, in options tab");
+        return false;
+    }
     SetParked(false);
     return true;
 }
@@ -802,19 +797,23 @@ bool ScopeSim::updateLocation(double latitude, double longitude, double elevatio
   return true;
 }
 
-void ScopeSim::SetCurrentPark()
+bool ScopeSim::SetCurrentPark()
 {
     SetAxis1Park(currentRA);
     SetAxis2Park(currentDEC);
+
+    return true;
 }
 
-void ScopeSim::SetDefaultPark()
+bool ScopeSim::SetDefaultPark()
 {
     // By default set RA to HA
     SetAxis1Park(ln_get_apparent_sidereal_time(ln_get_julian_from_sys()));
 
     // Set DEC to 90 or -90 depending on the hemisphere
     SetAxis2Park( (LocationN[LOCATION_LATITUDE].value > 0) ? 90 : -90);
+
+    return true;
 
 }
 

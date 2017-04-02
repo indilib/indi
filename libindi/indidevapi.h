@@ -306,9 +306,10 @@ extern void IDSnoopDevice (const char *snooped_device, const char *snooped_prope
 
 /** \brief Function a Driver calls to control whether they will receive BLOBs from snooped devices.
     \param snooped_device name of the device to snoop.
+    \param snooped_property name of property to snoop. If NULL, then all BLOBs from the given device are snooped.
     \param bh How drivers handle BLOBs incoming from snooping drivers.
 */
-extern void IDSnoopBLOBs (const char *snooped_device, BLOBHandling bh);
+extern void IDSnoopBLOBs (const char *snooped_device, const char *snooped_property, BLOBHandling bh);
 
 /*@}*/
 

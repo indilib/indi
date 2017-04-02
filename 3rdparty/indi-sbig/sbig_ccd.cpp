@@ -45,7 +45,7 @@
 #include "ccvt.h"
 #define ulong unsigned long
 #else
-#include <ccvt.h>
+#include "ccvt.h"
 #endif
 #include "sbig_ccd.h"
 
@@ -2496,8 +2496,10 @@ int SBIGCCD::CFWConnect()
         defineNumber(&FilterSlotNP);
         DEBUG(INDI::Logger::DBG_DEBUG, "Loading FILTER_SLOT from config file...");
         loadConfig(true, "FILTER_SLOT");
-        GetFilterNames(FILTER_TAB);
-        defineText(FilterNameTP);
+        if (FilterNameT == NULL)
+            GetFilterNames(FILTER_TAB);
+        if (FilterNameT)
+            defineText(FilterNameTP);
         DEBUG(INDI::Logger::DBG_DEBUG, "Loading FILTER_NAME from config file...");
         loadConfig(true, "FILTER_NAME");
         FilterConnectionSP.s = IPS_OK;

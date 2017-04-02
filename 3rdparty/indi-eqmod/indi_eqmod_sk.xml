@@ -115,7 +115,7 @@ On
 Off
 </defSwitch>
 </defSwitchVector>
-<defSwitchVector device="EQMod Mount" name="TELESCOPE_TRACK_RATE" label="Track Mode" group="Main Control" state="Idle" perm="rw" rule="AtMostOne">
+<defSwitchVector device="EQMod Mount" name="TELESCOPE_TRACK_MODE" label="Track Mode" group="Main Control" state="Idle" perm="rw" rule="AtMostOne">
 <defSwitch name="TRACK_SIDEREAL" label="Sidereal">
 Off
 </defSwitch>
@@ -129,7 +129,7 @@ Off
 Off
 </defSwitch>
 </defSwitchVector>
-<defSwitchVector device="EQMod Mount" name="TRACKDEFAULT" label="Track Default" group="Motion Control" state="Idle" perm="rw" rule="OneOfMany">
+<defSwitchVector device="EQMod Mount" name="TELESCOPE_TRACK_DEFAULT" label="Track Default" group="Motion Control" state="Idle" perm="rw" rule="OneOfMany">
 <defSwitch name="TRACK_SIDEREAL" label="Sidereal">
 On
 </defSwitch>
@@ -143,22 +143,14 @@ Off
 Off
 </defSwitch>
 </defSwitchVector>
-<defNumberVector device="EQMod Mount" name="TRACKRATES" label="Track Rates" group="Main Control" state="Idle" perm="rw">
-<defNumber name="RATRACKRATE" label="RA (arcsecs/s)" format="%.6f" min="-16384.0" max="16384.0" step="0.000001">
+<defNumberVector device="EQMod Mount" name="TELESCOPE_TRACK_RATE" label="Track Rates" group="Main Control" state="Idle" perm="rw">
+<defNumber name="TRACK_RATE_RA" label="RA (arcsecs/s)" format="%.6f" min="-16384.0" max="16384.0" step="0.000001">
 15.041067
 </defNumber>
-<defNumber name="DETRACKRATE" label="DE (arcsecs/s)" format="%.6f" min="-16384.0" max="16384.0" step="0.000001">
+<defNumber name="TRACK_RATE_DE" label="DE (arcsecs/s)" format="%.6f" min="-16384.0" max="16384.0" step="0.000001">
 0.0
 </defNumber>
 </defNumberVector>
-<defSwitchVector device="EQMod Mount" name="TELESCOPE_PIER_SIDE" label="Pier Side" group="Main Control" state="Idle" perm="ro" rule="OneOfMany">
-<defSwitch name="PIER_EAST" label="East (pointing west)">
-On
-</defSwitch>
-<defSwitch name="PIER_WEST" label="West (pointing east)">
-Off
-</defSwitch>
-</defSwitchVector>
 <defSwitchVector device="EQMod Mount" name="REVERSEDEC" label="Reverse DEC" group="Main Control" state="Idle" perm="rw" rule="OneOfMany">
 <defSwitch name="ENABLE" label="Enable">
 Off
@@ -235,6 +227,82 @@ On
 </defSwitchVector>
 <defSwitchVector device="EQMod Mount" name="AUTOHOME" label="Autohome" group="Site Management" state="Idle" perm="rw" rule="OneOfMany">
 <defSwitch name="PERFORM" label="Perform">
+Off
+</defSwitch>
+</defSwitchVector>
+<defSwitchVector device="EQMod Mount" name="AUXENCODER" label="Aux. Encoders" group="Options" state="Idle" perm="rw" rule="OneOfMany">
+<defSwitch name="AUXENCODER_OFF" label="Off">
+On
+</defSwitch>
+<defSwitch name="AUXENCODER_ON" label="On">
+Off
+</defSwitch>
+</defSwitchVector>
+<defNumberVector device="EQMod Mount" name="AUXENCODERVALUES" label="Aux. Encoders" group="Motor Status" state="Idle" perm="ro">
+<defNumber name="AUXENCRASteps" label="RA Steps" format="%.0f" min="0.0" max="16777215.0" step="1.0">
+1.0
+</defNumber>
+<defNumber name="AUXENCDESteps" label="DE Steps" format="%.0f" min="0.0" max="16777215.0" step="1.0">
+1.0
+</defNumber>
+</defNumberVector>
+<defSwitchVector device="EQMod Mount" name="ST4_GUIDE_RATE_NS" label="ST4 Rate N/S" group="Motion Control" state="Idle" perm="rw" rule="OneOfMany">
+<defSwitch name="ST4_RATE_NS_0" label="1.00x">
+Off
+</defSwitch>
+<defSwitch name="ST4_RATE_NS_1" label="0.75x">
+Off
+</defSwitch>
+<defSwitch name="ST4_RATE_NS_2" label="0.50x">
+On
+</defSwitch>
+<defSwitch name="ST4_RATE_NS_3" label="0.25x">
+Off
+</defSwitch>
+</defSwitchVector>
+<defSwitchVector device="EQMod Mount" name="ST4_GUIDE_RATE_WE" label="ST4 Rate W/E" group="Motion Control" state="Idle" perm="rw" rule="OneOfMany">
+<defSwitch name="ST4_RATE_WE_0" label="1.00x">
+Off
+</defSwitch>
+<defSwitch name="ST4_RATE_WE_1" label="0.75x">
+Off
+</defSwitch>
+<defSwitch name="ST4_RATE_WE_2" label="0.50x">
+On
+</defSwitch>
+<defSwitch name="ST4_RATE_WE_3" label="0.25x">
+Off
+</defSwitch>
+</defSwitchVector>
+<defSwitchVector device="EQMod Mount" name="RA_PPEC_TRAINING" label="RA PPEC Training" group="Permanent PEC" state="Idle" perm="rw" rule="OneOfMany">
+<defSwitch name="RA_PPEC_TRAINING_OFF" label="Off">
+On
+</defSwitch>
+<defSwitch name="RA_PPEC_TRAINING_ON" label="On">
+Off
+</defSwitch>
+</defSwitchVector>
+<defSwitchVector device="EQMod Mount" name="RA_PPEC" label="Turn RA PPEC" group="Permanent PEC" state="Idle" perm="rw" rule="OneOfMany">
+<defSwitch name="RA_PPEC_OFF" label="Off">
+On
+</defSwitch>
+<defSwitch name="RA_PPEC_ON" label="On">
+Off
+</defSwitch>
+</defSwitchVector>
+<defSwitchVector device="EQMod Mount" name="DE_PPEC_TRAINING" label="DE PPEC Training" group="Permanent PEC" state="Idle" perm="rw" rule="OneOfMany">
+<defSwitch name="DE_PPEC_TRAINING_OFF" label="Off">
+On
+</defSwitch>
+<defSwitch name="DE_PPEC_TRAINING_ON" label="On">
+Off
+</defSwitch>
+</defSwitchVector>
+<defSwitchVector device="EQMod Mount" name="DE_PPEC" label="Turn DE PPEC" group="Permanent PEC" state="Idle" perm="rw" rule="OneOfMany">
+<defSwitch name="DE_PPEC_OFF" label="Off">
+On
+</defSwitch>
+<defSwitch name="DE_PPEC_ON" label="On">
 Off
 </defSwitch>
 </defSwitchVector>

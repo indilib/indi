@@ -49,7 +49,7 @@ public:
   bool StartExposure(float duration);
   bool AbortExposure();
 
-  #ifndef OSX_EMBEDED_MODE
+  #if !defined(__APPLE__) && !defined(__CYGWIN__)
   static void * streamVideoHelper(void* context);
   void * streamVideo();
   #endif
@@ -60,7 +60,7 @@ protected:
   bool ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n);
 
   // Streaming
-  #ifndef OSX_EMBEDED_MODE
+  #if !defined(__APPLE__) && !defined(__CYGWIN__)
   bool StartStreaming();
   bool StopStreaming();
   #endif
@@ -77,6 +77,9 @@ protected:
 
   // ASI specific keywords
   virtual void addFITSKeywords(fitsfile *fptr, CCDChip *targetChip);
+
+  // Save config
+  virtual bool saveConfigItems(FILE *fp);
 
 private:
 
@@ -108,15 +111,16 @@ private:
   ISwitch CoolerS[2];
   ISwitchVectorProperty CoolerSP;
 
-  INumber *ControlN;
+  INumber *ControlN=NULL;
   INumberVectorProperty ControlNP;
 
-  ISwitch *ControlS;
+  ISwitch *ControlS=NULL;
   ISwitchVectorProperty ControlSP;
 
   ISwitch *VideoFormatS;
   ISwitchVectorProperty VideoFormatSP;
 
+  double minimumExposureDuration = 0;
   struct timeval ExpStart;
   float ExposureRequest;
   float TemperatureRequest;
@@ -129,7 +133,7 @@ private:
   int streamPredicate;
   pthread_t primary_thread;
   bool terminateThread;
-  bool exposureRetries;
+  int exposureRetries;
 
   // ST4
   bool InWEPulse;

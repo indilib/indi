@@ -7,6 +7,15 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		59019DF61DDF8C9A00CCB3ED /* libz.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = 5944995F1C136C9100E0E281 /* libz.tbd */; };
+		59019DF71DDF8C9A00CCB3ED /* libASICamera2.lib in Frameworks */ = {isa = PBXBuildFile; fileRef = 5944994B1C13651F00E0E281 /* libASICamera2.lib */; };
+		59019DF81DDF8C9A00CCB3ED /* libcfitsio.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 9DDA43181A8CC5F90004AA95 /* libcfitsio.dylib */; };
+		59019DF91DDF8C9A00CCB3ED /* libusb.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 9DDA438B1A8CCD030004AA95 /* libusb.dylib */; };
+		59019DFA1DDF8C9A00CCB3ED /* libindi.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 9DDA43A91A8CD3190004AA95 /* libindi.dylib */; };
+		59019DFB1DDF8C9A00CCB3ED /* libnova.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 9DDA422C1A8CB6920004AA95 /* libnova.dylib */; };
+		59019E031DDF8CDB00CCB3ED /* asi_wheel.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 59019E011DDF8CDB00CCB3ED /* asi_wheel.cpp */; };
+		59019E051DDF8D0200CCB3ED /* libEFWFilter.lib in Frameworks */ = {isa = PBXBuildFile; fileRef = 59019E041DDF8D0200CCB3ED /* libEFWFilter.lib */; };
+		59019E081DDF8D2300CCB3ED /* indi_asi_wheel in Copy Files (33 items) (53 items) */ = {isa = PBXBuildFile; fileRef = 59019E001DDF8C9A00CCB3ED /* indi_asi_wheel */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
 		5909A8241D31803200F74CF2 /* libindi.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 9DDA43A91A8CD3190004AA95 /* libindi.dylib */; };
 		5909A8251D31803200F74CF2 /* libnova.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 9DDA422C1A8CB6920004AA95 /* libnova.dylib */; };
 		5909A82D1D31807D00F74CF2 /* microtouch.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 5909A82B1D31807D00F74CF2 /* microtouch.cpp */; };
@@ -24,6 +33,7 @@
 		590AD3081CFE0194008D5367 /* indi_shelyakeshel_spectrograph.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 590AD3051CFE0194008D5367 /* indi_shelyakeshel_spectrograph.cpp */; };
 		590AD30B1CFE01B2008D5367 /* indi_shelyakeshel_spectrograph in Copy Files (33 items) (53 items) */ = {isa = PBXBuildFile; fileRef = 590AD3021CFE0118008D5367 /* indi_shelyakeshel_spectrograph */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
 		590AD30C1CFE01D0008D5367 /* indi-shelyak.xml in Resources */ = {isa = PBXBuildFile; fileRef = 590AD3071CFE0194008D5367 /* indi-shelyak.xml */; };
+		590E83BF1E61D9CD009ABE2F /* lx200_10micron.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 590E83BB1E61D986009ABE2F /* lx200_10micron.cpp */; };
 		591247651AC483F400AFC0BF /* ieqpro.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 591247631AC4836700AFC0BF /* ieqpro.cpp */; };
 		591247661AC483F400AFC0BF /* ieqprodriver.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 591247641AC4836700AFC0BF /* ieqprodriver.cpp */; };
 		591991A8188FC9AD007DD2DE /* indiserver.c in Sources */ = {isa = PBXBuildFile; fileRef = 591991A7188FC9AD007DD2DE /* indiserver.c */; };
@@ -69,54 +79,6 @@
 		593445CD1CF8EFC8008AD945 /* qhy_ccd.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 593445C91CF8EFC8008AD945 /* qhy_ccd.cpp */; };
 		593445CE1CF8EFC8008AD945 /* qhy_fw.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 593445CB1CF8EFC8008AD945 /* qhy_fw.cpp */; };
 		593445CF1CF8EFCE008AD945 /* indi_qhy.xml in Resources */ = {isa = PBXBuildFile; fileRef = 593445C81CF8EFC8008AD945 /* indi_qhy.xml */; };
-		593445D21CF8F008008AD945 /* indi_qhy_ccd in Copy Files (33 items) (53 items) */ = {isa = PBXBuildFile; fileRef = 593445C51CF8EF62008AD945 /* indi_qhy_ccd */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
-		593446031CF8F029008AD945 /* IC90A.HEX in Resources */ = {isa = PBXBuildFile; fileRef = 593445D41CF8F029008AD945 /* IC90A.HEX */; };
-		593446041CF8F029008AD945 /* IC8300.HEX in Resources */ = {isa = PBXBuildFile; fileRef = 593445D51CF8F029008AD945 /* IC8300.HEX */; };
-		593446051CF8F029008AD945 /* IC16200A.HEX in Resources */ = {isa = PBXBuildFile; fileRef = 593445D61CF8F029008AD945 /* IC16200A.HEX */; };
-		593446061CF8F029008AD945 /* IC16803.HEX in Resources */ = {isa = PBXBuildFile; fileRef = 593445D71CF8F029008AD945 /* IC16803.HEX */; };
-		593446071CF8F029008AD945 /* IMG0H.HEX in Resources */ = {isa = PBXBuildFile; fileRef = 593445D81CF8F029008AD945 /* IMG0H.HEX */; };
-		593446081CF8F029008AD945 /* IMG2P.HEX in Resources */ = {isa = PBXBuildFile; fileRef = 593445D91CF8F029008AD945 /* IMG2P.HEX */; };
-		593446091CF8F029008AD945 /* IMG2S.HEX in Resources */ = {isa = PBXBuildFile; fileRef = 593445DA1CF8F029008AD945 /* IMG2S.HEX */; };
-		5934460A1CF8F029008AD945 /* IMG50.HEX in Resources */ = {isa = PBXBuildFile; fileRef = 593445DB1CF8F029008AD945 /* IMG50.HEX */; };
-		5934460B1CF8F029008AD945 /* miniCam5.HEX in Resources */ = {isa = PBXBuildFile; fileRef = 593445DC1CF8F029008AD945 /* miniCam5.HEX */; };
-		5934460C1CF8F029008AD945 /* POLEMASTER.HEX in Resources */ = {isa = PBXBuildFile; fileRef = 593445DD1CF8F029008AD945 /* POLEMASTER.HEX */; };
-		5934460D1CF8F029008AD945 /* QHY2.HEX in Resources */ = {isa = PBXBuildFile; fileRef = 593445DE1CF8F029008AD945 /* QHY2.HEX */; };
-		5934460E1CF8F029008AD945 /* QHY2E.HEX in Resources */ = {isa = PBXBuildFile; fileRef = 593445DF1CF8F029008AD945 /* QHY2E.HEX */; };
-		5934460F1CF8F029008AD945 /* QHY2PRO.HEX in Resources */ = {isa = PBXBuildFile; fileRef = 593445E01CF8F029008AD945 /* QHY2PRO.HEX */; };
-		593446101CF8F029008AD945 /* QHY5.HEX in Resources */ = {isa = PBXBuildFile; fileRef = 593445E11CF8F029008AD945 /* QHY5.HEX */; };
-		593446111CF8F029008AD945 /* QHY5II.HEX in Resources */ = {isa = PBXBuildFile; fileRef = 593445E21CF8F029008AD945 /* QHY5II.HEX */; };
-		593446121CF8F029008AD945 /* QHY5III174.img in Resources */ = {isa = PBXBuildFile; fileRef = 593445E31CF8F029008AD945 /* QHY5III174.img */; };
-		593446131CF8F029008AD945 /* QHY5III178.img in Resources */ = {isa = PBXBuildFile; fileRef = 593445E41CF8F029008AD945 /* QHY5III178.img */; };
-		593446141CF8F029008AD945 /* QHY5III185.img in Resources */ = {isa = PBXBuildFile; fileRef = 593445E51CF8F029008AD945 /* QHY5III185.img */; };
-		593446151CF8F029008AD945 /* QHY5III224.img in Resources */ = {isa = PBXBuildFile; fileRef = 593445E61CF8F029008AD945 /* QHY5III224.img */; };
-		593446161CF8F029008AD945 /* QHY5III290.img in Resources */ = {isa = PBXBuildFile; fileRef = 593445E71CF8F029008AD945 /* QHY5III290.img */; };
-		593446171CF8F029008AD945 /* QHY5LOADER.HEX in Resources */ = {isa = PBXBuildFile; fileRef = 593445E81CF8F029008AD945 /* QHY5LOADER.HEX */; };
-		593446181CF8F029008AD945 /* QHY6.HEX in Resources */ = {isa = PBXBuildFile; fileRef = 593445E91CF8F029008AD945 /* QHY6.HEX */; };
-		593446191CF8F029008AD945 /* QHY7.HEX in Resources */ = {isa = PBXBuildFile; fileRef = 593445EA1CF8F029008AD945 /* QHY7.HEX */; };
-		5934461A1CF8F029008AD945 /* QHY8.HEX in Resources */ = {isa = PBXBuildFile; fileRef = 593445EB1CF8F029008AD945 /* QHY8.HEX */; };
-		5934461B1CF8F029008AD945 /* QHY8L.HEX in Resources */ = {isa = PBXBuildFile; fileRef = 593445EC1CF8F029008AD945 /* QHY8L.HEX */; };
-		5934461C1CF8F029008AD945 /* QHY8M.HEX in Resources */ = {isa = PBXBuildFile; fileRef = 593445ED1CF8F029008AD945 /* QHY8M.HEX */; };
-		5934461D1CF8F029008AD945 /* QHY8PRO.HEX in Resources */ = {isa = PBXBuildFile; fileRef = 593445EE1CF8F029008AD945 /* QHY8PRO.HEX */; };
-		5934461E1CF8F029008AD945 /* QHY9S.HEX in Resources */ = {isa = PBXBuildFile; fileRef = 593445EF1CF8F029008AD945 /* QHY9S.HEX */; };
-		5934461F1CF8F029008AD945 /* QHY10.HEX in Resources */ = {isa = PBXBuildFile; fileRef = 593445F01CF8F029008AD945 /* QHY10.HEX */; };
-		593446201CF8F029008AD945 /* QHY11.HEX in Resources */ = {isa = PBXBuildFile; fileRef = 593445F11CF8F029008AD945 /* QHY11.HEX */; };
-		593446211CF8F029008AD945 /* QHY12.HEX in Resources */ = {isa = PBXBuildFile; fileRef = 593445F21CF8F029008AD945 /* QHY12.HEX */; };
-		593446221CF8F029008AD945 /* QHY15.HEX in Resources */ = {isa = PBXBuildFile; fileRef = 593445F31CF8F029008AD945 /* QHY15.HEX */; };
-		593446231CF8F029008AD945 /* QHY16.HEX in Resources */ = {isa = PBXBuildFile; fileRef = 593445F41CF8F029008AD945 /* QHY16.HEX */; };
-		593446241CF8F029008AD945 /* QHY20.HEX in Resources */ = {isa = PBXBuildFile; fileRef = 593445F51CF8F029008AD945 /* QHY20.HEX */; };
-		593446251CF8F029008AD945 /* QHY21.HEX in Resources */ = {isa = PBXBuildFile; fileRef = 593445F61CF8F029008AD945 /* QHY21.HEX */; };
-		593446261CF8F029008AD945 /* QHY22.HEX in Resources */ = {isa = PBXBuildFile; fileRef = 593445F71CF8F029008AD945 /* QHY22.HEX */; };
-		593446271CF8F029008AD945 /* QHY23.HEX in Resources */ = {isa = PBXBuildFile; fileRef = 593445F81CF8F029008AD945 /* QHY23.HEX */; };
-		593446281CF8F029008AD945 /* QHY27.HEX in Resources */ = {isa = PBXBuildFile; fileRef = 593445F91CF8F029008AD945 /* QHY27.HEX */; };
-		593446291CF8F029008AD945 /* QHY28.HEX in Resources */ = {isa = PBXBuildFile; fileRef = 593445FA1CF8F029008AD945 /* QHY28.HEX */; };
-		5934462A1CF8F029008AD945 /* QHY29.HEX in Resources */ = {isa = PBXBuildFile; fileRef = 593445FB1CF8F029008AD945 /* QHY29.HEX */; };
-		5934462B1CF8F029008AD945 /* QHY163.img in Resources */ = {isa = PBXBuildFile; fileRef = 593445FC1CF8F029008AD945 /* QHY163.img */; };
-		5934462C1CF8F029008AD945 /* QHY174.img in Resources */ = {isa = PBXBuildFile; fileRef = 593445FD1CF8F029008AD945 /* QHY174.img */; };
-		5934462D1CF8F029008AD945 /* QHY178.img in Resources */ = {isa = PBXBuildFile; fileRef = 593445FE1CF8F029008AD945 /* QHY178.img */; };
-		5934462E1CF8F029008AD945 /* QHY224.img in Resources */ = {isa = PBXBuildFile; fileRef = 593445FF1CF8F029008AD945 /* QHY224.img */; };
-		5934462F1CF8F029008AD945 /* QHY290.img in Resources */ = {isa = PBXBuildFile; fileRef = 593446001CF8F029008AD945 /* QHY290.img */; };
-		593446301CF8F029008AD945 /* QHY16000.HEX in Resources */ = {isa = PBXBuildFile; fileRef = 593446011CF8F029008AD945 /* QHY16000.HEX */; };
-		593446311CF8F029008AD945 /* QHY160002AD.HEX in Resources */ = {isa = PBXBuildFile; fileRef = 593446021CF8F029008AD945 /* QHY160002AD.HEX */; };
 		593447B11CF8F2BB008AD945 /* cjson.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 593446F41CF8F2BB008AD945 /* cjson.cpp */; };
 		593447B21CF8F2BB008AD945 /* cmosdll.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 593446F61CF8F2BB008AD945 /* cmosdll.cpp */; };
 		593447B31CF8F2BB008AD945 /* dithercontrol.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 593446F81CF8F2BB008AD945 /* dithercontrol.cpp */; };
@@ -274,6 +236,19 @@
 		594499601C136C9100E0E281 /* libz.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = 5944995F1C136C9100E0E281 /* libz.tbd */; };
 		594499611C136CE300E0E281 /* indi_asi.xml in Resources */ = {isa = PBXBuildFile; fileRef = 594499471C13643F00E0E281 /* indi_asi.xml */; };
 		594499641C136E9F00E0E281 /* indi_asi_ccd in Copy Files (33 items) (53 items) */ = {isa = PBXBuildFile; fileRef = 594499451C1363C400E0E281 /* indi_asi_ccd */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
+		59499FA21E61E97600567CAD /* usbfocusv3.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 59499FA01E61E96B00567CAD /* usbfocusv3.cpp */; };
+		59499FAD1E61EA4600567CAD /* libindi.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 9DDA43A91A8CD3190004AA95 /* libindi.dylib */; };
+		59499FAE1E61EA4600567CAD /* libnova.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 9DDA422C1A8CB6920004AA95 /* libnova.dylib */; };
+		59499FB41E61EA6200567CAD /* hitecastrodcfocuser.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 59499FA31E61EA2D00567CAD /* hitecastrodcfocuser.cpp */; };
+		59499FB51E61EA8500567CAD /* indi_hitecastrodc_focus in Copy Files (33 items) (53 items) */ = {isa = PBXBuildFile; fileRef = 59499FB31E61EA4600567CAD /* indi_hitecastrodc_focus */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
+		59499FC51E61EBDB00567CAD /* libindi.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 9DDA43A91A8CD3190004AA95 /* libindi.dylib */; };
+		59499FC61E61EBDB00567CAD /* libnova.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 9DDA422C1A8CB6920004AA95 /* libnova.dylib */; };
+		59499FD31E61EC0900567CAD /* libindi.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 9DDA43A91A8CD3190004AA95 /* libindi.dylib */; };
+		59499FD41E61EC0900567CAD /* libnova.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 9DDA422C1A8CB6920004AA95 /* libnova.dylib */; };
+		59499FDA1E61EC3100567CAD /* ifwoptec.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 59499FB81E61EBB000567CAD /* ifwoptec.cpp */; };
+		59499FDB1E61EC3500567CAD /* quantum_wheel.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 59499FB91E61EBB000567CAD /* quantum_wheel.cpp */; };
+		59499FE01E61EC5800567CAD /* indi_optec_wheel in Copy Files (33 items) (53 items) */ = {isa = PBXBuildFile; fileRef = 59499FCB1E61EBDB00567CAD /* indi_optec_wheel */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
+		59499FE11E61EC5800567CAD /* indi_quantum_wheel in Copy Files (33 items) (53 items) */ = {isa = PBXBuildFile; fileRef = 59499FD91E61EC0900567CAD /* indi_quantum_wheel */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
 		59519D4B1DB55BE1008BAF29 /* lx200_OnStep.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 59519D4A1DB55BD0008BAF29 /* lx200_OnStep.cpp */; };
 		59563CBB1CF1E8D200DE1A54 /* libcfitsio.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 9DDA43181A8CC5F90004AA95 /* libcfitsio.dylib */; };
 		59563CBC1CF1E8D200DE1A54 /* libusb.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 9DDA438B1A8CCD030004AA95 /* libusb.dylib */; };
@@ -369,7 +344,6 @@
 		59567CE51A8D3D8F0057A35A /* spectracyber.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 59567CB31A8D3D440057A35A /* spectracyber.cpp */; };
 		59567CEA1A8D3DBF0057A35A /* indi_maxdomeii in Copy Files (33 items) (53 items) */ = {isa = PBXBuildFile; fileRef = 59567CD21A8D3D630057A35A /* indi_maxdomeii */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
 		59567CEB1A8D3DBF0057A35A /* indi_spectracyber in Copy Files (33 items) (53 items) */ = {isa = PBXBuildFile; fileRef = 59567CE41A8D3D7F0057A35A /* indi_spectracyber */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
-		59567CF21A8D409E0057A35A /* indi_usbfocus.xml in Resources */ = {isa = PBXBuildFile; fileRef = 59567CF01A8D409C0057A35A /* indi_usbfocus.xml */; };
 		59567CF61A8D40BC0057A35A /* indi_shoestring.xml in Resources */ = {isa = PBXBuildFile; fileRef = 59567CF51A8D40B90057A35A /* indi_shoestring.xml */; };
 		59567CFD1A8D41000057A35A /* indi_atik.xml in Resources */ = {isa = PBXBuildFile; fileRef = 59567CFC1A8D41000057A35A /* indi_atik.xml */; };
 		59567D071A8D410A0057A35A /* libindi.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 9DDA43A91A8CD3190004AA95 /* libindi.dylib */; };
@@ -388,11 +362,10 @@
 		59567D391A8D41820057A35A /* fcusb.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 59567CF31A8D40B90057A35A /* fcusb.cpp */; };
 		59567D441A8D418E0057A35A /* libindi.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 9DDA43A91A8CD3190004AA95 /* libindi.dylib */; };
 		59567D451A8D418E0057A35A /* libnova.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 9DDA422C1A8CB6920004AA95 /* libnova.dylib */; };
-		59567D4B1A8D419A0057A35A /* usbfocus.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 59567CF11A8D409C0057A35A /* usbfocus.cpp */; };
 		59567D541A8D41CC0057A35A /* indi_atik_wheel in Copy Files (33 items) (53 items) */ = {isa = PBXBuildFile; fileRef = 59567D0D1A8D410A0057A35A /* indi_atik_wheel */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
 		59567D551A8D41CC0057A35A /* indi_atik_ccd in Copy Files (33 items) (53 items) */ = {isa = PBXBuildFile; fileRef = 59567D231A8D41130057A35A /* indi_atik_ccd */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
 		59567D561A8D41CC0057A35A /* indi_fcusb_focuser in Copy Files (33 items) (53 items) */ = {isa = PBXBuildFile; fileRef = 59567D381A8D41640057A35A /* indi_fcusb_focuser */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
-		59567D571A8D41CC0057A35A /* indi_usbfocus_focuser in Copy Files (33 items) (53 items) */ = {isa = PBXBuildFile; fileRef = 59567D4A1A8D418E0057A35A /* indi_usbfocus_focuser */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
+		59567D571A8D41CC0057A35A /* indi_usbfocusv3_focus in Copy Files (33 items) (53 items) */ = {isa = PBXBuildFile; fileRef = 59567D4A1A8D418E0057A35A /* indi_usbfocusv3_focus */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
 		596556701C4A3E530044680B /* libcfitsio.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 9DDA43181A8CC5F90004AA95 /* libcfitsio.dylib */; };
 		596556711C4A3E530044680B /* libusb.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 9DDA438B1A8CCD030004AA95 /* libusb.dylib */; };
 		596556721C4A3E530044680B /* libindi.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 9DDA43A91A8CD3190004AA95 /* libindi.dylib */; };
@@ -557,8 +530,21 @@
 		59E5F8DE1C3F0B30008DAB80 /* MathPlugin.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 59E5F8DD1C3F0B30008DAB80 /* MathPlugin.cpp */; };
 		59E5F8E01C3F0B37008DAB80 /* MathPluginManagement.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 59E5F8DF1C3F0B37008DAB80 /* MathPluginManagement.cpp */; };
 		59E5F91E1C3F17B9008DAB80 /* libobjc.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = 59E5F91D1C3F17B9008DAB80 /* libobjc.tbd */; };
-		59E5F9221C3F185D008DAB80 /* libgsl.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 59E5F9211C3F185D008DAB80 /* libgsl.a */; };
 		59E5F9241C3F1940008DAB80 /* libz.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = 5944995F1C136C9100E0E281 /* libz.tbd */; };
+		59F755D91DCD2EAC002CFC82 /* qhy5iii178coolbase.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 59F755C71DCD2EA6002CFC82 /* qhy5iii178coolbase.cpp */; };
+		59F755DA1DCD2EAC002CFC82 /* qhy5iii224coolbase.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 59F755C81DCD2EA6002CFC82 /* qhy5iii224coolbase.cpp */; };
+		59F755DB1DCD2EAC002CFC82 /* qhy5iii247base.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 59F755C91DCD2EA6002CFC82 /* qhy5iii247base.cpp */; };
+		59F755DC1DCD2EAC002CFC82 /* qhy5iii290coolbase.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 59F755CA1DCD2EA6002CFC82 /* qhy5iii290coolbase.cpp */; };
+		59F755DD1DCD2EAC002CFC82 /* qhy5iiicommon.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 59F755CB1DCD2EA6002CFC82 /* qhy5iiicommon.cpp */; };
+		59F755DE1DCD2EAC002CFC82 /* qhy5iiiddrcoolbase.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 59F755CC1DCD2EA6002CFC82 /* qhy5iiiddrcoolbase.cpp */; };
+		59F755DF1DCD2EAC002CFC82 /* minicam5base.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 59F755C41DCD2E6E002CFC82 /* minicam5base.cpp */; };
+		59F755EA1DCD2F00002CFC82 /* qhy247c.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 59F755E21DCD2EF4002CFC82 /* qhy247c.cpp */; };
+		59F755EB1DCD2F00002CFC82 /* qhy814a.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 59F755E31DCD2EF4002CFC82 /* qhy814a.cpp */; };
+		59F755EE1DCD2FFD002CFC82 /* qhy16803a.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 59F755E41DCD2EF4002CFC82 /* qhy16803a.cpp */; };
+		59F755F11DCD3024002CFC82 /* indi_qhy_ccd in Copy Files (33 items) (53 items) */ = {isa = PBXBuildFile; fileRef = 593445C51CF8EF62008AD945 /* indi_qhy_ccd */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
+		59F755F21DCD3038002CFC82 /* QHY5II.HEX in Resources */ = {isa = PBXBuildFile; fileRef = 593445E21CF8F029008AD945 /* QHY5II.HEX */; };
+		59FC29FA1E1C4DD000B616EB /* libgslblas.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 59FC29F81E1C4DD000B616EB /* libgslblas.a */; };
+		59FC29FB1E1C4DD000B616EB /* libgsl.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 59FC29F91E1C4DD000B616EB /* libgsl.a */; };
 		9D0B29C01A8D1E9400ED17BF /* libindi.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 9DDA43A91A8CD3190004AA95 /* libindi.dylib */; };
 		9D0B29C11A8D1E9400ED17BF /* libnova.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 9DDA422C1A8CB6920004AA95 /* libnova.dylib */; };
 		9D0B29CA1A8D1EC400ED17BF /* celestrongps.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 9D0B29C81A8D1EC400ED17BF /* celestrongps.cpp */; };
@@ -787,6 +773,41 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
+		59019DE91DDF8C9A00CCB3ED /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 594D0B2B188300ED00B50F4E /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 9DDA43171A8CC5F90004AA95;
+			remoteInfo = cfitsio;
+		};
+		59019DEB1DDF8C9A00CCB3ED /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 594D0B2B188300ED00B50F4E /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 9DDA438A1A8CCD030004AA95;
+			remoteInfo = usb;
+		};
+		59019DED1DDF8C9A00CCB3ED /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 594D0B2B188300ED00B50F4E /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 9DDA422B1A8CB6920004AA95;
+			remoteInfo = nova;
+		};
+		59019DEF1DDF8C9A00CCB3ED /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 594D0B2B188300ED00B50F4E /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 9DDA43A81A8CD3190004AA95;
+			remoteInfo = indi;
+		};
+		59019E061DDF8D1700CCB3ED /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 594D0B2B188300ED00B50F4E /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 59019DE71DDF8C9A00CCB3ED;
+			remoteInfo = indi_asi_wheel;
+		};
 		5909A81E1D31803200F74CF2 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = 594D0B2B188300ED00B50F4E /* Project object */;
@@ -947,13 +968,6 @@
 			proxyType = 1;
 			remoteGlobalIDString = 9DDA43A81A8CD3190004AA95;
 			remoteInfo = indi;
-		};
-		593445D01CF8EFFC008AD945 /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = 594D0B2B188300ED00B50F4E /* Project object */;
-			proxyType = 1;
-			remoteGlobalIDString = 593445B11CF8EF62008AD945;
-			remoteInfo = indi_qhy_ccd;
 		};
 		593448151CF9E4E6008AD945 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -1241,6 +1255,69 @@
 			proxyType = 1;
 			remoteGlobalIDString = 594499301C1363C400E0E281;
 			remoteInfo = "indi-asicam";
+		};
+		59499FA71E61EA4600567CAD /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 594D0B2B188300ED00B50F4E /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 9DDA422B1A8CB6920004AA95;
+			remoteInfo = nova;
+		};
+		59499FA91E61EA4600567CAD /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 594D0B2B188300ED00B50F4E /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 9DDA43A81A8CD3190004AA95;
+			remoteInfo = indi;
+		};
+		59499FB61E61EABA00567CAD /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 594D0B2B188300ED00B50F4E /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 59499FA51E61EA4600567CAD;
+			remoteInfo = indi_hitecastrodc_focus;
+		};
+		59499FBE1E61EBDB00567CAD /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 594D0B2B188300ED00B50F4E /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 9DDA422B1A8CB6920004AA95;
+			remoteInfo = nova;
+		};
+		59499FC01E61EBDB00567CAD /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 594D0B2B188300ED00B50F4E /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 9DDA43A81A8CD3190004AA95;
+			remoteInfo = indi;
+		};
+		59499FCE1E61EC0900567CAD /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 594D0B2B188300ED00B50F4E /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 9DDA422B1A8CB6920004AA95;
+			remoteInfo = nova;
+		};
+		59499FD01E61EC0900567CAD /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 594D0B2B188300ED00B50F4E /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 9DDA43A81A8CD3190004AA95;
+			remoteInfo = indi;
+		};
+		59499FDC1E61EC4A00567CAD /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 594D0B2B188300ED00B50F4E /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 59499FBC1E61EBDB00567CAD;
+			remoteInfo = indi_optec_wheel;
+		};
+		59499FDE1E61EC4A00567CAD /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 594D0B2B188300ED00B50F4E /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 59499FCC1E61EC0900567CAD;
+			remoteInfo = indi_quantum_wheel;
 		};
 		59563CA31CF1E8D200DE1A54 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -1858,6 +1935,13 @@
 			remoteGlobalIDString = 59C3D6711CF07D8C00974D80;
 			remoteInfo = indi_nstep_focus;
 		};
+		59F755EF1DCD3013002CFC82 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 594D0B2B188300ED00B50F4E /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 593445B11CF8EF62008AD945;
+			remoteInfo = indi_qhy_ccd;
+		};
 		9D0B29B91A8D1E9400ED17BF /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = 594D0B2B188300ED00B50F4E /* Project object */;
@@ -2260,6 +2344,15 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXCopyFilesBuildPhase section */
+		59019DFC1DDF8C9A00CCB3ED /* CopyFiles */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = /usr/share/man/man1/;
+			dstSubfolderSpec = 0;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 1;
+		};
 		5909A8261D31803200F74CF2 /* CopyFiles */ = {
 			isa = PBXCopyFilesBuildPhase;
 			buildActionMask = 2147483647;
@@ -2414,6 +2507,33 @@
 			runOnlyForDeploymentPostprocessing = 1;
 		};
 		594499411C1363C400E0E281 /* CopyFiles */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = /usr/share/man/man1/;
+			dstSubfolderSpec = 0;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 1;
+		};
+		59499FAF1E61EA4600567CAD /* CopyFiles */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = /usr/share/man/man1/;
+			dstSubfolderSpec = 0;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 1;
+		};
+		59499FC71E61EBDB00567CAD /* CopyFiles */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = /usr/share/man/man1/;
+			dstSubfolderSpec = 0;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 1;
+		};
+		59499FD51E61EC0900567CAD /* CopyFiles */ = {
 			isa = PBXCopyFilesBuildPhase;
 			buildActionMask = 2147483647;
 			dstPath = /usr/share/man/man1/;
@@ -2608,13 +2728,16 @@
 			dstPath = "";
 			dstSubfolderSpec = 6;
 			files = (
+				59499FE01E61EC5800567CAD /* indi_optec_wheel in Copy Files (33 items) (53 items) */,
+				59499FE11E61EC5800567CAD /* indi_quantum_wheel in Copy Files (33 items) (53 items) */,
+				59019E081DDF8D2300CCB3ED /* indi_asi_wheel in Copy Files (33 items) (53 items) */,
+				59F755F11DCD3024002CFC82 /* indi_qhy_ccd in Copy Files (33 items) (53 items) */,
 				5909A8301D3180AF00F74CF2 /* indi_microtouch_focus in Copy Files (33 items) (53 items) */,
 				598BF81E1D2AF1A900DCD8CF /* indi_script_dome in Copy Files (33 items) (53 items) */,
 				590AD30B1CFE01B2008D5367 /* indi_shelyakeshel_spectrograph in Copy Files (33 items) (53 items) */,
 				590AD2DC1CFDFE30008D5367 /* indi_smartfocus_focus in Copy Files (33 items) (53 items) */,
 				590AD2C71CFDFD12008D5367 /* indi_skywatcherAPIMount in Copy Files (33 items) (53 items) */,
 				593448241CF9E508008AD945 /* indi_script_telescope in Copy Files (33 items) (53 items) */,
-				593445D21CF8F008008AD945 /* indi_qhy_ccd in Copy Files (33 items) (53 items) */,
 				59563CCC1CF20A3800DE1A54 /* indi_ssag_ccd in Copy Files (33 items) (53 items) */,
 				59C3D6811CF07E7200974D80 /* indi_nstep_focus in Copy Files (33 items) (53 items) */,
 				598786B81CE735FF00DF2294 /* indi_fli_ccd in Copy Files (33 items) (53 items) */,
@@ -2639,7 +2762,7 @@
 				59567D541A8D41CC0057A35A /* indi_atik_wheel in Copy Files (33 items) (53 items) */,
 				59567D551A8D41CC0057A35A /* indi_atik_ccd in Copy Files (33 items) (53 items) */,
 				59567D561A8D41CC0057A35A /* indi_fcusb_focuser in Copy Files (33 items) (53 items) */,
-				59567D571A8D41CC0057A35A /* indi_usbfocus_focuser in Copy Files (33 items) (53 items) */,
+				59567D571A8D41CC0057A35A /* indi_usbfocusv3_focus in Copy Files (33 items) (53 items) */,
 				59567CEA1A8D3DBF0057A35A /* indi_maxdomeii in Copy Files (33 items) (53 items) */,
 				59567CEB1A8D3DBF0057A35A /* indi_spectracyber in Copy Files (33 items) (53 items) */,
 				59567C9C1A8D3BE00057A35A /* indi_eqmod_telescope in Copy Files (33 items) (53 items) */,
@@ -2675,6 +2798,7 @@
 				9D75D52D1A8D0D70008AA08A /* libindi.dylib in Copy Files (33 items) (53 items) */,
 				9DDA440A1A8CFDCE0004AA95 /* indi_simulator_ccd in Copy Files (33 items) (53 items) */,
 				597B893D188837E10093873A /* indiserver in Copy Files (33 items) (53 items) */,
+				59499FB51E61EA8500567CAD /* indi_hitecastrodc_focus in Copy Files (33 items) (53 items) */,
 			);
 			name = "Copy Files (33 items) (53 items)";
 			runOnlyForDeploymentPostprocessing = 0;
@@ -2872,6 +2996,10 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		59019E001DDF8C9A00CCB3ED /* indi_asi_wheel */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = indi_asi_wheel; sourceTree = BUILT_PRODUCTS_DIR; };
+		59019E011DDF8CDB00CCB3ED /* asi_wheel.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = asi_wheel.cpp; sourceTree = "<group>"; };
+		59019E021DDF8CDB00CCB3ED /* asi_wheel.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = asi_wheel.h; sourceTree = "<group>"; };
+		59019E041DDF8D0200CCB3ED /* libEFWFilter.lib */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libEFWFilter.lib; path = macuni/libEFWFilter.lib; sourceTree = "<group>"; };
 		5909A82A1D31803200F74CF2 /* indi_microtouch_focus */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = indi_microtouch_focus; sourceTree = BUILT_PRODUCTS_DIR; };
 		5909A82B1D31807D00F74CF2 /* microtouch.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = microtouch.cpp; sourceTree = "<group>"; };
 		5909A82C1D31807D00F74CF2 /* microtouch.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = microtouch.h; sourceTree = "<group>"; };
@@ -2896,6 +3024,7 @@
 		590AD30D1CFE0201008D5367 /* CMakeLists.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = CMakeLists.txt; sourceTree = "<group>"; };
 		590AD30F1CFE0243008D5367 /* config.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = config.h; sourceTree = "<group>"; };
 		590AD3101CFE06D1008D5367 /* ASICamera2.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ASICamera2.h; sourceTree = "<group>"; };
+		590E83BB1E61D986009ABE2F /* lx200_10micron.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = lx200_10micron.cpp; sourceTree = "<group>"; };
 		591247631AC4836700AFC0BF /* ieqpro.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = ieqpro.cpp; sourceTree = "<group>"; };
 		591247641AC4836700AFC0BF /* ieqprodriver.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = ieqprodriver.cpp; sourceTree = "<group>"; };
 		591991A6188FC99E007DD2DE /* indiserver-Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = "indiserver-Info.plist"; sourceTree = "<group>"; };
@@ -3212,6 +3341,13 @@
 		5944995C1C136C5800E0E281 /* ser_recorder.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = ser_recorder.cpp; sourceTree = "<group>"; };
 		5944995D1C136C5800E0E281 /* ser_recorder.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ser_recorder.h; sourceTree = "<group>"; };
 		5944995F1C136C9100E0E281 /* libz.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libz.tbd; path = usr/lib/libz.tbd; sourceTree = SDKROOT; };
+		59499FA01E61E96B00567CAD /* usbfocusv3.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = usbfocusv3.cpp; sourceTree = "<group>"; };
+		59499FA31E61EA2D00567CAD /* hitecastrodcfocuser.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = hitecastrodcfocuser.cpp; sourceTree = "<group>"; };
+		59499FB31E61EA4600567CAD /* indi_hitecastrodc_focus */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = indi_hitecastrodc_focus; sourceTree = BUILT_PRODUCTS_DIR; };
+		59499FB81E61EBB000567CAD /* ifwoptec.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = ifwoptec.cpp; sourceTree = "<group>"; };
+		59499FB91E61EBB000567CAD /* quantum_wheel.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = quantum_wheel.cpp; sourceTree = "<group>"; };
+		59499FCB1E61EBDB00567CAD /* indi_optec_wheel */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = indi_optec_wheel; sourceTree = BUILT_PRODUCTS_DIR; };
+		59499FD91E61EC0900567CAD /* indi_quantum_wheel */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = indi_quantum_wheel; sourceTree = BUILT_PRODUCTS_DIR; };
 		594D0B33188300ED00B50F4E /* INDI Server.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "INDI Server.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		594D0B36188300ED00B50F4E /* Cocoa.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Cocoa.framework; path = System/Library/Frameworks/Cocoa.framework; sourceTree = SDKROOT; };
 		594D0B39188300ED00B50F4E /* AppKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AppKit.framework; path = System/Library/Frameworks/AppKit.framework; sourceTree = SDKROOT; };
@@ -3299,7 +3435,7 @@
 		59567D0D1A8D410A0057A35A /* indi_atik_wheel */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = indi_atik_wheel; sourceTree = BUILT_PRODUCTS_DIR; };
 		59567D231A8D41130057A35A /* indi_atik_ccd */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = indi_atik_ccd; sourceTree = BUILT_PRODUCTS_DIR; };
 		59567D381A8D41640057A35A /* indi_fcusb_focuser */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = indi_fcusb_focuser; sourceTree = BUILT_PRODUCTS_DIR; };
-		59567D4A1A8D418E0057A35A /* indi_usbfocus_focuser */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = indi_usbfocus_focuser; sourceTree = BUILT_PRODUCTS_DIR; };
+		59567D4A1A8D418E0057A35A /* indi_usbfocusv3_focus */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = indi_usbfocusv3_focus; sourceTree = BUILT_PRODUCTS_DIR; };
 		59567D581A8D4EA70057A35A /* README.txt */ = {isa = PBXFileReference; lastKnownFileType = text; name = README.txt; path = ../README.txt; sourceTree = "<group>"; };
 		595FA8BC1C54C0FD003869DE /* asi_ccd.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = asi_ccd.h; sourceTree = "<group>"; };
 		596556781C4A3E530044680B /* indi_qsi_ccd */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = indi_qsi_ccd; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -3489,9 +3625,21 @@
 		59E5F8DD1C3F0B30008DAB80 /* MathPlugin.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = MathPlugin.cpp; sourceTree = "<group>"; };
 		59E5F8DF1C3F0B37008DAB80 /* MathPluginManagement.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = MathPluginManagement.cpp; sourceTree = "<group>"; };
 		59E5F91D1C3F17B9008DAB80 /* libobjc.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libobjc.tbd; path = usr/lib/libobjc.tbd; sourceTree = SDKROOT; };
-		59E5F9211C3F185D008DAB80 /* libgsl.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; path = libgsl.a; sourceTree = "<group>"; };
 		59F64B5B1D0F4A5500F53B3C /* config.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = config.h; sourceTree = "<group>"; };
 		59F64B5C1D0F4AA400F53B3C /* config.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = config.h; sourceTree = "<group>"; };
+		59F755C41DCD2E6E002CFC82 /* minicam5base.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = minicam5base.cpp; sourceTree = "<group>"; };
+		59F755C71DCD2EA6002CFC82 /* qhy5iii178coolbase.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = qhy5iii178coolbase.cpp; sourceTree = "<group>"; };
+		59F755C81DCD2EA6002CFC82 /* qhy5iii224coolbase.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = qhy5iii224coolbase.cpp; sourceTree = "<group>"; };
+		59F755C91DCD2EA6002CFC82 /* qhy5iii247base.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = qhy5iii247base.cpp; sourceTree = "<group>"; };
+		59F755CA1DCD2EA6002CFC82 /* qhy5iii290coolbase.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = qhy5iii290coolbase.cpp; sourceTree = "<group>"; };
+		59F755CB1DCD2EA6002CFC82 /* qhy5iiicommon.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = qhy5iiicommon.cpp; sourceTree = "<group>"; };
+		59F755CC1DCD2EA6002CFC82 /* qhy5iiiddrcoolbase.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = qhy5iiiddrcoolbase.cpp; sourceTree = "<group>"; };
+		59F755E21DCD2EF4002CFC82 /* qhy247c.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = qhy247c.cpp; sourceTree = "<group>"; };
+		59F755E31DCD2EF4002CFC82 /* qhy814a.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = qhy814a.cpp; sourceTree = "<group>"; };
+		59F755E41DCD2EF4002CFC82 /* qhy16803a.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = qhy16803a.cpp; sourceTree = "<group>"; };
+		59F755EC1DCD2F70002CFC82 /* CMakeLists.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = CMakeLists.txt; sourceTree = "<group>"; };
+		59FC29F81E1C4DD000B616EB /* libgslblas.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; path = libgslblas.a; sourceTree = "<group>"; };
+		59FC29F91E1C4DD000B616EB /* libgsl.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; path = libgsl.a; sourceTree = "<group>"; };
 		9D0B29C61A8D1E9400ED17BF /* indi_celestron_gps */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = indi_celestron_gps; sourceTree = BUILT_PRODUCTS_DIR; };
 		9D0B29C81A8D1EC400ED17BF /* celestrongps.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = celestrongps.cpp; sourceTree = "<group>"; };
 		9D0B29DC1A8D1ED100ED17BF /* indi_temma */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = indi_temma; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -3690,6 +3838,20 @@
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
+		59019DF51DDF8C9A00CCB3ED /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				59019DF61DDF8C9A00CCB3ED /* libz.tbd in Frameworks */,
+				59019DF71DDF8C9A00CCB3ED /* libASICamera2.lib in Frameworks */,
+				59019DF81DDF8C9A00CCB3ED /* libcfitsio.dylib in Frameworks */,
+				59019DF91DDF8C9A00CCB3ED /* libusb.dylib in Frameworks */,
+				59019DFA1DDF8C9A00CCB3ED /* libindi.dylib in Frameworks */,
+				59019DFB1DDF8C9A00CCB3ED /* libnova.dylib in Frameworks */,
+				59019E051DDF8D0200CCB3ED /* libEFWFilter.lib in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		5909A8231D31803200F74CF2 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
@@ -3865,6 +4027,33 @@
 				5944993E1C1363C400E0E281 /* libusb.dylib in Frameworks */,
 				5944993F1C1363C400E0E281 /* libindi.dylib in Frameworks */,
 				594499401C1363C400E0E281 /* libnova.dylib in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		59499FAC1E61EA4600567CAD /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				59499FAD1E61EA4600567CAD /* libindi.dylib in Frameworks */,
+				59499FAE1E61EA4600567CAD /* libnova.dylib in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		59499FC41E61EBDB00567CAD /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				59499FC51E61EBDB00567CAD /* libindi.dylib in Frameworks */,
+				59499FC61E61EBDB00567CAD /* libnova.dylib in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		59499FD21E61EC0900567CAD /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				59499FD31E61EC0900567CAD /* libindi.dylib in Frameworks */,
+				59499FD41E61EC0900567CAD /* libnova.dylib in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -4314,9 +4503,10 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				59E5F9221C3F185D008DAB80 /* libgsl.a in Frameworks */,
+				59FC29FB1E1C4DD000B616EB /* libgsl.a in Frameworks */,
 				9DDA43F01A8CF7210004AA95 /* libcfitsio.dylib in Frameworks */,
 				9DDA43EF1A8CF71D0004AA95 /* libusb.dylib in Frameworks */,
+				59FC29FA1E1C4DD000B616EB /* libgslblas.a in Frameworks */,
 				9DDA43C51A8CEBBF0004AA95 /* libnova.dylib in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -4468,6 +4658,17 @@
 		593446321CF8F02D008AD945 /* libqhy */ = {
 			isa = PBXGroup;
 			children = (
+				59F755EC1DCD2F70002CFC82 /* CMakeLists.txt */,
+				59F755E21DCD2EF4002CFC82 /* qhy247c.cpp */,
+				59F755E31DCD2EF4002CFC82 /* qhy814a.cpp */,
+				59F755E41DCD2EF4002CFC82 /* qhy16803a.cpp */,
+				59F755C71DCD2EA6002CFC82 /* qhy5iii178coolbase.cpp */,
+				59F755C81DCD2EA6002CFC82 /* qhy5iii224coolbase.cpp */,
+				59F755C91DCD2EA6002CFC82 /* qhy5iii247base.cpp */,
+				59F755CA1DCD2EA6002CFC82 /* qhy5iii290coolbase.cpp */,
+				59F755CB1DCD2EA6002CFC82 /* qhy5iiicommon.cpp */,
+				59F755CC1DCD2EA6002CFC82 /* qhy5iiiddrcoolbase.cpp */,
+				59F755C41DCD2E6E002CFC82 /* minicam5base.cpp */,
 				593446F41CF8F2BB008AD945 /* cjson.cpp */,
 				593446F51CF8F2BB008AD945 /* cjson.h */,
 				593446F61CF8F2BB008AD945 /* cmosdll.cpp */,
@@ -4682,7 +4883,10 @@
 				595FA8BC1C54C0FD003869DE /* asi_ccd.h */,
 				594499461C13643F00E0E281 /* asi_ccd.cpp */,
 				594499471C13643F00E0E281 /* indi_asi.xml */,
+				59019E011DDF8CDB00CCB3ED /* asi_wheel.cpp */,
+				59019E021DDF8CDB00CCB3ED /* asi_wheel.h */,
 				5944994B1C13651F00E0E281 /* libASICamera2.lib */,
+				59019E041DDF8D0200CCB3ED /* libEFWFilter.lib */,
 			);
 			path = "indi-asi";
 			sourceTree = "<group>";
@@ -4767,7 +4971,7 @@
 				59567D0D1A8D410A0057A35A /* indi_atik_wheel */,
 				59567D231A8D41130057A35A /* indi_atik_ccd */,
 				59567D381A8D41640057A35A /* indi_fcusb_focuser */,
-				59567D4A1A8D418E0057A35A /* indi_usbfocus_focuser */,
+				59567D4A1A8D418E0057A35A /* indi_usbfocusv3_focus */,
 				5979EA291ADEDBEF00A24B57 /* indi_getprop */,
 				5979EA401ADEDDB300A24B57 /* indi_setprop */,
 				5979EA4E1ADEDE0900A24B57 /* indi_eval */,
@@ -4798,6 +5002,10 @@
 				590AD3021CFE0118008D5367 /* indi_shelyakeshel_spectrograph */,
 				9D967F751D2A5DA500EF200A /* indi_script_dome */,
 				5909A82A1D31803200F74CF2 /* indi_microtouch_focus */,
+				59019E001DDF8C9A00CCB3ED /* indi_asi_wheel */,
+				59499FB31E61EA4600567CAD /* indi_hitecastrodc_focus */,
+				59499FCB1E61EBDB00567CAD /* indi_optec_wheel */,
+				59499FD91E61EC0900567CAD /* indi_quantum_wheel */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -4809,8 +5017,9 @@
 				5987865B1CE72BFC00DF2294 /* CoreFoundation.framework */,
 				5944995F1C136C9100E0E281 /* libz.tbd */,
 				59E5F91D1C3F17B9008DAB80 /* libobjc.tbd */,
-				59E5F9211C3F185D008DAB80 /* libgsl.a */,
 				596556E31C4A499E0044680B /* libftd2xx.a */,
+				59FC29F81E1C4DD000B616EB /* libgslblas.a */,
+				59FC29F91E1C4DD000B616EB /* libgsl.a */,
 				591C90ED1C1375D700FCE596 /* SBIGUDrv.framework */,
 				597B89111887E77F0093873A /* ServiceManagement.framework */,
 				597B890D1887E6FF0093873A /* Security.framework */,
@@ -4868,6 +5077,8 @@
 		59567B811A8D2F9E0057A35A /* filterwheel */ = {
 			isa = PBXGroup;
 			children = (
+				59499FB81E61EBB000567CAD /* ifwoptec.cpp */,
+				59499FB91E61EBB000567CAD /* quantum_wheel.cpp */,
 				59567B851A8D2FFD0057A35A /* filter_simulator.cpp */,
 				594498671C135F7100E0E281 /* xagyl_wheel.cpp */,
 				59567B9E1A8D30BC0057A35A /* trutech_wheel.c */,
@@ -5016,6 +5227,7 @@
 		59567CEC1A8D40150057A35A /* cloudmakers */ = {
 			isa = PBXGroup;
 			children = (
+				59567CEF1A8D40780057A35A /* indi-usbfocus */,
 				59567CEE1A8D40540057A35A /* indi-shoestring */,
 				59567CED1A8D40250057A35A /* indi-atik */,
 			);
@@ -5068,8 +5280,7 @@
 				597A04F31BFBCCA2005CF806 /* usbfocus.h */,
 				59567CF11A8D409C0057A35A /* usbfocus.cpp */,
 			);
-			name = "indi-usbfocus";
-			path = "../../indi-usbfocus";
+			path = "indi-usbfocus";
 			sourceTree = "<group>";
 		};
 		596556621C4A3DCD0044680B /* indi-qsi */ = {
@@ -5273,6 +5484,8 @@
 		9D0B2A741A8D213700ED17BF /* focuser */ = {
 			isa = PBXGroup;
 			children = (
+				59499FA31E61EA2D00567CAD /* hitecastrodcfocuser.cpp */,
+				59499FA01E61E96B00567CAD /* usbfocusv3.cpp */,
 				5909A82B1D31807D00F74CF2 /* microtouch.cpp */,
 				5909A82C1D31807D00F74CF2 /* microtouch.h */,
 				9D0B2A851A8D218000ED17BF /* focus_simulator.cpp */,
@@ -5296,6 +5509,7 @@
 		9D75D5381A8D135B008AA08A /* telescope */ = {
 			isa = PBXGroup;
 			children = (
+				590E83BB1E61D986009ABE2F /* lx200_10micron.cpp */,
 				590AD2BF1CFDFC4A008D5367 /* skywatcherAPIMount.cpp */,
 				590AD2C01CFDFC4A008D5367 /* skywatcherAPIMount.h */,
 				590AD2C21CFDFCEA008D5367 /* skywatcherAPI.cpp */,
@@ -5496,7 +5710,6 @@
 		9DDA43AD1A8CD3240004AA95 /* libindi */ = {
 			isa = PBXGroup;
 			children = (
-				59567CEF1A8D40780057A35A /* indi-usbfocus */,
 				590AD2AE1CFDFB20008D5367 /* CMakeLists.txt */,
 				9DDA440B1A8D00E10004AA95 /* drivers.xml */,
 				9DDA43BE1A8CDADD0004AA95 /* base64.c */,
@@ -5634,6 +5847,27 @@
 /* End PBXHeadersBuildPhase section */
 
 /* Begin PBXNativeTarget section */
+		59019DE71DDF8C9A00CCB3ED /* indi_asi_wheel */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 59019DFD1DDF8C9A00CCB3ED /* Build configuration list for PBXNativeTarget "indi_asi_wheel" */;
+			buildPhases = (
+				59019DF01DDF8C9A00CCB3ED /* Sources */,
+				59019DF51DDF8C9A00CCB3ED /* Frameworks */,
+				59019DFC1DDF8C9A00CCB3ED /* CopyFiles */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				59019DE81DDF8C9A00CCB3ED /* PBXTargetDependency */,
+				59019DEA1DDF8C9A00CCB3ED /* PBXTargetDependency */,
+				59019DEC1DDF8C9A00CCB3ED /* PBXTargetDependency */,
+				59019DEE1DDF8C9A00CCB3ED /* PBXTargetDependency */,
+			);
+			name = indi_asi_wheel;
+			productName = indi_lxbasic;
+			productReference = 59019E001DDF8C9A00CCB3ED /* indi_asi_wheel */;
+			productType = "com.apple.product-type.tool";
+		};
 		5909A81C1D31803200F74CF2 /* indi_microtouch_focus */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = 5909A8271D31803200F74CF2 /* Build configuration list for PBXNativeTarget "indi_microtouch_focus" */;
@@ -5999,6 +6233,63 @@
 			productReference = 594499451C1363C400E0E281 /* indi_asi_ccd */;
 			productType = "com.apple.product-type.tool";
 		};
+		59499FA51E61EA4600567CAD /* indi_hitecastrodc_focus */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 59499FB01E61EA4600567CAD /* Build configuration list for PBXNativeTarget "indi_hitecastrodc_focus" */;
+			buildPhases = (
+				59499FAA1E61EA4600567CAD /* Sources */,
+				59499FAC1E61EA4600567CAD /* Frameworks */,
+				59499FAF1E61EA4600567CAD /* CopyFiles */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				59499FA61E61EA4600567CAD /* PBXTargetDependency */,
+				59499FA81E61EA4600567CAD /* PBXTargetDependency */,
+			);
+			name = indi_hitecastrodc_focus;
+			productName = indi_lxbasic;
+			productReference = 59499FB31E61EA4600567CAD /* indi_hitecastrodc_focus */;
+			productType = "com.apple.product-type.tool";
+		};
+		59499FBC1E61EBDB00567CAD /* indi_optec_wheel */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 59499FC81E61EBDB00567CAD /* Build configuration list for PBXNativeTarget "indi_optec_wheel" */;
+			buildPhases = (
+				59499FC11E61EBDB00567CAD /* Sources */,
+				59499FC41E61EBDB00567CAD /* Frameworks */,
+				59499FC71E61EBDB00567CAD /* CopyFiles */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				59499FBD1E61EBDB00567CAD /* PBXTargetDependency */,
+				59499FBF1E61EBDB00567CAD /* PBXTargetDependency */,
+			);
+			name = indi_optec_wheel;
+			productName = indi_lxbasic;
+			productReference = 59499FCB1E61EBDB00567CAD /* indi_optec_wheel */;
+			productType = "com.apple.product-type.tool";
+		};
+		59499FCC1E61EC0900567CAD /* indi_quantum_wheel */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 59499FD61E61EC0900567CAD /* Build configuration list for PBXNativeTarget "indi_quantum_wheel" */;
+			buildPhases = (
+				59499FD11E61EC0900567CAD /* Sources */,
+				59499FD21E61EC0900567CAD /* Frameworks */,
+				59499FD51E61EC0900567CAD /* CopyFiles */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				59499FCD1E61EC0900567CAD /* PBXTargetDependency */,
+				59499FCF1E61EC0900567CAD /* PBXTargetDependency */,
+			);
+			name = indi_quantum_wheel;
+			productName = indi_lxbasic;
+			productReference = 59499FD91E61EC0900567CAD /* indi_quantum_wheel */;
+			productType = "com.apple.product-type.tool";
+		};
 		594D0B32188300ED00B50F4E /* INDI Server */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = 594D0B64188300ED00B50F4E /* Build configuration list for PBXNativeTarget "INDI Server" */;
@@ -6013,13 +6304,17 @@
 			buildRules = (
 			);
 			dependencies = (
+				59499FDD1E61EC4A00567CAD /* PBXTargetDependency */,
+				59499FDF1E61EC4A00567CAD /* PBXTargetDependency */,
+				59499FB71E61EABA00567CAD /* PBXTargetDependency */,
+				59019E071DDF8D1700CCB3ED /* PBXTargetDependency */,
+				59F755F01DCD3013002CFC82 /* PBXTargetDependency */,
 				5909A82F1D3180A300F74CF2 /* PBXTargetDependency */,
 				598BF81D1D2AF19D00DCD8CF /* PBXTargetDependency */,
 				590AD30A1CFE01A5008D5367 /* PBXTargetDependency */,
 				590AD2DB1CFDFE22008D5367 /* PBXTargetDependency */,
 				590AD2C61CFDFD05008D5367 /* PBXTargetDependency */,
 				593448261CF9E510008AD945 /* PBXTargetDependency */,
-				593445D11CF8EFFC008AD945 /* PBXTargetDependency */,
 				59563CCB1CF20A2A00DE1A54 /* PBXTargetDependency */,
 				59C3D6831CF07E7B00974D80 /* PBXTargetDependency */,
 				598786BC1CE7361000DF2294 /* PBXTargetDependency */,
@@ -6414,9 +6709,9 @@
 			productReference = 59567D381A8D41640057A35A /* indi_fcusb_focuser */;
 			productType = "com.apple.product-type.tool";
 		};
-		59567D3B1A8D418E0057A35A /* indi_usbfocus_focuser */ = {
+		59567D3B1A8D418E0057A35A /* indi_usbfocusv3_focus */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 59567D471A8D418E0057A35A /* Build configuration list for PBXNativeTarget "indi_usbfocus_focuser" */;
+			buildConfigurationList = 59567D471A8D418E0057A35A /* Build configuration list for PBXNativeTarget "indi_usbfocusv3_focus" */;
 			buildPhases = (
 				59567D401A8D418E0057A35A /* Sources */,
 				59567D431A8D418E0057A35A /* Frameworks */,
@@ -6428,9 +6723,9 @@
 				59567D3C1A8D418E0057A35A /* PBXTargetDependency */,
 				59567D3E1A8D418E0057A35A /* PBXTargetDependency */,
 			);
-			name = indi_usbfocus_focuser;
+			name = indi_usbfocusv3_focus;
 			productName = indi_lxbasic;
-			productReference = 59567D4A1A8D418E0057A35A /* indi_usbfocus_focuser */;
+			productReference = 59567D4A1A8D418E0057A35A /* indi_usbfocusv3_focus */;
 			productType = "com.apple.product-type.tool";
 		};
 		596556631C4A3E530044680B /* indi_qsi_ccd */ = {
@@ -7041,85 +7336,100 @@
 				LastUpgradeCheck = 0710;
 				ORGANIZATIONNAME = CloudMaker;
 				TargetAttributes = {
+					59019DE71DDF8C9A00CCB3ED = {
+						DevelopmentTeam = AG8BXW65A2;
+						ProvisioningStyle = Automatic;
+					};
 					5909A81C1D31803200F74CF2 = {
 						DevelopmentTeam = AG8BXW65A2;
-						ProvisioningStyle = Manual;
+						ProvisioningStyle = Automatic;
 					};
 					590AD2B01CFDFBE9008D5367 = {
 						DevelopmentTeam = AG8BXW65A2;
-						ProvisioningStyle = Manual;
+						ProvisioningStyle = Automatic;
 					};
 					590AD2C81CFDFDEA008D5367 = {
 						DevelopmentTeam = AG8BXW65A2;
-						ProvisioningStyle = Manual;
+						ProvisioningStyle = Automatic;
 					};
 					590AD2F41CFE0118008D5367 = {
 						DevelopmentTeam = AG8BXW65A2;
-						ProvisioningStyle = Manual;
+						ProvisioningStyle = Automatic;
 					};
 					591C90CC1C13741B00FCE596 = {
 						DevelopmentTeam = AG8BXW65A2;
-						ProvisioningStyle = Manual;
+						ProvisioningStyle = Automatic;
 					};
 					5924ACE91C8B44FD00750816 = {
 						DevelopmentTeam = AG8BXW65A2;
-						ProvisioningStyle = Manual;
+						ProvisioningStyle = Automatic;
 					};
 					593445B11CF8EF62008AD945 = {
 						DevelopmentTeam = AG8BXW65A2;
-						ProvisioningStyle = Manual;
+						ProvisioningStyle = Automatic;
 					};
 					593448131CF9E4E6008AD945 = {
 						DevelopmentTeam = AG8BXW65A2;
-						ProvisioningStyle = Manual;
+						ProvisioningStyle = Automatic;
 					};
 					5944982D1C135D8000E0E281 = {
 						DevelopmentTeam = AG8BXW65A2;
-						ProvisioningStyle = Manual;
+						ProvisioningStyle = Automatic;
 					};
 					594498431C135EB600E0E281 = {
 						DevelopmentTeam = AG8BXW65A2;
-						ProvisioningStyle = Manual;
+						ProvisioningStyle = Automatic;
 					};
 					594498581C135F5100E0E281 = {
 						DevelopmentTeam = AG8BXW65A2;
-						ProvisioningStyle = Manual;
+						ProvisioningStyle = Automatic;
 					};
 					5944986C1C13600B00E0E281 = {
 						DevelopmentTeam = AG8BXW65A2;
-						ProvisioningStyle = Manual;
+						ProvisioningStyle = Automatic;
 					};
 					5944987B1C13600F00E0E281 = {
 						DevelopmentTeam = AG8BXW65A2;
-						ProvisioningStyle = Manual;
+						ProvisioningStyle = Automatic;
 					};
 					594498941C1360DC00E0E281 = {
 						DevelopmentTeam = AG8BXW65A2;
-						ProvisioningStyle = Manual;
+						ProvisioningStyle = Automatic;
 					};
 					594498AB1C1361B700E0E281 = {
 						DevelopmentTeam = AG8BXW65A2;
-						ProvisioningStyle = Manual;
+						ProvisioningStyle = Automatic;
 					};
 					594498BF1C13620900E0E281 = {
 						DevelopmentTeam = AG8BXW65A2;
-						ProvisioningStyle = Manual;
+						ProvisioningStyle = Automatic;
 					};
 					594498D41C13626C00E0E281 = {
 						DevelopmentTeam = AG8BXW65A2;
-						ProvisioningStyle = Manual;
+						ProvisioningStyle = Automatic;
 					};
 					594498E31C13627C00E0E281 = {
 						DevelopmentTeam = AG8BXW65A2;
-						ProvisioningStyle = Manual;
+						ProvisioningStyle = Automatic;
 					};
 					594499301C1363C400E0E281 = {
 						DevelopmentTeam = AG8BXW65A2;
-						ProvisioningStyle = Manual;
+						ProvisioningStyle = Automatic;
+					};
+					59499FA51E61EA4600567CAD = {
+						DevelopmentTeam = AG8BXW65A2;
+						ProvisioningStyle = Automatic;
+					};
+					59499FBC1E61EBDB00567CAD = {
+						DevelopmentTeam = AG8BXW65A2;
+						ProvisioningStyle = Automatic;
+					};
+					59499FCC1E61EC0900567CAD = {
+						DevelopmentTeam = AG8BXW65A2;
 					};
 					594D0B32188300ED00B50F4E = {
 						DevelopmentTeam = AG8BXW65A2;
-						ProvisioningStyle = Manual;
+						ProvisioningStyle = Automatic;
 						SystemCapabilities = {
 							com.apple.Sandbox = {
 								enabled = 0;
@@ -7128,209 +7438,209 @@
 					};
 					59563CA11CF1E8D200DE1A54 = {
 						DevelopmentTeam = AG8BXW65A2;
-						ProvisioningStyle = Manual;
+						ProvisioningStyle = Automatic;
 					};
 					59567B8E1A8D30890057A35A = {
 						DevelopmentTeam = AG8BXW65A2;
-						ProvisioningStyle = Manual;
+						ProvisioningStyle = Automatic;
 					};
 					59567BA01A8D30CC0057A35A = {
 						DevelopmentTeam = AG8BXW65A2;
-						ProvisioningStyle = Manual;
+						ProvisioningStyle = Automatic;
 					};
 					59567BB01A8D30FD0057A35A = {
 						DevelopmentTeam = AG8BXW65A2;
-						ProvisioningStyle = Manual;
+						ProvisioningStyle = Automatic;
 					};
 					59567BC01A8D311B0057A35A = {
 						DevelopmentTeam = AG8BXW65A2;
-						ProvisioningStyle = Manual;
+						ProvisioningStyle = Automatic;
 					};
 					59567BD11A8D31330057A35A = {
 						DevelopmentTeam = AG8BXW65A2;
-						ProvisioningStyle = Manual;
+						ProvisioningStyle = Automatic;
 					};
 					59567BE31A8D31620057A35A = {
 						DevelopmentTeam = AG8BXW65A2;
-						ProvisioningStyle = Manual;
+						ProvisioningStyle = Automatic;
 					};
 					59567C0F1A8D32D10057A35A = {
 						DevelopmentTeam = AG8BXW65A2;
-						ProvisioningStyle = Manual;
+						ProvisioningStyle = Automatic;
 					};
 					59567C1F1A8D32F10057A35A = {
 						DevelopmentTeam = AG8BXW65A2;
-						ProvisioningStyle = Manual;
+						ProvisioningStyle = Automatic;
 					};
 					59567C331A8D33180057A35A = {
 						DevelopmentTeam = AG8BXW65A2;
-						ProvisioningStyle = Manual;
+						ProvisioningStyle = Automatic;
 					};
 					59567C5E1A8D34FD0057A35A = {
 						DevelopmentTeam = AG8BXW65A2;
-						ProvisioningStyle = Manual;
+						ProvisioningStyle = Automatic;
 					};
 					59567C7F1A8D3B700057A35A = {
 						DevelopmentTeam = AG8BXW65A2;
-						ProvisioningStyle = Manual;
+						ProvisioningStyle = Automatic;
 					};
 					59567CB81A8D3D630057A35A = {
 						DevelopmentTeam = AG8BXW65A2;
-						ProvisioningStyle = Manual;
+						ProvisioningStyle = Automatic;
 					};
 					59567CD51A8D3D7F0057A35A = {
 						DevelopmentTeam = AG8BXW65A2;
-						ProvisioningStyle = Manual;
+						ProvisioningStyle = Automatic;
 					};
 					59567CFE1A8D410A0057A35A = {
 						DevelopmentTeam = AG8BXW65A2;
-						ProvisioningStyle = Manual;
+						ProvisioningStyle = Automatic;
 					};
 					59567D0E1A8D41130057A35A = {
 						DevelopmentTeam = AG8BXW65A2;
-						ProvisioningStyle = Manual;
+						ProvisioningStyle = Automatic;
 					};
 					59567D291A8D41640057A35A = {
 						DevelopmentTeam = AG8BXW65A2;
-						ProvisioningStyle = Manual;
+						ProvisioningStyle = Automatic;
 					};
 					59567D3B1A8D418E0057A35A = {
 						DevelopmentTeam = AG8BXW65A2;
-						ProvisioningStyle = Manual;
+						ProvisioningStyle = Automatic;
 					};
 					596556631C4A3E530044680B = {
 						DevelopmentTeam = AG8BXW65A2;
-						ProvisioningStyle = Manual;
+						ProvisioningStyle = Automatic;
 					};
 					5979EA1F1ADEDBEF00A24B57 = {
 						DevelopmentTeam = AG8BXW65A2;
-						ProvisioningStyle = Manual;
+						ProvisioningStyle = Automatic;
 					};
 					5979EA341ADEDDB300A24B57 = {
 						DevelopmentTeam = AG8BXW65A2;
-						ProvisioningStyle = Manual;
+						ProvisioningStyle = Automatic;
 					};
 					5979EA421ADEDE0900A24B57 = {
 						DevelopmentTeam = AG8BXW65A2;
-						ProvisioningStyle = Manual;
+						ProvisioningStyle = Automatic;
 					};
 					597B89231888016F0093873A = {
 						DevelopmentTeam = AG8BXW65A2;
-						ProvisioningStyle = Manual;
+						ProvisioningStyle = Automatic;
 					};
 					598785BF1CE71F5300DF2294 = {
 						DevelopmentTeam = AG8BXW65A2;
-						ProvisioningStyle = Manual;
+						ProvisioningStyle = Automatic;
 					};
 					598785E81CE71FAF00DF2294 = {
 						DevelopmentTeam = AG8BXW65A2;
-						ProvisioningStyle = Manual;
+						ProvisioningStyle = Automatic;
 					};
 					598785FA1CE71FB900DF2294 = {
 						DevelopmentTeam = AG8BXW65A2;
-						ProvisioningStyle = Manual;
+						ProvisioningStyle = Automatic;
 					};
 					59C3D6711CF07D8C00974D80 = {
 						DevelopmentTeam = AG8BXW65A2;
-						ProvisioningStyle = Manual;
+						ProvisioningStyle = Automatic;
 					};
 					59E530451C949FEF0071DE74 = {
 						DevelopmentTeam = AG8BXW65A2;
-						ProvisioningStyle = Manual;
+						ProvisioningStyle = Automatic;
 					};
 					9D0B29B71A8D1E9400ED17BF = {
 						DevelopmentTeam = AG8BXW65A2;
-						ProvisioningStyle = Manual;
+						ProvisioningStyle = Automatic;
 					};
 					9D0B29CB1A8D1ED100ED17BF = {
 						DevelopmentTeam = AG8BXW65A2;
-						ProvisioningStyle = Manual;
+						ProvisioningStyle = Automatic;
 					};
 					9D0B29DF1A8D1EF600ED17BF = {
 						DevelopmentTeam = AG8BXW65A2;
-						ProvisioningStyle = Manual;
+						ProvisioningStyle = Automatic;
 					};
 					9D0B29F61A8D1F3E00ED17BF = {
 						DevelopmentTeam = AG8BXW65A2;
-						ProvisioningStyle = Manual;
+						ProvisioningStyle = Automatic;
 					};
 					9D0B2A0C1A8D1F9C00ED17BF = {
 						DevelopmentTeam = AG8BXW65A2;
-						ProvisioningStyle = Manual;
+						ProvisioningStyle = Automatic;
 					};
 					9D0B2A201A8D1FDC00ED17BF = {
 						DevelopmentTeam = AG8BXW65A2;
-						ProvisioningStyle = Manual;
+						ProvisioningStyle = Automatic;
 					};
 					9D0B2A331A8D200600ED17BF = {
 						DevelopmentTeam = AG8BXW65A2;
-						ProvisioningStyle = Manual;
+						ProvisioningStyle = Automatic;
 					};
 					9D0B2A751A8D214A00ED17BF = {
 						DevelopmentTeam = AG8BXW65A2;
-						ProvisioningStyle = Manual;
+						ProvisioningStyle = Automatic;
 					};
 					9D0B2A8E1A8D223800ED17BF = {
 						DevelopmentTeam = AG8BXW65A2;
-						ProvisioningStyle = Manual;
+						ProvisioningStyle = Automatic;
 					};
 					9D0B2A9E1A8D226800ED17BF = {
 						DevelopmentTeam = AG8BXW65A2;
-						ProvisioningStyle = Manual;
+						ProvisioningStyle = Automatic;
 					};
 					9D0B2AAE1A8D227F00ED17BF = {
 						DevelopmentTeam = AG8BXW65A2;
-						ProvisioningStyle = Manual;
+						ProvisioningStyle = Automatic;
 					};
 					9D0B2ABE1A8D22A800ED17BF = {
 						DevelopmentTeam = AG8BXW65A2;
-						ProvisioningStyle = Manual;
+						ProvisioningStyle = Automatic;
 					};
 					9D0B2ACE1A8D22C200ED17BF = {
 						DevelopmentTeam = AG8BXW65A2;
-						ProvisioningStyle = Manual;
+						ProvisioningStyle = Automatic;
 					};
 					9D75D53A1A8D1396008AA08A = {
 						DevelopmentTeam = AG8BXW65A2;
-						ProvisioningStyle = Manual;
+						ProvisioningStyle = Automatic;
 					};
 					9D75D5541A8D1507008AA08A = {
 						CreatedOnToolsVersion = 6.2;
 						DevelopmentTeam = AG8BXW65A2;
-						ProvisioningStyle = Manual;
+						ProvisioningStyle = Automatic;
 					};
 					9D75D5681A8D1668008AA08A = {
 						DevelopmentTeam = AG8BXW65A2;
-						ProvisioningStyle = Manual;
+						ProvisioningStyle = Automatic;
 					};
 					9D967F671D2A5DA500EF200A = {
 						DevelopmentTeam = AG8BXW65A2;
-						ProvisioningStyle = Manual;
+						ProvisioningStyle = Automatic;
 					};
 					9DDA422B1A8CB6920004AA95 = {
 						CreatedOnToolsVersion = 6.2;
 						DevelopmentTeam = AG8BXW65A2;
-						ProvisioningStyle = Manual;
+						ProvisioningStyle = Automatic;
 					};
 					9DDA43171A8CC5F90004AA95 = {
 						CreatedOnToolsVersion = 6.2;
 						DevelopmentTeam = AG8BXW65A2;
-						ProvisioningStyle = Manual;
+						ProvisioningStyle = Automatic;
 					};
 					9DDA438A1A8CCD030004AA95 = {
 						CreatedOnToolsVersion = 6.2;
 						DevelopmentTeam = AG8BXW65A2;
-						ProvisioningStyle = Manual;
+						ProvisioningStyle = Automatic;
 					};
 					9DDA43A81A8CD3190004AA95 = {
 						CreatedOnToolsVersion = 6.2;
 						DevelopmentTeam = AG8BXW65A2;
-						ProvisioningStyle = Manual;
+						ProvisioningStyle = Automatic;
 					};
 					9DDA43FF1A8CFC3D0004AA95 = {
 						CreatedOnToolsVersion = 6.2;
 						DevelopmentTeam = AG8BXW65A2;
-						ProvisioningStyle = Manual;
+						ProvisioningStyle = Automatic;
 					};
 				};
 			};
@@ -7391,7 +7701,7 @@
 				59567CFE1A8D410A0057A35A /* indi_atik_wheel */,
 				59567D0E1A8D41130057A35A /* indi_atik_ccd */,
 				59567D291A8D41640057A35A /* indi_fcusb_focuser */,
-				59567D3B1A8D418E0057A35A /* indi_usbfocus_focuser */,
+				59567D3B1A8D418E0057A35A /* indi_usbfocusv3_focus */,
 				5979EA1F1ADEDBEF00A24B57 /* indi_getprop */,
 				5979EA341ADEDDB300A24B57 /* indi_setprop */,
 				5979EA421ADEDE0900A24B57 /* indi_eval */,
@@ -7403,6 +7713,7 @@
 				594498D41C13626C00E0E281 /* indi_vantage_weather */,
 				594498E31C13627C00E0E281 /* indi_wunderground_weather */,
 				594499301C1363C400E0E281 /* indi_asi_ccd */,
+				59019DE71DDF8C9A00CCB3ED /* indi_asi_wheel */,
 				591C90CC1C13741B00FCE596 /* indi_sbig_ccd */,
 				596556631C4A3E530044680B /* indi_qsi_ccd */,
 				5924ACE91C8B44FD00750816 /* indi_nexstarevo_telescope */,
@@ -7417,6 +7728,9 @@
 				590AD2C81CFDFDEA008D5367 /* indi_smartfocus_focus */,
 				590AD2F41CFE0118008D5367 /* indi_shelyakeshel_spectrograph */,
 				5909A81C1D31803200F74CF2 /* indi_microtouch_focus */,
+				59499FA51E61EA4600567CAD /* indi_hitecastrodc_focus */,
+				59499FBC1E61EBDB00567CAD /* indi_optec_wheel */,
+				59499FCC1E61EC0900567CAD /* indi_quantum_wheel */,
 			);
 		};
 /* End PBXProject section */
@@ -7426,82 +7740,35 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				59F755F21DCD3038002CFC82 /* QHY5II.HEX in Resources */,
 				590AD30C1CFE01D0008D5367 /* indi-shelyak.xml in Resources */,
 				59563CC91CF209F600DE1A54 /* indi_ssag.xml in Resources */,
-				593446031CF8F029008AD945 /* IC90A.HEX in Resources */,
-				5934461E1CF8F029008AD945 /* QHY9S.HEX in Resources */,
-				5934460F1CF8F029008AD945 /* QHY2PRO.HEX in Resources */,
-				5934461B1CF8F029008AD945 /* QHY8L.HEX in Resources */,
-				5934462A1CF8F029008AD945 /* QHY29.HEX in Resources */,
-				593446181CF8F029008AD945 /* QHY6.HEX in Resources */,
 				591C90EA1C13746D00FCE596 /* indi_sbig.xml in Resources */,
 				594499611C136CE300E0E281 /* indi_asi.xml in Resources */,
-				593446211CF8F029008AD945 /* QHY12.HEX in Resources */,
-				593446171CF8F029008AD945 /* QHY5LOADER.HEX in Resources */,
 				59567C5C1A8D34E90057A35A /* indi_aagcloudwatcher_sk.xml in Resources */,
-				5934462F1CF8F029008AD945 /* QHY290.img in Resources */,
-				5934460E1CF8F029008AD945 /* QHY2E.HEX in Resources */,
 				5924ACFF1C8B458500750816 /* indi_nexstarevo.xml in Resources */,
 				59567CB21A8D3D3B0057A35A /* indi_spectracyber.xml in Resources */,
-				593446091CF8F029008AD945 /* IMG2S.HEX in Resources */,
-				593446291CF8F029008AD945 /* QHY28.HEX in Resources */,
 				59567C981A8D3B900057A35A /* indi_eqmod_scope_limits_sk.xml in Resources */,
-				593446311CF8F029008AD945 /* QHY160002AD.HEX in Resources */,
 				9D0B2A8D1A8D21B300ED17BF /* indi_tcfs_sk.xml in Resources */,
-				593446301CF8F029008AD945 /* QHY16000.HEX in Resources */,
-				593446081CF8F029008AD945 /* IMG2P.HEX in Resources */,
-				593446241CF8F029008AD945 /* QHY20.HEX in Resources */,
 				598786161CE7204B00DF2294 /* indi_fli.xml in Resources */,
 				59567C5D1A8D34E90057A35A /* indi_aagcloudwatcher.xml in Resources */,
 				59567C971A8D3B900057A35A /* indi_eqmod.xml in Resources */,
-				593446061CF8F029008AD945 /* IC16803.HEX in Resources */,
-				593446071CF8F029008AD945 /* IMG0H.HEX in Resources */,
 				596EBB59188AC60700190323 /* InfoPlist.strings in Resources */,
 				59C11FC319B50AEE00B21125 /* AppIcon.icns in Resources */,
 				59567CAB1A8D3CC20057A35A /* AlignData.xml in Resources */,
-				5934462C1CF8F029008AD945 /* QHY174.img in Resources */,
 				596556E91C4A4A0B0044680B /* indi_qsi.xml in Resources */,
-				5934462E1CF8F029008AD945 /* QHY224.img in Resources */,
-				593446161CF8F029008AD945 /* QHY5III290.img in Resources */,
 				59567CAC1A8D3CC20057A35A /* indi_align_sk.xml in Resources */,
-				593446201CF8F029008AD945 /* QHY11.HEX in Resources */,
 				596EBB58188AC60700190323 /* Credits.rtf in Resources */,
-				593446151CF8F029008AD945 /* QHY5III224.img in Resources */,
-				593446221CF8F029008AD945 /* QHY15.HEX in Resources */,
-				5934460A1CF8F029008AD945 /* IMG50.HEX in Resources */,
-				593446281CF8F029008AD945 /* QHY27.HEX in Resources */,
-				5934460B1CF8F029008AD945 /* miniCam5.HEX in Resources */,
 				59567C991A8D3B900057A35A /* indi_eqmod_simulator_sk.xml in Resources */,
-				593446131CF8F029008AD945 /* QHY5III178.img in Resources */,
 				9DDA440C1A8D00E10004AA95 /* drivers.xml in Resources */,
-				5934461F1CF8F029008AD945 /* QHY10.HEX in Resources */,
-				593446041CF8F029008AD945 /* IC8300.HEX in Resources */,
 				59567C5B1A8D34E40057A35A /* indi_sx.xml in Resources */,
 				59567C961A8D3B900057A35A /* indi_eqmod_sk.xml in Resources */,
 				59567CF61A8D40BC0057A35A /* indi_shoestring.xml in Resources */,
-				593446101CF8F029008AD945 /* QHY5.HEX in Resources */,
-				5934462B1CF8F029008AD945 /* QHY163.img in Resources */,
-				5934462D1CF8F029008AD945 /* QHY178.img in Resources */,
-				593446231CF8F029008AD945 /* QHY16.HEX in Resources */,
-				593446271CF8F029008AD945 /* QHY23.HEX in Resources */,
-				59567CF21A8D409E0057A35A /* indi_usbfocus.xml in Resources */,
 				59567CB11A8D3D3B0057A35A /* indi_spectracyber_sk.xml in Resources */,
-				593446121CF8F029008AD945 /* QHY5III174.img in Resources */,
-				593446191CF8F029008AD945 /* QHY7.HEX in Resources */,
-				593446261CF8F029008AD945 /* QHY22.HEX in Resources */,
-				5934460D1CF8F029008AD945 /* QHY2.HEX in Resources */,
-				5934461D1CF8F029008AD945 /* QHY8PRO.HEX in Resources */,
-				593446111CF8F029008AD945 /* QHY5II.HEX in Resources */,
-				593446051CF8F029008AD945 /* IC16200A.HEX in Resources */,
 				593445CF1CF8EFCE008AD945 /* indi_qhy.xml in Resources */,
-				593446141CF8F029008AD945 /* QHY5III185.img in Resources */,
 				59567CFD1A8D41000057A35A /* indi_atik.xml in Resources */,
-				5934460C1CF8F029008AD945 /* POLEMASTER.HEX in Resources */,
-				5934461A1CF8F029008AD945 /* QHY8.HEX in Resources */,
 				5979B2F9188ACE7200360C07 /* MainMenu.xib in Resources */,
 				59567CB51A8D3D500057A35A /* indi_maxdomeii.xml in Resources */,
-				5934461C1CF8F029008AD945 /* QHY8M.HEX in Resources */,
-				593446251CF8F029008AD945 /* QHY21.HEX in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -7520,11 +7787,19 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "cd \"${BUILT_PRODUCTS_DIR}/${CONTENTS_FOLDER_PATH}/MacOS\"\n\nrm -f indi_lx200classic indi_lx200autostar indi_lx200_16 indi_lx200gps indi_lx200ap indi_lx200gemini indi_lx200zeq25 indi_lx200pulsar2 indi_lx200fs2 indi_lx200ss2000pc indi_tcfs3_focus\n\nln -s indi_lx200generic indi_lx200classic\nln -s indi_lx200generic indi_lx200autostar\nln -s indi_lx200generic indi_lx200_16\nln -s indi_lx200generic indi_lx200gps\nln -s indi_lx200generic indi_lx200ap\nln -s indi_lx200generic indi_lx200gemini\nln -s indi_lx200generic indi_lx200zeq25\nln -s indi_lx200generic indi_lx200fs2\nln -s indi_lx200generic indi_lx200pulsar2\nln -s indi_lx200generic indi_lx200ss2000pc\nln -s indi_tcfs_focus indi_tcfs3_focus\n\n\n";
+			shellScript = "cd \"${BUILT_PRODUCTS_DIR}/${CONTENTS_FOLDER_PATH}/MacOS\"\n\nrm -f indi_lx200classic indi_lx200autostar indi_lx200_16 indi_lx200gps indi_lx200ap indi_lx200gemini indi_lx200zeq25 indi_lx200pulsar2 indi_lx200fs2 indi_lx200ss2000pc indi_tcfs3_focus indi_lx200_OnStep\n\nln -s indi_lx200generic indi_lx200classic\nln -s indi_lx200generic indi_lx200autostar\nln -s indi_lx200generic indi_lx200_16\nln -s indi_lx200generic indi_lx200gps\nln -s indi_lx200generic indi_lx200ap\nln -s indi_lx200generic indi_lx200gemini\nln -s indi_lx200generic indi_lx200zeq25\nln -s indi_lx200generic indi_lx200fs2\nln -s indi_lx200generic indi_lx200pulsar2\nln -s indi_lx200generic indi_lx200ss2000pc\nln -s indi_lx200generic indi_lx200_OnStep\nln -s indi_lx200generic indi_lx200_10micron\nln -s indi_tcfs_focus indi_tcfs3_focus\n\n\n";
 		};
 /* End PBXShellScriptBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
+		59019DF01DDF8C9A00CCB3ED /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				59019E031DDF8CDB00CCB3ED /* asi_wheel.cpp in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		5909A8211D31803200F74CF2 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -7583,6 +7858,7 @@
 				593447BA1CF8F2BB008AD945 /* img132e.cpp in Sources */,
 				593448061CF8F2BB008AD945 /* qhy16200a.cpp in Sources */,
 				593447BC1CF8F2BB008AD945 /* minicam5f_m.cpp in Sources */,
+				59F755DF1DCD2EAC002CFC82 /* minicam5base.cpp in Sources */,
 				593447F11CF8F2BB008AD945 /* qhy28.cpp in Sources */,
 				593447ED1CF8F2BB008AD945 /* qhy21.cpp in Sources */,
 				593447FD1CF8F2BB008AD945 /* qhy224c.cpp in Sources */,
@@ -7597,6 +7873,7 @@
 				593448001CF8F2BB008AD945 /* qhy367c.cpp in Sources */,
 				593445CD1CF8EFC8008AD945 /* qhy_ccd.cpp in Sources */,
 				593447D61CF8F2BB008AD945 /* qhy5iii367base.cpp in Sources */,
+				59F755EE1DCD2FFD002CFC82 /* qhy16803a.cpp in Sources */,
 				593447E81CF8F2BB008AD945 /* qhy10.cpp in Sources */,
 				593447B61CF8F2BB008AD945 /* ic8300.cpp in Sources */,
 				593447CA1CF8F2BB008AD945 /* qhy5iii178base.cpp in Sources */,
@@ -7609,6 +7886,7 @@
 				5934480A1CF8F2BB008AD945 /* qhycam.cpp in Sources */,
 				593447E11CF8F2BB008AD945 /* qhy6.cpp in Sources */,
 				593447BB1CF8F2BB008AD945 /* log4z.cpp in Sources */,
+				59F755EA1DCD2F00002CFC82 /* qhy247c.cpp in Sources */,
 				593447C61CF8F2BB008AD945 /* qhy5iii165base.cpp in Sources */,
 				593447DF1CF8F2BB008AD945 /* qhy5rii_m.cpp in Sources */,
 				593447D11CF8F2BB008AD945 /* qhy5iii224c.cpp in Sources */,
@@ -7620,6 +7898,7 @@
 				593447F61CF8F2BB008AD945 /* qhy163m.cpp in Sources */,
 				593447EB1CF8F2BB008AD945 /* qhy15.cpp in Sources */,
 				593447DC1CF8F2BB008AD945 /* qhy5liibase.cpp in Sources */,
+				59F755DA1DCD2EAC002CFC82 /* qhy5iii224coolbase.cpp in Sources */,
 				593447BD1CF8F2BB008AD945 /* minicam5s_c.cpp in Sources */,
 				593447CD1CF8F2BB008AD945 /* qhy5iii183base.cpp in Sources */,
 				5934480C1CF8F2BB008AD945 /* qhyccdimgprocess.cpp in Sources */,
@@ -7634,6 +7913,7 @@
 				593448031CF8F2BB008AD945 /* qhy08050g.cpp in Sources */,
 				593447D51CF8F2BB008AD945 /* qhy5iii290m.cpp in Sources */,
 				593447FE1CF8F2BB008AD945 /* qhy290c.cpp in Sources */,
+				59F755DC1DCD2EAC002CFC82 /* qhy5iii290coolbase.cpp in Sources */,
 				593447D41CF8F2BB008AD945 /* qhy5iii290c.cpp in Sources */,
 				593447D21CF8F2BB008AD945 /* qhy5iii236c.cpp in Sources */,
 				593448101CF8F2BB008AD945 /* unlockimagequeue.cpp in Sources */,
@@ -7648,13 +7928,16 @@
 				593447E51CF8F2BB008AD945 /* qhy8pro.cpp in Sources */,
 				593447CC1CF8F2BB008AD945 /* qhy5iii178m.cpp in Sources */,
 				593447F01CF8F2BB008AD945 /* qhy27.cpp in Sources */,
+				59F755DD1DCD2EAC002CFC82 /* qhy5iiicommon.cpp in Sources */,
 				593447DB1CF8F2BB008AD945 /* qhy5lii_m.cpp in Sources */,
+				59F755EB1DCD2F00002CFC82 /* qhy814a.cpp in Sources */,
 				593447DE1CF8F2BB008AD945 /* qhy5pii_m.cpp in Sources */,
 				593448081CF8F2BB008AD945 /* qhyabase.cpp in Sources */,
 				593447E01CF8F2BB008AD945 /* qhy5tii_c.cpp in Sources */,
 				593447EE1CF8F2BB008AD945 /* qhy22.cpp in Sources */,
 				593447C11CF8F2BB008AD945 /* qhy5.cpp in Sources */,
 				593447C51CF8F2BB008AD945 /* qhy5iii163base.cpp in Sources */,
+				59F755D91DCD2EAC002CFC82 /* qhy5iii178coolbase.cpp in Sources */,
 				593447C71CF8F2BB008AD945 /* qhy5iii174base.cpp in Sources */,
 				593448051CF8F2BB008AD945 /* qhy16000g.cpp in Sources */,
 				593447F51CF8F2BB008AD945 /* qhy163c.cpp in Sources */,
@@ -7674,7 +7957,9 @@
 				593447E21CF8F2BB008AD945 /* qhy7.cpp in Sources */,
 				593447EF1CF8F2BB008AD945 /* qhy23.cpp in Sources */,
 				593447D91CF8F2BB008AD945 /* qhy5iiig400m.cpp in Sources */,
+				59F755DE1DCD2EAC002CFC82 /* qhy5iiiddrcoolbase.cpp in Sources */,
 				593447EC1CF8F2BB008AD945 /* qhy16.cpp in Sources */,
+				59F755DB1DCD2EAC002CFC82 /* qhy5iii247base.cpp in Sources */,
 				5934480E1CF8F2BB008AD945 /* solar800g.cpp in Sources */,
 				593448091CF8F2BB008AD945 /* qhybase.cpp in Sources */,
 			);
@@ -7780,6 +8065,30 @@
 				594499491C13643F00E0E281 /* asi_ccd.cpp in Sources */,
 				594499521C13660200E0E281 /* stream_recorder.cpp in Sources */,
 				594499581C13677F00E0E281 /* v4l2_record.cpp in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		59499FAA1E61EA4600567CAD /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				59499FB41E61EA6200567CAD /* hitecastrodcfocuser.cpp in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		59499FC11E61EBDB00567CAD /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				59499FDA1E61EC3100567CAD /* ifwoptec.cpp in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		59499FD11E61EC0900567CAD /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				59499FDB1E61EC3500567CAD /* quantum_wheel.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -7959,7 +8268,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				59567D4B1A8D419A0057A35A /* usbfocus.cpp in Sources */,
+				59499FA21E61E97600567CAD /* usbfocusv3.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -8270,6 +8579,7 @@
 				9D75D5821A8D16F7008AA08A /* lx200autostar.cpp in Sources */,
 				5944982C1C135B3600E0E281 /* lx200pulsar2.cpp in Sources */,
 				9D75D5841A8D16F7008AA08A /* lx200generic.cpp in Sources */,
+				590E83BF1E61D9CD009ABE2F /* lx200_10micron.cpp in Sources */,
 				59519D4B1DB55BE1008BAF29 /* lx200_OnStep.cpp in Sources */,
 				9D75D5851A8D16F7008AA08A /* lx200gps.cpp in Sources */,
 				592F6CB91BADD70F00D93DE9 /* lx200apdriver.cpp in Sources */,
@@ -8481,6 +8791,31 @@
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
+		59019DE81DDF8C9A00CCB3ED /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 9DDA43171A8CC5F90004AA95 /* cfitsio */;
+			targetProxy = 59019DE91DDF8C9A00CCB3ED /* PBXContainerItemProxy */;
+		};
+		59019DEA1DDF8C9A00CCB3ED /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 9DDA438A1A8CCD030004AA95 /* usb */;
+			targetProxy = 59019DEB1DDF8C9A00CCB3ED /* PBXContainerItemProxy */;
+		};
+		59019DEC1DDF8C9A00CCB3ED /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 9DDA422B1A8CB6920004AA95 /* nova */;
+			targetProxy = 59019DED1DDF8C9A00CCB3ED /* PBXContainerItemProxy */;
+		};
+		59019DEE1DDF8C9A00CCB3ED /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 9DDA43A81A8CD3190004AA95 /* indi */;
+			targetProxy = 59019DEF1DDF8C9A00CCB3ED /* PBXContainerItemProxy */;
+		};
+		59019E071DDF8D1700CCB3ED /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 59019DE71DDF8C9A00CCB3ED /* indi_asi_wheel */;
+			targetProxy = 59019E061DDF8D1700CCB3ED /* PBXContainerItemProxy */;
+		};
 		5909A81D1D31803200F74CF2 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			target = 9DDA422B1A8CB6920004AA95 /* nova */;
@@ -8595,11 +8930,6 @@
 			isa = PBXTargetDependency;
 			target = 9DDA43A81A8CD3190004AA95 /* indi */;
 			targetProxy = 593445B91CF8EF62008AD945 /* PBXContainerItemProxy */;
-		};
-		593445D11CF8EFFC008AD945 /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			target = 593445B11CF8EF62008AD945 /* indi_qhy_ccd */;
-			targetProxy = 593445D01CF8EFFC008AD945 /* PBXContainerItemProxy */;
 		};
 		593448141CF9E4E6008AD945 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
@@ -8805,6 +9135,51 @@
 			isa = PBXTargetDependency;
 			target = 594499301C1363C400E0E281 /* indi_asi_ccd */;
 			targetProxy = 594499621C136E8300E0E281 /* PBXContainerItemProxy */;
+		};
+		59499FA61E61EA4600567CAD /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 9DDA422B1A8CB6920004AA95 /* nova */;
+			targetProxy = 59499FA71E61EA4600567CAD /* PBXContainerItemProxy */;
+		};
+		59499FA81E61EA4600567CAD /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 9DDA43A81A8CD3190004AA95 /* indi */;
+			targetProxy = 59499FA91E61EA4600567CAD /* PBXContainerItemProxy */;
+		};
+		59499FB71E61EABA00567CAD /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 59499FA51E61EA4600567CAD /* indi_hitecastrodc_focus */;
+			targetProxy = 59499FB61E61EABA00567CAD /* PBXContainerItemProxy */;
+		};
+		59499FBD1E61EBDB00567CAD /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 9DDA422B1A8CB6920004AA95 /* nova */;
+			targetProxy = 59499FBE1E61EBDB00567CAD /* PBXContainerItemProxy */;
+		};
+		59499FBF1E61EBDB00567CAD /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 9DDA43A81A8CD3190004AA95 /* indi */;
+			targetProxy = 59499FC01E61EBDB00567CAD /* PBXContainerItemProxy */;
+		};
+		59499FCD1E61EC0900567CAD /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 9DDA422B1A8CB6920004AA95 /* nova */;
+			targetProxy = 59499FCE1E61EC0900567CAD /* PBXContainerItemProxy */;
+		};
+		59499FCF1E61EC0900567CAD /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 9DDA43A81A8CD3190004AA95 /* indi */;
+			targetProxy = 59499FD01E61EC0900567CAD /* PBXContainerItemProxy */;
+		};
+		59499FDD1E61EC4A00567CAD /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 59499FBC1E61EBDB00567CAD /* indi_optec_wheel */;
+			targetProxy = 59499FDC1E61EC4A00567CAD /* PBXContainerItemProxy */;
+		};
+		59499FDF1E61EC4A00567CAD /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 59499FCC1E61EC0900567CAD /* indi_quantum_wheel */;
+			targetProxy = 59499FDE1E61EC4A00567CAD /* PBXContainerItemProxy */;
 		};
 		59563CA21CF1E8D200DE1A54 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
@@ -9103,7 +9478,7 @@
 		};
 		59567D531A8D41C30057A35A /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
-			target = 59567D3B1A8D418E0057A35A /* indi_usbfocus_focuser */;
+			target = 59567D3B1A8D418E0057A35A /* indi_usbfocusv3_focus */;
 			targetProxy = 59567D521A8D41C30057A35A /* PBXContainerItemProxy */;
 		};
 		596556641C4A3E530044680B /* PBXTargetDependency */ = {
@@ -9245,6 +9620,11 @@
 			isa = PBXTargetDependency;
 			target = 59C3D6711CF07D8C00974D80 /* indi_nstep_focus */;
 			targetProxy = 59C3D6821CF07E7B00974D80 /* PBXContainerItemProxy */;
+		};
+		59F755F01DCD3013002CFC82 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 593445B11CF8EF62008AD945 /* indi_qhy_ccd */;
+			targetProxy = 59F755EF1DCD3013002CFC82 /* PBXContainerItemProxy */;
 		};
 		9D0B29B81A8D1E9400ED17BF /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
@@ -9561,12 +9941,72 @@
 /* End PBXVariantGroup section */
 
 /* Begin XCBuildConfiguration section */
+		59019DFE1DDF8C9A00CCB3ED /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CODE_SIGN_IDENTITY = "Mac Developer";
+				DEVELOPMENT_TEAM = AG8BXW65A2;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_SYMBOLS_PRIVATE_EXTERN = NO;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				HEADER_SEARCH_PATHS = (
+					"$(inherited)",
+					"/Applications/Xcode-Beta.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include",
+					"../../../libnova-0.15.0/src",
+					"../../../libnova-0.15.0/src/libnova",
+					"../../../libusb-1.0.19/libusb",
+					../../../cfitsio,
+					../../libindi/libs/indibase,
+					../../libindi/libs,
+					../../libindi,
+				);
+				MTL_ENABLE_DEBUG_INFO = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Debug;
+		};
+		59019DFF1DDF8C9A00CCB3ED /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CODE_SIGN_IDENTITY = "Mac Developer";
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				DEVELOPMENT_TEAM = AG8BXW65A2;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_SYMBOLS_PRIVATE_EXTERN = NO;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				HEADER_SEARCH_PATHS = (
+					"$(inherited)",
+					"/Applications/Xcode-Beta.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include",
+					"../../../libnova-0.15.0/src",
+					"../../../libnova-0.15.0/src/libnova",
+					"../../../libusb-1.0.19/libusb",
+					../../../cfitsio,
+					../../libindi/libs/indibase,
+					../../libindi/libs,
+					../../libindi,
+				);
+				MTL_ENABLE_DEBUG_INFO = NO;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Release;
+		};
 		5909A8281D31803200F74CF2 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CODE_SIGN_IDENTITY = "Mac Developer";
 				DEVELOPMENT_TEAM = AG8BXW65A2;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				GCC_PREPROCESSOR_DEFINITIONS = (
@@ -9597,6 +10037,7 @@
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CODE_SIGN_IDENTITY = "Mac Developer";
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = AG8BXW65A2;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
@@ -9624,6 +10065,7 @@
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CODE_SIGN_IDENTITY = "Mac Developer";
 				DEVELOPMENT_TEAM = AG8BXW65A2;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				GCC_PREPROCESSOR_DEFINITIONS = (
@@ -9655,6 +10097,7 @@
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CODE_SIGN_IDENTITY = "Mac Developer";
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = AG8BXW65A2;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
@@ -9683,6 +10126,7 @@
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CODE_SIGN_IDENTITY = "Mac Developer";
 				DEVELOPMENT_TEAM = AG8BXW65A2;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				GCC_PREPROCESSOR_DEFINITIONS = (
@@ -9713,6 +10157,7 @@
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CODE_SIGN_IDENTITY = "Mac Developer";
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = AG8BXW65A2;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
@@ -9740,6 +10185,7 @@
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CODE_SIGN_IDENTITY = "Mac Developer";
 				DEVELOPMENT_TEAM = AG8BXW65A2;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				GCC_PREPROCESSOR_DEFINITIONS = (
@@ -9770,6 +10216,7 @@
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CODE_SIGN_IDENTITY = "Mac Developer";
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = AG8BXW65A2;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
@@ -9797,6 +10244,7 @@
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CODE_SIGN_IDENTITY = "Mac Developer";
 				DEVELOPMENT_TEAM = AG8BXW65A2;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				FRAMEWORK_SEARCH_PATHS = (
@@ -9831,6 +10279,7 @@
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CODE_SIGN_IDENTITY = "Mac Developer";
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = AG8BXW65A2;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
@@ -9862,6 +10311,7 @@
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CODE_SIGN_IDENTITY = "Mac Developer";
 				DEVELOPMENT_TEAM = AG8BXW65A2;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				GCC_PREPROCESSOR_DEFINITIONS = (
@@ -9892,6 +10342,7 @@
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CODE_SIGN_IDENTITY = "Mac Developer";
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = AG8BXW65A2;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
@@ -9919,6 +10370,7 @@
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CODE_SIGN_IDENTITY = "Mac Developer";
 				DEVELOPMENT_TEAM = AG8BXW65A2;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				GCC_C_LANGUAGE_STANDARD = "compiler-default";
@@ -9956,6 +10408,7 @@
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CODE_SIGN_IDENTITY = "Mac Developer";
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = AG8BXW65A2;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
@@ -9993,6 +10446,7 @@
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CODE_SIGN_IDENTITY = "Mac Developer";
 				DEVELOPMENT_TEAM = AG8BXW65A2;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				GCC_PREPROCESSOR_DEFINITIONS = (
@@ -10024,6 +10478,7 @@
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CODE_SIGN_IDENTITY = "Mac Developer";
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = AG8BXW65A2;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
@@ -10052,6 +10507,7 @@
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CODE_SIGN_IDENTITY = "Mac Developer";
 				DEVELOPMENT_TEAM = AG8BXW65A2;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				GCC_PREPROCESSOR_DEFINITIONS = (
@@ -10082,6 +10538,7 @@
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CODE_SIGN_IDENTITY = "Mac Developer";
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = AG8BXW65A2;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
@@ -10109,6 +10566,7 @@
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CODE_SIGN_IDENTITY = "Mac Developer";
 				DEVELOPMENT_TEAM = AG8BXW65A2;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				GCC_PREPROCESSOR_DEFINITIONS = (
@@ -10139,6 +10597,7 @@
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CODE_SIGN_IDENTITY = "Mac Developer";
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = AG8BXW65A2;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
@@ -10166,6 +10625,7 @@
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CODE_SIGN_IDENTITY = "Mac Developer";
 				DEVELOPMENT_TEAM = AG8BXW65A2;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				GCC_PREPROCESSOR_DEFINITIONS = (
@@ -10196,6 +10656,7 @@
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CODE_SIGN_IDENTITY = "Mac Developer";
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = AG8BXW65A2;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
@@ -10223,6 +10684,7 @@
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CODE_SIGN_IDENTITY = "Mac Developer";
 				DEVELOPMENT_TEAM = AG8BXW65A2;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				GCC_PREPROCESSOR_DEFINITIONS = (
@@ -10253,6 +10715,7 @@
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CODE_SIGN_IDENTITY = "Mac Developer";
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = AG8BXW65A2;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
@@ -10280,6 +10743,7 @@
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CODE_SIGN_IDENTITY = "Mac Developer";
 				DEVELOPMENT_TEAM = AG8BXW65A2;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				GCC_PREPROCESSOR_DEFINITIONS = (
@@ -10310,6 +10774,7 @@
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CODE_SIGN_IDENTITY = "Mac Developer";
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = AG8BXW65A2;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
@@ -10337,6 +10802,7 @@
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CODE_SIGN_IDENTITY = "Mac Developer";
 				DEVELOPMENT_TEAM = AG8BXW65A2;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				GCC_PREPROCESSOR_DEFINITIONS = (
@@ -10367,6 +10833,7 @@
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CODE_SIGN_IDENTITY = "Mac Developer";
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = AG8BXW65A2;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
@@ -10394,6 +10861,7 @@
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CODE_SIGN_IDENTITY = "Mac Developer";
 				DEVELOPMENT_TEAM = AG8BXW65A2;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				GCC_PREPROCESSOR_DEFINITIONS = (
@@ -10424,6 +10892,7 @@
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CODE_SIGN_IDENTITY = "Mac Developer";
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = AG8BXW65A2;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
@@ -10451,6 +10920,7 @@
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CODE_SIGN_IDENTITY = "Mac Developer";
 				DEVELOPMENT_TEAM = AG8BXW65A2;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				GCC_PREPROCESSOR_DEFINITIONS = (
@@ -10481,6 +10951,7 @@
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CODE_SIGN_IDENTITY = "Mac Developer";
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = AG8BXW65A2;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
@@ -10508,6 +10979,7 @@
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CODE_SIGN_IDENTITY = "Mac Developer";
 				DEVELOPMENT_TEAM = AG8BXW65A2;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				GCC_PREPROCESSOR_DEFINITIONS = (
@@ -10538,6 +11010,7 @@
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CODE_SIGN_IDENTITY = "Mac Developer";
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = AG8BXW65A2;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
@@ -10565,6 +11038,7 @@
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CODE_SIGN_IDENTITY = "Mac Developer";
 				DEVELOPMENT_TEAM = AG8BXW65A2;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				GCC_PREPROCESSOR_DEFINITIONS = (
@@ -10595,6 +11069,7 @@
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CODE_SIGN_IDENTITY = "Mac Developer";
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = AG8BXW65A2;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
@@ -10622,6 +11097,7 @@
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CODE_SIGN_IDENTITY = "Mac Developer";
 				DEVELOPMENT_TEAM = AG8BXW65A2;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				GCC_PREPROCESSOR_DEFINITIONS = (
@@ -10652,6 +11128,184 @@
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CODE_SIGN_IDENTITY = "Mac Developer";
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				DEVELOPMENT_TEAM = AG8BXW65A2;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_SYMBOLS_PRIVATE_EXTERN = NO;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				HEADER_SEARCH_PATHS = (
+					"$(inherited)",
+					"/Applications/Xcode-Beta.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include",
+					"../../../libnova-0.15.0/src",
+					"../../../libnova-0.15.0/src/libnova",
+					"../../../libusb-1.0.19/libusb",
+					../../../cfitsio,
+					../../libindi/libs/indibase,
+					../../libindi/libs,
+					../../libindi,
+				);
+				MTL_ENABLE_DEBUG_INFO = NO;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Release;
+		};
+		59499FB11E61EA4600567CAD /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CODE_SIGN_IDENTITY = "Mac Developer";
+				DEVELOPMENT_TEAM = AG8BXW65A2;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_SYMBOLS_PRIVATE_EXTERN = NO;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				HEADER_SEARCH_PATHS = (
+					"$(inherited)",
+					"/Applications/Xcode-Beta.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include",
+					"../../../libnova-0.15.0/src",
+					"../../../libnova-0.15.0/src/libnova",
+					"../../../libusb-1.0.19/libusb",
+					../../../cfitsio,
+					../../libindi/libs/indibase,
+					../../libindi/libs,
+					../../libindi,
+				);
+				MTL_ENABLE_DEBUG_INFO = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Debug;
+		};
+		59499FB21E61EA4600567CAD /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CODE_SIGN_IDENTITY = "Mac Developer";
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				DEVELOPMENT_TEAM = AG8BXW65A2;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_SYMBOLS_PRIVATE_EXTERN = NO;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				HEADER_SEARCH_PATHS = (
+					"$(inherited)",
+					"/Applications/Xcode-Beta.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include",
+					"../../../libnova-0.15.0/src",
+					"../../../libnova-0.15.0/src/libnova",
+					"../../../libusb-1.0.19/libusb",
+					../../../cfitsio,
+					../../libindi/libs/indibase,
+					../../libindi/libs,
+					../../libindi,
+				);
+				MTL_ENABLE_DEBUG_INFO = NO;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Release;
+		};
+		59499FC91E61EBDB00567CAD /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CODE_SIGN_IDENTITY = "Mac Developer";
+				DEVELOPMENT_TEAM = AG8BXW65A2;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_SYMBOLS_PRIVATE_EXTERN = NO;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				HEADER_SEARCH_PATHS = (
+					"$(inherited)",
+					"/Applications/Xcode-Beta.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include",
+					"../../../libnova-0.15.0/src",
+					"../../../libnova-0.15.0/src/libnova",
+					"../../../libusb-1.0.19/libusb",
+					../../../cfitsio,
+					../../libindi/libs/indibase,
+					../../libindi/libs,
+					../../libindi,
+				);
+				MTL_ENABLE_DEBUG_INFO = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Debug;
+		};
+		59499FCA1E61EBDB00567CAD /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CODE_SIGN_IDENTITY = "Mac Developer";
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				DEVELOPMENT_TEAM = AG8BXW65A2;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_SYMBOLS_PRIVATE_EXTERN = NO;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				HEADER_SEARCH_PATHS = (
+					"$(inherited)",
+					"/Applications/Xcode-Beta.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include",
+					"../../../libnova-0.15.0/src",
+					"../../../libnova-0.15.0/src/libnova",
+					"../../../libusb-1.0.19/libusb",
+					../../../cfitsio,
+					../../libindi/libs/indibase,
+					../../libindi/libs,
+					../../libindi,
+				);
+				MTL_ENABLE_DEBUG_INFO = NO;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Release;
+		};
+		59499FD71E61EC0900567CAD /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CODE_SIGN_IDENTITY = "Mac Developer";
+				DEVELOPMENT_TEAM = AG8BXW65A2;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_SYMBOLS_PRIVATE_EXTERN = NO;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				HEADER_SEARCH_PATHS = (
+					"$(inherited)",
+					"/Applications/Xcode-Beta.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include",
+					"../../../libnova-0.15.0/src",
+					"../../../libnova-0.15.0/src/libnova",
+					"../../../libusb-1.0.19/libusb",
+					../../../cfitsio,
+					../../libindi/libs/indibase,
+					../../libindi/libs,
+					../../libindi,
+				);
+				MTL_ENABLE_DEBUG_INFO = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Debug;
+		};
+		59499FD81E61EC0900567CAD /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CODE_SIGN_IDENTITY = "Mac Developer";
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = AG8BXW65A2;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
@@ -10783,7 +11437,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++98";
-				CODE_SIGN_IDENTITY = "Developer ID Application";
+				CODE_SIGN_IDENTITY = "Mac Developer";
 				COMBINE_HIDPI_IMAGES = YES;
 				DEVELOPMENT_TEAM = AG8BXW65A2;
 				GCC_C_LANGUAGE_STANDARD = gnu99;
@@ -10806,7 +11460,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++98";
-				CODE_SIGN_IDENTITY = "Developer ID Application";
+				CODE_SIGN_IDENTITY = "Mac Developer";
 				COMBINE_HIDPI_IMAGES = YES;
 				DEVELOPMENT_TEAM = AG8BXW65A2;
 				GCC_C_LANGUAGE_STANDARD = gnu99;
@@ -10831,6 +11485,7 @@
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CODE_SIGN_IDENTITY = "Mac Developer";
 				DEVELOPMENT_TEAM = AG8BXW65A2;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				GCC_PREPROCESSOR_DEFINITIONS = (
@@ -10865,6 +11520,7 @@
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CODE_SIGN_IDENTITY = "Mac Developer";
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = AG8BXW65A2;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
@@ -10899,6 +11555,7 @@
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CODE_SIGN_IDENTITY = "Mac Developer";
 				DEVELOPMENT_TEAM = AG8BXW65A2;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				GCC_PREPROCESSOR_DEFINITIONS = (
@@ -10929,6 +11586,7 @@
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CODE_SIGN_IDENTITY = "Mac Developer";
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = AG8BXW65A2;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
@@ -10956,6 +11614,7 @@
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CODE_SIGN_IDENTITY = "Mac Developer";
 				DEVELOPMENT_TEAM = AG8BXW65A2;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				GCC_PREPROCESSOR_DEFINITIONS = (
@@ -10986,6 +11645,7 @@
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CODE_SIGN_IDENTITY = "Mac Developer";
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = AG8BXW65A2;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
@@ -11013,6 +11673,7 @@
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CODE_SIGN_IDENTITY = "Mac Developer";
 				DEVELOPMENT_TEAM = AG8BXW65A2;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				GCC_PREPROCESSOR_DEFINITIONS = (
@@ -11043,6 +11704,7 @@
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CODE_SIGN_IDENTITY = "Mac Developer";
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = AG8BXW65A2;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
@@ -11070,6 +11732,7 @@
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CODE_SIGN_IDENTITY = "Mac Developer";
 				DEVELOPMENT_TEAM = AG8BXW65A2;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				GCC_PREPROCESSOR_DEFINITIONS = (
@@ -11100,6 +11763,7 @@
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CODE_SIGN_IDENTITY = "Mac Developer";
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = AG8BXW65A2;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
@@ -11127,6 +11791,7 @@
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CODE_SIGN_IDENTITY = "Mac Developer";
 				DEVELOPMENT_TEAM = AG8BXW65A2;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				GCC_PREPROCESSOR_DEFINITIONS = (
@@ -11157,6 +11822,7 @@
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CODE_SIGN_IDENTITY = "Mac Developer";
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = AG8BXW65A2;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
@@ -11184,6 +11850,7 @@
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CODE_SIGN_IDENTITY = "Mac Developer";
 				DEVELOPMENT_TEAM = AG8BXW65A2;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				GCC_PREPROCESSOR_DEFINITIONS = (
@@ -11214,6 +11881,7 @@
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CODE_SIGN_IDENTITY = "Mac Developer";
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = AG8BXW65A2;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
@@ -11241,6 +11909,7 @@
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CODE_SIGN_IDENTITY = "Mac Developer";
 				DEVELOPMENT_TEAM = AG8BXW65A2;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				GCC_PREPROCESSOR_DEFINITIONS = (
@@ -11271,6 +11940,7 @@
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CODE_SIGN_IDENTITY = "Mac Developer";
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = AG8BXW65A2;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
@@ -11298,6 +11968,7 @@
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CODE_SIGN_IDENTITY = "Mac Developer";
 				DEVELOPMENT_TEAM = AG8BXW65A2;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				GCC_PREPROCESSOR_DEFINITIONS = (
@@ -11328,6 +11999,7 @@
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CODE_SIGN_IDENTITY = "Mac Developer";
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = AG8BXW65A2;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
@@ -11355,6 +12027,7 @@
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CODE_SIGN_IDENTITY = "Mac Developer";
 				DEVELOPMENT_TEAM = AG8BXW65A2;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				GCC_PREPROCESSOR_DEFINITIONS = (
@@ -11385,6 +12058,7 @@
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CODE_SIGN_IDENTITY = "Mac Developer";
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = AG8BXW65A2;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
@@ -11412,6 +12086,7 @@
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CODE_SIGN_IDENTITY = "Mac Developer";
 				DEVELOPMENT_TEAM = AG8BXW65A2;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				GCC_PREPROCESSOR_DEFINITIONS = (
@@ -11442,6 +12117,7 @@
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CODE_SIGN_IDENTITY = "Mac Developer";
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = AG8BXW65A2;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
@@ -11469,6 +12145,7 @@
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CODE_SIGN_IDENTITY = "Mac Developer";
 				DEVELOPMENT_TEAM = AG8BXW65A2;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				GCC_PREPROCESSOR_DEFINITIONS = (
@@ -11499,6 +12176,7 @@
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CODE_SIGN_IDENTITY = "Mac Developer";
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = AG8BXW65A2;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
@@ -11526,6 +12204,7 @@
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CODE_SIGN_IDENTITY = "Mac Developer";
 				DEVELOPMENT_TEAM = AG8BXW65A2;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				GCC_PREPROCESSOR_DEFINITIONS = (
@@ -11556,6 +12235,7 @@
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CODE_SIGN_IDENTITY = "Mac Developer";
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = AG8BXW65A2;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
@@ -11583,6 +12263,7 @@
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CODE_SIGN_IDENTITY = "Mac Developer";
 				DEVELOPMENT_TEAM = AG8BXW65A2;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				GCC_PREPROCESSOR_DEFINITIONS = (
@@ -11613,6 +12294,7 @@
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CODE_SIGN_IDENTITY = "Mac Developer";
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = AG8BXW65A2;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
@@ -11640,6 +12322,7 @@
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CODE_SIGN_IDENTITY = "Mac Developer";
 				DEVELOPMENT_TEAM = AG8BXW65A2;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				GCC_PREPROCESSOR_DEFINITIONS = (
@@ -11670,6 +12353,7 @@
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CODE_SIGN_IDENTITY = "Mac Developer";
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = AG8BXW65A2;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
@@ -11697,6 +12381,7 @@
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CODE_SIGN_IDENTITY = "Mac Developer";
 				DEVELOPMENT_TEAM = AG8BXW65A2;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				GCC_PREPROCESSOR_DEFINITIONS = (
@@ -11727,6 +12412,7 @@
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CODE_SIGN_IDENTITY = "Mac Developer";
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = AG8BXW65A2;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
@@ -11754,6 +12440,7 @@
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CODE_SIGN_IDENTITY = "Mac Developer";
 				DEVELOPMENT_TEAM = AG8BXW65A2;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				GCC_PREPROCESSOR_DEFINITIONS = (
@@ -11784,6 +12471,7 @@
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CODE_SIGN_IDENTITY = "Mac Developer";
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = AG8BXW65A2;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
@@ -11811,6 +12499,7 @@
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CODE_SIGN_IDENTITY = "Mac Developer";
 				DEVELOPMENT_TEAM = AG8BXW65A2;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				GCC_PREPROCESSOR_DEFINITIONS = (
@@ -11841,6 +12530,7 @@
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CODE_SIGN_IDENTITY = "Mac Developer";
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = AG8BXW65A2;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
@@ -11868,6 +12558,7 @@
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CODE_SIGN_IDENTITY = "Mac Developer";
 				DEVELOPMENT_TEAM = AG8BXW65A2;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				GCC_PREPROCESSOR_DEFINITIONS = (
@@ -11904,6 +12595,7 @@
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CODE_SIGN_IDENTITY = "Mac Developer";
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = AG8BXW65A2;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
@@ -11937,7 +12629,7 @@
 		5979EA271ADEDBEF00A24B57 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				CODE_SIGN_IDENTITY = "Developer ID Application";
+				CODE_SIGN_IDENTITY = "Mac Developer";
 				COPY_PHASE_STRIP = NO;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = AG8BXW65A2;
@@ -11957,7 +12649,7 @@
 		5979EA281ADEDBEF00A24B57 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				CODE_SIGN_IDENTITY = "Developer ID Application";
+				CODE_SIGN_IDENTITY = "Mac Developer";
 				COPY_PHASE_STRIP = NO;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = AG8BXW65A2;
@@ -11973,7 +12665,7 @@
 		5979EA3E1ADEDDB300A24B57 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				CODE_SIGN_IDENTITY = "Developer ID Application";
+				CODE_SIGN_IDENTITY = "Mac Developer";
 				COPY_PHASE_STRIP = NO;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = AG8BXW65A2;
@@ -11993,7 +12685,7 @@
 		5979EA3F1ADEDDB300A24B57 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				CODE_SIGN_IDENTITY = "Developer ID Application";
+				CODE_SIGN_IDENTITY = "Mac Developer";
 				COPY_PHASE_STRIP = NO;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = AG8BXW65A2;
@@ -12009,7 +12701,7 @@
 		5979EA4C1ADEDE0900A24B57 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				CODE_SIGN_IDENTITY = "Developer ID Application";
+				CODE_SIGN_IDENTITY = "Mac Developer";
 				COPY_PHASE_STRIP = NO;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = AG8BXW65A2;
@@ -12029,7 +12721,7 @@
 		5979EA4D1ADEDE0900A24B57 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				CODE_SIGN_IDENTITY = "Developer ID Application";
+				CODE_SIGN_IDENTITY = "Mac Developer";
 				COPY_PHASE_STRIP = NO;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = AG8BXW65A2;
@@ -12045,7 +12737,7 @@
 		597B892B1888016F0093873A /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				CODE_SIGN_IDENTITY = "Developer ID Application";
+				CODE_SIGN_IDENTITY = "Mac Developer";
 				COPY_PHASE_STRIP = NO;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = AG8BXW65A2;
@@ -12067,7 +12759,7 @@
 		597B892C1888016F0093873A /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				CODE_SIGN_IDENTITY = "Developer ID Application";
+				CODE_SIGN_IDENTITY = "Mac Developer";
 				COPY_PHASE_STRIP = NO;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = AG8BXW65A2;
@@ -12088,6 +12780,7 @@
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CODE_SIGN_IDENTITY = "Mac Developer";
 				DEVELOPMENT_TEAM = AG8BXW65A2;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				GCC_PREPROCESSOR_DEFINITIONS = (
@@ -12125,6 +12818,7 @@
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CODE_SIGN_IDENTITY = "Mac Developer";
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = AG8BXW65A2;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
@@ -12162,6 +12856,7 @@
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CODE_SIGN_IDENTITY = "Mac Developer";
 				DEVELOPMENT_TEAM = AG8BXW65A2;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				GCC_PREPROCESSOR_DEFINITIONS = (
@@ -12199,6 +12894,7 @@
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CODE_SIGN_IDENTITY = "Mac Developer";
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = AG8BXW65A2;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
@@ -12236,6 +12932,7 @@
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CODE_SIGN_IDENTITY = "Mac Developer";
 				DEVELOPMENT_TEAM = AG8BXW65A2;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				GCC_PREPROCESSOR_DEFINITIONS = (
@@ -12273,6 +12970,7 @@
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CODE_SIGN_IDENTITY = "Mac Developer";
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = AG8BXW65A2;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
@@ -12310,6 +13008,7 @@
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CODE_SIGN_IDENTITY = "Mac Developer";
 				DEVELOPMENT_TEAM = AG8BXW65A2;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				GCC_PREPROCESSOR_DEFINITIONS = (
@@ -12340,6 +13039,7 @@
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CODE_SIGN_IDENTITY = "Mac Developer";
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = AG8BXW65A2;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
@@ -12368,6 +13068,7 @@
 				ARCHS = "$(ARCHS_STANDARD)";
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CODE_SIGN_IDENTITY = "Mac Developer";
 				COMBINE_HIDPI_IMAGES = YES;
 				DEVELOPMENT_TEAM = AG8BXW65A2;
 				DYLIB_COMPATIBILITY_VERSION = 2;
@@ -12404,6 +13105,7 @@
 				ARCHS = "$(ARCHS_STANDARD)";
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CODE_SIGN_IDENTITY = "Mac Developer";
 				COMBINE_HIDPI_IMAGES = YES;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = AG8BXW65A2;
@@ -12439,6 +13141,7 @@
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CODE_SIGN_IDENTITY = "Mac Developer";
 				DEVELOPMENT_TEAM = AG8BXW65A2;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				GCC_PREPROCESSOR_DEFINITIONS = (
@@ -12469,6 +13172,7 @@
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CODE_SIGN_IDENTITY = "Mac Developer";
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = AG8BXW65A2;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
@@ -12496,6 +13200,7 @@
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CODE_SIGN_IDENTITY = "Mac Developer";
 				DEVELOPMENT_TEAM = AG8BXW65A2;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				GCC_PREPROCESSOR_DEFINITIONS = (
@@ -12526,6 +13231,7 @@
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CODE_SIGN_IDENTITY = "Mac Developer";
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = AG8BXW65A2;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
@@ -12553,6 +13259,7 @@
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CODE_SIGN_IDENTITY = "Mac Developer";
 				DEVELOPMENT_TEAM = AG8BXW65A2;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				GCC_PREPROCESSOR_DEFINITIONS = (
@@ -12583,6 +13290,7 @@
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CODE_SIGN_IDENTITY = "Mac Developer";
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = AG8BXW65A2;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
@@ -12610,6 +13318,7 @@
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CODE_SIGN_IDENTITY = "Mac Developer";
 				DEVELOPMENT_TEAM = AG8BXW65A2;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				GCC_PREPROCESSOR_DEFINITIONS = (
@@ -12640,6 +13349,7 @@
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CODE_SIGN_IDENTITY = "Mac Developer";
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = AG8BXW65A2;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
@@ -12667,6 +13377,7 @@
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CODE_SIGN_IDENTITY = "Mac Developer";
 				DEVELOPMENT_TEAM = AG8BXW65A2;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				GCC_PREPROCESSOR_DEFINITIONS = (
@@ -12697,6 +13408,7 @@
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CODE_SIGN_IDENTITY = "Mac Developer";
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = AG8BXW65A2;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
@@ -12724,6 +13436,7 @@
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CODE_SIGN_IDENTITY = "Mac Developer";
 				DEVELOPMENT_TEAM = AG8BXW65A2;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				GCC_PREPROCESSOR_DEFINITIONS = (
@@ -12754,6 +13467,7 @@
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CODE_SIGN_IDENTITY = "Mac Developer";
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = AG8BXW65A2;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
@@ -12781,6 +13495,7 @@
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CODE_SIGN_IDENTITY = "Mac Developer";
 				DEVELOPMENT_TEAM = AG8BXW65A2;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				GCC_PREPROCESSOR_DEFINITIONS = (
@@ -12811,6 +13526,7 @@
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CODE_SIGN_IDENTITY = "Mac Developer";
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = AG8BXW65A2;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
@@ -12838,6 +13554,7 @@
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CODE_SIGN_IDENTITY = "Mac Developer";
 				DEVELOPMENT_TEAM = AG8BXW65A2;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				GCC_PREPROCESSOR_DEFINITIONS = (
@@ -12868,6 +13585,7 @@
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CODE_SIGN_IDENTITY = "Mac Developer";
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = AG8BXW65A2;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
@@ -12895,6 +13613,7 @@
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CODE_SIGN_IDENTITY = "Mac Developer";
 				DEVELOPMENT_TEAM = AG8BXW65A2;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				GCC_PREPROCESSOR_DEFINITIONS = (
@@ -12925,6 +13644,7 @@
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CODE_SIGN_IDENTITY = "Mac Developer";
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = AG8BXW65A2;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
@@ -12952,6 +13672,7 @@
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CODE_SIGN_IDENTITY = "Mac Developer";
 				DEVELOPMENT_TEAM = AG8BXW65A2;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				GCC_PREPROCESSOR_DEFINITIONS = (
@@ -12982,6 +13703,7 @@
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CODE_SIGN_IDENTITY = "Mac Developer";
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = AG8BXW65A2;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
@@ -13009,6 +13731,7 @@
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CODE_SIGN_IDENTITY = "Mac Developer";
 				DEVELOPMENT_TEAM = AG8BXW65A2;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				GCC_PREPROCESSOR_DEFINITIONS = (
@@ -13039,6 +13762,7 @@
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CODE_SIGN_IDENTITY = "Mac Developer";
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = AG8BXW65A2;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
@@ -13066,6 +13790,7 @@
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CODE_SIGN_IDENTITY = "Mac Developer";
 				DEVELOPMENT_TEAM = AG8BXW65A2;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				GCC_PREPROCESSOR_DEFINITIONS = (
@@ -13096,6 +13821,7 @@
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CODE_SIGN_IDENTITY = "Mac Developer";
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = AG8BXW65A2;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
@@ -13123,6 +13849,7 @@
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CODE_SIGN_IDENTITY = "Mac Developer";
 				DEVELOPMENT_TEAM = AG8BXW65A2;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				GCC_PREPROCESSOR_DEFINITIONS = (
@@ -13153,6 +13880,7 @@
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CODE_SIGN_IDENTITY = "Mac Developer";
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = AG8BXW65A2;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
@@ -13180,6 +13908,7 @@
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CODE_SIGN_IDENTITY = "Mac Developer";
 				DEVELOPMENT_TEAM = AG8BXW65A2;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				GCC_PREPROCESSOR_DEFINITIONS = (
@@ -13211,6 +13940,7 @@
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CODE_SIGN_IDENTITY = "Mac Developer";
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = AG8BXW65A2;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
@@ -13239,6 +13969,7 @@
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CODE_SIGN_IDENTITY = "Mac Developer";
 				DEVELOPMENT_TEAM = AG8BXW65A2;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				GCC_PREPROCESSOR_DEFINITIONS = (
@@ -13269,6 +14000,7 @@
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CODE_SIGN_IDENTITY = "Mac Developer";
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = AG8BXW65A2;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
@@ -13296,6 +14028,7 @@
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CODE_SIGN_IDENTITY = "Mac Developer";
 				DEVELOPMENT_TEAM = AG8BXW65A2;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				GCC_PREPROCESSOR_DEFINITIONS = (
@@ -13326,6 +14059,7 @@
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CODE_SIGN_IDENTITY = "Mac Developer";
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = AG8BXW65A2;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
@@ -13353,6 +14087,7 @@
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CODE_SIGN_IDENTITY = "Mac Developer";
 				DEVELOPMENT_TEAM = AG8BXW65A2;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				GCC_PREPROCESSOR_DEFINITIONS = (
@@ -13384,6 +14119,7 @@
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CODE_SIGN_IDENTITY = "Mac Developer";
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = AG8BXW65A2;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
@@ -13413,6 +14149,7 @@
 				ARCHS = "$(ARCHS_STANDARD)";
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CODE_SIGN_IDENTITY = "Mac Developer";
 				COMBINE_HIDPI_IMAGES = YES;
 				DEVELOPMENT_TEAM = AG8BXW65A2;
 				DYLIB_COMPATIBILITY_VERSION = 1;
@@ -13445,6 +14182,7 @@
 				ARCHS = "$(ARCHS_STANDARD)";
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CODE_SIGN_IDENTITY = "Mac Developer";
 				COMBINE_HIDPI_IMAGES = YES;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = AG8BXW65A2;
@@ -13474,6 +14212,7 @@
 				ARCHS = "$(ARCHS_STANDARD)";
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CODE_SIGN_IDENTITY = "Mac Developer";
 				COMBINE_HIDPI_IMAGES = YES;
 				DEVELOPMENT_TEAM = AG8BXW65A2;
 				DYLIB_COMPATIBILITY_VERSION = 1;
@@ -13503,6 +14242,7 @@
 				ARCHS = "$(ARCHS_STANDARD)";
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CODE_SIGN_IDENTITY = "Mac Developer";
 				COMBINE_HIDPI_IMAGES = YES;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = AG8BXW65A2;
@@ -13533,6 +14273,7 @@
 				ARCHS = "$(ARCHS_STANDARD)";
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CODE_SIGN_IDENTITY = "Mac Developer";
 				COMBINE_HIDPI_IMAGES = YES;
 				DEVELOPMENT_TEAM = AG8BXW65A2;
 				DYLIB_COMPATIBILITY_VERSION = 2;
@@ -13566,6 +14307,7 @@
 				ARCHS = "$(ARCHS_STANDARD)";
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CODE_SIGN_IDENTITY = "Mac Developer";
 				COMBINE_HIDPI_IMAGES = YES;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = AG8BXW65A2;
@@ -13596,6 +14338,7 @@
 				ARCHS = "$(ARCHS_STANDARD)";
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_WARN_UNREACHABLE_CODE = NO;
+				CODE_SIGN_IDENTITY = "Mac Developer";
 				COMBINE_HIDPI_IMAGES = YES;
 				DEVELOPMENT_TEAM = AG8BXW65A2;
 				DYLIB_COMPATIBILITY_VERSION = 1;
@@ -13638,6 +14381,7 @@
 				ARCHS = "$(ARCHS_STANDARD)";
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_WARN_UNREACHABLE_CODE = NO;
+				CODE_SIGN_IDENTITY = "Mac Developer";
 				COMBINE_HIDPI_IMAGES = YES;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = AG8BXW65A2;
@@ -13676,6 +14420,7 @@
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CODE_SIGN_IDENTITY = "Mac Developer";
 				DEVELOPMENT_TEAM = AG8BXW65A2;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				GCC_PREPROCESSOR_DEFINITIONS = (
@@ -13707,6 +14452,7 @@
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CODE_SIGN_IDENTITY = "Mac Developer";
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = AG8BXW65A2;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
@@ -13732,6 +14478,15 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
+		59019DFD1DDF8C9A00CCB3ED /* Build configuration list for PBXNativeTarget "indi_asi_wheel" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				59019DFE1DDF8C9A00CCB3ED /* Debug */,
+				59019DFF1DDF8C9A00CCB3ED /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
 		5909A8271D31803200F74CF2 /* Build configuration list for PBXNativeTarget "indi_microtouch_focus" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
@@ -13899,6 +14654,33 @@
 			buildConfigurations = (
 				594499431C1363C400E0E281 /* Debug */,
 				594499441C1363C400E0E281 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		59499FB01E61EA4600567CAD /* Build configuration list for PBXNativeTarget "indi_hitecastrodc_focus" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				59499FB11E61EA4600567CAD /* Debug */,
+				59499FB21E61EA4600567CAD /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		59499FC81E61EBDB00567CAD /* Build configuration list for PBXNativeTarget "indi_optec_wheel" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				59499FC91E61EBDB00567CAD /* Debug */,
+				59499FCA1E61EBDB00567CAD /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		59499FD61E61EC0900567CAD /* Build configuration list for PBXNativeTarget "indi_quantum_wheel" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				59499FD71E61EC0900567CAD /* Debug */,
+				59499FD81E61EC0900567CAD /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
@@ -14074,7 +14856,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		59567D471A8D418E0057A35A /* Build configuration list for PBXNativeTarget "indi_usbfocus_focuser" */ = {
+		59567D471A8D418E0057A35A /* Build configuration list for PBXNativeTarget "indi_usbfocusv3_focus" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				59567D481A8D418E0057A35A /* Debug */,

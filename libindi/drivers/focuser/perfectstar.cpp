@@ -78,6 +78,7 @@ void ISSnoopDevice (XMLEle *root)
 PerfectStar::PerfectStar()
 {        
     SetFocuserCapability(FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_REL_MOVE | FOCUSER_CAN_ABORT);
+    setFocuserConnection(CONNECTION_NONE);
 
     handle = 0;
 }
@@ -126,15 +127,6 @@ bool PerfectStar::Disconnect()
 const char * PerfectStar::getDefaultName()
 {
         return (char *)"PerfectStar";
-}
-
-void PerfectStar::ISGetProperties (const char *dev)
-{
-    INDI::Focuser::ISGetProperties(dev);
-
-    // We don't need port property
-    deleteProperty(PortTP.name);
-
 }
 
 bool PerfectStar::initProperties()
@@ -193,7 +185,7 @@ void PerfectStar::TimerHit()
     if (rc)
         FocusAbsPosN[0].value = currentTicks;
 
-    rc = getStatus(&status);
+    getStatus(&status);
 
     if (FocusAbsPosNP.s == IPS_BUSY || FocusRelPosNP.s == IPS_BUSY)
     {

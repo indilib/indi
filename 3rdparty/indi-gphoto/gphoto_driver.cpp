@@ -38,6 +38,9 @@
 
 #include "gphoto_driver.h"
 
+static GPPortInfoList		*portinfolist = NULL;
+static CameraAbilitiesList	*abilities = NULL;
+
 struct _gphoto_widget_list
 {
     struct _gphoto_widget_list	*next;
@@ -77,6 +80,9 @@ struct _gphoto_driver
     int             format;
     int             upload_settings;
 
+    char            *model;
+    char            *manufacturer;
+
     gphoto_widget_list	*widgets;
     gphoto_widget_list	*iter;
 
@@ -99,27 +105,6 @@ void gphoto_set_debug(const char *name)
     strncpy(device, name, 64);
 }
 
-
-static GPContext* create_context() {
-    GPContext *context;
-
-    /* This is the mandatory part */
-    context = gp_context_new();
-
-    /* All the parts below are optional! */
-    //gp_context_set_error_func (context, ctx_error_func, NULL);
-    //gp_context_set_status_func (context, ctx_status_func, NULL);
-
-    /* also:
-    gp_context_set_cancel_func    (p->context, ctx_cancel_func,  p);
-    gp_context_set_message_func   (p->context, ctx_message_func, p);
-    if (isatty (STDOUT_FILENO))
-        gp_context_set_progress_funcs (p->context,
-            ctx_progress_start_func, ctx_progress_update_func,
-            ctx_progress_stop_func, p);
-    */
-    return context;
-}
 
 static const char *widget_name(CameraWidget *widget) {
     const char *name = NULL;
@@ -299,7 +284,7 @@ int gphoto_set_widget_num(gphoto_driver *gphoto, gphoto_widget *widget, float va
 {
     int		ret;
     int		ival = value;
-    const char	*ptr;
+    const char	*ptr = 0;
 
     if (! widget)
     {
@@ -369,32 +354,35 @@ static double * parse_shutterspeed(gphoto_driver* gphoto, char **choices, int co
     gphoto->bulb_exposure_index=-1;
 
     if(count <= 0)
+    {
+        DEBUGFDEVICE(device, INDI::Logger::DBG_WARNING, "Shutter speed widget does not have any valid data (count=%d)", count);
         return NULL;
+    }
 
     exposure = (double*) calloc(sizeof(double), count);
 
     for(i = 0; i <  count; i++)
     {
-        //DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG, "Parsing shutter speed #%d: %s", i, choices[i]);
+        DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG, "Parsing shutter speed #%d: %s", i, choices[i]);
 
         if ( (strncasecmp(choices[i], "bulb", 4) == 0) || (strcmp(choices[i], "65535/65535") == 0))
         {
             exposure[i] = -1;
-            //DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG, "exposure[%d]= BULB", i);
+            DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG, "exposure[%d]= BULB", i);
             gphoto->bulb_exposure_index = i;
         } else if (sscanf(choices[i], "%d/%d", &num, &denom) == 2)
         {
             exposure[i] = 1.0 * num / (double)denom;
-            //DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG, "exposure[%d]=%g seconds", i, exposure[i]);
+            DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG, "exposure[%d]=%g seconds", i, exposure[i]);
         } else if ((val = strtod(choices[i], NULL)))
         {
             exposure[i] = val;
-            //DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG, "exposure[%d]=%g seconds", i, exposure[i]);
+            DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG, "exposure[%d]=%g seconds", i, exposure[i]);
         } else
         {
             // unknown
             exposure[i] = -2;
-            //DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG, "exposure[%d]= UNKNOWN", i);
+            DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG, "exposure[%d]= UNKNOWN", i);
         }
 
         if (exposure[i] > max_exposure)
@@ -508,7 +496,7 @@ int find_exposure_setting(gphoto_driver *gphoto, gphoto_widget *widget, int expt
     double delta;
     double best_match = 99999;
 
-    DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG,"Finding optimal exposure setting for %g seconds...", exptime);
+    DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG,"Finding optimal exposure setting for %g seconds in %s (count=%d)...", exptime, widget->name, widget->choice_cnt);
 
     for (i = 0; i < widget->choice_cnt; i++)
     {
@@ -597,7 +585,7 @@ int gphoto_mirrorlock(gphoto_driver *gphoto, int msec)
     //if (gphoto->autoexposuremode_widget && gphoto->autoexposuremode_widget->value.index == 4)
     if (gphoto->bulb_widget && !strcmp(gphoto->bulb_widget->name, "eosremoterelease"))
     {
-        DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG,"eosremoterelease Mirror Lock for %g secs", msec / 1000);
+        DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG,"eosremoterelease Mirror Lock for %g secs", msec / 1000.0);
 
         gphoto_set_widget_num (gphoto, gphoto->bulb_widget, EOS_PRESS_FULL);
         gphoto_set_widget_num (gphoto, gphoto->bulb_widget, EOS_RELEASE_FULL);
@@ -609,7 +597,20 @@ int gphoto_mirrorlock(gphoto_driver *gphoto, int msec)
         return 0;
     }
 
-    // TODO add support for remote serial shutter and other camera types
+    if (gphoto->bulb_port[0]) {
+        DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG, "Locking mirror by opening remote serial shutter port: %s ...", gphoto->bulb_port);
+        gphoto->bulb_fd = open(gphoto->bulb_port, O_RDWR, O_NONBLOCK);
+        if(gphoto->bulb_fd < 0) {
+            DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG, "Failed to open serial port: %s", gphoto->bulb_port);
+            //pthread_mutex_unlock(&gphoto->mutex);
+            return -1;
+        }
+        usleep(20000);
+        close(gphoto->bulb_fd);
+        gphoto->bulb_fd = -1;
+        usleep(msec*1000 - 20000);
+        return 0;
+    }
 
     // Otherwise fail gracefully
     DEBUGDEVICE(device, INDI::Logger::DBG_ERROR,"Mirror lock feature is not yet implemented for this camera model.");
@@ -639,8 +640,8 @@ int gphoto_start_exposure(gphoto_driver *gphoto, unsigned int exptime_msec, int 
     // Set Capture Target
     if (gphoto->capturetarget_widget)
     {
-        // Use RAM
-        if (gphoto->upload_settings == GP_UPLOAD_CLIENT)
+        // Use RAM but NOT on Nikon as it can only work when saving to SD Card
+        if (gphoto->upload_settings == GP_UPLOAD_CLIENT && (strstr(gphoto->manufacturer, "Nikon") == NULL) )
             gphoto_set_widget_num(gphoto, gphoto->capturetarget_widget, 0);
         else
         // Store in SD Card in Camera
@@ -673,10 +674,6 @@ int gphoto_start_exposure(gphoto_driver *gphoto, unsigned int exptime_msec, int 
             }
         }
 
-        // If we have mirror lock enabled, let's lock mirror. Return on failure
-        if (mirror_lock && gphoto_mirrorlock(gphoto, mirror_lock*1000))
-            return -1;
-
         // We set bulb setting for exposure widget if it is defined by the camera
         if (gphoto->bulb_exposure_index != -1)
         {
@@ -687,6 +684,10 @@ int gphoto_start_exposure(gphoto_driver *gphoto, unsigned int exptime_msec, int 
                 gphoto_set_widget_num(gphoto, gphoto->exposure_widget, gphoto->bulb_exposure_index);
             }
         }
+
+        // If we have mirror lock enabled, let's lock mirror. Return on failure
+        if (mirror_lock && gphoto_mirrorlock(gphoto, mirror_lock*1000))
+            return -1;
 
         // If bulb port is specified, let's open it
         if (gphoto->bulb_port[0])
@@ -731,14 +732,6 @@ int gphoto_start_exposure(gphoto_driver *gphoto, unsigned int exptime_msec, int 
         return 0;
     }
 
-    /* FIXME Can't do mirror lock yet in this mode. To be implemented later
-    if (mirror_lock)
-    {
-        // Let's perform mirror locking if required
-        if( gphoto_mirrorlock(gphoto, mirror_lock*1000) || gphoto_mirrorlock(gphoto, 10) )
-            return 1;
-    }*/
-
     DEBUGDEVICE(device, INDI::Logger::DBG_DEBUG,"Using camera predefined exposure ranges.");
 
     // NOT using bulb mode so let's find an exposure time that would closely match the requested exposure time
@@ -747,6 +740,33 @@ int gphoto_start_exposure(gphoto_driver *gphoto, unsigned int exptime_msec, int 
     gphoto_set_widget_num(gphoto, gphoto->exposure_widget, idx);
     DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG,"Using predefined exposure time: %g seconds", gphoto->exposure[idx]);
 
+    // Lock the mirror if required.
+    if (mirror_lock && gphoto_mirrorlock(gphoto, mirror_lock*1000))
+      return -1;
+
+    // If bulb port is specified, a serial shutter control is required to start the exposure. Treat this as a bulb exposure.
+    if (gphoto->bulb_port[0]) {
+        DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG, "Opening remote serial shutter port: %s ...", gphoto->bulb_port);
+        gphoto->bulb_fd = open(gphoto->bulb_port, O_RDWR, O_NONBLOCK);
+        if (gphoto->bulb_fd < 0) {
+            DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG, "Failed to open serial port: %s", gphoto->bulb_port);
+            pthread_mutex_unlock(&gphoto->mutex);
+            return -1;
+        }
+        // Preparing exposure: we let stop_bulb() close the serial port although this could be done here as well
+        // because the camera closes the shutter.
+        gettimeofday(&gphoto->bulb_end, NULL);
+        unsigned int usec = gphoto->bulb_end.tv_usec + exptime_msec % 1000 * 1000;
+        gphoto->bulb_end.tv_sec = gphoto->bulb_end.tv_sec + exptime_msec / 1000 + usec / 1000000;
+        gphoto->bulb_end.tv_usec = usec % 1000000;
+
+        // Start actual exposure
+        gphoto->command = DSLR_CMD_BULB_CAPTURE;
+        pthread_cond_signal(&gphoto->signal);
+        pthread_mutex_unlock(&gphoto->mutex);
+        DEBUGDEVICE(device, INDI::Logger::DBG_DEBUG,"Exposure started");
+        return 0;
+    }
     gphoto->command = DSLR_CMD_CAPTURE;
     pthread_cond_signal(&gphoto->signal);
     pthread_mutex_unlock(&gphoto->mutex);
@@ -762,7 +782,7 @@ int gphoto_read_exposure_fd(gphoto_driver *gphoto, int fd)
     int result;
 
     // Wait for exposure to complete
-    DEBUGDEVICE(device, INDI::Logger::DBG_DEBUG,"Reading exposure");
+    DEBUGDEVICE(device, INDI::Logger::DBG_DEBUG,"Reading exposure...");
     pthread_mutex_lock(&gphoto->mutex);
     if (gphoto->camerafile) {
         gp_file_free(gphoto->camerafile);
@@ -770,8 +790,11 @@ int gphoto_read_exposure_fd(gphoto_driver *gphoto, int fd)
     }
     if(! (gphoto->command & DSLR_CMD_DONE))
         pthread_cond_wait(&gphoto->signal, &gphoto->mutex);
+
     DEBUGDEVICE(device, INDI::Logger::DBG_DEBUG,"Exposure complete");
-    if (gphoto->command & DSLR_CMD_CAPTURE) {
+
+    if (gphoto->command & DSLR_CMD_CAPTURE)
+    {
         result = download_image(gphoto, &gphoto->camerapath, fd);
         gphoto->command = 0;
         //Set exposure back to original value
@@ -781,22 +804,33 @@ int gphoto_read_exposure_fd(gphoto_driver *gphoto, int fd)
     }
 
     //Bulb mode
+    int timeoutCounter=0;
     gphoto->command = 0;
-    while (1) {
+
+    while (1)
+    {
         // Wait for image to be ready to download
-        result = gp_camera_wait_for_event(gphoto->camera, 500, &event, &data, gphoto->context);
-        if (result != GP_OK) {
-            DEBUGDEVICE(device, INDI::Logger::DBG_DEBUG, "WARNING: Could not wait for event.");
-            return (result);
+        result = gp_camera_wait_for_event(gphoto->camera, 1000, &event, &data, gphoto->context);
+        if (result != GP_OK)
+        {
+            DEBUGDEVICE(device, INDI::Logger::DBG_WARNING, "WARNING: Could not wait for event.");
+            timeoutCounter++;
+            if (timeoutCounter >= 10)
+            {
+                pthread_mutex_unlock(&gphoto->mutex);
+                return -1;
+            }
+
+            continue;
         }
 
-        switch (event) {
-
+        switch (event)
+        {
         case GP_EVENT_CAPTURE_COMPLETE:
-            DEBUGDEVICE(device, INDI::Logger::DBG_DEBUG,"Capture completed");
+            DEBUGDEVICE(device, INDI::Logger::DBG_DEBUG,"Capture event completed.");
             break;
         case GP_EVENT_FILE_ADDED:
-            DEBUGDEVICE(device, INDI::Logger::DBG_DEBUG,"Captured an image");
+            DEBUGDEVICE(device, INDI::Logger::DBG_DEBUG,"File added event completed.");
             fn = (CameraFilePath*)data;
             result = download_image(gphoto, fn, fd);
             //Set exposure back to original value
@@ -806,7 +840,18 @@ int gphoto_read_exposure_fd(gphoto_driver *gphoto, int fd)
             return result;
             break;
         case GP_EVENT_UNKNOWN:
+            DEBUGDEVICE(device, INDI::Logger::DBG_DEBUG,"Unknown event.");
             break;
+        case GP_EVENT_TIMEOUT:
+            DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG,"Event timed out #%d, retrying...", ++timeoutCounter);
+            // So retry for 5 seconds before giving up
+            if (timeoutCounter >= 10)
+            {
+                pthread_mutex_unlock(&gphoto->mutex);
+                return -1;
+            }
+            break;
+
         default:
             DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG,"Got unexpected message: %d", event);
         }
@@ -877,34 +922,132 @@ int gphoto_get_iso_current(gphoto_driver *gphoto)
     return gphoto->iso_widget->value.index;
 }
 
-gphoto_driver *gphoto_open(const char *shutter_release_port)
+gphoto_driver *gphoto_open(Camera *camera, GPContext *context, const char *model, const char *port, const char *shutter_release_port)
 {
     gphoto_driver *gphoto;
     gphoto_widget *widget;
-    Camera  *canon;
-    GPContext *canoncontext = create_context();
-    int result;
+    CameraAbilities	a;
+    GPPortInfo	pi;
+    int result=0, index=0;
 
     DEBUGDEVICE(device, INDI::Logger::DBG_DEBUG,"Opening gphoto");
     //gp_log_add_func(GP_LOG_ERROR, errordumper, NULL);
-    gp_camera_new(&canon);
+    gp_camera_new(&camera);
 
-    /* When I set GP_LOG_DEBUG instead of GP_LOG_ERROR above, I noticed that the
-     * init function seems to traverse the entire filesystem on the camera.  This
-     * is partly why it takes so long.
-     * (Marcus: the ptp2 driver does this by default currently.)
-     */
-    DEBUGDEVICE(device, INDI::Logger::DBG_DEBUG,"Camera init.  Takes about 10 seconds.");
-    result = gp_camera_init(canon, canoncontext);
-    if (result != GP_OK)
+    if (model == NULL || port == NULL)
     {
-        DEBUGFDEVICE(device, INDI::Logger::DBG_ERROR,"Camera open error (%d): %s", result, gp_result_as_string(result));
-        return NULL;
+        DEBUGDEVICE(device, INDI::Logger::DBG_DEBUG,"Camera init.  Takes about 10 seconds.");
+        result = gp_camera_init(camera, context);
+        if (result != GP_OK)
+        {
+            DEBUGFDEVICE(device, INDI::Logger::DBG_ERROR,"Camera open error (%d): %s", result, gp_result_as_string(result));
+            return NULL;
+        }
+    }
+    else
+    {
+        if (!abilities)
+        {
+            /* Load all the camera drivers we have... */
+            result = gp_abilities_list_new (&abilities);
+            if (result < GP_OK)
+            {
+                DEBUGFDEVICE(device, INDI::Logger::DBG_ERROR, "gp_abilities_list_new failed (%d): %s", result, gp_result_as_string(result));
+                return NULL;
+            }
+            result = gp_abilities_list_load (abilities, context);
+            if (result < GP_OK)
+            {
+                DEBUGFDEVICE(device, INDI::Logger::DBG_ERROR, "gp_abilities_list_load failed (%d): %s", result, gp_result_as_string(result));
+                return NULL;
+            }
+        }
+
+        /* First lookup the model / driver */
+        index = gp_abilities_list_lookup_model (abilities, model);
+        if (index < GP_OK)
+        {
+            DEBUGFDEVICE(device, INDI::Logger::DBG_ERROR, "gp_abilities_list_lookup_model failed (%d): %s", index, gp_result_as_string(index));
+            return NULL;
+        }
+
+        result = gp_abilities_list_get_abilities (abilities, index, &a);
+        if (result < GP_OK)
+        {
+            DEBUGFDEVICE(device, INDI::Logger::DBG_ERROR, "gp_abilities_list_get_abilities (%d): %s", result, gp_result_as_string(result));
+            return NULL;
+        }
+
+        result = gp_camera_set_abilities (camera, a);
+        if (result < GP_OK)
+        {
+            DEBUGFDEVICE(device, INDI::Logger::DBG_ERROR, "gp_abilities_list_get_abilities (%d): %s", result, gp_result_as_string(result));
+            return NULL;
+        }
+
+        if (!portinfolist)
+        {
+            /* Load all the port drivers we have... */
+            result = gp_port_info_list_new (&portinfolist);
+            if (result < GP_OK)
+            {
+                DEBUGFDEVICE(device, INDI::Logger::DBG_ERROR, "gp_port_info_list_new (%d): %s", result, gp_result_as_string(result));
+                return NULL;
+            }
+            result = gp_port_info_list_load (portinfolist);
+            if (result < 0)
+            {
+                DEBUGFDEVICE(device, INDI::Logger::DBG_ERROR, "gp_port_info_list_load (%d): %s", result, gp_result_as_string(result));
+                return NULL;
+            }
+            result = gp_port_info_list_count (portinfolist);
+            if (result < 0)
+            {
+                DEBUGFDEVICE(device, INDI::Logger::DBG_ERROR, "gp_port_info_list_count (%d): %s", result, gp_result_as_string(result));
+                return NULL;
+            }
+        }
+
+        /* Then associate the camera with the specified port */
+        index = gp_port_info_list_lookup_path (portinfolist, port);
+        switch (index)
+        {
+        case GP_ERROR_UNKNOWN_PORT:
+            DEBUGFDEVICE(device, INDI::Logger::DBG_ERROR,
+                            "The port you specified "
+                            "('%s') can not be found. Please "
+                            "specify one of the ports found by "
+                            "'gphoto2 --list-ports' and make "
+                            "sure the spelling is correct "
+                            "(i.e. with prefix 'serial:' or 'usb:').", port);
+            break;
+        default:
+            break;
+        }
+
+        if (index < GP_OK)
+        {
+            return NULL;
+        }
+
+        result = gp_port_info_list_get_info (portinfolist, index, &pi);
+        if (result < GP_OK)
+        {
+            DEBUGFDEVICE(device, INDI::Logger::DBG_ERROR, "gp_port_info_list_get_info (%d): %s", result, gp_result_as_string(result));
+            return NULL;
+        }
+
+        result = gp_camera_set_port_info (camera, pi);
+        if (result < GP_OK)
+        {
+            DEBUGFDEVICE(device, INDI::Logger::DBG_ERROR, "gp_port_info_list_get_info (%d): %s", result, gp_result_as_string(result));
+            return NULL;
+        }
     }
 
     gphoto = (gphoto_driver*) calloc(sizeof(gphoto_driver), 1);
-    gphoto->camera = canon;
-    gphoto->context = canoncontext;
+    gphoto->camera = camera;
+    gphoto->context = context;
 
     result = gp_camera_get_config (gphoto->camera, &gphoto->config, gphoto->context);
     if (result < GP_OK) {
@@ -948,6 +1091,8 @@ gphoto_driver *gphoto_open(const char *shutter_release_port)
 
     gphoto->format_widget = find_widget(gphoto, "imageformat");
     gphoto->format = -1;
+    gphoto->manufacturer = NULL;
+    gphoto->model = NULL;
     gphoto->upload_settings = GP_UPLOAD_CLIENT;
 
     if (gphoto->format_widget != NULL)
@@ -1003,7 +1148,24 @@ gphoto_driver *gphoto_open(const char *shutter_release_port)
     {
         DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG,"ViewFinder Widget: %s", gphoto->viewfinder_widget->name);
         DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG,"Current ViewFinder Value: %s", (gphoto->viewfinder_widget->value.toggle == 0) ? "Off" : "On");
+    }    
+
+    // Find Manufacturer
+    if ( (widget = find_widget(gphoto,"manufacturer")) != NULL )
+    {
+        DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG,"Manufacturer: %s", widget->value.text);
+        gphoto->manufacturer = widget->value.text;
     }
+
+    // Find Model
+    if ( (widget = find_widget(gphoto,"cameramodel")) != NULL || (widget = find_widget(gphoto,"model")) != NULL )
+    {
+        DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG,"Model: %s", widget->value.text);
+        gphoto->model = widget->value.text;
+    }
+    // Make sure manufacturer is set to something useful
+    if (gphoto->manufacturer == NULL)
+        gphoto->manufacturer = gphoto->model;
 
     // Check for user
     if(shutter_release_port)
@@ -1021,7 +1183,7 @@ gphoto_driver *gphoto_open(const char *shutter_release_port)
 
     gphoto->bulb_fd = -1;
 
-    DEBUGDEVICE(device, INDI::Logger::DBG_DEBUG,"GPhoto initialized.");
+    DEBUGDEVICE(device, INDI::Logger::DBG_DEBUG,"GPhoto initialized.");    
 
     pthread_mutex_init(&gphoto->mutex, NULL);
     pthread_cond_init(&gphoto->signal, NULL);
@@ -1241,7 +1403,7 @@ static int _lookup_widget(CameraWidget*widget, const char *key, CameraWidget **c
 }
 
 /* calls the Nikon DSLR or Canon DSLR autofocus method. */
-int gphoto_auto_focus(gphoto_driver *gphoto)
+int gphoto_auto_focus(gphoto_driver *gphoto, char *errMsg)
 {
     CameraWidget		*widget = NULL, *child = NULL;
     CameraWidgetType	type;
@@ -1249,45 +1411,45 @@ int gphoto_auto_focus(gphoto_driver *gphoto)
 
     ret = gp_camera_get_config (gphoto->camera, &widget, gphoto->context);
     if (ret < GP_OK) {
-        fprintf (stderr, "camera_get_config failed: %d", ret);
+        snprintf(errMsg, MAXRBUF, "camera_get_config failed: %d", ret);
         return ret;
     }
     ret = _lookup_widget (widget, "autofocusdrive", &child);
     if (ret < GP_OK) {
-        fprintf (stderr, "lookup 'autofocusdrive' failed: %d", ret);
+        snprintf(errMsg, MAXRBUF, "lookup 'autofocusdrive' failed: %d", ret);
         goto out;
     }
 
     /* check that this is a toggle */
     ret = gp_widget_get_type (child, &type);
     if (ret < GP_OK) {
-        fprintf (stderr, "widget get type failed: %d", ret);
+        snprintf(errMsg, MAXRBUF, "widget get type failed: %d", ret);
         goto out;
     }
     switch (type) {
     case GP_WIDGET_TOGGLE:
         break;
     default:
-        fprintf (stderr, "widget has bad type %d", type);
+        snprintf(errMsg, MAXRBUF, "widget has bad type %d", type);
         ret = GP_ERROR_BAD_PARAMETERS;
         goto out;
     }
 
     ret = gp_widget_get_value (child, &val);
     if (ret < GP_OK) {
-        fprintf (stderr, "could not get widget value: %d", ret);
+        snprintf(errMsg, MAXRBUF, "could not get widget value: %d", ret);
         goto out;
     }
     val++;
     ret = gp_widget_set_value (child, &val);
     if (ret < GP_OK) {
-        fprintf (stderr, "could not set widget value to 1: %d", ret);
+        snprintf(errMsg, MAXRBUF, "could not set widget value to 1: %d", ret);
         goto out;
     }
 
     ret = gp_camera_set_config (gphoto->camera, widget, gphoto->context);
     if (ret < GP_OK) {
-        fprintf (stderr, "could not set config tree to autofocus: %d", ret);
+        snprintf(errMsg, MAXRBUF, "could not set config tree to autofocus: %d", ret);
         goto out;
     }
 out:
@@ -1438,6 +1600,15 @@ out:
     return ret;
 }
 
+const char *gphoto_get_manufacturer(gphoto_driver *gphoto)
+{
+    return gphoto->manufacturer;
+}
+
+const char *gphoto_get_model(gphoto_driver *gphoto)
+{
+    return gphoto->model;
+}
 
 #ifdef GPHOTO_TEST
 #include <getopt.h>

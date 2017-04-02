@@ -1,11 +1,14 @@
 cmake_minimum_required(VERSION 2.4.7)
 PROJECT(indi_qsi CXX C)
 
-set(CMAKE_CXX_FLAGS "-std=c++0x ${CMAKE_CXX_FLAGS}")
 LIST(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake_modules/")
 LIST(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/../../cmake_modules/")
 include(GNUInstallDirs)
 set(RULES_INSTALL_DIR "/lib/udev/rules.d/")
+
+if (NOT WIN32 AND NOT ANDROID)
+set(CMAKE_CXX_FLAGS "-std=c++11 ${CMAKE_CXX_FLAGS}")
+endif(NOT WIN32 AND NOT ANDROID)
 
 find_package(CFITSIO REQUIRED)
 find_package(INDI REQUIRED)
@@ -31,10 +34,12 @@ set(indiqsi_SRCS
 
 add_executable(indi_qsi_ccd ${indiqsi_SRCS})
 
-target_link_libraries(indi_qsi_ccd ${INDI_DRIVER_LIBRARIES} ${CFITSIO_LIBRARIES} ${QSI_LIBRARIES} )
+target_link_libraries(indi_qsi_ccd ${INDI_LIBRARIES} ${CFITSIO_LIBRARIES} ${QSI_LIBRARIES} )
 
 install(TARGETS indi_qsi_ccd RUNTIME DESTINATION bin )
 
 install(FILES ${CMAKE_CURRENT_BINARY_DIR}/indi_qsi.xml DESTINATION ${INDI_DATA_DIR})
-install(FILES 99-qsi.rules DESTINATION ${RULES_INSTALL_DIR})
 
+if (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
+install(FILES 99-qsi.rules DESTINATION ${RULES_INSTALL_DIR})
+endif()

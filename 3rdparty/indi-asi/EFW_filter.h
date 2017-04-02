@@ -1,3 +1,20 @@
+/**************************************************
+this is the ZWO filter wheel EFW SDK
+any question feel free contact us:yang.zhou@zwoptical.com
+
+here is the suggested procedure.
+
+--> EFWGetNum
+--> EFWGetID for each camera
+
+--> EFWGetProperty
+--> EFWOpen
+--> EFWGetPosition
+--> EFWSetPosition
+	...
+--> EFWClose
+
+***************************************************/
 #ifndef EFW_FILTER_H
 #define EFW_FILTER_H
 
@@ -28,6 +45,7 @@ typedef enum _EFW_ERROR_CODE{
 	EFW_ERROR_ERROR_STATE,//filter wheel is in error state
 	EFW_ERROR_GENERAL_ERROR,//other error
 	EFW_ERROR_NOT_SUPPORTED,
+	EFW_ERROR_CLOSED,
 	EFW_ERROR_END = -1
 }EFW_ERROR_CODE;
 
@@ -46,29 +64,24 @@ EFW_API int EFWGetNum();
 
 /***************************************************************************
 Descriptions:
-open filter wheel
+get the product ID of each wheel, at first set pPIDs as 0 and get length and then malloc a buffer to load the PIDs
 
 Paras:
-int index: the index of filter wheel, from 0 to N - 1, N is returned by GetNumOffilter wheels()
+int* pPIDs: pointer to array of PIDs
 
-Return: 
-EFW_ERROR_INVALID_INDEX: invalid index value
-EFW_ERROR_GENERAL_ERROR: number of opened filter wheel reaches the maximum value.
-EFW_ERROR_REMOVED: the filter wheel is removed.
-EFW_SUCCESS: operation succeeds
+Return: length of the array.
 ***************************************************************************/
-EFW_API	EFW_ERROR_CODE EFWOpen(int index);
+EFW_API int EFWGetProductIDs(int* pPIDs);
 
 /***************************************************************************
 Descriptions:
 get ID of filter wheel
 
 Paras:
-int index: the index of filter wheel, from 0 to N - 1, N is returned by GetNumOffilter wheels()
+int index: the index of filter wheel, from 0 to N - 1, N is returned by GetNum()
 
-int* ID: pointer to ID. if the filter wheel is not opened, the ID is negative, otherwise the ID is a unique integer 
-between 0 to EFW_ID_MAX - 1, after opened, all the operation is base on this ID, the ID will not change before the
-filter wheel is closed.
+int* ID: pointer to ID. the ID is a unique integer, between 0 to EFW_ID_MAX - 1, after opened,
+all the operation is base on this ID, the ID will not change.
 
 
 Return: 
@@ -77,6 +90,21 @@ EFW_SUCCESS:  operation succeeds
 
 ***************************************************************************/
 EFW_API EFW_ERROR_CODE EFWGetID(int index, int* ID);
+
+/***************************************************************************
+Descriptions:
+open filter wheel
+
+Paras:
+int ID: the ID of filter wheel
+
+Return: 
+EFW_ERROR_INVALID_ID: invalid ID value
+EFW_ERROR_GENERAL_ERROR: number of opened filter wheel reaches the maximum value.
+EFW_ERROR_REMOVED: the filter wheel is removed.
+EFW_SUCCESS: operation succeeds
+***************************************************************************/
+EFW_API	EFW_ERROR_CODE EFWOpen(int ID);
 
 /***************************************************************************
 Descriptions:
@@ -108,6 +136,7 @@ this value is -1 if filter wheel is moving
 
 Return: 
 EFW_ERROR_INVALID_ID: invalid ID value
+EFW_ERROR_CLOSED: not opened
 EFW_SUCCESS: operation succeeds
 EFW_ERROR_ERROR_STATE: filter wheel is in error state
 EFW_ERROR_REMOVED: filter wheel is removed
@@ -126,6 +155,7 @@ int Position:  slot position, this value is between 0 to M - 1, M is slot number
 
 Return: 
 EFW_ERROR_INVALID_ID: invalid ID value
+EFW_ERROR_CLOSED: not opened
 EFW_SUCCESS: operation succeeds
 EFW_ERROR_INVALID_VALUE: Position value is invalid
 EFW_ERROR_MOVING: filter wheel is moving, should wait until idle
@@ -146,6 +176,7 @@ bool bUnidirectional: if set as true, the filter wheel will rotate along one dir
 
 Return: 
 EFW_ERROR_INVALID_ID: invalid ID value
+EFW_ERROR_CLOSED: not opened
 EFW_SUCCESS: operation succeeds
 ***************************************************************************/
 EFW_API	EFW_ERROR_CODE EFWSetDirection(int ID, bool bUnidirectional);
@@ -161,9 +192,27 @@ bool *bUnidirectional: pointer to unidirection value .
 
 Return: 
 EFW_ERROR_INVALID_ID: invalid ID value
+EFW_ERROR_CLOSED: not opened
 EFW_SUCCESS: operation succeeds
 ***************************************************************************/
 EFW_API	EFW_ERROR_CODE EFWGetDirection(int ID, bool *bUnidirectional);
+
+/***************************************************************************
+Descriptions:
+calibrate filter wheel
+
+Paras:
+int ID: the ID of filter wheel
+
+Return: 
+EFW_ERROR_INVALID_ID: invalid ID value
+EFW_ERROR_CLOSED: not opened
+EFW_SUCCESS: operation succeeds
+EFW_ERROR_MOVING: filter wheel is moving, should wait until idle
+EFW_ERROR_ERROR_STATE: filter wheel is in error state
+EFW_ERROR_REMOVED: filter wheel is removed
+***************************************************************************/
+EFW_API	EFW_ERROR_CODE EFWCalibrate(int ID);
 
 /***************************************************************************
 Descriptions:
@@ -177,7 +226,6 @@ EFW_ERROR_INVALID_ID: invalid ID value
 EFW_SUCCESS: operation succeeds
 ***************************************************************************/
 EFW_API	EFW_ERROR_CODE EFWClose(int ID);
-
 
 
 #ifdef __cplusplus

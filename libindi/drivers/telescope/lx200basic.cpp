@@ -115,7 +115,7 @@ LX200Basic::LX200Basic()
     currentRA=ln_get_apparent_sidereal_time(ln_get_julian_from_sys());
     currentDEC=90;   
 
-    SetTelescopeCapability(TELESCOPE_CAN_SYNC | TELESCOPE_CAN_ABORT);
+    SetTelescopeCapability(TELESCOPE_CAN_SYNC | TELESCOPE_CAN_GOTO | TELESCOPE_CAN_ABORT);
 
     DEBUG(INDI::Logger::DBG_DEBUG, "Initializing from LX200 Basic device...");
 
@@ -206,57 +206,14 @@ bool LX200Basic::updateProperties()
 /**************************************************************************************
 **
 ***************************************************************************************/
-bool LX200Basic::Connect()
+bool LX200Basic::Handshake()
 {
-    bool rc=false;
-
-    if(isConnected()) return true;
-
-    rc=Connect(PortT[0].text, atoi(IUFindOnSwitch(&BaudRateSP)->name));
-
-    if(rc)
-        SetTimer(POLLMS);
-
-    return rc;
-}
-
-/**************************************************************************************
-**
-***************************************************************************************/
-bool LX200Basic::Connect(const char *port, uint32_t baud)
-{
-    if (isSimulation())
-    {
-        DEBUGF (INDI::Logger::DBG_SESSION, "Simulated %s is online.", getDeviceName());
-        return true;
-    }
-
-    if (tty_connect(port, baud, 8, 0, 1, &PortFD) != TTY_OK)
-    {
-      DEBUGF(INDI::Logger::DBG_ERROR, "Error connecting to port %s. Make sure you have BOTH write and read permission to your port.", port);
-      return false;
-    }
-
-
     if (getLX200RA(PortFD, &currentRA) != 0)
     {
-        DEBUG(INDI::Logger::DBG_ERROR, "Error connecting to Telescope. Telescope is offline.");
+        DEBUG(INDI::Logger::DBG_ERROR, "Error communication with telescope.");
         return false;
     }
 
-   DEBUGF (INDI::Logger::DBG_SESSION, "%s is online. Retrieving basic data...", getDeviceName());
-
-   return true;
-}
-
-
-/**************************************************************************************
-**
-***************************************************************************************/
-bool LX200Basic::Disconnect()
-{
-    if (isSimulation() == false)
-        tty_disconnect(PortFD);
     return true;
 }
 

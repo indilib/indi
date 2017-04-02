@@ -60,7 +60,7 @@ public:
     ~TCFS();
    
     // Standard INDI interface fucntions
-    virtual bool Connect();
+    virtual bool Handshake();
     virtual bool Disconnect();
     const char *getDefaultName();
     virtual bool initProperties();

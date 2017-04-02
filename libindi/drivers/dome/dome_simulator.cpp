@@ -31,7 +31,7 @@
 // We declare an auto pointer to domeSim.
 std::unique_ptr<DomeSim> domeSim(new DomeSim());
 
-#define DOME_SPEED      2.0             /* 2 degrees per second, constant */
+#define DOME_SPEED      10.0            /* 10 degrees per second, constant */
 #define SHUTTER_TIMER   5.0             /* Shutter closes/open in 5 seconds */
 
 void ISPoll(void *p);
@@ -126,12 +126,6 @@ bool DomeSim::SetupParms()
     return true;
 }
 
-bool DomeSim::Connect()
-{
-    SetTimer(1000);     //  start the timer
-    return true;
-}
-
 DomeSim::~DomeSim()
 {
 
@@ -151,6 +145,12 @@ bool DomeSim::updateProperties()
         SetupParms();
     }
 
+    return true;
+}
+
+bool DomeSim::Connect()
+{
+    SetTimer(1000);     //  start the timer
     return true;
 }
 
@@ -214,9 +214,10 @@ void DomeSim::TimerHit()
     //  Once every 10 seconds is more than sufficient
     //  with this added, dome simulator will now correctly track telescope simulator
     //  which does not emit new ra/dec co-ords if they are not changing
-    if(TimeSinceUpdate++ > 9) {
-	TimeSinceUpdate=0;
-	UpdateMountCoords();
+    if(isParked() == false && TimeSinceUpdate++ > 9)
+    {
+        TimeSinceUpdate=0;
+        UpdateMountCoords();
     }
     return;
 }
@@ -274,6 +275,12 @@ IPState DomeSim::MoveRel(double azDiff)
 
 IPState DomeSim::Park()
 {
+    if (INDI::Dome::isLocked())
+    {
+        DEBUG(INDI::Logger::DBG_SESSION, "Cannot Park Dome when mount is locking. See: Telescope parking policy, in options tab");
+        return IPS_ALERT;
+    }
+
     targetAz = DomeParamN[1].value;
     Dome::ControlShutter(SHUTTER_CLOSE);
     Dome::MoveAbs(GetAxis1Park());
@@ -306,14 +313,16 @@ bool DomeSim::Abort()
     return true;
 }
 
-void DomeSim::SetCurrentPark()
+bool DomeSim::SetCurrentPark()
 {
     SetAxis1Park(DomeAbsPosN[0].value);
+    return true;
 }
 
-void DomeSim::SetDefaultPark()
+bool DomeSim::SetDefaultPark()
 {
     // By default set position to 90
     SetAxis1Park(90);
+    return true;
 }
 

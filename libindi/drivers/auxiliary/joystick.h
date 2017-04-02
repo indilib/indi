@@ -66,6 +66,8 @@ class JoyStick : public INDI::DefaultDevice
     bool Disconnect();
     const char *getDefaultName();
 
+    bool saveConfigItems(FILE *fp) override;
+
     void setupParams();
 
     void joystickEvent(int joystick_n, double mag, double angle);

@@ -97,23 +97,24 @@ class Logger
          * \brief Type used for the configuration
          */
         enum loggerConf_	{L_nofile_	= 	1 << 0,
-                    L_file_		=	1 << 1,
-                    L_noscreen_	=	1 << 2,
-                    L_screen_	=	1 << 3};
+                             L_file_		=	1 << 1,
+                             L_noscreen_	=	1 << 2,
+                             L_screen_	=	1 << 3
+                         };
 
-    #ifdef LOGGER_MULTITHREAD
+#ifdef LOGGER_MULTITHREAD
         /**
          * \brief Lock for mutual exclusion between different threads
          */
         static pthread_mutex_t lock_;
-    #endif
+#endif
 
         bool configured_;
 
         /**
          * \brief Pointer to the unique Logger (i.e., Singleton)
          */
-        static Logger* m_;
+        static Logger * m_;
 
         /**
          * \brief Initial part of the name of the file used for Logging.
@@ -154,7 +155,7 @@ class Logger
          * \brief Verbosity threshold for screen
          */
         static unsigned int screenVerbosityLevel_;
-            static unsigned int rememberscreenlevel_;
+        static unsigned int rememberscreenlevel_;
 
         Logger();
         ~Logger();
@@ -169,76 +170,92 @@ class Logger
          */
         inline static void unlock();
 
-        static INDI::DefaultDevice *parentDevice;
+        static INDI::DefaultDevice * parentDevice;
 
- public:
-  enum VerbosityLevel
-  {DBG_ERROR=0x1, DBG_WARNING=0x2, DBG_SESSION=0x4, DBG_DEBUG=0x8, DBG_EXTRA_1=0x10,
-   DBG_EXTRA_2=0X20, DBG_EXTRA_3=0x40, DBG_EXTRA_4=0x80};
+    public:
+        enum VerbosityLevel
+        {
+            DBG_ERROR=0x1, DBG_WARNING=0x2, DBG_SESSION=0x4, DBG_DEBUG=0x8, DBG_EXTRA_1=0x10,
+            DBG_EXTRA_2=0X20, DBG_EXTRA_3=0x40, DBG_EXTRA_4=0x80
+        };
 
-    struct switchinit {char name[MAXINDINAME]; char label[MAXINDILABEL]; ISState state; unsigned int levelmask;};
-    static const unsigned int defaultlevel=DBG_ERROR | DBG_WARNING | DBG_SESSION;
-    static const unsigned int nlevels=8;
-    static struct switchinit LoggingLevelSInit[nlevels];
-    static ISwitch LoggingLevelS[nlevels];
-    static ISwitchVectorProperty LoggingLevelSP;
-    static ISwitch ConfigurationS[2];
-    static ISwitchVectorProperty ConfigurationSP;
-    typedef loggerConf_ loggerConf;
-    static const loggerConf file_on= 	L_nofile_;
-    static const loggerConf file_off= 	L_file_;
-    static const loggerConf screen_on= 	L_noscreen_;
-    static const loggerConf screen_off= L_screen_;
-    static unsigned int customLevel;
-    static unsigned int nDevices;
+        struct switchinit
+        {
+            char name[MAXINDINAME];
+            char label[MAXINDILABEL];
+            ISState state;
+            unsigned int levelmask;
+        };
+        static const unsigned int defaultlevel=DBG_ERROR | DBG_WARNING | DBG_SESSION;
+        static const unsigned int nlevels=8;
+        static struct switchinit LoggingLevelSInit[nlevels];
+        static ISwitch LoggingLevelS[nlevels];
+        static ISwitchVectorProperty LoggingLevelSP;
+        static ISwitch ConfigurationS[2];
+        static ISwitchVectorProperty ConfigurationSP;
+        typedef loggerConf_ loggerConf;
+        static const loggerConf file_on= 	L_nofile_;
+        static const loggerConf file_off= 	L_file_;
+        static const loggerConf screen_on= 	L_noscreen_;
+        static const loggerConf screen_off= L_screen_;
+        static unsigned int customLevel;
+        static unsigned int nDevices;
 
-    static std::string getLogFile() { return logFile_;}
-    static loggerConf_ getConfiguration() {return configuration_;}
-    static Logger& getInstance();
+        static std::string getLogFile()
+        {
+            return logFile_;
+        }
+        static loggerConf_ getConfiguration()
+        {
+            return configuration_;
+        }
+        static Logger &getInstance();
+        static bool saveConfigItems(FILE * fp);
 
-    /**
-     * @brief Adds a new debugging level to the driver.
-     *
-     * @param debugLevelName The descriptive debug level defined to the client. e.g. Scope Status
-     * @param LoggingLevelName the short logging level recorded in the logfile. e.g. SCOPE
-     * @return bitmask of the new debugging level to be used for any subsequent calls to DEBUG and DEBUGF to record events to this debug level.
-     */
-    int addDebugLevel(const char *debugLevelName, const char *LoggingLevelName);
+        /**
+         * @brief Adds a new debugging level to the driver.
+         *
+         * @param debugLevelName The descriptive debug level defined to the client. e.g. Scope Status
+         * @param LoggingLevelName the short logging level recorded in the logfile. e.g. SCOPE
+         * @return bitmask of the new debugging level to be used for any subsequent calls to DEBUG and DEBUGF to record events to this debug level.
+         */
+        int addDebugLevel(const char * debugLevelName, const char * LoggingLevelName);
 
-    void print(const char *devicename,
-     const unsigned int		verbosityLevel,
-     const std::string&	sourceFile,
-     const int 		codeLine,
-     //const std::string& 	message,
-     const char *message,
-     ...);
+        void print(const char * devicename,
+                   const unsigned int		verbosityLevel,
+                   const std::string	&sourceFile,
+                   const int 		codeLine,
+                   //const std::string& 	message,
+                   const char * message,
+                   ...);
 
-    void configure (const std::string&	outputFile,  const loggerConf configuration,  const int fileVerbosityLevel, const int	screenVerbosityLevel);
+        void configure (const std::string	&outputFile,  const loggerConf configuration,  const int fileVerbosityLevel, const int	screenVerbosityLevel);
 
-    static struct switchinit DebugLevelSInit[nlevels];
-    static ISwitch DebugLevelS[nlevels];
-    static ISwitchVectorProperty DebugLevelSP;
-    static bool ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n);
-    static bool initProperties(INDI::DefaultDevice *device);
-    static bool updateProperties(bool enable);
-    static char Tags[nlevels][MAXINDINAME];
-    static unsigned int rank(unsigned int l);
+        static struct switchinit DebugLevelSInit[nlevels];
+        static ISwitch DebugLevelS[nlevels];
+        static ISwitchVectorProperty DebugLevelSP;
+        static bool ISNewSwitch (const char * dev, const char * name, ISState * states, char * names[], int n);
+        static bool initProperties(INDI::DefaultDevice * device);
+        static bool updateProperties(bool enable);
+        static char Tags[nlevels][MAXINDINAME];
+        static unsigned int rank(unsigned int l);
 
 
 }; /* Class logger */
 
 inline Logger::loggerConf operator|
-	(Logger::loggerConf __a, Logger::loggerConf __b)
+(Logger::loggerConf __a, Logger::loggerConf __b)
 {
-	return Logger::loggerConf(static_cast<int>(__a) |
-		static_cast<int>(__b));
+    return Logger::loggerConf(static_cast<int>(__a) |
+                              static_cast<int>(__b));
 }
 
 inline Logger::loggerConf operator&
-	(Logger::loggerConf __a, Logger::loggerConf __b)
+(Logger::loggerConf __a, Logger::loggerConf __b)
 {
-	return Logger::loggerConf(static_cast<int>(__a) &
-		static_cast<int>(__b)); }
+    return Logger::loggerConf(static_cast<int>(__a) &
+                              static_cast<int>(__b));
+}
 
 
 }

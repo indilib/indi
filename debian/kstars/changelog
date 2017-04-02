@@ -1,3 +1,15 @@
+kstars-bleeding (5:17.04) zesty; urgency=medium
+
+  * 17.04 Rolling Release. Version 2.7.5
+
+ -- Jasem Mutlaq <mutlaqja@ikarustech.com>  Sun, 26 Feb 2017 14:30:00 +0300
+
+kstars-bleeding (5:16.12) yakkety; urgency=medium
+
+  * 16.12 Rolling Release. Version 2.7.2
+
+ -- Jasem Mutlaq <mutlaqja@ikarustech.com>  Sun, 20 NOV 2016 19:30:00 +0300
+
 kstars-bleeding (5:16.10) yakkety; urgency=medium
 
   * 16.10 Rolling Release. Version 2.6.1

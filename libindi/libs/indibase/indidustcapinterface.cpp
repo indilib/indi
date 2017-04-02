@@ -31,24 +31,24 @@ INDI::DustCapInterface::~DustCapInterface()
 {
 }
 
-void INDI::DustCapInterface::initDustCapProperties(const char *deviceName, const char* groupName)
+void INDI::DustCapInterface::initDustCapProperties(const char * deviceName, const char * groupName)
 {
     strncpy(dustCapName, deviceName, MAXINDIDEVICE);
 
     // Open/Close cover
-    IUFillSwitch(&ParkCapS[0], "PARK", "Park", ISS_OFF);
-    IUFillSwitch(&ParkCapS[1], "UNPARK", "Unpark", ISS_OFF);
+    IUFillSwitch(&ParkCapS[CAP_PARK], "PARK", "Park", ISS_OFF);
+    IUFillSwitch(&ParkCapS[CAP_UNPARK], "UNPARK", "Unpark", ISS_OFF);
     IUFillSwitchVector(&ParkCapSP, ParkCapS, 2, deviceName, "CAP_PARK", "Dust Cover", groupName, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 }
 
-bool INDI::DustCapInterface::processDustCapSwitch (const char *dev, const char *name, ISState *states, char *names[], int n)
+bool INDI::DustCapInterface::processDustCapSwitch (const char * dev, const char * name, ISState * states, char * names[], int n)
 {
     // Park/UnPark Dust Cover
     if (!strcmp(ParkCapSP.name, name))
     {
         int prevSwitch = IUFindOnSwitchIndex(&ParkCapSP);
         IUUpdateSwitch(&ParkCapSP, states, names, n);
-        if (ParkCapS[0].s == ISS_ON)
+        if (ParkCapS[CAP_PARK].s == ISS_ON)
             ParkCapSP.s = ParkCap();
         else
             ParkCapSP.s = UnParkCap();

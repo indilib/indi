@@ -1,28 +1,34 @@
-language: cpp
 compiler: gcc
 language: cpp
 sudo: required
 dist: trusty
-os: linux
+osx_image: xcode8.1
+
+os: 
+ - linux
+ - osx
 
 branches:
   only:
-    - develop
     - master
-    - refactor/unittest 
+    - develop
+    - package
+    - /drv_.*$/
+    - travis
+    - refactor/unittest
+    - feature/travisosx
 
 before_install:
     - echo Install dependencies
-    - travis-ci/deps.sh
+    - travis-ci/deps-${TRAVIS_OS_NAME}.sh
 
 install:
-    - echo Building INDI Core
+    - echo Building INDI Core and drivers
     - travis-ci/build-core.sh 
+    - travis-ci/build-libs.sh 
     - travis-ci/build-3rdparty.sh
-    - travis-ci/build-deb-packages.sh
+    - travis-ci/build-deb-packages.sh 
 
 script:
-    - pwd
-    - cd build/libindi/test
-    - ctest -V
+    - travis-ci/run-tests.sh 
 

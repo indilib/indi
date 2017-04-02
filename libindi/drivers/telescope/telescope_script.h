@@ -36,6 +36,7 @@ public:
   bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n);
   virtual bool Connect();
   virtual bool Disconnect();
+  virtual bool Handshake();
   
 protected:
   

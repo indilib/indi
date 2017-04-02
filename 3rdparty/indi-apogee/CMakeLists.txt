@@ -1,10 +1,13 @@
 cmake_minimum_required(VERSION 2.4.7)
 PROJECT(indi-apogee CXX C)
 
-set(CMAKE_CXX_FLAGS "-std=c++0x ${CMAKE_CXX_FLAGS}")
 LIST(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake_modules/")
 LIST(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/../../cmake_modules/")
 include(GNUInstallDirs)
+
+if (NOT WIN32 AND NOT ANDROID)
+set(CMAKE_CXX_FLAGS "-std=c++11 ${CMAKE_CXX_FLAGS}")
+endif(NOT WIN32 AND NOT ANDROID)
 
 set (APOGEE_VERSION_MAJOR 1)
 set (APOGEE_VERSION_MINOR 5)
@@ -32,7 +35,7 @@ set(indiapogee_SRCS
 
 add_executable(indi_apogee_ccd ${indiapogee_SRCS})
 
-target_link_libraries(indi_apogee_ccd ${INDI_DRIVER_LIBRARIES} ${CFITSIO_LIBRARIES} ${APOGEE_LIBRARY})
+target_link_libraries(indi_apogee_ccd ${INDI_LIBRARIES} ${CFITSIO_LIBRARIES} ${APOGEE_LIBRARY})
 
 install(TARGETS indi_apogee_ccd RUNTIME DESTINATION bin )
 

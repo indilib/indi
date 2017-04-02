@@ -48,8 +48,8 @@ protected:
     // Parking
     virtual bool Park();
     virtual bool UnPark();
-    virtual void SetCurrentPark();
-    virtual void SetDefaultPark();
+    virtual bool SetCurrentPark();
+    virtual bool SetDefaultPark();
 
     INumber SlewAccuracyN[2];
     INumberVectorProperty SlewAccuracyNP;
