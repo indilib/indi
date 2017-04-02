@@ -712,6 +712,7 @@ bool ASICCD::ISNewSwitch (const char *dev, const char *name, ISState *states, ch
             {
                 case ASI_IMG_RAW16:
                     PrimaryCCD.setBPP(16);
+                    DEBUG(INDI::Logger::DBG_WARNING, "Warning: 16bit RAW is not supported on all hardware platforms.");
                     break;
 
                 default:
