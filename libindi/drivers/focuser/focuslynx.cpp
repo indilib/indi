@@ -107,7 +107,7 @@ FocusLynxF1::FocusLynxF1(const char *target)
    * F1 or F2 to set the target of the created instance
    */
   setFocusTarget(target);
-  // explain in connect() function Only set on teh F+ constructor, not on the F2 one
+  // explain in connect() function Only set on the Fx constructor, not on the F2 one
   PortFD = 0;
   DBG_FOCUS = INDI::Logger::getInstance().addDebugLevel("Focus F1 Verbose", "FOCUS F1");
 }
@@ -124,10 +124,10 @@ FocusLynxF1::~FocusLynxF1()
 ***************************************************************************************/
 bool FocusLynxF1::initProperties()
 /* New properties
- * Commun propoerties for both focusers, Hub setting
+ * Common properties for both focusers, Hub setting
  * Only display and managed by Focuser F1
  * TODO:
- * Make this porpoerties writable to give possibility to set these via IndiDriver
+ * Make this properties writable to give possibility to set these via IndiDriver
  */
 {
   FocusLynxBase::initProperties();
@@ -223,7 +223,7 @@ bool FocusLynxF1::Connect()
  *
 * ***********************************************************************************/
 bool FocusLynxF1::Disconnect()
-/* If we deisconnect F1, teh serial socket would be close.
+/* If we disconnect F1, the serial socket would be close.
  * Then in this case we have to disconnect the second focuser F2
  */
 {    

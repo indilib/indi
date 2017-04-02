@@ -74,7 +74,6 @@ public:
   
 protected:  
   // Move from private to public to validate
-  int PortFD;
   bool configurationComplete;
    
   // List all supported models
