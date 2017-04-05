@@ -30,7 +30,7 @@ public:
     virtual ~SkywatcherAPIMount();
 
     //  overrides of base class virtual functions
-    virtual bool Abort();    
+    virtual bool Abort();
     virtual bool Handshake();
     virtual const char *getDefaultName();
     virtual bool Goto(double ra, double dec);
@@ -131,6 +131,11 @@ private:
     struct ln_hrz_posn CurrentAltAz;
     bool ResetTrackingSeconds;
     int TrackingSecs;
+
+    /// Save the serial port name
+    std::string SerialPortName;
+    /// Recover after disconnection
+    bool RecoverAfterReconnection;
 
 #ifdef USE_INITIAL_JULIAN_DATE
     double InitialJulianDate;

@@ -358,7 +358,7 @@ bool SkywatcherAPI::InitializeMC()
     return true;
 }
 
-bool SkywatcherAPI::InitMount()
+bool SkywatcherAPI::InitMount(bool recover)
 {
     MYDEBUG(DBG_SCOPE, "InitMount");
 
@@ -407,8 +407,11 @@ bool SkywatcherAPI::InitMount()
 
     // Set initial axis positions
     // These are used to define the arbitrary zero position vector for the axis
-    ZeroPositionEncoders[AXIS1] = CurrentEncoders[AXIS1];
-    ZeroPositionEncoders[AXIS2] = CurrentEncoders[AXIS2];
+    if (!recover)
+    {
+        ZeroPositionEncoders[AXIS1] = CurrentEncoders[AXIS1];
+        ZeroPositionEncoders[AXIS2] = CurrentEncoders[AXIS2];
+    }
 
     if (!InitializeMC())
         return false;
