@@ -495,6 +495,8 @@ class INDI::Telescope : public INDI::DefaultDevice
 
         void triggerSnoop(const char * driverName, const char * propertyName);
 
+        void updateScopeConfigs();
+
         TelescopeParkData parkDataType;
         bool IsLocked;
         bool IsParked;
@@ -513,6 +515,46 @@ class INDI::Telescope : public INDI::DefaultDevice
 
         uint8_t telescopeConnection = CONNECTION_SERIAL | CONNECTION_TCP;
         INDI::Controller * controller;
+
+        // A switch to apply custom aperture/focal length config
+        enum { SCOPE_CONFIG1, SCOPE_CONFIG2, SCOPE_CONFIG3, SCOPE_CONFIG4 };
+        ISwitch ScopeConfigs[4];
+        ISwitchVectorProperty ScopeConfigsSP;
+
+        // Scope config #1
+        INumber ScopeConfig1N[2];
+        INumberVectorProperty ScopeConfig1NP;
+
+        // Scope config name #1
+        ITextVectorProperty ScopeConfigName1TP;
+        IText ScopeConfigName1T[1];
+
+        // Scope config #2
+        INumber ScopeConfig2N[2];
+        INumberVectorProperty ScopeConfig2NP;
+
+        // Scope config name #2
+        ITextVectorProperty ScopeConfigName2TP;
+        IText ScopeConfigName2T[1];
+
+        // Scope config #3
+        INumber ScopeConfig3N[2];
+        INumberVectorProperty ScopeConfig3NP;
+
+        // Scope config name #3
+        ITextVectorProperty ScopeConfigName3TP;
+        IText ScopeConfigName3T[1];
+
+        // Scope config #4
+        INumber ScopeConfig4N[2];
+        INumberVectorProperty ScopeConfig4NP;
+
+        // Scope config name #4
+        ITextVectorProperty ScopeConfigName4TP;
+        IText ScopeConfigName4T[1];
+
+        /// The applied telescope configuration
+        int CurrentScopeConfig;
 };
 
 #endif // INDI::Telescope_H
