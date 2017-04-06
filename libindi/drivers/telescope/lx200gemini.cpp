@@ -1,80 +1,126 @@
+/*
+    Losmandy Gemini INDI driver
+
+    Copyright (C) 2017 Jasem Mutlaq
+
+    Difference from LX200 Generic:
+
+    1. Added Side of Pier
+    2. Reimplemented isSlewComplete to use :Gv# since it is more reliable
+
+    This library is free software; you can redistribute it and/or
+    modify it under the terms of the GNU Lesser General Public
+    License as published by the Free Software Foundation; either
+    version 2.1 of the License, or (at your option) any later version.
+
+    This library is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+    Lesser General Public License for more details.
+
+    You should have received a copy of the GNU Lesser General Public
+    License along with this library; if not, write to the Free Software
+    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+*/
+
 #include <math.h>
+#include <termios.h>
 #include "lx200gemini.h"
 
 LX200Gemini::LX200Gemini()
 {
-    setVersion(1, 0);
+    setVersion(1, 1);
 
-    IUFillNumber(&SlewAccuracyN[0], "SlewRA",  "RA (arcmin)", "%10.6m",  0., 60., 1., 3.0);
-    IUFillNumber(&SlewAccuracyN[1], "SlewDEC", "Dec (arcmin)", "%10.6m", 0., 60., 1., 3.0);
-    IUFillNumberVector(&SlewAccuracyNP, SlewAccuracyN, NARRAY(SlewAccuracyN), getDeviceName(), "Slew Accuracy", "", OPTIONS_TAB, IP_RW, 0, IPS_IDLE);
+    SetTelescopeCapability(TELESCOPE_CAN_PARK | TELESCOPE_CAN_SYNC | TELESCOPE_CAN_GOTO | TELESCOPE_CAN_ABORT | TELESCOPE_HAS_TIME | TELESCOPE_HAS_LOCATION | TELESCOPE_HAS_PIER_SIDE,4);
 }
-
-bool LX200Gemini::updateProperties()
-{
-    LX200Generic::updateProperties();
-
-    if (isConnected())
-    {
-        defineNumber(&SlewAccuracyNP);
-
-        // Delete unsupported properties
-        deleteProperty(AlignmentSP.name);
-    }
-    else
-    {
-        deleteProperty(SlewAccuracyNP.name);
-    }
-
-    return true;
-}
-
-bool LX200Gemini::ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n)
-{
-    if(strcmp(dev,getDeviceName())==0)
-    {
-        if (!strcmp(name, SlewAccuracyNP.name))
-        {
-            if (IUUpdateNumber(&SlewAccuracyNP, values, names, n) < 0)
-                return false;
-
-            SlewAccuracyNP.s = IPS_OK;
-
-            if (SlewAccuracyN[0].value < 3 || SlewAccuracyN[1].value < 3)
-                IDSetNumber(&SlewAccuracyNP, "Warning: Setting the slew accuracy too low may result in a dead lock");
-
-            IDSetNumber(&SlewAccuracyNP, NULL);
-            return true;
-        }
-    }
-
-    return LX200Generic::ISNewNumber(dev, name, values, names, n);
-}
-
 
 const char * LX200Gemini::getDefaultName()
 {
     return (char *)"Losmandy Gemini";
 }
 
-
 bool LX200Gemini::isSlewComplete()
 {
-    const double dx = targetRA - currentRA;
-    const double dy = targetDEC - currentDEC;
-    bool isComplete = (fabs(dx) <= (SlewAccuracyN[0].value/(900.0))) && (fabs(dy) <= (SlewAccuracyN[1].value/60.0));
+    // Send ':Gv#'
+    const char * cmd = ":Gv#";
+    // Response
+    char response[2] = {0};
+    int rc=0, nbytes_read=0, nbytes_written=0;
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "targetRA: %g currentRA: %g targetDEC: %d currentDEC: %g", targetRA, currentRA, targetDEC, currentDEC);
-    DEBUGF(INDI::Logger::DBG_DEBUG, "isSlewComplete? %s dx: %g dy: %g", isComplete ? "true" : "false", dx, dy);
+    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD: %s", cmd);
 
-    return isComplete;
+    tcflush(PortFD, TCIFLUSH);
+
+    if ( (rc = tty_write(PortFD, cmd, 4, &nbytes_written)) != TTY_OK)
+    {
+        char errmsg[256];
+        tty_error_msg(rc, errmsg, 256);
+        DEBUGF(INDI::Logger::DBG_ERROR, "Error writing to device %s (%d)", errmsg, rc);
+        return false;
+    }
+
+    // Read 1 character
+    if ( (rc = tty_read(PortFD, response, 1, GEMINI_TIMEOUT, &nbytes_read)) != TTY_OK)
+    {
+        char errmsg[256];
+        tty_error_msg(rc, errmsg, 256);
+        DEBUGF(INDI::Logger::DBG_ERROR, "Error reading from device %s (%d)", errmsg, rc);
+        return false;
+    }
+
+    response[1] = '\0';
+
+    tcflush(PortFD, TCIFLUSH);
+
+    DEBUGF(INDI::Logger::DBG_DEBUG, "RES: %s", response);
+
+    if (response[0] == 'T' || response[0] == 'G' || response[0] == 'N')
+        return true;
+    else
+        return false;
 }
 
-bool LX200Gemini::saveConfigItems(FILE *fp)
+bool LX200Gemini::ReadScopeStatus()
 {
-    INDI::Telescope::saveConfigItems(fp);
+   syncSideOfPier();
 
-    IUSaveConfigNumber(fp, &SlewAccuracyNP);
+   return LX200Generic::ReadScopeStatus();
+}
 
-    return true;
+void LX200Gemini::syncSideOfPier()
+{
+    // Send ':Gv#'
+    const char * cmd = ":Gm#";
+    // Response
+    char response[2] = {0};
+    int rc=0, nbytes_read=0, nbytes_written=0;
+
+    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD: %s", cmd);
+
+    tcflush(PortFD, TCIFLUSH);
+
+    if ( (rc = tty_write(PortFD, cmd, 4, &nbytes_written)) != TTY_OK)
+    {
+        char errmsg[256];
+        tty_error_msg(rc, errmsg, 256);
+        DEBUGF(INDI::Logger::DBG_ERROR, "Error writing to device %s (%d)", errmsg, rc);
+        return;
+    }
+
+    // Read 1 character
+    if ( (rc = tty_read(PortFD, response, 1, GEMINI_TIMEOUT, &nbytes_read)) != TTY_OK)
+    {
+        char errmsg[256];
+        tty_error_msg(rc, errmsg, 256);
+        DEBUGF(INDI::Logger::DBG_ERROR, "Error reading from device %s (%d)", errmsg, rc);
+        return;
+    }
+
+    response[1] = '\0';
+
+    tcflush(PortFD, TCIFLUSH);
+
+    DEBUGF(INDI::Logger::DBG_DEBUG, "RES: %s", response);
+
+    setPierSide(response[0] == 'E' ? INDI::Telescope::PIER_EAST : INDI::Telescope::PIER_WEST);
 }

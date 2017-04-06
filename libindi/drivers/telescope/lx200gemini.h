@@ -1,9 +1,12 @@
 /*
     Losmandy Gemini INDI driver
 
-    Copyright (C) 2014 Sean Houghton
+    Copyright (C) 2017 Jasem Mutlaq
 
-    Basic LX200 command set with tweaks to support Gemini
+    Difference from LX200 Generic:
+
+    1. Added Side of Pier
+    2. Reimplemented isSlewComplete to use :Gv# since it is more reliable
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -32,18 +35,15 @@ public:
     LX200Gemini();
     ~LX200Gemini() {}
 
-    virtual bool updateProperties();
-    virtual bool ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n);
-
 protected:
-
     virtual const char *getDefaultName();
     virtual bool isSlewComplete();
+    virtual bool ReadScopeStatus();
 
-    virtual bool saveConfigItems(FILE *fp);
+private:
+    void syncSideOfPier();
 
-    INumber SlewAccuracyN[2];
-    INumberVectorProperty SlewAccuracyNP;
+    const uint8_t GEMINI_TIMEOUT = 3;
 
 };
 
