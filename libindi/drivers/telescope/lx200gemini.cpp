@@ -42,16 +42,16 @@ const char * LX200Gemini::getDefaultName()
 bool LX200Gemini::isSlewComplete()
 {
     // Send ':Gv#'
-    const char * cmd = ":Gv#";
+    const char * cmd = "#:Gv#";
     // Response
     char response[2] = {0};
     int rc=0, nbytes_read=0, nbytes_written=0;
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD: %s", cmd);
+    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD: <%s>", cmd);
 
-    tcflush(PortFD, TCIFLUSH);
+    tcflush(PortFD, TCIOFLUSH);
 
-    if ( (rc = tty_write(PortFD, cmd, 4, &nbytes_written)) != TTY_OK)
+    if ( (rc = tty_write(PortFD, cmd, 5, &nbytes_written)) != TTY_OK)
     {
         char errmsg[256];
         tty_error_msg(rc, errmsg, 256);
@@ -70,9 +70,9 @@ bool LX200Gemini::isSlewComplete()
 
     response[1] = '\0';
 
-    tcflush(PortFD, TCIFLUSH);
+    tcflush(PortFD, TCIOFLUSH);
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "RES: %s", response);
+    DEBUGF(INDI::Logger::DBG_DEBUG, "RES: <%s>", response);
 
     if (response[0] == 'T' || response[0] == 'G' || response[0] == 'N')
         return true;
@@ -90,16 +90,16 @@ bool LX200Gemini::ReadScopeStatus()
 void LX200Gemini::syncSideOfPier()
 {
     // Send ':Gv#'
-    const char * cmd = ":Gm#";
+    const char * cmd = "#:Gm#";
     // Response
     char response[2] = {0};
     int rc=0, nbytes_read=0, nbytes_written=0;
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD: %s", cmd);
+    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD: <%s>", cmd);
 
-    tcflush(PortFD, TCIFLUSH);
+    tcflush(PortFD, TCIOFLUSH);
 
-    if ( (rc = tty_write(PortFD, cmd, 4, &nbytes_written)) != TTY_OK)
+    if ( (rc = tty_write(PortFD, cmd, 5, &nbytes_written)) != TTY_OK)
     {
         char errmsg[256];
         tty_error_msg(rc, errmsg, 256);
@@ -108,7 +108,7 @@ void LX200Gemini::syncSideOfPier()
     }
 
     // Read 1 character
-    if ( (rc = tty_read(PortFD, response, 1, GEMINI_TIMEOUT, &nbytes_read)) != TTY_OK)
+    if ( (rc = tty_read_section(PortFD, response, '#', GEMINI_TIMEOUT, &nbytes_read)) != TTY_OK)
     {
         char errmsg[256];
         tty_error_msg(rc, errmsg, 256);
@@ -116,11 +116,11 @@ void LX200Gemini::syncSideOfPier()
         return;
     }
 
-    response[1] = '\0';
+    response[nbytes_read-1] = '\0';
 
-    tcflush(PortFD, TCIFLUSH);
+    tcflush(PortFD, TCIOFLUSH);
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "RES: %s", response);
+    DEBUGF(INDI::Logger::DBG_DEBUG, "RES: <%s>", response);
 
     setPierSide(response[0] == 'E' ? INDI::Telescope::PIER_EAST : INDI::Telescope::PIER_WEST);
 }
