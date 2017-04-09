@@ -28,6 +28,7 @@
 #include <stdio.h>
 #include <stdarg.h>
 #include <string.h>
+#include <sys/ioctl.h>   /* ioctl()*/   
 
 #include <indilogger.h>
 
@@ -99,6 +100,8 @@ enum {
 };
 
 static char device[64];
+
+int RTS_flag = TIOCM_RTS;
 
 void gphoto_set_debug(const char *name)
 {
@@ -438,6 +441,7 @@ static void *stop_bulb(void *arg)
                         gphoto_set_widget_num(gphoto, gphoto->bulb_widget, FALSE);
                     }
                 } else {
+                    ioctl(gphoto->bulb_fd,TIOCMBIC,&RTS_flag); 
                     close(gphoto->bulb_fd);
                 }
                 gphoto->command |= DSLR_CMD_DONE;
@@ -605,7 +609,11 @@ int gphoto_mirrorlock(gphoto_driver *gphoto, int msec)
             //pthread_mutex_unlock(&gphoto->mutex);
             return -1;
         }
+        
+        ioctl(gphoto->bulb_fd,TIOCMBIS,&RTS_flag);
+        
         usleep(20000);
+        ioctl(gphoto->bulb_fd,TIOCMBIC,&RTS_flag);
         close(gphoto->bulb_fd);
         gphoto->bulb_fd = -1;
         usleep(msec*1000 - 20000);
@@ -700,6 +708,7 @@ int gphoto_start_exposure(gphoto_driver *gphoto, unsigned int exptime_msec, int 
                 pthread_mutex_unlock(&gphoto->mutex);
                 return -1;
             }
+            ioctl(gphoto->bulb_fd,TIOCMBIS,&RTS_flag);
         }
         // if no bulb port (external shutter release) is specified, let's use the internal bulb widget
         else if (gphoto->bulb_widget)
@@ -753,6 +762,9 @@ int gphoto_start_exposure(gphoto_driver *gphoto, unsigned int exptime_msec, int 
             pthread_mutex_unlock(&gphoto->mutex);
             return -1;
         }
+        
+        ioctl(gphoto->bulb_fd,TIOCMBIS,&RTS_flag);
+        
         // Preparing exposure: we let stop_bulb() close the serial port although this could be done here as well
         // because the camera closes the shutter.
         gettimeofday(&gphoto->bulb_end, NULL);
