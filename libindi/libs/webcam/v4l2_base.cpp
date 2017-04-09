@@ -575,7 +575,7 @@ int V4L2_Base::read_frame(char * errmsg)
                     struct timeval epochtime = {0};
                     /*gettimeofday(&epochtime, NULL); uncomment this to get the timestamp from epoch start */
 
-                    float const secs = ( epochtime.tv_sec - uptime.tv_sec + buf.timestamp.tv_sec ) + (epochtime.tv_usec - uptime.tv_nsec/1000.0f + buf.timestamp.tv_usec)/1000.0f;
+                    float const secs = ( epochtime.tv_sec - uptime.tv_sec + buf.timestamp.tv_sec ) + (epochtime.tv_usec - uptime.tv_nsec/1000.0f + buf.timestamp.tv_usec)/1000000.0f;
 
                     if( V4L2_BUF_FLAG_TSTAMP_SRC_SOE == ( buf.flags & V4L2_BUF_FLAG_TSTAMP_SRC_MASK ) )
                     {
