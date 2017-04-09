@@ -200,7 +200,16 @@ bool V4L2_Base::is_compressed() const
 {
     /* See note at top of this file */
 #if ( LINUX_VERSION_CODE >= KERNEL_VERSION(3,17,0) )
-    return fmt.fmt.pix.flags & V4L2_FMT_FLAG_COMPRESSED;
+    switch(fmt.fmt.pix.pixelformat)
+    {
+        case V4L2_PIX_FMT_MJPEG:
+            DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG,"%s: format %c%c%c%c patched to be considered compressed",__FUNCTION__,fmt.fmt.pix.pixelformat,fmt.fmt.pix.pixelformat>>8,fmt.fmt.pix.pixelformat>>16,fmt.fmt.pix.pixelformat>>24);
+            return true;
+
+        default:
+            DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG,"%s: format %c%c%c%c has compressed flag %d",__FUNCTION__,fmt.fmt.pix.pixelformat,fmt.fmt.pix.pixelformat>>8,fmt.fmt.pix.pixelformat>>16,fmt.fmt.pix.pixelformat>>24,fmt.fmt.pix.flags & V4L2_FMT_FLAG_COMPRESSED);
+            return fmt.fmt.pix.flags & V4L2_FMT_FLAG_COMPRESSED;
+    }
 #else
     switch(fmt.fmt.pix.pixelformat)
     {
