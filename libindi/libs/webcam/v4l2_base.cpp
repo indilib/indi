@@ -285,8 +285,11 @@ V4L2_Base::ioctl_set_format(struct v4l2_format new_fmt, char * errmsg)
     {
         close_device();
 
-        if( !open_device(path, errmsg) )
+        if( open_device(path, errmsg) )
+        {
+            DEBUGFDEVICE(deviceName,INDI::Logger::DBG_DEBUG,"%s: failed reopening device %s (%s)",__FUNCTION__,path,errmsg);
             return -1;
+        }
     }
 
     /* Trying format with VIDIOC_TRY_FMT has no interesting advantage here */
@@ -1317,7 +1320,7 @@ int V4L2_Base::open_device(const char * devpath, char * errmsg)
     }
 
     streamedonce=false;
-
+    snprintf(errmsg,ERRMSGSIZ,"%s\n",strerror(0));
     return 0;
 }
 
