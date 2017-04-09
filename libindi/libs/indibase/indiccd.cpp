@@ -1586,7 +1586,7 @@ void INDI::CCD::addFITSKeywords(fitsfile * fptr, CCDChip * targetChip)
     char dev_name[32];
     char exp_start[32];
     double exposureDuration;
-    double pixSize1,pixSize2;
+    float pixSize1,pixSize2;
     unsigned int xbin, ybin;
 
     char * orig = setlocale(LC_NUMERIC,"C");
@@ -1642,10 +1642,10 @@ void INDI::CCD::addFITSKeywords(fitsfile * fptr, CCDChip * targetChip)
         fits_update_key_s(fptr, TDOUBLE, "DARKTIME", &(exposureDuration), "Total Exposure Time (s)", &status);
 
     if (HasCooler())
-        fits_update_key_s(fptr, TDOUBLE, "CCD-TEMP" , &(TemperatureN[0].value), "CCD Temperature (Celcius)", &status);
+        fits_update_key_s(fptr, TDOUBLE, "CCD-TEMP" , &(TemperatureN[0].value), "CCD Temperature (Celsius)", &status);
 
-    fits_update_key_s(fptr, TDOUBLE, "PIXSIZE1", &(pixSize1), "Pixel Size 1 (microns)", &status);
-    fits_update_key_s(fptr, TDOUBLE, "PIXSIZE2", &(pixSize2), "Pixel Size 2 (microns)", &status);
+    fits_update_key_s(fptr, TFLOAT, "PIXSIZE1", &(pixSize1), "Pixel Size 1 (microns)", &status);
+    fits_update_key_s(fptr, TFLOAT, "PIXSIZE2", &(pixSize2), "Pixel Size 2 (microns)", &status);
     fits_update_key_s(fptr, TUINT, "XBINNING", &(xbin) , "Binning factor in width", &status);
     fits_update_key_s(fptr, TUINT, "YBINNING", &(ybin), "Binning factor in height", &status);
     fits_update_key_s(fptr, TSTRING, "FRAME", frame_s, "Frame Type", &status);
