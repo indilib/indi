@@ -40,6 +40,7 @@ public:
     virtual bool ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n);
     virtual bool ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n);
     virtual bool ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n);
+    void UpdateScopeConfigs();
     double GetSlewRate();
     virtual bool MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command);
     virtual bool MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command);
@@ -124,6 +125,46 @@ private:
                     PREVIOUS_WE_MOTION_EAST = DIRECTION_EAST,
                     PREVIOUS_WE_MOTION_UNKNOWN = -1} PreviousWEMotion_t;
     PreviousWEMotion_t PreviousWEMotion;
+
+    // A switch to apply custom aperture/focal length config
+    enum { SCOPE_CONFIG1, SCOPE_CONFIG2, SCOPE_CONFIG3, SCOPE_CONFIG4 };
+    ISwitch ScopeConfigs[4];
+    ISwitchVectorProperty ScopeConfigsSP;
+
+    // Scope config #1
+    INumber ScopeConfig1N[2];
+    INumberVectorProperty ScopeConfig1NP;
+
+    // Scope config name #1
+    ITextVectorProperty ScopeConfigName1TP;
+    IText ScopeConfigName1T[1];
+
+    // Scope config #2
+    INumber ScopeConfig2N[2];
+    INumberVectorProperty ScopeConfig2NP;
+
+    // Scope config name #2
+    ITextVectorProperty ScopeConfigName2TP;
+    IText ScopeConfigName2T[1];
+
+    // Scope config #3
+    INumber ScopeConfig3N[2];
+    INumberVectorProperty ScopeConfig3NP;
+
+    // Scope config name #3
+    ITextVectorProperty ScopeConfigName3TP;
+    IText ScopeConfigName3T[1];
+
+    // Scope config #4
+    INumber ScopeConfig4N[2];
+    INumberVectorProperty ScopeConfig4NP;
+
+    // Scope config name #4
+    ITextVectorProperty ScopeConfigName4TP;
+    IText ScopeConfigName4T[1];
+
+    /// The applied telescope configuration
+    int CurrentScopeConfig;
 
     // Tracking
     ln_equ_posn CurrentTrackingTarget;
