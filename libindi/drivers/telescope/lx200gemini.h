@@ -35,13 +35,35 @@ public:
     LX200Gemini();
     ~LX200Gemini() {}
 
+    virtual void ISGetProperties(const char *dev);
+    virtual bool ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n);
+
 protected:
     virtual const char *getDefaultName();
+
+    virtual bool initProperties();
+    virtual bool updateProperties();
+
     virtual bool isSlewComplete();
     virtual bool ReadScopeStatus();
 
+    virtual bool Park();
+    virtual bool UnPark();
+
+    virtual bool checkConnection();
+
+    virtual bool saveConfigItems(FILE *fp);
+
 private:
     void syncSideOfPier();
+
+    ISwitch ParkOptionS[3];
+    ISwitchVectorProperty ParkOptionsSP;
+    enum { PARK_HOME, PARK_STARTUP, PARK_ZENITH };
+
+    ISwitch StartupModeS[3];
+    ISwitchVectorProperty StartupModeSP;
+    enum { COLD_START, WARM_START, WARM_RESTART };
 
     const uint8_t GEMINI_TIMEOUT = 3;
 
