@@ -77,8 +77,8 @@ void ISSnoopDevice (XMLEle *root)
 
 TemmaMount::TemmaMount()
 {    
-    SetTelescopeCapability(TELESCOPE_CAN_PARK | TELESCOPE_CAN_ABORT | TELESCOPE_CAN_SYNC | TELESCOPE_HAS_TIME | TELESCOPE_HAS_LOCATION ,TEMMA_SLEW_RATES);
-    //SetTelescopeCapability(TELESCOPE_CAN_PARK | TELESCOPE_CAN_ABORT | TELESCOPE_CAN_SYNC | TELESCOPE_HAS_TIME | TELESCOPE_HAS_LOCATION);
+    SetTelescopeCapability(TELESCOPE_CAN_PARK | TELESCOPE_CAN_ABORT | TELESCOPE_CAN_SYNC | TELESCOPE_CAN_GOTO | TELESCOPE_HAS_TIME | TELESCOPE_HAS_LOCATION ,TEMMA_SLEW_RATES);
+    //SetTelescopeCapability(TELESCOPE_CAN_PARK | TELESCOPE_CAN_ABORT | TELESCOPE_CAN_SYNC | TELESCOPE_CAN_GOTO | TELESCOPE_HAS_TIME | TELESCOPE_HAS_LOCATION);
     SetParkDataType(PARK_RA_DEC);
 	GotoInProgress=false;
 	ParkInProgress=false;
@@ -119,8 +119,8 @@ bool TemmaMount::initProperties()
     //  call base class
     r=INDI::Telescope::initProperties();
 
-    SetTelescopeCapability(TELESCOPE_CAN_PARK | TELESCOPE_CAN_ABORT | TELESCOPE_CAN_SYNC | TELESCOPE_HAS_TIME | TELESCOPE_HAS_LOCATION, TEMMA_SLEW_RATES);
-    //SetTelescopeCapability(TELESCOPE_CAN_PARK | TELESCOPE_CAN_ABORT | TELESCOPE_CAN_SYNC | TELESCOPE_HAS_TIME | TELESCOPE_HAS_LOCATION);
+    SetTelescopeCapability(TELESCOPE_CAN_PARK | TELESCOPE_CAN_ABORT | TELESCOPE_CAN_SYNC | TELESCOPE_CAN_GOTO | TELESCOPE_HAS_TIME | TELESCOPE_HAS_LOCATION, TEMMA_SLEW_RATES);
+    //SetTelescopeCapability(TELESCOPE_CAN_PARK | TELESCOPE_CAN_ABORT | TELESCOPE_CAN_SYNC | TELESCOPE_CAN_GOTO | TELESCOPE_HAS_TIME | TELESCOPE_HAS_LOCATION);
     SetParkDataType(PARK_RA_DEC_ENCODER);
 	initGuiderProperties(getDeviceName(), MOTION_TAB);
 
@@ -455,7 +455,7 @@ bool TemmaMount::UnPark()
     return true;
 }
 
-void TemmaMount::SetCurrentPark()
+bool TemmaMount::SetCurrentPark()
 {
 	double lha;
 	double lst;
@@ -472,14 +472,18 @@ void TemmaMount::SetCurrentPark()
 	SetAxis1Park(lha);
 	SetAxis2Park(currentDEC);
 
+    return true;
+
 }
 
-void TemmaMount::SetDefaultPark()
+bool TemmaMount::SetDefaultPark()
 {
     // By default az to north, and alt to pole
     IDMessage(getDeviceName(),"Setting Park Data to Default.");
     SetAxis1Park(18);
     SetAxis2Park(90);
+
+    return true;
 }
 
 bool  TemmaMount::Abort()
@@ -1032,71 +1036,26 @@ bool TemmaMount::SetTemmaLattitude(double lat)
 #include <unistd.h>
 #include <fcntl.h>
 
-
-//  Stolen directly from the telescope base class
-bool TemmaMount::Connect(const char *port, uint32_t baud)
+bool TemmaMount::Handshake()
 {
-    //  We want to connect to a port
-    //  For now, we will assume it's a serial port
-    int connectrc=0;
-    char errorMsg[MAXRBUF];
-    bool rc;
-
-    DEBUGF(INDI::Logger::DBG_DEBUG,"Connecting even parity %d baud",baud);
-
-    if ( (connectrc = tty_connect(port, baud, 8, 1, 1, &PortFD)) != TTY_OK)
-    {
-        tty_error_msg(connectrc, errorMsg, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_DEBUG,"connect error %s",errorMsg);
-        //DEBUGF(Logger::DBG_ERROR,"Failed to connect to port %s. Error: %s", port, errorMsg);
-
+    DEBUG(INDI::Logger::DBG_DEBUG,"Calling get version");
+    bool rc=GetTemmaVersion();
+    if (!rc)
         return false;
 
-    }
-    DEBUG(INDI::Logger::DBG_DEBUG,"Calling get version");
-    rc=GetTemmaVersion();
-	//if(!rc) {
-	//	rc=GetTemmaVersion();
-	//}
-    if(!rc) {
-
-        DEBUGF(INDI::Logger::DBG_DEBUG,"Attempt clearing hack fd is %d",PortFD);
-
-            DEBUG(INDI::Logger::DBG_DEBUG,"Do disconnect");
-			//  Start by disconnecting the port
-			tty_disconnect(PortFD);
-			sleep(1);
-			//rc=TemmaConnect(port);
-			//if(!rc) return false;
-
-   			if ( (connectrc = tty_connect(port, baud, 8, 1, 1, &PortFD)) != TTY_OK)
-    		{
-        		tty_error_msg(connectrc, errorMsg, MAXRBUF);
-                DEBUGF(INDI::Logger::DBG_DEBUG,"connect error on second connect %s",errorMsg);
-        		//DEBUGF(Logger::DBG_ERROR,"Failed to connect to port %s. Error: %s", port, errorMsg);
-
-        		return false;
-
-    		}
-            DEBUGF(INDI::Logger::DBG_DEBUG,"Try get version again port is %d",PortFD);
-        	rc=GetTemmaVersion();
-			if(!rc) {
-                DEBUG(INDI::Logger::DBG_DEBUG,"Disconnect port");
-    	    	tty_disconnect(PortFD);
-	        	return false;
-			}
-		
-    }
-
-	rc=GetTemmaLst();
-	if(rc) {
+    rc=GetTemmaLst();
+    if(rc)
+    {
         DEBUG(INDI::Logger::DBG_DEBUG,"Temma is intialized");
-		TemmaInitialized=true;
-	} else {
+        TemmaInitialized=true;
+    }
+    else
+    {
         DEBUG(INDI::Logger::DBG_DEBUG,"Temma is not initialized");
-		TemmaInitialized=false;
-	}
-	GetTemmaMotorStatus();
+        TemmaInitialized=false;
+    }
+
+    GetTemmaMotorStatus();
     return true;
 }
 

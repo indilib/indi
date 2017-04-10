@@ -63,16 +63,16 @@ class IndiDevice : public INDI::DefaultDriver
         virtual void TimerHit();
 
         //  The function dispatchers required for all drivers
-        virtual void ISGetProperties (const char *dev);
-        virtual bool ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n);
-        virtual bool ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n);
-        virtual bool ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n);
-        virtual void ISSnoopDevice (XMLEle *root);
+        virtual void ISGetProperties (const char * dev);
+        virtual bool ISNewNumber (const char * dev, const char * name, double values[], char * names[], int n);
+        virtual bool ISNewText (const char * dev, const char * name, char * texts[], char * names[], int n);
+        virtual bool ISNewSwitch (const char * dev, const char * name, ISState * states, char * names[], int n);
+        virtual void ISSnoopDevice (XMLEle * root);
 
         //  some virtual functions that our underlying classes are meant to override
         virtual bool Connect();
         virtual bool Disconnect();
-        virtual char *getDefaultName()=0;
+        virtual char * getDefaultName()=0;
 
         virtual bool SaveConfig();
         virtual bool LoadConfig();
@@ -80,7 +80,7 @@ class IndiDevice : public INDI::DefaultDriver
 
 };
 
-extern IndiDevice *device;
-extern IndiDevice *_create_device();
+extern IndiDevice * device;
+extern IndiDevice * _create_device();
 
 #endif // INDIDEVICE_H

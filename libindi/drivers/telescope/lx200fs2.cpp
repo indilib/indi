@@ -25,7 +25,7 @@ LX200FS2::LX200FS2() : LX200Generic()
 {
     setVersion(2, 1);   
 
-    SetTelescopeCapability(TELESCOPE_CAN_PARK | TELESCOPE_CAN_SYNC | TELESCOPE_CAN_ABORT | TELESCOPE_HAS_LOCATION,4);
+    SetTelescopeCapability(TELESCOPE_CAN_PARK | TELESCOPE_CAN_SYNC | TELESCOPE_CAN_GOTO | TELESCOPE_CAN_ABORT | TELESCOPE_HAS_LOCATION,4);
 }
 
 bool LX200FS2::initProperties()
@@ -229,7 +229,7 @@ bool LX200FS2::UnPark()
 
 }
 
-void LX200FS2::SetCurrentPark()
+bool LX200FS2::SetCurrentPark()
 {
     ln_hrz_posn horizontalPos;
     // Libnova south = 0, west = 90, north = 180, east = 270
@@ -258,13 +258,17 @@ void LX200FS2::SetCurrentPark()
 
     SetAxis1Park(parkAZ);
     SetAxis2Park(parkAlt);
+
+    return true;
 }
 
-void LX200FS2::SetDefaultPark()
+bool LX200FS2::SetDefaultPark()
 {
     // By defualt azimuth 0
     SetAxis1Park(0);
 
     // Altitude = latitude of observer
     SetAxis2Park(LocationN[LOCATION_LATITUDE].value);
+
+    return true;
 }

@@ -36,9 +36,7 @@ class LX200Generic: public INDI::Telescope, public INDI::GuiderInterface
 
     virtual const char *getDefaultName();
     virtual const char * getDriverName();
-    virtual bool Connect();
-    virtual bool Connect(const char *port, uint32_t baud);
-    virtual bool Disconnect();
+    virtual bool Handshake();
     virtual bool ReadScopeStatus();
     virtual void ISGetProperties(const char *dev);
     virtual bool initProperties();
@@ -53,6 +51,7 @@ class LX200Generic: public INDI::Telescope, public INDI::GuiderInterface
   protected:
 
     virtual bool SetSlewRate(int index);
+    virtual bool SetTrackMode(int mode);
     virtual bool MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command);
     virtual bool MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command);
     virtual bool Abort();
@@ -72,7 +71,7 @@ class LX200Generic: public INDI::Telescope, public INDI::GuiderInterface
     virtual bool isSlewComplete();
     virtual bool checkConnection();
 
-    virtual void debugTriggered(bool enable);    
+    virtual void debugTriggered(bool enable);
 
     virtual void getBasicData();
     void slewError(int slewCode);
@@ -85,9 +84,7 @@ class LX200Generic: public INDI::Telescope, public INDI::GuiderInterface
     static void guideTimeoutHelper(void *p);
 
     int    GuideNSTID;
-    int    GuideWETID;
-
-    uint32_t updatePeriodMS;                        // Period in milliseconds to call ReadScopeStatus()
+    int    GuideWETID;    
 
     int timeFormat;
     int currentSiteNum;
@@ -100,6 +97,7 @@ class LX200Generic: public INDI::Telescope, public INDI::GuiderInterface
     double targetRA, targetDEC;
     double currentRA, currentDEC;
     int MaxReticleFlashRate;
+    bool hasFocus=true;
 
   /* Telescope Alignment Mode */
   ISwitchVectorProperty AlignmentSP;

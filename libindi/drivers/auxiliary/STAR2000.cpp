@@ -186,11 +186,10 @@ bool STAR2000::ISNewText (const char *dev, const char *name, char *texts[], char
 {
     if(strcmp(name,PortTP.name)==0)
     {
-	int rc;
-	PortTP.s=IPS_OK;
-        rc=IUUpdateText(&PortTP,texts,names,n);
+        PortTP.s=IPS_OK;
+        IUUpdateText(&PortTP,texts,names,n);
         IDSetText(&PortTP,NULL);
- 
+
         return(true);
     }
 

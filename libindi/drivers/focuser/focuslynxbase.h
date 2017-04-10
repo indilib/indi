@@ -37,6 +37,7 @@ public:
   
   virtual bool Connect();
   virtual bool Disconnect();
+  virtual bool Handshake();
   const char * getDefaultName();
   virtual bool initProperties();
   virtual void ISGetProperties(const char *dev);
@@ -74,7 +75,6 @@ public:
   
 protected:  
   // Move from private to public to validate
-  int PortFD;
   bool configurationComplete;
    
   // List all supported models

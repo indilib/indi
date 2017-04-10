@@ -181,17 +181,17 @@ bool LX200GPS::updateProperties()
 
           if (index == 0)
           {
-           err = gpsSleep(PortFD);
+           gpsSleep(PortFD);
            strncpy(msg, "GPS system is in sleep mode.",64);
           }
           else if (index == 1)
           {
-             err = gpsWakeUp(PortFD);
+             gpsWakeUp(PortFD);
              strncpy(msg, "GPS system is reactivated.", 64);
           }
           else
           {
-           err = gpsRestart(PortFD);
+           gpsRestart(PortFD);
            strncpy(msg, "GPS system is restarting...", 64);
            sendScopeTime();
            sendScopeLocation();
@@ -250,12 +250,12 @@ bool LX200GPS::updateProperties()
 
           if (index == 0)
           {
-            err = enableDecAltPec(PortFD);
+            enableDecAltPec(PortFD);
             strncpy (msg, "Alt/Dec Compensation Enabled.", 64);
           }
           else
           {
-            err = disableDecAltPec(PortFD);
+            disableDecAltPec(PortFD);
             strncpy (msg, "Alt/Dec Compensation Disabled.", 64);
           }
 
@@ -276,12 +276,12 @@ bool LX200GPS::updateProperties()
 
            if (index == 0)
           {
-            err = enableRaAzPec(PortFD);
+            enableRaAzPec(PortFD);
             strncpy (msg, "Ra/Az Compensation Enabled.", 64);
           }
           else
           {
-            err = disableRaAzPec(PortFD);
+            disableRaAzPec(PortFD);
             strncpy (msg, "Ra/Az Compensation Disabled.", 64);
           }
 

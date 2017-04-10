@@ -397,11 +397,11 @@ void Magellan1::ISPoll()
 
 void Magellan1::getBasicData()
 {
-  char caldendarDate[10];
+  char calendarDate[32];
   int err;
 
   /* Magellan 1 Get Calendar Date As a Test (always 1/1/96) */
-  if ( (err = getCalenderDate(fd, caldendarDate)) < 0)
+  if ( (err = getCalendarDate(fd, calendarDate)) < 0)
      IDMessage(thisDevice, "Failed to retrieve calendar date from device.");
   else
      IDMessage(thisDevice, "Successfully retrieved calendar date from device.");

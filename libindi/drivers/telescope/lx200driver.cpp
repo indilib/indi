@@ -72,7 +72,7 @@ int getSiteLatitude(int fd, int *dd, int *mm);
 /* Get site Longitude */
 int getSiteLongitude(int fd, int *ddd, int *mm);
 /* Get Calender data */
-int getCalenderDate(int fd, char *date);
+int getCalendarDate(int fd, char *date);
 /* Get site Name */
 int getSiteName(int fd, char *siteName, int siteNum);
 /* Get Home Search Status */
@@ -89,7 +89,7 @@ int getTimeFormat(int fd, int *format);
 
 /* Set Int */
 int setCommandInt(int fd, int data, const char *cmd);
-/* Set Sexigesimal */
+/* Set Sexagesimal */
 int setCommandXYZ(int fd, int x, int y, int z, const char *cmd);
 /* Common routine for Set commands */
 int setStandardProcedure(int fd, const char * writeData);
@@ -101,7 +101,7 @@ int setAlignmentMode(int fd, unsigned int alignMode);
 int setObjectRA(int fd, double ra);
 /* set Object DEC */
 int setObjectDEC(int fd, double dec);
-/* Set Calender date */
+/* Set Calendar date */
 int setCalenderDate(int fd, int dd, int mm, int yy);
 /* Set UTC offset */
 int setUTCOffset(int fd, double hours);
@@ -151,8 +151,10 @@ int SendPulseCmd(int fd, int direction, int duration_msec);
 /**************************************************************************
  Other Commands
  **************************************************************************/
- /* Ensures LX200 RA/DEC format is long */
+/* Determines LX200 RA/DEC format, tries to set to long if found short */
 int checkLX200Format(int fd);
+/* return the controller_format enum value */
+int getLX200Format(void);
 /* Select a site from the LX200 controller */
 int selectSite(int fd, int siteNum);
 /* Select a catalog object */
@@ -347,33 +349,38 @@ int isSlewComplete(int fd)
 
 }
 
-int getCalenderDate(int fd, char *date)
+int getCalendarDate(int fd, char *date)
 {
- DEBUGFDEVICE(lx200Name, DBG_SCOPE, "<%s>", __FUNCTION__);
- int dd, mm, yy;
- int error_type;
- int nbytes_read=0;
- char mell_prefix[3];
+    DEBUGFDEVICE(lx200Name, DBG_SCOPE, "<%s>", __FUNCTION__);
+    int dd, mm, yy, YYYY;
+    int error_type;
+    int nbytes_read=0;
+    char mell_prefix[3];
+    int len = 0;
 
- if ( (error_type = getCommandString(fd, date, ":GC#")) )
-   return error_type;
-
-  /* Meade format is MM/DD/YY */
-  nbytes_read = sscanf(date, "%d%*c%d%*c%d", &mm, &dd, &yy);
-  if (nbytes_read < 3)
-   return -1;
-
-  /* We consider years 50 or more to be in the last century, anything less in the 21st century.*/
-  if (yy > 50)
-	strncpy(mell_prefix, "19", 3);
-  else
-	strncpy(mell_prefix, "20", 3);
-
- /* We need to have in in YYYY/MM/DD format */
- snprintf(date, 16, "%s%02d/%02d/%02d", mell_prefix, yy, mm, dd);
-
- return (0);
-
+    if ( (error_type = getCommandString(fd, date, ":GC#")) )
+        return error_type;
+    len = strnlen(date,32);
+    if (len == 10) {
+        /* 10Micron Ultra Precision mode calendar date format is YYYY-MM-DD */
+        nbytes_read = sscanf(date, "%4d-%2d-%2d", &YYYY, &mm, &dd);
+        if (nbytes_read < 3)
+            return -1;
+        /* We're done, date is already in ISO format */
+    } else {
+        /* Meade format is MM/DD/YY */
+        nbytes_read = sscanf(date, "%d%*c%d%*c%d", &mm, &dd, &yy);
+        if (nbytes_read < 3)
+            return -1;
+        /* We consider years 50 or more to be in the last century, anything less in the 21st century.*/
+        if (yy > 50)
+	        strncpy(mell_prefix, "19", 3);
+        else
+	        strncpy(mell_prefix, "20", 3);
+        /* We need to have it in YYYY-MM-DD ISO format */
+        snprintf(date, 16, "%s%02d/%02d/%02d", mell_prefix, yy, mm, dd);
+    }
+    return (0);
 }
 
 int getTimeFormat(int fd, int *format)
@@ -736,56 +743,77 @@ int setMaxSlewRate(int fd, int slewRate)
 
 int setObjectRA(int fd, double ra)
 {
+    DEBUGFDEVICE(lx200Name, DBG_SCOPE, "<%s>", __FUNCTION__);
 
- DEBUGFDEVICE(lx200Name, DBG_SCOPE, "<%s>", __FUNCTION__);
+    int h, m, s;
+    char temp_string[22];
 
- int h, m, s, frac_m;
- char temp_string[16];
+    switch(controller_format) {
+    case LX200_LONG_FORMAT:
+        getSexComponents(ra, &h, &m, &s);
+        snprintf(temp_string, sizeof( temp_string ), ":Sr %02d:%02d:%02d#", h, m, s);
+    break;
+    case LX200_LONGER_FORMAT:
+        double d_s;
+        getSexComponentsIID(ra, &h, &m, &d_s);
+        snprintf(temp_string, sizeof( temp_string ), ":Sr %02d:%02d:%05.02f#", h, m, d_s);
+    break;
+    case LX200_SHORT_FORMAT:
+        int frac_m;
+        getSexComponents(ra, &h, &m, &s);
+        frac_m = (s / 60.0) * 10.;
+        snprintf(temp_string, sizeof( temp_string ), ":Sr %02d:%02d.%01d#", h, m, frac_m);
+    break;
+    default:
+        DEBUGFDEVICE(lx200Name, DBG_SCOPE, "Unknown controller_format <%d>", controller_format);
+        return -1;
+    break;
+    }
 
- getSexComponents(ra, &h, &m, &s);
-
- frac_m = (s / 60.0) * 10.;
-
- if (controller_format == LX200_LONG_FORMAT)
-    snprintf(temp_string, sizeof( temp_string ), ":Sr %02d:%02d:%02d#", h, m, s);
- else
-    snprintf(temp_string, sizeof( temp_string ), ":Sr %02d:%02d.%01d#", h, m, frac_m);
-
- return (setStandardProcedure(fd, temp_string));
+    return (setStandardProcedure(fd, temp_string));
 }
 
 
 int setObjectDEC(int fd, double dec)
 {
-  DEBUGFDEVICE(lx200Name, DBG_SCOPE, "<%s>", __FUNCTION__);
+    DEBUGFDEVICE(lx200Name, DBG_SCOPE, "<%s>", __FUNCTION__);
 
-  int d, m, s;
-  char temp_string[16];
+    int d, m, s;
+    char temp_string[22];
 
-  getSexComponents(dec, &d, &m, &s);
-
-  switch(controller_format)
-  {
- 
-    case LX200_SHORT_FORMAT:
-    /* case with negative zero */
-    if (!d && dec < 0)
-        snprintf(temp_string, sizeof( temp_string ), ":Sd -%02d*%02d#", d, m);
-    else	
-        snprintf(temp_string, sizeof( temp_string ), ":Sd %+03d*%02d#", d, m);
-    break;
-
+    switch(controller_format) {
     case LX200_LONG_FORMAT:
-    /* case with negative zero */
-    if (!d && dec < 0)
-        snprintf(temp_string, sizeof( temp_string ), ":Sd -%02d:%02d:%02d#", d, m, s);
-    else	
-        snprintf(temp_string, sizeof( temp_string ), ":Sd %+03d:%02d:%02d#", d, m, s);
+        getSexComponents(dec, &d, &m, &s);
+        /* case with negative zero */
+        if (!d && dec < 0)
+            snprintf(temp_string, sizeof( temp_string ), ":Sd -%02d:%02d:%02d#", d, m, s);
+        else
+            snprintf(temp_string, sizeof( temp_string ), ":Sd %+03d:%02d:%02d#", d, m, s);
     break;
-  }
+    case LX200_LONGER_FORMAT:
+        double d_s;
+        getSexComponentsIID(dec, &d, &m, &d_s);
+        /* case with negative zero */
+        if (!d && dec < 0)
+            snprintf(temp_string, sizeof( temp_string ), ":Sd -%02d:%02d:%05.02f#", d, m, d_s);
+        else
+            snprintf(temp_string, sizeof( temp_string ), ":Sd %+03d:%02d:%05.02f#", d, m, d_s);
+    break;
+    case LX200_SHORT_FORMAT:
+        getSexComponents(dec, &d, &m, &s);
+        /* case with negative zero */
+        if (!d && dec < 0)
+            snprintf(temp_string, sizeof( temp_string ), ":Sd -%02d*%02d#", d, m);
+        else
+            snprintf(temp_string, sizeof( temp_string ), ":Sd %+03d*%02d#", d, m);
+    break;
+    default:
+        DEBUGFDEVICE(lx200Name, DBG_SCOPE, "Unknown controller_format <%d>", controller_format);
+        return -1;
+    break;
+    }
   
-  return (setStandardProcedure(fd, temp_string));
-
+    return (setStandardProcedure(fd, temp_string));
 }
 
 int setCommandXYZ(int fd, int x, int y, int z, const char *cmd)
@@ -1350,6 +1378,11 @@ int selectSubCatalog(int fd, int catalog, int subCatalog)
   return (setStandardProcedure(fd, temp_string));
 }
 
+int getLX200Format(void)
+{
+	return controller_format;
+}
+
 int checkLX200Format(int fd)
 {
   char temp_string[16];
@@ -1360,14 +1393,14 @@ int checkLX200Format(int fd)
   DEBUGFDEVICE(lx200Name, DBG_SCOPE, "CMD <%s>", ":GR#");
 
   if ( (error_type = tty_write_string(fd, ":GR#", &nbytes_write)) != TTY_OK)
-    	   return error_type;
+      return error_type;
 
   error_type = tty_read_section(fd, temp_string, '#', LX200_TIMEOUT, &nbytes_read);
   
   if (nbytes_read < 1)
   {
       DEBUGFDEVICE(lx200Name, DBG_SCOPE, "RES ERROR <%d>", error_type);
-   return error_type;
+      return error_type;
   }
    
   temp_string[nbytes_read - 1] = '\0';
@@ -1380,6 +1413,12 @@ int checkLX200Format(int fd)
       DEBUGDEVICE(lx200Name, DBG_SCOPE, "Detected low precision format, attempting to switch to high precision.");
       if ( (error_type = tty_write_string(fd, ":U#", &nbytes_write)) != TTY_OK)
           return error_type;
+  }
+  else if (temp_string[8] == '.')
+  {
+      controller_format = LX200_LONGER_FORMAT;
+      DEBUGDEVICE(lx200Name, DBG_SCOPE, "Coordinate format is ultra high precision.");
+      return 0;
   }
   else
   {

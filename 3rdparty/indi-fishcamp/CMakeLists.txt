@@ -29,7 +29,7 @@ set(fishcampccd_SRCS
 
 add_executable(indi_fishcamp_ccd ${fishcampccd_SRCS})
 
-target_link_libraries(indi_fishcamp_ccd ${FISHCAMP_LIBRARIES} ${INDI_DRIVER_LIBRARIES} ${CFITSIO_LIBRARIES} m ${ZLIB_LIBRARY})
+target_link_libraries(indi_fishcamp_ccd ${FISHCAMP_LIBRARIES} ${INDI_LIBRARIES} ${CFITSIO_LIBRARIES} m ${ZLIB_LIBRARY})
 
 install(TARGETS indi_fishcamp_ccd RUNTIME DESTINATION bin)
 

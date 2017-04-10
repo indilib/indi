@@ -1,11 +1,13 @@
 cmake_minimum_required(VERSION 2.4.7)
 PROJECT(aagcloudwatcher CXX C)
 
-set(CMAKE_CXX_FLAGS "-std=c++0x ${CMAKE_CXX_FLAGS}")
-
 LIST(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake_modules/")
 LIST(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/../../cmake_modules/")
 include(GNUInstallDirs)
+
+if (NOT WIN32 AND NOT ANDROID)
+set(CMAKE_CXX_FLAGS "-std=c++11 ${CMAKE_CXX_FLAGS}")
+endif(NOT WIN32 AND NOT ANDROID)
 
 set (AAG_VERSION_MAJOR 1)
 set (AAG_VERSION_MINOR 3)
@@ -26,7 +28,7 @@ set(indiaag_SRCS
    )
 
 add_executable(indi_aagcloudwatcher ${indiaag_SRCS})
-target_link_libraries(indi_aagcloudwatcher ${INDI_DRIVER_LIBRARIES})
+target_link_libraries(indi_aagcloudwatcher ${INDI_LIBRARIES})
 
 set(test_SRCS
    ${CMAKE_CURRENT_SOURCE_DIR}/main.cpp

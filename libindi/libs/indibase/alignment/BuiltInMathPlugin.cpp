@@ -10,17 +10,19 @@
 #include <gsl/gsl_linalg.h>
 #include <gsl/gsl_blas.h>
 
-namespace INDI {
-namespace AlignmentSubsystem {
+namespace INDI
+{
+namespace AlignmentSubsystem
+{
 
 // Private methods
 
-void  BuiltInMathPlugin::CalculateTransformMatrices(const TelescopeDirectionVector& Alpha1, const TelescopeDirectionVector& Alpha2, const TelescopeDirectionVector& Alpha3,
-                            const TelescopeDirectionVector& Beta1, const TelescopeDirectionVector& Beta2, const TelescopeDirectionVector& Beta3,
-                            gsl_matrix *pAlphaToBeta, gsl_matrix *pBetaToAlpha)
+void  BuiltInMathPlugin::CalculateTransformMatrices(const TelescopeDirectionVector &Alpha1, const TelescopeDirectionVector &Alpha2, const TelescopeDirectionVector &Alpha3,
+        const TelescopeDirectionVector &Beta1, const TelescopeDirectionVector &Beta2, const TelescopeDirectionVector &Beta3,
+        gsl_matrix * pAlphaToBeta, gsl_matrix * pBetaToAlpha)
 {
     // Derive the Actual to Apparent transformation matrix
-    gsl_matrix *pAlphaMatrix = gsl_matrix_alloc(3, 3);
+    gsl_matrix * pAlphaMatrix = gsl_matrix_alloc(3, 3);
     gsl_matrix_set(pAlphaMatrix, 0, 0, Alpha1.x);
     gsl_matrix_set(pAlphaMatrix, 1, 0, Alpha1.y);
     gsl_matrix_set(pAlphaMatrix, 2, 0, Alpha1.z);
@@ -33,7 +35,7 @@ void  BuiltInMathPlugin::CalculateTransformMatrices(const TelescopeDirectionVect
 
     Dump3x3("AlphaMatrix", pAlphaMatrix);
 
-    gsl_matrix *pBetaMatrix = gsl_matrix_alloc(3, 3);
+    gsl_matrix * pBetaMatrix = gsl_matrix_alloc(3, 3);
     gsl_matrix_set(pBetaMatrix, 0, 0, Beta1.x);
     gsl_matrix_set(pBetaMatrix, 1, 0, Beta1.y);
     gsl_matrix_set(pBetaMatrix, 2, 0, Beta1.z);
@@ -48,7 +50,7 @@ void  BuiltInMathPlugin::CalculateTransformMatrices(const TelescopeDirectionVect
 
     // Use the quick and dirty method
     // This can result in matrices which are not true transforms
-    gsl_matrix *pInvertedAlphaMatrix = gsl_matrix_alloc(3, 3);
+    gsl_matrix * pInvertedAlphaMatrix = gsl_matrix_alloc(3, 3);
 
     if (!MatrixInvert3x3(pAlphaMatrix, pInvertedAlphaMatrix))
     {

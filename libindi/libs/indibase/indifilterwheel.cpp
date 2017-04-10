@@ -17,6 +17,8 @@
 *******************************************************************************/
 
 #include "indifilterwheel.h"
+#include "connectionplugins/connectionserial.h"
+#include "connectionplugins/connectiontcp.h"
 
 #include <string.h>
 
@@ -47,10 +49,31 @@ bool INDI::FilterWheel::initProperties()
 
     setDriverInterface(FILTER_INTERFACE);
 
+    if (filterConnection & CONNECTION_SERIAL)
+    {
+        serialConnection = new Connection::Serial(this);
+        serialConnection->registerHandshake([&]()
+        {
+            return callHandshake();
+        });
+        registerConnection(serialConnection);
+    }
+
+    if (filterConnection & CONNECTION_TCP)
+    {
+        tcpConnection = new Connection::TCP(this);
+        tcpConnection->registerHandshake([&]()
+        {
+            return callHandshake();
+        });
+
+        registerConnection(tcpConnection);
+    }
+
     return true;
 }
 
-void INDI::FilterWheel::ISGetProperties (const char *dev)
+void INDI::FilterWheel::ISGetProperties (const char * dev)
 {
     //  First we let our parent populate
     //IDLog("INDI::FilterWheel::ISGetProperties %s\n",dev);
@@ -63,7 +86,7 @@ void INDI::FilterWheel::ISGetProperties (const char *dev)
             GetFilterNames(FILTER_TAB);
 
         if (FilterNameT)
-           defineText(FilterNameTP);
+            defineText(FilterNameTP);
     }
 
     controller->ISGetProperties(dev);
@@ -85,7 +108,8 @@ bool INDI::FilterWheel::updateProperties()
 
         if (FilterNameT)
             defineText(FilterNameTP);
-    } else
+    }
+    else
     {
         deleteProperty(FilterSlotNP.name);
         deleteProperty(FilterNameTP->name);
@@ -95,13 +119,13 @@ bool INDI::FilterWheel::updateProperties()
     return true;
 }
 
-bool INDI::FilterWheel::ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n)
+bool INDI::FilterWheel::ISNewSwitch (const char * dev, const char * name, ISState * states, char * names[], int n)
 {
     controller->ISNewSwitch(dev, name, states, names, n);
     return DefaultDevice::ISNewSwitch(dev, name, states, names,n);
 }
 
-bool INDI::FilterWheel::ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n)
+bool INDI::FilterWheel::ISNewNumber (const char * dev, const char * name, double values[], char * names[], int n)
 {
     //  first check if it's for our device
     //IDLog("INDI::FilterWheel::ISNewNumber %s\n",name);
@@ -121,7 +145,7 @@ bool INDI::FilterWheel::ISNewNumber (const char *dev, const char *name, double v
     return DefaultDevice::ISNewNumber(dev,name,values,names,n);
 }
 
-bool INDI::FilterWheel::ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n)
+bool INDI::FilterWheel::ISNewText (const char * dev, const char * name, char * texts[], char * names[], int n)
 {
     //  Ok, lets see if this is a property wer process
     //IDLog("INDI::FilterWheel got %d new text items name %s\n",n,name);
@@ -142,7 +166,7 @@ bool INDI::FilterWheel::ISNewText (const char *dev, const char *name, char *text
     return DefaultDevice::ISNewText(dev,name,texts,names,n);
 }
 
-bool INDI::FilterWheel::saveConfigItems(FILE *fp)
+bool INDI::FilterWheel::saveConfigItems(FILE * fp)
 {
     DefaultDevice::saveConfigItems(fp);
 
@@ -171,13 +195,13 @@ bool INDI::FilterWheel::SetFilterNames()
 }
 
 
-bool INDI::FilterWheel::GetFilterNames(const char* groupName)
+bool INDI::FilterWheel::GetFilterNames(const char * groupName)
 {
     INDI_UNUSED(groupName);
     return false;
 }
 
-bool INDI::FilterWheel::ISSnoopDevice (XMLEle *root)
+bool INDI::FilterWheel::ISSnoopDevice (XMLEle * root)
 {
     controller->ISSnoopDevice(root);
 
@@ -185,14 +209,14 @@ bool INDI::FilterWheel::ISSnoopDevice (XMLEle *root)
 }
 
 
-void INDI::FilterWheel::joystickHelper(const char * joystick_n, double mag, double angle, void *context)
+void INDI::FilterWheel::joystickHelper(const char * joystick_n, double mag, double angle, void * context)
 {
     static_cast<INDI::FilterWheel *>(context)->processJoystick(joystick_n, mag, angle);
 }
 
-void INDI::FilterWheel::buttonHelper(const char *button_n, ISState state, void *context)
+void INDI::FilterWheel::buttonHelper(const char * button_n, ISState state, void * context)
 {
-     static_cast<INDI::FilterWheel *>(context)->processButton(button_n, state);
+    static_cast<INDI::FilterWheel *>(context)->processButton(button_n, state);
 }
 
 void INDI::FilterWheel::processJoystick(const char * joystick_n, double mag, double angle)
@@ -227,7 +251,7 @@ void INDI::FilterWheel::processJoystick(const char * joystick_n, double mag, dou
 
             }
 
-         }
+        }
     }
 
 }
@@ -245,4 +269,35 @@ void INDI::FilterWheel::processButton(const char * button_n, ISState state)
         SelectFilter(TargetFilter);
     }
 
+}
+
+bool INDI::FilterWheel::Handshake()
+{
+    return false;
+}
+
+bool INDI::FilterWheel::callHandshake()
+{
+    if (filterConnection > 0)
+    {
+        if (getActiveConnection() == serialConnection)
+            PortFD = serialConnection->getPortFD();
+        else if (getActiveConnection() == tcpConnection)
+            PortFD = tcpConnection->getPortFD();
+    }
+
+    return Handshake();
+}
+
+void INDI::FilterWheel::setFilterConnection(const uint8_t &value)
+{
+    uint8_t mask = CONNECTION_SERIAL | CONNECTION_TCP;
+
+    if (value > 0 && (mask & value) == 0)
+    {
+        DEBUGF(INDI::Logger::DBG_ERROR, "Invalid connection mode %d", value);
+        return;
+    }
+
+    filterConnection = value;
 }

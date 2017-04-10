@@ -49,8 +49,7 @@ public:
     Microtouch();
     ~Microtouch();
 
-    virtual bool Connect();
-    virtual bool Disconnect();
+    virtual bool Handshake();
     const char * getDefaultName();
     virtual bool initProperties();
     virtual bool updateProperties();
@@ -65,7 +64,6 @@ public:
 
 private:
 
-    int PortFD;
     double targetPos, lastPos, lastTemperature;
     unsigned int currentSpeed;
 
@@ -93,7 +91,7 @@ private:
     bool WriteCmdGetResponse(char cmd,char* readbuffer, char numbytes);
     char WriteCmdGetByte(char cmd);
     bool WriteCmdSetByte(char cmd, char val);
-    unsigned short int WriteCmdGetShortInt(char cmd);
+    signed short int WriteCmdGetShortInt(char cmd);
     bool WriteCmdSetShortInt(char cmd, short int val);
     int WriteCmdGetInt(char cmd);
     bool WriteCmdSetInt(char cmd, int val);

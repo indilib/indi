@@ -12,35 +12,37 @@
 
 #include <indicom.h>
 
-namespace INDI {
-namespace AlignmentSubsystem {
+namespace INDI
+{
+namespace AlignmentSubsystem
+{
 
 ClientAPIForAlignmentDatabase::ClientAPIForAlignmentDatabase() :   Device(NULL),
-                                    MandatoryNumbers(NULL),
-                                    OptionalBinaryBlob(NULL),
-                                    PointsetSize(NULL),
-                                    CurrentEntry(NULL),
-                                    Action(NULL),
-                                    Commit(NULL),
-                                    DriverActionComplete(false)
+    MandatoryNumbers(NULL),
+    OptionalBinaryBlob(NULL),
+    PointsetSize(NULL),
+    CurrentEntry(NULL),
+    Action(NULL),
+    Commit(NULL),
+    DriverActionComplete(false)
 {
     pthread_cond_init(&DriverActionCompleteCondition, NULL);
     pthread_mutex_init(&DriverActionCompleteMutex, NULL);
 }
 
- ClientAPIForAlignmentDatabase::~ClientAPIForAlignmentDatabase()
- {
+ClientAPIForAlignmentDatabase::~ClientAPIForAlignmentDatabase()
+{
     pthread_cond_destroy(&DriverActionCompleteCondition);
     pthread_mutex_destroy(&DriverActionCompleteMutex);
- }
+}
 
-bool ClientAPIForAlignmentDatabase::AppendSyncPoint(const AlignmentDatabaseEntry& CurrentValues)
+bool ClientAPIForAlignmentDatabase::AppendSyncPoint(const AlignmentDatabaseEntry &CurrentValues)
 {
     // Wait for driver to initialise if neccessary
     WaitForDriverCompletion();
 
-    ISwitchVectorProperty *pAction = Action->getSwitch();
-    ISwitchVectorProperty *pCommit = Commit->getSwitch();
+    ISwitchVectorProperty * pAction = Action->getSwitch();
+    ISwitchVectorProperty * pCommit = Commit->getSwitch();
 
 
     if (APPEND != IUFindOnSwitchIndex(pAction))
@@ -81,8 +83,8 @@ bool ClientAPIForAlignmentDatabase::ClearSyncPoints()
     // Wait for driver to initialise if neccessary
     WaitForDriverCompletion();
 
-    ISwitchVectorProperty *pAction = Action->getSwitch();
-    ISwitchVectorProperty *pCommit = Commit->getSwitch();
+    ISwitchVectorProperty * pAction = Action->getSwitch();
+    ISwitchVectorProperty * pCommit = Commit->getSwitch();
 
     // Select the required action
     if (CLEAR != IUFindOnSwitchIndex(pAction))
@@ -119,9 +121,9 @@ bool ClientAPIForAlignmentDatabase::DeleteSyncPoint(unsigned int Offset)
     // Wait for driver to initialise if neccessary
     WaitForDriverCompletion();
 
-    ISwitchVectorProperty *pAction = Action->getSwitch();
-    INumberVectorProperty *pCurrentEntry = CurrentEntry->getNumber();
-    ISwitchVectorProperty *pCommit = Commit->getSwitch();
+    ISwitchVectorProperty * pAction = Action->getSwitch();
+    INumberVectorProperty * pCurrentEntry = CurrentEntry->getNumber();
+    ISwitchVectorProperty * pCommit = Commit->getSwitch();
 
     // Select the required action
     if (DELETE != IUFindOnSwitchIndex(pAction))
@@ -165,15 +167,15 @@ bool ClientAPIForAlignmentDatabase::DeleteSyncPoint(unsigned int Offset)
     return true;
 }
 
-bool ClientAPIForAlignmentDatabase::EditSyncPoint(unsigned int Offset, const AlignmentDatabaseEntry& CurrentValues)
+bool ClientAPIForAlignmentDatabase::EditSyncPoint(unsigned int Offset, const AlignmentDatabaseEntry &CurrentValues)
 {
     // Wait for driver to initialise if neccessary
     WaitForDriverCompletion();
 
-    ISwitchVectorProperty *pAction = Action->getSwitch();
-    INumberVectorProperty *pMandatoryNumbers = MandatoryNumbers->getNumber();
-    INumberVectorProperty *pCurrentEntry = CurrentEntry->getNumber();
-    ISwitchVectorProperty *pCommit = Commit->getSwitch();
+    ISwitchVectorProperty * pAction = Action->getSwitch();
+    INumberVectorProperty * pMandatoryNumbers = MandatoryNumbers->getNumber();
+    INumberVectorProperty * pCurrentEntry = CurrentEntry->getNumber();
+    ISwitchVectorProperty * pCommit = Commit->getSwitch();
 
     // Select the required action
     if (EDIT != IUFindOnSwitchIndex(pAction))
@@ -225,20 +227,20 @@ const int ClientAPIForAlignmentDatabase::GetDatabaseSize()
     return 0;
 }
 
-void ClientAPIForAlignmentDatabase::Initialise(INDI::BaseClient *BaseClient)
+void ClientAPIForAlignmentDatabase::Initialise(INDI::BaseClient * BaseClient)
 {
     ClientAPIForAlignmentDatabase::BaseClient = BaseClient;
 }
 
-bool ClientAPIForAlignmentDatabase::InsertSyncPoint(unsigned int Offset, const AlignmentDatabaseEntry& CurrentValues)
+bool ClientAPIForAlignmentDatabase::InsertSyncPoint(unsigned int Offset, const AlignmentDatabaseEntry &CurrentValues)
 {
     // Wait for driver to initialise if neccessary
     WaitForDriverCompletion();
 
-    ISwitchVectorProperty *pAction = Action->getSwitch();
-    INumberVectorProperty *pMandatoryNumbers = MandatoryNumbers->getNumber();
-    INumberVectorProperty *pCurrentEntry = CurrentEntry->getNumber();
-    ISwitchVectorProperty *pCommit = Commit->getSwitch();
+    ISwitchVectorProperty * pAction = Action->getSwitch();
+    INumberVectorProperty * pMandatoryNumbers = MandatoryNumbers->getNumber();
+    INumberVectorProperty * pCurrentEntry = CurrentEntry->getNumber();
+    ISwitchVectorProperty * pCommit = Commit->getSwitch();
 
     // Select the required action
     if (INSERT != IUFindOnSwitchIndex(pAction))
@@ -290,8 +292,8 @@ bool ClientAPIForAlignmentDatabase::LoadDatabase()
     // Wait for driver to initialise if neccessary
     WaitForDriverCompletion();
 
-    ISwitchVectorProperty *pAction = Action->getSwitch();
-    ISwitchVectorProperty *pCommit = Commit->getSwitch();
+    ISwitchVectorProperty * pAction = Action->getSwitch();
+    ISwitchVectorProperty * pCommit = Commit->getSwitch();
 
     // Select the required action
     if (LOAD_DATABASE != IUFindOnSwitchIndex(pAction))
@@ -324,13 +326,13 @@ bool ClientAPIForAlignmentDatabase::LoadDatabase()
     return true;
 }
 
-void ClientAPIForAlignmentDatabase::ProcessNewBLOB(IBLOB *BLOBPointer)
+void ClientAPIForAlignmentDatabase::ProcessNewBLOB(IBLOB * BLOBPointer)
 {
     if (!strcmp(BLOBPointer->bvp->name, "ALIGNMENT_POINT_OPTIONAL_BINARY_BLOB"))
     {
         if (IPS_BUSY != BLOBPointer->bvp->s)
         {
-            ISwitchVectorProperty *pAction = Action->getSwitch();
+            ISwitchVectorProperty * pAction = Action->getSwitch();
             int Index = IUFindOnSwitchIndex(pAction);
             if ((READ != Index) && (READ_INCREMENT != Index))
                 SignalDriverCompletion();
@@ -338,18 +340,18 @@ void ClientAPIForAlignmentDatabase::ProcessNewBLOB(IBLOB *BLOBPointer)
     }
 }
 
-void ClientAPIForAlignmentDatabase::ProcessNewDevice(INDI::BaseDevice *DevicePointer)
+void ClientAPIForAlignmentDatabase::ProcessNewDevice(INDI::BaseDevice * DevicePointer)
 {
     Device = DevicePointer;
 }
 
-void ClientAPIForAlignmentDatabase::ProcessNewNumber(INumberVectorProperty *NumberVectorProperty)
+void ClientAPIForAlignmentDatabase::ProcessNewNumber(INumberVectorProperty * NumberVectorProperty)
 {
     if (!strcmp(NumberVectorProperty->name, "ALIGNMENT_POINT_MANDATORY_NUMBERS"))
     {
         if (IPS_BUSY != NumberVectorProperty->s)
         {
-            ISwitchVectorProperty *pAction = Action->getSwitch();
+            ISwitchVectorProperty * pAction = Action->getSwitch();
             int Index = IUFindOnSwitchIndex(pAction);
             if ((READ != Index) && (READ_INCREMENT != Index))
                 SignalDriverCompletion();
@@ -359,7 +361,7 @@ void ClientAPIForAlignmentDatabase::ProcessNewNumber(INumberVectorProperty *Numb
     {
         if (IPS_BUSY != NumberVectorProperty->s)
         {
-            ISwitchVectorProperty *pAction = Action->getSwitch();
+            ISwitchVectorProperty * pAction = Action->getSwitch();
             int Index = IUFindOnSwitchIndex(pAction);
             if (READ_INCREMENT != Index)
                 SignalDriverCompletion();
@@ -367,7 +369,7 @@ void ClientAPIForAlignmentDatabase::ProcessNewNumber(INumberVectorProperty *Numb
     }
 }
 
-void ClientAPIForAlignmentDatabase::ProcessNewProperty(INDI::Property *PropertyPointer)
+void ClientAPIForAlignmentDatabase::ProcessNewProperty(INDI::Property * PropertyPointer)
 {
     int ReturnCode;
     bool GotOneOfMine = true;
@@ -393,12 +395,12 @@ void ClientAPIForAlignmentDatabase::ProcessNewProperty(INDI::Property *PropertyP
 
     // Tell the client when all the database proeprties have been set up
     if (GotOneOfMine
-                && (NULL != MandatoryNumbers)
-                && (NULL != OptionalBinaryBlob)
-                && (NULL != PointsetSize)
-                && (NULL != CurrentEntry)
-                && (NULL != Action)
-                && (NULL != Commit))
+            && (NULL != MandatoryNumbers)
+            && (NULL != OptionalBinaryBlob)
+            && (NULL != PointsetSize)
+            && (NULL != CurrentEntry)
+            && (NULL != Action)
+            && (NULL != Commit))
     {
         // The DriverActionComplete state variable is initialised to false
         // So I need to call this to set it to true and signal anyone
@@ -407,7 +409,7 @@ void ClientAPIForAlignmentDatabase::ProcessNewProperty(INDI::Property *PropertyP
     }
 }
 
-void ClientAPIForAlignmentDatabase::ProcessNewSwitch(ISwitchVectorProperty *SwitchVectorProperty)
+void ClientAPIForAlignmentDatabase::ProcessNewSwitch(ISwitchVectorProperty * SwitchVectorProperty)
 {
     if (!strcmp(SwitchVectorProperty->name, "ALIGNMENT_POINTSET_ACTION"))
     {
@@ -421,16 +423,16 @@ void ClientAPIForAlignmentDatabase::ProcessNewSwitch(ISwitchVectorProperty *Swit
     }
 }
 
-bool ClientAPIForAlignmentDatabase::ReadIncrementSyncPoint(AlignmentDatabaseEntry& CurrentValues)
+bool ClientAPIForAlignmentDatabase::ReadIncrementSyncPoint(AlignmentDatabaseEntry &CurrentValues)
 {
     // Wait for driver to initialise if neccessary
     WaitForDriverCompletion();
 
-    ISwitchVectorProperty *pAction = Action->getSwitch();
-    INumberVectorProperty *pMandatoryNumbers = MandatoryNumbers->getNumber();
-    IBLOBVectorProperty   *pBLOB = OptionalBinaryBlob->getBLOB();
-    INumberVectorProperty *pCurrentEntry = CurrentEntry->getNumber();
-    ISwitchVectorProperty *pCommit = Commit->getSwitch();
+    ISwitchVectorProperty * pAction = Action->getSwitch();
+    INumberVectorProperty * pMandatoryNumbers = MandatoryNumbers->getNumber();
+    IBLOBVectorProperty  * pBLOB = OptionalBinaryBlob->getBLOB();
+    INumberVectorProperty * pCurrentEntry = CurrentEntry->getNumber();
+    ISwitchVectorProperty * pCommit = Commit->getSwitch();
 
     // Select the required action
     if (READ_INCREMENT != IUFindOnSwitchIndex(pAction))
@@ -457,10 +459,10 @@ bool ClientAPIForAlignmentDatabase::ReadIncrementSyncPoint(AlignmentDatabaseEntr
     if ((IPS_OK != pCommit->s) || (IPS_OK != pMandatoryNumbers->s) || (IPS_OK != pBLOB->s) || (IPS_OK != pCurrentEntry->s))
     {
         IDLog("ReadIncrementSyncPoint - Bad Commit/Mandatory numbers/Blob/Current entry state %s %s %s %s\n",
-                                                                        pstateStr(pCommit->s),
-                                                                        pstateStr(pMandatoryNumbers->s),
-                                                                        pstateStr(pBLOB->s),
-                                                                        pstateStr(pCurrentEntry->s));
+              pstateStr(pCommit->s),
+              pstateStr(pMandatoryNumbers->s),
+              pstateStr(pBLOB->s),
+              pstateStr(pCurrentEntry->s));
         return false;
     }
 
@@ -475,16 +477,16 @@ bool ClientAPIForAlignmentDatabase::ReadIncrementSyncPoint(AlignmentDatabaseEntr
     return true;
 }
 
-bool ClientAPIForAlignmentDatabase::ReadSyncPoint(unsigned int Offset, AlignmentDatabaseEntry& CurrentValues)
+bool ClientAPIForAlignmentDatabase::ReadSyncPoint(unsigned int Offset, AlignmentDatabaseEntry &CurrentValues)
 {
     // Wait for driver to initialise if neccessary
     WaitForDriverCompletion();
 
-    ISwitchVectorProperty *pAction = Action->getSwitch();
-    INumberVectorProperty *pMandatoryNumbers = MandatoryNumbers->getNumber();
-    IBLOBVectorProperty   *pBLOB = OptionalBinaryBlob->getBLOB();
-    INumberVectorProperty *pCurrentEntry = CurrentEntry->getNumber();
-    ISwitchVectorProperty *pCommit = Commit->getSwitch();
+    ISwitchVectorProperty * pAction = Action->getSwitch();
+    INumberVectorProperty * pMandatoryNumbers = MandatoryNumbers->getNumber();
+    IBLOBVectorProperty  * pBLOB = OptionalBinaryBlob->getBLOB();
+    INumberVectorProperty * pCurrentEntry = CurrentEntry->getNumber();
+    ISwitchVectorProperty * pCommit = Commit->getSwitch();
 
     // Select the required action
     if (READ != IUFindOnSwitchIndex(pAction))
@@ -522,8 +524,8 @@ bool ClientAPIForAlignmentDatabase::ReadSyncPoint(unsigned int Offset, Alignment
     if ((IPS_OK != pCommit->s) || (IPS_OK != pMandatoryNumbers->s) || (IPS_OK != pBLOB->s))
     {
         IDLog("ReadSyncPoint - Bad Commit/Mandatory numbers/Blob state %s %s %s\n", pstateStr(pCommit->s),
-                                                                                    pstateStr(pMandatoryNumbers->s),
-                                                                                    pstateStr(pBLOB->s));
+              pstateStr(pMandatoryNumbers->s),
+              pstateStr(pBLOB->s));
         return false;
     }
 
@@ -543,8 +545,8 @@ bool ClientAPIForAlignmentDatabase::SaveDatabase()
     // Wait for driver to initialise if neccessary
     WaitForDriverCompletion();
 
-    ISwitchVectorProperty *pAction = Action->getSwitch();
-    ISwitchVectorProperty *pCommit = Commit->getSwitch();
+    ISwitchVectorProperty * pAction = Action->getSwitch();
+    ISwitchVectorProperty * pCommit = Commit->getSwitch();
 
     // Select the required action
     if (SAVE_DATABASE != IUFindOnSwitchIndex(pAction))
@@ -579,10 +581,10 @@ bool ClientAPIForAlignmentDatabase::SaveDatabase()
 
 // Private methods
 
-bool ClientAPIForAlignmentDatabase::SendEntryData(const AlignmentDatabaseEntry& CurrentValues)
+bool ClientAPIForAlignmentDatabase::SendEntryData(const AlignmentDatabaseEntry &CurrentValues)
 {
-    INumberVectorProperty *pMandatoryNumbers = MandatoryNumbers->getNumber();
-    IBLOBVectorProperty   *pBLOB = OptionalBinaryBlob->getBLOB();
+    INumberVectorProperty * pMandatoryNumbers = MandatoryNumbers->getNumber();
+    IBLOBVectorProperty  * pBLOB = OptionalBinaryBlob->getBLOB();
     // Send the entry data
     pMandatoryNumbers->np[ENTRY_OBSERVATION_JULIAN_DATE].value = CurrentValues.ObservationJulianDate;
     pMandatoryNumbers->np[ENTRY_RA].value  = CurrentValues.RightAscension;

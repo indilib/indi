@@ -17,6 +17,8 @@
 *******************************************************************************/
 
 #include "indifocuser.h"
+#include "connectionplugins/connectionserial.h"
+#include "connectionplugins/connectiontcp.h"
 
 #include <string.h>
 
@@ -36,10 +38,6 @@ bool INDI::Focuser::initProperties()
     DefaultDevice::initProperties();   //  let the base class flesh in what it wants
 
     initFocuserProperties(getDeviceName(),  MAIN_CONTROL_TAB);
-
-    /* Port */
-    IUFillText(&PortT[0], "PORT", "Port", "/dev/ttyUSB0");
-    IUFillTextVector(&PortTP, PortT, 1, getDeviceName(), "DEVICE_PORT", "Ports", OPTIONS_TAB, IP_RW, 0, IPS_IDLE);
 
     // Presets
     IUFillNumber(&PresetN[0], "Preset 1", "", "%6.2f", 0, 60000, 1000, 0);
@@ -63,16 +61,33 @@ bool INDI::Focuser::initProperties()
 
     setDriverInterface(FOCUSER_INTERFACE);
 
+    if (focuserConnection & CONNECTION_SERIAL)
+    {
+        serialConnection = new Connection::Serial(this);
+        serialConnection->registerHandshake([&]()
+        {
+            return callHandshake();
+        });
+        registerConnection(serialConnection);
+    }
+
+    if (focuserConnection & CONNECTION_TCP)
+    {
+        tcpConnection = new Connection::TCP(this);
+        tcpConnection->registerHandshake([&]()
+        {
+            return callHandshake();
+        });
+        registerConnection(tcpConnection);
+    }
+
     return true;
 }
 
-void INDI::Focuser::ISGetProperties (const char *dev)
+void INDI::Focuser::ISGetProperties (const char * dev)
 {
     //  First we let our parent populate
     DefaultDevice::ISGetProperties(dev);
-
-    defineText(&PortTP);
-    loadConfig(true, "DEVICE_PORT");
 
     controller->ISGetProperties(dev);
     return;
@@ -101,7 +116,8 @@ bool INDI::Focuser::updateProperties()
             defineNumber(&PresetNP);
             defineSwitch(&PresetGotoSP);
         }
-    } else
+    }
+    else
     {
         deleteProperty(FocusMotionSP.name);
         if (HasVariableSpeed())
@@ -127,7 +143,7 @@ bool INDI::Focuser::updateProperties()
 }
 
 
-bool INDI::Focuser::ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n)
+bool INDI::Focuser::ISNewNumber (const char * dev, const char * name, double values[], char * names[], int n)
 {
     //  first check if it's for our device
     if(strcmp(dev,getDeviceName())==0)
@@ -151,7 +167,7 @@ bool INDI::Focuser::ISNewNumber (const char *dev, const char *name, double value
     return DefaultDevice::ISNewNumber(dev,name,values,names,n);
 }
 
-bool INDI::Focuser::ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n)
+bool INDI::Focuser::ISNewSwitch (const char * dev, const char * name, ISState * states, char * names[], int n)
 {
     if(strcmp(dev,getDeviceName())==0)
     {
@@ -200,36 +216,29 @@ bool INDI::Focuser::ISNewSwitch (const char *dev, const char *name, ISState *sta
     return DefaultDevice::ISNewSwitch(dev,name,states,names,n);
 }
 
-bool INDI::Focuser::ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n)
+bool INDI::Focuser::ISNewText (const char * dev, const char * name, char * texts[], char * names[], int n)
 {
-    if(strcmp(dev,getDeviceName())==0)
-    {
-        if (!strcmp(name, PortTP.name))
-        {
-            IUUpdateText(&PortTP, texts, names, n);
-            PortTP.s = IPS_OK;
-            IDSetText(&PortTP, NULL);
-            return true;
-        }
-    }
-
     controller->ISNewText(dev, name, texts, names, n);
 
     return DefaultDevice::ISNewText(dev, name, texts, names, n);
 }
 
-bool INDI::Focuser::ISSnoopDevice (XMLEle *root)
+bool INDI::Focuser::ISSnoopDevice (XMLEle * root)
 {
     controller->ISSnoopDevice(root);
 
     return INDI::DefaultDevice::ISSnoopDevice(root);
 }
 
-bool INDI::Focuser::saveConfigItems(FILE *fp)
+bool INDI::Focuser::Handshake()
+{
+    return false;
+}
+
+bool INDI::Focuser::saveConfigItems(FILE * fp)
 {
     DefaultDevice::saveConfigItems(fp);
 
-    IUSaveConfigText(fp, &PortTP);
     IUSaveConfigNumber(fp, &PresetNP);
 
     controller->saveConfigItems(fp);
@@ -237,9 +246,9 @@ bool INDI::Focuser::saveConfigItems(FILE *fp)
     return true;
 }
 
-void INDI::Focuser::buttonHelper(const char *button_n, ISState state, void *context)
+void INDI::Focuser::buttonHelper(const char * button_n, ISState state, void * context)
 {
-     static_cast<INDI::Focuser *>(context)->processButton(button_n, state);
+    static_cast<INDI::Focuser *>(context)->processButton(button_n, state);
 }
 
 void INDI::Focuser::processButton(const char * button_n, ISState state)
@@ -290,23 +299,23 @@ void INDI::Focuser::processButton(const char * button_n, ISState state)
 
         if (HasVariableSpeed())
         {
-           rc = MoveFocuser(FOCUS_INWARD, FocusSpeedN[0].value, FocusTimerN[0].value);
-           FocusTimerNP.s = rc;
-           IDSetNumber(&FocusTimerNP,NULL);
+            rc = MoveFocuser(FOCUS_INWARD, FocusSpeedN[0].value, FocusTimerN[0].value);
+            FocusTimerNP.s = rc;
+            IDSetNumber(&FocusTimerNP,NULL);
         }
         else if (CanRelMove())
         {
             rc=MoveRelFocuser(FOCUS_INWARD, FocusRelPosN[0].value);
             if (rc == IPS_OK)
             {
-               FocusRelPosNP.s=IPS_OK;
-               IDSetNumber(&FocusRelPosNP, "Focuser moved %d steps inward", (int) FocusRelPosN[0].value);
-               IDSetNumber(&FocusAbsPosNP, NULL);
+                FocusRelPosNP.s=IPS_OK;
+                IDSetNumber(&FocusRelPosNP, "Focuser moved %d steps inward", (int) FocusRelPosN[0].value);
+                IDSetNumber(&FocusAbsPosNP, NULL);
             }
             else if (rc == IPS_BUSY)
             {
-                 FocusRelPosNP.s=IPS_BUSY;
-                 IDSetNumber(&FocusAbsPosNP, "Focuser is moving %d steps inward...", (int) FocusRelPosN[0].value);
+                FocusRelPosNP.s=IPS_BUSY;
+                IDSetNumber(&FocusAbsPosNP, "Focuser is moving %d steps inward...", (int) FocusRelPosN[0].value);
             }
         }
     }
@@ -321,24 +330,55 @@ void INDI::Focuser::processButton(const char * button_n, ISState state)
 
         if (HasVariableSpeed())
         {
-           rc = MoveFocuser(FOCUS_OUTWARD, FocusSpeedN[0].value, FocusTimerN[0].value);
-           FocusTimerNP.s = rc;
-           IDSetNumber(&FocusTimerNP,NULL);
+            rc = MoveFocuser(FOCUS_OUTWARD, FocusSpeedN[0].value, FocusTimerN[0].value);
+            FocusTimerNP.s = rc;
+            IDSetNumber(&FocusTimerNP,NULL);
         }
         else if (CanRelMove())
         {
             rc=MoveRelFocuser(FOCUS_OUTWARD, FocusRelPosN[0].value);
             if (rc == IPS_OK)
             {
-               FocusRelPosNP.s=IPS_OK;
-               IDSetNumber(&FocusRelPosNP, "Focuser moved %d steps outward", (int) FocusRelPosN[0].value);
-               IDSetNumber(&FocusAbsPosNP, NULL);
+                FocusRelPosNP.s=IPS_OK;
+                IDSetNumber(&FocusRelPosNP, "Focuser moved %d steps outward", (int) FocusRelPosN[0].value);
+                IDSetNumber(&FocusAbsPosNP, NULL);
             }
             else if (rc == IPS_BUSY)
             {
-                 FocusRelPosNP.s=IPS_BUSY;
-                 IDSetNumber(&FocusAbsPosNP, "Focuser is moving %d steps outward...", (int) FocusRelPosN[0].value);
+                FocusRelPosNP.s=IPS_BUSY;
+                IDSetNumber(&FocusAbsPosNP, "Focuser is moving %d steps outward...", (int) FocusRelPosN[0].value);
             }
         }
     }
+}
+
+bool INDI::Focuser::callHandshake()
+{
+    if (focuserConnection > 0)
+    {
+        if (getActiveConnection() == serialConnection)
+            PortFD = serialConnection->getPortFD();
+        else if (getActiveConnection() == tcpConnection)
+            PortFD = tcpConnection->getPortFD();
+    }
+
+    return Handshake();
+}
+
+uint8_t INDI::Focuser::getFocuserConnection() const
+{
+    return focuserConnection;
+}
+
+void INDI::Focuser::setFocuserConnection(const uint8_t &value)
+{
+    uint8_t mask = CONNECTION_SERIAL | CONNECTION_TCP;
+
+    if (value > 0 && (mask & value) == 0)
+    {
+        DEBUGF(INDI::Logger::DBG_ERROR, "Invalid connection mode %d", value);
+        return;
+    }
+
+    focuserConnection = value;
 }

@@ -69,7 +69,7 @@ void gphoto_set_iso(gphoto_driver *gphoto, int iso);
 void gphoto_set_format(gphoto_driver *gphoto, int format);
 int gphoto_get_format_current(gphoto_driver *gphoto);
 int gphoto_get_iso_current(gphoto_driver *gphoto);
-gphoto_driver *gphoto_open(const char *shutter_release_port);
+gphoto_driver *gphoto_open(Camera *camera, GPContext *context, const char *model, const char *port, const char *shutter_release_port);
 int gphoto_close(gphoto_driver *gphoto);
 void gphoto_get_buffer(gphoto_driver *gphoto, const char **buffer, size_t *size);
 void gphoto_free_buffer(gphoto_driver *gphoto);
@@ -82,7 +82,7 @@ int gphoto_set_widget_text(gphoto_driver *gphoto, gphoto_widget *widget, const c
 int gphoto_read_widget(gphoto_widget *widget);
 int gphoto_widget_changed(gphoto_widget *widget);
 int gphoto_get_dimensions(gphoto_driver *gphoto, int *width, int *height);
-int gphoto_auto_focus(gphoto_driver *gphoto);
+int gphoto_auto_focus(gphoto_driver *gphoto, char *errMsg);
 int gphoto_manual_focus (gphoto_driver *gphoto, int xx, char *errMsg);
 int gphoto_capture_preview(gphoto_driver *gphoto,  CameraFile* previewFile, char *errMsg);
 int gphoto_stop_preview(gphoto_driver *gphoto);

@@ -44,25 +44,20 @@ public:
     virtual ~XAGYLWheel();
 
     virtual bool initProperties();
-    virtual void ISGetProperties (const char *dev);
     virtual bool updateProperties();
 
-    virtual bool ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n);
     virtual bool ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n);
     virtual bool ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n);
 
 protected:
     const char *getDefaultName();
 
-    bool Connect();
-    bool Disconnect();
+    bool Handshake();
     void TimerHit();
 
     bool SelectFilter(int);
     virtual bool SetFilterNames() { return true; }
     virtual bool GetFilterNames(const char* groupName);
-
-    virtual bool saveConfigItems(FILE *fp);
 
 private:
     bool getCommand(GET_COMMAND cmd, char *result);
@@ -88,10 +83,6 @@ private:
     // Reset
     bool reset(int value);
 
-    // Device physical port
-    ITextVectorProperty PortTP;
-    IText PortT[1];
-
     // Firmware info
     ITextVectorProperty FirmwareInfoTP;
     IText FirmwareInfoT[3];
@@ -108,7 +99,6 @@ private:
     ISwitchVectorProperty ResetSP;
     ISwitch ResetS[4];
 
-    int PortFD;
     bool sim;
     SimData simData;
     uint8_t firmwareVersion;

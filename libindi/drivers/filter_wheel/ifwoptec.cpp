@@ -17,6 +17,7 @@
 *******************************************************************************/
 
 #include "ifwoptec.h"
+#include "connectionplugins/connectionserial.h"
 
 using namespace std;
 
@@ -105,6 +106,7 @@ FilterIFW::FilterIFW()
     strcpy(filterSim, filterSim5);      // For simulation mode
 
     // We add an additional debug level so we can log verbose member function starting
+    // DBG_TAG is never used. Please FIX
     int DBG_TAG = INDI::Logger::getInstance().addDebugLevel("Function tag", "Tag");
 }
 
@@ -131,10 +133,6 @@ bool FilterIFW::initProperties()
 {
     INDI::FilterWheel::initProperties();
 
-    // Device port
-    IUFillText(&PortT[0],"PORT","Port","/dev/ttyUSB0");
-    IUFillTextVector(&PortTP, PortT, 1, getDeviceName(),"DEVICE_PORT", "Ports", OPTIONS_TAB, IP_RW, 60, IPS_IDLE);
-
     // Settings
     IUFillText(&WheelIDT[0],"ID","ID", "-");
     IUFillTextVector(&WheelIDTP, WheelIDT, 1, getDeviceName(),"WHEEL_ID", "Wheel", FILTER_TAB, IP_RO, 60, IPS_IDLE);
@@ -160,20 +158,11 @@ bool FilterIFW::initProperties()
     IUFillText(&FirmwareT[0],"FIRMWARE","Firmware", "Unknown");
     IUFillTextVector(&FirmwareTP, FirmwareT, 1, getDeviceName(),"FIRMWARE_ID", "IFW", FILTER_TAB, IP_RO, 60, IPS_IDLE);
 
+    serialConnection->setDefaultBaudRate(Connection::Serial::B_19200);
+
     addAuxControls();
 
     return true;
-}
-
-/************************************************************************************
-*
-************************************************************************************/
-void FilterIFW::ISGetProperties (const char *dev)
-{
-    INDI::FilterWheel::ISGetProperties(dev);
-
-    defineText(&PortTP);
-    loadConfig(true, "DEVICE_PORT");
 }
 
 /************************************************************************************
@@ -281,26 +270,10 @@ bool FilterIFW::ReadTTY(char* resp, char* simulation, int timeout)
 /************************************************************************************
 *
 ************************************************************************************/
-bool FilterIFW::Connect()
+bool FilterIFW::Handshake()
 {
-    DEBUGTAG();
-    DEBUG(INDI::Logger::DBG_SESSION, "Connecting to IFW...");
-
-    //tty_set_debug(true);
-
-    int connectrc = 0;
-    char errorMsg[MAXRBUF];
     char response[OPTEC_MAXLEN_RESP + 1];
-
     memset(response, 0, sizeof(response));
-
-    if (!isSimulation() && (connectrc = tty_connect(PortT[0].text, 19200, 8, 0, 1, &PortFD)) != TTY_OK)
-    {
-        tty_error_msg(connectrc, errorMsg, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "Failed to connect to port %s. Error: %s" ,PortT[0].text, errorMsg);
-        DEBUG(INDI::Logger::DBG_SESSION, "Failed to connect to the Filter IFW, please ensure it is powered and the port is correct.");
-        return false;
-    }
 
     if (!WriteTTY((char*)"WSMODE"))
     {
@@ -354,17 +327,10 @@ bool FilterIFW::Disconnect()
 		return false;
 	}
 
-	if (!isSimulation())
-		if(tty_disconnect(PortFD) != TTY_OK)
-		{
-			DEBUG(INDI::Logger::DBG_ERROR, "TTY was not disconnected correctly from IFW");
-			return false;
-		}
-		
-    PortFD = 0;   //Avoid invalid file descriptor
     DEBUGF(INDI::Logger::DBG_DEBUG, "IFW return in manual mode, response from IFW is : %s", response);
     DEBUG(INDI::Logger::DBG_SESSION, "IFW is offline.");
-    return true;
+
+    return INDI::FilterWheel::Disconnect();
 }
 
 /************************************************************************************
@@ -374,15 +340,6 @@ bool FilterIFW::ISNewText (const char *dev, const char *name, char *texts[], cha
 {
     if (!strcmp(dev, getDeviceName()))
     {
-		// User has changed the device for the serial communication
-        if (!strcmp(PortTP.name, name))
-        {
-            IUUpdateText (&PortTP, texts, names, n);
-            PortTP.s = IPS_OK;
-            IDSetText (&PortTP, NULL);
-            return true;
-        }
-
         // User has changed one or more names from filter related to the Wheel ID present in the IFW
         if (!strcmp(FilterNameTP->name, name))
         {
@@ -1044,7 +1001,7 @@ bool FilterIFW::GetFirmware()
     }
 
     // remove chars fomr the string to get only the nzuméric value of the Firmware version
-    char *p;
+    char *p = NULL;
     for (int i=0; i < strlen(response); i++)
     {
         if (isdigit(response[i]))
@@ -1068,7 +1025,6 @@ bool FilterIFW::saveConfigItems(FILE *fp)
 {
     INDI::FilterWheel::saveConfigItems(fp);
 
-    IUSaveConfigText(fp, &PortTP);
     IUSaveConfigSwitch(fp, &CharSetSP);
     IUSaveConfigSwitch(fp, &FilterNbrSP);
 

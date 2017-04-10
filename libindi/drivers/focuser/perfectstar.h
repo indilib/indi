@@ -43,7 +43,6 @@ public:
 
     const char *getDefaultName();
     virtual bool initProperties();
-    virtual void ISGetProperties (const char *dev);
     virtual bool updateProperties();
     virtual bool saveConfigItems(FILE *fp);
 

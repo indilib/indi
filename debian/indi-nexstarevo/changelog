@@ -1,9 +1,24 @@
-indi-nexstarevo (0.2.3) UNRELEASED; urgency=low
+indi-nexstarevo (0.3.0) unstable; urgency=medium
+
+  * Much better tracking performance
+  * Always approach from the direction of tracking
+  * Telescope autodetection implemented
+  * Telescope simulator added with stellarium monitoring connector
+  * Dropped dynamical memory allocations in the driver 
+  * Improved stability (still a bit problematic though)
+  * Improved and simplified command processing logic
+  * Some code clean up and refactoring
+  * Constant approach distance on encoders
+  * Periodically update target position on long goto
+
+ -- Paweł T. Jochym <jochym@wolf.ifj.edu.pl>  Wed, 08 Feb 2017 20:13:35 +0100
+
+indi-nexstarevo (0.2.3) unstable; urgency=low
 
   * Free-hand movement
   * IPARCOS movement panel compatibility
 
- -- Pawel T. Jochym <jochym@wolf.ifj.edu.pl>  Tue, 28 Apr 2016 16:07:23 +0200
+ -- Paweł T. Jochym <jochym@wolf.ifj.edu.pl>  Wed, 08 Feb 2017 08:35:20 +0100
 
 indi-nexstarevo (0.2.2) UNRELEASED; urgency=low
 

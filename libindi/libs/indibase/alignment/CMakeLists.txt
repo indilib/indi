@@ -1,15 +1,4 @@
-set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/CMakeModules)
-
-find_package(GSL REQUIRED)
-
-if (GSL_FOUND)
-	include_directories(${GSL_INCLUDE_DIRS})
-	set_property(DIRECTORY APPEND PROPERTY COMPILE_DEFINITIONS GSL_FOUND)
-	set(CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS} ${CMAKE_GSL_CXX_FLAGS})
-endif (GSL_FOUND)
-
 set(INDI_MATH_PLUGINS_DIRECTORY "${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}/indi/MathPlugins")
-
 set_property(DIRECTORY APPEND PROPERTY COMPILE_DEFINITIONS INDI_MATH_PLUGINS_DIRECTORY="${INDI_MATH_PLUGINS_DIRECTORY}")
 
 option(ALIGNMENT_CONVEX_HULL_DEBUGGING "Alignment subsystem - additional debugging output" OFF)
@@ -42,19 +31,31 @@ set (AlignmentDriver_SRCS
         ${CMAKE_SOURCE_DIR}/libs/indibase/alignment/Common.cpp
     )
 
+if (CYGWIN)
+set (AlignmentDriver_SRCS ${AlignmentDriver_SRCS}
+        ${CMAKE_SOURCE_DIR}/libs/lilxml.c
+        ${CMAKE_SOURCE_DIR}/libs/indicom.c)
+add_library(AlignmentDriver STATIC ${AlignmentDriver_SRCS})
+target_link_libraries(AlignmentDriver dl ${GSL_LIBRARIES} ${NOVA_LIBRARIES})
+else(CYGWIN)
 add_library(AlignmentDriver SHARED ${AlignmentDriver_SRCS})
-SET_TARGET_PROPERTIES(AlignmentDriver PROPERTIES COMPILE_FLAGS "-fPIC")
-target_link_libraries(AlignmentDriver dl)
-if (GSL_FOUND)
-	target_link_libraries(AlignmentDriver ${GSL_LIBRARIES})
-endif (GSL_FOUND)
+set_target_properties(AlignmentDriver PROPERTIES COMPILE_FLAGS "-fPIC")
+if (APPLE)
+target_link_libraries(AlignmentDriver dl -L/usr/local/lib ${GSL_LIBRARIES})
+else(APPLE)
+target_link_libraries(AlignmentDriver dl ${GSL_LIBRARIES})
+endif(APPLE)
+endif(CYGWIN)
 
 if (INDI_BUILD_QT5)
 qt5_use_modules(AlignmentDriver Network)
 endif(INDI_BUILD_QT5)
 
 set_target_properties(AlignmentDriver PROPERTIES VERSION ${CMAKE_INDI_VERSION_STRING} SOVERSION ${INDI_SOVERSION} OUTPUT_NAME indiAlignmentDriver)
-install(TARGETS AlignmentDriver LIBRARY DESTINATION ${LIB_DESTINATION})
+install(TARGETS AlignmentDriver
+    ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
 install(FILES AlignmentSubsystemForMathPlugins.h AlignmentSubsystemForDrivers.h BasicMathPlugin.h BuiltInMathPlugin.h
               ClientAPIForAlignmentDatabase.h ClientAPIForMathPluginManagement.h Common.h ConvexHull.h DriverCommon.h InMemoryDatabase.h MathPlugin.h
               MathPluginManagement.h SVDMathPlugin.h TelescopeDirectionVectorSupportFunctions.h MapPropertiesToInMemoryDatabase.h
@@ -75,10 +76,11 @@ add_library(AlignmentClient STATIC ${AlignmentClient_SRCS})
 if (INDI_BUILD_QT5)
 qt5_use_modules(AlignmentClient Network)
 endif(INDI_BUILD_QT5)
-
+if (NOT CYGWIN AND NOT WIN32)
 SET_TARGET_PROPERTIES(AlignmentClient PROPERTIES COMPILE_FLAGS "-fPIC")
+endif(NOT CYGWIN AND NOT WIN32)
 set_target_properties(AlignmentClient PROPERTIES OUTPUT_NAME indiAlignmentClient)
-install(TARGETS AlignmentClient ARCHIVE DESTINATION ${LIB_DESTINATION})
+install(TARGETS AlignmentClient ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR})
 
 ##################################################
 ############ LoaderCLient test program ###########
@@ -128,13 +130,19 @@ set(SVDMathPlugin_SRCS
         ${CMAKE_SOURCE_DIR}/libs/indibase/alignment/SVDMathPlugin.cpp
 	)
 
+if (CYGWIN)
+add_library(indi_SVD_MathPlugin STATIC ${SVDMathPlugin_SRCS})
+target_link_libraries(indi_SVD_MathPlugin ${GSL_LIBRARIES} ${NOVA_LIBRARIES})
+else(CYGWIN)
 add_library(indi_SVD_MathPlugin SHARED ${SVDMathPlugin_SRCS})
-
 set_property(TARGET indi_SVD_MathPlugin APPEND PROPERTY COMPILE_DEFINITIONS SVD_TRANSFORM_MATRIX)
-
 target_link_libraries(indi_SVD_MathPlugin indidriver)
+endif(CYGWIN)
 
-install(TARGETS indi_SVD_MathPlugin LIBRARY DESTINATION ${INDI_MATH_PLUGINS_DIRECTORY})
+install(TARGETS indi_SVD_MathPlugin
+    ARCHIVE DESTINATION ${INDI_MATH_PLUGINS_DIRECTORY}
+    LIBRARY DESTINATION ${INDI_MATH_PLUGINS_DIRECTORY}
+    RUNTIME DESTINATION ${INDI_MATH_PLUGINS_DIRECTORY})
 
 ##################################################
 ############ Skywatcher API Mount ################

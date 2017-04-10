@@ -357,7 +357,9 @@ void SkywatcherSimulator::process_command(const char *cmd, int *received) {
     else if (cmd[2] == '2') { de_breaks=get_u24(cmd);send_byte('=');}
     else goto cant_do;
     break;
-    
+  case 'P':                                            // Set ST4 guide Rate
+    send_byte('=');
+    break;
   default: goto cant_do;
   }
   read+=3; // 2 + '\r'

@@ -28,7 +28,6 @@
 
 class NSTEP: public INDI::Focuser {
 private:
-  int PortFD;
   char buf[MAXRBUF];
   long sim_position, position;
   int temperature;
@@ -50,8 +49,7 @@ public:
   NSTEP();
   ~NSTEP();
   
-  bool Connect();
-  bool Disconnect();
+  virtual bool Handshake();
   const char *getDefaultName();
   
   bool initProperties();

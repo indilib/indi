@@ -98,17 +98,17 @@ void INDI::GPS::TimerHit()
         // Ok or Alert
         case IPS_OK:
         case IPS_ALERT:
-        IDSetNumber(&LocationNP, NULL);
-        IDSetText(&TimeTP, NULL);
-        return;
+            IDSetNumber(&LocationNP, NULL);
+            IDSetText(&TimeTP, NULL);
+            return;
 
         // GPS fix is in progress
         case IPS_BUSY:
-        IDSetNumber(&LocationNP, NULL);
-        IDSetText(&TimeTP, NULL);
-        break;
+            IDSetNumber(&LocationNP, NULL);
+            IDSetText(&TimeTP, NULL);
+            break;
 
-    default:
+        default:
             break;
     }
 
@@ -121,7 +121,7 @@ IPState INDI::GPS::updateGPS()
     return IPS_ALERT;
 }
 
-bool INDI::GPS::ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n)
+bool INDI::GPS::ISNewSwitch (const char * dev, const char * name, ISState * states, char * names[], int n)
 {
     if(strcmp(dev,getDeviceName())==0)
     {

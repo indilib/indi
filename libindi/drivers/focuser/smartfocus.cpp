@@ -84,7 +84,7 @@ const char SmartFocus::motion_stopped   = 's';
 
 
 SmartFocus::SmartFocus(void)
-  : serial_port(-1), position(0), state(Idle), timer_id(0)
+  : position(0), state(Idle), timer_id(0)
 {
   SetFocuserCapability(FOCUSER_CAN_ABS_MOVE|FOCUSER_CAN_REL_MOVE|FOCUSER_CAN_ABORT);
 }
@@ -117,6 +117,8 @@ bool SmartFocus::initProperties(void) {
   FocusAbsPosN[0].value = 0;
   FocusAbsPosN[0].step  = 1;
 
+  updatePeriodMS = TimerInterval;
+
   return true;
 }
 
@@ -138,51 +140,20 @@ bool SmartFocus::updateProperties(void) {
 }
 
 
-bool SmartFocus::Connect(void) {
-  bool success = false;
-  if (isSimulation()) {
-    IDMessage(getDeviceName(), "Simulated SmartFocus is online.");
-    success = true;
-  }
-  else {
-    static const int baudrates[]   = { 2400, 9600 };
-    static const int num_baudrates = sizeof(baudrates)/sizeof(baudrates[0]);
-    for (int i = 0; !success && (i < num_baudrates); ++i) {
-      const int connectrc = tty_connect(PortT[0].text, baudrates[i], 8, 0, 1, &serial_port);
-      if (connectrc != TTY_OK) {
-      	char errorMsg[MAXRBUF];
-      	tty_error_msg(connectrc, errorMsg, MAXRBUF);
-      	DEBUGF(INDI::Logger::DBG_ERROR, "Failed to connect to port %s at baudrate %d (%s).", PortT[0].text, baudrates[i], errorMsg);
-      }
-      else {
-	if (!SFacknowledge())
-	  DEBUGF(INDI::Logger::DBG_DEBUG, "SmartFocus is not communicating at baudrate %d.", baudrates[i]);
-	else {
-	  DEBUGF(INDI::Logger::DBG_DEBUG, "SmartFocus is communicating at baudrate %d.", baudrates[i]);
-	  success = true;
-	}
-      }
+bool SmartFocus::Handshake()
+{
+    if (isSimulation())
+        return true;
+
+    if (!SFacknowledge())
+    {
+      DEBUG(INDI::Logger::DBG_DEBUG, "SmartFocus is not communicating.");
+      return false;
     }
-  }
-  if (!success)
-    DEBUGF(INDI::Logger::DBG_ERROR, "Failed to connect to the focuser at port %s.", PortT[0].text);
-  else
-    SFstartTimer();
-  return success;
+
+    DEBUG(INDI::Logger::DBG_DEBUG, "SmartFocus is communicating.");
+    return true;
 }
-
-
-bool SmartFocus::Disconnect(void) {
-  SFstopTimer();
-  if (isSimulation())
-    IDMessage(getDeviceName(), "Simulated SmartFocus is offline.");
-  else {
-    tty_disconnect(serial_port);
-    IDMessage(getDeviceName(), "SmartFocus is offline.");
-  }
-  return true;
-}
-
 
 const char * SmartFocus::getDefaultName(void) {
   return "SmartFocus";
@@ -239,7 +210,7 @@ IPState SmartFocus::MoveAbsFocuser(uint32_t targetPosition) {
     command[1] = ((destination>>8) & 0xFF);
     command[2] = ( destination     & 0xFF);
     DEBUGF(INDI::Logger::DBG_DEBUG, "MoveAbsFocuser: destination= %d", destination);
-    tcflush(serial_port, TCIOFLUSH);
+    tcflush(PortFD, TCIOFLUSH);
     if (send(command, sizeof(command), "MoveAbsFocuser")) {
       char respons;
       if (recv(&respons, sizeof(respons), "MoveAbsFocuser")) {
@@ -294,9 +265,9 @@ void SmartFocus::TimerHit(void) {
   if (!isConnected()) return;
   
   if (!isSimulation() && SFisMoving()) {
-    NonBlockingIO non_blocking(getDeviceName(),serial_port); // Automatically controls blocking IO by its scope
+    NonBlockingIO non_blocking(getDeviceName(),PortFD); // Automatically controls blocking IO by its scope
     char          respons;
-    if (read(serial_port, &respons, sizeof(respons)) == sizeof(respons)) {
+    if (read(PortFD, &respons, sizeof(respons)) == sizeof(respons)) {
       DEBUGF(INDI::Logger::DBG_DEBUG, "TimerHit(void) received character: %c (0x%02x)", respons, respons);
       if (respons != motion_complete && respons != motion_error && respons != motion_stopped)
 	DEBUGF(INDI::Logger::DBG_ERROR, "TimerHit(void) received unexpected character: %c (0x%02x)", respons, respons);
@@ -319,7 +290,7 @@ bool SmartFocus::SFacknowledge(void) {
   if (isSimulation())
     success = true;
   else {
-    tcflush(serial_port, TCIOFLUSH);
+    tcflush(PortFD, TCIOFLUSH);
     if (send(&read_id_register, sizeof(read_id_register), "SFacknowledge")) {
       char respons[2];
       if (recv(respons, sizeof(respons), "SFacknowledge", false)) {
@@ -340,7 +311,7 @@ SmartFocus::Position SmartFocus::SFgetPosition(void) {
   if (isSimulation())
     result = position;
   else {
-    tcflush(serial_port, TCIOFLUSH);
+    tcflush(PortFD, TCIOFLUSH);
     if (send(&read_position, sizeof(read_position), "SFgetPosition")) {
       char respons[3];
       if (recv(respons, sizeof(respons), "SFgetPosition")) {
@@ -360,7 +331,7 @@ SmartFocus::Position SmartFocus::SFgetPosition(void) {
 SmartFocus::Flags SmartFocus::SFgetFlags(void) {
   Flags result = 0x00;
   if (!isSimulation()) {
-    tcflush(serial_port, TCIOFLUSH);
+    tcflush(PortFD, TCIOFLUSH);
     if (send(&read_flags, sizeof(read_flags), "SFgetFlags")) {
       char respons[2];
       if (recv(respons, sizeof(respons), "SFgetFlags")) {
@@ -398,19 +369,9 @@ void SmartFocus::SFgetState(void) {
 }
 
 
-void SmartFocus::SFstartTimer(void) {
-  timer_id = SetTimer(TimerInterval);
-}
-
-
-void SmartFocus::SFstopTimer(void) {
-  if (isConnected()) RemoveTimer(timer_id); // Timer is always and only active when connected
-}
-
-
 bool SmartFocus::send(const char* command,const size_t nbytes,const char* from,const bool log_error) {
   int        nbytes_written = 0;
-  const int  rc             = tty_write(serial_port, command, nbytes, &nbytes_written);
+  const int  rc             = tty_write(PortFD, command, nbytes, &nbytes_written);
   const bool success        = ( rc == TTY_OK && nbytes_written == nbytes );
   if (!success && log_error) {
     char errstr[MAXRBUF];
@@ -423,7 +384,7 @@ bool SmartFocus::send(const char* command,const size_t nbytes,const char* from,c
 
 bool SmartFocus::recv(char* respons,const size_t nbytes,const char* from,const bool log_error) {
   int        nbytes_read = 0;
-  const int  rc          = tty_read(serial_port, respons, nbytes, ReadTimeOut, &nbytes_read);
+  const int  rc          = tty_read(PortFD, respons, nbytes, ReadTimeOut, &nbytes_read);
   const bool success     = ( rc == TTY_OK && nbytes_read == nbytes );
   if (!success && log_error) {
     char errstr[MAXRBUF];

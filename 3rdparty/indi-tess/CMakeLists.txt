@@ -29,7 +29,7 @@ set(inditess_SRCS
    )
 
 add_executable(indi_tess ${inditess_SRCS})
-target_link_libraries(indi_tess ${INDI_DRIVER_LIBRARIES} ${NOVA_LIBRARIES})
+target_link_libraries(indi_tess ${INDI_LIBRARIES} ${NOVA_LIBRARIES})
 
 install(TARGETS indi_tess RUNTIME DESTINATION bin)
 install(FILES ${CMAKE_CURRENT_BINARY_DIR}/indi_tess.xml DESTINATION ${INDI_DATA_DIR})

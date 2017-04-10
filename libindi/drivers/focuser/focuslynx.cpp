@@ -20,6 +20,7 @@
 // using namespace std;
 
 #include "focuslynx.h"
+#include "connectionplugins/connectionserial.h"
 
 #include <stdio.h>
 #include <termios.h>
@@ -107,7 +108,7 @@ FocusLynxF1::FocusLynxF1(const char *target)
    * F1 or F2 to set the target of the created instance
    */
   setFocusTarget(target);
-  // explain in connect() function Only set on teh F+ constructor, not on the F2 one
+  // explain in connect() function Only set on the Fx constructor, not on the F2 one
   PortFD = 0;
   DBG_FOCUS = INDI::Logger::getInstance().addDebugLevel("Focus F1 Verbose", "FOCUS F1");
 }
@@ -124,10 +125,10 @@ FocusLynxF1::~FocusLynxF1()
 ***************************************************************************************/
 bool FocusLynxF1::initProperties()
 /* New properties
- * Commun propoerties for both focusers, Hub setting
+ * Common properties for both focusers, Hub setting
  * Only display and managed by Focuser F1
  * TODO:
- * Make this porpoerties writable to give possibility to set these via IndiDriver
+ * Make this properties writable to give possibility to set these via IndiDriver
  */
 {
   FocusLynxBase::initProperties();
@@ -153,7 +154,8 @@ bool FocusLynxF1::initProperties()
   IUFillText(&WifiT[8], "Wep key", "", "");
   IUFillTextVector(&WifiTP, WifiT, 9, getDeviceName(), "WIFI-INFO", "Wifi", HUB_SETTINGS_TAB, IP_RO, 0, IPS_IDLE); 
   
-  IUSaveText(&PortT[0], "/dev/ttyUSB1");
+  // FIXME
+  //IUSaveText(&PortT[0], "/dev/ttyUSB1");
 
   return true;
 }
@@ -195,10 +197,10 @@ bool FocusLynxF1::Connect()
      * other value = descriptor number
      */
     PortFD = -1;
-    else if ((connectrc = tty_connect(PortT[0].text, 115200, 8, 0, 1, &PortFD)) != TTY_OK)
+    else if ((connectrc = tty_connect(serialConnection->port(), 115200, 8, 0, 1, &PortFD)) != TTY_OK)
     {
       tty_error_msg(connectrc, errorMsg, MAXRBUF);   
-      DEBUGF(INDI::Logger::DBG_SESSION, "Failed to connect to port %s. Error: %s", PortT[0].text, errorMsg);
+      DEBUGF(INDI::Logger::DBG_SESSION, "Failed to connect to port %s. Error: %s", serialConnection->port(), errorMsg);
       PortFD = 0;
       return false;
     }
@@ -223,7 +225,7 @@ bool FocusLynxF1::Connect()
  *
 * ***********************************************************************************/
 bool FocusLynxF1::Disconnect()
-/* If we deisconnect F1, teh serial socket would be close.
+/* If we disconnect F1, the serial socket would be close.
  * Then in this case we have to disconnect the second focuser F2
  */
 {    
@@ -902,7 +904,8 @@ void FocusLynxF2::ISGetProperties(const char *dev)
 
   FocusLynxBase::ISGetProperties(dev);
   // Remove the port selector from the main tab of F2. Set only on F1 focuser
-  deleteProperty(PortTP.name);
+  // FIXME
+  //deleteProperty(PortTP.name);
 }
 
 /************************************************************************************

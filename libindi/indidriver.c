@@ -47,12 +47,12 @@ pthread_mutex_t stdout_mutex = PTHREAD_MUTEX_INITIALIZER;
 enum {INDI_NUMBER, INDI_SWITCH, INDI_TEXT, INDI_LIGHT, INDI_BLOB, INDI_UNKNOWN};
 
 /* Return index of property property if already cached, -1 otherwise */
-int isPropDefined(const char *property_name)
+int isPropDefined(const char *property_name, const char *device_name)
 {
     int i=0;
 
     for (i=0; i < nPropCache; i++)
-        if (!strcmp(property_name, propCache[i].propName))
+        if (!strcmp(property_name, propCache[i].propName) && !strcmp(device_name, propCache[i].devName))
             return i;
 
     return -1;
@@ -131,14 +131,14 @@ IDDelete (const char *dev, const char *name, const char *fmt, ...)
  * name ignored if NULL or empty.
  */
 void
-IDSnoopDevice (const char *snooped_device_name, const char *snooped_property_name)
+IDSnoopDevice (const char *snooped_device, const char *snooped_property)
 {
     pthread_mutex_lock(&stdout_mutex);
 	xmlv1();
-	if (snooped_property_name && snooped_property_name[0])
-        printf ("<getProperties version='%g' device='%s' name='%s'/>\n", INDIV, snooped_device_name, snooped_property_name);
+    if (snooped_property && snooped_property[0])
+        printf ("<getProperties version='%g' device='%s' name='%s'/>\n", INDIV, snooped_device, snooped_property);
 	else
-        printf ("<getProperties version='%g' device='%s'/>\n", INDIV, snooped_device_name);
+        printf ("<getProperties version='%g' device='%s'/>\n", INDIV, snooped_device);
 	fflush (stdout);
     pthread_mutex_unlock(&stdout_mutex);
 }
@@ -147,7 +147,7 @@ IDSnoopDevice (const char *snooped_device_name, const char *snooped_property_nam
  * silently ignored if given device is not already registered for snooping.
  */
 void 
-IDSnoopBLOBs (const char *snooped_device, BLOBHandling bh)
+IDSnoopBLOBs (const char *snooped_device, const char *snooped_property, BLOBHandling bh)
 {
 	const char *how;
 
@@ -160,8 +160,10 @@ IDSnoopBLOBs (const char *snooped_device, BLOBHandling bh)
 
     pthread_mutex_lock(&stdout_mutex);
 	xmlv1();
-	printf ("<enableBLOB device='%s'>%s</enableBLOB>\n",
-						snooped_device, how);
+    if (snooped_property && snooped_property[0])
+        printf ("<enableBLOB device='%s' name='%s'>%s</enableBLOB>\n", snooped_device, snooped_property, how);
+    else
+        printf ("<enableBLOB device='%s'>%s</enableBLOB>\n", snooped_device, how);
 	fflush (stdout);
     pthread_mutex_unlock(&stdout_mutex);
 }
@@ -240,9 +242,9 @@ IUUpdateSwitch(ISwitchVectorProperty *svp, ISState *states, char *names[], int n
 	 
    if (!sp)
    {
-              svp->s = IPS_IDLE;
-	      IDSetSwitch(svp, "Error: %s is not a member of %s property.", names[i], svp->name);
-	      return -1;
+       svp->s = IPS_IDLE;
+       IDSetSwitch(svp, "Error: %s is not a member of %s (%s) property.", names[i], svp->label, svp->name);
+       return -1;
    }
 	 
    sp->s = states[i]; 
@@ -263,7 +265,7 @@ IUUpdateSwitch(ISwitchVectorProperty *svp, ISState *states, char *names[], int n
 		sp = IUFindSwitch(svp, sn);
 		if (sp) sp->s = ISS_ON;
 		svp->s = IPS_IDLE;
-		IDSetSwitch(svp, "Error: invalid state switch for property %s. %s.", svp->name, t_count == 0 ? "No switch is on" : "Too many switches are on");
+        IDSetSwitch(svp, "Error: invalid state switch for property %s (%s). %s.", svp->label, svp->name, t_count == 0 ? "No switch is on" : "Too many switches are on");
 		return -1;
 	}
  }
@@ -284,15 +286,15 @@ int IUUpdateNumber(INumberVectorProperty *nvp, double values[], char *names[], i
     np = IUFindNumber(nvp, names[i]);
     if (!np)
     {
-    	nvp->s = IPS_IDLE;
-	IDSetNumber(nvp, "Error: %s is not a member of %s property.", names[i], nvp->name);
-	return -1;
+        nvp->s = IPS_IDLE;
+        IDSetNumber(nvp, "Error: %s is not a member of %s (%s) property.", names[i], nvp->label, nvp->name);
+        return -1;
     }
     
     if (values[i] < np->min || values[i] > np->max)
     {
        nvp->s = IPS_ALERT;
-       IDSetNumber(nvp, "Error: Invalid range for %s. Valid range is from %g to %g. Requested value is %g", np->name, np->min, np->max, values[i]);
+       IDSetNumber(nvp, "Error: Invalid range for %s (%s). Valid range is from %g to %g. Requested value is %g", np->label, np->name, np->min, np->max, values[i]);
        return -1;
     }
       
@@ -322,8 +324,8 @@ int IUUpdateText(ITextVectorProperty *tvp, char * texts[], char *names[], int n)
     if (!tp)
     {
     	tvp->s = IPS_IDLE;
-	IDSetText(tvp, "Error: %s is not a member of %s property.", names[i], tvp->name);
-	return -1;
+        IDSetText(tvp, "Error: %s is not a member of %s (%s) property.", names[i], tvp->label, tvp->name);
+        return -1;
     }
   }
 
@@ -352,8 +354,8 @@ int IUUpdateBLOB(IBLOBVectorProperty *bvp, int sizes[], int blobsizes[], char *b
     if (!bp)
     {
         bvp->s = IPS_IDLE;
-    IDSetBLOB(bvp, "Error: %s is not a member of %s property.", names[i], bvp->name);
-    return -1;
+        IDSetBLOB(bvp, "Error: %s is not a member of %s (%s) property.", names[i], bvp->label, bvp->name);
+        return -1;
     }
   }
 
@@ -791,39 +793,48 @@ IUSnoopSwitch (XMLEle *root, ISwitchVectorProperty *svp)
 int
 IUSnoopBLOB (XMLEle *root, IBLOBVectorProperty *bvp)
 {
-	char *dev, *name;
-	XMLEle *ep;
-	int i;
+    char *dev, *name;
+    XMLEle *ep;
 
-	/* check and crack type, device, name and state */
-	if (strcmp (tagXMLEle(root), "setBLOBVector") ||
-					crackDN (root, &dev, &name, NULL) < 0)
-	    return (-1);
-	if (strcmp (dev, bvp->device) || strcmp (name, bvp->name))
-	    return (-1);	/* not this property */
-	(void) crackIPState (findXMLAttValu (root,"state"), &bvp->s);
+    /* check and crack type, device, name and state */
+    if (strcmp (tagXMLEle(root), "setBLOBVector") || crackDN (root, &dev, &name, NULL) < 0)
+        return (-1);
 
-	/* match each oneBLOB with one IBLOB */
-	for (ep = nextXMLEle(root,1); ep; ep = nextXMLEle(root,0)) {
-        if (!strcmp (tagXMLEle(ep)+3, "BLOB")) {
-		const char *name = findXMLAttValu (ep, "name");
-		for (i = 0; i < bvp->nbp; i++) {
-		    IBLOB *bp = &bvp->bp[i];
-		    if (!strcmp (bp->name, name)) {
-			strcpy (bp->format, findXMLAttValu (ep,"format"));
-			bp->size = atof (findXMLAttValu (ep,"size"));
-			bp->bloblen = pcdatalenXMLEle(ep)+1;
-			if (bp->blob)
-			    free (bp->blob);
-			bp->blob = strcpy(malloc(bp->bloblen),pcdataXMLEle(ep));
-			break;
-		    }
-		}
-	    }
-	}
+    if (strcmp (dev, bvp->device) || strcmp (name, bvp->name))
+        return (-1);	/* not this property */
 
-	/* ok */
-	return (0);
+    crackIPState (findXMLAttValu (root,"state"), &bvp->s);
+
+    for (ep = nextXMLEle(root,1); ep; ep = nextXMLEle(root,0))
+    {
+        if (strcmp (tagXMLEle(ep), "oneBLOB") == 0)
+        {
+            XMLAtt *na = findXMLAtt (ep, "name");
+            if (na == NULL)
+                return (-1);
+
+            IBLOB *bp = IUFindBLOB(bvp, valuXMLAtt(na));
+
+            if (bp == NULL)
+                return (-1);
+
+            XMLAtt *fa = findXMLAtt (ep, "format");
+            XMLAtt *sa = findXMLAtt (ep, "size");
+            XMLAtt *ec = findXMLAtt (ep, "enclen");
+            if (fa && sa && ec)
+            {
+
+                int enclen = atoi(valuXMLAtt(ec));
+                bp->blob = realloc (bp->blob, 3*enclen/4);
+                bp->bloblen = from64tobits_fast(bp->blob, pcdataXMLEle(ep), enclen);
+                strncpy(bp->format, valuXMLAtt(fa), MAXINDIFORMAT);
+                bp->size = atoi(valuXMLAtt(sa));
+            }
+        }
+    }
+
+    /* ok */
+    return (0);
 }
 
 /* callback when INDI client message arrives on stdin.
@@ -879,7 +890,7 @@ dispatch (XMLEle *root, char msg[])
 
     if (!strcmp (rtag, "getProperties"))
     {
-        XMLAtt *ap, *name;
+        XMLAtt *ap, *name, *dev;
         double v;
 
         /* check version */
@@ -896,10 +907,15 @@ dispatch (XMLEle *root, char msg[])
             exit(1);
         }
 
+        // Get device
+        dev = findXMLAtt (root, "device");
+
+        // Get property name
         name = findXMLAtt (root, "name");
-        if (name)
+
+        if (name && dev)
         {
-            int index = isPropDefined(valuXMLAtt(name));
+            int index = isPropDefined(valuXMLAtt(name), valuXMLAtt(dev));
             if (index < 0)
                 return 0;
 
@@ -929,11 +945,8 @@ dispatch (XMLEle *root, char msg[])
                 return 0;
             }
         }
-        /* ok */
-        ap = findXMLAtt (root, "device");
 
-
-        ISGetProperties (ap ? valuXMLAtt(ap) : NULL);
+        ISGetProperties (dev ? valuXMLAtt(dev) : NULL);
         return (0);
     }
 
@@ -962,16 +975,16 @@ dispatch (XMLEle *root, char msg[])
     if (crackDN (root, &dev, &name, msg) < 0)
         return (-1);
 
-    if (isPropDefined(name) < 0)
+    if (isPropDefined(name, dev) < 0)
     {
-        snprintf(msg, MAXRBUF, "Property %s is not defined.", name);
+        snprintf(msg, MAXRBUF, "Property %s is not defined in %s.", name, dev);
         return -1;
     }
 
     /* ensure property is not RO */
     for (i=0; i < nPropCache; i++)
     {
-        if (!strcmp(propCache[i].propName, name))
+        if (!strcmp(propCache[i].propName, name) && !strcmp(propCache[i].devName, dev))
         {
             if (propCache[i].perm == IP_RO)
             {
@@ -1158,6 +1171,7 @@ dispatch (XMLEle *root, char msg[])
                 XMLAtt *na = findXMLAtt (ep, "name");
                 XMLAtt *fa = findXMLAtt (ep, "format");
                 XMLAtt *sa = findXMLAtt (ep, "size");
+                XMLAtt *el = findXMLAtt (ep, "enclen");
                 if (na && fa && sa) {
                     if (n >= maxn) {
                         int newsz = (maxn=n+1)*sizeof(char *);
@@ -1169,6 +1183,9 @@ dispatch (XMLEle *root, char msg[])
                         blobsizes = (int *) realloc(blobsizes,newsz);
                     }
                     int bloblen = pcdatalenXMLEle(ep);
+                    // enclen is optional and not required by INDI protocol
+                    if (el)
+                        bloblen = atoi(valuXMLAtt(el));
                     blobs[n] = malloc (3*bloblen/4);
                     blobsizes[n] = from64tobits_fast(blobs[n], pcdataXMLEle(ep), bloblen);
                     names[n] = valuXMLAtt(na);
@@ -1196,30 +1213,14 @@ dispatch (XMLEle *root, char msg[])
 
 int IUReadConfig(const char *filename, const char *dev, const char *property, int silent, char errmsg[])
 {
-    char configFileName[MAXRBUF];
     char *rname, *rdev;
     XMLEle *root = NULL, *fproot = NULL;
     LilXML *lp = newLilXML();
 
-    FILE *fp = NULL;
+    FILE *fp = IUGetConfigFP(filename, dev, "r", errmsg);
 
-    if (filename)
-         strncpy(configFileName, filename, MAXRBUF);
-     else
-    {
-        if (getenv("INDICONFIG"))
-            strncpy(configFileName, getenv("INDICONFIG"), MAXRBUF);
-        else
-           snprintf(configFileName, MAXRBUF, "%s/.indi/%s_config.xml", getenv("HOME"), dev);
-
-    }
-
-    fp = fopen(configFileName, "r");
     if (fp == NULL)
-    {
-         snprintf(errmsg, MAXRBUF, "Unable to read user config file. Error loading file %s: %s\n", configFileName, strerror(errno));
-         return -1;
-    }
+        return -1;
 
     fproot = readXMLFile(fp, lp, errmsg);
 
@@ -1338,7 +1339,7 @@ IDMessage (const char *dev, const char *fmt, ...)
      pthread_mutex_unlock(&stdout_mutex);
 }
 
-FILE * IUGetConfigFP(const char *filename, const char *dev, char errmsg[])
+FILE * IUGetConfigFP(const char *filename, const char *dev, const char *mode, char errmsg[])
 {
     char configFileName[MAXRBUF];
     char configDir[MAXRBUF];
@@ -1367,7 +1368,7 @@ FILE * IUGetConfigFP(const char *filename, const char *dev, char errmsg[])
          }
      }
 
-     fp = fopen(configFileName, "w");
+     fp = fopen(configFileName, mode);
      if (fp == NULL)
      {
           snprintf(errmsg, MAXRBUF, "Unable to open config file. Error loading file %s: %s\n", configFileName, strerror(errno));
@@ -1530,7 +1531,7 @@ IDDefText (const ITextVectorProperty *tvp, const char *fmt, ...)
 
         printf ("</defTextVector>\n");
 
-        if (isPropDefined(tvp->name) < 0)
+        if (isPropDefined(tvp->name, tvp->device) < 0)
         {
                 /* Add this property to insure proper sanity check */
                 propCache = propCache ? (ROSC *) realloc ( propCache, sizeof(ROSC) * (nPropCache+1))
@@ -1538,6 +1539,7 @@ IDDefText (const ITextVectorProperty *tvp, const char *fmt, ...)
                 SC      = &propCache[nPropCache++];
 
                 strcpy(SC->propName, tvp->name);
+                strcpy(SC->devName, tvp->device);
                 SC->perm = tvp->p;
                 SC->ptr = tvp;
                 SC->type= INDI_TEXT;
@@ -1600,7 +1602,7 @@ IDDefNumber (const INumberVectorProperty *n, const char *fmt, ...)
 
         printf ("</defNumberVector>\n");
 
-        if (isPropDefined(n->name) < 0)
+        if (isPropDefined(n->name, n->device) < 0)
         {
                 /* Add this property to insure proper sanity check */
                 propCache = propCache ? (ROSC *) realloc ( propCache, sizeof(ROSC) * (nPropCache+1))
@@ -1608,6 +1610,7 @@ IDDefNumber (const INumberVectorProperty *n, const char *fmt, ...)
                 SC      = &propCache[nPropCache++];
 
                 strcpy(SC->propName, n->name);
+                strcpy(SC->devName, n->device);
                 SC->perm = n->p;
                 SC->ptr = n;
                 SC->type= INDI_NUMBER;
@@ -1662,7 +1665,7 @@ IDDefSwitch (const ISwitchVectorProperty *s, const char *fmt, ...)
 
         printf ("</defSwitchVector>\n");
 
-        if (isPropDefined(s->name) < 0)
+        if (isPropDefined(s->name, s->device) < 0)
         {
                 /* Add this property to insure proper sanity check */
                 propCache = propCache ? (ROSC *) realloc ( propCache, sizeof(ROSC) * (nPropCache+1))
@@ -1670,6 +1673,7 @@ IDDefSwitch (const ISwitchVectorProperty *s, const char *fmt, ...)
                 SC      = &propCache[nPropCache++];
 
                 strcpy(SC->propName, s->name);
+                strcpy(SC->devName, s->device);
                 SC->perm = s->p;
                 SC->ptr = s;
                 SC->type= INDI_SWITCH;
@@ -1762,7 +1766,7 @@ IDDefBLOB (const IBLOBVectorProperty *b, const char *fmt, ...)
 
         printf ("</defBLOBVector>\n");
 
-        if (isPropDefined(b->name) < 0)
+        if (isPropDefined(b->name, b->device) < 0)
         {
                 /* Add this property to insure proper sanity check */
                 propCache = propCache ? (ROSC *) realloc ( propCache, sizeof(ROSC) * (nPropCache+1))
@@ -1770,6 +1774,7 @@ IDDefBLOB (const IBLOBVectorProperty *b, const char *fmt, ...)
                 SC      = &propCache[nPropCache++];
 
                 strcpy(SC->propName, b->name);
+                strcpy(SC->devName, b->device);
                 SC->perm = b->p;
                 SC->ptr = b;
                 SC->type= INDI_BLOB;
@@ -1974,27 +1979,35 @@ IDSetBLOB (const IBLOBVectorProperty *bvp, const char *fmt, ...)
         printf ("  <oneBLOB\n");
         printf ("    name='%s'\n", bp->name);
         printf ("    size='%d'\n", bp->size);
-        //printf ("    format='%s'>\n", bp->format);
 
-        encblob = malloc (4*bp->bloblen/3+4);
-        l = to64frombits(encblob, bp->blob, bp->bloblen);
-        printf ("    enclen='%d'\n", l);
-        printf ("    format='%s'>\n", bp->format);
-        size_t written = 0;
-        size_t towrite = l;
-        while (written < l)
+        // If size is zero, we are only sending a state-change
+        if (bp->size == 0)
         {
-            towrite = ((l - written) > 72) ? 72 : l - written;
-            size_t wr = fwrite(encblob + written, 1, towrite, stdout);
-            if (wr > 0) written += wr;
-            if ((written % 72) == 0)
-                fputc('\n', stdout);
+            printf ("    enclen='0'\n");
+            printf ("    format='%s'>\n", bp->format);
         }
+        else
+        {
+            encblob = malloc (4*bp->bloblen/3+4);
+            l = to64frombits(encblob, bp->blob, bp->bloblen);
+            printf ("    enclen='%d'\n", l);
+            printf ("    format='%s'>\n", bp->format);
+            size_t written = 0;
+            size_t towrite = l;
+            while (written < l)
+            {
+                towrite = ((l - written) > 72) ? 72 : l - written;
+                size_t wr = fwrite(encblob + written, 1, towrite, stdout);
+                if (wr > 0) written += wr;
+                if ((written % 72) == 0)
+                    fputc('\n', stdout);
+            }
 
-        if ((written % 72) != 0)
-            fputc('\n', stdout);
+            if ((written % 72) != 0)
+                fputc('\n', stdout);
 
-        free (encblob);
+            free (encblob);
+        }
 
         printf ("  </oneBLOB>\n");
     }

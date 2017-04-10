@@ -81,6 +81,8 @@ WunderGround::WunderGround()
 
    wunderLat=-1000;
    wunderLong=-1000;
+
+   setWeatherConnection(CONNECTION_NONE);
 }
 
 WunderGround::~WunderGround()

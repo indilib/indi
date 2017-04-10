@@ -15,13 +15,12 @@
  the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
  Boston, MA 02110-1301, USA.
 *******************************************************************************/
-
 #include <stdlib.h>
 #include <string.h>
-
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/socket.h>
+#include <sys/select.h>
 #include <netinet/in.h>
 #include <netdb.h>
 #include <fcntl.h>
@@ -30,6 +29,7 @@
 
 #include "baseclient.h"
 #include "basedevice.h"
+#include "base64.h"
 #include "indicom.h"
 
 #include <errno.h>
@@ -51,12 +51,16 @@ INDI::BaseClient::BaseClient()
 
 INDI::BaseClient::~BaseClient()
 {
+    clear();
+}
+
+void INDI::BaseClient::clear()
+{
     while(!cDevices.empty()) delete cDevices.back(), cDevices.pop_back();
     cDevices.clear();
     while(!blobModes.empty()) delete blobModes.back(), blobModes.pop_back();
     blobModes.clear();
 }
-
 
 void INDI::BaseClient::setServer(const char * hostname, unsigned int port)
 {
@@ -77,7 +81,7 @@ bool INDI::BaseClient::connectServer()
     ts.tv_usec =timeout_us;
 
     struct sockaddr_in serv_addr;
-    struct hostent *hp;
+    struct hostent * hp;
     int pipefd[2];
     int ret = 0;
 
@@ -216,10 +220,7 @@ bool INDI::BaseClient::disconnectServer()
             fclose(svrwfp);
     svrwfp = NULL;
 
-    while(!cDevices.empty()) delete cDevices.back(), cDevices.pop_back();
-    cDevices.clear();
-    while(!blobModes.empty()) delete blobModes.back(), blobModes.pop_back();
-    blobModes.clear();
+    clear();
 
     cDeviceNames.clear();
 
@@ -228,21 +229,21 @@ bool INDI::BaseClient::disconnectServer()
     return true;
 }
 
-void INDI::BaseClient::connectDevice(const char *deviceName)
+void INDI::BaseClient::connectDevice(const char * deviceName)
 {
     setDriverConnection(true, deviceName);
 }
 
-void INDI::BaseClient::disconnectDevice(const char *deviceName)
+void INDI::BaseClient::disconnectDevice(const char * deviceName)
 {
     setDriverConnection(false, deviceName);
 }
 
 
-void INDI::BaseClient::setDriverConnection(bool status, const char *deviceName)
+void INDI::BaseClient::setDriverConnection(bool status, const char * deviceName)
 {
-    INDI::BaseDevice *drv = getDevice(deviceName);
-    ISwitchVectorProperty *drv_connection = NULL;
+    INDI::BaseDevice * drv = getDevice(deviceName);
+    ISwitchVectorProperty * drv_connection = NULL;
 
     if (drv == NULL)
     {
@@ -296,7 +297,7 @@ INDI::BaseDevice * INDI::BaseClient::getDevice(const char * deviceName)
     return NULL;
 }
 
-void * INDI::BaseClient::listenHelper(void *context)
+void * INDI::BaseClient::listenHelper(void * context)
 {
     (static_cast<INDI::BaseClient *> (context))->listenINDI();
     return NULL;
@@ -310,12 +311,12 @@ void INDI::BaseClient::listenINDI()
     int n=0, err_code=0;
     int maxfd=0;
     fd_set rs;
-    
-    XMLEle **nodes;
-    XMLEle *root;
+
+    XMLEle ** nodes;
+    XMLEle * root;
     int inode=0;
-    
-    char *orig = setlocale(LC_NUMERIC,"C");
+
+    char * orig = setlocale(LC_NUMERIC,"C");
     if (cDeviceNames.empty())
     {
         fprintf(svrwfp, "<getProperties version='%g'/>\n", INDIV);
@@ -347,6 +348,7 @@ void INDI::BaseClient::listenINDI()
         maxfd = m_receiveFd;
 
 
+    clear();
     lillp = newLilXML();
 
     /* read from server, exit if find all requested properties */
@@ -389,7 +391,8 @@ void INDI::BaseClient::listenINDI()
 
             nodes=parseXMLChunk(lillp, buffer, n, msg);
 
-            if (!nodes) {
+            if (!nodes)
+            {
                 if (msg[0])
                 {
                     fprintf (stderr, "Bad XML from %s/%d: %s\n%s\n", cServer.c_str(), cPort, msg, buffer);
@@ -415,7 +418,8 @@ void INDI::BaseClient::listenINDI()
 
 
                 delXMLEle (root);	// not yet, delete and continue
-                inode++; root=nodes[inode];
+                inode++;
+                root=nodes[inode];
             }
             free(nodes);
             inode=0;
@@ -432,7 +436,7 @@ void INDI::BaseClient::listenINDI()
 
 }
 
-int INDI::BaseClient::dispatchCommand(XMLEle *root, char * errmsg)
+int INDI::BaseClient::dispatchCommand(XMLEle * root, char * errmsg)
 {
     if  (!strcmp (tagXMLEle(root), "message"))
         return messageCmd(root, errmsg);
@@ -443,7 +447,7 @@ int INDI::BaseClient::dispatchCommand(XMLEle *root, char * errmsg)
         return INDI_PROPERTY_DUPLICATED;
 
     /* Get the device, if not available, create it */
-    INDI::BaseDevice *dp = findDev (root, 1, errmsg);
+    INDI::BaseDevice * dp = findDev (root, 1, errmsg);
     if (dp == NULL)
     {
         strcpy(errmsg,"No device available and none was created");
@@ -477,10 +481,10 @@ int INDI::BaseClient::dispatchCommand(XMLEle *root, char * errmsg)
  * if no property name attribute at all, delete the whole device regardless.
  * return 0 if ok, else -1 with reason in errmsg[].
  */
-int INDI::BaseClient::delPropertyCmd (XMLEle *root, char * errmsg)
+int INDI::BaseClient::delPropertyCmd (XMLEle * root, char * errmsg)
 {
-    XMLAtt *ap;
-    INDI::BaseDevice *dp;
+    XMLAtt * ap;
+    INDI::BaseDevice * dp;
 
     /* dig out device and optional property name */
     dp = findDev (root, 0, errmsg);
@@ -494,7 +498,7 @@ int INDI::BaseClient::delPropertyCmd (XMLEle *root, char * errmsg)
     /* Delete property if it exists, otherwise, delete the whole device */
     if (ap)
     {
-        INDI::Property *rProp = dp->getProperty(valuXMLAtt(ap));
+        INDI::Property * rProp = dp->getProperty(valuXMLAtt(ap));
         removeProperty(rProp);
         int errCode = dp->removeProperty(valuXMLAtt(ap), errmsg);
 
@@ -544,11 +548,11 @@ INDI::BaseDevice * INDI::BaseClient::findDev( const char * devName, char * errms
 }
 
 /* add new device */
-INDI::BaseDevice * INDI::BaseClient::addDevice (XMLEle *dep, char * errmsg)
+INDI::BaseDevice * INDI::BaseClient::addDevice (XMLEle * dep, char * errmsg)
 {
     //devicePtr dp(new INDI::BaseDriver());
-    INDI::BaseDevice *dp = new INDI::BaseDevice();
-    XMLAtt *ap;
+    INDI::BaseDevice * dp = new INDI::BaseDevice();
+    XMLAtt * ap;
     char * device_name;
 
     /* allocate new INDI::BaseDriver */
@@ -572,11 +576,11 @@ INDI::BaseDevice * INDI::BaseClient::addDevice (XMLEle *dep, char * errmsg)
     return dp;
 }
 
-INDI::BaseDevice * INDI::BaseClient::findDev (XMLEle *root, int create, char * errmsg)
+INDI::BaseDevice * INDI::BaseClient::findDev (XMLEle * root, int create, char * errmsg)
 {
-    XMLAtt *ap;
-    INDI::BaseDevice *dp;
-    char *dn;
+    XMLAtt * ap;
+    INDI::BaseDevice * dp;
+    char * dn;
 
     /* get device name */
     ap = findXMLAtt (root, "device");
@@ -610,9 +614,9 @@ INDI::BaseDevice * INDI::BaseClient::findDev (XMLEle *root, int create, char * e
 /* a general message command received from the device.
  * return 0 if ok, else -1 with reason in errmsg[].
  */
-int INDI::BaseClient::messageCmd (XMLEle *root, char * errmsg)
+int INDI::BaseClient::messageCmd (XMLEle * root, char * errmsg)
 {
-    INDI::BaseDevice *dp =findDev (root, 0, errmsg);
+    INDI::BaseDevice * dp =findDev (root, 0, errmsg);
 
     if (dp)
         dp->checkMessage(root);
@@ -621,7 +625,7 @@ int INDI::BaseClient::messageCmd (XMLEle *root, char * errmsg)
 }
 
 
-void INDI::BaseClient::sendNewText (ITextVectorProperty *tvp)
+void INDI::BaseClient::sendNewText (ITextVectorProperty * tvp)
 {
     tvp->s = IPS_BUSY;
 
@@ -641,15 +645,15 @@ void INDI::BaseClient::sendNewText (ITextVectorProperty *tvp)
     fflush(svrwfp);
 }
 
-void INDI::BaseClient::sendNewText (const char * deviceName, const char * propertyName, const char* elementName, const char *text)
+void INDI::BaseClient::sendNewText (const char * deviceName, const char * propertyName, const char * elementName, const char * text)
 {
 
-    INDI::BaseDevice *drv = getDevice(deviceName);
+    INDI::BaseDevice * drv = getDevice(deviceName);
 
     if (drv == NULL)
         return;
 
-    ITextVectorProperty *tvp = drv->getText(propertyName);
+    ITextVectorProperty * tvp = drv->getText(propertyName);
 
     if (tvp == NULL)
         return;
@@ -664,9 +668,9 @@ void INDI::BaseClient::sendNewText (const char * deviceName, const char * proper
     sendNewText(tvp);
 }
 
-void INDI::BaseClient::sendNewNumber (INumberVectorProperty *nvp)
+void INDI::BaseClient::sendNewNumber (INumberVectorProperty * nvp)
 {
-    char *orig = setlocale(LC_NUMERIC,"C");
+    char * orig = setlocale(LC_NUMERIC,"C");
 
     nvp->s = IPS_BUSY;
 
@@ -688,14 +692,14 @@ void INDI::BaseClient::sendNewNumber (INumberVectorProperty *nvp)
     setlocale(LC_NUMERIC,orig);
 }
 
-void INDI::BaseClient::sendNewNumber (const char *deviceName, const char *propertyName, const char* elementName, double value)
+void INDI::BaseClient::sendNewNumber (const char * deviceName, const char * propertyName, const char * elementName, double value)
 {
-    INDI::BaseDevice *drv = getDevice(deviceName);
+    INDI::BaseDevice * drv = getDevice(deviceName);
 
     if (drv == NULL)
         return;
 
-    INumberVectorProperty *nvp = drv->getNumber(propertyName);
+    INumberVectorProperty * nvp = drv->getNumber(propertyName);
 
     if (nvp == NULL)
         return;
@@ -711,10 +715,10 @@ void INDI::BaseClient::sendNewNumber (const char *deviceName, const char *proper
 
 }
 
-void INDI::BaseClient::sendNewSwitch (ISwitchVectorProperty *svp)
+void INDI::BaseClient::sendNewSwitch (ISwitchVectorProperty * svp)
 {
     svp->s = IPS_BUSY;
-    ISwitch *onSwitch = IUFindOnSwitch(svp);
+    ISwitch * onSwitch = IUFindOnSwitch(svp);
 
     fprintf(svrwfp, "<newSwitchVector\n");
 
@@ -745,14 +749,14 @@ void INDI::BaseClient::sendNewSwitch (ISwitchVectorProperty *svp)
     fflush(svrwfp);
 }
 
-void INDI::BaseClient::sendNewSwitch (const char *deviceName, const char *propertyName, const char *elementName)
+void INDI::BaseClient::sendNewSwitch (const char * deviceName, const char * propertyName, const char * elementName)
 {
-    INDI::BaseDevice *drv = getDevice(deviceName);
+    INDI::BaseDevice * drv = getDevice(deviceName);
 
     if (drv == NULL)
         return;
 
-    ISwitchVectorProperty *svp = drv->getSwitch(propertyName);
+    ISwitchVectorProperty * svp = drv->getSwitch(propertyName);
 
     if (svp == NULL)
         return;
@@ -768,7 +772,7 @@ void INDI::BaseClient::sendNewSwitch (const char *deviceName, const char *proper
 
 }
 
-void INDI::BaseClient::startBlob( const char *devName, const char *propName, const char *timestamp)
+void INDI::BaseClient::startBlob( const char * devName, const char * propName, const char * timestamp)
 {
     fprintf(svrwfp, "<newBLOBVector\n");
     fprintf(svrwfp, "  device='%s'\n", devName);
@@ -776,15 +780,68 @@ void INDI::BaseClient::startBlob( const char *devName, const char *propName, con
     fprintf(svrwfp, "  timestamp='%s'>\n",  timestamp);
 }
 
-void INDI::BaseClient::sendOneBlob( const char *blobName, unsigned int blobSize, const char *blobFormat, void * blobBuffer)
+void INDI::BaseClient::sendOneBlob(IBLOB * bp)
 {
+    unsigned char * encblob;
+    int l;
+
+    encblob = (unsigned char *) malloc (4*bp->size/3+4);
+    l = to64frombits(encblob, reinterpret_cast<const unsigned char *>(bp->blob), bp->size);
+
+    fprintf(svrwfp, "  <oneBLOB\n");
+    fprintf(svrwfp, "    name='%s'\n", bp->name);
+    fprintf(svrwfp, "    size='%ud'\n", bp->size);
+    fprintf (svrwfp,"    enclen='%d'\n", l);
+    fprintf(svrwfp, "    format='%s'>\n", bp->format);
+
+    size_t written = 0;
+    size_t towrite = 0;
+    while (written < l)
+    {
+        towrite = ((l - written) > 72) ? 72 : l - written;
+        size_t wr = fwrite( encblob + written, 1, towrite, svrwfp);
+        if (wr > 0) written += wr;
+        if ((written % 72) == 0)
+            fputc('\n', svrwfp);
+    }
+
+    if ((written % 72) != 0)
+        fputc('\n', svrwfp);
+
+    free (encblob);
+
+    fprintf(svrwfp, "   </oneBLOB>\n");
+}
+
+void INDI::BaseClient::sendOneBlob( const char * blobName, unsigned int blobSize, const char * blobFormat, void * blobBuffer)
+{
+    unsigned char * encblob;
+    int l;
+
+    encblob = (unsigned char *) malloc (4*blobSize/3+4);
+    l = to64frombits(encblob, reinterpret_cast<const unsigned char *>(blobBuffer), blobSize);
+
     fprintf(svrwfp, "  <oneBLOB\n");
     fprintf(svrwfp, "    name='%s'\n", blobName);
     fprintf(svrwfp, "    size='%ud'\n", blobSize);
-    fprintf(svrwfp, "    format='%s'>\n", blobFormat);
+    fprintf (svrwfp, "    enclen='%d'\n", l);
+    fprintf (svrwfp, "    format='%s'>\n", blobFormat);
 
-    for (unsigned i = 0; i < blobSize; i += 72)
-        fprintf(svrwfp, "    %.72s\n", ((char *) blobBuffer+i));
+    size_t written = 0;
+    size_t towrite = 0;
+    while (written < l)
+    {
+        towrite = ((l - written) > 72) ? 72 : l - written;
+        size_t wr = fwrite( encblob + written, 1, towrite, svrwfp);
+        if (wr > 0) written += wr;
+        if ((written % 72) == 0)
+            fputc('\n', svrwfp);
+    }
+
+    if ((written % 72) != 0)
+        fputc('\n', svrwfp);
+
+    free (encblob);
 
     fprintf(svrwfp, "   </oneBLOB>\n");
 }
@@ -796,18 +853,18 @@ void INDI::BaseClient::finishBlob()
 
 }
 
-void INDI::BaseClient::setBLOBMode(BLOBHandling blobH, const char *dev, const char *prop)
+void INDI::BaseClient::setBLOBMode(BLOBHandling blobH, const char * dev, const char * prop)
 {
     char blobOpenTag[MAXRBUF];
 
     if (!dev[0])
         return;
 
-    BLOBMode *bMode = findBLOBMode(string(dev), prop ? string(prop) : string());
+    BLOBMode * bMode = findBLOBMode(string(dev), prop ? string(prop) : string());
 
     if (bMode == NULL)
     {
-        BLOBMode *newMode = new BLOBMode();
+        BLOBMode * newMode = new BLOBMode();
         newMode->device   = string(dev);
         newMode->property = prop ? string(prop) : string();
         newMode->blobMode = blobH;
@@ -829,25 +886,25 @@ void INDI::BaseClient::setBLOBMode(BLOBHandling blobH, const char *dev, const ch
 
     switch (blobH)
     {
-    case B_NEVER:
-        fprintf(svrwfp, "%sNever</enableBLOB>\n", blobOpenTag);
-        break;
-    case B_ALSO:
-        fprintf(svrwfp, "%sAlso</enableBLOB>\n", blobOpenTag);
-        break;
-    case B_ONLY:
-        fprintf(svrwfp, "%sOnly</enableBLOB>\n", blobOpenTag);
-        break;
+        case B_NEVER:
+            fprintf(svrwfp, "%sNever</enableBLOB>\n", blobOpenTag);
+            break;
+        case B_ALSO:
+            fprintf(svrwfp, "%sAlso</enableBLOB>\n", blobOpenTag);
+            break;
+        case B_ONLY:
+            fprintf(svrwfp, "%sOnly</enableBLOB>\n", blobOpenTag);
+            break;
     }
 
     fflush(svrwfp);
 }
 
-BLOBHandling INDI::BaseClient::getBLOBMode(const char *dev, const char *prop)
+BLOBHandling INDI::BaseClient::getBLOBMode(const char * dev, const char * prop)
 {
     BLOBHandling bHandle = B_ALSO;
 
-    BLOBMode *bMode = findBLOBMode(dev, prop ? string(prop) : string());
+    BLOBMode * bMode = findBLOBMode(dev, prop ? string(prop) : string());
 
     if (bMode)
         bHandle = bMode->blobMode;
@@ -855,7 +912,7 @@ BLOBHandling INDI::BaseClient::getBLOBMode(const char *dev, const char *prop)
     return bHandle;
 }
 
-INDI::BaseClient::BLOBMode *INDI::BaseClient::findBLOBMode(string device, string property)
+INDI::BaseClient::BLOBMode * INDI::BaseClient::findBLOBMode(string device, string property)
 {
     std::vector<BLOBMode *>::iterator blobby;
 

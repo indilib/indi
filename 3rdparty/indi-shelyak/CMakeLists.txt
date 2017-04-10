@@ -24,7 +24,7 @@ set(shelyak_SRCS
 
 add_executable(indi_shelyakeshel_spectrograph ${shelyak_SRCS})
 
-target_link_libraries(indi_shelyakeshel_spectrograph ${INDI_DRIVER_LIBRARIES})
+target_link_libraries(indi_shelyakeshel_spectrograph ${INDI_LIBRARIES})
 
 install(TARGETS indi_shelyakeshel_spectrograph RUNTIME DESTINATION bin)
 

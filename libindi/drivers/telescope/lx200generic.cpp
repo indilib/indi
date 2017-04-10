@@ -46,6 +46,7 @@
 #include "lx200fs2.h"
 #include "lx200ss2000pc.h"
 #include "lx200_OnStep.h"
+#include "lx200_10micron.h"
 					       
 // We declare an auto pointer to LX200Generic.
 std::unique_ptr<LX200Generic> telescope;
@@ -155,6 +156,13 @@ void ISInit()
        if(telescope.get() == 0) telescope.reset(new LX200FS2());
 
  }
+ else if (strstr(me, "indi_lx200_10micron"))
+ {
+       IDLog("initializing for 10Micron mount...\n");
+
+       if(telescope.get() == 0) telescope.reset(new LX200_10MICRON());
+
+ }
  // be nice and give them a generic device
  else
    if(telescope.get() == 0) telescope.reset(new LX200Generic());
@@ -213,16 +221,14 @@ LX200Generic::LX200Generic()
    currentSiteNum = 1;
    trackingMode   = LX200_TRACK_SIDEREAL;
    GuideNSTID     = 0;
-   GuideWETID     = 0;
-
-   updatePeriodMS = 1000;
+   GuideWETID     = 0;   
 
    DBG_SCOPE = INDI::Logger::getInstance().addDebugLevel("Scope Verbose", "SCOPE");
 
    currentRA=ln_get_apparent_sidereal_time(ln_get_julian_from_sys());
    currentDEC=90;  
 
-   SetTelescopeCapability(TELESCOPE_CAN_PARK | TELESCOPE_CAN_SYNC | TELESCOPE_CAN_ABORT | TELESCOPE_HAS_TIME | TELESCOPE_HAS_LOCATION,4);
+   SetTelescopeCapability(TELESCOPE_CAN_PARK | TELESCOPE_CAN_SYNC | TELESCOPE_CAN_GOTO | TELESCOPE_CAN_ABORT | TELESCOPE_HAS_TIME | TELESCOPE_HAS_LOCATION,4);
 
    DEBUG(INDI::Logger::DBG_DEBUG, "Initializing from Generic LX200 device...");
 }
@@ -258,17 +264,19 @@ bool LX200Generic::initProperties()
     IUFillSwitch(&AlignmentS[2], "Land", "", ISS_OFF);
     IUFillSwitchVector(&AlignmentSP, AlignmentS, 3, getDeviceName(), "Alignment", "", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
+#if 0
     IUFillSwitch(&SlewRateS[SLEW_GUIDE], "SLEW_GUIDE", "Guide", ISS_OFF);
     IUFillSwitch(&SlewRateS[SLEW_CENTERING], "SLEW_CENTERING", "Centering", ISS_OFF);
     IUFillSwitch(&SlewRateS[SLEW_FIND], "SLEW_FIND", "Find", ISS_OFF);
     IUFillSwitch(&SlewRateS[SLEW_MAX], "SLEW_MAX", "Max", ISS_ON);
     IUFillSwitchVector(&SlewRateSP, SlewRateS, 4, getDeviceName(), "TELESCOPE_SLEW_RATE", "Slew Rate", MOTION_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+#endif
 
     IUFillSwitch(&TrackModeS[0], "TRACK_SIDEREAL", "Sidereal", ISS_ON);
     IUFillSwitch(&TrackModeS[1], "TRACK_SOLAR", "Solar", ISS_OFF);
     IUFillSwitch(&TrackModeS[2], "TRACK_LUNAR", "Lunar", ISS_OFF);
     IUFillSwitch(&TrackModeS[3], "TRACK_CUSTOM", "Custom", ISS_OFF);
-    IUFillSwitchVector(&TrackModeSP, TrackModeS, 4, getDeviceName(), "TELESCOPE_TRACK_RATE", "Tracking Mode", MOTION_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+    IUFillSwitchVector(&TrackModeSP, TrackModeS, 4, getDeviceName(), "TELESCOPE_TRACK_MODE", "Track Mode", MOTION_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
     IUFillNumber(&TrackFreqN[0], "trackFreq", "Freq", "%g", 56.4,60.1, 0.1, 60.1);
     IUFillNumberVector(&TrackingFreqNP, TrackFreqN, 1, getDeviceName(), "Tracking Frequency", "", MOTION_TAB, IP_RW, 0, IPS_IDLE);
@@ -330,9 +338,12 @@ void LX200Generic::ISGetProperties(const char *dev)
         defineNumber(&GuideNSNP);
         defineNumber(&GuideWENP);
 
-        defineSwitch(&FocusMotionSP);
-        defineNumber(&FocusTimerNP);
-        defineSwitch(&FocusModeSP);
+        if (hasFocus)
+        {
+            defineSwitch(&FocusMotionSP);
+            defineNumber(&FocusTimerNP);
+            defineSwitch(&FocusModeSP);
+        }
     }
 
 }
@@ -354,9 +365,13 @@ bool LX200Generic::updateProperties()
         defineNumber(&GuideNSNP);
         defineNumber(&GuideWENP);
 
-        defineSwitch(&FocusMotionSP);
-        defineNumber(&FocusTimerNP);
-        defineSwitch(&FocusModeSP);
+        if (hasFocus)
+        {
+            defineSwitch(&FocusMotionSP);
+            defineNumber(&FocusTimerNP);
+            defineSwitch(&FocusModeSP);
+        }
+
 
         getBasicData();
 
@@ -375,66 +390,29 @@ bool LX200Generic::updateProperties()
         deleteProperty(GuideNSNP.name);
         deleteProperty(GuideWENP.name);
 
-        deleteProperty(FocusMotionSP.name);
-        deleteProperty(FocusTimerNP.name);
-        deleteProperty(FocusModeSP.name);
+        if (hasFocus)
+        {
+            deleteProperty(FocusMotionSP.name);
+            deleteProperty(FocusTimerNP.name);
+            deleteProperty(FocusModeSP.name);
+        }
+
     }
 
     return true;
-}
-
-bool LX200Generic::Connect()
-{
-    bool rc=false;
-
-    if(isConnected()) return true;
-
-    rc=Connect(PortT[0].text, atoi(IUFindOnSwitch(&BaudRateSP)->name));
-
-    if(rc)
-        SetTimer(updatePeriodMS);
-
-    return rc;
 }
 
 bool LX200Generic::checkConnection()
 {
+    if (isSimulation())
+        return true;
+
     return (check_lx200_connection(PortFD) == 0);
 }
 
-bool LX200Generic::Connect(const char *port, uint32_t baud)
+bool LX200Generic::Handshake()
 {
-    if (isSimulation())
-    {
-        DEBUGF (INDI::Logger::DBG_SESSION, "Simulated %s is online.", getDeviceName());
-        return true;
-    }
-
-    if (tty_connect(port, baud, 8, 0, 1, &PortFD) != TTY_OK)
-    {
-      DEBUGF(INDI::Logger::DBG_ERROR, "Error connecting to port %s. Make sure you have BOTH write and read permission to your port.", port);
-      return false;
-    }
-
-
-    if (checkConnection() == false)
-    {
-        DEBUG(INDI::Logger::DBG_ERROR, "Error connecting to Telescope. Telescope is offline.");
-        return false;
-    }
-
-   //*((int *) UTCOffsetN[0].aux0) = 0;
-
-   DEBUGF (INDI::Logger::DBG_SESSION, "%s is online. Retrieving basic data...", getDeviceName());
-
-   return true;
-}
-
-bool LX200Generic::Disconnect()
-{
-    if (isSimulation() == false)
-        tty_disconnect(PortFD);
-    return true;
+    return checkConnection();
 }
 
 bool LX200Generic::isSlewComplete()
@@ -496,9 +474,20 @@ bool LX200Generic::Goto(double r,double d)
     targetRA=r;
     targetDEC=d;
     char RAStr[64], DecStr[64];
+    int fracbase = 0;
 
-    fs_sexa(RAStr, targetRA, 2, 3600);
-    fs_sexa(DecStr, targetDEC, 2, 3600);
+    switch (getLX200Format()) {
+    case LX200_LONGER_FORMAT:
+        fracbase = 360000;
+    break;
+    case LX200_LONG_FORMAT:
+    case LX200_SHORT_FORMAT:
+    default:
+        fracbase = 3600;
+    break;
+    }
+    fs_sexa(RAStr, targetRA, 2, fracbase);
+    fs_sexa(DecStr, targetDEC, 2, fracbase);
 
     // If moving, let's stop it first.
     if (EqNP.s == IPS_BUSY)
@@ -1004,17 +993,21 @@ bool LX200Generic::ISNewSwitch (const char *dev, const char *name, ISState *stat
           IUUpdateSwitch(&TrackModeSP, states, names, n);
           trackingMode = IUFindOnSwitchIndex(&TrackModeSP);
 
-          if (isSimulation() == false && selectTrackingMode(PortFD, trackingMode) < 0)
+          if (isSimulation() == false && SetTrackMode(trackingMode) == false)
           {
               TrackModeSP.s = IPS_ALERT;
               IDSetSwitch(&TrackModeSP, "Error setting tracking mode.");
               return false;
           }
 
-          if (isSimulation() == false)
+          // Only update tracking frequency if it is defined and not deleted by child classes
+          if (isSimulation() == false && getProperty(TrackingFreqNP.name, INDI_NUMBER) != NULL)
+          {
             getTrackFreq(PortFD, &TrackFreqN[0].value);
+            IDSetNumber(&TrackingFreqNP, NULL);
+          }
+
           TrackModeSP.s = IPS_OK;
-          IDSetNumber(&TrackingFreqNP, NULL);
           IDSetSwitch(&TrackModeSP, NULL);
           return true;
         }
@@ -1061,6 +1054,11 @@ bool LX200Generic::ISNewSwitch (const char *dev, const char *name, ISState *stat
     //  Nobody has claimed this, so pass it to the parent
     return INDI::Telescope::ISNewSwitch(dev,name,states,names,n);
 
+}
+
+bool LX200Generic::SetTrackMode(int mode)
+{
+    return (selectTrackingMode(PortFD, mode) == 0);
 }
 
 bool LX200Generic::SetSlewRate(int index)
@@ -1326,9 +1324,12 @@ void LX200Generic::sendScopeTime()
   getLocalTime24(PortFD, &ctime);
   getSexComponents(ctime, &h, &m, &s);
 
-  getCalenderDate(PortFD, cdate);
-  result = sscanf(cdate, "%d/%d/%d", &year, &month, &day);
-  if (result != 3) return;
+  getCalendarDate(PortFD, cdate);
+  result = sscanf(cdate, "%4d-%2d-%2d", &year, &month, &day);
+  if (result != 3) {
+      DEBUG(INDI::Logger::DBG_ERROR, "Error reading date from Telescope.");
+      return;
+  }
 
   // Let's fill in the local time
   ltm.tm_sec = s;
@@ -1359,8 +1360,6 @@ void LX200Generic::sendScopeTime()
 
   // Let's send everything to the client
   IDSetText(&TimeTP, NULL);
-
-
 }
 
 void LX200Generic::sendScopeLocation()

@@ -19,6 +19,8 @@
 
 #include "focuslynxbase.h"
 #include "indicom.h"
+#include "connectionplugins/connectionserial.h"
+#include "connectionplugins/connectiontcp.h"
 
 #include <stdio.h>
 #include <termios.h>
@@ -109,6 +111,15 @@ bool FocusLynxBase::initProperties()
 {
   INDI::Focuser::initProperties();
 
+  /* Added by Philippe Besson, the 29th of Mars 2017
+   To remove Serial and tcp properties for the second focuser
+   To avoid final user confusions. */
+  if (!strcmp(getFocusTarget(), "F2"))
+  {
+    unRegisterConnection(serialConnection);
+    unRegisterConnection(tcpConnection);
+  }
+
   // Focuser temperature
   IUFillNumber(&TemperatureN[0], "TEMPERATURE", "Celsius", "%6.2f", -50, 70., 0., 0.);
   IUFillNumberVector(&TemperatureNP, TemperatureN, 1, getDeviceName(), "FOCUS_TEMPERATURE", "Temperature", MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE);
@@ -159,7 +170,7 @@ bool FocusLynxBase::initProperties()
   // Go to home/center
   IUFillSwitch(&GotoS[GOTO_CENTER], "Center", "", ISS_OFF);
   IUFillSwitch(&GotoS[GOTO_HOME], "Home", "", ISS_OFF);
-  IUFillSwitchVector(&GotoSP, GotoS, 2, getDeviceName(), "GOTO", "", MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
+  IUFillSwitchVector(&GotoSP, GotoS, 2, getDeviceName(), "GOTO", "", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
   // Reverse direction
   IUFillSwitch(&ReverseS[0], "Enable", "", ISS_OFF);
@@ -305,9 +316,27 @@ bool FocusLynxBase::updateProperties()
 /************************************************************************************
  *
 * ***********************************************************************************/
+bool FocusLynxBase::Handshake()
+{
+    if (ack())
+    {
+      DEBUG(INDI::Logger::DBG_SESSION, "FocusLynx is online. Getting focus parameters...");
+      int modelIndex = IUFindOnSwitchIndex(&ModelSP);
+      setDeviceType(modelIndex);
+      SetTimer(POLLMS);
+      return true;
+    }
+
+    DEBUG(INDI::Logger::DBG_SESSION, "Error retreiving data from FocusLynx, please ensure FocusLynxBase controller is powered and the port is correct.");
+    return false;
+}
+
+/************************************************************************************
+ *
+* ***********************************************************************************/
 bool FocusLynxBase::Connect()
 {
-  DEBUG(INDI::Logger::DBG_SESSION, "ConnectBase is called");
+  DEBUG(INDI::Logger::DBG_DEBUG, "ConnectBase is called");
 
   int connectrc=0;
   char errorMsg[MAXRBUF];
@@ -321,25 +350,17 @@ bool FocusLynxBase::Connect()
     return false;
   }
 
-  if (!isSimulation() && (connectrc = tty_connect(PortT[0].text, 115200, 8, 0, 1, &PortFD)) != TTY_OK)
+  if (!isSimulation() && (connectrc = tty_connect(serialConnection->port(), 115200, 8, 0, 1, &PortFD)) != TTY_OK)
   {
     tty_error_msg(connectrc, errorMsg, MAXRBUF);
 
-    DEBUGF(INDI::Logger::DBG_SESSION, "Failed to connect to port %s. Error: %s", PortT[0].text, errorMsg);
+    DEBUGF(INDI::Logger::DBG_SESSION, "Failed to connect to port %s. Error: %s", serialConnection->port(), errorMsg);
 
     return false;
   }
 
-  if (ack())
-  {
-    DEBUG(INDI::Logger::DBG_SESSION, "FocusLynx is online. Getting focus parameters...");
-    setDeviceType(modelIndex);
-    SetTimer(POLLMS);
-    return true;
-  }    
+  return Handshake();
 
-  DEBUG(INDI::Logger::DBG_SESSION, "Error retreiving data from FocusLynx, please ensure FocusLynxBase controller is powered and the port is correct.");
-  return false;
 }
 
 /************************************************************************************
