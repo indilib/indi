@@ -121,7 +121,11 @@ public:
     bool GetStepperClockFrequency(AXISID Axis);
 
     bool InitializeMC();
-    bool InitMount();
+
+    /// \brief Initialize the communication to the mount
+    /// \param[in] recover - The connection is recovering
+    /// \return True if successful otherwise false
+    bool InitMount(bool recover);
 
     /// \brief Bring the axis to an immediate halt.
     /// N.B. This command could cause damage to the mount or telescope

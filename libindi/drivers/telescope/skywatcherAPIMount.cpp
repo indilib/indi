@@ -14,8 +14,13 @@
  */
 
 #include "skywatcherAPIMount.h"
+
 #include "libs/indicom.h"
+#include "libs/indibase/connectionplugins/connectionserial.h"
 #include "indibase/alignment/DriverCommon.h"   // For DBG_ALIGNMENT
+
+#include <chrono>
+#include <thread>
 
 #include <unistd.h> // for sleep
 #include <memory>
@@ -32,6 +37,16 @@ std::unique_ptr<SkywatcherAPIMount> SkywatcherAPIMountPtr(new SkywatcherAPIMount
 double SlewSpeeds[SLEWMODES] = { 1.0, 2.0, 4.0, 8.0, 16.0, 32.0, 64.0, 128.0, 600.0 };
 
 void ISPoll(void *p);
+
+namespace
+{
+bool FileExists(const std::string& name)
+{
+  std::ifstream File(name.c_str());
+
+  return File.good();
+}
+}
 
 void ISGetProperties(const char *dev)
 {
@@ -67,7 +82,7 @@ const char * SkywatcherAPIMount::DetailedMountInfoPage = "Detailed Mount Informa
 
 // Constructor
 
-SkywatcherAPIMount::SkywatcherAPIMount() : ResetTrackingSeconds(false), TrackingSecs(0)
+SkywatcherAPIMount::SkywatcherAPIMount() : ResetTrackingSeconds(false), TrackingSecs(0), RecoverAfterReconnection(false)
 {
     // Set up the logging pointer in SkyWatcherAPI
     pChildTelescope = this;
@@ -105,35 +120,43 @@ bool SkywatcherAPIMount::Handshake()
     DEBUG(DBG_SCOPE, "SkywatcherAPIMount::Handshake");
     SetSerialPort(PortFD);
 
-    bool Result = InitMount();
+    bool Result = InitMount(RecoverAfterReconnection);
+
+    if (getActiveConnection() == serialConnection)
+    {
+        SerialPortName = serialConnection->port();
+    } else {
+        SerialPortName = "";
+    }
 
     // The default slew mode is silent on Virtuoso mounts.
-    if (Result && IsVirtuosoMount() &&
+    if (Result && !RecoverAfterReconnection && IsVirtuosoMount() &&
         IUFindSwitch(&SlewModesSP, "SLEW_SILENT") && IUFindSwitch(&SlewModesSP, "SLEW_NORMAL"))
     {
         IUFindSwitch(&SlewModesSP, "SLEW_SILENT")->s = ISS_ON;
         IUFindSwitch(&SlewModesSP, "SLEW_NORMAL")->s = ISS_OFF;
     }
     // The SoftPEC is enabled on Virtuoso mounts by default.
-    if (Result && IsVirtuosoMount() &&
+    if (Result && !RecoverAfterReconnection && IsVirtuosoMount() &&
         IUFindSwitch(&SoftPECModesSP, "SOFTPEC_ENABLED") && IUFindSwitch(&SoftPECModesSP, "SOFTPEC_DISABLED"))
     {
         IUFindSwitch(&SoftPECModesSP, "SOFTPEC_ENABLED")->s = ISS_ON;
         IUFindSwitch(&SoftPECModesSP, "SOFTPEC_DISABLED")->s = ISS_OFF;
     }
     // The default position is parking on Virtuoso mounts (the telescope is oriented to polar).
-    if (Result && IsVirtuosoMount())
+    if (Result && !RecoverAfterReconnection && IsVirtuosoMount())
     {
         SetParked(true);
     }
     // The default mode is Slew out of Track/Slew/Sync
-    if (IUFindSwitch(&CoordSP, "TRACK") && IUFindSwitch(&CoordSP, "SLEW") &&
+    if (!RecoverAfterReconnection && IUFindSwitch(&CoordSP, "TRACK") && IUFindSwitch(&CoordSP, "SLEW") &&
         IUFindSwitch(&CoordSP, "SYNC"))
     {
         IUFindSwitch(&CoordSP, "TRACK")->s = ISS_OFF;
         IUFindSwitch(&CoordSP, "SLEW")->s = ISS_ON;
         IUFindSwitch(&CoordSP, "SYNC")->s = ISS_OFF;
     }
+    RecoverAfterReconnection = false;
     DEBUGF(DBG_SCOPE, "SkywatcherAPIMount::Handshake - Result: %d", Result);
     return Result;
 }
@@ -1233,7 +1256,7 @@ void SkywatcherAPIMount::TimerHit()
                         DEBUG(DBG_SCOPE, "Tracking - AXIS2 restart");
                         SetMotionMode(AXIS2, '1', Direction);
                         StartMotion(AXIS2);
-                    }
+                      }
                     DEBUGF(DBG_SCOPE, "Tracking - AXIS2 offset %ld microsteps rate %ld direction %c",
                            AltitudeOffsetMicrosteps, AltitudeRate, Direction);
                 }
@@ -1338,11 +1361,51 @@ bool SkywatcherAPIMount::updateProperties()
 
 int SkywatcherAPIMount::skywatcher_tty_read(int fd, char *buf, int nbytes, int timeout, int *nbytes_read)
 {
+    if (!RecoverAfterReconnection && !SerialPortName.empty() && !FileExists(SerialPortName))
+    {
+        RecoverAfterReconnection = true;
+        serialConnection->Disconnect();
+        serialConnection->Refresh();
+        std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+        if (!serialConnection->Connect())
+        {
+            RecoverAfterReconnection = true;
+            std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+            if (!serialConnection->Connect())
+            {
+                RecoverAfterReconnection = false;
+                return 0;
+            }
+        }
+        SetSerialPort(serialConnection->getPortFD());
+        SerialPortName = serialConnection->port();
+        RecoverAfterReconnection = false;
+    }
     return tty_read(fd, buf, nbytes, timeout, nbytes_read);
 }
 
 int SkywatcherAPIMount::skywatcher_tty_write(int fd, const char * buffer, int nbytes, int *nbytes_written)
 {
+    if (!RecoverAfterReconnection && !SerialPortName.empty() && !FileExists(SerialPortName))
+    {
+        RecoverAfterReconnection = true;
+        serialConnection->Disconnect();
+        serialConnection->Refresh();
+        std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+        if (!serialConnection->Connect())
+        {
+            RecoverAfterReconnection = true;
+            std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+            if (!serialConnection->Connect())
+            {
+                RecoverAfterReconnection = false;
+                return 0;
+            }
+        }
+        SetSerialPort(serialConnection->getPortFD());
+        SerialPortName = serialConnection->port();
+        RecoverAfterReconnection = false;
+    }
     return tty_write(fd, buffer, nbytes, nbytes_written);
 }
 
@@ -1584,4 +1647,3 @@ void SkywatcherAPIMount::UpdateDetailedMountInformation(bool InformClient)
     if (AxisTwoEncoderValuesHasChanged && InformClient)
         IDSetNumber(&AxisTwoEncoderValuesV, NULL);
 }
-
