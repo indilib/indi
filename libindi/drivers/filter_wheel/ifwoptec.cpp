@@ -105,8 +105,11 @@ FilterIFW::FilterIFW()
     setVersion(VERSION, SUBVERSION);
     strcpy(filterSim, filterSim5);      // For simulation mode
 
+    // Set communication to serail only and avoid driver crash at starting up
+    setFilterConnection(CONNECTION_SERIAL);
+
     // We add an additional debug level so we can log verbose member function starting
-    // DBG_TAG is never used. Please FIX
+    // DBG_TAG is used by macro DEBUGTAG() define in ifwoptec.h
     int DBG_TAG = INDI::Logger::getInstance().addDebugLevel("Function tag", "Tag");
 }
 
@@ -505,7 +508,6 @@ void FilterIFW::simulationTriggered(bool enable)
 void FilterIFW::TimerHit()
 {
     // not use with IFW
-    DEBUGF(INDI::Logger::DBG_SESSION, "Strange this member function (%s()) shoud not be call by this driver...", __FUNCTION__);
 }
 
 /************************************************************************************
