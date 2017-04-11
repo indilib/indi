@@ -23,6 +23,7 @@
 #include <cmath>
 
 #include "inditelescope.h"
+#include "indiapi.h"
 #include "indicom.h"
 #include "connectionplugins/connectionserial.h"
 #include "connectionplugins/connectiontcp.h"
@@ -45,6 +46,8 @@ INDI::Telescope::Telescope()
 
     currentPierSide = PIER_EAST;
     lastPierSide = PIER_UNKNOWN;
+
+    CurrentScopeConfig = 0;
 }
 
 INDI::Telescope::~Telescope()
@@ -175,6 +178,58 @@ bool INDI::Telescope::initProperties()
     IDSnoopDevice(ActiveDeviceT[1].text,"DOME_PARK");
     IDSnoopDevice(ActiveDeviceT[1].text,"DOME_SHUTTER");
 
+    // Switch for aperture/focal length configs
+    IUFillSwitch(&ScopeConfigs[SCOPE_CONFIG1], "SCOPE_CONFIG1", "Use Config #1", ISS_OFF);
+    IUFillSwitch(&ScopeConfigs[SCOPE_CONFIG2], "SCOPE_CONFIG2", "Use Config #2", ISS_OFF);
+    IUFillSwitch(&ScopeConfigs[SCOPE_CONFIG3], "SCOPE_CONFIG3", "Use Config #3", ISS_OFF);
+    IUFillSwitch(&ScopeConfigs[SCOPE_CONFIG4], "SCOPE_CONFIG4", "Use Config #4", ISS_OFF);
+    IUFillSwitchVector(&ScopeConfigsSP, ScopeConfigs, 4, getDeviceName(), "APPLY_SCOPE_CONFIG", "Scope Configs",
+                       OPTIONS_TAB, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
+
+    // Scope config #1
+    IUFillNumber(&ScopeConfig1N[0], "TELESCOPE_APERTURE", "Aperture (mm)", "%g", 10, 5000, 0, 0.0);
+    IUFillNumber(&ScopeConfig1N[1], "TELESCOPE_FOCAL_LENGTH", "Focal Length (mm)", "%g", 10, 10000, 0, 0.0);
+    IUFillNumberVector(&ScopeConfig1NP, ScopeConfig1N, 2, getDeviceName(), "SCOPE_CONFIG1",
+                       "Scope Config #1", OPTIONS_TAB, IP_RW, 60, IPS_OK);
+
+    // Scope config name #1
+    IUFillText(&ScopeConfigName1T[0], "SCOPE_CONFIG_NAME1", "Name", "");
+    IUFillTextVector(&ScopeConfigName1TP, ScopeConfigName1T, 1, getDeviceName(), "SCOPE_CONFIG_NAME1",
+                     "Scope Config #1", OPTIONS_TAB, IP_RW, 60, IPS_IDLE);
+
+    // Scope config #2
+    IUFillNumber(&ScopeConfig2N[0], "TELESCOPE_APERTURE", "Aperture (mm)", "%g", 10, 5000, 0, 0.0);
+    IUFillNumber(&ScopeConfig2N[1], "TELESCOPE_FOCAL_LENGTH", "Focal Length (mm)", "%g", 10, 10000, 0, 0.0);
+    IUFillNumberVector(&ScopeConfig2NP, ScopeConfig2N, 2, getDeviceName(), "SCOPE_CONFIG2",
+                       "Scope Config #2", OPTIONS_TAB, IP_RW, 60, IPS_OK);
+
+    // Scope config name #2
+    IUFillText(&ScopeConfigName2T[0], "SCOPE_CONFIG_NAME2", "Name", "");
+    IUFillTextVector(&ScopeConfigName2TP, ScopeConfigName2T, 1, getDeviceName(), "SCOPE_CONFIG_NAME2",
+                     "Scope Config #2", OPTIONS_TAB, IP_RW, 60, IPS_IDLE);
+
+    // Scope config #3
+    IUFillNumber(&ScopeConfig3N[0], "TELESCOPE_APERTURE", "Aperture (mm)", "%g", 10, 5000, 0, 0.0);
+    IUFillNumber(&ScopeConfig3N[1], "TELESCOPE_FOCAL_LENGTH", "Focal Length (mm)", "%g", 10, 10000, 0, 0.0);
+    IUFillNumberVector(&ScopeConfig3NP, ScopeConfig3N, 2, getDeviceName(), "SCOPE_CONFIG3",
+                       "Scope Config #3", OPTIONS_TAB, IP_RW, 60, IPS_OK);
+
+    // Scope config name #3
+    IUFillText(&ScopeConfigName3T[0], "SCOPE_CONFIG_NAME3", "Name", "");
+    IUFillTextVector(&ScopeConfigName3TP, ScopeConfigName3T, 1, getDeviceName(), "SCOPE_CONFIG_NAME3",
+                     "Scope Config #3", OPTIONS_TAB, IP_RW, 60, IPS_IDLE);
+
+    // Scope config #4
+    IUFillNumber(&ScopeConfig4N[0], "TELESCOPE_APERTURE", "Aperture (mm)", "%g", 10, 5000, 0, 0.0);
+    IUFillNumber(&ScopeConfig4N[1], "TELESCOPE_FOCAL_LENGTH", "Focal Length (mm)", "%g", 10, 10000, 0, 0.0);
+    IUFillNumberVector(&ScopeConfig4NP, ScopeConfig4N, 2, getDeviceName(), "SCOPE_CONFIG4",
+                       "Scope Config #4", OPTIONS_TAB, IP_RW, 60, IPS_OK);
+
+    // Scope config name #4
+    IUFillText(&ScopeConfigName4T[0], "SCOPE_CONFIG_NAME4", "Name", "");
+    IUFillTextVector(&ScopeConfigName4TP, ScopeConfigName1T, 1, getDeviceName(), "SCOPE_CONFIG_NAME4",
+                     "Scope Config #4", OPTIONS_TAB, IP_RW, 60, IPS_IDLE);
+
     return true;
 }
 
@@ -233,6 +288,16 @@ void INDI::Telescope::ISGetProperties (const char * dev)
 
         if (HasPierSide())
             defineSwitch(&PierSideSP);
+
+        defineSwitch(&ScopeConfigsSP);
+        defineNumber(&ScopeConfig1NP);
+        defineText(&ScopeConfigName1TP);
+        defineNumber(&ScopeConfig2NP);
+        defineText(&ScopeConfigName2TP);
+        defineNumber(&ScopeConfig3NP);
+        defineText(&ScopeConfigName3TP);
+        defineNumber(&ScopeConfig4NP);
+        defineText(&ScopeConfigName4TP);
     }
 
     if (CanGOTO())
@@ -290,6 +355,16 @@ bool INDI::Telescope::updateProperties()
 
         if (HasPierSide())
             defineSwitch(&PierSideSP);
+
+        defineSwitch(&ScopeConfigsSP);
+        defineNumber(&ScopeConfig1NP);
+        defineText(&ScopeConfigName1TP);
+        defineNumber(&ScopeConfig2NP);
+        defineText(&ScopeConfigName2TP);
+        defineNumber(&ScopeConfig3NP);
+        defineText(&ScopeConfigName3TP);
+        defineNumber(&ScopeConfig4NP);
+        defineText(&ScopeConfigName4TP);
     }
     else
     {
@@ -325,6 +400,16 @@ bool INDI::Telescope::updateProperties()
 
         if (HasPierSide())
             deleteProperty(PierSideSP.name);
+
+        deleteProperty(ScopeConfigsSP.name);
+        deleteProperty(ScopeConfig1NP.name);
+        deleteProperty(ScopeConfigName1TP.name);
+        deleteProperty(ScopeConfig2NP.name);
+        deleteProperty(ScopeConfigName2TP.name);
+        deleteProperty(ScopeConfig3NP.name);
+        deleteProperty(ScopeConfigName3TP.name);
+        deleteProperty(ScopeConfig4NP.name);
+        deleteProperty(ScopeConfigName4TP.name);
     }
 
     if (CanGOTO())
@@ -478,6 +563,26 @@ bool INDI::Telescope::saveConfigItems(FILE * fp)
 
     IUSaveConfigSwitch(fp, &LockAxisSP);
 
+    if (ScopeConfig1NP.s == IPS_OK)
+        IUSaveConfigNumber(fp, &ScopeConfig1NP);
+    if (ScopeConfigName1TP.s == IPS_OK)
+        IUSaveConfigText(fp, &ScopeConfigName1TP);
+
+    if (ScopeConfig2NP.s == IPS_OK)
+        IUSaveConfigNumber(fp, &ScopeConfig2NP);
+    if (ScopeConfigName2TP.s == IPS_OK)
+        IUSaveConfigText(fp, &ScopeConfigName2TP);
+
+    if (ScopeConfig3NP.s == IPS_OK)
+        IUSaveConfigNumber(fp, &ScopeConfig3NP);
+    if (ScopeConfigName3TP.s == IPS_OK)
+        IUSaveConfigText(fp, &ScopeConfigName3TP);
+
+    if (ScopeConfig4NP.s == IPS_OK)
+        IUSaveConfigNumber(fp, &ScopeConfig4NP);
+    if (ScopeConfigName4TP.s == IPS_OK)
+        IUSaveConfigText(fp, &ScopeConfigName4TP);
+
     return true;
 }
 
@@ -571,6 +676,35 @@ bool INDI::Telescope::ISNewText (const char * dev, const char * name, char * tex
 
             IDSnoopDevice(ActiveDeviceT[1].text,"DOME_PARK");
             IDSnoopDevice(ActiveDeviceT[1].text,"DOME_SHUTTER");
+            return true;
+        }
+
+        if (name && std::string(name) == "SCOPE_CONFIG_NAME1")
+        {
+            ScopeConfigName1TP.s = IPS_OK;
+            IUUpdateText(&ScopeConfigName1TP, texts, names, n);
+            IDSetText(&ScopeConfigName1TP, NULL);
+            return true;
+        }
+        if (name && std::string(name) == "SCOPE_CONFIG_NAME2")
+        {
+            ScopeConfigName2TP.s = IPS_OK;
+            IUUpdateText(&ScopeConfigName2TP, texts, names, n);
+            IDSetText(&ScopeConfigName2TP, NULL);
+            return true;
+        }
+        if (name && std::string(name) == "SCOPE_CONFIG_NAME3")
+        {
+            ScopeConfigName3TP.s = IPS_OK;
+            IUUpdateText(&ScopeConfigName3TP, texts, names, n);
+            IDSetText(&ScopeConfigName3TP, NULL);
+            return true;
+        }
+        if (name && std::string(name) == "SCOPE_CONFIG_NAME4")
+        {
+            ScopeConfigName4TP.s = IPS_OK;
+            IUUpdateText(&ScopeConfigName4TP, texts, names, n);
+            IDSetText(&ScopeConfigName4TP, NULL);
             return true;
         }
 
@@ -725,6 +859,35 @@ bool INDI::Telescope::ISNewNumber (const char * dev, const char * name, double v
                 ParkPositionNP.s = IPS_ALERT;
 
             IDSetNumber(&ParkPositionNP, NULL);
+            return true;
+        }
+
+        if (name && std::string(name) == "SCOPE_CONFIG1")
+        {
+            ScopeConfig1NP.s = IPS_OK;
+            IUUpdateNumber(&ScopeConfig1NP, values, names, n);
+            IDSetNumber(&ScopeConfig1NP, NULL);
+            return true;
+        }
+        if (name && std::string(name) == "SCOPE_CONFIG2")
+        {
+            ScopeConfig2NP.s = IPS_OK;
+            IUUpdateNumber(&ScopeConfig2NP, values, names, n);
+            IDSetNumber(&ScopeConfig2NP, NULL);
+            return true;
+        }
+        if (name && std::string(name) == "SCOPE_CONFIG3")
+        {
+            ScopeConfig3NP.s = IPS_OK;
+            IUUpdateNumber(&ScopeConfig3NP, values, names, n);
+            IDSetNumber(&ScopeConfig3NP, NULL);
+            return true;
+        }
+        if (name && std::string(name) == "SCOPE_CONFIG4")
+        {
+            ScopeConfig4NP.s = IPS_OK;
+            IUUpdateNumber(&ScopeConfig4NP, values, names, n);
+            IDSetNumber(&ScopeConfig4NP, NULL);
             return true;
         }
 
@@ -1064,6 +1227,13 @@ bool INDI::Telescope::ISNewSwitch (const char * dev, const char * name, ISState 
                 DEBUG(INDI::Logger::DBG_SESSION, "Joystick motion is locked to North/South axis only.");
             else
                 DEBUG(INDI::Logger::DBG_SESSION, "Joystick motion is unlocked.");
+            return true;
+        }
+
+        if (name && std::string(name) == "APPLY_SCOPE_CONFIG")
+        {
+            IUUpdateSwitch(&ScopeConfigsSP, states, names, n);
+            updateScopeConfigs();
             return true;
         }
     }
@@ -1794,4 +1964,75 @@ void INDI::Telescope::setPierSide(TelescopePierSide side)
 
         lastPierSide = currentPierSide;
     }
+}
+
+void INDI::Telescope::updateScopeConfigs()
+{
+    int SelectedScopeConfig = 0;
+
+    DEBUGF(INDI::Logger::DBG_SESSION, "Config1? %p", IUFindSwitch(&ScopeConfigsSP, "SCOPE_CONFIG1"));
+    if (IUFindSwitch(&ScopeConfigsSP, "SCOPE_CONFIG1"))
+        DEBUGF(INDI::Logger::DBG_SESSION, "Config1? %d %d", IUFindSwitch(&ScopeConfigsSP, "SCOPE_CONFIG1")->s, ISS_ON);
+    if (IUFindSwitch(&ScopeConfigsSP, "SCOPE_CONFIG1") && IUFindSwitch(&ScopeConfigsSP, "SCOPE_CONFIG1")->s == ISS_ON)
+        SelectedScopeConfig = 1;
+    if (IUFindSwitch(&ScopeConfigsSP, "SCOPE_CONFIG2") && IUFindSwitch(&ScopeConfigsSP, "SCOPE_CONFIG2")->s == ISS_ON)
+        SelectedScopeConfig = 2;
+    if (IUFindSwitch(&ScopeConfigsSP, "SCOPE_CONFIG3") && IUFindSwitch(&ScopeConfigsSP, "SCOPE_CONFIG3")->s == ISS_ON)
+        SelectedScopeConfig = 3;
+    if (IUFindSwitch(&ScopeConfigsSP, "SCOPE_CONFIG4") && IUFindSwitch(&ScopeConfigsSP, "SCOPE_CONFIG4")->s == ISS_ON)
+        SelectedScopeConfig = 4;
+
+    DEBUGF(INDI::Logger::DBG_SESSION, "Selected scope config: %d", SelectedScopeConfig);
+    // Set a new telescope config
+    if (SelectedScopeConfig == 0 || SelectedScopeConfig == CurrentScopeConfig)
+        return;
+
+    double NewAperture = 0;
+    double NewFocalLength = 0;
+
+    if (SelectedScopeConfig == 1 && IUFindNumber(&ScopeConfig1NP, "TELESCOPE_APERTURE") &&
+        IUFindNumber(&ScopeConfig1NP, "TELESCOPE_FOCAL_LENGTH"))
+    {
+        NewAperture = IUFindNumber(&ScopeConfig1NP, "TELESCOPE_APERTURE")->value;
+        NewFocalLength = IUFindNumber(&ScopeConfig1NP, "TELESCOPE_FOCAL_LENGTH")->value;
+    }
+    if (SelectedScopeConfig == 2 && IUFindNumber(&ScopeConfig2NP, "TELESCOPE_APERTURE") &&
+        IUFindNumber(&ScopeConfig2NP, "TELESCOPE_FOCAL_LENGTH"))
+    {
+        NewAperture = IUFindNumber(&ScopeConfig2NP, "TELESCOPE_APERTURE")->value;
+        NewFocalLength = IUFindNumber(&ScopeConfig2NP, "TELESCOPE_FOCAL_LENGTH")->value;
+    }
+    if (SelectedScopeConfig == 3 && IUFindNumber(&ScopeConfig3NP, "TELESCOPE_APERTURE") &&
+        IUFindNumber(&ScopeConfig3NP, "TELESCOPE_FOCAL_LENGTH"))
+    {
+        NewAperture = IUFindNumber(&ScopeConfig3NP, "TELESCOPE_APERTURE")->value;
+        NewFocalLength = IUFindNumber(&ScopeConfig3NP, "TELESCOPE_FOCAL_LENGTH")->value;
+    }
+    if (SelectedScopeConfig == 4 && IUFindNumber(&ScopeConfig4NP, "TELESCOPE_APERTURE") &&
+        IUFindNumber(&ScopeConfig4NP, "TELESCOPE_FOCAL_LENGTH"))
+    {
+        NewAperture = IUFindNumber(&ScopeConfig4NP, "TELESCOPE_APERTURE")->value;
+        NewFocalLength = IUFindNumber(&ScopeConfig4NP, "TELESCOPE_FOCAL_LENGTH")->value;
+    }
+    if (NewAperture > 0 && NewFocalLength > 0 && IUFindNumber(&ScopeParametersNP, "TELESCOPE_APERTURE") &&
+        IUFindNumber(&ScopeParametersNP, "TELESCOPE_FOCAL_LENGTH"))
+    {
+        DEBUGF(INDI::Logger::DBG_SESSION, "Set new scope config: %1.2f %1.2f", NewAperture, NewFocalLength);
+        IUFindNumber(&ScopeParametersNP, "TELESCOPE_APERTURE")->value = NewAperture;
+        IUFindNumber(&ScopeParametersNP, "TELESCOPE_FOCAL_LENGTH")->value = NewFocalLength;
+        // Set some default values for the guide scope if they are missing because the configuration
+        // must be valid to be saved.
+        if (IUFindNumber(&ScopeParametersNP, "GUIDER_APERTURE") &&
+            IUFindNumber(&ScopeParametersNP, "GUIDER_APERTURE")->value == 0)
+        {
+            IUFindNumber(&ScopeParametersNP, "GUIDER_APERTURE")->value = 50;
+        }
+        if (IUFindNumber(&ScopeParametersNP, "GUIDER_FOCAL_LENGTH") &&
+            IUFindNumber(&ScopeParametersNP, "GUIDER_FOCAL_LENGTH")->value == 0)
+        {
+            IUFindNumber(&ScopeParametersNP, "GUIDER_FOCAL_LENGTH")->value = 200;
+        }
+        IDSetNumber(&ScopeParametersNP, NULL);
+    }
+    CurrentScopeConfig = SelectedScopeConfig;
 }
