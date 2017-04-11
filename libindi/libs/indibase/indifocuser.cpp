@@ -372,9 +372,9 @@ uint8_t INDI::Focuser::getFocuserConnection() const
 
 void INDI::Focuser::setFocuserConnection(const uint8_t &value)
 {
-    uint8_t mask = CONNECTION_SERIAL | CONNECTION_TCP;
+    uint8_t mask = CONNECTION_SERIAL | CONNECTION_TCP | CONNECTION_NONE;
 
-    if (value > 0 && (mask & value) == 0)
+    if (value == 0 || (mask & value) == 0)
     {
         DEBUGF(INDI::Logger::DBG_ERROR, "Invalid connection mode %d", value);
         return;
