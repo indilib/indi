@@ -966,8 +966,8 @@ int V4L2_Base::check_device(char * errmsg)
 
     DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG,"Driver %s (version %u.%u.%u)", cap.driver, (cap.version >> 16) & 0xFF,
                  (cap.version >> 8) & 0xFF, (cap.version & 0xFF));
-    DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG,"  card; \t%s", cap.card);
-    DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG,"  bus; \t%s", cap.bus_info);
+    DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG,"  card: %s", cap.card);
+    DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG,"  bus:  %s", cap.bus_info);
 
     setframerate=&V4L2_Base::stdsetframerate;
     getframerate=&V4L2_Base::stdgetframerate;
@@ -975,7 +975,7 @@ int V4L2_Base::check_device(char * errmsg)
     if (!(strcmp((const char *)cap.driver, "pwc")))
     {
         unsigned int qual=3;
-        //pwc driver soes not allow to get current fps with VIDIOCPWC
+        //pwc driver does not allow to get current fps with VIDIOCPWC
         //frameRate.numerator=1; // using default module load fps
         //frameRate.denominator=10;
         //if (ioctl(fd, VIDIOCPWCSLED, &qual)) {
@@ -1053,21 +1053,20 @@ int V4L2_Base::check_device(char * errmsg)
 
     /* Select video input, video standard and tune here. */
 
-    DEBUGDEVICE(deviceName, INDI::Logger::DBG_DEBUG,"Available Inputs:");
-    for (input_avail.index=0; ioctl(fd, VIDIOC_ENUMINPUT, &input_avail) != -1; input_avail.index ++)
-    {
-        DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG,"\t%d. %s (type %s)", input_avail.index, input_avail.name,
-                     (input_avail.type==V4L2_INPUT_TYPE_TUNER?"Tuner/RF Demodulator":"Composite/S-Video"));
-    }
-    if (errno != EINVAL)
-        DEBUGDEVICE(deviceName, INDI::Logger::DBG_DEBUG,"\tProblem enumerating inputs");
     if (-1 == ioctl (fd, VIDIOC_G_INPUT, &input.index))
     {
         perror ("VIDIOC_G_INPUT");
         exit (EXIT_FAILURE);
     }
-    DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG,"Current Video input: %d", input.index);
 
+    DEBUGDEVICE(deviceName, INDI::Logger::DBG_DEBUG,"Enumerating available Inputs:");
+    for (input_avail.index=0; ioctl(fd, VIDIOC_ENUMINPUT, &input_avail) != -1; input_avail.index ++)
+        DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG,"%2d. %s (type %s)%s", input_avail.index, input_avail.name,
+                     (input_avail.type==V4L2_INPUT_TYPE_TUNER?"Tuner/RF Demodulator":"Composite/S-Video",input.index==input_avail.index?" current":""));
+    if (errno != EINVAL)
+        DEBUGDEVICE(deviceName, INDI::Logger::DBG_DEBUG,"(problem enumerating inputs)");
+
+    /* Cropping */
     cropcap.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
     cancrop=true;
     if (-1 == XIOCTL(fd, VIDIOC_CROPCAP, &cropcap))
@@ -1079,13 +1078,13 @@ int V4L2_Base::check_device(char * errmsg)
     }
     if (cancrop)
     {
-        DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG,"Crop capabilities: bounds = (top=%d, left=%d, width=%d, height=%d)", cropcap.bounds.top,
+        DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG," Crop capabilities: bounds  = (top=%d, left=%d, width=%d, height=%d)", cropcap.bounds.top,
                      cropcap.bounds.left, cropcap.bounds.width, cropcap.bounds.height);
-        DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG,"Crop capabilities: defrect = (top=%d, left=%d, width=%d, height=%d)", cropcap.defrect.top,
+        DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG," Crop capabilities: defrect = (top=%d, left=%d, width=%d, height=%d)", cropcap.defrect.top,
                      cropcap.defrect.left, cropcap.defrect.width, cropcap.defrect.height);
-        DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG,"Crop capabilities: pixelaspect = %d / %d", cropcap.pixelaspect.numerator,
+        DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG," Crop capabilities: pixelaspect = %d / %d", cropcap.pixelaspect.numerator,
                      cropcap.pixelaspect.denominator);
-        DEBUGDEVICE(deviceName, INDI::Logger::DBG_DEBUG,"Resetting crop area to default");
+        DEBUGDEVICE(deviceName, INDI::Logger::DBG_DEBUG,"Explicitely resetting crop area to default...");
         crop.c.top=cropcap.defrect.top;
         crop.c.left=cropcap.defrect.left;
         crop.c.width=cropcap.defrect.width;
@@ -1111,39 +1110,39 @@ int V4L2_Base::check_device(char * errmsg)
         struct v4l2_fmtdesc fmt_avail;
         fmt_avail.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
         //DEBUG(INDI::Logger::DBG_SESSION,"Available Capture Image formats:");
-        DEBUGDEVICE(deviceName, INDI::Logger::DBG_DEBUG,"Available Capture Image formats:");
+        DEBUGDEVICE(deviceName, INDI::Logger::DBG_DEBUG,"Enumerating available Capture Image formats:");
         for (fmt_avail.index=0; ioctl(fd, VIDIOC_ENUM_FMT, &fmt_avail) != -1; fmt_avail.index ++)
         {
             //DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG,INDI::Logger::DBG_SESSION,"\t%d. %s (%c%c%c%c) %s\n", fmt_avail.index, fmt_avail.description, (fmt_avail.pixelformat)&0xFF, (fmt_avail.pixelformat >> 8)&0xFF,
             //     (fmt_avail.pixelformat >> 16)&0xFF, (fmt_avail.pixelformat >> 24)&0xFF, (decoder->issupportedformat(fmt_avail.pixelformat)?"supported":"UNSUPPORTED"));
-            DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG,"\t%d. %s (%c%c%c%c) %s", fmt_avail.index, fmt_avail.description, (fmt_avail.pixelformat)&0xFF, (fmt_avail.pixelformat >> 8)&0xFF,
+            DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG,"%2d. Format %s (%c%c%c%c) is %s", fmt_avail.index, fmt_avail.description, (fmt_avail.pixelformat)&0xFF, (fmt_avail.pixelformat >> 8)&0xFF,
                          (fmt_avail.pixelformat >> 16)&0xFF, (fmt_avail.pixelformat >> 24)&0xFF, (decoder->issupportedformat(fmt_avail.pixelformat)?"supported":"UNSUPPORTED"));
             {
                 // Enumerating frame sizes available for this pixel format
                 struct v4l2_frmsizeenum frm_sizeenum;
                 frm_sizeenum.pixel_format=fmt_avail.pixelformat;
-                DEBUGDEVICE(deviceName, INDI::Logger::DBG_DEBUG,"\t  Available Frame sizes/rates for this format:");
+                DEBUGDEVICE(deviceName, INDI::Logger::DBG_DEBUG,"    Enumerating available Frame sizes/rates for this format:");
                 for (frm_sizeenum.index=0; XIOCTL(fd, VIDIOC_ENUM_FRAMESIZES, &frm_sizeenum) != -1; frm_sizeenum.index ++)
                 {
                     switch (frm_sizeenum.type)
                     {
                         case V4L2_FRMSIZE_TYPE_DISCRETE:
-                            DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG,"\t %d. (Discrete)  width %d x height %d\n", frm_sizeenum.index, frm_sizeenum.discrete.width,  frm_sizeenum.discrete.height);
+                            DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG,"    %2d. (Discrete)  width %d x height %d\n", frm_sizeenum.index, frm_sizeenum.discrete.width,  frm_sizeenum.discrete.height);
                             break;
                         case V4L2_FRMSIZE_TYPE_STEPWISE:
-                            DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG,"\t  (Stepwise)  min. width %d, max. width %d step width %d", frm_sizeenum.stepwise.min_width,
+                            DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG,"        (Stepwise)  min. width %d, max. width %d step width %d", frm_sizeenum.stepwise.min_width,
                                          frm_sizeenum.stepwise.max_width, frm_sizeenum.stepwise.step_width);
-                            DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG,"\t  (Stepwise)  min. height %d, max. height %d step height %d ", frm_sizeenum.stepwise.min_height,
+                            DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG,"        (Stepwise)  min. height %d, max. height %d step height %d ", frm_sizeenum.stepwise.min_height,
                                          frm_sizeenum.stepwise.max_height, frm_sizeenum.stepwise.step_height);
                             break;
                         case V4L2_FRMSIZE_TYPE_CONTINUOUS:
-                            DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG,"\t  (Continuous--step=1)  min. width %d, max. width %d", frm_sizeenum.stepwise.min_width,
+                            DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG,"        (Continuous--step=1)  min. width %d, max. width %d", frm_sizeenum.stepwise.min_width,
                                          frm_sizeenum.stepwise.max_width);
-                            DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG,"\t  (Continuous--step=1)  min. height %d, max. height %d ", frm_sizeenum.stepwise.min_height,
+                            DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG,"        (Continuous--step=1)  min. height %d, max. height %d ", frm_sizeenum.stepwise.min_height,
                                          frm_sizeenum.stepwise.max_height);
                             break;
                         default:
-                            DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG,"Unknown Frame size type: %d\n",frm_sizeenum.type);
+                            DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG,"        Unknown Frame size type: %d\n",frm_sizeenum.type);
                             break;
                     }
                     {
@@ -1167,26 +1166,26 @@ int V4L2_Base::check_device(char * errmsg)
                         frmi_valenum.stepwise.max.denominator = 0;
                         frmi_valenum.stepwise.step.numerator =0;
                         frmi_valenum.stepwise.step.denominator = 0;
-                        DEBUGDEVICE(deviceName, INDI::Logger::DBG_DEBUG,"\t    Frame intervals:");
+                        DEBUGDEVICE(deviceName, INDI::Logger::DBG_DEBUG,"        Frame intervals:");
                         for (frmi_valenum.index=0; XIOCTL(fd, VIDIOC_ENUM_FRAMEINTERVALS, &frmi_valenum) != -1; frmi_valenum.index ++)
                         {
                             switch (frmi_valenum.type)
                             {
                                 case V4L2_FRMIVAL_TYPE_DISCRETE:
-                                    DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG,"%d/%d s, ", frmi_valenum.discrete.numerator,  frmi_valenum.discrete.denominator);
+                                    DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG,"        %d/%d s", frmi_valenum.discrete.numerator,  frmi_valenum.discrete.denominator);
                                     break;
                                 case V4L2_FRMIVAL_TYPE_STEPWISE:
-                                    DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG,"(Stepwise)  min. %d/%ds, max. %d / %d s, step %d / %d s", frmi_valenum.stepwise.min.numerator, frmi_valenum.stepwise.min.denominator,
+                                    DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG,"        (Stepwise)  min. %d/%ds, max. %d / %d s, step %d / %d s", frmi_valenum.stepwise.min.numerator, frmi_valenum.stepwise.min.denominator,
                                                  frmi_valenum.stepwise.max.numerator, frmi_valenum.stepwise.max.denominator,
                                                  frmi_valenum.stepwise.step.numerator, frmi_valenum.stepwise.step.denominator);
                                     break;
                                 case V4L2_FRMIVAL_TYPE_CONTINUOUS:
-                                    DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG,"(Continuous)  min. %d / %d s, max. %d / %d s", frmi_valenum.stepwise.min.numerator,
+                                    DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG,"        (Continuous)  min. %d / %d s, max. %d / %d s", frmi_valenum.stepwise.min.numerator,
                                                  frmi_valenum.stepwise.min.denominator,
                                                  frmi_valenum.stepwise.max.numerator, frmi_valenum.stepwise.max.denominator);
                                     break;
                                 default:
-                                    DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG,"\t    Unknown Frame rate type: %d",frmi_valenum.type);
+                                    DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG,"        Unknown Frame rate type: %d",frmi_valenum.type);
                                     break;
                             }
                         }
@@ -1196,21 +1195,21 @@ int V4L2_Base::check_device(char * errmsg)
                             switch (frmi_valenum.type)
                             {
                                 case V4L2_FRMIVAL_TYPE_DISCRETE:
-                                    DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG,"%d/%d s, ", frmi_valenum.discrete.numerator,  frmi_valenum.discrete.denominator);
+                                    DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG,"        %d/%d s", frmi_valenum.discrete.numerator,  frmi_valenum.discrete.denominator);
                                     break;
                                 case V4L2_FRMIVAL_TYPE_STEPWISE:
-                                    DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG,"(Stepwise)  min. %d/%ds, max. %d / %d s, step %d / %d s", frmi_valenum.stepwise.min.numerator,
+                                    DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG,"        (Stepwise)  min. %d/%ds, max. %d / %d s, step %d / %d s", frmi_valenum.stepwise.min.numerator,
                                                  frmi_valenum.stepwise.min.denominator,
                                                  frmi_valenum.stepwise.max.numerator, frmi_valenum.stepwise.max.denominator,
                                                  frmi_valenum.stepwise.step.numerator, frmi_valenum.stepwise.step.denominator);
                                     break;
                                 case V4L2_FRMIVAL_TYPE_CONTINUOUS:
-                                    DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG,"(Continuous)  min. %d / %d s, max. %d / %d s", frmi_valenum.stepwise.min.numerator,
+                                    DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG,"        (Continuous)  min. %d / %d s, max. %d / %d s", frmi_valenum.stepwise.min.numerator,
                                                  frmi_valenum.stepwise.min.denominator,
                                                  frmi_valenum.stepwise.max.numerator, frmi_valenum.stepwise.max.denominator);
                                     break;
                                 default:
-                                    DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG,"\t    Unknown Frame rate type: %d",frmi_valenum.type);
+                                    DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG,"        Unknown Frame rate type: %d",frmi_valenum.type);
                                     break;
                             }
                         }
