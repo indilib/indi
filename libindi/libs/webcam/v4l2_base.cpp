@@ -1065,6 +1065,7 @@ int V4L2_Base::check_device(char * errmsg)
                      (input_avail.type==V4L2_INPUT_TYPE_TUNER?"Tuner/RF Demodulator":"Composite/S-Video",input.index==input_avail.index?" current":""));
     if (errno != EINVAL)
         DEBUGDEVICE(deviceName, INDI::Logger::DBG_DEBUG,"(problem enumerating inputs)");
+    enumeratedInputs = input_avail.index;
 
     /* Cropping */
     cropcap.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
@@ -1220,6 +1221,7 @@ int V4L2_Base::check_device(char * errmsg)
         }
         if (errno != EINVAL)
             DEBUGDEVICE(deviceName, INDI::Logger::DBG_DEBUG,"Problem enumerating capture formats.");
+        enumeratedCaptureFormats = fmt_avail.index;
     }
 
 
@@ -1323,35 +1325,48 @@ int V4L2_Base::open_device(const char * devpath, char * errmsg)
     return 0;
 }
 
+/* @brief Storing inputs in a switch vector property, marking current as selected.
+ *
+ * @param inputssp is the property to store to (nothing is stored if null).
+ */
 void V4L2_Base::getinputs(ISwitchVectorProperty * inputssp)
 {
+    if(!inputssp)
+        return;
+
     struct v4l2_input input_avail;
-    ISwitch * inputs=NULL;
-    for (input_avail.index=0; ioctl(fd, VIDIOC_ENUMINPUT, &input_avail) != -1;
-            input_avail.index ++)
-    {
-        //DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG,"\t%d. %s (type %s)\n", input_avail.index, input_avail.name,
-        //	  (input_avail.type==V4L2_INPUT_TYPE_TUNER?"Tuner/RF Demodulator":"Composite/S-Video"));
 
-        inputs = (inputs==NULL)?(ISwitch *)malloc(sizeof(ISwitch)): (ISwitch *) realloc (inputs, (input_avail.index+1) * sizeof (ISwitch));
-        strncpy(inputs[input_avail.index].name, (const char *)input_avail.name , MAXINDINAME);
+    /* Allocate inputs from previously enumerated count */
+    size_t const inputsLen = enumeratedInputs*sizeof(ISwitch);
+    ISwitch * inputs = (ISwitch*) malloc(inputsLen);
+    if(!inputs) exit(EXIT_FAILURE);
+    memset(inputs, 0, inputsLen);
+
+    /* Ask device about each input */
+    for (input_avail.index=0; input_avail.index < enumeratedInputs; input_avail.index++)
+    {
+        /* Enumeration ends with EINVAL */
+        if(XIOCTL(fd, VIDIOC_ENUMINPUT, &input_avail))
+            break;
+
+        /* Store input description */
+        strncpy(inputs[input_avail.index].name, (const char *)input_avail.name, MAXINDINAME);
         strncpy(inputs[input_avail.index].label,(const char *)input_avail.name, MAXINDILABEL);
-
     }
-    if (errno != EINVAL)
-        DEBUGDEVICE(deviceName, INDI::Logger::DBG_DEBUG,"\tProblem enumerating inputs.");
 
-    inputssp->sp=inputs;
-    inputssp->nsp=input_avail.index;
-    if (-1 == ioctl (fd, VIDIOC_G_INPUT, &input.index))
-    {
-        perror ("VIDIOC_G_INPUT");
-        exit (EXIT_FAILURE);
-    }
+    /* Free inputs before replacing */
+    if(inputssp->sp)
+        free(inputssp->sp);
+
+    /* Store inputs */
+    inputssp->sp  = inputs;
+    inputssp->nsp = input_avail.index;
+
     IUResetSwitch(inputssp);
-    inputs[input.index].s=ISS_ON;
-    DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG,"Current Video input(%d.): %s", input.index, inputs[input.index].name);
-    //IDSetSwitch(inputssp, "Current input: %d. %s", input.index, inputs[input.index].name);
+
+    /* And mark current */
+    inputs[input.index].s = ISS_ON;
+    DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG,"Current video input is   %d. %s", input.index, inputs[input.index].name);
 }
 
 int V4L2_Base::setinput(unsigned int inputindex, char * errmsg)
@@ -1360,13 +1375,18 @@ int V4L2_Base::setinput(unsigned int inputindex, char * errmsg)
     if (streamedonce)
     {
         close_device();
-        open_device(path, errmsg);
+
+        if(open_device(path, errmsg))
+        {
+            DEBUGFDEVICE(deviceName,INDI::Logger::DBG_DEBUG,"%s: failed reopening device %s (%s)",__FUNCTION__,path,errmsg);
+            return -1;
+        }
     }
-    if (-1 == ioctl (fd, VIDIOC_S_INPUT, &inputindex))
+    if (-1 == XIOCTL(fd, VIDIOC_S_INPUT, &inputindex))
     {
         return errno_exit ("VIDIOC_S_INPUT", errmsg);
     }
-    if (-1 == ioctl (fd, VIDIOC_G_INPUT, &input.index))
+    if (-1 == XIOCTL(fd, VIDIOC_G_INPUT, &input.index))
     {
         return errno_exit ("VIDIOC_G_INPUT", errmsg);
     }
@@ -1374,52 +1394,62 @@ int V4L2_Base::setinput(unsigned int inputindex, char * errmsg)
     return 0;
 }
 
+/* @brief Storing capture formats in a switch vector property, marking current as selected.
+ *
+ * @param captureformatssp is the property to store to (nothing is stored if null).
+ */
 void V4L2_Base::getcaptureformats(ISwitchVectorProperty * captureformatssp)
 {
-    struct v4l2_fmtdesc fmt_avail;
-    ISwitch * formats=NULL;
-    unsigned int i;//, initial;
-    if (captureformatssp->sp) free(captureformatssp->sp);
-    fmt_avail.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
-    // DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG,"Available Capture Image formats:\n");
-    for (fmt_avail.index=0; ioctl(fd, VIDIOC_ENUM_FMT, &fmt_avail) != -1;
-            fmt_avail.index ++)
-    {
-        formats = (formats==NULL)?(ISwitch *)malloc(sizeof(ISwitch)):
-                  (ISwitch *) realloc (formats, (fmt_avail.index+1) * sizeof (ISwitch));
-        strncpy(formats[fmt_avail.index].name, (const char *)fmt_avail.description , MAXINDINAME);
-        strncpy(formats[fmt_avail.index].label,(const char *)fmt_avail.description, MAXINDILABEL);
-        //assert(sizeof(void *) == sizeof(int));
-        formats[fmt_avail.index].aux=(int *)malloc(sizeof(int));
-        *(int *)(formats[fmt_avail.index].aux) = fmt_avail.pixelformat;
-        //DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG,"\t%s (%c%c%c%c)\n", fmt_avail.description, (fmt_avail.pixelformat >> 24)&0xFF,
-        //	  (fmt_avail.pixelformat >> 16)&0xFF, (fmt_avail.pixelformat >> 8)&0xFF,
-        //	  (fmt_avail.pixelformat)&0xFF);
-    }
-    captureformatssp->sp=formats;
-    captureformatssp->nsp=fmt_avail.index;
+    if(!captureformatssp)
+        return;
 
-    CLEAR (fmt);
-    fmt.type                = V4L2_BUF_TYPE_VIDEO_CAPTURE;
-    if (-1 == XIOCTL(fd, VIDIOC_G_FMT, &fmt))
+    struct v4l2_fmtdesc fmt_avail;
+
+    /* Allocate capture formats from preliminary enumerated count */
+    size_t const formatsLen = enumeratedCaptureFormats*sizeof(ISwitch);
+    ISwitch * formats = (ISwitch*) malloc(formatsLen);
+    if(!formats) exit(EXIT_FAILURE);
+    memset(formats,0,formatsLen);
+
+    /* Ask device about each format */
+    fmt_avail.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+    for (fmt_avail.index=0; fmt_avail.index < enumeratedCaptureFormats; fmt_avail.index ++)
     {
-        perror ("VIDIOC_G_FMT");
-        exit (EXIT_FAILURE);
+        /* Enumeration ends with EINVAL */
+        if(XIOCTL(fd, VIDIOC_ENUM_FMT, &fmt_avail))
+            break;
+
+        /* Store format description */
+        strncpy(formats[fmt_avail.index].name, (const char *)fmt_avail.description, MAXINDINAME);
+        strncpy(formats[fmt_avail.index].label,(const char *)fmt_avail.description, MAXINDILABEL);
+
+        /* And store pixel format for reference */
+        /* FIXME: store pixel format as void pointer to avoid that malloc */
+        formats[fmt_avail.index].aux=(int*)malloc(sizeof(int));
+        if(!formats[fmt_avail.index].aux) exit(EXIT_FAILURE);
+        *(int*)formats[fmt_avail.index].aux = fmt_avail.pixelformat;
     }
+
+    /* Free formats before replacing */
+    if (captureformatssp->sp)
+        free(captureformatssp->sp);
+
+    /* Store formats */
+    captureformatssp->sp  = formats;
+    captureformatssp->nsp = fmt_avail.index;
     IUResetSwitch(captureformatssp);
-    for (i=0; i < fmt_avail.index; i++)
+
+    /* And mark current */
+    for (unsigned int i=0; i < fmt_avail.index; i++)
     {
-        formats[i].s=ISS_OFF;
-        if (fmt.fmt.pix.pixelformat == *((int *) (formats[i].aux)))
+        if (fmt.fmt.pix.pixelformat == *(int*)formats[i].aux)
         {
-            formats[i].s=ISS_ON;
-            //initial=i;
-            DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG,"Current Capture format is (%d.) %c%c%c%c.", i, (fmt.fmt.pix.pixelformat)&0xFF, (fmt.fmt.pix.pixelformat >> 8)&0xFF,
+            formats[i].s = ISS_ON;
+            DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG,"Current capture format is %d. %c%c%c%c.", i, (fmt.fmt.pix.pixelformat)&0xFF, (fmt.fmt.pix.pixelformat >> 8)&0xFF,
                          (fmt.fmt.pix.pixelformat >> 16)&0xFF, (fmt.fmt.pix.pixelformat >> 24)&0xFF);
-            //break;
         }
+        else formats[i].s = ISS_OFF;
     }
-    //IDSetSwitch(captureformatssp, "Capture format: %d. %s", initial, formats[initial].name);
 }
 
 /* @brief Setting the pixel format of the capture.
