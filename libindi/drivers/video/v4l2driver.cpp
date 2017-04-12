@@ -710,7 +710,7 @@ bool V4L2_Driver::StartExposure(float duration)
         /* Clicking the "Expose" set button while an exposure is running arrives here.
          * But if we reply false, PrimaryCCD won't be exposing anymore and we won't be able to stop the exposure in V4L2_Base, which will loop forever.
          * So instead of returning an error, tell the caller we're busy until the end of this exposure. */
-        DEBUG(INDI::Logger::DBG_ERROR, "Can not start new exposure, please wait for the end of exposure.");
+        DEBUGF(INDI::Logger::DBG_ERROR, "Can not start new exposure, please wait for the end of the current %f-second exposure.",V4LFrame->expose);
         return true;
     }
 
@@ -804,8 +804,25 @@ bool V4L2_Driver::setManualExposure(double duration)
     ImageAdjustNP.s = IPS_OK;
     IDSetNumber(&ImageAdjustNP, NULL);
   }
+
+  /* Update exposure duration in client - hardcoded 1 second */
+  if(1.0f < duration)
+  {
+    this->exposureLeft = duration;
+    IEAddTimer(1000, (IE_TCF *)stdtimerCallback, this);
+  }
   
   return true;
+}
+
+void V4L2_Driver::stdtimerCallback(void *userpointer)
+{
+    V4L2_Driver *p = (V4L2_Driver*)userpointer;
+    p->exposureLeft -= 1.0f;
+    //DEBUGF(INDI::Logger::DBG_SESSION,"Exposure running, %f seconds left...",p->exposureLeft);
+    p->PrimaryCCD.setExposureLeft(p->exposureLeft);
+    if(1.0f < p->exposureLeft)
+        IEAddTimer(1000, (IE_TCF *)stdtimerCallback, userpointer);
 }
 
 void V4L2_Driver::start_capturing() {
@@ -1022,6 +1039,7 @@ void V4L2_Driver::newFrame()
             unsigned char *src, *dest;
             src = v4l_base->getY();
             dest = (unsigned char *)PrimaryCCD.getFrameBuffer();
+
             memcpy(dest, src, frameBytes);
             //for (i=0; i< frameBytes; i++)
                 //*(dest++) = *(src++);
