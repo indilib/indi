@@ -81,6 +81,8 @@ CCDChip::CCDChip()
     RawFrame= (uint8_t *) malloc(sizeof(uint8_t)); // Seed for realloc
     RawFrameSize=0;
 
+    SubX = SubY = 0;
+    SubW = SubH = 1;
     BPP = 8;
     BinX = BinY = 1;
     NAxis = 2;
