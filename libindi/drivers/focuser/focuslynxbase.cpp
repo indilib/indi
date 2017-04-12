@@ -109,18 +109,12 @@ FocusLynxBase::~FocusLynxBase()
 * ***********************************************************************************/
 bool FocusLynxBase::initProperties()
 {
+
+
   INDI::Focuser::initProperties();
 
-  /* Added by Philippe Besson, the 29th of Mars 2017
-   To remove Serial and tcp properties for the second focuser
-   To avoid final user confusions. */
-  if (!strcmp(getFocusTarget(), "F2"))
-  {
-    unRegisterConnection(serialConnection);
-    unRegisterConnection(tcpConnection);
-  }
-
   // Focuser temperature
+
   IUFillNumber(&TemperatureN[0], "TEMPERATURE", "Celsius", "%6.2f", -50, 70., 0., 0.);
   IUFillNumberVector(&TemperatureNP, TemperatureN, 1, getDeviceName(), "FOCUS_TEMPERATURE", "Temperature", MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE);
 
