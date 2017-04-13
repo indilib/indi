@@ -57,7 +57,7 @@ void V4L2_Driver::updateFrameSize()
         frameBytes = PrimaryCCD.getSubW() * PrimaryCCD.getSubH() * (PrimaryCCD.getBPP() / 8 + (PrimaryCCD.getBPP()%8?1:0)) * 3;
 
     PrimaryCCD.setFrameBufferSize(frameBytes);
-    DEBUGF(INDI::Logger::DBG_SESSION,"%s: frame bytes %d",__FUNCTION__,PrimaryCCD.getFrameBufferSize());
+    DEBUGF(INDI::Logger::DBG_DEBUG,"%s: frame bytes %d",__FUNCTION__,PrimaryCCD.getFrameBufferSize());
 }
 
 bool V4L2_Driver::initProperties()
