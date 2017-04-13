@@ -710,7 +710,7 @@ bool V4L2_Driver::StartExposure(float duration)
         /* Clicking the "Expose" set button while an exposure is running arrives here.
          * But if we reply false, PrimaryCCD won't be exposing anymore and we won't be able to stop the exposure in V4L2_Base, which will loop forever.
          * So instead of returning an error, tell the caller we're busy until the end of this exposure. */
-        DEBUGF(INDI::Logger::DBG_ERROR, "Can not start new exposure, please wait for the end of the current %f-second exposure.",V4LFrame->expose);
+        DEBUGF(INDI::Logger::DBG_ERROR, "Can not start new exposure, please wait for the end of the current exposure (%.1f seconds left).",exposureLeft);
         return true;
     }
 
