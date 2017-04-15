@@ -1121,7 +1121,9 @@ bool INDI::Telescope::ISNewSwitch (const char * dev, const char * name, ISState 
         if (name && std::string(name) == "APPLY_SCOPE_CONFIG")
         {
             IUUpdateSwitch(&ScopeConfigsSP, states, names, n);
-            LoadScopeConfig();
+            bool rc = LoadScopeConfig();
+            ScopeConfigsSP.s = (rc ? IPS_OK : IPS_ALERT);
+            IDSetSwitch(&ScopeConfigsSP, NULL);
             return true;
         }
     }
@@ -1919,7 +1921,7 @@ bool INDI::Telescope::LoadScopeConfig()
     CurrentXmlNode = findXMLEle(CurrentXmlNode, ("config"+std::to_string(ConfigIndex)).c_str());
     if (!CurrentXmlNode)
     {
-        DEBUGF(INDI::Logger::DBG_SESSION, "Config %d is not found in the XML file (%s)", ConfigIndex,
+        DEBUGF(INDI::Logger::DBG_SESSION, "Config %d is not found in the XML file (%s). To save a new config, update and set scope properties and config name.", ConfigIndex,
                ScopeConfigFileName.c_str());
         delXMLEle(RootXmlNode);
         return false;
