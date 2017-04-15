@@ -400,6 +400,38 @@ class INDI::Telescope : public INDI::DefaultDevice
         void processSlewPresets(double mag, double angle);
         void processButton(const char * button_n, ISState state);
 
+        /**
+         * @brief Load scope settings from XML files.
+         * @return True if all config values were loaded otherwise false.
+         */
+        bool LoadScopeConfig();
+
+        /**
+         * \brief Save scope settings to XML files.
+         */
+        bool UpdateScopeConfig();
+
+        /**
+         * @brief Validate a file name
+         * @param file_name File name
+         * @return True if the file name is valid otherwise false.
+         */
+        std::string GetHomeDirectory() const;
+
+        /**
+         * @brief Get the scope config index
+         * @return The scope config index
+         */
+        int GetScopeConfigIndex() const;
+
+        /**
+         * @brief Check if a file exists and it is readable
+         * @param file_name File name
+         * @param writable Additional check if the file is writable
+         * @return True if the checks are successful otherwise false.
+         */
+        bool CheckFile(const std::string& file_name, bool writable) const;
+
         //  This is a variable filled in by the ReadStatus telescope
         //  low level code, used to report current state
         //  are we slewing, tracking, or parked.
@@ -499,7 +531,7 @@ class INDI::Telescope : public INDI::DefaultDevice
         bool IsLocked;
         bool IsParked;
         const char * ParkDeviceName;
-        const char * Parkdatafile;
+        const std::string ParkDataFileName;
         XMLEle * ParkdataXmlRoot, *ParkdeviceXml, *ParkstatusXml, *ParkpositionXml, *ParkpositionAxis1Xml, *ParkpositionAxis2Xml;
 
         double Axis1ParkPosition;
@@ -513,6 +545,18 @@ class INDI::Telescope : public INDI::DefaultDevice
 
         uint8_t telescopeConnection = CONNECTION_SERIAL | CONNECTION_TCP;
         INDI::Controller * controller;
+
+        // A switch to apply custom aperture/focal length config
+        enum { SCOPE_CONFIG1, SCOPE_CONFIG2, SCOPE_CONFIG3, SCOPE_CONFIG4, SCOPE_CONFIG5, SCOPE_CONFIG6 };
+        ISwitch ScopeConfigs[6];
+        ISwitchVectorProperty ScopeConfigsSP;
+
+        // Scope config name
+        ITextVectorProperty ScopeConfigNameTP;
+        IText ScopeConfigNameT[1];
+
+        /// The telescope/guide scope configuration file name
+        const std::string ScopeConfigFileName;
 };
 
 #endif // INDI::Telescope_H
