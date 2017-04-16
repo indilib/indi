@@ -228,6 +228,7 @@ void INDI::Telescope::ISGetProperties (const char * dev)
 
     defineNumber(&ScopeParametersNP);
     loadConfig(true, "TELESCOPE_INFO");
+    defineText(&ScopeConfigNameTP);
     loadConfig(true, "SCOPE_CONFIG_NAME");
 
     if(isConnected())
@@ -269,7 +270,6 @@ void INDI::Telescope::ISGetProperties (const char * dev)
         if (HasPierSide())
             defineSwitch(&PierSideSP);
 
-        defineText(&ScopeConfigNameTP);
         defineSwitch(&ScopeConfigsSP);
     }
 
@@ -517,6 +517,8 @@ bool INDI::Telescope::saveConfigItems(FILE * fp)
 
     if (ScopeParametersNP.s == IPS_OK)
         IUSaveConfigNumber(fp, &ScopeParametersNP);
+    if (ScopeConfigNameTP.s == IPS_OK)
+        IUSaveConfigText(fp, &ScopeConfigNameTP);
 
     controller->saveConfigItems(fp);
 
