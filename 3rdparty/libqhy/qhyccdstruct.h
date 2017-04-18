@@ -34,10 +34,6 @@
 #endif
 
 
-#ifdef LINUX
-#include <libusb-1.0/libusb.h>
-#endif
-
 #ifdef WIN32
 #include <windows.h>
 #endif
