@@ -94,7 +94,7 @@ ATTRS{idVendor}=="1618", ATTRS{idProduct}=="C174", RUN+="/sbin/fxload -t fx3 -I 
 ATTRS{idVendor}=="1618", ATTRS{idProduct}=="0185", RUN+="/sbin/fxload -t fx3 -I /lib/firmware/qhy/QHY5III185.img -D $env{DEVNAME}"
 ATTRS{idVendor}=="1618", ATTRS{idProduct}=="C163", RUN+="/sbin/fxload -t fx3 -I /lib/firmware/qhy/QHY163.img -D $env{DEVNAME}"
 ATTRS{idVendor}=="1618", ATTRS{idProduct}=="C183", RUN+="/sbin/fxload -t fx3 -I /lib/firmware/qhy/QHY183.img -D $env{DEVNAME}"
-ATTRS{idVendor}=="1618", ATTRS{idProduct}=="0941", RUN+="/sbin/fxload -t fx2lp -I /lib/firmware/qhy/POLEMASTER.HEX -D $env{DEVNAME}"
+ATTRS{idVendor}=="1618", ATTRS{idProduct}=="0940", RUN+="/sbin/fxload -t fx2lp -I /lib/firmware/qhy/POLEMASTER.HEX -D $env{DEVNAME}"
 
 LABEL="qhy_vidpid_end"
 
