@@ -296,6 +296,7 @@ bool GPhotoCCD::initProperties()
   //We don't know how many items will be in the switch yet
   IUFillSwitchVector(&mIsoSP, NULL, 0, getDeviceName(), "CCD_ISO", "ISO", IMAGE_SETTINGS_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
   IUFillSwitchVector(&mFormatSP, NULL, 0, getDeviceName(), "CAPTURE_FORMAT", "Capture Format", IMAGE_SETTINGS_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
+  IUFillSwitchVector(&mExposurePresetSP, NULL, 0, getDeviceName(), "CCD_EXPOSURE_PRESETS", "Presets", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
 
   IUFillSwitch(&autoFocusS[0], "Set", "", ISS_OFF);
   IUFillSwitchVector(&autoFocusSP, autoFocusS, 1, getDeviceName(), "Auto Focus", "", FOCUS_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
@@ -346,6 +347,8 @@ void GPhotoCCD::ISGetProperties(const char *dev)
 
   if (isConnected())
   {
+      if (mExposurePresetSP.nsp > 0)
+          defineSwitch(&mExposurePresetSP);
       if (mIsoSP.nsp > 0)
             defineSwitch(&mIsoSP);
       if (mFormatSP.nsp > 0)
@@ -374,6 +377,8 @@ bool GPhotoCCD::updateProperties()
 
   if (isConnected())
   {
+      if (mExposurePresetSP.nsp > 0)
+          defineSwitch(&mExposurePresetSP);
       if (mIsoSP.nsp > 0)
         defineSwitch(&mIsoSP);
       if (mFormatSP.nsp > 0)
@@ -403,6 +408,8 @@ bool GPhotoCCD::updateProperties()
     //timerID = SetTimer(POLLMS);
   } else
   {
+    if (mExposurePresetSP.nsp > 0)
+        deleteProperty(mExposurePresetSP.name);
     if (mIsoSP.nsp > 0)
        deleteProperty(mIsoSP.name);
     if (mFormatSP.nsp > 0)
@@ -483,6 +490,35 @@ bool GPhotoCCD::ISNewSwitch(const char *dev, const char *name, ISState *states, 
                   break;
               }
           }
+      }
+
+      if (!strcmp(name, mExposurePresetSP.name))
+      {
+          if (IUUpdateSwitch(&mExposurePresetSP, states, names, n) < 0)
+              return false;
+
+          mExposurePresetSP.s = IPS_OK;
+          IDSetSwitch(&mExposurePresetSP, NULL);
+
+          ISwitch *currentSwitch = IUFindOnSwitch(&mExposurePresetSP);
+          if (strcmp(currentSwitch->label, "bulb"))
+          {
+              DEBUGF(INDI::Logger::DBG_SESSION, "Preset %s seconds selected.", currentSwitch->label);
+
+              float duration;
+              int num, denom;
+              if (sscanf(currentSwitch->label, "%d/%d", &num, &denom) == 2)
+              {
+                  duration = ((double) num)/((double) denom);
+                  StartExposure(duration);
+              }
+              else if (sscanf(currentSwitch->label, "%g", &duration) == 1)
+              {
+                  StartExposure(duration);
+              }
+          }
+
+          return true;
       }
 
       if (!strcmp(name, mFormatSP.name))
@@ -710,6 +746,10 @@ bool GPhotoCCD::Connect()
       }
   }
 
+  double min_exposure=0.001, max_exposure=3600;
+  gphoto_get_minmax_exposure(gphotodrv, &min_exposure, &max_exposure);
+  PrimaryCCD.setMinMaxStep("CCD_EXPOSURE", "CCD_EXPOSURE_VALUE", min_exposure, max_exposure, 1, true);
+
   if (mFormatS)
   {
       free(mFormatS);
@@ -781,6 +821,33 @@ bool GPhotoCCD::Connect()
   mIsoSP.sp = mIsoS;
   mIsoSP.nsp = max_opts;
 
+  if (mExposurePresetS)
+  {
+      free(mExposurePresetS);
+      mExposurePresetS=NULL;
+  }
+
+  if (sim)
+  {
+      setidx=0;
+      max_opts=4;
+      const char *exposureList[] = { "1/8", "1/4", "1/2", "bulb" };
+      options = (char **) exposureList;
+  }
+  else
+  {
+      setidx = 0;
+      max_opts = 0;
+      options = gphoto_get_exposure_presets(gphotodrv, &max_opts);
+  }
+
+  if (max_opts > 0)
+  {
+      mExposurePresetS = create_switch("EXPOSURE_PRESET", options, max_opts, setidx);
+      mExposurePresetSP.sp = mExposurePresetS;
+      mExposurePresetSP.nsp = max_opts;
+  }
+
   DEBUGF(INDI::Logger::DBG_SESSION, "%s is online.", getDeviceName());
 
   if (!sim && gphoto_get_manufacturer(gphotodrv) && gphoto_get_model(gphotodrv))
@@ -832,12 +899,12 @@ bool GPhotoCCD::StartExposure(float duration)
      * ExpGo goes busy. set timer to read when done
      */
 
-    int expms = (int)ceil(duration*1000);
+    // Microseconds
+    int exp_us = (int) ceil(duration*1e6);
 
     PrimaryCCD.setExposureDuration(duration);
 
-
-    if (sim == false && gphoto_start_exposure(gphotodrv, expms, mMirrorLockN[0].value) < 0)
+    if (sim == false && gphoto_start_exposure(gphotodrv, exp_us, mMirrorLockN[0].value) < 0)
     {
         DEBUG(INDI::Logger::DBG_ERROR, "Error starting exposure");
         return false;

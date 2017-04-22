@@ -75,7 +75,7 @@ struct _gphoto_driver
     int             exposure_cnt;
     double			*exposure;
     int             bulb_exposure_index;
-    double          max_exposure;
+    double          max_exposure, min_exposure;
 
     int             iso;
     int             format;
@@ -83,6 +83,9 @@ struct _gphoto_driver
 
     char            *model;
     char            *manufacturer;
+
+    char            **exposure_presets;
+    int             exposure_presets_count;
 
     gphoto_widget_list	*widgets;
     gphoto_widget_list	*iter;
@@ -354,12 +357,19 @@ static double * parse_shutterspeed(gphoto_driver* gphoto, char **choices, int co
     double *exposure, val;
     int i, num, denom;
     double max_exposure = gphoto->max_exposure;
+    double min_exposure = 1e6;
     gphoto->bulb_exposure_index=-1;
 
     if(count <= 0)
     {
         DEBUGFDEVICE(device, INDI::Logger::DBG_WARNING, "Shutter speed widget does not have any valid data (count=%d)", count);
         return NULL;
+    }
+
+    if (count > 4)
+    {
+        gphoto->exposure_presets = choices;
+        gphoto->exposure_presets_count = count;
     }
 
     exposure = (double*) calloc(sizeof(double), count);
@@ -390,9 +400,13 @@ static double * parse_shutterspeed(gphoto_driver* gphoto, char **choices, int co
 
         if (exposure[i] > max_exposure)
             max_exposure = exposure[i];
+        if (exposure[i] > 0 && exposure[i] < min_exposure)
+                min_exposure = exposure[i];
     }
 
     gphoto->max_exposure = max_exposure;
+    if (min_exposure != 1e6)
+        gphoto->min_exposure = min_exposure;
 
     return exposure;
 }
@@ -492,10 +506,10 @@ int find_bulb_exposure(gphoto_driver *gphoto, gphoto_widget *widget)
     return -1;
 }
 
-int find_exposure_setting(gphoto_driver *gphoto, gphoto_widget *widget, int exptime_msec)
+int find_exposure_setting(gphoto_driver *gphoto, gphoto_widget *widget, uint32_t exptime_usec)
 {
     int i;
-    double exptime = exptime_msec / 1000.0;
+    double exptime = exptime_usec / 1e6;
     int best_idx = 0;
     double delta;
     double best_match = 99999;
@@ -625,7 +639,7 @@ int gphoto_mirrorlock(gphoto_driver *gphoto, int msec)
     return -1;
 }
 
-int gphoto_start_exposure(gphoto_driver *gphoto, unsigned int exptime_msec, int mirror_lock)
+int gphoto_start_exposure(gphoto_driver *gphoto, uint32_t exptime_usec, int mirror_lock)
 {
     if (gphoto->exposure_widget == NULL)
     {
@@ -633,7 +647,7 @@ int gphoto_start_exposure(gphoto_driver *gphoto, unsigned int exptime_msec, int 
         return -1;
     }
 
-    DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG,"Starting exposure (exptime: %g secs, mirror lock: %d)", exptime_msec / 1000.0, mirror_lock);
+    DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG,"Starting exposure (exptime: %g secs, mirror lock: %d)", exptime_usec / 1e6, mirror_lock);
     pthread_mutex_lock(&gphoto->mutex);
     DEBUGDEVICE(device, INDI::Logger::DBG_DEBUG,"  Mutex locked");
 
@@ -660,7 +674,7 @@ int gphoto_start_exposure(gphoto_driver *gphoto, unsigned int exptime_msec, int 
     //if (exptime_msec > 5000 || (gphoto->autoexposuremode_widget != NULL && gphoto->autoexposuremode_widget->value.index == 4))
 
     // If exposure time is more than 1 second AND we have BULB widget OR we have bulb in exposure widget then do bulb
-    if ((exptime_msec > 1000) && ( (gphoto->bulb_port[0]) || (gphoto->bulb_widget != NULL)) )
+    if ((exptime_usec > 1e6) && ( (gphoto->bulb_port[0]) || (gphoto->bulb_widget != NULL)) )
     {
         //Bulb mode is supported
 
@@ -729,8 +743,10 @@ int gphoto_start_exposure(gphoto_driver *gphoto, unsigned int exptime_msec, int 
 
         // Preparing exposure
         gettimeofday(&gphoto->bulb_end, NULL);
-        unsigned int usec = gphoto->bulb_end.tv_usec + exptime_msec % 1000 * 1000;
-        gphoto->bulb_end.tv_sec = gphoto->bulb_end.tv_sec + exptime_msec / 1000 + usec / 1000000;
+        //unsigned int usec = gphoto->bulb_end.tv_usec + exptime_msec % 1000 * 1000;
+        uint32_t usec = gphoto->bulb_end.tv_usec + exptime_usec;
+        //gphoto->bulb_end.tv_sec = gphoto->bulb_end.tv_sec + exptime_msec / 1000 + usec / 1000000;
+        gphoto->bulb_end.tv_sec = gphoto->bulb_end.tv_sec + exptime_usec / 1e6;
         gphoto->bulb_end.tv_usec = usec % 1000000;
 
         // Start actual exposure
@@ -744,7 +760,7 @@ int gphoto_start_exposure(gphoto_driver *gphoto, unsigned int exptime_msec, int 
     DEBUGDEVICE(device, INDI::Logger::DBG_DEBUG,"Using camera predefined exposure ranges.");
 
     // NOT using bulb mode so let's find an exposure time that would closely match the requested exposure time
-    int idx = find_exposure_setting(gphoto, gphoto->exposure_widget, exptime_msec);
+    int idx = find_exposure_setting(gphoto, gphoto->exposure_widget, exptime_usec);
 
     gphoto_set_widget_num(gphoto, gphoto->exposure_widget, idx);
     DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG,"Using predefined exposure time: %g seconds", gphoto->exposure[idx]);
@@ -768,8 +784,8 @@ int gphoto_start_exposure(gphoto_driver *gphoto, unsigned int exptime_msec, int 
         // Preparing exposure: we let stop_bulb() close the serial port although this could be done here as well
         // because the camera closes the shutter.
         gettimeofday(&gphoto->bulb_end, NULL);
-        unsigned int usec = gphoto->bulb_end.tv_usec + exptime_msec % 1000 * 1000;
-        gphoto->bulb_end.tv_sec = gphoto->bulb_end.tv_sec + exptime_msec / 1000 + usec / 1000000;
+        uint32_t usec = gphoto->bulb_end.tv_usec + exptime_usec;
+        gphoto->bulb_end.tv_sec = gphoto->bulb_end.tv_sec + exptime_usec / 1e6;
         gphoto->bulb_end.tv_usec = usec % 1000000;
 
         // Start actual exposure
@@ -910,6 +926,28 @@ void gphoto_set_iso(gphoto_driver *gphoto, int iso)
         gphoto->iso = iso;
     else
         DEBUGDEVICE(device, INDI::Logger::DBG_DEBUG, "WARNING: Could not set iso");
+}
+
+char **gphoto_get_exposure_presets(gphoto_driver *gphoto, int *cnt)
+{
+    if (!gphoto->exposure_presets)
+    {
+        if(cnt)
+            *cnt = 0;
+
+        return NULL;
+    }
+
+    if(cnt)
+        *cnt = gphoto->exposure_presets_count;
+
+    return gphoto->exposure_presets;
+}
+
+void gphoto_get_minmax_exposure(gphoto_driver *gphoto, double *min, double *max)
+{
+    *min = gphoto->min_exposure;
+    *max = gphoto->max_exposure;
 }
 
 void gphoto_set_format(gphoto_driver *gphoto, int format)
@@ -1060,6 +1098,10 @@ gphoto_driver *gphoto_open(Camera *camera, GPContext *context, const char *model
     gphoto = (gphoto_driver*) calloc(sizeof(gphoto_driver), 1);
     gphoto->camera = camera;
     gphoto->context = context;
+    gphoto->exposure_presets = nullptr;
+    gphoto->exposure_presets_count = 0;
+    gphoto->max_exposure = 3600;
+    gphoto->min_exposure = 0.001;
 
     result = gp_camera_get_config (gphoto->camera, &gphoto->config, gphoto->context);
     if (result < GP_OK) {
@@ -1082,7 +1124,7 @@ gphoto_driver *gphoto_open(Camera *camera, GPContext *context, const char *model
          (gphoto->exposure_widget = find_widget(gphoto, "shutterspeed")) ||
          (gphoto->exposure_widget = find_widget(gphoto, "eos-shutterspeed")) )
     {
-        gphoto->exposure = (double *) parse_shutterspeed(gphoto, gphoto->exposure_widget->choices, gphoto->exposure_widget->choice_cnt);
+        gphoto->exposure = parse_shutterspeed(gphoto, gphoto->exposure_widget->choices, gphoto->exposure_widget->choice_cnt);
     }
     else if ((gphoto->exposure_widget = find_widget(gphoto, "capturetarget")))
     {

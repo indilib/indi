@@ -161,6 +161,9 @@ private:
     ISwitch livePreviewS[2];
     ISwitchVectorProperty livePreviewSP;
 
+    ISwitch *mExposurePresetS=NULL;
+    ISwitchVectorProperty mExposurePresetSP;
+
     IBLOBVectorProperty *imageBP=NULL;
     IBLOB *imageB=NULL;
 
