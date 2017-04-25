@@ -803,6 +803,20 @@ endif (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
 ############ AUX GROUP ##############
 #####################################
 
+########### SkySafari Middleware ##############
+if (INDI_BUILD_POSIX_CLIENT)
+set(skysafari_SRCS
+        ${CMAKE_CURRENT_SOURCE_DIR}/drivers/auxiliary/skysafari.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/drivers/auxiliary/skysafariclient.cpp
+   )
+
+add_executable(indi_skysafari ${skysafari_SRCS})
+target_link_libraries(indi_skysafari indidriver indiclient)
+install(TARGETS indi_skysafari RUNTIME DESTINATION bin )
+else()
+    message(WARNING "Skipping build of INDI SkySafari driver since INDI POSIX Client is not built")
+endif (INDI_BUILD_POSIX_CLIENT)
+
 ########### Watch dog ###############
 if (INDI_BUILD_POSIX_CLIENT)
 set(watchdog_SRCS

@@ -1287,6 +1287,17 @@ int IUFindOnSwitchIndex(const ISwitchVectorProperty * svp)
     return -1;
 }
 
+/* Find name the ON member in the given states and names */
+const char * IUFindOnSwitchName(ISState *states, char *names[], int n)
+{
+    int i;
+
+    for (i = 0; i < n; i++)
+        if (states[i] == ISS_ON)
+            return names[i];
+    return NULL;
+}
+
 /* Set all switches to off */
 void
 IUResetSwitch(ISwitchVectorProperty * svp)

@@ -249,6 +249,10 @@
             <driver name="Astrometry">indi_astrometry</driver>
             <version>0.1</version>
         </device>
+        <device label="SkySafari">
+            <driver name="SkySafari">indi_skysafari</driver>
+            <version>0.1</version>
+        </device>
         <device label="WatchDog">
                 <driver name="WatchDog">indi_watchdog</driver>
                 <version>0.1</version>
