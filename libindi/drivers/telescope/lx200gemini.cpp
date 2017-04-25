@@ -26,6 +26,7 @@
 #include <math.h>
 #include <termios.h>
 #include "lx200gemini.h"
+#include "lx200driver.h"
 
 LX200Gemini::LX200Gemini()
 {
@@ -227,9 +228,48 @@ bool LX200Gemini::isSlewComplete()
 
 bool LX200Gemini::ReadScopeStatus()
 {
-   syncSideOfPier();
+    if (isConnected() == false)
+     return false;
 
-   return LX200Generic::ReadScopeStatus();
+    if (isSimulation())
+        return LX200Generic::ReadScopeStatus();
+
+    if (TrackState == SCOPE_SLEWING)
+    {
+        // Check if LX200 is done slewing
+        if (isSlewComplete())
+        {
+            // Set slew mode to "Centering"
+            IUResetSwitch(&SlewRateSP);
+            SlewRateS[SLEW_CENTERING].s = ISS_ON;
+            IDSetSwitch(&SlewRateSP, NULL);
+
+            TrackState=SCOPE_TRACKING;
+            IDMessage(getDeviceName(),"Slew is complete. Tracking...");
+
+        }
+    }
+    else if(TrackState == SCOPE_PARKING)
+    {
+        if(isSlewComplete())
+        {
+            SetParked(true);
+            sleepMount();
+        }
+    }
+
+    if ( getLX200RA(PortFD, &currentRA) < 0 || getLX200DEC(PortFD, &currentDEC) < 0)
+    {
+      EqNP.s = IPS_ALERT;
+      IDSetNumber(&EqNP, "Error reading RA/DEC.");
+      return false;
+    }
+
+    syncSideOfPier();
+
+    NewRaDec(currentRA, currentDEC);
+
+    return true;
 }
 
 void LX200Gemini::syncSideOfPier()
@@ -303,6 +343,14 @@ bool LX200Gemini::Park()
 
 bool LX200Gemini::UnPark()
 {
+    wakeupMount();
+
+    TrackState = SCOPE_IDLE;
+    return true;
+}
+
+bool LX200Gemini::sleepMount()
+{
     const char *cmd = "#:hN#";
 
     // Response
@@ -320,7 +368,30 @@ bool LX200Gemini::UnPark()
         return false;
     }
 
-    TrackState = SCOPE_IDLE;
+    DEBUG(INDI::Logger::DBG_SESSION, "Mount is sleeping...");
+    return true;
+}
+
+bool LX200Gemini::wakeupMount()
+{
+    const char *cmd = "#:hW#";
+
+    // Response
+    int rc=0, nbytes_written=0;
+
+    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD: <%s>", cmd);
+
+    tcflush(PortFD, TCIOFLUSH);
+
+    if ( (rc = tty_write(PortFD, cmd, 5, &nbytes_written)) != TTY_OK)
+    {
+        char errmsg[256];
+        tty_error_msg(rc, errmsg, 256);
+        DEBUGF(INDI::Logger::DBG_ERROR, "Error writing to device %s (%d)", errmsg, rc);
+        return false;
+    }
+
+    DEBUG(INDI::Logger::DBG_SESSION, "Mount is awake...");
     return true;
 }
 

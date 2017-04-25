@@ -56,6 +56,9 @@ protected:
 
 private:
     void syncSideOfPier();
+    bool sleepMount();
+    bool wakeupMount();
+
 
     ISwitch ParkOptionS[3];
     ISwitchVectorProperty ParkOptionsSP;
