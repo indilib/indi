@@ -53,10 +53,10 @@ bool LX200Gemini::initProperties()
     LX200Generic::initProperties();
 
     // Park Option
-    IUFillSwitch(&ParkOptionS[PARK_HOME], "HOME", "Home", ISS_ON);
-    IUFillSwitch(&ParkOptionS[PARK_STARTUP], "STARTUP", "Startup", ISS_OFF);
-    IUFillSwitch(&ParkOptionS[PARK_ZENITH], "ZENITH", "Zenith", ISS_OFF);
-    IUFillSwitchVector(&ParkOptionsSP, ParkOptionS, 3, getDeviceName(), "PARK_POSITION", "Park Position", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
+    IUFillSwitch(&ParkSettingsS[PARK_HOME], "HOME", "Home", ISS_ON);
+    IUFillSwitch(&ParkSettingsS[PARK_STARTUP], "STARTUP", "Startup", ISS_OFF);
+    IUFillSwitch(&ParkSettingsS[PARK_ZENITH], "ZENITH", "Zenith", ISS_OFF);
+    IUFillSwitchVector(&ParkSettingsSP, ParkSettingsS, 3, getDeviceName(), "PARK_SETTINGS", "Park Settings", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
 
     IUFillSwitch(&StartupModeS[COLD_START], "COLD_START", "Cold", ISS_ON);
     IUFillSwitch(&StartupModeS[PARK_STARTUP], "WARM_START", "Warm", ISS_OFF);
@@ -70,11 +70,14 @@ bool LX200Gemini::updateProperties()
 
     if (isConnected())
     {
-        defineSwitch(&ParkOptionSP);
+        deleteProperty(AlignmentSP.name);
+        deleteProperty(UsePulseCmdSP.name);
+        deleteProperty(TrackingFreqNP.name);
+        defineSwitch(&ParkSettingsSP);
     }
     else
     {
-        deleteProperty(ParkOptionSP.name);
+        deleteProperty(ParkSettingsSP.name);
     }
 
     return true;
@@ -94,11 +97,11 @@ bool LX200Gemini::ISNewSwitch (const char *dev, const char *name, ISState *state
             return true;
         }
 
-        if (!strcmp(name, ParkOptionSP.name))
+        if (!strcmp(name, ParkSettingsSP.name))
         {
-            IUUpdateSwitch(&ParkOptionSP, states, names, n);
-            ParkOptionSP.s = IPS_OK;
-            IDSetSwitch(&ParkOptionsSP, NULL);
+            IUUpdateSwitch(&ParkSettingsSP, states, names, n);
+            ParkSettingsSP.s = IPS_OK;
+            IDSetSwitch(&ParkSettingsSP, NULL);
             return true;
         }
     }
@@ -108,6 +111,9 @@ bool LX200Gemini::ISNewSwitch (const char *dev, const char *name, ISState *state
 
 bool LX200Gemini::checkConnection()
 {
+    if (isSimulation())
+        return true;
+
     // Response
     char response[2] = {0};
     int rc=0, nbytes_read=0, nbytes_written=0;
@@ -314,11 +320,11 @@ bool LX200Gemini::Park()
 {
     char cmd[6] = "#:hP#";
 
-    int parkOption = IUFindOnSwitchIndex(&ParkOptionSP);
+    int parkSetting = IUFindOnSwitchIndex(&ParkSettingsSP);
 
-    if (parkOption == PARK_STARTUP)
+    if (parkSetting == PARK_STARTUP)
         strncpy(cmd, "#:hC#", 5);
-    else if (parkOption == PARK_ZENITH)
+    else if (parkSetting == PARK_ZENITH)
         strncpy(cmd, "#:hZ#", 5);
 
     // Response
@@ -400,7 +406,7 @@ bool LX200Gemini::saveConfigItems(FILE *fp)
     LX200Generic::saveConfigItems(fp);
 
     IUSaveConfigSwitch(fp, &StartupModeSP);
-    IUSaveConfigSwitch(fp, &ParkOptionSP);
+    IUSaveConfigSwitch(fp, &ParkSettingsSP);
 
     return true;
 }

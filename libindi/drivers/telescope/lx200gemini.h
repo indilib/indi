@@ -60,8 +60,8 @@ private:
     bool wakeupMount();
 
 
-    ISwitch ParkOptionS[3];
-    ISwitchVectorProperty ParkOptionsSP;
+    ISwitch ParkSettingsS[3];
+    ISwitchVectorProperty ParkSettingsSP;
     enum { PARK_HOME, PARK_STARTUP, PARK_ZENITH };
 
     ISwitch StartupModeS[3];
