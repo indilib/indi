@@ -26,6 +26,7 @@
 
 #include <memory>
 #include <cstring>
+#include <cmath>
 
 #include "skysafariclient.h"
 
@@ -34,7 +35,7 @@
 ***************************************************************************************/
 SkySafariClient::SkySafariClient()
 {
-    isReady = isRunning = mountOnline = false;
+    isReady = mountOnline = false;
 }
 
 /**************************************************************************************
@@ -65,7 +66,17 @@ void SkySafariClient::newDevice(INDI::BaseDevice *dp)
 void SkySafariClient::newProperty(INDI::Property *property)
 {
     if (!strcmp(property->getName(), "TELESCOPE_PARK"))
-        mountParkSP = property->getSwitch();    
+        mountParkSP = property->getSwitch();
+    else if (!strcmp(property->getName(), "EQUATORIAL_EOD_COORD"))
+        eqCoordsNP = property->getNumber();
+    else if (!strcmp(property->getName(), "GEOGRAPHIC_COORD"))
+        geoCoordsNP = property->getNumber();
+    else if (!strcmp(property->getName(), "ON_COORD_SET"))
+        gotoModeSP = property->getSwitch();
+    else if (!strcmp(property->getName(), "TELESCOPE_ABORT_MOTION"))
+        abortSP = property->getSwitch();
+    else if (!strcmp(property->getName(), "TELESCOPE_SLEW_RATE"))
+        slewRateSP = property->getSwitch();
 }
 
 /**************************************************************************************
@@ -111,15 +122,76 @@ IPState SkySafariClient::getMountParkState()
 /**************************************************************************************
 **
 ***************************************************************************************/
-bool SkySafariClient::sendCoords()
+bool SkySafariClient::sendEquatorialCoords()
 {
-    return false;
+    if (eqCoordsNP == nullptr)
+        return false;
+
+    eqCoordsNP->s = IPS_BUSY;
+    sendNewNumber(eqCoordsNP);
+    return true;
 }
 
 /**************************************************************************************
 **
 ***************************************************************************************/
-bool SkySafariClient::setGotoMode()
+bool SkySafariClient::sendGeographicCoords()
 {
+    if (geoCoordsNP == nullptr)
+        return false;
 
+    geoCoordsNP->s = IPS_BUSY;
+    sendNewNumber(geoCoordsNP);
+    return true;
 }
+
+/**************************************************************************************
+**
+***************************************************************************************/
+bool SkySafariClient::sendGotoMode()
+{
+    if (gotoModeSP == nullptr)
+        return false;
+
+    sendNewSwitch(gotoModeSP);
+    return true;
+}
+
+/**************************************************************************************
+**
+***************************************************************************************/
+bool SkySafariClient::abort()
+{
+    if (abortSP == nullptr)
+        return false;
+
+    abortSP->sp[0].s = ISS_ON;
+
+    sendNewSwitch(abortSP);
+    return true;
+}
+
+/**************************************************************************************
+** We get 0 to 3 which we have to map to whatever supported by mount, if any
+***************************************************************************************/
+bool SkySafariClient::setSlewRate(int slewRate)
+{
+    if (slewRateSP == nullptr)
+        return false;
+
+    int maxSlewRate = slewRateSP->nsp-1;
+
+    int finalSlewRate = slewRate;
+
+    // If slew rate is betwee min and max, we intepolate
+    if (slewRate > 0 && slewRate < maxSlewRate)
+        finalSlewRate = static_cast<int>(ceil(slewRate * maxSlewRate/3.0));
+
+    IUResetSwitch(slewRateSP);
+    slewRateSP->sp[finalSlewRate].s = ISS_ON;
+
+    sendNewSwitch(slewRateSP);
+
+    return true;
+}
+

@@ -61,7 +61,17 @@ protected:
 
 private:
 
-    void processCommand(char *command, int len);
+    void processCommand(std::string cmd);
+
+    bool startServer();
+    bool stopServer();
+
+    bool sendSkySafari(const char *message);
+
+    void sendGeographicCoords();
+
+    template<typename Out> void split(const std::string &s, char delim, Out result);
+    std::vector<std::string> split(const std::string &s, char delim);
 
     // Settings
     ITextVectorProperty   SettingsTP;
@@ -81,11 +91,12 @@ private:
     // Our client
     SkySafariClient *skySafariClient = nullptr;
 
-    bool startServer();
-    bool stopServer();
-
     int lsocket=-1, clientFD=-1;
 
+    bool isSkySafariConnected=false, haveLatitude=false, haveLongitude=false;
+
+    double siteLatitude=0, siteLongitude=0;
+    double RA=0, DE=0;
 };
 
 #endif

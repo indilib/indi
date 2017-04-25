@@ -39,19 +39,25 @@ public:
    SkySafariClient();
    ~SkySafariClient();      
 
-   bool isBusy()      { return isRunning; }
    bool isConnected() { return isReady; }
 
    void setMount(const std::string &value);
 
-   INumberVectorProperty* getCoords() { return eqCoords; }
-   bool sendCoords();
+   INumberVectorProperty* getEquatorialCoords() { return eqCoordsNP; }
+   bool sendEquatorialCoords();
 
-   GotoMode getGotoMode() { return mode; }
-   bool setGotoMode();
+   INumberVectorProperty* getGeographiCoords() { return geoCoordsNP; }
+   bool sendGeographicCoords();
+
+   ISwitchVectorProperty* getGotoMode() { return gotoModeSP; }
+   bool sendGotoMode();
 
    bool parkMount();   
    IPState getMountParkState();
+
+   bool setSlewRate(int slewRate);
+
+   bool abort();
 
 protected:
 
@@ -71,11 +77,14 @@ protected:
 private:
 
    std::string mount;
-   bool isReady, isRunning, mountOnline;
+   bool isReady, mountOnline;
 
    ISwitchVectorProperty *mountParkSP=nullptr;
-   ISwitchVectorProperty *gotoMode=nullptr;
-   INumberVectorProperty *eqCoords=nullptr;
+   ISwitchVectorProperty *gotoModeSP=nullptr;
+   INumberVectorProperty *eqCoordsNP=nullptr;
+   INumberVectorProperty *geoCoordsNP=nullptr;
+   ISwitchVectorProperty *abortSP=nullptr;
+   ISwitchVectorProperty *slewRateSP=nullptr;
    GotoMode mode = TRACK;
 
 };

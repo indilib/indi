@@ -41,8 +41,9 @@
 
 #include "skysafari.h"
 #include "skysafariclient.h"
+#include "indicom.h"
 
-#define POLLMS  1000
+#define POLLMS  100
 
 // We declare unique pointer to my lovely German Shephard Tommy (http://indilib.org/images/juli_tommy.jpg)
 std::unique_ptr<SkySafari> tommyGoodBoy(new SkySafari());
@@ -102,20 +103,14 @@ const char * SkySafari::getDefaultName()
 }
 
 bool SkySafari::Connect()
-{
-    //bool SkySafari::ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n)
-
-    // turn on server
-    /*
-    ISState states[2] = { ISS_ON, ISS_OFF };
-    const char *names[2] = { "Enable", "Disable" };
-    ISNewSwitch(getDeviceName(), "Server", states, (char **) names, 2);
-    */
-
-
+{    
     bool rc = startServer();
     if (rc)
+    {
+        skySafariClient->setMount(ActiveDeviceT[ACTIVE_TELESCOPE].text);
+        skySafariClient->connectServer();
         SetTimer(POLLMS);
+    }
 
     return rc;
 }
@@ -174,22 +169,10 @@ bool SkySafari::ISNewText (const char *dev, const char *name, char *texts[], cha
         }
 
         if (!strcmp(ActiveDeviceTP.name, name))
-        {
-            if (skySafariClient->isBusy())
-            {
-                ActiveDeviceTP.s = IPS_ALERT;
-                IDSetText(&ActiveDeviceTP, NULL);
-                DEBUG(INDI::Logger::DBG_ERROR, "Cannot change devices names while already connected to mount...");
-                return true;
-            }
-
+        {            
             IUUpdateText(&ActiveDeviceTP, texts, names, n);
             ActiveDeviceTP.s = IPS_OK;
             IDSetText(&ActiveDeviceTP, NULL);
-
-            //watchdogClient->setTelescope(ActiveDeviceT[0].text);
-            //watchdogClient->setDome(ActiveDeviceT[1].text);
-
             return true;
         }
 
@@ -261,11 +244,14 @@ bool SkySafari::saveConfigItems(FILE *fp)
 
 void SkySafari::TimerHit()
 {
+    if (isConnected() == false)
+        return;
+
     if (clientFD == -1)
     {
         struct sockaddr_in cli_socket;
         socklen_t cli_len;
-        int cli_fd;
+        int cli_fd=-1;
 
         /* get a private connection to new client */
         cli_len = sizeof(cli_socket);
@@ -298,28 +284,37 @@ void SkySafari::TimerHit()
             DEBUGF(INDI::Logger::DBG_ERROR, "Error connecting to SkySafari. F_SETFL: %s", strerror(errno));
         }
 
-        DEBUG(INDI::Logger::DBG_SESSION, "Connected to SkySafari.");
+        // Only show message first time SkySafari connects
+        if (isSkySafariConnected == false)
+        {
+            DEBUG(INDI::Logger::DBG_SESSION, "Connected to SkySafari.");
+            isSkySafariConnected = true;
+        }
     }
     else
     {
         // Read from SkySafari
         char buffer[64] = { 0 };
         int rc = read(clientFD, buffer, 64);
-        if(rc < 0 && (errno == EAGAIN || errno == EWOULDBLOCK))
+        if(rc > 0)
         {
-            SetTimer(POLLMS);
-            return;
+            std::vector<std::string> commands = split(buffer, '#');
+            for (std::string cmd : commands)
+            {
+                // Remove the :
+                cmd.erase(0,1);
+                processCommand(cmd);
+            }
         }
-        else if(rc > 0)
+        // EOF
+        else if (rc == 0)
         {
-            processCommand(buffer, rc);
-        }
-        else
-        {
-            DEBUG(INDI::Logger::DBG_ERROR, "SkySafari Disconnected? Reconnect again.");
+            //DEBUG(INDI::Logger::DBG_ERROR, "SkySafari Disconnected? Reconnect again.");
             close(clientFD);
             clientFD=-1;
         }
+
+        // Otherwise EAGAIN so we just try shortly
     }
 
     SetTimer(POLLMS);
@@ -391,7 +386,247 @@ bool SkySafari::stopServer()
     return true;
 }
 
-void SkySafari::processCommand(char *command, int len)
+void SkySafari::processCommand(std::string cmd)
 {
-    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD <%s> LEN <%d>", command, len);
+    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD <%s>", cmd.c_str());
+
+    if (skySafariClient->isConnected() == false)
+    {
+        DEBUG(INDI::Logger::DBG_ERROR, "Internal client is not connected! Restart driver and try again.");
+        return;
+    }
+
+    // Set site Latitude
+    if (cmd.compare(0, 2, "St") == 0)
+    {
+        int dd=0, mm=0;
+        if (sscanf (cmd.c_str(), "St%d%*c%d", &dd, &mm) == 2)
+        {
+            haveLatitude = true;
+            siteLatitude = dd + mm / 60.0;
+        }
+
+        // Always respond with valid
+        sendSkySafari("1");
+
+        // Try sending geographic coords if all is available
+        sendGeographicCoords();
+    }
+    // Set site Longitude
+    else if (cmd.compare(0, 2, "Sg") == 0)
+    {
+        int ddd=0, mm=0;
+        if (sscanf (cmd.c_str(), "Sg%d%*c%d", &ddd, &mm) == 2)
+        {
+            haveLongitude = true;
+            siteLongitude = ddd + mm / 60.0;
+
+            // Convert to INDI format (0 to 360 Eastwards). Meade is 0 to 360 Westwards.
+            siteLongitude = 360 - siteLongitude;
+        }
+
+        // Always respond with valid
+        sendSkySafari("1");
+
+        // Try sending geographic coords if all is available
+        sendGeographicCoords();
+    }
+    // Get RA
+    else if (cmd == "GR")
+    {
+        INumberVectorProperty *eqCoordsNP = skySafariClient->getEquatorialCoords();
+        if (eqCoordsNP == nullptr)
+        {
+            DEBUG(INDI::Logger::DBG_WARNING, "Unable to communicate with mount, is mount turned on and connected?");
+            return;
+        }
+
+        int hh,mm,ss;
+        char output[32] = {0};
+        getSexComponents(eqCoordsNP->np[AXIS_RA].value, &hh, &mm, &ss);
+        snprintf(output, 32, "%02d:%02d:%02d#", hh, mm, ss);
+        sendSkySafari(output);
+    }
+    // Get DE
+    else if (cmd == "GD")
+    {
+        INumberVectorProperty *eqCoordsNP = skySafariClient->getEquatorialCoords();
+        if (eqCoordsNP == nullptr)
+        {
+            DEBUG(INDI::Logger::DBG_WARNING, "Unable to communicate with mount, is mount turned on and connected?");
+            return;
+        }
+        int dd,mm,ss;
+        char output[32] = {0};
+        getSexComponents(eqCoordsNP->np[AXIS_DE].value, &dd, &mm, &ss);
+        snprintf(output, 32, "%+02d:%02d:%02d#", dd, mm, ss);
+        sendSkySafari(output);
+    }
+    // Set RA
+    else if (cmd.compare(0, 2, "Sr") == 0)
+    {
+        int hh=0, mm=0, ss=0;
+        if (sscanf (cmd.c_str(), "Sr%d:%d:%d", &hh, &mm, &ss) == 3)
+        {
+            RA = hh + mm / 60.0 + ss / 3600.0;
+        }
+
+        // Always respond with valid
+        sendSkySafari("1");
+    }
+    // Set DE
+    else if (cmd.compare(0, 2, "Sd") == 0)
+    {
+        int dd=0, mm=0, ss=0;
+        if (sscanf (cmd.c_str(), "Sd%d*%d:%d", &dd, &mm, &ss) == 3)
+        {
+            DE = dd + mm / 60.0 + ss / 3600.0;
+        }
+
+        // Always respond with valid
+        sendSkySafari("1");
+    }
+    // GOTO
+    else if (cmd == "MS")
+    {
+        ISwitchVectorProperty *gotoModeSP = skySafariClient->getGotoMode();
+        if (gotoModeSP == nullptr)
+        {
+            sendSkySafari("2<Not Supported>#");
+            return;
+        }
+
+        // Set mode first
+        ISwitch *trackSW = IUFindSwitch(gotoModeSP, "TRACK");
+        if (trackSW == nullptr)
+        {
+            sendSkySafari("2<Not Supported>#");
+            return;
+        }
+
+        IUResetSwitch(gotoModeSP);
+        trackSW->s = ISS_ON;
+        skySafariClient->sendGotoMode();
+
+        INumberVectorProperty *eqCoordsNP = skySafariClient->getEquatorialCoords();
+        eqCoordsNP->np[AXIS_RA].value = RA;
+        eqCoordsNP->np[AXIS_DE].value = DE;
+        skySafariClient->sendEquatorialCoords();
+
+        sendSkySafari("0");
+    }
+    // Sync
+    else if (cmd == "CM")
+    {
+        ISwitchVectorProperty *gotoModeSP = skySafariClient->getGotoMode();
+        if (gotoModeSP == nullptr)
+        {
+            sendSkySafari("Not Supported#");
+            return;
+        }
+
+        // Set mode first
+        ISwitch *syncSW = IUFindSwitch(gotoModeSP, "SYNC");
+        if (syncSW == nullptr)
+        {
+            sendSkySafari("Not Supported#");
+            return;
+        }
+
+        IUResetSwitch(gotoModeSP);
+        syncSW->s = ISS_ON;
+        skySafariClient->sendGotoMode();
+
+        INumberVectorProperty *eqCoordsNP = skySafariClient->getEquatorialCoords();
+        eqCoordsNP->np[AXIS_RA].value = RA;
+        eqCoordsNP->np[AXIS_DE].value = DE;
+        skySafariClient->sendEquatorialCoords();
+
+        sendSkySafari(" M31 EX GAL MAG 3.5 SZ178.0'#");
+    }
+    // Abort
+    else if (cmd == "Q")
+    {
+        skySafariClient->abort();
+    }
+    // RG
+    else if (cmd == "RG")
+    {
+        skySafariClient->setSlewRate(0);
+    }
+    // RC
+    else if (cmd == "RC")
+    {
+        skySafariClient->setSlewRate(1);
+    }
+    // RM
+    else if (cmd == "RM")
+    {
+        skySafariClient->setSlewRate(2);
+    }
+    // RS
+    else if (cmd == "RS")
+    {
+        skySafariClient->setSlewRate(3);
+    }
+}
+
+void SkySafari::sendGeographicCoords()
+{
+    INumberVectorProperty *geographicCoords = skySafariClient->getGeographiCoords();
+    if (geographicCoords && haveLatitude && haveLongitude)
+    {
+        INumber *latitude  = IUFindNumber(geographicCoords, "LAT");
+        INumber *longitude = IUFindNumber(geographicCoords, "LONG");
+        if (latitude && longitude)
+        {
+            latitude->value = siteLatitude;
+            longitude->value= siteLongitude;
+            skySafariClient->sendGeographicCoords();
+
+            // Reset
+            haveLatitude = haveLongitude = false;
+        }
+    }
+}
+
+bool SkySafari::sendSkySafari(const char *message)
+{
+    DEBUGF(INDI::Logger::DBG_DEBUG, "RES <%s>", message);
+
+    int bytesWritten=0, totalBytes=strlen(message);
+
+    while (bytesWritten < totalBytes)
+    {
+        int bytesSent = write(clientFD, message, totalBytes - bytesWritten);
+        if (bytesSent >= 0)
+            bytesWritten += bytesSent;
+        else
+        {
+            DEBUGF(INDI::Logger::DBG_ERROR, "Error writing to SkySafari. %s", strerror(errno));
+            return false;
+        }
+    }
+
+    return true;
+}
+
+// Had to get this from stackoverlow, why C++ STL lacks such basic functionality?!!!
+template<typename Out> void SkySafari::split(const std::string &s, char delim, Out result)
+{
+    std::stringstream ss;
+    ss.str(s);
+    std::string item;
+    while (std::getline(ss, item, delim))
+    {
+        *(result++) = item;
+    }
+}
+
+
+std::vector<std::string> SkySafari::split(const std::string &s, char delim)
+{
+    std::vector<std::string> elems;
+    split(s, delim, std::back_inserter(elems));
+    return elems;
 }
