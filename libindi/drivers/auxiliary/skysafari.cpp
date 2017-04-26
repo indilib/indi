@@ -357,7 +357,7 @@ bool SkySafari::startServer()
         return false;
     }
 
-    if (bind(sfd,(struct sockaddr*)&serv_socket,sizeof(serv_socket)) < 0)
+    if (::bind(sfd,(struct sockaddr*)&serv_socket,sizeof(serv_socket)) < 0)
     {
         DEBUGF(INDI::Logger::DBG_ERROR, "Error starting server. bind: %s", strerror(errno));
         return false;
