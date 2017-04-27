@@ -42,8 +42,8 @@ class MaxDomeII : public INDI::Dome
  bool updateProperties();
  virtual bool saveConfigItems(FILE *fp);
 
- bool Connect();
- bool Disconnect();
+ virtual bool Disconnect() override;
+ virtual bool Handshake() override;
 
  void TimerHit();
 
@@ -58,8 +58,8 @@ protected:
 
  // Parking
  IPState ConfigurePark(int nCSBP, double ParkAzimuth);
- virtual void SetCurrentPark();
- virtual void SetDefaultPark();
+ virtual bool SetCurrentPark();
+ virtual bool SetDefaultPark();
  virtual IPState ControlShutter(ShutterOperation operation);
 
  /*******************************************************/
@@ -102,7 +102,6 @@ private:
  double nParkPosition;		// Park position
  double nHomeAzimuth;		// Azimuth of home position
  int nHomeTicks;		// Ticks from 0 azimuth to home
- int fd;                        // Telescope tty file descriptor
  int nTimeSinceShutterStart;	// Timer since shutter movement has started, in order to check timeouts
  int nTimeSinceAzimuthStart;	// Timer since azimuth movement has started, in order to check timeouts
  int nTargetAzimuth;

@@ -29,14 +29,13 @@
 
 #include "indicom.h"
 #include "indilogger.h"
+#include "connectionplugins/connectionserial.h"
 
 #include "vantage.h"
 
 #define VANTAGE_CMD     8
 #define VANTAGE_RES     128
 #define VANTAGE_TIMEOUT 1.5
-
-
 
 static uint16_t crc_table[] =
 {
@@ -127,7 +126,6 @@ void ISSnoopDevice (XMLEle *root)
 Vantage::Vantage()
 {
    setVersion(1,0);
-   PortFD=-1;
 }
 
 Vantage::~Vantage()
@@ -142,18 +140,7 @@ const char * Vantage::getDefaultName()
 
 bool Vantage::initProperties()
 {
-    INDI::Weather::initProperties();
-
-    IUFillText(&PortT[0],"PORT","Port","/dev/vantage");
-    IUFillTextVector(&PortTP,PortT,1,getDeviceName(),"DEVICE_PORT","Ports",OPTIONS_TAB,IP_RW,60,IPS_IDLE);
-
-    IUFillSwitch(&BaudRateS[0], "1200", "", ISS_OFF);
-    IUFillSwitch(&BaudRateS[1], "2400", "", ISS_OFF);
-    IUFillSwitch(&BaudRateS[2], "4800", "", ISS_OFF);
-    IUFillSwitch(&BaudRateS[3], "9600", "", ISS_OFF);
-    IUFillSwitch(&BaudRateS[4], "14400", "", ISS_OFF);
-    IUFillSwitch(&BaudRateS[5], "19200", "", ISS_ON);
-    IUFillSwitchVector(&BaudRateSP, BaudRateS, 6, getDeviceName(),"DEVICE_BAUD_RATE", "Baud Rate", OPTIONS_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
+    INDI::Weather::initProperties();    
 
     addParameter("WEATHER_FORECAST", "Forecast", 0, 0, 0, 1);
     addParameter("WEATHER_TEMPERATURE", "Temperature (C)", -10, 30, -20, 40);
@@ -171,77 +158,14 @@ bool Vantage::initProperties()
 
     addDebugControl();
 
+    serialConnection->setDefaultBaudRate(Connection::Serial::B_19200);
+
     return true;
 }
 
-void Vantage::ISGetProperties(const char *dev)
+bool Vantage::Handshake()
 {
-    INDI::Weather::ISGetProperties(dev);
-
-    defineText(&PortTP);
-    defineSwitch(&BaudRateSP);
-
-    loadConfig(true, "DEVICE_PORT");
-    loadConfig(true, "DEVICE_BAUD_RATE");
-}
-
-bool Vantage::Connect()
-{
-    int connectrc=0;
-    char errorMsg[MAXRBUF];
-
-    DEBUGF(INDI::Logger::DBG_DEBUG, "Vantage connecting to %s", PortT[0].text);
-
-    if ( (connectrc = tty_connect(PortT[0].text, atoi(IUFindOnSwitch(&BaudRateSP)->name), 8, 0, 1, &PortFD)) != TTY_OK)
-    {
-        tty_error_msg(connectrc, errorMsg, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR,"Failed to connect to port %s @ baud %d. Error: %s", PortT[0].text,atoi(IUFindOnSwitch(&BaudRateSP)->name),  errorMsg);
-        return false;
-    }
-
-    DEBUGF(INDI::Logger::DBG_DEBUG, "Port FD %d",PortFD);
-
     return ack();
-}
-
-bool Vantage::Disconnect()
-{
-    if (PortFD >0)
-        tty_disconnect(PortFD);
-
-    return true;
-}
-
-bool Vantage::ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n)
-{
-    if(!strcmp(dev,getDeviceName()))
-    {
-        if (!strcmp(PortTP.name, name))
-        {
-            IUUpdateText(&PortTP, texts, names, n);
-            PortTP.s = IPS_OK;
-            IDSetText(&PortTP, NULL);
-            return true;
-        }
-    }
-
-     return INDI::Weather::ISNewText(dev,name,texts,names,n);
-}
-
-bool Vantage::ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n)
-{
-    if(strcmp(dev,getDeviceName())==0)
-    {
-        if (!strcmp(BaudRateSP.name, name))
-        {
-            IUUpdateSwitch(&BaudRateSP, states, names, n);
-            BaudRateSP.s = IPS_OK;
-            IDSetSwitch(&BaudRateSP, NULL);
-            return true;
-        }
-    }
-
-    return INDI::Weather::ISNewSwitch(dev, name, states, names, n);
 }
 
 IPState Vantage::updateWeather()
@@ -402,16 +326,6 @@ IPState Vantage::updateWeather()
     setParameterValue("WEATHER_SOLAR_RADIATION", solarRadiation);
 
     return IPS_OK;
-}
-
-bool Vantage::saveConfigItems(FILE *fp)
-{
-    INDI::Weather::saveConfigItems(fp);
-
-    IUSaveConfigText(fp, &PortTP);
-    IUSaveConfigSwitch(fp, &BaudRateSP);
-
-    return true;
 }
 
 bool Vantage::wakeup()

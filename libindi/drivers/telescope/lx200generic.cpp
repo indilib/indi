@@ -228,7 +228,7 @@ LX200Generic::LX200Generic()
    currentRA=ln_get_apparent_sidereal_time(ln_get_julian_from_sys());
    currentDEC=90;  
 
-   SetTelescopeCapability(TELESCOPE_CAN_PARK | TELESCOPE_CAN_SYNC | TELESCOPE_CAN_ABORT | TELESCOPE_HAS_TIME | TELESCOPE_HAS_LOCATION,4);
+   SetTelescopeCapability(TELESCOPE_CAN_PARK | TELESCOPE_CAN_SYNC | TELESCOPE_CAN_GOTO | TELESCOPE_CAN_ABORT | TELESCOPE_HAS_TIME | TELESCOPE_HAS_LOCATION,4);
 
    DEBUG(INDI::Logger::DBG_DEBUG, "Initializing from Generic LX200 device...");
 }
@@ -264,17 +264,19 @@ bool LX200Generic::initProperties()
     IUFillSwitch(&AlignmentS[2], "Land", "", ISS_OFF);
     IUFillSwitchVector(&AlignmentSP, AlignmentS, 3, getDeviceName(), "Alignment", "", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
+#if 0
     IUFillSwitch(&SlewRateS[SLEW_GUIDE], "SLEW_GUIDE", "Guide", ISS_OFF);
     IUFillSwitch(&SlewRateS[SLEW_CENTERING], "SLEW_CENTERING", "Centering", ISS_OFF);
     IUFillSwitch(&SlewRateS[SLEW_FIND], "SLEW_FIND", "Find", ISS_OFF);
     IUFillSwitch(&SlewRateS[SLEW_MAX], "SLEW_MAX", "Max", ISS_ON);
     IUFillSwitchVector(&SlewRateSP, SlewRateS, 4, getDeviceName(), "TELESCOPE_SLEW_RATE", "Slew Rate", MOTION_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+#endif
 
     IUFillSwitch(&TrackModeS[0], "TRACK_SIDEREAL", "Sidereal", ISS_ON);
     IUFillSwitch(&TrackModeS[1], "TRACK_SOLAR", "Solar", ISS_OFF);
     IUFillSwitch(&TrackModeS[2], "TRACK_LUNAR", "Lunar", ISS_OFF);
     IUFillSwitch(&TrackModeS[3], "TRACK_CUSTOM", "Custom", ISS_OFF);
-    IUFillSwitchVector(&TrackModeSP, TrackModeS, 4, getDeviceName(), "TELESCOPE_TRACK_RATE", "Tracking Mode", MOTION_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+    IUFillSwitchVector(&TrackModeSP, TrackModeS, 4, getDeviceName(), "TELESCOPE_TRACK_MODE", "Track Mode", MOTION_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
     IUFillNumber(&TrackFreqN[0], "trackFreq", "Freq", "%g", 56.4,60.1, 0.1, 60.1);
     IUFillNumberVector(&TrackingFreqNP, TrackFreqN, 1, getDeviceName(), "Tracking Frequency", "", MOTION_TAB, IP_RW, 0, IPS_IDLE);
@@ -402,34 +404,15 @@ bool LX200Generic::updateProperties()
 
 bool LX200Generic::checkConnection()
 {
+    if (isSimulation())
+        return true;
+
     return (check_lx200_connection(PortFD) == 0);
 }
 
-bool LX200Generic::Connect(const char *port, uint32_t baud)
+bool LX200Generic::Handshake()
 {
-    if (isSimulation())
-    {
-        DEBUGF (INDI::Logger::DBG_SESSION, "Simulated %s is online.", getDeviceName());
-        return true;
-    }
-
-    if (tty_connect(port, baud, 8, 0, 1, &PortFD) != TTY_OK)
-    {
-      DEBUGF(INDI::Logger::DBG_ERROR, "Error connecting to port %s. Make sure you have BOTH write and read permission to your port.", port);
-      return false;
-    }
-
-    if (checkConnection() == false)
-    {
-        DEBUG(INDI::Logger::DBG_ERROR, "Error connecting to Telescope. Telescope is offline.");
-        return false;
-    }
-
-   //*((int *) UTCOffsetN[0].aux0) = 0;
-
-   DEBUGF (INDI::Logger::DBG_SESSION, "%s is online. Retrieving basic data...", getDeviceName());
-
-   return true;
+    return checkConnection();
 }
 
 bool LX200Generic::isSlewComplete()
@@ -1010,17 +993,21 @@ bool LX200Generic::ISNewSwitch (const char *dev, const char *name, ISState *stat
           IUUpdateSwitch(&TrackModeSP, states, names, n);
           trackingMode = IUFindOnSwitchIndex(&TrackModeSP);
 
-          if (isSimulation() == false && selectTrackingMode(PortFD, trackingMode) < 0)
+          if (isSimulation() == false && SetTrackMode(trackingMode) == false)
           {
               TrackModeSP.s = IPS_ALERT;
               IDSetSwitch(&TrackModeSP, "Error setting tracking mode.");
               return false;
           }
 
-          if (isSimulation() == false)
+          // Only update tracking frequency if it is defined and not deleted by child classes
+          if (isSimulation() == false && getProperty(TrackingFreqNP.name, INDI_NUMBER) != NULL)
+          {
             getTrackFreq(PortFD, &TrackFreqN[0].value);
+            IDSetNumber(&TrackingFreqNP, NULL);
+          }
+
           TrackModeSP.s = IPS_OK;
-          IDSetNumber(&TrackingFreqNP, NULL);
           IDSetSwitch(&TrackModeSP, NULL);
           return true;
         }
@@ -1067,6 +1054,11 @@ bool LX200Generic::ISNewSwitch (const char *dev, const char *name, ISState *stat
     //  Nobody has claimed this, so pass it to the parent
     return INDI::Telescope::ISNewSwitch(dev,name,states,names,n);
 
+}
+
+bool LX200Generic::SetTrackMode(int mode)
+{
+    return (selectTrackingMode(PortFD, mode) == 0);
 }
 
 bool LX200Generic::SetSlewRate(int index)

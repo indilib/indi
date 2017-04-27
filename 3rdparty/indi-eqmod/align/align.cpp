@@ -140,7 +140,6 @@ bool Align::updateProperties ()
   /*IDLog("Align update properties connected = %d.\n",(telescope->isConnected()?1:0) ); */
   if (telescope->isConnected())
     {
-      initProperties();
       telescope->defineText(AlignDataFileTP);
       telescope->defineBLOB(AlignDataBP);
       telescope->defineNumber(AlignPointNP);
@@ -158,12 +157,6 @@ bool Align::updateProperties ()
       telescope->deleteProperty(AlignCountNP->name);
       telescope->deleteProperty(AlignModeSP->name);
       telescope->deleteProperty(AlignDataFileTP->name);
-      AlignDataFileTP=NULL;
-      AlignDataBP=NULL;
-      AlignPointNP=NULL;
-      AlignListSP=NULL;
-      AlignModeSP=NULL;
-      AlignTelescopeCoordsNP=NULL;
     }
   return true;
 }

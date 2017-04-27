@@ -27,9 +27,7 @@
 #ifdef WITH_ALIGN_GEEHALEL
 #include "align/align.h"
 #endif
-#ifdef WITH_SIMULATOR
 #include "simulator/simulator.h"
-#endif
 #ifdef WITH_SCOPE_LIMITS
 #include "scope-limits/scope-limits.h"
 #endif
@@ -107,7 +105,6 @@ class EQMod : public INDI::Telescope, public INDI::GuiderInterface
     INumberVectorProperty *SlewSpeedsNP= NULL;
     ISwitchVectorProperty *SlewModeSP= NULL;
     ISwitchVectorProperty *HemisphereSP= NULL;
-    ISwitchVectorProperty *PierSideSP= NULL;
     ISwitchVectorProperty *TrackModeSP= NULL;
     ISwitchVectorProperty *TrackDefaultSP= NULL;
     INumberVectorProperty *TrackRatesNP= NULL;
@@ -141,7 +138,7 @@ class EQMod : public INDI::Telescope, public INDI::GuiderInterface
     ISwitchVectorProperty *DEPPECSP= NULL;
 	
 	enum Hemisphere {NORTH=0, SOUTH=1 };
-	enum PierSide {UNKNOWN=-1, WEST=0, EAST=1};
+
 	typedef struct GotoParams {
 	  double ratarget, detarget, racurrent, decurrent;
 	  unsigned long ratargetencoder, detargetencoder, racurrentencoder, decurrentencoder;
@@ -150,8 +147,7 @@ class EQMod : public INDI::Telescope, public INDI::GuiderInterface
 	  bool forcecwup, checklimits, outsidelimits, completed;
 	} GotoParams;
 
-	Hemisphere Hemisphere;
-    PierSide pierside, lastPierSide, currentPierSide;
+	Hemisphere Hemisphere;    
 	bool RAInverted, DEInverted;
         GotoParams gotoparams;
 	SyncData syncdata, syncdata2;
@@ -164,12 +160,11 @@ class EQMod : public INDI::Telescope, public INDI::GuiderInterface
 	double EncoderFromHour(double hour, unsigned long initstep, unsigned long totalstep, enum Hemisphere h);
 	double EncoderFromRA(double ratarget, double detarget, double lst, 
 			     unsigned long initstep, unsigned long totalstep, enum Hemisphere h);
-	double EncoderFromDegree(double degree, PierSide p, unsigned long initstep, unsigned long totalstep, enum Hemisphere h);
-	double EncoderFromDec( double detarget, PierSide p, 
+    double EncoderFromDegree(double degree, TelescopePierSide p, unsigned long initstep, unsigned long totalstep, enum Hemisphere h);
+    double EncoderFromDec( double detarget, TelescopePierSide p,
 				      unsigned long initstep, unsigned long totalstep, enum Hemisphere h);
 	void EncoderTarget(GotoParams *g);
-    void SetSouthernHemisphere(bool southern);
-	PierSide SideOfPier();
+    void SetSouthernHemisphere(bool southern);	
 	double GetRATrackRate();
 	double GetDETrackRate();
 	double GetDefaultRATrackRate();
@@ -207,8 +202,7 @@ class EQMod : public INDI::Telescope, public INDI::GuiderInterface
         virtual ~EQMod();
 
         virtual const char *getDefaultName();
-        virtual bool Connect(const char *port, uint32_t baud);
-        virtual bool Connect(const char *hostname, const char *port);
+        virtual bool Handshake();
         virtual bool Disconnect();
         virtual void TimerHit();
         virtual bool ReadScopeStatus();
@@ -233,8 +227,8 @@ class EQMod : public INDI::Telescope, public INDI::GuiderInterface
         bool Goto(double ra,double dec);
         bool Park();
         bool UnPark();
-        void SetCurrentPark();
-        void SetDefaultPark();
+        bool SetCurrentPark();
+        bool SetDefaultPark();
         bool Sync(double ra,double dec);
 
         virtual bool saveConfigItems(FILE *fp);
@@ -247,9 +241,7 @@ class EQMod : public INDI::Telescope, public INDI::GuiderInterface
         double getJulianDate();
         double getLst(double jd, double lng);
 
-#ifdef WITH_SIMULATOR
 	EQModSimulator *simulator;
-#endif
 
 #ifdef WITH_SCOPE_LIMITS
 	HorizonLimits *horizon;

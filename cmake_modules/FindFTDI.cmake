@@ -1,4 +1,6 @@
 # - Try to find FTDI
+# This finds libFTDI that is compatible with old libusb v 0.1
+# For newer libusb > 1.0, use FindFTDI1.cmake
 # Once done this will define
 #
 #  FTDI_FOUND - system has FTDI
@@ -23,7 +25,6 @@ else (FTDI_INCLUDE_DIR AND FTDI_LIBRARIES)
     /usr/local/include
   )
 
-message("INCLUDE STUFF" ${FTDI_INCLUDE_DIR})
   find_library(FTDI_LIBRARIES NAMES ftdi ftdi1
     PATHS
     ${_obLinkDir}

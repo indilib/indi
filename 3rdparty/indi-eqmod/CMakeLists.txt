@@ -6,7 +6,10 @@ LIST(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/../../cmake_modules/"
 include(GNUInstallDirs)
 
 set(BIN_INSTALL_DIR "${CMAKE_INSTALL_PREFIX}/bin")
-set(CMAKE_CXX_FLAGS "-std=c++0x ${CMAKE_CXX_FLAGS}")
+
+if (NOT WIN32 AND NOT ANDROID)
+set(CMAKE_CXX_FLAGS "-std=c++11 ${CMAKE_CXX_FLAGS}")
+endif(NOT WIN32 AND NOT ANDROID)
 
 find_package(INDI REQUIRED)
 find_package(Nova REQUIRED)
@@ -22,8 +25,6 @@ endif(CYGWIN)
 
 option(WITH_ALIGN "Enable Alignment Subsystem" ON)
 option(WITH_ALIGN_GEEHALEL "Enable EQMod Alignment" ON)
-option(WITH_SIMULATOR "Enable Simulator" ON)
-option(WITH_NOFMANY "Use NOFMANY switches" ON)
 option(WITH_SCOPE_LIMITS "Enable Scope limits" ON)
 
 set(INDI_DATA_DIR "${CMAKE_INSTALL_PREFIX}/share/indi")
@@ -46,10 +47,8 @@ if (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
     ${CMAKE_CURRENT_SOURCE_DIR}/mach_gettime.cpp)
 endif()
 
-if(WITH_SIMULATOR)
-  set(eqmod_SRCS ${eqmod_SRCS}
+set(eqmod_SRCS ${eqmod_SRCS}
    ${CMAKE_CURRENT_SOURCE_DIR}/simulator/simulator.cpp    ${CMAKE_CURRENT_SOURCE_DIR}/simulator/skywatcher-simulator.cpp)
-endif(WITH_SIMULATOR)
 if(WITH_ALIGN_GEEHALEL)
   set(eqmod_SRCS ${eqmod_SRCS}
    ${CMAKE_CURRENT_SOURCE_DIR}/align/align.cpp ${CMAKE_CURRENT_SOURCE_DIR}/align/pointset.cpp ${CMAKE_CURRENT_SOURCE_DIR}/align/htm.c
@@ -80,9 +79,7 @@ install(TARGETS indi_eqmod_telescope RUNTIME DESTINATION bin )
 
 install( FILES  ${CMAKE_CURRENT_BINARY_DIR}/indi_eqmod.xml indi_eqmod_sk.xml DESTINATION ${INDI_DATA_DIR})
 
-if (WITH_SIMULATOR)
-  install( FILES  simulator/indi_eqmod_simulator_sk.xml DESTINATION ${INDI_DATA_DIR})
-endif(WITH_SIMULATOR)
+install( FILES  simulator/indi_eqmod_simulator_sk.xml DESTINATION ${INDI_DATA_DIR})
 if(WITH_ALIGN_GEEHALEL)
   install( FILES  align/indi_align_sk.xml DESTINATION ${INDI_DATA_DIR})
 endif(WITH_ALIGN_GEEHALEL)

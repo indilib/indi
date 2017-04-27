@@ -355,11 +355,9 @@ bool LX200AstroPhysics::ISNewSwitch (const char *dev, const char *name, ISState 
     // =======================================
     if (!strcmp(name, SyncCMRSP.name))
     {
-        int currentSync ;
-
         IUResetSwitch(&SyncCMRSP);
         IUUpdateSwitch(&SyncCMRSP, states, names, n);
-        currentSync = IUFindOnSwitchIndex(&SyncCMRSP);
+        IUFindOnSwitchIndex(&SyncCMRSP);
         SyncCMRSP.s = IPS_OK;
         IDSetSwitch(&SyncCMRSP, NULL);
         return true;
@@ -602,7 +600,7 @@ bool LX200AstroPhysics::Goto(double r,double d)
     return true;
 }
 
-bool LX200AstroPhysics::Connect(const char *port, uint32_t baud)
+bool LX200AstroPhysics::Handshake()
 {
     if (isSimulation())
     {
@@ -610,29 +608,7 @@ bool LX200AstroPhysics::Connect(const char *port, uint32_t baud)
         return true;
     }
 
-    if (tty_connect(port, baud, 8, 0, 1, &PortFD) != TTY_OK)
-    {
-      DEBUGF(INDI::Logger::DBG_ERROR, "Error connecting to port %s. Make sure you have BOTH write and read permission to your port.", port);
-      return false;
-    }
-
-   /* if (check_lx200ap_connection(PortFD))
-    {
-        DEBUG(INDI::Logger::DBG_ERROR, "Error connecting to Telescope. Telescope is offline.");
-        return false;
-    }*/
-
-   //DEBUG(INDI::Logger::DBG_SESSION, "Telescope is online.");
-
-   if (setBasicDataPart0())
-       DEBUG(INDI::Logger::DBG_SESSION, "Telescope is online.");
-   else
-   {
-       DEBUGF(INDI::Logger::DBG_SESSION, "Error connecting to Telescope. Telescope initilization sequence failed. Please check power and ensure port %s is the correct telescope port.", port);
-       return false;
-   }
-
-   return true;
+    return setBasicDataPart0();
 }
 
 bool LX200AstroPhysics::Disconnect()
@@ -864,7 +840,7 @@ bool LX200AstroPhysics::UnPark()
     return true;
 }
 
-void LX200AstroPhysics::SetCurrentPark()
+bool LX200AstroPhysics::SetCurrentPark()
 {
     ln_hrz_posn horizontalPos;
     // Libnova south = 0, west = 90, north = 180, east = 270
@@ -893,15 +869,19 @@ void LX200AstroPhysics::SetCurrentPark()
 
     SetAxis1Park(parkAZ);
     SetAxis2Park(parkAlt);
+
+    return true;
 }
 
-void LX200AstroPhysics::SetDefaultPark()
+bool LX200AstroPhysics::SetDefaultPark()
 {
     // Az = 0 for North hemisphere
     SetAxis1Park(LocationN[LOCATION_LATITUDE].value > 0 ? 0 : 180);
 
     // Alt = Latitude
     SetAxis2Park(LocationN[LOCATION_LATITUDE].value);
+
+    return true;
 }
 
 

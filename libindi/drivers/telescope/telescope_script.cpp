@@ -70,7 +70,7 @@ void ISSnoopDevice (XMLEle *root) {
 }
 
 ScopeScript::ScopeScript() {
-  SetTelescopeCapability(TELESCOPE_CAN_PARK | TELESCOPE_CAN_SYNC | TELESCOPE_CAN_ABORT, 4);
+  SetTelescopeCapability(TELESCOPE_CAN_PARK | TELESCOPE_CAN_SYNC | TELESCOPE_CAN_GOTO | TELESCOPE_CAN_ABORT, 4);
 }
 
 ScopeScript::~ScopeScript() {
@@ -160,13 +160,19 @@ bool ScopeScript::RunScript(int script, ...) {
     char path[256];
     snprintf(path, 256, "%s/%s", ScriptsT[0].text, tmp);
     execvp(path, args);
-    return false;
+    DEBUG(INDI::Logger::DBG_DEBUG, "Failed to execute script");
+    exit(0);
   } else {
     int status;
     waitpid(pid, &status, 0);
     DEBUGF(INDI::Logger::DBG_DEBUG, "Script %s returned %d", ScriptsT[script].text, status);
     return status == 0;
   }
+}
+
+bool ScopeScript::Handshake()
+{
+    return true;
 }
 
 bool ScopeScript::Connect() {

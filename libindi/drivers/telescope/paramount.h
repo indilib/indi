@@ -24,19 +24,19 @@
 #define PARAMOUNT_H
 
 #include "indibase/inditelescope.h"
+#include "indiguiderinterface.h"
 #include "indicontroller.h"
 
-class Paramount : public INDI::Telescope
+class Paramount : public INDI::Telescope, public INDI::GuiderInterface
 {
 public:
     Paramount();
     virtual ~Paramount();
 
     virtual const char *getDefaultName();
-    virtual bool Connect(const char *hostname, const char *port);
+    virtual bool Handshake();
     virtual bool ReadScopeStatus();
     virtual bool initProperties();
-    virtual void ISGetProperties (const char *dev);
     virtual bool updateProperties();
 
     virtual bool ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n);
@@ -51,18 +51,34 @@ public:
     virtual bool updateLocation(double latitude, double longitude, double elevation);
     virtual bool updateTime(ln_date *utc, double utc_offset);
 
+    bool SetParkPosition(double Axis1Value, double Axis2Value) override;
     bool Goto(double,double);
     bool Park();
     bool UnPark();
     bool Sync(double ra, double dec);
 
     // Parking
-    virtual void SetCurrentPark();
-    virtual void SetDefaultPark();
+    virtual bool SetCurrentPark();
+    virtual bool SetDefaultPark();
+
+    // Guiding
+    virtual IPState GuideNorth(float ms);
+    virtual IPState GuideSouth(float ms);
+    virtual IPState GuideEast(float ms);
+    virtual IPState GuideWest(float ms);
 
     private:
 
     void mountSim();
+    bool getMountRADE();
+    bool isSlewComplete();
+
+    bool sendTheSkyOKCommand(const char *command, const char *errorMessage);
+    bool isTheSkyParked();
+    bool isTheSkyTracking();
+    bool startOpenLoopMotion(uint8_t motion, uint16_t rate);
+    bool stopOpenLoopMotion();
+    bool setTheSkyTracking(bool enable, bool isSidereal, double raRate, double deRate);
 
     double currentRA;
     double currentDEC;
@@ -73,8 +89,21 @@ public:
     ln_hrz_posn lnaltaz;
     unsigned int DBG_SCOPE;
 
+    // Jog Rate
     INumber JogRateN[2];
     INumberVectorProperty JogRateNP;
+
+    // Guide Rate
+    INumber GuideRateN[2];
+    INumberVectorProperty GuideRateNP;
+
+    // Tracking Mode
+    ISwitch TrackModeS[4];
+    ISwitchVectorProperty TrackModeSP;
+
+    // Tracking Rate
+    INumber TrackRateN[2];
+    INumberVectorProperty TrackRateNP;
 };
 
 #endif // PARAMOUNT_H

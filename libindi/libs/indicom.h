@@ -33,7 +33,7 @@
 
 
     </ul>
-    
+
     \author Jason Harris
     \author Elwood C. Downey
     \author Jasem Mutlaq
@@ -72,7 +72,7 @@ extern "C" {
     \param nbytes_read the number of bytes read.
     \return On success, it returns TTY_OK, otherwise, a TTY_ERROR code.
 */
-int tty_read(int fd, char *buf, int nbytes, int timeout, int *nbytes_read);
+int tty_read(int fd, char * buf, int nbytes, int timeout, int * nbytes_read);
 
 /** \brief read buffer from terminal with a delimiter
     \param fd file descriptor
@@ -83,7 +83,7 @@ int tty_read(int fd, char *buf, int nbytes, int timeout, int *nbytes_read);
     \return On success, it returns TTY_OK, otherwise, a TTY_ERROR code.
 */
 
-int tty_read_section(int fd, char *buf, char stop_char, int timeout, int *nbytes_read);
+int tty_read_section(int fd, char * buf, char stop_char, int timeout, int * nbytes_read);
 
 
 /** \brief Writes a buffer to fd.
@@ -93,7 +93,7 @@ int tty_read_section(int fd, char *buf, char stop_char, int timeout, int *nbytes
     \param nbytes_written the number of bytes written
     \return On success, it returns TTY_OK, otherwise, a TTY_ERROR code.
 */
-int tty_write(int fd, const char * buffer, int nbytes, int *nbytes_written);
+int tty_write(int fd, const char * buffer, int nbytes, int * nbytes_written);
 
 /** \brief Writes a null terminated string to fd.
     \param fd file descriptor
@@ -101,7 +101,7 @@ int tty_write(int fd, const char * buffer, int nbytes, int *nbytes_written);
     \param nbytes_written the number of bytes written
     \return On success, it returns TTY_OK, otherwise, a TTY_ERROR code.
 */
-int tty_write_string(int fd, const char * buffer, int *nbytes_written);
+int tty_write_string(int fd, const char * buffer, int * nbytes_written);
 
 
 /** \brief Establishes a tty connection to a terminal device.
@@ -115,7 +115,7 @@ int tty_write_string(int fd, const char * buffer, int *nbytes_written);
     \author Wildi Markus
 */
 
-int tty_connect(const char *device, int bit_rate, int word_size, int parity, int stop_bits, int *fd);
+int tty_connect(const char * device, int bit_rate, int word_size, int parity, int stop_bits, int * fd);
 
 /** \brief Closes a tty connection and flushes the bus.
     \param fd the file descriptor to close.
@@ -128,7 +128,7 @@ int tty_disconnect(int fd);
     \param err_msg an initialized buffer to hold the error message.
     \param err_msg_len length in bytes of \e err_msg
 */
-void tty_error_msg(int err_code, char *err_msg, int err_msg_len);
+void tty_error_msg(int err_code, char * err_msg, int err_msg_len);
 
 /**
  * @brief tty_set_debug Enable or disable debug which prints verbose information.
@@ -145,9 +145,9 @@ int tty_timeout(int fd, int timeout);
 /*@{*/
 
 /** \brief Converts a sexagesimal number to a string.
- 
+
    sprint the variable a in sexagesimal format into out[].
-	
+
   \param out a pointer to store the sexagesimal number.
   \param a the sexagesimal number to convert.
   \param w the number of spaces in the whole part.
@@ -157,20 +157,20 @@ int tty_timeout(int fd, int timeout);
  	  \li 3600:	\<w\>:mm:ss
  	  \li 600:	\<w\>:mm.m
  	  \li 60:	\<w\>:mm
-  
+
   \return number of characters written to out, not counting final null terminator.
  */
-int fs_sexa (char *out, double a, int w, int fracbase);
+int fs_sexa (char * out, double a, int w, int fracbase);
 
 /** \brief convert sexagesimal string str AxBxC to double.
 
     x can be anything non-numeric. Any missing A, B or C will be assumed 0. Optional - and + can be anywhere.
-    
+
     \param str0 string containing sexagesimal number.
     \param dp pointer to a double to store the sexagesimal number.
     \return return 0 if ok, -1 if can't find a thing.
  */
-int f_scansexa (const char *str0, double *dp);
+int f_scansexa (const char * str0, double * dp);
 
 /** \brief Extract ISO 8601 time and store it in a tm struct.
     \param timestr a string containing date and time in ISO 8601 format.
@@ -178,11 +178,11 @@ int f_scansexa (const char *str0, double *dp);
     \return 0 on success, -1 on failure.
 */
 #ifndef _WIN32
-int extractISOTime(const char *timestr, struct ln_date *iso_date);
+int extractISOTime(const char * timestr, struct ln_date * iso_date);
 #endif
 
-void getSexComponents(double value, int *d, int *m, int *s);
-void getSexComponentsIID(double value, int *d, int *m, double *s);
+void getSexComponents(double value, int * d, int * m, int * s);
+void getSexComponentsIID(double value, int * d, int * m, double * s);
 
 /** \brief Fill buffer with properly formatted INumber string.
     \param buf to store the formatted string.
@@ -192,12 +192,12 @@ void getSexComponentsIID(double value, int *d, int *m, double *s);
 
     \note buf must be of length MAXINDIFORMAT at minimum
 */
-int numberFormat (char *buf, const char *format, double value);
+int numberFormat (char * buf, const char * format, double value);
 
 /** \brief Create an ISO 8601 formatted time stamp. The format is YYYY-MM-DDTHH:MM:SS
     \return The formatted time stamp.
 */
-const char *timestamp (void);
+const char * timestamp (void);
 
 /**
  * @brief rangeHA Limits the hour angle value to be between -12 ---> 12

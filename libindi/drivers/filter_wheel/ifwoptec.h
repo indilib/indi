@@ -87,13 +87,12 @@ class FilterIFW : public INDI::FilterWheel
         virtual ~FilterIFW();
 
         virtual bool initProperties();
-        virtual void ISGetProperties (const char *dev);
         virtual bool ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n);
         virtual bool ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n);
 
     protected:
         virtual bool updateProperties();
-        virtual bool Connect();
+        virtual bool Handshake();
         virtual bool Disconnect();
         virtual bool WriteTTY(char* command);
         virtual bool ReadTTY(char* resp, char* simulation, int timeout);
@@ -109,10 +108,6 @@ class FilterIFW : public INDI::FilterWheel
         virtual bool GetWheelID();
         virtual int GetFilterPos();
         virtual bool GetFirmware();
-
-        // Device physical port
-        ITextVectorProperty PortTP;
-        IText PortT[1];
 
         // Filter Wheel ID
         ITextVectorProperty WheelIDTP;
@@ -134,9 +129,6 @@ class FilterIFW : public INDI::FilterWheel
         ITextVectorProperty FirmwareTP;
         IText FirmwareT[1];
 
-		//Communication file descriptor
-        int PortFD = 0;
-		
 		//Filter position in simulation mode
         int actualSimFilter = 1;
 

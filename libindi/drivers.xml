@@ -58,24 +58,20 @@
                 <version>2.0</version>
 	</device>
         <device label="Paramount" focal_length="" aperture="">
-                <driver name="Paramount">indi_paramount</driver>
-                <version>0.1</version>
-        </device>
-        <device label="TheSky6" focal_length="" aperture="">
-                <driver name="Paramount">indi_paramount</driver>
+                <driver name="Paramount">indi_paramount_telescope</driver>
                 <version>0.1</version>
         </device>
 	<device label="Orion Atlas" focal_length="" aperture="">
-                <driver name="SynScan">indi_synscan</driver>
+                <driver name="SynScan">indi_synscan_telescope</driver>
                 <version>1.0</version>
 	</device>
 	<device label="Sky Scan" focal_length="" aperture="">
-                <driver name="SynScan">indi_synscan</driver>
+                <driver name="SynScan">indi_synscan_telescope</driver>
 		<version>0.1</version>
 	</device>
         <device label="Losmandy Gemini" focal_length="" aperture="">
                 <driver name="Losmandy Gemini">indi_lx200gemini</driver>
-                <version>1.0</version>
+                <version>1.2</version>
         </device>
 	<device label="Mel Bartels" focal_length="" aperture="">
 		<driver name="LX200 Basic">indi_lx200basic</driver>
@@ -90,7 +86,7 @@
 		<version>1.0</version>
 	</device>	
         <device label="SynScan" focal_length="" aperture="">
-                <driver name="SynScan">indi_synscan</driver>
+                <driver name="SynScan">indi_synscan_telescope</driver>
                 <version>1.0</version>
         </device>
         <device label="SkySensor2000PC" focal_length="" aperture="">
@@ -129,6 +125,10 @@
                 <driver name="Pulsar2">indi_lx200pulsar2</driver>
                 <version>1.0</version>
         </device>
+        <device label="SkyCommander" focal_length="" aperture="">
+                <driver name="SkyCommander">indi_skycommander_telescope</driver>
+                <version>1.0</version>
+        </device>
         <device label="LX200 10micron" focal_length="" aperture="">
                 <driver name="LX200 10micron">indi_lx200_10micron</driver>
                 <version>1.0</version>
@@ -144,6 +144,10 @@
         <device label="Telescope Scripting Gateway" focal_length="" aperture="">
           <driver name="Telescope  Scripting Gateway">indi_script_telescope</driver>
           <version>1.0</version>
+        </device>
+        <device label="Digital Setting Circle" focal_length="" aperture="">
+                <driver name="Digital Setting Circle">indi_dsc_telescope</driver>
+                <version>1.0</version>
         </device>
 </devGroup>
 <devGroup group="Focusers">
@@ -235,10 +239,18 @@
             <driver name="Quantum Wheel">indi_quantum_wheel</driver>
             <version>0.1</version>
         </device>
+        <device label="TruTech Wheel">
+            <driver name="TruTech Wheel">indi_trutech_wheel</driver>
+            <version>0.1</version>
+        </device>
 </devGroup>
 <devGroup group="Auxiliary">
         <device label="Astrometry">
             <driver name="Astrometry">indi_astrometry</driver>
+            <version>0.1</version>
+        </device>
+        <device label="SkySafari">
+            <driver name="SkySafari">indi_skysafari</driver>
             <version>0.1</version>
         </device>
         <device label="WatchDog">

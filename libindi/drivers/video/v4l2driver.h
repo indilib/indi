@@ -177,6 +177,7 @@ class V4L2_Driver: public INDI::CCD
    virtual void getBasicData(void);
    void allocateBuffers();
    void releaseBuffers();
+   void updateFrameSize();
    
    /* Shutter control */
    bool setShutter(double duration);

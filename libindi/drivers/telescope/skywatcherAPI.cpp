@@ -358,7 +358,7 @@ bool SkywatcherAPI::InitializeMC()
     return true;
 }
 
-bool SkywatcherAPI::InitMount()
+bool SkywatcherAPI::InitMount(bool recover)
 {
     MYDEBUG(DBG_SCOPE, "InitMount");
 
@@ -407,8 +407,11 @@ bool SkywatcherAPI::InitMount()
 
     // Set initial axis positions
     // These are used to define the arbitrary zero position vector for the axis
-    ZeroPositionEncoders[AXIS1] = CurrentEncoders[AXIS1];
-    ZeroPositionEncoders[AXIS2] = CurrentEncoders[AXIS2];
+    if (!recover)
+    {
+        ZeroPositionEncoders[AXIS1] = CurrentEncoders[AXIS1];
+        ZeroPositionEncoders[AXIS2] = CurrentEncoders[AXIS2];
+    }
 
     if (!InitializeMC())
         return false;
@@ -622,7 +625,7 @@ bool SkywatcherAPI::SetSwitch(bool OnOff)
 
 void SkywatcherAPI::Slew(AXISID Axis, double SpeedInRadiansPerSecond, bool IgnoreSilentMode)
 {
-    MYDEBUG(DBG_SCOPE, "Slew");
+    MYDEBUGF(DBG_SCOPE, "Slew axis: %d speed: %1.6f", (int)Axis, SpeedInRadiansPerSecond);
     // Clamp to MAX_SPEED
     if (SpeedInRadiansPerSecond > MAX_SPEED)
         SpeedInRadiansPerSecond = MAX_SPEED;
@@ -817,4 +820,15 @@ bool SkywatcherAPI::TalkWithAxis(AXISID Axis, char Command, std::string& cmdData
     }
     MYDEBUGF(DBG_SCOPE, "TalkWithAxis - %s Response (%s)", mount_response ? "Good" : "Bad", responseStr.c_str());
     return true;
+}
+
+
+bool SkywatcherAPI::IsInMotion(AXISID Axis)
+{
+    MYDEBUG(DBG_SCOPE, "IsInMotion");
+
+    if (AxesStatus[(int)Axis].Slewing || AxesStatus[(int)Axis].SlewingTo)
+        return true;
+
+    return false;
 }

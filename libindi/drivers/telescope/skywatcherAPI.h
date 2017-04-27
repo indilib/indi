@@ -121,7 +121,11 @@ public:
     bool GetStepperClockFrequency(AXISID Axis);
 
     bool InitializeMC();
-    bool InitMount();
+
+    /// \brief Initialize the communication to the mount
+    /// \param[in] recover - The connection is recovering
+    /// \return True if successful otherwise false
+    bool InitMount(bool recover);
 
     /// \brief Bring the axis to an immediate halt.
     /// N.B. This command could cause damage to the mount or telescope
@@ -234,6 +238,11 @@ public:
     bool StartMotion(AXISID Axis);
 
     bool TalkWithAxis(AXISID Axis, char Command, std::string& cmdDataStr, std::string& responseStr);
+
+    /// \brief Check if an axis is moving
+    /// \param[in] Axis - The axis to check.
+    /// \return True if the axis is moving otherwise false.
+    bool IsInMotion(AXISID Axis);
 
     // Skywatcher mount status variables
     unsigned long MCVersion; // Motor control board firmware version

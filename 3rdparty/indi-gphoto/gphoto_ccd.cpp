@@ -48,8 +48,24 @@
 #define FOCUS_TIMER         50
 #define MAX_RETRIES         3
 
-static int cameraCount;
+extern char* me;
+
+static int cameraCount=0;
 static GPhotoCCD *cameras[MAX_DEVICES];
+static GPContext *context = gp_context_new();
+
+typedef struct
+{
+    const char *exec;
+    const char *driver;
+    const char *model;
+} CamDriverInfo;
+
+static CamDriverInfo camInfos[] =
+{ { "indi_gphoto_ccd", "GPhoto CCD", "GPhoto"},
+  { "indi_canon_ccd", "Canon DSLR", "Canon" },
+  { "indi_nikon_ccd", "Nikon DSLR", "Nikon" },
+  { NULL, NULL, NULL} };
 
 /**********************************************************
  *
@@ -70,11 +86,54 @@ void ISInit()
   {
 
       // Let's just create one camera for now
-     cameraCount = 1;
-     cameras[0] = new GPhotoCCD();
+     if (!strcmp(me, "indi_gphoto_ccd"))
+     {
+        isInit = true;
+        cameraCount = 1;
+        cameras[0] = new GPhotoCCD();
+        atexit(cleanup);
+     }
+     else
+     {
+         CameraList	*list;
+         /* Detect all the cameras that can be autodetected... */
+         int ret = gp_list_new (&list);
+         if (ret < GP_OK)
+         {
+             // Use Legacy Mode
+             IDLog("Failed to initilize list in libgphoto2\n");
+             return;
+         }
 
-    atexit(cleanup);
-    isInit = true;
+         const char	*model, *port;
+         gp_list_reset (list);
+         cameraCount = gp_camera_autodetect (list, context);
+         /* Now open all cameras we autodected for usage */
+         IDLog("Number of cameras detected: %d.\n", cameraCount);
+
+         if (cameraCount == 0)
+         {
+             IDLog("Failed to detect any cameras. Check power and make sure camera is not mounted by other programs and try again.\n");
+             // Use Legacy Mode
+#if 0
+             IDLog("No cameras detected. Using legacy mode...");
+             cameraCount = 1;
+             cameras[0] = new GPhotoCCD();
+             atexit(cleanup);
+             isInit = true;
+#endif
+             return;
+         }
+
+         for (int i = 0; i < cameraCount; i++)
+         {
+             gp_list_get_name  (list, i, &model);
+             gp_list_get_value (list, i, &port);
+             cameras[i] = new GPhotoCCD(model, port);
+         }
+         atexit(cleanup);
+         isInit = true;
+     }
   }
 }
 
@@ -152,11 +211,8 @@ void ISSnoopDevice(XMLEle *root)
 //==========================================================================
 GPhotoCCD::GPhotoCCD()
 {
-    // For now let's set name to default name. In the future, we need to to support multiple devices per one driver
-    if (*getDeviceName() == '\0')
-        strncpy(name, getDefaultName(), MAXINDINAME);
-    else
-        strncpy(name, getDeviceName(), MAXINDINAME);
+    memset(model, 0, MAXINDINAME);
+    memset(port, 0, MAXINDINAME);
 
     gphotodrv = NULL;
     frameInitialized=false;
@@ -165,13 +221,26 @@ GPhotoCCD::GPhotoCCD()
 
     setVersion(INDI_GPHOTO_VERSION_MAJOR, INDI_GPHOTO_VERSION_MINOR);
 }
+
+GPhotoCCD::GPhotoCCD(const char *model, const char *port)
+{
+    strncpy(this->port, port, MAXINDINAME);
+    strncpy(this->model, model, MAXINDINAME);
+
+    gphotodrv = NULL;
+    frameInitialized=false;
+    on_off[0] = strdup("On");
+    on_off[1] = strdup("Off");
+
+    setVersion(INDI_GPHOTO_VERSION_MAJOR, INDI_GPHOTO_VERSION_MINOR);
+}
+
 //==========================================================================
 GPhotoCCD::~GPhotoCCD()
 {
     free(on_off[0]);
     free(on_off[1]);
     expTID = 0;
-
 }
 
 const char * GPhotoCCD::getDefaultName()
@@ -181,6 +250,38 @@ const char * GPhotoCCD::getDefaultName()
 
 bool GPhotoCCD::initProperties()
 {
+    if (strcmp(me, "indi_gphoto_ccd"))
+    {
+        char prefix[MAXINDINAME];
+        bool modelFound=false;
+
+        for (int i=0; camInfos[i].exec != NULL; i++)
+        {
+            if (strstr(model, camInfos[i].model))
+            {
+                strncpy(prefix, camInfos[i].driver, MAXINDINAME);
+                snprintf(this->name, MAXINDIDEVICE, "%s %s", prefix, model+strlen(camInfos[i].model)+1);
+                setDeviceName(this->name);
+                modelFound = true;
+            }
+        }
+
+        if (modelFound == false)
+        {
+            DEBUGF(INDI::Logger::DBG_ERROR, "Failed to find model %s in %s", model, getDeviceName());
+            return false;
+        }
+    }
+    else
+    {
+        // For now let's set name to default name. In the future, we need to to support multiple devices per one driver
+        if (*getDeviceName() == '\0')
+            strncpy(name, getDefaultName(), MAXINDINAME);
+        else
+            strncpy(name, getDeviceName(), MAXINDINAME);
+        setDeviceName(this->name);
+    }
+
   // Init parent properties first
   INDI::CCD::initProperties();
 
@@ -195,6 +296,7 @@ bool GPhotoCCD::initProperties()
   //We don't know how many items will be in the switch yet
   IUFillSwitchVector(&mIsoSP, NULL, 0, getDeviceName(), "CCD_ISO", "ISO", IMAGE_SETTINGS_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
   IUFillSwitchVector(&mFormatSP, NULL, 0, getDeviceName(), "CAPTURE_FORMAT", "Capture Format", IMAGE_SETTINGS_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
+  IUFillSwitchVector(&mExposurePresetSP, NULL, 0, getDeviceName(), "CCD_EXPOSURE_PRESETS", "Presets", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
 
   IUFillSwitch(&autoFocusS[0], "Set", "", ISS_OFF);
   IUFillSwitchVector(&autoFocusSP, autoFocusS, 1, getDeviceName(), "Auto Focus", "", FOCUS_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
@@ -245,6 +347,8 @@ void GPhotoCCD::ISGetProperties(const char *dev)
 
   if (isConnected())
   {
+      if (mExposurePresetSP.nsp > 0)
+          defineSwitch(&mExposurePresetSP);
       if (mIsoSP.nsp > 0)
             defineSwitch(&mIsoSP);
       if (mFormatSP.nsp > 0)
@@ -273,6 +377,8 @@ bool GPhotoCCD::updateProperties()
 
   if (isConnected())
   {
+      if (mExposurePresetSP.nsp > 0)
+          defineSwitch(&mExposurePresetSP);
       if (mIsoSP.nsp > 0)
         defineSwitch(&mIsoSP);
       if (mFormatSP.nsp > 0)
@@ -302,6 +408,8 @@ bool GPhotoCCD::updateProperties()
     //timerID = SetTimer(POLLMS);
   } else
   {
+    if (mExposurePresetSP.nsp > 0)
+        deleteProperty(mExposurePresetSP.name);
     if (mIsoSP.nsp > 0)
        deleteProperty(mIsoSP.name);
     if (mFormatSP.nsp > 0)
@@ -382,6 +490,35 @@ bool GPhotoCCD::ISNewSwitch(const char *dev, const char *name, ISState *states, 
                   break;
               }
           }
+      }
+
+      if (!strcmp(name, mExposurePresetSP.name))
+      {
+          if (IUUpdateSwitch(&mExposurePresetSP, states, names, n) < 0)
+              return false;
+
+          mExposurePresetSP.s = IPS_OK;
+          IDSetSwitch(&mExposurePresetSP, NULL);
+
+          ISwitch *currentSwitch = IUFindOnSwitch(&mExposurePresetSP);
+          if (strcmp(currentSwitch->label, "bulb"))
+          {
+              DEBUGF(INDI::Logger::DBG_SESSION, "Preset %s seconds selected.", currentSwitch->label);
+
+              float duration;
+              int num, denom;
+              if (sscanf(currentSwitch->label, "%d/%d", &num, &denom) == 2)
+              {
+                  duration = ((double) num)/((double) denom);
+                  StartExposure(duration);
+              }
+              else if (sscanf(currentSwitch->label, "%g", &duration) == 1)
+              {
+                  StartExposure(duration);
+              }
+          }
+
+          return true;
       }
 
       if (!strcmp(name, mFormatSP.name))
@@ -586,18 +723,32 @@ bool GPhotoCCD::Connect()
   int setidx;
   char **options;
   int max_opts;
-  const char *port = NULL;
+  const char *shutter_release_port = NULL;
   DEBUGF(INDI::Logger::DBG_DEBUG, "Mirror lock value: %f", mMirrorLockN[0].value);
 
-  if(PortTP.tp[0].text && strlen(PortTP.tp[0].text)) {
-      port = PortTP.tp[0].text;
+  if(PortTP.tp[0].text && strlen(PortTP.tp[0].text))
+  {
+      shutter_release_port = PortTP.tp[0].text;
 
   }
-  if (sim == false && ! (gphotodrv = gphoto_open(port)))
+
+  if (sim == false)
   {
-      DEBUG(INDI::Logger::DBG_ERROR, "Can not open camera: Power OK? If camera is auto-mounted as external disk storage, please unmount it and disable auto-mount.");
-      return false;
+      // Regular detect
+      if (port[0] == '\0')
+           gphotodrv = gphoto_open(camera, context, NULL, NULL, shutter_release_port);
+      else
+           gphotodrv = gphoto_open(camera, context, model, port, shutter_release_port);
+      if (gphotodrv == NULL)
+      {
+          DEBUG(INDI::Logger::DBG_ERROR, "Can not open camera: Power OK? If camera is auto-mounted as external disk storage, please unmount it and disable auto-mount.");
+          return false;
+      }
   }
+
+  double min_exposure=0.001, max_exposure=3600;
+  gphoto_get_minmax_exposure(gphotodrv, &min_exposure, &max_exposure);
+  PrimaryCCD.setMinMaxStep("CCD_EXPOSURE", "CCD_EXPOSURE_VALUE", min_exposure, max_exposure, 1, true);
 
   if (mFormatS)
   {
@@ -670,6 +821,33 @@ bool GPhotoCCD::Connect()
   mIsoSP.sp = mIsoS;
   mIsoSP.nsp = max_opts;
 
+  if (mExposurePresetS)
+  {
+      free(mExposurePresetS);
+      mExposurePresetS=NULL;
+  }
+
+  if (sim)
+  {
+      setidx=0;
+      max_opts=4;
+      const char *exposureList[] = { "1/8", "1/4", "1/2", "bulb" };
+      options = (char **) exposureList;
+  }
+  else
+  {
+      setidx = 0;
+      max_opts = 0;
+      options = gphoto_get_exposure_presets(gphotodrv, &max_opts);
+  }
+
+  if (max_opts > 0)
+  {
+      mExposurePresetS = create_switch("EXPOSURE_PRESET", options, max_opts, setidx);
+      mExposurePresetSP.sp = mExposurePresetS;
+      mExposurePresetSP.nsp = max_opts;
+  }
+
   DEBUGF(INDI::Logger::DBG_SESSION, "%s is online.", getDeviceName());
 
   if (!sim && gphoto_get_manufacturer(gphotodrv) && gphoto_get_model(gphotodrv))
@@ -721,12 +899,12 @@ bool GPhotoCCD::StartExposure(float duration)
      * ExpGo goes busy. set timer to read when done
      */
 
-    int expms = (int)ceil(duration*1000);
+    // Microseconds
+    int exp_us = (int) ceil(duration*1e6);
 
     PrimaryCCD.setExposureDuration(duration);
 
-
-    if (sim == false && gphoto_start_exposure(gphotodrv, expms, mMirrorLockN[0].value) < 0)
+    if (sim == false && gphoto_start_exposure(gphotodrv, exp_us, mMirrorLockN[0].value) < 0)
     {
         DEBUG(INDI::Logger::DBG_ERROR, "Error starting exposure");
         return false;

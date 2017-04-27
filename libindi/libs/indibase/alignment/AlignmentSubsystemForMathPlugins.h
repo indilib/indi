@@ -5,8 +5,10 @@
 #include "InMemoryDatabase.h"
 #include "TelescopeDirectionVectorSupportFunctions.h"
 
-namespace INDI {
-namespace AlignmentSubsystem {
+namespace INDI
+{
+namespace AlignmentSubsystem
+{
 
 /*!
  * \class AlignmentSubsystemForMathPlugins

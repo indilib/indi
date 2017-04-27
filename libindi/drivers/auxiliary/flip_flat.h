@@ -29,6 +29,11 @@
 #include "indilightboxinterface.h"
 #include "indidustcapinterface.h"
 
+namespace Connection
+{
+    class Serial;
+}
+
 class FlipFlat : public INDI::DefaultDevice, public INDI::LightBoxInterface, public INDI::DustCapInterface
 {
     public:
@@ -47,9 +52,6 @@ class FlipFlat : public INDI::DefaultDevice, public INDI::LightBoxInterface, pub
 
     protected:
 
-    //  Generic indi device entries
-    bool Connect();
-    bool Disconnect();
     const char *getDefaultName();
 
     virtual bool saveConfigItems(FILE *fp);
@@ -71,9 +73,7 @@ private:
     bool getFirmwareVersion();
     bool getBrightness();
 
-    // Device physical port
-    ITextVectorProperty PortTP;
-    IText PortT[1];
+    bool Handshake();
 
     // Status
     ITextVectorProperty StatusTP;
@@ -83,12 +83,13 @@ private:
     ITextVectorProperty FirmwareTP;
     IText FirmwareT[1];
 
-    int PortFD;
+    int PortFD=-1;
     int productID;
     bool isFlipFlat;
     uint8_t simulationWorkCounter=0;
     uint8_t prevCoverStatus, prevLightStatus, prevMotorStatus, prevBrightness;
 
+    Connection::Serial *serialConnection=NULL;
 };
 
 #endif

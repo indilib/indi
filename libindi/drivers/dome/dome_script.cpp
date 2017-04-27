@@ -159,7 +159,8 @@ bool DomeScript::RunScript(int script, ...) {
     char path[256];
     snprintf(path, 256, "%s/%s", ScriptsT[0].text, tmp);
     execvp(path, args);
-    return false;
+    DEBUG(INDI::Logger::DBG_DEBUG, "Failed to execute script");
+    exit(0);
   } else {
     int status;
     waitpid(pid, &status, 0);

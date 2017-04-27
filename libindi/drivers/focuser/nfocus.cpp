@@ -119,11 +119,6 @@ bool NFocus::initProperties()
 
     IUUpdateMinMax(&FocusSpeedNP);
 
-    /* Port */
-    IUFillText(&PortT[0], "PORT", "Port", "/dev/ttyACM0");
-    IUFillTextVector(&PortTP, PortT, 1, getDeviceName(), "DEVICE_PORT", "Ports", MAIN_CONTROL_TAB, IP_RW, 0, IPS_IDLE);
-
-
     /* Focuser temperature */
     IUFillNumber(&TemperatureN[0], "TEMPERATURE", "Celsius", "%6.2f", 0, 65000., 0., 10000.);
     IUFillNumberVector(&TemperatureNP, TemperatureN, 1, getDeviceName(), "FOCUS_TEMPERATURE", "Temperature", MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE);
@@ -217,38 +212,9 @@ bool NFocus::updateProperties()
 
 }
 
-bool NFocus::Connect()
+bool NFocus::Handshake()
 {
-    int connectrc=0;
-    char errorMsg[MAXRBUF];
-
-
-    if (isDebug())
-        IDLog("connecting to %s\n",PortT[0].text);
-
-    if ( (connectrc = tty_connect(PortT[0].text, 9600, 8, 0, 1, &PortFD)) != TTY_OK)
-    {
-        tty_error_msg(connectrc, errorMsg, MAXRBUF);
-
-        if (isDebug())
-            IDLog("Failed to connect o port %s. Error: %s", PortT[0].text, errorMsg);
-
-        IDMessage(getDeviceName(), "Failed to connect to port %s. Error: %s", PortT[0].text, errorMsg);
-
-        return false;
-
-    }
-
-
-    IDMessage(getDeviceName(), "Nfocus is online. Getting focus parameters...");
-
-    return true;
-}
-
-bool NFocus::Disconnect()
-{
-    tty_disconnect(PortFD);
-    IDMessage(getDeviceName(), "NFocus is offline.");
+    // TODO add an actual check here
     return true;
 }
 
@@ -664,34 +630,6 @@ int NFocus::updateNFSetPosition(double *value)
     return ret_read_tmp;
 
   return 0;
-}
-
-bool NFocus::ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n)
-{
-    if(strcmp(dev,getDeviceName())==0)
-    {
-        // ===================================
-        // Port Name
-        // ===================================
-        if (!strcmp(name, PortTP.name) )
-        {
-          if (IUUpdateText(&PortTP, texts, names, n) < 0)
-                return false;
-
-          PortTP.s = IPS_OK;
-          IDSetText (&PortTP, NULL);
-          return true;
-        }
-
-    }
-
-     return INDI::Focuser::ISNewText(dev, name, texts, names, n);
-}
-
-bool NFocus::ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n)
-{
-
-    return INDI::Focuser::ISNewSwitch(dev, name, states, names, n);
 }
 
 bool NFocus::ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n)
@@ -1295,7 +1233,8 @@ IPState NFocus::MoveRelFocuser(FocusDirection dir, uint32_t ticks)
 
 bool NFocus::saveConfigItems(FILE *fp)
 {
-    IUSaveConfigText(fp, &PortTP);
+    INDI::Focuser::saveConfigItems(fp);
+
     IUSaveConfigNumber(fp, &SettingsNP);
     IUSaveConfigNumber(fp, &SetBacklashNP);
     IUSaveConfigNumber(fp, &InOutScalarNP);

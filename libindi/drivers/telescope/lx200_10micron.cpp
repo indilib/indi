@@ -54,7 +54,7 @@ const char *LX200_10MICRON::getDefaultName(void)
 }
 
 // Called by either TCP Connect or Serial Port Connect
-bool LX200_10MICRON::onConnect(void)
+bool LX200_10MICRON::Handshake()
 {
     fd = PortFD;
 
@@ -69,34 +69,6 @@ bool LX200_10MICRON::onConnect(void)
         return false;
     }
 
-    return true;
-}
-
-// TCP Connect
-bool LX200_10MICRON::Connect(const char *hostname, const char *port)
-{
-    if (INDI::Telescope::Connect(hostname, port) == false) {
-        DEBUG(INDI::Logger::DBG_ERROR, "::Connect failed.");
-        return false;
-    }
-    if (onConnect() == false) {
-        DEBUG(INDI::Logger::DBG_ERROR, "::onConnect failed.");
-        return false;
-    }
-    return true;
-}
-
-// Serial Port Connect
-bool LX200_10MICRON::Connect(const char *port, uint32_t baud)
-{
-    if (LX200Generic::Connect(port, baud) == false) {
-        DEBUG(INDI::Logger::DBG_ERROR, "::Connect failed.");
-        return false;
-    }
-    if (onConnect() == false) {
-        DEBUG(INDI::Logger::DBG_ERROR, "::onConnect failed.");
-        return false;
-    }
     return true;
 }
 

@@ -23,6 +23,11 @@
 #include "indicontroller.h"
 #include "indifocuserinterface.h"
 
+namespace Connection
+{
+class Serial;
+class TCP;
+}
 /**
  * \class INDI::Focuser
    \brief Class to provide general functionality of a focuser device.
@@ -40,15 +45,37 @@ class INDI::Focuser : public INDI::DefaultDevice, public INDI::FocuserInterface
         Focuser();
         virtual ~Focuser();
 
-        virtual bool initProperties();
-        virtual void ISGetProperties (const char *dev);
-        virtual bool updateProperties();
-        virtual bool ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n);
-        virtual bool ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n);
-        virtual bool ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n);
-        virtual bool ISSnoopDevice (XMLEle *root);
+        /** \struct FocuserConnection
+            \brief Holds the connection mode of the Focuser.
+        */
+        enum
+        {
+            CONNECTION_NONE   = 1 << 0,                 /** Do not use any connection plugin */
+            CONNECTION_SERIAL = 1 << 1,                 /** For regular serial and bluetooth connections */
+            CONNECTION_TCP    = 1 << 2                  /** For Wired and WiFI connections */
+        } FocuserConnection;
 
-        static void buttonHelper(const char * button_n, ISState state, void *context);
+        virtual bool initProperties();
+        virtual void ISGetProperties (const char * dev);
+        virtual bool updateProperties();
+        virtual bool ISNewNumber (const char * dev, const char * name, double values[], char * names[], int n);
+        virtual bool ISNewSwitch (const char * dev, const char * name, ISState * states, char * names[], int n);
+        virtual bool ISNewText (const char * dev, const char * name, char * texts[], char * names[], int n);
+        virtual bool ISSnoopDevice (XMLEle * root);
+
+        /**
+         * @brief setFocuserConnection Set Focuser connection mode. Child class should call this in the constructor before INDI::Focuser registers
+         * any connection interfaces
+         * @param value ORed combination of FocuserConnection values.
+         */
+        void setFocuserConnection(const uint8_t &value);
+
+        /**
+         * @return Get current Focuser connection mode
+         */
+        uint8_t getFocuserConnection() const;
+
+        static void buttonHelper(const char * button_n, ISState state, void * context);
 
     protected:
 
@@ -57,19 +84,28 @@ class INDI::Focuser : public INDI::DefaultDevice, public INDI::FocuserInterface
          * @param fp pointer to configuration file
          * @return true if successful, false otherwise.
          */
-        virtual bool saveConfigItems(FILE *fp);
+        virtual bool saveConfigItems(FILE * fp);
 
-        ITextVectorProperty PortTP;
-        IText PortT[1];
+        /** \brief perform handshake with device to check communication */
+        virtual bool Handshake();
 
         INumber PresetN[3];
         INumberVectorProperty PresetNP;
         ISwitch PresetGotoS[3];
-        ISwitchVectorProperty PresetGotoSP; 
+        ISwitchVectorProperty PresetGotoSP;
 
         void processButton(const char * button_n, ISState state);
 
-        INDI::Controller *controller;        
+        INDI::Controller * controller;
+
+        Connection::Serial * serialConnection=NULL;
+        Connection::TCP * tcpConnection=NULL;
+
+        int PortFD=-1;
+
+    private:
+        bool callHandshake();
+        uint8_t focuserConnection = CONNECTION_SERIAL | CONNECTION_TCP;
 
 };
 

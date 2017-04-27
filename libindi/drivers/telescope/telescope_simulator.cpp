@@ -101,7 +101,7 @@ ScopeSim::ScopeSim()
 
     DBG_SCOPE = INDI::Logger::getInstance().addDebugLevel("Scope Verbose", "SCOPE");   
 
-    SetTelescopeCapability(TELESCOPE_CAN_PARK | TELESCOPE_CAN_SYNC | TELESCOPE_CAN_ABORT | TELESCOPE_HAS_TIME | TELESCOPE_HAS_LOCATION,4);
+    SetTelescopeCapability(TELESCOPE_CAN_PARK | TELESCOPE_CAN_SYNC | TELESCOPE_CAN_GOTO | TELESCOPE_CAN_ABORT | TELESCOPE_HAS_TIME | TELESCOPE_HAS_LOCATION,4);
 
     /* initialize random seed: */
       srand ( time(NULL) );
@@ -232,16 +232,16 @@ bool ScopeSim::updateProperties()
     return true;
 }
 
-bool ScopeSim::Connect(const char *port, uint32_t baud)
+bool ScopeSim::Connect()
 {
-   DEBUGF(INDI::Logger::DBG_SESSION, "Simulating connecting to port %s with speed %d", port, baud);
-   DEBUG(INDI::Logger::DBG_SESSION, "Telescope simulator is online.");
-   return true;
+    DEBUG(INDI::Logger::DBG_SESSION, "Telescope simulator is online.");
+    SetTimer(POLLMS);
+    return true;
 }
 
 bool ScopeSim::Disconnect()
 {
-    DEBUG(INDI::Logger::DBG_SESSION,"Telescope Simulator is offline.");
+    DEBUG(INDI::Logger::DBG_SESSION, "Telescope simulator is offline.");
     return true;
 }
 
@@ -797,19 +797,23 @@ bool ScopeSim::updateLocation(double latitude, double longitude, double elevatio
   return true;
 }
 
-void ScopeSim::SetCurrentPark()
+bool ScopeSim::SetCurrentPark()
 {
     SetAxis1Park(currentRA);
     SetAxis2Park(currentDEC);
+
+    return true;
 }
 
-void ScopeSim::SetDefaultPark()
+bool ScopeSim::SetDefaultPark()
 {
     // By default set RA to HA
     SetAxis1Park(ln_get_apparent_sidereal_time(ln_get_julian_from_sys()));
 
     // Set DEC to 90 or -90 depending on the hemisphere
     SetAxis2Park( (LocationN[LOCATION_LATITUDE].value > 0) ? 90 : -90);
+
+    return true;
 
 }
 

@@ -31,8 +31,7 @@ public:
     RoboFocus();
     ~RoboFocus();
 
-    virtual bool Connect();
-    virtual bool Disconnect();
+    virtual bool Handshake();
     const char * getDefaultName();
     virtual bool initProperties();
     virtual bool updateProperties();
@@ -48,7 +47,6 @@ protected:
 
 private:
 
-    int PortFD;
     int timerID;
     double targetPos;
     double simulatedTemperature;

@@ -27,6 +27,11 @@
 
 #include "defaultdevice.h"
 
+namespace Connection
+{
+    class TCP;
+}
+
 class SQM : public INDI::DefaultDevice
 {
     public:
@@ -35,31 +40,17 @@ class SQM : public INDI::DefaultDevice
     virtual ~SQM();
 
     virtual bool initProperties();
-    virtual void ISGetProperties (const char *dev);
     virtual bool updateProperties();
-
-    virtual bool ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n);
-    virtual bool ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n);
-    virtual bool ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n);
 
     protected:
 
-    //  Generic indi device entries
-    bool Connect();
-    bool Disconnect();
     const char *getDefaultName();
-
-    virtual bool saveConfigItems(FILE *fp);
     void TimerHit();    
 
 private:
 
     bool getReadings();
     bool getDeviceInfo();
-
-    // IP Address/Port
-    ITextVectorProperty AddressTP;
-    IText AddressT[2];
 
     // Readings
     INumberVectorProperty AverageReadingNP;
@@ -69,7 +60,9 @@ private:
     INumberVectorProperty UnitInfoNP;
     INumber UnitInfoN[4];
 
-    int sockfd=-1;
+    Connection::TCP *tcpConnection=NULL;
+
+    int PortFD=-1;
 };
 
 #endif

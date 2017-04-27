@@ -75,7 +75,7 @@ void ISSnoopDevice (XMLEle *root)
 
 SynscanMount::SynscanMount()
 {    
-    SetTelescopeCapability(TELESCOPE_CAN_PARK | TELESCOPE_CAN_ABORT | TELESCOPE_CAN_SYNC | TELESCOPE_HAS_TIME | TELESCOPE_HAS_LOCATION ,SYNSCAN_SLEW_RATES);
+    SetTelescopeCapability(TELESCOPE_CAN_PARK | TELESCOPE_CAN_ABORT | TELESCOPE_CAN_SYNC | TELESCOPE_CAN_GOTO | TELESCOPE_HAS_TIME | TELESCOPE_HAS_LOCATION ,SYNSCAN_SLEW_RATES);
     SetParkDataType(PARK_RA_DEC_ENCODER);
     strcpy(LastParkRead,"");
     SlewRate=5;
@@ -118,8 +118,8 @@ bool SynscanMount::initProperties()
     //  call base class
     r=INDI::Telescope::initProperties();
 
-    //SetTelescopeCapability(TELESCOPE_CAN_ABORT | TELESCOPE_CAN_SYNC | TELESCOPE_HAS_TIME | TELESCOPE_HAS_LOCATION ,SYNSCAN_SLEW_RATES);
-    SetTelescopeCapability(TELESCOPE_CAN_PARK | TELESCOPE_CAN_ABORT | TELESCOPE_CAN_SYNC | TELESCOPE_HAS_TIME | TELESCOPE_HAS_LOCATION ,SYNSCAN_SLEW_RATES);
+    //SetTelescopeCapability(TELESCOPE_CAN_ABORT | TELESCOPE_CAN_SYNC | TELESCOPE_CAN_GOTO | TELESCOPE_HAS_TIME | TELESCOPE_HAS_LOCATION ,SYNSCAN_SLEW_RATES);
+    SetTelescopeCapability(TELESCOPE_CAN_PARK | TELESCOPE_CAN_ABORT | TELESCOPE_CAN_SYNC | TELESCOPE_CAN_GOTO | TELESCOPE_HAS_TIME | TELESCOPE_HAS_LOCATION ,SYNSCAN_SLEW_RATES);
     SetParkDataType(PARK_RA_DEC_ENCODER);
 
 
@@ -224,7 +224,7 @@ bool SynscanMount::AnalyzeHandset()
 	if(rc) {
 	    CanSetLocation=true;
 	    //caps |= TELESCOPE_HAS_LOCATION;
-            rc=ReadTime();
+            ReadTime();
             //if(rc) caps |= TELESCOPE_HAS_TIME;
 	} else {
 	    //CanSetLocation=false;
@@ -600,20 +600,21 @@ bool SynscanMount::UnPark()
     return true;
 }
 
-void SynscanMount::SetCurrentPark()
+bool SynscanMount::SetCurrentPark()
 {
     IDMessage(getDeviceName(),"Setting Default Park Position");
-    IDMessage(getDeviceName(),"Arbitrary park positions not yet supported.");
-    SetAxis1Park(0);
-    SetAxis2Park(90);
+    IDMessage(getDeviceName(),"Arbitrary park positions not yet supported.");    
+    return false;
 }
 
-void SynscanMount::SetDefaultPark()
+bool SynscanMount::SetDefaultPark()
 {
     // By default az to north, and alt to pole
     IDMessage(getDeviceName(),"Setting Park Data to Default.");
     SetAxis1Park(0);
     SetAxis2Park(90);
+
+    return true;
 }
 
 bool  SynscanMount::Abort()

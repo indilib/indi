@@ -94,8 +94,7 @@ public:
 
     typedef enum { FOCUS_HALF_STEP, FOCUS_FULL_STEP } FocusStepMode;
 
-    virtual bool Connect();
-    virtual bool Disconnect();
+    virtual bool Handshake();
     virtual bool getControllerStatus();
     const char * getDefaultName();
     virtual bool initProperties();
@@ -109,8 +108,6 @@ public:
     virtual void TimerHit();
 
 private:
-
-    int PortFD;
 
     unsigned int direction; // 0 standard, 1 reverse
     unsigned int stepmode;  // 0 full steps, 1 half steps

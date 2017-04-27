@@ -17,13 +17,15 @@
 
 /// \defgroup AlignmentSubsystem INDI Alignment Subsystem
 
-namespace INDI {
+namespace INDI
+{
 /// \namespace INDI::AlignmentSubsystem
 /// \brief Namespace to encapsulate the INDI Alignment Subsystem classes.
 /// For more information see "INDI Alignment Subsystem" in "Related Pages" accessible via the banner at the
 /// top of this page.
 /// \ingroup AlignmentSubsystem
-namespace AlignmentSubsystem {
+namespace AlignmentSubsystem
+{
 
 /** \enum MountAlignment
     \brief Describe the alignment of a telescope axis. This is normally used to differentiate between
@@ -83,7 +85,7 @@ struct TelescopeDirectionVector
     }
 
     /// \brief Override the *= operator to return a  unary scalar product
-    inline const TelescopeDirectionVector& operator *= (const double &RHS)
+    inline const TelescopeDirectionVector &operator *= (const double &RHS)
     {
         x *= RHS;
         y *= RHS;
@@ -92,7 +94,7 @@ struct TelescopeDirectionVector
     }
 
     /// \brief Override the - operator to return a binary vector subtract
-    inline const TelescopeDirectionVector operator - (const TelescopeDirectionVector& RHS) const
+    inline const TelescopeDirectionVector operator - (const TelescopeDirectionVector &RHS) const
     {
         return TelescopeDirectionVector(x - RHS.x, y - RHS.y, z - RHS.z);
     }
@@ -136,14 +138,14 @@ struct AlignmentDatabaseEntry
 {
     /// \brief Default constructor
     AlignmentDatabaseEntry() : ObservationJulianDate(0), RightAscension(0),
-                                Declination(0), PrivateDataSize(0) {}
+        Declination(0), PrivateDataSize(0) {}
 
     /// \brief Copy constructor
-    AlignmentDatabaseEntry(const AlignmentDatabaseEntry& Source) : ObservationJulianDate(Source.ObservationJulianDate),
-                                                                    RightAscension(Source.RightAscension),
-                                                                    Declination(Source.Declination),
-                                                                    TelescopeDirection(Source.TelescopeDirection),
-                                                                    PrivateDataSize(Source.PrivateDataSize)
+    AlignmentDatabaseEntry(const AlignmentDatabaseEntry &Source) : ObservationJulianDate(Source.ObservationJulianDate),
+        RightAscension(Source.RightAscension),
+        Declination(Source.Declination),
+        TelescopeDirection(Source.TelescopeDirection),
+        PrivateDataSize(Source.PrivateDataSize)
     {
         if (0 != PrivateDataSize)
         {
@@ -153,7 +155,7 @@ struct AlignmentDatabaseEntry
     }
 
     /// Override the assignment operator to provide a const version
-    inline const AlignmentDatabaseEntry& operator = (const AlignmentDatabaseEntry& RHS)
+    inline const AlignmentDatabaseEntry &operator = (const AlignmentDatabaseEntry &RHS)
     {
         ObservationJulianDate = RHS.ObservationJulianDate;
         RightAscension = RHS.RightAscension;

@@ -348,3 +348,11 @@ void JoyStick::buttonEvent(int button_n, int value)
     IDSetSwitch(&ButtonSP, NULL);
 }
 
+bool JoyStick::saveConfigItems(FILE *fp)
+{
+    INDI::DefaultDevice::saveConfigItems(fp);
+
+    IUSaveConfigText(fp, &PortTP);
+
+    return true;
+}

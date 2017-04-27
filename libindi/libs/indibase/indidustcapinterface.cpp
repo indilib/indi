@@ -31,7 +31,7 @@ INDI::DustCapInterface::~DustCapInterface()
 {
 }
 
-void INDI::DustCapInterface::initDustCapProperties(const char *deviceName, const char* groupName)
+void INDI::DustCapInterface::initDustCapProperties(const char * deviceName, const char * groupName)
 {
     strncpy(dustCapName, deviceName, MAXINDIDEVICE);
 
@@ -41,7 +41,7 @@ void INDI::DustCapInterface::initDustCapProperties(const char *deviceName, const
     IUFillSwitchVector(&ParkCapSP, ParkCapS, 2, deviceName, "CAP_PARK", "Dust Cover", groupName, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 }
 
-bool INDI::DustCapInterface::processDustCapSwitch (const char *dev, const char *name, ISState *states, char *names[], int n)
+bool INDI::DustCapInterface::processDustCapSwitch (const char * dev, const char * name, ISState * states, char * names[], int n)
 {
     // Park/UnPark Dust Cover
     if (!strcmp(ParkCapSP.name, name))

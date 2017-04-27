@@ -31,6 +31,7 @@
 #include <sys/ioctl.h>
 
 #include "indicom.h"
+#include "connectionplugins/connectionserial.h"
 
 #include "flip_flat.h"
 
@@ -95,10 +96,6 @@ bool FlipFlat::initProperties()
 {
     INDI::DefaultDevice::initProperties();
 
-    // Device port
-    IUFillText(&PortT[0],"PORT","Port","/dev/ttyUSB0");
-    IUFillTextVector(&PortTP,PortT,1,getDeviceName(),"DEVICE_PORT","Ports",OPTIONS_TAB,IP_RW,60,IPS_IDLE);   
-
     // Status
     IUFillText(&StatusT[0],"Cover","",NULL);
     IUFillText(&StatusT[1],"Light","",NULL);
@@ -121,15 +118,16 @@ bool FlipFlat::initProperties()
 
     addAuxControls();
 
+    serialConnection = new Connection::Serial(this);
+    serialConnection->registerHandshake([&]() { return Handshake();});
+    registerConnection(serialConnection);
+
     return true;
 }
 
 void FlipFlat::ISGetProperties (const char *dev)
 {
     INDI::DefaultDevice::ISGetProperties(dev);
-
-    defineText(&PortTP);
-    loadConfig(true, "DEVICE_PORT");
 
     // Get Light box properties
     isGetLightBoxProperties(dev);
@@ -173,7 +171,7 @@ const char * FlipFlat::getDefaultName()
     return (char *)"Flip Flat";
 }
 
-bool FlipFlat::Connect()
+bool FlipFlat::Handshake()
 {
     if (isSimulation())
     {
@@ -187,50 +185,29 @@ bool FlipFlat::Connect()
         return true;
     }
 
-    int connectrc=0;
-    char errorMsg[MAXRBUF];
-
-    if (connectrc = tty_connect(PortT[0].text, 9600, 8, 0, 1, &PortFD) != TTY_OK)
-    {
-        tty_error_msg(connectrc, errorMsg, MAXRBUF);
-
-        DEBUGF(INDI::Logger::DBG_SESSION, "Failed to connect to port %s. Error: %s", PortT[0].text, errorMsg);
-
-        return false;
-    }
+    PortFD = serialConnection->getPortFD();
 
     /* Drop RTS */
     int i = 0;
     i |= TIOCM_RTS;
     if (ioctl(PortFD, TIOCMBIC, &i) != 0)
     {
-            DEBUG(INDI::Logger::DBG_ERROR, "IOCTL error.");
-            return false;
+        DEBUGF(INDI::Logger::DBG_ERROR, "IOCTL error %s.", strerror(errno));
+        return false;
     }
 
     i |= TIOCM_RTS;
-    int rts=0;
-    rts = ioctl(PortFD, TIOCMGET, &i);
+    if (ioctl(PortFD, TIOCMGET, &i) != 0)
+    {
+        DEBUGF(INDI::Logger::DBG_ERROR, "IOCTL error %s.", strerror(errno));
+        return false;
+    }
 
     if (ping() == false)
     {
         DEBUG(INDI::Logger::DBG_ERROR, "Device ping failed.");
         return false;
     }
-
-    DEBUGF(INDI::Logger::DBG_SESSION, "Connected successfuly to %s. Retrieving startup data...", getDeviceName());
-
-    SetTimer(POLLMS);
-
-    return true;
-}
-
-bool FlipFlat::Disconnect()
-{
-    if (isSimulation() == false)
-        tty_disconnect(PortFD);
-
-    DEBUGF(INDI::Logger::DBG_SESSION,"%s is offline.", getDeviceName());
 
     return true;
 }
@@ -249,14 +226,6 @@ bool FlipFlat::ISNewText (const char *dev, const char *name, char *texts[], char
     {
         if (processLightBoxText(dev, name, texts, names, n))
             return true;
-
-        if (!strcmp(PortTP.name, name))
-        {
-            IUUpdateText(&PortTP, texts, names, n);
-            PortTP.s = IPS_OK;
-            IDSetText(&PortTP, NULL);
-            return true;
-        }        
     }
 
     return INDI::DefaultDevice::ISNewText(dev, name, texts, names, n);
@@ -285,7 +254,6 @@ bool FlipFlat::ISSnoopDevice (XMLEle *root)
 
 bool FlipFlat::saveConfigItems(FILE *fp)
 {
-    IUSaveConfigText(fp, &PortTP);
     return saveLightBoxConfigItems(fp);
 }
 

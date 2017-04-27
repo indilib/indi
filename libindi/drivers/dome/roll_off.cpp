@@ -134,6 +134,11 @@ bool RollOff::Connect()
     return true;
 }
 
+bool RollOff::Disconnect()
+{
+    return true;
+}
+
 RollOff::~RollOff()
 {
 
@@ -158,11 +163,6 @@ bool RollOff::updateProperties()
         SetupParms();
 	}
 
-    return true;
-}
-
-bool RollOff::Disconnect()
-{
     return true;
 }
 
