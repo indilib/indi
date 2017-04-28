@@ -40,8 +40,7 @@ public:
     enum { FOCUS_MAX_TRIP, FOCUS_GEAR_RATIO };
     enum { FOCUS_T_COEFF, FOCUS_T_SAMPLES };
 
-    virtual bool Connect();
-    virtual bool Disconnect();
+    virtual bool Handshake();
     const char * getDefaultName();
     virtual bool initProperties();
     virtual bool updateProperties();
@@ -63,7 +62,6 @@ public:
 
 private:
 
-    int PortFD;
     double targetPos, lastPos, lastTemperature, simPosition;
     unsigned int currentSpeed, temperatureUpdateCounter;
     bool sim;

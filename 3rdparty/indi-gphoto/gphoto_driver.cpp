@@ -28,6 +28,7 @@
 #include <stdio.h>
 #include <stdarg.h>
 #include <string.h>
+#include <sys/ioctl.h>   /* ioctl()*/   
 
 #include <indilogger.h>
 
@@ -37,6 +38,9 @@
 #include <pthread.h>
 
 #include "gphoto_driver.h"
+
+static GPPortInfoList		*portinfolist = NULL;
+static CameraAbilitiesList	*abilities = NULL;
 
 struct _gphoto_widget_list
 {
@@ -71,7 +75,7 @@ struct _gphoto_driver
     int             exposure_cnt;
     double			*exposure;
     int             bulb_exposure_index;
-    double          max_exposure;
+    double          max_exposure, min_exposure;
 
     int             iso;
     int             format;
@@ -79,6 +83,9 @@ struct _gphoto_driver
 
     char            *model;
     char            *manufacturer;
+
+    char            **exposure_presets;
+    int             exposure_presets_count;
 
     gphoto_widget_list	*widgets;
     gphoto_widget_list	*iter;
@@ -97,32 +104,13 @@ enum {
 
 static char device[64];
 
+int RTS_flag = TIOCM_RTS;
+
 void gphoto_set_debug(const char *name)
 {
     strncpy(device, name, 64);
 }
 
-
-static GPContext* create_context() {
-    GPContext *context;
-
-    /* This is the mandatory part */
-    context = gp_context_new();
-
-    /* All the parts below are optional! */
-    //gp_context_set_error_func (context, ctx_error_func, NULL);
-    //gp_context_set_status_func (context, ctx_status_func, NULL);
-
-    /* also:
-    gp_context_set_cancel_func    (p->context, ctx_cancel_func,  p);
-    gp_context_set_message_func   (p->context, ctx_message_func, p);
-    if (isatty (STDOUT_FILENO))
-        gp_context_set_progress_funcs (p->context,
-            ctx_progress_start_func, ctx_progress_update_func,
-            ctx_progress_stop_func, p);
-    */
-    return context;
-}
 
 static const char *widget_name(CameraWidget *widget) {
     const char *name = NULL;
@@ -369,42 +357,56 @@ static double * parse_shutterspeed(gphoto_driver* gphoto, char **choices, int co
     double *exposure, val;
     int i, num, denom;
     double max_exposure = gphoto->max_exposure;
+    double min_exposure = 1e6;
     gphoto->bulb_exposure_index=-1;
 
     if(count <= 0)
+    {
+        DEBUGFDEVICE(device, INDI::Logger::DBG_WARNING, "Shutter speed widget does not have any valid data (count=%d)", count);
         return NULL;
+    }
+
+    if (count > 4)
+    {
+        gphoto->exposure_presets = choices;
+        gphoto->exposure_presets_count = count;
+    }
 
     exposure = (double*) calloc(sizeof(double), count);
 
     for(i = 0; i <  count; i++)
     {
-        //DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG, "Parsing shutter speed #%d: %s", i, choices[i]);
+        DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG, "Parsing shutter speed #%d: %s", i, choices[i]);
 
         if ( (strncasecmp(choices[i], "bulb", 4) == 0) || (strcmp(choices[i], "65535/65535") == 0))
         {
             exposure[i] = -1;
-            //DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG, "exposure[%d]= BULB", i);
+            DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG, "exposure[%d]= BULB", i);
             gphoto->bulb_exposure_index = i;
         } else if (sscanf(choices[i], "%d/%d", &num, &denom) == 2)
         {
             exposure[i] = 1.0 * num / (double)denom;
-            //DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG, "exposure[%d]=%g seconds", i, exposure[i]);
+            DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG, "exposure[%d]=%g seconds", i, exposure[i]);
         } else if ((val = strtod(choices[i], NULL)))
         {
             exposure[i] = val;
-            //DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG, "exposure[%d]=%g seconds", i, exposure[i]);
+            DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG, "exposure[%d]=%g seconds", i, exposure[i]);
         } else
         {
             // unknown
             exposure[i] = -2;
-            //DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG, "exposure[%d]= UNKNOWN", i);
+            DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG, "exposure[%d]= UNKNOWN", i);
         }
 
         if (exposure[i] > max_exposure)
             max_exposure = exposure[i];
+        if (exposure[i] > 0 && exposure[i] < min_exposure)
+                min_exposure = exposure[i];
     }
 
     gphoto->max_exposure = max_exposure;
+    if (min_exposure != 1e6)
+        gphoto->min_exposure = min_exposure;
 
     return exposure;
 }
@@ -453,6 +455,7 @@ static void *stop_bulb(void *arg)
                         gphoto_set_widget_num(gphoto, gphoto->bulb_widget, FALSE);
                     }
                 } else {
+                    ioctl(gphoto->bulb_fd,TIOCMBIC,&RTS_flag); 
                     close(gphoto->bulb_fd);
                 }
                 gphoto->command |= DSLR_CMD_DONE;
@@ -503,15 +506,15 @@ int find_bulb_exposure(gphoto_driver *gphoto, gphoto_widget *widget)
     return -1;
 }
 
-int find_exposure_setting(gphoto_driver *gphoto, gphoto_widget *widget, int exptime_msec)
+int find_exposure_setting(gphoto_driver *gphoto, gphoto_widget *widget, uint32_t exptime_usec)
 {
     int i;
-    double exptime = exptime_msec / 1000.0;
+    double exptime = exptime_usec / 1e6;
     int best_idx = 0;
     double delta;
     double best_match = 99999;
 
-    DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG,"Finding optimal exposure setting for %g seconds...", exptime);
+    DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG,"Finding optimal exposure setting for %g seconds in %s (count=%d)...", exptime, widget->name, widget->choice_cnt);
 
     for (i = 0; i < widget->choice_cnt; i++)
     {
@@ -620,7 +623,11 @@ int gphoto_mirrorlock(gphoto_driver *gphoto, int msec)
             //pthread_mutex_unlock(&gphoto->mutex);
             return -1;
         }
+        
+        ioctl(gphoto->bulb_fd,TIOCMBIS,&RTS_flag);
+        
         usleep(20000);
+        ioctl(gphoto->bulb_fd,TIOCMBIC,&RTS_flag);
         close(gphoto->bulb_fd);
         gphoto->bulb_fd = -1;
         usleep(msec*1000 - 20000);
@@ -632,7 +639,7 @@ int gphoto_mirrorlock(gphoto_driver *gphoto, int msec)
     return -1;
 }
 
-int gphoto_start_exposure(gphoto_driver *gphoto, unsigned int exptime_msec, int mirror_lock)
+int gphoto_start_exposure(gphoto_driver *gphoto, uint32_t exptime_usec, int mirror_lock)
 {
     if (gphoto->exposure_widget == NULL)
     {
@@ -640,7 +647,7 @@ int gphoto_start_exposure(gphoto_driver *gphoto, unsigned int exptime_msec, int 
         return -1;
     }
 
-    DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG,"Starting exposure (exptime: %g secs, mirror lock: %d)", exptime_msec / 1000.0, mirror_lock);
+    DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG,"Starting exposure (exptime: %g secs, mirror lock: %d)", exptime_usec / 1e6, mirror_lock);
     pthread_mutex_lock(&gphoto->mutex);
     DEBUGDEVICE(device, INDI::Logger::DBG_DEBUG,"  Mutex locked");
 
@@ -667,7 +674,7 @@ int gphoto_start_exposure(gphoto_driver *gphoto, unsigned int exptime_msec, int 
     //if (exptime_msec > 5000 || (gphoto->autoexposuremode_widget != NULL && gphoto->autoexposuremode_widget->value.index == 4))
 
     // If exposure time is more than 1 second AND we have BULB widget OR we have bulb in exposure widget then do bulb
-    if ((exptime_msec > 1000) && ( (gphoto->bulb_port[0]) || (gphoto->bulb_widget != NULL)) )
+    if ((exptime_usec > 1e6) && ( (gphoto->bulb_port[0]) || (gphoto->bulb_widget != NULL)) )
     {
         //Bulb mode is supported
 
@@ -715,6 +722,7 @@ int gphoto_start_exposure(gphoto_driver *gphoto, unsigned int exptime_msec, int 
                 pthread_mutex_unlock(&gphoto->mutex);
                 return -1;
             }
+            ioctl(gphoto->bulb_fd,TIOCMBIS,&RTS_flag);
         }
         // if no bulb port (external shutter release) is specified, let's use the internal bulb widget
         else if (gphoto->bulb_widget)
@@ -735,8 +743,10 @@ int gphoto_start_exposure(gphoto_driver *gphoto, unsigned int exptime_msec, int 
 
         // Preparing exposure
         gettimeofday(&gphoto->bulb_end, NULL);
-        unsigned int usec = gphoto->bulb_end.tv_usec + exptime_msec % 1000 * 1000;
-        gphoto->bulb_end.tv_sec = gphoto->bulb_end.tv_sec + exptime_msec / 1000 + usec / 1000000;
+        //unsigned int usec = gphoto->bulb_end.tv_usec + exptime_msec % 1000 * 1000;
+        uint32_t usec = gphoto->bulb_end.tv_usec + exptime_usec;
+        //gphoto->bulb_end.tv_sec = gphoto->bulb_end.tv_sec + exptime_msec / 1000 + usec / 1000000;
+        gphoto->bulb_end.tv_sec = gphoto->bulb_end.tv_sec + exptime_usec / 1e6;
         gphoto->bulb_end.tv_usec = usec % 1000000;
 
         // Start actual exposure
@@ -750,7 +760,7 @@ int gphoto_start_exposure(gphoto_driver *gphoto, unsigned int exptime_msec, int 
     DEBUGDEVICE(device, INDI::Logger::DBG_DEBUG,"Using camera predefined exposure ranges.");
 
     // NOT using bulb mode so let's find an exposure time that would closely match the requested exposure time
-    int idx = find_exposure_setting(gphoto, gphoto->exposure_widget, exptime_msec);
+    int idx = find_exposure_setting(gphoto, gphoto->exposure_widget, exptime_usec);
 
     gphoto_set_widget_num(gphoto, gphoto->exposure_widget, idx);
     DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG,"Using predefined exposure time: %g seconds", gphoto->exposure[idx]);
@@ -768,11 +778,14 @@ int gphoto_start_exposure(gphoto_driver *gphoto, unsigned int exptime_msec, int 
             pthread_mutex_unlock(&gphoto->mutex);
             return -1;
         }
+        
+        ioctl(gphoto->bulb_fd,TIOCMBIS,&RTS_flag);
+        
         // Preparing exposure: we let stop_bulb() close the serial port although this could be done here as well
         // because the camera closes the shutter.
         gettimeofday(&gphoto->bulb_end, NULL);
-        unsigned int usec = gphoto->bulb_end.tv_usec + exptime_msec % 1000 * 1000;
-        gphoto->bulb_end.tv_sec = gphoto->bulb_end.tv_sec + exptime_msec / 1000 + usec / 1000000;
+        uint32_t usec = gphoto->bulb_end.tv_usec + exptime_usec;
+        gphoto->bulb_end.tv_sec = gphoto->bulb_end.tv_sec + exptime_usec / 1e6;
         gphoto->bulb_end.tv_usec = usec % 1000000;
 
         // Start actual exposure
@@ -915,6 +928,28 @@ void gphoto_set_iso(gphoto_driver *gphoto, int iso)
         DEBUGDEVICE(device, INDI::Logger::DBG_DEBUG, "WARNING: Could not set iso");
 }
 
+char **gphoto_get_exposure_presets(gphoto_driver *gphoto, int *cnt)
+{
+    if (!gphoto->exposure_presets)
+    {
+        if(cnt)
+            *cnt = 0;
+
+        return NULL;
+    }
+
+    if(cnt)
+        *cnt = gphoto->exposure_presets_count;
+
+    return gphoto->exposure_presets;
+}
+
+void gphoto_get_minmax_exposure(gphoto_driver *gphoto, double *min, double *max)
+{
+    *min = gphoto->min_exposure;
+    *max = gphoto->max_exposure;
+}
+
 void gphoto_set_format(gphoto_driver *gphoto, int format)
 {
     if (gphoto->format_widget)
@@ -937,34 +972,136 @@ int gphoto_get_iso_current(gphoto_driver *gphoto)
     return gphoto->iso_widget->value.index;
 }
 
-gphoto_driver *gphoto_open(const char *shutter_release_port)
+gphoto_driver *gphoto_open(Camera *camera, GPContext *context, const char *model, const char *port, const char *shutter_release_port)
 {
     gphoto_driver *gphoto;
     gphoto_widget *widget;
-    Camera  *canon;
-    GPContext *canoncontext = create_context();
-    int result;
+    CameraAbilities	a;
+    GPPortInfo	pi;
+    int result=0, index=0;
 
     DEBUGDEVICE(device, INDI::Logger::DBG_DEBUG,"Opening gphoto");
     //gp_log_add_func(GP_LOG_ERROR, errordumper, NULL);
-    gp_camera_new(&canon);
+    gp_camera_new(&camera);
 
-    /* When I set GP_LOG_DEBUG instead of GP_LOG_ERROR above, I noticed that the
-     * init function seems to traverse the entire filesystem on the camera.  This
-     * is partly why it takes so long.
-     * (Marcus: the ptp2 driver does this by default currently.)
-     */
-    DEBUGDEVICE(device, INDI::Logger::DBG_DEBUG,"Camera init.  Takes about 10 seconds.");
-    result = gp_camera_init(canon, canoncontext);
-    if (result != GP_OK)
+    if (model == NULL || port == NULL)
     {
-        DEBUGFDEVICE(device, INDI::Logger::DBG_ERROR,"Camera open error (%d): %s", result, gp_result_as_string(result));
-        return NULL;
+        DEBUGDEVICE(device, INDI::Logger::DBG_DEBUG,"Camera init.  Takes about 10 seconds.");
+        result = gp_camera_init(camera, context);
+        if (result != GP_OK)
+        {
+            DEBUGFDEVICE(device, INDI::Logger::DBG_ERROR,"Camera open error (%d): %s", result, gp_result_as_string(result));
+            return NULL;
+        }
+    }
+    else
+    {
+        if (!abilities)
+        {
+            /* Load all the camera drivers we have... */
+            result = gp_abilities_list_new (&abilities);
+            if (result < GP_OK)
+            {
+                DEBUGFDEVICE(device, INDI::Logger::DBG_ERROR, "gp_abilities_list_new failed (%d): %s", result, gp_result_as_string(result));
+                return NULL;
+            }
+            result = gp_abilities_list_load (abilities, context);
+            if (result < GP_OK)
+            {
+                DEBUGFDEVICE(device, INDI::Logger::DBG_ERROR, "gp_abilities_list_load failed (%d): %s", result, gp_result_as_string(result));
+                return NULL;
+            }
+        }
+
+        /* First lookup the model / driver */
+        index = gp_abilities_list_lookup_model (abilities, model);
+        if (index < GP_OK)
+        {
+            DEBUGFDEVICE(device, INDI::Logger::DBG_ERROR, "gp_abilities_list_lookup_model failed (%d): %s", index, gp_result_as_string(index));
+            return NULL;
+        }
+
+        result = gp_abilities_list_get_abilities (abilities, index, &a);
+        if (result < GP_OK)
+        {
+            DEBUGFDEVICE(device, INDI::Logger::DBG_ERROR, "gp_abilities_list_get_abilities (%d): %s", result, gp_result_as_string(result));
+            return NULL;
+        }
+
+        result = gp_camera_set_abilities (camera, a);
+        if (result < GP_OK)
+        {
+            DEBUGFDEVICE(device, INDI::Logger::DBG_ERROR, "gp_abilities_list_get_abilities (%d): %s", result, gp_result_as_string(result));
+            return NULL;
+        }
+
+        if (!portinfolist)
+        {
+            /* Load all the port drivers we have... */
+            result = gp_port_info_list_new (&portinfolist);
+            if (result < GP_OK)
+            {
+                DEBUGFDEVICE(device, INDI::Logger::DBG_ERROR, "gp_port_info_list_new (%d): %s", result, gp_result_as_string(result));
+                return NULL;
+            }
+            result = gp_port_info_list_load (portinfolist);
+            if (result < 0)
+            {
+                DEBUGFDEVICE(device, INDI::Logger::DBG_ERROR, "gp_port_info_list_load (%d): %s", result, gp_result_as_string(result));
+                return NULL;
+            }
+            result = gp_port_info_list_count (portinfolist);
+            if (result < 0)
+            {
+                DEBUGFDEVICE(device, INDI::Logger::DBG_ERROR, "gp_port_info_list_count (%d): %s", result, gp_result_as_string(result));
+                return NULL;
+            }
+        }
+
+        /* Then associate the camera with the specified port */
+        index = gp_port_info_list_lookup_path (portinfolist, port);
+        switch (index)
+        {
+        case GP_ERROR_UNKNOWN_PORT:
+            DEBUGFDEVICE(device, INDI::Logger::DBG_ERROR,
+                            "The port you specified "
+                            "('%s') can not be found. Please "
+                            "specify one of the ports found by "
+                            "'gphoto2 --list-ports' and make "
+                            "sure the spelling is correct "
+                            "(i.e. with prefix 'serial:' or 'usb:').", port);
+            break;
+        default:
+            break;
+        }
+
+        if (index < GP_OK)
+        {
+            return NULL;
+        }
+
+        result = gp_port_info_list_get_info (portinfolist, index, &pi);
+        if (result < GP_OK)
+        {
+            DEBUGFDEVICE(device, INDI::Logger::DBG_ERROR, "gp_port_info_list_get_info (%d): %s", result, gp_result_as_string(result));
+            return NULL;
+        }
+
+        result = gp_camera_set_port_info (camera, pi);
+        if (result < GP_OK)
+        {
+            DEBUGFDEVICE(device, INDI::Logger::DBG_ERROR, "gp_port_info_list_get_info (%d): %s", result, gp_result_as_string(result));
+            return NULL;
+        }
     }
 
     gphoto = (gphoto_driver*) calloc(sizeof(gphoto_driver), 1);
-    gphoto->camera = canon;
-    gphoto->context = canoncontext;
+    gphoto->camera = camera;
+    gphoto->context = context;
+    gphoto->exposure_presets = nullptr;
+    gphoto->exposure_presets_count = 0;
+    gphoto->max_exposure = 3600;
+    gphoto->min_exposure = 0.001;
 
     result = gp_camera_get_config (gphoto->camera, &gphoto->config, gphoto->context);
     if (result < GP_OK) {
@@ -987,7 +1124,7 @@ gphoto_driver *gphoto_open(const char *shutter_release_port)
          (gphoto->exposure_widget = find_widget(gphoto, "shutterspeed")) ||
          (gphoto->exposure_widget = find_widget(gphoto, "eos-shutterspeed")) )
     {
-        gphoto->exposure = (double *) parse_shutterspeed(gphoto, gphoto->exposure_widget->choices, gphoto->exposure_widget->choice_cnt);
+        gphoto->exposure = parse_shutterspeed(gphoto, gphoto->exposure_widget->choices, gphoto->exposure_widget->choice_cnt);
     }
     else if ((gphoto->exposure_widget = find_widget(gphoto, "capturetarget")))
     {

@@ -25,6 +25,8 @@
 /* Our driver header */
 #include "maxdomeii.h"
 
+#include <connectionplugins/connectionserial.h>
+
 #include "config.h"
 
 #include <stdio.h>
@@ -80,7 +82,6 @@ void ISSnoopDevice (XMLEle *root)
 MaxDomeII::MaxDomeII()
 {
 
-   fd = -1;
    nTicksPerTurn = 360;
    nCurrentTicks = 0;
    nParkPosition = 0.0;
@@ -107,39 +108,9 @@ bool MaxDomeII::SetupParms()
     return true;
 }
 
-bool MaxDomeII::Connect()
+bool MaxDomeII::Handshake()
 {
-    int error;
-
-    if (fd >= 0)
-        Disconnect_MaxDomeII(fd);
-
-    DEBUG(INDI::Logger::DBG_SESSION, "Opening port ...");
-
-    fd = Connect_MaxDomeII(PortT[0].text);
-
-    if (fd < 0)
-    {
-        DEBUGF(INDI::Logger::DBG_ERROR, "Error connecting to port %s. Make sure you have BOTH write and read permission to your port.", PortT[0].text);
-        return false;
-    }
-
-    DEBUG(INDI::Logger::DBG_SESSION, "Connecting ...");
-
-    error = Ack_MaxDomeII(fd);
-    if (error)
-    {
-        DEBUGF(INDI::Logger::DBG_ERROR, "Error connecting to dome (%s).", ErrorMessages[-error]);
-        Disconnect_MaxDomeII(fd);
-        fd = -1;
-        return false;
-    }
-
-    DEBUG(INDI::Logger::DBG_SESSION, "Dome is online.");
-
-    SetTimer(POLLMS);
-
-    return true;
+    return (Ack_MaxDomeII(PortFD) == 0);
 }
 
 MaxDomeII::~MaxDomeII()
@@ -184,6 +155,9 @@ bool MaxDomeII::initProperties()
     // Watch Dog
     IUFillNumber(&WatchDogN[0], "WATCH_DOG_TIME", "Watch dog time", "%5.2f",  0., 3600., 0., 0.);
     IUFillNumberVector(&WatchDogNP, WatchDogN, NARRAY(WatchDogN), getDeviceName(), "WATCH_DOG_TIME_SET" , "Watch dog time set", OPTIONS_TAB, IP_RW, 0, IPS_IDLE);
+
+    // Set default baud rate to 19200
+    serialConnection->setDefaultBaudRate(Connection::Serial::B_19200);
 
     return true;
 }
@@ -231,10 +205,9 @@ bool MaxDomeII::saveConfigItems(FILE *fp)
 
 bool MaxDomeII::Disconnect()
 {
-    if (fd >= 0)
-        Disconnect_MaxDomeII(fd);
+    Disconnect_MaxDomeII(PortFD);
 
-    return true;
+    return INDI::Dome::Disconnect();
 }
 
 
@@ -250,7 +223,7 @@ void MaxDomeII::TimerHit()
     if(isConnected() == false)
         return;  //  No need to reset timer if we are not connected anymore
 
-    nError = Status_MaxDomeII(fd, &nShutterStatus, &nAzimuthStatus, &nCurrentTicks, &nHomePosition);
+    nError = Status_MaxDomeII(PortFD, &nShutterStatus, &nAzimuthStatus, &nCurrentTicks, &nHomePosition);
     handle_driver_error(&nError, &nRetry); // This is a timer, we will not repeat in order to not delay the execution.
     
     // Increment movment time counter
@@ -502,7 +475,7 @@ IPState MaxDomeII::MoveAbs(double newAZ)
 
     while (nRetry)
     {
-        error = Goto_Azimuth_MaxDomeII(fd, nDir, newPos);
+        error = Goto_Azimuth_MaxDomeII(PortFD, nDir, newPos);
         handle_driver_error(&error, &nRetry);
     }
 
@@ -524,13 +497,13 @@ bool MaxDomeII::Abort()
 
     while (nRetry)
     {
-            error = Abort_Azimuth_MaxDomeII(fd);
+            error = Abort_Azimuth_MaxDomeII(PortFD);
             handle_driver_error(&error, &nRetry);
     }
 
     while (nRetry)
     {
-            error = Abort_Shutter_MaxDomeII(fd);
+            error = Abort_Shutter_MaxDomeII(PortFD);
             handle_driver_error(&error, &nRetry);
     }
 
@@ -578,7 +551,7 @@ bool MaxDomeII::ISNewNumber (const char *dev, const char *name, double values[],
         {
             while (nRetry)
             {
-                error = SetTicksPerCount_MaxDomeII(fd, nVal);
+                error = SetTicksPerCount_MaxDomeII(PortFD, nVal);
                 handle_driver_error(&error,&nRetry);
             }
             if (error >= 0)
@@ -732,7 +705,7 @@ bool MaxDomeII::ISNewSwitch (const char *dev, const char *name, ISState *states,
         int nRetry = 3;
             
         while (nRetry){
-            error = Home_Azimuth_MaxDomeII(fd);
+            error = Home_Azimuth_MaxDomeII(PortFD);
             handle_driver_error(&error, &nRetry);
         }
         nTimeSinceAzimuthStart = 0;
@@ -849,7 +822,7 @@ int MaxDomeII::handle_driver_error(int *error, int *nRetry)
 			// Reconnect
 			DEBUG(INDI::Logger::DBG_ERROR,"MAX DOME II: Reconnecting ...");
 			Connect();
-			if (fd < 0)
+            if (PortFD < 0)
 				*nRetry = 0; // Can't open the port. Don't retry anymore. 
 			break;
 			
@@ -874,7 +847,7 @@ IPState MaxDomeII::ConfigurePark(int nCSBP, double ParkAzimuth)
     {
         while (nRetry)
         {
-            error =SetPark_MaxDomeII(fd, nCSBP, AzimuthToTicks(ParkAzimuth));
+            error =SetPark_MaxDomeII(PortFD, nCSBP, AzimuthToTicks(ParkAzimuth));
             handle_driver_error(&error,&nRetry);
         }
         if (error >= 0)
@@ -896,18 +869,20 @@ IPState MaxDomeII::ConfigurePark(int nCSBP, double ParkAzimuth)
 /************************************************************************************
  *
 * ***********************************************************************************/
-void MaxDomeII::SetCurrentPark()
+bool MaxDomeII::SetCurrentPark()
 {
     SetAxis1Park(DomeAbsPosN[0].value);
+    return true;
 }
 /************************************************************************************
  *
 * ***********************************************************************************/
 
-void MaxDomeII::SetDefaultPark()
+bool MaxDomeII::SetDefaultPark()
 {
     // By default set position to 0
     SetAxis1Park(0);
+    return true;
 }
 
 /************************************************************************************
@@ -922,7 +897,7 @@ IPState MaxDomeII::ControlShutter(ShutterOperation operation)
     {
         while (nRetry)
         {
-            error = Close_Shutter_MaxDomeII(fd);
+            error = Close_Shutter_MaxDomeII(PortFD);
             handle_driver_error(&error, &nRetry);
         }
         nTimeSinceShutterStart = 0;	// Init movement timer
@@ -939,7 +914,7 @@ IPState MaxDomeII::ControlShutter(ShutterOperation operation)
         {   // Open Shutter
             while (nRetry)
             {
-                error = Open_Shutter_MaxDomeII(fd);
+                error = Open_Shutter_MaxDomeII(PortFD);
                 handle_driver_error(&error, &nRetry);
             }
             nTimeSinceShutterStart = 0;	// Init movement timer
@@ -954,7 +929,7 @@ IPState MaxDomeII::ControlShutter(ShutterOperation operation)
         { // Open upper shutter only
             while (nRetry)
             {
-                error = Open_Upper_Shutter_Only_MaxDomeII(fd);
+                error = Open_Upper_Shutter_Only_MaxDomeII(PortFD);
                 handle_driver_error(&error, &nRetry);
             }
             nTimeSinceShutterStart = 0;	// Init movement timer

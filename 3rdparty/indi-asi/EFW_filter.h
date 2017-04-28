@@ -199,6 +199,23 @@ EFW_API	EFW_ERROR_CODE EFWGetDirection(int ID, bool *bUnidirectional);
 
 /***************************************************************************
 Descriptions:
+calibrate filter wheel
+
+Paras:
+int ID: the ID of filter wheel
+
+Return: 
+EFW_ERROR_INVALID_ID: invalid ID value
+EFW_ERROR_CLOSED: not opened
+EFW_SUCCESS: operation succeeds
+EFW_ERROR_MOVING: filter wheel is moving, should wait until idle
+EFW_ERROR_ERROR_STATE: filter wheel is in error state
+EFW_ERROR_REMOVED: filter wheel is removed
+***************************************************************************/
+EFW_API	EFW_ERROR_CODE EFWCalibrate(int ID);
+
+/***************************************************************************
+Descriptions:
 close filter wheel
 
 Paras:

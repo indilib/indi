@@ -353,6 +353,12 @@
 #define DEVICETYPE_QHY168C      4051
 
 /**
+ * Type define for QHY128C*/
+#define DEVICETYPE_QHY128       4052
+
+#define DEVICETYPE_QHY128C      4053
+
+/**
  * Type define for QHY5IIIEND*/
 #define DEVICETYPE_QHY5IIIEND   4999
 

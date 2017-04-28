@@ -1,11 +1,14 @@
 cmake_minimum_required(VERSION 2.4.7)
 PROJECT(indi_duino CXX C)
 
-set(CMAKE_CXX_FLAGS "-std=c++0x ${CMAKE_CXX_FLAGS}")
 LIST(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake_modules/")
 LIST(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/../../cmake_modules/")
 set(FIRMATA_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/libfirmata/src/")
 include(GNUInstallDirs)
+
+if (NOT WIN32 AND NOT ANDROID)
+set(CMAKE_CXX_FLAGS "-std=c++11 ${CMAKE_CXX_FLAGS}")
+endif(NOT WIN32 AND NOT ANDROID)
 
 set (DUINO_VERSION_MAJOR 0)
 set (DUINO_VERSION_MINOR 2)
@@ -47,7 +50,7 @@ set(indiduino_SRCS
    )
 
 add_executable(indi_duino ${indiduino_SRCS})
-target_link_libraries(indi_duino ${INDI_DRIVER_LIBRARIES} firmata)
+target_link_libraries(indi_duino ${INDI_LIBRARIES} firmata)
 
 install(TARGETS indi_duino RUNTIME DESTINATION bin)
 install(FILES ${CMAKE_CURRENT_BINARY_DIR}/indi_duino.xml DESTINATION ${INDI_DATA_DIR})

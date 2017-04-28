@@ -12,8 +12,10 @@
 
 #include "indilogger.h"
 
-namespace INDI {
-namespace AlignmentSubsystem {
+namespace INDI
+{
+namespace AlignmentSubsystem
+{
 
 #define ASSDEBUG(msg) INDI::Logger::getInstance().print("alignmentSubsystem", DBG_ALIGNMENT, __FILE__, __LINE__,msg)
 #define ASSDEBUGF(msg, ...) INDI::Logger::getInstance().print("AlignmentSubsystem", DBG_ALIGNMENT, __FILE__, __LINE__, msg, __VA_ARGS__)

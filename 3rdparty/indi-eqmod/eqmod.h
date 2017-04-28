@@ -27,9 +27,7 @@
 #ifdef WITH_ALIGN_GEEHALEL
 #include "align/align.h"
 #endif
-#ifdef WITH_SIMULATOR
 #include "simulator/simulator.h"
-#endif
 #ifdef WITH_SCOPE_LIMITS
 #include "scope-limits/scope-limits.h"
 #endif
@@ -55,8 +53,6 @@ class EQMod : public INDI::Telescope, public INDI::GuiderInterface
     protected:
     private:
     Skywatcher *mount;
-    
-
 
 	unsigned long currentRAEncoder, zeroRAEncoder, totalRAEncoder;
 	unsigned long currentDEEncoder, zeroDEEncoder, totalDEEncoder;
@@ -95,57 +91,54 @@ class EQMod : public INDI::Telescope, public INDI::GuiderInterface
 
 	int GuideTimerWE;
 
-    INumber *GuideRateN;
-    INumberVectorProperty *GuideRateNP;
-
-	ITextVectorProperty *MountInformationTP;
-	INumberVectorProperty *SteppersNP;
-	INumberVectorProperty *CurrentSteppersNP;
-	INumberVectorProperty *PeriodsNP;
-	INumberVectorProperty *JulianNP;
-	INumberVectorProperty *TimeLSTNP;
-	ITextVectorProperty *TimeUTCTP;
-	ILightVectorProperty *RAStatusLP;
-	ILightVectorProperty *DEStatusLP;
-	INumberVectorProperty *SlewSpeedsNP;
-	ISwitchVectorProperty *SlewModeSP;
-	ISwitchVectorProperty *HemisphereSP;
-	ISwitchVectorProperty *PierSideSP;
-	ISwitchVectorProperty *TrackModeSP;
-	ISwitchVectorProperty *TrackDefaultSP;
-       	INumberVectorProperty *TrackRatesNP;
-	//ISwitchVectorProperty *AbortMotionSP;
-	INumberVectorProperty *HorizontalCoordNP;
-	INumberVectorProperty *StandardSyncNP;
-	INumberVectorProperty *StandardSyncPointNP;
-	INumberVectorProperty *SyncPolarAlignNP;
-	ISwitchVectorProperty *SyncManageSP; 
-  	INumberVectorProperty *ParkPositionNP;
-	ISwitchVectorProperty *ParkOptionSP;
-    ISwitchVectorProperty *ReverseDECSP;
-  	INumberVectorProperty *BacklashNP;
-	ISwitchVectorProperty *UseBacklashSP;
+    INumber *GuideRateN= NULL;
+    INumberVectorProperty *GuideRateNP= NULL;
+    ITextVectorProperty *MountInformationTP= NULL;
+    INumberVectorProperty *SteppersNP= NULL;
+    INumberVectorProperty *CurrentSteppersNP= NULL;
+    INumberVectorProperty *PeriodsNP= NULL;
+    INumberVectorProperty *JulianNP= NULL;
+    INumberVectorProperty *TimeLSTNP= NULL;
+    ITextVectorProperty *TimeUTCTP= NULL;
+    ILightVectorProperty *RAStatusLP= NULL;
+    ILightVectorProperty *DEStatusLP= NULL;
+    INumberVectorProperty *SlewSpeedsNP= NULL;
+    ISwitchVectorProperty *SlewModeSP= NULL;
+    ISwitchVectorProperty *HemisphereSP= NULL;
+    ISwitchVectorProperty *TrackModeSP= NULL;
+    ISwitchVectorProperty *TrackDefaultSP= NULL;
+    INumberVectorProperty *TrackRatesNP= NULL;
+    INumberVectorProperty *HorizontalCoordNP= NULL;
+    INumberVectorProperty *StandardSyncNP= NULL;
+    INumberVectorProperty *StandardSyncPointNP= NULL;
+    INumberVectorProperty *SyncPolarAlignNP= NULL;
+    ISwitchVectorProperty *SyncManageSP= NULL;
+    INumberVectorProperty *ParkPositionNP= NULL;
+    ISwitchVectorProperty *ParkOptionSP= NULL;
+    ISwitchVectorProperty *ReverseDECSP= NULL;
+    INumberVectorProperty *BacklashNP= NULL;
+    ISwitchVectorProperty *UseBacklashSP= NULL;
 #if defined WITH_ALIGN && defined WITH_ALIGN_GEEHALEL
-	ISwitch AlignMethodS[2];
-	ISwitchVectorProperty AlignMethodSP;
+    ISwitch AlignMethodS[2];
+    ISwitchVectorProperty AlignMethodSP;
 #endif
 #if defined WITH_ALIGN || defined WITH_ALIGN_GEEHALEL
-	ISwitchVectorProperty *AlignSyncModeSP;
+    ISwitchVectorProperty *AlignSyncModeSP= NULL;
 #endif
-	ISwitchVectorProperty *AutoHomeSP;
-	ISwitchVectorProperty *AuxEncoderSP;
-	INumberVectorProperty *AuxEncoderNP;
+    ISwitchVectorProperty *AutoHomeSP= NULL;
+    ISwitchVectorProperty *AuxEncoderSP= NULL;
+    INumberVectorProperty *AuxEncoderNP= NULL;
 	
-	ISwitchVectorProperty *ST4GuideRateNSSP;
-	ISwitchVectorProperty *ST4GuideRateWESP;
+    ISwitchVectorProperty *ST4GuideRateNSSP= NULL;
+    ISwitchVectorProperty *ST4GuideRateWESP= NULL;
 
-	ISwitchVectorProperty *RAPPECTrainingSP;
-	ISwitchVectorProperty *DEPPECTrainingSP;
-	ISwitchVectorProperty *RAPPECSP;
-	ISwitchVectorProperty *DEPPECSP;	
+    ISwitchVectorProperty *RAPPECTrainingSP= NULL;
+    ISwitchVectorProperty *DEPPECTrainingSP= NULL;
+    ISwitchVectorProperty *RAPPECSP= NULL;
+    ISwitchVectorProperty *DEPPECSP= NULL;
 	
 	enum Hemisphere {NORTH=0, SOUTH=1 };
-	enum PierSide {UNKNOWN=-1, WEST=0, EAST=1};
+
 	typedef struct GotoParams {
 	  double ratarget, detarget, racurrent, decurrent;
 	  unsigned long ratargetencoder, detargetencoder, racurrentencoder, decurrentencoder;
@@ -154,8 +147,7 @@ class EQMod : public INDI::Telescope, public INDI::GuiderInterface
 	  bool forcecwup, checklimits, outsidelimits, completed;
 	} GotoParams;
 
-	Hemisphere Hemisphere;
-    PierSide pierside, lastPierSide, currentPierSide;
+	Hemisphere Hemisphere;    
 	bool RAInverted, DEInverted;
         GotoParams gotoparams;
 	SyncData syncdata, syncdata2;
@@ -168,12 +160,11 @@ class EQMod : public INDI::Telescope, public INDI::GuiderInterface
 	double EncoderFromHour(double hour, unsigned long initstep, unsigned long totalstep, enum Hemisphere h);
 	double EncoderFromRA(double ratarget, double detarget, double lst, 
 			     unsigned long initstep, unsigned long totalstep, enum Hemisphere h);
-	double EncoderFromDegree(double degree, PierSide p, unsigned long initstep, unsigned long totalstep, enum Hemisphere h);
-	double EncoderFromDec( double detarget, PierSide p, 
+    double EncoderFromDegree(double degree, TelescopePierSide p, unsigned long initstep, unsigned long totalstep, enum Hemisphere h);
+    double EncoderFromDec( double detarget, TelescopePierSide p,
 				      unsigned long initstep, unsigned long totalstep, enum Hemisphere h);
 	void EncoderTarget(GotoParams *g);
-    void SetSouthernHemisphere(bool southern);
-	PierSide SideOfPier();
+    void SetSouthernHemisphere(bool southern);	
 	double GetRATrackRate();
 	double GetDETrackRate();
 	double GetDefaultRATrackRate();
@@ -211,9 +202,7 @@ class EQMod : public INDI::Telescope, public INDI::GuiderInterface
         virtual ~EQMod();
 
         virtual const char *getDefaultName();
-        virtual bool Connect();
-        virtual bool Connect(const char *port, uint32_t baud);
-        virtual bool Connect(const char *hostname, const char *port);
+        virtual bool Handshake();
         virtual bool Disconnect();
         virtual void TimerHit();
         virtual bool ReadScopeStatus();
@@ -238,8 +227,8 @@ class EQMod : public INDI::Telescope, public INDI::GuiderInterface
         bool Goto(double ra,double dec);
         bool Park();
         bool UnPark();
-        void SetCurrentPark();
-        void SetDefaultPark();
+        bool SetCurrentPark();
+        bool SetDefaultPark();
         bool Sync(double ra,double dec);
 
         virtual bool saveConfigItems(FILE *fp);
@@ -252,9 +241,7 @@ class EQMod : public INDI::Telescope, public INDI::GuiderInterface
         double getJulianDate();
         double getLst(double jd, double lng);
 
-#ifdef WITH_SIMULATOR
 	EQModSimulator *simulator;
-#endif
 
 #ifdef WITH_SCOPE_LIMITS
 	HorizonLimits *horizon;

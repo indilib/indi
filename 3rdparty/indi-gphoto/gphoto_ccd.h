@@ -34,6 +34,8 @@
 #define	MAXEXPERR	10		/* max err in exp time we allow, secs */
 #define	OPENDT		5		/* open retry delay, secs */
 
+typedef struct _Camera Camera;
+
 using namespace std;
 
 enum { ON_S, OFF_S };
@@ -58,8 +60,8 @@ typedef struct
 class GPhotoCCD: public INDI::CCD, public INDI::FocuserInterface
 {
 public:
-    GPhotoCCD();
-    GPhotoCCD(const char* device_name);
+    explicit GPhotoCCD();
+    explicit GPhotoCCD(const char *model, const char *port);
     virtual	~GPhotoCCD();
 
     const char *getDefaultName();
@@ -116,7 +118,10 @@ private:
     float CalcTimeLeft();
     bool grabImage();
 
-    char name[MAXINDINAME];
+    char name[MAXINDIDEVICE];
+    char model[MAXINDINAME];
+    char port[MAXINDINAME];
+
     struct timeval ExpStart;
     float ExposureRequest;
     bool sim;
@@ -142,9 +147,9 @@ private:
     INumber mExposureN[1];
     INumberVectorProperty mExposureNP;
 
-    ISwitch *mIsoS;
+    ISwitch *mIsoS=NULL;
     ISwitchVectorProperty mIsoSP;
-    ISwitch *mFormatS;
+    ISwitch *mFormatS=NULL;
     ISwitchVectorProperty mFormatSP;
 
     ISwitch transferFormatS[2];
@@ -156,8 +161,13 @@ private:
     ISwitch livePreviewS[2];
     ISwitchVectorProperty livePreviewSP;
 
-    IBLOBVectorProperty *imageBP;
-    IBLOB *imageB;    
+    ISwitch *mExposurePresetS=NULL;
+    ISwitchVectorProperty mExposurePresetSP;
+
+    IBLOBVectorProperty *imageBP=NULL;
+    IBLOB *imageB=NULL;
+
+    Camera *camera=NULL;
 
     friend void ::ISSnoopDevice(XMLEle *root);
     friend void ::ISGetProperties(const char *dev);

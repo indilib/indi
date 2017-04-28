@@ -77,7 +77,7 @@ int check_lx200ap_connection(int fd)
 
 	  return error_type;
       }
-      error_type = tty_read_section(fd, temp_string, '#', LX200_TIMEOUT, &nbytes_read) ;
+      tty_read_section(fd, temp_string, '#', LX200_TIMEOUT, &nbytes_read) ;
       tcflush(fd, TCIFLUSH);
       if (nbytes_read > 1)
       {

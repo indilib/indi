@@ -3,30 +3,26 @@
 set -e
 
 brew update
-brew tap polakovic/astronomy
-
-# Not available in homebrew:
-# cdbs \
-# boost-regex \
-# libgps \
-# libgsl0  \
-# libopenal \
-
-# Already installed:
-# boost \
-
+brew tap 'homebrew/homebrew-science'
+brew tap 'caskroom/drivers'
+brew tap 'jochym/indi'
 
 brew install \
-			curl \
-			dcraw \
-			fakeroot \
-			libftdi \
-			libgphoto2 \
-			libjpeg \
-			libusb \
-			polakovic/astronomy/libcfitsio \
-			polakovic/astronomy/libnova 
+	cmake \
+	dcraw \
+	fakeroot \
+	gsl \
+	libftdi \
+	libgphoto2 \
+	libusb \
+	gpsd \
+	libraw \
+	cfitsio \
+	libnova 
 			
+brew cask install \
+	sbig-universal-driver
+
 if [ ! -z $BUILD_INSTALL_GTEST ]; then
   DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
   /bin/bash ${DIR}/install-gtest.sh

@@ -212,37 +212,16 @@ bool USBFocusV3::updateProperties()
 
 }
 
-bool USBFocusV3::Connect()
+bool USBFocusV3::Handshake()
 {
-    int connectrc=0;
-    char errorMsg[MAXRBUF];
-
-    if ( (connectrc = tty_connect(PortT[0].text, 9600, 8, 0, 1, &PortFD)) != TTY_OK)
-    {
-        tty_error_msg(connectrc, errorMsg, MAXRBUF);
-
-        DEBUGF(INDI::Logger::DBG_SESSION, "Failed to connect to port %s. Error: %s", PortT[0].text, errorMsg);
-
-        return false;
-
-    }
-
     if (Ack())
     {
         DEBUG(INDI::Logger::DBG_SESSION, "USB Focus V3 is online. Getting focus parameters...");
-        SetTimer(POLLMS);
         return true;
     }
 
     DEBUG(INDI::Logger::DBG_SESSION, "Error retreiving data from USB Focus V3, please ensure USB Focus V3 controller is powered and the port is correct.");
     return false;
-}
-
-bool USBFocusV3::Disconnect()
-{
-    tty_disconnect(PortFD);
-    DEBUG(INDI::Logger::DBG_SESSION, "USB Focus V3 is offline.");
-    return true;
 }
 
 const char * USBFocusV3::getDefaultName()
@@ -340,7 +319,7 @@ bool USBFocusV3::getControllerStatus()
     
     } while (oneMoreRead(resp, UFORSTLEN));
 
-    rc = sscanf(resp, "C=%u-%u-%u-%u-%u-%u-%u", &direction,&stepmode,
+    sscanf(resp, "C=%u-%u-%u-%u-%u-%u-%u", &direction,&stepmode,
                                                 &speed,&stepsdeg,
                                                 &tcomp_thr,&firmware,&maxpos);
     return true;
@@ -943,7 +922,7 @@ bool USBFocusV3::setTemperatureCompensation(bool enable)
 {
     int nbytes_written=0, rc=-1;
     char errstr[MAXRBUF];
-    char cmd[UFOCTCLEN];
+    char cmd[UFOCTCLEN+1];
 
     if (enable)
     	snprintf(cmd, UFOCTCLEN+1, "%s", UFOCSETAUTO);

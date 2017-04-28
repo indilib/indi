@@ -135,6 +135,8 @@ bool MoonLite::initProperties()
 
     addDebugControl();
 
+    updatePeriodMS = POLLMS;
+
     return true;
 
 }
@@ -173,37 +175,16 @@ bool MoonLite::updateProperties()
 
 }
 
-bool MoonLite::Connect()
+bool MoonLite::Handshake()
 {
-    int connectrc=0;
-    char errorMsg[MAXRBUF];
-
-    if ( (connectrc = tty_connect(PortT[0].text, 9600, 8, 0, 1, &PortFD)) != TTY_OK)
-    {
-        tty_error_msg(connectrc, errorMsg, MAXRBUF);
-
-        DEBUGF(INDI::Logger::DBG_SESSION, "Failed to connect to port %s. Error: %s", PortT[0].text, errorMsg);
-
-        return false;
-
-    }
-
     if (Ack())
     {
         DEBUG(INDI::Logger::DBG_SESSION, "MoonLite is online. Getting focus parameters...");
-        SetTimer(POLLMS);
         return true;
     }
 
     DEBUG(INDI::Logger::DBG_SESSION, "Error retreiving data from MoonLite, please ensure MoonLite controller is powered and the port is correct.");
     return false;
-}
-
-bool MoonLite::Disconnect()
-{
-    tty_disconnect(PortFD);
-    DEBUG(INDI::Logger::DBG_SESSION, "MoonLite is offline.");
-    return true;
 }
 
 const char * MoonLite::getDefaultName()
@@ -233,6 +214,8 @@ bool MoonLite::Ack()
         DEBUGF(INDI::Logger::DBG_ERROR, "updatePostion error: %s.", errstr);
         return false;
     }
+
+    tcflush(PortFD, TCIOFLUSH);
 
     rc = sscanf(resp, "%hX#", &pos);
 
@@ -264,6 +247,8 @@ bool MoonLite::updateStepMode()
         DEBUGF(INDI::Logger::DBG_ERROR, "updateStepMode error: %s.", errstr);
         return false;
     }
+
+    tcflush(PortFD, TCIOFLUSH);
 
     resp[3]='\0';
     IUResetSwitch(&StepModeSP);
@@ -306,6 +291,8 @@ bool MoonLite::updateTemperature()
         return false;
     }
 
+    tcflush(PortFD, TCIOFLUSH);
+
     rc = sscanf(resp, "%X#", &temp);
 
     if (rc > 0)
@@ -344,6 +331,8 @@ bool MoonLite::updatePosition()
         return false;
     }
 
+    tcflush(PortFD, TCIOFLUSH);
+
     rc = sscanf(resp, "%X#", &pos);
 
     if (rc > 0)
@@ -381,6 +370,8 @@ bool MoonLite::updateSpeed()
         DEBUGF(INDI::Logger::DBG_ERROR, "updateSpeed error: %s.", errstr);
         return false;
     }
+
+    tcflush(PortFD, TCIOFLUSH);
 
     rc = sscanf(resp, "%hX#", &speed);
 
@@ -426,6 +417,8 @@ bool MoonLite::isMoving()
         DEBUGF(INDI::Logger::DBG_ERROR, "isMoving error: %s.", errstr);
         return false;
     }
+
+    tcflush(PortFD, TCIOFLUSH);
 
     resp[3]='\0';
     if (!strcmp(resp, "01#"))

@@ -126,12 +126,6 @@ bool DomeSim::SetupParms()
     return true;
 }
 
-bool DomeSim::Connect()
-{
-    SetTimer(1000);     //  start the timer
-    return true;
-}
-
 DomeSim::~DomeSim()
 {
 
@@ -151,6 +145,12 @@ bool DomeSim::updateProperties()
         SetupParms();
     }
 
+    return true;
+}
+
+bool DomeSim::Connect()
+{
+    SetTimer(1000);     //  start the timer
     return true;
 }
 
@@ -313,14 +313,16 @@ bool DomeSim::Abort()
     return true;
 }
 
-void DomeSim::SetCurrentPark()
+bool DomeSim::SetCurrentPark()
 {
     SetAxis1Park(DomeAbsPosN[0].value);
+    return true;
 }
 
-void DomeSim::SetDefaultPark()
+bool DomeSim::SetDefaultPark()
 {
     // By default set position to 90
     SetAxis1Park(90);
+    return true;
 }
 

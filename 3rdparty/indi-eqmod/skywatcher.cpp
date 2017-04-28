@@ -55,7 +55,6 @@ extern int DBG_MOUNT;
 
 Skywatcher::Skywatcher(EQMod *t)
 {
-  fd=-1;
   debug=false;
   debugnextread=false;
   simulation=false;
@@ -77,16 +76,19 @@ bool Skywatcher::isDebug ()
   return debug;
 }
 
-#ifdef WITH_SIMULATOR
+void Skywatcher::setPortFD(int value)
+{
+    PortFD = value;
+}
+
 void Skywatcher::setSimulation (bool enable) 
 {
-  simulation=enable;
+    simulation=enable;
 }
 bool Skywatcher::isSimulation () 
 {
   return simulation;
 }
-#endif
 
 const char *Skywatcher::getDeviceName () 
 {
@@ -95,99 +97,16 @@ const char *Skywatcher::getDeviceName ()
 
 /* API */
 
-bool Skywatcher::Connect(const char *port, uint32_t baud)  throw (EQModError)
-{   
-  int err_code = 0;
-  unsigned long tmpMCVersion=0;
-#ifdef WITH_SIMULATOR
-  if (!(isSimulation())) {
-#endif
-  if ((err_code=tty_connect(port, baud, 8, 0, 1, &fd)) != TTY_OK)
-    {
-      char ttyerrormsg[ERROR_MSG_LENGTH];
-      tty_error_msg(err_code, ttyerrormsg, ERROR_MSG_LENGTH);
-      throw EQModError(EQModError::ErrDisconnect, "Error connecting to port %s: %s", 
-		       port, ttyerrormsg);
-      return false;
-    }
-#ifdef WITH_SIMULATOR
-  } else {
-    telescope->simulator->Connect();
-  }
-#endif    
-  dispatch_command(InquireMotorBoardVersion, Axis1, NULL);
-  read_eqmod();
-  tmpMCVersion=Revu24str2long(response+1);
-  MCVersion = ((tmpMCVersion & 0xFF) << 16) | ((tmpMCVersion & 0xFF00)) | ((tmpMCVersion & 0xFF0000) >> 16);
-  MountCode=MCVersion & 0xFF;
-  /* Check supported mounts here */
-  if ((MountCode == 0x80) || (MountCode == 0x81) /*|| (MountCode == 0x82)*/ || (MountCode == 0x90)) {
-    
-    throw EQModError(EQModError::ErrDisconnect, "Mount not supported: mount code 0x%x (0x80=GT, 0x81=MF, 0x82=114GT, 0x90=DOB)", 
-		     MountCode);
-    return false;
-  }
-
-  return true;
-}
-
-bool Skywatcher::Connect(const char *hostname, const char *port) throw (EQModError)
+bool Skywatcher::Handshake()  throw (EQModError)
 {
-    unsigned long tmpMCVersion=0;
-  #ifdef WITH_SIMULATOR
-    if (!(isSimulation())) {
-  #endif
-        if (sockfd != -1)
-            close(sockfd);
-
-        struct timeval ts;
-        ts.tv_sec =5;
-        ts.tv_usec=0;
-
-        struct sockaddr_in serv_addr;
-        struct hostent *hp = NULL;
-        int ret = 0;
-
-        // Lookup host name or IPv4 address
-        hp = gethostbyname(hostname);
-        if (!hp)
-        {
-            throw EQModError(EQModError::ErrDisconnect, "Failed to lookup IP Address or hostname.");
-            return false;
-        }
-
-        memset (&serv_addr, 0, sizeof(serv_addr));
-        serv_addr.sin_family = AF_INET;
-        serv_addr.sin_addr.s_addr = ((struct in_addr *)(hp->h_addr_list[0]))->s_addr;
-        serv_addr.sin_port = htons(atoi(port));
-
-        if ((sockfd = socket(AF_INET, SOCK_STREAM, 0)) < 0)
-        {
-            throw EQModError(EQModError::ErrDisconnect, "Failed to create socket.");
-            return false;
-        }
-
-        // Connect to the mount
-        if ( (ret = ::connect (sockfd,(struct sockaddr *)&serv_addr,sizeof(serv_addr))) < 0)
-        {
-            throw EQModError(EQModError::ErrDisconnect, "Failed to connect to mount %s@%s: %s.",
-                     hostname, port, strerror(errno));
-            close(sockfd);
-            sockfd=-1;
-            return false;
-        }
-
-        // Set the socket receiving and sending timeouts
-        setsockopt(sockfd, SOL_SOCKET, SO_RCVTIMEO, (char *)&ts,sizeof(struct timeval));
-        setsockopt(sockfd, SOL_SOCKET, SO_SNDTIMEO, (char *)&ts,sizeof(struct timeval));
-
-        // now let the rest of INDI::Telescope use our socket as if it were a serial port
-        fd = sockfd;
-  #ifdef WITH_SIMULATOR
-    } else {
-      telescope->simulator->Connect();
+    if (isSimulation())
+    {
+        telescope->simulator->Connect();
+        return true;
     }
-  #endif
+
+    unsigned long tmpMCVersion=0;
+
     dispatch_command(InquireMotorBoardVersion, Axis1, NULL);
     read_eqmod();
     tmpMCVersion=Revu24str2long(response+1);
@@ -202,12 +121,12 @@ bool Skywatcher::Connect(const char *hostname, const char *port) throw (EQModErr
     }
 
     return true;
-
 }
 
 bool Skywatcher::Disconnect() throw (EQModError)
 {
-  if (fd < 0) return true;
+  if (PortFD < 0)
+      return true;
   StopMotor(Axis1);
   StopMotor(Axis2);
   // Deactivate motor (for geehalel mount only)
@@ -216,21 +135,7 @@ bool Skywatcher::Disconnect() throw (EQModError)
     dispatch_command(Deactivate, Axis1, NULL);
     read_eqmod();
   }
-  */
-#ifdef WITH_SIMULATOR
-  if (!isSimulation()) {
-#endif
-  if (sockfd != -1)
-  {
-      close(sockfd);
-      sockfd=-1;
-  }
-  else
-      tty_disconnect(fd);
-  fd=-1;
-#ifdef WITH_SIMULATOR
-    }
-#endif
+  */  
   return true;
 }
 
@@ -1404,7 +1309,7 @@ double Skywatcher::get_max_rate() {
 
 bool Skywatcher::dispatch_command(SkywatcherCommand cmd, SkywatcherAxis axis, char *command_arg) throw (EQModError)
 {
-  int err_code = 0, nbytes_written=0, nbytes_read=0;
+  int err_code = 0, nbytes_written=0;
 
   // Clear string
   command[0] = '\0';
@@ -1413,12 +1318,10 @@ bool Skywatcher::dispatch_command(SkywatcherCommand cmd, SkywatcherAxis axis, ch
     snprintf(command, SKYWATCHER_MAX_CMD, "%c%c%c%c", SkywatcherLeadingChar, cmd, axis, SkywatcherTrailingChar);
   else
     snprintf(command, SKYWATCHER_MAX_CMD, "%c%c%c%s%c", SkywatcherLeadingChar, cmd, axis, command_arg, SkywatcherTrailingChar);
-#ifdef WITH_SIMULATOR
   if (!isSimulation()) {
-#endif
-  tcflush(fd, TCIOFLUSH);
+  tcflush(PortFD, TCIOFLUSH);
   
-  if  ( (err_code = tty_write_string(fd, command, &nbytes_written) != TTY_OK))
+  if  ( (err_code = tty_write_string(PortFD, command, &nbytes_written) != TTY_OK))
     {
       char ttyerrormsg[ERROR_MSG_LENGTH];
       tty_error_msg(err_code, ttyerrormsg, ERROR_MSG_LENGTH);
@@ -1426,11 +1329,10 @@ bool Skywatcher::dispatch_command(SkywatcherCommand cmd, SkywatcherAxis axis, ch
 		       ttyerrormsg);
       return false;
    }
-#ifdef WITH_SIMULATOR
   } else {
     telescope->simulator->receive_cmd(command, &nbytes_written);
   }
-#endif
+
   //if (INDI::Logger::debugSerial(cmd)) {
     command[nbytes_written-1]='\0'; //hmmm, remove \r, the  SkywatcherTrailingChar
     DEBUGF(DBG_COMM, "dispatch_command: \"%s\", %d bytes written", command, nbytes_written);
@@ -1443,16 +1345,14 @@ bool Skywatcher::dispatch_command(SkywatcherCommand cmd, SkywatcherAxis axis, ch
 
 bool Skywatcher::read_eqmod() throw (EQModError)
 {
-    int err_code = 0, nbytes_written=0, nbytes_read=0;
+    int err_code = 0, nbytes_read=0;
 
     // Clear string
     response[0] = '\0';
-#ifdef WITH_SIMULATOR
   if (!isSimulation()) {
-#endif
     //Have to onsider cases when we read ! (error) or 0x01 (buffer overflow)
     // Read until encountring a CR
-    if ( (err_code = tty_read_section(fd, response, 0x0D, 15, &nbytes_read)) != TTY_OK)
+    if ( (err_code = tty_read_section(PortFD, response, 0x0D, 15, &nbytes_read)) != TTY_OK)
     {
       char ttyerrormsg[ERROR_MSG_LENGTH];
       tty_error_msg(err_code, ttyerrormsg, ERROR_MSG_LENGTH);
@@ -1460,11 +1360,9 @@ bool Skywatcher::read_eqmod() throw (EQModError)
 		       ttyerrormsg);
       return false;
     }
-#ifdef WITH_SIMULATOR
   } else {
     telescope->simulator->send_reply(response, &nbytes_read);
   }
-#endif
     // Remove CR
     response[nbytes_read-1] = '\0';
 

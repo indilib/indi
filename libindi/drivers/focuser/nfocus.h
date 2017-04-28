@@ -35,14 +35,11 @@ public:
     NFocus();
     ~NFocus();
 
-    virtual bool Connect();
-    virtual bool Disconnect();
+    virtual bool Handshake();
     const char * getDefaultName();
     virtual bool initProperties();
     virtual bool updateProperties();
-    virtual bool ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n);
-    virtual bool ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n);
-    virtual bool ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n);
+    virtual bool ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n);    
     virtual IPState MoveFocuser(FocusDirection dir, int speed, uint16_t duration);
     virtual IPState MoveAbsFocuser(uint32_t ticks);
     virtual IPState MoveRelFocuser(FocusDirection dir, uint32_t ticks);
@@ -51,9 +48,6 @@ protected:
     bool saveConfigItems(FILE *fp);
 
 private:
-
-    int PortFD;
-
     unsigned char CalculateSum(char *rf_cmd);
     int SendCommand(char *rf_cmd);
     int SendRequest(char *rf_cmd);
@@ -71,11 +65,6 @@ private:
     int updateNFPositionAbsolute(double *value);
     int updateNFMaxPosition(double *value);
     int updateNFSetPosition(double *value);
-
-
-
-    ITextVectorProperty PortTP;
-    IText PortT[1];
 
     INumber TemperatureN[1];
     INumberVectorProperty TemperatureNP;

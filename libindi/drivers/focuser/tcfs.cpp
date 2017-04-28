@@ -34,6 +34,7 @@
 #include <indicom.h>
 
 #include "tcfs.h"
+#include "connectionplugins/connectionserial.h"
 
 #define mydev                   "Optec TCF-S"
 #define currentPosition         FocusAbsPosN[0].value
@@ -132,6 +133,9 @@ bool TCFS::initProperties()
         FocusRelPosN[0].value = 0;
         DEBUG(INDI::Logger::DBG_DEBUG, "TCF-S detected. Updating maximum position value to 7000.");
     }
+
+    // Default to 19200
+    serialConnection->setDefaultBaudRate(Connection::Serial::B_19200);
     return true;
 }
 
@@ -192,27 +196,13 @@ bool TCFS::updateProperties()
 **
 **
 *****************************************************************/   
-bool TCFS::Connect()
+bool TCFS::Handshake()
 {
-   if (isConnected())
-		return true;
-
     if (isSimulation())
     {
-        DEBUGF(INDI::Logger::DBG_SESSION, "TCF-S: Simulating connection to port %s.", PortT[0].text);
-
+        DEBUG(INDI::Logger::DBG_SESSION, "TCF-S: Simulating connection.");
         currentPosition = simulated_position;
-
-        fd=-1;
         return true;
-    }
-
-    DEBUG(INDI::Logger::DBG_DEBUG, "Attempting to connect to TCF-S focuser....");
-
-    if (tty_connect(PortT[0].text, 19200, 8, 0, 1, &fd) != TTY_OK)
-    {
-        DEBUGF(INDI::Logger::DBG_SESSION, "Error connecting to port %s. Make sure you have BOTH read and write permission to the port.", PortT[0].text);
-        return false;
     }
 
     dispatch_command(FWAKUP);
@@ -239,9 +229,7 @@ bool TCFS::Disconnect()
 
     dispatch_command(FFMODE);
 
-    tty_disconnect(fd);
-
-    return true;
+    return INDI::Focuser::Disconnect();
 }
 
 /****************************************************************

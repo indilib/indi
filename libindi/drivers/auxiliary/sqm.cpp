@@ -35,6 +35,7 @@
 #include <fcntl.h>
 
 #include "sqm.h"
+#include "connectionplugins/connectiontcp.h"
 
 // We declare an auto pointer to SQM.
 std::unique_ptr<SQM> sqm(new SQM());
@@ -93,11 +94,6 @@ bool SQM::initProperties()
 {
     INDI::DefaultDevice::initProperties();
 
-    // Address/Port
-    IUFillText(&AddressT[0],"ADDRESS","IP","192.168.1.1");
-    IUFillText(&AddressT[1],"PORT","Port","10001");
-    IUFillTextVector(&AddressTP,AddressT,2,getDeviceName(),"TCP_ADDRESS_PORT","SQM Server", MAIN_CONTROL_TAB,IP_RW,60,IPS_IDLE);
-
     // Average Readings
     IUFillNumber(&AverageReadingN[0], "SKY_BRIGHTNESS", "Quality (mag/arcsec^2)", "%6.2f", -20, 30, 0, 0);
     IUFillNumber(&AverageReadingN[1], "SENSOR_FREQUENCY", "Freq (Hz)", "%6.2f", 0, 1000000, 0, 0);
@@ -113,17 +109,16 @@ bool SQM::initProperties()
     IUFillNumber(&UnitInfoN[3], "Serial", "", "%.f", 0, 1000000, 0, 0);
     IUFillNumberVector(&UnitInfoNP, UnitInfoN, 4, getDeviceName(), "Unit Info", "", UNIT_TAB, IP_RW, 0, IPS_IDLE);
 
+    tcpConnection = new Connection::TCP(this);
+    tcpConnection->setDefaultHost("192.168.1.1");
+    tcpConnection->setDefaultPort(10001);
+    tcpConnection->registerHandshake([&]() { return getDeviceInfo(); });
+
+    registerConnection(tcpConnection);
+
     addDebugControl();
 
     return true;
-}
-
-void SQM::ISGetProperties (const char *dev)
-{
-    INDI::DefaultDevice::ISGetProperties(dev);
-
-    defineText(&AddressTP);
-    loadConfig(true, "TCP_ADDRESS_PORT");
 }
 
 bool SQM::updateProperties()
@@ -132,7 +127,8 @@ bool SQM::updateProperties()
 
     if (isConnected())
     {
-        getDeviceInfo();
+        // Already called by handshake
+        //getDeviceInfo();
 
         defineNumber(&AverageReadingNP);
         defineNumber(&UnitInfoNP);
@@ -146,106 +142,6 @@ bool SQM::updateProperties()
     return true;
 }
 
-
-const char * SQM::getDefaultName()
-{
-    return (char *)"SQM";
-}
-
-bool SQM::Connect()
-{
-    if (sockfd != -1)
-        close(sockfd);
-
-    struct timeval ts;
-    ts.tv_sec =SQM_TIMEOUT;
-    ts.tv_usec=0;
-
-    struct sockaddr_in serv_addr;
-    struct hostent *hp = NULL;
-    int ret = 0;
-
-    /* lookup host address */
-    hp = gethostbyname(AddressT[0].text);
-    if (!hp)
-    {
-        DEBUG(INDI::Logger::DBG_ERROR, "Failed to lookup IP Address or hostname.");
-        return false;
-    }    
-
-    // Address info
-    memset (&serv_addr, 0, sizeof(serv_addr));
-    serv_addr.sin_family = AF_INET;
-    serv_addr.sin_addr.s_addr = ((struct in_addr *)(hp->h_addr_list[0]))->s_addr;
-    serv_addr.sin_port = htons(atoi(AddressT[1].text));
-
-    /* create a socket to the SQM server */
-    if ((sockfd = socket (AF_INET, SOCK_STREAM, 0)) < 0)
-    {
-        DEBUG(INDI::Logger::DBG_ERROR, "Failed to create socket.");
-        return false;
-    }
-
-    /* connect */
-    if ( (ret = ::connect (sockfd,(struct sockaddr *)&serv_addr,sizeof(serv_addr))) < 0)
-    {
-        DEBUGF(INDI::Logger::DBG_ERROR, "Failed to connect to SQM server %s@%s: %s.", AddressT[0].text, AddressT[1].text, strerror(errno));
-        close(sockfd);
-        return false;
-    }
-
-    // Set socket timeout
-    setsockopt(sockfd, SOL_SOCKET, SO_RCVTIMEO, (char *)&ts,sizeof(struct timeval));
-
-    DEBUGF(INDI::Logger::DBG_SESSION, "Connected successfuly to %s.", getDeviceName());
-
-    SetTimer(POLLMS);
-
-    return true;
-}
-
-bool SQM::Disconnect()
-{
-    close(sockfd);
-    sockfd=-1;
-
-    DEBUGF(INDI::Logger::DBG_SESSION,"%s is offline.", getDeviceName());
-
-    return true;
-}
-
-bool SQM::ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n)
-{    
-    return INDI::DefaultDevice::ISNewNumber(dev, name, values, names, n);
-}
-
-bool SQM::ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n)
-{
-    if(strcmp(dev,getDeviceName())==0)
-    {
-        if (!strcmp(AddressTP.name, name))
-        {
-            IUUpdateText(&AddressTP, texts, names, n);
-            AddressTP.s = IPS_OK;
-            IDSetText(&AddressTP, NULL);
-            return true;
-        }        
-    }
-
-    return INDI::DefaultDevice::ISNewText(dev, name, texts, names, n);
-}
-
-bool SQM::ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n)
-{
-    return INDI::DefaultDevice::ISNewSwitch(dev, name, states, names, n);
-}
-
-bool SQM::saveConfigItems(FILE *fp)
-{
-    IUSaveConfigText(fp, &AddressTP);
-    return true;
-}
-
 bool SQM::getReadings()
 {        
     const char *cmd = "rx";
@@ -253,7 +149,7 @@ bool SQM::getReadings()
 
     DEBUGF(INDI::Logger::DBG_DEBUG, "CMD: %s", cmd);
 
-    ssize_t written = write(sockfd, cmd, 2);
+    ssize_t written = write(PortFD, cmd, 2);
 
     if (written < 2)
     {
@@ -265,7 +161,7 @@ bool SQM::getReadings()
 
     while (received < 57)
     {
-        ssize_t response = read(sockfd, buffer+received, 57-received);
+        ssize_t response = read(PortFD, buffer+received, 57-received);
         if (response < 0)
         {
             DEBUGF(INDI::Logger::DBG_ERROR, "Error getting device readings: %s", strerror(errno));
@@ -302,14 +198,21 @@ bool SQM::getReadings()
     return true;
 }
 
+const char * SQM::getDefaultName()
+{
+    return (char *)"SQM";
+}
+
 bool SQM::getDeviceInfo()
 {
     const char *cmd = "ix";
     char buffer[39];
 
+    PortFD = tcpConnection->getPortFD();
+
     DEBUGF(INDI::Logger::DBG_DEBUG, "CMD: %s", cmd);
 
-    ssize_t written = write(sockfd, cmd, 2);
+    ssize_t written = write(PortFD, cmd, 2);
 
     if (written < 2)
     {
@@ -321,7 +224,7 @@ bool SQM::getDeviceInfo()
 
     while (received < 39)
     {
-        ssize_t response = read(sockfd, buffer+received, 39-received);
+        ssize_t response = read(PortFD, buffer+received, 39-received);
         if (response < 0)
         {
             DEBUGF(INDI::Logger::DBG_ERROR, "Error getting device info: %s", strerror(errno));

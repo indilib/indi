@@ -33,7 +33,7 @@ INDI::GuiderInterface::~GuiderInterface()
 
 }
 
-void INDI::GuiderInterface::initGuiderProperties(const char *deviceName, const char* groupName)
+void INDI::GuiderInterface::initGuiderProperties(const char * deviceName, const char * groupName)
 {
 
     IUFillNumber(&GuideNSN[DIRECTION_NORTH],"TIMED_GUIDE_N","North (ms)","%.f",0,60000,100,0);
@@ -45,7 +45,7 @@ void INDI::GuiderInterface::initGuiderProperties(const char *deviceName, const c
     IUFillNumberVector(&GuideWENP,GuideWEN,2,deviceName,"TELESCOPE_TIMED_GUIDE_WE","Guide E/W",groupName,IP_RW,60,IPS_IDLE);
 }
 
-void INDI::GuiderInterface::processGuiderProperties(const char *name, double values[], char *names[], int n)
+void INDI::GuiderInterface::processGuiderProperties(const char * name, double values[], char * names[], int n)
 {
     if(strcmp(name,GuideNSNP.name)==0)
     {

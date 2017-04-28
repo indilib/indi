@@ -7,7 +7,9 @@ include(GNUInstallDirs)
 
 set(UDEVRULES_INSTALL_DIR "/lib/udev/rules.d" CACHE STRING "Base directory for udev rules")
 
-set(CMAKE_CXX_FLAGS "-std=c++0x ${CMAKE_CXX_FLAGS}")
+if (NOT WIN32 AND NOT ANDROID)
+set(CMAKE_CXX_FLAGS "-std=c++11 ${CMAKE_CXX_FLAGS}")
+endif(NOT WIN32 AND NOT ANDROID)
 
 find_package(CFITSIO REQUIRED)
 find_package(INDI REQUIRED)
@@ -44,7 +46,7 @@ set(indi_miccd_SRCS
 
 add_executable(indi_mi_ccd ${indi_miccd_SRCS})
 
-target_link_libraries(indi_mi_ccd ${INDI_DRIVER_LIBRARIES} ${CFITSIO_LIBRARIES}
+target_link_libraries(indi_mi_ccd ${INDI_LIBRARIES} ${CFITSIO_LIBRARIES}
                       ${MILIB} ${LIBUSB_1_LIBRARIES} rt)
 
 if(THREADS_HAVE_PTHREAD_ARG)

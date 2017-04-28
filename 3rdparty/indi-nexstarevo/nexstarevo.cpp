@@ -9,6 +9,8 @@
 #include "config.h"
 #include "nexstarevo.h"
 #include <indicom.h>
+#include <connectionplugins/connectionserial.h>
+#include <connectionplugins/connectiontcp.h>
 
 #include "NexStarAUXScope.h"
 
@@ -81,12 +83,13 @@ NexStarEvo::NexStarEvo() :
     PreviousWEMotion(PREVIOUS_WE_MOTION_UNKNOWN),
     TraceThisTickCount(0),
     TraceThisTick(false),
+    scope(),
     DBG_NSEVO(INDI::Logger::getInstance().addDebugLevel("NexStar Evo Verbose", "NSEVO"))
 {
-    scope = NULL;
     setVersion(NSEVO_VERSION_MAJOR, NSEVO_VERSION_MINOR);
     SetTelescopeCapability( TELESCOPE_CAN_PARK | 
-                            TELESCOPE_CAN_SYNC | 
+                            TELESCOPE_CAN_SYNC |
+                            TELESCOPE_CAN_GOTO |
                             TELESCOPE_CAN_ABORT |
                             TELESCOPE_HAS_TIME |
                             TELESCOPE_HAS_LOCATION, 4);
@@ -130,7 +133,7 @@ bool NexStarEvo::Abort()
 
     AxisStatusAZ = AxisStatusALT = STOPPED; 
     ScopeStatus = IDLE ;
-    scope->Abort();
+    scope.Abort();
     AbortSP.s      = IPS_OK;
     IUResetSwitch(&AbortSP);
     IDSetSwitch(&AbortSP, NULL);
@@ -139,23 +142,40 @@ bool NexStarEvo::Abort()
     return true;
 }
 
+#if 0
 bool NexStarEvo::Connect()
 {
     SetTimer(POLLMS);
-    if (scope == NULL)
-        scope = new NexStarAUXScope(IPAddressT->text,IPPortN->value);
+    // Check if TCP Address exists and not empty.
+    // We call the TCP function in case the connection mode is set explicitly to TCP **OR** if the address is not empty (for CONNECTION_BOTH) then
+    // TCP connection has higher priority than serial port.
+    // For now only autodetected TCP connection is supported
+    TelescopeConnection mode = getConnectionMode();
+    if (mode == CONNECTION_TCP && (AddressT[0].text && AddressT[0].text[0] && AddressT[1].text && AddressT[1].text[0])) {
+        // We have the proposed IP:port let us pass that
+
+    } else if (mode == CONNECTION_TCP ) {
+        // TCP mode but no IP fields - use detection/default IP:port
+        if (scope == NULL)
+            scope = new NexStarAUXScope();
+    }
     if (scope != NULL) {
-        scope->Connect();
+        scope.Connect();
     }
     return true;
+}
+#endif
+
+bool NexStarEvo::Handshake()
+{
+    //scope.initScope(tcpConnection->host(), tcpConnection->port());
+    return scope.Connect();
 }
 
 bool NexStarEvo::Disconnect()
 {
-    if (scope != NULL) {
-        scope->Disconnect();
-    }
-    return true;
+    scope.Disconnect();
+    return INDI::Telescope::Disconnect();
 }
 
 const char * NexStarEvo::getDefaultName()
@@ -169,7 +189,7 @@ bool NexStarEvo::Park()
     // Park at the northern horizon 
     // This is a designated by celestron parking position
     Abort();
-    scope->Park();
+    scope.Park();
     TrackState = SCOPE_PARKING;
     ParkSP.s=IPS_BUSY;
     IDSetSwitch(&ParkSP, NULL);
@@ -256,7 +276,7 @@ double anglediff(double a, double b){
     b = fmod(b,360.0);
     d = fmod(a-b+360.0, 360.0);
     if (d > 180) d = 360.0 - d;
-    return abs(d)*((a - b >= 0 && a - b <= 180) || (a - b <=-180 && a- b>= -360) ? 1 : -1);
+    return std::abs(d)*((a - b >= 0 && a - b <= 180) || (a - b <=-180 && a- b>= -360) ? 1 : -1);
 }
 
 // TODO: Make adjustment for the approx time it takes to slew to the given pos.
@@ -323,14 +343,14 @@ bool NexStarEvo::Goto(double ra,double dec)
     if (ScopeStatus == APPROACH) {
         // We need to make a slow slew to approach the final position
         ScopeStatus = SLEWING_SLOW;
-        scope->GoToSlow(long(AltAz.alt * STEPS_PER_DEGREE),
+        scope.GoToSlow(long(AltAz.alt * STEPS_PER_DEGREE),
                         long(AltAz.az * STEPS_PER_DEGREE),
                         ISS_ON == IUFindSwitch(&CoordSP,"TRACK")->s);
     } else {
         // Just make a standard fast slew
         slewTicks = 0;
         ScopeStatus = SLEWING_FAST;
-        scope->GoToFast(long(AltAz.alt * STEPS_PER_DEGREE),
+        scope.GoToFast(long(AltAz.alt * STEPS_PER_DEGREE),
                         long(AltAz.az * STEPS_PER_DEGREE),
                         ISS_ON == IUFindSwitch(&CoordSP,"TRACK")->s);    
     }
@@ -353,12 +373,8 @@ bool NexStarEvo::initProperties()
 
     TrackState=SCOPE_IDLE;
 
-    // Build the UI for the scope
-    IUFillText(&IPAddressT[0],"ADDRESS","IP address", NSEVO_DEFAULT_IP);
-    IUFillTextVector(&IPAddressTP,IPAddressT,1,getDeviceName(),"DEVICE_IP_ADDRESS","IP address",OPTIONS_TAB,IP_RW,60,IPS_IDLE);
-    
-    IUFillNumber(&IPPortN[0],"PORT","IP port","%g",1,65535,1, NSEVO_DEFAULT_PORT);
-    IUFillNumberVector(&IPPortNP,IPPortN,1,getDeviceName(),"DEVICE_IP_PORT","IP port",OPTIONS_TAB,IP_RW,60,IPS_IDLE);
+    // We don't want serial port for now
+    unRegisterConnection(serialConnection);
 
     /* Add debug controls so we may debug driver if necessary */
     addDebugControl();
@@ -373,9 +389,6 @@ bool NexStarEvo::saveConfigItems(FILE *fp)
 {
     INDI::Telescope::saveConfigItems(fp);
     SaveAlignmentConfigProperties(fp);
-    IUSaveConfigText(fp, &IPAddressTP);
-    IUSaveConfigNumber(fp, &IPPortNP);
-    
     return true;
 }
 
@@ -385,13 +398,6 @@ void NexStarEvo::ISGetProperties (const char *dev)
     /* First we let our parent populate */
     INDI::Telescope::ISGetProperties(dev);
 
-    // We need to define this before connection
-    defineText(&IPAddressTP);
-    defineNumber(&IPPortNP);
-
-    loadConfig(true, "DEVICE_IP_ADDRESS");
-    loadConfig(true, "DEVICE_IP_PORT");
-    
     if(isConnected())
     {
     }
@@ -455,18 +461,6 @@ bool NexStarEvo::ISNewText (const char *dev, const char *name, char *texts[], ch
 {
     if(strcmp(dev,getDeviceName())==0)
     {
-        // Process IP address
-        if(!strcmp(name,IPAddressTP.name))
-        {
-            //  This is IP of the scope, so, lets process it
-            int rc;
-            IPAddressTP.s=IPS_OK;
-            rc=IUUpdateText(&IPAddressTP,texts,names,n);
-            //  Update client display
-            IDSetText(&IPAddressTP,NULL);
-            //  We processed this one, so, tell the world we did it
-            return true;
-        }
         // Process alignment properties
         ProcessAlignmentTextProperties(this, name, texts, names, n);
     }
@@ -502,10 +496,10 @@ bool NexStarEvo::MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command)
                 rate = MAX_SLEW_RATE;
                 break;
         }
-        return scope->SlewALT(((AxisDirectionALT==FORWARD)? 1 : -1)*rate);
+        return scope.SlewALT(((AxisDirectionALT==FORWARD)? 1 : -1)*rate);
     }
     else
-        return scope->SlewALT(0);     
+        return scope.SlewALT(0);     
     
 }
 
@@ -537,10 +531,10 @@ bool NexStarEvo::MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command)
                 rate = MAX_SLEW_RATE;
                 break;
         }
-        return scope->SlewAZ(((AxisDirectionAZ==FORWARD)? -1 : 1)*rate);
+        return scope.SlewAZ(((AxisDirectionAZ==FORWARD)? -1 : 1)*rate);
     }
     else
-        return scope->SlewAZ(0);     
+        return scope.SlewAZ(0);     
 }
 
 bool NexStarEvo::trackingRequested()
@@ -553,7 +547,7 @@ bool NexStarEvo::ReadScopeStatus()
     struct ln_hrz_posn AltAz;
     double RightAscension, Declination;
 
-    AltAz.alt = double(scope->GetALT()) / STEPS_PER_DEGREE;
+    AltAz.alt = double(scope.GetALT()) / STEPS_PER_DEGREE;
     // libnova indexes Az from south while Celestron controllers index from north
     // Never mix two controllers/drivers they will never agree perfectly.
     // Furthermore the celestron hand controler resets the position encoders
@@ -562,7 +556,7 @@ bool NexStarEvo::ReadScopeStatus()
     // controller (That would involve adding 180deg here to the azimuth -
     // this way the celestron nexstar driver and this would agree in some
     // situations but not in other - better not to attepmpt impossible!).
-    AltAz.az = double(scope->GetAZ()) / STEPS_PER_DEGREE;
+    AltAz.az = double(scope.GetAZ()) / STEPS_PER_DEGREE;
     TelescopeDirectionVector TDV = TelescopeDirectionVectorFromAltitudeAzimuth(AltAz);
     
     if (TraceThisTick)
@@ -647,8 +641,8 @@ bool NexStarEvo::ReadScopeStatus()
 bool NexStarEvo::Sync(double ra, double dec)
     {
         struct ln_hrz_posn AltAz;
-        AltAz.alt = double(scope->GetALT()) / STEPS_PER_DEGREE;
-        AltAz.az = double(scope->GetAZ()) / STEPS_PER_DEGREE;
+        AltAz.alt = double(scope.GetALT()) / STEPS_PER_DEGREE;
+        AltAz.az = double(scope.GetAZ()) / STEPS_PER_DEGREE;
 
         AlignmentDatabaseEntry NewEntry;
         NewEntry.ObservationJulianDate = ln_get_julian_from_sys();
@@ -701,7 +695,7 @@ void NexStarEvo::TimerHit()
     dt = tv.tv_sec - ltv.tv_sec + (tv.tv_usec - ltv.tv_usec)/1e6;
     ltv = tv;
 
-    scope->TimerTick(dt);
+    scope.TimerTick(dt);
 
     INDI::Telescope::TimerHit(); // This will call ReadScopeStatus
 
@@ -710,14 +704,14 @@ void NexStarEvo::TimerHit()
     switch(TrackState)
     {
         case SCOPE_PARKING:
-            if (!scope->slewing()) {
+            if (!scope.slewing()) {
                 SetParked(true);
                 DEBUG(DBG_NSEVO, "Telescope parked.");
             }
             break;
 
         case SCOPE_SLEWING:
-            if (scope->slewing()) {
+            if (scope.slewing()) {
                 // The scope is still slewing
                 slewTicks++;
                 if ((ScopeStatus == SLEWING_FAST) && (slewTicks > maxSlewTicks)) {
@@ -789,17 +783,17 @@ void NexStarEvo::TimerHit()
                 long altRate, azRate;
                 
                 // This is in steps per minute
-                altRate=long(AltAz.alt * STEPS_PER_DEGREE - scope->GetALT());
-                azRate=long(AltAz.az * STEPS_PER_DEGREE - scope->GetAZ());
+                altRate=long(AltAz.alt * STEPS_PER_DEGREE - scope.GetALT());
+                azRate=long(AltAz.az * STEPS_PER_DEGREE - scope.GetAZ());
 
                 if (TraceThisTick) 
                     DEBUGF(DBG_NSEVO, "Target (AltAz): %f  %f  Scope  (AltAz)  %f  %f", 
                         AltAz.alt, 
                         AltAz.az,
-                        scope->GetALT()/ STEPS_PER_DEGREE,
-                        scope->GetAZ()/ STEPS_PER_DEGREE);
+                        scope.GetALT()/ STEPS_PER_DEGREE,
+                        scope.GetAZ()/ STEPS_PER_DEGREE);
                 
-                if (abs(azRate) > STEPS_PER_REVOLUTION/2) {
+                if (std::abs(azRate) > STEPS_PER_REVOLUTION/2) {
                     // Crossing the meridian. AZ skips from 350+ to 0+
                     // Correct for wrap-around
                     azRate += STEPS_PER_REVOLUTION;
@@ -811,7 +805,7 @@ void NexStarEvo::TimerHit()
                 // conv. factor: TRACK_SCALE = 60000/STEPS_PER_DEGREE
                 altRate=long(TRACK_SCALE*altRate);
                 azRate=long(TRACK_SCALE*azRate);
-                scope->Track(altRate,azRate);
+                scope.Track(altRate,azRate);
 
                 if (TraceThisTick) DEBUGF(DBG_NSEVO, "TimerHit - Tracking AltRate %d AzRate %d ; Pos diff (deg): Alt: %f Az: %f",
                         altRate, azRate, AltAz.alt-AAzero.alt, AltAz.az- AAzero.az);
@@ -829,7 +823,7 @@ void NexStarEvo::TimerHit()
 bool NexStarEvo::updateLocation(double latitude, double longitude, double elevation)
 {
     UpdateLocation(latitude, longitude, elevation);
-    scope->UpdateLocation(latitude, longitude, elevation);
+    scope.UpdateLocation(latitude, longitude, elevation);
     return true;
 }
 

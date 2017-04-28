@@ -42,36 +42,19 @@ class Vantage : public INDI::Weather
     virtual ~Vantage();
 
     //  Generic indi device entries
-    bool Connect();
-    bool Disconnect();
+    virtual bool Handshake() override;
     const char *getDefaultName();
 
     virtual bool initProperties();
-    virtual void ISGetProperties (const char *dev);
-    virtual bool ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n);
-    virtual bool ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n);
 
     protected:
 
     virtual IPState updateWeather();
 
-    virtual bool saveConfigItems(FILE *fp);
-
 private:
 
     bool ack();
     bool wakeup();
-
-    // Device physical port
-    ITextVectorProperty PortTP;
-    IText PortT[1];
-
-    // Baud Rate
-    ISwitch BaudRateS[6];
-    ISwitchVectorProperty BaudRateSP;
-
-
-    int PortFD;
 };
 
 #endif

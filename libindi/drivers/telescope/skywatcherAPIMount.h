@@ -20,6 +20,9 @@
 
 #include "skywatcherAPI.h"
 
+typedef enum { PARK_COUNTERCLOCKWISE = 0, PARK_CLOCKWISE } ParkDirection_t;
+typedef enum { PARK_NORTH = 0, PARK_EAST, PARK_SOUTH, PARK_WEST } ParkPosition_t;
+
 class SkywatcherAPIMount : public SkywatcherAPI, public INDI::Telescope, public INDI::AlignmentSubsystem::AlignmentSubsystemForDrivers
 {
 public:
@@ -27,10 +30,10 @@ public:
     virtual ~SkywatcherAPIMount();
 
     //  overrides of base class virtual functions
-    virtual bool Abort();    
-    virtual bool Connect();
+    virtual bool Abort();
+    virtual bool Handshake();
     virtual const char *getDefaultName();
-    virtual bool Goto(double,double);
+    virtual bool Goto(double ra, double dec);
     virtual bool initProperties();
     virtual void ISGetProperties (const char *dev);
     virtual bool ISNewBLOB (const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[], char *names[], int n);
@@ -40,7 +43,9 @@ public:
     double GetSlewRate();
     virtual bool MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command);
     virtual bool MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command);
+    double GetParkDeltaAz(ParkDirection_t target_direction, ParkPosition_t target_position);
     virtual bool Park();
+    virtual bool UnPark();
     virtual bool ReadScopeStatus();
     virtual bool saveConfigItems(FILE *fp);
     virtual bool Sync(double ra, double dec);
@@ -84,6 +89,32 @@ private:
     INumber AxisTwoEncoderValues[3];
     INumberVectorProperty AxisTwoEncoderValuesV;
 
+    // A switch for silent/highspeed slewing modes
+    enum { SLEW_SILENT, SLEW_NORMAL };
+    ISwitch SlewModes[2];
+    ISwitchVectorProperty SlewModesSP;
+
+    // A switch for SoftPEC modes
+    enum { SOFTPEC_ENABLED, SOFTPEC_DISABLED };
+    ISwitch SoftPECModes[2];
+    ISwitchVectorProperty SoftPECModesSP;
+
+    // SoftPEC value for tracking mode
+    INumber SoftPecN;
+    INumberVectorProperty SoftPecNP;
+
+    // A switch for park movement directions (clockwise/counterclockwise)
+    ISwitch ParkMovementDirection[2];
+    ISwitchVectorProperty ParkMovementDirectionSP;
+
+    // A switch for park positions
+    ISwitch ParkPosition[4];
+    ISwitchVectorProperty ParkPositionSP;
+
+    // A switch for unpark positions
+    ISwitch UnparkPosition[4];
+    ISwitchVectorProperty UnparkPositionSP;
+
     // Previous motion direction
     typedef enum { PREVIOUS_NS_MOTION_NORTH = DIRECTION_NORTH,
                     PREVIOUS_NS_MOTION_SOUTH = DIRECTION_SOUTH,
@@ -97,6 +128,14 @@ private:
     // Tracking
     ln_equ_posn CurrentTrackingTarget;
     long OldTrackingTarget[2];
+    struct ln_hrz_posn CurrentAltAz;
+    bool ResetTrackingSeconds;
+    int TrackingSecs;
+
+    /// Save the serial port name
+    std::string SerialPortName;
+    /// Recover after disconnection
+    bool RecoverAfterReconnection;
 
 #ifdef USE_INITIAL_JULIAN_DATE
     double InitialJulianDate;

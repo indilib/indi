@@ -92,7 +92,6 @@ bool HorizonLimits::updateProperties ()
   //IDLog("HorizonLimits update properties connected = %d.\n",(telescope->isConnected()?1:0) ); 
   if (telescope->isConnected())
     {
-      initProperties();
       telescope->defineText(HorizonLimitsDataFileTP);
       telescope->defineBLOB(HorizonLimitsDataFitsBP);
       telescope->defineNumber(HorizonLimitsPointNP);
@@ -112,15 +111,6 @@ bool HorizonLimits::updateProperties ()
       telescope->deleteProperty(HorizonLimitsFileOperationSP->name);
       telescope->deleteProperty(HorizonLimitsOnLimitSP->name);
       telescope->deleteProperty(HorizonLimitsLimitGotoSP->name);
-
-      HorizonLimitsDataFileTP=NULL;
-      HorizonLimitsDataFitsBP=NULL;
-      HorizonLimitsPointNP=NULL;
-      HorizonLimitsTraverseSP=NULL;
-      HorizonLimitsManageSP=NULL;
-      HorizonLimitsFileOperationSP=NULL;
-      HorizonLimitsOnLimitSP=NULL;
-      HorizonLimitsLimitGotoSP=NULL;
     }
   return true;
 }

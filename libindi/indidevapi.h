@@ -306,9 +306,10 @@ extern void IDSnoopDevice (const char *snooped_device, const char *snooped_prope
 
 /** \brief Function a Driver calls to control whether they will receive BLOBs from snooped devices.
     \param snooped_device name of the device to snoop.
+    \param snooped_property name of property to snoop. If NULL, then all BLOBs from the given device are snooped.
     \param bh How drivers handle BLOBs incoming from snooping drivers.
 */
-extern void IDSnoopBLOBs (const char *snooped_device, BLOBHandling bh);
+extern void IDSnoopBLOBs (const char *snooped_device, const char *snooped_property, BLOBHandling bh);
 
 /*@}*/
 
@@ -469,6 +470,18 @@ extern int IUFindIndex (const char *needle, char **hay, unsigned int n);
 */
 
 extern int IUFindOnSwitchIndex (const ISwitchVectorProperty *sp);
+
+/** \brief Returns the name of the first ON switch it finds in the supplied arguments.
+
+*   \note This is only valid for ISR_1OFMANY mode. That is, when only one switch out of many is allowed to be ON. Do not use this function if you can have multiple ON switches in the same vector property.
+*   \note This is a convience function intended to be used in ISNewSwitch(...) function to find out ON switch name without having to change actual switch state via IUUpdateSwitch(..)
+*
+* \param states list of switch states passed by ISNewSwitch()
+* \param names list of switch names passed by ISNewSwitch()
+* \param n number of switches passed by ISNewSwitch()
+* \return name of the \e first ON ISwitch member if found. If all switches are off, NULL is returned.
+*/
+extern const char * IUFindOnSwitchName(ISState *states, char *names[], int n);
 
 /** \brief Reset all switches in a switch vector property to OFF.
 *

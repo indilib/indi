@@ -131,14 +131,14 @@ IDDelete (const char *dev, const char *name, const char *fmt, ...)
  * name ignored if NULL or empty.
  */
 void
-IDSnoopDevice (const char *snooped_device_name, const char *snooped_property_name)
+IDSnoopDevice (const char *snooped_device, const char *snooped_property)
 {
     pthread_mutex_lock(&stdout_mutex);
 	xmlv1();
-	if (snooped_property_name && snooped_property_name[0])
-        printf ("<getProperties version='%g' device='%s' name='%s'/>\n", INDIV, snooped_device_name, snooped_property_name);
+    if (snooped_property && snooped_property[0])
+        printf ("<getProperties version='%g' device='%s' name='%s'/>\n", INDIV, snooped_device, snooped_property);
 	else
-        printf ("<getProperties version='%g' device='%s'/>\n", INDIV, snooped_device_name);
+        printf ("<getProperties version='%g' device='%s'/>\n", INDIV, snooped_device);
 	fflush (stdout);
     pthread_mutex_unlock(&stdout_mutex);
 }
@@ -147,7 +147,7 @@ IDSnoopDevice (const char *snooped_device_name, const char *snooped_property_nam
  * silently ignored if given device is not already registered for snooping.
  */
 void 
-IDSnoopBLOBs (const char *snooped_device, BLOBHandling bh)
+IDSnoopBLOBs (const char *snooped_device, const char *snooped_property, BLOBHandling bh)
 {
 	const char *how;
 
@@ -160,8 +160,10 @@ IDSnoopBLOBs (const char *snooped_device, BLOBHandling bh)
 
     pthread_mutex_lock(&stdout_mutex);
 	xmlv1();
-	printf ("<enableBLOB device='%s'>%s</enableBLOB>\n",
-						snooped_device, how);
+    if (snooped_property && snooped_property[0])
+        printf ("<enableBLOB device='%s' name='%s'>%s</enableBLOB>\n", snooped_device, snooped_property, how);
+    else
+        printf ("<enableBLOB device='%s'>%s</enableBLOB>\n", snooped_device, how);
 	fflush (stdout);
     pthread_mutex_unlock(&stdout_mutex);
 }
@@ -791,39 +793,48 @@ IUSnoopSwitch (XMLEle *root, ISwitchVectorProperty *svp)
 int
 IUSnoopBLOB (XMLEle *root, IBLOBVectorProperty *bvp)
 {
-	char *dev, *name;
-	XMLEle *ep;
-	int i;
+    char *dev, *name;
+    XMLEle *ep;
 
-	/* check and crack type, device, name and state */
-	if (strcmp (tagXMLEle(root), "setBLOBVector") ||
-					crackDN (root, &dev, &name, NULL) < 0)
-	    return (-1);
-	if (strcmp (dev, bvp->device) || strcmp (name, bvp->name))
-	    return (-1);	/* not this property */
-	(void) crackIPState (findXMLAttValu (root,"state"), &bvp->s);
+    /* check and crack type, device, name and state */
+    if (strcmp (tagXMLEle(root), "setBLOBVector") || crackDN (root, &dev, &name, NULL) < 0)
+        return (-1);
 
-	/* match each oneBLOB with one IBLOB */
-	for (ep = nextXMLEle(root,1); ep; ep = nextXMLEle(root,0)) {
-        if (!strcmp (tagXMLEle(ep)+3, "BLOB")) {
-		const char *name = findXMLAttValu (ep, "name");
-		for (i = 0; i < bvp->nbp; i++) {
-		    IBLOB *bp = &bvp->bp[i];
-		    if (!strcmp (bp->name, name)) {
-			strcpy (bp->format, findXMLAttValu (ep,"format"));
-			bp->size = atof (findXMLAttValu (ep,"size"));
-			bp->bloblen = pcdatalenXMLEle(ep)+1;
-			if (bp->blob)
-			    free (bp->blob);
-			bp->blob = strcpy(malloc(bp->bloblen),pcdataXMLEle(ep));
-			break;
-		    }
-		}
-	    }
-	}
+    if (strcmp (dev, bvp->device) || strcmp (name, bvp->name))
+        return (-1);	/* not this property */
 
-	/* ok */
-	return (0);
+    crackIPState (findXMLAttValu (root,"state"), &bvp->s);
+
+    for (ep = nextXMLEle(root,1); ep; ep = nextXMLEle(root,0))
+    {
+        if (strcmp (tagXMLEle(ep), "oneBLOB") == 0)
+        {
+            XMLAtt *na = findXMLAtt (ep, "name");
+            if (na == NULL)
+                return (-1);
+
+            IBLOB *bp = IUFindBLOB(bvp, valuXMLAtt(na));
+
+            if (bp == NULL)
+                return (-1);
+
+            XMLAtt *fa = findXMLAtt (ep, "format");
+            XMLAtt *sa = findXMLAtt (ep, "size");
+            XMLAtt *ec = findXMLAtt (ep, "enclen");
+            if (fa && sa && ec)
+            {
+
+                int enclen = atoi(valuXMLAtt(ec));
+                bp->blob = realloc (bp->blob, 3*enclen/4);
+                bp->bloblen = from64tobits_fast(bp->blob, pcdataXMLEle(ep), enclen);
+                strncpy(bp->format, valuXMLAtt(fa), MAXINDIFORMAT);
+                bp->size = atoi(valuXMLAtt(sa));
+            }
+        }
+    }
+
+    /* ok */
+    return (0);
 }
 
 /* callback when INDI client message arrives on stdin.
@@ -1160,6 +1171,7 @@ dispatch (XMLEle *root, char msg[])
                 XMLAtt *na = findXMLAtt (ep, "name");
                 XMLAtt *fa = findXMLAtt (ep, "format");
                 XMLAtt *sa = findXMLAtt (ep, "size");
+                XMLAtt *el = findXMLAtt (ep, "enclen");
                 if (na && fa && sa) {
                     if (n >= maxn) {
                         int newsz = (maxn=n+1)*sizeof(char *);
@@ -1171,6 +1183,9 @@ dispatch (XMLEle *root, char msg[])
                         blobsizes = (int *) realloc(blobsizes,newsz);
                     }
                     int bloblen = pcdatalenXMLEle(ep);
+                    // enclen is optional and not required by INDI protocol
+                    if (el)
+                        bloblen = atoi(valuXMLAtt(el));
                     blobs[n] = malloc (3*bloblen/4);
                     blobsizes[n] = from64tobits_fast(blobs[n], pcdataXMLEle(ep), bloblen);
                     names[n] = valuXMLAtt(na);
@@ -1198,30 +1213,14 @@ dispatch (XMLEle *root, char msg[])
 
 int IUReadConfig(const char *filename, const char *dev, const char *property, int silent, char errmsg[])
 {
-    char configFileName[MAXRBUF];
     char *rname, *rdev;
     XMLEle *root = NULL, *fproot = NULL;
     LilXML *lp = newLilXML();
 
-    FILE *fp = NULL;
+    FILE *fp = IUGetConfigFP(filename, dev, "r", errmsg);
 
-    if (filename)
-         strncpy(configFileName, filename, MAXRBUF);
-     else
-    {
-        if (getenv("INDICONFIG"))
-            strncpy(configFileName, getenv("INDICONFIG"), MAXRBUF);
-        else
-           snprintf(configFileName, MAXRBUF, "%s/.indi/%s_config.xml", getenv("HOME"), dev);
-
-    }
-
-    fp = fopen(configFileName, "r");
     if (fp == NULL)
-    {
-         snprintf(errmsg, MAXRBUF, "Unable to read user config file. Error loading file %s: %s\n", configFileName, strerror(errno));
-         return -1;
-    }
+        return -1;
 
     fproot = readXMLFile(fp, lp, errmsg);
 
@@ -1340,7 +1339,7 @@ IDMessage (const char *dev, const char *fmt, ...)
      pthread_mutex_unlock(&stdout_mutex);
 }
 
-FILE * IUGetConfigFP(const char *filename, const char *dev, char errmsg[])
+FILE * IUGetConfigFP(const char *filename, const char *dev, const char *mode, char errmsg[])
 {
     char configFileName[MAXRBUF];
     char configDir[MAXRBUF];
@@ -1369,7 +1368,7 @@ FILE * IUGetConfigFP(const char *filename, const char *dev, char errmsg[])
          }
      }
 
-     fp = fopen(configFileName, "w");
+     fp = fopen(configFileName, mode);
      if (fp == NULL)
      {
           snprintf(errmsg, MAXRBUF, "Unable to open config file. Error loading file %s: %s\n", configFileName, strerror(errno));
@@ -1980,27 +1979,35 @@ IDSetBLOB (const IBLOBVectorProperty *bvp, const char *fmt, ...)
         printf ("  <oneBLOB\n");
         printf ("    name='%s'\n", bp->name);
         printf ("    size='%d'\n", bp->size);
-        //printf ("    format='%s'>\n", bp->format);
 
-        encblob = malloc (4*bp->bloblen/3+4);
-        l = to64frombits(encblob, bp->blob, bp->bloblen);
-        printf ("    enclen='%d'\n", l);
-        printf ("    format='%s'>\n", bp->format);
-        size_t written = 0;
-        size_t towrite = l;
-        while (written < l)
+        // If size is zero, we are only sending a state-change
+        if (bp->size == 0)
         {
-            towrite = ((l - written) > 72) ? 72 : l - written;
-            size_t wr = fwrite(encblob + written, 1, towrite, stdout);
-            if (wr > 0) written += wr;
-            if ((written % 72) == 0)
-                fputc('\n', stdout);
+            printf ("    enclen='0'\n");
+            printf ("    format='%s'>\n", bp->format);
         }
+        else
+        {
+            encblob = malloc (4*bp->bloblen/3+4);
+            l = to64frombits(encblob, bp->blob, bp->bloblen);
+            printf ("    enclen='%d'\n", l);
+            printf ("    format='%s'>\n", bp->format);
+            size_t written = 0;
+            size_t towrite = l;
+            while (written < l)
+            {
+                towrite = ((l - written) > 72) ? 72 : l - written;
+                size_t wr = fwrite(encblob + written, 1, towrite, stdout);
+                if (wr > 0) written += wr;
+                if ((written % 72) == 0)
+                    fputc('\n', stdout);
+            }
 
-        if ((written % 72) != 0)
-            fputc('\n', stdout);
+            if ((written % 72) != 0)
+                fputc('\n', stdout);
 
-        free (encblob);
+            free (encblob);
+        }
 
         printf ("  </oneBLOB>\n");
     }

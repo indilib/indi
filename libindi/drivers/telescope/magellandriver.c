@@ -54,7 +54,7 @@ int getCommandSexa(int fd, double *value, const char *cmd);
 static int getCommandString(int fd, char *data, const char* cmd);
 
 /* Get Calender data */
-int getCalenderDate(int fd, char *date);
+int getCalendarDate(int fd, char *date);
 
 
 /**************************************************************************
@@ -186,7 +186,7 @@ static int getCommandString(int fd, char *data, const char* cmd)
 }
 
 
-int getCalenderDate(int fd, char *date)
+int getCalendarDate(int fd, char *date)
 {
 
  int dd, mm, yy;

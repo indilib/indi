@@ -22,7 +22,8 @@ public:
 protected:
     virtual bool initProperties();
     virtual bool saveConfigItems(FILE *fp);
-    virtual bool Connect();
+    //virtual bool Connect();
+    virtual bool Handshake();
     virtual bool Disconnect();
 
     virtual const char *getDefaultName();
@@ -54,7 +55,7 @@ private:
     static const long MAX_ALT;
     static const long MIN_ALT;
 
-    NexStarAUXScope *scope;
+    NexStarAUXScope scope;
 
     enum ScopeStatus_t {IDLE, SLEWING_FAST, APPROACH, SLEWING_SLOW, SLEWING_MANUAL, TRACKING};
     ScopeStatus_t ScopeStatus;
@@ -101,15 +102,6 @@ private:
     bool TraceThisTick;
 
     unsigned int DBG_NSEVO;
-    
-    // Device IP port
-    INumberVectorProperty IPPortNP;
-    INumber IPPortN[1];
-
-    // Device IP address
-    ITextVectorProperty IPAddressTP;
-    IText IPAddressT[1];
-
 
 };
 

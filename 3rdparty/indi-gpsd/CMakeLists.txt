@@ -9,8 +9,11 @@ LIST(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/../../cmake_modules/"
 
 set(BIN_INSTALL_DIR "${CMAKE_INSTALL_PREFIX}/bin")
 set(DATA_INSTALL_DIR "${CMAKE_INSTALL_PREFIX}/share/indi/")
-set(CMAKE_CXX_FLAGS "-std=c++0x ${CMAKE_CXX_FLAGS}")
 set(INDI_DATA_DIR "${CMAKE_INSTALL_PREFIX}/share/indi")
+
+if (NOT WIN32 AND NOT ANDROID)
+set(CMAKE_CXX_FLAGS "-std=c++11 ${CMAKE_CXX_FLAGS}")
+endif(NOT WIN32 AND NOT ANDROID)
 
 find_package(INDI REQUIRED)
 find_package(Nova REQUIRED)
@@ -29,7 +32,7 @@ include_directories( ${INDI_INCLUDE_DIR})
 include_directories( ${NOVA_INCLUDE_DIR})
 
 add_executable(indi_gpsd gps_driver.cpp)
-target_link_libraries(indi_gpsd ${INDI_LIBRARIES} ${INDI_DRIVER_LIBRARIES} ${GPSD_LIBRARIES} ${NOVA_LIBRARIES})
+target_link_libraries(indi_gpsd ${INDI_LIBRARIES} ${GPSD_LIBRARIES} ${NOVA_LIBRARIES})
 install(TARGETS indi_gpsd RUNTIME DESTINATION bin )
 
 install( FILES  ${CMAKE_CURRENT_BINARY_DIR}/indi_gpsd.xml DESTINATION ${INDI_DATA_DIR})

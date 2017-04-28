@@ -29,7 +29,7 @@
 #include <unistd.h>
 #include <math.h>
 #include <memory>
-
+#include "connectionplugins/connectionserial.h"
 
 
 #define MICROTOUCH_TIMEOUT 3
@@ -140,9 +140,9 @@ bool Microtouch::initProperties()
     FocusAbsPosN[0].step = 1000.;
 
     addDebugControl();
+    serialConnection->setDefaultBaudRate(Connection::Serial::B_19200);
 
     return true;
-
 }
 
 bool Microtouch::updateProperties()
@@ -161,13 +161,10 @@ bool Microtouch::updateProperties()
 
         GetFocusParams();
 
-        loadConfig(true);
-
         DEBUG(INDI::Logger::DBG_SESSION, "Microtouch paramaters updated, focuser ready for use.");
     }
     else
     {
-
         deleteProperty(TemperatureNP.name);
         deleteProperty(MaxTravelNP.name);
         deleteProperty(MotorSpeedSP.name);
@@ -181,39 +178,18 @@ bool Microtouch::updateProperties()
 
 }
 
-bool Microtouch::Connect()
+bool Microtouch::Handshake()
 {
-    int connectrc=0;
-    char errorMsg[MAXRBUF];
-
-    if ( (connectrc = tty_connect(PortT[0].text, 19200, 8, 0, 1, &PortFD)) != TTY_OK)
-    {
-        tty_error_msg(connectrc, errorMsg, MAXRBUF);
-
-        DEBUGF(INDI::Logger::DBG_SESSION, "Failed to connect to port %s. Error: %s", PortT[0].text, errorMsg);
-
-        return false;
-
-    }
-
     tcflush(PortFD, TCIOFLUSH);
 
     if (Ack())
     {
         DEBUG(INDI::Logger::DBG_SESSION, "Microtouch is online. Getting focus parameters...");
-        SetTimer(POLLMS);
         return true;
     }
 
     DEBUG(INDI::Logger::DBG_SESSION, "Error retreiving data from Microtouch, please ensure Microtouch controller is powered and the port is correct.");
     return false;
-}
-
-bool Microtouch::Disconnect()
-{
-    tty_disconnect(PortFD);
-    DEBUG(INDI::Logger::DBG_SESSION, "Microtouch is offline.");
-    return true;
 }
 
 const char * Microtouch::getDefaultName()
@@ -223,7 +199,7 @@ const char * Microtouch::getDefaultName()
 
 bool Microtouch::Ack()
 {
-    unsigned short int pos=WriteCmdGetShortInt(CMD_GET_POSITION);
+    signed short int pos=WriteCmdGetShortInt(CMD_GET_POSITION);
     if (pos>-1)
     {
         FocusAbsPosN[0].value = pos;
@@ -686,7 +662,6 @@ void Microtouch::TimerHit()
 {
     if (isConnected() == false)
     {
-        SetTimer(POLLMS);
         return;
     }
 
@@ -737,10 +712,7 @@ void Microtouch::TimerHit()
         }
     }
 
-
-
     SetTimer(POLLMS);
-
 }
 
 bool Microtouch::AbortFocuser()
@@ -789,7 +761,6 @@ bool Microtouch::WriteCmdGetResponse(char cmd,char* readbuffer, char numbytes)
     int nbytes_read=0, rc=-1;
     char errstr[MAXRBUF];
 
-
     if (WriteCmd(cmd))
     {
 
@@ -829,9 +800,7 @@ bool Microtouch::WriteCmdSetByte(char cmd, char val)
     write_buffer[0]=cmd;
     write_buffer[1]=val;
 
-
     DEBUGF(INDI::Logger::DBG_DEBUG, "WriteCmdSetByte : CMD %02x %02x ", write_buffer[0],write_buffer[1]);
-
 
     tcflush(PortFD, TCIOFLUSH);
 
@@ -846,7 +815,7 @@ bool Microtouch::WriteCmdSetByte(char cmd, char val)
 }
 
 
-unsigned short int Microtouch::WriteCmdGetShortInt(char cmd)
+signed short int Microtouch::WriteCmdGetShortInt(char cmd)
 {
     char read[3];
 
@@ -943,4 +912,3 @@ bool Microtouch::WriteCmdSetIntAsDigits(char cmd, int val)
     return true;
 
 }
-
