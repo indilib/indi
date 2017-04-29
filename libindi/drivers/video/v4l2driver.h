@@ -189,8 +189,8 @@ class V4L2_Driver: public INDI::CCD
    static void stdtimerCallback(void *userpointer);
 
    /* start/stop functions */
-   void start_capturing();
-   void stop_capturing();
+   bool start_capturing(bool do_stream);
+   bool stop_capturing();
 
    virtual void updateV4L2Controls();   
    
@@ -216,6 +216,7 @@ class V4L2_Driver: public INDI::CCD
    //Long Exposure
    Lx *lx;
    int lxtimer;
+   int stdtimer;
 
    short lxstate;
 
