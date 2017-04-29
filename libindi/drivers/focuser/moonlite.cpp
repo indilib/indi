@@ -215,6 +215,8 @@ bool MoonLite::Ack()
         return false;
     }
 
+    tcflush(PortFD, TCIOFLUSH);
+
     rc = sscanf(resp, "%hX#", &pos);
 
     if (rc > 0)
@@ -245,6 +247,8 @@ bool MoonLite::updateStepMode()
         DEBUGF(INDI::Logger::DBG_ERROR, "updateStepMode error: %s.", errstr);
         return false;
     }
+
+    tcflush(PortFD, TCIOFLUSH);
 
     resp[3]='\0';
     IUResetSwitch(&StepModeSP);
@@ -287,6 +291,8 @@ bool MoonLite::updateTemperature()
         return false;
     }
 
+    tcflush(PortFD, TCIOFLUSH);
+
     rc = sscanf(resp, "%X#", &temp);
 
     if (rc > 0)
@@ -325,6 +331,8 @@ bool MoonLite::updatePosition()
         return false;
     }
 
+    tcflush(PortFD, TCIOFLUSH);
+
     rc = sscanf(resp, "%X#", &pos);
 
     if (rc > 0)
@@ -362,6 +370,8 @@ bool MoonLite::updateSpeed()
         DEBUGF(INDI::Logger::DBG_ERROR, "updateSpeed error: %s.", errstr);
         return false;
     }
+
+    tcflush(PortFD, TCIOFLUSH);
 
     rc = sscanf(resp, "%hX#", &speed);
 
@@ -407,6 +417,8 @@ bool MoonLite::isMoving()
         DEBUGF(INDI::Logger::DBG_ERROR, "isMoving error: %s.", errstr);
         return false;
     }
+
+    tcflush(PortFD, TCIOFLUSH);
 
     resp[3]='\0';
     if (!strcmp(resp, "01#"))

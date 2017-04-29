@@ -20,6 +20,7 @@
 #include "focuslynxbase.h"
 #include "indicom.h"
 #include "connectionplugins/connectionserial.h"
+#include "connectionplugins/connectiontcp.h"
 
 #include <stdio.h>
 #include <termios.h>
@@ -108,9 +109,12 @@ FocusLynxBase::~FocusLynxBase()
 * ***********************************************************************************/
 bool FocusLynxBase::initProperties()
 {
+
+
   INDI::Focuser::initProperties();
 
   // Focuser temperature
+
   IUFillNumber(&TemperatureN[0], "TEMPERATURE", "Celsius", "%6.2f", -50, 70., 0., 0.);
   IUFillNumberVector(&TemperatureNP, TemperatureN, 1, getDeviceName(), "FOCUS_TEMPERATURE", "Temperature", MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE);
 
@@ -160,7 +164,7 @@ bool FocusLynxBase::initProperties()
   // Go to home/center
   IUFillSwitch(&GotoS[GOTO_CENTER], "Center", "", ISS_OFF);
   IUFillSwitch(&GotoS[GOTO_HOME], "Home", "", ISS_OFF);
-  IUFillSwitchVector(&GotoSP, GotoS, 2, getDeviceName(), "GOTO", "", MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
+  IUFillSwitchVector(&GotoSP, GotoS, 2, getDeviceName(), "GOTO", "", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
   // Reverse direction
   IUFillSwitch(&ReverseS[0], "Enable", "", ISS_OFF);

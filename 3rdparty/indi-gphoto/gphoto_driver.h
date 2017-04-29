@@ -59,12 +59,14 @@ typedef struct _gphoto_driver gphoto_driver;
 struct _gphoto_widget_list;
 typedef struct _gphoto_widget_list gphoto_widget_list;
 
-int gphoto_start_exposure(gphoto_driver *gphoto, unsigned int exptime_msec, int mirror_lock);
+int gphoto_start_exposure(gphoto_driver *gphoto, uint32_t exptime_usec, int mirror_lock);
 int gphoto_read_exposure(gphoto_driver *gphoto);
 int gphoto_read_exposure_fd(gphoto_driver *gphoto, int fd);
 void gphoto_set_upload_settings(gphoto_driver *gphoto, int setting);
+void gphoto_get_minmax_exposure(gphoto_driver *gphoto, double *min, double *max);
 char **gphoto_get_formats(gphoto_driver *gphoto, int *cnt);
 char **gphoto_get_iso(gphoto_driver *gphoto, int *cnt);
+char **gphoto_get_exposure_presets(gphoto_driver *gphoto, int *cnt);
 void gphoto_set_iso(gphoto_driver *gphoto, int iso);
 void gphoto_set_format(gphoto_driver *gphoto, int format);
 int gphoto_get_format_current(gphoto_driver *gphoto);

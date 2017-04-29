@@ -34,6 +34,7 @@ ATTRS{idVendor}=="16c0", ATTRS{idProduct}=="296c", RUN+="/sbin/fxload -t fx2 -I 
 
 # Orion SSAG
 ATTRS{idVendor}=="1856", ATTRS{idProduct}=="0011", RUN+="/sbin/fxload -t fx2 -I /lib/firmware/qhy/QHY5.HEX -D $env{DEVNAME} -s /lib/firmware/qhy/QHY5LOADER.HEX"
+ATTRS{idVendor}=="1856", ATTRS{idProduct}=="0113", RUN+="/sbin/fxload -t fx2 -I /lib/firmware/qhy/QHY5.HEX -D $env{DEVNAME} -s /lib/firmware/qhy/QHY5LOADER.HEX"
 
 # CCD-Labs QGuider
 ATTRS{idVendor}=="1781", ATTRS{idProduct}=="0c7c", RUN+="/sbin/fxload -t fx2 -I /lib/firmware/qhy/QHY5.HEX -D $env{DEVNAME} -s /lib/firmware/qhy/QHY5LOADER.HEX"
@@ -93,6 +94,8 @@ ATTRS{idVendor}=="1618", ATTRS{idProduct}=="C174", RUN+="/sbin/fxload -t fx3 -I 
 ATTRS{idVendor}=="1618", ATTRS{idProduct}=="0185", RUN+="/sbin/fxload -t fx3 -I /lib/firmware/qhy/QHY5III185.img -D $env{DEVNAME}"
 ATTRS{idVendor}=="1618", ATTRS{idProduct}=="C163", RUN+="/sbin/fxload -t fx3 -I /lib/firmware/qhy/QHY163.img -D $env{DEVNAME}"
 ATTRS{idVendor}=="1618", ATTRS{idProduct}=="C183", RUN+="/sbin/fxload -t fx3 -I /lib/firmware/qhy/QHY183.img -D $env{DEVNAME}"
+ATTRS{idVendor}=="1618", ATTRS{idProduct}=="0940", RUN+="/sbin/fxload -t fx2lp -I /lib/firmware/qhy/POLEMASTER.HEX -D $env{DEVNAME}"
+
 LABEL="qhy_vidpid_end"
 
 # This is the ID presented once the firmware has been loaded.
@@ -106,7 +109,7 @@ LABEL="qhy-vipi"
 
 # Other Vendor
 SUBSYSTEMS=="usb", ATTRS{idVendor}=="16c0", MODE="0666"
-SUBSYSTEMS=="usb", ATTRS{idVendor}=="1856", ATTRS{idProduct}=="0011", MODE="0666"
+SUBSYSTEMS=="usb", ATTRS{idVendor}=="1856", MODE="0666"
 SUBSYSTEMS=="usb", ATTRS{idVendor}=="1781", ATTRS{idProduct}=="0c7c", MODE="0666"
 SUBSYSTEMS=="usb", ATTRS{idVendor}=="04b4", ATTRS{idProduct}=="8613", MODE="0666"
 SUBSYSTEMS=="usb", ATTRS{idVendor}=="0547", ATTRS{idProduct}=="1002", MODE="0666"

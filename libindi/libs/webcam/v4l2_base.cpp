@@ -200,7 +200,16 @@ bool V4L2_Base::is_compressed() const
 {
     /* See note at top of this file */
 #if ( LINUX_VERSION_CODE >= KERNEL_VERSION(3,17,0) )
-    return fmt.fmt.pix.flags & V4L2_FMT_FLAG_COMPRESSED;
+    switch(fmt.fmt.pix.pixelformat)
+    {
+        case V4L2_PIX_FMT_MJPEG:
+            DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG,"%s: format %c%c%c%c patched to be considered compressed",__FUNCTION__,fmt.fmt.pix.pixelformat,fmt.fmt.pix.pixelformat>>8,fmt.fmt.pix.pixelformat>>16,fmt.fmt.pix.pixelformat>>24);
+            return true;
+
+        default:
+            DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG,"%s: format %c%c%c%c has compressed flag %d",__FUNCTION__,fmt.fmt.pix.pixelformat,fmt.fmt.pix.pixelformat>>8,fmt.fmt.pix.pixelformat>>16,fmt.fmt.pix.pixelformat>>24,fmt.fmt.pix.flags & V4L2_FMT_FLAG_COMPRESSED);
+            return fmt.fmt.pix.flags & V4L2_FMT_FLAG_COMPRESSED;
+    }
 #else
     switch(fmt.fmt.pix.pixelformat)
     {
@@ -276,8 +285,11 @@ V4L2_Base::ioctl_set_format(struct v4l2_format new_fmt, char * errmsg)
     {
         close_device();
 
-        if( !open_device(path, errmsg) )
+        if( open_device(path, errmsg) )
+        {
+            DEBUGFDEVICE(deviceName,INDI::Logger::DBG_DEBUG,"%s: failed reopening device %s (%s)",__FUNCTION__,path,errmsg);
             return -1;
+        }
     }
 
     /* Trying format with VIDIOC_TRY_FMT has no interesting advantage here */
@@ -563,7 +575,7 @@ int V4L2_Base::read_frame(char * errmsg)
                     struct timeval epochtime = {0};
                     /*gettimeofday(&epochtime, NULL); uncomment this to get the timestamp from epoch start */
 
-                    float const secs = ( epochtime.tv_sec - uptime.tv_sec + buf.timestamp.tv_sec ) + (epochtime.tv_usec - uptime.tv_nsec/1000.0f + buf.timestamp.tv_usec)/1000.0f;
+                    float const secs = ( epochtime.tv_sec - uptime.tv_sec + buf.timestamp.tv_sec ) + (epochtime.tv_usec - uptime.tv_nsec/1000.0f + buf.timestamp.tv_usec)/1000000.0f;
 
                     if( V4L2_BUF_FLAG_TSTAMP_SRC_SOE == ( buf.flags & V4L2_BUF_FLAG_TSTAMP_SRC_MASK ) )
                     {
@@ -1308,7 +1320,7 @@ int V4L2_Base::open_device(const char * devpath, char * errmsg)
     }
 
     streamedonce=false;
-
+    snprintf(errmsg,ERRMSGSIZ,"%s\n",strerror(0));
     return 0;
 }
 

@@ -30,7 +30,7 @@ public:
     virtual ~SkywatcherAPIMount();
 
     //  overrides of base class virtual functions
-    virtual bool Abort();    
+    virtual bool Abort();
     virtual bool Handshake();
     virtual const char *getDefaultName();
     virtual bool Goto(double ra, double dec);
@@ -94,6 +94,15 @@ private:
     ISwitch SlewModes[2];
     ISwitchVectorProperty SlewModesSP;
 
+    // A switch for SoftPEC modes
+    enum { SOFTPEC_ENABLED, SOFTPEC_DISABLED };
+    ISwitch SoftPECModes[2];
+    ISwitchVectorProperty SoftPECModesSP;
+
+    // SoftPEC value for tracking mode
+    INumber SoftPecN;
+    INumberVectorProperty SoftPecNP;
+
     // A switch for park movement directions (clockwise/counterclockwise)
     ISwitch ParkMovementDirection[2];
     ISwitchVectorProperty ParkMovementDirectionSP;
@@ -120,6 +129,13 @@ private:
     ln_equ_posn CurrentTrackingTarget;
     long OldTrackingTarget[2];
     struct ln_hrz_posn CurrentAltAz;
+    bool ResetTrackingSeconds;
+    int TrackingSecs;
+
+    /// Save the serial port name
+    std::string SerialPortName;
+    /// Recover after disconnection
+    bool RecoverAfterReconnection;
 
 #ifdef USE_INITIAL_JULIAN_DATE
     double InitialJulianDate;

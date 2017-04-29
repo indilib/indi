@@ -64,9 +64,6 @@ class LX200Pulsar2 : public LX200Generic {
 
   virtual void getBasicData   (void);
 
-  // At which side of the pier the telescope is located: east or west
-  ISwitchVectorProperty PierSideSP;
-  ISwitch PierSideS[2];
   // Periodic error correction on or off
   ISwitchVectorProperty PeriodicErrorCorrectionSP;
   ISwitch PeriodicErrorCorrectionS[2];

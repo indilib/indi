@@ -49,6 +49,16 @@ V4L2_Driver::~V4L2_Driver()
   releaseBuffers();
 }
 
+void V4L2_Driver::updateFrameSize()
+{
+    if(ISS_ON == ImageColorS[IMAGE_GRAYSCALE].s)
+        frameBytes = PrimaryCCD.getSubW() * PrimaryCCD.getSubH() * (PrimaryCCD.getBPP() / 8 + (PrimaryCCD.getBPP()%8?1:0));
+    else
+        frameBytes = PrimaryCCD.getSubW() * PrimaryCCD.getSubH() * (PrimaryCCD.getBPP() / 8 + (PrimaryCCD.getBPP()%8?1:0)) * 3;
+
+    PrimaryCCD.setFrameBufferSize(frameBytes);
+    DEBUGF(INDI::Logger::DBG_SESSION,"%s: frame bytes %d",__FUNCTION__,PrimaryCCD.getFrameBufferSize());
+}
 
 bool V4L2_Driver::initProperties()
 {
@@ -408,11 +418,7 @@ bool V4L2_Driver::ISNewSwitch (const char *dev, const char *name, ISState *state
       V4LFrame->width = w;
       V4LFrame->height= h;
       PrimaryCCD.setResolution(w, h);
-      if (ImageColorS[IMAGE_GRAYSCALE].s == ISS_ON)
-        PrimaryCCD.setFrameBufferSize(w*h*PrimaryCCD.getBPP()/8);
-      else
-          PrimaryCCD.setFrameBufferSize(w*h*PrimaryCCD.getBPP()/8 * 3);
-      
+      updateFrameSize();
       //recorder->setsize(w, h);
       streamer->setRecorderSize(w,h);
       
@@ -471,10 +477,7 @@ bool V4L2_Driver::ISNewSwitch (const char *dev, const char *name, ISState *state
       PrimaryCCD.setNAxis(3);
     }
     
-    frameBytes  = (ImageColorS[IMAGE_GRAYSCALE].s == ISS_ON) ? (PrimaryCCD.getSubW() * PrimaryCCD.getSubH() * (PrimaryCCD.getBPP() / 8)):
-      (PrimaryCCD.getSubW() * PrimaryCCD.getSubH() * (PrimaryCCD.getBPP() / 8) * 3);
-    PrimaryCCD.setFrameBufferSize(frameBytes);
-    
+    updateFrameSize();
     IDSetSwitch(&ImageColorSP, NULL);
     return true;
   }
@@ -566,9 +569,7 @@ bool V4L2_Driver::ISNewSwitch (const char *dev, const char *name, ISState *state
       V4LFrame->bpp = v4l_base->getBpp();
       PrimaryCCD.setBPP(V4LFrame->bpp);
       PrimaryCCD.setBPP(V4LFrame->bpp);
-      frameBytes  = (ImageColorS[IMAGE_GRAYSCALE].s == ISS_ON) ? (PrimaryCCD.getSubW() * PrimaryCCD.getSubH() * (PrimaryCCD.getBPP() / 8)):
-    (PrimaryCCD.getSubW() * PrimaryCCD.getSubH() * (PrimaryCCD.getBPP() / 8) * 3);
-      PrimaryCCD.setFrameBufferSize(frameBytes);
+      updateFrameSize();
       return true;
     } else {
       DEBUG(INDI::Logger::DBG_WARNING, "No color processing in color mode ");
@@ -659,10 +660,7 @@ bool V4L2_Driver::ISNewNumber (const char *dev, const char *name, double values[
 	   V4LFrame->height= h;
 	   PrimaryCCD.setResolution(w, h);
 	   CaptureSizesNP.s = IPS_OK;
-       frameBytes  = (ImageColorS[IMAGE_GRAYSCALE].s == ISS_ON) ? (PrimaryCCD.getSubW() * PrimaryCCD.getSubH() * (PrimaryCCD.getBPP() / 8)):
-         (PrimaryCCD.getSubW() * PrimaryCCD.getSubH() * (PrimaryCCD.getBPP() / 8) * 3);
-	   PrimaryCCD.setFrameBufferSize(frameBytes);
-     
+       updateFrameSize();
        streamer->setRecorderSize(w,h);
 	   
 	   IDSetNumber(&CaptureSizesNP, "Capture size (step/cont): %dx%d", w, h);
@@ -895,9 +893,7 @@ bool V4L2_Driver::UpdateCCDFrame(int x, int y, int w, int h)
     V4LFrame->width = crect.width;
     V4LFrame->height= crect.height;
     PrimaryCCD.setFrame(x, y, w, h);
-    frameBytes  = (ImageColorS[IMAGE_GRAYSCALE].s == ISS_ON) ? (PrimaryCCD.getSubW() * PrimaryCCD.getSubH() * (PrimaryCCD.getBPP() / 8)):
-      (PrimaryCCD.getSubW() * PrimaryCCD.getSubH() * (PrimaryCCD.getBPP() / 8) * 3);
-    PrimaryCCD.setFrameBufferSize(frameBytes);
+    updateFrameSize();
     //recorder->setsize(w, h);
     streamer->setRecorderSize(w,h);
     //DEBUGF(INDI::Logger::DBG_SESSION, "updateCCDFrame ok: %d %d %d %d", x, y, w, h);
@@ -1266,10 +1262,7 @@ void V4L2_Driver::getBasicData()
   PrimaryCCD.setResolution(w, h);
   PrimaryCCD.setFrame(0,0, w,h);
   PrimaryCCD.setBPP(V4LFrame->bpp);
-  frameBytes  = (ImageColorS[IMAGE_GRAYSCALE].s == ISS_ON) ? (PrimaryCCD.getSubW() * PrimaryCCD.getSubH() * (PrimaryCCD.getBPP() / 8)):
-                                              (PrimaryCCD.getSubW() * PrimaryCCD.getSubH() * (PrimaryCCD.getBPP() / 8) * 3);
-  PrimaryCCD.setFrameBufferSize(frameBytes);
-
+  updateFrameSize();
   //direct_record=recorder->setpixelformat(v4l_base->fmt.fmt.pix.pixelformat);
   //recorder->setsize(w, h);
   streamer->setPixelFormat(v4l_base->fmt.fmt.pix.pixelformat);

@@ -105,7 +105,6 @@ class EQMod : public INDI::Telescope, public INDI::GuiderInterface
     INumberVectorProperty *SlewSpeedsNP= NULL;
     ISwitchVectorProperty *SlewModeSP= NULL;
     ISwitchVectorProperty *HemisphereSP= NULL;
-    ISwitchVectorProperty *PierSideSP= NULL;
     ISwitchVectorProperty *TrackModeSP= NULL;
     ISwitchVectorProperty *TrackDefaultSP= NULL;
     INumberVectorProperty *TrackRatesNP= NULL;
@@ -139,7 +138,7 @@ class EQMod : public INDI::Telescope, public INDI::GuiderInterface
     ISwitchVectorProperty *DEPPECSP= NULL;
 	
 	enum Hemisphere {NORTH=0, SOUTH=1 };
-	enum PierSide {UNKNOWN=-1, WEST=0, EAST=1};
+
 	typedef struct GotoParams {
 	  double ratarget, detarget, racurrent, decurrent;
 	  unsigned long ratargetencoder, detargetencoder, racurrentencoder, decurrentencoder;
@@ -148,8 +147,7 @@ class EQMod : public INDI::Telescope, public INDI::GuiderInterface
 	  bool forcecwup, checklimits, outsidelimits, completed;
 	} GotoParams;
 
-	Hemisphere Hemisphere;
-    PierSide pierside, lastPierSide, currentPierSide;
+	Hemisphere Hemisphere;    
 	bool RAInverted, DEInverted;
         GotoParams gotoparams;
 	SyncData syncdata, syncdata2;
@@ -162,12 +160,11 @@ class EQMod : public INDI::Telescope, public INDI::GuiderInterface
 	double EncoderFromHour(double hour, unsigned long initstep, unsigned long totalstep, enum Hemisphere h);
 	double EncoderFromRA(double ratarget, double detarget, double lst, 
 			     unsigned long initstep, unsigned long totalstep, enum Hemisphere h);
-	double EncoderFromDegree(double degree, PierSide p, unsigned long initstep, unsigned long totalstep, enum Hemisphere h);
-	double EncoderFromDec( double detarget, PierSide p, 
+    double EncoderFromDegree(double degree, TelescopePierSide p, unsigned long initstep, unsigned long totalstep, enum Hemisphere h);
+    double EncoderFromDec( double detarget, TelescopePierSide p,
 				      unsigned long initstep, unsigned long totalstep, enum Hemisphere h);
 	void EncoderTarget(GotoParams *g);
-    void SetSouthernHemisphere(bool southern);
-	PierSide SideOfPier();
+    void SetSouthernHemisphere(bool southern);	
 	double GetRATrackRate();
 	double GetDETrackRate();
 	double GetDefaultRATrackRate();

@@ -106,7 +106,7 @@ bool Serial::ISNewSwitch (const char * dev, const char * name, ISState * states,
 
         if (!strcmp(name, RefreshSP.name))
         {
-            RefreshSP.s = refresh() ? IPS_OK : IPS_ALERT;
+            RefreshSP.s = Refresh() ? IPS_OK : IPS_ALERT;
             IDSetSwitch(&RefreshSP, NULL);
             return true;
         }
@@ -226,7 +226,7 @@ void Serial::Activated()
     device->loadConfig(true, "DEVICE_AUTO_SEARCH");
 
     device->defineSwitch(&RefreshSP);
-    refresh(true);
+    Refresh(true);
 }
 
 void Serial::Deactivated()
@@ -284,7 +284,7 @@ int dev_file_select(const dirent * entry)
     return(false);
 }
 
-bool Serial::refresh(bool silent)
+bool Serial::Refresh(bool silent)
 {
     if (SystemPortS)
         device->deleteProperty(SystemPortSP.name);

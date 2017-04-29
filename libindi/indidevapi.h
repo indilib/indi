@@ -471,6 +471,18 @@ extern int IUFindIndex (const char *needle, char **hay, unsigned int n);
 
 extern int IUFindOnSwitchIndex (const ISwitchVectorProperty *sp);
 
+/** \brief Returns the name of the first ON switch it finds in the supplied arguments.
+
+*   \note This is only valid for ISR_1OFMANY mode. That is, when only one switch out of many is allowed to be ON. Do not use this function if you can have multiple ON switches in the same vector property.
+*   \note This is a convience function intended to be used in ISNewSwitch(...) function to find out ON switch name without having to change actual switch state via IUUpdateSwitch(..)
+*
+* \param states list of switch states passed by ISNewSwitch()
+* \param names list of switch names passed by ISNewSwitch()
+* \param n number of switches passed by ISNewSwitch()
+* \return name of the \e first ON ISwitch member if found. If all switches are off, NULL is returned.
+*/
+extern const char * IUFindOnSwitchName(ISState *states, char *names[], int n);
+
 /** \brief Reset all switches in a switch vector property to OFF.
 *
 * \param svp a pointer to a switch vector property.

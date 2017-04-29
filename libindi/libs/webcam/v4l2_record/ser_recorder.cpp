@@ -397,7 +397,7 @@ uint64_t SER_Recorder::getUTCTimeStamp()
     // UTC Time
     tp = gmtime(&t);
 
-    dateTo64BitTS(tp->tm_year, tp->tm_mon, tp->tm_mday, tp->tm_hour, tp->tm_min, tp->tm_sec, u, &utcTS);
+    dateTo64BitTS(tp->tm_year+1900, tp->tm_mon+1, tp->tm_mday, tp->tm_hour, tp->tm_min, tp->tm_sec, u, &utcTS);
 
     return utcTS;
 }

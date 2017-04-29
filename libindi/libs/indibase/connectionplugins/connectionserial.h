@@ -105,7 +105,12 @@ class Serial : public Interface
         virtual bool ISNewSwitch (const char * dev, const char * name, ISState * states, char * names[], int n);
         virtual bool saveConfigItems(FILE * fp);
 
-    protected:
+        /**
+         * Refresh the list of system ports
+         */
+        bool Refresh(bool silent=false);
+
+protected:
 
         /** \brief Connect to serial port device. Default parameters are 8 bits, 1 stop bit, no parity. Override if different from default.
           \param port Port to connect to.
@@ -116,8 +121,6 @@ class Serial : public Interface
         virtual bool Connect(const char * port, uint32_t baud);
 
         virtual bool processHandshake();
-
-        bool refresh(bool silent=false);
 
         // Device physical port
         ITextVectorProperty PortTP;

@@ -57,6 +57,7 @@
 #include <linux/mm.h>
 #include <linux/pagemap.h>
 #include <linux/scatterlist.h>
+//#include <asm/scatterlist.h>
 #endif
 
 #include "fliusb.h"
@@ -327,8 +328,11 @@ static int fliusb_sg_bulk_read(fliusb_t *dev, unsigned int pipe,
     return -ERESTARTSYS;
 
   down_read(&current->mm->mmap_sem);
-  numpg = get_user_pages(current, current->mm, (size_t)userbuffer & PAGE_MASK,
-			 numpg, 1, 0, dev->usbsg.userpg, NULL);
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 9, 0)
+  numpg = get_user_pages(numpg, 1, 0, dev->usbsg.userpg, NULL);
+#else
+  numpg = get_user_pages(current, current->mm, (size_t)userbuffer & PAGE_MASK, numpg, 1, 0, dev->usbsg.userpg, NULL);
+#endif
   up_read(&current->mm->mmap_sem);
 
   if (numpg <= 0)
@@ -408,7 +412,11 @@ static int fliusb_sg_bulk_read(fliusb_t *dev, unsigned int pipe,
   {
     if (!PageReserved(dev->usbsg.userpg[i]))
       SetPageDirty(dev->usbsg.userpg[i]);
+#if LINUX_VERSION_CODE > KERNEL_VERSION(4, 6, 0)
+    put_page(dev->usbsg.userpg[i]);
+#else
     page_cache_release(dev->usbsg.userpg[i]);
+#endif
   }
 
   return err;
