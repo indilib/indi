@@ -33,7 +33,7 @@
 
 using namespace std;
 
-// We declare an auto pointer to GPD.
+// We declare an auto pointer to GPSD.
 std::unique_ptr<GPSD> gpsd(new GPSD());
 
 void ISGetProperties(const char *dev)
@@ -166,58 +166,17 @@ IPState GPSD::updateGPS()
 
     TimeTP.s = IPS_OK;
 
-    if (!gps->waiting(100000)) {
-        if (GPSstatusTP.s != IPS_BUSY) {
-            IDMessage(getDeviceName(), "Waiting for gps data...");
-            GPSstatusTP.s = IPS_BUSY;
-        }
-        return IPS_BUSY;
-    }
-
-    if ((gpsData = gps->read()) == NULL) {
-        IDMessage(getDeviceName(), "GPSD read error.");
-        IDSetText(&GPSstatusTP, NULL);
-        return IPS_ALERT;
-    }
-    
-    if (gpsData->status == STATUS_NO_FIX) {
-        GPSstatusT[0].text = (char*) "NO FIX";
-        if (GPSstatusTP.s == IPS_OK) {
-            IDMessage(getDeviceName(), "GPS fix lost.");
-        }
-        GPSstatusTP.s = IPS_BUSY;
-        IDSetText(&GPSstatusTP, NULL);
-        return IPS_BUSY;
-    }
-
-    // detect gps fix
-    if (GPSstatusTP.s != IPS_OK)
-        IDMessage(getDeviceName(), "GPS fix obtained.");
-    
-    // update gps fix status
-    if ( gpsData->fix.mode == MODE_3D ) {
-        GPSstatusT[0].text = (char*) "3D FIX";
-        GPSstatusTP.s = IPS_OK;
-        IDSetText(&GPSstatusTP, NULL);
-    } else if ( gpsData->fix.mode == MODE_2D ) {
-        GPSstatusT[0].text = (char*) "2D FIX";
-        GPSstatusTP.s = IPS_OK;
-        IDSetText(&GPSstatusTP, NULL);
-    } else {
-        GPSstatusT[0].text = (char*) "NO FIX";
-        GPSstatusTP.s = IPS_BUSY;
-        IDSetText(&GPSstatusTP, NULL);
-        return IPS_BUSY;
-    }
-
-    // Update time. We are using system time
-    // assuming the system is synced with the gps 
-    // by gpsd using chronyd or ntpd.
+    // Update time regardless having gps fix.
+    // We are using system time assuming the system is synced with the gps 
+    // by gpsd using chronyd or ntpd. 
     static char ts[32];
     struct tm *utc, *local;
 
     // To get time from gps fix we can use
     // raw_time = gpsData->fix.time;
+    // but this will remove all sophistication of ntp etc.
+    // Better just use the best estimation the system can provide.
+    
     time_t raw_time;
     time(&raw_time);
 
@@ -241,6 +200,66 @@ IPState GPSD::updateGPS()
     IUSaveText(&TimeT[1], ts);
 
     TimeTP.s = IPS_OK;
+
+    if (!gps->waiting(100000)) {
+        if (GPSstatusTP.s != IPS_BUSY) {
+            IDMessage(getDeviceName(), "Waiting for gps data...");
+            GPSstatusTP.s = IPS_BUSY;
+        }
+        return IPS_BUSY;
+    }
+
+    if ((gpsData = gps->read()) == NULL) {
+        IDMessage(getDeviceName(), "GPSD read error.");
+        IDSetText(&GPSstatusTP, NULL);
+        return IPS_ALERT;
+    }
+    
+    if (gpsData->status == STATUS_NO_FIX) {
+        // We have no fix and there is no point in further processing.
+        GPSstatusT[0].text = (char*) "NO FIX";
+        if (GPSstatusTP.s == IPS_OK) {
+            IDMessage(getDeviceName(), "GPS fix lost.");
+        }
+        GPSstatusTP.s = IPS_BUSY;
+        IDSetText(&GPSstatusTP, NULL);
+        return IPS_BUSY;
+    } else {
+        // We may have a fix. Check if fix structure contains proper fix.
+        // We require at least 2D fix - the altitude is not so crucial (?)
+        if (gpsData->fix.mode < MODE_2D) {
+            // The position is not realy measured yet - we have no valid data
+            // Keep looking
+            GPSstatusT[0].text = (char*) "NO FIX";
+            if (GPSstatusTP.s == IPS_OK) {
+                IDMessage(getDeviceName(), "GPS fix lost.");
+            }
+            GPSstatusTP.s = IPS_BUSY;
+            IDSetText(&GPSstatusTP, NULL);
+            return IPS_BUSY;            
+        }
+    }
+
+    // detect gps fix showing up after not being avaliable
+    if (GPSstatusTP.s != IPS_OK)
+        IDMessage(getDeviceName(), "GPS fix obtained.");
+    
+    // update gps fix status
+    if ( gpsData->fix.mode == MODE_3D ) {
+        GPSstatusT[0].text = (char*) "3D FIX";
+        GPSstatusTP.s = IPS_OK;
+        IDSetText(&GPSstatusTP, NULL);
+    } else if ( gpsData->fix.mode == MODE_2D ) {
+        GPSstatusT[0].text = (char*) "2D FIX";
+        GPSstatusTP.s = IPS_OK;
+        IDSetText(&GPSstatusTP, NULL);
+    } else {
+        GPSstatusT[0].text = (char*) "NO FIX";
+        GPSstatusTP.s = IPS_BUSY;
+        IDSetText(&GPSstatusTP, NULL);
+        return IPS_BUSY;
+    }
+
 
     // update gps location
     // we should have a gps fix data now
