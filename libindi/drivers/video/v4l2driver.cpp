@@ -31,7 +31,6 @@ V4L2_Driver::V4L2_Driver()
   divider = 128.;    
   
   is_capturing = false;
-  is_exposing = false;
 
   Options=NULL;
   v4loptions=0; 
@@ -41,7 +40,8 @@ V4L2_Driver::V4L2_Driver()
   stackMode=STACK_NONE;
 
   lx=new Lx();
-
+  lxtimer = -1;
+  stdtimer = -1;
 }
 
 V4L2_Driver::~V4L2_Driver()
@@ -57,7 +57,7 @@ void V4L2_Driver::updateFrameSize()
         frameBytes = PrimaryCCD.getSubW() * PrimaryCCD.getSubH() * (PrimaryCCD.getBPP() / 8 + (PrimaryCCD.getBPP()%8?1:0)) * 3;
 
     PrimaryCCD.setFrameBufferSize(frameBytes);
-    DEBUGF(INDI::Logger::DBG_SESSION,"%s: frame bytes %d",__FUNCTION__,PrimaryCCD.getFrameBufferSize());
+    DEBUGF(INDI::Logger::DBG_DEBUG,"%s: frame bytes %d",__FUNCTION__,PrimaryCCD.getFrameBufferSize());
 }
 
 bool V4L2_Driver::initProperties()
@@ -127,7 +127,7 @@ bool V4L2_Driver::initProperties()
   if (!lx->initProperties(this))
     DEBUG(INDI::Logger::DBG_WARNING, "Can not init Long Exposure");
 
-  SetCCDCapability(CCD_CAN_BIN | CCD_CAN_SUBFRAME | CCD_HAS_STREAMING);
+  SetCCDCapability(CCD_CAN_BIN | CCD_CAN_SUBFRAME | CCD_HAS_STREAMING | CCD_CAN_ABORT);
 
   strncpy(v4l_base->deviceName, getDeviceName(), MAXINDIDEVICE);
 
@@ -696,61 +696,89 @@ bool V4L2_Driver::ISNewNumber (const char *dev, const char *name, double values[
       IDSetNumber(&ImageAdjustNP, NULL);
       return true;
     }
-      
-  
 
   return INDI::CCD::ISNewNumber(dev, name, values, names, n);
-  	
 }
 
 bool V4L2_Driver::StartExposure(float duration)
 {
-    if (is_exposing)
+    /* Clicking the "Expose" set button while an exposure is running arrives here.
+     * Now that V4L2 CCD has the option to abort, this will properly abort the exposure.
+     * If CAN_ABORT is not set, we have to tell the caller we're busy until the end of this exposure.
+     * If we don't, PrimaryCCD will stop exposing nonetheless and we won't be able to restart an exposure.
+     */
     {
-        /* Clicking the "Expose" set button while an exposure is running arrives here.
-         * But if we reply false, PrimaryCCD won't be exposing anymore and we won't be able to stop the exposure in V4L2_Base, which will loop forever.
-         * So instead of returning an error, tell the caller we're busy until the end of this exposure. */
-        DEBUG(INDI::Logger::DBG_ERROR, "Can not start new exposure, please wait for the end of exposure.");
-        return true;
+        if(streamer->isBusy())
+        {
+            DEBUG(INDI::Logger::DBG_ERROR, "Cannot start new exposure while streamer is busy, stop streaming first");
+            return !(GetCCDCapability() & CCD_CAN_ABORT);
+        }
+
+        if (is_capturing)
+        {
+            DEBUGF(INDI::Logger::DBG_ERROR, "Cannot start new exposure until the current one completes (%.3f seconds left).",exposureLeft);
+            return !(GetCCDCapability() & CCD_CAN_ABORT);
+        }
     }
 
-    V4LFrame->expose = duration;
-    setShutter(V4LFrame->expose);
+    if(setShutter(duration))
+    {
+        V4LFrame->expose = duration;
+        PrimaryCCD.setExposureDuration(duration);
+        this->exposureLeft = duration;
 
-    PrimaryCCD.setExposureDuration(duration);
+        if (!lx->isenabled() || lx->getLxmode() == LXSERIAL )
+            start_capturing(false);
 
-     if (!(lx->isenabled()) || (lx->getLxmode() == LXSERIAL ))
-        start_capturing();
+        /* Update exposure duration in client */
+        /* FIXME: exposure update timer has period hardcoded 1 second */
+        if(is_capturing && 1.0f < duration)
+        {
+            if(-1 != stdtimer)
+                IERmTimer(stdtimer);
+            stdtimer = IEAddTimer(1000, (IE_TCF *)stdtimerCallback, this);
+        }
+        else stdtimer = -1;
+    }
 
-     is_exposing=true;
-
-     return true;
+    return is_capturing;
 }
 
 bool V4L2_Driver::setShutter(double duration)
 {
-  bool rc=true;
-  gettimeofday(&capture_start, NULL);
-  if (lx->isenabled()) 
+    if (lx->isenabled())
     {
-      DEBUGF(INDI::Logger::DBG_SESSION, "Using long exposure mode for %g sec frame.", duration);
-      rc=startlongexposure(duration);
-      if (rc == false)
-	DEBUG(INDI::Logger::DBG_WARNING, "Unable to start long exposure, falling back to auto exposure.");
+        DEBUGF(INDI::Logger::DBG_SESSION, "Using long exposure mode for %.3f sec frame.", duration);
+        if(!startlongexposure(duration))
+        {
+            DEBUGF(INDI::Logger::DBG_WARNING, "Unable to start %.3f-second long exposure, falling back to auto exposure", duration);
+            return false;
+        }
     }
-  else if (AbsExposureN && ManualExposureSP && (AbsExposureN->max >= (duration * 10000)))
+    else if (AbsExposureN && ManualExposureSP && (AbsExposureN->max >= (duration * 10000)) && (AbsExposureN->min <= (duration*10000)))
     {
-      DEBUGF(INDI::Logger::DBG_SESSION, "Using device manual exposure (max %f, required %f).", AbsExposureN->max, (duration * 10000));
-      rc = setManualExposure(duration);
-      if (rc == false)
-	DEBUG(INDI::Logger::DBG_WARNING, "Unable to set manual exposure, falling back to auto exposure.");
+        // INT control for manual exposure duration is an integer - log is cheating a bit
+        DEBUGF(INDI::Logger::DBG_SESSION, "Using device %d-tick manual exposure for %.3f-second exposure", (int)(duration*10000), duration);
+        if(!setManualExposure(duration))
+        {
+            DEBUGF(INDI::Logger::DBG_WARNING, "Unable to set %.3f-second manual exposure, falling back to auto exposure", duration);
+            return false;
+        }
+
+        timerclear(&exposure_duration);
+        exposure_duration.tv_sec = (long) duration ;
+        exposure_duration.tv_usec = (long) ((duration - (double) exposure_duration.tv_sec) * 1000000.0) ;
     }
-  timerclear(&exposure_duration);
-  exposure_duration.tv_sec = (long) duration ;
-  exposure_duration.tv_usec = (long) ((duration - (double) exposure_duration.tv_sec) * 1000000.0) ;
-  frameCount=0;
-  subframeCount=0;
-  return rc;
+    else
+    {
+        DEBUGF(INDI::Logger::DBG_WARNING, "Failed %.3f-second manual exposure, out of device tick bounds [%d,%d]", duration, (int)AbsExposureN->min, (int)AbsExposureN->max);
+        return false;
+    }
+
+    gettimeofday(&capture_start, NULL);
+    frameCount=0;
+    subframeCount=0;
+    return true;
 }
 
 bool V4L2_Driver::setManualExposure(double duration)
@@ -804,23 +832,71 @@ bool V4L2_Driver::setManualExposure(double duration)
     ImageAdjustNP.s = IPS_OK;
     IDSetNumber(&ImageAdjustNP, NULL);
   }
-  
+
   return true;
 }
 
-void V4L2_Driver::start_capturing() {
-  char errmsg[ERRMSGSIZ];
-  if (is_capturing) return;
-  v4l_base->start_capturing(errmsg);
-  is_capturing = true;
-  //timer_gettime(fpstimer, &tframe1);  
+void V4L2_Driver::stdtimerCallback(void *userpointer)
+{
+    V4L2_Driver *p = (V4L2_Driver*)userpointer;
+    p->exposureLeft -= 1.0f;
+    //DEBUGF(INDI::Logger::DBG_SESSION,"Exposure running, %f seconds left...",p->exposureLeft);
+    p->PrimaryCCD.setExposureLeft(p->exposureLeft);
+    if(1.0f < p->exposureLeft)
+        p->stdtimer = IEAddTimer(1000, (IE_TCF *)stdtimerCallback, userpointer);
+    else p->stdtimer = -1;
 }
 
-void V4L2_Driver::stop_capturing() {
-  char errmsg[ERRMSGSIZ];
-  if (!is_capturing) return;
-  v4l_base->stop_capturing(errmsg);
-  is_capturing = false;
+bool V4L2_Driver::start_capturing(bool do_stream)
+{
+    if(streamer->isBusy())
+    {
+        DEBUG(INDI::Logger::DBG_WARNING, "Cannot start exposure while streaming is in progress");
+        return false;
+    }
+
+    if(is_capturing)
+    {
+        DEBUGF(INDI::Logger::DBG_WARNING, "Cannot start exposure while another is in progress (%.3f seconds left)", exposureLeft);
+        return false;
+    }
+
+    char errmsg[ERRMSGSIZ];
+    if(v4l_base->start_capturing(errmsg))
+    {
+        DEBUGF(INDI::Logger::DBG_WARNING, "V4L2 base failed starting capture (%s)", errmsg);
+        return false;
+    }
+
+    if(do_stream)
+        v4l_base->doRecord(streamer->isDirectRecording());
+
+    is_capturing = true;
+    return true;
+}
+
+bool V4L2_Driver::stop_capturing()
+{
+    if(!is_capturing)
+    {
+        DEBUG(INDI::Logger::DBG_WARNING, "No exposure or streaming in progress");
+        return true;
+    }
+
+    if(!streamer->isBusy() && 0.0f < exposureLeft)
+        DEBUGF(INDI::Logger::DBG_WARNING, "Stopping running exposure %.3f seconds before completion",exposureLeft);
+
+    //if(streamer->isDirectRecording())
+    v4l_base->doRecord(false);
+
+    char errmsg[ERRMSGSIZ];
+    if(v4l_base->stop_capturing(errmsg))
+    {
+        DEBUGF(INDI::Logger::DBG_WARNING, "V4L2 base failed stopping capture (%s)", errmsg);
+    }
+
+    is_capturing = false;
+    return true;
 }
 
 
@@ -845,7 +921,7 @@ void V4L2_Driver::lxtimerCallback(void *userpointer)
   }
   IERmTimer(p->lxtimer);
   if( !p->v4l_base->isstreamactive() )
-	p->start_capturing(); // jump to new/updateFrame
+	p->start_capturing(false); // jump to new/updateFrame
         //p->v4l_base->start_capturing(errmsg); // jump to new/updateFrame
 }
 
@@ -1022,6 +1098,7 @@ void V4L2_Driver::newFrame()
             unsigned char *src, *dest;
             src = v4l_base->getY();
             dest = (unsigned char *)PrimaryCCD.getFrameBuffer();
+
             memcpy(dest, src, frameBytes);
             //for (i=0; i< frameBytes; i++)
                 //*(dest++) = *(src++);
@@ -1149,7 +1226,6 @@ void V4L2_Driver::newFrame()
       ExposureComplete(&PrimaryCCD);
       //PrimaryCCD.setFrameBufferSize(frameBytes);
     }
-    is_exposing=false;
   }
   else
   {
@@ -1158,20 +1234,25 @@ void V4L2_Driver::newFrame()
        * Note that the patch in StartExposure returning busy instead of error prevents the flow from coming here, so now it's only a safeguard. */
       IDLog("%s: frame received while not exposing, force-aborting capture\n",__FUNCTION__);
       AbortExposure();
-      is_exposing = false;
   }
 }
 
 bool V4L2_Driver::AbortExposure()
 {
-  char errmsg[ERRMSGSIZ];
-  if (lx->isenabled())
-    lx->stopLx();
-  else
-    //if (!is_streaming && !is_recording)
-    if (streamer->isBusy() == false)
-        stop_capturing();
-  return true;
+    if (lx->isenabled())
+    {
+        lx->stopLx();
+        return true;
+    }
+    else if (!streamer->isBusy())
+    {
+        if(-1 != stdtimer)
+            IERmTimer(stdtimer);
+        return stop_capturing();
+    }
+
+    DEBUG(INDI::Logger::DBG_WARNING, "Cannot abort exposure while video streamer is busy, stop streaming first");
+    return false;
 }
 
 bool V4L2_Driver::Connect()
@@ -1342,27 +1423,20 @@ bool V4L2_Driver::StartStreaming()
         return false;
     }
 
-    if (!is_capturing)
-    {
-        start_capturing();
-        //v4l_base->setDropFrameCount(streamer->getFramesToDrop());
-        v4l_base->doRecord(streamer->isDirectRecording());
-        return true;
-    }
-
-    return false;
+    /* Callee will take care of checking states */
+    return start_capturing(true);
 }
 
 bool V4L2_Driver::StopStreaming()
 {
-    if (is_exposing)
+    if(!streamer->isBusy() /*&& is_capturing*/)
+    {
+        /* Strange situation indeed, but it's theoretically possible to try to stop streaming while exposing - safeguard actually */
+        DEBUGF(INDI::Logger::DBG_WARNING, "Cannot stop streaming, exposure running (%.1f seconds remaining)", exposureLeft);
         return false;
+    }
 
-    if (streamer->isDirectRecording())
-        v4l_base->doRecord(false);
-
-    stop_capturing();
-    return true;
+    return stop_capturing();
 }
 
 bool V4L2_Driver::saveConfigItems(FILE *fp)

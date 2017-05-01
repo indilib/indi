@@ -87,6 +87,8 @@ class V4L2_Driver: public INDI::CCD
     void stackFrame();
     void newFrame();
     
+    float exposureLeft;
+
    protected:
 
     virtual bool Connect();
@@ -184,10 +186,11 @@ class V4L2_Driver: public INDI::CCD
    bool setManualExposure(double duration);
    bool startlongexposure(double timeinsec);
    static void lxtimerCallback(void *userpointer);
+   static void stdtimerCallback(void *userpointer);
 
    /* start/stop functions */
-   void start_capturing();
-   void stop_capturing();
+   bool start_capturing(bool do_stream);
+   bool stop_capturing();
 
    virtual void updateV4L2Controls();   
    
@@ -213,6 +216,7 @@ class V4L2_Driver: public INDI::CCD
    //Long Exposure
    Lx *lx;
    int lxtimer;
+   int stdtimer;
 
    short lxstate;
 
