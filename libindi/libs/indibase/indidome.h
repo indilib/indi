@@ -394,20 +394,19 @@ class INDI::Dome : public INDI::DefaultDevice
         bool GetTargetAz(double &Az, double &Alt, double &minAz, double &maxAz);
 
         /**
-         * @brief Intersection Calculate the intersection of a ray and a sphere. The line segment is defined from p1 to p2.  The sphere is of radius r and centered at sc.
+         * @brief Intersection Calculate the intersection of a ray and a sphere. The line segment is defined from p1 to p2.  The sphere is of radius r and centered at (0,0,0).
          * From http://local.wasp.uwa.edu.au/~pbourke/geometry/sphereline/
          * There are potentially two points of intersection given by
          * p := p1 + mu1 (p2 - p1)
          * p := p1 + mu2 (p2 - p1)
-         * @param p1 First ray
-         * @param p2 Second ray
-         * @param sc Center of sphere
+         * @param p1 First point
+         * @param p2 Direction of the ray
          * @param r RADIUS of sphere
          * @param mu1 First point of potentional intersection.
          * @param mu2 Second point of potentional intersection.
          * @return Returns FALSE if the ray doesn't intersect the sphere.
          */
-        bool Intersection(point3D p1, point3D p2, point3D sc, double r, double &mu1, double &mu2);
+        bool Intersection(point3D p1, point3D p2, double r, double &mu1, double &mu2);
 
         /**
          * @brief OpticalCenter This function calculates the distance from the optical axis to the Dome center
@@ -422,13 +421,12 @@ class INDI::Dome : public INDI::DefaultDevice
 
         /**
          * @brief OpticalVector This function calculates a second point for determining the optical axis
-         * @param OP Optical center
          * @param Az Azimuth
          * @param Alt Altitude
          * @param OV a 3D point that determines the optical line.
          * @return false in case of error.
          */
-        bool OpticalVector(point3D OP, double Az, double Alt, point3D &OV);
+        bool OpticalVector(double Az, double Alt, point3D &OV);
 
         /**
          * @brief CheckHorizon Returns true if telescope points above horizon.
