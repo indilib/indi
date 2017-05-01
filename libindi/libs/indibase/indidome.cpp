@@ -931,7 +931,7 @@ To do that we need to calculate the optical axis line taking the centre of the d
 // maxAz: Maximum azimuth in order to avoid any dome interference to the full aperture of the telescope
 bool INDI::Dome::GetTargetAz(double &Az, double &Alt, double &minAz, double &maxAz)
 {
-    point3D MountCenter, OptCenter, OptAxis, DomeCenter, DomeIntersect;
+    point3D MountCenter, OptCenter, OptVector, DomeIntersect;
     double hourAngle;
     double mu1, mu2;
     double yx;
@@ -965,9 +965,9 @@ bool INDI::Dome::GetTargetAz(double &Az, double &Alt, double &minAz, double &max
     DEBUGF(INDI::Logger::DBG_DEBUG, "OTA_OFFSET: %g  Lat: %g", DomeMeasurementsN[DM_OTA_OFFSET].value, observer.lat);
     DEBUGF(INDI::Logger::DBG_DEBUG, "OC.x: %g - OC.y: %g OC.z: %g", OptCenter.x, OptCenter.y, OptCenter.z);
 
-    // Assure Horizontal Coords are up to date.
+    // To be sure mountHoriztonalCoords is up to date.
     ln_get_hrz_from_equ(&mountEquatorialCoords, &observer, JD, &mountHoriztonalCoords);
-    
+
     mountHoriztonalCoords.az += 180;
     if (mountHoriztonalCoords.az > 360)
         mountHoriztonalCoords.az -= 360;
@@ -975,28 +975,24 @@ bool INDI::Dome::GetTargetAz(double &Az, double &Alt, double &minAz, double &max
         mountHoriztonalCoords.az += 360;
 
     // Get optical axis point. This and the previous form the optical axis line
-    OpticalVector(OptCenter, mountHoriztonalCoords.az, mountHoriztonalCoords.alt, OptAxis);
+    OpticalVector(mountHoriztonalCoords.az, mountHoriztonalCoords.alt, OptVector);
     DEBUGF(INDI::Logger::DBG_DEBUG, "Mount Az: %g  Alt: %g", mountHoriztonalCoords.az, mountHoriztonalCoords.alt);
-    DEBUGF(INDI::Logger::DBG_DEBUG, "OA.x: %g - OA.y: %g OA.z: %g", OptAxis.x, OptAxis.y, OptAxis.z);
+    DEBUGF(INDI::Logger::DBG_DEBUG, "OV.x: %g - OV.y: %g OV.z: %g", OptVector.x, OptVector.y, OptVector.z);
 
-    DomeCenter.x = 0;
-    DomeCenter.y = 0;
-    DomeCenter.z = 0;
-
-    if (Intersection(OptCenter, OptAxis, DomeCenter, DomeMeasurementsN[DM_DOME_RADIUS].value, mu1, mu2))
+    if (Intersection(OptCenter, OptVector, DomeMeasurementsN[DM_DOME_RADIUS].value, mu1, mu2))
     {
         // If telescope is pointing over the horizon, the solution is mu1, else is mu2
         if (mu1 < 0)
             mu1 = mu2;
 
-        DomeIntersect.x = OptCenter.x + mu1 * (OptAxis.x - OptCenter.x);
-        DomeIntersect.y = OptCenter.y + mu1 * (OptAxis.y - OptCenter.y);
-        DomeIntersect.z = OptCenter.z + mu1 * (OptAxis.z - OptCenter.z);
+        DomeIntersect.x = OptCenter.x + mu1 * (OptVector.x - OptCenter.x);
+        DomeIntersect.y = OptCenter.y + mu1 * (OptVector.y - OptCenter.y);
+        DomeIntersect.z = OptCenter.z + mu1 * (OptVector.z - OptCenter.z);
 
         if (fabs(DomeIntersect.x) > 0.001)
         {
             yx = DomeIntersect.y / DomeIntersect.x;
-            Az = 180 * atan(yx) / M_PI; //90 - 180 * atan(yx) / M_PI;
+            Az = 90 - 180 * atan(yx) / M_PI;
             if (DomeIntersect.x < 0)
             {
                 Az = Az + 180;
@@ -1007,8 +1003,8 @@ bool INDI::Dome::GetTargetAz(double &Az, double &Alt, double &minAz, double &max
                 Az += 360;
         }
         else
-        {  // Dome East-West line or zenit
-
+        {
+            // Dome East-West line or zenith
             if (DomeIntersect.y > 0)
                 Az = 90;
             else
@@ -1045,20 +1041,15 @@ bool INDI::Dome::GetTargetAz(double &Az, double &Alt, double &minAz, double &max
 }
 
 
-bool INDI::Dome::Intersection(point3D p1, point3D p2, point3D sc, double r, double &mu1, double &mu2)
+bool INDI::Dome::Intersection(point3D p1, point3D dp, double r, double &mu1, double &mu2)
 {
     double a, b, c;
     double bb4ac;
-    point3D dp;
 
-    dp.x = p2.x - p1.x;
-    dp.y = p2.y - p1.y;
-    dp.z = p2.z - p1.z;
     a = dp.x * dp.x + dp.y * dp.y + dp.z * dp.z;
-    b = 2 * (dp.x * (p1.x - sc.x) + dp.y * (p1.y - sc.y) + dp.z * (p1.z - sc.z));
-    c = sc.x * sc.x + sc.y * sc.y + sc.z * sc.z;
+    b = 2 * (dp.x * p1.x + dp.y * p1.y + dp.z * p1.z);
+    c = 0.0;
     c = c + p1.x * p1.x + p1.y * p1.y + p1.z * p1.z;
-    c = c - 2 * (sc.x * p1.x + sc.y * p1.y + sc.z * p1.z);
     c = c - r * r;
     bb4ac = b * b - 4 * a * c;
     if ((fabs(a) < 0.0000001) || (bb4ac < 0))
@@ -1082,30 +1073,30 @@ bool INDI::Dome::OpticalCenter(point3D MountCenter, double dOpticalAxis, double 
 
     // Note: this transformation is a circle rotated around X axis -(90 - Lat) degrees
     q = M_PI * (90 - Lat) / 180;
-    f = M_PI * (- Ah * 15) / 180;
+    f = -M_PI * (180 + Ah * 15) / 180;
 
     cosf = cos(f);
     sinf = sin(f);
     cosq = cos(q);
     sinq = sin(q);
 
-    OP.x = (dOpticalAxis * cosq * (-cosf) + MountCenter.x);  // The sign of dOpticalAxis determines de side of the tube
+    OP.x = (dOpticalAxis * cosf + MountCenter.x);  // The sign of dOpticalAxis determines de side of the tube
     OP.y = (dOpticalAxis * sinf * cosq + MountCenter.y);
-    OP.z = (dOpticalAxis * cosf * sinq + MountCenter.z);
+    OP.z = (dOpticalAxis * sinf * sinq + MountCenter.z);
 
     return true;
 }
 
 
-bool INDI::Dome::OpticalVector(point3D OP, double Az, double Alt, point3D &OV)
+bool INDI::Dome::OpticalVector(double Az, double Alt, point3D &OV)
 {
     double q, f;
 
     q = M_PI * Alt / 180;
-    f = M_PI * Az / 180; //M_PI * (90 - Az) / 180;
-    OV.x = OP.x + cos(q) * cos(f);
-    OV.y = OP.y + cos(q) * sin(f);
-    OV.z = OP.z + sin(q);
+    f = M_PI * Az / 180;
+    OV.x = cos(q) * sin(f);
+    OV.y = cos(q) * cos(f);
+    OV.z = sin(q);
 
     return true;
 }
