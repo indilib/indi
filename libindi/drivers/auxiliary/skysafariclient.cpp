@@ -77,6 +77,10 @@ void SkySafariClient::newProperty(INDI::Property *property)
         abortSP = property->getSwitch();
     else if (!strcmp(property->getName(), "TELESCOPE_SLEW_RATE"))
         slewRateSP = property->getSwitch();
+    else if (!strcmp(property->getName(), "TELESCOPE_MOTION_NS"))
+        motionNSSP = property->getSwitch();
+    else if (!strcmp(property->getName(), "TELESCOPE_MOTION_WE"))
+        motionWESP = property->getSwitch();
 }
 
 /**************************************************************************************
@@ -195,3 +199,28 @@ bool SkySafariClient::setSlewRate(int slewRate)
     return true;
 }
 
+/**************************************************************************************
+**
+***************************************************************************************/
+bool SkySafariClient::setMotionNS()
+{
+    if (motionNSSP == nullptr)
+        return false;
+
+    sendNewSwitch(motionNSSP);
+
+    return true;
+}
+
+/**************************************************************************************
+**
+***************************************************************************************/
+bool SkySafariClient::setMotionWE()
+{
+    if (motionWESP == nullptr)
+        return false;
+
+    sendNewSwitch(motionWESP);
+
+    return true;
+}

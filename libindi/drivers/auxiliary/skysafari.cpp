@@ -569,6 +569,91 @@ void SkySafari::processCommand(std::string cmd)
     {
         skySafariClient->setSlewRate(3);
     }
+    // Mn
+    else if (cmd == "Mn")
+    {
+        ISwitchVectorProperty *motionNSNP = skySafariClient->getMotionNS();
+        if (motionNSNP)
+        {
+            IUResetSwitch(motionNSNP);
+            motionNSNP->sp[0].s = ISS_ON;
+            skySafariClient->setMotionNS();
+        }
+    }
+    // Qn
+    else if (cmd == "Qn")
+    {
+        ISwitchVectorProperty *motionNSNP = skySafariClient->getMotionNS();
+        if (motionNSNP)
+        {
+            IUResetSwitch(motionNSNP);
+            skySafariClient->setMotionNS();
+        }
+    }
+    // Ms
+    else if (cmd == "Ms")
+    {
+        ISwitchVectorProperty *motionNSNP = skySafariClient->getMotionNS();
+        if (motionNSNP)
+        {
+            IUResetSwitch(motionNSNP);
+            motionNSNP->sp[1].s = ISS_ON;
+            skySafariClient->setMotionNS();
+        }
+    }
+    // Qs
+    else if (cmd == "Qs")
+    {
+        ISwitchVectorProperty *motionNSNP = skySafariClient->getMotionNS();
+        if (motionNSNP)
+        {
+            IUResetSwitch(motionNSNP);
+            skySafariClient->setMotionNS();
+        }
+    }
+    // Mw
+    else if (cmd == "Mw")
+    {
+        ISwitchVectorProperty *motionWENP = skySafariClient->getMotionWE();
+        if (motionWENP)
+        {
+            IUResetSwitch(motionWENP);
+            motionWENP->sp[0].s = ISS_ON;
+            skySafariClient->setMotionWE();
+        }
+    }
+    // Qw
+    else if (cmd == "Qw")
+    {
+        ISwitchVectorProperty *motionWENP = skySafariClient->getMotionWE();
+        if (motionWENP)
+        {
+            IUResetSwitch(motionWENP);
+            skySafariClient->setMotionWE();
+        }
+    }
+    // Me
+    else if (cmd == "Me")
+    {
+        ISwitchVectorProperty *motionWENP = skySafariClient->getMotionWE();
+        if (motionWENP)
+        {
+            IUResetSwitch(motionWENP);
+            motionWENP->sp[1].s = ISS_ON;
+            skySafariClient->setMotionWE();
+        }
+
+    }
+    // Qe
+    else if (cmd == "Qe")
+    {
+        ISwitchVectorProperty *motionWENP = skySafariClient->getMotionWE();
+        if (motionWENP)
+        {
+            IUResetSwitch(motionWENP);
+            skySafariClient->setMotionWE();
+        }
+    }
 }
 
 void SkySafari::sendGeographicCoords()

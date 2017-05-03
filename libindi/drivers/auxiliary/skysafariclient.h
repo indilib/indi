@@ -52,6 +52,12 @@ public:
    ISwitchVectorProperty* getGotoMode() { return gotoModeSP; }
    bool sendGotoMode();
 
+   ISwitchVectorProperty * getMotionNS() { return motionNSSP;}
+   bool setMotionNS();
+
+   ISwitchVectorProperty * getMotionWE() { return motionWESP;}
+   bool setMotionWE();
+
    bool parkMount();   
    IPState getMountParkState();
 
@@ -85,8 +91,10 @@ private:
    INumberVectorProperty *geoCoordsNP=nullptr;
    ISwitchVectorProperty *abortSP=nullptr;
    ISwitchVectorProperty *slewRateSP=nullptr;
-   GotoMode mode = TRACK;
+   ISwitchVectorProperty *motionNSSP=nullptr;
+   ISwitchVectorProperty *motionWESP=nullptr;
 
+   GotoMode mode = TRACK;
 };
 
 #endif
