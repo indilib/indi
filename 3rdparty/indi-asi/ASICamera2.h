@@ -146,6 +146,8 @@ typedef enum ASI_CONTROL_TYPE{ //Control type//
 	ASI_PATTERN_ADJUST,
 	ASI_ANTI_DEW_HEATER,
 	ASI_AUTO_MAX_EXP_MS//micro second
+
+
 }ASI_CONTROL_TYPE;
 
 typedef struct _ASI_CONTROL_CAPS
@@ -215,9 +217,12 @@ get the property of the connected cameras, you can do this without open the came
 here is the sample code:
 
 int iNumofConnectCameras = ASIGetNumOfConnectedCameras();
-ASI_CAMERA_INFO **ppASICameraInfo = (ASI_CAMERA_INFO *)malloc(sizeof(ASI_CAMERA_INFO *)*iNumofConnectCameras);
+ASI_CAMERA_INFO **ppASICameraInfo = (ASI_CAMERA_INFO **)malloc(sizeof(ASI_CAMERA_INFO *)*iNumofConnectCameras);
 for(int i = 0; i < iNumofConnectCameras; i++)
-	ASIGetCameraProperty(pASICameraInfo[i], i);
+{
+ppASICameraInfo[i] = (ASI_CAMERA_INFO *)malloc(sizeof(ASI_CAMERA_INFO ));
+ASIGetCameraProperty(ppASICameraInfo[i], i);
+}
 				
 Paras£º		
 	ASI_CAMERA_INFO *pASICameraInfo: Pointer to structure containing the property of camera
