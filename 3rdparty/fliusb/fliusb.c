@@ -328,8 +328,10 @@ static int fliusb_sg_bulk_read(fliusb_t *dev, unsigned int pipe,
     return -ERESTARTSYS;
 
   down_read(&current->mm->mmap_sem);
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 6, 0)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 9, 0)
   numpg = get_user_pages(numpg, 1, 0, dev->usbsg.userpg, NULL);
+#elif LINUX_VERSION_CODE >= KERNEL_VERSION(4, 6, 0)
+  numpg = get_user_pages((size_t)userbuffer & PAGE_MASK, numpg, 1, 0, dev->usbsg.userpg, NULL);
 #else
   numpg = get_user_pages(current, current->mm, (size_t)userbuffer & PAGE_MASK, numpg, 1, 0, dev->usbsg.userpg, NULL);
 #endif
