@@ -163,6 +163,7 @@ typedef enum
 #define	MAXINDIFORMAT	64
 #define	MAXINDIBLOBFMT	64
 #define	MAXINDITSTAMP	64
+#define	MAXINDIMESSAGE	255
 
 /*******************************************************************************
  * Typedefs for each INDI Property type.
