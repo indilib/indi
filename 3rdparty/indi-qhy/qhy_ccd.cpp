@@ -25,7 +25,7 @@
 #include "qhy_fw.h"
 
 #include "config.h"
-#ifndef OSX_EMBEDED_MODE
+#ifndef __APPLE__
 #include "stream_recorder.h"
 #endif
 
@@ -108,10 +108,6 @@ void ISInit()
   for (int i = 0; i < MAX_DEVICES; ++i)
     cameras[i] = nullptr;
 
-#if defined(__APPLE__)
-  UploadFW();
-#endif
-
 #if !defined(USE_SIMULATION)
   int ret = InitQHYCCDResource();
 
@@ -121,6 +117,12 @@ void ISInit()
     isInit = true;
     return;
   }
+#endif
+
+#if defined(__APPLE__)
+  //UploadFW();
+  char firmwarePath[32] = "/usr/local/lib/qhy";
+  OSXInitQHYCCDFirmware(firmwarePath);
 #endif
 
   std::vector<std::string> devices = GetDevicesIDs();
@@ -543,7 +545,7 @@ bool QHYCCD::Connect()
     {
         DEBUGF(INDI::Logger::DBG_SESSION, "Connected to %s.",camid);
 
-#ifdef OSX_EMBEDED_MODE
+#ifdef __APPLE__
         cap = CCD_CAN_ABORT | CCD_CAN_SUBFRAME;
 #else
         cap = CCD_CAN_ABORT | CCD_CAN_SUBFRAME | CCD_HAS_STREAMING;
@@ -690,7 +692,7 @@ bool QHYCCD::Connect()
 
         terminateThread = false;
 
-#ifndef OSX_EMBEDED_MODE
+#ifndef __APPLE__
         pthread_create( &primary_thread, NULL, &streamVideoHelper, this);
 #endif
         return true;
@@ -707,7 +709,7 @@ bool QHYCCD::Disconnect()
   DEBUG(INDI::Logger::DBG_SESSION, "CCD is offline.");
 
   pthread_mutex_lock(&condMutex);
-#ifndef OSX_EMBEDED_MODE
+#ifndef __APPLE__
   streamPredicate=0;
 #endif
   terminateThread=true;
@@ -761,7 +763,7 @@ bool QHYCCD::setupParams()
     nbuf = PrimaryCCD.getXRes() * PrimaryCCD.getYRes() * PrimaryCCD.getBPP() / 8;
     PrimaryCCD.setFrameBufferSize(nbuf);
 
-#ifndef OSX_EMBEDED_MODE
+#ifndef __APPLE__
     streamer->setPixelFormat(V4L2_PIX_FMT_GREY);
     streamer->setRecorderSize(imagew,imageh);
 #endif
@@ -791,7 +793,7 @@ bool QHYCCD::StartExposure(float duration)
 {
   int ret = QHYCCD_ERROR;
 
-#ifndef OSX_EMBEDED_MODE
+#ifndef __APPLE__
   if (streamer->isBusy())
   {
       DEBUG(INDI::Logger::DBG_ERROR, "Cannot take exposure while streaming/recording is active.");
@@ -949,7 +951,7 @@ bool QHYCCD::UpdateCCDFrame(int x, int y, int w, int h)
   nbuf=(camroiwidth * camroiheight * PrimaryCCD.getBPP()/8);                 //  this is pixel count  
   PrimaryCCD.setFrameBufferSize(nbuf);
 
-#ifndef OSX_EMBEDED_MODE
+#ifndef __APPLE__
   streamer->setRecorderSize(camroiwidth, camroiheight);
 #endif
   return true;
@@ -1464,7 +1466,7 @@ bool QHYCCD::saveConfigItems(FILE *fp)
     return true;
 }
 
-#ifndef OSX_EMBEDED_MODE
+#ifndef __APPLE__
 bool QHYCCD::StartStreaming()
 {
     if (PrimaryCCD.getBPP() != 8)

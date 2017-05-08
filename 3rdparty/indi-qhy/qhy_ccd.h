@@ -85,7 +85,7 @@ protected:
   virtual bool SetFilterNames();
   virtual bool GetFilterNames(const char *groupName);
 
-#ifndef OSX_EMBEDED_MODE
+#ifndef __APPLE__
   // Streaming
   virtual bool StartStreaming();
   virtual bool StopStreaming();
