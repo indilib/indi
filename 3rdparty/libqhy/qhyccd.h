@@ -30,7 +30,6 @@
 #include "qhyccdcamdef.h"
 #include "qhyccdstruct.h"
 #include "stdint.h"
-
 #ifdef WIN32
 #include "cyapi.h"
 #endif
@@ -695,5 +694,7 @@ EXPORTC void STDCALL SetQHYCCDGPSSlaveModeParameter(qhyccd_handle *handle,uint32
 EXPORTC uint32_t STDCALL QHYCCDVendRequestWrite(qhyccd_handle *h,uint8_t req,uint16_t value,uint16_t index1,uint32_t length,uint8_t *data);
 
 EXPORTC uint32_t STDCALL QHYCCDReadUSB_SYNC(qhyccd_handle *h,uint8_t usbep,uint32_t length,uint8_t *data,uint32_t timeout);
+
+EXPORTC uint32_t STDCALL QHYCCDLibusbBulkTransfer(qhyccd_handle *pDevHandle, uint8_t endpoint, uint8_t *data, uint32_t length, int32_t *transferred, uint32_t timeout);
 
 #endif
