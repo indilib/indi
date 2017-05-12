@@ -120,8 +120,10 @@ void ISInit()
 #endif
 
 #if defined(__APPLE__)
-  //UploadFW();
-  char firmwarePath[32] = "/usr/local/lib/qhy";
+
+  char firmwarePath[128] = "/usr/local/lib/qhy";
+  if (getenv("QHY_FIRMWARE_DIR") != NULL)
+      strncpy(firmwarePath, getenv("QHY_FIRMWARE_DIR"), 128);
   OSXInitQHYCCDFirmware(firmwarePath);
 #endif
 
