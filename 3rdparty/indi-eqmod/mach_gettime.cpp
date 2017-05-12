@@ -4,7 +4,7 @@
 #ifdef __MACH__ /* Mac OSX prior Sierra is missing clock_gettime() */
 #include <mach/clock.h>
 #include <mach/mach.h>
-void utc_time(struct timespec *ts) {
+void get_utc_time(struct timespec *ts) {
         clock_serv_t cclock;
         mach_timespec_t mts;
         host_get_clock_service(mach_host_self(), SYSTEM_CLOCK, &cclock);

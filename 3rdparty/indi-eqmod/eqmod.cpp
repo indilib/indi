@@ -206,7 +206,7 @@ EQMod::EQMod()
   lndate.days = utc.tm_mday;
   lndate.months = utc.tm_mon + 1;
   lndate.years = utc.tm_year + 1900;
-  utc_time(&lastclockupdate);
+  get_utc_time(&lastclockupdate);
   /* initialize random seed: */
   srand ( time(NULL) );
   // Others
@@ -266,7 +266,7 @@ double EQMod::getJulianDate()
   */
   struct timespec currentclock, diffclock;
   double nsecs;
-  utc_time(&currentclock);
+  get_utc_time(&currentclock);
   diffclock.tv_sec = currentclock.tv_sec - lastclockupdate.tv_sec;
   diffclock.tv_nsec = currentclock.tv_nsec - lastclockupdate.tv_nsec;
   while (diffclock.tv_nsec > 1000000000) {
@@ -2609,7 +2609,7 @@ bool EQMod::updateTime(ln_date *lndate_utc, double utc_offset)
    utc.tm_year = lndate.years - 1900;
 
    gettimeofday(&lasttimeupdate, NULL);
-   utc_time(&lastclockupdate);
+   get_utc_time(&lastclockupdate);
 
    strftime(utc_time, 32, "%Y-%m-%dT%H:%M:%S", &utc);
 
