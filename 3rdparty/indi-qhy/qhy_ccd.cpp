@@ -119,11 +119,14 @@ void ISInit()
   }
 #endif
 
-#if defined(__APPLE__)
-
+#if defined(OSX_EMBEDED_MODE)
+  char firmwarePath[128];
+  sprintf(firmwarePath, "%s/Contents/Resources", getenv("INDIPREFIX"));
+  OSXInitQHYCCDFirmware(firmwarePath);
+#elif defined(__APPLE__)
   char firmwarePath[128] = "/usr/local/lib/qhy";
   if (getenv("QHY_FIRMWARE_DIR") != NULL)
-      strncpy(firmwarePath, getenv("QHY_FIRMWARE_DIR"), 128);
+    strncpy(firmwarePath, getenv("QHY_FIRMWARE_DIR"), 128);
   OSXInitQHYCCDFirmware(firmwarePath);
 #endif
 

@@ -79,106 +79,65 @@
 		593445CD1CF8EFC8008AD945 /* qhy_ccd.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 593445C91CF8EFC8008AD945 /* qhy_ccd.cpp */; };
 		593445CE1CF8EFC8008AD945 /* qhy_fw.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 593445CB1CF8EFC8008AD945 /* qhy_fw.cpp */; };
 		593445CF1CF8EFCE008AD945 /* indi_qhy.xml in Resources */ = {isa = PBXBuildFile; fileRef = 593445C81CF8EFC8008AD945 /* indi_qhy.xml */; };
-		593447B11CF8F2BB008AD945 /* cjson.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 593446F41CF8F2BB008AD945 /* cjson.cpp */; };
-		593447B21CF8F2BB008AD945 /* cmosdll.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 593446F61CF8F2BB008AD945 /* cmosdll.cpp */; };
-		593447B31CF8F2BB008AD945 /* dithercontrol.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 593446F81CF8F2BB008AD945 /* dithercontrol.cpp */; };
-		593447B41CF8F2BB008AD945 /* download_fx2.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 593446FA1CF8F2BB008AD945 /* download_fx2.cpp */; };
-		593447B51CF8F2BB008AD945 /* download_fx3.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 593446FB1CF8F2BB008AD945 /* download_fx3.cpp */; };
-		593447B61CF8F2BB008AD945 /* ic8300.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 593446FC1CF8F2BB008AD945 /* ic8300.cpp */; };
-		593447B71CF8F2BB008AD945 /* ic16803.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 593446FE1CF8F2BB008AD945 /* ic16803.cpp */; };
-		593447B81CF8F2BB008AD945 /* img0h.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 593447001CF8F2BB008AD945 /* img0h.cpp */; };
-		593447B91CF8F2BB008AD945 /* img2p.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 593447021CF8F2BB008AD945 /* img2p.cpp */; };
-		593447BA1CF8F2BB008AD945 /* img132e.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 593447041CF8F2BB008AD945 /* img132e.cpp */; };
-		593447BB1CF8F2BB008AD945 /* log4z.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 593447061CF8F2BB008AD945 /* log4z.cpp */; };
-		593447BC1CF8F2BB008AD945 /* minicam5f_m.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 593447081CF8F2BB008AD945 /* minicam5f_m.cpp */; };
-		593447BD1CF8F2BB008AD945 /* minicam5s_c.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 5934470A1CF8F2BB008AD945 /* minicam5s_c.cpp */; };
-		593447BE1CF8F2BB008AD945 /* minicam5s_m.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 5934470C1CF8F2BB008AD945 /* minicam5s_m.cpp */; };
-		593447BF1CF8F2BB008AD945 /* polemaster.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 5934470E1CF8F2BB008AD945 /* polemaster.cpp */; };
-		593447C01CF8F2BB008AD945 /* qhy2pro.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 593447101CF8F2BB008AD945 /* qhy2pro.cpp */; };
-		593447C11CF8F2BB008AD945 /* qhy5.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 593447121CF8F2BB008AD945 /* qhy5.cpp */; };
-		593447C21CF8F2BB008AD945 /* qhy5hii.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 593447141CF8F2BB008AD945 /* qhy5hii.cpp */; };
-		593447C31CF8F2BB008AD945 /* qhy5ii.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 593447161CF8F2BB008AD945 /* qhy5ii.cpp */; };
-		593447C41CF8F2BB008AD945 /* qhy5iibase.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 593447181CF8F2BB008AD945 /* qhy5iibase.cpp */; };
-		593447C51CF8F2BB008AD945 /* qhy5iii163base.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 5934471A1CF8F2BB008AD945 /* qhy5iii163base.cpp */; };
-		593447C61CF8F2BB008AD945 /* qhy5iii165base.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 5934471C1CF8F2BB008AD945 /* qhy5iii165base.cpp */; };
-		593447C71CF8F2BB008AD945 /* qhy5iii174base.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 5934471E1CF8F2BB008AD945 /* qhy5iii174base.cpp */; };
-		593447C81CF8F2BB008AD945 /* qhy5iii174c.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 593447201CF8F2BB008AD945 /* qhy5iii174c.cpp */; };
-		593447C91CF8F2BB008AD945 /* qhy5iii174m.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 593447221CF8F2BB008AD945 /* qhy5iii174m.cpp */; };
-		593447CA1CF8F2BB008AD945 /* qhy5iii178base.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 593447241CF8F2BB008AD945 /* qhy5iii178base.cpp */; };
-		593447CB1CF8F2BB008AD945 /* qhy5iii178c.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 593447261CF8F2BB008AD945 /* qhy5iii178c.cpp */; };
-		593447CC1CF8F2BB008AD945 /* qhy5iii178m.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 593447281CF8F2BB008AD945 /* qhy5iii178m.cpp */; };
-		593447CD1CF8F2BB008AD945 /* qhy5iii183base.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 5934472A1CF8F2BB008AD945 /* qhy5iii183base.cpp */; };
-		593447CE1CF8F2BB008AD945 /* qhy5iii185base.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 5934472C1CF8F2BB008AD945 /* qhy5iii185base.cpp */; };
-		593447CF1CF8F2BB008AD945 /* qhy5iii185c.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 5934472E1CF8F2BB008AD945 /* qhy5iii185c.cpp */; };
-		593447D01CF8F2BB008AD945 /* qhy5iii224base.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 593447301CF8F2BB008AD945 /* qhy5iii224base.cpp */; };
-		593447D11CF8F2BB008AD945 /* qhy5iii224c.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 593447321CF8F2BB008AD945 /* qhy5iii224c.cpp */; };
-		593447D21CF8F2BB008AD945 /* qhy5iii236c.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 593447341CF8F2BB008AD945 /* qhy5iii236c.cpp */; };
-		593447D31CF8F2BB008AD945 /* qhy5iii290base.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 593447361CF8F2BB008AD945 /* qhy5iii290base.cpp */; };
-		593447D41CF8F2BB008AD945 /* qhy5iii290c.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 593447381CF8F2BB008AD945 /* qhy5iii290c.cpp */; };
-		593447D51CF8F2BB008AD945 /* qhy5iii290m.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 5934473A1CF8F2BB008AD945 /* qhy5iii290m.cpp */; };
-		593447D61CF8F2BB008AD945 /* qhy5iii367base.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 5934473C1CF8F2BB008AD945 /* qhy5iii367base.cpp */; };
-		593447D71CF8F2BB008AD945 /* qhy5iiibase.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 5934473E1CF8F2BB008AD945 /* qhy5iiibase.cpp */; };
-		593447D81CF8F2BB008AD945 /* qhy5iiicoolbase.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 593447401CF8F2BB008AD945 /* qhy5iiicoolbase.cpp */; };
-		593447D91CF8F2BB008AD945 /* qhy5iiig400m.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 593447421CF8F2BB008AD945 /* qhy5iiig400m.cpp */; };
-		593447DA1CF8F2BB008AD945 /* qhy5lii_c.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 593447441CF8F2BB008AD945 /* qhy5lii_c.cpp */; };
-		593447DB1CF8F2BB008AD945 /* qhy5lii_m.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 593447461CF8F2BB008AD945 /* qhy5lii_m.cpp */; };
-		593447DC1CF8F2BB008AD945 /* qhy5liibase.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 593447481CF8F2BB008AD945 /* qhy5liibase.cpp */; };
-		593447DD1CF8F2BB008AD945 /* qhy5pii_c.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 5934474A1CF8F2BB008AD945 /* qhy5pii_c.cpp */; };
-		593447DE1CF8F2BB008AD945 /* qhy5pii_m.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 5934474C1CF8F2BB008AD945 /* qhy5pii_m.cpp */; };
-		593447DF1CF8F2BB008AD945 /* qhy5rii_m.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 5934474E1CF8F2BB008AD945 /* qhy5rii_m.cpp */; };
-		593447E01CF8F2BB008AD945 /* qhy5tii_c.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 593447501CF8F2BB008AD945 /* qhy5tii_c.cpp */; };
-		593447E11CF8F2BB008AD945 /* qhy6.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 593447521CF8F2BB008AD945 /* qhy6.cpp */; };
-		593447E21CF8F2BB008AD945 /* qhy7.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 593447541CF8F2BB008AD945 /* qhy7.cpp */; };
-		593447E31CF8F2BB008AD945 /* qhy8.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 593447561CF8F2BB008AD945 /* qhy8.cpp */; };
-		593447E41CF8F2BB008AD945 /* qhy8l.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 593447581CF8F2BB008AD945 /* qhy8l.cpp */; };
-		593447E51CF8F2BB008AD945 /* qhy8pro.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 5934475A1CF8F2BB008AD945 /* qhy8pro.cpp */; };
-		593447E61CF8F2BB008AD945 /* qhy9s.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 5934475C1CF8F2BB008AD945 /* qhy9s.cpp */; };
-		593447E71CF8F2BB008AD945 /* qhy9t.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 5934475E1CF8F2BB008AD945 /* qhy9t.cpp */; };
-		593447E81CF8F2BB008AD945 /* qhy10.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 593447601CF8F2BB008AD945 /* qhy10.cpp */; };
-		593447E91CF8F2BB008AD945 /* qhy11.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 593447621CF8F2BB008AD945 /* qhy11.cpp */; };
-		593447EA1CF8F2BB008AD945 /* qhy12.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 593447641CF8F2BB008AD945 /* qhy12.cpp */; };
-		593447EB1CF8F2BB008AD945 /* qhy15.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 593447661CF8F2BB008AD945 /* qhy15.cpp */; };
-		593447EC1CF8F2BB008AD945 /* qhy16.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 593447681CF8F2BB008AD945 /* qhy16.cpp */; };
-		593447ED1CF8F2BB008AD945 /* qhy21.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 5934476A1CF8F2BB008AD945 /* qhy21.cpp */; };
-		593447EE1CF8F2BB008AD945 /* qhy22.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 5934476C1CF8F2BB008AD945 /* qhy22.cpp */; };
-		593447EF1CF8F2BB008AD945 /* qhy23.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 5934476E1CF8F2BB008AD945 /* qhy23.cpp */; };
-		593447F01CF8F2BB008AD945 /* qhy27.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 593447701CF8F2BB008AD945 /* qhy27.cpp */; };
-		593447F11CF8F2BB008AD945 /* qhy28.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 593447721CF8F2BB008AD945 /* qhy28.cpp */; };
-		593447F21CF8F2BB008AD945 /* qhy29.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 593447741CF8F2BB008AD945 /* qhy29.cpp */; };
-		593447F31CF8F2BB008AD945 /* qhy45gx.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 593447761CF8F2BB008AD945 /* qhy45gx.cpp */; };
-		593447F41CF8F2BB008AD945 /* qhy90a.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 593447781CF8F2BB008AD945 /* qhy90a.cpp */; };
-		593447F51CF8F2BB008AD945 /* qhy163c.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 5934477A1CF8F2BB008AD945 /* qhy163c.cpp */; };
-		593447F61CF8F2BB008AD945 /* qhy163m.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 5934477C1CF8F2BB008AD945 /* qhy163m.cpp */; };
-		593447F71CF8F2BB008AD945 /* qhy165c.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 5934477E1CF8F2BB008AD945 /* qhy165c.cpp */; };
-		593447F81CF8F2BB008AD945 /* qhy174c.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 593447801CF8F2BB008AD945 /* qhy174c.cpp */; };
-		593447F91CF8F2BB008AD945 /* qhy174m.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 593447821CF8F2BB008AD945 /* qhy174m.cpp */; };
-		593447FA1CF8F2BB008AD945 /* qhy178c.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 593447841CF8F2BB008AD945 /* qhy178c.cpp */; };
-		593447FB1CF8F2BB008AD945 /* qhy178m.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 593447861CF8F2BB008AD945 /* qhy178m.cpp */; };
-		593447FC1CF8F2BB008AD945 /* qhy183c.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 593447881CF8F2BB008AD945 /* qhy183c.cpp */; };
-		593447FD1CF8F2BB008AD945 /* qhy224c.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 5934478A1CF8F2BB008AD945 /* qhy224c.cpp */; };
-		593447FE1CF8F2BB008AD945 /* qhy290c.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 5934478C1CF8F2BB008AD945 /* qhy290c.cpp */; };
-		593447FF1CF8F2BB008AD945 /* qhy290m.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 5934478E1CF8F2BB008AD945 /* qhy290m.cpp */; };
-		593448001CF8F2BB008AD945 /* qhy367c.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 593447901CF8F2BB008AD945 /* qhy367c.cpp */; };
-		593448011CF8F2BB008AD945 /* qhy695a.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 593447921CF8F2BB008AD945 /* qhy695a.cpp */; };
-		593448021CF8F2BB008AD945 /* qhy814g.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 593447941CF8F2BB008AD945 /* qhy814g.cpp */; };
-		593448031CF8F2BB008AD945 /* qhy08050g.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 593447961CF8F2BB008AD945 /* qhy08050g.cpp */; };
-		593448041CF8F2BB008AD945 /* qhy16000.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 593447981CF8F2BB008AD945 /* qhy16000.cpp */; };
-		593448051CF8F2BB008AD945 /* qhy16000g.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 5934479A1CF8F2BB008AD945 /* qhy16000g.cpp */; };
-		593448061CF8F2BB008AD945 /* qhy16200a.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 5934479C1CF8F2BB008AD945 /* qhy16200a.cpp */; };
-		593448071CF8F2BB008AD945 /* qhy160002ad.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 5934479E1CF8F2BB008AD945 /* qhy160002ad.cpp */; };
-		593448081CF8F2BB008AD945 /* qhyabase.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 593447A01CF8F2BB008AD945 /* qhyabase.cpp */; };
-		593448091CF8F2BB008AD945 /* qhybase.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 593447A21CF8F2BB008AD945 /* qhybase.cpp */; };
-		5934480A1CF8F2BB008AD945 /* qhycam.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 593447A41CF8F2BB008AD945 /* qhycam.cpp */; };
-		5934480B1CF8F2BB008AD945 /* qhyccd.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 593447A61CF8F2BB008AD945 /* qhyccd.cpp */; };
-		5934480C1CF8F2BB008AD945 /* qhyccdimgprocess.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 593447A81CF8F2BB008AD945 /* qhyccdimgprocess.cpp */; };
-		5934480D1CF8F2BB008AD945 /* qhyicbase.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 593447A91CF8F2BB008AD945 /* qhyicbase.cpp */; };
-		5934480E1CF8F2BB008AD945 /* solar800g.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 593447AB1CF8F2BB008AD945 /* solar800g.cpp */; };
-		5934480F1CF8F2BB008AD945 /* solar1600.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 593447AD1CF8F2BB008AD945 /* solar1600.cpp */; };
-		593448101CF8F2BB008AD945 /* unlockimagequeue.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 593447AF1CF8F2BB008AD945 /* unlockimagequeue.cpp */; };
 		5934481D1CF9E4E6008AD945 /* libnova.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 9DDA422C1A8CB6920004AA95 /* libnova.dylib */; };
 		5934481E1CF9E4E6008AD945 /* libindi.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 9DDA43A91A8CD3190004AA95 /* libindi.dylib */; };
 		593448241CF9E508008AD945 /* indi_script_telescope in Copy Files (33 items) (53 items) */ = {isa = PBXBuildFile; fileRef = 593448231CF9E4E6008AD945 /* indi_script_telescope */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
 		593448271CF9E694008AD945 /* telescope_script.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 593448111CF9A6B0008AD945 /* telescope_script.cpp */; };
+		594107801EC4BF0700C44F92 /* libqhy.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 5941077F1EC4BF0700C44F92 /* libqhy.dylib */; };
+		594107811EC4BFDB00C44F92 /* libqhy.dylib in Copy Files (33 items) (53 items) */ = {isa = PBXBuildFile; fileRef = 5941077F1EC4BF0700C44F92 /* libqhy.dylib */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
+		594107821EC4C1BE00C44F92 /* IC90A.HEX in Resources */ = {isa = PBXBuildFile; fileRef = 593445D41CF8F029008AD945 /* IC90A.HEX */; };
+		594107831EC4C1BE00C44F92 /* IC8300.HEX in Resources */ = {isa = PBXBuildFile; fileRef = 593445D51CF8F029008AD945 /* IC8300.HEX */; };
+		594107841EC4C1BE00C44F92 /* IC16200A.HEX in Resources */ = {isa = PBXBuildFile; fileRef = 593445D61CF8F029008AD945 /* IC16200A.HEX */; };
+		594107851EC4C1BE00C44F92 /* IC16803.HEX in Resources */ = {isa = PBXBuildFile; fileRef = 593445D71CF8F029008AD945 /* IC16803.HEX */; };
+		594107861EC4C1BE00C44F92 /* IMG0H.HEX in Resources */ = {isa = PBXBuildFile; fileRef = 593445D81CF8F029008AD945 /* IMG0H.HEX */; };
+		594107871EC4C1BE00C44F92 /* IMG2P.HEX in Resources */ = {isa = PBXBuildFile; fileRef = 593445D91CF8F029008AD945 /* IMG2P.HEX */; };
+		594107881EC4C1BE00C44F92 /* IMG2S.HEX in Resources */ = {isa = PBXBuildFile; fileRef = 593445DA1CF8F029008AD945 /* IMG2S.HEX */; };
+		594107891EC4C1BE00C44F92 /* IMG50.HEX in Resources */ = {isa = PBXBuildFile; fileRef = 593445DB1CF8F029008AD945 /* IMG50.HEX */; };
+		5941078A1EC4C1BE00C44F92 /* miniCam5.HEX in Resources */ = {isa = PBXBuildFile; fileRef = 593445DC1CF8F029008AD945 /* miniCam5.HEX */; };
+		5941078B1EC4C1BE00C44F92 /* POLEMASTER.HEX in Resources */ = {isa = PBXBuildFile; fileRef = 593445DD1CF8F029008AD945 /* POLEMASTER.HEX */; };
+		5941078C1EC4C1BE00C44F92 /* QHY2.HEX in Resources */ = {isa = PBXBuildFile; fileRef = 593445DE1CF8F029008AD945 /* QHY2.HEX */; };
+		5941078D1EC4C1BE00C44F92 /* QHY2E.HEX in Resources */ = {isa = PBXBuildFile; fileRef = 593445DF1CF8F029008AD945 /* QHY2E.HEX */; };
+		5941078E1EC4C1BE00C44F92 /* QHY2PRO.HEX in Resources */ = {isa = PBXBuildFile; fileRef = 593445E01CF8F029008AD945 /* QHY2PRO.HEX */; };
+		5941078F1EC4C1BE00C44F92 /* QHY5.HEX in Resources */ = {isa = PBXBuildFile; fileRef = 593445E11CF8F029008AD945 /* QHY5.HEX */; };
+		594107901EC4C1BE00C44F92 /* QHY5II.HEX in Resources */ = {isa = PBXBuildFile; fileRef = 593445E21CF8F029008AD945 /* QHY5II.HEX */; };
+		594107911EC4C1BE00C44F92 /* QHY5III174.img in Resources */ = {isa = PBXBuildFile; fileRef = 593445E31CF8F029008AD945 /* QHY5III174.img */; };
+		594107921EC4C1BE00C44F92 /* QHY5III178.img in Resources */ = {isa = PBXBuildFile; fileRef = 593445E41CF8F029008AD945 /* QHY5III178.img */; };
+		594107931EC4C1BE00C44F92 /* QHY5III185.img in Resources */ = {isa = PBXBuildFile; fileRef = 593445E51CF8F029008AD945 /* QHY5III185.img */; };
+		594107941EC4C1BE00C44F92 /* QHY5III224.img in Resources */ = {isa = PBXBuildFile; fileRef = 593445E61CF8F029008AD945 /* QHY5III224.img */; };
+		594107951EC4C1BE00C44F92 /* QHY5III290.img in Resources */ = {isa = PBXBuildFile; fileRef = 593445E71CF8F029008AD945 /* QHY5III290.img */; };
+		594107961EC4C1BE00C44F92 /* QHY5LOADER.HEX in Resources */ = {isa = PBXBuildFile; fileRef = 593445E81CF8F029008AD945 /* QHY5LOADER.HEX */; };
+		594107971EC4C1BE00C44F92 /* QHY6.HEX in Resources */ = {isa = PBXBuildFile; fileRef = 593445E91CF8F029008AD945 /* QHY6.HEX */; };
+		594107981EC4C1BE00C44F92 /* QHY7.HEX in Resources */ = {isa = PBXBuildFile; fileRef = 593445EA1CF8F029008AD945 /* QHY7.HEX */; };
+		594107991EC4C1BE00C44F92 /* QHY8.HEX in Resources */ = {isa = PBXBuildFile; fileRef = 593445EB1CF8F029008AD945 /* QHY8.HEX */; };
+		5941079A1EC4C1BE00C44F92 /* QHY8L.HEX in Resources */ = {isa = PBXBuildFile; fileRef = 593445EC1CF8F029008AD945 /* QHY8L.HEX */; };
+		5941079B1EC4C1BE00C44F92 /* QHY8M.HEX in Resources */ = {isa = PBXBuildFile; fileRef = 593445ED1CF8F029008AD945 /* QHY8M.HEX */; };
+		5941079C1EC4C1BE00C44F92 /* QHY8PRO.HEX in Resources */ = {isa = PBXBuildFile; fileRef = 593445EE1CF8F029008AD945 /* QHY8PRO.HEX */; };
+		5941079D1EC4C1BE00C44F92 /* QHY9S.HEX in Resources */ = {isa = PBXBuildFile; fileRef = 593445EF1CF8F029008AD945 /* QHY9S.HEX */; };
+		5941079E1EC4C1BE00C44F92 /* QHY10.HEX in Resources */ = {isa = PBXBuildFile; fileRef = 593445F01CF8F029008AD945 /* QHY10.HEX */; };
+		5941079F1EC4C1BE00C44F92 /* QHY11.HEX in Resources */ = {isa = PBXBuildFile; fileRef = 593445F11CF8F029008AD945 /* QHY11.HEX */; };
+		594107A01EC4C1BE00C44F92 /* QHY12.HEX in Resources */ = {isa = PBXBuildFile; fileRef = 593445F21CF8F029008AD945 /* QHY12.HEX */; };
+		594107A11EC4C1BE00C44F92 /* QHY15.HEX in Resources */ = {isa = PBXBuildFile; fileRef = 593445F31CF8F029008AD945 /* QHY15.HEX */; };
+		594107A21EC4C1BE00C44F92 /* QHY16.HEX in Resources */ = {isa = PBXBuildFile; fileRef = 593445F41CF8F029008AD945 /* QHY16.HEX */; };
+		594107A31EC4C1BE00C44F92 /* QHY20.HEX in Resources */ = {isa = PBXBuildFile; fileRef = 593445F51CF8F029008AD945 /* QHY20.HEX */; };
+		594107A41EC4C1BE00C44F92 /* QHY21.HEX in Resources */ = {isa = PBXBuildFile; fileRef = 593445F61CF8F029008AD945 /* QHY21.HEX */; };
+		594107A51EC4C1BE00C44F92 /* QHY22.HEX in Resources */ = {isa = PBXBuildFile; fileRef = 593445F71CF8F029008AD945 /* QHY22.HEX */; };
+		594107A61EC4C1BE00C44F92 /* QHY23.HEX in Resources */ = {isa = PBXBuildFile; fileRef = 593445F81CF8F029008AD945 /* QHY23.HEX */; };
+		594107A71EC4C1BE00C44F92 /* QHY27.HEX in Resources */ = {isa = PBXBuildFile; fileRef = 593445F91CF8F029008AD945 /* QHY27.HEX */; };
+		594107A81EC4C1BE00C44F92 /* QHY28.HEX in Resources */ = {isa = PBXBuildFile; fileRef = 593445FA1CF8F029008AD945 /* QHY28.HEX */; };
+		594107A91EC4C1BE00C44F92 /* QHY29.HEX in Resources */ = {isa = PBXBuildFile; fileRef = 593445FB1CF8F029008AD945 /* QHY29.HEX */; };
+		594107AA1EC4C1BE00C44F92 /* QHY163.img in Resources */ = {isa = PBXBuildFile; fileRef = 593445FC1CF8F029008AD945 /* QHY163.img */; };
+		594107AB1EC4C1BE00C44F92 /* QHY174.img in Resources */ = {isa = PBXBuildFile; fileRef = 593445FD1CF8F029008AD945 /* QHY174.img */; };
+		594107AC1EC4C1BE00C44F92 /* QHY178.img in Resources */ = {isa = PBXBuildFile; fileRef = 593445FE1CF8F029008AD945 /* QHY178.img */; };
+		594107AD1EC4C1BE00C44F92 /* QHY224.img in Resources */ = {isa = PBXBuildFile; fileRef = 593445FF1CF8F029008AD945 /* QHY224.img */; };
+		594107AE1EC4C1BE00C44F92 /* QHY290.img in Resources */ = {isa = PBXBuildFile; fileRef = 593446001CF8F029008AD945 /* QHY290.img */; };
+		594107AF1EC4C1BE00C44F92 /* QHY16000.HEX in Resources */ = {isa = PBXBuildFile; fileRef = 593446011CF8F029008AD945 /* QHY16000.HEX */; };
+		594107B01EC4C1BE00C44F92 /* QHY160002AD.HEX in Resources */ = {isa = PBXBuildFile; fileRef = 593446021CF8F029008AD945 /* QHY160002AD.HEX */; };
+		594107B81EC4C32700C44F92 /* connectioninterface.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 594107B21EC4C32700C44F92 /* connectioninterface.cpp */; };
+		594107B91EC4C32700C44F92 /* connectioninterface.h in Headers */ = {isa = PBXBuildFile; fileRef = 594107B31EC4C32700C44F92 /* connectioninterface.h */; };
+		594107BA1EC4C32700C44F92 /* connectionserial.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 594107B41EC4C32700C44F92 /* connectionserial.cpp */; };
+		594107BB1EC4C32700C44F92 /* connectionserial.h in Headers */ = {isa = PBXBuildFile; fileRef = 594107B51EC4C32700C44F92 /* connectionserial.h */; };
+		594107BC1EC4C32700C44F92 /* connectiontcp.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 594107B61EC4C32700C44F92 /* connectiontcp.cpp */; };
+		594107BD1EC4C32700C44F92 /* connectiontcp.h in Headers */ = {isa = PBXBuildFile; fileRef = 594107B71EC4C32700C44F92 /* connectiontcp.h */; };
 		5944982C1C135B3600E0E281 /* lx200pulsar2.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 5944982B1C135B3600E0E281 /* lx200pulsar2.cpp */; };
 		594498351C135D8000E0E281 /* libindi.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 9DDA43A91A8CD3190004AA95 /* libindi.dylib */; };
 		594498361C135D8000E0E281 /* libnova.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 9DDA422C1A8CB6920004AA95 /* libnova.dylib */; };
@@ -531,18 +490,7 @@
 		59E5F8E01C3F0B37008DAB80 /* MathPluginManagement.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 59E5F8DF1C3F0B37008DAB80 /* MathPluginManagement.cpp */; };
 		59E5F91E1C3F17B9008DAB80 /* libobjc.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = 59E5F91D1C3F17B9008DAB80 /* libobjc.tbd */; };
 		59E5F9241C3F1940008DAB80 /* libz.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = 5944995F1C136C9100E0E281 /* libz.tbd */; };
-		59F755D91DCD2EAC002CFC82 /* qhy5iii178coolbase.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 59F755C71DCD2EA6002CFC82 /* qhy5iii178coolbase.cpp */; };
-		59F755DA1DCD2EAC002CFC82 /* qhy5iii224coolbase.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 59F755C81DCD2EA6002CFC82 /* qhy5iii224coolbase.cpp */; };
-		59F755DB1DCD2EAC002CFC82 /* qhy5iii247base.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 59F755C91DCD2EA6002CFC82 /* qhy5iii247base.cpp */; };
-		59F755DC1DCD2EAC002CFC82 /* qhy5iii290coolbase.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 59F755CA1DCD2EA6002CFC82 /* qhy5iii290coolbase.cpp */; };
-		59F755DD1DCD2EAC002CFC82 /* qhy5iiicommon.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 59F755CB1DCD2EA6002CFC82 /* qhy5iiicommon.cpp */; };
-		59F755DE1DCD2EAC002CFC82 /* qhy5iiiddrcoolbase.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 59F755CC1DCD2EA6002CFC82 /* qhy5iiiddrcoolbase.cpp */; };
-		59F755DF1DCD2EAC002CFC82 /* minicam5base.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 59F755C41DCD2E6E002CFC82 /* minicam5base.cpp */; };
-		59F755EA1DCD2F00002CFC82 /* qhy247c.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 59F755E21DCD2EF4002CFC82 /* qhy247c.cpp */; };
-		59F755EB1DCD2F00002CFC82 /* qhy814a.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 59F755E31DCD2EF4002CFC82 /* qhy814a.cpp */; };
-		59F755EE1DCD2FFD002CFC82 /* qhy16803a.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 59F755E41DCD2EF4002CFC82 /* qhy16803a.cpp */; };
 		59F755F11DCD3024002CFC82 /* indi_qhy_ccd in Copy Files (33 items) (53 items) */ = {isa = PBXBuildFile; fileRef = 593445C51CF8EF62008AD945 /* indi_qhy_ccd */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
-		59F755F21DCD3038002CFC82 /* QHY5II.HEX in Resources */ = {isa = PBXBuildFile; fileRef = 593445E21CF8F029008AD945 /* QHY5II.HEX */; };
 		59FC29FA1E1C4DD000B616EB /* libgslblas.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 59FC29F81E1C4DD000B616EB /* libgslblas.a */; };
 		59FC29FB1E1C4DD000B616EB /* libgsl.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 59FC29F91E1C4DD000B616EB /* libgsl.a */; };
 		9D0B29C01A8D1E9400ED17BF /* libindi.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 9DDA43A91A8CD3190004AA95 /* libindi.dylib */; };
@@ -2799,6 +2747,7 @@
 				9DDA440A1A8CFDCE0004AA95 /* indi_simulator_ccd in Copy Files (33 items) (53 items) */,
 				597B893D188837E10093873A /* indiserver in Copy Files (33 items) (53 items) */,
 				59499FB51E61EA8500567CAD /* indi_hitecastrodc_focus in Copy Files (33 items) (53 items) */,
+				594107811EC4BFDB00C44F92 /* libqhy.dylib in Copy Files (33 items) (53 items) */,
 			);
 			name = "Copy Files (33 items) (53 items)";
 			runOnlyForDeploymentPostprocessing = 0;
@@ -3110,201 +3059,23 @@
 		593446001CF8F029008AD945 /* QHY290.img */ = {isa = PBXFileReference; lastKnownFileType = file; path = QHY290.img; sourceTree = "<group>"; };
 		593446011CF8F029008AD945 /* QHY16000.HEX */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = QHY16000.HEX; sourceTree = "<group>"; };
 		593446021CF8F029008AD945 /* QHY160002AD.HEX */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = QHY160002AD.HEX; sourceTree = "<group>"; };
-		593446F41CF8F2BB008AD945 /* cjson.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = cjson.cpp; sourceTree = "<group>"; };
-		593446F51CF8F2BB008AD945 /* cjson.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = cjson.h; sourceTree = "<group>"; };
-		593446F61CF8F2BB008AD945 /* cmosdll.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = cmosdll.cpp; sourceTree = "<group>"; };
-		593446F71CF8F2BB008AD945 /* cmosdll.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = cmosdll.h; sourceTree = "<group>"; };
-		593446F81CF8F2BB008AD945 /* dithercontrol.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = dithercontrol.cpp; sourceTree = "<group>"; };
-		593446F91CF8F2BB008AD945 /* dithercontrol.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = dithercontrol.h; sourceTree = "<group>"; };
-		593446FA1CF8F2BB008AD945 /* download_fx2.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = download_fx2.cpp; sourceTree = "<group>"; };
-		593446FB1CF8F2BB008AD945 /* download_fx3.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = download_fx3.cpp; sourceTree = "<group>"; };
-		593446FC1CF8F2BB008AD945 /* ic8300.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = ic8300.cpp; sourceTree = "<group>"; };
-		593446FD1CF8F2BB008AD945 /* ic8300.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ic8300.h; sourceTree = "<group>"; };
-		593446FE1CF8F2BB008AD945 /* ic16803.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = ic16803.cpp; sourceTree = "<group>"; };
-		593446FF1CF8F2BB008AD945 /* ic16803.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ic16803.h; sourceTree = "<group>"; };
-		593447001CF8F2BB008AD945 /* img0h.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = img0h.cpp; sourceTree = "<group>"; };
-		593447011CF8F2BB008AD945 /* img0h.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = img0h.h; sourceTree = "<group>"; };
-		593447021CF8F2BB008AD945 /* img2p.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = img2p.cpp; sourceTree = "<group>"; };
-		593447031CF8F2BB008AD945 /* img2p.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = img2p.h; sourceTree = "<group>"; };
-		593447041CF8F2BB008AD945 /* img132e.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = img132e.cpp; sourceTree = "<group>"; };
-		593447051CF8F2BB008AD945 /* img132e.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = img132e.h; sourceTree = "<group>"; };
-		593447061CF8F2BB008AD945 /* log4z.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = log4z.cpp; sourceTree = "<group>"; };
-		593447071CF8F2BB008AD945 /* log4z.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = log4z.h; sourceTree = "<group>"; };
-		593447081CF8F2BB008AD945 /* minicam5f_m.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = minicam5f_m.cpp; sourceTree = "<group>"; };
-		593447091CF8F2BB008AD945 /* minicam5f_m.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = minicam5f_m.h; sourceTree = "<group>"; };
-		5934470A1CF8F2BB008AD945 /* minicam5s_c.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = minicam5s_c.cpp; sourceTree = "<group>"; };
-		5934470B1CF8F2BB008AD945 /* minicam5s_c.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = minicam5s_c.h; sourceTree = "<group>"; };
-		5934470C1CF8F2BB008AD945 /* minicam5s_m.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = minicam5s_m.cpp; sourceTree = "<group>"; };
-		5934470D1CF8F2BB008AD945 /* minicam5s_m.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = minicam5s_m.h; sourceTree = "<group>"; };
-		5934470E1CF8F2BB008AD945 /* polemaster.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = polemaster.cpp; sourceTree = "<group>"; };
-		5934470F1CF8F2BB008AD945 /* polemaster.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = polemaster.h; sourceTree = "<group>"; };
-		593447101CF8F2BB008AD945 /* qhy2pro.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = qhy2pro.cpp; sourceTree = "<group>"; };
-		593447111CF8F2BB008AD945 /* qhy2pro.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = qhy2pro.h; sourceTree = "<group>"; };
-		593447121CF8F2BB008AD945 /* qhy5.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = qhy5.cpp; sourceTree = "<group>"; };
-		593447131CF8F2BB008AD945 /* qhy5.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = qhy5.h; sourceTree = "<group>"; };
-		593447141CF8F2BB008AD945 /* qhy5hii.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = qhy5hii.cpp; sourceTree = "<group>"; };
-		593447151CF8F2BB008AD945 /* qhy5hii.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = qhy5hii.h; sourceTree = "<group>"; };
-		593447161CF8F2BB008AD945 /* qhy5ii.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = qhy5ii.cpp; sourceTree = "<group>"; };
-		593447171CF8F2BB008AD945 /* qhy5ii.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = qhy5ii.h; sourceTree = "<group>"; };
-		593447181CF8F2BB008AD945 /* qhy5iibase.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = qhy5iibase.cpp; sourceTree = "<group>"; };
-		593447191CF8F2BB008AD945 /* qhy5iibase.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = qhy5iibase.h; sourceTree = "<group>"; };
-		5934471A1CF8F2BB008AD945 /* qhy5iii163base.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = qhy5iii163base.cpp; sourceTree = "<group>"; };
-		5934471B1CF8F2BB008AD945 /* qhy5iii163base.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = qhy5iii163base.h; sourceTree = "<group>"; };
-		5934471C1CF8F2BB008AD945 /* qhy5iii165base.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = qhy5iii165base.cpp; sourceTree = "<group>"; };
-		5934471D1CF8F2BB008AD945 /* qhy5iii165base.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = qhy5iii165base.h; sourceTree = "<group>"; };
-		5934471E1CF8F2BB008AD945 /* qhy5iii174base.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = qhy5iii174base.cpp; sourceTree = "<group>"; };
-		5934471F1CF8F2BB008AD945 /* qhy5iii174base.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = qhy5iii174base.h; sourceTree = "<group>"; };
-		593447201CF8F2BB008AD945 /* qhy5iii174c.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = qhy5iii174c.cpp; sourceTree = "<group>"; };
-		593447211CF8F2BB008AD945 /* qhy5iii174c.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = qhy5iii174c.h; sourceTree = "<group>"; };
-		593447221CF8F2BB008AD945 /* qhy5iii174m.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = qhy5iii174m.cpp; sourceTree = "<group>"; };
-		593447231CF8F2BB008AD945 /* qhy5iii174m.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = qhy5iii174m.h; sourceTree = "<group>"; };
-		593447241CF8F2BB008AD945 /* qhy5iii178base.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = qhy5iii178base.cpp; sourceTree = "<group>"; };
-		593447251CF8F2BB008AD945 /* qhy5iii178base.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = qhy5iii178base.h; sourceTree = "<group>"; };
-		593447261CF8F2BB008AD945 /* qhy5iii178c.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = qhy5iii178c.cpp; sourceTree = "<group>"; };
-		593447271CF8F2BB008AD945 /* qhy5iii178c.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = qhy5iii178c.h; sourceTree = "<group>"; };
-		593447281CF8F2BB008AD945 /* qhy5iii178m.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = qhy5iii178m.cpp; sourceTree = "<group>"; };
-		593447291CF8F2BB008AD945 /* qhy5iii178m.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = qhy5iii178m.h; sourceTree = "<group>"; };
-		5934472A1CF8F2BB008AD945 /* qhy5iii183base.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = qhy5iii183base.cpp; sourceTree = "<group>"; };
-		5934472B1CF8F2BB008AD945 /* qhy5iii183base.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = qhy5iii183base.h; sourceTree = "<group>"; };
-		5934472C1CF8F2BB008AD945 /* qhy5iii185base.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = qhy5iii185base.cpp; sourceTree = "<group>"; };
-		5934472D1CF8F2BB008AD945 /* qhy5iii185base.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = qhy5iii185base.h; sourceTree = "<group>"; };
-		5934472E1CF8F2BB008AD945 /* qhy5iii185c.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = qhy5iii185c.cpp; sourceTree = "<group>"; };
-		5934472F1CF8F2BB008AD945 /* qhy5iii185c.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = qhy5iii185c.h; sourceTree = "<group>"; };
-		593447301CF8F2BB008AD945 /* qhy5iii224base.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = qhy5iii224base.cpp; sourceTree = "<group>"; };
-		593447311CF8F2BB008AD945 /* qhy5iii224base.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = qhy5iii224base.h; sourceTree = "<group>"; };
-		593447321CF8F2BB008AD945 /* qhy5iii224c.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = qhy5iii224c.cpp; sourceTree = "<group>"; };
-		593447331CF8F2BB008AD945 /* qhy5iii224c.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = qhy5iii224c.h; sourceTree = "<group>"; };
-		593447341CF8F2BB008AD945 /* qhy5iii236c.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = qhy5iii236c.cpp; sourceTree = "<group>"; };
-		593447351CF8F2BB008AD945 /* qhy5iii236c.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = qhy5iii236c.h; sourceTree = "<group>"; };
-		593447361CF8F2BB008AD945 /* qhy5iii290base.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = qhy5iii290base.cpp; sourceTree = "<group>"; };
-		593447371CF8F2BB008AD945 /* qhy5iii290base.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = qhy5iii290base.h; sourceTree = "<group>"; };
-		593447381CF8F2BB008AD945 /* qhy5iii290c.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = qhy5iii290c.cpp; sourceTree = "<group>"; };
-		593447391CF8F2BB008AD945 /* qhy5iii290c.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = qhy5iii290c.h; sourceTree = "<group>"; };
-		5934473A1CF8F2BB008AD945 /* qhy5iii290m.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = qhy5iii290m.cpp; sourceTree = "<group>"; };
-		5934473B1CF8F2BB008AD945 /* qhy5iii290m.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = qhy5iii290m.h; sourceTree = "<group>"; };
-		5934473C1CF8F2BB008AD945 /* qhy5iii367base.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = qhy5iii367base.cpp; sourceTree = "<group>"; };
-		5934473D1CF8F2BB008AD945 /* qhy5iii367base.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = qhy5iii367base.h; sourceTree = "<group>"; };
-		5934473E1CF8F2BB008AD945 /* qhy5iiibase.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = qhy5iiibase.cpp; sourceTree = "<group>"; };
-		5934473F1CF8F2BB008AD945 /* qhy5iiibase.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = qhy5iiibase.h; sourceTree = "<group>"; };
-		593447401CF8F2BB008AD945 /* qhy5iiicoolbase.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = qhy5iiicoolbase.cpp; sourceTree = "<group>"; };
-		593447411CF8F2BB008AD945 /* qhy5iiicoolbase.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = qhy5iiicoolbase.h; sourceTree = "<group>"; };
-		593447421CF8F2BB008AD945 /* qhy5iiig400m.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = qhy5iiig400m.cpp; sourceTree = "<group>"; };
-		593447431CF8F2BB008AD945 /* qhy5iiig400m.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = qhy5iiig400m.h; sourceTree = "<group>"; };
-		593447441CF8F2BB008AD945 /* qhy5lii_c.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = qhy5lii_c.cpp; sourceTree = "<group>"; };
-		593447451CF8F2BB008AD945 /* qhy5lii_c.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = qhy5lii_c.h; sourceTree = "<group>"; };
-		593447461CF8F2BB008AD945 /* qhy5lii_m.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = qhy5lii_m.cpp; sourceTree = "<group>"; };
-		593447471CF8F2BB008AD945 /* qhy5lii_m.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = qhy5lii_m.h; sourceTree = "<group>"; };
-		593447481CF8F2BB008AD945 /* qhy5liibase.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = qhy5liibase.cpp; sourceTree = "<group>"; };
-		593447491CF8F2BB008AD945 /* qhy5liibase.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = qhy5liibase.h; sourceTree = "<group>"; };
-		5934474A1CF8F2BB008AD945 /* qhy5pii_c.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = qhy5pii_c.cpp; sourceTree = "<group>"; };
-		5934474B1CF8F2BB008AD945 /* qhy5pii_c.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = qhy5pii_c.h; sourceTree = "<group>"; };
-		5934474C1CF8F2BB008AD945 /* qhy5pii_m.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = qhy5pii_m.cpp; sourceTree = "<group>"; };
-		5934474D1CF8F2BB008AD945 /* qhy5pii_m.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = qhy5pii_m.h; sourceTree = "<group>"; };
-		5934474E1CF8F2BB008AD945 /* qhy5rii_m.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = qhy5rii_m.cpp; sourceTree = "<group>"; };
-		5934474F1CF8F2BB008AD945 /* qhy5rii_m.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = qhy5rii_m.h; sourceTree = "<group>"; };
-		593447501CF8F2BB008AD945 /* qhy5tii_c.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = qhy5tii_c.cpp; sourceTree = "<group>"; };
-		593447511CF8F2BB008AD945 /* qhy5tii_c.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = qhy5tii_c.h; sourceTree = "<group>"; };
-		593447521CF8F2BB008AD945 /* qhy6.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = qhy6.cpp; sourceTree = "<group>"; };
-		593447531CF8F2BB008AD945 /* qhy6.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = qhy6.h; sourceTree = "<group>"; };
-		593447541CF8F2BB008AD945 /* qhy7.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = qhy7.cpp; sourceTree = "<group>"; };
-		593447551CF8F2BB008AD945 /* qhy7.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = qhy7.h; sourceTree = "<group>"; };
-		593447561CF8F2BB008AD945 /* qhy8.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = qhy8.cpp; sourceTree = "<group>"; };
-		593447571CF8F2BB008AD945 /* qhy8.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = qhy8.h; sourceTree = "<group>"; };
-		593447581CF8F2BB008AD945 /* qhy8l.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = qhy8l.cpp; sourceTree = "<group>"; };
-		593447591CF8F2BB008AD945 /* qhy8l.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = qhy8l.h; sourceTree = "<group>"; };
-		5934475A1CF8F2BB008AD945 /* qhy8pro.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = qhy8pro.cpp; sourceTree = "<group>"; };
-		5934475B1CF8F2BB008AD945 /* qhy8pro.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = qhy8pro.h; sourceTree = "<group>"; };
-		5934475C1CF8F2BB008AD945 /* qhy9s.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = qhy9s.cpp; sourceTree = "<group>"; };
-		5934475D1CF8F2BB008AD945 /* qhy9s.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = qhy9s.h; sourceTree = "<group>"; };
-		5934475E1CF8F2BB008AD945 /* qhy9t.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = qhy9t.cpp; sourceTree = "<group>"; };
-		5934475F1CF8F2BB008AD945 /* qhy9t.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = qhy9t.h; sourceTree = "<group>"; };
-		593447601CF8F2BB008AD945 /* qhy10.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = qhy10.cpp; sourceTree = "<group>"; };
-		593447611CF8F2BB008AD945 /* qhy10.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = qhy10.h; sourceTree = "<group>"; };
-		593447621CF8F2BB008AD945 /* qhy11.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = qhy11.cpp; sourceTree = "<group>"; };
-		593447631CF8F2BB008AD945 /* qhy11.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = qhy11.h; sourceTree = "<group>"; };
-		593447641CF8F2BB008AD945 /* qhy12.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = qhy12.cpp; sourceTree = "<group>"; };
-		593447651CF8F2BB008AD945 /* qhy12.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = qhy12.h; sourceTree = "<group>"; };
-		593447661CF8F2BB008AD945 /* qhy15.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = qhy15.cpp; sourceTree = "<group>"; };
-		593447671CF8F2BB008AD945 /* qhy15.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = qhy15.h; sourceTree = "<group>"; };
-		593447681CF8F2BB008AD945 /* qhy16.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = qhy16.cpp; sourceTree = "<group>"; };
-		593447691CF8F2BB008AD945 /* qhy16.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = qhy16.h; sourceTree = "<group>"; };
-		5934476A1CF8F2BB008AD945 /* qhy21.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = qhy21.cpp; sourceTree = "<group>"; };
-		5934476B1CF8F2BB008AD945 /* qhy21.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = qhy21.h; sourceTree = "<group>"; };
-		5934476C1CF8F2BB008AD945 /* qhy22.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = qhy22.cpp; sourceTree = "<group>"; };
-		5934476D1CF8F2BB008AD945 /* qhy22.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = qhy22.h; sourceTree = "<group>"; };
-		5934476E1CF8F2BB008AD945 /* qhy23.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = qhy23.cpp; sourceTree = "<group>"; };
-		5934476F1CF8F2BB008AD945 /* qhy23.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = qhy23.h; sourceTree = "<group>"; };
-		593447701CF8F2BB008AD945 /* qhy27.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = qhy27.cpp; sourceTree = "<group>"; };
-		593447711CF8F2BB008AD945 /* qhy27.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = qhy27.h; sourceTree = "<group>"; };
-		593447721CF8F2BB008AD945 /* qhy28.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = qhy28.cpp; sourceTree = "<group>"; };
-		593447731CF8F2BB008AD945 /* qhy28.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = qhy28.h; sourceTree = "<group>"; };
-		593447741CF8F2BB008AD945 /* qhy29.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = qhy29.cpp; sourceTree = "<group>"; };
-		593447751CF8F2BB008AD945 /* qhy29.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = qhy29.h; sourceTree = "<group>"; };
-		593447761CF8F2BB008AD945 /* qhy45gx.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = qhy45gx.cpp; sourceTree = "<group>"; };
-		593447771CF8F2BB008AD945 /* qhy45gx.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = qhy45gx.h; sourceTree = "<group>"; };
-		593447781CF8F2BB008AD945 /* qhy90a.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = qhy90a.cpp; sourceTree = "<group>"; };
-		593447791CF8F2BB008AD945 /* qhy90a.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = qhy90a.h; sourceTree = "<group>"; };
-		5934477A1CF8F2BB008AD945 /* qhy163c.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = qhy163c.cpp; sourceTree = "<group>"; };
-		5934477B1CF8F2BB008AD945 /* qhy163c.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = qhy163c.h; sourceTree = "<group>"; };
-		5934477C1CF8F2BB008AD945 /* qhy163m.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = qhy163m.cpp; sourceTree = "<group>"; };
-		5934477D1CF8F2BB008AD945 /* qhy163m.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = qhy163m.h; sourceTree = "<group>"; };
-		5934477E1CF8F2BB008AD945 /* qhy165c.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = qhy165c.cpp; sourceTree = "<group>"; };
-		5934477F1CF8F2BB008AD945 /* qhy165c.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = qhy165c.h; sourceTree = "<group>"; };
-		593447801CF8F2BB008AD945 /* qhy174c.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = qhy174c.cpp; sourceTree = "<group>"; };
-		593447811CF8F2BB008AD945 /* qhy174c.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = qhy174c.h; sourceTree = "<group>"; };
-		593447821CF8F2BB008AD945 /* qhy174m.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = qhy174m.cpp; sourceTree = "<group>"; };
-		593447831CF8F2BB008AD945 /* qhy174m.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = qhy174m.h; sourceTree = "<group>"; };
-		593447841CF8F2BB008AD945 /* qhy178c.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = qhy178c.cpp; sourceTree = "<group>"; };
-		593447851CF8F2BB008AD945 /* qhy178c.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = qhy178c.h; sourceTree = "<group>"; };
-		593447861CF8F2BB008AD945 /* qhy178m.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = qhy178m.cpp; sourceTree = "<group>"; };
-		593447871CF8F2BB008AD945 /* qhy178m.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = qhy178m.h; sourceTree = "<group>"; };
-		593447881CF8F2BB008AD945 /* qhy183c.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = qhy183c.cpp; sourceTree = "<group>"; };
-		593447891CF8F2BB008AD945 /* qhy183c.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = qhy183c.h; sourceTree = "<group>"; };
-		5934478A1CF8F2BB008AD945 /* qhy224c.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = qhy224c.cpp; sourceTree = "<group>"; };
-		5934478B1CF8F2BB008AD945 /* qhy224c.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = qhy224c.h; sourceTree = "<group>"; };
-		5934478C1CF8F2BB008AD945 /* qhy290c.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = qhy290c.cpp; sourceTree = "<group>"; };
-		5934478D1CF8F2BB008AD945 /* qhy290c.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = qhy290c.h; sourceTree = "<group>"; };
-		5934478E1CF8F2BB008AD945 /* qhy290m.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = qhy290m.cpp; sourceTree = "<group>"; };
-		5934478F1CF8F2BB008AD945 /* qhy290m.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = qhy290m.h; sourceTree = "<group>"; };
-		593447901CF8F2BB008AD945 /* qhy367c.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = qhy367c.cpp; sourceTree = "<group>"; };
-		593447911CF8F2BB008AD945 /* qhy367c.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = qhy367c.h; sourceTree = "<group>"; };
-		593447921CF8F2BB008AD945 /* qhy695a.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = qhy695a.cpp; sourceTree = "<group>"; };
-		593447931CF8F2BB008AD945 /* qhy695a.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = qhy695a.h; sourceTree = "<group>"; };
-		593447941CF8F2BB008AD945 /* qhy814g.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = qhy814g.cpp; sourceTree = "<group>"; };
-		593447951CF8F2BB008AD945 /* qhy814g.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = qhy814g.h; sourceTree = "<group>"; };
-		593447961CF8F2BB008AD945 /* qhy08050g.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = qhy08050g.cpp; sourceTree = "<group>"; };
-		593447971CF8F2BB008AD945 /* qhy08050g.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = qhy08050g.h; sourceTree = "<group>"; };
-		593447981CF8F2BB008AD945 /* qhy16000.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = qhy16000.cpp; sourceTree = "<group>"; };
-		593447991CF8F2BB008AD945 /* qhy16000.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = qhy16000.h; sourceTree = "<group>"; };
-		5934479A1CF8F2BB008AD945 /* qhy16000g.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = qhy16000g.cpp; sourceTree = "<group>"; };
-		5934479B1CF8F2BB008AD945 /* qhy16000g.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = qhy16000g.h; sourceTree = "<group>"; };
-		5934479C1CF8F2BB008AD945 /* qhy16200a.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = qhy16200a.cpp; sourceTree = "<group>"; };
-		5934479D1CF8F2BB008AD945 /* qhy16200a.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = qhy16200a.h; sourceTree = "<group>"; };
-		5934479E1CF8F2BB008AD945 /* qhy160002ad.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = qhy160002ad.cpp; sourceTree = "<group>"; };
-		5934479F1CF8F2BB008AD945 /* qhy160002ad.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = qhy160002ad.h; sourceTree = "<group>"; };
-		593447A01CF8F2BB008AD945 /* qhyabase.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = qhyabase.cpp; sourceTree = "<group>"; };
-		593447A11CF8F2BB008AD945 /* qhyabase.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = qhyabase.h; sourceTree = "<group>"; };
-		593447A21CF8F2BB008AD945 /* qhybase.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = qhybase.cpp; sourceTree = "<group>"; };
-		593447A31CF8F2BB008AD945 /* qhybase.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = qhybase.h; sourceTree = "<group>"; };
-		593447A41CF8F2BB008AD945 /* qhycam.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = qhycam.cpp; sourceTree = "<group>"; };
-		593447A51CF8F2BB008AD945 /* qhycam.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = qhycam.h; sourceTree = "<group>"; };
-		593447A61CF8F2BB008AD945 /* qhyccd.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = qhyccd.cpp; sourceTree = "<group>"; };
-		593447A71CF8F2BB008AD945 /* qhyccd.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = qhyccd.h; sourceTree = "<group>"; };
-		593447A81CF8F2BB008AD945 /* qhyccdimgprocess.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = qhyccdimgprocess.cpp; sourceTree = "<group>"; };
-		593447A91CF8F2BB008AD945 /* qhyicbase.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = qhyicbase.cpp; sourceTree = "<group>"; };
-		593447AA1CF8F2BB008AD945 /* qhyicbase.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = qhyicbase.h; sourceTree = "<group>"; };
-		593447AB1CF8F2BB008AD945 /* solar800g.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = solar800g.cpp; sourceTree = "<group>"; };
-		593447AC1CF8F2BB008AD945 /* solar800g.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = solar800g.h; sourceTree = "<group>"; };
-		593447AD1CF8F2BB008AD945 /* solar1600.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = solar1600.cpp; sourceTree = "<group>"; };
-		593447AE1CF8F2BB008AD945 /* solar1600.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = solar1600.h; sourceTree = "<group>"; };
-		593447AF1CF8F2BB008AD945 /* unlockimagequeue.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = unlockimagequeue.cpp; sourceTree = "<group>"; };
-		593447B01CF8F2BB008AD945 /* unlockimagequeue.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = unlockimagequeue.h; sourceTree = "<group>"; };
 		593448111CF9A6B0008AD945 /* telescope_script.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = telescope_script.cpp; sourceTree = "<group>"; };
 		593448231CF9E4E6008AD945 /* indi_script_telescope */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = indi_script_telescope; sourceTree = BUILT_PRODUCTS_DIR; };
 		593448281CFA356A008AD945 /* telescope_script.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = telescope_script.txt; sourceTree = "<group>"; };
-		593C9B1E1D188A7D00D50266 /* stdint.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = stdint.h; sourceTree = "<group>"; };
 		593C9B401D1AF8E300D50266 /* CMakeLists.txt */ = {isa = PBXFileReference; lastKnownFileType = text; name = CMakeLists.txt; path = "indi-sbig/CMakeLists.txt"; sourceTree = "<group>"; };
 		593C9B411D1B129000D50266 /* sbig_ccd.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = sbig_ccd.h; path = "indi-sbig/sbig_ccd.h"; sourceTree = "<group>"; };
+		594107781EC4BD9C00C44F92 /* log4z.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = log4z.h; path = ../libqhy/log4z.h; sourceTree = "<group>"; };
+		594107791EC4BD9C00C44F92 /* qhyccd.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = qhyccd.h; path = ../libqhy/qhyccd.h; sourceTree = "<group>"; };
+		5941077A1EC4BD9C00C44F92 /* qhyccdcamdef.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = qhyccdcamdef.h; path = ../libqhy/qhyccdcamdef.h; sourceTree = "<group>"; };
+		5941077B1EC4BD9C00C44F92 /* qhyccderr.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = qhyccderr.h; path = ../libqhy/qhyccderr.h; sourceTree = "<group>"; };
+		5941077C1EC4BD9C00C44F92 /* qhyccdstruct.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = qhyccdstruct.h; path = ../libqhy/qhyccdstruct.h; sourceTree = "<group>"; };
+		5941077F1EC4BF0700C44F92 /* libqhy.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; path = libqhy.dylib; sourceTree = SOURCE_ROOT; };
+		594107B21EC4C32700C44F92 /* connectioninterface.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = connectioninterface.cpp; sourceTree = "<group>"; };
+		594107B31EC4C32700C44F92 /* connectioninterface.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = connectioninterface.h; sourceTree = "<group>"; };
+		594107B41EC4C32700C44F92 /* connectionserial.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = connectionserial.cpp; sourceTree = "<group>"; };
+		594107B51EC4C32700C44F92 /* connectionserial.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = connectionserial.h; sourceTree = "<group>"; };
+		594107B61EC4C32700C44F92 /* connectiontcp.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = connectiontcp.cpp; sourceTree = "<group>"; };
+		594107B71EC4C32700C44F92 /* connectiontcp.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = connectiontcp.h; sourceTree = "<group>"; };
 		5944982A1C135A2000E0E281 /* atikconfig.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = atikconfig.h; sourceTree = "<group>"; };
 		5944982B1C135B3600E0E281 /* lx200pulsar2.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = lx200pulsar2.cpp; sourceTree = "<group>"; };
 		5944983B1C135D8000E0E281 /* indi_lynx_focus */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = indi_lynx_focus; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -3627,17 +3398,6 @@
 		59E5F91D1C3F17B9008DAB80 /* libobjc.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libobjc.tbd; path = usr/lib/libobjc.tbd; sourceTree = SDKROOT; };
 		59F64B5B1D0F4A5500F53B3C /* config.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = config.h; sourceTree = "<group>"; };
 		59F64B5C1D0F4AA400F53B3C /* config.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = config.h; sourceTree = "<group>"; };
-		59F755C41DCD2E6E002CFC82 /* minicam5base.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = minicam5base.cpp; sourceTree = "<group>"; };
-		59F755C71DCD2EA6002CFC82 /* qhy5iii178coolbase.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = qhy5iii178coolbase.cpp; sourceTree = "<group>"; };
-		59F755C81DCD2EA6002CFC82 /* qhy5iii224coolbase.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = qhy5iii224coolbase.cpp; sourceTree = "<group>"; };
-		59F755C91DCD2EA6002CFC82 /* qhy5iii247base.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = qhy5iii247base.cpp; sourceTree = "<group>"; };
-		59F755CA1DCD2EA6002CFC82 /* qhy5iii290coolbase.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = qhy5iii290coolbase.cpp; sourceTree = "<group>"; };
-		59F755CB1DCD2EA6002CFC82 /* qhy5iiicommon.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = qhy5iiicommon.cpp; sourceTree = "<group>"; };
-		59F755CC1DCD2EA6002CFC82 /* qhy5iiiddrcoolbase.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = qhy5iiiddrcoolbase.cpp; sourceTree = "<group>"; };
-		59F755E21DCD2EF4002CFC82 /* qhy247c.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = qhy247c.cpp; sourceTree = "<group>"; };
-		59F755E31DCD2EF4002CFC82 /* qhy814a.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = qhy814a.cpp; sourceTree = "<group>"; };
-		59F755E41DCD2EF4002CFC82 /* qhy16803a.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = qhy16803a.cpp; sourceTree = "<group>"; };
-		59F755EC1DCD2F70002CFC82 /* CMakeLists.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = CMakeLists.txt; sourceTree = "<group>"; };
 		59FC29F81E1C4DD000B616EB /* libgslblas.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; path = libgslblas.a; sourceTree = "<group>"; };
 		59FC29F91E1C4DD000B616EB /* libgsl.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; path = libgsl.a; sourceTree = "<group>"; };
 		9D0B29C61A8D1E9400ED17BF /* indi_celestron_gps */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = indi_celestron_gps; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -3915,6 +3675,7 @@
 				593445BF1CF8EF62008AD945 /* libcfitsio.dylib in Frameworks */,
 				593445C01CF8EF62008AD945 /* libusb.dylib in Frameworks */,
 				593445C11CF8EF62008AD945 /* libindi.dylib in Frameworks */,
+				594107801EC4BF0700C44F92 /* libqhy.dylib in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -4587,7 +4348,6 @@
 		593445C61CF8EF8F008AD945 /* indi-qhy */ = {
 			isa = PBXGroup;
 			children = (
-				593446321CF8F02D008AD945 /* libqhy */,
 				593445D31CF8F00C008AD945 /* firmware */,
 				593445C71CF8EFC8008AD945 /* config.h */,
 				590AD30D1CFE0201008D5367 /* CMakeLists.txt */,
@@ -4596,6 +4356,11 @@
 				593445CA1CF8EFC8008AD945 /* qhy_ccd.h */,
 				593445CB1CF8EFC8008AD945 /* qhy_fw.cpp */,
 				593445CC1CF8EFC8008AD945 /* qhy_fw.h */,
+				594107781EC4BD9C00C44F92 /* log4z.h */,
+				594107791EC4BD9C00C44F92 /* qhyccd.h */,
+				5941077A1EC4BD9C00C44F92 /* qhyccdcamdef.h */,
+				5941077B1EC4BD9C00C44F92 /* qhyccderr.h */,
+				5941077C1EC4BD9C00C44F92 /* qhyccdstruct.h */,
 			);
 			path = "indi-qhy";
 			sourceTree = "<group>";
@@ -4652,216 +4417,20 @@
 				593446021CF8F029008AD945 /* QHY160002AD.HEX */,
 			);
 			name = firmware;
-			path = ../../../QHYCCD_SDK_CrossPlatform/firmware;
+			path = ../libqhy/firmware;
 			sourceTree = "<group>";
 		};
-		593446321CF8F02D008AD945 /* libqhy */ = {
+		594107B11EC4C31000C44F92 /* connectionplugins */ = {
 			isa = PBXGroup;
 			children = (
-				59F755EC1DCD2F70002CFC82 /* CMakeLists.txt */,
-				59F755E21DCD2EF4002CFC82 /* qhy247c.cpp */,
-				59F755E31DCD2EF4002CFC82 /* qhy814a.cpp */,
-				59F755E41DCD2EF4002CFC82 /* qhy16803a.cpp */,
-				59F755C71DCD2EA6002CFC82 /* qhy5iii178coolbase.cpp */,
-				59F755C81DCD2EA6002CFC82 /* qhy5iii224coolbase.cpp */,
-				59F755C91DCD2EA6002CFC82 /* qhy5iii247base.cpp */,
-				59F755CA1DCD2EA6002CFC82 /* qhy5iii290coolbase.cpp */,
-				59F755CB1DCD2EA6002CFC82 /* qhy5iiicommon.cpp */,
-				59F755CC1DCD2EA6002CFC82 /* qhy5iiiddrcoolbase.cpp */,
-				59F755C41DCD2E6E002CFC82 /* minicam5base.cpp */,
-				593446F41CF8F2BB008AD945 /* cjson.cpp */,
-				593446F51CF8F2BB008AD945 /* cjson.h */,
-				593446F61CF8F2BB008AD945 /* cmosdll.cpp */,
-				593446F71CF8F2BB008AD945 /* cmosdll.h */,
-				593446F81CF8F2BB008AD945 /* dithercontrol.cpp */,
-				593446F91CF8F2BB008AD945 /* dithercontrol.h */,
-				593446FA1CF8F2BB008AD945 /* download_fx2.cpp */,
-				593446FB1CF8F2BB008AD945 /* download_fx3.cpp */,
-				593446FC1CF8F2BB008AD945 /* ic8300.cpp */,
-				593446FD1CF8F2BB008AD945 /* ic8300.h */,
-				593446FE1CF8F2BB008AD945 /* ic16803.cpp */,
-				593446FF1CF8F2BB008AD945 /* ic16803.h */,
-				593447001CF8F2BB008AD945 /* img0h.cpp */,
-				593447011CF8F2BB008AD945 /* img0h.h */,
-				593447021CF8F2BB008AD945 /* img2p.cpp */,
-				593447031CF8F2BB008AD945 /* img2p.h */,
-				593447041CF8F2BB008AD945 /* img132e.cpp */,
-				593447051CF8F2BB008AD945 /* img132e.h */,
-				593447061CF8F2BB008AD945 /* log4z.cpp */,
-				593447071CF8F2BB008AD945 /* log4z.h */,
-				593447081CF8F2BB008AD945 /* minicam5f_m.cpp */,
-				593447091CF8F2BB008AD945 /* minicam5f_m.h */,
-				5934470A1CF8F2BB008AD945 /* minicam5s_c.cpp */,
-				5934470B1CF8F2BB008AD945 /* minicam5s_c.h */,
-				5934470C1CF8F2BB008AD945 /* minicam5s_m.cpp */,
-				5934470D1CF8F2BB008AD945 /* minicam5s_m.h */,
-				5934470E1CF8F2BB008AD945 /* polemaster.cpp */,
-				5934470F1CF8F2BB008AD945 /* polemaster.h */,
-				593447101CF8F2BB008AD945 /* qhy2pro.cpp */,
-				593447111CF8F2BB008AD945 /* qhy2pro.h */,
-				593447121CF8F2BB008AD945 /* qhy5.cpp */,
-				593447131CF8F2BB008AD945 /* qhy5.h */,
-				593447141CF8F2BB008AD945 /* qhy5hii.cpp */,
-				593447151CF8F2BB008AD945 /* qhy5hii.h */,
-				593447161CF8F2BB008AD945 /* qhy5ii.cpp */,
-				593447171CF8F2BB008AD945 /* qhy5ii.h */,
-				593447181CF8F2BB008AD945 /* qhy5iibase.cpp */,
-				593447191CF8F2BB008AD945 /* qhy5iibase.h */,
-				5934471A1CF8F2BB008AD945 /* qhy5iii163base.cpp */,
-				5934471B1CF8F2BB008AD945 /* qhy5iii163base.h */,
-				5934471C1CF8F2BB008AD945 /* qhy5iii165base.cpp */,
-				5934471D1CF8F2BB008AD945 /* qhy5iii165base.h */,
-				5934471E1CF8F2BB008AD945 /* qhy5iii174base.cpp */,
-				5934471F1CF8F2BB008AD945 /* qhy5iii174base.h */,
-				593447201CF8F2BB008AD945 /* qhy5iii174c.cpp */,
-				593447211CF8F2BB008AD945 /* qhy5iii174c.h */,
-				593447221CF8F2BB008AD945 /* qhy5iii174m.cpp */,
-				593447231CF8F2BB008AD945 /* qhy5iii174m.h */,
-				593447241CF8F2BB008AD945 /* qhy5iii178base.cpp */,
-				593447251CF8F2BB008AD945 /* qhy5iii178base.h */,
-				593447261CF8F2BB008AD945 /* qhy5iii178c.cpp */,
-				593447271CF8F2BB008AD945 /* qhy5iii178c.h */,
-				593447281CF8F2BB008AD945 /* qhy5iii178m.cpp */,
-				593447291CF8F2BB008AD945 /* qhy5iii178m.h */,
-				5934472A1CF8F2BB008AD945 /* qhy5iii183base.cpp */,
-				5934472B1CF8F2BB008AD945 /* qhy5iii183base.h */,
-				5934472C1CF8F2BB008AD945 /* qhy5iii185base.cpp */,
-				5934472D1CF8F2BB008AD945 /* qhy5iii185base.h */,
-				5934472E1CF8F2BB008AD945 /* qhy5iii185c.cpp */,
-				5934472F1CF8F2BB008AD945 /* qhy5iii185c.h */,
-				593447301CF8F2BB008AD945 /* qhy5iii224base.cpp */,
-				593447311CF8F2BB008AD945 /* qhy5iii224base.h */,
-				593447321CF8F2BB008AD945 /* qhy5iii224c.cpp */,
-				593447331CF8F2BB008AD945 /* qhy5iii224c.h */,
-				593447341CF8F2BB008AD945 /* qhy5iii236c.cpp */,
-				593447351CF8F2BB008AD945 /* qhy5iii236c.h */,
-				593447361CF8F2BB008AD945 /* qhy5iii290base.cpp */,
-				593447371CF8F2BB008AD945 /* qhy5iii290base.h */,
-				593447381CF8F2BB008AD945 /* qhy5iii290c.cpp */,
-				593447391CF8F2BB008AD945 /* qhy5iii290c.h */,
-				5934473A1CF8F2BB008AD945 /* qhy5iii290m.cpp */,
-				5934473B1CF8F2BB008AD945 /* qhy5iii290m.h */,
-				5934473C1CF8F2BB008AD945 /* qhy5iii367base.cpp */,
-				5934473D1CF8F2BB008AD945 /* qhy5iii367base.h */,
-				5934473E1CF8F2BB008AD945 /* qhy5iiibase.cpp */,
-				5934473F1CF8F2BB008AD945 /* qhy5iiibase.h */,
-				593447401CF8F2BB008AD945 /* qhy5iiicoolbase.cpp */,
-				593447411CF8F2BB008AD945 /* qhy5iiicoolbase.h */,
-				593447421CF8F2BB008AD945 /* qhy5iiig400m.cpp */,
-				593447431CF8F2BB008AD945 /* qhy5iiig400m.h */,
-				593447441CF8F2BB008AD945 /* qhy5lii_c.cpp */,
-				593447451CF8F2BB008AD945 /* qhy5lii_c.h */,
-				593447461CF8F2BB008AD945 /* qhy5lii_m.cpp */,
-				593447471CF8F2BB008AD945 /* qhy5lii_m.h */,
-				593447481CF8F2BB008AD945 /* qhy5liibase.cpp */,
-				593447491CF8F2BB008AD945 /* qhy5liibase.h */,
-				5934474A1CF8F2BB008AD945 /* qhy5pii_c.cpp */,
-				5934474B1CF8F2BB008AD945 /* qhy5pii_c.h */,
-				5934474C1CF8F2BB008AD945 /* qhy5pii_m.cpp */,
-				5934474D1CF8F2BB008AD945 /* qhy5pii_m.h */,
-				5934474E1CF8F2BB008AD945 /* qhy5rii_m.cpp */,
-				5934474F1CF8F2BB008AD945 /* qhy5rii_m.h */,
-				593447501CF8F2BB008AD945 /* qhy5tii_c.cpp */,
-				593447511CF8F2BB008AD945 /* qhy5tii_c.h */,
-				593447521CF8F2BB008AD945 /* qhy6.cpp */,
-				593447531CF8F2BB008AD945 /* qhy6.h */,
-				593447541CF8F2BB008AD945 /* qhy7.cpp */,
-				593447551CF8F2BB008AD945 /* qhy7.h */,
-				593447561CF8F2BB008AD945 /* qhy8.cpp */,
-				593447571CF8F2BB008AD945 /* qhy8.h */,
-				593447581CF8F2BB008AD945 /* qhy8l.cpp */,
-				593447591CF8F2BB008AD945 /* qhy8l.h */,
-				5934475A1CF8F2BB008AD945 /* qhy8pro.cpp */,
-				5934475B1CF8F2BB008AD945 /* qhy8pro.h */,
-				5934475C1CF8F2BB008AD945 /* qhy9s.cpp */,
-				5934475D1CF8F2BB008AD945 /* qhy9s.h */,
-				5934475E1CF8F2BB008AD945 /* qhy9t.cpp */,
-				5934475F1CF8F2BB008AD945 /* qhy9t.h */,
-				593447601CF8F2BB008AD945 /* qhy10.cpp */,
-				593447611CF8F2BB008AD945 /* qhy10.h */,
-				593447621CF8F2BB008AD945 /* qhy11.cpp */,
-				593447631CF8F2BB008AD945 /* qhy11.h */,
-				593447641CF8F2BB008AD945 /* qhy12.cpp */,
-				593447651CF8F2BB008AD945 /* qhy12.h */,
-				593447661CF8F2BB008AD945 /* qhy15.cpp */,
-				593447671CF8F2BB008AD945 /* qhy15.h */,
-				593447681CF8F2BB008AD945 /* qhy16.cpp */,
-				593447691CF8F2BB008AD945 /* qhy16.h */,
-				5934476A1CF8F2BB008AD945 /* qhy21.cpp */,
-				5934476B1CF8F2BB008AD945 /* qhy21.h */,
-				5934476C1CF8F2BB008AD945 /* qhy22.cpp */,
-				5934476D1CF8F2BB008AD945 /* qhy22.h */,
-				5934476E1CF8F2BB008AD945 /* qhy23.cpp */,
-				5934476F1CF8F2BB008AD945 /* qhy23.h */,
-				593447701CF8F2BB008AD945 /* qhy27.cpp */,
-				593447711CF8F2BB008AD945 /* qhy27.h */,
-				593447721CF8F2BB008AD945 /* qhy28.cpp */,
-				593447731CF8F2BB008AD945 /* qhy28.h */,
-				593447741CF8F2BB008AD945 /* qhy29.cpp */,
-				593447751CF8F2BB008AD945 /* qhy29.h */,
-				593447761CF8F2BB008AD945 /* qhy45gx.cpp */,
-				593447771CF8F2BB008AD945 /* qhy45gx.h */,
-				593447781CF8F2BB008AD945 /* qhy90a.cpp */,
-				593447791CF8F2BB008AD945 /* qhy90a.h */,
-				5934477A1CF8F2BB008AD945 /* qhy163c.cpp */,
-				5934477B1CF8F2BB008AD945 /* qhy163c.h */,
-				5934477C1CF8F2BB008AD945 /* qhy163m.cpp */,
-				5934477D1CF8F2BB008AD945 /* qhy163m.h */,
-				5934477E1CF8F2BB008AD945 /* qhy165c.cpp */,
-				5934477F1CF8F2BB008AD945 /* qhy165c.h */,
-				593447801CF8F2BB008AD945 /* qhy174c.cpp */,
-				593447811CF8F2BB008AD945 /* qhy174c.h */,
-				593447821CF8F2BB008AD945 /* qhy174m.cpp */,
-				593447831CF8F2BB008AD945 /* qhy174m.h */,
-				593447841CF8F2BB008AD945 /* qhy178c.cpp */,
-				593447851CF8F2BB008AD945 /* qhy178c.h */,
-				593447861CF8F2BB008AD945 /* qhy178m.cpp */,
-				593447871CF8F2BB008AD945 /* qhy178m.h */,
-				593447881CF8F2BB008AD945 /* qhy183c.cpp */,
-				593447891CF8F2BB008AD945 /* qhy183c.h */,
-				5934478A1CF8F2BB008AD945 /* qhy224c.cpp */,
-				5934478B1CF8F2BB008AD945 /* qhy224c.h */,
-				5934478C1CF8F2BB008AD945 /* qhy290c.cpp */,
-				5934478D1CF8F2BB008AD945 /* qhy290c.h */,
-				5934478E1CF8F2BB008AD945 /* qhy290m.cpp */,
-				5934478F1CF8F2BB008AD945 /* qhy290m.h */,
-				593447901CF8F2BB008AD945 /* qhy367c.cpp */,
-				593447911CF8F2BB008AD945 /* qhy367c.h */,
-				593447921CF8F2BB008AD945 /* qhy695a.cpp */,
-				593447931CF8F2BB008AD945 /* qhy695a.h */,
-				593447941CF8F2BB008AD945 /* qhy814g.cpp */,
-				593447951CF8F2BB008AD945 /* qhy814g.h */,
-				593447961CF8F2BB008AD945 /* qhy08050g.cpp */,
-				593447971CF8F2BB008AD945 /* qhy08050g.h */,
-				593447981CF8F2BB008AD945 /* qhy16000.cpp */,
-				593447991CF8F2BB008AD945 /* qhy16000.h */,
-				5934479A1CF8F2BB008AD945 /* qhy16000g.cpp */,
-				5934479B1CF8F2BB008AD945 /* qhy16000g.h */,
-				5934479C1CF8F2BB008AD945 /* qhy16200a.cpp */,
-				5934479D1CF8F2BB008AD945 /* qhy16200a.h */,
-				5934479E1CF8F2BB008AD945 /* qhy160002ad.cpp */,
-				5934479F1CF8F2BB008AD945 /* qhy160002ad.h */,
-				593447A01CF8F2BB008AD945 /* qhyabase.cpp */,
-				593447A11CF8F2BB008AD945 /* qhyabase.h */,
-				593447A21CF8F2BB008AD945 /* qhybase.cpp */,
-				593447A31CF8F2BB008AD945 /* qhybase.h */,
-				593447A41CF8F2BB008AD945 /* qhycam.cpp */,
-				593447A51CF8F2BB008AD945 /* qhycam.h */,
-				593447A61CF8F2BB008AD945 /* qhyccd.cpp */,
-				593447A71CF8F2BB008AD945 /* qhyccd.h */,
-				593447A81CF8F2BB008AD945 /* qhyccdimgprocess.cpp */,
-				593447A91CF8F2BB008AD945 /* qhyicbase.cpp */,
-				593447AA1CF8F2BB008AD945 /* qhyicbase.h */,
-				593447AB1CF8F2BB008AD945 /* solar800g.cpp */,
-				593447AC1CF8F2BB008AD945 /* solar800g.h */,
-				593447AD1CF8F2BB008AD945 /* solar1600.cpp */,
-				593447AE1CF8F2BB008AD945 /* solar1600.h */,
-				593447AF1CF8F2BB008AD945 /* unlockimagequeue.cpp */,
-				593447B01CF8F2BB008AD945 /* unlockimagequeue.h */,
-				593C9B1E1D188A7D00D50266 /* stdint.h */,
+				594107B21EC4C32700C44F92 /* connectioninterface.cpp */,
+				594107B31EC4C32700C44F92 /* connectioninterface.h */,
+				594107B41EC4C32700C44F92 /* connectionserial.cpp */,
+				594107B51EC4C32700C44F92 /* connectionserial.h */,
+				594107B61EC4C32700C44F92 /* connectiontcp.cpp */,
+				594107B71EC4C32700C44F92 /* connectiontcp.h */,
 			);
-			name = libqhy;
-			path = ../../../QHYCCD_SDK_CrossPlatform/src;
+			path = connectionplugins;
 			sourceTree = "<group>";
 		};
 		594498D31C13625700E0E281 /* weather */ = {
@@ -5013,6 +4582,7 @@
 		594D0B35188300ED00B50F4E /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				5941077F1EC4BF0700C44F92 /* libqhy.dylib */,
 				5987865D1CE72C1F00DF2294 /* IOKit.framework */,
 				5987865B1CE72BFC00DF2294 /* CoreFoundation.framework */,
 				5944995F1C136C9100E0E281 /* libz.tbd */,
@@ -5736,6 +5306,7 @@
 		9DDA43C61A8CEC710004AA95 /* indibase */ = {
 			isa = PBXGroup;
 			children = (
+				594107B11EC4C31000C44F92 /* connectionplugins */,
 				59E5F8C81C3F09FA008DAB80 /* alignment */,
 				59567C061A8D320D0057A35A /* baseclient.cpp */,
 				9DDA43CE1A8CED310004AA95 /* basedevice.cpp */,
@@ -5839,8 +5410,11 @@
 			isa = PBXHeadersBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				594107BB1EC4C32700C44F92 /* connectionserial.h in Headers */,
 				594499511C1365C400E0E281 /* stream_recorder.h in Headers */,
 				9DDA43B71A8CD8940004AA95 /* config.h in Headers */,
+				594107B91EC4C32700C44F92 /* connectioninterface.h in Headers */,
+				594107BD1EC4C32700C44F92 /* connectiontcp.h in Headers */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -7333,7 +6907,7 @@
 			isa = PBXProject;
 			attributes = {
 				CLASSPREFIX = CM;
-				LastUpgradeCheck = 0710;
+				LastUpgradeCheck = 0830;
 				ORGANIZATIONNAME = CloudMaker;
 				TargetAttributes = {
 					59019DE71DDF8C9A00CCB3ED = {
@@ -7740,7 +7314,53 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				59F755F21DCD3038002CFC82 /* QHY5II.HEX in Resources */,
+				594107821EC4C1BE00C44F92 /* IC90A.HEX in Resources */,
+				594107831EC4C1BE00C44F92 /* IC8300.HEX in Resources */,
+				594107841EC4C1BE00C44F92 /* IC16200A.HEX in Resources */,
+				594107851EC4C1BE00C44F92 /* IC16803.HEX in Resources */,
+				594107861EC4C1BE00C44F92 /* IMG0H.HEX in Resources */,
+				594107871EC4C1BE00C44F92 /* IMG2P.HEX in Resources */,
+				594107881EC4C1BE00C44F92 /* IMG2S.HEX in Resources */,
+				594107891EC4C1BE00C44F92 /* IMG50.HEX in Resources */,
+				5941078A1EC4C1BE00C44F92 /* miniCam5.HEX in Resources */,
+				5941078B1EC4C1BE00C44F92 /* POLEMASTER.HEX in Resources */,
+				5941078C1EC4C1BE00C44F92 /* QHY2.HEX in Resources */,
+				5941078D1EC4C1BE00C44F92 /* QHY2E.HEX in Resources */,
+				5941078E1EC4C1BE00C44F92 /* QHY2PRO.HEX in Resources */,
+				5941078F1EC4C1BE00C44F92 /* QHY5.HEX in Resources */,
+				594107901EC4C1BE00C44F92 /* QHY5II.HEX in Resources */,
+				594107911EC4C1BE00C44F92 /* QHY5III174.img in Resources */,
+				594107921EC4C1BE00C44F92 /* QHY5III178.img in Resources */,
+				594107931EC4C1BE00C44F92 /* QHY5III185.img in Resources */,
+				594107941EC4C1BE00C44F92 /* QHY5III224.img in Resources */,
+				594107951EC4C1BE00C44F92 /* QHY5III290.img in Resources */,
+				594107961EC4C1BE00C44F92 /* QHY5LOADER.HEX in Resources */,
+				594107971EC4C1BE00C44F92 /* QHY6.HEX in Resources */,
+				594107981EC4C1BE00C44F92 /* QHY7.HEX in Resources */,
+				594107991EC4C1BE00C44F92 /* QHY8.HEX in Resources */,
+				5941079A1EC4C1BE00C44F92 /* QHY8L.HEX in Resources */,
+				5941079B1EC4C1BE00C44F92 /* QHY8M.HEX in Resources */,
+				5941079C1EC4C1BE00C44F92 /* QHY8PRO.HEX in Resources */,
+				5941079D1EC4C1BE00C44F92 /* QHY9S.HEX in Resources */,
+				5941079E1EC4C1BE00C44F92 /* QHY10.HEX in Resources */,
+				5941079F1EC4C1BE00C44F92 /* QHY11.HEX in Resources */,
+				594107A01EC4C1BE00C44F92 /* QHY12.HEX in Resources */,
+				594107A11EC4C1BE00C44F92 /* QHY15.HEX in Resources */,
+				594107A21EC4C1BE00C44F92 /* QHY16.HEX in Resources */,
+				594107A31EC4C1BE00C44F92 /* QHY20.HEX in Resources */,
+				594107A41EC4C1BE00C44F92 /* QHY21.HEX in Resources */,
+				594107A51EC4C1BE00C44F92 /* QHY22.HEX in Resources */,
+				594107A61EC4C1BE00C44F92 /* QHY23.HEX in Resources */,
+				594107A71EC4C1BE00C44F92 /* QHY27.HEX in Resources */,
+				594107A81EC4C1BE00C44F92 /* QHY28.HEX in Resources */,
+				594107A91EC4C1BE00C44F92 /* QHY29.HEX in Resources */,
+				594107AA1EC4C1BE00C44F92 /* QHY163.img in Resources */,
+				594107AB1EC4C1BE00C44F92 /* QHY174.img in Resources */,
+				594107AC1EC4C1BE00C44F92 /* QHY178.img in Resources */,
+				594107AD1EC4C1BE00C44F92 /* QHY224.img in Resources */,
+				594107AE1EC4C1BE00C44F92 /* QHY290.img in Resources */,
+				594107AF1EC4C1BE00C44F92 /* QHY16000.HEX in Resources */,
+				594107B01EC4C1BE00C44F92 /* QHY160002AD.HEX in Resources */,
 				590AD30C1CFE01D0008D5367 /* indi-shelyak.xml in Resources */,
 				59563CC91CF209F600DE1A54 /* indi_ssag.xml in Resources */,
 				591C90EA1C13746D00FCE596 /* indi_sbig.xml in Resources */,
@@ -7787,7 +7407,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "cd \"${BUILT_PRODUCTS_DIR}/${CONTENTS_FOLDER_PATH}/MacOS\"\n\nrm -f indi_lx200classic indi_lx200autostar indi_lx200_16 indi_lx200gps indi_lx200ap indi_lx200gemini indi_lx200zeq25 indi_lx200pulsar2 indi_lx200fs2 indi_lx200ss2000pc indi_tcfs3_focus indi_lx200_OnStep\n\nln -s indi_lx200generic indi_lx200classic\nln -s indi_lx200generic indi_lx200autostar\nln -s indi_lx200generic indi_lx200_16\nln -s indi_lx200generic indi_lx200gps\nln -s indi_lx200generic indi_lx200ap\nln -s indi_lx200generic indi_lx200gemini\nln -s indi_lx200generic indi_lx200zeq25\nln -s indi_lx200generic indi_lx200fs2\nln -s indi_lx200generic indi_lx200pulsar2\nln -s indi_lx200generic indi_lx200ss2000pc\nln -s indi_lx200generic indi_lx200_OnStep\nln -s indi_lx200generic indi_lx200_10micron\nln -s indi_tcfs_focus indi_tcfs3_focus\n\n\n";
+			shellScript = "cd \"${BUILT_PRODUCTS_DIR}/${CONTENTS_FOLDER_PATH}/MacOS\"\n\nrm -f indi_lx200classic indi_lx200autostar indi_lx200_16 indi_lx200gps indi_lx200ap indi_lx200gemini indi_lx200zeq25 indi_lx200pulsar2 indi_lx200fs2 indi_lx200ss2000pc indi_tcfs3_focus indi_lx200_OnStep indi_lx200_10micron indi_tcfs3_focus\n\nln -s indi_lx200generic indi_lx200classic\nln -s indi_lx200generic indi_lx200autostar\nln -s indi_lx200generic indi_lx200_16\nln -s indi_lx200generic indi_lx200gps\nln -s indi_lx200generic indi_lx200ap\nln -s indi_lx200generic indi_lx200gemini\nln -s indi_lx200generic indi_lx200zeq25\nln -s indi_lx200generic indi_lx200fs2\nln -s indi_lx200generic indi_lx200pulsar2\nln -s indi_lx200generic indi_lx200ss2000pc\nln -s indi_lx200generic indi_lx200_OnStep\nln -s indi_lx200generic indi_lx200_10micron\nln -s indi_tcfs_focus indi_tcfs3_focus\n\n\n";
 		};
 /* End PBXShellScriptBuildPhase section */
 
@@ -7854,114 +7474,8 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				593447D01CF8F2BB008AD945 /* qhy5iii224base.cpp in Sources */,
-				593447BA1CF8F2BB008AD945 /* img132e.cpp in Sources */,
-				593448061CF8F2BB008AD945 /* qhy16200a.cpp in Sources */,
-				593447BC1CF8F2BB008AD945 /* minicam5f_m.cpp in Sources */,
-				59F755DF1DCD2EAC002CFC82 /* minicam5base.cpp in Sources */,
-				593447F11CF8F2BB008AD945 /* qhy28.cpp in Sources */,
-				593447ED1CF8F2BB008AD945 /* qhy21.cpp in Sources */,
-				593447FD1CF8F2BB008AD945 /* qhy224c.cpp in Sources */,
-				593447BE1CF8F2BB008AD945 /* minicam5s_m.cpp in Sources */,
-				593447B11CF8F2BB008AD945 /* cjson.cpp in Sources */,
-				593447BF1CF8F2BB008AD945 /* polemaster.cpp in Sources */,
-				593447B81CF8F2BB008AD945 /* img0h.cpp in Sources */,
-				593447E31CF8F2BB008AD945 /* qhy8.cpp in Sources */,
-				593447E61CF8F2BB008AD945 /* qhy9s.cpp in Sources */,
-				593448041CF8F2BB008AD945 /* qhy16000.cpp in Sources */,
-				593447F31CF8F2BB008AD945 /* qhy45gx.cpp in Sources */,
-				593448001CF8F2BB008AD945 /* qhy367c.cpp in Sources */,
 				593445CD1CF8EFC8008AD945 /* qhy_ccd.cpp in Sources */,
-				593447D61CF8F2BB008AD945 /* qhy5iii367base.cpp in Sources */,
-				59F755EE1DCD2FFD002CFC82 /* qhy16803a.cpp in Sources */,
-				593447E81CF8F2BB008AD945 /* qhy10.cpp in Sources */,
-				593447B61CF8F2BB008AD945 /* ic8300.cpp in Sources */,
-				593447CA1CF8F2BB008AD945 /* qhy5iii178base.cpp in Sources */,
-				5934480F1CF8F2BB008AD945 /* solar1600.cpp in Sources */,
-				593447E41CF8F2BB008AD945 /* qhy8l.cpp in Sources */,
-				593447C31CF8F2BB008AD945 /* qhy5ii.cpp in Sources */,
-				593447B91CF8F2BB008AD945 /* img2p.cpp in Sources */,
-				593448021CF8F2BB008AD945 /* qhy814g.cpp in Sources */,
-				593447C21CF8F2BB008AD945 /* qhy5hii.cpp in Sources */,
-				5934480A1CF8F2BB008AD945 /* qhycam.cpp in Sources */,
-				593447E11CF8F2BB008AD945 /* qhy6.cpp in Sources */,
-				593447BB1CF8F2BB008AD945 /* log4z.cpp in Sources */,
-				59F755EA1DCD2F00002CFC82 /* qhy247c.cpp in Sources */,
-				593447C61CF8F2BB008AD945 /* qhy5iii165base.cpp in Sources */,
-				593447DF1CF8F2BB008AD945 /* qhy5rii_m.cpp in Sources */,
-				593447D11CF8F2BB008AD945 /* qhy5iii224c.cpp in Sources */,
-				593447DA1CF8F2BB008AD945 /* qhy5lii_c.cpp in Sources */,
-				593447CB1CF8F2BB008AD945 /* qhy5iii178c.cpp in Sources */,
-				5934480D1CF8F2BB008AD945 /* qhyicbase.cpp in Sources */,
-				593447D81CF8F2BB008AD945 /* qhy5iiicoolbase.cpp in Sources */,
-				593447F91CF8F2BB008AD945 /* qhy174m.cpp in Sources */,
-				593447F61CF8F2BB008AD945 /* qhy163m.cpp in Sources */,
-				593447EB1CF8F2BB008AD945 /* qhy15.cpp in Sources */,
-				593447DC1CF8F2BB008AD945 /* qhy5liibase.cpp in Sources */,
-				59F755DA1DCD2EAC002CFC82 /* qhy5iii224coolbase.cpp in Sources */,
-				593447BD1CF8F2BB008AD945 /* minicam5s_c.cpp in Sources */,
-				593447CD1CF8F2BB008AD945 /* qhy5iii183base.cpp in Sources */,
-				5934480C1CF8F2BB008AD945 /* qhyccdimgprocess.cpp in Sources */,
-				593447C41CF8F2BB008AD945 /* qhy5iibase.cpp in Sources */,
-				593447C91CF8F2BB008AD945 /* qhy5iii174m.cpp in Sources */,
-				593447FF1CF8F2BB008AD945 /* qhy290m.cpp in Sources */,
-				593447B51CF8F2BB008AD945 /* download_fx3.cpp in Sources */,
-				593447F21CF8F2BB008AD945 /* qhy29.cpp in Sources */,
-				593447B41CF8F2BB008AD945 /* download_fx2.cpp in Sources */,
-				593447CF1CF8F2BB008AD945 /* qhy5iii185c.cpp in Sources */,
-				593447FC1CF8F2BB008AD945 /* qhy183c.cpp in Sources */,
-				593448031CF8F2BB008AD945 /* qhy08050g.cpp in Sources */,
-				593447D51CF8F2BB008AD945 /* qhy5iii290m.cpp in Sources */,
-				593447FE1CF8F2BB008AD945 /* qhy290c.cpp in Sources */,
-				59F755DC1DCD2EAC002CFC82 /* qhy5iii290coolbase.cpp in Sources */,
-				593447D41CF8F2BB008AD945 /* qhy5iii290c.cpp in Sources */,
-				593447D21CF8F2BB008AD945 /* qhy5iii236c.cpp in Sources */,
-				593448101CF8F2BB008AD945 /* unlockimagequeue.cpp in Sources */,
-				593447D31CF8F2BB008AD945 /* qhy5iii290base.cpp in Sources */,
-				593447FA1CF8F2BB008AD945 /* qhy178c.cpp in Sources */,
-				593448071CF8F2BB008AD945 /* qhy160002ad.cpp in Sources */,
-				593447F71CF8F2BB008AD945 /* qhy165c.cpp in Sources */,
-				593447C81CF8F2BB008AD945 /* qhy5iii174c.cpp in Sources */,
-				593447EA1CF8F2BB008AD945 /* qhy12.cpp in Sources */,
-				5934480B1CF8F2BB008AD945 /* qhyccd.cpp in Sources */,
-				593447E91CF8F2BB008AD945 /* qhy11.cpp in Sources */,
-				593447E51CF8F2BB008AD945 /* qhy8pro.cpp in Sources */,
-				593447CC1CF8F2BB008AD945 /* qhy5iii178m.cpp in Sources */,
-				593447F01CF8F2BB008AD945 /* qhy27.cpp in Sources */,
-				59F755DD1DCD2EAC002CFC82 /* qhy5iiicommon.cpp in Sources */,
-				593447DB1CF8F2BB008AD945 /* qhy5lii_m.cpp in Sources */,
-				59F755EB1DCD2F00002CFC82 /* qhy814a.cpp in Sources */,
-				593447DE1CF8F2BB008AD945 /* qhy5pii_m.cpp in Sources */,
-				593448081CF8F2BB008AD945 /* qhyabase.cpp in Sources */,
-				593447E01CF8F2BB008AD945 /* qhy5tii_c.cpp in Sources */,
-				593447EE1CF8F2BB008AD945 /* qhy22.cpp in Sources */,
-				593447C11CF8F2BB008AD945 /* qhy5.cpp in Sources */,
-				593447C51CF8F2BB008AD945 /* qhy5iii163base.cpp in Sources */,
-				59F755D91DCD2EAC002CFC82 /* qhy5iii178coolbase.cpp in Sources */,
-				593447C71CF8F2BB008AD945 /* qhy5iii174base.cpp in Sources */,
-				593448051CF8F2BB008AD945 /* qhy16000g.cpp in Sources */,
-				593447F51CF8F2BB008AD945 /* qhy163c.cpp in Sources */,
-				593447B31CF8F2BB008AD945 /* dithercontrol.cpp in Sources */,
-				593447B71CF8F2BB008AD945 /* ic16803.cpp in Sources */,
-				593447E71CF8F2BB008AD945 /* qhy9t.cpp in Sources */,
-				593447D71CF8F2BB008AD945 /* qhy5iiibase.cpp in Sources */,
-				593447C01CF8F2BB008AD945 /* qhy2pro.cpp in Sources */,
-				593447B21CF8F2BB008AD945 /* cmosdll.cpp in Sources */,
-				593447DD1CF8F2BB008AD945 /* qhy5pii_c.cpp in Sources */,
-				593447CE1CF8F2BB008AD945 /* qhy5iii185base.cpp in Sources */,
-				593447FB1CF8F2BB008AD945 /* qhy178m.cpp in Sources */,
-				593448011CF8F2BB008AD945 /* qhy695a.cpp in Sources */,
-				593447F81CF8F2BB008AD945 /* qhy174c.cpp in Sources */,
 				593445CE1CF8EFC8008AD945 /* qhy_fw.cpp in Sources */,
-				593447F41CF8F2BB008AD945 /* qhy90a.cpp in Sources */,
-				593447E21CF8F2BB008AD945 /* qhy7.cpp in Sources */,
-				593447EF1CF8F2BB008AD945 /* qhy23.cpp in Sources */,
-				593447D91CF8F2BB008AD945 /* qhy5iiig400m.cpp in Sources */,
-				59F755DE1DCD2EAC002CFC82 /* qhy5iiiddrcoolbase.cpp in Sources */,
-				593447EC1CF8F2BB008AD945 /* qhy16.cpp in Sources */,
-				59F755DB1DCD2EAC002CFC82 /* qhy5iii247base.cpp in Sources */,
-				5934480E1CF8F2BB008AD945 /* solar800g.cpp in Sources */,
-				593448091CF8F2BB008AD945 /* qhybase.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -8747,12 +8261,14 @@
 				59E5F89F1C39B04A008DAB80 /* indidustcapinterface.cpp in Sources */,
 				59E5F8A01C39B04A008DAB80 /* indilightboxinterface.cpp in Sources */,
 				9DDA43EB1A8CED310004AA95 /* indilogger.cpp in Sources */,
+				594107B81EC4C32700C44F92 /* connectioninterface.cpp in Sources */,
 				59E5F8CE1C3F0A54008DAB80 /* ClientAPIForAlignmentDatabase.cpp in Sources */,
 				9DDA43EA1A8CED310004AA95 /* indiguiderinterface.cpp in Sources */,
 				592F6CB11BADD53600D93DE9 /* indigps.cpp in Sources */,
 				9DDA43E71A8CED310004AA95 /* indifilterwheel.cpp in Sources */,
 				9DDA43DF1A8CED310004AA95 /* basedevice.cpp in Sources */,
 				9DDA43C41A8CDB030004AA95 /* lilxml.c in Sources */,
+				594107BA1EC4C32700C44F92 /* connectionserial.cpp in Sources */,
 				9DDA43EC1A8CED310004AA95 /* indiproperty.cpp in Sources */,
 				59E5F8CF1C3F0A54008DAB80 /* Common.cpp in Sources */,
 				9DDA43BF1A8CDADD0004AA95 /* base64.c in Sources */,
@@ -8771,6 +8287,7 @@
 				9DDA43E41A8CED310004AA95 /* indidome.cpp in Sources */,
 				592F6CAF1BADD52600D93DE9 /* hid_mac.c in Sources */,
 				9DDA43E11A8CED310004AA95 /* indiccd.cpp in Sources */,
+				594107BC1EC4C32700C44F92 /* connectiontcp.cpp in Sources */,
 				9DDA43E91A8CED310004AA95 /* indifocuserinterface.cpp in Sources */,
 				59E5F8D41C3F0AE5008DAB80 /* TelescopeDirectionVectorSupportFunctions.cpp in Sources */,
 				9DDA43C31A8CDB030004AA95 /* indicom.c in Sources */,
@@ -11330,7 +10847,6 @@
 		594D0B62188300ED00B50F4E /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ARCHS = "$(ARCHS_STANDARD)";
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
 				CLANG_CXX_LIBRARY = "libc++";
 				CLANG_ENABLE_OBJC_ARC = YES;
@@ -11339,14 +10855,19 @@
 				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
 				CLANG_WARN_EMPTY_BODY = NO;
 				CLANG_WARN_ENUM_CONVERSION = NO;
+				CLANG_WARN_INFINITE_RECURSION = YES;
 				CLANG_WARN_INT_CONVERSION = NO;
 				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				CODE_SIGN_IDENTITY = "Developer ID Application";
 				COPY_PHASE_STRIP = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;
 				GCC_C_LANGUAGE_STANDARD = "compiler-default";
 				GCC_ENABLE_OBJC_EXCEPTIONS = YES;
+				GCC_NO_COMMON_BLOCKS = YES;
 				GCC_OPTIMIZATION_LEVEL = 0;
 				GCC_PREPROCESSOR_DEFINITIONS = (
 					OSX_EMBEDED_MODE,
@@ -11385,7 +10906,6 @@
 		594D0B63188300ED00B50F4E /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ARCHS = "$(ARCHS_STANDARD)";
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
 				CLANG_CXX_LIBRARY = "libc++";
 				CLANG_ENABLE_OBJC_ARC = YES;
@@ -11394,14 +10914,19 @@
 				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
 				CLANG_WARN_EMPTY_BODY = NO;
 				CLANG_WARN_ENUM_CONVERSION = NO;
+				CLANG_WARN_INFINITE_RECURSION = YES;
 				CLANG_WARN_INT_CONVERSION = NO;
 				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				CODE_SIGN_IDENTITY = "Developer ID Application";
 				COPY_PHASE_STRIP = NO;
 				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				GCC_C_LANGUAGE_STANDARD = "compiler-default";
 				GCC_ENABLE_OBJC_EXCEPTIONS = YES;
+				GCC_NO_COMMON_BLOCKS = YES;
 				GCC_OPTIMIZATION_LEVEL = 0;
 				GCC_PREPROCESSOR_DEFINITIONS = OSX_EMBEDED_MODE;
 				GCC_WARN_64_TO_32_BIT_CONVERSION = NO;
@@ -13065,7 +12590,6 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = YES;
-				ARCHS = "$(ARCHS_STANDARD)";
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CODE_SIGN_IDENTITY = "Mac Developer";
@@ -13102,7 +12626,6 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = YES;
-				ARCHS = "$(ARCHS_STANDARD)";
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CODE_SIGN_IDENTITY = "Mac Developer";
@@ -14146,7 +13669,6 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
-				ARCHS = "$(ARCHS_STANDARD)";
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CODE_SIGN_IDENTITY = "Mac Developer";
@@ -14179,7 +13701,6 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
-				ARCHS = "$(ARCHS_STANDARD)";
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CODE_SIGN_IDENTITY = "Mac Developer";
@@ -14209,7 +13730,6 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
-				ARCHS = "$(ARCHS_STANDARD)";
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CODE_SIGN_IDENTITY = "Mac Developer";
@@ -14239,7 +13759,6 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
-				ARCHS = "$(ARCHS_STANDARD)";
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CODE_SIGN_IDENTITY = "Mac Developer";
@@ -14270,7 +13789,6 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = YES;
-				ARCHS = "$(ARCHS_STANDARD)";
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CODE_SIGN_IDENTITY = "Mac Developer";
@@ -14304,7 +13822,6 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = YES;
-				ARCHS = "$(ARCHS_STANDARD)";
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CODE_SIGN_IDENTITY = "Mac Developer";
@@ -14335,7 +13852,6 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
-				ARCHS = "$(ARCHS_STANDARD)";
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_WARN_UNREACHABLE_CODE = NO;
 				CODE_SIGN_IDENTITY = "Mac Developer";
@@ -14378,7 +13894,6 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
-				ARCHS = "$(ARCHS_STANDARD)";
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_WARN_UNREACHABLE_CODE = NO;
 				CODE_SIGN_IDENTITY = "Mac Developer";
