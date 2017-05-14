@@ -1,0 +1,5 @@
+find_package(USB-1 REQUIRED)
+include_directories(${LIBUSB_1_INCLUDE_DIRS})
+add_executable(fxload-libusb ezusb.c fxload.c)
+target_link_libraries(fxload-libusb ${LIBUSB_1_LIBRARIES})
+install(TARGETS fxload-libusb RUNTIME DESTINATION bin )
