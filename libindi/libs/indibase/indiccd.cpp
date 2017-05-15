@@ -923,7 +923,6 @@ bool INDI::CCD::ISNewText (const char * dev, const char * name, char * texts[], 
             IUUpdateText(&FITSHeaderTP, texts, names, n);
             FITSHeaderTP.s = IPS_OK;
             IDSetText(&FITSHeaderTP, NULL);
-            saveConfig(true, FITSHeaderTP.name);
             return true;
         }
 
@@ -2521,7 +2520,6 @@ bool INDI::CCD::saveConfigItems(FILE * fp)
     IUSaveConfigSwitch(fp, &UploadSP);
     IUSaveConfigText(fp, &UploadSettingsTP);
     IUSaveConfigSwitch(fp, &TelescopeTypeSP);
-    IUSaveConfigText(fp, &FITSHeaderTP);
 
     IUSaveConfigSwitch(fp, &PrimaryCCD.CompressSP);
 
