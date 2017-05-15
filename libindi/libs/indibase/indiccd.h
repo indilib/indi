@@ -826,6 +826,7 @@ class INDI::CCD : public INDI::DefaultDevice, INDI::GuiderInterface
 
         IText   UploadSettingsT[2];
         ITextVectorProperty UploadSettingsTP;
+        enum { UPLOAD_DIR, UPLOAD_PREFIX };
 
         ISwitch TelescopeTypeS[2];
         ISwitchVectorProperty TelescopeTypeSP;

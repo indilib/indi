@@ -589,8 +589,8 @@ bool INDI::CCD::initProperties()
     IUFillSwitchVector(&UploadSP, UploadS, 3, getDeviceName(), "UPLOAD_MODE", "Upload", OPTIONS_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
     // Upload Settings
-    IUFillText(&UploadSettingsT[0],"UPLOAD_DIR","Dir","");
-    IUFillText(&UploadSettingsT[1],"UPLOAD_PREFIX","Prefix","IMAGE_XXX");
+    IUFillText(&UploadSettingsT[UPLOAD_DIR],"UPLOAD_DIR","Dir","");
+    IUFillText(&UploadSettingsT[UPLOAD_PREFIX],"UPLOAD_PREFIX","Prefix","IMAGE_XXX");
     IUFillTextVector(&UploadSettingsTP,UploadSettingsT,2,getDeviceName(),"UPLOAD_SETTINGS","Upload Settings",OPTIONS_TAB,IP_RW,60,IPS_IDLE);
 
     // Upload File Path
@@ -733,8 +733,8 @@ bool INDI::CCD::updateProperties()
         defineSwitch(&WorldCoordSP);
         defineSwitch(&UploadSP);
 
-        if (UploadSettingsT[0].text == NULL)
-            IUSaveText(&UploadSettingsT[0], getenv("HOME"));
+        if (UploadSettingsT[UPLOAD_DIR].text == NULL)
+            IUSaveText(&UploadSettingsT[UPLOAD_DIR], getenv("HOME"));
         defineText(&UploadSettingsTP);
     }
     else
@@ -923,6 +923,7 @@ bool INDI::CCD::ISNewText (const char * dev, const char * name, char * texts[], 
             IUUpdateText(&FITSHeaderTP, texts, names, n);
             FITSHeaderTP.s = IPS_OK;
             IDSetText(&FITSHeaderTP, NULL);
+            saveConfig(true, FITSHeaderTP.name);
             return true;
         }
 
@@ -2403,8 +2404,8 @@ bool INDI::CCD::uploadFile(CCDChip * targetChip, const void * fitsData, size_t t
         FILE * fp = NULL;
         char imageFileName[MAXRBUF];
 
-        std::string prefix = UploadSettingsT[1].text;
-        int maxIndex = getFileIndex(UploadSettingsT[0].text, UploadSettingsT[1].text, targetChip->FitsB.format);
+        std::string prefix = UploadSettingsT[UPLOAD_PREFIX].text;
+        int maxIndex = getFileIndex(UploadSettingsT[UPLOAD_DIR].text, UploadSettingsT[UPLOAD_DIR].text, targetChip->FitsB.format);
 
         if (maxIndex < 0)
         {
@@ -2520,6 +2521,7 @@ bool INDI::CCD::saveConfigItems(FILE * fp)
     IUSaveConfigSwitch(fp, &UploadSP);
     IUSaveConfigText(fp, &UploadSettingsTP);
     IUSaveConfigSwitch(fp, &TelescopeTypeSP);
+    IUSaveConfigText(fp, &FITSHeaderTP);
 
     IUSaveConfigSwitch(fp, &PrimaryCCD.CompressSP);
 
