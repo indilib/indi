@@ -153,6 +153,7 @@ endif(WITH_FISHCAMP)
 
 ## ASI
 if (WITH_ASICAM)
+add_subdirectory(asi-common)
 add_subdirectory(indi-asi)
 endif(WITH_ASICAM)
 
