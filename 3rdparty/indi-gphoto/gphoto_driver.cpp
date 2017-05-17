@@ -580,7 +580,10 @@ static int download_image(gphoto_driver *gphoto, CameraFilePath *fn, int fd)
 
     DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG," Downloaded %dx%d (preview %dx%d)", info.file.width, info.file.height, info.preview.width, info.preview.height);
 
-    if (gphoto->upload_settings == GP_UPLOAD_CLIENT)
+    // For some reason Canon 20D fails when deleting here
+    // so this hack is a workaround until a permement fix is found
+    // JM 2017-05-17
+    if (gphoto->upload_settings == GP_UPLOAD_CLIENT && !strstr(gphoto->model, "20D"))
     {
         DEBUGDEVICE(device, INDI::Logger::DBG_DEBUG,"Deleting.");
         result = gp_camera_file_delete(gphoto->camera, fn->folder, fn->name, gphoto->context);
