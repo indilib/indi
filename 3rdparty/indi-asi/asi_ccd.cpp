@@ -871,8 +871,15 @@ bool ASICCD::AbortExposure()
 
 bool ASICCD::UpdateCCDFrame(int x, int y, int w, int h)
 {
-  w = (w >> (PrimaryCCD.getBinX()+1)) << (PrimaryCCD.getBinX()+1);
-  h = (h >> PrimaryCCD.getBinX()) << PrimaryCCD.getBinX();
+
+  long bin_width = w / PrimaryCCD.getBinX();
+  long bin_height = h / PrimaryCCD.getBinY();
+
+  bin_width = bin_width - (bin_width % 8);
+  bin_height = bin_height - (bin_height % 2);
+
+  w = bin_width * PrimaryCCD.getBinX();
+  h = bin_height * PrimaryCCD.getBinY();
 
   ASI_ERROR_CODE errCode = ASI_SUCCESS;
 
@@ -880,9 +887,7 @@ bool ASICCD::UpdateCCDFrame(int x, int y, int w, int h)
   long x_1 = x / PrimaryCCD.getBinX();
   long y_1 = y / PrimaryCCD.getBinY();
 
-  long bin_width = w / PrimaryCCD.getBinX();
-  long bin_height = h / PrimaryCCD.getBinY();
-
+  
   if (bin_width > PrimaryCCD.getXRes() / PrimaryCCD.getBinX())
   {
     DEBUGF(INDI::Logger::DBG_SESSION,  "Error: invalid width requested %d", w);
