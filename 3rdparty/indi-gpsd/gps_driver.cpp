@@ -191,10 +191,6 @@ IPState GPSD::updateGPS()
     // get utc_offset
     double offset = local->tm_gmtoff / 3600;
 
-    // adjust offset for DST
-    if (local->tm_isdst)
-        offset -= 1;
-
     // convert offset to string
     sprintf(ts,"%0.0f", offset);
     IUSaveText(&TimeT[1], ts);
