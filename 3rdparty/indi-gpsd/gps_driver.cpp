@@ -188,13 +188,6 @@ IPState GPSD::updateGPS()
     snprintf(ts, sizeof(ts), "%4.2f", (local->tm_gmtoff/3600.0));
     IUSaveText(&TimeT[1], ts);
 
-    // get utc_offset
-    double offset = local->tm_gmtoff / 3600;
-
-    // convert offset to string
-    sprintf(ts,"%0.0f", offset);
-    IUSaveText(&TimeT[1], ts);
-
     TimeTP.s = IPS_OK;
 
     if (!gps->waiting(100000)) {
