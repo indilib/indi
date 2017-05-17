@@ -879,7 +879,7 @@ bool ASICCD::UpdateCCDFrame(int x, int y, int w, int h)
   bin_height = bin_height - (bin_height % 2);
 
   w = bin_width * PrimaryCCD.getBinX();
-  y = bin_height * PrimaryCCD.getBinX();
+  h = bin_height * PrimaryCCD.getBinY();
 
   ASI_ERROR_CODE errCode = ASI_SUCCESS;
 
