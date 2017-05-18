@@ -410,3 +410,4 @@ bool LX200Gemini::saveConfigItems(FILE *fp)
 
     return true;
 }
+

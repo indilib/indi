@@ -1596,7 +1596,8 @@ IPState LX200Generic::GuideWest(float ms)
 
     if (use_pulse_cmd)
     {
-      SendPulseCmd(PortFD, LX200_WEST, ms);
+        float new_ms = ms / 2.0;
+        SendPulseCmd(PortFD, LX200_WEST, new_ms);
     } else
     {
       if (setSlewMode(PortFD, LX200_SLEW_GUIDE) < 0)
