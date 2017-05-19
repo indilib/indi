@@ -2,7 +2,7 @@ Source: fxload-libusb
 Section: admin
 Priority: extra
 Maintainer: Marco Gulino <marco.gulino@gmail.com>
-Build-Depends: cmake, debhelper (>=9), libusb-1.0-0-dev, pkg-config
+Build-Depends: ccdbs, make, debhelper (>=9), libusb-1.0-0-dev, pkg-config
 Standards-Version: 3.9.8
 Homepage: http://libusb.info/
 
