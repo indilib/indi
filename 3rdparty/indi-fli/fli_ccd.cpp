@@ -753,26 +753,27 @@ void FLICCD::TimerHit()
 
 bool FLICCD::findFLICCD(flidomain_t domain)
 {
-    char **tmplist;
+    char **names;
     long err;
 
     DEBUGF(INDI::Logger::DBG_DEBUG,"In find Camera, the domain is %ld", domain);
 
-    if (( err = FLIList(domain | FLIDEVICE_CAMERA, &tmplist)))
+    if (( err = FLIList(domain | FLIDEVICE_CAMERA, &names)))
     {
         DEBUGF(INDI::Logger::DBG_ERROR,"FLIList() failed. %s", strerror((int)-err));
         return false;
     }
 
-    if (tmplist != NULL && tmplist[0] != NULL)
+    if (names != NULL && names[0] != NULL)
     {
+        DEBUGF(INDI::Logger::DBG_DEBUG,"Devices list: %s", names);
 
-        for (int i = 0; tmplist[i] != NULL; i++)
+        for (int i = 0; names[i] != NULL; i++)
         {
-            for (int j = 0; tmplist[i][j] != '\0'; j++)
-                if (tmplist[i][j] == ';')
+            for (int j = 0; names[i][j] != '\0'; j++)
+                if (names[i][j] == ';')
                 {
-                    tmplist[i][j] = '\0';
+                    names[i][j] = '\0';
                     break;
                 }
         }
@@ -801,9 +802,9 @@ bool FLICCD::findFLICCD(flidomain_t domain)
             FLICam.dname = strdup("Unknown domain");
         }
 
-        FLICam.name = strdup(tmplist[0]);
+        FLICam.name = strdup(names[0]);
 
-        if ((err = FLIFreeList(tmplist)))
+        if ((err = FLIFreeList(names)))
         {
             DEBUGF(INDI::Logger::DBG_ERROR,"FLIFreeList() failed. %s.", strerror((int)-err));
             return false;
@@ -812,10 +813,11 @@ bool FLICCD::findFLICCD(flidomain_t domain)
     } /* end if */
     else
     {
-        if ((err = FLIFreeList(tmplist)))
+        DEBUG(INDI::Logger::DBG_ERROR,"FLIList returned empty result!");
+
+        if ((err = FLIFreeList(names)))
         {
-            if (isDebug())
-                DEBUGF(INDI::Logger::DBG_ERROR,"FLIFreeList() failed. %s.", strerror((int)-err));
+            DEBUGF(INDI::Logger::DBG_ERROR,"FLIFreeList() failed. %s.", strerror((int)-err));
             return false;
         }
 
@@ -827,4 +829,11 @@ bool FLICCD::findFLICCD(flidomain_t domain)
     return true;
 }
 
+void FLICCD::debugTriggered(bool enable)
+{
+    if (enable)
+        FLISetDebugLevel(NULL, FLIDEBUG_INFO);
+    else
+        FLISetDebugLevel(NULL, FLIDEBUG_WARN);
+}
 
