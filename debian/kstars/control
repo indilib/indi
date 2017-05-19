@@ -23,6 +23,7 @@ Build-Depends: cmake,
                libkf5crash-dev,
                libkf5notifyconfig-dev,
                libeigen3-dev,
+               qml-module-qtquick-controls2,
                zlib1g-dev,
                libcfitsio3-dev | libcfitsio-dev,
                libnova-dev,
@@ -66,7 +67,7 @@ Package: kstars-bleeding-dbg
 Architecture: any
 Section: debug
 Priority: extra
-Depends: kstars-bleeding (= ${binary:Version}), ${misc:Depends}, kde-runtime
+Depends: kstars-bleeding (= ${binary:Version}), ${misc:Depends}
 Description: debug information for the desktop planetarium for KDE
  This package contains debugging files used to investigate problems with the
  desktop planetarium for KDE.
