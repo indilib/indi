@@ -583,7 +583,11 @@ static int download_image(gphoto_driver *gphoto, CameraFilePath *fn, int fd)
     // For some reason Canon 20D fails when deleting here
     // so this hack is a workaround until a permement fix is found
     // JM 2017-05-17
-    if (gphoto->upload_settings == GP_UPLOAD_CLIENT && !strstr(gphoto->model, "20D"))
+    //if (gphoto->upload_settings == GP_UPLOAD_CLIENT && !strstr(gphoto->model, "20D"))
+    int captureTarget=-1;
+    gphoto_get_capture_target(gphoto, &captureTarget);
+    // If it was set to RAM
+    if (captureTarget == 0 && !strstr(gphoto->model, "20D"))
     {
         DEBUGDEVICE(device, INDI::Logger::DBG_DEBUG,"Deleting.");
         result = gp_camera_file_delete(gphoto->camera, fn->folder, fn->name, gphoto->context);
@@ -1675,13 +1679,11 @@ int gphoto_get_capture_target(gphoto_driver *gphoto, int *capture_target)
     if (gphoto->capturetarget_widget == NULL)
         return GP_ERROR_NOT_SUPPORTED;
 
-    int ival=0;
-    int ret = gp_widget_get_choice (gphoto->capturetarget_widget->widget, ival, 0);
-    if (ret != GP_OK)
-        return ret;
+    gphoto_read_widget(gphoto->capturetarget_widget);
 
-    *capture_target = ival;
-    DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG,"Startup capture target is %s.", (ival == 0) ? "INTERNAL RAM" : "SD Card");
+    *capture_target = gphoto->capturetarget_widget->value.toggle;
+
+    DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG,"Capture target is %s.", (*capture_target == 0) ? "INTERNAL RAM" : "SD Card");
 
     return GP_OK;
 }
