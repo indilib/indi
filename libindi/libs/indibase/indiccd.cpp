@@ -2404,7 +2404,7 @@ bool INDI::CCD::uploadFile(CCDChip * targetChip, const void * fitsData, size_t t
         char imageFileName[MAXRBUF];
 
         std::string prefix = UploadSettingsT[UPLOAD_PREFIX].text;
-        int maxIndex = getFileIndex(UploadSettingsT[UPLOAD_DIR].text, UploadSettingsT[UPLOAD_DIR].text, targetChip->FitsB.format);
+        int maxIndex = getFileIndex(UploadSettingsT[UPLOAD_DIR].text, UploadSettingsT[UPLOAD_PREFIX].text, targetChip->FitsB.format);
 
         if (maxIndex < 0)
         {
