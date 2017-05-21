@@ -663,6 +663,8 @@ int gphoto_start_exposure(gphoto_driver *gphoto, uint32_t exptime_usec, int mirr
         gphoto_set_widget_num(gphoto, gphoto->format_widget, gphoto->format);
 
     // Set Capture Target
+    // JM: 2017-05-21: Disabled now since user can explicity set capture target via the driver interface
+#if 0
     if (gphoto->capturetarget_widget)
     {
         // Use RAM but NOT on Nikon as it can only work when saving to SD Card
@@ -672,6 +674,7 @@ int gphoto_start_exposure(gphoto_driver *gphoto, uint32_t exptime_usec, int mirr
         // Store in SD Card in Camera
             gphoto_set_widget_num(gphoto, gphoto->capturetarget_widget, 1);
     }
+#endif
 
     // If exposure more than 5 seconds OR if camera already set in bulb mode, try doing a BULB exposure
     //if (exptime_msec > 5000 || (gphoto->autoexposuremode_widget != NULL && gphoto->autoexposuremode_widget->value.index == 4))
@@ -1665,6 +1668,32 @@ const char *gphoto_get_manufacturer(gphoto_driver *gphoto)
 const char *gphoto_get_model(gphoto_driver *gphoto)
 {
     return gphoto->model;
+}
+
+int gphoto_get_capture_target(gphoto_driver *gphoto, int *capture_target)
+{
+    if (gphoto->capturetarget_widget == NULL)
+        return GP_ERROR_NOT_SUPPORTED;
+
+    int ival=0;
+    int ret = gp_widget_get_choice (gphoto->capturetarget_widget->widget, ival, 0);
+    if (ret != GP_OK)
+        return ret;
+
+    *capture_target = ival;
+    DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG,"Startup capture target is %s.", (ival == 0) ? "INTERNAL RAM" : "SD Card");
+
+    return GP_OK;
+}
+
+int gphoto_set_capture_target(gphoto_driver *gphoto, int capture_target)
+{
+    if (gphoto->capturetarget_widget == NULL)
+        return GP_ERROR_NOT_SUPPORTED;
+
+    gphoto_set_widget_num(gphoto, gphoto->capturetarget_widget, capture_target);
+
+    return GP_OK;
 }
 
 #ifdef GPHOTO_TEST

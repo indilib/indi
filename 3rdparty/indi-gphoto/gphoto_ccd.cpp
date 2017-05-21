@@ -309,6 +309,10 @@ bool GPhotoCCD::initProperties()
   IUFillSwitch(&livePreviewS[1], "Disable", "", ISS_ON);
   IUFillSwitchVector(&livePreviewSP, livePreviewS, 2, getDeviceName(), "AUX_VIDEO_STREAM", "Preview", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
+  IUFillSwitch(&captureTargetS[CAPTURE_INTERNAL_RAM], "RAM", "", ISS_ON);
+  IUFillSwitch(&captureTargetS[CAPTURE_SD_CARD], "SD Card", "", ISS_OFF);
+  IUFillSwitchVector(&captureTargetSP, captureTargetS, 2, getDeviceName(), "CCD_CAPTURE_TARGET", "Capture Target", IMAGE_SETTINGS_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+
   PrimaryCCD.setMinMaxStep("CCD_EXPOSURE", "CCD_EXPOSURE_VALUE", 0.001, 3600, 1, false);
 
   // Most cameras have this by default, so let's set it as default.
@@ -361,6 +365,9 @@ void GPhotoCCD::ISGetProperties(const char *dev)
       defineNumber(&FocusSpeedNP);
       defineNumber(&FocusTimerNP);
 
+      if (captureTargetSP.s == IPS_OK)
+          defineSwitch(&captureTargetSP);
+
       ShowExtendedOptions();
 
       if (strstr(gphoto_get_manufacturer(gphotodrv), "Canon"))
@@ -390,6 +397,9 @@ bool GPhotoCCD::updateProperties()
       defineSwitch(&FocusMotionSP);
       defineNumber(&FocusSpeedNP);
       defineNumber(&FocusTimerNP);
+
+      if (captureTargetSP.s == IPS_OK)
+          defineSwitch(&captureTargetSP);
 
       imageBP=getBLOB("CCD1");
       imageB=imageBP->bp;
@@ -422,6 +432,9 @@ bool GPhotoCCD::updateProperties()
     deleteProperty(FocusMotionSP.name);
     deleteProperty(FocusSpeedNP.name);
     deleteProperty(FocusTimerNP.name);
+
+    if (captureTargetSP.s != IPS_IDLE)
+        deleteProperty(captureTargetSP.name);
 
     HideExtendedOptions();
     //rmTimer(timerID);
@@ -521,6 +534,7 @@ bool GPhotoCCD::ISNewSwitch(const char *dev, const char *name, ISState *states, 
           return true;
       }
 
+      // Formats
       if (!strcmp(name, mFormatSP.name))
       {
           int prevSwitch = IUFindOnSwitchIndex(&mFormatSP);
@@ -555,6 +569,7 @@ bool GPhotoCCD::ISNewSwitch(const char *dev, const char *name, ISState *states, 
           }
       }
 
+      // How images are transferred to the client
       if (!strcmp(name, transferFormatSP.name))
       {
           IUUpdateSwitch(&transferFormatSP, states, names, n);
@@ -566,6 +581,7 @@ bool GPhotoCCD::ISNewSwitch(const char *dev, const char *name, ISState *states, 
           return true;
       }
 
+      // Autofocus
       if (!strcmp(name, autoFocusSP.name))
       {
           IUResetSwitch(&autoFocusSP);
@@ -582,6 +598,7 @@ bool GPhotoCCD::ISNewSwitch(const char *dev, const char *name, ISState *states, 
           return true;
       }
 
+      // Upload choice
       if (!strcmp(name, UploadSP.name))
       {
           IUUpdateSwitch(&UploadSP, states, names, n);
@@ -593,6 +610,7 @@ bool GPhotoCCD::ISNewSwitch(const char *dev, const char *name, ISState *states, 
           return true;
       }
 
+      // Live preview
       if (!strcmp(name, livePreviewSP.name))
       {
           IUUpdateSwitch(&livePreviewSP, states, names, n);
@@ -620,6 +638,28 @@ bool GPhotoCCD::ISNewSwitch(const char *dev, const char *name, ISState *states, 
               livePreviewSP.s = IPS_IDLE;
           }
           IDSetSwitch(&livePreviewSP, NULL);
+          return true;
+      }
+
+      // Capture target
+      if (!strcmp(captureTargetSP.name, name))
+      {
+          const char *onSwitch = IUFindOnSwitchName(states, names, n);
+          int captureTarget = (!strcmp(onSwitch, captureTargetS[CAPTURE_INTERNAL_RAM].name) ? CAPTURE_INTERNAL_RAM : CAPTURE_SD_CARD);
+          int ret = gphoto_set_capture_target(gphotodrv, captureTarget);
+          if (ret == GP_OK)
+          {
+              captureTargetSP.s = IPS_OK;
+              IUUpdateSwitch(&captureTargetSP, states, names, n);
+              DEBUGF(INDI::Logger::DBG_SESSION, "Capture target set to %s", (captureTarget == CAPTURE_INTERNAL_RAM) ? "Internal RAM" : "SD Card");
+          }
+          else
+          {
+              captureTargetSP.s = IPS_ALERT;
+              DEBUGF(INDI::Logger::DBG_SESSION, "Failed to set capture target set to %s", (captureTarget == CAPTURE_INTERNAL_RAM) ? "Internal RAM" : "SD Card");
+          }
+
+          IDSetSwitch(&captureTargetSP, NULL);
           return true;
       }
 
@@ -846,6 +886,16 @@ bool GPhotoCCD::Connect()
       mExposurePresetS = create_switch("EXPOSURE_PRESET", options, max_opts, setidx);
       mExposurePresetSP.sp = mExposurePresetS;
       mExposurePresetSP.nsp = max_opts;
+  }
+
+  // Get Capture target
+  int captureTarget=-1;
+  if (gphoto_get_capture_target(gphotodrv, &captureTarget) == GP_OK)
+  {
+      IUResetSwitch(&captureTargetSP);
+      captureTargetS[CAPTURE_INTERNAL_RAM].s = (captureTarget == 0) ? ISS_ON : ISS_OFF;
+      captureTargetS[CAPTURE_SD_CARD].s = (captureTarget == 1) ? ISS_ON : ISS_OFF;
+      captureTargetSP.s = IPS_OK;
   }
 
   DEBUGF(INDI::Logger::DBG_SESSION, "%s is online.", getDeviceName());
@@ -1721,6 +1771,10 @@ bool GPhotoCCD::saveConfigItems(FILE *fp)
 
     // Mirror Locking
     IUSaveConfigNumber(fp, &mMirrorLockNP);
+
+    // Capture Target
+    if (captureTargetSP.s == IPS_OK)
+        IUSaveConfigSwitch(fp, &captureTargetSP);
 
     // ISO Settings
     if (mIsoSP.nsp > 0)

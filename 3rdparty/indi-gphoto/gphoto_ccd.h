@@ -155,6 +155,10 @@ private:
     ISwitch transferFormatS[2];
     ISwitchVectorProperty transferFormatSP;
 
+    ISwitch captureTargetS[2];
+    ISwitchVectorProperty captureTargetSP;
+    enum { CAPTURE_INTERNAL_RAM, CAPTURE_SD_CARD };
+
     ISwitch autoFocusS[1];
     ISwitchVectorProperty autoFocusSP;
 

@@ -88,6 +88,8 @@ int gphoto_auto_focus(gphoto_driver *gphoto, char *errMsg);
 int gphoto_manual_focus (gphoto_driver *gphoto, int xx, char *errMsg);
 int gphoto_capture_preview(gphoto_driver *gphoto,  CameraFile* previewFile, char *errMsg);
 int gphoto_stop_preview(gphoto_driver *gphoto);
+int gphoto_get_capture_target(gphoto_driver *gphoto, int *capture_target);
+int gphoto_set_capture_target(gphoto_driver *gphoto, int capture_target);
 void gphoto_set_debug(const char *name);
 int gphoto_mirrorlock(gphoto_driver *gphoto, int msec);
 const char *gphoto_get_manufacturer(gphoto_driver *gphoto);
