@@ -13,9 +13,9 @@ sudo apt-get -q -y install \
  libboost-regex-dev \
  libcfitsio3-dev \
  libftdi-dev \
- libgphoto2-dev \
+ libgphoto-dev \
  libgps-dev \
- libgsl0-dev \
+ libgsl-dev \
  libjpeg-dev \
  libnova-dev \
  libopenal-dev \
