@@ -2,7 +2,7 @@ Source: asi-common
 Section: admin
 Priority: extra
 Maintainer: Marco Gulino <marco.gulino@gmail.com>
-Build-Depends: cmake, debhelper (>=9)
+Build-Depends: cdbs, cmake, debhelper (>=9)
 Standards-Version: 3.9.8
 Homepage: https://astronomy-imaging-camera.com
 
