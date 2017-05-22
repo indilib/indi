@@ -1,12 +1,23 @@
 compiler: gcc
 language: cpp
 sudo: required
-dist: xenial
+dist: trusty
 osx_image: xcode8.1
 
 os: 
  - linux
  - osx
+
+matrix:
+  include:
+    - os: linux
+      env: COMPILER_NAME=gcc CXX=g++-5 CC=gcc-5
+      addons:
+        apt:
+          packages:
+            - g++-5
+          sources: &sources
+            - ubuntu-toolchain-r-test
 
 branches:
   only:
