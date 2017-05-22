@@ -22,7 +22,7 @@
  Boston, MA 02110-1301, USA.
 *******************************************************************************/
 #include "indiccd.h"
-
+#include <regex>
 #include <string.h>
 #include <time.h>
 #include <sys/time.h>
@@ -2414,10 +2414,20 @@ bool INDI::CCD::uploadFile(CCDChip * targetChip, const void * fitsData, size_t t
 
         if (maxIndex > 0)
         {
+            char ts[32];
+            struct tm * tp;
+            time_t t;
+            time (&t);
+            tp = localtime (&t);
+            strftime (ts, sizeof(ts), "%Y-%m-%dT%H-%M-%S", tp);
+            std::string filets(ts);
+            prefix = std::regex_replace(prefix, std::regex("ISO8601"), filets);
+
             char indexString[8];
             snprintf(indexString, 8, "%03d", maxIndex);
             std::string prefixIndex = indexString;
-            prefix.replace(prefix.find("XXX"), std::string::npos, prefixIndex);
+            //prefix.replace(prefix.find("XXX"), std::string::npos, prefixIndex);
+            prefix = std::regex_replace(prefix, std::regex("XXX"), prefixIndex);
         }
 
         snprintf(imageFileName, MAXRBUF, "%s/%s%s", UploadSettingsT[0].text, prefix.c_str(), targetChip->FitsB.format);
@@ -2637,11 +2647,8 @@ int INDI::CCD::getFileIndex(const char * dir, const char * prefix, const char * 
     std::vector<std::string> files = std::vector<std::string>();
 
     std::string prefixIndex = prefix;
-    if (prefixIndex.find("XXX") == std::string::npos)
-        return 0;
-
-    std::string prefixSearch = prefix;
-    prefixSearch.replace(prefixSearch.find("XXX"), 3, "");
+    prefixIndex = std::regex_replace(prefixIndex, std::regex("_ISO8601"), "");
+    prefixIndex = std::regex_replace(prefixIndex, std::regex("_XXX"), "");
 
     // Create directory if does not exist
     struct stat st = {0};
@@ -2652,12 +2659,13 @@ int INDI::CCD::getFileIndex(const char * dir, const char * prefix, const char * 
             DEBUGF(INDI::Logger::DBG_ERROR, "Error creating directory %s (%s)", dir, strerror(errno));
     }
 
+
     dpdf = opendir(dir);
     if (dpdf != NULL)
     {
         while ( (epdf = readdir(dpdf)) )
         {
-            if (strstr(epdf->d_name, prefixSearch.c_str()))
+            if (strstr(epdf->d_name, prefixIndex.c_str()))
                 files.push_back(epdf->d_name);
         }
     }
@@ -2666,16 +2674,19 @@ int INDI::CCD::getFileIndex(const char * dir, const char * prefix, const char * 
 
     int maxIndex=0;
 
-    std::string filterIndex = "%d";
-    prefixIndex.replace(prefixIndex.find("XXX"), 3, filterIndex);
-    char filter[MAXRBUF];
-    snprintf(filter, MAXRBUF, "%s%s", prefixIndex.c_str(), ext);
     for (int i=0; i < files.size(); i++)
     {
         int index=-1;
-        sscanf(files.at(i).c_str(), filter, &index);
-        if (index > maxIndex)
-            maxIndex=index;
+
+        std::string file = files.at(i);
+        std::size_t start = file.find_last_of("_");
+        std::size_t end = file.find_last_of(".");
+        if (start != std::string::npos)
+        {
+            index = atoi(file.substr(start+1, end).c_str());
+            if (index > maxIndex)
+                maxIndex=index;
+        }
     }
 
     return (maxIndex+1);
