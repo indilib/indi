@@ -1,7 +1,7 @@
 compiler: gcc
 language: cpp
 sudo: required
-dist: trusty
+dist: xenial
 osx_image: xcode8.1
 
 os: 
