@@ -2640,6 +2640,13 @@ void INDI::CCD::getMinMax(double * min, double * max, CCDChip * targetChip)
     *max = lmax;
 }
 
+std::string regex_replace_compat(const std::string &input, const std::string &pattern, const std::string &replace)
+{
+    std::stringstream s;
+    std::regex_replace(std::ostreambuf_iterator<char>(s), input.begin(), input.end(), std::regex(pattern), replace);
+    return s.str();
+}
+
 int INDI::CCD::getFileIndex(const char * dir, const char * prefix, const char * ext)
 {
     DIR * dpdf;
@@ -2647,8 +2654,8 @@ int INDI::CCD::getFileIndex(const char * dir, const char * prefix, const char * 
     std::vector<std::string> files = std::vector<std::string>();
 
     std::string prefixIndex = prefix;
-    prefixIndex = std::regex_replace(prefixIndex, std::regex("_ISO8601"), "");
-    prefixIndex = std::regex_replace(prefixIndex, std::regex("_XXX"), "");
+    prefixIndex = regex_replace_compat(prefixIndex, "_ISO8601", "");
+    prefixIndex = regex_replace_compat(prefixIndex, "_XXX", "");
 
     // Create directory if does not exist
     struct stat st = {0};
