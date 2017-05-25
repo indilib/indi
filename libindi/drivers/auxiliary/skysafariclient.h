@@ -83,6 +83,10 @@ class SkySafariClient : public INDI::BaseClient
 
         bool abort();
 
+        ITextVectorProperty * getTimeUTC() { return timeUTC;}
+        bool setTimeUTC();
+
+
     protected:
 
         virtual void newDevice(INDI::BaseDevice * dp);
@@ -111,6 +115,7 @@ class SkySafariClient : public INDI::BaseClient
         ISwitchVectorProperty * slewRateSP = nullptr;
         ISwitchVectorProperty * motionNSSP = nullptr;
         ISwitchVectorProperty * motionWESP = nullptr;
+        ITextVectorProperty   *timeUTC=nullptr;
 
         GotoMode mode = TRACK;
 };

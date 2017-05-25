@@ -69,6 +69,7 @@ class SkySafari : public INDI::DefaultDevice
         bool sendSkySafari(const char * message);
 
         void sendGeographicCoords();
+        void sendUTCtimedate();
 
         template<typename Out> void split(const std::string &s, char delim, Out result);
         std::vector<std::string> split(const std::string &s, char delim);
@@ -94,9 +95,13 @@ class SkySafari : public INDI::DefaultDevice
         int lsocket = -1, clientFD = -1;
 
         bool isSkySafariConnected = false, haveLatitude = false, haveLongitude = false;
+        bool haveUTCoffset=false, haveUTCtime=false, haveUTCdate=false;
 
         double siteLatitude = 0, siteLongitude = 0;
         double RA = 0, DE = 0;
+        double timeUTCOffset=0;
+        int timeYear=0, timeMonth=0, timeDay=0, timeHour=0, timeMin=0, timeSec=0;
+
 };
 
 #endif

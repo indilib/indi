@@ -432,6 +432,65 @@ void SkySafari::processCommand(std::string cmd)
         // Try sending geographic coords if all is available
         sendGeographicCoords();
     }
+    // set the number of hours added to local time to yield UTC
+    else if (cmd.compare(0, 2, "SG") == 0)
+    {
+        int ofs;
+        if (sscanf (cmd.c_str(), "SG%d", &ofs) == 1)
+        {
+            ofs = -ofs;
+    DEBUGF(INDI::Logger::DBG_DEBUG, "UTC Offset: %d",ofs);
+
+            timeUTCOffset = ofs;
+            haveUTCoffset = true;
+        }
+
+        // Always respond with valid
+        sendSkySafari("1");
+
+        // Try sending geographic coords if all is available
+        sendUTCtimedate();
+    }
+    // set the local time
+    else if (cmd.compare(0, 2, "SL") == 0)
+    {
+        int hh, mm, ss;
+        if (sscanf (cmd.c_str(), "SL%d:%d:%d", &hh, &mm, &ss) == 3)
+        {
+            DEBUGF(INDI::Logger::DBG_DEBUG, "TIME : %02d:%02d:%02d",hh, mm, ss);
+
+            timeHour = hh;
+            timeMin = mm;
+            timeSec = ss;
+            haveUTCtime = true;
+        }
+
+        // Always respond with valid
+        sendSkySafari("1");
+
+        // Try sending geographic coords if all is available
+        sendUTCtimedate();
+    }
+    // set the local date
+    else if (cmd.compare(0, 2, "SC") == 0)
+    {
+        int yyyy, mm, dd;
+        if (sscanf (cmd.c_str(), "SC%d/%d/%d", &mm, &dd, &yyyy) == 3)
+        {
+            DEBUGF(INDI::Logger::DBG_DEBUG, "DATE : %02d-%02d-%02d",yyyy, mm, dd);
+
+            timeYear = yyyy;
+            timeMonth = mm;
+            timeDay = dd;
+            haveUTCdate = true;
+        }
+
+        // Always respond with valid
+        sendSkySafari("1");
+
+        // Try sending geographic coords if all is available
+        sendUTCtimedate();
+    }
     // Get RA
     else if (cmd == "GR")
     {
@@ -695,6 +754,45 @@ bool SkySafari::sendSkySafari(const char * message)
     }
 
     return true;
+}
+
+void SkySafari::sendUTCtimedate()
+{
+    ITextVectorProperty *timeUTC = skySafariClient->getTimeUTC();
+    if (timeUTC && haveUTCoffset && haveUTCtime && haveUTCdate)
+    {
+        int yyyy = timeYear;
+        if (yyyy < 100)  yyyy += 2000;
+
+        // local to UTC
+        ln_zonedate  zonedate;
+        ln_date      utcdate;
+        zonedate.years = yyyy;
+        zonedate.months = timeMonth;
+        zonedate.days = timeDay;
+        zonedate.hours = timeHour;
+        zonedate.minutes = timeMin;
+        zonedate.seconds = timeSec;
+        zonedate.gmtoff = timeUTCOffset*3600.0;
+
+        ln_zonedate_to_date(&zonedate, &utcdate);
+
+        char bufDT[32];
+        char bufOff[8];
+
+        snprintf(bufDT, 32, "%04d-%02d-%02dT%02d:%02d:%02d", utcdate.years, utcdate.months, utcdate.days, utcdate.hours, utcdate.minutes, (int)(utcdate.seconds));
+        snprintf(bufOff, 8, "%4.2f", timeUTCOffset);
+
+        IUSaveText(IUFindText(timeUTC, "UTC"), bufDT);
+        IUSaveText(IUFindText(timeUTC, "OFFSET"), bufOff);
+
+        DEBUGF(INDI::Logger::DBG_DEBUG, "send to timedate. %s, %s", bufDT, bufOff);
+
+        skySafariClient->setTimeUTC();
+
+        // Reset
+        haveUTCoffset = haveUTCtime = haveUTCdate = false;
+    }
 }
 
 // Had to get this from stackoverlow, why C++ STL lacks such basic functionality?!!!

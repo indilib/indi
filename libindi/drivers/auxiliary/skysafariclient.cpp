@@ -81,7 +81,10 @@ void SkySafariClient::newProperty(INDI::Property * property)
         motionNSSP = property->getSwitch();
     else if (!strcmp(property->getName(), "TELESCOPE_MOTION_WE"))
         motionWESP = property->getSwitch();
+    else if (!strcmp(property->getName(), "TIME_UTC"))
+        timeUTC = property->getText();
 }
+
 
 /**************************************************************************************
 **
@@ -224,3 +227,17 @@ bool SkySafariClient::setMotionWE()
 
     return true;
 }
+
+/**************************************************************************************
+**
+***************************************************************************************/
+bool SkySafariClient::setTimeUTC()
+{
+    if (timeUTC == nullptr)
+        return false;
+
+    sendNewText(timeUTC);
+
+    return true;
+}
+
