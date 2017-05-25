@@ -32,13 +32,13 @@ namespace INDI
 {
 
 
-char Logger::Tags[Logger::nlevels][MAXINDINAME]=
+char Logger::Tags[Logger::nlevels][MAXINDINAME] =
 {
     "ERROR", "WARNING", "INFO", "DEBUG", "DBG_EXTRA_1", "DBG_EXTRA_2", "DBG_EXTRA_3", "DBG_EXTRA_4"
 };
 
 
-struct Logger::switchinit Logger::DebugLevelSInit[]=
+struct Logger::switchinit Logger::DebugLevelSInit[] =
 {
     {"DBG_ERROR", "Errors", ISS_ON, DBG_ERROR},
     {"DBG_WARNING", "Warnings", ISS_ON, DBG_WARNING},
@@ -50,7 +50,7 @@ struct Logger::switchinit Logger::DebugLevelSInit[]=
     {"DBG_EXTRA_4", "Debug Extra 4", ISS_OFF, DBG_EXTRA_4}
 };
 
-struct Logger::switchinit Logger::LoggingLevelSInit[]=
+struct Logger::switchinit Logger::LoggingLevelSInit[] =
 {
     {"LOG_ERROR", "Errors", ISS_ON, DBG_ERROR},
     {"LOG_WARNING", "Warnings", ISS_ON, DBG_WARNING},
@@ -70,14 +70,14 @@ ISwitch Logger::ConfigurationS[2];
 ISwitchVectorProperty Logger::ConfigurationSP;
 
 INDI::DefaultDevice * Logger::parentDevice = NULL;
-unsigned int Logger::fileVerbosityLevel_=Logger::defaultlevel;
-unsigned int Logger::screenVerbosityLevel_=Logger::defaultlevel;
-unsigned int Logger::rememberscreenlevel_=Logger::defaultlevel;
-Logger::loggerConf Logger::configuration_= Logger::screen_on | Logger::file_off;
+unsigned int Logger::fileVerbosityLevel_ = Logger::defaultlevel;
+unsigned int Logger::screenVerbosityLevel_ = Logger::defaultlevel;
+unsigned int Logger::rememberscreenlevel_ = Logger::defaultlevel;
+Logger::loggerConf Logger::configuration_ = Logger::screen_on | Logger::file_off;
 std::string Logger::logDir_;
 std::string Logger::logFile_;
-unsigned int Logger::nDevices=0;
-unsigned int Logger::customLevel=4;
+unsigned int Logger::nDevices = 0;
+unsigned int Logger::customLevel = 4;
 
 // Create dir recursively
 static int _mkdir(const char * dir, mode_t mode)
@@ -86,7 +86,7 @@ static int _mkdir(const char * dir, mode_t mode)
     char * p = NULL;
     size_t len;
 
-    snprintf(tmp, sizeof(tmp),"%s",dir);
+    snprintf(tmp, sizeof(tmp), "%s", dir);
     len = strlen(tmp);
     if(tmp[len - 1] == '/')
         tmp[len - 1] = 0;
@@ -121,11 +121,11 @@ bool Logger::initProperties(DefaultDevice * device)
 {
     nDevices++;
 
-    for (unsigned int i=0; i<customLevel; i++)
+    for (unsigned int i = 0; i < customLevel; i++)
     {
-        IUFillSwitch(&DebugLevelS[i], DebugLevelSInit[i].name,DebugLevelSInit[i].label,DebugLevelSInit[i].state);
+        IUFillSwitch(&DebugLevelS[i], DebugLevelSInit[i].name, DebugLevelSInit[i].label, DebugLevelSInit[i].state);
         DebugLevelS[i].aux = (void *)&DebugLevelSInit[i].levelmask;
-        IUFillSwitch(&LoggingLevelS[i], LoggingLevelSInit[i].name,LoggingLevelSInit[i].label,LoggingLevelSInit[i].state);
+        IUFillSwitch(&LoggingLevelS[i], LoggingLevelSInit[i].name, LoggingLevelSInit[i].label, LoggingLevelSInit[i].state);
         LoggingLevelS[i].aux = (void *)&LoggingLevelSInit[i].levelmask;
     }
 
@@ -149,7 +149,7 @@ bool Logger::updateProperties(bool enable)
         parentDevice->defineSwitch(&DebugLevelSP);
         parentDevice->defineSwitch(&LoggingLevelSP);
 
-        screenVerbosityLevel_=rememberscreenlevel_;
+        screenVerbosityLevel_ = rememberscreenlevel_;
 
         parentDevice->defineSwitch(&ConfigurationSP);
 
@@ -159,8 +159,8 @@ bool Logger::updateProperties(bool enable)
         parentDevice->deleteProperty(DebugLevelSP.name);
         parentDevice->deleteProperty(LoggingLevelSP.name);
         parentDevice->deleteProperty(ConfigurationSP.name);
-        rememberscreenlevel_=screenVerbosityLevel_;
-        screenVerbosityLevel_=defaultlevel;
+        rememberscreenlevel_ = screenVerbosityLevel_;
+        screenVerbosityLevel_ = defaultlevel;
     }
 
     return true;
@@ -177,21 +177,21 @@ bool Logger::saveConfigItems(FILE * fp)
 
 bool Logger::ISNewSwitch (const char * dev, const char * name, ISState * states, char * names[], int n)
 {
-    int debug_level=0, log_level=0, bitmask=0, verbose_level=0;
-    if(strcmp(name,"DEBUG_LEVEL")==0)
+    int debug_level = 0, log_level = 0, bitmask = 0, verbose_level = 0;
+    if(strcmp(name, "DEBUG_LEVEL") == 0)
     {
         ISwitch * sw;
-        IUUpdateSwitch(&DebugLevelSP,states,names,n);
-        sw=IUFindOnSwitch(&DebugLevelSP);
+        IUUpdateSwitch(&DebugLevelSP, states, names, n);
+        sw = IUFindOnSwitch(&DebugLevelSP);
         if (sw == NULL)
         {
-            DebugLevelSP.s=IPS_IDLE;
-            IDSetSwitch(&DebugLevelSP,NULL);
+            DebugLevelSP.s = IPS_IDLE;
+            IDSetSwitch(&DebugLevelSP, NULL);
             screenVerbosityLevel_ = 0;
             return true;
         }
 
-        for (int i=0; i < DebugLevelSP.nsp; i++)
+        for (int i = 0; i < DebugLevelSP.nsp; i++)
         {
             sw = &DebugLevelSP.sp[i];
             bitmask = *((unsigned int *)sw->aux);
@@ -208,25 +208,25 @@ bool Logger::ISNewSwitch (const char * dev, const char * name, ISState * states,
         screenVerbosityLevel_ = verbose_level;
 
         DEBUGFDEVICE(dev, Logger::DBG_DEBUG, "Toggle Debug Level -- %s", DebugLevelSInit[debug_level].label);
-        DebugLevelSP.s=IPS_OK;
-        IDSetSwitch(&DebugLevelSP,NULL);
+        DebugLevelSP.s = IPS_OK;
+        IDSetSwitch(&DebugLevelSP, NULL);
         return true;
     }
 
-    if(strcmp(name,"LOGGING_LEVEL")==0)
+    if(strcmp(name, "LOGGING_LEVEL") == 0)
     {
         ISwitch * sw;
-        IUUpdateSwitch(&LoggingLevelSP,states,names,n);
-        sw=IUFindOnSwitch(&LoggingLevelSP);
+        IUUpdateSwitch(&LoggingLevelSP, states, names, n);
+        sw = IUFindOnSwitch(&LoggingLevelSP);
         if (sw == NULL)
         {
-            fileVerbosityLevel_ =0;
-            LoggingLevelSP.s=IPS_IDLE;
-            IDSetSwitch(&LoggingLevelSP,NULL);
+            fileVerbosityLevel_ = 0;
+            LoggingLevelSP.s = IPS_IDLE;
+            IDSetSwitch(&LoggingLevelSP, NULL);
             return true;
         }
 
-        for (int i=0; i < LoggingLevelSP.nsp; i++)
+        for (int i = 0; i < LoggingLevelSP.nsp; i++)
         {
             sw = &LoggingLevelSP.sp[i];
             bitmask = *((unsigned int *)sw->aux);
@@ -240,16 +240,16 @@ bool Logger::ISNewSwitch (const char * dev, const char * name, ISState * states,
         }
 
         DEBUGFDEVICE(dev, Logger::DBG_DEBUG, "Toggle Logging Level -- %s", LoggingLevelSInit[log_level].label);
-        LoggingLevelSP.s=IPS_OK;
-        IDSetSwitch(&LoggingLevelSP,NULL);
+        LoggingLevelSP.s = IPS_OK;
+        IDSetSwitch(&LoggingLevelSP, NULL);
         return true;
     }
 
     if (!strcmp(name, "LOG_OUTPUT"))
     {
         ISwitch * sw;
-        IUUpdateSwitch(&ConfigurationSP,states,names,n);
-        sw=IUFindOnSwitch(&ConfigurationSP);
+        IUUpdateSwitch(&ConfigurationSP, states, names, n);
+        sw = IUFindOnSwitch(&ConfigurationSP);
 
         if (sw == NULL)
         {
@@ -274,7 +274,7 @@ bool Logger::ISNewSwitch (const char * dev, const char * name, ISState * states,
             configuration_ = configuration_ | screen_off;
 
         // If file was off, then on again
-        if (wasFileOff && (configuration_&file_on))
+        if (wasFileOff && (configuration_ & file_on))
             Logger::getInstance().configure(logFile_, configuration_, fileVerbosityLevel_, screenVerbosityLevel_);
 
         ConfigurationSP.s = IPS_OK;
@@ -336,9 +336,9 @@ void Logger::configure (const std::string	&outputFile,
 
     fileVerbosityLevel_ = fileVerbosityLevel;
     screenVerbosityLevel_ = screenVerbosityLevel;
-    rememberscreenlevel_= screenVerbosityLevel_;
+    rememberscreenlevel_ = screenVerbosityLevel_;
     // Close the old stream, if needed
-    if (configuration_&file_on)
+    if (configuration_ & file_on)
         out_.close();
 
     // Compute a new file name, if needed
@@ -363,7 +363,7 @@ void Logger::configure (const std::string	&outputFile,
     }
 
     // Open a new stream, if needed
-    if (configuration&file_on)
+    if (configuration & file_on)
     {
         _mkdir(logDir_.c_str(), 0775);
         out_.open(logFile_.c_str(), std::ios::app);
@@ -383,7 +383,7 @@ void Logger::configure (const std::string	&outputFile,
 Logger::~Logger()
 {
     Logger::lock();
-    if (configuration_&file_on)
+    if (configuration_ & file_on)
         out_.close();
     delete m_;
     Logger::unlock();
@@ -449,7 +449,7 @@ void Logger::print(const char * devicename,
     char msg[257];
     char usec[7];
 
-    msg[256]='\0';
+    msg[256] = '\0';
     va_start(ap, message);
     vsnprintf(msg, 257, message, ap);
     va_end(ap);
@@ -461,21 +461,21 @@ void Logger::print(const char * devicename,
         return;
     }
     struct timeval currentTime, resTime;
-    usec[6]='\0';
+    usec[6] = '\0';
     gettimeofday(&currentTime, NULL);
     timersub(&currentTime, &initialTime_, &resTime);
     snprintf(usec, 7, "%06ld", resTime.tv_usec);
     Logger::lock();
 
-    if ((configuration_&file_on) && filelog)
+    if ((configuration_ & file_on) && filelog)
     {
         if (nDevices == 1)
-            out_ << Tags[rank(verbosityLevel)] << "\t" << (resTime.tv_sec) <<"."<<(usec) << " sec"<< "\t: " << msg << std::endl;
+            out_ << Tags[rank(verbosityLevel)] << "\t" << (resTime.tv_sec) << "." << (usec) << " sec" << "\t: " << msg << std::endl;
         else
-            out_ << Tags[rank(verbosityLevel)] << "\t" << (resTime.tv_sec) <<"."<<(usec) << " sec"<< "\t: [" << devicename << "] " << msg << std::endl;
+            out_ << Tags[rank(verbosityLevel)] << "\t" << (resTime.tv_sec) << "." << (usec) << " sec" << "\t: [" << devicename << "] " << msg << std::endl;
     }
 
-    if ((configuration_&screen_on) && screenlog)
+    if ((configuration_ & screen_on) && screenlog)
         IDMessage(devicename, "%s", msg);
 
     Logger::unlock();

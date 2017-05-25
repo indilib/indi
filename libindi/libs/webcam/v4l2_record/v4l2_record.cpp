@@ -38,13 +38,13 @@ const char * V4L2_Recorder::getName()
 V4L2_Record::V4L2_Record()
 {
     recorder_list.push_back(new SER_Recorder());
-    default_recorder=recorder_list.at(0);
+    default_recorder = recorder_list.at(0);
 }
 
 V4L2_Record::~V4L2_Record()
 {
     std::vector<V4L2_Recorder *>::iterator it;
-    for ( it=recorder_list.begin() ; it != recorder_list.end(); it++ )
+    for ( it = recorder_list.begin() ; it != recorder_list.end(); it++ )
     {
         delete(*it);
     }
@@ -68,5 +68,5 @@ V4L2_Recorder * V4L2_Record::getDefaultRecorder()
 
 void V4L2_Record::setRecorder(V4L2_Recorder * recorder)
 {
-    current_recorder=recorder;
+    current_recorder = recorder;
 }

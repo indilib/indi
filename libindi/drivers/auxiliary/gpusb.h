@@ -43,53 +43,53 @@ class GPUSBDriver;
 class GPUSB : public INDI::GuiderInterface, public INDI::DefaultDevice
 {
     public:
-    GPUSB();
-    virtual ~GPUSB();
+        GPUSB();
+        virtual ~GPUSB();
 
-    virtual bool initProperties();
-    virtual bool updateProperties();
-    virtual void ISGetProperties (const char *dev);
-    virtual bool ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n);
-    virtual bool ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n);
-    virtual bool ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n);
-    virtual bool ISSnoopDevice (XMLEle *root);
+        virtual bool initProperties();
+        virtual bool updateProperties();
+        virtual void ISGetProperties (const char * dev);
+        virtual bool ISNewNumber (const char * dev, const char * name, double values[], char * names[], int n);
+        virtual bool ISNewSwitch (const char * dev, const char * name, ISState * states, char * names[], int n);
+        virtual bool ISNewText (const char * dev, const char * name, char * texts[], char * names[], int n);
+        virtual bool ISSnoopDevice (XMLEle * root);
 
     protected:
 
-    //  Generic indi device entries
-    bool Connect();
-    bool Disconnect();
-    const char *getDefaultName();
-    void debugTriggered(bool enable);
+        //  Generic indi device entries
+        bool Connect();
+        bool Disconnect();
+        const char * getDefaultName();
+        void debugTriggered(bool enable);
 
-    void TimerHit();
+        void TimerHit();
 
-    virtual IPState GuideNorth(float ms);
-    virtual IPState GuideSouth(float ms);
-    virtual IPState GuideEast(float ms);
-    virtual IPState GuideWest(float ms);
+        virtual IPState GuideNorth(float ms);
+        virtual IPState GuideSouth(float ms);
+        virtual IPState GuideEast(float ms);
+        virtual IPState GuideWest(float ms);
 
     private:
 
-    float CalcWEPulseTimeLeft();
-    float CalcNSPulseTimeLeft();
+        float CalcWEPulseTimeLeft();
+        float CalcNSPulseTimeLeft();
 
 
-    bool InWEPulse;
-    float WEPulseRequest;
-    struct timeval WEPulseStart;
-    int WEtimerID;
+        bool InWEPulse;
+        float WEPulseRequest;
+        struct timeval WEPulseStart;
+        int WEtimerID;
 
 
-    bool InNSPulse;
-    float NSPulseRequest;
-    struct timeval NSPulseStart;
-    int NStimerID;
+        bool InNSPulse;
+        float NSPulseRequest;
+        struct timeval NSPulseStart;
+        int NStimerID;
 
-    int WEDir;
-    int NSDir;
+        int WEDir;
+        int NSDir;
 
-    GPUSBDriver *driver;
+        GPUSBDriver * driver;
 
 
 };

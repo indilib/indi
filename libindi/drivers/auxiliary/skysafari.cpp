@@ -48,27 +48,27 @@
 // We declare unique pointer to my lovely German Shephard Tommy (http://indilib.org/images/juli_tommy.jpg)
 std::unique_ptr<SkySafari> tommyGoodBoy(new SkySafari());
 
-void ISGetProperties(const char *dev)
+void ISGetProperties(const char * dev)
 {
     tommyGoodBoy->ISGetProperties(dev);
 }
 
-void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int num)
+void ISNewSwitch(const char * dev, const char * name, ISState * states, char * names[], int num)
 {
     tommyGoodBoy->ISNewSwitch(dev, name, states, names, num);
 }
 
-void ISNewText(	const char *dev, const char *name, char *texts[], char *names[], int num)
+void ISNewText(	const char * dev, const char * name, char * texts[], char * names[], int num)
 {
     tommyGoodBoy->ISNewText(dev, name, texts, names, num);
 }
 
-void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int num)
+void ISNewNumber(const char * dev, const char * name, double values[], char * names[], int num)
 {
     tommyGoodBoy->ISNewNumber(dev, name, values, names, num);
 }
 
-void ISNewBLOB (const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[], char *names[], int n)
+void ISNewBLOB (const char * dev, const char * name, int sizes[], int blobsizes[], char * blobs[], char * formats[], char * names[], int n)
 {
     INDI_UNUSED(dev);
     INDI_UNUSED(name);
@@ -79,14 +79,14 @@ void ISNewBLOB (const char *dev, const char *name, int sizes[], int blobsizes[],
     INDI_UNUSED(names);
     INDI_UNUSED(n);
 }
-void ISSnoopDevice (XMLEle *root)
+void ISSnoopDevice (XMLEle * root)
 {
     tommyGoodBoy->ISSnoopDevice(root);
 }
 
 SkySafari::SkySafari()
 {
-    setVersion(0,1);
+    setVersion(0, 1);
     setDriverInterface(AUX_INTERFACE);
 
     skySafariClient = new SkySafariClient();
@@ -103,7 +103,7 @@ const char * SkySafari::getDefaultName()
 }
 
 bool SkySafari::Connect()
-{    
+{
     bool rc = startServer();
     if (rc)
     {
@@ -116,7 +116,7 @@ bool SkySafari::Connect()
 }
 
 bool SkySafari::Disconnect()
-{    
+{
     return stopServer();
 }
 
@@ -124,30 +124,30 @@ bool SkySafari::initProperties()
 {
     INDI::DefaultDevice::initProperties();
 
-    IUFillText(&SettingsT[INDISERVER_HOST],"INDISERVER_HOST","indiserver host","localhost");
-    IUFillText(&SettingsT[INDISERVER_PORT],"INDISERVER_PORT","indiserver port","7624");
-    IUFillText(&SettingsT[SKYSAFARI_PORT],"SKYSAFARI_PORT","SkySafari port", "9624");
-    IUFillTextVector(&SettingsTP,SettingsT,3,getDeviceName(),"WATCHDOG_SETTINGS","Settings",MAIN_CONTROL_TAB,IP_RW,60,IPS_IDLE);
+    IUFillText(&SettingsT[INDISERVER_HOST], "INDISERVER_HOST", "indiserver host", "localhost");
+    IUFillText(&SettingsT[INDISERVER_PORT], "INDISERVER_PORT", "indiserver port", "7624");
+    IUFillText(&SettingsT[SKYSAFARI_PORT], "SKYSAFARI_PORT", "SkySafari port", "9624");
+    IUFillTextVector(&SettingsTP, SettingsT, 3, getDeviceName(), "WATCHDOG_SETTINGS", "Settings", MAIN_CONTROL_TAB, IP_RW, 60, IPS_IDLE);
 
     IUFillSwitch(&ServerControlS[SERVER_ENABLE], "Enable", "", ISS_OFF);
     IUFillSwitch(&ServerControlS[SERVER_DISABLE], "Disable", "", ISS_ON);
     IUFillSwitchVector(&ServerControlSP, ServerControlS, 2, getDeviceName(), "Server", "", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
-    IUFillText(&ActiveDeviceT[ACTIVE_TELESCOPE],"ACTIVE_TELESCOPE","Telescope","Telescope Simulator");
-    IUFillTextVector(&ActiveDeviceTP,ActiveDeviceT,1,getDeviceName(),"ACTIVE_DEVICES","Active devices",OPTIONS_TAB,IP_RW,60,IPS_IDLE);
+    IUFillText(&ActiveDeviceT[ACTIVE_TELESCOPE], "ACTIVE_TELESCOPE", "Telescope", "Telescope Simulator");
+    IUFillTextVector(&ActiveDeviceTP, ActiveDeviceT, 1, getDeviceName(), "ACTIVE_DEVICES", "Active devices", OPTIONS_TAB, IP_RW, 60, IPS_IDLE);
 
     addDebugControl();
 
     return true;
 }
 
-void SkySafari::ISGetProperties (const char *dev)
+void SkySafari::ISGetProperties (const char * dev)
 {
     //  First we let our parent populate
     DefaultDevice::ISGetProperties(dev);
 
     defineText(&SettingsTP);
-    defineText(&ActiveDeviceTP);    
+    defineText(&ActiveDeviceTP);
     //defineSwitch(&ServerControlSP);
 
     loadConfig(true);
@@ -156,9 +156,9 @@ void SkySafari::ISGetProperties (const char *dev)
     //watchdogClient->setDome(ActiveDeviceT[1].text);
 }
 
-bool SkySafari::ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n)
+bool SkySafari::ISNewText (const char * dev, const char * name, char * texts[], char * names[], int n)
 {
-    if(strcmp(dev,getDeviceName())==0)
+    if(strcmp(dev, getDeviceName()) == 0)
     {
         if (!strcmp(SettingsTP.name, name))
         {
@@ -169,7 +169,7 @@ bool SkySafari::ISNewText (const char *dev, const char *name, char *texts[], cha
         }
 
         if (!strcmp(ActiveDeviceTP.name, name))
-        {            
+        {
             IUUpdateText(&ActiveDeviceTP, texts, names, n);
             ActiveDeviceTP.s = IPS_OK;
             IDSetText(&ActiveDeviceTP, NULL);
@@ -178,17 +178,17 @@ bool SkySafari::ISNewText (const char *dev, const char *name, char *texts[], cha
 
     }
 
-    return INDI::DefaultDevice::ISNewText(dev,name,texts,names,n);
+    return INDI::DefaultDevice::ISNewText(dev, name, texts, names, n);
 }
 
-bool SkySafari::ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n)
-{   
-    return DefaultDevice::ISNewNumber(dev,name,values,names,n);
-}
-
-bool SkySafari::ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n)
+bool SkySafari::ISNewNumber (const char * dev, const char * name, double values[], char * names[], int n)
 {
-    if(strcmp(dev,getDeviceName())==0)
+    return DefaultDevice::ISNewNumber(dev, name, values, names, n);
+}
+
+bool SkySafari::ISNewSwitch (const char * dev, const char * name, ISState * states, char * names[], int n)
+{
+    if(strcmp(dev, getDeviceName()) == 0)
     {
         if (!strcmp(ServerControlSP.name, name))
         {
@@ -234,10 +234,10 @@ bool SkySafari::ISNewSwitch (const char *dev, const char *name, ISState *states,
     return DefaultDevice::ISNewSwitch(dev, name, states, names, n);
 }
 
-bool SkySafari::saveConfigItems(FILE *fp)
+bool SkySafari::saveConfigItems(FILE * fp)
 {
     IUSaveConfigText(fp, &SettingsTP);
-    IUSaveConfigText(fp, &ActiveDeviceTP);    
+    IUSaveConfigText(fp, &ActiveDeviceTP);
 
     return true;
 }
@@ -251,7 +251,7 @@ void SkySafari::TimerHit()
     {
         struct sockaddr_in cli_socket;
         socklen_t cli_len;
-        int cli_fd=-1;
+        int cli_fd = -1;
 
         /* get a private connection to new client */
         cli_len = sizeof(cli_socket);
@@ -271,7 +271,7 @@ void SkySafari::TimerHit()
 
         clientFD = cli_fd;
 
-        int flags=0;
+        int flags = 0;
         // Get socket flags
         if ((flags = fcntl(clientFD, F_GETFL, 0)) < 0)
         {
@@ -302,7 +302,7 @@ void SkySafari::TimerHit()
             for (std::string cmd : commands)
             {
                 // Remove the :
-                cmd.erase(0,1);
+                cmd.erase(0, 1);
                 processCommand(cmd);
             }
         }
@@ -311,7 +311,7 @@ void SkySafari::TimerHit()
         {
             //DEBUG(INDI::Logger::DBG_ERROR, "SkySafari Disconnected? Reconnect again.");
             close(clientFD);
-            clientFD=-1;
+            clientFD = -1;
         }
 
         // Otherwise EAGAIN so we just try shortly
@@ -324,8 +324,8 @@ bool SkySafari::startServer()
 {
     struct sockaddr_in serv_socket;
     int sfd;
-    int flags=0;
-    int reuse=1;
+    int flags = 0;
+    int reuse = 1;
 
     /* make socket endpoint */
     if ((sfd = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP)) < 0)
@@ -351,13 +351,13 @@ bool SkySafari::startServer()
     serv_socket.sin_family = AF_INET;
     serv_socket.sin_addr.s_addr = htonl (INADDR_ANY);
     serv_socket.sin_port = htons ((unsigned short)atoi(SettingsT[SKYSAFARI_PORT].text));
-    if (setsockopt(sfd,SOL_SOCKET,SO_REUSEADDR,&reuse,sizeof(reuse)) < 0)
+    if (setsockopt(sfd, SOL_SOCKET, SO_REUSEADDR, &reuse, sizeof(reuse)) < 0)
     {
         DEBUGF(INDI::Logger::DBG_ERROR, "Error starting server. setsockopt: %s", strerror(errno));
         return false;
     }
 
-    if (::bind(sfd,(struct sockaddr*)&serv_socket,sizeof(serv_socket)) < 0)
+    if (::bind(sfd, (struct sockaddr *)&serv_socket, sizeof(serv_socket)) < 0)
     {
         DEBUGF(INDI::Logger::DBG_ERROR, "Error starting server. bind: %s", strerror(errno));
         return false;
@@ -400,7 +400,7 @@ void SkySafari::processCommand(std::string cmd)
     // Set site Latitude
     if (cmd.compare(0, 2, "St") == 0)
     {
-        int dd=0, mm=0;
+        int dd = 0, mm = 0;
         if (sscanf (cmd.c_str(), "St%d%*c%d", &dd, &mm) == 2)
         {
             haveLatitude = true;
@@ -416,7 +416,7 @@ void SkySafari::processCommand(std::string cmd)
     // Set site Longitude
     else if (cmd.compare(0, 2, "Sg") == 0)
     {
-        int ddd=0, mm=0;
+        int ddd = 0, mm = 0;
         if (sscanf (cmd.c_str(), "Sg%d%*c%d", &ddd, &mm) == 2)
         {
             haveLongitude = true;
@@ -435,14 +435,14 @@ void SkySafari::processCommand(std::string cmd)
     // Get RA
     else if (cmd == "GR")
     {
-        INumberVectorProperty *eqCoordsNP = skySafariClient->getEquatorialCoords();
+        INumberVectorProperty * eqCoordsNP = skySafariClient->getEquatorialCoords();
         if (eqCoordsNP == nullptr)
         {
             DEBUG(INDI::Logger::DBG_WARNING, "Unable to communicate with mount, is mount turned on and connected?");
             return;
         }
 
-        int hh,mm,ss;
+        int hh, mm, ss;
         char output[32] = {0};
         getSexComponents(eqCoordsNP->np[AXIS_RA].value, &hh, &mm, &ss);
         snprintf(output, 32, "%02d:%02d:%02d#", hh, mm, ss);
@@ -451,13 +451,13 @@ void SkySafari::processCommand(std::string cmd)
     // Get DE
     else if (cmd == "GD")
     {
-        INumberVectorProperty *eqCoordsNP = skySafariClient->getEquatorialCoords();
+        INumberVectorProperty * eqCoordsNP = skySafariClient->getEquatorialCoords();
         if (eqCoordsNP == nullptr)
         {
             DEBUG(INDI::Logger::DBG_WARNING, "Unable to communicate with mount, is mount turned on and connected?");
             return;
         }
-        int dd,mm,ss;
+        int dd, mm, ss;
         char output[32] = {0};
         getSexComponents(eqCoordsNP->np[AXIS_DE].value, &dd, &mm, &ss);
         snprintf(output, 32, "%+02d:%02d:%02d#", dd, mm, ss);
@@ -466,7 +466,7 @@ void SkySafari::processCommand(std::string cmd)
     // Set RA
     else if (cmd.compare(0, 2, "Sr") == 0)
     {
-        int hh=0, mm=0, ss=0;
+        int hh = 0, mm = 0, ss = 0;
         if (sscanf (cmd.c_str(), "Sr%d:%d:%d", &hh, &mm, &ss) == 3)
         {
             RA = hh + mm / 60.0 + ss / 3600.0;
@@ -478,7 +478,7 @@ void SkySafari::processCommand(std::string cmd)
     // Set DE
     else if (cmd.compare(0, 2, "Sd") == 0)
     {
-        int dd=0, mm=0, ss=0;
+        int dd = 0, mm = 0, ss = 0;
         if (sscanf (cmd.c_str(), "Sd%d*%d:%d", &dd, &mm, &ss) == 3)
         {
             DE = dd + mm / 60.0 + ss / 3600.0;
@@ -490,7 +490,7 @@ void SkySafari::processCommand(std::string cmd)
     // GOTO
     else if (cmd == "MS")
     {
-        ISwitchVectorProperty *gotoModeSP = skySafariClient->getGotoMode();
+        ISwitchVectorProperty * gotoModeSP = skySafariClient->getGotoMode();
         if (gotoModeSP == nullptr)
         {
             sendSkySafari("2<Not Supported>#");
@@ -498,7 +498,7 @@ void SkySafari::processCommand(std::string cmd)
         }
 
         // Set mode first
-        ISwitch *trackSW = IUFindSwitch(gotoModeSP, "TRACK");
+        ISwitch * trackSW = IUFindSwitch(gotoModeSP, "TRACK");
         if (trackSW == nullptr)
         {
             sendSkySafari("2<Not Supported>#");
@@ -509,7 +509,7 @@ void SkySafari::processCommand(std::string cmd)
         trackSW->s = ISS_ON;
         skySafariClient->sendGotoMode();
 
-        INumberVectorProperty *eqCoordsNP = skySafariClient->getEquatorialCoords();
+        INumberVectorProperty * eqCoordsNP = skySafariClient->getEquatorialCoords();
         eqCoordsNP->np[AXIS_RA].value = RA;
         eqCoordsNP->np[AXIS_DE].value = DE;
         skySafariClient->sendEquatorialCoords();
@@ -519,7 +519,7 @@ void SkySafari::processCommand(std::string cmd)
     // Sync
     else if (cmd == "CM")
     {
-        ISwitchVectorProperty *gotoModeSP = skySafariClient->getGotoMode();
+        ISwitchVectorProperty * gotoModeSP = skySafariClient->getGotoMode();
         if (gotoModeSP == nullptr)
         {
             sendSkySafari("Not Supported#");
@@ -527,7 +527,7 @@ void SkySafari::processCommand(std::string cmd)
         }
 
         // Set mode first
-        ISwitch *syncSW = IUFindSwitch(gotoModeSP, "SYNC");
+        ISwitch * syncSW = IUFindSwitch(gotoModeSP, "SYNC");
         if (syncSW == nullptr)
         {
             sendSkySafari("Not Supported#");
@@ -538,7 +538,7 @@ void SkySafari::processCommand(std::string cmd)
         syncSW->s = ISS_ON;
         skySafariClient->sendGotoMode();
 
-        INumberVectorProperty *eqCoordsNP = skySafariClient->getEquatorialCoords();
+        INumberVectorProperty * eqCoordsNP = skySafariClient->getEquatorialCoords();
         eqCoordsNP->np[AXIS_RA].value = RA;
         eqCoordsNP->np[AXIS_DE].value = DE;
         skySafariClient->sendEquatorialCoords();
@@ -573,7 +573,7 @@ void SkySafari::processCommand(std::string cmd)
     // Mn
     else if (cmd == "Mn")
     {
-        ISwitchVectorProperty *motionNSNP = skySafariClient->getMotionNS();
+        ISwitchVectorProperty * motionNSNP = skySafariClient->getMotionNS();
         if (motionNSNP)
         {
             IUResetSwitch(motionNSNP);
@@ -584,7 +584,7 @@ void SkySafari::processCommand(std::string cmd)
     // Qn
     else if (cmd == "Qn")
     {
-        ISwitchVectorProperty *motionNSNP = skySafariClient->getMotionNS();
+        ISwitchVectorProperty * motionNSNP = skySafariClient->getMotionNS();
         if (motionNSNP)
         {
             IUResetSwitch(motionNSNP);
@@ -594,7 +594,7 @@ void SkySafari::processCommand(std::string cmd)
     // Ms
     else if (cmd == "Ms")
     {
-        ISwitchVectorProperty *motionNSNP = skySafariClient->getMotionNS();
+        ISwitchVectorProperty * motionNSNP = skySafariClient->getMotionNS();
         if (motionNSNP)
         {
             IUResetSwitch(motionNSNP);
@@ -605,7 +605,7 @@ void SkySafari::processCommand(std::string cmd)
     // Qs
     else if (cmd == "Qs")
     {
-        ISwitchVectorProperty *motionNSNP = skySafariClient->getMotionNS();
+        ISwitchVectorProperty * motionNSNP = skySafariClient->getMotionNS();
         if (motionNSNP)
         {
             IUResetSwitch(motionNSNP);
@@ -615,7 +615,7 @@ void SkySafari::processCommand(std::string cmd)
     // Mw
     else if (cmd == "Mw")
     {
-        ISwitchVectorProperty *motionWENP = skySafariClient->getMotionWE();
+        ISwitchVectorProperty * motionWENP = skySafariClient->getMotionWE();
         if (motionWENP)
         {
             IUResetSwitch(motionWENP);
@@ -626,7 +626,7 @@ void SkySafari::processCommand(std::string cmd)
     // Qw
     else if (cmd == "Qw")
     {
-        ISwitchVectorProperty *motionWENP = skySafariClient->getMotionWE();
+        ISwitchVectorProperty * motionWENP = skySafariClient->getMotionWE();
         if (motionWENP)
         {
             IUResetSwitch(motionWENP);
@@ -636,7 +636,7 @@ void SkySafari::processCommand(std::string cmd)
     // Me
     else if (cmd == "Me")
     {
-        ISwitchVectorProperty *motionWENP = skySafariClient->getMotionWE();
+        ISwitchVectorProperty * motionWENP = skySafariClient->getMotionWE();
         if (motionWENP)
         {
             IUResetSwitch(motionWENP);
@@ -648,7 +648,7 @@ void SkySafari::processCommand(std::string cmd)
     // Qe
     else if (cmd == "Qe")
     {
-        ISwitchVectorProperty *motionWENP = skySafariClient->getMotionWE();
+        ISwitchVectorProperty * motionWENP = skySafariClient->getMotionWE();
         if (motionWENP)
         {
             IUResetSwitch(motionWENP);
@@ -659,15 +659,15 @@ void SkySafari::processCommand(std::string cmd)
 
 void SkySafari::sendGeographicCoords()
 {
-    INumberVectorProperty *geographicCoords = skySafariClient->getGeographiCoords();
+    INumberVectorProperty * geographicCoords = skySafariClient->getGeographiCoords();
     if (geographicCoords && haveLatitude && haveLongitude)
     {
-        INumber *latitude  = IUFindNumber(geographicCoords, "LAT");
-        INumber *longitude = IUFindNumber(geographicCoords, "LONG");
+        INumber * latitude  = IUFindNumber(geographicCoords, "LAT");
+        INumber * longitude = IUFindNumber(geographicCoords, "LONG");
         if (latitude && longitude)
         {
             latitude->value = siteLatitude;
-            longitude->value= siteLongitude;
+            longitude->value = siteLongitude;
             skySafariClient->sendGeographicCoords();
 
             // Reset
@@ -676,11 +676,11 @@ void SkySafari::sendGeographicCoords()
     }
 }
 
-bool SkySafari::sendSkySafari(const char *message)
+bool SkySafari::sendSkySafari(const char * message)
 {
     DEBUGF(INDI::Logger::DBG_DEBUG, "RES <%s>", message);
 
-    int bytesWritten=0, totalBytes=strlen(message);
+    int bytesWritten = 0, totalBytes = strlen(message);
 
     while (bytesWritten < totalBytes)
     {

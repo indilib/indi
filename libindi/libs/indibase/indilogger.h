@@ -175,8 +175,8 @@ class Logger
     public:
         enum VerbosityLevel
         {
-            DBG_ERROR=0x1, DBG_WARNING=0x2, DBG_SESSION=0x4, DBG_DEBUG=0x8, DBG_EXTRA_1=0x10,
-            DBG_EXTRA_2=0X20, DBG_EXTRA_3=0x40, DBG_EXTRA_4=0x80
+            DBG_ERROR = 0x1, DBG_WARNING = 0x2, DBG_SESSION = 0x4, DBG_DEBUG = 0x8, DBG_EXTRA_1 = 0x10,
+            DBG_EXTRA_2 = 0X20, DBG_EXTRA_3 = 0x40, DBG_EXTRA_4 = 0x80
         };
 
         struct switchinit
@@ -186,18 +186,18 @@ class Logger
             ISState state;
             unsigned int levelmask;
         };
-        static const unsigned int defaultlevel=DBG_ERROR | DBG_WARNING | DBG_SESSION;
-        static const unsigned int nlevels=8;
+        static const unsigned int defaultlevel = DBG_ERROR | DBG_WARNING | DBG_SESSION;
+        static const unsigned int nlevels = 8;
         static struct switchinit LoggingLevelSInit[nlevels];
         static ISwitch LoggingLevelS[nlevels];
         static ISwitchVectorProperty LoggingLevelSP;
         static ISwitch ConfigurationS[2];
         static ISwitchVectorProperty ConfigurationSP;
         typedef loggerConf_ loggerConf;
-        static const loggerConf file_on= 	L_nofile_;
-        static const loggerConf file_off= 	L_file_;
-        static const loggerConf screen_on= 	L_noscreen_;
-        static const loggerConf screen_off= L_screen_;
+        static const loggerConf file_on = 	L_nofile_;
+        static const loggerConf file_off = 	L_file_;
+        static const loggerConf screen_on = 	L_noscreen_;
+        static const loggerConf screen_off = L_screen_;
         static unsigned int customLevel;
         static unsigned int nDevices;
 

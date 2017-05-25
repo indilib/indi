@@ -30,17 +30,17 @@
 class GPSSimulator : public INDI::GPS
 {
     public:
-    GPSSimulator();
-    virtual ~GPSSimulator();
+        GPSSimulator();
+        virtual ~GPSSimulator();
 
     protected:
 
-    //  Generic indi device entries
-    bool Connect();
-    bool Disconnect();
-    const char *getDefaultName();
+        //  Generic indi device entries
+        bool Connect();
+        bool Disconnect();
+        const char * getDefaultName();
 
-    IPState updateGPS();
+        IPState updateGPS();
 
 };
 

@@ -32,39 +32,39 @@ std::unique_ptr<AstrometryDriver> astrometry(new AstrometryDriver());
 
 #define POLLMS          1000
 
-void ISGetProperties(const char *dev)
+void ISGetProperties(const char * dev)
 {
-   astrometry->ISGetProperties(dev);
+    astrometry->ISGetProperties(dev);
 }
 
-void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int num)
+void ISNewSwitch(const char * dev, const char * name, ISState * states, char * names[], int num)
 {
     astrometry->ISNewSwitch(dev, name, states, names, num);
 }
 
-void ISNewText(	const char *dev, const char *name, char *texts[], char *names[], int num)
+void ISNewText(	const char * dev, const char * name, char * texts[], char * names[], int num)
 {
     astrometry->ISNewText(dev, name, texts, names, num);
 }
 
-void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int num)
+void ISNewNumber(const char * dev, const char * name, double values[], char * names[], int num)
 {
     astrometry->ISNewNumber(dev, name, values, names, num);
 }
 
-void ISNewBLOB (const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[], char *names[], int n)
+void ISNewBLOB (const char * dev, const char * name, int sizes[], int blobsizes[], char * blobs[], char * formats[], char * names[], int n)
 {
-   astrometry->ISNewBLOB(dev, name, sizes, blobsizes, blobs, formats, names, n);
+    astrometry->ISNewBLOB(dev, name, sizes, blobsizes, blobs, formats, names, n);
 }
 
-void ISSnoopDevice (XMLEle *root)
+void ISSnoopDevice (XMLEle * root)
 {
     astrometry->ISSnoopDevice(root);
 }
 
 AstrometryDriver::AstrometryDriver()
 {
-    setVersion(1,0);    
+    setVersion(1, 0);
 }
 
 AstrometryDriver::~AstrometryDriver()
@@ -100,22 +100,22 @@ bool AstrometryDriver::initProperties()
     IUFillNumberVector(&SolverResultNP, SolverResultN, 5, getDeviceName(), "ASTROMETRY_RESULTS", "Results", MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE);
 
     // Solver Data Blob
-    IUFillBLOB(&SolverDataB[0],"ASTROMETRY_DATA_BLOB","Image","");
-    IUFillBLOBVector(&SolverDataBP,SolverDataB,1,getDeviceName(),"ASTROMETRY_DATA","Upload",MAIN_CONTROL_TAB,IP_WO,60,IPS_IDLE);
+    IUFillBLOB(&SolverDataB[0], "ASTROMETRY_DATA_BLOB", "Image", "");
+    IUFillBLOBVector(&SolverDataBP, SolverDataB, 1, getDeviceName(), "ASTROMETRY_DATA", "Upload", MAIN_CONTROL_TAB, IP_WO, 60, IPS_IDLE);
 
     /**********************************************/
     /**************** Snooping ********************/
     /**********************************************/
 
     // Snooped Devices
-    IUFillText(&ActiveDeviceT[0],"ACTIVE_CCD","CCD","CCD Simulator");
-    IUFillTextVector(&ActiveDeviceTP,ActiveDeviceT,1,getDeviceName(),"ACTIVE_DEVICES","Snoop devices",OPTIONS_TAB,IP_RW,60,IPS_IDLE);
+    IUFillText(&ActiveDeviceT[0], "ACTIVE_CCD", "CCD", "CCD Simulator");
+    IUFillTextVector(&ActiveDeviceTP, ActiveDeviceT, 1, getDeviceName(), "ACTIVE_DEVICES", "Snoop devices", OPTIONS_TAB, IP_RW, 60, IPS_IDLE);
 
     // Primary CCD Chip Data Blob
-    IUFillBLOB(&CCDDataB[0],"CCD1","Image","");
-    IUFillBLOBVector(&CCDDataBP,CCDDataB,1,ActiveDeviceT[0].text,"CCD1","Image Data","Image Info",IP_RO,60,IPS_IDLE);
+    IUFillBLOB(&CCDDataB[0], "CCD1", "Image", "");
+    IUFillBLOBVector(&CCDDataBP, CCDDataB, 1, ActiveDeviceT[0].text, "CCD1", "Image Data", "Image Info", IP_RO, 60, IPS_IDLE);
 
-    IDSnoopDevice(ActiveDeviceT[0].text,"CCD1");
+    IDSnoopDevice(ActiveDeviceT[0].text, "CCD1");
     IDSnoopBLOBs(ActiveDeviceT[0].text, "CCD1", B_ONLY);
 
     addDebugControl();
@@ -123,7 +123,7 @@ bool AstrometryDriver::initProperties()
     return true;
 }
 
-void AstrometryDriver::ISGetProperties(const char *dev)
+void AstrometryDriver::ISGetProperties(const char * dev)
 {
     DefaultDevice::ISGetProperties(dev);
 
@@ -171,14 +171,14 @@ bool AstrometryDriver::Disconnect()
     return true;
 }
 
-bool AstrometryDriver::ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n)
-{    
+bool AstrometryDriver::ISNewNumber (const char * dev, const char * name, double values[], char * names[], int n)
+{
     return INDI::DefaultDevice::ISNewNumber(dev, name, values, names, n);
 }
 
-bool AstrometryDriver::ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[], char *names[], int n)
+bool AstrometryDriver::ISNewBLOB(const char * dev, const char * name, int sizes[], int blobsizes[], char * blobs[], char * formats[], char * names[], int n)
 {
-    if(strcmp(dev,getDeviceName())==0)
+    if(strcmp(dev, getDeviceName()) == 0)
     {
         if (!strcmp(name, SolverDataBP.name))
         {
@@ -195,7 +195,7 @@ bool AstrometryDriver::ISNewBLOB(const char *dev, const char *name, int sizes[],
                 defineNumber(&SolverResultNP);
             }
 
-            processBLOB(reinterpret_cast<uint8_t*>(blobs[0]), static_cast<uint32_t>(sizes[0]), static_cast<uint32_t>(blobsizes[0]));
+            processBLOB(reinterpret_cast<uint8_t *>(blobs[0]), static_cast<uint32_t>(sizes[0]), static_cast<uint32_t>(blobsizes[0]));
 
             return true;
         }
@@ -204,21 +204,21 @@ bool AstrometryDriver::ISNewBLOB(const char *dev, const char *name, int sizes[],
     return INDI::DefaultDevice::ISNewBLOB(dev, name, sizes, blobsizes, blobs, formats, names, n);
 }
 
-bool AstrometryDriver::ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n)
+bool AstrometryDriver::ISNewText (const char * dev, const char * name, char * texts[], char * names[], int n)
 {
-    if(strcmp(dev,getDeviceName())==0)
+    if(strcmp(dev, getDeviceName()) == 0)
     {
         //  This is for our device
         //  Now lets see if it's something we process here
-        if(!strcmp(name,ActiveDeviceTP.name))
+        if(!strcmp(name, ActiveDeviceTP.name))
         {
-            ActiveDeviceTP.s=IPS_OK;
-            IUUpdateText(&ActiveDeviceTP,texts,names,n);
-            IDSetText(&ActiveDeviceTP,NULL);
+            ActiveDeviceTP.s = IPS_OK;
+            IUUpdateText(&ActiveDeviceTP, texts, names, n);
+            IDSetText(&ActiveDeviceTP, NULL);
 
             // Update the property name!
             strncpy(CCDDataBP.device, ActiveDeviceT[0].text, MAXINDIDEVICE);
-            IDSnoopDevice(ActiveDeviceT[0].text,"CCD1");
+            IDSnoopDevice(ActiveDeviceT[0].text, "CCD1");
             IDSnoopBLOBs(ActiveDeviceT[0].text, "CCD1", B_ONLY);
 
             //  We processed this one, so, tell the world we did it
@@ -237,9 +237,9 @@ bool AstrometryDriver::ISNewText (const char *dev, const char *name, char *texts
     return INDI::DefaultDevice::ISNewText(dev, name, texts, names, n);
 }
 
-bool AstrometryDriver::ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n)
+bool AstrometryDriver::ISNewSwitch (const char * dev, const char * name, ISState * states, char * names[], int n)
 {
-    if(strcmp(dev,getDeviceName())==0)
+    if(strcmp(dev, getDeviceName()) == 0)
     {
         // Astrometry Enable/Disable
         if (!strcmp(name, SolverSP.name))
@@ -270,36 +270,36 @@ bool AstrometryDriver::ISNewSwitch (const char *dev, const char *name, ISState *
     return INDI::DefaultDevice::ISNewSwitch(dev, name, states, names, n);
 }
 
-bool AstrometryDriver::ISSnoopDevice (XMLEle *root)
+bool AstrometryDriver::ISSnoopDevice (XMLEle * root)
 {
-     if(SolverS[0].s == ISS_ON && IUSnoopBLOB(root,&CCDDataBP)==0)
-     {
-        processBLOB(reinterpret_cast<uint8_t*>(CCDDataB[0].blob), static_cast<uint32_t>(CCDDataB[0].size), static_cast<uint32_t>(CCDDataB[0].bloblen));
+    if(SolverS[0].s == ISS_ON && IUSnoopBLOB(root, &CCDDataBP) == 0)
+    {
+        processBLOB(reinterpret_cast<uint8_t *>(CCDDataB[0].blob), static_cast<uint32_t>(CCDDataB[0].size), static_cast<uint32_t>(CCDDataB[0].bloblen));
         return true;
-     }
+    }
 
-     return INDI::DefaultDevice::ISSnoopDevice(root);
+    return INDI::DefaultDevice::ISSnoopDevice(root);
 }
 
-bool AstrometryDriver::saveConfigItems(FILE *fp)
+bool AstrometryDriver::saveConfigItems(FILE * fp)
 {
     IUSaveConfigText(fp, &ActiveDeviceTP);
     IUSaveConfigText(fp, &SolverSettingsTP);
     return true;
 }
 
-bool AstrometryDriver::processBLOB(uint8_t *data, uint32_t size, uint32_t len)
+bool AstrometryDriver::processBLOB(uint8_t * data, uint32_t size, uint32_t len)
 {
-    FILE *fp = NULL;
+    FILE * fp = NULL;
     char imageFileName[MAXRBUF];
 
-    uint8_t *processedData = data;
+    uint8_t * processedData = data;
 
     // If size != len then we have compressed buffer
     if (size != len)
     {
         uint8_t * dataBuffer = new uint8_t[size];
-        uLongf destLen=size;
+        uLongf destLen = size;
 
         if (dataBuffer == NULL)
         {
@@ -332,8 +332,8 @@ bool AstrometryDriver::processBLOB(uint8_t *data, uint32_t size, uint32_t len)
         return false;
     }
 
-    int n=0;
-    for (uint32_t nr=0; nr < size; nr += n)
+    int n = 0;
+    for (uint32_t nr = 0; nr < size; nr += n)
         n = fwrite( processedData + nr, 1, size - nr, fp);
 
     fclose(fp);
@@ -360,20 +360,20 @@ bool AstrometryDriver::processBLOB(uint8_t *data, uint32_t size, uint32_t len)
     return true;
 }
 
-void * AstrometryDriver::runSolverHelper(void *context)
+void * AstrometryDriver::runSolverHelper(void * context)
 {
-  (static_cast<AstrometryDriver *> (context))->runSolver();
-  return NULL;
+    (static_cast<AstrometryDriver *> (context))->runSolver();
+    return NULL;
 }
 
 void AstrometryDriver::runSolver()
 {
     char cmd[MAXRBUF], line[256], parity_str[8];
-    float ra = -1000,dec = -1000, angle = -1000, pixscale=-1000, parity=0;
-    snprintf(cmd, MAXRBUF, "%s %s -W /tmp/solution.wcs /tmp/ccdsolver.fits",SolverSettingsT[ASTROMETRY_SETTINGS_BINARY].text, SolverSettingsT[ASTROMETRY_SETTINGS_OPTIONS].text);
+    float ra = -1000, dec = -1000, angle = -1000, pixscale = -1000, parity = 0;
+    snprintf(cmd, MAXRBUF, "%s %s -W /tmp/solution.wcs /tmp/ccdsolver.fits", SolverSettingsT[ASTROMETRY_SETTINGS_BINARY].text, SolverSettingsT[ASTROMETRY_SETTINGS_OPTIONS].text);
 
     DEBUGF(INDI::Logger::DBG_DEBUG, "%s", cmd);
-    FILE *handle = popen(cmd, "r");
+    FILE * handle = popen(cmd, "r");
     if (handle == NULL)
     {
         DEBUGF(INDI::Logger::DBG_DEBUG, "Failed to run solver: %s", strerror(errno));

@@ -58,7 +58,7 @@ class INDI::Telescope : public INDI::DefaultDevice
         enum TelescopeTrackMode  { TRACK_SIDEREAL, TRACK_SOLAR, TRACK_LUNAR, TRACK_CUSTOM };
         enum TelescopeParkData  { PARK_NONE, PARK_RA_DEC, PARK_AZ_ALT, PARK_RA_DEC_ENCODER, PARK_AZ_ALT_ENCODER };
         enum TelescopeLocation { LOCATION_LATITUDE, LOCATION_LONGITUDE, LOCATION_ELEVATION };
-        enum TelescopePierSide { PIER_UNKNOWN=-1, PIER_WEST=0, PIER_EAST=1};
+        enum TelescopePierSide { PIER_UNKNOWN = -1, PIER_WEST = 0, PIER_EAST = 1};
 
         /** \struct TelescopeConnection
             \brief Holds the connection mode of the telescope.
@@ -107,7 +107,7 @@ class INDI::Telescope : public INDI::DefaultDevice
          * @param slewRateCount Number of slew rates supported by the telescope. If < 4 (default is 0), no slew rate properties will be defined to the client. If >=4, the driver will construct the default
          * slew rate property TELESCOPE_SLEW_RATE with SLEW_GUIDE, SLEW_CENTERING, SLEW_FIND, and SLEW_MAX members where SLEW_GUIDE is the at the lowest setting and SLEW_MAX is at the highest.
          */
-        void SetTelescopeCapability(uint32_t cap, uint8_t slewRateCount=0);
+        void SetTelescopeCapability(uint32_t cap, uint8_t slewRateCount = 0);
 
         /**
          * @return True if telescope support goto operations
@@ -270,14 +270,17 @@ class INDI::Telescope : public INDI::DefaultDevice
         uint8_t getTelescopeConnection() const;
 
         void setPierSide(TelescopePierSide side);
-        TelescopePierSide getPierSide() { return currentPierSide; }
+        TelescopePierSide getPierSide()
+        {
+            return currentPierSide;
+        }
 
     protected:
 
         virtual bool saveConfigItems(FILE * fp);
 
         /** \brief The child class calls this function when it has updates */
-        void NewRaDec(double ra,double dec);
+        void NewRaDec(double ra, double dec);
 
         /** \brief Read telescope status.
          This function checks the following:
@@ -288,19 +291,19 @@ class INDI::Telescope : public INDI::DefaultDevice
          </ol>
           \return True if reading scope status is OK, false if an error is encounterd.
           \note This function is not implemented in INDI::Telescope, it must be implemented in the child class */
-        virtual bool ReadScopeStatus()=0;
+        virtual bool ReadScopeStatus() = 0;
 
         /** \brief Move the scope to the supplied RA and DEC coordinates
             \return True if successful, false otherwise
             \note If not implemented by the child class, this function by default returns false with a warning message.
         */
-        virtual bool Goto(double ra,double dec);
+        virtual bool Goto(double ra, double dec);
 
         /** \brief Set the telescope current RA and DEC coordinates to the supplied RA and DEC coordinates
             \return True if successful, false otherwise
             \note If not implemented by the child class, this function by default returns false with a warning message.
         */
-        virtual bool Sync(double ra,double dec);
+        virtual bool Sync(double ra, double dec);
 
         /** \brief Start or Stop the telescope motion in the direction dir.
          *  \param dir direction of motion
@@ -430,7 +433,7 @@ class INDI::Telescope : public INDI::DefaultDevice
          * @param writable Additional check if the file is writable
          * @return True if the checks are successful otherwise false.
          */
-        bool CheckFile(const std::string& file_name, bool writable) const;
+        bool CheckFile(const std::string &file_name, bool writable) const;
 
         //  This is a variable filled in by the ReadStatus telescope
         //  low level code, used to report current state
@@ -516,9 +519,9 @@ class INDI::Telescope : public INDI::DefaultDevice
         char * LoadParkData();
         bool WriteParkData();
 
-        int PortFD=-1;
-        Connection::Serial * serialConnection=NULL;
-        Connection::TCP * tcpConnection=NULL;
+        int PortFD = -1;
+        Connection::Serial * serialConnection = NULL;
+        Connection::TCP * tcpConnection = NULL;
 
     private:
 

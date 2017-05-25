@@ -1,7 +1,7 @@
 /*
     IEQ45 Driver
     Copyright (C) 2011 Nacho Mas (mas.ignacio@gmail.com). Only litle changes
-    from lx200basic made it by Jasem Mutlaq (mutlaqja@ikarustech.com) 
+    from lx200basic made it by Jasem Mutlaq (mutlaqja@ikarustech.com)
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -22,27 +22,27 @@
 #ifndef IEQ45DRIVER_H
 #define IEQ45DRIVER_H
 
-  /* Slew speeds */
+/* Slew speeds */
 enum TSlew { IEQ45_SLEW_MAX, IEQ45_SLEW_FIND, IEQ45_SLEW_CENTER, IEQ45_SLEW_GUIDE};
-  /* Alignment modes */
+/* Alignment modes */
 enum TAlign {  IEQ45_ALIGN_POLAR, IEQ45_ALIGN_ALTAZ, IEQ45_ALIGN_LAND };
-  /* Directions */
+/* Directions */
 enum TDirection { IEQ45_NORTH, IEQ45_WEST, IEQ45_EAST, IEQ45_SOUTH, IEQ45_ALL};
-  /* Formats of Right ascention and Declenation */
+/* Formats of Right ascention and Declenation */
 enum TFormat { IEQ45_SHORT_FORMAT, IEQ45_LONG_FORMAT};
-  /* Time Format */
+/* Time Format */
 enum TTimeFormat { IEQ45_24, IEQ45_AM, IEQ45_PM};
-  /* Focus operation */
+/* Focus operation */
 enum TFocusMotion { IEQ45_FOCUSIN, IEQ45_FOCUSOUT };
 enum TFocusSpeed  { IEQ45_HALTFOCUS = 0, IEQ45_FOCUSSLOW, IEQ45_FOCUSFAST};
-  /* Library catalogs */
+/* Library catalogs */
 enum TCatalog { IEQ45_STAR_C, IEQ45_DEEPSKY_C};
-  /* Frequency mode */
+/* Frequency mode */
 enum StarCatalog { IEQ45_STAR, IEQ45_SAO, IEQ45_GCVS };
-  /* Deep Sky Catalogs */
+/* Deep Sky Catalogs */
 enum DeepSkyCatalog { IEQ45_NGC, IEQ45_IC, IEQ45_UGC, IEQ45_CALDWELL, IEQ45_ARP, IEQ45_ABELL, IEQ45_MESSIER_C};
-  /* Mount tracking frequency, in Hz */
-enum TFreq { IEQ45_TRACK_SIDERAL, IEQ45_TRACK_LUNAR, IEQ45_TRACK_SOLAR,IEQ45_TRACK_ZERO};
+/* Mount tracking frequency, in Hz */
+enum TFreq { IEQ45_TRACK_SIDERAL, IEQ45_TRACK_LUNAR, IEQ45_TRACK_SOLAR, IEQ45_TRACK_ZERO};
 
 
 #define MaxReticleDutyCycle		15
@@ -97,7 +97,7 @@ enum TFreq { IEQ45_TRACK_SIDERAL, IEQ45_TRACK_LUNAR, IEQ45_TRACK_SOLAR,IEQ45_TRA
 #define disableRaAzPec(fd)				write(fd, ":QZ-#", 6)
 #define activateAltDecAntiBackSlash(fd)			write(fd, "$BAdd#", 7)
 #define activateAzRaAntiBackSlash(fd)			write(fd, "$BZdd#", 7)
-#define SelenographicSync(fd)				write(fd, ":CL#", 5); 
+#define SelenographicSync(fd)				write(fd, ":CL#", 5);
 
 #define slewToAltAz(fd)					setStandardProcedure(fd, ":MA#")
 #define toggleTimeFormat(fd)				write(fd, ":H#", 4)
@@ -135,46 +135,46 @@ int testAP();*/
 int check_IEQ45_connection(int fd);
 
 /**************************************************************************
- Get Commands: store data in the supplied buffer. Return 0 on success or -1 on failure 
+ Get Commands: store data in the supplied buffer. Return 0 on success or -1 on failure
  **************************************************************************/
- 
+
 /* Get Double from Sexagisemal */
-int getCommandSexa(int fd, double *value, const char *cmd);
+int getCommandSexa(int fd, double * value, const char * cmd);
 /* Get String */
-int getCommandString(int fd, char *data, const char* cmd);
+int getCommandString(int fd, char * data, const char * cmd);
 /* Get Int */
-int getCommandInt(int fd, int *value, const char* cmd);
+int getCommandInt(int fd, int * value, const char * cmd);
 /* Get tracking frequency */
 int getTrackFreq(int fd, double * value);
 /* Get site Latitude */
-int getSiteLatitude(int fd, int *dd, int *mm);
+int getSiteLatitude(int fd, int * dd, int * mm);
 /* Get site Longitude */
-int getSiteLongitude(int fd, int *ddd, int *mm);
+int getSiteLongitude(int fd, int * ddd, int * mm);
 /* Get Calender data */
-int getCalendarDate(int fd, char *date);
+int getCalendarDate(int fd, char * date);
 /* Get site Name */
-int getSiteName(int fd, char *siteName, int siteNum);
+int getSiteName(int fd, char * siteName, int siteNum);
 /* Get Number of Bars */
-int getNumberOfBars(int fd, int *value);
+int getNumberOfBars(int fd, int * value);
 /* Get Home Search Status */
-int getHomeSearchStatus(int fd, int *status);
+int getHomeSearchStatus(int fd, int * status);
 /* Get OTA Temperature */
 int getOTATemp(int fd, double * value);
 /* Get time format: 12 or 24 */
-int getTimeFormat(int fd, int *format);
+int getTimeFormat(int fd, int * format);
 /* Get RA, DEC from Sky Commander controller */
-int updateSkyCommanderCoord(int fd, double *ra, double *dec);
+int updateSkyCommanderCoord(int fd, double * ra, double * dec);
 /* Get RA, DEC from Intelliscope/SkyWizard controllers */
-int updateIntelliscopeCoord (int fd, double *ra, double *dec);
+int updateIntelliscopeCoord (int fd, double * ra, double * dec);
 
 /**************************************************************************
  Set Commands
  **************************************************************************/
 
 /* Set Int */
-int setCommandInt(int fd, int data, const char *cmd);
+int setCommandInt(int fd, int data, const char * cmd);
 /* Set Sexigesimal */
-int setCommandXYZ(int fd, int x, int y, int z, const char *cmd);
+int setCommandXYZ(int fd, int x, int y, int z, const char * cmd);
 /* Common routine for Set commands */
 int setStandardProcedure(int fd, char * writeData);
 /* Set Slew Mode */
@@ -220,7 +220,7 @@ int setMaxElevationLimit(int fd, int max);
 /* Slew to the selected coordinates */
 int Slew(int fd);
 /* Synchronize to the selected coordinates and return the matching object if any */
-int Sync(int fd, char *matchedObject);
+int Sync(int fd, char * matchedObject);
 /* Abort slew in all axes */
 int abortSlew(int fd);
 /* Move into one direction, two valid directions can be stacked */
@@ -237,7 +237,7 @@ int SendPulseCmd(int fd, int direction, int duration_msec);
 /**************************************************************************
  Other Commands
  **************************************************************************/
- /* Ensures IEQ45 RA/DEC format is long */
+/* Ensures IEQ45 RA/DEC format is long */
 int checkIEQ45Format(int fd);
 /* Select a site from the IEQ45 controller */
 int selectSite(int fd, int siteNum);

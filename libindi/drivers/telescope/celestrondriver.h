@@ -50,7 +50,7 @@ typedef struct
 **************************************************************************/
 void set_celestron_debug(bool enable);
 void set_celestron_simulation(bool enable);
-void set_celestron_device(const char *name);
+void set_celestron_device(const char * name);
 
 /**************************************************************************
  Simulation
@@ -72,23 +72,23 @@ bool check_celestron_connection(int fd);
  Get Info
 **************************************************************************/
 /** Get All firmware information in addition to model and version */
-bool get_celestron_firmware(int fd, FirmwareInfo *info);
+bool get_celestron_firmware(int fd, FirmwareInfo * info);
 /** Get version */
-bool get_celestron_version(int fd, FirmwareInfo *info);
+bool get_celestron_version(int fd, FirmwareInfo * info);
 /** Get Mount model */
-bool get_celestron_model(int fd, FirmwareInfo *info);
+bool get_celestron_model(int fd, FirmwareInfo * info);
 /** Get GPS Firmware version */
-bool get_celestron_gps_firmware(int fd, FirmwareInfo *info);
+bool get_celestron_gps_firmware(int fd, FirmwareInfo * info);
 /** Get RA Firmware version */
-bool get_celestron_ra_firmware(int fd, FirmwareInfo *info);
+bool get_celestron_ra_firmware(int fd, FirmwareInfo * info);
 /** Get DEC Firmware version */
-bool get_celestron_dec_firmware(int fd, FirmwareInfo *info);
+bool get_celestron_dec_firmware(int fd, FirmwareInfo * info);
 /** Get RA/DEC */
-bool get_celestron_coords(int fd, double *ra, double *dec);
+bool get_celestron_coords(int fd, double * ra, double * dec);
 /** Get Az/Alt */
-bool get_celestron_coords_azalt(int fd, double latitude, double *az, double *alt);
+bool get_celestron_coords_azalt(int fd, double latitude, double * az, double * alt);
 /** Get UTC/Date/Time */
-bool get_celestron_utc_date_time(int fd, double *utc_hours, int *yy, int *mm, int *dd, int *hh, int *minute, int *ss);
+bool get_celestron_utc_date_time(int fd, double * utc_hours, int * yy, int * mm, int * dd, int * hh, int * minute, int * ss);
 
 /**************************************************************************
  Motion
@@ -104,12 +104,12 @@ bool sync_celestron(int fd, double ra, double dec);
  Time & Location
 **************************************************************************/
 bool set_celestron_location(int fd, double longitude, double latitude);
-bool set_celestron_datetime(int fd, struct ln_date *utc, double utc_offset);
+bool set_celestron_datetime(int fd, struct ln_date * utc, double utc_offset);
 
 /**************************************************************************
  Track Mode
 **************************************************************************/
-bool get_celestron_track_mode(int fd, CELESTRON_TRACK_MODE *mode);
+bool get_celestron_track_mode(int fd, CELESTRON_TRACK_MODE * mode);
 bool set_celestron_track_mode(int fd, CELESTRON_TRACK_MODE mode);
 
 /**************************************************************************
@@ -133,6 +133,6 @@ bool wakeup(int fd);
  Pulse Guide (experimental)
  *************************************************************************/
 int SendPulseCmd(int fd, CELESTRON_DIRECTION direction, signed char rate, unsigned char duration_msec);
-int SendPulseStatusCmd(int fd, CELESTRON_DIRECTION direction, bool & pulse_state);
+int SendPulseStatusCmd(int fd, CELESTRON_DIRECTION direction, bool &pulse_state);
 
 #endif

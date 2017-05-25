@@ -45,27 +45,30 @@ enum
     GPUSB_LED_RED  = 0x10,
     GPUSB_LED_ON  = 0x20,
     GPUSB_CLEAR_RA = 0xFC,
-    GPUSB_CLEAR_DEC= 0xF3
+    GPUSB_CLEAR_DEC = 0xF3
 };
 
 class GPUSBDriver : public INDI::USBDevice
 {
     public:
-    GPUSBDriver();
-    virtual ~GPUSBDriver();
+        GPUSBDriver();
+        virtual ~GPUSBDriver();
 
-    //  Generic indi device entries
-    bool Connect();
-    bool Disconnect();
+        //  Generic indi device entries
+        bool Connect();
+        bool Disconnect();
 
-    bool startPulse(int direction);
-    bool stopPulse(int direction);
+        bool startPulse(int direction);
+        bool stopPulse(int direction);
 
-    void setDebug(bool enable) { debug = enable; }
+        void setDebug(bool enable)
+        {
+            debug = enable;
+        }
 
-private:
-    char guideCMD[1];
-    bool debug;
+    private:
+        char guideCMD[1];
+        bool debug;
 
 };
 

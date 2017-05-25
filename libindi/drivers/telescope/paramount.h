@@ -29,81 +29,81 @@
 
 class Paramount : public INDI::Telescope, public INDI::GuiderInterface
 {
-public:
-    Paramount();
-    virtual ~Paramount();
+    public:
+        Paramount();
+        virtual ~Paramount();
 
-    virtual const char *getDefaultName();
-    virtual bool Handshake();
-    virtual bool ReadScopeStatus();
-    virtual bool initProperties();
-    virtual bool updateProperties();
+        virtual const char * getDefaultName();
+        virtual bool Handshake();
+        virtual bool ReadScopeStatus();
+        virtual bool initProperties();
+        virtual bool updateProperties();
 
-    virtual bool ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n);
-    virtual bool ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n);
+        virtual bool ISNewNumber (const char * dev, const char * name, double values[], char * names[], int n);
+        virtual bool ISNewSwitch (const char * dev, const char * name, ISState * states, char * names[], int n);
 
     protected:
 
-    virtual bool MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command);
-    virtual bool MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command);
-    virtual bool Abort();
+        virtual bool MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command);
+        virtual bool MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command);
+        virtual bool Abort();
 
-    virtual bool updateLocation(double latitude, double longitude, double elevation);
-    virtual bool updateTime(ln_date *utc, double utc_offset);
+        virtual bool updateLocation(double latitude, double longitude, double elevation);
+        virtual bool updateTime(ln_date * utc, double utc_offset);
 
-    bool SetParkPosition(double Axis1Value, double Axis2Value) override;
-    bool Goto(double,double);
-    bool Park();
-    bool UnPark();
-    bool Sync(double ra, double dec);
+        bool SetParkPosition(double Axis1Value, double Axis2Value) override;
+        bool Goto(double, double);
+        bool Park();
+        bool UnPark();
+        bool Sync(double ra, double dec);
 
-    // Parking
-    virtual bool SetCurrentPark();
-    virtual bool SetDefaultPark();
+        // Parking
+        virtual bool SetCurrentPark();
+        virtual bool SetDefaultPark();
 
-    // Guiding
-    virtual IPState GuideNorth(float ms);
-    virtual IPState GuideSouth(float ms);
-    virtual IPState GuideEast(float ms);
-    virtual IPState GuideWest(float ms);
+        // Guiding
+        virtual IPState GuideNorth(float ms);
+        virtual IPState GuideSouth(float ms);
+        virtual IPState GuideEast(float ms);
+        virtual IPState GuideWest(float ms);
 
     private:
 
-    void mountSim();
-    bool getMountRADE();
-    bool isSlewComplete();
+        void mountSim();
+        bool getMountRADE();
+        bool isSlewComplete();
 
-    bool sendTheSkyOKCommand(const char *command, const char *errorMessage);
-    bool isTheSkyParked();
-    bool isTheSkyTracking();
-    bool startOpenLoopMotion(uint8_t motion, uint16_t rate);
-    bool stopOpenLoopMotion();
-    bool setTheSkyTracking(bool enable, bool isSidereal, double raRate, double deRate);
+        bool sendTheSkyOKCommand(const char * command, const char * errorMessage);
+        bool isTheSkyParked();
+        bool isTheSkyTracking();
+        bool startOpenLoopMotion(uint8_t motion, uint16_t rate);
+        bool stopOpenLoopMotion();
+        bool setTheSkyTracking(bool enable, bool isSidereal, double raRate, double deRate);
 
-    double currentRA;
-    double currentDEC;
-    double targetRA;
-    double targetDEC;
+        double currentRA;
+        double currentDEC;
+        double targetRA;
+        double targetDEC;
 
-    ln_lnlat_posn lnobserver;
-    ln_hrz_posn lnaltaz;
-    unsigned int DBG_SCOPE;
+        ln_lnlat_posn lnobserver;
+        ln_hrz_posn lnaltaz;
+        unsigned int DBG_SCOPE;
 
-    // Jog Rate
-    INumber JogRateN[2];
-    INumberVectorProperty JogRateNP;
+        // Jog Rate
+        INumber JogRateN[2];
+        INumberVectorProperty JogRateNP;
 
-    // Guide Rate
-    INumber GuideRateN[2];
-    INumberVectorProperty GuideRateNP;
+        // Guide Rate
+        INumber GuideRateN[2];
+        INumberVectorProperty GuideRateNP;
 
-    // Tracking Mode
-    ISwitch TrackModeS[4];
-    ISwitchVectorProperty TrackModeSP;
+        // Tracking Mode
+        ISwitch TrackModeS[4];
+        ISwitchVectorProperty TrackModeSP;
 
-    // Tracking Rate
-    INumber TrackRateN[2];
-    INumberVectorProperty TrackRateNP;
+        // Tracking Rate
+        INumber TrackRateN[2];
+        INumberVectorProperty TrackRateNP;
 };
 
 #endif // PARAMOUNT_H

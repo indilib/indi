@@ -33,7 +33,7 @@
 // Defines a point in a 3 dimension space
 typedef struct
 {
-    double x,y,z;
+    double x, y, z;
 } point3D;
 
 namespace Connection
@@ -521,8 +521,8 @@ class INDI::Dome : public INDI::DefaultDevice
         // For Serial and TCP connections
         int PortFD = -1;
 
-        Connection::Serial * serialConnection=NULL;
-        Connection::TCP * tcpConnection=NULL;
+        Connection::Serial * serialConnection = NULL;
+        Connection::TCP * tcpConnection = NULL;
 
     private:
 

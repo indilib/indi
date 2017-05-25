@@ -1,22 +1,26 @@
 #if 0
-    Simple Client Tutorial
-    Demonstration of libindi v0.7 capabilities.
+Simple Client Tutorial
+Demonstration of libindi v0.7 capabilities.
 
-    Copyright (C) 2010 Jasem Mutlaq (mutlaqja@ikarustech.com)
+Copyright (C) 2010 Jasem Mutlaq (mutlaqja@ikarustech.com)
 
-    This library is free software; you can redistribute it and/or
-    modify it under the terms of the GNU Lesser General Public
-    License as published by the Free Software Foundation; either
-    version 2.1 of the License, or (at your option) any later version.
+This library is free software;
+you can redistribute it and / or
+modify it under the terms of the GNU Lesser General Public
+License as published by the Free Software Foundation;
+either
+version 2.1 of the License, or (at your option) any later version.
 
-    This library is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-    Lesser General Public License for more details.
+This library is distributed in the hope that it will be useful,
+     but WITHOUT ANY WARRANTY;
+without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+Lesser General Public License for more details.
 
-    You should have received a copy of the GNU Lesser General Public
-    License along with this library; if not, write to the Free Software
-    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+You should have received a copy of the GNU Lesser General Public
+License along with this library;
+if not, write to the Free Software
+Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110 - 1301  USA
 
 #endif
 
@@ -64,19 +68,19 @@ using namespace std;
 /* Our client auto pointer */
 unique_ptr<MyClient> camera_client(new MyClient());
 
-int main(int argc, char *argv[])
+int main(int argc, char * argv[])
 {
-  camera_client->setServer("localhost", 7624);
+    camera_client->setServer("localhost", 7624);
 
-  camera_client->watchDevice(MYCCD);
+    camera_client->watchDevice(MYCCD);
 
-  camera_client->connectServer();
+    camera_client->connectServer();
 
-  camera_client->setBLOBMode(B_ALSO, MYCCD, NULL);
+    camera_client->setBLOBMode(B_ALSO, MYCCD, NULL);
 
-  cout << "Press any key to terminate the client.\n";
-  string term;
-  cin >> term;
+    cout << "Press any key to terminate the client.\n";
+    string term;
+    cin >> term;
 
 
 }
@@ -103,18 +107,18 @@ MyClient::~MyClient()
 ***************************************************************************************/
 void MyClient::setTemperature()
 {
-   INumberVectorProperty *ccd_temperature = NULL;
+    INumberVectorProperty * ccd_temperature = NULL;
 
-   ccd_temperature = ccd_simulator->getNumber("CCD_TEMPERATURE");
+    ccd_temperature = ccd_simulator->getNumber("CCD_TEMPERATURE");
 
-   if (ccd_temperature == NULL)
-   {
-       IDLog("Error: unable to find CCD Simulator CCD_TEMPERATURE property...\n");
-       return;
-   }
+    if (ccd_temperature == NULL)
+    {
+        IDLog("Error: unable to find CCD Simulator CCD_TEMPERATURE property...\n");
+        return;
+    }
 
-   ccd_temperature->np[0].value = -20;
-   sendNewNumber(ccd_temperature);
+    ccd_temperature->np[0].value = -20;
+    sendNewNumber(ccd_temperature);
 }
 
 /**************************************************************************************
@@ -122,7 +126,7 @@ void MyClient::setTemperature()
 ***************************************************************************************/
 void MyClient::takeExposure()
 {
-    INumberVectorProperty *ccd_exposure = NULL;
+    INumberVectorProperty * ccd_exposure = NULL;
 
     ccd_exposure = ccd_simulator->getNumber("CCD_EXPOSURE");
 
@@ -142,7 +146,7 @@ void MyClient::takeExposure()
 /**************************************************************************************
 **
 ***************************************************************************************/
-void MyClient::newDevice(INDI::BaseDevice *dp)
+void MyClient::newDevice(INDI::BaseDevice * dp)
 {
     if (!strcmp(dp->getDeviceName(), MYCCD))
         IDLog("Receiving %s Device...\n", dp->getDeviceName());
@@ -153,7 +157,7 @@ void MyClient::newDevice(INDI::BaseDevice *dp)
 /**************************************************************************************
 **
 *************************************************************************************/
-void MyClient::newProperty(INDI::Property *property)
+void MyClient::newProperty(INDI::Property * property)
 {
 
     if (!strcmp(property->getDeviceName(), MYCCD) && !strcmp(property->getName(), "CONNECTION"))
@@ -176,37 +180,37 @@ void MyClient::newProperty(INDI::Property *property)
 /**************************************************************************************
 **
 ***************************************************************************************/
-void MyClient::newNumber(INumberVectorProperty *nvp)
+void MyClient::newNumber(INumberVectorProperty * nvp)
 {
     // Let's check if we get any new values for CCD_TEMPERATURE
     if (!strcmp(nvp->name, "CCD_TEMPERATURE"))
     {
-       IDLog("Receving new CCD Temperature: %g C\n", nvp->np[0].value);
+        IDLog("Receving new CCD Temperature: %g C\n", nvp->np[0].value);
 
-       if (nvp->np[0].value == -20)
-       {
-           IDLog("CCD temperature reached desired value!\n");
-           takeExposure();
-       }
+        if (nvp->np[0].value == -20)
+        {
+            IDLog("CCD temperature reached desired value!\n");
+            takeExposure();
+        }
 
-   }
+    }
 }
 
 /**************************************************************************************
 **
 ***************************************************************************************/
-void MyClient::newMessage(INDI::BaseDevice *dp, int messageID)
+void MyClient::newMessage(INDI::BaseDevice * dp, int messageID)
 {
-     if (strcmp(dp->getDeviceName(), MYCCD))
-         return;
+    if (strcmp(dp->getDeviceName(), MYCCD))
+        return;
 
-     IDLog("Recveing message from Server:\n\n########################\n%s\n########################\n\n", dp->messageQueue(messageID).c_str());
+    IDLog("Recveing message from Server:\n\n########################\n%s\n########################\n\n", dp->messageQueue(messageID).c_str());
 }
 
 /**************************************************************************************
 **
 ***************************************************************************************/
-void MyClient::newBLOB(IBLOB *bp)
+void MyClient::newBLOB(IBLOB * bp)
 {
     // Save FITS file to disk
     ofstream myfile;

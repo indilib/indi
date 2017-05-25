@@ -72,7 +72,7 @@ class IndiDevice : public INDI::DefaultDriver
         //  some virtual functions that our underlying classes are meant to override
         virtual bool Connect();
         virtual bool Disconnect();
-        virtual char * getDefaultName()=0;
+        virtual char * getDefaultName() = 0;
 
         virtual bool SaveConfig();
         virtual bool LoadConfig();

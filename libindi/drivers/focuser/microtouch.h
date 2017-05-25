@@ -45,78 +45,78 @@
 
 class Microtouch : public INDI::Focuser
 {
-public:
-    Microtouch();
-    ~Microtouch();
+    public:
+        Microtouch();
+        ~Microtouch();
 
-    virtual bool Handshake();
-    const char * getDefaultName();
-    virtual bool initProperties();
-    virtual bool updateProperties();
-    virtual bool ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n);
-    virtual bool ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n);
-    virtual IPState MoveFocuser(FocusDirection dir, int speed, uint16_t duration);
-    virtual IPState MoveAbsFocuser(uint32_t ticks);
-    virtual IPState MoveRelFocuser(FocusDirection dir, uint32_t ticks);
-    virtual bool SetFocuserSpeed(int speed);
-    virtual bool AbortFocuser();
-    virtual void TimerHit();
+        virtual bool Handshake();
+        const char * getDefaultName();
+        virtual bool initProperties();
+        virtual bool updateProperties();
+        virtual bool ISNewNumber (const char * dev, const char * name, double values[], char * names[], int n);
+        virtual bool ISNewSwitch (const char * dev, const char * name, ISState * states, char * names[], int n);
+        virtual IPState MoveFocuser(FocusDirection dir, int speed, uint16_t duration);
+        virtual IPState MoveAbsFocuser(uint32_t ticks);
+        virtual IPState MoveRelFocuser(FocusDirection dir, uint32_t ticks);
+        virtual bool SetFocuserSpeed(int speed);
+        virtual bool AbortFocuser();
+        virtual void TimerHit();
 
-private:
+    private:
 
-    double targetPos, lastPos, lastTemperature;
-    unsigned int currentSpeed;
+        double targetPos, lastPos, lastTemperature;
+        unsigned int currentSpeed;
 
-    struct timeval focusMoveStart;
-    float focusMoveRequest;
+        struct timeval focusMoveStart;
+        float focusMoveRequest;
 
-    void GetFocusParams();
-    bool reset();
-    bool reset(double pos);
-    bool updateMotorSpeed();
-    bool updateTemperature();
-    bool updatePosition();
-    bool updateSpeed();
-    bool isMoving();
-    bool Ack();
+        void GetFocusParams();
+        bool reset();
+        bool reset(double pos);
+        bool updateMotorSpeed();
+        bool updateTemperature();
+        bool updatePosition();
+        bool updateSpeed();
+        bool isMoving();
+        bool Ack();
 
-    bool MoveFocuser(unsigned int position);
-    bool setMotorSpeed(char speed);
-    bool setSpeed(unsigned short speed);
-    bool setTemperatureCalibration(double calibration);
-    bool setTemperatureCoefficient(double coefficient);
-    bool setTemperatureCompensation(bool enable);
-    float CalcTimeLeft(timeval,float);
-    bool  WriteCmd(char cmd);
-    bool WriteCmdGetResponse(char cmd,char* readbuffer, char numbytes);
-    char WriteCmdGetByte(char cmd);
-    bool WriteCmdSetByte(char cmd, char val);
-    signed short int WriteCmdGetShortInt(char cmd);
-    bool WriteCmdSetShortInt(char cmd, short int val);
-    int WriteCmdGetInt(char cmd);
-    bool WriteCmdSetInt(char cmd, int val);
-    bool WriteCmdSetIntAsDigits(char cmd, int val);
+        bool MoveFocuser(unsigned int position);
+        bool setMotorSpeed(char speed);
+        bool setSpeed(unsigned short speed);
+        bool setTemperatureCalibration(double calibration);
+        bool setTemperatureCoefficient(double coefficient);
+        bool setTemperatureCompensation(bool enable);
+        float CalcTimeLeft(timeval, float);
+        bool  WriteCmd(char cmd);
+        bool WriteCmdGetResponse(char cmd, char * readbuffer, char numbytes);
+        char WriteCmdGetByte(char cmd);
+        bool WriteCmdSetByte(char cmd, char val);
+        signed short int WriteCmdGetShortInt(char cmd);
+        bool WriteCmdSetShortInt(char cmd, short int val);
+        int WriteCmdGetInt(char cmd);
+        bool WriteCmdSetInt(char cmd, int val);
+        bool WriteCmdSetIntAsDigits(char cmd, int val);
 
-    INumber TemperatureN[1];
-    INumberVectorProperty TemperatureNP;
+        INumber TemperatureN[1];
+        INumberVectorProperty TemperatureNP;
 
-    ISwitch MotorSpeedS[2];
-    ISwitchVectorProperty MotorSpeedSP;
+        ISwitch MotorSpeedS[2];
+        ISwitchVectorProperty MotorSpeedSP;
 
-    INumber MaxTravelN[1];
-    INumberVectorProperty MaxTravelNP;
+        INumber MaxTravelN[1];
+        INumberVectorProperty MaxTravelNP;
 
-    INumber TemperatureSettingN[2];
-    INumberVectorProperty TemperatureSettingNP;
+        INumber TemperatureSettingN[2];
+        INumberVectorProperty TemperatureSettingNP;
 
-    ISwitch TemperatureCompensateS[2];
-    ISwitchVectorProperty TemperatureCompensateSP;
+        ISwitch TemperatureCompensateS[2];
+        ISwitchVectorProperty TemperatureCompensateSP;
 
-    ISwitch ResetS[1];
-    ISwitchVectorProperty ResetSP;
+        ISwitch ResetS[1];
+        ISwitchVectorProperty ResetSP;
 
-    INumber ResetToPosN[1];
-    INumberVectorProperty ResetToPosNP;
+        INumber ResetToPosN[1];
+        INumberVectorProperty ResetToPosNP;
 
 };
 

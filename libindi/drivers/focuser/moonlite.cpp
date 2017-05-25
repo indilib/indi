@@ -35,47 +35,47 @@
 
 std::unique_ptr<MoonLite> moonLite(new MoonLite());
 
-void ISGetProperties(const char *dev)
+void ISGetProperties(const char * dev)
 {
-         moonLite->ISGetProperties(dev);
+    moonLite->ISGetProperties(dev);
 }
 
-void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int num)
+void ISNewSwitch(const char * dev, const char * name, ISState * states, char * names[], int num)
 {
-         moonLite->ISNewSwitch(dev, name, states, names, num);
+    moonLite->ISNewSwitch(dev, name, states, names, num);
 }
 
-void ISNewText(	const char *dev, const char *name, char *texts[], char *names[], int num)
+void ISNewText(	const char * dev, const char * name, char * texts[], char * names[], int num)
 {
-         moonLite->ISNewText(dev, name, texts, names, num);
+    moonLite->ISNewText(dev, name, texts, names, num);
 }
 
-void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int num)
+void ISNewNumber(const char * dev, const char * name, double values[], char * names[], int num)
 {
-         moonLite->ISNewNumber(dev, name, values, names, num);
+    moonLite->ISNewNumber(dev, name, values, names, num);
 }
 
-void ISNewBLOB (const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[], char *names[], int n)
+void ISNewBLOB (const char * dev, const char * name, int sizes[], int blobsizes[], char * blobs[], char * formats[], char * names[], int n)
 {
-   INDI_UNUSED(dev);
-   INDI_UNUSED(name);
-   INDI_UNUSED(sizes);
-   INDI_UNUSED(blobsizes);
-   INDI_UNUSED(blobs);
-   INDI_UNUSED(formats);
-   INDI_UNUSED(names);
-   INDI_UNUSED(n);
+    INDI_UNUSED(dev);
+    INDI_UNUSED(name);
+    INDI_UNUSED(sizes);
+    INDI_UNUSED(blobsizes);
+    INDI_UNUSED(blobs);
+    INDI_UNUSED(formats);
+    INDI_UNUSED(names);
+    INDI_UNUSED(n);
 }
 
-void ISSnoopDevice (XMLEle *root)
+void ISSnoopDevice (XMLEle * root)
 {
-     moonLite->ISSnoopDevice(root);
+    moonLite->ISSnoopDevice(root);
 }
 
 MoonLite::MoonLite()
 {
 
-    // Can move in Absolute & Relative motions, can AbortFocuser motion, and has variable speed.        
+    // Can move in Absolute & Relative motions, can AbortFocuser motion, and has variable speed.
     SetFocuserCapability(FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_REL_MOVE | FOCUSER_CAN_ABORT | FOCUSER_HAS_VARIABLE_SPEED);
 
     lastPos = 0;
@@ -93,7 +93,7 @@ bool MoonLite::initProperties()
 
     FocusSpeedN[0].min = 1;
     FocusSpeedN[0].max = 5;
-    FocusSpeedN[0].value = 1;    
+    FocusSpeedN[0].value = 1;
 
     /* Step Mode */
     IUFillSwitch(&StepModeS[0], "Half Step", "", ISS_OFF);
@@ -194,10 +194,10 @@ const char * MoonLite::getDefaultName()
 
 bool MoonLite::Ack()
 {
-    int nbytes_written=0, nbytes_read=0, rc=-1;
+    int nbytes_written = 0, nbytes_read = 0, rc = -1;
     char errstr[MAXRBUF];
     char resp[5];
-    short pos=-1;
+    short pos = -1;
 
     tcflush(PortFD, TCIOFLUSH);
 
@@ -228,7 +228,7 @@ bool MoonLite::Ack()
 
 bool MoonLite::updateStepMode()
 {
-    int nbytes_written=0, nbytes_read=0, rc=-1;
+    int nbytes_written = 0, nbytes_read = 0, rc = -1;
     char errstr[MAXRBUF];
     char resp[4];
 
@@ -250,7 +250,7 @@ bool MoonLite::updateStepMode()
 
     tcflush(PortFD, TCIOFLUSH);
 
-    resp[3]='\0';
+    resp[3] = '\0';
     IUResetSwitch(&StepModeSP);
 
     if (!strcmp(resp, "FF#"))
@@ -263,12 +263,12 @@ bool MoonLite::updateStepMode()
         return false;
     }
 
-  return true;
+    return true;
 }
 
 bool MoonLite::updateTemperature()
 {
-    int nbytes_written=0, nbytes_read=0, rc=-1;
+    int nbytes_written = 0, nbytes_read = 0, rc = -1;
     char errstr[MAXRBUF];
     char resp[5];
     unsigned int temp;
@@ -297,7 +297,7 @@ bool MoonLite::updateTemperature()
 
     if (rc > 0)
     {
-        TemperatureN[0].value = ((int) temp)/2.0;
+        TemperatureN[0].value = ((int) temp) / 2.0;
     }
     else
     {
@@ -305,15 +305,15 @@ bool MoonLite::updateTemperature()
         return false;
     }
 
-  return true;
+    return true;
 }
 
 bool MoonLite::updatePosition()
 {
-    int nbytes_written=0, nbytes_read=0, rc=-1;
+    int nbytes_written = 0, nbytes_read = 0, rc = -1;
     char errstr[MAXRBUF];
     char resp[5];
-    int pos=-1;
+    int pos = -1;
 
     tcflush(PortFD, TCIOFLUSH);
 
@@ -345,12 +345,12 @@ bool MoonLite::updatePosition()
         return false;
     }
 
-  return true;
+    return true;
 }
 
 bool MoonLite::updateSpeed()
 {
-    int nbytes_written=0, nbytes_read=0, rc=-1;
+    int nbytes_written = 0, nbytes_read = 0, rc = -1;
     char errstr[MAXRBUF];
     char resp[3];
     short speed;
@@ -377,7 +377,7 @@ bool MoonLite::updateSpeed()
 
     if (rc > 0)
     {
-        int focus_speed=-1;
+        int focus_speed = -1;
         while (speed > 0)
         {
             speed >>= 1;
@@ -393,12 +393,12 @@ bool MoonLite::updateSpeed()
         return false;
     }
 
-  return true;
+    return true;
 }
 
 bool MoonLite::isMoving()
 {
-    int nbytes_written=0, nbytes_read=0, rc=-1;
+    int nbytes_written = 0, nbytes_read = 0, rc = -1;
     char errstr[MAXRBUF];
     char resp[4];
 
@@ -420,7 +420,7 @@ bool MoonLite::isMoving()
 
     tcflush(PortFD, TCIOFLUSH);
 
-    resp[3]='\0';
+    resp[3] = '\0';
     if (!strcmp(resp, "01#"))
         return true;
     else if (!strcmp(resp, "00#"))
@@ -435,7 +435,7 @@ bool MoonLite::isMoving()
 
 bool MoonLite::setTemperatureCalibration(double calibration)
 {
-    int nbytes_written=0, rc=-1;
+    int nbytes_written = 0, rc = -1;
     char errstr[MAXRBUF];
     char cmd[7];
 
@@ -458,7 +458,7 @@ bool MoonLite::setTemperatureCalibration(double calibration)
 
 bool MoonLite::setTemperatureCoefficient(double coefficient)
 {
-    int nbytes_written=0, rc=-1;
+    int nbytes_written = 0, rc = -1;
     char errstr[MAXRBUF];
     char cmd[7];
 
@@ -481,7 +481,7 @@ bool MoonLite::setTemperatureCoefficient(double coefficient)
 
 bool MoonLite::sync(uint16_t offset)
 {
-    int nbytes_written=0, rc=-1;
+    int nbytes_written = 0, rc = -1;
     char errstr[MAXRBUF];
     char cmd[9];
 
@@ -501,7 +501,7 @@ bool MoonLite::sync(uint16_t offset)
 
 bool MoonLite::MoveFocuser(unsigned int position)
 {
-    int nbytes_written=0, rc=-1;
+    int nbytes_written = 0, rc = -1;
     char errstr[MAXRBUF];
     char cmd[9];
 
@@ -540,7 +540,7 @@ bool MoonLite::MoveFocuser(unsigned int position)
 
 bool MoonLite::setStepMode(FocusStepMode mode)
 {
-    int nbytes_written=0, rc=-1;
+    int nbytes_written = 0, rc = -1;
     char errstr[MAXRBUF];
     char cmd[4];
 
@@ -563,11 +563,11 @@ bool MoonLite::setStepMode(FocusStepMode mode)
 
 bool MoonLite::setSpeed(unsigned short speed)
 {
-    int nbytes_written=0, rc=-1;
+    int nbytes_written = 0, rc = -1;
     char errstr[MAXRBUF];
     char cmd[7];
 
-    int hex_value=1;
+    int hex_value = 1;
 
     hex_value <<= speed;
 
@@ -585,7 +585,7 @@ bool MoonLite::setSpeed(unsigned short speed)
 
 bool MoonLite::setTemperatureCompensation(bool enable)
 {
-    int nbytes_written=0, rc=-1;
+    int nbytes_written = 0, rc = -1;
     char errstr[MAXRBUF];
     char cmd[4];
 
@@ -607,14 +607,14 @@ bool MoonLite::setTemperatureCompensation(bool enable)
 
 }
 
-bool MoonLite::ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n)
+bool MoonLite::ISNewSwitch (const char * dev, const char * name, ISState * states, char * names[], int n)
 {
-    if(strcmp(dev,getDeviceName())==0)
+    if(strcmp(dev, getDeviceName()) == 0)
     {
         // Focus Step Mode
         if (!strcmp(StepModeSP.name, name))
         {
-            bool rc=false;
+            bool rc = false;
             int current_mode = IUFindOnSwitchIndex(&StepModeSP);
             IUUpdateSwitch(&StepModeSP, states, names, n);
             int target_mode = IUFindOnSwitchIndex(&StepModeSP);
@@ -669,27 +669,27 @@ bool MoonLite::ISNewSwitch (const char *dev, const char *name, ISState *states, 
     return INDI::Focuser::ISNewSwitch(dev, name, states, names, n);
 }
 
-bool MoonLite::ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n)
+bool MoonLite::ISNewNumber (const char * dev, const char * name, double values[], char * names[], int n)
 {
-    if(strcmp(dev,getDeviceName())==0)
+    if(strcmp(dev, getDeviceName()) == 0)
     {
         if (!strcmp (name, SyncNP.name))
         {
-             IUUpdateNumber(&SyncNP, values, names, n);
-             if (sync(SyncN[0].value))
-                 SyncNP.s = IPS_OK;
-             else
-                 SyncNP.s = IPS_ALERT;
-             IDSetNumber(&SyncNP, NULL);
-             return true;
+            IUUpdateNumber(&SyncNP, values, names, n);
+            if (sync(SyncN[0].value))
+                SyncNP.s = IPS_OK;
+            else
+                SyncNP.s = IPS_ALERT;
+            IDSetNumber(&SyncNP, NULL);
+            return true;
         }
 
         if (!strcmp (name, MaxTravelNP.name))
         {
-             IUUpdateNumber(&MaxTravelNP, values, names, n);
-             MaxTravelNP.s = IPS_OK;
-             IDSetNumber(&MaxTravelNP, NULL);
-             return true;
+            IUUpdateNumber(&MaxTravelNP, values, names, n);
+            MaxTravelNP.s = IPS_OK;
+            IDSetNumber(&MaxTravelNP, NULL);
+            return true;
         }
 
         if (!strcmp(name, TemperatureSettingNP.name))
@@ -748,15 +748,15 @@ IPState MoonLite::MoveFocuser(FocusDirection dir, int speed, uint16_t duration)
 {
     if (speed != currentSpeed)
     {
-        bool rc=false;
+        bool rc = false;
 
         rc = setSpeed(speed);
         if (rc == false)
             return IPS_ALERT;
     }
 
-    gettimeofday(&focusMoveStart,NULL);
-    focusMoveRequest = duration/1000.0;
+    gettimeofday(&focusMoveStart, NULL);
+    focusMoveRequest = duration / 1000.0;
 
     if (dir == FOCUS_INWARD)
         MoveFocuser(0);
@@ -792,8 +792,8 @@ IPState MoonLite::MoveAbsFocuser(uint32_t targetTicks)
 
 IPState MoonLite::MoveRelFocuser(FocusDirection dir, uint32_t ticks)
 {
-    double newPosition=0;
-    bool rc=false;
+    double newPosition = 0;
+    bool rc = false;
 
     if (dir == FOCUS_INWARD)
         newPosition = FocusAbsPosN[0].value - ticks;
@@ -850,7 +850,7 @@ void MoonLite::TimerHit()
             AbortFocuser();
         }
         else
-            FocusTimerN[0].value = remaining*1000.0;
+            FocusTimerN[0].value = remaining * 1000.0;
 
         IDSetNumber(&FocusTimerNP, NULL);
 
@@ -890,16 +890,16 @@ bool MoonLite::AbortFocuser()
         return false;
 }
 
-float MoonLite::CalcTimeLeft(timeval start,float req)
+float MoonLite::CalcTimeLeft(timeval start, float req)
 {
     double timesince;
     double timeleft;
     struct timeval now;
-    gettimeofday(&now,NULL);
+    gettimeofday(&now, NULL);
 
-    timesince=(double)(now.tv_sec * 1000.0 + now.tv_usec/1000) - (double)(start.tv_sec * 1000.0 + start.tv_usec/1000);
-    timesince=timesince/1000;
-    timeleft=req-timesince;
+    timesince = (double)(now.tv_sec * 1000.0 + now.tv_usec / 1000) - (double)(start.tv_sec * 1000.0 + start.tv_usec / 1000);
+    timesince = timesince / 1000;
+    timeleft = req - timesince;
     return timeleft;
 }
 

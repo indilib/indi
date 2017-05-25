@@ -1,22 +1,26 @@
 #if 0
-    INDI
-    Copyright (C) 2003-2006 Elwood C. Downey
+INDI
+Copyright (C) 2003 - 2006 Elwood C. Downey
 
-            Modified by Jasem Mutlaq (2003-2015)
+Modified by Jasem Mutlaq (2003 - 2015)
 
-    This library is free software; you can redistribute it and/or
-    modify it under the terms of the GNU Lesser General Public
-    License as published by the Free Software Foundation; either
-    version 2.1 of the License, or (at your option) any later version.
+This library is free software;
+you can redistribute it and / or
+modify it under the terms of the GNU Lesser General Public
+License as published by the Free Software Foundation;
+either
+version 2.1 of the License, or (at your option) any later version.
 
-    This library is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-    Lesser General Public License for more details.
+This library is distributed in the hope that it will be useful,
+     but WITHOUT ANY WARRANTY;
+without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+Lesser General Public License for more details.
 
-    You should have received a copy of the GNU Lesser General Public
-    License along with this library; if not, write to the Free Software
-    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+You should have received a copy of the GNU Lesser General Public
+License along with this library;
+if not, write to the Free Software
+Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110 - 1301  USA
 
 #endif
 
@@ -131,9 +135,9 @@ computer on which this driver is running.</p>
     \param t pointer to the vector text property to be defined.
     \param msg message in printf style to send to the client. May be NULL.
 */
-extern void IDDefText (const ITextVectorProperty *t, const char *msg, ...)
+extern void IDDefText (const ITextVectorProperty * t, const char * msg, ...)
 #ifdef __GNUC__
-        __attribute__ ( ( format( printf, 2, 3 ) ) )
+__attribute__ ( ( format( printf, 2, 3 ) ) )
 #endif
 ;
 
@@ -141,9 +145,9 @@ extern void IDDefText (const ITextVectorProperty *t, const char *msg, ...)
     \param n pointer to the vector number property to be defined.
     \param msg message in printf style to send to the client. May be NULL.
 */
-extern void IDDefNumber (const INumberVectorProperty *n, const char *msg, ...)
+extern void IDDefNumber (const INumberVectorProperty * n, const char * msg, ...)
 #ifdef __GNUC__
-        __attribute__ ( ( format( printf, 2, 3 ) ) )
+__attribute__ ( ( format( printf, 2, 3 ) ) )
 #endif
 ;
 
@@ -151,9 +155,9 @@ extern void IDDefNumber (const INumberVectorProperty *n, const char *msg, ...)
     \param s pointer to the vector switch property to be defined.
     \param msg message in printf style to send to the client. May be NULL.
 */
-extern void IDDefSwitch (const ISwitchVectorProperty *s, const char *msg, ...)
+extern void IDDefSwitch (const ISwitchVectorProperty * s, const char * msg, ...)
 #ifdef __GNUC__
-        __attribute__ ( ( format( printf, 2, 3 ) ) )
+__attribute__ ( ( format( printf, 2, 3 ) ) )
 #endif
 ;
 
@@ -161,9 +165,9 @@ extern void IDDefSwitch (const ISwitchVectorProperty *s, const char *msg, ...)
     \param l pointer to the vector light property to be defined.
     \param msg message in printf style to send to the client. May be NULL.
 */
-extern void IDDefLight (const ILightVectorProperty *l, const char *msg, ...)
+extern void IDDefLight (const ILightVectorProperty * l, const char * msg, ...)
 #ifdef __GNUC__
-        __attribute__ ( ( format( printf, 2, 3 ) ) )
+__attribute__ ( ( format( printf, 2, 3 ) ) )
 #endif
 ;
 
@@ -171,9 +175,9 @@ extern void IDDefLight (const ILightVectorProperty *l, const char *msg, ...)
     \param b pointer to the vector BLOB property to be defined.
     \param msg message in printf style to send to the client. May be NULL.
  */
-extern void IDDefBLOB (const IBLOBVectorProperty *b, const char *msg, ...)
+extern void IDDefBLOB (const IBLOBVectorProperty * b, const char * msg, ...)
 #ifdef __GNUC__
-    __attribute__ ( ( format( printf, 2, 3 ) ) )
+__attribute__ ( ( format( printf, 2, 3 ) ) )
 #endif
 ;
 
@@ -189,9 +193,9 @@ extern void IDDefBLOB (const IBLOBVectorProperty *b, const char *msg, ...)
     \param t pointer to the vector text property.
     \param msg message in printf style to send to the client. May be NULL.
 */
-extern void IDSetText (const ITextVectorProperty *t, const char *msg, ...)
+extern void IDSetText (const ITextVectorProperty * t, const char * msg, ...)
 #ifdef __GNUC__
-        __attribute__ ( ( format( printf, 2, 3 ) ) )
+__attribute__ ( ( format( printf, 2, 3 ) ) )
 #endif
 ;
 
@@ -199,9 +203,9 @@ extern void IDSetText (const ITextVectorProperty *t, const char *msg, ...)
     \param n pointer to the vector number property.
     \param msg message in printf style to send to the client. May be NULL.
 */
-extern void IDSetNumber (const INumberVectorProperty *n, const char *msg, ...)
+extern void IDSetNumber (const INumberVectorProperty * n, const char * msg, ...)
 #ifdef __GNUC__
-        __attribute__ ( ( format( printf, 2, 3 ) ) )
+__attribute__ ( ( format( printf, 2, 3 ) ) )
 #endif
 ;
 
@@ -209,9 +213,9 @@ extern void IDSetNumber (const INumberVectorProperty *n, const char *msg, ...)
     \param s pointer to the vector switch property.
     \param msg message in printf style to send to the client. May be NULL.
 */
-extern void IDSetSwitch (const ISwitchVectorProperty *s, const char *msg, ...)
+extern void IDSetSwitch (const ISwitchVectorProperty * s, const char * msg, ...)
 #ifdef __GNUC__
-        __attribute__ ( ( format( printf, 2, 3 ) ) )
+__attribute__ ( ( format( printf, 2, 3 ) ) )
 #endif
 ;
 
@@ -219,9 +223,9 @@ extern void IDSetSwitch (const ISwitchVectorProperty *s, const char *msg, ...)
     \param l pointer to the vector light property.
     \param msg message in printf style to send to the client. May be NULL.
 */
-extern void IDSetLight (const ILightVectorProperty *l, const char *msg, ...)
+extern void IDSetLight (const ILightVectorProperty * l, const char * msg, ...)
 #ifdef __GNUC__
-        __attribute__ ( ( format( printf, 2, 3 ) ) )
+__attribute__ ( ( format( printf, 2, 3 ) ) )
 #endif
 ;
 
@@ -229,9 +233,9 @@ extern void IDSetLight (const ILightVectorProperty *l, const char *msg, ...)
     \param b pointer to the vector BLOB property.
     \param msg message in printf style to send to the client. May be NULL.
  */
-extern void IDSetBLOB (const IBLOBVectorProperty *b, const char *msg, ...)
+extern void IDSetBLOB (const IBLOBVectorProperty * b, const char * msg, ...)
 #ifdef __GNUC__
-    __attribute__ ( ( format( printf, 2, 3 ) ) )
+__attribute__ ( ( format( printf, 2, 3 ) ) )
 #endif
 ;
 
@@ -250,9 +254,9 @@ extern void IDSetBLOB (const IBLOBVectorProperty *b, const char *msg, ...)
     \param dev device name
     \param msg message in printf style to send to the client.
 */
-extern void IDMessage (const char *dev, const char *msg, ...)
+extern void IDMessage (const char * dev, const char * msg, ...)
 #ifdef __GNUC__
-        __attribute__ ( ( format( printf, 2, 3 ) ) )
+__attribute__ ( ( format( printf, 2, 3 ) ) )
 #endif
 ;
 
@@ -262,9 +266,9 @@ extern void IDMessage (const char *dev, const char *msg, ...)
     \param name property name to be deleted.
     \param msg message in printf style to send to the client.
 */
-extern void IDDelete (const char *dev, const char *name, const char *msg, ...)
+extern void IDDelete (const char * dev, const char * name, const char * msg, ...)
 #ifdef __GNUC__
-        __attribute__ ( ( format( printf, 3, 4 ) ) )
+__attribute__ ( ( format( printf, 3, 4 ) ) )
 #endif
 ;
 
@@ -274,9 +278,9 @@ extern void IDDelete (const char *dev, const char *name, const char *msg, ...)
 
     \param msg message in printf style to send to the client.
 */
-extern void IDLog (const char *msg, ...)
+extern void IDLog (const char * msg, ...)
 #ifdef __GNUC__
-        __attribute__ ( ( format( printf, 1, 2 ) ) )
+__attribute__ ( ( format( printf, 1, 2 ) ) )
 #endif
 ;
 
@@ -293,23 +297,23 @@ extern void IDLog (const char *msg, ...)
     \brief How drivers handle BLOBs incoming from snooping drivers */
 typedef enum
 {
-  B_NEVER=0,	/*!< Never receive BLOBs */
-  B_ALSO,	/*!< Receive BLOBs along with normal messages */
-  B_ONLY	/*!< ONLY receive BLOBs from drivers, ignore all other traffic */
+    B_NEVER = 0,	/*!< Never receive BLOBs */
+    B_ALSO,	/*!< Receive BLOBs along with normal messages */
+    B_ONLY	/*!< ONLY receive BLOBs from drivers, ignore all other traffic */
 } BLOBHandling;
 
 /** \brief Function a Driver calls to snoop on another Device. Snooped messages will then arrive via ISSnoopDevice.
     \param snooped_device name of the device to snoop.
     \param snooped_property name of the snooped property in the device.
 */
-extern void IDSnoopDevice (const char *snooped_device, const char *snooped_property);
+extern void IDSnoopDevice (const char * snooped_device, const char * snooped_property);
 
 /** \brief Function a Driver calls to control whether they will receive BLOBs from snooped devices.
     \param snooped_device name of the device to snoop.
     \param snooped_property name of property to snoop. If NULL, then all BLOBs from the given device are snooped.
     \param bh How drivers handle BLOBs incoming from snooping drivers.
 */
-extern void IDSnoopBLOBs (const char *snooped_device, const char *snooped_property, BLOBHandling bh);
+extern void IDSnoopBLOBs (const char * snooped_device, const char * snooped_property, BLOBHandling bh);
 
 /*@}*/
 
@@ -320,19 +324,19 @@ extern void IDSnoopBLOBs (const char *snooped_device, const char *snooped_proper
  */
 /*@{*/
 
- /* signature of a callback, timout caller and work procedure function */
+/* signature of a callback, timout caller and work procedure function */
 
 /** \typedef IE_CBF
     \brief Signature of a callback. */
-typedef void (IE_CBF) (int readfiledes, void *userpointer);
+typedef void (IE_CBF) (int readfiledes, void * userpointer);
 
 /** \typedef IE_TCF
     \brief Signature of a timeout caller. */
-typedef void (IE_TCF) (void *userpointer);
+typedef void (IE_TCF) (void * userpointer);
 
 /** \typedef IE_WPF
     \brief Signature of a work procedure function. */
-typedef void (IE_WPF) (void *userpointer);
+typedef void (IE_WPF) (void * userpointer);
 
 /* functions to add and remove callbacks, timers and work procedures */
 
@@ -343,7 +347,7 @@ typedef void (IE_WPF) (void *userpointer);
 * \param userpointer a pointer to be passed to the callback function when called.
 * \return a unique callback id for use with IERmCallback().
 */
-extern int  IEAddCallback (int readfiledes, IE_CBF *fp, void *userpointer);
+extern int  IEAddCallback (int readfiledes, IE_CBF * fp, void * userpointer);
 
 /** \brief Remove a callback function.
 *
@@ -360,7 +364,7 @@ extern void IERmCallback (int callbackid);
 * \param userpointer a pointer to be passed to the callback function when called.
 * \return a unique id for use with IERmTimer().
 */
-extern int  IEAddTimer (int millisecs, IE_TCF *fp, void *userpointer);
+extern int  IEAddTimer (int millisecs, IE_TCF * fp, void * userpointer);
 
 /** \brief Remove the timer with the given \e timerid, as returned from IEAddTimer.
 *
@@ -374,7 +378,7 @@ extern void IERmTimer (int timerid);
 * \param userpointer a pointer to be passed to the callback function when called.
 * \return a unique id for use with IERmWorkProc().
 */
-extern int  IEAddWorkProc (IE_WPF *fp, void *userpointer);
+extern int  IEAddWorkProc (IE_WPF * fp, void * userpointer);
 
 /** \brief Remove a work procedure.
 *
@@ -384,8 +388,8 @@ extern void IERmWorkProc (int workprocid);
 
 /* wait in-line for a flag to set, presumably by another event function */
 
-extern int IEDeferLoop (int maxms, int *flagp);
-extern int IEDeferLoop0 (int maxms, int *flagp);
+extern int IEDeferLoop (int maxms, int * flagp);
+extern int IEDeferLoop0 (int maxms, int * flagp);
 
 /*@}*/
 
@@ -408,7 +412,7 @@ both prudent and efficient to do so.</P>
 * \param name the name of the member to search for.
 * \return a pointer to an IText member on match, or NULL if nothing is found.
 */
-extern IText   *IUFindText  (const ITextVectorProperty *tvp, const char *name);
+extern IText  * IUFindText  (const ITextVectorProperty * tvp, const char * name);
 
 /** \brief Find an INumber member in a number text property.
 *
@@ -416,7 +420,7 @@ extern IText   *IUFindText  (const ITextVectorProperty *tvp, const char *name);
 * \param name the name of the member to search for.
 * \return a pointer to an INumber member on match, or NULL if nothing is found.
 */
-extern INumber *IUFindNumber(const INumberVectorProperty *nvp, const char *name);
+extern INumber * IUFindNumber(const INumberVectorProperty * nvp, const char * name);
 
 /** \brief Find an ISwitch member in a vector switch property.
 *
@@ -424,7 +428,7 @@ extern INumber *IUFindNumber(const INumberVectorProperty *nvp, const char *name)
 * \param name the name of the member to search for.
 * \return a pointer to an ISwitch member on match, or NULL if nothing is found.
 */
-extern ISwitch *IUFindSwitch(const ISwitchVectorProperty *svp, const char *name);
+extern ISwitch * IUFindSwitch(const ISwitchVectorProperty * svp, const char * name);
 
 /** \brief Find an ILight member in a vector Light property.
 *
@@ -432,7 +436,7 @@ extern ISwitch *IUFindSwitch(const ISwitchVectorProperty *svp, const char *name)
 * \param name the name of the member to search for.
 * \return a pointer to an ILight member on match, or NULL if nothing is found.
 */
-extern ILight *IUFindLight(const ILightVectorProperty *lvp, const char *name);
+extern ILight * IUFindLight(const ILightVectorProperty * lvp, const char * name);
 
 /** \brief Find an IBLOB member in a vector BLOB property.
 *
@@ -440,7 +444,7 @@ extern ILight *IUFindLight(const ILightVectorProperty *lvp, const char *name);
 * \param name the name of the member to search for.
 * \return a pointer to an IBLOB member on match, or NULL if nothing is found.
 */
-extern IBLOB *IUFindBLOB(const IBLOBVectorProperty *bvp, const char *name);
+extern IBLOB * IUFindBLOB(const IBLOBVectorProperty * bvp, const char * name);
 
 /** \brief Returns the first ON switch it finds in the vector switch property.
 
@@ -449,7 +453,7 @@ extern IBLOB *IUFindBLOB(const IBLOBVectorProperty *bvp, const char *name);
 * \param sp a pointer to a switch vector property.
 * \return a pointer to the \e first ON ISwitch member if found. If all switches are off, NULL is returned.
 */
-extern ISwitch *IUFindOnSwitch (const ISwitchVectorProperty *sp);
+extern ISwitch * IUFindOnSwitch (const ISwitchVectorProperty * sp);
 
 /** \brief Returns the index of the string in a string array
 *
@@ -458,7 +462,7 @@ extern ISwitch *IUFindOnSwitch (const ISwitchVectorProperty *sp);
 * \param n the size of hay
 * \return index of needle if found in the hay. Otherwise -1 if not found.
 */
-extern int IUFindIndex (const char *needle, char **hay, unsigned int n);
+extern int IUFindIndex (const char * needle, char ** hay, unsigned int n);
 
 
 /** \brief Returns the index of first ON switch it finds in the vector switch property.
@@ -469,7 +473,7 @@ extern int IUFindIndex (const char *needle, char **hay, unsigned int n);
 * \return index to the \e first ON ISwitch member if found. If all switches are off, -1 is returned.
 */
 
-extern int IUFindOnSwitchIndex (const ISwitchVectorProperty *sp);
+extern int IUFindOnSwitchIndex (const ISwitchVectorProperty * sp);
 
 /** \brief Returns the name of the first ON switch it finds in the supplied arguments.
 
@@ -481,13 +485,13 @@ extern int IUFindOnSwitchIndex (const ISwitchVectorProperty *sp);
 * \param n number of switches passed by ISNewSwitch()
 * \return name of the \e first ON ISwitch member if found. If all switches are off, NULL is returned.
 */
-extern const char * IUFindOnSwitchName(ISState *states, char *names[], int n);
+extern const char * IUFindOnSwitchName(ISState * states, char * names[], int n);
 
 /** \brief Reset all switches in a switch vector property to OFF.
 *
 * \param svp a pointer to a switch vector property.
 */
-extern void IUResetSwitch(ISwitchVectorProperty *svp);
+extern void IUResetSwitch(ISwitchVectorProperty * svp);
 
 /** \brief Update all switches in a switch vector property.
 *
@@ -497,7 +501,7 @@ extern void IUResetSwitch(ISwitchVectorProperty *svp);
 * \param n the number of ISwitch members to update.
 * \return 0 if update successful, -1 otherwise.
 */
-extern int IUUpdateSwitch(ISwitchVectorProperty *svp, ISState *states, char *names[], int n);
+extern int IUUpdateSwitch(ISwitchVectorProperty * svp, ISState * states, char * names[], int n);
 
 /** \brief Update all numbers in a number vector property.
 *
@@ -507,7 +511,7 @@ extern int IUUpdateSwitch(ISwitchVectorProperty *svp, ISState *states, char *nam
 * \param n the number of INumber members to update.
 * \return 0 if update successful, -1 otherwise. Update will fail if values are out of scope, or in case of property name mismatch.
 */
-extern int IUUpdateNumber(INumberVectorProperty *nvp, double values[], char *names[], int n);
+extern int IUUpdateNumber(INumberVectorProperty * nvp, double values[], char * names[], int n);
 
 /** \brief Update all text members in a text vector property.
 *
@@ -517,7 +521,7 @@ extern int IUUpdateNumber(INumberVectorProperty *nvp, double values[], char *nam
 * \param n the number of IText members to update.
 * \return 0 if update successful, -1 otherwise. Update will fail in case of property name mismatch.
 */
-extern int IUUpdateText(ITextVectorProperty *tvp, char * texts[], char *names[], int n);
+extern int IUUpdateText(ITextVectorProperty * tvp, char * texts[], char * names[], int n);
 
 /** \brief Update all BLOB members in a BLOB vector property.
 *
@@ -530,7 +534,7 @@ extern int IUUpdateText(ITextVectorProperty *tvp, char * texts[], char *names[],
 * \param n the number of IBLOB members to update.
 * \return 0 if update successful, -1 otherwise. Update will fail in case of property name mismatch.
 */
-extern int IUUpdateBLOB(IBLOBVectorProperty *bvp, int sizes[], int blobsizes[], char *blobs[], char *formats[], char *names[], int n);
+extern int IUUpdateBLOB(IBLOBVectorProperty * bvp, int sizes[], int blobsizes[], char * blobs[], char * formats[], char * names[], int n);
 
 /** \brief Function to save blob metadata in the corresponding blob.
     \param bp pointer to an IBLOB member.
@@ -540,18 +544,18 @@ extern int IUUpdateBLOB(IBLOBVectorProperty *bvp, int sizes[], int blobsizes[], 
     \param format format of the blob buffer
     \note Do not call this function directly, it is called internally by IUUpdateBLOB.
     */
-extern int IUSaveBLOB(IBLOB *bp, int size, int blobsize, char *blob, char *format);
+extern int IUSaveBLOB(IBLOB * bp, int size, int blobsize, char * blob, char * format);
 
 /** \brief Function to update the min and max elements of a number in the client
     \param nvp pointer to an INumberVectorProperty.
  */
-extern void IUUpdateMinMax(const INumberVectorProperty *nvp);
+extern void IUUpdateMinMax(const INumberVectorProperty * nvp);
 
 /** \brief Function to reliably save new text in a IText.
     \param tp pointer to an IText member.
     \param newtext the new text to be saved
 */
-extern void IUSaveText (IText *tp, const char *newtext);
+extern void IUSaveText (IText * tp, const char * newtext);
 
 /** \brief Assign attributes for a switch property. The switch's auxiliary elements will be set to NULL.
     \param sp pointer a switch property to fill
@@ -559,7 +563,7 @@ extern void IUSaveText (IText *tp, const char *newtext);
     \param label the switch label
     \param s the switch state (ISS_ON or ISS_OFF)
 */
-extern void IUFillSwitch(ISwitch *sp, const char *name, const char * label, ISState s);
+extern void IUFillSwitch(ISwitch * sp, const char * name, const char * label, ISState s);
 
 /** \brief Assign attributes for a light property. The light's auxiliary elements will be set to NULL.
     \param lp pointer a light property to fill
@@ -567,7 +571,7 @@ extern void IUFillSwitch(ISwitch *sp, const char *name, const char * label, ISSt
     \param label the light label
     \param s the light state (IDLE, WARNING, OK, ALERT)
 */
-extern void IUFillLight(ILight *lp, const char *name, const char * label, IPState s);
+extern void IUFillLight(ILight * lp, const char * name, const char * label, IPState s);
 
 /** \brief Assign attributes for a number property. The number's auxiliary elements will be set to NULL.
     \param np pointer a number property to fill
@@ -579,7 +583,7 @@ extern void IUFillLight(ILight *lp, const char *name, const char * label, IPStat
     \param step the step used to climb from minimum value to maximum value
     \param value the number's current value
 */
-extern void IUFillNumber(INumber *np, const char *name, const char * label, const char *format, double min, double max, double step, double value);
+extern void IUFillNumber(INumber * np, const char * name, const char * label, const char * format, double min, double max, double step, double value);
 
 /** \brief Assign attributes for a text property. The text's auxiliary elements will be set to NULL.
     \param tp pointer a text property to fill
@@ -587,7 +591,7 @@ extern void IUFillNumber(INumber *np, const char *name, const char * label, cons
     \param label the text label
     \param initialText the initial text
 */
-extern void IUFillText(IText *tp, const char *name, const char * label, const char *initialText);
+extern void IUFillText(IText * tp, const char * name, const char * label, const char * initialText);
 
 /** \brief Assign attributes for a BLOB property. The BLOB's data and auxiliary elements will be set to NULL.
     \param bp pointer a BLOB property to fill
@@ -595,7 +599,7 @@ extern void IUFillText(IText *tp, const char *name, const char * label, const ch
     \param label the BLOB label
     \param format the BLOB format.
 */
-extern void IUFillBLOB(IBLOB *bp, const char *name, const char * label, const char *format);
+extern void IUFillBLOB(IBLOB * bp, const char * name, const char * label, const char * format);
 
 /** \brief Assign attributes for a switch vector property. The vector's auxiliary elements will be set to NULL.
     \param svp pointer a switch vector property to fill
@@ -610,7 +614,7 @@ extern void IUFillBLOB(IBLOB *bp, const char *name, const char * label, const ch
     \param timeout vector property timeout in seconds
     \param s the vector property initial state.
 */
-extern void IUFillSwitchVector(ISwitchVectorProperty *svp, ISwitch *sp, int nsp, const char * dev, const char *name, const char *label, const char *group, IPerm p, ISRule r, double timeout, IPState s);
+extern void IUFillSwitchVector(ISwitchVectorProperty * svp, ISwitch * sp, int nsp, const char * dev, const char * name, const char * label, const char * group, IPerm p, ISRule r, double timeout, IPState s);
 
 /** \brief Assign attributes for a light vector property. The vector's auxiliary elements will be set to NULL.
     \param lvp pointer a light vector property to fill
@@ -622,7 +626,7 @@ extern void IUFillSwitchVector(ISwitchVectorProperty *svp, ISwitch *sp, int nsp,
     \param group the vector property group
     \param s the vector property initial state.
 */
-extern void IUFillLightVector(ILightVectorProperty *lvp, ILight *lp, int nlp, const char * dev, const char *name, const char *label, const char *group, IPState s);
+extern void IUFillLightVector(ILightVectorProperty * lvp, ILight * lp, int nlp, const char * dev, const char * name, const char * label, const char * group, IPState s);
 
 /** \brief Assign attributes for a number vector property. The vector's auxiliary elements will be set to NULL.
     \param nvp pointer a number vector property to fill
@@ -636,7 +640,7 @@ extern void IUFillLightVector(ILightVectorProperty *lvp, ILight *lp, int nlp, co
     \param timeout vector property timeout in seconds
     \param s the vector property initial state.
 */
-extern void IUFillNumberVector(INumberVectorProperty *nvp, INumber *np, int nnp, const char * dev, const char *name, const char *label, const char* group, IPerm p, double timeout, IPState s);
+extern void IUFillNumberVector(INumberVectorProperty * nvp, INumber * np, int nnp, const char * dev, const char * name, const char * label, const char * group, IPerm p, double timeout, IPState s);
 
 /** \brief Assign attributes for a text vector property. The vector's auxiliary elements will be set to NULL.
     \param tvp pointer a text vector property to fill
@@ -650,7 +654,7 @@ extern void IUFillNumberVector(INumberVectorProperty *nvp, INumber *np, int nnp,
     \param timeout vector property timeout in seconds
     \param s the vector property initial state.
 */
-extern void IUFillTextVector(ITextVectorProperty *tvp, IText *tp, int ntp, const char * dev, const char *name, const char *label, const char* group, IPerm p, double timeout, IPState s);
+extern void IUFillTextVector(ITextVectorProperty * tvp, IText * tp, int ntp, const char * dev, const char * name, const char * label, const char * group, IPerm p, double timeout, IPState s);
 
 /** \brief Assign attributes for a BLOB vector property. The vector's auxiliary elements will be set to NULL.
     \param bvp pointer a BLOB vector property to fill
@@ -664,7 +668,7 @@ extern void IUFillTextVector(ITextVectorProperty *tvp, IText *tp, int ntp, const
     \param timeout vector property timeout in seconds
     \param s the vector property initial state.
 */
-extern void IUFillBLOBVector(IBLOBVectorProperty *bvp, IBLOB *bp, int nbp, const char * dev, const char *name, const char *label, const char* group, IPerm p, double timeout, IPState s);
+extern void IUFillBLOBVector(IBLOBVectorProperty * bvp, IBLOB * bp, int nbp, const char * dev, const char * name, const char * label, const char * group, IPerm p, double timeout, IPState s);
 
 
 /** \brief Update a snooped number vector property from the given XML root element.
@@ -672,35 +676,35 @@ extern void IUFillBLOBVector(IBLOBVectorProperty *bvp, IBLOB *bp, int nbp, const
     \param nvp a pointer to the number vector property to be updated.
     \return 0 if cracking the XML element and updating the property proceeded without errors, -1 if trouble.
 */
-extern int IUSnoopNumber (XMLEle *root, INumberVectorProperty *nvp);
+extern int IUSnoopNumber (XMLEle * root, INumberVectorProperty * nvp);
 
 /** \brief Update a snooped text vector property from the given XML root element.
     \param root XML root elememnt containing the snopped property content
     \param tvp a pointer to the text vector property to be updated.
     \return 0 if cracking the XML element and updating the property proceeded without errors, -1 if trouble.
 */
-extern int IUSnoopText (XMLEle *root, ITextVectorProperty *tvp);
+extern int IUSnoopText (XMLEle * root, ITextVectorProperty * tvp);
 
 /** \brief Update a snooped light vector property from the given XML root element.
     \param root XML root elememnt containing the snopped property content
     \param lvp a pointer to the light vector property to be updated.
     \return 0 if cracking the XML element and updating the property proceeded without errors, -1 if trouble.
 */
-extern int IUSnoopLight (XMLEle *root, ILightVectorProperty *lvp);
+extern int IUSnoopLight (XMLEle * root, ILightVectorProperty * lvp);
 
 /** \brief Update a snooped switch vector property from the given XML root element.
     \param root XML root elememnt containing the snopped property content
     \param svp a pointer to the switch vector property to be updated.
     \return 0 if cracking the XML element and updating the property proceeded without errors, -1 if trouble.
 */
-extern int IUSnoopSwitch (XMLEle *root, ISwitchVectorProperty *svp);
+extern int IUSnoopSwitch (XMLEle * root, ISwitchVectorProperty * svp);
 
 /** \brief Update a snooped BLOB vector property from the given XML root element.
     \param root XML root elememnt containing the snopped property content
     \param bvp a pointer to the BLOB vector property to be updated.
     \return 0 if cracking the XML element and updating the property proceeded without errors, -1 if trouble.
 */
-extern int IUSnoopBLOB (XMLEle *root, IBLOBVectorProperty *bvp);
+extern int IUSnoopBLOB (XMLEle * root, IBLOBVectorProperty * bvp);
 
 /*@}*/
 
@@ -738,7 +742,7 @@ message to describe each property defined by this device, including its
 current (or initial) value. The recommended way to send these messages is to
 call the appropriate IDDef functions.
 */
-extern void ISGetProperties (const char *dev);
+extern void ISGetProperties (const char * dev);
 
 
 /** \brief Update the value of an existing text vector property.
@@ -749,8 +753,8 @@ extern void ISGetProperties (const char *dev);
     \param n the dimension of texts[].
     \note You do not need to call this function, it is called by INDI when new text values arrive from the client.
 */
-extern void ISNewText (const char *dev, const char *name, char *texts[],
-    char *names[], int n);
+extern void ISNewText (const char * dev, const char * name, char * texts[],
+                       char * names[], int n);
 
 /** \brief Update the value of an existing number vector property.
     \param dev the name of the device.
@@ -760,8 +764,8 @@ extern void ISNewText (const char *dev, const char *name, char *texts[],
     \param n the dimension of doubles[].
     \note You do not need to call this function, it is called by INDI when new number values arrive from the client.
 */
-extern void ISNewNumber (const char *dev, const char *name, double *doubles,
-    char *names[], int n);
+extern void ISNewNumber (const char * dev, const char * name, double * doubles,
+                         char * names[], int n);
 
 /** \brief Update the value of an existing switch vector property.
     \param dev the name of the device.
@@ -771,8 +775,8 @@ extern void ISNewNumber (const char *dev, const char *name, double *doubles,
     \param n the dimension of states[].
     \note You do not need to call this function, it is called by INDI when new switch values arrive from the client.
 */
-extern void ISNewSwitch (const char *dev, const char *name, ISState *states,
-    char *names[], int n);
+extern void ISNewSwitch (const char * dev, const char * name, ISState * states,
+                         char * names[], int n);
 
 /** \brief Update data of an existing blob vector property.
     \param dev the name of the device.
@@ -787,13 +791,13 @@ extern void ISNewSwitch (const char *dev, const char *name, ISState *states,
           e.g. BLOB element with name names[0] has data located in blobs[0] with size sizes[0] and format formats[0].
 */
 
-extern void ISNewBLOB (const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[], char *names[], int n);
+extern void ISNewBLOB (const char * dev, const char * name, int sizes[], int blobsizes[], char * blobs[], char * formats[], char * names[], int n);
 
 /** \brief Function defined by Drivers that is called when another Driver it is snooping (by having previously called IDSnoopDevice()) sent any INDI message.
     \param root The argument contains the full message exactly as it was sent by the driver.
     \e Hint: use the IUSnoopXXX utility functions to help crack the message if it was one of setXXX or defXXX.
 */
-extern void ISSnoopDevice (XMLEle *root);
+extern void ISSnoopDevice (XMLEle * root);
 
 /*@}*/
 
@@ -809,44 +813,44 @@ extern void ISSnoopDevice (XMLEle *root);
     \param msg pointer to an allocated char buffer to store error messages. The minimum buffer size is MAXRBUF.
     \return 0 if successful, -1 if error is encountered and msg is set.
 */
-extern int crackDN (XMLEle *root, char **dev, char **name, char msg[]);
+extern int crackDN (XMLEle * root, char ** dev, char ** name, char msg[]);
 
 /** \brief Extract property state (Idle, OK, Busy, Alert) from the supplied string.
     \param str A string representation of the state.
     \param ip Pointer to IPState structure to store the extracted property state.
     \return 0 if successful, -1 if error is encountered.
 */
-extern int crackIPState (const char *str, IPState *ip);
+extern int crackIPState (const char * str, IPState * ip);
 
 /** \brief Extract switch state (On or Off) from the supplied string.
     \param str A string representation of the switch state.
     \param ip Pointer to ISState structure to store the extracted switch state.
     \return 0 if successful, -1 if error is encountered.
 */
-extern int crackISState (const char *str, ISState *ip);
+extern int crackISState (const char * str, ISState * ip);
 
 /** \brief Extract property permission state (RW, RO, WO) from the supplied string.
     \param str A string representation of the permission state.
     \param ip Pointer to IPerm structure to store the extracted permission state.
     \return 0 if successful, -1 if error is encountered.
 */
-extern int crackIPerm (const char *str, IPerm *ip);
+extern int crackIPerm (const char * str, IPerm * ip);
 
 /** \brief Extract switch rule (OneOfMany, OnlyOne..etc) from the supplied string.
     \param str A string representation of the switch rule.
     \param ip Pointer to ISRule structure to store the extracted switch rule.
     \return 0 if successful, -1 if error is encountered.
 */
-extern int crackISRule (const char *str, ISRule *ip);
+extern int crackISRule (const char * str, ISRule * ip);
 
 /** \return Returns a string representation of the supplied property state. */
-extern const char *pstateStr(IPState s);
+extern const char * pstateStr(IPState s);
 /** \return Returns a string representation of the supplied switch status. */
-extern const char *sstateStr(ISState s);
+extern const char * sstateStr(ISState s);
 /** \return Returns a string representation of the supplied switch rule. */
-extern const char *ruleStr(ISRule r);
+extern const char * ruleStr(ISRule r);
 /** \return Returns a string representation of the supplied permission value. */
-extern const char *permStr(IPerm p);
+extern const char * permStr(IPerm p);
 
 extern void xmlv1(void);
 

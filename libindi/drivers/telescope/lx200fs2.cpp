@@ -23,9 +23,9 @@
 
 LX200FS2::LX200FS2() : LX200Generic()
 {
-    setVersion(2, 1);   
+    setVersion(2, 1);
 
-    SetTelescopeCapability(TELESCOPE_CAN_PARK | TELESCOPE_CAN_SYNC | TELESCOPE_CAN_GOTO | TELESCOPE_CAN_ABORT | TELESCOPE_HAS_LOCATION,4);
+    SetTelescopeCapability(TELESCOPE_CAN_PARK | TELESCOPE_CAN_SYNC | TELESCOPE_CAN_GOTO | TELESCOPE_CAN_ABORT | TELESCOPE_HAS_LOCATION, 4);
 }
 
 bool LX200FS2::initProperties()
@@ -75,9 +75,9 @@ bool LX200FS2::updateProperties()
     return true;
 }
 
-bool LX200FS2::ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n)
+bool LX200FS2::ISNewNumber (const char * dev, const char * name, double values[], char * names[], int n)
 {
-    if(strcmp(dev,getDeviceName())==0)
+    if(strcmp(dev, getDeviceName()) == 0)
     {
         if (!strcmp(name, SlewAccuracyNP.name))
         {
@@ -108,7 +108,7 @@ bool LX200FS2::isSlewComplete()
 {
     const double dx = targetRA - currentRA;
     const double dy = targetDEC - currentDEC;
-    return fabs(dx) <= (SlewAccuracyN[0].value/(900.0)) && fabs(dy) <= (SlewAccuracyN[1].value/60.0);
+    return fabs(dx) <= (SlewAccuracyN[0].value / (900.0)) && fabs(dy) <= (SlewAccuracyN[1].value / 60.0);
 }
 
 bool LX200FS2::checkConnection()
@@ -116,7 +116,7 @@ bool LX200FS2::checkConnection()
     return true;
 }
 
-bool LX200FS2::saveConfigItems(FILE *fp)
+bool LX200FS2::saveConfigItems(FILE * fp)
 {
     INDI::Telescope::saveConfigItems(fp);
 
@@ -133,7 +133,7 @@ bool LX200FS2::updateLocation(double latitude, double longitude, double elevatio
     return true;
 }
 
-bool LX200FS2::updateTime(ln_date *utc, double utc_offset)
+bool LX200FS2::updateTime(ln_date * utc, double utc_offset)
 {
     INDI_UNUSED(utc);
     INDI_UNUSED(utc_offset);
@@ -170,11 +170,11 @@ bool LX200FS2::Park()
     ln_get_equ_from_hrz(&horizontalPos, &observer, ln_get_julian_from_sys(), &equatorialPos);
 
     char RAStr[16], DEStr[16];
-    fs_sexa(RAStr, equatorialPos.ra/15.0, 2, 3600);
+    fs_sexa(RAStr, equatorialPos.ra / 15.0, 2, 3600);
     fs_sexa(DEStr, equatorialPos.dec, 2, 3600);
     DEBUGF(INDI::Logger::DBG_DEBUG, "Parking to RA (%s) DEC (%s)...", RAStr, DEStr);
 
-    if (Goto(equatorialPos.ra/15.0, equatorialPos.dec))
+    if (Goto(equatorialPos.ra / 15.0, equatorialPos.dec))
     {
         TrackState = SCOPE_PARKING;
         DEBUG(INDI::Logger::DBG_SESSION, "Parking is in progress...");
@@ -215,11 +215,11 @@ bool LX200FS2::UnPark()
     ln_get_equ_from_hrz(&horizontalPos, &observer, ln_get_julian_from_sys(), &equatorialPos);
 
     char RAStr[16], DEStr[16];
-    fs_sexa(RAStr, equatorialPos.ra/15.0, 2, 3600);
+    fs_sexa(RAStr, equatorialPos.ra / 15.0, 2, 3600);
     fs_sexa(DEStr, equatorialPos.dec, 2, 3600);
     DEBUGF(INDI::Logger::DBG_DEBUG, "Syncing to parked coordinates RA (%s) DEC (%s)...", RAStr, DEStr);
 
-    if (Sync(equatorialPos.ra/15.0, equatorialPos.dec))
+    if (Sync(equatorialPos.ra / 15.0, equatorialPos.dec))
     {
         SetParked(false);
         return true;

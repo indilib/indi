@@ -1,20 +1,24 @@
 #if 0
-    INDI
-    Copyright (C) 2003 Elwood C. Downey
+INDI
+Copyright (C) 2003 Elwood C. Downey
 
-    This library is free software; you can redistribute it and/or
-    modify it under the terms of the GNU Lesser General Public
-    License as published by the Free Software Foundation; either
-    version 2.1 of the License, or (at your option) any later version.
+This library is free software;
+you can redistribute it and / or
+modify it under the terms of the GNU Lesser General Public
+License as published by the Free Software Foundation;
+either
+version 2.1 of the License, or (at your option) any later version.
 
-    This library is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-    Lesser General Public License for more details.
+This library is distributed in the hope that it will be useful,
+     but WITHOUT ANY WARRANTY;
+without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+Lesser General Public License for more details.
 
-    You should have received a copy of the GNU Lesser General Public
-    License along with this library; if not, write to the Free Software
-    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+You should have received a copy of the GNU Lesser General Public
+License along with this library;
+if not, write to the Free Software
+Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110 - 1301  USA
 
 #endif
 
@@ -59,7 +63,7 @@ extern void eventLoop(void);
 * \param ud a pointer to be passed to the callback function when called.
 * \return a unique callback id for use with rmCallback().
 */
-extern int addCallback (int fd, CBF *fp, void *ud);
+extern int addCallback (int fd, CBF * fp, void * ud);
 
 /** Remove a callback function.
 *
@@ -73,7 +77,7 @@ extern void rmCallback (int cid);
 * \param ud a pointer to be passed to the callback function when called.
 * \return a unique id for use with rmWorkProc().
 */
-extern int addWorkProc (WPF *fp, void *ud);
+extern int addWorkProc (WPF * fp, void * ud);
 
 /** Remove the work procedure with the given \e id, as returned from addWorkProc().
 *
@@ -88,7 +92,7 @@ extern void rmWorkProc (int wid);
 * \param ud a pointer to be passed to the callback function when called.
 * \return a unique id for use with rmTimer().
 */
-extern int addTimer (int ms, TCF *fp, void *ud);
+extern int addTimer (int ms, TCF * fp, void * ud);
 
 /** Remove the timer with the given \e id, as returned from addTimer().
 *
@@ -97,8 +101,8 @@ extern int addTimer (int ms, TCF *fp, void *ud);
 extern void rmTimer (int tid);
 
 /* utility functions */
-extern int deferLoop (int maxms, int *flagp);
-extern int deferLoop0 (int maxms, int *flagp);
+extern int deferLoop (int maxms, int * flagp);
+extern int deferLoop0 (int maxms, int * flagp);
 
 #ifdef __cplusplus
 }

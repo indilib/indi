@@ -168,7 +168,7 @@ public:
       \param state State of CONNECTION properti, by default IPS_OK.
       \param msg A message to be sent along with connect/disconnect command, by default NULL.
     */
-    virtual void setConnected(bool status, IPState state=IPS_OK, const char * msg = NULL);
+    virtual void setConnected(bool status, IPState state = IPS_OK, const char * msg = NULL);
 
     /** \brief Set a timer to call the function TimerHit after ms milliseconds
         \param ms timer duration in milliseconds.
@@ -296,21 +296,21 @@ protected:
         deleteDynamicProperties = deleteEnabled;
     }
 
-// Configuration
+    // Configuration
 
     /** \brief Load the last saved configuration file
      *  \param silent if true, don't report any error or notification messages.
      *  \param property Name of property to load configuration for. If NULL, all properties in the configuration file are loaded which is the default behavior.
         \return True if successful, false otherwise.
     */
-    virtual bool loadConfig(bool silent=false, const char * property=NULL);
+    virtual bool loadConfig(bool silent = false, const char * property = NULL);
 
     /** \brief Save the current properties in a configuration file
      *  \param silent if true, don't report any error or notification messages.
      *  \param property Name of specific property to save while leaving all others properties in the file as is
         \return True if successful, false otherwise.
     */
-    virtual bool saveConfig(bool silent=false, const char * property=NULL);
+    virtual bool saveConfig(bool silent = false, const char * property = NULL);
 
     /**
      * @brief saveConfigItems Save specific properties in the provide config file handler. Child class usually override this function to save their own properties and the base class
@@ -332,7 +332,7 @@ protected:
     */
     virtual bool loadDefaultConfig();
 
-// Simulatin & Debug
+    // Simulatin & Debug
 
     /** \brief Toggle driver debug status
 
@@ -424,9 +424,9 @@ protected:
     }
 
     /** \return Default name of the device. */
-    virtual const char * getDefaultName()=0;
+    virtual const char * getDefaultName() = 0;
 
-// Period in milliseconds to call TimerHit(). Default 1000 ms
+    // Period in milliseconds to call TimerHit(). Default 1000 ms
     uint32_t updatePeriodMS = 1000;
 
 private:
@@ -452,19 +452,19 @@ private:
     IText DriverInfoT[4];
     ITextVectorProperty DriverInfoTP;
 
-// Connection modes
-    ISwitch * ConnectionModeS=NULL;
+    // Connection modes
+    ISwitch * ConnectionModeS = NULL;
     ISwitchVectorProperty ConnectionModeSP;
 
     std::vector<Connection::Interface *> connections;
-    Connection::Interface * activeConnection=NULL;
+    Connection::Interface * activeConnection = NULL;
 
-// Connection Plugins
+    // Connection Plugins
     friend class Connection::Serial;
     friend class Connection::TCP;
 
-    bool defineDynamicProperties=true;
-    bool deleteDynamicProperties=true;
+    bool defineDynamicProperties = true;
+    bool deleteDynamicProperties = true;
 };
 
 #endif // INDIDEFAULTDRIVER_H

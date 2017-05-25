@@ -31,86 +31,86 @@ class AstrometryDriver : public INDI::DefaultDevice
 {
     public:
 
-    enum
-    {
-        ASTROMETRY_SETTINGS_BINARY,
-        ASTROMETRY_SETTINGS_OPTIONS
-    };
+        enum
+        {
+            ASTROMETRY_SETTINGS_BINARY,
+            ASTROMETRY_SETTINGS_OPTIONS
+        };
 
-    enum
-    {
-        ASTROMETRY_RESULTS_PIXSCALE,
-        ASTROMETRY_RESULTS_ORIENTATION,
-        ASTROMETRY_RESULTS_RA,
-        ASTROMETRY_RESULTS_DE,
-        ASTROMETRY_RESULTS_PARITY
-    };
+        enum
+        {
+            ASTROMETRY_RESULTS_PIXSCALE,
+            ASTROMETRY_RESULTS_ORIENTATION,
+            ASTROMETRY_RESULTS_RA,
+            ASTROMETRY_RESULTS_DE,
+            ASTROMETRY_RESULTS_PARITY
+        };
 
-    AstrometryDriver();
-    virtual ~AstrometryDriver();
+        AstrometryDriver();
+        virtual ~AstrometryDriver();
 
-    virtual void ISGetProperties(const char *dev);
-    virtual bool initProperties();
-    virtual bool updateProperties();
+        virtual void ISGetProperties(const char * dev);
+        virtual bool initProperties();
+        virtual bool updateProperties();
 
-    virtual bool ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n);
-    virtual bool ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n);
-    virtual bool ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n);
-    virtual bool ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[], char *names[], int n);
-    virtual bool ISSnoopDevice (XMLEle *root);
+        virtual bool ISNewText (const char * dev, const char * name, char * texts[], char * names[], int n);
+        virtual bool ISNewSwitch (const char * dev, const char * name, ISState * states, char * names[], int n);
+        virtual bool ISNewNumber (const char * dev, const char * name, double values[], char * names[], int n);
+        virtual bool ISNewBLOB(const char * dev, const char * name, int sizes[], int blobsizes[], char * blobs[], char * formats[], char * names[], int n);
+        virtual bool ISSnoopDevice (XMLEle * root);
 
-    static void * runSolverHelper(void *context);
+        static void * runSolverHelper(void * context);
 
     protected:
 
-    //  Generic indi device entries
-    bool Connect();
-    bool Disconnect();
-    const char *getDefaultName();
+        //  Generic indi device entries
+        bool Connect();
+        bool Disconnect();
+        const char * getDefaultName();
 
-    virtual bool saveConfigItems(FILE *fp);
+        virtual bool saveConfigItems(FILE * fp);
 
-    // Astrometry
+        // Astrometry
 
-    // Enable/Disable solver
-    ISwitch SolverS[2];
-    ISwitchVectorProperty SolverSP;
+        // Enable/Disable solver
+        ISwitch SolverS[2];
+        ISwitchVectorProperty SolverSP;
 
-    // Solver Settings
-    IText SolverSettingsT[2];
-    ITextVectorProperty SolverSettingsTP;
+        // Solver Settings
+        IText SolverSettingsT[2];
+        ITextVectorProperty SolverSettingsTP;
 
-    // Solver Results
-    INumber SolverResultN[5];
-    INumberVectorProperty SolverResultNP;
+        // Solver Results
+        INumber SolverResultN[5];
+        INumberVectorProperty SolverResultNP;
 
-    ITextVectorProperty ActiveDeviceTP;
-    IText ActiveDeviceT[1];
+        ITextVectorProperty ActiveDeviceTP;
+        IText ActiveDeviceT[1];
 
-    IBLOBVectorProperty SolverDataBP;
-    IBLOB SolverDataB[1];
+        IBLOBVectorProperty SolverDataBP;
+        IBLOB SolverDataB[1];
 
-    IBLOB CCDDataB[1];
-    IBLOBVectorProperty CCDDataBP;
+        IBLOB CCDDataB[1];
+        IBLOBVectorProperty CCDDataBP;
 
-private:
+    private:
 
-    // Run solver thread
-    void runSolver();
+        // Run solver thread
+        void runSolver();
 
-    /**
-     * @brief processBLOB Read blob FITS. Uncompress if necessary, write to temporary file, and run solver against it.
-     * @param data raw data FITS buffer
-     * @param size size of FITS data
-     * @param len size of raw data. If no compression is used then len = size. If compression is used, then len is the compressed buffer size
-     * and size is the uncompressed final valid data size.
-     * @return True if blob buffer was processed correctly and solver started, false otherwise.
-     */
-    bool processBLOB(uint8_t *data, uint32_t size, uint32_t len);
+        /**
+         * @brief processBLOB Read blob FITS. Uncompress if necessary, write to temporary file, and run solver against it.
+         * @param data raw data FITS buffer
+         * @param size size of FITS data
+         * @param len size of raw data. If no compression is used then len = size. If compression is used, then len is the compressed buffer size
+         * and size is the uncompressed final valid data size.
+         * @return True if blob buffer was processed correctly and solver started, false otherwise.
+         */
+        bool processBLOB(uint8_t * data, uint32_t size, uint32_t len);
 
-    // Thread for listenINDI()
-    pthread_t solverThread;
-    pthread_mutex_t lock;
+        // Thread for listenINDI()
+        pthread_t solverThread;
+        pthread_mutex_t lock;
 
 };
 

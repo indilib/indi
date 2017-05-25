@@ -34,56 +34,56 @@ class WatchDogClient;
 
 class WatchDog : public INDI::DefaultDevice
 {
-public:
+    public:
 
-    typedef enum { WATCHDOG_IDLE, WATCHDOG_CLIENT_STARTED, WATCHDOG_MOUNT_PARKED, WATCHDOG_DOME_PARKED, WATCHDOG_COMPLETE, WATCHDOG_ERROR } ShutdownStages;
-    typedef enum { PARK_MOUNT, PARK_DOME, EXECUTE_SCRIPT } ShutdownProcedure;
+        typedef enum { WATCHDOG_IDLE, WATCHDOG_CLIENT_STARTED, WATCHDOG_MOUNT_PARKED, WATCHDOG_DOME_PARKED, WATCHDOG_COMPLETE, WATCHDOG_ERROR } ShutdownStages;
+        typedef enum { PARK_MOUNT, PARK_DOME, EXECUTE_SCRIPT } ShutdownProcedure;
 
-    WatchDog();
-    virtual ~WatchDog();
+        WatchDog();
+        virtual ~WatchDog();
 
-    virtual void ISGetProperties (const char *dev);
-    //virtual bool ISSnoopDevice (XMLEle *root);
+        virtual void ISGetProperties (const char * dev);
+        //virtual bool ISSnoopDevice (XMLEle *root);
 
-    virtual bool ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n);
-    virtual bool ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n);
-    virtual bool ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n);
+        virtual bool ISNewText (const char * dev, const char * name, char * texts[], char * names[], int n);
+        virtual bool ISNewNumber (const char * dev, const char * name, double values[], char * names[], int n);
+        virtual bool ISNewSwitch (const char * dev, const char * name, ISState * states, char * names[], int n);
 
-protected:
+    protected:
 
-    virtual bool initProperties();
-    //virtual bool updateProperties();
+        virtual bool initProperties();
+        //virtual bool updateProperties();
 
-    virtual void TimerHit();
+        virtual void TimerHit();
 
-    virtual bool Connect();
-    virtual bool Disconnect();
-    virtual const char *getDefaultName();
+        virtual bool Connect();
+        virtual bool Disconnect();
+        virtual const char * getDefaultName();
 
-    virtual bool saveConfigItems(FILE *fp);
+        virtual bool saveConfigItems(FILE * fp);
 
-private:
+    private:
 
-    void parkDome();
-    void parkMount();
-    void executeScript();
+        void parkDome();
+        void parkMount();
+        void executeScript();
 
-    INumberVectorProperty HeartBeatNP;
-    INumber               HeartBeatN[1];
+        INumberVectorProperty HeartBeatNP;
+        INumber               HeartBeatN[1];
 
-    ITextVectorProperty   SettingsTP;
-    IText                 SettingsT[3];
+        ITextVectorProperty   SettingsTP;
+        IText                 SettingsT[3];
 
-    ISwitchVectorProperty ShutdownProcedureSP;
-    ISwitch               ShutdownProcedureS[3];
+        ISwitchVectorProperty ShutdownProcedureSP;
+        ISwitch               ShutdownProcedureS[3];
 
-    ITextVectorProperty ActiveDeviceTP;
-    IText ActiveDeviceT[2];
+        ITextVectorProperty ActiveDeviceTP;
+        IText ActiveDeviceT[2];
 
-    WatchDogClient *watchdogClient;
-    int watchDogTimer;
+        WatchDogClient * watchdogClient;
+        int watchDogTimer;
 
-    ShutdownStages shutdownStage;
+        ShutdownStages shutdownStage;
 
 };
 

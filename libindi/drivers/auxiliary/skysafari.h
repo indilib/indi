@@ -34,69 +34,69 @@ class SkySafariClient;
 
 class SkySafari : public INDI::DefaultDevice
 {
-public:
+    public:
 
-    SkySafari();
-    virtual ~SkySafari();
+        SkySafari();
+        virtual ~SkySafari();
 
-    virtual void ISGetProperties (const char *dev);
-    //virtual bool ISSnoopDevice (XMLEle *root);
+        virtual void ISGetProperties (const char * dev);
+        //virtual bool ISSnoopDevice (XMLEle *root);
 
-    virtual bool ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n);
-    virtual bool ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n);
-    virtual bool ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n);
+        virtual bool ISNewText (const char * dev, const char * name, char * texts[], char * names[], int n);
+        virtual bool ISNewNumber (const char * dev, const char * name, double values[], char * names[], int n);
+        virtual bool ISNewSwitch (const char * dev, const char * name, ISState * states, char * names[], int n);
 
-protected:
+    protected:
 
-    virtual bool initProperties();
-    //virtual bool updateProperties();
+        virtual bool initProperties();
+        //virtual bool updateProperties();
 
-    virtual void TimerHit();
+        virtual void TimerHit();
 
-    virtual bool Connect();
-    virtual bool Disconnect();
-    virtual const char *getDefaultName();
+        virtual bool Connect();
+        virtual bool Disconnect();
+        virtual const char * getDefaultName();
 
-    virtual bool saveConfigItems(FILE *fp);
+        virtual bool saveConfigItems(FILE * fp);
 
-private:
+    private:
 
-    void processCommand(std::string cmd);
+        void processCommand(std::string cmd);
 
-    bool startServer();
-    bool stopServer();
+        bool startServer();
+        bool stopServer();
 
-    bool sendSkySafari(const char *message);
+        bool sendSkySafari(const char * message);
 
-    void sendGeographicCoords();
+        void sendGeographicCoords();
 
-    template<typename Out> void split(const std::string &s, char delim, Out result);
-    std::vector<std::string> split(const std::string &s, char delim);
+        template<typename Out> void split(const std::string &s, char delim, Out result);
+        std::vector<std::string> split(const std::string &s, char delim);
 
-    // Settings
-    ITextVectorProperty   SettingsTP;
-    IText                 SettingsT[3];
-    enum { INDISERVER_HOST, INDISERVER_PORT, SKYSAFARI_PORT };
+        // Settings
+        ITextVectorProperty   SettingsTP;
+        IText                 SettingsT[3];
+        enum { INDISERVER_HOST, INDISERVER_PORT, SKYSAFARI_PORT };
 
-    // Active Devices
-    ITextVectorProperty ActiveDeviceTP;
-    IText ActiveDeviceT[1];
-    enum { ACTIVE_TELESCOPE };
+        // Active Devices
+        ITextVectorProperty ActiveDeviceTP;
+        IText ActiveDeviceT[1];
+        enum { ACTIVE_TELESCOPE };
 
-    // Server Control
-    ISwitchVectorProperty ServerControlSP;
-    ISwitch ServerControlS[2];
-    enum { SERVER_ENABLE, SERVER_DISABLE };
+        // Server Control
+        ISwitchVectorProperty ServerControlSP;
+        ISwitch ServerControlS[2];
+        enum { SERVER_ENABLE, SERVER_DISABLE };
 
-    // Our client
-    SkySafariClient *skySafariClient = nullptr;
+        // Our client
+        SkySafariClient * skySafariClient = nullptr;
 
-    int lsocket=-1, clientFD=-1;
+        int lsocket = -1, clientFD = -1;
 
-    bool isSkySafariConnected=false, haveLatitude=false, haveLongitude=false;
+        bool isSkySafariConnected = false, haveLatitude = false, haveLongitude = false;
 
-    double siteLatitude=0, siteLongitude=0;
-    double RA=0, DE=0;
+        double siteLatitude = 0, siteLongitude = 0;
+        double RA = 0, DE = 0;
 };
 
 #endif

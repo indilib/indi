@@ -127,8 +127,8 @@ using namespace std;
 V4L2_Base::V4L2_Base()
 {
 
-    frameRate.numerator=1;
-    frameRate.denominator=25;
+    frameRate.numerator = 1;
+    frameRate.denominator = 25;
 
     selectCallBackID = -1;
     //dropFrameCount = 1;
@@ -145,26 +145,26 @@ V4L2_Base::V4L2_Base()
 
     callback     = NULL;
 
-    cancrop=true;
-    cansetrate=true;
-    streamedonce=false;
+    cancrop = true;
+    cansetrate = true;
+    streamedonce = false;
 
-    v4l2_decode=new V4L2_Decode();
-    decoder=v4l2_decode->getDefaultDecoder();
+    v4l2_decode = new V4L2_Decode();
+    decoder = v4l2_decode->getDefaultDecoder();
     decoder->init();
-    dodecode=true;
+    dodecode = true;
 
-    v4l2_record=new V4L2_Record();
-    recorder=v4l2_record->getDefaultRecorder();
+    v4l2_record = new V4L2_Record();
+    recorder = v4l2_record->getDefaultRecorder();
     recorder->init();
     dorecord = false;
 
-    bpp=8;
-    has_ext_pix_format=false;
-    const std::vector<unsigned int> &vsuppformats=decoder->getsupportedformats();
-    DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG,"Using default decoder '%s'\n  Supported V4L2 formats are:", decoder->getName());
-    for (std::vector<unsigned int>::const_iterator it=vsuppformats.begin(); it!=vsuppformats.end(); ++it)
-        DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG,"%c%c%c%c ", (*it >> 0), (*it >> 8), (*it >>16), (*it >> 24));
+    bpp = 8;
+    has_ext_pix_format = false;
+    const std::vector<unsigned int> &vsuppformats = decoder->getsupportedformats();
+    DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG, "Using default decoder '%s'\n  Supported V4L2 formats are:", decoder->getName());
+    for (std::vector<unsigned int>::const_iterator it = vsuppformats.begin(); it != vsuppformats.end(); ++it)
+        DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG, "%c%c%c%c ", (*it >> 0), (*it >> 8), (*it >> 16), (*it >> 24));
     //DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG,INDI::Logger::DBG_SESSION,"Default decoder: %s", decoder->getName());
 
     getframerate = NULL;
@@ -203,11 +203,11 @@ bool V4L2_Base::is_compressed() const
     switch(fmt.fmt.pix.pixelformat)
     {
         case V4L2_PIX_FMT_MJPEG:
-            DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG,"%s: format %c%c%c%c patched to be considered compressed",__FUNCTION__,fmt.fmt.pix.pixelformat,fmt.fmt.pix.pixelformat>>8,fmt.fmt.pix.pixelformat>>16,fmt.fmt.pix.pixelformat>>24);
+            DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG, "%s: format %c%c%c%c patched to be considered compressed", __FUNCTION__, fmt.fmt.pix.pixelformat, fmt.fmt.pix.pixelformat >> 8, fmt.fmt.pix.pixelformat >> 16, fmt.fmt.pix.pixelformat >> 24);
             return true;
 
         default:
-            DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG,"%s: format %c%c%c%c has compressed flag %d",__FUNCTION__,fmt.fmt.pix.pixelformat,fmt.fmt.pix.pixelformat>>8,fmt.fmt.pix.pixelformat>>16,fmt.fmt.pix.pixelformat>>24,fmt.fmt.pix.flags & V4L2_FMT_FLAG_COMPRESSED);
+            DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG, "%s: format %c%c%c%c has compressed flag %d", __FUNCTION__, fmt.fmt.pix.pixelformat, fmt.fmt.pix.pixelformat >> 8, fmt.fmt.pix.pixelformat >> 16, fmt.fmt.pix.pixelformat >> 24, fmt.fmt.pix.flags & V4L2_FMT_FLAG_COMPRESSED);
             return fmt.fmt.pix.flags & V4L2_FMT_FLAG_COMPRESSED;
     }
 #else
@@ -245,7 +245,7 @@ int V4L2_Base::xioctl(int fd, int request, void * arg, char const * const reques
     while (-1 == r && EINTR == errno);
 
     if( -1 == r )
-        DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG,"%s: ioctl 0x%08X/%s received errno %d (%s)",__FUNCTION__,request,request_str,errno,strerror(errno));
+        DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG, "%s: ioctl 0x%08X/%s received errno %d (%s)", __FUNCTION__, request, request_str, errno, strerror(errno));
 
     return r;
 }
@@ -287,7 +287,7 @@ V4L2_Base::ioctl_set_format(struct v4l2_format new_fmt, char * errmsg)
 
         if( open_device(path, errmsg) )
         {
-            DEBUGFDEVICE(deviceName,INDI::Logger::DBG_DEBUG,"%s: failed reopening device %s (%s)",__FUNCTION__,path,errmsg);
+            DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG, "%s: failed reopening device %s (%s)", __FUNCTION__, path, errmsg);
             return -1;
         }
     }
@@ -297,7 +297,7 @@ V4L2_Base::ioctl_set_format(struct v4l2_format new_fmt, char * errmsg)
     {
         if(-1 == XIOCTL(fd, VIDIOC_TRY_FMT, &new_fmt))
         {
-            DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG,"%s: failed VIDIOC_TRY_FMT with " DBG_STR_FMT, __FUNCTION__, DBG_FMT(new_fmt));
+            DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG, "%s: failed VIDIOC_TRY_FMT with " DBG_STR_FMT, __FUNCTION__, DBG_FMT(new_fmt));
             return errno_exit("VIDIOC_TRY_FMT", errmsg);
         }
     }
@@ -307,7 +307,7 @@ V4L2_Base::ioctl_set_format(struct v4l2_format new_fmt, char * errmsg)
         /* Set format */
         if( -1 == XIOCTL(fd, VIDIOC_S_FMT, &new_fmt) )
         {
-            DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG,"%s: failed VIDIOC_S_FMT with " DBG_STR_FMT, __FUNCTION__, DBG_FMT(new_fmt));
+            DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG, "%s: failed VIDIOC_S_FMT with " DBG_STR_FMT, __FUNCTION__, DBG_FMT(new_fmt));
             return errno_exit("VIDIOC_S_FMT", errmsg);
         }
     }
@@ -317,12 +317,12 @@ V4L2_Base::ioctl_set_format(struct v4l2_format new_fmt, char * errmsg)
         new_fmt.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
         if(-1 == XIOCTL(fd, VIDIOC_G_FMT, &new_fmt))
         {
-            DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG,"%s: failed VIDIOC_G_FMT", __FUNCTION__);
+            DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG, "%s: failed VIDIOC_G_FMT", __FUNCTION__);
             return errno_exit("VIDIOC_G_FMT", errmsg);
         }
     }
 
-    DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG,"%s: current format " DBG_STR_FMT, __FUNCTION__, DBG_FMT(new_fmt));
+    DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG, "%s: current format " DBG_STR_FMT, __FUNCTION__, DBG_FMT(new_fmt));
 
     /* Update internals */
     decoder->setformat(new_fmt, has_ext_pix_format);
@@ -347,33 +347,33 @@ int V4L2_Base::errno_exit(const char * s, char * errmsg)
 
 void V4L2_Base::doDecode(bool d)
 {
-    dodecode=d;
+    dodecode = d;
 }
 
 void V4L2_Base::doRecord(bool d)
 {
-    dorecord=d;
+    dorecord = d;
 }
 
 
 void V4L2_Base::setRecorder(V4L2_Recorder * r)
 {
-    recorder=r;
+    recorder = r;
 }
 
 int V4L2_Base::connectCam(const char * devpath, char * errmsg , int pixelFormat , int width , int height)
 {
     selectCallBackID = -1;
-    cancrop=true;
-    cansetrate=true;
-    streamedonce=false;
-    frameRate.numerator=1;
-    frameRate.denominator=25;
+    cancrop = true;
+    cansetrate = true;
+    streamedonce = false;
+    frameRate.numerator = 1;
+    frameRate.denominator = 25;
 
     if (open_device (devpath, errmsg) < 0)
         return -1;
 
-    path=devpath;
+    path = devpath;
 
     if (check_device(errmsg) < 0)
         return -1;
@@ -429,8 +429,8 @@ static long getEpochTimeShift()
     gettimeofday(&epochtime, NULL);
     clock_gettime(CLOCK_MONOTONIC, &vsTime);
 
-    long const uptime_ms = vsTime.tv_sec* 1000 + (long) round( vsTime.tv_nsec/ 1000000.0);
-    long const epoch_ms =  epochtime.tv_sec * 1000  + (long) round( epochtime.tv_usec/1000.0);
+    long const uptime_ms = vsTime.tv_sec * 1000 + (long) round( vsTime.tv_nsec / 1000000.0);
+    long const epoch_ms =  epochtime.tv_sec * 1000  + (long) round( epochtime.tv_usec / 1000.0);
 
     long const epoch_shift = epoch_ms - uptime_ms;
     //DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG,"%s: epoch shift is %ld",__FUNCTION__,epoch_shift);
@@ -488,7 +488,7 @@ int V4L2_Base::read_frame(char * errmsg)
             break;
 
         case IO_METHOD_MMAP:
-            DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG,"%s: using MMAP to recover frame buffer",__FUNCTION__);
+            DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG, "%s: using MMAP to recover frame buffer", __FUNCTION__);
             CLEAR (buf);
 
             buf.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
@@ -503,27 +503,27 @@ int V4L2_Base::read_frame(char * errmsg)
                     if (-1 == XIOCTL(fd, VIDIOC_QUERYBUF, &buf)) switch(errno)
                         {
                             case EINVAL:
-                                DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG,"%s: invalid buffer query, doing as if buffer was in output queue",__FUNCTION__);
+                                DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG, "%s: invalid buffer query, doing as if buffer was in output queue", __FUNCTION__);
                                 break;
 
                             default:
                                 return errno_exit ("ReadFrame IO_METHOD_MMAP: VIDIOC_QUERYBUF", errmsg);
                         }
 
-                    DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG,"%s: " DBG_STR_BUF,__FUNCTION__, DBG_BUF(buf));
+                    DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG, "%s: " DBG_STR_BUF, __FUNCTION__, DBG_BUF(buf));
                 }
             }
 
             if (-1 == XIOCTL(fd, VIDIOC_DQBUF, &buf)) switch (errno)
                 {
                     case EAGAIN:
-                        DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG,"%s: no buffer found with DQBUF ioctl (EAGAIN) - frame not ready or not requested",__FUNCTION__);
+                        DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG, "%s: no buffer found with DQBUF ioctl (EAGAIN) - frame not ready or not requested", __FUNCTION__);
                         return 0;
 
                     case EIO:
                         /* Could ignore EIO, see spec. */
                         /* Fall through */
-                        DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG,"%s: transitory internal error with DQBUF ioctl (EIO)",__FUNCTION__);
+                        DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG, "%s: transitory internal error with DQBUF ioctl (EIO)", __FUNCTION__);
 
                     case EINVAL:
                     case EPIPE:
@@ -531,11 +531,11 @@ int V4L2_Base::read_frame(char * errmsg)
                         return errno_exit ("ReadFrame IO_METHOD_MMAP: VIDIOC_DQBUF", errmsg);
                 }
 
-            DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG,"%s: buffer #%d dequeued from fd:%d\n",__FUNCTION__, buf.index, fd);
+            DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG, "%s: buffer #%d dequeued from fd:%d\n", __FUNCTION__, buf.index, fd);
 
             if( buf.flags & V4L2_BUF_FLAG_ERROR )
             {
-                DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG,"%s: recoverable error with DQBUF ioctl (BUF_FLAG_ERROR) - frame should be dropped",__FUNCTION__);
+                DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG, "%s: recoverable error with DQBUF ioctl (BUF_FLAG_ERROR) - frame should be dropped", __FUNCTION__);
                 if (-1 == XIOCTL(fd, VIDIOC_QBUF, &buf))
                     return errno_exit ("ReadFrame IO_METHOD_MMAP: VIDIOC_QBUF", errmsg);
                 buf.bytesused = 0;
@@ -544,14 +544,14 @@ int V4L2_Base::read_frame(char * errmsg)
 
             if( !is_compressed() && buf.bytesused != fmt.fmt.pix.sizeimage )
             {
-                DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG,"%s: frame is %d-byte long, expected %d - frame should be dropped",__FUNCTION__,buf.bytesused,fmt.fmt.pix.sizeimage);
+                DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG, "%s: frame is %d-byte long, expected %d - frame should be dropped", __FUNCTION__, buf.bytesused, fmt.fmt.pix.sizeimage);
 
                 if(false)
                 {
                     unsigned char const * b = (unsigned char const *) buffers[buf.index].start;
                     unsigned char const * end = b + buf.bytesused;
 
-                    do DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG,"%s: [%p] %02X%02X%02X%02X %02X%02X%02X%02X %02X%02X%02X%02X %02X%02X%02X%02X",__FUNCTION__,b,b[0*4+0],b[0*4+1],b[0*4+2],b[0*4+3],b[1*4+0],b[1*4+1],b[1*4+2],b[1*4+3],b[2*4+0],b[2*4+1],b[2*4+2],b[2*4+3],b[3*4+0],b[3*4+1],b[3*4+2],b[3*4+3]);
+                    do DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG, "%s: [%p] %02X%02X%02X%02X %02X%02X%02X%02X %02X%02X%02X%02X %02X%02X%02X%02X", __FUNCTION__, b, b[0 * 4 + 0], b[0 * 4 + 1], b[0 * 4 + 2], b[0 * 4 + 3], b[1 * 4 + 0], b[1 * 4 + 1], b[1 * 4 + 2], b[1 * 4 + 3], b[2 * 4 + 0], b[2 * 4 + 1], b[2 * 4 + 2], b[2 * 4 + 3], b[3 * 4 + 0], b[3 * 4 + 1], b[3 * 4 + 2], b[3 * 4 + 3]);
                     while( ( b += 16 ) < end );
                 }
 
@@ -570,29 +570,29 @@ int V4L2_Base::read_frame(char * errmsg)
                 case V4L2_BUF_FLAG_TIMESTAMP_MONOTONIC:
                 {
                     struct timespec uptime = {0};
-                    clock_gettime(CLOCK_MONOTONIC,&uptime);
+                    clock_gettime(CLOCK_MONOTONIC, &uptime);
 
                     struct timeval epochtime = {0};
                     /*gettimeofday(&epochtime, NULL); uncomment this to get the timestamp from epoch start */
 
-                    float const secs = ( epochtime.tv_sec - uptime.tv_sec + buf.timestamp.tv_sec ) + (epochtime.tv_usec - uptime.tv_nsec/1000.0f + buf.timestamp.tv_usec)/1000000.0f;
+                    float const secs = ( epochtime.tv_sec - uptime.tv_sec + buf.timestamp.tv_sec ) + (epochtime.tv_usec - uptime.tv_nsec / 1000.0f + buf.timestamp.tv_usec) / 1000000.0f;
 
                     if( V4L2_BUF_FLAG_TSTAMP_SRC_SOE == ( buf.flags & V4L2_BUF_FLAG_TSTAMP_SRC_MASK ) )
                     {
-                        DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG,"%s: frame exposure started %.03f seconds ago",__FUNCTION__,-secs);
+                        DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG, "%s: frame exposure started %.03f seconds ago", __FUNCTION__, -secs);
                     }
                     else if( V4L2_BUF_FLAG_TSTAMP_SRC_EOF == ( buf.flags & V4L2_BUF_FLAG_TSTAMP_SRC_MASK ) )
                     {
-                        DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG,"%s: frame finished capturing %.03f seconds ago",__FUNCTION__,-secs);
+                        DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG, "%s: frame finished capturing %.03f seconds ago", __FUNCTION__, -secs);
                     }
-                    else DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG,"%s: unsupported timestamp in frame",__FUNCTION__);
+                    else DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG, "%s: unsupported timestamp in frame", __FUNCTION__);
 
                     break;
                 }
 
                 case V4L2_BUF_FLAG_TIMESTAMP_COPY:
                 default:
-                    DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG,"%s: no usable timestamp found in frame",__FUNCTION__);
+                    DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG, "%s: no usable timestamp found in frame", __FUNCTION__);
             }
 #endif
 
@@ -601,13 +601,13 @@ int V4L2_Base::read_frame(char * errmsg)
 
             if (dodecode)
             {
-                DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG,"%s: [%p] decoding %d-byte buffer %p cropset %c", __FUNCTION__, decoder, buf.bytesused, buffers[buf.index].start, cropset?'Y':'N');
+                DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG, "%s: [%p] decoding %d-byte buffer %p cropset %c", __FUNCTION__, decoder, buf.bytesused, buffers[buf.index].start, cropset ? 'Y' : 'N');
                 decoder->decode((unsigned char *)(buffers[buf.index].start), &buf);
             }
 
             if (dorecord)
             {
-                DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG,"%s: [%p] recording %d-byte buffer %p", __FUNCTION__, recorder, buf.bytesused, buffers[buf.index].start);
+                DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG, "%s: [%p] recording %d-byte buffer %p", __FUNCTION__, recorder, buf.bytesused, buffers[buf.index].start);
                 recorder->writeFrame((unsigned char *)(buffers[buf.index].start));
             }
 
@@ -767,7 +767,7 @@ int V4L2_Base::start_capturing(char * errmsg)
     }
     //if (dropFrameEnabled)
     //dropFrame = dropFrameCount;
-    streamedonce=true;
+    streamedonce = true;
     return 0;
 }
 
@@ -948,7 +948,7 @@ int V4L2_Base::check_device(char * errmsg)
 {
     unsigned int min;
     struct v4l2_input input_avail;
-    ISwitch * inputs=NULL;
+    ISwitch * inputs = NULL;
 
     if (-1 == XIOCTL(fd, VIDIOC_QUERYCAP, &cap))
     {
@@ -964,17 +964,17 @@ int V4L2_Base::check_device(char * errmsg)
         }
     }
 
-    DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG,"Driver %s (version %u.%u.%u)", cap.driver, (cap.version >> 16) & 0xFF,
+    DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG, "Driver %s (version %u.%u.%u)", cap.driver, (cap.version >> 16) & 0xFF,
                  (cap.version >> 8) & 0xFF, (cap.version & 0xFF));
-    DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG,"  card: %s", cap.card);
-    DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG,"  bus:  %s", cap.bus_info);
+    DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG, "  card: %s", cap.card);
+    DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG, "  bus:  %s", cap.bus_info);
 
-    setframerate=&V4L2_Base::stdsetframerate;
-    getframerate=&V4L2_Base::stdgetframerate;
+    setframerate = &V4L2_Base::stdsetframerate;
+    getframerate = &V4L2_Base::stdgetframerate;
 
     if (!(strcmp((const char *)cap.driver, "pwc")))
     {
-        unsigned int qual=3;
+        unsigned int qual = 3;
         //pwc driver does not allow to get current fps with VIDIOCPWC
         //frameRate.numerator=1; // using default module load fps
         //frameRate.denominator=10;
@@ -986,37 +986,37 @@ int V4L2_Base::check_device(char * errmsg)
         //setframerate=&V4L2_Base::pwcsetframerate;
     }
 
-    DEBUGDEVICE(deviceName, INDI::Logger::DBG_DEBUG,"Driver capabilities:");
+    DEBUGDEVICE(deviceName, INDI::Logger::DBG_DEBUG, "Driver capabilities:");
     if (cap.capabilities & V4L2_CAP_VIDEO_CAPTURE)
-        DEBUGDEVICE(deviceName, INDI::Logger::DBG_DEBUG,"  V4L2_CAP_VIDEO_CAPTURE");
+        DEBUGDEVICE(deviceName, INDI::Logger::DBG_DEBUG, "  V4L2_CAP_VIDEO_CAPTURE");
     if (cap.capabilities & V4L2_CAP_VIDEO_OUTPUT)
-        DEBUGDEVICE(deviceName, INDI::Logger::DBG_DEBUG,"  V4L2_CAP_VIDEO_OUTPUT");
+        DEBUGDEVICE(deviceName, INDI::Logger::DBG_DEBUG, "  V4L2_CAP_VIDEO_OUTPUT");
     if (cap.capabilities & V4L2_CAP_VIDEO_OVERLAY)
-        DEBUGDEVICE(deviceName, INDI::Logger::DBG_DEBUG,"  V4L2_CAP_VIDEO_OVERLAY");
+        DEBUGDEVICE(deviceName, INDI::Logger::DBG_DEBUG, "  V4L2_CAP_VIDEO_OVERLAY");
     if (cap.capabilities & V4L2_CAP_VBI_CAPTURE)
-        DEBUGDEVICE(deviceName, INDI::Logger::DBG_DEBUG,"  V4L2_CAP_VBI_CAPTURE");
+        DEBUGDEVICE(deviceName, INDI::Logger::DBG_DEBUG, "  V4L2_CAP_VBI_CAPTURE");
     if (cap.capabilities & V4L2_CAP_VBI_OUTPUT)
-        DEBUGDEVICE(deviceName, INDI::Logger::DBG_DEBUG,"  V4L2_CAP_VBI_OUTPUT");
+        DEBUGDEVICE(deviceName, INDI::Logger::DBG_DEBUG, "  V4L2_CAP_VBI_OUTPUT");
     if (cap.capabilities & V4L2_CAP_SLICED_VBI_CAPTURE)
-        DEBUGDEVICE(deviceName, INDI::Logger::DBG_DEBUG,"  V4L2_CAP_SLICED_VBI_CAPTURE");
+        DEBUGDEVICE(deviceName, INDI::Logger::DBG_DEBUG, "  V4L2_CAP_SLICED_VBI_CAPTURE");
     if (cap.capabilities & V4L2_CAP_SLICED_VBI_OUTPUT)
-        DEBUGDEVICE(deviceName, INDI::Logger::DBG_DEBUG,"  V4L2_CAP_SLICED_VBI_OUTPUT");
+        DEBUGDEVICE(deviceName, INDI::Logger::DBG_DEBUG, "  V4L2_CAP_SLICED_VBI_OUTPUT");
     if (cap.capabilities & V4L2_CAP_RDS_CAPTURE)
-        DEBUGDEVICE(deviceName, INDI::Logger::DBG_DEBUG,"  V4L2_CAP_RDS_CAPTURE");
+        DEBUGDEVICE(deviceName, INDI::Logger::DBG_DEBUG, "  V4L2_CAP_RDS_CAPTURE");
     if (cap.capabilities & V4L2_CAP_VIDEO_OUTPUT_OVERLAY)
-        DEBUGDEVICE(deviceName, INDI::Logger::DBG_DEBUG,"  V4L2_CAP_VIDEO_OUTPUT_OVERLAY");
+        DEBUGDEVICE(deviceName, INDI::Logger::DBG_DEBUG, "  V4L2_CAP_VIDEO_OUTPUT_OVERLAY");
     if (cap.capabilities & V4L2_CAP_TUNER)
-        DEBUGDEVICE(deviceName, INDI::Logger::DBG_DEBUG,"  V4L2_CAP_TUNER");
+        DEBUGDEVICE(deviceName, INDI::Logger::DBG_DEBUG, "  V4L2_CAP_TUNER");
     if (cap.capabilities & V4L2_CAP_AUDIO)
-        DEBUGDEVICE(deviceName, INDI::Logger::DBG_DEBUG,"  V4L2_CAP_AUDIO");
+        DEBUGDEVICE(deviceName, INDI::Logger::DBG_DEBUG, "  V4L2_CAP_AUDIO");
     if (cap.capabilities & V4L2_CAP_RADIO)
-        DEBUGDEVICE(deviceName, INDI::Logger::DBG_DEBUG,"  V4L2_CAP_RADIO");
+        DEBUGDEVICE(deviceName, INDI::Logger::DBG_DEBUG, "  V4L2_CAP_RADIO");
     if (cap.capabilities & V4L2_CAP_READWRITE)
-        DEBUGDEVICE(deviceName, INDI::Logger::DBG_DEBUG,"  V4L2_CAP_READWRITE");
+        DEBUGDEVICE(deviceName, INDI::Logger::DBG_DEBUG, "  V4L2_CAP_READWRITE");
     if (cap.capabilities & V4L2_CAP_ASYNCIO)
-        DEBUGDEVICE(deviceName, INDI::Logger::DBG_DEBUG,"  V4L2_CAP_ASYNCIO");
+        DEBUGDEVICE(deviceName, INDI::Logger::DBG_DEBUG, "  V4L2_CAP_ASYNCIO");
     if (cap.capabilities & V4L2_CAP_STREAMING)
-        DEBUGDEVICE(deviceName, INDI::Logger::DBG_DEBUG,"  V4L2_CAP_STREAMING");
+        DEBUGDEVICE(deviceName, INDI::Logger::DBG_DEBUG, "  V4L2_CAP_STREAMING");
     /*if (cap.capabilities & V4L2_CAP_EXT_PIX_FORMAT) {
       has_ext_pix_format=true;
       DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG,"  V4L2_CAP_EXT_PIX_FORMAT\n");
@@ -1059,48 +1059,48 @@ int V4L2_Base::check_device(char * errmsg)
         exit (EXIT_FAILURE);
     }
 
-    DEBUGDEVICE(deviceName, INDI::Logger::DBG_DEBUG,"Enumerating available Inputs:");
-    for (input_avail.index=0; ioctl(fd, VIDIOC_ENUMINPUT, &input_avail) != -1; input_avail.index ++)
-        DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG,"%2d. %s (type %s)%s", input_avail.index, input_avail.name,
-                     (input_avail.type==V4L2_INPUT_TYPE_TUNER?"Tuner/RF Demodulator":"Composite/S-Video",input.index==input_avail.index?" current":""));
+    DEBUGDEVICE(deviceName, INDI::Logger::DBG_DEBUG, "Enumerating available Inputs:");
+    for (input_avail.index = 0; ioctl(fd, VIDIOC_ENUMINPUT, &input_avail) != -1; input_avail.index ++)
+        DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG, "%2d. %s (type %s)%s", input_avail.index, input_avail.name,
+                     (input_avail.type == V4L2_INPUT_TYPE_TUNER ? "Tuner/RF Demodulator" : "Composite/S-Video", input.index == input_avail.index ? " current" : ""));
     if (errno != EINVAL)
-        DEBUGDEVICE(deviceName, INDI::Logger::DBG_DEBUG,"(problem enumerating inputs)");
+        DEBUGDEVICE(deviceName, INDI::Logger::DBG_DEBUG, "(problem enumerating inputs)");
     enumeratedInputs = input_avail.index;
 
     /* Cropping */
     cropcap.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
-    cancrop=true;
+    cancrop = true;
     if (-1 == XIOCTL(fd, VIDIOC_CROPCAP, &cropcap))
     {
         perror("VIDIOC_CROPCAP");
-        crop.c.top=-1;
-        cancrop=false;
+        crop.c.top = -1;
+        cancrop = false;
         /* Errors ignored. */
     }
     if (cancrop)
     {
-        DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG," Crop capabilities: bounds  = (top=%d, left=%d, width=%d, height=%d)", cropcap.bounds.top,
+        DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG, " Crop capabilities: bounds  = (top=%d, left=%d, width=%d, height=%d)", cropcap.bounds.top,
                      cropcap.bounds.left, cropcap.bounds.width, cropcap.bounds.height);
-        DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG," Crop capabilities: defrect = (top=%d, left=%d, width=%d, height=%d)", cropcap.defrect.top,
+        DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG, " Crop capabilities: defrect = (top=%d, left=%d, width=%d, height=%d)", cropcap.defrect.top,
                      cropcap.defrect.left, cropcap.defrect.width, cropcap.defrect.height);
-        DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG," Crop capabilities: pixelaspect = %d / %d", cropcap.pixelaspect.numerator,
+        DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG, " Crop capabilities: pixelaspect = %d / %d", cropcap.pixelaspect.numerator,
                      cropcap.pixelaspect.denominator);
-        DEBUGDEVICE(deviceName, INDI::Logger::DBG_DEBUG,"Explicitely resetting crop area to default...");
-        crop.c.top=cropcap.defrect.top;
-        crop.c.left=cropcap.defrect.left;
-        crop.c.width=cropcap.defrect.width;
-        crop.c.height=cropcap.defrect.height;
+        DEBUGDEVICE(deviceName, INDI::Logger::DBG_DEBUG, "Explicitely resetting crop area to default...");
+        crop.c.top = cropcap.defrect.top;
+        crop.c.left = cropcap.defrect.left;
+        crop.c.width = cropcap.defrect.width;
+        crop.c.height = cropcap.defrect.height;
         if (-1 == XIOCTL(fd, VIDIOC_S_CROP, &crop))
         {
             perror("VIDIOC_S_CROP");
-            cancrop=false;
+            cancrop = false;
             /* Errors ignored. */
         }
         if (-1 == XIOCTL(fd, VIDIOC_G_CROP, &crop))
         {
             perror("VIDIOC_G_CROP");
-            crop.c.top=-1;
-            cancrop=false;
+            crop.c.top = -1;
+            cancrop = false;
             /* Errors ignored. */
         }
     }
@@ -1111,106 +1111,106 @@ int V4L2_Base::check_device(char * errmsg)
         struct v4l2_fmtdesc fmt_avail;
         fmt_avail.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
         //DEBUG(INDI::Logger::DBG_SESSION,"Available Capture Image formats:");
-        DEBUGDEVICE(deviceName, INDI::Logger::DBG_DEBUG,"Enumerating available Capture Image formats:");
-        for (fmt_avail.index=0; ioctl(fd, VIDIOC_ENUM_FMT, &fmt_avail) != -1; fmt_avail.index ++)
+        DEBUGDEVICE(deviceName, INDI::Logger::DBG_DEBUG, "Enumerating available Capture Image formats:");
+        for (fmt_avail.index = 0; ioctl(fd, VIDIOC_ENUM_FMT, &fmt_avail) != -1; fmt_avail.index ++)
         {
             //DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG,INDI::Logger::DBG_SESSION,"\t%d. %s (%c%c%c%c) %s\n", fmt_avail.index, fmt_avail.description, (fmt_avail.pixelformat)&0xFF, (fmt_avail.pixelformat >> 8)&0xFF,
             //     (fmt_avail.pixelformat >> 16)&0xFF, (fmt_avail.pixelformat >> 24)&0xFF, (decoder->issupportedformat(fmt_avail.pixelformat)?"supported":"UNSUPPORTED"));
-            DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG,"%2d. Format %s (%c%c%c%c) is %s", fmt_avail.index, fmt_avail.description, (fmt_avail.pixelformat)&0xFF, (fmt_avail.pixelformat >> 8)&0xFF,
-                         (fmt_avail.pixelformat >> 16)&0xFF, (fmt_avail.pixelformat >> 24)&0xFF, (decoder->issupportedformat(fmt_avail.pixelformat)?"supported":"UNSUPPORTED"));
+            DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG, "%2d. Format %s (%c%c%c%c) is %s", fmt_avail.index, fmt_avail.description, (fmt_avail.pixelformat) & 0xFF, (fmt_avail.pixelformat >> 8) & 0xFF,
+                         (fmt_avail.pixelformat >> 16) & 0xFF, (fmt_avail.pixelformat >> 24) & 0xFF, (decoder->issupportedformat(fmt_avail.pixelformat) ? "supported" : "UNSUPPORTED"));
             {
                 // Enumerating frame sizes available for this pixel format
                 struct v4l2_frmsizeenum frm_sizeenum;
-                frm_sizeenum.pixel_format=fmt_avail.pixelformat;
-                DEBUGDEVICE(deviceName, INDI::Logger::DBG_DEBUG,"    Enumerating available Frame sizes/rates for this format:");
-                for (frm_sizeenum.index=0; XIOCTL(fd, VIDIOC_ENUM_FRAMESIZES, &frm_sizeenum) != -1; frm_sizeenum.index ++)
+                frm_sizeenum.pixel_format = fmt_avail.pixelformat;
+                DEBUGDEVICE(deviceName, INDI::Logger::DBG_DEBUG, "    Enumerating available Frame sizes/rates for this format:");
+                for (frm_sizeenum.index = 0; XIOCTL(fd, VIDIOC_ENUM_FRAMESIZES, &frm_sizeenum) != -1; frm_sizeenum.index ++)
                 {
                     switch (frm_sizeenum.type)
                     {
                         case V4L2_FRMSIZE_TYPE_DISCRETE:
-                            DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG,"    %2d. (Discrete)  width %d x height %d\n", frm_sizeenum.index, frm_sizeenum.discrete.width,  frm_sizeenum.discrete.height);
+                            DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG, "    %2d. (Discrete)  width %d x height %d\n", frm_sizeenum.index, frm_sizeenum.discrete.width,  frm_sizeenum.discrete.height);
                             break;
                         case V4L2_FRMSIZE_TYPE_STEPWISE:
-                            DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG,"        (Stepwise)  min. width %d, max. width %d step width %d", frm_sizeenum.stepwise.min_width,
+                            DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG, "        (Stepwise)  min. width %d, max. width %d step width %d", frm_sizeenum.stepwise.min_width,
                                          frm_sizeenum.stepwise.max_width, frm_sizeenum.stepwise.step_width);
-                            DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG,"        (Stepwise)  min. height %d, max. height %d step height %d ", frm_sizeenum.stepwise.min_height,
+                            DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG, "        (Stepwise)  min. height %d, max. height %d step height %d ", frm_sizeenum.stepwise.min_height,
                                          frm_sizeenum.stepwise.max_height, frm_sizeenum.stepwise.step_height);
                             break;
                         case V4L2_FRMSIZE_TYPE_CONTINUOUS:
-                            DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG,"        (Continuous--step=1)  min. width %d, max. width %d", frm_sizeenum.stepwise.min_width,
+                            DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG, "        (Continuous--step=1)  min. width %d, max. width %d", frm_sizeenum.stepwise.min_width,
                                          frm_sizeenum.stepwise.max_width);
-                            DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG,"        (Continuous--step=1)  min. height %d, max. height %d ", frm_sizeenum.stepwise.min_height,
+                            DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG, "        (Continuous--step=1)  min. height %d, max. height %d ", frm_sizeenum.stepwise.min_height,
                                          frm_sizeenum.stepwise.max_height);
                             break;
                         default:
-                            DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG,"        Unknown Frame size type: %d\n",frm_sizeenum.type);
+                            DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG, "        Unknown Frame size type: %d\n", frm_sizeenum.type);
                             break;
                     }
                     {
                         // Enumerating frame intervals available for this frame size and  this pixel format
                         struct v4l2_frmivalenum frmi_valenum;
-                        frmi_valenum.pixel_format=fmt_avail.pixelformat;
-                        if (frm_sizeenum.type==V4L2_FRMSIZE_TYPE_DISCRETE)
+                        frmi_valenum.pixel_format = fmt_avail.pixelformat;
+                        if (frm_sizeenum.type == V4L2_FRMSIZE_TYPE_DISCRETE)
                         {
-                            frmi_valenum.width=frm_sizeenum.discrete.width;
-                            frmi_valenum.height=frm_sizeenum.discrete.height;
+                            frmi_valenum.width = frm_sizeenum.discrete.width;
+                            frmi_valenum.height = frm_sizeenum.discrete.height;
                         }
                         else
                         {
-                            frmi_valenum.width=frm_sizeenum.stepwise.max_width;
-                            frmi_valenum.height=frm_sizeenum.stepwise.max_height;
+                            frmi_valenum.width = frm_sizeenum.stepwise.max_width;
+                            frmi_valenum.height = frm_sizeenum.stepwise.max_height;
                         }
-                        frmi_valenum.type=0;
-                        frmi_valenum.stepwise.min.numerator =0;
+                        frmi_valenum.type = 0;
+                        frmi_valenum.stepwise.min.numerator = 0;
                         frmi_valenum.stepwise.min.denominator = 0;
-                        frmi_valenum.stepwise.max.numerator =0;
+                        frmi_valenum.stepwise.max.numerator = 0;
                         frmi_valenum.stepwise.max.denominator = 0;
-                        frmi_valenum.stepwise.step.numerator =0;
+                        frmi_valenum.stepwise.step.numerator = 0;
                         frmi_valenum.stepwise.step.denominator = 0;
-                        DEBUGDEVICE(deviceName, INDI::Logger::DBG_DEBUG,"        Frame intervals:");
-                        for (frmi_valenum.index=0; XIOCTL(fd, VIDIOC_ENUM_FRAMEINTERVALS, &frmi_valenum) != -1; frmi_valenum.index ++)
+                        DEBUGDEVICE(deviceName, INDI::Logger::DBG_DEBUG, "        Frame intervals:");
+                        for (frmi_valenum.index = 0; XIOCTL(fd, VIDIOC_ENUM_FRAMEINTERVALS, &frmi_valenum) != -1; frmi_valenum.index ++)
                         {
                             switch (frmi_valenum.type)
                             {
                                 case V4L2_FRMIVAL_TYPE_DISCRETE:
-                                    DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG,"        %d/%d s", frmi_valenum.discrete.numerator,  frmi_valenum.discrete.denominator);
+                                    DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG, "        %d/%d s", frmi_valenum.discrete.numerator,  frmi_valenum.discrete.denominator);
                                     break;
                                 case V4L2_FRMIVAL_TYPE_STEPWISE:
-                                    DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG,"        (Stepwise)  min. %d/%ds, max. %d / %d s, step %d / %d s", frmi_valenum.stepwise.min.numerator, frmi_valenum.stepwise.min.denominator,
+                                    DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG, "        (Stepwise)  min. %d/%ds, max. %d / %d s, step %d / %d s", frmi_valenum.stepwise.min.numerator, frmi_valenum.stepwise.min.denominator,
                                                  frmi_valenum.stepwise.max.numerator, frmi_valenum.stepwise.max.denominator,
                                                  frmi_valenum.stepwise.step.numerator, frmi_valenum.stepwise.step.denominator);
                                     break;
                                 case V4L2_FRMIVAL_TYPE_CONTINUOUS:
-                                    DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG,"        (Continuous)  min. %d / %d s, max. %d / %d s", frmi_valenum.stepwise.min.numerator,
+                                    DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG, "        (Continuous)  min. %d / %d s, max. %d / %d s", frmi_valenum.stepwise.min.numerator,
                                                  frmi_valenum.stepwise.min.denominator,
                                                  frmi_valenum.stepwise.max.numerator, frmi_valenum.stepwise.max.denominator);
                                     break;
                                 default:
-                                    DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG,"        Unknown Frame rate type: %d",frmi_valenum.type);
+                                    DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG, "        Unknown Frame rate type: %d", frmi_valenum.type);
                                     break;
                             }
                         }
-                        if (frmi_valenum.index==0)
+                        if (frmi_valenum.index == 0)
                         {
                             perror("VIDIOC_ENUM_FRAMEINTERVALS");
                             switch (frmi_valenum.type)
                             {
                                 case V4L2_FRMIVAL_TYPE_DISCRETE:
-                                    DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG,"        %d/%d s", frmi_valenum.discrete.numerator,  frmi_valenum.discrete.denominator);
+                                    DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG, "        %d/%d s", frmi_valenum.discrete.numerator,  frmi_valenum.discrete.denominator);
                                     break;
                                 case V4L2_FRMIVAL_TYPE_STEPWISE:
-                                    DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG,"        (Stepwise)  min. %d/%ds, max. %d / %d s, step %d / %d s", frmi_valenum.stepwise.min.numerator,
+                                    DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG, "        (Stepwise)  min. %d/%ds, max. %d / %d s, step %d / %d s", frmi_valenum.stepwise.min.numerator,
                                                  frmi_valenum.stepwise.min.denominator,
                                                  frmi_valenum.stepwise.max.numerator, frmi_valenum.stepwise.max.denominator,
                                                  frmi_valenum.stepwise.step.numerator, frmi_valenum.stepwise.step.denominator);
                                     break;
                                 case V4L2_FRMIVAL_TYPE_CONTINUOUS:
-                                    DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG,"        (Continuous)  min. %d / %d s, max. %d / %d s", frmi_valenum.stepwise.min.numerator,
+                                    DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG, "        (Continuous)  min. %d / %d s, max. %d / %d s", frmi_valenum.stepwise.min.numerator,
                                                  frmi_valenum.stepwise.min.denominator,
                                                  frmi_valenum.stepwise.max.numerator, frmi_valenum.stepwise.max.denominator);
                                     break;
                                 default:
-                                    DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG,"        Unknown Frame rate type: %d",frmi_valenum.type);
+                                    DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG, "        Unknown Frame rate type: %d", frmi_valenum.type);
                                     break;
                             }
                         }
@@ -1220,7 +1220,7 @@ int V4L2_Base::check_device(char * errmsg)
             }
         }
         if (errno != EINVAL)
-            DEBUGDEVICE(deviceName, INDI::Logger::DBG_DEBUG,"Problem enumerating capture formats.");
+            DEBUGDEVICE(deviceName, INDI::Logger::DBG_DEBUG, "Problem enumerating capture formats.");
         enumeratedCaptureFormats = fmt_avail.index;
     }
 
@@ -1320,8 +1320,8 @@ int V4L2_Base::open_device(const char * devpath, char * errmsg)
         return -1;
     }
 
-    streamedonce=false;
-    snprintf(errmsg,ERRMSGSIZ,"%s\n",strerror(0));
+    streamedonce = false;
+    snprintf(errmsg, ERRMSGSIZ, "%s\n", strerror(0));
     return 0;
 }
 
@@ -1337,13 +1337,13 @@ void V4L2_Base::getinputs(ISwitchVectorProperty * inputssp)
     struct v4l2_input input_avail;
 
     /* Allocate inputs from previously enumerated count */
-    size_t const inputsLen = enumeratedInputs*sizeof(ISwitch);
-    ISwitch * inputs = (ISwitch*) malloc(inputsLen);
+    size_t const inputsLen = enumeratedInputs * sizeof(ISwitch);
+    ISwitch * inputs = (ISwitch *) malloc(inputsLen);
     if(!inputs) exit(EXIT_FAILURE);
     memset(inputs, 0, inputsLen);
 
     /* Ask device about each input */
-    for (input_avail.index=0; input_avail.index < enumeratedInputs; input_avail.index++)
+    for (input_avail.index = 0; input_avail.index < enumeratedInputs; input_avail.index++)
     {
         /* Enumeration ends with EINVAL */
         if(XIOCTL(fd, VIDIOC_ENUMINPUT, &input_avail))
@@ -1351,7 +1351,7 @@ void V4L2_Base::getinputs(ISwitchVectorProperty * inputssp)
 
         /* Store input description */
         strncpy(inputs[input_avail.index].name, (const char *)input_avail.name, MAXINDINAME);
-        strncpy(inputs[input_avail.index].label,(const char *)input_avail.name, MAXINDILABEL);
+        strncpy(inputs[input_avail.index].label, (const char *)input_avail.name, MAXINDILABEL);
     }
 
     /* Free inputs before replacing */
@@ -1366,19 +1366,19 @@ void V4L2_Base::getinputs(ISwitchVectorProperty * inputssp)
 
     /* And mark current */
     inputs[input.index].s = ISS_ON;
-    DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG,"Current video input is   %d. %s", input.index, inputs[input.index].name);
+    DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG, "Current video input is   %d. %s", input.index, inputs[input.index].name);
 }
 
 int V4L2_Base::setinput(unsigned int inputindex, char * errmsg)
 {
-    DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG,"Setting Video input to %d", inputindex);
+    DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG, "Setting Video input to %d", inputindex);
     if (streamedonce)
     {
         close_device();
 
         if(open_device(path, errmsg))
         {
-            DEBUGFDEVICE(deviceName,INDI::Logger::DBG_DEBUG,"%s: failed reopening device %s (%s)",__FUNCTION__,path,errmsg);
+            DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG, "%s: failed reopening device %s (%s)", __FUNCTION__, path, errmsg);
             return -1;
         }
     }
@@ -1406,14 +1406,14 @@ void V4L2_Base::getcaptureformats(ISwitchVectorProperty * captureformatssp)
     struct v4l2_fmtdesc fmt_avail;
 
     /* Allocate capture formats from preliminary enumerated count */
-    size_t const formatsLen = enumeratedCaptureFormats*sizeof(ISwitch);
-    ISwitch * formats = (ISwitch*) malloc(formatsLen);
+    size_t const formatsLen = enumeratedCaptureFormats * sizeof(ISwitch);
+    ISwitch * formats = (ISwitch *) malloc(formatsLen);
     if(!formats) exit(EXIT_FAILURE);
-    memset(formats,0,formatsLen);
+    memset(formats, 0, formatsLen);
 
     /* Ask device about each format */
     fmt_avail.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
-    for (fmt_avail.index=0; fmt_avail.index < enumeratedCaptureFormats; fmt_avail.index ++)
+    for (fmt_avail.index = 0; fmt_avail.index < enumeratedCaptureFormats; fmt_avail.index ++)
     {
         /* Enumeration ends with EINVAL */
         if(XIOCTL(fd, VIDIOC_ENUM_FMT, &fmt_avail))
@@ -1421,13 +1421,13 @@ void V4L2_Base::getcaptureformats(ISwitchVectorProperty * captureformatssp)
 
         /* Store format description */
         strncpy(formats[fmt_avail.index].name, (const char *)fmt_avail.description, MAXINDINAME);
-        strncpy(formats[fmt_avail.index].label,(const char *)fmt_avail.description, MAXINDILABEL);
+        strncpy(formats[fmt_avail.index].label, (const char *)fmt_avail.description, MAXINDILABEL);
 
         /* And store pixel format for reference */
         /* FIXME: store pixel format as void pointer to avoid that malloc */
-        formats[fmt_avail.index].aux=(int*)malloc(sizeof(int));
+        formats[fmt_avail.index].aux = (int *)malloc(sizeof(int));
         if(!formats[fmt_avail.index].aux) exit(EXIT_FAILURE);
-        *(int*)formats[fmt_avail.index].aux = fmt_avail.pixelformat;
+        *(int *)formats[fmt_avail.index].aux = fmt_avail.pixelformat;
     }
 
     /* Free formats before replacing */
@@ -1440,13 +1440,13 @@ void V4L2_Base::getcaptureformats(ISwitchVectorProperty * captureformatssp)
     IUResetSwitch(captureformatssp);
 
     /* And mark current */
-    for (unsigned int i=0; i < fmt_avail.index; i++)
+    for (unsigned int i = 0; i < fmt_avail.index; i++)
     {
-        if (fmt.fmt.pix.pixelformat == *(int*)formats[i].aux)
+        if (fmt.fmt.pix.pixelformat == *(int *)formats[i].aux)
         {
             formats[i].s = ISS_ON;
-            DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG,"Current capture format is %d. %c%c%c%c.", i, (fmt.fmt.pix.pixelformat)&0xFF, (fmt.fmt.pix.pixelformat >> 8)&0xFF,
-                         (fmt.fmt.pix.pixelformat >> 16)&0xFF, (fmt.fmt.pix.pixelformat >> 24)&0xFF);
+            DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG, "Current capture format is %d. %c%c%c%c.", i, (fmt.fmt.pix.pixelformat) & 0xFF, (fmt.fmt.pix.pixelformat >> 8) & 0xFF,
+                         (fmt.fmt.pix.pixelformat >> 16) & 0xFF, (fmt.fmt.pix.pixelformat >> 24) & 0xFF);
         }
         else formats[i].s = ISS_OFF;
     }
@@ -1472,60 +1472,60 @@ int V4L2_Base::setcaptureformat(unsigned int captureformat, char * errmsg)
 void V4L2_Base::getcapturesizes(ISwitchVectorProperty * capturesizessp, INumberVectorProperty * capturesizenp)
 {
     struct v4l2_frmsizeenum frm_sizeenum;
-    ISwitch * sizes=NULL;
-    INumber * sizevalue=NULL;
-    bool sizefound=false;
+    ISwitch * sizes = NULL;
+    INumber * sizevalue = NULL;
+    bool sizefound = false;
     if (capturesizessp->sp) free(capturesizessp->sp);
     if (capturesizenp->np) free(capturesizenp->np);
 
-    frm_sizeenum.pixel_format=fmt.fmt.pix.pixelformat;
+    frm_sizeenum.pixel_format = fmt.fmt.pix.pixelformat;
     //DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG,"\t  Available Frame sizes/rates for this format:\n");
-    for (frm_sizeenum.index=0; XIOCTL(fd, VIDIOC_ENUM_FRAMESIZES, &frm_sizeenum) != -1;
+    for (frm_sizeenum.index = 0; XIOCTL(fd, VIDIOC_ENUM_FRAMESIZES, &frm_sizeenum) != -1;
             frm_sizeenum.index ++)
     {
         switch (frm_sizeenum.type)
         {
             case V4L2_FRMSIZE_TYPE_DISCRETE:
-                sizes = (sizes==NULL)?(ISwitch *)malloc(sizeof(ISwitch)):
-                        (ISwitch *) realloc (sizes, (frm_sizeenum.index+1) * sizeof (ISwitch));
+                sizes = (sizes == NULL) ? (ISwitch *)malloc(sizeof(ISwitch)) :
+                        (ISwitch *) realloc (sizes, (frm_sizeenum.index + 1) * sizeof (ISwitch));
 
                 snprintf(sizes[frm_sizeenum.index].name, MAXINDINAME, "%dx%d", frm_sizeenum.discrete.width,  frm_sizeenum.discrete.height);
                 snprintf(sizes[frm_sizeenum.index].label, MAXINDINAME, "%dx%d", frm_sizeenum.discrete.width,  frm_sizeenum.discrete.height);
-                sizes[frm_sizeenum.index].s=ISS_OFF;
+                sizes[frm_sizeenum.index].s = ISS_OFF;
                 if (!sizefound)
                 {
                     if ((fmt.fmt.pix.width == frm_sizeenum.discrete.width) && (fmt.fmt.pix.height == frm_sizeenum.discrete.height))
                     {
-                        sizes[frm_sizeenum.index].s=ISS_ON;
-                        sizefound=true;
-                        DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG,"Current capture size is (%d.)  %dx%d", frm_sizeenum.index, frm_sizeenum.discrete.width,  frm_sizeenum.discrete.height);
+                        sizes[frm_sizeenum.index].s = ISS_ON;
+                        sizefound = true;
+                        DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG, "Current capture size is (%d.)  %dx%d", frm_sizeenum.index, frm_sizeenum.discrete.width,  frm_sizeenum.discrete.height);
                     }
                 }
                 break;
             case V4L2_FRMSIZE_TYPE_STEPWISE:
             case V4L2_FRMSIZE_TYPE_CONTINUOUS:
-                sizevalue=(INumber *)malloc(2 * sizeof(INumber));
+                sizevalue = (INumber *)malloc(2 * sizeof(INumber));
                 IUFillNumber(sizevalue, "Width", "Width", "%.0f", frm_sizeenum.stepwise.min_width, frm_sizeenum.stepwise.max_width, frm_sizeenum.stepwise.step_width, fmt.fmt.pix.width);
-                IUFillNumber(sizevalue+1, "Height", "Height", "%.0f", frm_sizeenum.stepwise.min_height, frm_sizeenum.stepwise.max_height, frm_sizeenum.stepwise.step_height, fmt.fmt.pix.height);
-                DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG,"Current capture size is %dx%d", fmt.fmt.pix.width,  fmt.fmt.pix.height);
+                IUFillNumber(sizevalue + 1, "Height", "Height", "%.0f", frm_sizeenum.stepwise.min_height, frm_sizeenum.stepwise.max_height, frm_sizeenum.stepwise.step_height, fmt.fmt.pix.height);
+                DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG, "Current capture size is %dx%d", fmt.fmt.pix.width,  fmt.fmt.pix.height);
                 break;
             default:
-                DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG,"Unknown Frame size type: %d",frm_sizeenum.type);
+                DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG, "Unknown Frame size type: %d", frm_sizeenum.type);
                 break;
         }
     }
 
     if (sizes != NULL)
     {
-        capturesizessp->sp=sizes;
-        capturesizessp->nsp=frm_sizeenum.index;
-        capturesizenp->np=NULL;
+        capturesizessp->sp = sizes;
+        capturesizessp->nsp = frm_sizeenum.index;
+        capturesizenp->np = NULL;
     }
     else
     {
-        capturesizenp->np=sizevalue;
-        capturesizenp->nnp=2;
-        capturesizessp->sp=NULL;
+        capturesizenp->np = sizevalue;
+        capturesizenp->nnp = 2;
+        capturesizessp->sp = NULL;
     }
 }
 
@@ -1549,69 +1549,69 @@ int V4L2_Base::setcapturesize(unsigned int w, unsigned int h, char * errmsg)
 void V4L2_Base::getframerates(ISwitchVectorProperty * frameratessp, INumberVectorProperty * frameratenp)
 {
     struct v4l2_frmivalenum frmi_valenum;
-    ISwitch * rates=NULL;
-    INumber * ratevalue=NULL;
+    ISwitch * rates = NULL;
+    INumber * ratevalue = NULL;
     struct v4l2_fract frate;
 
     if (frameratessp->sp) free(frameratessp->sp);
     if (frameratenp->np) free(frameratenp->np);
-    frate=(this->*getframerate)();
+    frate = (this->*getframerate)();
 
     bzero(&frmi_valenum, sizeof(frmi_valenum));
-    frmi_valenum.pixel_format=fmt.fmt.pix.pixelformat;
-    frmi_valenum.width=fmt.fmt.pix.width;
-    frmi_valenum.height=fmt.fmt.pix.height;
+    frmi_valenum.pixel_format = fmt.fmt.pix.pixelformat;
+    frmi_valenum.width = fmt.fmt.pix.width;
+    frmi_valenum.height = fmt.fmt.pix.height;
 
-    for (frmi_valenum.index=0; XIOCTL(fd, VIDIOC_ENUM_FRAMEINTERVALS, &frmi_valenum) != -1;
+    for (frmi_valenum.index = 0; XIOCTL(fd, VIDIOC_ENUM_FRAMEINTERVALS, &frmi_valenum) != -1;
             frmi_valenum.index ++)
     {
         switch (frmi_valenum.type)
         {
             case V4L2_FRMIVAL_TYPE_DISCRETE:
-                rates = (rates==NULL)?(ISwitch *)malloc(sizeof(ISwitch)):
-                        (ISwitch *) realloc (rates, (frmi_valenum.index+1) * sizeof (ISwitch));
+                rates = (rates == NULL) ? (ISwitch *)malloc(sizeof(ISwitch)) :
+                        (ISwitch *) realloc (rates, (frmi_valenum.index + 1) * sizeof (ISwitch));
                 snprintf(rates[frmi_valenum.index].name, MAXINDINAME, "%d/%d", frmi_valenum.discrete.numerator,  frmi_valenum.discrete.denominator);
                 snprintf(rates[frmi_valenum.index].label, MAXINDINAME, "%d/%d", frmi_valenum.discrete.numerator,  frmi_valenum.discrete.denominator);
-                if ((frate.numerator==frmi_valenum.discrete.numerator) &&(frate.denominator==frmi_valenum.discrete.denominator))
+                if ((frate.numerator == frmi_valenum.discrete.numerator) && (frate.denominator == frmi_valenum.discrete.denominator))
                 {
-                    DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG,"Current frame interval is %d/%d", frmi_valenum.discrete.numerator, frmi_valenum.discrete.denominator);
-                    rates[frmi_valenum.index].s=ISS_ON;
+                    DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG, "Current frame interval is %d/%d", frmi_valenum.discrete.numerator, frmi_valenum.discrete.denominator);
+                    rates[frmi_valenum.index].s = ISS_ON;
                 }
                 else
-                    rates[frmi_valenum.index].s=ISS_OFF;
+                    rates[frmi_valenum.index].s = ISS_OFF;
                 break;
             case V4L2_FRMIVAL_TYPE_STEPWISE:
             case V4L2_FRMIVAL_TYPE_CONTINUOUS:
-                ratevalue=(INumber *)malloc(sizeof(INumber));
-                IUFillNumber(ratevalue, "V4L2_FRAME_INTERVAL", "Frame Interval", "%.0f", frmi_valenum.stepwise.min.numerator/(double)frmi_valenum.stepwise.min.denominator, frmi_valenum.stepwise.max.numerator/(double)frmi_valenum.stepwise.max.denominator, frmi_valenum.stepwise.step.numerator/(double)frmi_valenum.stepwise.step.denominator, frate.numerator/(double)frate.denominator);
+                ratevalue = (INumber *)malloc(sizeof(INumber));
+                IUFillNumber(ratevalue, "V4L2_FRAME_INTERVAL", "Frame Interval", "%.0f", frmi_valenum.stepwise.min.numerator / (double)frmi_valenum.stepwise.min.denominator, frmi_valenum.stepwise.max.numerator / (double)frmi_valenum.stepwise.max.denominator, frmi_valenum.stepwise.step.numerator / (double)frmi_valenum.stepwise.step.denominator, frate.numerator / (double)frate.denominator);
                 break;
             default:
-                DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG,"Unknown Frame rate type: %d",frmi_valenum.type);
+                DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG, "Unknown Frame rate type: %d", frmi_valenum.type);
                 break;
         }
     }
-    frameratessp->sp=NULL;
-    frameratessp->nsp=0;
-    frameratenp->np=NULL;
-    frameratenp->nnp=0;
-    if (frmi_valenum.index!=0)
+    frameratessp->sp = NULL;
+    frameratessp->nsp = 0;
+    frameratenp->np = NULL;
+    frameratenp->nnp = 0;
+    if (frmi_valenum.index != 0)
     {
         if (rates != NULL)
         {
-            frameratessp->sp=rates;
-            frameratessp->nsp=frmi_valenum.index;
+            frameratessp->sp = rates;
+            frameratessp->nsp = frmi_valenum.index;
         }
         else
         {
-            frameratenp->np=ratevalue;
-            frameratenp->nnp=1;
+            frameratenp->np = ratevalue;
+            frameratenp->nnp = 1;
         }
     }
 }
 
 int V4L2_Base::setcroprect(int x, int y, int w, int h, char * errmsg)
 {
-    struct v4l2_crop oldcrop=crop;
+    struct v4l2_crop oldcrop = crop;
     bool softcrop;
 
     crop.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
@@ -1621,23 +1621,23 @@ int V4L2_Base::setcroprect(int x, int y, int w, int h, char * errmsg)
     crop.c.height = h;
     if (crop.c.left + crop.c.width > fmt.fmt.pix.width)
     {
-        strncpy(errmsg, "crop width exceeds image width",ERRMSGSIZ);
+        strncpy(errmsg, "crop width exceeds image width", ERRMSGSIZ);
         return -1;
     }
     if (crop.c.top + crop.c.height > fmt.fmt.pix.height)
     {
-        strncpy(errmsg, "crop height exceeds image height",ERRMSGSIZ);
+        strncpy(errmsg, "crop height exceeds image height", ERRMSGSIZ);
         return -1;
     }
     // we only support pair sizes
     if ((crop.c.width % 2 != 0) || (crop.c.height % 2 != 0))
     {
-        strncpy(errmsg, "crop width/height must be pair",ERRMSGSIZ);
+        strncpy(errmsg, "crop width/height must be pair", ERRMSGSIZ);
         return -1;
     }
-    if ((crop.c.left==0)&&(crop.c.top==0)&&(crop.c.width==fmt.fmt.pix.width)&&(crop.c.height==fmt.fmt.pix.height))
+    if ((crop.c.left == 0) && (crop.c.top == 0) && (crop.c.width == fmt.fmt.pix.width) && (crop.c.height == fmt.fmt.pix.height))
     {
-        cropset=false;
+        cropset = false;
         decoder->resetcrop();
     }
     else
@@ -1653,18 +1653,18 @@ int V4L2_Base::setcroprect(int x, int y, int w, int h, char * errmsg)
                 return errno_exit ("VIDIOC_G_CROP", errmsg);
             }
         }
-        softcrop=decoder->setcrop(crop);
-        cropset=true;
+        softcrop = decoder->setcrop(crop);
+        cropset = true;
         if ((!cancrop) && (!softcrop))
         {
-            cropset=false;
-            strncpy(errmsg, "No hardware and sofwtare cropping for this format",ERRMSGSIZ);
+            cropset = false;
+            strncpy(errmsg, "No hardware and sofwtare cropping for this format", ERRMSGSIZ);
             return -1;
         }
 
     }
     //decode allocBuffers();
-    DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG,"V4L2 base setcroprect %dx%d at (%d, %d)", crop.c.width, crop.c.height, crop.c.left, crop.c.top);
+    DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG, "V4L2 base setcroprect %dx%d at (%d, %d)", crop.c.width, crop.c.height, crop.c.left, crop.c.top);
     return 0;
 }
 
@@ -1704,8 +1704,8 @@ int V4L2_Base::stdsetframerate(struct v4l2_fract frate, char * errmsg)
     struct v4l2_streamparm sparm;
     //if (!cansetrate) {sprintf(errmsg, "Can not set rate"); return -1;}
     bzero(&sparm, sizeof(struct v4l2_streamparm));
-    sparm.type= V4L2_BUF_TYPE_VIDEO_CAPTURE;
-    sparm.parm.capture.timeperframe=frate;
+    sparm.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+    sparm.parm.capture.timeperframe = frate;
     if (-1 == XIOCTL(fd, VIDIOC_S_PARM, &sparm))
     {
         //cansetrate=false;
@@ -1740,14 +1740,14 @@ struct v4l2_fract V4L2_Base::stdgetframerate()
     struct v4l2_streamparm sparm;
     //if (!cansetrate) return frameRate;
     bzero(&sparm, sizeof(struct v4l2_streamparm));
-    sparm.type= V4L2_BUF_TYPE_VIDEO_CAPTURE;
+    sparm.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
     if (-1 == XIOCTL(fd, VIDIOC_G_PARM, &sparm))
     {
         perror ("VIDIOC_G_PARM");
     }
     else
     {
-        frameRate=sparm.parm.capture.timeperframe;
+        frameRate = sparm.parm.capture.timeperframe;
     }
     //if (!(sparm.parm.capture.capability & V4L2_CAP_TIMEPERFRAME)) cansetrate=false;
 
@@ -1799,7 +1799,7 @@ void V4L2_Base::setColorProcessing(bool quantization, bool colorconvert, bool li
 {
     decoder->setQuantization(quantization);
     decoder->setLinearization(linearization);
-    bpp=decoder->getBpp();
+    bpp = decoder->getBpp();
 }
 
 unsigned char * V4L2_Base::getY()
@@ -1896,13 +1896,13 @@ void V4L2_Base::enumerate_ctrl (void)
             if ((queryctrl.type == V4L2_CTRL_TYPE_MENU))//|| (queryctrl.type == V4L2_CTRL_TYPE_INTEGER_MENU)) // not in < 3.5
                 enumerate_menu ();
             if (queryctrl.type == V4L2_CTRL_TYPE_BOOLEAN)
-                cerr << "  boolean" <<endl;
+                cerr << "  boolean" << endl;
             if (queryctrl.type == V4L2_CTRL_TYPE_INTEGER)
-                cerr << "  integer" <<endl;
+                cerr << "  integer" << endl;
             //if (queryctrl.type == V4L2_CTRL_TYPE_BITMASK) //not in < 3.1
             //  cerr << "  bitmask" <<endl;
             if (queryctrl.type == V4L2_CTRL_TYPE_BUTTON)
-                cerr << "  button" <<endl;
+                cerr << "  button" << endl;
         }
         else
         {
@@ -1930,13 +1930,13 @@ void V4L2_Base::enumerate_ctrl (void)
             if ((queryctrl.type == V4L2_CTRL_TYPE_MENU))// || (queryctrl.type == V4L2_CTRL_TYPE_INTEGER_MENU))
                 enumerate_menu ();
             if (queryctrl.type == V4L2_CTRL_TYPE_BOOLEAN)
-                cerr << "  boolean" <<endl;
+                cerr << "  boolean" << endl;
             if (queryctrl.type == V4L2_CTRL_TYPE_INTEGER)
-                cerr << "  integer" <<endl;
+                cerr << "  integer" << endl;
             //if (queryctrl.type == V4L2_CTRL_TYPE_BITMASK)
             //  cerr << "  bitmask" <<endl;
             if (queryctrl.type == V4L2_CTRL_TYPE_BUTTON)
-                cerr << "  button" <<endl;
+                cerr << "  button" << endl;
         }
         else
         {
@@ -2024,14 +2024,14 @@ void  V4L2_Base::queryControls(INumberVectorProperty * nvp, unsigned int * nnumb
 
     INumber * numbers = NULL;
     unsigned int * num_ctrls = NULL;
-    int nnum=0;
-    ISwitchVectorProperty * opt=NULL;
-    unsigned int nopt=0;
-    char optname[]="OPT000";
-    char swonname[]="SET_OPT000";
-    char swoffname[]="UNSET_OPT000";
-    char menuname[]="MENU000";
-    char menuoptname[]="MENU000_OPT000";
+    int nnum = 0;
+    ISwitchVectorProperty * opt = NULL;
+    unsigned int nopt = 0;
+    char optname[] = "OPT000";
+    char swonname[] = "SET_OPT000";
+    char swoffname[] = "UNSET_OPT000";
+    char menuname[] = "MENU000";
+    char menuoptname[] = "MENU000_OPT000";
     *noptions = 0;
     *nnumber = 0;
 
@@ -2050,10 +2050,10 @@ void  V4L2_Base::queryControls(INumberVectorProperty * nvp, unsigned int * nnumb
             if (queryctrl.type == V4L2_CTRL_TYPE_INTEGER)
             {
                 numbers = (numbers == NULL) ? (INumber *) malloc (sizeof(INumber)) :
-                          (INumber *) realloc (numbers, (nnum+1) * sizeof (INumber));
+                          (INumber *) realloc (numbers, (nnum + 1) * sizeof (INumber));
 
                 num_ctrls = (num_ctrls == NULL) ? (unsigned int *) malloc  (sizeof (unsigned int)) :
-                            (unsigned int *) realloc (num_ctrls, (nnum+1) * sizeof (unsigned int));
+                            (unsigned int *) realloc (num_ctrls, (nnum + 1) * sizeof (unsigned int));
 
                 strncpy(numbers[nnum].name, (const char *)entityXML((char *) queryctrl.name) , MAXINDINAME);
                 strncpy(numbers[nnum].label, (const char *)entityXML((char *) queryctrl.name), MAXINDILABEL);
@@ -2080,39 +2080,39 @@ void  V4L2_Base::queryControls(INumberVectorProperty * nvp, unsigned int * nnumb
             }
             if (queryctrl.type == V4L2_CTRL_TYPE_BOOLEAN)
             {
-                ISwitch * sw = (ISwitch *)malloc(2*sizeof(ISwitch));
-                snprintf(optname+3, 4, "%03d", nopt);
-                snprintf(swonname+7, 4, "%03d", nopt);
-                snprintf(swoffname+9, 4, "%03d", nopt);
+                ISwitch * sw = (ISwitch *)malloc(2 * sizeof(ISwitch));
+                snprintf(optname + 3, 4, "%03d", nopt);
+                snprintf(swonname + 7, 4, "%03d", nopt);
+                snprintf(swoffname + 9, 4, "%03d", nopt);
 
                 opt = (opt == NULL) ? (ISwitchVectorProperty *) malloc (sizeof(ISwitchVectorProperty)) :
-                      (ISwitchVectorProperty *) realloc (opt, (nopt+1) * sizeof (ISwitchVectorProperty));
+                      (ISwitchVectorProperty *) realloc (opt, (nopt + 1) * sizeof (ISwitchVectorProperty));
 
                 CLEAR(control);
                 control.id = queryctrl.id;
                 XIOCTL(fd, VIDIOC_G_CTRL, &control);
 
-                IUFillSwitch(sw, swonname, "Off", (control.value?ISS_OFF:ISS_ON));
-                IUFillSwitch(sw+1, swoffname, "On", (control.value?ISS_ON:ISS_OFF));
-                queryctrl.name[31]='\0';
+                IUFillSwitch(sw, swonname, "Off", (control.value ? ISS_OFF : ISS_ON));
+                IUFillSwitch(sw + 1, swoffname, "On", (control.value ? ISS_ON : ISS_OFF));
+                queryctrl.name[31] = '\0';
                 IUFillSwitchVector (&opt[nopt], sw, 2, dev, optname, (const char *)entityXML((char *)queryctrl.name), group, IP_RW, ISR_1OFMANY, 0.0, IPS_IDLE);
-                opt[nopt].aux=malloc(sizeof(unsigned int));
-                *(unsigned int *)(opt[nopt].aux)=(queryctrl.id);
+                opt[nopt].aux = malloc(sizeof(unsigned int));
+                *(unsigned int *)(opt[nopt].aux) = (queryctrl.id);
 
-                DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG,"Adding switch  %s (%s)\n", queryctrl.name, (control.value?"On":"Off"));
+                DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG, "Adding switch  %s (%s)\n", queryctrl.name, (control.value ? "On" : "Off"));
                 nopt += 1;
             }
             if (queryctrl.type == V4L2_CTRL_TYPE_MENU)
             {
                 ISwitch * sw = NULL;
-                unsigned int nmenuopt=0;
+                unsigned int nmenuopt = 0;
                 char sname[32];
-                snprintf(menuname+4, 4, "%03d", nopt);
-                snprintf(menuoptname+4, 4, "%03d", nopt);
-                menuoptname[7]='_';
+                snprintf(menuname + 4, 4, "%03d", nopt);
+                snprintf(menuoptname + 4, 4, "%03d", nopt);
+                menuoptname[7] = '_';
 
                 opt = (opt == NULL) ? (ISwitchVectorProperty *) malloc (sizeof(ISwitchVectorProperty)) :
-                      (ISwitchVectorProperty *) realloc (opt, (nopt+1) * sizeof (ISwitchVectorProperty));
+                      (ISwitchVectorProperty *) realloc (opt, (nopt + 1) * sizeof (ISwitchVectorProperty));
 
                 CLEAR(control);
                 control.id = queryctrl.id;
@@ -2126,14 +2126,14 @@ void  V4L2_Base::queryControls(INumberVectorProperty * nvp, unsigned int * nnumb
                     if (0 == XIOCTL(fd, VIDIOC_QUERYMENU, &querymenu))
                     {
                         sw = (sw == NULL) ? (ISwitch *) malloc (sizeof(ISwitch)) :
-                             (ISwitch *) realloc (sw, (nmenuopt+1) * sizeof (ISwitch));
-                        snprintf(menuoptname+11, 4, "%03d", nmenuopt);
+                             (ISwitch *) realloc (sw, (nmenuopt + 1) * sizeof (ISwitch));
+                        snprintf(menuoptname + 11, 4, "%03d", nmenuopt);
                         snprintf(sname, 31, "%s", querymenu.name);
-                        sname[31]='\0';
-                        DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG,"Adding menu item %s %s %s item %d", querymenu.name, sname, menuoptname, nmenuopt);
+                        sname[31] = '\0';
+                        DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG, "Adding menu item %s %s %s item %d", querymenu.name, sname, menuoptname, nmenuopt);
                         //IUFillSwitch(&sw[nmenuopt], menuoptname, (const char *)sname, (control.value==nmenuopt?ISS_ON:ISS_OFF));
-                        IUFillSwitch(&sw[nmenuopt], menuoptname, (const char *)entityXML((char *)querymenu.name), (control.value==nmenuopt?ISS_ON:ISS_OFF));
-                        nmenuopt+=1;
+                        IUFillSwitch(&sw[nmenuopt], menuoptname, (const char *)entityXML((char *)querymenu.name), (control.value == nmenuopt ? ISS_ON : ISS_OFF));
+                        nmenuopt += 1;
                     }
                     else
                     {
@@ -2142,12 +2142,12 @@ void  V4L2_Base::queryControls(INumberVectorProperty * nvp, unsigned int * nnumb
                     }
                 }
 
-                queryctrl.name[31]='\0';
+                queryctrl.name[31] = '\0';
                 IUFillSwitchVector (&opt[nopt], sw, nmenuopt, dev, menuname, (const char *)entityXML((char *)queryctrl.name), group, IP_RW, ISR_1OFMANY, 0.0, IPS_IDLE);
-                opt[nopt].aux=malloc(sizeof(unsigned int));
-                *(unsigned int *)(opt[nopt].aux)=(queryctrl.id);
+                opt[nopt].aux = malloc(sizeof(unsigned int));
+                *(unsigned int *)(opt[nopt].aux) = (queryctrl.id);
 
-                DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG,"Adding menu  %s (item %d set)", queryctrl.name, control.value);
+                DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG, "Adding menu  %s (item %d set)", queryctrl.name, control.value);
                 nopt += 1;
             }
         }
@@ -2176,10 +2176,10 @@ void  V4L2_Base::queryControls(INumberVectorProperty * nvp, unsigned int * nnumb
             if (queryctrl.type == V4L2_CTRL_TYPE_INTEGER)
             {
                 numbers = (numbers == NULL) ? (INumber *) malloc (sizeof(INumber)) :
-                          (INumber *) realloc (numbers, (nnum+1) * sizeof (INumber));
+                          (INumber *) realloc (numbers, (nnum + 1) * sizeof (INumber));
 
                 num_ctrls = (num_ctrls == NULL) ? (unsigned int *) malloc  (sizeof (unsigned int)) :
-                            (unsigned int *) realloc (num_ctrls, (nnum+1) * sizeof (unsigned int));
+                            (unsigned int *) realloc (num_ctrls, (nnum + 1) * sizeof (unsigned int));
 
                 strncpy(numbers[nnum].name, (const char *)entityXML((char *) queryctrl.name) , MAXINDINAME);
                 strncpy(numbers[nnum].label, (const char *)entityXML((char *) queryctrl.name), MAXINDILABEL);
@@ -2205,40 +2205,40 @@ void  V4L2_Base::queryControls(INumberVectorProperty * nvp, unsigned int * nnumb
             }
             if (queryctrl.type == V4L2_CTRL_TYPE_BOOLEAN)
             {
-                ISwitch * sw = (ISwitch *)malloc(2*sizeof(ISwitch));
-                snprintf(optname+3, 4, "%03d", nopt);
-                snprintf(swonname+7, 4, "%03d", nopt);
-                snprintf(swoffname+9, 4, "%03d", nopt);
+                ISwitch * sw = (ISwitch *)malloc(2 * sizeof(ISwitch));
+                snprintf(optname + 3, 4, "%03d", nopt);
+                snprintf(swonname + 7, 4, "%03d", nopt);
+                snprintf(swoffname + 9, 4, "%03d", nopt);
 
                 opt = (opt == NULL) ? (ISwitchVectorProperty *) malloc (sizeof(ISwitchVectorProperty)) :
-                      (ISwitchVectorProperty *) realloc (opt, (nopt+1) * sizeof (ISwitchVectorProperty));
+                      (ISwitchVectorProperty *) realloc (opt, (nopt + 1) * sizeof (ISwitchVectorProperty));
 
                 CLEAR(control);
                 control.id = queryctrl.id;
                 XIOCTL(fd, VIDIOC_G_CTRL, &control);
 
-                IUFillSwitch(sw, swonname, "On", (control.value?ISS_ON:ISS_OFF));
-                IUFillSwitch(sw+1, swoffname, "Off", (control.value?ISS_OFF:ISS_ON));
-                queryctrl.name[31]='\0';
+                IUFillSwitch(sw, swonname, "On", (control.value ? ISS_ON : ISS_OFF));
+                IUFillSwitch(sw + 1, swoffname, "Off", (control.value ? ISS_OFF : ISS_ON));
+                queryctrl.name[31] = '\0';
                 IUFillSwitchVector (&opt[nopt], sw, 2, dev, optname, (const char *)entityXML((char *)queryctrl.name), group, IP_RW, ISR_1OFMANY, 0.0, IPS_IDLE);
 
-                opt[nopt].aux=malloc(sizeof(unsigned int));
-                *(unsigned int *)(opt[nopt].aux)=(queryctrl.id);
+                opt[nopt].aux = malloc(sizeof(unsigned int));
+                *(unsigned int *)(opt[nopt].aux) = (queryctrl.id);
 
-                DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG,"Adding ext. switch  %s (%s)\n", queryctrl.name, (control.value?"On":"Off"));
+                DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG, "Adding ext. switch  %s (%s)\n", queryctrl.name, (control.value ? "On" : "Off"));
                 nopt += 1;
             }
             if (queryctrl.type == V4L2_CTRL_TYPE_MENU)
             {
                 ISwitch * sw = NULL;
-                unsigned int nmenuopt=0;
+                unsigned int nmenuopt = 0;
                 char sname[32];
-                snprintf(menuname+4, 4, "%03d", nopt);
-                snprintf(menuoptname+4, 4, "%03d", nopt);
-                menuoptname[7]='_';
+                snprintf(menuname + 4, 4, "%03d", nopt);
+                snprintf(menuoptname + 4, 4, "%03d", nopt);
+                menuoptname[7] = '_';
 
                 opt = (opt == NULL) ? (ISwitchVectorProperty *) malloc (sizeof(ISwitchVectorProperty)) :
-                      (ISwitchVectorProperty *) realloc (opt, (nopt+1) * sizeof (ISwitchVectorProperty));
+                      (ISwitchVectorProperty *) realloc (opt, (nopt + 1) * sizeof (ISwitchVectorProperty));
 
                 CLEAR(control);
                 control.id = queryctrl.id;
@@ -2252,14 +2252,14 @@ void  V4L2_Base::queryControls(INumberVectorProperty * nvp, unsigned int * nnumb
                     if (0 == XIOCTL(fd, VIDIOC_QUERYMENU, &querymenu))
                     {
                         sw = (sw == NULL) ? (ISwitch *) malloc (sizeof(ISwitch)) :
-                             (ISwitch *) realloc (sw, (nmenuopt+1) * sizeof (ISwitch));
-                        snprintf(menuoptname+11, 4, "%03d", nmenuopt);
+                             (ISwitch *) realloc (sw, (nmenuopt + 1) * sizeof (ISwitch));
+                        snprintf(menuoptname + 11, 4, "%03d", nmenuopt);
                         snprintf(sname, 31, "%s", querymenu.name);
-                        sname[31]='\0';
-                        DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG,"Adding menu item %s %s %s item %d", querymenu.name, sname, menuoptname, nmenuopt);
+                        sname[31] = '\0';
+                        DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG, "Adding menu item %s %s %s item %d", querymenu.name, sname, menuoptname, nmenuopt);
                         //IUFillSwitch(&sw[nmenuopt], menuoptname, (const char *)sname, (control.value==nmenuopt?ISS_ON:ISS_OFF));
-                        IUFillSwitch(&sw[nmenuopt], menuoptname, (const char *)entityXML((char *)querymenu.name), (control.value==nmenuopt?ISS_ON:ISS_OFF));
-                        nmenuopt+=1;
+                        IUFillSwitch(&sw[nmenuopt], menuoptname, (const char *)entityXML((char *)querymenu.name), (control.value == nmenuopt ? ISS_ON : ISS_OFF));
+                        nmenuopt += 1;
                     }
                     else
                     {
@@ -2268,13 +2268,13 @@ void  V4L2_Base::queryControls(INumberVectorProperty * nvp, unsigned int * nnumb
                     }
                 }
 
-                queryctrl.name[31]='\0';
+                queryctrl.name[31] = '\0';
                 IUFillSwitchVector (&opt[nopt], sw, nmenuopt, dev, menuname, (const char *)entityXML((char *)queryctrl.name), group, IP_RW, ISR_1OFMANY, 0.0, IPS_IDLE);
 
-                opt[nopt].aux=malloc(sizeof(unsigned int));
-                *(unsigned int *)(opt[nopt].aux)=(queryctrl.id);
+                opt[nopt].aux = malloc(sizeof(unsigned int));
+                *(unsigned int *)(opt[nopt].aux) = (queryctrl.id);
 
-                DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG,"Adding ext. menu  %s (item %d set)", queryctrl.name, control.value);
+                DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG, "Adding ext. menu  %s (item %d set)", queryctrl.name, control.value);
                 nopt += 1;
             }
 
@@ -2283,15 +2283,15 @@ void  V4L2_Base::queryControls(INumberVectorProperty * nvp, unsigned int * nnumb
     }
 
     /* Store numbers in aux0 */
-    for (int i=0; i < nnum; i++)
+    for (int i = 0; i < nnum; i++)
         numbers[i].aux0 = &num_ctrls[i];
 
     nvp->np  = numbers;
     nvp->nnp = nnum;
-    *nnumber=nnum;
+    *nnumber = nnum;
 
-    *options=opt;
-    *noptions=nopt;
+    *options = opt;
+    *noptions = nopt;
 
 }
 
@@ -2303,7 +2303,7 @@ int  V4L2_Base::queryINTControls(INumberVectorProperty * nvp)
     CLEAR(queryctrl);
     INumber * numbers = NULL;
     unsigned int * num_ctrls = NULL;
-    int nnum=0;
+    int nnum = 0;
 
     for (queryctrl.id = V4L2_CID_BASE; queryctrl.id < V4L2_CID_LASTP1; queryctrl.id++)
     {
@@ -2318,10 +2318,10 @@ int  V4L2_Base::queryINTControls(INumberVectorProperty * nvp)
             if (queryctrl.type == V4L2_CTRL_TYPE_INTEGER)
             {
                 numbers = (numbers == NULL) ? (INumber *) malloc (sizeof(INumber)) :
-                          (INumber *) realloc (numbers, (nnum+1) * sizeof (INumber));
+                          (INumber *) realloc (numbers, (nnum + 1) * sizeof (INumber));
 
                 num_ctrls = (num_ctrls == NULL) ? (unsigned int *) malloc  (sizeof (unsigned int)) :
-                            (unsigned int *) realloc (num_ctrls, (nnum+1) * sizeof (unsigned int));
+                            (unsigned int *) realloc (num_ctrls, (nnum + 1) * sizeof (unsigned int));
 
                 strncpy(numbers[nnum].name, ((char *) queryctrl.name) , MAXINDINAME);
                 strncpy(numbers[nnum].label, ((char *) queryctrl.name), MAXINDILABEL);
@@ -2368,10 +2368,10 @@ int  V4L2_Base::queryINTControls(INumberVectorProperty * nvp)
             if (queryctrl.type == V4L2_CTRL_TYPE_INTEGER)
             {
                 numbers = (numbers == NULL) ? (INumber *) malloc (sizeof(INumber)) :
-                          (INumber *) realloc (numbers, (nnum+1) * sizeof (INumber));
+                          (INumber *) realloc (numbers, (nnum + 1) * sizeof (INumber));
 
                 num_ctrls = (num_ctrls == NULL) ? (unsigned int *) malloc  (sizeof (unsigned int)) :
-                            (unsigned int *) realloc (num_ctrls, (nnum+1) * sizeof (unsigned int));
+                            (unsigned int *) realloc (num_ctrls, (nnum + 1) * sizeof (unsigned int));
 
                 strncpy(numbers[nnum].name, ((char *) queryctrl.name) , MAXINDINAME);
                 strncpy(numbers[nnum].label, ((char *) queryctrl.name), MAXINDILABEL);
@@ -2398,7 +2398,7 @@ int  V4L2_Base::queryINTControls(INumberVectorProperty * nvp)
     }
 
     /* Store numbers in aux0 */
-    for (int i=0; i < nnum; i++)
+    for (int i = 0; i < nnum; i++)
         numbers[i].aux0 = &num_ctrls[i];
 
     nvp->np  = numbers;
@@ -2482,13 +2482,13 @@ bool V4L2_Base::enumerate_ext_ctrl (void)
         if ((queryctrl.type == V4L2_CTRL_TYPE_MENU))//|| (queryctrl.type == V4L2_CTRL_TYPE_INTEGER_MENU)) // not in < 3.5
             enumerate_menu ();
         if (queryctrl.type == V4L2_CTRL_TYPE_BOOLEAN)
-            cerr << "  boolean" <<endl;
+            cerr << "  boolean" << endl;
         if (queryctrl.type == V4L2_CTRL_TYPE_INTEGER)
-            cerr << "  integer" <<endl;
+            cerr << "  integer" << endl;
         //if (queryctrl.type == V4L2_CTRL_TYPE_BITMASK) //not in < 3.1
         //  cerr << "  bitmask" <<endl;
         if (queryctrl.type == V4L2_CTRL_TYPE_BUTTON)
-            cerr << "  button" <<endl;
+            cerr << "  button" << endl;
         queryctrl.id |= V4L2_CTRL_FLAG_NEXT_CTRL;
     }
     return true;
@@ -2502,14 +2502,14 @@ bool  V4L2_Base::queryExtControls(INumberVectorProperty * nvp, unsigned int * nn
 
     INumber * numbers = NULL;
     unsigned int * num_ctrls = NULL;
-    int nnum=0;
-    ISwitchVectorProperty * opt=NULL;
-    unsigned int nopt=0;
-    char optname[]="OPT000";
-    char swonname[]="SET_OPT000";
-    char swoffname[]="UNSET_OPT000";
-    char menuname[]="MENU000";
-    char menuoptname[]="MENU000_OPT000";
+    int nnum = 0;
+    ISwitchVectorProperty * opt = NULL;
+    unsigned int nopt = 0;
+    char optname[] = "OPT000";
+    char swonname[] = "SET_OPT000";
+    char swoffname[] = "UNSET_OPT000";
+    char menuname[] = "MENU000";
+    char menuoptname[] = "MENU000_OPT000";
     *noptions = 0;
     *nnumber = 0;
 
@@ -2539,9 +2539,9 @@ bool  V4L2_Base::queryExtControls(INumberVectorProperty * nvp, unsigned int * nn
 
         if (queryctrl.type == V4L2_CTRL_TYPE_INTEGER)
         {
-            numbers = (numbers == NULL) ? (INumber *) malloc (sizeof(INumber)) : (INumber *) realloc (numbers, (nnum+1) * sizeof (INumber));
+            numbers = (numbers == NULL) ? (INumber *) malloc (sizeof(INumber)) : (INumber *) realloc (numbers, (nnum + 1) * sizeof (INumber));
 
-            num_ctrls = (num_ctrls == NULL) ? (unsigned int *) malloc  (sizeof (unsigned int)) : (unsigned int *) realloc (num_ctrls, (nnum+1) * sizeof (unsigned int));
+            num_ctrls = (num_ctrls == NULL) ? (unsigned int *) malloc  (sizeof (unsigned int)) : (unsigned int *) realloc (num_ctrls, (nnum + 1) * sizeof (unsigned int));
 
             strncpy(numbers[nnum].name, (const char *)entityXML((char *) queryctrl.name) , MAXINDINAME);
             strncpy(numbers[nnum].label, (const char *)entityXML((char *) queryctrl.name), MAXINDILABEL);
@@ -2568,60 +2568,60 @@ bool  V4L2_Base::queryExtControls(INumberVectorProperty * nvp, unsigned int * nn
         }
         if (queryctrl.type == V4L2_CTRL_TYPE_BOOLEAN)
         {
-            ISwitch * sw = (ISwitch *)malloc(2*sizeof(ISwitch));
-            snprintf(optname+3, 4, "%03d", nopt);
-            snprintf(swonname+7, 4, "%03d", nopt);
-            snprintf(swoffname+9, 4, "%03d", nopt);
+            ISwitch * sw = (ISwitch *)malloc(2 * sizeof(ISwitch));
+            snprintf(optname + 3, 4, "%03d", nopt);
+            snprintf(swonname + 7, 4, "%03d", nopt);
+            snprintf(swoffname + 9, 4, "%03d", nopt);
 
             opt = (opt == NULL) ? (ISwitchVectorProperty *) malloc (sizeof(ISwitchVectorProperty)) :
-                  (ISwitchVectorProperty *) realloc (opt, (nopt+1) * sizeof (ISwitchVectorProperty));
+                  (ISwitchVectorProperty *) realloc (opt, (nopt + 1) * sizeof (ISwitchVectorProperty));
 
             CLEAR(control);
             control.id = queryctrl.id;
             XIOCTL(fd, VIDIOC_G_CTRL, &control);
 
-            IUFillSwitch(sw, swonname, "Off", (control.value?ISS_OFF:ISS_ON));
-            sw->aux=NULL;
-            IUFillSwitch(sw+1, swoffname, "On", (control.value?ISS_ON:ISS_OFF));
-            (sw+1)->aux=NULL;
-            queryctrl.name[31]='\0';
+            IUFillSwitch(sw, swonname, "Off", (control.value ? ISS_OFF : ISS_ON));
+            sw->aux = NULL;
+            IUFillSwitch(sw + 1, swoffname, "On", (control.value ? ISS_ON : ISS_OFF));
+            (sw + 1)->aux = NULL;
+            queryctrl.name[31] = '\0';
             IUFillSwitchVector (&opt[nopt], sw, 2, dev, optname, (const char *)entityXML((char *)queryctrl.name), group, IP_RW, ISR_1OFMANY, 0.0, IPS_IDLE);
-            opt[nopt].aux=malloc(sizeof(unsigned int));
-            *(unsigned int *)(opt[nopt].aux)=(queryctrl.id);
+            opt[nopt].aux = malloc(sizeof(unsigned int));
+            *(unsigned int *)(opt[nopt].aux) = (queryctrl.id);
 
-            DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG,"Adding switch  %s (%s)", queryctrl.name, (control.value?"On":"Off"));
+            DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG, "Adding switch  %s (%s)", queryctrl.name, (control.value ? "On" : "Off"));
             nopt += 1;
         }
         if (queryctrl.type == V4L2_CTRL_TYPE_BUTTON)
         {
             ISwitch * sw = (ISwitch *)malloc(sizeof(ISwitch));
-            snprintf(optname+3, 4, "%03d", nopt);
-            snprintf(swonname+7, 4, "%03d", nopt);
+            snprintf(optname + 3, 4, "%03d", nopt);
+            snprintf(swonname + 7, 4, "%03d", nopt);
             //snprintf(swoffname+9, 4, "%03d", nopt);
 
             opt = (opt == NULL) ? (ISwitchVectorProperty *) malloc (sizeof(ISwitchVectorProperty)) :
-                  (ISwitchVectorProperty *) realloc (opt, (nopt+1) * sizeof (ISwitchVectorProperty));
+                  (ISwitchVectorProperty *) realloc (opt, (nopt + 1) * sizeof (ISwitchVectorProperty));
 
-            queryctrl.name[31]='\0';
+            queryctrl.name[31] = '\0';
             IUFillSwitch(sw, swonname, (const char *)entityXML((char *)queryctrl.name), ISS_OFF);
-            sw->aux=NULL;
+            sw->aux = NULL;
             IUFillSwitchVector (&opt[nopt], sw, 1, dev, optname, (const char *)entityXML((char *)queryctrl.name), group, IP_RW, ISR_NOFMANY, 0.0, IPS_IDLE);
-            opt[nopt].aux=malloc(sizeof(unsigned int));
-            *(unsigned int *)(opt[nopt].aux)=(queryctrl.id);
-            DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG,"Adding Button %s", queryctrl.name);
+            opt[nopt].aux = malloc(sizeof(unsigned int));
+            *(unsigned int *)(opt[nopt].aux) = (queryctrl.id);
+            DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG, "Adding Button %s", queryctrl.name);
             nopt += 1;
         }
         if (queryctrl.type == V4L2_CTRL_TYPE_MENU)
         {
             ISwitch * sw = NULL;
-            unsigned int nmenuopt=0;
+            unsigned int nmenuopt = 0;
             char sname[32];
-            snprintf(menuname+4, 4, "%03d", nopt);
-            snprintf(menuoptname+4, 4, "%03d", nopt);
-            menuoptname[7]='_';
+            snprintf(menuname + 4, 4, "%03d", nopt);
+            snprintf(menuoptname + 4, 4, "%03d", nopt);
+            menuoptname[7] = '_';
 
             opt = (opt == NULL) ? (ISwitchVectorProperty *) malloc (sizeof(ISwitchVectorProperty)) :
-                  (ISwitchVectorProperty *) realloc (opt, (nopt+1) * sizeof (ISwitchVectorProperty));
+                  (ISwitchVectorProperty *) realloc (opt, (nopt + 1) * sizeof (ISwitchVectorProperty));
 
             CLEAR(control);
             control.id = queryctrl.id;
@@ -2635,16 +2635,16 @@ bool  V4L2_Base::queryExtControls(INumberVectorProperty * nvp, unsigned int * nn
                 if (0 == XIOCTL(fd, VIDIOC_QUERYMENU, &querymenu))
                 {
                     sw = (sw == NULL) ? (ISwitch *) malloc (sizeof(ISwitch)) :
-                         (ISwitch *) realloc (sw, (nmenuopt+1) * sizeof (ISwitch));
-                    snprintf(menuoptname+11, 4, "%03d", nmenuopt);
+                         (ISwitch *) realloc (sw, (nmenuopt + 1) * sizeof (ISwitch));
+                    snprintf(menuoptname + 11, 4, "%03d", nmenuopt);
                     snprintf(sname, 31, "%s", querymenu.name);
-                    sname[31]='\0';
-                    DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG,"Adding menu item %s %s %s item %d index %d", querymenu.name, sname, menuoptname, nmenuopt, querymenu.index);
+                    sname[31] = '\0';
+                    DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG, "Adding menu item %s %s %s item %d index %d", querymenu.name, sname, menuoptname, nmenuopt, querymenu.index);
                     //IUFillSwitch(&sw[nmenuopt], menuoptname, (const char *)sname, (control.value==nmenuopt?ISS_ON:ISS_OFF));
-                    IUFillSwitch(&sw[nmenuopt], menuoptname, (const char *)entityXML((char *)querymenu.name), (control.value==nmenuopt?ISS_ON:ISS_OFF));
-                    sw[nmenuopt].aux=malloc(sizeof(unsigned int));
-                    *(unsigned int *)(sw[nmenuopt].aux)=(querymenu.index);
-                    nmenuopt+=1;
+                    IUFillSwitch(&sw[nmenuopt], menuoptname, (const char *)entityXML((char *)querymenu.name), (control.value == nmenuopt ? ISS_ON : ISS_OFF));
+                    sw[nmenuopt].aux = malloc(sizeof(unsigned int));
+                    *(unsigned int *)(sw[nmenuopt].aux) = (querymenu.index);
+                    nmenuopt += 1;
                 }
                 else
                 {
@@ -2653,12 +2653,12 @@ bool  V4L2_Base::queryExtControls(INumberVectorProperty * nvp, unsigned int * nn
                 }
             }
 
-            queryctrl.name[31]='\0';
+            queryctrl.name[31] = '\0';
             IUFillSwitchVector (&opt[nopt], sw, nmenuopt, dev, menuname, (const char *)entityXML((char *)queryctrl.name), group, IP_RW, ISR_1OFMANY, 0.0, IPS_IDLE);
-            opt[nopt].aux=malloc(sizeof(unsigned int));
-            *(unsigned int *)(opt[nopt].aux)=(queryctrl.id);
+            opt[nopt].aux = malloc(sizeof(unsigned int));
+            *(unsigned int *)(opt[nopt].aux) = (queryctrl.id);
 
-            DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG,"Adding menu  %s (item %d set)", queryctrl.name, control.value);
+            DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG, "Adding menu  %s (item %d set)", queryctrl.name, control.value);
             nopt += 1;
         }
 
@@ -2671,15 +2671,15 @@ bool  V4L2_Base::queryExtControls(INumberVectorProperty * nvp, unsigned int * nn
     }
 
     /* Store numbers in aux0 */
-    for (int i=0; i < nnum; i++)
+    for (int i = 0; i < nnum; i++)
         numbers[i].aux0 = &num_ctrls[i];
 
     nvp->np  = numbers;
     nvp->nnp = nnum;
-    *nnumber=nnum;
+    *nnumber = nnum;
 
-    *options=opt;
-    *noptions=nopt;
+    *options = opt;
+    *noptions = nopt;
 
     return true;
 

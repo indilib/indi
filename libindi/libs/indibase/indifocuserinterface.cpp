@@ -36,63 +36,63 @@ void INDI::FocuserInterface::initFocuserProperties(const char * deviceName, cons
 {
     strncpy(focuserName, deviceName, MAXINDIDEVICE);
 
-    IUFillNumber(&FocusSpeedN[0],"FOCUS_SPEED_VALUE","Focus Speed","%3.0f",0.0,255.0,1.0,255.0);
-    IUFillNumberVector(&FocusSpeedNP,FocusSpeedN,1,deviceName,"FOCUS_SPEED","Speed",groupName,IP_RW,60,IPS_OK);
+    IUFillNumber(&FocusSpeedN[0], "FOCUS_SPEED_VALUE", "Focus Speed", "%3.0f", 0.0, 255.0, 1.0, 255.0);
+    IUFillNumberVector(&FocusSpeedNP, FocusSpeedN, 1, deviceName, "FOCUS_SPEED", "Speed", groupName, IP_RW, 60, IPS_OK);
 
-    IUFillNumber(&FocusTimerN[0],"FOCUS_TIMER_VALUE","Focus Timer (ms)","%4.0f",0.0,5000.0,50.0,1000.0);
-    IUFillNumberVector(&FocusTimerNP,FocusTimerN,1,deviceName,"FOCUS_TIMER","Timer",groupName,IP_RW,60,IPS_OK);
+    IUFillNumber(&FocusTimerN[0], "FOCUS_TIMER_VALUE", "Focus Timer (ms)", "%4.0f", 0.0, 5000.0, 50.0, 1000.0);
+    IUFillNumberVector(&FocusTimerNP, FocusTimerN, 1, deviceName, "FOCUS_TIMER", "Timer", groupName, IP_RW, 60, IPS_OK);
     lastTimerValue = 1000.0;
 
-    IUFillSwitch(&FocusMotionS[0],"FOCUS_INWARD","Focus In",ISS_ON);
-    IUFillSwitch(&FocusMotionS[1],"FOCUS_OUTWARD","Focus Out",ISS_OFF);
-    IUFillSwitchVector(&FocusMotionSP,FocusMotionS,2,deviceName,"FOCUS_MOTION","Direction",groupName,IP_RW,ISR_1OFMANY,60,IPS_OK);
+    IUFillSwitch(&FocusMotionS[0], "FOCUS_INWARD", "Focus In", ISS_ON);
+    IUFillSwitch(&FocusMotionS[1], "FOCUS_OUTWARD", "Focus Out", ISS_OFF);
+    IUFillSwitchVector(&FocusMotionSP, FocusMotionS, 2, deviceName, "FOCUS_MOTION", "Direction", groupName, IP_RW, ISR_1OFMANY, 60, IPS_OK);
 
     // Driver can define those to clients if there is support
-    IUFillNumber(&FocusAbsPosN[0],"FOCUS_ABSOLUTE_POSITION","Ticks","%4.0f",0.0,100000.0,1000.0,0);
-    IUFillNumberVector(&FocusAbsPosNP,FocusAbsPosN,1,deviceName,"ABS_FOCUS_POSITION","Absolute Position",groupName,IP_RW,60,IPS_OK);
+    IUFillNumber(&FocusAbsPosN[0], "FOCUS_ABSOLUTE_POSITION", "Ticks", "%4.0f", 0.0, 100000.0, 1000.0, 0);
+    IUFillNumberVector(&FocusAbsPosNP, FocusAbsPosN, 1, deviceName, "ABS_FOCUS_POSITION", "Absolute Position", groupName, IP_RW, 60, IPS_OK);
 
-    IUFillNumber(&FocusRelPosN[0],"FOCUS_RELATIVE_POSITION","Ticks","%4.0f",0.0,100000.0,1000.0,0);
-    IUFillNumberVector(&FocusRelPosNP,FocusRelPosN,1,deviceName,"REL_FOCUS_POSITION","Relative Position",groupName,IP_RW,60,IPS_OK);
+    IUFillNumber(&FocusRelPosN[0], "FOCUS_RELATIVE_POSITION", "Ticks", "%4.0f", 0.0, 100000.0, 1000.0, 0);
+    IUFillNumberVector(&FocusRelPosNP, FocusRelPosN, 1, deviceName, "REL_FOCUS_POSITION", "Relative Position", groupName, IP_RW, 60, IPS_OK);
 
-    IUFillSwitch(&AbortS[0],"ABORT","Abort",ISS_OFF);
-    IUFillSwitchVector(&AbortSP,AbortS,1,deviceName,"FOCUS_ABORT_MOTION","Abort Motion",groupName,IP_RW,ISR_ATMOST1,60,IPS_IDLE);
+    IUFillSwitch(&AbortS[0], "ABORT", "Abort", ISS_OFF);
+    IUFillSwitchVector(&AbortSP, AbortS, 1, deviceName, "FOCUS_ABORT_MOTION", "Abort Motion", groupName, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
 }
 
 bool INDI::FocuserInterface::processFocuserNumber (const char * dev, const char * name, double values[], char * names[], int n)
 {
     //  This is for our device
     //  Now lets see if it's something we process here
-    if(strcmp(name,"FOCUS_TIMER")==0)
+    if(strcmp(name, "FOCUS_TIMER") == 0)
     {
         FocusDirection dir;
         int speed;
         int t;
 
         //  first we get all the numbers just sent to us
-        IUUpdateNumber(&FocusTimerNP,values,names,n);
+        IUUpdateNumber(&FocusTimerNP, values, names, n);
 
         //  Now lets find what we need for this move
-        speed=FocusSpeedN[0].value;
+        speed = FocusSpeedN[0].value;
 
-        if(FocusMotionS[0].s==ISS_ON)
-            dir=FOCUS_INWARD;
+        if(FocusMotionS[0].s == ISS_ON)
+            dir = FOCUS_INWARD;
         else
-            dir=FOCUS_OUTWARD;
+            dir = FOCUS_OUTWARD;
 
-        t=FocusTimerN[0].value;
+        t = FocusTimerN[0].value;
         lastTimerValue = t;
 
-        FocusTimerNP.s = MoveFocuser(dir,speed,t);
-        IDSetNumber(&FocusTimerNP,NULL);
+        FocusTimerNP.s = MoveFocuser(dir, speed, t);
+        IDSetNumber(&FocusTimerNP, NULL);
         return true;
     }
 
 
-    if(strcmp(name,"FOCUS_SPEED")==0)
+    if(strcmp(name, "FOCUS_SPEED") == 0)
     {
-        FocusSpeedNP.s=IPS_OK;
+        FocusSpeedNP.s = IPS_OK;
         int current_speed = FocusSpeedN[0].value;
-        IUUpdateNumber(&FocusSpeedNP,values,names,n);
+        IUUpdateNumber(&FocusSpeedNP, values, names, n);
 
         if (SetFocuserSpeed(FocusSpeedN[0].value) == false)
         {
@@ -101,11 +101,11 @@ bool INDI::FocuserInterface::processFocuserNumber (const char * dev, const char 
         }
 
         //  Update client display
-        IDSetNumber(&FocusSpeedNP,NULL);
+        IDSetNumber(&FocusSpeedNP, NULL);
         return true;
     }
 
-    if(strcmp(name,"ABS_FOCUS_POSITION")==0)
+    if(strcmp(name, "ABS_FOCUS_POSITION") == 0)
     {
         int newPos = (int) values[0];
 
@@ -128,14 +128,14 @@ bool INDI::FocuserInterface::processFocuserNumber (const char * dev, const char 
 
         if ( (ret = MoveAbsFocuser(newPos)) == IPS_OK)
         {
-            FocusAbsPosNP.s=IPS_OK;
-            IUUpdateNumber(&FocusAbsPosNP,values,names,n);
+            FocusAbsPosNP.s = IPS_OK;
+            IUUpdateNumber(&FocusAbsPosNP, values, names, n);
             IDSetNumber(&FocusAbsPosNP, "Focuser moved to position %d", newPos);
             return true;
         }
         else if (ret == IPS_BUSY)
         {
-            FocusAbsPosNP.s=IPS_BUSY;
+            FocusAbsPosNP.s = IPS_BUSY;
             IDSetNumber(&FocusAbsPosNP, "Focuser is moving to position %d", newPos);
             return true;
         }
@@ -147,7 +147,7 @@ bool INDI::FocuserInterface::processFocuserNumber (const char * dev, const char 
     }
 
 
-    if(strcmp(name,"REL_FOCUS_POSITION")==0)
+    if(strcmp(name, "REL_FOCUS_POSITION") == 0)
     {
         int newPos = (int) values[0];
 
@@ -185,18 +185,18 @@ bool INDI::FocuserInterface::processFocuserNumber (const char * dev, const char 
             }
         }
 
-        if ( (ret=MoveRelFocuser( (FocusMotionS[0].s == ISS_ON ? FOCUS_INWARD : FOCUS_OUTWARD), newPos)) == IPS_OK)
+        if ( (ret = MoveRelFocuser( (FocusMotionS[0].s == ISS_ON ? FOCUS_INWARD : FOCUS_OUTWARD), newPos)) == IPS_OK)
         {
-            FocusRelPosNP.s=FocusAbsPosNP.s=IPS_OK;
-            IUUpdateNumber(&FocusRelPosNP,values,names,n);
+            FocusRelPosNP.s = FocusAbsPosNP.s = IPS_OK;
+            IUUpdateNumber(&FocusRelPosNP, values, names, n);
             IDSetNumber(&FocusRelPosNP, "Focuser moved %d steps %s", newPos, FocusMotionS[0].s == ISS_ON ? "inward" : "outward");
             IDSetNumber(&FocusAbsPosNP, NULL);
             return true;
         }
         else if (ret == IPS_BUSY)
         {
-            IUUpdateNumber(&FocusRelPosNP,values,names,n);
-            FocusRelPosNP.s=FocusAbsPosNP.s=IPS_BUSY;
+            IUUpdateNumber(&FocusRelPosNP, values, names, n);
+            FocusRelPosNP.s = FocusAbsPosNP.s = IPS_BUSY;
             IDSetNumber(&FocusAbsPosNP, "Focuser is moving %d steps %s...", newPos, FocusMotionS[0].s == ISS_ON ? "inward" : "outward");
             IDSetNumber(&FocusAbsPosNP, NULL);
             return true;
@@ -214,18 +214,18 @@ bool INDI::FocuserInterface::processFocuserNumber (const char * dev, const char 
 bool INDI::FocuserInterface::processFocuserSwitch (const char * dev, const char * name, ISState * states, char * names[], int n)
 {
     //  This one is for us
-    if(strcmp(name,"FOCUS_MOTION")==0)
+    if(strcmp(name, "FOCUS_MOTION") == 0)
     {
         //  client is telling us what to do with focus direction
-        FocusMotionSP.s=IPS_OK;
-        IUUpdateSwitch(&FocusMotionSP,states,names,n);
+        FocusMotionSP.s = IPS_OK;
+        IUUpdateSwitch(&FocusMotionSP, states, names, n);
         //  Update client display
-        IDSetSwitch(&FocusMotionSP,NULL);
+        IDSetSwitch(&FocusMotionSP, NULL);
 
         return true;
     }
 
-    if(strcmp(name,"FOCUS_ABORT_MOTION")==0)
+    if(strcmp(name, "FOCUS_ABORT_MOTION") == 0)
     {
         IUResetSwitch(&AbortSP);
 

@@ -25,42 +25,42 @@
 
 class LX200Basic : public INDI::Telescope
 {
- public:
- LX200Basic();
- ~LX200Basic();
+    public:
+        LX200Basic();
+        ~LX200Basic();
 
- virtual const char *getDefaultName();
- virtual bool Handshake();
- virtual bool ReadScopeStatus();
- virtual void ISGetProperties(const char *dev);
- virtual bool initProperties();
- virtual bool updateProperties();
- virtual bool ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n);
+        virtual const char * getDefaultName();
+        virtual bool Handshake();
+        virtual bool ReadScopeStatus();
+        virtual void ISGetProperties(const char * dev);
+        virtual bool initProperties();
+        virtual bool updateProperties();
+        virtual bool ISNewNumber (const char * dev, const char * name, double values[], char * names[], int n);
 
-protected:
+    protected:
 
- virtual bool Abort();
- virtual bool Goto(double,double);
- virtual bool Sync(double ra, double dec);
+        virtual bool Abort();
+        virtual bool Goto(double, double);
+        virtual bool Sync(double ra, double dec);
 
- virtual void debugTriggered(bool enable);
+        virtual void debugTriggered(bool enable);
 
- virtual void getBasicData();
+        virtual void getBasicData();
 
 
-private:
+    private:
 
- bool isSlewComplete();
- void slewError(int slewCode);
- void mountSim();
+        bool isSlewComplete();
+        void slewError(int slewCode);
+        void mountSim();
 
-  INumber SlewAccuracyN[2];
-  INumberVectorProperty SlewAccuracyNP;
+        INumber SlewAccuracyN[2];
+        INumberVectorProperty SlewAccuracyNP;
 
-  bool   simulation;
-  double targetRA, targetDEC;
-  double currentRA, currentDEC;
-  unsigned int DBG_SCOPE;
+        bool   simulation;
+        double targetRA, targetDEC;
+        double currentRA, currentDEC;
+        unsigned int DBG_SCOPE;
 
 };
 

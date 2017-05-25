@@ -31,18 +31,18 @@ extern const char * CONNECTION_TAB;
 Serial::Serial(INDI::DefaultDevice * dev) : Interface(dev)
 {
 #ifdef __APPLE__
-    IUFillText(&PortT[0],"PORT","Port","/dev/cu.usbserial");
+    IUFillText(&PortT[0], "PORT", "Port", "/dev/cu.usbserial");
 #else
-    IUFillText(&PortT[0],"PORT","Port","/dev/ttyUSB0");
+    IUFillText(&PortT[0], "PORT", "Port", "/dev/ttyUSB0");
 #endif
-    IUFillTextVector(&PortTP,PortT,1, dev->getDeviceName(),"DEVICE_PORT","Ports",CONNECTION_TAB,IP_RW,60,IPS_IDLE);
+    IUFillTextVector(&PortTP, PortT, 1, dev->getDeviceName(), "DEVICE_PORT", "Ports", CONNECTION_TAB, IP_RW, 60, IPS_IDLE);
 
     IUFillSwitch(&AutoSearchS[0], "ENABLED", "Enabled", ISS_ON);
     IUFillSwitch(&AutoSearchS[1], "DISABLED", "Disabled", ISS_OFF);
-    IUFillSwitchVector(&AutoSearchSP, AutoSearchS, 2, dev->getDeviceName(),"DEVICE_AUTO_SEARCH", "Auto Search", CONNECTION_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
+    IUFillSwitchVector(&AutoSearchSP, AutoSearchS, 2, dev->getDeviceName(), "DEVICE_AUTO_SEARCH", "Auto Search", CONNECTION_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
 
     IUFillSwitch(&RefreshS[0], "Scan Ports", "Scan Ports", ISS_OFF);
-    IUFillSwitchVector(&RefreshSP, RefreshS, 1, dev->getDeviceName(),"DEVICE_PORT_SCAN", "Refresh", CONNECTION_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
+    IUFillSwitchVector(&RefreshSP, RefreshS, 1, dev->getDeviceName(), "DEVICE_PORT_SCAN", "Refresh", CONNECTION_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
 
     IUFillSwitch(&BaudRateS[0], "9600", "", ISS_ON);
     IUFillSwitch(&BaudRateS[1], "19200", "", ISS_OFF);
@@ -50,7 +50,7 @@ Serial::Serial(INDI::DefaultDevice * dev) : Interface(dev)
     IUFillSwitch(&BaudRateS[3], "57600", "", ISS_OFF);
     IUFillSwitch(&BaudRateS[4], "115200", "", ISS_OFF);
     IUFillSwitch(&BaudRateS[5], "230400", "", ISS_OFF);
-    IUFillSwitchVector(&BaudRateSP, BaudRateS, 6, dev->getDeviceName(),"DEVICE_BAUD_RATE", "Baud Rate", CONNECTION_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
+    IUFillSwitchVector(&BaudRateSP, BaudRateS, 6, dev->getDeviceName(), "DEVICE_BAUD_RATE", "Baud Rate", CONNECTION_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
 }
 
 Serial::~Serial()
@@ -60,14 +60,14 @@ Serial::~Serial()
 
 bool Serial::ISNewText (const char * dev, const char * name, char * texts[], char * names[], int n)
 {
-    if(!strcmp(dev,device->getDeviceName()))
+    if(!strcmp(dev, device->getDeviceName()))
     {
         // Serial Port
-        if(!strcmp(name,PortTP.name))
+        if(!strcmp(name, PortTP.name))
         {
-            IUUpdateText(&PortTP,texts,names,n);
-            PortTP.s=IPS_OK;
-            IDSetText(&PortTP,NULL);
+            IUUpdateText(&PortTP, texts, names, n);
+            PortTP.s = IPS_OK;
+            IDSetText(&PortTP, NULL);
             return true;
         }
     }
@@ -77,7 +77,7 @@ bool Serial::ISNewText (const char * dev, const char * name, char * texts[], cha
 
 bool Serial::ISNewSwitch (const char * dev, const char * name, ISState * states, char * names[], int n)
 {
-    if(!strcmp(dev,device->getDeviceName()))
+    if(!strcmp(dev, device->getDeviceName()))
     {
         if (!strcmp(name, BaudRateSP.name))
         {
@@ -144,7 +144,7 @@ bool Serial::Connect()
     if (rc == false && AutoSearchS[0].s == ISS_ON && SystemPortS != NULL)
     {
         DEBUGF(INDI::Logger::DBG_WARNING, "Communication with %s @ %d failed. Starting Auto Search...", PortT[0].text, baud);
-        for (int i=0; i < SystemPortSP.nsp; i++)
+        for (int i = 0; i < SystemPortSP.nsp; i++)
         {
             DEBUGF(INDI::Logger::DBG_DEBUG, "Trying connection to %s @ %d ...", SystemPortS[i].name, baud);
             if (Connect(SystemPortS[i].name, baud))
@@ -184,21 +184,21 @@ bool Serial::Connect(const char * port, uint32_t baud)
     if (device->isSimulation())
         return true;
 
-    int connectrc=0;
+    int connectrc = 0;
     char errorMsg[MAXRBUF];
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "Connecting to %s",port);
+    DEBUGF(INDI::Logger::DBG_DEBUG, "Connecting to %s", port);
 
     if ( (connectrc = tty_connect(port, baud, 8, 0, 1, &PortFD)) != TTY_OK)
     {
         tty_error_msg(connectrc, errorMsg, MAXRBUF);
 
-        DEBUGF(INDI::Logger::DBG_ERROR,"Failed to connect to port (%s). Error: %s", port, errorMsg);
+        DEBUGF(INDI::Logger::DBG_ERROR, "Failed to connect to port (%s). Error: %s", port, errorMsg);
 
         return false;
     }
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "Port FD %d",PortFD);
+    DEBUGF(INDI::Logger::DBG_DEBUG, "Port FD %d", PortFD);
 
     return true;
 }
@@ -298,7 +298,7 @@ bool Serial::Refresh(bool silent)
     if (devCount < 0)
     {
         if (silent == false)
-            DEBUGF(INDI::Logger::DBG_ERROR,"Failed to scan directory /dev. Error: %s", strerror(errno));
+            DEBUGF(INDI::Logger::DBG_ERROR, "Failed to scan directory /dev. Error: %s", strerror(errno));
     }
     else
     {
@@ -307,7 +307,7 @@ bool Serial::Refresh(bool silent)
             if (m_Ports.size() < 10)
             {
                 std::string s(namelist[devCount]->d_name);
-                s.erase(s.find_last_not_of(" \n\r\t")+1);
+                s.erase(s.find_last_not_of(" \n\r\t") + 1);
                 m_Ports.push_back("/dev/" + s);
             }
             else
@@ -334,7 +334,7 @@ bool Serial::Refresh(bool silent)
 
     SystemPortS = new ISwitch[pCount];
     ISwitch * sp = SystemPortS;
-    for (int i=pCount-1; i >= 0; i--)
+    for (int i = pCount - 1; i >= 0; i--)
     {
         IUFillSwitch(sp++, m_Ports[i].c_str(), m_Ports[i].c_str(), ISS_OFF);
     }

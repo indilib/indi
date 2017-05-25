@@ -71,7 +71,7 @@ void  SVDMathPlugin::CalculateTransformMatrices(const TelescopeDirectionVector &
     GslRetcode = gsl_matrix_transpose(pAlphaMatrix);
 
     // 2. Compute the first intermediate matrix
-    gsl_matrix * pIntermediateMatrix1 = gsl_matrix_alloc(3,3);
+    gsl_matrix * pIntermediateMatrix1 = gsl_matrix_alloc(3, 3);
     MatrixMatrixMultiply(pBetaMatrix, pAlphaMatrix, pIntermediateMatrix1);
 
     // 3. Compute the singular value decomoposition of the intermediate matrix
@@ -83,14 +83,14 @@ void  SVDMathPlugin::CalculateTransformMatrices(const TelescopeDirectionVector &
     // The V matrix is untransposed
 
     // 4. Compute the diagonal matrix
-    gsl_matrix * pDiagonal = gsl_matrix_calloc(3,3);
+    gsl_matrix * pDiagonal = gsl_matrix_calloc(3, 3);
     gsl_matrix_set(pDiagonal, 0, 0, 1);
     gsl_matrix_set(pDiagonal, 1, 1, 1);
     gsl_matrix_set(pDiagonal, 2, 2, Matrix3x3Determinant(pIntermediateMatrix1) * Matrix3x3Determinant(pV));
 
     // 5. Compute the transform
     gsl_matrix_transpose(pV);
-    gsl_matrix * pIntermediateMatrix2 = gsl_matrix_alloc(3,3);
+    gsl_matrix * pIntermediateMatrix2 = gsl_matrix_alloc(3, 3);
     MatrixMatrixMultiply(pIntermediateMatrix1, pDiagonal, pIntermediateMatrix2);
     MatrixMatrixMultiply(pIntermediateMatrix2, pV, pAlphaToBeta);
 

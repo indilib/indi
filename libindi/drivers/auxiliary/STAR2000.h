@@ -42,26 +42,26 @@
 
 class STAR2000 : public INDI::GuiderInterface, public INDI::DefaultDevice
 {
-    public:
+public:
     STAR2000();
 
     virtual bool initProperties();
     virtual bool updateProperties();
-    virtual void ISGetProperties (const char *dev);
-    virtual bool ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n);
-    virtual bool ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n);
-    virtual bool ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n);
-    virtual bool ISSnoopDevice (XMLEle *root);
+    virtual void ISGetProperties (const char * dev);
+    virtual bool ISNewNumber (const char * dev, const char * name, double values[], char * names[], int n);
+    virtual bool ISNewSwitch (const char * dev, const char * name, ISState * states, char * names[], int n);
+    virtual bool ISNewText (const char * dev, const char * name, char * texts[], char * names[], int n);
+    virtual bool ISSnoopDevice (XMLEle * root);
 
-    protected:
+protected:
 
-    virtual bool saveConfigItems(FILE *fp);
+    virtual bool saveConfigItems(FILE * fp);
 
     //  Generic indi device entries
     bool Connect();
     bool Connect(char *);
     bool Disconnect();
-    const char *getDefaultName();
+    const char * getDefaultName();
 
     void TimerHit();
 
@@ -75,7 +75,7 @@ class STAR2000 : public INDI::GuiderInterface, public INDI::DefaultDevice
     ITextVectorProperty PortTP;
     IText PortT[1];
 
-    private:
+private:
 
     float CalcWEPulseTimeLeft();
     float CalcNSPulseTimeLeft();

@@ -57,7 +57,7 @@ class INDI::USBDevice
         int InputType;
         int InputEndpoint;
 
-        libusb_device * FindDevice(int,int,int);
+        libusb_device * FindDevice(int, int, int);
 
     public:
         int WriteInterrupt(unsigned char *, int, int);

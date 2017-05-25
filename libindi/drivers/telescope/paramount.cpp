@@ -66,50 +66,50 @@ std::unique_ptr<Paramount> paramount_mount(new Paramount());
 #define SLEWMODES 9
 const double slewspeeds[SLEWMODES] = { 1.0, 2.0, 4.0, 8.0, 32.0, 64.0, 128.0, 256.0, 512.0};
 
-void ISPoll(void *p);
+void ISPoll(void * p);
 
-void ISGetProperties(const char *dev)
+void ISGetProperties(const char * dev)
 {
-        paramount_mount->ISGetProperties(dev);
+    paramount_mount->ISGetProperties(dev);
 }
 
-void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int num)
+void ISNewSwitch(const char * dev, const char * name, ISState * states, char * names[], int num)
 {
-        paramount_mount->ISNewSwitch(dev, name, states, names, num);
+    paramount_mount->ISNewSwitch(dev, name, states, names, num);
 }
 
-void ISNewText(	const char *dev, const char *name, char *texts[], char *names[], int num)
+void ISNewText(	const char * dev, const char * name, char * texts[], char * names[], int num)
 {
-        paramount_mount->ISNewText(dev, name, texts, names, num);
+    paramount_mount->ISNewText(dev, name, texts, names, num);
 }
 
-void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int num)
+void ISNewNumber(const char * dev, const char * name, double values[], char * names[], int num)
 {
-        paramount_mount->ISNewNumber(dev, name, values, names, num);
+    paramount_mount->ISNewNumber(dev, name, values, names, num);
 }
 
-void ISNewBLOB (const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[], char *names[], int n)
+void ISNewBLOB (const char * dev, const char * name, int sizes[], int blobsizes[], char * blobs[], char * formats[], char * names[], int n)
 {
-  INDI_UNUSED(dev);
-  INDI_UNUSED(name);
-  INDI_UNUSED(sizes);
-  INDI_UNUSED(blobsizes);
-  INDI_UNUSED(blobs);
-  INDI_UNUSED(formats);
-  INDI_UNUSED(names);
-  INDI_UNUSED(n);
+    INDI_UNUSED(dev);
+    INDI_UNUSED(name);
+    INDI_UNUSED(sizes);
+    INDI_UNUSED(blobsizes);
+    INDI_UNUSED(blobs);
+    INDI_UNUSED(formats);
+    INDI_UNUSED(names);
+    INDI_UNUSED(n);
 }
-void ISSnoopDevice (XMLEle *root)
+void ISSnoopDevice (XMLEle * root)
 {
-   paramount_mount->ISSnoopDevice(root);
+    paramount_mount->ISSnoopDevice(root);
 }
 
 Paramount::Paramount()
 {
-    currentRA=0;
-    currentDEC=90;
+    currentRA = 0;
+    currentDEC = 90;
 
-    DBG_SCOPE = INDI::Logger::getInstance().addDebugLevel("Scope Verbose", "SCOPE");   
+    DBG_SCOPE = INDI::Logger::getInstance().addDebugLevel("Scope Verbose", "SCOPE");
 
     SetTelescopeCapability(TELESCOPE_CAN_PARK | TELESCOPE_CAN_SYNC | TELESCOPE_CAN_GOTO | TELESCOPE_CAN_ABORT | TELESCOPE_HAS_TIME | TELESCOPE_HAS_LOCATION , 9);
     setTelescopeConnection(CONNECTION_TCP);
@@ -130,10 +130,10 @@ bool Paramount::initProperties()
     /* Make sure to init parent properties first */
     INDI::Telescope::initProperties();
 
-    for (unsigned int i=0; i<SlewRateSP.nsp-1; i++)
+    for (unsigned int i = 0; i < SlewRateSP.nsp - 1; i++)
     {
         sprintf(SlewRateSP.sp[i].label, "%.fx", slewspeeds[i]);
-        SlewRateSP.sp[i].aux=(void *)&slewspeeds[i];
+        SlewRateSP.sp[i].aux = (void *)&slewspeeds[i];
     }
 
     // Set 64x as default speed
@@ -157,9 +157,9 @@ bool Paramount::initProperties()
     IUFillSwitchVector(&TrackModeSP, TrackModeS, 4, getDeviceName(), "TELESCOPE_TRACK_MODE", "Track Mode", MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
 
     // Custom Tracking Rate
-    IUFillNumber(&TrackRateN[0],"TRACK_RATE_RA","RA (arcsecs/s)","%.6f",-16384.0, 16384.0, 0.000001, 15.041067);
-    IUFillNumber(&TrackRateN[1],"TRACK_RATE_DE","DE (arcsecs/s)","%.6f",-16384.0, 16384.0, 0.000001, 0);
-    IUFillNumberVector(&TrackRateNP, TrackRateN,2,getDeviceName(),"TELESCOPE_TRACK_RATE","Track Rates", MAIN_CONTROL_TAB, IP_RW,60,IPS_IDLE);
+    IUFillNumber(&TrackRateN[0], "TRACK_RATE_RA", "RA (arcsecs/s)", "%.6f", -16384.0, 16384.0, 0.000001, 15.041067);
+    IUFillNumber(&TrackRateN[1], "TRACK_RATE_DE", "DE (arcsecs/s)", "%.6f", -16384.0, 16384.0, 0.000001, 0);
+    IUFillNumberVector(&TrackRateNP, TrackRateN, 2, getDeviceName(), "TELESCOPE_TRACK_RATE", "Track Rates", MAIN_CONTROL_TAB, IP_RW, 60, IPS_IDLE);
 
     // Let's simulate it to be an F/7.5 120mm telescope with 50m 175mm guide scope
     ScopeParametersN[0].value = 120;
@@ -167,7 +167,7 @@ bool Paramount::initProperties()
     ScopeParametersN[2].value = 50;
     ScopeParametersN[3].value = 175;
 
-    TrackState=SCOPE_IDLE;
+    TrackState = SCOPE_IDLE;
 
     SetParkDataType(PARK_RA_DEC);
 
@@ -225,7 +225,7 @@ bool Paramount::updateProperties()
             SetAxis2ParkDefault(DEC);
         }
 
-       SetParked(isTheSkyParked());       
+        SetParked(isTheSkyParked());
     }
     else
     {
@@ -245,13 +245,13 @@ bool Paramount::updateProperties()
 
 bool Paramount::Handshake()
 {
-    int rc=0, nbytes_written=0, nbytes_read=0;
+    int rc = 0, nbytes_written = 0, nbytes_read = 0;
     char pCMD[MAXRBUF], pRES[MAXRBUF];
 
     strncpy(pCMD, "/* Java Script */"
-                  "var Out;"
-                  "sky6RASCOMTele.ConnectAndDoNotUnpark();"
-                  "Out = sky6RASCOMTele.IsConnected;", MAXRBUF);
+            "var Out;"
+            "sky6RASCOMTele.ConnectAndDoNotUnpark();"
+            "Out = sky6RASCOMTele.IsConnected;", MAXRBUF);
 
     DEBUGF(INDI::Logger::DBG_DEBUG, "CMD: %s", pCMD);
 
@@ -269,7 +269,7 @@ bool Paramount::Handshake()
     }
 
     DEBUGF(INDI::Logger::DBG_DEBUG, "RES: %s", pRES);
-    int isTelescopeConnected=-1;
+    int isTelescopeConnected = -1;
 
     std::regex rgx("(\\d+)\\|(.+)\\. Error = (\\d+)\\.");
     std::smatch match;
@@ -288,14 +288,14 @@ bool Paramount::Handshake()
 
 bool Paramount::getMountRADE()
 {
-    int rc=0, nbytes_written=0, nbytes_read=0, errorCode=0;
+    int rc = 0, nbytes_written = 0, nbytes_read = 0, errorCode = 0;
     char pCMD[MAXRBUF], pRES[MAXRBUF];
 
     //"if (sky6RASCOMTele.IsConnected==0) sky6RASCOMTele.Connect();"
     strncpy(pCMD, "/* Java Script */"
-                  "var Out;"                  
-                  "sky6RASCOMTele.GetRaDec();"
-                  "Out = String(sky6RASCOMTele.dRa) + ',' + String(sky6RASCOMTele.dDec);", MAXRBUF);
+            "var Out;"
+            "sky6RASCOMTele.GetRaDec();"
+            "Out = String(sky6RASCOMTele.dRa) + ',' + String(sky6RASCOMTele.dDec);", MAXRBUF);
 
     DEBUGF(INDI::Logger::DBG_DEBUG, "CMD: %s", pCMD);
 
@@ -317,7 +317,7 @@ bool Paramount::getMountRADE()
     std::regex rgx("(.+),(.+)\\|(.+)\\. Error = (\\d+)\\.");
     std::smatch match;
     std::string input(pRES);
-    bool coordsOK=false;
+    bool coordsOK = false;
     if (std::regex_search(input, match, rgx))
     {
         errorCode = atoi(match.str(4).c_str());
@@ -325,7 +325,7 @@ bool Paramount::getMountRADE()
         if (errorCode == 0)
         {
             currentRA = atof(match.str(1).c_str());
-            currentDEC= atof(match.str(2).c_str());
+            currentDEC = atof(match.str(2).c_str());
             coordsOK = true;
         }
     }
@@ -350,8 +350,8 @@ bool Paramount::ReadScopeStatus()
         // Check if LX200 is done slewing
         if (isSlewComplete())
         {
-            TrackState=SCOPE_TRACKING;
-            IDMessage(getDeviceName(),"Slew is complete. Tracking...");
+            TrackState = SCOPE_TRACKING;
+            IDMessage(getDeviceName(), "Slew is complete. Tracking...");
 
         }
     }
@@ -381,44 +381,44 @@ bool Paramount::ReadScopeStatus()
     return true;
 }
 
-bool Paramount::Goto(double r,double d)
+bool Paramount::Goto(double r, double d)
 {
-    targetRA=r;
-    targetDEC=d;
+    targetRA = r;
+    targetDEC = d;
     char RAStr[64], DecStr[64];
 
     fs_sexa(RAStr, targetRA, 2, 3600);
     fs_sexa(DecStr, targetDEC, 2, 3600);
 
-   ln_equ_posn lnradec;
-   lnradec.ra = (currentRA * 360) / 24.0;
-   lnradec.dec =currentDEC;
+    ln_equ_posn lnradec;
+    lnradec.ra = (currentRA * 360) / 24.0;
+    lnradec.dec = currentDEC;
 
-   ln_get_hrz_from_equ(&lnradec, &lnobserver, ln_get_julian_from_sys(), &lnaltaz);
-   /* libnova measures azimuth from south towards west */
-   double current_az  =range360(lnaltaz.az + 180);
-   //double current_alt =lnaltaz.alt;
+    ln_get_hrz_from_equ(&lnradec, &lnobserver, ln_get_julian_from_sys(), &lnaltaz);
+    /* libnova measures azimuth from south towards west */
+    double current_az  = range360(lnaltaz.az + 180);
+    //double current_alt =lnaltaz.alt;
 
-   char pCMD[MAXRBUF];
-   snprintf(pCMD, MAXRBUF,            
-            "sky6RASCOMTele.Asynchronous = true;"
-            "sky6RASCOMTele.SlewToRaDec(%g, %g,'');"
-            , targetRA, targetDEC);
+    char pCMD[MAXRBUF];
+    snprintf(pCMD, MAXRBUF,
+             "sky6RASCOMTele.Asynchronous = true;"
+             "sky6RASCOMTele.SlewToRaDec(%g, %g,'');"
+             , targetRA, targetDEC);
 
-   if (sendTheSkyOKCommand(pCMD, "Slewing to target") == false)
-       return false;
+    if (sendTheSkyOKCommand(pCMD, "Slewing to target") == false)
+        return false;
 
-   TrackState = SCOPE_SLEWING;
+    TrackState = SCOPE_SLEWING;
 
-   EqNP.s    = IPS_BUSY;
+    EqNP.s    = IPS_BUSY;
 
-   DEBUGF(INDI::Logger::DBG_SESSION,"Slewing to RA: %s - DEC: %s", RAStr, DecStr);
-   return true;
+    DEBUGF(INDI::Logger::DBG_SESSION, "Slewing to RA: %s - DEC: %s", RAStr, DecStr);
+    return true;
 }
 
 bool Paramount::isSlewComplete()
 {
-    int rc=0, nbytes_written=0, nbytes_read=0, errorCode=0;
+    int rc = 0, nbytes_written = 0, nbytes_read = 0, errorCode = 0;
     char pCMD[MAXRBUF], pRES[MAXRBUF];
 
     strncpy(pCMD,
@@ -464,7 +464,7 @@ bool Paramount::isSlewComplete()
 
 bool Paramount::isTheSkyParked()
 {
-    int rc=0, nbytes_written=0, nbytes_read=0;
+    int rc = 0, nbytes_written = 0, nbytes_read = 0;
     char pCMD[MAXRBUF], pRES[MAXRBUF];
 
     strncpy(pCMD,
@@ -507,7 +507,7 @@ bool Paramount::isTheSkyParked()
 
 bool Paramount::isTheSkyTracking()
 {
-    int rc=0, nbytes_written=0, nbytes_read=0;
+    int rc = 0, nbytes_written = 0, nbytes_read = 0;
     char pCMD[MAXRBUF], pRES[MAXRBUF];
 
     strncpy(pCMD,
@@ -558,7 +558,7 @@ bool Paramount::Sync(double ra, double dec)
     currentRA  = ra;
     currentDEC = dec;
 
-    DEBUG(INDI::Logger::DBG_SESSION,"Sync is successful.");
+    DEBUG(INDI::Logger::DBG_SESSION, "Sync is successful.");
 
     EqNP.s    = IPS_OK;
 
@@ -568,9 +568,9 @@ bool Paramount::Sync(double ra, double dec)
 }
 
 bool Paramount::Park()
-{   
-    targetRA= GetAxis1Park();
-    targetDEC= GetAxis2Park();
+{
+    targetRA = GetAxis1Park();
+    targetDEC = GetAxis2Park();
 
     char pCMD[MAXRBUF];
     strncpy(pCMD, "sky6RASCOMTele.ParkAndDoNotDisconnect();", MAXRBUF);
@@ -578,7 +578,7 @@ bool Paramount::Park()
         return false;
 
     TrackState = SCOPE_PARKING;
-    DEBUG(INDI::Logger::DBG_SESSION,"Parking telescope in progress...");
+    DEBUG(INDI::Logger::DBG_SESSION, "Parking telescope in progress...");
     return true;
 }
 
@@ -600,63 +600,63 @@ bool Paramount::UnPark()
     return true;
 }
 
-bool Paramount::ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n)
+bool Paramount::ISNewNumber (const char * dev, const char * name, double values[], char * names[], int n)
 {
     //  first check if it's for our device
 
-    if(strcmp(dev,getDeviceName())==0)
+    if(strcmp(dev, getDeviceName()) == 0)
     {
-         if(strcmp(name,"JOG_RATE")==0)
-         {
-             IUUpdateNumber(&JogRateNP, values, names, n);
-             JogRateNP.s = IPS_OK;
-             IDSetNumber(&JogRateNP, NULL);
-             return true;
-         }
+        if(strcmp(name, "JOG_RATE") == 0)
+        {
+            IUUpdateNumber(&JogRateNP, values, names, n);
+            JogRateNP.s = IPS_OK;
+            IDSetNumber(&JogRateNP, NULL);
+            return true;
+        }
 
-         // Guiding Rate
-         if (!strcmp(name, GuideRateNP.name))
-         {
-             IUUpdateNumber(&GuideRateNP, values, names, n);
-             GuideRateNP.s = IPS_OK;
-             IDSetNumber(&GuideRateNP, NULL);
-             return true;
-         }
+        // Guiding Rate
+        if (!strcmp(name, GuideRateNP.name))
+        {
+            IUUpdateNumber(&GuideRateNP, values, names, n);
+            GuideRateNP.s = IPS_OK;
+            IDSetNumber(&GuideRateNP, NULL);
+            return true;
+        }
 
-         // Tracking Rate
-         if (!strcmp(name, TrackRateNP.name))
-         {
-             IUUpdateNumber(&TrackRateNP, values, names, n);
-             if (IUFindOnSwitchIndex(&TrackModeSP) != TRACK_CUSTOM)
-             {
-                 DEBUG(INDI::Logger::DBG_ERROR, "Can only set tracking rate if track mode is custom.");
-                 TrackRateNP.s = IPS_ALERT;
-             }
-             else
-             {
-                 TrackRateNP.s = setTheSkyTracking(true, false, TrackRateN[RA_AXIS].value, TrackRateN[DEC_AXIS].value) ? IPS_OK : IPS_ALERT;
-             }
+        // Tracking Rate
+        if (!strcmp(name, TrackRateNP.name))
+        {
+            IUUpdateNumber(&TrackRateNP, values, names, n);
+            if (IUFindOnSwitchIndex(&TrackModeSP) != TRACK_CUSTOM)
+            {
+                DEBUG(INDI::Logger::DBG_ERROR, "Can only set tracking rate if track mode is custom.");
+                TrackRateNP.s = IPS_ALERT;
+            }
+            else
+            {
+                TrackRateNP.s = setTheSkyTracking(true, false, TrackRateN[RA_AXIS].value, TrackRateN[DEC_AXIS].value) ? IPS_OK : IPS_ALERT;
+            }
 
-             IDSetNumber(&TrackRateNP, NULL);
-             return true;
-         }
+            IDSetNumber(&TrackRateNP, NULL);
+            return true;
+        }
 
-         if (!strcmp(name,GuideNSNP.name) || !strcmp(name,GuideWENP.name))
-         {
-             processGuiderProperties(name, values, names, n);
-             return true;
-         }
+        if (!strcmp(name, GuideNSNP.name) || !strcmp(name, GuideWENP.name))
+        {
+            processGuiderProperties(name, values, names, n);
+            return true;
+        }
 
     }
 
     //  if we didn't process it, continue up the chain, let somebody else
     //  give it a shot
-    return INDI::Telescope::ISNewNumber(dev,name,values,names,n);
+    return INDI::Telescope::ISNewNumber(dev, name, values, names, n);
 }
 
-bool Paramount::ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n)
+bool Paramount::ISNewSwitch (const char * dev, const char * name, ISState * states, char * names[], int n)
 {
-    if(strcmp(dev,getDeviceName())==0)
+    if(strcmp(dev, getDeviceName()) == 0)
     {
         // Tracking Mode
         if (!strcmp(TrackModeSP.name, name))
@@ -670,7 +670,7 @@ bool Paramount::ISNewSwitch (const char *dev, const char *name, ISState *states,
             // Engage tracking?
             bool enable     = (currentTrackMode != -1);
             bool isSidereal = (currentTrackMode == TRACK_SIDEREAL);
-            double dRA=0, dDE=0;
+            double dRA = 0, dDE = 0;
             if (currentTrackMode == TRACK_SOLAR)
                 dRA = TRACKRATE_SOLAR;
             else if (currentTrackMode == TRACK_LUNAR)
@@ -704,7 +704,7 @@ bool Paramount::ISNewSwitch (const char *dev, const char *name, ISState *states,
     }
 
     //  Nobody has claimed this, so, ignore it
-    return INDI::Telescope::ISNewSwitch(dev,name,states,names,n);
+    return INDI::Telescope::ISNewSwitch(dev, name, states, names, n);
 }
 
 bool Paramount::Abort()
@@ -733,24 +733,24 @@ bool Paramount::MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command)
     switch (command)
     {
         case MOTION_START:
-        if (isSimulation() == false && startOpenLoopMotion(motion, rate) == false)
-        {
-            DEBUG(INDI::Logger::DBG_ERROR, "Error setting N/S motion direction.");
-            return false;
-        }
-        else
-           DEBUGF(INDI::Logger::DBG_SESSION,"Moving toward %s.", (motion == PARAMOUNT_NORTH) ? "North" : "South");
-        break;
+            if (isSimulation() == false && startOpenLoopMotion(motion, rate) == false)
+            {
+                DEBUG(INDI::Logger::DBG_ERROR, "Error setting N/S motion direction.");
+                return false;
+            }
+            else
+                DEBUGF(INDI::Logger::DBG_SESSION, "Moving toward %s.", (motion == PARAMOUNT_NORTH) ? "North" : "South");
+            break;
 
         case MOTION_STOP:
-        if (isSimulation() == false && stopOpenLoopMotion() == false)
-        {
-            DEBUG(INDI::Logger::DBG_ERROR, "Error stopping N/S motion.");
-            return false;
-        }
-        else
-            DEBUGF(INDI::Logger::DBG_SESSION,"Moving toward %s halted.", (motion == PARAMOUNT_NORTH) ? "North" : "South");
-        break;
+            if (isSimulation() == false && stopOpenLoopMotion() == false)
+            {
+                DEBUG(INDI::Logger::DBG_ERROR, "Error stopping N/S motion.");
+                return false;
+            }
+            else
+                DEBUGF(INDI::Logger::DBG_SESSION, "Moving toward %s halted.", (motion == PARAMOUNT_NORTH) ? "North" : "South");
+            break;
     }
 
     return true;
@@ -770,24 +770,24 @@ bool Paramount::MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command)
     switch (command)
     {
         case MOTION_START:
-        if (isSimulation() == false && startOpenLoopMotion(motion, rate) == false)
-        {
-            DEBUG(INDI::Logger::DBG_ERROR, "Error setting W/E motion direction.");
-            return false;
-        }
-        else
-           DEBUGF(INDI::Logger::DBG_SESSION,"Moving toward %s.", (motion == PARAMOUNT_WEST) ? "West" : "East");
-        break;
+            if (isSimulation() == false && startOpenLoopMotion(motion, rate) == false)
+            {
+                DEBUG(INDI::Logger::DBG_ERROR, "Error setting W/E motion direction.");
+                return false;
+            }
+            else
+                DEBUGF(INDI::Logger::DBG_SESSION, "Moving toward %s.", (motion == PARAMOUNT_WEST) ? "West" : "East");
+            break;
 
         case MOTION_STOP:
-        if (isSimulation() == false && stopOpenLoopMotion() == false)
-        {
-            DEBUG(INDI::Logger::DBG_ERROR, "Error stopping W/E motion.");
-            return false;
-        }
-        else
-            DEBUGF(INDI::Logger::DBG_SESSION, "Movement toward %s halted.", (motion == PARAMOUNT_WEST) ? "West" : "East");
-        break;
+            if (isSimulation() == false && stopOpenLoopMotion() == false)
+            {
+                DEBUG(INDI::Logger::DBG_ERROR, "Error stopping W/E motion.");
+                return false;
+            }
+            else
+                DEBUGF(INDI::Logger::DBG_SESSION, "Movement toward %s halted.", (motion == PARAMOUNT_WEST) ? "West" : "East");
+            break;
     }
 
     return true;
@@ -819,19 +819,19 @@ bool Paramount::stopOpenLoopMotion()
 
 bool Paramount::updateLocation(double latitude, double longitude, double elevation)
 {
-  INDI_UNUSED(elevation);
-  // JM: INDI Longitude is 0 to 360 increasing EAST. libnova East is Positive, West is negative
-  lnobserver.lng =  longitude;
+    INDI_UNUSED(elevation);
+    // JM: INDI Longitude is 0 to 360 increasing EAST. libnova East is Positive, West is negative
+    lnobserver.lng =  longitude;
 
-  if (lnobserver.lng > 180)
-      lnobserver.lng -= 360;
-  lnobserver.lat =  latitude;
+    if (lnobserver.lng > 180)
+        lnobserver.lng -= 360;
+    lnobserver.lat =  latitude;
 
-  DEBUGF(INDI::Logger::DBG_SESSION,"Location updated: Longitude (%g) Latitude (%g)", lnobserver.lng, lnobserver.lat);
-  return true;
+    DEBUGF(INDI::Logger::DBG_SESSION, "Location updated: Longitude (%g) Latitude (%g)", lnobserver.lng, lnobserver.lat);
+    return true;
 }
 
-bool Paramount::updateTime(ln_date *utc, double utc_offset)
+bool Paramount::updateTime(ln_date * utc, double utc_offset)
 {
     return true;
 }
@@ -872,7 +872,7 @@ void Paramount::mountSim ()
 {
     static struct timeval ltv;
     struct timeval tv;
-    double dt,dx,da_ra=0, da_dec=0;
+    double dt, dx, da_ra = 0, da_dec = 0;
     int nlocked;
 
     /* update elapsed time since last poll, don't presume exactly POLLMS */
@@ -881,24 +881,24 @@ void Paramount::mountSim ()
     if (ltv.tv_sec == 0 && ltv.tv_usec == 0)
         ltv = tv;
 
-    dt = tv.tv_sec - ltv.tv_sec + (tv.tv_usec - ltv.tv_usec)/1e6;
+    dt = tv.tv_sec - ltv.tv_sec + (tv.tv_usec - ltv.tv_usec) / 1e6;
     ltv = tv;
 
-    if ( fabs(targetRA - currentRA)*15. >= GOTO_LIMIT )
-        da_ra = GOTO_RATE *dt;
-    else if ( fabs(targetRA - currentRA)*15. >= SLEW_LIMIT )
-        da_ra = SLEW_RATE *dt;
+    if ( fabs(targetRA - currentRA) * 15. >= GOTO_LIMIT )
+        da_ra = GOTO_RATE * dt;
+    else if ( fabs(targetRA - currentRA) * 15. >= SLEW_LIMIT )
+        da_ra = SLEW_RATE * dt;
     else
-        da_ra = FINE_SLEW_RATE *dt;
+        da_ra = FINE_SLEW_RATE * dt;
 
     if ( fabs(targetDEC - currentDEC) >= GOTO_LIMIT )
-        da_dec = GOTO_RATE *dt;
+        da_dec = GOTO_RATE * dt;
     else if ( fabs(targetDEC - currentDEC) >= SLEW_LIMIT )
-        da_dec = SLEW_RATE *dt;
+        da_dec = SLEW_RATE * dt;
     else
-        da_dec = FINE_SLEW_RATE *dt;
+        da_dec = FINE_SLEW_RATE * dt;
 
-    double motionRate=0;
+    double motionRate = 0;
 
     if (MovementNSSP.s == IPS_BUSY)
         motionRate = JogRateN[0].value;
@@ -907,30 +907,30 @@ void Paramount::mountSim ()
 
     if (motionRate != 0)
     {
-        da_ra  = motionRate *dt*0.05;
-        da_dec = motionRate *dt*0.05;
+        da_ra  = motionRate * dt * 0.05;
+        da_dec = motionRate * dt * 0.05;
 
         switch (MovementNSSP.s)
         {
-           case IPS_BUSY:
-            if (MovementNSS[DIRECTION_NORTH].s == ISS_ON)
-                currentDEC += da_dec;
-            else if (MovementNSS[DIRECTION_SOUTH].s == ISS_ON)
-                currentDEC -= da_dec;
+            case IPS_BUSY:
+                if (MovementNSS[DIRECTION_NORTH].s == ISS_ON)
+                    currentDEC += da_dec;
+                else if (MovementNSS[DIRECTION_SOUTH].s == ISS_ON)
+                    currentDEC -= da_dec;
 
-            break;
+                break;
         }
 
         switch (MovementWESP.s)
         {
             case IPS_BUSY:
 
-            if (MovementWES[DIRECTION_WEST].s == ISS_ON)
-                currentRA += da_ra/15.;
-            else if (MovementWES[DIRECTION_EAST].s == ISS_ON)
-                currentRA -= da_ra/15.;
+                if (MovementWES[DIRECTION_WEST].s == ISS_ON)
+                    currentRA += da_ra / 15.;
+                else if (MovementWES[DIRECTION_EAST].s == ISS_ON)
+                    currentRA -= da_ra / 15.;
 
-            break;
+                break;
         }
 
         NewRaDec(currentRA, currentDEC);
@@ -940,68 +940,68 @@ void Paramount::mountSim ()
     /* Process per current state. We check the state of EQUATORIAL_COORDS and act acoordingly */
     switch (TrackState)
     {
-    case SCOPE_TRACKING:
-        /* RA moves at sidereal, Dec stands still */
-        currentRA += (SID_RATE*dt/15.);
-        break;
+        case SCOPE_TRACKING:
+            /* RA moves at sidereal, Dec stands still */
+            currentRA += (SID_RATE * dt / 15.);
+            break;
 
-    case SCOPE_SLEWING:
-    case SCOPE_PARKING:
-        /* slewing - nail it when both within one pulse @ SLEWRATE */
-        nlocked = 0;
+        case SCOPE_SLEWING:
+        case SCOPE_PARKING:
+            /* slewing - nail it when both within one pulse @ SLEWRATE */
+            nlocked = 0;
 
-        dx = targetRA - currentRA;
+            dx = targetRA - currentRA;
 
-        // Take shortest path
-        if (fabs(dx) > 12)
-            dx *= -1;
+            // Take shortest path
+            if (fabs(dx) > 12)
+                dx *= -1;
 
-        if (fabs(dx) <= da_ra)
-        {
-        currentRA = targetRA;
-        nlocked++;
-        }
-        else if (dx > 0)
-            currentRA += da_ra/15.;
-        else
-            currentRA -= da_ra/15.;
-
-        if (currentRA < 0)
-            currentRA += 24;
-        else if (currentRA > 24)
-            currentRA -= 24;
-
-        dx = targetDEC - currentDEC;
-        if (fabs(dx) <= da_dec)
-        {
-        currentDEC = targetDEC;
-        nlocked++;
-        }
-        else if (dx > 0)
-          currentDEC += da_dec;
-        else
-          currentDEC -= da_dec;
-
-        if (nlocked == 2)
-        {
-            if (TrackState == SCOPE_SLEWING)
-                TrackState = SCOPE_TRACKING;
+            if (fabs(dx) <= da_ra)
+            {
+                currentRA = targetRA;
+                nlocked++;
+            }
+            else if (dx > 0)
+                currentRA += da_ra / 15.;
             else
-                SetParked(true);
+                currentRA -= da_ra / 15.;
 
-        }
-        break;
+            if (currentRA < 0)
+                currentRA += 24;
+            else if (currentRA > 24)
+                currentRA -= 24;
 
-    default:
-        break;
+            dx = targetDEC - currentDEC;
+            if (fabs(dx) <= da_dec)
+            {
+                currentDEC = targetDEC;
+                nlocked++;
+            }
+            else if (dx > 0)
+                currentDEC += da_dec;
+            else
+                currentDEC -= da_dec;
+
+            if (nlocked == 2)
+            {
+                if (TrackState == SCOPE_SLEWING)
+                    TrackState = SCOPE_TRACKING;
+                else
+                    SetParked(true);
+
+            }
+            break;
+
+        default:
+            break;
     }
 
     NewRaDec(currentRA, currentDEC);
 }
 
-bool Paramount::sendTheSkyOKCommand(const char *command, const char *errorMessage)
+bool Paramount::sendTheSkyOKCommand(const char * command, const char * errorMessage)
 {
-    int rc=0, nbytes_written=0, nbytes_read=0;
+    int rc = 0, nbytes_written = 0, nbytes_read = 0;
     char pCMD[MAXRBUF], pRES[MAXRBUF];
 
     snprintf(pCMD, MAXRBUF,
@@ -1053,7 +1053,7 @@ bool Paramount::sendTheSkyOKCommand(const char *command, const char *errorMessag
 IPState Paramount::GuideNorth(float ms)
 {
     // Movement in arcseconds
-    double dDec = GuideRateN[DEC_AXIS].value*SID_RATE_MS*ms;
+    double dDec = GuideRateN[DEC_AXIS].value * SID_RATE_MS * ms;
 
     char pCMD[MAXRBUF];
     snprintf(pCMD, MAXRBUF,
@@ -1069,7 +1069,7 @@ IPState Paramount::GuideNorth(float ms)
 IPState Paramount::GuideSouth(float ms)
 {
     // Movement in arcseconds
-    double dDec = GuideRateN[DEC_AXIS].value*SID_RATE_MS*ms*-1;
+    double dDec = GuideRateN[DEC_AXIS].value * SID_RATE_MS * ms * -1;
 
     char pCMD[MAXRBUF];
     snprintf(pCMD, MAXRBUF,
@@ -1085,7 +1085,7 @@ IPState Paramount::GuideSouth(float ms)
 IPState Paramount::GuideEast(float ms)
 {
     // Movement in arcseconds
-    double dRA = GuideRateN[RA_AXIS].value*SID_RATE_MS*ms;
+    double dRA = GuideRateN[RA_AXIS].value * SID_RATE_MS * ms;
 
     char pCMD[MAXRBUF];
     snprintf(pCMD, MAXRBUF,
@@ -1101,7 +1101,7 @@ IPState Paramount::GuideEast(float ms)
 IPState Paramount::GuideWest(float ms)
 {
     // Movement in arcseconds
-    double dRA = GuideRateN[RA_AXIS].value*SID_RATE_MS*ms*-1;
+    double dRA = GuideRateN[RA_AXIS].value * SID_RATE_MS * ms * -1;
 
     char pCMD[MAXRBUF];
     snprintf(pCMD, MAXRBUF,

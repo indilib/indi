@@ -14,9 +14,9 @@
 
     You should have received a copy of the GNU Lesser General Public
     License along with this library; if not, write to the Free Software
-    Foundation, Inc., 51 Franklin Street, Fifth Floor, 
+    Foundation, Inc., 51 Franklin Street, Fifth Floor,
     Boston, MA  02110-1301  USA
-    
+
 */
 
 #ifndef MAGELLANDRIVER_H
@@ -51,15 +51,15 @@ char ACK(int fd);
 int check_magellan_connection(int fd);
 
 /**************************************************************************
- Get Commands: store data in the supplied buffer. Return 0 on success or -1 
- on failure 
+ Get Commands: store data in the supplied buffer. Return 0 on success or -1
+ on failure
  **************************************************************************/
- 
+
 /* Get Double from Sexagisemal */
-int getCommandSexa(int fd, double *value, const char *cmd);
+int getCommandSexa(int fd, double * value, const char * cmd);
 
 /* Get Calender data */
-int getCalendarDate(int fd, char *date);
+int getCalendarDate(int fd, char * date);
 
 #ifdef __cplusplus
 }

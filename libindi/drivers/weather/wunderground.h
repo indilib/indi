@@ -30,31 +30,31 @@
 class WunderGround : public INDI::Weather
 {
     public:
-    WunderGround();
-    virtual ~WunderGround();
+        WunderGround();
+        virtual ~WunderGround();
 
-    //  Generic indi device entries
-    bool Connect();
-    bool Disconnect();
-    const char *getDefaultName();
+        //  Generic indi device entries
+        bool Connect();
+        bool Disconnect();
+        const char * getDefaultName();
 
-    virtual bool initProperties();
-    virtual void ISGetProperties (const char *dev);
-    virtual bool ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n);
+        virtual bool initProperties();
+        virtual void ISGetProperties (const char * dev);
+        virtual bool ISNewText (const char * dev, const char * name, char * texts[], char * names[], int n);
 
     protected:
 
-    virtual IPState updateWeather();
+        virtual IPState updateWeather();
 
-    virtual bool saveConfigItems(FILE *fp);
-    virtual bool updateLocation(double latitude, double longitude, double elevation);
+        virtual bool saveConfigItems(FILE * fp);
+        virtual bool updateLocation(double latitude, double longitude, double elevation);
 
-private:
+    private:
 
-    IText wunderAPIKeyT[1];
-    ITextVectorProperty wunderAPIKeyTP;
+        IText wunderAPIKeyT[1];
+        ITextVectorProperty wunderAPIKeyTP;
 
-    double wunderLat, wunderLong;
+        double wunderLat, wunderLong;
 
 };
 

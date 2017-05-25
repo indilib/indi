@@ -46,7 +46,7 @@
 extern "C" {
 #endif
 
-int ConnectSTAR2k(char *port);
+int ConnectSTAR2k(char * port);
 void DisconnectSTAR2k(void);
 
 void StartPulse(int direction);

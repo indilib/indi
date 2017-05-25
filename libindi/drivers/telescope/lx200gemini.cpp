@@ -32,7 +32,7 @@ LX200Gemini::LX200Gemini()
 {
     setVersion(1, 2);
 
-    SetTelescopeCapability(TELESCOPE_CAN_PARK | TELESCOPE_CAN_SYNC | TELESCOPE_CAN_GOTO | TELESCOPE_CAN_ABORT | TELESCOPE_HAS_TIME | TELESCOPE_HAS_LOCATION | TELESCOPE_HAS_PIER_SIDE,4);
+    SetTelescopeCapability(TELESCOPE_CAN_PARK | TELESCOPE_CAN_SYNC | TELESCOPE_CAN_GOTO | TELESCOPE_CAN_ABORT | TELESCOPE_HAS_TIME | TELESCOPE_HAS_LOCATION | TELESCOPE_HAS_PIER_SIDE, 4);
 }
 
 const char * LX200Gemini::getDefaultName()
@@ -40,7 +40,7 @@ const char * LX200Gemini::getDefaultName()
     return (char *)"Losmandy Gemini";
 }
 
-void LX200Gemini::ISGetProperties(const char *dev)
+void LX200Gemini::ISGetProperties(const char * dev)
 {
     LX200Generic::ISGetProperties(dev);
 
@@ -83,9 +83,9 @@ bool LX200Gemini::updateProperties()
     return true;
 }
 
-bool LX200Gemini::ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n)
+bool LX200Gemini::ISNewSwitch (const char * dev, const char * name, ISState * states, char * names[], int n)
 {
-    if(!strcmp(dev,getDeviceName()))
+    if(!strcmp(dev, getDeviceName()))
     {
         if (!strcmp(name, StartupModeSP.name))
         {
@@ -116,7 +116,7 @@ bool LX200Gemini::checkConnection()
 
     // Response
     char response[2] = {0};
-    int rc=0, nbytes_read=0, nbytes_written=0;
+    int rc = 0, nbytes_read = 0, nbytes_written = 0;
 
     DEBUGF(INDI::Logger::DBG_DEBUG, "CMD: <%#02X>", 0x06);
 
@@ -197,7 +197,7 @@ bool LX200Gemini::isSlewComplete()
     const char * cmd = "#:Gv#";
     // Response
     char response[2] = {0};
-    int rc=0, nbytes_read=0, nbytes_written=0;
+    int rc = 0, nbytes_read = 0, nbytes_written = 0;
 
     DEBUGF(INDI::Logger::DBG_DEBUG, "CMD: <%s>", cmd);
 
@@ -235,7 +235,7 @@ bool LX200Gemini::isSlewComplete()
 bool LX200Gemini::ReadScopeStatus()
 {
     if (isConnected() == false)
-     return false;
+        return false;
 
     if (isSimulation())
         return LX200Generic::ReadScopeStatus();
@@ -250,8 +250,8 @@ bool LX200Gemini::ReadScopeStatus()
             SlewRateS[SLEW_CENTERING].s = ISS_ON;
             IDSetSwitch(&SlewRateSP, NULL);
 
-            TrackState=SCOPE_TRACKING;
-            IDMessage(getDeviceName(),"Slew is complete. Tracking...");
+            TrackState = SCOPE_TRACKING;
+            IDMessage(getDeviceName(), "Slew is complete. Tracking...");
 
         }
     }
@@ -266,9 +266,9 @@ bool LX200Gemini::ReadScopeStatus()
 
     if ( getLX200RA(PortFD, &currentRA) < 0 || getLX200DEC(PortFD, &currentDEC) < 0)
     {
-      EqNP.s = IPS_ALERT;
-      IDSetNumber(&EqNP, "Error reading RA/DEC.");
-      return false;
+        EqNP.s = IPS_ALERT;
+        IDSetNumber(&EqNP, "Error reading RA/DEC.");
+        return false;
     }
 
     syncSideOfPier();
@@ -284,7 +284,7 @@ void LX200Gemini::syncSideOfPier()
     const char * cmd = "#:Gm#";
     // Response
     char response[2] = {0};
-    int rc=0, nbytes_read=0, nbytes_written=0;
+    int rc = 0, nbytes_read = 0, nbytes_written = 0;
 
     DEBUGF(INDI::Logger::DBG_DEBUG, "CMD: <%s>", cmd);
 
@@ -307,7 +307,7 @@ void LX200Gemini::syncSideOfPier()
         return;
     }
 
-    response[nbytes_read-1] = '\0';
+    response[nbytes_read - 1] = '\0';
 
     tcflush(PortFD, TCIOFLUSH);
 
@@ -328,7 +328,7 @@ bool LX200Gemini::Park()
         strncpy(cmd, "#:hZ#", 5);
 
     // Response
-    int rc=0, nbytes_written=0;
+    int rc = 0, nbytes_written = 0;
 
     DEBUGF(INDI::Logger::DBG_DEBUG, "CMD: <%s>", cmd);
 
@@ -357,10 +357,10 @@ bool LX200Gemini::UnPark()
 
 bool LX200Gemini::sleepMount()
 {
-    const char *cmd = "#:hN#";
+    const char * cmd = "#:hN#";
 
     // Response
-    int rc=0, nbytes_written=0;
+    int rc = 0, nbytes_written = 0;
 
     DEBUGF(INDI::Logger::DBG_DEBUG, "CMD: <%s>", cmd);
 
@@ -380,10 +380,10 @@ bool LX200Gemini::sleepMount()
 
 bool LX200Gemini::wakeupMount()
 {
-    const char *cmd = "#:hW#";
+    const char * cmd = "#:hW#";
 
     // Response
-    int rc=0, nbytes_written=0;
+    int rc = 0, nbytes_written = 0;
 
     DEBUGF(INDI::Logger::DBG_DEBUG, "CMD: <%s>", cmd);
 
@@ -401,7 +401,7 @@ bool LX200Gemini::wakeupMount()
     return true;
 }
 
-bool LX200Gemini::saveConfigItems(FILE *fp)
+bool LX200Gemini::saveConfigItems(FILE * fp)
 {
     LX200Generic::saveConfigItems(fp);
 

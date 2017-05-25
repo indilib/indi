@@ -49,7 +49,7 @@ SkySafariClient::~SkySafariClient()
 /**************************************************************************************
 **
 ***************************************************************************************/
-void SkySafariClient::newDevice(INDI::BaseDevice *dp)
+void SkySafariClient::newDevice(INDI::BaseDevice * dp)
 {
     IDLog("Receiving %s Device...\n", dp->getDeviceName());
 
@@ -63,7 +63,7 @@ void SkySafariClient::newDevice(INDI::BaseDevice *dp)
 /**************************************************************************************
 **
 *************************************************************************************/
-void SkySafariClient::newProperty(INDI::Property *property)
+void SkySafariClient::newProperty(INDI::Property * property)
 {
     if (!strcmp(property->getName(), "TELESCOPE_PARK"))
         mountParkSP = property->getSwitch();
@@ -100,7 +100,7 @@ bool SkySafariClient::parkMount()
     if (mountParkSP == NULL)
         return false;
 
-    ISwitch *sw = IUFindSwitch(mountParkSP, "PARK");
+    ISwitch * sw = IUFindSwitch(mountParkSP, "PARK");
 
     if (sw == NULL)
         return false;
@@ -183,13 +183,13 @@ bool SkySafariClient::setSlewRate(int slewRate)
     if (slewRateSP == nullptr)
         return false;
 
-    int maxSlewRate = slewRateSP->nsp-1;
+    int maxSlewRate = slewRateSP->nsp - 1;
 
     int finalSlewRate = slewRate;
 
     // If slew rate is betwee min and max, we intepolate
     if (slewRate > 0 && slewRate < maxSlewRate)
-        finalSlewRate = static_cast<int>(ceil(slewRate * maxSlewRate/3.0));
+        finalSlewRate = static_cast<int>(ceil(slewRate * maxSlewRate / 3.0));
 
     IUResetSwitch(slewRateSP);
     slewRateSP->sp[finalSlewRate].s = ISS_ON;

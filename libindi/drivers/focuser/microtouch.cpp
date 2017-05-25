@@ -38,27 +38,27 @@
 
 std::unique_ptr<Microtouch> microTouch(new Microtouch());
 
-void ISGetProperties(const char *dev)
+void ISGetProperties(const char * dev)
 {
     microTouch->ISGetProperties(dev);
 }
 
-void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int num)
+void ISNewSwitch(const char * dev, const char * name, ISState * states, char * names[], int num)
 {
     microTouch->ISNewSwitch(dev, name, states, names, num);
 }
 
-void ISNewText(	const char *dev, const char *name, char *texts[], char *names[], int num)
+void ISNewText(	const char * dev, const char * name, char * texts[], char * names[], int num)
 {
     microTouch->ISNewText(dev, name, texts, names, num);
 }
 
-void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int num)
+void ISNewNumber(const char * dev, const char * name, double values[], char * names[], int num)
 {
     microTouch->ISNewNumber(dev, name, values, names, num);
 }
 
-void ISNewBLOB (const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[], char *names[], int n)
+void ISNewBLOB (const char * dev, const char * name, int sizes[], int blobsizes[], char * blobs[], char * formats[], char * names[], int n)
 {
     INDI_UNUSED(dev);
     INDI_UNUSED(name);
@@ -70,7 +70,7 @@ void ISNewBLOB (const char *dev, const char *name, int sizes[], int blobsizes[],
     INDI_UNUSED(n);
 }
 
-void ISSnoopDevice (XMLEle *root)
+void ISSnoopDevice (XMLEle * root)
 {
     microTouch->ISSnoopDevice(root);
 }
@@ -199,8 +199,8 @@ const char * Microtouch::getDefaultName()
 
 bool Microtouch::Ack()
 {
-    signed short int pos=WriteCmdGetShortInt(CMD_GET_POSITION);
-    if (pos>-1)
+    signed short int pos = WriteCmdGetShortInt(CMD_GET_POSITION);
+    if (pos > -1)
     {
         FocusAbsPosN[0].value = pos;
         return true;
@@ -214,32 +214,32 @@ bool Microtouch::updateTemperature()
 {
     char resp[7];
 
-    short int ttemp=0, tcoeff=0;
-    double raw_temp=0, raw_coeff=0, tcomp_coeff=0;
+    short int ttemp = 0, tcoeff = 0;
+    double raw_temp = 0, raw_coeff = 0, tcomp_coeff = 0;
 
     if (!(WriteCmdGetResponse(CMD_GET_TEMPERATURE, resp, 6)))
         return false;
-    ttemp=  ((short int) resp[1] << 8 | ((short int)resp[2] & 0xff) );
-    raw_temp=((double) ttemp) / 16;
+    ttemp =  ((short int) resp[1] << 8 | ((short int)resp[2] & 0xff) );
+    raw_temp = ((double) ttemp) / 16;
 
-    tcoeff= ((short int) resp[5] << 8 | ((short int)resp[4] & 0xff) );
-    raw_coeff= ((double) tcoeff) / 16;
+    tcoeff = ((short int) resp[5] << 8 | ((short int)resp[4] & 0xff) );
+    raw_coeff = ((double) tcoeff) / 16;
 
-    tcomp_coeff=(double) (((double) WriteCmdGetInt(CMD_GET_COEFF))/128);
+    tcomp_coeff = (double) (((double) WriteCmdGetInt(CMD_GET_COEFF)) / 128);
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "updateTemperature : RESP (%02X %02X %02X %02X %02X %02X)", resp[0],resp[1],resp[2],resp[3],resp[4],resp[5]);
+    DEBUGF(INDI::Logger::DBG_DEBUG, "updateTemperature : RESP (%02X %02X %02X %02X %02X %02X)", resp[0], resp[1], resp[2], resp[3], resp[4], resp[5]);
 
-    TemperatureN[0].value = raw_temp+raw_coeff;
-    TemperatureSettingN[0].value=raw_coeff;
-    TemperatureSettingN[1].value=tcomp_coeff;
+    TemperatureN[0].value = raw_temp + raw_coeff;
+    TemperatureSettingN[0].value = raw_coeff;
+    TemperatureSettingN[1].value = tcomp_coeff;
 
     return true;
 }
 
 bool Microtouch::updatePosition()
 {
-    unsigned short int pos=WriteCmdGetShortInt(CMD_GET_POSITION);
-    if (pos>-1)
+    unsigned short int pos = WriteCmdGetShortInt(CMD_GET_POSITION);
+    if (pos > -1)
     {
         FocusAbsPosN[0].value = pos;
         return true;
@@ -291,7 +291,7 @@ bool Microtouch::updateSpeed()
         DEBUGF(INDI::Logger::DBG_ERROR, "Unknown error: focuser speed value (%s)", resp);
         return false;
     }
-*/
+    */
     return true;
 }
 
@@ -303,9 +303,9 @@ bool Microtouch::updateMotorSpeed()
 
     DEBUGF(INDI::Logger::DBG_DEBUG, "MotorSpeed: %d.", WriteCmdGetByte(CMD_GET_MOTOR_SPEED));
 
-    if (WriteCmdGetByte(CMD_GET_MOTOR_SPEED)==8)
+    if (WriteCmdGetByte(CMD_GET_MOTOR_SPEED) == 8)
         MotorSpeedS[0].s = ISS_ON;
-    else if (WriteCmdGetByte(CMD_GET_MOTOR_SPEED)==4)
+    else if (WriteCmdGetByte(CMD_GET_MOTOR_SPEED) == 4)
         MotorSpeedS[1].s = ISS_ON;
     else
     {
@@ -318,15 +318,15 @@ bool Microtouch::updateMotorSpeed()
 
 bool Microtouch::isMoving()
 {
-    return (WriteCmdGetByte(CMD_IS_MOVING)>0) ;
+    return (WriteCmdGetByte(CMD_IS_MOVING) > 0) ;
 }
 
 bool Microtouch::setTemperatureCalibration(double calibration)
 {
 
-    short int temp=0;
+    short int temp = 0;
 
-    temp = (short int) (calibration*16);
+    temp = (short int) (calibration * 16);
 
 
     if (!(WriteCmdSetShortInt(CMD_SET_TEMP_OFFSET, temp)))
@@ -354,14 +354,14 @@ bool Microtouch::setTemperatureCoefficient(double coefficient)
 
 bool Microtouch::reset()
 {
-    WriteCmdSetIntAsDigits(CMD_RESET_POSITION,0x00);
+    WriteCmdSetIntAsDigits(CMD_RESET_POSITION, 0x00);
     return true;
 
 }
 
 bool Microtouch::reset(double pos)
 {
-    WriteCmdSetIntAsDigits(CMD_RESET_POSITION,(int) pos);
+    WriteCmdSetIntAsDigits(CMD_RESET_POSITION, (int) pos);
     return true;
 
 }
@@ -387,9 +387,9 @@ bool Microtouch::setMotorSpeed(char speed)
 {
 
     if (speed == FOCUS_MOTORSPEED_NORMAL)
-        WriteCmdSetByte(CMD_SET_MOTOR_SPEED,8);
+        WriteCmdSetByte(CMD_SET_MOTOR_SPEED, 8);
     else
-        WriteCmdSetByte(CMD_SET_MOTOR_SPEED,4);
+        WriteCmdSetByte(CMD_SET_MOTOR_SPEED, 4);
 
     return true;
 }
@@ -412,7 +412,7 @@ bool Microtouch::setSpeed(unsigned short speed)
         DEBUGF(INDI::Logger::DBG_ERROR, "setSpeed error: %s.", errstr);
         return false;
     }
-*/
+    */
     return true;
 }
 
@@ -425,21 +425,20 @@ bool Microtouch::setTemperatureCompensation(bool enable)
             return true;
         else
             return false;
+    else if (WriteCmd(CMD_TEMPCOMP_OFF))
+        return true;
     else
-        if (WriteCmd(CMD_TEMPCOMP_OFF))
-            return true;
-        else
-            return false;
+        return false;
 }
 
-bool Microtouch::ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n)
+bool Microtouch::ISNewSwitch (const char * dev, const char * name, ISState * states, char * names[], int n)
 {
-    if(strcmp(dev,getDeviceName())==0)
+    if(strcmp(dev, getDeviceName()) == 0)
     {
         // Focus Motor Speed
         if (!strcmp(MotorSpeedSP.name, name))
         {
-            bool rc=false;
+            bool rc = false;
             int current_mode = IUFindOnSwitchIndex(&MotorSpeedSP);
             IUUpdateSwitch(&MotorSpeedSP, states, names, n);
             int target_mode = IUFindOnSwitchIndex(&MotorSpeedSP);
@@ -508,11 +507,11 @@ bool Microtouch::ISNewSwitch (const char *dev, const char *name, ISState *states
     return INDI::Focuser::ISNewSwitch(dev, name, states, names, n);
 }
 
-bool Microtouch::ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n)
+bool Microtouch::ISNewNumber (const char * dev, const char * name, double values[], char * names[], int n)
 {
-    int nset=0,i=0;
+    int nset = 0, i = 0;
 
-    if(strcmp(dev,getDeviceName())==0)
+    if(strcmp(dev, getDeviceName()) == 0)
     {
         if (!strcmp (name, MaxTravelNP.name))
         {
@@ -569,7 +568,7 @@ void Microtouch::GetFocusParams ()
 
     /*    if (updateSpeed())
         IDSetNumber(&FocusSpeedNP, NULL);
-*/
+    */
     if (updateMotorSpeed())
         IDSetSwitch(&MotorSpeedSP, NULL);
 }
@@ -595,15 +594,15 @@ IPState Microtouch::MoveFocuser(FocusDirection dir, int speed, uint16_t duration
 {
     if (speed != currentSpeed)
     {
-        bool rc=false;
+        bool rc = false;
 
         rc = setSpeed(speed);
         if (rc == false)
             return IPS_ALERT;
     }
 
-    gettimeofday(&focusMoveStart,NULL);
-    focusMoveRequest = duration/1000.0;
+    gettimeofday(&focusMoveStart, NULL);
+    focusMoveRequest = duration / 1000.0;
 
     if (dir == FOCUS_INWARD)
         MoveFocuser(0);
@@ -639,8 +638,8 @@ IPState Microtouch::MoveAbsFocuser(uint32_t targetTicks)
 
 IPState Microtouch::MoveRelFocuser(FocusDirection dir, uint32_t ticks)
 {
-    double newPosition=0;
-    bool rc=false;
+    double newPosition = 0;
+    bool rc = false;
 
     if (dir == FOCUS_INWARD)
         newPosition = FocusAbsPosN[0].value - ticks;
@@ -695,7 +694,7 @@ void Microtouch::TimerHit()
             AbortFocuser();
         }
         else
-            FocusTimerN[0].value = remaining*1000.0;
+            FocusTimerN[0].value = remaining * 1000.0;
         IDSetNumber(&FocusTimerNP, NULL);
     }
 
@@ -725,22 +724,22 @@ bool Microtouch::AbortFocuser()
     return true;
 }
 
-float Microtouch::CalcTimeLeft(timeval start,float req)
+float Microtouch::CalcTimeLeft(timeval start, float req)
 {
     double timesince;
     double timeleft;
     struct timeval now;
-    gettimeofday(&now,NULL);
+    gettimeofday(&now, NULL);
 
-    timesince=(double)(now.tv_sec * 1000.0 + now.tv_usec/1000) - (double)(start.tv_sec * 1000.0 + start.tv_usec/1000);
-    timesince=timesince/1000;
-    timeleft=req-timesince;
+    timesince = (double)(now.tv_sec * 1000.0 + now.tv_usec / 1000) - (double)(start.tv_sec * 1000.0 + start.tv_usec / 1000);
+    timesince = timesince / 1000;
+    timeleft = req - timesince;
     return timeleft;
 }
 
 bool Microtouch::WriteCmd(char cmd)
 {
-    int nbytes_written=0, rc=-1;
+    int nbytes_written = 0, rc = -1;
     char errstr[MAXRBUF];
 
     tcflush(PortFD, TCIOFLUSH);
@@ -756,9 +755,9 @@ bool Microtouch::WriteCmd(char cmd)
     return true;
 }
 
-bool Microtouch::WriteCmdGetResponse(char cmd,char* readbuffer, char numbytes)
+bool Microtouch::WriteCmdGetResponse(char cmd, char * readbuffer, char numbytes)
 {
-    int nbytes_read=0, rc=-1;
+    int nbytes_read = 0, rc = -1;
     char errstr[MAXRBUF];
 
     if (WriteCmd(cmd))
@@ -782,9 +781,9 @@ char Microtouch::WriteCmdGetByte(char cmd)
 {
     char read[2];
 
-    if (WriteCmdGetResponse(cmd,read,2))
+    if (WriteCmdGetResponse(cmd, read, 2))
     {
-        DEBUGF(INDI::Logger::DBG_DEBUG, "WriteCmdGetByte : %02x %02x ", read[0],read[1]);
+        DEBUGF(INDI::Logger::DBG_DEBUG, "WriteCmdGetByte : %02x %02x ", read[0], read[1]);
         return read[1];
     }
     else
@@ -793,14 +792,14 @@ char Microtouch::WriteCmdGetByte(char cmd)
 
 bool Microtouch::WriteCmdSetByte(char cmd, char val)
 {
-    int nbytes_written=0, rc=-1;
+    int nbytes_written = 0, rc = -1;
     char errstr[MAXRBUF];
     char write_buffer[2];
 
-    write_buffer[0]=cmd;
-    write_buffer[1]=val;
+    write_buffer[0] = cmd;
+    write_buffer[1] = val;
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "WriteCmdSetByte : CMD %02x %02x ", write_buffer[0],write_buffer[1]);
+    DEBUGF(INDI::Logger::DBG_DEBUG, "WriteCmdSetByte : CMD %02x %02x ", write_buffer[0], write_buffer[1]);
 
     tcflush(PortFD, TCIOFLUSH);
 
@@ -819,7 +818,7 @@ signed short int Microtouch::WriteCmdGetShortInt(char cmd)
 {
     char read[3];
 
-    if (WriteCmdGetResponse(cmd,read,3))
+    if (WriteCmdGetResponse(cmd, read, 3))
         return ((unsigned char) read[2] << 8 | (unsigned char) read[1]);
     else
         return -1;
@@ -827,15 +826,15 @@ signed short int Microtouch::WriteCmdGetShortInt(char cmd)
 
 bool Microtouch::WriteCmdSetShortInt(char cmd, short int val)
 {
-    int nbytes_written=0, rc=-1;
+    int nbytes_written = 0, rc = -1;
     char errstr[MAXRBUF];
     char write_buffer[3];
 
-    write_buffer[0]=cmd;
-    write_buffer[1]=val & 0xFF;
-    write_buffer[2]=val >> 8;
+    write_buffer[0] = cmd;
+    write_buffer[1] = val & 0xFF;
+    write_buffer[2] = val >> 8;
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "WriteCmdSetShortInt : %02x %02x %02x ", write_buffer[0],write_buffer[1],write_buffer[2]);
+    DEBUGF(INDI::Logger::DBG_DEBUG, "WriteCmdSetShortInt : %02x %02x %02x ", write_buffer[0], write_buffer[1], write_buffer[2]);
 
 
     tcflush(PortFD, TCIOFLUSH);
@@ -854,7 +853,7 @@ int Microtouch::WriteCmdGetInt(char cmd)
 {
     char read[5];
 
-    if (WriteCmdGetResponse(cmd,read,5))
+    if (WriteCmdGetResponse(cmd, read, 5))
         return ((unsigned char) read[4] << 24 | (unsigned char) read[3] << 16 | (unsigned char) read[2] << 8 | (unsigned char) read[1]);
     else
         return -100000;
@@ -862,17 +861,17 @@ int Microtouch::WriteCmdGetInt(char cmd)
 
 bool Microtouch::WriteCmdSetInt(char cmd, int val)
 {
-    int nbytes_written=0, rc=-1;
+    int nbytes_written = 0, rc = -1;
     char errstr[MAXRBUF];
     char write_buffer[5];
 
-    write_buffer[0]=cmd;
-    write_buffer[1]=val & 0xFF;
-    write_buffer[2]=val >> 8;
-    write_buffer[3]=val >> 16;
-    write_buffer[4]=val >> 24;
+    write_buffer[0] = cmd;
+    write_buffer[1] = val & 0xFF;
+    write_buffer[2] = val >> 8;
+    write_buffer[3] = val >> 16;
+    write_buffer[4] = val >> 24;
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "WriteCmdSetInt : %02x %02x %02x %02x %02x ", write_buffer[0],write_buffer[1],write_buffer[2],write_buffer[3],write_buffer[4]);
+    DEBUGF(INDI::Logger::DBG_DEBUG, "WriteCmdSetInt : %02x %02x %02x %02x %02x ", write_buffer[0], write_buffer[1], write_buffer[2], write_buffer[3], write_buffer[4]);
 
 
     tcflush(PortFD, TCIOFLUSH);
@@ -889,15 +888,15 @@ bool Microtouch::WriteCmdSetInt(char cmd, int val)
 
 bool Microtouch::WriteCmdSetIntAsDigits(char cmd, int val)
 {
-    int nbytes_written=0, rc=-1;
+    int nbytes_written = 0, rc = -1;
     char errstr[MAXRBUF];
     char write_buffer[5];
 
-    write_buffer[0]=cmd;
-    write_buffer[1]=val % 10;
-    write_buffer[2]=(val / 10) % 10;
-    write_buffer[3]=(val / 100) % 10;
-    write_buffer[4]=(val / 1000);
+    write_buffer[0] = cmd;
+    write_buffer[1] = val % 10;
+    write_buffer[2] = (val / 10) % 10;
+    write_buffer[3] = (val / 100) % 10;
+    write_buffer[4] = (val / 1000);
 
     DEBUGF(INDI::Logger::DBG_DEBUG, "WriteCmdSetIntAsDigits : CMD (%02x %02x %02x %02x %02x) ", write_buffer[0], write_buffer[1], write_buffer[2], write_buffer[3], write_buffer[4]);
 

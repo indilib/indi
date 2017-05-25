@@ -92,11 +92,16 @@ unsigned long SkywatcherAPI::BCDstr2long(std::string &String)
 
 #define HEX(c) (((c) < 'A')?((c)-'0'):((c) - 'A') + 10)
 
-    value = HEX(String[4]); value <<= 4;
-    value |= HEX(String[5]); value <<= 4;
-    value |= HEX(String[2]); value <<= 4;
-    value |= HEX(String[3]); value <<= 4;
-    value |= HEX(String[0]); value <<= 4;
+    value = HEX(String[4]);
+    value <<= 4;
+    value |= HEX(String[5]);
+    value <<= 4;
+    value |= HEX(String[2]);
+    value <<= 4;
+    value |= HEX(String[3]);
+    value <<= 4;
+    value |= HEX(String[0]);
+    value <<= 4;
     value |= HEX(String[1]);
 
 #undef HEX
@@ -110,57 +115,58 @@ unsigned long SkywatcherAPI::Highstr2long(std::string &String)
     {
         return 0;
     }
-   unsigned long res = 0;
+    unsigned long res = 0;
 
 #define HEX(c) (((c) < 'A')?((c)-'0'):((c) - 'A') + 10)
 
-   res = HEX(String[0]); res <<= 4;
-   res |= HEX(String[1]);
+    res = HEX(String[0]);
+    res <<= 4;
+    res |= HEX(String[1]);
 
 #undef HEX
 
-   return res;
+    return res;
 }
 
 bool SkywatcherAPI::CheckIfDCMotor()
 {
     MYDEBUG(DBG_SCOPE, "CheckIfDCMotor");
-	// Flush the tty read buffer
-	char input[20];
-	int rc;
-	int nbytes;
+    // Flush the tty read buffer
+    char input[20];
+    int rc;
+    int nbytes;
 
-	while (true)
-	{
-		rc =  skywatcher_tty_read(MyPortFD, input, 20, 5, &nbytes);
-		if (TTY_TIME_OUT == rc)
-			break;
-		if (TTY_OK != rc)
-			return false;
-	}
+    while (true)
+    {
+        rc =  skywatcher_tty_read(MyPortFD, input, 20, 5, &nbytes);
+        if (TTY_TIME_OUT == rc)
+            break;
+        if (TTY_OK != rc)
+            return false;
+    }
 
-	if (TTY_OK != skywatcher_tty_write(MyPortFD, ":", 1, &nbytes))
-		return false;
+    if (TTY_OK != skywatcher_tty_write(MyPortFD, ":", 1, &nbytes))
+        return false;
 
-	rc =  skywatcher_tty_read(MyPortFD, input, 1, 5, &nbytes);
+    rc =  skywatcher_tty_read(MyPortFD, input, 1, 5, &nbytes);
 
-	if ((TTY_OK == rc) && (1 == nbytes) && (':' == input[0]))
-	{
-		IsDCMotor = true;
-		return true;
-	}
-	if (TTY_TIME_OUT == rc)
-	{
-		IsDCMotor = false;
-		return true;
-	}
+    if ((TTY_OK == rc) && (1 == nbytes) && (':' == input[0]))
+    {
+        IsDCMotor = true;
+        return true;
+    }
+    if (TTY_TIME_OUT == rc)
+    {
+        IsDCMotor = false;
+        return true;
+    }
 
-	return false;
+    return false;
 }
 
 bool SkywatcherAPI::IsVirtuosoMount() const
 {
-  return MountCode >= 0x90;
+    return MountCode >= 0x90;
 }
 
 long SkywatcherAPI::DegreesPerSecondToClocksTicksPerMicrostep(AXISID Axis, double DegreesPerSecond)
@@ -180,7 +186,7 @@ bool SkywatcherAPI::GetEncoder(AXISID Axis)
     MYDEBUG(DBG_SCOPE, "GetEncoder");
     std::string Parameters, Response;
     if (!TalkWithAxis(Axis, 'j', Parameters, Response))
-    	return false;
+        return false;
 
     long Microsteps = BCDstr2long(Response);
     CurrentEncoders[(int)Axis] = Microsteps;
@@ -261,7 +267,7 @@ const SkywatcherAPI::PositiveRotationSense_t SkywatcherAPI::GetPositiveRotationD
 {
     switch (MountCode)
     {
-        _114GT:
+_114GT:
             return CLOCKWISE;
 
         default:
@@ -313,18 +319,18 @@ bool SkywatcherAPI::GetStatus(AXISID Axis)
             // If the mount was doing a slew to
             GetEncoder(Axis);
             MYDEBUGF(INDI::Logger::DBG_SESSION, "Axis %s SlewTo complete - offset to target %ld microsteps %lf arc seconds "
-                    "LastSlewToTarget %ld CurrentEncoder %ld",
-                    Axis == AXIS1 ? "AXIS1" : "AXIS2",
-                    LastSlewToTarget[Axis] - CurrentEncoders[Axis],
-                    MicrostepsToDegrees(Axis, LastSlewToTarget[Axis] - CurrentEncoders[Axis]) * 3600,
-                    LastSlewToTarget[Axis],
-                    CurrentEncoders[Axis]);
+                     "LastSlewToTarget %ld CurrentEncoder %ld",
+                     Axis == AXIS1 ? "AXIS1" : "AXIS2",
+                     LastSlewToTarget[Axis] - CurrentEncoders[Axis],
+                     MicrostepsToDegrees(Axis, LastSlewToTarget[Axis] - CurrentEncoders[Axis]) * 3600,
+                     LastSlewToTarget[Axis],
+                     CurrentEncoders[Axis]);
         }
 
         AxesStatus[(int)Axis].FullStop = true;	// FullStop = 1;	// Axis is fully stop.
         AxesStatus[(int)Axis].Slewing = false;
         AxesStatus[(int)Axis].SlewingTo = false;
-   }
+    }
 
     if ((Response[0] & 0x02) == 0)
         AxesStatus[(int)Axis].SlewingForward = true;	// Angle increase = 1;
@@ -362,8 +368,8 @@ bool SkywatcherAPI::InitMount(bool recover)
 {
     MYDEBUG(DBG_SCOPE, "InitMount");
 
-	if (!CheckIfDCMotor())
-		return false;
+    if (!CheckIfDCMotor())
+        return false;
 
     if (!GetMotorBoardVersion(AXIS1))
         return false;
@@ -435,7 +441,7 @@ bool SkywatcherAPI::InstantStop(AXISID Axis)
     MYDEBUG(DBG_SCOPE, "InstantStop");
     std::string Parameters, Response;
     if (!TalkWithAxis(Axis, 'L', Parameters, Response))
-    	return false;
+        return false;
     AxesStatus[(int)Axis].SetFullStop();
     return true;
 }
@@ -444,9 +450,9 @@ void SkywatcherAPI::Long2BCDstr(long Number, std::string &String)
 {
     std::stringstream Temp;
     Temp << std::hex << std::setfill('0') << std::uppercase
-        << std::setw(2) << (Number & 0xff)
-        << std::setw(2) << ((Number & 0xff00) >> 8)
-        << std::setw(2) << ((Number & 0xff0000) >> 16);
+         << std::setw(2) << (Number & 0xff)
+         << std::setw(2) << ((Number & 0xff00) >> 8)
+         << std::setw(2) << ((Number & 0xff0000) >> 16);
     String = Temp.str();
 }
 
@@ -470,10 +476,10 @@ void SkywatcherAPI::PrepareForSlewing(AXISID Axis, double Speed)
     {
         // Axis is running
         if ((AxesStatus[Axis].SlewingTo) // slew to (GOTO) in progress
-            || (AxesStatus[Axis].HighSpeed) // currently high speed slewing
-            || (std::abs(Speed) >= LOW_SPEED_MARGIN) // I am about to request high speed
-            || ((AxesStatus[Axis].SlewingForward) && (Speed < 0)) // Direction change
-            || (!(AxesStatus[Axis].SlewingForward) && (Speed > 0))) // Direction change
+                || (AxesStatus[Axis].HighSpeed) // currently high speed slewing
+                || (std::abs(Speed) >= LOW_SPEED_MARGIN) // I am about to request high speed
+                || ((AxesStatus[Axis].SlewingForward) && (Speed < 0)) // Direction change
+                || (!(AxesStatus[Axis].SlewingForward) && (Speed > 0))) // Direction change
         {
             // I need to stop the axis first
             SlowStop(Axis);
@@ -533,7 +539,7 @@ bool SkywatcherAPI::SetEncoder(AXISID Axis, long Microsteps)
     Long2BCDstr(Microsteps, Parameters);
 
     if (!TalkWithAxis(Axis, 'L', Parameters, Response))
-    	return false;
+        return false;
 
     return true;
 }
@@ -546,7 +552,7 @@ bool SkywatcherAPI::SetGotoTargetOffset(AXISID Axis, long OffsetInMicrosteps)
     Long2BCDstr(OffsetInMicrosteps, Parameters);
 
     if (!TalkWithAxis(Axis, 'H', Parameters, Response))
-    	return false;
+        return false;
 
     return true;
 }
@@ -564,7 +570,7 @@ bool SkywatcherAPI::SetMotionMode(AXISID Axis, char Func, char Direction)
     Parameters.push_back(Direction);
 
     if (!TalkWithAxis(Axis, 'G', Parameters, Response))
-    	return false;
+        return false;
 
     return true;
 }
@@ -577,7 +583,7 @@ bool SkywatcherAPI::SetClockTicksPerMicrostep(AXISID Axis, long ClockTicksPerMic
     Long2BCDstr(ClockTicksPerMicrostep, Parameters);
 
     if (!TalkWithAxis(Axis, 'I', Parameters, Response))
-    	return false;
+        return false;
 
     return true;
 }
@@ -590,7 +596,7 @@ bool SkywatcherAPI::SetSlewModeDeccelerationRampLength(AXISID Axis, long Microst
     Long2BCDstr(Microsteps, Parameters);
 
     if (!TalkWithAxis(Axis, 'U', Parameters, Response))
-    	return false;
+        return false;
 
     return true;
 }
@@ -603,7 +609,7 @@ bool SkywatcherAPI::SetSlewToModeDeccelerationRampLength(AXISID Axis, long Micro
     Long2BCDstr(Microsteps, Parameters);
 
     if (!TalkWithAxis(Axis, 'M', Parameters, Response))
-    	return false;
+        return false;
 
     return true;
 }
@@ -682,7 +688,7 @@ void SkywatcherAPI::SlewTo(AXISID Axis, long OffsetInMicrosteps)
     // Debugging
     LastSlewToTarget[Axis] = CurrentEncoders[Axis] + OffsetInMicrosteps;
     MYDEBUGF(INDI::Logger::DBG_SESSION, "SlewTo axis %d Offset %ld CurrentEncoder %ld SlewToTarget %ld",
-                        Axis, OffsetInMicrosteps, CurrentEncoders[Axis], LastSlewToTarget[Axis]);
+             Axis, OffsetInMicrosteps, CurrentEncoders[Axis], LastSlewToTarget[Axis]);
 
     char Direction;
     bool Forward;
@@ -711,10 +717,10 @@ void SkywatcherAPI::SlewTo(AXISID Axis, long OffsetInMicrosteps)
     {
         // Axis is running
         if ((AxesStatus[Axis].SlewingTo) // slew to (GOTO) in progress
-            || (AxesStatus[Axis].HighSpeed) // currently high speed slewing
-            || HighSpeed // I am about to request high speed
-            || ((AxesStatus[Axis].SlewingForward) && !Forward) // Direction change
-            || (!(AxesStatus[Axis].SlewingForward) && Forward)) // Direction change
+                || (AxesStatus[Axis].HighSpeed) // currently high speed slewing
+                || HighSpeed // I am about to request high speed
+                || ((AxesStatus[Axis].SlewingForward) && !Forward) // Direction change
+                || (!(AxesStatus[Axis].SlewingForward) && Forward)) // Direction change
         {
             // I need to stop the axis first
             SlowStop(Axis);
@@ -727,11 +733,11 @@ void SkywatcherAPI::SlewTo(AXISID Axis, long OffsetInMicrosteps)
                 if (AxesStatus[Axis].FullStop)
                     break;
 
-    #if __cplusplus >= 201103L
+#if __cplusplus >= 201103L
                 std::this_thread::sleep_for(std::chrono::milliseconds(100)); // Sleep for 1/10 second
-    #else
+#else
                 usleep(100000); // sleep for 1/10 second
-    #endif
+#endif
             }
         }
     }
@@ -745,10 +751,10 @@ void SkywatcherAPI::SlewTo(AXISID Axis, long OffsetInMicrosteps)
 
     if (HighSpeed)
         SetSlewToModeDeccelerationRampLength(Axis,
-                    OffsetInMicrosteps > 3200 ? 3200 : OffsetInMicrosteps);
+                                             OffsetInMicrosteps > 3200 ? 3200 : OffsetInMicrosteps);
     else
         SetSlewToModeDeccelerationRampLength(Axis,
-                    OffsetInMicrosteps > 200 ? 200 : OffsetInMicrosteps);
+                                             OffsetInMicrosteps > 200 ? 200 : OffsetInMicrosteps);
     StartMotion(Axis);
 
     AxesStatus[Axis].SetSlewingTo(Forward, HighSpeed);
@@ -760,7 +766,7 @@ bool SkywatcherAPI::SlowStop(AXISID Axis)
     MYDEBUG(DBG_SCOPE, "SlowStop");
     std::string Parameters, Response;
     if (!TalkWithAxis(Axis, 'K', Parameters, Response))
-    	return false;
+        return false;
     return true;
 }
 
@@ -769,11 +775,11 @@ bool SkywatcherAPI::StartMotion(AXISID Axis)
     MYDEBUG(DBG_SCOPE, "StartMotion");
     std::string Parameters, Response;
     if (!TalkWithAxis(Axis, 'J', Parameters, Response))
-    	return false;
+        return false;
     return true;
 }
 
-bool SkywatcherAPI::TalkWithAxis(AXISID Axis, char Command, std::string& cmdDataStr, std::string& responseStr)
+bool SkywatcherAPI::TalkWithAxis(AXISID Axis, char Command, std::string &cmdDataStr, std::string &responseStr)
 {
     MYDEBUGF(DBG_SCOPE, "TalkWithAxis Axis %s Command %c Data (%s)", Axis == AXIS1 ? "AXIS1" : "AXIS2", Command, cmdDataStr.c_str());
 

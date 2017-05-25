@@ -31,17 +31,17 @@
 
 INDI::Weather::Weather()
 {
-    ParametersN=NULL;
-    critialParametersL=NULL;
-    updateTimerID=-1;
+    ParametersN = NULL;
+    critialParametersL = NULL;
+    updateTimerID = -1;
 
     ParametersRangeNP = NULL;
-    nRanges=0;
+    nRanges = 0;
 }
 
 INDI::Weather::~Weather()
 {
-    for (int i=0; i < ParametersNP.nnp; i++)
+    for (int i = 0; i < ParametersNP.nnp; i++)
     {
         free(ParametersN[i].aux0);
         free(ParametersN[i].aux1);
@@ -68,20 +68,20 @@ bool INDI::Weather::initProperties()
     IUFillLightVector(&critialParametersLP, NULL, 0, getDeviceName(), "WEATHER_STATUS", "Status", MAIN_CONTROL_TAB, IPS_IDLE);
 
     // Location
-    IUFillNumber(&LocationN[LOCATION_LATITUDE],"LAT","Lat (dd:mm:ss)","%010.6m",-90,90,0,0.0);
-    IUFillNumber(&LocationN[LOCATION_LONGITUDE],"LONG","Lon (dd:mm:ss)","%010.6m",0,360,0,0.0 );
-    IUFillNumber(&LocationN[LOCATION_ELEVATION],"ELEV","Elevation (m)","%g",-200,10000,0,0 );
-    IUFillNumberVector(&LocationNP,LocationN,3,getDeviceName(),"GEOGRAPHIC_COORD","Location", SITE_TAB,IP_RW,60,IPS_OK);
+    IUFillNumber(&LocationN[LOCATION_LATITUDE], "LAT", "Lat (dd:mm:ss)", "%010.6m", -90, 90, 0, 0.0);
+    IUFillNumber(&LocationN[LOCATION_LONGITUDE], "LONG", "Lon (dd:mm:ss)", "%010.6m", 0, 360, 0, 0.0 );
+    IUFillNumber(&LocationN[LOCATION_ELEVATION], "ELEV", "Elevation (m)", "%g", -200, 10000, 0, 0 );
+    IUFillNumberVector(&LocationNP, LocationN, 3, getDeviceName(), "GEOGRAPHIC_COORD", "Location", SITE_TAB, IP_RW, 60, IPS_OK);
 
     // Update Period
-    IUFillNumber(&UpdatePeriodN[0],"PERIOD","Period (secs)","%4.2f",0,3600,60,60);
-    IUFillNumberVector(&UpdatePeriodNP,UpdatePeriodN,1,getDeviceName(),"WEATHER_UPDATE","Update",MAIN_CONTROL_TAB,IP_RW,60,IPS_IDLE);
+    IUFillNumber(&UpdatePeriodN[0], "PERIOD", "Period (secs)", "%4.2f", 0, 3600, 60, 60);
+    IUFillNumberVector(&UpdatePeriodNP, UpdatePeriodN, 1, getDeviceName(), "WEATHER_UPDATE", "Update", MAIN_CONTROL_TAB, IP_RW, 60, IPS_IDLE);
 
     // Active Devices
-    IUFillText(&ActiveDeviceT[0],"ACTIVE_GPS","GPS","GPS Simulator");
-    IUFillTextVector(&ActiveDeviceTP,ActiveDeviceT,1,getDeviceName(),"ACTIVE_DEVICES","Snoop devices",OPTIONS_TAB,IP_RW,60,IPS_IDLE);
+    IUFillText(&ActiveDeviceT[0], "ACTIVE_GPS", "GPS", "GPS Simulator");
+    IUFillTextVector(&ActiveDeviceTP, ActiveDeviceT, 1, getDeviceName(), "ACTIVE_DEVICES", "Snoop devices", OPTIONS_TAB, IP_RW, 60, IPS_IDLE);
 
-    IDSnoopDevice(ActiveDeviceT[0].text,"GEOGRAPHIC_COORD");
+    IDSnoopDevice(ActiveDeviceT[0].text, "GEOGRAPHIC_COORD");
 
     if (weatherConnection & CONNECTION_SERIAL)
     {
@@ -126,7 +126,7 @@ bool INDI::Weather::updateProperties()
 
         if (ParametersRangeNP)
         {
-            for (int i=0; i < nRanges; i++)
+            for (int i = 0; i < nRanges; i++)
                 defineNumber(&ParametersRangeNP[i]);
         }
 
@@ -152,7 +152,7 @@ bool INDI::Weather::updateProperties()
 
         if (ParametersRangeNP)
         {
-            for (int i=0; i < nRanges; i++)
+            for (int i = 0; i < nRanges; i++)
                 deleteProperty(ParametersRangeNP[i].name);
         }
 
@@ -166,7 +166,7 @@ bool INDI::Weather::updateProperties()
 
 bool INDI::Weather::ISNewSwitch (const char * dev, const char * name, ISState * states, char * names[], int n)
 {
-    if(strcmp(dev,getDeviceName())==0)
+    if(strcmp(dev, getDeviceName()) == 0)
     {
         if (!strcmp(name, RefreshSP.name))
         {
@@ -184,17 +184,17 @@ bool INDI::Weather::ISNewSwitch (const char * dev, const char * name, ISState * 
 bool INDI::Weather::ISNewNumber (const char * dev, const char * name, double values[], char * names[], int n)
 {
     //  first check if it's for our device
-    if(strcmp(dev,getDeviceName())==0)
+    if(strcmp(dev, getDeviceName()) == 0)
     {
-        if(strcmp(name,"GEOGRAPHIC_COORD")==0)
+        if(strcmp(name, "GEOGRAPHIC_COORD") == 0)
         {
             int latindex = IUFindIndex("LAT", names, n);
-            int longindex= IUFindIndex("LONG", names, n);
+            int longindex = IUFindIndex("LONG", names, n);
             int elevationindex = IUFindIndex("ELEV", names, n);
 
-            if (latindex == -1 || longindex==-1 || elevationindex == -1)
+            if (latindex == -1 || longindex == -1 || elevationindex == -1)
             {
-                LocationNP.s=IPS_ALERT;
+                LocationNP.s = IPS_ALERT;
                 IDSetNumber(&LocationNP, "Location data missing or corrupted.");
             }
 
@@ -207,7 +207,7 @@ bool INDI::Weather::ISNewNumber (const char * dev, const char * name, double val
         }
 
         // Update period
-        if(strcmp(name,"WEATHER_UPDATE")==0)
+        if(strcmp(name, "WEATHER_UPDATE") == 0)
         {
             IUUpdateNumber(&UpdatePeriodNP, values, names, n);
 
@@ -221,13 +221,13 @@ bool INDI::Weather::ISNewNumber (const char * dev, const char * name, double val
                 if (updateTimerID > 0)
                     RemoveTimer(updateTimerID);
 
-                updateTimerID = SetTimer(UpdatePeriodN[0].value*1000);
+                updateTimerID = SetTimer(UpdatePeriodN[0].value * 1000);
             }
 
             return true;
         }
 
-        for (int i=0; i < nRanges; i++)
+        for (int i = 0; i < nRanges; i++)
         {
             if (!strcmp(name, ParametersRangeNP[i].name))
             {
@@ -248,14 +248,14 @@ bool INDI::Weather::ISNewNumber (const char * dev, const char * name, double val
         }
     }
 
-    return DefaultDevice::ISNewNumber(dev,name,values,names,n);
+    return DefaultDevice::ISNewNumber(dev, name, values, names, n);
 }
 
 
 bool INDI::Weather::ISSnoopDevice(XMLEle * root)
 {
 
-    XMLEle * ep=NULL;
+    XMLEle * ep = NULL;
     const char * propName = findXMLAttValu(root, "name");
 
     if (isConnected())
@@ -266,7 +266,7 @@ bool INDI::Weather::ISSnoopDevice(XMLEle * root)
             if (strcmp(findXMLAttValu(root, "state"), "Ok"))
                 return false;
 
-            double longitude=-1, latitude=-1, elevation=-1;
+            double longitude = -1, latitude = -1, elevation = -1;
 
             for (ep = nextXMLEle(root, 1) ; ep != NULL ; ep = nextXMLEle(root, 0))
             {
@@ -348,26 +348,26 @@ bool INDI::Weather::processLocationInfo(double latitude, double longitude, doubl
     // Do not update if not necessary
     if (latitude == LocationN[LOCATION_LATITUDE].value && longitude == LocationN[LOCATION_LONGITUDE].value && elevation == LocationN[LOCATION_ELEVATION].value)
     {
-        LocationNP.s=IPS_OK;
-        IDSetNumber(&LocationNP,NULL);
+        LocationNP.s = IPS_OK;
+        IDSetNumber(&LocationNP, NULL);
     }
 
     if (updateLocation(latitude, longitude, elevation))
     {
-        LocationNP.s=IPS_OK;
+        LocationNP.s = IPS_OK;
         LocationN[LOCATION_LATITUDE].value  = latitude;
         LocationN[LOCATION_LONGITUDE].value = longitude;
         LocationN[LOCATION_ELEVATION].value = elevation;
         //  Update client display
-        IDSetNumber(&LocationNP,NULL);
+        IDSetNumber(&LocationNP, NULL);
 
         return true;
     }
     else
     {
-        LocationNP.s=IPS_ALERT;
+        LocationNP.s = IPS_ALERT;
         //  Update client display
-        IDSetNumber(&LocationNP,NULL);
+        IDSetNumber(&LocationNP, NULL);
         return false;
     }
 }
@@ -376,7 +376,7 @@ void INDI::Weather::addParameter(std::string name, std::string label, double min
 {
     DEBUGF(INDI::Logger::DBG_DEBUG, "Parameter %s is added. Ok (%g,%g) Warn (%g,%g)", name.c_str(), minimumOK, maximumOK, minimumWarning, maximumWarning);
 
-    ParametersN = (ParametersN == NULL) ? (INumber *) malloc(sizeof(INumber)) : (INumber *) realloc(ParametersN, (ParametersNP.nnp+1) * sizeof(INumber));
+    ParametersN = (ParametersN == NULL) ? (INumber *) malloc(sizeof(INumber)) : (INumber *) realloc(ParametersN, (ParametersNP.nnp + 1) * sizeof(INumber));
 
     double * minWarn = (double *) malloc(sizeof(double));
     double * maxWarn = (double *) malloc(sizeof(double));
@@ -397,7 +397,7 @@ void INDI::Weather::addParameter(std::string name, std::string label, double min
 
 void INDI::Weather::setParameterValue(std::string name, double value)
 {
-    for (int i=0; i < ParametersNP.nnp; i++)
+    for (int i = 0; i < ParametersNP.nnp; i++)
     {
         if (!strcmp(ParametersN[i].name, name.c_str()))
         {
@@ -409,11 +409,11 @@ void INDI::Weather::setParameterValue(std::string name, double value)
 
 bool INDI::Weather::setCriticalParameter(std::string param)
 {
-    for (int i=0; i < ParametersNP.nnp; i++)
+    for (int i = 0; i < ParametersNP.nnp; i++)
     {
         if (!strcmp(ParametersN[i].name, param.c_str()))
         {
-            critialParametersL = (critialParametersL == NULL) ? (ILight *) malloc(sizeof(ILight)) : (ILight *) realloc(critialParametersL, (critialParametersLP.nlp+1) * sizeof(ILight));
+            critialParametersL = (critialParametersL == NULL) ? (ILight *) malloc(sizeof(ILight)) : (ILight *) realloc(critialParametersL, (critialParametersLP.nlp + 1) * sizeof(ILight));
 
             IUFillLight(&critialParametersL[critialParametersLP.nlp], param.c_str(), ParametersN[i].label, IPS_IDLE);
 
@@ -437,9 +437,9 @@ void INDI::Weather::updateWeatherState()
 
     critialParametersLP.s = IPS_IDLE;
 
-    for (int i=0; i < critialParametersLP.nlp; i++)
+    for (int i = 0; i < critialParametersLP.nlp; i++)
     {
-        for (int j=0; j < ParametersNP.nnp; j++)
+        for (int j = 0; j < ParametersNP.nnp; j++)
         {
             if (!strcmp(critialParametersL[i].name, ParametersN[j].name))
             {
@@ -472,9 +472,9 @@ void INDI::Weather::updateWeatherState()
 
 void INDI::Weather::createParameterRange(std::string name, std::string label)
 {
-    ParametersRangeNP = (ParametersRangeNP == NULL) ? (INumberVectorProperty *) malloc(sizeof(INumberVectorProperty)) : (INumberVectorProperty *) realloc(ParametersRangeNP, (nRanges+1) * sizeof(INumberVectorProperty));
+    ParametersRangeNP = (ParametersRangeNP == NULL) ? (INumberVectorProperty *) malloc(sizeof(INumberVectorProperty)) : (INumberVectorProperty *) realloc(ParametersRangeNP, (nRanges + 1) * sizeof(INumberVectorProperty));
 
-    INumber * rangesN = (INumber *) malloc(sizeof(INumber)*4);
+    INumber * rangesN = (INumber *) malloc(sizeof(INumber) * 4);
 
     IUFillNumber(&rangesN[0], "MIN_OK", "Min OK", "%4.2f", -1e6, 1e6, 0, ParametersN[nRanges].min);
     IUFillNumber(&rangesN[1], "MAX_OK", "Max OK", "%4.2f", -1e6, 1e6, 0, ParametersN[nRanges].max);
@@ -499,7 +499,7 @@ bool INDI::Weather::saveConfigItems(FILE * fp)
     IUSaveConfigNumber(fp, &LocationNP);
     IUSaveConfigNumber(fp, &UpdatePeriodNP);
 
-    for (int i=0; i < nRanges; i++)
+    for (int i = 0; i < nRanges; i++)
         IUSaveConfigNumber(fp, &ParametersRangeNP[i]);
 
     return true;

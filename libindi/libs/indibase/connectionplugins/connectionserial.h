@@ -108,9 +108,9 @@ class Serial : public Interface
         /**
          * Refresh the list of system ports
          */
-        bool Refresh(bool silent=false);
+        bool Refresh(bool silent = false);
 
-protected:
+    protected:
 
         /** \brief Connect to serial port device. Default parameters are 8 bits, 1 stop bit, no parity. Override if different from default.
           \param port Port to connect to.
@@ -132,13 +132,13 @@ protected:
         ISwitch AutoSearchS[2];
         ISwitchVectorProperty AutoSearchSP;
 
-        ISwitch * SystemPortS=NULL;
+        ISwitch * SystemPortS = NULL;
         ISwitchVectorProperty SystemPortSP;
 
         ISwitch RefreshS[1];
         ISwitchVectorProperty RefreshSP;
 
-        int PortFD=-1;
+        int PortFD = -1;
 };
 
 }

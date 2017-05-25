@@ -35,15 +35,15 @@
 extern "C" {
 #endif
 
-void set_lx200ap_name(const char *deviceName, unsigned int debug_level);
+void set_lx200ap_name(const char * deviceName, unsigned int debug_level);
 int check_lx200ap_connection(int fd) ;
-int getAPUTCOffset (int fd, double *value) ;
+int getAPUTCOffset (int fd, double * value) ;
 int setAPObjectAZ(int fd, double az);
 int setAPObjectAlt(int fd, double alt);
 int setAPUTCOffset(int fd, double hours) ;
 int setAPSlewMode(int fd, int slewMode) ;
-int APSyncCM(int fd, char *matchedObject) ;
-int APSyncCMR(int fd, char *matchedObject) ;
+int APSyncCM(int fd, char * matchedObject) ;
+int APSyncCMR(int fd, char * matchedObject) ;
 int selectAPMoveToRate(int fd, int moveToRate) ;
 int selectAPSlewRate(int fd, int slewRate) ;
 int selectAPTrackingMode(int fd, int trackMode) ;

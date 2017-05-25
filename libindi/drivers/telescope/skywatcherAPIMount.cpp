@@ -36,44 +36,44 @@ std::unique_ptr<SkywatcherAPIMount> SkywatcherAPIMountPtr(new SkywatcherAPIMount
 #define SLEWMODES 9
 double SlewSpeeds[SLEWMODES] = { 1.0, 2.0, 4.0, 8.0, 16.0, 32.0, 64.0, 128.0, 600.0 };
 
-void ISPoll(void *p);
+void ISPoll(void * p);
 
 namespace
 {
-bool FileExists(const std::string& name)
+bool FileExists(const std::string &name)
 {
-  std::ifstream File(name.c_str());
+    std::ifstream File(name.c_str());
 
-  return File.good();
+    return File.good();
 }
 }
 
-void ISGetProperties(const char *dev)
+void ISGetProperties(const char * dev)
 {
     SkywatcherAPIMountPtr->ISGetProperties(dev);
 }
 
-void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int num)
+void ISNewSwitch(const char * dev, const char * name, ISState * states, char * names[], int num)
 {
     SkywatcherAPIMountPtr->ISNewSwitch(dev, name, states, names, num);
 }
 
-void ISNewText(	const char *dev, const char *name, char *texts[], char *names[], int num)
+void ISNewText(	const char * dev, const char * name, char * texts[], char * names[], int num)
 {
     SkywatcherAPIMountPtr->ISNewText(dev, name, texts, names, num);
 }
 
-void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int num)
+void ISNewNumber(const char * dev, const char * name, double values[], char * names[], int num)
 {
     SkywatcherAPIMountPtr->ISNewNumber(dev, name, values, names, num);
 }
 
-void ISNewBLOB (const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[], char *names[], int n)
+void ISNewBLOB (const char * dev, const char * name, int sizes[], int blobsizes[], char * blobs[], char * formats[], char * names[], int n)
 {
     SkywatcherAPIMountPtr->ISNewBLOB (dev, name, sizes, blobsizes, blobs, formats, names, n);
 }
 
-void ISSnoopDevice (XMLEle *root)
+void ISSnoopDevice (XMLEle * root)
 {
     INDI_UNUSED(root);
 }
@@ -125,20 +125,22 @@ bool SkywatcherAPIMount::Handshake()
     if (getActiveConnection() == serialConnection)
     {
         SerialPortName = serialConnection->port();
-    } else {
+    }
+    else
+    {
         SerialPortName = "";
     }
 
     // The default slew mode is silent on Virtuoso mounts.
     if (Result && !RecoverAfterReconnection && IsVirtuosoMount() &&
-        IUFindSwitch(&SlewModesSP, "SLEW_SILENT") && IUFindSwitch(&SlewModesSP, "SLEW_NORMAL"))
+            IUFindSwitch(&SlewModesSP, "SLEW_SILENT") && IUFindSwitch(&SlewModesSP, "SLEW_NORMAL"))
     {
         IUFindSwitch(&SlewModesSP, "SLEW_SILENT")->s = ISS_ON;
         IUFindSwitch(&SlewModesSP, "SLEW_NORMAL")->s = ISS_OFF;
     }
     // The SoftPEC is enabled on Virtuoso mounts by default.
     if (Result && !RecoverAfterReconnection && IsVirtuosoMount() &&
-        IUFindSwitch(&SoftPECModesSP, "SOFTPEC_ENABLED") && IUFindSwitch(&SoftPECModesSP, "SOFTPEC_DISABLED"))
+            IUFindSwitch(&SoftPECModesSP, "SOFTPEC_ENABLED") && IUFindSwitch(&SoftPECModesSP, "SOFTPEC_DISABLED"))
     {
         IUFindSwitch(&SoftPECModesSP, "SOFTPEC_ENABLED")->s = ISS_ON;
         IUFindSwitch(&SoftPECModesSP, "SOFTPEC_DISABLED")->s = ISS_OFF;
@@ -150,7 +152,7 @@ bool SkywatcherAPIMount::Handshake()
     }
     // The default mode is Slew out of Track/Slew/Sync
     if (!RecoverAfterReconnection && IUFindSwitch(&CoordSP, "TRACK") && IUFindSwitch(&CoordSP, "SLEW") &&
-        IUFindSwitch(&CoordSP, "SYNC"))
+            IUFindSwitch(&CoordSP, "SYNC"))
     {
         IUFindSwitch(&CoordSP, "TRACK")->s = ISS_OFF;
         IUFindSwitch(&CoordSP, "SLEW")->s = ISS_ON;
@@ -173,7 +175,7 @@ bool SkywatcherAPIMount::Goto(double ra, double dec)
 
     DEBUGF(INDI::AlignmentSubsystem::DBG_ALIGNMENT, "RA %lf DEC %lf", ra, dec);
 
-    if (ISS_ON == IUFindSwitch(&CoordSP,"TRACK")->s)
+    if (ISS_ON == IUFindSwitch(&CoordSP, "TRACK")->s)
     {
         char RAStr[32], DecStr[32];
         fs_sexa(RAStr, ra, 2, 3600);
@@ -198,7 +200,7 @@ bool SkywatcherAPIMount::Goto(double ra, double dec)
         bool HavePosition = false;
         ln_lnlat_posn Position;
         if ((NULL != IUFindNumber(&LocationNP, "LAT")) && ( 0 != IUFindNumber(&LocationNP, "LAT")->value)
-            && (NULL != IUFindNumber(&LocationNP, "LONG")) && ( 0 != IUFindNumber(&LocationNP, "LONG")->value))
+                && (NULL != IUFindNumber(&LocationNP, "LONG")) && ( 0 != IUFindNumber(&LocationNP, "LONG")->value))
         {
             // I assume that being on the equator and exactly on the prime meridian is unlikely
             Position.lat = IUFindNumber(&LocationNP, "LAT")->value;
@@ -249,13 +251,13 @@ bool SkywatcherAPIMount::Goto(double ra, double dec)
         // The initial position of the Virtuoso mount is polar aligned when switched on.
         // The altitude is corrected by the latitude.
         if (IUFindNumber(&LocationNP, "LAT"))
-            AltAz.alt = AltAz.alt-IUFindNumber(&LocationNP, "LAT")->value;
+            AltAz.alt = AltAz.alt - IUFindNumber(&LocationNP, "LAT")->value;
 
-        AltAz.az = 180+AltAz.az;
+        AltAz.az = 180 + AltAz.az;
     }
 
     DEBUGF(INDI::AlignmentSubsystem::DBG_ALIGNMENT, "New Altitude %lf degrees %ld microsteps Azimuth %lf degrees %ld microsteps",
-                                    AltAz.alt, DegreesToMicrosteps(AXIS2, AltAz.alt), AltAz.az, DegreesToMicrosteps(AXIS1, AltAz.az));
+           AltAz.alt, DegreesToMicrosteps(AXIS2, AltAz.alt), AltAz.az, DegreesToMicrosteps(AXIS1, AltAz.az));
 
     // Update the current encoder positions
     GetEncoder(AXIS1);
@@ -277,16 +279,18 @@ bool SkywatcherAPIMount::Goto(double ra, double dec)
         AzimuthOffsetMicrosteps -= MicrostepsPerRevolution[AXIS1];
     }
     DEBUGF(INDI::AlignmentSubsystem::DBG_ALIGNMENT, "Initial Axis2 %ld microsteps Axis1 %ld microsteps",
-                                                    ZeroPositionEncoders[AXIS2], ZeroPositionEncoders[AXIS1]);
+           ZeroPositionEncoders[AXIS2], ZeroPositionEncoders[AXIS1]);
     DEBUGF(INDI::AlignmentSubsystem::DBG_ALIGNMENT, "Current Axis2 %ld microsteps Axis1 %ld microsteps",
-                                                    CurrentEncoders[AXIS2], CurrentEncoders[AXIS1]);
+           CurrentEncoders[AXIS2], CurrentEncoders[AXIS1]);
     DEBUGF(INDI::AlignmentSubsystem::DBG_ALIGNMENT, "Altitude offset %ld microsteps Azimuth offset %ld microsteps",
-                                                    AltitudeOffsetMicrosteps, AzimuthOffsetMicrosteps);
+           AltitudeOffsetMicrosteps, AzimuthOffsetMicrosteps);
 
     if (IUFindSwitch(&SlewModesSP, "SLEW_SILENT") && IUFindSwitch(&SlewModesSP, "SLEW_SILENT")->s == ISS_ON)
     {
         SilentSlewMode = true;
-    } else {
+    }
+    else
+    {
         SilentSlewMode = false;
     }
     SlewTo(AXIS1, AzimuthOffsetMicrosteps);
@@ -309,9 +313,9 @@ bool SkywatcherAPIMount::initProperties()
     for (unsigned int i = 0; i < SlewRateSP.nsp; ++i)
     {
         sprintf(SlewRateSP.sp[i].label, "%.fx", SlewSpeeds[i]);
-        SlewRateSP.sp[i].aux = (void*)&SlewSpeeds[i];
+        SlewRateSP.sp[i].aux = (void *)&SlewSpeeds[i];
     }
-    strncpy(SlewRateSP.sp[SlewRateSP.nsp-1].name, "SLEW_MAX", MAXINDINAME);
+    strncpy(SlewRateSP.sp[SlewRateSP.nsp - 1].name, "SLEW_MAX", MAXINDINAME);
 
     // Add default properties
     addDebugControl();
@@ -325,28 +329,28 @@ bool SkywatcherAPIMount::initProperties()
 
     // Set up property variables
     IUFillNumber(&BasicMountInfo[MOTOR_CONTROL_FIRMWARE_VERSION], "MOTOR_CONTROL_FIRMWARE_VERSION",
-                                                            "Motor control fimware version",
-                                                            "%g",
-                                                            0,
-                                                            0xFFFFFF,
-                                                            1,
-                                                            0);
+                 "Motor control fimware version",
+                 "%g",
+                 0,
+                 0xFFFFFF,
+                 1,
+                 0);
     IUFillNumber(&BasicMountInfo[MOUNT_CODE], "MOUNT_CODE",
-                                                            "Mount code",
-                                                            "%g",
-                                                            0,
-                                                            0xFF,
-                                                            1,
-                                                            0);
+                 "Mount code",
+                 "%g",
+                 0,
+                 0xFF,
+                 1,
+                 0);
     IUFillNumber(&BasicMountInfo[IS_DC_MOTOR], "IS_DC_MOTOR",
-                                                            "Is DC motor (boolean)",
-                                                            "%g",
-                                                            0,
-                                                            1,
-                                                            1,
-                                                            0);
+                 "Is DC motor (boolean)",
+                 "%g",
+                 0,
+                 1,
+                 1,
+                 0);
     IUFillNumberVector(&BasicMountInfoV, BasicMountInfo, 3, getDeviceName(), "BASIC_MOUNT_INFO", "Basic mount information",
-                        DetailedMountInfoPage, IP_RO, 60, IPS_IDLE);
+                       DetailedMountInfoPage, IP_RO, 60, IPS_IDLE);
 
     IUFillSwitch(&MountType[MT_EQ6], "EQ6", "EQ6", ISS_OFF);
     IUFillSwitch(&MountType[MT_HEQ5], "HEQ5", "HEQ5", ISS_OFF);
@@ -358,39 +362,39 @@ bool SkywatcherAPIMount::initProperties()
     IUFillSwitch(&MountType[MT_DOB], "DOB", "DOB", ISS_OFF);
     IUFillSwitch(&MountType[MT_UNKNOWN], "UNKNOWN", "UNKNOWN", ISS_ON);
     IUFillSwitchVector(&MountTypeV, MountType, 9, getDeviceName(), "MOUNT_TYPE", "Mount type", DetailedMountInfoPage, IP_RO,
-                        ISR_ATMOST1, 60, IPS_IDLE);
+                       ISR_ATMOST1, 60, IPS_IDLE);
 
     IUFillNumber(&AxisOneInfo[MICROSTEPS_PER_REVOLUTION], "MICROSTEPS_PER_REVOLUTION",
-                                                            "Microsteps per revolution",
-                                                            "%.0f",
-                                                            0,
-                                                            0xFFFFFF,
-                                                            1,
-                                                            0);
+                 "Microsteps per revolution",
+                 "%.0f",
+                 0,
+                 0xFFFFFF,
+                 1,
+                 0);
     IUFillNumber(&AxisOneInfo[STEPPER_CLOCK_FREQUENCY], "STEPPER_CLOCK_FREQUENCY",
-                                                            "Stepper clock frequency",
-                                                            "%.0f",
-                                                            0,
-                                                            0xFFFFFF,
-                                                            1,
-                                                            0);
+                 "Stepper clock frequency",
+                 "%.0f",
+                 0,
+                 0xFFFFFF,
+                 1,
+                 0);
     IUFillNumber(&AxisOneInfo[HIGH_SPEED_RATIO], "HIGH_SPEED_RATIO",
-                                                            "High speed ratio",
-                                                            "%.0f",
-                                                            0,
-                                                            0xFFFFFF,
-                                                            1,
-                                                            0);
+                 "High speed ratio",
+                 "%.0f",
+                 0,
+                 0xFFFFFF,
+                 1,
+                 0);
     IUFillNumber(&AxisOneInfo[MICROSTEPS_PER_WORM_REVOLUTION], "MICROSTEPS_PER_WORM_REVOLUTION",
-                                                            "Microsteps per worm revolution",
-                                                            "%.0f",
-                                                            0,
-                                                            0xFFFFFF,
-                                                            1,
-                                                            0);
+                 "Microsteps per worm revolution",
+                 "%.0f",
+                 0,
+                 0xFFFFFF,
+                 1,
+                 0);
 
     IUFillNumberVector(&AxisOneInfoV, AxisOneInfo, 4, getDeviceName(), "AXIS_ONE_INFO", "Axis one information",
-                        DetailedMountInfoPage, IP_RO, 60, IPS_IDLE);
+                       DetailedMountInfoPage, IP_RO, 60, IPS_IDLE);
 
     IUFillSwitch(&AxisOneState[FULL_STOP], "FULL_STOP", "FULL_STOP", ISS_OFF);
     IUFillSwitch(&AxisOneState[SLEWING], "SLEWING", "SLEWING", ISS_OFF);
@@ -399,39 +403,39 @@ bool SkywatcherAPIMount::initProperties()
     IUFillSwitch(&AxisOneState[HIGH_SPEED], "HIGH_SPEED", "HIGH_SPEED", ISS_OFF);
     IUFillSwitch(&AxisOneState[NOT_INITIALISED], "NOT_INITIALISED", "NOT_INITIALISED", ISS_ON);
     IUFillSwitchVector(&AxisOneStateV, AxisOneState, 6, getDeviceName(), "AXIS_ONE_STATE", "Axis one state", DetailedMountInfoPage, IP_RO,
-                        ISR_NOFMANY, 60, IPS_IDLE);
+                       ISR_NOFMANY, 60, IPS_IDLE);
 
     IUFillNumber(&AxisTwoInfo[MICROSTEPS_PER_REVOLUTION], "MICROSTEPS_PER_REVOLUTION",
-                                                            "Microsteps per revolution",
-                                                            "%.0f",
-                                                            0,
-                                                            0xFFFFFF,
-                                                            1,
-                                                            0);
+                 "Microsteps per revolution",
+                 "%.0f",
+                 0,
+                 0xFFFFFF,
+                 1,
+                 0);
     IUFillNumber(&AxisTwoInfo[STEPPER_CLOCK_FREQUENCY], "STEPPER_CLOCK_FREQUENCY",
-                                                            "Step timer frequency",
-                                                            "%.0f",
-                                                            0,
-                                                            0xFFFFFF,
-                                                            1,
-                                                            0);
+                 "Step timer frequency",
+                 "%.0f",
+                 0,
+                 0xFFFFFF,
+                 1,
+                 0);
     IUFillNumber(&AxisTwoInfo[HIGH_SPEED_RATIO], "HIGH_SPEED_RATIO",
-                                                            "High speed ratio",
-                                                            "%.0f",
-                                                            0,
-                                                            0xFFFFFF,
-                                                            1,
-                                                            0);
+                 "High speed ratio",
+                 "%.0f",
+                 0,
+                 0xFFFFFF,
+                 1,
+                 0);
     IUFillNumber(&AxisTwoInfo[MICROSTEPS_PER_WORM_REVOLUTION], "MICROSTEPS_PER_WORM_REVOLUTION",
-                                                            "Mictosteps per worm revolution",
-                                                            "%.0f",
-                                                            0,
-                                                            0xFFFFFF,
-                                                            1,
-                                                            0);
+                 "Mictosteps per worm revolution",
+                 "%.0f",
+                 0,
+                 0xFFFFFF,
+                 1,
+                 0);
 
     IUFillNumberVector(&AxisTwoInfoV, AxisTwoInfo, 4, getDeviceName(), "AXIS_TWO_INFO", "Axis two information",
-                        DetailedMountInfoPage, IP_RO, 60, IPS_IDLE);
+                       DetailedMountInfoPage, IP_RO, 60, IPS_IDLE);
 
     IUFillSwitch(&AxisTwoState[FULL_STOP], "FULL_STOP", "FULL_STOP", ISS_OFF);
     IUFillSwitch(&AxisTwoState[SLEWING], "SLEWING", "SLEWING", ISS_OFF);
@@ -440,57 +444,57 @@ bool SkywatcherAPIMount::initProperties()
     IUFillSwitch(&AxisTwoState[HIGH_SPEED], "HIGH_SPEED", "HIGH_SPEED", ISS_OFF);
     IUFillSwitch(&AxisTwoState[NOT_INITIALISED], "NOT_INITIALISED", "NOT_INITIALISED", ISS_ON);
     IUFillSwitchVector(&AxisTwoStateV, AxisTwoState, 6, getDeviceName(), "AXIS_TWO_STATE", "Axis two state", DetailedMountInfoPage, IP_RO,
-                        ISR_NOFMANY, 60, IPS_IDLE);
+                       ISR_NOFMANY, 60, IPS_IDLE);
 
     IUFillNumber(&AxisOneEncoderValues[RAW_MICROSTEPS], "RAW_MICROSTEPS",
-                                                            "Raw Microsteps",
-                                                            "%.0f",
-                                                            0,
-                                                            0xFFFFFF,
-                                                            1,
-                                                            0);
+                 "Raw Microsteps",
+                 "%.0f",
+                 0,
+                 0xFFFFFF,
+                 1,
+                 0);
     IUFillNumber(&AxisOneEncoderValues[OFFSET_FROM_INITIAL], "OFFSET_FROM_INITIAL",
-                                                            "Offset from initial",
-                                                            "%.0f",
-                                                            0,
-                                                            0xFFFFFF,
-                                                            1,
-                                                            0);
+                 "Offset from initial",
+                 "%.0f",
+                 0,
+                 0xFFFFFF,
+                 1,
+                 0);
     IUFillNumber(&AxisOneEncoderValues[DEGREES_FROM_INITIAL], "DEGREES_FROM_INITIAL",
-                                                            "Degrees from initial",
-                                                            "%.2f",
-                                                            -1000.0,
-                                                            1000.0,
-                                                            1,
-                                                            0);
+                 "Degrees from initial",
+                 "%.2f",
+                 -1000.0,
+                 1000.0,
+                 1,
+                 0);
 
     IUFillNumberVector(&AxisOneEncoderValuesV, AxisOneEncoderValues, 3, getDeviceName(), "AXIS1_ENCODER_VALUES", "Axis 1 Encoder values",
-                        DetailedMountInfoPage, IP_RO, 60, IPS_IDLE);
+                       DetailedMountInfoPage, IP_RO, 60, IPS_IDLE);
 
     IUFillNumber(&AxisTwoEncoderValues[RAW_MICROSTEPS], "RAW_MICROSTEPS",
-                                                            "Raw Microsteps",
-                                                            "%.0f",
-                                                            0,
-                                                            0xFFFFFF,
-                                                            1,
-                                                            0);
+                 "Raw Microsteps",
+                 "%.0f",
+                 0,
+                 0xFFFFFF,
+                 1,
+                 0);
     IUFillNumber(&AxisTwoEncoderValues[OFFSET_FROM_INITIAL], "OFFSET_FROM_INITIAL",
-                                                            "Offset from initial",
-                                                            "%.0f",
-                                                            0,
-                                                            0xFFFFFF,
-                                                            1,
-                                                            0);
+                 "Offset from initial",
+                 "%.0f",
+                 0,
+                 0xFFFFFF,
+                 1,
+                 0);
     IUFillNumber(&AxisTwoEncoderValues[DEGREES_FROM_INITIAL], "DEGREES_FROM_INITIAL",
-                                                            "Degrees from initial",
-                                                            "%.2f",
-                                                            -1000.0,
-                                                            1000.0,
-                                                            1,
-                                                            0);
+                 "Degrees from initial",
+                 "%.2f",
+                 -1000.0,
+                 1000.0,
+                 1,
+                 0);
 
     IUFillNumberVector(&AxisTwoEncoderValuesV, AxisTwoEncoderValues, 3, getDeviceName(), "AXIS2_ENCODER_VALUES", "Axis 2 Encoder values",
-                        DetailedMountInfoPage, IP_RO, 60, IPS_IDLE);
+                       DetailedMountInfoPage, IP_RO, 60, IPS_IDLE);
     // Register any visible before connection properties
 
     // Slew modes
@@ -535,7 +539,7 @@ bool SkywatcherAPIMount::initProperties()
     return true;
 }
 
-void SkywatcherAPIMount::ISGetProperties (const char *dev)
+void SkywatcherAPIMount::ISGetProperties (const char * dev)
 {
     IDLog("SkywatcherAPIMount::ISGetProperties\n");
     INDI::Telescope::ISGetProperties(dev);
@@ -566,9 +570,9 @@ void SkywatcherAPIMount::ISGetProperties (const char *dev)
     return;
 }
 
-bool SkywatcherAPIMount::ISNewBLOB (const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[], char *names[], int n)
+bool SkywatcherAPIMount::ISNewBLOB (const char * dev, const char * name, int sizes[], int blobsizes[], char * blobs[], char * formats[], char * names[], int n)
 {
-    if(strcmp(dev,getDeviceName())==0)
+    if(strcmp(dev, getDeviceName()) == 0)
     {
         // It is for us
         ProcessAlignmentBLOBProperties(this, name, sizes, blobsizes, blobs, formats, names, n);
@@ -577,9 +581,9 @@ bool SkywatcherAPIMount::ISNewBLOB (const char *dev, const char *name, int sizes
     return INDI::Telescope::ISNewBLOB(dev, name, sizes, blobsizes, blobs, formats, names, n);
 }
 
-bool SkywatcherAPIMount::ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n)
+bool SkywatcherAPIMount::ISNewNumber (const char * dev, const char * name, double values[], char * names[], int n)
 {
-    if(strcmp(dev,getDeviceName())==0)
+    if(strcmp(dev, getDeviceName()) == 0)
     {
         // It is for us
         ProcessAlignmentNumberProperties(this, name, values, names, n);
@@ -588,10 +592,10 @@ bool SkywatcherAPIMount::ISNewNumber (const char *dev, const char *name, double 
     return INDI::Telescope::ISNewNumber(dev, name, values, names, n);
 }
 
-bool SkywatcherAPIMount::ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n)
+bool SkywatcherAPIMount::ISNewSwitch (const char * dev, const char * name, ISState * states, char * names[], int n)
 {
     IUUpdateSwitch(getSwitch(name), states, names, n);
-    if(strcmp(dev,getDeviceName())==0)
+    if(strcmp(dev, getDeviceName()) == 0)
     {
         // It is for us
         ProcessAlignmentSwitchProperties(this, name, states, names, n);
@@ -600,9 +604,9 @@ bool SkywatcherAPIMount::ISNewSwitch (const char *dev, const char *name, ISState
     return INDI::Telescope::ISNewSwitch(dev, name, states, names, n);
 }
 
-bool SkywatcherAPIMount::ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n)
+bool SkywatcherAPIMount::ISNewText (const char * dev, const char * name, char * texts[], char * names[], int n)
 {
-    if(strcmp(dev,getDeviceName())==0)
+    if(strcmp(dev, getDeviceName()) == 0)
     {
         ProcessAlignmentTextProperties(this, name, texts, names, n);
     }
@@ -612,8 +616,8 @@ bool SkywatcherAPIMount::ISNewText (const char *dev, const char *name, char *tex
 
 double SkywatcherAPIMount::GetSlewRate()
 {
-    ISwitch* Switch = IUFindOnSwitch(&SlewRateSP);
-    double Rate = *((double*)Switch->aux);
+    ISwitch * Switch = IUFindOnSwitch(&SlewRateSP);
+    double Rate = *((double *)Switch->aux);
 
     return Rate;
 }
@@ -622,21 +626,21 @@ bool SkywatcherAPIMount::MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command)
 {
     DEBUG(DBG_SCOPE, "SkywatcherAPIMount::MoveNS");
 
-    double speed = (dir == DIRECTION_NORTH) ? GetSlewRate()*LOW_SPEED_MARGIN / 2 : -GetSlewRate()*LOW_SPEED_MARGIN / 2;
-    const char *dirStr = (dir == DIRECTION_NORTH) ? "North" : "South";
+    double speed = (dir == DIRECTION_NORTH) ? GetSlewRate() * LOW_SPEED_MARGIN / 2 : -GetSlewRate() * LOW_SPEED_MARGIN / 2;
+    const char * dirStr = (dir == DIRECTION_NORTH) ? "North" : "South";
 
     switch (command)
     {
         case MOTION_START:
-        DEBUGF(DBG_SCOPE, "Starting Slew %s", dirStr);
-        // Ignore the silent mode because MoveNS() is called by the manual motion UI controls.
-        Slew(AXIS2, speed, true);
-        break;
+            DEBUGF(DBG_SCOPE, "Starting Slew %s", dirStr);
+            // Ignore the silent mode because MoveNS() is called by the manual motion UI controls.
+            Slew(AXIS2, speed, true);
+            break;
 
         case MOTION_STOP:
-        DEBUGF(DBG_SCOPE, "Stopping Slew %s", dirStr);
-        SlowStop(AXIS2);
-        break;
+            DEBUGF(DBG_SCOPE, "Stopping Slew %s", dirStr);
+            SlowStop(AXIS2);
+            break;
     }
 
     return true;
@@ -646,8 +650,8 @@ bool SkywatcherAPIMount::MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command)
 {
     DEBUG(DBG_SCOPE, "SkywatcherAPIMount::MoveWE");
 
-    double speed = (dir == DIRECTION_WEST) ? GetSlewRate()*LOW_SPEED_MARGIN / 2 : -GetSlewRate()*LOW_SPEED_MARGIN / 2;
-    const char *dirStr = (dir == DIRECTION_WEST) ? "West" : "East";
+    double speed = (dir == DIRECTION_WEST) ? GetSlewRate() * LOW_SPEED_MARGIN / 2 : -GetSlewRate() * LOW_SPEED_MARGIN / 2;
+    const char * dirStr = (dir == DIRECTION_WEST) ? "West" : "East";
 
     if (IsVirtuosoMount())
         speed = -speed;
@@ -655,15 +659,15 @@ bool SkywatcherAPIMount::MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command)
     switch (command)
     {
         case MOTION_START:
-        DEBUGF(DBG_SCOPE, "Starting Slew %s", dirStr);
-        // Ignore the silent mode because MoveNS() is called by the manual motion UI controls.
-        Slew(AXIS1, speed, true);
-        break;
+            DEBUGF(DBG_SCOPE, "Starting Slew %s", dirStr);
+            // Ignore the silent mode because MoveNS() is called by the manual motion UI controls.
+            Slew(AXIS1, speed, true);
+            break;
 
         case MOTION_STOP:
-        DEBUGF(DBG_SCOPE, "Stopping Slew %s", dirStr);
-        SlowStop(AXIS1);
-        break;
+            DEBUGF(DBG_SCOPE, "Stopping Slew %s", dirStr);
+            SlowStop(AXIS1);
+            break;
     }
 
     return true;
@@ -681,8 +685,10 @@ double SkywatcherAPIMount::GetParkDeltaAz(ParkDirection_t target_direction, Park
         if (target_direction == PARK_COUNTERCLOCKWISE)
         {
             Result = -CurrentAltAz.az;
-        } else {
-            Result = 360-CurrentAltAz.az;
+        }
+        else
+        {
+            Result = 360 - CurrentAltAz.az;
         }
     }
     // Calculate delta degrees (target: EAST)
@@ -691,14 +697,16 @@ double SkywatcherAPIMount::GetParkDeltaAz(ParkDirection_t target_direction, Park
         if (target_direction == PARK_COUNTERCLOCKWISE)
         {
             if (CurrentAltAz.az > 0 && CurrentAltAz.az < 90)
-                Result = -270-CurrentAltAz.az;
+                Result = -270 - CurrentAltAz.az;
             else
-                Result = -CurrentAltAz.az+90;
-        } else {
+                Result = -CurrentAltAz.az + 90;
+        }
+        else
+        {
             if (CurrentAltAz.az > 0 && CurrentAltAz.az < 90)
-                Result = 90-CurrentAltAz.az;
+                Result = 90 - CurrentAltAz.az;
             else
-                Result = 360-CurrentAltAz.az+90;
+                Result = 360 - CurrentAltAz.az + 90;
         }
     }
     // Calculate delta degrees (target: SOUTH)
@@ -707,14 +715,16 @@ double SkywatcherAPIMount::GetParkDeltaAz(ParkDirection_t target_direction, Park
         if (target_direction == PARK_COUNTERCLOCKWISE)
         {
             if (CurrentAltAz.az > 0 && CurrentAltAz.az < 180)
-                Result = -180-CurrentAltAz.az;
+                Result = -180 - CurrentAltAz.az;
             else
-                Result = -CurrentAltAz.az+180;
-        } else {
+                Result = -CurrentAltAz.az + 180;
+        }
+        else
+        {
             if (CurrentAltAz.az > 0 && CurrentAltAz.az < 180)
-                Result = 180-CurrentAltAz.az;
+                Result = 180 - CurrentAltAz.az;
             else
-                Result = 360-CurrentAltAz.az+180;
+                Result = 360 - CurrentAltAz.az + 180;
         }
     }
     // Calculate delta degrees (target: WEST)
@@ -723,14 +733,16 @@ double SkywatcherAPIMount::GetParkDeltaAz(ParkDirection_t target_direction, Park
         if (target_direction == PARK_COUNTERCLOCKWISE)
         {
             if (CurrentAltAz.az > 0 && CurrentAltAz.az < 270)
-                Result = -90-CurrentAltAz.az;
+                Result = -90 - CurrentAltAz.az;
             else
-                Result = -CurrentAltAz.az+270;
-        } else {
+                Result = -CurrentAltAz.az + 270;
+        }
+        else
+        {
             if (CurrentAltAz.az > 0 && CurrentAltAz.az < 270)
-                Result = 270-CurrentAltAz.az;
+                Result = 270 - CurrentAltAz.az;
             else
-                Result = 360-CurrentAltAz.az+270;
+                Result = 360 - CurrentAltAz.az + 270;
         }
     }
     if (Result >= 360)
@@ -763,18 +775,18 @@ bool SkywatcherAPIMount::Park()
         TargetPosition = PARK_WEST;
 
     if (IUFindSwitch(&ParkMovementDirectionSP, "PMD_COUNTERCLOCKWISE") &&
-        IUFindSwitch(&ParkMovementDirectionSP, "PMD_COUNTERCLOCKWISE")->s == ISS_ON)
+            IUFindSwitch(&ParkMovementDirectionSP, "PMD_COUNTERCLOCKWISE")->s == ISS_ON)
     {
         TargetDirection = PARK_COUNTERCLOCKWISE;
     }
     if (IUFindSwitch(&ParkMovementDirectionSP, "PMD_CLOCKWISE") &&
-        IUFindSwitch(&ParkMovementDirectionSP, "PMD_CLOCKWISE")->s == ISS_ON)
+            IUFindSwitch(&ParkMovementDirectionSP, "PMD_CLOCKWISE")->s == ISS_ON)
     {
         TargetDirection = PARK_CLOCKWISE;
     }
     DeltaAz = GetParkDeltaAz(TargetDirection, TargetPosition);
     // Altitude 3440 points the telescope downwards
-    DeltaAlt = CurrentAltAz.alt-3440;
+    DeltaAlt = CurrentAltAz.alt - 3440;
 
     // Move the telescope to the desired position
     long AltitudeOffsetMicrosteps = DegreesToMicrosteps(AXIS2, DeltaAlt);
@@ -782,12 +794,14 @@ bool SkywatcherAPIMount::Park()
 
     DEBUGF(INDI::AlignmentSubsystem::DBG_ALIGNMENT, "Parking: Delta altitude %1.2f - delta azimuth %1.2f", DeltaAlt, DeltaAz);
     DEBUGF(INDI::AlignmentSubsystem::DBG_ALIGNMENT, "Parking: Altitude offset %ld microsteps Azimuth offset %ld microsteps",
-                                                    AltitudeOffsetMicrosteps, AzimuthOffsetMicrosteps);
+           AltitudeOffsetMicrosteps, AzimuthOffsetMicrosteps);
 
     if (IUFindSwitch(&SlewModesSP, "SLEW_SILENT") && IUFindSwitch(&SlewModesSP, "SLEW_SILENT")->s == ISS_ON)
     {
         SilentSlewMode = true;
-    } else {
+    }
+    else
+    {
         SilentSlewMode = false;
     }
     SlewTo(AXIS1, AzimuthOffsetMicrosteps);
@@ -818,18 +832,18 @@ bool SkywatcherAPIMount::UnPark()
 
     // Note: The reverse direction is used for unparking.
     if (IUFindSwitch(&ParkMovementDirectionSP, "PMD_COUNTERCLOCKWISE") &&
-        IUFindSwitch(&ParkMovementDirectionSP, "PMD_COUNTERCLOCKWISE")->s == ISS_ON)
+            IUFindSwitch(&ParkMovementDirectionSP, "PMD_COUNTERCLOCKWISE")->s == ISS_ON)
     {
         TargetDirection = PARK_CLOCKWISE;
     }
     if (IUFindSwitch(&ParkMovementDirectionSP, "PMD_CLOCKWISE") &&
-        IUFindSwitch(&ParkMovementDirectionSP, "PMD_CLOCKWISE")->s == ISS_ON)
+            IUFindSwitch(&ParkMovementDirectionSP, "PMD_CLOCKWISE")->s == ISS_ON)
     {
         TargetDirection = PARK_COUNTERCLOCKWISE;
     }
     DeltaAz = GetParkDeltaAz(TargetDirection, TargetPosition);
     // Altitude 3360 points the telescope upwards
-    DeltaAlt = CurrentAltAz.alt-3360;
+    DeltaAlt = CurrentAltAz.alt - 3360;
 
     // Move the telescope to the desired position
     long AltitudeOffsetMicrosteps = DegreesToMicrosteps(AXIS2, DeltaAlt);
@@ -837,12 +851,14 @@ bool SkywatcherAPIMount::UnPark()
 
     DEBUGF(INDI::AlignmentSubsystem::DBG_ALIGNMENT, "Unparking: Delta altitude %1.2f - delta azimuth %1.2f", DeltaAlt, DeltaAz);
     DEBUGF(INDI::AlignmentSubsystem::DBG_ALIGNMENT, "Unparking: Altitude offset %ld microsteps Azimuth offset %ld microsteps",
-                                                    AltitudeOffsetMicrosteps, AzimuthOffsetMicrosteps);
+           AltitudeOffsetMicrosteps, AzimuthOffsetMicrosteps);
 
     if (IUFindSwitch(&SlewModesSP, "SLEW_SILENT") && IUFindSwitch(&SlewModesSP, "SLEW_SILENT")->s == ISS_ON)
     {
         SilentSlewMode = true;
-    } else {
+    }
+    else
+    {
         SilentSlewMode = false;
     }
     SlewTo(AXIS1, AzimuthOffsetMicrosteps);
@@ -898,12 +914,12 @@ bool SkywatcherAPIMount::ReadScopeStatus()
             MountDegree += IUFindNumber(&LocationNP, "LAT")->value;
 
         // The altitude degrees in the Virtuoso Alt-Az mount are inverted.
-        AltAz.alt = 3420-MountDegree;
+        AltAz.alt = 3420 - MountDegree;
         // Drift compensation for tracking mode (SoftPEC)
         if (IUFindSwitch(&SoftPECModesSP, "SOFTPEC_ENABLED") && IUFindSwitch(&SoftPECModesSP, "SOFTPEC_ENABLED")->s == ISS_ON &&
-            IUFindNumber(&SoftPecNP, "SOFTPEC_VALUE"))
+                IUFindNumber(&SoftPecNP, "SOFTPEC_VALUE"))
         {
-            AltAz.alt = AltAz.alt+(IUFindNumber(&SoftPecNP, "SOFTPEC_VALUE")->value / 60)*TrackingSecs;
+            AltAz.alt = AltAz.alt + (IUFindNumber(&SoftPecNP, "SOFTPEC_VALUE")->value / 60) * TrackingSecs;
         }
     }
     DEBUGF(INDI::AlignmentSubsystem::DBG_ALIGNMENT, "Axis2 encoder %ld initial %ld alt(degrees) %lf", CurrentEncoders[AXIS2], ZeroPositionEncoders[AXIS2], AltAz.alt);
@@ -926,7 +942,7 @@ bool SkywatcherAPIMount::ReadScopeStatus()
         bool HavePosition = false;
         ln_lnlat_posn Position;
         if ((NULL != IUFindNumber(&LocationNP, "LAT")) && ( 0 != IUFindNumber(&LocationNP, "LAT")->value)
-            && (NULL != IUFindNumber(&LocationNP, "LONG")) && ( 0 != IUFindNumber(&LocationNP, "LONG")->value))
+                && (NULL != IUFindNumber(&LocationNP, "LONG")) && ( 0 != IUFindNumber(&LocationNP, "LONG")->value))
         {
             // I assume that being on the equator and exactly on the prime meridian is unlikely
             Position.lat = IUFindNumber(&LocationNP, "LAT")->value;
@@ -969,8 +985,8 @@ bool SkywatcherAPIMount::ReadScopeStatus()
         RightAscension = EquatorialCoordinates.ra * 24.0 / 360.0;
         Declination = EquatorialCoordinates.dec;
         DEBUGF(INDI::AlignmentSubsystem::DBG_ALIGNMENT, "Conversion Failed - HavePosition %d RA (degrees) %lf DEC (degrees) %lf", HavePosition,
-                                                                                            EquatorialCoordinates.ra,
-                                                                                            EquatorialCoordinates.dec);
+               EquatorialCoordinates.ra,
+               EquatorialCoordinates.dec);
     }
 
     DEBUGF(INDI::AlignmentSubsystem::DBG_ALIGNMENT, "New RA %lf (hours) DEC %lf (degrees)", RightAscension, Declination);
@@ -979,7 +995,7 @@ bool SkywatcherAPIMount::ReadScopeStatus()
     return true;
 }
 
-bool SkywatcherAPIMount::saveConfigItems(FILE *fp)
+bool SkywatcherAPIMount::saveConfigItems(FILE * fp)
 {
     SaveAlignmentConfigProperties(fp);
 
@@ -1014,7 +1030,7 @@ bool SkywatcherAPIMount::Sync(double ra, double dec)
             MountDegree += IUFindNumber(&LocationNP, "LAT")->value;
 
         // The altitude degrees in the Virtuoso Alt-Az mount are inverted.
-        AltAz.alt = 3420-MountDegree;
+        AltAz.alt = 3420 - MountDegree;
     }
     DEBUGF(INDI::AlignmentSubsystem::DBG_ALIGNMENT, "Axis2 encoder %ld initial %ld alt(degrees) %lf", CurrentEncoders[AXIS2], ZeroPositionEncoders[AXIS2], AltAz.alt);
     AltAz.az = MicrostepsToDegrees(AXIS1, CurrentEncoders[AXIS1] - ZeroPositionEncoders[AXIS1]);
@@ -1032,8 +1048,8 @@ bool SkywatcherAPIMount::Sync(double ra, double dec)
     NewEntry.PrivateDataSize = 0;
 
     DEBUGF(INDI::AlignmentSubsystem::DBG_ALIGNMENT, "New sync point Date %lf RA %lf DEC %lf TDV(x %lf y %lf z %lf)",
-                    NewEntry.ObservationJulianDate, NewEntry.RightAscension, NewEntry.Declination,
-                    NewEntry.TelescopeDirection.x, NewEntry.TelescopeDirection.y, NewEntry.TelescopeDirection.z);
+           NewEntry.ObservationJulianDate, NewEntry.RightAscension, NewEntry.Declination,
+           NewEntry.TelescopeDirection.x, NewEntry.TelescopeDirection.y, NewEntry.TelescopeDirection.z);
 
     if (!CheckForDuplicateSyncPoint(NewEntry))
     {
@@ -1076,7 +1092,7 @@ void SkywatcherAPIMount::TimerHit()
             Slewing = true;
             if ((AxesStatus[AXIS1].FullStop) && (AxesStatus[AXIS2].FullStop))
             {
-                if (ISS_ON == IUFindSwitch(&CoordSP,"TRACK")->s)
+                if (ISS_ON == IUFindSwitch(&CoordSP, "TRACK")->s)
                 {
                     // Goto has finished start tracking
                     TrackState = SCOPE_TRACKING;
@@ -1088,7 +1104,7 @@ void SkywatcherAPIMount::TimerHit()
                     break;
                 }
             }
-        break;
+            break;
 
         case SCOPE_TRACKING:
         {
@@ -1100,8 +1116,8 @@ void SkywatcherAPIMount::TimerHit()
             // Restart the drift compensation after syncing
             if (ResetTrackingSeconds)
             {
-              ResetTrackingSeconds = false;
-              TrackingSecs = 0;
+                ResetTrackingSeconds = false;
+                TrackingSecs = 0;
             }
             TrackingSecs++;
             if (TrackingSecs % 20 == 0)
@@ -1118,9 +1134,9 @@ void SkywatcherAPIMount::TimerHit()
             ln_hrz_posn AltAz;
             if (TransformCelestialToTelescope(CurrentTrackingTarget.ra, CurrentTrackingTarget.dec,
 #ifdef USE_INITIAL_JULIAN_DATE
-                                                0, TDV))
+                                              0, TDV))
 #else
-                                                JulianOffset, TDV))
+                                              JulianOffset, TDV))
 #endif
             {
                 DEBUGF(INDI::AlignmentSubsystem::DBG_ALIGNMENT, "TDV x %lf y %lf z %lf", TDV.x, TDV.y, TDV.z);
@@ -1132,7 +1148,7 @@ void SkywatcherAPIMount::TimerHit()
                 bool HavePosition = false;
                 ln_lnlat_posn Position;
                 if ((NULL != IUFindNumber(&LocationNP, "LAT")) && ( 0 != IUFindNumber(&LocationNP, "LAT")->value)
-                    && (NULL != IUFindNumber(&LocationNP, "LONG")) && ( 0 != IUFindNumber(&LocationNP, "LONG")->value))
+                        && (NULL != IUFindNumber(&LocationNP, "LONG")) && ( 0 != IUFindNumber(&LocationNP, "LONG")->value))
                 {
                     // I assume that being on the equator and exactly on the prime meridian is unlikely
                     Position.lat = IUFindNumber(&LocationNP, "LAT")->value;
@@ -1146,9 +1162,9 @@ void SkywatcherAPIMount::TimerHit()
                 if (HavePosition)
                     ln_get_hrz_from_equ(&EquatorialCoordinates, &Position,
 #ifdef USE_INITIAL_JULIAN_DATE
-                                            InitialJulianDate, &AltAz);
+                                        InitialJulianDate, &AltAz);
 #else
-                                            ln_get_julian_from_sys() + JulianOffset, &AltAz);
+                                        ln_get_julian_from_sys() + JulianOffset, &AltAz);
 #endif
                 else
                 {
@@ -1163,15 +1179,15 @@ void SkywatcherAPIMount::TimerHit()
                 // The altitude is corrected by the latitude.
                 if (IUFindNumber(&LocationNP, "LAT"))
                 {
-                    AltAz.alt = AltAz.alt-IUFindNumber(&LocationNP, "LAT")->value;
+                    AltAz.alt = AltAz.alt - IUFindNumber(&LocationNP, "LAT")->value;
                 }
                 // Drift compensation for tracking mode (SoftPEC)
                 if (IUFindSwitch(&SoftPECModesSP, "SOFTPEC_ENABLED") && IUFindSwitch(&SoftPECModesSP, "SOFTPEC_ENABLED")->s == ISS_ON &&
-                    IUFindNumber(&SoftPecNP, "SOFTPEC_VALUE"))
+                        IUFindNumber(&SoftPecNP, "SOFTPEC_VALUE"))
                 {
-                    AltAz.alt = AltAz.alt+(IUFindNumber(&SoftPecNP, "SOFTPEC_VALUE")->value / 60)*TrackingSecs;
+                    AltAz.alt = AltAz.alt + (IUFindNumber(&SoftPecNP, "SOFTPEC_VALUE")->value / 60) * TrackingSecs;
                 }
-                AltAz.az = 180+AltAz.az;
+                AltAz.az = 180 + AltAz.az;
             }
             DEBUGF(DBG_SCOPE, "Tracking AXIS1 CurrentEncoder %ld OldTrackingTarget %ld AXIS2 CurrentEncoder %ld OldTrackingTarget %ld",
                    CurrentEncoders[AXIS1], OldTrackingTarget[AXIS1], CurrentEncoders[AXIS2], OldTrackingTarget[AXIS2]);
@@ -1196,7 +1212,7 @@ void SkywatcherAPIMount::TimerHit()
                 // at the correct time.
                 long AzimuthRate = StepperClockFrequency[AXIS1] / AzimuthOffsetMicrosteps;
                 if (!AxesStatus[AXIS1].FullStop &&
-                    ((AxesStatus[AXIS1].SlewingForward && (AzimuthRate < 0)) || (!AxesStatus[AXIS1].SlewingForward && (AzimuthRate > 0))))
+                        ((AxesStatus[AXIS1].SlewingForward && (AzimuthRate < 0)) || (!AxesStatus[AXIS1].SlewingForward && (AzimuthRate > 0))))
                 {
                     // Direction change whilst axis running
                     // Abandon tracking for this clock tick
@@ -1234,12 +1250,12 @@ void SkywatcherAPIMount::TimerHit()
             }
             if (0 != AltitudeOffsetMicrosteps)
             {
-                 // Calculate the slewing rates needed to reach that position
+                // Calculate the slewing rates needed to reach that position
                 // at the correct time.
                 long AltitudeRate = StepperClockFrequency[AXIS2] / AltitudeOffsetMicrosteps;
 
                 if (!AxesStatus[AXIS2].FullStop &&
-                    ((AxesStatus[AXIS2].SlewingForward && (AltitudeRate < 0)) || (!AxesStatus[AXIS2].SlewingForward && (AltitudeRate > 0))))
+                        ((AxesStatus[AXIS2].SlewingForward && (AltitudeRate < 0)) || (!AxesStatus[AXIS2].SlewingForward && (AltitudeRate > 0))))
                 {
                     // Direction change whilst axis running
                     // Abandon tracking for this clock tick
@@ -1256,7 +1272,7 @@ void SkywatcherAPIMount::TimerHit()
                         DEBUG(DBG_SCOPE, "Tracking - AXIS2 restart");
                         SetMotionMode(AXIS2, '1', Direction);
                         StartMotion(AXIS2);
-                      }
+                    }
                     DEBUGF(DBG_SCOPE, "Tracking - AXIS2 offset %ld microsteps rate %ld direction %c",
                            AltitudeOffsetMicrosteps, AltitudeRate, Direction);
                 }
@@ -1291,7 +1307,7 @@ void SkywatcherAPIMount::TimerHit()
             TrackingSecs = 0;
             Tracking = false;
             Slewing = false;
-        break;
+            break;
     }
 }
 
@@ -1359,7 +1375,7 @@ bool SkywatcherAPIMount::updateProperties()
 
 // Private methods
 
-int SkywatcherAPIMount::skywatcher_tty_read(int fd, char *buf, int nbytes, int timeout, int *nbytes_read)
+int SkywatcherAPIMount::skywatcher_tty_read(int fd, char * buf, int nbytes, int timeout, int * nbytes_read)
 {
     if (!RecoverAfterReconnection && !SerialPortName.empty() && !FileExists(SerialPortName))
     {
@@ -1384,7 +1400,7 @@ int SkywatcherAPIMount::skywatcher_tty_read(int fd, char *buf, int nbytes, int t
     return tty_read(fd, buf, nbytes, timeout, nbytes_read);
 }
 
-int SkywatcherAPIMount::skywatcher_tty_write(int fd, const char * buffer, int nbytes, int *nbytes_written)
+int SkywatcherAPIMount::skywatcher_tty_write(int fd, const char * buffer, int nbytes, int * nbytes_written)
 {
     if (!RecoverAfterReconnection && !SerialPortName.empty() && !FileExists(SerialPortName))
     {
@@ -1410,11 +1426,11 @@ int SkywatcherAPIMount::skywatcher_tty_write(int fd, const char * buffer, int nb
 }
 
 void SkywatcherAPIMount::SkywatcherMicrostepsFromTelescopeDirectionVector(const TelescopeDirectionVector TelescopeDirectionVector,
-                                                            long& Axis1Microsteps, long& Axis2Microsteps)
+        long &Axis1Microsteps, long &Axis2Microsteps)
 {
     // For the time being I assume that all skywathcer mounts share the same encoder conventions
-    double Axis1Angle=0;
-    double Axis2Angle=0;
+    double Axis1Angle = 0;
+    double Axis2Angle = 0;
     SphericalCoordinateFromTelescopeDirectionVector(TelescopeDirectionVector, Axis1Angle, TelescopeDirectionVectorSupportFunctions::CLOCKWISE, Axis1Angle, FROM_AZIMUTHAL_PLANE);
 
     Axis1Microsteps = RadiansToMicrosteps(AXIS1, Axis1Angle);
@@ -1563,7 +1579,7 @@ void SkywatcherAPIMount::UpdateDetailedMountInformation(bool InformClient)
         AxisOneStateHasChanged = true;
     }
     if (AxisOneStateHasChanged && InformClient)
-            IDSetSwitch(&AxisOneStateV, NULL);
+        IDSetSwitch(&AxisOneStateV, NULL);
 
     bool AxisTwoInfoHasChanged = false;
     if (AxisTwoInfo[MICROSTEPS_PER_REVOLUTION].value != MicrostepsPerRevolution[1])
@@ -1621,11 +1637,11 @@ void SkywatcherAPIMount::UpdateDetailedMountInformation(bool InformClient)
         AxisTwoStateHasChanged = true;
     }
     if (AxisTwoStateHasChanged && InformClient)
-            IDSetSwitch(&AxisTwoStateV, NULL);
+        IDSetSwitch(&AxisTwoStateV, NULL);
 
     bool AxisOneEncoderValuesHasChanged = false;
     if ((AxisOneEncoderValues[RAW_MICROSTEPS].value != CurrentEncoders[AXIS1])
-    || (AxisOneEncoderValues[OFFSET_FROM_INITIAL].value != CurrentEncoders[AXIS1] - ZeroPositionEncoders[AXIS1]))
+            || (AxisOneEncoderValues[OFFSET_FROM_INITIAL].value != CurrentEncoders[AXIS1] - ZeroPositionEncoders[AXIS1]))
     {
         AxisOneEncoderValues[RAW_MICROSTEPS].value = CurrentEncoders[AXIS1];
         AxisOneEncoderValues[OFFSET_FROM_INITIAL].value = CurrentEncoders[AXIS1] - ZeroPositionEncoders[AXIS1];
@@ -1635,9 +1651,9 @@ void SkywatcherAPIMount::UpdateDetailedMountInformation(bool InformClient)
     if (AxisOneEncoderValuesHasChanged && InformClient)
         IDSetNumber(&AxisOneEncoderValuesV, NULL);
 
-        bool AxisTwoEncoderValuesHasChanged = false;
+    bool AxisTwoEncoderValuesHasChanged = false;
     if ((AxisTwoEncoderValues[RAW_MICROSTEPS].value != CurrentEncoders[AXIS2])
-    || (AxisTwoEncoderValues[OFFSET_FROM_INITIAL].value != CurrentEncoders[AXIS2] - ZeroPositionEncoders[AXIS2]))
+            || (AxisTwoEncoderValues[OFFSET_FROM_INITIAL].value != CurrentEncoders[AXIS2] - ZeroPositionEncoders[AXIS2]))
     {
         AxisTwoEncoderValues[RAW_MICROSTEPS].value = CurrentEncoders[AXIS2];
         AxisTwoEncoderValues[OFFSET_FROM_INITIAL].value = CurrentEncoders[AXIS2] - ZeroPositionEncoders[AXIS2];

@@ -99,11 +99,11 @@ class SER_Recorder: public V4L2_Recorder
         void write_long_int_le(uint64_t * i);
         void write_header(ser_header * s);
         ser_header serh;
-        bool isRecordingActive=false, isStreamingActive=false;
+        bool isRecordingActive = false, isStreamingActive = false;
         FILE * f;
         uint32_t frame_size;
         uint32_t number_of_planes;
-        uint16_t offsetX=0, offsetY=0, rawWidth=0, rawHeight=0;
+        uint16_t offsetX = 0, offsetY = 0, rawWidth = 0, rawHeight = 0;
         std::vector<uint64_t> frameStamps;
 
     private:
@@ -111,8 +111,8 @@ class SER_Recorder: public V4L2_Recorder
         // Copyright (C) 2015 Chris Garry
 
         // Date to MS 64bit timestamp format for SER header
-        void dateTo64BitTS(int32_t year,int32_t month,int32_t day,int32_t hour,int32_t minute,int32_t second,
-                           int32_t microsec,uint64_t * p_ts);
+        void dateTo64BitTS(int32_t year, int32_t month, int32_t day, int32_t hour, int32_t minute, int32_t second,
+                           int32_t microsec, uint64_t * p_ts);
 
         uint64_t getUTCTimeStamp();
         uint64_t getLocalTimeStamp();

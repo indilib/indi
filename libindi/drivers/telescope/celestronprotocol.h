@@ -87,17 +87,17 @@
 
 #define BRIGHTER        16  /* increase */
 #define DIMMER          8   /* decrease */
-#define BLINK0          0   /* no blinking */ 
+#define BLINK0          0   /* no blinking */
 #define BLINK1          1   /* blink rate 1 */
 #define BLINK2          2   /* blink rate 2 */
 #define BLINK3          4   /* blink rate 3 */
- 
+
 
 /* Focus defines */
 
 #define FOCUSOUT        8   /* positive voltage output */
 #define FOCUSIN         4   /* negative voltage output */
-#define FOCUSSTOP       0   /* no output */ 
+#define FOCUSSTOP       0   /* no output */
 #define FOCUSSLOW       1   /* half voltage */
 #define FOCUSFAST       2   /* full voltage */
 
@@ -117,7 +117,7 @@
 extern "C" {
 #endif
 
-int ConnectTel(char *port);
+int ConnectTel(char * port);
 void DisconnectTel(void);
 /* 0 if connection is OK, -1 otherwise */
 int  CheckConnectTel(void);
@@ -133,7 +133,7 @@ int  SyncToCoords(double newRA, double newDec);
 int  CheckCoords(double desRA, double desDec, double tolRA, double tolDEC);
 int  isScopeSlewing();
 int updateLocation(double lng, double lat);
-int updateTime(struct ln_date *utc, double utc_offset);
+int updateTime(struct ln_date * utc, double utc_offset);
 
 void StopNSEW(void);
 int  SetSlewRate(void);

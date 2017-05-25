@@ -42,7 +42,7 @@ bool INDI::FilterWheel::initProperties()
 
     initFilterProperties(getDeviceName(), FILTER_TAB);
 
-    controller->mapController("Change Filter","Change Filter", INDI::Controller::CONTROLLER_JOYSTICK, "JOYSTICK_1");
+    controller->mapController("Change Filter", "Change Filter", INDI::Controller::CONTROLLER_JOYSTICK, "JOYSTICK_1");
     controller->mapController("Reset", "Reset", INDI::Controller::CONTROLLER_BUTTON, "BUTTON_1");
 
     controller->initProperties();
@@ -122,19 +122,19 @@ bool INDI::FilterWheel::updateProperties()
 bool INDI::FilterWheel::ISNewSwitch (const char * dev, const char * name, ISState * states, char * names[], int n)
 {
     controller->ISNewSwitch(dev, name, states, names, n);
-    return DefaultDevice::ISNewSwitch(dev, name, states, names,n);
+    return DefaultDevice::ISNewSwitch(dev, name, states, names, n);
 }
 
 bool INDI::FilterWheel::ISNewNumber (const char * dev, const char * name, double values[], char * names[], int n)
 {
     //  first check if it's for our device
     //IDLog("INDI::FilterWheel::ISNewNumber %s\n",name);
-    if(strcmp(dev,getDeviceName())==0)
+    if(strcmp(dev, getDeviceName()) == 0)
     {
         //  This is for our device
         //  Now lets see if it's something we process here
 
-        if(strcmp(name,"FILTER_SLOT")==0)
+        if(strcmp(name, "FILTER_SLOT") == 0)
         {
             processFilterSlot(dev, values, names);
             return true;
@@ -142,7 +142,7 @@ bool INDI::FilterWheel::ISNewNumber (const char * dev, const char * name, double
     }
     //  if we didn't process it, continue up the chain, let somebody else
     //  give it a shot
-    return DefaultDevice::ISNewNumber(dev,name,values,names,n);
+    return DefaultDevice::ISNewNumber(dev, name, values, names, n);
 }
 
 bool INDI::FilterWheel::ISNewText (const char * dev, const char * name, char * texts[], char * names[], int n)
@@ -150,11 +150,11 @@ bool INDI::FilterWheel::ISNewText (const char * dev, const char * name, char * t
     //  Ok, lets see if this is a property wer process
     //IDLog("INDI::FilterWheel got %d new text items name %s\n",n,name);
     //  first check if it's for our device
-    if(strcmp(dev,getDeviceName())==0)
+    if(strcmp(dev, getDeviceName()) == 0)
     {
         //  This is for our device
         //  Now lets see if it's something we process here
-        if(strcmp(name,FilterNameTP->name)==0)
+        if(strcmp(name, FilterNameTP->name) == 0)
         {
             processFilterName(dev, texts, names, n);
             return true;
@@ -163,7 +163,7 @@ bool INDI::FilterWheel::ISNewText (const char * dev, const char * name, char * t
     }
 
     controller->ISNewText(dev, name, texts, names, n);
-    return DefaultDevice::ISNewText(dev,name,texts,names,n);
+    return DefaultDevice::ISNewText(dev, name, texts, names, n);
 }
 
 bool INDI::FilterWheel::saveConfigItems(FILE * fp)
@@ -233,7 +233,7 @@ void INDI::FilterWheel::processJoystick(const char * joystick_n, double mag, dou
                 if (FilterSlotN[0].value == FilterSlotN[0].min)
                     TargetFilter = FilterSlotN[0].max;
                 else
-                    TargetFilter = FilterSlotN[0].value-1;
+                    TargetFilter = FilterSlotN[0].value - 1;
 
                 SelectFilter(TargetFilter);
 
@@ -245,7 +245,7 @@ void INDI::FilterWheel::processJoystick(const char * joystick_n, double mag, dou
                 if (FilterSlotN[0].value == FilterSlotN[0].max)
                     TargetFilter = FilterSlotN[0].min;
                 else
-                    TargetFilter = FilterSlotN[0].value+1;
+                    TargetFilter = FilterSlotN[0].value + 1;
 
                 SelectFilter(TargetFilter);
 

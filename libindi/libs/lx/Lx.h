@@ -66,7 +66,7 @@ class Lx
         const char * device_name;
         int camerafd;
 
-// Serial
+        // Serial
         int serialfd;
         struct termios oldterminfo;
         void closeserial(int fd);
@@ -78,7 +78,7 @@ class Lx
         void getSerialOptions(unsigned int * speed, unsigned int * wordsize, unsigned int * parity, unsigned int * stops);
         const char * getSerialEOL();
         INDI::Property * findbyLabel(INDI::DefaultDevice * dev, char * label);
-// PWC Cameras
+        // PWC Cameras
         ISwitchVectorProperty * FlashStrobeSP;
         ISwitchVectorProperty * FlashStrobeStopSP;
         enum pwcledmethod { PWCIOCTL, FLASHLED };

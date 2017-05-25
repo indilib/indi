@@ -38,40 +38,40 @@
 // We declare an auto pointer to IEQPro.
 std::unique_ptr<IEQPro> scope(new IEQPro());
 
-void ISGetProperties(const char *dev)
+void ISGetProperties(const char * dev)
 {
-        scope->ISGetProperties(dev);
+    scope->ISGetProperties(dev);
 }
 
-void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int num)
+void ISNewSwitch(const char * dev, const char * name, ISState * states, char * names[], int num)
 {
-        scope->ISNewSwitch(dev, name, states, names, num);
+    scope->ISNewSwitch(dev, name, states, names, num);
 }
 
-void ISNewText(	const char *dev, const char *name, char *texts[], char *names[], int num)
+void ISNewText(	const char * dev, const char * name, char * texts[], char * names[], int num)
 {
-        scope->ISNewText(dev, name, texts, names, num);
+    scope->ISNewText(dev, name, texts, names, num);
 }
 
-void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int num)
+void ISNewNumber(const char * dev, const char * name, double values[], char * names[], int num)
 {
-        scope->ISNewNumber(dev, name, values, names, num);
+    scope->ISNewNumber(dev, name, values, names, num);
 }
 
-void ISNewBLOB (const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[], char *names[], int n)
+void ISNewBLOB (const char * dev, const char * name, int sizes[], int blobsizes[], char * blobs[], char * formats[], char * names[], int n)
 {
-  INDI_UNUSED(dev);
-  INDI_UNUSED(name);
-  INDI_UNUSED(sizes);
-  INDI_UNUSED(blobsizes);
-  INDI_UNUSED(blobs);
-  INDI_UNUSED(formats);
-  INDI_UNUSED(names);
-  INDI_UNUSED(n);
+    INDI_UNUSED(dev);
+    INDI_UNUSED(name);
+    INDI_UNUSED(sizes);
+    INDI_UNUSED(blobsizes);
+    INDI_UNUSED(blobs);
+    INDI_UNUSED(formats);
+    INDI_UNUSED(names);
+    INDI_UNUSED(n);
 }
-void ISSnoopDevice (XMLEle *root)
+void ISSnoopDevice (XMLEle * root)
 {
-   scope->ISSnoopDevice(root);
+    scope->ISSnoopDevice(root);
 }
 
 /* Constructor */
@@ -80,8 +80,8 @@ IEQPro::IEQPro()
     set_ieqpro_device(getDeviceName());
 
     //ctor
-    currentRA=ln_get_apparent_sidereal_time(ln_get_julian_from_sys());
-    currentDEC=90;
+    currentRA = ln_get_apparent_sidereal_time(ln_get_julian_from_sys());
+    currentDEC = 90;
 
     scopeInfo.gpsStatus     = GPS_OFF;
     scopeInfo.systemStatus  = ST_STOPPED;
@@ -92,14 +92,14 @@ IEQPro::IEQPro()
 
     DBG_SCOPE = INDI::Logger::getInstance().addDebugLevel("Scope Verbose", "SCOPE");
 
-    SetTelescopeCapability(TELESCOPE_CAN_PARK | TELESCOPE_CAN_SYNC | TELESCOPE_CAN_GOTO | TELESCOPE_CAN_ABORT | TELESCOPE_HAS_TIME | TELESCOPE_HAS_LOCATION,9);
+    SetTelescopeCapability(TELESCOPE_CAN_PARK | TELESCOPE_CAN_SYNC | TELESCOPE_CAN_GOTO | TELESCOPE_CAN_ABORT | TELESCOPE_HAS_TIME | TELESCOPE_HAS_LOCATION, 9);
 }
 
 IEQPro::~IEQPro()
 {
 }
 
-const char *IEQPro::getDefaultName()
+const char * IEQPro::getDefaultName()
 {
     return (const char *) "iEQ";
 }
@@ -124,8 +124,8 @@ bool IEQPro::initProperties()
     IUFillSwitchVector(&TrackModeSP, TrackModeS, 4, getDeviceName(), "TELESCOPE_TRACK_MODE", "Track Mode", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
     /* Custom Tracking Rate */
-    IUFillNumber(&CustomTrackRateN[0],"TRACK_RATE_CUSTOM","Rate","%g",-0.0100, 0.0100, 0.005, 0);
-    IUFillNumberVector(&CustomTrackRateNP, CustomTrackRateN,1,getDeviceName(),"TELESCOPE_TRACK_RATE","Track Rates",MOTION_TAB,IP_RW,60,IPS_IDLE);
+    IUFillNumber(&CustomTrackRateN[0], "TRACK_RATE_CUSTOM", "Rate", "%g", -0.0100, 0.0100, 0.005, 0);
+    IUFillNumberVector(&CustomTrackRateNP, CustomTrackRateN, 1, getDeviceName(), "TELESCOPE_TRACK_RATE", "Track Rates", MOTION_TAB, IP_RW, 60, IPS_IDLE);
 
     /* GPS Status */
     IUFillSwitch(&GPSStatusS[GPS_OFF], "Off", "", ISS_ON);
@@ -154,7 +154,7 @@ bool IEQPro::initProperties()
     IUFillNumber(&GuideRateN[0], "GUIDE_RATE", "x Sidereal", "%g", 0.1, 0.9, 0.1, 0.5);
     IUFillNumberVector(&GuideRateNP, GuideRateN, 1, getDeviceName(), "GUIDE_RATE", "Guiding Rate", MOTION_TAB, IP_RW, 0, IPS_IDLE);
 
-    TrackState=SCOPE_IDLE;
+    TrackState = SCOPE_IDLE;
 
     initGuiderProperties(getDeviceName(), MOTION_TAB);
 
@@ -168,7 +168,7 @@ bool IEQPro::initProperties()
 }
 
 bool IEQPro::updateProperties()
-{    
+{
     INDI::Telescope::updateProperties();
 
     if (isConnected())
@@ -225,7 +225,7 @@ void IEQPro::getStartupData()
     }
 
     DEBUG(INDI::Logger::DBG_DEBUG, "Getting guiding rate...");
-    double guideRate=0;
+    double guideRate = 0;
     if (get_ieqpro_guide_rate(PortFD, &guideRate))
     {
         GuideRateN[0].value = guideRate;
@@ -269,7 +269,7 @@ void IEQPro::getStartupData()
     }
 
     // Get Longitude and Latitude from mount
-    double longitude=0,latitude=0;
+    double longitude = 0, latitude = 0;
     if (get_ieqpro_latitude(PortFD, &latitude) && get_ieqpro_longitude(PortFD, &longitude))
     {
         // Convert to INDI standard longitude (0 to 360 Eastward)
@@ -277,7 +277,7 @@ void IEQPro::getStartupData()
             longitude += 360;
 
         LocationN[LOCATION_LATITUDE].value = latitude;
-        LocationN[LOCATION_LONGITUDE].value= longitude;
+        LocationN[LOCATION_LONGITUDE].value = longitude;
         LocationNP.s = IPS_OK;
 
         IDSetNumber(&LocationNP, NULL);
@@ -292,7 +292,7 @@ void IEQPro::getStartupData()
     }
 }
 
-bool IEQPro::ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n)
+bool IEQPro::ISNewNumber (const char * dev, const char * name, double values[], char * names[], int n)
 {
     if (!strcmp (dev, getDeviceName()))
     {
@@ -336,7 +336,7 @@ bool IEQPro::ISNewNumber (const char *dev, const char *name, double values[], ch
             return true;
         }
 
-        if (!strcmp(name,GuideNSNP.name) || !strcmp(name,GuideWENP.name))
+        if (!strcmp(name, GuideNSNP.name) || !strcmp(name, GuideWENP.name))
         {
             processGuiderProperties(name, values, names, n);
             return true;
@@ -346,7 +346,7 @@ bool IEQPro::ISNewNumber (const char *dev, const char *name, double values[], ch
     return INDI::Telescope::ISNewNumber (dev, name, values, names, n);
 }
 
-bool IEQPro::ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n)
+bool IEQPro::ISNewSwitch (const char * dev, const char * name, ISState * states, char * names[], int n)
 {
     if (!strcmp (getDeviceName(), dev))
     {
@@ -523,14 +523,14 @@ bool IEQPro::ReadScopeStatus()
                 TrackModeSP.s = IPS_IDLE;
                 TrackState = SCOPE_IDLE;
                 break;
-             case ST_SLEWING:
-             case ST_MERIDIAN_FLIPPING:
+            case ST_SLEWING:
+            case ST_MERIDIAN_FLIPPING:
                 if (TrackState != SCOPE_SLEWING && TrackState != SCOPE_PARKING)
                     TrackState =  SCOPE_SLEWING;
                 break;
-             case ST_TRACKING_PEC_OFF:
-             case ST_TRACKING_PEC_ON:
-             case ST_GUIDING:
+            case ST_TRACKING_PEC_OFF:
+            case ST_TRACKING_PEC_ON:
+            case ST_GUIDING:
                 TrackModeSP.s = IPS_BUSY;
                 TrackState = SCOPE_TRACKING;
                 if (scopeInfo.systemStatus == ST_SLEWING)
@@ -556,10 +556,10 @@ bool IEQPro::ReadScopeStatus()
     return rc;
 }
 
-bool IEQPro::Goto(double r,double d)
+bool IEQPro::Goto(double r, double d)
 {
-    targetRA=r;
-    targetDEC=d;
+    targetRA = r;
+    targetDEC = d;
     char RAStr[64], DecStr[64];
 
     fs_sexa(RAStr, targetRA, 2, 3600);
@@ -653,12 +653,12 @@ bool IEQPro::Handshake()
 {
     if (isSimulation())
     {
-       set_sim_gps_status(GPS_DATA_OK);
-       set_sim_system_status(ST_STOPPED);
-       set_sim_track_rate(TR_SIDEREAL);
-       set_sim_slew_rate(SR_3);
-       set_sim_time_source(TS_GPS);
-       set_sim_hemisphere(HEMI_NORTH);
+        set_sim_gps_status(GPS_DATA_OK);
+        set_sim_system_status(ST_STOPPED);
+        set_sim_track_rate(TR_SIDEREAL);
+        set_sim_slew_rate(SR_3);
+        set_sim_time_source(TS_GPS);
+        set_sim_hemisphere(HEMI_NORTH);
     }
 
     if (check_ieqpro_connection(PortFD) == false)
@@ -668,27 +668,27 @@ bool IEQPro::Handshake()
 }
 
 bool IEQPro::updateTime(ln_date * utc, double utc_offset)
-{    
+{
     struct ln_zonedate ltm;
 
-    ln_date_to_zonedate(utc, &ltm, utc_offset*3600.0);
+    ln_date_to_zonedate(utc, &ltm, utc_offset * 3600.0);
 
-     // Set Local Time
-     if (set_ieqpro_local_time(PortFD, ltm.hours, ltm.minutes, ltm.seconds) == false)
-     {
-            DEBUG(INDI::Logger::DBG_ERROR, "Error setting local time.");
-            return false;
-     }
+    // Set Local Time
+    if (set_ieqpro_local_time(PortFD, ltm.hours, ltm.minutes, ltm.seconds) == false)
+    {
+        DEBUG(INDI::Logger::DBG_ERROR, "Error setting local time.");
+        return false;
+    }
 
-     // Send it as YY (i.e. 2015 --> 15)
-     ltm.years -= 2000;
+    // Send it as YY (i.e. 2015 --> 15)
+    ltm.years -= 2000;
 
-     // Set Local date
-     if (set_ieqpro_local_date(PortFD, ltm.years, ltm.months, ltm.days) == false)
-     {
-          DEBUG(INDI::Logger::DBG_ERROR, "Error setting local date.");
-          return false;
-     }
+    // Set Local date
+    if (set_ieqpro_local_date(PortFD, ltm.years, ltm.months, ltm.days) == false)
+    {
+        DEBUG(INDI::Logger::DBG_ERROR, "Error setting local date.");
+        return false;
+    }
 
     // UTC Offset
     if (set_ieqpro_utc_offset(PortFD, utc_offset) == false)
@@ -697,9 +697,9 @@ bool IEQPro::updateTime(ln_date * utc, double utc_offset)
         return false;
     }
 
-   DEBUG(INDI::Logger::DBG_SESSION, "Time and date updated.");
+    DEBUG(INDI::Logger::DBG_SESSION, "Time and date updated.");
 
-   return true;
+    return true;
 }
 
 bool IEQPro::updateLocation(double latitude, double longitude, double elevation)
@@ -732,7 +732,7 @@ bool IEQPro::updateLocation(double latitude, double longitude, double elevation)
 
 void IEQPro::debugTriggered(bool enable)
 {
-   set_ieqpro_debug(enable);
+    set_ieqpro_debug(enable);
 }
 
 void IEQPro::simulationTriggered(bool enable)
@@ -751,24 +751,24 @@ bool IEQPro::MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command)
     switch (command)
     {
         case MOTION_START:
-        if (start_ieqpro_motion(PortFD, (dir == DIRECTION_NORTH ? IEQ_N : IEQ_S)) == false)
-        {
-            DEBUG(INDI::Logger::DBG_ERROR, "Error setting N/S motion direction.");
-            return false;
-        }
-        else
-           DEBUGF(INDI::Logger::DBG_SESSION,"Moving toward %s.", (dir == DIRECTION_NORTH) ? "North" : "South");
-        break;
+            if (start_ieqpro_motion(PortFD, (dir == DIRECTION_NORTH ? IEQ_N : IEQ_S)) == false)
+            {
+                DEBUG(INDI::Logger::DBG_ERROR, "Error setting N/S motion direction.");
+                return false;
+            }
+            else
+                DEBUGF(INDI::Logger::DBG_SESSION, "Moving toward %s.", (dir == DIRECTION_NORTH) ? "North" : "South");
+            break;
 
         case MOTION_STOP:
-        if (stop_ieqpro_motion(PortFD, (dir == DIRECTION_NORTH ? IEQ_N : IEQ_S)) < 0)
-        {
-            DEBUG(INDI::Logger::DBG_ERROR, "Error stopping N/S motion.");
-            return false;
-        }
-        else
-            DEBUGF(INDI::Logger::DBG_SESSION, "%s motion stopped.", (dir == DIRECTION_NORTH) ? "North" : "South");
-        break;
+            if (stop_ieqpro_motion(PortFD, (dir == DIRECTION_NORTH ? IEQ_N : IEQ_S)) < 0)
+            {
+                DEBUG(INDI::Logger::DBG_ERROR, "Error stopping N/S motion.");
+                return false;
+            }
+            else
+                DEBUGF(INDI::Logger::DBG_SESSION, "%s motion stopped.", (dir == DIRECTION_NORTH) ? "North" : "South");
+            break;
     }
 
     return true;
@@ -785,31 +785,31 @@ bool IEQPro::MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command)
     switch (command)
     {
         case MOTION_START:
-        if (start_ieqpro_motion(PortFD, (dir == DIRECTION_WEST ? IEQ_W : IEQ_E)) == false)
-        {
-            DEBUG(INDI::Logger::DBG_ERROR, "Error setting N/S motion direction.");
-            return false;
-        }
-        else
-           DEBUGF(INDI::Logger::DBG_SESSION,"Moving toward %s.", (dir == DIRECTION_WEST) ? "West" : "East");
-        break;
+            if (start_ieqpro_motion(PortFD, (dir == DIRECTION_WEST ? IEQ_W : IEQ_E)) == false)
+            {
+                DEBUG(INDI::Logger::DBG_ERROR, "Error setting N/S motion direction.");
+                return false;
+            }
+            else
+                DEBUGF(INDI::Logger::DBG_SESSION, "Moving toward %s.", (dir == DIRECTION_WEST) ? "West" : "East");
+            break;
 
         case MOTION_STOP:
-        if (stop_ieqpro_motion(PortFD, (dir == DIRECTION_WEST ? IEQ_W : IEQ_E)) < 0)
-        {
-            DEBUG(INDI::Logger::DBG_ERROR, "Error stopping W/E motion.");
-            return false;
-        }
-        else
-            DEBUGF(INDI::Logger::DBG_SESSION, "%s motion stopped.", (dir == DIRECTION_WEST) ? "West" : "East");
-        break;
+            if (stop_ieqpro_motion(PortFD, (dir == DIRECTION_WEST ? IEQ_W : IEQ_E)) < 0)
+            {
+                DEBUG(INDI::Logger::DBG_ERROR, "Error stopping W/E motion.");
+                return false;
+            }
+            else
+                DEBUGF(INDI::Logger::DBG_SESSION, "%s motion stopped.", (dir == DIRECTION_WEST) ? "West" : "East");
+            break;
     }
 
     return true;
 }
 
 IPState IEQPro::GuideNorth(float ms)
-{    
+{
     bool rc = start_ieqpro_guide(PortFD, IEQ_N, (int) ms);
     return (rc ? IPS_OK : IPS_ALERT);
 }
@@ -838,7 +838,7 @@ bool IEQPro::SetSlewRate(int index)
     return set_ieqpro_slew_rate(PortFD, rate);
 }
 
-bool IEQPro::saveConfigItems(FILE *fp)
+bool IEQPro::saveConfigItems(FILE * fp)
 {
     INDI::Telescope::saveConfigItems(fp);
 
@@ -860,68 +860,68 @@ void IEQPro::mountSim ()
     if (ltv.tv_sec == 0 && ltv.tv_usec == 0)
         ltv = tv;
 
-    dt = tv.tv_sec - ltv.tv_sec + (tv.tv_usec - ltv.tv_usec)/1e6;
+    dt = tv.tv_sec - ltv.tv_sec + (tv.tv_usec - ltv.tv_usec) / 1e6;
     ltv = tv;
-    da = SLEWRATE*dt;
+    da = SLEWRATE * dt;
 
     /* Process per current state. We check the state of EQUATORIAL_COORDS and act acoordingly */
     switch (TrackState)
     {
 
-    case SCOPE_TRACKING:
-        /* RA moves at sidereal, Dec stands still */
-        currentRA += (SIDRATE*dt/15.);
-        break;
+        case SCOPE_TRACKING:
+            /* RA moves at sidereal, Dec stands still */
+            currentRA += (SIDRATE * dt / 15.);
+            break;
 
-    case SCOPE_SLEWING:
-    case SCOPE_PARKING:
-        /* slewing - nail it when both within one pulse @ SLEWRATE */
-        nlocked = 0;
+        case SCOPE_SLEWING:
+        case SCOPE_PARKING:
+            /* slewing - nail it when both within one pulse @ SLEWRATE */
+            nlocked = 0;
 
-        dx = targetRA - currentRA;
+            dx = targetRA - currentRA;
 
-        // Take shortest path
-        if (fabs(dx) > 12)
-            dx *= -1;
+            // Take shortest path
+            if (fabs(dx) > 12)
+                dx *= -1;
 
-        if (fabs(dx) <= da)
-        {
-        currentRA = targetRA;
-        nlocked++;
-        }
-        else if (dx > 0)
-            currentRA += da/15.;
-        else
-            currentRA -= da/15.;
-
-        if (currentRA < 0)
-            currentRA += 24;
-        else if (currentRA > 24)
-            currentRA -= 24;
-
-        dx = targetDEC - currentDEC;
-        if (fabs(dx) <= da)
-        {
-        currentDEC = targetDEC;
-        nlocked++;
-        }
-        else if (dx > 0)
-          currentDEC += da;
-        else
-          currentDEC -= da;
-
-        if (nlocked == 2)
-        {
-            if (TrackState == SCOPE_SLEWING)
-                set_sim_system_status(ST_TRACKING_PEC_OFF);
+            if (fabs(dx) <= da)
+            {
+                currentRA = targetRA;
+                nlocked++;
+            }
+            else if (dx > 0)
+                currentRA += da / 15.;
             else
-                set_sim_system_status(ST_PARKED);
-        }
+                currentRA -= da / 15.;
 
-        break;
+            if (currentRA < 0)
+                currentRA += 24;
+            else if (currentRA > 24)
+                currentRA -= 24;
 
-    default:
-        break;
+            dx = targetDEC - currentDEC;
+            if (fabs(dx) <= da)
+            {
+                currentDEC = targetDEC;
+                nlocked++;
+            }
+            else if (dx > 0)
+                currentDEC += da;
+            else
+                currentDEC -= da;
+
+            if (nlocked == 2)
+            {
+                if (TrackState == SCOPE_SLEWING)
+                    set_sim_system_status(ST_TRACKING_PEC_OFF);
+                else
+                    set_sim_system_status(ST_PARKED);
+            }
+
+            break;
+
+        default:
+            break;
     }
 
     set_sim_ra(currentRA);

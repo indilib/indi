@@ -30,27 +30,27 @@
 
 class Dome : public INDI::DefaultDevice
 {
-public:
-    Dome();
-    bool ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n);
-    bool ISSnoopDevice (XMLEle *root);
+    public:
+        Dome();
+        bool ISNewSwitch (const char * dev, const char * name, ISState * states, char * names[], int n);
+        bool ISSnoopDevice (XMLEle * root);
 
-protected:
-    // General device functions
-    bool Connect();
-    bool Disconnect();
-    const char *getDefaultName();
-    bool initProperties();
-    bool updateProperties();
+    protected:
+        // General device functions
+        bool Connect();
+        bool Disconnect();
+        const char * getDefaultName();
+        bool initProperties();
+        bool updateProperties();
 
-private:
-    void closeShutter();
+    private:
+        void closeShutter();
 
-    ISwitch ShutterS[2];
-    ISwitchVectorProperty ShutterSP;
+        ISwitch ShutterS[2];
+        ISwitchVectorProperty ShutterSP;
 
-    ILight RainL[1];
-    ILightVectorProperty RainLP;
+        ILight RainL[1];
+        ILightVectorProperty RainLP;
 
 };
 

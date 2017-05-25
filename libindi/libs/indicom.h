@@ -52,7 +52,7 @@ extern const char * SolarSystem[];
 struct ln_date;
 
 /* TTY Error Codes */
-enum TTY_ERROR { TTY_OK=0, TTY_READ_ERROR=-1, TTY_WRITE_ERROR=-2, TTY_SELECT_ERROR=-3, TTY_TIME_OUT=-4, TTY_PORT_FAILURE=-5, TTY_PARAM_ERROR=-6, TTY_ERRNO = -7};
+enum TTY_ERROR { TTY_OK = 0, TTY_READ_ERROR = -1, TTY_WRITE_ERROR = -2, TTY_SELECT_ERROR = -3, TTY_TIME_OUT = -4, TTY_PORT_FAILURE = -5, TTY_PARAM_ERROR = -6, TTY_ERRNO = -7};
 
 #ifdef __cplusplus
 extern "C" {

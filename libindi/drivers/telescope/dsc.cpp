@@ -40,45 +40,45 @@ using namespace INDI::AlignmentSubsystem;
 // We declare an auto pointer to DSC.
 std::unique_ptr<DSC> dsc(new DSC());
 
-void ISGetProperties(const char *dev)
+void ISGetProperties(const char * dev)
 {
-        dsc->ISGetProperties(dev);
+    dsc->ISGetProperties(dev);
 }
 
-void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int num)
+void ISNewSwitch(const char * dev, const char * name, ISState * states, char * names[], int num)
 {
-        dsc->ISNewSwitch(dev, name, states, names, num);
+    dsc->ISNewSwitch(dev, name, states, names, num);
 }
 
-void ISNewText(	const char *dev, const char *name, char *texts[], char *names[], int num)
+void ISNewText(	const char * dev, const char * name, char * texts[], char * names[], int num)
 {
-        dsc->ISNewText(dev, name, texts, names, num);
+    dsc->ISNewText(dev, name, texts, names, num);
 }
 
-void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int num)
+void ISNewNumber(const char * dev, const char * name, double values[], char * names[], int num)
 {
-        dsc->ISNewNumber(dev, name, values, names, num);
+    dsc->ISNewNumber(dev, name, values, names, num);
 }
 
-void ISNewBLOB (const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[], char *names[], int n)
+void ISNewBLOB (const char * dev, const char * name, int sizes[], int blobsizes[], char * blobs[], char * formats[], char * names[], int n)
 {
-  INDI_UNUSED(dev);
-  INDI_UNUSED(name);
-  INDI_UNUSED(sizes);
-  INDI_UNUSED(blobsizes);
-  INDI_UNUSED(blobs);
-  INDI_UNUSED(formats);
-  INDI_UNUSED(names);
-  INDI_UNUSED(n);
+    INDI_UNUSED(dev);
+    INDI_UNUSED(name);
+    INDI_UNUSED(sizes);
+    INDI_UNUSED(blobsizes);
+    INDI_UNUSED(blobs);
+    INDI_UNUSED(formats);
+    INDI_UNUSED(names);
+    INDI_UNUSED(n);
 }
-void ISSnoopDevice (XMLEle *root)
+void ISSnoopDevice (XMLEle * root)
 {
-   dsc->ISSnoopDevice(root);
+    dsc->ISSnoopDevice(root);
 }
 
 DSC::DSC()
-{    
-    SetTelescopeCapability(TELESCOPE_CAN_SYNC | TELESCOPE_HAS_LOCATION,0);
+{
+    SetTelescopeCapability(TELESCOPE_CAN_SYNC | TELESCOPE_HAS_LOCATION, 0);
 }
 
 DSC::~DSC()
@@ -180,7 +180,7 @@ bool DSC::updateProperties()
     return true;
 }
 
-bool DSC::saveConfigItems(FILE *fp)
+bool DSC::saveConfigItems(FILE * fp)
 {
     INDI::Telescope::saveConfigItems(fp);
 
@@ -193,18 +193,18 @@ bool DSC::saveConfigItems(FILE *fp)
     return true;
 }
 
-bool DSC::ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n)
+bool DSC::ISNewText (const char * dev, const char * name, char * texts[], char * names[], int n)
 {
     ProcessAlignmentTextProperties(this, name, texts, names, n);
 
-    return INDI::Telescope::ISNewText(dev,name,texts,names,n);
+    return INDI::Telescope::ISNewText(dev, name, texts, names, n);
 }
 
-bool DSC::ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n)
+bool DSC::ISNewNumber (const char * dev, const char * name, double values[], char * names[], int n)
 {
-    if(strcmp(dev,getDeviceName())==0)
+    if(strcmp(dev, getDeviceName()) == 0)
     {
-        if(!strcmp(name,AxisSettingsNP.name))
+        if(!strcmp(name, AxisSettingsNP.name))
         {
             IUUpdateNumber(&AxisSettingsNP, values, names, n);
             AxisSettingsNP.s = IPS_OK;
@@ -220,7 +220,7 @@ bool DSC::ISNewNumber (const char *dev, const char *name, double values[], char 
             return true;
         }*/
 
-        if(!strcmp(name,SimEncoderNP.name))
+        if(!strcmp(name, SimEncoderNP.name))
         {
             IUUpdateNumber(&SimEncoderNP, values, names, n);
             SimEncoderNP.s = IPS_OK;
@@ -231,14 +231,14 @@ bool DSC::ISNewNumber (const char *dev, const char *name, double values[], char 
         ProcessAlignmentNumberProperties(this, name, values, names, n);
     }
 
-    return INDI::Telescope::ISNewNumber(dev,name,values,names,n);
+    return INDI::Telescope::ISNewNumber(dev, name, values, names, n);
 }
 
-bool DSC::ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n)
+bool DSC::ISNewSwitch (const char * dev, const char * name, ISState * states, char * names[], int n)
 {
-    if(strcmp(dev,getDeviceName())==0)
+    if(strcmp(dev, getDeviceName()) == 0)
     {
-        if(!strcmp(name,ReverseSP.name))
+        if(!strcmp(name, ReverseSP.name))
         {
             IUUpdateSwitch(&ReverseSP, states, names, n);
             ReverseSP.s = IPS_OK;
@@ -246,7 +246,7 @@ bool DSC::ISNewSwitch (const char *dev, const char *name, ISState *states, char 
             return true;
         }
 
-        if(!strcmp(name,MountTypeSP.name))
+        if(!strcmp(name, MountTypeSP.name))
         {
             IUUpdateSwitch(&MountTypeSP, states, names, n);
             MountTypeSP.s = IPS_OK;
@@ -254,7 +254,7 @@ bool DSC::ISNewSwitch (const char *dev, const char *name, ISState *states, char 
             return true;
         }
 
-        if(!strcmp(name,AxisRangeSP.name))
+        if(!strcmp(name, AxisRangeSP.name))
         {
             IUUpdateSwitch(&AxisRangeSP, states, names, n);
             AxisRangeSP.s = IPS_OK;
@@ -265,7 +265,7 @@ bool DSC::ISNewSwitch (const char *dev, const char *name, ISState *states, char 
             }
             else
             {
-                DEBUGF(INDI::Logger::DBG_SESSION, "Axis range is from -%.f to %.f", AxisSettingsN[AXIS1_TICKS].value/2, AxisSettingsN[AXIS1_TICKS].value/2);
+                DEBUGF(INDI::Logger::DBG_SESSION, "Axis range is from -%.f to %.f", AxisSettingsN[AXIS1_TICKS].value / 2, AxisSettingsN[AXIS1_TICKS].value / 2);
             }
             IDSetSwitch(&AxisRangeSP, NULL);
             return true;
@@ -288,7 +288,7 @@ bool DSC::ReadScopeStatus()
     char CR[1] = { 0x51 };
     // Response
     char response[16] = {0};
-    int rc=0, nbytes_read=0, nbytes_written=0;
+    int rc = 0, nbytes_read = 0, nbytes_written = 0;
 
     DEBUGF(INDI::Logger::DBG_DEBUG, "CMD: %#02X", CR[0]);
 
@@ -326,7 +326,7 @@ bool DSC::ReadScopeStatus()
 
     DEBUGF(INDI::Logger::DBG_DEBUG, "RES: %s", response);
 
-    double Axis1Encoder=0, Axis2Encoder=0;
+    double Axis1Encoder = 0, Axis2Encoder = 0;
     std::regex rgx("(\\+?\\-?\\d+)\\s(\\+?\\-?\\d+)");
     std::smatch match;
     std::string input(response);
@@ -363,12 +363,12 @@ bool DSC::ReadScopeStatus()
     if (ReverseS[AXIS1_ENCODER].s == ISS_ON)
         Axis1 = AxisSettingsN[AXIS1_TICKS].value - Axis1;
 
-    #if 0
+#if 0
     if (Axis1Diff < 0)
         Axis1Diff += AxisSettingsN[AXIS1_TICKS].value;
     else if (Axis1Diff > AxisSettingsN[AXIS1_TICKS].value)
         Axis1Diff -= AxisSettingsN[AXIS1_TICKS].value;
-    #endif
+#endif
 
     double Axis2 = Axis2Encoder;
     if (ReverseS[AXIS2_ENCODER].s == ISS_ON)
@@ -440,7 +440,7 @@ bool DSC::ReadScopeStatus()
 
 
     //  Now feed the rest of the system with corrected data
-    NewRaDec(eq.ra,eq.dec);
+    NewRaDec(eq.ra, eq.dec);
     return true;
 }
 
@@ -453,13 +453,13 @@ bool DSC::Sync(double ra, double dec)
     if (MountTypeS[MOUNT_EQUATORIAL].s == ISS_ON)
     {
         double LST = get_local_sideral_time(observer.lng);
-        RaDec.ra = ((LST-encoderEquatorialCoordinates.ra) * 360.0) / 24.0;
+        RaDec.ra = ((LST - encoderEquatorialCoordinates.ra) * 360.0) / 24.0;
         RaDec.dec = encoderEquatorialCoordinates.dec;
     }
     else
     {
         AltAz.az = encoderHorizontalCoordinates.az;
-        AltAz.alt= encoderHorizontalCoordinates.alt;
+        AltAz.alt = encoderHorizontalCoordinates.alt;
     }
 
     NewEntry.ObservationJulianDate = ln_get_julian_from_sys();
@@ -473,8 +473,8 @@ bool DSC::Sync(double ra, double dec)
 
     NewEntry.PrivateDataSize = 0;
     DEBUGF(INDI::AlignmentSubsystem::DBG_ALIGNMENT, "New sync point Date %lf RA %lf DEC %lf TDV(x %lf y %lf z %lf)",
-                    NewEntry.ObservationJulianDate, NewEntry.RightAscension, NewEntry.Declination,
-                    NewEntry.TelescopeDirection.x, NewEntry.TelescopeDirection.y, NewEntry.TelescopeDirection.z);
+           NewEntry.ObservationJulianDate, NewEntry.RightAscension, NewEntry.Declination,
+           NewEntry.TelescopeDirection.x, NewEntry.TelescopeDirection.y, NewEntry.TelescopeDirection.z);
 
     if (!CheckForDuplicateSyncPoint(NewEntry))
     {
@@ -494,7 +494,7 @@ bool DSC::Sync(double ra, double dec)
 
 ln_equ_posn DSC::TelescopeEquatorialToSky()
 {
-    double RightAscension,Declination;
+    double RightAscension, Declination;
     ln_equ_posn eq;
 
     if(GetAlignmentDatabase().size() > 1)
@@ -502,31 +502,31 @@ ln_equ_posn DSC::TelescopeEquatorialToSky()
         TelescopeDirectionVector TDV;
 
         /*  and here we convert from ra/dec to hour angle / dec before calling alignment stuff */
-        double lha,lst;
-        lst=get_local_sideral_time(LocationN[LOCATION_LONGITUDE].value);
-        lha=get_local_hour_angle(lst, encoderEquatorialCoordinates.ra);
+        double lha, lst;
+        lst = get_local_sideral_time(LocationN[LOCATION_LONGITUDE].value);
+        lha = get_local_hour_angle(lst, encoderEquatorialCoordinates.ra);
         //  convert lha to degrees
-        lha=lha*360/24;
-        eq.ra=lha;
-        eq.dec=encoderEquatorialCoordinates.dec;
-        TDV=TelescopeDirectionVectorFromLocalHourAngleDeclination(eq);
+        lha = lha * 360 / 24;
+        eq.ra = lha;
+        eq.dec = encoderEquatorialCoordinates.dec;
+        TDV = TelescopeDirectionVectorFromLocalHourAngleDeclination(eq);
 
         if (!TransformTelescopeToCelestial( TDV, RightAscension, Declination))
         {
-            RightAscension=encoderEquatorialCoordinates.ra;
-            Declination=encoderEquatorialCoordinates.dec;
+            RightAscension = encoderEquatorialCoordinates.ra;
+            Declination = encoderEquatorialCoordinates.dec;
         }
     }
     else
     {
         //  With less than 2 align points
         // Just return raw data
-        RightAscension=encoderEquatorialCoordinates.ra;
-        Declination=encoderEquatorialCoordinates.dec;
+        RightAscension = encoderEquatorialCoordinates.ra;
+        Declination = encoderEquatorialCoordinates.dec;
     }
 
-    eq.ra=RightAscension;
-    eq.dec=Declination;
+    eq.ra = RightAscension;
+    eq.dec = Declination;
     return eq;
 }
 
@@ -542,22 +542,22 @@ ln_equ_posn DSC::TelescopeHorizontalToSky()
         TelescopeDirectionVector RotatedTDV(TDV);
         switch (GetApproximateMountAlignment())
         {
-        case ZENITH:
-            break;
+            case ZENITH:
+                break;
 
-        case NORTH_CELESTIAL_POLE:
-            // Rotate the TDV coordinate system anticlockwise (positive) around the y axis by 90 minus
-            // the (positive)observatory latitude. The vector itself is rotated clockwise
-            RotatedTDV.RotateAroundY(90.0 - observer.lat);
-            AltitudeAzimuthFromTelescopeDirectionVector(RotatedTDV, encoderHorizontalCoordinates);
-            break;
+            case NORTH_CELESTIAL_POLE:
+                // Rotate the TDV coordinate system anticlockwise (positive) around the y axis by 90 minus
+                // the (positive)observatory latitude. The vector itself is rotated clockwise
+                RotatedTDV.RotateAroundY(90.0 - observer.lat);
+                AltitudeAzimuthFromTelescopeDirectionVector(RotatedTDV, encoderHorizontalCoordinates);
+                break;
 
-        case SOUTH_CELESTIAL_POLE:
-            // Rotate the TDV coordinate system clockwise (negative) around the y axis by 90 plus
-            // the (negative)observatory latitude. The vector itself is rotated anticlockwise
-            RotatedTDV.RotateAroundY(-90.0 - observer.lat);
-            AltitudeAzimuthFromTelescopeDirectionVector(RotatedTDV, encoderHorizontalCoordinates);
-            break;
+            case SOUTH_CELESTIAL_POLE:
+                // Rotate the TDV coordinate system clockwise (negative) around the y axis by 90 plus
+                // the (negative)observatory latitude. The vector itself is rotated anticlockwise
+                RotatedTDV.RotateAroundY(-90.0 - observer.lat);
+                AltitudeAzimuthFromTelescopeDirectionVector(RotatedTDV, encoderHorizontalCoordinates);
+                break;
         }
 
         ln_get_equ_from_hrz(&encoderHorizontalCoordinates, &observer, ln_get_julian_from_sys(), &EquatorialCoordinates);
@@ -567,25 +567,25 @@ ln_equ_posn DSC::TelescopeHorizontalToSky()
         Declination = EquatorialCoordinates.dec;
     }
 
-    eq.ra=RightAscension;
-    eq.dec=Declination;
+    eq.ra = RightAscension;
+    eq.dec = Declination;
     return eq;
 }
 
 bool DSC::updateLocation(double latitude, double longitude, double elevation)
 {
-  UpdateLocation(latitude, longitude, elevation);
+    UpdateLocation(latitude, longitude, elevation);
 
-  INDI_UNUSED(elevation);
-  // JM: INDI Longitude is 0 to 360 increasing EAST. libnova East is Positive, West is negative
-  observer.lng =  longitude;
+    INDI_UNUSED(elevation);
+    // JM: INDI Longitude is 0 to 360 increasing EAST. libnova East is Positive, West is negative
+    observer.lng =  longitude;
 
-  if (observer.lng > 180)
-      observer.lng -= 360;
-  observer.lat =  latitude;
+    if (observer.lng > 180)
+        observer.lng -= 360;
+    observer.lat =  latitude;
 
-  DEBUGF(INDI::Logger::DBG_SESSION,"Location updated: Longitude (%g) Latitude (%g)", observer.lng, observer.lat);
-  return true;
+    DEBUGF(INDI::Logger::DBG_SESSION, "Location updated: Longitude (%g) Latitude (%g)", observer.lng, observer.lat);
+    return true;
 }
 
 void DSC::simulationTriggered(bool enable)

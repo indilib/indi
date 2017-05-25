@@ -90,11 +90,11 @@ class INDI::FilterWheel: public INDI::DefaultDevice, public INDI::FilterInterfac
 
         INDI::Controller * controller;
 
-        Connection::Serial * serialConnection=NULL;
-        Connection::TCP * tcpConnection=NULL;
+        Connection::Serial * serialConnection = NULL;
+        Connection::TCP * tcpConnection = NULL;
 
         // For Serial & TCP connections
-        int PortFD=-1;
+        int PortFD = -1;
 
     private:
         bool callHandshake();

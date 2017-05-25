@@ -1,24 +1,28 @@
 #if 0
-    STV driver
-    Copyright (C) 2006 Markus Wildi, markus.wildi@datacomm.ch
+STV driver
+Copyright (C) 2006 Markus Wildi, markus.wildi@datacomm.ch
 
-    This library is free software; you can redistribute it and/or
-    modify it under the terms of the GNU Lesser General Public
-    License as published by the Free Software Foundation; either
-    version 2.1 of the License, or (at your option) any later version.
+This library is free software;
+you can redistribute it and / or
+modify it under the terms of the GNU Lesser General Public
+License as published by the Free Software Foundation;
+either
+version 2.1 of the License, or (at your option) any later version.
 
-    This library is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-    Lesser General Public License for more details.
+This library is distributed in the hope that it will be useful,
+     but WITHOUT ANY WARRANTY;
+without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+Lesser General Public License for more details.
 
-    You should have received a copy of the GNU Lesser General Public
-    License along with this library; if not, write to the Free Software
-    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+You should have received a copy of the GNU Lesser General Public
+License along with this library;
+if not, write to the Free Software
+Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110 - 1301  USA
 #endif
 
-#define OFF 0 
-#define ON  1 
+#define OFF 0
+#define ON  1
 
 #define REQUEST_DOWNLOAD              0x00
 #define REQUEST_DOWNLOAD_ALL          0x01
@@ -101,44 +105,45 @@
                              + bit in descriptor can add 12
 */
 
-typedef struct {
+typedef struct
+{
 
-  unsigned int descriptor ;    /* set of bits*/
-  unsigned int height, width;  /* image sze */
-  unsigned int top, left ;     /* position in buffer */
-  double       exposure ;      /* exposure time */
-  unsigned int noExposure ;    /* number of exposures added */
-  unsigned int analogGain ;    /*analog gain */
-  int          digitalGain ;   /* digital gain */
-  unsigned int focalLength ;   /*focal length of telescope */
-  unsigned int aperture ;      /* aperture diameter */
-  unsigned int packedDate ;    /* date of image */
-  unsigned int year ;
-  unsigned int month ;
-  unsigned int day ;
-  unsigned int packedTime ;    /* time of image */
-  unsigned int seconds  ;      /* time of image */
-  unsigned int minutes ;       /* time of image */
-  unsigned int hours ;         /* time of image */
-  double       ccdTemp ;       /* temperature of ccd in 1/100 deg C */
-  unsigned int siteID;         /* site id */
-  unsigned int eGain ;         /* eGain in 1/100th e/ADU */
-  unsigned int background ;    /* background for display */
-  unsigned int range ;         /* range for display */
-  unsigned int pedestal ;      /* Track and Accumulate pedestal */
-  unsigned int ccdTop, ccdLeft ; /* position of pixels on CCD array */
-  unsigned int adcResolution ; /* value, 8 or 10 bits */
-  unsigned int units ;         /* 0= cm, 1=inch */
-  unsigned int telescopeType ; /* 0=refractor, 1= reflector */
-  unsigned int dateTimeValid ; /* 0= valid */
-  unsigned int binning ;       /* 1x1=1, 2x2=2, 3x3=3 */ 
-  unsigned int filterStatus ;  /* 0= no filter, 1= lunar filter */
-  unsigned int darkFrameSuntracted ; /* 0= no, 1= yes */
-  unsigned int imageIsMosaic ; /* 0=no, 1=40x40 pixels, 2=106x100 pixels */
-  double       pixelSize ;     /* 7.4 um */
-  double       minValue ;      /* Pixel Contents */
-  double       maxValue ; 
-  
+    unsigned int descriptor ;    /* set of bits*/
+    unsigned int height, width;  /* image sze */
+    unsigned int top, left ;     /* position in buffer */
+    double       exposure ;      /* exposure time */
+    unsigned int noExposure ;    /* number of exposures added */
+    unsigned int analogGain ;    /*analog gain */
+    int          digitalGain ;   /* digital gain */
+    unsigned int focalLength ;   /*focal length of telescope */
+    unsigned int aperture ;      /* aperture diameter */
+    unsigned int packedDate ;    /* date of image */
+    unsigned int year ;
+    unsigned int month ;
+    unsigned int day ;
+    unsigned int packedTime ;    /* time of image */
+    unsigned int seconds  ;      /* time of image */
+    unsigned int minutes ;       /* time of image */
+    unsigned int hours ;         /* time of image */
+    double       ccdTemp ;       /* temperature of ccd in 1/100 deg C */
+    unsigned int siteID;         /* site id */
+    unsigned int eGain ;         /* eGain in 1/100th e/ADU */
+    unsigned int background ;    /* background for display */
+    unsigned int range ;         /* range for display */
+    unsigned int pedestal ;      /* Track and Accumulate pedestal */
+    unsigned int ccdTop, ccdLeft ; /* position of pixels on CCD array */
+    unsigned int adcResolution ; /* value, 8 or 10 bits */
+    unsigned int units ;         /* 0= cm, 1=inch */
+    unsigned int telescopeType ; /* 0=refractor, 1= reflector */
+    unsigned int dateTimeValid ; /* 0= valid */
+    unsigned int binning ;       /* 1x1=1, 2x2=2, 3x3=3 */
+    unsigned int filterStatus ;  /* 0= no filter, 1= lunar filter */
+    unsigned int darkFrameSuntracted ; /* 0= no, 1= yes */
+    unsigned int imageIsMosaic ; /* 0=no, 1=40x40 pixels, 2=106x100 pixels */
+    double       pixelSize ;     /* 7.4 um */
+    double       minValue ;      /* Pixel Contents */
+    double       maxValue ;
+
 } IMAGE_INFO ;
 /*
  * $Id: serial.h 49 2006-08-25 18:07:14Z lukas $
@@ -176,7 +181,7 @@ typedef unsigned char byte;         /* define byte type */
 void shutdown_serial(int fd);
 
 /* Opens and initializes a serial device and returns it's file descriptor. */
-int init_serial(char *device_name, int bit_rate, int word_size,
+int init_serial(char * device_name, int bit_rate, int word_size,
                 int parity, int stop_bits);
 
 /* Calculates the 16 bit CRC of an array of bytes and returns it. */

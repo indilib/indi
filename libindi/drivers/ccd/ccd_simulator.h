@@ -29,50 +29,50 @@
 
 class CCDSim : public INDI::CCD, public INDI::FilterInterface
 {
-public:
-    CCDSim();
-    virtual ~CCDSim();
+    public:
+        CCDSim();
+        virtual ~CCDSim();
 
-    const char *getDefaultName();
+        const char * getDefaultName();
 
-    bool initProperties();
-    bool updateProperties();
+        bool initProperties();
+        bool updateProperties();
 
-    void ISGetProperties (const char *dev);
-
-
-    bool Connect();
-    bool Disconnect();
-
-    bool StartExposure(float duration);
-    bool StartGuideExposure(float);
-
-    bool AbortExposure();
-    bool AbortGuideExposure();
+        void ISGetProperties (const char * dev);
 
 
-    void TimerHit();
+        bool Connect();
+        bool Disconnect();
 
-    int DrawCcdFrame(CCDChip *targetChip);
+        bool StartExposure(float duration);
+        bool StartGuideExposure(float);
 
-    int DrawImageStar(CCDChip *targetChip, float,float,float);
-    int AddToPixel(CCDChip *targetChip, int,int,int);
+        bool AbortExposure();
+        bool AbortGuideExposure();
 
-    IPState GuideNorth(float);
-    IPState GuideSouth(float);
-    IPState GuideEast(float);
-    IPState GuideWest(float);
 
-    virtual bool ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n);
-    virtual bool ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n);
-    virtual bool ISNewText(	const char *dev, const char *name, char *texts[], char *names[], int num);
-    virtual bool ISSnoopDevice (XMLEle *root);
+        void TimerHit();
+
+        int DrawCcdFrame(CCDChip * targetChip);
+
+        int DrawImageStar(CCDChip * targetChip, float, float, float);
+        int AddToPixel(CCDChip * targetChip, int, int, int);
+
+        IPState GuideNorth(float);
+        IPState GuideSouth(float);
+        IPState GuideEast(float);
+        IPState GuideWest(float);
+
+        virtual bool ISNewNumber (const char * dev, const char * name, double values[], char * names[], int n);
+        virtual bool ISNewSwitch (const char * dev, const char * name, ISState * states, char * names[], int n);
+        virtual bool ISNewText(	const char * dev, const char * name, char * texts[], char * names[], int num);
+        virtual bool ISSnoopDevice (XMLEle * root);
 
     protected:
 
-    virtual bool saveConfigItems(FILE *fp);
-    virtual void activeDevicesUpdated();
-    virtual int SetTemperature(double temperature);
+        virtual bool saveConfigItems(FILE * fp);
+        virtual void activeDevicesUpdated();
+        virtual int SetTemperature(double temperature);
 
     private:
 
@@ -84,7 +84,7 @@ public:
         float GuideExposureRequest;
         struct timeval GuideExpStart;
 
-        float CalcTimeLeft(timeval,float);
+        float CalcTimeLeft(timeval, float);
 
         int testvalue;
         int ShowStarField;
@@ -115,7 +115,7 @@ public:
         float PEPeriod;
         float PEMax;
 
-        double raPE,decPE;
+        double raPE, decPE;
         bool usePE;
         time_t RunStart;
 
@@ -124,11 +124,11 @@ public:
 
         //  And this lives in our simulator settings page
 
-        INumberVectorProperty *SimulatorSettingsNV;
+        INumberVectorProperty * SimulatorSettingsNV;
         INumber SimulatorSettingsN[14];
 
         ISwitch TimeFactorS[3];
-        ISwitchVectorProperty *TimeFactorSV;
+        ISwitchVectorProperty * TimeFactorSV;
 
         bool SetupParms();
 
@@ -148,8 +148,11 @@ public:
 
         // Filter
         bool SelectFilter(int);
-        bool SetFilterNames() { return true; }
-        bool GetFilterNames(const char* groupName);
+        bool SetFilterNames()
+        {
+            return true;
+        }
+        bool GetFilterNames(const char * groupName);
         int QueryFilter();
 
 
