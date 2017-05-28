@@ -85,7 +85,7 @@ protected:
   virtual bool SetFilterNames();
   virtual bool GetFilterNames(const char *groupName);
 
-#ifndef OSX_EMBEDED_MODE
+#ifndef __APPLE__
   // Streaming
   virtual bool StartStreaming();
   virtual bool StopStreaming();
@@ -119,6 +119,8 @@ private:
   bool setupParams();
   // Enable/disable cooler
   void setCooler(bool enable);
+  // Check if the camera is QHY5PII-C model
+  bool isQHY5PIIC();
 
   // Temperature update
   void updateTemperature();

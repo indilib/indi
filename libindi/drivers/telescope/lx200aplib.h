@@ -32,6 +32,6 @@
 #define ARTTO  3 /* not yet there, requires a pointing model */
 
 double LDRAtoHA( double RA, double longitude) ;
-int LDEqToEqT( double ra_h, double dec_d, double *hxt, double *rat_h, double *dect_d);
-int LDCartToSph( double *vec, double *ra, double *dec) ;
-int LDAppToX( int trans_to, double *star_cat, double tjd, double *loc, double *hxt, double *star_trans) ;
+int LDEqToEqT( double ra_h, double dec_d, double * hxt, double * rat_h, double * dect_d);
+int LDCartToSph( double * vec, double * ra, double * dec) ;
+int LDAppToX( int trans_to, double * star_cat, double tjd, double * loc, double * hxt, double * star_trans) ;

@@ -58,6 +58,7 @@ class INDI::Telescope : public INDI::DefaultDevice
         enum TelescopeTrackMode  { TRACK_SIDEREAL, TRACK_SOLAR, TRACK_LUNAR, TRACK_CUSTOM };
         enum TelescopeParkData  { PARK_NONE, PARK_RA_DEC, PARK_AZ_ALT, PARK_RA_DEC_ENCODER, PARK_AZ_ALT_ENCODER };
         enum TelescopeLocation { LOCATION_LATITUDE, LOCATION_LONGITUDE, LOCATION_ELEVATION };
+        enum TelescopePierSide { PIER_UNKNOWN = -1, PIER_WEST = 0, PIER_EAST = 1};
 
         /** \struct TelescopeConnection
             \brief Holds the connection mode of the telescope.
@@ -79,7 +80,8 @@ class INDI::Telescope : public INDI::DefaultDevice
             TELESCOPE_CAN_PARK          = 1 << 2,       /** Can the telescope park? */
             TELESCOPE_CAN_ABORT         = 1 << 3,       /** Can the telescope abort motion? */
             TELESCOPE_HAS_TIME          = 1 << 4,       /** Does the telescope have configurable date and time settings? */
-            TELESCOPE_HAS_LOCATION      = 1 << 5        /** Does the telescope have configuration location settings? */
+            TELESCOPE_HAS_LOCATION      = 1 << 5,       /** Does the telescope have configuration location settings? */
+            TELESCOPE_HAS_PIER_SIDE     = 1 << 6        /** Does the telescope have pier side property? */
         } TelescopeCapability;
 
         Telescope();
@@ -105,7 +107,7 @@ class INDI::Telescope : public INDI::DefaultDevice
          * @param slewRateCount Number of slew rates supported by the telescope. If < 4 (default is 0), no slew rate properties will be defined to the client. If >=4, the driver will construct the default
          * slew rate property TELESCOPE_SLEW_RATE with SLEW_GUIDE, SLEW_CENTERING, SLEW_FIND, and SLEW_MAX members where SLEW_GUIDE is the at the lowest setting and SLEW_MAX is at the highest.
          */
-        void SetTelescopeCapability(uint32_t cap, uint8_t slewRateCount=0);
+        void SetTelescopeCapability(uint32_t cap, uint8_t slewRateCount = 0);
 
         /**
          * @return True if telescope support goto operations
@@ -153,6 +155,14 @@ class INDI::Telescope : public INDI::DefaultDevice
         bool HasLocation()
         {
             return capability & TELESCOPE_HAS_LOCATION;
+        }
+
+        /**
+         * @return True if telescope supports pier side property
+         */
+        bool HasPierSide()
+        {
+            return capability & TELESCOPE_HAS_PIER_SIDE;
         }
 
         /** \brief Called to initialize basic properties required all the time */
@@ -259,13 +269,18 @@ class INDI::Telescope : public INDI::DefaultDevice
          */
         uint8_t getTelescopeConnection() const;
 
+        void setPierSide(TelescopePierSide side);
+        TelescopePierSide getPierSide()
+        {
+            return currentPierSide;
+        }
 
     protected:
 
         virtual bool saveConfigItems(FILE * fp);
 
         /** \brief The child class calls this function when it has updates */
-        void NewRaDec(double ra,double dec);
+        void NewRaDec(double ra, double dec);
 
         /** \brief Read telescope status.
          This function checks the following:
@@ -276,19 +291,19 @@ class INDI::Telescope : public INDI::DefaultDevice
          </ol>
           \return True if reading scope status is OK, false if an error is encounterd.
           \note This function is not implemented in INDI::Telescope, it must be implemented in the child class */
-        virtual bool ReadScopeStatus()=0;
+        virtual bool ReadScopeStatus() = 0;
 
         /** \brief Move the scope to the supplied RA and DEC coordinates
             \return True if successful, false otherwise
             \note If not implemented by the child class, this function by default returns false with a warning message.
         */
-        virtual bool Goto(double ra,double dec);
+        virtual bool Goto(double ra, double dec);
 
         /** \brief Set the telescope current RA and DEC coordinates to the supplied RA and DEC coordinates
             \return True if successful, false otherwise
             \note If not implemented by the child class, this function by default returns false with a warning message.
         */
-        virtual bool Sync(double ra,double dec);
+        virtual bool Sync(double ra, double dec);
 
         /** \brief Start or Stop the telescope motion in the direction dir.
          *  \param dir direction of motion
@@ -388,6 +403,38 @@ class INDI::Telescope : public INDI::DefaultDevice
         void processSlewPresets(double mag, double angle);
         void processButton(const char * button_n, ISState state);
 
+        /**
+         * @brief Load scope settings from XML files.
+         * @return True if all config values were loaded otherwise false.
+         */
+        bool LoadScopeConfig();
+
+        /**
+         * \brief Save scope settings to XML files.
+         */
+        bool UpdateScopeConfig();
+
+        /**
+         * @brief Validate a file name
+         * @param file_name File name
+         * @return True if the file name is valid otherwise false.
+         */
+        std::string GetHomeDirectory() const;
+
+        /**
+         * @brief Get the scope config index
+         * @return The scope config index
+         */
+        int GetScopeConfigIndex() const;
+
+        /**
+         * @brief Check if a file exists and it is readable
+         * @param file_name File name
+         * @param writable Additional check if the file is writable
+         * @return True if the checks are successful otherwise false.
+         */
+        bool CheckFile(const std::string &file_name, bool writable) const;
+
         //  This is a variable filled in by the ReadStatus telescope
         //  low level code, used to report current state
         //  are we slewing, tracking, or parked.
@@ -458,6 +505,13 @@ class INDI::Telescope : public INDI::DefaultDevice
         ISwitch LockAxisS[2];
         ISwitchVectorProperty LockAxisSP;
 
+        // Pier Side
+        ISwitch PierSideS[2];
+        ISwitchVectorProperty PierSideSP;
+
+        // Pier Side
+        TelescopePierSide lastPierSide, currentPierSide;
+
         uint32_t capability;
         int last_we_motion, last_ns_motion;
 
@@ -465,9 +519,9 @@ class INDI::Telescope : public INDI::DefaultDevice
         char * LoadParkData();
         bool WriteParkData();
 
-        int PortFD=-1;
-        Connection::Serial * serialConnection=NULL;
-        Connection::TCP * tcpConnection=NULL;
+        int PortFD = -1;
+        Connection::Serial * serialConnection = NULL;
+        Connection::TCP * tcpConnection = NULL;
 
     private:
 
@@ -480,7 +534,7 @@ class INDI::Telescope : public INDI::DefaultDevice
         bool IsLocked;
         bool IsParked;
         const char * ParkDeviceName;
-        const char * Parkdatafile;
+        const std::string ParkDataFileName;
         XMLEle * ParkdataXmlRoot, *ParkdeviceXml, *ParkstatusXml, *ParkpositionXml, *ParkpositionAxis1Xml, *ParkpositionAxis2Xml;
 
         double Axis1ParkPosition;
@@ -494,6 +548,18 @@ class INDI::Telescope : public INDI::DefaultDevice
 
         uint8_t telescopeConnection = CONNECTION_SERIAL | CONNECTION_TCP;
         INDI::Controller * controller;
+
+        // A switch to apply custom aperture/focal length config
+        enum { SCOPE_CONFIG1, SCOPE_CONFIG2, SCOPE_CONFIG3, SCOPE_CONFIG4, SCOPE_CONFIG5, SCOPE_CONFIG6 };
+        ISwitch ScopeConfigs[6];
+        ISwitchVectorProperty ScopeConfigsSP;
+
+        // Scope config name
+        ITextVectorProperty ScopeConfigNameTP;
+        IText ScopeConfigNameT[1];
+
+        /// The telescope/guide scope configuration file name
+        const std::string ScopeConfigFileName;
 };
 
 #endif // INDI::Telescope_H

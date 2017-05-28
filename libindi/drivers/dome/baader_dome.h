@@ -40,19 +40,19 @@ class BaaderDome : public INDI::Dome
         BaaderDome();
         virtual ~BaaderDome();
 
-        const char *getDefaultName();
+        const char * getDefaultName();
         virtual bool initProperties();
         virtual bool updateProperties();
-        virtual bool saveConfigItems(FILE *fp);
+        virtual bool saveConfigItems(FILE * fp);
 
         virtual bool Handshake() override;
 
         void TimerHit();
 
-        virtual bool ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n);
+        virtual bool ISNewSwitch (const char * dev, const char * name, ISState * states, char * names[], int n);
 
         virtual IPState MoveRel(double azDiff);
-        virtual IPState MoveAbs(double az);        
+        virtual IPState MoveAbs(double az);
         virtual IPState ControlShutter(ShutterOperation operation);
         virtual bool Abort();
 

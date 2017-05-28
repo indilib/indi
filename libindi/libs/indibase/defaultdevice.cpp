@@ -40,6 +40,7 @@ const char * FILTER_TAB = "Filter Wheel";
 const char * FOCUS_TAB = "Focuser";
 const char * GUIDE_TAB = "Guide";
 const char * ALIGNMENT_TAB = "Alignment";
+const char * INFO_TAB      = "General Info";
 
 void timerfunc(void * t)
 {
@@ -111,10 +112,10 @@ bool INDI::DefaultDevice::saveAllConfigItems(FILE * fp)
     INDI_PROPERTY_TYPE pType;
     void * pPtr;
 
-    ISwitchVectorProperty * svp=NULL;
-    INumberVectorProperty * nvp=NULL;
-    ITextVectorProperty  * tvp=NULL;
-    IBLOBVectorProperty  * bvp=NULL;
+    ISwitchVectorProperty * svp = NULL;
+    INumberVectorProperty * nvp = NULL;
+    ITextVectorProperty  * tvp = NULL;
+    IBLOBVectorProperty  * bvp = NULL;
 
     for (orderi = pAll.begin(); orderi != pAll.end(); orderi++)
     {
@@ -199,8 +200,8 @@ bool INDI::DefaultDevice::saveConfig(bool silent, const char * property)
         if (root == NULL)
             return false;
 
-        XMLEle * ep=NULL;
-        bool propertySaved=false;
+        XMLEle * ep = NULL;
+        bool propertySaved = false;
 
         for (ep = nextXMLEle(root, 1) ; ep != NULL ; ep = nextXMLEle(root, 0))
         {
@@ -216,7 +217,7 @@ bool INDI::DefaultDevice::saveConfig(bool silent, const char * property)
                 if (svp == NULL)
                     return false;
 
-                XMLEle * sw=NULL;
+                XMLEle * sw = NULL;
                 for (sw = nextXMLEle(ep, 1) ; sw != NULL ; sw = nextXMLEle(ep, 0))
                 {
                     ISwitch * oneSwitch = IUFindSwitch(svp, findXMLAttValu(sw, "name"));
@@ -236,7 +237,7 @@ bool INDI::DefaultDevice::saveConfig(bool silent, const char * property)
                 if (nvp == NULL)
                     return false;
 
-                XMLEle * np=NULL;
+                XMLEle * np = NULL;
                 for (np = nextXMLEle(ep, 1) ; np != NULL ; np = nextXMLEle(ep, 0))
                 {
                     INumber * oneNumber = IUFindNumber(nvp, findXMLAttValu(np, "name"));
@@ -257,7 +258,7 @@ bool INDI::DefaultDevice::saveConfig(bool silent, const char * property)
                 if (tvp == NULL)
                     return false;
 
-                XMLEle * tp=NULL;
+                XMLEle * tp = NULL;
                 for (tp = nextXMLEle(ep, 1) ; tp != NULL ; tp = nextXMLEle(ep, 0))
                 {
                     IText * oneText = IUFindText(tvp, findXMLAttValu(tp, "name"));
@@ -325,11 +326,11 @@ bool INDI::DefaultDevice::ISNewSwitch (const char * dev, const char * name, ISSt
     if (!svp)
         return false;
 
-    if(!strcmp(svp->name,ConnectionSP.name))
+    if(!strcmp(svp->name, ConnectionSP.name))
     {
         bool rc;
 
-        for (int i=0; i < n; i++)
+        for (int i = 0; i < n; i++)
         {
             if ( !strcmp(names[i], "CONNECT") && (states[i] == ISS_ON))
             {
@@ -556,7 +557,7 @@ void INDI::DefaultDevice::setDebug(bool enable)
 
     // Inform logger
     if (Logger::updateProperties(enable) == false)
-        DEBUG(Logger::DBG_WARNING,"setLogDebug: Logger error");
+        DEBUG(Logger::DBG_WARNING, "setLogDebug: Logger error");
 
     debugTriggered(enable);
     DebugSP.s = IPS_OK;
@@ -643,6 +644,10 @@ void INDI::DefaultDevice::ISGetProperties (const char * dev)
         strncpy(ConnectionSP.device, getDeviceName(), MAXINDIDEVICE);
         initProperties();
         addConfigurationControl();
+
+        // If we have no connections, move Driver Info to General Info tab
+        if (connections.size() == 0)
+            strncpy(DriverInfoTP.group, INFO_TAB, MAXINDINAME);
     }
 
     for (INDI::Property * oneProperty : pAll)
@@ -688,7 +693,7 @@ void INDI::DefaultDevice::ISGetProperties (const char * dev)
         {
             ConnectionModeS = (ISwitch *) malloc(connections.size() * sizeof(ISwitch));
             ISwitch * sp = ConnectionModeS;
-            for (Connection::Interface * oneConnection: connections)
+            for (Connection::Interface * oneConnection : connections)
             {
                 IUFillSwitch(sp++, oneConnection->name().c_str(), oneConnection->label().c_str(), ISS_OFF);
             }
@@ -778,7 +783,7 @@ void INDI::DefaultDevice::setConnected(bool status, IPState state, const char * 
 //  that just encapsulates the Indi way into our clean c++ way of doing things
 int INDI::DefaultDevice::SetTimer(int ms)
 {
-    return IEAddTimer(ms,timerfunc,this);
+    return IEAddTimer(ms, timerfunc, this);
 }
 
 //  Just another helper to help encapsulate indi into a clean class
@@ -825,16 +830,16 @@ bool INDI::DefaultDevice::initProperties()
     snprintf(versionStr, 16, "%d.%d", majorVersion, minorVersion);
     snprintf(interfaceStr, 16, "%d", interfaceDescriptor);
 
-    IUFillSwitch(&ConnectionS[0],"CONNECT","Connect",ISS_OFF);
-    IUFillSwitch(&ConnectionS[1],"DISCONNECT","Disconnect",ISS_ON);
-    IUFillSwitchVector(&ConnectionSP,ConnectionS,2,getDeviceName(),"CONNECTION","Connection","Main Control",IP_RW,ISR_1OFMANY,60,IPS_IDLE);
+    IUFillSwitch(&ConnectionS[0], "CONNECT", "Connect", ISS_OFF);
+    IUFillSwitch(&ConnectionS[1], "DISCONNECT", "Disconnect", ISS_ON);
+    IUFillSwitchVector(&ConnectionSP, ConnectionS, 2, getDeviceName(), "CONNECTION", "Connection", "Main Control", IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
     registerProperty(&ConnectionSP, INDI_SWITCH);
 
-    IUFillText(&DriverInfoT[0],"DRIVER_NAME","Name",getDriverName());
-    IUFillText(&DriverInfoT[1],"DRIVER_EXEC","Exec",getDriverExec());
-    IUFillText(&DriverInfoT[2],"DRIVER_VERSION","Version",versionStr);
-    IUFillText(&DriverInfoT[3],"DRIVER_INTERFACE","Interface", interfaceStr);
-    IUFillTextVector(&DriverInfoTP,DriverInfoT,4,getDeviceName(),"DRIVER_INFO","Driver Info",CONNECTION_TAB,IP_RO,60,IPS_IDLE);
+    IUFillText(&DriverInfoT[0], "DRIVER_NAME", "Name", getDriverName());
+    IUFillText(&DriverInfoT[1], "DRIVER_EXEC", "Exec", getDriverExec());
+    IUFillText(&DriverInfoT[2], "DRIVER_VERSION", "Version", versionStr);
+    IUFillText(&DriverInfoT[3], "DRIVER_INTERFACE", "Interface", interfaceStr);
+    IUFillTextVector(&DriverInfoTP, DriverInfoT, 4, getDeviceName(), "DRIVER_INFO", "Driver Info", CONNECTION_TAB, IP_RO, 60, IPS_IDLE);
     registerProperty(&DriverInfoTP, INDI_TEXT);
 
     IUFillSwitch(&DebugS[0], "ENABLE", "Enable", ISS_OFF);
@@ -855,7 +860,7 @@ bool INDI::DefaultDevice::initProperties()
     // Ready the logger
     std::string logFile = getDriverExec();
 
-    DEBUG_CONF(logFile,  Logger::file_off|Logger::screen_on, Logger::defaultlevel, Logger::defaultlevel);
+    DEBUG_CONF(logFile,  Logger::file_off | Logger::screen_on, Logger::defaultlevel, Logger::defaultlevel);
 
     return true;
 }
@@ -877,14 +882,14 @@ bool INDI::DefaultDevice::deleteProperty(const char * propertyName)
         INDI::Property * prop = getProperty(propertyName);
         if (prop && prop->isDynamic())
         {
-            IDDelete(getDeviceName(), propertyName ,NULL);
+            IDDelete(getDeviceName(), propertyName , NULL);
             return true;
         }
     }
 
     if (removeProperty(propertyName, errmsg) == 0)
     {
-        IDDelete(getDeviceName(), propertyName ,NULL);
+        IDDelete(getDeviceName(), propertyName , NULL);
         return true;
     }
     else
@@ -932,7 +937,7 @@ bool INDI::DefaultDevice::Connect()
         return false;
     }
 
-    bool rc=false;
+    bool rc = false;
 
     rc = activeConnection->Connect();
 
@@ -949,7 +954,7 @@ bool INDI::DefaultDevice::Disconnect()
 {
     if (isSimulation())
     {
-        DEBUGF(Logger::DBG_SESSION,"%s is offline.", getDeviceName());
+        DEBUGF(Logger::DBG_SESSION, "%s is offline.", getDeviceName());
         return true;
     }
 
@@ -958,7 +963,7 @@ bool INDI::DefaultDevice::Disconnect()
         bool rc = activeConnection->Disconnect();
         if (rc)
         {
-            DEBUGF(Logger::DBG_SESSION,"%s is offline.", getDeviceName());
+            DEBUGF(Logger::DBG_SESSION, "%s is offline.", getDeviceName());
             return true;
         }
         else

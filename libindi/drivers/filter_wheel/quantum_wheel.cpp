@@ -25,172 +25,175 @@
 #include "quantum_wheel.h"
 
 #define VERSION_MAJOR 0
-#define VERSION_MINOR 1
-#define BAUDRATE B9600 // USB serial line speed
+#define VERSION_MINOR 2
 
 std::unique_ptr<QFW> qfw(new QFW());
 
-void ISGetProperties(const char *dev) {
-  qfw->ISGetProperties(dev);
+void ISGetProperties(const char * dev)
+{
+    qfw->ISGetProperties(dev);
 }
 
-void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int num) {
-  qfw->ISNewSwitch(dev, name, states, names, num);
+void ISNewSwitch(const char * dev, const char * name, ISState * states, char * names[], int num)
+{
+    qfw->ISNewSwitch(dev, name, states, names, num);
 }
 
-void ISNewText(const char *dev, const char *name, char *texts[], char *names[], int num) {
-  qfw->ISNewText(dev, name, texts, names, num);
+void ISNewText(const char * dev, const char * name, char * texts[], char * names[], int num)
+{
+    qfw->ISNewText(dev, name, texts, names, num);
 }
 
-void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int num) {
-  qfw->ISNewNumber(dev, name, values, names, num);
+void ISNewNumber(const char * dev, const char * name, double values[], char * names[], int num)
+{
+    qfw->ISNewNumber(dev, name, values, names, num);
 }
 
-void ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[], char *names[], int n) {
-  INDI_UNUSED(dev);
-  INDI_UNUSED(name);
-  INDI_UNUSED(sizes);
-  INDI_UNUSED(blobsizes);
-  INDI_UNUSED(blobs);
-  INDI_UNUSED(formats);
-  INDI_UNUSED(names);
-  INDI_UNUSED(n);
+void ISNewBLOB(const char * dev, const char * name, int sizes[], int blobsizes[], char * blobs[], char * formats[], char * names[], int n)
+{
+    INDI_UNUSED(dev);
+    INDI_UNUSED(name);
+    INDI_UNUSED(sizes);
+    INDI_UNUSED(blobsizes);
+    INDI_UNUSED(blobs);
+    INDI_UNUSED(formats);
+    INDI_UNUSED(names);
+    INDI_UNUSED(n);
 }
-void ISSnoopDevice(XMLEle *root) {
-  qfw->ISSnoopDevice(root);
-}
-
-QFW::QFW() {
-  setDeviceName(getDefaultName());
-  setVersion(VERSION_MAJOR, VERSION_MINOR);
+void ISSnoopDevice(XMLEle * root)
+{
+    qfw->ISSnoopDevice(root);
 }
 
-QFW::~QFW() {
+QFW::QFW()
+{
+    setDeviceName(getDefaultName());
+    setVersion(VERSION_MAJOR, VERSION_MINOR);
+    setFilterConnection(CONNECTION_SERIAL | CONNECTION_TCP);
 }
 
-void QFW::debugTriggered(bool enable) {
-  INDI_UNUSED(enable);
+QFW::~QFW()
+{
 }
 
-void QFW::simulationTriggered(bool enable) {
-  INDI_UNUSED(enable);
+void QFW::debugTriggered(bool enable)
+{
+    INDI_UNUSED(enable);
 }
 
-const char * QFW::getDefaultName() {
-  return (char *) "Quantum Wheel";
+void QFW::simulationTriggered(bool enable)
+{
+    INDI_UNUSED(enable);
 }
 
-bool QFW::GetFilterNames(const char* groupName) {
-  char filterName[MAXINDINAME];
-  char filterLabel[MAXINDILABEL];
-  int MaxFilter = FilterSlotN[0].max;
-  if (FilterNameT != NULL)
-      delete FilterNameT;
-  FilterNameT = new IText[MaxFilter];
-  for (int i=0; i < MaxFilter; i++) {
-    snprintf(filterName, MAXINDINAME, "FILTER_SLOT_NAME_%d", i+1);
-    snprintf(filterLabel, MAXINDILABEL, "Filter #%d", i+1);
-    IUFillText(&FilterNameT[i], filterName, filterLabel, filterLabel);
-  }
-  IUFillTextVector(FilterNameTP, FilterNameT, MaxFilter, getDeviceName(), "FILTER_NAME", "Filter", groupName, IP_RW, 0, IPS_IDLE);
-  return true;
+const char * QFW::getDefaultName()
+{
+    return (char *) "Quantum Wheel";
 }
 
-bool QFW::Connect() {
-	if (isSimulation()) {
-		IDMessage(getDeviceName(), "Simulation: connected");
-		fd = 1;
-	} else {
-		// open device
-		fd = open("/dev/ttyACM0", O_RDWR | O_NOCTTY | O_NDELAY);
-
-		// check serial connection
-		if(fd < 0 || !isatty(fd))
-		{
-			IDMessage(getDeviceName(), "Device /dev/ttyACM0 is not available\n");
-			return false;
-		}
-
-		// set tty params	
-		struct termios tty;
-		tty.c_cflag = BAUDRATE | CRTSCTS | CS8 | CLOCAL | CREAD;
-		tty.c_iflag = IGNPAR | ICRNL;
-		tty.c_oflag = 0;
-		tty.c_lflag = ICANON;
-		tcflush(fd, TCIFLUSH);
-		tcsetattr(fd,TCSANOW,&tty);
-	}
-	return true;
+bool QFW::GetFilterNames(const char * groupName)
+{
+    char filterName[MAXINDINAME];
+    char filterLabel[MAXINDILABEL];
+    int MaxFilter = FilterSlotN[0].max;
+    if (FilterNameT != NULL)
+        delete FilterNameT;
+    FilterNameT = new IText[MaxFilter];
+    for (int i = 0; i < MaxFilter; i++)
+    {
+        snprintf(filterName, MAXINDINAME, "FILTER_SLOT_NAME_%d", i + 1);
+        snprintf(filterLabel, MAXINDILABEL, "Filter #%d", i + 1);
+        IUFillText(&FilterNameT[i], filterName, filterLabel, filterLabel);
+    }
+    IUFillTextVector(FilterNameTP, FilterNameT, MaxFilter, getDeviceName(), "FILTER_NAME", "Filter", groupName, IP_RW, 0, IPS_IDLE);
+    return true;
 }
 
-bool QFW::Disconnect() {
-  if (isSimulation())
-    IDMessage(getDeviceName(), "Simulation: disconnected");
-  else {
-	if (fd)
-		close(fd);	
-  }
-  fd = 0;
-  return true;
+bool QFW::Handshake()
+{
+    if (isSimulation())
+    {
+        IDMessage(getDeviceName(), "Simulation: connected");
+        PortFD = 1;
+    }
+    else
+    {
+        // check serial connection
+        if(PortFD < 0 || !isatty(PortFD))
+        {
+            IDMessage(getDeviceName(), "Device /dev/ttyACM0 is not available\n");
+            return false;
+        }
+    }
+    return true;
 }
 
-bool QFW::initProperties() {
-  INDI::FilterWheel::initProperties();
-  // addDebugControl();
-  addSimulationControl();
+bool QFW::initProperties()
+{
+    INDI::FilterWheel::initProperties();
+    // addDebugControl();
+    addSimulationControl();
 
-  FilterSlotN[0].min = 1;
-  FilterSlotN[0].max = 7;
-  CurrentFilter = 1;
+    serialConnection->setDefaultPort("/dev/ttyACM0");
 
-  return true;
+    FilterSlotN[0].min = 1;
+    FilterSlotN[0].max = 7;
+    CurrentFilter = 1;
+
+    return true;
 }
 
-void QFW::ISGetProperties(const char *dev) {
-  INDI::FilterWheel::ISGetProperties(dev);
-  return;
+void QFW::ISGetProperties(const char * dev)
+{
+    INDI::FilterWheel::ISGetProperties(dev);
+    return;
 }
 
-int QFW::QueryFilter() {
-	return CurrentFilter;
+int QFW::QueryFilter()
+{
+    return CurrentFilter;
 }
 
-bool QFW::SelectFilter(int position) {
-	// count from 0 to 6 for positions 1 to 7
-	position = position - 1;
-	
-	if( position < 0 || position > 6 )
-		return false;
+bool QFW::SelectFilter(int position)
+{
+    // count from 0 to 6 for positions 1 to 7
+    position = position - 1;
 
-	if (isSimulation()) {
-		CurrentFilter = position + 1;
-		SelectFilterDone (CurrentFilter);
-		return true;
-	}
-	// goto
-	char targetpos[255];
-	char curpos[255];
-	int res;
-	
-	// format target position G[0-6]
-	sprintf(targetpos, "G%d\r\n\n", position);
+    if( position < 0 || position > 6 )
+        return false;
 
-	// write command
-	write(fd, targetpos, strlen(targetpos));
+    if (isSimulation())
+    {
+        CurrentFilter = position + 1;
+        SelectFilterDone (CurrentFilter);
+        return true;
+    }
+    // goto
+    char targetpos[255];
+    char curpos[255];
+    int res;
 
-	// format target marker P[0-6]
-	sprintf(targetpos, "P%d\r\n", position);
-	
-	// check current position
-	do {
-		usleep(100 * 1000);
-		res = read(fd, curpos, 255);
-		curpos[res] = 0;
-	}while( strncmp(targetpos, curpos, 2) != 0 );
+    // format target position G[0-6]
+    sprintf(targetpos, "G%d\r\n\n", position);
 
-	// return current position to indi
-	CurrentFilter = position + 1;
-	SelectFilterDone (CurrentFilter);
+    // write command
+    write(PortFD, targetpos, strlen(targetpos));
 
-	return true;
+    // format target marker P[0-6]
+    sprintf(targetpos, "P%d\r\n", position);
+
+    // check current position
+    do
+    {
+        usleep(100 * 1000);
+        res = read(PortFD, curpos, 255);
+        curpos[res] = 0;
+    }
+    while( strncmp(targetpos, curpos, 2) != 0 );
+
+    // return current position to indi
+    CurrentFilter = position + 1;
+    SelectFilterDone (CurrentFilter);
+
+    return true;
 }

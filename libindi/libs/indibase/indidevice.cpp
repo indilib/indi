@@ -23,7 +23,7 @@
 
 #include <string.h>
 
-IndiDevice * device=NULL;
+IndiDevice * device = NULL;
 
 
 /**************************************************************************************
@@ -32,10 +32,10 @@ IndiDevice * device=NULL;
 void ISGetProperties (const char * dev)
 {
     //fprintf(stderr,"Enter ISGetProperties '%s'\n",dev);
-    if(device==NULL)
+    if(device == NULL)
     {
         //IDLog("Create device for %s\n",dev);
-        device=_create_device();
+        device = _create_device();
         if(dev != NULL)
         {
             //fprintf(stderr,"Calling setDeviceName %s\n",dev);
@@ -112,7 +112,7 @@ void ISSnoopDevice (XMLEle * root)
 void timerfunc(void * t)
 {
     //fprintf(stderr,"Got a timer hit with %x\n",t);
-    if(t==device)
+    if(t == device)
     {
         //  this was for my device
         //  but we dont have a way of telling
@@ -126,7 +126,7 @@ void timerfunc(void * t)
 IndiDevice::IndiDevice()
 {
     //ctor
-    Connected=false;
+    Connected = false;
 }
 
 IndiDevice::~IndiDevice()
@@ -141,16 +141,16 @@ int IndiDevice::init_properties()
     //  so lets create it
 
     //IDLog("IndiDevice::init_properties()  MyDev=%s\n",deviceName());
-    IUFillSwitch(&ConnectionS[0],"CONNECT","Connect",ISS_OFF);
-    IUFillSwitch(&ConnectionS[1],"DISCONNECT","Disconnect",ISS_ON);
-    IUFillSwitchVector(&ConnectionSV,ConnectionS,2,deviceName(),"CONNECTION","Connection","Main Control",IP_RW,ISR_1OFMANY,60,IPS_IDLE);
+    IUFillSwitch(&ConnectionS[0], "CONNECT", "Connect", ISS_OFF);
+    IUFillSwitch(&ConnectionS[1], "DISCONNECT", "Disconnect", ISS_ON);
+    IUFillSwitchVector(&ConnectionSV, ConnectionS, 2, deviceName(), "CONNECTION", "Connection", "Main Control", IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
 
     return 0;
 }
 
 bool IndiDevice::DeleteProperty(char * n)
 {
-    IDDelete(deviceName(),n,NULL);
+    IDDelete(deviceName(), n, NULL);
     return true;
 }
 
@@ -175,7 +175,7 @@ bool IndiDevice::ISNewText (const char * dev, const char * name, char * texts[],
 {
 
     //  And this base class doesn't actually process anything
-    return INDI::DefaultDriver::ISNewText(dev,name,texts,names,n);
+    return INDI::DefaultDriver::ISNewText(dev, name, texts, names, n);
 }
 
 /**************************************************************************************
@@ -185,7 +185,7 @@ bool IndiDevice::ISNewNumber (const char * dev, const char * name, double values
 {
 
     //  Our base class doesn't actually do any processing
-    return INDI::DefaultDriver::ISNewNumber(dev,name,values,names,n);
+    return INDI::DefaultDriver::ISNewNumber(dev, name, values, names, n);
 }
 
 /**************************************************************************************
@@ -195,50 +195,50 @@ bool IndiDevice::ISNewSwitch (const char * dev, const char * name, ISState * sta
 {
 
     //  Ok, lets Process any switches we actually handle here
-    if(strcmp(dev,deviceName())==0)
+    if(strcmp(dev, deviceName()) == 0)
     {
         //  it's for this device
 
-        if(strcmp(name,ConnectionSV.name)==0)
+        if(strcmp(name, ConnectionSV.name) == 0)
         {
             bool rc;
             //IDLog("IndiDevice Switch %s\n",names[x]);
 
-            IUUpdateSwitch(&ConnectionSV,states,names,n);
+            IUUpdateSwitch(&ConnectionSV, states, names, n);
 
-            if(ConnectionS[0].s==ISS_ON)
+            if(ConnectionS[0].s == ISS_ON)
             {
                 if(!Connected)
                 {
-                    rc=Connect();
+                    rc = Connect();
                     if(rc)
                     {
-                        ConnectionSV.s=IPS_OK;
+                        ConnectionSV.s = IPS_OK;
                         //setConnected(true,"calling setconnected");
                         //ConnectionS[0].s=ISS_ON;
                         //ConnectionS[1].s=ISS_OFF;
-                        Connected=true;
+                        Connected = true;
                     }
                     else
                     {
                         //ConnectionS[0].s=ISS_OFF;
                         //ConnectionS[1].s=ISS_ON;
-                        ConnectionSV.s=IPS_ALERT;
-                        Connected=false;
+                        ConnectionSV.s = IPS_ALERT;
+                        Connected = false;
                     }
                 }
                 UpdateProperties();
-                IDSetSwitch(&ConnectionSV,NULL);
+                IDSetSwitch(&ConnectionSV, NULL);
             }
             else
             {
-                if(Connected) rc=Disconnect();
+                if(Connected) rc = Disconnect();
                 //ConnectionS[0].s=ISS_OFF;
                 //ConnectionS[1].s=ISS_ON;
-                ConnectionSV.s=IPS_IDLE;
-                Connected=false;
+                ConnectionSV.s = IPS_IDLE;
+                Connected = false;
                 UpdateProperties();
-                IDSetSwitch(&ConnectionSV,NULL);
+                IDSetSwitch(&ConnectionSV, NULL);
             }
 
             /*
@@ -291,7 +291,7 @@ bool IndiDevice::ISNewSwitch (const char * dev, const char * name, ISState * sta
 //  that just encapsulates the Indi way into our clean c++ way of doing things
 int IndiDevice::SetTimer(int t)
 {
-    return IEAddTimer(t,timerfunc,this);
+    return IEAddTimer(t, timerfunc, this);
 }
 
 //  Just another helper to help encapsulate indi into a clean class
@@ -313,14 +313,14 @@ bool IndiDevice::Connect()
     //  We dont actually implement a device here
     //  So we cannot connect to it
     IDLog("IndiDevice Connect, we should never get here\n");
-    IDMessage(deviceName(),"IndiDevice:: has no device attached....");
+    IDMessage(deviceName(), "IndiDevice:: has no device attached....");
     return false;
 }
 
 bool IndiDevice::Disconnect()
 {
     //  Since we cannot connect, we cant disconnect either
-    IDMessage(deviceName(),"IndiDevice:: has no device to detach....");
+    IDMessage(deviceName(), "IndiDevice:: has no device to detach....");
     return false;
 }
 
@@ -345,22 +345,22 @@ bool IndiDevice::SaveConfig()
     FILE * fp;
     //int rc;
 
-    fp=IUGetConfigFP(NULL,deviceName(),err);
+    fp = IUGetConfigFP(NULL, deviceName(), err);
     if(fp != NULL)
     {
-        IUSaveConfigTag(fp,0);
+        IUSaveConfigTag(fp, 0);
         //IUSaveConfigText(fp,&FilterNameTV);
         //  Tell child classes to write any items they want
         //  into persistent storage
         WritePersistentConfig(fp);
-        IUSaveConfigTag(fp,1);
+        IUSaveConfigTag(fp, 1);
         fclose(fp);
         //IDMessage(deviceName(),"Configuration Saved\n");
         return true;
     }
     else
     {
-        IDMessage(deviceName(),"Save config failed\n");
+        IDMessage(deviceName(), "Save config failed\n");
     }
     return false;
 }
@@ -375,7 +375,7 @@ bool IndiDevice::LoadConfig()
     char err[MAXRBUF];
     int rc;
 
-    rc=IUReadConfig(NULL,deviceName(),err);
-    if(rc==0) return true;
+    rc = IUReadConfig(NULL, deviceName(), err);
+    if(rc == 0) return true;
     return false;
 }

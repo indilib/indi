@@ -24,7 +24,7 @@
 
 /*! 
  * @file qhyccd.h
- * @brief QHYCCD SDK interface for programer
+ * @brief QHYCCD SDK interface for programmers
  */
 #include "qhyccderr.h"
 #include "qhyccdcamdef.h"
@@ -38,14 +38,10 @@
 #ifndef __QHYCCD_H__
 #define __QHYCCD_H__
 
-/**
- * typedef the libusb_deivce_handle qhyccd_handle
- */
-#ifdef LINUX
-typedef struct libusb_device_handle qhyccd_handle;
-#endif
-#ifdef WIN32
+#if defined (WIN32)
 typedef CCyUSBDevice qhyccd_handle;
+#elif defined (LINUX)
+typedef struct libusb_device_handle qhyccd_handle;
 #endif
 
 /** \fn uint32_t InitQHYCCDResource()
@@ -694,6 +690,10 @@ EXPORTC void STDCALL SetQHYCCDGPSSlaveModeParameter(qhyccd_handle *handle,uint32
 
 EXPORTC uint32_t STDCALL QHYCCDVendRequestWrite(qhyccd_handle *h,uint8_t req,uint16_t value,uint16_t index1,uint32_t length,uint8_t *data);
 
-EXPORTC uint32_t STDCALL QHYCCDReadUSB_SYNC(qhyccd_handle *h,uint8_t usbep,uint32_t length,uint8_t *data,uint32_t timeout);
+EXPORTC uint32_t STDCALL QHYCCDReadUSB_SYNC(qhyccd_handle *pDevHandle, uint8_t endpoint, uint32_t length, uint8_t *data, uint32_t timeout);
+
+EXPORTC uint32_t STDCALL QHYCCDLibusbBulkTransfer(qhyccd_handle *pDevHandle, uint8_t endpoint, uint8_t *data, uint32_t length, int32_t *transferred, uint32_t timeout);
+
+EXPORTC uint32_t STDCALL GetQHYCCDSDKVersion(uint32_t *year,uint32_t *month,uint32_t *day,uint32_t *subday);
 
 #endif

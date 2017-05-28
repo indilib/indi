@@ -33,7 +33,7 @@
 LX200ZEQ25::LX200ZEQ25()
 {
     setVersion(1, 0);
-    hasFocus=false;
+    hasFocus = false;
 
     SetTelescopeCapability(TELESCOPE_CAN_PARK | TELESCOPE_CAN_SYNC | TELESCOPE_CAN_GOTO | TELESCOPE_CAN_ABORT | TELESCOPE_HAS_TIME | TELESCOPE_HAS_LOCATION, 9);
 }
@@ -43,6 +43,19 @@ bool LX200ZEQ25::initProperties()
     LX200Generic::initProperties();
 
     SetParkDataType(PARK_AZ_ALT);
+
+    strcpy(SlewRateS[0].label, "1x");
+    strcpy(SlewRateS[1].label, "2x");
+    strcpy(SlewRateS[2].label, "8x");
+    strcpy(SlewRateS[3].label, "16x");
+    strcpy(SlewRateS[4].label, "64x");
+    strcpy(SlewRateS[5].label, "128x");
+    strcpy(SlewRateS[6].label, "256x");
+    strcpy(SlewRateS[7].label, "512x");
+    strcpy(SlewRateS[8].label, "MAX");
+
+    IUFillSwitch(&HomeS[0], "Home", "", ISS_OFF);
+    IUFillSwitchVector(&HomeSP, HomeS, 1, getDeviceName(), "Home", "Home", MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
 
     return true;
 }
@@ -56,7 +69,14 @@ bool LX200ZEQ25::updateProperties()
         // Delete unsupported properties
         deleteProperty(AlignmentSP.name);
         deleteProperty(SiteSP.name);
+        deleteProperty(TrackingFreqNP.name);
         deleteProperty(SiteNameTP.name);
+
+        defineSwitch(&HomeSP);
+    }
+    else
+    {
+        deleteProperty(HomeSP.name);
     }
 
     return true;
@@ -76,12 +96,12 @@ bool LX200ZEQ25::checkConnection()
     int errcode = 0;
     char errmsg[MAXRBUF];
     char response[8];
-    int nbytes_read=0;
-    int nbytes_written=0;
+    int nbytes_read = 0;
+    int nbytes_written = 0;
 
     DEBUG(INDI::Logger::DBG_DEBUG, "Initializing IOptron using :V# CMD...");
 
-    for (int i=0; i < 2; i++)
+    for (int i = 0; i < 2; i++)
     {
         if ( (errcode = tty_write(PortFD, initCMD, 3, &nbytes_written)) != TTY_OK)
         {
@@ -114,14 +134,81 @@ bool LX200ZEQ25::checkConnection()
     return false;
 }
 
+bool LX200ZEQ25::ISNewSwitch (const char * dev, const char * name, ISState * states, char * names[], int n)
+{
+    if(strcmp(dev, getDeviceName()) == 0)
+    {
+        if (!strcmp(HomeSP.name, name))
+        {
+            // If already home, nothing to be done
+            if (HomeS[0].s == ISS_ON)
+            {
+                DEBUG(INDI::Logger::DBG_WARNING, "Telescope is already homed");
+                IDSetSwitch(&HomeSP, NULL);
+                return true;
+            }
+
+            if (gotoZEQ25Home() < 0)
+            {
+                HomeSP.s = IPS_ALERT;
+                DEBUG(INDI::Logger::DBG_ERROR, "Error slewing to home position.");
+            }
+            else
+            {
+                HomeSP.s = IPS_BUSY;
+                DEBUG(INDI::Logger::DBG_SESSION, "Slewing to home position.");
+            }
+
+            IDSetSwitch(&HomeSP, NULL);
+            return true;
+        }
+    }
+
+    return LX200Generic::ISNewSwitch(dev, name, states, names, n);
+}
+
+bool LX200ZEQ25::isZEQ25Home()
+{
+    char bool_return[2];
+    int error_type;
+    int nbytes_write = 0, nbytes_read = 0;
+
+    if (isSimulation())
+        return true;
+
+    DEBUG(DBG_SCOPE, "CMD <:AH#>");
+
+    if ( (error_type = tty_write_string(PortFD, ":AH#", &nbytes_write)) != TTY_OK)
+        return false;
+
+    error_type = tty_read(PortFD, bool_return, 1, 5, &nbytes_read);
+
+    // JM: Hack from Jon in the INDI forums to fix longitude/latitude settings failure on ZEQ25
+    usleep(10000);
+    tcflush(PortFD, TCIFLUSH);
+    usleep(10000);
+
+    if (nbytes_read < 1)
+        return false;
+
+    DEBUGF(DBG_SCOPE, "RES <%c>", bool_return[0]);
+
+    return (bool_return[0] == '1');
+}
+
+int LX200ZEQ25::gotoZEQ25Home()
+{
+    return setZEQ25StandardProcedure(PortFD, ":MH#");
+}
+
 bool LX200ZEQ25::isSlewComplete()
 {
     char cmd[16];
     int errcode = 0;
     char errmsg[MAXRBUF];
     char response[8];
-    int nbytes_read=0;
-    int nbytes_written=0;
+    int nbytes_read = 0;
+    int nbytes_written = 0;
 
     strncpy(cmd, ":SE#", 16);
 
@@ -164,8 +251,8 @@ bool LX200ZEQ25::getMountInfo()
     int errcode = 0;
     char errmsg[MAXRBUF];
     char response[16];
-    int nbytes_read=0;
-    int nbytes_written=0;
+    int nbytes_read = 0;
+    int nbytes_written = 0;
 
     DEBUGF(INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
 
@@ -228,27 +315,36 @@ void LX200ZEQ25::getBasicData()
     if (InitPark())
     {
         // If loading parking data is successful, we just set the default parking values.
-        SetAxis1ParkDefault(LocationN[LOCATION_LATITUDE].value >=0 ? 0 : 180);
+        SetAxis1ParkDefault(LocationN[LOCATION_LATITUDE].value >= 0 ? 0 : 180);
         SetAxis2ParkDefault(LocationN[LOCATION_LATITUDE].value);
     }
     else
     {
         // Otherwise, we set all parking data to default in case no parking data is found.
-        SetAxis1Park(LocationN[LOCATION_LATITUDE].value >=0 ? 0 : 180);
+        SetAxis1Park(LocationN[LOCATION_LATITUDE].value >= 0 ? 0 : 180);
         SetAxis2Park(LocationN[LOCATION_LATITUDE].value);
-        SetAxis1ParkDefault(LocationN[LOCATION_LATITUDE].value >=0 ? 0 : 180);
+        SetAxis1ParkDefault(LocationN[LOCATION_LATITUDE].value >= 0 ? 0 : 180);
         SetAxis2ParkDefault(LocationN[LOCATION_LATITUDE].value);
     }
 
     bool isMountParked = isZEQ25Parked();
     if (isMountParked != isParked())
         SetParked(isMountParked);
+
+    // Is home?
+    if (isZEQ25Home())
+    {
+        HomeS[0].s = ISS_ON;
+        HomeSP.s = IPS_OK;
+        IDSetSwitch(&HomeSP, NULL);
+    }
+
 }
 
-bool LX200ZEQ25::Goto(double r,double d)
+bool LX200ZEQ25::Goto(double r, double d)
 {
-    targetRA=r;
-    targetDEC=d;
+    targetRA = r;
+    targetDEC = d;
     char RAStr[64], DecStr[64];
 
     fs_sexa(RAStr, targetRA, 2, 3600);
@@ -257,30 +353,30 @@ bool LX200ZEQ25::Goto(double r,double d)
     // If moving, let's stop it first.
     if (EqNP.s == IPS_BUSY)
     {
-         if (!isSimulation() && abortSlew(PortFD) < 0)
-         {
+        if (!isSimulation() && abortSlew(PortFD) < 0)
+        {
             AbortSP.s = IPS_ALERT;
             IDSetSwitch(&AbortSP, "Abort slew failed.");
             return false;
-         }
+        }
 
-         AbortSP.s = IPS_OK;
-         EqNP.s       = IPS_IDLE;
-         IDSetSwitch(&AbortSP, "Slew aborted.");
-         IDSetNumber(&EqNP, NULL);
+        AbortSP.s = IPS_OK;
+        EqNP.s       = IPS_IDLE;
+        IDSetSwitch(&AbortSP, "Slew aborted.");
+        IDSetNumber(&EqNP, NULL);
 
-         if (MovementNSSP.s == IPS_BUSY || MovementWESP.s == IPS_BUSY)
-         {
-                MovementNSSP.s  = MovementWESP.s =  IPS_IDLE;
-                EqNP.s       = IPS_IDLE;
-                IUResetSwitch(&MovementNSSP);
-                IUResetSwitch(&MovementWESP);
-                IDSetSwitch(&MovementNSSP, NULL);
-                IDSetSwitch(&MovementWESP, NULL);
-          }
+        if (MovementNSSP.s == IPS_BUSY || MovementWESP.s == IPS_BUSY)
+        {
+            MovementNSSP.s  = MovementWESP.s =  IPS_IDLE;
+            EqNP.s       = IPS_IDLE;
+            IUResetSwitch(&MovementNSSP);
+            IUResetSwitch(&MovementWESP);
+            IDSetSwitch(&MovementNSSP, NULL);
+            IDSetSwitch(&MovementWESP, NULL);
+        }
 
-       // sleep for 100 mseconds
-       usleep(100000);
+        // sleep for 100 mseconds
+        usleep(100000);
     }
 
     if (isSimulation() == false)
@@ -313,7 +409,7 @@ int LX200ZEQ25::slewZEQ25()
     DEBUGF(DBG_SCOPE, "<%s>", __FUNCTION__);
     char slewNum[2];
     int error_type;
-    int nbytes_write=0, nbytes_read=0;
+    int nbytes_write = 0, nbytes_read = 0;
 
     DEBUGF(DBG_SCOPE, "CMD <%s>", ":MS#");
 
@@ -345,8 +441,8 @@ bool LX200ZEQ25::SetSlewRate(int index)
     int errcode = 0;
     char errmsg[MAXRBUF];
     char response[2];
-    int nbytes_read=0;
-    int nbytes_written=0;
+    int nbytes_read = 0;
+    int nbytes_written = 0;
 
     snprintf(cmd, 8, ":SR%d#", index);
 
@@ -371,9 +467,9 @@ bool LX200ZEQ25::SetSlewRate(int index)
         response[nbytes_read] = '\0';
         DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", response);
 
-       tcflush(PortFD, TCIFLUSH);
+        tcflush(PortFD, TCIFLUSH);
 
-       return (response[0] == '1');
+        return (response[0] == '1');
     }
 
     DEBUGF(INDI::Logger::DBG_ERROR, "Only received #%d bytes, expected 1.", nbytes_read);
@@ -391,8 +487,8 @@ int LX200ZEQ25::getZEQ25MoveRate()
     int errcode = 0;
     char errmsg[MAXRBUF];
     char response[3];
-    int nbytes_read=0;
-    int nbytes_written=0;
+    int nbytes_read = 0;
+    int nbytes_written = 0;
 
     DEBUGF(INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
 
@@ -412,16 +508,16 @@ int LX200ZEQ25::getZEQ25MoveRate()
 
     if (nbytes_read > 0)
     {
-        response[nbytes_read-1] = '\0';
+        response[nbytes_read - 1] = '\0';
         DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", response);
 
-       tcflush(PortFD, TCIFLUSH);
+        tcflush(PortFD, TCIFLUSH);
 
-       int moveRate=-1;
+        int moveRate = -1;
 
-       sscanf(response, "%d", &moveRate);
+        sscanf(response, "%d", &moveRate);
 
-       return moveRate;
+        return moveRate;
     }
 
     DEBUGF(INDI::Logger::DBG_ERROR, "Only received #%d bytes, expected 2.", nbytes_read);
@@ -436,7 +532,7 @@ bool LX200ZEQ25::updateTime(ln_date * utc, double utc_offset)
     if (isSimulation())
         return true;
 
-    ln_date_to_zonedate(utc, &ltm, utc_offset*3600.0);
+    ln_date_to_zonedate(utc, &ltm, utc_offset * 3600.0);
 
     JD = ln_get_julian_day(utc);
 
@@ -501,56 +597,56 @@ bool LX200ZEQ25::updateLocation(double latitude, double longitude, double elevat
 
 int LX200ZEQ25::setZEQ25Longitude(double Long)
 {
-   int d, m, s;
-   char sign;
-   char temp_string[32];
+    int d, m, s;
+    char sign;
+    char temp_string[32];
 
-   if (Long > 0)
-       sign = '+';
-   else
-       sign = '-';
+    if (Long > 0)
+        sign = '+';
+    else
+        sign = '-';
 
-   getSexComponents(Long, &d, &m, &s);
+    getSexComponents(Long, &d, &m, &s);
 
-   snprintf(temp_string, sizeof( temp_string ), ":Sg %c%03d:%02d:%02d#", sign, abs(d), m,s);
+    snprintf(temp_string, sizeof( temp_string ), ":Sg %c%03d:%02d:%02d#", sign, abs(d), m, s);
 
-   return (setZEQ25StandardProcedure(PortFD, temp_string));
+    return (setZEQ25StandardProcedure(PortFD, temp_string));
 }
 
 int LX200ZEQ25::setZEQ25Latitude(double Lat)
 {
-   int d, m, s;
-   char sign;
-   char temp_string[32];
+    int d, m, s;
+    char sign;
+    char temp_string[32];
 
-   if (Lat > 0)
-       sign = '+';
-   else
-       sign = '-';
+    if (Lat > 0)
+        sign = '+';
+    else
+        sign = '-';
 
-   getSexComponents(Lat, &d, &m, &s);
+    getSexComponents(Lat, &d, &m, &s);
 
-   snprintf(temp_string, sizeof( temp_string ), ":St %c%02d:%02d:%02d#", sign, abs(d), m,s);
+    snprintf(temp_string, sizeof( temp_string ), ":St %c%02d:%02d:%02d#", sign, abs(d), m, s);
 
-   return (setZEQ25StandardProcedure(PortFD, temp_string));
+    return (setZEQ25StandardProcedure(PortFD, temp_string));
 }
 
 int LX200ZEQ25::setZEQ25UTCOffset(double hours)
 {
-   char temp_string[16];
-   char sign;
-   int h=0,m=0,s=0;
+    char temp_string[16];
+    char sign;
+    int h = 0, m = 0, s = 0;
 
-   if (hours > 0)
-       sign = '+';
-   else
-       sign = '-';
+    if (hours > 0)
+        sign = '+';
+    else
+        sign = '-';
 
-   getSexComponents(hours, &h, &m, &s);
+    getSexComponents(hours, &h, &m, &s);
 
-   snprintf(temp_string, sizeof( temp_string ), ":SG %c%02d:%02d#", sign, abs(h), m);
+    snprintf(temp_string, sizeof( temp_string ), ":SG %c%02d:%02d#", sign, abs(h), m);
 
-   return (setZEQ25StandardProcedure(PortFD, temp_string));
+    return (setZEQ25StandardProcedure(PortFD, temp_string));
 
 }
 
@@ -558,7 +654,7 @@ int LX200ZEQ25::setZEQ25StandardProcedure(int fd, const char * data)
 {
     char bool_return[2];
     int error_type;
-    int nbytes_write=0, nbytes_read=0;
+    int nbytes_write = 0, nbytes_read = 0;
 
     DEBUGF(DBG_SCOPE, "CMD <%s>", data);
 
@@ -596,24 +692,24 @@ bool LX200ZEQ25::MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command)
     switch (command)
     {
         case MOTION_START:
-        if (isSimulation() == false && moveZEQ25To(current_move) < 0)
-        {
-            DEBUG(INDI::Logger::DBG_ERROR, "Error setting N/S motion direction.");
-            return false;
-        }
-        else
-           DEBUGF(INDI::Logger::DBG_SESSION,"Moving toward %s.", (current_move == LX200_NORTH) ? "North" : "South");
-        break;
+            if (isSimulation() == false && moveZEQ25To(current_move) < 0)
+            {
+                DEBUG(INDI::Logger::DBG_ERROR, "Error setting N/S motion direction.");
+                return false;
+            }
+            else
+                DEBUGF(INDI::Logger::DBG_SESSION, "Moving toward %s.", (current_move == LX200_NORTH) ? "North" : "South");
+            break;
 
         case MOTION_STOP:
-        if (isSimulation() == false && haltZEQ25Movement() < 0)
-        {
-            DEBUG(INDI::Logger::DBG_ERROR, "Error stopping N/S motion.");
-            return false;
-        }
-        else
-            DEBUGF(INDI::Logger::DBG_SESSION, "Movement toward %s halted.", (current_move == LX200_NORTH) ? "North" : "South");
-        break;
+            if (isSimulation() == false && haltZEQ25Movement() < 0)
+            {
+                DEBUG(INDI::Logger::DBG_ERROR, "Error stopping N/S motion.");
+                return false;
+            }
+            else
+                DEBUGF(INDI::Logger::DBG_SESSION, "Movement toward %s halted.", (current_move == LX200_NORTH) ? "North" : "South");
+            break;
     }
 
     return true;
@@ -626,24 +722,24 @@ bool LX200ZEQ25::MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command)
     switch (command)
     {
         case MOTION_START:
-        if (isSimulation() == false && moveZEQ25To(current_move) < 0)
-        {
-            DEBUG(INDI::Logger::DBG_ERROR, "Error setting W/E motion direction.");
-            return false;
-        }
-        else
-           DEBUGF(INDI::Logger::DBG_SESSION,"Moving toward %s.", (current_move == LX200_WEST) ? "West" : "East");
-        break;
+            if (isSimulation() == false && moveZEQ25To(current_move) < 0)
+            {
+                DEBUG(INDI::Logger::DBG_ERROR, "Error setting W/E motion direction.");
+                return false;
+            }
+            else
+                DEBUGF(INDI::Logger::DBG_SESSION, "Moving toward %s.", (current_move == LX200_WEST) ? "West" : "East");
+            break;
 
         case MOTION_STOP:
-        if (isSimulation() == false && haltZEQ25Movement() < 0)
-        {
-            DEBUG(INDI::Logger::DBG_ERROR, "Error stopping W/E motion.");
-            return false;
-        }
-        else
-            DEBUGF(INDI::Logger::DBG_SESSION, "Movement toward %s halted.", (current_move == LX200_WEST) ? "West" : "East");
-        break;
+            if (isSimulation() == false && haltZEQ25Movement() < 0)
+            {
+                DEBUG(INDI::Logger::DBG_ERROR, "Error stopping W/E motion.");
+                return false;
+            }
+            else
+                DEBUGF(INDI::Logger::DBG_SESSION, "Movement toward %s halted.", (current_move == LX200_WEST) ? "West" : "East");
+            break;
     }
 
     return true;
@@ -652,28 +748,28 @@ bool LX200ZEQ25::MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command)
 int LX200ZEQ25::moveZEQ25To(int direction)
 {
     DEBUGF(DBG_SCOPE, "<%s>", __FUNCTION__);
-    int nbytes_write=0;
+    int nbytes_write = 0;
 
     switch (direction)
     {
-    case LX200_NORTH:
-        DEBUGF(DBG_SCOPE, "CMD <%s>", ":mn#");
-        tty_write_string(PortFD, ":mn#", &nbytes_write);
-        break;
-    case LX200_WEST:
-        DEBUGF(DBG_SCOPE, "CMD <%s>", ":mw#");
-        tty_write_string(PortFD, ":mw#", &nbytes_write);
-        break;
-    case LX200_EAST:
-        DEBUGF(DBG_SCOPE, "CMD <%s>", ":me#");
-        tty_write_string(PortFD, ":me#", &nbytes_write);
-        break;
-    case LX200_SOUTH:
-        DEBUGF(DBG_SCOPE, "CMD <%s>", ":ms#");
-        tty_write_string(PortFD, ":ms#", &nbytes_write);
-        break;
-    default:
-        break;
+        case LX200_NORTH:
+            DEBUGF(DBG_SCOPE, "CMD <%s>", ":mn#");
+            tty_write_string(PortFD, ":mn#", &nbytes_write);
+            break;
+        case LX200_WEST:
+            DEBUGF(DBG_SCOPE, "CMD <%s>", ":mw#");
+            tty_write_string(PortFD, ":mw#", &nbytes_write);
+            break;
+        case LX200_EAST:
+            DEBUGF(DBG_SCOPE, "CMD <%s>", ":me#");
+            tty_write_string(PortFD, ":me#", &nbytes_write);
+            break;
+        case LX200_SOUTH:
+            DEBUGF(DBG_SCOPE, "CMD <%s>", ":ms#");
+            tty_write_string(PortFD, ":ms#", &nbytes_write);
+            break;
+        default:
+            break;
     }
 
     tcflush(PortFD, TCIFLUSH);
@@ -682,41 +778,60 @@ int LX200ZEQ25::moveZEQ25To(int direction)
 
 int LX200ZEQ25::haltZEQ25Movement()
 {
-  DEBUGF(DBG_SCOPE, "<%s>", __FUNCTION__);
-  int error_type;
-  int nbytes_write=0;
+    DEBUGF(DBG_SCOPE, "<%s>", __FUNCTION__);
+    int error_type;
+    int nbytes_write = 0;
 
- if ( (error_type = tty_write_string(PortFD, ":q#", &nbytes_write)) != TTY_OK)
-           return error_type;
+    if ( (error_type = tty_write_string(PortFD, ":q#", &nbytes_write)) != TTY_OK)
+        return error_type;
 
- tcflush(PortFD, TCIFLUSH);
- return 0;
+    tcflush(PortFD, TCIFLUSH);
+    return 0;
+}
+
+bool LX200ZEQ25::SetTrackMode(int mode)
+{
+    return (setZEQ25TrackMode(mode) == 0);
+}
+
+int LX200ZEQ25::setZEQ25TrackMode(int mode)
+{
+    DEBUGF(DBG_SCOPE, "<%s>", __FUNCTION__);
+
+    // We don't support KING mode :RT3, so we turn mode=3 to custom :RT4#
+    if (mode == 3)
+        mode = 4;
+
+    char cmd[6];
+    snprintf(cmd, 6, ":RT%d#", mode);
+
+    return setZEQ25StandardProcedure(PortFD, cmd);
 }
 
 int LX200ZEQ25::setZEQ25Park()
 {
-  DEBUGF(DBG_SCOPE, "<%s>", __FUNCTION__);
-  int error_type;
-  int nbytes_write=0;
+    DEBUGF(DBG_SCOPE, "<%s>", __FUNCTION__);
+    int error_type;
+    int nbytes_write = 0;
 
- if ( (error_type = tty_write_string(PortFD, ":MP1#", &nbytes_write)) != TTY_OK)
-           return error_type;
+    if ( (error_type = tty_write_string(PortFD, ":MP1#", &nbytes_write)) != TTY_OK)
+        return error_type;
 
- tcflush(PortFD, TCIFLUSH);
- return 0;
+    tcflush(PortFD, TCIFLUSH);
+    return 0;
 }
 
 int LX200ZEQ25::setZEQ25UnPark()
 {
-  DEBUGF(DBG_SCOPE, "<%s>", __FUNCTION__);
-  int error_type;
-  int nbytes_write=0;
+    DEBUGF(DBG_SCOPE, "<%s>", __FUNCTION__);
+    int error_type;
+    int nbytes_write = 0;
 
- if ( (error_type = tty_write_string(PortFD, ":MP0#", &nbytes_write)) != TTY_OK)
-           return error_type;
+    if ( (error_type = tty_write_string(PortFD, ":MP0#", &nbytes_write)) != TTY_OK)
+        return error_type;
 
- tcflush(PortFD, TCIFLUSH);
- return 0;
+    tcflush(PortFD, TCIFLUSH);
+    return 0;
 }
 
 bool LX200ZEQ25::isZEQ25Parked()
@@ -730,8 +845,8 @@ bool LX200ZEQ25::isZEQ25Parked()
     int errcode = 0;
     char errmsg[MAXRBUF];
     char response[2];
-    int nbytes_read=0;
-    int nbytes_written=0;
+    int nbytes_read = 0;
+    int nbytes_written = 0;
 
     DEBUGF(INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
 
@@ -754,9 +869,9 @@ bool LX200ZEQ25::isZEQ25Parked()
         response[nbytes_read] = '\0';
         DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", response);
 
-       tcflush(PortFD, TCIFLUSH);
+        tcflush(PortFD, TCIFLUSH);
 
-       return (response[0] == '1');
+        return (response[0] == '1');
     }
 
     DEBUGF(INDI::Logger::DBG_ERROR, "Only received #%d bytes, expected 1.", nbytes_read);
@@ -843,7 +958,7 @@ bool LX200ZEQ25::Park()
         return false;
     }
 
-    int err=0;
+    int err = 0;
     /* Slew reads the '0', that is not the end of the slew */
     if (slewZEQ25() == 0)
     {
@@ -866,8 +981,8 @@ bool LX200ZEQ25::UnPark()
     {
         if (setZEQ25UnPark() < 0)
         {
-          DEBUG(INDI::Logger::DBG_ERROR, "UnParking Failed.");
-          return false;
+            DEBUG(INDI::Logger::DBG_ERROR, "UnParking Failed.");
+            return false;
         }
     }
 
@@ -917,7 +1032,7 @@ bool LX200ZEQ25::UnPark()
 bool LX200ZEQ25::ReadScopeStatus()
 {
     if (isConnected() == false)
-     return false;
+        return false;
 
     if (isSimulation())
     {
@@ -926,15 +1041,26 @@ bool LX200ZEQ25::ReadScopeStatus()
     }
 
     //if (check_lx200_connection(PortFD))
-        //return false;
+    //return false;
+
+    if (HomeSP.s == IPS_BUSY)
+    {
+        if (isZEQ25Home())
+        {
+            HomeS[0].s = ISS_ON;
+            HomeSP.s = IPS_OK;
+            DEBUG(INDI::Logger::DBG_SESSION, "Telescope arrived at home position.");
+            IDSetSwitch(&HomeSP, NULL);
+        }
+    }
 
     if (TrackState == SCOPE_SLEWING)
     {
         // Check if LX200 is done slewing
         if (isSlewComplete())
         {
-            TrackState=SCOPE_TRACKING;
-            IDMessage(getDeviceName(),"Slew is complete. Tracking...");
+            TrackState = SCOPE_TRACKING;
+            IDMessage(getDeviceName(), "Slew is complete. Tracking...");
 
         }
     }
@@ -949,9 +1075,9 @@ bool LX200ZEQ25::ReadScopeStatus()
 
     if ( getLX200RA(PortFD, &currentRA) < 0 || getLX200DEC(PortFD, &currentDEC) < 0)
     {
-      EqNP.s = IPS_ALERT;
-      IDSetNumber(&EqNP, "Error reading RA/DEC.");
-      return false;
+        EqNP.s = IPS_ALERT;
+        IDSetNumber(&EqNP, "Error reading RA/DEC.");
+        return false;
     }
 
     NewRaDec(currentRA, currentDEC);
@@ -972,61 +1098,61 @@ void LX200ZEQ25::mountSim ()
     if (ltv.tv_sec == 0 && ltv.tv_usec == 0)
         ltv = tv;
 
-    dt = tv.tv_sec - ltv.tv_sec + (tv.tv_usec - ltv.tv_usec)/1e6;
+    dt = tv.tv_sec - ltv.tv_sec + (tv.tv_usec - ltv.tv_usec) / 1e6;
     ltv = tv;
-    da = SLEWRATE*dt;
+    da = SLEWRATE * dt;
 
     /* Process per current state. We check the state of EQUATORIAL_COORDS and act acoordingly */
     switch (TrackState)
     {
 
-    case SCOPE_TRACKING:
-        /* RA moves at sidereal, Dec stands still */
-        currentRA += (SIDRATE*dt/15.);
-        break;
+        case SCOPE_TRACKING:
+            /* RA moves at sidereal, Dec stands still */
+            currentRA += (SIDRATE * dt / 15.);
+            break;
 
-    case SCOPE_SLEWING:
-    case SCOPE_PARKING:
-        /* slewing - nail it when both within one pulse @ SLEWRATE */
-        nlocked = 0;
+        case SCOPE_SLEWING:
+        case SCOPE_PARKING:
+            /* slewing - nail it when both within one pulse @ SLEWRATE */
+            nlocked = 0;
 
-        dx = targetRA - currentRA;
+            dx = targetRA - currentRA;
 
-        if (fabs(dx) <= da)
-        {
-        currentRA = targetRA;
-        nlocked++;
-        }
-        else if (dx > 0)
-            currentRA += da/15.;
-        else
-            currentRA -= da/15.;
-
-        dx = targetDEC - currentDEC;
-        if (fabs(dx) <= da)
-        {
-        currentDEC = targetDEC;
-        nlocked++;
-        }
-        else if (dx > 0)
-          currentDEC += da;
-        else
-          currentDEC -= da;
-
-        if (nlocked == 2)
-        {
-            if (TrackState == SCOPE_SLEWING)
-                TrackState = SCOPE_TRACKING;
+            if (fabs(dx) <= da)
+            {
+                currentRA = targetRA;
+                nlocked++;
+            }
+            else if (dx > 0)
+                currentRA += da / 15.;
             else
-                SetParked(true);
+                currentRA -= da / 15.;
 
-        }
+            dx = targetDEC - currentDEC;
+            if (fabs(dx) <= da)
+            {
+                currentDEC = targetDEC;
+                nlocked++;
+            }
+            else if (dx > 0)
+                currentDEC += da;
+            else
+                currentDEC -= da;
+
+            if (nlocked == 2)
+            {
+                if (TrackState == SCOPE_SLEWING)
+                    TrackState = SCOPE_TRACKING;
+                else
+                    SetParked(true);
+
+            }
 
 
-        break;
+            break;
 
-    default:
-        break;
+        default:
+            break;
     }
 
     NewRaDec(currentRA, currentDEC);

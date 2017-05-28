@@ -36,10 +36,10 @@ static libusb_context * ctx = NULL;
 
 INDI::USBDevice::USBDevice()
 {
-    dev=NULL;
-    usb_handle=NULL;
-    OutputEndpoint=0;
-    InputEndpoint=0;
+    dev = NULL;
+    usb_handle = NULL;
+    OutputEndpoint = 0;
+    InputEndpoint = 0;
 
     if (ctx == NULL)
     {
@@ -144,7 +144,7 @@ int INDI::USBDevice::FindEndpoints()
         return rc;
     }
 
-    interface = (struct libusb_interface_descriptor *)&(config->interface[0].altsetting[0]);
+    interface = (struct libusb_interface_descriptor *) & (config->interface[0].altsetting[0]);
     for (int i = 0; i < interface->bNumEndpoints; i++)
     {
         fprintf(stderr, "Endpoint %04x %04x\n", interface->endpoint[i].bEndpointAddress, interface->endpoint[i].bmAttributes);
@@ -198,7 +198,7 @@ int INDI::USBDevice::ReadBulk(unsigned char * buf, int count, int timeout)
     return rc < 0 ? rc : transferred;
 }
 
-int INDI::USBDevice::WriteBulk(unsigned char * buf,int count,int timeout)
+int INDI::USBDevice::WriteBulk(unsigned char * buf, int count, int timeout)
 {
     int transferred;
     int rc = libusb_bulk_transfer(usb_handle, OutputEndpoint, buf, count, &transferred, timeout);

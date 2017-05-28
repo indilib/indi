@@ -32,69 +32,69 @@
 #define ReticMoins(fd)              			write(fd, "#:B-#", 5)   // azwing
 #define getStatus(fd, x)				getCommandString(fd, x, "#:GU#")	// azwing
 
-class LX200_OnStep:public LX200Generic
+class LX200_OnStep: public LX200Generic
 {
- public:
-  LX200_OnStep();
-  ~LX200_OnStep() {}
+    public:
+        LX200_OnStep();
+        ~LX200_OnStep() {}
 
- const char *getDefaultName();
- bool initProperties();
- void ISGetProperties (const char *dev); 
- bool updateProperties();
- bool ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n);
- bool ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n);
+        const char * getDefaultName();
+        bool initProperties();
+        void ISGetProperties (const char * dev);
+        bool updateProperties();
+        bool ISNewNumber (const char * dev, const char * name, double values[], char * names[], int n);
+        bool ISNewSwitch (const char * dev, const char * name, ISState * states, char * names[], int n);
 
- 
-protected:
 
- virtual void getBasicData();
- virtual bool UnPark();
- 
- ITextVectorProperty ObjectInfoTP;
- IText   ObjectInfoT[1];
+    protected:
 
- ISwitchVectorProperty StarCatalogSP;
- ISwitch StarCatalogS[3];
+        virtual void getBasicData();
+        virtual bool UnPark();
 
- ISwitchVectorProperty DeepSkyCatalogSP;
- ISwitch DeepSkyCatalogS[7];
+        ITextVectorProperty ObjectInfoTP;
+        IText   ObjectInfoT[1];
 
- ISwitchVectorProperty SolarSP;
- ISwitch SolarS[10];
+        ISwitchVectorProperty StarCatalogSP;
+        ISwitch StarCatalogS[3];
 
- INumberVectorProperty ObjectNoNP;
- INumber ObjectNoN[1];
+        ISwitchVectorProperty DeepSkyCatalogSP;
+        ISwitch DeepSkyCatalogS[7];
 
- INumberVectorProperty MaxSlewRateNP;
- INumber MaxSlewRateN[1];
+        ISwitchVectorProperty SolarSP;
+        ISwitch SolarS[10];
 
- INumberVectorProperty ElevationLimitNP;
- INumber ElevationLimitN[2];
- 
- ITextVectorProperty VersionTP;
- IText   VersionT[5];
+        INumberVectorProperty ObjectNoNP;
+        INumber ObjectNoN[1];
 
- // Enable / Disable Tracking
- ISwitchVectorProperty EnaTrackSP;
- ISwitch EnaTrackS[1];
- int IsTracking=0;
- 
- // Reticle +/- Buttons
- ISwitchVectorProperty ReticSP;
- ISwitch ReticS[2];
- 
- char	OnStepStatus[160];
- char	OSStat[16];
- void OnStepStat();
- 
- private:
- int currentCatalog;
- int currentSubCatalog;
- 
+        INumberVectorProperty MaxSlewRateNP;
+        INumber MaxSlewRateN[1];
+
+        INumberVectorProperty ElevationLimitNP;
+        INumber ElevationLimitN[2];
+
+        ITextVectorProperty VersionTP;
+        IText   VersionT[5];
+
+        // Enable / Disable Tracking
+        ISwitchVectorProperty EnaTrackSP;
+        ISwitch EnaTrackS[1];
+        int IsTracking = 0;
+
+        // Reticle +/- Buttons
+        ISwitchVectorProperty ReticSP;
+        ISwitch ReticS[2];
+
+        char	OnStepStatus[160];
+        char	OSStat[16];
+        void OnStepStat();
+
+    private:
+        int currentCatalog;
+        int currentSubCatalog;
+
 
 };
 
 
 #endif
- 
+

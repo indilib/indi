@@ -5,6 +5,8 @@ LIST(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake_modules/")
 LIST(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/../../cmake_modules/")
 include(GNUInstallDirs)
 
+set (UDEVRULES_INSTALL_DIR "/lib/udev/rules.d" CACHE STRING "Base directory for udev rules")
+
 if (NOT WIN32 AND NOT ANDROID)
 set(CMAKE_CXX_FLAGS "-std=c++11 ${CMAKE_CXX_FLAGS}")
 endif(NOT WIN32 AND NOT ANDROID)
@@ -59,3 +61,8 @@ target_link_libraries(indi_fli_ccd ${INDI_LIBRARIES} ${FLI_LIBRARIES} ${CFITSIO_
 install(TARGETS indi_fli_ccd RUNTIME DESTINATION bin)
 
 install(FILES ${CMAKE_CURRENT_BINARY_DIR}/indi_fli.xml DESTINATION ${INDI_DATA_DIR})
+
+if (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
+install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/99-fli.rules DESTINATION ${UDEVRULES_INSTALL_DIR})
+endif()
+

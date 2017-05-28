@@ -50,10 +50,10 @@ public:
     /*! INDI error codes. */
     enum INDI_ERROR
     {
-        INDI_DEVICE_NOT_FOUND=-1,       /*!< INDI Device was not found. */
-        INDI_PROPERTY_INVALID=-2,       /*!< Property has an invalid syntax or attribute. */
+        INDI_DEVICE_NOT_FOUND = -1,     /*!< INDI Device was not found. */
+        INDI_PROPERTY_INVALID = -2,     /*!< Property has an invalid syntax or attribute. */
         INDI_PROPERTY_DUPLICATED = -3,  /*!< INDI Device was not found. */
-        INDI_DISPATCH_ERROR=-4          /*!< Dispatching command to driver failed. */
+        INDI_DISPATCH_ERROR = -4        /*!< Dispatching command to driver failed. */
     };
 
     /** Interfaces define the class of devices the driver implements. A driver may implement one or more interfaces.

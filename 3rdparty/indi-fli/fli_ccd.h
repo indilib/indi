@@ -59,6 +59,8 @@ public:
     virtual bool UpdateCCDBin(int binx, int biny);
     virtual bool UpdateCCDFrameType(CCDChip::CCD_FRAME fType);
 
+    virtual void debugTriggered(bool enable);
+
     private:
 
     // Find FLI CCD

@@ -43,27 +43,27 @@ std::unique_ptr<FlipFlat> flipflat(new FlipFlat());
 #define FLAT_TIMEOUT    3
 #define POLLMS          1000
 
-void ISGetProperties(const char *dev)
+void ISGetProperties(const char * dev)
 {
     flipflat->ISGetProperties(dev);
 }
 
-void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int num)
+void ISNewSwitch(const char * dev, const char * name, ISState * states, char * names[], int num)
 {
     flipflat->ISNewSwitch(dev, name, states, names, num);
 }
 
-void ISNewText(	const char *dev, const char *name, char *texts[], char *names[], int num)
+void ISNewText(	const char * dev, const char * name, char * texts[], char * names[], int num)
 {
     flipflat->ISNewText(dev, name, texts, names, num);
 }
 
-void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int num)
+void ISNewNumber(const char * dev, const char * name, double values[], char * names[], int num)
 {
     flipflat->ISNewNumber(dev, name, values, names, num);
 }
 
-void ISNewBLOB (const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[], char *names[], int n)
+void ISNewBLOB (const char * dev, const char * name, int sizes[], int blobsizes[], char * blobs[], char * formats[], char * names[], int n)
 {
     INDI_UNUSED(dev);
     INDI_UNUSED(name);
@@ -74,16 +74,16 @@ void ISNewBLOB (const char *dev, const char *name, int sizes[], int blobsizes[],
     INDI_UNUSED(names);
     INDI_UNUSED(n);
 }
-void ISSnoopDevice (XMLEle *root)
+void ISSnoopDevice (XMLEle * root)
 {
     flipflat->ISSnoopDevice(root);
 }
 
 FlipFlat::FlipFlat() : LightBoxInterface(this, true)
 {
-    setVersion(1,0);
-    PortFD=-1;
-    isFlipFlat=false;
+    setVersion(1, 0);
+    PortFD = -1;
+    isFlipFlat = false;
     prevCoverStatus = prevLightStatus = prevMotorStatus = prevBrightness = 0xFF;
 }
 
@@ -97,14 +97,14 @@ bool FlipFlat::initProperties()
     INDI::DefaultDevice::initProperties();
 
     // Status
-    IUFillText(&StatusT[0],"Cover","",NULL);
-    IUFillText(&StatusT[1],"Light","",NULL);
-    IUFillText(&StatusT[2],"Motor","",NULL);
-    IUFillTextVector(&StatusTP,StatusT,3,getDeviceName(),"Status","",MAIN_CONTROL_TAB,IP_RO,60,IPS_IDLE);
+    IUFillText(&StatusT[0], "Cover", "", NULL);
+    IUFillText(&StatusT[1], "Light", "", NULL);
+    IUFillText(&StatusT[2], "Motor", "", NULL);
+    IUFillTextVector(&StatusTP, StatusT, 3, getDeviceName(), "Status", "", MAIN_CONTROL_TAB, IP_RO, 60, IPS_IDLE);
 
     // Firmware version
-    IUFillText(&FirmwareT[0],"Version","",NULL);
-    IUFillTextVector(&FirmwareTP,FirmwareT,1,getDeviceName(),"Firmware","",MAIN_CONTROL_TAB,IP_RO,60,IPS_IDLE);
+    IUFillText(&FirmwareT[0], "Version", "", NULL);
+    IUFillTextVector(&FirmwareTP, FirmwareT, 1, getDeviceName(), "Firmware", "", MAIN_CONTROL_TAB, IP_RO, 60, IPS_IDLE);
 
     initDustCapProperties(getDeviceName(), MAIN_CONTROL_TAB);
     initLightBoxProperties(getDeviceName(), MAIN_CONTROL_TAB);
@@ -119,13 +119,16 @@ bool FlipFlat::initProperties()
     addAuxControls();
 
     serialConnection = new Connection::Serial(this);
-    serialConnection->registerHandshake([&]() { return Handshake();});
+    serialConnection->registerHandshake([&]()
+    {
+        return Handshake();
+    });
     registerConnection(serialConnection);
 
     return true;
 }
 
-void FlipFlat::ISGetProperties (const char *dev)
+void FlipFlat::ISGetProperties (const char * dev)
 {
     INDI::DefaultDevice::ISGetProperties(dev);
 
@@ -144,7 +147,7 @@ bool FlipFlat::updateProperties()
         defineSwitch(&LightSP);
         defineNumber(&LightIntensityNP);
         defineText(&StatusTP);
-        defineText(&FirmwareTP);        
+        defineText(&FirmwareTP);
 
         updateLightBoxProperties();
 
@@ -212,7 +215,7 @@ bool FlipFlat::Handshake()
     return true;
 }
 
-bool FlipFlat::ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n)
+bool FlipFlat::ISNewNumber (const char * dev, const char * name, double values[], char * names[], int n)
 {
     if (processLightBoxNumber(dev, name, values, names, n))
         return true;
@@ -220,9 +223,9 @@ bool FlipFlat::ISNewNumber (const char *dev, const char *name, double values[], 
     return INDI::DefaultDevice::ISNewNumber(dev, name, values, names, n);
 }
 
-bool FlipFlat::ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n)
+bool FlipFlat::ISNewText (const char * dev, const char * name, char * texts[], char * names[], int n)
 {
-    if(strcmp(dev,getDeviceName())==0)
+    if(strcmp(dev, getDeviceName()) == 0)
     {
         if (processLightBoxText(dev, name, texts, names, n))
             return true;
@@ -231,9 +234,9 @@ bool FlipFlat::ISNewText (const char *dev, const char *name, char *texts[], char
     return INDI::DefaultDevice::ISNewText(dev, name, texts, names, n);
 }
 
-bool FlipFlat::ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n)
+bool FlipFlat::ISNewSwitch (const char * dev, const char * name, ISState * states, char * names[], int n)
 {
-    if(strcmp(dev,getDeviceName())==0)
+    if(strcmp(dev, getDeviceName()) == 0)
     {
         if (processDustCapSwitch(dev, name, states, names, n))
             return true;
@@ -245,25 +248,25 @@ bool FlipFlat::ISNewSwitch (const char *dev, const char *name, ISState *states, 
     return INDI::DefaultDevice::ISNewSwitch(dev, name, states, names, n);
 }
 
-bool FlipFlat::ISSnoopDevice (XMLEle *root)
+bool FlipFlat::ISSnoopDevice (XMLEle * root)
 {
     snoopLightBox(root);
 
     return INDI::DefaultDevice::ISSnoopDevice(root);
 }
 
-bool FlipFlat::saveConfigItems(FILE *fp)
+bool FlipFlat::saveConfigItems(FILE * fp)
 {
     return saveLightBoxConfigItems(fp);
 }
 
 bool FlipFlat::ping()
-{    
-    int nbytes_written=0, nbytes_read=0, rc=-1;
+{
+    int nbytes_written = 0, nbytes_read = 0, rc = -1;
     char errstr[MAXRBUF];
     char command[FLAT_CMD];
     char response[FLAT_RES];
-    int i=0;
+    int i = 0;
 
     tcflush(PortFD, TCIOFLUSH);
 
@@ -271,9 +274,9 @@ bool FlipFlat::ping()
 
     DEBUGF(INDI::Logger::DBG_DEBUG, "CMD (%s)", command);
 
-    command[FLAT_CMD-1] = 0xA;
+    command[FLAT_CMD - 1] = 0xA;
 
-    for (i=0; i < 3; i++)
+    for (i = 0; i < 3; i++)
     {
         if ( (rc = tty_write(PortFD, command, FLAT_CMD, &nbytes_written)) != TTY_OK)
             continue;
@@ -284,19 +287,19 @@ bool FlipFlat::ping()
             break;
     }
 
-    if (i==3)
+    if (i == 3)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
         DEBUGF(INDI::Logger::DBG_ERROR, "%s: %s.", command, errstr);
         return false;
     }
 
-    response[nbytes_read-1] = '\0';
+    response[nbytes_read - 1] = '\0';
 
     DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", response);
 
     char productString[3];
-    snprintf(productString, 3, "%s", response+2);
+    snprintf(productString, 3, "%s", response + 2);
 
     rc = sscanf(productString, "%d", &productID);
 
@@ -330,11 +333,11 @@ IPState FlipFlat::ParkCap()
 {
     if (isSimulation())
     {
-        simulationWorkCounter=3;
+        simulationWorkCounter = 3;
         return IPS_BUSY;
     }
 
-    int nbytes_written=0, nbytes_read=0, rc=-1;
+    int nbytes_written = 0, nbytes_read = 0, rc = -1;
     char errstr[MAXRBUF];
     char command[FLAT_CMD];
     char response[FLAT_RES];
@@ -345,7 +348,7 @@ IPState FlipFlat::ParkCap()
 
     DEBUGF(INDI::Logger::DBG_DEBUG, "CMD (%s)", command);
 
-    command[FLAT_CMD-1] = 0xA;
+    command[FLAT_CMD - 1] = 0xA;
 
     if ( (rc = tty_write(PortFD, command, FLAT_CMD, &nbytes_written)) != TTY_OK)
     {
@@ -361,7 +364,7 @@ IPState FlipFlat::ParkCap()
         return IPS_ALERT;
     }
 
-    response[nbytes_read-1] = '\0';
+    response[nbytes_read - 1] = '\0';
 
     DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", response);
 
@@ -382,11 +385,11 @@ IPState FlipFlat::UnParkCap()
 {
     if (isSimulation())
     {
-        simulationWorkCounter=3;
+        simulationWorkCounter = 3;
         return IPS_BUSY;
     }
 
-    int nbytes_written=0, nbytes_read=0, rc=-1;
+    int nbytes_written = 0, nbytes_read = 0, rc = -1;
     char errstr[MAXRBUF];
     char command[FLAT_CMD];
     char response[FLAT_RES];
@@ -397,7 +400,7 @@ IPState FlipFlat::UnParkCap()
 
     DEBUGF(INDI::Logger::DBG_DEBUG, "CMD (%s)", command);
 
-    command[FLAT_CMD-1] = 0xA;
+    command[FLAT_CMD - 1] = 0xA;
 
     if ( (rc = tty_write(PortFD, command, FLAT_CMD, &nbytes_written)) != TTY_OK)
     {
@@ -413,7 +416,7 @@ IPState FlipFlat::UnParkCap()
         return IPS_ALERT;
     }
 
-    response[nbytes_read-1] = '\0';
+    response[nbytes_read - 1] = '\0';
 
     DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", response);
 
@@ -432,7 +435,7 @@ IPState FlipFlat::UnParkCap()
 
 bool FlipFlat::EnableLightBox(bool enable)
 {
-    int nbytes_written=0, nbytes_read=0, rc=-1;
+    int nbytes_written = 0, nbytes_read = 0, rc = -1;
     char errstr[MAXRBUF];
     char command[FLAT_CMD];
     char response[FLAT_RES];
@@ -455,7 +458,7 @@ bool FlipFlat::EnableLightBox(bool enable)
 
     DEBUGF(INDI::Logger::DBG_DEBUG, "CMD (%s)", command);
 
-    command[FLAT_CMD-1] = 0xA;
+    command[FLAT_CMD - 1] = 0xA;
 
     if ( (rc = tty_write(PortFD, command, FLAT_CMD, &nbytes_written)) != TTY_OK)
     {
@@ -471,7 +474,7 @@ bool FlipFlat::EnableLightBox(bool enable)
         return false;
     }
 
-    response[nbytes_read-1] = '\0';
+    response[nbytes_read - 1] = '\0';
 
     DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", response);
 
@@ -490,7 +493,7 @@ bool FlipFlat::EnableLightBox(bool enable)
 
 bool FlipFlat::getStatus()
 {
-    int nbytes_written=0, nbytes_read=0, rc=-1;
+    int nbytes_written = 0, nbytes_read = 0, rc = -1;
     char errstr[MAXRBUF];
     char command[FLAT_CMD];
     char response[FLAT_RES];
@@ -501,7 +504,7 @@ bool FlipFlat::getStatus()
         {
             ParkCapSP.s = IPS_OK;
             IDSetSwitch(&ParkCapSP, NULL);
-            simulationWorkCounter=0;
+            simulationWorkCounter = 0;
         }
 
         if (ParkCapSP.s == IPS_BUSY)
@@ -529,7 +532,7 @@ bool FlipFlat::getStatus()
 
         DEBUGF(INDI::Logger::DBG_DEBUG, "CMD (%s)", command);
 
-        command[FLAT_CMD-1] = 0xA;
+        command[FLAT_CMD - 1] = 0xA;
 
         if ( (rc = tty_write(PortFD, command, FLAT_CMD, &nbytes_written)) != TTY_OK)
         {
@@ -545,14 +548,14 @@ bool FlipFlat::getStatus()
             return false;
         }
 
-        response[nbytes_read-1] = '\0';
+        response[nbytes_read - 1] = '\0';
 
         DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", response);
     }
 
-    char motorStatus = *(response+4) - '0';
-    char lightStatus = *(response+5) - '0';
-    char coverStatus = *(response+6) - '0';
+    char motorStatus = *(response + 4) - '0';
+    char lightStatus = *(response + 5) - '0';
+    char coverStatus = *(response + 6) - '0';
 
     bool statusUpdated = false;
 
@@ -564,37 +567,37 @@ bool FlipFlat::getStatus()
 
         switch (coverStatus)
         {
-        case 0:
-            IUSaveText(&StatusT[0], "Not Open/Closed");
-            break;
+            case 0:
+                IUSaveText(&StatusT[0], "Not Open/Closed");
+                break;
 
-        case 1:
-            IUSaveText(&StatusT[0], "Closed");
-            if (ParkCapSP.s == IPS_BUSY || ParkCapSP.s == IPS_IDLE)
-            {
-                IUResetSwitch(&ParkCapSP);
-                ParkCapS[0].s = ISS_ON;
-                ParkCapSP.s = IPS_OK;
-                DEBUG(INDI::Logger::DBG_SESSION, "Cover closed.");
-                IDSetSwitch(&ParkCapSP, NULL);
-            }
-            break;
+            case 1:
+                IUSaveText(&StatusT[0], "Closed");
+                if (ParkCapSP.s == IPS_BUSY || ParkCapSP.s == IPS_IDLE)
+                {
+                    IUResetSwitch(&ParkCapSP);
+                    ParkCapS[0].s = ISS_ON;
+                    ParkCapSP.s = IPS_OK;
+                    DEBUG(INDI::Logger::DBG_SESSION, "Cover closed.");
+                    IDSetSwitch(&ParkCapSP, NULL);
+                }
+                break;
 
-        case 2:
-            IUSaveText(&StatusT[0], "Open");
-            if (ParkCapSP.s == IPS_BUSY || ParkCapSP.s == IPS_IDLE)
-            {
-                IUResetSwitch(&ParkCapSP);
-                ParkCapS[1].s = ISS_ON;
-                ParkCapSP.s = IPS_OK;
-                DEBUG(INDI::Logger::DBG_SESSION, "Cover open.");
-                IDSetSwitch(&ParkCapSP, NULL);
-            }
-            break;
+            case 2:
+                IUSaveText(&StatusT[0], "Open");
+                if (ParkCapSP.s == IPS_BUSY || ParkCapSP.s == IPS_IDLE)
+                {
+                    IUResetSwitch(&ParkCapSP);
+                    ParkCapS[1].s = ISS_ON;
+                    ParkCapSP.s = IPS_OK;
+                    DEBUG(INDI::Logger::DBG_SESSION, "Cover open.");
+                    IDSetSwitch(&ParkCapSP, NULL);
+                }
+                break;
 
-        case 3:
-            IUSaveText(&StatusT[0], "Timed out");
-            break;
+            case 3:
+                IUSaveText(&StatusT[0], "Timed out");
+                break;
 
         }
     }
@@ -607,25 +610,25 @@ bool FlipFlat::getStatus()
 
         switch (lightStatus)
         {
-        case 0:
-            IUSaveText(&StatusT[1], "Off");
-            if (LightS[0].s == ISS_ON)
-            {
-                LightS[0].s = ISS_OFF;
-                LightS[1].s = ISS_ON;
-                IDSetSwitch(&LightSP, NULL);
-            }
-            break;
+            case 0:
+                IUSaveText(&StatusT[1], "Off");
+                if (LightS[0].s == ISS_ON)
+                {
+                    LightS[0].s = ISS_OFF;
+                    LightS[1].s = ISS_ON;
+                    IDSetSwitch(&LightSP, NULL);
+                }
+                break;
 
-        case 1:
-            IUSaveText(&StatusT[1], "On");
-            if (LightS[1].s == ISS_ON)
-            {
-                LightS[0].s = ISS_ON;
-                LightS[1].s = ISS_OFF;
-                IDSetSwitch(&LightSP, NULL);
-            }
-            break;
+            case 1:
+                IUSaveText(&StatusT[1], "On");
+                if (LightS[1].s == ISS_ON)
+                {
+                    LightS[0].s = ISS_ON;
+                    LightS[1].s = ISS_OFF;
+                    IDSetSwitch(&LightSP, NULL);
+                }
+                break;
         }
     }
 
@@ -637,13 +640,13 @@ bool FlipFlat::getStatus()
 
         switch (motorStatus)
         {
-        case 0:
-            IUSaveText(&StatusT[2], "Stopped");
-            break;
+            case 0:
+                IUSaveText(&StatusT[2], "Stopped");
+                break;
 
-        case 1:
-            IUSaveText(&StatusT[2], "Running");
-            break;
+            case 1:
+                IUSaveText(&StatusT[2], "Running");
+                break;
 
         }
     }
@@ -663,7 +666,7 @@ bool FlipFlat::getFirmwareVersion()
         return true;
     }
 
-    int nbytes_written=0, nbytes_read=0, rc=-1;
+    int nbytes_written = 0, nbytes_read = 0, rc = -1;
     char errstr[MAXRBUF];
     char command[FLAT_CMD];
     char response[FLAT_RES];
@@ -674,7 +677,7 @@ bool FlipFlat::getFirmwareVersion()
 
     DEBUGF(INDI::Logger::DBG_DEBUG, "CMD (%s)", command);
 
-    command[FLAT_CMD-1] = 0xA;
+    command[FLAT_CMD - 1] = 0xA;
 
     if ( (rc = tty_write(PortFD, command, FLAT_CMD, &nbytes_written)) != TTY_OK)
     {
@@ -690,12 +693,12 @@ bool FlipFlat::getFirmwareVersion()
         return false;
     }
 
-    response[nbytes_read-1] = '\0';
+    response[nbytes_read - 1] = '\0';
 
     DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", response);
 
     char versionString[4];
-    snprintf(versionString, 4, "%s", response+4 );
+    snprintf(versionString, 4, "%s", response + 4 );
     IUSaveText(&FirmwareT[0], versionString);
     IDSetText(&FirmwareTP, NULL);
 
@@ -719,7 +722,7 @@ bool FlipFlat::getBrightness()
         return true;
     }
 
-    int nbytes_written=0, nbytes_read=0, rc=-1;
+    int nbytes_written = 0, nbytes_read = 0, rc = -1;
     char errstr[MAXRBUF];
     char command[FLAT_CMD];
     char response[FLAT_RES];
@@ -730,7 +733,7 @@ bool FlipFlat::getBrightness()
 
     DEBUGF(INDI::Logger::DBG_DEBUG, "CMD (%s)", command);
 
-    command[FLAT_CMD-1] = 0xA;
+    command[FLAT_CMD - 1] = 0xA;
 
     if ( (rc = tty_write(PortFD, command, FLAT_CMD, &nbytes_written)) != TTY_OK)
     {
@@ -746,14 +749,14 @@ bool FlipFlat::getBrightness()
         return false;
     }
 
-    response[nbytes_read-1] = '\0';
+    response[nbytes_read - 1] = '\0';
 
     DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", response);
 
     char brightnessString[4];
-    snprintf(brightnessString, 4, "%s", response+4 );
+    snprintf(brightnessString, 4, "%s", response + 4 );
 
-    int brightnessValue=0;
+    int brightnessValue = 0;
     rc = sscanf(brightnessString, "%d", &brightnessValue);
 
     if (rc <= 0)
@@ -781,7 +784,7 @@ bool FlipFlat::SetLightBoxBrightness(uint16_t value)
         return true;
     }
 
-    int nbytes_written=0, nbytes_read=0, rc=-1;
+    int nbytes_written = 0, nbytes_read = 0, rc = -1;
     char errstr[MAXRBUF];
     char command[FLAT_CMD];
     char response[FLAT_RES];
@@ -792,7 +795,7 @@ bool FlipFlat::SetLightBoxBrightness(uint16_t value)
 
     DEBUGF(INDI::Logger::DBG_DEBUG, "CMD (%s)", command);
 
-    command[FLAT_CMD-1] = 0xA;
+    command[FLAT_CMD - 1] = 0xA;
 
     if ( (rc = tty_write(PortFD, command, FLAT_CMD, &nbytes_written)) != TTY_OK)
     {
@@ -808,14 +811,14 @@ bool FlipFlat::SetLightBoxBrightness(uint16_t value)
         return false;
     }
 
-    response[nbytes_read-1] = '\0';
+    response[nbytes_read - 1] = '\0';
 
     DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", response);
 
     char brightnessString[4];
-    snprintf(brightnessString, 4, "%s", response+4 );
+    snprintf(brightnessString, 4, "%s", response + 4 );
 
-    int brightnessValue=0;
+    int brightnessValue = 0;
     rc = sscanf(brightnessString, "%d", &brightnessValue);
 
     if (rc <= 0)

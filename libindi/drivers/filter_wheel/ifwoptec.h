@@ -87,32 +87,27 @@ class FilterIFW : public INDI::FilterWheel
         virtual ~FilterIFW();
 
         virtual bool initProperties();
-        virtual void ISGetProperties (const char *dev);
-        virtual bool ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n);
-        virtual bool ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n);
+        virtual bool ISNewText (const char * dev, const char * name, char * texts[], char * names[], int n);
+        virtual bool ISNewSwitch (const char * dev, const char * name, ISState * states, char * names[], int n);
 
     protected:
         virtual bool updateProperties();
-        virtual bool Connect();
+        virtual bool Handshake();
         virtual bool Disconnect();
-        virtual bool WriteTTY(char* command);
-        virtual bool ReadTTY(char* resp, char* simulation, int timeout);
-        virtual const char *getDefaultName();
+        virtual bool WriteTTY(char * command);
+        virtual bool ReadTTY(char * resp, char * simulation, int timeout);
+        virtual const char * getDefaultName();
         virtual bool moveHome();
         virtual bool SelectFilter(int);
         virtual void TimerHit();
-        virtual bool saveConfigItems(FILE *fp);
+        virtual bool saveConfigItems(FILE * fp);
         virtual void simulationTriggered(bool enable);
-        virtual bool loadConfig(bool silent = false, const char* property = NULL);
+        virtual bool loadConfig(bool silent = false, const char * property = NULL);
         virtual bool SetFilterNames();
-        virtual bool GetFilterNames(const char* groupName);
+        virtual bool GetFilterNames(const char * groupName);
         virtual bool GetWheelID();
         virtual int GetFilterPos();
         virtual bool GetFirmware();
-
-        // Device physical port
-        ITextVectorProperty PortTP;
-        IText PortT[1];
 
         // Filter Wheel ID
         ITextVectorProperty WheelIDTP;
@@ -122,7 +117,7 @@ class FilterIFW : public INDI::FilterWheel
         ISwitchVectorProperty HomeSP;
         ISwitch HomeS[1];
 
-		//Simulation, number of filter function
+        //Simulation, number of filter function
         ISwitchVectorProperty FilterNbrSP;
         ISwitch FilterNbrS[4];
 
@@ -134,13 +129,10 @@ class FilterIFW : public INDI::FilterWheel
         ITextVectorProperty FirmwareTP;
         IText FirmwareT[1];
 
-		//Communication file descriptor
-        int PortFD = 0;
-		
-		//Filter position in simulation mode
+        //Filter position in simulation mode
         int actualSimFilter = 1;
 
-		// Filter name list for simulation
+        // Filter name list for simulation
         char filterSim[OPTEC_MAXLEN_NAMES + 1];
 
         // Filterwheel has been changed

@@ -26,13 +26,13 @@
 
 class SimpleDevice : public INDI::DefaultDevice
 {
-public:
-    SimpleDevice();
+    public:
+        SimpleDevice();
 
-protected:
-    bool Connect();
-    bool Disconnect();
-    const char *getDefaultName();
+    protected:
+        bool Connect();
+        bool Disconnect();
+        const char * getDefaultName();
 
 };
 

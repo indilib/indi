@@ -1,4 +1,4 @@
-/*    
+/*
     Astro-Electronic FS-2
     Copyright (C) 2015 Jasem Mutlaq (mutlaqja@ikarustech.com)
 
@@ -24,37 +24,37 @@
 
 class LX200FS2 : public LX200Generic
 {
-public:
+    public:
 
-    LX200FS2();
-    ~LX200FS2() {}
+        LX200FS2();
+        ~LX200FS2() {}
 
-    virtual bool initProperties();
-    virtual bool updateProperties();
-    virtual bool ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n);
+        virtual bool initProperties();
+        virtual bool updateProperties();
+        virtual bool ISNewNumber (const char * dev, const char * name, double values[], char * names[], int n);
 
-protected:
+    protected:
 
-    virtual const char *getDefaultName();
-    virtual bool isSlewComplete();
-    virtual bool checkConnection();        
+        virtual const char * getDefaultName();
+        virtual bool isSlewComplete();
+        virtual bool checkConnection();
 
-    virtual bool saveConfigItems(FILE *fp);
+        virtual bool saveConfigItems(FILE * fp);
 
-    // Time and Location
-    virtual bool updateLocation(double latitude, double longitude, double elevation);
-    virtual bool updateTime(ln_date *utc, double utc_offset);
+        // Time and Location
+        virtual bool updateLocation(double latitude, double longitude, double elevation);
+        virtual bool updateTime(ln_date * utc, double utc_offset);
 
-    // Parking
-    virtual bool Park();
-    virtual bool UnPark();
-    virtual bool SetCurrentPark();
-    virtual bool SetDefaultPark();
+        // Parking
+        virtual bool Park();
+        virtual bool UnPark();
+        virtual bool SetCurrentPark();
+        virtual bool SetDefaultPark();
 
-    INumber SlewAccuracyN[2];
-    INumberVectorProperty SlewAccuracyNP;
-    
-    double Elevation, Latitud, Longitude;
+        INumber SlewAccuracyN[2];
+        INumberVectorProperty SlewAccuracyNP;
+
+        double Elevation, Latitud, Longitude;
 
 };
 

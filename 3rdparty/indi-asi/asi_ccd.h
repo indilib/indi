@@ -49,7 +49,7 @@ public:
   bool StartExposure(float duration);
   bool AbortExposure();
 
-  #if !defined(OSX_EMBEDED_MODE) && !defined(__CYGWIN__)
+  #if !defined(__APPLE__) && !defined(__CYGWIN__)
   static void * streamVideoHelper(void* context);
   void * streamVideo();
   #endif
@@ -60,7 +60,7 @@ protected:
   bool ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n);
 
   // Streaming
-  #if !defined(OSX_EMBEDED_MODE) && !defined(__CYGWIN__)
+  #if !defined(__APPLE__) && !defined(__CYGWIN__)
   bool StartStreaming();
   bool StopStreaming();
   #endif
@@ -111,10 +111,10 @@ private:
   ISwitch CoolerS[2];
   ISwitchVectorProperty CoolerSP;
 
-  INumber *ControlN;
+  INumber *ControlN=NULL;
   INumberVectorProperty ControlNP;
 
-  ISwitch *ControlS;
+  ISwitch *ControlS=NULL;
   ISwitchVectorProperty ControlSP;
 
   ISwitch *VideoFormatS;

@@ -5,29 +5,20 @@ set -e
 brew update
 brew tap 'homebrew/homebrew-science'
 brew tap 'caskroom/drivers'
-brew tap 'seanhoughton/indi'
-
-# Not available in homebrew:
-# cdbs
-# libgps
-# libgsl0 
-# libopenal
-
-# Already installed:
-# boost
-
+brew tap 'jochym/indi'
 
 brew install \
-			curl \
-			dcraw \
-			fakeroot \
-			gsl \
-			libftdi \
-			libgphoto2 \
-			libjpeg \
-			libusb \
-			seanhoughton/indi/libcfitsio \
-			seanhoughton/indi/libnova 
+	cmake \
+	dcraw \
+	fakeroot \
+	gsl \
+	libftdi \
+	libgphoto2 \
+	libusb \
+	gpsd \
+	libraw \
+	libcfitsio \
+	libnova 
 			
 brew cask install \
 	sbig-universal-driver

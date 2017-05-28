@@ -86,28 +86,28 @@ bool LX200GPS::initProperties()
     return true;
 }
 
-void LX200GPS::ISGetProperties (const char *dev)
+void LX200GPS::ISGetProperties (const char * dev)
 {
 
-    if(dev && strcmp(dev,getDeviceName()))
+    if(dev && strcmp(dev, getDeviceName()))
         return;
 
     // process parent first
-   LX200Autostar::ISGetProperties(dev);
+    LX200Autostar::ISGetProperties(dev);
 
-   if (isConnected())
-   {
-       defineSwitch (&GPSPowerSP);
-       defineSwitch (&GPSStatusSP);
-       defineSwitch (&GPSUpdateSP);
-       defineSwitch (&AltDecPecSP);
-       defineSwitch (&AzRaPecSP);
-       defineSwitch (&SelenSyncSP);
-       defineSwitch (&AltDecBacklashSP);
-       defineSwitch (&AzRaBacklashSP);
-       defineNumber (&OTATempNP);
-       defineSwitch (&OTAUpdateSP);
-   }
+    if (isConnected())
+    {
+        defineSwitch (&GPSPowerSP);
+        defineSwitch (&GPSStatusSP);
+        defineSwitch (&GPSUpdateSP);
+        defineSwitch (&AltDecPecSP);
+        defineSwitch (&AzRaPecSP);
+        defineSwitch (&SelenSyncSP);
+        defineSwitch (&AltDecBacklashSP);
+        defineSwitch (&AzRaBacklashSP);
+        defineNumber (&OTATempNP);
+        defineSwitch (&OTAUpdateSP);
+    }
 }
 
 bool LX200GPS::updateProperties()
@@ -144,82 +144,82 @@ bool LX200GPS::updateProperties()
     return true;
 }
 
- bool LX200GPS::ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n)
- {
+bool LX200GPS::ISNewSwitch (const char * dev, const char * name, ISState * states, char * names[], int n)
+{
 
-    int index=0, err=0;
+    int index = 0, err = 0;
     char msg[64];
 
-    if(strcmp(dev,getDeviceName())==0)
+    if(strcmp(dev, getDeviceName()) == 0)
     {
         /* GPS Power */
-        if (!strcmp(name,GPSPowerSP.name))
+        if (!strcmp(name, GPSPowerSP.name))
         {
 
-          if (IUUpdateSwitch(&GPSPowerSP, states, names, n) < 0)
-            return false;
+            if (IUUpdateSwitch(&GPSPowerSP, states, names, n) < 0)
+                return false;
 
-          index = IUFindOnSwitchIndex(&GPSPowerSP);
-          if (index == 0)
+            index = IUFindOnSwitchIndex(&GPSPowerSP);
+            if (index == 0)
                 turnGPSOn(PortFD);
-          else
-            turnGPSOff(PortFD);
+            else
+                turnGPSOff(PortFD);
 
-          GPSPowerSP.s = IPS_OK;
-          IDSetSwitch (&GPSPowerSP, index == 0 ? "GPS System is ON" : "GPS System is OFF" );
-          return true;
+            GPSPowerSP.s = IPS_OK;
+            IDSetSwitch (&GPSPowerSP, index == 0 ? "GPS System is ON" : "GPS System is OFF" );
+            return true;
         }
 
         /* GPS Status Update */
-        if (!strcmp(name,GPSStatusSP.name))
+        if (!strcmp(name, GPSStatusSP.name))
         {
 
-          if (IUUpdateSwitch(&GPSStatusSP, states, names, n) < 0)
-            return false;
+            if (IUUpdateSwitch(&GPSStatusSP, states, names, n) < 0)
+                return false;
 
-          index = IUFindOnSwitchIndex(&GPSStatusSP);
+            index = IUFindOnSwitchIndex(&GPSStatusSP);
 
-          if (index == 0)
-          {
-           gpsSleep(PortFD);
-           strncpy(msg, "GPS system is in sleep mode.",64);
-          }
-          else if (index == 1)
-          {
-             gpsWakeUp(PortFD);
-             strncpy(msg, "GPS system is reactivated.", 64);
-          }
-          else
-          {
-           gpsRestart(PortFD);
-           strncpy(msg, "GPS system is restarting...", 64);
-           sendScopeTime();
-           sendScopeLocation();
-          }
+            if (index == 0)
+            {
+                gpsSleep(PortFD);
+                strncpy(msg, "GPS system is in sleep mode.", 64);
+            }
+            else if (index == 1)
+            {
+                gpsWakeUp(PortFD);
+                strncpy(msg, "GPS system is reactivated.", 64);
+            }
+            else
+            {
+                gpsRestart(PortFD);
+                strncpy(msg, "GPS system is restarting...", 64);
+                sendScopeTime();
+                sendScopeLocation();
+            }
 
-        GPSStatusSP.s = IPS_OK;
-        IDSetSwitch (&GPSStatusSP, "%s", msg);
-        return true;
+            GPSStatusSP.s = IPS_OK;
+            IDSetSwitch (&GPSStatusSP, "%s", msg);
+            return true;
 
         }
 
 
         /* GPS Update */
-        if (!strcmp(name,GPSUpdateSP.name))
+        if (!strcmp(name, GPSUpdateSP.name))
         {
 
-        if (IUUpdateSwitch(&GPSUpdateSP, states, names, n) < 0)
-            return false;
+            if (IUUpdateSwitch(&GPSUpdateSP, states, names, n) < 0)
+                return false;
 
             index = IUFindOnSwitchIndex(&GPSUpdateSP);
 
             GPSUpdateSP.s = IPS_OK;
 
-             if (index == 0)
-             {
-                 IDSetSwitch(&GPSUpdateSP, "Updating GPS system. This operation might take few minutes to complete...");
-                 if (updateGPS_System(PortFD))
-                 {
+            if (index == 0)
+            {
+                IDSetSwitch(&GPSUpdateSP, "Updating GPS system. This operation might take few minutes to complete...");
+                if (updateGPS_System(PortFD))
+                {
                     IDSetSwitch(&GPSUpdateSP, "GPS system update successful.");
                     sendScopeTime();
                     sendScopeLocation();
@@ -229,159 +229,159 @@ bool LX200GPS::updateProperties()
                     GPSUpdateSP.s = IPS_IDLE;
                     IDSetSwitch(&GPSUpdateSP, "GPS system update failed.");
                 }
-        }
-        else
-        {
-            sendScopeTime();
-            sendScopeLocation();
-            IDSetSwitch(&GPSUpdateSP, "Client time and location is synced to LX200 GPS Data.");
+            }
+            else
+            {
+                sendScopeTime();
+                sendScopeLocation();
+                IDSetSwitch(&GPSUpdateSP, "Client time and location is synced to LX200 GPS Data.");
 
-        }
-                return true;
+            }
+            return true;
         }
 
         /* Alt Dec Periodic Error correction */
         if (!strcmp(name, AltDecPecSP.name))
         {
-          if (IUUpdateSwitch(&AltDecPecSP, states, names, n) < 0)
-            return false;
+            if (IUUpdateSwitch(&AltDecPecSP, states, names, n) < 0)
+                return false;
 
-          index = IUFindOnSwitchIndex(&AltDecPecSP);
+            index = IUFindOnSwitchIndex(&AltDecPecSP);
 
-          if (index == 0)
-          {
-            enableDecAltPec(PortFD);
-            strncpy (msg, "Alt/Dec Compensation Enabled.", 64);
-          }
-          else
-          {
-            disableDecAltPec(PortFD);
-            strncpy (msg, "Alt/Dec Compensation Disabled.", 64);
-          }
+            if (index == 0)
+            {
+                enableDecAltPec(PortFD);
+                strncpy (msg, "Alt/Dec Compensation Enabled.", 64);
+            }
+            else
+            {
+                disableDecAltPec(PortFD);
+                strncpy (msg, "Alt/Dec Compensation Disabled.", 64);
+            }
 
-          AltDecPecSP.s = IPS_OK;
-          IDSetSwitch(&AltDecPecSP, "%s", msg);
+            AltDecPecSP.s = IPS_OK;
+            IDSetSwitch(&AltDecPecSP, "%s", msg);
 
-          return true;
+            return true;
         }
 
         /* Az RA periodic error correction */
         if (!strcmp(name, AzRaPecSP.name))
         {
 
-          if (IUUpdateSwitch(&AzRaPecSP, states, names, n) < 0)
-            return false;
+            if (IUUpdateSwitch(&AzRaPecSP, states, names, n) < 0)
+                return false;
 
-          index = IUFindOnSwitchIndex(&AzRaPecSP);
+            index = IUFindOnSwitchIndex(&AzRaPecSP);
 
-           if (index == 0)
-          {
-            enableRaAzPec(PortFD);
-            strncpy (msg, "Ra/Az Compensation Enabled.", 64);
-          }
-          else
-          {
-            disableRaAzPec(PortFD);
-            strncpy (msg, "Ra/Az Compensation Disabled.", 64);
-          }
+            if (index == 0)
+            {
+                enableRaAzPec(PortFD);
+                strncpy (msg, "Ra/Az Compensation Enabled.", 64);
+            }
+            else
+            {
+                disableRaAzPec(PortFD);
+                strncpy (msg, "Ra/Az Compensation Disabled.", 64);
+            }
 
-          AzRaPecSP.s = IPS_OK;
-          IDSetSwitch(&AzRaPecSP, "%s", msg);
+            AzRaPecSP.s = IPS_OK;
+            IDSetSwitch(&AzRaPecSP, "%s", msg);
 
-          return true;
+            return true;
         }
 
         if (!strcmp(name, AltDecBacklashSP.name))
         {
-          activateAltDecAntiBackSlash(PortFD);
-          AltDecBacklashSP.s = IPS_OK;
-          IDSetSwitch(&AltDecBacklashSP, "Alt/Dec Anti-backlash enabled");
-          return true;
+            activateAltDecAntiBackSlash(PortFD);
+            AltDecBacklashSP.s = IPS_OK;
+            IDSetSwitch(&AltDecBacklashSP, "Alt/Dec Anti-backlash enabled");
+            return true;
         }
 
         if (!strcmp(name, AzRaBacklashSP.name))
         {
 
-          activateAzRaAntiBackSlash(PortFD);
-          AzRaBacklashSP.s = IPS_OK;
-          IDSetSwitch(&AzRaBacklashSP, "Az/Ra Anti-backlash enabled");
-          return true;
+            activateAzRaAntiBackSlash(PortFD);
+            AzRaBacklashSP.s = IPS_OK;
+            IDSetSwitch(&AzRaBacklashSP, "Az/Ra Anti-backlash enabled");
+            return true;
         }
 
         if (!strcmp(name, OTAUpdateSP.name))
         {
 
-           IUResetSwitch(&OTAUpdateSP);
+            IUResetSwitch(&OTAUpdateSP);
 
-           if ( getOTATemp(PortFD, &OTATempNP.np[0].value) < 0)
-           {
+            if ( getOTATemp(PortFD, &OTATempNP.np[0].value) < 0)
+            {
                 OTAUpdateSP.s = IPS_ALERT;
                 OTATempNP.s = IPS_ALERT;
                 IDSetNumber(&OTATempNP, "Error: OTA temperature read timed out.");
                 return false;
-           }
-           else
-           {
-             OTAUpdateSP.s = IPS_OK;
-             OTATempNP.s = IPS_OK;
-             IDSetNumber(&OTATempNP, NULL);
-             IDSetSwitch(&OTAUpdateSP, NULL);
-             return true;
-           }
+            }
+            else
+            {
+                OTAUpdateSP.s = IPS_OK;
+                OTATempNP.s = IPS_OK;
+                IDSetNumber(&OTATempNP, NULL);
+                IDSetSwitch(&OTAUpdateSP, NULL);
+                return true;
+            }
 
         }
     }
 
-   return LX200Autostar::ISNewSwitch (dev, name, states, names,  n);
+    return LX200Autostar::ISNewSwitch (dev, name, states, names,  n);
 
 }
 
- bool LX200GPS::updateTime(ln_date *utc, double utc_offset)
- {
+bool LX200GPS::updateTime(ln_date * utc, double utc_offset)
+{
 
-     ln_zonedate ltm;
+    ln_zonedate ltm;
 
-     if (isSimulation())
-         return true;
+    if (isSimulation())
+        return true;
 
-     JD = ln_get_julian_day(utc);
+    JD = ln_get_julian_day(utc);
 
-     DEBUGF(INDI::Logger::DBG_DEBUG, "New JD is %f", (float) JD);
+    DEBUGF(INDI::Logger::DBG_DEBUG, "New JD is %f", (float) JD);
 
-     ln_date_to_zonedate(utc, &ltm, utc_offset*3600);
+    ln_date_to_zonedate(utc, &ltm, utc_offset * 3600);
 
-     DEBUGF(INDI::Logger::DBG_DEBUG, "Local time is %02d:%02d:%02g", ltm.hours, ltm.minutes, ltm.seconds);
+    DEBUGF(INDI::Logger::DBG_DEBUG, "Local time is %02d:%02d:%02g", ltm.hours, ltm.minutes, ltm.seconds);
 
-         // Set Local Time
+    // Set Local Time
     if (setLocalTime(PortFD, ltm.hours, ltm.minutes, ltm.seconds) < 0)
     {
-             DEBUG(INDI::Logger::DBG_ERROR, "Error setting local time time.");
-             return false;
+        DEBUG(INDI::Logger::DBG_ERROR, "Error setting local time time.");
+        return false;
     }
 
-       if (setCalenderDate(PortFD, utc->days, utc->months, utc->years) < 0)
-       {
-           DEBUG(INDI::Logger::DBG_ERROR, "Error setting UTC date.");
-           return false;
-       }
+    if (setCalenderDate(PortFD, utc->days, utc->months, utc->years) < 0)
+    {
+        DEBUG(INDI::Logger::DBG_ERROR, "Error setting UTC date.");
+        return false;
+    }
 
-     // Meade defines UTC Offset as the offset ADDED to local time to yield UTC, which
-     // is the opposite of the standard definition of UTC offset!
-     if (setUTCOffset(PortFD, (utc_offset * -1.0)) < 0)
-     {
-         DEBUG(INDI::Logger::DBG_ERROR , "Error setting UTC Offset.");
-         return false;
-     }
+    // Meade defines UTC Offset as the offset ADDED to local time to yield UTC, which
+    // is the opposite of the standard definition of UTC offset!
+    if (setUTCOffset(PortFD, (utc_offset * -1.0)) < 0)
+    {
+        DEBUG(INDI::Logger::DBG_ERROR , "Error setting UTC Offset.");
+        return false;
+    }
 
     DEBUG(INDI::Logger::DBG_SESSION , "Time updated, updating planetary data...");
     return true;
- }
+}
 
- bool LX200GPS::UnPark()
- {
-     initTelescope(PortFD);
+bool LX200GPS::UnPark()
+{
+    initTelescope(PortFD);
 
-     TrackState = SCOPE_IDLE;
+    TrackState = SCOPE_IDLE;
 
-     return true;
- }
+    return true;
+}

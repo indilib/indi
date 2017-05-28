@@ -169,7 +169,7 @@ bool InMemoryDatabase::SaveDatabase(const char * DeviceName)
 
     if(stat(ConfigDir, &Status) != 0)
     {
-        if (mkdir(ConfigDir, S_IRWXU|S_IRWXG|S_IROTH|S_IXOTH) < 0)
+        if (mkdir(ConfigDir, S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH) < 0)
         {
             snprintf(Errmsg, MAXRBUF, "Unable to create config directory. Error %s: %s\n", ConfigDir, strerror(errno));
             return false;

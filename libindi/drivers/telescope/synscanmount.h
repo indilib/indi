@@ -28,24 +28,24 @@
 class SynscanMount : public INDI::Telescope, public INDI::AlignmentSubsystem::AlignmentSubsystemForDrivers
 {
     private:
- 	double FirmwareVersion;
-	int MountModel;
-	char LastParkRead[20];
-	int NumPark;
-	int StopCount;
+        double FirmwareVersion;
+        int MountModel;
+        char LastParkRead[20];
+        int NumPark;
+        int StopCount;
         int SlewRate;
-	int PassthruCommand(int cmd,int target,int msgsize,int data,int numReturn);
-	double currentRA;
-	double currentDEC;
+        int PassthruCommand(int cmd, int target, int msgsize, int data, int numReturn);
+        double currentRA;
+        double currentDEC;
 
-	bool CanSetLocation;
-	bool ReadLatLong;
-	bool HasFailed;
-	bool FirstConnect;
-	//int NumSyncPoints;
-      	bool AnalyzeHandset();
-	ln_equ_posn TelescopeToSky(double ra,double dec);
-	ln_equ_posn SkyToTelescope(double ra,double dec);
+        bool CanSetLocation;
+        bool ReadLatLong;
+        bool HasFailed;
+        bool FirstConnect;
+        //int NumSyncPoints;
+        bool AnalyzeHandset();
+        ln_equ_posn TelescopeToSky(double ra, double dec);
+        ln_equ_posn SkyToTelescope(double ra, double dec);
 
     public:
         SynscanMount();
@@ -53,33 +53,33 @@ class SynscanMount : public INDI::Telescope, public INDI::AlignmentSubsystem::Al
 
         //  overrides of base class virtual functions
         //bool initProperties();
-        virtual void ISGetProperties (const char *dev);
-    	virtual bool updateProperties();
-        virtual const char *getDefaultName();
+        virtual void ISGetProperties (const char * dev);
+        virtual bool updateProperties();
+        virtual const char * getDefaultName();
 
-	virtual bool initProperties();
+        virtual bool initProperties();
         virtual bool ReadScopeStatus();
-	virtual bool Connect();
-        bool Goto(double,double);
+        virtual bool Connect();
+        bool Goto(double, double);
         bool Park();
-	bool UnPark();
-        bool Abort();        
+        bool UnPark();
+        bool Abort();
         bool SetSlewRate(int);
-	bool MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command);
-	bool MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command);
-	bool ReadTime();
-	bool ReadLocation();
-       	bool updateLocation(double latitude, double longitude, double elevation);        
-        bool updateTime(ln_date *utc, double utc_offset);
-	bool SetCurrentPark();
-	bool SetDefaultPark();
+        bool MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command);
+        bool MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command);
+        bool ReadTime();
+        bool ReadLocation();
+        bool updateLocation(double latitude, double longitude, double elevation);
+        bool updateTime(ln_date * utc, double utc_offset);
+        bool SetCurrentPark();
+        bool SetDefaultPark();
 
-	//  methods added for alignment subsystem
-	virtual bool ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n);
-	virtual bool ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n);
-	virtual bool ISNewBLOB (const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[], char *names[], int n);
-	virtual bool ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n);
-	bool Sync(double ra, double dec);
+        //  methods added for alignment subsystem
+        virtual bool ISNewNumber (const char * dev, const char * name, double values[], char * names[], int n);
+        virtual bool ISNewSwitch (const char * dev, const char * name, ISState * states, char * names[], int n);
+        virtual bool ISNewBLOB (const char * dev, const char * name, int sizes[], int blobsizes[], char * blobs[], char * formats[], char * names[], int n);
+        virtual bool ISNewText (const char * dev, const char * name, char * texts[], char * names[], int n);
+        bool Sync(double ra, double dec);
 };
 
 #endif // SYNSCANMOUNT_H

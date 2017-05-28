@@ -29,15 +29,18 @@ class FilterSim : public INDI::FilterWheel
         FilterSim();
         virtual ~FilterSim();
 
-        const char *getDefaultName();
+        const char * getDefaultName();
 
         bool Connect();
         bool Disconnect();
         bool SelectFilter(int);
         void TimerHit();
 
-        virtual bool SetFilterNames() { return true; }
-        virtual bool GetFilterNames(const char* groupName);
+        virtual bool SetFilterNames()
+        {
+            return true;
+        }
+        virtual bool GetFilterNames(const char * groupName);
 
 
 };

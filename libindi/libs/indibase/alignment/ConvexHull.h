@@ -146,7 +146,7 @@ class ConvexHull
         {
             tFaceStructure()
             {
-                pMatrix = gsl_matrix_alloc(3,3);
+                pMatrix = gsl_matrix_alloc(3, 3);
             }
             ~tFaceStructure()
             {

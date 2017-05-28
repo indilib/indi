@@ -34,10 +34,10 @@ class DomeSim : public INDI::Dome
         virtual ~DomeSim();
 
         virtual bool initProperties();
-        const char *getDefaultName();
+        const char * getDefaultName();
         bool updateProperties();
 
-protected:
+    protected:
         bool Connect();
         bool Disconnect();
 
@@ -56,7 +56,7 @@ protected:
         virtual bool SetDefaultPark();
 
 
-private:
+    private:
 
         double targetAz;
         double shutterTimer;

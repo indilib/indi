@@ -21,41 +21,41 @@
 
 std::unique_ptr<RainDetector> rainDetector(new RainDetector());
 
-void ISGetProperties(const char *dev)
+void ISGetProperties(const char * dev)
 {
-         rainDetector->ISGetProperties(dev);
+    rainDetector->ISGetProperties(dev);
 }
 
-void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int num)
+void ISNewSwitch(const char * dev, const char * name, ISState * states, char * names[], int num)
 {
-         rainDetector->ISNewSwitch(dev, name, states, names, num);
+    rainDetector->ISNewSwitch(dev, name, states, names, num);
 }
 
-void ISNewText(	const char *dev, const char *name, char *texts[], char *names[], int num)
+void ISNewText(	const char * dev, const char * name, char * texts[], char * names[], int num)
 {
-         rainDetector->ISNewText(dev, name, texts, names, num);
+    rainDetector->ISNewText(dev, name, texts, names, num);
 }
 
-void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int num)
+void ISNewNumber(const char * dev, const char * name, double values[], char * names[], int num)
 {
-         rainDetector->ISNewNumber(dev, name, values, names, num);
+    rainDetector->ISNewNumber(dev, name, values, names, num);
 }
 
-void ISNewBLOB (const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[], char *names[], int n)
+void ISNewBLOB (const char * dev, const char * name, int sizes[], int blobsizes[], char * blobs[], char * formats[], char * names[], int n)
 {
-   INDI_UNUSED(dev);
-   INDI_UNUSED(name);
-   INDI_UNUSED(sizes);
-   INDI_UNUSED(blobsizes);
-   INDI_UNUSED(blobs);
-   INDI_UNUSED(formats);
-   INDI_UNUSED(names);
-   INDI_UNUSED(n);
+    INDI_UNUSED(dev);
+    INDI_UNUSED(name);
+    INDI_UNUSED(sizes);
+    INDI_UNUSED(blobsizes);
+    INDI_UNUSED(blobs);
+    INDI_UNUSED(formats);
+    INDI_UNUSED(names);
+    INDI_UNUSED(n);
 }
 
-void ISSnoopDevice (XMLEle *root)
+void ISSnoopDevice (XMLEle * root)
 {
-     rainDetector->ISSnoopDevice(root);
+    rainDetector->ISSnoopDevice(root);
 }
 
 RainDetector::RainDetector()
@@ -122,7 +122,7 @@ bool RainDetector::updateProperties()
         defineSwitch(&RainSP);
     }
     else
-    // We're disconnected
+        // We're disconnected
     {
         deleteProperty(RainLP.name);
         deleteProperty(RainSP.name);
@@ -134,7 +134,7 @@ bool RainDetector::updateProperties()
 /********************************************************************************************
 ** Client is asking us to update a switch
 *********************************************************************************************/
-bool RainDetector::ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n)
+bool RainDetector::ISNewSwitch (const char * dev, const char * name, ISState * states, char * names[], int n)
 {
     if (!strcmp(dev, getDeviceName()))
     {

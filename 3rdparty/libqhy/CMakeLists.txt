@@ -6,11 +6,21 @@ set(LIBQHY_SOVERSION "0")
 
 IF (APPLE)
 
-install(FILES qhyccd.h qhyccdcamdef.h qhyccderr.h qhyccdstruct.h DESTINATION include/libqhy)
-install(FILES libqhy_64.dylib DESTINATION lib RENAME libqhy.dylib)
+install(FILES qhyccd.h qhyccdcamdef.h qhyccderr.h qhyccdstruct.h log4z.h DESTINATION include/libqhy)
+install(FILES libqhy.dylib DESTINATION lib RENAME libqhy.0.dylib)
+
+# Make sure symbolic links are installed
+file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/make_libqhy_symlink.cmake "
+exec_program(${CMAKE_COMMAND} ARGS -E create_symlink libqhy.${LIBQHY_VERSION}.dylib libqhy.dylib)\n
+exec_program(${CMAKE_COMMAND} ARGS -E create_symlink libqhy.${LIBQHY_SOVERSION}.dylib libqhy.${LIBQHY_VERSION}.dylib)\n
+")
+
+install(SCRIPT ${CMAKE_CURRENT_BINARY_DIR}/make_libqhy_symlink.cmake)
+install(FILES ${CMAKE_CURRENT_BINARY_DIR}/libqhy.dylib DESTINATION lib)
+install(FILES ${CMAKE_CURRENT_BINARY_DIR}/libqhy.${LIBQHY_VERSION}.dylib DESTINATION lib)
 
 file(GLOB FIRMWARE "firmware/*")
-install(FILES ${FIRMWARE} DESTINATION "/usr/local/firmware")
+install(FILES ${FIRMWARE} DESTINATION "/usr/local/lib/qhy/firmware")
 
 ELSE()
 
@@ -19,10 +29,7 @@ set(UDEVRULES_INSTALL_DIR "/lib/udev/rules.d" CACHE STRING "Base directory for u
 set(LIB_INSTALL_DIR "${CMAKE_INSTALL_PREFIX}/lib")
 
 IF(UNIX AND NOT WIN32)
- IF (CMAKE_HOST_SYSTEM_PROCESSOR MATCHES "armv6l")
-  exec_program(cp ARGS ${CMAKE_CURRENT_SOURCE_DIR}/libqhy_armv6.bin ${CMAKE_BINARY_DIR}/libqhy.so.${LIBQHY_VERSION})
- ELSEIF(CMAKE_HOST_SYSTEM_PROCESSOR MATCHES "armv7l")
- #JM 2015-04-10: Use armv6 for now until armv7 version is fixed by QHY
+ IF (CMAKE_HOST_SYSTEM_PROCESSOR MATCHES "armv6l" OR CMAKE_HOST_SYSTEM_PROCESSOR MATCHES "armv7l")
   exec_program(cp ARGS ${CMAKE_CURRENT_SOURCE_DIR}/libqhy_armv6.bin ${CMAKE_BINARY_DIR}/libqhy.so.${LIBQHY_VERSION})
  ELSEIF(CMAKE_HOST_SYSTEM_PROCESSOR MATCHES "aarch64")
   exec_program(cp ARGS ${CMAKE_CURRENT_SOURCE_DIR}/libqhy_armv8.bin ${CMAKE_BINARY_DIR}/libqhy.so.${LIBQHY_VERSION})
@@ -30,7 +37,7 @@ IF(UNIX AND NOT WIN32)
   exec_program(cp ARGS ${CMAKE_CURRENT_SOURCE_DIR}/libqhy_x86_64.bin ${CMAKE_BINARY_DIR}/libqhy.so.${LIBQHY_VERSION})
  ELSE()
   exec_program(cp ARGS ${CMAKE_CURRENT_SOURCE_DIR}/libqhy_x86_32.bin ${CMAKE_BINARY_DIR}/libqhy.so.${LIBQHY_VERSION})
- ENDIF (CMAKE_HOST_SYSTEM_PROCESSOR MATCHES "armv6l")
+ ENDIF (CMAKE_HOST_SYSTEM_PROCESSOR MATCHES "armv6l" OR CMAKE_HOST_SYSTEM_PROCESSOR MATCHES "armv7l")
 ENDIF(UNIX AND NOT WIN32)
 
 # Make sure symbolic links are installed

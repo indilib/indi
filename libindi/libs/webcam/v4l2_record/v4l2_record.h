@@ -50,30 +50,30 @@ class V4L2_Recorder
         V4L2_Recorder();
         virtual ~V4L2_Recorder();
 
-        virtual void init()=0;
+        virtual void init() = 0;
         virtual const char * getName();
         // true when direct encoding of pixel format
-        virtual bool setPixelFormat(uint32_t pixformat)=0;
+        virtual bool setPixelFormat(uint32_t pixformat) = 0;
         // set image size in pixels
-        virtual bool setSize(uint16_t width, uint16_t height)=0;
+        virtual bool setSize(uint16_t width, uint16_t height) = 0;
         // Set subframe frame dimensions that gets recorded
-        virtual bool setFrame(uint16_t x, uint16_t y, uint16_t width, uint16_t height)=0;
-        virtual bool open(const char * filename, char * errmsg)=0;
-        virtual bool close()=0;
+        virtual bool setFrame(uint16_t x, uint16_t y, uint16_t width, uint16_t height) = 0;
+        virtual bool open(const char * filename, char * errmsg) = 0;
+        virtual bool close() = 0;
         // when frame is in known encoding format
-        virtual bool writeFrame(unsigned char * frame)=0;
+        virtual bool writeFrame(unsigned char * frame) = 0;
         // default way to write a GREY frame
-        virtual bool writeFrameMono(unsigned char * frame)=0;
+        virtual bool writeFrameMono(unsigned char * frame) = 0;
         // default way to write a RGB24 frame
-        virtual bool writeFrameColor(unsigned char * frame)=0;
+        virtual bool writeFrameColor(unsigned char * frame) = 0;
         // prepare to write GREY frame
-        virtual void setDefaultMono()=0;
+        virtual void setDefaultMono() = 0;
         // prepare to write RGB24 frame
-        virtual void setDefaultColor()=0;
+        virtual void setDefaultColor() = 0;
         // If streaming is enabled, then any subframing is already done by the stream recorder
         // and no need to do any further subframing operations. Otherwise, subframing must be done.
         // This is to reduce process time and save memory for a dedicated subframe buffer
-        virtual void setStreamEnabled(bool enable)=0;
+        virtual void setStreamEnabled(bool enable) = 0;
 
     protected:
         const char * name;

@@ -58,27 +58,27 @@
 
 std::unique_ptr<RoboFocus> roboFocus(new RoboFocus());
 
-void ISGetProperties(const char *dev)
+void ISGetProperties(const char * dev)
 {
     roboFocus->ISGetProperties(dev);
 }
 
-void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int num)
+void ISNewSwitch(const char * dev, const char * name, ISState * states, char * names[], int num)
 {
     roboFocus->ISNewSwitch(dev, name, states, names, num);
 }
 
-void ISNewText(	const char *dev, const char *name, char *texts[], char *names[], int num)
+void ISNewText(	const char * dev, const char * name, char * texts[], char * names[], int num)
 {
     roboFocus->ISNewText(dev, name, texts, names, num);
 }
 
-void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int num)
+void ISNewNumber(const char * dev, const char * name, double values[], char * names[], int num)
 {
     roboFocus->ISNewNumber(dev, name, values, names, num);
 }
 
-void ISNewBLOB (const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[], char *names[], int n)
+void ISNewBLOB (const char * dev, const char * name, int sizes[], int blobsizes[], char * blobs[], char * formats[], char * names[], int n)
 {
     INDI_UNUSED(dev);
     INDI_UNUSED(name);
@@ -90,13 +90,13 @@ void ISNewBLOB (const char *dev, const char *name, int sizes[], int blobsizes[],
     INDI_UNUSED(n);
 }
 
-void ISSnoopDevice (XMLEle *root)
+void ISSnoopDevice (XMLEle * root)
 {
     roboFocus->ISSnoopDevice(root);
 }
 
 RoboFocus::RoboFocus()
-{       
+{
     timerID = -1;
     SetFocuserCapability(FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_REL_MOVE | FOCUSER_CAN_ABORT);
 }
@@ -154,8 +154,8 @@ bool RoboFocus::initProperties()
     FocusAbsPosN[0].value = 0;
     FocusAbsPosN[0].step = 1000;
 
-    simulatedTemperature=600.0;
-    simulatedPosition=20000;
+    simulatedTemperature = 600.0;
+    simulatedPosition = 20000;
 
     addDebugControl();
     addSimulationControl();
@@ -205,7 +205,7 @@ bool RoboFocus::updateProperties()
 
 bool RoboFocus::Handshake()
 {
-    char firmeware[]="FV0000000";
+    char firmeware[] = "FV0000000";
 
     if (isSimulation())
     {
@@ -231,14 +231,14 @@ const char * RoboFocus::getDefaultName()
     return "RoboFocus";
 }
 
-unsigned char RoboFocus::CheckSum(char *rf_cmd)
+unsigned char RoboFocus::CheckSum(char * rf_cmd)
 {
     char substr[255] ;
-    unsigned char val= 0 ;
-    int i= 0 ;
+    unsigned char val = 0 ;
+    int i = 0 ;
 
-    for(i=0; i < 8; i++)
-        substr[i]=rf_cmd[i] ;
+    for(i = 0; i < 8; i++)
+        substr[i] = rf_cmd[i] ;
 
     val = CalculateSum( substr) ;
 
@@ -248,31 +248,31 @@ unsigned char RoboFocus::CheckSum(char *rf_cmd)
     return val ;
 }
 
-unsigned char RoboFocus::CalculateSum(char *rf_cmd)
+unsigned char RoboFocus::CalculateSum(char * rf_cmd)
 {
-    unsigned char val= 0 ;
-    int i=0 ;
+    unsigned char val = 0 ;
+    int i = 0 ;
 
-    for(i=0; i < 8; i++)
+    for(i = 0; i < 8; i++)
         val = val + (unsigned char) rf_cmd[i];
 
     return val % 256 ;
 }
 
-int RoboFocus::SendCommand(char *rf_cmd)
+int RoboFocus::SendCommand(char * rf_cmd)
 {
-    int nbytes_written=0, nbytes_read=0, check_ret=0, err_code=0;
-    char rf_cmd_cks[32],robofocus_error[MAXRBUF];
+    int nbytes_written = 0, nbytes_read = 0, check_ret = 0, err_code = 0;
+    char rf_cmd_cks[32], robofocus_error[MAXRBUF];
 
-    unsigned char val= 0 ;
+    unsigned char val = 0 ;
 
     val = CalculateSum( rf_cmd );
 
-    for(int i=0; i < 8; i++)
-        rf_cmd_cks[i]= rf_cmd[i] ;
+    for(int i = 0; i < 8; i++)
+        rf_cmd_cks[i] = rf_cmd[i] ;
 
-    rf_cmd_cks[8]=  (unsigned char) val ;
-    rf_cmd_cks[9]= 0 ;
+    rf_cmd_cks[8] =  (unsigned char) val ;
+    rf_cmd_cks[9] = 0 ;
 
     if (isSimulation())
         return 0;
@@ -291,15 +291,15 @@ int RoboFocus::SendCommand(char *rf_cmd)
     return nbytes_written;
 }
 
-int RoboFocus::ReadResponse(char *buf)
-{    
+int RoboFocus::ReadResponse(char * buf)
+{
     char robofocus_error[MAXRBUF];
     char robofocus_char[1];
     int bytesRead = 0;
     int err_code;
 
     char motion = 0;
-    bool externalMotion=false;
+    bool externalMotion = false;
 
     if (isSimulation())
         return RF_MAX_CMD;
@@ -315,76 +315,76 @@ int RoboFocus::ReadResponse(char *buf)
 
         switch (robofocus_char[0])
         {
-        // Catch 'I'
-        case 0x49:
-            if (motion != 0x49)
-            {
-                motion = 0x49;
-                DEBUG(INDI::Logger::DBG_SESSION, "Moving inward...");
-
-                if (FocusAbsPosNP.s != IPS_BUSY)
+            // Catch 'I'
+            case 0x49:
+                if (motion != 0x49)
                 {
-                    externalMotion = true;
-                    FocusAbsPosNP.s = IPS_BUSY;
-                    IDSetNumber(&FocusAbsPosNP, NULL);
+                    motion = 0x49;
+                    DEBUG(INDI::Logger::DBG_SESSION, "Moving inward...");
+
+                    if (FocusAbsPosNP.s != IPS_BUSY)
+                    {
+                        externalMotion = true;
+                        FocusAbsPosNP.s = IPS_BUSY;
+                        IDSetNumber(&FocusAbsPosNP, NULL);
+                    }
                 }
-            }
-            //usleep(100000);
-            break;
+                //usleep(100000);
+                break;
 
             // catch 'O'
-        case 0x4F:
-            if (motion != 0x4F)
-            {
-                motion = 0x4F;
-                DEBUG(INDI::Logger::DBG_SESSION, "Moving outward...");
-
-                if (FocusAbsPosNP.s != IPS_BUSY)
+            case 0x4F:
+                if (motion != 0x4F)
                 {
-                    externalMotion = true;
-                    FocusAbsPosNP.s = IPS_BUSY;
-                    IDSetNumber(&FocusAbsPosNP, NULL);
+                    motion = 0x4F;
+                    DEBUG(INDI::Logger::DBG_SESSION, "Moving outward...");
+
+                    if (FocusAbsPosNP.s != IPS_BUSY)
+                    {
+                        externalMotion = true;
+                        FocusAbsPosNP.s = IPS_BUSY;
+                        IDSetNumber(&FocusAbsPosNP, NULL);
+                    }
                 }
-            }
-            //usleep(100000);
-            break;
+                //usleep(100000);
+                break;
 
             // Start of frame
-        case 0x46:
-            buf[0]=0x46;
-            // Read rest of frame
-            if ( (err_code = tty_read(PortFD, buf+1, RF_MAX_CMD-1, RF_TIMEOUT, &bytesRead)) != TTY_OK)
-            {
-                tty_error_msg(err_code, robofocus_error, MAXRBUF);
-                DEBUGF(INDI::Logger::DBG_ERROR, "TTY error detected: %s", robofocus_error);
-                return -1;
-            }
-
-            if (motion != 0)
-            {
-                DEBUG(INDI::Logger::DBG_SESSION, "Stopped.");
-
-                // If we set it busy due to external motion, let's set it to OK
-                if (externalMotion)
+            case 0x46:
+                buf[0] = 0x46;
+                // Read rest of frame
+                if ( (err_code = tty_read(PortFD, buf + 1, RF_MAX_CMD - 1, RF_TIMEOUT, &bytesRead)) != TTY_OK)
                 {
-                    FocusAbsPosNP.s = IPS_OK;
-                    IDSetNumber(&FocusAbsPosNP, NULL);
+                    tty_error_msg(err_code, robofocus_error, MAXRBUF);
+                    DEBUGF(INDI::Logger::DBG_ERROR, "TTY error detected: %s", robofocus_error);
+                    return -1;
                 }
-            }
 
-            tcflush(PortFD, TCIOFLUSH);
-            return (bytesRead+1);
-            break;
+                if (motion != 0)
+                {
+                    DEBUG(INDI::Logger::DBG_SESSION, "Stopped.");
 
-        default:
-            break;
+                    // If we set it busy due to external motion, let's set it to OK
+                    if (externalMotion)
+                    {
+                        FocusAbsPosNP.s = IPS_OK;
+                        IDSetNumber(&FocusAbsPosNP, NULL);
+                    }
+                }
+
+                tcflush(PortFD, TCIOFLUSH);
+                return (bytesRead + 1);
+                break;
+
+            default:
+                break;
         }
     }
 
     return -1;
 }
 
-int RoboFocus::updateRFPosition(double *value)
+int RoboFocus::updateRFPosition(double * value)
 {
     float temp ;
     char rf_cmd[RF_MAX_CMD] ;
@@ -400,10 +400,10 @@ int RoboFocus::updateRFPosition(double *value)
 
     strcpy(rf_cmd, "FG000000" ) ;
 
-    if ((robofocus_rc= SendCommand(rf_cmd)) < 0)
+    if ((robofocus_rc = SendCommand(rf_cmd)) < 0)
         return robofocus_rc;
 
-    if ((robofocus_rc= ReadResponse(rf_cmd)) < 0)
+    if ((robofocus_rc = ReadResponse(rf_cmd)) < 0)
         return robofocus_rc;
 
     if (sscanf(rf_cmd, "FD%6f", &temp) < 1)
@@ -417,7 +417,7 @@ int RoboFocus::updateRFPosition(double *value)
 
 }
 
-int RoboFocus::updateRFTemperature(double *value)
+int RoboFocus::updateRFTemperature(double * value)
 {
     DEBUGF(INDI::Logger::DBG_DEBUG, "Update Temperature: %g", value);
 
@@ -427,23 +427,23 @@ int RoboFocus::updateRFTemperature(double *value)
 
     strcpy(rf_cmd, "FT000000" ) ;
 
-    if ((robofocus_rc= SendCommand( rf_cmd)) < 0)
+    if ((robofocus_rc = SendCommand( rf_cmd)) < 0)
         return robofocus_rc;
 
     if (isSimulation())
         snprintf(rf_cmd, 32, "FT%6g", simulatedTemperature);
-    else  if ((robofocus_rc= ReadResponse(rf_cmd)) < 0)
-            return robofocus_rc;
+    else  if ((robofocus_rc = ReadResponse(rf_cmd)) < 0)
+        return robofocus_rc;
 
     if (sscanf(rf_cmd, "FT%6f", &temp) < 1)
         return -1;
 
-    *value = (double) temp/2.- 273.15;
+    *value = (double) temp / 2. - 273.15;
 
     return 0;
 }
 
-int RoboFocus::updateRFBacklash(double *value)
+int RoboFocus::updateRFBacklash(double * value)
 {
     DEBUGF(INDI::Logger::DBG_DEBUG, "Update Backlash: %g", value);
 
@@ -451,12 +451,12 @@ int RoboFocus::updateRFBacklash(double *value)
     char rf_cmd[32] ;
     char vl_tmp[4] ;
     int robofocus_rc ;
-    int sign= 0 ;
+    int sign = 0 ;
 
     if (isSimulation())
         return 0;
 
-    if(*value== BACKLASH_READOUT)
+    if(*value == BACKLASH_READOUT)
     {
 
         strcpy(rf_cmd, "FB000000" ) ;
@@ -465,37 +465,45 @@ int RoboFocus::updateRFBacklash(double *value)
     else
     {
 
-        rf_cmd[0]=  'F' ;
-        rf_cmd[1]=  'B' ;
+        rf_cmd[0] =  'F' ;
+        rf_cmd[1] =  'B' ;
 
-        if( *value > 0) {
+        if( *value > 0)
+        {
 
-            rf_cmd[2]= '3' ;
+            rf_cmd[2] = '3' ;
 
-        } else {
-            *value= - *value ;
-            rf_cmd[2]= '2' ;
         }
-        rf_cmd[3]= '0' ;
-        rf_cmd[4]= '0' ;
+        else
+        {
+            *value = - *value ;
+            rf_cmd[2] = '2' ;
+        }
+        rf_cmd[3] = '0' ;
+        rf_cmd[4] = '0' ;
 
-        if(*value > 99) {
+        if(*value > 99)
+        {
             sprintf( vl_tmp, "%3d", (int) *value) ;
 
-        } else if(*value > 9) {
+        }
+        else if(*value > 9)
+        {
             sprintf( vl_tmp, "0%2d", (int) *value) ;
-        } else {
+        }
+        else
+        {
             sprintf( vl_tmp, "00%1d", (int) *value) ;
         }
-        rf_cmd[5]= vl_tmp[0] ;
-        rf_cmd[6]= vl_tmp[1] ;
-        rf_cmd[7]= vl_tmp[2] ;
+        rf_cmd[5] = vl_tmp[0] ;
+        rf_cmd[6] = vl_tmp[1] ;
+        rf_cmd[7] = vl_tmp[2] ;
     }
 
-    if ((robofocus_rc= SendCommand( rf_cmd)) < 0)
+    if ((robofocus_rc = SendCommand( rf_cmd)) < 0)
         return robofocus_rc;
 
-    if ((robofocus_rc= ReadResponse(rf_cmd)) < 0)
+    if ((robofocus_rc = ReadResponse(rf_cmd)) < 0)
         return robofocus_rc;
 
     if (sscanf(rf_cmd, "FB%1d%5f", &sign, &temp) < 1)
@@ -503,7 +511,7 @@ int RoboFocus::updateRFBacklash(double *value)
 
     *value = (double) temp  ;
 
-    if(( sign== 2) && ( *value > 0))
+    if(( sign == 2) && ( *value > 0))
     {
         *value = - (*value) ;
     }
@@ -511,7 +519,7 @@ int RoboFocus::updateRFBacklash(double *value)
     return 0;
 }
 
-int RoboFocus::updateRFFirmware(char *rf_cmd)
+int RoboFocus::updateRFFirmware(char * rf_cmd)
 {
     int robofocus_rc ;
 
@@ -519,18 +527,18 @@ int RoboFocus::updateRFFirmware(char *rf_cmd)
 
     strcpy(rf_cmd, "FV000000" ) ;
 
-    if ((robofocus_rc= SendCommand(rf_cmd)) < 0)
+    if ((robofocus_rc = SendCommand(rf_cmd)) < 0)
         return robofocus_rc;
 
     if (isSimulation())
         strcpy(rf_cmd, "SIM");
-    else if ((robofocus_rc= ReadResponse(rf_cmd)) < 0)
+    else if ((robofocus_rc = ReadResponse(rf_cmd)) < 0)
         return robofocus_rc;
 
     return 0;
 }
 
-int RoboFocus::updateRFMotorSettings(double *duty, double *delay, double *ticks)
+int RoboFocus::updateRFMotorSettings(double * duty, double * delay, double * ticks)
 {
 
     DEBUGF(INDI::Logger::DBG_DEBUG, "Update Motor Settings: Duty (%g), Delay (%g), Ticks(%g)", *duty, *delay, *ticks);
@@ -546,33 +554,36 @@ int RoboFocus::updateRFMotorSettings(double *duty, double *delay, double *ticks)
         return 0;
     }
 
-    if(( *duty== 0 ) && (*delay== 0) && (*ticks== 0) ){
+    if(( *duty == 0 ) && (*delay == 0) && (*ticks == 0) )
+    {
 
         strcpy(rf_cmd, "FC000000" ) ;
 
-    } else {
+    }
+    else
+    {
 
-        rf_cmd[0]=  'F' ;
-        rf_cmd[1]=  'C' ;
-        rf_cmd[2]= (char) *duty ;
-        rf_cmd[3]= (char) *delay ;
-        rf_cmd[4]= (char) *ticks ;
-        rf_cmd[5]= '0' ;
-        rf_cmd[6]= '0' ;
-        rf_cmd[7]= '0' ;
-        rf_cmd[8]=  0 ;
+        rf_cmd[0] =  'F' ;
+        rf_cmd[1] =  'C' ;
+        rf_cmd[2] = (char) * duty ;
+        rf_cmd[3] = (char) * delay ;
+        rf_cmd[4] = (char) * ticks ;
+        rf_cmd[5] = '0' ;
+        rf_cmd[6] = '0' ;
+        rf_cmd[7] = '0' ;
+        rf_cmd[8] =  0 ;
 
     }
 
-    if ((robofocus_rc= SendCommand( rf_cmd)) < 0)
+    if ((robofocus_rc = SendCommand( rf_cmd)) < 0)
         return robofocus_rc;
 
-    if ((robofocus_rc= ReadResponse(rf_cmd)) < 0)
-            return robofocus_rc;
+    if ((robofocus_rc = ReadResponse(rf_cmd)) < 0)
+        return robofocus_rc;
 
-    *duty=  (float) rf_cmd[2] ;
-    *delay= (float) rf_cmd[3] ;
-    *ticks= (float) rf_cmd[4] ;
+    *duty =  (float) rf_cmd[2] ;
+    *delay = (float) rf_cmd[3] ;
+    *ticks = (float) rf_cmd[4] ;
 
     return 0;
 }
@@ -583,30 +594,39 @@ int RoboFocus::updateRFPositionRelativeInward(double value)
     char rf_cmd[32] ;
     int robofocus_rc ;
     //float temp ;
-    rf_cmd[0]= 0 ;
+    rf_cmd[0] = 0 ;
 
     DEBUGF(INDI::Logger::DBG_DEBUG, "Update Relative Position Inward: %g", value);
 
     if (isSimulation())
     {
-        simulatedPosition+= value;
+        simulatedPosition += value;
         //value = simulatedPosition;
         return 0;
     }
 
-    if(value > 9999) {
+    if(value > 9999)
+    {
         sprintf( rf_cmd, "FI0%5d", (int) value) ;
-    } else if(value > 999) {
+    }
+    else if(value > 999)
+    {
         sprintf( rf_cmd, "FI00%4d", (int) value) ;
-    } else if(value > 99) {
+    }
+    else if(value > 99)
+    {
         sprintf( rf_cmd, "FI000%3d", (int) value) ;
-    } else if(value > 9) {
+    }
+    else if(value > 9)
+    {
         sprintf( rf_cmd, "FI0000%2d", (int) value) ;
-    } else {
+    }
+    else
+    {
         sprintf( rf_cmd, "FI00000%1d", (int) value) ;
     }
 
-    if ((robofocus_rc= SendCommand( rf_cmd)) < 0)
+    if ((robofocus_rc = SendCommand( rf_cmd)) < 0)
         return robofocus_rc;
 
     return 0;
@@ -623,26 +643,35 @@ int RoboFocus::updateRFPositionRelativeOutward(double value)
 
     if (isSimulation())
     {
-        simulatedPosition-= value;
+        simulatedPosition -= value;
         //value = simulatedPosition;
         return 0;
     }
 
-    rf_cmd[0]= 0 ;
+    rf_cmd[0] = 0 ;
 
-    if(value > 9999) {
+    if(value > 9999)
+    {
         sprintf( rf_cmd, "FO0%5d", (int) value) ;
-    } else if(value > 999) {
+    }
+    else if(value > 999)
+    {
         sprintf( rf_cmd, "FO00%4d", (int) value) ;
-    } else if(value > 99) {
+    }
+    else if(value > 99)
+    {
         sprintf( rf_cmd, "FO000%3d", (int) value) ;
-    } else if(value > 9) {
+    }
+    else if(value > 9)
+    {
         sprintf( rf_cmd, "FO0000%2d", (int) value) ;
-    } else {
+    }
+    else
+    {
         sprintf( rf_cmd, "FO00000%1d", (int) value) ;
     }
 
-    if ((robofocus_rc= SendCommand( rf_cmd)) < 0)
+    if ((robofocus_rc = SendCommand( rf_cmd)) < 0)
         return robofocus_rc;
 
     return 0;
@@ -662,28 +691,37 @@ int RoboFocus::updateRFPositionAbsolute(double value)
         return 0;
     }
 
-    rf_cmd[0]= 0 ;
+    rf_cmd[0] = 0 ;
 
-    if(value > 9999) {
+    if(value > 9999)
+    {
         sprintf( rf_cmd, "FG0%5d", (int) value) ;
-    } else if(value > 999) {
+    }
+    else if(value > 999)
+    {
         sprintf( rf_cmd, "FG00%4d", (int) value) ;
-    } else if(value > 99) {
+    }
+    else if(value > 99)
+    {
         sprintf( rf_cmd, "FG000%3d", (int) value) ;
-    } else if(value > 9) {
+    }
+    else if(value > 9)
+    {
         sprintf( rf_cmd, "FG0000%2d", (int) value) ;
-    } else {
+    }
+    else
+    {
         sprintf( rf_cmd, "FG00000%1d", (int) value) ;
     }
 
-    if ((robofocus_rc= SendCommand( rf_cmd)) < 0)
+    if ((robofocus_rc = SendCommand( rf_cmd)) < 0)
         return robofocus_rc;
 
     return 0;
 }
 
-int RoboFocus::updateRFPowerSwitches(int s, int  new_sn, int *cur_s1LL, int *cur_s2LR, int *cur_s3RL, int *cur_s4RR)
-{    
+int RoboFocus::updateRFPowerSwitches(int s, int  new_sn, int * cur_s1LL, int * cur_s2LR, int * cur_s3RL, int * cur_s4RR)
+{
 
     char rf_cmd[32] ;
     char rf_cmd_tmp[32] ;
@@ -701,58 +739,62 @@ int RoboFocus::updateRFPowerSwitches(int s, int  new_sn, int *cur_s1LL, int *cur
     /* Get first the status */
     strcpy(rf_cmd_tmp, "FP000000" ) ;
 
-    if ((robofocus_rc= SendCommand( rf_cmd_tmp)) < 0)
+    if ((robofocus_rc = SendCommand( rf_cmd_tmp)) < 0)
         return robofocus_rc ;
 
-    if ((robofocus_rc= ReadResponse(rf_cmd_tmp)) < 0)
-            return robofocus_rc;
+    if ((robofocus_rc = ReadResponse(rf_cmd_tmp)) < 0)
+        return robofocus_rc;
 
-    for(i= 0; i < 9; i++)
+    for(i = 0; i < 9; i++)
     {
-        rf_cmd[i]= rf_cmd_tmp[i] ;
+        rf_cmd[i] = rf_cmd_tmp[i] ;
     }
 
 
-    if( rf_cmd[new_sn + 4]== '2')
+    if( rf_cmd[new_sn + 4] == '2')
     {
-        rf_cmd[new_sn + 4]= '1' ;
+        rf_cmd[new_sn + 4] = '1' ;
     }
     else
     {
-        rf_cmd[new_sn + 4]= '2' ;
+        rf_cmd[new_sn + 4] = '2' ;
     }
 
 
-    rf_cmd[8]= 0 ;
+    rf_cmd[8] = 0 ;
 
-    if ((robofocus_rc= SendCommand( rf_cmd)) < 0)
+    if ((robofocus_rc = SendCommand( rf_cmd)) < 0)
         return robofocus_rc ;
 
-    if ((robofocus_rc= ReadResponse(rf_cmd)) < 0)
-            return robofocus_rc;
+    if ((robofocus_rc = ReadResponse(rf_cmd)) < 0)
+        return robofocus_rc;
 
-    *cur_s1LL= *cur_s2LR= *cur_s3RL= *cur_s4RR= ISS_OFF ;
+    *cur_s1LL = *cur_s2LR = *cur_s3RL = *cur_s4RR = ISS_OFF ;
 
-    if(rf_cmd[4]== '2' ) {
-        *cur_s1LL= ISS_ON ;
+    if(rf_cmd[4] == '2' )
+    {
+        *cur_s1LL = ISS_ON ;
     }
 
-    if(rf_cmd[5]== '2' ) {
-        *cur_s2LR= ISS_ON ;
+    if(rf_cmd[5] == '2' )
+    {
+        *cur_s2LR = ISS_ON ;
     }
 
-    if(rf_cmd[6]== '2' ) {
-        *cur_s3RL= ISS_ON ;
+    if(rf_cmd[6] == '2' )
+    {
+        *cur_s3RL = ISS_ON ;
     }
 
-    if(rf_cmd[7]== '2' ) {
-        *cur_s4RR= ISS_ON ;
+    if(rf_cmd[7] == '2' )
+    {
+        *cur_s4RR = ISS_ON ;
     }
     return 0 ;
 }
 
 
-int RoboFocus::updateRFMaxPosition(double *value)
+int RoboFocus::updateRFMaxPosition(double * value)
 {
 
     DEBUG(INDI::Logger::DBG_DEBUG, "Query max position...");
@@ -768,44 +810,56 @@ int RoboFocus::updateRFMaxPosition(double *value)
         return 0;
     }
 
-    if(*value== MAXTRAVEL_READOUT) {
+    if(*value == MAXTRAVEL_READOUT)
+    {
 
         strcpy(rf_cmd, "FL000000" ) ;
 
-    } else {
+    }
+    else
+    {
 
-        rf_cmd[0]=  'F' ;
-        rf_cmd[1]=  'L' ;
-        rf_cmd[2]=  '0' ;
+        rf_cmd[0] =  'F' ;
+        rf_cmd[1] =  'L' ;
+        rf_cmd[2] =  '0' ;
 
-        if(*value > 9999) {
+        if(*value > 9999)
+        {
             sprintf( vl_tmp, "%5d", (int) *value) ;
 
-        } else if(*value > 999) {
+        }
+        else if(*value > 999)
+        {
 
             sprintf( vl_tmp, "0%4d", (int) *value) ;
 
-        } else if(*value > 99) {
+        }
+        else if(*value > 99)
+        {
             sprintf( vl_tmp, "00%3d", (int) *value) ;
 
-        } else if(*value > 9) {
+        }
+        else if(*value > 9)
+        {
             sprintf( vl_tmp, "000%2d", (int) *value) ;
-        } else {
+        }
+        else
+        {
             sprintf( vl_tmp, "0000%1d", (int) *value) ;
         }
-        rf_cmd[3]= vl_tmp[0] ;
-        rf_cmd[4]= vl_tmp[1] ;
-        rf_cmd[5]= vl_tmp[2] ;
-        rf_cmd[6]= vl_tmp[3] ;
-        rf_cmd[7]= vl_tmp[4] ;
-        rf_cmd[8]= 0 ;
+        rf_cmd[3] = vl_tmp[0] ;
+        rf_cmd[4] = vl_tmp[1] ;
+        rf_cmd[5] = vl_tmp[2] ;
+        rf_cmd[6] = vl_tmp[3] ;
+        rf_cmd[7] = vl_tmp[4] ;
+        rf_cmd[8] = 0 ;
     }
 
-    if ((robofocus_rc= SendCommand( rf_cmd)) < 0)
+    if ((robofocus_rc = SendCommand( rf_cmd)) < 0)
         return robofocus_rc;
 
-    if ((robofocus_rc= ReadResponse(rf_cmd)) < 0)
-            return robofocus_rc;
+    if ((robofocus_rc = ReadResponse(rf_cmd)) < 0)
+        return robofocus_rc;
 
     if (sscanf(rf_cmd, "FL%1c%5f", waste, &temp) < 1)
         return -1;
@@ -817,7 +871,7 @@ int RoboFocus::updateRFMaxPosition(double *value)
     return 0;
 }
 
-int RoboFocus::updateRFSetPosition(double *value)
+int RoboFocus::updateRFSetPosition(double * value)
 {
     DEBUGF(INDI::Logger::DBG_DEBUG, "Set Max position: %g", *value);
 
@@ -827,94 +881,111 @@ int RoboFocus::updateRFSetPosition(double *value)
 
     if (isSimulation())
     {
-        simulatedPosition= *value;
+        simulatedPosition = *value;
         return 0;
     }
 
-    rf_cmd[0]=  'F' ;
-    rf_cmd[1]=  'S' ;
-    rf_cmd[2]=  '0' ;
+    rf_cmd[0] =  'F' ;
+    rf_cmd[1] =  'S' ;
+    rf_cmd[2] =  '0' ;
 
-    if(*value > 9999) {
+    if(*value > 9999)
+    {
         sprintf( vl_tmp, "%5d", (int) *value) ;
-    } else if(*value > 999) {
+    }
+    else if(*value > 999)
+    {
         sprintf( vl_tmp, "0%4d", (int) *value) ;
-    } else if(*value > 99) {
+    }
+    else if(*value > 99)
+    {
         sprintf( vl_tmp, "00%3d", (int) *value) ;
-    } else if(*value > 9) {
+    }
+    else if(*value > 9)
+    {
         sprintf( vl_tmp, "000%2d", (int) *value) ;
-    } else {
+    }
+    else
+    {
         sprintf( vl_tmp, "0000%1d", (int) *value) ;
     }
-    rf_cmd[3]= vl_tmp[0] ;
-    rf_cmd[4]= vl_tmp[1] ;
-    rf_cmd[5]= vl_tmp[2] ;
-    rf_cmd[6]= vl_tmp[3] ;
-    rf_cmd[7]= vl_tmp[4] ;
-    rf_cmd[8]= 0 ;
+    rf_cmd[3] = vl_tmp[0] ;
+    rf_cmd[4] = vl_tmp[1] ;
+    rf_cmd[5] = vl_tmp[2] ;
+    rf_cmd[6] = vl_tmp[3] ;
+    rf_cmd[7] = vl_tmp[4] ;
+    rf_cmd[8] = 0 ;
 
-    if ((robofocus_rc= SendCommand( rf_cmd)) < 0)
+    if ((robofocus_rc = SendCommand( rf_cmd)) < 0)
         return robofocus_rc;
 
     return 0;
 }
 
-bool RoboFocus::ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n)
+bool RoboFocus::ISNewSwitch (const char * dev, const char * name, ISState * states, char * names[], int n)
 {
-    if(strcmp(dev,getDeviceName())==0)
+    if(strcmp(dev, getDeviceName()) == 0)
     {
         if (!strcmp (name, PowerSwitchesSP.name))
         {
-            int ret= -1 ;
-            int nset= 0 ;
-            int i= 0 ;
-            int new_s= -1 ;
-            int new_sn= -1 ;
-            int cur_s1LL=0 ;
-            int cur_s2LR=0 ;
-            int cur_s3RL=0 ;
-            int cur_s4RR=0 ;
+            int ret = -1 ;
+            int nset = 0 ;
+            int i = 0 ;
+            int new_s = -1 ;
+            int new_sn = -1 ;
+            int cur_s1LL = 0 ;
+            int cur_s2LR = 0 ;
+            int cur_s3RL = 0 ;
+            int cur_s4RR = 0 ;
 
-            ISwitch *sp ;
+            ISwitch * sp ;
 
             PowerSwitchesSP.s = IPS_BUSY ;
             IDSetSwitch(&PowerSwitchesSP, NULL) ;
 
 
-            for( nset = i = 0; i < n; i++) {
+            for( nset = i = 0; i < n; i++)
+            {
                 /* Find numbers with the passed names in the SettingsNP property */
                 sp = IUFindSwitch (&PowerSwitchesSP, names[i]) ;
 
                 /* If the state found is  (PowerSwitchesS[0]) then process it */
 
-                if( sp == &PowerSwitchesS[0]){
+                if( sp == &PowerSwitchesS[0])
+                {
 
 
                     new_s = (states[i]) ;
-                    new_sn= 0;
+                    new_sn = 0;
                     nset++ ;
-                } else if( sp == &PowerSwitchesS[1]){
+                }
+                else if( sp == &PowerSwitchesS[1])
+                {
 
                     new_s = (states[i]) ;
-                    new_sn= 1;
+                    new_sn = 1;
                     nset++ ;
-                } else if( sp == &PowerSwitchesS[2]){
+                }
+                else if( sp == &PowerSwitchesS[2])
+                {
 
                     new_s = (states[i]) ;
-                    new_sn= 2;
+                    new_sn = 2;
                     nset++ ;
-                } else if( sp == &PowerSwitchesS[3]){
+                }
+                else if( sp == &PowerSwitchesS[3])
+                {
 
                     new_s = (states[i]) ;
-                    new_sn= 3;
+                    new_sn = 3;
                     nset++ ;
                 }
             }
             if (nset == 1)
             {
-                cur_s1LL= cur_s2LR= cur_s3RL= cur_s4RR= 0 ;
+                cur_s1LL = cur_s2LR = cur_s3RL = cur_s4RR = 0 ;
 
-                if(( ret= updateRFPowerSwitches(new_s, new_sn, &cur_s1LL, &cur_s2LR, &cur_s3RL, &cur_s4RR)) < 0)
+                if(( ret = updateRFPowerSwitches(new_s, new_sn, &cur_s1LL, &cur_s2LR, &cur_s3RL, &cur_s4RR)) < 0)
                 {
 
                     PowerSwitchesSP.s = IPS_ALERT;
@@ -938,11 +1009,11 @@ bool RoboFocus::ISNewSwitch (const char *dev, const char *name, ISState *states,
     return INDI::Focuser::ISNewSwitch(dev, name, states, names, n);
 }
 
-bool RoboFocus::ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n)
+bool RoboFocus::ISNewNumber (const char * dev, const char * name, double values[], char * names[], int n)
 {
-    int nset=0,i=0;
+    int nset = 0, i = 0;
 
-    if(strcmp(dev,getDeviceName())==0)
+    if(strcmp(dev, getDeviceName()) == 0)
     {
 
         if (!strcmp (name, SettingsNP.name))
@@ -956,7 +1027,7 @@ bool RoboFocus::ISNewNumber (const char *dev, const char *name, double values[],
             for (nset = i = 0; i < n; i++)
             {
                 /* Find numbers with the passed names in the SettingsNP property */
-                INumber *eqp = IUFindNumber (&SettingsNP, names[i]);
+                INumber * eqp = IUFindNumber (&SettingsNP, names[i]);
 
                 /* If the number found is  (SettingsN[0]) then process it */
                 if (eqp == &SettingsN[0])
@@ -964,12 +1035,14 @@ bool RoboFocus::ISNewNumber (const char *dev, const char *name, double values[],
 
                     new_duty = (values[i]);
                     nset += new_duty >= 0 && new_duty <= 255;
-                } else if  (eqp == &SettingsN[1])
+                }
+                else if  (eqp == &SettingsN[1])
                 {
 
                     new_delay = (values[i]);
                     nset += new_delay >= 0 && new_delay <= 255;
-                } else if  (eqp == &SettingsN[2])
+                }
+                else if  (eqp == &SettingsN[2])
                 {
 
                     new_ticks = (values[i]);
@@ -987,7 +1060,7 @@ bool RoboFocus::ISNewNumber (const char *dev, const char *name, double values[],
 
                 IDSetNumber(&SettingsNP, NULL);
 
-                if(( ret= updateRFMotorSettings(&new_duty, &new_delay, &new_ticks))< 0)
+                if(( ret = updateRFMotorSettings(&new_duty, &new_delay, &new_ticks)) < 0)
                 {
 
                     IDSetNumber(&SettingsNP, "Changing to new settings failed");
@@ -995,14 +1068,15 @@ bool RoboFocus::ISNewNumber (const char *dev, const char *name, double values[],
                 }
 
                 currentDuty = new_duty ;
-                currentDelay= new_delay ;
-                currentTicks= new_ticks ;
+                currentDelay = new_delay ;
+                currentTicks = new_ticks ;
 
                 SettingsNP.s = IPS_OK;
                 IDSetNumber(&SettingsNP, "Motor settings are now  %3.0f %3.0f %3.0f", currentDuty, currentDelay, currentTicks);
                 return true;
 
-            } else
+            }
+            else
             {
                 /* Set property state to idle */
                 SettingsNP.s = IPS_IDLE;
@@ -1017,15 +1091,16 @@ bool RoboFocus::ISNewNumber (const char *dev, const char *name, double values[],
 
             double new_back = 0 ;
             int nset = 0;
-            int ret= -1 ;
+            int ret = -1 ;
 
             for (nset = i = 0; i < n; i++)
             {
                 /* Find numbers with the passed names in the SetBacklashNP property */
-                INumber *eqp = IUFindNumber (&SetBacklashNP, names[i]);
+                INumber * eqp = IUFindNumber (&SetBacklashNP, names[i]);
 
                 /* If the number found is SetBacklash (SetBacklashN[0]) then process it */
-                if (eqp == &SetBacklashN[0]){
+                if (eqp == &SetBacklashN[0])
+                {
 
                     new_back = (values[i]);
 
@@ -1033,13 +1108,15 @@ bool RoboFocus::ISNewNumber (const char *dev, const char *name, double values[],
                     nset += new_back >= -0xff && new_back <= 0xff;
                 }
 
-                if (nset == 1) {
+                if (nset == 1)
+                {
 
                     /* Set the robofocus state to BUSY */
                     SetBacklashNP.s = IPS_BUSY;
                     IDSetNumber(&SetBacklashNP, NULL);
 
-                    if(( ret= updateRFBacklash(&new_back)) < 0) {
+                    if(( ret = updateRFBacklash(&new_back)) < 0)
+                    {
 
                         SetBacklashNP.s = IPS_IDLE;
                         IDSetNumber(&SetBacklashNP, "Setting new backlash failed.");
@@ -1047,11 +1124,13 @@ bool RoboFocus::ISNewNumber (const char *dev, const char *name, double values[],
                         return false ;
                     }
 
-                    currentSetBacklash=  new_back ;
+                    currentSetBacklash =  new_back ;
                     SetBacklashNP.s = IPS_OK;
                     IDSetNumber(&SetBacklashNP, "Backlash is now  %3.0f", currentSetBacklash) ;
                     return true;
-                } else {
+                }
+                else
+                {
 
                     SetBacklashNP.s = IPS_IDLE;
                     IDSetNumber(&SetBacklashNP, "Need exactly one parameter.");
@@ -1070,7 +1149,7 @@ bool RoboFocus::ISNewNumber (const char *dev, const char *name, double values[],
             for (nset = i = 0; i < n; i++)
             {
                 /* Find numbers with the passed names in the MinMaxPositionNP property */
-                INumber *mmpp = IUFindNumber (&MinMaxPositionNP, names[i]);
+                INumber * mmpp = IUFindNumber (&MinMaxPositionNP, names[i]);
 
                 /* If the number found is  (MinMaxPositionN[0]) then process it */
                 if (mmpp == &MinMaxPositionN[0])
@@ -1078,7 +1157,8 @@ bool RoboFocus::ISNewNumber (const char *dev, const char *name, double values[],
 
                     new_min = (values[i]);
                     nset += new_min >= 1 && new_min <= 65000;
-                } else if  (mmpp == &MinMaxPositionN[1])
+                }
+                else if  (mmpp == &MinMaxPositionN[1])
                 {
 
                     new_max = (values[i]);
@@ -1094,14 +1174,16 @@ bool RoboFocus::ISNewNumber (const char *dev, const char *name, double values[],
                 MinMaxPositionNP.s = IPS_BUSY;
 
                 currentMinPosition = new_min ;
-                currentMaxPosition= new_max ;
+                currentMaxPosition = new_max ;
 
 
                 MinMaxPositionNP.s = IPS_OK;
                 IDSetNumber(&MinMaxPositionNP, "Minimum and Maximum settings are now  %3.0f %3.0f", currentMinPosition, currentMaxPosition);
                 return true;
 
-            } else {
+            }
+            else
+            {
                 /* Set property state to idle */
                 MinMaxPositionNP.s = IPS_IDLE;
 
@@ -1121,7 +1203,7 @@ bool RoboFocus::ISNewNumber (const char *dev, const char *name, double values[],
             for (nset = i = 0; i < n; i++)
             {
                 /* Find numbers with the passed names in the MinMaxPositionNP property */
-                INumber *mmpp = IUFindNumber (&MaxTravelNP, names[i]);
+                INumber * mmpp = IUFindNumber (&MaxTravelNP, names[i]);
 
                 /* If the number found is  (MaxTravelN[0]) then process it */
                 if (mmpp == &MaxTravelN[0])
@@ -1132,23 +1214,26 @@ bool RoboFocus::ISNewNumber (const char *dev, const char *name, double values[],
                 }
             }
             /* Did we process the one number? */
-            if (nset == 1) {
+            if (nset == 1)
+            {
 
                 IDSetNumber(&MinMaxPositionNP, NULL);
 
-                if(( ret= updateRFMaxPosition(&new_maxt))< 0 )
+                if(( ret = updateRFMaxPosition(&new_maxt)) < 0 )
                 {
                     MaxTravelNP.s = IPS_IDLE;
                     IDSetNumber(&MaxTravelNP, "Changing to new maximum travel failed");
                     return false ;
                 }
 
-                currentMaxTravel=  new_maxt ;
+                currentMaxTravel =  new_maxt ;
                 MaxTravelNP.s = IPS_OK;
                 IDSetNumber(&MaxTravelNP, "Maximum travel is now  %3.0f", currentMaxTravel) ;
                 return true;
 
-            } else {
+            }
+            else
+            {
                 /* Set property state to idle */
 
                 MaxTravelNP.s = IPS_IDLE;
@@ -1164,12 +1249,12 @@ bool RoboFocus::ISNewNumber (const char *dev, const char *name, double values[],
 
             double new_apos = 0 ;
             int nset = 0;
-            int ret= -1 ;
+            int ret = -1 ;
 
             for (nset = i = 0; i < n; i++)
             {
                 /* Find numbers with the passed names in the SetRegisterPositionNP property */
-                INumber *srpp = IUFindNumber (&SetRegisterPositionNP, names[i]);
+                INumber * srpp = IUFindNumber (&SetRegisterPositionNP, names[i]);
 
                 /* If the number found is SetRegisterPosition (SetRegisterPositionN[0]) then process it */
                 if (srpp == &SetRegisterPositionN[0])
@@ -1196,13 +1281,13 @@ bool RoboFocus::ISNewNumber (const char *dev, const char *name, double values[],
                     SetRegisterPositionNP.s = IPS_BUSY;
                     IDSetNumber(&SetRegisterPositionNP, NULL);
 
-                    if(( ret= updateRFSetPosition(&new_apos)) < 0)
+                    if(( ret = updateRFSetPosition(&new_apos)) < 0)
                     {
 
                         SetRegisterPositionNP.s = IPS_OK;
                         IDSetNumber(&SetRegisterPositionNP, "Read out of the set position to %3d failed. Trying to recover the position", ret);
 
-                        if((ret= updateRFPosition( &currentPosition)) < 0)
+                        if((ret = updateRFPosition( &currentPosition)) < 0)
                         {
 
                             FocusAbsPosNP.s = IPS_ALERT;
@@ -1221,7 +1306,7 @@ bool RoboFocus::ISNewNumber (const char *dev, const char *name, double values[],
                         /* We have to leave here, because new_apos is not set */
                         return true ;
                     }
-                    currentPosition= new_apos ;
+                    currentPosition = new_apos ;
                     SetRegisterPositionNP.s = IPS_OK;
                     IDSetNumber(&SetRegisterPositionNP, "Robofocus register set to %5.0f", currentPosition);
 
@@ -1230,7 +1315,8 @@ bool RoboFocus::ISNewNumber (const char *dev, const char *name, double values[],
 
                     return true ;
 
-                } else
+                }
+                else
                 {
 
                     SetRegisterPositionNP.s = IPS_IDLE;
@@ -1239,7 +1325,7 @@ bool RoboFocus::ISNewNumber (const char *dev, const char *name, double values[],
                     return false;
                 }
 
-                if((ret= updateRFPosition(&currentPosition)) < 0)
+                if((ret = updateRFPosition(&currentPosition)) < 0)
                 {
 
                     FocusAbsPosNP.s = IPS_ALERT;
@@ -1269,12 +1355,12 @@ bool RoboFocus::ISNewNumber (const char *dev, const char *name, double values[],
 void RoboFocus::GetFocusParams ()
 {
     int ret = -1 ;
-    int cur_s1LL=0 ;
-    int cur_s2LR=0 ;
-    int cur_s3RL=0 ;
-    int cur_s4RR=0 ;
+    int cur_s1LL = 0 ;
+    int cur_s2LR = 0 ;
+    int cur_s3RL = 0 ;
+    int cur_s4RR = 0 ;
 
-    if((ret= updateRFPosition(&currentPosition)) < 0)
+    if((ret = updateRFPosition(&currentPosition)) < 0)
     {
         FocusAbsPosNP.s = IPS_ALERT;
         DEBUGF(INDI::Logger::DBG_ERROR, "Unknown error while reading  Robofocus position: %d", ret);
@@ -1285,7 +1371,7 @@ void RoboFocus::GetFocusParams ()
     FocusAbsPosNP.s = IPS_OK;
     IDSetNumber(&FocusAbsPosNP, NULL);
 
-    if(( ret= updateRFTemperature(&currentTemperature)) < 0)
+    if(( ret = updateRFTemperature(&currentTemperature)) < 0)
     {
         TemperatureNP.s = IPS_ALERT;
         DEBUG(INDI::Logger::DBG_ERROR, "Unknown error while reading Robofocus temperature.");
@@ -1296,8 +1382,8 @@ void RoboFocus::GetFocusParams ()
     TemperatureNP.s = IPS_OK;
     IDSetNumber(&TemperatureNP, NULL);
 
-    currentBacklash= BACKLASH_READOUT ;
-    if(( ret= updateRFBacklash(&currentBacklash)) < 0)
+    currentBacklash = BACKLASH_READOUT ;
+    if(( ret = updateRFBacklash(&currentBacklash)) < 0)
     {
         SetBacklashNP.s = IPS_ALERT;
         DEBUG(INDI::Logger::DBG_ERROR, "Unknown error while reading Robofocus backlash.");
@@ -1307,9 +1393,9 @@ void RoboFocus::GetFocusParams ()
     SetBacklashNP.s = IPS_OK;
     IDSetNumber(&SetBacklashNP, NULL);
 
-    currentDuty= currentDelay= currentTicks=0 ;
+    currentDuty = currentDelay = currentTicks = 0 ;
 
-    if(( ret= updateRFMotorSettings(&currentDuty, &currentDelay, &currentTicks )) < 0)
+    if(( ret = updateRFMotorSettings(&currentDuty, &currentDelay, &currentTicks )) < 0)
     {
         SettingsNP.s = IPS_ALERT;
         DEBUG(INDI::Logger::DBG_ERROR, "Unknown error while reading Robofocus motor settings.");
@@ -1320,7 +1406,7 @@ void RoboFocus::GetFocusParams ()
     SettingsNP.s = IPS_OK;
     IDSetNumber(&SettingsNP, NULL);
 
-    if(( ret= updateRFPowerSwitches(-1, -1,  &cur_s1LL, &cur_s2LR, &cur_s3RL, &cur_s4RR)) < 0)
+    if(( ret = updateRFPowerSwitches(-1, -1,  &cur_s1LL, &cur_s2LR, &cur_s3RL, &cur_s4RR)) < 0)
     {
         PowerSwitchesSP.s = IPS_ALERT;
         DEBUG(INDI::Logger::DBG_ERROR, "Unknown error while reading Robofocus power switch settings.");
@@ -1328,34 +1414,34 @@ void RoboFocus::GetFocusParams ()
         return;
     }
 
-    PowerSwitchesS[0].s= PowerSwitchesS[1].s= PowerSwitchesS[2].s= PowerSwitchesS[3].s= ISS_OFF ;
+    PowerSwitchesS[0].s = PowerSwitchesS[1].s = PowerSwitchesS[2].s = PowerSwitchesS[3].s = ISS_OFF ;
 
-    if(cur_s1LL== ISS_ON)
+    if(cur_s1LL == ISS_ON)
     {
 
-        PowerSwitchesS[0].s= ISS_ON ;
+        PowerSwitchesS[0].s = ISS_ON ;
     }
-    if(cur_s2LR== ISS_ON)
+    if(cur_s2LR == ISS_ON)
     {
 
-        PowerSwitchesS[1].s= ISS_ON ;
+        PowerSwitchesS[1].s = ISS_ON ;
     }
-    if(cur_s3RL== ISS_ON)
+    if(cur_s3RL == ISS_ON)
     {
 
-        PowerSwitchesS[2].s= ISS_ON ;
+        PowerSwitchesS[2].s = ISS_ON ;
     }
-    if(cur_s4RR== ISS_ON)
+    if(cur_s4RR == ISS_ON)
     {
 
-        PowerSwitchesS[3].s= ISS_ON ;
+        PowerSwitchesS[3].s = ISS_ON ;
     }
     PowerSwitchesSP.s = IPS_OK ;
     IDSetSwitch(&PowerSwitchesSP, NULL);
 
 
-    currentMaxTravel= MAXTRAVEL_READOUT;
-    if(( ret= updateRFMaxPosition(&currentMaxTravel)) < 0)
+    currentMaxTravel = MAXTRAVEL_READOUT;
+    if(( ret = updateRFMaxPosition(&currentMaxTravel)) < 0)
     {
         MaxTravelNP.s = IPS_ALERT;
         DEBUG(INDI::Logger::DBG_ERROR, "Unknown error while reading Robofocus maximum travel");
@@ -1369,7 +1455,7 @@ void RoboFocus::GetFocusParams ()
 
 IPState RoboFocus::MoveAbsFocuser(uint32_t targetTicks)
 {
-    int ret= -1 ;
+    int ret = -1 ;
     targetPos = targetTicks;
 
     if (targetTicks < FocusAbsPosN[0].min || targetTicks > FocusAbsPosN[0].max)
@@ -1378,7 +1464,7 @@ IPState RoboFocus::MoveAbsFocuser(uint32_t targetTicks)
         return IPS_ALERT;
     }
 
-    if(( ret= updateRFPositionAbsolute(targetPos)) < 0)
+    if(( ret = updateRFPositionAbsolute(targetPos)) < 0)
     {
 
         DEBUGF(INDI::Logger::DBG_DEBUG, "Read out of the absolute movement failed %3d", ret);
@@ -1395,7 +1481,7 @@ IPState RoboFocus::MoveRelFocuser(FocusDirection dir, uint32_t ticks)
     return MoveAbsFocuser(FocusAbsPosN[0].value + (ticks * (dir == FOCUS_INWARD ? -1 : 1)));
 }
 
-bool RoboFocus::saveConfigItems(FILE *fp)
+bool RoboFocus::saveConfigItems(FILE * fp)
 {
     IUSaveConfigNumber(fp, &SettingsNP);
     IUSaveConfigNumber(fp, &SetBacklashNP);
@@ -1408,8 +1494,8 @@ void RoboFocus::TimerHit()
     if (isConnected() == false)
         return;
 
-    double prevPos=currentPosition;
-    double newPos=0;
+    double prevPos = currentPosition;
+    double newPos = 0;
 
     if (FocusAbsPosNP.s == IPS_OK || FocusAbsPosNP.s == IPS_IDLE)
     {
@@ -1423,21 +1509,21 @@ void RoboFocus::TimerHit()
     }
     else if (FocusAbsPosNP.s == IPS_BUSY)
     {
-        float newPos=0;
-        int nbytes_read=0;
+        float newPos = 0;
+        int nbytes_read = 0;
         char rf_cmd[RF_MAX_CMD] = {0};
 
 
         //nbytes_read= ReadUntilComplete(rf_cmd, RF_TIMEOUT) ;
 
-        nbytes_read= ReadResponse(rf_cmd);
+        nbytes_read = ReadResponse(rf_cmd);
 
         rf_cmd[ nbytes_read - 1] = 0 ;
 
         if (nbytes_read != 9 || (sscanf(rf_cmd, "FD0%5f", &newPos) <= 0))
         {
             DEBUGF(INDI::Logger::DBG_WARNING, "Bogus position: (%#02X %#02X %#02X %#02X %#02X %#02X %#02X %#02X %#02X) - Bytes read: %d", rf_cmd[0], rf_cmd[1], rf_cmd[2], rf_cmd[3],
-                    rf_cmd[4], rf_cmd[5], rf_cmd[6], rf_cmd[7], rf_cmd[8], nbytes_read);
+                   rf_cmd[4], rf_cmd[5], rf_cmd[6], rf_cmd[7], rf_cmd[8], nbytes_read);
             timerID = SetTimer(POLLMS);
             return;
         }
@@ -1478,7 +1564,7 @@ bool RoboFocus::AbortFocuser()
     DEBUG(INDI::Logger::DBG_DEBUG, "Aborting focuser...");
 
     int nbytes_written;
-    const char *buf = "\r";
+    const char * buf = "\r";
     if (tty_write(PortFD, buf, strlen(buf), &nbytes_written) == TTY_OK)
         return true;
     else

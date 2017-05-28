@@ -24,33 +24,85 @@
 #ifndef DSC_H
 #define DSC_H
 
+#include <libnova.h>
+
 #include "indibase/inditelescope.h"
+#include <alignment/AlignmentSubsystemForDrivers.h>
 
-class DSC : public INDI::Telescope
+typedef struct SyncData
 {
-public:
-    DSC();
-    virtual ~DSC();
+    double lst, jd;
+    double targetRA, targetDEC;
+    double telescopeRA, telescopeDEC;
+    double deltaRA, deltaDEC;
+    unsigned long targetRAEncoder, targetDECEncoder;
+    unsigned long telescopeRAEncoder, telescopeDECEncoder;
+    long deltaRAEncoder, deltaDECEncoder;
+} SyncData;
 
-    virtual bool ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n);
+class DSC : public INDI::Telescope, INDI::AlignmentSubsystem::AlignmentSubsystemForDrivers
+{
+    public:
+        DSC();
+        virtual ~DSC();
 
-protected:
-    virtual const char *getDefaultName();
-    virtual bool Handshake();
+        virtual bool ISNewText (const char * dev, const char * name, char * texts[], char * names[], int n);
+        virtual bool ISNewNumber (const char * dev, const char * name, double values[], char * names[], int n);
+        virtual bool ISNewSwitch (const char * dev, const char * name, ISState * states, char * names[], int n);
 
-    virtual bool initProperties();
-    virtual bool updateProperties();
-    virtual bool saveConfigItems(FILE *fp);
-    virtual bool ReadScopeStatus();
+    protected:
 
-private:
-    INumber EncoderN[2];
-    INumberVectorProperty EncoderNP;
-    enum { RA_ENCODER, DE_ENCODER };
+        virtual const char * getDefaultName();
+        virtual bool Handshake();
 
-    INumber OffsetN[4];
-    INumberVectorProperty OffsetNP;
-    enum { OFFSET_RA_SCALE, OFFSET_RA_OFFSET, OFFSET_DE_SCALE, OFFSET_DE_OFFSET };
+        virtual bool initProperties();
+        virtual bool updateProperties();
+        virtual bool saveConfigItems(FILE * fp);
+        virtual bool ReadScopeStatus();
+
+        virtual bool Sync(double ra, double dec) override;
+        virtual bool updateLocation(double latitude, double longitude, double elevation) override;
+
+        virtual void simulationTriggered(bool enable) override;
+
+    private:
+
+        ln_equ_posn TelescopeEquatorialToSky();
+        ln_equ_posn TelescopeHorizontalToSky();
+
+        INumber EncoderN[4];
+        INumberVectorProperty EncoderNP;
+        enum { AXIS1_ENCODER, AXIS2_ENCODER, AXIS1_RAW_ENCODER, AXIS2_RAW_ENCODER };
+
+        INumber AxisSettingsN[4];
+        INumberVectorProperty AxisSettingsNP;
+        //enum { AXIS1_TICKS, AXIS2_TICKS};
+        enum { AXIS1_TICKS, AXIS1_DEGREE_OFFSET, AXIS2_TICKS, AXIS2_DEGREE_OFFSET};
+
+        ISwitch AxisRangeS[2];
+        ISwitchVectorProperty AxisRangeSP;
+        enum { AXIS_FULL_STEP, AXIS_HALF_STEP };
+
+        ISwitch ReverseS[2];
+        ISwitchVectorProperty ReverseSP;
+
+        ISwitch MountTypeS[2];
+        ISwitchVectorProperty MountTypeSP;
+        enum { MOUNT_EQUATORIAL, MOUNT_ALTAZ };
+
+        //INumber EncoderOffsetN[6];
+        //INumberVectorProperty EncoderOffsetNP;
+        //enum { OFFSET_AXIS1_SCALE, OFFSET_AXIS1_OFFSET, AXIS1_DEGREE_OFFSET, OFFSET_AXIS2_SCALE, OFFSET_AXIS2_OFFSET, AXIS2_DEGREE_OFFSET };
+
+        // Simulation Only
+        INumber SimEncoderN[2];
+        INumberVectorProperty SimEncoderNP;
+
+        ln_lnlat_posn observer;
+        ln_hrz_posn encoderHorizontalCoordinates;
+        ln_equ_posn encoderEquatorialCoordinates;
+
+        SyncData syncdata, syncdata2;
 };
 
 #endif

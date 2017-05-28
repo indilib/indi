@@ -7,7 +7,7 @@ Standards-Version: 3.9.1
 
 Package: indi-asi
 Architecture: any
-Depends: ${shlibs:Depends}, ${misc:Depends}, libindi1
+Depends: ${shlibs:Depends}, ${misc:Depends}, libindi1, asi-common
 conflicts: indi-asicam
 replaces: indi-asicam
 Description: INDI Driver for ZWO Optics ASI cameras

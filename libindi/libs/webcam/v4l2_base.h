@@ -159,6 +159,8 @@ class V4L2_Base
 
         void findMinMax();
 
+        int enumeratedInputs;
+        int enumeratedCaptureFormats;
 
         /* Frame rate */
         int stdsetframerate(struct v4l2_fract frate, char * errmsg);

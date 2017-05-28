@@ -276,7 +276,7 @@ double anglediff(double a, double b){
     b = fmod(b,360.0);
     d = fmod(a-b+360.0, 360.0);
     if (d > 180) d = 360.0 - d;
-    return abs(d)*((a - b >= 0 && a - b <= 180) || (a - b <=-180 && a- b>= -360) ? 1 : -1);
+    return std::abs(d)*((a - b >= 0 && a - b <= 180) || (a - b <=-180 && a- b>= -360) ? 1 : -1);
 }
 
 // TODO: Make adjustment for the approx time it takes to slew to the given pos.
@@ -369,8 +369,9 @@ bool NexStarEvo::initProperties()
     IUFillSwitch(&SlewRateS[SLEW_CENTERING], "SLEW_CENTERING", "Centering", ISS_OFF);
     IUFillSwitch(&SlewRateS[SLEW_FIND], "SLEW_FIND", "Find", ISS_OFF);
     IUFillSwitch(&SlewRateS[SLEW_MAX], "SLEW_MAX", "Max", ISS_ON);
-    IUFillSwitchVector(&SlewRateSP, SlewRateS, 4, getDeviceName(), "SLEWMODE", "Slew Rate", MOTION_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
-
+    // Switch to slew rate switch name as defined in telescope_simulator
+    // IUFillSwitchVector(&SlewRateSP, SlewRateS, 4, getDeviceName(), "SLEWMODE", "Slew Rate", MOTION_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+    IUFillSwitchVector(&SlewRateSP, SlewRateS, 4, getDeviceName(), "TELESCOPE_SLEW_RATE", "Slew Rate", MOTION_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
     TrackState=SCOPE_IDLE;
 
     // We don't want serial port for now
@@ -793,7 +794,7 @@ void NexStarEvo::TimerHit()
                         scope.GetALT()/ STEPS_PER_DEGREE,
                         scope.GetAZ()/ STEPS_PER_DEGREE);
                 
-                if (abs(azRate) > STEPS_PER_REVOLUTION/2) {
+                if (std::abs(azRate) > STEPS_PER_REVOLUTION/2) {
                     // Crossing the meridian. AZ skips from 350+ to 0+
                     // Correct for wrap-around
                     azRate += STEPS_PER_REVOLUTION;

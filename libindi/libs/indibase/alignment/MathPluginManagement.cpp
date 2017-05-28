@@ -55,7 +55,7 @@ void MathPluginManagement::ProcessTextProperties(Telescope * pTelescope, const c
     DEBUGFDEVICE(pTelescope->getDeviceName(), INDI::Logger::DBG_DEBUG, "ProcessTextProperties - name(%s)", name);
     if (strcmp(name, AlignmentSubsystemCurrentMathPluginV.name) == 0)
     {
-        AlignmentSubsystemCurrentMathPluginV.s=IPS_OK;
+        AlignmentSubsystemCurrentMathPluginV.s = IPS_OK;
         IUUpdateText(&AlignmentSubsystemCurrentMathPluginV, texts, names, n);
 
         if (0 != strcmp(AlignmentSubsystemMathPlugins.get()[0].label, AlignmentSubsystemCurrentMathPlugin.text))
@@ -246,11 +246,18 @@ void MathPluginManagement::ProcessSwitchProperties(Telescope * pTelescope, const
     }
     else if (strcmp(name, AlignmentSubsystemActiveV.name) == 0)
     {
-        AlignmentSubsystemActiveV.s=IPS_OK;
+        AlignmentSubsystemActiveV.s = IPS_OK;
         if (0 == IUUpdateSwitch(&AlignmentSubsystemActiveV, states, names, n))
             //  Update client
             IDSetSwitch(&AlignmentSubsystemActiveV, NULL);
     }
+}
+
+void MathPluginManagement::SetAlignmentSubsystemActive(bool enable)
+{
+    AlignmentSubsystemActive.s = enable ? ISS_ON : ISS_OFF;
+    AlignmentSubsystemActiveV.s = IPS_OK;
+    IDSetSwitch(&AlignmentSubsystemActiveV, NULL);
 }
 
 void MathPluginManagement::SaveConfigProperties(FILE * fp)

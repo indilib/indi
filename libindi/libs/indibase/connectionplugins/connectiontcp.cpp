@@ -48,7 +48,7 @@ TCP::~TCP()
 
 bool TCP::ISNewText (const char * dev, const char * name, char * texts[], char * names[], int n)
 {
-    if(!strcmp(dev,device->getDeviceName()))
+    if(!strcmp(dev, device->getDeviceName()))
     {
         // TCP Server settings
         if (!strcmp(name, AddressTP.name))
@@ -84,7 +84,7 @@ bool TCP::Connect()
 
         struct timeval ts;
         ts.tv_sec = SOCKET_TIMEOUT;
-        ts.tv_usec=0;
+        ts.tv_usec = 0;
 
         if (sockfd != -1)
             close(sockfd);
@@ -109,17 +109,17 @@ bool TCP::Connect()
         }
 
         // Connect to the mount
-        if ( (ret = ::connect (sockfd,(struct sockaddr *)&serv_addr,sizeof(serv_addr))) < 0)
+        if ( (ret = ::connect (sockfd, (struct sockaddr *)&serv_addr, sizeof(serv_addr))) < 0)
         {
             DEBUGF(INDI::Logger::DBG_ERROR, "Failed to connect to mount %s@%s: %s.", hostname, port, strerror(errno));
             close(sockfd);
-            sockfd=-1;
+            sockfd = -1;
             return false;
         }
 
         // Set the socket receiving and sending timeouts
-        setsockopt(sockfd, SOL_SOCKET, SO_RCVTIMEO, (char *)&ts,sizeof(struct timeval));
-        setsockopt(sockfd, SOL_SOCKET, SO_SNDTIMEO, (char *)&ts,sizeof(struct timeval));
+        setsockopt(sockfd, SOL_SOCKET, SO_RCVTIMEO, (char *)&ts, sizeof(struct timeval));
+        setsockopt(sockfd, SOL_SOCKET, SO_SNDTIMEO, (char *)&ts, sizeof(struct timeval));
     }
 
     PortFD = sockfd;
@@ -135,7 +135,7 @@ bool TCP::Connect()
     else
         DEBUG(INDI::Logger::DBG_DEBUG, "Handshake failed.");
 
-    return true;
+    return rc;
 }
 
 bool TCP::Disconnect()

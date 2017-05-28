@@ -39,13 +39,13 @@ const char * V4L2_Decoder::getName()
 V4L2_Decode::V4L2_Decode()
 {
     decoder_list.push_back(new V4L2_Builtin_Decoder());
-    default_decoder=decoder_list.at(0);
+    default_decoder = decoder_list.at(0);
 }
 
 V4L2_Decode::~V4L2_Decode()
 {
     std::vector<V4L2_Decoder *>::iterator it;
-    for ( it=decoder_list.begin() ; it != decoder_list.end(); it++ )
+    for ( it = decoder_list.begin() ; it != decoder_list.end(); it++ )
     {
         delete(*it);
     }
@@ -67,7 +67,7 @@ V4L2_Decoder * V4L2_Decode::getDefaultDecoder()
 };
 void V4L2_Decode::setDecoder(V4L2_Decoder * decoder)
 {
-    current_decoder=decoder;
+    current_decoder = decoder;
 };
 
 

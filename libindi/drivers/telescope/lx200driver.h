@@ -21,26 +21,26 @@
 #ifndef LX200DRIVER_H
 #define LX200DRIVER_H
 
-  /* Slew speeds */
+/* Slew speeds */
 enum TSlew { LX200_SLEW_MAX, LX200_SLEW_FIND, LX200_SLEW_CENTER, LX200_SLEW_GUIDE};
-  /* Alignment modes */
+/* Alignment modes */
 enum TAlign {  LX200_ALIGN_POLAR, LX200_ALIGN_ALTAZ, LX200_ALIGN_LAND };
-  /* Directions */
+/* Directions */
 enum TDirection { LX200_NORTH, LX200_WEST, LX200_EAST, LX200_SOUTH, LX200_ALL};
-  /* Formats of Right Ascension and Declination */
+/* Formats of Right Ascension and Declination */
 enum TFormat { LX200_SHORT_FORMAT, LX200_LONG_FORMAT, LX200_LONGER_FORMAT };
-  /* Time Format */
+/* Time Format */
 enum TTimeFormat { LX200_24, LX200_AM, LX200_PM};
-  /* Focus operation */
+/* Focus operation */
 enum TFocusMotion { LX200_FOCUSIN, LX200_FOCUSOUT };
 enum TFocusSpeed  { LX200_HALTFOCUS = 0, LX200_FOCUSSLOW, LX200_FOCUSFAST};
-  /* Library catalogs */
+/* Library catalogs */
 enum TCatalog { LX200_STAR_C, LX200_DEEPSKY_C};
-  /* Frequency mode */
+/* Frequency mode */
 enum StarCatalog { LX200_STAR, LX200_SAO, LX200_GCVS };
-  /* Deep Sky Catalogs */
+/* Deep Sky Catalogs */
 enum DeepSkyCatalog { LX200_NGC, LX200_IC, LX200_UGC, LX200_CALDWELL, LX200_ARP, LX200_ABELL, LX200_MESSIER_C};
-  /* Mount tracking frequency, in Hz */
+/* Mount tracking frequency, in Hz */
 enum TFreq { LX200_TRACK_SIDEREAL, LX200_TRACK_SOLAR, LX200_TRACK_LUNAR, LX200_TRACK_MANUAL};
 
 #define MaxReticleDutyCycle		15
@@ -95,7 +95,7 @@ enum TFreq { LX200_TRACK_SIDEREAL, LX200_TRACK_SOLAR, LX200_TRACK_LUNAR, LX200_T
 #define disableRaAzPec(fd)				write(fd, "#:QZ-#", 6)
 #define activateAltDecAntiBackSlash(fd)			write(fd, "#$BAdd#", 7)
 #define activateAzRaAntiBackSlash(fd)			write(fd, "#$BZdd#", 7)
-#define SelenographicSync(fd)				write(fd, "#:CL#", 5); 
+#define SelenographicSync(fd)				write(fd, "#:CL#", 5);
 
 #define slewToAltAz(fd)					setStandardProcedure(fd, "#:MA#")
 #define toggleTimeFormat(fd)				write(fd, "#:H#", 4)
@@ -129,44 +129,44 @@ int testAP();*/
 int check_lx200_connection(int fd);
 
 /**************************************************************************
- Get Commands: store data in the supplied buffer. Return 0 on success or -1 on failure 
+ Get Commands: store data in the supplied buffer. Return 0 on success or -1 on failure
  **************************************************************************/
- 
+
 /* Get Double from Sexagisemal */
-int getCommandSexa(int fd, double *value, const char *cmd);
+int getCommandSexa(int fd, double * value, const char * cmd);
 /* Get String */
-int getCommandString(int fd, char *data, const char* cmd);
+int getCommandString(int fd, char * data, const char * cmd);
 /* Get Int */
-int getCommandInt(int fd, int *value, const char* cmd);
+int getCommandInt(int fd, int * value, const char * cmd);
 /* Get tracking frequency */
 int getTrackFreq(int fd, double * value);
 /* Get site Latitude */
-int getSiteLatitude(int fd, int *dd, int *mm);
+int getSiteLatitude(int fd, int * dd, int * mm);
 /* Get site Longitude */
-int getSiteLongitude(int fd, int *ddd, int *mm);
+int getSiteLongitude(int fd, int * ddd, int * mm);
 /* Get Calender data */
-int getCalendarDate(int fd, char *date);
+int getCalendarDate(int fd, char * date);
 /* Get site Name */
-int getSiteName(int fd, char *siteName, int siteNum);
+int getSiteName(int fd, char * siteName, int siteNum);
 /* Get Home Search Status */
-int getHomeSearchStatus(int fd, int *status);
+int getHomeSearchStatus(int fd, int * status);
 /* Get OTA Temperature */
 int getOTATemp(int fd, double * value);
 /* Get time format: 12 or 24 */
-int getTimeFormat(int fd, int *format);
+int getTimeFormat(int fd, int * format);
 /* Get RA, DEC from Sky Commander controller */
-int updateSkyCommanderCoord(int fd, double *ra, double *dec);
+int updateSkyCommanderCoord(int fd, double * ra, double * dec);
 /* Get RA, DEC from Intelliscope/SkyWizard controllers */
-int updateIntelliscopeCoord (int fd, double *ra, double *dec);
+int updateIntelliscopeCoord (int fd, double * ra, double * dec);
 
 /**************************************************************************
  Set Commands
  **************************************************************************/
 
 /* Set Int */
-int setCommandInt(int fd, int data, const char *cmd);
+int setCommandInt(int fd, int data, const char * cmd);
 /* Set Sexigesimal */
-int setCommandXYZ(int fd, int x, int y, int z, const char *cmd);
+int setCommandXYZ(int fd, int x, int y, int z, const char * cmd);
 /* Common routine for Set commands */
 int setStandardProcedure(int fd, const char * writeData);
 /* Set Slew Mode */
@@ -212,7 +212,7 @@ int setMaxElevationLimit(int fd, int max);
 /* Slew to the selected coordinates */
 int Slew(int fd);
 /* Synchronize to the selected coordinates and return the matching object if any */
-int Sync(int fd, char *matchedObject);
+int Sync(int fd, char * matchedObject);
 /* Abort slew in all axes */
 int abortSlew(int fd);
 /* Move into one direction, two valid directions can be stacked */
@@ -241,6 +241,6 @@ int selectCatalogObject(int fd, int catalog, int NNNN);
 /* Select a sub catalog */
 int selectSubCatalog(int fd, int catalog, int subCatalog);
 /* Set Debug */
-void setLX200Debug(const char *deviceName, unsigned int debug_level);
+void setLX200Debug(const char * deviceName, unsigned int debug_level);
 
 #endif

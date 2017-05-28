@@ -77,7 +77,7 @@ class Interface
 
         const char * getDeviceName();
         std::function<bool()> Handshake;
-        INDI::DefaultDevice * device=NULL;
+        INDI::DefaultDevice * device = NULL;
 };
 
 }

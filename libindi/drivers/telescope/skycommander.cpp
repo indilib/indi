@@ -34,45 +34,45 @@
 // We declare an auto pointer to SkyCommander.
 std::unique_ptr<SkyCommander> skycommander(new SkyCommander());
 
-void ISGetProperties(const char *dev)
+void ISGetProperties(const char * dev)
 {
-        skycommander->ISGetProperties(dev);
+    skycommander->ISGetProperties(dev);
 }
 
-void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int num)
+void ISNewSwitch(const char * dev, const char * name, ISState * states, char * names[], int num)
 {
-        skycommander->ISNewSwitch(dev, name, states, names, num);
+    skycommander->ISNewSwitch(dev, name, states, names, num);
 }
 
-void ISNewText(	const char *dev, const char *name, char *texts[], char *names[], int num)
+void ISNewText(	const char * dev, const char * name, char * texts[], char * names[], int num)
 {
-        skycommander->ISNewText(dev, name, texts, names, num);
+    skycommander->ISNewText(dev, name, texts, names, num);
 }
 
-void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int num)
+void ISNewNumber(const char * dev, const char * name, double values[], char * names[], int num)
 {
-        skycommander->ISNewNumber(dev, name, values, names, num);
+    skycommander->ISNewNumber(dev, name, values, names, num);
 }
 
-void ISNewBLOB (const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[], char *names[], int n)
+void ISNewBLOB (const char * dev, const char * name, int sizes[], int blobsizes[], char * blobs[], char * formats[], char * names[], int n)
 {
-  INDI_UNUSED(dev);
-  INDI_UNUSED(name);
-  INDI_UNUSED(sizes);
-  INDI_UNUSED(blobsizes);
-  INDI_UNUSED(blobs);
-  INDI_UNUSED(formats);
-  INDI_UNUSED(names);
-  INDI_UNUSED(n);
+    INDI_UNUSED(dev);
+    INDI_UNUSED(name);
+    INDI_UNUSED(sizes);
+    INDI_UNUSED(blobsizes);
+    INDI_UNUSED(blobs);
+    INDI_UNUSED(formats);
+    INDI_UNUSED(names);
+    INDI_UNUSED(n);
 }
-void ISSnoopDevice (XMLEle *root)
+void ISSnoopDevice (XMLEle * root)
 {
-   skycommander->ISSnoopDevice(root);
+    skycommander->ISSnoopDevice(root);
 }
 
 SkyCommander::SkyCommander()
-{    
-    SetTelescopeCapability(0,0);
+{
+    SetTelescopeCapability(0, 0);
 }
 
 SkyCommander::~SkyCommander()
@@ -92,7 +92,7 @@ bool SkyCommander::Handshake()
 bool SkyCommander::ReadScopeStatus()
 {
     char CR[1] = { 0x0D };
-    int rc=0, nbytes_read=0, nbytes_written=0;
+    int rc = 0, nbytes_read = 0, nbytes_written = 0;
 
     DEBUGF(INDI::Logger::DBG_DEBUG, "CMD: %#02X", CR[0]);
 
@@ -117,13 +117,13 @@ bool SkyCommander::ReadScopeStatus()
 
     DEBUGF(INDI::Logger::DBG_DEBUG, "RES: %s", coords);
 
-    float RA=0.0, DEC=0.0;
+    float RA = 0.0, DEC = 0.0;
     nbytes_read = sscanf(coords, " %g %g", &RA, &DEC);
 
     if (nbytes_read < 2)
     {
-     DEBUGF(INDI::Logger::DBG_ERROR, "Error in Sky commander number format (%s).", coords);
-     return false;
+        DEBUGF(INDI::Logger::DBG_ERROR, "Error in Sky commander number format (%s).", coords);
+        return false;
     }
 
     char RAStr[64], DecStr[64];

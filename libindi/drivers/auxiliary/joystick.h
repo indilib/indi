@@ -46,50 +46,50 @@ class JoyStickDriver;
 class JoyStick : public INDI::DefaultDevice
 {
     public:
-    JoyStick();
-    virtual ~JoyStick();
+        JoyStick();
+        virtual ~JoyStick();
 
-    virtual bool initProperties();
-    virtual bool updateProperties();
-    virtual void ISGetProperties (const char *dev);
-    virtual bool ISSnoopDevice (XMLEle *root);
-    virtual bool ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n);
+        virtual bool initProperties();
+        virtual bool updateProperties();
+        virtual void ISGetProperties (const char * dev);
+        virtual bool ISSnoopDevice (XMLEle * root);
+        virtual bool ISNewText (const char * dev, const char * name, char * texts[], char * names[], int n);
 
-    static void joystickHelper(int joystick_n, double mag, double angle);
-    static void axisHelper(int axis_n, int value);
-    static void buttonHelper(int button_n, int value);
+        static void joystickHelper(int joystick_n, double mag, double angle);
+        static void axisHelper(int axis_n, int value);
+        static void buttonHelper(int button_n, int value);
 
     protected:
 
-    //  Generic indi device entries
-    bool Connect();
-    bool Disconnect();
-    const char *getDefaultName();
+        //  Generic indi device entries
+        bool Connect();
+        bool Disconnect();
+        const char * getDefaultName();
 
-    bool saveConfigItems(FILE *fp) override;
+        bool saveConfigItems(FILE * fp) override;
 
-    void setupParams();
+        void setupParams();
 
-    void joystickEvent(int joystick_n, double mag, double angle);
-    void axisEvent(int axis_n, int value);
-    void buttonEvent(int button_n, int value);
+        void joystickEvent(int joystick_n, double mag, double angle);
+        void axisEvent(int axis_n, int value);
+        void buttonEvent(int button_n, int value);
 
-    INumberVectorProperty *JoyStickNP;
-    INumber *JoyStickN;
+        INumberVectorProperty * JoyStickNP;
+        INumber * JoyStickN;
 
-    INumberVectorProperty AxisNP;
-    INumber *AxisN;
+        INumberVectorProperty AxisNP;
+        INumber * AxisN;
 
-    ISwitchVectorProperty ButtonSP;
-    ISwitch *ButtonS;
+        ISwitchVectorProperty ButtonSP;
+        ISwitch * ButtonS;
 
-    ITextVectorProperty PortTP; //  A text vector that stores out physical port name
-    IText PortT[1];
+        ITextVectorProperty PortTP; //  A text vector that stores out physical port name
+        IText PortT[1];
 
-    ITextVectorProperty JoystickInfoTP;
-    IText JoystickInfoT[5];
+        ITextVectorProperty JoystickInfoTP;
+        IText JoystickInfoT[5];
 
-    JoyStickDriver *driver;
+        JoyStickDriver * driver;
 };
 
 #endif // INDIJOYSTICK_H

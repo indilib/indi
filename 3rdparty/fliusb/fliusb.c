@@ -57,6 +57,7 @@
 #include <linux/mm.h>
 #include <linux/pagemap.h>
 #include <linux/scatterlist.h>
+//#include <asm/scatterlist.h>
 #endif
 
 #include "fliusb.h"
@@ -72,7 +73,7 @@ MODULE_VERSION("1.3");
 
 #if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 36) && !defined(init_MUTEX)
 #define init_MUTEX(sem)	sema_init(sem, 1)
-#endif 
+#endif
 
 struct mutex fliusb_mutex;
 
@@ -327,8 +328,13 @@ static int fliusb_sg_bulk_read(fliusb_t *dev, unsigned int pipe,
     return -ERESTARTSYS;
 
   down_read(&current->mm->mmap_sem);
-  numpg = get_user_pages(current, current->mm, (size_t)userbuffer & PAGE_MASK,
-			 numpg, 1, 0, dev->usbsg.userpg, NULL);
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 9, 0)
+  numpg = get_user_pages(numpg, 1, 0, dev->usbsg.userpg, NULL);
+#elif LINUX_VERSION_CODE >= KERNEL_VERSION(4, 6, 0)
+  numpg = get_user_pages_remote(current, current->mm, (size_t)userbuffer & PAGE_MASK, numpg, 1, 0, dev->usbsg.userpg, NULL);
+#else
+  numpg = get_user_pages(current, current->mm, (size_t)userbuffer & PAGE_MASK, numpg, 1, 0, dev->usbsg.userpg, NULL);
+#endif
   up_read(&current->mm->mmap_sem);
 
   if (numpg <= 0)
@@ -367,7 +373,7 @@ static int fliusb_sg_bulk_read(fliusb_t *dev, unsigned int pipe,
 
     if ((((size_t)userbuffer + count) & (PAGE_SIZE - 1)) == 0)
       sg_set_page(&dev->usbsg.slist[i], dev->usbsg.userpg[i], PAGE_SIZE, 0);
-    else 
+    else
       sg_set_page(&dev->usbsg.slist[i], dev->usbsg.userpg[i], ((size_t)userbuffer + count) & (PAGE_SIZE - 1), 0);
 
 #endif
@@ -408,7 +414,11 @@ static int fliusb_sg_bulk_read(fliusb_t *dev, unsigned int pipe,
   {
     if (!PageReserved(dev->usbsg.userpg[i]))
       SetPageDirty(dev->usbsg.userpg[i]);
+#if LINUX_VERSION_CODE > KERNEL_VERSION(4, 6, 0)
+    put_page(dev->usbsg.userpg[i]);
+#else
     page_cache_release(dev->usbsg.userpg[i]);
+#endif
   }
 
   return err;
@@ -708,19 +718,19 @@ static int fliusb_ioctl(struct inode *inode, struct file *file,
     if (__copy_from_user(&tmp.strdesc, (fliusb_string_descriptor_t __user *)arg,
 			 sizeof(fliusb_string_descriptor_t)))
       return -EFAULT;
-    
+
     memset(tmp.strdesc.buf, 0, sizeof(tmp.strdesc.buf));
-    
+
     if ((err = usb_string(dev->usbdev, tmp.strdesc.index,
 			tmp.strdesc.buf, sizeof(tmp.strdesc.buf))) < 0)
       FLIUSB_WARN("usb_string() failed: %d", err);
-    
+
     if (__copy_to_user((void *)arg, &tmp.strdesc,
 		     sizeof(fliusb_string_descriptor_t)))
     {
       return -EFAULT;
     }
-    
+
     return 0;
     break;
 

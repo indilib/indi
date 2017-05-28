@@ -88,95 +88,95 @@
 
 class USBFocusV3 : public INDI::Focuser
 {
-public:
-    USBFocusV3();
-    ~USBFocusV3();
+    public:
+        USBFocusV3();
+        ~USBFocusV3();
 
-    typedef enum { FOCUS_HALF_STEP, FOCUS_FULL_STEP } FocusStepMode;
+        typedef enum { FOCUS_HALF_STEP, FOCUS_FULL_STEP } FocusStepMode;
 
-    virtual bool Handshake();
-    virtual bool getControllerStatus();
-    const char * getDefaultName();
-    virtual bool initProperties();
-    virtual bool updateProperties();
-    virtual bool ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n);
-    virtual bool ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n);
-    virtual IPState MoveAbsFocuser(uint32_t ticks);
-    virtual IPState MoveRelFocuser(FocusDirection dir, uint32_t ticks);
-    virtual bool SetFocuserSpeed(int speed);
-    virtual bool AbortFocuser();
-    virtual void TimerHit();
+        virtual bool Handshake();
+        virtual bool getControllerStatus();
+        const char * getDefaultName();
+        virtual bool initProperties();
+        virtual bool updateProperties();
+        virtual bool ISNewNumber (const char * dev, const char * name, double values[], char * names[], int n);
+        virtual bool ISNewSwitch (const char * dev, const char * name, ISState * states, char * names[], int n);
+        virtual IPState MoveAbsFocuser(uint32_t ticks);
+        virtual IPState MoveRelFocuser(FocusDirection dir, uint32_t ticks);
+        virtual bool SetFocuserSpeed(int speed);
+        virtual bool AbortFocuser();
+        virtual void TimerHit();
 
-private:
+    private:
 
-    unsigned int direction; // 0 standard, 1 reverse
-    unsigned int stepmode;  // 0 full steps, 1 half steps
-    unsigned int speed;     // 2 average, 3 slow, 4 ultra slow
-    unsigned int stepsdeg;  // steps per degree for temperature compensation
-    unsigned int tcomp_thr; // temperature compensation threshold
-    unsigned int firmware;  // firmware version
-    unsigned int maxpos;    // maximum step position (0..65535)
+        unsigned int direction; // 0 standard, 1 reverse
+        unsigned int stepmode;  // 0 full steps, 1 half steps
+        unsigned int speed;     // 2 average, 3 slow, 4 ultra slow
+        unsigned int stepsdeg;  // steps per degree for temperature compensation
+        unsigned int tcomp_thr; // temperature compensation threshold
+        unsigned int firmware;  // firmware version
+        unsigned int maxpos;    // maximum step position (0..65535)
 
-    double targetPos, lastPos, lastTemperature;
-    unsigned int currentSpeed;
+        double targetPos, lastPos, lastTemperature;
+        unsigned int currentSpeed;
 
-    struct timeval focusMoveStart;
-    float focusMoveRequest;
+        struct timeval focusMoveStart;
+        float focusMoveRequest;
 
-    bool oneMoreRead(char* response, unsigned int maxlen);
-    
-    void GetFocusParams();
-    bool reset();
-    bool updateStepMode();
-    bool updateRotDir();
-    bool updateTemperature();
-    bool updatePosition();
-    bool updateMaxPos();
-    bool updateTempCompSettings();
-    bool updateTempCompSign();
-    bool updateSpeed();
-    bool updateFWversion();
+        bool oneMoreRead(char * response, unsigned int maxlen);
 
-    bool isMoving();
-    bool Ack();
+        void GetFocusParams();
+        bool reset();
+        bool updateStepMode();
+        bool updateRotDir();
+        bool updateTemperature();
+        bool updatePosition();
+        bool updateMaxPos();
+        bool updateTempCompSettings();
+        bool updateTempCompSign();
+        bool updateSpeed();
+        bool updateFWversion();
 
-    bool MoveFocuser(FocusDirection dir, unsigned int ticks);
-    bool setStepMode(FocusStepMode mode);
-    bool setRotDir(unsigned int dir);
-    bool setMaxPos(unsigned int dir);
-    bool setSpeed(unsigned short drvspeed);
-    bool setAutoTempCompThreshold(unsigned int thr);
-    bool setTemperatureCoefficient(unsigned int coefficient);
-    bool setTempCompSign(unsigned int sign);
-    bool setTemperatureCompensation(bool enable);
-    float CalcTimeLeft(timeval,float);
+        bool isMoving();
+        bool Ack();
 
-    INumber TemperatureN[1];
-    INumberVectorProperty TemperatureNP;
+        bool MoveFocuser(FocusDirection dir, unsigned int ticks);
+        bool setStepMode(FocusStepMode mode);
+        bool setRotDir(unsigned int dir);
+        bool setMaxPos(unsigned int dir);
+        bool setSpeed(unsigned short drvspeed);
+        bool setAutoTempCompThreshold(unsigned int thr);
+        bool setTemperatureCoefficient(unsigned int coefficient);
+        bool setTempCompSign(unsigned int sign);
+        bool setTemperatureCompensation(bool enable);
+        float CalcTimeLeft(timeval, float);
 
-    ISwitch StepModeS[2];
-    ISwitchVectorProperty StepModeSP;
+        INumber TemperatureN[1];
+        INumberVectorProperty TemperatureNP;
 
-    ISwitch RotDirS[2];
-    ISwitchVectorProperty RotDirSP;
+        ISwitch StepModeS[2];
+        ISwitchVectorProperty StepModeSP;
 
-    INumber MaxPositionN[1];
-    INumberVectorProperty MaxPositionNP;
+        ISwitch RotDirS[2];
+        ISwitchVectorProperty RotDirSP;
 
-    INumber TemperatureSettingN[2];
-    INumberVectorProperty TemperatureSettingNP;
+        INumber MaxPositionN[1];
+        INumberVectorProperty MaxPositionNP;
 
-    ISwitch TempCompSignS[2];
-    ISwitchVectorProperty TempCompSignSP;
+        INumber TemperatureSettingN[2];
+        INumberVectorProperty TemperatureSettingNP;
 
-    ISwitch TemperatureCompensateS[2];
-    ISwitchVectorProperty TemperatureCompensateSP;
+        ISwitch TempCompSignS[2];
+        ISwitchVectorProperty TempCompSignSP;
 
-    ISwitch ResetS[1];
-    ISwitchVectorProperty ResetSP;
+        ISwitch TemperatureCompensateS[2];
+        ISwitchVectorProperty TemperatureCompensateSP;
 
-    INumber FWversionN[1];
-    INumberVectorProperty FWversionNP;
+        ISwitch ResetS[1];
+        ISwitchVectorProperty ResetSP;
+
+        INumber FWversionN[1];
+        INumberVectorProperty FWversionNP;
 
 };
 

@@ -35,10 +35,10 @@
 
 LX200Autostar::LX200Autostar() : LX200Generic()
 {
- MaxReticleFlashRate = 9;
+    MaxReticleFlashRate = 9;
 }
 
-const char *LX200Autostar::getDefaultName()
+const char * LX200Autostar::getDefaultName()
 {
     return (const char *) "LX200 Autostar";
 }
@@ -62,9 +62,9 @@ bool LX200Autostar::initProperties()
 
 }
 
-void LX200Autostar::ISGetProperties (const char *dev)
+void LX200Autostar::ISGetProperties (const char * dev)
 {
-    if(dev && strcmp(dev,getDeviceName()))
+    if(dev && strcmp(dev, getDeviceName()))
         return;
 
     LX200Generic::ISGetProperties(dev);
@@ -107,34 +107,34 @@ bool LX200Autostar::updateProperties()
     }
 }
 
-bool LX200Autostar::ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n)
+bool LX200Autostar::ISNewNumber (const char * dev, const char * name, double values[], char * names[], int n)
 {
-   if(strcmp(dev,getDeviceName())==0)
-   {
-       // Focus speed
-       if (!strcmp (name, FocusSpeedNP.name))
-       {
+    if(strcmp(dev, getDeviceName()) == 0)
+    {
+        // Focus speed
+        if (!strcmp (name, FocusSpeedNP.name))
+        {
 
-         if (IUUpdateNumber(&FocusSpeedNP, values, names, n) < 0)
-           return false;
+            if (IUUpdateNumber(&FocusSpeedNP, values, names, n) < 0)
+                return false;
 
-         if (isSimulation() == false)
-             setGPSFocuserSpeed(PortFD,  ( (int) FocusSpeedN[0].value));
-         FocusSpeedNP.s = IPS_OK;
-         IDSetNumber(&FocusSpeedNP, NULL);
-         return true;
-       }
-   }
+            if (isSimulation() == false)
+                setGPSFocuserSpeed(PortFD,  ( (int) FocusSpeedN[0].value));
+            FocusSpeedNP.s = IPS_OK;
+            IDSetNumber(&FocusSpeedNP, NULL);
+            return true;
+        }
+    }
 
     return LX200Generic::ISNewNumber (dev, name, values, names, n);
 }
 
- bool LX200Autostar::ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n)
- {
-   int index=0;
- 
-   if(strcmp(dev,getDeviceName())==0)
-   {
+bool LX200Autostar::ISNewSwitch (const char * dev, const char * name, ISState * states, char * names[], int n)
+{
+    int index = 0;
+
+    if(strcmp(dev, getDeviceName()) == 0)
+    {
         // Focus Motion
         if (!strcmp (name, FocusMotionSP.name))
         {
@@ -145,7 +145,7 @@ bool LX200Autostar::ISNewNumber (const char *dev, const char *name, double value
                 IDSetSwitch(&FocusMotionSP, NULL);
                 return false;
             }
-	  
+
             int last_motion = IUFindOnSwitchIndex(&FocusMotionSP);
 
             if (IUUpdateSwitch(&FocusMotionSP, states, names, n) < 0)
@@ -162,55 +162,55 @@ bool LX200Autostar::ISNewNumber (const char *dev, const char *name, double value
                 IDSetSwitch(&FocusMotionSP, NULL);
                 return true;
             }
-	  
-           if (isSimulation() == false && setFocuserMotion(PortFD, index) < 0)
-           {
-               FocusMotionSP.s = IPS_ALERT;
-               IDSetSwitch(&FocusMotionSP, "Error setting focuser speed.");
-               return false;
-           }
 
-           FocusMotionSP.s = IPS_BUSY;
-	  
-           // with a timer
-           if (FocusTimerNP.np[0].value > 0)
-           {
+            if (isSimulation() == false && setFocuserMotion(PortFD, index) < 0)
+            {
+                FocusMotionSP.s = IPS_ALERT;
+                IDSetSwitch(&FocusMotionSP, "Error setting focuser speed.");
+                return false;
+            }
+
+            FocusMotionSP.s = IPS_BUSY;
+
+            // with a timer
+            if (FocusTimerNP.np[0].value > 0)
+            {
                 FocusTimerNP.s  = IPS_BUSY;
                 if (isDebug())
                     IDLog("Starting Focus Timer BUSY\n");
 
                 IEAddTimer(50, LX200Generic::updateFocusHelper, this);
-           }
-	  
-           IDSetSwitch(&FocusMotionSP, NULL);
-           return true;
+            }
+
+            IDSetSwitch(&FocusMotionSP, NULL);
+            return true;
         }
-	}
+    }
 
-   return LX200Generic::ISNewSwitch (dev, name, states, names,  n);
+    return LX200Generic::ISNewSwitch (dev, name, states, names,  n);
 
- }
+}
 
- void LX200Autostar::getBasicData()
- {
+void LX200Autostar::getBasicData()
+{
 
-   // process parent
-   LX200Generic::getBasicData();
+    // process parent
+    LX200Generic::getBasicData();
 
-   if (isSimulation() == false)
-   {
-       VersionTP.tp[0].text = new char[64];
-       getVersionDate(PortFD, VersionTP.tp[0].text);
-       VersionTP.tp[1].text = new char[64];
-       getVersionTime(PortFD, VersionTP.tp[1].text);
-       VersionTP.tp[2].text = new char[64];
-       getVersionNumber(PortFD, VersionTP.tp[2].text);
-       VersionTP.tp[3].text = new char[128];
-       getFullVersion(PortFD, VersionTP.tp[3].text);
-       VersionTP.tp[4].text = new char[128];
-       getProductName(PortFD, VersionTP.tp[4].text);
+    if (isSimulation() == false)
+    {
+        VersionTP.tp[0].text = new char[64];
+        getVersionDate(PortFD, VersionTP.tp[0].text);
+        VersionTP.tp[1].text = new char[64];
+        getVersionTime(PortFD, VersionTP.tp[1].text);
+        VersionTP.tp[2].text = new char[64];
+        getVersionNumber(PortFD, VersionTP.tp[2].text);
+        VersionTP.tp[3].text = new char[128];
+        getFullVersion(PortFD, VersionTP.tp[3].text);
+        VersionTP.tp[4].text = new char[128];
+        getProductName(PortFD, VersionTP.tp[4].text);
 
-       IDSetText(&VersionTP, NULL);
-   }
+        IDSetText(&VersionTP, NULL);
+    }
 
- }
+}

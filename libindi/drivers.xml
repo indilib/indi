@@ -71,7 +71,7 @@
 	</device>
         <device label="Losmandy Gemini" focal_length="" aperture="">
                 <driver name="Losmandy Gemini">indi_lx200gemini</driver>
-                <version>1.0</version>
+                <version>1.2</version>
         </device>
 	<device label="Mel Bartels" focal_length="" aperture="">
 		<driver name="LX200 Basic">indi_lx200basic</driver>
@@ -247,6 +247,10 @@
 <devGroup group="Auxiliary">
         <device label="Astrometry">
             <driver name="Astrometry">indi_astrometry</driver>
+            <version>0.1</version>
+        </device>
+        <device label="SkySafari">
+            <driver name="SkySafari">indi_skysafari</driver>
             <version>0.1</version>
         </device>
         <device label="WatchDog">

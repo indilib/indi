@@ -31,8 +31,8 @@ INDI::FilterInterface::FilterInterface()
 
 void INDI::FilterInterface::initFilterProperties(const char * deviceName, const char * groupName)
 {
-    IUFillNumber(&FilterSlotN[0],"FILTER_SLOT_VALUE","Filter","%3.0f",1.0,12.0,1.0,1.0);
-    IUFillNumberVector(&FilterSlotNP,FilterSlotN,1,deviceName,"FILTER_SLOT","Filter Slot",groupName,IP_RW,60,IPS_IDLE);
+    IUFillNumber(&FilterSlotN[0], "FILTER_SLOT_VALUE", "Filter", "%3.0f", 1.0, 12.0, 1.0, 1.0);
+    IUFillNumberVector(&FilterSlotNP, FilterSlotN, 1, deviceName, "FILTER_SLOT", "Filter Slot", groupName, IP_RW, 60, IPS_IDLE);
 }
 
 INDI::FilterInterface::~FilterInterface()
@@ -45,11 +45,11 @@ void INDI::FilterInterface::SelectFilterDone(int f)
 {
     //  The hardware has finished changing
     //  filters
-    FilterSlotN[0].value=f;
-    FilterSlotNP.s=IPS_OK;
+    FilterSlotN[0].value = f;
+    FilterSlotNP.s = IPS_OK;
     // Tell the clients we are done, and
     //  filter is now useable
-    IDSetNumber(&FilterSlotNP,NULL);
+    IDSetNumber(&FilterSlotNP, NULL);
 }
 
 void INDI::FilterInterface::processFilterSlot(const char * deviceName, double values[], char * names[])
@@ -90,11 +90,11 @@ void INDI::FilterInterface::processFilterSlot(const char * deviceName, double va
 
 void INDI::FilterInterface::processFilterName(const char * deviceName, char * texts[], char * names[], int n)
 {
-    FilterNameTP->s=IPS_OK;
-    IUUpdateText(FilterNameTP,texts,names,n);
+    FilterNameTP->s = IPS_OK;
+    IUUpdateText(FilterNameTP, texts, names, n);
 
     if (SetFilterNames() == true)
-        IDSetText(FilterNameTP,NULL);
+        IDSetText(FilterNameTP, NULL);
     else
     {
         FilterNameTP->s = IPS_ALERT;

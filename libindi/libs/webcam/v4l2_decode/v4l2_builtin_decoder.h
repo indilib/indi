@@ -34,7 +34,7 @@ class V4L2_Builtin_Decoder: public V4L2_Decoder
             unsigned int fourcc; // V4L2 format
             unsigned char bpp; // bytes per pixel implementation
             bool softcrop; // softcropping available
-            format(unsigned int f, unsigned char b=8, bool sc=false) : fourcc(f), bpp(b), softcrop(sc) {}
+            format(unsigned int f, unsigned char b = 8, bool sc = false) : fourcc(f), bpp(b), softcrop(sc) {}
         };
 
     public:

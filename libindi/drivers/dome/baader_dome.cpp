@@ -46,29 +46,29 @@ std::unique_ptr<BaaderDome> baaderDome(new BaaderDome());
 #define SIM_DOME_HI_SPEED   5.0             /* Simulated dome speed 5.0 degrees per second, constant */
 #define SIM_DOME_LO_SPEED   0.5             /* Simulated dome speed 0.5 degrees per second, constant */
 
-void ISPoll(void *p);
+void ISPoll(void * p);
 
-void ISGetProperties(const char *dev)
+void ISGetProperties(const char * dev)
 {
     baaderDome->ISGetProperties(dev);
 }
 
-void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int num)
+void ISNewSwitch(const char * dev, const char * name, ISState * states, char * names[], int num)
 {
     baaderDome->ISNewSwitch(dev, name, states, names, num);
 }
 
-void ISNewText(	const char *dev, const char *name, char *texts[], char *names[], int num)
+void ISNewText(	const char * dev, const char * name, char * texts[], char * names[], int num)
 {
     baaderDome->ISNewText(dev, name, texts, names, num);
 }
 
-void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int num)
+void ISNewNumber(const char * dev, const char * name, double values[], char * names[], int num)
 {
     baaderDome->ISNewNumber(dev, name, values, names, num);
 }
 
-void ISNewBLOB (const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[], char *names[], int n)
+void ISNewBLOB (const char * dev, const char * name, int sizes[], int blobsizes[], char * blobs[], char * formats[], char * names[], int n)
 {
     INDI_UNUSED(dev);
     INDI_UNUSED(name);
@@ -80,7 +80,7 @@ void ISNewBLOB (const char *dev, const char *name, int sizes[], int blobsizes[],
     INDI_UNUSED(n);
 }
 
-void ISSnoopDevice (XMLEle *root)
+void ISSnoopDevice (XMLEle * root)
 {
     baaderDome->ISSnoopDevice(root);
 }
@@ -88,20 +88,20 @@ void ISSnoopDevice (XMLEle *root)
 BaaderDome::BaaderDome()
 {
 
-   targetAz = 0;
-   shutterState= SHUTTER_UNKNOWN;
-   flapStatus   = FLAP_UNKNOWN;
-   simShutterStatus = SHUTTER_CLOSED;
-   simFlapStatus    = FLAP_CLOSED;
-   prev_az=0;
-   prev_alt=0;
+    targetAz = 0;
+    shutterState = SHUTTER_UNKNOWN;
+    flapStatus   = FLAP_UNKNOWN;
+    simShutterStatus = SHUTTER_CLOSED;
+    simFlapStatus    = FLAP_CLOSED;
+    prev_az = 0;
+    prev_alt = 0;
 
-   status           = DOME_UNKNOWN;
-   targetShutter    = SHUTTER_CLOSE;
-   targetFlap       = FLAP_CLOSE;
-   calibrationStage = CALIBRATION_UNKNOWN;
+    status           = DOME_UNKNOWN;
+    targetShutter    = SHUTTER_CLOSE;
+    targetFlap       = FLAP_CLOSE;
+    calibrationStage = CALIBRATION_UNKNOWN;
 
-   SetDomeCapability(DOME_CAN_ABORT | DOME_CAN_ABS_MOVE | DOME_CAN_REL_MOVE | DOME_CAN_PARK | DOME_HAS_SHUTTER | DOME_HAS_VARIABLE_SPEED);
+    SetDomeCapability(DOME_CAN_ABORT | DOME_CAN_ABS_MOVE | DOME_CAN_REL_MOVE | DOME_CAN_PARK | DOME_HAS_SHUTTER | DOME_HAS_VARIABLE_SPEED);
 
 }
 
@@ -120,9 +120,9 @@ bool BaaderDome::initProperties()
     IUFillSwitch(&CalibrateS[0], "Start", "", ISS_OFF);
     IUFillSwitchVector(&CalibrateSP, CalibrateS, 1, getDeviceName(), "Calibrate", "", MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
 
-    IUFillSwitch(&DomeFlapS[0],"FLAP_OPEN","Open",ISS_OFF);
-    IUFillSwitch(&DomeFlapS[1],"FLAP_CLOSE","Close",ISS_ON);
-    IUFillSwitchVector(&DomeFlapSP,DomeFlapS,2,getDeviceName(),"DOME_FLAP","Flap",MAIN_CONTROL_TAB,IP_RW,ISR_1OFMANY,60,IPS_OK);
+    IUFillSwitch(&DomeFlapS[0], "FLAP_OPEN", "Open", ISS_OFF);
+    IUFillSwitch(&DomeFlapS[1], "FLAP_CLOSE", "Close", ISS_ON);
+    IUFillSwitchVector(&DomeFlapSP, DomeFlapS, 2, getDeviceName(), "DOME_FLAP", "Flap", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 60, IPS_OK);
 
     SetParkDataType(PARK_AZ);
 
@@ -175,7 +175,7 @@ bool BaaderDome::Handshake()
 * ***********************************************************************************/
 const char * BaaderDome::getDefaultName()
 {
-        return (char *)"Baader Dome";
+    return (char *)"Baader Dome";
 }
 
 /************************************************************************************
@@ -189,14 +189,14 @@ bool BaaderDome::updateProperties()
     {
 
         defineSwitch(&DomeFlapSP);
-        defineSwitch(&CalibrateSP);        
+        defineSwitch(&CalibrateSP);
 
         SetupParms();
     }
     else
     {
         deleteProperty(DomeFlapSP.name);
-        deleteProperty(CalibrateSP.name);        
+        deleteProperty(CalibrateSP.name);
     }
 
     return true;
@@ -205,9 +205,9 @@ bool BaaderDome::updateProperties()
 /************************************************************************************
  *
 * ***********************************************************************************/
-bool BaaderDome::ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n)
+bool BaaderDome::ISNewSwitch (const char * dev, const char * name, ISState * states, char * names[], int n)
 {
-    if(strcmp(dev,getDeviceName())==0)
+    if(strcmp(dev, getDeviceName()) == 0)
     {
         if (!strcmp(name, CalibrateSP.name))
         {
@@ -263,7 +263,7 @@ bool BaaderDome::ISNewSwitch (const char *dev, const char *name, ISState *states
 
         if (!strcmp(name, DomeFlapSP.name))
         {
-            int ret=0;
+            int ret = 0;
             int prevStatus = IUFindOnSwitchIndex(&DomeFlapSP);
             IUUpdateSwitch(&DomeFlapSP, states, names, n);
             int FlapDome = IUFindOnSwitchIndex(&DomeFlapSP);
@@ -271,8 +271,8 @@ bool BaaderDome::ISNewSwitch (const char *dev, const char *name, ISState *states
             // No change of status, let's return
             if (prevStatus == FlapDome)
             {
-                DomeFlapSP.s=IPS_OK;
-                IDSetSwitch(&DomeFlapSP,NULL);
+                DomeFlapSP.s = IPS_OK;
+                IDSetSwitch(&DomeFlapSP, NULL);
             }
 
             // go back to prev status in case of failure
@@ -280,28 +280,28 @@ bool BaaderDome::ISNewSwitch (const char *dev, const char *name, ISState *states
             DomeFlapS[prevStatus].s = ISS_ON;
 
             if (FlapDome == 0)
-                ret= ControlDomeFlap(FLAP_OPEN);
+                ret = ControlDomeFlap(FLAP_OPEN);
             else
-                ret= ControlDomeFlap(FLAP_CLOSE);
+                ret = ControlDomeFlap(FLAP_CLOSE);
 
             if ( ret == 0)
             {
-               DomeFlapSP.s=IPS_OK;
-               IUResetSwitch(&DomeFlapSP);
-               DomeFlapS[FlapDome].s = ISS_ON;
-               IDSetSwitch(&DomeFlapSP, "Flap is %s.", (FlapDome == 0 ? "open" : "closed"));
-               return true;
+                DomeFlapSP.s = IPS_OK;
+                IUResetSwitch(&DomeFlapSP);
+                DomeFlapS[FlapDome].s = ISS_ON;
+                IDSetSwitch(&DomeFlapSP, "Flap is %s.", (FlapDome == 0 ? "open" : "closed"));
+                return true;
             }
             else if (ret == 1)
             {
-                 DomeFlapSP.s=IPS_BUSY;
-                 IUResetSwitch(&DomeFlapSP);
-                 DomeFlapS[FlapDome].s = ISS_ON;
-                 IDSetSwitch(&DomeFlapSP, "Flap is %s...", (FlapDome == 0 ? "opening" : "closing"));
-                 return true;
+                DomeFlapSP.s = IPS_BUSY;
+                IUResetSwitch(&DomeFlapSP);
+                DomeFlapS[FlapDome].s = ISS_ON;
+                IDSetSwitch(&DomeFlapSP, "Flap is %s...", (FlapDome == 0 ? "opening" : "closing"));
+                return true;
             }
 
-            DomeFlapSP.s= IPS_ALERT;
+            DomeFlapSP.s = IPS_ALERT;
             IDSetSwitch(&DomeFlapSP, "Flap failed to %s.", (FlapDome == 0 ? "open" : "close"));
             return false;
 
@@ -316,7 +316,7 @@ bool BaaderDome::ISNewSwitch (const char *dev, const char *name, ISState *states
 * ***********************************************************************************/
 bool BaaderDome::Ack()
 {
-    int nbytes_written=0, nbytes_read=0, rc=-1;
+    int nbytes_written = 0, nbytes_read = 0, rc = -1;
     char errstr[MAXRBUF];
     char resp[DOME_BUF];
     char status[DOME_BUF];
@@ -337,7 +337,7 @@ bool BaaderDome::Ack()
     if (sim)
     {
         strncpy(resp, "d#flapclo", DOME_BUF);
-        nbytes_read=DOME_CMD;
+        nbytes_read = DOME_CMD;
     }
     else if ( (rc = tty_read(PortFD, resp, DOME_CMD, DOME_TIMEOUT, &nbytes_read)) != TTY_OK)
     {
@@ -364,7 +364,7 @@ bool BaaderDome::Ack()
 * ***********************************************************************************/
 bool BaaderDome::UpdateShutterStatus()
 {
-    int nbytes_written=0, nbytes_read=0, rc=-1;
+    int nbytes_written = 0, nbytes_read = 0, rc = -1;
     char errstr[MAXRBUF];
     char resp[DOME_BUF];
     char status[DOME_BUF];
@@ -389,7 +389,7 @@ bool BaaderDome::UpdateShutterStatus()
             strncpy(resp, "d#shutope", DOME_CMD);
         else if (simShutterStatus == SHUTTER_MOVING)
             strncpy(resp, "d#shutrun", DOME_CMD);
-        nbytes_read=DOME_CMD;
+        nbytes_read = DOME_CMD;
     }
     else if ( (rc = tty_read(PortFD, resp, DOME_CMD, DOME_TIMEOUT, &nbytes_read)) != TTY_OK)
     {
@@ -449,10 +449,10 @@ bool BaaderDome::UpdateShutterStatus()
 * ***********************************************************************************/
 bool BaaderDome::UpdatePosition()
 {
-    int nbytes_written=0, nbytes_read=0, rc=-1;
+    int nbytes_written = 0, nbytes_read = 0, rc = -1;
     char errstr[MAXRBUF];
     char resp[DOME_BUF];
-    unsigned short domeAz=0;
+    unsigned short domeAz = 0;
 
     tcflush(PortFD, TCIOFLUSH);
 
@@ -472,7 +472,7 @@ bool BaaderDome::UpdatePosition()
             snprintf(resp, DOME_BUF, "d#azr%04d", MountAzToDomeAz(DomeAbsPosN[0].value));
         else
             snprintf(resp, DOME_BUF, "d#azi%04d", MountAzToDomeAz(DomeAbsPosN[0].value));
-        nbytes_read=DOME_CMD;
+        nbytes_read = DOME_CMD;
     }
     else if ( (rc = tty_read(PortFD, resp, DOME_CMD, DOME_TIMEOUT, &nbytes_read)) != TTY_OK)
     {
@@ -527,11 +527,11 @@ bool BaaderDome::UpdatePosition()
 * ***********************************************************************************/
 unsigned short BaaderDome::MountAzToDomeAz(double mountAz)
 {
-    int domeAz=0;
+    int domeAz = 0;
 
     domeAz = (mountAz) * 10.0 - 1800;
 
-    if (mountAz >=0 && mountAz <= 179.9)
+    if (mountAz >= 0 && mountAz <= 179.9)
         domeAz += 3600;
 
     if (domeAz > 3599)
@@ -547,7 +547,7 @@ unsigned short BaaderDome::MountAzToDomeAz(double mountAz)
 * ***********************************************************************************/
 double BaaderDome::DomeAzToMountAz(unsigned short domeAz)
 {
-    double mountAz=0;
+    double mountAz = 0;
 
     mountAz = ((double) (domeAz + 1800)) / 10.0;
 
@@ -660,11 +660,11 @@ void BaaderDome::TimerHit()
 
     if (sim && DomeShutterSP.s == IPS_BUSY)
     {
-            if (simShutterTimer-- <= 0)
-            {
-                simShutterTimer=0;
-                simShutterStatus = (targetShutter == SHUTTER_OPEN) ? SHUTTER_OPENED : SHUTTER_CLOSED;
-            }
+        if (simShutterTimer-- <= 0)
+        {
+            simShutterTimer = 0;
+            simShutterStatus = (targetShutter == SHUTTER_OPEN) ? SHUTTER_OPENED : SHUTTER_CLOSED;
+        }
     }
     else
         IDSetSwitch(&DomeShutterSP, NULL);
@@ -673,11 +673,11 @@ void BaaderDome::TimerHit()
 
     if (sim && DomeFlapSP.s == IPS_BUSY)
     {
-            if (simFlapTimer-- <= 0)
-            {
-                simFlapTimer=0;
-                simFlapStatus = (targetFlap == FLAP_OPEN) ? FLAP_OPENED : FLAP_CLOSED;
-            }
+        if (simFlapTimer-- <= 0)
+        {
+            simFlapTimer = 0;
+            simFlapStatus = (targetFlap == FLAP_OPEN) ? FLAP_OPENED : FLAP_CLOSED;
+        }
     }
     else
         IDSetSwitch(&DomeFlapSP, NULL);
@@ -691,8 +691,8 @@ void BaaderDome::TimerHit()
  *
 * ***********************************************************************************/
 IPState BaaderDome::MoveAbs(double az)
-{    
-    int nbytes_written=0, nbytes_read=0, rc=-1;
+{
+    int nbytes_written = 0, nbytes_read = 0, rc = -1;
     char errstr[MAXRBUF];
     char cmd[DOME_BUF];
     char resp[DOME_BUF];
@@ -721,7 +721,7 @@ IPState BaaderDome::MoveAbs(double az)
     if (sim)
     {
         strncpy(resp, "d#gotmess", DOME_CMD);
-        nbytes_read=DOME_CMD;
+        nbytes_read = DOME_CMD;
     }
     else if ( (rc = tty_read(PortFD, resp, DOME_CMD, DOME_TIMEOUT, &nbytes_read)) != TTY_OK)
     {
@@ -782,7 +782,7 @@ IPState BaaderDome::UnPark()
 * ***********************************************************************************/
 IPState BaaderDome::ControlShutter(ShutterOperation operation)
 {
-    int nbytes_written=0, nbytes_read=0, rc=-1;
+    int nbytes_written = 0, nbytes_read = 0, rc = -1;
     char errstr[MAXRBUF];
     char cmd[DOME_BUF];
     char resp[DOME_BUF];
@@ -815,7 +815,7 @@ IPState BaaderDome::ControlShutter(ShutterOperation operation)
     {
         simShutterTimer = SIM_SHUTTER_TIMER;
         strncpy(resp, "d#gotmess", DOME_CMD);
-        nbytes_read=DOME_CMD;
+        nbytes_read = DOME_CMD;
     }
     else if ( (rc = tty_read(PortFD, resp, DOME_CMD, DOME_TIMEOUT, &nbytes_read)) != TTY_OK)
     {
@@ -830,7 +830,7 @@ IPState BaaderDome::ControlShutter(ShutterOperation operation)
 
     if (!strcmp(resp, "d#gotmess"))
     {
-         shutterState = simShutterStatus = SHUTTER_MOVING;
+        shutterState = simShutterStatus = SHUTTER_MOVING;
         return IPS_BUSY;
     }
     else
@@ -875,7 +875,7 @@ const char * BaaderDome::GetFlapStatusString(FlapStatus status)
 * ***********************************************************************************/
 int BaaderDome::ControlDomeFlap(FlapOperation operation)
 {
-    int nbytes_written=0, nbytes_read=0, rc=-1;
+    int nbytes_written = 0, nbytes_read = 0, rc = -1;
     char errstr[MAXRBUF];
     char cmd[DOME_BUF];
     char resp[DOME_BUF];
@@ -908,7 +908,7 @@ int BaaderDome::ControlDomeFlap(FlapOperation operation)
     {
         simFlapTimer = SIM_FLAP_TIMER;
         strncpy(resp, "d#gotmess", DOME_CMD);
-        nbytes_read=DOME_CMD;
+        nbytes_read = DOME_CMD;
     }
     else if ( (rc = tty_read(PortFD, resp, DOME_CMD, DOME_TIMEOUT, &nbytes_read)) != TTY_OK)
     {
@@ -923,7 +923,7 @@ int BaaderDome::ControlDomeFlap(FlapOperation operation)
 
     if (!strcmp(resp, "d#gotmess"))
     {
-         flapStatus = simFlapStatus = FLAP_MOVING;
+        flapStatus = simFlapStatus = FLAP_MOVING;
         return 1;
     }
     else
@@ -937,7 +937,7 @@ int BaaderDome::ControlDomeFlap(FlapOperation operation)
 * ***********************************************************************************/
 bool BaaderDome::UpdateFlapStatus()
 {
-    int nbytes_written=0, nbytes_read=0, rc=-1;
+    int nbytes_written = 0, nbytes_read = 0, rc = -1;
     char errstr[MAXRBUF];
     char resp[DOME_BUF];
     char status[DOME_BUF];
@@ -962,7 +962,7 @@ bool BaaderDome::UpdateFlapStatus()
             strncpy(resp, "d#flapope", DOME_CMD);
         else if (simFlapStatus == FLAP_MOVING)
             strncpy(resp, "d#flaprun", DOME_CMD);
-        nbytes_read=DOME_CMD;
+        nbytes_read = DOME_CMD;
     }
     else if ( (rc = tty_read(PortFD, resp, DOME_CMD, DOME_TIMEOUT, &nbytes_read)) != TTY_OK)
     {
@@ -1022,7 +1022,7 @@ bool BaaderDome::UpdateFlapStatus()
 * ***********************************************************************************/
 bool BaaderDome::SaveEncoderPosition()
 {
-    int nbytes_written=0, nbytes_read=0, rc=-1;
+    int nbytes_written = 0, nbytes_read = 0, rc = -1;
     char errstr[MAXRBUF];
     char cmd[DOME_BUF];
     char resp[DOME_BUF];
@@ -1043,7 +1043,7 @@ bool BaaderDome::SaveEncoderPosition()
     if (sim)
     {
         strncpy(resp, "d#gotmess", DOME_CMD);
-        nbytes_read=DOME_CMD;
+        nbytes_read = DOME_CMD;
     }
     else if ( (rc = tty_read(PortFD, resp, DOME_CMD, DOME_TIMEOUT, &nbytes_read)) != TTY_OK)
     {
@@ -1066,7 +1066,7 @@ bool BaaderDome::SaveEncoderPosition()
 /************************************************************************************
  *
 * ***********************************************************************************/
-bool BaaderDome::saveConfigItems(FILE *fp)
+bool BaaderDome::saveConfigItems(FILE * fp)
 {
     // Only save if calibration is complete
     if (calibrationStage == CALIBRATION_COMPLETE)

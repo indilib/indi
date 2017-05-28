@@ -36,52 +36,53 @@
 
 class HitecAstroDCFocuser : public INDI::Focuser, public INDI::USBDevice
 {
-public:
+    public:
 
-    typedef enum {
-          IDLE
-        , SLEWING     
-    }
-    STATE;
-    
-    HitecAstroDCFocuser();
-    virtual ~HitecAstroDCFocuser();
+        typedef enum
+        {
+            IDLE
+            , SLEWING
+        }
+        STATE;
 
-    virtual bool ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n);
-    virtual bool ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n) ;
+        HitecAstroDCFocuser();
+        virtual ~HitecAstroDCFocuser();
 
-    const char *getDefaultName();
-    virtual bool initProperties();
-    virtual bool updateProperties();
-    //virtual bool saveConfigItems(FILE *fp);
+        virtual bool ISNewNumber (const char * dev, const char * name, double values[], char * names[], int n);
+        virtual bool ISNewSwitch (const char * dev, const char * name, ISState * states, char * names[], int n) ;
 
-    bool Connect();
-    bool Disconnect();
+        const char * getDefaultName();
+        virtual bool initProperties();
+        virtual bool updateProperties();
+        //virtual bool saveConfigItems(FILE *fp);
 
-    void TimerHit();
+        bool Connect();
+        bool Disconnect();
 
-    virtual IPState MoveRelFocuser(FocusDirection dir, uint32_t ticks);
+        void TimerHit();
 
-    virtual IPState MoveFocuser(FocusDirection dir, int speed, uint16_t duration);
-    
-private:
-   
-    hid_device *_handle;
-    
-    bool sim;
+        virtual IPState MoveRelFocuser(FocusDirection dir, uint32_t ticks);
 
-    char     _stop;
-    STATE    _state;
-    uint16_t _duration;
-    
-    INumber MaxPositionN[1];
-    INumberVectorProperty MaxPositionNP;
-    
-    INumber SlewSpeedN[1];
-    INumberVectorProperty SlewSpeedNP;
+        virtual IPState MoveFocuser(FocusDirection dir, int speed, uint16_t duration);
 
-    ISwitch ReverseDirectionS[1];
-    ISwitchVectorProperty ReverseDirectionSP;
+    private:
+
+        hid_device * _handle;
+
+        bool sim;
+
+        char     _stop;
+        STATE    _state;
+        uint16_t _duration;
+
+        INumber MaxPositionN[1];
+        INumberVectorProperty MaxPositionNP;
+
+        INumber SlewSpeedN[1];
+        INumberVectorProperty SlewSpeedNP;
+
+        ISwitch ReverseDirectionS[1];
+        ISwitchVectorProperty ReverseDirectionSP;
 };
 
 #endif /* HITECASTRODCFOCUSER */

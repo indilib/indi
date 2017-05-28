@@ -33,52 +33,52 @@ std::unique_ptr<RollOff> rollOff(new RollOff());
 
 #define ROLLOFF_DURATION    10      // 10 seconds until roof is fully opened or closed
 
-void ISPoll(void *p);
+void ISPoll(void * p);
 
-void ISGetProperties(const char *dev)
+void ISGetProperties(const char * dev)
 {
-        rollOff->ISGetProperties(dev);
+    rollOff->ISGetProperties(dev);
 }
 
-void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int num)
+void ISNewSwitch(const char * dev, const char * name, ISState * states, char * names[], int num)
 {
-        rollOff->ISNewSwitch(dev, name, states, names, num);
+    rollOff->ISNewSwitch(dev, name, states, names, num);
 }
 
-void ISNewText(	const char *dev, const char *name, char *texts[], char *names[], int num)
+void ISNewText(	const char * dev, const char * name, char * texts[], char * names[], int num)
 {
-        rollOff->ISNewText(dev, name, texts, names, num);
+    rollOff->ISNewText(dev, name, texts, names, num);
 }
 
-void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int num)
+void ISNewNumber(const char * dev, const char * name, double values[], char * names[], int num)
 {
-        rollOff->ISNewNumber(dev, name, values, names, num);
+    rollOff->ISNewNumber(dev, name, values, names, num);
 }
 
-void ISNewBLOB (const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[], char *names[], int n)
+void ISNewBLOB (const char * dev, const char * name, int sizes[], int blobsizes[], char * blobs[], char * formats[], char * names[], int n)
 {
-  INDI_UNUSED(dev);
-  INDI_UNUSED(name);
-  INDI_UNUSED(sizes);
-  INDI_UNUSED(blobsizes);
-  INDI_UNUSED(blobs);
-  INDI_UNUSED(formats);
-  INDI_UNUSED(names);
-  INDI_UNUSED(n);
+    INDI_UNUSED(dev);
+    INDI_UNUSED(name);
+    INDI_UNUSED(sizes);
+    INDI_UNUSED(blobsizes);
+    INDI_UNUSED(blobs);
+    INDI_UNUSED(formats);
+    INDI_UNUSED(names);
+    INDI_UNUSED(n);
 }
 
-void ISSnoopDevice (XMLEle *root)
+void ISSnoopDevice (XMLEle * root)
 {
     rollOff->ISSnoopDevice(root);
 }
 
 RollOff::RollOff()
 {
-	fullOpenLimitSwitch   = ISS_ON;
-	fullClosedLimitSwitch = ISS_OFF;
-	MotionRequest=0;
+    fullOpenLimitSwitch   = ISS_ON;
+    fullClosedLimitSwitch = ISS_OFF;
+    MotionRequest = 0;
 
-	SetDomeCapability(DOME_CAN_ABORT | DOME_CAN_PARK);
+    SetDomeCapability(DOME_CAN_ABORT | DOME_CAN_PARK);
 }
 
 /************************************************************************************
@@ -91,13 +91,13 @@ bool RollOff::initProperties()
     SetParkDataType(PARK_NONE);
 
     addAuxControls();
-    
+
     return true;
 }
 
-bool RollOff::ISSnoopDevice (XMLEle *root)
+bool RollOff::ISSnoopDevice (XMLEle * root)
 {
-	return INDI::Dome::ISSnoopDevice(root);
+    return INDI::Dome::ISSnoopDevice(root);
 }
 
 bool RollOff::SetupParms()
@@ -146,12 +146,12 @@ RollOff::~RollOff()
 
 const char * RollOff::getDefaultName()
 {
-        return (char *)"RollOff Simulator";
+    return (char *)"RollOff Simulator";
 }
 
-bool RollOff::ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n)
+bool RollOff::ISNewSwitch (const char * dev, const char * name, ISState * states, char * names[], int n)
 {
-	return INDI::Dome::ISNewSwitch(dev, name, states, names, n);
+    return INDI::Dome::ISNewSwitch(dev, name, states, names, n);
 }
 
 bool RollOff::updateProperties()
@@ -161,7 +161,7 @@ bool RollOff::updateProperties()
     if (isConnected())
     {
         SetupParms();
-	}
+    }
 
     return true;
 }
@@ -169,48 +169,48 @@ bool RollOff::updateProperties()
 void RollOff::TimerHit()
 {
 
-    if(isConnected() == false) return;  //  No need to reset timer if we are not connected anymore    
+    if(isConnected() == false) return;  //  No need to reset timer if we are not connected anymore
 
-   if (DomeMotionSP.s == IPS_BUSY)
-   {
-       // Abort called
-       if (MotionRequest < 0)
-       {
-           DEBUG(INDI::Logger::DBG_SESSION, "Roof motion is stopped.");
-           setDomeState(DOME_IDLE);
-           SetTimer(1000);
-           return;
-       }
+    if (DomeMotionSP.s == IPS_BUSY)
+    {
+        // Abort called
+        if (MotionRequest < 0)
+        {
+            DEBUG(INDI::Logger::DBG_SESSION, "Roof motion is stopped.");
+            setDomeState(DOME_IDLE);
+            SetTimer(1000);
+            return;
+        }
 
-       // Roll off is opening
-       if (DomeMotionS[DOME_CW].s == ISS_ON)
-       {
-           if (getFullOpenedLimitSwitch())
-           {
-               DEBUG(INDI::Logger::DBG_SESSION, "Roof is open.");
-               SetParked(false);
-               return;
-           }
-       }
-       // Roll Off is closing
-       else if (DomeMotionS[DOME_CCW].s == ISS_ON)
-       {
-           if (getFullClosedLimitSwitch())
-           {
-               DEBUG(INDI::Logger::DBG_SESSION, "Roof is closed.");
-               SetParked(true);
-               return;
-           }
-       }
+        // Roll off is opening
+        if (DomeMotionS[DOME_CW].s == ISS_ON)
+        {
+            if (getFullOpenedLimitSwitch())
+            {
+                DEBUG(INDI::Logger::DBG_SESSION, "Roof is open.");
+                SetParked(false);
+                return;
+            }
+        }
+        // Roll Off is closing
+        else if (DomeMotionS[DOME_CCW].s == ISS_ON)
+        {
+            if (getFullClosedLimitSwitch())
+            {
+                DEBUG(INDI::Logger::DBG_SESSION, "Roof is closed.");
+                SetParked(true);
+                return;
+            }
+        }
 
-       SetTimer(1000);
-   }
+        SetTimer(1000);
+    }
 
 
     //SetTimer(1000);
 }
 
-bool RollOff::saveConfigItems(FILE *fp)
+bool RollOff::saveConfigItems(FILE * fp)
 {
     return INDI::Dome::saveConfigItems(fp);
 }
@@ -246,7 +246,7 @@ IPState RollOff::Move(DomeDirection dir, DomeMotionCommand operation)
         fullOpenLimitSwitch   = ISS_OFF;
         fullClosedLimitSwitch = ISS_OFF;
         MotionRequest = ROLLOFF_DURATION;
-        gettimeofday(&MotionStart,NULL);
+        gettimeofday(&MotionStart, NULL);
         SetTimer(1000);
         return IPS_BUSY;
     }
@@ -261,9 +261,9 @@ IPState RollOff::Move(DomeDirection dir, DomeMotionCommand operation)
 }
 
 IPState RollOff::Park()
-{    
+{
     IPState rc = INDI::Dome::Move(DOME_CCW, MOTION_START);
-    if (rc==IPS_BUSY)
+    if (rc == IPS_BUSY)
     {
         DEBUG(INDI::Logger::DBG_SESSION, "Roll off is parking...");
         return IPS_BUSY;
@@ -275,10 +275,10 @@ IPState RollOff::Park()
 IPState RollOff::UnPark()
 {
     IPState rc = INDI::Dome::Move(DOME_CW, MOTION_START);
-    if (rc==IPS_BUSY)
-    {       
-           DEBUG(INDI::Logger::DBG_SESSION, "Roll off is unparking...");
-           return IPS_BUSY;
+    if (rc == IPS_BUSY)
+    {
+        DEBUG(INDI::Logger::DBG_SESSION, "Roll off is unparking...");
+        return IPS_BUSY;
     }
     else
         return IPS_ALERT;
@@ -286,7 +286,7 @@ IPState RollOff::UnPark()
 
 bool RollOff::Abort()
 {
-    MotionRequest=-1;
+    MotionRequest = -1;
 
     // If both limit switches are off, then we're neither parked nor unparked.
     if (fullOpenLimitSwitch == false && fullClosedLimitSwitch == false)
@@ -304,11 +304,11 @@ float RollOff::CalcTimeLeft(timeval start)
     double timesince;
     double timeleft;
     struct timeval now;
-    gettimeofday(&now,NULL);
+    gettimeofday(&now, NULL);
 
-    timesince=(double)(now.tv_sec * 1000.0 + now.tv_usec/1000) - (double)(start.tv_sec * 1000.0 + start.tv_usec/1000);
-    timesince=timesince/1000;
-    timeleft=MotionRequest-timesince;
+    timesince = (double)(now.tv_sec * 1000.0 + now.tv_usec / 1000) - (double)(start.tv_sec * 1000.0 + start.tv_usec / 1000);
+    timesince = timesince / 1000;
+    timeleft = MotionRequest - timesince;
     return timeleft;
 }
 

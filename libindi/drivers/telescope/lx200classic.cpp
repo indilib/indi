@@ -29,11 +29,11 @@
 
 LX200Classic::LX200Classic() : LX200Generic()
 {
-   currentCatalog = LX200_STAR_C;
-   currentSubCatalog = 0;
-   MaxReticleFlashRate = 3;
+    currentCatalog = LX200_STAR_C;
+    currentSubCatalog = 0;
+    MaxReticleFlashRate = 3;
 
-   setVersion(1, 0);
+    setVersion(1, 0);
 }
 
 const char * LX200Classic::getDefaultName()
@@ -86,24 +86,24 @@ bool LX200Classic::initProperties()
     return true;
 }
 
-void LX200Classic::ISGetProperties (const char *dev)
+void LX200Classic::ISGetProperties (const char * dev)
 {
 
-    if(dev && strcmp(dev,getDeviceName()))
+    if(dev && strcmp(dev, getDeviceName()))
         return;
 
-  LX200Generic::ISGetProperties(dev);
+    LX200Generic::ISGetProperties(dev);
 
-  if (isConnected())
-  {
-      defineNumber(&ElevationLimitNP);
-      defineText(&ObjectInfoTP);
-      defineSwitch(&SolarSP);
-      defineSwitch(&StarCatalogSP);
-      defineSwitch(&DeepSkyCatalogSP);
-      defineNumber(&ObjectNoNP);
-      defineNumber(&MaxSlewRateNP);
-  }
+    if (isConnected())
+    {
+        defineNumber(&ElevationLimitNP);
+        defineText(&ObjectInfoTP);
+        defineSwitch(&SolarSP);
+        defineSwitch(&StarCatalogSP);
+        defineSwitch(&DeepSkyCatalogSP);
+        defineNumber(&ObjectNoNP);
+        defineNumber(&MaxSlewRateNP);
+    }
 }
 
 bool LX200Classic::updateProperties()
@@ -134,56 +134,56 @@ bool LX200Classic::updateProperties()
     }
 }
 
-bool LX200Classic::ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n)
+bool LX200Classic::ISNewNumber (const char * dev, const char * name, double values[], char * names[], int n)
 {
-    
-    if(strcmp(dev,getDeviceName())==0)
+
+    if(strcmp(dev, getDeviceName()) == 0)
     {
         if ( !strcmp (name, ObjectNoNP.name) )
         {
 
-          char object_name[256];
+            char object_name[256];
 
-          if (selectCatalogObject(PortFD, currentCatalog, (int) values[0]) < 0)
-          {
-            ObjectNoNP.s = IPS_ALERT;
-            IDSetNumber(&ObjectNoNP, "Failed to select catalog object.");
-            return false;
-          }
+            if (selectCatalogObject(PortFD, currentCatalog, (int) values[0]) < 0)
+            {
+                ObjectNoNP.s = IPS_ALERT;
+                IDSetNumber(&ObjectNoNP, "Failed to select catalog object.");
+                return false;
+            }
 
-          getLX200RA(PortFD, &targetRA);
-          getLX200DEC(PortFD, &targetDEC);
+            getLX200RA(PortFD, &targetRA);
+            getLX200DEC(PortFD, &targetDEC);
 
-          ObjectNoNP.s = IPS_OK;
-          IDSetNumber(&ObjectNoNP , "Object updated.");
+            ObjectNoNP.s = IPS_OK;
+            IDSetNumber(&ObjectNoNP , "Object updated.");
 
-          if (getObjectInfo(PortFD, object_name) < 0)
-            IDMessage(getDeviceName(), "Getting object info failed.");
-          else
-          {
-            IUSaveText(&ObjectInfoTP.tp[0], object_name);
-            IDSetText  (&ObjectInfoTP, NULL);
-          }
+            if (getObjectInfo(PortFD, object_name) < 0)
+                IDMessage(getDeviceName(), "Getting object info failed.");
+            else
+            {
+                IUSaveText(&ObjectInfoTP.tp[0], object_name);
+                IDSetText  (&ObjectInfoTP, NULL);
+            }
 
-          Goto(targetRA, targetDEC);
-          return true;
-       }
+            Goto(targetRA, targetDEC);
+            return true;
+        }
 
         if ( !strcmp (name, MaxSlewRateNP.name) )
         {
 
 
-         if ( setMaxSlewRate(PortFD, (int) values[0] < 0) )
-         {
-             MaxSlewRateNP.s = IPS_ALERT;
-             IDSetNumber(&MaxSlewRateNP, "Error setting maximum slew rate.");
-             return false;
-         }
+            if ( setMaxSlewRate(PortFD, (int) values[0] < 0) )
+            {
+                MaxSlewRateNP.s = IPS_ALERT;
+                IDSetNumber(&MaxSlewRateNP, "Error setting maximum slew rate.");
+                return false;
+            }
 
-          MaxSlewRateNP.s = IPS_OK;
-          MaxSlewRateNP.np[0].value = values[0];
-          IDSetNumber(&MaxSlewRateNP, NULL);
-          return true;
+            MaxSlewRateNP.s = IPS_OK;
+            MaxSlewRateNP.np[0].value = values[0];
+            IDSetNumber(&MaxSlewRateNP, NULL);
+            return true;
         }
 
         if (!strcmp (name, ElevationLimitNP.name))
@@ -194,16 +194,17 @@ bool LX200Classic::ISNewNumber (const char *dev, const char *name, double values
 
             for (nset = i = 0; i < n; i++)
             {
-            INumber *altp = IUFindNumber (&ElevationLimitNP, names[i]);
-            if (altp == &ElevationLimitN[0])
-            {
-                minAlt = values[i];
-                nset += minAlt >= -90.0 && minAlt <= 90.0;
-            } else if (altp == &ElevationLimitN[1])
-            {
-                maxAlt = values[i];
-                nset += maxAlt >= -90.0 && maxAlt <= 90.0;
-            }
+                INumber * altp = IUFindNumber (&ElevationLimitNP, names[i]);
+                if (altp == &ElevationLimitN[0])
+                {
+                    minAlt = values[i];
+                    nset += minAlt >= -90.0 && minAlt <= 90.0;
+                }
+                else if (altp == &ElevationLimitN[1])
+                {
+                    maxAlt = values[i];
+                    nset += maxAlt >= -90.0 && maxAlt <= 90.0;
+                }
             }
             if (nset == 2)
             {
@@ -234,22 +235,22 @@ bool LX200Classic::ISNewNumber (const char *dev, const char *name, double values
     return LX200Generic::ISNewNumber (dev, name, values, names, n);
 }
 
- bool LX200Classic::ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n)
- {
+bool LX200Classic::ISNewSwitch (const char * dev, const char * name, ISState * states, char * names[], int n)
+{
 
-      int index=0;
-      
-      if(strcmp(dev,getDeviceName())==0)
-      {
-          // Star Catalog
-          if (!strcmp (name, StarCatalogSP.name))
-          {
+    int index = 0;
 
-           IUResetSwitch(&StarCatalogSP);
-           IUUpdateSwitch(&StarCatalogSP, states, names, n);
-           index = IUFindOnSwitchIndex(&StarCatalogSP);
+    if(strcmp(dev, getDeviceName()) == 0)
+    {
+        // Star Catalog
+        if (!strcmp (name, StarCatalogSP.name))
+        {
 
-           currentCatalog = LX200_STAR_C;
+            IUResetSwitch(&StarCatalogSP);
+            IUUpdateSwitch(&StarCatalogSP, states, names, n);
+            index = IUFindOnSwitchIndex(&StarCatalogSP);
+
+            currentCatalog = LX200_STAR_C;
 
             if (selectSubCatalog(PortFD, currentCatalog, index))
             {
@@ -264,11 +265,11 @@ bool LX200Classic::ISNewNumber (const char *dev, const char *name, double values
                 IDSetSwitch(&StarCatalogSP, "Catalog unavailable.");
                 return false;
             }
-          }
+        }
 
-          // Deep sky catalog
-          if (!strcmp (name, DeepSkyCatalogSP.name))
-          {
+        // Deep sky catalog
+        if (!strcmp (name, DeepSkyCatalogSP.name))
+        {
 
             IUResetSwitch(&DeepSkyCatalogSP);
             IUUpdateSwitch(&DeepSkyCatalogSP, states, names, n);
@@ -276,12 +277,12 @@ bool LX200Classic::ISNewNumber (const char *dev, const char *name, double values
 
             if (index == LX200_MESSIER_C)
             {
-              currentCatalog = index;
-              DeepSkyCatalogSP.s = IPS_OK;
-              IDSetSwitch(&DeepSkyCatalogSP, NULL);
+                currentCatalog = index;
+                DeepSkyCatalogSP.s = IPS_OK;
+                IDSetSwitch(&DeepSkyCatalogSP, NULL);
             }
             else
-              currentCatalog = LX200_DEEPSKY_C;
+                currentCatalog = LX200_DEEPSKY_C;
 
             if (selectSubCatalog(PortFD, currentCatalog, index))
             {
@@ -291,29 +292,29 @@ bool LX200Classic::ISNewNumber (const char *dev, const char *name, double values
             }
             else
             {
-             DeepSkyCatalogSP.s = IPS_IDLE;
-             IDSetSwitch(&DeepSkyCatalogSP, "Catalog unavailable");
-             return false;
+                DeepSkyCatalogSP.s = IPS_IDLE;
+                IDSetSwitch(&DeepSkyCatalogSP, "Catalog unavailable");
+                return false;
             }
 
             return true;
-          }
+        }
 
-          // Solar system
-          if (!strcmp (name, SolarSP.name))
-          {
+        // Solar system
+        if (!strcmp (name, SolarSP.name))
+        {
 
-             if (IUUpdateSwitch(&SolarSP, states, names, n) < 0)
-              return false;
+            if (IUUpdateSwitch(&SolarSP, states, names, n) < 0)
+                return false;
 
-             index = IUFindOnSwitchIndex(&SolarSP);
+            index = IUFindOnSwitchIndex(&SolarSP);
 
             // We ignore the first option : "Select item"
             if (index == 0)
             {
-              SolarSP.s  = IPS_IDLE;
-              IDSetSwitch(&SolarSP, NULL);
-              return true;
+                SolarSP.s  = IPS_IDLE;
+                IDSetSwitch(&SolarSP, NULL);
+                return true;
             }
 
             selectSubCatalog (PortFD, LX200_STAR_C, LX200_STAR);
@@ -327,7 +328,7 @@ bool LX200Classic::ISNewNumber (const char *dev, const char *name, double values
             IDSetSwitch(&SolarSP, NULL);
 
             if (currentCatalog == LX200_STAR_C || currentCatalog == LX200_DEEPSKY_C)
-              selectSubCatalog(PortFD, currentCatalog, currentSubCatalog);
+                selectSubCatalog(PortFD, currentCatalog, currentSubCatalog);
 
             getObjectRA(PortFD, &targetRA);
             getObjectDEC(PortFD, &targetDEC);
@@ -335,12 +336,12 @@ bool LX200Classic::ISNewNumber (const char *dev, const char *name, double values
             Goto(targetRA, targetDEC);
 
             return true;
-          }
+        }
 
-      }
+    }
 
-   return LX200Generic::ISNewSwitch (dev, name, states, names,  n);
+    return LX200Generic::ISNewSwitch (dev, name, states, names,  n);
 
- }
+}
 
 

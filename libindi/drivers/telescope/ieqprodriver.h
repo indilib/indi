@@ -59,7 +59,7 @@ typedef struct
 
 void set_ieqpro_debug(bool enable);
 void set_ieqpro_simulation(bool enable);
-void set_ieqpro_device(const char *name);
+void set_ieqpro_device(const char * name);
 
 /**************************************************************************
  Simulation
@@ -83,19 +83,19 @@ bool check_ieqpro_connection(int fd);
  Get Info
 **************************************************************************/
 /** Get iEQ current status info */
-bool get_ieqpro_status(int fd, IEQInfo *info);
+bool get_ieqpro_status(int fd, IEQInfo * info);
 /** Get All firmware informatin in addition to mount model */
-bool get_ieqpro_firmware(int fd, FirmwareInfo *info);
+bool get_ieqpro_firmware(int fd, FirmwareInfo * info);
 /** Get mainboard and controller firmware only */
-bool get_ieqpro_main_firmware(int fd, FirmwareInfo *info);
+bool get_ieqpro_main_firmware(int fd, FirmwareInfo * info);
 /** Get RA and DEC firmware info */
-bool get_ieqpro_radec_firmware(int fd, FirmwareInfo *info);
+bool get_ieqpro_radec_firmware(int fd, FirmwareInfo * info);
 /** Get Mount model */
-bool get_ieqpro_model(int fd, FirmwareInfo *info);
+bool get_ieqpro_model(int fd, FirmwareInfo * info);
 /** Get RA/DEC */
-bool get_ieqpro_coords(int fd, double *ra, double *dec);
+bool get_ieqpro_coords(int fd, double * ra, double * dec);
 /** Get UTC/Date/Time */
-bool get_ieqpro_utc_date_time(int fd, double *utc_hours, int *yy, int *mm, int *dd, int *hh, int *minute, int *ss);
+bool get_ieqpro_utc_date_time(int fd, double * utc_hours, int * yy, int * mm, int * dd, int * hh, int * minute, int * ss);
 
 /**************************************************************************
  Motion
@@ -128,7 +128,7 @@ bool unpark_ieqpro(int fd);
  Guide
 **************************************************************************/
 bool set_ieqpro_guide_rate(int fd, double rate);
-bool get_ieqpro_guide_rate(int fd, double *rate);
+bool get_ieqpro_guide_rate(int fd, double * rate);
 bool start_ieqpro_guide(int fd,  IEQ_DIRECTION dir, int ms);
 
 /**************************************************************************
@@ -136,8 +136,8 @@ bool start_ieqpro_guide(int fd,  IEQ_DIRECTION dir, int ms);
 **************************************************************************/
 bool set_ieqpro_longitude(int fd, double longitude);
 bool set_ieqpro_latitude(int fd, double latitude);
-bool get_ieqpro_longitude(int fd, double *longitude);
-bool get_ieqpro_latitude(int fd, double *latitude);
+bool get_ieqpro_longitude(int fd, double * longitude);
+bool get_ieqpro_latitude(int fd, double * latitude);
 bool set_ieqpro_local_date(int fd, int yy, int mm, int dd);
 bool set_ieqpro_local_time(int fd, int hh, int mm, int ss);
 bool set_ieqpro_utc_offset(int fd, double offset_hours);

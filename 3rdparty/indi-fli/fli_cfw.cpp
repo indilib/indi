@@ -476,28 +476,28 @@ void FLICFW::TimerHit()
 
 bool FLICFW::findFLICFW(flidomain_t domain)
 {
-  char **tmplist;
+  char **names;
   long err;
 
   if (isDebug())
     IDLog("In find Filter wheel, the domain is %ld\n", domain);
 
-  if (( err = FLIList(domain | FLIDEVICE_FILTERWHEEL, &tmplist)))
+  if (( err = FLIList(domain | FLIDEVICE_FILTERWHEEL, &names)))
   {
       if (isDebug())
         IDLog("FLIList() failed. %s\n", strerror((int)-err));
     return false;
   }
 
-  if (tmplist != NULL && tmplist[0] != NULL)
+  if (names != NULL && names[0] != NULL)
   {
 
-    for (int i = 0; tmplist[i] != NULL; i++)
+    for (int i = 0; names[i] != NULL; i++)
     {
-      for (int j = 0; tmplist[i][j] != '\0'; j++)
-            if (tmplist[i][j] == ';')
+      for (int j = 0; names[i][j] != '\0'; j++)
+            if (names[i][j] == ';')
             {
-                tmplist[i][j] = '\0';
+                names[i][j] = '\0';
                 break;
             }
     }
@@ -526,9 +526,9 @@ bool FLICFW::findFLICFW(flidomain_t domain)
             FLIFilter.dname = strdup("Unknown domain");
     }
 
-      FLIFilter.name = strdup(tmplist[0]);
+      FLIFilter.name = strdup(names[0]);
 
-     if ((err = FLIFreeList(tmplist)))
+     if ((err = FLIFreeList(names)))
      {
          if (isDebug())
             IDLog("FLIFreeList() failed. %s.\n", strerror((int)-err));
@@ -538,7 +538,7 @@ bool FLICFW::findFLICFW(flidomain_t domain)
    } /* end if */
    else
    {
-     if ((err = FLIFreeList(tmplist)))
+     if ((err = FLIFreeList(names)))
      {
          if (isDebug())
             IDLog("FLIFreeList() failed. %s.\n", strerror((int)-err));

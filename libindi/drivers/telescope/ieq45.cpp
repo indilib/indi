@@ -1,21 +1,25 @@
 #if 0
-    IEQ45 Basic Driver
-    Copyright (C) 2011 Nacho Mas (mas.ignacio@gmail.com). Only litle changes
-    from lx200basic made it by Jasem Mutlaq (mutlaqja@ikarustech.com) 
+IEQ45 Basic Driver
+Copyright (C) 2011 Nacho Mas (mas.ignacio@gmail.com). Only litle changes
+from lx200basic made it by Jasem Mutlaq (mutlaqja@ikarustech.com)
 
-    This library is free software; you can redistribute it and/or
-    modify it under the terms of the GNU Lesser General Public
-    License as published by the Free Software Foundation; either
-    version 2.1 of the License, or (at your option) any later version.
+This library is free software;
+you can redistribute it and / or
+modify it under the terms of the GNU Lesser General Public
+License as published by the Free Software Foundation;
+either
+version 2.1 of the License, or (at your option) any later version.
 
-    This library is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-    Lesser General Public License for more details.
+This library is distributed in the hope that it will be useful,
+     but WITHOUT ANY WARRANTY;
+without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+Lesser General Public License for more details.
 
-    You should have received a copy of the GNU Lesser General Public
-    License along with this library; if not, write to the Free Software
-    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+You should have received a copy of the GNU Lesser General Public
+License along with this library;
+if not, write to the Free Software
+Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110 - 1301  USA
 
 #endif
 
@@ -45,10 +49,10 @@ using namespace std;
 unique_ptr<IEQ45Basic> telescope(0);
 
 const int POLLMS = 100;				// Period of update, 1 second.
-const char *mydev = "IEQ45";				// Name of our device.
+const char * mydev = "IEQ45";				// Name of our device.
 
-const char *BASIC_GROUP    = "Main Control";		// Main Group
-const char *OPTIONS_GROUP  = "Options";			// Options Group
+const char * BASIC_GROUP    = "Main Control";		// Main Group
+const char * OPTIONS_GROUP  = "Options";			// Options Group
 
 /* Handy Macros */
 #define currentRA	EquatorialCoordsRN[0].value
@@ -62,86 +66,86 @@ static void retry_connection(void *);
 ***************************************************************************************/
 void ISInit()
 {
- static int isInit=0;
+    static int isInit = 0;
 
- if (isInit)
-  return;
+    if (isInit)
+        return;
 
- if (telescope.get() == 0) telescope.reset(new IEQ45Basic());
+    if (telescope.get() == 0) telescope.reset(new IEQ45Basic());
 
- isInit = 1;
- 
- IEAddTimer (POLLMS, ISPoll, NULL);
+    isInit = 1;
+
+    IEAddTimer (POLLMS, ISPoll, NULL);
 }
 
 /**************************************************************************************
 **
 ***************************************************************************************/
-void ISGetProperties (const char *dev)
+void ISGetProperties (const char * dev)
 {
- ISInit(); 
- telescope->ISGetProperties(dev);
+    ISInit();
+    telescope->ISGetProperties(dev);
 }
 
 /**************************************************************************************
 **
 ***************************************************************************************/
-void ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n)
+void ISNewSwitch (const char * dev, const char * name, ISState * states, char * names[], int n)
 {
- ISInit();
- telescope->ISNewSwitch(dev, name, states, names, n);
+    ISInit();
+    telescope->ISNewSwitch(dev, name, states, names, n);
 }
 
 /**************************************************************************************
 **
 ***************************************************************************************/
-void ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n)
+void ISNewText (const char * dev, const char * name, char * texts[], char * names[], int n)
 {
- ISInit();
- telescope->ISNewText(dev, name, texts, names, n);
+    ISInit();
+    telescope->ISNewText(dev, name, texts, names, n);
 }
 
 /**************************************************************************************
 **
 ***************************************************************************************/
-void ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n)
+void ISNewNumber (const char * dev, const char * name, double values[], char * names[], int n)
 {
- ISInit();
- telescope->ISNewNumber(dev, name, values, names, n);
+    ISInit();
+    telescope->ISNewNumber(dev, name, values, names, n);
 }
 
 /**************************************************************************************
 **
 ***************************************************************************************/
-void ISPoll (void *p)
+void ISPoll (void * p)
 {
- INDI_UNUSED(p);
+    INDI_UNUSED(p);
 
- telescope->ISPoll(); 
- IEAddTimer (POLLMS, ISPoll, NULL);
+    telescope->ISPoll();
+    IEAddTimer (POLLMS, ISPoll, NULL);
 }
 
 /**************************************************************************************
 **
 ***************************************************************************************/
-void ISNewBLOB (const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[], char *names[], int n)
+void ISNewBLOB (const char * dev, const char * name, int sizes[], int blobsizes[], char * blobs[], char * formats[], char * names[], int n)
 {
-  INDI_UNUSED(dev);
-  INDI_UNUSED(name);
-  INDI_UNUSED(sizes);
-  INDI_UNUSED(blobsizes);
-  INDI_UNUSED(blobs);
-  INDI_UNUSED(formats);
-  INDI_UNUSED(names);
-  INDI_UNUSED(n);
+    INDI_UNUSED(dev);
+    INDI_UNUSED(name);
+    INDI_UNUSED(sizes);
+    INDI_UNUSED(blobsizes);
+    INDI_UNUSED(blobs);
+    INDI_UNUSED(formats);
+    INDI_UNUSED(names);
+    INDI_UNUSED(n);
 }
 
 /**************************************************************************************
 **
 ***************************************************************************************/
-void ISSnoopDevice (XMLEle *root) 
+void ISSnoopDevice (XMLEle * root)
 {
-  INDI_UNUSED(root);
+    INDI_UNUSED(root);
 }
 
 /**************************************************************************************
@@ -149,21 +153,21 @@ void ISSnoopDevice (XMLEle *root)
 ***************************************************************************************/
 IEQ45Basic::IEQ45Basic()
 {
-   init_properties();
+    init_properties();
 
-   lastSet        = -1;
-   fd             = -1;
-   simulation     = false;
-   lastRA 	  = 0;
-   lastDEC	  = 0;
-   currentSet     = 0;
+    lastSet        = -1;
+    fd             = -1;
+    simulation     = false;
+    lastRA 	  = 0;
+    lastDEC	  = 0;
+    currentSet     = 0;
 
-   IDLog("Initializing from IEQ45 device...\n");
-   IDLog("Driver Version: 0.1 (2011-11-07)\n");
- 
-   enable_simulation(false);  
+    IDLog("Initializing from IEQ45 device...\n");
+    IDLog("Driver Version: 0.1 (2011-11-07)\n");
 
- }
+    enable_simulation(false);
+
+}
 
 /**************************************************************************************
 **
@@ -189,10 +193,10 @@ void IEQ45Basic::init_properties()
     IUFillSwitchVector(&OnCoordSetSP, OnCoordSetS, NARRAY(OnCoordSetS), mydev, "ON_COORD_SET", "On Set", BASIC_GROUP, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
     //Track MODE
-    IUFillSwitch(&TrackModeS[0],"SIDEREAL", "Sidereal", ISS_ON);
-    IUFillSwitch(&TrackModeS[1],"LUNAR","Lunar", ISS_OFF);
-    IUFillSwitch(&TrackModeS[2],"SOLAR", "Solar", ISS_OFF);
-    IUFillSwitch(&TrackModeS[3],"ZERO", "Stop", ISS_OFF);
+    IUFillSwitch(&TrackModeS[0], "SIDEREAL", "Sidereal", ISS_ON);
+    IUFillSwitch(&TrackModeS[1], "LUNAR", "Lunar", ISS_OFF);
+    IUFillSwitch(&TrackModeS[2], "SOLAR", "Solar", ISS_OFF);
+    IUFillSwitch(&TrackModeS[3], "ZERO", "Stop", ISS_OFF);
     IUFillSwitchVector(&TrackModeSP, TrackModeS, NARRAY(TrackModeS), mydev, "TRACK_MODE", "Track Mode", BASIC_GROUP, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
     // Abort
@@ -213,243 +217,244 @@ void IEQ45Basic::init_properties()
 /**************************************************************************************
 ** Define IEQ45 Basic properties to clients.
 ***************************************************************************************/
-void IEQ45Basic::ISGetProperties(const char *dev)
+void IEQ45Basic::ISGetProperties(const char * dev)
 {
 
- if (dev && strcmp (mydev, dev))
-    return;
+    if (dev && strcmp (mydev, dev))
+        return;
 
-  // Main Control
-  IDDefSwitch(&ConnectSP, NULL);
-  IDDefText(&PortTP, NULL);
-  IDDefNumber(&EquatorialCoordsRNP, NULL);
-  IDDefSwitch(&OnCoordSetSP, NULL);
-  IDDefSwitch(&TrackModeSP, NULL);
-  IDDefSwitch(&AbortSlewSP, NULL);
+    // Main Control
+    IDDefSwitch(&ConnectSP, NULL);
+    IDDefText(&PortTP, NULL);
+    IDDefNumber(&EquatorialCoordsRNP, NULL);
+    IDDefSwitch(&OnCoordSetSP, NULL);
+    IDDefSwitch(&TrackModeSP, NULL);
+    IDDefSwitch(&AbortSlewSP, NULL);
 
 
-  
+
 }
 
 /**************************************************************************************
 ** Process Text properties
 ***************************************************************************************/
-void IEQ45Basic::ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n)
+void IEQ45Basic::ISNewText (const char * dev, const char * name, char * texts[], char * names[], int n)
 {
-	// Ignore if not ours 
-	if (strcmp (dev, mydev))
-	    return;
+    // Ignore if not ours
+    if (strcmp (dev, mydev))
+        return;
 
-	// ===================================
-	// Port Name
-	// ===================================
-	if (!strcmp(name, PortTP.name) )
-	{
-	  if (IUUpdateText(&PortTP, texts, names, n) < 0)
-		return;
+    // ===================================
+    // Port Name
+    // ===================================
+    if (!strcmp(name, PortTP.name) )
+    {
+        if (IUUpdateText(&PortTP, texts, names, n) < 0)
+            return;
 
-	  PortTP.s = IPS_OK;
-	  IDSetText (&PortTP, NULL);
-	  return;
-	}
+        PortTP.s = IPS_OK;
+        IDSetText (&PortTP, NULL);
+        return;
+    }
 
-	if (is_connected() == false)
-        {
-		IDMessage(mydev, "IEQ45 is offline. Please connect before issuing any commands.");
-		reset_all_properties();
-		return;
-	}
+    if (is_connected() == false)
+    {
+        IDMessage(mydev, "IEQ45 is offline. Please connect before issuing any commands.");
+        reset_all_properties();
+        return;
+    }
 
 }
 
 /**************************************************************************************
 **
 ***************************************************************************************/
-void IEQ45Basic::ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n)
+void IEQ45Basic::ISNewNumber (const char * dev, const char * name, double values[], char * names[], int n)
 {
-	
-	// Ignore if not ours
-	if (strcmp (dev, mydev))
-	    return;
 
-	if (is_connected() == false)
-        {
-		IDMessage(mydev, "IEQ45 is offline. Please connect before issuing any commands.");
-		reset_all_properties();
-		return;
-	}
+    // Ignore if not ours
+    if (strcmp (dev, mydev))
+        return;
 
-	// ===================================
-        // Equatorial Coords
-	// ===================================
+    if (is_connected() == false)
+    {
+        IDMessage(mydev, "IEQ45 is offline. Please connect before issuing any commands.");
+        reset_all_properties();
+        return;
+    }
+
+    // ===================================
+    // Equatorial Coords
+    // ===================================
     if (!strcmp (name, EquatorialCoordsRNP.name))
-	{
-	  int i=0, nset=0, error_code=0;
-	  double newRA =0, newDEC =0;
+    {
+        int i = 0, nset = 0, error_code = 0;
+        double newRA = 0, newDEC = 0;
 
-	    for (nset = i = 0; i < n; i++)
-	    {
-        INumber *eqp = IUFindNumber (&EquatorialCoordsRNP, names[i]);
-        if (eqp == &EquatorialCoordsRN[0])
-		{
-                    newRA = values[i];
-		    nset += newRA >= 0 && newRA <= 24.0;
-        } else if (eqp == &EquatorialCoordsRN[1])
-		{
-		    newDEC = values[i];
-		    nset += newDEC >= -90.0 && newDEC <= 90.0;
-		}
-	    }
+        for (nset = i = 0; i < n; i++)
+        {
+            INumber * eqp = IUFindNumber (&EquatorialCoordsRNP, names[i]);
+            if (eqp == &EquatorialCoordsRN[0])
+            {
+                newRA = values[i];
+                nset += newRA >= 0 && newRA <= 24.0;
+            }
+            else if (eqp == &EquatorialCoordsRN[1])
+            {
+                newDEC = values[i];
+                nset += newDEC >= -90.0 && newDEC <= 90.0;
+            }
+        }
 
-	  if (nset == 2)
-	  {
-	   char RAStr[32], DecStr[32];
+        if (nset == 2)
+        {
+            char RAStr[32], DecStr[32];
 
-	   fs_sexa(RAStr, newRA, 2, 3600);
-	   fs_sexa(DecStr, newDEC, 2, 3600);
-	  
-           #ifdef INDI_DEBUG
-	   IDLog("We received JNow RA %g - DEC %g\n", newRA, newDEC);
-	   IDLog("We received JNow RA %s - DEC %s\n", RAStr, DecStr);
-           #endif
-	   
-	   if (!simulation && ( (error_code = setObjectRA(fd, newRA)) < 0 || ( error_code = setObjectDEC(fd, newDEC)) < 0))
-	   {
-         handle_error(&EquatorialCoordsRNP, error_code, "Setting RA/DEC");
-	     return;
-	   } 
-	   
-	   targetRA  = newRA;
-	   targetDEC = newDEC;
-	   
-	   if (process_coords() == false)
-	   {
-         EquatorialCoordsRNP.s = IPS_ALERT;
-         IDSetNumber(&EquatorialCoordsRNP, NULL);
-	     
-	   }
-	} // end nset
-	else
-	{
-        EquatorialCoordsRNP.s = IPS_ALERT;
-        IDSetNumber(&EquatorialCoordsRNP, "RA or Dec missing or invalid");
-	}
+            fs_sexa(RAStr, newRA, 2, 3600);
+            fs_sexa(DecStr, newDEC, 2, 3600);
 
-	    return;
-     } /* end EquatorialCoordsWNP */
+#ifdef INDI_DEBUG
+            IDLog("We received JNow RA %g - DEC %g\n", newRA, newDEC);
+            IDLog("We received JNow RA %s - DEC %s\n", RAStr, DecStr);
+#endif
+
+            if (!simulation && ( (error_code = setObjectRA(fd, newRA)) < 0 || ( error_code = setObjectDEC(fd, newDEC)) < 0))
+            {
+                handle_error(&EquatorialCoordsRNP, error_code, "Setting RA/DEC");
+                return;
+            }
+
+            targetRA  = newRA;
+            targetDEC = newDEC;
+
+            if (process_coords() == false)
+            {
+                EquatorialCoordsRNP.s = IPS_ALERT;
+                IDSetNumber(&EquatorialCoordsRNP, NULL);
+
+            }
+        } // end nset
+        else
+        {
+            EquatorialCoordsRNP.s = IPS_ALERT;
+            IDSetNumber(&EquatorialCoordsRNP, "RA or Dec missing or invalid");
+        }
+
+        return;
+    } /* end EquatorialCoordsWNP */
 
 }
 
 /**************************************************************************************
 **
 ***************************************************************************************/
-void IEQ45Basic::ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n)
+void IEQ45Basic::ISNewSwitch (const char * dev, const char * name, ISState * states, char * names[], int n)
 {
-	// ignore if not ours //
-	if (strcmp (mydev, dev))
-	    return;
+    // ignore if not ours //
+    if (strcmp (mydev, dev))
+        return;
 
-	// ===================================
-        // Connect Switch
-	// ===================================
-	if (!strcmp (name, ConnectSP.name))
-	{
-	    if (IUUpdateSwitch(&ConnectSP, states, names, n) < 0)
-		return;
+    // ===================================
+    // Connect Switch
+    // ===================================
+    if (!strcmp (name, ConnectSP.name))
+    {
+        if (IUUpdateSwitch(&ConnectSP, states, names, n) < 0)
+            return;
 
-   	    connect_telescope();
-	    return;
-	}
+        connect_telescope();
+        return;
+    }
 
-	if (is_connected() == false)
-        {
-		IDMessage(mydev, "IEQ45 is offline. Please connect before issuing any commands.");
-		reset_all_properties();
-		return;
-	}
+    if (is_connected() == false)
+    {
+        IDMessage(mydev, "IEQ45 is offline. Please connect before issuing any commands.");
+        reset_all_properties();
+        return;
+    }
 
-	// ===================================
-        // Coordinate Set
-	// ===================================
-	if (!strcmp(name, OnCoordSetSP.name))
-	{
-	   if (IUUpdateSwitch(&OnCoordSetSP, states, names, n) < 0)
-		return;
+    // ===================================
+    // Coordinate Set
+    // ===================================
+    if (!strcmp(name, OnCoordSetSP.name))
+    {
+        if (IUUpdateSwitch(&OnCoordSetSP, states, names, n) < 0)
+            return;
 
-	  currentSet = get_switch_index(&OnCoordSetSP);
-	  OnCoordSetSP.s = IPS_OK;
-	  IDSetSwitch(&OnCoordSetSP, NULL);
-	}
+        currentSet = get_switch_index(&OnCoordSetSP);
+        OnCoordSetSP.s = IPS_OK;
+        IDSetSwitch(&OnCoordSetSP, NULL);
+    }
 
-	// ===================================
-        // Track Mode Set
-	// ===================================
-	if (!strcmp(name, TrackModeSP.name))
-	{
-	   if (IUUpdateSwitch(&TrackModeSP, states, names, n) < 0)
-		return;
+    // ===================================
+    // Track Mode Set
+    // ===================================
+    if (!strcmp(name, TrackModeSP.name))
+    {
+        if (IUUpdateSwitch(&TrackModeSP, states, names, n) < 0)
+            return;
 
-	  int trackMode = get_switch_index(&TrackModeSP);
-	  selectTrackingMode(fd, trackMode);
-	  TrackModeSP.s = IPS_OK;
-	  IDSetSwitch(&TrackModeSP, NULL);
-	}
-	  
-	// ===================================
-        // Abort slew
-	// ===================================
-	if (!strcmp (name, AbortSlewSP.name))
-	{
+        int trackMode = get_switch_index(&TrackModeSP);
+        selectTrackingMode(fd, trackMode);
+        TrackModeSP.s = IPS_OK;
+        IDSetSwitch(&TrackModeSP, NULL);
+    }
 
-	  IUResetSwitch(&AbortSlewSP);
-	  abortSlew(fd);
+    // ===================================
+    // Abort slew
+    // ===================================
+    if (!strcmp (name, AbortSlewSP.name))
+    {
+
+        IUResetSwitch(&AbortSlewSP);
+        abortSlew(fd);
 
         if (EquatorialCoordsRNP.s == IPS_BUSY)
-	    {
+        {
             AbortSlewSP.s = IPS_OK;
             EquatorialCoordsRNP.s       = IPS_IDLE;
             IDSetSwitch(&AbortSlewSP, "Slew aborted.");
             IDSetNumber(&EquatorialCoordsRNP, NULL);
         }
 
-	    return;
-	}
+        return;
+    }
 
 }
 
 /**************************************************************************************
 ** Retry connecting to the telescope on error. Give up if there is no hope.
 ***************************************************************************************/
-void IEQ45Basic::handle_error(INumberVectorProperty *nvp, int err, const char *msg)
+void IEQ45Basic::handle_error(INumberVectorProperty * nvp, int err, const char * msg)
 {
-  
-  nvp->s = IPS_ALERT;
-  
-  /* First check to see if the telescope is connected */
+
+    nvp->s = IPS_ALERT;
+
+    /* First check to see if the telescope is connected */
     if (check_IEQ45_connection(fd))
     {
-      /* The telescope is off locally */
-      ConnectS[0].s = ISS_OFF;
-      ConnectS[1].s = ISS_ON;
-      ConnectSP.s = IPS_BUSY;
-      IDSetSwitch(&ConnectSP, "Telescope is not responding to commands, will retry in 10 seconds.");
-      
-      IDSetNumber(nvp, NULL);
-      IEAddTimer(10000, retry_connection, &fd);
-      return;
+        /* The telescope is off locally */
+        ConnectS[0].s = ISS_OFF;
+        ConnectS[1].s = ISS_ON;
+        ConnectSP.s = IPS_BUSY;
+        IDSetSwitch(&ConnectSP, "Telescope is not responding to commands, will retry in 10 seconds.");
+
+        IDSetNumber(nvp, NULL);
+        IEAddTimer(10000, retry_connection, &fd);
+        return;
     }
-    
-   /* If the error is a time out, then the device doesn't support this property */
-      if (err == -2)
-      {
-       nvp->s = IPS_ALERT;
-       IDSetNumber(nvp, "Device timed out. Current device may be busy or does not support %s. Will retry again.", msg);
-      }
-      else
-    /* Changing property failed, user should retry. */
-       IDSetNumber( nvp , "%s failed.", msg);
-       
-       fault = true;
+
+    /* If the error is a time out, then the device doesn't support this property */
+    if (err == -2)
+    {
+        nvp->s = IPS_ALERT;
+        IDSetNumber(nvp, "Device timed out. Current device may be busy or does not support %s. Will retry again.", msg);
+    }
+    else
+        /* Changing property failed, user should retry. */
+        IDSetNumber( nvp , "%s failed.", msg);
+
+    fault = true;
 }
 
 /**************************************************************************************
@@ -459,7 +464,7 @@ void IEQ45Basic::reset_all_properties()
 {
     ConnectSP.s			= IPS_IDLE;
     OnCoordSetSP.s		= IPS_IDLE;
-    TrackModeSP.s		= IPS_IDLE;  
+    TrackModeSP.s		= IPS_IDLE;
     AbortSlewSP.s		= IPS_IDLE;
     PortTP.s			= IPS_IDLE;
     EquatorialCoordsRNP.s	= IPS_IDLE;
@@ -486,8 +491,8 @@ void IEQ45Basic::reset_all_properties()
 ***************************************************************************************/
 void IEQ45Basic::correct_fault()
 {
-  fault = false;
-  IDMessage(mydev, "Telescope is online.");
+    fault = false;
+    IDMessage(mydev, "Telescope is online.");
 }
 
 /**************************************************************************************
@@ -495,9 +500,9 @@ void IEQ45Basic::correct_fault()
 ***************************************************************************************/
 bool IEQ45Basic::is_connected()
 {
-  if (simulation) return true;
-  
-  return (ConnectSP.sp[0].s == ISS_ON);
+    if (simulation) return true;
+
+    return (ConnectSP.sp[0].s == ISS_ON);
 }
 
 /**************************************************************************************
@@ -505,94 +510,94 @@ bool IEQ45Basic::is_connected()
 ***************************************************************************************/
 static void retry_connection(void * p)
 {
-  int fd = *((int *) p);
+    int fd = *((int *) p);
 
-  if (check_IEQ45_connection(fd))
-	telescope->connection_lost();
-  else
-	telescope->connection_resumed();
+    if (check_IEQ45_connection(fd))
+        telescope->connection_lost();
+    else
+        telescope->connection_resumed();
 }
 
 /**************************************************************************************
 **
 ***************************************************************************************/
 void IEQ45Basic::ISPoll()
-{	
-	if (is_connected() == false || simulation)
-	 return;
+{
+    if (is_connected() == false || simulation)
+        return;
 
-        double dx, dy;
-	int error_code=0;
+    double dx, dy;
+    int error_code = 0;
 
     switch (EquatorialCoordsRNP.s)
-	{
-		case IPS_IDLE:
-		getIEQ45RA(fd, &currentRA);
-		getIEQ45DEC(fd, &currentDEC);
-	        if ( fabs (currentRA - lastRA) > 0.01 || fabs (currentDEC - lastDEC) > 0.01)
-		{
-	        	lastRA = currentRA;
-			lastDEC = currentDEC;
-			IDSetNumber (&EquatorialCoordsRNP, NULL);
-		        IDLog("IDLE update coord\n"); 
-		}
-        	break;
+    {
+        case IPS_IDLE:
+            getIEQ45RA(fd, &currentRA);
+            getIEQ45DEC(fd, &currentDEC);
+            if ( fabs (currentRA - lastRA) > 0.01 || fabs (currentDEC - lastDEC) > 0.01)
+            {
+                lastRA = currentRA;
+                lastDEC = currentDEC;
+                IDSetNumber (&EquatorialCoordsRNP, NULL);
+                IDLog("IDLE update coord\n");
+            }
+            break;
 
-        	case IPS_BUSY:
-	    	getIEQ45RA(fd, &currentRA);
-		getIEQ45DEC(fd, &currentDEC);
-	    	dx = targetRA - currentRA;
-	    	dy = targetDEC - currentDEC;
+        case IPS_BUSY:
+            getIEQ45RA(fd, &currentRA);
+            getIEQ45DEC(fd, &currentDEC);
+            dx = targetRA - currentRA;
+            dy = targetDEC - currentDEC;
 
-	    	// Wait until acknowledged or within threshold
-	    	if ( fabs(dx) <= (3/(900.0)) && fabs(dy) <= (3/60.0))
-	    	{
-		        lastRA  = currentRA;
-		        lastDEC = currentDEC;
-	       		IUResetSwitch(&OnCoordSetSP);
-	       		OnCoordSetSP.s = IPS_OK;
-			EquatorialCoordsRNP.s = IPS_OK;
-			IDSetNumber (&EquatorialCoordsRNP, NULL);
+            // Wait until acknowledged or within threshold
+            if ( fabs(dx) <= (3 / (900.0)) && fabs(dy) <= (3 / 60.0))
+            {
+                lastRA  = currentRA;
+                lastDEC = currentDEC;
+                IUResetSwitch(&OnCoordSetSP);
+                OnCoordSetSP.s = IPS_OK;
+                EquatorialCoordsRNP.s = IPS_OK;
+                IDSetNumber (&EquatorialCoordsRNP, NULL);
 
-			switch (currentSet)
-			{
-		  		case IEQ45_SLEW:
-		  		OnCoordSetSP.sp[IEQ45_SLEW].s = ISS_ON;
-		  		IDSetSwitch (&OnCoordSetSP, "Slew is complete.");
-		  		break;
-		    
-		  		case IEQ45_SYNC:
-		  		break;
-			}
-		  
-	    	}
-		else
-			IDSetNumber (&EquatorialCoordsRNP, NULL);
-	    	break;
+                switch (currentSet)
+                {
+                    case IEQ45_SLEW:
+                        OnCoordSetSP.sp[IEQ45_SLEW].s = ISS_ON;
+                        IDSetSwitch (&OnCoordSetSP, "Slew is complete.");
+                        break;
 
-		case IPS_OK:
-	        	  
-		if ( (error_code = getIEQ45RA(fd, &currentRA)) < 0 || (error_code = getIEQ45DEC(fd, &currentDEC)) < 0)
-		{
-	  		handle_error(&EquatorialCoordsRNP, error_code, "Getting RA/DEC");
-	  		return;
-		}
-	
-		if (fault == true)
-	  		correct_fault();
+                    case IEQ45_SYNC:
+                        break;
+                }
 
-		if ( (currentRA != lastRA) || (currentDEC != lastDEC))
-		{
-		  	lastRA  = currentRA;
-			lastDEC = currentDEC;
-			//IDLog("IPS_OK update coords %g %g\n",currentRA,currentDEC); 
-			IDSetNumber (&EquatorialCoordsRNP, NULL);
-		}
-        	break;
+            }
+            else
+                IDSetNumber (&EquatorialCoordsRNP, NULL);
+            break;
 
-		case IPS_ALERT:
-	    	break;
-	}
+        case IPS_OK:
+
+            if ( (error_code = getIEQ45RA(fd, &currentRA)) < 0 || (error_code = getIEQ45DEC(fd, &currentDEC)) < 0)
+            {
+                handle_error(&EquatorialCoordsRNP, error_code, "Getting RA/DEC");
+                return;
+            }
+
+            if (fault == true)
+                correct_fault();
+
+            if ( (currentRA != lastRA) || (currentDEC != lastDEC))
+            {
+                lastRA  = currentRA;
+                lastDEC = currentDEC;
+                //IDLog("IPS_OK update coords %g %g\n",currentRA,currentDEC);
+                IDSetNumber (&EquatorialCoordsRNP, NULL);
+            }
+            break;
+
+        case IPS_ALERT:
+            break;
+    }
 }
 
 /**************************************************************************************
@@ -601,77 +606,77 @@ void IEQ45Basic::ISPoll()
 bool IEQ45Basic::process_coords()
 {
 
-  int  error_code;
-  char syncString[256];
-  char RAStr[32], DecStr[32];
-  double dx, dy;
-  
-  switch (currentSet)
-  {
+    int  error_code;
+    char syncString[256];
+    char RAStr[32], DecStr[32];
+    double dx, dy;
 
-    // Slew
-    case IEQ45_SLEW:
-          lastSet = IEQ45_SLEW;
-      if (EquatorialCoordsRNP.s == IPS_BUSY)
-	  {
-	     IDLog("Aborting Slew\n");
-	     abortSlew(fd);
+    switch (currentSet)
+    {
 
-	     // sleep for 100 mseconds
-	     usleep(100000);
-	  }
+        // Slew
+        case IEQ45_SLEW:
+            lastSet = IEQ45_SLEW;
+            if (EquatorialCoordsRNP.s == IPS_BUSY)
+            {
+                IDLog("Aborting Slew\n");
+                abortSlew(fd);
 
-	  if ( !simulation && (error_code = Slew(fd)))
-	  {
-	    slew_error(error_code);
-	    return false;
-	  }
+                // sleep for 100 mseconds
+                usleep(100000);
+            }
 
-	  EquatorialCoordsRNP.s = IPS_BUSY;
-	  fs_sexa(RAStr, targetRA, 2, 3600);
-	  fs_sexa(DecStr, targetDEC, 2, 3600);
-      IDSetNumber(&EquatorialCoordsRNP, "Slewing to JNow RA %s - DEC %s", RAStr, DecStr);
-	  IDLog("Slewing to JNow RA %s - DEC %s\n", RAStr, DecStr);
-	  break;
+            if ( !simulation && (error_code = Slew(fd)))
+            {
+                slew_error(error_code);
+                return false;
+            }
+
+            EquatorialCoordsRNP.s = IPS_BUSY;
+            fs_sexa(RAStr, targetRA, 2, 3600);
+            fs_sexa(DecStr, targetDEC, 2, 3600);
+            IDSetNumber(&EquatorialCoordsRNP, "Slewing to JNow RA %s - DEC %s", RAStr, DecStr);
+            IDLog("Slewing to JNow RA %s - DEC %s\n", RAStr, DecStr);
+            break;
 
 
-    // Sync
-    case IEQ45_SYNC:
-          lastSet = IEQ45_SYNC;
-      EquatorialCoordsRNP.s = IPS_IDLE;
-	   
-	  if ( !simulation && ( error_code = Sync(fd, syncString) < 0) )
-	  {
-            IDSetNumber( &EquatorialCoordsRNP , "Synchronization failed.");
-		return false;
-	  }
+        // Sync
+        case IEQ45_SYNC:
+            lastSet = IEQ45_SYNC;
+            EquatorialCoordsRNP.s = IPS_IDLE;
 
-	  if (simulation)
-	  {
-             EquatorialCoordsRN[0].value = EquatorialCoordsRN[0].value;
-             EquatorialCoordsRN[1].value = EquatorialCoordsRN[1].value;
-	  }
+            if ( !simulation && ( error_code = Sync(fd, syncString) < 0) )
+            {
+                IDSetNumber( &EquatorialCoordsRNP , "Synchronization failed.");
+                return false;
+            }
 
-	  EquatorialCoordsRNP.s = IPS_OK;
-	  IDLog("Synchronization successful %s\n", syncString);
-      IDSetNumber(&EquatorialCoordsRNP, "Synchronization successful.");
-	  break;
+            if (simulation)
+            {
+                EquatorialCoordsRN[0].value = EquatorialCoordsRN[0].value;
+                EquatorialCoordsRN[1].value = EquatorialCoordsRN[1].value;
+            }
+
+            EquatorialCoordsRNP.s = IPS_OK;
+            IDLog("Synchronization successful %s\n", syncString);
+            IDSetNumber(&EquatorialCoordsRNP, "Synchronization successful.");
+            break;
     }
 
-   return true;
+    return true;
 
 }
 
 /**************************************************************************************
 **
 ***************************************************************************************/
-int IEQ45Basic::get_switch_index(ISwitchVectorProperty *sp)
+int IEQ45Basic::get_switch_index(ISwitchVectorProperty * sp)
 {
- for (int i=0; i < sp->nsp ; i++)
-     if (sp->sp[i].s == ISS_ON)
-      return i;
+    for (int i = 0; i < sp->nsp ; i++)
+        if (sp->sp[i].s == ISS_ON)
+            return i;
 
- return -1;
+    return -1;
 }
 
 /**************************************************************************************
@@ -679,52 +684,52 @@ int IEQ45Basic::get_switch_index(ISwitchVectorProperty *sp)
 ***************************************************************************************/
 void IEQ45Basic::connect_telescope()
 {
-     switch (ConnectSP.sp[0].s)
-     {
-      case ISS_ON:  
-	
-        if (simulation)
-	{
-	  ConnectSP.s = IPS_OK;
-	  IDSetSwitch (&ConnectSP, "Simulated telescope is online.");
-	  return;
-	}
-	
-         if (tty_connect(PortT[0].text, 9600, 8, 0, 1, &fd) != TTY_OK)
-	 {
-	   ConnectS[0].s = ISS_OFF;
-	   ConnectS[1].s = ISS_ON;
-	   IDSetSwitch (&ConnectSP, "Error connecting to port %s. Make sure you have BOTH read and write permission to the port.", PortT[0].text);
-	   return;
-	 }
+    switch (ConnectSP.sp[0].s)
+    {
+        case ISS_ON:
 
-	 if (check_IEQ45_connection(fd))
-	 {   
-	   ConnectS[0].s = ISS_OFF;
-	   ConnectS[1].s = ISS_ON;
-	   IDSetSwitch (&ConnectSP, "Error connecting to Telescope. Telescope is offline.");
-	   return;
-	 }
+            if (simulation)
+            {
+                ConnectSP.s = IPS_OK;
+                IDSetSwitch (&ConnectSP, "Simulated telescope is online.");
+                return;
+            }
 
-	ConnectSP.s = IPS_OK;
-	IDSetSwitch (&ConnectSP, "Telescope is online. Retrieving basic data...");
-	get_initial_data();
-	break;
+            if (tty_connect(PortT[0].text, 9600, 8, 0, 1, &fd) != TTY_OK)
+            {
+                ConnectS[0].s = ISS_OFF;
+                ConnectS[1].s = ISS_ON;
+                IDSetSwitch (&ConnectSP, "Error connecting to port %s. Make sure you have BOTH read and write permission to the port.", PortT[0].text);
+                return;
+            }
 
-     case ISS_OFF:
-         ConnectS[0].s = ISS_OFF;
-	 ConnectS[1].s = ISS_ON;
-         ConnectSP.s = IPS_IDLE;
-	 if (simulation)
-         {
-	    IDSetSwitch (&ConnectSP, "Simulated Telescope is offline.");
-	    return;
-         }
-         IDSetSwitch (&ConnectSP, "Telescope is offline.");
-	 IDLog("Telescope is offline.");
-         
-	 tty_disconnect(fd);
-	 break;
+            if (check_IEQ45_connection(fd))
+            {
+                ConnectS[0].s = ISS_OFF;
+                ConnectS[1].s = ISS_ON;
+                IDSetSwitch (&ConnectSP, "Error connecting to Telescope. Telescope is offline.");
+                return;
+            }
+
+            ConnectSP.s = IPS_OK;
+            IDSetSwitch (&ConnectSP, "Telescope is online. Retrieving basic data...");
+            get_initial_data();
+            break;
+
+        case ISS_OFF:
+            ConnectS[0].s = ISS_OFF;
+            ConnectS[1].s = ISS_ON;
+            ConnectSP.s = IPS_IDLE;
+            if (simulation)
+            {
+                IDSetSwitch (&ConnectSP, "Simulated Telescope is offline.");
+                return;
+            }
+            IDSetSwitch (&ConnectSP, "Telescope is offline.");
+            IDLog("Telescope is offline.");
+
+            tty_disconnect(fd);
+            break;
     }
 }
 
@@ -734,14 +739,14 @@ void IEQ45Basic::connect_telescope()
 void IEQ45Basic::get_initial_data()
 {
 
-  // Make sure short
-  checkIEQ45Format(fd);
+    // Make sure short
+    checkIEQ45Format(fd);
 
-  // Get current RA/DEC
-  getIEQ45RA(fd, &currentRA);
-  getIEQ45DEC(fd, &currentDEC);
+    // Get current RA/DEC
+    getIEQ45RA(fd, &currentRA);
+    getIEQ45DEC(fd, &currentDEC);
 
-  IDSetNumber (&EquatorialCoordsRNP, NULL);  
+    IDSetNumber (&EquatorialCoordsRNP, NULL);
 }
 
 /**************************************************************************************
@@ -753,9 +758,9 @@ void IEQ45Basic::slew_error(int slewCode)
     IDLog("Aborting Slew\n");
     abortSlew(fd);
     if (slewCode == 1)
-	IDSetSwitch (&OnCoordSetSP, "Object below horizon.");
+        IDSetSwitch (&OnCoordSetSP, "Object below horizon.");
     else if (slewCode == 2)
-	IDSetSwitch (&OnCoordSetSP, "Object below the minimum elevation limit.");
+        IDSetSwitch (&OnCoordSetSP, "Object below the minimum elevation limit.");
     else
         IDSetSwitch (&OnCoordSetSP, "Slew failed.");
 }
@@ -765,12 +770,12 @@ void IEQ45Basic::slew_error(int slewCode)
 ***************************************************************************************/
 void IEQ45Basic::enable_simulation(bool enable)
 {
-   simulation = enable;
-   
-   if (simulation)
-     IDLog("Warning: Simulation is activated.\n");
-   else
-     IDLog("Simulation is disabled.\n");
+    simulation = enable;
+
+    if (simulation)
+        IDLog("Warning: Simulation is activated.\n");
+    else
+        IDLog("Simulation is disabled.\n");
 }
 
 /**************************************************************************************
@@ -781,7 +786,7 @@ void IEQ45Basic::connection_lost()
     ConnectSP.s = IPS_IDLE;
     IDSetSwitch(&ConnectSP, "The connection to the telescope is lost.");
     return;
- 
+
 }
 
 /**************************************************************************************
@@ -789,9 +794,9 @@ void IEQ45Basic::connection_lost()
 ***************************************************************************************/
 void IEQ45Basic::connection_resumed()
 {
-  ConnectS[0].s = ISS_ON;
-  ConnectS[1].s = ISS_OFF;
-  ConnectSP.s = IPS_OK;
-   
-  IDSetSwitch(&ConnectSP, "The connection to the telescope has been resumed.");
+    ConnectS[0].s = ISS_ON;
+    ConnectS[1].s = ISS_OFF;
+    ConnectSP.s = IPS_OK;
+
+    IDSetSwitch(&ConnectSP, "The connection to the telescope has been resumed.");
 }

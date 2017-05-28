@@ -110,7 +110,7 @@ void ConvexHull::CheckEndpts ( void )
     fstart = faces;
     if (faces) do
         {
-            for( i=0; i<3; ++i )
+            for( i = 0; i < 3; ++i )
             {
                 v = faces->vertex[i];
                 e = faces->edge[i];
@@ -124,7 +124,7 @@ void ConvexHull::CheckEndpts ( void )
                     cerr << "\n";
                 }
             }
-            faces= faces->next;
+            faces = faces->next;
         }
         while ( faces != fstart );
 
@@ -145,12 +145,12 @@ void ConvexHull::CheckEuler( int V, int E, int F )
         cerr << "V-E+F = 2\t";
 
     if ( F != (2 * V - 4) )
-        cerr << "Checks: F=" << F << " != 2V-4=" << 2*V-4 << "; V=" << V << '\n';
+        cerr << "Checks: F=" << F << " != 2V-4=" << 2 * V - 4 << "; V=" << V << '\n';
     else if ( check )
         cerr << "F = 2V-4\t";
 
     if ( (2 * E) != (3 * F) )
-        cerr << "Checks: 2E=" << 2*E << " != 3F=" << 3*F << "; E=" << E << ", F=" << F << '\n';
+        cerr << "Checks: 2E=" << 2 * E << " != 3F=" << 3 * F << "; E=" << E << ", F=" << F << '\n';
     else if ( check )
         cerr << "2E = 3F\n";
 }
@@ -344,10 +344,10 @@ void ConvexHull::Consistency( void )
         for ( j = 0; e->adjface[1]->vertex[j] != e->endpts[0]; ++j );
 
         /* check if the endpoints occur in opposite order */
-        if ( !( e->adjface[0]->vertex[ (i+1) % 3 ] ==
-                e->adjface[1]->vertex[ (j+2) % 3 ] ||
-                e->adjface[0]->vertex[ (i+2) % 3 ] ==
-                e->adjface[1]->vertex[ (j+1) % 3 ] )  )
+        if ( !( e->adjface[0]->vertex[ (i + 1) % 3 ] ==
+                e->adjface[1]->vertex[ (j + 2) % 3 ] ||
+                e->adjface[0]->vertex[ (i + 2) % 3 ] ==
+                e->adjface[1]->vertex[ (j + 1) % 3 ] )  )
             break;
         e = e->next;
     }
@@ -378,8 +378,8 @@ void ConvexHull::ConstructHull( void )
                 cerr << "ConstructHull: After Add of " << v->vnum << " & Cleanup:\n";
                 Checks();
             }
-//            if ( debug )
-//                PrintOut( v );
+            //            if ( debug )
+            //                PrintOut( v );
         }
         v = vnext;
     }
@@ -480,25 +480,25 @@ void ConvexHull::EdgeOrderOnFaces ( void )
 {
     tFace f = faces;
     tEdge newEdge;
-    int i,j;
+    int i, j;
 
     do
     {
         for (i = 0; i < 3; i++)
         {
             if (!(((f->edge[i]->endpts[0] == f->vertex[i]) &&
-                    (f->edge[i]->endpts[1] == f->vertex[(i+1)%3])) ||
+                    (f->edge[i]->endpts[1] == f->vertex[(i + 1) % 3])) ||
                     ((f->edge[i]->endpts[1] == f->vertex[i]) &&
-                     (f->edge[i]->endpts[0] == f->vertex[(i+1)%3]))))
+                     (f->edge[i]->endpts[0] == f->vertex[(i + 1) % 3]))))
             {
                 /* Change the order of the edges on the face: */
                 for (j = 0; j < 3; j ++)
                 {
                     /* find the edge that should be there */
                     if (((f->edge[j]->endpts[0] == f->vertex[i]) &&
-                            (f->edge[j]->endpts[1] == f->vertex[(i+1)%3])) ||
+                            (f->edge[j]->endpts[1] == f->vertex[(i + 1) % 3])) ||
                             ((f->edge[j]->endpts[1] == f->vertex[i]) &&
-                             (f->edge[j]->endpts[0] == f->vertex[(i+1)%3])))
+                             (f->edge[j]->endpts[0] == f->vertex[(i + 1) % 3])))
                     {
                         /* Swap it with the one erroneously put into its place: */
                         if ( debug )
@@ -532,9 +532,9 @@ void ConvexHull::MakeCcw( tFace f, tEdge e, tVertex p )
 
     /* Set vertex[0] & [1] of f to have the same orientation
     as do the corresponding vertices of fv. */
-    for ( i=0; fv->vertex[i] != e->endpts[0]; ++i );
+    for ( i = 0; fv->vertex[i] != e->endpts[0]; ++i );
     /* Orient f the same as fv. */
-    if ( fv->vertex[ (i+1) % 3 ] != e->endpts[1] )
+    if ( fv->vertex[ (i + 1) % 3 ] != e->endpts[1] )
     {
         f->vertex[0] = e->endpts[1];
         f->vertex[1] = e->endpts[0];
@@ -559,7 +559,7 @@ ConvexHull::tFace ConvexHull::MakeConeFace( tEdge e, tVertex p )
     int 	  i, j;
 
     /* Make two new edges (if don't already exist). */
-    for ( i=0; i < 2; ++i )
+    for ( i = 0; i < 2; ++i )
         /* If the edge exists, copy it into new_edge. */
         if ( !( new_edge[i] = e->endpts[i]->duplicate) )
         {
@@ -578,8 +578,8 @@ ConvexHull::tFace ConvexHull::MakeConeFace( tEdge e, tVertex p )
     MakeCcw( new_face, e, p );
 
     /* Set the adjacent face pointers. */
-    for ( i=0; i < 2; ++i )
-        for ( j=0; j < 2; ++j )
+    for ( i = 0; i < 2; ++i )
+        for ( j = 0; j < 2; ++j )
             /* Only one NULL link should be set to new_face. */
             if ( !new_edge[i]->adjface[j] )
             {
@@ -665,7 +665,7 @@ ConvexHull::tFace ConvexHull::MakeNullFace( void )
     int    i;
 
     f = new tsFace;
-    for ( i=0; i < 3; ++i )
+    for ( i = 0; i < 3; ++i )
     {
         f->edge[i] = NULL;
         f->vertex[i] = NULL;
@@ -820,10 +820,10 @@ void ConvexHull::PrintEdges( ofstream &Ofile )
         {
             Ofile << "  addr: " << hex << edges << '\t';
             Ofile << "adj: ";
-            for (i=0; i<2; ++i)
+            for (i = 0; i < 2; ++i)
                 Ofile << edges->adjface[i] << ' ';
             Ofile << " endpts:" << dec;
-            for (i=0; i<2; ++i)
+            for (i = 0; i < 2; ++i)
                 Ofile << edges->endpts[i]->vnum << ' ';
             Ofile << "  del:" << edges->delete_it << '\n';
             edges = edges->next;
@@ -843,13 +843,13 @@ void ConvexHull::PrintFaces( ofstream &Ofile )
         {
             Ofile << "  addr: " << hex << faces << "  ";
             Ofile << "  edges:" << hex;
-            for( i=0; i<3; ++i )
+            for( i = 0; i < 3; ++i )
                 Ofile << faces->edge[i] << ' ';
             Ofile << "  vert:" << dec;
-            for ( i=0; i<3; ++i)
+            for ( i = 0; i < 3; ++i)
                 Ofile << ' ' << faces->vertex[i]->vnum;
             Ofile << "  vis: " << faces->visible << '\n';
-            faces= faces->next;
+            faces = faces->next;
         }
         while ( faces != temp );
 
@@ -864,7 +864,7 @@ void ConvexHull::PrintObj(const char * FileName)
     double c[3], length;
     ofstream Ofile;
 
-    Ofile.open(FileName, ios_base::out|ios_base::trunc);
+    Ofile.open(FileName, ios_base::out | ios_base::trunc);
 
     Ofile << "# obj file written by chull\n";
     Ofile << "mtllib chull.mtl\n";
@@ -892,12 +892,12 @@ void ConvexHull::PrintObj(const char * FileName)
     {
         // get two tangent vectors
         SubVec( f->vertex[1]->v, f->vertex[0]->v, a );
-//        SubVec( f->vertex[2]->v, f->vertex[1]->v, b );
+        //        SubVec( f->vertex[2]->v, f->vertex[1]->v, b );
         SubVec( f->vertex[2]->v, f->vertex[0]->v, b );
         // cross product for the normal
-        c[0] = a[1]*b[2] - a[2]*b[1];
-        c[1] = a[2]*b[0] - a[0]*b[2];
-        c[2] = a[0]*b[1] - a[1]*b[0];
+        c[0] = a[1] * b[2] - a[2] * b[1];
+        c[1] = a[2] * b[0] - a[0] * b[2];
+        c[2] = a[0] * b[1] - a[1] * b[0];
         // normalise
         length = sqrt((c[0] * c[0]) + (c[1] * c[1]) + (c[2] * c[2]));
         c[0] = c[0] / length;
@@ -923,7 +923,7 @@ void ConvexHull::PrintObj(const char * FileName)
 
     Ofile.close();
 
-    Ofile.open("chull.mtl", ios_base::out|ios_base::trunc);
+    Ofile.open("chull.mtl", ios_base::out | ios_base::trunc);
 
     Ofile << "newmtl default\n";
     Ofile << "Ka 0.2 0 0\n";
@@ -936,7 +936,7 @@ void ConvexHull::PrintObj(const char * FileName)
 void ConvexHull::PrintOut( const char * FileName, tVertex v )
 {
     ofstream Ofile;
-    Ofile.open(FileName, ios_base::out|ios_base::trunc);
+    Ofile.open(FileName, ios_base::out | ios_base::trunc);
 
     Ofile << "\nHead vertex " << v->vnum << " = " << hex << v << " :\n";
 
@@ -1047,7 +1047,7 @@ void ConvexHull::SubVec( int a[3], int b[3], int c[3])
 {
     int  i;
 
-    for( i=0; i < 3; i++ ) // RFJ
+    for( i = 0; i < 3; i++ ) // RFJ
         //for( i=0; i < 2; i++ )
         c[i] = a[i] - b[i];
 }
@@ -1067,9 +1067,9 @@ int  ConvexHull::Volumei( tFace f, tVertex p )
     cy = f->vertex[2]->v[Y] - p->v[Y];
     cz = f->vertex[2]->v[Z] - p->v[Z];
 
-    vol =  (ax * (by*cz - bz*cy)
-            + ay * (bz*cx - bx*cz)
-            + az * (bx*cy - by*cx));
+    vol =  (ax * (by * cz - bz * cy)
+            + ay * (bz * cx - bx * cz)
+            + az * (bx * cy - by * cx));
 
     return vol;
 }
@@ -1090,9 +1090,9 @@ int  ConvexHull::VolumeSign( tFace f, tVertex p )
     cy = f->vertex[2]->v[Y] - p->v[Y];
     cz = f->vertex[2]->v[Z] - p->v[Z];
 
-    vol =   ax * (by*cz - bz*cy)
-            + ay * (bz*cx - bx*cz)
-            + az * (bx*cy - by*cx);
+    vol =   ax * (by * cz - bz * cy)
+            + ay * (bz * cx - bx * cz)
+            + az * (bx * cy - by * cx);
 
     if ( debug )
     {

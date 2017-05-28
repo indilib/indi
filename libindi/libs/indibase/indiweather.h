@@ -180,10 +180,10 @@ class INDI::Weather : public INDI::DefaultDevice
         INumber UpdatePeriodN[1];
         INumberVectorProperty UpdatePeriodNP;
 
-        Connection::Serial * serialConnection=NULL;
-        Connection::TCP * tcpConnection=NULL;
+        Connection::Serial * serialConnection = NULL;
+        Connection::TCP * tcpConnection = NULL;
 
-        int PortFD=-1;
+        int PortFD = -1;
 
     private:
         bool processLocationInfo(double latitude, double longitude, double elevation);

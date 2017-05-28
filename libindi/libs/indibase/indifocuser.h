@@ -98,10 +98,10 @@ class INDI::Focuser : public INDI::DefaultDevice, public INDI::FocuserInterface
 
         INDI::Controller * controller;
 
-        Connection::Serial * serialConnection=NULL;
-        Connection::TCP * tcpConnection=NULL;
+        Connection::Serial * serialConnection = NULL;
+        Connection::TCP * tcpConnection = NULL;
 
-        int PortFD=-1;
+        int PortFD = -1;
 
     private:
         bool callHandshake();

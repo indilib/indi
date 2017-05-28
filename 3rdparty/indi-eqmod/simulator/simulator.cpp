@@ -96,10 +96,8 @@ bool EQModSimulator::initProperties()
 
 bool EQModSimulator::updateProperties(bool enable)
 {
-
   if (enable)
   {
-    initProperties();
     telescope->defineSwitch(SimModeSP);
     telescope->defineNumber(SimWormNP);
     telescope->defineNumber(SimRatioNP);

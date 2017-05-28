@@ -50,7 +50,7 @@ WatchDogClient::~WatchDogClient()
 /**************************************************************************************
 **
 ***************************************************************************************/
-void WatchDogClient::newDevice(INDI::BaseDevice *dp)
+void WatchDogClient::newDevice(INDI::BaseDevice * dp)
 {
     IDLog("Receiving %s Device...\n", dp->getDeviceName());
 
@@ -66,12 +66,12 @@ void WatchDogClient::newDevice(INDI::BaseDevice *dp)
 /**************************************************************************************
 **
 *************************************************************************************/
-void WatchDogClient::newProperty(INDI::Property *property)
+void WatchDogClient::newProperty(INDI::Property * property)
 {
     if (!strcmp(property->getName(), "TELESCOPE_PARK"))
         mountParkSP = property->getSwitch();
     else if (!strcmp(property->getName(), "DOME_PARK"))
-       domeParkSP = property->getSwitch();
+        domeParkSP = property->getSwitch();
 }
 
 /**************************************************************************************
@@ -100,7 +100,7 @@ bool WatchDogClient::parkDome()
     if (domeParkSP == NULL)
         return false;
 
-    ISwitch *sw = IUFindSwitch(domeParkSP, "PARK");
+    ISwitch * sw = IUFindSwitch(domeParkSP, "PARK");
 
     if (sw == NULL)
         return false;
@@ -123,7 +123,7 @@ bool WatchDogClient::parkMount()
     if (mountParkSP == NULL)
         return false;
 
-    ISwitch *sw = IUFindSwitch(mountParkSP, "PARK");
+    ISwitch * sw = IUFindSwitch(mountParkSP, "PARK");
 
     if (sw == NULL)
         return false;

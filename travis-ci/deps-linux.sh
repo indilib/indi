@@ -3,6 +3,7 @@
 set -x -e
 
 sudo apt-get -qq update
+
 sudo apt-get -q -y install \
  cdbs \
  curl \

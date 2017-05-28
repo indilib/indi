@@ -26,106 +26,106 @@
 
 class SteelDrive : public INDI::Focuser
 {
-public:
-    SteelDrive();
-    ~SteelDrive();
+    public:
+        SteelDrive();
+        ~SteelDrive();
 
-    typedef struct
-    {
-        double maxTrip;
-        double gearRatio;
-    } FocusCustomSetting;
+        typedef struct
+        {
+            double maxTrip;
+            double gearRatio;
+        } FocusCustomSetting;
 
-    typedef enum { FOCUS_HALF_STEP, FOCUS_FULL_STEP } FocusStepMode;
-    enum { FOCUS_MAX_TRIP, FOCUS_GEAR_RATIO };
-    enum { FOCUS_T_COEFF, FOCUS_T_SAMPLES };
+        typedef enum { FOCUS_HALF_STEP, FOCUS_FULL_STEP } FocusStepMode;
+        enum { FOCUS_MAX_TRIP, FOCUS_GEAR_RATIO };
+        enum { FOCUS_T_COEFF, FOCUS_T_SAMPLES };
 
-    virtual bool Handshake();
-    const char * getDefaultName();
-    virtual bool initProperties();
-    virtual bool updateProperties();
-    virtual bool saveConfigItems(FILE *fp);
+        virtual bool Handshake();
+        const char * getDefaultName();
+        virtual bool initProperties();
+        virtual bool updateProperties();
+        virtual bool saveConfigItems(FILE * fp);
 
-    virtual bool ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n);
-    virtual bool ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n);
-
-
-    virtual IPState MoveFocuser(FocusDirection dir, int speed, uint16_t duration);
-    virtual IPState MoveAbsFocuser(uint32_t ticks);
-    virtual IPState MoveRelFocuser(FocusDirection dir, unsigned int ticks);
-    virtual bool SetFocuserSpeed(int speed);
-    virtual bool AbortFocuser();
-    virtual void TimerHit();
-
-    void debugTriggered(bool enable);
+        virtual bool ISNewNumber (const char * dev, const char * name, double values[], char * names[], int n);
+        virtual bool ISNewSwitch (const char * dev, const char * name, ISState * states, char * names[], int n);
 
 
-private:
+        virtual IPState MoveFocuser(FocusDirection dir, int speed, uint16_t duration);
+        virtual IPState MoveAbsFocuser(uint32_t ticks);
+        virtual IPState MoveRelFocuser(FocusDirection dir, unsigned int ticks);
+        virtual bool SetFocuserSpeed(int speed);
+        virtual bool AbortFocuser();
+        virtual void TimerHit();
 
-    double targetPos, lastPos, lastTemperature, simPosition;
-    unsigned int currentSpeed, temperatureUpdateCounter;
-    bool sim;
-
-    struct timeval focusMoveStart;
-    float focusMoveRequest;
-
-    // Get functions
-    bool updateVersion();
-    bool updateTemperature();
-    bool updateTemperatureSettings();
-    bool updatePosition();
-    bool updateSpeed();
-    bool updateAcceleration();
-    bool updateCustomSettings();
+        void debugTriggered(bool enable);
 
 
-    // Set functions
-    bool setStepMode(FocusStepMode mode);
-    bool setSpeed(unsigned short speed);
-    bool setCustomSettings(double maxTrip, double gearRatio);
-    bool setAcceleration(unsigned short accel);
-    bool setTemperatureSamples(unsigned int targetSamples, unsigned int * finalSample);
-    bool setTemperatureCompensation();
+    private:
 
-    bool Sync(unsigned int position);
+        double targetPos, lastPos, lastTemperature, simPosition;
+        unsigned int currentSpeed, temperatureUpdateCounter;
+        bool sim;
 
-    // Motion functions
-    bool moveFocuser(unsigned int position);
-    bool stop();
-    bool startMotion(FocusDirection dir);
+        struct timeval focusMoveStart;
+        float focusMoveRequest;
 
-    // Misc functions
-    bool saveFocuserConfig();
-    bool Ack();
-    void GetFocusParams();
-    float CalcTimeLeft(timeval,float);
-    void updateFocusMaxRange(double maxTrip, double gearRatio);
+        // Get functions
+        bool updateVersion();
+        bool updateTemperature();
+        bool updateTemperatureSettings();
+        bool updatePosition();
+        bool updateSpeed();
+        bool updateAcceleration();
+        bool updateCustomSettings();
 
-    INumber TemperatureN[1];
-    INumberVectorProperty TemperatureNP;
 
-    INumber AccelerationN[1];
-    INumberVectorProperty AccelerationNP;
+        // Set functions
+        bool setStepMode(FocusStepMode mode);
+        bool setSpeed(unsigned short speed);
+        bool setCustomSettings(double maxTrip, double gearRatio);
+        bool setAcceleration(unsigned short accel);
+        bool setTemperatureSamples(unsigned int targetSamples, unsigned int * finalSample);
+        bool setTemperatureCompensation();
 
-    INumber TemperatureSettingN[2];
-    INumberVectorProperty TemperatureSettingNP;
+        bool Sync(unsigned int position);
 
-    ISwitch TemperatureCompensateS[2];
-    ISwitchVectorProperty TemperatureCompensateSP;
+        // Motion functions
+        bool moveFocuser(unsigned int position);
+        bool stop();
+        bool startMotion(FocusDirection dir);
 
-    ISwitch ModelS[5];
-    ISwitchVectorProperty ModelSP;
+        // Misc functions
+        bool saveFocuserConfig();
+        bool Ack();
+        void GetFocusParams();
+        float CalcTimeLeft(timeval, float);
+        void updateFocusMaxRange(double maxTrip, double gearRatio);
 
-    INumber CustomSettingN[2];
-    INumberVectorProperty CustomSettingNP;
+        INumber TemperatureN[1];
+        INumberVectorProperty TemperatureNP;
 
-    INumber SyncN[1];
-    INumberVectorProperty SyncNP;
+        INumber AccelerationN[1];
+        INumberVectorProperty AccelerationNP;
 
-    IText VersionT[2];
-    ITextVectorProperty VersionTP;
+        INumber TemperatureSettingN[2];
+        INumberVectorProperty TemperatureSettingNP;
 
-    FocusCustomSetting fSettings[5];
+        ISwitch TemperatureCompensateS[2];
+        ISwitchVectorProperty TemperatureCompensateSP;
+
+        ISwitch ModelS[5];
+        ISwitchVectorProperty ModelSP;
+
+        INumber CustomSettingN[2];
+        INumberVectorProperty CustomSettingNP;
+
+        INumber SyncN[1];
+        INumberVectorProperty SyncNP;
+
+        IText VersionT[2];
+        ITextVectorProperty VersionTP;
+
+        FocusCustomSetting fSettings[5];
 };
 
 #endif // STEELDRIVE_H

@@ -1287,6 +1287,17 @@ int IUFindOnSwitchIndex(const ISwitchVectorProperty * svp)
     return -1;
 }
 
+/* Find name the ON member in the given states and names */
+const char * IUFindOnSwitchName(ISState *states, char *names[], int n)
+{
+    int i;
+
+    for (i = 0; i < n; i++)
+        if (states[i] == ISS_ON)
+            return names[i];
+    return NULL;
+}
+
 /* Set all switches to off */
 void
 IUResetSwitch(ISwitchVectorProperty * svp)
@@ -1354,15 +1365,8 @@ double get_local_sideral_time(double longitude)
 
 double get_local_hour_angle(double sideral_time, double ra)
 {
-
     double HA = sideral_time - ra;
-
-    if (HA > 12)
-        HA -= 24;
-    else if (HA < -12)
-        HA += 24;
-
-    return HA;
+    return rangeHA(HA);
 }
 
 #if defined(  _MSC_VER )

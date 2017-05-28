@@ -80,7 +80,7 @@ class TCP : public Interface
         int sockfd = -1;
         const uint8_t SOCKET_TIMEOUT = 5;
 
-        int PortFD=-1;
+        int PortFD = -1;
 };
 
 }

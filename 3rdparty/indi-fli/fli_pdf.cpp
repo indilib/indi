@@ -212,21 +212,11 @@ bool FLIPDF::Connect()
     if (sim)
         return true;
 
-    if (isDebug())
-    {
-        IDLog ("Connecting PDF\n");
-        IDLog("Attempting to find the focuser\n");
-    }
-
     int portSwitchIndex = IUFindOnSwitchIndex(&PortSP);
 
     if (findFLIPDF(Domains[portSwitchIndex]) == false)
     {
-        IDMessage(getDeviceName(), "Error: no focusers were detected.");
-
-        if (isDebug())
-            IDLog("Error: no focusers were detected.\n");
-
+        DEBUG(INDI::Logger::DBG_ERROR, "Error: no focusers were detected.");
         return false;
     }
 
@@ -234,21 +224,14 @@ bool FLIPDF::Connect()
 
     if ((err = FLIOpen(&fli_dev, FLIFocus.name, FLIDEVICE_FOCUSER | FLIFocus.domain)))
     {
-
-        IDMessage(getDeviceName(), "Error: FLIOpen() failed. %s.", strerror( (int) -err));
-
-        if (isDebug())
-            IDLog("Error: FLIOpen() failed. %s.\n", strerror( (int) -err));
+        DEBUGF(INDI::Logger::DBG_ERROR,"Error: FLIOpen() failed. %s.", strerror( (int) -err));
 
         return false;
     }
 
     /* Success! */
-    IDMessage(getDeviceName(), "Focuser is online. Retrieving basic data.");
-    if (isDebug())
-       IDLog("Focuser is online. Retrieving basic data.\n");
-
-        return true;
+     DEBUG(INDI::Logger::DBG_SESSION, "Focuser is online. Retrieving basic data.");
+     return true;
 }
 
 
@@ -261,18 +244,14 @@ bool FLIPDF::Disconnect()
 
     if ((err = FLIClose(fli_dev)))
     {
-        IDMessage(getDeviceName(), "Error: FLIClose() failed. %s.", strerror( (int) -err));
-
-        if (isDebug())
-            IDLog("Error: FLIClose() failed. %s.\n", strerror( (int) -err));
+        DEBUGF(INDI::Logger::DBG_ERROR,"Error: FLIClose() failed. %s.", strerror( (int) -err));
 
         return false;
     }
 
-    IDMessage(getDeviceName(), "Focuser is offline.");
+    DEBUG(INDI::Logger::DBG_SESSION, "Focuser is offline.");
     return true;
 }
-
 
 bool FLIPDF::setupParams()
 {
@@ -532,28 +511,28 @@ IPState FLIPDF::MoveRelFocuser(FocusDirection dir, uint32_t ticks)
 
 bool FLIPDF::findFLIPDF(flidomain_t domain)
 {
-  char **tmplist;
+  char **names;
   long err;
 
   if (isDebug())
     IDLog("In find Focuser, the domain is %ld\n", domain);
 
-  if (( err = FLIList(domain | FLIDEVICE_FOCUSER, &tmplist)))
+  if (( err = FLIList(domain | FLIDEVICE_FOCUSER, &names)))
   {
       if (isDebug())
         IDLog("FLIList() failed. %s\n", strerror((int)-err));
     return false;
   }
 
-  if (tmplist != NULL && tmplist[0] != NULL)
+  if (names != NULL && names[0] != NULL)
   {
 
-    for (int i = 0; tmplist[i] != NULL; i++)
+    for (int i = 0; names[i] != NULL; i++)
     {
-      for (int j = 0; tmplist[i][j] != '\0'; j++)
-            if (tmplist[i][j] == ';')
+      for (int j = 0; names[i][j] != '\0'; j++)
+            if (names[i][j] == ';')
             {
-                tmplist[i][j] = '\0';
+                names[i][j] = '\0';
                 break;
             }
     }
@@ -582,9 +561,9 @@ bool FLIPDF::findFLIPDF(flidomain_t domain)
             FLIFocus.dname = strdup("Unknown domain");
     }
 
-      FLIFocus.name = strdup(tmplist[0]);
+      FLIFocus.name = strdup(names[0]);
 
-     if ((err = FLIFreeList(tmplist)))
+     if ((err = FLIFreeList(names)))
      {
          if (isDebug())
             IDLog("FLIFreeList() failed. %s.\n", strerror((int)-err));
@@ -594,7 +573,7 @@ bool FLIPDF::findFLIPDF(flidomain_t domain)
    } /* end if */
    else
    {
-     if ((err = FLIFreeList(tmplist)))
+     if ((err = FLIFreeList(names)))
      {
          if (isDebug())
             IDLog("FLIFreeList() failed. %s.\n", strerror((int)-err));

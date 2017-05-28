@@ -116,9 +116,10 @@ IDDelete (const char *dev, const char *name, const char *fmt, ...)
 	if (fmt) {
 	    va_list ap;
 	    va_start (ap, fmt);
+	    char message[MAXINDIMESSAGE];
 	    printf ("  message='");
-	    vprintf (fmt, ap);
-	    printf ("'\n");
+	    vsnprintf (message, MAXINDIMESSAGE, fmt, ap);
+	    printf ("%s'\n", escapeXML(message, MAXINDIMESSAGE));
 	    va_end (ap);
 	}
 	printf ("/>\n");
@@ -826,7 +827,7 @@ IUSnoopBLOB (XMLEle *root, IBLOBVectorProperty *bvp)
 
                 int enclen = atoi(valuXMLAtt(ec));
                 bp->blob = realloc (bp->blob, 3*enclen/4);
-                from64tobits_fast(bp->blob, pcdataXMLEle(ep), enclen);
+                bp->bloblen = from64tobits_fast(bp->blob, pcdataXMLEle(ep), enclen);
                 strncpy(bp->format, valuXMLAtt(fa), MAXINDIFORMAT);
                 bp->size = atoi(valuXMLAtt(sa));
             }
@@ -1171,6 +1172,7 @@ dispatch (XMLEle *root, char msg[])
                 XMLAtt *na = findXMLAtt (ep, "name");
                 XMLAtt *fa = findXMLAtt (ep, "format");
                 XMLAtt *sa = findXMLAtt (ep, "size");
+                XMLAtt *el = findXMLAtt (ep, "enclen");
                 if (na && fa && sa) {
                     if (n >= maxn) {
                         int newsz = (maxn=n+1)*sizeof(char *);
@@ -1182,6 +1184,9 @@ dispatch (XMLEle *root, char msg[])
                         blobsizes = (int *) realloc(blobsizes,newsz);
                     }
                     int bloblen = pcdatalenXMLEle(ep);
+                    // enclen is optional and not required by INDI protocol
+                    if (el)
+                        bloblen = atoi(valuXMLAtt(el));
                     blobs[n] = malloc (3*bloblen/4);
                     blobsizes[n] = from64tobits_fast(blobs[n], pcdataXMLEle(ep), bloblen);
                     names[n] = valuXMLAtt(na);
@@ -1324,9 +1329,10 @@ IDMessage (const char *dev, const char *fmt, ...)
         if (fmt) {
             va_list ap;
             va_start (ap, fmt);
+            char message[MAXINDIMESSAGE];
             printf ("  message='");
-            vprintf (fmt, ap);
-            printf ("'\n");
+            vsnprintf (message, MAXINDIMESSAGE, fmt, ap);
+            printf ("%s'\n", escapeXML(message, MAXINDIMESSAGE));
             va_end (ap);
         }
         printf ("/>\n");
@@ -1509,9 +1515,10 @@ IDDefText (const ITextVectorProperty *tvp, const char *fmt, ...)
         if (fmt) {
             va_list ap;
             va_start (ap, fmt);
+            char message[MAXINDIMESSAGE];
             printf ("  message='");
-            vprintf (fmt, ap);
-            printf ("'\n");
+            vsnprintf (message, MAXINDIMESSAGE, fmt, ap);
+            printf ("%s'\n", escapeXML(message, MAXINDIMESSAGE));
             va_end (ap);
         }
         printf (">\n");
@@ -1572,9 +1579,10 @@ IDDefNumber (const INumberVectorProperty *n, const char *fmt, ...)
         if (fmt) {
             va_list ap;
             va_start (ap, fmt);
+            char message[MAXINDIMESSAGE];
             printf ("  message='");
-            vprintf (fmt, ap);
-            printf ("'\n");
+            vsnprintf (message, MAXINDIMESSAGE, fmt, ap);
+            printf ("%s'\n", escapeXML(message, MAXINDIMESSAGE));
             va_end (ap);
         }
         printf (">\n");
@@ -1643,9 +1651,10 @@ IDDefSwitch (const ISwitchVectorProperty *s, const char *fmt, ...)
         if (fmt) {
             va_list ap;
             va_start (ap, fmt);
+            char message[MAXINDIMESSAGE];
             printf ("  message='");
-            vprintf (fmt, ap);
-            printf ("'\n");
+            vsnprintf (message, MAXINDIMESSAGE, fmt, ap);
+            printf ("%s'\n", escapeXML(message, MAXINDIMESSAGE));
             va_end (ap);
         }
         printf (">\n");
@@ -1700,9 +1709,10 @@ IDDefLight (const ILightVectorProperty *lvp, const char *fmt, ...)
         if (fmt) {
             va_list ap;
             va_start (ap, fmt);
+            char message[MAXINDIMESSAGE];
             printf ("  message='");
-            vprintf (fmt, ap);
-            printf ("'\n");
+            vsnprintf (message, MAXINDIMESSAGE, fmt, ap);
+            printf ("%s'\n", escapeXML(message, MAXINDIMESSAGE));
             va_end (ap);
         }
         printf (">\n");
@@ -1745,9 +1755,10 @@ IDDefBLOB (const IBLOBVectorProperty *b, const char *fmt, ...)
         if (fmt) {
             va_list ap;
             va_start (ap, fmt);
+            char message[MAXINDIMESSAGE];
             printf ("  message='");
-            vprintf (fmt, ap);
-            printf ("'\n");
+            vsnprintf (message, MAXINDIMESSAGE, fmt, ap);
+            printf ("%s'\n", escapeXML(message, MAXINDIMESSAGE));
             va_end (ap);
         }
         printf (">\n");
@@ -1801,9 +1812,10 @@ IDSetText (const ITextVectorProperty *tvp, const char *fmt, ...)
         if (fmt) {
             va_list ap;
             va_start (ap, fmt);
+            char message[MAXINDIMESSAGE];
             printf ("  message='");
-            vprintf (fmt, ap);
-            printf ("'\n");
+            vsnprintf (message, MAXINDIMESSAGE, fmt, ap);
+            printf ("%s'\n", escapeXML(message, MAXINDIMESSAGE));
             va_end (ap);
         }
         printf (">\n");
@@ -1841,9 +1853,10 @@ IDSetNumber (const INumberVectorProperty *nvp, const char *fmt, ...)
         if (fmt) {
             va_list ap;
             va_start (ap, fmt);
+            char message[MAXINDIMESSAGE];
             printf ("  message='");
-            vprintf (fmt, ap);
-            printf ("'\n");
+            vsnprintf (message, MAXINDIMESSAGE, fmt, ap);
+            printf ("%s'\n", escapeXML(message, MAXINDIMESSAGE));
             va_end (ap);
         }
         printf (">\n");
@@ -1881,9 +1894,10 @@ IDSetSwitch (const ISwitchVectorProperty *svp, const char *fmt, ...)
         if (fmt) {
             va_list ap;
             va_start (ap, fmt);
+            char message[MAXINDIMESSAGE];
             printf ("  message='");
-            vprintf (fmt, ap);
-            printf ("'\n");
+            vsnprintf (message, MAXINDIMESSAGE, fmt, ap);
+            printf ("%s'\n", escapeXML(message, MAXINDIMESSAGE));
             va_end (ap);
         }
         printf (">\n");
@@ -1919,9 +1933,10 @@ IDSetLight (const ILightVectorProperty *lvp, const char *fmt, ...)
         if (fmt) {
             va_list ap;
             va_start (ap, fmt);
+            char message[MAXINDIMESSAGE];
             printf ("  message='");
-            vprintf (fmt, ap);
-            printf ("'\n");
+            vsnprintf (message, MAXINDIMESSAGE, fmt, ap);
+            printf ("%s'\n", escapeXML(message, MAXINDIMESSAGE));
             va_end (ap);
         }
         printf (">\n");

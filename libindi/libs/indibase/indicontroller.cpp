@@ -37,7 +37,7 @@ Controller::Controller(DefaultDevice * cdevice)
 
 Controller::~Controller()
 {
-    for (int i=0; i < JoystickSettingTP.ntp; i++)
+    for (int i = 0; i < JoystickSettingTP.ntp; i++)
         free(JoystickSettingT[i].aux0);
 
     free(JoystickSettingT);
@@ -49,13 +49,13 @@ void Controller::mapController(const char * propertyName, const char * propertyL
         JoystickSettingT = (IText *) malloc(sizeof(IText));
 
     // Ignore duplicates
-    for (int i=0; i < JoystickSettingTP.ntp; i++)
+    for (int i = 0; i < JoystickSettingTP.ntp; i++)
     {
         if (!strcmp(propertyName, JoystickSettingT[i].name))
             return;
     }
 
-    JoystickSettingT = (IText *) realloc(JoystickSettingT, (JoystickSettingTP.ntp+1) * sizeof(IText));
+    JoystickSettingT = (IText *) realloc(JoystickSettingT, (JoystickSettingTP.ntp + 1) * sizeof(IText));
 
     ControllerType * ctype = (ControllerType *) malloc(sizeof(ControllerType));
     *ctype = type;
@@ -70,13 +70,13 @@ void Controller::mapController(const char * propertyName, const char * propertyL
 
 void Controller::clearMap()
 {
-    for (int i=0; i < JoystickSettingTP.ntp; i++)
+    for (int i = 0; i < JoystickSettingTP.ntp; i++)
     {
         free(JoystickSettingT[i].aux0);
         free(JoystickSettingT[i].text);
     }
 
-    JoystickSettingTP.ntp=0;
+    JoystickSettingTP.ntp = 0;
     free(JoystickSettingT);
     JoystickSettingT = NULL;
 }
@@ -92,7 +92,7 @@ bool Controller::initProperties()
 
 void Controller::ISGetProperties(const char * dev)
 {
-    if(dev && strcmp(dev,device->getDeviceName()))
+    if(dev && strcmp(dev, device->getDeviceName()))
         return;
 
     if (device->isConnected())
@@ -128,7 +128,7 @@ bool Controller::updateProperties()
 
 bool Controller::ISNewSwitch (const char * dev, const char * name, ISState * states, char * names[], int n)
 {
-    if(strcmp(dev,device->getDeviceName())==0)
+    if(strcmp(dev, device->getDeviceName()) == 0)
     {
         // Enable joystick support
         if (!strcmp(name, UseJoystickSP.name))
@@ -153,11 +153,11 @@ bool Controller::ISNewSwitch (const char * dev, const char * name, ISState * sta
 
 bool Controller::ISNewText (const char * dev, const char * name, char * texts[], char * names[], int n)
 {
-    if(strcmp(dev,device->getDeviceName())==0)
+    if(strcmp(dev, device->getDeviceName()) == 0)
     {
         if (!strcmp(name, "JOYSTICKSETTINGS") && n <= JoystickSettingTP.ntp)
         {
-            for (int i=0; i < JoystickSettingTP.ntp; i++)
+            for (int i = 0; i < JoystickSettingTP.ntp; i++)
             {
                 IText * tp = IUFindText(&JoystickSettingTP, names[i]);
                 if (tp)
@@ -179,7 +179,7 @@ bool Controller::ISNewText (const char * dev, const char * name, char * texts[],
             IUUpdateText(&JoystickSettingTP, texts, names, n);
 
 
-            for (int i=0; i < n; i++)
+            for (int i = 0; i < n; i++)
             {
                 if (strstr(JoystickSettingT[i].text, "JOYSTICK_"))
                     IDSnoopDevice("Joystick", JoystickSettingT[i].text);
@@ -198,8 +198,8 @@ bool Controller::ISNewText (const char * dev, const char * name, char * texts[],
 
 bool Controller::ISSnoopDevice(XMLEle * root)
 {
-    XMLEle * ep=NULL;
-    double mag=0, angle=0;
+    XMLEle * ep = NULL;
+    double mag = 0, angle = 0;
 
     // If joystick is disabled, do not process anything.
     if (UseJoystickSP.sp[0].s == ISS_OFF)
@@ -273,7 +273,7 @@ void Controller::enableJoystick()
 {
     device->defineText(&JoystickSettingTP);
 
-    for (int i=0; i < JoystickSettingTP.ntp; i++)
+    for (int i = 0; i < JoystickSettingTP.ntp; i++)
     {
         if (strstr(JoystickSettingTP.tp[i].text, "JOYSTICK_"))
             IDSnoopDevice("Joystick", JoystickSettingTP.tp[i].text);
@@ -342,7 +342,7 @@ Controller::ControllerType Controller::getControllerType(const char * name)
 
 const char * Controller::getControllerSetting(const char * name)
 {
-    for (int i=0; i < JoystickSettingTP.ntp; i++)
+    for (int i = 0; i < JoystickSettingTP.ntp; i++)
         if (!strcmp(JoystickSettingT[i].text, name))
             return JoystickSettingT[i].name;
 

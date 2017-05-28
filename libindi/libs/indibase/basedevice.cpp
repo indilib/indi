@@ -475,16 +475,16 @@ bool INDI::BaseDevice::buildSkeleton(const char * filename)
     const char * indiskel = getenv("INDISKEL");
     if (indiskel)
     {
-        strncpy(pathname, indiskel, MAXRBUF-1);
-        pathname[MAXRBUF-1] = 0;
+        strncpy(pathname, indiskel, MAXRBUF - 1);
+        pathname[MAXRBUF - 1] = 0;
         IDLog("Using INDISKEL %s\n", pathname);
     }
     else
     {
         if (stat(filename, &st) == 0)
         {
-            strncpy(pathname, filename, MAXRBUF-1);
-            pathname[MAXRBUF-1] = 0;
+            strncpy(pathname, filename, MAXRBUF - 1);
+            pathname[MAXRBUF - 1] = 0;
             IDLog("Using %s\n", pathname);
         }
         else
@@ -495,17 +495,19 @@ bool INDI::BaseDevice::buildSkeleton(const char * filename)
             const char * indiprefix = getenv("INDIPREFIX");
             if (indiprefix)
             {
-#ifdef OSX_EMBEDED_MODE
-                snprintf(pathname, MAXRBUF-1, "%s/Contents/Resources/%s", indiprefix, filename);
+#if defined(OSX_EMBEDED_MODE)
+                snprintf(pathname, MAXRBUF - 1, "%s/Contents/Resources/%s", indiprefix, filename);
+#elif defined(__APPLE__)
+                snprintf(pathname, MAXRBUF - 1, "%s/%s", indiprefix, filename);
 #else
-                snprintf(pathname, MAXRBUF-1, "%s/share/indi/%s", indiprefix, filename);
+                snprintf(pathname, MAXRBUF - 1, "%s/share/indi/%s", indiprefix, filename);
 #endif
             }
             else
             {
-                snprintf(pathname, MAXRBUF-1, "%s/%s", DATA_INSTALL_DIR, filename);
+                snprintf(pathname, MAXRBUF - 1, "%s/%s", DATA_INSTALL_DIR, filename);
             }
-            pathname[MAXRBUF-1] = 0;
+            pathname[MAXRBUF - 1] = 0;
             IDLog("Using prefix %s\n", pathname);
         }
     }
@@ -541,7 +543,7 @@ int INDI::BaseDevice::buildProp(XMLEle * root, char * errmsg)
     IPState state = IPS_IDLE;
     XMLEle * ep = NULL;
     char * rtag, *rname, *rdev;
-    double timeout=0;
+    double timeout = 0;
 
     rtag = tagXMLEle(root);
 
@@ -572,13 +574,13 @@ int INDI::BaseDevice::buildProp(XMLEle * root, char * errmsg)
 
     if (!strcmp (rtag, "defNumberVector"))
     {
-        char * orig = setlocale(LC_NUMERIC,"C");
+        char * orig = setlocale(LC_NUMERIC, "C");
 
         INDI::Property * indiProp = new INDI::Property();
         INumberVectorProperty * nvp = new INumberVectorProperty;
 
         INumber * np = NULL;
-        int n=0;
+        int n = 0;
 
         strncpy(nvp->device, deviceID, MAXINDIDEVICE);
         strncpy(nvp->name, rname, MAXINDINAME);
@@ -590,11 +592,11 @@ int INDI::BaseDevice::buildProp(XMLEle * root, char * errmsg)
         nvp->timeout = timeout;
 
         /* pull out each name/value pair */
-        for (n = 0, ep = nextXMLEle(root,1); ep != NULL; ep = nextXMLEle(root,0), n++)
+        for (n = 0, ep = nextXMLEle(root, 1); ep != NULL; ep = nextXMLEle(root, 0), n++)
         {
             if (!strcmp (tagXMLEle(ep), "defNumber"))
             {
-                np = (INumber *) realloc(np, (n+1) * sizeof(INumber));
+                np = (INumber *) realloc(np, (n + 1) * sizeof(INumber));
 
                 np[n].nvp = nvp;
 
@@ -611,7 +613,7 @@ int INDI::BaseDevice::buildProp(XMLEle * root, char * errmsg)
 
                         na = findXMLAtt (ep, "label");
                         if (na)
-                            strncpy(np[n].label, valuXMLAtt(na),MAXINDILABEL);
+                            strncpy(np[n].label, valuXMLAtt(na), MAXINDILABEL);
                         na = findXMLAtt (ep, "format");
                         if (na)
                             strncpy(np[n].format, valuXMLAtt(na), MAXINDIFORMAT);
@@ -649,12 +651,12 @@ int INDI::BaseDevice::buildProp(XMLEle * root, char * errmsg)
         }
         else
         {
-            IDLog("%s: newNumberVector with no valid members\n",rname);
+            IDLog("%s: newNumberVector with no valid members\n", rname);
             delete (nvp);
             delete (indiProp);
         }
 
-        setlocale(LC_NUMERIC,orig);
+        setlocale(LC_NUMERIC, orig);
     }
     else if (!strcmp (rtag, "defSwitchVector"))
     {
@@ -662,7 +664,7 @@ int INDI::BaseDevice::buildProp(XMLEle * root, char * errmsg)
         ISwitchVectorProperty * svp = new ISwitchVectorProperty;
 
         ISwitch * sp = NULL;
-        int n=0;
+        int n = 0;
 
         strncpy(svp->device, deviceID, MAXINDIDEVICE);
         strncpy(svp->name, rname, MAXINDINAME);
@@ -678,11 +680,11 @@ int INDI::BaseDevice::buildProp(XMLEle * root, char * errmsg)
 
 
         /* pull out each name/value pair */
-        for (n = 0, ep = nextXMLEle(root,1); ep != NULL; ep = nextXMLEle(root,0), n++)
+        for (n = 0, ep = nextXMLEle(root, 1); ep != NULL; ep = nextXMLEle(root, 0), n++)
         {
             if (!strcmp (tagXMLEle(ep), "defSwitch"))
             {
-                sp = (ISwitch *) realloc(sp, (n+1) * sizeof(ISwitch));
+                sp = (ISwitch *) realloc(sp, (n + 1) * sizeof(ISwitch));
 
                 sp[n].svp = svp;
 
@@ -695,7 +697,7 @@ int INDI::BaseDevice::buildProp(XMLEle * root, char * errmsg)
 
                     na = findXMLAtt (ep, "label");
                     if (na)
-                        strncpy(sp[n].label, valuXMLAtt(na),MAXINDILABEL);
+                        strncpy(sp[n].label, valuXMLAtt(na), MAXINDILABEL);
                 }
             }
         }
@@ -717,7 +719,7 @@ int INDI::BaseDevice::buildProp(XMLEle * root, char * errmsg)
         }
         else
         {
-            IDLog("%s: newSwitchVector with no valid members\n",rname);
+            IDLog("%s: newSwitchVector with no valid members\n", rname);
             delete (svp);
             delete (indiProp);
         }
@@ -729,7 +731,7 @@ int INDI::BaseDevice::buildProp(XMLEle * root, char * errmsg)
         INDI::Property * indiProp = new INDI::Property();
         ITextVectorProperty * tvp = new ITextVectorProperty;
         IText * tp = NULL;
-        int n=0;
+        int n = 0;
 
         strncpy(tvp->device, deviceID, MAXINDIDEVICE);
         strncpy(tvp->name, rname, MAXINDINAME);
@@ -741,11 +743,11 @@ int INDI::BaseDevice::buildProp(XMLEle * root, char * errmsg)
         tvp->timeout = timeout;
 
         // pull out each name/value pair
-        for (n = 0, ep = nextXMLEle(root,1); ep != NULL; ep = nextXMLEle(root,0), n++)
+        for (n = 0, ep = nextXMLEle(root, 1); ep != NULL; ep = nextXMLEle(root, 0), n++)
         {
             if (!strcmp (tagXMLEle(ep), "defText"))
             {
-                tp = (IText *) realloc(tp, (n+1) * sizeof(IText));
+                tp = (IText *) realloc(tp, (n + 1) * sizeof(IText));
 
                 tp[n].tvp = tvp;
 
@@ -753,14 +755,14 @@ int INDI::BaseDevice::buildProp(XMLEle * root, char * errmsg)
 
                 if (na)
                 {
-                    tp[n].text = (char *) malloc( (pcdatalenXMLEle(ep)*sizeof(char)) + 1);
+                    tp[n].text = (char *) malloc( (pcdatalenXMLEle(ep) * sizeof(char)) + 1);
                     strncpy(tp[n].text, pcdataXMLEle(ep), pcdatalenXMLEle(ep));
                     tp[n].text[pcdatalenXMLEle(ep)] = '\0';
                     strncpy(tp[n].name, valuXMLAtt(na), MAXINDINAME);
 
                     na = findXMLAtt (ep, "label");
                     if (na)
-                        strncpy(tp[n].label, valuXMLAtt(na),MAXINDILABEL);
+                        strncpy(tp[n].label, valuXMLAtt(na), MAXINDILABEL);
                 }
             }
         }
@@ -783,7 +785,7 @@ int INDI::BaseDevice::buildProp(XMLEle * root, char * errmsg)
         }
         else
         {
-            IDLog("%s: newTextVector with no valid members\n",rname);
+            IDLog("%s: newTextVector with no valid members\n", rname);
             delete (tvp);
             delete (indiProp);
         }
@@ -794,7 +796,7 @@ int INDI::BaseDevice::buildProp(XMLEle * root, char * errmsg)
         INDI::Property * indiProp = new INDI::Property();
         ILightVectorProperty * lvp = new ILightVectorProperty;
         ILight * lp = NULL;
-        int n=0;
+        int n = 0;
 
         strncpy(lvp->device, deviceID, MAXINDIDEVICE);
         strncpy(lvp->name, rname, MAXINDINAME);
@@ -804,11 +806,11 @@ int INDI::BaseDevice::buildProp(XMLEle * root, char * errmsg)
         lvp->s       = state;
 
         /* pull out each name/value pair */
-        for (n = 0, ep = nextXMLEle(root,1); ep != NULL; ep = nextXMLEle(root,0), n++)
+        for (n = 0, ep = nextXMLEle(root, 1); ep != NULL; ep = nextXMLEle(root, 0), n++)
         {
             if (!strcmp (tagXMLEle(ep), "defLight"))
             {
-                lp = (ILight *) realloc(lp, (n+1) * sizeof(ILight));
+                lp = (ILight *) realloc(lp, (n + 1) * sizeof(ILight));
 
                 lp[n].lvp = lvp;
 
@@ -821,7 +823,7 @@ int INDI::BaseDevice::buildProp(XMLEle * root, char * errmsg)
 
                     na = findXMLAtt (ep, "label");
                     if (na)
-                        strncpy(lp[n].label, valuXMLAtt(na),MAXINDILABEL);
+                        strncpy(lp[n].label, valuXMLAtt(na), MAXINDILABEL);
 
                 }
             }
@@ -845,7 +847,7 @@ int INDI::BaseDevice::buildProp(XMLEle * root, char * errmsg)
         }
         else
         {
-            IDLog("%s: newLightVector with no valid members\n",rname);
+            IDLog("%s: newLightVector with no valid members\n", rname);
             delete (lvp);
             delete (indiProp);
         }
@@ -855,7 +857,7 @@ int INDI::BaseDevice::buildProp(XMLEle * root, char * errmsg)
         INDI::Property * indiProp = new INDI::Property();
         IBLOBVectorProperty * bvp = new IBLOBVectorProperty;
         IBLOB * bp = NULL;
-        int n=0;
+        int n = 0;
 
         strncpy(bvp->device, deviceID, MAXINDIDEVICE);
         strncpy(bvp->name, rname, MAXINDINAME);
@@ -866,11 +868,11 @@ int INDI::BaseDevice::buildProp(XMLEle * root, char * errmsg)
         bvp->p       = perm;
 
         /* pull out each name/value pair */
-        for (n = 0, ep = nextXMLEle(root,1); ep != NULL; ep = nextXMLEle(root,0), n++)
+        for (n = 0, ep = nextXMLEle(root, 1); ep != NULL; ep = nextXMLEle(root, 0), n++)
         {
             if (!strcmp (tagXMLEle(ep), "defBLOB"))
             {
-                bp = (IBLOB *) realloc(bp, (n+1) * sizeof(IBLOB));
+                bp = (IBLOB *) realloc(bp, (n + 1) * sizeof(IBLOB));
 
                 bp[n].bvp = bvp;
 
@@ -882,11 +884,11 @@ int INDI::BaseDevice::buildProp(XMLEle * root, char * errmsg)
 
                     na = findXMLAtt (ep, "label");
                     if (na)
-                        strncpy(bp[n].label, valuXMLAtt(na),MAXINDILABEL);
+                        strncpy(bp[n].label, valuXMLAtt(na), MAXINDILABEL);
 
                     na = findXMLAtt (ep, "format");
                     if (na)
-                        strncpy(bp[n].label, valuXMLAtt(na),MAXINDIBLOBFMT);
+                        strncpy(bp[n].label, valuXMLAtt(na), MAXINDIBLOBFMT);
 
                     // Initialize everything to zero
 
@@ -915,7 +917,7 @@ int INDI::BaseDevice::buildProp(XMLEle * root, char * errmsg)
         }
         else
         {
-            IDLog("%s: newBLOBVector with no valid members\n",rname);
+            IDLog("%s: newBLOBVector with no valid members\n", rname);
             delete (bvp);
             delete (indiProp);
         }
@@ -953,7 +955,7 @@ int INDI::BaseDevice::setValue (XMLEle * root, char * errmsg)
     char * rtag, *name;
     double timeout;
     IPState state;
-    bool stateSet=false, timeoutSet=false;
+    bool stateSet = false, timeoutSet = false;
 
     rtag = tagXMLEle(root);
 
@@ -984,12 +986,12 @@ int INDI::BaseDevice::setValue (XMLEle * root, char * errmsg)
     ap = findXMLAtt (root, "timeout");
     if (ap)
     {
-        char * orig = setlocale(LC_NUMERIC,"C");
+        char * orig = setlocale(LC_NUMERIC, "C");
 
         timeout = atof(valuXMLAtt(ap));
         timeoutSet = true;
 
-        setlocale(LC_NUMERIC,orig);
+        setlocale(LC_NUMERIC, orig);
     }
 
     checkMessage (root);
@@ -1009,7 +1011,7 @@ int INDI::BaseDevice::setValue (XMLEle * root, char * errmsg)
         if (timeoutSet)
             nvp->timeout = timeout;
 
-        char * orig = setlocale(LC_NUMERIC,"C");
+        char * orig = setlocale(LC_NUMERIC, "C");
 
         for (ep = nextXMLEle (root, 1); ep != NULL; ep = nextXMLEle (root, 0))
         {
@@ -1026,7 +1028,7 @@ int INDI::BaseDevice::setValue (XMLEle * root, char * errmsg)
                 np->max = atof(findXMLAttValu(ep, "max"));
         }
 
-        setlocale(LC_NUMERIC,orig);
+        setlocale(LC_NUMERIC, orig);
 
         if (mediator)
             mediator->newNumber(nvp);
@@ -1138,13 +1140,13 @@ int INDI::BaseDevice::setValue (XMLEle * root, char * errmsg)
 int INDI::BaseDevice::setBLOB(IBLOBVectorProperty * bvp, XMLEle * root, char * errmsg)
 {
     IBLOB * blobEL;
-    unsigned char * dataBuffer=NULL;
+    unsigned char * dataBuffer = NULL;
     XMLEle * ep;
-    int r=0;
-    uLongf dataSize=0;
+    int r = 0;
+    uLongf dataSize = 0;
 
     /* pull out each name/BLOB pair, decode */
-    for (ep = nextXMLEle(root,1); ep; ep = nextXMLEle(root,0))
+    for (ep = nextXMLEle(root, 1); ep; ep = nextXMLEle(root, 0))
     {
         if (strcmp (tagXMLEle(ep), "oneBLOB") == 0)
         {
@@ -1169,14 +1171,14 @@ int INDI::BaseDevice::setBLOB(IBLOBVectorProperty * bvp, XMLEle * root, char * e
 
                 blobEL->size = blobSize;
                 int bloblen = pcdatalenXMLEle(ep);
-                blobEL->blob = (unsigned char *) realloc (blobEL->blob, 3*bloblen/4);
+                blobEL->blob = (unsigned char *) realloc (blobEL->blob, 3 * bloblen / 4);
                 blobEL->bloblen = from64tobits_fast( static_cast<char *> (blobEL->blob), pcdataXMLEle(ep), bloblen);
 
                 strncpy(blobEL->format, valuXMLAtt(fa), MAXINDIFORMAT);
 
                 if (strstr(blobEL->format, ".z"))
                 {
-                    blobEL->format[strlen(blobEL->format)-2] = '\0';
+                    blobEL->format[strlen(blobEL->format) - 2] = '\0';
                     dataSize = blobEL->size * sizeof(unsigned char);
                     dataBuffer = (unsigned char *) malloc(dataSize);
 
@@ -1270,7 +1272,7 @@ void INDI::BaseDevice::addMessage(string msg)
     messageLog.push_back(msg);
 
     if (mediator)
-        mediator->newMessage(this, messageLog.size()-1);
+        mediator->newMessage(this, messageLog.size() - 1);
 }
 
 string INDI::BaseDevice::messageQueue(int index) const

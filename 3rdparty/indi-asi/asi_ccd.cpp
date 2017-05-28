@@ -25,7 +25,7 @@
 #include <unistd.h>
 #include <sys/time.h>
 
-#if !defined(OSX_EMBEDED_MODE) && !defined(__CYGWIN__)
+#if !defined(__APPLE__) && !defined(__CYGWIN__)
 #include <stream_recorder.h>
 #endif
 
@@ -270,7 +270,7 @@ bool ASICCD::initProperties()
   if (m_camInfo->IsColorCam)
       cap |= CCD_HAS_BAYER;
 
-  #if !defined(OSX_EMBEDED_MODE) && !defined(__CYGWIN__)
+  #if !defined(__APPLE__) && !defined(__CYGWIN__)
   cap |= CCD_HAS_STREAMING;
   #endif
 
@@ -308,13 +308,22 @@ bool ASICCD::updateProperties()
     setupParams();
 
     if (ControlNP.nnp > 0)
-     defineNumber(&ControlNP);
+    {
+        defineNumber(&ControlNP);
+        loadConfig(true, "CCD_CONTROLS");
+    }
 
     if (ControlSP.nsp > 0)
+    {
         defineSwitch(&ControlSP);
+        loadConfig(true, "CCD_CONTROLS_MODE");
+    }
 
     if (VideoFormatSP.nsp > 0)
+    {
         defineSwitch(&VideoFormatSP);
+        loadConfig(true, "CCD_VIDEO_FORMAT");
+    }
 
     SetTimer(POLLMS);
   } else
@@ -370,7 +379,7 @@ bool ASICCD::Connect()
 
   TemperatureUpdateCounter = 0;
 
-#if !defined(OSX_EMBEDED_MODE) && !defined(__CYGWIN__)
+#if !defined(__APPLE__) && !defined(__CYGWIN__)
   pthread_create( &primary_thread, NULL, &streamVideoHelper, this);
 #endif
   DEBUG(INDI::Logger::DBG_SESSION,  "Setting intital bandwidth to AUTO on connection.");
@@ -541,7 +550,7 @@ bool ASICCD::setupParams()
   DEBUGF(INDI::Logger::DBG_DEBUG, "setupParams ASISetROIFormat (%dx%d,  bin %d, type %d)", m_camInfo->MaxWidth, m_camInfo->MaxHeight, 1, imgType);
   ASISetROIFormat(m_camInfo->CameraID, m_camInfo->MaxWidth, m_camInfo->MaxHeight, 1, imgType);
 
-  #if !defined(OSX_EMBEDED_MODE) && !defined(__CYGWIN__)
+  #if !defined(__APPLE__) && !defined(__CYGWIN__)
   updateRecorderFormat();
   streamer->setRecorderSize(w,h);
   #endif
@@ -562,7 +571,12 @@ bool ASICCD::ISNewNumber (const char *dev, const char *name, double values[], ch
             for (int i=0; i < ControlNP.nnp; i++)
                 oldValues[i] = ControlN[i].value;
 
-            IUUpdateNumber(&ControlNP, values, names, n);
+            if (IUUpdateNumber(&ControlNP, values, names, n) < 0)
+            {
+                ControlNP.s = IPS_ALERT;
+                IDSetNumber(&ControlNP, NULL);
+                return true;
+            }
 
             for (int i=0; i < ControlNP.nnp; i++)
             {
@@ -620,7 +634,12 @@ bool ASICCD::ISNewSwitch (const char *dev, const char *name, ISState *states, ch
     {
         if (!strcmp(name, ControlSP.name))
         {
-           IUUpdateSwitch(&ControlSP, states, names, n);
+           if (IUUpdateSwitch(&ControlSP, states, names, n) < 0)
+           {
+               ControlSP.s = IPS_ALERT;
+               IDSetSwitch(&ControlSP, NULL);
+               return true;
+           }
 
            for (int i=0; i < ControlSP.nsp; i++)
            {
@@ -675,7 +694,7 @@ bool ASICCD::ISNewSwitch (const char *dev, const char *name, ISState *states, ch
 
         if (!strcmp(name, VideoFormatSP.name))
         {
-            #if !defined(OSX_EMBEDED_MODE) && !defined(__CYGWIN__)
+            #if !defined(__APPLE__) && !defined(__CYGWIN__)
             if (streamer->isBusy())
             {
                 VideoFormatSP.s = IPS_ALERT;
@@ -693,6 +712,7 @@ bool ASICCD::ISNewSwitch (const char *dev, const char *name, ISState *states, ch
             {
                 case ASI_IMG_RAW16:
                     PrimaryCCD.setBPP(16);
+                    DEBUG(INDI::Logger::DBG_WARNING, "Warning: 16bit RAW is not supported on all hardware platforms.");
                     break;
 
                 default:
@@ -714,7 +734,7 @@ bool ASICCD::ISNewSwitch (const char *dev, const char *name, ISState *states, ch
    return INDI::CCD::ISNewSwitch(dev,name,states,names,n);
 }
 
-#if !defined(OSX_EMBEDED_MODE) && !defined(__CYGWIN__)
+#if !defined(__APPLE__) && !defined(__CYGWIN__)
 bool ASICCD::StartStreaming()
 {
     ASI_IMG_TYPE type = getImageType();
@@ -752,7 +772,7 @@ bool ASICCD::StartStreaming()
 }
 #endif
 
-#if !defined(OSX_EMBEDED_MODE) && !defined(__CYGWIN__)
+#if !defined(__APPLE__) && !defined(__CYGWIN__)
 bool ASICCD::StopStreaming()
 {
     pthread_mutex_lock(&condMutex);
@@ -851,8 +871,15 @@ bool ASICCD::AbortExposure()
 
 bool ASICCD::UpdateCCDFrame(int x, int y, int w, int h)
 {
-  w = (w >> (PrimaryCCD.getBinX()+1)) << (PrimaryCCD.getBinX()+1);
-  h = (h >> PrimaryCCD.getBinX()) << PrimaryCCD.getBinX();
+
+  long bin_width = w / PrimaryCCD.getBinX();
+  long bin_height = h / PrimaryCCD.getBinY();
+
+  bin_width = bin_width - (bin_width % 8);
+  bin_height = bin_height - (bin_height % 2);
+
+  w = bin_width * PrimaryCCD.getBinX();
+  h = bin_height * PrimaryCCD.getBinY();
 
   ASI_ERROR_CODE errCode = ASI_SUCCESS;
 
@@ -860,9 +887,7 @@ bool ASICCD::UpdateCCDFrame(int x, int y, int w, int h)
   long x_1 = x / PrimaryCCD.getBinX();
   long y_1 = y / PrimaryCCD.getBinY();
 
-  long bin_width = w / PrimaryCCD.getBinX();
-  long bin_height = h / PrimaryCCD.getBinY();
-
+  
   if (bin_width > PrimaryCCD.getXRes() / PrimaryCCD.getBinX())
   {
     DEBUGF(INDI::Logger::DBG_SESSION,  "Error: invalid width requested %d", w);
@@ -886,7 +911,7 @@ bool ASICCD::UpdateCCDFrame(int x, int y, int w, int h)
       return false;
   }
 
-  #if !defined(OSX_EMBEDED_MODE) && !defined(__CYGWIN__)
+  #if !defined(__APPLE__) && !defined(__CYGWIN__)
   streamer->setRecorderSize(bin_width, bin_height);
   #endif
 
@@ -1487,7 +1512,7 @@ void ASICCD::updateControls()
 void ASICCD::updateRecorderFormat()
 {
 
-    #if !defined(OSX_EMBEDED_MODE) && !defined(__CYGWIN__)
+    #if !defined(__APPLE__) && !defined(__CYGWIN__)
     switch (getImageType())
     {
       case ASI_IMG_Y8:
@@ -1523,7 +1548,7 @@ void ASICCD::updateRecorderFormat()
 
 }
 
-#if !defined(OSX_EMBEDED_MODE) && !defined(__CYGWIN__)
+#if !defined(__APPLE__) && !defined(__CYGWIN__)
 void * ASICCD::streamVideoHelper(void* context)
 {
     return ((ASICCD*)context)->streamVideo();
@@ -1585,6 +1610,12 @@ void ASICCD::addFITSKeywords(fitsfile *fptr, CCDChip *targetChip)
 bool ASICCD::saveConfigItems(FILE *fp)
 {
     INDI::CCD::saveConfigItems(fp);
+
+    if (ControlNP.nnp > 0)
+     IUSaveConfigNumber(fp, &ControlNP);
+
+    if (ControlSP.nsp > 0)
+      IUSaveConfigSwitch(fp, &ControlSP);
 
     IUSaveConfigSwitch(fp, &VideoFormatSP);
 

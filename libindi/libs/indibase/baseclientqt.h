@@ -137,7 +137,7 @@ public:
      */
     BLOBHandling getBLOBMode(const char * dev, const char * prop = NULL);
 
-// Update
+    // Update
     static void * listenHelper(void * context);
 
     const char * getHost()
@@ -256,7 +256,7 @@ private:
     bool sConnected;
     bool verbose;
 
-// Parse & FILE buffers for IO
+    // Parse & FILE buffers for IO
 
     LilXML * lillp;			/* XML parser context */
     uint32_t timeout_sec, timeout_us;

@@ -33,7 +33,7 @@
 
 using namespace std;
 
-// We declare an auto pointer to GPD.
+// We declare an auto pointer to GPSD.
 std::unique_ptr<GPSD> gpsd(new GPSD());
 
 void ISGetProperties(const char *dev)
@@ -166,6 +166,30 @@ IPState GPSD::updateGPS()
 
     TimeTP.s = IPS_OK;
 
+    // Update time regardless having gps fix.
+    // We are using system time assuming the system is synced with the gps 
+    // by gpsd using chronyd or ntpd. 
+    static char ts[32];
+    struct tm *utc, *local;
+
+    // To get time from gps fix we can use
+    // raw_time = gpsData->fix.time;
+    // but this will remove all sophistication of ntp etc.
+    // Better just use the best estimation the system can provide.
+    
+    time_t raw_time;
+    time(&raw_time);
+
+    utc  = gmtime(&raw_time);    
+    strftime (ts, sizeof(ts), "%Y-%m-%dT%H:%M:%S", utc);
+    IUSaveText(&TimeT[0], ts);
+
+    local= localtime(&raw_time);
+    snprintf(ts, sizeof(ts), "%4.2f", (local->tm_gmtoff/3600.0));
+    IUSaveText(&TimeT[1], ts);
+
+    TimeTP.s = IPS_OK;
+
     if (!gps->waiting(100000)) {
         if (GPSstatusTP.s != IPS_BUSY) {
             IDMessage(getDeviceName(), "Waiting for gps data...");
@@ -181,6 +205,7 @@ IPState GPSD::updateGPS()
     }
     
     if (gpsData->status == STATUS_NO_FIX) {
+        // We have no fix and there is no point in further processing.
         GPSstatusT[0].text = (char*) "NO FIX";
         if (GPSstatusTP.s == IPS_OK) {
             IDMessage(getDeviceName(), "GPS fix lost.");
@@ -188,9 +213,23 @@ IPState GPSD::updateGPS()
         GPSstatusTP.s = IPS_BUSY;
         IDSetText(&GPSstatusTP, NULL);
         return IPS_BUSY;
+    } else {
+        // We may have a fix. Check if fix structure contains proper fix.
+        // We require at least 2D fix - the altitude is not so crucial (?)
+        if (gpsData->fix.mode < MODE_2D) {
+            // The position is not realy measured yet - we have no valid data
+            // Keep looking
+            GPSstatusT[0].text = (char*) "NO FIX";
+            if (GPSstatusTP.s == IPS_OK) {
+                IDMessage(getDeviceName(), "GPS fix lost.");
+            }
+            GPSstatusTP.s = IPS_BUSY;
+            IDSetText(&GPSstatusTP, NULL);
+            return IPS_BUSY;            
+        }
     }
 
-    // detect gps fix
+    // detect gps fix showing up after not being avaliable
     if (GPSstatusTP.s != IPS_OK)
         IDMessage(getDeviceName(), "GPS fix obtained.");
     
@@ -210,37 +249,6 @@ IPState GPSD::updateGPS()
         return IPS_BUSY;
     }
 
-    // Update time. We are using system time
-    // assuming the system is synced with the gps 
-    // by gpsd using chronyd or ntpd.
-    static char ts[32];
-    struct tm *utc, *local;
-
-    // To get time from gps fix we can use
-    // raw_time = gpsData->fix.time;
-    time_t raw_time;
-    time(&raw_time);
-
-    utc  = gmtime(&raw_time);    
-    strftime (ts, sizeof(ts), "%Y-%m-%dT%H:%M:%S", utc);
-    IUSaveText(&TimeT[0], ts);
-
-    local= localtime(&raw_time);
-    snprintf(ts, sizeof(ts), "%4.2f", (local->tm_gmtoff/3600.0));
-    IUSaveText(&TimeT[1], ts);
-
-    // get utc_offset
-    double offset = local->tm_gmtoff / 3600;
-
-    // adjust offset for DST
-    if (local->tm_isdst)
-        offset -= 1;
-
-    // convert offset to string
-    sprintf(ts,"%0.0f", offset);
-    IUSaveText(&TimeT[1], ts);
-
-    TimeTP.s = IPS_OK;
 
     // update gps location
     // we should have a gps fix data now

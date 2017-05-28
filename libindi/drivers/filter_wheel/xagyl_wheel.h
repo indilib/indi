@@ -35,73 +35,76 @@ typedef struct
 } SimData;
 
 class XAGYLWheel : public INDI::FilterWheel
-{    
-public:
-    typedef enum { INFO_PRODUCT_NAME, INFO_FIRMWARE_VERSION, INFO_FILTER_POSITION, INFO_SERIAL_NUMBER, INFO_MAX_SPEED, INFO_JITTER, INFO_OFFSET, INFO_THRESHOLD, INFO_MAX_SLOTS, INFO_PULSE_WIDTH} GET_COMMAND;
-    typedef enum { SET_SPEED, SET_JITTER, SET_THRESHOLD, SET_PULSE_WITDH, SET_POSITION} SET_COMMAND;
+{
+    public:
+        typedef enum { INFO_PRODUCT_NAME, INFO_FIRMWARE_VERSION, INFO_FILTER_POSITION, INFO_SERIAL_NUMBER, INFO_MAX_SPEED, INFO_JITTER, INFO_OFFSET, INFO_THRESHOLD, INFO_MAX_SLOTS, INFO_PULSE_WIDTH} GET_COMMAND;
+        typedef enum { SET_SPEED, SET_JITTER, SET_THRESHOLD, SET_PULSE_WITDH, SET_POSITION} SET_COMMAND;
 
-    XAGYLWheel();
-    virtual ~XAGYLWheel();
+        XAGYLWheel();
+        virtual ~XAGYLWheel();
 
-    virtual bool initProperties();
-    virtual bool updateProperties();
+        virtual bool initProperties();
+        virtual bool updateProperties();
 
-    virtual bool ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n);
-    virtual bool ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n);
+        virtual bool ISNewSwitch (const char * dev, const char * name, ISState * states, char * names[], int n);
+        virtual bool ISNewNumber (const char * dev, const char * name, double values[], char * names[], int n);
 
-protected:
-    const char *getDefaultName();
+    protected:
+        const char * getDefaultName();
 
-    bool Handshake();
-    void TimerHit();
+        bool Handshake();
+        void TimerHit();
 
-    bool SelectFilter(int);
-    virtual bool SetFilterNames() { return true; }
-    virtual bool GetFilterNames(const char* groupName);
+        bool SelectFilter(int);
+        virtual bool SetFilterNames()
+        {
+            return true;
+        }
+        virtual bool GetFilterNames(const char * groupName);
 
-private:
-    bool getCommand(GET_COMMAND cmd, char *result);
-    bool setCommand(SET_COMMAND cmd, int value);
+    private:
+        bool getCommand(GET_COMMAND cmd, char * result);
+        bool setCommand(SET_COMMAND cmd, int value);
 
-    void initOffset();
+        void initOffset();
 
-    bool getStartupData();
-    bool getFirmwareInfo();
-    bool getSettingInfo();
+        bool getStartupData();
+        bool getFirmwareInfo();
+        bool getSettingInfo();
 
-    bool getFilterPosition();
-    bool getMaximumSpeed();
-    bool getJitter();
-    bool getThreshold();    
-    bool getMaxFilterSlots();
-    bool getPulseWidth();
+        bool getFilterPosition();
+        bool getMaximumSpeed();
+        bool getJitter();
+        bool getThreshold();
+        bool getMaxFilterSlots();
+        bool getPulseWidth();
 
-    // Calibration offset
-    bool getOffset(int filter);
-    bool setOffset(int filter, int value);
+        // Calibration offset
+        bool getOffset(int filter);
+        bool setOffset(int filter, int value);
 
-    // Reset
-    bool reset(int value);
+        // Reset
+        bool reset(int value);
 
-    // Firmware info
-    ITextVectorProperty FirmwareInfoTP;
-    IText FirmwareInfoT[3];
+        // Firmware info
+        ITextVectorProperty FirmwareInfoTP;
+        IText FirmwareInfoT[3];
 
-    // Settings
-    INumberVectorProperty SettingsNP;
-    INumber SettingsN[4];        
+        // Settings
+        INumberVectorProperty SettingsNP;
+        INumber SettingsN[4];
 
-    // Filter Offset
-    INumberVectorProperty OffsetNP;
-    INumber *OffsetN;
+        // Filter Offset
+        INumberVectorProperty OffsetNP;
+        INumber * OffsetN;
 
-    // Reset
-    ISwitchVectorProperty ResetSP;
-    ISwitch ResetS[4];
+        // Reset
+        ISwitchVectorProperty ResetSP;
+        ISwitch ResetS[4];
 
-    bool sim;
-    SimData simData;
-    uint8_t firmwareVersion;
+        bool sim;
+        SimData simData;
+        uint8_t firmwareVersion;
 };
 
 #endif

@@ -31,67 +31,67 @@
 
 class NFocus : public INDI::Focuser
 {
-public:
-    NFocus();
-    ~NFocus();
+    public:
+        NFocus();
+        ~NFocus();
 
-    virtual bool Handshake();
-    const char * getDefaultName();
-    virtual bool initProperties();
-    virtual bool updateProperties();
-    virtual bool ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n);    
-    virtual IPState MoveFocuser(FocusDirection dir, int speed, uint16_t duration);
-    virtual IPState MoveAbsFocuser(uint32_t ticks);
-    virtual IPState MoveRelFocuser(FocusDirection dir, uint32_t ticks);
+        virtual bool Handshake();
+        const char * getDefaultName();
+        virtual bool initProperties();
+        virtual bool updateProperties();
+        virtual bool ISNewNumber (const char * dev, const char * name, double values[], char * names[], int n);
+        virtual IPState MoveFocuser(FocusDirection dir, int speed, uint16_t duration);
+        virtual IPState MoveAbsFocuser(uint32_t ticks);
+        virtual IPState MoveRelFocuser(FocusDirection dir, uint32_t ticks);
 
-protected:
-    bool saveConfigItems(FILE *fp);
+    protected:
+        bool saveConfigItems(FILE * fp);
 
-private:
-    unsigned char CalculateSum(char *rf_cmd);
-    int SendCommand(char *rf_cmd);
-    int SendRequest(char *rf_cmd);
-    int ReadResponse(char *buf, int nbytes, int timeout);
-    void GetFocusParams();
+    private:
+        unsigned char CalculateSum(char * rf_cmd);
+        int SendCommand(char * rf_cmd);
+        int SendRequest(char * rf_cmd);
+        int ReadResponse(char * buf, int nbytes, int timeout);
+        void GetFocusParams();
 
-    int updateNFPosition(double *value);
-    int updateNFTemperature(double *value) ;
-    int updateNFBacklash(double *value);
-    int updateNFInOutScalar(double *value);
-    int updateNFFirmware(char *rf_cmd) ;
-    int updateNFMotorSettings(double *duty, double *delay, double *ticks);
-    int updateNFPositionRelativeInward(double *value);
-    int updateNFPositionRelativeOutward(double *value) ;
-    int updateNFPositionAbsolute(double *value);
-    int updateNFMaxPosition(double *value);
-    int updateNFSetPosition(double *value);
+        int updateNFPosition(double * value);
+        int updateNFTemperature(double * value) ;
+        int updateNFBacklash(double * value);
+        int updateNFInOutScalar(double * value);
+        int updateNFFirmware(char * rf_cmd) ;
+        int updateNFMotorSettings(double * duty, double * delay, double * ticks);
+        int updateNFPositionRelativeInward(double * value);
+        int updateNFPositionRelativeOutward(double * value) ;
+        int updateNFPositionAbsolute(double * value);
+        int updateNFMaxPosition(double * value);
+        int updateNFSetPosition(double * value);
 
-    INumber TemperatureN[1];
-    INumberVectorProperty TemperatureNP;
+        INumber TemperatureN[1];
+        INumberVectorProperty TemperatureNP;
 
-    INumber SettingsN[3];
-    INumberVectorProperty SettingsNP;
+        INumber SettingsN[3];
+        INumberVectorProperty SettingsNP;
 
-    INumber MinMaxPositionN[2];
-    INumberVectorProperty MinMaxPositionNP;
+        INumber MinMaxPositionN[2];
+        INumberVectorProperty MinMaxPositionNP;
 
-    INumber MaxTravelN[1];
-    INumberVectorProperty MaxTravelNP;
+        INumber MaxTravelN[1];
+        INumberVectorProperty MaxTravelNP;
 
-    INumber SetRegisterPositionN[1];
-    INumberVectorProperty SetRegisterPositionNP;
+        INumber SetRegisterPositionN[1];
+        INumberVectorProperty SetRegisterPositionNP;
 
-    INumber InOutScalarN[1];
-    INumberVectorProperty InOutScalarNP;
+        INumber InOutScalarN[1];
+        INumberVectorProperty InOutScalarNP;
 
-    INumber RelMovementN[1];
-    INumberVectorProperty RelMovementNP;
+        INumber RelMovementN[1];
+        INumberVectorProperty RelMovementNP;
 
-    INumber AbsMovementN[1];
-    INumberVectorProperty AbsMovementNP;
+        INumber AbsMovementN[1];
+        INumberVectorProperty AbsMovementNP;
 
-    INumber SetBacklashN[1];
-    INumberVectorProperty SetBacklashNP;
+        INumber SetBacklashN[1];
+        INumberVectorProperty SetBacklashNP;
 
 };
 

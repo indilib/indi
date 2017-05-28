@@ -532,8 +532,10 @@ startLocalDvr (DvrInfo *dp)
         if (*dp->envPrefix)
         {
           setenv("INDIPREFIX", dp->envPrefix, 1);
-#ifdef OSX_EMBEDED_MODE
+#if defined(OSX_EMBEDED_MODE)
           snprintf(executable, MAXSBUF, "%s/Contents/MacOS/%s", dp->envPrefix, dp->name);
+#elif defined(__APPLE__)
+          snprintf(executable, MAXSBUF, "%s/%s", dp->envPrefix, dp->name);
 #else
         snprintf(executable, MAXSBUF, "%s/bin/%s", dp->envPrefix, dp->name);
 #endif

@@ -20,8 +20,8 @@ namespace AlignmentSubsystem
 
 BasicMathPlugin::BasicMathPlugin()
 {
-    pActualToApparentTransform = gsl_matrix_alloc(3,3);
-    pApparentToActualTransform = gsl_matrix_alloc(3,3);
+    pActualToApparentTransform = gsl_matrix_alloc(3, 3);
+    pApparentToActualTransform = gsl_matrix_alloc(3, 3);
 }
 
 // Destructor
@@ -732,7 +732,7 @@ void BasicMathPlugin::Dump3x3(const char * Label, gsl_matrix * pMatrix)
 double BasicMathPlugin::Matrix3x3Determinant(gsl_matrix * pMatrix)
 {
     gsl_permutation * pPermutation = gsl_permutation_alloc(3);
-    gsl_matrix * pDecomp = gsl_matrix_alloc(3,3);
+    gsl_matrix * pDecomp = gsl_matrix_alloc(3, 3);
     int Signum;
     double Determinant;
 
@@ -753,7 +753,7 @@ bool BasicMathPlugin::MatrixInvert3x3(gsl_matrix * pInput, gsl_matrix * pInversi
 {
     bool Retcode = true;
     gsl_permutation * pPermutation = gsl_permutation_alloc(3);
-    gsl_matrix * pDecomp = gsl_matrix_alloc(3,3);
+    gsl_matrix * pDecomp = gsl_matrix_alloc(3, 3);
     int Signum;
 
     gsl_matrix_memcpy(pDecomp, pInput);

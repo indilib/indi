@@ -49,16 +49,16 @@ StreamRecorder::StreamRecorder(INDI::CCD * mainCCD)
     //timer_settime(fpstimer, 0, &fpssettings, NULL);
 
     struct itimerval fpssettings;
-    fpssettings.it_interval.tv_sec=24*3600;
-    fpssettings.it_interval.tv_usec=0;
-    fpssettings.it_value=fpssettings.it_interval;
+    fpssettings.it_interval.tv_sec = 24 * 3600;
+    fpssettings.it_interval.tv_usec = 0;
+    fpssettings.it_value = fpssettings.it_interval;
     signal(SIGALRM, SIG_IGN); //portable
     setitimer(ITIMER_REAL, &fpssettings, NULL);
 
-    v4l2_record=new V4L2_Record();
-    recorder=v4l2_record->getDefaultRecorder();
+    v4l2_record = new V4L2_Record();
+    recorder = v4l2_record->getDefaultRecorder();
     recorder->init();
-    direct_record=false;
+    direct_record = false;
 
     DEBUGF( INDI::Logger::DBG_SESSION, "Using default recorder (%s)", recorder->getName());
 
@@ -109,11 +109,11 @@ bool StreamRecorder::initProperties()
     IUFillSwitchVector(&RecordStreamSP, RecordStreamS, NARRAY(RecordStreamS), getDeviceName(), "RECORD_STREAM", "Video Record", STREAM_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
     // CCD Streaming Frame
-    IUFillNumber(&StreamFrameN[0],"X","Left ","%4.0f",0,0.0,0,0);
-    IUFillNumber(&StreamFrameN[1],"Y","Top","%4.0f",0,0,0,0);
-    IUFillNumber(&StreamFrameN[2],"WIDTH","Width","%4.0f",0,0.0,0,0.0);
-    IUFillNumber(&StreamFrameN[3],"HEIGHT","Height","%4.0f",0,0,0,0.0);
-    IUFillNumberVector(&StreamFrameNP,StreamFrameN,4,getDeviceName(),"CCD_STREAM_FRAME","Frame",STREAM_TAB,IP_RW,60,IPS_IDLE);
+    IUFillNumber(&StreamFrameN[0], "X", "Left ", "%4.0f", 0, 0.0, 0, 0);
+    IUFillNumber(&StreamFrameN[1], "Y", "Top", "%4.0f", 0, 0, 0, 0);
+    IUFillNumber(&StreamFrameN[2], "WIDTH", "Width", "%4.0f", 0, 0.0, 0, 0.0);
+    IUFillNumber(&StreamFrameN[3], "HEIGHT", "Height", "%4.0f", 0, 0, 0, 0.0);
+    IUFillNumberVector(&StreamFrameNP, StreamFrameN, 4, getDeviceName(), "CCD_STREAM_FRAME", "Frame", STREAM_TAB, IP_RW, 60, IPS_IDLE);
 
     return true;
 }
@@ -140,8 +140,8 @@ bool StreamRecorder::updateProperties()
 {
     if (ccd->isConnected())
     {
-        imageBP=ccd->getBLOB("CCD1");
-        imageB=imageBP->bp;
+        imageBP = ccd->getBLOB("CCD1");
+        imageB = imageBP->bp;
 
         ccd->defineSwitch(&StreamSP);
         ccd->defineNumber(&StreamOptionsNP);
@@ -176,25 +176,25 @@ void StreamRecorder::newFrame()
     getitimer(ITIMER_REAL, &tframe2);
     //ms2=capture->get(CV_CAP_PROP_POS_MSEC);
 
-    ms1=(1000.0 * (double)tframe1.it_value.tv_sec) + ((double)tframe1.it_value.tv_usec / 1000.0);
-    ms2=(1000.0 * (double)tframe2.it_value.tv_sec) + ((double)tframe2.it_value.tv_usec / 1000.0);
+    ms1 = (1000.0 * (double)tframe1.it_value.tv_sec) + ((double)tframe1.it_value.tv_usec / 1000.0);
+    ms2 = (1000.0 * (double)tframe2.it_value.tv_sec) + ((double)tframe2.it_value.tv_usec / 1000.0);
     if (ms2 > ms1)
-        deltams = ms2-ms1;//ms1 +( (24*3600*1000.0) - ms2);
+        deltams = ms2 - ms1; //ms1 +( (24*3600*1000.0) - ms2);
     else
-        deltams=ms1-ms2;
+        deltams = ms1 - ms2;
 
     //EstFps->value=1000.0 / deltams;
-    tframe1=tframe2;
-    mssum+=deltams;
-    framecountsec+=1;
+    tframe1 = tframe2;
+    mssum += deltams;
+    framecountsec += 1;
 
-    FpsN[0].value= 1000.0 / deltams;
+    FpsN[0].value = 1000.0 / deltams;
 
     if (mssum >= 1000.0)
     {
-        FpsN[1].value=(framecountsec * 1000.0) / mssum;
-        mssum=0;
-        framecountsec=0;
+        FpsN[1].value = (framecountsec * 1000.0) / mssum;
+        mssum = 0;
+        framecountsec = 0;
     }
 
     IDSetNumber(&FpsNP, NULL);
@@ -218,20 +218,20 @@ void StreamRecorder::newFrame()
 void StreamRecorder::setRecorderSize(uint16_t width, uint16_t height)
 {
     recorder->setSize(width, height);
-    recorder->setFrame(0,0, width, height);
+    recorder->setFrame(0, 0, width, height);
 
-    int binFactor=1;
+    int binFactor = 1;
     if (ccd->PrimaryCCD.getNAxis() == 2)
         binFactor = ccd->PrimaryCCD.getBinX();
 
     StreamFrameN[CCDChip::FRAME_X].value = 0;
-    StreamFrameN[CCDChip::FRAME_X].max   = width-1;
+    StreamFrameN[CCDChip::FRAME_X].max   = width - 1;
     StreamFrameN[CCDChip::FRAME_Y].value = 0;
-    StreamFrameN[CCDChip::FRAME_Y].max   = height-1;
-    StreamFrameN[CCDChip::FRAME_W].value = width/binFactor;
+    StreamFrameN[CCDChip::FRAME_Y].max   = height - 1;
+    StreamFrameN[CCDChip::FRAME_W].value = width / binFactor;
     StreamFrameN[CCDChip::FRAME_W].min   = 10;
     StreamFrameN[CCDChip::FRAME_W].max   = width;
-    StreamFrameN[CCDChip::FRAME_H].value = height/binFactor;
+    StreamFrameN[CCDChip::FRAME_H].value = height / binFactor;
     StreamFrameN[CCDChip::FRAME_H].min   = 10;
     StreamFrameN[CCDChip::FRAME_H].max   = height;
 
@@ -251,7 +251,7 @@ bool StreamRecorder::setPixelFormat(uint32_t format)
 
 bool StreamRecorder::uploadStream()
 {
-    int ret=0;
+    int ret = 0;
     uLongf compressedBytes = 0;
     uLong totalBytes = ccd->PrimaryCCD.getFrameBufferSize();
     uint8_t * buffer  = ccd->PrimaryCCD.getFrameBuffer();
@@ -262,7 +262,7 @@ bool StreamRecorder::uploadStream()
     if (ccd->PrimaryCCD.getNAxis() == 2)
     {
         ccd->PrimaryCCD.binFrame();
-        totalBytes /= (ccd->PrimaryCCD.getBinX()*ccd->PrimaryCCD.getBinY());
+        totalBytes /= (ccd->PrimaryCCD.getBinX() * ccd->PrimaryCCD.getBinY());
     }
 
     int subX, subY, subW, subH;
@@ -274,14 +274,14 @@ bool StreamRecorder::uploadStream()
     // If stream frame was not yet initilized, let's do that now
     if (StreamFrameN[CCDChip::FRAME_W].value == 0 || StreamFrameN[CCDChip::FRAME_H].value == 0)
     {
-        int binFactor=1;
+        int binFactor = 1;
         if (ccd->PrimaryCCD.getNAxis() == 2)
             binFactor = ccd->PrimaryCCD.getBinX();
 
         StreamFrameN[CCDChip::FRAME_X].value = subX;
         StreamFrameN[CCDChip::FRAME_Y].value = subY;
-        StreamFrameN[CCDChip::FRAME_W].value = subW/binFactor;
-        StreamFrameN[CCDChip::FRAME_W].value = subH/binFactor;
+        StreamFrameN[CCDChip::FRAME_W].value = subW / binFactor;
+        StreamFrameN[CCDChip::FRAME_W].value = subH / binFactor;
         StreamFrameNP.s = IPS_IDLE;
         IDSetNumber(&StreamFrameNP, NULL);
     }
@@ -293,16 +293,16 @@ bool StreamRecorder::uploadStream()
         // For MONO
         if (ccd->PrimaryCCD.getNAxis() == 2)
         {
-            int binFactor = (ccd->PrimaryCCD.getBinX()*ccd->PrimaryCCD.getBinY());
+            int binFactor = (ccd->PrimaryCCD.getBinX() * ccd->PrimaryCCD.getBinY());
             int offset = ((subW * StreamFrameN[CCDChip::FRAME_Y].value) +  StreamFrameN[CCDChip::FRAME_X].value) / binFactor;
 
             uint8_t * srcBuffer = buffer + offset;
-            uint8_t * destBuffer= buffer;
+            uint8_t * destBuffer = buffer;
 
-            for (int i=0; i < StreamFrameN[CCDChip::FRAME_H].value; i++)
+            for (int i = 0; i < StreamFrameN[CCDChip::FRAME_H].value; i++)
                 memcpy(destBuffer + i * static_cast<int>(StreamFrameN[CCDChip::FRAME_W].value), srcBuffer + subW * i, StreamFrameN[CCDChip::FRAME_W].value);
 
-            totalBytes = (StreamFrameN[CCDChip::FRAME_W].value * StreamFrameN[CCDChip::FRAME_H].value) / (binFactor*binFactor);
+            totalBytes = (StreamFrameN[CCDChip::FRAME_W].value * StreamFrameN[CCDChip::FRAME_H].value) / (binFactor * binFactor);
         }
         // For Color
         else
@@ -319,8 +319,8 @@ bool StreamRecorder::uploadStream()
             uint8_t * destBuffer = buffer;
 
             // RGB
-            for (int i=0; i < StreamFrameN[CCDChip::FRAME_H].value; i++)
-                memcpy(destBuffer + i * static_cast<int>(StreamFrameN[CCDChip::FRAME_W].value*3), srcBuffer + subW * 3 * i, StreamFrameN[CCDChip::FRAME_W].value*3);
+            for (int i = 0; i < StreamFrameN[CCDChip::FRAME_H].value; i++)
+                memcpy(destBuffer + i * static_cast<int>(StreamFrameN[CCDChip::FRAME_W].value * 3), srcBuffer + subW * 3 * i, StreamFrameN[CCDChip::FRAME_W].value * 3);
         }
     }
 
@@ -370,12 +370,12 @@ void StreamRecorder::recordStream(double deltams)
     else
         recorder->writeFrameColor(ccd->PrimaryCCD.getFrameBuffer());
 
-    recordDuration+=deltams;
-    recordframeCount+=1;
+    recordDuration += deltams;
+    recordframeCount += 1;
 
     if ((RecordStreamSP.sp[1].s == ISS_ON) && (recordDuration >= (RecordOptionsNP.np[0].value * 1000.0)))
     {
-        DEBUGF(INDI::Logger::DBG_SESSION,"Ending record after %g millisecs", recordDuration);
+        DEBUGF(INDI::Logger::DBG_SESSION, "Ending record after %g millisecs", recordDuration);
         stopRecording();
         RecordStreamSP.sp[1].s = ISS_OFF;
         RecordStreamSP.sp[3].s = ISS_ON;
@@ -385,7 +385,7 @@ void StreamRecorder::recordStream(double deltams)
 
     if ((RecordStreamSP.sp[2].s == ISS_ON) && (recordframeCount >= (RecordOptionsNP.np[1].value)))
     {
-        DEBUGF(INDI::Logger::DBG_SESSION,"Ending record after %d frames", recordframeCount);
+        DEBUGF(INDI::Logger::DBG_SESSION, "Ending record after %d frames", recordframeCount);
         stopRecording();
         RecordStreamSP.sp[2].s = ISS_OFF;
         RecordStreamSP.sp[3].s = ISS_ON;
@@ -396,23 +396,23 @@ void StreamRecorder::recordStream(double deltams)
 
 int StreamRecorder::mkpath(std::string s, mode_t mode)
 {
-    size_t pre=0,pos;
+    size_t pre = 0, pos;
     std::string dir;
-    int mdret=0;
+    int mdret = 0;
     struct stat st;
 
-    if(s[s.size()-1]!='/') s+='/';
+    if(s[s.size() - 1] != '/') s += '/';
 
-    while((pos=s.find_first_of('/',pre)) != std::string::npos)
+    while((pos = s.find_first_of('/', pre)) != std::string::npos)
     {
-        dir=s.substr(0,pos++);
-        pre=pos;
-        if(dir.size()==0) continue;
+        dir = s.substr(0, pos++);
+        pre = pos;
+        if(dir.size() == 0) continue;
         if (stat(dir.c_str(), &st))
         {
-            if (errno != ENOENT || ((mdret=mkdir(dir.c_str(),mode)) && errno!=EEXIST))
+            if (errno != ENOENT || ((mdret = mkdir(dir.c_str(), mode)) && errno != EEXIST))
             {
-                DEBUGF(INDI::Logger::DBG_WARNING,"mkpath: can not create %s", dir.c_str());
+                DEBUGF(INDI::Logger::DBG_WARNING, "mkpath: can not create %s", dir.c_str());
                 return mdret;
             }
         }
@@ -420,7 +420,7 @@ int StreamRecorder::mkpath(std::string s, mode_t mode)
         {
             if (!S_ISDIR(st.st_mode))
             {
-                DEBUGF(INDI::Logger::DBG_WARNING,"mkpath: %s is not a directory", dir.c_str());
+                DEBUGF(INDI::Logger::DBG_WARNING, "mkpath: %s is not a directory", dir.c_str());
                 return -1;
             }
         }
@@ -435,39 +435,47 @@ std::string StreamRecorder::expand(std::string fname, const std::map<std::string
     time_t now;
     struct tm * tm_now;
     char val[20];
-    *(val+19) = '\0';
+    *(val + 19) = '\0';
 
     time(&now);
     tm_now = gmtime(&now);
 
-    pos=res.find("_D_");
+    pos = res.find("_D_");
     if (pos != std::string::npos)
     {
         strftime(val, 11, "%F", tm_now);
         res.replace(pos, 3, val);
     }
 
-    pos=res.find("_T_");
+    pos = res.find("_T_");
     if (pos != std::string::npos)
     {
         strftime(val, 20, "%F@%T", tm_now);
         res.replace(pos, 3, val);
     }
 
-    pos=res.find("_H_");
+    pos = res.find("_H_");
     if (pos != std::string::npos)
     {
         strftime(val, 9, "%T", tm_now);
         res.replace(pos, 3, val);
     }
 
-    for (std::map<std::string, std::string>::const_iterator it=patterns.begin(); it!=patterns.end(); ++it)
+    for (std::map<std::string, std::string>::const_iterator it = patterns.begin(); it != patterns.end(); ++it)
     {
-        pos=res.find(it->first);
+        pos = res.find(it->first);
         if (pos != std::string::npos)
         {
             res.replace(pos, it->first.size(), it->second);
         }
+    }
+
+    // Replace all : to - to be valid filename on Windows
+    size_t start_pos = 0;
+    while((start_pos = res.find(":", start_pos)) != std::string::npos)
+    {
+        res.replace(start_pos, 1, "-");
+        start_pos++;
     }
 
     return res;
@@ -485,20 +493,20 @@ bool StreamRecorder::startRecording()
     /* get filter name for pattern substitution */
     if (ccd->CurrentFilterSlot != -1 && ccd->CurrentFilterSlot <= ccd->FilterNames.size())
     {
-        filtername=ccd->FilterNames.at(ccd->CurrentFilterSlot-1);
-        patterns["_F_"]=filtername;
+        filtername = ccd->FilterNames.at(ccd->CurrentFilterSlot - 1);
+        patterns["_F_"] = filtername;
         DEBUGF(INDI::Logger::DBG_SESSION, "Adding filter pattern %s", filtername.c_str());
     }
     /* pattern substitution */
     recordfiledir.assign(RecordFileTP.tp[0].text);
-    expfiledir=expand(recordfiledir, patterns);
+    expfiledir = expand(recordfiledir, patterns);
     if (expfiledir.at(expfiledir.size() - 1) != '/')
-        expfiledir+='/';
+        expfiledir += '/';
     recordfilename.assign(RecordFileTP.tp[1].text);
-    expfilename=expand(recordfilename, patterns);
+    expfilename = expand(recordfilename, patterns);
     if (expfilename.substr(expfilename.size() - 4, 4) != ".ser")
-        expfilename+=".ser";
-    filename=expfiledir+expfilename;
+        expfilename += ".ser";
+    filename = expfiledir + expfilename;
     //DEBUGF(INDI::Logger::DBG_SESSION, "Expanded file is %s", filename.c_str());
     //filename=recordfiledir+recordfilename;
     DEBUGF(INDI::Logger::DBG_SESSION, "Record file is %s", filename.c_str());
@@ -530,12 +538,12 @@ bool StreamRecorder::startRecording()
         else
             recorder->setDefaultColor();
     }
-    recordDuration=0.0;
-    recordframeCount=0;
+    recordDuration = 0.0;
+    recordframeCount = 0;
 
     getitimer(ITIMER_REAL, &tframe1);
-    mssum=0;
-    framecountsec=0;
+    mssum = 0;
+    framecountsec = 0;
     if (is_streaming == false && ccd->StartStreaming() == false)
     {
         DEBUG(INDI::Logger::DBG_ERROR, "Failed to start recording.");
@@ -544,7 +552,7 @@ bool StreamRecorder::startRecording()
         RecordStreamS[RECORD_OFF].s = ISS_ON;
         IDSetSwitch(&RecordStreamSP, NULL);
     }
-    is_recording=true;
+    is_recording = true;
     return true;
 }
 
@@ -554,7 +562,7 @@ bool StreamRecorder::stopRecording()
     if (!is_streaming)
         ccd->StopStreaming();
 
-    is_recording=false;
+    is_recording = false;
     recorder->close();
     DEBUGF(INDI::Logger::DBG_SESSION, "Record Duration(millisec): %g -- Frame count: %d", recordDuration, recordframeCount);
     return true;
@@ -568,7 +576,7 @@ bool StreamRecorder::ISNewSwitch (const char * dev, const char * name, ISState *
     /* Video Stream */
     if (!strcmp(name, StreamSP.name))
     {
-        for (int i=0; i < n; i++)
+        for (int i = 0; i < n; i++)
         {
             if (!strcmp(names[i], "STREAM_ON") && states[i] == ISS_ON)
             {
@@ -699,8 +707,8 @@ bool StreamRecorder::ISNewNumber (const char * dev, const char * name, double va
             return false;
         }
 
-        int subW = ccd->PrimaryCCD.getSubW()/ccd->PrimaryCCD.getBinX();
-        int subH = ccd->PrimaryCCD.getSubH()/ccd->PrimaryCCD.getBinY();
+        int subW = ccd->PrimaryCCD.getSubW() / ccd->PrimaryCCD.getBinX();
+        int subH = ccd->PrimaryCCD.getSubH() / ccd->PrimaryCCD.getBinY();
 
         IUUpdateNumber(&StreamFrameNP, values, names, n);
         StreamFrameNP.s = IPS_OK;
@@ -745,8 +753,8 @@ bool StreamRecorder::setStream(bool enable)
             streamframeCount = 0;
 
             getitimer(ITIMER_REAL, &tframe1);
-            mssum=0;
-            framecountsec=0;
+            mssum = 0;
+            framecountsec = 0;
             if (ccd->StartStreaming() == false)
             {
                 IUResetSwitch(&StreamSP);
@@ -757,7 +765,7 @@ bool StreamRecorder::setStream(bool enable)
                 return false;
             }
 
-            is_streaming=true;
+            is_streaming = true;
             IUResetSwitch(&StreamSP);
             StreamS[0].s = ISS_ON;
 
@@ -785,7 +793,7 @@ bool StreamRecorder::setStream(bool enable)
 
             IUResetSwitch(&StreamSP);
             StreamS[1].s = ISS_ON;
-            is_streaming=false;
+            is_streaming = false;
 
             recorder->setStreamEnabled(false);
         }

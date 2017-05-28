@@ -15,9 +15,9 @@ if(ANDROID OR "${CMAKE_SYSTEM_NAME}" STREQUAL "Android")
   add_definitions(-DANDROID)
 endif()
 
-if (NOT WIN32 AND NOT ANDROID)
+if (NOT WIN32)
 set(CMAKE_CXX_FLAGS "-std=c++11 ${CMAKE_CXX_FLAGS}")
-endif(NOT WIN32 AND NOT ANDROID)
+endif(NOT WIN32)
 
 #####################################  INDI version  ################################################
 # N.B. DO NOT Forget to update version also in indiapi.h
@@ -47,6 +47,8 @@ ENDIF(APPLE)
 set(INCLUDE_INSTALL_DIR      "${CMAKE_INSTALL_PREFIX}/include/")
 set(PKGCONFIG_INSTALL_PREFIX "${CMAKE_INSTALL_LIBDIR}/pkgconfig/")
 set(UDEVRULES_INSTALL_DIR "/lib/udev/rules.d" CACHE STRING "Base directory for udev rules")
+
+set(PKG_CONFIG_LIBDIR ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR})
 
 #####################################  Build Options  ##############################################
 # Select which components to build and what options to apply
@@ -162,11 +164,28 @@ endif (INDI_BUILD_POSIX_CLIENT)
 #
 #################################################################################################
 if (INDI_BUILD_QT5_CLIENT)
+set(QT_ANDROID "" CACHE path "Qt Android path")
 # 1. Dependencies
-find_package(Qt5Network)
-find_package(ZLIB REQUIRED)
-find_package(CFITSIO REQUIRED)
-find_package(Nova REQUIRED)
+if (ANDROID)
+    include(${QT_ANDROID}/lib/cmake/Qt5Network/Qt5NetworkConfig.cmake)
+    if (NOT CFITSIO_DIR)
+        message(FATAL_ERROR CFITSIO_DIR must be set)
+    else ()
+        set(CFITSIO_INCLUDE_DIR ${CFITSIO_DIR})
+        set(CFITSIO_LIBRARIES ${CFITSIO_DIR}/libcfitsio.a)
+    endif ()
+    if (NOT NOVA_DIR)
+        message(FATAL_ERROR NOVA_DIR must be set)
+    else ()
+        set(NOVA_INCLUDE_DIR ${NOVA_DIR}/src ${NOVA_DIR}/src/libnova)
+        set(NOVA_LIBRARIES ${NOVA_DIR}/lib/liblibnova.a)
+    endif ()
+else ()
+    find_package(Qt5Network)
+    find_package(ZLIB REQUIRED)
+    find_package(CFITSIO REQUIRED)
+    find_package(Nova REQUIRED)
+endif ()
 # 2. Includes
 include_directories( ${CMAKE_CURRENT_BINARY_DIR})
 include_directories( ${CMAKE_CURRENT_SOURCE_DIR})
@@ -318,6 +337,7 @@ set_target_properties(indidriver PROPERTIES COMPILE_FLAGS "-fPIC")
 set_target_properties(indidriver PROPERTIES VERSION ${CMAKE_INDI_VERSION_STRING} SOVERSION ${INDI_SOVERSION} OUTPUT_NAME indidriver)
 target_link_libraries(indidriver ${LIBUSB_1_LIBRARIES} ${NOVA_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${CFITSIO_LIBRARIES} ${M_LIB} ${ZLIB_LIBRARY} ${JPEG_LIBRARY})
 install(TARGETS indidriver LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR})
+set(PKG_CONFIG_LIBS "${PKG_CONFIG_LIBS} -lindidriver -lindiAlignmentDriver")
 endif(CYGWIN)
 
 
@@ -462,7 +482,7 @@ set(dsc_SRCS
    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/telescope/dsc.cpp )
 
 add_executable(indi_dsc_telescope ${dsc_SRCS})
-target_link_libraries(indi_dsc_telescope indidriver)
+target_link_libraries(indi_dsc_telescope indidriver AlignmentDriver)
 
 install(TARGETS indi_dsc_telescope RUNTIME DESTINATION bin )
 
@@ -782,6 +802,20 @@ endif (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
 #####################################
 ############ AUX GROUP ##############
 #####################################
+
+########### SkySafari Middleware ##############
+if (INDI_BUILD_POSIX_CLIENT)
+set(skysafari_SRCS
+        ${CMAKE_CURRENT_SOURCE_DIR}/drivers/auxiliary/skysafari.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/drivers/auxiliary/skysafariclient.cpp
+   )
+
+add_executable(indi_skysafari ${skysafari_SRCS})
+target_link_libraries(indi_skysafari indidriver indiclient)
+install(TARGETS indi_skysafari RUNTIME DESTINATION bin )
+else()
+    message(WARNING "Skipping build of INDI SkySafari driver since INDI POSIX Client is not built")
+endif (INDI_BUILD_POSIX_CLIENT)
 
 ########### Watch dog ###############
 if (INDI_BUILD_POSIX_CLIENT)

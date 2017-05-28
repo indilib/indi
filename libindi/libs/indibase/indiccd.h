@@ -50,7 +50,7 @@ class CCDChip
         CCDChip();
         ~CCDChip();
 
-        typedef enum { LIGHT_FRAME=0, BIAS_FRAME, DARK_FRAME, FLAT_FRAME } CCD_FRAME;
+        typedef enum { LIGHT_FRAME = 0, BIAS_FRAME, DARK_FRAME, FLAT_FRAME } CCD_FRAME;
         typedef enum { FRAME_X, FRAME_Y, FRAME_W, FRAME_H} CCD_FRAME_INDEX;
         typedef enum { BIN_W, BIN_H} CCD_BIN_INDEX;
         typedef enum { CCD_MAX_X, CCD_MAX_Y, CCD_PIXEL_SIZE, CCD_PIXEL_SIZE_X, CCD_PIXEL_SIZE_Y, CCD_BITSPERPIXEL} CCD_INFO_INDEX;
@@ -281,7 +281,7 @@ class CCDChip
          * @param step Element step value
          * @param sendToClient If true (default), the element limits are updated and is sent to the client. If false, the element limits are updated without getting sent to the client.
          */
-        void setMinMaxStep(const char * property, const char * element, double min, double max, double step, bool sendToClient=true);
+        void setMinMaxStep(const char * property, const char * element, double min, double max, double step, bool sendToClient = true);
 
         /**
          * @brief setPixelSize Set CCD Chip pixel size
@@ -309,7 +309,7 @@ class CCDChip
          * @param nbuf size of buffer in bytes.
          * @param allocMem if True, it will allocate memory of nbut size bytes.
          */
-        void setFrameBufferSize(int nbuf, bool allocMem=true);
+        void setFrameBufferSize(int nbuf, bool allocMem = true);
 
         /**
          * @brief setBPP Set depth of CCD chip.
@@ -687,7 +687,7 @@ class INDI::CCD : public INDI::DefaultDevice, INDI::GuiderInterface
             \param xf X pixel size in microns.
             \param yf Y pixel size in microns.
         */
-        virtual void SetCCDParams(int x,int y,int bpp,float xf,float yf);
+        virtual void SetCCDParams(int x, int y, int bpp, float xf, float yf);
 
         /** \brief Setup CCD paramters for guide head CCD. Child classes call this function to update CCD paramaters
             \param x Frame X coordinates in pixels.
@@ -696,7 +696,7 @@ class INDI::CCD : public INDI::DefaultDevice, INDI::GuiderInterface
             \param xf X pixel size in microns.
             \param yf Y pixel size in microns.
         */
-        virtual void SetGuiderParams(int x,int y,int bpp,float xf,float yf);
+        virtual void SetGuiderParams(int x, int y, int bpp, float xf, float yf);
 
 
         /** \brief Guide northward for ms milliseconds
@@ -826,6 +826,7 @@ class INDI::CCD : public INDI::DefaultDevice, INDI::GuiderInterface
 
         IText   UploadSettingsT[2];
         ITextVectorProperty UploadSettingsTP;
+        enum { UPLOAD_DIR, UPLOAD_PREFIX };
 
         ISwitch TelescopeTypeS[2];
         ISwitchVectorProperty TelescopeTypeSP;
@@ -838,6 +839,11 @@ class INDI::CCD : public INDI::DefaultDevice, INDI::GuiderInterface
         // WCS CCD Rotation
         INumber CCDRotationN[1];
         INumberVectorProperty CCDRotationNP;
+
+        // FITS Header
+        IText FITSHeaderT[2];
+        ITextVectorProperty FITSHeaderTP;
+        enum { FITS_OBSERVER, FITS_OBJECT };
 
     private:
         uint32_t capability;

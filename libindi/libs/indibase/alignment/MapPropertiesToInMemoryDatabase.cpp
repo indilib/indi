@@ -21,10 +21,10 @@ void MapPropertiesToInMemoryDatabase::InitProperties(Telescope * pTelescope)
 
     IUFillNumber(&AlignmentPointSetEntry[ENTRY_OBSERVATION_JULIAN_DATE], "ALIGNMENT_POINT_ENTRY_OBSERVATION_JULIAN_DATE", "Observation Julian date", "%g", 0, 60000, 0, 0);
     IUFillNumber(&AlignmentPointSetEntry[ENTRY_RA], "ALIGNMENT_POINT_ENTRY_RA", "Right Ascension (hh:mm:ss)", "%010.6m", 0, 24, 0, 0);
-    IUFillNumber(&AlignmentPointSetEntry[ENTRY_DEC]," ALIGNMENT_POINT_ENTRY_DEC", "Declination (dd:mm:ss)", "%010.6m", -90, 90, 0, 0);
+    IUFillNumber(&AlignmentPointSetEntry[ENTRY_DEC], " ALIGNMENT_POINT_ENTRY_DEC", "Declination (dd:mm:ss)", "%010.6m", -90, 90, 0, 0);
     IUFillNumber(&AlignmentPointSetEntry[ENTRY_VECTOR_X], "ALIGNMENT_POINT_ENTRY_VECTOR_X", "Telescope direction vector x", "%g", -FLT_MAX, FLT_MAX, 0, 0);
-    IUFillNumber(&AlignmentPointSetEntry[ENTRY_VECTOR_Y]," ALIGNMENT_POINT_ENTRY_VECTOR_Y", "Telescope direction vector y", "%g", -FLT_MAX, FLT_MAX, 0, 0);
-    IUFillNumber(&AlignmentPointSetEntry[ENTRY_VECTOR_Z]," ALIGNMENT_POINT_ENTRY_VECTOR_Z", "Telescope direction vector z", "%g", -FLT_MAX, FLT_MAX, 0, 0);
+    IUFillNumber(&AlignmentPointSetEntry[ENTRY_VECTOR_Y], " ALIGNMENT_POINT_ENTRY_VECTOR_Y", "Telescope direction vector y", "%g", -FLT_MAX, FLT_MAX, 0, 0);
+    IUFillNumber(&AlignmentPointSetEntry[ENTRY_VECTOR_Z], " ALIGNMENT_POINT_ENTRY_VECTOR_Z", "Telescope direction vector z", "%g", -FLT_MAX, FLT_MAX, 0, 0);
     IUFillNumberVector(&AlignmentPointSetEntryV, AlignmentPointSetEntry, 6, pTelescope->getDeviceName(),
                        "ALIGNMENT_POINT_MANDATORY_NUMBERS", "Mandatory sync point numeric fields", ALIGNMENT_TAB, IP_RW, 60, IPS_IDLE);
     pTelescope->registerProperty(&AlignmentPointSetEntryV, INDI_NUMBER);
@@ -48,7 +48,7 @@ void MapPropertiesToInMemoryDatabase::InitProperties(Telescope * pTelescope)
     IUFillSwitch(&AlignmentPointSetAction[1], "INSERT", "Insert entries at current index", ISS_OFF);
     IUFillSwitch(&AlignmentPointSetAction[2], "EDIT", "Overwrite entry at current index", ISS_OFF);
     IUFillSwitch(&AlignmentPointSetAction[3], "DELETE", "Delete entry at current index", ISS_OFF);
-    IUFillSwitch(&AlignmentPointSetAction[4], "CLEAR","Delete all the entries in the set", ISS_OFF);
+    IUFillSwitch(&AlignmentPointSetAction[4], "CLEAR", "Delete all the entries in the set", ISS_OFF);
     IUFillSwitch(&AlignmentPointSetAction[5], "READ", "Read the entry at the current pointer", ISS_OFF);
     IUFillSwitch(&AlignmentPointSetAction[6], "READ INCREMENT", "Increment the pointer before reading the entry", ISS_OFF);
     IUFillSwitch(&AlignmentPointSetAction[7], "LOAD DATABASE", "Load the alignment database from local storage", ISS_OFF);
@@ -68,7 +68,7 @@ void MapPropertiesToInMemoryDatabase::ProcessBlobProperties(Telescope * pTelesco
     DEBUGFDEVICE(pTelescope->getDeviceName(), INDI::Logger::DBG_DEBUG, "ProcessBlobProperties - name(%s)", name);
     if (strcmp(name, AlignmentPointSetPrivateBinaryDataV.name) == 0)
     {
-        AlignmentPointSetPrivateBinaryDataV.s=IPS_OK;
+        AlignmentPointSetPrivateBinaryDataV.s = IPS_OK;
         if (0 == IUUpdateBLOB(&AlignmentPointSetPrivateBinaryDataV, sizes, blobsizes, blobs, formats, names, n))
         {
             // Reset the blob format string just in case it got trashed
@@ -112,7 +112,7 @@ void MapPropertiesToInMemoryDatabase::ProcessSwitchProperties(Telescope * pTeles
     AlignmentDatabaseType &AlignmentDatabase = GetAlignmentDatabase();
     if (strcmp(name, AlignmentPointSetActionV.name) == 0)
     {
-        AlignmentPointSetActionV.s=IPS_OK;
+        AlignmentPointSetActionV.s = IPS_OK;
         if (0 == IUUpdateSwitch(&AlignmentPointSetActionV, states, names, n))
             //  Update client
             IDSetSwitch(&AlignmentPointSetActionV, NULL);
@@ -120,7 +120,7 @@ void MapPropertiesToInMemoryDatabase::ProcessSwitchProperties(Telescope * pTeles
     else if (strcmp(name, AlignmentPointSetCommitV.name) == 0)
     {
         unsigned int Offset = AlignmentPointSetPointer.value;
-        AlignmentPointSetCommitV.s=IPS_OK;
+        AlignmentPointSetCommitV.s = IPS_OK;
 
         // Perform the database action
         AlignmentDatabaseEntry CurrentValues;
@@ -147,7 +147,7 @@ void MapPropertiesToInMemoryDatabase::ProcessSwitchProperties(Telescope * pTeles
         else if (AlignmentPointSetAction[INSERT].s == ISS_ON)
         {
             if ((Offset < 0) || (Offset > AlignmentDatabase.size()))
-                AlignmentPointSetCommitV.s=IPS_ALERT;
+                AlignmentPointSetCommitV.s = IPS_ALERT;
             else
             {
                 AlignmentDatabase.insert(AlignmentDatabase.begin() + Offset, CurrentValues);
@@ -159,14 +159,14 @@ void MapPropertiesToInMemoryDatabase::ProcessSwitchProperties(Telescope * pTeles
         else if (AlignmentPointSetAction[EDIT].s == ISS_ON)
         {
             if ((Offset < 0) || (Offset >= AlignmentDatabase.size()))
-                AlignmentPointSetCommitV.s=IPS_ALERT;
+                AlignmentPointSetCommitV.s = IPS_ALERT;
             else
                 AlignmentDatabase[Offset] = CurrentValues;
         }
         else if (AlignmentPointSetAction[DELETE].s == ISS_ON)
         {
             if ((Offset < 0) || (Offset >= AlignmentDatabase.size()))
-                AlignmentPointSetCommitV.s=IPS_ALERT;
+                AlignmentPointSetCommitV.s = IPS_ALERT;
             else
             {
                 AlignmentDatabase.erase(AlignmentDatabase.begin() + Offset);
@@ -193,7 +193,7 @@ void MapPropertiesToInMemoryDatabase::ProcessSwitchProperties(Telescope * pTeles
             }
 
             if ((Offset < 0) || (Offset >= AlignmentDatabase.size()))
-                AlignmentPointSetCommitV.s=IPS_ALERT;
+                AlignmentPointSetCommitV.s = IPS_ALERT;
             else
             {
                 AlignmentPointSetEntry[ENTRY_OBSERVATION_JULIAN_DATE].value = AlignmentDatabase[Offset].ObservationJulianDate;
@@ -201,7 +201,7 @@ void MapPropertiesToInMemoryDatabase::ProcessSwitchProperties(Telescope * pTeles
                 AlignmentPointSetEntry[ENTRY_DEC].value = AlignmentDatabase[Offset].Declination;
                 AlignmentPointSetEntry[ENTRY_VECTOR_X].value = AlignmentDatabase[Offset].TelescopeDirection.x;
                 AlignmentPointSetEntry[ENTRY_VECTOR_Y].value = AlignmentDatabase[Offset].TelescopeDirection.y;
-                AlignmentPointSetEntry[ENTRY_VECTOR_Z].value= AlignmentDatabase[Offset].TelescopeDirection.z;
+                AlignmentPointSetEntry[ENTRY_VECTOR_Z].value = AlignmentDatabase[Offset].TelescopeDirection.z;
 
                 //  Update client
                 IDSetNumber(&AlignmentPointSetEntryV, NULL);

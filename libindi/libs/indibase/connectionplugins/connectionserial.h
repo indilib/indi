@@ -22,7 +22,6 @@
 #define CONNECTIONSERIAL_H
 
 #include <string>
-
 #include "connectioninterface.h"
 
 namespace Connection
@@ -106,6 +105,11 @@ class Serial : public Interface
         virtual bool ISNewSwitch (const char * dev, const char * name, ISState * states, char * names[], int n);
         virtual bool saveConfigItems(FILE * fp);
 
+        /**
+         * Refresh the list of system ports
+         */
+        bool Refresh(bool silent = false);
+
     protected:
 
         /** \brief Connect to serial port device. Default parameters are 8 bits, 1 stop bit, no parity. Override if different from default.
@@ -118,8 +122,6 @@ class Serial : public Interface
 
         virtual bool processHandshake();
 
-        bool refresh();
-
         // Device physical port
         ITextVectorProperty PortTP;
         IText PortT[1];
@@ -130,13 +132,13 @@ class Serial : public Interface
         ISwitch AutoSearchS[2];
         ISwitchVectorProperty AutoSearchSP;
 
-        ISwitch * SystemPortS=NULL;
+        ISwitch * SystemPortS = NULL;
         ISwitchVectorProperty SystemPortSP;
 
         ISwitch RefreshS[1];
         ISwitchVectorProperty RefreshSP;
 
-        int PortFD=-1;
+        int PortFD = -1;
 };
 
 }

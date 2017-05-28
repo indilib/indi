@@ -23,7 +23,8 @@
 
 #include "lx200generic.h"
 
-typedef enum {
+typedef enum
+{
     GSTAT_TRACKING                    =  0,
     GSTAT_STOPPED                     =  1,
     GSTAT_PARKING                     =  2,
@@ -42,37 +43,37 @@ typedef enum {
 
 class LX200_10MICRON : public LX200Generic
 {
-public:
+    public:
 
-    LX200_10MICRON(void);
-    ~LX200_10MICRON(void) {}
+        LX200_10MICRON(void);
+        ~LX200_10MICRON(void) {}
 
-    virtual const char *getDefaultName(void);
-    virtual bool Handshake() override;
-    virtual bool initProperties(void);
-    virtual bool updateProperties(void);
-    virtual bool ReadScopeStatus(void);
-    virtual bool Park(void);
-    virtual bool UnPark(void);
-    virtual bool SyncConfig(bool cmcfg);
+        virtual const char * getDefaultName(void);
+        virtual bool Handshake() override;
+        virtual bool initProperties(void);
+        virtual bool updateProperties(void);
+        virtual bool ReadScopeStatus(void);
+        virtual bool Park(void);
+        virtual bool UnPark(void);
+        virtual bool SyncConfig(bool cmcfg);
 
-    // TODO move this thing elsewhere
-    int monthToNumber(const char *monthName);
-    int setStandardProcedureWithoutRead(int fd, const char *data);
+        // TODO move this thing elsewhere
+        int monthToNumber(const char * monthName);
+        int setStandardProcedureWithoutRead(int fd, const char * data);
 
-protected:
+    protected:
 
-    virtual void getBasicData(void);
+        virtual void getBasicData(void);
 
-    IText               ProductT[4];
-    ITextVectorProperty ProductTP;
+        IText               ProductT[4];
+        ITextVectorProperty ProductTP;
 
-private:
-    int fd = -1; // short notation for PortFD/sockfd
-    bool getMountInfo(void);
+    private:
+        int fd = -1; // short notation for PortFD/sockfd
+        bool getMountInfo(void);
 
-    int OldGstat = -1;
-    TelescopeStatus OldTrackState;
+        int OldGstat = -1;
+        TelescopeStatus OldTrackState;
 };
 
 #endif
