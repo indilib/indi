@@ -25,6 +25,7 @@ find_package(GPHOTO2 REQUIRED)
 find_package(Threads REQUIRED)
 find_package(JPEG REQUIRED)
 find_package(LibRaw REQUIRED)
+find_package(USB-1 REQUIRED)
 
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/config.h.cmake ${CMAKE_CURRENT_BINARY_DIR}/config.h )
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/indi_gphoto.xml.cmake ${CMAKE_CURRENT_BINARY_DIR}/indi_gphoto.xml )
@@ -44,6 +45,7 @@ include_directories( ${INDI_INCLUDE_DIR})
 include_directories( ${CFITSIO_INCLUDE_DIR})
 include_directories( ${GPHOTO2_INCLUDE_DIR})
 include_directories( ${LibRaw_INCLUDE_DIR})
+include_directories( ${LIBUSB_1_INCLUDE_DIRS})
 
 #if (CMAKE_HOST_SYSTEM_PROCESSOR MATCHES "arm*")
 #add_definitions(-DUSE_THUMB_SIZE)
@@ -54,6 +56,7 @@ set(indigphoto_SRCS
    ${CMAKE_CURRENT_SOURCE_DIR}/gphoto_ccd.cpp
    ${CMAKE_CURRENT_SOURCE_DIR}/gphoto_driver.cpp
    ${CMAKE_CURRENT_SOURCE_DIR}/gphoto_readimage.cpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/dsusbdriver.cpp
    )
 
 add_executable(indi_gphoto_ccd ${indigphoto_SRCS})

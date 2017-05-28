@@ -38,6 +38,7 @@
 #include <pthread.h>
 
 #include "gphoto_driver.h"
+#include "dsusbdriver.h"
 
 static GPPortInfoList		*portinfolist = NULL;
 static CameraAbilitiesList	*abilities = NULL;
@@ -86,6 +87,8 @@ struct _gphoto_driver
 
     char            **exposure_presets;
     int             exposure_presets_count;
+
+    DSUSBDriver *dsusb;
 
     gphoto_widget_list	*widgets;
     gphoto_widget_list	*iter;
@@ -443,10 +446,12 @@ static void *stop_bulb(void *arg)
             gettimeofday(&curtime, NULL);
             timeleft = ((gphoto->bulb_end.tv_sec - curtime.tv_sec)*1000)+((gphoto->bulb_end.tv_usec - curtime.tv_usec)/1000);
             DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG,"Time left: %ld", timeleft);
-            if (timeleft <= 0) {
+            if (timeleft <= 0)
+            {
                 //shut off bulb mode
                 DEBUGDEVICE(device, INDI::Logger::DBG_DEBUG,"Closing shutter");
-                if (gphoto->bulb_widget) {
+                if (gphoto->bulb_widget)
+                {
                     DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG,"Using widget:%s",gphoto->bulb_widget->name);
                     if(strcmp(gphoto->bulb_widget->name, "eosremoterelease") == 0 )
                     {
@@ -454,7 +459,13 @@ static void *stop_bulb(void *arg)
                     } else {
                         gphoto_set_widget_num(gphoto, gphoto->bulb_widget, FALSE);
                     }
-                } else {
+                }
+                else if (gphoto->dsusb)
+                {
+                    gphoto->dsusb->closeShutter();
+                }
+                else
+                {
                     ioctl(gphoto->bulb_fd,TIOCMBIC,&RTS_flag); 
                     close(gphoto->bulb_fd);
                 }
@@ -722,7 +733,12 @@ int gphoto_start_exposure(gphoto_driver *gphoto, uint32_t exptime_usec, int mirr
             return -1;
 
         // If bulb port is specified, let's open it
-        if (gphoto->bulb_port[0])
+        if (gphoto->dsusb)
+        {
+            DEBUGDEVICE(device, INDI::Logger::DBG_DEBUG, "Using DSUSB to open shutter...");
+            gphoto->dsusb->openShutter();
+        }
+        else if (gphoto->bulb_port[0])
         {
             DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG, "Opening remote serial shutter port: %s ...", gphoto->bulb_port);
             gphoto->bulb_fd = open(gphoto->bulb_port, O_RDWR, O_NONBLOCK);
@@ -1112,6 +1128,7 @@ gphoto_driver *gphoto_open(Camera *camera, GPContext *context, const char *model
     gphoto->exposure_presets_count = 0;
     gphoto->max_exposure = 3600;
     gphoto->min_exposure = 0.001;
+    gphoto->dsusb = nullptr;
 
     result = gp_camera_get_config (gphoto->camera, &gphoto->config, gphoto->context);
     if (result < GP_OK) {
@@ -1242,7 +1259,23 @@ gphoto_driver *gphoto_open(Camera *camera, GPContext *context, const char *model
             DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG,"Using main usb cable for mirror locking");
         }*/
 
-        DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG,"Using external shutter release port: %s", gphoto->bulb_port);
+        if (!strcmp(gphoto->bulb_port, "DSUSB"))
+        {
+            gphoto->dsusb = new DSUSBDriver();
+
+            if(gphoto->dsusb->isConnected() == false)
+            {
+                DEBUGDEVICE(device, INDI::Logger::DBG_WARNING,"Failed to detect DSUSB!");
+                delete (gphoto->dsusb);
+                gphoto->dsusb = nullptr;
+            }
+            else
+            {
+                DEBUGDEVICE(device, INDI::Logger::DBG_SESSION,"Connected to DSUSB");
+            }
+        }
+        else
+            DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG,"Using external shutter release port: %s", gphoto->bulb_port);
     }
 
     gphoto->bulb_fd = -1;
