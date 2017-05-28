@@ -319,3 +319,13 @@ bool LX200_10MICRON::UnPark(void)
     SetParked(false);
     return true;
 }
+
+bool LX200_10MICRON::SyncConfig(bool cmcfg)
+{
+    DEBUG(INDI::Logger::DBG_SESSION, "SyncConfig.");
+    if (setCommandInt(fd, cmcfg, "#:CMCFG") < 0) {
+        return false;
+    }
+    return true;
+}
+

@@ -54,6 +54,7 @@ public:
     virtual bool ReadScopeStatus(void);
     virtual bool Park(void);
     virtual bool UnPark(void);
+    virtual bool SyncConfig(bool cmcfg);
 
     // TODO move this thing elsewhere
     int monthToNumber(const char *monthName);
