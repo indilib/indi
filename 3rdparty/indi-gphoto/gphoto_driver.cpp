@@ -36,6 +36,7 @@
 #include <time.h>
 
 #include <pthread.h>
+#include <gphoto2/gphoto2-version.h>
 
 #include "gphoto_driver.h"
 #include "dsusbdriver.h"
@@ -1018,13 +1019,14 @@ gphoto_driver *gphoto_open(Camera *camera, GPContext *context, const char *model
     GPPortInfo	pi;
     int result=0, index=0;
 
-    DEBUGDEVICE(device, INDI::Logger::DBG_DEBUG,"Opening gphoto");
+    DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG,"libgphoto2 version %s", gp_library_version(GP_VERSION_VERBOSE));
+    DEBUGDEVICE(device, INDI::Logger::DBG_DEBUG,"Opening connection to camera...");
     //gp_log_add_func(GP_LOG_ERROR, errordumper, NULL);
     gp_camera_new(&camera);
 
     if (model == NULL || port == NULL)
     {
-        DEBUGDEVICE(device, INDI::Logger::DBG_DEBUG,"Camera init.  Takes about 10 seconds.");
+        DEBUGDEVICE(device, INDI::Logger::DBG_DEBUG,"Camera init. Takes about 10 seconds.");
         result = gp_camera_init(camera, context);
         if (result != GP_OK)
         {
