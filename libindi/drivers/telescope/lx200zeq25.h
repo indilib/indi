@@ -34,6 +34,7 @@ class LX200ZEQ25 : public LX200Generic
         virtual bool initProperties();
 
         virtual bool ISNewSwitch (const char * dev, const char * name, ISState * states, char * names[], int n);
+        virtual bool ISNewNumber (const char * dev, const char * name, double values[], char * names[], int n);
 
     protected:
 
@@ -71,6 +72,8 @@ class LX200ZEQ25 : public LX200Generic
         int setZEQ25Park();
         int setZEQ25UnPark();
         int setZEQ25TrackMode(int mode);
+        int getZEQ25GuideRate(double *rate);
+        int setZEQ25GuideRate(double rate);
 
         bool isZEQ25Home();
         int gotoZEQ25Home();
@@ -82,6 +85,10 @@ class LX200ZEQ25 : public LX200Generic
 
         ISwitch HomeS[1];
         ISwitchVectorProperty HomeSP;
+
+        /* Guide Rate */
+        INumber GuideRateN[1];
+        INumberVectorProperty GuideRateNP;
 
 };
 

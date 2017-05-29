@@ -57,6 +57,10 @@ bool LX200ZEQ25::initProperties()
     IUFillSwitch(&HomeS[0], "Home", "", ISS_OFF);
     IUFillSwitchVector(&HomeSP, HomeS, 1, getDeviceName(), "Home", "Home", MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
 
+    /* How fast do we guide compared to sidereal rate */
+    IUFillNumber(&GuideRateN[0], "GUIDE_RATE", "x Sidereal", "%g", 0.1, 0.9, 0.1, 0.5);
+    IUFillNumberVector(&GuideRateNP, GuideRateN, 1, getDeviceName(), "GUIDE_RATE", "Guiding Rate", MOTION_TAB, IP_RW, 0, IPS_IDLE);
+
     return true;
 }
 
@@ -73,10 +77,12 @@ bool LX200ZEQ25::updateProperties()
         deleteProperty(SiteNameTP.name);
 
         defineSwitch(&HomeSP);
+        defineNumber(&GuideRateNP);
     }
     else
     {
         deleteProperty(HomeSP.name);
+        deleteProperty(GuideRateNP.name);
     }
 
     return true;
@@ -141,9 +147,12 @@ bool LX200ZEQ25::ISNewSwitch (const char * dev, const char * name, ISState * sta
         if (!strcmp(HomeSP.name, name))
         {
             // If already home, nothing to be done
-            if (HomeS[0].s == ISS_ON)
+            //if (HomeS[0].s == ISS_ON)
+            if (isZEQ25Home())
             {
-                DEBUG(INDI::Logger::DBG_WARNING, "Telescope is already homed");
+                DEBUG(INDI::Logger::DBG_WARNING, "Telescope is already homed.");
+                HomeS[0].s = ISS_ON;
+                HomeSP.s = IPS_OK;
                 IDSetSwitch(&HomeSP, NULL);
                 return true;
             }
@@ -165,6 +174,29 @@ bool LX200ZEQ25::ISNewSwitch (const char * dev, const char * name, ISState * sta
     }
 
     return LX200Generic::ISNewSwitch(dev, name, states, names, n);
+}
+
+bool LX200ZEQ25::ISNewNumber (const char * dev, const char * name, double values[], char * names[], int n)
+{
+    if (!strcmp (dev, getDeviceName()))
+    {
+        // Guiding Rate
+        if (!strcmp(name, GuideRateNP.name))
+        {
+            IUUpdateNumber(&GuideRateNP, values, names, n);
+
+            if (setZEQ25GuideRate(GuideRateN[0].value) == TTY_OK)
+                GuideRateNP.s = IPS_OK;
+            else
+                GuideRateNP.s = IPS_ALERT;
+
+            IDSetNumber(&GuideRateNP, NULL);
+
+            return true;
+        }
+    }
+
+    return LX200Generic::ISNewNumber(dev, name, values, names, n);
 }
 
 bool LX200ZEQ25::isZEQ25Home()
@@ -332,11 +364,20 @@ void LX200ZEQ25::getBasicData()
         SetParked(isMountParked);
 
     // Is home?
+    DEBUG(INDI::Logger::DBG_DEBUG, "Checking if mount is at home position...");
     if (isZEQ25Home())
     {
         HomeS[0].s = ISS_ON;
         HomeSP.s = IPS_OK;
         IDSetSwitch(&HomeSP, NULL);
+    }
+
+    DEBUG(INDI::Logger::DBG_DEBUG, "Getting guiding rate...");
+    double guideRate = 0;
+    if (getZEQ25GuideRate(&guideRate) == TTY_OK)
+    {
+        GuideRateN[0].value = guideRate;
+        IDSetNumber(&GuideRateNP, NULL);
     }
 
 }
@@ -444,7 +485,7 @@ bool LX200ZEQ25::SetSlewRate(int index)
     int nbytes_read = 0;
     int nbytes_written = 0;
 
-    snprintf(cmd, 8, ":SR%d#", index);
+    snprintf(cmd, 8, ":SR%d#", index+1);
 
     DEBUGF(INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
 
@@ -1157,4 +1198,115 @@ void LX200ZEQ25::mountSim ()
 
     NewRaDec(currentRA, currentDEC);
 
+}
+
+int LX200ZEQ25::getZEQ25GuideRate(double *rate)
+{
+    char cmd[] = ":AG#";
+    int errcode = 0;
+    char errmsg[MAXRBUF];
+    char response[8];
+    int nbytes_read = 0;
+    int nbytes_written = 0;
+
+    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
+
+    if (isSimulation())
+    {
+        snprintf(response, 8, "%3d#", (int) (GuideRateN[0].value*100));
+        nbytes_read = strlen(response);
+    }
+    else
+    {
+        tcflush(PortFD, TCIFLUSH);
+
+        if ( (errcode = tty_write(PortFD, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
+        {
+            tty_error_msg(errcode, errmsg, MAXRBUF);
+            DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
+            return errcode;
+        }
+
+        if ( (errcode = tty_read(PortFD, response, 4, 3, &nbytes_read)))
+        {
+            tty_error_msg(errcode, errmsg, MAXRBUF);
+            DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
+            return errcode;
+        }
+    }
+
+    if (nbytes_read > 0)
+    {
+        response[nbytes_read] = '\0';
+        DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", response);
+
+        int rate_num;
+
+        if (sscanf(response, "%d#", &rate_num) > 0)
+        {
+            *rate = rate_num / 100.0;
+            tcflush(PortFD, TCIFLUSH);
+            return TTY_OK;
+        }
+        else
+        {
+            DEBUGF(INDI::Logger::DBG_ERROR, "Error: Malformed result (%s).", response);
+            return -1;
+        }
+
+    }
+
+    DEBUGF(INDI::Logger::DBG_ERROR, "Only received #%d bytes, expected 1.", nbytes_read);
+    return -1;
+}
+
+int LX200ZEQ25::setZEQ25GuideRate(double rate)
+{
+    char cmd[16];
+    int errcode = 0;
+    char errmsg[MAXRBUF];
+    char response[8];
+    int nbytes_read = 0;
+    int nbytes_written = 0;
+
+    int num = rate * 100;
+    snprintf(cmd, 16, ":RG%03d#", num );
+
+    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
+
+    if (isSimulation())
+    {
+        strcpy(response, "1");
+        nbytes_read = strlen(response);
+    }
+    else
+    {
+        tcflush(PortFD, TCIFLUSH);
+
+        if ( (errcode = tty_write(PortFD, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
+        {
+            tty_error_msg(errcode, errmsg, MAXRBUF);
+            DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
+            return errcode;
+        }
+
+        if ( (errcode = tty_read(PortFD, response, 1, 3, &nbytes_read)))
+        {
+            tty_error_msg(errcode, errmsg, MAXRBUF);
+            DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
+            return errcode;
+        }
+    }
+
+    if (nbytes_read > 0)
+    {
+        response[nbytes_read] = '\0';
+        DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", response);
+
+        tcflush(PortFD, TCIFLUSH);
+        return true;
+    }
+
+    DEBUGF(INDI::Logger::DBG_ERROR, "Only received #%d bytes, expected 1.", nbytes_read);
+    return -1;
 }
