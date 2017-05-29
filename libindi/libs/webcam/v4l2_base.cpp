@@ -689,8 +689,11 @@ int V4L2_Base::stop_capturing(char * errmsg)
             // long time ago. I recently tried taking this hack off, and it worked fine!
 
             type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
-            IERmCallback(selectCallBackID);
-            selectCallBackID = -1;
+	    if (selectCallBackID != -1)
+	    {
+                IERmCallback(selectCallBackID);
+                selectCallBackID = -1;
+	    }
             streamactive = false;
             if (-1 == XIOCTL(fd, VIDIOC_STREAMOFF, &type))
                 return errno_exit ("VIDIOC_STREAMOFF", errmsg);
