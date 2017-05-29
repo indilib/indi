@@ -500,7 +500,8 @@ static void reset_settings(gphoto_driver *gphoto)
     if (gphoto->format >= 0)
         gphoto_set_widget_num(gphoto, gphoto->format_widget, gphoto->format_widget->value.index);
 
-    gphoto_set_widget_num(gphoto, gphoto->exposure_widget, gphoto->exposure_widget->value.index);
+    if (gphoto->exposure_widget)
+        gphoto_set_widget_num(gphoto, gphoto->exposure_widget, gphoto->exposure_widget->value.index);
 }
 
 int find_bulb_exposure(gphoto_driver *gphoto, gphoto_widget *widget)
@@ -695,7 +696,9 @@ int gphoto_start_exposure(gphoto_driver *gphoto, uint32_t exptime_usec, int mirr
     //if (exptime_msec > 5000 || (gphoto->autoexposuremode_widget != NULL && gphoto->autoexposuremode_widget->value.index == 4))
 
     // If exposure time is more than 1 second AND we have BULB widget OR we have bulb in exposure widget then do bulb
-    if ((exptime_usec > 1e6) && ( (gphoto->bulb_port[0]) || (gphoto->bulb_widget != NULL)) )
+    // JM 2017-05-29: Also added if gphoto->exposure == NULL in case where exposure_widget exists but has 0 members
+    // In that case, we always capture using either shutter release or bulb widget regardless of time
+    if ((gphoto->exposure == NULL || exptime_usec > 1e6) && ( (gphoto->bulb_port[0]) || (gphoto->bulb_widget != NULL)) )
     {
         //Bulb mode is supported
 
@@ -718,7 +721,7 @@ int gphoto_start_exposure(gphoto_driver *gphoto, uint32_t exptime_usec, int mirr
         }
 
         // We set bulb setting for exposure widget if it is defined by the camera
-        if (gphoto->bulb_exposure_index != -1)
+        if (gphoto->exposure && gphoto->bulb_exposure_index != -1)
         {
             // If it's not already set to the bulb exposure index
             if (gphoto->bulb_exposure_index != (uint8_t) gphoto->exposure_widget->value.index)
@@ -729,8 +732,17 @@ int gphoto_start_exposure(gphoto_driver *gphoto, uint32_t exptime_usec, int mirr
         }
 
         // If we have mirror lock enabled, let's lock mirror. Return on failure
-        if (mirror_lock && gphoto_mirrorlock(gphoto, mirror_lock*1000))
-            return -1;
+        if (mirror_lock)
+        {
+            if (gphoto->dsusb)
+            {
+                DEBUGDEVICE(device, INDI::Logger::DBG_ERROR,"Using mirror lock with DSUSB is unsupported!");
+                return -1;
+            }
+
+            if (gphoto_mirrorlock(gphoto, mirror_lock*1000))
+                return -1;
+        }
 
         // If bulb port is specified, let's open it
         if (gphoto->dsusb)
