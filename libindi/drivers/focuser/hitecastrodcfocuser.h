@@ -54,7 +54,7 @@ class HitecAstroDCFocuser : public INDI::Focuser, public INDI::USBDevice
         const char * getDefaultName();
         virtual bool initProperties();
         virtual bool updateProperties();
-        //virtual bool saveConfigItems(FILE *fp);
+        virtual bool saveConfigItems(FILE *fp);
 
         bool Connect();
         bool Disconnect();

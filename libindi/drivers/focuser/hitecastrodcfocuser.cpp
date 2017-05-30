@@ -426,8 +426,13 @@ HitecAstroDCFocuser::MoveFocuser(FocusDirection dir, int speed, uint16_t duratio
     return IPS_BUSY;
 }
 
-//bool HitecAstroDCFocuser::saveConfigItems(FILE *fp)
-//{
-//    return true;
-//}
+bool HitecAstroDCFocuser::saveConfigItems(FILE *fp)
+{
+    INDI::Focuser::saveAllConfigItems(fp);
 
+    IUSaveConfigNumber(fp, &MaxPositionNP);
+    IUSaveConfigNumber(fp, &SlewSpeedNP);
+    IUSaveConfigSwitch(fp, &ReverseDirectionSP);
+
+    return true;
+}
