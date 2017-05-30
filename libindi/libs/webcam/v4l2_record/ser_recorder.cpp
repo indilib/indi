@@ -46,6 +46,7 @@ SER_Recorder::SER_Recorder()
     else
         serh.LittleEndian = SER_BIG_ENDIAN;
     isRecordingActive = false;
+    f = NULL;
 }
 
 SER_Recorder::~SER_Recorder()
@@ -279,6 +280,7 @@ bool SER_Recorder::close()
         fseek(f, 0L, SEEK_SET);
         write_header(&serh);
         fclose(f);
+	f = NULL;
     }
 
     isRecordingActive = false;

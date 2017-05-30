@@ -689,9 +689,11 @@ int V4L2_Base::stop_capturing(char * errmsg)
             // long time ago. I recently tried taking this hack off, and it worked fine!
 
             type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
-
-            IERmCallback(selectCallBackID);
-            selectCallBackID = -1;
+	    if (selectCallBackID != -1)
+	    {
+                IERmCallback(selectCallBackID);
+                selectCallBackID = -1;
+	    }
             streamactive = false;
             if (-1 == XIOCTL(fd, VIDIOC_STREAMOFF, &type))
                 return errno_exit ("VIDIOC_STREAMOFF", errmsg);
@@ -1892,8 +1894,11 @@ void V4L2_Base::enumerate_ctrl (void)
                 continue;
             }
             cerr << "Control " << queryctrl.name << endl;
-
-            if ((queryctrl.type == V4L2_CTRL_TYPE_MENU))//|| (queryctrl.type == V4L2_CTRL_TYPE_INTEGER_MENU)) // not in < 3.5
+#if ( LINUX_VERSION_CODE >= KERNEL_VERSION(3,5,0) )
+            if ((queryctrl.type == V4L2_CTRL_TYPE_MENU) || (queryctrl.type == V4L2_CTRL_TYPE_INTEGER_MENU))
+#else
+	    if (queryctrl.type == V4L2_CTRL_TYPE_MENU)
+#endif
                 enumerate_menu ();
             if (queryctrl.type == V4L2_CTRL_TYPE_BOOLEAN)
                 cerr << "  boolean" << endl;
@@ -1926,8 +1931,11 @@ void V4L2_Base::enumerate_ctrl (void)
             }
 
             cerr << "Private Control " << queryctrl.name << endl;
-
-            if ((queryctrl.type == V4L2_CTRL_TYPE_MENU))// || (queryctrl.type == V4L2_CTRL_TYPE_INTEGER_MENU))
+#if ( LINUX_VERSION_CODE >= KERNEL_VERSION(3,5,0) )
+            if ((queryctrl.type == V4L2_CTRL_TYPE_MENU) || (queryctrl.type == V4L2_CTRL_TYPE_INTEGER_MENU))
+#else
+	    if (queryctrl.type == V4L2_CTRL_TYPE_MENU)
+#endif
                 enumerate_menu ();
             if (queryctrl.type == V4L2_CTRL_TYPE_BOOLEAN)
                 cerr << "  boolean" << endl;
@@ -1953,8 +1961,15 @@ void V4L2_Base::enumerate_ctrl (void)
 
 void V4L2_Base::enumerate_menu (void)
 {
+#if ( LINUX_VERSION_CODE >= KERNEL_VERSION(3,5,0) )
+    if (queryctrl.type == V4L2_CTRL_TYPE_MENU)
+        cerr << "  Menu items:" << endl;
+    if (queryctrl.type == V4L2_CTRL_TYPE_INTEGER_MENU)
+        cerr << "  Integer Menu items:" << endl;
+#else
     cerr << "  Menu items:" << endl;
-
+#endif
+    
     CLEAR(querymenu);
     querymenu.id = queryctrl.id;
 
@@ -1962,7 +1977,18 @@ void V4L2_Base::enumerate_menu (void)
     {
         if (0 == XIOCTL(fd, VIDIOC_QUERYMENU, &querymenu))
         {
-            cerr << "  " <<  querymenu.name << endl;
+            if (queryctrl.type == V4L2_CTRL_TYPE_MENU)
+                cerr << "  " <<  querymenu.name << endl;
+#if ( LINUX_VERSION_CODE >= KERNEL_VERSION(3,5,0) )
+            if (queryctrl.type == V4L2_CTRL_TYPE_INTEGER_MENU)
+            {
+                char menuname[19];
+                menuname[18]='\0';
+                snprintf(menuname, 19, "0x%016llX", querymenu.value);
+                cerr << "  " <<  menuname << endl;
+            }
+#endif
+
         }
         //else
         //{
@@ -2102,7 +2128,11 @@ void  V4L2_Base::queryControls(INumberVectorProperty * nvp, unsigned int * nnumb
                 DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG, "Adding switch  %s (%s)\n", queryctrl.name, (control.value ? "On" : "Off"));
                 nopt += 1;
             }
+#if ( LINUX_VERSION_CODE >= KERNEL_VERSION(3,5,0) )
+            if ((queryctrl.type == V4L2_CTRL_TYPE_MENU) || (queryctrl.type == V4L2_CTRL_TYPE_INTEGER_MENU))
+#else
             if (queryctrl.type == V4L2_CTRL_TYPE_MENU)
+#endif
             {
                 ISwitch * sw = NULL;
                 unsigned int nmenuopt = 0;
@@ -2128,11 +2158,24 @@ void  V4L2_Base::queryControls(INumberVectorProperty * nvp, unsigned int * nnumb
                         sw = (sw == NULL) ? (ISwitch *) malloc (sizeof(ISwitch)) :
                              (ISwitch *) realloc (sw, (nmenuopt + 1) * sizeof (ISwitch));
                         snprintf(menuoptname + 11, 4, "%03d", nmenuopt);
+#if ( LINUX_VERSION_CODE >= KERNEL_VERSION(3,5,0) )
+                        if (queryctrl.type == V4L2_CTRL_TYPE_MENU)
+                        {
+                            snprintf(sname, 31, "%s", querymenu.name);
+                            sname[31] = '\0';
+                        }
+                        if (queryctrl.type == V4L2_CTRL_TYPE_INTEGER_MENU)
+                        {
+                            snprintf(sname, 19, "0x%016llX", querymenu.value);
+                            sname[31] = '\0';
+                        }
+#else
                         snprintf(sname, 31, "%s", querymenu.name);
                         sname[31] = '\0';
-                        DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG, "Adding menu item %s %s %s item %d", querymenu.name, sname, menuoptname, nmenuopt);
+#endif
+                        DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG, "Adding menu item %s %s item %d",  sname, menuoptname, nmenuopt);
                         //IUFillSwitch(&sw[nmenuopt], menuoptname, (const char *)sname, (control.value==nmenuopt?ISS_ON:ISS_OFF));
-                        IUFillSwitch(&sw[nmenuopt], menuoptname, (const char *)entityXML((char *)querymenu.name), (control.value == nmenuopt ? ISS_ON : ISS_OFF));
+                        IUFillSwitch(&sw[nmenuopt], menuoptname, (const char *)entityXML((char *)sname), (control.value == nmenuopt ? ISS_ON : ISS_OFF));
                         nmenuopt += 1;
                     }
                     else
@@ -2228,8 +2271,12 @@ void  V4L2_Base::queryControls(INumberVectorProperty * nvp, unsigned int * nnumb
                 DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG, "Adding ext. switch  %s (%s)\n", queryctrl.name, (control.value ? "On" : "Off"));
                 nopt += 1;
             }
+#if ( LINUX_VERSION_CODE >= KERNEL_VERSION(3,5,0) )
+            if ((queryctrl.type == V4L2_CTRL_TYPE_MENU) || (queryctrl.type == V4L2_CTRL_TYPE_INTEGER_MENU))
+#else
             if (queryctrl.type == V4L2_CTRL_TYPE_MENU)
-            {
+#endif
+	      {
                 ISwitch * sw = NULL;
                 unsigned int nmenuopt = 0;
                 char sname[32];
@@ -2254,9 +2301,22 @@ void  V4L2_Base::queryControls(INumberVectorProperty * nvp, unsigned int * nnumb
                         sw = (sw == NULL) ? (ISwitch *) malloc (sizeof(ISwitch)) :
                              (ISwitch *) realloc (sw, (nmenuopt + 1) * sizeof (ISwitch));
                         snprintf(menuoptname + 11, 4, "%03d", nmenuopt);
+#if ( LINUX_VERSION_CODE >= KERNEL_VERSION(3,5,0) )
+                        if (queryctrl.type == V4L2_CTRL_TYPE_MENU)
+                        {
+                            snprintf(sname, 31, "%s", querymenu.name);
+                            sname[31] = '\0';
+                        }
+                        if (queryctrl.type == V4L2_CTRL_TYPE_INTEGER_MENU)
+                        {
+                            snprintf(sname, 19, "0x%016llX", querymenu.value);
+                            sname[31] = '\0';
+                        }
+#else
                         snprintf(sname, 31, "%s", querymenu.name);
                         sname[31] = '\0';
-                        DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG, "Adding menu item %s %s %s item %d", querymenu.name, sname, menuoptname, nmenuopt);
+#endif
+			DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG, "Adding menu item %s %s item %d", sname, menuoptname, nmenuopt);
                         //IUFillSwitch(&sw[nmenuopt], menuoptname, (const char *)sname, (control.value==nmenuopt?ISS_ON:ISS_OFF));
                         IUFillSwitch(&sw[nmenuopt], menuoptname, (const char *)entityXML((char *)querymenu.name), (control.value == nmenuopt ? ISS_ON : ISS_OFF));
                         nmenuopt += 1;
@@ -2424,6 +2484,19 @@ int  V4L2_Base::getControl(unsigned int ctrl_id, double * value,  char * errmsg)
 int  V4L2_Base::setINTControl(unsigned int ctrl_id, double new_value,  char * errmsg)
 {
     struct v4l2_control control;
+   
+    CLEAR(queryctrl);
+  
+    queryctrl.id = ctrl_id;
+    if (-1 == ioctl (fd, VIDIOC_QUERYCTRL, &queryctrl)) return 0;
+    if ((queryctrl.flags & V4L2_CTRL_FLAG_READ_ONLY) ||
+       (queryctrl.flags & V4L2_CTRL_FLAG_GRABBED) ||
+       (queryctrl.flags & V4L2_CTRL_FLAG_INACTIVE) ||
+       (queryctrl.flags & V4L2_CTRL_FLAG_VOLATILE))
+    {
+       DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG, "Can not set control %s (%d)", queryctrl.name, queryctrl.flags);
+       return 0;
+    }   
 
     CLEAR(control);
 
@@ -2440,6 +2513,19 @@ int  V4L2_Base::setOPTControl(unsigned int ctrl_id, unsigned int new_value, char
 {
     struct v4l2_control control;
 
+    CLEAR(queryctrl);
+  
+    queryctrl.id = ctrl_id;
+    if (-1 == ioctl (fd, VIDIOC_QUERYCTRL, &queryctrl)) return 0;
+    if ((queryctrl.flags & V4L2_CTRL_FLAG_READ_ONLY) ||
+       (queryctrl.flags & V4L2_CTRL_FLAG_GRABBED) ||
+       (queryctrl.flags & V4L2_CTRL_FLAG_INACTIVE) ||
+       (queryctrl.flags & V4L2_CTRL_FLAG_VOLATILE))
+    {
+        DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG, "Can not set control %s (%d)", queryctrl.name, queryctrl.flags);
+        return 0;
+    }   
+    
     CLEAR(control);
 
     //cerr << "The id is " << ctrl_id << " new value is " << new_value << endl;
@@ -2479,7 +2565,11 @@ bool V4L2_Base::enumerate_ext_ctrl (void)
 
         cerr << "Control " << queryctrl.name << endl;
 
-        if ((queryctrl.type == V4L2_CTRL_TYPE_MENU))//|| (queryctrl.type == V4L2_CTRL_TYPE_INTEGER_MENU)) // not in < 3.5
+#if ( LINUX_VERSION_CODE >= KERNEL_VERSION(3,5,0) )
+        if ((queryctrl.type == V4L2_CTRL_TYPE_MENU) || (queryctrl.type == V4L2_CTRL_TYPE_INTEGER_MENU))
+#else
+        if (queryctrl.type == V4L2_CTRL_TYPE_MENU)
+#endif
             enumerate_menu ();
         if (queryctrl.type == V4L2_CTRL_TYPE_BOOLEAN)
             cerr << "  boolean" << endl;
@@ -2611,8 +2701,12 @@ bool  V4L2_Base::queryExtControls(INumberVectorProperty * nvp, unsigned int * nn
             DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG, "Adding Button %s", queryctrl.name);
             nopt += 1;
         }
+#if ( LINUX_VERSION_CODE >= KERNEL_VERSION(3,5,0) )
+        if ((queryctrl.type == V4L2_CTRL_TYPE_MENU) || (queryctrl.type == V4L2_CTRL_TYPE_INTEGER_MENU))
+#else
         if (queryctrl.type == V4L2_CTRL_TYPE_MENU)
-        {
+#endif
+	  {
             ISwitch * sw = NULL;
             unsigned int nmenuopt = 0;
             char sname[32];
@@ -2637,9 +2731,22 @@ bool  V4L2_Base::queryExtControls(INumberVectorProperty * nvp, unsigned int * nn
                     sw = (sw == NULL) ? (ISwitch *) malloc (sizeof(ISwitch)) :
                          (ISwitch *) realloc (sw, (nmenuopt + 1) * sizeof (ISwitch));
                     snprintf(menuoptname + 11, 4, "%03d", nmenuopt);
-                    snprintf(sname, 31, "%s", querymenu.name);
+#if ( LINUX_VERSION_CODE >= KERNEL_VERSION(3,5,0) )
+                    if (queryctrl.type == V4L2_CTRL_TYPE_MENU)
+                    {
+                        snprintf(sname, 31, "%s", querymenu.name);
+                        sname[31] = '\0';
+                    }
+                    if (queryctrl.type == V4L2_CTRL_TYPE_INTEGER_MENU)
+                    {
+                        snprintf(sname, 19, "0x%016llX", querymenu.value);
+                        sname[31] = '\0';
+                    }
+#else
+		    snprintf(sname, 31, "%s", querymenu.name);
                     sname[31] = '\0';
-                    DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG, "Adding menu item %s %s %s item %d index %d", querymenu.name, sname, menuoptname, nmenuopt, querymenu.index);
+#endif
+                    DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG, "Adding menu item %s %s item %d index %d", sname, menuoptname, nmenuopt, querymenu.index);
                     //IUFillSwitch(&sw[nmenuopt], menuoptname, (const char *)sname, (control.value==nmenuopt?ISS_ON:ISS_OFF));
                     IUFillSwitch(&sw[nmenuopt], menuoptname, (const char *)entityXML((char *)querymenu.name), (control.value == nmenuopt ? ISS_ON : ISS_OFF));
                     sw[nmenuopt].aux = malloc(sizeof(unsigned int));
