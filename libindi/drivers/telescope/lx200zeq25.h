@@ -53,6 +53,7 @@ class LX200ZEQ25 : public LX200Generic
         virtual bool updateLocation(double latitude, double longitude, double elevation) override;
         virtual bool MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command) override;
         virtual bool MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command) override;
+        virtual int SendPulseCmd(int direction, int duration_msec) override;
 
         // Parking
         virtual bool SetCurrentPark() override;

@@ -1200,6 +1200,37 @@ void LX200ZEQ25::mountSim ()
 
 }
 
+int LX200ZEQ25::SendPulseCmd(int direction, int duration_msec)
+{
+    DEBUGFDEVICE(lx200Name, DBG_SCOPE, "<%s>", __FUNCTION__);
+    int nbytes_write = 0;
+    char cmd[20];
+    switch (direction)
+    {
+        case LX200_NORTH:
+            sprintf(cmd, ":Mn%04d#", duration_msec);
+            break;
+        case LX200_SOUTH:
+            sprintf(cmd, ":Ms%04d#", duration_msec);
+            break;
+        case LX200_EAST:
+            sprintf(cmd, ":Me%04d#", duration_msec);
+            break;
+        case LX200_WEST:
+            sprintf(cmd, ":Mw%04d#", duration_msec);
+            break;
+        default:
+            return 1;
+    }
+
+    DEBUGFDEVICE(lx200Name, DBG_SCOPE, "CMD <%s>", cmd);
+
+    tty_write_string(PortFD, cmd, &nbytes_write);
+
+    tcflush(PortFD, TCIFLUSH);
+    return 0;
+}
+
 int LX200ZEQ25::getZEQ25GuideRate(double *rate)
 {
     char cmd[] = ":AG#";
