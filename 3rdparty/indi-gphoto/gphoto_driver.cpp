@@ -1019,8 +1019,14 @@ gphoto_driver *gphoto_open(Camera *camera, GPContext *context, const char *model
     GPPortInfo	pi;
     int result=0, index=0;
 
-    DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG,"libgphoto2 version %s", gp_library_version(GP_VERSION_VERBOSE));
-    DEBUGDEVICE(device, INDI::Logger::DBG_DEBUG,"Opening connection to camera...");
+    DEBUGDEVICE(device, INDI::Logger::DBG_DEBUG,"libgphoto2 info:");
+    const char ** libgphotoVerionInfo = gp_library_version(GP_VERSION_SHORT);
+    for(const char** verionInfo = libgphotoVerionInfo; *verionInfo; verionInfo++)
+    {
+        const char *pInfo = *verionInfo;
+        DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG,"%s", pInfo);
+    }
+
     //gp_log_add_func(GP_LOG_ERROR, errordumper, NULL);
     gp_camera_new(&camera);
 
@@ -1275,7 +1281,7 @@ gphoto_driver *gphoto_open(Camera *camera, GPContext *context, const char *model
 
         if (!strcmp(gphoto->bulb_port, "DSUSB"))
         {
-            gphoto->dsusb = new DSUSBDriver();
+            gphoto->dsusb = new DSUSBDriver(device);
 
             if(gphoto->dsusb->isConnected() == false)
             {
