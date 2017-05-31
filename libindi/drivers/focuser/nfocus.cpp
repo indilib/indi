@@ -7,6 +7,14 @@
                   2011 Jasem Mutlaq (mutlaqja@ikarustech.com)
 
 
+    2017-05-31: Jasem Mutlaq
+    + Removed obsolete properties and functions
+    + Added proper Sync.
+    + Using INDI::Logger whenever possible.
+    + Removed timer-based motion.
+    + Set Focuser capabilities on startup.
+    + Removed duplicate properties.
+
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
     License as published by the Free Software Foundation; either
@@ -47,7 +55,6 @@
 #define currentSpeed            SpeedN[0].value
 #define currentPosition         FocusAbsPosN[0].value
 #define currentTemperature      TemperatureN[0].value
-#define currentBacklash         SetBacklashN[0].value
 #define currentOnTime           SettingsN[0].value
 #define currentOffTime          SettingsN[1].value
 #define currentFastDelay        SettingsN[2].value
@@ -102,7 +109,7 @@ void ISSnoopDevice (XMLEle * root)
 
 NFocus::NFocus()
 {
-
+    SetFocuserCapability(FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_REL_MOVE);
 }
 
 NFocus::~NFocus()
@@ -122,10 +129,6 @@ bool NFocus::initProperties()
     /* Focuser temperature */
     IUFillNumber(&TemperatureN[0], "TEMPERATURE", "Celsius", "%6.2f", 0, 65000., 0., 10000.);
     IUFillNumberVector(&TemperatureNP, TemperatureN, 1, getDeviceName(), "FOCUS_TEMPERATURE", "Temperature", MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE);
-
-    /* Timed move Settings */
-    IUFillNumber(&FocusTimerN[0], "FOCUS_TIMER_VALUE", "Focus Timer", "%5.0f", 0.0, 10000.0, 10.0, 10000.0);
-    IUFillNumberVector(&FocusTimerNP, FocusTimerN, 1, getDeviceName(), "FOCUS_TIMER", "Timer", MAIN_CONTROL_TAB, IP_RW, 60, IPS_OK);
 
     /* Settings of the Nfocus */
     IUFillNumber(&SettingsN[0], "ON time", "ON waiting time", "%6.0f", 10., 250., 0., 73.);
@@ -149,21 +152,17 @@ bool NFocus::initProperties()
     IUFillNumberVector(&MaxTravelNP, MaxTravelN, 1, getDeviceName(), "FOCUS_MAXTRAVEL", "Max. travel", OPTIONS_TAB, IP_RW, 0, IPS_IDLE );
 
     /* Set Nfocus position register to this position */
-    IUFillNumber(&SetRegisterPositionN[0], "SETPOS", "Position", "%6.0f", 0, 64000., 0., 0. );
-    IUFillNumberVector(&SetRegisterPositionNP, SetRegisterPositionN, 1, getDeviceName(), "FOCUS_REGISTERPOSITION", "Set register", OPTIONS_TAB, IP_RW, 0, IPS_IDLE);
-
-    /* Backlash */
-    IUFillNumber(&SetBacklashN[0], "SETBACKLASH", "Backlash", "%6.0f", -255., 255., 0., 0.);
-    IUFillNumberVector(&SetBacklashNP, SetBacklashN, 1, getDeviceName(), "FOCUS_BACKLASH", "Set Register", OPTIONS_TAB, IP_RW, 0, IPS_IDLE);
+    IUFillNumber(&SyncN[0], "FOCUS_SYNC_OFFSET", "Offset", "%6.0f", 0, 64000., 0., 0.);
+    IUFillNumberVector(&SyncNP, SyncN, 1, getDeviceName(), "FOCUS_SYNC", "Sync", MAIN_CONTROL_TAB, IP_RW, 0, IPS_IDLE );
 
     /* Relative and absolute movement */
-    FocusRelPosN[0].min = -65000.;
-    FocusRelPosN[0].max = 65000.;
-    FocusRelPosN[0].value = 0;
+    FocusRelPosN[0].min = 0;
+    FocusRelPosN[0].max = MinMaxPositionN[1].value;
+    FocusRelPosN[0].value = 1000;
     FocusRelPosN[0].step = 100;
 
-    FocusAbsPosN[0].min = 0.;
-    FocusAbsPosN[0].max = 65000.;
+    FocusAbsPosN[0].min = MinMaxPositionN[0].min;
+    FocusAbsPosN[0].max = MinMaxPositionN[0].max;
     FocusAbsPosN[0].value = 0;
     FocusAbsPosN[0].step = 10000;
 
@@ -184,10 +183,7 @@ bool NFocus::updateProperties()
         defineNumber(&InOutScalarNP);
         defineNumber(&MinMaxPositionNP);
         defineNumber(&MaxTravelNP);
-        defineNumber(&SetRegisterPositionNP);
-        defineNumber(&SetBacklashNP);
-        defineNumber(&FocusRelPosNP);
-        defineNumber(&FocusAbsPosNP);
+        defineNumber(&SyncNP);
 
         GetFocusParams();
 
@@ -201,11 +197,7 @@ bool NFocus::updateProperties()
         deleteProperty(InOutScalarNP.name);
         deleteProperty(MinMaxPositionNP.name);
         deleteProperty(MaxTravelNP.name);
-        deleteProperty(SetRegisterPositionNP.name);
-        deleteProperty(SetBacklashNP.name);
-        deleteProperty(FocusRelPosNP.name);
-        deleteProperty(FocusAbsPosNP.name);
-
+        deleteProperty(SyncNP.name);
     }
 
     return true;
@@ -230,26 +222,14 @@ int NFocus::SendCommand(char * rf_cmd)
     char rf_cmd_cks[32], nfocus_error[MAXRBUF];
 
 
-    if (isDebug())
-    {
-        fprintf(stderr, "strlen(rf_cmd) %ld\n", strlen(rf_cmd)) ;
-        fprintf(stderr, "WRITE: ") ;
-        for(int i = 0; i < strlen(rf_cmd); i++)
-        {
-
-            fprintf(stderr, "0x%2x ", (unsigned char) rf_cmd[i]) ;
-        }
-        fprintf(stderr, "\n") ;
-    }
-
+    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD <%s>", rf_cmd);
 
     tcflush(PortFD, TCIOFLUSH);
 
     if  ( (err_code = tty_write(PortFD, rf_cmd, strlen(rf_cmd) + 1, &nbytes_written) != TTY_OK))
     {
         tty_error_msg(err_code, nfocus_error, MAXRBUF);
-        if (isDebug())
-            IDLog("TTY error detected: %s\n", nfocus_error);
+        DEBUGF(INDI::Logger::DBG_ERROR, "TTY error detected: %s", nfocus_error);
         return -1;
     }
 
@@ -259,14 +239,11 @@ int NFocus::SendCommand(char * rf_cmd)
 
 int NFocus::SendRequest(char * rf_cmd)
 {
+    int nbytes_read = 0;
 
-    int nbytes_written = 0, nbytes_read = 0, check_ret = 0, err_code = 0;
-    char rf_cmd_cks[32], nfocus_error[MAXRBUF];
-
-    unsigned char val = 0 ;
+    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD <%s>", rf_cmd);
 
     SendCommand(rf_cmd);
-
 
     nbytes_read = ReadResponse(rf_cmd, strlen(rf_cmd), NF_TIMEOUT) ;
 
@@ -275,8 +252,7 @@ int NFocus::SendRequest(char * rf_cmd)
 
     rf_cmd[ nbytes_read - 1] = 0 ;
 
-    if (isDebug())
-        IDLog("Reply is (%s)\n", rf_cmd);
+    DEBUGF(INDI::Logger::DBG_DEBUG, "RES <%s>", rf_cmd);
 
     return 0;
 
@@ -284,35 +260,23 @@ int NFocus::SendRequest(char * rf_cmd)
 
 int NFocus::ReadResponse(char * buf, int nbytes, int timeout)
 {
-
     char nfocus_error[MAXRBUF];
     int bytesRead = 0;
     int totalBytesRead = 0;
     int err_code;
 
-    if (isDebug())
-        IDLog("##########################################\n")
-        ;
     while (totalBytesRead < nbytes)
     {
         if ( (err_code = tty_read(PortFD, buf + totalBytesRead, nbytes - totalBytesRead, timeout, &bytesRead)) != TTY_OK)
         {
             tty_error_msg(err_code, nfocus_error, MAXRBUF);
-            if (isDebug())
-            {
-                IDLog("TTY error detected: %s\n", nfocus_error);
-                IDMessage(getDeviceName(), "TTY error detected: %s\n", nfocus_error);
-            }
+            DEBUGF(INDI::Logger::DBG_ERROR, "TTY error detected: %s", nfocus_error);
             return -1;
         }
 
-        if (isDebug())
-            IDLog("Bytes Read: %d\n", bytesRead);
-
         if (bytesRead < 0 )
         {
-            if (isDebug())
-                IDLog("Bytesread < 1\n");
+            DEBUG(INDI::Logger::DBG_ERROR, "TTY error detected: Bytes read < 0");
             return -1;
         }
 
@@ -321,6 +285,9 @@ int NFocus::ReadResponse(char * buf, int nbytes, int timeout)
 
     tcflush(PortFD, TCIOFLUSH);
 
+    DEBUGF(INDI::Logger::DBG_DEBUG, "RES <%s>", buf);
+
+    /*
     if (isDebug())
     {
         fprintf(stderr, "READ : (%s,%d), %d\n", buf, 9, totalBytesRead) ;
@@ -330,26 +297,13 @@ int NFocus::ReadResponse(char * buf, int nbytes, int timeout)
 
             fprintf(stderr, "0x%2x ", (unsigned char)buf[i]) ;
         }
-        fprintf(stderr, "\n") ;
-    }
+    }*/
 
     return 9;
 }
 
-int NFocus::updateNFPosition(double * value)
-{
-
-    double temp = currentPosition ;
-
-    *value = (double) temp;
-
-    return temp;
-
-}
-
 int NFocus::updateNFTemperature(double * value)
 {
-
     float temp ;
     char rf_cmd[32] ;
     int ret_read_tmp ;
@@ -368,13 +322,6 @@ int NFocus::updateNFTemperature(double * value)
     return 0;
 }
 
-// not used so far
-int NFocus::updateNFBacklash(double * value)
-{
-
-    return 0;
-}
-
 int NFocus::updateNFInOutScalar(double * value)
 {
 
@@ -383,13 +330,6 @@ int NFocus::updateNFInOutScalar(double * value)
     *value = (double) temp;
 
     return temp;
-}
-
-//  not used so far
-int NFocus::updateNFFirmware(char * rf_cmd)
-{
-
-    return 0;
 }
 
 int NFocus::updateNFMotorSettings(double * onTime, double * offTime, double * fastDelay)
@@ -454,17 +394,14 @@ int NFocus::updateNFMotorSettings(double * onTime, double * offTime, double * fa
     return 0;
 }
 
-int NFocus::updateNFPositionRelativeInward(double * value)
+int NFocus::moveNFInward(double * value)
 {
-
     char rf_cmd[32] ;
     int ret_read_tmp ;
-    float temp ;
-    int cont = 1;
     rf_cmd[0] = 0 ;
 
     int newval = (int)(currentInOutScalar * (*value));
-    IDMessage(getDeviceName(), "Moving %d real steps but virtually counting %.0f\n", newval, *value);
+    DEBUGF(INDI::Logger::DBG_DEBUG, "Moving %d real steps but virtually counting %.0f", newval, *value);
 
     do
     {
@@ -506,9 +443,8 @@ int NFocus::updateNFPositionRelativeInward(double * value)
     return 0;
 }
 
-int NFocus::updateNFPositionRelativeOutward(double * value)
+int NFocus::moveNFOutward(double * value)
 {
-
     char rf_cmd[32] ;
     int ret_read_tmp ;
     float temp ;
@@ -556,29 +492,27 @@ int NFocus::updateNFPositionRelativeOutward(double * value)
     return 0;
 }
 
-int NFocus::updateNFPositionAbsolute(double * value)
+int NFocus::setNFAbsolutePosition(double * value)
 {
     double newAbsPos = 0;
+    int rc=0;
 
     if((*value - currentPosition) >= 0)
     {
         newAbsPos = *value - currentPosition;
-        updateNFPositionRelativeOutward(&newAbsPos);
+        rc = moveNFOutward(&newAbsPos);
     }
     else if ((*value - currentPosition) < 0)
     {
         newAbsPos = currentPosition - *value;
-        updateNFPositionRelativeInward(&newAbsPos);
+        rc = moveNFInward(&newAbsPos);
     }
 
-    currentPosition = *value;
-
-    return 0;
+    return rc;
 }
 
-int NFocus::updateNFMaxPosition(double * value)
+int NFocus::setNFMaxPosition(double * value)
 {
-
     float temp ;
     char rf_cmd[32] ;
     char vl_tmp[6] ;
@@ -587,13 +521,10 @@ int NFocus::updateNFMaxPosition(double * value)
 
     if(*value == MAXTRAVEL_READOUT)
     {
-
         strcpy(rf_cmd, "FL000000" ) ;
-
     }
     else
     {
-
         rf_cmd[0] =  'F' ;
         rf_cmd[1] =  'L' ;
         rf_cmd[2] =  '0' ;
@@ -642,9 +573,8 @@ int NFocus::updateNFMaxPosition(double * value)
     return 0;
 }
 
-int NFocus::updateNFSetPosition(double * value)
+int NFocus::syncNF(double * value)
 {
-
     char rf_cmd[32] ;
     char vl_tmp[6] ;
     int ret_read_tmp ;
@@ -692,7 +622,6 @@ bool NFocus::ISNewNumber (const char * dev, const char * name, double values[], 
 
     if(strcmp(dev, getDeviceName()) == 0)
     {
-
         if (!strcmp (name, SettingsNP.name))
         {
             /* new speed */
@@ -709,13 +638,11 @@ bool NFocus::ISNewNumber (const char * dev, const char * name, double values[], 
                 /* If the number found is  (SettingsN[0]) then process it */
                 if (eqp == &SettingsN[0])
                 {
-
                     new_onTime = (values[i]);
                     nset += new_onTime >= 10 && new_onTime <= 250;
                 }
                 else if  (eqp == &SettingsN[1])
                 {
-
                     new_offTime = (values[i]);
                     nset += new_offTime >= 1 && new_offTime <= 250;
                 }
@@ -761,66 +688,7 @@ bool NFocus::ISNewNumber (const char * dev, const char * name, double values[], 
                 IDSetNumber(&SettingsNP, "Settings absent or bogus.");
                 return false ;
             }
-        }
-
-
-
-
-
-        if (!strcmp (name, SetBacklashNP.name))
-        {
-
-            double new_back = 0 ;
-            int nset = 0;
-            int ret = -1 ;
-
-            for (nset = i = 0; i < n; i++)
-            {
-                /* Find numbers with the passed names in the SetBacklashNP property */
-                INumber * eqp = IUFindNumber (&SetBacklashNP, names[i]);
-
-                /* If the number found is SetBacklash (SetBacklashN[0]) then process it */
-                if (eqp == &SetBacklashN[0])
-                {
-
-                    new_back = (values[i]);
-
-                    /* limits */
-                    nset += new_back >= -0xff && new_back <= 0xff;
-                }
-
-                if (nset == 1)
-                {
-
-                    /* Set the nfocus state to BUSY */
-                    SetBacklashNP.s = IPS_BUSY;
-                    IDSetNumber(&SetBacklashNP, NULL);
-
-                    if(( ret = updateNFBacklash(&new_back)) < 0)
-                    {
-
-                        SetBacklashNP.s = IPS_IDLE;
-                        IDSetNumber(&SetBacklashNP, "Setting new backlash failed.");
-
-                        return false ;
-                    }
-
-                    currentSetBacklash =  new_back ;
-                    SetBacklashNP.s = IPS_OK;
-                    IDSetNumber(&SetBacklashNP, "Backlash is now  %3.0f", currentSetBacklash) ;
-                    return true;
-                }
-                else
-                {
-
-                    SetBacklashNP.s = IPS_IDLE;
-                    IDSetNumber(&SetBacklashNP, "Need exactly one parameter.");
-
-                    return false ;
-                }
-            }
-        }
-
+        }        
 
         if (!strcmp (name, InOutScalarNP.name))
         {
@@ -874,8 +742,6 @@ bool NFocus::ISNewNumber (const char * dev, const char * name, double values[], 
                 }
             }
         }
-
-
 
         if (!strcmp (name, MinMaxPositionNP.name))
         {
@@ -933,7 +799,6 @@ bool NFocus::ISNewNumber (const char * dev, const char * name, double values[], 
 
         if (!strcmp (name, MaxTravelNP.name))
         {
-
             double new_maxt = 0 ;
             int ret = -1 ;
 
@@ -956,7 +821,7 @@ bool NFocus::ISNewNumber (const char * dev, const char * name, double values[], 
 
                 IDSetNumber(&MinMaxPositionNP, NULL);
 
-                if(( ret = updateNFMaxPosition(&new_maxt)) < 0 )
+                if(( ret = setNFMaxPosition(&new_maxt)) < 0 )
                 {
                     MaxTravelNP.s = IPS_IDLE;
                     IDSetNumber(&MaxTravelNP, "Changing to new maximum travel failed");
@@ -965,6 +830,8 @@ bool NFocus::ISNewNumber (const char * dev, const char * name, double values[], 
 
                 currentMaxTravel =  new_maxt ;
                 MaxTravelNP.s = IPS_OK;
+                FocusAbsPosN[0].max = currentMaxTravel;
+                IUUpdateMinMax(&FocusAbsPosNP);
                 IDSetNumber(&MaxTravelNP, "Maximum travel is now  %3.0f", currentMaxTravel) ;
                 return true;
 
@@ -980,127 +847,48 @@ bool NFocus::ISNewNumber (const char * dev, const char * name, double values[], 
             }
         }
 
-
-        if (!strcmp (name, SetRegisterPositionNP.name))
+        // Sync
+        if (!strcmp (name, SyncNP.name))
         {
-
-            double new_apos = 0 ;
-            int nset = 0;
-            int ret = -1 ;
-
-            for (nset = i = 0; i < n; i++)
+            double new_apos = values[0];
+            int rc=0;
+            if((new_apos < currentMinPosition) || (new_apos > currentMaxPosition))
             {
-                /* Find numbers with the passed names in the SetRegisterPositionNP property */
-                INumber * srpp = IUFindNumber (&SetRegisterPositionNP, names[i]);
-
-                /* If the number found is SetRegisterPosition (SetRegisterPositionN[0]) then process it */
-                if (srpp == &SetRegisterPositionN[0])
-                {
-
-                    new_apos = (values[i]);
-
-                    /* limits are absolute */
-                    nset += new_apos >= 0 && new_apos <= 64000;
-                }
-
-                if (nset == 1)
-                {
-
-                    if((new_apos < currentMinPosition) || (new_apos > currentMaxPosition))
-                    {
-
-                        SetRegisterPositionNP.s = IPS_ALERT ;
-                        IDSetNumber(&SetRegisterPositionNP, "Value out of limits  %5.0f", new_apos);
-                        return false ;
-                    }
-
-                    /* Set the nfocus state to BUSY */
-                    SetRegisterPositionNP.s = IPS_BUSY;
-                    IDSetNumber(&SetRegisterPositionNP, NULL);
-
-                    if(( ret = updateNFSetPosition(&new_apos)) < 0)
-                    {
-
-                        SetRegisterPositionNP.s = IPS_OK;
-                        IDSetNumber(&SetRegisterPositionNP, "Read out of the set position to %3d failed. Trying to recover the position", ret);
-
-                        if((ret = updateNFPosition( &currentPosition)) < 0)
-                        {
-
-                            FocusAbsPosNP.s = IPS_ALERT;
-                            IDSetNumber(&FocusAbsPosNP, "Unknown error while reading  Nfocus position: %d", ret);
-
-                            SetRegisterPositionNP.s = IPS_IDLE;
-                            IDSetNumber(&SetRegisterPositionNP, "Relative movement failed.");
-                        }
-
-                        SetRegisterPositionNP.s = IPS_OK;
-                        IDSetNumber(&SetRegisterPositionNP, NULL);
-
-
-                        FocusAbsPosNP.s = IPS_OK;
-                        IDSetNumber(&FocusAbsPosNP, "Nfocus position recovered %5.0f", currentPosition);
-                        IDMessage( getDeviceName(), "Nfocus position recovered resuming normal operation");
-                        /* We have to leave here, because new_apos is not set */
-                        return true ;
-                    }
-                    currentPosition = new_apos ;
-                    SetRegisterPositionNP.s = IPS_OK;
-                    IDSetNumber(&SetRegisterPositionNP, "Nfocus register set to %5.0f", currentPosition);
-
-                    FocusAbsPosNP.s = IPS_OK;
-                    IDSetNumber(&FocusAbsPosNP, "Nfocus position is now %5.0f", currentPosition);
-
-                    return true ;
-
-                }
-                else
-                {
-
-                    SetRegisterPositionNP.s = IPS_IDLE;
-                    IDSetNumber(&SetRegisterPositionNP, "Need exactly one parameter.");
-
-                    return false;
-                }
-
-                if((ret = updateNFPosition(&currentPosition)) < 0)
-                {
-
-                    FocusAbsPosNP.s = IPS_ALERT;
-                    IDSetNumber(&FocusAbsPosNP, "Unknown error while reading  Nfocus position: %d", ret);
-
-                    return false ;
-                }
-
-                SetRegisterPositionNP.s = IPS_OK;
-                IDSetNumber(&SetRegisterPositionNP, "Nfocus has accepted new register setting" ) ;
-
-                FocusAbsPosNP.s = IPS_OK;
-                IDSetNumber(&FocusAbsPosNP, "Nfocus new position %5.0f", currentPosition);
-
-                return true;
+                SyncNP.s = IPS_ALERT ;
+                IDSetNumber(&SyncNP, "Value out of limits  %5.0f", new_apos);
+                return false ;
             }
+
+            if(( rc = syncNF(&new_apos)) < 0)
+            {
+                SyncNP.s = IPS_ALERT;
+                IDSetNumber(&SyncNP, "Read out of the set position to %3d failed.", rc);
+                return false;
+            }
+
+            DEBUGF(INDI::Logger::DBG_DEBUG, "Focuser sycned to %g ticks", new_apos);
+            SyncN[0].value = new_apos;
+            SyncNP.s = IPS_OK;
+            IDSetNumber(&SyncNP, NULL);
+            return true;
+
         }
-
-
-
     }
 
     return INDI::Focuser::ISNewNumber(dev, name, values, names, n);
+}
 
+int NFocus::getNFAbsolutePosition(double *value)
+{
+    *value = currentPosition;
+    return 0;
 }
 
 void NFocus::GetFocusParams ()
 {
-
     int ret = -1 ;
-    int cur_s1LL = 0 ;
-    int cur_s2LR = 0 ;
-    int cur_s3RL = 0 ;
-    int cur_s4RR = 0 ;
 
-
-    if((ret = updateNFPosition(&currentPosition)) < 0)
+    if((ret = getNFAbsolutePosition(&currentPosition)) < 0)
     {
         FocusAbsPosNP.s = IPS_ALERT;
         IDSetNumber(&FocusAbsPosNP, "Unknown error while reading  Nfocus position: %d", ret);
@@ -1132,17 +920,6 @@ void NFocus::GetFocusParams ()
     TemperatureNP.s = IPS_OK;
     IDSetNumber(&TemperatureNP, NULL);
 
-
-    currentBacklash = BACKLASH_READOUT ;
-    if(( ret = updateNFBacklash(&currentBacklash)) < 0)
-    {
-        SetBacklashNP.s = IPS_ALERT;
-        IDSetNumber(&SetBacklashNP, "Unknown error while reading  Nfocus backlash");
-        return;
-    }
-    SetBacklashNP.s = IPS_OK;
-    IDSetNumber(&SetBacklashNP, NULL);
-
     currentOnTime = currentOffTime = currentFastDelay = 0 ;
 
     if(( ret = updateNFMotorSettings(&currentOnTime, &currentOffTime, &currentFastDelay )) < 0)
@@ -1156,7 +933,7 @@ void NFocus::GetFocusParams ()
     IDSetNumber(&SettingsNP, NULL);
 
     currentMaxTravel = MAXTRAVEL_READOUT ;
-    if(( ret = updateNFMaxPosition(&currentMaxTravel)) < 0)
+    if(( ret = setNFMaxPosition(&currentMaxTravel)) < 0)
     {
         MaxTravelNP.s = IPS_ALERT;
         IDSetNumber(&MaxTravelNP, "Unknown error while reading  Nfocus maximum travel");
@@ -1167,78 +944,17 @@ void NFocus::GetFocusParams ()
 
 }
 
-IPState NFocus::MoveFocuser(FocusDirection dir, int speed, uint16_t duration)
-{
-    INDI_UNUSED(speed);
-    double pos = 0;
-    struct timeval tv_start;
-    struct timeval tv_finish;
-    double dt = 0;
-    gettimeofday (&tv_start, NULL);
-
-    while (duration > 0)
-    {
-
-        pos = NF_STEP_RES;
-
-        if (dir == FOCUS_INWARD)
-        {
-            updateNFPositionRelativeInward(&pos);
-        }
-        else
-        {
-            updateNFPositionRelativeOutward(&pos);
-        }
-
-        gettimeofday (&tv_finish, NULL);
-
-        dt = tv_finish.tv_sec - tv_start.tv_sec + (tv_finish.tv_usec - tv_start.tv_usec) / 1e6;
-
-        duration -= dt * 1000;
-
-        // IDLog("dt is: %g --- duration is: %d -- pos: %g\n", dt, duration, pos);
-    }
-
-    return IPS_BUSY;
-}
-
-
 IPState NFocus::MoveAbsFocuser(uint32_t targetTicks)
 {
     int ret = -1 ;
-    double new_apos = targetTicks;
+    double new_apos = targetTicks;    
 
-    if (targetTicks < FocusAbsPosN[0].min || targetTicks > FocusAbsPosN[0].max)
+    DEBUGF(INDI::Logger::DBG_DEBUG, "Focuser is moving to requested position %d", targetTicks);
+
+    if(( ret = setNFAbsolutePosition(&new_apos)) < 0)
     {
-        IDMessage(getDeviceName(), "Error, requested absolute position is out of range.");
         return IPS_ALERT;
     }
-
-    IDMessage(getDeviceName() , "Focuser is moving to requested position...");
-
-    if(( ret = updateNFPositionAbsolute(&new_apos)) < 0)
-    {
-
-        IDMessage(getDeviceName(), "Read out of the absolute movement failed %3d, trying to recover position.", ret);
-
-        for (int i = 0;; i++)
-        {
-            if((ret = updateNFPosition(&currentPosition)) < 0)
-            {
-                IDMessage(getDeviceName(), "Unknown error while reading  Nfocus position: %d.", ret);
-                if (i == NF_MAX_TRIES)
-                    return IPS_ALERT;
-                else
-                    usleep(NF_MAX_DELAY);
-            }
-            else break;
-        }
-
-        IDMessage( getDeviceName(), "Nfocus position recovered resuming normal operation");
-        /* We have to leave here, because new_apos is not set */
-        return IPS_ALERT;
-    }
-
 
     return IPS_OK;
 }
@@ -1256,7 +972,6 @@ IPState NFocus::MoveRelFocuser(FocusDirection dir, uint32_t ticks)
 
     if (nset)
     {
-
         if( dir == FOCUS_OUTWARD)
         {
             if((currentPosition + new_rpos < currentMinPosition) || (currentPosition + new_rpos > currentMaxPosition))
@@ -1264,7 +979,7 @@ IPState NFocus::MoveRelFocuser(FocusDirection dir, uint32_t ticks)
                 IDMessage(getDeviceName(), "Value out of limits %5.0f", currentPosition +  new_rpos);
                 return IPS_ALERT;
             }
-            ret = updateNFPositionRelativeOutward(&new_rpos) ;
+            ret = moveNFOutward(&new_rpos) ;
         }
         else
         {
@@ -1273,43 +988,29 @@ IPState NFocus::MoveRelFocuser(FocusDirection dir, uint32_t ticks)
                 IDMessage(getDeviceName(), "Value out of limits %5.0f", currentPosition -  new_rpos);
                 return IPS_ALERT;
             }
-            ret = updateNFPositionRelativeInward(&new_rpos) ;
+            ret = moveNFInward(&new_rpos) ;
         }
 
         if( ret < 0)
         {
-
-            IDMessage(getDeviceName(), "Read out of the relative movement failed, trying to recover position.");
-            if((ret = updateNFPosition(&currentPosition)) < 0)
-            {
-
-                IDMessage(getDeviceName(), "Unknown error while reading  Nfocus position: %d", ret);
-                return IPS_ALERT;
-            }
-
-            IDMessage(getDeviceName(), "Nfocus position recovered %5.0f", currentPosition);
             // We have to leave here, because new_rpos is not set
             return IPS_ALERT;
         }
 
         currentRelativeMovement = cur_rpos ;
-        //          currentAbsoluteMovement= currentPosition;
         return IPS_OK;
     }
     {
         IDMessage(getDeviceName(), "Value out of limits.");
         return IPS_ALERT;
     }
-
-
 }
 
 bool NFocus::saveConfigItems(FILE * fp)
 {
     INDI::Focuser::saveConfigItems(fp);
 
-    IUSaveConfigNumber(fp, &SettingsNP);
-    IUSaveConfigNumber(fp, &SetBacklashNP);
+    IUSaveConfigNumber(fp, &SettingsNP);    
     IUSaveConfigNumber(fp, &InOutScalarNP);
     return true;
 }

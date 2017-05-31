@@ -40,7 +40,6 @@ class NFocus : public INDI::Focuser
         virtual bool initProperties();
         virtual bool updateProperties();
         virtual bool ISNewNumber (const char * dev, const char * name, double values[], char * names[], int n);
-        virtual IPState MoveFocuser(FocusDirection dir, int speed, uint16_t duration);
         virtual IPState MoveAbsFocuser(uint32_t ticks);
         virtual IPState MoveRelFocuser(FocusDirection dir, uint32_t ticks);
 
@@ -54,17 +53,15 @@ class NFocus : public INDI::Focuser
         int ReadResponse(char * buf, int nbytes, int timeout);
         void GetFocusParams();
 
-        int updateNFPosition(double * value);
         int updateNFTemperature(double * value) ;
-        int updateNFBacklash(double * value);
-        int updateNFInOutScalar(double * value);
-        int updateNFFirmware(char * rf_cmd) ;
+        int updateNFInOutScalar(double * value);        
         int updateNFMotorSettings(double * duty, double * delay, double * ticks);
-        int updateNFPositionRelativeInward(double * value);
-        int updateNFPositionRelativeOutward(double * value) ;
-        int updateNFPositionAbsolute(double * value);
-        int updateNFMaxPosition(double * value);
-        int updateNFSetPosition(double * value);
+        int moveNFInward(double * value);
+        int moveNFOutward(double * value) ;
+        int getNFAbsolutePosition(double *value);
+        int setNFAbsolutePosition(double * value);
+        int setNFMaxPosition(double * value);
+        int syncNF(double * value);
 
         INumber TemperatureN[1];
         INumberVectorProperty TemperatureNP;
@@ -78,8 +75,8 @@ class NFocus : public INDI::Focuser
         INumber MaxTravelN[1];
         INumberVectorProperty MaxTravelNP;
 
-        INumber SetRegisterPositionN[1];
-        INumberVectorProperty SetRegisterPositionNP;
+        INumber SyncN[1];
+        INumberVectorProperty SyncNP;
 
         INumber InOutScalarN[1];
         INumberVectorProperty InOutScalarNP;
@@ -88,10 +85,7 @@ class NFocus : public INDI::Focuser
         INumberVectorProperty RelMovementNP;
 
         INumber AbsMovementN[1];
-        INumberVectorProperty AbsMovementNP;
-
-        INumber SetBacklashN[1];
-        INumberVectorProperty SetBacklashNP;
+        INumberVectorProperty AbsMovementNP;        
 
 };
 
