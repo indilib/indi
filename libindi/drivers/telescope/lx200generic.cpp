@@ -1636,7 +1636,7 @@ IPState LX200Generic::GuideWest(float ms)
 
 int LX200Generic::SendPulseCmd(int direction, int duration_msec)
 {
-    return SendPulseCmd(PortFD, direction, duration_msec);
+    return ::SendPulseCmd(PortFD, direction, duration_msec);
 }
 
 void LX200Generic::guideTimeoutHelper(void * p)

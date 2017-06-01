@@ -1202,7 +1202,6 @@ void LX200ZEQ25::mountSim ()
 
 int LX200ZEQ25::SendPulseCmd(int direction, int duration_msec)
 {
-    DEBUGFDEVICE(lx200Name, DBG_SCOPE, "<%s>", __FUNCTION__);
     int nbytes_write = 0;
     char cmd[20];
     switch (direction)
@@ -1223,7 +1222,7 @@ int LX200ZEQ25::SendPulseCmd(int direction, int duration_msec)
             return 1;
     }
 
-    DEBUGFDEVICE(lx200Name, DBG_SCOPE, "CMD <%s>", cmd);
+    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
 
     tty_write_string(PortFD, cmd, &nbytes_write);
 
