@@ -19,6 +19,16 @@ if (NOT WIN32)
 set(CMAKE_CXX_FLAGS "-std=c++11 ${CMAKE_CXX_FLAGS}")
 endif(NOT WIN32)
 
+# Ccache support
+IF (ANDROID OR UNIX OR APPLE)
+    FIND_PROGRAM(CCACHE_FOUND ccache)
+    SET(CCACHE_SUPPORT OFF CACHE BOOL "Enable ccache support")
+    IF ((CCACHE_FOUND OR ANDROID) AND CCACHE_SUPPORT MATCHES ON)
+        SET_PROPERTY(GLOBAL PROPERTY RULE_LAUNCH_COMPILE ccache)
+        SET_PROPERTY(GLOBAL PROPERTY RULE_LAUNCH_LINK ccache)
+    ENDIF ()
+ENDIF ()
+
 #####################################  INDI version  ################################################
 # N.B. DO NOT Forget to update version also in indiapi.h
 # Proper way is to use indiversion.h.cmake file but this would break make existing applications so let us stick to the old proven way
