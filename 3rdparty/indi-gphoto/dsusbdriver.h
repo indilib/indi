@@ -28,7 +28,7 @@
 class DSUSBDriver : public INDI::USBDevice
 {
 public:
-    DSUSBDriver();
+    DSUSBDriver(const char * device);
     ~DSUSBDriver() {}
 
     bool isConnected() { return connected; }
@@ -36,7 +36,10 @@ public:
     bool closeShutter();
 
 private:
+    bool readState();
+
     uint8_t infoByte=0;
+    char device[MAXINDIDEVICE];
     bool connected=false;
 };
 
