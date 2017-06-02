@@ -51,7 +51,7 @@ class NFocus : public INDI::Focuser
         int SendCommand(char * rf_cmd);
         int SendRequest(char * rf_cmd);
         int ReadResponse(char * buf, int nbytes, int timeout);
-        void GetFocusParams();
+        bool GetFocusParams();
 
         int updateNFTemperature(double * value) ;
         int updateNFInOutScalar(double * value);        

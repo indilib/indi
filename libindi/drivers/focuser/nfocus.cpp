@@ -152,7 +152,7 @@ bool NFocus::initProperties()
     IUFillNumberVector(&MaxTravelNP, MaxTravelN, 1, getDeviceName(), "FOCUS_MAXTRAVEL", "Max. travel", OPTIONS_TAB, IP_RW, 0, IPS_IDLE );
 
     /* Set Nfocus position register to this position */
-    IUFillNumber(&SyncN[0], "FOCUS_SYNC_OFFSET", "Offset", "%6.0f", 0, 64000., 0., 0.);
+    IUFillNumber(&SyncN[0], "FOCUS_SYNC_OFFSET", "Offset", "%.f", 0, 64000., 0., 0.);
     IUFillNumberVector(&SyncNP, SyncN, 1, getDeviceName(), "FOCUS_SYNC", "Sync", MAIN_CONTROL_TAB, IP_RW, 0, IPS_IDLE );
 
     /* Relative and absolute movement */
@@ -166,7 +166,7 @@ bool NFocus::initProperties()
     FocusAbsPosN[0].value = 0;
     FocusAbsPosN[0].step = 10000;
 
-    addDebugControl();
+    addAuxControls();
 
     return true;
 
@@ -185,9 +185,8 @@ bool NFocus::updateProperties()
         defineNumber(&MaxTravelNP);
         defineNumber(&SyncNP);
 
-        GetFocusParams();
-
-        IDMessage(getDeviceName(), "NFocus paramaters readout complete, focuser ready for use.");
+        if (GetFocusParams())
+            DEBUG(INDI::Logger::DBG_SESSION, "NFocus is ready.");
     }
     else
     {
@@ -217,20 +216,21 @@ const char * NFocus::getDefaultName()
 
 int NFocus::SendCommand(char * rf_cmd)
 {
-
-    int nbytes_written = 0, nbytes_read = 0, check_ret = 0, err_code = 0;
-    char rf_cmd_cks[32], nfocus_error[MAXRBUF];
-
+    int nbytes_written = 0, err_code = 0;
+    char nfocus_error[MAXRBUF];
 
     DEBUGF(INDI::Logger::DBG_DEBUG, "CMD <%s>", rf_cmd);
 
-    tcflush(PortFD, TCIOFLUSH);
-
-    if  ( (err_code = tty_write(PortFD, rf_cmd, strlen(rf_cmd) + 1, &nbytes_written) != TTY_OK))
+    if (isSimulation() == false)
     {
-        tty_error_msg(err_code, nfocus_error, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "TTY error detected: %s", nfocus_error);
-        return -1;
+        tcflush(PortFD, TCIOFLUSH);
+
+        if  ( (err_code = tty_write(PortFD, rf_cmd, strlen(rf_cmd) + 1, &nbytes_written) != TTY_OK))
+        {
+            tty_error_msg(err_code, nfocus_error, MAXRBUF);
+            DEBUGF(INDI::Logger::DBG_ERROR, "TTY error detected: %s", nfocus_error);
+            return -1;
+        }
     }
 
     return 0;
@@ -245,17 +245,19 @@ int NFocus::SendRequest(char * rf_cmd)
 
     SendCommand(rf_cmd);
 
-    nbytes_read = ReadResponse(rf_cmd, strlen(rf_cmd), NF_TIMEOUT) ;
+    if (isSimulation() == false)
+    {
+        nbytes_read = ReadResponse(rf_cmd, strlen(rf_cmd), NF_TIMEOUT) ;
 
-    if (nbytes_read < 1)
-        return nbytes_read;
+        if (nbytes_read < 1)
+            return nbytes_read;
 
-    rf_cmd[ nbytes_read - 1] = 0 ;
+        rf_cmd[ nbytes_read - 1] = 0;
+    }
 
     DEBUGF(INDI::Logger::DBG_DEBUG, "RES <%s>", rf_cmd);
 
     return 0;
-
 }
 
 int NFocus::ReadResponse(char * buf, int nbytes, int timeout)
@@ -313,6 +315,9 @@ int NFocus::updateNFTemperature(double * value)
     if ((ret_read_tmp = SendRequest( rf_cmd)) < 0)
         return ret_read_tmp;
 
+    // Always set to 20C for simulation
+    if (isSimulation())
+        strncpy(rf_cmd, "200", 32);
 
     if (sscanf(rf_cmd, "%6f", &temp) == -888)
         return -1;
@@ -324,7 +329,6 @@ int NFocus::updateNFTemperature(double * value)
 
 int NFocus::updateNFInOutScalar(double * value)
 {
-
     double temp = currentInOutScalar ;
 
     *value = (double) temp;
@@ -336,6 +340,9 @@ int NFocus::updateNFMotorSettings(double * onTime, double * offTime, double * fa
 {
     char rf_cmd[32] ;
     int ret_read_tmp ;
+
+    if (isSimulation())
+        return 0;
 
     if(( *onTime >= 100 ) && (*onTime <= 250))
     {
@@ -403,41 +410,44 @@ int NFocus::moveNFInward(double * value)
     int newval = (int)(currentInOutScalar * (*value));
     DEBUGF(INDI::Logger::DBG_DEBUG, "Moving %d real steps but virtually counting %.0f", newval, *value);
 
-    do
+    if (isSimulation() == false)
     {
-        if ( newval > 999)
-        {
-            strncpy(rf_cmd, ":F01999#\0", 9) ;
-            newval -= 999;
-        }
-        else if(newval > 99)
-        {
-            snprintf( rf_cmd, 32, ":F01%3d#", (int) newval) ;
-            newval = 0;
-        }
-        else if(newval > 9)
-        {
-            snprintf( rf_cmd, 32, ":F010%2d#", (int) newval) ;
-            newval = 0;
-        }
-        else
-        {
-            snprintf( rf_cmd, 32, ":F0100%1d#", (int) newval) ;
-            newval = 0;
-        }
-
-        if ((ret_read_tmp = SendCommand( rf_cmd)) < 0)
-            return ret_read_tmp;
-
         do
         {
-            strncpy(rf_cmd, "S\0", 2);
-            if ((ret_read_tmp = SendRequest( rf_cmd)) < 0)
+            if ( newval > 999)
+            {
+                strncpy(rf_cmd, ":F01999#\0", 9) ;
+                newval -= 999;
+            }
+            else if(newval > 99)
+            {
+                snprintf( rf_cmd, 32, ":F01%3d#", (int) newval) ;
+                newval = 0;
+            }
+            else if(newval > 9)
+            {
+                snprintf( rf_cmd, 32, ":F010%2d#", (int) newval) ;
+                newval = 0;
+            }
+            else
+            {
+                snprintf( rf_cmd, 32, ":F0100%1d#", (int) newval) ;
+                newval = 0;
+            }
+
+            if ((ret_read_tmp = SendCommand( rf_cmd)) < 0)
                 return ret_read_tmp;
+
+            do
+            {
+                strncpy(rf_cmd, "S\0", 2);
+                if ((ret_read_tmp = SendRequest( rf_cmd)) < 0)
+                    return ret_read_tmp;
+            }
+            while ( (int)atoi(rf_cmd) );
         }
-        while ( (int)atoi(rf_cmd) );
+        while ( newval > 0 );
     }
-    while ( newval > 0 );
 
     currentPosition -= *value;
     return 0;
@@ -452,41 +462,45 @@ int NFocus::moveNFOutward(double * value)
     rf_cmd[0] = 0 ;
 
     int newval = (int)(*value);
-    do
+
+    if (isSimulation() == false)
     {
-        if ( newval > 999)
-        {
-            strncpy( rf_cmd, ":F11999#\0", 9) ;
-            newval -= 999;
-        }
-        else if(newval > 99)
-        {
-            snprintf( rf_cmd, 32, ":F11%3d#", (int) newval) ;
-            newval = 0;
-        }
-        else if(newval > 9)
-        {
-            snprintf( rf_cmd, 32, ":F110%2d#", (int) newval) ;
-            newval = 0;
-        }
-        else
-        {
-            snprintf( rf_cmd, 32, ":F1100%1d#", (int) newval) ;
-            newval = 0;
-        }
-
-        if ((ret_read_tmp = SendCommand( rf_cmd)) < 0)
-            return ret_read_tmp;
-
         do
         {
-            strncpy(rf_cmd, "S\0", 2);
-            if ((ret_read_tmp = SendRequest( rf_cmd)) < 0)
+            if ( newval > 999)
+            {
+                strncpy( rf_cmd, ":F11999#\0", 9) ;
+                newval -= 999;
+            }
+            else if(newval > 99)
+            {
+                snprintf( rf_cmd, 32, ":F11%3d#", (int) newval) ;
+                newval = 0;
+            }
+            else if(newval > 9)
+            {
+                snprintf( rf_cmd, 32, ":F110%2d#", (int) newval) ;
+                newval = 0;
+            }
+            else
+            {
+                snprintf( rf_cmd, 32, ":F1100%1d#", (int) newval) ;
+                newval = 0;
+            }
+
+            if ((ret_read_tmp = SendCommand( rf_cmd)) < 0)
                 return ret_read_tmp;
+
+            do
+            {
+                strncpy(rf_cmd, "S\0", 2);
+                if ((ret_read_tmp = SendRequest( rf_cmd)) < 0)
+                    return ret_read_tmp;
+            }
+            while ( (int)atoi(rf_cmd) );
         }
-        while ( (int)atoi(rf_cmd) );
+        while ( newval > 0 );
     }
-    while ( newval > 0 );
 
     currentPosition += *value;
     return 0;
@@ -518,6 +532,9 @@ int NFocus::setNFMaxPosition(double * value)
     char vl_tmp[6] ;
     int ret_read_tmp ;
     char waste[1] ;
+
+    if (isSimulation())
+        return 0;
 
     if(*value == MAXTRAVEL_READOUT)
     {
@@ -578,6 +595,12 @@ int NFocus::syncNF(double * value)
     char rf_cmd[32] ;
     char vl_tmp[6] ;
     int ret_read_tmp ;
+
+    if (isSimulation())
+    {
+        currentPosition = *value;
+        return 0;
+    }
 
     rf_cmd[0] =  'F' ;
     rf_cmd[1] =  'S' ;
@@ -657,16 +680,8 @@ bool NFocus::ISNewNumber (const char * dev, const char * name, double values[], 
             /* Did we process the three numbers? */
             if (nset == 3)
             {
-
-                /* Set the nfocus state to BUSY */
-                SettingsNP.s = IPS_BUSY;
-
-
-                IDSetNumber(&SettingsNP, NULL);
-
                 if(( ret = updateNFMotorSettings(&new_onTime, &new_offTime, &new_fastDelay)) < 0)
                 {
-
                     IDSetNumber(&SettingsNP, "Changing to new settings failed");
                     return false;
                 }
@@ -870,6 +885,7 @@ bool NFocus::ISNewNumber (const char * dev, const char * name, double values[], 
             SyncN[0].value = new_apos;
             SyncNP.s = IPS_OK;
             IDSetNumber(&SyncNP, NULL);
+            IDSetNumber(&FocusAbsPosNP, NULL);
             return true;
 
         }
@@ -884,30 +900,18 @@ int NFocus::getNFAbsolutePosition(double *value)
     return 0;
 }
 
-void NFocus::GetFocusParams ()
+bool NFocus::GetFocusParams ()
 {
-    int ret = -1 ;
-
-    if((ret = getNFAbsolutePosition(&currentPosition)) < 0)
-    {
-        FocusAbsPosNP.s = IPS_ALERT;
-        IDSetNumber(&FocusAbsPosNP, "Unknown error while reading  Nfocus position: %d", ret);
-        return;
-    }
-
-    FocusAbsPosNP.s = IPS_OK;
-    IDSetNumber(&FocusAbsPosNP, NULL);
-
-    FocusAbsPosN[0].value = currentPosition;
-    IDSetNumber(&FocusAbsPosNP, NULL);
+    int ret = -1;
 
     currentInOutScalar = INOUTSCALAR_READOUT ;
     if(( ret = updateNFInOutScalar(&currentInOutScalar)) < 0)
     {
         InOutScalarNP.s = IPS_ALERT;
         IDSetNumber(&InOutScalarNP, "Unknown error while reading  Nfocus direction tick scalar");
-        return;
+        return false;
     }
+
     InOutScalarNP.s = IPS_OK;
     IDSetNumber(&InOutScalarNP, NULL);
 
@@ -915,8 +919,9 @@ void NFocus::GetFocusParams ()
     {
         TemperatureNP.s = IPS_ALERT;
         IDSetNumber(&TemperatureNP, "Unknown error while reading  Nfocus temperature");
-        return;
+        return false;
     }
+
     TemperatureNP.s = IPS_OK;
     IDSetNumber(&TemperatureNP, NULL);
 
@@ -926,7 +931,7 @@ void NFocus::GetFocusParams ()
     {
         SettingsNP.s = IPS_ALERT;
         IDSetNumber(&SettingsNP, "Unknown error while reading  Nfocus motor settings");
-        return;
+        return false;
     }
 
     SettingsNP.s = IPS_OK;
@@ -937,11 +942,12 @@ void NFocus::GetFocusParams ()
     {
         MaxTravelNP.s = IPS_ALERT;
         IDSetNumber(&MaxTravelNP, "Unknown error while reading  Nfocus maximum travel");
-        return;
+        return false;
     }
     MaxTravelNP.s = IPS_OK;
     IDSetNumber(&MaxTravelNP, NULL);
 
+    return true;
 }
 
 IPState NFocus::MoveAbsFocuser(uint32_t targetTicks)
