@@ -365,12 +365,12 @@ bool FilterIFW::ISNewText (const char * dev, const char * name, char * texts[], 
             {
                 IUUpdateText (FilterNameTP, texts, names, n);
                 FilterNameTP->s = SetFilterNames() ? IPS_OK : IPS_ALERT;
-                IDSetText (FilterNameTP, NULL);
+                IDSetText (FilterNameTP, nullptr);
             }
             else
             {
                 FilterNameTP->s = IPS_ALERT;
-                IDSetText (FilterNameTP, NULL);
+                IDSetText (FilterNameTP, nullptr);
                 DEBUG(INDI::Logger::DBG_SESSION, "WARNING *****************************************************");
                 DEBUG(INDI::Logger::DBG_SESSION, "One of the filter name is not valid. It should not have more than 8 chars");
                 DEBUG(INDI::Logger::DBG_SESSION, "Valid chars are A to Z, 0 to 9 = . # / - percent or space");
@@ -399,7 +399,7 @@ bool FilterIFW::ISNewSwitch (const char * dev, const char * name, ISState * stat
             DEBUG(INDI::Logger::DBG_SESSION, "Executing Home command...");
 
             FilterNameTP->s = IPS_BUSY;
-            IDSetText(FilterNameTP, NULL);
+            IDSetText(FilterNameTP, nullptr);
 
             if (!moveHome())
             {
@@ -417,7 +417,7 @@ bool FilterIFW::ISNewSwitch (const char * dev, const char * name, ISState * stat
                 }
             }
 
-            IDSetSwitch(&HomeSP, NULL);
+            IDSetSwitch(&HomeSP, nullptr);
             if (!result)
             {
                 DEBUGF(INDI::Logger::DBG_SESSION, "%s() failed to get information", __FUNCTION__);
@@ -463,7 +463,7 @@ bool FilterIFW::ISNewSwitch (const char * dev, const char * name, ISState * stat
                 return false;
             }
             else
-                IDSetSwitch(&FilterNbrSP, NULL);
+                IDSetSwitch(&FilterNbrSP, nullptr);
 
             return true;
         }
@@ -474,7 +474,7 @@ bool FilterIFW::ISNewSwitch (const char * dev, const char * name, ISState * stat
         {
             IUUpdateSwitch(&CharSetSP, states, names, n);
             CharSetSP.s = IPS_OK;
-            IDSetSwitch(&CharSetSP, NULL);
+            IDSetSwitch(&CharSetSP, nullptr);
             return true;
         }
     }
@@ -605,7 +605,7 @@ bool FilterIFW::GetFilterNames(const char * groupName)
     memset(response, 0, sizeof(response));
 
     FilterNameTP->s = IPS_BUSY;
-    IDSetText(FilterNameTP, NULL);
+    IDSetText(FilterNameTP, nullptr);
 
     if (!WriteTTY((char *) "WREAD"))
     {
@@ -669,11 +669,11 @@ bool FilterIFW::GetFilterNames(const char * groupName)
             if (isSimulation())
                 actualSimFilter = FilterSlotN[0].value = 1;
             IUUpdateMinMax(&FilterSlotNP);
-            IDSetNumber(&FilterSlotNP, NULL);
+            IDSetNumber(&FilterSlotNP, nullptr);
 
             deleteProperty(FilterNameTP->name);
 
-            if (FilterNameT != NULL)
+            if (FilterNameT != nullptr)
                 delete FilterNameT;
             FilterNameT = new IText[maxFilter];
 
@@ -729,8 +729,8 @@ bool FilterIFW::SetFilterNames()
 
     FilterNameTP->s = FilterSlotNP.s = WheelIDTP.s = IPS_BUSY;
     IDSetText(FilterNameTP, "*** Saving filters name to IFW... ***");
-    IDSetNumber(&FilterSlotNP, NULL);
-    IDSetText(&WheelIDTP, NULL);
+    IDSetNumber(&FilterSlotNP, nullptr);
+    IDSetText(&WheelIDTP, nullptr);
 
     snprintf(cmd, 8, "WLOAD%s*", WheelIDT[0].text);
 
@@ -765,7 +765,7 @@ bool FilterIFW::SetFilterNames()
     {
         DEBUGF(INDI::Logger::DBG_ERROR, "(Function %s()) failed to write to TTY", __FUNCTION__);
         FilterNameTP->s = IPS_ALERT;
-        IDSetText(FilterNameTP, NULL);
+        IDSetText(FilterNameTP, nullptr);
         result = false;
         // Have to wait at least 10 ms for EEPROM writing before next command
         // Wait 50 mS to be safe
@@ -807,7 +807,7 @@ bool FilterIFW::SetFilterNames()
 
     // Do HOME command to load EEProm new names and getFilter to read new value to validate
     FilterNameTP->s = moveHome() ? IPS_OK : IPS_ALERT;
-    IDSetText(FilterNameTP, NULL);
+    IDSetText(FilterNameTP, nullptr);
 
     return true;
 }
@@ -824,7 +824,7 @@ bool FilterIFW::GetWheelID()
     memset(response, 0, sizeof(response));
 
     WheelIDTP.s = IPS_BUSY;
-    IDSetText(&WheelIDTP, NULL);
+    IDSetText(&WheelIDTP, nullptr);
 
     if (!WriteTTY((char *) "WIDENT"))
     {
@@ -872,7 +872,7 @@ int FilterIFW::GetFilterPos()
     memset(response, 0, sizeof(response));
 
     FilterSlotNP.s = IPS_BUSY;
-    IDSetNumber(&FilterSlotNP, NULL);
+    IDSetNumber(&FilterSlotNP, nullptr);
 
     if (!WriteTTY((char *) "WFILTR"))
     {
@@ -918,8 +918,8 @@ bool FilterIFW::moveHome()
 
     HomeSP.s = WheelIDTP.s = FilterSlotNP.s = IPS_BUSY;
     IDSetSwitch(&HomeSP, "*** Initialisation of the IFW. Please wait... ***");
-    IDSetText(&WheelIDTP, NULL);
-    IDSetNumber(&FilterSlotNP, NULL);
+    IDSetText(&WheelIDTP, nullptr);
+    IDSetNumber(&FilterSlotNP, nullptr);
 
     if (!WriteTTY((char *) "WHOME"))
     {
@@ -972,7 +972,7 @@ bool FilterIFW::GetFirmware()
     memset(response, 0, sizeof(response));
 
     FirmwareTP.s = IPS_BUSY;
-    IDSetText(&FirmwareTP, NULL);
+    IDSetText(&FirmwareTP, nullptr);
 
     if (!WriteTTY((char *) "WVAAAA"))
     {
@@ -1001,7 +1001,7 @@ bool FilterIFW::GetFirmware()
     }
 
     // remove chars fomr the string to get only the nzuméric value of the Firmware version
-    char * p = NULL;
+    char * p = nullptr;
     for (int i = 0; i < strlen(response); i++)
     {
         if (isdigit(response[i]))
@@ -1038,7 +1038,7 @@ bool FilterIFW::loadConfig(bool silent, const char * property)
 {
     bool result;
 
-    if (property == NULL)
+    if (property == nullptr)
     {
         result = INDI::DefaultDevice::loadConfig(silent, "CHARSET");
         result = (INDI::DefaultDevice::loadConfig(silent, "FILTER_NBR") && result);

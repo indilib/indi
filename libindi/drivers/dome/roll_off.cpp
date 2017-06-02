@@ -246,7 +246,7 @@ IPState RollOff::Move(DomeDirection dir, DomeMotionCommand operation)
         fullOpenLimitSwitch   = ISS_OFF;
         fullClosedLimitSwitch = ISS_OFF;
         MotionRequest = ROLLOFF_DURATION;
-        gettimeofday(&MotionStart, NULL);
+        gettimeofday(&MotionStart, nullptr);
         SetTimer(1000);
         return IPS_BUSY;
     }
@@ -293,7 +293,7 @@ bool RollOff::Abort()
     {
         IUResetSwitch(&ParkSP);
         ParkSP.s = IPS_IDLE;
-        IDSetSwitch(&ParkSP, NULL);
+        IDSetSwitch(&ParkSP, nullptr);
     }
 
     return true;
@@ -304,7 +304,7 @@ float RollOff::CalcTimeLeft(timeval start)
     double timesince;
     double timeleft;
     struct timeval now;
-    gettimeofday(&now, NULL);
+    gettimeofday(&now, nullptr);
 
     timesince = (double)(now.tv_sec * 1000.0 + now.tv_usec / 1000) - (double)(start.tv_sec * 1000.0 + start.tv_usec / 1000);
     timesince = timesince / 1000;

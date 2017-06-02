@@ -184,7 +184,7 @@ bool LX200AstroPhysics::ISNewSwitch (const char * dev, const char * name, ISStat
             {
                 StartUpSP.s = IPS_ALERT;
                 DEBUG(INDI::Logger::DBG_ERROR, "Time and location must be set before mount initialization is invoked.");
-                IDSetSwitch(&StartUpSP, NULL);
+                IDSetSwitch(&StartUpSP, nullptr);
                 return false;
             }
 
@@ -211,7 +211,7 @@ bool LX200AstroPhysics::ISNewSwitch (const char * dev, const char * name, ISStat
             }
 
             TrackModeSP.s = IPS_OK;
-            IDSetSwitch(&TrackModeSP, NULL);
+            IDSetSwitch(&TrackModeSP, nullptr);
 
             switch_nr = IUFindOnSwitchIndex(&SlewRateSP);
 
@@ -224,7 +224,7 @@ bool LX200AstroPhysics::ISNewSwitch (const char * dev, const char * name, ISStat
             }
             SlewRateSP.s = IPS_OK;
 
-            IDSetSwitch(&SlewRateSP, NULL);
+            IDSetSwitch(&SlewRateSP, nullptr);
 
             switch_nr = IUFindOnSwitchIndex(&SlewSpeedSP);
             if (isSimulation() == false && ( err = selectAPSlewRate(PortFD, switch_nr) < 0) )
@@ -233,7 +233,7 @@ bool LX200AstroPhysics::ISNewSwitch (const char * dev, const char * name, ISStat
                 return false;
             }
             SlewSpeedSP.s = IPS_OK;
-            IDSetSwitch(&SlewSpeedSP, NULL);
+            IDSetSwitch(&SlewSpeedSP, nullptr);
 
             StartUpSP.s = IPS_OK ;
             IDSetSwitch(&StartUpSP, "Mount initialized.") ;
@@ -264,7 +264,7 @@ bool LX200AstroPhysics::ISNewSwitch (const char * dev, const char * name, ISStat
                 getAPVersionNumber(PortFD, VersionInfo.tp[0].text);
 
             VersionInfo.s = IPS_OK ;
-            IDSetText(&VersionInfo, NULL);
+            IDSetText(&VersionInfo, nullptr);
         }
         else
         {
@@ -290,13 +290,13 @@ bool LX200AstroPhysics::ISNewSwitch (const char * dev, const char * name, ISStat
             return false;
         }
         TrackModeSP.s = IPS_OK;
-        IDSetSwitch(&TrackModeSP, NULL);
+        IDSetSwitch(&TrackModeSP, nullptr);
 
         /* What is this for?
         if( trackingMode != 3) // not zero
         {
             AbortSlewSP.s = IPS_IDLE;
-            IDSetSwitch(&AbortSlewSP, NULL);
+            IDSetSwitch(&AbortSlewSP, nullptr);
         }
         */
 
@@ -324,7 +324,7 @@ bool LX200AstroPhysics::ISNewSwitch (const char * dev, const char * name, ISStat
         SwapS[0].s = ISS_OFF ;
         SwapS[1].s = ISS_OFF ;
         SwapSP.s = IPS_OK;
-        IDSetSwitch(&SwapSP, NULL);
+        IDSetSwitch(&SwapSP, nullptr);
         return true ;
     }
 
@@ -346,7 +346,7 @@ bool LX200AstroPhysics::ISNewSwitch (const char * dev, const char * name, ISStat
         }
 
         SlewSpeedSP.s = IPS_OK;
-        IDSetSwitch(&SlewSpeedSP, NULL);
+        IDSetSwitch(&SlewSpeedSP, nullptr);
         return true;
     }
 
@@ -359,7 +359,7 @@ bool LX200AstroPhysics::ISNewSwitch (const char * dev, const char * name, ISStat
         IUUpdateSwitch(&SyncCMRSP, states, names, n);
         IUFindOnSwitchIndex(&SyncCMRSP);
         SyncCMRSP.s = IPS_OK;
-        IDSetSwitch(&SyncCMRSP, NULL);
+        IDSetSwitch(&SyncCMRSP, nullptr);
         return true;
     }
 
@@ -387,7 +387,7 @@ bool LX200AstroPhysics::ISNewNumber (const char * dev, const char * name, double
         if (SlewAccuracyN[0].value < 3 || SlewAccuracyN[1].value < 3)
             IDSetNumber(&SlewAccuracyNP, "Warning: Setting the slew accuracy too low may result in a dead lock");
 
-        IDSetNumber(&SlewAccuracyNP, NULL);
+        IDSetNumber(&SlewAccuracyNP, nullptr);
         return true;
 
 
@@ -557,7 +557,7 @@ bool LX200AstroPhysics::Goto(double r, double d)
         AbortSP.s = IPS_OK;
         EqNP.s       = IPS_IDLE;
         IDSetSwitch(&AbortSP, "Slew aborted.");
-        IDSetNumber(&EqNP, NULL);
+        IDSetNumber(&EqNP, nullptr);
 
         if (MovementNSSP.s == IPS_BUSY || MovementWESP.s == IPS_BUSY)
         {
@@ -565,8 +565,8 @@ bool LX200AstroPhysics::Goto(double r, double d)
             EqNP.s       = IPS_IDLE;
             IUResetSwitch(&MovementNSSP);
             IUResetSwitch(&MovementWESP);
-            IDSetSwitch(&MovementNSSP, NULL);
-            IDSetSwitch(&MovementWESP, NULL);
+            IDSetSwitch(&MovementNSSP, nullptr);
+            IDSetSwitch(&MovementWESP, nullptr);
         }
 
         // sleep for 100 mseconds
@@ -759,7 +759,7 @@ bool LX200AstroPhysics::SetSlewRate(int index)
     }
 
     SlewRateSP.s = IPS_OK;
-    IDSetSwitch(&SlewRateSP, NULL);
+    IDSetSwitch(&SlewRateSP, nullptr);
     return true;
 }
 

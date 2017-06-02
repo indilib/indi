@@ -201,7 +201,7 @@ bool SimpleSkeleton::ISNewNumber (const char * dev, const char * name, double va
     {
         IUUpdateNumber(nvp, values, names, n);
         nvp->s = IPS_OK;
-        IDSetNumber(nvp, NULL);
+        IDSetNumber(nvp, nullptr);
 
         return true;
     }
@@ -255,7 +255,7 @@ bool SimpleSkeleton::ISNewSwitch (const char * dev, const char * name, ISState *
             lvp->lp[lightIndex].s = (IPState) lightState;
 
             IDSetSwitch(svp, "Setting to switch %s is successful. Changing corresponding light property to %s.", onSW->name, pstateStr(lvp->lp[lightIndex].s));
-            IDSetLight(lvp, NULL);
+            IDSetLight(lvp, nullptr);
 
 
         }
@@ -306,7 +306,7 @@ bool SimpleSkeleton::ISNewBLOB (const char * dev, const char * name, int sizes[]
 
         bp->size = 0;
         bvp->s = IPS_OK;
-        IDSetBLOB(bvp, NULL);
+        IDSetBLOB(bvp, nullptr);
 
     }
 

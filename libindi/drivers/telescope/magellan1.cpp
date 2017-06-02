@@ -36,7 +36,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110 - 1301  USA
 
 #include <config.h>
 
-Magellan1 * telescope = NULL;
+Magellan1 * telescope = nullptr;
 
 extern char * me;
 
@@ -95,7 +95,7 @@ void ISInit()
 
     if (isInit)
         return;
-    if (telescope == NULL)
+    if (telescope == nullptr)
     {
         IUSaveText(&PortT[0], "/dev/ttyS0");
         telescope = new Magellan1();
@@ -103,7 +103,7 @@ void ISInit()
     }
 
     isInit = 1;
-    IEAddTimer (POLLMS, ISPoll, NULL);
+    IEAddTimer (POLLMS, ISPoll, nullptr);
 }
 
 void ISGetProperties (const char * dev)
@@ -133,7 +133,7 @@ void ISNewNumber (const char * dev, const char * name, double values[], char * n
 void ISPoll (void * p)
 {
     telescope->ISPoll();
-    IEAddTimer (POLLMS, ISPoll, NULL);
+    IEAddTimer (POLLMS, ISPoll, nullptr);
     p = p;
 }
 
@@ -189,11 +189,11 @@ void Magellan1::ISGetProperties(const char * dev)
         return;
 
     // COMM_GROUP
-    IDDefSwitch (&ConnectSP, NULL);
-    IDDefText   (&PortTP, NULL);
+    IDDefSwitch (&ConnectSP, nullptr);
+    IDDefText   (&PortTP, nullptr);
 
     // POSITION_GROUP
-    IDDefNumber (&EquatorialCoordsRNP, NULL);
+    IDDefNumber (&EquatorialCoordsRNP, nullptr);
 
     /* Send the basic data to the new client if the previous client(s) are already connected. */
     if (ConnectSP.s == IPS_OK)
@@ -222,7 +222,7 @@ void Magellan1::ISNewText (const char * dev, const char * name, char * texts[], 
             return;
 
         IUSaveText(&PortTP.tp[0], texts[0]);
-        IDSetText (&PortTP, NULL);
+        IDSetText (&PortTP, nullptr);
         return;
     }
 }
@@ -252,7 +252,7 @@ void Magellan1::ISNewSwitch (const char * dev, const char * name, ISState * stat
         if ( (connectionEstablished && ConnectS[0].s == ISS_ON) || (!connectionEstablished && ConnectS[1].s == ISS_ON))
         {
             ConnectSP.s = IPS_OK;
-            IDSetSwitch(&ConnectSP, NULL);
+            IDSetSwitch(&ConnectSP, nullptr);
             return;
         }
         connectTelescope();
@@ -274,7 +274,7 @@ void Magellan1::handleError(ISwitchVectorProperty * svp, int err, const char * m
         ConnectSP.s = IPS_BUSY;
         IDSetSwitch(&ConnectSP, "Telescope is not responding to commands, will retry in 10 seconds.");
 
-        IDSetSwitch(svp, NULL);
+        IDSetSwitch(svp, nullptr);
         IEAddTimer(10000, retryConnection, &fd);
         return;
     }
@@ -306,7 +306,7 @@ void Magellan1::handleError(INumberVectorProperty * nvp, int err, const char * m
         ConnectSP.s = IPS_BUSY;
         IDSetSwitch(&ConnectSP, "Telescope is not responding to commands, will retry in 10 seconds.");
 
-        IDSetNumber(nvp, NULL);
+        IDSetNumber(nvp, nullptr);
         IEAddTimer(10000, retryConnection, &fd);
         return;
     }
@@ -338,7 +338,7 @@ void Magellan1::handleError(ITextVectorProperty * tvp, int err, const char * msg
         ConnectSP.s = IPS_BUSY;
         IDSetSwitch(&ConnectSP, "Telescope is not responding to commands, will retry in 10 seconds.");
 
-        IDSetText(tvp, NULL);
+        IDSetText(tvp, nullptr);
         IEAddTimer(10000, retryConnection, &fd);
         return;
     }
@@ -401,7 +401,7 @@ void Magellan1::ISPoll()
     if ( (err = getMAGELLANRA(fd, &currentRA)) < 0 || (err = getMAGELLANDEC(fd, &currentDEC)) < 0)
     {
         EquatorialCoordsRNP.s = IPS_ALERT;
-        IDSetNumber(&EquatorialCoordsRNP, NULL);
+        IDSetNumber(&EquatorialCoordsRNP, nullptr);
         handleError(&EquatorialCoordsRNP, err, "Getting RA/DEC");
         return;
     }
@@ -412,7 +412,7 @@ void Magellan1::ISPoll()
 
     lastRA  = currentRA;
     lastDEC = currentDEC;
-    IDSetNumber (&EquatorialCoordsRNP, NULL);
+    IDSetNumber (&EquatorialCoordsRNP, nullptr);
 }
 
 void Magellan1::getBasicData()
@@ -434,7 +434,7 @@ void Magellan1::getBasicData()
     if ( (err = getMAGELLANRA(fd, &targetRA)) < 0 || (err = getMAGELLANDEC(fd, &targetDEC)) < 0)
     {
         EquatorialCoordsRNP.s = IPS_ALERT;
-        IDSetNumber(&EquatorialCoordsRNP, NULL);
+        IDSetNumber(&EquatorialCoordsRNP, nullptr);
         handleError(&EquatorialCoordsRNP, err, "Getting RA/DEC");
         return;
     }
@@ -445,7 +445,7 @@ void Magellan1::getBasicData()
     EquatorialCoordsRNP.np[1].value = targetDEC;
 
     EquatorialCoordsRNP.s = IPS_OK;
-    IDSetNumber (&EquatorialCoordsRNP, NULL);
+    IDSetNumber (&EquatorialCoordsRNP, nullptr);
 
 }
 

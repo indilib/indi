@@ -76,7 +76,7 @@ int main(int argc, char * argv[])
 
     camera_client->connectServer();
 
-    camera_client->setBLOBMode(B_ALSO, MYCCD, NULL);
+    camera_client->setBLOBMode(B_ALSO, MYCCD, nullptr);
 
     cout << "Press any key to terminate the client.\n";
     string term;
@@ -91,7 +91,7 @@ int main(int argc, char * argv[])
 ***************************************************************************************/
 MyClient::MyClient()
 {
-    ccd_simulator = NULL;
+    ccd_simulator = nullptr;
 }
 
 /**************************************************************************************
@@ -107,11 +107,11 @@ MyClient::~MyClient()
 ***************************************************************************************/
 void MyClient::setTemperature()
 {
-    INumberVectorProperty * ccd_temperature = NULL;
+    INumberVectorProperty * ccd_temperature = nullptr;
 
     ccd_temperature = ccd_simulator->getNumber("CCD_TEMPERATURE");
 
-    if (ccd_temperature == NULL)
+    if (ccd_temperature == nullptr)
     {
         IDLog("Error: unable to find CCD Simulator CCD_TEMPERATURE property...\n");
         return;
@@ -126,11 +126,11 @@ void MyClient::setTemperature()
 ***************************************************************************************/
 void MyClient::takeExposure()
 {
-    INumberVectorProperty * ccd_exposure = NULL;
+    INumberVectorProperty * ccd_exposure = nullptr;
 
     ccd_exposure = ccd_simulator->getNumber("CCD_EXPOSURE");
 
-    if (ccd_exposure == NULL)
+    if (ccd_exposure == nullptr)
     {
         IDLog("Error: unable to find CCD Simulator CCD_EXPOSURE property...\n");
         return;

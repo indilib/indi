@@ -300,7 +300,7 @@ bool CelestronGPS::updateProperties()
 
                 DEBUGF(INDI::Logger::DBG_SESSION, "Mount UTC offset is %s. UTC time is %s", utcOffset, isoDateTime);
 
-                IDSetText(&TimeTP, NULL);
+                IDSetText(&TimeTP, nullptr);
             }
         }
 
@@ -545,7 +545,7 @@ bool CelestronGPS::ReadScopeStatus()
             break;
     }
 
-    //IDSetNumber(&HorizontalCoordsNP, NULL);
+    //IDSetNumber(&HorizontalCoordsNP, nullptr);
     NewRaDec(currentRA, currentDEC);
 
     return true;
@@ -578,8 +578,8 @@ bool CelestronGPS::Abort()
         }
 
         DEBUG(INDI::Logger::DBG_SESSION, "Guide aborted.");
-        IDSetNumber(&GuideNSNP, NULL);
-        IDSetNumber(&GuideWENP, NULL);
+        IDSetNumber(&GuideNSNP, nullptr);
+        IDSetNumber(&GuideWENP, nullptr);
 
         return true;
     }
@@ -629,7 +629,7 @@ bool CelestronGPS::ISNewSwitch (const char * dev, const char * name, ISState * s
             if (isParked())
             {
                 TrackSP.s = IPS_IDLE;
-                IDSetSwitch(&TrackSP, NULL);
+                IDSetSwitch(&TrackSP, nullptr);
                 return true;
             }
 
@@ -654,7 +654,7 @@ bool CelestronGPS::ISNewSwitch (const char * dev, const char * name, ISState * s
         {
             IUUpdateSwitch(&UseHibernateSP, states, names, n);
             UseHibernateSP.s = IPS_OK;
-            IDSetSwitch(&UseHibernateSP, NULL);
+            IDSetSwitch(&UseHibernateSP, nullptr);
             return true;
         }
 
@@ -666,7 +666,7 @@ bool CelestronGPS::ISNewSwitch (const char * dev, const char * name, ISState * s
             IUUpdateSwitch(&UsePulseCmdSP, states, names, n);
 
             UsePulseCmdSP.s = IPS_OK;
-            IDSetSwitch(&UsePulseCmdSP, NULL);
+            IDSetSwitch(&UsePulseCmdSP, nullptr);
             return true;
         }
 
@@ -710,7 +710,7 @@ bool CelestronGPS::ISNewNumber (const char * dev, const char * name, double valu
              {
                  HorizontalCoordsNP.s = IPS_ALERT;
                  DEBUGF(INDI::Logger::DBG_ERROR, "Error slewing to Az: %s Alt: %s", AzStr, AltStr);
-                 IDSetNumber(&HorizontalCoordsNP, NULL);
+                 IDSetNumber(&HorizontalCoordsNP, nullptr);
                  return false;
              }
 
@@ -721,7 +721,7 @@ bool CelestronGPS::ISNewNumber (const char * dev, const char * name, double valu
             {
               HorizontalCoordsNP.s = IPS_ALERT;
               DEBUG(INDI::Logger::DBG_ERROR, "Altitude or Azimuth missing or invalid");
-              IDSetNumber(&HorizontalCoordsNP, NULL);
+              IDSetNumber(&HorizontalCoordsNP, nullptr);
               return false;
             }
         }*/
@@ -742,7 +742,7 @@ void CelestronGPS::mountSim ()
     int nlocked;
 
     /* update elapsed time since last poll, don't presume exactly POLLMS */
-    gettimeofday (&tv, NULL);
+    gettimeofday (&tv, nullptr);
 
     if (ltv.tv_sec == 0 && ltv.tv_usec == 0)
         ltv = tv;
@@ -1116,7 +1116,7 @@ bool CelestronGPS::setTrackMode(CELESTRON_TRACK_MODE mode)
         IUResetSwitch(&TrackSP);
         TrackS[mode].s = ISS_ON;
         TrackSP.s = IPS_OK;
-        IDSetSwitch(&TrackSP, NULL);
+        IDSetSwitch(&TrackSP, nullptr);
 
         return true;
     }
@@ -1172,7 +1172,7 @@ IPState CelestronGPS::GuideNorth(float ms)
     // Set slew to guiding
     IUResetSwitch(&SlewRateSP);
     SlewRateS[SLEW_GUIDE].s = ISS_ON;
-    IDSetSwitch(&SlewRateSP, NULL);
+    IDSetSwitch(&SlewRateSP, nullptr);
     guide_direction = CELESTRON_N;
     GuideNSTID = IEAddTimer (ms, guideTimeoutHelperN, this);
     return IPS_BUSY;
@@ -1223,7 +1223,7 @@ IPState CelestronGPS::GuideSouth(float ms)
     // Set slew to guiding
     IUResetSwitch(&SlewRateSP);
     SlewRateS[SLEW_GUIDE].s = ISS_ON;
-    IDSetSwitch(&SlewRateSP, NULL);
+    IDSetSwitch(&SlewRateSP, nullptr);
     guide_direction = CELESTRON_S;
     GuideNSTID = IEAddTimer (ms, guideTimeoutHelperS, this);
     return IPS_BUSY;
@@ -1274,7 +1274,7 @@ IPState CelestronGPS::GuideEast(float ms)
     // Set slew to guiding
     IUResetSwitch(&SlewRateSP);
     SlewRateS[SLEW_GUIDE].s = ISS_ON;
-    IDSetSwitch(&SlewRateSP, NULL);
+    IDSetSwitch(&SlewRateSP, nullptr);
     guide_direction = CELESTRON_E;
     GuideWETID = IEAddTimer (ms, guideTimeoutHelperE, this);
     return IPS_BUSY;
@@ -1327,7 +1327,7 @@ IPState CelestronGPS::GuideWest(float ms)
     // Set slew to guiding
     IUResetSwitch(&SlewRateSP);
     SlewRateS[SLEW_GUIDE].s = ISS_ON;
-    IDSetSwitch(&SlewRateSP, NULL);
+    IDSetSwitch(&SlewRateSP, nullptr);
     guide_direction = CELESTRON_W;
     GuideWETID = IEAddTimer (ms, guideTimeoutHelperW, this);
     return IPS_BUSY;
@@ -1383,8 +1383,8 @@ void CelestronGPS::guideTimeout(CELESTRON_DIRECTION calldir)
         MovementWESP.s = IPS_IDLE;
         IUResetSwitch(&MovementNSSP);
         IUResetSwitch(&MovementWESP);
-        IDSetSwitch(&MovementNSSP, NULL);
-        IDSetSwitch(&MovementWESP, NULL);
+        IDSetSwitch(&MovementNSSP, nullptr);
+        IDSetSwitch(&MovementWESP, nullptr);
         IERmTimer(GuideNSTID);
         IERmTimer(GuideWETID);
 
@@ -1402,10 +1402,10 @@ void CelestronGPS::guideTimeout(CELESTRON_DIRECTION calldir)
                 GuideNSNP.np[1].value = 0;
 
             GuideNSNP.s = IPS_IDLE;
-            IDSetNumber(&GuideNSNP, NULL);
+            IDSetNumber(&GuideNSNP, nullptr);
             MovementNSSP.s = IPS_IDLE;
             IUResetSwitch(&MovementNSSP);
-            IDSetSwitch(&MovementNSSP, NULL);
+            IDSetSwitch(&MovementNSSP, nullptr);
         }
         if (calldir == CELESTRON_W || calldir == CELESTRON_E)
         {
@@ -1416,10 +1416,10 @@ void CelestronGPS::guideTimeout(CELESTRON_DIRECTION calldir)
                 GuideWENP.np[1].value = 0;
 
             GuideWENP.s = IPS_IDLE;
-            IDSetNumber(&GuideWENP, NULL);
+            IDSetNumber(&GuideWENP, nullptr);
             MovementWESP.s = IPS_IDLE;
             IUResetSwitch(&MovementWESP);
-            IDSetSwitch(&MovementWESP, NULL);
+            IDSetSwitch(&MovementWESP, nullptr);
         }
     }
 
@@ -1448,7 +1448,7 @@ void CelestronGPS::guideTimeout(CELESTRON_DIRECTION calldir)
         GuideNSNP.np[1].value = 0;
         GuideNSNP.s = IPS_IDLE;
         GuideNSTID = 0;
-        IDSetNumber(&GuideNSNP, NULL);
+        IDSetNumber(&GuideNSNP, nullptr);
     }
     if (calldir == CELESTRON_W || calldir == CELESTRON_E || guide_direction == -1)
     {
@@ -1456,7 +1456,7 @@ void CelestronGPS::guideTimeout(CELESTRON_DIRECTION calldir)
         GuideWENP.np[1].value = 0;
         GuideWENP.s = IPS_IDLE;
         GuideWETID = 0;
-        IDSetNumber(&GuideWENP, NULL);
+        IDSetNumber(&GuideWENP, nullptr);
     }
 
     DEBUG(INDI::Logger::DBG_WARNING, "GUIDE CMD COMPLETED");

@@ -183,7 +183,7 @@ bool AstrometryDriver::ISNewBLOB(const char * dev, const char * name, int sizes[
         if (!strcmp(name, SolverDataBP.name))
         {
             SolverDataBP.s = IPS_OK;
-            IDSetBLOB(&SolverDataBP, NULL);
+            IDSetBLOB(&SolverDataBP, nullptr);
 
             // If the client explicitly uploaded the data then we solve it.
             if (SolverS[0].s == ISS_OFF)
@@ -214,7 +214,7 @@ bool AstrometryDriver::ISNewText (const char * dev, const char * name, char * te
         {
             ActiveDeviceTP.s = IPS_OK;
             IUUpdateText(&ActiveDeviceTP, texts, names, n);
-            IDSetText(&ActiveDeviceTP, NULL);
+            IDSetText(&ActiveDeviceTP, nullptr);
 
             // Update the property name!
             strncpy(CCDDataBP.device, ActiveDeviceT[0].text, MAXINDIDEVICE);
@@ -229,7 +229,7 @@ bool AstrometryDriver::ISNewText (const char * dev, const char * name, char * te
         {
             IUUpdateText(&SolverSettingsTP, texts, names, n);
             SolverSettingsTP.s = IPS_OK;
-            IDSetText(&SolverSettingsTP, NULL);
+            IDSetText(&SolverSettingsTP, nullptr);
             return true;
         }
     }
@@ -260,7 +260,7 @@ bool AstrometryDriver::ISNewSwitch (const char * dev, const char * name, ISState
                 deleteProperty(SolverResultNP.name);
             }
 
-            IDSetSwitch(&SolverSP, NULL);
+            IDSetSwitch(&SolverSP, nullptr);
 
             pthread_mutex_unlock(&lock);
             return true;
@@ -290,7 +290,7 @@ bool AstrometryDriver::saveConfigItems(FILE * fp)
 
 bool AstrometryDriver::processBLOB(uint8_t * data, uint32_t size, uint32_t len)
 {
-    FILE * fp = NULL;
+    FILE * fp = nullptr;
     char imageFileName[MAXRBUF];
 
     uint8_t * processedData = data;
@@ -301,7 +301,7 @@ bool AstrometryDriver::processBLOB(uint8_t * data, uint32_t size, uint32_t len)
         uint8_t * dataBuffer = new uint8_t[size];
         uLongf destLen = size;
 
-        if (dataBuffer == NULL)
+        if (dataBuffer == nullptr)
         {
             DEBUG(INDI::Logger::DBG_DEBUG, "Unable to allocate memory for data buffer");
             return false;
@@ -326,7 +326,7 @@ bool AstrometryDriver::processBLOB(uint8_t * data, uint32_t size, uint32_t len)
     strncpy(imageFileName, "/tmp/ccdsolver.fits", MAXRBUF);
 
     fp = fopen(imageFileName, "w");
-    if (fp == NULL)
+    if (fp == nullptr)
     {
         DEBUGF(INDI::Logger::DBG_ERROR, "Unable to save image file (%s). %s", imageFileName, strerror(errno));
         return false;
@@ -345,16 +345,16 @@ bool AstrometryDriver::processBLOB(uint8_t * data, uint32_t size, uint32_t len)
     pthread_mutex_lock(&lock);
     SolverSP.s = IPS_BUSY;
     DEBUG(INDI::Logger::DBG_SESSION, "Solving image...");
-    IDSetSwitch(&SolverSP, NULL);
+    IDSetSwitch(&SolverSP, nullptr);
     pthread_mutex_unlock(&lock);
 
-    int result = pthread_create( &solverThread, NULL, &AstrometryDriver::runSolverHelper, this);
+    int result = pthread_create( &solverThread, nullptr, &AstrometryDriver::runSolverHelper, this);
 
     if (result != 0)
     {
         SolverSP.s = IPS_ALERT;
         DEBUGF(INDI::Logger::DBG_SESSION, "Failed to create solver thread: %s", strerror(errno));
-        IDSetSwitch(&SolverSP, NULL);
+        IDSetSwitch(&SolverSP, nullptr);
     }
 
     return true;
@@ -363,7 +363,7 @@ bool AstrometryDriver::processBLOB(uint8_t * data, uint32_t size, uint32_t len)
 void * AstrometryDriver::runSolverHelper(void * context)
 {
     (static_cast<AstrometryDriver *> (context))->runSolver();
-    return NULL;
+    return nullptr;
 }
 
 void AstrometryDriver::runSolver()
@@ -374,12 +374,12 @@ void AstrometryDriver::runSolver()
 
     DEBUGF(INDI::Logger::DBG_DEBUG, "%s", cmd);
     FILE * handle = popen(cmd, "r");
-    if (handle == NULL)
+    if (handle == nullptr)
     {
         DEBUGF(INDI::Logger::DBG_DEBUG, "Failed to run solver: %s", strerror(errno));
         pthread_mutex_lock(&lock);
         SolverSP.s = IPS_ALERT;
-        IDSetSwitch(&SolverSP, NULL);
+        IDSetSwitch(&SolverSP, nullptr);
         pthread_mutex_unlock(&lock);
         return;
     }
@@ -412,11 +412,11 @@ void AstrometryDriver::runSolver()
             SolverResultN[ASTROMETRY_RESULTS_PARITY].value = parity;
 
             SolverResultNP.s = IPS_OK;
-            IDSetNumber(&SolverResultNP, NULL);
+            IDSetNumber(&SolverResultNP, nullptr);
 
             pthread_mutex_lock(&lock);
             SolverSP.s = IPS_OK;
-            IDSetSwitch(&SolverSP, NULL);
+            IDSetSwitch(&SolverSP, nullptr);
             pthread_mutex_unlock(&lock);
 
             fclose(handle);
@@ -428,7 +428,7 @@ void AstrometryDriver::runSolver()
         if (SolverS[1].s == ISS_ON)
         {
             SolverSP.s = IPS_IDLE;
-            IDSetSwitch(&SolverSP, NULL);
+            IDSetSwitch(&SolverSP, nullptr);
             pthread_mutex_unlock(&lock);
             fclose(handle);
             DEBUG(INDI::Logger::DBG_SESSION, "Solver cancelled.");
@@ -441,7 +441,7 @@ void AstrometryDriver::runSolver()
 
     pthread_mutex_lock(&lock);
     SolverSP.s = IPS_ALERT;
-    IDSetSwitch(&SolverSP, NULL);
+    IDSetSwitch(&SolverSP, nullptr);
     DEBUG(INDI::Logger::DBG_SESSION, "Solver failed.");
     pthread_mutex_unlock(&lock);
 

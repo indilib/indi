@@ -447,7 +447,7 @@ bool LX200Generic::ReadScopeStatus()
             // Set slew mode to "Centering"
             IUResetSwitch(&SlewRateSP);
             SlewRateS[SLEW_CENTERING].s = ISS_ON;
-            IDSetSwitch(&SlewRateSP, NULL);
+            IDSetSwitch(&SlewRateSP, nullptr);
 
             TrackState = SCOPE_TRACKING;
             IDMessage(getDeviceName(), "Slew is complete. Tracking...");
@@ -508,7 +508,7 @@ bool LX200Generic::Goto(double r, double d)
         AbortSP.s = IPS_OK;
         EqNP.s       = IPS_IDLE;
         IDSetSwitch(&AbortSP, "Slew aborted.");
-        IDSetNumber(&EqNP, NULL);
+        IDSetNumber(&EqNP, nullptr);
 
         if (MovementNSSP.s == IPS_BUSY || MovementWESP.s == IPS_BUSY)
         {
@@ -516,8 +516,8 @@ bool LX200Generic::Goto(double r, double d)
             EqNP.s       = IPS_IDLE;
             IUResetSwitch(&MovementNSSP);
             IUResetSwitch(&MovementWESP);
-            IDSetSwitch(&MovementNSSP, NULL);
-            IDSetSwitch(&MovementWESP, NULL);
+            IDSetSwitch(&MovementNSSP, nullptr);
+            IDSetSwitch(&MovementWESP, nullptr);
         }
 
         // sleep for 100 mseconds
@@ -601,7 +601,7 @@ bool LX200Generic::Park()
             AbortSP.s    = IPS_OK;
             EqNP.s       = IPS_IDLE;
             IDSetSwitch(&AbortSP, "Slew aborted.");
-            IDSetNumber(&EqNP, NULL);
+            IDSetNumber(&EqNP, nullptr);
 
             if (MovementNSSP.s == IPS_BUSY || MovementWESP.s == IPS_BUSY)
             {
@@ -610,8 +610,8 @@ bool LX200Generic::Park()
                 IUResetSwitch(&MovementNSSP);
                 IUResetSwitch(&MovementWESP);
 
-                IDSetSwitch(&MovementNSSP, NULL);
-                IDSetSwitch(&MovementWESP, NULL);
+                IDSetSwitch(&MovementNSSP, nullptr);
+                IDSetSwitch(&MovementWESP, nullptr);
             }
 
             // sleep for 100 msec
@@ -720,8 +720,8 @@ bool LX200Generic::Abort()
         }
 
         IDMessage(getDeviceName(), "Guide aborted.");
-        IDSetNumber(&GuideNSNP, NULL);
-        IDSetNumber(&GuideWENP, NULL);
+        IDSetNumber(&GuideNSNP, nullptr);
+        IDSetNumber(&GuideWENP, nullptr);
 
         return true;
     }
@@ -850,7 +850,7 @@ bool LX200Generic::ISNewNumber (const char * dev, const char * name, double valu
                 TrackModeS[3].s = ISS_ON;
                 TrackModeSP.s   = IPS_OK;
                 selectTrackingMode(PortFD, trackingMode);
-                IDSetSwitch(&TrackModeSP, NULL);
+                IDSetSwitch(&TrackModeSP, nullptr);
             }
 
             return true;
@@ -866,7 +866,7 @@ bool LX200Generic::ISNewNumber (const char * dev, const char * name, double valu
 
             FocusTimerNP.s = IPS_OK;
 
-            IDSetNumber(&FocusTimerNP, NULL);
+            IDSetNumber(&FocusTimerNP, nullptr);
 
             if (isDebug())
                 IDLog("Setting focus timer to %g\n", FocusTimerN[0].value);
@@ -907,7 +907,7 @@ bool LX200Generic::ISNewSwitch (const char * dev, const char * name, ISState * s
             }
 
             AlignmentSP.s = IPS_OK;
-            IDSetSwitch (&AlignmentSP, NULL);
+            IDSetSwitch (&AlignmentSP, nullptr);
             return true;
         }
 
@@ -938,8 +938,8 @@ bool LX200Generic::ISNewSwitch (const char * dev, const char * name, ISState * s
 
             SiteNameTP.s = SiteSP.s = IPS_OK;
 
-            IDSetText   (&SiteNameTP, NULL);
-            IDSetSwitch (&SiteSP, NULL);
+            IDSetText   (&SiteNameTP, nullptr);
+            IDSetSwitch (&SiteSP, nullptr);
 
             return false;
         }
@@ -968,7 +968,7 @@ bool LX200Generic::ISNewSwitch (const char * dev, const char * name, ISState * s
                 IUResetSwitch(&FocusMotionSP);
                 FocusMotionSP.s = IPS_IDLE;
                 setFocuserSpeedMode(PortFD, 0);
-                IDSetSwitch(&FocusMotionSP, NULL);
+                IDSetSwitch(&FocusMotionSP, nullptr);
                 return true;
             }
 
@@ -988,7 +988,7 @@ bool LX200Generic::ISNewSwitch (const char * dev, const char * name, ISState * s
             }
 
             FocusMotionSP.s = IPS_OK;
-            IDSetSwitch(&FocusMotionSP, NULL);
+            IDSetSwitch(&FocusMotionSP, nullptr);
             return true;
         }
 
@@ -1007,14 +1007,14 @@ bool LX200Generic::ISNewSwitch (const char * dev, const char * name, ISState * s
             }
 
             // Only update tracking frequency if it is defined and not deleted by child classes
-            if (isSimulation() == false && getProperty(TrackingFreqNP.name, INDI_NUMBER) != NULL)
+            if (isSimulation() == false && getProperty(TrackingFreqNP.name, INDI_NUMBER) != nullptr)
             {
                 getTrackFreq(PortFD, &TrackFreqN[0].value);
-                IDSetNumber(&TrackingFreqNP, NULL);
+                IDSetNumber(&TrackingFreqNP, nullptr);
             }
 
             TrackModeSP.s = IPS_OK;
-            IDSetSwitch(&TrackModeSP, NULL);
+            IDSetSwitch(&TrackModeSP, nullptr);
             return true;
         }
 
@@ -1032,14 +1032,14 @@ bool LX200Generic::ISNewSwitch (const char * dev, const char * name, ISState * s
                 IUResetSwitch(&FocusMotionSP);
                 FocusMotionSP.s = IPS_IDLE;
                 FocusTimerNP.s  = IPS_IDLE;
-                IDSetSwitch(&FocusMotionSP, NULL);
-                IDSetNumber(&FocusTimerNP, NULL);
+                IDSetSwitch(&FocusMotionSP, nullptr);
+                IDSetNumber(&FocusTimerNP, nullptr);
             }
 
             if (isSimulation() == false)
                 setFocuserSpeedMode(PortFD, index);
             FocusModeSP.s = IPS_OK;
-            IDSetSwitch(&FocusModeSP, NULL);
+            IDSetSwitch(&FocusModeSP, nullptr);
             return true;
         }
 
@@ -1051,7 +1051,7 @@ bool LX200Generic::ISNewSwitch (const char * dev, const char * name, ISState * s
             IUUpdateSwitch(&UsePulseCmdSP, states, names, n);
 
             UsePulseCmdSP.s = IPS_OK;
-            IDSetSwitch(&UsePulseCmdSP, NULL);
+            IDSetSwitch(&UsePulseCmdSP, nullptr);
             return true;
         }
 
@@ -1080,7 +1080,7 @@ bool LX200Generic::SetSlewRate(int index)
     }
 
     SlewRateSP.s = IPS_OK;
-    IDSetSwitch(&SlewRateSP, NULL);
+    IDSetSwitch(&SlewRateSP, nullptr);
     return true;
 }
 
@@ -1126,11 +1126,11 @@ void LX200Generic::updateFocusTimer()
                 IUResetSwitch(&FocusModeSP);
                 FocusModeS[0].s = ISS_ON;
 
-                IDSetSwitch(&FocusModeSP, NULL);
-                IDSetSwitch(&FocusMotionSP, NULL);
+                IDSetSwitch(&FocusModeSP, nullptr);
+                IDSetSwitch(&FocusMotionSP, nullptr);
             }
 
-            IDSetNumber(&FocusTimerNP, NULL);
+            IDSetNumber(&FocusTimerNP, nullptr);
 
             if (FocusTimerN[0].value > 0)
                 IEAddTimer(50, LX200Generic::updateFocusHelper, this);
@@ -1153,7 +1153,7 @@ void LX200Generic::mountSim ()
     int nlocked;
 
     /* update elapsed time since last poll, don't presume exactly POLLMS */
-    gettimeofday (&tv, NULL);
+    gettimeofday (&tv, nullptr);
 
     if (ltv.tv_sec == 0 && ltv.tv_usec == 0)
         ltv = tv;
@@ -1243,12 +1243,12 @@ void LX200Generic::getBasicData()
         if (getSiteName(PortFD, SiteNameT[0].text, currentSiteNum) < 0)
             IDMessage(getDeviceName(), "Failed to get site name from device");
         else
-            IDSetText   (&SiteNameTP, NULL);
+            IDSetText   (&SiteNameTP, nullptr);
 
         if (getTrackFreq(PortFD, &TrackFreqN[0].value) < 0)
             IDMessage(getDeviceName(), "Failed to get tracking frequency from device.");
         else
-            IDSetNumber (&TrackingFreqNP, NULL);
+            IDSetNumber (&TrackingFreqNP, nullptr);
     }
 
     sendScopeLocation();
@@ -1297,7 +1297,7 @@ void LX200Generic::getAlignment()
     }
 
     AlignmentSP.s = IPS_OK;
-    IDSetSwitch (&AlignmentSP, NULL);
+    IDSetSwitch (&AlignmentSP, nullptr);
 }
 
 void LX200Generic::sendScopeTime()
@@ -1316,7 +1316,7 @@ void LX200Generic::sendScopeTime()
         IDLog("Telescope ISO date and time: %s\n", cdate);
         IUSaveText(&TimeT[0], cdate);
         IUSaveText(&TimeT[1], "3");
-        IDSetText(&TimeTP, NULL);
+        IDSetText(&TimeTP, nullptr);
         return;
     }
 
@@ -1369,7 +1369,7 @@ void LX200Generic::sendScopeTime()
     }
 
     // Let's send everything to the client
-    IDSetText(&TimeTP, NULL);
+    IDSetText(&TimeTP, nullptr);
 }
 
 void LX200Generic::sendScopeLocation()
@@ -1381,7 +1381,7 @@ void LX200Generic::sendScopeLocation()
         LocationNP.np[0].value = 29.5;
         LocationNP.np[1].value = 48.0;
         LocationNP.s = IPS_OK;
-        IDSetNumber(&LocationNP, NULL);
+        IDSetNumber(&LocationNP, nullptr);
         return;
     }
 
@@ -1415,7 +1415,7 @@ void LX200Generic::sendScopeLocation()
         }
     }
 
-    IDSetNumber (&LocationNP, NULL);
+    IDSetNumber (&LocationNP, nullptr);
 }
 
 IPState LX200Generic::GuideNorth(float ms)
@@ -1465,7 +1465,7 @@ IPState LX200Generic::GuideNorth(float ms)
     // Set slew to guiding
     IUResetSwitch(&SlewRateSP);
     SlewRateS[SLEW_GUIDE].s = ISS_ON;
-    IDSetSwitch(&SlewRateSP, NULL);
+    IDSetSwitch(&SlewRateSP, nullptr);
     guide_direction = LX200_NORTH;
     GuideNSTID = IEAddTimer (ms, guideTimeoutHelper, this);
     return IPS_BUSY;
@@ -1518,7 +1518,7 @@ IPState LX200Generic::GuideSouth(float ms)
     // Set slew to guiding
     IUResetSwitch(&SlewRateSP);
     SlewRateS[SLEW_GUIDE].s = ISS_ON;
-    IDSetSwitch(&SlewRateSP, NULL);
+    IDSetSwitch(&SlewRateSP, nullptr);
     guide_direction = LX200_SOUTH;
     GuideNSTID = IEAddTimer (ms, guideTimeoutHelper, this);
     return IPS_BUSY;
@@ -1573,7 +1573,7 @@ IPState LX200Generic::GuideEast(float ms)
     // Set slew to guiding
     IUResetSwitch(&SlewRateSP);
     SlewRateS[SLEW_GUIDE].s = ISS_ON;
-    IDSetSwitch(&SlewRateSP, NULL);
+    IDSetSwitch(&SlewRateSP, nullptr);
     guide_direction = LX200_EAST;
     GuideWETID = IEAddTimer (ms, guideTimeoutHelper, this);
     return IPS_BUSY;
@@ -1627,7 +1627,7 @@ IPState LX200Generic::GuideWest(float ms)
     // Set slew to guiding
     IUResetSwitch(&SlewRateSP);
     SlewRateS[SLEW_GUIDE].s = ISS_ON;
-    IDSetSwitch(&SlewRateSP, NULL);
+    IDSetSwitch(&SlewRateSP, nullptr);
     guide_direction = LX200_WEST;
     GuideWETID = IEAddTimer (ms, guideTimeoutHelper, this);
     return IPS_BUSY;
@@ -1655,8 +1655,8 @@ void LX200Generic::guideTimeout()
         MovementWESP.s = IPS_IDLE;
         IUResetSwitch(&MovementNSSP);
         IUResetSwitch(&MovementWESP);
-        IDSetSwitch(&MovementNSSP, NULL);
-        IDSetSwitch(&MovementWESP, NULL);
+        IDSetSwitch(&MovementNSSP, nullptr);
+        IDSetSwitch(&MovementWESP, nullptr);
         IERmTimer(GuideNSTID);
         IERmTimer(GuideWETID);
 
@@ -1674,10 +1674,10 @@ void LX200Generic::guideTimeout()
                 GuideNSNP.np[1].value = 0;
 
             GuideNSNP.s = IPS_IDLE;
-            IDSetNumber(&GuideNSNP, NULL);
+            IDSetNumber(&GuideNSNP, nullptr);
             MovementNSSP.s = IPS_IDLE;
             IUResetSwitch(&MovementNSSP);
-            IDSetSwitch(&MovementNSSP, NULL);
+            IDSetSwitch(&MovementNSSP, nullptr);
         }
         if (guide_direction == LX200_WEST || guide_direction == LX200_EAST)
         {
@@ -1688,10 +1688,10 @@ void LX200Generic::guideTimeout()
                 GuideWENP.np[1].value = 0;
 
             GuideWENP.s = IPS_IDLE;
-            IDSetNumber(&GuideWENP, NULL);
+            IDSetNumber(&GuideWENP, nullptr);
             MovementWESP.s = IPS_IDLE;
             IUResetSwitch(&MovementWESP);
-            IDSetSwitch(&MovementWESP, NULL);
+            IDSetSwitch(&MovementWESP, nullptr);
         }
     }
     if (guide_direction == LX200_NORTH || guide_direction == LX200_SOUTH || guide_direction == -1)
@@ -1700,7 +1700,7 @@ void LX200Generic::guideTimeout()
         GuideNSNP.np[1].value = 0;
         GuideNSNP.s = IPS_IDLE;
         GuideNSTID = 0;
-        IDSetNumber(&GuideNSNP, NULL);
+        IDSetNumber(&GuideNSNP, nullptr);
     }
     if (guide_direction == LX200_WEST || guide_direction == LX200_EAST || guide_direction == -1)
     {
@@ -1708,7 +1708,7 @@ void LX200Generic::guideTimeout()
         GuideWENP.np[1].value = 0;
         GuideWENP.s = IPS_IDLE;
         GuideWETID = 0;
-        IDSetNumber(&GuideWENP, NULL);
+        IDSetNumber(&GuideWENP, nullptr);
     }
 }
 

@@ -73,15 +73,15 @@ V4L2_Builtin_Decoder::V4L2_Builtin_Decoder()
     useSoftCrop = false;
     doCrop = false;
     doQuantization = false;
-    YBuf         = NULL;
-    UBuf         = NULL;
-    VBuf         = NULL;
-    yuvBuffer    = NULL;
-    yuyvBuffer    = NULL;
-    colorBuffer  = NULL;
-    rgb24_buffer = NULL;
-    linearBuffer    = NULL;
-    //cropbuf = NULL;
+    YBuf         = nullptr;
+    UBuf         = nullptr;
+    VBuf         = nullptr;
+    yuvBuffer    = nullptr;
+    yuyvBuffer    = nullptr;
+    colorBuffer  = nullptr;
+    rgb24_buffer = nullptr;
+    linearBuffer    = nullptr;
+    //cropbuf = nullptr;
     for (i = 0; i < 32; i++)
     {
         lut5[i] = (char)(((float)i * 255.0) / 31.0);
@@ -96,19 +96,19 @@ V4L2_Builtin_Decoder::V4L2_Builtin_Decoder()
 
 V4L2_Builtin_Decoder::~V4L2_Builtin_Decoder()
 {
-    YBuf = NULL;
-    UBuf = NULL;
-    VBuf = NULL;
+    YBuf = nullptr;
+    UBuf = nullptr;
+    VBuf = nullptr;
     if (yuvBuffer) delete [] (yuvBuffer);
-    yuvBuffer = NULL;
+    yuvBuffer = nullptr;
     if (yuyvBuffer) delete [] (yuyvBuffer);
-    yuyvBuffer = NULL;
+    yuyvBuffer = nullptr;
     if (colorBuffer) delete [] (colorBuffer);
-    colorBuffer = NULL;
+    colorBuffer = nullptr;
     if (rgb24_buffer) delete [] (rgb24_buffer);
-    rgb24_buffer = NULL;
+    rgb24_buffer = nullptr;
     if (linearBuffer) delete [] (linearBuffer);
-    linearBuffer = NULL;
+    linearBuffer = nullptr;
 };
 
 void V4L2_Builtin_Decoder::init()
@@ -537,20 +537,20 @@ void V4L2_Builtin_Decoder::setLinearization(bool dolinearization)
 }
 void V4L2_Builtin_Decoder::allocBuffers()
 {
-    YBuf = NULL;
-    UBuf = NULL;
-    VBuf = NULL;
+    YBuf = nullptr;
+    UBuf = nullptr;
+    VBuf = nullptr;
     if (yuvBuffer) delete [](yuvBuffer);
-    yuvBuffer = NULL;
+    yuvBuffer = nullptr;
     if (yuyvBuffer) delete [] (yuyvBuffer);
-    yuyvBuffer = NULL;
+    yuyvBuffer = nullptr;
     if (colorBuffer) delete [] (colorBuffer);
-    colorBuffer = NULL;
+    colorBuffer = nullptr;
     if (rgb24_buffer) delete [] (rgb24_buffer);
-    rgb24_buffer = NULL;
+    rgb24_buffer = nullptr;
     if (linearBuffer) delete [](linearBuffer);
-    linearBuffer = NULL;
-    //if (cropbuf) free(cropbuf); cropbuf=NULL;
+    linearBuffer = nullptr;
+    //if (cropbuf) free(cropbuf); cropbuf=nullptr;
 
     if (doCrop)
     {

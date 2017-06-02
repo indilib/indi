@@ -731,7 +731,7 @@ bool NFocus::ISNewNumber (const char * dev, const char * name, double values[], 
                     /* Set the nfocus state to BUSY */
                     InOutScalarNP.s = IPS_BUSY;
                     /* kraemerf
-                    IDSetNumber(&InOutScalarNP, NULL);
+                    IDSetNumber(&InOutScalarNP, nullptr);
 
                         if(( ret= updateNFInOutScalar(&new_ioscalar)) < 0) {
 
@@ -834,7 +834,7 @@ bool NFocus::ISNewNumber (const char * dev, const char * name, double values[], 
             if (nset == 1)
             {
 
-                IDSetNumber(&MinMaxPositionNP, NULL);
+                IDSetNumber(&MinMaxPositionNP, nullptr);
 
                 if(( ret = setNFMaxPosition(&new_maxt)) < 0 )
                 {
@@ -884,8 +884,8 @@ bool NFocus::ISNewNumber (const char * dev, const char * name, double values[], 
             DEBUGF(INDI::Logger::DBG_DEBUG, "Focuser sycned to %g ticks", new_apos);
             SyncN[0].value = new_apos;
             SyncNP.s = IPS_OK;
-            IDSetNumber(&SyncNP, NULL);
-            IDSetNumber(&FocusAbsPosNP, NULL);
+            IDSetNumber(&SyncNP, nullptr);
+            IDSetNumber(&FocusAbsPosNP, nullptr);
             return true;
 
         }
@@ -913,7 +913,7 @@ bool NFocus::GetFocusParams ()
     }
 
     InOutScalarNP.s = IPS_OK;
-    IDSetNumber(&InOutScalarNP, NULL);
+    IDSetNumber(&InOutScalarNP, nullptr);
 
     if(( ret = updateNFTemperature(&currentTemperature)) < 0)
     {
@@ -923,7 +923,7 @@ bool NFocus::GetFocusParams ()
     }
 
     TemperatureNP.s = IPS_OK;
-    IDSetNumber(&TemperatureNP, NULL);
+    IDSetNumber(&TemperatureNP, nullptr);
 
     currentOnTime = currentOffTime = currentFastDelay = 0 ;
 
@@ -935,7 +935,7 @@ bool NFocus::GetFocusParams ()
     }
 
     SettingsNP.s = IPS_OK;
-    IDSetNumber(&SettingsNP, NULL);
+    IDSetNumber(&SettingsNP, nullptr);
 
     currentMaxTravel = MAXTRAVEL_READOUT ;
     if(( ret = setNFMaxPosition(&currentMaxTravel)) < 0)
@@ -945,7 +945,7 @@ bool NFocus::GetFocusParams ()
         return false;
     }
     MaxTravelNP.s = IPS_OK;
-    IDSetNumber(&MaxTravelNP, NULL);
+    IDSetNumber(&MaxTravelNP, nullptr);
 
     return true;
 }

@@ -139,13 +139,13 @@ bool BaaderDome::SetupParms()
     targetAz = 0;
 
     if (UpdatePosition())
-        IDSetNumber(&DomeAbsPosNP, NULL);
+        IDSetNumber(&DomeAbsPosNP, nullptr);
 
     if (UpdateShutterStatus())
-        IDSetSwitch(&DomeShutterSP, NULL);
+        IDSetSwitch(&DomeShutterSP, nullptr);
 
     if (UpdateFlapStatus())
-        IDSetSwitch(&DomeFlapSP, NULL);
+        IDSetSwitch(&DomeFlapSP, nullptr);
 
     if (InitPark())
     {
@@ -217,7 +217,7 @@ bool BaaderDome::ISNewSwitch (const char * dev, const char * name, ISState * sta
             {
                 CalibrateSP.s = IPS_OK;
                 DEBUG(INDI::Logger::DBG_SESSION, "Dome is already calibrated.");
-                IDSetSwitch(&CalibrateSP, NULL);
+                IDSetSwitch(&CalibrateSP, nullptr);
                 return true;
             }
 
@@ -227,7 +227,7 @@ bool BaaderDome::ISNewSwitch (const char * dev, const char * name, ISState * sta
                 DEBUG(INDI::Logger::DBG_SESSION, "Calibration aborted.");
                 status = DOME_UNKNOWN;
                 CalibrateSP.s = IPS_IDLE;
-                IDSetSwitch(&CalibrateSP, NULL);
+                IDSetSwitch(&CalibrateSP, nullptr);
                 return true;
             }
 
@@ -249,14 +249,14 @@ bool BaaderDome::ISNewSwitch (const char * dev, const char * name, ISState * sta
                 CalibrateSP.s = IPS_ALERT;
                 DEBUG(INDI::Logger::DBG_ERROR, "Calibration failue due to dome motion failure.");
                 status = DOME_UNKNOWN;
-                IDSetSwitch(&CalibrateSP, NULL);
+                IDSetSwitch(&CalibrateSP, nullptr);
                 return false;
             }
 
             DomeAbsPosNP.s = IPS_BUSY;
             CalibrateSP.s = IPS_BUSY;
             DEBUGF(INDI::Logger::DBG_SESSION, "Calibration is in progress. Moving to position %g.", calibrationTarget1);
-            IDSetSwitch(&CalibrateSP, NULL);
+            IDSetSwitch(&CalibrateSP, nullptr);
             return true;
         }
 
@@ -272,7 +272,7 @@ bool BaaderDome::ISNewSwitch (const char * dev, const char * name, ISState * sta
             if (prevStatus == FlapDome)
             {
                 DomeFlapSP.s = IPS_OK;
-                IDSetSwitch(&DomeFlapSP, NULL);
+                IDSetSwitch(&DomeFlapSP, nullptr);
             }
 
             // go back to prev status in case of failure
@@ -495,7 +495,7 @@ bool BaaderDome::UpdatePosition()
             calibrationStage = CALIBRATION_COMPLETE;
             DEBUG(INDI::Logger::DBG_SESSION, "Dome is calibrated.");
             CalibrateSP.s = IPS_OK;
-            IDSetSwitch(&CalibrateSP, NULL);
+            IDSetSwitch(&CalibrateSP, nullptr);
         }
         else if (status == DOME_CALIBRATING)
         {
@@ -503,7 +503,7 @@ bool BaaderDome::UpdatePosition()
             calibrationStage = CALIBRATION_COMPLETE;
             DEBUG(INDI::Logger::DBG_SESSION, "Calibration complete.");
             CalibrateSP.s = IPS_OK;
-            IDSetSwitch(&CalibrateSP, NULL);
+            IDSetSwitch(&CalibrateSP, nullptr);
         }
 
         DomeAbsPosN[0].value = DomeAzToMountAz(domeAz);
@@ -651,10 +651,10 @@ void BaaderDome::TimerHit()
             }
         }
 
-        IDSetNumber(&DomeAbsPosNP, NULL);
+        IDSetNumber(&DomeAbsPosNP, nullptr);
     }
     else
-        IDSetNumber(&DomeAbsPosNP, NULL);
+        IDSetNumber(&DomeAbsPosNP, nullptr);
 
     UpdateShutterStatus();
 
@@ -667,7 +667,7 @@ void BaaderDome::TimerHit()
         }
     }
     else
-        IDSetSwitch(&DomeShutterSP, NULL);
+        IDSetSwitch(&DomeShutterSP, nullptr);
 
     UpdateFlapStatus();
 
@@ -680,7 +680,7 @@ void BaaderDome::TimerHit()
         }
     }
     else
-        IDSetSwitch(&DomeFlapSP, NULL);
+        IDSetSwitch(&DomeFlapSP, nullptr);
 
     SetTimer(POLLMS);
     return;

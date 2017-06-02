@@ -32,16 +32,16 @@ const char * LIBUSB_CALL libusb_error_name(int errcode)
 }
 #endif
 
-static libusb_context * ctx = NULL;
+static libusb_context * ctx = nullptr;
 
 INDI::USBDevice::USBDevice()
 {
-    dev = NULL;
-    usb_handle = NULL;
+    dev = nullptr;
+    usb_handle = nullptr;
     OutputEndpoint = 0;
     InputEndpoint = 0;
 
-    if (ctx == NULL)
+    if (ctx == nullptr)
     {
         int rc = libusb_init(&ctx);
         if (rc < 0)
@@ -95,12 +95,12 @@ libusb_device * INDI::USBDevice::FindDevice(int vendor, int product, int searchi
         }
     }
     libusb_free_device_list(usb_devices, 1);
-    return NULL;
+    return nullptr;
 }
 
 int INDI::USBDevice::Open()
 {
-    if(dev == NULL)
+    if(dev == nullptr)
         return -1;
 
     int rc = libusb_open(dev, &usb_handle);

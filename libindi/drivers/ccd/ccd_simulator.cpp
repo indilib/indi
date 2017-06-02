@@ -136,7 +136,7 @@ bool CCDSim::SetupParms()
     if (HasCooler())
     {
         TemperatureN[0].value = 20;
-        IDSetNumber(&TemperatureNP, NULL);
+        IDSetNumber(&TemperatureNP, nullptr);
     }
 
     //  Kwiq
@@ -156,7 +156,7 @@ bool CCDSim::SetupParms()
     PrimaryCCD.setFrameBufferSize(nbuf);
 
     // Only generate filter names if there are none initially
-    if (FilterNameT == NULL)
+    if (FilterNameT == nullptr)
         GetFilterNames(FILTER_TAB);
 
     return true;
@@ -266,7 +266,7 @@ bool CCDSim::updateProperties()
 
         // Define the Filter Slot and name properties
         defineNumber(&FilterSlotNP);
-        if (FilterNameT != NULL)
+        if (FilterNameT != nullptr)
             defineText(FilterNameTP);
     }
     else
@@ -299,7 +299,7 @@ int CCDSim::SetTemperature(double temperature)
     CoolerS[0].s = ISS_ON;
     CoolerS[1].s = ISS_OFF;
     CoolerSP.s = IPS_BUSY;
-    IDSetSwitch(&CoolerSP, NULL);
+    IDSetSwitch(&CoolerSP, nullptr);
     return 0;
 }
 
@@ -312,7 +312,7 @@ bool CCDSim::StartExposure(float duration)
     ExposureRequest = duration;
 
     PrimaryCCD.setExposureDuration(duration);
-    gettimeofday(&ExpStart, NULL);
+    gettimeofday(&ExpStart, nullptr);
     //  Leave the proper time showing for the draw routines
     DrawCcdFrame(&PrimaryCCD);
     //  Now compress the actual wait time
@@ -327,7 +327,7 @@ bool CCDSim::StartGuideExposure(float n)
     AbortGuideFrame = false;
     GuideCCD.setExposureDuration(n);
     DrawCcdFrame(&GuideCCD);
-    gettimeofday(&GuideExpStart, NULL);
+    gettimeofday(&GuideExpStart, nullptr);
     InGuideExposure = true;
     return true;
 }
@@ -355,7 +355,7 @@ float CCDSim::CalcTimeLeft(timeval start, float req)
     double timesince;
     double timeleft;
     struct timeval now;
-    gettimeofday(&now, NULL);
+    gettimeofday(&now, nullptr);
 
     timesince = (double)(now.tv_sec * 1000.0 + now.tv_usec / 1000) - (double)(start.tv_sec * 1000.0 + start.tv_usec / 1000);
     timesince = timesince / 1000;
@@ -414,7 +414,7 @@ void CCDSim::TimerHit()
             timeleft = 0;
 
         //ImageExposureN[0].value = timeleft;
-        //IDSetNumber(ImageExposureNP, NULL);
+        //IDSetNumber(ImageExposureNP, nullptr);
         GuideCCD.setExposureLeft(timeleft);
 
         if(timeleft < 1.0)
@@ -465,7 +465,7 @@ void CCDSim::TimerHit()
                 TemperatureN[0].value += 0.5;
         }
 
-        IDSetNumber(&TemperatureNP, NULL);
+        IDSetNumber(&TemperatureNP, nullptr);
 
         // Above 20, cooler is off
         if (TemperatureN[0].value >= 20)
@@ -473,7 +473,7 @@ void CCDSim::TimerHit()
             CoolerS[0].s = ISS_OFF;
             CoolerS[0].s = ISS_ON;
             CoolerSP.s = IPS_IDLE;
-            IDSetSwitch(&CoolerSP, NULL);
+            IDSetSwitch(&CoolerSP, nullptr);
         }
     }
 
@@ -659,10 +659,10 @@ int CCDSim::DrawCcdFrame(CCDChip * targetChip)
             sprintf(gsccmd, "gsc -c %8.6f %+8.6f -r %4.1f -m 0 %4.2f -n 3000", rad + PEOffset, cameradec, radius, lookuplimit);
             DEBUGF(INDI::Logger::DBG_DEBUG, "%s", gsccmd);
             pp = popen(gsccmd, "r");
-            if(pp != NULL)
+            if(pp != nullptr)
             {
                 char line[256];
-                while(fgets(line, 256, pp) != NULL)
+                while(fgets(line, 256, pp) != nullptr)
                 {
                     //fprintf(stderr,"%s",line);
 
@@ -1059,7 +1059,7 @@ bool CCDSim::ISNewNumber (const char * dev, const char * name, double values[], 
 
             //  Reset our parameters now
             SetupParms();
-            IDSetNumber(SimulatorSettingsNV, NULL);
+            IDSetNumber(SimulatorSettingsNV, nullptr);
 
             //IDLog("Frame set to %4.0f,%4.0f %4.0f x %4.0f\n",CcdFrameN[0].value,CcdFrameN[1].value,CcdFrameN[2].value,CcdFrameN[3].value);
             //seeing=SimulatorSettingsN[0].value;
@@ -1092,7 +1092,7 @@ bool CCDSim::ISNewSwitch (const char * dev, const char * name, ISState * states,
             TimeFactorSV->s = IPS_OK;
             IUUpdateSwitch(TimeFactorSV, states, names, n);
             //  Update client display
-            IDSetSwitch(TimeFactorSV, NULL);
+            IDSetSwitch(TimeFactorSV, nullptr);
 
             if(TimeFactorS[0].s == ISS_ON    )
             {
@@ -1128,7 +1128,7 @@ bool CCDSim::ISNewSwitch (const char * dev, const char * name, ISState * states,
             TemperatureNP.s = IPS_BUSY;
         }
 
-        IDSetSwitch(&CoolerSP, NULL);
+        IDSetSwitch(&CoolerSP, nullptr);
 
         return true;
     }
@@ -1211,7 +1211,7 @@ bool CCDSim::GetFilterNames(const char * groupName)
 
     const char * filterDesignation[8] = { "Red", "Green", "Blue", "H_Alpha", "SII", "OIII", "LPR", "Luminosity" };
 
-    if (FilterNameT != NULL)
+    if (FilterNameT != nullptr)
         delete FilterNameT;
 
     FilterNameT = new IText[MaxFilter];

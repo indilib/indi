@@ -106,10 +106,10 @@ bool WeatherMeta::initProperties()
     INDI::DefaultDevice::initProperties();
 
     // Active Devices
-    IUFillText(&ActiveDeviceT[0], "ACTIVE_WEATHER_1", "Station #1", NULL);
-    IUFillText(&ActiveDeviceT[1], "ACTIVE_WEATHER_2", "Station #2", NULL);
-    IUFillText(&ActiveDeviceT[2], "ACTIVE_WEATHER_3", "Station #3", NULL);
-    IUFillText(&ActiveDeviceT[3], "ACTIVE_WEATHER_4", "Station #4", NULL);
+    IUFillText(&ActiveDeviceT[0], "ACTIVE_WEATHER_1", "Station #1", nullptr);
+    IUFillText(&ActiveDeviceT[1], "ACTIVE_WEATHER_2", "Station #2", nullptr);
+    IUFillText(&ActiveDeviceT[2], "ACTIVE_WEATHER_3", "Station #3", nullptr);
+    IUFillText(&ActiveDeviceT[3], "ACTIVE_WEATHER_4", "Station #4", nullptr);
     IUFillTextVector(&ActiveDeviceTP, ActiveDeviceT, 4, getDeviceName(), "ACTIVE_DEVICES", "Stations", OPTIONS_TAB, IP_RW, 60, IPS_IDLE);
 
     // Station Status
@@ -173,7 +173,7 @@ bool WeatherMeta::ISNewText (const char * dev, const char * name, char * texts[]
             ActiveDeviceTP.s = IPS_OK;
             IUUpdateText(&ActiveDeviceTP, texts, names, n);
             //  Update client display
-            IDSetText(&ActiveDeviceTP, NULL);
+            IDSetText(&ActiveDeviceTP, nullptr);
 
             if (ActiveDeviceT[0].text)
             {
@@ -272,7 +272,7 @@ void WeatherMeta::updateOverallState()
             StationLP.s = StationL[i].s;
     }
 
-    IDSetLight(&StationLP, NULL);
+    IDSetLight(&StationLP, nullptr);
 }
 
 void WeatherMeta::updateUpdatePeriod()
@@ -288,6 +288,6 @@ void WeatherMeta::updateUpdatePeriod()
     if (minPeriod != UpdatePeriodN[0].max)
     {
         UpdatePeriodN[0].value = minPeriod;
-        IDSetNumber(&UpdatePeriodNP, NULL);
+        IDSetNumber(&UpdatePeriodNP, nullptr);
     }
 }

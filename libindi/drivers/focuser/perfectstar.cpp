@@ -102,7 +102,7 @@ bool PerfectStar::Connect()
 
     handle = hid_open(0x04D8, 0xF812, 0);
 
-    if(handle == NULL)
+    if(handle == nullptr)
     {
         DEBUG(INDI::Logger::DBG_ERROR, "No PerfectStar focuser found.");
         return false;
@@ -110,7 +110,7 @@ bool PerfectStar::Connect()
     else
         SetTimer(POLLMS);
 
-    return (handle != NULL);
+    return (handle != nullptr);
 }
 
 bool PerfectStar::Disconnect()
@@ -212,7 +212,7 @@ void PerfectStar::TimerHit()
             if (FocusRelPosNP.s == IPS_BUSY)
             {
                 FocusRelPosNP.s = IPS_OK;
-                IDSetNumber(&FocusRelPosNP, NULL);
+                IDSetNumber(&FocusRelPosNP, nullptr);
             }
 
             FocusAbsPosNP.s = IPS_OK;
@@ -223,7 +223,7 @@ void PerfectStar::TimerHit()
             if (FocusRelPosNP.s == IPS_BUSY)
             {
                 FocusRelPosNP.s = IPS_OK;
-                IDSetNumber(&FocusRelPosNP, NULL);
+                IDSetNumber(&FocusRelPosNP, nullptr);
             }
 
             FocusAbsPosNP.s = IPS_OK;
@@ -231,7 +231,7 @@ void PerfectStar::TimerHit()
         }
     }
 
-    IDSetNumber(&FocusAbsPosNP, NULL);
+    IDSetNumber(&FocusAbsPosNP, nullptr);
 
     SetTimer(POLLMS);
 }
@@ -265,7 +265,7 @@ bool PerfectStar::ISNewNumber (const char * dev, const char * name, double value
             }
 
             MaxPositionNP.s = IPS_OK;
-            IDSetNumber(&MaxPositionNP, NULL);
+            IDSetNumber(&MaxPositionNP, nullptr);
             return true;
         }
 
@@ -278,7 +278,7 @@ bool PerfectStar::ISNewNumber (const char * dev, const char * name, double value
             else
                 SyncNP.s = IPS_OK;
 
-            IDSetNumber(&SyncNP, NULL);
+            IDSetNumber(&SyncNP, nullptr);
             return true;
         }
 

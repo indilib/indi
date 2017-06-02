@@ -174,7 +174,7 @@ bool TemmaMount::ISNewNumber (const char * dev, const char * name, double values
         {
             IUUpdateNumber(&GuideRateNP, values, names, n);
             GuideRateNP.s = IPS_OK;
-            IDSetNumber(&GuideRateNP, NULL);
+            IDSetNumber(&GuideRateNP, nullptr);
             return true;
         }
         if (!strcmp(name, GuideNSNP.name) || !strcmp(name, GuideWENP.name))

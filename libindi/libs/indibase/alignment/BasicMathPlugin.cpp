@@ -237,7 +237,7 @@ bool BasicMathPlugin::Initialise(InMemoryDatabase * pInMemoryDatabase)
 #ifdef CONVEX_HULL_DEBUGGING
             int ActualFaces = 0;
 #endif
-            if (NULL != CurrentFace)
+            if (nullptr != CurrentFace)
             {
                 do
                 {
@@ -264,7 +264,7 @@ bool BasicMathPlugin::Initialise(InMemoryDatabase * pInMemoryDatabase)
                                                    SyncPoints[CurrentFace->vertex[0]->vnum - 1].TelescopeDirection,
                                                    SyncPoints[CurrentFace->vertex[1]->vnum - 1].TelescopeDirection,
                                                    SyncPoints[CurrentFace->vertex[2]->vnum - 1].TelescopeDirection,
-                                                   CurrentFace->pMatrix, NULL);
+                                                   CurrentFace->pMatrix, nullptr);
                     }
                     CurrentFace = CurrentFace->next;
                 }
@@ -276,7 +276,7 @@ bool BasicMathPlugin::Initialise(InMemoryDatabase * pInMemoryDatabase)
 #ifdef CONVEX_HULL_DEBUGGING
             int ApparentFaces = 0;
 #endif
-            if (NULL != CurrentFace)
+            if (nullptr != CurrentFace)
             {
                 do
                 {
@@ -303,7 +303,7 @@ bool BasicMathPlugin::Initialise(InMemoryDatabase * pInMemoryDatabase)
                                                    ActualDirectionCosines[CurrentFace->vertex[0]->vnum - 1],
                                                    ActualDirectionCosines[CurrentFace->vertex[1]->vnum - 1],
                                                    ActualDirectionCosines[CurrentFace->vertex[2]->vnum - 1],
-                                                   CurrentFace->pMatrix, NULL);
+                                                   CurrentFace->pMatrix, nullptr);
                     }
                     CurrentFace = CurrentFace->next;
                 }
@@ -332,7 +332,7 @@ bool BasicMathPlugin::TransformCelestialToTelescope(const double RightAscension,
     ActualRaDec.dec = Declination;
     ln_lnlat_posn Position;
 
-    if ((NULL == pInMemoryDatabase) || !pInMemoryDatabase->GetDatabaseReferencePosition(Position)) // Should check that this the same as the current observing position
+    if ((nullptr == pInMemoryDatabase) || !pInMemoryDatabase->GetDatabaseReferencePosition(Position)) // Should check that this the same as the current observing position
         return false;
 
     ln_get_hrz_from_equ(&ActualRaDec, &Position, ln_get_julian_from_sys() + JulianOffset, &ActualAltAz);
@@ -389,7 +389,7 @@ bool BasicMathPlugin::TransformCelestialToTelescope(const double RightAscension,
         default:
         {
             gsl_matrix * pTransform;
-            gsl_matrix * pComputedTransform = NULL;
+            gsl_matrix * pComputedTransform = nullptr;
             // Scale the actual telescope direction vector to make sure it traverses the unit sphere.
             TelescopeDirectionVector ScaledActualVector = ActualVector * 2.0;
             // Shoot the scaled vector in the into the list of actual facets
@@ -398,7 +398,7 @@ bool BasicMathPlugin::TransformCelestialToTelescope(const double RightAscension,
 #ifdef CONVEX_HULL_DEBUGGING
             int ActualFaces = 0;
 #endif
-            if (NULL != CurrentFace)
+            if (nullptr != CurrentFace)
             {
                 do
                 {
@@ -476,7 +476,7 @@ bool BasicMathPlugin::TransformCelestialToTelescope(const double RightAscension,
                     pComputedTransform = gsl_matrix_alloc(3, 3);
                     CalculateTransformMatrices(ActualDirectionCosine1, ActualDirectionCosine2, ActualDirectionCosine3,
                                                pEntry1->TelescopeDirection, pEntry2->TelescopeDirection, pEntry3->TelescopeDirection,
-                                               pComputedTransform, NULL);
+                                               pComputedTransform, nullptr);
                     pTransform = pComputedTransform;
                 }
                 else
@@ -498,7 +498,7 @@ bool BasicMathPlugin::TransformCelestialToTelescope(const double RightAscension,
             ApparentTelescopeDirectionVector.Normalise();
             gsl_vector_free(pGSLActualVector);
             gsl_vector_free(pGSLApparentVector);
-            if (NULL != pComputedTransform)
+            if (nullptr != pComputedTransform)
                 gsl_matrix_free(pComputedTransform);
             break;
         }
@@ -523,7 +523,7 @@ bool BasicMathPlugin::TransformTelescopeToCelestial(const TelescopeDirectionVect
     AltitudeAzimuthFromTelescopeDirectionVector(ApparentTelescopeDirectionVector, ApparentAltAz);
     ASSDEBUGF("Telescope to celestial - Apparent Alt %lf Az %lf", ApparentAltAz.alt, ApparentAltAz.az);
 
-    if ((NULL == pInMemoryDatabase) || !pInMemoryDatabase->GetDatabaseReferencePosition(Position))
+    if ((nullptr == pInMemoryDatabase) || !pInMemoryDatabase->GetDatabaseReferencePosition(Position))
     {
         // Should check that this the same as the current observing position
         ASSDEBUG("No database or no position in database");
@@ -594,7 +594,7 @@ bool BasicMathPlugin::TransformTelescopeToCelestial(const TelescopeDirectionVect
         default:
         {
             gsl_matrix * pTransform;
-            gsl_matrix * pComputedTransform = NULL;
+            gsl_matrix * pComputedTransform = nullptr;
             // Scale the apparent telescope direction vector to make sure it traverses the unit sphere.
             TelescopeDirectionVector ScaledApparentVector = ApparentTelescopeDirectionVector * 2.0;
             // Shoot the scaled vector in the into the list of apparent facets
@@ -603,7 +603,7 @@ bool BasicMathPlugin::TransformTelescopeToCelestial(const TelescopeDirectionVect
 #ifdef CONVEX_HULL_DEBUGGING
             int ApparentFaces = 0;
 #endif
-            if (NULL != CurrentFace)
+            if (nullptr != CurrentFace)
             {
                 do
                 {
@@ -675,7 +675,7 @@ bool BasicMathPlugin::TransformTelescopeToCelestial(const TelescopeDirectionVect
                     pComputedTransform = gsl_matrix_alloc(3, 3);
                     CalculateTransformMatrices(pEntry1->TelescopeDirection, pEntry2->TelescopeDirection, pEntry3->TelescopeDirection,
                                                ActualDirectionCosine1, ActualDirectionCosine2, ActualDirectionCosine3,
-                                               pComputedTransform, NULL);
+                                               pComputedTransform, nullptr);
                     pTransform = pComputedTransform;
                 }
                 else
@@ -703,7 +703,7 @@ bool BasicMathPlugin::TransformTelescopeToCelestial(const TelescopeDirectionVect
             Declination = ActualRaDec.dec;
             gsl_vector_free(pGSLActualVector);
             gsl_vector_free(pGSLApparentVector);
-            if (NULL != pComputedTransform)
+            if (nullptr != pComputedTransform)
                 gsl_matrix_free(pComputedTransform);
             break;
         }

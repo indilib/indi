@@ -225,7 +225,7 @@ bool TCFS::Handshake()
 bool TCFS::Disconnect()
 {
     FocusTemperatureNP->s = IPS_IDLE;
-    IDSetNumber(FocusTemperatureNP, NULL);
+    IDSetNumber(FocusTemperatureNP, nullptr);
 
     dispatch_command(FFMODE);
 
@@ -238,14 +238,14 @@ bool TCFS::Disconnect()
 *****************************************************************/
 bool TCFS::ISNewSwitch (const char * dev, const char * name, ISState * states, char * names[], int n)
 {
-    ISwitch * current_active_switch = NULL, *target_active_switch = NULL;
+    ISwitch * current_active_switch = nullptr, *target_active_switch = nullptr;
     // First process parent!
     if (INDI::DefaultDevice::ISNewSwitch(getDeviceName(), name, states, names, n) == true)
         return true;
 
     ISwitchVectorProperty * sProp = getSwitch(name);
 
-    if (sProp == NULL)
+    if (sProp == nullptr)
         return false;
 
     // Which switch is CURRENTLY on?
@@ -256,7 +256,7 @@ bool TCFS::ISNewSwitch (const char * dev, const char * name, ISState * states, c
     // Which switch the CLIENT wants to turn on?
     target_active_switch = IUFindOnSwitch(sProp);
 
-    if (target_active_switch == NULL)
+    if (target_active_switch == nullptr)
     {
         DEBUGF(INDI::Logger::DBG_ERROR, "Error: no ON switch found in %s property.", sProp->name);
         return false;
@@ -294,9 +294,9 @@ bool TCFS::ISNewSwitch (const char * dev, const char * name, ISState * states, c
                 sProp->s = IPS_OK;
                 IDSetSwitch(sProp, "Focuser is set into sleep mode.");
                 FocusAbsPosNP.s = IPS_IDLE;
-                IDSetNumber(&FocusAbsPosNP, NULL);
+                IDSetNumber(&FocusAbsPosNP, nullptr);
                 FocusTemperatureNP->s = IPS_IDLE;
-                IDSetNumber(FocusTemperatureNP, NULL);
+                IDSetNumber(FocusTemperatureNP, nullptr);
                 return true;
             }
             else
@@ -316,9 +316,9 @@ bool TCFS::ISNewSwitch (const char * dev, const char * name, ISState * states, c
                 sProp->s = IPS_OK;
                 IDSetSwitch(sProp, "Focuser is awake.");
                 FocusAbsPosNP.s = IPS_OK;
-                IDSetNumber(&FocusAbsPosNP, NULL);
+                IDSetNumber(&FocusAbsPosNP, nullptr);
                 FocusTemperatureNP->s = IPS_OK;
-                IDSetNumber(FocusTemperatureNP, NULL);
+                IDSetNumber(FocusTemperatureNP, nullptr);
                 return true;
             }
             else
@@ -335,7 +335,7 @@ bool TCFS::ISNewSwitch (const char * dev, const char * name, ISState * states, c
         sProp->s = IPS_IDLE;
         IUResetSwitch(sProp);
 
-        if (!strcmp(sProp->name, "FOCUS_MODE") && current_active_switch != NULL)
+        if (!strcmp(sProp->name, "FOCUS_MODE") && current_active_switch != nullptr)
             current_active_switch->s = ISS_ON;
 
         IDSetSwitch(sProp, "Focuser is still in sleep mode. Wake up in order to issue commands.");
@@ -384,7 +384,7 @@ bool TCFS::ISNewSwitch (const char * dev, const char * name, ISState * states, c
             }
         }
 
-        IDSetSwitch(sProp, NULL);
+        IDSetSwitch(sProp, nullptr);
         return true;
     }
 
@@ -393,7 +393,7 @@ bool TCFS::ISNewSwitch (const char * dev, const char * name, ISState * states, c
         if (inAutoMode)
         {
             sProp->s = IPS_IDLE;
-            IDSetSwitch(sProp, NULL);
+            IDSetSwitch(sProp, nullptr);
             DEBUG(INDI::Logger::DBG_WARNING, "The focuser can only be moved in Manual mode.");
             return false;
         }
@@ -412,8 +412,8 @@ bool TCFS::ISNewSwitch (const char * dev, const char * name, ISState * states, c
         {
             dispatch_command(FCENTR);
             FocusAbsPosNP.s = FocusRelPosNP.s = IPS_BUSY;
-            IDSetNumber(&FocusAbsPosNP, NULL);
-            IDSetNumber(&FocusRelPosNP, NULL);
+            IDSetNumber(&FocusAbsPosNP, nullptr);
+            IDSetNumber(&FocusRelPosNP, nullptr);
             IDSetSwitch(sProp, "Moving focuser to center position %d...", isTCFS3 ? 5000 : 3500);
             return true;
         }
@@ -450,7 +450,7 @@ bool TCFS::ISNewSwitch (const char * dev, const char * name, ISState * states, c
             }
         }
 
-        IDSetSwitch(sProp, NULL);
+        IDSetSwitch(sProp, nullptr);
         return true;
     }
 
@@ -497,8 +497,8 @@ IPState TCFS::MoveRelFocuser(FocusDirection dir, uint32_t ticks)
 
     FocusAbsPosNP.s = IPS_BUSY;
     FocusRelPosNP.s = IPS_BUSY;
-    IDSetNumber(&FocusAbsPosNP, NULL);
-    IDSetNumber(&FocusRelPosNP, NULL);
+    IDSetNumber(&FocusAbsPosNP, nullptr);
+    IDSetNumber(&FocusRelPosNP, nullptr);
 
     simulated_position = targetPosition;
 
@@ -635,8 +635,8 @@ void TCFS::TimerHit()
                 FocusGotoSP->s = IPS_OK;
                 FocusAbsPosNP.s = IPS_OK;
 
-                IDSetSwitch(FocusGotoSP, NULL);
-                IDSetNumber(&FocusAbsPosNP, NULL);
+                IDSetSwitch(FocusGotoSP, nullptr);
+                IDSetNumber(&FocusAbsPosNP, nullptr);
 
                 DEBUG(INDI::Logger::DBG_SESSION, "Focuser moved to center position.");
             }
@@ -664,7 +664,7 @@ void TCFS::TimerHit()
             if (lastPosition != currentPosition)
             {
                 lastPosition = currentPosition;
-                IDSetNumber(&FocusAbsPosNP, NULL);
+                IDSetNumber(&FocusAbsPosNP, nullptr);
             }
             break;
 
@@ -692,15 +692,15 @@ void TCFS::TimerHit()
                 FocusAbsPosNP.s = IPS_OK;
                 FocusRelPosNP.s = IPS_OK;
                 FocusGotoSP->s  = IPS_OK;
-                IDSetNumber(&FocusAbsPosNP, NULL);
-                IDSetNumber(&FocusRelPosNP, NULL);
-                IDSetSwitch(FocusGotoSP, NULL);
+                IDSetNumber(&FocusAbsPosNP, nullptr);
+                IDSetNumber(&FocusRelPosNP, nullptr);
+                IDSetSwitch(FocusGotoSP, nullptr);
             }
             else
             {
                 FocusAbsPosNP.s = IPS_ALERT;
                 DEBUGF(INDI::Logger::DBG_ERROR, "Unable to read response from focuser #%s#.", response);
-                IDSetNumber(&FocusAbsPosNP, NULL);
+                IDSetNumber(&FocusAbsPosNP, nullptr);
             }
             break;
 
@@ -732,7 +732,7 @@ void TCFS::TimerHit()
         if (lastTemperature != FocusTemperatureNP->np[0].value)
         {
             lastTemperature = FocusTemperatureNP->np[0].value;
-            IDSetNumber(FocusTemperatureNP, NULL);
+            IDSetNumber(FocusTemperatureNP, nullptr);
         }
     }
 

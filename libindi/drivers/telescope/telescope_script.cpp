@@ -137,7 +137,7 @@ bool ScopeScript::ISNewText(const char * dev, const char * name, char * texts[],
         if(!strcmp(name, ScriptsTP.name))
         {
             IUUpdateText(&ScriptsTP, texts, names, n);
-            IDSetText(&ScriptsTP, NULL);
+            IDSetText(&ScriptsTP, nullptr);
             return true;
         }
     }
@@ -162,7 +162,7 @@ bool ScopeScript::RunScript(int script, ...)
         while (arg < MAXARGS)
         {
             char * pp = strstr(p, " ");
-            if (pp == NULL)
+            if (pp == nullptr)
                 break;
             *pp++ = 0;
             args[arg++] = pp;
@@ -174,7 +174,7 @@ bool ScopeScript::RunScript(int script, ...)
         {
             char * pp = va_arg(ap, char *);
             args[arg++] = pp;
-            if (pp == NULL)
+            if (pp == nullptr)
                 break;
         }
         va_end(ap);
@@ -202,7 +202,7 @@ bool ScopeScript::Connect()
 {
     if(isConnected())
         return true;
-    bool status = RunScript(SCRIPT_CONNECT, NULL);
+    bool status = RunScript(SCRIPT_CONNECT, nullptr);
     if (status)
     {
         DEBUG(INDI::Logger::DBG_SESSION, "Succesfully connected");
@@ -214,7 +214,7 @@ bool ScopeScript::Connect()
 
 bool ScopeScript::Disconnect()
 {
-    bool status = RunScript(SCRIPT_DISCONNECT, NULL);
+    bool status = RunScript(SCRIPT_DISCONNECT, nullptr);
     if (status)
     {
         DEBUG(INDI::Logger::DBG_SESSION, "Succesfully disconnected");
@@ -224,8 +224,8 @@ bool ScopeScript::Disconnect()
 
 bool ScopeScript::ReadScopeStatus()
 {
-    char * name = tmpnam(NULL);
-    bool status = RunScript(SCRIPT_STATUS, name, NULL);
+    char * name = tmpnam(nullptr);
+    bool status = RunScript(SCRIPT_STATUS, name, nullptr);
     if (status)
     {
         int parked;
@@ -264,7 +264,7 @@ bool ScopeScript::Goto(double ra, double dec)
     char _ra[16], _dec[16];
     snprintf(_ra, 16, "%f", ra);
     snprintf(_dec, 16, "%f", dec);
-    bool status = RunScript(SCRIPT_GOTO, _ra, _dec, NULL);
+    bool status = RunScript(SCRIPT_GOTO, _ra, _dec, nullptr);
     if (status)
     {
         DEBUG(INDI::Logger::DBG_SESSION, "Goto succesfully executed");
@@ -277,7 +277,7 @@ bool ScopeScript::Sync(double ra, double dec)
     char _ra[16], _dec[16];
     snprintf(_ra, 16, "%f", ra);
     snprintf(_dec, 16, "%f", dec);
-    bool status = RunScript(SCRIPT_SYNC, _ra, _dec, NULL);
+    bool status = RunScript(SCRIPT_SYNC, _ra, _dec, nullptr);
     if (status)
     {
         DEBUG(INDI::Logger::DBG_SESSION, "Sync succesfully executed");
@@ -287,7 +287,7 @@ bool ScopeScript::Sync(double ra, double dec)
 
 bool ScopeScript::Park()
 {
-    bool status = RunScript(SCRIPT_PARK, NULL);
+    bool status = RunScript(SCRIPT_PARK, nullptr);
     if (!status)
     {
         DEBUG(INDI::Logger::DBG_ERROR, "Failed to park");
@@ -297,7 +297,7 @@ bool ScopeScript::Park()
 
 bool ScopeScript::UnPark()
 {
-    bool status = RunScript(SCRIPT_UNPARK, NULL);
+    bool status = RunScript(SCRIPT_UNPARK, nullptr);
     if (!status)
     {
         DEBUG(INDI::Logger::DBG_ERROR, "Failed to unpark");
@@ -308,20 +308,20 @@ bool ScopeScript::UnPark()
 bool ScopeScript::MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command)
 {
     char _rate[] = { (char)('0' + IUFindOnSwitchIndex(&SlewRateSP)), 0 };
-    bool status = RunScript(command == MOTION_STOP ? SCRIPT_ABORT : dir == DIRECTION_NORTH ? SCRIPT_MOVE_NORTH : SCRIPT_MOVE_SOUTH, _rate, NULL, NULL);
+    bool status = RunScript(command == MOTION_STOP ? SCRIPT_ABORT : dir == DIRECTION_NORTH ? SCRIPT_MOVE_NORTH : SCRIPT_MOVE_SOUTH, _rate, nullptr, nullptr);
     return status;
 }
 
 bool ScopeScript::MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command)
 {
     char _rate[] = { (char)('0' + IUFindOnSwitchIndex(&SlewRateSP)), 0 };
-    bool status = RunScript(command == MOTION_STOP ? SCRIPT_ABORT : dir == DIRECTION_WEST ? SCRIPT_MOVE_WEST : SCRIPT_MOVE_EAST, _rate, NULL, NULL);
+    bool status = RunScript(command == MOTION_STOP ? SCRIPT_ABORT : dir == DIRECTION_WEST ? SCRIPT_MOVE_WEST : SCRIPT_MOVE_EAST, _rate, nullptr, nullptr);
     return status;
 }
 
 bool ScopeScript::Abort()
 {
-    bool status = RunScript(SCRIPT_ABORT, NULL);
+    bool status = RunScript(SCRIPT_ABORT, nullptr);
     if (status)
     {
         DEBUG(INDI::Logger::DBG_SESSION, "Succesfully aborted");

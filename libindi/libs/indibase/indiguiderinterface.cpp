@@ -60,7 +60,7 @@ void INDI::GuiderInterface::processGuiderProperties(const char * name, double va
         else if(GuideNSN[DIRECTION_SOUTH].value != 0)
             GuideNSNP.s = GuideSouth(GuideNSN[DIRECTION_SOUTH].value);
 
-        IDSetNumber(&GuideNSNP, NULL);
+        IDSetNumber(&GuideNSNP, nullptr);
         return;
     }
 
@@ -77,7 +77,7 @@ void INDI::GuiderInterface::processGuiderProperties(const char * name, double va
         else if(GuideWEN[DIRECTION_EAST].value != 0)
             GuideWENP.s = GuideEast(GuideWEN[DIRECTION_EAST].value);
 
-        IDSetNumber(&GuideWENP, NULL);
+        IDSetNumber(&GuideWENP, nullptr);
         return;
     }
 }
@@ -88,12 +88,12 @@ void INDI::GuiderInterface::GuideComplete(INDI_EQ_AXIS axis)
     {
         case AXIS_DE:
             GuideNSNP.s = IPS_IDLE;
-            IDSetNumber(&GuideNSNP, NULL);
+            IDSetNumber(&GuideNSNP, nullptr);
             break;
 
         case AXIS_RA:
             GuideWENP.s = IPS_IDLE;
-            IDSetNumber(&GuideWENP, NULL);
+            IDSetNumber(&GuideWENP, nullptr);
             break;
     }
 }

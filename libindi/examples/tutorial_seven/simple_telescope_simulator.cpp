@@ -63,20 +63,20 @@ bool ScopeSim::Abort()
     {
         IUResetSwitch(&MovementNSSP);
         MovementNSSP.s = IPS_IDLE;
-        IDSetSwitch(&MovementNSSP, NULL);
+        IDSetSwitch(&MovementNSSP, nullptr);
     }
 
     if (MovementWESP.s == IPS_BUSY)
     {
         MovementWESP.s = IPS_IDLE;
         IUResetSwitch(&MovementWESP);
-        IDSetSwitch(&MovementWESP, NULL);
+        IDSetSwitch(&MovementWESP, nullptr);
     }
 
     if (EqNP.s == IPS_BUSY)
     {
         EqNP.s = IPS_IDLE;
-        IDSetNumber(&EqNP, NULL);
+        IDSetNumber(&EqNP, nullptr);
     }
 
     TrackState = SCOPE_IDLE;
@@ -85,7 +85,7 @@ bool ScopeSim::Abort()
 
     AbortSP.s      = IPS_OK;
     IUResetSwitch(&AbortSP);
-    IDSetSwitch(&AbortSP, NULL);
+    IDSetSwitch(&AbortSP, nullptr);
     DEBUG(INDI::Logger::DBG_SESSION, "Telescope aborted.");
 
     return true;
@@ -142,8 +142,8 @@ bool ScopeSim::Goto(double ra, double dec)
         // Try some simple rotations using the stored observatory position if any
         bool HavePosition = false;
         ln_lnlat_posn Position;
-        if ((NULL != IUFindNumber(&LocationNP, "LAT")) && ( 0 != IUFindNumber(&LocationNP, "LAT")->value)
-                && (NULL != IUFindNumber(&LocationNP, "LONG")) && ( 0 != IUFindNumber(&LocationNP, "LONG")->value))
+        if ((nullptr != IUFindNumber(&LocationNP, "LAT")) && ( 0 != IUFindNumber(&LocationNP, "LAT")->value)
+                && (nullptr != IUFindNumber(&LocationNP, "LONG")) && ( 0 != IUFindNumber(&LocationNP, "LONG")->value))
         {
             // I assume that being on the equator and exactly on the prime meridian is unlikely
             Position.lat = IUFindNumber(&LocationNP, "LAT")->value;
@@ -351,8 +351,8 @@ bool ScopeSim::ReadScopeStatus()
 
         bool HavePosition = false;
         ln_lnlat_posn Position;
-        if ((NULL != IUFindNumber(&LocationNP, "LAT")) && ( 0 != IUFindNumber(&LocationNP, "LAT")->value)
-                && (NULL != IUFindNumber(&LocationNP, "LONG")) && ( 0 != IUFindNumber(&LocationNP, "LONG")->value))
+        if ((nullptr != IUFindNumber(&LocationNP, "LAT")) && ( 0 != IUFindNumber(&LocationNP, "LAT")->value)
+                && (nullptr != IUFindNumber(&LocationNP, "LONG")) && ( 0 != IUFindNumber(&LocationNP, "LONG")->value))
         {
             // I assume that being on the equator and exactly on the prime meridian is unlikely
             Position.lat = IUFindNumber(&LocationNP, "LAT")->value;
@@ -457,7 +457,7 @@ void ScopeSim::TimerHit()
     double dt; // Elapsed time in seconds since last tick
 
 
-    gettimeofday (&tv, NULL);
+    gettimeofday (&tv, nullptr);
 
     if (ltv.tv_sec == 0 && ltv.tv_usec == 0)
         ltv = tv;
@@ -683,8 +683,8 @@ void ScopeSim::TimerHit()
                 // Try a conversion with the stored observatory position if any
                 bool HavePosition = false;
                 ln_lnlat_posn Position;
-                if ((NULL != IUFindNumber(&LocationNP, "LAT")) && ( 0 != IUFindNumber(&LocationNP, "LAT")->value)
-                        && (NULL != IUFindNumber(&LocationNP, "LONG")) && ( 0 != IUFindNumber(&LocationNP, "LONG")->value))
+                if ((nullptr != IUFindNumber(&LocationNP, "LAT")) && ( 0 != IUFindNumber(&LocationNP, "LAT")->value)
+                        && (nullptr != IUFindNumber(&LocationNP, "LONG")) && ( 0 != IUFindNumber(&LocationNP, "LONG")->value))
                 {
                     // I assume that being on the equator and exactly on the prime meridian is unlikely
                     Position.lat = IUFindNumber(&LocationNP, "LAT")->value;

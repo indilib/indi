@@ -106,10 +106,10 @@ int LX200_10MICRON::monthToNumber(const char * monthName)
         { "Oct", 10 },
         { "Nov", 11 },
         { "Dec", 12 },
-        { NULL, 0 }
+        { nullptr, 0 }
     };
     entry * p = month_table;
-    while (p->name != NULL)
+    while (p->name != nullptr)
     {
         if (strcasecmp(p -> name, monthName) == 0)
             return p->id;
@@ -269,7 +269,7 @@ void LX200_10MICRON::getBasicData(void)
         if (getTrackFreq(PortFD, &TrackFreqN[0].value) < 0)
             IDMessage(getDeviceName(), "Failed to get tracking frequency from device.");
         else
-            IDSetNumber(&TrackingFreqNP, NULL);
+            IDSetNumber(&TrackingFreqNP, nullptr);
 
         getMountInfo();
     }

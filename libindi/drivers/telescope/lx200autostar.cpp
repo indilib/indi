@@ -121,7 +121,7 @@ bool LX200Autostar::ISNewNumber (const char * dev, const char * name, double val
             if (isSimulation() == false)
                 setGPSFocuserSpeed(PortFD,  ( (int) FocusSpeedN[0].value));
             FocusSpeedNP.s = IPS_OK;
-            IDSetNumber(&FocusSpeedNP, NULL);
+            IDSetNumber(&FocusSpeedNP, nullptr);
             return true;
         }
     }
@@ -142,7 +142,7 @@ bool LX200Autostar::ISNewSwitch (const char * dev, const char * name, ISState * 
             if (FocusSpeedN[0].value == 0)
             {
                 FocusMotionSP.s = IPS_IDLE;
-                IDSetSwitch(&FocusMotionSP, NULL);
+                IDSetSwitch(&FocusMotionSP, nullptr);
                 return false;
             }
 
@@ -159,7 +159,7 @@ bool LX200Autostar::ISNewSwitch (const char * dev, const char * name, ISState * 
                 IUResetSwitch(&FocusMotionSP);
                 FocusMotionSP.s = IPS_IDLE;
                 setFocuserSpeedMode(PortFD, 0);
-                IDSetSwitch(&FocusMotionSP, NULL);
+                IDSetSwitch(&FocusMotionSP, nullptr);
                 return true;
             }
 
@@ -182,7 +182,7 @@ bool LX200Autostar::ISNewSwitch (const char * dev, const char * name, ISState * 
                 IEAddTimer(50, LX200Generic::updateFocusHelper, this);
             }
 
-            IDSetSwitch(&FocusMotionSP, NULL);
+            IDSetSwitch(&FocusMotionSP, nullptr);
             return true;
         }
     }
@@ -210,7 +210,7 @@ void LX200Autostar::getBasicData()
         VersionTP.tp[4].text = new char[128];
         getProductName(PortFD, VersionTP.tp[4].text);
 
-        IDSetText(&VersionTP, NULL);
+        IDSetText(&VersionTP, nullptr);
     }
 
 }

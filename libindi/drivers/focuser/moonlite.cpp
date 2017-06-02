@@ -621,7 +621,7 @@ bool MoonLite::ISNewSwitch (const char * dev, const char * name, ISState * state
             if (current_mode == target_mode);
             {
                 StepModeSP.s = IPS_OK;
-                IDSetSwitch(&StepModeSP, NULL);
+                IDSetSwitch(&StepModeSP, nullptr);
             }
 
             if (target_mode == 0)
@@ -634,12 +634,12 @@ bool MoonLite::ISNewSwitch (const char * dev, const char * name, ISState * state
                 IUResetSwitch(&StepModeSP);
                 StepModeS[current_mode].s = ISS_ON;
                 StepModeSP.s = IPS_ALERT;
-                IDSetSwitch(&StepModeSP, NULL);
+                IDSetSwitch(&StepModeSP, nullptr);
                 return false;
             }
 
             StepModeSP.s = IPS_OK;
-            IDSetSwitch(&StepModeSP, NULL);
+            IDSetSwitch(&StepModeSP, nullptr);
             return true;
         }
 
@@ -655,12 +655,12 @@ bool MoonLite::ISNewSwitch (const char * dev, const char * name, ISState * state
                 TemperatureCompensateSP.s = IPS_ALERT;
                 IUResetSwitch(&TemperatureCompensateSP);
                 TemperatureCompensateS[last_index].s = ISS_ON;
-                IDSetSwitch(&TemperatureCompensateSP, NULL);
+                IDSetSwitch(&TemperatureCompensateSP, nullptr);
                 return false;
             }
 
             TemperatureCompensateSP.s = IPS_OK;
-            IDSetSwitch(&TemperatureCompensateSP, NULL);
+            IDSetSwitch(&TemperatureCompensateSP, nullptr);
             return true;
         }
     }
@@ -680,7 +680,7 @@ bool MoonLite::ISNewNumber (const char * dev, const char * name, double values[]
                 SyncNP.s = IPS_OK;
             else
                 SyncNP.s = IPS_ALERT;
-            IDSetNumber(&SyncNP, NULL);
+            IDSetNumber(&SyncNP, nullptr);
             return true;
         }
 
@@ -688,7 +688,7 @@ bool MoonLite::ISNewNumber (const char * dev, const char * name, double values[]
         {
             IUUpdateNumber(&MaxTravelNP, values, names, n);
             MaxTravelNP.s = IPS_OK;
-            IDSetNumber(&MaxTravelNP, NULL);
+            IDSetNumber(&MaxTravelNP, nullptr);
             return true;
         }
 
@@ -698,12 +698,12 @@ bool MoonLite::ISNewNumber (const char * dev, const char * name, double values[]
             if (!setTemperatureCalibration(TemperatureSettingN[0].value) || !setTemperatureCoefficient(TemperatureSettingN[1].value))
             {
                 TemperatureSettingNP.s = IPS_ALERT;
-                IDSetNumber(&TemperatureSettingNP, NULL);
+                IDSetNumber(&TemperatureSettingNP, nullptr);
                 return false;
             }
 
             TemperatureSettingNP.s = IPS_OK;
-            IDSetNumber(&TemperatureSettingNP, NULL);
+            IDSetNumber(&TemperatureSettingNP, nullptr);
         }
 
     }
@@ -715,16 +715,16 @@ bool MoonLite::ISNewNumber (const char * dev, const char * name, double values[]
 void MoonLite::GetFocusParams ()
 {
     if (updatePosition())
-        IDSetNumber(&FocusAbsPosNP, NULL);
+        IDSetNumber(&FocusAbsPosNP, nullptr);
 
     if (updateTemperature())
-        IDSetNumber(&TemperatureNP, NULL);
+        IDSetNumber(&TemperatureNP, nullptr);
 
     if (updateSpeed())
-        IDSetNumber(&FocusSpeedNP, NULL);
+        IDSetNumber(&FocusSpeedNP, nullptr);
 
     if (updateStepMode())
-        IDSetSwitch(&StepModeSP, NULL);
+        IDSetSwitch(&StepModeSP, nullptr);
 }
 
 bool MoonLite::SetFocuserSpeed(int speed)
@@ -739,7 +739,7 @@ bool MoonLite::SetFocuserSpeed(int speed)
     currentSpeed = speed;
 
     FocusSpeedNP.s = IPS_OK;
-    IDSetNumber(&FocusSpeedNP, NULL);
+    IDSetNumber(&FocusSpeedNP, nullptr);
 
     return true;
 }
@@ -755,7 +755,7 @@ IPState MoonLite::MoveFocuser(FocusDirection dir, int speed, uint16_t duration)
             return IPS_ALERT;
     }
 
-    gettimeofday(&focusMoveStart, NULL);
+    gettimeofday(&focusMoveStart, nullptr);
     focusMoveRequest = duration / 1000.0;
 
     if (dir == FOCUS_INWARD)
@@ -824,7 +824,7 @@ void MoonLite::TimerHit()
     {
         if (fabs(lastPos - FocusAbsPosN[0].value) > 5)
         {
-            IDSetNumber(&FocusAbsPosNP, NULL);
+            IDSetNumber(&FocusAbsPosNP, nullptr);
             lastPos = FocusAbsPosN[0].value;
         }
     }
@@ -834,7 +834,7 @@ void MoonLite::TimerHit()
     {
         if (fabs(lastTemperature - TemperatureN[0].value) >= 0.5)
         {
-            IDSetNumber(&TemperatureNP, NULL);
+            IDSetNumber(&TemperatureNP, nullptr);
             lastTemperature = TemperatureN[0].value;
         }
     }
@@ -852,7 +852,7 @@ void MoonLite::TimerHit()
         else
             FocusTimerN[0].value = remaining * 1000.0;
 
-        IDSetNumber(&FocusTimerNP, NULL);
+        IDSetNumber(&FocusTimerNP, nullptr);
 
     }
 
@@ -862,8 +862,8 @@ void MoonLite::TimerHit()
         {
             FocusAbsPosNP.s = IPS_OK;
             FocusRelPosNP.s = IPS_OK;
-            IDSetNumber(&FocusAbsPosNP, NULL);
-            IDSetNumber(&FocusRelPosNP, NULL);
+            IDSetNumber(&FocusAbsPosNP, nullptr);
+            IDSetNumber(&FocusRelPosNP, nullptr);
             lastPos = FocusAbsPosN[0].value;
             DEBUG(INDI::Logger::DBG_SESSION, "Focuser reached requested position.");
         }
@@ -882,8 +882,8 @@ bool MoonLite::AbortFocuser()
     {
         FocusAbsPosNP.s = IPS_IDLE;
         FocusRelPosNP.s = IPS_IDLE;
-        IDSetNumber(&FocusAbsPosNP, NULL);
-        IDSetNumber(&FocusRelPosNP, NULL);
+        IDSetNumber(&FocusAbsPosNP, nullptr);
+        IDSetNumber(&FocusRelPosNP, nullptr);
         return true;
     }
     else
@@ -895,7 +895,7 @@ float MoonLite::CalcTimeLeft(timeval start, float req)
     double timesince;
     double timeleft;
     struct timeval now;
-    gettimeofday(&now, NULL);
+    gettimeofday(&now, nullptr);
 
     timesince = (double)(now.tv_sec * 1000.0 + now.tv_usec / 1000) - (double)(start.tv_sec * 1000.0 + start.tv_usec / 1000);
     timesince = timesince / 1000;

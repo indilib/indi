@@ -156,7 +156,7 @@ bool RainDetector::ISNewSwitch (const char * dev, const char * name, ISState * s
             }
 
             RainSP.s = IPS_OK;
-            IDSetSwitch(&RainSP, NULL);
+            IDSetSwitch(&RainSP, nullptr);
             return true;
         }
     }

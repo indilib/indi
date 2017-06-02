@@ -27,7 +27,7 @@
 
 INDI::Property::Property()
 {
-    pPtr = NULL;
+    pPtr = nullptr;
     pRegistered = false;
     pDynamic = false;
     pType = INDI_UNKNOWN;
@@ -124,8 +124,8 @@ void INDI::Property::setBaseDevice(BaseDevice * idp)
 
 const char * INDI::Property::getName() const
 {
-    if (pPtr == NULL)
-        return NULL;
+    if (pPtr == nullptr)
+        return nullptr;
 
     switch (pType)
     {
@@ -151,14 +151,14 @@ const char * INDI::Property::getName() const
 
     }
 
-    return NULL;
+    return nullptr;
 }
 
 const char * INDI::Property::getLabel() const
 {
 
-    if (pPtr == NULL)
-        return NULL;
+    if (pPtr == nullptr)
+        return nullptr;
 
     switch (pType)
     {
@@ -184,14 +184,14 @@ const char * INDI::Property::getLabel() const
 
     }
 
-    return NULL;
+    return nullptr;
 
 }
 
 const char * INDI::Property::getGroupName() const
 {
-    if (pPtr == NULL)
-        return NULL;
+    if (pPtr == nullptr)
+        return nullptr;
 
     switch (pType)
     {
@@ -217,14 +217,14 @@ const char * INDI::Property::getGroupName() const
 
     }
 
-    return NULL;
+    return nullptr;
 
 }
 
 const char * INDI::Property::getDeviceName() const
 {
-    if (pPtr == NULL)
-        return NULL;
+    if (pPtr == nullptr)
+        return nullptr;
 
     switch (pType)
     {
@@ -250,14 +250,14 @@ const char * INDI::Property::getDeviceName() const
 
     }
 
-    return NULL;
+    return nullptr;
 
 }
 
 const char * INDI::Property::getTimestamp() const
 {
-    if (pPtr == NULL)
-        return NULL;
+    if (pPtr == nullptr)
+        return nullptr;
 
     switch (pType)
     {
@@ -286,7 +286,7 @@ const char * INDI::Property::getTimestamp() const
 
     }
 
-    return NULL;
+    return nullptr;
 }
 
 IPState INDI::Property::getState() const
@@ -360,7 +360,7 @@ INumberVectorProperty * INDI::Property::getNumber()
     if (pType == INDI_NUMBER)
         return ((INumberVectorProperty *) pPtr);
 
-    return NULL;
+    return nullptr;
 
 }
 
@@ -369,7 +369,7 @@ ITextVectorProperty  * INDI::Property::getText()
     if (pType == INDI_TEXT)
         return ((ITextVectorProperty *) pPtr);
 
-    return NULL;
+    return nullptr;
 }
 
 ISwitchVectorProperty * INDI::Property::getSwitch()
@@ -377,7 +377,7 @@ ISwitchVectorProperty * INDI::Property::getSwitch()
     if (pType == INDI_SWITCH)
         return ((ISwitchVectorProperty *) pPtr);
 
-    return NULL;
+    return nullptr;
 }
 
 ILightVectorProperty * INDI::Property::getLight()
@@ -385,7 +385,7 @@ ILightVectorProperty * INDI::Property::getLight()
     if (pType == INDI_LIGHT)
         return ((ILightVectorProperty *) pPtr);
 
-    return NULL;
+    return nullptr;
 
 }
 
@@ -394,7 +394,7 @@ IBLOBVectorProperty  * INDI::Property::getBLOB()
     if (pType == INDI_BLOB)
         return ((IBLOBVectorProperty *) pPtr);
 
-    return NULL;
+    return nullptr;
 
 }
 

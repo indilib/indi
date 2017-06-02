@@ -47,8 +47,8 @@ bool INDI::GPS::initProperties()
     IUFillNumber(&LocationN[LOCATION_ELEVATION], "ELEV", "Elevation (m)", "%g", -200, 10000, 0, 0 );
     IUFillNumberVector(&LocationNP, LocationN, 3, getDeviceName(), "GEOGRAPHIC_COORD", "Location", MAIN_CONTROL_TAB, IP_RO, 60, IPS_OK);
 
-    IUFillText(&TimeT[0], "UTC", "UTC Time", NULL);
-    IUFillText(&TimeT[1], "OFFSET", "UTC Offset", NULL);
+    IUFillText(&TimeT[0], "UTC", "UTC Time", nullptr);
+    IUFillText(&TimeT[1], "OFFSET", "UTC Offset", nullptr);
     IUFillTextVector(&TimeTP, TimeT, 2, getDeviceName(), "TIME_UTC", "UTC", MAIN_CONTROL_TAB, IP_RO, 60, IPS_IDLE);
 
     return true;
@@ -98,14 +98,14 @@ void INDI::GPS::TimerHit()
         // Ok or Alert
         case IPS_OK:
         case IPS_ALERT:
-            IDSetNumber(&LocationNP, NULL);
-            IDSetText(&TimeTP, NULL);
+            IDSetNumber(&LocationNP, nullptr);
+            IDSetText(&TimeTP, nullptr);
             return;
 
         // GPS fix is in progress
         case IPS_BUSY:
-            IDSetNumber(&LocationNP, NULL);
-            IDSetText(&TimeTP, NULL);
+            IDSetNumber(&LocationNP, nullptr);
+            IDSetText(&TimeTP, nullptr);
             break;
 
         default:
@@ -129,7 +129,7 @@ bool INDI::GPS::ISNewSwitch (const char * dev, const char * name, ISState * stat
         {
             RefreshS[0].s = ISS_OFF;
             RefreshSP.s = IPS_OK;
-            IDSetSwitch(&RefreshSP, NULL);
+            IDSetSwitch(&RefreshSP, nullptr);
 
             TimerHit();
         }

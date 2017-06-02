@@ -96,7 +96,7 @@ bool QFW::GetFilterNames(const char * groupName)
     char filterName[MAXINDINAME];
     char filterLabel[MAXINDILABEL];
     int MaxFilter = FilterSlotN[0].max;
-    if (FilterNameT != NULL)
+    if (FilterNameT != nullptr)
         delete FilterNameT;
     FilterNameT = new IText[MaxFilter];
     for (int i = 0; i < MaxFilter; i++)

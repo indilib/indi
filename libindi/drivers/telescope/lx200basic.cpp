@@ -293,7 +293,7 @@ bool LX200Basic::Goto(double r, double d)
         AbortSP.s = IPS_OK;
         EqNP.s       = IPS_IDLE;
         IDSetSwitch(&AbortSP, "Slew aborted.");
-        IDSetNumber(&EqNP, NULL);
+        IDSetNumber(&EqNP, nullptr);
 
         // sleep for 100 mseconds
         usleep(100000);
@@ -379,7 +379,7 @@ bool LX200Basic::ISNewNumber (const char * dev, const char * name, double values
             if (SlewAccuracyN[0].value < 3 || SlewAccuracyN[1].value < 3)
                 IDSetNumber(&SlewAccuracyNP, "Warning: Setting the slew accuracy too low may result in a dead lock");
 
-            IDSetNumber(&SlewAccuracyNP, NULL);
+            IDSetNumber(&SlewAccuracyNP, nullptr);
             return true;
         }
     }
@@ -400,7 +400,7 @@ bool LX200Basic::Abort()
 
     EqNP.s = IPS_IDLE;
     TrackState = SCOPE_IDLE;
-    IDSetNumber(&EqNP, NULL);
+    IDSetNumber(&EqNP, nullptr);
 
     DEBUG(INDI::Logger::DBG_SESSION, "Slew aborted.");
     return true;
@@ -421,7 +421,7 @@ void LX200Basic::getBasicData()
     getLX200RA(PortFD, &currentRA);
     getLX200DEC(PortFD, &currentDEC);
 
-    IDSetNumber (&EqNP, NULL);
+    IDSetNumber (&EqNP, nullptr);
 }
 
 /**************************************************************************************
@@ -435,7 +435,7 @@ void LX200Basic::mountSim ()
     int nlocked;
 
     /* update elapsed time since last poll, don't presume exactly POLLMS */
-    gettimeofday (&tv, NULL);
+    gettimeofday (&tv, nullptr);
 
     if (ltv.tv_sec == 0 && ltv.tv_usec == 0)
         ltv = tv;

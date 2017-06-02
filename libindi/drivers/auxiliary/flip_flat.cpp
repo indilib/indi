@@ -97,13 +97,13 @@ bool FlipFlat::initProperties()
     INDI::DefaultDevice::initProperties();
 
     // Status
-    IUFillText(&StatusT[0], "Cover", "", NULL);
-    IUFillText(&StatusT[1], "Light", "", NULL);
-    IUFillText(&StatusT[2], "Motor", "", NULL);
+    IUFillText(&StatusT[0], "Cover", "", nullptr);
+    IUFillText(&StatusT[1], "Light", "", nullptr);
+    IUFillText(&StatusT[2], "Motor", "", nullptr);
     IUFillTextVector(&StatusTP, StatusT, 3, getDeviceName(), "Status", "", MAIN_CONTROL_TAB, IP_RO, 60, IPS_IDLE);
 
     // Firmware version
-    IUFillText(&FirmwareT[0], "Version", "", NULL);
+    IUFillText(&FirmwareT[0], "Version", "", nullptr);
     IUFillTextVector(&FirmwareTP, FirmwareT, 1, getDeviceName(), "Firmware", "", MAIN_CONTROL_TAB, IP_RO, 60, IPS_IDLE);
 
     initDustCapProperties(getDeviceName(), MAIN_CONTROL_TAB);
@@ -503,7 +503,7 @@ bool FlipFlat::getStatus()
         if (ParkCapSP.s == IPS_BUSY && --simulationWorkCounter <= 0)
         {
             ParkCapSP.s = IPS_OK;
-            IDSetSwitch(&ParkCapSP, NULL);
+            IDSetSwitch(&ParkCapSP, nullptr);
             simulationWorkCounter = 0;
         }
 
@@ -579,7 +579,7 @@ bool FlipFlat::getStatus()
                     ParkCapS[0].s = ISS_ON;
                     ParkCapSP.s = IPS_OK;
                     DEBUG(INDI::Logger::DBG_SESSION, "Cover closed.");
-                    IDSetSwitch(&ParkCapSP, NULL);
+                    IDSetSwitch(&ParkCapSP, nullptr);
                 }
                 break;
 
@@ -591,7 +591,7 @@ bool FlipFlat::getStatus()
                     ParkCapS[1].s = ISS_ON;
                     ParkCapSP.s = IPS_OK;
                     DEBUG(INDI::Logger::DBG_SESSION, "Cover open.");
-                    IDSetSwitch(&ParkCapSP, NULL);
+                    IDSetSwitch(&ParkCapSP, nullptr);
                 }
                 break;
 
@@ -616,7 +616,7 @@ bool FlipFlat::getStatus()
                 {
                     LightS[0].s = ISS_OFF;
                     LightS[1].s = ISS_ON;
-                    IDSetSwitch(&LightSP, NULL);
+                    IDSetSwitch(&LightSP, nullptr);
                 }
                 break;
 
@@ -626,7 +626,7 @@ bool FlipFlat::getStatus()
                 {
                     LightS[0].s = ISS_ON;
                     LightS[1].s = ISS_OFF;
-                    IDSetSwitch(&LightSP, NULL);
+                    IDSetSwitch(&LightSP, nullptr);
                 }
                 break;
         }
@@ -652,7 +652,7 @@ bool FlipFlat::getStatus()
     }
 
     if (statusUpdated)
-        IDSetText(&StatusTP, NULL);
+        IDSetText(&StatusTP, nullptr);
 
     return true;
 }
@@ -662,7 +662,7 @@ bool FlipFlat::getFirmwareVersion()
     if (isSimulation())
     {
         IUSaveText(&FirmwareT[0], "Simulation");
-        IDSetText(&FirmwareTP, NULL);
+        IDSetText(&FirmwareTP, nullptr);
         return true;
     }
 
@@ -700,7 +700,7 @@ bool FlipFlat::getFirmwareVersion()
     char versionString[4];
     snprintf(versionString, 4, "%s", response + 4 );
     IUSaveText(&FirmwareT[0], versionString);
-    IDSetText(&FirmwareTP, NULL);
+    IDSetText(&FirmwareTP, nullptr);
 
     return true;
 }
@@ -769,7 +769,7 @@ bool FlipFlat::getBrightness()
     {
         prevBrightness = brightnessValue;
         LightIntensityN[0].value = brightnessValue;
-        IDSetNumber(&LightIntensityNP, NULL);
+        IDSetNumber(&LightIntensityNP, nullptr);
     }
 
     return true;
@@ -780,7 +780,7 @@ bool FlipFlat::SetLightBoxBrightness(uint16_t value)
     if (isSimulation())
     {
         LightIntensityN[0].value = value;
-        IDSetNumber(&LightIntensityNP, NULL);
+        IDSetNumber(&LightIntensityNP, nullptr);
         return true;
     }
 
@@ -831,7 +831,7 @@ bool FlipFlat::SetLightBoxBrightness(uint16_t value)
     {
         prevBrightness = brightnessValue;
         LightIntensityN[0].value = brightnessValue;
-        IDSetNumber(&LightIntensityNP, NULL);
+        IDSetNumber(&LightIntensityNP, nullptr);
     }
 
     return true;

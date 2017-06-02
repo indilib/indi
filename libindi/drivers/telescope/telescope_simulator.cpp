@@ -104,7 +104,7 @@ ScopeSim::ScopeSim()
     SetTelescopeCapability(TELESCOPE_CAN_PARK | TELESCOPE_CAN_SYNC | TELESCOPE_CAN_GOTO | TELESCOPE_CAN_ABORT | TELESCOPE_HAS_TIME | TELESCOPE_HAS_LOCATION, 4);
 
     /* initialize random seed: */
-    srand ( time(NULL) );
+    srand ( time(nullptr) );
 }
 
 ScopeSim::~ScopeSim()
@@ -255,7 +255,7 @@ bool ScopeSim::ReadScopeStatus()
     char RA_DISP[64], DEC_DISP[64], RA_GUIDE[64], DEC_GUIDE[64], RA_PE[64], DEC_PE[64], RA_TARGET[64], DEC_TARGET[64];
 
     /* update elapsed time since last poll, don't presume exactly POLLMS */
-    gettimeofday (&tv, NULL);
+    gettimeofday (&tv, nullptr);
 
     if (ltv.tv_sec == 0 && ltv.tv_usec == 0)
         ltv = tv;
@@ -402,7 +402,7 @@ bool ScopeSim::ReadScopeStatus()
                     EqPEN[0].value = currentRA;
                     EqPEN[1].value = currentDEC;
 
-                    IDSetNumber(&EqPENV, NULL);
+                    IDSetNumber(&EqPENV, nullptr);
 
                     TrackState = SCOPE_TRACKING;
 
@@ -464,7 +464,7 @@ bool ScopeSim::ReadScopeStatus()
                 if (guiderNSTarget[ns_guide_dir] == 0)
                 {
                     GuideNSNP.s = IPS_IDLE;
-                    IDSetNumber(&GuideNSNP, NULL);
+                    IDSetNumber(&GuideNSNP, nullptr);
                 }
 
                 EqPEN[DEC_AXIS].value += dec_guide_dt;
@@ -484,7 +484,7 @@ bool ScopeSim::ReadScopeStatus()
                 if (guiderEWTarget[we_guide_dir] == 0)
                 {
                     GuideWENP.s = IPS_IDLE;
-                    IDSetNumber(&GuideWENP, NULL);
+                    IDSetNumber(&GuideWENP, nullptr);
                 }
 
                 EqPEN[RA_AXIS].value += ra_guide_dt;
@@ -525,7 +525,7 @@ bool ScopeSim::ReadScopeStatus()
             }
 
             if (ns_guide_dir != -1 || we_guide_dir != -1)
-                IDSetNumber(&EqPENV, NULL);
+                IDSetNumber(&EqPENV, nullptr);
 
             break;
 
@@ -594,7 +594,7 @@ bool ScopeSim::Sync(double ra, double dec)
 
     EqPEN[RA_AXIS].value = ra;
     EqPEN[DEC_AXIS].value = dec;
-    IDSetNumber(&EqPENV, NULL);
+    IDSetNumber(&EqPENV, nullptr);
 
     DEBUG(INDI::Logger::DBG_SESSION, "Sync is successful.");
 
@@ -635,7 +635,7 @@ bool ScopeSim::ISNewNumber (const char * dev, const char * name, double values[]
         {
             IUUpdateNumber(&GuideRateNP, values, names, n);
             GuideRateNP.s = IPS_OK;
-            IDSetNumber(&GuideRateNP, NULL);
+            IDSetNumber(&GuideRateNP, nullptr);
             return true;
         }
 
@@ -664,7 +664,7 @@ bool ScopeSim::ISNewSwitch (const char * dev, const char * name, ISState * state
                 return false;
 
             SlewRateSP.s = IPS_OK;
-            IDSetSwitch(&SlewRateSP, NULL);
+            IDSetSwitch(&SlewRateSP, nullptr);
             return true;
         }
 
@@ -686,8 +686,8 @@ bool ScopeSim::ISNewSwitch (const char * dev, const char * name, ISState * state
             }
 
             IUResetSwitch(&PEErrNSSP);
-            IDSetSwitch(&PEErrNSSP, NULL);
-            IDSetNumber(&EqPENV, NULL);
+            IDSetSwitch(&PEErrNSSP, nullptr);
+            IDSetNumber(&EqPENV, nullptr);
 
             return true;
         }
@@ -710,8 +710,8 @@ bool ScopeSim::ISNewSwitch (const char * dev, const char * name, ISState * state
             }
 
             IUResetSwitch(&PEErrWESP);
-            IDSetSwitch(&PEErrWESP, NULL);
-            IDSetNumber(&EqPENV, NULL);
+            IDSetSwitch(&PEErrWESP, nullptr);
+            IDSetNumber(&EqPENV, nullptr);
 
             return true;
 

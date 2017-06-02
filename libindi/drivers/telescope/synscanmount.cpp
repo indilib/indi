@@ -451,7 +451,7 @@ bool SynscanMount::ReadScopeStatus()
                     {
                         TrackState = SCOPE_PARKED;
                         //ParkSP.s=IPS_OK;
-                        //IDSetSwitch(&ParkSP,NULL);
+                        //IDSetSwitch(&ParkSP,nullptr);
                         //IDMessage(getDeviceName(),"Telescope is Parked.");
                         SetParked(true);
                     }
@@ -829,7 +829,7 @@ bool SynscanMount::ReadTime()
         IUSaveText(&TimeT[0], utc);
         IUSaveText(&TimeT[1], ofs);
         TimeTP.s = IPS_OK;
-        IDSetText(&TimeTP, NULL);
+        IDSetText(&TimeTP, nullptr);
 
         return true;
     }
@@ -893,7 +893,7 @@ bool SynscanMount::ReadLocation()
             if(h == 1) lon = 360 - lon;
             LocationN[LOCATION_LATITUDE].value = lat;
             LocationN[LOCATION_LONGITUDE].value = lon;
-            IDSetNumber(&LocationNP, NULL);
+            IDSetNumber(&LocationNP, nullptr);
             //  We dont need to keep reading this one on every cycle
             //  only need to read it when it's been changed
             ReadLatLong = false;
@@ -968,7 +968,7 @@ bool SynscanMount::updateLocation(double latitude, double longitude, double elev
 
     LocationN[LOCATION_LATITUDE].value = latitude;
     LocationN[LOCATION_LONGITUDE].value = longitude;
-    IDSetNumber(&LocationNP, NULL);
+    IDSetNumber(&LocationNP, nullptr);
 
     if(!CanSetLocation)
     {

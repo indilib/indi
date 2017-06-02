@@ -26,7 +26,7 @@ Controller::Controller(DefaultDevice * cdevice)
 {
     device = cdevice;
 
-    JoystickSettingT = NULL;
+    JoystickSettingT = nullptr;
     JoystickSettingTP.ntp = 0;
 
     joystickCallbackFunc   = joystickEvent;
@@ -45,7 +45,7 @@ Controller::~Controller()
 
 void Controller::mapController(const char * propertyName, const char * propertyLabel, ControllerType type, const char * initialValue)
 {
-    if (JoystickSettingT == NULL)
+    if (JoystickSettingT == nullptr)
         JoystickSettingT = (IText *) malloc(sizeof(IText));
 
     // Ignore duplicates
@@ -78,7 +78,7 @@ void Controller::clearMap()
 
     JoystickSettingTP.ntp = 0;
     free(JoystickSettingT);
-    JoystickSettingT = NULL;
+    JoystickSettingT = nullptr;
 }
 
 bool Controller::initProperties()
@@ -142,7 +142,7 @@ bool Controller::ISNewSwitch (const char * dev, const char * name, ISState * sta
             else
                 disableJoystick();
 
-            IDSetSwitch(&UseJoystickSP, NULL);
+            IDSetSwitch(&UseJoystickSP, nullptr);
 
             return true;
         }
@@ -167,7 +167,7 @@ bool Controller::ISNewText (const char * dev, const char * name, char * texts[],
                     if (cType != myType)
                     {
                         JoystickSettingTP.s = IPS_ALERT;
-                        IDSetText(&JoystickSettingTP, NULL);
+                        IDSetText(&JoystickSettingTP, nullptr);
                         DEBUGFDEVICE(dev, INDI::Logger::DBG_ERROR, "Cannot change controller type to %s.", texts[i]);
                         return false;
                     }
@@ -186,7 +186,7 @@ bool Controller::ISNewText (const char * dev, const char * name, char * texts[],
             }
 
             JoystickSettingTP.s = IPS_OK;
-            IDSetText(&JoystickSettingTP, NULL);
+            IDSetText(&JoystickSettingTP, nullptr);
             return true;
 
         }
@@ -198,7 +198,7 @@ bool Controller::ISNewText (const char * dev, const char * name, char * texts[],
 
 bool Controller::ISSnoopDevice(XMLEle * root)
 {
-    XMLEle * ep = NULL;
+    XMLEle * ep = nullptr;
     double mag = 0, angle = 0;
 
     // If joystick is disabled, do not process anything.
@@ -210,11 +210,11 @@ bool Controller::ISSnoopDevice(XMLEle * root)
     // Check axis
     if (!strcmp("JOYSTICK_AXIS", propName))
     {
-        for (ep = nextXMLEle(root, 1) ; ep != NULL ; ep = nextXMLEle(root, 0))
+        for (ep = nextXMLEle(root, 1) ; ep != nullptr ; ep = nextXMLEle(root, 0))
         {
             const char * elemName = findXMLAttValu(ep, "name");
             const char * setting = getControllerSetting(elemName);
-            if (setting == NULL)
+            if (setting == nullptr)
                 return false;
 
             mag = atof(pcdataXMLEle(ep));
@@ -225,12 +225,12 @@ bool Controller::ISSnoopDevice(XMLEle * root)
     // Check buttons
     else if (!strcmp("JOYSTICK_BUTTONS", propName))
     {
-        for (ep = nextXMLEle(root, 1) ; ep != NULL ; ep = nextXMLEle(root, 0))
+        for (ep = nextXMLEle(root, 1) ; ep != nullptr ; ep = nextXMLEle(root, 0))
         {
             const char * elemName = findXMLAttValu(ep, "name");
             const char * setting = getControllerSetting(elemName);
 
-            if (setting == NULL)
+            if (setting == nullptr)
                 continue;
 
             buttonCallbackFunc(setting, strcmp(pcdataXMLEle(ep), "Off") ? ISS_ON : ISS_OFF, device);
@@ -243,10 +243,10 @@ bool Controller::ISSnoopDevice(XMLEle * root)
         const char * setting  = getControllerSetting(propName);
 
         // We don't have this here, so let's not process it
-        if (setting == NULL)
+        if (setting == nullptr)
             return false;
 
-        for (ep = nextXMLEle(root, 1) ; ep != NULL ; ep = nextXMLEle(root, 0))
+        for (ep = nextXMLEle(root, 1) ; ep != nullptr ; ep = nextXMLEle(root, 0))
         {
             if (!strcmp("JOYSTICK_MAGNITUDE", findXMLAttValu(ep, "name")))
                 mag = atof(pcdataXMLEle(ep));
@@ -346,7 +346,7 @@ const char * Controller::getControllerSetting(const char * name)
         if (!strcmp(JoystickSettingT[i].text, name))
             return JoystickSettingT[i].name;
 
-    return NULL;
+    return nullptr;
 }
 
 }

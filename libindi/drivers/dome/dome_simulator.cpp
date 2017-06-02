@@ -108,8 +108,8 @@ bool DomeSim::SetupParms()
 
     DomeParamN[0].value  = 5;
 
-    IDSetNumber(&DomeAbsPosNP, NULL);
-    IDSetNumber(&DomeParamNP, NULL);
+    IDSetNumber(&DomeAbsPosNP, nullptr);
+    IDSetNumber(&DomeParamNP, nullptr);
 
     if (InitPark())
     {
@@ -192,7 +192,7 @@ void DomeSim::TimerHit()
                 setDomeState(DOME_SYNCED);
         }
 
-        IDSetNumber(&DomeAbsPosNP, NULL);
+        IDSetNumber(&DomeAbsPosNP, nullptr);
     }
 
     if (DomeShutterSP.s == IPS_BUSY)
@@ -202,7 +202,7 @@ void DomeSim::TimerHit()
             shutterTimer = 0;
             DomeShutterSP.s = IPS_OK;
             DEBUGF(INDI::Logger::DBG_SESSION, "Shutter is %s.", (DomeShutterS[0].s == ISS_ON ? "open" : "closed"));
-            IDSetSwitch(&DomeShutterSP, NULL);
+            IDSetSwitch(&DomeShutterSP, nullptr);
 
             if (getDomeState() == DOME_UNPARKING)
                 SetParked(false);
@@ -235,7 +235,7 @@ IPState DomeSim::Move(DomeDirection dir, DomeMotionCommand operation)
         DomeAbsPosNP.s = IPS_IDLE;
     }
 
-    IDSetNumber(&DomeAbsPosNP, NULL);
+    IDSetNumber(&DomeAbsPosNP, nullptr);
     return ( (operation == MOTION_START) ? IPS_BUSY : IPS_OK);
 
 }

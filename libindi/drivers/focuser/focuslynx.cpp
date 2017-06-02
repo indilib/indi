@@ -386,7 +386,7 @@ bool FocusLynxF1::getHubConfig()
     {
         HubTP.s = IPS_OK;
         IUSaveText(&HubT[0], text);
-        IDSetText(&HubTP, NULL);
+        IDSetText(&HubTP, nullptr);
 
         //Save localy the Version of the firmaware's Hub
         strncpy (version, text, sizeof(version));
@@ -419,7 +419,7 @@ bool FocusLynxF1::getHubConfig()
     {
         HubTP.s = IPS_OK;
         IUSaveText(&HubT[1], text);
-        IDSetText(&HubTP, NULL);
+        IDSetText(&HubTP, nullptr);
 
         DEBUGF(INDI::Logger::DBG_DEBUG, "Text =  %s,  KEy = %s", text, key);
     }
@@ -449,7 +449,7 @@ bool FocusLynxF1::getHubConfig()
     {
         WiredTP.s = IPS_OK;
         IUSaveText(&WiredT[0], text);
-        IDSetText(&WiredTP, NULL);
+        IDSetText(&WiredTP, nullptr);
 
         DEBUGF(INDI::Logger::DBG_DEBUG, "Text =  %s,  KEy = %s", text, key);
     }
@@ -479,7 +479,7 @@ bool FocusLynxF1::getHubConfig()
     {
         WiredTP.s = IPS_OK;
         IUSaveText(&WiredT[1], text);
-        IDSetText(&WiredTP, NULL);
+        IDSetText(&WiredTP, nullptr);
 
         DEBUGF(INDI::Logger::DBG_DEBUG, "Text =  %s,  KEy = %s", text, key);
     }
@@ -756,7 +756,7 @@ bool FocusLynxF1::getHubConfig()
         DEBUGF(INDI::Logger::DBG_SESSION, "WifiT = %s", WifiT[0].text);
         WifiTP.s = IPS_IDLE;
     }
-    IDSetText(&WifiTP, NULL);
+    IDSetText(&WifiTP, nullptr);
 
     // END is reached
     if (isSimulation())

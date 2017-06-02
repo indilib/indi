@@ -26,7 +26,7 @@
 INDI::FilterInterface::FilterInterface()
 {
     FilterNameTP  = new ITextVectorProperty;
-    FilterNameT  = NULL;
+    FilterNameT  = nullptr;
 }
 
 void INDI::FilterInterface::initFilterProperties(const char * deviceName, const char * groupName)
@@ -49,7 +49,7 @@ void INDI::FilterInterface::SelectFilterDone(int f)
     FilterSlotNP.s = IPS_OK;
     // Tell the clients we are done, and
     //  filter is now useable
-    IDSetNumber(&FilterSlotNP, NULL);
+    IDSetNumber(&FilterSlotNP, nullptr);
 }
 
 void INDI::FilterInterface::processFilterSlot(const char * deviceName, double values[], char * names[])
@@ -62,7 +62,7 @@ void INDI::FilterInterface::processFilterSlot(const char * deviceName, double va
     {
         FilterSlotNP.s = IPS_ALERT;
         DEBUGFDEVICE(deviceName, Logger::DBG_ERROR, "Unknown error. %s is not a member of %s property.", names[0], FilterSlotNP.name);
-        IDSetNumber(&FilterSlotNP, NULL);
+        IDSetNumber(&FilterSlotNP, nullptr);
         return;
     }
 
@@ -70,7 +70,7 @@ void INDI::FilterInterface::processFilterSlot(const char * deviceName, double va
     {
         FilterSlotNP.s = IPS_ALERT;
         DEBUGFDEVICE(deviceName, Logger::DBG_ERROR, "Error: valid range of filter is from %g to %g", FilterSlotN[0].min, FilterSlotN[0].max);
-        IDSetNumber(&FilterSlotNP, NULL);
+        IDSetNumber(&FilterSlotNP, nullptr);
         return;
     }
 
@@ -83,7 +83,7 @@ void INDI::FilterInterface::processFilterSlot(const char * deviceName, double va
         FilterSlotNP.s = IPS_ALERT;
     }
 
-    IDSetNumber(&FilterSlotNP, NULL);
+    IDSetNumber(&FilterSlotNP, nullptr);
     return;
 
 }
@@ -94,12 +94,12 @@ void INDI::FilterInterface::processFilterName(const char * deviceName, char * te
     IUUpdateText(FilterNameTP, texts, names, n);
 
     if (SetFilterNames() == true)
-        IDSetText(FilterNameTP, NULL);
+        IDSetText(FilterNameTP, nullptr);
     else
     {
         FilterNameTP->s = IPS_ALERT;
         DEBUGDEVICE(deviceName, Logger::DBG_ERROR, "Error updating names of filters.");
-        IDSetText(FilterNameTP, NULL);
+        IDSetText(FilterNameTP, nullptr);
     }
 
 }
