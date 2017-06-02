@@ -61,17 +61,17 @@ void MathPluginManagement::ProcessTextProperties(Telescope * pTelescope, const c
         if (0 != strcmp(AlignmentSubsystemMathPlugins.get()[0].label, AlignmentSubsystemCurrentMathPlugin.text))
         {
             // Unload old plugin if required
-            if (NULL != LoadedMathPluginHandle)
+            if (nullptr != LoadedMathPluginHandle)
             {
                 typedef void Destroy_t(MathPlugin *);
                 Destroy_t * Destroy = (Destroy_t *)dlsym(LoadedMathPluginHandle, "Destroy");
-                if (NULL != Destroy)
+                if (nullptr != Destroy)
                 {
                     Destroy(pLoadedMathPlugin);
-                    pLoadedMathPlugin = NULL;
+                    pLoadedMathPlugin = nullptr;
                     if (0 == dlclose(LoadedMathPluginHandle))
                     {
-                        LoadedMathPluginHandle = NULL;
+                        LoadedMathPluginHandle = nullptr;
 
                     }
                     else
@@ -87,11 +87,11 @@ void MathPluginManagement::ProcessTextProperties(Telescope * pTelescope, const c
                 }
             }
             // It is not the built in so try to load it
-            if (NULL != (LoadedMathPluginHandle = dlopen(AlignmentSubsystemCurrentMathPlugin.text, RTLD_NOW)))
+            if (nullptr != (LoadedMathPluginHandle = dlopen(AlignmentSubsystemCurrentMathPlugin.text, RTLD_NOW)))
             {
                 typedef MathPlugin * Create_t();
                 Create_t * Create = (Create_t *)dlsym(LoadedMathPluginHandle, "Create");
-                if (NULL != Create)
+                if (nullptr != Create)
                 {
                     pLoadedMathPlugin = Create();
                     // TODO - Update the client to reflect the new plugin
@@ -106,7 +106,7 @@ void MathPluginManagement::ProcessTextProperties(Telescope * pTelescope, const c
                         IUResetSwitch(&AlignmentSubsystemMathPluginsV);
                         (AlignmentSubsystemMathPlugins.get() + i + 1)->s = ISS_ON;
                         //  Update client
-                        IDSetSwitch(&AlignmentSubsystemMathPluginsV, NULL);
+                        IDSetSwitch(&AlignmentSubsystemMathPluginsV, nullptr);
                     }
                     else
                     {
@@ -127,17 +127,17 @@ void MathPluginManagement::ProcessTextProperties(Telescope * pTelescope, const c
         {
             // It is the inbuilt plugin
             // Unload old plugin if required
-            if (NULL != LoadedMathPluginHandle)
+            if (nullptr != LoadedMathPluginHandle)
             {
                 typedef void Destroy_t(MathPlugin *);
                 Destroy_t * Destroy = (Destroy_t *)dlsym(LoadedMathPluginHandle, "Destroy");
-                if (NULL != Destroy)
+                if (nullptr != Destroy)
                 {
                     Destroy(pLoadedMathPlugin);
-                    pLoadedMathPlugin = NULL;
+                    pLoadedMathPlugin = nullptr;
                     if (0 == dlclose(LoadedMathPluginHandle))
                     {
-                        LoadedMathPluginHandle = NULL;
+                        LoadedMathPluginHandle = nullptr;
 
                     }
                     else
@@ -156,7 +156,7 @@ void MathPluginManagement::ProcessTextProperties(Telescope * pTelescope, const c
             IUResetSwitch(&AlignmentSubsystemMathPluginsV);
             AlignmentSubsystemMathPlugins.get()->s = ISS_ON;
             //  Update client
-            IDSetSwitch(&AlignmentSubsystemMathPluginsV, NULL);
+            IDSetSwitch(&AlignmentSubsystemMathPluginsV, nullptr);
         }
     }
 }
@@ -178,13 +178,13 @@ void MathPluginManagement::ProcessSwitchProperties(Telescope * pTelescope, const
             {
                 typedef void Destroy_t(MathPlugin *);
                 Destroy_t * Destroy = (Destroy_t *)dlsym(LoadedMathPluginHandle, "Destroy");
-                if (NULL != Destroy)
+                if (nullptr != Destroy)
                 {
                     Destroy(pLoadedMathPlugin);
-                    pLoadedMathPlugin = NULL;
+                    pLoadedMathPlugin = nullptr;
                     if (0 == dlclose(LoadedMathPluginHandle))
                     {
-                        LoadedMathPluginHandle = NULL;
+                        LoadedMathPluginHandle = nullptr;
 
                     }
                     else
@@ -203,11 +203,11 @@ void MathPluginManagement::ProcessSwitchProperties(Telescope * pTelescope, const
             if (0 != NewPlugin)
             {
                 std::string PluginPath(MathPluginFiles[NewPlugin - 1]);
-                if (NULL != (LoadedMathPluginHandle = dlopen(PluginPath.c_str(), RTLD_NOW)))
+                if (nullptr != (LoadedMathPluginHandle = dlopen(PluginPath.c_str(), RTLD_NOW)))
                 {
                     typedef MathPlugin * Create_t();
                     Create_t * Create = (Create_t *)dlsym(LoadedMathPluginHandle, "Create");
-                    if (NULL != Create)
+                    if (nullptr != Create)
                     {
                         pLoadedMathPlugin = Create();
                         IUSaveText(&AlignmentSubsystemCurrentMathPlugin, PluginPath.c_str());
@@ -232,14 +232,14 @@ void MathPluginManagement::ProcessSwitchProperties(Telescope * pTelescope, const
         }
 
         //  Update client
-        IDSetSwitch(&AlignmentSubsystemMathPluginsV, NULL);
+        IDSetSwitch(&AlignmentSubsystemMathPluginsV, nullptr);
     }
     else if (strcmp(name, AlignmentSubsystemMathPluginInitialiseV.name) == 0)
     {
         AlignmentSubsystemMathPluginInitialiseV.s = IPS_OK;
         IUResetSwitch(&AlignmentSubsystemMathPluginInitialiseV);
         //  Update client display
-        IDSetSwitch(&AlignmentSubsystemMathPluginInitialiseV, NULL);
+        IDSetSwitch(&AlignmentSubsystemMathPluginInitialiseV, nullptr);
 
         // Initialise or reinitialise the current math plugin
         Initialise(CurrentInMemoryDatabase);
@@ -249,7 +249,7 @@ void MathPluginManagement::ProcessSwitchProperties(Telescope * pTelescope, const
         AlignmentSubsystemActiveV.s = IPS_OK;
         if (0 == IUUpdateSwitch(&AlignmentSubsystemActiveV, states, names, n))
             //  Update client
-            IDSetSwitch(&AlignmentSubsystemActiveV, NULL);
+            IDSetSwitch(&AlignmentSubsystemActiveV, nullptr);
     }
 }
 
@@ -257,7 +257,7 @@ void MathPluginManagement::SetAlignmentSubsystemActive(bool enable)
 {
     AlignmentSubsystemActive.s = enable ? ISS_ON : ISS_OFF;
     AlignmentSubsystemActiveV.s = IPS_OK;
-    IDSetSwitch(&AlignmentSubsystemActiveV, NULL);
+    IDSetSwitch(&AlignmentSubsystemActiveV, nullptr);
 }
 
 void MathPluginManagement::SaveConfigProperties(FILE * fp)
@@ -338,7 +338,7 @@ void MathPluginManagement::EnumeratePlugins()
 
             errno = 0;
             de = readdir( dp );
-            if (de == NULL)
+            if (de == nullptr)
                 break;
             if (0 == strcmp(de->d_name, "."))
                 continue;
@@ -348,7 +348,7 @@ void MathPluginManagement::EnumeratePlugins()
             // Try to load the plugin
             PluginPath.append(de->d_name);
             Handle = dlopen(PluginPath.c_str(), RTLD_NOW);
-            if (NULL == Handle)
+            if (nullptr == Handle)
             {
                 IDLog("EnumeratePlugins - cannot load plugin %s error %s\n", PluginPath.c_str(), dlerror());
                 continue;
@@ -357,7 +357,7 @@ void MathPluginManagement::EnumeratePlugins()
             // Try to get the plugin display name
             typedef const char * GetDisplayName_t();
             GetDisplayName_t * GetDisplayNamePtr = (GetDisplayName_t *)dlsym(Handle, "GetDisplayName");
-            if (NULL == GetDisplayNamePtr)
+            if (nullptr == GetDisplayNamePtr)
             {
                 IDLog("EnumeratePlugins - cannot get plugin %s DisplayName error %s\n", PluginPath.c_str(), dlerror());
                 continue;

@@ -152,7 +152,7 @@ bool INDI::Focuser::ISNewNumber (const char * dev, const char * name, double val
         {
             IUUpdateNumber(&PresetNP, values, names, n);
             PresetNP.s = IPS_OK;
-            IDSetNumber(&PresetNP, NULL);
+            IDSetNumber(&PresetNP, nullptr);
 
             //saveConfig();
 
@@ -179,14 +179,14 @@ bool INDI::Focuser::ISNewSwitch (const char * dev, const char * name, ISState * 
             if (PresetN[index].value < FocusAbsPosN[0].min)
             {
                 PresetGotoSP.s = IPS_ALERT;
-                IDSetSwitch(&PresetGotoSP, NULL);
+                IDSetSwitch(&PresetGotoSP, nullptr);
                 DEBUGFDEVICE(dev, INDI::Logger::DBG_ERROR, "Requested position out of bound. Focus minimum position is %g", FocusAbsPosN[0].min);
                 return false;
             }
             else if (PresetN[index].value > FocusAbsPosN[0].max)
             {
                 PresetGotoSP.s = IPS_ALERT;
-                IDSetSwitch(&PresetGotoSP, NULL);
+                IDSetSwitch(&PresetGotoSP, nullptr);
                 DEBUGFDEVICE(dev, INDI::Logger::DBG_ERROR, "Requested position out of bound. Focus maximum position is %g", FocusAbsPosN[0].max);
                 return false;
             }
@@ -196,12 +196,12 @@ bool INDI::Focuser::ISNewSwitch (const char * dev, const char * name, ISState * 
             {
                 PresetGotoSP.s = IPS_OK;
                 DEBUGF(INDI::Logger::DBG_SESSION, "Moving to Preset %d with position %g.", index + 1, PresetN[index].value);
-                IDSetSwitch(&PresetGotoSP, NULL);
+                IDSetSwitch(&PresetGotoSP, nullptr);
                 return true;
             }
 
             PresetGotoSP.s = IPS_ALERT;
-            IDSetSwitch(&PresetGotoSP, NULL);
+            IDSetSwitch(&PresetGotoSP, nullptr);
             return false;
         }
 
@@ -271,12 +271,12 @@ void INDI::Focuser::processButton(const char * button_n, ISState state)
             if (CanAbsMove() && FocusAbsPosNP.s != IPS_IDLE)
             {
                 FocusAbsPosNP.s = IPS_IDLE;
-                IDSetNumber(&FocusAbsPosNP, NULL);
+                IDSetNumber(&FocusAbsPosNP, nullptr);
             }
             if (CanRelMove() && FocusRelPosNP.s != IPS_IDLE)
             {
                 FocusRelPosNP.s = IPS_IDLE;
-                IDSetNumber(&FocusRelPosNP, NULL);
+                IDSetNumber(&FocusRelPosNP, nullptr);
             }
         }
         else
@@ -285,7 +285,7 @@ void INDI::Focuser::processButton(const char * button_n, ISState state)
             DEBUG(INDI::Logger::DBG_ERROR, "Aborting focuser failed.");
         }
 
-        IDSetSwitch(&AbortSP, NULL);
+        IDSetSwitch(&AbortSP, nullptr);
     }
     // Focus In
     else if (!strcmp(button_n, "Focus In"))
@@ -294,14 +294,14 @@ void INDI::Focuser::processButton(const char * button_n, ISState state)
         {
             FocusMotionS[FOCUS_INWARD].s = ISS_ON;
             FocusMotionS[FOCUS_OUTWARD].s = ISS_OFF;
-            IDSetSwitch(&FocusMotionSP, NULL);
+            IDSetSwitch(&FocusMotionSP, nullptr);
         }
 
         if (HasVariableSpeed())
         {
             rc = MoveFocuser(FOCUS_INWARD, FocusSpeedN[0].value, FocusTimerN[0].value);
             FocusTimerNP.s = rc;
-            IDSetNumber(&FocusTimerNP, NULL);
+            IDSetNumber(&FocusTimerNP, nullptr);
         }
         else if (CanRelMove())
         {
@@ -310,7 +310,7 @@ void INDI::Focuser::processButton(const char * button_n, ISState state)
             {
                 FocusRelPosNP.s = IPS_OK;
                 IDSetNumber(&FocusRelPosNP, "Focuser moved %d steps inward", (int) FocusRelPosN[0].value);
-                IDSetNumber(&FocusAbsPosNP, NULL);
+                IDSetNumber(&FocusAbsPosNP, nullptr);
             }
             else if (rc == IPS_BUSY)
             {
@@ -325,14 +325,14 @@ void INDI::Focuser::processButton(const char * button_n, ISState state)
         {
             FocusMotionS[FOCUS_INWARD].s = ISS_OFF;
             FocusMotionS[FOCUS_OUTWARD].s = ISS_ON;
-            IDSetSwitch(&FocusMotionSP, NULL);
+            IDSetSwitch(&FocusMotionSP, nullptr);
         }
 
         if (HasVariableSpeed())
         {
             rc = MoveFocuser(FOCUS_OUTWARD, FocusSpeedN[0].value, FocusTimerN[0].value);
             FocusTimerNP.s = rc;
-            IDSetNumber(&FocusTimerNP, NULL);
+            IDSetNumber(&FocusTimerNP, nullptr);
         }
         else if (CanRelMove())
         {
@@ -341,7 +341,7 @@ void INDI::Focuser::processButton(const char * button_n, ISState state)
             {
                 FocusRelPosNP.s = IPS_OK;
                 IDSetNumber(&FocusRelPosNP, "Focuser moved %d steps outward", (int) FocusRelPosN[0].value);
-                IDSetNumber(&FocusAbsPosNP, NULL);
+                IDSetNumber(&FocusAbsPosNP, nullptr);
             }
             else if (rc == IPS_BUSY)
             {

@@ -172,7 +172,7 @@ bool SimpleCCD::StartExposure(float duration)
     // Since we have only have one CCD with one chip, we set the exposure duration of the primary CCD
     PrimaryCCD.setExposureDuration(duration);
 
-    gettimeofday(&ExpStart, NULL);
+    gettimeofday(&ExpStart, nullptr);
 
     InExposure = true;
 
@@ -208,7 +208,7 @@ float SimpleCCD::CalcTimeLeft()
     double timesince;
     double timeleft;
     struct timeval now;
-    gettimeofday(&now, NULL);
+    gettimeofday(&now, nullptr);
 
     timesince = (double)(now.tv_sec * 1000.0 + now.tv_usec / 1000) - (double)(ExpStart.tv_sec * 1000.0 + ExpStart.tv_usec / 1000);
     timesince = timesince / 1000;
@@ -277,7 +277,7 @@ void SimpleCCD::TimerHit()
                 break;
             }
 
-            IDSetNumber(&TemperatureNP, NULL);
+            IDSetNumber(&TemperatureNP, nullptr);
 
             break;
 

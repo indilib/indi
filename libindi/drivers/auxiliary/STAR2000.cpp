@@ -188,7 +188,7 @@ bool STAR2000::ISNewText (const char * dev, const char * name, char * texts[], c
     {
         PortTP.s = IPS_OK;
         IUUpdateText(&PortTP, texts, names, n);
-        IDSetText(&PortTP, NULL);
+        IDSetText(&PortTP, nullptr);
 
         return(true);
     }
@@ -212,7 +212,7 @@ float STAR2000::CalcWEPulseTimeLeft()
     double timesince;
     double timeleft;
     struct timeval now;
-    gettimeofday(&now, NULL);
+    gettimeofday(&now, nullptr);
 
     timesince = (double)(now.tv_sec * 1000.0 + now.tv_usec / 1000) - (double)(WEPulseStart.tv_sec * 1000.0 + WEPulseStart.tv_usec / 1000);
     timesince = timesince / 1000;
@@ -227,7 +227,7 @@ float STAR2000::CalcNSPulseTimeLeft()
     double timesince;
     double timeleft;
     struct timeval now;
-    gettimeofday(&now, NULL);
+    gettimeofday(&now, nullptr);
 
     timesince = (double)(now.tv_sec * 1000.0 + now.tv_usec / 1000) - (double)(NSPulseStart.tv_sec * 1000.0 + NSPulseStart.tv_usec / 1000);
     timesince = timesince / 1000;
@@ -357,7 +357,7 @@ IPState STAR2000::GuideNorth(float ms)
     }
 
     NSPulseRequest = ms / 1000.0;
-    gettimeofday(&NSPulseStart, NULL);
+    gettimeofday(&NSPulseStart, nullptr);
     InNSPulse = true;
 
     NStimerID = SetTimer(ms - 50);
@@ -385,7 +385,7 @@ IPState STAR2000::GuideSouth(float ms)
     }
 
     NSPulseRequest = ms / 1000.0;
-    gettimeofday(&NSPulseStart, NULL);
+    gettimeofday(&NSPulseStart, nullptr);
     InNSPulse = true;
 
     NStimerID = SetTimer(ms - 50);
@@ -414,7 +414,7 @@ IPState STAR2000::GuideEast(float ms)
     }
 
     WEPulseRequest = ms / 1000.0;
-    gettimeofday(&WEPulseStart, NULL);
+    gettimeofday(&WEPulseStart, nullptr);
     InWEPulse = true;
 
     WEtimerID = SetTimer(ms - 50);
@@ -442,7 +442,7 @@ IPState STAR2000::GuideWest(float ms)
     }
 
     WEPulseRequest = ms / 1000.0;
-    gettimeofday(&WEPulseStart, NULL);
+    gettimeofday(&WEPulseStart, nullptr);
     InWEPulse = true;
 
     WEtimerID = SetTimer(ms - 50);

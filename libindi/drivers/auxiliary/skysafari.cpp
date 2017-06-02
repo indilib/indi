@@ -164,7 +164,7 @@ bool SkySafari::ISNewText (const char * dev, const char * name, char * texts[], 
         {
             IUUpdateText(&SettingsTP, texts, names, n);
             SettingsTP.s = IPS_OK;
-            IDSetText(&SettingsTP, NULL);
+            IDSetText(&SettingsTP, nullptr);
             return true;
         }
 
@@ -172,7 +172,7 @@ bool SkySafari::ISNewText (const char * dev, const char * name, char * texts[], 
         {
             IUUpdateText(&ActiveDeviceTP, texts, names, n);
             ActiveDeviceTP.s = IPS_OK;
-            IDSetText(&ActiveDeviceTP, NULL);
+            IDSetText(&ActiveDeviceTP, nullptr);
             return true;
         }
 
@@ -200,7 +200,7 @@ bool SkySafari::ISNewSwitch (const char * dev, const char * name, ISState * stat
                 if (ServerControlS[SERVER_ENABLE].s == ISS_ON)
                 {
                     ServerControlSP.s = IPS_OK;
-                    IDSetSwitch(&ServerControlSP, NULL);
+                    IDSetSwitch(&ServerControlSP, nullptr);
                     return true;
                 }
 
@@ -215,7 +215,7 @@ bool SkySafari::ISNewSwitch (const char * dev, const char * name, ISState * stat
                     if (ServerControlS[SERVER_DISABLE].s == ISS_ON)
                     {
                         ServerControlSP.s = IPS_IDLE;
-                        IDSetSwitch(&ServerControlSP, NULL);
+                        IDSetSwitch(&ServerControlSP, nullptr);
                         return true;
                     }
 
@@ -225,7 +225,7 @@ bool SkySafari::ISNewSwitch (const char * dev, const char * name, ISState * stat
             }
 
             IUUpdateSwitch(&ServerControlSP, states, names, n);
-            IDSetSwitch(&ServerControlSP, NULL);
+            IDSetSwitch(&ServerControlSP, nullptr);
             return true;
         }
 

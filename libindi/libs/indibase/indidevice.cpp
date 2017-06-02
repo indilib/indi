@@ -23,7 +23,7 @@
 
 #include <string.h>
 
-IndiDevice * device = NULL;
+IndiDevice * device = nullptr;
 
 
 /**************************************************************************************
@@ -32,11 +32,11 @@ IndiDevice * device = NULL;
 void ISGetProperties (const char * dev)
 {
     //fprintf(stderr,"Enter ISGetProperties '%s'\n",dev);
-    if(device == NULL)
+    if(device == nullptr)
     {
         //IDLog("Create device for %s\n",dev);
         device = _create_device();
-        if(dev != NULL)
+        if(dev != nullptr)
         {
             //fprintf(stderr,"Calling setDeviceName %s\n",dev);
             device->setDeviceName(dev);
@@ -150,7 +150,7 @@ int IndiDevice::init_properties()
 
 bool IndiDevice::DeleteProperty(char * n)
 {
-    IDDelete(deviceName(), n, NULL);
+    IDDelete(deviceName(), n, nullptr);
     return true;
 }
 
@@ -159,7 +159,7 @@ void IndiDevice::ISGetProperties(const char * dev)
 
     //  Now lets send the ones we have defined
     //IDLog("IndiDevice::ISGetProperties %s\n",dev);
-    IDDefSwitch (&ConnectionSV, NULL);
+    IDDefSwitch (&ConnectionSV, nullptr);
 
     if(Connected) UpdateProperties();   //  If already connected, send the rest
     //  And now get the default driver to send what it wants to send
@@ -228,7 +228,7 @@ bool IndiDevice::ISNewSwitch (const char * dev, const char * name, ISState * sta
                     }
                 }
                 UpdateProperties();
-                IDSetSwitch(&ConnectionSV, NULL);
+                IDSetSwitch(&ConnectionSV, nullptr);
             }
             else
             {
@@ -238,7 +238,7 @@ bool IndiDevice::ISNewSwitch (const char * dev, const char * name, ISState * sta
                 ConnectionSV.s = IPS_IDLE;
                 Connected = false;
                 UpdateProperties();
-                IDSetSwitch(&ConnectionSV, NULL);
+                IDSetSwitch(&ConnectionSV, nullptr);
             }
 
             /*
@@ -256,7 +256,7 @@ bool IndiDevice::ISNewSwitch (const char * dev, const char * name, ISState * sta
                     Connected=false;
                 }
                 IUUpdateSwitch(&ConnectionSV,states,names,n);
-                IDSetSwitch(&ConnectionSV,NULL);
+                IDSetSwitch(&ConnectionSV,nullptr);
                 IDLog("Connect ccalling update properties\n");
                 UpdateProperties();
                 //return true;
@@ -274,7 +274,7 @@ bool IndiDevice::ISNewSwitch (const char * dev, const char * name, ISState * sta
                 UpdateProperties();
                 //  And now lets tell everybody how it went
                 IUUpdateSwitch(&ConnectionSV,states,names,n);
-                IDSetSwitch(&ConnectionSV,NULL);
+                IDSetSwitch(&ConnectionSV,nullptr);
                 return true;
             }
             */
@@ -345,8 +345,8 @@ bool IndiDevice::SaveConfig()
     FILE * fp;
     //int rc;
 
-    fp = IUGetConfigFP(NULL, deviceName(), err);
-    if(fp != NULL)
+    fp = IUGetConfigFP(nullptr, deviceName(), err);
+    if(fp != nullptr)
     {
         IUSaveConfigTag(fp, 0);
         //IUSaveConfigText(fp,&FilterNameTV);
@@ -375,7 +375,7 @@ bool IndiDevice::LoadConfig()
     char err[MAXRBUF];
     int rc;
 
-    rc = IUReadConfig(NULL, deviceName(), err);
+    rc = IUReadConfig(nullptr, deviceName(), err);
     if(rc == 0) return true;
     return false;
 }

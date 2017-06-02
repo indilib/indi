@@ -43,7 +43,7 @@ void LoaderClient::Initialise(int argc, char * argv[])
 
     connectServer();
 
-    setBLOBMode(B_ALSO, DeviceName.c_str(), NULL);
+    setBLOBMode(B_ALSO, DeviceName.c_str(), nullptr);
 }
 
 void LoaderClient::Load()

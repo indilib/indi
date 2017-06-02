@@ -199,8 +199,8 @@ bool SkywatcherAPIMount::Goto(double ra, double dec)
         // Try a conversion with the stored observatory position if any
         bool HavePosition = false;
         ln_lnlat_posn Position;
-        if ((NULL != IUFindNumber(&LocationNP, "LAT")) && ( 0 != IUFindNumber(&LocationNP, "LAT")->value)
-                && (NULL != IUFindNumber(&LocationNP, "LONG")) && ( 0 != IUFindNumber(&LocationNP, "LONG")->value))
+        if ((nullptr != IUFindNumber(&LocationNP, "LAT")) && ( 0 != IUFindNumber(&LocationNP, "LAT")->value)
+                && (nullptr != IUFindNumber(&LocationNP, "LONG")) && ( 0 != IUFindNumber(&LocationNP, "LONG")->value))
         {
             // I assume that being on the equator and exactly on the prime meridian is unlikely
             Position.lat = IUFindNumber(&LocationNP, "LAT")->value;
@@ -941,8 +941,8 @@ bool SkywatcherAPIMount::ReadScopeStatus()
     {
         bool HavePosition = false;
         ln_lnlat_posn Position;
-        if ((NULL != IUFindNumber(&LocationNP, "LAT")) && ( 0 != IUFindNumber(&LocationNP, "LAT")->value)
-                && (NULL != IUFindNumber(&LocationNP, "LONG")) && ( 0 != IUFindNumber(&LocationNP, "LONG")->value))
+        if ((nullptr != IUFindNumber(&LocationNP, "LAT")) && ( 0 != IUFindNumber(&LocationNP, "LAT")->value)
+                && (nullptr != IUFindNumber(&LocationNP, "LONG")) && ( 0 != IUFindNumber(&LocationNP, "LONG")->value))
         {
             // I assume that being on the equator and exactly on the prime meridian is unlikely
             Position.lat = IUFindNumber(&LocationNP, "LAT")->value;
@@ -1147,8 +1147,8 @@ void SkywatcherAPIMount::TimerHit()
                 // Try a conversion with the stored observatory position if any
                 bool HavePosition = false;
                 ln_lnlat_posn Position;
-                if ((NULL != IUFindNumber(&LocationNP, "LAT")) && ( 0 != IUFindNumber(&LocationNP, "LAT")->value)
-                        && (NULL != IUFindNumber(&LocationNP, "LONG")) && ( 0 != IUFindNumber(&LocationNP, "LONG")->value))
+                if ((nullptr != IUFindNumber(&LocationNP, "LAT")) && ( 0 != IUFindNumber(&LocationNP, "LAT")->value)
+                        && (nullptr != IUFindNumber(&LocationNP, "LONG")) && ( 0 != IUFindNumber(&LocationNP, "LONG")->value))
                 {
                     // I assume that being on the equator and exactly on the prime meridian is unlikely
                     Position.lat = IUFindNumber(&LocationNP, "LAT")->value;
@@ -1476,7 +1476,7 @@ void SkywatcherAPIMount::UpdateDetailedMountInformation(bool InformClient)
         BasicMountInfoHasChanged = true;
     }
     if (BasicMountInfoHasChanged && InformClient)
-        IDSetNumber(&BasicMountInfoV, NULL);
+        IDSetNumber(&BasicMountInfoV, nullptr);
 
     int OldMountType = IUFindOnSwitchIndex(&MountTypeV);
     int NewMountType;
@@ -1520,7 +1520,7 @@ void SkywatcherAPIMount::UpdateDetailedMountInformation(bool InformClient)
         IUResetSwitch(&MountTypeV);
         MountType[NewMountType].s = ISS_ON;
         if (InformClient)
-            IDSetSwitch(&MountTypeV, NULL);
+            IDSetSwitch(&MountTypeV, nullptr);
     }
 
     bool AxisOneInfoHasChanged = false;
@@ -1545,7 +1545,7 @@ void SkywatcherAPIMount::UpdateDetailedMountInformation(bool InformClient)
         AxisOneInfoHasChanged = true;
     }
     if (AxisOneInfoHasChanged && InformClient)
-        IDSetNumber(&AxisOneInfoV, NULL);
+        IDSetNumber(&AxisOneInfoV, nullptr);
 
     bool AxisOneStateHasChanged = false;
     if (AxisOneState[FULL_STOP].s != (AxesStatus[0].FullStop ? ISS_ON : ISS_OFF))
@@ -1579,7 +1579,7 @@ void SkywatcherAPIMount::UpdateDetailedMountInformation(bool InformClient)
         AxisOneStateHasChanged = true;
     }
     if (AxisOneStateHasChanged && InformClient)
-        IDSetSwitch(&AxisOneStateV, NULL);
+        IDSetSwitch(&AxisOneStateV, nullptr);
 
     bool AxisTwoInfoHasChanged = false;
     if (AxisTwoInfo[MICROSTEPS_PER_REVOLUTION].value != MicrostepsPerRevolution[1])
@@ -1603,7 +1603,7 @@ void SkywatcherAPIMount::UpdateDetailedMountInformation(bool InformClient)
         AxisTwoInfoHasChanged = true;
     }
     if (AxisTwoInfoHasChanged && InformClient)
-        IDSetNumber(&AxisTwoInfoV, NULL);
+        IDSetNumber(&AxisTwoInfoV, nullptr);
 
     bool AxisTwoStateHasChanged = false;
     if (AxisTwoState[FULL_STOP].s != (AxesStatus[1].FullStop ? ISS_ON : ISS_OFF))
@@ -1637,7 +1637,7 @@ void SkywatcherAPIMount::UpdateDetailedMountInformation(bool InformClient)
         AxisTwoStateHasChanged = true;
     }
     if (AxisTwoStateHasChanged && InformClient)
-        IDSetSwitch(&AxisTwoStateV, NULL);
+        IDSetSwitch(&AxisTwoStateV, nullptr);
 
     bool AxisOneEncoderValuesHasChanged = false;
     if ((AxisOneEncoderValues[RAW_MICROSTEPS].value != CurrentEncoders[AXIS1])
@@ -1649,7 +1649,7 @@ void SkywatcherAPIMount::UpdateDetailedMountInformation(bool InformClient)
         AxisOneEncoderValuesHasChanged = true;
     }
     if (AxisOneEncoderValuesHasChanged && InformClient)
-        IDSetNumber(&AxisOneEncoderValuesV, NULL);
+        IDSetNumber(&AxisOneEncoderValuesV, nullptr);
 
     bool AxisTwoEncoderValuesHasChanged = false;
     if ((AxisTwoEncoderValues[RAW_MICROSTEPS].value != CurrentEncoders[AXIS2])
@@ -1661,5 +1661,5 @@ void SkywatcherAPIMount::UpdateDetailedMountInformation(bool InformClient)
         AxisTwoEncoderValuesHasChanged = true;
     }
     if (AxisTwoEncoderValuesHasChanged && InformClient)
-        IDSetNumber(&AxisTwoEncoderValuesV, NULL);
+        IDSetNumber(&AxisTwoEncoderValuesV, nullptr);
 }

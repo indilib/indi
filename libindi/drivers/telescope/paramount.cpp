@@ -610,7 +610,7 @@ bool Paramount::ISNewNumber (const char * dev, const char * name, double values[
         {
             IUUpdateNumber(&JogRateNP, values, names, n);
             JogRateNP.s = IPS_OK;
-            IDSetNumber(&JogRateNP, NULL);
+            IDSetNumber(&JogRateNP, nullptr);
             return true;
         }
 
@@ -619,7 +619,7 @@ bool Paramount::ISNewNumber (const char * dev, const char * name, double values[
         {
             IUUpdateNumber(&GuideRateNP, values, names, n);
             GuideRateNP.s = IPS_OK;
-            IDSetNumber(&GuideRateNP, NULL);
+            IDSetNumber(&GuideRateNP, nullptr);
             return true;
         }
 
@@ -637,7 +637,7 @@ bool Paramount::ISNewNumber (const char * dev, const char * name, double values[
                 TrackRateNP.s = setTheSkyTracking(true, false, TrackRateN[RA_AXIS].value, TrackRateN[DEC_AXIS].value) ? IPS_OK : IPS_ALERT;
             }
 
-            IDSetNumber(&TrackRateNP, NULL);
+            IDSetNumber(&TrackRateNP, nullptr);
             return true;
         }
 
@@ -697,7 +697,7 @@ bool Paramount::ISNewSwitch (const char * dev, const char * name, ISState * stat
                 TrackModeSP.s = enable ? IPS_BUSY : IPS_IDLE;
             }
 
-            IDSetSwitch(&TrackModeSP, NULL);
+            IDSetSwitch(&TrackModeSP, nullptr);
             return true;
         }
 
@@ -876,7 +876,7 @@ void Paramount::mountSim ()
     int nlocked;
 
     /* update elapsed time since last poll, don't presume exactly POLLMS */
-    gettimeofday (&tv, NULL);
+    gettimeofday (&tv, nullptr);
 
     if (ltv.tv_sec == 0 && ltv.tv_usec == 0)
         ltv = tv;

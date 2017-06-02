@@ -89,7 +89,7 @@ bool LX200FS2::ISNewNumber (const char * dev, const char * name, double values[]
             if (SlewAccuracyN[0].value < 3 || SlewAccuracyN[1].value < 3)
                 IDSetNumber(&SlewAccuracyNP, "Warning: Setting the slew accuracy too low may result in a dead lock");
 
-            IDSetNumber(&SlewAccuracyNP, NULL);
+            IDSetNumber(&SlewAccuracyNP, nullptr);
             return true;
         }
     }

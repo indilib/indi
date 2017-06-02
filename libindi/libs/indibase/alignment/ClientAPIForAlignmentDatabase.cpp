@@ -17,17 +17,17 @@ namespace INDI
 namespace AlignmentSubsystem
 {
 
-ClientAPIForAlignmentDatabase::ClientAPIForAlignmentDatabase() :   Device(NULL),
-    MandatoryNumbers(NULL),
-    OptionalBinaryBlob(NULL),
-    PointsetSize(NULL),
-    CurrentEntry(NULL),
-    Action(NULL),
-    Commit(NULL),
+ClientAPIForAlignmentDatabase::ClientAPIForAlignmentDatabase() :   Device(nullptr),
+    MandatoryNumbers(nullptr),
+    OptionalBinaryBlob(nullptr),
+    PointsetSize(nullptr),
+    CurrentEntry(nullptr),
+    Action(nullptr),
+    Commit(nullptr),
     DriverActionComplete(false)
 {
-    pthread_cond_init(&DriverActionCompleteCondition, NULL);
-    pthread_mutex_init(&DriverActionCompleteMutex, NULL);
+    pthread_cond_init(&DriverActionCompleteCondition, nullptr);
+    pthread_mutex_init(&DriverActionCompleteMutex, nullptr);
 }
 
 ClientAPIForAlignmentDatabase::~ClientAPIForAlignmentDatabase()
@@ -395,12 +395,12 @@ void ClientAPIForAlignmentDatabase::ProcessNewProperty(INDI::Property * Property
 
     // Tell the client when all the database proeprties have been set up
     if (GotOneOfMine
-            && (NULL != MandatoryNumbers)
-            && (NULL != OptionalBinaryBlob)
-            && (NULL != PointsetSize)
-            && (NULL != CurrentEntry)
-            && (NULL != Action)
-            && (NULL != Commit))
+            && (nullptr != MandatoryNumbers)
+            && (nullptr != OptionalBinaryBlob)
+            && (nullptr != PointsetSize)
+            && (nullptr != CurrentEntry)
+            && (nullptr != Action)
+            && (nullptr != Commit))
     {
         // The DriverActionComplete state variable is initialised to false
         // So I need to call this to set it to true and signal anyone
@@ -601,7 +601,7 @@ bool ClientAPIForAlignmentDatabase::SendEntryData(const AlignmentDatabaseEntry &
         return false;
     }
 
-    if ((0 != CurrentValues.PrivateDataSize) && (NULL != CurrentValues.PrivateData.get()))
+    if ((0 != CurrentValues.PrivateDataSize) && (nullptr != CurrentValues.PrivateData.get()))
     {
         // I have a BLOB to send
         SetDriverBusy();

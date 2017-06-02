@@ -68,10 +68,10 @@ JoyStick::JoyStick()
 {
     driver = new JoyStickDriver();
 
-    JoyStickNP = NULL;
-    JoyStickN = NULL;
-    AxisN = NULL;
-    ButtonS = NULL;
+    JoyStickNP = nullptr;
+    JoyStickN = nullptr;
+    AxisN = nullptr;
+    ButtonS = nullptr;
 }
 
 JoyStick::~JoyStick()
@@ -116,7 +116,7 @@ void JoyStick::setupParams()
 {
     char propName[16], propLabel[16];
 
-    if (driver == NULL)
+    if (driver == nullptr)
         return;
 
     int nAxis      = driver->getNumOfAxes();
@@ -270,7 +270,7 @@ bool JoyStick::ISNewText (const char * dev, const char * name, char * texts[], c
             PortTP.s = IPS_OK;
             IUUpdateText(&PortTP, texts, names, n);
             //  Update client display
-            IDSetText(&PortTP, NULL);
+            IDSetText(&PortTP, nullptr);
 
             driver->setPort(PortT[0].text);
 
@@ -313,7 +313,7 @@ void JoyStick::joystickEvent(int joystick_n, double mag, double angle)
     JoyStickNP[joystick_n].np[0].value = mag;
     JoyStickNP[joystick_n].np[1].value = angle;
 
-    IDSetNumber(&JoyStickNP[joystick_n], NULL);
+    IDSetNumber(&JoyStickNP[joystick_n], nullptr);
 }
 
 void JoyStick::axisEvent(int axis_n, int value)
@@ -331,7 +331,7 @@ void JoyStick::axisEvent(int axis_n, int value)
 
     AxisNP.np[axis_n].value = value;
 
-    IDSetNumber(&AxisNP, NULL);
+    IDSetNumber(&AxisNP, nullptr);
 }
 
 void JoyStick::buttonEvent(int button_n, int value)
@@ -345,7 +345,7 @@ void JoyStick::buttonEvent(int button_n, int value)
     ButtonSP.s = IPS_OK;
     ButtonS[button_n].s = (value == 0 ) ? ISS_OFF : ISS_ON;
 
-    IDSetSwitch(&ButtonSP, NULL);
+    IDSetSwitch(&ButtonSP, nullptr);
 }
 
 bool JoyStick::saveConfigItems(FILE * fp)

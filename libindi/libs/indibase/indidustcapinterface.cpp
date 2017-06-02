@@ -59,7 +59,7 @@ bool INDI::DustCapInterface::processDustCapSwitch (const char * dev, const char 
             ParkCapS[prevSwitch].s = ISS_ON;
         }
 
-        IDSetSwitch(&ParkCapSP, NULL);
+        IDSetSwitch(&ParkCapSP, nullptr);
         return true;
     }
 

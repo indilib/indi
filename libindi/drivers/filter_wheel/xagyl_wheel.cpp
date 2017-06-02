@@ -71,7 +71,7 @@ void ISSnoopDevice (XMLEle * root)
 XAGYLWheel::XAGYLWheel()
 {
     sim = false;
-    OffsetN = NULL;
+    OffsetN = nullptr;
     firmwareVersion = 0;
 
     simData.position = 1;
@@ -104,9 +104,9 @@ bool XAGYLWheel::initProperties()
     INDI::FilterWheel::initProperties();
 
     // Firmware info
-    IUFillText(&FirmwareInfoT[0], "Product", "", NULL);
-    IUFillText(&FirmwareInfoT[1], "Firmware", "", NULL);
-    IUFillText(&FirmwareInfoT[2], "Serial #", "", NULL);
+    IUFillText(&FirmwareInfoT[0], "Product", "", nullptr);
+    IUFillText(&FirmwareInfoT[1], "Firmware", "", nullptr);
+    IUFillText(&FirmwareInfoT[2], "Serial #", "", nullptr);
     IUFillTextVector(&FirmwareInfoTP, FirmwareInfoT, 3, getDeviceName(), "Info", "", MAIN_CONTROL_TAB, IP_RO, 60, IPS_IDLE);
 
     // Settings
@@ -229,7 +229,7 @@ bool XAGYLWheel::ISNewSwitch (const char * dev, const char * name, ISState * sta
             }
 
             ResetSP.s = rc ? IPS_OK : IPS_ALERT;
-            IDSetSwitch(&ResetSP, NULL);
+            IDSetSwitch(&ResetSP, nullptr);
 
             return true;
         }
@@ -261,7 +261,7 @@ bool XAGYLWheel::ISNewNumber (const char * dev, const char * name, double values
             }
 
             OffsetNP.s = rc_offset ? IPS_OK : IPS_ALERT;
-            IDSetNumber(&OffsetNP, NULL);
+            IDSetNumber(&OffsetNP, nullptr);
             return true;
         }
 
@@ -338,7 +338,7 @@ bool XAGYLWheel::ISNewNumber (const char * dev, const char * name, double values
             else
                 SettingsNP.s = IPS_ALERT;
 
-            IDSetNumber(&SettingsNP, NULL);
+            IDSetNumber(&SettingsNP, nullptr);
 
             return true;
         }
@@ -583,7 +583,7 @@ bool XAGYLWheel::GetFilterNames(const char * groupName)
     char filterLabel[MAXINDILABEL];
     int MaxFilter = FilterSlotN[0].max;
 
-    if (FilterNameT != NULL)
+    if (FilterNameT != nullptr)
         delete FilterNameT;
 
     FilterNameT = new IText[MaxFilter];

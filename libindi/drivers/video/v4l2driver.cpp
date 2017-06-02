@@ -36,10 +36,10 @@ V4L2_Driver::V4L2_Driver()
 
     is_capturing = false;
 
-    Options = NULL;
+    Options = nullptr;
     v4loptions = 0;
-    AbsExposureN = NULL;
-    ManualExposureSP = NULL;
+    AbsExposureN = nullptr;
+    ManualExposureSP = nullptr;
 
     stackMode = STACK_NONE;
 
@@ -85,7 +85,7 @@ bool V4L2_Driver::initProperties()
     IUFillSwitchVector(&ImageDepthSP, ImageDepthS, NARRAY(ImageDepthS), getDeviceName(), "Image Depth", "", IMAGE_SETTINGS_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
     /* Camera Name */
-    IUFillText(&camNameT[0], "Model", "", NULL);
+    IUFillText(&camNameT[0], "Model", "", nullptr);
     IUFillTextVector(&camNameTP, camNameT, NARRAY(camNameT), getDeviceName(), "Camera", "", IMAGE_INFO_TAB, IP_RO, 0, IPS_IDLE);
 
     /* Stacking Mode */
@@ -99,19 +99,19 @@ bool V4L2_Driver::initProperties()
     stackMode = 0;
 
     /* Inputs */
-    IUFillSwitchVector(&InputsSP, NULL, 0, getDeviceName(), "V4L2_INPUT", "Inputs", CAPTURE_FORMAT, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+    IUFillSwitchVector(&InputsSP, nullptr, 0, getDeviceName(), "V4L2_INPUT", "Inputs", CAPTURE_FORMAT, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
     /* Capture Formats */
-    IUFillSwitchVector(&CaptureFormatsSP, NULL, 0, getDeviceName(), "V4L2_FORMAT", "Capture Format", CAPTURE_FORMAT, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+    IUFillSwitchVector(&CaptureFormatsSP, nullptr, 0, getDeviceName(), "V4L2_FORMAT", "Capture Format", CAPTURE_FORMAT, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
     /* Capture Sizes */
-    IUFillSwitchVector(&CaptureSizesSP, NULL, 0, getDeviceName(), "V4L2_SIZE_DISCRETE", "Capture Size", CAPTURE_FORMAT, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
-    IUFillNumberVector(&CaptureSizesNP, NULL, 0, getDeviceName(), "V4L2_SIZE_STEP", "Capture Size", CAPTURE_FORMAT, IP_RW, 0, IPS_IDLE);
+    IUFillSwitchVector(&CaptureSizesSP, nullptr, 0, getDeviceName(), "V4L2_SIZE_DISCRETE", "Capture Size", CAPTURE_FORMAT, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+    IUFillNumberVector(&CaptureSizesNP, nullptr, 0, getDeviceName(), "V4L2_SIZE_STEP", "Capture Size", CAPTURE_FORMAT, IP_RW, 0, IPS_IDLE);
     /* Frame Rate */
-    IUFillSwitchVector(&FrameRatesSP, NULL, 0, getDeviceName(), "V4L2_FRAMEINT_DISCRETE", "Frame Interval", CAPTURE_FORMAT, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
-    IUFillNumberVector(&FrameRateNP, NULL, 0, getDeviceName(), "V4L2_FRAMEINT_STEP", "Frame Interval", CAPTURE_FORMAT, IP_RW, 60, IPS_IDLE);
+    IUFillSwitchVector(&FrameRatesSP, nullptr, 0, getDeviceName(), "V4L2_FRAMEINT_DISCRETE", "Frame Interval", CAPTURE_FORMAT, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+    IUFillNumberVector(&FrameRateNP, nullptr, 0, getDeviceName(), "V4L2_FRAMEINT_STEP", "Frame Interval", CAPTURE_FORMAT, IP_RW, 60, IPS_IDLE);
     /* Capture Colorspace */
-    IUFillText(&CaptureColorSpaceT[0], "Name", "", NULL);
-    IUFillText(&CaptureColorSpaceT[1], "YCbCr Encoding", "", NULL);
-    IUFillText(&CaptureColorSpaceT[2], "Quantization", "", NULL);
+    IUFillText(&CaptureColorSpaceT[0], "Name", "", nullptr);
+    IUFillText(&CaptureColorSpaceT[1], "YCbCr Encoding", "", nullptr);
+    IUFillText(&CaptureColorSpaceT[2], "Quantization", "", nullptr);
     IUFillTextVector(&CaptureColorSpaceTP, CaptureColorSpaceT, NARRAY(CaptureColorSpaceT), getDeviceName(), "V4L2_COLORSPACE", "ColorSpace", IMAGE_INFO_TAB, IP_RO, 0, IPS_IDLE);
 
     /* Color Processing */
@@ -122,7 +122,7 @@ bool V4L2_Driver::initProperties()
 
 
     /* V4L2 Settings */
-    IUFillNumberVector(&ImageAdjustNP, NULL, 0, getDeviceName(), "Image Adjustments", "", IMAGE_GROUP, IP_RW, 60, IPS_IDLE);
+    IUFillNumberVector(&ImageAdjustNP, nullptr, 0, getDeviceName(), "Image Adjustments", "", IMAGE_GROUP, IP_RW, 60, IPS_IDLE);
 
     PrimaryCCD.getCCDInfo()->p = IP_RW;
 
@@ -162,13 +162,13 @@ void V4L2_Driver::ISGetProperties (const char * dev)
         defineSwitch(&InputsSP);
         defineSwitch(&CaptureFormatsSP);
 
-        if (CaptureSizesSP.sp != NULL)
+        if (CaptureSizesSP.sp != nullptr)
             defineSwitch(&CaptureSizesSP);
-        else if  (CaptureSizesNP.np != NULL)
+        else if  (CaptureSizesNP.np != nullptr)
             defineNumber(&CaptureSizesNP);
-        if (FrameRatesSP.sp != NULL)
+        if (FrameRatesSP.sp != nullptr)
             defineSwitch(&FrameRatesSP);
-        else if  (FrameRateNP.np != NULL)
+        else if  (FrameRateNP.np != nullptr)
             defineNumber(&FrameRateNP);
 
 #ifdef WITH_V4L2_EXPERIMENTS
@@ -202,13 +202,13 @@ bool V4L2_Driver::updateProperties ()
         defineSwitch(&InputsSP);
         defineSwitch(&CaptureFormatsSP);
 
-        if (CaptureSizesSP.sp != NULL)
+        if (CaptureSizesSP.sp != nullptr)
             defineSwitch(&CaptureSizesSP);
-        else if  (CaptureSizesNP.np != NULL)
+        else if  (CaptureSizesNP.np != nullptr)
             defineNumber(&CaptureSizesNP);
-        if (FrameRatesSP.sp != NULL)
+        if (FrameRatesSP.sp != nullptr)
             defineSwitch(&FrameRatesSP);
-        else if  (FrameRateNP.np != NULL)
+        else if  (FrameRateNP.np != nullptr)
             defineNumber(&FrameRateNP);
 
 #ifdef WITH_V4L2_EXPERIMENTS
@@ -240,20 +240,20 @@ bool V4L2_Driver::updateProperties ()
         deleteProperty(InputsSP.name);
         deleteProperty(CaptureFormatsSP.name);
 
-        if (CaptureSizesSP.sp != NULL)
+        if (CaptureSizesSP.sp != nullptr)
             deleteProperty(CaptureSizesSP.name);
-        else if  (CaptureSizesNP.np != NULL)
+        else if  (CaptureSizesNP.np != nullptr)
             deleteProperty(CaptureSizesNP.name);
-        if (FrameRatesSP.sp != NULL)
+        if (FrameRatesSP.sp != nullptr)
             deleteProperty(FrameRatesSP.name);
-        else if  (FrameRateNP.np != NULL)
+        else if  (FrameRateNP.np != nullptr)
             deleteProperty(FrameRateNP.name);
 
         deleteProperty(ImageAdjustNP.name);
         for (i = 0; i < v4loptions; i++)
             deleteProperty(Options[i].name);
         if (Options) free(Options);
-        Options = NULL;
+        Options = nullptr;
         v4loptions = 0;
 
 #ifdef WITH_V4L2_EXPERIMENTS
@@ -284,7 +284,7 @@ bool V4L2_Driver::ISNewSwitch (const char * dev, const char * name, ISState * st
         {
             DEBUG(INDI::Logger::DBG_ERROR, "Can not set input while capturing.");
             InputsSP.s = IPS_ALERT;
-            IDSetSwitch(&InputsSP, NULL);
+            IDSetSwitch(&InputsSP, nullptr);
             return false;
         }
         else
@@ -301,26 +301,26 @@ bool V4L2_Driver::ISNewSwitch (const char * dev, const char * name, ISState * st
                 IUResetSwitch(&InputsSP);
                 InputsSP.sp[oldindex].s = ISS_ON;
                 InputsSP.s = IPS_ALERT;
-                IDSetSwitch(&InputsSP, NULL);
+                IDSetSwitch(&InputsSP, nullptr);
                 return false;
             }
 
             deleteProperty(CaptureFormatsSP.name);
             v4l_base->getcaptureformats(&CaptureFormatsSP);
             defineSwitch(&CaptureFormatsSP);
-            if (CaptureSizesSP.sp != NULL)
+            if (CaptureSizesSP.sp != nullptr)
                 deleteProperty(CaptureSizesSP.name);
-            else if  (CaptureSizesNP.np != NULL)
+            else if  (CaptureSizesNP.np != nullptr)
                 deleteProperty(CaptureSizesNP.name);
 
             v4l_base->getcapturesizes(&CaptureSizesSP, &CaptureSizesNP);
 
-            if (CaptureSizesSP.sp != NULL)
+            if (CaptureSizesSP.sp != nullptr)
                 defineSwitch(&CaptureSizesSP);
-            else if  (CaptureSizesNP.np != NULL)
+            else if  (CaptureSizesNP.np != nullptr)
                 defineNumber(&CaptureSizesNP);
             InputsSP.s = IPS_OK;
-            IDSetSwitch(&InputsSP, NULL);
+            IDSetSwitch(&InputsSP, nullptr);
             DEBUGF(INDI::Logger::DBG_SESSION, "Capture input: %d. %s", inputindex, InputsSP.sp[inputindex].name);
             return true;
         }
@@ -334,7 +334,7 @@ bool V4L2_Driver::ISNewSwitch (const char * dev, const char * name, ISState * st
         {
             DEBUG(INDI::Logger::DBG_ERROR, "Can not set format while capturing.");
             CaptureFormatsSP.s = IPS_ALERT;
-            IDSetSwitch(&CaptureFormatsSP, NULL);
+            IDSetSwitch(&CaptureFormatsSP, nullptr);
             return false;
         }
         else
@@ -351,22 +351,22 @@ bool V4L2_Driver::ISNewSwitch (const char * dev, const char * name, ISState * st
                 IUResetSwitch(&CaptureFormatsSP);
                 CaptureFormatsSP.sp[oldindex].s = ISS_ON;
                 CaptureFormatsSP.s = IPS_ALERT;
-                IDSetSwitch(&CaptureFormatsSP, NULL);
+                IDSetSwitch(&CaptureFormatsSP, nullptr);
                 return false;
             }
 
             V4LFrame->bpp = v4l_base->getBpp();
             PrimaryCCD.setBPP(V4LFrame->bpp);
 
-            if (CaptureSizesSP.sp != NULL)
+            if (CaptureSizesSP.sp != nullptr)
                 deleteProperty(CaptureSizesSP.name);
-            else if  (CaptureSizesNP.np != NULL)
+            else if  (CaptureSizesNP.np != nullptr)
                 deleteProperty(CaptureSizesNP.name);
             v4l_base->getcapturesizes(&CaptureSizesSP, &CaptureSizesNP);
 
-            if (CaptureSizesSP.sp != NULL)
+            if (CaptureSizesSP.sp != nullptr)
                 defineSwitch(&CaptureSizesSP);
-            else if  (CaptureSizesNP.np != NULL)
+            else if  (CaptureSizesNP.np != nullptr)
                 defineNumber(&CaptureSizesNP);
             CaptureFormatsSP.s = IPS_OK;
 
@@ -374,7 +374,7 @@ bool V4L2_Driver::ISNewSwitch (const char * dev, const char * name, ISState * st
             IUSaveText(&CaptureColorSpaceT[0], getColorSpaceName(&v4l_base->fmt));
             IUSaveText(&CaptureColorSpaceT[1], getYCbCrEncodingName(&v4l_base->fmt));
             IUSaveText(&CaptureColorSpaceT[2], getQuantizationName(&v4l_base->fmt));
-            IDSetText(&CaptureColorSpaceTP, NULL);
+            IDSetText(&CaptureColorSpaceTP, nullptr);
 #endif
             //direct_record=recorder->setpixelformat(v4l_base->fmt.fmt.pix.pixelformat);
             streamer->setPixelFormat(v4l_base->fmt.fmt.pix.pixelformat);
@@ -392,7 +392,7 @@ bool V4L2_Driver::ISNewSwitch (const char * dev, const char * name, ISState * st
         {
             DEBUG(INDI::Logger::DBG_ERROR, "Can not set capture size while capturing.");
             CaptureSizesSP.s = IPS_ALERT;
-            IDSetSwitch(&CaptureSizesSP, NULL);
+            IDSetSwitch(&CaptureSizesSP, nullptr);
             return false;
         }
         else
@@ -405,18 +405,18 @@ bool V4L2_Driver::ISNewSwitch (const char * dev, const char * name, ISState * st
             {
                 DEBUGF(INDI::Logger::DBG_SESSION, "ERROR (setsize): %s", errmsg);
                 CaptureSizesSP.s = IPS_ALERT;
-                IDSetSwitch(&CaptureSizesSP, NULL);
+                IDSetSwitch(&CaptureSizesSP, nullptr);
                 return false;
             }
 
-            if (FrameRatesSP.sp != NULL)
+            if (FrameRatesSP.sp != nullptr)
                 deleteProperty(FrameRatesSP.name);
-            else if  (FrameRateNP.np != NULL)
+            else if  (FrameRateNP.np != nullptr)
                 deleteProperty(FrameRateNP.name);
             v4l_base->getframerates(&FrameRatesSP, &FrameRateNP);
-            if (FrameRatesSP.sp != NULL)
+            if (FrameRatesSP.sp != nullptr)
                 defineSwitch(&FrameRatesSP);
-            else if  (FrameRateNP.np != NULL)
+            else if  (FrameRateNP.np != nullptr)
                 defineNumber(&FrameRateNP);
 
             PrimaryCCD.setFrame(0, 0, w, h);
@@ -440,7 +440,7 @@ bool V4L2_Driver::ISNewSwitch (const char * dev, const char * name, ISState * st
         {
             DEBUG(INDI::Logger::DBG_ERROR, "Can not change frame rate while capturing.");
             FrameRatesSP.s = IPS_ALERT;
-            IDSetSwitch(&FrameRatesSP, NULL);
+            IDSetSwitch(&FrameRatesSP, nullptr);
             return false;
         }
         unsigned int index;
@@ -452,7 +452,7 @@ bool V4L2_Driver::ISNewSwitch (const char * dev, const char * name, ISState * st
         {
             DEBUGF(INDI::Logger::DBG_SESSION, "ERROR (setframerate): %s", errmsg);
             FrameRatesSP.s = IPS_ALERT;
-            IDSetSwitch(&FrameRatesSP, NULL);
+            IDSetSwitch(&FrameRatesSP, nullptr);
             return false;
         }
 
@@ -486,7 +486,7 @@ bool V4L2_Driver::ISNewSwitch (const char * dev, const char * name, ISState * st
         }
 
         updateFrameSize();
-        IDSetSwitch(&ImageColorSP, NULL);
+        IDSetSwitch(&ImageColorSP, nullptr);
         return true;
     }
 
@@ -510,7 +510,7 @@ bool V4L2_Driver::ISNewSwitch (const char * dev, const char * name, ISState * st
         {
             PrimaryCCD.setBPP(16);
         }
-        IDSetSwitch(&ImageDepthSP, NULL);
+        IDSetSwitch(&ImageDepthSP, nullptr);
         return true;
     }
 
@@ -523,10 +523,10 @@ bool V4L2_Driver::ISNewSwitch (const char * dev, const char * name, ISState * st
         stackMode = IUFindOnSwitchIndex(&StackModeSP);
         if (stackMode == STACK_RESET_DARK)
         {
-            if (V4LFrame->darkFrame != NULL)
+            if (V4LFrame->darkFrame != nullptr)
             {
                 free(V4LFrame->darkFrame);
-                V4LFrame->darkFrame = NULL;
+                V4LFrame->darkFrame = nullptr;
             }
         }
 
@@ -550,7 +550,7 @@ bool V4L2_Driver::ISNewSwitch (const char * dev, const char * name, ISState * st
             return false;
 
         optindex = IUFindOnSwitchIndex(&Options[iopt]);
-        if (Options[iopt].sp[optindex].aux != NULL)
+        if (Options[iopt].sp[optindex].aux != nullptr)
             ctrlindex = *(unsigned int *)(Options[iopt].sp[optindex].aux);
         else
             ctrlindex = optindex;
@@ -564,7 +564,7 @@ bool V4L2_Driver::ISNewSwitch (const char * dev, const char * name, ISState * st
                 Options[iopt].sp[optindex].s = ISS_OFF;
             }
             Options[iopt].s = IPS_ALERT;
-            IDSetSwitch(&Options[iopt], NULL);
+            IDSetSwitch(&Options[iopt], nullptr);
             DEBUGF(INDI::Logger::DBG_ERROR, "Unable to adjust setting. %s", errmsg);
             return false;
         }
@@ -573,7 +573,7 @@ bool V4L2_Driver::ISNewSwitch (const char * dev, const char * name, ISState * st
             Options[iopt].sp[optindex].s = ISS_OFF;
         }
         Options[iopt].s = IPS_OK;
-        IDSetSwitch(&Options[iopt], NULL);
+        IDSetSwitch(&Options[iopt], nullptr);
         return true;
     }
 
@@ -585,7 +585,7 @@ bool V4L2_Driver::ISNewSwitch (const char * dev, const char * name, ISState * st
             IUUpdateSwitch(&ColorProcessingSP, states, names, n);
             v4l_base->setColorProcessing(ColorProcessingS[0].s == ISS_ON, ColorProcessingS[1].s == ISS_ON, ColorProcessingS[2].s == ISS_ON);
             ColorProcessingSP.s = IPS_OK;
-            IDSetSwitch(&ColorProcessingSP, NULL);
+            IDSetSwitch(&ColorProcessingSP, nullptr);
             V4LFrame->bpp = v4l_base->getBpp();
             PrimaryCCD.setBPP(V4LFrame->bpp);
             PrimaryCCD.setBPP(V4LFrame->bpp);
@@ -618,7 +618,7 @@ bool V4L2_Driver::ISNewText (const char * dev, const char * name, char * texts[]
         if (!tp)
             return false;
         IUSaveText(tp, texts[0]);
-        IDSetText (&PortTP, NULL);
+        IDSetText (&PortTP, nullptr);
         return true;
     }
 
@@ -642,7 +642,7 @@ bool V4L2_Driver::ISNewNumber (const char * dev, const char * name, double value
         {
             DEBUG(INDI::Logger::DBG_ERROR, "Can not set capture size while capturing.");
             CaptureSizesNP.s = IPS_BUSY;
-            IDSetNumber(&CaptureSizesNP, NULL);
+            IDSetNumber(&CaptureSizesNP, nullptr);
             return false;
         }
         else
@@ -665,7 +665,7 @@ bool V4L2_Driver::ISNewNumber (const char * dev, const char * name, double value
             {
                 DEBUGF(INDI::Logger::DBG_SESSION, "ERROR (setsize): %s", errmsg);
                 CaptureSizesNP.s = IPS_ALERT;
-                IDSetNumber(&CaptureSizesNP, NULL);
+                IDSetNumber(&CaptureSizesNP, nullptr);
                 return false;
             }
             if (!strcmp(names[0], "Width"))
@@ -722,7 +722,7 @@ bool V4L2_Driver::ISNewNumber (const char * dev, const char * name, double value
             v4l_base->getControl(ctrl_id, &(ImageAdjustNP.np[i].value), errmsg);
         }
         ImageAdjustNP.s = IPS_OK;
-        IDSetNumber(&ImageAdjustNP, NULL);
+        IDSetNumber(&ImageAdjustNP, nullptr);
         return true;
     }
 
@@ -804,7 +804,7 @@ bool V4L2_Driver::setShutter(double duration)
         return false;
     }
 
-    gettimeofday(&capture_start, NULL);
+    gettimeofday(&capture_start, nullptr);
     frameCount = 0;
     subframeCount = 0;
     return true;
@@ -813,7 +813,7 @@ bool V4L2_Driver::setShutter(double duration)
 bool V4L2_Driver::setManualExposure(double duration)
 {
 
-    if (AbsExposureN == NULL || ManualExposureSP == NULL)
+    if (AbsExposureN == nullptr || ManualExposureSP == nullptr)
         return false;
 
     char errmsg[MAXRBUF];
@@ -826,7 +826,7 @@ bool V4L2_Driver::setManualExposure(double duration)
         ManualExposureSP->sp[1].s = ISS_OFF;
         ManualExposureSP->s = IPS_IDLE;
 
-        if (ManualExposureSP->sp[0].aux != NULL)
+        if (ManualExposureSP->sp[0].aux != nullptr)
             ctrlindex = *(unsigned int *)(ManualExposureSP->sp[0].aux);
         else
             ctrlindex = 0;
@@ -837,13 +837,13 @@ bool V4L2_Driver::setManualExposure(double duration)
             ManualExposureSP->sp[0].s = ISS_OFF;
             ManualExposureSP->sp[1].s = ISS_ON;
             ManualExposureSP->s = IPS_ALERT;
-            IDSetSwitch(ManualExposureSP, NULL);
+            IDSetSwitch(ManualExposureSP, nullptr);
             DEBUGF(INDI::Logger::DBG_ERROR, "Unable to adjust setting. %s", errmsg);
             return false;
         }
 
         ManualExposureSP->s = IPS_OK;
-        IDSetSwitch(ManualExposureSP, NULL);
+        IDSetSwitch(ManualExposureSP, nullptr);
     }
 
     /* N.B. Check how this differs from one camera to another. This is just a proof of concept for now */
@@ -863,7 +863,7 @@ bool V4L2_Driver::setManualExposure(double duration)
         }
 
         ImageAdjustNP.s = IPS_OK;
-        IDSetNumber(&ImageAdjustNP, NULL);
+        IDSetNumber(&ImageAdjustNP, nullptr);
     }
 
     return true;
@@ -1065,7 +1065,7 @@ void V4L2_Driver::newFrame()
         int bpp = v4l_base->getBpp();
         int dbpp = 8;
         int totalBytes = 0;
-        unsigned char * buffer = NULL;
+        unsigned char * buffer = nullptr;
 
         if (ImageColorS[IMAGE_GRAYSCALE].s == ISS_ON)
         {
@@ -1131,7 +1131,7 @@ void V4L2_Driver::newFrame()
             stackFrame();
         }
 
-        gettimeofday(&capture_end, NULL);
+        gettimeofday(&capture_end, nullptr);
         timersub(&capture_end, &capture_start, &current_exposure);
 
         if ((stackMode) && !(lx->isenabled()) && !(ImageColorS[1].s == ISS_ON) && (timercmp(&current_exposure, &exposure_duration, < )))
@@ -1155,7 +1155,7 @@ void V4L2_Driver::newFrame()
             else
             {
                 float * src = V4LFrame->stackedFrame;
-                if ((stackMode != STACK_TAKE_DARK) && (V4LFrame->darkFrame != NULL))
+                if ((stackMode != STACK_TAKE_DARK) && (V4LFrame->darkFrame != nullptr))
                 {
                     float * dark = V4LFrame->darkFrame;
                     for (i = 0; i < v4l_base->getWidth() * v4l_base->getHeight(); i++)
@@ -1187,7 +1187,7 @@ void V4L2_Driver::newFrame()
                     }
 
                     free(V4LFrame->stackedFrame);
-                    V4LFrame->stackedFrame = NULL;
+                    V4LFrame->stackedFrame = nullptr;
                 }
                 else if (stackMode == STACK_ADDITIVE)
                 {
@@ -1207,14 +1207,14 @@ void V4L2_Driver::newFrame()
                     }
 
                     free(V4LFrame->stackedFrame);
-                    V4LFrame->stackedFrame = NULL;
+                    V4LFrame->stackedFrame = nullptr;
                 }
                 else if (stackMode == STACK_TAKE_DARK)
                 {
-                    if (V4LFrame->darkFrame != NULL)
+                    if (V4LFrame->darkFrame != nullptr)
                         free(V4LFrame->darkFrame);
                     V4LFrame->darkFrame = V4LFrame->stackedFrame;
-                    V4LFrame->stackedFrame = NULL;
+                    V4LFrame->stackedFrame = nullptr;
                     src = V4LFrame->darkFrame;
                     if (ImageDepthS[0].s == ISS_ON)
                     {
@@ -1383,15 +1383,15 @@ void V4L2_Driver::getBasicData()
                w, h, frate.numerator, frate.denominator);
 
     IUSaveText(&camNameT[0], v4l_base->getDeviceName());
-    IDSetText(&camNameTP, NULL);
+    IDSetText(&camNameTP, nullptr);
 #ifdef WITH_V4L2_EXPERIMENTS
     IUSaveText(&CaptureColorSpaceT[0], getColorSpaceName(&v4l_base->fmt));
     IUSaveText(&CaptureColorSpaceT[1], getYCbCrEncodingName(&v4l_base->fmt));
     IUSaveText(&CaptureColorSpaceT[2], getQuantizationName(&v4l_base->fmt));
-    IDSetText(&CaptureColorSpaceTP, NULL);
+    IDSetText(&CaptureColorSpaceTP, nullptr);
 #endif
     if (Options) free(Options);
-    Options = NULL;
+    Options = nullptr;
     v4loptions = 0;
     updateV4L2Controls();
 
@@ -1451,18 +1451,18 @@ void V4L2_Driver::allocateBuffers()
 {
     V4LFrame = new img_t;
 
-    if (V4LFrame == NULL)
+    if (V4LFrame == nullptr)
     {
         DEBUG(INDI::Logger::DBG_ERROR, "Critial Error: Unable to initialize driver. Low memory.");
         exit(-1);
     }
 
-    V4LFrame->Y                = NULL;
-    V4LFrame->U                = NULL;
-    V4LFrame->V                = NULL;
-    V4LFrame->RGB24Buffer      = NULL;
-    V4LFrame->stackedFrame     = NULL;
-    V4LFrame->darkFrame        = NULL;
+    V4LFrame->Y                = nullptr;
+    V4LFrame->U                = nullptr;
+    V4LFrame->V                = nullptr;
+    V4LFrame->RGB24Buffer      = nullptr;
+    V4LFrame->stackedFrame     = nullptr;
+    V4LFrame->darkFrame        = nullptr;
 }
 
 void V4L2_Driver::releaseBuffers()

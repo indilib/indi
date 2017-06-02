@@ -67,7 +67,7 @@ bool Serial::ISNewText (const char * dev, const char * name, char * texts[], cha
         {
             IUUpdateText(&PortTP, texts, names, n);
             PortTP.s = IPS_OK;
-            IDSetText(&PortTP, NULL);
+            IDSetText(&PortTP, nullptr);
             return true;
         }
     }
@@ -83,7 +83,7 @@ bool Serial::ISNewSwitch (const char * dev, const char * name, ISState * states,
         {
             IUUpdateSwitch(&BaudRateSP, states, names, n);
             BaudRateSP.s = IPS_OK;
-            IDSetSwitch(&BaudRateSP, NULL);
+            IDSetSwitch(&BaudRateSP, nullptr);
             return true;
         }
 
@@ -99,7 +99,7 @@ bool Serial::ISNewSwitch (const char * dev, const char * name, ISState * states,
                 DEBUG(INDI::Logger::DBG_SESSION, "Auto search is enabled. When connecting, the driver shall attempt to communicate with all available system ports until a connection is established.");
             else if (wasEnabled && AutoSearchS[1].s == ISS_ON)
                 DEBUG(INDI::Logger::DBG_SESSION, "Auo search is disabled.");
-            IDSetSwitch(&AutoSearchSP, NULL);
+            IDSetSwitch(&AutoSearchSP, nullptr);
 
             return true;
         }
@@ -107,7 +107,7 @@ bool Serial::ISNewSwitch (const char * dev, const char * name, ISState * states,
         if (!strcmp(name, RefreshSP.name))
         {
             RefreshSP.s = Refresh() ? IPS_OK : IPS_ALERT;
-            IDSetSwitch(&RefreshSP, NULL);
+            IDSetSwitch(&RefreshSP, nullptr);
             return true;
         }
 
@@ -119,11 +119,11 @@ bool Serial::ISNewSwitch (const char * dev, const char * name, ISState * states,
             if (sp)
             {
                 IUSaveText(&PortT[0], sp->name);
-                IDSetText(&PortTP, NULL);
+                IDSetText(&PortTP, nullptr);
             }
 
             SystemPortSP.s = IPS_OK;
-            IDSetSwitch(&SystemPortSP, NULL);
+            IDSetSwitch(&SystemPortSP, nullptr);
 
             return true;
         }
@@ -141,7 +141,7 @@ bool Serial::Connect()
         rc = processHandshake();
 
     // Start auto-search if option was selected and IF we have system ports to try connecting to
-    if (rc == false && AutoSearchS[0].s == ISS_ON && SystemPortS != NULL)
+    if (rc == false && AutoSearchS[0].s == ISS_ON && SystemPortS != nullptr)
     {
         DEBUGF(INDI::Logger::DBG_WARNING, "Communication with %s @ %d failed. Starting Auto Search...", PortT[0].text, baud);
         for (int i = 0; i < SystemPortSP.nsp; i++)
@@ -150,7 +150,7 @@ bool Serial::Connect()
             if (Connect(SystemPortS[i].name, baud))
             {
                 IUSaveText(&PortT[0], SystemPortS[i].name);
-                IDSetText(&PortTP, NULL);
+                IDSetText(&PortTP, nullptr);
                 rc = processHandshake();
                 if (rc)
                     return true;
@@ -238,7 +238,7 @@ void Serial::Deactivated()
     device->deleteProperty(RefreshSP.name);
     device->deleteProperty(SystemPortSP.name);
     delete [] SystemPortS;
-    SystemPortS = NULL;
+    SystemPortS = nullptr;
 }
 
 bool Serial::saveConfigItems(FILE * fp)
@@ -269,14 +269,14 @@ const uint32_t Serial::baud()
 int dev_file_select(const dirent * entry)
 {
 #if defined(__APPLE__)
-    static const char * filter_names[] = { "cu.", NULL};
+    static const char * filter_names[] = { "cu.", nullptr};
 #else
-    static const char * filter_names[] = { "ttyUSB", "ttyACM", "rfcomm", NULL};
+    static const char * filter_names[] = { "ttyUSB", "ttyACM", "rfcomm", nullptr};
 #endif
     const char ** filter;
     for (filter = filter_names; *filter; ++filter)
     {
-        if (strstr(entry->d_name, *filter) != NULL)
+        if (strstr(entry->d_name, *filter) != nullptr)
         {
             return(true);
         }
@@ -290,7 +290,7 @@ bool Serial::Refresh(bool silent)
         device->deleteProperty(SystemPortSP.name);
 
     delete [] SystemPortS;
-    SystemPortS = NULL;
+    SystemPortS = nullptr;
     std::vector<std::string> m_Ports;
 
     struct dirent ** namelist;

@@ -93,7 +93,7 @@ bool LX200Gemini::ISNewSwitch (const char * dev, const char * name, ISState * st
             StartupModeSP.s = IPS_OK;
 
             DEBUG(INDI::Logger::DBG_SESSION, "Startup mode will take effect on future connections.");
-            IDSetSwitch(&StartupModeSP, NULL);
+            IDSetSwitch(&StartupModeSP, nullptr);
             return true;
         }
 
@@ -101,7 +101,7 @@ bool LX200Gemini::ISNewSwitch (const char * dev, const char * name, ISState * st
         {
             IUUpdateSwitch(&ParkSettingsSP, states, names, n);
             ParkSettingsSP.s = IPS_OK;
-            IDSetSwitch(&ParkSettingsSP, NULL);
+            IDSetSwitch(&ParkSettingsSP, nullptr);
             return true;
         }
     }
@@ -248,7 +248,7 @@ bool LX200Gemini::ReadScopeStatus()
             // Set slew mode to "Centering"
             IUResetSwitch(&SlewRateSP);
             SlewRateS[SLEW_CENTERING].s = ISS_ON;
-            IDSetSwitch(&SlewRateSP, NULL);
+            IDSetSwitch(&SlewRateSP, nullptr);
 
             TrackState = SCOPE_TRACKING;
             IDMessage(getDeviceName(), "Slew is complete. Tracking...");

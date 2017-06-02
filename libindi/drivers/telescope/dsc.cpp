@@ -208,7 +208,7 @@ bool DSC::ISNewNumber (const char * dev, const char * name, double values[], cha
         {
             IUUpdateNumber(&AxisSettingsNP, values, names, n);
             AxisSettingsNP.s = IPS_OK;
-            IDSetNumber(&AxisSettingsNP, NULL);
+            IDSetNumber(&AxisSettingsNP, nullptr);
             return true;
         }
 
@@ -216,7 +216,7 @@ bool DSC::ISNewNumber (const char * dev, const char * name, double values[], cha
         {
             IUUpdateNumber(&EncoderOffsetNP, values, names, n);
             EncoderOffsetNP.s = IPS_OK;
-            IDSetNumber(&EncoderOffsetNP, NULL);
+            IDSetNumber(&EncoderOffsetNP, nullptr);
             return true;
         }*/
 
@@ -224,7 +224,7 @@ bool DSC::ISNewNumber (const char * dev, const char * name, double values[], cha
         {
             IUUpdateNumber(&SimEncoderNP, values, names, n);
             SimEncoderNP.s = IPS_OK;
-            IDSetNumber(&SimEncoderNP, NULL);
+            IDSetNumber(&SimEncoderNP, nullptr);
             return true;
         }
 
@@ -242,7 +242,7 @@ bool DSC::ISNewSwitch (const char * dev, const char * name, ISState * states, ch
         {
             IUUpdateSwitch(&ReverseSP, states, names, n);
             ReverseSP.s = IPS_OK;
-            IDSetSwitch(&ReverseSP, NULL);
+            IDSetSwitch(&ReverseSP, nullptr);
             return true;
         }
 
@@ -250,7 +250,7 @@ bool DSC::ISNewSwitch (const char * dev, const char * name, ISState * states, ch
         {
             IUUpdateSwitch(&MountTypeSP, states, names, n);
             MountTypeSP.s = IPS_OK;
-            IDSetSwitch(&MountTypeSP, NULL);
+            IDSetSwitch(&MountTypeSP, nullptr);
             return true;
         }
 
@@ -267,7 +267,7 @@ bool DSC::ISNewSwitch (const char * dev, const char * name, ISState * states, ch
             {
                 DEBUGF(INDI::Logger::DBG_SESSION, "Axis range is from -%.f to %.f", AxisSettingsN[AXIS1_TICKS].value / 2, AxisSettingsN[AXIS1_TICKS].value / 2);
             }
-            IDSetSwitch(&AxisRangeSP, NULL);
+            IDSetSwitch(&AxisRangeSP, nullptr);
             return true;
         }
 
@@ -339,7 +339,7 @@ bool DSC::ReadScopeStatus()
     {
         DEBUGF(INDI::Logger::DBG_ERROR, "Error processing response: %s", response );
         EncoderNP.s = IPS_ALERT;
-        IDSetNumber(&EncoderNP, NULL);
+        IDSetNumber(&EncoderNP, nullptr);
         return false;
     }
 
@@ -387,7 +387,7 @@ bool DSC::ReadScopeStatus()
     EncoderN[AXIS1_ENCODER].value = Axis1;
     EncoderN[AXIS2_ENCODER].value = Axis2;
     EncoderNP.s = IPS_OK;
-    IDSetNumber(&EncoderNP, NULL);
+    IDSetNumber(&EncoderNP, nullptr);
 
     double Axis1Degrees = (Axis1 / AxisSettingsN[AXIS1_TICKS].value * 360.0) + AxisSettingsN[AXIS1_DEGREE_OFFSET].value;
     double Axis2Degrees = (Axis2 / AxisSettingsN[AXIS2_TICKS].value * 360.0) + AxisSettingsN[AXIS2_DEGREE_OFFSET].value;

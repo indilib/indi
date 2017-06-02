@@ -239,7 +239,7 @@ HitecAstroDCFocuser::ISNewSwitch (const char * dev, const char * name, ISState *
         {
             IUUpdateSwitch(&ReverseDirectionSP, states, names, n);
             ReverseDirectionSP.s = IPS_OK;
-            IDSetSwitch(&ReverseDirectionSP, NULL);
+            IDSetSwitch(&ReverseDirectionSP, nullptr);
             return true;
         }
     }
@@ -256,7 +256,7 @@ HitecAstroDCFocuser::ISNewNumber(const char * dev, const char * name, double val
         {
             IUUpdateNumber(&MaxPositionNP, values, names, n);
             MaxPositionNP.s = IPS_OK;
-            IDSetNumber(&MaxPositionNP, NULL);
+            IDSetNumber(&MaxPositionNP, nullptr);
             return true;
         }
         if (!strcmp(name, SlewSpeedNP.name))
@@ -268,7 +268,7 @@ HitecAstroDCFocuser::ISNewNumber(const char * dev, const char * name, double val
             }
             IUUpdateNumber(&SlewSpeedNP, values, names, n);
             SlewSpeedNP.s = IPS_OK;
-            IDSetNumber(&SlewSpeedNP, NULL);
+            IDSetNumber(&SlewSpeedNP, nullptr);
             return true;
         }
     }
@@ -293,7 +293,7 @@ HitecAstroDCFocuser::MoveRelFocuser(FocusDirection dir, uint32_t ticks)
     }
 
     FocusRelPosNP.s = IPS_BUSY;
-    IDSetNumber(&FocusRelPosNP, NULL);
+    IDSetNumber(&FocusRelPosNP, nullptr);
 
     // JM 2017-03-16: iticks is not used, FIXME.
     if(dir == FOCUS_INWARD)
@@ -350,7 +350,7 @@ HitecAstroDCFocuser::MoveRelFocuser(FocusDirection dir, uint32_t ticks)
     rval = command[1] == 0x21 ? IPS_OK : IPS_ALERT;
 
     FocusRelPosNP.s = rval;
-    IDSetNumber(&FocusRelPosNP, NULL);
+    IDSetNumber(&FocusRelPosNP, nullptr);
 
     return rval;
 }
@@ -370,7 +370,7 @@ HitecAstroDCFocuser::MoveFocuser(FocusDirection dir, int speed, uint16_t duratio
     }
 
     FocusSpeedNP.s = IPS_BUSY;
-    IDSetNumber(&FocusSpeedNP, NULL);
+    IDSetNumber(&FocusSpeedNP, nullptr);
 
     if(ReverseDirectionS[0].s == ISS_ON)
     {
@@ -418,7 +418,7 @@ HitecAstroDCFocuser::MoveFocuser(FocusDirection dir, int speed, uint16_t duratio
     rval = command[1] == 0x24 ? IPS_OK : IPS_ALERT;
 
     FocusSpeedNP.s = rval;
-    IDSetNumber(&FocusSpeedNP, NULL);
+    IDSetNumber(&FocusSpeedNP, nullptr);
 
     _duration = duration;
     _state = SLEWING;

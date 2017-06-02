@@ -82,7 +82,7 @@ void INDI::FilterWheel::ISGetProperties (const char * dev)
     {
         defineNumber(&FilterSlotNP);
 
-        if (FilterNameT == NULL)
+        if (FilterNameT == nullptr)
             GetFilterNames(FILTER_TAB);
 
         if (FilterNameT)
@@ -103,7 +103,7 @@ bool INDI::FilterWheel::updateProperties()
         //initFilterProperties(getDeviceName(), FILTER_TAB);
         defineNumber(&FilterSlotNP);
 
-        if (FilterNameT == NULL)
+        if (FilterNameT == nullptr)
             GetFilterNames(FILTER_TAB);
 
         if (FilterNameT)

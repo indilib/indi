@@ -100,12 +100,12 @@ void SkySafariClient::setMount(const std::string &value)
 ***************************************************************************************/
 bool SkySafariClient::parkMount()
 {
-    if (mountParkSP == NULL)
+    if (mountParkSP == nullptr)
         return false;
 
     ISwitch * sw = IUFindSwitch(mountParkSP, "PARK");
 
-    if (sw == NULL)
+    if (sw == nullptr)
         return false;
 
     IUResetSwitch(mountParkSP);

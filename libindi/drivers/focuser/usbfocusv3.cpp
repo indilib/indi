@@ -1032,7 +1032,7 @@ bool USBFocusV3::ISNewSwitch (const char * dev, const char * name, ISState * sta
             if (current_mode == target_mode);
             {
                 StepModeSP.s = IPS_OK;
-                IDSetSwitch(&StepModeSP, NULL);
+                IDSetSwitch(&StepModeSP, nullptr);
             }
 
             if (target_mode == 0)
@@ -1045,12 +1045,12 @@ bool USBFocusV3::ISNewSwitch (const char * dev, const char * name, ISState * sta
                 IUResetSwitch(&StepModeSP);
                 StepModeS[current_mode].s = ISS_ON;
                 StepModeSP.s = IPS_ALERT;
-                IDSetSwitch(&StepModeSP, NULL);
+                IDSetSwitch(&StepModeSP, nullptr);
                 return false;
             }
 
             StepModeSP.s = IPS_OK;
-            IDSetSwitch(&StepModeSP, NULL);
+            IDSetSwitch(&StepModeSP, nullptr);
             return true;
         }
 
@@ -1063,7 +1063,7 @@ bool USBFocusV3::ISNewSwitch (const char * dev, const char * name, ISState * sta
             if (current_mode == target_mode);
             {
                 RotDirSP.s = IPS_OK;
-                IDSetSwitch(&RotDirSP, NULL);
+                IDSetSwitch(&RotDirSP, nullptr);
             }
 
             if (target_mode == 0)
@@ -1076,12 +1076,12 @@ bool USBFocusV3::ISNewSwitch (const char * dev, const char * name, ISState * sta
                 IUResetSwitch(&RotDirSP);
                 RotDirS[current_mode].s = ISS_ON;
                 RotDirSP.s = IPS_ALERT;
-                IDSetSwitch(&RotDirSP, NULL);
+                IDSetSwitch(&RotDirSP, nullptr);
                 return false;
             }
 
             RotDirSP.s = IPS_OK;
-            IDSetSwitch(&RotDirSP, NULL);
+            IDSetSwitch(&RotDirSP, nullptr);
             return true;
         }
 
@@ -1097,12 +1097,12 @@ bool USBFocusV3::ISNewSwitch (const char * dev, const char * name, ISState * sta
                 TemperatureCompensateSP.s = IPS_ALERT;
                 IUResetSwitch(&TemperatureCompensateSP);
                 TemperatureCompensateS[last_index].s = ISS_ON;
-                IDSetSwitch(&TemperatureCompensateSP, NULL);
+                IDSetSwitch(&TemperatureCompensateSP, nullptr);
                 return false;
             }
 
             TemperatureCompensateSP.s = IPS_OK;
-            IDSetSwitch(&TemperatureCompensateSP, NULL);
+            IDSetSwitch(&TemperatureCompensateSP, nullptr);
             return true;
         }
 
@@ -1115,7 +1115,7 @@ bool USBFocusV3::ISNewSwitch (const char * dev, const char * name, ISState * sta
             if (current_mode == target_mode);
             {
                 TempCompSignSP.s = IPS_OK;
-                IDSetSwitch(&TempCompSignSP, NULL);
+                IDSetSwitch(&TempCompSignSP, nullptr);
             }
 
             if (target_mode == 0)
@@ -1128,12 +1128,12 @@ bool USBFocusV3::ISNewSwitch (const char * dev, const char * name, ISState * sta
                 IUResetSwitch(&TempCompSignSP);
                 TempCompSignS[current_mode].s = ISS_ON;
                 TempCompSignSP.s = IPS_ALERT;
-                IDSetSwitch(&TempCompSignSP, NULL);
+                IDSetSwitch(&TempCompSignSP, nullptr);
                 return false;
             }
 
             TempCompSignSP.s = IPS_OK;
-            IDSetSwitch(&TempCompSignSP, NULL);
+            IDSetSwitch(&TempCompSignSP, nullptr);
             return true;
         }
 
@@ -1146,7 +1146,7 @@ bool USBFocusV3::ISNewSwitch (const char * dev, const char * name, ISState * sta
             else
                 ResetSP.s = IPS_ALERT;
 
-            IDSetSwitch(&ResetSP, NULL);
+            IDSetSwitch(&ResetSP, nullptr);
             return true;
         }
 
@@ -1167,11 +1167,11 @@ bool USBFocusV3::ISNewNumber (const char * dev, const char * name, double values
             if (!setMaxPos(MaxPositionN[0].value))
             {
                 MaxPositionNP.s = IPS_ALERT;
-                IDSetNumber(&MaxPositionNP, NULL);
+                IDSetNumber(&MaxPositionNP, nullptr);
                 return false;
             }
             MaxPositionNP.s = IPS_OK;
-            IDSetNumber(&MaxPositionNP, NULL);
+            IDSetNumber(&MaxPositionNP, nullptr);
             return true;
         }
 
@@ -1181,12 +1181,12 @@ bool USBFocusV3::ISNewNumber (const char * dev, const char * name, double values
             if (!setAutoTempCompThreshold(TemperatureSettingN[1].value) || !setTemperatureCoefficient(TemperatureSettingN[0].value))
             {
                 TemperatureSettingNP.s = IPS_ALERT;
-                IDSetNumber(&TemperatureSettingNP, NULL);
+                IDSetNumber(&TemperatureSettingNP, nullptr);
                 return false;
             }
 
             TemperatureSettingNP.s = IPS_OK;
-            IDSetNumber(&TemperatureSettingNP, NULL);
+            IDSetNumber(&TemperatureSettingNP, nullptr);
             return true;
         }
 
@@ -1194,7 +1194,7 @@ bool USBFocusV3::ISNewNumber (const char * dev, const char * name, double values
         {
             IUUpdateNumber(&FWversionNP, values, names, n);
             FWversionNP.s = IPS_OK;
-            IDSetNumber(&FWversionNP, NULL);
+            IDSetNumber(&FWversionNP, nullptr);
             return true;
         }
 
@@ -1250,34 +1250,34 @@ void USBFocusV3::GetFocusParams()
     getControllerStatus();
 
     if (updatePosition())
-        IDSetNumber(&FocusAbsPosNP, NULL);
+        IDSetNumber(&FocusAbsPosNP, nullptr);
 
     if (updateMaxPos())
     {
-        IDSetNumber(&MaxPositionNP, NULL);
-        IDSetNumber(&FocusAbsPosNP, NULL);
+        IDSetNumber(&MaxPositionNP, nullptr);
+        IDSetNumber(&FocusAbsPosNP, nullptr);
     }
 
     if (updateTemperature())
-        IDSetNumber(&TemperatureNP, NULL);
+        IDSetNumber(&TemperatureNP, nullptr);
 
     if (updateTempCompSettings())
-        IDSetNumber(&TemperatureSettingNP, NULL);
+        IDSetNumber(&TemperatureSettingNP, nullptr);
 
     if (updateTempCompSign())
-        IDSetSwitch(&TempCompSignSP, NULL);
+        IDSetSwitch(&TempCompSignSP, nullptr);
 
     if (updateSpeed())
-        IDSetNumber(&FocusSpeedNP, NULL);
+        IDSetNumber(&FocusSpeedNP, nullptr);
 
     if (updateStepMode())
-        IDSetSwitch(&StepModeSP, NULL);
+        IDSetSwitch(&StepModeSP, nullptr);
 
     if (updateRotDir())
-        IDSetSwitch(&RotDirSP, NULL);
+        IDSetSwitch(&RotDirSP, nullptr);
 
     if (updateFWversion())
-        IDSetNumber(&FWversionNP, NULL);
+        IDSetNumber(&FWversionNP, nullptr);
 }
 
 bool USBFocusV3::SetFocuserSpeed(int speed)
@@ -1292,7 +1292,7 @@ bool USBFocusV3::SetFocuserSpeed(int speed)
     currentSpeed = speed;
 
     FocusSpeedNP.s = IPS_OK;
-    IDSetNumber(&FocusSpeedNP, NULL);
+    IDSetNumber(&FocusSpeedNP, nullptr);
 
     return true;
 }
@@ -1366,7 +1366,7 @@ void USBFocusV3::TimerHit()
     {
         if (fabs(lastPos - FocusAbsPosN[0].value) > 5)
         {
-            IDSetNumber(&FocusAbsPosNP, NULL);
+            IDSetNumber(&FocusAbsPosNP, nullptr);
             lastPos = FocusAbsPosN[0].value;
         }
     }
@@ -1377,7 +1377,7 @@ void USBFocusV3::TimerHit()
     {
         if (fabs(lastTemperature - TemperatureN[0].value) >= 0.5)
         {
-            IDSetNumber(&TemperatureNP, NULL);
+            IDSetNumber(&TemperatureNP, nullptr);
             lastTemperature = TemperatureN[0].value;
         }
     }
@@ -1395,7 +1395,7 @@ void USBFocusV3::TimerHit()
         else
             FocusTimerN[0].value = remaining * 1000.0;
 
-        IDSetNumber(&FocusTimerNP, NULL);
+        IDSetNumber(&FocusTimerNP, nullptr);
 
     }
 
@@ -1405,8 +1405,8 @@ void USBFocusV3::TimerHit()
         {
             FocusAbsPosNP.s = IPS_OK;
             FocusRelPosNP.s = IPS_OK;
-            IDSetNumber(&FocusAbsPosNP, NULL);
-            IDSetNumber(&FocusRelPosNP, NULL);
+            IDSetNumber(&FocusAbsPosNP, nullptr);
+            IDSetNumber(&FocusRelPosNP, nullptr);
             lastPos = FocusAbsPosN[0].value;
             DEBUG(INDI::Logger::DBG_SESSION, "Focuser reached requested position.");
         }
@@ -1427,8 +1427,8 @@ bool USBFocusV3::AbortFocuser()
     {
         FocusAbsPosNP.s = IPS_IDLE;
         FocusRelPosNP.s = IPS_IDLE;
-        IDSetNumber(&FocusAbsPosNP, NULL);
-        IDSetNumber(&FocusRelPosNP, NULL);
+        IDSetNumber(&FocusAbsPosNP, nullptr);
+        IDSetNumber(&FocusRelPosNP, nullptr);
         return true;
     }
     else
@@ -1440,7 +1440,7 @@ float USBFocusV3::CalcTimeLeft(timeval start, float req)
     double timesince;
     double timeleft;
     struct timeval now;
-    gettimeofday(&now, NULL);
+    gettimeofday(&now, nullptr);
 
     timesince = (double)(now.tv_sec * 1000.0 + now.tv_usec / 1000) - (double)(start.tv_sec * 1000.0 + start.tv_usec / 1000);
     timesince = timesince / 1000;

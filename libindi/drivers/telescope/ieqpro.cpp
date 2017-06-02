@@ -221,7 +221,7 @@ void IEQPro::getStartupData()
         IUSaveText(&FirmwareT[4], firmwareInfo.DEFirmware.c_str());
 
         FirmwareTP.s = IPS_OK;
-        IDSetText(&FirmwareTP, NULL);
+        IDSetText(&FirmwareTP, nullptr);
     }
 
     DEBUG(INDI::Logger::DBG_DEBUG, "Getting guiding rate...");
@@ -229,7 +229,7 @@ void IEQPro::getStartupData()
     if (get_ieqpro_guide_rate(PortFD, &guideRate))
     {
         GuideRateN[0].value = guideRate;
-        IDSetNumber(&GuideRateNP, NULL);
+        IDSetNumber(&GuideRateNP, nullptr);
     }
 
     double HA = ln_get_apparent_sidereal_time(ln_get_julian_from_sys());
@@ -265,7 +265,7 @@ void IEQPro::getStartupData()
 
         DEBUGF(INDI::Logger::DBG_SESSION, "Mount UTC offset is %s. UTC time is %s", utcOffset, isoDateTime);
 
-        IDSetText(&TimeTP, NULL);
+        IDSetText(&TimeTP, nullptr);
     }
 
     // Get Longitude and Latitude from mount
@@ -280,7 +280,7 @@ void IEQPro::getStartupData()
         LocationN[LOCATION_LONGITUDE].value = longitude;
         LocationNP.s = IPS_OK;
 
-        IDSetNumber(&LocationNP, NULL);
+        IDSetNumber(&LocationNP, nullptr);
     }
 
     if (isSimulation())
@@ -304,7 +304,7 @@ bool IEQPro::ISNewNumber (const char * dev, const char * name, double values[], 
             {
                 CustomTrackRateNP.s = IPS_IDLE;
                 DEBUG(INDI::Logger::DBG_ERROR, "Can only set tracking rate if tracking mode is set to custom.");
-                IDSetNumber(&CustomTrackRateNP, NULL);
+                IDSetNumber(&CustomTrackRateNP, nullptr);
                 return true;
             }
 
@@ -315,7 +315,7 @@ bool IEQPro::ISNewNumber (const char * dev, const char * name, double values[], 
             else
                 CustomTrackRateNP.s = IPS_ALERT;
 
-            IDSetNumber(&CustomTrackRateNP, NULL);
+            IDSetNumber(&CustomTrackRateNP, nullptr);
 
             return true;
 
@@ -331,7 +331,7 @@ bool IEQPro::ISNewNumber (const char * dev, const char * name, double values[], 
             else
                 GuideRateNP.s = IPS_ALERT;
 
-            IDSetNumber(&GuideRateNP, NULL);
+            IDSetNumber(&GuideRateNP, nullptr);
 
             return true;
         }
@@ -364,7 +364,7 @@ bool IEQPro::ISNewSwitch (const char * dev, const char * name, ISState * states,
                     if (firmwareInfo.Model.find("CEM") == std::string::npos)
                     {
                         HomeSP.s = IPS_IDLE;
-                        IDSetSwitch(&HomeSP, NULL);
+                        IDSetSwitch(&HomeSP, nullptr);
                         DEBUG(INDI::Logger::DBG_WARNING, "Home search is not supported in this model.");
                         return true;
                     }
@@ -372,13 +372,13 @@ bool IEQPro::ISNewSwitch (const char * dev, const char * name, ISState * states,
                     if (find_ieqpro_home(PortFD) == false)
                     {
                         HomeSP.s = IPS_ALERT;
-                        IDSetSwitch(&HomeSP, NULL);
+                        IDSetSwitch(&HomeSP, nullptr);
                         return false;
 
                     }
 
                     HomeSP.s = IPS_OK;
-                    IDSetSwitch(&HomeSP, NULL);
+                    IDSetSwitch(&HomeSP, nullptr);
                     DEBUG(INDI::Logger::DBG_SESSION, "Searching for home position...");
                     return true;
 
@@ -388,13 +388,13 @@ bool IEQPro::ISNewSwitch (const char * dev, const char * name, ISState * states,
                     if (set_ieqpro_current_home(PortFD) == false)
                     {
                         HomeSP.s = IPS_ALERT;
-                        IDSetSwitch(&HomeSP, NULL);
+                        IDSetSwitch(&HomeSP, nullptr);
                         return false;
 
                     }
 
                     HomeSP.s = IPS_OK;
-                    IDSetSwitch(&HomeSP, NULL);
+                    IDSetSwitch(&HomeSP, nullptr);
                     DEBUG(INDI::Logger::DBG_SESSION, "Home position set to current coordinates.");
                     return true;
 
@@ -404,13 +404,13 @@ bool IEQPro::ISNewSwitch (const char * dev, const char * name, ISState * states,
                     if (goto_ieqpro_home(PortFD) == false)
                     {
                         HomeSP.s = IPS_ALERT;
-                        IDSetSwitch(&HomeSP, NULL);
+                        IDSetSwitch(&HomeSP, nullptr);
                         return false;
 
                     }
 
                     HomeSP.s = IPS_OK;
-                    IDSetSwitch(&HomeSP, NULL);
+                    IDSetSwitch(&HomeSP, nullptr);
                     DEBUG(INDI::Logger::DBG_SESSION, "Slewing to home position...");
                     return true;
 
@@ -476,15 +476,15 @@ bool IEQPro::ReadScopeStatus()
     {
         IUResetSwitch(&GPSStatusSP);
         GPSStatusS[newInfo.gpsStatus].s = ISS_ON;
-        IDSetSwitch(&GPSStatusSP, NULL);
+        IDSetSwitch(&GPSStatusSP, nullptr);
 
         IUResetSwitch(&TimeSourceSP);
         TimeSourceS[newInfo.timeSource].s = ISS_ON;
-        IDSetSwitch(&TimeSourceSP, NULL);
+        IDSetSwitch(&TimeSourceSP, nullptr);
 
         IUResetSwitch(&HemisphereSP);
         HemisphereS[newInfo.hemisphere].s = ISS_ON;
-        IDSetSwitch(&HemisphereSP, NULL);
+        IDSetSwitch(&HemisphereSP, nullptr);
 
         TelescopeTrackMode trackMode;
 
@@ -542,7 +542,7 @@ bool IEQPro::ReadScopeStatus()
 
         IUResetSwitch(&TrackModeSP);
         TrackModeS[trackMode].s = ISS_ON;
-        IDSetSwitch(&TrackModeSP, NULL);
+        IDSetSwitch(&TrackModeSP, nullptr);
 
         scopeInfo = newInfo;
 
@@ -855,7 +855,7 @@ void IEQPro::mountSim ()
     int nlocked;
 
     /* update elapsed time since last poll, don't presume exactly POLLMS */
-    gettimeofday (&tv, NULL);
+    gettimeofday (&tv, nullptr);
 
     if (ltv.tv_sec == 0 && ltv.tv_usec == 0)
         ltv = tv;

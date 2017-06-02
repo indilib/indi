@@ -342,7 +342,7 @@ bool LX200_16::ReadScopeStatus()
                 IDSetNumber (&HorizontalCoordsNP, "Slew is complete.");
             }
             else
-                IDSetNumber (&HorizontalCoordsNP, NULL);
+                IDSetNumber (&HorizontalCoordsNP, nullptr);
             break;
 
         case IPS_OK:
@@ -365,6 +365,6 @@ void LX200_16::getBasicData()
         getLX200Alt(PortFD, &currentALT);
         HorizontalCoordsNP.np[0].value = currentALT;
         HorizontalCoordsNP.np[1].value = currentAZ;
-        IDSetNumber (&HorizontalCoordsNP, NULL);
+        IDSetNumber (&HorizontalCoordsNP, nullptr);
     }
 }

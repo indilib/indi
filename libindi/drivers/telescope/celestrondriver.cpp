@@ -1156,8 +1156,8 @@ bool get_celestron_coords(int fd, double * ra, double * dec)
         strncpy(ra_str, response, 4);
         strncpy(de_str, response + 5, 4);
 
-        int CELESTRONRA = strtol(ra_str, NULL, 16);
-        int CELESTRONDE = strtol(de_str, NULL, 16);
+        int CELESTRONRA = strtol(ra_str, nullptr, 16);
+        int CELESTRONDE = strtol(de_str, nullptr, 16);
 
         *ra  = (CELESTRONRA / 65536.0) * (360.0 / 15.0);
         *dec = (CELESTRONDE / 65536.0) * 360.0;

@@ -187,7 +187,7 @@ bool LX200_OnStep::ISNewNumber (const char * dev, const char * name, double valu
             else
             {
                 IUSaveText(&ObjectInfoTP.tp[0], object_name);
-                IDSetText  (&ObjectInfoTP, NULL);
+                IDSetText  (&ObjectInfoTP, nullptr);
             }
 
             Goto(targetRA, targetDEC);
@@ -207,7 +207,7 @@ bool LX200_OnStep::ISNewNumber (const char * dev, const char * name, double valu
 
             MaxSlewRateNP.s = IPS_OK;
             MaxSlewRateNP.np[0].value = values[0];
-            IDSetNumber(&MaxSlewRateNP, NULL);
+            IDSetNumber(&MaxSlewRateNP, nullptr);
             return true;
         }
 
@@ -244,7 +244,7 @@ bool LX200_OnStep::ISNewNumber (const char * dev, const char * name, double valu
                 ElevationLimitNP.np[0].value = minAlt;
                 ElevationLimitNP.np[1].value = maxAlt;
                 ElevationLimitNP.s = IPS_OK;
-                IDSetNumber (&ElevationLimitNP, NULL);
+                IDSetNumber (&ElevationLimitNP, nullptr);
                 return true;
             }
             else
@@ -315,7 +315,7 @@ bool LX200_OnStep::ISNewSwitch (const char * dev, const char * name, ISState * s
 
             IUResetSwitch(&ReticSP);
             //            ReticSP.s = IPS_IDLE;
-            IDSetSwitch(&ReticSP, NULL);
+            IDSetSwitch(&ReticSP, nullptr);
             return true;
         }
 
@@ -333,7 +333,7 @@ bool LX200_OnStep::ISNewSwitch (const char * dev, const char * name, ISState * s
             {
                 currentSubCatalog = index;
                 StarCatalogSP.s = IPS_OK;
-                IDSetSwitch(&StarCatalogSP, NULL);
+                IDSetSwitch(&StarCatalogSP, nullptr);
                 return true;
             }
             else
@@ -356,7 +356,7 @@ bool LX200_OnStep::ISNewSwitch (const char * dev, const char * name, ISState * s
             {
                 currentCatalog = index;
                 DeepSkyCatalogSP.s = IPS_OK;
-                IDSetSwitch(&DeepSkyCatalogSP, NULL);
+                IDSetSwitch(&DeepSkyCatalogSP, nullptr);
             }
             else
                 currentCatalog = LX200_DEEPSKY_C;
@@ -365,7 +365,7 @@ bool LX200_OnStep::ISNewSwitch (const char * dev, const char * name, ISState * s
             {
                 currentSubCatalog = index;
                 DeepSkyCatalogSP.s = IPS_OK;
-                IDSetSwitch(&DeepSkyCatalogSP, NULL);
+                IDSetSwitch(&DeepSkyCatalogSP, nullptr);
             }
             else
             {
@@ -390,7 +390,7 @@ bool LX200_OnStep::ISNewSwitch (const char * dev, const char * name, ISState * s
             if (index == 0)
             {
                 SolarSP.s  = IPS_IDLE;
-                IDSetSwitch(&SolarSP, NULL);
+                IDSetSwitch(&SolarSP, nullptr);
                 return true;
             }
 
@@ -402,7 +402,7 @@ bool LX200_OnStep::ISNewSwitch (const char * dev, const char * name, ISState * s
 
             getObjectInfo(PortFD, ObjectInfoTP.tp[0].text);
             IDSetNumber(&ObjectNoNP , "Object updated.");
-            IDSetSwitch(&SolarSP, NULL);
+            IDSetSwitch(&SolarSP, nullptr);
 
             if (currentCatalog == LX200_STAR_C || currentCatalog == LX200_DEEPSKY_C)
                 selectSubCatalog(PortFD, currentCatalog, currentSubCatalog);
@@ -443,7 +443,7 @@ void LX200_OnStep::getBasicData()
 
         LX200_OnStep::OnStepStat();
     }
-    IDSetText(&VersionTP, NULL);
+    IDSetText(&VersionTP, nullptr);
     DEBUG(INDI::Logger::DBG_ERROR, "OnStep GetBasicData");
 }
 
