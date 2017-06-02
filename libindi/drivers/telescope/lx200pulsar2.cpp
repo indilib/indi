@@ -636,7 +636,7 @@ bool LX200Pulsar2::ReadScopeStatus(void)
                         // Set slew mode to "Centering"
                         IUResetSwitch(&SlewRateSP);
                         SlewRateS[SLEW_CENTERING].s = ISS_ON;
-                        IDSetSwitch(&SlewRateSP, NULL);
+                        IDSetSwitch(&SlewRateSP, nullptr);
                         TrackState = SCOPE_TRACKING;
                         IDMessage(getDeviceName(), "Slew is complete. Tracking...");
                     }
@@ -660,7 +660,7 @@ bool LX200Pulsar2::ReadScopeStatus(void)
     if (Pulsar2Commands::getSideOfPier(PortFD, &side_of_pier))
     {
         //PierSideS[side_of_pier].s = ISS_ON;
-        //IDSetSwitch(&PierSideSP, NULL);
+        //IDSetSwitch(&PierSideSP, nullptr);
         setPierSide((side_of_pier == Pulsar2Commands::EastOfPier) ? PIER_EAST : PIER_WEST);
     }
     else
@@ -756,7 +756,7 @@ bool LX200Pulsar2::ISNewSwitch (const char * dev, const char * name, ISState * s
                 if (success)
                 {
                     PierSideSP.s = IPS_OK;
-                    IDSetSwitch(&PierSideSP, NULL);
+                    IDSetSwitch(&PierSideSP, nullptr);
                 }
                 else
                 {
@@ -781,7 +781,7 @@ bool LX200Pulsar2::ISNewSwitch (const char * dev, const char * name, ISState * s
                 if (success)
                 {
                     PeriodicErrorCorrectionSP.s = IPS_OK;
-                    IDSetSwitch(&PeriodicErrorCorrectionSP, NULL);
+                    IDSetSwitch(&PeriodicErrorCorrectionSP, nullptr);
                 }
                 else
                 {
@@ -803,7 +803,7 @@ bool LX200Pulsar2::ISNewSwitch (const char * dev, const char * name, ISState * s
                 if (success)
                 {
                     PoleCrossingSP.s = IPS_OK;
-                    IDSetSwitch(&PoleCrossingSP, NULL);
+                    IDSetSwitch(&PoleCrossingSP, nullptr);
                 }
                 else
                 {
@@ -827,7 +827,7 @@ bool LX200Pulsar2::ISNewSwitch (const char * dev, const char * name, ISState * s
                 if (success)
                 {
                     RefractionCorrectionSP.s = IPS_OK;
-                    IDSetSwitch(&RefractionCorrectionSP, NULL);
+                    IDSetSwitch(&RefractionCorrectionSP, nullptr);
                 }
                 else
                 {
@@ -861,7 +861,7 @@ bool LX200Pulsar2::SetSlewRate(int index)
     if (success)
     {
         SlewRateSP.s = IPS_OK;
-        IDSetSwitch(&SlewRateSP, NULL);
+        IDSetSwitch(&SlewRateSP, nullptr);
     }
     else
     {
@@ -943,8 +943,8 @@ bool LX200Pulsar2::Abort(void)
                 GuideNSTID = 0;
             }
             IDMessage(getDeviceName(), "Guide aborted.");
-            IDSetNumber(&GuideNSNP, NULL);
-            IDSetNumber(&GuideWENP, NULL);
+            IDSetNumber(&GuideNSNP, nullptr);
+            IDSetNumber(&GuideWENP, nullptr);
         }
     }
     else
@@ -988,7 +988,7 @@ IPState LX200Pulsar2::GuideNorth(float ms)
     // Set slew to guiding
     IUResetSwitch(&SlewRateSP);
     SlewRateS[SLEW_GUIDE].s = ISS_ON;
-    IDSetSwitch(&SlewRateSP, NULL);
+    IDSetSwitch(&SlewRateSP, nullptr);
     guide_direction = LX200_NORTH;
     GuideNSTID = IEAddTimer (ms, guideTimeoutHelper, this);
     return IPS_BUSY;
@@ -1030,7 +1030,7 @@ IPState LX200Pulsar2::GuideSouth(float ms)
     // Set slew to guiding
     IUResetSwitch(&SlewRateSP);
     SlewRateS[SLEW_GUIDE].s = ISS_ON;
-    IDSetSwitch(&SlewRateSP, NULL);
+    IDSetSwitch(&SlewRateSP, nullptr);
     guide_direction = LX200_SOUTH;
     GuideNSTID = IEAddTimer (ms, guideTimeoutHelper, this);
     return IPS_BUSY;
@@ -1072,7 +1072,7 @@ IPState LX200Pulsar2::GuideEast(float ms)
     // Set slew to guiding
     IUResetSwitch(&SlewRateSP);
     SlewRateS[SLEW_GUIDE].s = ISS_ON;
-    IDSetSwitch(&SlewRateSP, NULL);
+    IDSetSwitch(&SlewRateSP, nullptr);
     guide_direction = LX200_EAST;
     GuideWETID = IEAddTimer (ms, guideTimeoutHelper, this);
     return IPS_BUSY;
@@ -1114,7 +1114,7 @@ IPState LX200Pulsar2::GuideWest(float ms)
     // Set slew to guiding
     IUResetSwitch(&SlewRateSP);
     SlewRateS[SLEW_GUIDE].s = ISS_ON;
-    IDSetSwitch(&SlewRateSP, NULL);
+    IDSetSwitch(&SlewRateSP, nullptr);
     guide_direction = LX200_WEST;
     GuideWETID = IEAddTimer (ms, guideTimeoutHelper, this);
     return IPS_BUSY;
@@ -1188,7 +1188,7 @@ bool LX200Pulsar2::Goto(double r, double d)
         AbortSP.s = IPS_OK;
         EqNP.s       = IPS_IDLE;
         IDSetSwitch(&AbortSP, "Slew aborted.");
-        IDSetNumber(&EqNP, NULL);
+        IDSetNumber(&EqNP, nullptr);
 
         if (MovementNSSP.s == IPS_BUSY || MovementWESP.s == IPS_BUSY)
         {
@@ -1196,8 +1196,8 @@ bool LX200Pulsar2::Goto(double r, double d)
             EqNP.s       = IPS_IDLE;
             IUResetSwitch(&MovementNSSP);
             IUResetSwitch(&MovementWESP);
-            IDSetSwitch(&MovementNSSP, NULL);
-            IDSetSwitch(&MovementWESP, NULL);
+            IDSetSwitch(&MovementNSSP, nullptr);
+            IDSetSwitch(&MovementWESP, nullptr);
         }
         usleep(100000); // sleep for 100 mseconds
     }
@@ -1258,7 +1258,7 @@ bool LX200Pulsar2::Park(void)
         AbortSP.s    = IPS_OK;
         EqNP.s       = IPS_IDLE;
         IDSetSwitch(&AbortSP, "Slew aborted.");
-        IDSetNumber(&EqNP, NULL);
+        IDSetNumber(&EqNP, nullptr);
 
         if (MovementNSSP.s == IPS_BUSY || MovementWESP.s == IPS_BUSY)
         {
@@ -1267,8 +1267,8 @@ bool LX200Pulsar2::Park(void)
             IUResetSwitch(&MovementNSSP);
             IUResetSwitch(&MovementWESP);
 
-            IDSetSwitch(&MovementNSSP, NULL);
-            IDSetSwitch(&MovementWESP, NULL);
+            IDSetSwitch(&MovementNSSP, nullptr);
+            IDSetSwitch(&MovementWESP, nullptr);
         }
         usleep(100000); // sleep for 100 msec
     }
@@ -1427,7 +1427,7 @@ void LX200Pulsar2::getBasicData(void)
         if (Pulsar2Commands::getSideOfPier(PortFD, &side_of_pier))
         {
             //PierSideS[side_of_pier].s = ISS_ON;
-            //IDSetSwitch(&PierSideSP, NULL);
+            //IDSetSwitch(&PierSideSP, nullptr);
             setPierSide((side_of_pier == Pulsar2Commands::EastOfPier) ? PIER_EAST : PIER_WEST);
         }
         else
@@ -1441,7 +1441,7 @@ void LX200Pulsar2::getBasicData(void)
         if (Pulsar2Commands::getPECorrection(PortFD, &pec_ra, &pec_dec))
         {
             PeriodicErrorCorrectionS[pec_ra].s = ISS_ON;
-            IDSetSwitch(&PeriodicErrorCorrectionSP, NULL);
+            IDSetSwitch(&PeriodicErrorCorrectionSP, nullptr);
         }
         else
         {
@@ -1453,7 +1453,7 @@ void LX200Pulsar2::getBasicData(void)
         if (Pulsar2Commands::getPoleCrossing(PortFD, &pole_crossing))
         {
             PoleCrossingS[pole_crossing].s = ISS_ON;
-            IDSetSwitch(&PoleCrossingSP, NULL);
+            IDSetSwitch(&PoleCrossingSP, nullptr);
         }
         else
         {
@@ -1466,7 +1466,7 @@ void LX200Pulsar2::getBasicData(void)
         if (Pulsar2Commands::getRCorrection(PortFD, &rc_ra, &rc_dec))
         {
             RefractionCorrectionS[rc_ra].s = ISS_ON;
-            IDSetSwitch(&RefractionCorrectionSP, NULL);
+            IDSetSwitch(&RefractionCorrectionSP, nullptr);
         }
         else
         {
@@ -1512,7 +1512,7 @@ void LX200Pulsar2::sendScopeLocation(void)
         IDMessage(getDeviceName(), "Failed to get site longitude from Pulsar controller.");
         LocationNP.s = IPS_ALERT;
     }
-    IDSetNumber(&LocationNP, NULL);
+    IDSetNumber(&LocationNP, nullptr);
 }
 
 
@@ -1521,8 +1521,8 @@ void LX200Pulsar2::sendScopeTime(void)
     struct tm ltm;
     if (isSimulation())
     {
-        const time_t t = time(NULL);
-        if (gmtime_r(&t, &ltm) == NULL)
+        const time_t t = time(nullptr);
+        if (gmtime_r(&t, &ltm) == nullptr)
             return;
     }
     else
@@ -1551,7 +1551,7 @@ void LX200Pulsar2::sendScopeTime(void)
         IDLog("Telescope UTC Time: %s\n", TimeT[0].text);
     }
     // Let's send everything to the client
-    IDSetText(&TimeTP, NULL);
+    IDSetText(&TimeTP, nullptr);
 }
 
 
@@ -1574,8 +1574,8 @@ void LX200Pulsar2::guideTimeout(void)
         MovementWESP.s = IPS_IDLE;
         IUResetSwitch(&MovementNSSP);
         IUResetSwitch(&MovementWESP);
-        IDSetSwitch(&MovementNSSP, NULL);
-        IDSetSwitch(&MovementWESP, NULL);
+        IDSetSwitch(&MovementNSSP, nullptr);
+        IDSetSwitch(&MovementWESP, nullptr);
         IERmTimer(GuideNSTID);
         IERmTimer(GuideWETID);
     }
@@ -1588,20 +1588,20 @@ void LX200Pulsar2::guideTimeout(void)
                 MoveNS(guide_direction == LX200_NORTH ? DIRECTION_NORTH : DIRECTION_SOUTH, MOTION_STOP);
                 GuideNSNP.np[( guide_direction == LX200_NORTH ? 0 : 1 )].value = 0;
                 GuideNSNP.s = IPS_IDLE;
-                IDSetNumber(&GuideNSNP, NULL);
+                IDSetNumber(&GuideNSNP, nullptr);
                 MovementNSSP.s = IPS_IDLE;
                 IUResetSwitch(&MovementNSSP);
-                IDSetSwitch(&MovementNSSP, NULL);
+                IDSetSwitch(&MovementNSSP, nullptr);
                 break;
             case LX200_WEST:
             case LX200_EAST:
                 MoveWE(guide_direction == LX200_WEST ? DIRECTION_WEST : DIRECTION_EAST, MOTION_STOP);
                 GuideWENP.np[( guide_direction == LX200_WEST ? 0 : 1 )].value = 0;
                 GuideWENP.s = IPS_IDLE;
-                IDSetNumber(&GuideWENP, NULL);
+                IDSetNumber(&GuideWENP, nullptr);
                 MovementWESP.s = IPS_IDLE;
                 IUResetSwitch(&MovementWESP);
-                IDSetSwitch(&MovementWESP, NULL);
+                IDSetSwitch(&MovementWESP, nullptr);
                 break;
         }
     }
@@ -1611,7 +1611,7 @@ void LX200Pulsar2::guideTimeout(void)
         GuideNSNP.np[1].value = 0;
         GuideNSNP.s = IPS_IDLE;
         GuideNSTID = 0;
-        IDSetNumber(&GuideNSNP, NULL);
+        IDSetNumber(&GuideNSNP, nullptr);
     }
     if (guide_direction == LX200_WEST || guide_direction == LX200_EAST || guide_direction == -1)
     {
@@ -1619,7 +1619,7 @@ void LX200Pulsar2::guideTimeout(void)
         GuideWENP.np[1].value = 0;
         GuideWENP.s = IPS_IDLE;
         GuideWETID = 0;
-        IDSetNumber(&GuideWENP, NULL);
+        IDSetNumber(&GuideWENP, nullptr);
     }
 }
 

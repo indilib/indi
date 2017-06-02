@@ -164,7 +164,7 @@ void ConvexHull::Checks( void )
 
     Consistency();
     Convexity();
-    if ( (v = vertices) != NULL )
+    if ( (v = vertices) != nullptr )
         do
         {
             if (v->mark) V++;
@@ -172,14 +172,14 @@ void ConvexHull::Checks( void )
         }
         while ( v != vertices );
 
-    if ( (e = edges) != NULL )
+    if ( (e = edges) != nullptr )
         do
         {
             E++;
             e = e->next;
         }
         while ( e != edges );
-    if ( (f = faces) != NULL )
+    if ( (f = faces) != nullptr )
         do
         {
             F++;
@@ -206,7 +206,7 @@ void ConvexHull::CleanEdges( void )
                 e->adjface[0] = e->newface;
             else
                 e->adjface[1] = e->newface;
-            e->newface = NULL;
+            e->newface = nullptr;
         }
         e = e->next;
     }
@@ -310,7 +310,7 @@ void ConvexHull::CleanVertices( tVertex * pvnext )
     v = vertices;
     do
     {
-        v->duplicate = NULL;
+        v->duplicate = nullptr;
         v->onhull = !ONHULL;
         v = v->next;
     }
@@ -423,7 +423,7 @@ void ConvexHull::Convexity( void )
 void ConvexHull::DoubleTriangle( void )
 {
     tVertex  v0, v1, v2, v3;
-    tFace    f0, f1 = NULL;
+    tFace    f0, f1 = nullptr;
     int      vol;
 
     /* Find 3 noncollinear points. */
@@ -523,7 +523,7 @@ void ConvexHull::MakeCcw( tFace f, tEdge e, tVertex p )
 {
     tFace  fv;   /* The visible face adjacent to e */
     int    i;    /* Index of e->endpoint[0] in fv. */
-    tEdge  s = NULL;	/* Temporary, for swapping */
+    tEdge  s = nullptr;	/* Temporary, for swapping */
 
     if  ( e->adjface[0]->visible )
         fv = e->adjface[0];
@@ -563,7 +563,7 @@ ConvexHull::tFace ConvexHull::MakeConeFace( tEdge e, tVertex p )
         /* If the edge exists, copy it into new_edge. */
         if ( !( new_edge[i] = e->endpts[i]->duplicate) )
         {
-            /* Otherwise (duplicate is NULL), MakeNullEdge. */
+            /* Otherwise (duplicate is nullptr), MakeNullEdge. */
             new_edge[i] = MakeNullEdge();
             new_edge[i]->endpts[0] = e->endpts[i];
             new_edge[i]->endpts[1] = p;
@@ -580,7 +580,7 @@ ConvexHull::tFace ConvexHull::MakeConeFace( tEdge e, tVertex p )
     /* Set the adjacent face pointers. */
     for ( i = 0; i < 2; ++i )
         for ( j = 0; j < 2; ++j )
-            /* Only one NULL link should be set to new_face. */
+            /* Only one nullptr link should be set to new_face. */
             if ( !new_edge[i]->adjface[j] )
             {
                 new_edge[i]->adjface[j] = new_face;
@@ -652,8 +652,8 @@ ConvexHull::tEdge ConvexHull::MakeNullEdge( void )
     tEdge  e;
 
     e = new tsEdge;
-    e->adjface[0] = e->adjface[1] = e->newface = NULL;
-    e->endpts[0] = e->endpts[1] = NULL;
+    e->adjface[0] = e->adjface[1] = e->newface = nullptr;
+    e->endpts[0] = e->endpts[1] = nullptr;
     e->delete_it = !REMOVED;
     add<tEdge>(edges, e);
     return e;
@@ -667,8 +667,8 @@ ConvexHull::tFace ConvexHull::MakeNullFace( void )
     f = new tsFace;
     for ( i = 0; i < 3; ++i )
     {
-        f->edge[i] = NULL;
-        f->vertex[i] = NULL;
+        f->edge[i] = nullptr;
+        f->vertex[i] = nullptr;
     }
     f->visible = !VISIBLE;
     add<tFace>(faces, f);
@@ -680,7 +680,7 @@ ConvexHull::tVertex	ConvexHull::MakeNullVertex( void )
     tVertex  v;
 
     v = new tsVertex;
-    v->duplicate = NULL;
+    v->duplicate = nullptr;
     v->onhull = !ONHULL;
     v->mark = !PROCESSED;
     add<tVertex>( vertices, v );
@@ -1003,7 +1003,7 @@ void ConvexHull::Reset( void )
     tEdge CurrentEdge = edges;
     tFace CurrentFace = faces;
 
-    if (NULL != CurrentVertex)
+    if (nullptr != CurrentVertex)
     {
         do
         {
@@ -1012,10 +1012,10 @@ void ConvexHull::Reset( void )
             delete TempVertex;
         }
         while (CurrentVertex != vertices);
-        vertices = NULL;
+        vertices = nullptr;
     }
 
-    if (NULL != CurrentEdge)
+    if (nullptr != CurrentEdge)
     {
         do
         {
@@ -1024,10 +1024,10 @@ void ConvexHull::Reset( void )
             delete TempEdge;
         }
         while (CurrentEdge != edges);
-        edges = NULL;
+        edges = nullptr;
     }
 
-    if (NULL != CurrentFace)
+    if (nullptr != CurrentFace)
     {
         do
         {
@@ -1036,7 +1036,7 @@ void ConvexHull::Reset( void )
             delete TempFace;
         }
         while (CurrentFace != faces);
-        faces = NULL;
+        faces = nullptr;
     }
 
     debug = false;

@@ -41,7 +41,7 @@ bool GPUSBDriver::Connect()
 {
     dev = FindDevice(0x134A, 0x9020, 0);
 
-    if(dev == NULL)
+    if(dev == nullptr)
     {
         IDLog("Error: No GPUSB device found\n");
         return false;

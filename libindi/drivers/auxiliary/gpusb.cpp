@@ -182,7 +182,7 @@ float GPUSB::CalcWEPulseTimeLeft()
     double timesince;
     double timeleft;
     struct timeval now;
-    gettimeofday(&now, NULL);
+    gettimeofday(&now, nullptr);
 
     timesince = (double)(now.tv_sec * 1000.0 + now.tv_usec / 1000) - (double)(WEPulseStart.tv_sec * 1000.0 + WEPulseStart.tv_usec / 1000);
     timesince = timesince / 1000;
@@ -197,7 +197,7 @@ float GPUSB::CalcNSPulseTimeLeft()
     double timesince;
     double timeleft;
     struct timeval now;
-    gettimeofday(&now, NULL);
+    gettimeofday(&now, nullptr);
 
     timesince = (double)(now.tv_sec * 1000.0 + now.tv_usec / 1000) - (double)(NSPulseStart.tv_sec * 1000.0 + NSPulseStart.tv_usec / 1000);
     timesince = timesince / 1000;
@@ -326,7 +326,7 @@ IPState GPUSB::GuideNorth(float ms)
     }
 
     NSPulseRequest = ms / 1000.0;
-    gettimeofday(&NSPulseStart, NULL);
+    gettimeofday(&NSPulseStart, nullptr);
     InNSPulse = true;
 
 
@@ -355,7 +355,7 @@ IPState GPUSB::GuideSouth(float ms)
     }
 
     NSPulseRequest = ms / 1000.0;
-    gettimeofday(&NSPulseStart, NULL);
+    gettimeofday(&NSPulseStart, nullptr);
     InNSPulse = true;
 
 
@@ -384,7 +384,7 @@ IPState GPUSB::GuideEast(float ms)
     }
 
     WEPulseRequest = ms / 1000.0;
-    gettimeofday(&WEPulseStart, NULL);
+    gettimeofday(&WEPulseStart, nullptr);
     InWEPulse = true;
 
     WEtimerID = SetTimer(ms - 50);
@@ -413,7 +413,7 @@ IPState GPUSB::GuideWest(float ms)
     }
 
     WEPulseRequest = ms / 1000.0;
-    gettimeofday(&WEPulseStart, NULL);
+    gettimeofday(&WEPulseStart, nullptr);
     InWEPulse = true;
 
 

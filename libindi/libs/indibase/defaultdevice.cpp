@@ -46,7 +46,7 @@ void timerfunc(void * t)
 {
     //fprintf(stderr,"Got a timer hit with %x\n",t);
     INDI::DefaultDevice * devPtr = static_cast<INDI::DefaultDevice *> (t);
-    if (devPtr != NULL)
+    if (devPtr != nullptr)
     {
         //  this was for my device
         //  but we dont have a way of telling
@@ -76,7 +76,7 @@ bool INDI::DefaultDevice::loadConfig(bool silent, const char * property)
     char errmsg[MAXRBUF];
     bool pResult = false;
 
-    pResult = IUReadConfig(NULL, deviceID, property, silent ? 1 : 0, errmsg) == 0 ? true : false;
+    pResult = IUReadConfig(nullptr, deviceID, property, silent ? 1 : 0, errmsg) == 0 ? true : false;
 
     if (silent == false)
     {
@@ -88,7 +88,7 @@ bool INDI::DefaultDevice::loadConfig(bool silent, const char * property)
             DEBUGF(INDI::Logger::DBG_ERROR, "Error loading user configuration. %s. To save user configuration, click Save under the Configuration property in the Options tab. ", errmsg);
     }
 
-    IUSaveDefaultConfig(NULL, NULL, deviceID);
+    IUSaveDefaultConfig(nullptr, nullptr, deviceID);
 
     return pResult;
 }
@@ -96,7 +96,7 @@ bool INDI::DefaultDevice::loadConfig(bool silent, const char * property)
 bool INDI::DefaultDevice::saveConfigItems(FILE * fp)
 {
     IUSaveConfigSwitch(fp, &DebugSP);
-    if (ConnectionModeS != NULL)
+    if (ConnectionModeS != nullptr)
         IUSaveConfigSwitch(fp, &ConnectionModeSP);
 
     if (activeConnection)
@@ -112,10 +112,10 @@ bool INDI::DefaultDevice::saveAllConfigItems(FILE * fp)
     INDI_PROPERTY_TYPE pType;
     void * pPtr;
 
-    ISwitchVectorProperty * svp = NULL;
-    INumberVectorProperty * nvp = NULL;
-    ITextVectorProperty  * tvp = NULL;
-    IBLOBVectorProperty  * bvp = NULL;
+    ISwitchVectorProperty * svp = nullptr;
+    INumberVectorProperty * nvp = nullptr;
+    ITextVectorProperty  * tvp = nullptr;
+    IBLOBVectorProperty  * bvp = nullptr;
 
     for (orderi = pAll.begin(); orderi != pAll.end(); orderi++)
     {
@@ -155,13 +155,13 @@ bool INDI::DefaultDevice::saveConfig(bool silent, const char * property)
     //std::vector<orderPtr>::iterator orderi;
     char errmsg[MAXRBUF];
 
-    FILE * fp = NULL;
+    FILE * fp = nullptr;
 
-    if (property == NULL)
+    if (property == nullptr)
     {
-        fp = IUGetConfigFP(NULL, deviceID, "w", errmsg);
+        fp = IUGetConfigFP(nullptr, deviceID, "w", errmsg);
 
-        if (fp == NULL)
+        if (fp == nullptr)
         {
             if (silent == false)
                 DEBUGF(INDI::Logger::DBG_ERROR, "Error saving configuration. %s", errmsg);
@@ -176,15 +176,15 @@ bool INDI::DefaultDevice::saveConfig(bool silent, const char * property)
 
         fclose(fp);
 
-        IUSaveDefaultConfig(NULL, NULL, deviceID);
+        IUSaveDefaultConfig(nullptr, nullptr, deviceID);
 
         DEBUG(INDI::Logger::DBG_DEBUG, "Configuration successfully saved.");
     }
     else
     {
-        fp = IUGetConfigFP(NULL, deviceID, "r", errmsg);
+        fp = IUGetConfigFP(nullptr, deviceID, "r", errmsg);
 
-        if (fp == NULL)
+        if (fp == nullptr)
         {
             if (silent == false)
                 DEBUGF(INDI::Logger::DBG_ERROR, "Error saving configuration. %s", errmsg);
@@ -197,13 +197,13 @@ bool INDI::DefaultDevice::saveConfig(bool silent, const char * property)
         fclose(fp);
         delLilXML(lp);
 
-        if (root == NULL)
+        if (root == nullptr)
             return false;
 
-        XMLEle * ep = NULL;
+        XMLEle * ep = nullptr;
         bool propertySaved = false;
 
-        for (ep = nextXMLEle(root, 1) ; ep != NULL ; ep = nextXMLEle(root, 0))
+        for (ep = nextXMLEle(root, 1) ; ep != nullptr ; ep = nextXMLEle(root, 0))
         {
             const char * elemName = findXMLAttValu(ep, "name");
             const char * tagName  = tagXMLEle(ep);
@@ -214,14 +214,14 @@ bool INDI::DefaultDevice::saveConfig(bool silent, const char * property)
             if (!strcmp(tagName, "newSwitchVector"))
             {
                 ISwitchVectorProperty * svp = getSwitch(elemName);
-                if (svp == NULL)
+                if (svp == nullptr)
                     return false;
 
-                XMLEle * sw = NULL;
-                for (sw = nextXMLEle(ep, 1) ; sw != NULL ; sw = nextXMLEle(ep, 0))
+                XMLEle * sw = nullptr;
+                for (sw = nextXMLEle(ep, 1) ; sw != nullptr ; sw = nextXMLEle(ep, 0))
                 {
                     ISwitch * oneSwitch = IUFindSwitch(svp, findXMLAttValu(sw, "name"));
-                    if (oneSwitch == NULL)
+                    if (oneSwitch == nullptr)
                         return false;
                     char formatString[MAXRBUF];
                     snprintf(formatString, MAXRBUF, "      %s\n", sstateStr(oneSwitch->s));
@@ -234,14 +234,14 @@ bool INDI::DefaultDevice::saveConfig(bool silent, const char * property)
             else if (!strcmp(tagName, "newNumberVector"))
             {
                 INumberVectorProperty * nvp = getNumber(elemName);
-                if (nvp == NULL)
+                if (nvp == nullptr)
                     return false;
 
-                XMLEle * np = NULL;
-                for (np = nextXMLEle(ep, 1) ; np != NULL ; np = nextXMLEle(ep, 0))
+                XMLEle * np = nullptr;
+                for (np = nextXMLEle(ep, 1) ; np != nullptr ; np = nextXMLEle(ep, 0))
                 {
                     INumber * oneNumber = IUFindNumber(nvp, findXMLAttValu(np, "name"));
-                    if (oneNumber == NULL)
+                    if (oneNumber == nullptr)
                         return false;
 
                     char formatString[MAXRBUF];
@@ -255,14 +255,14 @@ bool INDI::DefaultDevice::saveConfig(bool silent, const char * property)
             else if (!strcmp(tagName, "newTextVector"))
             {
                 ITextVectorProperty * tvp = getText(elemName);
-                if (tvp == NULL)
+                if (tvp == nullptr)
                     return false;
 
-                XMLEle * tp = NULL;
-                for (tp = nextXMLEle(ep, 1) ; tp != NULL ; tp = nextXMLEle(ep, 0))
+                XMLEle * tp = nullptr;
+                for (tp = nextXMLEle(ep, 1) ; tp != nullptr ; tp = nextXMLEle(ep, 0))
                 {
                     IText * oneText = IUFindText(tvp, findXMLAttValu(tp, "name"));
-                    if (oneText == NULL)
+                    if (oneText == nullptr)
                         return false;
 
                     char formatString[MAXRBUF];
@@ -277,7 +277,7 @@ bool INDI::DefaultDevice::saveConfig(bool silent, const char * property)
 
         if (propertySaved)
         {
-            fp = IUGetConfigFP(NULL, deviceID, "w", errmsg);
+            fp = IUGetConfigFP(nullptr, deviceID, "w", errmsg);
             prXMLEle(fp, root, 0);
             fclose(fp);
             DEBUGF(INDI::Logger::DBG_DEBUG, "Configuration successfully saved for %s.", property);
@@ -305,7 +305,7 @@ bool INDI::DefaultDevice::loadDefaultConfig()
 
     DEBUGF(INDI::Logger::DBG_DEBUG, "Requesting to load default config with: %s", configDefaultFileName);
 
-    pResult = IUReadConfig(configDefaultFileName, deviceID, NULL, 0, errmsg) == 0 ? true : false;
+    pResult = IUReadConfig(configDefaultFileName, deviceID, nullptr, 0, errmsg) == 0 ? true : false;
 
     if (pResult)
         DEBUG(INDI::Logger::DBG_SESSION, "Default configuration loaded.");
@@ -403,7 +403,7 @@ bool INDI::DefaultDevice::ISNewSwitch (const char * dev, const char * name, ISSt
         else
             ConnectionModeSP.s = IPS_ALERT;
 
-        IDSetSwitch(&ConnectionModeSP, NULL);
+        IDSetSwitch(&ConnectionModeSP, nullptr);
 
         return true;
     }
@@ -457,7 +457,7 @@ bool INDI::DefaultDevice::ISNewSwitch (const char * dev, const char * name, ISSt
         else
             svp->s = IPS_ALERT;
 
-        IDSetSwitch(svp, NULL);
+        IDSetSwitch(svp, nullptr);
         return true;
     }
 
@@ -528,7 +528,7 @@ void INDI::DefaultDevice::setDebug(bool enable)
     if (pDebug == enable)
     {
         DebugSP.s = IPS_OK;
-        IDSetSwitch(&DebugSP, NULL);
+        IDSetSwitch(&DebugSP, nullptr);
         return;
     }
 
@@ -561,7 +561,7 @@ void INDI::DefaultDevice::setDebug(bool enable)
 
     debugTriggered(enable);
     DebugSP.s = IPS_OK;
-    IDSetSwitch(&DebugSP, NULL);
+    IDSetSwitch(&DebugSP, nullptr);
 
 }
 
@@ -571,7 +571,7 @@ void INDI::DefaultDevice::setSimulation(bool enable)
     if (pSimulation == enable)
     {
         SimulationSP.s = IPS_OK;
-        IDSetSwitch(&SimulationSP, NULL);
+        IDSetSwitch(&SimulationSP, nullptr);
         return;
     }
 
@@ -599,7 +599,7 @@ void INDI::DefaultDevice::setSimulation(bool enable)
     pSimulation = enable;
     simulationTriggered(enable);
     SimulationSP.s = IPS_OK;
-    IDSetSwitch(&SimulationSP, NULL);
+    IDSetSwitch(&SimulationSP, nullptr);
 
 }
 
@@ -630,12 +630,12 @@ void INDI::DefaultDevice::ISGetProperties (const char * dev)
 
     if(isInit == false)
     {
-        if(dev != NULL)
+        if(dev != nullptr)
             setDeviceName(dev);
         else if (*getDeviceName() == '\0')
         {
             char * envDev = getenv("INDIDEV");
-            if (envDev != NULL)
+            if (envDev != nullptr)
                 setDeviceName(envDev);
             else
                 setDeviceName(getDefaultName());
@@ -661,19 +661,19 @@ void INDI::DefaultDevice::ISGetProperties (const char * dev)
         switch (pType)
         {
             case INDI_NUMBER:
-                IDDefNumber(static_cast<INumberVectorProperty *>(pPtr) , NULL);
+                IDDefNumber(static_cast<INumberVectorProperty *>(pPtr) , nullptr);
                 break;
             case INDI_TEXT:
-                IDDefText(static_cast<ITextVectorProperty *>(pPtr) , NULL);
+                IDDefText(static_cast<ITextVectorProperty *>(pPtr) , nullptr);
                 break;
             case INDI_SWITCH:
-                IDDefSwitch(static_cast<ISwitchVectorProperty *>(pPtr) , NULL);
+                IDDefSwitch(static_cast<ISwitchVectorProperty *>(pPtr) , nullptr);
                 break;
             case INDI_LIGHT:
-                IDDefLight(static_cast<ILightVectorProperty *>(pPtr) , NULL);
+                IDDefLight(static_cast<ILightVectorProperty *>(pPtr) , nullptr);
                 break;
             case INDI_BLOB:
-                IDDefBLOB(static_cast<IBLOBVectorProperty *>(pPtr) , NULL);
+                IDDefBLOB(static_cast<IBLOBVectorProperty *>(pPtr) , nullptr);
                 break;
         }
     }
@@ -687,7 +687,7 @@ void INDI::DefaultDevice::ISGetProperties (const char * dev)
         loadConfig(true, "LOG_OUTPUT");
     }
 
-    if (ConnectionModeS == NULL)
+    if (ConnectionModeS == nullptr)
     {
         if (connections.size() > 0)
         {
@@ -726,23 +726,23 @@ void INDI::DefaultDevice::resetProperties()
         {
             case INDI_NUMBER:
                 static_cast<INumberVectorProperty *>(pPtr)->s = IPS_IDLE;
-                IDSetNumber(static_cast<INumberVectorProperty *>(pPtr) , NULL);
+                IDSetNumber(static_cast<INumberVectorProperty *>(pPtr) , nullptr);
                 break;
             case INDI_TEXT:
                 static_cast<ITextVectorProperty *>(pPtr)->s = IPS_IDLE;
-                IDSetText(static_cast<ITextVectorProperty *>(pPtr) , NULL);
+                IDSetText(static_cast<ITextVectorProperty *>(pPtr) , nullptr);
                 break;
             case INDI_SWITCH:
                 static_cast<ISwitchVectorProperty *>(pPtr)->s = IPS_IDLE;
-                IDSetSwitch(static_cast<ISwitchVectorProperty *>(pPtr) , NULL);
+                IDSetSwitch(static_cast<ISwitchVectorProperty *>(pPtr) , nullptr);
                 break;
             case INDI_LIGHT:
                 static_cast<ILightVectorProperty *>(pPtr)->s = IPS_IDLE;
-                IDSetLight(static_cast<ILightVectorProperty *>(pPtr) , NULL);
+                IDSetLight(static_cast<ILightVectorProperty *>(pPtr) , nullptr);
                 break;
             case INDI_BLOB:
                 static_cast<IBLOBVectorProperty *>(pPtr)->s = IPS_IDLE;
-                IDSetBLOB(static_cast<IBLOBVectorProperty *>(pPtr) , NULL);
+                IDSetBLOB(static_cast<IBLOBVectorProperty *>(pPtr) , nullptr);
                 break;
         }
     }
@@ -750,7 +750,7 @@ void INDI::DefaultDevice::resetProperties()
 
 void INDI::DefaultDevice::setConnected(bool status, IPState state, const char * msg)
 {
-    ISwitch * sp = NULL;
+    ISwitch * sp = nullptr;
     ISwitchVectorProperty * svp = getSwitch("CONNECTION");
     if (!svp)
         return;
@@ -776,7 +776,7 @@ void INDI::DefaultDevice::setConnected(bool status, IPState state, const char * 
 
     svp->s = state;
 
-    IDSetSwitch(svp, msg, NULL);
+    IDSetSwitch(svp, msg, nullptr);
 }
 
 //  This is a helper function
@@ -869,10 +869,10 @@ bool INDI::DefaultDevice::deleteProperty(const char * propertyName)
 {
     char errmsg[MAXRBUF];
 
-    if (propertyName == NULL)
+    if (propertyName == nullptr)
     {
         //while(!pAll.empty()) delete bar.back(), bar.pop_back();
-        IDDelete(getDeviceName(), NULL, NULL);
+        IDDelete(getDeviceName(), nullptr, nullptr);
         return true;
     }
 
@@ -882,14 +882,14 @@ bool INDI::DefaultDevice::deleteProperty(const char * propertyName)
         INDI::Property * prop = getProperty(propertyName);
         if (prop && prop->isDynamic())
         {
-            IDDelete(getDeviceName(), propertyName , NULL);
+            IDDelete(getDeviceName(), propertyName , nullptr);
             return true;
         }
     }
 
     if (removeProperty(propertyName, errmsg) == 0)
     {
-        IDDelete(getDeviceName(), propertyName , NULL);
+        IDDelete(getDeviceName(), propertyName , nullptr);
         return true;
     }
     else
@@ -899,31 +899,31 @@ bool INDI::DefaultDevice::deleteProperty(const char * propertyName)
 void INDI::DefaultDevice::defineNumber(INumberVectorProperty * nvp)
 {
     registerProperty(nvp, INDI_NUMBER);
-    IDDefNumber(nvp, NULL);
+    IDDefNumber(nvp, nullptr);
 }
 
 void INDI::DefaultDevice::defineText(ITextVectorProperty * tvp)
 {
     registerProperty(tvp, INDI_TEXT);
-    IDDefText(tvp, NULL);
+    IDDefText(tvp, nullptr);
 }
 
 void INDI::DefaultDevice::defineSwitch(ISwitchVectorProperty * svp)
 {
     registerProperty(svp, INDI_SWITCH);
-    IDDefSwitch(svp, NULL);
+    IDDefSwitch(svp, nullptr);
 }
 
 void INDI::DefaultDevice::defineLight(ILightVectorProperty * lvp)
 {
     registerProperty(lvp, INDI_LIGHT);
-    IDDefLight(lvp, NULL);
+    IDDefLight(lvp, nullptr);
 }
 
 void INDI::DefaultDevice::defineBLOB(IBLOBVectorProperty * bvp)
 {
     registerProperty(bvp, INDI_BLOB);
-    IDDefBLOB(bvp, NULL);
+    IDDefBLOB(bvp, nullptr);
 }
 
 bool INDI::DefaultDevice::Connect()
@@ -931,7 +931,7 @@ bool INDI::DefaultDevice::Connect()
     if(isConnected())
         return true;
 
-    if (activeConnection == NULL)
+    if (activeConnection == nullptr)
     {
         DEBUG(INDI::Logger::DBG_ERROR, "No active connection defined.");
         return false;

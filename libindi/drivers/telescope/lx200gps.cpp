@@ -324,8 +324,8 @@ bool LX200GPS::ISNewSwitch (const char * dev, const char * name, ISState * state
             {
                 OTAUpdateSP.s = IPS_OK;
                 OTATempNP.s = IPS_OK;
-                IDSetNumber(&OTATempNP, NULL);
-                IDSetSwitch(&OTAUpdateSP, NULL);
+                IDSetNumber(&OTATempNP, nullptr);
+                IDSetSwitch(&OTAUpdateSP, nullptr);
                 return true;
             }
 

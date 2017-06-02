@@ -158,7 +158,7 @@ void Imager::startBatch()
     ProgressN[1].value = image = 1;
     maxImage = (int)groups[group - 1]->GroupSettingsN[0].value;
     ProgressNP.s = IPS_BUSY;
-    IDSetNumber(&ProgressNP, NULL);
+    IDSetNumber(&ProgressNP, nullptr);
     initiateNextFilter();
 }
 
@@ -201,7 +201,7 @@ void Imager::initiateDownload()
         FitsB[0].blob = data;
         FitsB[0].bloblen = FitsB[0].size = size;
         FitsBP.s = IPS_OK;
-        IDSetBLOB(&FitsBP, NULL);
+        IDSetBLOB(&FitsBP, nullptr);
         DownloadNP.s = IPS_OK;
         IDSetNumber(&DownloadNP, "Download finished");
     }
@@ -341,7 +341,7 @@ bool Imager::ISNewNumber(const char * dev, const char * name, double values[], c
             for (int i = 0; i < maxGroup; i++)
                 groups[i]->defineProperties();
             GroupCountNP.s = IPS_OK;
-            IDSetNumber(&GroupCountNP, NULL);
+            IDSetNumber(&GroupCountNP, nullptr);
             return true;
         }
         if (!strcmp(name, DownloadNP.name))
@@ -383,7 +383,7 @@ bool Imager::ISNewSwitch(const char * dev, const char * name, ISState * states, 
                 }
             }
             BatchSP.s = IPS_OK;
-            IDSetSwitch(&BatchSP, NULL);
+            IDSetSwitch(&BatchSP, nullptr);
             return true;
         }
     }
@@ -397,7 +397,7 @@ bool Imager::ISNewText(const char * dev, const char * name, char * texts[], char
         if (!strcmp(name, ControlledDeviceTP.name))
         {
             IUUpdateText(&ControlledDeviceTP, texts, names, n);
-            IDSetText(&ControlledDeviceTP, NULL);
+            IDSetText(&ControlledDeviceTP, nullptr);
             strcpy(StatusL[0].label, ControlledDeviceT[0].text);
             strcpy(CCDImageExposureNP.device, ControlledDeviceT[0].text);
             strcpy(CCDImageBinNP.device, ControlledDeviceT[0].text);
@@ -408,7 +408,7 @@ bool Imager::ISNewText(const char * dev, const char * name, char * texts[], char
         if (!strcmp(name, ImageNameTP.name))
         {
             IUUpdateText(&ImageNameTP, texts, names, n);
-            IDSetText(&ImageNameTP, NULL);
+            IDSetText(&ImageNameTP, nullptr);
             return true;
         }
     }
@@ -431,7 +431,7 @@ bool Imager::Connect()
     watchDevice(controlledCCD);
     watchDevice(controlledFilterWheel);
     connectServer();
-    setBLOBMode(B_ALSO, controlledCCD, NULL);
+    setBLOBMode(B_ALSO, controlledCCD, nullptr);
 
     return true;
 }
@@ -451,7 +451,7 @@ void Imager::serverConnected()
     DEBUG(INDI::Logger::DBG_DEBUG, "Server connected");
     StatusL[0].s = IPS_ALERT;
     StatusL[1].s = IPS_ALERT;
-    IDSetLight(&StatusLP, NULL);
+    IDSetLight(&StatusLP, nullptr);
 }
 
 void Imager::newDevice(INDI::BaseDevice * dp)
@@ -462,7 +462,7 @@ void Imager::newDevice(INDI::BaseDevice * dp)
         StatusL[0].s = IPS_BUSY;
     if (!strcmp(deviceName, controlledFilterWheel))
         StatusL[1].s = IPS_BUSY;
-    IDSetLight(&StatusLP, NULL);
+    IDSetLight(&StatusLP, nullptr);
 }
 
 void Imager::newProperty(INDI::Property * property)
@@ -495,7 +495,7 @@ void Imager::newProperty(INDI::Property * property)
                 DEBUGF(INDI::Logger::DBG_DEBUG, "Connecting %s", controlledFilterWheel);
             }
         }
-        IDSetLight(&StatusLP, NULL);
+        IDSetLight(&StatusLP, nullptr);
     }
     return;
 }
@@ -532,14 +532,14 @@ void Imager::newBLOB(IBLOB * bp)
                 maxImage = (int)groups[group]->GroupSettingsN[0].value;
                 ProgressN[0].value = group = group + 1;
                 ProgressN[1].value = image = 1;
-                IDSetNumber(&ProgressNP, NULL);
+                IDSetNumber(&ProgressNP, nullptr);
                 initiateNextFilter();
             }
         }
         else
         {
             ProgressN[1].value = image = image + 1;
-            IDSetNumber(&ProgressNP, NULL);
+            IDSetNumber(&ProgressNP, nullptr);
             initiateNextFilter();
         }
     }
@@ -573,7 +573,7 @@ void Imager::newSwitch(ISwitchVectorProperty * svp)
                 StatusL[1].s = IPS_BUSY;
             }
         }
-        IDSetLight(&StatusLP, NULL);
+        IDSetLight(&StatusLP, nullptr);
     }
 }
 
@@ -585,7 +585,7 @@ void Imager::newNumber(INumberVectorProperty * nvp)
         if (!strcmp(nvp->name, "CCD_EXPOSURE"))
         {
             ProgressN[2].value = nvp->np[0].value;
-            IDSetNumber(&ProgressNP, NULL);
+            IDSetNumber(&ProgressNP, nullptr);
         }
     }
     if (!strcmp(deviceName, controlledFilterWheel))
@@ -622,14 +622,14 @@ void Imager::newText(ITextVectorProperty * tvp)
                     maxImage = (int)groups[group]->GroupSettingsN[0].value;
                     ProgressN[0].value = group = group + 1;
                     ProgressN[1].value = image = 1;
-                    IDSetNumber(&ProgressNP, NULL);
+                    IDSetNumber(&ProgressNP, nullptr);
                     initiateNextFilter();
                 }
             }
             else
             {
                 ProgressN[1].value = image = image + 1;
-                IDSetNumber(&ProgressNP, NULL);
+                IDSetNumber(&ProgressNP, nullptr);
                 initiateNextFilter();
             }
         }
@@ -671,7 +671,7 @@ bool Group::ISNewNumber(const char * dev, const char * name, double values[], ch
     {
         IUUpdateNumber(&GroupSettingsNP, values, names, n);
         GroupSettingsNP.s = IPS_OK;
-        IDSetNumber(&GroupSettingsNP, NULL);
+        IDSetNumber(&GroupSettingsNP, nullptr);
         return true;
     }
     return false;

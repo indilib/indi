@@ -30,7 +30,7 @@ TEST(CORE_BASE64, Test_to64frombits)
 {
     int len = 0, size = sizeof("FOOBARBAZ") - 1 * 4 / 3 + 4 + 1;
     const unsigned char convert[] = "FOOBARBAZ";
-    unsigned char * p_outbuf = NULL;
+    unsigned char * p_outbuf = nullptr;
 
     p_outbuf = (unsigned char *)calloc(1, size);
     ASSERT_TRUE(p_outbuf);
@@ -46,7 +46,7 @@ TEST(CORE_BASE64, Test_from64tobits)
 {
     int len = 0, size = sizeof("Rk9PQkFSQkFa") - 1 * 3 / 4 + 1;
     const char convert[] = "Rk9PQkFSQkFa";
-    char * p_outbuf = NULL;
+    char * p_outbuf = nullptr;
 
     p_outbuf = (char *)calloc(1, size);
     ASSERT_TRUE(p_outbuf);
@@ -62,7 +62,7 @@ TEST(CORE_BASE64, Test_from64tobits_fast)
 {
     int len = 0, size = sizeof("Rk9PQkFSQkFa") - 1 * 3 / 4 + 1;
     const char convert[] = "Rk9PQkFSQkFa";
-    char * p_outbuf = NULL;
+    char * p_outbuf = nullptr;
 
     p_outbuf = (char *)calloc(1, size);
     ASSERT_TRUE(p_outbuf);

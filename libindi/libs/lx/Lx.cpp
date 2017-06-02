@@ -90,8 +90,8 @@ bool Lx::initProperties(INDI::DefaultDevice * device)
     IUFillSwitch(&LxSerialAddeolS[2], "LF (0xA, \\n)", "", ISS_OFF);
     IUFillSwitch(&LxSerialAddeolS[3], "CR+LF", "", ISS_OFF);
     IUFillSwitchVector(&LxSerialAddeolSP, LxSerialAddeolS, NARRAY(LxSerialAddeolS), device_name, "Add EOL", "", LX_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
-    FlashStrobeSP = NULL;
-    FlashStrobeStopSP = NULL;
+    FlashStrobeSP = nullptr;
+    FlashStrobeStopSP = nullptr;
     ledmethod = PWCIOCTL;
     return true;
 }
@@ -135,8 +135,8 @@ bool Lx::updateProperties()
         dev->deleteProperty(LxSerialParitySP.name);
         dev->deleteProperty(LxSerialStopSP.name);
         dev->deleteProperty(LxSerialAddeolSP.name);
-        FlashStrobeSP = NULL;
-        FlashStrobeStopSP = NULL;
+        FlashStrobeSP = nullptr;
+        FlashStrobeStopSP = nullptr;
     }
     return true;
 }
@@ -482,7 +482,7 @@ const char * Lx::getSerialEOL()
         case 3:
             return "\r\n";
     }
-    return NULL;
+    return nullptr;
 }
 
 bool Lx::startLxSerial()
@@ -560,7 +560,7 @@ INDI::Property * Lx::findbyLabel(INDI::DefaultDevice * dev, char * label)
         if (!(strcmp((*it)->getLabel(), label)))
             return *it;
     }
-    return NULL;
+    return nullptr;
 }
 
 // PWC Stuff
@@ -605,9 +605,9 @@ void Lx::pwcsetflashon()
     dev->ISNewSwitch(device_name, FlashStrobeSP->name, &(states[0]), (char **)names, 1);
     //dev->ISNewSwitch(device_name, FlashStrobeStopSP->name, &(states[1]), (char **)(names + 1), 1);
     FlashStrobeSP->s = IPS_OK;
-    IDSetSwitch(FlashStrobeSP, NULL);
+    IDSetSwitch(FlashStrobeSP, nullptr);
     FlashStrobeStopSP->s = IPS_IDLE;
-    IDSetSwitch(FlashStrobeStopSP, NULL);
+    IDSetSwitch(FlashStrobeStopSP, nullptr);
 }
 
 void Lx::pwcsetflashoff()
@@ -617,9 +617,9 @@ void Lx::pwcsetflashoff()
     //dev->ISNewSwitch(device_name, FlashStrobeSP->name, &(states[0]), (char **)names, 1);
     dev->ISNewSwitch(device_name, FlashStrobeStopSP->name, &(states[1]), (char **)(names + 1), 1);
     FlashStrobeStopSP->s = IPS_OK;
-    IDSetSwitch(FlashStrobeStopSP, NULL);
+    IDSetSwitch(FlashStrobeStopSP, nullptr);
     FlashStrobeSP->s = IPS_IDLE;
-    IDSetSwitch(FlashStrobeSP, NULL);
+    IDSetSwitch(FlashStrobeSP, nullptr);
 }
 
 bool Lx::startLxPWC()

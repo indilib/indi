@@ -56,7 +56,7 @@ INDI::BaseClientQt::BaseClientQt()
     cPort   = 7624;
     sConnected = false;
     verbose = false;
-    lillp = NULL;
+    lillp = nullptr;
 
     timeout_sec = 3;
     timeout_us = 0;
@@ -146,7 +146,7 @@ bool INDI::BaseClientQt::disconnectServer()
     if (lillp)
     {
         delLilXML(lillp);
-        lillp = NULL;
+        lillp = nullptr;
     }
 
     clear();
@@ -169,9 +169,9 @@ void INDI::BaseClientQt::disconnectDevice(const char * deviceName)
 void INDI::BaseClientQt::setDriverConnection(bool status, const char * deviceName)
 {
     INDI::BaseDevice * drv = getDevice(deviceName);
-    ISwitchVectorProperty * drv_connection = NULL;
+    ISwitchVectorProperty * drv_connection = nullptr;
 
-    if (drv == NULL)
+    if (drv == nullptr)
     {
         IDLog("INDI::BaseClientQt: Error. Unable to find driver %s\n", deviceName);
         return;
@@ -179,7 +179,7 @@ void INDI::BaseClientQt::setDriverConnection(bool status, const char * deviceNam
 
     drv_connection = drv->getSwitch("CONNECTION");
 
-    if (drv_connection == NULL)
+    if (drv_connection == nullptr)
         return;
 
     // If we need to connect
@@ -219,13 +219,13 @@ INDI::BaseDevice * INDI::BaseClientQt::getDevice(const char * deviceName)
         if (!strcmp(deviceName, (*devi)->getDeviceName()))
             return (*devi);
 
-    return NULL;
+    return nullptr;
 }
 
 void * INDI::BaseClientQt::listenHelper(void * context)
 {
     (static_cast<INDI::BaseClientQt *> (context))->listenINDI();
-    return NULL;
+    return nullptr;
 }
 
 void INDI::BaseClientQt::listenINDI()
@@ -295,7 +295,7 @@ int INDI::BaseClientQt::dispatchCommand(XMLEle * root, char * errmsg)
 
     /* Get the device, if not available, create it */
     INDI::BaseDevice * dp = findDev (root, 1, errmsg);
-    if (dp == NULL)
+    if (dp == nullptr)
     {
         strcpy(errmsg, "No device available and none was created");
         return INDI_DEVICE_NOT_FOUND;
@@ -390,7 +390,7 @@ INDI::BaseDevice * INDI::BaseClientQt::findDev( const char * devName, char * err
     }
 
     snprintf(errmsg, MAXRBUF, "Device %s not found", devName);
-    return NULL;
+    return nullptr;
 }
 
 /* add new device */
@@ -406,7 +406,7 @@ INDI::BaseDevice * INDI::BaseClientQt::addDevice (XMLEle * dep, char * errmsg)
     if (!ap)
     {
         strncpy(errmsg, "Unable to find device attribute in XML element. Cannot add device.", MAXRBUF);
-        return NULL;
+        return nullptr;
     }
 
     device_name = valuXMLAtt(ap);
@@ -433,7 +433,7 @@ INDI::BaseDevice * INDI::BaseClientQt::findDev (XMLEle * root, int create, char 
     if (!ap)
     {
         snprintf(errmsg, MAXRBUF, "No device attribute found in element %s", tagXMLEle(root));
-        return (NULL);
+        return (nullptr);
     }
 
     dn = valuXMLAtt(ap);
@@ -441,7 +441,7 @@ INDI::BaseDevice * INDI::BaseClientQt::findDev (XMLEle * root, int create, char 
     if (*dn == '\0')
     {
         snprintf(errmsg, MAXRBUF, "Device name is empty! %s", tagXMLEle(root));
-        return (NULL);
+        return (nullptr);
     }
 
     dp = findDev(dn, errmsg);
@@ -454,7 +454,7 @@ INDI::BaseDevice * INDI::BaseClientQt::findDev (XMLEle * root, int create, char 
         return (addDevice (root, errmsg));
 
     snprintf(errmsg, MAXRBUF, "INDI: <%s> no such device %s", tagXMLEle(root), dn);
-    return NULL;
+    return nullptr;
 }
 
 /* a general message command received from the device.
@@ -501,17 +501,17 @@ void INDI::BaseClientQt::sendNewText (const char * deviceName, const char * prop
 {
     INDI::BaseDevice * drv = getDevice(deviceName);
 
-    if (drv == NULL)
+    if (drv == nullptr)
         return;
 
     ITextVectorProperty * tvp = drv->getText(propertyName);
 
-    if (tvp == NULL)
+    if (tvp == nullptr)
         return;
 
     IText * tp = IUFindText(tvp, elementName);
 
-    if (tp == NULL)
+    if (tp == nullptr)
         return;
 
     IUSaveText(tp, text);
@@ -549,17 +549,17 @@ void INDI::BaseClientQt::sendNewNumber (const char * deviceName, const char * pr
 {
     INDI::BaseDevice * drv = getDevice(deviceName);
 
-    if (drv == NULL)
+    if (drv == nullptr)
         return;
 
     INumberVectorProperty * nvp = drv->getNumber(propertyName);
 
-    if (nvp == NULL)
+    if (nvp == nullptr)
         return;
 
     INumber * np = IUFindNumber(nvp, elementName);
 
-    if (np == NULL)
+    if (np == nullptr)
         return;
 
     np->value = value;
@@ -607,17 +607,17 @@ void INDI::BaseClientQt::sendNewSwitch (const char * deviceName, const char * pr
 {
     INDI::BaseDevice * drv = getDevice(deviceName);
 
-    if (drv == NULL)
+    if (drv == nullptr)
         return;
 
     ISwitchVectorProperty * svp = drv->getSwitch(propertyName);
 
-    if (svp == NULL)
+    if (svp == nullptr)
         return;
 
     ISwitch * sp = IUFindSwitch(svp, elementName);
 
-    if (sp == NULL)
+    if (sp == nullptr)
         return;
 
     sp->s = ISS_ON;
@@ -723,7 +723,7 @@ void INDI::BaseClientQt::setBLOBMode(BLOBHandling blobH, const char * dev, const
 
     BLOBMode * bMode = findBLOBMode(string(dev), prop ? string(prop) : string());
 
-    if (bMode == NULL)
+    if (bMode == nullptr)
     {
         BLOBMode * newMode = new BLOBMode();
         newMode->device   = string(dev);
@@ -742,7 +742,7 @@ void INDI::BaseClientQt::setBLOBMode(BLOBHandling blobH, const char * dev, const
 
     QString blobOpenTag;
     QString blobEnableTag;
-    if (prop != NULL)
+    if (prop != nullptr)
         blobOpenTag = QString("<enableBLOB device='%1' name='%2'>").arg(dev).arg(prop);
     else
         blobOpenTag = QString("<enableBLOB device='%1'>").arg(dev);
@@ -785,7 +785,7 @@ INDI::BaseClientQt::BLOBMode * INDI::BaseClientQt::findBLOBMode(string device, s
             return (*blobby);
     }
 
-    return NULL;
+    return nullptr;
 }
 
 void INDI::BaseClientQt::processSocketError( QAbstractSocket::SocketError socketError )

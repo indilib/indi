@@ -56,7 +56,7 @@ INDI::Telescope::Telescope() : INDI::DefaultDevice(),
     IsLocked = true;
 
     nSlewRate = 0;
-    SlewRateS = NULL;
+    SlewRateS = nullptr;
 
     controller = new INDI::Controller(this);
     controller->setJoystickCallback(joystickHelper);
@@ -101,8 +101,8 @@ bool INDI::Telescope::initProperties()
     IUFillSwitch(&ParkOptionS[2], "PARK_WRITE_DATA", "Write Data", ISS_OFF);
     IUFillSwitchVector(&ParkOptionSP, ParkOptionS, 3, getDeviceName(), "TELESCOPE_PARK_OPTION", "Park Options", SITE_TAB, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
 
-    IUFillText(&TimeT[0], "UTC", "UTC Time", NULL);
-    IUFillText(&TimeT[1], "OFFSET", "UTC Offset", NULL);
+    IUFillText(&TimeT[0], "UTC", "UTC Time", nullptr);
+    IUFillText(&TimeT[1], "OFFSET", "UTC Offset", nullptr);
     IUFillTextVector(&TimeTP, TimeT, 2, getDeviceName(), "TIME_UTC", "UTC", SITE_TAB, IP_RW, 60, IPS_IDLE);
 
     IUFillNumber(&LocationN[LOCATION_LATITUDE], "LAT", "Lat (dd:mm:ss)", "%010.6m", -90, 90, 0, 0.0);
@@ -399,7 +399,7 @@ bool INDI::Telescope::ISSnoopDevice(XMLEle * root)
 {
     controller->ISSnoopDevice(root);
 
-    XMLEle * ep = NULL;
+    XMLEle * ep = nullptr;
     const char * propName = findXMLAttValu(root, "name");
 
     if (isConnected())
@@ -412,7 +412,7 @@ bool INDI::Telescope::ISSnoopDevice(XMLEle * root)
 
             double longitude = -1, latitude = -1, elevation = -1;
 
-            for (ep = nextXMLEle(root, 1) ; ep != NULL ; ep = nextXMLEle(root, 0))
+            for (ep = nextXMLEle(root, 1) ; ep != nullptr ; ep = nextXMLEle(root, 0))
             {
                 const char * elemName = findXMLAttValu(ep, "name");
 
@@ -435,7 +435,7 @@ bool INDI::Telescope::ISSnoopDevice(XMLEle * root)
 
             char utc[MAXINDITSTAMP], offset[MAXINDITSTAMP];
 
-            for (ep = nextXMLEle(root, 1) ; ep != NULL ; ep = nextXMLEle(root, 0))
+            for (ep = nextXMLEle(root, 1) ; ep != nullptr ; ep = nextXMLEle(root, 0))
             {
                 const char * elemName = findXMLAttValu(ep, "name");
 
@@ -461,7 +461,7 @@ bool INDI::Telescope::ISSnoopDevice(XMLEle * root)
             else if (!strcmp(findXMLAttValu(root, "state"), "Ok"))
             {
                 bool prevState = IsLocked;
-                for (ep = nextXMLEle(root, 1) ; ep != NULL ; ep = nextXMLEle(root, 0))
+                for (ep = nextXMLEle(root, 1) ; ep != nullptr ; ep = nextXMLEle(root, 0))
                 {
                     const char * elemName = findXMLAttValu(ep, "name");
 
@@ -554,7 +554,7 @@ void INDI::Telescope::NewRaDec(double ra, double dec)
         EqN[AXIS_RA].value = ra;
         EqN[AXIS_DE].value = dec;
         lastEqState = EqNP.s;
-        IDSetNumber(&EqNP, NULL);
+        IDSetNumber(&EqNP, nullptr);
     }
 
 }
@@ -573,7 +573,7 @@ bool INDI::Telescope::MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command)
     DEBUG(Logger::DBG_ERROR, "Telescope does not support North/South motion.");
     IUResetSwitch(&MovementNSSP);
     MovementNSSP.s = IPS_IDLE;
-    IDSetSwitch(&MovementNSSP, NULL);
+    IDSetSwitch(&MovementNSSP, nullptr);
     return false;
 }
 
@@ -584,7 +584,7 @@ bool INDI::Telescope::MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command)
     DEBUG(Logger::DBG_ERROR, "Telescope does not support West/East motion.");
     IUResetSwitch(&MovementWESP);
     MovementWESP.s = IPS_IDLE;
-    IDSetSwitch(&MovementWESP, NULL);
+    IDSetSwitch(&MovementWESP, nullptr);
     return false;
 }
 
@@ -610,7 +610,7 @@ bool INDI::Telescope::ISNewText (const char * dev, const char * name, char * tex
             ActiveDeviceTP.s = IPS_OK;
             IUUpdateText(&ActiveDeviceTP, texts, names, n);
             //  Update client display
-            IDSetText(&ActiveDeviceTP, NULL);
+            IDSetText(&ActiveDeviceTP, nullptr);
 
             IDSnoopDevice(ActiveDeviceT[0].text, "GEOGRAPHIC_COORD");
             IDSnoopDevice(ActiveDeviceT[0].text, "TIME_UTC");
@@ -624,7 +624,7 @@ bool INDI::Telescope::ISNewText (const char * dev, const char * name, char * tex
         {
             ScopeConfigNameTP.s = IPS_OK;
             IUUpdateText(&ScopeConfigNameTP, texts, names, n);
-            IDSetText(&ScopeConfigNameTP, NULL);
+            IDSetText(&ScopeConfigNameTP, nullptr);
             UpdateScopeConfig();
             return true;
         }
@@ -671,7 +671,7 @@ bool INDI::Telescope::ISNewNumber (const char * dev, const char * name, double v
                     {
                         DEBUG(INDI::Logger::DBG_WARNING, "Please unpark the mount before issuing any motion/sync commands.");
                         EqNP.s = lastEqState = IPS_IDLE;
-                        IDSetNumber(&EqNP, NULL);
+                        IDSetNumber(&EqNP, nullptr);
                         return false;
                     }
                 }
@@ -681,14 +681,14 @@ bool INDI::Telescope::ISNewNumber (const char * dev, const char * name, double v
                 {
                     ISwitch * sw;
                     sw = IUFindSwitch(&CoordSP, "SYNC");
-                    if((sw != NULL) && ( sw->s == ISS_ON ))
+                    if((sw != nullptr) && ( sw->s == ISS_ON ))
                     {
                         rc = Sync(ra, dec);
                         if (rc)
                             EqNP .s = lastEqState = IPS_OK;
                         else
                             EqNP.s = lastEqState = IPS_ALERT;
-                        IDSetNumber(&EqNP, NULL);
+                        IDSetNumber(&EqNP, nullptr);
                         return rc;
                     }
                 }
@@ -701,14 +701,14 @@ bool INDI::Telescope::ISNewNumber (const char * dev, const char * name, double v
                     //  Now fill in target co-ords, so domes can start turning
                     TargetN[AXIS_RA].value = ra;
                     TargetN[AXIS_DE].value = dec;
-                    IDSetNumber(&TargetNP, NULL);
+                    IDSetNumber(&TargetNP, nullptr);
 
                 }
                 else
                 {
                     EqNP.s = lastEqState = IPS_ALERT;
                 }
-                IDSetNumber(&EqNP, NULL);
+                IDSetNumber(&EqNP, nullptr);
 
             }
             return rc;
@@ -739,7 +739,7 @@ bool INDI::Telescope::ISNewNumber (const char * dev, const char * name, double v
             ScopeParametersNP.s = IPS_OK;
 
             IUUpdateNumber(&ScopeParametersNP, values, names, n);
-            IDSetNumber(&ScopeParametersNP, NULL);
+            IDSetNumber(&ScopeParametersNP, nullptr);
             UpdateScopeConfig();
             return true;
         }
@@ -778,7 +778,7 @@ bool INDI::Telescope::ISNewNumber (const char * dev, const char * name, double v
             else
                 ParkPositionNP.s = IPS_ALERT;
 
-            IDSetNumber(&ParkPositionNP, NULL);
+            IDSetNumber(&ParkPositionNP, nullptr);
             return true;
         }
     }
@@ -800,7 +800,7 @@ bool INDI::Telescope::ISNewSwitch (const char * dev, const char * name, ISState 
             CoordSP.s = IPS_OK;
             IUUpdateSwitch(&CoordSP, states, names, n);
             //  Update client display
-            IDSetSwitch(&CoordSP, NULL);
+            IDSetSwitch(&CoordSP, nullptr);
             return true;
         }
 
@@ -818,7 +818,7 @@ bool INDI::Telescope::ISNewSwitch (const char * dev, const char * name, ISState 
             }
             else
                 SlewRateSP.s = IPS_OK;
-            IDSetSwitch(&SlewRateSP, NULL);
+            IDSetSwitch(&SlewRateSP, nullptr);
             return true;
         }
 
@@ -830,7 +830,7 @@ bool INDI::Telescope::ISNewSwitch (const char * dev, const char * name, ISState 
                 ParkSP.s = IPS_ALERT;
                 Abort();
                 DEBUG(INDI::Logger::DBG_SESSION, "Parking/Unparking aborted.");
-                IDSetSwitch(&ParkSP, NULL);
+                IDSetSwitch(&ParkSP, nullptr);
                 return true;
             }
 
@@ -845,7 +845,7 @@ bool INDI::Telescope::ISNewSwitch (const char * dev, const char * name, ISState 
                 ParkS[1].s = ISS_ON;
                 ParkSP.s = IPS_IDLE;
                 DEBUG(INDI::Logger::DBG_SESSION, "Telescope already unparked.");
-                IDSetSwitch(&ParkSP, NULL);
+                IDSetSwitch(&ParkSP, nullptr);
                 return true;
             }
 
@@ -855,7 +855,7 @@ bool INDI::Telescope::ISNewSwitch (const char * dev, const char * name, ISState 
                 ParkS[0].s = ISS_ON;
                 ParkSP.s = IPS_IDLE;
                 DEBUG(INDI::Logger::DBG_SESSION, "Telescope already parked.");
-                IDSetSwitch(&ParkSP, NULL);
+                IDSetSwitch(&ParkSP, nullptr);
                 return true;
             }
 
@@ -882,7 +882,7 @@ bool INDI::Telescope::ISNewSwitch (const char * dev, const char * name, ISState 
                 ParkSP.s = IPS_ALERT;
             }
 
-            IDSetSwitch(&ParkSP, NULL);
+            IDSetSwitch(&ParkSP, nullptr);
             return true;
         }
 
@@ -895,7 +895,7 @@ bool INDI::Telescope::ISNewSwitch (const char * dev, const char * name, ISState 
                 {
                     DEBUG(INDI::Logger::DBG_WARNING, "Please unpark the mount before issuing any motion/sync commands.");
                     MovementNSSP.s = IPS_IDLE;
-                    IDSetSwitch(&MovementNSSP, NULL);
+                    IDSetSwitch(&MovementNSSP, nullptr);
                     return false;
                 }
             }
@@ -935,7 +935,7 @@ bool INDI::Telescope::ISNewSwitch (const char * dev, const char * name, ISState 
                 }
             }
 
-            IDSetSwitch(&MovementNSSP, NULL);
+            IDSetSwitch(&MovementNSSP, nullptr);
 
             return true;
         }
@@ -949,7 +949,7 @@ bool INDI::Telescope::ISNewSwitch (const char * dev, const char * name, ISState 
                 {
                     DEBUG(INDI::Logger::DBG_WARNING, "Please unpark the mount before issuing any motion/sync commands.");
                     MovementWESP.s = IPS_IDLE;
-                    IDSetSwitch(&MovementWESP, NULL);
+                    IDSetSwitch(&MovementWESP, nullptr);
                     return false;
                 }
             }
@@ -989,7 +989,7 @@ bool INDI::Telescope::ISNewSwitch (const char * dev, const char * name, ISState 
                 }
             }
 
-            IDSetSwitch(&MovementWESP, NULL);
+            IDSetSwitch(&MovementWESP, nullptr);
 
             return true;
         }
@@ -1006,27 +1006,27 @@ bool INDI::Telescope::ISNewSwitch (const char * dev, const char * name, ISState 
                 {
                     IUResetSwitch(&ParkSP);
                     ParkSP.s = IPS_ALERT;
-                    IDSetSwitch(&ParkSP, NULL);
+                    IDSetSwitch(&ParkSP, nullptr);
 
                     DEBUG(INDI::Logger::DBG_SESSION, "Parking aborted.");
                 }
                 if (EqNP.s == IPS_BUSY)
                 {
                     EqNP.s = lastEqState = IPS_IDLE;
-                    IDSetNumber(&EqNP, NULL);
+                    IDSetNumber(&EqNP, nullptr);
                     DEBUG(INDI::Logger::DBG_SESSION, "Slew/Track aborted.");
                 }
                 if (MovementWESP.s == IPS_BUSY)
                 {
                     IUResetSwitch(&MovementWESP);
                     MovementWESP.s = IPS_IDLE;
-                    IDSetSwitch(&MovementWESP, NULL);
+                    IDSetSwitch(&MovementWESP, nullptr);
                 }
                 if (MovementNSSP.s == IPS_BUSY)
                 {
                     IUResetSwitch(&MovementNSSP);
                     MovementNSSP.s = IPS_IDLE;
-                    IDSetSwitch(&MovementNSSP, NULL);
+                    IDSetSwitch(&MovementNSSP, nullptr);
                 }
 
                 last_ns_motion = last_we_motion = -1;
@@ -1036,7 +1036,7 @@ bool INDI::Telescope::ISNewSwitch (const char * dev, const char * name, ISState 
             else
                 AbortSP.s = IPS_ALERT;
 
-            IDSetSwitch(&AbortSP, NULL);
+            IDSetSwitch(&AbortSP, nullptr);
 
             return true;
         }
@@ -1056,7 +1056,7 @@ bool INDI::Telescope::ISNewSwitch (const char * dev, const char * name, ISState 
             {
                 DEBUG(INDI::Logger::DBG_SESSION, "Can not change park position while slewing or already parked...");
                 ParkOptionSP.s = IPS_ALERT;
-                IDSetSwitch(&ParkOptionSP, NULL);
+                IDSetSwitch(&ParkOptionSP, nullptr);
                 return false;
             }
 
@@ -1078,7 +1078,7 @@ bool INDI::Telescope::ISNewSwitch (const char * dev, const char * name, ISState 
             }
 
             ParkOptionSP.s = rc ? IPS_OK : IPS_ALERT;
-            IDSetSwitch(&ParkOptionSP, NULL);
+            IDSetSwitch(&ParkOptionSP, nullptr);
 
             return true;
         }
@@ -1099,7 +1099,7 @@ bool INDI::Telescope::ISNewSwitch (const char * dev, const char * name, ISState 
             }
             IUUpdateSwitch(&DomeClosedLockTP, states, names, n);
             DomeClosedLockTP.s = IPS_OK;
-            IDSetSwitch(&DomeClosedLockTP, NULL);
+            IDSetSwitch(&DomeClosedLockTP, nullptr);
 
             triggerSnoop(ActiveDeviceT[1].text, "DOME_PARK");
             return true;
@@ -1110,7 +1110,7 @@ bool INDI::Telescope::ISNewSwitch (const char * dev, const char * name, ISState 
         {
             IUUpdateSwitch(&LockAxisSP, states, names, n);
             LockAxisSP.s = IPS_OK;
-            IDSetSwitch(&LockAxisSP, NULL);
+            IDSetSwitch(&LockAxisSP, nullptr);
             if (LockAxisS[AXIS_RA].s == ISS_ON)
                 DEBUG(INDI::Logger::DBG_SESSION, "Joystick motion is locked to West/East axis only.");
             else if (LockAxisS[AXIS_DE].s == ISS_ON)
@@ -1125,7 +1125,7 @@ bool INDI::Telescope::ISNewSwitch (const char * dev, const char * name, ISState 
             IUUpdateSwitch(&ScopeConfigsSP, states, names, n);
             bool rc = LoadScopeConfig();
             ScopeConfigsSP.s = (rc ? IPS_OK : IPS_ALERT);
-            IDSetSwitch(&ScopeConfigsSP, NULL);
+            IDSetSwitch(&ScopeConfigsSP, nullptr);
             return true;
         }
     }
@@ -1175,7 +1175,7 @@ void INDI::Telescope::TimerHit()
         {
             //  read was not good
             EqNP.s = lastEqState = IPS_ALERT;
-            IDSetNumber(&EqNP, NULL);
+            IDSetNumber(&EqNP, nullptr);
         }
 
         SetTimer(updatePeriodMS);
@@ -1240,13 +1240,13 @@ bool INDI::Telescope::processTimeInfo(const char * utc, const char * offset)
         IUSaveText(&TimeT[0], utc);
         IUSaveText(&TimeT[1], offset);
         TimeTP.s = IPS_OK;
-        IDSetText(&TimeTP, NULL);
+        IDSetText(&TimeTP, nullptr);
         return true;
     }
     else
     {
         TimeTP.s = IPS_ALERT;
-        IDSetText(&TimeTP, NULL);
+        IDSetText(&TimeTP, nullptr);
         return false;
     }
 }
@@ -1257,7 +1257,7 @@ bool INDI::Telescope::processLocationInfo(double latitude, double longitude, dou
     if (latitude == LocationN[LOCATION_LATITUDE].value && longitude == LocationN[LOCATION_LONGITUDE].value && elevation == LocationN[LOCATION_ELEVATION].value)
     {
         LocationNP.s = IPS_OK;
-        IDSetNumber(&LocationNP, NULL);
+        IDSetNumber(&LocationNP, nullptr);
     }
 
     if (updateLocation(latitude, longitude, elevation))
@@ -1267,7 +1267,7 @@ bool INDI::Telescope::processLocationInfo(double latitude, double longitude, dou
         LocationN[LOCATION_LONGITUDE].value = longitude;
         LocationN[LOCATION_ELEVATION].value = elevation;
         //  Update client display
-        IDSetNumber(&LocationNP, NULL);
+        IDSetNumber(&LocationNP, nullptr);
 
         return true;
     }
@@ -1275,7 +1275,7 @@ bool INDI::Telescope::processLocationInfo(double latitude, double longitude, dou
     {
         LocationNP.s = IPS_ALERT;
         //  Update client display
-        IDSetNumber(&LocationNP, NULL);
+        IDSetNumber(&LocationNP, nullptr);
 
         return false;
     }
@@ -1395,7 +1395,7 @@ void INDI::Telescope::SetParked(bool isparked)
         DEBUG(INDI::Logger::DBG_SESSION, "Mount is unparked.");
     }
 
-    IDSetSwitch(&ParkSP, NULL);
+    IDSetSwitch(&ParkSP, nullptr);
 
     if (parkDataType != PARK_NONE)
         WriteParkData();
@@ -1421,7 +1421,7 @@ bool INDI::Telescope::InitPark()
 
     ParkPositionN[AXIS_RA].value = Axis1ParkPosition;
     ParkPositionN[AXIS_DE].value = Axis2ParkPosition;
-    IDSetNumber(&ParkPositionNP, NULL);
+    IDSetNumber(&ParkPositionNP, nullptr);
 
     return true;
 }
@@ -1438,11 +1438,11 @@ char * INDI::Telescope::LoadParkData()
     bool devicefound = false;
 
     ParkDeviceName = getDeviceName();
-    ParkstatusXml = NULL;
-    ParkdeviceXml = NULL;
-    ParkpositionXml = NULL;
-    ParkpositionAxis1Xml = NULL;
-    ParkpositionAxis2Xml = NULL;
+    ParkstatusXml = nullptr;
+    ParkdeviceXml = nullptr;
+    ParkpositionXml = nullptr;
+    ParkpositionAxis1Xml = nullptr;
+    ParkpositionAxis2Xml = nullptr;
 
     if (wordexp(ParkDataFileName.c_str(), &wexp, 0))
     {
@@ -1499,7 +1499,7 @@ char * INDI::Telescope::LoadParkData()
     ParkpositionAxis2Xml = findXMLEle(ParkpositionXml, "axis2position");
     IsParked = false;
 
-    if (ParkstatusXml == NULL || ParkpositionAxis1Xml == NULL || ParkpositionAxis2Xml == NULL)
+    if (ParkstatusXml == nullptr || ParkpositionAxis1Xml == nullptr || ParkpositionAxis2Xml == nullptr)
     {
         return (char *)("Park data invalid or missing.");
     }
@@ -1519,7 +1519,7 @@ char * INDI::Telescope::LoadParkData()
         return (char *)("Unable to parse Park Position Axis 2.");
     }
 
-    return NULL;
+    return nullptr;
 }
 
 bool INDI::Telescope::WriteParkData()
@@ -1546,7 +1546,7 @@ bool INDI::Telescope::WriteParkData()
     }
 
     if (!ParkdataXmlRoot)
-        ParkdataXmlRoot = addXMLEle(NULL, "parkdata");
+        ParkdataXmlRoot = addXMLEle(nullptr, "parkdata");
 
     if (!ParkdeviceXml)
     {
@@ -1597,7 +1597,7 @@ void INDI::Telescope::SetAxis1Park(double value)
 {
     Axis1ParkPosition = value;
     ParkPositionN[AXIS_RA].value = value;
-    IDSetNumber(&ParkPositionNP, NULL);
+    IDSetNumber(&ParkPositionNP, nullptr);
 }
 
 void INDI::Telescope::SetAxis1ParkDefault(double value)
@@ -1609,7 +1609,7 @@ void INDI::Telescope::SetAxis2Park(double value)
 {
     Axis2ParkPosition = value;
     ParkPositionN[AXIS_DE].value = value;
-    IDSetNumber(&ParkPositionNP, NULL);
+    IDSetNumber(&ParkPositionNP, nullptr);
 }
 
 void INDI::Telescope::SetAxis2ParkDefault(double value)
@@ -1695,12 +1695,12 @@ void INDI::Telescope::processNSWE(double mag, double angle)
             {
                 IUResetSwitch(&MovementNSSP);
                 MovementNSSP.s = IPS_IDLE;
-                IDSetSwitch(&MovementNSSP, NULL);
+                IDSetSwitch(&MovementNSSP, nullptr);
             }
             else
             {
                 MovementNSSP.s = IPS_ALERT;
-                IDSetSwitch(&MovementNSSP, NULL);
+                IDSetSwitch(&MovementNSSP, nullptr);
             }
         }
 
@@ -1710,12 +1710,12 @@ void INDI::Telescope::processNSWE(double mag, double angle)
             {
                 IUResetSwitch(&MovementWESP);
                 MovementWESP.s = IPS_IDLE;
-                IDSetSwitch(&MovementWESP, NULL);
+                IDSetSwitch(&MovementWESP, nullptr);
             }
             else
             {
                 MovementWESP.s = IPS_ALERT;
-                IDSetSwitch(&MovementWESP, NULL);
+                IDSetSwitch(&MovementWESP, nullptr);
             }
         }
     }
@@ -1756,7 +1756,7 @@ void INDI::Telescope::processNSWE(double mag, double angle)
             MovementNSSP.s = IPS_BUSY;
             MovementNSSP.sp[DIRECTION_NORTH].s = ISS_ON;
             MovementNSSP.sp[DIRECTION_SOUTH].s = ISS_OFF;
-            IDSetSwitch(&MovementNSSP, NULL);
+            IDSetSwitch(&MovementNSSP, nullptr);
         }
         // South
         if (angle > 180 && angle < 360)
@@ -1772,7 +1772,7 @@ void INDI::Telescope::processNSWE(double mag, double angle)
             MovementNSSP.s = IPS_BUSY;
             MovementNSSP.sp[DIRECTION_NORTH].s = ISS_OFF;
             MovementNSSP.sp[DIRECTION_SOUTH].s = ISS_ON;
-            IDSetSwitch(&MovementNSSP, NULL);
+            IDSetSwitch(&MovementNSSP, nullptr);
         }
         // East
         if (angle < 90 || angle > 270)
@@ -1784,7 +1784,7 @@ void INDI::Telescope::processNSWE(double mag, double angle)
             MovementWESP.s = IPS_BUSY;
             MovementWESP.sp[DIRECTION_WEST].s = ISS_OFF;
             MovementWESP.sp[DIRECTION_EAST].s = ISS_ON;
-            IDSetSwitch(&MovementWESP, NULL);
+            IDSetSwitch(&MovementWESP, nullptr);
         }
 
         // West
@@ -1798,7 +1798,7 @@ void INDI::Telescope::processNSWE(double mag, double angle)
             MovementWESP.s = IPS_BUSY;
             MovementWESP.sp[DIRECTION_WEST].s = ISS_ON;
             MovementWESP.sp[DIRECTION_EAST].s = ISS_OFF;
-            IDSetSwitch(&MovementWESP, NULL);
+            IDSetSwitch(&MovementWESP, nullptr);
         }
     }
 }
@@ -1832,7 +1832,7 @@ void INDI::Telescope::processSlewPresets(double mag, double angle)
         SetSlewRate(currentIndex - 1);
     }
 
-    IDSetSwitch(&SlewRateSP, NULL);
+    IDSetSwitch(&SlewRateSP, nullptr);
 }
 
 void INDI::Telescope::joystickHelper(const char * joystick_n, double mag, double angle, void * context)
@@ -1854,7 +1854,7 @@ void INDI::Telescope::setPierSide(TelescopePierSide side)
         PierSideS[PIER_WEST].s = (side == PIER_WEST) ? ISS_ON : ISS_OFF;
         PierSideS[PIER_EAST].s = (side == PIER_EAST) ? ISS_ON : ISS_OFF;
         PierSideSP.s = IPS_OK;
-        IDSetSwitch(&PierSideSP, NULL);
+        IDSetSwitch(&PierSideSP, nullptr);
 
         lastPierSide = currentPierSide;
     }
@@ -1991,9 +1991,9 @@ bool INDI::Telescope::LoadScopeConfig()
         IUSaveText(IUFindText(&ScopeConfigNameTP, "SCOPE_CONFIG_NAME"), ConfigName.c_str());
     }
     ScopeParametersNP.s = IPS_OK;
-    IDSetNumber(&ScopeParametersNP, NULL);
+    IDSetNumber(&ScopeParametersNP, nullptr);
     ScopeConfigNameTP.s = IPS_OK;
-    IDSetText(&ScopeConfigNameTP, NULL);
+    IDSetText(&ScopeConfigNameTP, nullptr);
     delXMLEle(RootXmlNode);
     return true;
 }
@@ -2052,7 +2052,7 @@ bool INDI::Telescope::UpdateScopeConfig()
 
     if (!RootXmlNode || std::string(tagXMLEle(RootXmlNode)) != ScopeConfigRootXmlNode)
     {
-        RootXmlNode = addXMLEle(NULL, ScopeConfigRootXmlNode.c_str());
+        RootXmlNode = addXMLEle(nullptr, ScopeConfigRootXmlNode.c_str());
     }
     CurrentXmlNode = nextXMLEle(RootXmlNode, 1);
     // Find the current telescope in the config file

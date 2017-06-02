@@ -46,7 +46,7 @@ SER_Recorder::SER_Recorder()
     else
         serh.LittleEndian = SER_BIG_ENDIAN;
     isRecordingActive = false;
-    f = NULL;
+    f = nullptr;
 }
 
 SER_Recorder::~SER_Recorder()
@@ -250,7 +250,7 @@ bool SER_Recorder::open(const char * filename, char * errmsg)
 {
     if (isRecordingActive) return false;
     serh.FrameCount = 0;
-    if ((f = fopen(filename, "w")) == NULL)
+    if ((f = fopen(filename, "w")) == nullptr)
     {
         snprintf(errmsg, ERRMSGSIZ, "recorder open error %d, %s\n", errno, strerror (errno));
         return false;
@@ -280,7 +280,7 @@ bool SER_Recorder::close()
         fseek(f, 0L, SEEK_SET);
         write_header(&serh);
         fclose(f);
-	f = NULL;
+	f = nullptr;
     }
 
     isRecordingActive = false;
@@ -390,7 +390,7 @@ uint64_t SER_Recorder::getUTCTimeStamp()
 
     // Get starting time
     timeval currentTime;
-    gettimeofday(&currentTime, NULL);
+    gettimeofday(&currentTime, nullptr);
 
     struct tm * tp;
     time_t    t = (time_t) currentTime.tv_sec;
@@ -410,7 +410,7 @@ uint64_t SER_Recorder::getLocalTimeStamp()
 
     // Get starting time
     timeval currentTime;
-    gettimeofday(&currentTime, NULL);
+    gettimeofday(&currentTime, nullptr);
 
     struct tm * tp;
     time_t    t = (time_t) currentTime.tv_sec;

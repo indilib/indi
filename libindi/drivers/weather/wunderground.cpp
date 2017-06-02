@@ -97,7 +97,7 @@ const char * WunderGround::getDefaultName()
 
 bool WunderGround::Connect()
 {
-    if (wunderAPIKeyT[0].text == NULL)
+    if (wunderAPIKeyT[0].text == nullptr)
     {
         DEBUG(INDI::Logger::DBG_ERROR, "Weather Underground API Key is not available. Please register your API key at www.wunderground.com and save it under Options.");
         return false;
@@ -115,7 +115,7 @@ bool WunderGround::initProperties()
 {
     INDI::Weather::initProperties();
 
-    IUFillText(&wunderAPIKeyT[0], "API_KEY", "API Key", NULL);
+    IUFillText(&wunderAPIKeyT[0], "API_KEY", "API Key", nullptr);
     IUFillTextVector(&wunderAPIKeyTP, wunderAPIKeyT, 1, getDeviceName(), "WUNDER_API_KEY", "Wunder", OPTIONS_TAB, IP_RW, 60, IPS_IDLE);
 
     addParameter("WEATHER_FORECAST", "Weather", 0, 0, 0, 1);
@@ -152,7 +152,7 @@ bool WunderGround::ISNewText (const char * dev, const char * name, char * texts[
         {
             IUUpdateText(&wunderAPIKeyTP, texts, names, n);
             wunderAPIKeyTP.s = IPS_OK;
-            IDSetText(&wunderAPIKeyTP, NULL);
+            IDSetText(&wunderAPIKeyTP, nullptr);
             return true;
         }
 

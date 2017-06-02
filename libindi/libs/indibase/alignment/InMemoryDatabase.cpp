@@ -50,26 +50,26 @@ bool InMemoryDatabase::LoadDatabase(const char * DeviceName)
 {
     char DatabaseFileName[MAXRBUF];
     char Errmsg[MAXRBUF];
-    XMLEle * FileRoot = NULL;
-    XMLEle * EntriesRoot = NULL;
-    XMLEle * EntryRoot = NULL;
-    XMLEle * Element = NULL;
-    XMLAtt * Attribute = NULL;
+    XMLEle * FileRoot = nullptr;
+    XMLEle * EntriesRoot = nullptr;
+    XMLEle * EntryRoot = nullptr;
+    XMLEle * Element = nullptr;
+    XMLAtt * Attribute = nullptr;
     LilXML * Parser = newLilXML();
 
-    FILE * fp = NULL;
+    FILE * fp = nullptr;
 
     snprintf(DatabaseFileName, MAXRBUF, "%s/.indi/%s_alignment_database.xml", getenv("HOME"), DeviceName);
 
 
     fp = fopen(DatabaseFileName, "r");
-    if (fp == NULL)
+    if (fp == nullptr)
     {
         snprintf(Errmsg, MAXRBUF, "Unable to read alignment database file. Error loading file %s: %s\n", DatabaseFileName, strerror(errno));
         return false;
     }
 
-    if (NULL == (FileRoot = readXMLFile(fp, Parser, Errmsg)))
+    if (nullptr == (FileRoot = readXMLFile(fp, Parser, Errmsg)))
     {
         snprintf(Errmsg, MAXRBUF, "Unable to parse database XML: %s", Errmsg);
         return false;
@@ -80,21 +80,21 @@ bool InMemoryDatabase::LoadDatabase(const char * DeviceName)
         return false;
     }
 
-    if (NULL == (EntriesRoot = findXMLEle(FileRoot, "DatabaseEntries")))
+    if (nullptr == (EntriesRoot = findXMLEle(FileRoot, "DatabaseEntries")))
     {
         snprintf(Errmsg, MAXRBUF, "Cannot find DatabaseEntries element");
         return false;
     }
 
-    if (NULL != (Element = findXMLEle(FileRoot, "DatabaseReferenceLocation")))
+    if (nullptr != (Element = findXMLEle(FileRoot, "DatabaseReferenceLocation")))
     {
-        if (NULL == (Attribute = findXMLAtt(Element, "latitude")))
+        if (nullptr == (Attribute = findXMLAtt(Element, "latitude")))
         {
             snprintf(Errmsg, MAXRBUF, "Cannot find latitude attribute");
             return false;
         }
         sscanf(valuXMLAtt(Attribute), "%lf", &DatabaseReferencePosition.lat);
-        if (NULL == (Attribute = findXMLAtt(Element, "longitude")))
+        if (nullptr == (Attribute = findXMLAtt(Element, "longitude")))
         {
             snprintf(Errmsg, MAXRBUF, "Cannot find latitude attribute");
             return false;
@@ -106,14 +106,14 @@ bool InMemoryDatabase::LoadDatabase(const char * DeviceName)
 
     MySyncPoints.clear();
 
-    for (EntryRoot = nextXMLEle (EntriesRoot, 1); EntryRoot != NULL; EntryRoot = nextXMLEle (EntriesRoot, 0))
+    for (EntryRoot = nextXMLEle (EntriesRoot, 1); EntryRoot != nullptr; EntryRoot = nextXMLEle (EntriesRoot, 0))
     {
         AlignmentDatabaseEntry CurrentValues;
         if (strcmp(tagXMLEle(EntryRoot), "DatabaseEntry") != 0)
         {
             return false;
         }
-        for (Element = nextXMLEle (EntryRoot, 1); Element != NULL; Element = nextXMLEle (EntryRoot, 0))
+        for (Element = nextXMLEle (EntryRoot, 1); Element != nullptr; Element = nextXMLEle (EntryRoot, 0))
         {
             if (strcmp(tagXMLEle(Element), "ObservationJulianDate") == 0)
             {
@@ -149,7 +149,7 @@ bool InMemoryDatabase::LoadDatabase(const char * DeviceName)
     delXMLEle(FileRoot);
     delLilXML(Parser);
 
-    if (NULL != LoadDatabaseCallback)
+    if (nullptr != LoadDatabaseCallback)
         (*LoadDatabaseCallback)(LoadDatabaseCallbackThisPointer);
 
     return true;
@@ -177,7 +177,7 @@ bool InMemoryDatabase::SaveDatabase(const char * DeviceName)
     }
 
     fp = fopen(DatabaseFileName, "w");
-    if (fp == NULL)
+    if (fp == nullptr)
     {
         snprintf(Errmsg, MAXRBUF, "Unable to open database file. Error opening file %s: %s\n", DatabaseFileName, strerror(errno));
         return false;

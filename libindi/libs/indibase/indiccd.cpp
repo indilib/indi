@@ -52,7 +52,7 @@ const char * WCS_TAB             = "WCS";
 static int _mkdir(const char * dir, mode_t mode)
 {
     char tmp[PATH_MAX];
-    char * p = NULL;
+    char * p = nullptr;
     size_t len;
 
     snprintf(tmp, sizeof(tmp), "%s", dir);
@@ -87,7 +87,7 @@ CCDChip::CCDChip()
     BinX = BinY = 1;
     NAxis = 2;
 
-    BinFrame = NULL;
+    BinFrame = nullptr;
 
     strncpy(imageExtention, "fits", MAXINDIBLOBFMT);
 
@@ -99,7 +99,7 @@ CCDChip::~CCDChip()
 {
     free(RawFrame);
     RawFrameSize = 0;
-    RawFrame = NULL;
+    RawFrame = nullptr;
     free (BinFrame);
 }
 
@@ -116,7 +116,7 @@ void CCDChip::setResolution(int x, int y)
     ImagePixelSizeN[0].value = x;
     ImagePixelSizeN[1].value = y;
 
-    IDSetNumber(&ImagePixelSizeNP, NULL);
+    IDSetNumber(&ImagePixelSizeNP, nullptr);
 
     ImageFrameN[FRAME_X].min = 0;
     ImageFrameN[FRAME_X].max = x - 1;
@@ -142,7 +142,7 @@ void CCDChip::setFrame(int subx, int suby, int subw, int subh)
     ImageFrameN[FRAME_W].value = SubW;
     ImageFrameN[FRAME_H].value = SubH;
 
-    IDSetNumber(&ImageFrameNP, NULL);
+    IDSetNumber(&ImageFrameNP, nullptr);
 }
 
 void CCDChip::setBin(int hor, int ver)
@@ -153,13 +153,13 @@ void CCDChip::setBin(int hor, int ver)
     ImageBinN[BIN_W].value = BinX;
     ImageBinN[BIN_H].value = BinY;
 
-    IDSetNumber(&ImageBinNP, NULL);
+    IDSetNumber(&ImageBinNP, nullptr);
 }
 
 
 void CCDChip::setMinMaxStep(const char * property, const char * element, double min, double max, double step, bool sendToClient)
 {
-    INumberVectorProperty * nvp = NULL;
+    INumberVectorProperty * nvp = nullptr;
 
     if (!strcmp(property, ImageExposureNP.name))
         nvp = &ImageExposureNP;
@@ -194,7 +194,7 @@ void CCDChip::setPixelSize(float x, float y)
     ImagePixelSizeN[3].value = x;
     ImagePixelSizeN[4].value = y;
 
-    IDSetNumber(&ImagePixelSizeNP, NULL);
+    IDSetNumber(&ImagePixelSizeNP, nullptr);
 
 }
 
@@ -204,7 +204,7 @@ void CCDChip::setBPP(int bbp)
 
     ImagePixelSizeN[5].value = BPP;
 
-    IDSetNumber(&ImagePixelSizeNP, NULL);
+    IDSetNumber(&ImagePixelSizeNP, nullptr);
 }
 
 void CCDChip::setFrameBufferSize(int nbuf, bool allocMem)
@@ -227,13 +227,13 @@ void CCDChip::setExposureLeft(double duration)
 {
     ImageExposureN[0].value = duration;
 
-    IDSetNumber(&ImageExposureNP, NULL);
+    IDSetNumber(&ImageExposureNP, nullptr);
 }
 
 void CCDChip::setExposureDuration(double duration)
 {
     exposureDuration = duration;
-    gettimeofday(&startExposureTime, NULL);
+    gettimeofday(&startExposureTime, nullptr);
 }
 
 const char * CCDChip::getFrameTypeName(CCD_FRAME fType)
@@ -264,7 +264,7 @@ void CCDChip::setInterlaced(bool intr)
 void CCDChip::setExposureFailed()
 {
     ImageExposureNP.s = IPS_ALERT;
-    IDSetNumber(&ImageExposureNP, NULL);
+    IDSetNumber(&ImageExposureNP, nullptr);
 }
 
 int CCDChip::getNAxis() const
@@ -288,7 +288,7 @@ void CCDChip::binFrame()
         return;
 
     // Jasem: Keep full frame shadow in memory to enhance performance and just swap frame pointers after operation is complete
-    if (BinFrame == NULL)
+    if (BinFrame == nullptr)
         BinFrame = (uint8_t *) malloc(RawFrameSize);
 
     memset(BinFrame, 0, RawFrameSize);
@@ -387,7 +387,7 @@ INDI::CCD::CCD()
     MPSAS = -1000;
     primaryAperture = primaryFocalLength = guiderAperture = guiderFocalLength - 1;
 
-    streamer = NULL;
+    streamer = nullptr;
 }
 
 INDI::CCD::~CCD()
@@ -405,7 +405,7 @@ void INDI::CCD::SetCCDCapability(uint32_t cap)
         setDriverInterface(getDriverInterface() & ~GUIDER_INTERFACE);
 
 #ifdef __linux__
-    if (HasStreaming() && streamer == NULL)
+    if (HasStreaming() && streamer == nullptr)
     {
         delete (streamer);
         streamer = new StreamRecorder(this);
@@ -476,7 +476,7 @@ bool INDI::CCD::initProperties()
     // Bayer
     IUFillText(&BayerT[0], "CFA_OFFSET_X", "X Offset", "0");
     IUFillText(&BayerT[1], "CFA_OFFSET_Y", "Y Offset", "0");
-    IUFillText(&BayerT[2], "CFA_TYPE", "Filter", NULL);
+    IUFillText(&BayerT[2], "CFA_TYPE", "Filter", nullptr);
     IUFillTextVector(&BayerTP, BayerT, 3, getDeviceName(), "CCD_CFA", "Bayer Info", IMAGE_INFO_TAB, IP_RW, 60, IPS_IDLE);
 
     // Reset Frame Settings
@@ -733,7 +733,7 @@ bool INDI::CCD::updateProperties()
         defineSwitch(&WorldCoordSP);
         defineSwitch(&UploadSP);
 
-        if (UploadSettingsT[UPLOAD_DIR].text == NULL)
+        if (UploadSettingsT[UPLOAD_DIR].text == nullptr)
             IUSaveText(&UploadSettingsT[UPLOAD_DIR], getenv("HOME"));
         defineText(&UploadSettingsTP);
     }
@@ -813,7 +813,7 @@ bool INDI::CCD::updateProperties()
 
 bool INDI::CCD::ISSnoopDevice (XMLEle * root)
 {
-    XMLEle * ep = NULL;
+    XMLEle * ep = nullptr;
     const char * propName = findXMLAttValu(root, "name");
 
     if(IUSnoopNumber(root, &EqNP) == 0)
@@ -830,7 +830,7 @@ bool INDI::CCD::ISSnoopDevice (XMLEle * root)
     }
     else if (!strcmp(propName, "TELESCOPE_INFO"))
     {
-        for (ep = nextXMLEle(root, 1) ; ep != NULL ; ep = nextXMLEle(root, 0))
+        for (ep = nextXMLEle(root, 1) ; ep != nullptr ; ep = nextXMLEle(root, 0))
         {
             const char * name = findXMLAttValu(ep, "name");
 
@@ -856,18 +856,18 @@ bool INDI::CCD::ISSnoopDevice (XMLEle * root)
     {
         FilterNames.clear();
 
-        for (ep = nextXMLEle(root, 1) ; ep != NULL ; ep = nextXMLEle(root, 0))
+        for (ep = nextXMLEle(root, 1) ; ep != nullptr ; ep = nextXMLEle(root, 0))
             FilterNames.push_back(pcdataXMLEle(ep));
     }
     else if (!strcmp(propName, "FILTER_SLOT"))
     {
         CurrentFilterSlot = -1;
-        for (ep = nextXMLEle(root, 1) ; ep != NULL ; ep = nextXMLEle(root, 0))
+        for (ep = nextXMLEle(root, 1) ; ep != nullptr ; ep = nextXMLEle(root, 0))
             CurrentFilterSlot = atoi(pcdataXMLEle(ep));
     }
     else if (!strcmp(propName, "SKY_QUALITY"))
     {
-        for (ep = nextXMLEle(root, 1) ; ep != NULL ; ep = nextXMLEle(root, 0))
+        for (ep = nextXMLEle(root, 1) ; ep != nullptr ; ep = nextXMLEle(root, 0))
         {
             const char * name = findXMLAttValu(ep, "name");
 
@@ -893,7 +893,7 @@ bool INDI::CCD::ISNewText (const char * dev, const char * name, char * texts[], 
         {
             ActiveDeviceTP.s = IPS_OK;
             IUUpdateText(&ActiveDeviceTP, texts, names, n);
-            IDSetText(&ActiveDeviceTP, NULL);
+            IDSetText(&ActiveDeviceTP, nullptr);
 
             // Update the property name!
             strncpy(EqNP.device, ActiveDeviceT[0].text, MAXINDIDEVICE);
@@ -914,7 +914,7 @@ bool INDI::CCD::ISNewText (const char * dev, const char * name, char * texts[], 
         {
             IUUpdateText(&BayerTP, texts, names, n);
             BayerTP.s = IPS_OK;
-            IDSetText(&BayerTP, NULL);
+            IDSetText(&BayerTP, nullptr);
             return true;
         }
 
@@ -922,7 +922,7 @@ bool INDI::CCD::ISNewText (const char * dev, const char * name, char * texts[], 
         {
             IUUpdateText(&FITSHeaderTP, texts, names, n);
             FITSHeaderTP.s = IPS_OK;
-            IDSetText(&FITSHeaderTP, NULL);
+            IDSetText(&FITSHeaderTP, nullptr);
             return true;
         }
 
@@ -930,7 +930,7 @@ bool INDI::CCD::ISNewText (const char * dev, const char * name, char * texts[], 
         {
             IUUpdateText(&UploadSettingsTP, texts, names, n);
             UploadSettingsTP.s = IPS_OK;
-            IDSetText(&UploadSettingsTP, NULL);
+            IDSetText(&UploadSettingsTP, nullptr);
             return true;
         }
     }
@@ -956,7 +956,7 @@ bool INDI::CCD::ISNewNumber (const char * dev, const char * name, double values[
             {
                 DEBUGF(INDI::Logger::DBG_ERROR, "Requested exposure value (%g) seconds out of bounds [%g,%g].", values[0], PrimaryCCD.ImageExposureN[0].min, PrimaryCCD.ImageExposureN[0].max);
                 PrimaryCCD.ImageExposureNP.s = IPS_ALERT;
-                IDSetNumber(&PrimaryCCD.ImageExposureNP, NULL);
+                IDSetNumber(&PrimaryCCD.ImageExposureNP, nullptr);
                 return false;
             }
 
@@ -975,7 +975,7 @@ bool INDI::CCD::ISNewNumber (const char * dev, const char * name, double values[
                 PrimaryCCD.ImageExposureNP.s = IPS_BUSY;
             else
                 PrimaryCCD.ImageExposureNP.s = IPS_ALERT;
-            IDSetNumber(&PrimaryCCD.ImageExposureNP, NULL);
+            IDSetNumber(&PrimaryCCD.ImageExposureNP, nullptr);
             return true;
         }
 
@@ -985,7 +985,7 @@ bool INDI::CCD::ISNewNumber (const char * dev, const char * name, double values[
             {
                 DEBUGF(INDI::Logger::DBG_ERROR, "Requested guide exposure value (%g) seconds out of bounds [%g,%g].", values[0], GuideCCD.ImageExposureN[0].min, GuideCCD.ImageExposureN[0].max);
                 GuideCCD.ImageExposureNP.s = IPS_ALERT;
-                IDSetNumber(&GuideCCD.ImageExposureNP, NULL);
+                IDSetNumber(&GuideCCD.ImageExposureNP, nullptr);
                 return false;
             }
 
@@ -999,7 +999,7 @@ bool INDI::CCD::ISNewNumber (const char * dev, const char * name, double values[
                 GuideCCD.ImageExposureNP.s = IPS_BUSY;
             else
                 GuideCCD.ImageExposureNP.s = IPS_ALERT;
-            IDSetNumber(&GuideCCD.ImageExposureNP, NULL);
+            IDSetNumber(&GuideCCD.ImageExposureNP, nullptr);
             return true;
         }
 
@@ -1007,10 +1007,10 @@ bool INDI::CCD::ISNewNumber (const char * dev, const char * name, double values[
         {
             //  We are being asked to set camera binning
             INumber * np = IUFindNumber(&PrimaryCCD.ImageBinNP, names[0]);
-            if (np == NULL)
+            if (np == nullptr)
             {
                 PrimaryCCD.ImageBinNP.s = IPS_ALERT;
-                IDSetNumber (&PrimaryCCD.ImageBinNP, NULL);
+                IDSetNumber (&PrimaryCCD.ImageBinNP, nullptr);
                 return false;
             }
 
@@ -1035,7 +1035,7 @@ bool INDI::CCD::ISNewNumber (const char * dev, const char * name, double values[
             else
                 PrimaryCCD.ImageBinNP.s = IPS_ALERT;
 
-            IDSetNumber (&PrimaryCCD.ImageBinNP, NULL);
+            IDSetNumber (&PrimaryCCD.ImageBinNP, nullptr);
 
             return true;
 
@@ -1045,10 +1045,10 @@ bool INDI::CCD::ISNewNumber (const char * dev, const char * name, double values[
         {
             //  We are being asked to set camera binning
             INumber * np = IUFindNumber(&GuideCCD.ImageBinNP, names[0]);
-            if (np == NULL)
+            if (np == nullptr)
             {
                 GuideCCD.ImageBinNP.s = IPS_ALERT;
-                IDSetNumber (&GuideCCD.ImageBinNP, NULL);
+                IDSetNumber (&GuideCCD.ImageBinNP, nullptr);
                 return false;
             }
 
@@ -1073,7 +1073,7 @@ bool INDI::CCD::ISNewNumber (const char * dev, const char * name, double values[
             else
                 GuideCCD.ImageBinNP.s = IPS_ALERT;
 
-            IDSetNumber (&GuideCCD.ImageBinNP, NULL);
+            IDSetNumber (&GuideCCD.ImageBinNP, nullptr);
 
             return true;
 
@@ -1094,7 +1094,7 @@ bool INDI::CCD::ISNewNumber (const char * dev, const char * name, double values[
                                PrimaryCCD.ImageFrameN[3].value) == false)
                 PrimaryCCD.ImageFrameNP.s = IPS_ALERT;
 
-            IDSetNumber(&PrimaryCCD.ImageFrameNP, NULL);
+            IDSetNumber(&PrimaryCCD.ImageFrameNP, nullptr);
             return true;
         }
 
@@ -1113,7 +1113,7 @@ bool INDI::CCD::ISNewNumber (const char * dev, const char * name, double values[
                                   GuideCCD.ImageFrameN[3].value) == false)
                 GuideCCD.ImageFrameNP.s = IPS_ALERT;
 
-            IDSetNumber(&GuideCCD.ImageFrameNP, NULL);
+            IDSetNumber(&GuideCCD.ImageFrameNP, nullptr);
 
             return true;
         }
@@ -1122,7 +1122,7 @@ bool INDI::CCD::ISNewNumber (const char * dev, const char * name, double values[
         {
             PrimaryCCD.RapidGuideDataNP.s = IPS_OK;
             IUUpdateNumber(&PrimaryCCD.RapidGuideDataNP, values, names, n);
-            IDSetNumber(&PrimaryCCD.RapidGuideDataNP, NULL);
+            IDSetNumber(&PrimaryCCD.RapidGuideDataNP, nullptr);
             return true;
         }
 
@@ -1130,7 +1130,7 @@ bool INDI::CCD::ISNewNumber (const char * dev, const char * name, double values[
         {
             GuideCCD.RapidGuideDataNP.s = IPS_OK;
             IUUpdateNumber(&GuideCCD.RapidGuideDataNP, values, names, n);
-            IDSetNumber(&GuideCCD.RapidGuideDataNP, NULL);
+            IDSetNumber(&GuideCCD.RapidGuideDataNP, nullptr);
             return true;
         }
 
@@ -1149,7 +1149,7 @@ bool INDI::CCD::ISNewNumber (const char * dev, const char * name, double values[
                 TemperatureNP.s = IPS_ALERT;
                 DEBUGF(INDI::Logger::DBG_ERROR, "Error: Bad temperature value! Range is [%.1f, %.1f] [C].",
                        TemperatureN[0].min, TemperatureN[0].max);
-                IDSetNumber(&TemperatureNP, NULL);
+                IDSetNumber(&TemperatureNP, nullptr);
                 return false;
 
             }
@@ -1163,7 +1163,7 @@ bool INDI::CCD::ISNewNumber (const char * dev, const char * name, double values[
             else
                 TemperatureNP.s = IPS_ALERT;
 
-            IDSetNumber(&TemperatureNP, NULL);
+            IDSetNumber(&TemperatureNP, nullptr);
             return true;
         }
 
@@ -1173,7 +1173,7 @@ bool INDI::CCD::ISNewNumber (const char * dev, const char * name, double values[
             IUUpdateNumber(&PrimaryCCD.ImagePixelSizeNP, values, names, n);
             PrimaryCCD.ImagePixelSizeNP.s = IPS_OK;
             SetCCDParams(PrimaryCCD.ImagePixelSizeNP.np[CCDChip::CCD_MAX_X].value, PrimaryCCD.ImagePixelSizeNP.np[CCDChip::CCD_MAX_Y].value, PrimaryCCD.getBPP(), PrimaryCCD.ImagePixelSizeNP.np[CCDChip::CCD_PIXEL_SIZE_X].value, PrimaryCCD.ImagePixelSizeNP.np[CCDChip::CCD_PIXEL_SIZE_Y].value);
-            IDSetNumber(&PrimaryCCD.ImagePixelSizeNP, NULL);
+            IDSetNumber(&PrimaryCCD.ImagePixelSizeNP, nullptr);
             return true;
         }
 
@@ -1183,7 +1183,7 @@ bool INDI::CCD::ISNewNumber (const char * dev, const char * name, double values[
             IUUpdateNumber(&GuideCCD.ImagePixelSizeNP, values, names, n);
             GuideCCD.ImagePixelSizeNP.s = IPS_OK;
             SetGuiderParams(GuideCCD.ImagePixelSizeNP.np[CCDChip::CCD_MAX_X].value, GuideCCD.ImagePixelSizeNP.np[CCDChip::CCD_MAX_Y].value, GuideCCD.getBPP(), GuideCCD.ImagePixelSizeNP.np[CCDChip::CCD_PIXEL_SIZE_X].value, GuideCCD.ImagePixelSizeNP.np[CCDChip::CCD_PIXEL_SIZE_Y].value);
-            IDSetNumber(&GuideCCD.ImagePixelSizeNP, NULL);
+            IDSetNumber(&GuideCCD.ImagePixelSizeNP, nullptr);
             return true;
         }
 
@@ -1192,7 +1192,7 @@ bool INDI::CCD::ISNewNumber (const char * dev, const char * name, double values[
         {
             IUUpdateNumber(&CCDRotationNP, values, names, n);
             CCDRotationNP.s = IPS_OK;
-            IDSetNumber(&CCDRotationNP, NULL);
+            IDSetNumber(&CCDRotationNP, nullptr);
             ValidCCDRotation = true;
 
             DEBUGF(INDI::Logger::DBG_SESSION, "CCD FOV rotation updated to %g degrees.", CCDRotationN[0].value);
@@ -1219,7 +1219,7 @@ bool INDI::CCD::ISNewSwitch (const char * dev, const char * name, ISState * stat
             int prevMode = IUFindOnSwitchIndex(&UploadSP);
             IUUpdateSwitch(&UploadSP, states, names, n);
             UploadSP.s = IPS_OK;
-            IDSetSwitch(&UploadSP, NULL);
+            IDSetSwitch(&UploadSP, nullptr);
 
             if (UploadS[0].s == ISS_ON)
             {
@@ -1244,7 +1244,7 @@ bool INDI::CCD::ISNewSwitch (const char * dev, const char * name, ISState * stat
         {
             IUUpdateSwitch(&TelescopeTypeSP, states, names, n);
             TelescopeTypeSP.s = IPS_OK;
-            IDSetSwitch(&TelescopeTypeSP, NULL);
+            IDSetSwitch(&TelescopeTypeSP, nullptr);
             return true;
         }
 
@@ -1265,7 +1265,7 @@ bool INDI::CCD::ISNewSwitch (const char * dev, const char * name, ISState * stat
             }
 
             ValidCCDRotation = false;
-            IDSetSwitch(&WorldCoordSP, NULL);
+            IDSetSwitch(&WorldCoordSP, nullptr);
         }
 
         // Primary Chip Frame Reset
@@ -1278,7 +1278,7 @@ bool INDI::CCD::ISNewSwitch (const char * dev, const char * name, ISState * stat
             if (CanSubFrame())
                 UpdateCCDFrame(0, 0, PrimaryCCD.getXRes(), PrimaryCCD.getYRes());
 
-            IDSetSwitch(&PrimaryCCD.ResetSP, NULL);
+            IDSetSwitch(&PrimaryCCD.ResetSP, nullptr);
             return true;
         }
 
@@ -1299,8 +1299,8 @@ bool INDI::CCD::ISNewSwitch (const char * dev, const char * name, ISState * stat
                 PrimaryCCD.ImageExposureNP.s = IPS_ALERT;
             }
 
-            IDSetSwitch(&PrimaryCCD.AbortExposureSP, NULL);
-            IDSetNumber(&PrimaryCCD.ImageExposureNP, NULL);
+            IDSetSwitch(&PrimaryCCD.AbortExposureSP, nullptr);
+            IDSetNumber(&PrimaryCCD.ImageExposureNP, nullptr);
 
             return true;
         }
@@ -1322,8 +1322,8 @@ bool INDI::CCD::ISNewSwitch (const char * dev, const char * name, ISState * stat
                 GuideCCD.ImageExposureNP.s = IPS_ALERT;
             }
 
-            IDSetSwitch(&GuideCCD.AbortExposureSP, NULL);
-            IDSetNumber(&GuideCCD.ImageExposureNP, NULL);
+            IDSetSwitch(&GuideCCD.AbortExposureSP, nullptr);
+            IDSetNumber(&GuideCCD.ImageExposureNP, nullptr);
 
             return true;
         }
@@ -1334,7 +1334,7 @@ bool INDI::CCD::ISNewSwitch (const char * dev, const char * name, ISState * stat
 
             IUUpdateSwitch(&PrimaryCCD.CompressSP, states, names, n);
             PrimaryCCD.CompressSP.s = IPS_OK;
-            IDSetSwitch(&PrimaryCCD.CompressSP, NULL);
+            IDSetSwitch(&PrimaryCCD.CompressSP, nullptr);
 
             if(PrimaryCCD.CompressS[0].s == ISS_ON    )
             {
@@ -1353,7 +1353,7 @@ bool INDI::CCD::ISNewSwitch (const char * dev, const char * name, ISState * stat
 
             IUUpdateSwitch(&GuideCCD.CompressSP, states, names, n);
             GuideCCD.CompressSP.s = IPS_OK;
-            IDSetSwitch(&GuideCCD.CompressSP, NULL);
+            IDSetSwitch(&GuideCCD.CompressSP, nullptr);
 
             if(GuideCCD.CompressS[0].s == ISS_ON    )
             {
@@ -1391,7 +1391,7 @@ bool INDI::CCD::ISNewSwitch (const char * dev, const char * name, ISState * stat
             if (UpdateCCDFrameType(PrimaryCCD.getFrameType()) == false)
                 PrimaryCCD.FrameTypeSP.s = IPS_ALERT;
 
-            IDSetSwitch(&PrimaryCCD.FrameTypeSP, NULL);
+            IDSetSwitch(&PrimaryCCD.FrameTypeSP, nullptr);
 
             return true;
         }
@@ -1422,7 +1422,7 @@ bool INDI::CCD::ISNewSwitch (const char * dev, const char * name, ISState * stat
             if (UpdateGuiderFrameType(GuideCCD.getFrameType()) == false)
                 GuideCCD.FrameTypeSP.s = IPS_ALERT;
 
-            IDSetSwitch(&GuideCCD.FrameTypeSP, NULL);
+            IDSetSwitch(&GuideCCD.FrameTypeSP, nullptr);
 
             return true;
         }
@@ -1445,7 +1445,7 @@ bool INDI::CCD::ISNewSwitch (const char * dev, const char * name, ISState * stat
                 deleteProperty(PrimaryCCD.RapidGuideDataNP.name);
             }
 
-            IDSetSwitch(&PrimaryCCD.RapidGuideSP, NULL);
+            IDSetSwitch(&PrimaryCCD.RapidGuideSP, nullptr);
             return true;
         }
 
@@ -1467,7 +1467,7 @@ bool INDI::CCD::ISNewSwitch (const char * dev, const char * name, ISState * stat
                 deleteProperty(GuideCCD.RapidGuideDataNP.name);
             }
 
-            IDSetSwitch(&GuideCCD.RapidGuideSP, NULL);
+            IDSetSwitch(&GuideCCD.RapidGuideSP, nullptr);
             return true;
         }
 
@@ -1481,7 +1481,7 @@ bool INDI::CCD::ISNewSwitch (const char * dev, const char * name, ISState * stat
             SendImage = (PrimaryCCD.RapidGuideSetupS[1].s == ISS_ON);
             ShowMarker = (PrimaryCCD.RapidGuideSetupS[2].s == ISS_ON);
 
-            IDSetSwitch(&PrimaryCCD.RapidGuideSetupSP, NULL);
+            IDSetSwitch(&PrimaryCCD.RapidGuideSetupSP, nullptr);
             return true;
         }
 
@@ -1495,7 +1495,7 @@ bool INDI::CCD::ISNewSwitch (const char * dev, const char * name, ISState * stat
             GuiderSendImage = (GuideCCD.RapidGuideSetupS[1].s == ISS_ON);
             GuiderShowMarker = (GuideCCD.RapidGuideSetupS[2].s == ISS_ON);
 
-            IDSetSwitch(&GuideCCD.RapidGuideSetupSP, NULL);
+            IDSetSwitch(&GuideCCD.RapidGuideSetupSP, nullptr);
             return true;
         }
     }
@@ -2157,7 +2157,7 @@ bool INDI::CCD::ExposureComplete(CCDChip * targetChip)
             targetChip->RapidGuideDataNP.s = IPS_ALERT;
             targetChip->lastRapidX = targetChip->lastRapidY = -1;
         }
-        IDSetNumber(&targetChip->RapidGuideDataNP, NULL);
+        IDSetNumber(&targetChip->RapidGuideDataNP, nullptr);
 
         if (showMarker)
         {
@@ -2253,7 +2253,7 @@ bool INDI::CCD::ExposureComplete(CCDChip * targetChip)
             std::string bit_depth;
             char error_status[MAXRBUF];
 
-            fitsfile * fptr = NULL;
+            fitsfile * fptr = nullptr;
 
             naxes[0] = targetChip->getSubW() / targetChip->getBinX();
             naxes[1] = targetChip->getSubH() / targetChip->getBinY();
@@ -2349,7 +2349,7 @@ bool INDI::CCD::ExposureComplete(CCDChip * targetChip)
     }
 
     targetChip->ImageExposureNP.s = IPS_OK;
-    IDSetNumber(&targetChip->ImageExposureNP, NULL);
+    IDSetNumber(&targetChip->ImageExposureNP, nullptr);
 
     if (autoLoop)
     {
@@ -2365,7 +2365,7 @@ bool INDI::CCD::ExposureComplete(CCDChip * targetChip)
                 PrimaryCCD.ImageExposureNP.s = IPS_ALERT;
             }
 
-            IDSetNumber(&PrimaryCCD.ImageExposureNP, NULL);
+            IDSetNumber(&PrimaryCCD.ImageExposureNP, nullptr);
         }
         else
         {
@@ -2379,7 +2379,7 @@ bool INDI::CCD::ExposureComplete(CCDChip * targetChip)
                 GuideCCD.ImageExposureNP.s = IPS_ALERT;
             }
 
-            IDSetNumber(&GuideCCD.ImageExposureNP, NULL);
+            IDSetNumber(&GuideCCD.ImageExposureNP, nullptr);
         }
     }
 
@@ -2388,7 +2388,7 @@ bool INDI::CCD::ExposureComplete(CCDChip * targetChip)
 
 bool INDI::CCD::uploadFile(CCDChip * targetChip, const void * fitsData, size_t totalBytes, bool sendImage, bool saveImage/*, bool useSolver*/)
 {
-    unsigned char * compressedData = NULL;
+    unsigned char * compressedData = nullptr;
     uLongf compressedBytes = 0;
 
     DEBUGF(INDI::Logger::DBG_DEBUG, "Uploading file. Ext: %s, Size: %d, sendImage? %s, saveImage? %s", targetChip->getImageExtension(), totalBytes,
@@ -2400,7 +2400,7 @@ bool INDI::CCD::uploadFile(CCDChip * targetChip, const void * fitsData, size_t t
         targetChip->FitsB.bloblen = totalBytes;
         snprintf(targetChip->FitsB.format, MAXINDIBLOBFMT, ".%s", targetChip->getImageExtension());
 
-        FILE * fp = NULL;
+        FILE * fp = nullptr;
         char imageFileName[MAXRBUF];
 
         std::string prefix = UploadSettingsT[UPLOAD_PREFIX].text;
@@ -2433,7 +2433,7 @@ bool INDI::CCD::uploadFile(CCDChip * targetChip, const void * fitsData, size_t t
         snprintf(imageFileName, MAXRBUF, "%s/%s%s", UploadSettingsT[0].text, prefix.c_str(), targetChip->FitsB.format);
 
         fp = fopen(imageFileName, "w");
-        if (fp == NULL)
+        if (fp == nullptr)
         {
             DEBUGF(INDI::Logger::DBG_ERROR, "Unable to save image file (%s). %s", imageFileName, strerror(errno));
             return false;
@@ -2450,7 +2450,7 @@ bool INDI::CCD::uploadFile(CCDChip * targetChip, const void * fitsData, size_t t
 
         DEBUGF(INDI::Logger::DBG_SESSION, "Image saved to %s", imageFileName);
         FileNameTP.s = IPS_OK;
-        IDSetText(&FileNameTP, NULL);
+        IDSetText(&FileNameTP, nullptr);
     }
 
     if (targetChip->SendCompressed)
@@ -2458,7 +2458,7 @@ bool INDI::CCD::uploadFile(CCDChip * targetChip, const void * fitsData, size_t t
         compressedBytes = sizeof(char) * totalBytes + totalBytes / 64 + 16 + 3;
         compressedData = (unsigned char *) malloc (compressedBytes);
 
-        if (fitsData == NULL || compressedData == NULL)
+        if (fitsData == nullptr || compressedData == nullptr)
         {
             if (compressedData)
                 free(compressedData);
@@ -2490,7 +2490,7 @@ bool INDI::CCD::uploadFile(CCDChip * targetChip, const void * fitsData, size_t t
     targetChip->FitsBP.s = IPS_OK;
 
     if (sendImage)
-        IDSetBLOB(&targetChip->FitsBP, NULL);
+        IDSetBLOB(&targetChip->FitsBP, nullptr);
 
     if (compressedData)
         free (compressedData);
@@ -2668,7 +2668,7 @@ int INDI::CCD::getFileIndex(const char * dir, const char * prefix, const char * 
 
 
     dpdf = opendir(dir);
-    if (dpdf != NULL)
+    if (dpdf != nullptr)
     {
         while ( (epdf = readdir(dpdf)) )
         {

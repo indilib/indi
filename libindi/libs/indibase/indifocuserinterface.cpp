@@ -83,7 +83,7 @@ bool INDI::FocuserInterface::processFocuserNumber (const char * dev, const char 
         lastTimerValue = t;
 
         FocusTimerNP.s = MoveFocuser(dir, speed, t);
-        IDSetNumber(&FocusTimerNP, NULL);
+        IDSetNumber(&FocusTimerNP, nullptr);
         return true;
     }
 
@@ -101,7 +101,7 @@ bool INDI::FocuserInterface::processFocuserNumber (const char * dev, const char 
         }
 
         //  Update client display
-        IDSetNumber(&FocusSpeedNP, NULL);
+        IDSetNumber(&FocusSpeedNP, nullptr);
         return true;
     }
 
@@ -112,14 +112,14 @@ bool INDI::FocuserInterface::processFocuserNumber (const char * dev, const char 
         if (newPos < FocusAbsPosN[0].min)
         {
             FocusAbsPosNP.s = IPS_ALERT;
-            IDSetNumber(&FocusAbsPosNP, NULL);
+            IDSetNumber(&FocusAbsPosNP, nullptr);
             DEBUGFDEVICE(dev, INDI::Logger::DBG_ERROR, "Requested position out of bound. Focus minimum position is %g", FocusAbsPosN[0].min);
             return false;
         }
         else if (newPos > FocusAbsPosN[0].max)
         {
             FocusAbsPosNP.s = IPS_ALERT;
-            IDSetNumber(&FocusAbsPosNP, NULL);
+            IDSetNumber(&FocusAbsPosNP, nullptr);
             DEBUGFDEVICE(dev, INDI::Logger::DBG_ERROR, "Requested position out of bound. Focus maximum position is %g", FocusAbsPosN[0].max);
             return false;
         }
@@ -155,7 +155,7 @@ bool INDI::FocuserInterface::processFocuserNumber (const char * dev, const char 
         {
             DEBUGDEVICE(dev, INDI::Logger::DBG_ERROR, "Relative ticks value must be greater than zero.");
             FocusRelPosNP.s = IPS_ALERT;
-            IDSetNumber(&FocusRelPosNP, NULL);
+            IDSetNumber(&FocusRelPosNP, nullptr);
             return false;
         }
 
@@ -168,7 +168,7 @@ bool INDI::FocuserInterface::processFocuserNumber (const char * dev, const char 
                 if (FocusAbsPosN[0].value - newPos < FocusAbsPosN[0].min)
                 {
                     FocusRelPosNP.s = IPS_ALERT;
-                    IDSetNumber(&FocusRelPosNP, NULL);
+                    IDSetNumber(&FocusRelPosNP, nullptr);
                     DEBUGFDEVICE(dev, INDI::Logger::DBG_ERROR, "Requested position out of bound. Focus minimum position is %g", FocusAbsPosN[0].min);
                     return false;
                 }
@@ -178,7 +178,7 @@ bool INDI::FocuserInterface::processFocuserNumber (const char * dev, const char 
                 if (FocusAbsPosN[0].value + newPos > FocusAbsPosN[0].max)
                 {
                     FocusRelPosNP.s = IPS_ALERT;
-                    IDSetNumber(&FocusRelPosNP, NULL);
+                    IDSetNumber(&FocusRelPosNP, nullptr);
                     DEBUGFDEVICE(dev, INDI::Logger::DBG_ERROR, "Requested position out of bound. Focus maximum position is %g", FocusAbsPosN[0].max);
                     return false;
                 }
@@ -190,7 +190,7 @@ bool INDI::FocuserInterface::processFocuserNumber (const char * dev, const char 
             FocusRelPosNP.s = FocusAbsPosNP.s = IPS_OK;
             IUUpdateNumber(&FocusRelPosNP, values, names, n);
             IDSetNumber(&FocusRelPosNP, "Focuser moved %d steps %s", newPos, FocusMotionS[0].s == ISS_ON ? "inward" : "outward");
-            IDSetNumber(&FocusAbsPosNP, NULL);
+            IDSetNumber(&FocusAbsPosNP, nullptr);
             return true;
         }
         else if (ret == IPS_BUSY)
@@ -198,7 +198,7 @@ bool INDI::FocuserInterface::processFocuserNumber (const char * dev, const char 
             IUUpdateNumber(&FocusRelPosNP, values, names, n);
             FocusRelPosNP.s = FocusAbsPosNP.s = IPS_BUSY;
             IDSetNumber(&FocusAbsPosNP, "Focuser is moving %d steps %s...", newPos, FocusMotionS[0].s == ISS_ON ? "inward" : "outward");
-            IDSetNumber(&FocusAbsPosNP, NULL);
+            IDSetNumber(&FocusAbsPosNP, nullptr);
             return true;
         }
 
@@ -220,7 +220,7 @@ bool INDI::FocuserInterface::processFocuserSwitch (const char * dev, const char 
         FocusMotionSP.s = IPS_OK;
         IUUpdateSwitch(&FocusMotionSP, states, names, n);
         //  Update client display
-        IDSetSwitch(&FocusMotionSP, NULL);
+        IDSetSwitch(&FocusMotionSP, nullptr);
 
         return true;
     }
@@ -235,18 +235,18 @@ bool INDI::FocuserInterface::processFocuserSwitch (const char * dev, const char 
             if (CanAbsMove() && FocusAbsPosNP.s != IPS_IDLE)
             {
                 FocusAbsPosNP.s = IPS_IDLE;
-                IDSetNumber(&FocusAbsPosNP, NULL);
+                IDSetNumber(&FocusAbsPosNP, nullptr);
             }
             if (CanRelMove() && FocusRelPosNP.s != IPS_IDLE)
             {
                 FocusRelPosNP.s = IPS_IDLE;
-                IDSetNumber(&FocusRelPosNP, NULL);
+                IDSetNumber(&FocusRelPosNP, nullptr);
             }
         }
         else
             AbortSP.s = IPS_ALERT;
 
-        IDSetSwitch(&AbortSP, NULL);
+        IDSetSwitch(&AbortSP, nullptr);
         return true;
     }
 

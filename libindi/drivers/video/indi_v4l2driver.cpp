@@ -25,12 +25,12 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110 - 1301  USA
 
 #include "v4l2driver.h"
 
-V4L2_Driver * MainCam = NULL;		/* Main and only camera */
+V4L2_Driver * MainCam = nullptr;		/* Main and only camera */
 
 /* send client definitions of all properties */
 void ISInit()
 {
-    if (MainCam == NULL)
+    if (MainCam == nullptr)
     {
         MainCam = new V4L2_Driver();
         //MainCam->initProperties();

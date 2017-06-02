@@ -69,7 +69,7 @@ ISwitchVectorProperty Logger::LoggingLevelSP;
 ISwitch Logger::ConfigurationS[2];
 ISwitchVectorProperty Logger::ConfigurationSP;
 
-INDI::DefaultDevice * Logger::parentDevice = NULL;
+INDI::DefaultDevice * Logger::parentDevice = nullptr;
 unsigned int Logger::fileVerbosityLevel_ = Logger::defaultlevel;
 unsigned int Logger::screenVerbosityLevel_ = Logger::defaultlevel;
 unsigned int Logger::rememberscreenlevel_ = Logger::defaultlevel;
@@ -83,7 +83,7 @@ unsigned int Logger::customLevel = 4;
 static int _mkdir(const char * dir, mode_t mode)
 {
     char tmp[PATH_MAX];
-    char * p = NULL;
+    char * p = nullptr;
     size_t len;
 
     snprintf(tmp, sizeof(tmp), "%s", dir);
@@ -183,10 +183,10 @@ bool Logger::ISNewSwitch (const char * dev, const char * name, ISState * states,
         ISwitch * sw;
         IUUpdateSwitch(&DebugLevelSP, states, names, n);
         sw = IUFindOnSwitch(&DebugLevelSP);
-        if (sw == NULL)
+        if (sw == nullptr)
         {
             DebugLevelSP.s = IPS_IDLE;
-            IDSetSwitch(&DebugLevelSP, NULL);
+            IDSetSwitch(&DebugLevelSP, nullptr);
             screenVerbosityLevel_ = 0;
             return true;
         }
@@ -209,7 +209,7 @@ bool Logger::ISNewSwitch (const char * dev, const char * name, ISState * states,
 
         DEBUGFDEVICE(dev, Logger::DBG_DEBUG, "Toggle Debug Level -- %s", DebugLevelSInit[debug_level].label);
         DebugLevelSP.s = IPS_OK;
-        IDSetSwitch(&DebugLevelSP, NULL);
+        IDSetSwitch(&DebugLevelSP, nullptr);
         return true;
     }
 
@@ -218,11 +218,11 @@ bool Logger::ISNewSwitch (const char * dev, const char * name, ISState * states,
         ISwitch * sw;
         IUUpdateSwitch(&LoggingLevelSP, states, names, n);
         sw = IUFindOnSwitch(&LoggingLevelSP);
-        if (sw == NULL)
+        if (sw == nullptr)
         {
             fileVerbosityLevel_ = 0;
             LoggingLevelSP.s = IPS_IDLE;
-            IDSetSwitch(&LoggingLevelSP, NULL);
+            IDSetSwitch(&LoggingLevelSP, nullptr);
             return true;
         }
 
@@ -241,7 +241,7 @@ bool Logger::ISNewSwitch (const char * dev, const char * name, ISState * states,
 
         DEBUGFDEVICE(dev, Logger::DBG_DEBUG, "Toggle Logging Level -- %s", LoggingLevelSInit[log_level].label);
         LoggingLevelSP.s = IPS_OK;
-        IDSetSwitch(&LoggingLevelSP, NULL);
+        IDSetSwitch(&LoggingLevelSP, nullptr);
         return true;
     }
 
@@ -251,11 +251,11 @@ bool Logger::ISNewSwitch (const char * dev, const char * name, ISState * states,
         IUUpdateSwitch(&ConfigurationSP, states, names, n);
         sw = IUFindOnSwitch(&ConfigurationSP);
 
-        if (sw == NULL)
+        if (sw == nullptr)
         {
             configuration_ = screen_off | file_off;
             ConfigurationSP.s = IPS_IDLE;
-            IDSetSwitch(&ConfigurationSP, NULL);
+            IDSetSwitch(&ConfigurationSP, nullptr);
             return true;
         }
 
@@ -278,7 +278,7 @@ bool Logger::ISNewSwitch (const char * dev, const char * name, ISState * states,
             Logger::getInstance().configure(logFile_, configuration_, fileVerbosityLevel_, screenVerbosityLevel_);
 
         ConfigurationSP.s = IPS_OK;
-        IDSetSwitch(&ConfigurationSP, NULL);
+        IDSetSwitch(&ConfigurationSP, nullptr);
 
         return true;
     }
@@ -316,7 +316,7 @@ void Logger::unlock() {}
  */
 Logger::Logger(): configured_(false)
 {
-    gettimeofday(&initialTime_, NULL);
+    gettimeofday(&initialTime_, nullptr);
 }
 
 /**
@@ -462,7 +462,7 @@ void Logger::print(const char * devicename,
     }
     struct timeval currentTime, resTime;
     usec[6] = '\0';
-    gettimeofday(&currentTime, NULL);
+    gettimeofday(&currentTime, nullptr);
     timersub(&currentTime, &initialTime_, &resTime);
     snprintf(usec, 7, "%06ld", resTime.tv_usec);
     Logger::lock();

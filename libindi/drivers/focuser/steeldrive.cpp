@@ -151,8 +151,8 @@ bool SteelDrive::initProperties()
     IUFillNumberVector(&SyncNP, SyncN, 1, getDeviceName(), "FOCUS_SYNC", "Sync", MAIN_CONTROL_TAB, IP_RW, 0, IPS_IDLE);
 
     // Version
-    IUFillText(&VersionT[0], "HW Rev.", "", NULL);
-    IUFillText(&VersionT[1], "FW Rev.", "", NULL);
+    IUFillText(&VersionT[0], "HW Rev.", "", nullptr);
+    IUFillText(&VersionT[1], "FW Rev.", "", nullptr);
     IUFillTextVector(&VersionTP, VersionT, 2, getDeviceName(), "FOCUS_VERSION", "Version", MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE);
 
     FocusRelPosN[0].value = 0;
@@ -1084,12 +1084,12 @@ bool SteelDrive::ISNewSwitch (const char * dev, const char * name, ISState * sta
                 TemperatureCompensateSP.s = IPS_ALERT;
                 IUResetSwitch(&TemperatureCompensateSP);
                 TemperatureCompensateS[last_index].s = ISS_ON;
-                IDSetSwitch(&TemperatureCompensateSP, NULL);
+                IDSetSwitch(&TemperatureCompensateSP, nullptr);
                 return false;
             }
 
             TemperatureCompensateSP.s = IPS_OK;
-            IDSetSwitch(&TemperatureCompensateSP, NULL);
+            IDSetSwitch(&TemperatureCompensateSP, nullptr);
             return true;
         }
 
@@ -1106,10 +1106,10 @@ bool SteelDrive::ISNewSwitch (const char * dev, const char * name, ISState * sta
             CustomSettingN[FOCUS_MAX_TRIP].value = fSettings[i].maxTrip;
             CustomSettingN[FOCUS_GEAR_RATIO].value = fSettings[i].gearRatio;
 
-            IDSetNumber(&CustomSettingNP, NULL);
+            IDSetNumber(&CustomSettingNP, nullptr);
 
             ModelSP.s = IPS_OK;
-            IDSetSwitch(&ModelSP, NULL);
+            IDSetSwitch(&ModelSP, nullptr);
 
             return true;
         }
@@ -1134,14 +1134,14 @@ bool SteelDrive::ISNewNumber (const char * dev, const char * name, double values
             {
                 IUUpdateNumber(&AccelerationNP, values, names, n);
                 AccelerationNP.s = IPS_OK;
-                IDSetNumber(&AccelerationNP, NULL);
+                IDSetNumber(&AccelerationNP, nullptr);
                 return true;
             }
             else
             {
 
                 AccelerationNP.s = IPS_ALERT;
-                IDSetNumber(&AccelerationNP, NULL);
+                IDSetNumber(&AccelerationNP, nullptr);
                 return false;
             }
         }
@@ -1168,13 +1168,13 @@ bool SteelDrive::ISNewNumber (const char * dev, const char * name, double values
                     TemperatureSettingN[FOCUS_T_COEFF].value = TemperatureSettingN[FOCUS_T_COEFF].max;
 
                 TemperatureSettingNP.s = IPS_OK;
-                IDSetNumber(&TemperatureSettingNP, NULL);
+                IDSetNumber(&TemperatureSettingNP, nullptr);
                 return true;
             }
             else
             {
                 TemperatureSettingNP.s = IPS_ALERT;
-                IDSetNumber(&TemperatureSettingNP, NULL);
+                IDSetNumber(&TemperatureSettingNP, nullptr);
                 return true;
             }
         }
@@ -1189,7 +1189,7 @@ bool SteelDrive::ISNewNumber (const char * dev, const char * name, double values
             {
                 CustomSettingNP.s = IPS_IDLE;
                 DEBUG(INDI::Logger::DBG_WARNING, "You can not set custom values for a non-custom focuser.");
-                IDSetNumber(&CustomSettingNP, NULL);
+                IDSetNumber(&CustomSettingNP, nullptr);
                 return false;
             }
 
@@ -1210,7 +1210,7 @@ bool SteelDrive::ISNewNumber (const char * dev, const char * name, double values
             {
                 IUUpdateNumber(&CustomSettingNP, values, names, n);
                 CustomSettingNP.s = IPS_OK;
-                IDSetNumber(&CustomSettingNP, NULL);
+                IDSetNumber(&CustomSettingNP, nullptr);
 
                 updateFocusMaxRange(maxTrip, gearRatio);
                 IUUpdateMinMax(&FocusAbsPosNP);
@@ -1219,7 +1219,7 @@ bool SteelDrive::ISNewNumber (const char * dev, const char * name, double values
             else
             {
                 CustomSettingNP.s = IPS_ALERT;
-                IDSetNumber(&CustomSettingNP, NULL);
+                IDSetNumber(&CustomSettingNP, nullptr);
             }
         }
 
@@ -1230,17 +1230,17 @@ bool SteelDrive::ISNewNumber (const char * dev, const char * name, double values
             {
                 IUUpdateNumber(&SyncNP, values, names, n);
                 SyncNP.s = IPS_OK;
-                IDSetNumber(&SyncNP, NULL);
+                IDSetNumber(&SyncNP, nullptr);
 
                 if (updatePosition())
-                    IDSetNumber(&FocusAbsPosNP, NULL);
+                    IDSetNumber(&FocusAbsPosNP, nullptr);
 
                 return true;
             }
             else
             {
                 SyncNP.s = IPS_ALERT;
-                IDSetNumber(&SyncNP, NULL);
+                IDSetNumber(&SyncNP, nullptr);
 
                 return false;
             }
@@ -1257,27 +1257,27 @@ bool SteelDrive::ISNewNumber (const char * dev, const char * name, double values
 void SteelDrive::GetFocusParams ()
 {
     if (updateVersion())
-        IDSetText(&VersionTP, NULL);
+        IDSetText(&VersionTP, nullptr);
 
     if (updateTemperature())
-        IDSetNumber(&TemperatureNP, NULL);
+        IDSetNumber(&TemperatureNP, nullptr);
 
     if (updateTemperatureSettings())
-        IDSetNumber(&TemperatureSettingNP, NULL);
+        IDSetNumber(&TemperatureSettingNP, nullptr);
 
     if (updatePosition())
-        IDSetNumber(&FocusAbsPosNP, NULL);
+        IDSetNumber(&FocusAbsPosNP, nullptr);
 
     if (updateSpeed())
-        IDSetNumber(&FocusSpeedNP, NULL);
+        IDSetNumber(&FocusSpeedNP, nullptr);
 
     if (updateAcceleration())
-        IDSetNumber(&AccelerationNP, NULL);
+        IDSetNumber(&AccelerationNP, nullptr);
 
     if (updateCustomSettings())
     {
-        IDSetNumber(&CustomSettingNP, NULL);
-        IDSetSwitch(&ModelSP, NULL);
+        IDSetNumber(&CustomSettingNP, nullptr);
+        IDSetSwitch(&ModelSP, nullptr);
     }
 
 }
@@ -1294,7 +1294,7 @@ bool SteelDrive::SetFocuserSpeed(int speed)
     currentSpeed = speed;
 
     FocusSpeedNP.s = IPS_OK;
-    IDSetNumber(&FocusSpeedNP, NULL);
+    IDSetNumber(&FocusSpeedNP, nullptr);
 
     return true;
 }
@@ -1310,7 +1310,7 @@ IPState SteelDrive::MoveFocuser(FocusDirection dir, int speed, uint16_t duration
             return IPS_ALERT;
     }
 
-    gettimeofday(&focusMoveStart, NULL);
+    gettimeofday(&focusMoveStart, nullptr);
     focusMoveRequest = duration / 1000.0;
 
     startMotion(dir);
@@ -1374,7 +1374,7 @@ void SteelDrive::TimerHit()
     {
         if (fabs(lastPos - FocusAbsPosN[0].value) > STEELDIVE_POSITION_THRESHOLD)
         {
-            IDSetNumber(&FocusAbsPosNP, NULL);
+            IDSetNumber(&FocusAbsPosNP, nullptr);
             lastPos = FocusAbsPosN[0].value;
         }
     }
@@ -1389,7 +1389,7 @@ void SteelDrive::TimerHit()
                 lastTemperature = TemperatureN[0].value;
         }
 
-        IDSetNumber(&TemperatureNP, NULL);
+        IDSetNumber(&TemperatureNP, nullptr);
     }
 
 
@@ -1437,7 +1437,7 @@ void SteelDrive::TimerHit()
         else
             FocusTimerN[0].value = remaining * 1000.0;
 
-        IDSetNumber(&FocusTimerNP, NULL);
+        IDSetNumber(&FocusTimerNP, nullptr);
     }
 
     if (FocusAbsPosNP.s == IPS_BUSY || FocusRelPosNP.s == IPS_BUSY)
@@ -1461,8 +1461,8 @@ void SteelDrive::TimerHit()
         {
             FocusAbsPosNP.s = IPS_OK;
             FocusRelPosNP.s = IPS_OK;
-            IDSetNumber(&FocusAbsPosNP, NULL);
-            IDSetNumber(&FocusRelPosNP, NULL);
+            IDSetNumber(&FocusAbsPosNP, nullptr);
+            IDSetNumber(&FocusRelPosNP, nullptr);
             lastPos = FocusAbsPosN[0].value;
             DEBUG(INDI::Logger::DBG_SESSION, "Focuser reached requested position.");
         }
@@ -1493,12 +1493,12 @@ bool SteelDrive::AbortFocuser()
     if (FocusRelPosNP.s == IPS_BUSY)
     {
         FocusRelPosNP.s = IPS_IDLE;
-        IDSetNumber(&FocusRelPosNP, NULL);
+        IDSetNumber(&FocusRelPosNP, nullptr);
     }
 
     FocusTimerNP.s = FocusAbsPosNP.s = IPS_IDLE;
-    IDSetNumber(&FocusTimerNP, NULL);
-    IDSetNumber(&FocusAbsPosNP, NULL);
+    IDSetNumber(&FocusTimerNP, nullptr);
+    IDSetNumber(&FocusAbsPosNP, nullptr);
 
     return true;
 }
@@ -1511,7 +1511,7 @@ float SteelDrive::CalcTimeLeft(timeval start, float req)
     double timesince;
     double timeleft;
     struct timeval now;
-    gettimeofday(&now, NULL);
+    gettimeofday(&now, nullptr);
 
     timesince = (double)(now.tv_sec * 1000.0 + now.tv_usec / 1000) - (double)(start.tv_sec * 1000.0 + start.tv_usec / 1000);
     timesince = timesince / 1000;

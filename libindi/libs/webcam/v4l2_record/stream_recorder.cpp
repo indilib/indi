@@ -46,14 +46,14 @@ StreamRecorder::StreamRecorder(INDI::CCD * mainCCD)
     //fpssettings.it_interval.tv_sec=24*3600;
     //fpssettings.it_interval.tv_nsec=0;
     //fpssettings.it_value=fpssettings.it_interval;
-    //timer_settime(fpstimer, 0, &fpssettings, NULL);
+    //timer_settime(fpstimer, 0, &fpssettings, nullptr);
 
     struct itimerval fpssettings;
     fpssettings.it_interval.tv_sec = 24 * 3600;
     fpssettings.it_interval.tv_usec = 0;
     fpssettings.it_value = fpssettings.it_interval;
     signal(SIGALRM, SIG_IGN); //portable
-    setitimer(ITIMER_REAL, &fpssettings, NULL);
+    setitimer(ITIMER_REAL, &fpssettings, nullptr);
 
     v4l2_record = new V4L2_Record();
     recorder = v4l2_record->getDefaultRecorder();
@@ -197,7 +197,7 @@ void StreamRecorder::newFrame()
         framecountsec = 0;
     }
 
-    IDSetNumber(&FpsNP, NULL);
+    IDSetNumber(&FpsNP, nullptr);
 
     if (StreamSP.s == IPS_BUSY)
     {
@@ -283,7 +283,7 @@ bool StreamRecorder::uploadStream()
         StreamFrameN[CCDChip::FRAME_W].value = subW / binFactor;
         StreamFrameN[CCDChip::FRAME_W].value = subH / binFactor;
         StreamFrameNP.s = IPS_IDLE;
-        IDSetNumber(&StreamFrameNP, NULL);
+        IDSetNumber(&StreamFrameNP, nullptr);
     }
     // Check if we need to subframe
     else if ( (StreamFrameN[CCDChip::FRAME_W].value > 0 && StreamFrameN[CCDChip::FRAME_H].value > 0) &&
@@ -356,7 +356,7 @@ bool StreamRecorder::uploadStream()
 
     // Upload to client now
     imageBP->s = IPS_OK;
-    IDSetBLOB (imageBP, NULL);
+    IDSetBLOB (imageBP, nullptr);
     return true;
 }
 
@@ -380,7 +380,7 @@ void StreamRecorder::recordStream(double deltams)
         RecordStreamSP.sp[1].s = ISS_OFF;
         RecordStreamSP.sp[3].s = ISS_ON;
         RecordStreamSP.s = IPS_IDLE;
-        IDSetSwitch(&RecordStreamSP, NULL);
+        IDSetSwitch(&RecordStreamSP, nullptr);
     }
 
     if ((RecordStreamSP.sp[2].s == ISS_ON) && (recordframeCount >= (RecordOptionsNP.np[1].value)))
@@ -390,7 +390,7 @@ void StreamRecorder::recordStream(double deltams)
         RecordStreamSP.sp[2].s = ISS_OFF;
         RecordStreamSP.sp[3].s = ISS_ON;
         RecordStreamSP.s = IPS_IDLE;
-        IDSetSwitch(&RecordStreamSP, NULL);
+        IDSetSwitch(&RecordStreamSP, nullptr);
     }
 }
 
@@ -519,7 +519,7 @@ bool StreamRecorder::startRecording()
     if (!recorder->open(filename.c_str(), errmsg))
     {
         RecordStreamSP.s = IPS_ALERT;
-        IDSetSwitch(&RecordStreamSP, NULL);
+        IDSetSwitch(&RecordStreamSP, nullptr);
         DEBUGF(INDI::Logger::DBG_WARNING, "Can not open record file: %s", errmsg);
         return false;
     }
@@ -550,7 +550,7 @@ bool StreamRecorder::startRecording()
         RecordStreamSP.s = IPS_ALERT;
         IUResetSwitch(&RecordStreamSP);
         RecordStreamS[RECORD_OFF].s = ISS_ON;
-        IDSetSwitch(&RecordStreamSP, NULL);
+        IDSetSwitch(&RecordStreamSP, nullptr);
     }
     is_recording = true;
     return true;
@@ -602,7 +602,7 @@ bool StreamRecorder::ISNewSwitch (const char * dev, const char * name, ISState *
         {
             IUResetSwitch(&RecordStreamSP);
             RecordStreamS[prevSwitch].s = ISS_ON;
-            IDSetSwitch(&RecordStreamSP, NULL);
+            IDSetSwitch(&RecordStreamSP, nullptr);
             DEBUG(INDI::Logger::DBG_WARNING, "Recording device is busy.");
             return false;
         }
@@ -639,7 +639,7 @@ bool StreamRecorder::ISNewSwitch (const char * dev, const char * name, ISState *
             }
         }
 
-        IDSetSwitch(&RecordStreamSP, NULL);
+        IDSetSwitch(&RecordStreamSP, nullptr);
         return true;
     }
 
@@ -662,7 +662,7 @@ bool StreamRecorder::ISNewText (const char * dev, const char * name, char * text
         }
 
         IUUpdateText(&RecordFileTP, texts, names, n);
-        IDSetText (&RecordFileTP, NULL);
+        IDSetText (&RecordFileTP, nullptr);
         return true;
     }
     return true;
@@ -679,7 +679,7 @@ bool StreamRecorder::ISNewNumber (const char * dev, const char * name, double va
     {
         IUUpdateNumber(&StreamOptionsNP, values, names, n);
         StreamOptionsNP.s = IPS_OK;
-        IDSetNumber(&StreamOptionsNP, NULL);
+        IDSetNumber(&StreamOptionsNP, nullptr);
         return true;
     }
 
@@ -694,7 +694,7 @@ bool StreamRecorder::ISNewNumber (const char * dev, const char * name, double va
 
         IUUpdateNumber(&RecordOptionsNP, values, names, n);
         RecordOptionsNP.s = IPS_OK;
-        IDSetNumber(&RecordOptionsNP, NULL);
+        IDSetNumber(&RecordOptionsNP, nullptr);
         return true;
     }
 
@@ -721,7 +721,7 @@ bool StreamRecorder::ISNewNumber (const char * dev, const char * name, double va
         recorder->setFrame(StreamFrameN[CCDChip::FRAME_X].value, StreamFrameN[CCDChip::FRAME_Y].value,
                            StreamFrameN[CCDChip::FRAME_W].value, StreamFrameN[CCDChip::FRAME_H].value);
 
-        IDSetNumber(&StreamFrameNP, NULL);
+        IDSetNumber(&StreamFrameNP, nullptr);
         return true;
     }
 
@@ -731,7 +731,7 @@ bool StreamRecorder::ISNewNumber (const char * dev, const char * name, double va
         IUUpdateNumber(&FramestoDropNP, values, names, n);
         //v4l_base->setDropFrameCount(values[0]);
         FramestoDropNP.s = IPS_OK;
-        IDSetNumber(&FramestoDropNP, NULL);
+        IDSetNumber(&FramestoDropNP, nullptr);
         return true;
       }*/
     return true;
@@ -761,7 +761,7 @@ bool StreamRecorder::setStream(bool enable)
                 StreamS[1].s = ISS_ON;
                 StreamSP.s = IPS_ALERT;
                 DEBUG(INDI::Logger::DBG_ERROR, "Failed to start streaming.");
-                IDSetSwitch(&StreamSP, NULL);
+                IDSetSwitch(&StreamSP, nullptr);
                 return false;
             }
 
@@ -786,7 +786,7 @@ bool StreamRecorder::setStream(bool enable)
                 {
                     StreamSP.s = IPS_ALERT;
                     DEBUG(INDI::Logger::DBG_ERROR, "Failed to stop streaming.");
-                    IDSetSwitch(&StreamSP, NULL);
+                    IDSetSwitch(&StreamSP, nullptr);
                     return false;
                 }
             }
@@ -799,7 +799,7 @@ bool StreamRecorder::setStream(bool enable)
         }
     }
 
-    IDSetSwitch(&StreamSP, NULL);
+    IDSetSwitch(&StreamSP, nullptr);
     return true;
 }
 

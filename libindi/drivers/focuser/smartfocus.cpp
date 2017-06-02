@@ -184,7 +184,7 @@ bool SmartFocus::ISNewNumber(const char * dev, const char * name, double values[
                 FocusAbsPosN[0].max = MaxPositionN[0].value;
                 IUUpdateMinMax(&FocusAbsPosNP);
                 MaxPositionNP.s = IPS_OK;
-                IDSetNumber(&MaxPositionNP, NULL);
+                IDSetNumber(&MaxPositionNP, nullptr);
                 return true;
             }
             else
@@ -400,7 +400,7 @@ void SmartFocus::SFgetState(void)
     FlagsL[STATUS_MOTOR_ENCODE_ERROR  ].s = ( flags & MotorEncoderError ? IPS_ALERT : IPS_OK );
     FlagsL[STATUS_AT_ZERO_POSITION    ].s = ( flags & AtZeroPosition    ? IPS_ALERT : IPS_OK );
     FlagsL[STATUS_AT_MAX_POSITION     ].s = ( flags & AtMaxPosition     ? IPS_ALERT : IPS_OK );
-    IDSetLight(&FlagsLP, NULL);
+    IDSetLight(&FlagsLP, nullptr);
 
     if ( (position = SFgetPosition()) == PositionInvalid )
     {
@@ -411,7 +411,7 @@ void SmartFocus::SFgetState(void)
     {
         FocusAbsPosN[0].value = position;
         FocusAbsPosNP.s = IPS_OK;
-        IDSetNumber(&FocusAbsPosNP, NULL);
+        IDSetNumber(&FocusAbsPosNP, nullptr);
     }
 }
 

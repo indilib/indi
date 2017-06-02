@@ -55,7 +55,7 @@ bool TCP::ISNewText (const char * dev, const char * name, char * texts[], char *
         {
             IUUpdateText(&AddressTP, texts, names, n);
             AddressTP.s = IPS_OK;
-            IDSetText(&AddressTP, NULL);
+            IDSetText(&AddressTP, nullptr);
             return true;
         }
     }
@@ -65,7 +65,7 @@ bool TCP::ISNewText (const char * dev, const char * name, char * texts[], char *
 
 bool TCP::Connect()
 {
-    if (AddressT[0].text == NULL || AddressT[0].text[0] == '\0' || AddressT[1].text == NULL || AddressT[1].text[0] == '\0')
+    if (AddressT[0].text == nullptr || AddressT[0].text[0] == '\0' || AddressT[1].text == nullptr || AddressT[1].text[0] == '\0')
     {
         DEBUG(INDI::Logger::DBG_ERROR, "Error! Server address is missing or invalid.");
         return false;
@@ -79,7 +79,7 @@ bool TCP::Connect()
     if (device->isSimulation() == false)
     {
         struct sockaddr_in serv_addr;
-        struct hostent * hp = NULL;
+        struct hostent * hp = nullptr;
         int ret = 0;
 
         struct timeval ts;

@@ -141,10 +141,10 @@ bool TruTech::ISNewSwitch (const char * dev, const char * name, ISState * states
                 FilterSlotNP.s = IPS_OK;
                 HomeSP.s = IPS_OK;
                 DEBUG(INDI::Logger::DBG_SESSION, "Filter set to Home.");
-                IDSetNumber(&FilterSlotNP, NULL);
+                IDSetNumber(&FilterSlotNP, nullptr);
             }
 
-            IDSetSwitch(&HomeSP, NULL);
+            IDSetSwitch(&HomeSP, nullptr);
             return true;
         }
     }
@@ -199,7 +199,7 @@ bool TruTech::GetFilterNames(const char * groupName)
 
     const char * filterDesignation[8] = { "Red", "Green", "Blue", "H_Alpha", "SII", "OIII", "LPR", "Luminosity" };
 
-    if (FilterNameT != NULL)
+    if (FilterNameT != nullptr)
         delete FilterNameT;
 
     FilterNameT = new IText[MaxFilter];

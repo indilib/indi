@@ -59,7 +59,7 @@ void  BuiltInMathPlugin::CalculateTransformMatrices(const TelescopeDirectionVect
         // one row or column that contains only zeroes
         gsl_matrix_set_identity(pInvertedAlphaMatrix);
         ASSDEBUG("CalculateTransformMatrices - Alpha matrix is singular!");
-        IDMessage(NULL, "Alpha matrix is singular and cannot be inverted.");
+        IDMessage(nullptr, "Alpha matrix is singular and cannot be inverted.");
     }
     else
     {
@@ -67,7 +67,7 @@ void  BuiltInMathPlugin::CalculateTransformMatrices(const TelescopeDirectionVect
 
         Dump3x3("AlphaToBeta", pAlphaToBeta);
 
-        if (NULL != pBetaToAlpha)
+        if (nullptr != pBetaToAlpha)
         {
             // Invert the matrix to get the Apparent to Actual transform
             if (!MatrixInvert3x3(pAlphaToBeta, pBetaToAlpha))
@@ -77,7 +77,7 @@ void  BuiltInMathPlugin::CalculateTransformMatrices(const TelescopeDirectionVect
                 // one row or column that contains only zeroes
                 gsl_matrix_set_identity(pBetaToAlpha);
                 ASSDEBUG("CalculateTransformMatrices - AlphaToBeta matrix is singular!");
-                IDMessage(NULL, "Calculated Celestial to Telescope transformation matrix is singular (not a true transform).");
+                IDMessage(nullptr, "Calculated Celestial to Telescope transformation matrix is singular (not a true transform).");
             }
 
             Dump3x3("BetaToAlpha", pBetaToAlpha);

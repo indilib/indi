@@ -56,8 +56,8 @@ void ClientAPIForMathPluginManagement::ProcessNewProperty(INDI::Property * Prope
 
     // Tell the client when all the database proeprties have been set up
     if (GotOneOfMine
-            && (NULL != MathPlugins)
-            && (NULL != PluginInitialise))
+            && (nullptr != MathPlugins)
+            && (nullptr != PluginInitialise))
     {
         // The DriverActionComplete state variable is initialised to false
         // So I need to call this to set it to true and signal anyone

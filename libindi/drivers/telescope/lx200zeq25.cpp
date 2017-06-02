@@ -153,7 +153,7 @@ bool LX200ZEQ25::ISNewSwitch (const char * dev, const char * name, ISState * sta
                 DEBUG(INDI::Logger::DBG_WARNING, "Telescope is already homed.");
                 HomeS[0].s = ISS_ON;
                 HomeSP.s = IPS_OK;
-                IDSetSwitch(&HomeSP, NULL);
+                IDSetSwitch(&HomeSP, nullptr);
                 return true;
             }
 
@@ -168,7 +168,7 @@ bool LX200ZEQ25::ISNewSwitch (const char * dev, const char * name, ISState * sta
                 DEBUG(INDI::Logger::DBG_SESSION, "Slewing to home position.");
             }
 
-            IDSetSwitch(&HomeSP, NULL);
+            IDSetSwitch(&HomeSP, nullptr);
             return true;
         }
     }
@@ -190,7 +190,7 @@ bool LX200ZEQ25::ISNewNumber (const char * dev, const char * name, double values
             else
                 GuideRateNP.s = IPS_ALERT;
 
-            IDSetNumber(&GuideRateNP, NULL);
+            IDSetNumber(&GuideRateNP, nullptr);
 
             return true;
         }
@@ -341,7 +341,7 @@ void LX200ZEQ25::getBasicData()
         IUResetSwitch(&SlewRateSP);
         SlewRateS[moveRate].s = ISS_ON;
         SlewRateSP.s = IPS_OK;
-        IDSetSwitch(&SlewRateSP, NULL);
+        IDSetSwitch(&SlewRateSP, nullptr);
     }
 
     if (InitPark())
@@ -369,7 +369,7 @@ void LX200ZEQ25::getBasicData()
     {
         HomeS[0].s = ISS_ON;
         HomeSP.s = IPS_OK;
-        IDSetSwitch(&HomeSP, NULL);
+        IDSetSwitch(&HomeSP, nullptr);
     }
 
     DEBUG(INDI::Logger::DBG_DEBUG, "Getting guiding rate...");
@@ -377,7 +377,7 @@ void LX200ZEQ25::getBasicData()
     if (getZEQ25GuideRate(&guideRate) == TTY_OK)
     {
         GuideRateN[0].value = guideRate;
-        IDSetNumber(&GuideRateNP, NULL);
+        IDSetNumber(&GuideRateNP, nullptr);
     }
 
 }
@@ -404,7 +404,7 @@ bool LX200ZEQ25::Goto(double r, double d)
         AbortSP.s = IPS_OK;
         EqNP.s       = IPS_IDLE;
         IDSetSwitch(&AbortSP, "Slew aborted.");
-        IDSetNumber(&EqNP, NULL);
+        IDSetNumber(&EqNP, nullptr);
 
         if (MovementNSSP.s == IPS_BUSY || MovementWESP.s == IPS_BUSY)
         {
@@ -412,8 +412,8 @@ bool LX200ZEQ25::Goto(double r, double d)
             EqNP.s       = IPS_IDLE;
             IUResetSwitch(&MovementNSSP);
             IUResetSwitch(&MovementWESP);
-            IDSetSwitch(&MovementNSSP, NULL);
-            IDSetSwitch(&MovementWESP, NULL);
+            IDSetSwitch(&MovementNSSP, nullptr);
+            IDSetSwitch(&MovementWESP, nullptr);
         }
 
         // sleep for 100 mseconds
@@ -1091,7 +1091,7 @@ bool LX200ZEQ25::ReadScopeStatus()
             HomeS[0].s = ISS_ON;
             HomeSP.s = IPS_OK;
             DEBUG(INDI::Logger::DBG_SESSION, "Telescope arrived at home position.");
-            IDSetSwitch(&HomeSP, NULL);
+            IDSetSwitch(&HomeSP, nullptr);
         }
     }
 
@@ -1134,7 +1134,7 @@ void LX200ZEQ25::mountSim ()
     int nlocked;
 
     /* update elapsed time since last poll, don't presume exactly POLLMS */
-    gettimeofday (&tv, NULL);
+    gettimeofday (&tv, nullptr);
 
     if (ltv.tv_sec == 0 && ltv.tv_usec == 0)
         ltv = tv;

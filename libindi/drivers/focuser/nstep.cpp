@@ -247,7 +247,7 @@ bool NSTEP::updateProperties()
 {
     if (isConnected())
     {
-        command(":CC1", NULL, 0);
+        command(":CC1", nullptr, 0);
         if (command(":RP", buf, 7))
         {
             sscanf(buf, "%ld", &position);
@@ -364,23 +364,23 @@ bool NSTEP::ISNewSwitch (const char * dev, const char * name, ISState * states, 
             TempCompSP.s = IPS_OK;
             if (TempCompS[0].s == ISS_ON)
             {
-                if (!command(":TA2", NULL, 0))
+                if (!command(":TA2", nullptr, 0))
                 {
                     TempCompSP.s = IPS_ALERT;
                 }
-                if (!command(":TC30#", NULL, 0))
+                if (!command(":TC30#", nullptr, 0))
                 {
                     TempCompSP.s = IPS_ALERT;
                 }
             }
             else
             {
-                if (!command(":TA0", NULL, 0))
+                if (!command(":TA0", nullptr, 0))
                 {
                     TempCompSP.s = IPS_ALERT;
                 }
             }
-            IDSetSwitch(&TempCompSP, NULL);
+            IDSetSwitch(&TempCompSP, nullptr);
             return true;
         }
         if (!strcmp (name, SteppingModeSP.name))
@@ -390,7 +390,7 @@ bool NSTEP::ISNewSwitch (const char * dev, const char * name, ISState * states, 
             if (SteppingModeS[0].s == ISS_ON)
             {
                 steppingMode = '0';
-                if (!command(":CW0", NULL, 0))
+                if (!command(":CW0", nullptr, 0))
                 {
                     SteppingModeSP.s = IPS_ALERT;
                 }
@@ -398,7 +398,7 @@ bool NSTEP::ISNewSwitch (const char * dev, const char * name, ISState * states, 
             else if (SteppingModeS[1].s == ISS_ON)
             {
                 steppingMode = '1';
-                if (!command(":CW1", NULL, 0))
+                if (!command(":CW1", nullptr, 0))
                 {
                     SteppingModeSP.s = IPS_ALERT;
                 }
@@ -406,12 +406,12 @@ bool NSTEP::ISNewSwitch (const char * dev, const char * name, ISState * states, 
             else if (SteppingModeS[2].s == ISS_ON)
             {
                 steppingMode = '2';
-                if (!command(":CW2", NULL, 0))
+                if (!command(":CW2", nullptr, 0))
                 {
                     SteppingModeSP.s = IPS_ALERT;
                 }
             }
-            IDSetSwitch(&SteppingModeSP, NULL);
+            IDSetSwitch(&SteppingModeSP, nullptr);
             return true;
         }
     }
@@ -427,16 +427,16 @@ bool NSTEP::ISNewNumber (const char * dev, const char * name, double values[], c
             IUUpdateNumber(&TempCompNP, values, names, n);
             PresetNP.s = IPS_OK;
             sprintf(buf, ":TT%+04d#", (int)(TempCompN[0].value * 10));
-            if (!command(buf, NULL, 0))
+            if (!command(buf, nullptr, 0))
             {
                 PresetNP.s = IPS_ALERT;
             }
             sprintf(buf, ":TS%03d#", (int)(TempCompN[1].value));
-            if (!command(buf, NULL, 0))
+            if (!command(buf, nullptr, 0))
             {
                 PresetNP.s = IPS_ALERT;
             }
-            IDSetNumber(&TempCompNP, NULL);
+            IDSetNumber(&TempCompNP, nullptr);
             return true;
         }
     }
@@ -447,10 +447,10 @@ bool NSTEP::ISNewNumber (const char * dev, const char * name, double values[], c
 IPState NSTEP::MoveRelFocuser(FocusDirection dir, unsigned int ticks)
 {
     sprintf(buf, ":F%c%c%03d#", dir == FOCUS_INWARD ? '1' : '0', steppingMode, ticks);
-    if (command(buf, NULL, 0))
+    if (command(buf, nullptr, 0))
     {
         FocusAbsPosNP.s = IPS_BUSY;
-        IDSetNumber(&FocusAbsPosNP, NULL);
+        IDSetNumber(&FocusAbsPosNP, nullptr);
         if (isSimulation())
         {
             if (dir == FOCUS_INWARD)
@@ -461,14 +461,14 @@ IPState NSTEP::MoveRelFocuser(FocusDirection dir, unsigned int ticks)
         return IPS_BUSY;
     }
     FocusAbsPosNP.s = IPS_ALERT;
-    IDSetNumber(&FocusAbsPosNP, NULL);
+    IDSetNumber(&FocusAbsPosNP, nullptr);
     return IPS_ALERT;
 }
 
 bool NSTEP::AbortFocuser()
 {
     sprintf(buf, ":F1%c000#", steppingMode);
-    if (command(buf, NULL, 0))
+    if (command(buf, nullptr, 0))
     {
         return true;
     }

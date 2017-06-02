@@ -40,7 +40,7 @@ INDI::BaseClient::BaseClient()
 {
     cServer = "localhost";
     cPort   = 7624;
-    svrwfp = NULL;
+    svrwfp = nullptr;
     sConnected = false;
     verbose = false;
 
@@ -135,7 +135,7 @@ bool INDI::BaseClient::connectServer()
     if (ret != 0)
     {
         //we are waiting for connect to complete now
-        if( (ret = select(sockfd + 1, &rset, &wset, NULL, &ts)) < 0)
+        if( (ret = select(sockfd + 1, &rset, &wset, nullptr, &ts)) < 0)
             return false;
         //we had a timeout
         if(ret == 0)
@@ -171,7 +171,7 @@ bool INDI::BaseClient::connectServer()
     /* prepare for line-oriented i/o with client */
     svrwfp = fdopen (sockfd, "w");
 
-    if (svrwfp == NULL)
+    if (svrwfp == nullptr)
     {
         perror("fdopen");
         return false;
@@ -190,7 +190,7 @@ bool INDI::BaseClient::connectServer()
 
     sConnected = true;
 
-    int result = pthread_create( &listen_thread, NULL, &INDI::BaseClient::listenHelper, this);
+    int result = pthread_create( &listen_thread, nullptr, &INDI::BaseClient::listenHelper, this);
 
     if (result != 0)
     {
@@ -216,15 +216,15 @@ bool INDI::BaseClient::disconnectServer()
 
     while (write(m_sendFd, "1", 1) <= 0)
 
-        if (svrwfp != NULL)
+        if (svrwfp != nullptr)
             fclose(svrwfp);
-    svrwfp = NULL;
+    svrwfp = nullptr;
 
     clear();
 
     cDeviceNames.clear();
 
-    pthread_join(listen_thread, NULL);
+    pthread_join(listen_thread, nullptr);
 
     return true;
 }
@@ -243,9 +243,9 @@ void INDI::BaseClient::disconnectDevice(const char * deviceName)
 void INDI::BaseClient::setDriverConnection(bool status, const char * deviceName)
 {
     INDI::BaseDevice * drv = getDevice(deviceName);
-    ISwitchVectorProperty * drv_connection = NULL;
+    ISwitchVectorProperty * drv_connection = nullptr;
 
-    if (drv == NULL)
+    if (drv == nullptr)
     {
         IDLog("INDI::BaseClient: Error. Unable to find driver %s\n", deviceName);
         return;
@@ -253,7 +253,7 @@ void INDI::BaseClient::setDriverConnection(bool status, const char * deviceName)
 
     drv_connection = drv->getSwitch("CONNECTION");
 
-    if (drv_connection == NULL)
+    if (drv_connection == nullptr)
         return;
 
     // If we need to connect
@@ -294,13 +294,13 @@ INDI::BaseDevice * INDI::BaseClient::getDevice(const char * deviceName)
         if (!strcmp(deviceName, (*devi)->getDeviceName()))
             return (*devi);
 
-    return NULL;
+    return nullptr;
 }
 
 void * INDI::BaseClient::listenHelper(void * context)
 {
     (static_cast<INDI::BaseClient *> (context))->listenINDI();
-    return NULL;
+    return nullptr;
 }
 
 void INDI::BaseClient::listenINDI()
@@ -355,7 +355,7 @@ void INDI::BaseClient::listenINDI()
     while (sConnected)
     {
 
-        n = select (maxfd + 1, &rs, NULL, NULL, NULL);
+        n = select (maxfd + 1, &rs, nullptr, nullptr, nullptr);
 
         if (n < 0)
         {
@@ -448,7 +448,7 @@ int INDI::BaseClient::dispatchCommand(XMLEle * root, char * errmsg)
 
     /* Get the device, if not available, create it */
     INDI::BaseDevice * dp = findDev (root, 1, errmsg);
-    if (dp == NULL)
+    if (dp == nullptr)
     {
         strcpy(errmsg, "No device available and none was created");
         return INDI_DEVICE_NOT_FOUND;
@@ -544,7 +544,7 @@ INDI::BaseDevice * INDI::BaseClient::findDev( const char * devName, char * errms
     }
 
     snprintf(errmsg, MAXRBUF, "Device %s not found", devName);
-    return NULL;
+    return nullptr;
 }
 
 /* add new device */
@@ -560,7 +560,7 @@ INDI::BaseDevice * INDI::BaseClient::addDevice (XMLEle * dep, char * errmsg)
     if (!ap)
     {
         strncpy(errmsg, "Unable to find device attribute in XML element. Cannot add device.", MAXRBUF);
-        return NULL;
+        return nullptr;
     }
 
     device_name = valuXMLAtt(ap);
@@ -587,7 +587,7 @@ INDI::BaseDevice * INDI::BaseClient::findDev (XMLEle * root, int create, char * 
     if (!ap)
     {
         snprintf(errmsg, MAXRBUF, "No device attribute found in element %s", tagXMLEle(root));
-        return (NULL);
+        return (nullptr);
     }
 
     dn = valuXMLAtt(ap);
@@ -595,7 +595,7 @@ INDI::BaseDevice * INDI::BaseClient::findDev (XMLEle * root, int create, char * 
     if (*dn == '\0')
     {
         snprintf(errmsg, MAXRBUF, "Device name is empty! %s", tagXMLEle(root));
-        return (NULL);
+        return (nullptr);
     }
 
     dp = findDev(dn, errmsg);
@@ -608,7 +608,7 @@ INDI::BaseDevice * INDI::BaseClient::findDev (XMLEle * root, int create, char * 
         return (addDevice (root, errmsg));
 
     snprintf(errmsg, MAXRBUF, "INDI: <%s> no such device %s", tagXMLEle(root), dn);
-    return NULL;
+    return nullptr;
 }
 
 /* a general message command received from the device.
@@ -650,17 +650,17 @@ void INDI::BaseClient::sendNewText (const char * deviceName, const char * proper
 
     INDI::BaseDevice * drv = getDevice(deviceName);
 
-    if (drv == NULL)
+    if (drv == nullptr)
         return;
 
     ITextVectorProperty * tvp = drv->getText(propertyName);
 
-    if (tvp == NULL)
+    if (tvp == nullptr)
         return;
 
     IText * tp = IUFindText(tvp, elementName);
 
-    if (tp == NULL)
+    if (tp == nullptr)
         return;
 
     IUSaveText(tp, text);
@@ -696,17 +696,17 @@ void INDI::BaseClient::sendNewNumber (const char * deviceName, const char * prop
 {
     INDI::BaseDevice * drv = getDevice(deviceName);
 
-    if (drv == NULL)
+    if (drv == nullptr)
         return;
 
     INumberVectorProperty * nvp = drv->getNumber(propertyName);
 
-    if (nvp == NULL)
+    if (nvp == nullptr)
         return;
 
     INumber * np = IUFindNumber(nvp, elementName);
 
-    if (np == NULL)
+    if (np == nullptr)
         return;
 
     np->value = value;
@@ -753,17 +753,17 @@ void INDI::BaseClient::sendNewSwitch (const char * deviceName, const char * prop
 {
     INDI::BaseDevice * drv = getDevice(deviceName);
 
-    if (drv == NULL)
+    if (drv == nullptr)
         return;
 
     ISwitchVectorProperty * svp = drv->getSwitch(propertyName);
 
-    if (svp == NULL)
+    if (svp == nullptr)
         return;
 
     ISwitch * sp = IUFindSwitch(svp, elementName);
 
-    if (sp == NULL)
+    if (sp == nullptr)
         return;
 
     sp->s = ISS_ON;
@@ -862,7 +862,7 @@ void INDI::BaseClient::setBLOBMode(BLOBHandling blobH, const char * dev, const c
 
     BLOBMode * bMode = findBLOBMode(string(dev), prop ? string(prop) : string());
 
-    if (bMode == NULL)
+    if (bMode == nullptr)
     {
         BLOBMode * newMode = new BLOBMode();
         newMode->device   = string(dev);
@@ -879,7 +879,7 @@ void INDI::BaseClient::setBLOBMode(BLOBHandling blobH, const char * dev, const c
         bMode->blobMode = blobH;
     }
 
-    if (prop != NULL)
+    if (prop != nullptr)
         snprintf(blobOpenTag, MAXRBUF, "<enableBLOB device='%s' name='%s'>", dev, prop);
     else
         snprintf(blobOpenTag, MAXRBUF, "<enableBLOB device='%s'>", dev);
@@ -922,6 +922,6 @@ INDI::BaseClient::BLOBMode * INDI::BaseClient::findBLOBMode(string device, strin
             return (*blobby);
     }
 
-    return NULL;
+    return nullptr;
 }
 
