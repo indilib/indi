@@ -1,0 +1,22 @@
+Focuser Server INDI driver
+=================================
+This package provides the INDI driver for a focuser server so other devices can remotely
+control an INDI focuser without having to be an INDI client.
+
+Requirements
+============
+* INDI
+* CFITSIO
+* LIBDC1394
+
+
+Installation
+============
+See INSTALL
+
+
+How to Use
+==========
+Once installed, the Focuser Server INDI driver can be used by a remote client such as
+the iOS app specifically made to use this driver.
+

@@ -36,6 +36,7 @@ option(WITH_GIGE "Install GiGE machine vision Driver" Off)
 option(WITH_DSI "Install Meade DSI Driver" On)
 option(WITH_ASICAM "Install ZWO Optics ASI Driver" On)
 option(WITH_MGEN "Install MGen Autoguider" Off)
+option(WITH_FS "Install Focuser Server" On)
 
 # Add/remove cases for OSX
 if (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
@@ -187,6 +188,11 @@ endif (WITH_GIGE)
 if (WITH_MGEN)
 add_subdirectory(indi-mgen)
 endif (WITH_MGEN)
+
+# FS
+if (WITH_FS)
+add_subdirectory(indi-focuser-server)
+endif (WITH_FS)
 
 #endif (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
 
