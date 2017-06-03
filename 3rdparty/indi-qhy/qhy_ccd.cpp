@@ -679,9 +679,9 @@ bool QHYCCD::Connect()
         if(ret != QHYCCD_ERROR)
         {
              if(ret == BAYER_GB)
-                 IUSaveText(&BayerT[2], "GBGR");
+                 IUSaveText(&BayerT[2], "GBRG");
              else if (ret == BAYER_GR)
-                 IUSaveText(&BayerT[2], "GRGB");
+                 IUSaveText(&BayerT[2], "GRBG");
              else if (ret == BAYER_BG)
                  IUSaveText(&BayerT[2], "BGGR");
              else
