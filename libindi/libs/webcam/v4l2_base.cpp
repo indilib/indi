@@ -1059,7 +1059,7 @@ int V4L2_Base::check_device(char * errmsg)
     DEBUGDEVICE(deviceName, INDI::Logger::DBG_DEBUG, "Enumerating available Inputs:");
     for (input_avail.index = 0; ioctl(fd, VIDIOC_ENUMINPUT, &input_avail) != -1; input_avail.index ++)
         DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG, "%2d. %.*s (type %s)%s", input_avail.index, (int)sizeof(input_avail.name), input_avail.name,
-                     (input_avail.type == V4L2_INPUT_TYPE_TUNER ? "Tuner/RF Demodulator" : "Composite/S-Video", input.index == input_avail.index ? " current" : ""));
+                     (input_avail.type == V4L2_INPUT_TYPE_TUNER ? "Tuner/RF Demodulator" : "Composite/S-Video"), input.index == input_avail.index ? " current" : "");
     if (errno != EINVAL)
         DEBUGDEVICE(deviceName, INDI::Logger::DBG_DEBUG, "(problem enumerating inputs)");
     enumeratedInputs = input_avail.index;
