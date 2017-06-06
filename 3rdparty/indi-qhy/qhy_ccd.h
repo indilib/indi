@@ -29,6 +29,9 @@
 #include "qhyccd.h"
 #include "log4z.h"
 
+#include <future>
+#include <memory>
+
 using namespace std;
 
 #define DEVICE struct usb_device *
@@ -169,6 +172,7 @@ private:
 #endif
   pthread_t primary_thread;
   bool terminateThread;
+  std::unique_ptr<std::future<int>> asyncCapture;
 
   friend void ::ISGetProperties(const char *dev);
   friend void ::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int num);
