@@ -842,8 +842,8 @@ int V4L2_Base::init_mmap(char * errmsg)
     {
         if (EINVAL == errno)
         {
-            fprintf (stderr, "%.*s does not support memory mapping\n", sizeof(dev_name), dev_name);
-            snprintf(errmsg, ERRMSGSIZ, "%.*s does not support memory mapping\n", sizeof(dev_name), dev_name);
+            fprintf (stderr, "%.*s does not support memory mapping\n", (int)sizeof(dev_name), dev_name);
+            snprintf(errmsg, ERRMSGSIZ, "%.*s does not support memory mapping\n", (int)sizeof(dev_name), dev_name);
             return -1;
         }
         else
@@ -854,8 +854,8 @@ int V4L2_Base::init_mmap(char * errmsg)
 
     if (req.count < 2)
     {
-        fprintf (stderr, "Insufficient buffer memory on %.*s\n", sizeof(dev_name), dev_name);
-        snprintf(errmsg, ERRMSGSIZ, "Insufficient buffer memory on %.*s\n", sizeof(dev_name), dev_name);
+        fprintf (stderr, "Insufficient buffer memory on %.*s\n", (int)sizeof(dev_name), dev_name);
+        snprintf(errmsg, ERRMSGSIZ, "Insufficient buffer memory on %.*s\n", (int)sizeof(dev_name), dev_name);
         return -1;
     }
 
@@ -911,7 +911,7 @@ void V4L2_Base::init_userp(unsigned int buffer_size)
     {
         if (EINVAL == errno)
         {
-            fprintf (stderr, "%.*s does not support user pointer i/o\n", sizeof(dev_name), dev_name);
+            fprintf (stderr, "%.*s does not support user pointer i/o\n", (int)sizeof(dev_name), dev_name);
             exit (EXIT_FAILURE);
         }
         else
@@ -951,8 +951,8 @@ int V4L2_Base::check_device(char * errmsg)
     {
         if (EINVAL == errno)
         {
-            fprintf (stderr, "%.*s is no V4L2 device\n", sizeof(dev_name), dev_name);
-            snprintf(errmsg, ERRMSGSIZ, "%.*s is no V4L2 device\n", sizeof(dev_name), dev_name);
+            fprintf (stderr, "%.*s is no V4L2 device\n", (int)sizeof(dev_name), dev_name);
+            snprintf(errmsg, ERRMSGSIZ, "%.*s is no V4L2 device\n", (int)sizeof(dev_name), dev_name);
             return -1;
         }
         else
@@ -961,10 +961,10 @@ int V4L2_Base::check_device(char * errmsg)
         }
     }
 
-    DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG, "Driver %.*s (version %u.%u.%u)", sizeof(cap.driver), cap.driver, (cap.version >> 16) & 0xFF,
+    DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG, "Driver %.*s (version %u.%u.%u)", (int)sizeof(cap.driver), cap.driver, (cap.version >> 16) & 0xFF,
                  (cap.version >> 8) & 0xFF, (cap.version & 0xFF));
-    DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG, "  card: %.*s", sizeof(cap.card), cap.card);
-    DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG, "  bus:  %.*s", sizeof(cap.bus_info), cap.bus_info);
+    DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG, "  card: %.*s", (int)sizeof(cap.card), cap.card);
+    DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG, "  bus:  %.*s", (int)sizeof(cap.bus_info), cap.bus_info);
 
     setframerate = &V4L2_Base::stdsetframerate;
     getframerate = &V4L2_Base::stdgetframerate;
@@ -1020,8 +1020,8 @@ int V4L2_Base::check_device(char * errmsg)
     }*/
     if (!(cap.capabilities & V4L2_CAP_VIDEO_CAPTURE))
     {
-        fprintf (stderr, "%.*s is no video capture device\n", sizeof(dev_name), dev_name);
-        snprintf(errmsg, ERRMSGSIZ, "%.*s is no video capture device", sizeof(dev_name), dev_name);
+        fprintf (stderr, "%.*s is no video capture device\n", (int)sizeof(dev_name), dev_name);
+        snprintf(errmsg, ERRMSGSIZ, "%.*s is no video capture device", (int)sizeof(dev_name), dev_name);
         return -1;
     }
 
@@ -1030,8 +1030,8 @@ int V4L2_Base::check_device(char * errmsg)
         case IO_METHOD_READ:
             if (!(cap.capabilities & V4L2_CAP_READWRITE))
             {
-                fprintf (stderr, "%.*s does not support read i/o", sizeof(dev_name), dev_name);
-                snprintf(errmsg, ERRMSGSIZ, "%.*s does not support read i/o", sizeof(dev_name), dev_name);
+                fprintf (stderr, "%.*s does not support read i/o", (int)sizeof(dev_name), dev_name);
+                snprintf(errmsg, ERRMSGSIZ, "%.*s does not support read i/o", (int)sizeof(dev_name), dev_name);
                 return -1;
             }
             break;
@@ -1040,8 +1040,8 @@ int V4L2_Base::check_device(char * errmsg)
         case IO_METHOD_USERPTR:
             if (!(cap.capabilities & V4L2_CAP_STREAMING))
             {
-                fprintf (stderr, "%.*s does not support streaming i/o", sizeof(dev_name), dev_name);
-                snprintf(errmsg, ERRMSGSIZ, "%.*s does not support streaming i/o", sizeof(dev_name), dev_name);
+                fprintf (stderr, "%.*s does not support streaming i/o", (int)sizeof(dev_name), dev_name);
+                snprintf(errmsg, ERRMSGSIZ, "%.*s does not support streaming i/o", (int)sizeof(dev_name), dev_name);
                 return -1;
             }
 
@@ -1058,8 +1058,8 @@ int V4L2_Base::check_device(char * errmsg)
 
     DEBUGDEVICE(deviceName, INDI::Logger::DBG_DEBUG, "Enumerating available Inputs:");
     for (input_avail.index = 0; ioctl(fd, VIDIOC_ENUMINPUT, &input_avail) != -1; input_avail.index ++)
-        DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG, "%2d. %.*s (type %s)%s", input_avail.index, sizeof(input_avail.name), input_avail.name,
-                     (input_avail.type == V4L2_INPUT_TYPE_TUNER ? "Tuner/RF Demodulator" : "Composite/S-Video", input.index == input_avail.index ? " current" : ""));
+        DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG, "%2d. %.*s (type %s)%s", input_avail.index, (int)sizeof(input_avail.name), input_avail.name,
+                     (input_avail.type == V4L2_INPUT_TYPE_TUNER ? "Tuner/RF Demodulator" : "Composite/S-Video"), input.index == input_avail.index ? " current" : "");
     if (errno != EINVAL)
         DEBUGDEVICE(deviceName, INDI::Logger::DBG_DEBUG, "(problem enumerating inputs)");
     enumeratedInputs = input_avail.index;
@@ -1113,7 +1113,7 @@ int V4L2_Base::check_device(char * errmsg)
         {
             //DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG,INDI::Logger::DBG_SESSION,"\t%d. %s (%c%c%c%c) %s\n", fmt_avail.index, fmt_avail.description, (fmt_avail.pixelformat)&0xFF, (fmt_avail.pixelformat >> 8)&0xFF,
             //     (fmt_avail.pixelformat >> 16)&0xFF, (fmt_avail.pixelformat >> 24)&0xFF, (decoder->issupportedformat(fmt_avail.pixelformat)?"supported":"UNSUPPORTED"));
-            DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG, "%2d. Format %.*s (%c%c%c%c) is %s", fmt_avail.index, sizeof(fmt_avail.description), fmt_avail.description, (fmt_avail.pixelformat) & 0xFF, (fmt_avail.pixelformat >> 8) & 0xFF,
+            DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG, "%2d. Format %.*s (%c%c%c%c) is %s", fmt_avail.index, (int)sizeof(fmt_avail.description), fmt_avail.description, (fmt_avail.pixelformat) & 0xFF, (fmt_avail.pixelformat >> 8) & 0xFF,
                          (fmt_avail.pixelformat >> 16) & 0xFF, (fmt_avail.pixelformat >> 24) & 0xFF, (decoder->issupportedformat(fmt_avail.pixelformat) ? "supported" : "UNSUPPORTED"));
             {
                 // Enumerating frame sizes available for this pixel format
@@ -1296,15 +1296,15 @@ int V4L2_Base::open_device(const char * devpath, char * errmsg)
 
     if (-1 == stat (dev_name, &st))
     {
-        fprintf (stderr, "Cannot identify %.*s: %d, %s\n", sizeof(dev_name), dev_name, errno, strerror (errno));
-        snprintf(errmsg, ERRMSGSIZ, "Cannot identify %.*s: %d, %s\n", sizeof(dev_name), dev_name, errno, strerror (errno));
+        fprintf (stderr, "Cannot identify %.*s: %d, %s\n", (int)sizeof(dev_name), dev_name, errno, strerror (errno));
+        snprintf(errmsg, ERRMSGSIZ, "Cannot identify %.*s: %d, %s\n", (int)sizeof(dev_name), dev_name, errno, strerror (errno));
         return -1;
     }
 
     if (!S_ISCHR (st.st_mode))
     {
-        fprintf (stderr, "%.*s is no device\n", sizeof(dev_name), dev_name);
-        snprintf(errmsg, ERRMSGSIZ, "%.*s is no device\n", sizeof(dev_name), dev_name);
+        fprintf (stderr, "%.*s is no device\n", (int)sizeof(dev_name), dev_name);
+        snprintf(errmsg, ERRMSGSIZ, "%.*s is no device\n", (int)sizeof(dev_name), dev_name);
         return -1;
     }
 
@@ -1312,8 +1312,8 @@ int V4L2_Base::open_device(const char * devpath, char * errmsg)
 
     if (-1 == fd)
     {
-        fprintf (stderr, "Cannot open %.*s: %d, %s\n", sizeof(dev_name), dev_name, errno, strerror (errno));
-        snprintf(errmsg, ERRMSGSIZ, "Cannot open %.*s: %d, %s\n", sizeof(dev_name), dev_name, errno, strerror (errno));
+        fprintf (stderr, "Cannot open %.*s: %d, %s\n", (int)sizeof(dev_name), dev_name, errno, strerror (errno));
+        snprintf(errmsg, ERRMSGSIZ, "Cannot open %.*s: %d, %s\n", (int)sizeof(dev_name), dev_name, errno, strerror (errno));
         return -1;
     }
 
@@ -1363,7 +1363,7 @@ void V4L2_Base::getinputs(ISwitchVectorProperty * inputssp)
 
     /* And mark current */
     inputs[input.index].s = ISS_ON;
-    DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG, "Current video input is   %d. %.*s", input.index, sizeof(inputs[input.index].name), inputs[input.index].name);
+    DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG, "Current video input is   %d. %.*s", input.index, (int)sizeof(inputs[input.index].name), inputs[input.index].name);
 }
 
 int V4L2_Base::setinput(unsigned int inputindex, char * errmsg)
@@ -2120,7 +2120,7 @@ void  V4L2_Base::queryControls(INumberVectorProperty * nvp, unsigned int * nnumb
                 opt[nopt].aux = malloc(sizeof(unsigned int));
                 *(unsigned int *)(opt[nopt].aux) = (queryctrl.id);
 
-                DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG, "Adding switch  %.*s (%s)\n", sizeof(queryctrl.name), queryctrl.name, (control.value ? "On" : "Off"));
+                DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG, "Adding switch  %.*s (%s)\n", (int)sizeof(queryctrl.name), queryctrl.name, (control.value ? "On" : "Off"));
                 nopt += 1;
             }
 #if ( LINUX_VERSION_CODE >= KERNEL_VERSION(3,5,0) )
@@ -2156,7 +2156,7 @@ void  V4L2_Base::queryControls(INumberVectorProperty * nvp, unsigned int * nnumb
 #if ( LINUX_VERSION_CODE >= KERNEL_VERSION(3,5,0) )
                         if (queryctrl.type == V4L2_CTRL_TYPE_MENU)
                         {
-                            snprintf(sname, 31, "%.*s", sizeof(querymenu.name), querymenu.name);
+                            snprintf(sname, 31, "%.*s", (int)sizeof(querymenu.name), querymenu.name);
                             sname[31] = '\0';
                         }
                         if (queryctrl.type == V4L2_CTRL_TYPE_INTEGER_MENU)
@@ -2165,10 +2165,10 @@ void  V4L2_Base::queryControls(INumberVectorProperty * nvp, unsigned int * nnumb
                             sname[31] = '\0';
                         }
 #else
-                        snprintf(sname, 31, "%.*s", sizeof(querymenu.name), querymenu.name);
+                        snprintf(sname, 31, "%.*s", (int)sizeof(querymenu.name), querymenu.name);
                         sname[31] = '\0';
 #endif
-                        DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG, "Adding menu item %.*s %.*s item %d", sizeof(sname), sname, sizeof(menuoptname), menuoptname, nmenuopt);
+                        DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG, "Adding menu item %.*s %.*s item %d", (int)sizeof(sname), sname, (int)sizeof(menuoptname), menuoptname, nmenuopt);
                         //IUFillSwitch(&sw[nmenuopt], menuoptname, (const char *)sname, (control.value==nmenuopt?ISS_ON:ISS_OFF));
                         IUFillSwitch(&sw[nmenuopt], menuoptname, (const char *)entityXML((char *)sname), (control.value == nmenuopt ? ISS_ON : ISS_OFF));
                         nmenuopt += 1;
@@ -2185,7 +2185,7 @@ void  V4L2_Base::queryControls(INumberVectorProperty * nvp, unsigned int * nnumb
                 opt[nopt].aux = malloc(sizeof(unsigned int));
                 *(unsigned int *)(opt[nopt].aux) = (queryctrl.id);
 
-                DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG, "Adding menu  %.*s (item %d set)", sizeof(queryctrl.name), queryctrl.name, control.value);
+                DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG, "Adding menu  %.*s (item %d set)", (int)sizeof(queryctrl.name), queryctrl.name, control.value);
                 nopt += 1;
             }
         }
@@ -2263,7 +2263,7 @@ void  V4L2_Base::queryControls(INumberVectorProperty * nvp, unsigned int * nnumb
                 opt[nopt].aux = malloc(sizeof(unsigned int));
                 *(unsigned int *)(opt[nopt].aux) = (queryctrl.id);
 
-                DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG, "Adding ext. switch  %.*s (%s)\n", sizeof(queryctrl.name), queryctrl.name, (control.value ? "On" : "Off"));
+                DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG, "Adding ext. switch  %.*s (%s)\n", (int)sizeof(queryctrl.name), queryctrl.name, (control.value ? "On" : "Off"));
                 nopt += 1;
             }
 #if ( LINUX_VERSION_CODE >= KERNEL_VERSION(3,5,0) )
@@ -2299,7 +2299,7 @@ void  V4L2_Base::queryControls(INumberVectorProperty * nvp, unsigned int * nnumb
 #if ( LINUX_VERSION_CODE >= KERNEL_VERSION(3,5,0) )
                         if (queryctrl.type == V4L2_CTRL_TYPE_MENU)
                         {
-                            snprintf(sname, 31, "%.*s", sizeof(querymenu.name), querymenu.name);
+                            snprintf(sname, 31, "%.*s", (int)sizeof(querymenu.name), querymenu.name);
                             sname[31] = '\0';
                         }
                         if (queryctrl.type == V4L2_CTRL_TYPE_INTEGER_MENU)
@@ -2308,10 +2308,10 @@ void  V4L2_Base::queryControls(INumberVectorProperty * nvp, unsigned int * nnumb
                             sname[31] = '\0';
                         }
 #else
-                        snprintf(sname, 31, "%.*s", sizeof(querymenu.name), querymenu.name);
+                        snprintf(sname, 31, "%.*s", (int)sizeof(querymenu.name), querymenu.name);
                         sname[31] = '\0';
 #endif
-			DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG, "Adding menu item %.*s %.*s item %d", sizeof(sname), sname, sizeof(menuoptname), menuoptname, nmenuopt);
+			DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG, "Adding menu item %.*s %.*s item %d", (int)sizeof(sname), sname, (int)sizeof(menuoptname), menuoptname, nmenuopt);
                         //IUFillSwitch(&sw[nmenuopt], menuoptname, (const char *)sname, (control.value==nmenuopt?ISS_ON:ISS_OFF));
                         IUFillSwitch(&sw[nmenuopt], menuoptname, (const char *)entityXML((char *)querymenu.name), (control.value == nmenuopt ? ISS_ON : ISS_OFF));
                         nmenuopt += 1;
@@ -2329,7 +2329,7 @@ void  V4L2_Base::queryControls(INumberVectorProperty * nvp, unsigned int * nnumb
                 opt[nopt].aux = malloc(sizeof(unsigned int));
                 *(unsigned int *)(opt[nopt].aux) = (queryctrl.id);
 
-                DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG, "Adding ext. menu  %.*s (item %d set)", sizeof(queryctrl.name), queryctrl.name, control.value);
+                DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG, "Adding ext. menu  %.*s (item %d set)", (int)sizeof(queryctrl.name), queryctrl.name, control.value);
                 nopt += 1;
             }
 
@@ -2395,7 +2395,7 @@ int  V4L2_Base::queryINTControls(INumberVectorProperty * nvp)
                 /* Store ID info in INumber. This is the first time ever I make use of aux0!! */
                 num_ctrls[nnum] = queryctrl.id;
 
-                DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG, "%.*s -- min: %d max: %d step: %d value: %d", sizeof(queryctrl.name), queryctrl.name, queryctrl.minimum, queryctrl.maximum, queryctrl.step,
+                DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG, "%.*s -- min: %d max: %d step: %d value: %d", (int)sizeof(queryctrl.name), queryctrl.name, queryctrl.minimum, queryctrl.maximum, queryctrl.step,
                              numbers[nnum].value);
 
                 nnum++;
@@ -2489,7 +2489,7 @@ int  V4L2_Base::setINTControl(unsigned int ctrl_id, double new_value,  char * er
        (queryctrl.flags & V4L2_CTRL_FLAG_INACTIVE) ||
        (queryctrl.flags & V4L2_CTRL_FLAG_VOLATILE))
     {
-       DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG, "Can not set control %.*s (%d)", sizeof(queryctrl.name), queryctrl.name, queryctrl.flags);
+       DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG, "Can not set control %.*s (%d)", (int)sizeof(queryctrl.name), queryctrl.name, queryctrl.flags);
        return 0;
     }   
 
@@ -2517,7 +2517,7 @@ int  V4L2_Base::setOPTControl(unsigned int ctrl_id, unsigned int new_value, char
        (queryctrl.flags & V4L2_CTRL_FLAG_INACTIVE) ||
        (queryctrl.flags & V4L2_CTRL_FLAG_VOLATILE))
     {
-        DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG, "Can not set control %.*s (%d)", sizeof(queryctrl.name), queryctrl.name, queryctrl.flags);
+        DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG, "Can not set control %.*s (%d)", (int)sizeof(queryctrl.name), queryctrl.name, queryctrl.flags);
         return 0;
     }   
     
@@ -2610,14 +2610,14 @@ bool  V4L2_Base::queryExtControls(INumberVectorProperty * nvp, unsigned int * nn
 
         if (queryctrl.type == V4L2_CTRL_TYPE_CTRL_CLASS)
         {
-            DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG, "Control Class %.*s", sizeof(queryctrl.name), queryctrl.name);
+            DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG, "Control Class %.*s", (int)sizeof(queryctrl.name), queryctrl.name);
             queryctrl.id |= V4L2_CTRL_FLAG_NEXT_CTRL;
             continue;
         }
 
         if (queryctrl.flags & V4L2_CTRL_FLAG_DISABLED)
         {
-            DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG, "%.*s is disabled.", sizeof(queryctrl.name), queryctrl.name);
+            DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG, "%.*s is disabled.", (int)sizeof(queryctrl.name), queryctrl.name);
             queryctrl.id |= V4L2_CTRL_FLAG_NEXT_CTRL;
             continue;
         }
@@ -2645,7 +2645,7 @@ bool  V4L2_Base::queryExtControls(INumberVectorProperty * nvp, unsigned int * nn
             /* Store ID info in INumber. This is the first time ever I make use of aux0!! */
             num_ctrls[nnum] = queryctrl.id;
 
-            DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG, "Adding %.*s -- min: %d max: %d step: %d value: %d", sizeof(queryctrl.name), queryctrl.name, queryctrl.minimum, queryctrl.maximum,
+            DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG, "Adding %.*s -- min: %d max: %d step: %d value: %d", (int)sizeof(queryctrl.name), queryctrl.name, queryctrl.minimum, queryctrl.maximum,
                          queryctrl.step, numbers[nnum].value);
 
             nnum++;
@@ -2674,7 +2674,7 @@ bool  V4L2_Base::queryExtControls(INumberVectorProperty * nvp, unsigned int * nn
             opt[nopt].aux = malloc(sizeof(unsigned int));
             *(unsigned int *)(opt[nopt].aux) = (queryctrl.id);
 
-            DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG, "Adding switch  %.*s (%s)", sizeof(queryctrl.name), queryctrl.name, (control.value ? "On" : "Off"));
+            DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG, "Adding switch  %.*s (%s)", (int)sizeof(queryctrl.name), queryctrl.name, (control.value ? "On" : "Off"));
             nopt += 1;
         }
         if (queryctrl.type == V4L2_CTRL_TYPE_BUTTON)
@@ -2693,7 +2693,7 @@ bool  V4L2_Base::queryExtControls(INumberVectorProperty * nvp, unsigned int * nn
             IUFillSwitchVector (&opt[nopt], sw, 1, dev, optname, (const char *)entityXML((char *)queryctrl.name), group, IP_RW, ISR_NOFMANY, 0.0, IPS_IDLE);
             opt[nopt].aux = malloc(sizeof(unsigned int));
             *(unsigned int *)(opt[nopt].aux) = (queryctrl.id);
-            DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG, "Adding Button %.*s", sizeof(queryctrl.name), queryctrl.name);
+            DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG, "Adding Button %.*s", (int)sizeof(queryctrl.name), queryctrl.name);
             nopt += 1;
         }
 #if ( LINUX_VERSION_CODE >= KERNEL_VERSION(3,5,0) )
@@ -2729,7 +2729,7 @@ bool  V4L2_Base::queryExtControls(INumberVectorProperty * nvp, unsigned int * nn
 #if ( LINUX_VERSION_CODE >= KERNEL_VERSION(3,5,0) )
                     if (queryctrl.type == V4L2_CTRL_TYPE_MENU)
                     {
-                        snprintf(sname, 31, "%.*s", sizeof(querymenu.name), querymenu.name);
+                        snprintf(sname, 31, "%.*s", (int)sizeof(querymenu.name), querymenu.name);
                         sname[31] = '\0';
                     }
                     if (queryctrl.type == V4L2_CTRL_TYPE_INTEGER_MENU)
@@ -2738,10 +2738,10 @@ bool  V4L2_Base::queryExtControls(INumberVectorProperty * nvp, unsigned int * nn
                         sname[31] = '\0';
                     }
 #else
-                    snprintf(sname, 31, "%.*s", sizeof(querymenu.name), querymenu.name);
+                    snprintf(sname, 31, "%.*s", (int)sizeof(querymenu.name), querymenu.name);
                     sname[31] = '\0';
 #endif
-                    DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG, "Adding menu item %.*s %.*s item %d index %d", sizeof(sname), sname, sizeof(menuoptname), menuoptname, nmenuopt, querymenu.index);
+                    DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG, "Adding menu item %.*s %.*s item %d index %d", (int)sizeof(sname), sname, (int)sizeof(menuoptname), menuoptname, nmenuopt, querymenu.index);
                     //IUFillSwitch(&sw[nmenuopt], menuoptname, (const char *)sname, (control.value==nmenuopt?ISS_ON:ISS_OFF));
                     IUFillSwitch(&sw[nmenuopt], menuoptname, (const char *)entityXML((char *)querymenu.name), (control.value == nmenuopt ? ISS_ON : ISS_OFF));
                     sw[nmenuopt].aux = malloc(sizeof(unsigned int));
@@ -2760,7 +2760,7 @@ bool  V4L2_Base::queryExtControls(INumberVectorProperty * nvp, unsigned int * nn
             opt[nopt].aux = malloc(sizeof(unsigned int));
             *(unsigned int *)(opt[nopt].aux) = (queryctrl.id);
 
-            DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG, "Adding menu  %.*s (item %d set)", sizeof(queryctrl.name), queryctrl.name, control.value);
+            DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG, "Adding menu  %.*s (item %d set)", (int)sizeof(queryctrl.name), queryctrl.name, control.value);
             nopt += 1;
         }
 
