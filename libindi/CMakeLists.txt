@@ -48,6 +48,26 @@ IF (UNIX OR APPLE OR ANDROID)
     SET(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} ${SEC_LINK_FLAGS}")
 ENDIF ()
 
+# Clang Format support
+IF (UNIX OR APPLE)
+    SET(FORMAT_CODE OFF CACHE BOOL "Enable Clang Format")
+    IF (FORMAT_CODE MATCHES ON)
+        FILE(GLOB_RECURSE ALL_SOURCE_FILES *.cpp *.h)
+
+        FOREACH(SOURCE_FILE ${ALL_SOURCE_FILES})
+            STRING(FIND ${SOURCE_FILE} ${CMAKE_SOURCE_DIR} DIR_FOUND)
+            IF (NOT ${DIR_FOUND} EQUAL 0)
+                LIST(REMOVE_ITEM ALL_SOURCE_FILES ${SOURCE_FILE})
+            ENDIF ()
+        ENDFOREACH ()
+
+        FIND_PROGRAM(CLANGFORMAT_EXE NAMES clang-format-5.0)
+        IF (CLANGFORMAT_EXE)
+            ADD_CUSTOM_TARGET(clang-format COMMAND ${CLANGFORMAT_EXE} -style=file -i ${ALL_SOURCE_FILES})
+        ENDIF ()
+    ENDIF ()
+ENDIF ()
+
 #####################################  INDI version  ################################################
 # N.B. DO NOT Forget to update version also in indiapi.h
 # Proper way is to use indiversion.h.cmake file but this would break make existing applications so let us stick to the old proven way
