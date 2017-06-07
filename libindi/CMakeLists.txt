@@ -29,6 +29,25 @@ IF (ANDROID OR UNIX OR APPLE)
     ENDIF ()
 ENDIF ()
 
+# Add security (hardening flags)
+IF (UNIX OR APPLE OR ANDROID)
+    SET(SEC_COMP_FLAGS "-D_FORTIFY_SOURCE=2 -fstack-protector-all -Wcast-align -fPIE")
+    IF (NOT ANDROID AND NOT "${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang" AND NOT APPLE)
+        SET(SEC_COMP_FLAGS "${SEC_COMP_FLAGS} -Wa,--noexecstack")
+    ENDIF ()
+    SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${SEC_COMP_FLAGS}")
+    SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${SEC_COMP_FLAGS}")
+    SET(SEC_LINK_FLAGS "")
+    IF (NOT APPLE)
+        SET(SEC_LINK_FLAGS "${SEC_LINK_FLAGS} -Wl,-z,nodump -Wl,-z,noexecstack -Wl,-z,relro -Wl,-z,now")
+    ENDIF ()
+    IF (NOT ANDROID AND NOT APPLE)
+        SET(SEC_LINK_FLAGS "${SEC_LINK_FLAGS} -pie")
+    ENDIF ()
+    SET(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${SEC_LINK_FLAGS}")
+    SET(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} ${SEC_LINK_FLAGS}")
+ENDIF ()
+
 #####################################  INDI version  ################################################
 # N.B. DO NOT Forget to update version also in indiapi.h
 # Proper way is to use indiversion.h.cmake file but this would break make existing applications so let us stick to the old proven way
