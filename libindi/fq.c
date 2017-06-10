@@ -48,64 +48,60 @@
 
 #include "fq.h"
 
-struct _FQ {
-    void **q;				/* malloced array of (void *) */
-    int nq;				/* number of elements on queue */
-    int head;				/* index into q[] of next empty spot */
-    int nmem;				/* number of total slots in q[] */
-    int grow;				/* n elements to grow when out of room*/
+struct _FQ
+{
+    void **q; /* malloced array of (void *) */
+    int nq;   /* number of elements on queue */
+    int head; /* index into q[] of next empty spot */
+    int nmem; /* number of total slots in q[] */
+    int grow; /* n elements to grow when out of room*/
 };
 
 /* default memory managers, override with setMemFuncsFQ() */
-static void *(*mymalloc)(size_t size) = malloc;
+static void *(*mymalloc)(size_t size)             = malloc;
 static void *(*myrealloc)(void *ptr, size_t size) = realloc;
-static void (*myfree)(void *ptr) = free;
+static void (*myfree)(void *ptr)                  = free;
 
-static void chkFQ (FQ *q);
+static void chkFQ(FQ *q);
 
 /* return pointer to a new FQ, or NULL if no more memory.
  * grow is an efficiency hint of the number of elements to grow when out of
  *   room, nothing terrible happens if it is wrong.
  */
-FQ *
-newFQ (int grow)
+FQ *newFQ(int grow)
 {
-	FQ *q = (FQ *)(*mymalloc)(sizeof(FQ));
-	memset (q, 0, sizeof(FQ));
-	q->q = (*mymalloc) (1);		/* seed for realloc */
-	q->grow = grow > 0 ? grow : 1;
-	return (q);
+    FQ *q = (FQ *)(*mymalloc)(sizeof(FQ));
+    memset(q, 0, sizeof(FQ));
+    q->q    = (*mymalloc)(1); /* seed for realloc */
+    q->grow = grow > 0 ? grow : 1;
+    return (q);
 }
 
 /* delete a FQ no longer needed */
-void
-delFQ (FQ *q)
+void delFQ(FQ *q)
 {
-	(*myfree) (q->q);		/* guaranteed set in newFQ() */
-	(*myfree) ((void *)q);
+    (*myfree)(q->q); /* guaranteed set in newFQ() */
+    (*myfree)((void *)q);
 }
 
 /* push an element onto the given FQ */
-void
-pushFQ (FQ *q, void *e)
+void pushFQ(FQ *q, void *e)
 {
-	chkFQ (q);
-	q->q[q->head++] = e;
-	q->nq++;
+    chkFQ(q);
+    q->q[q->head++] = e;
+    q->nq++;
 }
 
 /* pop and return the next element in the given FQ, or NULL if empty */
-void *
-popFQ (FQ *q)
+void *popFQ(FQ *q)
 {
-	return (q->nq > 0 ? q->q[q->head - q->nq--] : NULL);
+    return (q->nq > 0 ? q->q[q->head - q->nq--] : NULL);
 }
 
 /* return next element in the given FQ leaving it on the q, or NULL if empty */
-void *
-peekFQ (FQ *q)
+void *peekFQ(FQ *q)
 {
-	return (peekiFQ(q,0));
+    return (peekiFQ(q, 0));
 }
 
 /* return ith element from head of the given FQ.
@@ -113,50 +109,45 @@ peekFQ (FQ *q)
  *   for (i = 0; i < nFQ(q); i++)
  *     void *e = peekiFQ(q,i);
  */
-void *
-peekiFQ (FQ *q, int i)
+void *peekiFQ(FQ *q, int i)
 {
-	return (q->nq > 0 ? q->q[q->head - q->nq + i] : NULL);
+    return (q->nq > 0 ? q->q[q->head - q->nq + i] : NULL);
 }
 
 /* return the number of elements in the given FQ */
-int
-nFQ (FQ *q)
+int nFQ(FQ *q)
 {
-	return (q->nq);
+    return (q->nq);
 }
 
 /* install new version of malloc/realloc/free.
  * N.B. don't call after first use of any other FQ function
  */
-void
-setMemFuncsFQ (void *(*newmalloc)(size_t size),
-           void *(*newrealloc)(void *ptr, size_t size),
-	   void (*newfree)(void *ptr))
+void setMemFuncsFQ(void *(*newmalloc)(size_t size), void *(*newrealloc)(void *ptr, size_t size),
+                   void (*newfree)(void *ptr))
 {
-	mymalloc = newmalloc;
-	myrealloc = newrealloc;
-	myfree = newfree;
+    mymalloc  = newmalloc;
+    myrealloc = newrealloc;
+    myfree    = newfree;
 }
 
 /* insure q can hold one more element */
-static void
-chkFQ (FQ *q)
+static void chkFQ(FQ *q)
 {
-	int infront;
+    int infront;
 
-	/* done if still room at end */
-	if (q->nmem > q->head)
-	    return;
+    /* done if still room at end */
+    if (q->nmem > q->head)
+        return;
 
-	/* move list to front */
-	infront = q->head - q->nq;
-	memmove (q->q, &q->q[infront], q->nq * sizeof(void*));
-	q->head -= infront;
+    /* move list to front */
+    infront = q->head - q->nq;
+    memmove(q->q, &q->q[infront], q->nq * sizeof(void *));
+    q->head -= infront;
 
-	/* realloc to minimum number of grow-sized chunks required */
-	q->nmem = q->grow*(q->head/q->grow+1);
-	q->q = (*myrealloc) (q->q, q->nmem * sizeof(void*));
+    /* realloc to minimum number of grow-sized chunks required */
+    q->nmem = q->grow * (q->head / q->grow + 1);
+    q->q    = (*myrealloc)(q->q, q->nmem * sizeof(void *));
 }
 
 #if defined(TEST_FQ)
@@ -170,64 +161,63 @@ chkFQ (FQ *q)
 #include <stdio.h>
 
 /* draw a simple graphical representation of the given FQ */
-static void
-prFQ (FQ *q)
+static void prFQ(FQ *q)
 {
-	int i;
+    int i;
 
-	/* print the q, empty slots print as '.' */
-	for (i = 0; i < q->nmem; i++) {
-	    if (i >= q->head - q->nq && i < q->head)
-		printf ("%c", (char)(int)q->q[i]);
-	    else
-		printf (".");
-	}
+    /* print the q, empty slots print as '.' */
+    for (i = 0; i < q->nmem; i++)
+    {
+        if (i >= q->head - q->nq && i < q->head)
+            printf("%c", (char)(int)q->q[i]);
+        else
+            printf(".");
+    }
 
-	/* add right-justified stats */
-	printf ("%*s nmem = %2d head = %2d nq = %2d\n", 50-i, "", q->nmem,
-							    q->head, q->nq);
+    /* add right-justified stats */
+    printf("%*s nmem = %2d head = %2d nq = %2d\n", 50 - i, "", q->nmem, q->head, q->nq);
 }
 
-int
-main (int ac, char *av[])
+int main(int ac, char *av[])
 {
-	FQ *q = newFQ(8);
-	int c, e = -1;
-	void *p;
+    FQ *q = newFQ(8);
+    int c, e = -1;
+    void *p;
 
-	printf ("Commands:\n");
-	printf (" P  = push a letter a-z\n");
-	printf (" p  = pop a letter\n");
-	printf (" k  = peek into queue\n");
+    printf("Commands:\n");
+    printf(" P  = push a letter a-z\n");
+    printf(" p  = pop a letter\n");
+    printf(" k  = peek into queue\n");
 
-	while ((c = fgetc(stdin)) != EOF) {
-	    switch (c) {
-	    case 'P':
-		pushFQ (q, (void*)('a'+(e=(e+1)%26)));
-		prFQ(q);
-		break;
-	    case 'p':
-		p = popFQ (q);
-		if (p)
-		    printf ("popped %c\n", (char)(int)p);
-		else
-		    printf ("popped empty q\n");
-		prFQ(q);
-		break;
-	    case 'k':
-		p = peekFQ (q);
-		if (p)
-		    printf ("peeked %c\n", (char)(int)p);
-		else
-		    printf ("peeked empty q\n");
-		prFQ(q);
-		break;
-	    default:
-		break;
-	    }
-	}
+    while ((c = fgetc(stdin)) != EOF)
+    {
+        switch (c)
+        {
+            case 'P':
+                pushFQ(q, (void *)('a' + (e = (e + 1) % 26)));
+                prFQ(q);
+                break;
+            case 'p':
+                p = popFQ(q);
+                if (p)
+                    printf("popped %c\n", (char)(int)p);
+                else
+                    printf("popped empty q\n");
+                prFQ(q);
+                break;
+            case 'k':
+                p = peekFQ(q);
+                if (p)
+                    printf("peeked %c\n", (char)(int)p);
+                else
+                    printf("peeked empty q\n");
+                prFQ(q);
+                break;
+            default:
+                break;
+        }
+    }
 
-	return (0);
+    return (0);
 }
 #endif /* TEST_FQ */
-

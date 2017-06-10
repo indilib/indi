@@ -57,7 +57,6 @@
    Adding proper copyright header too.
  */
 
-
 #include "ccvt.h"
 #include "ccvt_types.h"
 #include "jpegutils.h"
@@ -70,69 +69,19 @@ static float RGBYUV04187[256], RGBYUV00813[256];
 
 void InitLookupTable(void);
 
-
 /* YUYV: two Y's and one U/V */
-void ccvt_yuyv_rgb32(int width, int height, const void * src, void * dst)
+void ccvt_yuyv_rgb32(int width, int height, const void *src, void *dst)
 {
-    width=width;
-    height=height;
-    src=src;
-    dst=dst;
-
+    width  = width;
+    height = height;
+    src    = src;
+    dst    = dst;
 }
 
-
-void ccvt_yuyv_bgr32(int width, int height, const void * src, void * dst)
+void ccvt_yuyv_bgr32(int width, int height, const void *src, void *dst)
 {
-    const unsigned char * s;
-    PIXTYPE_bgr32 * d;
-    int l, c;
-    int r, g, b, cr, cg, cb, y1, y2;
-
-    l = height;
-    s = src;
-    d = dst;
-    while (l--)
-    {
-        c = width >> 1;
-        while (c--)
-        {
-            y1 = *s++;
-            cb = ((*s - 128) * 454) >> 8;
-            cg = (*s++ - 128) * 88;
-            y2 = *s++;
-            cr = ((*s - 128) * 359) >> 8;
-            cg = (cg + (*s++ - 128) * 183) >> 8;
-
-            r = y1 + cr;
-            b = y1 + cb;
-            g = y1 - cg;
-            SAT(r);
-            SAT(g);
-            SAT(b);
-            d->b = b;
-            d->g = g;
-            d->r = r;
-            d++;
-            r = y2 + cr;
-            b = y2 + cb;
-            g = y2 - cg;
-            SAT(r);
-            SAT(g);
-            SAT(b);
-            d->b = b;
-            d->g = g;
-            d->r = r;
-            d++;
-        }
-    }
-
-}
-
-void ccvt_yuyv_bgr24(int width, int height, const void * src, void * dst)
-{
-    const unsigned char * s;
-    PIXTYPE_bgr24 * d;
+    const unsigned char *s;
+    PIXTYPE_bgr32 *d;
     int l, c;
     int r, g, b, cr, cg, cb, y1, y2;
 
@@ -175,10 +124,56 @@ void ccvt_yuyv_bgr24(int width, int height, const void * src, void * dst)
     }
 }
 
-void ccvt_yuyv_rgb24(int width, int height, const void * src, void * dst)
+void ccvt_yuyv_bgr24(int width, int height, const void *src, void *dst)
 {
-    const unsigned char * s;
-    PIXTYPE_rgb24 * d;
+    const unsigned char *s;
+    PIXTYPE_bgr24 *d;
+    int l, c;
+    int r, g, b, cr, cg, cb, y1, y2;
+
+    l = height;
+    s = src;
+    d = dst;
+    while (l--)
+    {
+        c = width >> 1;
+        while (c--)
+        {
+            y1 = *s++;
+            cb = ((*s - 128) * 454) >> 8;
+            cg = (*s++ - 128) * 88;
+            y2 = *s++;
+            cr = ((*s - 128) * 359) >> 8;
+            cg = (cg + (*s++ - 128) * 183) >> 8;
+
+            r = y1 + cr;
+            b = y1 + cb;
+            g = y1 - cg;
+            SAT(r);
+            SAT(g);
+            SAT(b);
+            d->b = b;
+            d->g = g;
+            d->r = r;
+            d++;
+            r = y2 + cr;
+            b = y2 + cb;
+            g = y2 - cg;
+            SAT(r);
+            SAT(g);
+            SAT(b);
+            d->b = b;
+            d->g = g;
+            d->r = r;
+            d++;
+        }
+    }
+}
+
+void ccvt_yuyv_rgb24(int width, int height, const void *src, void *dst)
+{
+    const unsigned char *s;
+    PIXTYPE_rgb24 *d;
     int l, c;
     int r, g, b, cr, cg, cb, y1, y2;
 
@@ -221,18 +216,18 @@ void ccvt_yuyv_rgb24(int width, int height, const void * src, void * dst)
     }
 }
 
-void ccvt_yuyv_420p(int width, int height, const void * src, void * dsty, void * dstu, void * dstv)
+void ccvt_yuyv_420p(int width, int height, const void *src, void *dsty, void *dstu, void *dstv)
 {
     int n, l, j;
-    const unsigned char * s1, *s2;
-    unsigned char * dy, *du, *dv;
+    const unsigned char *s1, *s2;
+    unsigned char *dy, *du, *dv;
 
     dy = (unsigned char *)dsty;
     du = (unsigned char *)dstu;
     dv = (unsigned char *)dstv;
     s1 = (unsigned char *)src;
     s2 = s1; /* keep pointer */
-    n = width * height;
+    n  = width * height;
     for (; n > 0; n--)
     {
         *dy = *s1;
@@ -242,7 +237,7 @@ void ccvt_yuyv_420p(int width, int height, const void * src, void * dsty, void *
 
     /* Two options here: average U/V values, or skip every second row */
     s1 = s2; /* restore pointer */
-    s1++; /* point to U */
+    s1++;    /* point to U */
     for (l = 0; l < height; l += 2)
     {
         s2 = s1 + width * 2; /* odd line */
@@ -261,285 +256,93 @@ void ccvt_yuyv_420p(int width, int height, const void * src, void * dsty, void *
     }
 }
 
-void bayer2rgb24(unsigned char * dst, unsigned char * src, long int WIDTH, long int HEIGHT)
+void bayer2rgb24(unsigned char *dst, unsigned char *src, long int WIDTH, long int HEIGHT)
 {
     long int i;
-    unsigned char * rawpt, *scanpt;
+    unsigned char *rawpt, *scanpt;
     long int size;
 
-    rawpt = src;
+    rawpt  = src;
     scanpt = dst;
-    size = WIDTH*HEIGHT;
+    size   = WIDTH * HEIGHT;
 
-    for ( i = 0; i < size; i++ )
+    for (i = 0; i < size; i++)
     {
-        if ( (i/WIDTH) % 2 == 0 )
+        if ((i / WIDTH) % 2 == 0)
         {
-            if ( (i % 2) == 0 )
+            if ((i % 2) == 0)
             {
                 /* B */
-                if ( (i > WIDTH) && ((i % WIDTH) > 0) )
+                if ((i > WIDTH) && ((i % WIDTH) > 0))
                 {
-                    *scanpt++ = (*(rawpt-WIDTH-1)+*(rawpt-WIDTH+1)+
-                                 *(rawpt+WIDTH-1)+*(rawpt+WIDTH+1))/4;	/* R */
-                    *scanpt++ = (*(rawpt-1)+*(rawpt+1)+
-                                 *(rawpt+WIDTH)+*(rawpt-WIDTH))/4;	/* G */
-                    *scanpt++ = *rawpt;					/* B */
+                    *scanpt++ =
+                        (*(rawpt - WIDTH - 1) + *(rawpt - WIDTH + 1) + *(rawpt + WIDTH - 1) + *(rawpt + WIDTH + 1)) /
+                        4;                                                                               /* R */
+                    *scanpt++ = (*(rawpt - 1) + *(rawpt + 1) + *(rawpt + WIDTH) + *(rawpt - WIDTH)) / 4; /* G */
+                    *scanpt++ = *rawpt;                                                                  /* B */
                 }
                 else
                 {
                     /* first line or left column */
-                    *scanpt++ = *(rawpt+WIDTH+1);		/* R */
-                    *scanpt++ = (*(rawpt+1)+*(rawpt+WIDTH))/2;	/* G */
-                    *scanpt++ = *rawpt;				/* B */
+                    *scanpt++ = *(rawpt + WIDTH + 1);                  /* R */
+                    *scanpt++ = (*(rawpt + 1) + *(rawpt + WIDTH)) / 2; /* G */
+                    *scanpt++ = *rawpt;                                /* B */
                 }
             }
             else
             {
                 /* (B)G */
-                if ( (i > WIDTH) && ((i % WIDTH) < (WIDTH-1)) )
+                if ((i > WIDTH) && ((i % WIDTH) < (WIDTH - 1)))
                 {
-                    *scanpt++ = (*(rawpt+WIDTH)+*(rawpt-WIDTH))/2;	/* R */
-                    *scanpt++ = *rawpt;					/* G */
-                    *scanpt++ = (*(rawpt-1)+*(rawpt+1))/2;		/* B */
+                    *scanpt++ = (*(rawpt + WIDTH) + *(rawpt - WIDTH)) / 2; /* R */
+                    *scanpt++ = *rawpt;                                    /* G */
+                    *scanpt++ = (*(rawpt - 1) + *(rawpt + 1)) / 2;         /* B */
                 }
                 else
                 {
                     /* first line or right column */
-                    *scanpt++ = *(rawpt+WIDTH);	/* R */
-                    *scanpt++ = *rawpt;		/* G */
-                    *scanpt++ = *(rawpt-1);	/* B */
+                    *scanpt++ = *(rawpt + WIDTH); /* R */
+                    *scanpt++ = *rawpt;           /* G */
+                    *scanpt++ = *(rawpt - 1);     /* B */
                 }
             }
         }
         else
         {
-            if ( (i % 2) == 0 )
+            if ((i % 2) == 0)
             {
                 /* G(R) */
-                if ( (i < (WIDTH*(HEIGHT-1))) && ((i % WIDTH) > 0) )
+                if ((i < (WIDTH * (HEIGHT - 1))) && ((i % WIDTH) > 0))
                 {
-                    *scanpt++ = (*(rawpt-1)+*(rawpt+1))/2;		/* R */
-                    *scanpt++ = *rawpt;					/* G */
-                    *scanpt++ = (*(rawpt+WIDTH)+*(rawpt-WIDTH))/2;	/* B */
+                    *scanpt++ = (*(rawpt - 1) + *(rawpt + 1)) / 2;         /* R */
+                    *scanpt++ = *rawpt;                                    /* G */
+                    *scanpt++ = (*(rawpt + WIDTH) + *(rawpt - WIDTH)) / 2; /* B */
                 }
                 else
                 {
                     /* bottom line or left column */
-                    *scanpt++ = *(rawpt+1);		/* R */
-                    *scanpt++ = *rawpt;			/* G */
-                    *scanpt++ = *(rawpt-WIDTH);		/* B */
+                    *scanpt++ = *(rawpt + 1);     /* R */
+                    *scanpt++ = *rawpt;           /* G */
+                    *scanpt++ = *(rawpt - WIDTH); /* B */
                 }
             }
             else
             {
                 /* R */
-                if ( i < (WIDTH*(HEIGHT-1)) && ((i % WIDTH) < (WIDTH-1)) )
+                if (i < (WIDTH * (HEIGHT - 1)) && ((i % WIDTH) < (WIDTH - 1)))
                 {
-                    *scanpt++ = *rawpt;					/* R */
-                    *scanpt++ = (*(rawpt-1)+*(rawpt+1)+
-                                 *(rawpt-WIDTH)+*(rawpt+WIDTH))/4;	/* G */
-                    *scanpt++ = (*(rawpt-WIDTH-1)+*(rawpt-WIDTH+1)+
-                                 *(rawpt+WIDTH-1)+*(rawpt+WIDTH+1))/4;	/* B */
+                    *scanpt++ = *rawpt;                                                                  /* R */
+                    *scanpt++ = (*(rawpt - 1) + *(rawpt + 1) + *(rawpt - WIDTH) + *(rawpt + WIDTH)) / 4; /* G */
+                    *scanpt++ =
+                        (*(rawpt - WIDTH - 1) + *(rawpt - WIDTH + 1) + *(rawpt + WIDTH - 1) + *(rawpt + WIDTH + 1)) /
+                        4; /* B */
                 }
                 else
                 {
                     /* bottom line or right column */
-                    *scanpt++ = *rawpt;				/* R */
-                    *scanpt++ = (*(rawpt-1)+*(rawpt-WIDTH))/2;	/* G */
-                    *scanpt++ = *(rawpt-WIDTH-1);		/* B */
-                }
-            }
-        }
-        rawpt++;
-    }
-
-}
-
-void bayer16_2_rgb24(unsigned short * dst, unsigned short * src, long int WIDTH, long int HEIGHT)
-{
-    long int i;
-    unsigned short * rawpt, *scanpt;
-    long int size;
-
-    rawpt = src;
-    scanpt = dst;
-    size = WIDTH*HEIGHT;
-
-    for ( i = 0; i < size; i++ )
-    {
-        if ( (i/WIDTH) % 2 == 0 )
-        {
-            if ( (i % 2) == 0 )
-            {
-                /* B */
-                if ( (i > WIDTH) && ((i % WIDTH) > 0) )
-                {
-                    *scanpt++ = (*(rawpt-WIDTH-1)+*(rawpt-WIDTH+1)+
-                                 *(rawpt+WIDTH-1)+*(rawpt+WIDTH+1))/4;	/* R */
-                    *scanpt++ = (*(rawpt-1)+*(rawpt+1)+
-                                 *(rawpt+WIDTH)+*(rawpt-WIDTH))/4;	/* G */
-                    *scanpt++ = *rawpt;					/* B */
-                }
-                else
-                {
-                    /* first line or left column */
-                    *scanpt++ = *(rawpt+WIDTH+1);		/* R */
-                    *scanpt++ = (*(rawpt+1)+*(rawpt+WIDTH))/2;	/* G */
-                    *scanpt++ = *rawpt;				/* B */
-                }
-            }
-            else
-            {
-                /* (B)G */
-                if ( (i > WIDTH) && ((i % WIDTH) < (WIDTH-1)) )
-                {
-                    *scanpt++ = (*(rawpt+WIDTH)+*(rawpt-WIDTH))/2;	/* R */
-                    *scanpt++ = *rawpt;					/* G */
-                    *scanpt++ = (*(rawpt-1)+*(rawpt+1))/2;		/* B */
-                }
-                else
-                {
-                    /* first line or right column */
-                    *scanpt++ = *(rawpt+WIDTH);	/* R */
-                    *scanpt++ = *rawpt;		/* G */
-                    *scanpt++ = *(rawpt-1);	/* B */
-                }
-            }
-        }
-        else
-        {
-            if ( (i % 2) == 0 )
-            {
-                /* G(R) */
-                if ( (i < (WIDTH*(HEIGHT-1))) && ((i % WIDTH) > 0) )
-                {
-                    *scanpt++ = (*(rawpt-1)+*(rawpt+1))/2;		/* R */
-                    *scanpt++ = *rawpt;					/* G */
-                    *scanpt++ = (*(rawpt+WIDTH)+*(rawpt-WIDTH))/2;	/* B */
-                }
-                else
-                {
-                    /* bottom line or left column */
-                    *scanpt++ = *(rawpt+1);		/* R */
-                    *scanpt++ = *rawpt;			/* G */
-                    *scanpt++ = *(rawpt-WIDTH);		/* B */
-                }
-            }
-            else
-            {
-                /* R */
-                if ( i < (WIDTH*(HEIGHT-1)) && ((i % WIDTH) < (WIDTH-1)) )
-                {
-                    *scanpt++ = *rawpt;					/* R */
-                    *scanpt++ = (*(rawpt-1)+*(rawpt+1)+
-                                 *(rawpt-WIDTH)+*(rawpt+WIDTH))/4;	/* G */
-                    *scanpt++ = (*(rawpt-WIDTH-1)+*(rawpt-WIDTH+1)+
-                                 *(rawpt+WIDTH-1)+*(rawpt+WIDTH+1))/4;	/* B */
-                }
-                else
-                {
-                    /* bottom line or right column */
-                    *scanpt++ = *rawpt;				/* R */
-                    *scanpt++ = (*(rawpt-1)+*(rawpt-WIDTH))/2;	/* G */
-                    *scanpt++ = *(rawpt-WIDTH-1);		/* B */
-                }
-            }
-        }
-        rawpt++;
-    }
-
-}
-
-
-void bayer_rggb_2rgb24(unsigned char * dst, unsigned char * src, long int WIDTH, long int HEIGHT)
-{
-    long int i;
-    unsigned char * rawpt, *scanpt;
-    long int size;
-
-    rawpt = src;
-    scanpt = dst;
-    size = WIDTH*HEIGHT;
-
-
-    for ( i = 0; i < size; i++ )
-    {
-        if ( (i/WIDTH) % 2 == 0 )  //wenn zeile grade
-        {
-            if ( (i % 2) == 0 )   //spalte gerade
-            {
-                /* B */
-                if ( (i > WIDTH) && ((i % WIDTH) > 0) )   // wenn nicht erste zeile oder linke spalte
-                {
-                    *scanpt++ = *rawpt;     /* R */
-                    *scanpt++ = (*(rawpt-1)+*(rawpt+1)+
-                                 *(rawpt+WIDTH)+*(rawpt-WIDTH))/4; /* G */
-                    *scanpt++ = (*(rawpt-WIDTH-1)+*(rawpt-WIDTH+1)+
-                                 *(rawpt+WIDTH-1)+*(rawpt+WIDTH+1))/4;  /* B */
-                }
-                else
-                {
-                    /* first line or left column */
-                    *scanpt++ = *rawpt;   /* R */
-                    *scanpt++ = (*(rawpt+1)+*(rawpt+WIDTH))/2; /* G */
-                    *scanpt++ = *(rawpt+WIDTH+1);   /* B */
-                }
-            }
-            else
-            {
-                /* (B)G */
-                if ( (i > WIDTH) && ((i % WIDTH) < (WIDTH-1)) )
-                {
-                    *scanpt++ =(*(rawpt-1)+*(rawpt+1))/2;   /* R */
-                    *scanpt++ = *rawpt;     /* G */
-                    *scanpt++ =  (*(rawpt+WIDTH)+*(rawpt-WIDTH))/2;/* B */
-                }
-                else
-                {
-                    /* first line or right column */
-                    *scanpt++ =  *(rawpt-1);/* R */
-                    *scanpt++ = *rawpt;  /* G */
-                    *scanpt++ = *(rawpt+WIDTH); /* B */
-                }
-            }
-        }
-        else
-        {
-            if ( (i % 2) == 0 )
-            {
-                /* G(R) */
-                if ( (i < (WIDTH*(HEIGHT-1))) && ((i % WIDTH) > 0) )
-                {
-                    *scanpt++ =  (*(rawpt+WIDTH)+*(rawpt-WIDTH))/2;  /* R */
-                    *scanpt++ = *rawpt;     /* G */
-                    *scanpt++ = (*(rawpt-1)+*(rawpt+1))/2;/* B */
-                }
-                else
-                {
-                    /* bottom line or left column */
-                    *scanpt++ =  *(rawpt-WIDTH); /* R */
-                    *scanpt++ = *rawpt;   /* G */
-                    *scanpt++ = *(rawpt+1);  /* B */
-                }
-            }
-            else
-            {
-                /* R */
-                if ( i < (WIDTH*(HEIGHT-1)) && ((i % WIDTH) < (WIDTH-1)) )
-                {
-                    *scanpt++ =(*(rawpt-WIDTH-1)+*(rawpt-WIDTH+1)+
-                                *(rawpt+WIDTH-1)+*(rawpt+WIDTH+1))/4;     /* R */
-                    *scanpt++ = (*(rawpt-1)+*(rawpt+1)+
-                                 *(rawpt-WIDTH)+*(rawpt+WIDTH))/4; /* G */
-                    *scanpt++ =  *rawpt; /* B */
-                }
-                else
-                {
-                    /* bottom line or right column */
-                    *scanpt++ = *(rawpt-WIDTH-1);    /* R */
-                    *scanpt++ = (*(rawpt-1)+*(rawpt-WIDTH))/2; /* G */
-                    *scanpt++ =  *rawpt; /* B */
+                    *scanpt++ = *rawpt;                                /* R */
+                    *scanpt++ = (*(rawpt - 1) + *(rawpt - WIDTH)) / 2; /* G */
+                    *scanpt++ = *(rawpt - WIDTH - 1);                  /* B */
                 }
             }
         }
@@ -547,11 +350,198 @@ void bayer_rggb_2rgb24(unsigned char * dst, unsigned char * src, long int WIDTH,
     }
 }
 
-
-int mjpegtoyuv420p(unsigned char * map, unsigned char * cap_map, int width, int height, unsigned int size)
+void bayer16_2_rgb24(unsigned short *dst, unsigned short *src, long int WIDTH, long int HEIGHT)
 {
-    unsigned char * yuv[3];
-    unsigned char * y, *u, *v;
+    long int i;
+    unsigned short *rawpt, *scanpt;
+    long int size;
+
+    rawpt  = src;
+    scanpt = dst;
+    size   = WIDTH * HEIGHT;
+
+    for (i = 0; i < size; i++)
+    {
+        if ((i / WIDTH) % 2 == 0)
+        {
+            if ((i % 2) == 0)
+            {
+                /* B */
+                if ((i > WIDTH) && ((i % WIDTH) > 0))
+                {
+                    *scanpt++ =
+                        (*(rawpt - WIDTH - 1) + *(rawpt - WIDTH + 1) + *(rawpt + WIDTH - 1) + *(rawpt + WIDTH + 1)) /
+                        4;                                                                               /* R */
+                    *scanpt++ = (*(rawpt - 1) + *(rawpt + 1) + *(rawpt + WIDTH) + *(rawpt - WIDTH)) / 4; /* G */
+                    *scanpt++ = *rawpt;                                                                  /* B */
+                }
+                else
+                {
+                    /* first line or left column */
+                    *scanpt++ = *(rawpt + WIDTH + 1);                  /* R */
+                    *scanpt++ = (*(rawpt + 1) + *(rawpt + WIDTH)) / 2; /* G */
+                    *scanpt++ = *rawpt;                                /* B */
+                }
+            }
+            else
+            {
+                /* (B)G */
+                if ((i > WIDTH) && ((i % WIDTH) < (WIDTH - 1)))
+                {
+                    *scanpt++ = (*(rawpt + WIDTH) + *(rawpt - WIDTH)) / 2; /* R */
+                    *scanpt++ = *rawpt;                                    /* G */
+                    *scanpt++ = (*(rawpt - 1) + *(rawpt + 1)) / 2;         /* B */
+                }
+                else
+                {
+                    /* first line or right column */
+                    *scanpt++ = *(rawpt + WIDTH); /* R */
+                    *scanpt++ = *rawpt;           /* G */
+                    *scanpt++ = *(rawpt - 1);     /* B */
+                }
+            }
+        }
+        else
+        {
+            if ((i % 2) == 0)
+            {
+                /* G(R) */
+                if ((i < (WIDTH * (HEIGHT - 1))) && ((i % WIDTH) > 0))
+                {
+                    *scanpt++ = (*(rawpt - 1) + *(rawpt + 1)) / 2;         /* R */
+                    *scanpt++ = *rawpt;                                    /* G */
+                    *scanpt++ = (*(rawpt + WIDTH) + *(rawpt - WIDTH)) / 2; /* B */
+                }
+                else
+                {
+                    /* bottom line or left column */
+                    *scanpt++ = *(rawpt + 1);     /* R */
+                    *scanpt++ = *rawpt;           /* G */
+                    *scanpt++ = *(rawpt - WIDTH); /* B */
+                }
+            }
+            else
+            {
+                /* R */
+                if (i < (WIDTH * (HEIGHT - 1)) && ((i % WIDTH) < (WIDTH - 1)))
+                {
+                    *scanpt++ = *rawpt;                                                                  /* R */
+                    *scanpt++ = (*(rawpt - 1) + *(rawpt + 1) + *(rawpt - WIDTH) + *(rawpt + WIDTH)) / 4; /* G */
+                    *scanpt++ =
+                        (*(rawpt - WIDTH - 1) + *(rawpt - WIDTH + 1) + *(rawpt + WIDTH - 1) + *(rawpt + WIDTH + 1)) /
+                        4; /* B */
+                }
+                else
+                {
+                    /* bottom line or right column */
+                    *scanpt++ = *rawpt;                                /* R */
+                    *scanpt++ = (*(rawpt - 1) + *(rawpt - WIDTH)) / 2; /* G */
+                    *scanpt++ = *(rawpt - WIDTH - 1);                  /* B */
+                }
+            }
+        }
+        rawpt++;
+    }
+}
+
+void bayer_rggb_2rgb24(unsigned char *dst, unsigned char *src, long int WIDTH, long int HEIGHT)
+{
+    long int i;
+    unsigned char *rawpt, *scanpt;
+    long int size;
+
+    rawpt  = src;
+    scanpt = dst;
+    size   = WIDTH * HEIGHT;
+
+    for (i = 0; i < size; i++)
+    {
+        if ((i / WIDTH) % 2 == 0) //wenn zeile grade
+        {
+            if ((i % 2) == 0) //spalte gerade
+            {
+                /* B */
+                if ((i > WIDTH) && ((i % WIDTH) > 0)) // wenn nicht erste zeile oder linke spalte
+                {
+                    *scanpt++ = *rawpt;                                                                  /* R */
+                    *scanpt++ = (*(rawpt - 1) + *(rawpt + 1) + *(rawpt + WIDTH) + *(rawpt - WIDTH)) / 4; /* G */
+                    *scanpt++ =
+                        (*(rawpt - WIDTH - 1) + *(rawpt - WIDTH + 1) + *(rawpt + WIDTH - 1) + *(rawpt + WIDTH + 1)) /
+                        4; /* B */
+                }
+                else
+                {
+                    /* first line or left column */
+                    *scanpt++ = *rawpt;                                /* R */
+                    *scanpt++ = (*(rawpt + 1) + *(rawpt + WIDTH)) / 2; /* G */
+                    *scanpt++ = *(rawpt + WIDTH + 1);                  /* B */
+                }
+            }
+            else
+            {
+                /* (B)G */
+                if ((i > WIDTH) && ((i % WIDTH) < (WIDTH - 1)))
+                {
+                    *scanpt++ = (*(rawpt - 1) + *(rawpt + 1)) / 2;         /* R */
+                    *scanpt++ = *rawpt;                                    /* G */
+                    *scanpt++ = (*(rawpt + WIDTH) + *(rawpt - WIDTH)) / 2; /* B */
+                }
+                else
+                {
+                    /* first line or right column */
+                    *scanpt++ = *(rawpt - 1);     /* R */
+                    *scanpt++ = *rawpt;           /* G */
+                    *scanpt++ = *(rawpt + WIDTH); /* B */
+                }
+            }
+        }
+        else
+        {
+            if ((i % 2) == 0)
+            {
+                /* G(R) */
+                if ((i < (WIDTH * (HEIGHT - 1))) && ((i % WIDTH) > 0))
+                {
+                    *scanpt++ = (*(rawpt + WIDTH) + *(rawpt - WIDTH)) / 2; /* R */
+                    *scanpt++ = *rawpt;                                    /* G */
+                    *scanpt++ = (*(rawpt - 1) + *(rawpt + 1)) / 2;         /* B */
+                }
+                else
+                {
+                    /* bottom line or left column */
+                    *scanpt++ = *(rawpt - WIDTH); /* R */
+                    *scanpt++ = *rawpt;           /* G */
+                    *scanpt++ = *(rawpt + 1);     /* B */
+                }
+            }
+            else
+            {
+                /* R */
+                if (i < (WIDTH * (HEIGHT - 1)) && ((i % WIDTH) < (WIDTH - 1)))
+                {
+                    *scanpt++ =
+                        (*(rawpt - WIDTH - 1) + *(rawpt - WIDTH + 1) + *(rawpt + WIDTH - 1) + *(rawpt + WIDTH + 1)) /
+                        4;                                                                               /* R */
+                    *scanpt++ = (*(rawpt - 1) + *(rawpt + 1) + *(rawpt - WIDTH) + *(rawpt + WIDTH)) / 4; /* G */
+                    *scanpt++ = *rawpt;                                                                  /* B */
+                }
+                else
+                {
+                    /* bottom line or right column */
+                    *scanpt++ = *(rawpt - WIDTH - 1);                  /* R */
+                    *scanpt++ = (*(rawpt - 1) + *(rawpt - WIDTH)) / 2; /* G */
+                    *scanpt++ = *rawpt;                                /* B */
+                }
+            }
+        }
+        rawpt++;
+    }
+}
+
+int mjpegtoyuv420p(unsigned char *map, unsigned char *cap_map, int width, int height, unsigned int size)
+{
+    unsigned char *yuv[3];
+    unsigned char *y, *u, *v;
     int loop, ret;
 
     yuv[0] = malloc(width * height * sizeof(yuv[0][0]));
@@ -567,14 +557,14 @@ int mjpegtoyuv420p(unsigned char * map, unsigned char * cap_map, int width, int 
     memset(u, 0, width * height / 4);
     memset(v, 0, width * height / 4);
 
-    for(loop = 0; loop < width * height; loop++)
-        *map++=yuv[0][loop];
+    for (loop = 0; loop < width * height; loop++)
+        *map++ = yuv[0][loop];
 
-    for(loop = 0; loop < width * height / 4; loop++)
-        *map++=yuv[1][loop];
+    for (loop = 0; loop < width * height / 4; loop++)
+        *map++ = yuv[1][loop];
 
-    for(loop = 0; loop < width * height / 4; loop++)
-        *map++=yuv[2][loop];
+    for (loop = 0; loop < width * height / 4; loop++)
+        *map++ = yuv[2][loop];
 
     free(yuv[0]);
     free(yuv[1]);
@@ -612,16 +602,16 @@ int mjpegtoyuv420p(unsigned char * map, unsigned char * cap_map, int width, int 
  *
  ************************************************************************/
 
-int RGB2YUV (int x_dim, int y_dim, void * bmp, void * y_out, void * u_out, void * v_out, int flip)
+int RGB2YUV(int x_dim, int y_dim, void *bmp, void *y_out, void *u_out, void *v_out, int flip)
 {
     static int init_done = 0;
 
     long i, j, size;
-    unsigned char * r, *g, *b;
-    unsigned char * y, *u, *v;
-    unsigned char * pu1, *pu2, *pv1, *pv2, *psu, *psv;
-    unsigned char * y_buffer, *u_buffer, *v_buffer;
-    unsigned char * sub_u_buf, *sub_v_buf;
+    unsigned char *r, *g, *b;
+    unsigned char *y, *u, *v;
+    unsigned char *pu1, *pu2, *pv1, *pv2, *psu, *psv;
+    unsigned char *y_buffer, *u_buffer, *v_buffer;
+    unsigned char *sub_u_buf, *sub_v_buf;
 
     if (init_done == 0)
     {
@@ -630,19 +620,22 @@ int RGB2YUV (int x_dim, int y_dim, void * bmp, void * y_out, void * u_out, void 
     }
 
     /* check to see if x_dim and y_dim are divisible by 2*/
-    if ((x_dim % 2) || (y_dim % 2)) return 1;
+    if ((x_dim % 2) || (y_dim % 2))
+        return 1;
     size = x_dim * y_dim;
 
     /* allocate memory*/
-    y_buffer = (unsigned char *)y_out;
+    y_buffer  = (unsigned char *)y_out;
     sub_u_buf = (unsigned char *)u_out;
     sub_v_buf = (unsigned char *)v_out;
-    u_buffer = (unsigned char *)malloc(size * sizeof(unsigned char));
-    v_buffer = (unsigned char *)malloc(size * sizeof(unsigned char));
+    u_buffer  = (unsigned char *)malloc(size * sizeof(unsigned char));
+    v_buffer  = (unsigned char *)malloc(size * sizeof(unsigned char));
     if (!(u_buffer && v_buffer))
     {
-        if (u_buffer) free(u_buffer);
-        if (v_buffer) free(v_buffer);
+        if (u_buffer)
+            free(u_buffer);
+        if (v_buffer)
+            free(v_buffer);
         return 2;
     }
 
@@ -654,23 +647,23 @@ int RGB2YUV (int x_dim, int y_dim, void * bmp, void * y_out, void * u_out, void 
     /* convert RGB to YUV*/
     if (!flip)
     {
-        for (j = 0; j < y_dim; j ++)
+        for (j = 0; j < y_dim; j++)
         {
             y = y_buffer + (y_dim - j - 1) * x_dim;
             u = u_buffer + (y_dim - j - 1) * x_dim;
             v = v_buffer + (y_dim - j - 1) * x_dim;
 
-            for (i = 0; i < x_dim; i ++)
+            for (i = 0; i < x_dim; i++)
             {
-                g = b + 1;
-                r = b + 2;
-                *y = (unsigned char)(  RGBYUV02990[*r] + RGBYUV05870[*g] + RGBYUV01140[*b]);
-                *u = (unsigned char)(- RGBYUV01684[*r] - RGBYUV03316[*g] + (*b)/2          + 128);
-                *v = (unsigned char)(  (*r)/2          - RGBYUV04187[*g] - RGBYUV00813[*b] + 128);
+                g  = b + 1;
+                r  = b + 2;
+                *y = (unsigned char)(RGBYUV02990[*r] + RGBYUV05870[*g] + RGBYUV01140[*b]);
+                *u = (unsigned char)(-RGBYUV01684[*r] - RGBYUV03316[*g] + (*b) / 2 + 128);
+                *v = (unsigned char)((*r) / 2 - RGBYUV04187[*g] - RGBYUV00813[*b] + 128);
                 b += 3;
-                y ++;
-                u ++;
-                v ++;
+                y++;
+                u++;
+                v++;
             }
         }
     }
@@ -678,20 +671,20 @@ int RGB2YUV (int x_dim, int y_dim, void * bmp, void * y_out, void * u_out, void 
     {
         for (i = 0; i < size; i++)
         {
-            g = b + 1;
-            r = b + 2;
-            *y = (unsigned char)(  RGBYUV02990[*r] + RGBYUV05870[*g] + RGBYUV01140[*b]);
-            *u = (unsigned char)(- RGBYUV01684[*r] - RGBYUV03316[*g] + (*b)/2          + 128);
-            *v = (unsigned char)(  (*r)/2          - RGBYUV04187[*g] - RGBYUV00813[*b] + 128);
+            g  = b + 1;
+            r  = b + 2;
+            *y = (unsigned char)(RGBYUV02990[*r] + RGBYUV05870[*g] + RGBYUV01140[*b]);
+            *u = (unsigned char)(-RGBYUV01684[*r] - RGBYUV03316[*g] + (*b) / 2 + 128);
+            *v = (unsigned char)((*r) / 2 - RGBYUV04187[*g] - RGBYUV00813[*b] + 128);
             b += 3;
-            y ++;
-            u ++;
-            v ++;
+            y++;
+            u++;
+            v++;
         }
     }
 
     /* subsample UV*/
-    for (j = 0; j < y_dim/2; j ++)
+    for (j = 0; j < y_dim / 2; j++)
     {
         psu = sub_u_buf + j * x_dim / 2;
         psv = sub_v_buf + j * x_dim / 2;
@@ -699,12 +692,12 @@ int RGB2YUV (int x_dim, int y_dim, void * bmp, void * y_out, void * u_out, void 
         pu2 = u_buffer + (2 * j + 1) * x_dim;
         pv1 = v_buffer + 2 * j * x_dim;
         pv2 = v_buffer + (2 * j + 1) * x_dim;
-        for (i = 0; i < x_dim/2; i ++)
+        for (i = 0; i < x_dim / 2; i++)
         {
-            *psu = (*pu1 + *(pu1+1) + *pu2 + *(pu2+1)) / 4;
-            *psv = (*pv1 + *(pv1+1) + *pv2 + *(pv2+1)) / 4;
-            psu ++;
-            psv ++;
+            *psu = (*pu1 + *(pu1 + 1) + *pu2 + *(pu2 + 1)) / 4;
+            *psv = (*pv1 + *(pv1 + 1) + *pv2 + *(pv2 + 1)) / 4;
+            psu++;
+            psv++;
             pu1 += 2;
             pu2 += 2;
             pv1 += 2;
@@ -718,67 +711,76 @@ int RGB2YUV (int x_dim, int y_dim, void * bmp, void * y_out, void * u_out, void 
     return 0;
 }
 
-
 void InitLookupTable()
 {
     int i;
 
-    for (i = 0; i < 256; i++) RGBYUV02990[i] = (float)0.2990 * i;
-    for (i = 0; i < 256; i++) RGBYUV05870[i] = (float)0.5870 * i;
-    for (i = 0; i < 256; i++) RGBYUV01140[i] = (float)0.1140 * i;
-    for (i = 0; i < 256; i++) RGBYUV01684[i] = (float)0.1684 * i;
-    for (i = 0; i < 256; i++) RGBYUV03316[i] = (float)0.3316 * i;
-    for (i = 0; i < 256; i++) RGBYUV04187[i] = (float)0.4187 * i;
-    for (i = 0; i < 256; i++) RGBYUV00813[i] = (float)0.0813 * i;
+    for (i = 0; i < 256; i++)
+        RGBYUV02990[i] = (float)0.2990 * i;
+    for (i = 0; i < 256; i++)
+        RGBYUV05870[i] = (float)0.5870 * i;
+    for (i = 0; i < 256; i++)
+        RGBYUV01140[i] = (float)0.1140 * i;
+    for (i = 0; i < 256; i++)
+        RGBYUV01684[i] = (float)0.1684 * i;
+    for (i = 0; i < 256; i++)
+        RGBYUV03316[i] = (float)0.3316 * i;
+    for (i = 0; i < 256; i++)
+        RGBYUV04187[i] = (float)0.4187 * i;
+    for (i = 0; i < 256; i++)
+        RGBYUV00813[i] = (float)0.0813 * i;
 }
-
 
 /* RGB/BGR to RGB/BGR */
 
-#define RGBBGR_BODY24(TIN, TOUT) \
-void ccvt_ ## TIN ## _ ## TOUT (int width, int height, const void *const src, void *dst) \
-{ \
-   const PIXTYPE_ ## TIN *in = src; \
-   PIXTYPE_ ## TOUT *out = dst; \
-   int l, c, stride = 0; \
-   \
-   stride = width; \
-   out += ((height - 1) * width); \
-   stride *= 2; \
-   for (l = 0; l < height; l++) { \
-      for (c = 0; c < width; c++) { \
-         out->r = in->r; \
-         out->g = in->g; \
-         out->b = in->b; \
-         in++; \
-         out++; \
-      } \
-      out -= stride; \
-   } \
-}
+#define RGBBGR_BODY24(TIN, TOUT)                                                      \
+    void ccvt_##TIN##_##TOUT(int width, int height, const void *const src, void *dst) \
+    {                                                                                 \
+        const PIXTYPE_##TIN *in = src;                                                \
+        PIXTYPE_##TOUT *out     = dst;                                                \
+        int l, c, stride = 0;                                                         \
+                                                                                      \
+        stride = width;                                                               \
+        out += ((height - 1) * width);                                                \
+        stride *= 2;                                                                  \
+        for (l = 0; l < height; l++)                                                  \
+        {                                                                             \
+            for (c = 0; c < width; c++)                                               \
+            {                                                                         \
+                out->r = in->r;                                                       \
+                out->g = in->g;                                                       \
+                out->b = in->b;                                                       \
+                in++;                                                                 \
+                out++;                                                                \
+            }                                                                         \
+            out -= stride;                                                            \
+        }                                                                             \
+    }
 
-#define RGBBGR_BODY32(TIN, TOUT) \
-void ccvt_ ## TIN ## _ ## TOUT (int width, int height, const void *const src, void *dst) \
-{ \
-   const PIXTYPE_ ## TIN *in = src; \
-   PIXTYPE_ ## TOUT *out = dst; \
-   int l, c, stride = 0; \
-   \
-   stride = width;\
-   out += ((height - 1) * width); \
-   stride *= 2; \
-   for (l = 0; l < height; l++) { \
-      for (c = 0; c < width; c++) { \
-         out->r = in->r; \
-         out->g = in->g; \
-         out->b = in->b; \
-         out->z = 0; \
-         in++; \
-         out++; \
-      } \
-      out -= stride; \
-   } \
-}
+#define RGBBGR_BODY32(TIN, TOUT)                                                      \
+    void ccvt_##TIN##_##TOUT(int width, int height, const void *const src, void *dst) \
+    {                                                                                 \
+        const PIXTYPE_##TIN *in = src;                                                \
+        PIXTYPE_##TOUT *out     = dst;                                                \
+        int l, c, stride = 0;                                                         \
+                                                                                      \
+        stride = width;                                                               \
+        out += ((height - 1) * width);                                                \
+        stride *= 2;                                                                  \
+        for (l = 0; l < height; l++)                                                  \
+        {                                                                             \
+            for (c = 0; c < width; c++)                                               \
+            {                                                                         \
+                out->r = in->r;                                                       \
+                out->g = in->g;                                                       \
+                out->b = in->b;                                                       \
+                out->z = 0;                                                           \
+                in++;                                                                 \
+                out++;                                                                \
+            }                                                                         \
+            out -= stride;                                                            \
+        }                                                                             \
+    }
 
 RGBBGR_BODY32(bgr24, bgr32)
 RGBBGR_BODY32(bgr24, rgb32)

@@ -14,28 +14,29 @@ void initColorSpace()
 {
     unsigned int i;
 
-    for (i=0; i < 256; i++)
+    for (i = 0; i < 256; i++)
     {
         lutrangey8[i] = (unsigned char)((255.0 / 219.0) * (i - 16));
-        if (i > 235) lutrangey8[i] = 255;
+        if (i > 235)
+            lutrangey8[i] = 255;
         lutrangecbcr8[i] = (unsigned char)((255.0 / 224.0) * i);
     }
 }
 
-void rangeY8(unsigned char * buf, unsigned int len)
+void rangeY8(unsigned char *buf, unsigned int len)
 {
     unsigned int i;
-    unsigned char * s=buf;
-    for (i=0; i < len; i++)
+    unsigned char *s = buf;
+    for (i = 0; i < len; i++)
     {
         *s++ = lutrangey8[*s];
     }
 }
 
-void linearize(float * buf, unsigned int len, struct v4l2_format * fmt)
+void linearize(float *buf, unsigned int len, struct v4l2_format *fmt)
 {
     unsigned int i;
-    float * src=buf;
+    float *src = buf;
     switch (fmt->fmt.pix.colorspace)
     {
         case V4L2_COLORSPACE_SMPTE240M:
@@ -48,7 +49,7 @@ void linearize(float * buf, unsigned int len, struct v4l2_format * fmt)
             // This is used for sRGB as specified by the IEC FDIS 61966-2-1 standard
             for (i = 0; i < len; i++)
                 *src++ = (*src < -0.04045) ? -pow((-*src + 0.055) / 1.055, 2.4) :
-                         ((*src <= 0.04045) ? *src / 12.92 : pow((*src + 0.055) / 1.055, 2.4));
+                                             ((*src <= 0.04045) ? *src / 12.92 : pow((*src + 0.055) / 1.055, 2.4));
             break;
         //case V4L2_COLORSPACE_ADOBERGB:
         //r = pow(r, 2.19921875);
@@ -59,11 +60,11 @@ void linearize(float * buf, unsigned int len, struct v4l2_format * fmt)
             // All others use the transfer function specified by REC 709
             for (i = 0; i < len; i++)
                 *src++ = (*src <= -0.081) ? -pow((*src - 0.099) / -1.099, 1.0 / 0.45) :
-                         ((*src < 0.081) ? *src / 4.5 : pow((*src + 0.099) / 1.099, 1.0 / 0.45));
+                                            ((*src < 0.081) ? *src / 4.5 : pow((*src + 0.099) / 1.099, 1.0 / 0.45));
     }
 }
 
-const char * getColorSpaceName(struct v4l2_format * fmt)
+const char *getColorSpaceName(struct v4l2_format *fmt)
 {
     switch (fmt->fmt.pix.colorspace)
     {
@@ -94,7 +95,7 @@ const char * getColorSpaceName(struct v4l2_format * fmt)
     }
 }
 
-unsigned int getYCbCrEncoding(struct v4l2_format * fmt)
+unsigned int getYCbCrEncoding(struct v4l2_format *fmt)
 {
     switch (fmt->fmt.pix.colorspace)
     {
@@ -121,9 +122,9 @@ unsigned int getYCbCrEncoding(struct v4l2_format * fmt)
     }
 }
 
-const char * getYCbCrEncodingName(struct v4l2_format * fmt)
+const char *getYCbCrEncodingName(struct v4l2_format *fmt)
 {
-    switch(getYCbCrEncoding(fmt))
+    switch (getYCbCrEncoding(fmt))
     {
         case YCBCR_ENC_601:
             return "ITU-R 601 -- SDTV";
@@ -138,7 +139,7 @@ const char * getYCbCrEncodingName(struct v4l2_format * fmt)
     }
 }
 
-unsigned int getQuantization(struct v4l2_format * fmt)
+unsigned int getQuantization(struct v4l2_format *fmt)
 {
     switch (fmt->fmt.pix.colorspace)
     {
@@ -161,9 +162,9 @@ unsigned int getQuantization(struct v4l2_format * fmt)
     }
 }
 
-const char * getQuantizationName(struct v4l2_format * fmt)
+const char *getQuantizationName(struct v4l2_format *fmt)
 {
-    switch(getQuantization(fmt))
+    switch (getQuantization(fmt))
     {
         case QUANTIZATION_FULL_RANGE:
             return "Full Range";
