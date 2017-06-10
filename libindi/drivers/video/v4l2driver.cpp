@@ -800,7 +800,7 @@ bool V4L2_Driver::setShutter(double duration)
     }
     else
     {
-        DEBUGF(INDI::Logger::DBG_WARNING, "Failed %.3f-second manual exposure, out of device tick bounds [%d,%d]", duration, (int)AbsExposureN->min, (int)AbsExposureN->max);
+        DEBUGF(INDI::Logger::DBG_WARNING, "Failed %.3f-second manual exposure, out of device tick bounds [%d,%d]", duration, AbsExposureN?(int)AbsExposureN->min:0, AbsExposureN?(int)AbsExposureN->max:0);
         return false;
     }
 
