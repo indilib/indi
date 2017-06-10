@@ -38,15 +38,15 @@ Version with experimental pulse guide support. GC 04.12.2015
 #include "celestrongps.h"
 
 /* Simulation Parameters */
-#define	GOTO_RATE       5				/* slew rate, degrees/s */
-#define	SLEW_RATE       0.5				/* slew rate, degrees/s */
-#define FINE_SLEW_RATE  0.1             /* slew rate, degrees/s */
-#define SID_RATE        0.004178		/* sidereal rate, degrees/s */
-#define GOTO_LIMIT      5.5             /* Move at GOTO_RATE until distance from target is GOTO_LIMIT degrees */
-#define SLEW_LIMIT      1               /* Move at SLEW_LIMIT until distance from target is SLEW_LIMIT degrees */
-#define FINE_SLEW_LIMIT 0.5             /* Move at FINE_SLEW_RATE until distance from target is FINE_SLEW_LIMIT degrees */
+#define GOTO_RATE       5        /* slew rate, degrees/s */
+#define SLEW_RATE       0.5      /* slew rate, degrees/s */
+#define FINE_SLEW_RATE  0.1      /* slew rate, degrees/s */
+#define SID_RATE        0.004178 /* sidereal rate, degrees/s */
+#define GOTO_LIMIT      5.5      /* Move at GOTO_RATE until distance from target is GOTO_LIMIT degrees */
+#define SLEW_LIMIT      1        /* Move at SLEW_LIMIT until distance from target is SLEW_LIMIT degrees */
+#define FINE_SLEW_LIMIT 0.5      /* Move at FINE_SLEW_RATE until distance from target is FINE_SLEW_LIMIT degrees */
 
-#define MOUNTINFO_TAB   "Mount Info"
+#define MOUNTINFO_TAB "Mount Info"
 
 std::unique_ptr<CelestronGPS> telescope(new CelestronGPS());
 
@@ -61,30 +61,30 @@ void ISInit()
     isInit = 1;
 
     // if(telescope.get() == 0) telescope.reset();
-
 }
 
-void ISGetProperties (const char * dev)
+void ISGetProperties(const char *dev)
 {
     ISInit();
     telescope->ISGetProperties(dev);
 }
-void ISNewSwitch (const char * dev, const char * name, ISState * states, char * names[], int n)
+void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
 {
     ISInit();
     telescope->ISNewSwitch(dev, name, states, names, n);
 }
-void ISNewText (const char * dev, const char * name, char * texts[], char * names[], int n)
+void ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
 {
     ISInit();
     telescope->ISNewText(dev, name, texts, names, n);
 }
-void ISNewNumber (const char * dev, const char * name, double values[], char * names[], int n)
+void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
 {
     ISInit();
     telescope->ISNewNumber(dev, name, values, names, n);
 }
-void ISNewBLOB (const char * dev, const char * name, int sizes[], int blobsizes[], char * blobs[], char * formats[], char * names[], int n)
+void ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[],
+               char *names[], int n)
 {
     INDI_UNUSED(dev);
     INDI_UNUSED(name);
@@ -95,7 +95,7 @@ void ISNewBLOB (const char * dev, const char * name, int sizes[], int blobsizes[
     INDI_UNUSED(names);
     INDI_UNUSED(n);
 }
-void ISSnoopDevice (XMLEle * root)
+void ISSnoopDevice(XMLEle *root)
 {
     ISInit();
     telescope->ISSnoopDevice(root);
@@ -107,26 +107,24 @@ void ISSnoopDevice (XMLEle * root)
 
 CelestronGPS::CelestronGPS()
 {
-
     setVersion(3, 0);
 
-    fwInfo.Version = "Invalid";
+    fwInfo.Version           = "Invalid";
     fwInfo.controllerVersion = 0;
 
     INDI::Logger::getInstance().addDebugLevel("Scope Verbose", "SCOPE");
 
-    currentRA    = 0;
-    currentDEC   = 90;
-    currentAZ    = 0;
-    currentALT   = 0;
-    targetAZ     = 0;
-    targetALT    = 0;
-
+    currentRA  = 0;
+    currentDEC = 90;
+    currentAZ  = 0;
+    currentALT = 0;
+    targetAZ   = 0;
+    targetALT  = 0;
 }
 
-const char * CelestronGPS::getDefaultName()
+const char *CelestronGPS::getDefaultName()
 {
-    return ( (const char *) "Celestron GPS");
+    return ((const char *)"Celestron GPS");
 }
 
 bool CelestronGPS::initProperties()
@@ -139,7 +137,8 @@ bool CelestronGPS::initProperties()
     IUFillText(&FirmwareT[FW_GPS], "GPS", "", 0);
     IUFillText(&FirmwareT[FW_RA], "RA", "", 0);
     IUFillText(&FirmwareT[FW_DEC], "DEC", "", 0);
-    IUFillTextVector(&FirmwareTP, FirmwareT, 5, getDeviceName(), "Firmware Info", "", MOUNTINFO_TAB, IP_RO, 0, IPS_IDLE);
+    IUFillTextVector(&FirmwareTP, FirmwareT, 5, getDeviceName(), "Firmware Info", "", MOUNTINFO_TAB, IP_RO, 0,
+                     IPS_IDLE);
 
     /*IUFillNumber(&HorizontalCoordsN[AXIS_AZ], "AZ", "Az D:M:S", "%10.6m", 0.0, 360.0, 0.0, 0);
     IUFillNumber(&HorizontalCoordsN[AXIS_ALT], "ALT", "Alt  D:M:S", "%10.6m", -90., 90.0, 0.0, 0);
@@ -149,16 +148,19 @@ bool CelestronGPS::initProperties()
     IUFillSwitch(&TrackS[1], "TRACK_ALTAZ", "Alt/Az", ISS_OFF);
     IUFillSwitch(&TrackS[2], "TRACK_EQN", "Eq North", ISS_OFF);
     IUFillSwitch(&TrackS[3], "TRACK_EQS", "Eq South", ISS_OFF);
-    IUFillSwitchVector(&TrackSP, TrackS, 4, getDeviceName(), "TELESCOPE_TRACK_MODE", "Track Mode", MOUNTINFO_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+    IUFillSwitchVector(&TrackSP, TrackS, 4, getDeviceName(), "TELESCOPE_TRACK_MODE", "Track Mode", MOUNTINFO_TAB, IP_RW,
+                       ISR_1OFMANY, 0, IPS_IDLE);
 
     IUFillSwitch(&UseHibernateS[0], "Enable", "", ISS_OFF);
     IUFillSwitch(&UseHibernateS[1], "Disable", "", ISS_ON);
-    IUFillSwitchVector(&UseHibernateSP, UseHibernateS, 2, getDeviceName(), "Hibernate", "", OPTIONS_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+    IUFillSwitchVector(&UseHibernateSP, UseHibernateS, 2, getDeviceName(), "Hibernate", "", OPTIONS_TAB, IP_RW,
+                       ISR_1OFMANY, 0, IPS_IDLE);
 
     //GUIDE Define "Use Pulse Cmd" property (Switch).
     IUFillSwitch(&UsePulseCmdS[0], "Off", "", ISS_ON);
     IUFillSwitch(&UsePulseCmdS[1], "On", "", ISS_OFF);
-    IUFillSwitchVector(&UsePulseCmdSP, UsePulseCmdS, 2, getDeviceName(), "Use Pulse Cmd", "", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+    IUFillSwitchVector(&UsePulseCmdSP, UsePulseCmdS, 2, getDeviceName(), "Use Pulse Cmd", "", MAIN_CONTROL_TAB, IP_RW,
+                       ISR_1OFMANY, 0, IPS_IDLE);
 
     SetParkDataType(PARK_AZ_ALT);
 
@@ -173,11 +175,11 @@ bool CelestronGPS::initProperties()
     return true;
 }
 
-void CelestronGPS::ISGetProperties(const char * dev)
+void CelestronGPS::ISGetProperties(const char *dev)
 {
     static bool configLoaded = false;
 
-    if(dev && strcmp(dev, getDeviceName()))
+    if (dev && strcmp(dev, getDeviceName()))
         return;
 
     INDI::Telescope::ISGetProperties(dev);
@@ -248,7 +250,7 @@ bool CelestronGPS::updateProperties()
         {
             IUResetSwitch(&TrackSP);
             TrackS[mode].s = ISS_ON;
-            TrackSP.s = IPS_OK;
+            TrackSP.s      = IPS_OK;
 
             if (mode == TRACK_OFF)
                 DEBUG(INDI::Logger::DBG_SESSION, "Mount tracking is off.");
@@ -274,7 +276,6 @@ bool CelestronGPS::updateProperties()
             SetAxis1ParkDefault(LocationN[LOCATION_LATITUDE].value >= 0 ? 0 : 180);
             SetAxis2ParkDefault(LocationN[LOCATION_LATITUDE].value);
         }
-
 
         //GUIDE Update properties.
         defineSwitch(&UsePulseCmdSP);
@@ -303,7 +304,6 @@ bool CelestronGPS::updateProperties()
                 IDSetText(&TimeTP, nullptr);
             }
         }
-
     }
     else
     {
@@ -350,14 +350,14 @@ bool CelestronGPS::Goto(double ra, double dec)
     DEBUGF(INDI::Logger::DBG_SESSION, "Slewing to JNOW RA %s - DEC %s", RAStr, DecStr);
 
     return true;
-
 }
 
 bool CelestronGPS::Sync(double ra, double dec)
 {
     if (fwInfo.controllerVersion <= 4.1)
     {
-        DEBUGF(INDI::Logger::DBG_WARNING, "Firmwre version 4.1 or higher is required to sync. Current version is %3.1f", fwInfo.controllerVersion);
+        DEBUGF(INDI::Logger::DBG_WARNING, "Firmwre version 4.1 or higher is required to sync. Current version is %3.1f",
+               fwInfo.controllerVersion);
         return false;
     }
 
@@ -425,7 +425,7 @@ bool CelestronGPS::Sync(double ra, double dec)
 bool CelestronGPS::MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command)
 {
     CELESTRON_DIRECTION current_move = (dir == DIRECTION_NORTH) ? CELESTRON_N : CELESTRON_S;
-    CELESTRON_SLEW_RATE rate         = (CELESTRON_SLEW_RATE) IUFindOnSwitchIndex(&SlewRateSP);
+    CELESTRON_SLEW_RATE rate         = (CELESTRON_SLEW_RATE)IUFindOnSwitchIndex(&SlewRateSP);
 
     switch (command)
     {
@@ -436,7 +436,8 @@ bool CelestronGPS::MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command)
                 return false;
             }
             else
-                DEBUGF(INDI::Logger::DBG_SESSION, "Moving toward %s.", (current_move == CELESTRON_N) ? "North" : "South");
+                DEBUGF(INDI::Logger::DBG_SESSION, "Moving toward %s.",
+                       (current_move == CELESTRON_N) ? "North" : "South");
             break;
 
         case MOTION_STOP:
@@ -446,18 +447,18 @@ bool CelestronGPS::MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command)
                 return false;
             }
             else
-                DEBUGF(INDI::Logger::DBG_SESSION, "Movement toward %s halted.", (current_move == CELESTRON_N) ? "North" : "South");
+                DEBUGF(INDI::Logger::DBG_SESSION, "Movement toward %s halted.",
+                       (current_move == CELESTRON_N) ? "North" : "South");
             break;
     }
 
     return true;
-
 }
 
 bool CelestronGPS::MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command)
 {
     CELESTRON_DIRECTION current_move = (dir == DIRECTION_WEST) ? CELESTRON_W : CELESTRON_E;
-    CELESTRON_SLEW_RATE rate         = (CELESTRON_SLEW_RATE) IUFindOnSwitchIndex(&SlewRateSP);
+    CELESTRON_SLEW_RATE rate         = (CELESTRON_SLEW_RATE)IUFindOnSwitchIndex(&SlewRateSP);
 
     switch (command)
     {
@@ -478,7 +479,8 @@ bool CelestronGPS::MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command)
                 return false;
             }
             else
-                DEBUGF(INDI::Logger::DBG_SESSION, "Movement toward %s halted.", (current_move == CELESTRON_W) ? "West" : "East");
+                DEBUGF(INDI::Logger::DBG_SESSION, "Movement toward %s halted.",
+                       (current_move == CELESTRON_W) ? "West" : "East");
             break;
     }
 
@@ -534,7 +536,8 @@ bool CelestronGPS::ReadScopeStatus()
                     DEBUG(INDI::Logger::DBG_SESSION, "Hibernating mount...");
                     bool rc = hibernate(PortFD);
                     if (rc)
-                        DEBUG(INDI::Logger::DBG_SESSION, "Mount hibernated. Please disconnect now and turn off your mount.");
+                        DEBUG(INDI::Logger::DBG_SESSION,
+                              "Mount hibernated. Please disconnect now and turn off your mount.");
                     else
                         DEBUG(INDI::Logger::DBG_ERROR, "Hibernating mount failed!");
                 }
@@ -561,7 +564,7 @@ bool CelestronGPS::Abort()
     //GUIDE Abort guide operations.
     if (GuideNSNP.s == IPS_BUSY || GuideWENP.s == IPS_BUSY)
     {
-        GuideNSNP.s  = GuideWENP.s =  IPS_IDLE;
+        GuideNSNP.s = GuideWENP.s = IPS_IDLE;
         GuideNSN[0].value = GuideNSN[1].value = 0.0;
         GuideWEN[0].value = GuideWEN[1].value = 0.0;
 
@@ -605,7 +608,8 @@ bool CelestronGPS::Handshake()
         bool rc = wakeup(PortFD);
         if (rc == false)
         {
-            DEBUG(INDI::Logger::DBG_ERROR, "Waking up mount failed! Make sure mount is powered and connected. Hibernate requires firmware version >= 5.21");
+            DEBUG(INDI::Logger::DBG_ERROR, "Waking up mount failed! Make sure mount is powered and connected. "
+                                           "Hibernate requires firmware version >= 5.21");
             return false;
         }
     }
@@ -619,9 +623,9 @@ bool CelestronGPS::Handshake()
     return true;
 }
 
-bool CelestronGPS::ISNewSwitch (const char * dev, const char * name, ISState * states, char * names[], int n)
+bool CelestronGPS::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
 {
-    if (!strcmp (getDeviceName(), dev))
+    if (!strcmp(getDeviceName(), dev))
     {
         if (!strcmp(name, TrackSP.name))
         {
@@ -643,7 +647,6 @@ bool CelestronGPS::ISNewSwitch (const char * dev, const char * name, ISState * s
                     return setTrackMode(TRACK_EQN);
                 else if (!strcmp(names[i], "TRACK_EQS") && states[i] == ISS_ON)
                     return setTrackMode(TRACK_EQS);
-
             }
 
             return false;
@@ -659,9 +662,8 @@ bool CelestronGPS::ISNewSwitch (const char * dev, const char * name, ISState * s
         }
 
         //GUIDE Pulse-Guide command support
-        if (!strcmp (name, UsePulseCmdSP.name))
+        if (!strcmp(name, UsePulseCmdSP.name))
         {
-
             IUResetSwitch(&UsePulseCmdSP);
             IUUpdateSwitch(&UsePulseCmdSP, states, names, n);
 
@@ -669,17 +671,16 @@ bool CelestronGPS::ISNewSwitch (const char * dev, const char * name, ISState * s
             IDSetSwitch(&UsePulseCmdSP, nullptr);
             return true;
         }
-
     }
 
-    return INDI::Telescope::ISNewSwitch (dev, name, states, names,  n);
+    return INDI::Telescope::ISNewSwitch(dev, name, states, names, n);
 }
 
-bool CelestronGPS::ISNewNumber (const char * dev, const char * name, double values[], char * names[], int n)
+bool CelestronGPS::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
 {
     //double newAlt=0, newAz=0;
 
-    if(!strcmp(dev, getDeviceName()))
+    if (!strcmp(dev, getDeviceName()))
     {
         /*if ( !strcmp (name, HorizontalCoordsNP.name) )
         {
@@ -730,11 +731,11 @@ bool CelestronGPS::ISNewNumber (const char * dev, const char * name, double valu
         processGuiderProperties(name, values, names, n);
     }
 
-    INDI::Telescope::ISNewNumber (dev, name, values, names, n);
+    INDI::Telescope::ISNewNumber(dev, name, values, names, n);
     return true;
 }
 
-void CelestronGPS::mountSim ()
+void CelestronGPS::mountSim()
 {
     static struct timeval ltv;
     struct timeval tv;
@@ -742,24 +743,24 @@ void CelestronGPS::mountSim ()
     int nlocked;
 
     /* update elapsed time since last poll, don't presume exactly POLLMS */
-    gettimeofday (&tv, nullptr);
+    gettimeofday(&tv, nullptr);
 
     if (ltv.tv_sec == 0 && ltv.tv_usec == 0)
         ltv = tv;
 
-    dt = tv.tv_sec - ltv.tv_sec + (tv.tv_usec - ltv.tv_usec) / 1e6;
+    dt  = tv.tv_sec - ltv.tv_sec + (tv.tv_usec - ltv.tv_usec) / 1e6;
     ltv = tv;
 
-    if ( fabs(targetRA - currentRA) * 15. >= GOTO_LIMIT )
+    if (fabs(targetRA - currentRA) * 15. >= GOTO_LIMIT)
         da_ra = GOTO_RATE * dt;
-    else if ( fabs(targetRA - currentRA) * 15. >= SLEW_LIMIT )
+    else if (fabs(targetRA - currentRA) * 15. >= SLEW_LIMIT)
         da_ra = SLEW_RATE * dt;
     else
         da_ra = FINE_SLEW_RATE * dt;
 
-    if ( fabs(targetDEC - currentDEC) >= GOTO_LIMIT )
+    if (fabs(targetDEC - currentDEC) >= GOTO_LIMIT)
         da_dec = GOTO_RATE * dt;
-    else if ( fabs(targetDEC - currentDEC) >= SLEW_LIMIT )
+    else if (fabs(targetDEC - currentDEC) >= SLEW_LIMIT)
         da_dec = SLEW_RATE * dt;
     else
         da_dec = FINE_SLEW_RATE * dt;
@@ -848,7 +849,6 @@ void CelestronGPS::mountSim ()
     /* Process per current state. We check the state of EQUATORIAL_COORDS and act acoordingly */
     switch (TrackState)
     {
-
         case SCOPE_TRACKING:
             /* RA moves at sidereal, Dec stands still */
             currentRA += (SID_RATE * dt / 15.);
@@ -941,18 +941,22 @@ bool CelestronGPS::updateLocation(double latitude, double longitude, double elev
 
     if (fwInfo.controllerVersion < 2.3)
     {
-        DEBUGF(INDI::Logger::DBG_WARNING, "Firmwre version 2.3 or higher is required to update location. Current version is %3.1f", fwInfo.controllerVersion);
+        DEBUGF(INDI::Logger::DBG_WARNING,
+               "Firmwre version 2.3 or higher is required to update location. Current version is %3.1f",
+               fwInfo.controllerVersion);
         return false;
     }
 
     return (set_celestron_location(PortFD, longitude, latitude));
 }
 
-bool CelestronGPS::updateTime(ln_date * utc, double utc_offset)
+bool CelestronGPS::updateTime(ln_date *utc, double utc_offset)
 {
     if (fwInfo.controllerVersion < 2.3)
     {
-        DEBUGF(INDI::Logger::DBG_WARNING, "Firmwre version 2.3 or higher is required to update time. Current version is %3.1f", fwInfo.controllerVersion);
+        DEBUGF(INDI::Logger::DBG_WARNING,
+               "Firmwre version 2.3 or higher is required to update time. Current version is %3.1f",
+               fwInfo.controllerVersion);
         return false;
     }
 
@@ -1008,7 +1012,8 @@ bool CelestronGPS::UnPark()
 {
     if (INDI::Telescope::isLocked())
     {
-        DEBUG(INDI::Logger::DBG_SESSION, "Cannot unpark mount when dome is locking. See: Dome parking policy, in options tab");
+        DEBUG(INDI::Logger::DBG_SESSION,
+              "Cannot unpark mount when dome is locking. See: Dome parking policy, in options tab");
         return false;
     }
 
@@ -1052,7 +1057,6 @@ bool CelestronGPS::UnPark()
     }
     else
         return false;
-
 }
 
 bool CelestronGPS::SetCurrentPark()
@@ -1067,11 +1071,11 @@ bool CelestronGPS::SetCurrentPark()
         observer.lng -= 360;
 
     ln_equ_posn equatorialPos;
-    equatorialPos.ra   = currentRA * 15;
-    equatorialPos.dec  = currentDEC;
+    equatorialPos.ra  = currentRA * 15;
+    equatorialPos.dec = currentDEC;
     ln_get_hrz_from_equ(&equatorialPos, &observer, ln_get_julian_from_sys(), &horizontalPos);
 
-    double parkAZ  = horizontalPos.az - 180;
+    double parkAZ = horizontalPos.az - 180;
     if (parkAZ < 0)
         parkAZ += 360;
     double parkAlt = horizontalPos.alt;
@@ -1080,7 +1084,8 @@ bool CelestronGPS::SetCurrentPark()
     fs_sexa(AzStr, parkAZ, 2, 3600);
     fs_sexa(AltStr, parkAlt, 2, 3600);
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "Setting current parking position to coordinates Az (%s) Alt (%s)...", AzStr, AltStr);
+    DEBUGF(INDI::Logger::DBG_DEBUG, "Setting current parking position to coordinates Az (%s) Alt (%s)...", AzStr,
+           AltStr);
 
     SetAxis1Park(parkAZ);
     SetAxis2Park(parkAlt);
@@ -1099,7 +1104,7 @@ bool CelestronGPS::SetDefaultPark()
     return true;
 }
 
-bool CelestronGPS::saveConfigItems(FILE * fp)
+bool CelestronGPS::saveConfigItems(FILE *fp)
 {
     INDI::Telescope::saveConfigItems(fp);
 
@@ -1115,7 +1120,7 @@ bool CelestronGPS::setTrackMode(CELESTRON_TRACK_MODE mode)
     {
         IUResetSwitch(&TrackSP);
         TrackS[mode].s = ISS_ON;
-        TrackSP.s = IPS_OK;
+        TrackSP.s      = IPS_OK;
         IDSetSwitch(&TrackSP, nullptr);
 
         return true;
@@ -1124,7 +1129,6 @@ bool CelestronGPS::setTrackMode(CELESTRON_TRACK_MODE mode)
     TrackSP.s = IPS_ALERT;
     return false;
 }
-
 
 //GUIDE Guiding functions.
 IPState CelestronGPS::GuideNorth(float ms)
@@ -1147,7 +1151,6 @@ IPState CelestronGPS::GuideNorth(float ms)
         DEBUG(INDI::Logger::DBG_WARNING, " STOP NS MOVEMENT");
         int dir = IUFindOnSwitchIndex(&MovementNSSP);
         MoveNS(dir == 0 ? DIRECTION_NORTH : DIRECTION_SOUTH, MOTION_STOP);
-
     }
 
     if (GuideNSTID)
@@ -1159,11 +1162,10 @@ IPState CelestronGPS::GuideNorth(float ms)
     if (use_pulse_cmd)
     {
         DEBUG(INDI::Logger::DBG_DEBUG, " CALL SendPulseCmd");
-        SendPulseCmd(PortFD, CELESTRON_N, 50 , ms / 10.0);
+        SendPulseCmd(PortFD, CELESTRON_N, 50, ms / 10.0);
     }
     else
     {
-
         DEBUG(INDI::Logger::DBG_WARNING, " PULSEGUIDE OFF, STARTING MOTION");
         MovementNSS[0].s = ISS_ON;
         MoveNS(DIRECTION_NORTH, MOTION_START);
@@ -1174,7 +1176,7 @@ IPState CelestronGPS::GuideNorth(float ms)
     SlewRateS[SLEW_GUIDE].s = ISS_ON;
     IDSetSwitch(&SlewRateSP, nullptr);
     guide_direction = CELESTRON_N;
-    GuideNSTID = IEAddTimer (ms, guideTimeoutHelperN, this);
+    GuideNSTID      = IEAddTimer(ms, guideTimeoutHelperN, this);
     return IPS_BUSY;
 }
 
@@ -1198,7 +1200,6 @@ IPState CelestronGPS::GuideSouth(float ms)
         DEBUG(INDI::Logger::DBG_WARNING, " STOP NS MOVEMENT");
         int dir = IUFindOnSwitchIndex(&MovementNSSP);
         MoveNS(dir == 0 ? DIRECTION_NORTH : DIRECTION_SOUTH, MOTION_STOP);
-
     }
 
     if (GuideNSTID)
@@ -1210,11 +1211,10 @@ IPState CelestronGPS::GuideSouth(float ms)
     if (use_pulse_cmd)
     {
         DEBUG(INDI::Logger::DBG_DEBUG, " CALL SendPulseCmd");
-        SendPulseCmd(PortFD, CELESTRON_S, 50 , ms / 10.0);
+        SendPulseCmd(PortFD, CELESTRON_S, 50, ms / 10.0);
     }
     else
     {
-
         DEBUG(INDI::Logger::DBG_WARNING, " PULSEGUIDE OFF, STARTING MOTION");
         MovementNSS[1].s = ISS_ON;
         MoveNS(DIRECTION_SOUTH, MOTION_START);
@@ -1225,7 +1225,7 @@ IPState CelestronGPS::GuideSouth(float ms)
     SlewRateS[SLEW_GUIDE].s = ISS_ON;
     IDSetSwitch(&SlewRateSP, nullptr);
     guide_direction = CELESTRON_S;
-    GuideNSTID = IEAddTimer (ms, guideTimeoutHelperS, this);
+    GuideNSTID      = IEAddTimer(ms, guideTimeoutHelperS, this);
     return IPS_BUSY;
 }
 
@@ -1249,7 +1249,6 @@ IPState CelestronGPS::GuideEast(float ms)
         DEBUG(INDI::Logger::DBG_WARNING, " STOP WE MOVEMENT");
         int dir = IUFindOnSwitchIndex(&MovementWESP);
         MoveWE(dir == 0 ? DIRECTION_WEST : DIRECTION_EAST, MOTION_STOP);
-
     }
 
     if (GuideWETID)
@@ -1261,11 +1260,10 @@ IPState CelestronGPS::GuideEast(float ms)
     if (use_pulse_cmd)
     {
         DEBUG(INDI::Logger::DBG_DEBUG, " CALL SendPulseCmd");
-        SendPulseCmd(PortFD, CELESTRON_E, 50 , ms / 10.0);
+        SendPulseCmd(PortFD, CELESTRON_E, 50, ms / 10.0);
     }
     else
     {
-
         DEBUG(INDI::Logger::DBG_WARNING, " PULSEGUIDE OFF, STARTING MOTION");
         MovementWES[1].s = ISS_ON;
         MoveWE(DIRECTION_EAST, MOTION_START);
@@ -1276,7 +1274,7 @@ IPState CelestronGPS::GuideEast(float ms)
     SlewRateS[SLEW_GUIDE].s = ISS_ON;
     IDSetSwitch(&SlewRateSP, nullptr);
     guide_direction = CELESTRON_E;
-    GuideWETID = IEAddTimer (ms, guideTimeoutHelperE, this);
+    GuideWETID      = IEAddTimer(ms, guideTimeoutHelperE, this);
     return IPS_BUSY;
 }
 
@@ -1300,8 +1298,6 @@ IPState CelestronGPS::GuideWest(float ms)
         DEBUG(INDI::Logger::DBG_DEBUG, " STOP WE MOVEMENT");
         int dir = IUFindOnSwitchIndex(&MovementWESP);
         MoveWE(dir == 0 ? DIRECTION_WEST : DIRECTION_EAST, MOTION_STOP);
-
-
     }
 
     if (GuideWETID)
@@ -1313,41 +1309,38 @@ IPState CelestronGPS::GuideWest(float ms)
     if (use_pulse_cmd)
     {
         DEBUG(INDI::Logger::DBG_DEBUG, " CALL SendPulseCmd");
-        SendPulseCmd(PortFD, CELESTRON_W, 50 , ms / 10.0);
+        SendPulseCmd(PortFD, CELESTRON_W, 50, ms / 10.0);
     }
     else
     {
-
         DEBUG(INDI::Logger::DBG_WARNING, " PULSEGUIDE OFF, STARTING MOTION");
         MovementWES[0].s = ISS_ON;
         MoveWE(DIRECTION_WEST, MOTION_START);
     }
-
 
     // Set slew to guiding
     IUResetSwitch(&SlewRateSP);
     SlewRateS[SLEW_GUIDE].s = ISS_ON;
     IDSetSwitch(&SlewRateSP, nullptr);
     guide_direction = CELESTRON_W;
-    GuideWETID = IEAddTimer (ms, guideTimeoutHelperW, this);
+    GuideWETID      = IEAddTimer(ms, guideTimeoutHelperW, this);
     return IPS_BUSY;
-
 }
 
 //GUIDE The timer helper functions.
-void CelestronGPS::guideTimeoutHelperN(void * p)
+void CelestronGPS::guideTimeoutHelperN(void *p)
 {
     ((CelestronGPS *)p)->guideTimeout(CELESTRON_N);
 }
-void CelestronGPS::guideTimeoutHelperS(void * p)
+void CelestronGPS::guideTimeoutHelperS(void *p)
 {
     ((CelestronGPS *)p)->guideTimeout(CELESTRON_S);
 }
-void CelestronGPS::guideTimeoutHelperW(void * p)
+void CelestronGPS::guideTimeoutHelperW(void *p)
 {
     ((CelestronGPS *)p)->guideTimeout(CELESTRON_W);
 }
-void CelestronGPS::guideTimeoutHelperE(void * p)
+void CelestronGPS::guideTimeoutHelperE(void *p)
 {
     ((CelestronGPS *)p)->guideTimeout(CELESTRON_E);
 }
@@ -1387,11 +1380,9 @@ void CelestronGPS::guideTimeout(CELESTRON_DIRECTION calldir)
         IDSetSwitch(&MovementWESP, nullptr);
         IERmTimer(GuideNSTID);
         IERmTimer(GuideWETID);
-
     }
-    else if (! use_pulse_cmd)
+    else if (!use_pulse_cmd)
     {
-
         if (calldir == CELESTRON_N || calldir == CELESTRON_S)
         {
             MoveNS(calldir == CELESTRON_N ? DIRECTION_NORTH : DIRECTION_SOUTH, MOTION_STOP);
@@ -1426,13 +1417,13 @@ void CelestronGPS::guideTimeout(CELESTRON_DIRECTION calldir)
     DEBUG(INDI::Logger::DBG_DEBUG, " CALL SendPulseStatusCmd");
 
     bool pulseguide_state;
-    if( !( SendPulseStatusCmd(PortFD, calldir, pulseguide_state) ) )
+    if (!(SendPulseStatusCmd(PortFD, calldir, pulseguide_state)))
     {
         DEBUG(INDI::Logger::DBG_ERROR, " PULSE STATUS UNDETERMINED");
     }
     else
     {
-        if(pulseguide_state)
+        if (pulseguide_state)
         {
             DEBUG(INDI::Logger::DBG_ERROR, " PULSE STILL IN PROGRESS, POSSIBLE MOUNT JAM.");
         }
@@ -1446,19 +1437,18 @@ void CelestronGPS::guideTimeout(CELESTRON_DIRECTION calldir)
     {
         GuideNSNP.np[0].value = 0;
         GuideNSNP.np[1].value = 0;
-        GuideNSNP.s = IPS_IDLE;
-        GuideNSTID = 0;
+        GuideNSNP.s           = IPS_IDLE;
+        GuideNSTID            = 0;
         IDSetNumber(&GuideNSNP, nullptr);
     }
     if (calldir == CELESTRON_W || calldir == CELESTRON_E || guide_direction == -1)
     {
         GuideWENP.np[0].value = 0;
         GuideWENP.np[1].value = 0;
-        GuideWENP.s = IPS_IDLE;
-        GuideWETID = 0;
+        GuideWENP.s           = IPS_IDLE;
+        GuideWETID            = 0;
         IDSetNumber(&GuideWENP, nullptr);
     }
 
     DEBUG(INDI::Logger::DBG_WARNING, "GUIDE CMD COMPLETED");
-
 }

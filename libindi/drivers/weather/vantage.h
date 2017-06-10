@@ -29,33 +29,32 @@
 
 class Vantage : public INDI::Weather
 {
-    public:
+  public:
+    // Forcecast bit mask from Davis Vantage manual
+    enum
+    {
+        W_RAINY         = 1 << 0,
+        W_CLOUDY        = 1 << 1,
+        W_PARTLY_CLOUDY = 1 << 2,
+        W_SUNNY         = 1 << 3,
+        W_SNOW          = 1 << 4
+    };
 
-        // Forcecast bit mask from Davis Vantage manual
-        enum { W_RAINY            = 1 << 0,
-               W_CLOUDY           = 1 << 1,
-               W_PARTLY_CLOUDY    = 1 << 2,
-               W_SUNNY            = 1 << 3,
-               W_SNOW             = 1 << 4
-             };
+    Vantage();
+    virtual ~Vantage();
 
-        Vantage();
-        virtual ~Vantage();
+    //  Generic indi device entries
+    virtual bool Handshake() override;
+    const char *getDefaultName();
 
-        //  Generic indi device entries
-        virtual bool Handshake() override;
-        const char * getDefaultName();
+    virtual bool initProperties();
 
-        virtual bool initProperties();
+  protected:
+    virtual IPState updateWeather();
 
-    protected:
-
-        virtual IPState updateWeather();
-
-    private:
-
-        bool ack();
-        bool wakeup();
+  private:
+    bool ack();
+    bool wakeup();
 };
 
 #endif

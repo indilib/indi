@@ -23,22 +23,32 @@
 #define MAGELLANDRIVER_H
 
 /* Just use Default tracking for what ever telescope is feeding Magellan I */
-enum TFreq { MAGELLAN_TRACK_DEFAULT, MAGELLAN_TRACK_LUNAR, MAGELLAN_TRACK_MANUAL};
+enum TFreq
+{
+    MAGELLAN_TRACK_DEFAULT,
+    MAGELLAN_TRACK_LUNAR,
+    MAGELLAN_TRACK_MANUAL
+};
 
 /* Time Format */
-enum TTimeFormat { MAGELLAN_24, MAGELLAN_AM, MAGELLAN_PM};
+enum TTimeFormat
+{
+    MAGELLAN_24,
+    MAGELLAN_AM,
+    MAGELLAN_PM
+};
 
-#define MAGELLAN_TIMEOUT	 5	/* FD timeout in seconds */
-#define MAGELLAN_ERROR		-1	/* Default Error Code */
-#define MAGELLAN_OK		 0	/* Default Success Code */
-#define MAGELLAN_ACK		'P'	/* Default Success Code */
+#define MAGELLAN_TIMEOUT 5   /* FD timeout in seconds */
+#define MAGELLAN_ERROR   -1  /* Default Error Code */
+#define MAGELLAN_OK      0   /* Default Success Code */
+#define MAGELLAN_ACK     'P' /* Default Success Code */
 
-#define CENTURY_THRESHOLD	91      /* When to goto 21st Century */
-#define CONNECTION_RETRIES	 2	/* Retry Attempt cut-off */
+#define CENTURY_THRESHOLD  91 /* When to goto 21st Century */
+#define CONNECTION_RETRIES 2  /* Retry Attempt cut-off */
 
 /* GET formatted sexagisemal value from device, return as double */
-#define getMAGELLANRA(fd, x)		getCommandSexa(fd, x, "#:GR#")
-#define getMAGELLANDEC(fd, x)		getCommandSexa(fd, x, "#:GD#")
+#define getMAGELLANRA(fd, x)  getCommandSexa(fd, x, "#:GR#")
+#define getMAGELLANDEC(fd, x) getCommandSexa(fd, x, "#:GD#")
 
 #ifdef __cplusplus
 extern "C" {
@@ -56,10 +66,10 @@ int check_magellan_connection(int fd);
  **************************************************************************/
 
 /* Get Double from Sexagisemal */
-int getCommandSexa(int fd, double * value, const char * cmd);
+int getCommandSexa(int fd, double *value, const char *cmd);
 
 /* Get Calender data */
-int getCalendarDate(int fd, char * date);
+int getCalendarDate(int fd, char *date);
 
 #ifdef __cplusplus
 }

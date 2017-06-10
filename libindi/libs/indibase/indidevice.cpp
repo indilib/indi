@@ -23,20 +23,19 @@
 
 #include <string.h>
 
-IndiDevice * device = nullptr;
-
+IndiDevice *device = nullptr;
 
 /**************************************************************************************
 **
 ***************************************************************************************/
-void ISGetProperties (const char * dev)
+void ISGetProperties(const char *dev)
 {
     //fprintf(stderr,"Enter ISGetProperties '%s'\n",dev);
-    if(device == nullptr)
+    if (device == nullptr)
     {
         //IDLog("Create device for %s\n",dev);
         device = _create_device();
-        if(dev != nullptr)
+        if (dev != nullptr)
         {
             //fprintf(stderr,"Calling setDeviceName %s\n",dev);
             device->setDeviceName(dev);
@@ -57,7 +56,7 @@ void ISGetProperties (const char * dev)
 /**************************************************************************************
 **
 ***************************************************************************************/
-void ISNewSwitch (const char * dev, const char * name, ISState * states, char * names[], int n)
+void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
 {
     //fprintf(stderr,"Enter ISNewSwitch %s\n",dev);
 
@@ -69,7 +68,7 @@ void ISNewSwitch (const char * dev, const char * name, ISState * states, char * 
 /**************************************************************************************
 **
 ***************************************************************************************/
-void ISNewText (const char * dev, const char * name, char * texts[], char * names[], int n)
+void ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
 {
     //fprintf(stderr,"Enter ISNewText\n");
     //ISInit();
@@ -79,7 +78,7 @@ void ISNewText (const char * dev, const char * name, char * texts[], char * name
 /**************************************************************************************
 **
 ***************************************************************************************/
-void ISNewNumber (const char * dev, const char * name, double values[], char * names[], int n)
+void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
 {
     //fprintf(stderr,"OutsideClass::Enter ISNewNumber\n");
     //ISInit();
@@ -89,7 +88,8 @@ void ISNewNumber (const char * dev, const char * name, double values[], char * n
 /**************************************************************************************
 **
 ***************************************************************************************/
-void ISNewBLOB (const char * dev, const char * name, int sizes[], int blobsizes[], char * blobs[], char * formats[], char * names[], int n)
+void ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[],
+               char *names[], int n)
 {
     INDI_UNUSED(dev);
     INDI_UNUSED(name);
@@ -104,15 +104,15 @@ void ISNewBLOB (const char * dev, const char * name, int sizes[], int blobsizes[
 /**************************************************************************************
 **
 ***************************************************************************************/
-void ISSnoopDevice (XMLEle * root)
+void ISSnoopDevice(XMLEle *root)
 {
     return device->ISSnoopDevice(root);
 }
 
-void timerfunc(void * t)
+void timerfunc(void *t)
 {
     //fprintf(stderr,"Got a timer hit with %x\n",t);
-    if(t == device)
+    if (t == device)
     {
         //  this was for my device
         //  but we dont have a way of telling
@@ -121,7 +121,6 @@ void timerfunc(void * t)
     }
     return;
 }
-
 
 IndiDevice::IndiDevice()
 {
@@ -134,7 +133,6 @@ IndiDevice::~IndiDevice()
     //dtor
 }
 
-
 int IndiDevice::init_properties()
 {
     //  All devices should have a connection switch defined
@@ -143,37 +141,35 @@ int IndiDevice::init_properties()
     //IDLog("IndiDevice::init_properties()  MyDev=%s\n",deviceName());
     IUFillSwitch(&ConnectionS[0], "CONNECT", "Connect", ISS_OFF);
     IUFillSwitch(&ConnectionS[1], "DISCONNECT", "Disconnect", ISS_ON);
-    IUFillSwitchVector(&ConnectionSV, ConnectionS, 2, deviceName(), "CONNECTION", "Connection", "Main Control", IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
+    IUFillSwitchVector(&ConnectionSV, ConnectionS, 2, deviceName(), "CONNECTION", "Connection", "Main Control", IP_RW,
+                       ISR_1OFMANY, 60, IPS_IDLE);
 
     return 0;
 }
 
-bool IndiDevice::DeleteProperty(char * n)
+bool IndiDevice::DeleteProperty(char *n)
 {
     IDDelete(deviceName(), n, nullptr);
     return true;
 }
 
-void IndiDevice::ISGetProperties(const char * dev)
+void IndiDevice::ISGetProperties(const char *dev)
 {
-
     //  Now lets send the ones we have defined
     //IDLog("IndiDevice::ISGetProperties %s\n",dev);
-    IDDefSwitch (&ConnectionSV, nullptr);
+    IDDefSwitch(&ConnectionSV, nullptr);
 
-    if(Connected) UpdateProperties();   //  If already connected, send the rest
+    if (Connected)
+        UpdateProperties(); //  If already connected, send the rest
     //  And now get the default driver to send what it wants to send
     INDI::DefaultDriver::ISGetProperties(dev);
-
-
 }
 
 /**************************************************************************************
 ** Process Text properties
 ***************************************************************************************/
-bool IndiDevice::ISNewText (const char * dev, const char * name, char * texts[], char * names[], int n)
+bool IndiDevice::ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
 {
-
     //  And this base class doesn't actually process anything
     return INDI::DefaultDriver::ISNewText(dev, name, texts, names, n);
 }
@@ -181,9 +177,8 @@ bool IndiDevice::ISNewText (const char * dev, const char * name, char * texts[],
 /**************************************************************************************
 **  Process Numbers
 ***************************************************************************************/
-bool IndiDevice::ISNewNumber (const char * dev, const char * name, double values[], char * names[], int n)
+bool IndiDevice::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
 {
-
     //  Our base class doesn't actually do any processing
     return INDI::DefaultDriver::ISNewNumber(dev, name, values, names, n);
 }
@@ -191,27 +186,26 @@ bool IndiDevice::ISNewNumber (const char * dev, const char * name, double values
 /**************************************************************************************
 **  Process switches
 ***************************************************************************************/
-bool IndiDevice::ISNewSwitch (const char * dev, const char * name, ISState * states, char * names[], int n)
+bool IndiDevice::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
 {
-
     //  Ok, lets Process any switches we actually handle here
-    if(strcmp(dev, deviceName()) == 0)
+    if (strcmp(dev, deviceName()) == 0)
     {
         //  it's for this device
 
-        if(strcmp(name, ConnectionSV.name) == 0)
+        if (strcmp(name, ConnectionSV.name) == 0)
         {
             bool rc;
             //IDLog("IndiDevice Switch %s\n",names[x]);
 
             IUUpdateSwitch(&ConnectionSV, states, names, n);
 
-            if(ConnectionS[0].s == ISS_ON)
+            if (ConnectionS[0].s == ISS_ON)
             {
-                if(!Connected)
+                if (!Connected)
                 {
                     rc = Connect();
-                    if(rc)
+                    if (rc)
                     {
                         ConnectionSV.s = IPS_OK;
                         //setConnected(true,"calling setconnected");
@@ -224,7 +218,7 @@ bool IndiDevice::ISNewSwitch (const char * dev, const char * name, ISState * sta
                         //ConnectionS[0].s=ISS_OFF;
                         //ConnectionS[1].s=ISS_ON;
                         ConnectionSV.s = IPS_ALERT;
-                        Connected = false;
+                        Connected      = false;
                     }
                 }
                 UpdateProperties();
@@ -232,11 +226,12 @@ bool IndiDevice::ISNewSwitch (const char * dev, const char * name, ISState * sta
             }
             else
             {
-                if(Connected) rc = Disconnect();
+                if (Connected)
+                    rc = Disconnect();
                 //ConnectionS[0].s=ISS_OFF;
                 //ConnectionS[1].s=ISS_ON;
                 ConnectionSV.s = IPS_IDLE;
-                Connected = false;
+                Connected      = false;
                 UpdateProperties();
                 IDSetSwitch(&ConnectionSV, nullptr);
             }
@@ -281,7 +276,6 @@ bool IndiDevice::ISNewSwitch (const char * dev, const char * name, ISState * sta
             //}
         }
     }
-
 
     // let the default driver have a crack at it
     return INDI::DefaultDriver::ISNewSwitch(dev, name, states, names, n);
@@ -330,23 +324,22 @@ bool IndiDevice::UpdateProperties()
     return true;
 }
 
-void IndiDevice::ISSnoopDevice (XMLEle * root)
+void IndiDevice::ISSnoopDevice(XMLEle *root)
 {
     INDI_UNUSED(root);
 }
 
 bool IndiDevice::SaveConfig()
 {
-
     // FIXME REMOVE THIS
     return true;
 
     char err[MAXRBUF];
-    FILE * fp;
+    FILE *fp;
     //int rc;
 
     fp = IUGetConfigFP(nullptr, deviceName(), err);
-    if(fp != nullptr)
+    if (fp != nullptr)
     {
         IUSaveConfigTag(fp, 0);
         //IUSaveConfigText(fp,&FilterNameTV);
@@ -365,7 +358,7 @@ bool IndiDevice::SaveConfig()
     return false;
 }
 
-bool IndiDevice::WritePersistentConfig(FILE * f)
+bool IndiDevice::WritePersistentConfig(FILE *f)
 {
     return false;
 }
@@ -376,6 +369,7 @@ bool IndiDevice::LoadConfig()
     int rc;
 
     rc = IUReadConfig(nullptr, deviceName(), err);
-    if(rc == 0) return true;
+    if (rc == 0)
+        return true;
     return false;
 }

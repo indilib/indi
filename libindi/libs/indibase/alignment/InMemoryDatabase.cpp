@@ -20,16 +20,16 @@ namespace INDI
 {
 namespace AlignmentSubsystem
 {
-
-const bool InMemoryDatabase::CheckForDuplicateSyncPoint(const AlignmentDatabaseEntry &CandidateEntry, double Tolerance) const
+const bool InMemoryDatabase::CheckForDuplicateSyncPoint(const AlignmentDatabaseEntry &CandidateEntry,
+                                                        double Tolerance) const
 {
     for (AlignmentDatabaseType::const_iterator iTr = MySyncPoints.begin(); iTr != MySyncPoints.end(); iTr++)
     {
         if (((std::abs((*iTr).RightAscension - CandidateEntry.RightAscension) < 24.0 * Tolerance / 100.0) &&
-                (std::abs((*iTr).Declination - CandidateEntry.Declination) < 180.0 * Tolerance / 100.0)) ||
-                ((std::abs((*iTr).TelescopeDirection.x - CandidateEntry.TelescopeDirection.x) < Tolerance / 100.0) &&
-                 (std::abs((*iTr).TelescopeDirection.y - CandidateEntry.TelescopeDirection.y) < Tolerance / 100.0) &&
-                 (std::abs((*iTr).TelescopeDirection.z - CandidateEntry.TelescopeDirection.z) < Tolerance / 100.0)))
+             (std::abs((*iTr).Declination - CandidateEntry.Declination) < 180.0 * Tolerance / 100.0)) ||
+            ((std::abs((*iTr).TelescopeDirection.x - CandidateEntry.TelescopeDirection.x) < Tolerance / 100.0) &&
+             (std::abs((*iTr).TelescopeDirection.y - CandidateEntry.TelescopeDirection.y) < Tolerance / 100.0) &&
+             (std::abs((*iTr).TelescopeDirection.z - CandidateEntry.TelescopeDirection.z) < Tolerance / 100.0)))
             return true;
     }
     return false;
@@ -46,26 +46,26 @@ bool InMemoryDatabase::GetDatabaseReferencePosition(ln_lnlat_posn &Position)
         return false;
 }
 
-bool InMemoryDatabase::LoadDatabase(const char * DeviceName)
+bool InMemoryDatabase::LoadDatabase(const char *DeviceName)
 {
     char DatabaseFileName[MAXRBUF];
     char Errmsg[MAXRBUF];
-    XMLEle * FileRoot = nullptr;
-    XMLEle * EntriesRoot = nullptr;
-    XMLEle * EntryRoot = nullptr;
-    XMLEle * Element = nullptr;
-    XMLAtt * Attribute = nullptr;
-    LilXML * Parser = newLilXML();
+    XMLEle *FileRoot    = nullptr;
+    XMLEle *EntriesRoot = nullptr;
+    XMLEle *EntryRoot   = nullptr;
+    XMLEle *Element     = nullptr;
+    XMLAtt *Attribute   = nullptr;
+    LilXML *Parser      = newLilXML();
 
-    FILE * fp = nullptr;
+    FILE *fp = nullptr;
 
     snprintf(DatabaseFileName, MAXRBUF, "%s/.indi/%s_alignment_database.xml", getenv("HOME"), DeviceName);
-
 
     fp = fopen(DatabaseFileName, "r");
     if (fp == nullptr)
     {
-        snprintf(Errmsg, MAXRBUF, "Unable to read alignment database file. Error loading file %s: %s\n", DatabaseFileName, strerror(errno));
+        snprintf(Errmsg, MAXRBUF, "Unable to read alignment database file. Error loading file %s: %s\n",
+                 DatabaseFileName, strerror(errno));
         return false;
     }
 
@@ -103,17 +103,16 @@ bool InMemoryDatabase::LoadDatabase(const char * DeviceName)
         DatabaseReferencePositionIsValid = true;
     }
 
-
     MySyncPoints.clear();
 
-    for (EntryRoot = nextXMLEle (EntriesRoot, 1); EntryRoot != nullptr; EntryRoot = nextXMLEle (EntriesRoot, 0))
+    for (EntryRoot = nextXMLEle(EntriesRoot, 1); EntryRoot != nullptr; EntryRoot = nextXMLEle(EntriesRoot, 0))
     {
         AlignmentDatabaseEntry CurrentValues;
         if (strcmp(tagXMLEle(EntryRoot), "DatabaseEntry") != 0)
         {
             return false;
         }
-        for (Element = nextXMLEle (EntryRoot, 1); Element != nullptr; Element = nextXMLEle (EntryRoot, 0))
+        for (Element = nextXMLEle(EntryRoot, 1); Element != nullptr; Element = nextXMLEle(EntryRoot, 0))
         {
             if (strcmp(tagXMLEle(Element), "ObservationJulianDate") == 0)
             {
@@ -153,21 +152,20 @@ bool InMemoryDatabase::LoadDatabase(const char * DeviceName)
         (*LoadDatabaseCallback)(LoadDatabaseCallbackThisPointer);
 
     return true;
-
 }
 
-bool InMemoryDatabase::SaveDatabase(const char * DeviceName)
+bool InMemoryDatabase::SaveDatabase(const char *DeviceName)
 {
     char ConfigDir[MAXRBUF];
     char DatabaseFileName[MAXRBUF];
     char Errmsg[MAXRBUF];
     struct stat Status;
-    FILE * fp;
+    FILE *fp;
 
     snprintf(ConfigDir, MAXRBUF, "%s/.indi/", getenv("HOME"));
     snprintf(DatabaseFileName, MAXRBUF, "%s%s_alignment_database.xml", ConfigDir, DeviceName);
 
-    if(stat(ConfigDir, &Status) != 0)
+    if (stat(ConfigDir, &Status) != 0)
     {
         if (mkdir(ConfigDir, S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH) < 0)
         {
@@ -179,15 +177,16 @@ bool InMemoryDatabase::SaveDatabase(const char * DeviceName)
     fp = fopen(DatabaseFileName, "w");
     if (fp == nullptr)
     {
-        snprintf(Errmsg, MAXRBUF, "Unable to open database file. Error opening file %s: %s\n", DatabaseFileName, strerror(errno));
+        snprintf(Errmsg, MAXRBUF, "Unable to open database file. Error opening file %s: %s\n", DatabaseFileName,
+                 strerror(errno));
         return false;
     }
 
     fprintf(fp, "<INDIAlignmentDatabase>\n");
 
     if (DatabaseReferencePositionIsValid)
-        fprintf(fp, "   <DatabaseReferenceLocation latitude='%lf' longitude='%lf'/>\n",
-                DatabaseReferencePosition.lat, DatabaseReferencePosition.lng);
+        fprintf(fp, "   <DatabaseReferenceLocation latitude='%lf' longitude='%lf'/>\n", DatabaseReferencePosition.lat,
+                DatabaseReferencePosition.lng);
 
     fprintf(fp, "   <DatabaseEntries>\n");
     for (AlignmentDatabaseType::const_iterator Itr = MySyncPoints.begin(); Itr != MySyncPoints.end(); Itr++)
@@ -200,9 +199,12 @@ bool InMemoryDatabase::SaveDatabase(const char * DeviceName)
         fprintf(fp, "         <RightAscension>%s</RightAscension>\n", SexaString);
         fs_sexa(SexaString, (*Itr).Declination, 2, 3600);
         fprintf(fp, "         <Declination>%s</Declination>\n", SexaString);
-        fprintf(fp, "         <TelescopeDirectionVectorX>%lf</TelescopeDirectionVectorX>\n", (*Itr).TelescopeDirection.x);
-        fprintf(fp, "         <TelescopeDirectionVectorY>%lf</TelescopeDirectionVectorY>\n", (*Itr).TelescopeDirection.y);
-        fprintf(fp, "         <TelescopeDirectionVectorZ>%lf</TelescopeDirectionVectorZ>\n", (*Itr).TelescopeDirection.z);
+        fprintf(fp, "         <TelescopeDirectionVectorX>%lf</TelescopeDirectionVectorX>\n",
+                (*Itr).TelescopeDirection.x);
+        fprintf(fp, "         <TelescopeDirectionVectorY>%lf</TelescopeDirectionVectorY>\n",
+                (*Itr).TelescopeDirection.y);
+        fprintf(fp, "         <TelescopeDirectionVectorZ>%lf</TelescopeDirectionVectorZ>\n",
+                (*Itr).TelescopeDirection.z);
 
         fprintf(fp, "      </DatabaseEntry>\n");
     }
@@ -217,14 +219,14 @@ bool InMemoryDatabase::SaveDatabase(const char * DeviceName)
 
 void InMemoryDatabase::SetDatabaseReferencePosition(double Latitude, double Longitude)
 {
-    DatabaseReferencePosition.lat = Latitude;
-    DatabaseReferencePosition.lng = Longitude;
+    DatabaseReferencePosition.lat    = Latitude;
+    DatabaseReferencePosition.lng    = Longitude;
     DatabaseReferencePositionIsValid = true;
 }
 
-void InMemoryDatabase::SetLoadDatabaseCallback(LoadDatabaseCallbackPointer_t CallbackPointer, void * ThisPointer)
+void InMemoryDatabase::SetLoadDatabaseCallback(LoadDatabaseCallbackPointer_t CallbackPointer, void *ThisPointer)
 {
-    LoadDatabaseCallback = CallbackPointer;
+    LoadDatabaseCallback            = CallbackPointer;
     LoadDatabaseCallbackThisPointer = ThisPointer;
 }
 

@@ -106,12 +106,12 @@ You can find information on INDI development in the <a href="http://www.indilib.
  * N.B. this is indepedent of the API itself.
  */
 
-#define	INDIV	1.7
+#define INDIV 1.7
 
 /* INDI Library version */
-#define INDI_VERSION_MAJOR      1
-#define INDI_VERSION_MINOR      4
-#define INDI_VERSION_RELEASE	1
+#define INDI_VERSION_MAJOR   1
+#define INDI_VERSION_MINOR   4
+#define INDI_VERSION_RELEASE 1
 
 /*******************************************************************************
  * Manifest constants
@@ -120,54 +120,50 @@ You can find information on INDI development in the <a href="http://www.indilib.
 /** \typedef ISState
     \brief Switch state.
 */
-typedef enum
-{
-ISS_OFF,        /*!< Switch is OFF */
-ISS_ON          /*!< Switch is ON */
-} ISState;          /* switch state */
+typedef enum {
+    ISS_OFF, /*!< Switch is OFF */
+    ISS_ON   /*!< Switch is ON */
+} ISState;   /* switch state */
 
 /** \typedef IPState
     \brief Property state.
 */
-typedef enum
-{
-IPS_IDLE,		/*!< State is idle */
-IPS_OK,         /*!< State is ok */
-IPS_BUSY,		/*!< State is busy */
-IPS_ALERT		/*!< State is alert */
-} IPState;				/* property state */
+typedef enum {
+    IPS_IDLE, /*!< State is idle */
+    IPS_OK,   /*!< State is ok */
+    IPS_BUSY, /*!< State is busy */
+    IPS_ALERT /*!< State is alert */
+} IPState;    /* property state */
 
 /** \typedef ISRule
     \brief Switch vector rule hint.
 */
-typedef enum
-{
-ISR_1OFMANY,        /*!< Only 1 switch of many can be ON (e.g. radio buttons) */
-ISR_ATMOST1,        /*!< At most one switch can be ON, but all switches can be off. It is similar to ISR_1OFMANY with the exception that all switches can be off. */
-ISR_NOFMANY         /*!< Any number of switches can be ON (e.g. check boxes) */
-} ISRule;				/* switch vector rule hint */
+typedef enum {
+    ISR_1OFMANY, /*!< Only 1 switch of many can be ON (e.g. radio buttons) */
+    ISR_ATMOST1, /*!< At most one switch can be ON, but all switches can be off. It is similar to ISR_1OFMANY with the exception that all switches can be off. */
+    ISR_NOFMANY  /*!< Any number of switches can be ON (e.g. check boxes) */
+} ISRule;        /* switch vector rule hint */
 
 /** \typedef IPerm
     \brief Permission hint, with respect to client.
 */
-typedef enum
-{
-IP_RO,		/*!< Read Only */
-IP_WO,		/*!< Write Only */
-IP_RW		/*!< Read & Write */
-} IPerm;				/* permission hint, WRT client */
+typedef enum {
+    IP_RO, /*!< Read Only */
+    IP_WO, /*!< Write Only */
+    IP_RW  /*!< Read & Write */
+} IPerm;   /* permission hint, WRT client */
 
 /* The XML strings for these attributes may be any length but implementations
  * are only obligued to support these lengths for the various string attributes.
  */
-#define	MAXINDINAME     64
-#define	MAXINDILABEL	64
-#define	MAXINDIDEVICE	64
-#define	MAXINDIGROUP	64
-#define	MAXINDIFORMAT	64
-#define	MAXINDIBLOBFMT	64
-#define	MAXINDITSTAMP	64
-#define	MAXINDIMESSAGE	255
+#define MAXINDINAME    64
+#define MAXINDILABEL   64
+#define MAXINDIDEVICE  64
+#define MAXINDIGROUP   64
+#define MAXINDIFORMAT  64
+#define MAXINDIBLOBFMT 64
+#define MAXINDITSTAMP  64
+#define MAXINDIMESSAGE 255
 
 /*******************************************************************************
  * Typedefs for each INDI Property type.
@@ -195,18 +191,18 @@ IP_RW		/*!< Read & Write */
 */
 typedef struct
 {
-/** index name */
-char name[MAXINDINAME];
+    /** index name */
+    char name[MAXINDINAME];
     /** short description */
     char label[MAXINDILABEL];
     /** malloced text string */
-    char * text;
+    char *text;
     /** pointer to parent */
-    struct _ITextVectorProperty * tvp;
+    struct _ITextVectorProperty *tvp;
     /** handy place to hang helper info */
-    void * aux0;
+    void *aux0;
     /** handy place to hang helper info */
-    void * aux1;
+    void *aux1;
 } IText;
 
 /** \struct _ITextVectorProperty
@@ -229,13 +225,13 @@ typedef struct _ITextVectorProperty
     /** current property state */
     IPState s;
     /** texts comprising this vector */
-    IText * tp;
+    IText *tp;
     /** dimension of tp[] */
     int ntp;
     /** ISO 8601 timestamp of this event */
     char timestamp[MAXINDITSTAMP];
     /** handy place to hang helper info */
-    void * aux;
+    void *aux;
 } ITextVectorProperty;
 
 /** \struct INumber
@@ -243,14 +239,14 @@ typedef struct _ITextVectorProperty
 */
 typedef struct
 {
-    char name[MAXINDINAME];		/** index name */
-    char label[MAXINDILABEL];		/** short description */
-    char format[MAXINDIFORMAT];		/** GUI display format, see above */
-    double min, max;			/** range, ignore if min == max */
-    double step;			/** step size, ignore if step == 0 */
-    double value;			/** current value */
-    struct _INumberVectorProperty * nvp;	/** pointer to parent */
-    void * aux0, *aux1;			/** handy place to hang helper info */
+    char name[MAXINDINAME];             /** index name */
+    char label[MAXINDILABEL];           /** short description */
+    char format[MAXINDIFORMAT];         /** GUI display format, see above */
+    double min, max;                    /** range, ignore if min == max */
+    double step;                        /** step size, ignore if step == 0 */
+    double value;                       /** current value */
+    struct _INumberVectorProperty *nvp; /** pointer to parent */
+    void *aux0, *aux1;                  /** handy place to hang helper info */
 } INumber;
 
 /** \struct _INumberVectorProperty
@@ -287,13 +283,13 @@ typedef struct _INumberVectorProperty
     /** current property state */
     IPState s;
     /** numbers comprising this vector */
-    INumber * np;
+    INumber *np;
     /** dimension of np[] */
     int nnp;
     /** ISO 8601 timestamp of this event */
     char timestamp[MAXINDITSTAMP];
     /** handy place to hang helper info */
-    void * aux;
+    void *aux;
 } INumberVectorProperty;
 
 /** \struct ISwitch
@@ -301,11 +297,11 @@ typedef struct _INumberVectorProperty
 */
 typedef struct
 {
-    char name[MAXINDINAME];		/** index name */
-    char label[MAXINDILABEL];		/** this switch's label */
-    ISState s;				/** this switch's state */
-    struct _ISwitchVectorProperty * svp;	/** pointer to parent */
-    void * aux;				/** handy place to hang helper info */
+    char name[MAXINDINAME];             /** index name */
+    char label[MAXINDILABEL];           /** this switch's label */
+    ISState s;                          /** this switch's state */
+    struct _ISwitchVectorProperty *svp; /** pointer to parent */
+    void *aux;                          /** handy place to hang helper info */
 } ISwitch;
 
 /** \struct _ISwitchVectorProperty
@@ -330,13 +326,13 @@ typedef struct _ISwitchVectorProperty
     /** current property state */
     IPState s;
     /** switches comprising this vector */
-    ISwitch * sp;
+    ISwitch *sp;
     /** dimension of sp[] */
     int nsp;
     /** ISO 8601 timestamp of this event */
     char timestamp[MAXINDITSTAMP];
     /** handy place to hang helper info */
-    void * aux;
+    void *aux;
 } ISwitchVectorProperty;
 
 /** \struct ILight
@@ -344,11 +340,11 @@ typedef struct _ISwitchVectorProperty
 */
 typedef struct
 {
-    char name[MAXINDINAME];		/** index name */
-    char label[MAXINDILABEL];		/** this lights's label */
-    IPState s;				/** this lights's state */
-    struct _ILightVectorProperty * lvp;	/** pointer to parent */
-    void * aux;				/** handy place to hang helper info */
+    char name[MAXINDINAME];            /** index name */
+    char label[MAXINDILABEL];          /** this lights's label */
+    IPState s;                         /** this lights's state */
+    struct _ILightVectorProperty *lvp; /** pointer to parent */
+    void *aux;                         /** handy place to hang helper info */
 } ILight;
 
 /** \struct _ILightVectorProperty
@@ -367,19 +363,19 @@ typedef struct _ILightVectorProperty
     /** current property state */
     IPState s;
     /** lights comprising this vector */
-    ILight * lp;
+    ILight *lp;
     /** dimension of lp[] */
     int nlp;
     /** ISO 8601 timestamp of this event */
     char timestamp[MAXINDITSTAMP];
     /** handy place to hang helper info */
-    void * aux;
+    void *aux;
 } ILightVectorProperty;
 
 /** \struct IBLOB
     \brief One Blob (Binary Large Object) descriptor.
  */
-typedef struct  			/* one BLOB descriptor */
+typedef struct /* one BLOB descriptor */
 {
     /** index name */
     char name[MAXINDINAME];
@@ -388,22 +384,22 @@ typedef struct  			/* one BLOB descriptor */
     /** format attr */
     char format[MAXINDIBLOBFMT];
     /** malloced binary large object bytes */
-    void * blob;
+    void *blob;
     /** bytes in blob */
     int bloblen;
     /** n uncompressed bytes */
     int size;
     /** pointer to parent */
-    struct _IBLOBVectorProperty * bvp;
+    struct _IBLOBVectorProperty *bvp;
     /** handy place to hang helper info */
-    void * aux0, *aux1, *aux2;
+    void *aux0, *aux1, *aux2;
 } IBLOB;
 
 /** \struct _IBLOBVectorProperty
     \brief BLOB (Binary Large Object) vector property descriptor.
  */
 
-typedef struct _IBLOBVectorProperty  	/* BLOB vector property descriptor */
+typedef struct _IBLOBVectorProperty /* BLOB vector property descriptor */
 {
     /** device name */
     char device[MAXINDIDEVICE];
@@ -420,18 +416,17 @@ typedef struct _IBLOBVectorProperty  	/* BLOB vector property descriptor */
     /** current property state */
     IPState s;
     /** BLOBs comprising this vector */
-    IBLOB * bp;
+    IBLOB *bp;
     /** dimension of bp[] */
     int nbp;
     /** ISO 8601 timestamp of this event */
     char timestamp[MAXINDITSTAMP];
     /** handy place to hang helper info */
-    void * aux;
+    void *aux;
 } IBLOBVectorProperty;
-
 
 /** \brief Handy macro to find the number of elements in array a[]. Must be used with actual array, not pointer.
 */
-#define NARRAY(a)       (sizeof(a)/sizeof(a[0]))
+#define NARRAY(a) (sizeof(a) / sizeof(a[0]))
 
 #endif

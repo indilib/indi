@@ -26,184 +26,202 @@
 
 class FocusLynxBase : public INDI::Focuser
 {
-    public:
-        FocusLynxBase();
-        FocusLynxBase(const char * target);
-        ~FocusLynxBase();
+  public:
+    FocusLynxBase();
+    FocusLynxBase(const char *target);
+    ~FocusLynxBase();
 
-        enum { FOCUS_A_COEFF, FOCUS_B_COEFF, FOCUS_C_COEFF, FOCUS_D_COEFF, FOCUS_E_COEFF, FOCUS_F_COEFF };
-        typedef enum { STATUS_MOVING, STATUS_HOMING, STATUS_HOMED, STATUS_FFDETECT, STATUS_TMPPROBE, STATUS_REMOTEIO, STATUS_HNDCTRL, STATUS_REVERSE, STATUS_UNKNOWN} LYNX_STATUS;
-        enum { GOTO_CENTER, GOTO_HOME };
+    enum
+    {
+        FOCUS_A_COEFF,
+        FOCUS_B_COEFF,
+        FOCUS_C_COEFF,
+        FOCUS_D_COEFF,
+        FOCUS_E_COEFF,
+        FOCUS_F_COEFF
+    };
+    typedef enum {
+        STATUS_MOVING,
+        STATUS_HOMING,
+        STATUS_HOMED,
+        STATUS_FFDETECT,
+        STATUS_TMPPROBE,
+        STATUS_REMOTEIO,
+        STATUS_HNDCTRL,
+        STATUS_REVERSE,
+        STATUS_UNKNOWN
+    } LYNX_STATUS;
+    enum
+    {
+        GOTO_CENTER,
+        GOTO_HOME
+    };
 
-        virtual bool Connect();
-        virtual bool Disconnect();
-        virtual bool Handshake();
-        const char * getDefaultName();
-        virtual bool initProperties();
-        virtual void ISGetProperties(const char * dev);
-        virtual bool updateProperties();
-        virtual bool saveConfigItems(FILE * fp);
+    virtual bool Connect();
+    virtual bool Disconnect();
+    virtual bool Handshake();
+    const char *getDefaultName();
+    virtual bool initProperties();
+    virtual void ISGetProperties(const char *dev);
+    virtual bool updateProperties();
+    virtual bool saveConfigItems(FILE *fp);
 
-        virtual bool ISNewNumber (const char * dev, const char * name, double values[], char * names[], int n);
-        virtual bool ISNewSwitch (const char * dev, const char * name, ISState * states, char * names[], int n);
-        virtual bool ISNewText (const char * dev, const char * name, char * texts[], char * names[], int n);
+    virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n);
+    virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n);
+    virtual bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n);
 
-        virtual IPState MoveAbsFocuser(uint32_t ticks);
-        virtual IPState MoveRelFocuser(FocusDirection dir, uint32_t ticks);
-        virtual IPState MoveFocuser(FocusDirection dir, int speed, uint16_t duration);
-        virtual bool AbortFocuser();
-        virtual void TimerHit();
-        virtual bool RemoteDisconnect();
-        virtual bool RemoteConnect();
-        virtual int getVersion(int * major, int * minor, int * sub);
+    virtual IPState MoveAbsFocuser(uint32_t ticks);
+    virtual IPState MoveRelFocuser(FocusDirection dir, uint32_t ticks);
+    virtual IPState MoveFocuser(FocusDirection dir, int speed, uint16_t duration);
+    virtual bool AbortFocuser();
+    virtual void TimerHit();
+    virtual bool RemoteDisconnect();
+    virtual bool RemoteConnect();
+    virtual int getVersion(int *major, int *minor, int *sub);
 
-        void setFocusTarget(const char * target);
-        const char * getFocusTarget();
-        void debugTriggered(bool enable);
+    void setFocusTarget(const char *target);
+    const char *getFocusTarget();
+    void debugTriggered(bool enable);
 
+    // Device
+    bool setDeviceType(int index);
+    uint32_t DBG_FOCUS;
 
-        // Device
-        bool setDeviceType(int index);
-        uint32_t DBG_FOCUS;
+    // Misc functions
+    bool ack();
+    bool isResponseOK();
 
+    bool isFromRemote;
 
-        // Misc functions
-        bool ack();
-        bool isResponseOK();
+  protected:
+    // Move from private to public to validate
+    bool configurationComplete;
 
-        bool isFromRemote;
+    // List all supported models
+    ISwitch *ModelS;
+    ISwitchVectorProperty ModelSP;
 
-    protected:
-        // Move from private to public to validate
-        bool configurationComplete;
+  private:
+    uint32_t simPosition;
+    uint32_t targetPosition;
+    uint32_t maxControllerTicks;
 
-        // List all supported models
-        ISwitch * ModelS;
-        ISwitchVectorProperty ModelSP;
+    ISState simStatus[8];
+    bool simCompensationOn;
+    char focusTarget[8];
 
-    private:
+    //double targetPos, lastPos, lastTemperature, simPosition;
+    //unsigned int currentSpeed, temperaturegetCounter;
 
-        uint32_t simPosition;
-        uint32_t targetPosition;
-        uint32_t maxControllerTicks;
+    std::map<std::string, std::string> lynxModels;
+    //  std::map<std::string, std::string> lynxModelsF2;
 
-        ISState simStatus[8];
-        bool simCompensationOn;
-        char focusTarget[8];
+    struct timeval focusMoveStart;
+    float focusMoveRequest;
 
-        //double targetPos, lastPos, lastTemperature, simPosition;
-        //unsigned int currentSpeed, temperaturegetCounter;
+    // Get functions
+    bool getFocusConfig();
+    bool getFocusStatus();
 
-        std::map<std::string, std::string> lynxModels;
-        //  std::map<std::string, std::string> lynxModelsF2;
+    // Set functions
 
-        struct timeval focusMoveStart;
-        float focusMoveRequest;
+    // Position
+    bool setFocusPosition(u_int16_t position);
 
-        // Get functions
-        bool getFocusConfig();
-        bool getFocusStatus();
+    // Temperature
+    bool setTemperatureCompensation(bool enable);
+    bool setTemperatureCompensationMode(char mode);
+    bool setTemperatureCompensationCoeff(char mode, int16_t coeff);
+    bool setTemperatureCompensationOnStart(bool enable);
 
-        // Set functions
+    // Backlash
+    bool setBacklashCompensation(bool enable);
+    bool setBacklashCompensationSteps(uint16_t steps);
 
-        // Position
-        bool setFocusPosition(u_int16_t position);
+    // Sync
+    bool sync(uint32_t position);
 
-        // Temperature
-        bool setTemperatureCompensation(bool enable);
-        bool setTemperatureCompensationMode(char mode);
-        bool setTemperatureCompensationCoeff(char mode, int16_t coeff);
-        bool setTemperatureCompensationOnStart(bool enable);
+    // Motion functions
+    bool stop();
+    bool home();
+    bool center();
+    bool reverse(bool enable);
 
-        // Backlash
-        bool setBacklashCompensation(bool enable);
-        bool setBacklashCompensationSteps(uint16_t steps);
+    // Led level
+    bool setLedLevel(int level);
 
-        // Sync
-        bool sync(uint32_t position);
+    // Device Nickname
+    bool setDeviceNickname(const char *nickname);
 
-        // Motion functions
-        bool stop();
-        bool home();
-        bool center();
-        bool reverse(bool enable);
+    // Misc functions
+    bool resetFactory();
+    float calcTimeLeft(timeval, float);
 
-        // Led level
-        bool setLedLevel(int level);
+    // Properties
 
-        // Device Nickname
-        bool setDeviceNickname(const char * nickname);
+    // Set/Get Temperature
+    INumber TemperatureN[1];
+    INumberVectorProperty TemperatureNP;
 
-        // Misc functions
-        bool resetFactory();
-        float calcTimeLeft(timeval, float);
+    // Enable/Disable temperature compnesation
+    ISwitch TemperatureCompensateS[2];
+    ISwitchVectorProperty TemperatureCompensateSP;
 
-        // Properties
+    // Enable/Disable temperature compnesation on start
+    ISwitch TemperatureCompensateOnStartS[2];
+    ISwitchVectorProperty TemperatureCompensateOnStartSP;
 
-        // Set/Get Temperature
-        INumber TemperatureN[1];
-        INumberVectorProperty TemperatureNP;
+    // Temperature Coefficient
+    INumber TemperatureCoeffN[5];
+    INumberVectorProperty TemperatureCoeffNP;
 
-        // Enable/Disable temperature compnesation
-        ISwitch TemperatureCompensateS[2];
-        ISwitchVectorProperty TemperatureCompensateSP;
+    // Temperature Coefficient Mode
+    ISwitch TemperatureCompensateModeS[5];
+    ISwitchVectorProperty TemperatureCompensateModeSP;
 
-        // Enable/Disable temperature compnesation on start
-        ISwitch TemperatureCompensateOnStartS[2];
-        ISwitchVectorProperty TemperatureCompensateOnStartSP;
+    // Enable/Disable backlash
+    ISwitch BacklashCompensationS[2];
+    ISwitchVectorProperty BacklashCompensationSP;
 
-        // Temperature Coefficient
-        INumber TemperatureCoeffN[5];
-        INumberVectorProperty TemperatureCoeffNP;
+    // Backlash Value
+    INumber BacklashN[1];
+    INumberVectorProperty BacklashNP;
 
-        // Temperature Coefficient Mode
-        ISwitch TemperatureCompensateModeS[5];
-        ISwitchVectorProperty TemperatureCompensateModeSP;
+    // Reset to Factory setting
+    ISwitch ResetS[1];
+    ISwitchVectorProperty ResetSP;
 
-        // Enable/Disable backlash
-        ISwitch BacklashCompensationS[2];
-        ISwitchVectorProperty BacklashCompensationSP;
+    // Reverse Direction
+    ISwitch ReverseS[2];
+    ISwitchVectorProperty ReverseSP;
 
-        // Backlash Value
-        INumber BacklashN[1];
-        INumberVectorProperty BacklashNP;
+    // Go to home/center
+    ISwitch GotoS[2];
+    ISwitchVectorProperty GotoSP;
 
-        // Reset to Factory setting
-        ISwitch ResetS[1];
-        ISwitchVectorProperty ResetSP;
+    // Status indicators
+    ILight StatusL[8];
+    ILightVectorProperty StatusLP;
 
-        // Reverse Direction
-        ISwitch ReverseS[2];
-        ISwitchVectorProperty ReverseSP;
+    // Sync to a particular position
+    INumber SyncN[1];
+    INumberVectorProperty SyncNP;
 
-        // Go to home/center
-        ISwitch GotoS[2];
-        ISwitchVectorProperty GotoSP;
+    // Max Travel for relative focusers
+    INumber MaxTravelN[1];
+    INumberVectorProperty MaxTravelNP;
 
-        // Status indicators
-        ILight StatusL[8];
-        ILightVectorProperty StatusLP;
+    // Focus name configure in the HUB
+    IText HFocusNameT[1];
+    ITextVectorProperty HFocusNameTP;
 
-        // Sync to a particular position
-        INumber SyncN[1];
-        INumberVectorProperty SyncNP;
+    // Led Intensity Value
+    INumber LedN[1];
+    INumberVectorProperty LedNP;
 
-        // Max Travel for relative focusers
-        INumber MaxTravelN[1];
-        INumberVectorProperty MaxTravelNP;
-
-        // Focus name configure in the HUB
-        IText HFocusNameT[1];
-        ITextVectorProperty HFocusNameTP;
-
-        // Led Intensity Value
-        INumber LedN[1];
-        INumberVectorProperty LedNP;
-
-        bool isAbsolute;
-        bool isSynced;
-        bool isHoming;
-
+    bool isAbsolute;
+    bool isSynced;
+    bool isHoming;
 };
 
 #endif // FOCUSLYNXBASE_H

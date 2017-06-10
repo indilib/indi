@@ -25,57 +25,54 @@
 #include "focuslynxbase.h"
 #include <indifocuser.h>
 
-#define POLLMS  1000
+#define POLLMS 1000
 
 class FocusLynxF1 : public FocusLynxBase
 {
-    public:
-        FocusLynxF1(const char * target);
-        ~FocusLynxF1();
+  public:
+    FocusLynxF1(const char *target);
+    ~FocusLynxF1();
 
-        const char * getDefaultName();
-        virtual bool Connect();
-        virtual bool Disconnect();
-        virtual bool updateProperties();
-        virtual bool initProperties();
-        virtual void ISGetProperties(const char * dev);
-        virtual int getVersion(int * major, int * minor, int * sub);
-        const int getPortFD();
+    const char *getDefaultName();
+    virtual bool Connect();
+    virtual bool Disconnect();
+    virtual bool updateProperties();
+    virtual bool initProperties();
+    virtual void ISGetProperties(const char *dev);
+    virtual int getVersion(int *major, int *minor, int *sub);
+    const int getPortFD();
 
-    private:
-        // Get functions
-        bool getHubConfig();
+  private:
+    // Get functions
+    bool getHubConfig();
 
-        // HUB Main Parameter
-        IText HubT[2];
-        ITextVectorProperty HubTP;
+    // HUB Main Parameter
+    IText HubT[2];
+    ITextVectorProperty HubTP;
 
-        // Network Wired Info
-        IText WiredT[2];
-        ITextVectorProperty WiredTP;
+    // Network Wired Info
+    IText WiredT[2];
+    ITextVectorProperty WiredTP;
 
-        //Network WIFI Info
-        IText WifiT[9];
-        ITextVectorProperty WifiTP;
+    //Network WIFI Info
+    IText WifiT[9];
+    ITextVectorProperty WifiTP;
 
-        // Store version of the firmawre form the HUB
-        char version[16];
-
+    // Store version of the firmawre form the HUB
+    char version[16];
 };
 
 class FocusLynxF2 : public FocusLynxBase
 {
-    public:
-        FocusLynxF2(const char * target);
-        ~FocusLynxF2();
+  public:
+    FocusLynxF2(const char *target);
+    ~FocusLynxF2();
 
-        const char * getDefaultName();
-        virtual bool Connect();
-        virtual bool Disconnect();
-        virtual void ISGetProperties(const char * dev);
+    const char *getDefaultName();
+    virtual bool Connect();
+    virtual bool Disconnect();
+    virtual void ISGetProperties(const char *dev);
 
-    private:
-
-
+  private:
 };
 #endif // FOCUSLYNX_H

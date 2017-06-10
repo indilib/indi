@@ -31,34 +31,50 @@
 
 #include "telescope_script.h"
 
-#define	POLLMS      1000
-#define MAXARGS     20
+#define POLLMS  1000
+#define MAXARGS 20
 
-enum { SCRIPT_CONNECT = 1, SCRIPT_DISCONNECT, SCRIPT_STATUS, SCRIPT_GOTO, SCRIPT_SYNC, SCRIPT_PARK, SCRIPT_UNPARK, SCRIPT_MOVE_NORTH, SCRIPT_MOVE_EAST, SCRIPT_MOVE_SOUTH, SCRIPT_MOVE_WEST, SCRIPT_ABORT, SCRIPT_COUNT } scripts;
+enum
+{
+    SCRIPT_CONNECT = 1,
+    SCRIPT_DISCONNECT,
+    SCRIPT_STATUS,
+    SCRIPT_GOTO,
+    SCRIPT_SYNC,
+    SCRIPT_PARK,
+    SCRIPT_UNPARK,
+    SCRIPT_MOVE_NORTH,
+    SCRIPT_MOVE_EAST,
+    SCRIPT_MOVE_SOUTH,
+    SCRIPT_MOVE_WEST,
+    SCRIPT_ABORT,
+    SCRIPT_COUNT
+} scripts;
 
 std::unique_ptr<ScopeScript> scope_script(new ScopeScript());
 
-void ISGetProperties(const char * dev)
+void ISGetProperties(const char *dev)
 {
     scope_script->ISGetProperties(dev);
 }
 
-void ISNewSwitch(const char * dev, const char * name, ISState * states, char * names[], int num)
+void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int num)
 {
     scope_script->ISNewSwitch(dev, name, states, names, num);
 }
 
-void ISNewText(	const char * dev, const char * name, char * texts[], char * names[], int num)
+void ISNewText(const char *dev, const char *name, char *texts[], char *names[], int num)
 {
     scope_script->ISNewText(dev, name, texts, names, num);
 }
 
-void ISNewNumber(const char * dev, const char * name, double values[], char * names[], int num)
+void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int num)
 {
     scope_script->ISNewNumber(dev, name, values, names, num);
 }
 
-void ISNewBLOB (const char * dev, const char * name, int sizes[], int blobsizes[], char * blobs[], char * formats[], char * names[], int n)
+void ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[],
+               char *names[], int n)
 {
     INDI_UNUSED(dev);
     INDI_UNUSED(name);
@@ -70,7 +86,7 @@ void ISNewBLOB (const char * dev, const char * name, int sizes[], int blobsizes[
     INDI_UNUSED(n);
 }
 
-void ISSnoopDevice (XMLEle * root)
+void ISSnoopDevice(XMLEle *root)
 {
     scope_script->ISSnoopDevice(root);
 }
@@ -84,7 +100,7 @@ ScopeScript::~ScopeScript()
 {
 }
 
-const char * ScopeScript::getDefaultName()
+const char *ScopeScript::getDefaultName()
 {
     return (char *)"Telescope Scripting Gateway";
 }
@@ -110,31 +126,32 @@ bool ScopeScript::initProperties()
     IUFillText(&ScriptsT[SCRIPT_MOVE_SOUTH], "SCRIPT_MOVE_SOUTH", "Move south script", "move_south.py");
     IUFillText(&ScriptsT[SCRIPT_MOVE_WEST], "SCRIPT_MOVE_WEST", "Move west script", "move_west.py");
     IUFillText(&ScriptsT[SCRIPT_ABORT], "SCRIPT_ABORT", "Abort motion script", "abort.py");
-    IUFillTextVector(&ScriptsTP, ScriptsT, SCRIPT_COUNT, getDefaultName(), "SCRIPTS", "Scripts", OPTIONS_TAB, IP_RW, 60, IPS_IDLE);
+    IUFillTextVector(&ScriptsTP, ScriptsT, SCRIPT_COUNT, getDefaultName(), "SCRIPTS", "Scripts", OPTIONS_TAB, IP_RW, 60,
+                     IPS_IDLE);
 
     addDebugControl();
     setDriverInterface(getDriverInterface());
     return true;
 }
 
-bool ScopeScript::saveConfigItems(FILE * fp)
+bool ScopeScript::saveConfigItems(FILE *fp)
 {
     INDI::Telescope::saveConfigItems(fp);
     IUSaveConfigText(fp, &ScriptsTP);
     return true;
 }
 
-void ScopeScript::ISGetProperties(const char * dev)
+void ScopeScript::ISGetProperties(const char *dev)
 {
-    INDI::Telescope::ISGetProperties (dev);
+    INDI::Telescope::ISGetProperties(dev);
     defineText(&ScriptsTP);
 }
 
-bool ScopeScript::ISNewText(const char * dev, const char * name, char * texts[], char * names[], int n)
+bool ScopeScript::ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
 {
-    if(!strcmp(dev, getDeviceName()))
+    if (!strcmp(dev, getDeviceName()))
     {
-        if(!strcmp(name, ScriptsTP.name))
+        if (!strcmp(name, ScriptsTP.name))
         {
             IUUpdateText(&ScriptsTP, texts, names, n);
             IDSetText(&ScriptsTP, nullptr);
@@ -156,23 +173,23 @@ bool ScopeScript::RunScript(int script, ...)
     {
         char tmp[256];
         strcpy(tmp, ScriptsT[script].text);
-        char ** args = (char **)malloc(MAXARGS * sizeof(char *));
-        int arg = 1;
-        char * p = tmp;
+        char **args = (char **)malloc(MAXARGS * sizeof(char *));
+        int arg     = 1;
+        char *p     = tmp;
         while (arg < MAXARGS)
         {
-            char * pp = strstr(p, " ");
+            char *pp = strstr(p, " ");
             if (pp == nullptr)
                 break;
-            *pp++ = 0;
+            *pp++       = 0;
             args[arg++] = pp;
-            p = pp;
+            p           = pp;
         }
         va_list ap;
         va_start(ap, script);
         while (arg < MAXARGS)
         {
-            char * pp = va_arg(ap, char *);
+            char *pp    = va_arg(ap, char *);
             args[arg++] = pp;
             if (pp == nullptr)
                 break;
@@ -200,7 +217,7 @@ bool ScopeScript::Handshake()
 
 bool ScopeScript::Connect()
 {
-    if(isConnected())
+    if (isConnected())
         return true;
     bool status = RunScript(SCRIPT_CONNECT, nullptr);
     if (status)
@@ -224,13 +241,13 @@ bool ScopeScript::Disconnect()
 
 bool ScopeScript::ReadScopeStatus()
 {
-    char * name = tmpnam(nullptr);
+    char *name  = tmpnam(nullptr);
     bool status = RunScript(SCRIPT_STATUS, name, nullptr);
     if (status)
     {
         int parked;
         float ra, dec;
-        FILE * file = fopen(name, "r");
+        FILE *file = fopen(name, "r");
         fscanf(file, "%d %f %f", &parked, &ra, &dec);
         fclose(file);
         unlink(name);
@@ -308,14 +325,18 @@ bool ScopeScript::UnPark()
 bool ScopeScript::MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command)
 {
     char _rate[] = { (char)('0' + IUFindOnSwitchIndex(&SlewRateSP)), 0 };
-    bool status = RunScript(command == MOTION_STOP ? SCRIPT_ABORT : dir == DIRECTION_NORTH ? SCRIPT_MOVE_NORTH : SCRIPT_MOVE_SOUTH, _rate, nullptr, nullptr);
+    bool status  = RunScript(command == MOTION_STOP ? SCRIPT_ABORT :
+                                                     dir == DIRECTION_NORTH ? SCRIPT_MOVE_NORTH : SCRIPT_MOVE_SOUTH,
+                            _rate, nullptr, nullptr);
     return status;
 }
 
 bool ScopeScript::MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command)
 {
     char _rate[] = { (char)('0' + IUFindOnSwitchIndex(&SlewRateSP)), 0 };
-    bool status = RunScript(command == MOTION_STOP ? SCRIPT_ABORT : dir == DIRECTION_WEST ? SCRIPT_MOVE_WEST : SCRIPT_MOVE_EAST, _rate, nullptr, nullptr);
+    bool status =
+        RunScript(command == MOTION_STOP ? SCRIPT_ABORT : dir == DIRECTION_WEST ? SCRIPT_MOVE_WEST : SCRIPT_MOVE_EAST,
+                  _rate, nullptr, nullptr);
     return status;
 }
 
@@ -332,4 +353,3 @@ bool ScopeScript::Abort()
     }
     return status;
 }
-

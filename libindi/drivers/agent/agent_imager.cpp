@@ -20,44 +20,45 @@
 
 #include "agent_imager.h"
 
-#define DEVICE_NAME       "Imager Agent"
-#define DOWNLOAD_TAB      "Download images"
-#define IMAGE_NAME        "%s/%s_%d_%03d%s"
-#define IMAGE_PREFIX      "_TMP_"
+#define DEVICE_NAME  "Imager Agent"
+#define DOWNLOAD_TAB "Download images"
+#define IMAGE_NAME   "%s/%s_%d_%03d%s"
+#define IMAGE_PREFIX "_TMP_"
 
-#define GROUP_PREFIX      "GROUP_"
-#define GROUP_PREFIX_LEN  6
+#define GROUP_PREFIX     "GROUP_"
+#define GROUP_PREFIX_LEN 6
 
 std::unique_ptr<Imager> imager(new Imager());
 
 // Driver entry points ----------------------------------------------------------------------------
 
-void ISGetProperties(const char * dev)
+void ISGetProperties(const char *dev)
 {
     imager->ISGetProperties(dev);
 }
 
-void ISNewSwitch(const char * dev, const char * name, ISState * states, char * names[], int num)
+void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int num)
 {
     imager->ISNewSwitch(dev, name, states, names, num);
 }
 
-void ISNewText(	const char * dev, const char * name, char * texts[], char * names[], int num)
+void ISNewText(const char *dev, const char *name, char *texts[], char *names[], int num)
 {
     imager->ISNewText(dev, name, texts, names, num);
 }
 
-void ISNewNumber(const char * dev, const char * name, double values[], char * names[], int num)
+void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int num)
 {
     imager->ISNewNumber(dev, name, values, names, num);
 }
 
-void ISNewBLOB (const char * dev, const char * name, int sizes[], int blobsizes[], char * blobs[], char * formats[], char * names[], int n)
+void ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[],
+               char *names[], int n)
 {
-    imager->ISNewBLOB (dev, name, sizes, blobsizes, blobs, formats, names, n);
+    imager->ISNewBLOB(dev, name, sizes, blobsizes, blobs, formats, names, n);
 }
 
-void ISSnoopDevice(XMLEle * root)
+void ISSnoopDevice(XMLEle *root)
 {
     imager->ISSnoopDevice(root);
 }
@@ -96,8 +97,8 @@ void Imager::initiateNextFilter()
     {
         if (group > 0 && image > 0 && group <= maxGroup && image <= maxImage)
         {
-            INumber * groupSettings = groups[group - 1]->GroupSettingsN;
-            int filterSlot = groupSettings[2].value;
+            INumber *groupSettings = groups[group - 1]->GroupSettingsN;
+            int filterSlot         = groupSettings[2].value;
             if (!isFilterConnected())
             {
                 if (filterSlot)
@@ -115,7 +116,8 @@ void Imager::initiateNextFilter()
             {
                 FilterSlotN[0].value = filterSlot;
                 sendNewNumber(&FilterSlotNP);
-                DEBUGF(INDI::Logger::DBG_DEBUG, "Group %d of %d, image %d of %d, filer %d, filter set initiated on %s", group, maxGroup, image, maxImage, (int)FilterSlotN[0].value, FilterSlotNP.device);
+                DEBUGF(INDI::Logger::DBG_DEBUG, "Group %d of %d, image %d of %d, filer %d, filter set initiated on %s",
+                       group, maxGroup, image, maxImage, (int)FilterSlotN[0].value, FilterSlotNP.device);
             }
             else
             {
@@ -137,7 +139,7 @@ void Imager::initiateNextCapture()
                 IDSetNumber(&ProgressNP, "CCD is not connected");
                 return;
             }
-            INumber * groupSettings = groups[group - 1]->GroupSettingsN;
+            INumber *groupSettings = groups[group - 1]->GroupSettingsN;
             CCDImageBinN[0].value = CCDImageBinN[1].value = groupSettings[1].value;
             sendNewNumber(&CCDImageBinNP);
             CCDImageExposureN[0].value = groupSettings[3].value;
@@ -146,7 +148,10 @@ void Imager::initiateNextCapture()
             IUSaveText(&CCDUploadSettingsT[1], "_TMP_");
             sendNewSwitch(&CCDUploadSP);
             sendNewText(&CCDUploadSettingsTP);
-            DEBUGF(INDI::Logger::DBG_DEBUG, "Group %d of %d, image %d of %d, duration %.1fs, binning %d, capture initiated on %s", group, maxGroup, image, maxImage, CCDImageExposureN[0].value, (int)CCDImageBinN[0].value, CCDImageExposureNP.device);
+            DEBUGF(INDI::Logger::DBG_DEBUG,
+                   "Group %d of %d, image %d of %d, duration %.1fs, binning %d, capture initiated on %s", group,
+                   maxGroup, image, maxImage, CCDImageExposureN[0].value, (int)CCDImageBinN[0].value,
+                   CCDImageExposureNP.device);
         }
     }
 }
@@ -156,8 +161,8 @@ void Imager::startBatch()
     DEBUG(INDI::Logger::DBG_DEBUG, "Batch started");
     ProgressN[0].value = group = 1;
     ProgressN[1].value = image = 1;
-    maxImage = (int)groups[group - 1]->GroupSettingsN[0].value;
-    ProgressNP.s = IPS_BUSY;
+    maxImage                   = (int)groups[group - 1]->GroupSettingsN[0].value;
+    ProgressNP.s               = IPS_BUSY;
     IDSetNumber(&ProgressNP, nullptr);
     initiateNextFilter();
 }
@@ -188,8 +193,8 @@ void Imager::initiateDownload()
     DownloadN[1].value = 0;
     if (file.is_open())
     {
-        long size = file.tellg();
-        char * data = new char[size];
+        long size  = file.tellg();
+        char *data = new char[size];
         file.seekg(0, ios::beg);
         file.read(data, size);
         file.close();
@@ -198,9 +203,9 @@ void Imager::initiateDownload()
         DownloadNP.s = IPS_BUSY;
         IDSetNumber(&DownloadNP, "Download initiated");
         strcpy(FitsB[0].format, format);
-        FitsB[0].blob = data;
+        FitsB[0].blob    = data;
         FitsB[0].bloblen = FitsB[0].size = size;
-        FitsBP.s = IPS_OK;
+        FitsBP.s                         = IPS_OK;
         IDSetBLOB(&FitsBP, nullptr);
         DownloadNP.s = IPS_OK;
         IDSetNumber(&DownloadNP, "Download finished");
@@ -215,7 +220,7 @@ void Imager::initiateDownload()
 
 // DefaultDevice ----------------------------------------------------------------------------
 
-const char * Imager::getDefaultName()
+const char *Imager::getDefaultName()
 {
     return DEVICE_NAME;
 }
@@ -227,12 +232,14 @@ bool Imager::initProperties()
     addDebugControl();
 
     IUFillNumber(&GroupCountN[0], "GROUP_COUNT", "Image group count", "%3.0f", 1, MAX_GROUP_COUNT, 1, maxGroup = 1);
-    IUFillNumberVector(&GroupCountNP, GroupCountN, 1, DEVICE_NAME, "GROUPS", "Image groups", MAIN_CONTROL_TAB, IP_RW, 60, IPS_IDLE);
+    IUFillNumberVector(&GroupCountNP, GroupCountN, 1, DEVICE_NAME, "GROUPS", "Image groups", MAIN_CONTROL_TAB, IP_RW,
+                       60, IPS_IDLE);
 
-    IUFillText(&ControlledDeviceT[0], "CCD", "CCD" , "CCD Simulator");
+    IUFillText(&ControlledDeviceT[0], "CCD", "CCD", "CCD Simulator");
     IUFillText(&ControlledDeviceT[1], "FILTER", "Filter wheel", "Filter Simulator");
-    IUFillTextVector(&ControlledDeviceTP, ControlledDeviceT, 2, DEVICE_NAME, "DEVICES", "Controlled devices", MAIN_CONTROL_TAB, IP_RW, 60, IPS_IDLE);
-    controlledCCD = ControlledDeviceT[0].text;
+    IUFillTextVector(&ControlledDeviceTP, ControlledDeviceT, 2, DEVICE_NAME, "DEVICES", "Controlled devices",
+                     MAIN_CONTROL_TAB, IP_RW, 60, IPS_IDLE);
+    controlledCCD         = ControlledDeviceT[0].text;
     controlledFilterWheel = ControlledDeviceT[1].text;
 
     IUFillLight(&StatusL[0], "CCD", controlledCCD, IPS_IDLE);
@@ -242,20 +249,23 @@ bool Imager::initProperties()
     IUFillNumber(&ProgressN[0], "GROUP", "Current group", "%3.0f", 1, MAX_GROUP_COUNT, 1, 0);
     IUFillNumber(&ProgressN[1], "IMAGE", "Current image", "%3.0f", 1, 100, 1, 0);
     IUFillNumber(&ProgressN[2], "REMAINING_TIME", "Remaining time", "%5.2f", 0, 36000, 0, 0.0);
-    IUFillNumberVector(&ProgressNP, ProgressN, 3, DEVICE_NAME, "PROGRESS", "Batch execution progress", MAIN_CONTROL_TAB, IP_RO, 60, IPS_IDLE);
+    IUFillNumberVector(&ProgressNP, ProgressN, 3, DEVICE_NAME, "PROGRESS", "Batch execution progress", MAIN_CONTROL_TAB,
+                       IP_RO, 60, IPS_IDLE);
 
     IUFillSwitch(&BatchS[0], "START", "Start batch", ISS_OFF);
     IUFillSwitch(&BatchS[1], "ABORT", "Abort batch", ISS_OFF);
-    IUFillSwitchVector(&BatchSP, BatchS, 2, DEVICE_NAME, "BATCH", "Batch control", MAIN_CONTROL_TAB, IP_RW, ISR_NOFMANY, 60, IPS_IDLE);
+    IUFillSwitchVector(&BatchSP, BatchS, 2, DEVICE_NAME, "BATCH", "Batch control", MAIN_CONTROL_TAB, IP_RW, ISR_NOFMANY,
+                       60, IPS_IDLE);
 
     IUFillText(&ImageNameT[0], "IMAGE_FOLDER", "Image folder", "/tmp");
     IUFillText(&ImageNameT[1], "IMAGE_PREFIX", "Image prefix", "IMG");
-    IUFillTextVector(&ImageNameTP, ImageNameT, 2, DEVICE_NAME, "IMAGE_NAME", "Image name", OPTIONS_TAB, IP_RW, 60, IPS_IDLE);
-
+    IUFillTextVector(&ImageNameTP, ImageNameT, 2, DEVICE_NAME, "IMAGE_NAME", "Image name", OPTIONS_TAB, IP_RW, 60,
+                     IPS_IDLE);
 
     IUFillNumber(&DownloadN[0], "GROUP", "Group", "%3.0f", 1, MAX_GROUP_COUNT, 1, 1);
     IUFillNumber(&DownloadN[1], "IMAGE", "Image", "%3.0f", 1, 100, 1, 1);
-    IUFillNumberVector(&DownloadNP, DownloadN, 2, DEVICE_NAME, "DOWNLOAD", "Download image", DOWNLOAD_TAB, IP_RW, 60, IPS_IDLE);
+    IUFillNumberVector(&DownloadNP, DownloadN, 2, DEVICE_NAME, "DOWNLOAD", "Download image", DOWNLOAD_TAB, IP_RW, 60,
+                       IPS_IDLE);
 
     IUFillBLOB(&FitsB[0], "IMAGE", "Image", "");
     IUFillBLOBVector(&FitsBP, FitsB, 1, DEVICE_NAME, "IMAGE", "Image Data", DOWNLOAD_TAB, IP_RO, 60, IPS_IDLE);
@@ -270,24 +280,28 @@ bool Imager::initProperties()
     }
 
     IUFillNumber(&CCDImageExposureN[0], "CCD_EXPOSURE_VALUE", "Duration (s)", "%5.2f", 0, 36000, 0, 1.0);
-    IUFillNumberVector(&CCDImageExposureNP, CCDImageExposureN, 1, ControlledDeviceT[0].text, "CCD_EXPOSURE", "Expose", MAIN_CONTROL_TAB, IP_RW, 60, IPS_IDLE);
+    IUFillNumberVector(&CCDImageExposureNP, CCDImageExposureN, 1, ControlledDeviceT[0].text, "CCD_EXPOSURE", "Expose",
+                       MAIN_CONTROL_TAB, IP_RW, 60, IPS_IDLE);
 
     IUFillNumber(&CCDImageBinN[0], "HOR_BIN", "X", "%2.0f", 1, 4, 1, 1);
-    IUFillNumber(&CCDImageBinN[1], "VER_BIN", "Y" , "%2.0f", 1, 4, 1, 1);
-    IUFillNumberVector(&CCDImageBinNP, CCDImageBinN, 2, ControlledDeviceT[0].text, "CCD_BINNING", "Binning", MAIN_CONTROL_TAB, IP_RW, 60, IPS_IDLE);
+    IUFillNumber(&CCDImageBinN[1], "VER_BIN", "Y", "%2.0f", 1, 4, 1, 1);
+    IUFillNumberVector(&CCDImageBinNP, CCDImageBinN, 2, ControlledDeviceT[0].text, "CCD_BINNING", "Binning",
+                       MAIN_CONTROL_TAB, IP_RW, 60, IPS_IDLE);
 
     IUFillSwitch(&CCDUploadS[0], "UPLOAD_CLIENT", "Client", ISS_OFF);
     IUFillSwitch(&CCDUploadS[1], "UPLOAD_LOCAL", "Local", ISS_ON);
     IUFillSwitch(&CCDUploadS[2], "UPLOAD_BOTH", "Both", ISS_OFF);
-    IUFillSwitchVector(&CCDUploadSP, CCDUploadS, 3, ControlledDeviceT[0].text, "UPLOAD_MODE", "Upload", OPTIONS_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+    IUFillSwitchVector(&CCDUploadSP, CCDUploadS, 3, ControlledDeviceT[0].text, "UPLOAD_MODE", "Upload", OPTIONS_TAB,
+                       IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
     IUFillText(&CCDUploadSettingsT[0], "UPLOAD_DIR", "Dir", "");
     IUFillText(&CCDUploadSettingsT[1], "UPLOAD_PREFIX", "Prefix", IMAGE_PREFIX);
-    IUFillTextVector(&CCDUploadSettingsTP, CCDUploadSettingsT, 2, ControlledDeviceT[0].text, "UPLOAD_SETTINGS", "Upload Settings", OPTIONS_TAB, IP_RW, 60, IPS_IDLE);
-
+    IUFillTextVector(&CCDUploadSettingsTP, CCDUploadSettingsT, 2, ControlledDeviceT[0].text, "UPLOAD_SETTINGS",
+                     "Upload Settings", OPTIONS_TAB, IP_RW, 60, IPS_IDLE);
 
     IUFillNumber(&FilterSlotN[0], "FILTER_SLOT_VALUE", "Filter", "%3.0f", 1.0, 12.0, 1.0, 1.0);
-    IUFillNumberVector(&FilterSlotNP, FilterSlotN, 1, ControlledDeviceT[1].text, "FILTER_SLOT", "Filter Slot", MAIN_CONTROL_TAB, IP_RW, 60, IPS_IDLE);
+    IUFillNumberVector(&FilterSlotNP, FilterSlotN, 1, ControlledDeviceT[1].text, "FILTER_SLOT", "Filter Slot",
+                       MAIN_CONTROL_TAB, IP_RW, 60, IPS_IDLE);
 
     return true;
 }
@@ -299,13 +313,13 @@ bool Imager::updateProperties()
         defineLight(&StatusLP);
         ProgressN[0].value = group = 0;
         ProgressN[1].value = image = 0;
-        ProgressNP.s = IPS_IDLE;
+        ProgressNP.s               = IPS_IDLE;
         defineNumber(&ProgressNP);
         BatchSP.s = IPS_IDLE;
         defineSwitch(&BatchSP);
         DownloadN[0].value = 0;
         DownloadN[1].value = 0;
-        DownloadNP.s = IPS_IDLE;
+        DownloadNP.s       = IPS_IDLE;
         defineNumber(&DownloadNP);
         FitsBP.s = IPS_IDLE;
         defineBLOB(&FitsBP);
@@ -321,12 +335,12 @@ bool Imager::updateProperties()
     return true;
 }
 
-void Imager::ISGetProperties(const char * dev)
+void Imager::ISGetProperties(const char *dev)
 {
     DefaultDevice::ISGetProperties(dev);
 }
 
-bool Imager::ISNewNumber(const char * dev, const char * name, double values[], char * names[], int n)
+bool Imager::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
 {
     if (!strcmp(dev, DEVICE_NAME))
     {
@@ -363,7 +377,7 @@ bool Imager::ISNewNumber(const char * dev, const char * name, double values[], c
     return DefaultDevice::ISNewNumber(dev, name, values, names, n);
 }
 
-bool Imager::ISNewSwitch(const char * dev, const char * name, ISState * states, char * names[], int n)
+bool Imager::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
 {
     if (!strcmp(dev, DEVICE_NAME))
     {
@@ -390,7 +404,7 @@ bool Imager::ISNewSwitch(const char * dev, const char * name, ISState * states, 
     return DefaultDevice::ISNewSwitch(dev, name, states, names, n);
 }
 
-bool Imager::ISNewText(const char * dev, const char * name, char * texts[], char * names[], int n)
+bool Imager::ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
 {
     if (!strcmp(dev, DEVICE_NAME))
     {
@@ -415,12 +429,13 @@ bool Imager::ISNewText(const char * dev, const char * name, char * texts[], char
     return INDI::DefaultDevice::ISNewText(dev, name, texts, names, n);
 }
 
-bool Imager::ISNewBLOB(const char * dev, const char * name, int sizes[], int blobsizes[], char * blobs[], char * formats[], char * names[], int n)
+bool Imager::ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[],
+                       char *names[], int n)
 {
     return INDI::DefaultDevice::ISNewBLOB(dev, name, sizes, blobsizes, blobs, formats, names, n);
 }
 
-bool Imager::ISSnoopDevice(XMLEle * root)
+bool Imager::ISSnoopDevice(XMLEle *root)
 {
     return INDI::DefaultDevice::ISSnoopDevice(root);
 }
@@ -454,9 +469,9 @@ void Imager::serverConnected()
     IDSetLight(&StatusLP, nullptr);
 }
 
-void Imager::newDevice(INDI::BaseDevice * dp)
+void Imager::newDevice(INDI::BaseDevice *dp)
 {
-    const char * deviceName = dp->getDeviceName();
+    const char *deviceName = dp->getDeviceName();
     DEBUGF(INDI::Logger::DBG_DEBUG, "Device %s detected", deviceName);
     if (!strcmp(deviceName, controlledCCD))
         StatusL[0].s = IPS_BUSY;
@@ -465,9 +480,9 @@ void Imager::newDevice(INDI::BaseDevice * dp)
     IDSetLight(&StatusLP, nullptr);
 }
 
-void Imager::newProperty(INDI::Property * property)
+void Imager::newProperty(INDI::Property *property)
 {
-    const char * deviceName = property->getDeviceName();
+    const char *deviceName = property->getDeviceName();
     if (!strcmp(property->getName(), "CONNECTION"))
     {
         bool state = ((ISwitchVectorProperty *)property->getProperty())->sp[0].s;
@@ -500,16 +515,15 @@ void Imager::newProperty(INDI::Property * property)
     return;
 }
 
-void Imager::removeProperty(INDI::Property * property)
+void Imager::removeProperty(INDI::Property *property)
 {
 }
 
-void Imager::removeDevice(INDI::BaseDevice * dp)
+void Imager::removeDevice(INDI::BaseDevice *dp)
 {
-
 }
 
-void Imager::newBLOB(IBLOB * bp)
+void Imager::newBLOB(IBLOB *bp)
 {
     if (ProgressNP.s == IPS_BUSY)
     {
@@ -517,10 +531,11 @@ void Imager::newBLOB(IBLOB * bp)
         strncpy(format, bp->format, 16);
         sprintf(name, IMAGE_NAME, ImageNameT[0].text, ImageNameT[1].text, group, image, format);
         ofstream file;
-        file.open (name, ios::out | ios::binary | ios::trunc);
-        file.write(static_cast<char *> (bp->blob), bp->bloblen);
+        file.open(name, ios::out | ios::binary | ios::trunc);
+        file.write(static_cast<char *>(bp->blob), bp->bloblen);
         file.close();
-        DEBUGF(INDI::Logger::DBG_DEBUG, "Group %d of %d, image %d of %d, saved to %s", group, maxGroup, image, maxImage, name);
+        DEBUGF(INDI::Logger::DBG_DEBUG, "Group %d of %d, image %d of %d, saved to %s", group, maxGroup, image, maxImage,
+               name);
         if (image == maxImage)
         {
             if (group == maxGroup)
@@ -529,7 +544,7 @@ void Imager::newBLOB(IBLOB * bp)
             }
             else
             {
-                maxImage = (int)groups[group]->GroupSettingsN[0].value;
+                maxImage           = (int)groups[group]->GroupSettingsN[0].value;
                 ProgressN[0].value = group = group + 1;
                 ProgressN[1].value = image = 1;
                 IDSetNumber(&ProgressNP, nullptr);
@@ -545,10 +560,10 @@ void Imager::newBLOB(IBLOB * bp)
     }
 }
 
-void Imager::newSwitch(ISwitchVectorProperty * svp)
+void Imager::newSwitch(ISwitchVectorProperty *svp)
 {
-    const char * deviceName = svp->device;
-    bool state = svp->sp[0].s;
+    const char *deviceName = svp->device;
+    bool state             = svp->sp[0].s;
     if (!strcmp(svp->name, "CONNECTION"))
     {
         if (!strcmp(deviceName, controlledCCD))
@@ -577,9 +592,9 @@ void Imager::newSwitch(ISwitchVectorProperty * svp)
     }
 }
 
-void Imager::newNumber(INumberVectorProperty * nvp)
+void Imager::newNumber(INumberVectorProperty *nvp)
 {
-    const char * deviceName = nvp->device;
+    const char *deviceName = nvp->device;
     if (!strcmp(deviceName, controlledCCD))
     {
         if (!strcmp(nvp->name, "CCD_EXPOSURE"))
@@ -599,9 +614,9 @@ void Imager::newNumber(INumberVectorProperty * nvp)
     }
 }
 
-void Imager::newText(ITextVectorProperty * tvp)
+void Imager::newText(ITextVectorProperty *tvp)
 {
-    const char * deviceName = tvp->device;
+    const char *deviceName = tvp->device;
     if (!strcmp(deviceName, controlledCCD))
     {
         if (!strcmp(tvp->name, "CCD_FILE_PATH"))
@@ -610,7 +625,8 @@ void Imager::newText(ITextVectorProperty * tvp)
             strcpy(format, strrchr(tvp->tp[0].text, '.'));
             sprintf(name, IMAGE_NAME, ImageNameT[0].text, ImageNameT[1].text, group, image, format);
             rename(tvp->tp[0].text, name);
-            DEBUGF(INDI::Logger::DBG_DEBUG, "Group %d of %d, image %d of %d, saved to %s", group, maxGroup, image, maxImage, name);
+            DEBUGF(INDI::Logger::DBG_DEBUG, "Group %d of %d, image %d of %d, saved to %s", group, maxGroup, image,
+                   maxImage, name);
             if (image == maxImage)
             {
                 if (group == maxGroup)
@@ -619,7 +635,7 @@ void Imager::newText(ITextVectorProperty * tvp)
                 }
                 else
                 {
-                    maxImage = (int)groups[group]->GroupSettingsN[0].value;
+                    maxImage           = (int)groups[group]->GroupSettingsN[0].value;
                     ProgressN[0].value = group = group + 1;
                     ProgressN[1].value = image = 1;
                     IDSetNumber(&ProgressNP, nullptr);
@@ -636,11 +652,11 @@ void Imager::newText(ITextVectorProperty * tvp)
     }
 }
 
-void Imager::newLight(ILightVectorProperty * lvp)
+void Imager::newLight(ILightVectorProperty *lvp)
 {
 }
 
-void Imager::newMessage(INDI::BaseDevice * dp, int messageID)
+void Imager::newMessage(INDI::BaseDevice *dp, int messageID)
 {
 }
 
@@ -662,10 +678,11 @@ Group::Group(int id)
     IUFillNumber(&GroupSettingsN[1], "CCD_BINNING", "Binning", "%1.0f", 1, 4, 1, 1);
     IUFillNumber(&GroupSettingsN[2], "FILTER_SLOT", "Filter", "%2.f", 0, 12, 1, 0);
     IUFillNumber(&GroupSettingsN[3], "CCD_EXPOSURE_VALUE", "Duration (s)", "%5.2f", 0, 36000, 0, 1.0);
-    IUFillNumberVector(&GroupSettingsNP, GroupSettingsN, 4, DEVICE_NAME, groupSettingsName, "Image group settings", groupName, IP_RW, 60, IPS_IDLE);
+    IUFillNumberVector(&GroupSettingsNP, GroupSettingsN, 4, DEVICE_NAME, groupSettingsName, "Image group settings",
+                       groupName, IP_RW, 60, IPS_IDLE);
 }
 
-bool Group::ISNewNumber(const char * dev, const char * name, double values[], char * names[], int n)
+bool Group::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
 {
     if (strcmp(name, groupSettingsName) == 0)
     {

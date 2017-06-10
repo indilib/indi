@@ -29,16 +29,14 @@
 #include <netinet/in.h>
 #include <netdb.h>
 
-
 #include "indicom.h"
 #include "lx200_10micron.h"
 #include "lx200driver.h"
 
 #define PRODUCT_TAB   "Product"
-#define LX200_TIMEOUT   5       /* FD timeout in seconds */
+#define LX200_TIMEOUT 5 /* FD timeout in seconds */
 
-LX200_10MICRON::LX200_10MICRON(void)
-    : LX200Generic()
+LX200_10MICRON::LX200_10MICRON(void) : LX200Generic()
 {
     // LX200Generic via the TelescopeCapability settings are fine
     hasFocus = false;
@@ -48,9 +46,9 @@ LX200_10MICRON::LX200_10MICRON(void)
 
 // Called by INDI::DefaultDevice::ISGetProperties
 // Note that getDriverName calls ::getDefaultName which returns LX200 Generic
-const char * LX200_10MICRON::getDefaultName(void)
+const char *LX200_10MICRON::getDefaultName(void)
 {
-    return (const char *) "10micron";
+    return (const char *)"10micron";
 }
 
 // Called by either TCP Connect or Serial Port Connect
@@ -85,33 +83,20 @@ bool LX200_10MICRON::initProperties(void)
 }
 
 // this should move to some generic library
-int LX200_10MICRON::monthToNumber(const char * monthName)
+int LX200_10MICRON::monthToNumber(const char *monthName)
 {
     struct entry
     {
-        const char * name;
+        const char *name;
         int id;
     };
-    entry month_table[] =
-    {
-        { "Jan", 1 },
-        { "Feb", 2 },
-        { "Mar", 3 },
-        { "Apr", 4 },
-        { "May", 5 },
-        { "Jun", 6 },
-        { "Jul", 7 },
-        { "Aug", 8 },
-        { "Sep", 9 },
-        { "Oct", 10 },
-        { "Nov", 11 },
-        { "Dec", 12 },
-        { nullptr, 0 }
-    };
-    entry * p = month_table;
+    entry month_table[] = { { "Jan", 1 },  { "Feb", 2 },  { "Mar", 3 },  { "Apr", 4 }, { "May", 5 },
+                            { "Jun", 6 },  { "Jul", 7 },  { "Aug", 8 },  { "Sep", 9 }, { "Oct", 10 },
+                            { "Nov", 11 }, { "Dec", 12 }, { nullptr, 0 } };
+    entry *p            = month_table;
     while (p->name != nullptr)
     {
-        if (strcasecmp(p -> name, monthName) == 0)
+        if (strcasecmp(p->name, monthName) == 0)
             return p->id;
         ++p;
     }
@@ -154,11 +139,11 @@ bool LX200_10MICRON::ReadScopeStatus()
     // Read scope status, based loosely on LX200_GENERIC::getCommandString
     char cmd[] = "#:Ginfo#";
     char data[80];
-    char * term;
+    char *term;
     int error_type;
     int nbytes_write = 0, nbytes_read = 0;
     // DEBUGFDEVICE(getDefaultName(), DBG_SCOPE, "CMD <%s>", cmd);
-    if ( (error_type = tty_write_string(fd, cmd, &nbytes_write)) != TTY_OK)
+    if ((error_type = tty_write_string(fd, cmd, &nbytes_write)) != TTY_OK)
     {
         return false;
     }
@@ -180,15 +165,16 @@ bool LX200_10MICRON::ReadScopeStatus()
     DEBUGFDEVICE(getDefaultName(), DBG_SCOPE, "CMD <%s> RES <%s>", cmd, data);
 
     // Now parse the data
-    float RA_JNOW = 0.0;
-    float DEC_JNOW = 0.0;
+    float RA_JNOW   = 0.0;
+    float DEC_JNOW  = 0.0;
     char SideOfPier = 'x';
-    float AZ = 0.0;
-    float ALT = 0.0;
-    float Jdate = 0.0;
-    int Gstat = -1;
-    int SlewStatus = -1;
-    nbytes_read = sscanf(data, "%g,%g,%c,%g,%g,%g,%d,%d#", &RA_JNOW, &DEC_JNOW, &SideOfPier, &AZ, &ALT, &Jdate, &Gstat, &SlewStatus);
+    float AZ        = 0.0;
+    float ALT       = 0.0;
+    float Jdate     = 0.0;
+    int Gstat       = -1;
+    int SlewStatus  = -1;
+    nbytes_read = sscanf(data, "%g,%g,%c,%g,%g,%g,%d,%d#", &RA_JNOW, &DEC_JNOW, &SideOfPier, &AZ, &ALT, &Jdate, &Gstat,
+                         &SlewStatus);
     if (nbytes_read < 0)
     {
         return false;
@@ -301,21 +287,22 @@ bool LX200_10MICRON::getMountInfo(void)
     IUFillText(&ProductT[1], "CONTROL_BOX", "Control Box", ControlBox);
     IUFillText(&ProductT[2], "FIRMWARE_VERSION", "Firmware Version", FirmwareVersion);
     IUFillText(&ProductT[3], "FIRMWARE_DATE", "Firmware Date", FirmwareDate);
-    IUFillTextVector(&ProductTP, ProductT, 4, getDeviceName(), "PRODUCT_INFO", "Product", PRODUCT_TAB, IP_RO, 60, IPS_IDLE);
+    IUFillTextVector(&ProductTP, ProductT, 4, getDeviceName(), "PRODUCT_INFO", "Product", PRODUCT_TAB, IP_RO, 60,
+                     IPS_IDLE);
 
     defineText(&ProductTP);
     return true;
 }
 
 // this should move to some generic library
-int LX200_10MICRON::setStandardProcedureWithoutRead(int fd, const char * data)
+int LX200_10MICRON::setStandardProcedureWithoutRead(int fd, const char *data)
 {
     char bool_return[2];
     int error_type;
     int nbytes_write = 0, nbytes_read = 0;
 
     DEBUGFDEVICE(getDefaultName(), DBG_SCOPE, "CMD <%s>", data);
-    if ( (error_type = tty_write_string(fd, data, &nbytes_write)) != TTY_OK)
+    if ((error_type = tty_write_string(fd, data, &nbytes_write)) != TTY_OK)
     {
         return error_type;
     }

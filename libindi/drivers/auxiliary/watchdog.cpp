@@ -35,32 +35,33 @@
 #include "watchdog.h"
 #include "watchdogclient.h"
 
-#define POLLMS  1000
+#define POLLMS 1000
 
 // We declare unique pointer to my lovely German Shephard Juli (http://indilib.org/images/juli_tommy.jpg)
 std::unique_ptr<WatchDog> goodgirrrl(new WatchDog());
 
-void ISGetProperties(const char * dev)
+void ISGetProperties(const char *dev)
 {
     goodgirrrl->ISGetProperties(dev);
 }
 
-void ISNewSwitch(const char * dev, const char * name, ISState * states, char * names[], int num)
+void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int num)
 {
     goodgirrrl->ISNewSwitch(dev, name, states, names, num);
 }
 
-void ISNewText(	const char * dev, const char * name, char * texts[], char * names[], int num)
+void ISNewText(const char *dev, const char *name, char *texts[], char *names[], int num)
 {
     goodgirrrl->ISNewText(dev, name, texts, names, num);
 }
 
-void ISNewNumber(const char * dev, const char * name, double values[], char * names[], int num)
+void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int num)
 {
     goodgirrrl->ISNewNumber(dev, name, values, names, num);
 }
 
-void ISNewBLOB (const char * dev, const char * name, int sizes[], int blobsizes[], char * blobs[], char * formats[], char * names[], int n)
+void ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[],
+               char *names[], int n)
 {
     INDI_UNUSED(dev);
     INDI_UNUSED(name);
@@ -71,7 +72,7 @@ void ISNewBLOB (const char * dev, const char * name, int sizes[], int blobsizes[
     INDI_UNUSED(names);
     INDI_UNUSED(n);
 }
-void ISSnoopDevice (XMLEle * root)
+void ISSnoopDevice(XMLEle *root)
 {
     goodgirrrl->ISSnoopDevice(root);
 }
@@ -90,10 +91,10 @@ WatchDog::WatchDog()
 
 WatchDog::~WatchDog()
 {
-    delete(watchdogClient);
+    delete (watchdogClient);
 }
 
-const char * WatchDog::getDefaultName()
+const char *WatchDog::getDefaultName()
 {
     return (char *)"WatchDog";
 }
@@ -102,7 +103,9 @@ bool WatchDog::Connect()
 {
     if (HeartBeatN[0].value > 0)
     {
-        DEBUGF(INDI::Logger::DBG_SESSION, "Watchdog is enabled. Shutdown is triggered after %g minutes of communication loss with the client.", HeartBeatN[0].value);
+        DEBUGF(INDI::Logger::DBG_SESSION,
+               "Watchdog is enabled. Shutdown is triggered after %g minutes of communication loss with the client.",
+               HeartBeatN[0].value);
         watchDogTimer = SetTimer(HeartBeatN[0].value * 60 * 1000);
     }
     else
@@ -129,28 +132,32 @@ bool WatchDog::initProperties()
     INDI::DefaultDevice::initProperties();
 
     IUFillNumber(&HeartBeatN[0], "WATCHDOG_HEARTBEAT_VALUE", "Threshold (min)", "%g", 0, 180, 10, 0);
-    IUFillNumberVector(&HeartBeatNP, HeartBeatN, 1, getDeviceName(), "WATCHDOG_HEARTBEAT", "Heart beat", MAIN_CONTROL_TAB, IP_RW, 60, IPS_IDLE);
+    IUFillNumberVector(&HeartBeatNP, HeartBeatN, 1, getDeviceName(), "WATCHDOG_HEARTBEAT", "Heart beat",
+                       MAIN_CONTROL_TAB, IP_RW, 60, IPS_IDLE);
 
     IUFillText(&SettingsT[0], "INDISERVER_HOST", "indiserver host", "localhost");
     IUFillText(&SettingsT[1], "INDISERVER_PORT", "indiserver port", "7624");
     IUFillText(&SettingsT[2], "SHUTDOWN_SCRIPT", "shutdown script", nullptr);
-    IUFillTextVector(&SettingsTP, SettingsT, 3, getDeviceName(), "WATCHDOG_SETTINGS", "Settings", MAIN_CONTROL_TAB, IP_RW, 60, IPS_IDLE);
+    IUFillTextVector(&SettingsTP, SettingsT, 3, getDeviceName(), "WATCHDOG_SETTINGS", "Settings", MAIN_CONTROL_TAB,
+                     IP_RW, 60, IPS_IDLE);
 
     IUFillSwitch(&ShutdownProcedureS[0], "PARK_MOUNT", "Park Mount", ISS_OFF);
     IUFillSwitch(&ShutdownProcedureS[1], "PARK_DOME", "Park Dome", ISS_OFF);
     IUFillSwitch(&ShutdownProcedureS[2], "EXECUTE_SCRIPT", "Execute Script", ISS_OFF);
-    IUFillSwitchVector(&ShutdownProcedureSP, ShutdownProcedureS, 3, getDeviceName(), "WATCHDOG_SHUTDOWN", "Shutdown", MAIN_CONTROL_TAB, IP_RW, ISR_NOFMANY, 60, IPS_IDLE);
+    IUFillSwitchVector(&ShutdownProcedureSP, ShutdownProcedureS, 3, getDeviceName(), "WATCHDOG_SHUTDOWN", "Shutdown",
+                       MAIN_CONTROL_TAB, IP_RW, ISR_NOFMANY, 60, IPS_IDLE);
 
     IUFillText(&ActiveDeviceT[0], "ACTIVE_TELESCOPE", "Telescope", "Telescope Simulator");
     IUFillText(&ActiveDeviceT[1], "ACTIVE_DOME", "Dome", "Dome Simulator");
-    IUFillTextVector(&ActiveDeviceTP, ActiveDeviceT, 2, getDeviceName(), "ACTIVE_DEVICES", "Active devices", OPTIONS_TAB, IP_RW, 60, IPS_IDLE);
+    IUFillTextVector(&ActiveDeviceTP, ActiveDeviceT, 2, getDeviceName(), "ACTIVE_DEVICES", "Active devices",
+                     OPTIONS_TAB, IP_RW, 60, IPS_IDLE);
 
     addDebugControl();
 
     return true;
 }
 
-void WatchDog::ISGetProperties (const char * dev)
+void WatchDog::ISGetProperties(const char *dev)
 {
     //  First we let our parent populate
     DefaultDevice::ISGetProperties(dev);
@@ -166,10 +173,10 @@ void WatchDog::ISGetProperties (const char * dev)
     //watchdogClient->setDome(ActiveDeviceT[1].text);
 }
 
-bool WatchDog::ISNewText (const char * dev, const char * name, char * texts[], char * names[], int n)
+bool WatchDog::ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
 {
     //  first check if it's for our device
-    if(strcmp(dev, getDeviceName()) == 0)
+    if (strcmp(dev, getDeviceName()) == 0)
     {
         if (!strcmp(SettingsTP.name, name))
         {
@@ -198,15 +205,14 @@ bool WatchDog::ISNewText (const char * dev, const char * name, char * texts[], c
 
             return true;
         }
-
     }
 
     return INDI::DefaultDevice::ISNewText(dev, name, texts, names, n);
 }
 
-bool WatchDog::ISNewNumber (const char * dev, const char * name, double values[], char * names[], int n)
+bool WatchDog::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
 {
-    if(strcmp(dev, getDeviceName()) == 0)
+    if (strcmp(dev, getDeviceName()) == 0)
     {
         if (!strcmp(HeartBeatNP.name, name))
         {
@@ -230,7 +236,10 @@ bool WatchDog::ISNewNumber (const char * dev, const char * name, double values[]
                 if (isConnected())
                 {
                     if (prevHeartBeat != HeartBeatN[0].value)
-                        DEBUGF(INDI::Logger::DBG_SESSION, "Watchdog is enabled. Shutdown is triggered after %g minutes of communication loss with the client.", HeartBeatN[0].value);
+                        DEBUGF(INDI::Logger::DBG_SESSION,
+                               "Watchdog is enabled. Shutdown is triggered after %g minutes of communication loss with "
+                               "the client.",
+                               HeartBeatN[0].value);
 
                     DEBUG(INDI::Logger::DBG_DEBUG, "Received heart beat from client.");
 
@@ -244,25 +253,25 @@ bool WatchDog::ISNewNumber (const char * dev, const char * name, double values[]
             IDSetNumber(&HeartBeatNP, nullptr);
 
             return true;
-
         }
     }
 
     return DefaultDevice::ISNewNumber(dev, name, values, names, n);
 }
 
-bool WatchDog::ISNewSwitch (const char * dev, const char * name, ISState * states, char * names[], int n)
+bool WatchDog::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
 {
-    if(strcmp(dev, getDeviceName()) == 0)
+    if (strcmp(dev, getDeviceName()) == 0)
     {
         if (!strcmp(ShutdownProcedureSP.name, name))
         {
             IUUpdateSwitch(&ShutdownProcedureSP, states, names, n);
 
-            if (ShutdownProcedureS[EXECUTE_SCRIPT].s == ISS_ON && (SettingsT[EXECUTE_SCRIPT].text == nullptr || SettingsT[EXECUTE_SCRIPT].text[0] == '\0'))
+            if (ShutdownProcedureS[EXECUTE_SCRIPT].s == ISS_ON &&
+                (SettingsT[EXECUTE_SCRIPT].text == nullptr || SettingsT[EXECUTE_SCRIPT].text[0] == '\0'))
             {
                 DEBUG(INDI::Logger::DBG_ERROR, "Error: shutdown script file is not set.");
-                ShutdownProcedureSP.s = IPS_ALERT;
+                ShutdownProcedureSP.s                = IPS_ALERT;
                 ShutdownProcedureS[EXECUTE_SCRIPT].s = ISS_OFF;
             }
             else
@@ -275,7 +284,7 @@ bool WatchDog::ISNewSwitch (const char * dev, const char * name, ISState * state
     return DefaultDevice::ISNewSwitch(dev, name, states, names, n);
 }
 
-bool WatchDog::saveConfigItems(FILE * fp)
+bool WatchDog::saveConfigItems(FILE *fp)
 {
     IUSaveConfigNumber(fp, &HeartBeatNP);
     IUSaveConfigText(fp, &SettingsTP);
@@ -290,7 +299,8 @@ void WatchDog::TimerHit()
     // Timer is up, we need to start shutdown procedure
 
     // If nothing to do, then return
-    if (ShutdownProcedureS[PARK_DOME].s == ISS_OFF && ShutdownProcedureS[PARK_MOUNT].s == ISS_OFF && ShutdownProcedureS[EXECUTE_SCRIPT].s == ISS_OFF)
+    if (ShutdownProcedureS[PARK_DOME].s == ISS_OFF && ShutdownProcedureS[PARK_MOUNT].s == ISS_OFF &&
+        ShutdownProcedureS[EXECUTE_SCRIPT].s == ISS_OFF)
         return;
 
     switch (shutdownStage)
@@ -304,7 +314,8 @@ void WatchDog::TimerHit()
             DEBUG(INDI::Logger::DBG_WARNING, "Warning! Heartbeat threshold timed out, executing shutdown procedure...");
 
             // No need to start client if only we need to execute the script
-            if (ShutdownProcedureS[PARK_MOUNT].s == ISS_OFF && ShutdownProcedureS[PARK_DOME].s == ISS_OFF && ShutdownProcedureS[EXECUTE_SCRIPT].s == ISS_ON)
+            if (ShutdownProcedureS[PARK_MOUNT].s == ISS_OFF && ShutdownProcedureS[PARK_DOME].s == ISS_OFF &&
+                ShutdownProcedureS[EXECUTE_SCRIPT].s == ISS_ON)
             {
                 executeScript();
                 break;
@@ -330,7 +341,8 @@ void WatchDog::TimerHit()
             // Check if client is ready
             if (watchdogClient->isConnected())
             {
-                DEBUGF(INDI::Logger::DBG_DEBUG, "Connected to INDI server %s @ %s", SettingsT[0].text, SettingsT[1].text);
+                DEBUGF(INDI::Logger::DBG_DEBUG, "Connected to INDI server %s @ %s", SettingsT[0].text,
+                       SettingsT[1].text);
 
                 if (ShutdownProcedureS[PARK_MOUNT].s == ISS_ON)
                     parkMount();
@@ -379,7 +391,6 @@ void WatchDog::TimerHit()
         }
         break;
 
-
         case WATCHDOG_COMPLETE:
             DEBUG(INDI::Logger::DBG_SESSION, "Shutdown procedure complete.");
             ShutdownProcedureSP.s = IPS_OK;
@@ -395,7 +406,6 @@ void WatchDog::TimerHit()
     }
 
     SetTimer(POLLMS);
-
 }
 
 void WatchDog::parkDome()
@@ -427,7 +437,7 @@ void WatchDog::parkMount()
 void WatchDog::executeScript()
 {
     // child
-    if(fork() == 0)
+    if (fork() == 0)
     {
         int rc = execlp(SettingsT[EXECUTE_SCRIPT].text, SettingsT[EXECUTE_SCRIPT].text, nullptr);
 
@@ -441,7 +451,7 @@ void WatchDog::executeScript()
         DEBUGF(INDI::Logger::DBG_SESSION, "Executing script %s...", SettingsT[EXECUTE_SCRIPT].text);
         DEBUGF(INDI::Logger::DBG_SESSION, "Waiting for script with PID %d to complete...", getpid());
         wait(&statval);
-        if(WIFEXITED(statval))
+        if (WIFEXITED(statval))
         {
             int exit_code = WEXITSTATUS(statval);
             DEBUGF(INDI::Logger::DBG_SESSION, "Script complete with exit code %d", exit_code);
@@ -450,14 +460,17 @@ void WatchDog::executeScript()
                 shutdownStage = WATCHDOG_COMPLETE;
             else
             {
-                DEBUGF(INDI::Logger::DBG_ERROR, "Error: script %s failed. Shutdown procedure terminated.", SettingsT[EXECUTE_SCRIPT].text);
+                DEBUGF(INDI::Logger::DBG_ERROR, "Error: script %s failed. Shutdown procedure terminated.",
+                       SettingsT[EXECUTE_SCRIPT].text);
                 shutdownStage = WATCHDOG_ERROR;
                 return;
             }
         }
         else
         {
-            DEBUGF(INDI::Logger::DBG_ERROR, "Error: script %s did not terminate with exit. Shutdown procedure terminated.", SettingsT[EXECUTE_SCRIPT].text);
+            DEBUGF(INDI::Logger::DBG_ERROR,
+                   "Error: script %s did not terminate with exit. Shutdown procedure terminated.",
+                   SettingsT[EXECUTE_SCRIPT].text);
             shutdownStage = WATCHDOG_ERROR;
             return;
         }

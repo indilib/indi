@@ -31,14 +31,14 @@
 #include <ctime>
 #include <sys/time.h>
 
-#define ERRMSGSIZ	1024
+#define ERRMSGSIZ 1024
 
 SER_Recorder::SER_Recorder()
 {
     name = "SER File Recorder";
     strncpy(serh.FileID, "LUCAM-RECORDER", 14);
-    strncpy(serh.Observer,  "                        Unknown Observer", 40);
-    strncpy(serh.Instrume,  "                      Unknown Instrument", 40);
+    strncpy(serh.Observer, "                        Unknown Observer", 40);
+    strncpy(serh.Instrume, "                      Unknown Instrument", 40);
     strncpy(serh.Telescope, "                       Unknown Telescope", 40);
     serh.LuID = 0;
     if (is_little_endian())
@@ -46,28 +46,27 @@ SER_Recorder::SER_Recorder()
     else
         serh.LittleEndian = SER_BIG_ENDIAN;
     isRecordingActive = false;
-    f = nullptr;
+    f                 = nullptr;
 }
 
 SER_Recorder::~SER_Recorder()
 {
-
 }
 
 bool SER_Recorder::is_little_endian()
 {
-    unsigned int magic = 0x00000001;
+    unsigned int magic        = 0x00000001;
     unsigned char black_magic = *(unsigned char *)&magic;
     return black_magic == 0x01;
 }
 
-void SER_Recorder::write_int_le(uint32_t * i)
+void SER_Recorder::write_int_le(uint32_t *i)
 {
     if (is_little_endian())
         fwrite((const void *)(i), sizeof(uint32_t), 1, f);
     else
     {
-        unsigned char * c = (unsigned char *)i;
+        unsigned char *c = (unsigned char *)i;
         fwrite((const void *)(c + 3), sizeof(char), 1, f);
         fwrite((const void *)(c + 2), sizeof(char), 1, f);
         fwrite((const void *)(c + 1), sizeof(char), 1, f);
@@ -75,7 +74,7 @@ void SER_Recorder::write_int_le(uint32_t * i)
     }
 }
 
-void SER_Recorder::write_long_int_le(uint64_t * i)
+void SER_Recorder::write_long_int_le(uint64_t *i)
 {
     if (is_little_endian())
     {
@@ -89,7 +88,7 @@ void SER_Recorder::write_long_int_le(uint64_t * i)
     }
 }
 
-void SER_Recorder::write_header(ser_header * s)
+void SER_Recorder::write_header(ser_header *s)
 {
     fwrite((const void *)(s->FileID), sizeof(char), 14, f);
     write_int_le(&(s->LuID));
@@ -108,13 +107,12 @@ void SER_Recorder::write_header(ser_header * s)
 
 void SER_Recorder::init()
 {
-
 }
 
-bool SER_Recorder::setPixelFormat(unsigned int format)   // V4L2_PIX_FMT used when encoding
+bool SER_Recorder::setPixelFormat(unsigned int format) // V4L2_PIX_FMT used when encoding
 {
     IDLog("recorder: setpixelformat %d\n", format);
-    serh.PixelDepth = 8;
+    serh.PixelDepth  = 8;
     number_of_planes = 1;
     switch (format)
     {
@@ -130,13 +128,16 @@ bool SER_Recorder::setPixelFormat(unsigned int format)   // V4L2_PIX_FMT used wh
 #endif
             serh.ColorID = SER_MONO;
 #ifdef V4L2_PIX_FMT_Y10
-            if (format == V4L2_PIX_FMT_Y10) serh.PixelDepth = 10;
+            if (format == V4L2_PIX_FMT_Y10)
+                serh.PixelDepth = 10;
 #endif
 #ifdef V4L2_PIX_FMT_Y12
-            if (format == V4L2_PIX_FMT_Y12) serh.PixelDepth = 12;
+            if (format == V4L2_PIX_FMT_Y12)
+                serh.PixelDepth = 12;
 #endif
 #ifdef V4L2_PIX_FMT_Y16
-            if (format == V4L2_PIX_FMT_Y16) serh.PixelDepth = 16;
+            if (format == V4L2_PIX_FMT_Y16)
+                serh.PixelDepth = 16;
 #endif
             return true;
         case V4L2_PIX_FMT_SBGGR8:
@@ -149,12 +150,15 @@ bool SER_Recorder::setPixelFormat(unsigned int format)   // V4L2_PIX_FMT used wh
         case V4L2_PIX_FMT_SBGGR16:
             serh.ColorID = SER_BAYER_BGGR;
 #ifdef V4L2_PIX_FMT_SBGGR10
-            if (format == V4L2_PIX_FMT_SBGGR10) serh.PixelDepth = 10;
+            if (format == V4L2_PIX_FMT_SBGGR10)
+                serh.PixelDepth = 10;
 #endif
 #ifdef V4L2_PIX_FMT_SBGGR12
-            if (format == V4L2_PIX_FMT_SBGGR12) serh.PixelDepth = 12;
+            if (format == V4L2_PIX_FMT_SBGGR12)
+                serh.PixelDepth = 12;
 #endif
-            if (format == V4L2_PIX_FMT_SBGGR16) serh.PixelDepth = 16;
+            if (format == V4L2_PIX_FMT_SBGGR16)
+                serh.PixelDepth = 16;
             return true;
         case V4L2_PIX_FMT_SGBRG8:
 #ifdef V4L2_PIX_FMT_SGBRG10
@@ -165,10 +169,12 @@ bool SER_Recorder::setPixelFormat(unsigned int format)   // V4L2_PIX_FMT used wh
 #endif
             serh.ColorID = SER_BAYER_GBRG;
 #ifdef V4L2_PIX_FMT_SGBRG10
-            if (format == V4L2_PIX_FMT_SGBRG10) serh.PixelDepth = 10;
+            if (format == V4L2_PIX_FMT_SGBRG10)
+                serh.PixelDepth = 10;
 #endif
 #ifdef V4L2_PIX_FMT_SGBRG12
-            if (format == V4L2_PIX_FMT_SGBRG12) serh.PixelDepth = 12;
+            if (format == V4L2_PIX_FMT_SGBRG12)
+                serh.PixelDepth = 12;
 #endif
             return true;
 #if defined(V4L2_PIX_FMT_SGRBG8) || defined(V4L2_PIX_FMT_SGRBG10) || defined(V4L2_PIX_FMT_SGRBG12)
@@ -183,10 +189,12 @@ bool SER_Recorder::setPixelFormat(unsigned int format)   // V4L2_PIX_FMT used wh
 #endif
             serh.ColorID = SER_BAYER_GRBG;
 #ifdef V4L2_PIX_FMT_SGRBG10
-            if (format == V4L2_PIX_FMT_SGRBG10) serh.PixelDepth = 10;
+            if (format == V4L2_PIX_FMT_SGRBG10)
+                serh.PixelDepth = 10;
 #endif
 #ifdef V4L2_PIX_FMT_SGRBG12
-            if (format == V4L2_PIX_FMT_SGRBG12) serh.PixelDepth = 12;
+            if (format == V4L2_PIX_FMT_SGRBG12)
+                serh.PixelDepth = 12;
 #endif
             return true;
 #endif
@@ -202,25 +210,26 @@ bool SER_Recorder::setPixelFormat(unsigned int format)   // V4L2_PIX_FMT used wh
 #endif
             serh.ColorID = SER_BAYER_RGGB;
 #ifdef V4L2_PIX_FMT_SRGGB10
-            if (format == V4L2_PIX_FMT_SRGGB10) serh.PixelDepth = 10;
+            if (format == V4L2_PIX_FMT_SRGGB10)
+                serh.PixelDepth = 10;
 #endif
 #ifdef V4L2_PIX_FMT_SRGGB12
-            if (format == V4L2_PIX_FMT_SRGGB12) serh.PixelDepth = 12;
+            if (format == V4L2_PIX_FMT_SRGGB12)
+                serh.PixelDepth = 12;
 #endif
             return true;
 #endif
         case V4L2_PIX_FMT_RGB24:
             number_of_planes = 3;
-            serh.ColorID = SER_RGB;
+            serh.ColorID     = SER_RGB;
             return true;
         case V4L2_PIX_FMT_BGR24:
             number_of_planes = 3;
-            serh.ColorID = SER_BGR;
+            serh.ColorID     = SER_BGR;
             return true;
         default:
             return false;
     }
-
 }
 
 bool SER_Recorder::setFrame(uint16_t x, uint16_t y, uint16_t width, uint16_t height)
@@ -228,9 +237,9 @@ bool SER_Recorder::setFrame(uint16_t x, uint16_t y, uint16_t width, uint16_t hei
     if (isRecordingActive)
         return false;
 
-    offsetX = x;
-    offsetY = y;
-    serh.ImageWidth = width;
+    offsetX          = x;
+    offsetY          = y;
+    serh.ImageWidth  = width;
     serh.ImageHeight = height;
 
     return true;
@@ -241,25 +250,26 @@ bool SER_Recorder::setSize(uint16_t width, uint16_t height)
     if (isRecordingActive)
         return false;
 
-    rawWidth = width;
+    rawWidth  = width;
     rawHeight = height;
     return true;
 }
 
-bool SER_Recorder::open(const char * filename, char * errmsg)
+bool SER_Recorder::open(const char *filename, char *errmsg)
 {
-    if (isRecordingActive) return false;
+    if (isRecordingActive)
+        return false;
     serh.FrameCount = 0;
     if ((f = fopen(filename, "w")) == nullptr)
     {
-        snprintf(errmsg, ERRMSGSIZ, "recorder open error %d, %s\n", errno, strerror (errno));
+        snprintf(errmsg, ERRMSGSIZ, "recorder open error %d, %s\n", errno, strerror(errno));
         return false;
     }
 
-    serh.DateTime = getLocalTimeStamp();
+    serh.DateTime     = getLocalTimeStamp();
     serh.DateTime_UTC = getUTCTimeStamp();
     write_header(&serh);
-    frame_size = serh.ImageWidth * serh.ImageHeight * (serh.PixelDepth <= 8 ? 1 : 2) * number_of_planes;
+    frame_size        = serh.ImageWidth * serh.ImageHeight * (serh.PixelDepth <= 8 ? 1 : 2) * number_of_planes;
     isRecordingActive = true;
 
     frameStamps.clear();
@@ -280,14 +290,14 @@ bool SER_Recorder::close()
         fseek(f, 0L, SEEK_SET);
         write_header(&serh);
         fclose(f);
-	f = nullptr;
+        f = nullptr;
     }
 
     isRecordingActive = false;
     return true;
 }
 
-bool SER_Recorder::writeFrame(unsigned char * frame)
+bool SER_Recorder::writeFrame(unsigned char *frame)
 {
     if (!isRecordingActive)
         return false;
@@ -299,20 +309,20 @@ bool SER_Recorder::writeFrame(unsigned char * frame)
     return true;
 }
 
-
 // ajouter une gestion plus fine du mode par defaut
 // setMono/setColor appelee par ImageTypeSP
 // setPixelDepth si Mono16
-bool SER_Recorder::writeFrameMono(unsigned char * frame)
+bool SER_Recorder::writeFrameMono(unsigned char *frame)
 {
-    if (isStreamingActive == false && (offsetX > 0 || offsetY > 0 || serh.ImageWidth != rawWidth || serh.ImageHeight != rawHeight))
+    if (isStreamingActive == false &&
+        (offsetX > 0 || offsetY > 0 || serh.ImageWidth != rawWidth || serh.ImageHeight != rawHeight))
     {
         int offset = ((rawWidth * offsetY) + offsetX);
 
-        uint8_t * srcBuffer = frame + offset;
-        uint8_t * destBuffer = frame;
-        int imageWidth = serh.ImageWidth;
-        int imageHeight = serh.ImageHeight;
+        uint8_t *srcBuffer  = frame + offset;
+        uint8_t *destBuffer = frame;
+        int imageWidth      = serh.ImageWidth;
+        int imageHeight     = serh.ImageHeight;
 
         for (int i = 0; i < imageHeight; i++)
             memcpy(destBuffer + i * imageWidth, srcBuffer + rawWidth * i, imageWidth);
@@ -321,16 +331,17 @@ bool SER_Recorder::writeFrameMono(unsigned char * frame)
     return writeFrame(frame);
 }
 
-bool SER_Recorder::writeFrameColor(unsigned char * frame)
+bool SER_Recorder::writeFrameColor(unsigned char *frame)
 {
-    if (isStreamingActive == false && (offsetX > 0 || offsetY > 0 || serh.ImageWidth != rawWidth || serh.ImageHeight != rawHeight))
+    if (isStreamingActive == false &&
+        (offsetX > 0 || offsetY > 0 || serh.ImageWidth != rawWidth || serh.ImageHeight != rawHeight))
     {
         int offset = ((rawWidth * offsetY) + offsetX);
 
-        uint8_t * srcBuffer = frame + offset * 3;
-        uint8_t * destBuffer = frame;
-        int imageWidth = serh.ImageWidth;
-        int imageHeight = serh.ImageHeight;
+        uint8_t *srcBuffer  = frame + offset * 3;
+        uint8_t *destBuffer = frame;
+        int imageWidth      = serh.ImageWidth;
+        int imageHeight     = serh.ImageHeight;
 
         // RGB
         for (int i = 0; i < imageHeight; i++)
@@ -343,15 +354,15 @@ bool SER_Recorder::writeFrameColor(unsigned char * frame)
 void SER_Recorder::setDefaultMono()
 {
     number_of_planes = 1;
-    serh.PixelDepth = 8;
-    serh.ColorID = SER_MONO;
+    serh.PixelDepth  = 8;
+    serh.ColorID     = SER_MONO;
 }
 
 void SER_Recorder::setDefaultColor()
 {
     number_of_planes = 3;
-    serh.PixelDepth = 8;
-    serh.ColorID = SER_RGB;
+    serh.PixelDepth  = 8;
+    serh.ColorID     = SER_RGB;
 }
 
 // Copyright (C) 2015 Chris Garry
@@ -392,9 +403,9 @@ uint64_t SER_Recorder::getUTCTimeStamp()
     timeval currentTime;
     gettimeofday(&currentTime, nullptr);
 
-    struct tm * tp;
-    time_t    t = (time_t) currentTime.tv_sec;
-    uint32_t  u = currentTime.tv_usec;
+    struct tm *tp;
+    time_t t   = (time_t)currentTime.tv_sec;
+    uint32_t u = currentTime.tv_usec;
 
     // UTC Time
     tp = gmtime(&t);
@@ -412,9 +423,9 @@ uint64_t SER_Recorder::getLocalTimeStamp()
     timeval currentTime;
     gettimeofday(&currentTime, nullptr);
 
-    struct tm * tp;
-    time_t    t = (time_t) currentTime.tv_sec;
-    uint32_t  u = currentTime.tv_usec;
+    struct tm *tp;
+    time_t t   = (time_t)currentTime.tv_sec;
+    uint32_t u = currentTime.tv_usec;
 
     // Local Time
     tp = localtime(&t);
@@ -427,7 +438,7 @@ uint64_t SER_Recorder::getLocalTimeStamp()
 // Convert real time to timestamp
 //
 void SER_Recorder::dateTo64BitTS(int32_t year, int32_t month, int32_t day, int32_t hour, int32_t minute, int32_t second,
-                                 int32_t microsec, uint64_t * p_ts)
+                                 int32_t microsec, uint64_t *p_ts)
 {
     uint64_t ts = 0;
     int32_t yr;
@@ -439,7 +450,7 @@ void SER_Recorder::dateTo64BitTS(int32_t year, int32_t month, int32_t day, int32
     }
 
     // Add 1 years
-    for ( ; yr < year; yr++)
+    for (; yr < year; yr++)
     {
         uint32_t days_this_year = 365;
         if (is_leap_year(yr))
@@ -455,13 +466,13 @@ void SER_Recorder::dateTo64BitTS(int32_t year, int32_t month, int32_t day, int32
     {
         switch (mon)
         {
-            case 4:   // April
-            case 6:   // June
-            case 9:   // September
-            case 11:  // Novenber
+            case 4:  // April
+            case 6:  // June
+            case 9:  // September
+            case 11: // Novenber
                 ts += (30 * m_septaseconds_per_day);
                 break;
-            case 2:  // Feburary
+            case 2: // Feburary
                 if (is_leap_year(year))
                 {
                     ts += (29 * m_septaseconds_per_day);

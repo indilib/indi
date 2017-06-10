@@ -21,32 +21,25 @@
 
 namespace Connection
 {
+const char *CONNECTION_TAB = "Connection";
 
-const char * CONNECTION_TAB = "Connection";
-
-Interface::Interface(INDI::DefaultDevice * dev) : device(dev)
+Interface::Interface(INDI::DefaultDevice *dev) : device(dev)
 {
     // Default handshake
-    registerHandshake([]()
-    {
-        return true;
-    });
-
+    registerHandshake([]() { return true; });
 }
 
 Interface::~Interface()
 {
-
 }
 
-const char * Interface::getDeviceName()
+const char *Interface::getDeviceName()
 {
     return device->getDeviceName();
 }
 
-void Interface::registerHandshake(std::function<bool ()> callback)
+void Interface::registerHandshake(std::function<bool()> callback)
 {
     Handshake = callback;
 }
-
 }

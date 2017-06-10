@@ -26,18 +26,16 @@
 #include <string.h>
 #include <unistd.h>
 
-#define GPS_TAB   "Extended GPS Features"
-
+#define GPS_TAB "Extended GPS Features"
 
 LX200GPS::LX200GPS() : LX200Autostar()
 {
     MaxReticleFlashRate = 9;
-
 }
 
-const char * LX200GPS::getDefaultName()
+const char *LX200GPS::getDefaultName()
 {
-    return (const char *) "LX200 GPS";
+    return (const char *)"LX200 GPS";
 }
 
 bool LX200GPS::initProperties()
@@ -46,39 +44,45 @@ bool LX200GPS::initProperties()
 
     IUFillSwitch(&GPSPowerS[0], "On", "", ISS_OFF);
     IUFillSwitch(&GPSPowerS[1], "Off", "", ISS_OFF);
-    IUFillSwitchVector(&GPSPowerSP, GPSPowerS, 2, getDeviceName(), "GPS Power", "", GPS_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+    IUFillSwitchVector(&GPSPowerSP, GPSPowerS, 2, getDeviceName(), "GPS Power", "", GPS_TAB, IP_RW, ISR_1OFMANY, 0,
+                       IPS_IDLE);
 
     IUFillSwitch(&GPSStatusS[0], "Sleep", "", ISS_OFF);
     IUFillSwitch(&GPSStatusS[1], "Wake Up", "", ISS_OFF);
     IUFillSwitch(&GPSStatusS[2], "Restart", "", ISS_OFF);
-    IUFillSwitchVector(&GPSStatusSP, GPSStatusS, 3, getDeviceName(), "GPS Status", "", GPS_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+    IUFillSwitchVector(&GPSStatusSP, GPSStatusS, 3, getDeviceName(), "GPS Status", "", GPS_TAB, IP_RW, ISR_1OFMANY, 0,
+                       IPS_IDLE);
 
     IUFillSwitch(&GPSUpdateS[0], "Update GPS", "", ISS_OFF);
     IUFillSwitch(&GPSUpdateS[1], "Update Client", "", ISS_OFF);
-    IUFillSwitchVector(&GPSUpdateSP, GPSUpdateS, 2, getDeviceName(), "GPS System", "", GPS_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+    IUFillSwitchVector(&GPSUpdateSP, GPSUpdateS, 2, getDeviceName(), "GPS System", "", GPS_TAB, IP_RW, ISR_1OFMANY, 0,
+                       IPS_IDLE);
 
     IUFillSwitch(&AltDecPecS[0], "Enable", "", ISS_OFF);
     IUFillSwitch(&AltDecPecS[1], "Disable", "", ISS_OFF);
-    IUFillSwitchVector(&AltDecPecSP, AltDecPecS, 2, getDeviceName(), "Alt/Dec PEC", "", GPS_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
-
+    IUFillSwitchVector(&AltDecPecSP, AltDecPecS, 2, getDeviceName(), "Alt/Dec PEC", "", GPS_TAB, IP_RW, ISR_1OFMANY, 0,
+                       IPS_IDLE);
 
     IUFillSwitch(&AzRaPecS[0], "Enable", "", ISS_OFF);
     IUFillSwitch(&AzRaPecS[1], "Disable", "", ISS_OFF);
-    IUFillSwitchVector(&AzRaPecSP, AzRaPecS, 2, getDeviceName(), "Az/RA PEC", "", GPS_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+    IUFillSwitchVector(&AzRaPecSP, AzRaPecS, 2, getDeviceName(), "Az/RA PEC", "", GPS_TAB, IP_RW, ISR_1OFMANY, 0,
+                       IPS_IDLE);
 
     IUFillSwitch(&SelenSyncS[0], "Sync", "", ISS_OFF);
-    IUFillSwitchVector(&SelenSyncSP, SelenSyncS, 1, getDeviceName(), "Selenographic Sync", "", GPS_TAB, IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
+    IUFillSwitchVector(&SelenSyncSP, SelenSyncS, 1, getDeviceName(), "Selenographic Sync", "", GPS_TAB, IP_RW,
+                       ISR_ATMOST1, 0, IPS_IDLE);
 
     IUFillSwitch(&AltDecBacklashS[0], "Activate", "", ISS_OFF);
-    IUFillSwitchVector(&AltDecBacklashSP, AltDecBacklashS, 1, getDeviceName(), "Alt/Dec Anti-backlash", "", GPS_TAB, IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
+    IUFillSwitchVector(&AltDecBacklashSP, AltDecBacklashS, 1, getDeviceName(), "Alt/Dec Anti-backlash", "", GPS_TAB,
+                       IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
 
     IUFillSwitch(&AzRaBacklashS[0], "Activate", "", ISS_OFF);
-    IUFillSwitchVector(&AzRaBacklashSP, AzRaBacklashS, 1, getDeviceName(), "Az/Ra Anti-backlash", "", GPS_TAB, IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
-
+    IUFillSwitchVector(&AzRaBacklashSP, AzRaBacklashS, 1, getDeviceName(), "Az/Ra Anti-backlash", "", GPS_TAB, IP_RW,
+                       ISR_ATMOST1, 0, IPS_IDLE);
 
     IUFillSwitch(&OTAUpdateS[0], "Update", "", ISS_OFF);
-    IUFillSwitchVector(&OTAUpdateSP, OTAUpdateS, 1, getDeviceName(), "OTA Update", "", GPS_TAB, IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
-
+    IUFillSwitchVector(&OTAUpdateSP, OTAUpdateS, 1, getDeviceName(), "OTA Update", "", GPS_TAB, IP_RW, ISR_ATMOST1, 0,
+                       IPS_IDLE);
 
     IUFillNumber(&OTATempN[0], "Temp", "", "%03g", -200.0, 500.0, 0.0, 0);
     IUFillNumberVector(&OTATempNP, OTATempN, 1, getDeviceName(), "OTA Temp (C)", "", GPS_TAB, IP_RO, 0, IPS_IDLE);
@@ -86,10 +90,9 @@ bool LX200GPS::initProperties()
     return true;
 }
 
-void LX200GPS::ISGetProperties (const char * dev)
+void LX200GPS::ISGetProperties(const char *dev)
 {
-
-    if(dev && strcmp(dev, getDeviceName()))
+    if (dev && strcmp(dev, getDeviceName()))
         return;
 
     // process parent first
@@ -97,16 +100,16 @@ void LX200GPS::ISGetProperties (const char * dev)
 
     if (isConnected())
     {
-        defineSwitch (&GPSPowerSP);
-        defineSwitch (&GPSStatusSP);
-        defineSwitch (&GPSUpdateSP);
-        defineSwitch (&AltDecPecSP);
-        defineSwitch (&AzRaPecSP);
-        defineSwitch (&SelenSyncSP);
-        defineSwitch (&AltDecBacklashSP);
-        defineSwitch (&AzRaBacklashSP);
-        defineNumber (&OTATempNP);
-        defineSwitch (&OTAUpdateSP);
+        defineSwitch(&GPSPowerSP);
+        defineSwitch(&GPSStatusSP);
+        defineSwitch(&GPSUpdateSP);
+        defineSwitch(&AltDecPecSP);
+        defineSwitch(&AzRaPecSP);
+        defineSwitch(&SelenSyncSP);
+        defineSwitch(&AltDecBacklashSP);
+        defineSwitch(&AzRaBacklashSP);
+        defineNumber(&OTATempNP);
+        defineSwitch(&OTAUpdateSP);
     }
 }
 
@@ -116,16 +119,16 @@ bool LX200GPS::updateProperties()
 
     if (isConnected())
     {
-        defineSwitch (&GPSPowerSP);
-        defineSwitch (&GPSStatusSP);
-        defineSwitch (&GPSUpdateSP);
-        defineSwitch (&AltDecPecSP);
-        defineSwitch (&AzRaPecSP);
-        defineSwitch (&SelenSyncSP);
-        defineSwitch (&AltDecBacklashSP);
-        defineSwitch (&AzRaBacklashSP);
-        defineNumber (&OTATempNP);
-        defineSwitch (&OTAUpdateSP);
+        defineSwitch(&GPSPowerSP);
+        defineSwitch(&GPSStatusSP);
+        defineSwitch(&GPSUpdateSP);
+        defineSwitch(&AltDecPecSP);
+        defineSwitch(&AzRaPecSP);
+        defineSwitch(&SelenSyncSP);
+        defineSwitch(&AltDecBacklashSP);
+        defineSwitch(&AzRaBacklashSP);
+        defineNumber(&OTATempNP);
+        defineSwitch(&OTAUpdateSP);
     }
     else
     {
@@ -144,18 +147,16 @@ bool LX200GPS::updateProperties()
     return true;
 }
 
-bool LX200GPS::ISNewSwitch (const char * dev, const char * name, ISState * states, char * names[], int n)
+bool LX200GPS::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
 {
-
     int index = 0, err = 0;
     char msg[64];
 
-    if(strcmp(dev, getDeviceName()) == 0)
+    if (strcmp(dev, getDeviceName()) == 0)
     {
         /* GPS Power */
         if (!strcmp(name, GPSPowerSP.name))
         {
-
             if (IUUpdateSwitch(&GPSPowerSP, states, names, n) < 0)
                 return false;
 
@@ -166,14 +167,13 @@ bool LX200GPS::ISNewSwitch (const char * dev, const char * name, ISState * state
                 turnGPSOff(PortFD);
 
             GPSPowerSP.s = IPS_OK;
-            IDSetSwitch (&GPSPowerSP, index == 0 ? "GPS System is ON" : "GPS System is OFF" );
+            IDSetSwitch(&GPSPowerSP, index == 0 ? "GPS System is ON" : "GPS System is OFF");
             return true;
         }
 
         /* GPS Status Update */
         if (!strcmp(name, GPSStatusSP.name))
         {
-
             if (IUUpdateSwitch(&GPSStatusSP, states, names, n) < 0)
                 return false;
 
@@ -198,16 +198,13 @@ bool LX200GPS::ISNewSwitch (const char * dev, const char * name, ISState * state
             }
 
             GPSStatusSP.s = IPS_OK;
-            IDSetSwitch (&GPSStatusSP, "%s", msg);
+            IDSetSwitch(&GPSStatusSP, "%s", msg);
             return true;
-
         }
-
 
         /* GPS Update */
         if (!strcmp(name, GPSUpdateSP.name))
         {
-
             if (IUUpdateSwitch(&GPSUpdateSP, states, names, n) < 0)
                 return false;
 
@@ -235,7 +232,6 @@ bool LX200GPS::ISNewSwitch (const char * dev, const char * name, ISState * state
                 sendScopeTime();
                 sendScopeLocation();
                 IDSetSwitch(&GPSUpdateSP, "Client time and location is synced to LX200 GPS Data.");
-
             }
             return true;
         }
@@ -251,12 +247,12 @@ bool LX200GPS::ISNewSwitch (const char * dev, const char * name, ISState * state
             if (index == 0)
             {
                 enableDecAltPec(PortFD);
-                strncpy (msg, "Alt/Dec Compensation Enabled.", 64);
+                strncpy(msg, "Alt/Dec Compensation Enabled.", 64);
             }
             else
             {
                 disableDecAltPec(PortFD);
-                strncpy (msg, "Alt/Dec Compensation Disabled.", 64);
+                strncpy(msg, "Alt/Dec Compensation Disabled.", 64);
             }
 
             AltDecPecSP.s = IPS_OK;
@@ -268,7 +264,6 @@ bool LX200GPS::ISNewSwitch (const char * dev, const char * name, ISState * state
         /* Az RA periodic error correction */
         if (!strcmp(name, AzRaPecSP.name))
         {
-
             if (IUUpdateSwitch(&AzRaPecSP, states, names, n) < 0)
                 return false;
 
@@ -277,12 +272,12 @@ bool LX200GPS::ISNewSwitch (const char * dev, const char * name, ISState * state
             if (index == 0)
             {
                 enableRaAzPec(PortFD);
-                strncpy (msg, "Ra/Az Compensation Enabled.", 64);
+                strncpy(msg, "Ra/Az Compensation Enabled.", 64);
             }
             else
             {
                 disableRaAzPec(PortFD);
-                strncpy (msg, "Ra/Az Compensation Disabled.", 64);
+                strncpy(msg, "Ra/Az Compensation Disabled.", 64);
             }
 
             AzRaPecSP.s = IPS_OK;
@@ -301,7 +296,6 @@ bool LX200GPS::ISNewSwitch (const char * dev, const char * name, ISState * state
 
         if (!strcmp(name, AzRaBacklashSP.name))
         {
-
             activateAzRaAntiBackSlash(PortFD);
             AzRaBacklashSP.s = IPS_OK;
             IDSetSwitch(&AzRaBacklashSP, "Az/Ra Anti-backlash enabled");
@@ -310,35 +304,31 @@ bool LX200GPS::ISNewSwitch (const char * dev, const char * name, ISState * state
 
         if (!strcmp(name, OTAUpdateSP.name))
         {
-
             IUResetSwitch(&OTAUpdateSP);
 
-            if ( getOTATemp(PortFD, &OTATempNP.np[0].value) < 0)
+            if (getOTATemp(PortFD, &OTATempNP.np[0].value) < 0)
             {
                 OTAUpdateSP.s = IPS_ALERT;
-                OTATempNP.s = IPS_ALERT;
+                OTATempNP.s   = IPS_ALERT;
                 IDSetNumber(&OTATempNP, "Error: OTA temperature read timed out.");
                 return false;
             }
             else
             {
                 OTAUpdateSP.s = IPS_OK;
-                OTATempNP.s = IPS_OK;
+                OTATempNP.s   = IPS_OK;
                 IDSetNumber(&OTATempNP, nullptr);
                 IDSetSwitch(&OTAUpdateSP, nullptr);
                 return true;
             }
-
         }
     }
 
-    return LX200Autostar::ISNewSwitch (dev, name, states, names,  n);
-
+    return LX200Autostar::ISNewSwitch(dev, name, states, names, n);
 }
 
-bool LX200GPS::updateTime(ln_date * utc, double utc_offset)
+bool LX200GPS::updateTime(ln_date *utc, double utc_offset)
 {
-
     ln_zonedate ltm;
 
     if (isSimulation())
@@ -346,7 +336,7 @@ bool LX200GPS::updateTime(ln_date * utc, double utc_offset)
 
     JD = ln_get_julian_day(utc);
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "New JD is %f", (float) JD);
+    DEBUGF(INDI::Logger::DBG_DEBUG, "New JD is %f", (float)JD);
 
     ln_date_to_zonedate(utc, &ltm, utc_offset * 3600);
 
@@ -369,11 +359,11 @@ bool LX200GPS::updateTime(ln_date * utc, double utc_offset)
     // is the opposite of the standard definition of UTC offset!
     if (setUTCOffset(PortFD, (utc_offset * -1.0)) < 0)
     {
-        DEBUG(INDI::Logger::DBG_ERROR , "Error setting UTC Offset.");
+        DEBUG(INDI::Logger::DBG_ERROR, "Error setting UTC Offset.");
         return false;
     }
 
-    DEBUG(INDI::Logger::DBG_SESSION , "Time updated, updating planetary data...");
+    DEBUG(INDI::Logger::DBG_SESSION, "Time updated, updating planetary data...");
     return true;
 }
 

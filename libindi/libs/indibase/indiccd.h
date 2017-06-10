@@ -22,7 +22,6 @@
  Boston, MA 02110-1301, USA.
 *******************************************************************************/
 
-
 #ifndef INDI_CCD_H
 #define INDI_CCD_H
 
@@ -32,10 +31,10 @@
 #include "defaultdevice.h"
 #include "indiguiderinterface.h"
 
-extern const char * IMAGE_SETTINGS_TAB;
-extern const char * IMAGE_INFO_TAB;
-extern const char * GUIDE_HEAD_TAB;
-extern const char * RAPIDGUIDE_TAB;
+extern const char *IMAGE_SETTINGS_TAB;
+extern const char *IMAGE_INFO_TAB;
+extern const char *GUIDE_HEAD_TAB;
+extern const char *RAPIDGUIDE_TAB;
 
 class StreamRecorder;
 
@@ -45,234 +44,180 @@ class StreamRecorder;
  */
 class CCDChip
 {
+  public:
+    CCDChip();
+    ~CCDChip();
 
-    public:
-        CCDChip();
-        ~CCDChip();
+    typedef enum { LIGHT_FRAME = 0, BIAS_FRAME, DARK_FRAME, FLAT_FRAME } CCD_FRAME;
+    typedef enum { FRAME_X, FRAME_Y, FRAME_W, FRAME_H } CCD_FRAME_INDEX;
+    typedef enum { BIN_W, BIN_H } CCD_BIN_INDEX;
+    typedef enum {
+        CCD_MAX_X,
+        CCD_MAX_Y,
+        CCD_PIXEL_SIZE,
+        CCD_PIXEL_SIZE_X,
+        CCD_PIXEL_SIZE_Y,
+        CCD_BITSPERPIXEL
+    } CCD_INFO_INDEX;
 
-        typedef enum { LIGHT_FRAME = 0, BIAS_FRAME, DARK_FRAME, FLAT_FRAME } CCD_FRAME;
-        typedef enum { FRAME_X, FRAME_Y, FRAME_W, FRAME_H} CCD_FRAME_INDEX;
-        typedef enum { BIN_W, BIN_H} CCD_BIN_INDEX;
-        typedef enum { CCD_MAX_X, CCD_MAX_Y, CCD_PIXEL_SIZE, CCD_PIXEL_SIZE_X, CCD_PIXEL_SIZE_Y, CCD_BITSPERPIXEL} CCD_INFO_INDEX;
-
-        /**
+    /**
          * @brief getXRes Get the horizontal resolution in pixels of the CCD Chip.
          * @return the horizontal resolution of the CCD Chip.
          */
-        inline int getXRes()
-        {
-            return XRes;
-        }
+    inline int getXRes() { return XRes; }
 
-        /**
+    /**
          * @brief Get the vertical resolution in pixels of the CCD Chip.
          * @return the horizontal resolution of the CCD Chip.
          */
-        inline int getYRes()
-        {
-            return YRes;
-        }
+    inline int getYRes() { return YRes; }
 
-        /**
+    /**
          * @brief getSubX Get the starting left coordinates (X) of the frame.
          * @return the starting left coordinates (X) of the image.
          */
-        inline int getSubX()
-        {
-            return SubX;
-        }
+    inline int getSubX() { return SubX; }
 
-        /**
+    /**
          * @brief getSubY Get the starting top coordinates (Y) of the frame.
          * @return the starting top coordinates (Y) of the image.
          */
-        inline int getSubY()
-        {
-            return SubY;
-        }
+    inline int getSubY() { return SubY; }
 
-        /**
+    /**
          * @brief getSubW Get the width of the frame
          * @return unbinned width of the frame
          */
-        inline int getSubW()
-        {
-            return SubW;
-        }
+    inline int getSubW() { return SubW; }
 
-        /**
+    /**
          * @brief getSubH Get the height of the frame
          * @return unbinned height of the frame
          */
-        inline int getSubH()
-        {
-            return SubH;
-        }
+    inline int getSubH() { return SubH; }
 
-        /**
+    /**
          * @brief getBinX Get horizontal binning of the CCD chip.
          * @return horizontal binning of the CCD chip.
          */
-        inline int getBinX()
-        {
-            return BinX;
-        }
+    inline int getBinX() { return BinX; }
 
-        /**
+    /**
          * @brief getBinY Get vertical binning of the CCD chip.
          * @return vertical binning of the CCD chip.
          */
-        inline int getBinY()
-        {
-            return BinY;
-        }
+    inline int getBinY() { return BinY; }
 
-        /**
+    /**
          * @brief getPixelSizeX Get horizontal pixel size in microns.
          * @return horizontal pixel size in microns.
          */
-        inline float getPixelSizeX()
-        {
-            return PixelSizex;
-        }
+    inline float getPixelSizeX() { return PixelSizex; }
 
-        /**
+    /**
          * @brief getPixelSizeY Get vertical pixel size in microns.
          * @return vertical pixel size in microns.
          */
-        inline float getPixelSizeY()
-        {
-            return PixelSizey;
-        }
+    inline float getPixelSizeY() { return PixelSizey; }
 
-        /**
+    /**
          * @brief getBPP Get CCD Chip depth (bits per pixel).
          * @return bits per pixel.
          */
-        inline int getBPP()
-        {
-            return BPP;
-        }
+    inline int getBPP() { return BPP; }
 
-        /**
+    /**
          * @brief getFrameBufferSize Get allocated frame buffer size to hold the CCD image frame.
          * @return allocated frame buffer size to hold the CCD image frame.
          */
-        inline int getFrameBufferSize()
-        {
-            return RawFrameSize;
-        }
+    inline int getFrameBufferSize() { return RawFrameSize; }
 
-        /**
+    /**
          * @brief getExposureLeft Get exposure time left in seconds.
          * @return exposure time left in seconds.
          */
-        inline double getExposureLeft()
-        {
-            return ImageExposureN[0].value;
-        }
+    inline double getExposureLeft() { return ImageExposureN[0].value; }
 
-        /**
+    /**
          * @brief getExposureDuration Get requested exposure duration for the CCD chip in seconds.
          * @return requested exposure duration for the CCD chip in seconds.
          */
-        inline double getExposureDuration()
-        {
-            return exposureDuration;
-        }
+    inline double getExposureDuration() { return exposureDuration; }
 
-        /**
+    /**
          * @brief getExposureStartTime
          * @return exposure start time in ISO 8601 format.
          */
-        const char * getExposureStartTime();
+    const char *getExposureStartTime();
 
-        /**
+    /**
          * @brief getFrameBuffer Get raw frame buffer of the CCD chip.
          * @return raw frame buffer of the CCD chip.
          */
-        inline uint8_t * getFrameBuffer()
-        {
-            return RawFrame;
-        }
+    inline uint8_t *getFrameBuffer() { return RawFrame; }
 
-        /**
+    /**
          * @brief setFrameBuffer Set raw frame buffer pointer.
          * @param buffer pointer to frame buffer
          * /note CCD Chip allocates the frame buffer internally once SetFrameBufferSize is called with allocMem set to true which is the default behavior.
          *       If you allocated the memory yourself (i.e. allocMem is false), then you must call this function to set the pointer to the raw frame buffer.
          */
-        void setFrameBuffer(uint8_t * buffer)
-        {
-            RawFrame = buffer;
-        }
+    void setFrameBuffer(uint8_t *buffer) { RawFrame = buffer; }
 
-        /**
+    /**
          * @brief isCompressed
          * @return True if frame is compressed, false otherwise.
          */
-        inline bool isCompressed()
-        {
-            return SendCompressed;
-        }
+    inline bool isCompressed() { return SendCompressed; }
 
-        /**
+    /**
          * @brief isInterlaced
          * @return True if CCD chip is Interlaced, false otherwise.
          */
-        inline bool isInterlaced()
-        {
-            return Interlaced;
-        }
+    inline bool isInterlaced() { return Interlaced; }
 
-        /**
+    /**
          * @brief getFrameType
          * @return CCD Frame type
          */
-        inline CCD_FRAME getFrameType()
-        {
-            return FrameType;
-        }
+    inline CCD_FRAME getFrameType() { return FrameType; }
 
-        /**
+    /**
          * @brief getFrameTypeName returns CCD Frame type name
          * @param fType type of frame
          * @return CCD Frame type name
          */
-        const char * getFrameTypeName(CCD_FRAME fType);
+    const char *getFrameTypeName(CCD_FRAME fType);
 
-        /**
+    /**
           * @brief Return CCD Info Property
         */
-        INumberVectorProperty * getCCDInfo()
-        {
-            return &ImagePixelSizeNP;
-        }
+    INumberVectorProperty *getCCDInfo() { return &ImagePixelSizeNP; }
 
-        /**
+    /**
          * @brief setResolution set CCD Chip resolution
          * @param x width
          * @param y height
          */
-        void setResolution(int x, int y);
+    void setResolution(int x, int y);
 
-        /**
+    /**
          * @brief setFrame Set desired frame resolutoin for an exposure.
          * @param subx Left position.
          * @param suby Top position.
          * @param subw unbinned width of the frame.
          * @param subh unbinned height of the frame.
          */
-        void setFrame(int subx, int suby, int subw, int subh);
+    void setFrame(int subx, int suby, int subw, int subh);
 
-        /**
+    /**
          * @brief setBin Set CCD Chip binnig
          * @param hor Horizontal binning.
          * @param ver Vertical binning.
          */
-        void setBin(int hor, int ver);
+    void setBin(int hor, int ver);
 
-        /**
+    /**
          * @brief setMinMaxStep for a number property element
          * @param property Property name
          * @param element Element name
@@ -281,169 +226,162 @@ class CCDChip
          * @param step Element step value
          * @param sendToClient If true (default), the element limits are updated and is sent to the client. If false, the element limits are updated without getting sent to the client.
          */
-        void setMinMaxStep(const char * property, const char * element, double min, double max, double step, bool sendToClient = true);
+    void setMinMaxStep(const char *property, const char *element, double min, double max, double step,
+                       bool sendToClient = true);
 
-        /**
+    /**
          * @brief setPixelSize Set CCD Chip pixel size
          * @param x Horziontal pixel size in microns.
          * @param y Vertical pixel size in microns.
          */
-        void setPixelSize(float x, float y);
+    void setPixelSize(float x, float y);
 
-        /**
+    /**
          * @brief setCompressed Set whether a frame is compressed after exposure?
          * @param cmp If true, compress frame.
          */
-        void setCompressed (bool cmp);
+    void setCompressed(bool cmp);
 
-        /**
+    /**
          * @brief setInterlaced Set whether the CCD chip is interlaced or not?
          * @param intr If true, the CCD chip is interlaced.
          */
-        void setInterlaced(bool intr);
+    void setInterlaced(bool intr);
 
-        /**
+    /**
          * @brief setFrameBufferSize Set desired frame buffer size. The function will allocate memory accordingly. The frame size depends on the
          * desired frame resolution (Left, Top, Width, Height), depth of the CCD chip (bpp), and binning settings. You must set the frame size any time
          * any of the prior parameters gets updated.
          * @param nbuf size of buffer in bytes.
          * @param allocMem if True, it will allocate memory of nbut size bytes.
          */
-        void setFrameBufferSize(int nbuf, bool allocMem = true);
+    void setFrameBufferSize(int nbuf, bool allocMem = true);
 
-        /**
+    /**
          * @brief setBPP Set depth of CCD chip.
          * @param bpp bits per pixel
          */
-        void setBPP(int bpp);
+    void setBPP(int bpp);
 
-        /**
+    /**
          * @brief setFrameType Set desired frame type for next exposure.
          * @param type desired CCD frame type.
          */
-        void setFrameType(CCD_FRAME type);
+    void setFrameType(CCD_FRAME type);
 
-        /**
+    /**
          * @brief setExposureDuration Set desired CCD frame exposure duration for next exposure. You must call this function immediately before
          * starting the actual exposure as it is used to calculate the timestamp used for the FITS header.
          * @param duration exposure duration in seconds.
          */
-        void setExposureDuration(double duration);
+    void setExposureDuration(double duration);
 
-        /**
+    /**
          * @brief setExposureLeft Update exposure time left. Inform the client of the new exposure time left value.
          * @param duration exposure duration left in seconds.
          */
-        void setExposureLeft(double duration);
+    void setExposureLeft(double duration);
 
-        /**
+    /**
          * @brief setExposureFailed Alert the client that the exposure failed.
          */
-        void setExposureFailed();
+    void setExposureFailed();
 
-        /**
+    /**
          * @return Get number of FITS axis in image. By default 2
          */
-        int getNAxis() const;
+    int getNAxis() const;
 
-        /**
+    /**
          * @brief setNAxis Set FITS number of axis
          * @param value number of axis
          */
-        void setNAxis(int value);
+    void setNAxis(int value);
 
-        /**
+    /**
          * @brief setImageExtension Set image exntension
          * @param ext extension (fits, jpeg, raw..etc)
          */
-        void setImageExtension(const char * ext);
+    void setImageExtension(const char *ext);
 
-        /**
+    /**
          * @return Return image extension (fits, jpeg, raw..etc)
          */
-        char * getImageExtension()
-        {
-            return imageExtention;
-        }
+    char *getImageExtension() { return imageExtention; }
 
-        /**
+    /**
          * @return True if CCD is currently exposing, false otherwise.
          */
-        bool isExposing()
-        {
-            return (ImageExposureNP.s == IPS_BUSY);
-        }
+    bool isExposing() { return (ImageExposureNP.s == IPS_BUSY); }
 
-        /**
+    /**
          * @brief binFrame Perform softwre binning on the CCD frame. Only use this function if hardware binning is not supported.
          */
-        void binFrame();
+    void binFrame();
 
-    private:
+  private:
+    int XRes;         //  native resolution of the ccd
+    int YRes;         //  ditto
+    int SubX;         //  left side of the subframe we are requesting
+    int SubY;         //  top of the subframe requested
+    int SubW;         //  UNBINNED width of the subframe
+    int SubH;         //  UNBINNED height of the subframe
+    int BinX;         //  Binning requested in the x direction
+    int BinY;         //  Binning requested in the Y direction
+    int NAxis;        //  # of Axis
+    float PixelSizex; //  pixel size in microns, x direction
+    float PixelSizey; //  pixel size in microns, y direction
+    int BPP;          //  Bytes per Pixel
+    bool Interlaced;
+    uint8_t *RawFrame;
+    uint8_t *BinFrame;
+    int RawFrameSize;
+    bool SendCompressed;
+    CCD_FRAME FrameType;
+    double exposureDuration;
+    timeval startExposureTime;
+    int lastRapidX;
+    int lastRapidY;
+    char imageExtention[MAXINDIBLOBFMT];
 
-        int XRes;   //  native resolution of the ccd
-        int YRes;   //  ditto
-        int SubX;   //  left side of the subframe we are requesting
-        int SubY;   //  top of the subframe requested
-        int SubW;   //  UNBINNED width of the subframe
-        int SubH;   //  UNBINNED height of the subframe
-        int BinX;   //  Binning requested in the x direction
-        int BinY;   //  Binning requested in the Y direction
-        int NAxis;  //  # of Axis
-        float PixelSizex;   //  pixel size in microns, x direction
-        float PixelSizey;   //  pixel size in microns, y direction
-        int BPP;            //  Bytes per Pixel
-        bool Interlaced;
-        uint8_t * RawFrame;
-        uint8_t * BinFrame;
-        int RawFrameSize;
-        bool SendCompressed;
-        CCD_FRAME FrameType;
-        double exposureDuration;
-        timeval startExposureTime;
-        int lastRapidX;
-        int lastRapidY;
-        char imageExtention[MAXINDIBLOBFMT];
+    INumberVectorProperty ImageExposureNP;
+    INumber ImageExposureN[1];
 
-        INumberVectorProperty ImageExposureNP;
-        INumber ImageExposureN[1];
+    ISwitchVectorProperty AbortExposureSP;
+    ISwitch AbortExposureS[1];
 
-        ISwitchVectorProperty AbortExposureSP;
-        ISwitch AbortExposureS[1];
+    INumberVectorProperty ImageFrameNP;
+    INumber ImageFrameN[4];
 
-        INumberVectorProperty ImageFrameNP;
-        INumber ImageFrameN[4];
+    INumberVectorProperty ImageBinNP;
+    INumber ImageBinN[2];
 
-        INumberVectorProperty ImageBinNP;
-        INumber ImageBinN[2];
+    INumberVectorProperty ImagePixelSizeNP;
+    INumber ImagePixelSizeN[6];
 
-        INumberVectorProperty ImagePixelSizeNP;
-        INumber ImagePixelSizeN[6];
+    ISwitch FrameTypeS[5];
+    ISwitchVectorProperty FrameTypeSP;
 
-        ISwitch FrameTypeS[5];
-        ISwitchVectorProperty FrameTypeSP;
+    ISwitch CompressS[2];
+    ISwitchVectorProperty CompressSP;
 
-        ISwitch CompressS[2];
-        ISwitchVectorProperty CompressSP;
+    IBLOB FitsB;
+    IBLOBVectorProperty FitsBP;
 
-        IBLOB FitsB;
-        IBLOBVectorProperty FitsBP;
+    ISwitch RapidGuideS[2];
+    ISwitchVectorProperty RapidGuideSP;
 
-        ISwitch RapidGuideS[2];
-        ISwitchVectorProperty RapidGuideSP;
+    ISwitch RapidGuideSetupS[3];
+    ISwitchVectorProperty RapidGuideSetupSP;
 
-        ISwitch RapidGuideSetupS[3];
-        ISwitchVectorProperty RapidGuideSetupSP;
+    INumber RapidGuideDataN[3];
+    INumberVectorProperty RapidGuideDataNP;
 
-        INumber RapidGuideDataN[3];
-        INumberVectorProperty RapidGuideDataNP;
+    ISwitch ResetS[1];
+    ISwitchVectorProperty ResetSP;
 
-        ISwitch                 ResetS[1];
-        ISwitchVectorProperty   ResetSP;
-
-        friend class INDI::CCD;
-        friend class StreamRecoder;
-
+    friend class INDI::CCD;
+    friend class StreamRecoder;
 };
 
 /**
@@ -467,120 +405,89 @@ class CCDChip
 */
 class INDI::CCD : public INDI::DefaultDevice, INDI::GuiderInterface
 {
-    public:
-        CCD();
-        virtual ~CCD();
+  public:
+    CCD();
+    virtual ~CCD();
 
-        enum
-        {
-            CCD_CAN_BIN             = 1 << 0,       /*!< Does the CCD support binning?  */
-            CCD_CAN_SUBFRAME        = 1 << 1,       /*!< Does the CCD support setting ROI?  */
-            CCD_CAN_ABORT           = 1 << 2,       /*!< Can the CCD exposure be aborted?  */
-            CCD_HAS_GUIDE_HEAD      = 1 << 3,       /*!< Does the CCD have a guide head?  */
-            CCD_HAS_ST4_PORT        = 1 << 4,       /*!< Does the CCD have an ST4 port?  */
-            CCD_HAS_SHUTTER         = 1 << 5,       /*!< Does the CCD have a mechanical shutter?  */
-            CCD_HAS_COOLER          = 1 << 6,       /*!< Does the CCD have a cooler and temperature control?  */
-            CCD_HAS_BAYER           = 1 << 7,       /*!< Does the CCD send color data in bayer format?  */
-            CCD_HAS_STREAMING       = 1 << 8        /*!< Does the CCD support live video streaming?  */
-        } CCDCapability;
+    enum
+    {
+        CCD_CAN_BIN        = 1 << 0, /*!< Does the CCD support binning?  */
+        CCD_CAN_SUBFRAME   = 1 << 1, /*!< Does the CCD support setting ROI?  */
+        CCD_CAN_ABORT      = 1 << 2, /*!< Can the CCD exposure be aborted?  */
+        CCD_HAS_GUIDE_HEAD = 1 << 3, /*!< Does the CCD have a guide head?  */
+        CCD_HAS_ST4_PORT   = 1 << 4, /*!< Does the CCD have an ST4 port?  */
+        CCD_HAS_SHUTTER    = 1 << 5, /*!< Does the CCD have a mechanical shutter?  */
+        CCD_HAS_COOLER     = 1 << 6, /*!< Does the CCD have a cooler and temperature control?  */
+        CCD_HAS_BAYER      = 1 << 7, /*!< Does the CCD send color data in bayer format?  */
+        CCD_HAS_STREAMING  = 1 << 8  /*!< Does the CCD support live video streaming?  */
+    } CCDCapability;
 
-        virtual bool initProperties();
-        virtual bool updateProperties();
-        virtual void ISGetProperties (const char * dev);
-        virtual bool ISNewNumber (const char * dev, const char * name, double values[], char * names[], int n);
-        virtual bool ISNewSwitch (const char * dev, const char * name, ISState * states, char * names[], int n);
-        virtual bool ISNewText (const char * dev, const char * name, char * texts[], char * names[], int n);
-        virtual bool ISSnoopDevice (XMLEle * root);
+    virtual bool initProperties();
+    virtual bool updateProperties();
+    virtual void ISGetProperties(const char *dev);
+    virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n);
+    virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n);
+    virtual bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n);
+    virtual bool ISSnoopDevice(XMLEle *root);
 
-    protected:
-
-        /**
+  protected:
+    /**
          * @brief GetCCDCapability returns the CCD capabilities.
          */
-        uint32_t GetCCDCapability() const
-        {
-            return capability;
-        }
+    uint32_t GetCCDCapability() const { return capability; }
 
-        /**
+    /**
          * @brief SetCCDCapability Set the CCD capabilities. Al fields must be initilized.
          * @param cap pointer to CCDCapability struct.
          */
-        void SetCCDCapability(uint32_t cap);
+    void SetCCDCapability(uint32_t cap);
 
-        /**
+    /**
          * @return True if CCD can abort exposure. False otherwise.
         */
-        bool CanAbort()
-        {
-            return capability & CCD_CAN_ABORT;
-        }
+    bool CanAbort() { return capability & CCD_CAN_ABORT; }
 
-        /**
+    /**
          * @return True if CCD supports binning. False otherwise.
         */
-        bool CanBin()
-        {
-            return capability & CCD_CAN_BIN;
-        }
+    bool CanBin() { return capability & CCD_CAN_BIN; }
 
-        /**
+    /**
          * @return True if CCD supports subframing. False otherwise.
         */
-        bool CanSubFrame()
-        {
-            return capability & CCD_CAN_SUBFRAME;
-        }
+    bool CanSubFrame() { return capability & CCD_CAN_SUBFRAME; }
 
-        /**
+    /**
          * @return True if CCD has guide head. False otherwise.
          */
-        bool HasGuideHead()
-        {
-            return capability & CCD_HAS_GUIDE_HEAD;
-        }
+    bool HasGuideHead() { return capability & CCD_HAS_GUIDE_HEAD; }
 
-        /**
+    /**
          * @return True if CCD has mechanical or electronic shutter. False otherwise.
          */
-        bool HasShutter()
-        {
-            return capability & CCD_HAS_SHUTTER;
-        }
+    bool HasShutter() { return capability & CCD_HAS_SHUTTER; }
 
-        /**
+    /**
          * @return True if CCD has ST4 port for guiding. False otherwise.
          */
-        bool HasST4Port()
-        {
-            return capability & CCD_HAS_ST4_PORT;
-        }
+    bool HasST4Port() { return capability & CCD_HAS_ST4_PORT; }
 
-        /**
+    /**
          * @return True if CCD has cooler and temperature can be controlled. False otherwise.
          */
-        bool HasCooler()
-        {
-            return capability & CCD_HAS_COOLER;
-        }
+    bool HasCooler() { return capability & CCD_HAS_COOLER; }
 
-        /**
+    /**
          * @return True if CCD sends image data in bayer format. False otherwise.
          */
-        bool HasBayer()
-        {
-            return capability & CCD_HAS_BAYER;
-        }
+    bool HasBayer() { return capability & CCD_HAS_BAYER; }
 
-        /**
+    /**
          * @return  True if the CCD supports live video streaming. False otherwise.
          */
-        bool HasStreaming()
-        {
-            return capability & CCD_HAS_STREAMING;
-        }
+    bool HasStreaming() { return capability & CCD_HAS_STREAMING; }
 
-        /**
+    /**
          * @brief Set CCD temperature
          * @param temperature CCD temperature in degrees celcius.
          * @return 0 or 1 if setting the temperature call to the hardware is successful. -1 if an error is encountered.
@@ -589,41 +496,41 @@ class INDI::CCD : public INDI::DefaultDevice, INDI::GuiderInterface
          * \note Upon returning 0, the property becomes BUSY. Once the temperature reaches the requested value, change the state to OK.
          * \note This function is not implemented in INDI::CCD, it must be implemented in the child class
          */
-        virtual int SetTemperature(double temperature);
+    virtual int SetTemperature(double temperature);
 
-        /** \brief Start exposing primary CCD chip
+    /** \brief Start exposing primary CCD chip
             \param duration Duration in seconds
             \return true if OK and exposure will take some time to complete, false on error.
             \note This function is not implemented in INDI::CCD, it must be implemented in the child class
         */
-        virtual bool StartExposure(float duration);
+    virtual bool StartExposure(float duration);
 
-        /** \brief Uploads target Chip exposed buffer as FITS to the client. Dervied classes should class this functon when an exposure is complete.
+    /** \brief Uploads target Chip exposed buffer as FITS to the client. Dervied classes should class this functon when an exposure is complete.
          * @param targetChip chip that contains upload image data
              \note This function is not implemented in INDI::CCD, it must be implemented in the child class
         */
-        virtual bool ExposureComplete(CCDChip * targetChip);
+    virtual bool ExposureComplete(CCDChip *targetChip);
 
-        /** \brief Abort ongoing exposure
+    /** \brief Abort ongoing exposure
             \return true is abort is successful, false otherwise.
             \note This function is not implemented in INDI::CCD, it must be implemented in the child class
         */
-        virtual bool AbortExposure();
+    virtual bool AbortExposure();
 
-        /** \brief Start exposing guide CCD chip
+    /** \brief Start exposing guide CCD chip
             \param duration Duration in seconds
             \return true if OK and exposure will take some time to complete, false on error.
             \note This function is not implemented in INDI::CCD, it must be implemented in the child class
         */
-        virtual bool StartGuideExposure(float duration);
+    virtual bool StartGuideExposure(float duration);
 
-        /** \brief Abort ongoing exposure
+    /** \brief Abort ongoing exposure
             \return true is abort is successful, false otherwise.
             \note This function is not implemented in INDI::CCD, it must be implemented in the child class
         */
-        virtual bool AbortGuideExposure();
+    virtual bool AbortGuideExposure();
 
-        /** \brief INDI::CCD calls this function when CCD Frame dimension needs to be updated in the hardware. Derived classes should implement this function
+    /** \brief INDI::CCD calls this function when CCD Frame dimension needs to be updated in the hardware. Derived classes should implement this function
             \param x Subframe X coordinate in pixels.
             \param y Subframe Y coordinate in pixels.
             \param w Subframe width in pixels.
@@ -632,10 +539,9 @@ class INDI::CCD : public INDI::DefaultDevice, INDI::GuiderInterface
             \return true is CCD chip update is successful, false otherwise.
             \note This function is not implemented in INDI::CCD, it must be implemented in the child class
         */
-        virtual bool UpdateCCDFrame(int x, int y, int w, int h);
+    virtual bool UpdateCCDFrame(int x, int y, int w, int h);
 
-
-        /** \brief INDI::CCD calls this function when Guide head frame dimension is updated by the client. Derived classes should implement this function
+    /** \brief INDI::CCD calls this function when Guide head frame dimension is updated by the client. Derived classes should implement this function
             \param x Subframe X coordinate in pixels.
             \param y Subframe Y coordinate in pixels.
             \param w Subframe width in pixels.
@@ -644,102 +550,99 @@ class INDI::CCD : public INDI::DefaultDevice, INDI::GuiderInterface
             \return true is CCD chip update is successful, false otherwise.
             \note This function is not implemented in INDI::CCD, it must be implemented in the child class
         */
-        virtual bool UpdateGuiderFrame(int x, int y, int w, int h);
+    virtual bool UpdateGuiderFrame(int x, int y, int w, int h);
 
-
-        /** \brief INDI::CCD calls this function when CCD Binning needs to be updated in the hardware. Derived classes should implement this function
+    /** \brief INDI::CCD calls this function when CCD Binning needs to be updated in the hardware. Derived classes should implement this function
             \param hor Horizontal binning.
             \param ver Vertical binning.
             \return true is CCD chip update is successful, false otherwise.
             \note This function is not implemented in INDI::CCD, it must be implemented in the child class
         */
-        virtual bool UpdateCCDBin(int hor, int ver);
+    virtual bool UpdateCCDBin(int hor, int ver);
 
-
-        /** \brief INDI::CCD calls this function when Guide head binning is updated by the client. Derived classes should implement this function
+    /** \brief INDI::CCD calls this function when Guide head binning is updated by the client. Derived classes should implement this function
             \param hor Horizontal binning.
             \param ver Vertical binning.
             \return true is CCD chip update is successful, false otherwise.
             \note This function is not implemented in INDI::CCD, it must be implemented in the child class
         */
-        virtual bool UpdateGuiderBin(int hor, int ver);
+    virtual bool UpdateGuiderBin(int hor, int ver);
 
-        /** \brief INDI::CCD calls this function when CCD frame type needs to be updated in the hardware.
+    /** \brief INDI::CCD calls this function when CCD frame type needs to be updated in the hardware.
             \param fType Frame type
             \return true is CCD chip update is successful, false otherwise.
             \note It is \e not mandotary to implement this function in the child class. The CCD hardware layer may either set the frame type when this function
              is called, or (optionally) before an exposure is started.
         */
-        virtual bool UpdateCCDFrameType(CCDChip::CCD_FRAME fType);
+    virtual bool UpdateCCDFrameType(CCDChip::CCD_FRAME fType);
 
-        /** \brief INDI::CCD calls this function when Guide frame type is updated by the client.
+    /** \brief INDI::CCD calls this function when Guide frame type is updated by the client.
             \param fType Frame type
             \return true is CCD chip update is successful, false otherwise.
             \note It is \e not mandotary to implement this function in the child class. The CCD hardware layer may either set the frame type when this function
              is called, or (optionally) before an exposure is started.
         */
-        virtual bool UpdateGuiderFrameType(CCDChip::CCD_FRAME fType);
+    virtual bool UpdateGuiderFrameType(CCDChip::CCD_FRAME fType);
 
-        /** \brief Setup CCD paramters for primary CCD. Child classes call this function to update CCD paramaters
+    /** \brief Setup CCD paramters for primary CCD. Child classes call this function to update CCD paramaters
             \param x Frame X coordinates in pixels.
             \param y Frame Y coordinates in pixels.
             \param bpp Bits Per Pixels.
             \param xf X pixel size in microns.
             \param yf Y pixel size in microns.
         */
-        virtual void SetCCDParams(int x, int y, int bpp, float xf, float yf);
+    virtual void SetCCDParams(int x, int y, int bpp, float xf, float yf);
 
-        /** \brief Setup CCD paramters for guide head CCD. Child classes call this function to update CCD paramaters
+    /** \brief Setup CCD paramters for guide head CCD. Child classes call this function to update CCD paramaters
             \param x Frame X coordinates in pixels.
             \param y Frame Y coordinates in pixels.
             \param bpp Bits Per Pixels.
             \param xf X pixel size in microns.
             \param yf Y pixel size in microns.
         */
-        virtual void SetGuiderParams(int x, int y, int bpp, float xf, float yf);
+    virtual void SetGuiderParams(int x, int y, int bpp, float xf, float yf);
 
-
-        /** \brief Guide northward for ms milliseconds
+    /** \brief Guide northward for ms milliseconds
             \param ms Duration in milliseconds.
             \note This function is not implemented in INDI::CCD, it must be implemented in the child class
             \return True if successful, false otherwise.
         */
-        virtual IPState GuideNorth(float ms);
+    virtual IPState GuideNorth(float ms);
 
-        /** \brief Guide southward for ms milliseconds
+    /** \brief Guide southward for ms milliseconds
             \param ms Duration in milliseconds.
             \note This function is not implemented in INDI::CCD, it must be implemented in the child class
             \return 0 if successful, -1 otherwise.
         */
-        virtual IPState GuideSouth(float ms);
+    virtual IPState GuideSouth(float ms);
 
-        /** \brief Guide easward for ms milliseconds
+    /** \brief Guide easward for ms milliseconds
             \param ms Duration in milliseconds.
             \note This function is not implemented in INDI::CCD, it must be implemented in the child class
             \return 0 if successful, -1 otherwise.
         */
-        virtual IPState GuideEast(float ms);
+    virtual IPState GuideEast(float ms);
 
-        /** \brief Guide westward for ms milliseconds
+    /** \brief Guide westward for ms milliseconds
             \param ms Duration in milliseconds.
             \note This function is not implemented in INDI::CCD, it must be implemented in the child class
             \return 0 if successful, -1 otherwise.
         */
-        virtual IPState GuideWest(float ms);
+    virtual IPState GuideWest(float ms);
 
-        /**
+    /**
          * @brief StartStreaming Start live video streaming
          * @return True if successful, false otherwise.
          */
-        virtual bool StartStreaming();
+    virtual bool StartStreaming();
 
-        /**
+    /**
          * @brief StopStreaming Stop live video streaming
          * @return True if successful, false otherwise.
          */
-        virtual bool StopStreaming();
+    virtual bool StopStreaming();
 
-        /** \brief Add FITS keywords to a fits file
+    /** \brief Add FITS keywords to a fits file
             \param fptr pointer to a valid FITS file.
             \param targetChip The target chip to extract the keywords from.
             \note In additional to the standard FITS keywords, this function write the following keywords the FITS file:
@@ -758,105 +661,115 @@ class INDI::CCD : public INDI::DefaultDevice, INDI::GuiderInterface
 
             To add additional information, override this function in the child class and ensure to call INDI::CCD::addFITSKeywords.
         */
-        virtual void addFITSKeywords(fitsfile * fptr, CCDChip * targetChip);
+    virtual void addFITSKeywords(fitsfile *fptr, CCDChip *targetChip);
 
-        /** A function to just remove GCC warnings about deprecated conversion */
-        void fits_update_key_s(fitsfile * fptr, int type, std::string name, void * p, std::string explanation, int * status);
+    /** A function to just remove GCC warnings about deprecated conversion */
+    void fits_update_key_s(fitsfile *fptr, int type, std::string name, void *p, std::string explanation, int *status);
 
-        /**
+    /**
          * @brief activeDevicesUpdated Inform children that ActiveDevices property was updated so they can snoop on the updated devices if desired.
          */
-        virtual void activeDevicesUpdated() {}
+    virtual void activeDevicesUpdated() {}
 
-        /**
+    /**
          * @brief saveConfigItems Save configuration items in XML file.
          * @param fp pointer to file to write to
          * @return True if successful, false otherwise
          */
-        virtual bool saveConfigItems(FILE * fp);
+    virtual bool saveConfigItems(FILE *fp);
 
-        void GuideComplete(INDI_EQ_AXIS axis);
+    void GuideComplete(INDI_EQ_AXIS axis);
 
-        double RA, Dec;
-        double primaryFocalLength, primaryAperture, guiderFocalLength, guiderAperture;
-        bool InExposure;
-        bool InGuideExposure;
-        bool RapidGuideEnabled;
-        bool GuiderRapidGuideEnabled;
+    double RA, Dec;
+    double primaryFocalLength, primaryAperture, guiderFocalLength, guiderAperture;
+    bool InExposure;
+    bool InGuideExposure;
+    bool RapidGuideEnabled;
+    bool GuiderRapidGuideEnabled;
 
-        bool AutoLoop;
-        bool GuiderAutoLoop;
-        bool SendImage;
-        bool GuiderSendImage;
-        bool ShowMarker;
-        bool GuiderShowMarker;
+    bool AutoLoop;
+    bool GuiderAutoLoop;
+    bool SendImage;
+    bool GuiderSendImage;
+    bool ShowMarker;
+    bool GuiderShowMarker;
 
-        float ExposureTime;
-        float GuiderExposureTime;
+    float ExposureTime;
+    float GuiderExposureTime;
 
-        // Sky Quality
-        double MPSAS;
+    // Sky Quality
+    double MPSAS;
 
-        std::vector<std::string> FilterNames;
-        int CurrentFilterSlot;
+    std::vector<std::string> FilterNames;
+    int CurrentFilterSlot;
 
-        StreamRecorder * streamer;
+    StreamRecorder *streamer;
 
-        CCDChip PrimaryCCD;
-        CCDChip GuideCCD;
+    CCDChip PrimaryCCD;
+    CCDChip GuideCCD;
 
-        //  We are going to snoop these from a telescope
-        INumberVectorProperty EqNP;
-        INumber EqN[2];
+    //  We are going to snoop these from a telescope
+    INumberVectorProperty EqNP;
+    INumber EqN[2];
 
-        ITextVectorProperty ActiveDeviceTP;
-        IText ActiveDeviceT[4];
+    ITextVectorProperty ActiveDeviceTP;
+    IText ActiveDeviceT[4];
 
-        INumber                 TemperatureN[1];
-        INumberVectorProperty   TemperatureNP;
+    INumber TemperatureN[1];
+    INumberVectorProperty TemperatureNP;
 
-        IText BayerT[3];
-        ITextVectorProperty BayerTP;
+    IText BayerT[3];
+    ITextVectorProperty BayerTP;
 
-        IText FileNameT[1];
-        ITextVectorProperty FileNameTP;
+    IText FileNameT[1];
+    ITextVectorProperty FileNameTP;
 
-        ISwitch UploadS[3];
-        ISwitchVectorProperty UploadSP;
+    ISwitch UploadS[3];
+    ISwitchVectorProperty UploadSP;
 
-        IText   UploadSettingsT[2];
-        ITextVectorProperty UploadSettingsTP;
-        enum { UPLOAD_DIR, UPLOAD_PREFIX };
+    IText UploadSettingsT[2];
+    ITextVectorProperty UploadSettingsTP;
+    enum
+    {
+        UPLOAD_DIR,
+        UPLOAD_PREFIX
+    };
 
-        ISwitch TelescopeTypeS[2];
-        ISwitchVectorProperty TelescopeTypeSP;
-        enum { TELESCOPE_PRIMARY, TELESCOPE_GUIDE };
+    ISwitch TelescopeTypeS[2];
+    ISwitchVectorProperty TelescopeTypeSP;
+    enum
+    {
+        TELESCOPE_PRIMARY,
+        TELESCOPE_GUIDE
+    };
 
-        // WCS
-        ISwitch WorldCoordS[2];
-        ISwitchVectorProperty WorldCoordSP;
+    // WCS
+    ISwitch WorldCoordS[2];
+    ISwitchVectorProperty WorldCoordSP;
 
-        // WCS CCD Rotation
-        INumber CCDRotationN[1];
-        INumberVectorProperty CCDRotationNP;
+    // WCS CCD Rotation
+    INumber CCDRotationN[1];
+    INumberVectorProperty CCDRotationNP;
 
-        // FITS Header
-        IText FITSHeaderT[2];
-        ITextVectorProperty FITSHeaderTP;
-        enum { FITS_OBSERVER, FITS_OBJECT };
+    // FITS Header
+    IText FITSHeaderT[2];
+    ITextVectorProperty FITSHeaderTP;
+    enum
+    {
+        FITS_OBSERVER,
+        FITS_OBJECT
+    };
 
-    private:
-        uint32_t capability;
+  private:
+    uint32_t capability;
 
-        bool ValidCCDRotation;
+    bool ValidCCDRotation;
 
-        bool uploadFile(CCDChip * targetChip, const void * fitsData, size_t totalBytes, bool sendImage, bool saveImage);
-        void getMinMax(double * min, double * max, CCDChip * targetChip);
-        int getFileIndex(const char * dir, const char * prefix, const char * ext);
+    bool uploadFile(CCDChip *targetChip, const void *fitsData, size_t totalBytes, bool sendImage, bool saveImage);
+    void getMinMax(double *min, double *max, CCDChip *targetChip);
+    int getFileIndex(const char *dir, const char *prefix, const char *ext);
 
-        friend class ::StreamRecorder;
-
-
+    friend class ::StreamRecorder;
 };
 
 #endif // INDI:CCD_H
