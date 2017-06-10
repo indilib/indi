@@ -28,7 +28,6 @@
 #include "libs/indibase/defaultdevice.h"
 #include "libs/indibase/indiguiderinterface.h"
 
-
 /* Standard headers */
 #include <stdio.h>
 #include <stdlib.h>
@@ -42,26 +41,25 @@
 
 class STAR2000 : public INDI::GuiderInterface, public INDI::DefaultDevice
 {
-public:
+  public:
     STAR2000();
 
     virtual bool initProperties();
     virtual bool updateProperties();
-    virtual void ISGetProperties (const char * dev);
-    virtual bool ISNewNumber (const char * dev, const char * name, double values[], char * names[], int n);
-    virtual bool ISNewSwitch (const char * dev, const char * name, ISState * states, char * names[], int n);
-    virtual bool ISNewText (const char * dev, const char * name, char * texts[], char * names[], int n);
-    virtual bool ISSnoopDevice (XMLEle * root);
+    virtual void ISGetProperties(const char *dev);
+    virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n);
+    virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n);
+    virtual bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n);
+    virtual bool ISSnoopDevice(XMLEle *root);
 
-protected:
-
-    virtual bool saveConfigItems(FILE * fp);
+  protected:
+    virtual bool saveConfigItems(FILE *fp);
 
     //  Generic indi device entries
     bool Connect();
     bool Connect(char *);
     bool Disconnect();
-    const char * getDefaultName();
+    const char *getDefaultName();
 
     void TimerHit();
 
@@ -75,17 +73,14 @@ protected:
     ITextVectorProperty PortTP;
     IText PortT[1];
 
-private:
-
+  private:
     float CalcWEPulseTimeLeft();
     float CalcNSPulseTimeLeft();
-
 
     bool InWEPulse;
     float WEPulseRequest;
     struct timeval WEPulseStart;
     int WEtimerID;
-
 
     bool InNSPulse;
     float NSPulseRequest;
@@ -94,7 +89,6 @@ private:
 
     int WEDir;
     int NSDir;
-
 };
 
 #endif // STAR2000_H

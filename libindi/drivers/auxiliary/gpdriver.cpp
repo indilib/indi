@@ -21,12 +21,11 @@
 *******************************************************************************/
 #include "gpdriver.h"
 
-
 GPUSBDriver::GPUSBDriver()
 {
     //ctor
     guideCMD[0] = 0;
-    debug = false;
+    debug       = false;
 }
 
 GPUSBDriver::~GPUSBDriver()
@@ -35,13 +34,11 @@ GPUSBDriver::~GPUSBDriver()
     // usb_close(usb_handle);
 }
 
-
-
 bool GPUSBDriver::Connect()
 {
     dev = FindDevice(0x134A, 0x9020, 0);
 
-    if(dev == nullptr)
+    if (dev == nullptr)
     {
         IDLog("Error: No GPUSB device found\n");
         return false;
@@ -50,7 +47,6 @@ bool GPUSBDriver::Connect()
     int rc = Open();
 
     return (rc != -1);
-
 }
 
 bool GPUSBDriver::Disconnect()
@@ -93,7 +89,7 @@ bool GPUSBDriver::startPulse(int direction)
 
     if (debug)
         IDLog("startPulse WriteBulk returns %d\n", rc);
-    if(rc == 1)
+    if (rc == 1)
         return true;
 
     return false;
@@ -106,33 +102,36 @@ bool GPUSBDriver::stopPulse(int direction)
     switch (direction)
     {
         case GPUSB_NORTH:
-            if (debug) IDLog("Stop North\n");
+            if (debug)
+                IDLog("Stop North\n");
             guideCMD[0] &= GPUSB_CLEAR_DEC;
             break;
 
         case GPUSB_WEST:
-            if (debug) IDLog("Stop West\n");
+            if (debug)
+                IDLog("Stop West\n");
             guideCMD[0] &= GPUSB_CLEAR_RA;
             break;
 
         case GPUSB_SOUTH:
-            if (debug) IDLog("Stop South\n");
+            if (debug)
+                IDLog("Stop South\n");
             guideCMD[0] &= GPUSB_CLEAR_DEC;
             break;
 
         case GPUSB_EAST:
-            if (debug) IDLog("Stop East\n");
+            if (debug)
+                IDLog("Stop East\n");
             guideCMD[0] &= GPUSB_CLEAR_RA;
             break;
     }
 
-    if ( (guideCMD[0] & GPUSB_NORTH) || (guideCMD[0] & GPUSB_WEST))
+    if ((guideCMD[0] & GPUSB_NORTH) || (guideCMD[0] & GPUSB_WEST))
         guideCMD[0] &= ~GPUSB_LED_RED;
-    else if ( (guideCMD[0] & GPUSB_SOUTH) || (guideCMD[0] & GPUSB_EAST))
+    else if ((guideCMD[0] & GPUSB_SOUTH) || (guideCMD[0] & GPUSB_EAST))
         guideCMD[0] |= GPUSB_LED_RED;
 
-
-    if ( (guideCMD[0] & 0xF) == 0)
+    if ((guideCMD[0] & 0xF) == 0)
         guideCMD[0] = 0;
 
     if (debug)
@@ -142,10 +141,8 @@ bool GPUSBDriver::stopPulse(int direction)
 
     if (debug)
         IDLog("stopPulse WriteBulk returns %d\n", rc);
-    if(rc == 1)
+    if (rc == 1)
         return true;
 
     return false;
-
 }
-

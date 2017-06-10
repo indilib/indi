@@ -32,33 +32,34 @@
 // We declare an auto pointer to WeatherMeta.
 std::unique_ptr<WeatherMeta> weatherMeta(new WeatherMeta());
 
-static size_t WriteCallback(void * contents, size_t size, size_t nmemb, void * userp)
+static size_t WriteCallback(void *contents, size_t size, size_t nmemb, void *userp)
 {
     ((std::string *)userp)->append((char *)contents, size * nmemb);
     return size * nmemb;
 }
 
-void ISGetProperties(const char * dev)
+void ISGetProperties(const char *dev)
 {
     weatherMeta->ISGetProperties(dev);
 }
 
-void ISNewSwitch(const char * dev, const char * name, ISState * states, char * names[], int num)
+void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int num)
 {
     weatherMeta->ISNewSwitch(dev, name, states, names, num);
 }
 
-void ISNewText(	const char * dev, const char * name, char * texts[], char * names[], int num)
+void ISNewText(const char *dev, const char *name, char *texts[], char *names[], int num)
 {
     weatherMeta->ISNewText(dev, name, texts, names, num);
 }
 
-void ISNewNumber(const char * dev, const char * name, double values[], char * names[], int num)
+void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int num)
 {
     weatherMeta->ISNewNumber(dev, name, values, names, num);
 }
 
-void ISNewBLOB (const char * dev, const char * name, int sizes[], int blobsizes[], char * blobs[], char * formats[], char * names[], int n)
+void ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[],
+               char *names[], int n)
 {
     INDI_UNUSED(dev);
     INDI_UNUSED(name);
@@ -69,7 +70,7 @@ void ISNewBLOB (const char * dev, const char * name, int sizes[], int blobsizes[
     INDI_UNUSED(names);
     INDI_UNUSED(n);
 }
-void ISSnoopDevice (XMLEle * root)
+void ISSnoopDevice(XMLEle *root)
 {
     weatherMeta->ISSnoopDevice(root);
 }
@@ -83,10 +84,9 @@ WeatherMeta::WeatherMeta()
 
 WeatherMeta::~WeatherMeta()
 {
-
 }
 
-const char * WeatherMeta::getDefaultName()
+const char *WeatherMeta::getDefaultName()
 {
     return (char *)"Weather Meta";
 }
@@ -110,7 +110,8 @@ bool WeatherMeta::initProperties()
     IUFillText(&ActiveDeviceT[1], "ACTIVE_WEATHER_2", "Station #2", nullptr);
     IUFillText(&ActiveDeviceT[2], "ACTIVE_WEATHER_3", "Station #3", nullptr);
     IUFillText(&ActiveDeviceT[3], "ACTIVE_WEATHER_4", "Station #4", nullptr);
-    IUFillTextVector(&ActiveDeviceTP, ActiveDeviceT, 4, getDeviceName(), "ACTIVE_DEVICES", "Stations", OPTIONS_TAB, IP_RW, 60, IPS_IDLE);
+    IUFillTextVector(&ActiveDeviceTP, ActiveDeviceT, 4, getDeviceName(), "ACTIVE_DEVICES", "Stations", OPTIONS_TAB,
+                     IP_RW, 60, IPS_IDLE);
 
     // Station Status
     IUFillLight(&StationL[0], "STATION_STATUS_1", "Station #1", IPS_IDLE);
@@ -121,17 +122,17 @@ bool WeatherMeta::initProperties()
 
     // Update Period
     IUFillNumber(&UpdatePeriodN[0], "PERIOD", "Period (secs)", "%4.2f", 0, 3600, 60, 60);
-    IUFillNumberVector(&UpdatePeriodNP, UpdatePeriodN, 1, getDeviceName(), "WEATHER_UPDATE", "Update", MAIN_CONTROL_TAB, IP_RO, 60, IPS_IDLE);
+    IUFillNumberVector(&UpdatePeriodNP, UpdatePeriodN, 1, getDeviceName(), "WEATHER_UPDATE", "Update", MAIN_CONTROL_TAB,
+                       IP_RO, 60, IPS_IDLE);
 
     addDebugControl();
 
     setDriverInterface(AUX_INTERFACE);
 
     return true;
-
 }
 
-void WeatherMeta::ISGetProperties(const char * dev)
+void WeatherMeta::ISGetProperties(const char *dev)
 {
     INDI::DefaultDevice::ISGetProperties(dev);
 
@@ -164,11 +165,11 @@ bool WeatherMeta::updateProperties()
     return true;
 }
 
-bool WeatherMeta::ISNewText (const char * dev, const char * name, char * texts[], char * names[], int n)
+bool WeatherMeta::ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
 {
-    if(!strcmp(dev, getDeviceName()))
+    if (!strcmp(dev, getDeviceName()))
     {
-        if(!strcmp(name, ActiveDeviceTP.name))
+        if (!strcmp(name, ActiveDeviceTP.name))
         {
             ActiveDeviceTP.s = IPS_OK;
             IUUpdateText(&ActiveDeviceTP, texts, names, n);
@@ -203,7 +204,7 @@ bool WeatherMeta::ISNewText (const char * dev, const char * name, char * texts[]
     return INDI::DefaultDevice::ISNewText(dev, name, texts, names, n);
 }
 
-bool WeatherMeta::saveConfigItems(FILE * fp)
+bool WeatherMeta::saveConfigItems(FILE *fp)
 {
     INDI::DefaultDevice::saveConfigItems(fp);
 
@@ -213,16 +214,15 @@ bool WeatherMeta::saveConfigItems(FILE * fp)
     return true;
 }
 
-bool WeatherMeta::ISSnoopDevice(XMLEle * root)
+bool WeatherMeta::ISSnoopDevice(XMLEle *root)
 {
-    const char * propName   = findXMLAttValu(root, "name");
-    const char * deviceName = findXMLAttValu(root, "device");
+    const char *propName   = findXMLAttValu(root, "name");
+    const char *deviceName = findXMLAttValu(root, "device");
 
     if (isConnected())
     {
         if (!strcmp(propName, "WEATHER_STATUS"))
         {
-
             for (int i = 0; i < 4; i++)
             {
                 if (ActiveDeviceT[i].text && !strcmp(ActiveDeviceT[i].text, deviceName))
@@ -245,7 +245,7 @@ bool WeatherMeta::ISSnoopDevice(XMLEle * root)
 
         if (!strcmp(propName, "WEATHER_UPDATE"))
         {
-            XMLEle * ep = nextXMLEle(root, 1);
+            XMLEle *ep = nextXMLEle(root, 1);
             for (int i = 0; i < 4; i++)
             {
                 if (ActiveDeviceT[i].text && !strcmp(ActiveDeviceT[i].text, deviceName))

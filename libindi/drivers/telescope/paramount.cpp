@@ -37,58 +37,59 @@
 // We declare an auto pointer to Paramount.
 std::unique_ptr<Paramount> paramount_mount(new Paramount());
 
-#define	GOTO_RATE           5				/* slew rate, degrees/s */
-#define	SLEW_RATE           0.5             /* slew rate, degrees/s */
-#define FINE_SLEW_RATE      0.1             /* slew rate, degrees/s */
-#define SID_RATE            0.004178        /* sidereal rate, degrees/s */
-#define SID_RATE_MS         0.0150408       /* Sidereal rate, arcseconds/ms */
+#define GOTO_RATE      5         /* slew rate, degrees/s */
+#define SLEW_RATE      0.5       /* slew rate, degrees/s */
+#define FINE_SLEW_RATE 0.1       /* slew rate, degrees/s */
+#define SID_RATE       0.004178  /* sidereal rate, degrees/s */
+#define SID_RATE_MS    0.0150408 /* Sidereal rate, arcseconds/ms */
 
-#define GOTO_LIMIT          5.5             /* Move at GOTO_RATE until distance from target is GOTO_LIMIT degrees */
-#define SLEW_LIMIT          1               /* Move at SLEW_LIMIT until distance from target is SLEW_LIMIT degrees */
-#define FINE_SLEW_LIMIT     0.5             /* Move at FINE_SLEW_RATE until distance from target is FINE_SLEW_LIMIT degrees */
+#define GOTO_LIMIT      5.5 /* Move at GOTO_RATE until distance from target is GOTO_LIMIT degrees */
+#define SLEW_LIMIT      1   /* Move at SLEW_LIMIT until distance from target is SLEW_LIMIT degrees */
+#define FINE_SLEW_LIMIT 0.5 /* Move at FINE_SLEW_RATE until distance from target is FINE_SLEW_LIMIT degrees */
 
-#define PARAMOUNT_TIMEOUT   3               /* Timeout in seconds */
-#define PARAMOUNT_NORTH     0
-#define PARAMOUNT_SOUTH     1
-#define PARAMOUNT_EAST      2
-#define PARAMOUNT_WEST      3
+#define PARAMOUNT_TIMEOUT 3 /* Timeout in seconds */
+#define PARAMOUNT_NORTH   0
+#define PARAMOUNT_SOUTH   1
+#define PARAMOUNT_EAST    2
+#define PARAMOUNT_WEST    3
 
-#define RA_AXIS             0
-#define DEC_AXIS            1
+#define RA_AXIS  0
+#define DEC_AXIS 1
 
-#define STELLAR_DAY 86164.098903691
+#define STELLAR_DAY        86164.098903691
 #define TRACKRATE_SIDEREAL ((360.0 * 3600.0) / STELLAR_DAY)
-#define SOLAR_DAY 86400
-#define TRACKRATE_SOLAR ((360.0 * 3600.0) / SOLAR_DAY)
-#define TRACKRATE_LUNAR 14.511415
+#define SOLAR_DAY          86400
+#define TRACKRATE_SOLAR    ((360.0 * 3600.0) / SOLAR_DAY)
+#define TRACKRATE_LUNAR    14.511415
 
 /* Preset Slew Speeds */
 #define SLEWMODES 9
-const double slewspeeds[SLEWMODES] = { 1.0, 2.0, 4.0, 8.0, 32.0, 64.0, 128.0, 256.0, 512.0};
+const double slewspeeds[SLEWMODES] = { 1.0, 2.0, 4.0, 8.0, 32.0, 64.0, 128.0, 256.0, 512.0 };
 
-void ISPoll(void * p);
+void ISPoll(void *p);
 
-void ISGetProperties(const char * dev)
+void ISGetProperties(const char *dev)
 {
     paramount_mount->ISGetProperties(dev);
 }
 
-void ISNewSwitch(const char * dev, const char * name, ISState * states, char * names[], int num)
+void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int num)
 {
     paramount_mount->ISNewSwitch(dev, name, states, names, num);
 }
 
-void ISNewText(	const char * dev, const char * name, char * texts[], char * names[], int num)
+void ISNewText(const char *dev, const char *name, char *texts[], char *names[], int num)
 {
     paramount_mount->ISNewText(dev, name, texts, names, num);
 }
 
-void ISNewNumber(const char * dev, const char * name, double values[], char * names[], int num)
+void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int num)
 {
     paramount_mount->ISNewNumber(dev, name, values, names, num);
 }
 
-void ISNewBLOB (const char * dev, const char * name, int sizes[], int blobsizes[], char * blobs[], char * formats[], char * names[], int n)
+void ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[],
+               char *names[], int n)
 {
     INDI_UNUSED(dev);
     INDI_UNUSED(name);
@@ -99,28 +100,29 @@ void ISNewBLOB (const char * dev, const char * name, int sizes[], int blobsizes[
     INDI_UNUSED(names);
     INDI_UNUSED(n);
 }
-void ISSnoopDevice (XMLEle * root)
+void ISSnoopDevice(XMLEle *root)
 {
     paramount_mount->ISSnoopDevice(root);
 }
 
 Paramount::Paramount()
 {
-    currentRA = 0;
+    currentRA  = 0;
     currentDEC = 90;
 
     DBG_SCOPE = INDI::Logger::getInstance().addDebugLevel("Scope Verbose", "SCOPE");
 
-    SetTelescopeCapability(TELESCOPE_CAN_PARK | TELESCOPE_CAN_SYNC | TELESCOPE_CAN_GOTO | TELESCOPE_CAN_ABORT | TELESCOPE_HAS_TIME | TELESCOPE_HAS_LOCATION , 9);
+    SetTelescopeCapability(TELESCOPE_CAN_PARK | TELESCOPE_CAN_SYNC | TELESCOPE_CAN_GOTO | TELESCOPE_CAN_ABORT |
+                               TELESCOPE_HAS_TIME | TELESCOPE_HAS_LOCATION,
+                           9);
     setTelescopeConnection(CONNECTION_TCP);
 }
 
 Paramount::~Paramount()
 {
-
 }
 
-const char * Paramount::getDefaultName()
+const char *Paramount::getDefaultName()
 {
     return (char *)"Paramount";
 }
@@ -142,24 +144,28 @@ bool Paramount::initProperties()
     /* How fast do we guide compared to sidereal rate */
     IUFillNumber(&JogRateN[RA_AXIS], "JOG_RATE_WE", "W/E Rate (arcmin)", "%g", 0, 600, 60, 30);
     IUFillNumber(&JogRateN[DEC_AXIS], "JOG_RATE_NS", "N/S Rate (arcmin)", "%g", 0, 600, 60, 30);
-    IUFillNumberVector(&JogRateNP, JogRateN, 2, getDeviceName(), "JOG_RATE", "Jog Rate", MOTION_TAB, IP_RW, 0, IPS_IDLE);
+    IUFillNumberVector(&JogRateNP, JogRateN, 2, getDeviceName(), "JOG_RATE", "Jog Rate", MOTION_TAB, IP_RW, 0,
+                       IPS_IDLE);
 
     /* How fast do we guide compared to sidereal rate */
     IUFillNumber(&GuideRateN[RA_AXIS], "GUIDE_RATE_WE", "W/E Rate", "%1.1f", 0.0, 1.0, 0.1, 0.5);
     IUFillNumber(&GuideRateN[DEC_AXIS], "GUIDE_RATE_NS", "N/S Rate", "%1.1f", 0.0, 1.0, 0.1, 0.5);
-    IUFillNumberVector(&GuideRateNP, GuideRateN, 2, getDeviceName(), "GUIDE_RATE", "Guiding Rate", MOTION_TAB, IP_RW, 0, IPS_IDLE);
+    IUFillNumberVector(&GuideRateNP, GuideRateN, 2, getDeviceName(), "GUIDE_RATE", "Guiding Rate", MOTION_TAB, IP_RW, 0,
+                       IPS_IDLE);
 
     // Tracking Mode
     IUFillSwitch(&TrackModeS[TRACK_SIDEREAL], "TRACK_SIDEREAL", "Sidereal", ISS_OFF);
     IUFillSwitch(&TrackModeS[TRACK_SOLAR], "TRACK_SOLAR", "Solar", ISS_OFF);
     IUFillSwitch(&TrackModeS[TRACK_LUNAR], "TRACK_LUNAR", "Lunar", ISS_OFF);
     IUFillSwitch(&TrackModeS[TRACK_CUSTOM], "TRACK_CUSTOM", "Custom", ISS_OFF);
-    IUFillSwitchVector(&TrackModeSP, TrackModeS, 4, getDeviceName(), "TELESCOPE_TRACK_MODE", "Track Mode", MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
+    IUFillSwitchVector(&TrackModeSP, TrackModeS, 4, getDeviceName(), "TELESCOPE_TRACK_MODE", "Track Mode",
+                       MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
 
     // Custom Tracking Rate
     IUFillNumber(&TrackRateN[0], "TRACK_RATE_RA", "RA (arcsecs/s)", "%.6f", -16384.0, 16384.0, 0.000001, 15.041067);
     IUFillNumber(&TrackRateN[1], "TRACK_RATE_DE", "DE (arcsecs/s)", "%.6f", -16384.0, 16384.0, 0.000001, 0);
-    IUFillNumberVector(&TrackRateNP, TrackRateN, 2, getDeviceName(), "TELESCOPE_TRACK_RATE", "Track Rates", MAIN_CONTROL_TAB, IP_RW, 60, IPS_IDLE);
+    IUFillNumberVector(&TrackRateNP, TrackRateN, 2, getDeviceName(), "TELESCOPE_TRACK_RATE", "Track Rates",
+                       MAIN_CONTROL_TAB, IP_RW, 60, IPS_IDLE);
 
     // Let's simulate it to be an F/7.5 120mm telescope with 50m 175mm guide scope
     ScopeParametersN[0].value = 120;
@@ -190,7 +196,7 @@ bool Paramount::updateProperties()
         {
             IUResetSwitch(&TrackModeSP);
             TrackModeS[TRACK_SIDEREAL].s = ISS_ON;
-            TrackModeSP.s = IPS_BUSY;
+            TrackModeSP.s                = IPS_BUSY;
         }
         else
         {
@@ -207,7 +213,7 @@ bool Paramount::updateProperties()
         defineNumber(&GuideWENP);
         defineNumber(&GuideRateNP);
 
-        double HA = ln_get_apparent_sidereal_time(ln_get_julian_from_sys());
+        double HA  = ln_get_apparent_sidereal_time(ln_get_julian_from_sys());
         double DEC = 90;
 
         if (InitPark())
@@ -229,7 +235,6 @@ bool Paramount::updateProperties()
     }
     else
     {
-
         deleteProperty(TrackModeSP.name);
         deleteProperty(TrackRateNP.name);
 
@@ -248,21 +253,23 @@ bool Paramount::Handshake()
     int rc = 0, nbytes_written = 0, nbytes_read = 0;
     char pCMD[MAXRBUF], pRES[MAXRBUF];
 
-    strncpy(pCMD, "/* Java Script */"
+    strncpy(pCMD,
+            "/* Java Script */"
             "var Out;"
             "sky6RASCOMTele.ConnectAndDoNotUnpark();"
-            "Out = sky6RASCOMTele.IsConnected;", MAXRBUF);
+            "Out = sky6RASCOMTele.IsConnected;",
+            MAXRBUF);
 
     DEBUGF(INDI::Logger::DBG_DEBUG, "CMD: %s", pCMD);
 
-    if ( (rc = tty_write_string(PortFD, pCMD, &nbytes_written)) != TTY_OK)
+    if ((rc = tty_write_string(PortFD, pCMD, &nbytes_written)) != TTY_OK)
     {
         DEBUG(INDI::Logger::DBG_ERROR, "Error writing to TheSky6 TCP server.");
         return false;
     }
 
     // Should we read until we encounter string terminator? or what?
-    if ( (rc == tty_read_section(PortFD, pRES, '\0', PARAMOUNT_TIMEOUT, &nbytes_read)) != TTY_OK)
+    if ((rc == tty_read_section(PortFD, pRES, '\0', PARAMOUNT_TIMEOUT, &nbytes_read)) != TTY_OK)
     {
         DEBUG(INDI::Logger::DBG_ERROR, "Error reading from TheSky6 TCP server.");
         return false;
@@ -279,7 +286,8 @@ bool Paramount::Handshake()
 
     if (isTelescopeConnected <= 0)
     {
-        DEBUGF(INDI::Logger::DBG_ERROR, "Error connecting to telescope: %s (%d).", match.str(1).c_str(), atoi(match.str(2).c_str()));
+        DEBUGF(INDI::Logger::DBG_ERROR, "Error connecting to telescope: %s (%d).", match.str(1).c_str(),
+               atoi(match.str(2).c_str()));
         return false;
     }
 
@@ -292,21 +300,23 @@ bool Paramount::getMountRADE()
     char pCMD[MAXRBUF], pRES[MAXRBUF];
 
     //"if (sky6RASCOMTele.IsConnected==0) sky6RASCOMTele.Connect();"
-    strncpy(pCMD, "/* Java Script */"
+    strncpy(pCMD,
+            "/* Java Script */"
             "var Out;"
             "sky6RASCOMTele.GetRaDec();"
-            "Out = String(sky6RASCOMTele.dRa) + ',' + String(sky6RASCOMTele.dDec);", MAXRBUF);
+            "Out = String(sky6RASCOMTele.dRa) + ',' + String(sky6RASCOMTele.dDec);",
+            MAXRBUF);
 
     DEBUGF(INDI::Logger::DBG_DEBUG, "CMD: %s", pCMD);
 
-    if ( (rc = tty_write_string(PortFD, pCMD, &nbytes_written)) != TTY_OK)
+    if ((rc = tty_write_string(PortFD, pCMD, &nbytes_written)) != TTY_OK)
     {
         DEBUG(INDI::Logger::DBG_ERROR, "Error writing to TheSky6 TCP server.");
         return false;
     }
 
     // Should we read until we encounter string terminator? or what?
-    if ( (rc == tty_read_section(PortFD, pRES, '\0', PARAMOUNT_TIMEOUT, &nbytes_read)) != TTY_OK)
+    if ((rc == tty_read_section(PortFD, pRES, '\0', PARAMOUNT_TIMEOUT, &nbytes_read)) != TTY_OK)
     {
         DEBUG(INDI::Logger::DBG_ERROR, "Error reading from TheSky6 TCP server.");
         return false;
@@ -324,9 +334,9 @@ bool Paramount::getMountRADE()
 
         if (errorCode == 0)
         {
-            currentRA = atof(match.str(1).c_str());
+            currentRA  = atof(match.str(1).c_str());
             currentDEC = atof(match.str(2).c_str());
-            coordsOK = true;
+            coordsOK   = true;
         }
     }
 
@@ -352,12 +362,11 @@ bool Paramount::ReadScopeStatus()
         {
             TrackState = SCOPE_TRACKING;
             IDMessage(getDeviceName(), "Slew is complete. Tracking...");
-
         }
     }
-    else if(TrackState == SCOPE_PARKING)
+    else if (TrackState == SCOPE_PARKING)
     {
-        if(isSlewComplete())
+        if (isSlewComplete())
         {
             SetParked(true);
             //DEBUG(INDI::Logger::DBG_SESSION, "Mount is parked. Disconnecting...");
@@ -383,7 +392,7 @@ bool Paramount::ReadScopeStatus()
 
 bool Paramount::Goto(double r, double d)
 {
-    targetRA = r;
+    targetRA  = r;
     targetDEC = d;
     char RAStr[64], DecStr[64];
 
@@ -391,26 +400,26 @@ bool Paramount::Goto(double r, double d)
     fs_sexa(DecStr, targetDEC, 2, 3600);
 
     ln_equ_posn lnradec;
-    lnradec.ra = (currentRA * 360) / 24.0;
+    lnradec.ra  = (currentRA * 360) / 24.0;
     lnradec.dec = currentDEC;
 
     ln_get_hrz_from_equ(&lnradec, &lnobserver, ln_get_julian_from_sys(), &lnaltaz);
     /* libnova measures azimuth from south towards west */
-    double current_az  = range360(lnaltaz.az + 180);
+    double current_az = range360(lnaltaz.az + 180);
     //double current_alt =lnaltaz.alt;
 
     char pCMD[MAXRBUF];
     snprintf(pCMD, MAXRBUF,
              "sky6RASCOMTele.Asynchronous = true;"
-             "sky6RASCOMTele.SlewToRaDec(%g, %g,'');"
-             , targetRA, targetDEC);
+             "sky6RASCOMTele.SlewToRaDec(%g, %g,'');",
+             targetRA, targetDEC);
 
     if (sendTheSkyOKCommand(pCMD, "Slewing to target") == false)
         return false;
 
     TrackState = SCOPE_SLEWING;
 
-    EqNP.s    = IPS_BUSY;
+    EqNP.s = IPS_BUSY;
 
     DEBUGF(INDI::Logger::DBG_SESSION, "Slewing to RA: %s - DEC: %s", RAStr, DecStr);
     return true;
@@ -429,14 +438,14 @@ bool Paramount::isSlewComplete()
 
     DEBUGF(INDI::Logger::DBG_DEBUG, "CMD: %s", pCMD);
 
-    if ( (rc = tty_write_string(PortFD, pCMD, &nbytes_written)) != TTY_OK)
+    if ((rc = tty_write_string(PortFD, pCMD, &nbytes_written)) != TTY_OK)
     {
         DEBUG(INDI::Logger::DBG_ERROR, "Error writing to TheSky6 TCP server.");
         return false;
     }
 
     // Should we read until we encounter string terminator? or what?
-    if ( (rc == tty_read_section(PortFD, pRES, '\0', PARAMOUNT_TIMEOUT, &nbytes_read)) != TTY_OK)
+    if ((rc == tty_read_section(PortFD, pRES, '\0', PARAMOUNT_TIMEOUT, &nbytes_read)) != TTY_OK)
     {
         DEBUG(INDI::Logger::DBG_ERROR, "Error reading from TheSky6 TCP server.");
         return false;
@@ -475,14 +484,14 @@ bool Paramount::isTheSkyParked()
 
     DEBUGF(INDI::Logger::DBG_DEBUG, "CMD: %s", pCMD);
 
-    if ( (rc = tty_write_string(PortFD, pCMD, &nbytes_written)) != TTY_OK)
+    if ((rc = tty_write_string(PortFD, pCMD, &nbytes_written)) != TTY_OK)
     {
         DEBUG(INDI::Logger::DBG_ERROR, "Error writing to TheSky6 TCP server.");
         return false;
     }
 
     // Should we read until we encounter string terminator? or what?
-    if ( (rc == tty_read_section(PortFD, pRES, '\0', PARAMOUNT_TIMEOUT, &nbytes_read)) != TTY_OK)
+    if ((rc == tty_read_section(PortFD, pRES, '\0', PARAMOUNT_TIMEOUT, &nbytes_read)) != TTY_OK)
     {
         DEBUG(INDI::Logger::DBG_ERROR, "Error reading from TheSky6 TCP server.");
         return false;
@@ -518,14 +527,14 @@ bool Paramount::isTheSkyTracking()
 
     DEBUGF(INDI::Logger::DBG_DEBUG, "CMD: %s", pCMD);
 
-    if ( (rc = tty_write_string(PortFD, pCMD, &nbytes_written)) != TTY_OK)
+    if ((rc = tty_write_string(PortFD, pCMD, &nbytes_written)) != TTY_OK)
     {
         DEBUG(INDI::Logger::DBG_ERROR, "Error writing to TheSky6 TCP server.");
         return false;
     }
 
     // Should we read until we encounter string terminator? or what?
-    if ( (rc == tty_read_section(PortFD, pRES, '\0', PARAMOUNT_TIMEOUT, &nbytes_read)) != TTY_OK)
+    if ((rc == tty_read_section(PortFD, pRES, '\0', PARAMOUNT_TIMEOUT, &nbytes_read)) != TTY_OK)
     {
         DEBUG(INDI::Logger::DBG_ERROR, "Error reading from TheSky6 TCP server.");
         return false;
@@ -560,7 +569,7 @@ bool Paramount::Sync(double ra, double dec)
 
     DEBUG(INDI::Logger::DBG_SESSION, "Sync is successful.");
 
-    EqNP.s    = IPS_OK;
+    EqNP.s = IPS_OK;
 
     NewRaDec(currentRA, currentDEC);
 
@@ -569,7 +578,7 @@ bool Paramount::Sync(double ra, double dec)
 
 bool Paramount::Park()
 {
-    targetRA = GetAxis1Park();
+    targetRA  = GetAxis1Park();
     targetDEC = GetAxis2Park();
 
     char pCMD[MAXRBUF];
@@ -586,7 +595,8 @@ bool Paramount::UnPark()
 {
     if (INDI::Telescope::isLocked())
     {
-        DEBUG(INDI::Logger::DBG_SESSION, "Cannot unpark mount when dome is locking. See: Dome parking policy, in options tab");
+        DEBUG(INDI::Logger::DBG_SESSION,
+              "Cannot unpark mount when dome is locking. See: Dome parking policy, in options tab");
         return false;
     }
 
@@ -600,13 +610,13 @@ bool Paramount::UnPark()
     return true;
 }
 
-bool Paramount::ISNewNumber (const char * dev, const char * name, double values[], char * names[], int n)
+bool Paramount::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
 {
     //  first check if it's for our device
 
-    if(strcmp(dev, getDeviceName()) == 0)
+    if (strcmp(dev, getDeviceName()) == 0)
     {
-        if(strcmp(name, "JOG_RATE") == 0)
+        if (strcmp(name, "JOG_RATE") == 0)
         {
             IUUpdateNumber(&JogRateNP, values, names, n);
             JogRateNP.s = IPS_OK;
@@ -634,7 +644,9 @@ bool Paramount::ISNewNumber (const char * dev, const char * name, double values[
             }
             else
             {
-                TrackRateNP.s = setTheSkyTracking(true, false, TrackRateN[RA_AXIS].value, TrackRateN[DEC_AXIS].value) ? IPS_OK : IPS_ALERT;
+                TrackRateNP.s = setTheSkyTracking(true, false, TrackRateN[RA_AXIS].value, TrackRateN[DEC_AXIS].value) ?
+                                    IPS_OK :
+                                    IPS_ALERT;
             }
 
             IDSetNumber(&TrackRateNP, nullptr);
@@ -646,7 +658,6 @@ bool Paramount::ISNewNumber (const char * dev, const char * name, double values[
             processGuiderProperties(name, values, names, n);
             return true;
         }
-
     }
 
     //  if we didn't process it, continue up the chain, let somebody else
@@ -654,9 +665,9 @@ bool Paramount::ISNewNumber (const char * dev, const char * name, double values[
     return INDI::Telescope::ISNewNumber(dev, name, values, names, n);
 }
 
-bool Paramount::ISNewSwitch (const char * dev, const char * name, ISState * states, char * names[], int n)
+bool Paramount::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
 {
-    if(strcmp(dev, getDeviceName()) == 0)
+    if (strcmp(dev, getDeviceName()) == 0)
     {
         // Tracking Mode
         if (!strcmp(TrackModeSP.name, name))
@@ -700,7 +711,6 @@ bool Paramount::ISNewSwitch (const char * dev, const char * name, ISState * stat
             IDSetSwitch(&TrackModeSP, nullptr);
             return true;
         }
-
     }
 
     //  Nobody has claimed this, so, ignore it
@@ -717,7 +727,6 @@ bool Paramount::Abort()
     return true;
 }
 
-
 bool Paramount::MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command)
 {
     if (TrackState == SCOPE_PARKED)
@@ -728,7 +737,7 @@ bool Paramount::MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command)
 
     int motion = (dir == DIRECTION_NORTH) ? PARAMOUNT_NORTH : PARAMOUNT_SOUTH;
     //int rate   = IUFindOnSwitchIndex(&SlewRateSP);
-    int rate   = slewspeeds[IUFindOnSwitchIndex(&SlewRateSP)];
+    int rate = slewspeeds[IUFindOnSwitchIndex(&SlewRateSP)];
 
     switch (command)
     {
@@ -749,7 +758,8 @@ bool Paramount::MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command)
                 return false;
             }
             else
-                DEBUGF(INDI::Logger::DBG_SESSION, "Moving toward %s halted.", (motion == PARAMOUNT_NORTH) ? "North" : "South");
+                DEBUGF(INDI::Logger::DBG_SESSION, "Moving toward %s halted.",
+                       (motion == PARAMOUNT_NORTH) ? "North" : "South");
             break;
     }
 
@@ -786,7 +796,8 @@ bool Paramount::MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command)
                 return false;
             }
             else
-                DEBUGF(INDI::Logger::DBG_SESSION, "Movement toward %s halted.", (motion == PARAMOUNT_WEST) ? "West" : "East");
+                DEBUGF(INDI::Logger::DBG_SESSION, "Movement toward %s halted.",
+                       (motion == PARAMOUNT_WEST) ? "West" : "East");
             break;
     }
 
@@ -796,9 +807,7 @@ bool Paramount::MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command)
 bool Paramount::startOpenLoopMotion(uint8_t motion, uint16_t rate)
 {
     char pCMD[MAXRBUF];
-    snprintf(pCMD, MAXRBUF,
-             "sky6RASCOMTele.DoCommand(9,'%d|%d');"
-             , motion, rate);
+    snprintf(pCMD, MAXRBUF, "sky6RASCOMTele.DoCommand(9,'%d|%d');", motion, rate);
 
     if (sendTheSkyOKCommand(pCMD, "Starting open loop motion") == false)
         return false;
@@ -821,17 +830,17 @@ bool Paramount::updateLocation(double latitude, double longitude, double elevati
 {
     INDI_UNUSED(elevation);
     // JM: INDI Longitude is 0 to 360 increasing EAST. libnova East is Positive, West is negative
-    lnobserver.lng =  longitude;
+    lnobserver.lng = longitude;
 
     if (lnobserver.lng > 180)
         lnobserver.lng -= 360;
-    lnobserver.lat =  latitude;
+    lnobserver.lat = latitude;
 
     DEBUGF(INDI::Logger::DBG_SESSION, "Location updated: Longitude (%g) Latitude (%g)", lnobserver.lng, lnobserver.lat);
     return true;
 }
 
-bool Paramount::updateTime(ln_date * utc, double utc_offset)
+bool Paramount::updateTime(ln_date *utc, double utc_offset)
 {
     return true;
 }
@@ -855,7 +864,7 @@ bool Paramount::SetDefaultPark()
     SetAxis1Park(ln_get_apparent_sidereal_time(ln_get_julian_from_sys()));
 
     // Set DEC to 90 or -90 depending on the hemisphere
-    SetAxis2Park( (LocationN[LOCATION_LATITUDE].value > 0) ? 90 : -90);
+    SetAxis2Park((LocationN[LOCATION_LATITUDE].value > 0) ? 90 : -90);
 
     return true;
 }
@@ -864,11 +873,12 @@ bool Paramount::SetParkPosition(double Axis1Value, double Axis2Value)
 {
     INDI_UNUSED(Axis1Value);
     INDI_UNUSED(Axis2Value);
-    DEBUG(INDI::Logger::DBG_ERROR, "Setting custom parking position directly is not supported. Slew to the desired parking position and click Current.");
+    DEBUG(INDI::Logger::DBG_ERROR, "Setting custom parking position directly is not supported. Slew to the desired "
+                                   "parking position and click Current.");
     return false;
 }
 
-void Paramount::mountSim ()
+void Paramount::mountSim()
 {
     static struct timeval ltv;
     struct timeval tv;
@@ -876,24 +886,24 @@ void Paramount::mountSim ()
     int nlocked;
 
     /* update elapsed time since last poll, don't presume exactly POLLMS */
-    gettimeofday (&tv, nullptr);
+    gettimeofday(&tv, nullptr);
 
     if (ltv.tv_sec == 0 && ltv.tv_usec == 0)
         ltv = tv;
 
-    dt = tv.tv_sec - ltv.tv_sec + (tv.tv_usec - ltv.tv_usec) / 1e6;
+    dt  = tv.tv_sec - ltv.tv_sec + (tv.tv_usec - ltv.tv_usec) / 1e6;
     ltv = tv;
 
-    if ( fabs(targetRA - currentRA) * 15. >= GOTO_LIMIT )
+    if (fabs(targetRA - currentRA) * 15. >= GOTO_LIMIT)
         da_ra = GOTO_RATE * dt;
-    else if ( fabs(targetRA - currentRA) * 15. >= SLEW_LIMIT )
+    else if (fabs(targetRA - currentRA) * 15. >= SLEW_LIMIT)
         da_ra = SLEW_RATE * dt;
     else
         da_ra = FINE_SLEW_RATE * dt;
 
-    if ( fabs(targetDEC - currentDEC) >= GOTO_LIMIT )
+    if (fabs(targetDEC - currentDEC) >= GOTO_LIMIT)
         da_dec = GOTO_RATE * dt;
-    else if ( fabs(targetDEC - currentDEC) >= SLEW_LIMIT )
+    else if (fabs(targetDEC - currentDEC) >= SLEW_LIMIT)
         da_dec = SLEW_RATE * dt;
     else
         da_dec = FINE_SLEW_RATE * dt;
@@ -988,7 +998,6 @@ void Paramount::mountSim ()
                     TrackState = SCOPE_TRACKING;
                 else
                     SetParked(true);
-
             }
             break;
 
@@ -999,7 +1008,7 @@ void Paramount::mountSim ()
     NewRaDec(currentRA, currentDEC);
 }
 
-bool Paramount::sendTheSkyOKCommand(const char * command, const char * errorMessage)
+bool Paramount::sendTheSkyOKCommand(const char *command, const char *errorMessage)
 {
     int rc = 0, nbytes_written = 0, nbytes_read = 0;
     char pCMD[MAXRBUF], pRES[MAXRBUF];
@@ -1015,13 +1024,13 @@ bool Paramount::sendTheSkyOKCommand(const char * command, const char * errorMess
 
     DEBUGF(INDI::Logger::DBG_DEBUG, "CMD: %s", pCMD);
 
-    if ( (rc = tty_write_string(PortFD, pCMD, &nbytes_written)) != TTY_OK)
+    if ((rc = tty_write_string(PortFD, pCMD, &nbytes_written)) != TTY_OK)
     {
         DEBUG(INDI::Logger::DBG_ERROR, "Error writing to TheSky6 TCP server.");
         return false;
     }
 
-    if ( (rc == tty_read_section(PortFD, pRES, '\0', PARAMOUNT_TIMEOUT, &nbytes_read)) != TTY_OK)
+    if ((rc == tty_read_section(PortFD, pRES, '\0', PARAMOUNT_TIMEOUT, &nbytes_read)) != TTY_OK)
     {
         DEBUG(INDI::Logger::DBG_ERROR, "Error reading from TheSky6 TCP server.");
         return false;
@@ -1056,9 +1065,7 @@ IPState Paramount::GuideNorth(float ms)
     double dDec = GuideRateN[DEC_AXIS].value * SID_RATE_MS * ms;
 
     char pCMD[MAXRBUF];
-    snprintf(pCMD, MAXRBUF,
-             "sky6DirectGuide.MoveTelescope(%g, %g);"
-             , 0., dDec);
+    snprintf(pCMD, MAXRBUF, "sky6DirectGuide.MoveTelescope(%g, %g);", 0., dDec);
 
     if (sendTheSkyOKCommand(pCMD, "Guiding north") == false)
         return IPS_ALERT;
@@ -1072,9 +1079,7 @@ IPState Paramount::GuideSouth(float ms)
     double dDec = GuideRateN[DEC_AXIS].value * SID_RATE_MS * ms * -1;
 
     char pCMD[MAXRBUF];
-    snprintf(pCMD, MAXRBUF,
-             "sky6DirectGuide.MoveTelescope(%g, %g);"
-             , 0., dDec);
+    snprintf(pCMD, MAXRBUF, "sky6DirectGuide.MoveTelescope(%g, %g);", 0., dDec);
 
     if (sendTheSkyOKCommand(pCMD, "Guiding south") == false)
         return IPS_ALERT;
@@ -1088,9 +1093,7 @@ IPState Paramount::GuideEast(float ms)
     double dRA = GuideRateN[RA_AXIS].value * SID_RATE_MS * ms;
 
     char pCMD[MAXRBUF];
-    snprintf(pCMD, MAXRBUF,
-             "sky6DirectGuide.MoveTelescope(%g, %g);"
-             , dRA, 0.);
+    snprintf(pCMD, MAXRBUF, "sky6DirectGuide.MoveTelescope(%g, %g);", dRA, 0.);
 
     if (sendTheSkyOKCommand(pCMD, "Guiding east") == false)
         return IPS_ALERT;
@@ -1104,9 +1107,7 @@ IPState Paramount::GuideWest(float ms)
     double dRA = GuideRateN[RA_AXIS].value * SID_RATE_MS * ms * -1;
 
     char pCMD[MAXRBUF];
-    snprintf(pCMD, MAXRBUF,
-             "sky6DirectGuide.MoveTelescope(%g, %g);"
-             , dRA, 0.);
+    snprintf(pCMD, MAXRBUF, "sky6DirectGuide.MoveTelescope(%g, %g);", dRA, 0.);
 
     if (sendTheSkyOKCommand(pCMD, "Guiding west") == false)
         return IPS_ALERT;
@@ -1116,13 +1117,11 @@ IPState Paramount::GuideWest(float ms)
 
 bool Paramount::setTheSkyTracking(bool enable, bool isSidereal, double raRate, double deRate)
 {
-    int on      = enable ? 1 : 0;
-    int ignore  = isSidereal ? 1 : 0;
+    int on     = enable ? 1 : 0;
+    int ignore = isSidereal ? 1 : 0;
 
     char pCMD[MAXRBUF];
-    snprintf(pCMD, MAXRBUF,
-             "sky6RASCOMTele.SetTracking(%d, %d, %g, %g);"
-             , on, ignore, raRate, deRate);
+    snprintf(pCMD, MAXRBUF, "sky6RASCOMTele.SetTracking(%d, %d, %g, %g);", on, ignore, raRate, deRate);
 
     if (sendTheSkyOKCommand(pCMD, "Setting tracking rate") == false)
         return false;

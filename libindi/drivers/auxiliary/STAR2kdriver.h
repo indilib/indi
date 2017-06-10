@@ -40,13 +40,13 @@
 #define EAST  2
 #define SOUTH 3
 
-#define ALL  -1
+#define ALL -1
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-int ConnectSTAR2k(char * port);
+int ConnectSTAR2k(char *port);
 void DisconnectSTAR2k(void);
 
 void StartPulse(int direction);
@@ -57,4 +57,3 @@ void StopPulse(int direction);
 #endif
 
 #endif
-

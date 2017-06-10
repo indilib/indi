@@ -41,28 +41,21 @@ enum JsonTag
 struct JsonNode;
 
 #define JSON_VALUE_PAYLOAD_MASK 0x00007FFFFFFFFFFFULL
-#define JSON_VALUE_NAN_MASK 0x7FF8000000000000ULL
-#define JSON_VALUE_TAG_MASK 0xF
-#define JSON_VALUE_TAG_SHIFT 47
+#define JSON_VALUE_NAN_MASK     0x7FF8000000000000ULL
+#define JSON_VALUE_TAG_MASK     0xF
+#define JSON_VALUE_TAG_SHIFT    47
 
-union JsonValue
-{
+union JsonValue {
     uint64_t ival;
     double fval;
 
-    JsonValue(double x)
-        : fval(x)
-    {
-    }
-    JsonValue(JsonTag tag = JSON_NULL, void * payload = nullptr)
+    JsonValue(double x) : fval(x) {}
+    JsonValue(JsonTag tag = JSON_NULL, void *payload = nullptr)
     {
         assert((uint64_t)(uintptr_t)payload <= JSON_VALUE_PAYLOAD_MASK);
         ival = JSON_VALUE_NAN_MASK | ((uint64_t)tag << JSON_VALUE_TAG_SHIFT) | (uintptr_t)payload;
     }
-    bool isDouble() const
-    {
-        return (int64_t)ival <= (int64_t)JSON_VALUE_NAN_MASK;
-    }
+    bool isDouble() const { return (int64_t)ival <= (int64_t)JSON_VALUE_NAN_MASK; }
     JsonTag getTag() const
     {
         return isDouble() ? JSON_NUMBER : JsonTag((ival >> JSON_VALUE_TAG_SHIFT) & JSON_VALUE_TAG_MASK);
@@ -77,12 +70,12 @@ union JsonValue
         assert(getTag() == JSON_NUMBER);
         return fval;
     }
-    char * toString() const
+    char *toString() const
     {
         assert(getTag() == JSON_STRING);
         return (char *)getPayload();
     }
-    JsonNode * toNode() const
+    JsonNode *toNode() const
     {
         assert(getTag() == JSON_ARRAY || getTag() == JSON_OBJECT);
         return (JsonNode *)getPayload();
@@ -92,39 +85,27 @@ union JsonValue
 struct JsonNode
 {
     JsonValue value;
-    JsonNode * next;
-    char * key;
+    JsonNode *next;
+    char *key;
 };
 
 struct JsonIterator
 {
-    JsonNode * p;
+    JsonNode *p;
 
-    void operator++()
-    {
-        p = p->next;
-    }
-    bool operator!=(const JsonIterator &x) const
-    {
-        return p != x.p;
-    }
-    JsonNode * operator*() const
-    {
-        return p;
-    }
-    JsonNode * operator->() const
-    {
-        return p;
-    }
+    void operator++() { p = p->next; }
+    bool operator!=(const JsonIterator &x) const { return p != x.p; }
+    JsonNode *operator*() const { return p; }
+    JsonNode *operator->() const { return p; }
 };
 
 inline JsonIterator begin(JsonValue o)
 {
-    return JsonIterator{o.toNode()};
+    return JsonIterator{ o.toNode() };
 }
 inline JsonIterator end(JsonValue)
 {
-    return JsonIterator{nullptr};
+    return JsonIterator{ nullptr };
 }
 
 #define JSON_ERRNO_MAP(XX)                           \
@@ -147,36 +128,30 @@ enum JsonErrno
 #undef XX
 };
 
-const char * jsonStrError(int err);
+const char *jsonStrError(int err);
 
 class JsonAllocator
 {
-        struct Zone
-        {
-            Zone * next;
-            size_t used;
-        } * head = nullptr;
+    struct Zone
+    {
+        Zone *next;
+        size_t used;
+    } *head = nullptr;
 
-    public:
-        JsonAllocator() = default;
-        JsonAllocator(const JsonAllocator &) = delete;
-        JsonAllocator &operator=(const JsonAllocator &) = delete;
-        JsonAllocator(JsonAllocator &&x) : head(x.head)
-        {
-            x.head = nullptr;
-        }
-        JsonAllocator &operator=(JsonAllocator &&x)
-        {
-            head = x.head;
-            x.head = nullptr;
-            return *this;
-        }
-        ~JsonAllocator()
-        {
-            deallocate();
-        }
-        void * allocate(size_t size);
-        void deallocate();
+  public:
+    JsonAllocator()                      = default;
+    JsonAllocator(const JsonAllocator &) = delete;
+    JsonAllocator &operator=(const JsonAllocator &) = delete;
+    JsonAllocator(JsonAllocator &&x) : head(x.head) { x.head = nullptr; }
+    JsonAllocator &operator=(JsonAllocator &&x)
+    {
+        head   = x.head;
+        x.head = nullptr;
+        return *this;
+    }
+    ~JsonAllocator() { deallocate(); }
+    void *allocate(size_t size);
+    void deallocate();
 };
 
-int jsonParse(char * str, char ** endptr, JsonValue * value, JsonAllocator &allocator);
+int jsonParse(char *str, char **endptr, JsonValue *value, JsonAllocator &allocator);

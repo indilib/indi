@@ -27,20 +27,20 @@
 #include <string.h>
 #include <unistd.h>
 
-#define LIBRARY_TAB	"Library"
+#define LIBRARY_TAB  "Library"
 #define FIRMWARE_TAB "Firmware data"
 
 LX200_OnStep::LX200_OnStep() : LX200Generic()
 {
-    currentCatalog = LX200_STAR_C;
+    currentCatalog    = LX200_STAR_C;
     currentSubCatalog = 0;
 
     setVersion(1, 0);
 }
 
-const char * LX200_OnStep::getDefaultName()
+const char *LX200_OnStep::getDefaultName()
 {
-    return (const char *) "LX200 OnStep";
+    return (const char *)"LX200 OnStep";
 }
 
 bool LX200_OnStep::initProperties()
@@ -48,12 +48,14 @@ bool LX200_OnStep::initProperties()
     LX200Generic::initProperties();
 
     IUFillText(&ObjectInfoT[0], "Info", "", "");
-    IUFillTextVector(&ObjectInfoTP, ObjectInfoT, 1, getDeviceName(), "Object Info", "", MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE);
+    IUFillTextVector(&ObjectInfoTP, ObjectInfoT, 1, getDeviceName(), "Object Info", "", MAIN_CONTROL_TAB, IP_RO, 0,
+                     IPS_IDLE);
 
     IUFillSwitch(&StarCatalogS[0], "Star", "", ISS_ON);
     IUFillSwitch(&StarCatalogS[1], "SAO", "", ISS_OFF);
     IUFillSwitch(&StarCatalogS[2], "GCVS", "", ISS_OFF);
-    IUFillSwitchVector(&StarCatalogSP, StarCatalogS, 3, getDeviceName(), "Star Catalogs", "", LIBRARY_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+    IUFillSwitchVector(&StarCatalogSP, StarCatalogS, 3, getDeviceName(), "Star Catalogs", "", LIBRARY_TAB, IP_RW,
+                       ISR_1OFMANY, 0, IPS_IDLE);
 
     IUFillSwitch(&DeepSkyCatalogS[0], "NGC", "", ISS_ON);
     IUFillSwitch(&DeepSkyCatalogS[1], "IC", "", ISS_OFF);
@@ -62,7 +64,8 @@ bool LX200_OnStep::initProperties()
     IUFillSwitch(&DeepSkyCatalogS[4], "Arp", "", ISS_OFF);
     IUFillSwitch(&DeepSkyCatalogS[5], "Abell", "", ISS_OFF);
     IUFillSwitch(&DeepSkyCatalogS[6], "Messier", "", ISS_OFF);
-    IUFillSwitchVector(&DeepSkyCatalogSP, DeepSkyCatalogS, 7, getDeviceName(), "Deep Sky Catalogs", "", LIBRARY_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+    IUFillSwitchVector(&DeepSkyCatalogSP, DeepSkyCatalogS, 7, getDeviceName(), "Deep Sky Catalogs", "", LIBRARY_TAB,
+                       IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
     IUFillSwitch(&SolarS[0], "Select", "Select item", ISS_ON);
     IUFillSwitch(&SolarS[1], "1", "Mercury", ISS_OFF);
@@ -74,24 +77,30 @@ bool LX200_OnStep::initProperties()
     IUFillSwitch(&SolarS[7], "7", "Uranus", ISS_OFF);
     IUFillSwitch(&SolarS[8], "8", "Neptune", ISS_OFF);
     IUFillSwitch(&SolarS[9], "9", "Pluto", ISS_OFF);
-    IUFillSwitchVector(&SolarSP, SolarS, 10, getDeviceName(), "SOLAR_SYSTEM", "Solar System", LIBRARY_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+    IUFillSwitchVector(&SolarSP, SolarS, 10, getDeviceName(), "SOLAR_SYSTEM", "Solar System", LIBRARY_TAB, IP_RW,
+                       ISR_1OFMANY, 0, IPS_IDLE);
 
     IUFillNumber(&ObjectNoN[0], "ObjectN", "Number", "%+03f", 1.0, 1000.0, 1.0, 0);
-    IUFillNumberVector(&ObjectNoNP, ObjectNoN, 1, getDeviceName(), "Object Number", "", LIBRARY_TAB, IP_RW, 0, IPS_IDLE);
+    IUFillNumberVector(&ObjectNoNP, ObjectNoN, 1, getDeviceName(), "Object Number", "", LIBRARY_TAB, IP_RW, 0,
+                       IPS_IDLE);
 
     IUFillNumber(&MaxSlewRateN[0], "maxSlew", "Rate", "%g", 2.0, 9.0, 1.0, 9.0);
-    IUFillNumberVector(&MaxSlewRateNP, MaxSlewRateN, 1, getDeviceName(), "Max slew Rate", "", MOTION_TAB, IP_RW, 0, IPS_IDLE);
+    IUFillNumberVector(&MaxSlewRateNP, MaxSlewRateN, 1, getDeviceName(), "Max slew Rate", "", MOTION_TAB, IP_RW, 0,
+                       IPS_IDLE);
 
-    IUFillNumber(&ElevationLimitN[0], "minAlt", "Speed", "%+03f", -90.0, 90.0, 0.0, 0.0);	// double % typo
+    IUFillNumber(&ElevationLimitN[0], "minAlt", "Speed", "%+03f", -90.0, 90.0, 0.0, 0.0); // double % typo
     IUFillNumber(&ElevationLimitN[1], "maxAlt", "Speed", "%+03f", -90.0, 90.0, 0.0, 0.0);
-    IUFillNumberVector(&ElevationLimitNP, ElevationLimitN, 1, getDeviceName(), "Slew elevation Limit", "", MAIN_CONTROL_TAB, IP_RW, 0, IPS_IDLE);
+    IUFillNumberVector(&ElevationLimitNP, ElevationLimitN, 1, getDeviceName(), "Slew elevation Limit", "",
+                       MAIN_CONTROL_TAB, IP_RW, 0, IPS_IDLE);
 
     IUFillSwitch(&EnaTrackS[0], "ENABLE", "TrackOn/Off", ISS_OFF);
-    IUFillSwitchVector(&EnaTrackSP, EnaTrackS, 1, getDeviceName(), "TELESCOPE_TRACK_ENABLE", "Tracking On/Off", MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
+    IUFillSwitchVector(&EnaTrackSP, EnaTrackS, 1, getDeviceName(), "TELESCOPE_TRACK_ENABLE", "Tracking On/Off",
+                       MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
 
     IUFillSwitch(&ReticS[0], "PLUS", "Light", ISS_OFF);
     IUFillSwitch(&ReticS[1], "MOINS", "Dark", ISS_OFF);
-    IUFillSwitchVector(&ReticSP, ReticS, 2, getDeviceName(), "RETICULE_BRIGHTNESS", "Reticule +/-", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
+    IUFillSwitchVector(&ReticSP, ReticS, 2, getDeviceName(), "RETICULE_BRIGHTNESS", "Reticule +/-", MAIN_CONTROL_TAB,
+                       IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
 
     IUFillText(&VersionT[0], "Date", "", "");
     IUFillText(&VersionT[1], "Time", "", "");
@@ -103,10 +112,9 @@ bool LX200_OnStep::initProperties()
     return true;
 }
 
-void LX200_OnStep::ISGetProperties (const char * dev)
+void LX200_OnStep::ISGetProperties(const char *dev)
 {
-
-    if(dev && strcmp(dev, getDeviceName()))
+    if (dev && strcmp(dev, getDeviceName()))
         return;
 
     LX200Generic::ISGetProperties(dev);
@@ -159,17 +167,15 @@ bool LX200_OnStep::updateProperties()
     }
 }
 
-bool LX200_OnStep::ISNewNumber (const char * dev, const char * name, double values[], char * names[], int n)
+bool LX200_OnStep::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
 {
-
-    if(strcmp(dev, getDeviceName()) == 0)
+    if (strcmp(dev, getDeviceName()) == 0)
     {
-        if ( !strcmp (name, ObjectNoNP.name) )
+        if (!strcmp(name, ObjectNoNP.name))
         {
-
             char object_name[256];
 
-            if (selectCatalogObject(PortFD, currentCatalog, (int) values[0]) < 0)
+            if (selectCatalogObject(PortFD, currentCatalog, (int)values[0]) < 0)
             {
                 ObjectNoNP.s = IPS_ALERT;
                 IDSetNumber(&ObjectNoNP, "Failed to select catalog object.");
@@ -180,38 +186,36 @@ bool LX200_OnStep::ISNewNumber (const char * dev, const char * name, double valu
             getLX200DEC(PortFD, &targetDEC);
 
             ObjectNoNP.s = IPS_OK;
-            IDSetNumber(&ObjectNoNP , "Object updated.");
+            IDSetNumber(&ObjectNoNP, "Object updated.");
 
             if (getObjectInfo(PortFD, object_name) < 0)
                 IDMessage(getDeviceName(), "Getting object info failed.");
             else
             {
                 IUSaveText(&ObjectInfoTP.tp[0], object_name);
-                IDSetText  (&ObjectInfoTP, nullptr);
+                IDSetText(&ObjectInfoTP, nullptr);
             }
 
             Goto(targetRA, targetDEC);
             return true;
         }
 
-        if ( !strcmp (name, MaxSlewRateNP.name) )
+        if (!strcmp(name, MaxSlewRateNP.name))
         {
-
-
-            if ( setMaxSlewRate(PortFD, (int) values[0] < 0) )
+            if (setMaxSlewRate(PortFD, (int)values[0] < 0))
             {
                 MaxSlewRateNP.s = IPS_ALERT;
                 IDSetNumber(&MaxSlewRateNP, "Error setting maximum slew rate.");
                 return false;
             }
 
-            MaxSlewRateNP.s = IPS_OK;
+            MaxSlewRateNP.s           = IPS_OK;
             MaxSlewRateNP.np[0].value = values[0];
             IDSetNumber(&MaxSlewRateNP, nullptr);
             return true;
         }
 
-        if (!strcmp (name, ElevationLimitNP.name))
+        if (!strcmp(name, ElevationLimitNP.name))
         {
             // new elevation limits
             double minAlt = 0, maxAlt = 0;
@@ -219,7 +223,7 @@ bool LX200_OnStep::ISNewNumber (const char * dev, const char * name, double valu
 
             for (nset = i = 0; i < n; i++)
             {
-                INumber * altp = IUFindNumber (&ElevationLimitNP, names[i]);
+                INumber *altp = IUFindNumber(&ElevationLimitNP, names[i]);
                 if (altp == &ElevationLimitN[0])
                 {
                     minAlt = values[i];
@@ -233,18 +237,18 @@ bool LX200_OnStep::ISNewNumber (const char * dev, const char * name, double valu
             }
             if (nset == 2)
             {
-                if ( setMinElevationLimit(PortFD, (int) minAlt) < 0)
+                if (setMinElevationLimit(PortFD, (int)minAlt) < 0)
                 {
                     ElevationLimitNP.s = IPS_ALERT;
                     IDSetNumber(&ElevationLimitNP, "Error setting elevation limit.");
                     return false;
                 }
 
-                setMaxElevationLimit(PortFD, (int) maxAlt);
+                setMaxElevationLimit(PortFD, (int)maxAlt);
                 ElevationLimitNP.np[0].value = minAlt;
                 ElevationLimitNP.np[1].value = maxAlt;
-                ElevationLimitNP.s = IPS_OK;
-                IDSetNumber (&ElevationLimitNP, nullptr);
+                ElevationLimitNP.s           = IPS_OK;
+                IDSetNumber(&ElevationLimitNP, nullptr);
                 return true;
             }
             else
@@ -254,22 +258,20 @@ bool LX200_OnStep::ISNewNumber (const char * dev, const char * name, double valu
                 return false;
             }
         }
-
     }
 
-    return LX200Generic::ISNewNumber (dev, name, values, names, n);
+    return LX200Generic::ISNewNumber(dev, name, values, names, n);
 }
 
-bool LX200_OnStep::ISNewSwitch (const char * dev, const char * name, ISState * states, char * names[], int n)
+bool LX200_OnStep::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
 {
-
     int index = 0;
     char result[64];
 
-    if(strcmp(dev, getDeviceName()) == 0)
+    if (strcmp(dev, getDeviceName()) == 0)
     {
         // Track Enable Button
-        if (!strcmp (name, EnaTrackSP.name))
+        if (!strcmp(name, EnaTrackSP.name))
         {
             if (TrackState == SCOPE_PARKED)
             {
@@ -278,7 +280,7 @@ bool LX200_OnStep::ISNewSwitch (const char * dev, const char * name, ISState * s
             }
             if (TrackState == SCOPE_TRACKING)
             {
-                IUResetSwitch (&EnaTrackSP);
+                IUResetSwitch(&EnaTrackSP);
                 EnaTrackSP.s = IPS_IDLE;
                 DisTrackOnStep(PortFD);
                 TrackState = SCOPE_IDLE;
@@ -286,7 +288,7 @@ bool LX200_OnStep::ISNewSwitch (const char * dev, const char * name, ISState * s
             }
             else
             {
-                IUResetSwitch (&EnaTrackSP);
+                IUResetSwitch(&EnaTrackSP);
                 EnaTrackSP.s = IPS_OK;
                 EnaTrackOnStep(PortFD);
                 TrackState = SCOPE_TRACKING;
@@ -297,12 +299,12 @@ bool LX200_OnStep::ISNewSwitch (const char * dev, const char * name, ISState * s
         }
 
         // Reticlue +/- Buttons
-        if (!strcmp (name, ReticSP.name))
+        if (!strcmp(name, ReticSP.name))
         {
             IUUpdateSwitch(&ReticSP, states, names, n);
             ReticSP.s = IPS_OK;
 
-            if(ReticS[0].s == ISS_ON)
+            if (ReticS[0].s == ISS_ON)
             {
                 ReticPlus(PortFD);
                 IDSetSwitch(&ReticSP, "Bright");
@@ -320,9 +322,8 @@ bool LX200_OnStep::ISNewSwitch (const char * dev, const char * name, ISState * s
         }
 
         // Star Catalog
-        if (!strcmp (name, StarCatalogSP.name))
+        if (!strcmp(name, StarCatalogSP.name))
         {
-
             IUResetSwitch(&StarCatalogSP);
             IUUpdateSwitch(&StarCatalogSP, states, names, n);
             index = IUFindOnSwitchIndex(&StarCatalogSP);
@@ -332,7 +333,7 @@ bool LX200_OnStep::ISNewSwitch (const char * dev, const char * name, ISState * s
             if (selectSubCatalog(PortFD, currentCatalog, index))
             {
                 currentSubCatalog = index;
-                StarCatalogSP.s = IPS_OK;
+                StarCatalogSP.s   = IPS_OK;
                 IDSetSwitch(&StarCatalogSP, nullptr);
                 return true;
             }
@@ -345,16 +346,15 @@ bool LX200_OnStep::ISNewSwitch (const char * dev, const char * name, ISState * s
         }
 
         // Deep sky catalog
-        if (!strcmp (name, DeepSkyCatalogSP.name))
+        if (!strcmp(name, DeepSkyCatalogSP.name))
         {
-
             IUResetSwitch(&DeepSkyCatalogSP);
             IUUpdateSwitch(&DeepSkyCatalogSP, states, names, n);
             index = IUFindOnSwitchIndex(&DeepSkyCatalogSP);
 
             if (index == LX200_MESSIER_C)
             {
-                currentCatalog = index;
+                currentCatalog     = index;
                 DeepSkyCatalogSP.s = IPS_OK;
                 IDSetSwitch(&DeepSkyCatalogSP, nullptr);
             }
@@ -363,7 +363,7 @@ bool LX200_OnStep::ISNewSwitch (const char * dev, const char * name, ISState * s
 
             if (selectSubCatalog(PortFD, currentCatalog, index))
             {
-                currentSubCatalog = index;
+                currentSubCatalog  = index;
                 DeepSkyCatalogSP.s = IPS_OK;
                 IDSetSwitch(&DeepSkyCatalogSP, nullptr);
             }
@@ -378,9 +378,8 @@ bool LX200_OnStep::ISNewSwitch (const char * dev, const char * name, ISState * s
         }
 
         // Solar system
-        if (!strcmp (name, SolarSP.name))
+        if (!strcmp(name, SolarSP.name))
         {
-
             if (IUUpdateSwitch(&SolarSP, states, names, n) < 0)
                 return false;
 
@@ -389,19 +388,19 @@ bool LX200_OnStep::ISNewSwitch (const char * dev, const char * name, ISState * s
             // We ignore the first option : "Select item"
             if (index == 0)
             {
-                SolarSP.s  = IPS_IDLE;
+                SolarSP.s = IPS_IDLE;
                 IDSetSwitch(&SolarSP, nullptr);
                 return true;
             }
 
-            selectSubCatalog (PortFD, LX200_STAR_C, LX200_STAR);
+            selectSubCatalog(PortFD, LX200_STAR_C, LX200_STAR);
             selectCatalogObject(PortFD, LX200_STAR_C, index + 900);
 
             ObjectNoNP.s = IPS_OK;
-            SolarSP.s  = IPS_OK;
+            SolarSP.s    = IPS_OK;
 
             getObjectInfo(PortFD, ObjectInfoTP.tp[0].text);
-            IDSetNumber(&ObjectNoNP , "Object updated.");
+            IDSetNumber(&ObjectNoNP, "Object updated.");
             IDSetSwitch(&SolarSP, nullptr);
 
             if (currentCatalog == LX200_STAR_C || currentCatalog == LX200_DEEPSKY_C)
@@ -414,17 +413,13 @@ bool LX200_OnStep::ISNewSwitch (const char * dev, const char * name, ISState * s
 
             return true;
         }
-
     }
 
-    return LX200Generic::ISNewSwitch (dev, name, states, names,  n);
-
+    return LX200Generic::ISNewSwitch(dev, name, states, names, n);
 }
 
 void LX200_OnStep::getBasicData()
 {
-
-
     // process parent
     LX200Generic::getBasicData();
 
@@ -462,7 +457,7 @@ bool LX200_OnStep::UnPark()
     IDMessage(getDeviceName(), "OnStep UnParking telescope in progress... ");
     SetParked(false);
     EnaTrackOnStep(PortFD);
-    ParkSP.s = IPS_OK;
+    ParkSP.s   = IPS_OK;
     TrackState = SCOPE_TRACKING;
     return true;
 }
@@ -478,67 +473,67 @@ void LX200_OnStep::OnStepStat()
         switch (OSStat[i++])
         {
             case 'N':
-                strcpy(OnStepStatus, "Not Sleewing, ");	// Not SCOPE_SLEWING
+                strcpy(OnStepStatus, "Not Sleewing, "); // Not SCOPE_SLEWING
                 break;
             case 'H':
-                strcat(OnStepStatus, "At Home, ");	// At Home
+                strcat(OnStepStatus, "At Home, "); // At Home
                 break;
             case 'P':
-                strcat(OnStepStatus, "Parked, ");	// Parked
+                strcat(OnStepStatus, "Parked, "); // Parked
                 TrackState = SCOPE_PARKED;
                 break;
             case 'p':
-                strcat(OnStepStatus, "UnParked, ");	// Not Parked
+                strcat(OnStepStatus, "UnParked, "); // Not Parked
                 break;
             case 'F':
                 strcat(OnStepStatus, "Park Fail, "); // Fail to Park
                 break;
             case 'I':
-                strcat(OnStepStatus, "Park in Progress, ");	// Park in Progress
+                strcat(OnStepStatus, "Park in Progress, "); // Park in Progress
                 TrackState = SCOPE_PARKING;
                 break;
             case 'R':
-                strcat(OnStepStatus, "PEC Rec, ");	// PEC Recorded
+                strcat(OnStepStatus, "PEC Rec, "); // PEC Recorded
                 break;
             case 'G':
-                strcat(OnStepStatus, "Guiding, ");	// Guiding
+                strcat(OnStepStatus, "Guiding, "); // Guiding
                 break;
             case 'S':
-                strcat(OnStepStatus, "Synced, ");	// GPS Synced
+                strcat(OnStepStatus, "Synced, "); // GPS Synced
                 break;
             case 'n':
-                strcat(OnStepStatus, "Sid, ");	// Sidereal
+                strcat(OnStepStatus, "Sid, "); // Sidereal
                 break;
             case 'W':
-                strcat(OnStepStatus, "PEC Auto, ");	// PEC Auto Record
+                strcat(OnStepStatus, "PEC Auto, "); // PEC Auto Record
                 break;
             case 'f':
-                strcat(OnStepStatus, "Fault, ");	// Axis Fault
+                strcat(OnStepStatus, "Fault, "); // Axis Fault
                 break;
             case 'r':
-                strcat(OnStepStatus, "Refr, ");	// Refraction
+                strcat(OnStepStatus, "Refr, "); // Refraction
                 break;
             case 's':
-                strcat(OnStepStatus, "Std, ");	// Standard
+                strcat(OnStepStatus, "Std, "); // Standard
                 break;
             case 't':
-                strcat(OnStepStatus, "Tracking, ");	// Tracking
+                strcat(OnStepStatus, "Tracking, "); // Tracking
                 TrackState = SCOPE_TRACKING;
                 break;
             case 'E':
-                strcat(OnStepStatus, "GEM, ");	// GEM Mount
+                strcat(OnStepStatus, "GEM, "); // GEM Mount
                 break;
             case 'K':
-                strcat(OnStepStatus, "FORK, ");	// FORK Mount
+                strcat(OnStepStatus, "FORK, "); // FORK Mount
                 break;
             case 'k':
-                strcat(OnStepStatus, "FALTAZ, ");	// FORK AltAZ Mount
+                strcat(OnStepStatus, "FALTAZ, "); // FORK AltAZ Mount
                 break;
             case 'A':
-                strcat(OnStepStatus, "ALTAZ, ");	// AltAZ Mount
+                strcat(OnStepStatus, "ALTAZ, "); // AltAZ Mount
                 break;
             case 'O':
-                strcat(OnStepStatus, "Err, ");	// Last Error codes
+                strcat(OnStepStatus, "Err, "); // Last Error codes
                 break;
         }
     }

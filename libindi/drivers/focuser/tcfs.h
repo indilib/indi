@@ -30,75 +30,82 @@
 
 using namespace std;
 
-#define TCFS_MAX_CMD        16
-#define TCFS_MAX_TRIES      3
-#define TCFS_ERROR_BUFFER   1024
+#define TCFS_MAX_CMD      16
+#define TCFS_MAX_TRIES    3
+#define TCFS_ERROR_BUFFER 1024
 
 class TCFS : public INDI::Focuser
 {
+  public:
+    enum TCFSCommand
+    {
+        FMMODE, // Focuser Manual Mode
+        FFMODE, // Focuser Free Mode
+        FAMODE, // Focuser Auto-A Mode
+        FBMODE, // Focuser Auto-B Mode
+        FCENTR, // Focus Center
+        FIN,    // Focuser In “nnnn”
+        FOUT,   // Focuser Out “nnnn”
+        FPOSRO, // Focuser Position Read Out
+        FTMPRO, // Focuser Temperature Read Out
+        FSLEEP, // Focuser Sleep
+        FWAKUP, // Focuser Wake Up
+        FHOME,  // Focuser Home Command
+    };
 
-    public:
+    enum TCFSMode
+    {
+        TCFS_MANUAL_MODE,
+        TCFS_A_MODE,
+        TCFS_B_MODE
+    };
+    enum TCFSError
+    {
+        NO_ERROR,
+        ER_1,
+        ER_2,
+        ER_3
+    };
 
-        enum TCFSCommand {         FMMODE ,         // Focuser Manual Mode
-                                   FFMODE,          // Focuser Free Mode
-                                   FAMODE,          // Focuser Auto-A Mode
-                                   FBMODE,          // Focuser Auto-B Mode
-                                   FCENTR,          // Focus Center
-                                   FIN,             // Focuser In “nnnn”
-                                   FOUT,            // Focuser Out “nnnn”
-                                   FPOSRO,          // Focuser Position Read Out
-                                   FTMPRO,          // Focuser Temperature Read Out
-                                   FSLEEP,          // Focuser Sleep
-                                   FWAKUP,          // Focuser Wake Up
-                                   FHOME,           // Focuser Home Command
-                         };
+    TCFS();
+    ~TCFS();
 
-        enum TCFSMode { TCFS_MANUAL_MODE, TCFS_A_MODE, TCFS_B_MODE };
-        enum TCFSError { NO_ERROR, ER_1, ER_2, ER_3 };
+    // Standard INDI interface fucntions
+    virtual bool Handshake();
+    virtual bool Disconnect();
+    const char *getDefaultName();
+    virtual bool initProperties();
+    virtual bool updateProperties();
+    virtual void ISGetProperties(const char *dev);
+    virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n);
 
-        TCFS();
-        ~TCFS();
+  protected:
+    virtual IPState MoveAbsFocuser(uint32_t ticks);
+    virtual IPState MoveRelFocuser(FocusDirection dir, uint32_t ticks);
+    virtual void TimerHit();
 
-        // Standard INDI interface fucntions
-        virtual bool Handshake();
-        virtual bool Disconnect();
-        const char * getDefaultName();
-        virtual bool initProperties();
-        virtual bool updateProperties();
-        virtual void ISGetProperties(const char * dev);
-        virtual bool ISNewSwitch (const char * dev, const char * name, ISState * states, char * names[], int n);
+  private:
+    ISwitchVectorProperty *FocusPowerSP;
+    ISwitchVectorProperty *FocusModeSP;
+    ISwitchVectorProperty *FocusGotoSP;
+    INumberVectorProperty *FocusTemperatureNP;
 
-    protected:
-        virtual IPState MoveAbsFocuser(uint32_t ticks);
-        virtual IPState MoveRelFocuser(FocusDirection dir, uint32_t ticks);
-        virtual void TimerHit();
+    bool read_tcfs(bool silent = false);
+    bool dispatch_command(TCFSCommand command);
 
-    private:
+    // Variables
+    string default_port;
 
-        ISwitchVectorProperty * FocusPowerSP;
-        ISwitchVectorProperty * FocusModeSP;
-        ISwitchVectorProperty * FocusGotoSP;
-        INumberVectorProperty * FocusTemperatureNP;
+    int fd;
+    char command[TCFS_MAX_CMD];
+    char response[TCFS_MAX_CMD];
 
-        bool read_tcfs(bool silent = false);
-        bool dispatch_command(TCFSCommand command);
+    unsigned int simulated_position;
+    float simulated_temperature;
 
-        // Variables
-        string default_port;
-
-        int fd;
-        char command[TCFS_MAX_CMD];
-        char response[TCFS_MAX_CMD];
-
-        unsigned int simulated_position;
-        float simulated_temperature;
-
-        unsigned int targetTicks, targetPosition;
-        TCFSCommand currentCommand;
-        bool isTCFS3;
-
+    unsigned int targetTicks, targetPosition;
+    TCFSCommand currentCommand;
+    bool isTCFS3;
 };
 
 #endif
-
-

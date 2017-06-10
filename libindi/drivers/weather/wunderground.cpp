@@ -33,33 +33,34 @@
 // We declare an auto pointer to WunderGround.
 std::unique_ptr<WunderGround> wunderGround(new WunderGround());
 
-static size_t WriteCallback(void * contents, size_t size, size_t nmemb, void * userp)
+static size_t WriteCallback(void *contents, size_t size, size_t nmemb, void *userp)
 {
     ((std::string *)userp)->append((char *)contents, size * nmemb);
     return size * nmemb;
 }
 
-void ISGetProperties(const char * dev)
+void ISGetProperties(const char *dev)
 {
     wunderGround->ISGetProperties(dev);
 }
 
-void ISNewSwitch(const char * dev, const char * name, ISState * states, char * names[], int num)
+void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int num)
 {
     wunderGround->ISNewSwitch(dev, name, states, names, num);
 }
 
-void ISNewText(	const char * dev, const char * name, char * texts[], char * names[], int num)
+void ISNewText(const char *dev, const char *name, char *texts[], char *names[], int num)
 {
     wunderGround->ISNewText(dev, name, texts, names, num);
 }
 
-void ISNewNumber(const char * dev, const char * name, double values[], char * names[], int num)
+void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int num)
 {
     wunderGround->ISNewNumber(dev, name, values, names, num);
 }
 
-void ISNewBLOB (const char * dev, const char * name, int sizes[], int blobsizes[], char * blobs[], char * formats[], char * names[], int n)
+void ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[],
+               char *names[], int n)
 {
     INDI_UNUSED(dev);
     INDI_UNUSED(name);
@@ -70,7 +71,7 @@ void ISNewBLOB (const char * dev, const char * name, int sizes[], int blobsizes[
     INDI_UNUSED(names);
     INDI_UNUSED(n);
 }
-void ISSnoopDevice (XMLEle * root)
+void ISSnoopDevice(XMLEle *root)
 {
     wunderGround->ISSnoopDevice(root);
 }
@@ -79,7 +80,7 @@ WunderGround::WunderGround()
 {
     setVersion(1, 0);
 
-    wunderLat = -1000;
+    wunderLat  = -1000;
     wunderLong = -1000;
 
     setWeatherConnection(CONNECTION_NONE);
@@ -87,10 +88,9 @@ WunderGround::WunderGround()
 
 WunderGround::~WunderGround()
 {
-
 }
 
-const char * WunderGround::getDefaultName()
+const char *WunderGround::getDefaultName()
 {
     return (char *)"WunderGround";
 }
@@ -99,7 +99,8 @@ bool WunderGround::Connect()
 {
     if (wunderAPIKeyT[0].text == nullptr)
     {
-        DEBUG(INDI::Logger::DBG_ERROR, "Weather Underground API Key is not available. Please register your API key at www.wunderground.com and save it under Options.");
+        DEBUG(INDI::Logger::DBG_ERROR, "Weather Underground API Key is not available. Please register your API key at "
+                                       "www.wunderground.com and save it under Options.");
         return false;
     }
 
@@ -116,11 +117,12 @@ bool WunderGround::initProperties()
     INDI::Weather::initProperties();
 
     IUFillText(&wunderAPIKeyT[0], "API_KEY", "API Key", nullptr);
-    IUFillTextVector(&wunderAPIKeyTP, wunderAPIKeyT, 1, getDeviceName(), "WUNDER_API_KEY", "Wunder", OPTIONS_TAB, IP_RW, 60, IPS_IDLE);
+    IUFillTextVector(&wunderAPIKeyTP, wunderAPIKeyT, 1, getDeviceName(), "WUNDER_API_KEY", "Wunder", OPTIONS_TAB, IP_RW,
+                     60, IPS_IDLE);
 
     addParameter("WEATHER_FORECAST", "Weather", 0, 0, 0, 1);
     addParameter("WEATHER_TEMPERATURE", "Temperature (C)", -10, 30, -20, 40);
-    addParameter("WEATHER_WIND_SPEED", "Wind (kph)",  0, 20, 0, 40);
+    addParameter("WEATHER_WIND_SPEED", "Wind (kph)", 0, 20, 0, 40);
     addParameter("WEATHER_WIND_GUST", "Gust (kph)", 0, 20, 0, 50);
     addParameter("WEATHER_RAIN_HOUR", "Precip (mm)", 0, 0, 0, 0);
 
@@ -132,10 +134,9 @@ bool WunderGround::initProperties()
     addDebugControl();
 
     return true;
-
 }
 
-void WunderGround::ISGetProperties(const char * dev)
+void WunderGround::ISGetProperties(const char *dev)
 {
     INDI::Weather::ISGetProperties(dev);
 
@@ -144,9 +145,9 @@ void WunderGround::ISGetProperties(const char * dev)
     loadConfig(true, "WUNDER_API_KEY");
 }
 
-bool WunderGround::ISNewText (const char * dev, const char * name, char * texts[], char * names[], int n)
+bool WunderGround::ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
 {
-    if(!strcmp(dev, getDeviceName()))
+    if (!strcmp(dev, getDeviceName()))
     {
         if (!strcmp(wunderAPIKeyTP.name, name))
         {
@@ -155,7 +156,6 @@ bool WunderGround::ISNewText (const char * dev, const char * name, char * texts[
             IDSetText(&wunderAPIKeyTP, nullptr);
             return true;
         }
-
     }
 
     return INDI::Weather::ISNewText(dev, name, texts, names, n);
@@ -165,7 +165,7 @@ bool WunderGround::updateLocation(double latitude, double longitude, double elev
 {
     INDI_UNUSED(elevation);
 
-    wunderLat = latitude;
+    wunderLat  = latitude;
     wunderLong = (longitude > 180) ? (longitude - 360) : longitude;
 
     return true;
@@ -173,7 +173,7 @@ bool WunderGround::updateLocation(double latitude, double longitude, double elev
 
 IPState WunderGround::updateWeather()
 {
-    CURL * curl;
+    CURL *curl;
     CURLcode res;
     std::string readBuffer;
     char requestURL[MAXRBUF];
@@ -182,12 +182,13 @@ IPState WunderGround::updateWeather()
     if (wunderLat == -1000 || wunderLong == -1000)
         return IPS_BUSY;
 
-    char * orig = setlocale(LC_NUMERIC, "C");
+    char *orig = setlocale(LC_NUMERIC, "C");
 
-    snprintf(requestURL, MAXRBUF, "http://api.wunderground.com/api/%s/conditions/q/%g,%g.json", wunderAPIKeyT[0].text, wunderLat, wunderLong);
+    snprintf(requestURL, MAXRBUF, "http://api.wunderground.com/api/%s/conditions/q/%g,%g.json", wunderAPIKeyT[0].text,
+             wunderLat, wunderLong);
 
     curl = curl_easy_init();
-    if(curl)
+    if (curl)
     {
         curl_easy_setopt(curl, CURLOPT_URL, requestURL);
         curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
@@ -198,9 +199,9 @@ IPState WunderGround::updateWeather()
 
     char srcBuffer[readBuffer.size()];
     strncpy(srcBuffer, readBuffer.c_str(), readBuffer.size());
-    char * source = srcBuffer;
+    char *source = srcBuffer;
     // do not forget terminate source string with 0
-    char * endptr;
+    char *endptr;
     JsonValue value;
     JsonAllocator allocator;
     int status = jsonParse(source, &endptr, &value, allocator);
@@ -224,12 +225,14 @@ IPState WunderGround::updateWeather()
             {
                 if (!strcmp(observationIterator->key, "weather"))
                 {
-                    char * value = observationIterator->value.toString();
+                    char *value = observationIterator->value.toString();
 
                     if (!strcmp(value, "Clear"))
                         setParameterValue("WEATHER_FORECAST", 0);
-                    else if (!strcmp(value, "Unknown") || !strcmp(value, "Scattered Clouds") || !strcmp(value, "Partly Cloudy") || !strcmp(value, "Overcast")
-                             || !strcmp(value, "Patches of Fog") || !strcmp(value, "Partial Fog") || !strcmp(value, "Light Haze"))
+                    else if (!strcmp(value, "Unknown") || !strcmp(value, "Scattered Clouds") ||
+                             !strcmp(value, "Partly Cloudy") || !strcmp(value, "Overcast") ||
+                             !strcmp(value, "Patches of Fog") || !strcmp(value, "Partial Fog") ||
+                             !strcmp(value, "Light Haze"))
                         setParameterValue("WEATHER_FORECAST", 1);
                     else
                         setParameterValue("WEATHER_FORECAST", 2);
@@ -259,8 +262,8 @@ IPState WunderGround::updateWeather()
                 }
                 else if (!strcmp(observationIterator->key, "precip_1hr_metric"))
                 {
-                    char * value = observationIterator->value.toString();
-                    double mm = -1;
+                    char *value = observationIterator->value.toString();
+                    double mm   = -1;
                     if (!strcmp(value, "--"))
                         setParameterValue("WEATHER_RAIN_HOUR", 0);
                     else
@@ -278,7 +281,7 @@ IPState WunderGround::updateWeather()
     return IPS_OK;
 }
 
-bool WunderGround::saveConfigItems(FILE * fp)
+bool WunderGround::saveConfigItems(FILE *fp)
 {
     INDI::Weather::saveConfigItems(fp);
 
@@ -286,4 +289,3 @@ bool WunderGround::saveConfigItems(FILE * fp)
 
     return true;
 }
-

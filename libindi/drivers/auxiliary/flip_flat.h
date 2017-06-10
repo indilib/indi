@@ -36,60 +36,57 @@ class Serial;
 
 class FlipFlat : public INDI::DefaultDevice, public INDI::LightBoxInterface, public INDI::DustCapInterface
 {
-    public:
+  public:
+    FlipFlat();
+    virtual ~FlipFlat();
 
-        FlipFlat();
-        virtual ~FlipFlat();
+    virtual bool initProperties();
+    virtual void ISGetProperties(const char *dev);
+    virtual bool updateProperties();
 
-        virtual bool initProperties();
-        virtual void ISGetProperties (const char * dev);
-        virtual bool updateProperties();
+    virtual bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n);
+    virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n);
+    virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n);
+    virtual bool ISSnoopDevice(XMLEle *root);
 
-        virtual bool ISNewText (const char * dev, const char * name, char * texts[], char * names[], int n);
-        virtual bool ISNewSwitch (const char * dev, const char * name, ISState * states, char * names[], int n);
-        virtual bool ISNewNumber (const char * dev, const char * name, double values[], char * names[], int n);
-        virtual bool ISSnoopDevice (XMLEle * root);
+  protected:
+    const char *getDefaultName();
 
-    protected:
+    virtual bool saveConfigItems(FILE *fp);
+    void TimerHit();
 
-        const char * getDefaultName();
+    // From Dust Cap
+    virtual IPState ParkCap();
+    virtual IPState UnParkCap();
 
-        virtual bool saveConfigItems(FILE * fp);
-        void TimerHit();
+    // From Light Box
+    virtual bool SetLightBoxBrightness(uint16_t value);
+    virtual bool EnableLightBox(bool enable);
 
-        // From Dust Cap
-        virtual IPState ParkCap();
-        virtual IPState UnParkCap();
+  private:
+    bool getStartupData();
+    bool ping();
+    bool getStatus();
+    bool getFirmwareVersion();
+    bool getBrightness();
 
-        // From Light Box
-        virtual bool SetLightBoxBrightness(uint16_t value);
-        virtual bool EnableLightBox(bool enable);
+    bool Handshake();
 
-    private:
+    // Status
+    ITextVectorProperty StatusTP;
+    IText StatusT[3];
 
-        bool getStartupData();
-        bool ping();
-        bool getStatus();
-        bool getFirmwareVersion();
-        bool getBrightness();
+    // Firmware version
+    ITextVectorProperty FirmwareTP;
+    IText FirmwareT[1];
 
-        bool Handshake();
+    int PortFD = -1;
+    int productID;
+    bool isFlipFlat;
+    uint8_t simulationWorkCounter = 0;
+    uint8_t prevCoverStatus, prevLightStatus, prevMotorStatus, prevBrightness;
 
-        // Status
-        ITextVectorProperty StatusTP;
-        IText StatusT[3];
-
-        // Firmware version
-        ITextVectorProperty FirmwareTP;
-        IText FirmwareT[1];
-
-        int PortFD = -1;
-        int productID;
-        bool isFlipFlat;
-        uint8_t simulationWorkCounter = 0;
-        uint8_t prevCoverStatus, prevLightStatus, prevMotorStatus, prevBrightness;
-
-        Connection::Serial * serialConnection = NULL;
+    Connection::Serial *serialConnection = NULL;
 };
 
 #endif

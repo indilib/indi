@@ -26,136 +26,125 @@
 #include <math.h>
 #include <sys/time.h>
 
-
 class CCDSim : public INDI::CCD, public INDI::FilterInterface
 {
-    public:
-        CCDSim();
-        virtual ~CCDSim();
+  public:
+    CCDSim();
+    virtual ~CCDSim();
 
-        const char * getDefaultName();
+    const char *getDefaultName();
 
-        bool initProperties();
-        bool updateProperties();
+    bool initProperties();
+    bool updateProperties();
 
-        void ISGetProperties (const char * dev);
+    void ISGetProperties(const char *dev);
 
+    bool Connect();
+    bool Disconnect();
 
-        bool Connect();
-        bool Disconnect();
+    bool StartExposure(float duration);
+    bool StartGuideExposure(float);
 
-        bool StartExposure(float duration);
-        bool StartGuideExposure(float);
+    bool AbortExposure();
+    bool AbortGuideExposure();
 
-        bool AbortExposure();
-        bool AbortGuideExposure();
+    void TimerHit();
 
+    int DrawCcdFrame(CCDChip *targetChip);
 
-        void TimerHit();
+    int DrawImageStar(CCDChip *targetChip, float, float, float);
+    int AddToPixel(CCDChip *targetChip, int, int, int);
 
-        int DrawCcdFrame(CCDChip * targetChip);
+    IPState GuideNorth(float);
+    IPState GuideSouth(float);
+    IPState GuideEast(float);
+    IPState GuideWest(float);
 
-        int DrawImageStar(CCDChip * targetChip, float, float, float);
-        int AddToPixel(CCDChip * targetChip, int, int, int);
+    virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n);
+    virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n);
+    virtual bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int num);
+    virtual bool ISSnoopDevice(XMLEle *root);
 
-        IPState GuideNorth(float);
-        IPState GuideSouth(float);
-        IPState GuideEast(float);
-        IPState GuideWest(float);
+  protected:
+    virtual bool saveConfigItems(FILE *fp);
+    virtual void activeDevicesUpdated();
+    virtual int SetTemperature(double temperature);
 
-        virtual bool ISNewNumber (const char * dev, const char * name, double values[], char * names[], int n);
-        virtual bool ISNewSwitch (const char * dev, const char * name, ISState * states, char * names[], int n);
-        virtual bool ISNewText(	const char * dev, const char * name, char * texts[], char * names[], int num);
-        virtual bool ISSnoopDevice (XMLEle * root);
+  private:
+    float TemperatureRequest;
 
-    protected:
+    float ExposureRequest;
+    struct timeval ExpStart;
 
-        virtual bool saveConfigItems(FILE * fp);
-        virtual void activeDevicesUpdated();
-        virtual int SetTemperature(double temperature);
+    float GuideExposureRequest;
+    struct timeval GuideExpStart;
 
-    private:
+    float CalcTimeLeft(timeval, float);
 
-        float TemperatureRequest;
+    int testvalue;
+    int ShowStarField;
+    int bias;
+    int maxnoise;
+    int maxval;
+    int maxpix;
+    int minpix;
+    float skyglow;
+    float limitingmag;
+    float saturationmag;
+    float seeing;
+    float ImageScalex;
+    float ImageScaley;
+    float OAGoffset;
+    float rotationCW;
+    float TimeFactor;
+    //  our zero point calcs used for drawing stars
+    float k;
+    float z;
 
-        float ExposureRequest;
-        struct timeval ExpStart;
+    bool AbortGuideFrame;
+    bool AbortPrimaryFrame;
 
-        float GuideExposureRequest;
-        struct timeval GuideExpStart;
+    float GuideRate;
 
-        float CalcTimeLeft(timeval, float);
+    float PEPeriod;
+    float PEMax;
 
-        int testvalue;
-        int ShowStarField;
-        int bias;
-        int maxnoise;
-        int maxval;
-        int maxpix;
-        int minpix;
-        float skyglow;
-        float limitingmag;
-        float saturationmag;
-        float seeing;
-        float ImageScalex;
-        float ImageScaley;
-        float OAGoffset;
-        float rotationCW;
-        float TimeFactor;
-        //  our zero point calcs used for drawing stars
-        float k;
-        float z;
+    double raPE, decPE;
+    bool usePE;
+    time_t RunStart;
 
-        bool AbortGuideFrame;
-        bool AbortPrimaryFrame;
+    float polarError;
+    float polarDrift;
 
+    //  And this lives in our simulator settings page
 
-        float GuideRate;
+    INumberVectorProperty *SimulatorSettingsNV;
+    INumber SimulatorSettingsN[14];
 
-        float PEPeriod;
-        float PEMax;
+    ISwitch TimeFactorS[3];
+    ISwitchVectorProperty *TimeFactorSV;
 
-        double raPE, decPE;
-        bool usePE;
-        time_t RunStart;
+    bool SetupParms();
 
-        float polarError;
-        float polarDrift;
+    //  We are going to snoop these from focuser
+    INumberVectorProperty FWHMNP;
+    INumber FWHMN[1];
 
-        //  And this lives in our simulator settings page
+    // We are going to snoop these from telescope
+    //INumber ScopeParametersN[4];
+    //INumberVectorProperty ScopeParametersNP;
 
-        INumberVectorProperty * SimulatorSettingsNV;
-        INumber SimulatorSettingsN[14];
+    INumberVectorProperty EqPENP;
+    INumber EqPEN[2];
 
-        ISwitch TimeFactorS[3];
-        ISwitchVectorProperty * TimeFactorSV;
+    ISwitch CoolerS[2];
+    ISwitchVectorProperty CoolerSP;
 
-        bool SetupParms();
-
-        //  We are going to snoop these from focuser
-        INumberVectorProperty FWHMNP;
-        INumber FWHMN[1];
-
-        // We are going to snoop these from telescope
-        //INumber ScopeParametersN[4];
-        //INumberVectorProperty ScopeParametersNP;
-
-        INumberVectorProperty EqPENP;
-        INumber EqPEN[2];
-
-        ISwitch CoolerS[2];
-        ISwitchVectorProperty CoolerSP;
-
-        // Filter
-        bool SelectFilter(int);
-        bool SetFilterNames()
-        {
-            return true;
-        }
-        bool GetFilterNames(const char * groupName);
-        int QueryFilter();
-
-
+    // Filter
+    bool SelectFilter(int);
+    bool SetFilterNames() { return true; }
+    bool GetFilterNames(const char *groupName);
+    int QueryFilter();
 };
 
 #endif // CCDSim_H

@@ -32,54 +32,41 @@ class DefaultDevice;
 
 namespace Connection
 {
-
 class Interface
 {
+  public:
+    virtual bool Connect() = 0;
 
-    public:
+    virtual bool Disconnect() = 0;
 
-        virtual bool Connect() = 0;
+    virtual void Activated() = 0;
 
-        virtual bool Disconnect() = 0;
+    virtual void Deactivated() = 0;
 
-        virtual void Activated() = 0;
+    virtual const std::string name() = 0;
 
-        virtual void Deactivated() = 0;
+    virtual const std::string label() = 0;
 
-        virtual const std::string name() = 0;
+    virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) { return false; }
+    virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) { return false; }
+    virtual bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n) { return false; }
 
-        virtual const std::string label() = 0;
+    virtual bool saveConfigItems(FILE *fp)
+    {
+        INDI_UNUSED(fp);
+        return true;
+    }
 
-        virtual bool ISNewSwitch (const char * dev, const char * name, ISState * states, char * names[], int n)
-        {
-            return false;
-        }
-        virtual bool ISNewNumber (const char * dev, const char * name, double values[], char * names[], int n)
-        {
-            return false;
-        }
-        virtual bool ISNewText (const char * dev, const char * name, char * texts[], char * names[], int n)
-        {
-            return false;
-        }
+    void registerHandshake(std::function<bool()> callback);
 
-        virtual bool saveConfigItems(FILE * fp)
-        {
-            INDI_UNUSED(fp);
-            return true;
-        }
+  protected:
+    Interface(INDI::DefaultDevice *dev);
+    virtual ~Interface();
 
-        void registerHandshake(std::function<bool()> callback);
-
-    protected:
-        Interface(INDI::DefaultDevice * dev);
-        virtual ~Interface();
-
-        const char * getDeviceName();
-        std::function<bool()> Handshake;
-        INDI::DefaultDevice * device = NULL;
+    const char *getDeviceName();
+    std::function<bool()> Handshake;
+    INDI::DefaultDevice *device = NULL;
 };
-
 }
 
 #endif

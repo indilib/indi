@@ -53,9 +53,13 @@ typedef struct
     unsigned char b;
 } PIXTYPE_rgb24;
 
-#define SAT(c) \
-	if (c & (~255)) { if (c < 0) c = 0; else c = 255; }
-
-
+#define SAT(c)       \
+    if (c & (~255))  \
+    {                \
+        if (c < 0)   \
+            c = 0;   \
+        else         \
+            c = 255; \
+    }
 
 #endif

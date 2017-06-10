@@ -25,82 +25,83 @@
 #include "indicontroller.h"
 #include "indibase/alignment/AlignmentSubsystemForDrivers.h"
 
-
 #define TEMMA_SLEW_RATES 4
 
-class TemmaMount : public INDI::Telescope, public INDI::GuiderInterface, public INDI::AlignmentSubsystem::AlignmentSubsystemForDrivers
+class TemmaMount : public INDI::Telescope,
+                   public INDI::GuiderInterface,
+                   public INDI::AlignmentSubsystem::AlignmentSubsystemForDrivers
 {
-    private:
-        double currentRA;
-        double currentDEC;
-        int TemmaRead(char * buf, int size);
-        bool GetTemmaVersion();
-        bool GetTemmaMotorStatus();
-        bool SetTemmaMotorStatus(bool);
-        bool SetTemmaLst();
-        int GetTemmaLst();
-        bool SetTemmaLattitude(double);
-        double GetTemmaLattitude();
+  private:
+    double currentRA;
+    double currentDEC;
+    int TemmaRead(char *buf, int size);
+    bool GetTemmaVersion();
+    bool GetTemmaMotorStatus();
+    bool SetTemmaMotorStatus(bool);
+    bool SetTemmaLst();
+    int GetTemmaLst();
+    bool SetTemmaLattitude(double);
+    double GetTemmaLattitude();
 
-        bool TemmaSync(double, double);
+    bool TemmaSync(double, double);
 
-        ln_equ_posn TelescopeToSky(double ra, double dec);
-        ln_equ_posn SkyToTelescope(double ra, double dec);
+    ln_equ_posn TelescopeToSky(double ra, double dec);
+    ln_equ_posn SkyToTelescope(double ra, double dec);
 
-        bool MotorStatus;
-        bool GotoInProgress;
-        bool ParkInProgress;
-        bool TemmaInitialized;
-        double Longitude;
-        double Lattitude;
-        int SlewRate;
-        bool SlewActive;
-        unsigned char Slewbits;
-        //bool TemmaConnect(const char *port);
-        INumber GuideRateN[2];
-        INumberVectorProperty GuideRateNP;
+    bool MotorStatus;
+    bool GotoInProgress;
+    bool ParkInProgress;
+    bool TemmaInitialized;
+    double Longitude;
+    double Lattitude;
+    int SlewRate;
+    bool SlewActive;
+    unsigned char Slewbits;
+    //bool TemmaConnect(const char *port);
+    INumber GuideRateN[2];
+    INumberVectorProperty GuideRateNP;
 
-    public:
-        TemmaMount();
-        virtual ~TemmaMount();
+  public:
+    TemmaMount();
+    virtual ~TemmaMount();
 
-        //bool initProperties();
-        virtual bool Handshake();
-        virtual void ISGetProperties (const char * dev);
-        virtual bool updateProperties();
-        virtual const char * getDefaultName();
+    //bool initProperties();
+    virtual bool Handshake();
+    virtual void ISGetProperties(const char *dev);
+    virtual bool updateProperties();
+    virtual const char *getDefaultName();
 
-        virtual bool initProperties();
-        virtual bool ReadScopeStatus();
-        virtual bool Connect();
-        bool Goto(double, double);
-        bool Park();
-        bool UnPark();
-        bool Abort();
-        bool SetSlewRate(int);
-        bool MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command);
-        bool MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command);
-        //bool ReadTime();
-        //bool ReadLocation();
-        bool updateLocation(double latitude, double longitude, double elevation);
-        bool updateTime(ln_date * utc, double utc_offset);
-        bool SetCurrentPark();
-        bool SetDefaultPark();
+    virtual bool initProperties();
+    virtual bool ReadScopeStatus();
+    virtual bool Connect();
+    bool Goto(double, double);
+    bool Park();
+    bool UnPark();
+    bool Abort();
+    bool SetSlewRate(int);
+    bool MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command);
+    bool MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command);
+    //bool ReadTime();
+    //bool ReadLocation();
+    bool updateLocation(double latitude, double longitude, double elevation);
+    bool updateTime(ln_date *utc, double utc_offset);
+    bool SetCurrentPark();
+    bool SetDefaultPark();
 
-        //  methods added for alignment subsystem
-        virtual bool ISNewNumber (const char * dev, const char * name, double values[], char * names[], int n);
-        virtual bool ISNewSwitch (const char * dev, const char * name, ISState * states, char * names[], int n);
-        virtual bool ISNewBLOB (const char * dev, const char * name, int sizes[], int blobsizes[], char * blobs[], char * formats[], char * names[], int n);
-        virtual bool ISNewText (const char * dev, const char * name, char * texts[], char * names[], int n);
-        bool Sync(double ra, double dec);
-        //  methods added for guider interface
-        virtual IPState GuideNorth(float ms);
-        virtual IPState GuideSouth(float ms);
-        virtual IPState GuideEast(float ms);
-        virtual IPState GuideWest(float ms);
-        //  Initial implementation doesn't need this one
-        //virtual void GuideComplete(INDI_EQ_AXIS axis);
-
+    //  methods added for alignment subsystem
+    virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n);
+    virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n);
+    virtual bool ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[],
+                           char *formats[], char *names[], int n);
+    virtual bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n);
+    bool Sync(double ra, double dec);
+    //  methods added for guider interface
+    virtual IPState GuideNorth(float ms);
+    virtual IPState GuideSouth(float ms);
+    virtual IPState GuideEast(float ms);
+    virtual IPState GuideWest(float ms);
+    //  Initial implementation doesn't need this one
+    //virtual void GuideComplete(INDI_EQ_AXIS axis);
 };
 
 #endif // TEMMAMOUNT_H

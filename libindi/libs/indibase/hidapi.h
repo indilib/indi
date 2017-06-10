@@ -41,7 +41,7 @@
 #define HID_API_CALL
 #else
 #define HID_API_EXPORT /**< API export macro */
-#define HID_API_CALL /**< API call macro */
+#define HID_API_CALL   /**< API call macro */
 #endif
 
 #define HID_API_EXPORT_CALL HID_API_EXPORT HID_API_CALL /**< API export and call macro*/
@@ -56,20 +56,20 @@ typedef struct hid_device_ hid_device; /**< opaque hidapi structure */
 struct hid_device_info
 {
     /** Platform-specific device path */
-    char * path;
+    char *path;
     /** Device Vendor ID */
     unsigned short vendor_id;
     /** Device Product ID */
     unsigned short product_id;
     /** Serial Number */
-    wchar_t * serial_number;
+    wchar_t *serial_number;
     /** Device Release Number in binary-coded decimal,
         also known as Device Version Number */
     unsigned short release_number;
     /** Manufacturer String */
-    wchar_t * manufacturer_string;
+    wchar_t *manufacturer_string;
     /** Product string */
-    wchar_t * product_string;
+    wchar_t *product_string;
     /** Usage Page for this Device/Interface
         (Windows/Mac only). */
     unsigned short usage_page;
@@ -83,9 +83,8 @@ struct hid_device_info
     int interface_number;
 
     /** Pointer to the next device */
-    struct hid_device_info * next;
+    struct hid_device_info *next;
 };
-
 
 /** @brief Initialize the HIDAPI library.
 
@@ -135,7 +134,7 @@ int HID_API_EXPORT HID_API_CALL hid_exit(void);
     	attached to the system, or NULL in the case of failure. Free
     	this linked list by calling hid_free_enumeration().
 */
-struct hid_device_info HID_API_EXPORT * HID_API_CALL hid_enumerate(unsigned short vendor_id, unsigned short product_id);
+struct hid_device_info HID_API_EXPORT *HID_API_CALL hid_enumerate(unsigned short vendor_id, unsigned short product_id);
 
 /** @brief Free an enumeration Linked List
 
@@ -145,7 +144,7 @@ struct hid_device_info HID_API_EXPORT * HID_API_CALL hid_enumerate(unsigned shor
     @param devs Pointer to a list of struct_device returned from
     	      hid_enumerate().
 */
-void  HID_API_EXPORT HID_API_CALL hid_free_enumeration(struct hid_device_info * devs);
+void HID_API_EXPORT HID_API_CALL hid_free_enumeration(struct hid_device_info *devs);
 
 /** @brief Open a HID device using a Vendor ID (VID), Product ID
 	(PID) and optionally a serial number.
@@ -163,7 +162,8 @@ void  HID_API_EXPORT HID_API_CALL hid_free_enumeration(struct hid_device_info * 
 		This function returns a pointer to a #hid_device object on
 		success or NULL on failure.
 */
-HID_API_EXPORT hid_device * HID_API_CALL hid_open(unsigned short vendor_id, unsigned short product_id, const wchar_t * serial_number);
+HID_API_EXPORT hid_device *HID_API_CALL hid_open(unsigned short vendor_id, unsigned short product_id,
+                                                 const wchar_t *serial_number);
 
 /** @brief Open a HID device by its path name.
 
@@ -178,7 +178,7 @@ HID_API_EXPORT hid_device * HID_API_CALL hid_open(unsigned short vendor_id, unsi
 		This function returns a pointer to a #hid_device object on
 		success or NULL on failure.
 */
-HID_API_EXPORT hid_device * HID_API_CALL hid_open_path(const char * path);
+HID_API_EXPORT hid_device *HID_API_CALL hid_open_path(const char *path);
 
 /** @brief Write an Output report to a HID device.
 
@@ -206,7 +206,7 @@ HID_API_EXPORT hid_device * HID_API_CALL hid_open_path(const char * path);
 		This function returns the actual number of bytes written and
 		-1 on error.
 */
-int  HID_API_EXPORT HID_API_CALL hid_write(hid_device * device, const unsigned char * data, size_t length);
+int HID_API_EXPORT HID_API_CALL hid_write(hid_device *device, const unsigned char *data, size_t length);
 
 /** @brief Read an Input report from a HID device with timeout.
 
@@ -226,7 +226,7 @@ int  HID_API_EXPORT HID_API_CALL hid_write(hid_device * device, const unsigned c
 		This function returns the actual number of bytes read and
 		-1 on error.
 */
-int HID_API_EXPORT HID_API_CALL hid_read_timeout(hid_device * dev, unsigned char * data, size_t length, int milliseconds);
+int HID_API_EXPORT HID_API_CALL hid_read_timeout(hid_device *dev, unsigned char *data, size_t length, int milliseconds);
 
 /** @brief Read an Input report from a HID device.
 
@@ -245,7 +245,7 @@ int HID_API_EXPORT HID_API_CALL hid_read_timeout(hid_device * dev, unsigned char
 		This function returns the actual number of bytes read and
 		-1 on error.
 */
-int  HID_API_EXPORT HID_API_CALL hid_read(hid_device * device, unsigned char * data, size_t length);
+int HID_API_EXPORT HID_API_CALL hid_read(hid_device *device, unsigned char *data, size_t length);
 
 /** @brief Set the device handle to be non-blocking.
 
@@ -265,7 +265,7 @@ int  HID_API_EXPORT HID_API_CALL hid_read(hid_device * device, unsigned char * d
 	@returns
 		This function returns 0 on success and -1 on error.
 */
-int  HID_API_EXPORT HID_API_CALL hid_set_nonblocking(hid_device * device, int nonblock);
+int HID_API_EXPORT HID_API_CALL hid_set_nonblocking(hid_device *device, int nonblock);
 
 /** @brief Send a Feature report to the device.
 
@@ -293,7 +293,7 @@ int  HID_API_EXPORT HID_API_CALL hid_set_nonblocking(hid_device * device, int no
 		This function returns the actual number of bytes written and
 		-1 on error.
 */
-int HID_API_EXPORT HID_API_CALL hid_send_feature_report(hid_device * device, const unsigned char * data, size_t length);
+int HID_API_EXPORT HID_API_CALL hid_send_feature_report(hid_device *device, const unsigned char *data, size_t length);
 
 /** @brief Get a feature report from a HID device.
 
@@ -314,14 +314,14 @@ int HID_API_EXPORT HID_API_CALL hid_send_feature_report(hid_device * device, con
 		This function returns the number of bytes read and
 		-1 on error.
 */
-int HID_API_EXPORT HID_API_CALL hid_get_feature_report(hid_device * device, unsigned char * data, size_t length);
+int HID_API_EXPORT HID_API_CALL hid_get_feature_report(hid_device *device, unsigned char *data, size_t length);
 
 /** @brief Close a HID device.
 
 	@ingroup API
 	@param device A device handle returned from hid_open().
 */
-void HID_API_EXPORT HID_API_CALL hid_close(hid_device * device);
+void HID_API_EXPORT HID_API_CALL hid_close(hid_device *device);
 
 /** @brief Get The Manufacturer String from a HID device.
 
@@ -333,7 +333,7 @@ void HID_API_EXPORT HID_API_CALL hid_close(hid_device * device);
 	@returns
 		This function returns 0 on success and -1 on error.
 */
-int HID_API_EXPORT_CALL hid_get_manufacturer_string(hid_device * device, wchar_t * string, size_t maxlen);
+int HID_API_EXPORT_CALL hid_get_manufacturer_string(hid_device *device, wchar_t *string, size_t maxlen);
 
 /** @brief Get The Product String from a HID device.
 
@@ -345,7 +345,7 @@ int HID_API_EXPORT_CALL hid_get_manufacturer_string(hid_device * device, wchar_t
 	@returns
 		This function returns 0 on success and -1 on error.
 */
-int HID_API_EXPORT_CALL hid_get_product_string(hid_device * device, wchar_t * string, size_t maxlen);
+int HID_API_EXPORT_CALL hid_get_product_string(hid_device *device, wchar_t *string, size_t maxlen);
 
 /** @brief Get The Serial Number String from a HID device.
 
@@ -357,7 +357,7 @@ int HID_API_EXPORT_CALL hid_get_product_string(hid_device * device, wchar_t * st
 	@returns
 		This function returns 0 on success and -1 on error.
 */
-int HID_API_EXPORT_CALL hid_get_serial_number_string(hid_device * device, wchar_t * string, size_t maxlen);
+int HID_API_EXPORT_CALL hid_get_serial_number_string(hid_device *device, wchar_t *string, size_t maxlen);
 
 /** @brief Get a string from a HID device, based on its string index.
 
@@ -370,7 +370,7 @@ int HID_API_EXPORT_CALL hid_get_serial_number_string(hid_device * device, wchar_
 	@returns
 		This function returns 0 on success and -1 on error.
 */
-int HID_API_EXPORT_CALL hid_get_indexed_string(hid_device * device, int string_index, wchar_t * string, size_t maxlen);
+int HID_API_EXPORT_CALL hid_get_indexed_string(hid_device *device, int string_index, wchar_t *string, size_t maxlen);
 
 /** @brief Get a string describing the last error which occurred.
 
@@ -381,11 +381,10 @@ int HID_API_EXPORT_CALL hid_get_indexed_string(hid_device * device, int string_i
 		This function returns a string containing the last error
 		which occurred or NULL if none has occurred.
 */
-HID_API_EXPORT const wchar_t * HID_API_CALL hid_error(hid_device * device);
+HID_API_EXPORT const wchar_t *HID_API_CALL hid_error(hid_device *device);
 
 #ifdef __cplusplus
 }
 #endif
 
 #endif
-

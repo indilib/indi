@@ -26,43 +26,43 @@
 
 #include "indibase/indifocuser.h"
 
-class NSTEP: public INDI::Focuser
+class NSTEP : public INDI::Focuser
 {
-    private:
-        char buf[MAXRBUF];
-        long sim_position, position;
-        int temperature;
-        char steppingMode;
-        pthread_mutex_t lock;
+  private:
+    char buf[MAXRBUF];
+    long sim_position, position;
+    int temperature;
+    char steppingMode;
+    pthread_mutex_t lock;
 
-        INumber TempN[1];
-        INumberVectorProperty TempNP;
-        ISwitch TempCompS[2];
-        ISwitchVectorProperty TempCompSP;
-        INumber TempCompN[2];
-        INumberVectorProperty TempCompNP;
-        ISwitch SteppingModeS[3];
-        ISwitchVectorProperty SteppingModeSP;
+    INumber TempN[1];
+    INumberVectorProperty TempNP;
+    ISwitch TempCompS[2];
+    ISwitchVectorProperty TempCompSP;
+    INumber TempCompN[2];
+    INumberVectorProperty TempCompNP;
+    ISwitch SteppingModeS[3];
+    ISwitchVectorProperty SteppingModeSP;
 
-        bool command(const char * request, char * response, int timeout);
+    bool command(const char *request, char *response, int timeout);
 
-    public:
-        NSTEP();
-        ~NSTEP();
+  public:
+    NSTEP();
+    ~NSTEP();
 
-        virtual bool Handshake();
-        const char * getDefaultName();
+    virtual bool Handshake();
+    const char *getDefaultName();
 
-        bool initProperties();
-        bool updateProperties();
+    bool initProperties();
+    bool updateProperties();
 
-        bool ISNewSwitch (const char * dev, const char * name, ISState * states, char * names[], int n);
-        bool ISNewNumber (const char * dev, const char * name, double values[], char * names[], int n);
-        void TimerHit();
-        IPState MoveRelFocuser(FocusDirection dir, unsigned int ticks);
-        bool AbortFocuser();
-        bool SetFocuserSpeed(int speed);
-        bool saveConfigItems(FILE * fp);
+    bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n);
+    bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n);
+    void TimerHit();
+    IPState MoveRelFocuser(FocusDirection dir, unsigned int ticks);
+    bool AbortFocuser();
+    bool SetFocuserSpeed(int speed);
+    bool saveConfigItems(FILE *fp);
 };
 
 #endif // NSTEP_H

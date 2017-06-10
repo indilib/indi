@@ -54,8 +54,8 @@ Updated driver to use INDI::Telescope (JM)
 #include "lx200_OnStep.h"
 #include "lx200_10micron.h"
 
-    // We declare an auto pointer to LX200Generic.
-    std::unique_ptr<LX200Generic> telescope;
+// We declare an auto pointer to LX200Generic.
+std::unique_ptr<LX200Generic> telescope;
 
 /* There is _one_ binary for all LX200 drivers, but each binary is renamed
 ** to its device name (i.e. lx200gps, lx200_16..etc). The main function will
@@ -63,14 +63,14 @@ Updated driver to use INDI::Telescope (JM)
 ** device afterwards. If the binary name does not match any known devices,
 ** we simply create a generic device.
 */
-extern char * me;
+extern char *me;
 
-#define LX200_TRACK	0
-#define LX200_SYNC	1
+#define LX200_TRACK 0
+#define LX200_SYNC  1
 
 /* Simulation Parameters */
-#define	SLEWRATE	1		/* slew rate, degrees/s */
-#define SIDRATE		0.004178	/* sidereal rate, degrees/s */
+#define SLEWRATE 1        /* slew rate, degrees/s */
+#define SIDRATE  0.004178 /* sidereal rate, degrees/s */
 
 /* send client definitions of all properties */
 void ISInit()
@@ -86,119 +86,117 @@ void ISInit()
     {
         IDLog("initializing from LX200 classic device...\n");
 
-        if(telescope.get() == 0) telescope.reset(new LX200Classic());
-
-
+        if (telescope.get() == 0)
+            telescope.reset(new LX200Classic());
     }
     if (strstr(me, "indi_lx200_OnStep"))
     {
         IDLog("initializing from LX200 OnStep device...\n");
 
-        if(telescope.get() == 0) telescope.reset(new LX200_OnStep());
-
-
+        if (telescope.get() == 0)
+            telescope.reset(new LX200_OnStep());
     }
     else if (strstr(me, "indi_lx200gps"))
     {
         IDLog("initializing from LX200 GPS device...\n");
 
-        if(telescope.get() == 0) telescope.reset(new LX200GPS());
-
-
+        if (telescope.get() == 0)
+            telescope.reset(new LX200GPS());
     }
     else if (strstr(me, "indi_lx200_16"))
     {
-
         IDLog("Initializing from LX200 16 device...\n");
 
-        if(telescope.get() == 0) telescope.reset(new LX200_16());
-
-
+        if (telescope.get() == 0)
+            telescope.reset(new LX200_16());
     }
     else if (strstr(me, "indi_lx200autostar"))
     {
         IDLog("initializing from Autostar device...\n");
 
-        if(telescope.get() == 0) telescope.reset(new LX200Autostar());
-
+        if (telescope.get() == 0)
+            telescope.reset(new LX200Autostar());
     }
     else if (strstr(me, "indi_lx200ap"))
     {
         IDLog("initializing from Astrophysics device...\n");
 
-        if(telescope.get() == 0) telescope.reset(new LX200AstroPhysics());
-
+        if (telescope.get() == 0)
+            telescope.reset(new LX200AstroPhysics());
     }
     else if (strstr(me, "indi_lx200gemini"))
     {
         IDLog("initializing from Losmandy Gemini device...\n");
 
-        if(telescope.get() == 0) telescope.reset(new LX200Gemini());
-
+        if (telescope.get() == 0)
+            telescope.reset(new LX200Gemini());
     }
     else if (strstr(me, "indi_lx200zeq25"))
     {
         IDLog("initializing from ZEQ25 device...\n");
 
-        if(telescope.get() == 0) telescope.reset(new LX200ZEQ25());
-
+        if (telescope.get() == 0)
+            telescope.reset(new LX200ZEQ25());
     }
     else if (strstr(me, "indi_lx200pulsar2"))
     {
         IDLog("initializing from pulsar2 device...\n");
 
-        if(telescope.get() == 0) telescope.reset(new LX200Pulsar2());
+        if (telescope.get() == 0)
+            telescope.reset(new LX200Pulsar2());
     }
     else if (strstr(me, "indi_lx200ss2000pc"))
     {
         IDLog("initializing from skysensor2000pc device...\n");
 
-        if(telescope.get() == 0) telescope.reset(new LX200SS2000PC());
+        if (telescope.get() == 0)
+            telescope.reset(new LX200SS2000PC());
     }
     else if (strstr(me, "indi_lx200fs2"))
     {
         IDLog("initializing from Astro-Electronic FS-2...\n");
 
-        if(telescope.get() == 0) telescope.reset(new LX200FS2());
-
+        if (telescope.get() == 0)
+            telescope.reset(new LX200FS2());
     }
     else if (strstr(me, "indi_lx200_10micron"))
     {
         IDLog("initializing for 10Micron mount...\n");
 
-        if(telescope.get() == 0) telescope.reset(new LX200_10MICRON());
-
+        if (telescope.get() == 0)
+            telescope.reset(new LX200_10MICRON());
     }
     // be nice and give them a generic device
-    else if(telescope.get() == 0) telescope.reset(new LX200Generic());
-
+    else if (telescope.get() == 0)
+        telescope.reset(new LX200Generic());
 }
 
-void ISGetProperties(const char * dev)
+void ISGetProperties(const char *dev)
 {
     ISInit();
     telescope->ISGetProperties(dev);
 }
 
-void ISNewSwitch(const char * dev, const char * name, ISState * states, char * names[], int num)
+void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int num)
 {
     ISInit();
     telescope->ISNewSwitch(dev, name, states, names, num);
 }
 
-void ISNewText(	const char * dev, const char * name, char * texts[], char * names[], int num)
+void ISNewText(const char *dev, const char *name, char *texts[], char *names[], int num)
 {
     ISInit();
     telescope->ISNewText(dev, name, texts, names, num);
 }
 
-void ISNewNumber(const char * dev, const char * name, double values[], char * names[], int num)
+void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int num)
 {
     ISInit();
     telescope->ISNewNumber(dev, name, values, names, num);
 }
 
-void ISNewBLOB (const char * dev, const char * name, int sizes[], int blobsizes[], char * blobs[], char * formats[], char * names[], int n)
+void ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[],
+               char *names[], int n)
 {
     INDI_UNUSED(dev);
     INDI_UNUSED(name);
@@ -209,7 +207,7 @@ void ISNewBLOB (const char * dev, const char * name, int sizes[], int blobsizes[
     INDI_UNUSED(names);
     INDI_UNUSED(n);
 }
-void ISSnoopDevice (XMLEle * root)
+void ISSnoopDevice(XMLEle *root)
 {
     ISInit();
     telescope->ISSnoopDevice(root);
@@ -230,17 +228,18 @@ LX200Generic::LX200Generic()
 
     DBG_SCOPE = INDI::Logger::getInstance().addDebugLevel("Scope Verbose", "SCOPE");
 
-    currentRA = ln_get_apparent_sidereal_time(ln_get_julian_from_sys());
+    currentRA  = ln_get_apparent_sidereal_time(ln_get_julian_from_sys());
     currentDEC = 90;
 
-    SetTelescopeCapability(TELESCOPE_CAN_PARK | TELESCOPE_CAN_SYNC | TELESCOPE_CAN_GOTO | TELESCOPE_CAN_ABORT | TELESCOPE_HAS_TIME | TELESCOPE_HAS_LOCATION, 4);
+    SetTelescopeCapability(TELESCOPE_CAN_PARK | TELESCOPE_CAN_SYNC | TELESCOPE_CAN_GOTO | TELESCOPE_CAN_ABORT |
+                               TELESCOPE_HAS_TIME | TELESCOPE_HAS_LOCATION,
+                           4);
 
     DEBUG(INDI::Logger::DBG_DEBUG, "Initializing from Generic LX200 device...");
 }
 
 LX200Generic::~LX200Generic()
 {
-
 }
 
 void LX200Generic::debugTriggered(bool enable)
@@ -249,12 +248,12 @@ void LX200Generic::debugTriggered(bool enable)
     setLX200Debug(getDeviceName(), DBG_SCOPE);
 }
 
-const char * LX200Generic::getDefaultName()
+const char *LX200Generic::getDefaultName()
 {
     return (char *)"LX200 Generic";
 }
 
-const char * LX200Generic::getDriverName()
+const char *LX200Generic::getDriverName()
 {
     return LX200Generic::getDefaultName();
 }
@@ -267,7 +266,8 @@ bool LX200Generic::initProperties()
     IUFillSwitch(&AlignmentS[0], "Polar", "", ISS_ON);
     IUFillSwitch(&AlignmentS[1], "AltAz", "", ISS_OFF);
     IUFillSwitch(&AlignmentS[2], "Land", "", ISS_OFF);
-    IUFillSwitchVector(&AlignmentSP, AlignmentS, 3, getDeviceName(), "Alignment", "", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+    IUFillSwitchVector(&AlignmentSP, AlignmentS, 3, getDeviceName(), "Alignment", "", MAIN_CONTROL_TAB, IP_RW,
+                       ISR_1OFMANY, 0, IPS_IDLE);
 
 #if 0
     IUFillSwitch(&SlewRateS[SLEW_GUIDE], "SLEW_GUIDE", "Guide", ISS_OFF);
@@ -281,14 +281,17 @@ bool LX200Generic::initProperties()
     IUFillSwitch(&TrackModeS[1], "TRACK_SOLAR", "Solar", ISS_OFF);
     IUFillSwitch(&TrackModeS[2], "TRACK_LUNAR", "Lunar", ISS_OFF);
     IUFillSwitch(&TrackModeS[3], "TRACK_CUSTOM", "Custom", ISS_OFF);
-    IUFillSwitchVector(&TrackModeSP, TrackModeS, 4, getDeviceName(), "TELESCOPE_TRACK_MODE", "Track Mode", MOTION_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+    IUFillSwitchVector(&TrackModeSP, TrackModeS, 4, getDeviceName(), "TELESCOPE_TRACK_MODE", "Track Mode", MOTION_TAB,
+                       IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
     IUFillNumber(&TrackFreqN[0], "trackFreq", "Freq", "%g", 56.4, 60.1, 0.1, 60.1);
-    IUFillNumberVector(&TrackingFreqNP, TrackFreqN, 1, getDeviceName(), "Tracking Frequency", "", MOTION_TAB, IP_RW, 0, IPS_IDLE);
+    IUFillNumberVector(&TrackingFreqNP, TrackFreqN, 1, getDeviceName(), "Tracking Frequency", "", MOTION_TAB, IP_RW, 0,
+                       IPS_IDLE);
 
     IUFillSwitch(&UsePulseCmdS[0], "Off", "", ISS_ON);
     IUFillSwitch(&UsePulseCmdS[1], "On", "", ISS_OFF);
-    IUFillSwitchVector(&UsePulseCmdSP, UsePulseCmdS, 2, getDeviceName(), "Use Pulse Cmd", "", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+    IUFillSwitchVector(&UsePulseCmdSP, UsePulseCmdS, 2, getDeviceName(), "Use Pulse Cmd", "", MAIN_CONTROL_TAB, IP_RW,
+                       ISR_1OFMANY, 0, IPS_IDLE);
 
     IUFillSwitch(&SiteS[0], "Site 1", "", ISS_ON);
     IUFillSwitch(&SiteS[1], "Site 2", "", ISS_OFF);
@@ -301,15 +304,18 @@ bool LX200Generic::initProperties()
 
     IUFillSwitch(&FocusMotionS[0], "IN", "Focus in", ISS_OFF);
     IUFillSwitch(&FocusMotionS[1], "OUT", "Focus out", ISS_OFF);
-    IUFillSwitchVector(&FocusMotionSP, FocusMotionS, 2, getDeviceName(), "FOCUS_MOTION", "Motion", FOCUS_TAB, IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
+    IUFillSwitchVector(&FocusMotionSP, FocusMotionS, 2, getDeviceName(), "FOCUS_MOTION", "Motion", FOCUS_TAB, IP_RW,
+                       ISR_ATMOST1, 0, IPS_IDLE);
 
     IUFillNumber(&FocusTimerN[0], "TIMER", "Timer (ms)", "%g", 0, 10000., 1000., 0);
-    IUFillNumberVector(&FocusTimerNP, FocusTimerN, 1, getDeviceName(), "FOCUS_TIMER", "Focus Timer", FOCUS_TAB, IP_RW, 0, IPS_IDLE);
+    IUFillNumberVector(&FocusTimerNP, FocusTimerN, 1, getDeviceName(), "FOCUS_TIMER", "Focus Timer", FOCUS_TAB, IP_RW,
+                       0, IPS_IDLE);
 
     IUFillSwitch(&FocusModeS[0], "FOCUS_HALT", "Halt", ISS_ON);
     IUFillSwitch(&FocusModeS[1], "FOCUS_SLOW", "Slow", ISS_OFF);
     IUFillSwitch(&FocusModeS[2], "FOCUS_FAST", "Fast", ISS_OFF);
-    IUFillSwitchVector(&FocusModeSP, FocusModeS, 3, getDeviceName(), "FOCUS_MODE", "Mode", FOCUS_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+    IUFillSwitchVector(&FocusModeSP, FocusModeS, 3, getDeviceName(), "FOCUS_MODE", "Mode", FOCUS_TAB, IP_RW,
+                       ISR_1OFMANY, 0, IPS_IDLE);
 
     TrackState = SCOPE_IDLE;
 
@@ -323,9 +329,9 @@ bool LX200Generic::initProperties()
     return true;
 }
 
-void LX200Generic::ISGetProperties(const char * dev)
+void LX200Generic::ISGetProperties(const char *dev)
 {
-    if(dev && strcmp(dev, getDeviceName()))
+    if (dev && strcmp(dev, getDeviceName()))
         return;
 
     INDI::Telescope::ISGetProperties(dev);
@@ -350,7 +356,6 @@ void LX200Generic::ISGetProperties(const char * dev)
             defineSwitch(&FocusModeSP);
         }
     }
-
 }
 
 bool LX200Generic::updateProperties()
@@ -377,7 +382,6 @@ bool LX200Generic::updateProperties()
             defineSwitch(&FocusModeSP);
         }
 
-
         getBasicData();
 
         //loadConfig(true);
@@ -401,7 +405,6 @@ bool LX200Generic::updateProperties()
             deleteProperty(FocusTimerNP.name);
             deleteProperty(FocusModeSP.name);
         }
-
     }
 
     return true;
@@ -451,18 +454,17 @@ bool LX200Generic::ReadScopeStatus()
 
             TrackState = SCOPE_TRACKING;
             IDMessage(getDeviceName(), "Slew is complete. Tracking...");
-
         }
     }
-    else if(TrackState == SCOPE_PARKING)
+    else if (TrackState == SCOPE_PARKING)
     {
-        if(isSlewComplete())
+        if (isSlewComplete())
         {
             SetParked(true);
         }
     }
 
-    if ( getLX200RA(PortFD, &currentRA) < 0 || getLX200DEC(PortFD, &currentDEC) < 0)
+    if (getLX200RA(PortFD, &currentRA) < 0 || getLX200DEC(PortFD, &currentDEC) < 0)
     {
         EqNP.s = IPS_ALERT;
         IDSetNumber(&EqNP, "Error reading RA/DEC.");
@@ -476,7 +478,7 @@ bool LX200Generic::ReadScopeStatus()
 
 bool LX200Generic::Goto(double r, double d)
 {
-    targetRA = r;
+    targetRA  = r;
     targetDEC = d;
     char RAStr[64], DecStr[64];
     int fracbase = 0;
@@ -506,14 +508,14 @@ bool LX200Generic::Goto(double r, double d)
         }
 
         AbortSP.s = IPS_OK;
-        EqNP.s       = IPS_IDLE;
+        EqNP.s    = IPS_IDLE;
         IDSetSwitch(&AbortSP, "Slew aborted.");
         IDSetNumber(&EqNP, nullptr);
 
         if (MovementNSSP.s == IPS_BUSY || MovementWESP.s == IPS_BUSY)
         {
-            MovementNSSP.s  = MovementWESP.s =  IPS_IDLE;
-            EqNP.s       = IPS_IDLE;
+            MovementNSSP.s = MovementWESP.s = IPS_IDLE;
+            EqNP.s                          = IPS_IDLE;
             IUResetSwitch(&MovementNSSP);
             IUResetSwitch(&MovementWESP);
             IDSetSwitch(&MovementNSSP, nullptr);
@@ -540,12 +542,12 @@ bool LX200Generic::Goto(double r, double d)
             EqNP.s = IPS_ALERT;
             IDSetNumber(&EqNP, "Error Slewing to JNow RA %s - DEC %s\n", RAStr, DecStr);
             slewError(err);
-            return  false;
+            return false;
         }
     }
 
     TrackState = SCOPE_SLEWING;
-    EqNP.s    = IPS_BUSY;
+    EqNP.s     = IPS_BUSY;
 
     DEBUGF(INDI::Logger::DBG_SESSION, "Slewing to RA: %s - DEC: %s", RAStr, DecStr);
 
@@ -556,18 +558,17 @@ bool LX200Generic::Sync(double ra, double dec)
 {
     char syncString[256];
 
-    if (isSimulation() == false &&
-            (setObjectRA(PortFD, ra) < 0 || (setObjectDEC(PortFD, dec)) < 0))
+    if (isSimulation() == false && (setObjectRA(PortFD, ra) < 0 || (setObjectDEC(PortFD, dec)) < 0))
     {
         EqNP.s = IPS_ALERT;
         IDSetNumber(&EqNP, "Error setting RA/DEC. Unable to Sync.");
         return false;
     }
 
-    if (isSimulation() == false &&  ::Sync(PortFD, syncString) < 0)
+    if (isSimulation() == false && ::Sync(PortFD, syncString) < 0)
     {
         EqNP.s = IPS_ALERT;
-        IDSetNumber(&EqNP , "Synchronization failed.");
+        IDSetNumber(&EqNP, "Synchronization failed.");
         return false;
     }
 
@@ -577,7 +578,7 @@ bool LX200Generic::Sync(double ra, double dec)
     DEBUG(INDI::Logger::DBG_SESSION, "Synchronization successful.");
 
     TrackState = SCOPE_IDLE;
-    EqNP.s    = IPS_OK;
+    EqNP.s     = IPS_OK;
 
     NewRaDec(currentRA, currentDEC);
 
@@ -598,15 +599,15 @@ bool LX200Generic::Park()
                 return false;
             }
 
-            AbortSP.s    = IPS_OK;
-            EqNP.s       = IPS_IDLE;
+            AbortSP.s = IPS_OK;
+            EqNP.s    = IPS_IDLE;
             IDSetSwitch(&AbortSP, "Slew aborted.");
             IDSetNumber(&EqNP, nullptr);
 
             if (MovementNSSP.s == IPS_BUSY || MovementWESP.s == IPS_BUSY)
             {
-                MovementNSSP.s  = MovementWESP.s =  IPS_IDLE;
-                EqNP.s       = IPS_IDLE;
+                MovementNSSP.s = MovementWESP.s = IPS_IDLE;
+                EqNP.s                          = IPS_IDLE;
                 IUResetSwitch(&MovementNSSP);
                 IUResetSwitch(&MovementWESP);
 
@@ -624,10 +625,9 @@ bool LX200Generic::Park()
             IDSetSwitch(&ParkSP, "Parking Failed.");
             return false;
         }
-
     }
 
-    ParkSP.s = IPS_BUSY;
+    ParkSP.s   = IPS_BUSY;
     TrackState = SCOPE_PARKING;
     IDMessage(getDeviceName(), "Parking telescope in progress...");
     return true;
@@ -646,7 +646,8 @@ bool LX200Generic::MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command)
                 return false;
             }
             else
-                DEBUGF(INDI::Logger::DBG_SESSION, "Moving toward %s.", (current_move == LX200_NORTH) ? "North" : "South");
+                DEBUGF(INDI::Logger::DBG_SESSION, "Moving toward %s.",
+                       (current_move == LX200_NORTH) ? "North" : "South");
             break;
 
         case MOTION_STOP:
@@ -656,7 +657,8 @@ bool LX200Generic::MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command)
                 return false;
             }
             else
-                DEBUGF(INDI::Logger::DBG_SESSION, "Movement toward %s halted.", (current_move == LX200_NORTH) ? "North" : "South");
+                DEBUGF(INDI::Logger::DBG_SESSION, "Movement toward %s halted.",
+                       (current_move == LX200_NORTH) ? "North" : "South");
             break;
     }
 
@@ -686,7 +688,8 @@ bool LX200Generic::MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command)
                 return false;
             }
             else
-                DEBUGF(INDI::Logger::DBG_SESSION, "Movement toward %s halted.", (current_move == LX200_WEST) ? "West" : "East");
+                DEBUGF(INDI::Logger::DBG_SESSION, "Movement toward %s halted.",
+                       (current_move == LX200_WEST) ? "West" : "East");
             break;
     }
 
@@ -703,7 +706,7 @@ bool LX200Generic::Abort()
 
     if (GuideNSNP.s == IPS_BUSY || GuideWENP.s == IPS_BUSY)
     {
-        GuideNSNP.s  = GuideWENP.s =  IPS_IDLE;
+        GuideNSNP.s = GuideWENP.s = IPS_IDLE;
         GuideNSN[0].value = GuideNSN[1].value = 0.0;
         GuideWEN[0].value = GuideWEN[1].value = 0.0;
 
@@ -729,7 +732,7 @@ bool LX200Generic::Abort()
     return true;
 }
 
-bool LX200Generic::updateTime(ln_date * utc, double utc_offset)
+bool LX200Generic::updateTime(ln_date *utc, double utc_offset)
 {
     struct ln_zonedate ltm;
 
@@ -740,7 +743,7 @@ bool LX200Generic::updateTime(ln_date * utc, double utc_offset)
 
     JD = ln_get_julian_day(utc);
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "New JD is %f", (float) JD);
+    DEBUGF(INDI::Logger::DBG_DEBUG, "New JD is %f", (float)JD);
 
     // Set Local Time
     if (setLocalTime(PortFD, ltm.hours, ltm.minutes, ltm.seconds) < 0)
@@ -787,19 +790,19 @@ bool LX200Generic::updateLocation(double latitude, double longitude, double elev
     }
 
     char l[32], L[32];
-    fs_sexa (l, latitude, 3, 3600);
-    fs_sexa (L, longitude, 4, 3600);
+    fs_sexa(l, latitude, 3, 3600);
+    fs_sexa(L, longitude, 4, 3600);
 
     IDMessage(getDeviceName(), "Site location updated to Lat %.32s - Long %.32s", l, L);
 
     return true;
 }
 
-bool LX200Generic::ISNewText (const char * dev, const char * name, char * texts[], char * names[], int n)
+bool LX200Generic::ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
 {
-    if(strcmp(dev, getDeviceName()) == 0)
+    if (strcmp(dev, getDeviceName()) == 0)
     {
-        if (!strcmp (name, SiteNameTP.name) )
+        if (!strcmp(name, SiteNameTP.name))
         {
             if (isSimulation() == false && setSiteName(PortFD, texts[0], currentSiteNum) < 0)
             {
@@ -809,25 +812,23 @@ bool LX200Generic::ISNewText (const char * dev, const char * name, char * texts[
             }
 
             SiteNameTP.s = IPS_OK;
-            IText * tp = IUFindText(&SiteNameTP, names[0]);
+            IText *tp    = IUFindText(&SiteNameTP, names[0]);
             IUSaveText(tp, texts[0]);
-            IDSetText(&SiteNameTP , "Site name updated");
+            IDSetText(&SiteNameTP, "Site name updated");
             return true;
         }
-
     }
 
     return INDI::Telescope::ISNewText(dev, name, texts, names, n);
 }
 
-bool LX200Generic::ISNewNumber (const char * dev, const char * name, double values[], char * names[], int n)
+bool LX200Generic::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
 {
-    if(strcmp(dev, getDeviceName()) == 0)
+    if (strcmp(dev, getDeviceName()) == 0)
     {
         // Update Frequency
-        if ( !strcmp (name, TrackingFreqNP.name) )
+        if (!strcmp(name, TrackingFreqNP.name))
         {
-
             DEBUGF(INDI::Logger::DBG_DEBUG, "Trying to set track freq of: %f\n", values[0]);
 
             if (isSimulation() == false && setTrackFreq(PortFD, values[0]) < 0)
@@ -837,13 +838,13 @@ bool LX200Generic::ISNewNumber (const char * dev, const char * name, double valu
                 return false;
             }
 
-            TrackingFreqNP.s = IPS_OK;
+            TrackingFreqNP.s           = IPS_OK;
             TrackingFreqNP.np[0].value = values[0];
             IDSetNumber(&TrackingFreqNP, "Tracking frequency set to %04.1f", values[0]);
 
             if (trackingMode != LX200_TRACK_MANUAL)
             {
-                trackingMode = LX200_TRACK_MANUAL;
+                trackingMode    = LX200_TRACK_MANUAL;
                 TrackModeS[0].s = ISS_OFF;
                 TrackModeS[1].s = ISS_OFF;
                 TrackModeS[2].s = ISS_OFF;
@@ -872,7 +873,6 @@ bool LX200Generic::ISNewNumber (const char * dev, const char * name, double valu
                 IDLog("Setting focus timer to %g\n", FocusTimerN[0].value);
 
             return true;
-
         }
 
         processGuiderProperties(name, values, names, n);
@@ -881,19 +881,17 @@ bool LX200Generic::ISNewNumber (const char * dev, const char * name, double valu
     //  if we didn't process it, continue up the chain, let somebody else
     //  give it a shot
     return INDI::Telescope::ISNewNumber(dev, name, values, names, n);
-
 }
 
-bool LX200Generic::ISNewSwitch (const char * dev, const char * name, ISState * states, char * names[], int n)
+bool LX200Generic::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
 {
     int index = 0;
 
-    if(strcmp(dev, getDeviceName()) == 0)
+    if (strcmp(dev, getDeviceName()) == 0)
     {
         // Alignment
-        if (!strcmp (name, AlignmentSP.name))
+        if (!strcmp(name, AlignmentSP.name))
         {
-
             if (IUUpdateSwitch(&AlignmentSP, states, names, n) < 0)
                 return false;
 
@@ -907,12 +905,12 @@ bool LX200Generic::ISNewSwitch (const char * dev, const char * name, ISState * s
             }
 
             AlignmentSP.s = IPS_OK;
-            IDSetSwitch (&AlignmentSP, nullptr);
+            IDSetSwitch(&AlignmentSP, nullptr);
             return true;
         }
 
         // Sites
-        if (!strcmp (name, SiteSP.name))
+        if (!strcmp(name, SiteSP.name))
         {
             if (IUUpdateSwitch(&SiteSP, states, names, n) < 0)
                 return false;
@@ -938,14 +936,14 @@ bool LX200Generic::ISNewSwitch (const char * dev, const char * name, ISState * s
 
             SiteNameTP.s = SiteSP.s = IPS_OK;
 
-            IDSetText   (&SiteNameTP, nullptr);
-            IDSetSwitch (&SiteSP, nullptr);
+            IDSetText(&SiteNameTP, nullptr);
+            IDSetSwitch(&SiteSP, nullptr);
 
             return false;
         }
 
         // Focus Motion
-        if (!strcmp (name, FocusMotionSP.name))
+        if (!strcmp(name, FocusMotionSP.name))
         {
             // If mode is "halt"
             if (FocusModeS[0].s == ISS_ON)
@@ -993,7 +991,7 @@ bool LX200Generic::ISNewSwitch (const char * dev, const char * name, ISState * s
         }
 
         // Tracking mode
-        if (!strcmp (name, TrackModeSP.name))
+        if (!strcmp(name, TrackModeSP.name))
         {
             IUResetSwitch(&TrackModeSP);
             IUUpdateSwitch(&TrackModeSP, states, names, n);
@@ -1019,7 +1017,7 @@ bool LX200Generic::ISNewSwitch (const char * dev, const char * name, ISState * s
         }
 
         // Focus speed
-        if (!strcmp (name, FocusModeSP.name))
+        if (!strcmp(name, FocusModeSP.name))
         {
             IUResetSwitch(&FocusModeSP);
             IUUpdateSwitch(&FocusModeSP, states, names, n);
@@ -1044,9 +1042,8 @@ bool LX200Generic::ISNewSwitch (const char * dev, const char * name, ISState * s
         }
 
         // Pulse-Guide command support
-        if (!strcmp (name, UsePulseCmdSP.name))
+        if (!strcmp(name, UsePulseCmdSP.name))
         {
-
             IUResetSwitch(&UsePulseCmdSP);
             IUUpdateSwitch(&UsePulseCmdSP, states, names, n);
 
@@ -1054,12 +1051,10 @@ bool LX200Generic::ISNewSwitch (const char * dev, const char * name, ISState * s
             IDSetSwitch(&UsePulseCmdSP, nullptr);
             return true;
         }
-
     }
 
     //  Nobody has claimed this, so pass it to the parent
     return INDI::Telescope::ISNewSwitch(dev, name, states, names, n);
-
 }
 
 bool LX200Generic::SetTrackMode(int mode)
@@ -1084,9 +1079,9 @@ bool LX200Generic::SetSlewRate(int index)
     return true;
 }
 
-void LX200Generic::updateFocusHelper(void * p)
+void LX200Generic::updateFocusHelper(void *p)
 {
-    ((LX200Generic *) p)->updateFocusTimer();
+    ((LX200Generic *)p)->updateFocusTimer();
 }
 
 void LX200Generic::updateFocusTimer()
@@ -1142,10 +1137,9 @@ void LX200Generic::updateFocusTimer()
         case IPS_ALERT:
             break;
     }
-
 }
 
-void LX200Generic::mountSim ()
+void LX200Generic::mountSim()
 {
     static struct timeval ltv;
     struct timeval tv;
@@ -1153,19 +1147,18 @@ void LX200Generic::mountSim ()
     int nlocked;
 
     /* update elapsed time since last poll, don't presume exactly POLLMS */
-    gettimeofday (&tv, nullptr);
+    gettimeofday(&tv, nullptr);
 
     if (ltv.tv_sec == 0 && ltv.tv_usec == 0)
         ltv = tv;
 
-    dt = tv.tv_sec - ltv.tv_sec + (tv.tv_usec - ltv.tv_usec) / 1e6;
+    dt  = tv.tv_sec - ltv.tv_sec + (tv.tv_usec - ltv.tv_usec) / 1e6;
     ltv = tv;
-    da = SLEWRATE * dt;
+    da  = SLEWRATE * dt;
 
     /* Process per current state. We check the state of EQUATORIAL_COORDS and act acoordingly */
     switch (TrackState)
     {
-
         case SCOPE_TRACKING:
             /* RA moves at sidereal, Dec stands still */
             currentRA += (SIDRATE * dt / 15.);
@@ -1205,9 +1198,7 @@ void LX200Generic::mountSim ()
                     TrackState = SCOPE_TRACKING;
                 else
                     SetParked(true);
-
             }
-
 
             break;
 
@@ -1216,8 +1207,6 @@ void LX200Generic::mountSim ()
     }
 
     NewRaDec(currentRA, currentDEC);
-
-
 }
 
 void LX200Generic::getBasicData()
@@ -1243,17 +1232,16 @@ void LX200Generic::getBasicData()
         if (getSiteName(PortFD, SiteNameT[0].text, currentSiteNum) < 0)
             IDMessage(getDeviceName(), "Failed to get site name from device");
         else
-            IDSetText   (&SiteNameTP, nullptr);
+            IDSetText(&SiteNameTP, nullptr);
 
         if (getTrackFreq(PortFD, &TrackFreqN[0].value) < 0)
             IDMessage(getDeviceName(), "Failed to get tracking frequency from device.");
         else
-            IDSetNumber (&TrackingFreqNP, nullptr);
+            IDSetNumber(&TrackingFreqNP, nullptr);
     }
 
     sendScopeLocation();
     sendScopeTime();
-
 }
 
 void LX200Generic::slewError(int slewCode)
@@ -1266,16 +1254,14 @@ void LX200Generic::slewError(int slewCode)
         IDSetNumber(&EqNP, "Object below the minimum elevation limit.");
     else
         IDSetNumber(&EqNP, "Slew failed.");
-
 }
 
 void LX200Generic::getAlignment()
 {
-
     signed char align = ACK(PortFD);
     if (align < 0)
     {
-        IDSetSwitch (&AlignmentSP, "Failed to get telescope alignment.");
+        IDSetSwitch(&AlignmentSP, "Failed to get telescope alignment.");
         return;
     }
 
@@ -1297,7 +1283,7 @@ void LX200Generic::getAlignment()
     }
 
     AlignmentSP.s = IPS_OK;
-    IDSetSwitch (&AlignmentSP, nullptr);
+    IDSetSwitch(&AlignmentSP, nullptr);
 }
 
 void LX200Generic::sendScopeTime()
@@ -1342,18 +1328,18 @@ void LX200Generic::sendScopeTime()
     }
 
     // Let's fill in the local time
-    ltm.tm_sec = s;
-    ltm.tm_min = m;
+    ltm.tm_sec  = s;
+    ltm.tm_min  = m;
     ltm.tm_hour = h;
     ltm.tm_mday = day;
-    ltm.tm_mon = month - 1;
+    ltm.tm_mon  = month - 1;
     ltm.tm_year = year - 1900;
 
     // Get time epoch
     time_epoch = mktime(&ltm);
 
     // Convert to TimeT
-    time_epoch -= (int) (atof(TimeT[1].text) * 3600.0);
+    time_epoch -= (int)(atof(TimeT[1].text) * 3600.0);
 
     // Get UTC (we're using localtime_r, but since we shifted time_epoch above by UTCOffset, we should be getting the real UTC time
     localtime_r(&time_epoch, &utm);
@@ -1364,7 +1350,7 @@ void LX200Generic::sendScopeTime()
 
     if (isDebug())
     {
-        IDLog("Telescope Local Time: %02d:%02d:%02d\n", h, m , s);
+        IDLog("Telescope Local Time: %02d:%02d:%02d\n", h, m, s);
         IDLog("Telescope UTC Time: %s\n", TimeT[0].text);
     }
 
@@ -1380,7 +1366,7 @@ void LX200Generic::sendScopeLocation()
     {
         LocationNP.np[0].value = 29.5;
         LocationNP.np[1].value = 48.0;
-        LocationNP.s = IPS_OK;
+        LocationNP.s           = IPS_OK;
         IDSetNumber(&LocationNP, nullptr);
         return;
     }
@@ -1405,8 +1391,10 @@ void LX200Generic::sendScopeLocation()
         IDMessage(getDeviceName(), "Failed to get site longitude from device.");
     else
     {
-        if (dd > 0) LocationNP.np[1].value = 360.0 - (dd + mm / 60.0);
-        else LocationNP.np[1].value = (dd - mm / 60.0) * -1.0;
+        if (dd > 0)
+            LocationNP.np[1].value = 360.0 - (dd + mm / 60.0);
+        else
+            LocationNP.np[1].value = (dd - mm / 60.0) * -1.0;
 
         if (isDebug())
         {
@@ -1415,7 +1403,7 @@ void LX200Generic::sendScopeLocation()
         }
     }
 
-    IDSetNumber (&LocationNP, nullptr);
+    IDSetNumber(&LocationNP, nullptr);
 }
 
 IPState LX200Generic::GuideNorth(float ms)
@@ -1436,7 +1424,6 @@ IPState LX200Generic::GuideNorth(float ms)
         int dir = IUFindOnSwitchIndex(&MovementNSSP);
 
         MoveNS(dir == 0 ? DIRECTION_NORTH : DIRECTION_SOUTH, MOTION_STOP);
-
     }
 
     if (GuideNSTID)
@@ -1467,7 +1454,7 @@ IPState LX200Generic::GuideNorth(float ms)
     SlewRateS[SLEW_GUIDE].s = ISS_ON;
     IDSetSwitch(&SlewRateSP, nullptr);
     guide_direction = LX200_NORTH;
-    GuideNSTID = IEAddTimer (ms, guideTimeoutHelper, this);
+    GuideNSTID      = IEAddTimer(ms, guideTimeoutHelper, this);
     return IPS_BUSY;
 }
 
@@ -1489,7 +1476,6 @@ IPState LX200Generic::GuideSouth(float ms)
         int dir = IUFindOnSwitchIndex(&MovementNSSP);
 
         MoveNS(dir == 0 ? DIRECTION_NORTH : DIRECTION_SOUTH, MOTION_STOP);
-
     }
 
     if (GuideNSTID)
@@ -1520,14 +1506,12 @@ IPState LX200Generic::GuideSouth(float ms)
     SlewRateS[SLEW_GUIDE].s = ISS_ON;
     IDSetSwitch(&SlewRateSP, nullptr);
     guide_direction = LX200_SOUTH;
-    GuideNSTID = IEAddTimer (ms, guideTimeoutHelper, this);
+    GuideNSTID      = IEAddTimer(ms, guideTimeoutHelper, this);
     return IPS_BUSY;
-
 }
 
 IPState LX200Generic::GuideEast(float ms)
 {
-
     int use_pulse_cmd;
 
     use_pulse_cmd = IUFindOnSwitchIndex(&UsePulseCmdSP);
@@ -1544,7 +1528,6 @@ IPState LX200Generic::GuideEast(float ms)
         int dir = IUFindOnSwitchIndex(&MovementWESP);
 
         MoveWE(dir == 0 ? DIRECTION_WEST : DIRECTION_EAST, MOTION_STOP);
-
     }
 
     if (GuideWETID)
@@ -1575,14 +1558,12 @@ IPState LX200Generic::GuideEast(float ms)
     SlewRateS[SLEW_GUIDE].s = ISS_ON;
     IDSetSwitch(&SlewRateSP, nullptr);
     guide_direction = LX200_EAST;
-    GuideWETID = IEAddTimer (ms, guideTimeoutHelper, this);
+    GuideWETID      = IEAddTimer(ms, guideTimeoutHelper, this);
     return IPS_BUSY;
-
 }
 
 IPState LX200Generic::GuideWest(float ms)
 {
-
     int use_pulse_cmd;
 
     use_pulse_cmd = IUFindOnSwitchIndex(&UsePulseCmdSP);
@@ -1629,12 +1610,11 @@ IPState LX200Generic::GuideWest(float ms)
     SlewRateS[SLEW_GUIDE].s = ISS_ON;
     IDSetSwitch(&SlewRateSP, nullptr);
     guide_direction = LX200_WEST;
-    GuideWETID = IEAddTimer (ms, guideTimeoutHelper, this);
+    GuideWETID      = IEAddTimer(ms, guideTimeoutHelper, this);
     return IPS_BUSY;
-
 }
 
-void LX200Generic::guideTimeoutHelper(void * p)
+void LX200Generic::guideTimeoutHelper(void *p)
 {
     ((LX200Generic *)p)->guideTimeout();
 }
@@ -1659,11 +1639,9 @@ void LX200Generic::guideTimeout()
         IDSetSwitch(&MovementWESP, nullptr);
         IERmTimer(GuideNSTID);
         IERmTimer(GuideWETID);
-
     }
-    else if (! use_pulse_cmd)
+    else if (!use_pulse_cmd)
     {
-
         if (guide_direction == LX200_NORTH || guide_direction == LX200_SOUTH)
         {
             MoveNS(guide_direction == LX200_NORTH ? DIRECTION_NORTH : DIRECTION_SOUTH, MOTION_STOP);
@@ -1698,17 +1676,16 @@ void LX200Generic::guideTimeout()
     {
         GuideNSNP.np[0].value = 0;
         GuideNSNP.np[1].value = 0;
-        GuideNSNP.s = IPS_IDLE;
-        GuideNSTID = 0;
+        GuideNSNP.s           = IPS_IDLE;
+        GuideNSTID            = 0;
         IDSetNumber(&GuideNSNP, nullptr);
     }
     if (guide_direction == LX200_WEST || guide_direction == LX200_EAST || guide_direction == -1)
     {
         GuideWENP.np[0].value = 0;
         GuideWENP.np[1].value = 0;
-        GuideWENP.s = IPS_IDLE;
-        GuideWETID = 0;
+        GuideWENP.s           = IPS_IDLE;
+        GuideWETID            = 0;
         IDSetNumber(&GuideWENP, nullptr);
     }
 }
-

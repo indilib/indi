@@ -32,26 +32,24 @@
 #include <string.h>
 #include <unistd.h>
 
-#define FIRMWARE_TAB   "Firmware data"
-#define MOUNT_TAB       "Mount"
+#define FIRMWARE_TAB "Firmware data"
+#define MOUNT_TAB    "Mount"
 
 /* Constructor */
 LX200AstroPhysics::LX200AstroPhysics() : LX200Generic()
 {
     timeUpdated = locationUpdated = false;
-    initStatus = MOUNTNOTINITIALIZED;
+    initStatus                    = MOUNTNOTINITIALIZED;
 
     //ctor
-    currentRA = get_local_sideral_time(0);
+    currentRA  = get_local_sideral_time(0);
     currentDEC = 90;
-
 }
 
-const char * LX200AstroPhysics::getDefaultName()
+const char *LX200AstroPhysics::getDefaultName()
 {
-    return (const char *) "AstroPhysics";
+    return (const char *)"AstroPhysics";
 }
-
 
 bool LX200AstroPhysics::initProperties()
 {
@@ -59,51 +57,59 @@ bool LX200AstroPhysics::initProperties()
 
     IUFillSwitch(&StartUpS[0], "COLD", "Cold", ISS_OFF);
     IUFillSwitch(&StartUpS[1], "WARM", "Warm", ISS_OFF);
-    IUFillSwitchVector(&StartUpSP, StartUpS, 2, getDeviceName(), "STARTUP", "Mount init.", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+    IUFillSwitchVector(&StartUpSP, StartUpS, 2, getDeviceName(), "STARTUP", "Mount init.", MAIN_CONTROL_TAB, IP_RW,
+                       ISR_1OFMANY, 0, IPS_IDLE);
 
     IUFillNumber(&HourangleCoordsN[0], "HA", "HA H:M:S", "%10.6m", 0., 24., 0., 0.);
     IUFillNumber(&HourangleCoordsN[1], "DEC", "Dec D:M:S", "%10.6m", -90.0, 90.0, 0., 0.);
-    IUFillNumberVector(&HourangleCoordsNP, HourangleCoordsN, 2, getDeviceName(), "HOURANGLE_COORD", "Hourangle Coords", MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE);
+    IUFillNumberVector(&HourangleCoordsNP, HourangleCoordsN, 2, getDeviceName(), "HOURANGLE_COORD", "Hourangle Coords",
+                       MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE);
 
-    IUFillNumber(&HorizontalCoordsN[0], "AZ", "Az D:M:S", "%10.6m", 0., 360., 0., 0. );
-    IUFillNumber(&HorizontalCoordsN[1], "ALT", "Alt D:M:S", "%10.6m", -90., 90., 0., 0. );
-    IUFillNumberVector(&HorizontalCoordsNP, HorizontalCoordsN, 2, getDeviceName(), "HORIZONTAL_COORD", "Horizontal Coords", MAIN_CONTROL_TAB, IP_RW, 120, IPS_IDLE);
+    IUFillNumber(&HorizontalCoordsN[0], "AZ", "Az D:M:S", "%10.6m", 0., 360., 0., 0.);
+    IUFillNumber(&HorizontalCoordsN[1], "ALT", "Alt D:M:S", "%10.6m", -90., 90., 0., 0.);
+    IUFillNumberVector(&HorizontalCoordsNP, HorizontalCoordsN, 2, getDeviceName(), "HORIZONTAL_COORD",
+                       "Horizontal Coords", MAIN_CONTROL_TAB, IP_RW, 120, IPS_IDLE);
 
-    IUFillSwitch(&SlewRateS[0], "12" , "12x" , ISS_OFF);
-    IUFillSwitch(&SlewRateS[1], "64" , "64x" , ISS_ON);
-    IUFillSwitch(&SlewRateS[2], "600" , "600x" , ISS_OFF);
-    IUFillSwitch(&SlewRateS[3], "1200" , "1200x" , ISS_OFF);
+    IUFillSwitch(&SlewRateS[0], "12", "12x", ISS_OFF);
+    IUFillSwitch(&SlewRateS[1], "64", "64x", ISS_ON);
+    IUFillSwitch(&SlewRateS[2], "600", "600x", ISS_OFF);
+    IUFillSwitch(&SlewRateS[3], "1200", "1200x", ISS_OFF);
 
-    IUFillSwitch(&SlewSpeedS[0], "1200" , "1200x" , ISS_ON);
-    IUFillSwitch(&SlewSpeedS[1], "900" , "900x" , ISS_OFF);
-    IUFillSwitch(&SlewSpeedS[2], "600" , "600x" , ISS_OFF);
-    IUFillSwitchVector(&SlewSpeedSP, SlewSpeedS, 3, getDeviceName(), "Slew Speed", "", MOTION_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+    IUFillSwitch(&SlewSpeedS[0], "1200", "1200x", ISS_ON);
+    IUFillSwitch(&SlewSpeedS[1], "900", "900x", ISS_OFF);
+    IUFillSwitch(&SlewSpeedS[2], "600", "600x", ISS_OFF);
+    IUFillSwitchVector(&SlewSpeedSP, SlewSpeedS, 3, getDeviceName(), "Slew Speed", "", MOTION_TAB, IP_RW, ISR_1OFMANY,
+                       0, IPS_IDLE);
 
-    IUFillSwitch(&SwapS[0], "NS" , "North/South" , ISS_OFF);
-    IUFillSwitch(&SwapS[1], "EW" , "East/West" , ISS_OFF);
-    IUFillSwitchVector(&SwapSP, SwapS, 2, getDeviceName(), "SWAP" , "Swap buttons", MOTION_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+    IUFillSwitch(&SwapS[0], "NS", "North/South", ISS_OFF);
+    IUFillSwitch(&SwapS[1], "EW", "East/West", ISS_OFF);
+    IUFillSwitchVector(&SwapSP, SwapS, 2, getDeviceName(), "SWAP", "Swap buttons", MOTION_TAB, IP_RW, ISR_1OFMANY, 0,
+                       IPS_IDLE);
 
-    IUFillSwitch(&SyncCMRS[0], ":CM#" , ":CM#" , ISS_ON);
-    IUFillSwitch(&SyncCMRS[1], ":CMR#" , ":CMR#" , ISS_OFF);
-    IUFillSwitchVector(&SyncCMRSP, SyncCMRS, 2, getDeviceName(), "SYNCCMR" , "Sync", MOTION_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+    IUFillSwitch(&SyncCMRS[0], ":CM#", ":CM#", ISS_ON);
+    IUFillSwitch(&SyncCMRS[1], ":CMR#", ":CMR#", ISS_OFF);
+    IUFillSwitchVector(&SyncCMRSP, SyncCMRS, 2, getDeviceName(), "SYNCCMR", "Sync", MOTION_TAB, IP_RW, ISR_1OFMANY, 0,
+                       IPS_IDLE);
 
     IUFillText(&VersionT[0], "Number", "", 0);
     IUFillTextVector(&VersionInfo, VersionT, 1, getDeviceName(), "Firmware Info", "", FIRMWARE_TAB, IP_RO, 0, IPS_IDLE);
 
     IUFillText(&DeclinationAxisT[0], "RELHA", "rel. to HA", "undefined");
-    IUFillTextVector(&DeclinationAxisTP, DeclinationAxisT, 1, getDeviceName(), "DECLINATIONAXIS", "Declination axis", MOUNT_TAB, IP_RO, 0, IPS_IDLE);
+    IUFillTextVector(&DeclinationAxisTP, DeclinationAxisT, 1, getDeviceName(), "DECLINATIONAXIS", "Declination axis",
+                     MOUNT_TAB, IP_RO, 0, IPS_IDLE);
 
     // Slew threshold
-    IUFillNumber(&SlewAccuracyN[0], "SlewRA",  "RA (arcmin)", "%10.6m",  0., 60., 1., 3.0);
+    IUFillNumber(&SlewAccuracyN[0], "SlewRA", "RA (arcmin)", "%10.6m", 0., 60., 1., 3.0);
     IUFillNumber(&SlewAccuracyN[1], "SlewDEC", "Dec (arcmin)", "%10.6m", 0., 60., 1., 3.0);
-    IUFillNumberVector(&SlewAccuracyNP, SlewAccuracyN, 2, getDeviceName(), "Slew Accuracy", "", MOUNT_TAB, IP_RW, 0, IPS_IDLE);
+    IUFillNumberVector(&SlewAccuracyNP, SlewAccuracyN, 2, getDeviceName(), "Slew Accuracy", "", MOUNT_TAB, IP_RW, 0,
+                       IPS_IDLE);
 
     SetParkDataType(PARK_AZ_ALT);
 
     return true;
 }
 
-void LX200AstroPhysics::ISGetProperties(const char * dev)
+void LX200AstroPhysics::ISGetProperties(const char *dev)
 {
     LX200Generic::ISGetProperties(dev);
 
@@ -115,10 +121,10 @@ void LX200AstroPhysics::ISGetProperties(const char * dev)
         //defineText(&DeclinationAxisTP);
 
         /* Motion group */
-        defineSwitch (&TrackModeSP);
-        defineSwitch (&SlewSpeedSP);
-        defineSwitch (&SwapSP);
-        defineSwitch (&SyncCMRSP);
+        defineSwitch(&TrackModeSP);
+        defineSwitch(&SlewSpeedSP);
+        defineSwitch(&SwapSP);
+        defineSwitch(&SyncCMRSP);
         defineNumber(&SlewAccuracyNP);
 
         DEBUG(INDI::Logger::DBG_SESSION, "Please initialize the mount before issuing any command.");
@@ -127,7 +133,6 @@ void LX200AstroPhysics::ISGetProperties(const char * dev)
 
 bool LX200AstroPhysics::updateProperties()
 {
-
     INDI::Telescope::updateProperties();
 
     if (isConnected())
@@ -138,10 +143,10 @@ bool LX200AstroPhysics::updateProperties()
         //defineText(&DeclinationAxisTP);
 
         /* Motion group */
-        defineSwitch (&TrackModeSP);
-        defineSwitch (&SlewSpeedSP);
-        defineSwitch (&SwapSP);
-        defineSwitch (&SyncCMRSP);
+        defineSwitch(&TrackModeSP);
+        defineSwitch(&SlewSpeedSP);
+        defineSwitch(&SwapSP);
+        defineSwitch(&SyncCMRSP);
         defineNumber(&SlewAccuracyNP);
 
         DEBUG(INDI::Logger::DBG_SESSION, "Please initialize the mount before issuing any command.");
@@ -161,24 +166,24 @@ bool LX200AstroPhysics::updateProperties()
     return true;
 }
 
-bool LX200AstroPhysics::ISNewSwitch (const char * dev, const char * name, ISState * states, char * names[], int n)
+bool LX200AstroPhysics::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
 {
     int err = 0;
 
     // ignore if not ours //
-    if (strcmp (getDeviceName(), dev))
+    if (strcmp(getDeviceName(), dev))
         return false;
 
     // ============================================================
     // Satisfy AP mount initialization, see AP key pad manual p. 76
     // ============================================================
-    if (!strcmp (name, StartUpSP.name))
+    if (!strcmp(name, StartUpSP.name))
     {
-        int switch_nr ;
+        int switch_nr;
 
-        IUUpdateSwitch(&StartUpSP, states, names, n) ;
+        IUUpdateSwitch(&StartUpSP, states, names, n);
 
-        if ( initStatus == MOUNTNOTINITIALIZED)
+        if (initStatus == MOUNTNOTINITIALIZED)
         {
             if (timeUpdated == false || locationUpdated == false)
             {
@@ -188,23 +193,22 @@ bool LX200AstroPhysics::ISNewSwitch (const char * dev, const char * name, ISStat
                 return false;
             }
 
-            if( StartUpSP.sp[0].s == ISS_ON) // do it only in case a power on (cold start)
+            if (StartUpSP.sp[0].s == ISS_ON) // do it only in case a power on (cold start)
             {
-
-                if( setBasicDataPart1() == false)
+                if (setBasicDataPart1() == false)
                 {
-                    StartUpSP.s = IPS_ALERT ;
-                    IDSetSwitch(&StartUpSP, "Cold mount initialization failed.") ;
-                    return false ;
+                    StartUpSP.s = IPS_ALERT;
+                    IDSetSwitch(&StartUpSP, "Cold mount initialization failed.");
+                    return false;
                 }
             }
 
             initStatus = MOUNTINITIALIZED;
 
             // Make sure that the mount is setup according to the properties
-            switch_nr =  IUFindOnSwitchIndex(&TrackModeSP);
+            switch_nr = IUFindOnSwitchIndex(&TrackModeSP);
 
-            if (isSimulation() == false && ( err = selectAPTrackingMode(PortFD, switch_nr) < 0) )
+            if (isSimulation() == false && (err = selectAPTrackingMode(PortFD, switch_nr) < 0))
             {
                 DEBUGF(INDI::Logger::DBG_ERROR, "StartUpSP: Error setting tracking mode (%d).", err);
                 return false;
@@ -217,7 +221,7 @@ bool LX200AstroPhysics::ISNewSwitch (const char * dev, const char * name, ISStat
 
             switch_nr = 3 - switch_nr;
 
-            if (isSimulation() == false && ( err = selectAPMoveToRate(PortFD, switch_nr) < 0) )
+            if (isSimulation() == false && (err = selectAPMoveToRate(PortFD, switch_nr) < 0))
             {
                 DEBUGF(INDI::Logger::DBG_ERROR, "StartUpSP: Error setting move to rate (%d).", err);
                 return false;
@@ -227,7 +231,7 @@ bool LX200AstroPhysics::ISNewSwitch (const char * dev, const char * name, ISStat
             IDSetSwitch(&SlewRateSP, nullptr);
 
             switch_nr = IUFindOnSwitchIndex(&SlewSpeedSP);
-            if (isSimulation() == false && ( err = selectAPSlewRate(PortFD, switch_nr) < 0) )
+            if (isSimulation() == false && (err = selectAPSlewRate(PortFD, switch_nr) < 0))
             {
                 DEBUGF(INDI::Logger::DBG_ERROR, "StartUpSP: Error setting slew rate (%d).", err);
                 return false;
@@ -235,24 +239,23 @@ bool LX200AstroPhysics::ISNewSwitch (const char * dev, const char * name, ISStat
             SlewSpeedSP.s = IPS_OK;
             IDSetSwitch(&SlewSpeedSP, nullptr);
 
-            StartUpSP.s = IPS_OK ;
-            IDSetSwitch(&StartUpSP, "Mount initialized.") ;
+            StartUpSP.s = IPS_OK;
+            IDSetSwitch(&StartUpSP, "Mount initialized.");
 
             if (isSimulation())
             {
-                currentRA = 0;
+                currentRA  = 0;
                 currentDEC = 90;
-
             }
             else
             {
-                getLX200RA( PortFD,  &currentRA);
+                getLX200RA(PortFD, &currentRA);
                 getLX200DEC(PortFD, &currentDEC);
             }
 
             // make a IDSet in order the dome controller is aware of the initial values
-            targetRA = currentRA ;
-            targetDEC = currentDEC ;
+            targetRA  = currentRA;
+            targetDEC = currentDEC;
 
             NewRaDec(currentRA, currentDEC);
 
@@ -263,13 +266,13 @@ bool LX200AstroPhysics::ISNewSwitch (const char * dev, const char * name, ISStat
             else
                 getAPVersionNumber(PortFD, VersionInfo.tp[0].text);
 
-            VersionInfo.s = IPS_OK ;
+            VersionInfo.s = IPS_OK;
             IDSetText(&VersionInfo, nullptr);
         }
         else
         {
-            StartUpSP.s = IPS_OK ;
-            IDSetSwitch(&StartUpSP, "Mount is already initialized.") ;
+            StartUpSP.s = IPS_OK;
+            IDSetSwitch(&StartUpSP, "Mount is already initialized.");
         }
         return true;
     }
@@ -277,14 +280,13 @@ bool LX200AstroPhysics::ISNewSwitch (const char * dev, const char * name, ISStat
     // =======================================
     // Tracking Mode
     // =======================================
-    if (!strcmp (name, TrackModeSP.name))
+    if (!strcmp(name, TrackModeSP.name))
     {
-
         IUResetSwitch(&TrackModeSP);
         IUUpdateSwitch(&TrackModeSP, states, names, n);
         trackingMode = IUFindOnSwitchIndex(&TrackModeSP);
 
-        if (isSimulation() == false && ( err = selectAPTrackingMode(PortFD, trackingMode) < 0) )
+        if (isSimulation() == false && (err = selectAPTrackingMode(PortFD, trackingMode) < 0))
         {
             DEBUGF(INDI::Logger::DBG_ERROR, "Error setting tracking mode (%d).", err);
             return false;
@@ -303,43 +305,42 @@ bool LX200AstroPhysics::ISNewSwitch (const char * dev, const char * name, ISStat
         return true;
     }
 
-
     // =======================================
     // Swap Buttons
     // =======================================
     if (!strcmp(name, SwapSP.name))
     {
-        int currentSwap ;
+        int currentSwap;
 
         IUResetSwitch(&SwapSP);
         IUUpdateSwitch(&SwapSP, states, names, n);
         currentSwap = IUFindOnSwitchIndex(&SwapSP);
 
-        if((isSimulation() == false && (err = swapAPButtons(PortFD, currentSwap)) < 0) )
+        if ((isSimulation() == false && (err = swapAPButtons(PortFD, currentSwap)) < 0))
         {
             DEBUGF(INDI::Logger::DBG_ERROR, "Error swapping buttons (%d).", err);
             return false;
         }
 
-        SwapS[0].s = ISS_OFF ;
-        SwapS[1].s = ISS_OFF ;
-        SwapSP.s = IPS_OK;
+        SwapS[0].s = ISS_OFF;
+        SwapS[1].s = ISS_OFF;
+        SwapSP.s   = IPS_OK;
         IDSetSwitch(&SwapSP, nullptr);
-        return true ;
+        return true;
     }
 
     // =======================================
     // Slew Mode
     // =======================================
-    if (!strcmp (name, SlewSpeedSP.name))
+    if (!strcmp(name, SlewSpeedSP.name))
     {
-        int slewRate ;
+        int slewRate;
 
         IUResetSwitch(&SlewSpeedSP);
         IUUpdateSwitch(&SlewSpeedSP, states, names, n);
         slewRate = IUFindOnSwitchIndex(&SlewSpeedSP);
 
-        if (isSimulation() == false && ( err = selectAPSlewRate(PortFD, slewRate) < 0) )
+        if (isSimulation() == false && (err = selectAPSlewRate(PortFD, slewRate) < 0))
         {
             DEBUGF(INDI::Logger::DBG_ERROR, "Error setting slew rate (%d).", err);
             return false;
@@ -363,18 +364,16 @@ bool LX200AstroPhysics::ISNewSwitch (const char * dev, const char * name, ISStat
         return true;
     }
 
-
-    return LX200Generic::ISNewSwitch (dev, name, states, names,  n);
+    return LX200Generic::ISNewSwitch(dev, name, states, names, n);
 }
 
 /**************************************************************************************
 **
 ***************************************************************************************/
-bool LX200AstroPhysics::ISNewNumber (const char * dev, const char * name, double values[], char * names[], int n)
+bool LX200AstroPhysics::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
 {
-    if (strcmp (getDeviceName(), dev))
+    if (strcmp(getDeviceName(), dev))
         return false;
-
 
     // Update slew precision limit
     if (!strcmp(name, SlewAccuracyNP.name))
@@ -389,8 +388,6 @@ bool LX200AstroPhysics::ISNewNumber (const char * dev, const char * name, double
 
         IDSetNumber(&SlewAccuracyNP, nullptr);
         return true;
-
-
     }
 
     return LX200Generic::ISNewNumber(dev, name, values, names, n);
@@ -412,7 +409,7 @@ bool LX200AstroPhysics::ReadScopeStatus()
         return true;
     }
 
-    if ( getLX200RA(PortFD, &currentRA) < 0 || getLX200DEC(PortFD, &currentDEC) < 0)
+    if (getLX200RA(PortFD, &currentRA) < 0 || getLX200DEC(PortFD, &currentDEC) < 0)
     {
         EqNP.s = IPS_ALERT;
         IDSetNumber(&EqNP, "Error reading RA/DEC.");
@@ -425,7 +422,7 @@ bool LX200AstroPhysics::ReadScopeStatus()
         double dy = targetDEC - currentDEC;
 
         // Wait until acknowledged or within threshold
-        if ( fabs(dx) <= (SlewAccuracyN[0].value / (900.0)) && fabs(dy) <= (SlewAccuracyN[1].value / 60.0))
+        if (fabs(dx) <= (SlewAccuracyN[0].value / (900.0)) && fabs(dy) <= (SlewAccuracyN[1].value / 60.0))
         {
             TrackState = SCOPE_TRACKING;
             DEBUG(INDI::Logger::DBG_SESSION, "Slew is complete. Tracking...");
@@ -434,7 +431,7 @@ bool LX200AstroPhysics::ReadScopeStatus()
     else if (TrackState == SCOPE_PARKING)
     {
         double currentAlt, currentAz;
-        if ( getLX200Az(PortFD, &currentAz) < 0 || getLX200Alt(PortFD, &currentAlt) < 0)
+        if (getLX200Az(PortFD, &currentAz) < 0 || getLX200Alt(PortFD, &currentAlt) < 0)
         {
             EqNP.s = IPS_ALERT;
             IDSetNumber(&EqNP, "Error reading Az/Alt.");
@@ -444,9 +441,11 @@ bool LX200AstroPhysics::ReadScopeStatus()
         double dx = GetAxis1Park() - currentAz;
         double dy = GetAxis2Park() - currentAlt;
 
-        DEBUGF(INDI::Logger::DBG_DEBUG, "Parking... targetAz: %g currentAz: %g dx: %g targetAlt: %g currentAlt: %g dy: %g", GetAxis1Park(),  currentAz, dx, GetAxis2Park(), currentAlt, dy);
+        DEBUGF(INDI::Logger::DBG_DEBUG,
+               "Parking... targetAz: %g currentAz: %g dx: %g targetAlt: %g currentAlt: %g dy: %g", GetAxis1Park(),
+               currentAz, dx, GetAxis2Park(), currentAlt, dy);
 
-        if ( fabs(dx) <= (SlewAccuracyN[0].value / (60.0)) && fabs(dy) <= (SlewAccuracyN[1].value / 60.0))
+        if (fabs(dx) <= (SlewAccuracyN[0].value / (60.0)) && fabs(dy) <= (SlewAccuracyN[1].value / 60.0))
         {
             DEBUG(INDI::Logger::DBG_DEBUG, "Parking slew is complete. Asking astrophysics mount to park...");
 
@@ -467,7 +466,7 @@ bool LX200AstroPhysics::ReadScopeStatus()
 
 bool LX200AstroPhysics::setBasicDataPart0()
 {
-    int err ;
+    int err;
     //struct ln_date utm;
     //struct ln_zonedate ltm;
 
@@ -477,22 +476,22 @@ bool LX200AstroPhysics::setBasicDataPart0()
         return true;
     }
 
-    if( (err = setAPClearBuffer( PortFD)) < 0)
+    if ((err = setAPClearBuffer(PortFD)) < 0)
     {
         DEBUGF(INDI::Logger::DBG_ERROR, "Error clearing the buffer (%d): %s", err, strerror(err));
         return false;
     }
 
-    if( (err = setAPLongFormat( PortFD)) < 0)
+    if ((err = setAPLongFormat(PortFD)) < 0)
     {
         DEBUGF(INDI::Logger::DBG_ERROR, "Error setting long format failed (%d): %s", err, strerror(err));
         return false;
     }
 
-    if( (err = setAPBackLashCompensation(PortFD, 0, 0, 0)) < 0)
+    if ((err = setAPBackLashCompensation(PortFD, 0, 0, 0)) < 0)
     {
         // It seems we need to send it twice before it works!
-        if( (err = setAPBackLashCompensation(PortFD, 0, 0, 0)) < 0)
+        if ((err = setAPBackLashCompensation(PortFD, 0, 0, 0)) < 0)
         {
             DEBUGF(INDI::Logger::DBG_ERROR, "Error setting back lash compensation (%d): %s.", err, strerror(err));
             return false;
@@ -526,18 +525,18 @@ bool LX200AstroPhysics::setBasicDataPart1()
     UnPark();
 
     // Stop
-    if(isSimulation() == false && (err = setAPMotionStop( PortFD)) < 0)
+    if (isSimulation() == false && (err = setAPMotionStop(PortFD)) < 0)
     {
-        DEBUGF(INDI::Logger::DBG_ERROR, "Stop motion (:Q#) failed, check the mount (%d): %s", strerror(err)) ;
+        DEBUGF(INDI::Logger::DBG_ERROR, "Stop motion (:Q#) failed, check the mount (%d): %s", strerror(err));
         return false;
     }
 
-    return true ;
+    return true;
 }
 
 bool LX200AstroPhysics::Goto(double r, double d)
 {
-    targetRA = r;
+    targetRA  = r;
     targetDEC = d;
     char RAStr[64], DecStr[64];
 
@@ -555,14 +554,14 @@ bool LX200AstroPhysics::Goto(double r, double d)
         }
 
         AbortSP.s = IPS_OK;
-        EqNP.s       = IPS_IDLE;
+        EqNP.s    = IPS_IDLE;
         IDSetSwitch(&AbortSP, "Slew aborted.");
         IDSetNumber(&EqNP, nullptr);
 
         if (MovementNSSP.s == IPS_BUSY || MovementWESP.s == IPS_BUSY)
         {
-            MovementNSSP.s  = MovementWESP.s =  IPS_IDLE;
-            EqNP.s       = IPS_IDLE;
+            MovementNSSP.s = MovementWESP.s = IPS_IDLE;
+            EqNP.s                          = IPS_IDLE;
             IUResetSwitch(&MovementNSSP);
             IUResetSwitch(&MovementWESP);
             IDSetSwitch(&MovementNSSP, nullptr);
@@ -589,12 +588,12 @@ bool LX200AstroPhysics::Goto(double r, double d)
             EqNP.s = IPS_ALERT;
             IDSetNumber(&EqNP, "Error Slewing to JNow RA %s - DEC %s\n", RAStr, DecStr);
             slewError(err);
-            return  false;
+            return false;
         }
     }
 
     TrackState = SCOPE_SLEWING;
-    EqNP.s    = IPS_BUSY;
+    EqNP.s     = IPS_BUSY;
 
     IDMessage(getDeviceName(), "Slewing to RA: %s - DEC: %s", RAStr, DecStr);
     return true;
@@ -604,7 +603,7 @@ bool LX200AstroPhysics::Handshake()
 {
     if (isSimulation())
     {
-        IDMessage (getDeviceName(), "Simulated Astrophysics is online. Retrieving basic data...");
+        IDMessage(getDeviceName(), "Simulated Astrophysics is online. Retrieving basic data...");
         return true;
     }
 
@@ -613,7 +612,7 @@ bool LX200AstroPhysics::Handshake()
 
 bool LX200AstroPhysics::Disconnect()
 {
-    timeUpdated = false;
+    timeUpdated     = false;
     locationUpdated = false;
 
     return LX200Generic::Disconnect();
@@ -628,8 +627,7 @@ bool LX200AstroPhysics::Sync(double ra, double dec)
     if (i == 0)
         return LX200Generic::Sync(ra, dec);
 
-    if (isSimulation() == false &&
-            (setObjectRA(PortFD, ra) < 0 || (setObjectDEC(PortFD, dec)) < 0))
+    if (isSimulation() == false && (setObjectRA(PortFD, ra) < 0 || (setObjectDEC(PortFD, dec)) < 0))
     {
         EqNP.s = IPS_ALERT;
         IDSetNumber(&EqNP, "Error setting RA/DEC. Unable to Sync.");
@@ -639,7 +637,7 @@ bool LX200AstroPhysics::Sync(double ra, double dec)
     if (isSimulation() == false && APSyncCMR(PortFD, syncString) < 0)
     {
         EqNP.s = IPS_ALERT;
-        IDSetNumber(&EqNP , "Synchronization failed.");
+        IDSetNumber(&EqNP, "Synchronization failed.");
         return false;
     }
 
@@ -651,14 +649,14 @@ bool LX200AstroPhysics::Sync(double ra, double dec)
     DEBUG(INDI::Logger::DBG_SESSION, "Synchronization successful.");
 
     TrackState = SCOPE_IDLE;
-    EqNP.s    = IPS_OK;
+    EqNP.s     = IPS_OK;
 
     NewRaDec(currentRA, currentDEC);
 
     return true;
 }
 
-bool LX200AstroPhysics::updateTime(ln_date * utc, double utc_offset)
+bool LX200AstroPhysics::updateTime(ln_date *utc, double utc_offset)
 {
     struct ln_zonedate ltm;
 
@@ -672,16 +670,17 @@ bool LX200AstroPhysics::updateTime(ln_date * utc, double utc_offset)
 
     JD = ln_get_julian_day(utc);
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "New JD is %f", (float) JD);
+    DEBUGF(INDI::Logger::DBG_DEBUG, "New JD is %f", (float)JD);
 
     // Set Local Time
-    if (setLocalTime(PortFD, ltm.hours, ltm.minutes, (int) ltm.seconds) < 0)
+    if (setLocalTime(PortFD, ltm.hours, ltm.minutes, (int)ltm.seconds) < 0)
     {
         DEBUG(INDI::Logger::DBG_ERROR, "Error setting local time.");
         return false;
     }
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "Set Local Time %02d:%02d:%02d is successful.", ltm.hours, ltm.minutes, (int) ltm.seconds);
+    DEBUGF(INDI::Logger::DBG_DEBUG, "Set Local Time %02d:%02d:%02d is successful.", ltm.hours, ltm.minutes,
+           (int)ltm.seconds);
 
     if (setCalenderDate(PortFD, ltm.days, ltm.months, ltm.years) < 0)
     {
@@ -729,8 +728,8 @@ bool LX200AstroPhysics::updateLocation(double latitude, double longitude, double
     }
 
     char l[32], L[32];
-    fs_sexa (l, latitude, 3, 3600);
-    fs_sexa (L, longitude, 4, 3600);
+    fs_sexa(l, latitude, 3, 3600);
+    fs_sexa(L, longitude, 4, 3600);
 
     IDMessage(getDeviceName(), "Site location updated to Lat %.32s - Long %.32s", l, L);
 
@@ -763,7 +762,6 @@ bool LX200AstroPhysics::SetSlewRate(int index)
     return true;
 }
 
-
 bool LX200AstroPhysics::Park()
 {
     if (initStatus = MOUNTNOTINITIALIZED)
@@ -792,10 +790,10 @@ bool LX200AstroPhysics::Park()
     {
         DEBUGF(INDI::Logger::DBG_ERROR, "Error Slewing to Az %s - Alt %s", AzStr, AltStr);
         slewError(err);
-        return  false;
+        return false;
     }
 
-    EqNP.s    = IPS_BUSY;
+    EqNP.s     = IPS_BUSY;
     TrackState = SCOPE_PARKING;
     DEBUG(INDI::Logger::DBG_SESSION, "Parking is in progress...");
 
@@ -832,7 +830,7 @@ bool LX200AstroPhysics::UnPark()
     char syncString[256];
     if (APSyncCM(PortFD, syncString) < 0)
     {
-        DEBUG(INDI::Logger::DBG_WARNING , "Sync failed.");
+        DEBUG(INDI::Logger::DBG_WARNING, "Sync failed.");
         return false;
     }
 
@@ -852,11 +850,11 @@ bool LX200AstroPhysics::SetCurrentPark()
         observer.lng -= 360;
 
     ln_equ_posn equatorialPos;
-    equatorialPos.ra   = currentRA * 15;
-    equatorialPos.dec  = currentDEC;
+    equatorialPos.ra  = currentRA * 15;
+    equatorialPos.dec = currentDEC;
     ln_get_hrz_from_equ(&equatorialPos, &observer, ln_get_julian_from_sys(), &horizontalPos);
 
-    double parkAZ  = horizontalPos.az - 180;
+    double parkAZ = horizontalPos.az - 180;
     if (parkAZ < 0)
         parkAZ += 360;
     double parkAlt = horizontalPos.alt;
@@ -865,7 +863,8 @@ bool LX200AstroPhysics::SetCurrentPark()
     fs_sexa(AzStr, parkAZ, 2, 3600);
     fs_sexa(AltStr, parkAlt, 2, 3600);
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "Setting current parking position to coordinates Az (%s) Alt (%s)...", AzStr, AltStr);
+    DEBUGF(INDI::Logger::DBG_DEBUG, "Setting current parking position to coordinates Az (%s) Alt (%s)...", AzStr,
+           AltStr);
 
     SetAxis1Park(parkAZ);
     SetAxis2Park(parkAlt);
@@ -883,5 +882,3 @@ bool LX200AstroPhysics::SetDefaultPark()
 
     return true;
 }
-
-

@@ -36,58 +36,58 @@ class TCP;
  *  Usually such properties may include port number, IP address, or any property necessarily to establish a
  *  connection to the device.
  */
-extern const char * COMMUNICATION_TAB;
+extern const char *COMMUNICATION_TAB;
 
 /**
  * @brief MAIN_CONTROL_TAB Where all the primary controls for the device are located.
  */
-extern const char * MAIN_CONTROL_TAB;
+extern const char *MAIN_CONTROL_TAB;
 
 /**
  * @brief MOTION_TAB Where all the motion control properties of the device are located.
  */
-extern const char * MOTION_TAB;
+extern const char *MOTION_TAB;
 
 /**
  * @brief DATETIME_TAB Where all date and time setting properties are located.
  */
-extern const char * DATETIME_TAB;
+extern const char *DATETIME_TAB;
 
 /**
  * @brief SITE_TAB Where all site information setting are located.
  */
-extern const char * SITE_TAB;
+extern const char *SITE_TAB;
 
 /**
  * @brief OPTIONS_TAB Where all the driver's options are located. Those may include auxiliary controls, driver
  * metadata, version information..etc.
  */
-extern const char * OPTIONS_TAB;
+extern const char *OPTIONS_TAB;
 
 /**
  * @brief FILTER_TAB Where all the properties for filter wheels are located.
  */
-extern const char * FILTER_TAB;
+extern const char *FILTER_TAB;
 
 /**
  * @brief FOCUS_TAB Where all the properties for focuser are located.
  */
-extern const char * FOCUS_TAB;
+extern const char *FOCUS_TAB;
 
 /**
  * @brief GUIDE_TAB Where all the properties for guiding are located.
  */
-extern const char * GUIDE_TAB;
+extern const char *GUIDE_TAB;
 
 /**
  * @brief ALIGNMENT_TAB Where all the properties for guiding are located.
  */
-extern const char * ALIGNMENT_TAB;
+extern const char *ALIGNMENT_TAB;
 
 /**
  * @brief INFO_TAB Where all the properties for general information are located.
  */
-extern const char * INFO_TAB;
+extern const char *INFO_TAB;
 
 /**
  * \class INDI::DefaultDevice
@@ -103,9 +103,7 @@ drivers directly as it is linked with main(). Virtual drivers cannot employ INDI
  */
 class INDI::DefaultDevice : public INDI::BaseDevice
 {
-
-public:
-
+  public:
     DefaultDevice();
     virtual ~DefaultDevice();
 
@@ -128,38 +126,36 @@ public:
                get registered and the driver will not be able to save configuration files.
          \param nvp The number vector property to be defined
     */
-    void defineNumber(INumberVectorProperty * nvp);
+    void defineNumber(INumberVectorProperty *nvp);
 
     /** \brief Define text vector to client & register it. Alternatively, IDDefText can be used but the property will not
                get registered and the driver will not be able to save configuration files.
          \param tvp The text vector property to be defined
     */
-    void defineText(ITextVectorProperty * tvp);
+    void defineText(ITextVectorProperty *tvp);
 
     /** \brief Define switch vector to client & register it. Alternatively, IDDefswitch can be used but the property will not
                get registered and the driver will not be able to save configuration files.
          \param svp The switch vector property to be defined
     */
-    void defineSwitch(ISwitchVectorProperty * svp);
+    void defineSwitch(ISwitchVectorProperty *svp);
 
     /** \brief Define light vector to client & register it. Alternatively, IDDeflight can be used but the property will not
                get registered and the driver will not be able to save configuration files.
          \param lvp The light vector property to be defined
     */
-    void defineLight(ILightVectorProperty * lvp);
+    void defineLight(ILightVectorProperty *lvp);
 
     /** \brief Define BLOB vector to client & register it. Alternatively, IDDefBLOB can be used but the property will not
                get registered and the driver will not be able to save configuration files.
          \param bvp The BLOB vector property to be defined
     */
-    void defineBLOB(IBLOBVectorProperty * bvp);
-
+    void defineBLOB(IBLOBVectorProperty *bvp);
 
     /** \brief Delete a property and unregister it. It will also be deleted from all clients.
         \param propertyName name of property to be deleted.
     */
-    virtual bool deleteProperty(const char * propertyName);
-
+    virtual bool deleteProperty(const char *propertyName);
 
     /** \brief Set connection switch status in the client.
       \param status If true, the driver will attempt to connect to the device (CONNECT=ON). If false, it will attempt
@@ -168,7 +164,7 @@ public:
       \param state State of CONNECTION properti, by default IPS_OK.
       \param msg A message to be sent along with connect/disconnect command, by default NULL.
     */
-    virtual void setConnected(bool status, IPState state = IPS_OK, const char * msg = NULL);
+    virtual void setConnected(bool status, IPState state = IPS_OK, const char *msg = NULL);
 
     /** \brief Set a timer to call the function TimerHit after ms milliseconds
         \param ms timer duration in milliseconds.
@@ -185,16 +181,10 @@ public:
     virtual void TimerHit();
 
     /** \return driver executable filename */
-    virtual const char * getDriverExec()
-    {
-        return me;
-    }
+    virtual const char *getDriverExec() { return me; }
 
     /** \return driver name */
-    virtual const char * getDriverName()
-    {
-        return getDefaultName();
-    }
+    virtual const char *getDriverName() { return getDefaultName(); }
 
     /** \brief Set driver version information to be defined in DRIVER_INFO property as vMajor.vMinor
      * \param vMajor major revision number
@@ -207,16 +197,10 @@ public:
     }
 
     /** \return Major driver version number. */
-    uint16_t getMajorVersion()
-    {
-        return majorVersion;
-    }
+    uint16_t getMajorVersion() { return majorVersion; }
 
     /** \return Minor driver version number. */
-    uint16_t getMinorVersion()
-    {
-        return minorVersion;
-    }
+    uint16_t getMinorVersion() { return minorVersion; }
 
     /** \brief define the driver's properties to the client.
      *  Usually, only a minimum set of properties are defined to the client in this function if the device is in disconnected state.
@@ -228,31 +212,32 @@ public:
       \param dev name of the device
       \note This function is called by the INDI framework, do not call it directly. See LX200 Generic driver for an example implementation
     */
-    virtual void ISGetProperties (const char * dev);
+    virtual void ISGetProperties(const char *dev);
 
     /** \brief Process the client newSwitch command
       \note This function is called by the INDI framework, do not call it directly.
       \returns True if any property was successfully processed, false otherwise.
     */
-    virtual bool ISNewSwitch (const char * dev, const char * name, ISState * states, char * names[], int n);
+    virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n);
 
     /** \brief Process the client newNumber command
       \note This function is called by the INDI framework, do not call it directly.
       \returns True if any property was successfully processed, false otherwise.
     */
-    virtual bool ISNewNumber (const char * dev, const char * name, double values[], char * names[], int n);
+    virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n);
 
     /** \brief Process the client newSwitch command
       \note This function is called by the INDI framework, do not call it directly.
       \returns True if any property was successfully processed, false otherwise.
     */
-    virtual bool ISNewText (const char * dev, const char * name, char * texts[], char * names[], int n);
+    virtual bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n);
 
     /** \brief Process the client newBLOB command
       \note This function is called by the INDI framework, do not call it directly.
       \returns True if any property was successfully processed, false otherwise.
     */
-    virtual bool ISNewBLOB (const char * dev, const char * name, int sizes[], int blobsizes[], char * blobs[], char * formats[], char * names[], int n)
+    virtual bool ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[],
+                           char *formats[], char *names[], int n)
     {
         return false;
     }
@@ -261,10 +246,7 @@ public:
       \note This function is called by the INDI framework, do not call it directly.
       \returns True if any property was successfully processed, false otherwise.
     */
-    virtual bool ISSnoopDevice (XMLEle * root)
-    {
-        return false;
-    }
+    virtual bool ISSnoopDevice(XMLEle *root) { return false; }
 
     /**
      * @return getInterface Return the interface declared by the driver.
@@ -277,8 +259,7 @@ public:
      */
     void setDriverInterface(uint16_t value);
 
-protected:
-
+  protected:
     /**
      * @brief setDynamicPropertiesBehavior controls handling of dynamic properties. Dyanmic properties are those generated from an external skeleton XML file
      * By default all properties, including dynamic properties, are defined to the client in ISGetProperties()
@@ -303,14 +284,14 @@ protected:
      *  \param property Name of property to load configuration for. If NULL, all properties in the configuration file are loaded which is the default behavior.
         \return True if successful, false otherwise.
     */
-    virtual bool loadConfig(bool silent = false, const char * property = NULL);
+    virtual bool loadConfig(bool silent = false, const char *property = NULL);
 
     /** \brief Save the current properties in a configuration file
      *  \param silent if true, don't report any error or notification messages.
      *  \param property Name of specific property to save while leaving all others properties in the file as is
         \return True if successful, false otherwise.
     */
-    virtual bool saveConfig(bool silent = false, const char * property = NULL);
+    virtual bool saveConfig(bool silent = false, const char *property = NULL);
 
     /**
      * @brief saveConfigItems Save specific properties in the provide config file handler. Child class usually override this function to save their own properties and the base class
@@ -318,14 +299,14 @@ protected:
      * @param fp Pointer to config file handler
      * @return True if successful, false otherwise.
      */
-    virtual bool saveConfigItems(FILE * fp);
+    virtual bool saveConfigItems(FILE *fp);
 
     /**
      * @brief saveAllConfigItems Save all the drivers' properties in the configuration file
      * @param fp pointer to config file handler
      * @return  True if successful, false otherwise.
      */
-    virtual bool saveAllConfigItems(FILE * fp);
+    virtual bool saveAllConfigItems(FILE *fp);
 
     /** \brief Load the default configuration file
         \return True if successful, false otherwise.
@@ -406,31 +387,27 @@ protected:
      * in ISGetProperties()
      * @param newConnection Pointer to new connection plugin
      */
-    void registerConnection(Connection::Interface * newConnection);
+    void registerConnection(Connection::Interface *newConnection);
 
     /**
      * @brief unRegisterConnection Remove connection from existing pool
      * @param existingConnection pointer to connection interface
      * @return True if connection is removed, false otherwise.
      */
-    bool unRegisterConnection(Connection::Interface * existingConnection);
+    bool unRegisterConnection(Connection::Interface *existingConnection);
 
     /**
      * @return Return actively selected connection plugin
      */
-    Connection::Interface * getActiveConnection()
-    {
-        return activeConnection;
-    }
+    Connection::Interface *getActiveConnection() { return activeConnection; }
 
     /** \return Default name of the device. */
-    virtual const char * getDefaultName() = 0;
+    virtual const char *getDefaultName() = 0;
 
     // Period in milliseconds to call TimerHit(). Default 1000 ms
     uint32_t updatePeriodMS = 1000;
 
-private:
-
+  private:
     bool isInit;
     bool pDebug;
     bool pSimulation;
@@ -453,11 +430,11 @@ private:
     ITextVectorProperty DriverInfoTP;
 
     // Connection modes
-    ISwitch * ConnectionModeS = NULL;
+    ISwitch *ConnectionModeS = NULL;
     ISwitchVectorProperty ConnectionModeSP;
 
     std::vector<Connection::Interface *> connections;
-    Connection::Interface * activeConnection = NULL;
+    Connection::Interface *activeConnection = NULL;
 
     // Connection Plugins
     friend class Connection::Serial;
