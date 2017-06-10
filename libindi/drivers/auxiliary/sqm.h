@@ -34,35 +34,32 @@ class TCP;
 
 class SQM : public INDI::DefaultDevice
 {
-    public:
+  public:
+    SQM();
+    virtual ~SQM();
 
-        SQM();
-        virtual ~SQM();
+    virtual bool initProperties();
+    virtual bool updateProperties();
 
-        virtual bool initProperties();
-        virtual bool updateProperties();
+  protected:
+    const char *getDefaultName();
+    void TimerHit();
 
-    protected:
+  private:
+    bool getReadings();
+    bool getDeviceInfo();
 
-        const char * getDefaultName();
-        void TimerHit();
+    // Readings
+    INumberVectorProperty AverageReadingNP;
+    INumber AverageReadingN[5];
 
-    private:
+    // Device Information
+    INumberVectorProperty UnitInfoNP;
+    INumber UnitInfoN[4];
 
-        bool getReadings();
-        bool getDeviceInfo();
+    Connection::TCP *tcpConnection = NULL;
 
-        // Readings
-        INumberVectorProperty AverageReadingNP;
-        INumber AverageReadingN[5];
-
-        // Device Information
-        INumberVectorProperty UnitInfoNP;
-        INumber UnitInfoN[4];
-
-        Connection::TCP * tcpConnection = NULL;
-
-        int PortFD = -1;
+    int PortFD = -1;
 };
 
 #endif

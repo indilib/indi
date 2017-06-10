@@ -28,106 +28,102 @@
 
 class IEQPro : public INDI::Telescope, public INDI::GuiderInterface
 {
-    public:
-        IEQPro();
-        ~IEQPro();
+  public:
+    IEQPro();
+    ~IEQPro();
 
-        virtual bool ISNewNumber (const char * dev, const char * name, double values[], char * names[], int n);
-        virtual bool ISNewSwitch (const char * dev, const char * name, ISState * states, char * names[], int n);
+    virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n);
+    virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n);
 
-    protected:
+  protected:
+    virtual const char *getDefaultName();
 
-        virtual const char * getDefaultName();
+    virtual bool Handshake();
 
-        virtual bool Handshake();
+    virtual bool initProperties();
+    virtual bool updateProperties();
 
-        virtual bool initProperties();
-        virtual bool updateProperties();
+    virtual bool ReadScopeStatus();
 
-        virtual bool ReadScopeStatus();
+    virtual bool MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command);
+    virtual bool MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command);
 
-        virtual bool MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command);
-        virtual bool MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command);
+    virtual bool saveConfigItems(FILE *fp);
 
-        virtual bool saveConfigItems(FILE * fp);
+    virtual bool Park();
+    virtual bool UnPark();
 
-        virtual bool Park();
-        virtual bool UnPark();
+    virtual bool Sync(double ra, double dec);
+    virtual bool Goto(double, double);
+    virtual bool Abort();
 
-        virtual bool Sync(double ra, double dec);
-        virtual bool Goto(double, double);
-        virtual bool Abort();
+    virtual bool updateTime(ln_date *utc, double utc_offset);
+    virtual bool updateLocation(double latitude, double longitude, double elevation);
 
-        virtual bool updateTime(ln_date * utc, double utc_offset);
-        virtual bool updateLocation(double latitude, double longitude, double elevation);
+    virtual void debugTriggered(bool enable);
+    virtual void simulationTriggered(bool enable);
 
-        virtual void debugTriggered(bool enable);
-        virtual void simulationTriggered(bool enable);
+    // Parking
+    virtual bool SetCurrentPark();
+    virtual bool SetDefaultPark();
 
-        // Parking
-        virtual bool SetCurrentPark();
-        virtual bool SetDefaultPark();
+    // Slew Rate
+    bool SetSlewRate(int index);
 
-        // Slew Rate
-        bool SetSlewRate(int index);
+    // Sim
+    void mountSim();
 
-        // Sim
-        void mountSim();
+    // Guide
+    virtual IPState GuideNorth(float ms);
+    virtual IPState GuideSouth(float ms);
+    virtual IPState GuideEast(float ms);
+    virtual IPState GuideWest(float ms);
 
-        // Guide
-        virtual IPState GuideNorth(float ms);
-        virtual IPState GuideSouth(float ms);
-        virtual IPState GuideEast(float ms);
-        virtual IPState GuideWest(float ms);
-
-    private:
-
-        /**
+  private:
+    /**
         * @brief getStartupData Get initial mount info on startup.
         */
-        void getStartupData();
+    void getStartupData();
 
-        /* Firmware */
-        IText   FirmwareT[5];
-        ITextVectorProperty FirmwareTP;
+    /* Firmware */
+    IText FirmwareT[5];
+    ITextVectorProperty FirmwareTP;
 
-        /* Tracking Mode */
-        ISwitchVectorProperty TrackModeSP;
-        ISwitch TrackModeS[4];
+    /* Tracking Mode */
+    ISwitchVectorProperty TrackModeSP;
+    ISwitch TrackModeS[4];
 
-        /* Custom Tracking Rate */
-        INumber CustomTrackRateN[1];
-        INumberVectorProperty CustomTrackRateNP;
+    /* Custom Tracking Rate */
+    INumber CustomTrackRateN[1];
+    INumberVectorProperty CustomTrackRateNP;
 
-        /* GPS Status */
-        ISwitch GPSStatusS[3];
-        ISwitchVectorProperty GPSStatusSP;
+    /* GPS Status */
+    ISwitch GPSStatusS[3];
+    ISwitchVectorProperty GPSStatusSP;
 
-        /* Time Source */
-        ISwitch TimeSourceS[3];
-        ISwitchVectorProperty TimeSourceSP;
+    /* Time Source */
+    ISwitch TimeSourceS[3];
+    ISwitchVectorProperty TimeSourceSP;
 
-        /* Hemisphere */
-        ISwitch HemisphereS[2];
-        ISwitchVectorProperty HemisphereSP;
+    /* Hemisphere */
+    ISwitch HemisphereS[2];
+    ISwitchVectorProperty HemisphereSP;
 
-        /* Home Control */
-        ISwitch HomeS[3];
-        ISwitchVectorProperty HomeSP;
+    /* Home Control */
+    ISwitch HomeS[3];
+    ISwitchVectorProperty HomeSP;
 
-        /* Guide Rate */
-        INumber GuideRateN[1];
-        INumberVectorProperty GuideRateNP;
+    /* Guide Rate */
+    INumber GuideRateN[1];
+    INumberVectorProperty GuideRateNP;
 
-        unsigned int DBG_SCOPE;
-        double currentRA, currentDEC;
-        double targetRA, targetDEC;
-        double parkRA, parkDEC;
+    unsigned int DBG_SCOPE;
+    double currentRA, currentDEC;
+    double targetRA, targetDEC;
+    double parkRA, parkDEC;
 
-        IEQInfo scopeInfo;
-        FirmwareInfo firmwareInfo;
-
+    IEQInfo scopeInfo;
+    FirmwareInfo firmwareInfo;
 };
 
 #endif
-

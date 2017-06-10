@@ -23,29 +23,30 @@
 // We declare an auto pointer to FilterSim.
 std::unique_ptr<FilterSim> filter_sim(new FilterSim());
 
-void ISPoll(void * p);
+void ISPoll(void *p);
 
-void ISGetProperties(const char * dev)
+void ISGetProperties(const char *dev)
 {
     filter_sim->ISGetProperties(dev);
 }
 
-void ISNewSwitch(const char * dev, const char * name, ISState * states, char * names[], int num)
+void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int num)
 {
     filter_sim->ISNewSwitch(dev, name, states, names, num);
 }
 
-void ISNewText(	const char * dev, const char * name, char * texts[], char * names[], int num)
+void ISNewText(const char *dev, const char *name, char *texts[], char *names[], int num)
 {
     filter_sim->ISNewText(dev, name, texts, names, num);
 }
 
-void ISNewNumber(const char * dev, const char * name, double values[], char * names[], int num)
+void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int num)
 {
     filter_sim->ISNewNumber(dev, name, values, names, num);
 }
 
-void ISNewBLOB (const char * dev, const char * name, int sizes[], int blobsizes[], char * blobs[], char * formats[], char * names[], int n)
+void ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[],
+               char *names[], int n)
 {
     INDI_UNUSED(dev);
     INDI_UNUSED(name);
@@ -56,7 +57,7 @@ void ISNewBLOB (const char * dev, const char * name, int sizes[], int blobsizes[
     INDI_UNUSED(names);
     INDI_UNUSED(n);
 }
-void ISSnoopDevice (XMLEle * root)
+void ISSnoopDevice(XMLEle *root)
 {
     filter_sim->ISSnoopDevice(root);
 }
@@ -71,14 +72,14 @@ FilterSim::~FilterSim()
     //dtor
 }
 
-const char * FilterSim::getDefaultName()
+const char *FilterSim::getDefaultName()
 {
     return (char *)"Filter Simulator";
 }
 
 bool FilterSim::Connect()
 {
-    CurrentFilter = 1;
+    CurrentFilter      = 1;
     FilterSlotN[0].min = 1;
     FilterSlotN[0].max = 8;
     return true;
@@ -101,13 +102,13 @@ void FilterSim::TimerHit()
     SelectFilterDone(CurrentFilter);
 }
 
-bool FilterSim::GetFilterNames(const char * groupName)
+bool FilterSim::GetFilterNames(const char *groupName)
 {
     char filterName[MAXINDINAME];
     char filterLabel[MAXINDILABEL];
     int MaxFilter = FilterSlotN[0].max;
 
-    const char * filterDesignation[8] = { "Red", "Green", "Blue", "H_Alpha", "SII", "OIII", "LPR", "Luminosity" };
+    const char *filterDesignation[8] = { "Red", "Green", "Blue", "H_Alpha", "SII", "OIII", "LPR", "Luminosity" };
 
     if (FilterNameT != nullptr)
         delete FilterNameT;
@@ -121,7 +122,8 @@ bool FilterSim::GetFilterNames(const char * groupName)
         IUFillText(&FilterNameT[i], filterName, filterLabel, filterDesignation[i]);
     }
 
-    IUFillTextVector(FilterNameTP, FilterNameT, MaxFilter, getDeviceName(), "FILTER_NAME", "Filter", groupName, IP_RW, 0, IPS_IDLE);
+    IUFillTextVector(FilterNameTP, FilterNameT, MaxFilter, getDeviceName(), "FILTER_NAME", "Filter", groupName, IP_RW,
+                     0, IPS_IDLE);
 
     return true;
 }

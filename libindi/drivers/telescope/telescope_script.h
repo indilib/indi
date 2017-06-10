@@ -24,39 +24,36 @@
 
 class ScopeScript : public INDI::Telescope
 {
-    public:
-        ScopeScript();
-        virtual ~ScopeScript();
+  public:
+    ScopeScript();
+    virtual ~ScopeScript();
 
-        virtual const char * getDefaultName();
-        virtual bool initProperties();
-        virtual bool saveConfigItems(FILE * fp);
+    virtual const char *getDefaultName();
+    virtual bool initProperties();
+    virtual bool saveConfigItems(FILE *fp);
 
-        void ISGetProperties(const char * dev);
-        bool ISNewText(const char * dev, const char * name, char * texts[], char * names[], int n);
-        virtual bool Connect();
-        virtual bool Disconnect();
-        virtual bool Handshake();
+    void ISGetProperties(const char *dev);
+    bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n);
+    virtual bool Connect();
+    virtual bool Disconnect();
+    virtual bool Handshake();
 
-    protected:
+  protected:
+    virtual bool MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command);
+    virtual bool MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command);
+    virtual bool Abort();
 
-        virtual bool MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command);
-        virtual bool MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command);
-        virtual bool Abort();
+    bool ReadScopeStatus();
+    bool Goto(double, double);
+    bool Sync(double ra, double dec);
+    bool Park();
+    bool UnPark();
 
-        bool ReadScopeStatus();
-        bool Goto(double, double);
-        bool Sync(double ra, double dec);
-        bool Park();
-        bool UnPark();
+  private:
+    bool RunScript(int script, ...);
 
-    private:
-
-        bool RunScript(int script, ...);
-
-        ITextVectorProperty ScriptsTP;
-        IText ScriptsT[15];
-
+    ITextVectorProperty ScriptsTP;
+    IText ScriptsT[15];
 };
 
 #endif // SCOPESCRIPT_H

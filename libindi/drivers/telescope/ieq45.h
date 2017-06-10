@@ -27,89 +27,89 @@
 
 class IEQ45Basic
 {
-    public:
-        IEQ45Basic();
-        ~IEQ45Basic();
+  public:
+    IEQ45Basic();
+    ~IEQ45Basic();
 
-        void ISGetProperties (const char * dev);
-        void ISNewNumber (const char * dev, const char * name, double values[], char * names[], int n);
-        void ISNewText (const char * dev, const char * name, char * texts[], char * names[], int n);
-        void ISNewSwitch (const char * dev, const char * name, ISState * states, char * names[], int n);
-        void ISPoll ();
+    void ISGetProperties(const char *dev);
+    void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n);
+    void ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n);
+    void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n);
+    void ISPoll();
 
-        void connection_lost();
-        void connection_resumed();
+    void connection_lost();
+    void connection_resumed();
 
-    private:
+  private:
+    enum IEQ45_STATUS
+    {
+        IEQ45_SLEW,
+        IEQ45_SYNC,
+        IEQ45_PARK
+    };
 
-        enum IEQ45_STATUS { IEQ45_SLEW, IEQ45_SYNC, IEQ45_PARK };
+    /* Switches */
+    ISwitch ConnectS[2];
+    ISwitch OnCoordSetS[2];
+    ISwitch TrackModeS[4];
+    ISwitch AbortSlewS[1];
 
-        /* Switches */
-        ISwitch ConnectS[2];
-        ISwitch OnCoordSetS[2];
-        ISwitch TrackModeS[4];
-        ISwitch AbortSlewS[1];
+    /* Texts */
+    IText PortT[1];
 
-        /* Texts */
-        IText PortT[1];
+    /* Numbers */
+    INumber EquatorialCoordsRN[2];
 
+    /* Switch Vectors */
+    ISwitchVectorProperty ConnectSP;
+    ISwitchVectorProperty OnCoordSetSP;
+    ISwitchVectorProperty TrackModeSP;
+    ISwitchVectorProperty AbortSlewSP;
 
-        /* Numbers */
-        INumber EquatorialCoordsRN[2];
+    /* Number Vectors */
+    INumberVectorProperty EquatorialCoordsRNP;
 
-        /* Switch Vectors */
-        ISwitchVectorProperty ConnectSP;
-        ISwitchVectorProperty OnCoordSetSP;
-        ISwitchVectorProperty TrackModeSP;
-        ISwitchVectorProperty AbortSlewSP;
+    /* Text Vectors */
+    ITextVectorProperty PortTP;
 
-        /* Number Vectors */
-        INumberVectorProperty EquatorialCoordsRNP;
-
-        /* Text Vectors */
-        ITextVectorProperty PortTP;
-
-
-        /*******************************************************/
-        /* Connection Routines
+    /*******************************************************/
+    /* Connection Routines
         ********************************************************/
-        void init_properties();
-        void get_initial_data();
-        void connect_telescope();
-        bool is_connected(void);
+    void init_properties();
+    void get_initial_data();
+    void connect_telescope();
+    bool is_connected(void);
 
-        /*******************************************************/
-        /* Misc routines
+    /*******************************************************/
+    /* Misc routines
         ********************************************************/
-        bool process_coords();
-        int get_switch_index(ISwitchVectorProperty * sp);
+    bool process_coords();
+    int get_switch_index(ISwitchVectorProperty *sp);
 
-        /*******************************************************/
-        /* Simulation Routines
+    /*******************************************************/
+    /* Simulation Routines
         ********************************************************/
-        void enable_simulation(bool enable);
+    void enable_simulation(bool enable);
 
-        /*******************************************************/
-        /* Error handling routines
+    /*******************************************************/
+    /* Error handling routines
         ********************************************************/
-        void slew_error(int slewCode);
-        void reset_all_properties();
-        void handle_error(INumberVectorProperty * nvp, int err, const char * msg);
-        void correct_fault();
+    void slew_error(int slewCode);
+    void reset_all_properties();
+    void handle_error(INumberVectorProperty *nvp, int err, const char *msg);
+    void correct_fault();
 
-    protected:
+  protected:
+    double JD; /* Julian Date */
+    double lastRA;
+    double lastDEC;
+    bool simulation;
+    bool fault;
+    int fd; /* Telescope tty file descriptor */
 
-        double JD;				/* Julian Date */
-        double lastRA;
-        double lastDEC;
-        bool   simulation;
-        bool   fault;
-        int    fd;				/* Telescope tty file descriptor */
-
-        int currentSet;
-        int lastSet;
-        double targetRA, targetDEC;
-
+    int currentSet;
+    int lastSet;
+    double targetRA, targetDEC;
 };
 
 #endif

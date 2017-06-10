@@ -17,7 +17,6 @@
 
 */
 
-
 /* 'Viewport' conversion routines. These functions convert from one colour
    space to another, taking into account that the source image has a smaller
    size than the view, and is placed inside the view:
@@ -43,7 +42,6 @@
    *dst		pointer at offset (!) in view
 */
 
-
 #ifndef VCVT_H
 #define VCVT_H
 
@@ -53,15 +51,14 @@ extern "C" {
 
 /* Functions in vcvt_i386.S/vcvt_c.c */
 /* 4:2:0 YUV interlaced to RGB/BGR */
-void vcvt_420i_bgr24(int width, int height, int plus, void * src, void * dst);
-void vcvt_420i_rgb24(int width, int height, int plus, void * src, void * dst);
-void vcvt_420i_bgr32(int width, int height, int plus, void * src, void * dst);
-void vcvt_420i_rgb32(int width, int height, int plus, void * src, void * dst);
-
+void vcvt_420i_bgr24(int width, int height, int plus, void *src, void *dst);
+void vcvt_420i_rgb24(int width, int height, int plus, void *src, void *dst);
+void vcvt_420i_bgr32(int width, int height, int plus, void *src, void *dst);
+void vcvt_420i_rgb32(int width, int height, int plus, void *src, void *dst);
 
 /* Go from 420i to other yuv formats */
-void vcvt_420i_420p(int width, int height, int plus, void * src, void * dsty, void * dstu, void * dstv);
-void vcvt_420i_yuyv(int width, int height, int plus, void * src, void * dst);
+void vcvt_420i_420p(int width, int height, int plus, void *src, void *dsty, void *dstu, void *dstv);
+void vcvt_420i_yuyv(int width, int height, int plus, void *src, void *dst);
 
 #if 0
 #endif

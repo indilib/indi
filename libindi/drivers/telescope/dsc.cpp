@@ -31,36 +31,37 @@
 
 #include <memory>
 
-#define DSC_TIMEOUT    2
-#define AXIS_TAB       "Axis Settings"
+#define DSC_TIMEOUT 2
+#define AXIS_TAB    "Axis Settings"
 
-#include <alignment/DriverCommon.h>   // For DBG_ALIGNMENT
+#include <alignment/DriverCommon.h> // For DBG_ALIGNMENT
 using namespace INDI::AlignmentSubsystem;
 
 // We declare an auto pointer to DSC.
 std::unique_ptr<DSC> dsc(new DSC());
 
-void ISGetProperties(const char * dev)
+void ISGetProperties(const char *dev)
 {
     dsc->ISGetProperties(dev);
 }
 
-void ISNewSwitch(const char * dev, const char * name, ISState * states, char * names[], int num)
+void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int num)
 {
     dsc->ISNewSwitch(dev, name, states, names, num);
 }
 
-void ISNewText(	const char * dev, const char * name, char * texts[], char * names[], int num)
+void ISNewText(const char *dev, const char *name, char *texts[], char *names[], int num)
 {
     dsc->ISNewText(dev, name, texts, names, num);
 }
 
-void ISNewNumber(const char * dev, const char * name, double values[], char * names[], int num)
+void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int num)
 {
     dsc->ISNewNumber(dev, name, values, names, num);
 }
 
-void ISNewBLOB (const char * dev, const char * name, int sizes[], int blobsizes[], char * blobs[], char * formats[], char * names[], int n)
+void ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[],
+               char *names[], int n)
 {
     INDI_UNUSED(dev);
     INDI_UNUSED(name);
@@ -71,7 +72,7 @@ void ISNewBLOB (const char * dev, const char * name, int sizes[], int blobsizes[
     INDI_UNUSED(names);
     INDI_UNUSED(n);
 }
-void ISSnoopDevice (XMLEle * root)
+void ISSnoopDevice(XMLEle *root)
 {
     dsc->ISSnoopDevice(root);
 }
@@ -85,7 +86,7 @@ DSC::~DSC()
 {
 }
 
-const char * DSC::getDefaultName()
+const char *DSC::getDefaultName()
 {
     return (char *)"Digital Setting Circle";
 }
@@ -99,26 +100,32 @@ bool DSC::initProperties()
     IUFillNumber(&EncoderN[AXIS2_ENCODER], "AXIS2_ENCODER", "Axis 2", "%0.f", 0, 1e6, 0, 0);
     IUFillNumber(&EncoderN[AXIS1_RAW_ENCODER], "AXIS1_RAW_ENCODER", "RAW Axis 1", "%0.f", -1e6, 1e6, 0, 0);
     IUFillNumber(&EncoderN[AXIS2_RAW_ENCODER], "AXIS2_RAW_ENCODER", "RAW Axis 2", "%0.f", -1e6, 1e6, 0, 0);
-    IUFillNumberVector(&EncoderNP, EncoderN, 4, getDeviceName(), "DCS_ENCODER", "Encoders", MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE);
+    IUFillNumberVector(&EncoderNP, EncoderN, 4, getDeviceName(), "DCS_ENCODER", "Encoders", MAIN_CONTROL_TAB, IP_RO, 0,
+                       IPS_IDLE);
 
     // Encoder Settings
     IUFillNumber(&AxisSettingsN[AXIS1_TICKS], "AXIS1_TICKS", "#1 ticks/rev", "%g", 256, 1e6, 0, 4096);
-    IUFillNumber(&AxisSettingsN[AXIS1_DEGREE_OFFSET], "AXIS1_DEGREE_OFFSET", "#1 Degrees Offset", "%g", -180, 180, 30, 0);
+    IUFillNumber(&AxisSettingsN[AXIS1_DEGREE_OFFSET], "AXIS1_DEGREE_OFFSET", "#1 Degrees Offset", "%g", -180, 180, 30,
+                 0);
     IUFillNumber(&AxisSettingsN[AXIS2_TICKS], "AXIS2_TICKS", "#2 ticks/rev", "%g", 256, 1e6, 0, 4096);
-    IUFillNumber(&AxisSettingsN[AXIS2_DEGREE_OFFSET], "AXIS2_DEGREE_OFFSET", "#2 Degrees Offset", "%g", -180, 180, 30, 0);
-    IUFillNumberVector(&AxisSettingsNP, AxisSettingsN, 4, getDeviceName(), "AXIS_SETTINGS", "Axis Resolution", AXIS_TAB, IP_RW, 0, IPS_IDLE);
+    IUFillNumber(&AxisSettingsN[AXIS2_DEGREE_OFFSET], "AXIS2_DEGREE_OFFSET", "#2 Degrees Offset", "%g", -180, 180, 30,
+                 0);
+    IUFillNumberVector(&AxisSettingsNP, AxisSettingsN, 4, getDeviceName(), "AXIS_SETTINGS", "Axis Resolution", AXIS_TAB,
+                       IP_RW, 0, IPS_IDLE);
 
     // Axis Range
     IUFillSwitch(&AxisRangeS[AXIS_FULL_STEP], "AXIS_FULL_STEP", "Full Step", ISS_ON);
     IUFillSwitch(&AxisRangeS[AXIS_HALF_STEP], "AXIS_HALF_STEP", "Half Step", ISS_OFF);
-    IUFillSwitchVector(&AxisRangeSP, AxisRangeS, 2, getDeviceName(), "AXIS_RANGE", "Axis Range", AXIS_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+    IUFillSwitchVector(&AxisRangeSP, AxisRangeS, 2, getDeviceName(), "AXIS_RANGE", "Axis Range", AXIS_TAB, IP_RW,
+                       ISR_1OFMANY, 0, IPS_IDLE);
 
     // Reverse Encoder Direction
     IUFillSwitch(&ReverseS[AXIS1_ENCODER], "AXIS1_REVERSE", "Axis 1", ISS_OFF);
     IUFillSwitch(&ReverseS[AXIS2_ENCODER], "AXIS2_REVERSE", "Axis 2", ISS_OFF);
-    IUFillSwitchVector(&ReverseSP, ReverseS, 2, getDeviceName(), "AXIS_REVERSE", "Reverse", AXIS_TAB, IP_RW, ISR_NOFMANY, 0, IPS_IDLE);
+    IUFillSwitchVector(&ReverseSP, ReverseS, 2, getDeviceName(), "AXIS_REVERSE", "Reverse", AXIS_TAB, IP_RW,
+                       ISR_NOFMANY, 0, IPS_IDLE);
 
-    // Offsets applied to raw encoder values to adjust them as necessary
+// Offsets applied to raw encoder values to adjust them as necessary
 #if 0
     IUFillNumber(&EncoderOffsetN[OFFSET_AXIS1_SCALE], "OFFSET_AXIS1_SCALE", "#1 Ticks Scale", "%g", 0, 1e6, 0, 1);
     IUFillNumber(&EncoderOffsetN[OFFSET_AXIS1_OFFSET], "OFFSET_AXIS1_OFFSET", "#1 Ticks Offset", "%g", -1e6, 1e6, 0, 0);
@@ -132,12 +139,14 @@ bool DSC::initProperties()
     // Mount Type
     IUFillSwitch(&MountTypeS[MOUNT_EQUATORIAL], "MOUNT_EQUATORIAL", "Equatorial", ISS_ON);
     IUFillSwitch(&MountTypeS[MOUNT_ALTAZ], "MOUNT_ALTAZ", "AltAz", ISS_OFF);
-    IUFillSwitchVector(&MountTypeSP, MountTypeS, 2, getDeviceName(), "MOUNT_TYPE", "Mount Type", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+    IUFillSwitchVector(&MountTypeSP, MountTypeS, 2, getDeviceName(), "MOUNT_TYPE", "Mount Type", MAIN_CONTROL_TAB,
+                       IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
     // Simulation encoder values
     IUFillNumber(&SimEncoderN[AXIS1_ENCODER], "AXIS1_ENCODER", "Axis 1", "%0.f", -1e6, 1e6, 0, 0);
     IUFillNumber(&SimEncoderN[AXIS2_ENCODER], "AXIS2_ENCODER", "Axis 2", "%0.f", -1e6, 1e6, 0, 0);
-    IUFillNumberVector(&SimEncoderNP, SimEncoderN, 2, getDeviceName(), "SIM_ENCODER", "Sim Encoders", MAIN_CONTROL_TAB, IP_RW, 0, IPS_IDLE);
+    IUFillNumberVector(&SimEncoderNP, SimEncoderN, 2, getDeviceName(), "SIM_ENCODER", "Sim Encoders", MAIN_CONTROL_TAB,
+                       IP_RW, 0, IPS_IDLE);
 
     addAuxControls();
 
@@ -180,7 +189,7 @@ bool DSC::updateProperties()
     return true;
 }
 
-bool DSC::saveConfigItems(FILE * fp)
+bool DSC::saveConfigItems(FILE *fp)
 {
     INDI::Telescope::saveConfigItems(fp);
 
@@ -193,18 +202,18 @@ bool DSC::saveConfigItems(FILE * fp)
     return true;
 }
 
-bool DSC::ISNewText (const char * dev, const char * name, char * texts[], char * names[], int n)
+bool DSC::ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
 {
     ProcessAlignmentTextProperties(this, name, texts, names, n);
 
     return INDI::Telescope::ISNewText(dev, name, texts, names, n);
 }
 
-bool DSC::ISNewNumber (const char * dev, const char * name, double values[], char * names[], int n)
+bool DSC::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
 {
-    if(strcmp(dev, getDeviceName()) == 0)
+    if (strcmp(dev, getDeviceName()) == 0)
     {
-        if(!strcmp(name, AxisSettingsNP.name))
+        if (!strcmp(name, AxisSettingsNP.name))
         {
             IUUpdateNumber(&AxisSettingsNP, values, names, n);
             AxisSettingsNP.s = IPS_OK;
@@ -220,7 +229,7 @@ bool DSC::ISNewNumber (const char * dev, const char * name, double values[], cha
             return true;
         }*/
 
-        if(!strcmp(name, SimEncoderNP.name))
+        if (!strcmp(name, SimEncoderNP.name))
         {
             IUUpdateNumber(&SimEncoderNP, values, names, n);
             SimEncoderNP.s = IPS_OK;
@@ -234,11 +243,11 @@ bool DSC::ISNewNumber (const char * dev, const char * name, double values[], cha
     return INDI::Telescope::ISNewNumber(dev, name, values, names, n);
 }
 
-bool DSC::ISNewSwitch (const char * dev, const char * name, ISState * states, char * names[], int n)
+bool DSC::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
 {
-    if(strcmp(dev, getDeviceName()) == 0)
+    if (strcmp(dev, getDeviceName()) == 0)
     {
-        if(!strcmp(name, ReverseSP.name))
+        if (!strcmp(name, ReverseSP.name))
         {
             IUUpdateSwitch(&ReverseSP, states, names, n);
             ReverseSP.s = IPS_OK;
@@ -246,7 +255,7 @@ bool DSC::ISNewSwitch (const char * dev, const char * name, ISState * states, ch
             return true;
         }
 
-        if(!strcmp(name, MountTypeSP.name))
+        if (!strcmp(name, MountTypeSP.name))
         {
             IUUpdateSwitch(&MountTypeSP, states, names, n);
             MountTypeSP.s = IPS_OK;
@@ -254,7 +263,7 @@ bool DSC::ISNewSwitch (const char * dev, const char * name, ISState * states, ch
             return true;
         }
 
-        if(!strcmp(name, AxisRangeSP.name))
+        if (!strcmp(name, AxisRangeSP.name))
         {
             IUUpdateSwitch(&AxisRangeSP, states, names, n);
             AxisRangeSP.s = IPS_OK;
@@ -265,7 +274,8 @@ bool DSC::ISNewSwitch (const char * dev, const char * name, ISState * states, ch
             }
             else
             {
-                DEBUGF(INDI::Logger::DBG_SESSION, "Axis range is from -%.f to %.f", AxisSettingsN[AXIS1_TICKS].value / 2, AxisSettingsN[AXIS1_TICKS].value / 2);
+                DEBUGF(INDI::Logger::DBG_SESSION, "Axis range is from -%.f to %.f",
+                       AxisSettingsN[AXIS1_TICKS].value / 2, AxisSettingsN[AXIS1_TICKS].value / 2);
             }
             IDSetSwitch(&AxisRangeSP, nullptr);
             return true;
@@ -287,7 +297,7 @@ bool DSC::ReadScopeStatus()
     // Send 'Q'
     char CR[1] = { 0x51 };
     // Response
-    char response[16] = {0};
+    char response[16] = { 0 };
     int rc = 0, nbytes_read = 0, nbytes_written = 0;
 
     DEBUGF(INDI::Logger::DBG_DEBUG, "CMD: %#02X", CR[0]);
@@ -300,7 +310,7 @@ bool DSC::ReadScopeStatus()
     {
         tcflush(PortFD, TCIFLUSH);
 
-        if ( (rc = tty_write(PortFD, CR, 1, &nbytes_written)) != TTY_OK)
+        if ((rc = tty_write(PortFD, CR, 1, &nbytes_written)) != TTY_OK)
         {
             char errmsg[256];
             tty_error_msg(rc, errmsg, 256);
@@ -308,9 +318,8 @@ bool DSC::ReadScopeStatus()
             return false;
         }
 
-
         // Read until we encounter a CR
-        if ( (rc = tty_read_section(PortFD, response, 0x0D, DSC_TIMEOUT, &nbytes_read)) != TTY_OK)
+        if ((rc = tty_read_section(PortFD, response, 0x0D, DSC_TIMEOUT, &nbytes_read)) != TTY_OK)
         {
             // if we read enough, let's try to process, otherwise throw error
             // 6 characters for each number
@@ -337,7 +346,7 @@ bool DSC::ReadScopeStatus()
     }
     else
     {
-        DEBUGF(INDI::Logger::DBG_ERROR, "Error processing response: %s", response );
+        DEBUGF(INDI::Logger::DBG_ERROR, "Error processing response: %s", response);
         EncoderNP.s = IPS_ALERT;
         IDSetNumber(&EncoderNP, nullptr);
         return false;
@@ -386,7 +395,7 @@ bool DSC::ReadScopeStatus()
 
     EncoderN[AXIS1_ENCODER].value = Axis1;
     EncoderN[AXIS2_ENCODER].value = Axis2;
-    EncoderNP.s = IPS_OK;
+    EncoderNP.s                   = IPS_OK;
     IDSetNumber(&EncoderNP, nullptr);
 
     double Axis1Degrees = (Axis1 / AxisSettingsN[AXIS1_TICKS].value * 360.0) + AxisSettingsN[AXIS1_DEGREE_OFFSET].value;
@@ -416,9 +425,9 @@ bool DSC::ReadScopeStatus()
     }
     else
     {
-        encoderHorizontalCoordinates.az  = Axis1Degrees;
+        encoderHorizontalCoordinates.az = Axis1Degrees;
         encoderHorizontalCoordinates.az += 180;
-        encoderHorizontalCoordinates.az  = range360(encoderHorizontalCoordinates.az);
+        encoderHorizontalCoordinates.az = range360(encoderHorizontalCoordinates.az);
 
         encoderHorizontalCoordinates.alt = Axis2Degrees;
 
@@ -437,8 +446,6 @@ bool DSC::ReadScopeStatus()
         //encoderEquatorialCoordinates.dec = rangeDec(encoderEquatorialCoordinates.dec);
     }
 
-
-
     //  Now feed the rest of the system with corrected data
     NewRaDec(eq.ra, eq.dec);
     return true;
@@ -453,18 +460,18 @@ bool DSC::Sync(double ra, double dec)
     if (MountTypeS[MOUNT_EQUATORIAL].s == ISS_ON)
     {
         double LST = get_local_sideral_time(observer.lng);
-        RaDec.ra = ((LST - encoderEquatorialCoordinates.ra) * 360.0) / 24.0;
-        RaDec.dec = encoderEquatorialCoordinates.dec;
+        RaDec.ra   = ((LST - encoderEquatorialCoordinates.ra) * 360.0) / 24.0;
+        RaDec.dec  = encoderEquatorialCoordinates.dec;
     }
     else
     {
-        AltAz.az = encoderHorizontalCoordinates.az;
+        AltAz.az  = encoderHorizontalCoordinates.az;
         AltAz.alt = encoderHorizontalCoordinates.alt;
     }
 
     NewEntry.ObservationJulianDate = ln_get_julian_from_sys();
-    NewEntry.RightAscension = ra;
-    NewEntry.Declination = dec;
+    NewEntry.RightAscension        = ra;
+    NewEntry.Declination           = dec;
 
     if (MountTypeS[MOUNT_EQUATORIAL].s == ISS_ON)
         NewEntry.TelescopeDirection = TelescopeDirectionVectorFromLocalHourAngleDeclination(RaDec);
@@ -473,8 +480,8 @@ bool DSC::Sync(double ra, double dec)
 
     NewEntry.PrivateDataSize = 0;
     DEBUGF(INDI::AlignmentSubsystem::DBG_ALIGNMENT, "New sync point Date %lf RA %lf DEC %lf TDV(x %lf y %lf z %lf)",
-           NewEntry.ObservationJulianDate, NewEntry.RightAscension, NewEntry.Declination,
-           NewEntry.TelescopeDirection.x, NewEntry.TelescopeDirection.y, NewEntry.TelescopeDirection.z);
+           NewEntry.ObservationJulianDate, NewEntry.RightAscension, NewEntry.Declination, NewEntry.TelescopeDirection.x,
+           NewEntry.TelescopeDirection.y, NewEntry.TelescopeDirection.z);
 
     if (!CheckForDuplicateSyncPoint(NewEntry))
     {
@@ -497,7 +504,7 @@ ln_equ_posn DSC::TelescopeEquatorialToSky()
     double RightAscension, Declination;
     ln_equ_posn eq;
 
-    if(GetAlignmentDatabase().size() > 1)
+    if (GetAlignmentDatabase().size() > 1)
     {
         TelescopeDirectionVector TDV;
 
@@ -506,15 +513,15 @@ ln_equ_posn DSC::TelescopeEquatorialToSky()
         lst = get_local_sideral_time(LocationN[LOCATION_LONGITUDE].value);
         lha = get_local_hour_angle(lst, encoderEquatorialCoordinates.ra);
         //  convert lha to degrees
-        lha = lha * 360 / 24;
-        eq.ra = lha;
+        lha    = lha * 360 / 24;
+        eq.ra  = lha;
         eq.dec = encoderEquatorialCoordinates.dec;
-        TDV = TelescopeDirectionVectorFromLocalHourAngleDeclination(eq);
+        TDV    = TelescopeDirectionVectorFromLocalHourAngleDeclination(eq);
 
-        if (!TransformTelescopeToCelestial( TDV, RightAscension, Declination))
+        if (!TransformTelescopeToCelestial(TDV, RightAscension, Declination))
         {
             RightAscension = encoderEquatorialCoordinates.ra;
-            Declination = encoderEquatorialCoordinates.dec;
+            Declination    = encoderEquatorialCoordinates.dec;
         }
     }
     else
@@ -522,10 +529,10 @@ ln_equ_posn DSC::TelescopeEquatorialToSky()
         //  With less than 2 align points
         // Just return raw data
         RightAscension = encoderEquatorialCoordinates.ra;
-        Declination = encoderEquatorialCoordinates.dec;
+        Declination    = encoderEquatorialCoordinates.dec;
     }
 
-    eq.ra = RightAscension;
+    eq.ra  = RightAscension;
     eq.dec = Declination;
     return eq;
 }
@@ -536,7 +543,7 @@ ln_equ_posn DSC::TelescopeHorizontalToSky()
     TelescopeDirectionVector TDV = TelescopeDirectionVectorFromAltitudeAzimuth(encoderHorizontalCoordinates);
 
     double RightAscension, Declination;
-    if (!TransformTelescopeToCelestial( TDV, RightAscension, Declination))
+    if (!TransformTelescopeToCelestial(TDV, RightAscension, Declination))
     {
         struct ln_equ_posn EquatorialCoordinates;
         TelescopeDirectionVector RotatedTDV(TDV);
@@ -564,10 +571,10 @@ ln_equ_posn DSC::TelescopeHorizontalToSky()
 
         // libnova works in decimal degrees
         RightAscension = EquatorialCoordinates.ra * 24.0 / 360.0;
-        Declination = EquatorialCoordinates.dec;
+        Declination    = EquatorialCoordinates.dec;
     }
 
-    eq.ra = RightAscension;
+    eq.ra  = RightAscension;
     eq.dec = Declination;
     return eq;
 }
@@ -578,11 +585,11 @@ bool DSC::updateLocation(double latitude, double longitude, double elevation)
 
     INDI_UNUSED(elevation);
     // JM: INDI Longitude is 0 to 360 increasing EAST. libnova East is Positive, West is negative
-    observer.lng =  longitude;
+    observer.lng = longitude;
 
     if (observer.lng > 180)
         observer.lng -= 360;
-    observer.lat =  latitude;
+    observer.lat = latitude;
 
     DEBUGF(INDI::Logger::DBG_SESSION, "Location updated: Longitude (%g) Latitude (%g)", observer.lng, observer.lat);
     return true;

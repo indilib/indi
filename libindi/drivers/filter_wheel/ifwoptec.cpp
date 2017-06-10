@@ -34,13 +34,14 @@ void ISInit()
         return;
 
     isInit = 1;
-    if(filter_ifw.get() == 0) filter_ifw.reset(new FilterIFW());
+    if (filter_ifw.get() == 0)
+        filter_ifw.reset(new FilterIFW());
 }
 
 /************************************************************************************
 *
 ************************************************************************************/
-void ISGetProperties(const char * dev)
+void ISGetProperties(const char *dev)
 {
     ISInit();
     filter_ifw->ISGetProperties(dev);
@@ -49,7 +50,7 @@ void ISGetProperties(const char * dev)
 /************************************************************************************
 *
 ************************************************************************************/
-void ISNewSwitch(const char * dev, const char * name, ISState * states, char * names[], int num)
+void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int num)
 {
     ISInit();
     filter_ifw->ISNewSwitch(dev, name, states, names, num);
@@ -58,7 +59,7 @@ void ISNewSwitch(const char * dev, const char * name, ISState * states, char * n
 /************************************************************************************
 *
 ************************************************************************************/
-void ISNewText(	const char * dev, const char * name, char * texts[], char * names[], int num)
+void ISNewText(const char *dev, const char *name, char *texts[], char *names[], int num)
 {
     ISInit();
     filter_ifw->ISNewText(dev, name, texts, names, num);
@@ -67,7 +68,7 @@ void ISNewText(	const char * dev, const char * name, char * texts[], char * name
 /************************************************************************************
 *
 ************************************************************************************/
-void ISNewNumber(const char * dev, const char * name, double values[], char * names[], int num)
+void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int num)
 {
     ISInit();
     filter_ifw->ISNewNumber(dev, name, values, names, num);
@@ -76,7 +77,8 @@ void ISNewNumber(const char * dev, const char * name, double values[], char * na
 /************************************************************************************
 *
 ************************************************************************************/
-void ISNewBLOB (const char * dev, const char * name, int sizes[], int blobsizes[], char * blobs[], char * formats[], char * names[], int n)
+void ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[],
+               char *names[], int n)
 {
     INDI_UNUSED(dev);
     INDI_UNUSED(name);
@@ -91,7 +93,7 @@ void ISNewBLOB (const char * dev, const char * name, int sizes[], int blobsizes[
 /************************************************************************************
 *
 ************************************************************************************/
-void ISSnoopDevice (XMLEle * root)
+void ISSnoopDevice(XMLEle *root)
 {
     filter_ifw->ISSnoopDevice(root);
 }
@@ -103,7 +105,7 @@ FilterIFW::FilterIFW()
 {
     //ctor
     setVersion(VERSION, SUBVERSION);
-    strcpy(filterSim, filterSim5);      // For simulation mode
+    strcpy(filterSim, filterSim5); // For simulation mode
 
     // Set communication to serail only and avoid driver crash at starting up
     setFilterConnection(CONNECTION_SERIAL);
@@ -124,7 +126,7 @@ FilterIFW::~FilterIFW()
 /************************************************************************************
 *
 ************************************************************************************/
-const char * FilterIFW::getDefaultName()
+const char *FilterIFW::getDefaultName()
 {
     return (char *)"Optec IFW";
 }
@@ -142,20 +144,23 @@ bool FilterIFW::initProperties()
 
     // Command
     IUFillSwitch(&HomeS[0], "HOME", "Home", ISS_OFF);
-    IUFillSwitchVector(&HomeSP, HomeS, 1, getDeviceName(), "HOME", "Home", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+    IUFillSwitchVector(&HomeSP, HomeS, 1, getDeviceName(), "HOME", "Home", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 0,
+                       IPS_IDLE);
 
     // Within simulation mode, provide possibilities to select the kind of filter wheel: 5 or 8 filters
     IUFillSwitch(&FilterNbrS[0], "VAL5", "5", ISS_ON);
     IUFillSwitch(&FilterNbrS[1], "VAL6", "6", ISS_OFF);
     IUFillSwitch(&FilterNbrS[2], "VAL8", "8", ISS_OFF);
     IUFillSwitch(&FilterNbrS[3], "VAL9", "9", ISS_OFF);
-    IUFillSwitchVector(&FilterNbrSP, FilterNbrS, 4, getDeviceName(), "FILTER_NBR", "Filter nbr", FILTER_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+    IUFillSwitchVector(&FilterNbrSP, FilterNbrS, 4, getDeviceName(), "FILTER_NBR", "Filter nbr", FILTER_TAB, IP_RW,
+                       ISR_1OFMANY, 0, IPS_IDLE);
 
     // User could choice to unrestrict chars set to set the filternames if he accepts to have crazy display name on IFW box
     // Within simulation mode, provide possibilities to select the kind of filter wheel: 5 or 8 filters
     IUFillSwitch(&CharSetS[0], "RES", "Restricted", ISS_ON);
     IUFillSwitch(&CharSetS[1], "UNRES", "All", ISS_OFF);
-    IUFillSwitchVector(&CharSetSP, CharSetS, 2, getDeviceName(), "CHARSET", "Chars allowed", FILTER_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+    IUFillSwitchVector(&CharSetSP, CharSetS, 2, getDeviceName(), "CHARSET", "Chars allowed", FILTER_TAB, IP_RW,
+                       ISR_1OFMANY, 0, IPS_IDLE);
 
     // Firmware of the IFW
     IUFillText(&FirmwareT[0], "FIRMWARE", "Firmware", "Unknown");
@@ -180,15 +185,16 @@ bool FilterIFW::updateProperties()
     {
         defineSwitch(&HomeSP);
         defineText(&FirmwareTP);
-        defineText(&WheelIDTP);		// ID of the wheel first in Filter tab page
+        defineText(&WheelIDTP); // ID of the wheel first in Filter tab page
         if (isSimulation())
-            defineSwitch(&FilterNbrSP);  // Then the button only for Simulation to select the number of filter of the Wheel (5 or 8)
+            defineSwitch(
+                &FilterNbrSP); // Then the button only for Simulation to select the number of filter of the Wheel (5 or 8)
         defineSwitch(&CharSetSP);
         defineNumber(&FilterSlotNP);
         controller->updateProperties();
 
-        GetFirmware();      // Try to get Firmware version of the IFW. NOt all Firmware support this function
-        moveHome();       // Initialisation of the physical IFW
+        GetFirmware(); // Try to get Firmware version of the IFW. NOt all Firmware support this function
+        moveHome();    // Initialisation of the physical IFW
     }
     else
     {
@@ -208,7 +214,7 @@ bool FilterIFW::updateProperties()
 /************************************************************************************
 *
 ************************************************************************************/
-bool FilterIFW::WriteTTY(char * command)
+bool FilterIFW::WriteTTY(char *command)
 {
     char cmd[OPTEC_MAXLEN_CMD];
     int errcode = 0;
@@ -233,7 +239,7 @@ bool FilterIFW::WriteTTY(char * command)
 /************************************************************************************
 *
 ************************************************************************************/
-bool FilterIFW::ReadTTY(char * resp, char * simulation, int timeout)
+bool FilterIFW::ReadTTY(char *resp, char *simulation, int timeout)
 {
     int errcode = 0;
     char errmsg[MAXRBUF];
@@ -249,7 +255,7 @@ bool FilterIFW::ReadTTY(char * resp, char * simulation, int timeout)
     }
     else
     {
-        if ((errcode = tty_read_section(PortFD, response, 0xd, timeout , &nbytes_read)) != TTY_OK)
+        if ((errcode = tty_read_section(PortFD, response, 0xd, timeout, &nbytes_read)) != TTY_OK)
         {
             tty_error_msg(errcode, errmsg, MAXRBUF);
             DEBUGF(INDI::Logger::DBG_ERROR, "%s() TTY error: %s", __FUNCTION__, "errmsg");
@@ -264,7 +270,7 @@ bool FilterIFW::ReadTTY(char * resp, char * simulation, int timeout)
         return false;
     }
 
-    response[nbytes_read - 2] = '\0';   //Remove control char from string (\n\r)
+    response[nbytes_read - 2] = '\0'; //Remove control char from string (\n\r)
     DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", response);
     strcpy(resp, response);
     return true;
@@ -284,7 +290,7 @@ bool FilterIFW::Handshake()
         return false;
     }
 
-    if (!ReadTTY(response, (char *) "!", OPTEC_TIMEOUT))
+    if (!ReadTTY(response, (char *)"!", OPTEC_TIMEOUT))
     {
         DEBUGF(INDI::Logger::DBG_ERROR, "(Function %s()) failed to read to TTY", __FUNCTION__);
         return false;
@@ -297,7 +303,7 @@ bool FilterIFW::Handshake()
         return false;
     }
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "Success, response from IFW is : %s" , response);
+    DEBUGF(INDI::Logger::DBG_DEBUG, "Success, response from IFW is : %s", response);
     DEBUG(INDI::Logger::DBG_SESSION, "IFW is online");
 
     return true;
@@ -312,13 +318,13 @@ bool FilterIFW::Disconnect()
     char response[OPTEC_MAXLEN_RESP + 1];
     memset(response, 0, sizeof(response));
 
-    if (!WriteTTY((char *) "WEXITS"))
+    if (!WriteTTY((char *)"WEXITS"))
     {
         DEBUGF(INDI::Logger::DBG_ERROR, "(Function %s()) failed to write to TTY", __FUNCTION__);
         return false;
     }
 
-    if (!ReadTTY(response, (char *) "END", OPTEC_TIMEOUT))
+    if (!ReadTTY(response, (char *)"END", OPTEC_TIMEOUT))
     {
         DEBUGF(INDI::Logger::DBG_ERROR, "(Function %s()) failed to read to TTY", __FUNCTION__);
         return false;
@@ -339,7 +345,7 @@ bool FilterIFW::Disconnect()
 /************************************************************************************
 *
 ************************************************************************************/
-bool FilterIFW::ISNewText (const char * dev, const char * name, char * texts[], char * names[], int n)
+bool FilterIFW::ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
 {
     if (!strcmp(dev, getDeviceName()))
     {
@@ -353,26 +359,28 @@ bool FilterIFW::ISNewText (const char * dev, const char * name, char * texts[], 
             //Check only if user allowed chars restriction
             if (CharSetS[0].s == ISS_ON)
             {
-                for(int i = 0; i < n; i++)
+                for (int i = 0; i < n; i++)
                 {
                     DEBUGF(INDI::Logger::DBG_DEBUG, "FilterName request N°%d : %s", i, texts[i]);
                     match = std::regex_match(texts[i], rx);
-                    if (!match) break;
+                    if (!match)
+                        break;
                 }
             }
 
             if (match)
             {
-                IUUpdateText (FilterNameTP, texts, names, n);
+                IUUpdateText(FilterNameTP, texts, names, n);
                 FilterNameTP->s = SetFilterNames() ? IPS_OK : IPS_ALERT;
-                IDSetText (FilterNameTP, nullptr);
+                IDSetText(FilterNameTP, nullptr);
             }
             else
             {
                 FilterNameTP->s = IPS_ALERT;
-                IDSetText (FilterNameTP, nullptr);
+                IDSetText(FilterNameTP, nullptr);
                 DEBUG(INDI::Logger::DBG_SESSION, "WARNING *****************************************************");
-                DEBUG(INDI::Logger::DBG_SESSION, "One of the filter name is not valid. It should not have more than 8 chars");
+                DEBUG(INDI::Logger::DBG_SESSION,
+                      "One of the filter name is not valid. It should not have more than 8 chars");
                 DEBUG(INDI::Logger::DBG_SESSION, "Valid chars are A to Z, 0 to 9 = . # / - percent or space");
                 DEBUG(INDI::Logger::DBG_SESSION, "WARNING *****************************************************");
                 return false;
@@ -386,9 +394,9 @@ bool FilterIFW::ISNewText (const char * dev, const char * name, char * texts[], 
 /************************************************************************************
 *
 ************************************************************************************/
-bool FilterIFW::ISNewSwitch (const char * dev, const char * name, ISState * states, char * names[], int n)
+bool FilterIFW::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
 {
-    if(!strcmp(dev, getDeviceName()))
+    if (!strcmp(dev, getDeviceName()))
     {
         if (!strcmp(HomeSP.name, name))
         {
@@ -404,16 +412,16 @@ bool FilterIFW::ISNewSwitch (const char * dev, const char * name, ISState * stat
             if (!moveHome())
             {
                 HomeSP.s = IPS_ALERT;
-                result = false;
+                result   = false;
             }
             else
             {
-                DEBUG(INDI::Logger::DBG_DEBUG, "Getting filter information..." );
+                DEBUG(INDI::Logger::DBG_DEBUG, "Getting filter information...");
 
                 if (!(GetFilterNames(FILTER_TAB) && GetFilterPos()))
                 {
                     HomeSP.s = IPS_ALERT;
-                    result = false;
+                    result   = false;
                 }
             }
 
@@ -455,7 +463,8 @@ bool FilterIFW::ISNewSwitch (const char * dev, const char * name, ISState * stat
                 strcpy(filterSim, filterSim9);
                 FilterNbrSP.s = (GetFilterNames(FILTER_TAB) && GetFilterPos()) ? IPS_OK : IPS_ALERT;
             }
-            else FilterNbrSP.s = IPS_OK;
+            else
+                FilterNbrSP.s = IPS_OK;
 
             if (FilterNbrSP.s == IPS_ALERT)
             {
@@ -559,7 +568,7 @@ bool FilterIFW::SelectFilter(int f)
             actualSimFilter = f;
         }
 
-        if (!ReadTTY(response, (char *) "*", OPTEC_TIMEOUT_MOVE))
+        if (!ReadTTY(response, (char *)"*", OPTEC_TIMEOUT_MOVE))
         {
             DEBUGF(INDI::Logger::DBG_ERROR, "(Function %s()) failed to read to TTY", __FUNCTION__);
             result = false;
@@ -590,24 +599,24 @@ bool FilterIFW::SelectFilter(int f)
 /************************************************************************************
 *
 ************************************************************************************/
-bool FilterIFW::GetFilterNames(const char * groupName)
+bool FilterIFW::GetFilterNames(const char *groupName)
 {
     DEBUGTAG();
     bool result = true;
     char filterName[MAXINDINAME];
     char filterLabel[MAXINDILABEL];
-    char filterList[OPTEC_MAXLEN_NAMES + 9];  // tempo string used fo display filtername debug information
+    char filterList[OPTEC_MAXLEN_NAMES + 9]; // tempo string used fo display filtername debug information
     char response[OPTEC_MAXLEN_RESP + 1];
     int lenResponse = 0; // Nbr of char in the response string
-    int maxFilter = 0;
-    bool changed;   // Use to store if filters number have changed
+    int maxFilter   = 0;
+    bool changed; // Use to store if filters number have changed
 
     memset(response, 0, sizeof(response));
 
     FilterNameTP->s = IPS_BUSY;
     IDSetText(FilterNameTP, nullptr);
 
-    if (!WriteTTY((char *) "WREAD"))
+    if (!WriteTTY((char *)"WREAD"))
     {
         DEBUGF(INDI::Logger::DBG_ERROR, "(Function %s()) failed to write to TTY", __FUNCTION__);
         result = false;
@@ -625,20 +634,20 @@ bool FilterIFW::GetFilterNames(const char * groupName)
 
         switch (lenResponse)
         {
-            case 40 :
+            case 40:
                 maxFilter = 5;
                 break;
-            case 48 :
+            case 48:
                 maxFilter = 6;
                 break;
-            case 64 :
+            case 64:
                 maxFilter = 8;
                 break;
-            case 72 :
+            case 72:
                 maxFilter = 9;
                 break;
-            default :
-                maxFilter = 0;  // Means error somewhere
+            default:
+                maxFilter = 0; // Means error somewhere
         }
 
         DEBUGF(INDI::Logger::DBG_DEBUG, "Length of response %d", lenResponse);
@@ -648,7 +657,7 @@ bool FilterIFW::GetFilterNames(const char * groupName)
             DEBUGF(INDI::Logger::DBG_DEBUG, "Success, response from IFW is : %s", response);
 
             // Start parsing from IFW message
-            char * p = response;
+            char *p = response;
             char filterNameIFW[OPTEC_MAX_FILTER][9];
             filterList[0] = '\0';
 
@@ -656,7 +665,7 @@ bool FilterIFW::GetFilterNames(const char * groupName)
             {
                 strncpy(filterNameIFW[i], p, OPTEC_LEN_FLTNAME);
                 filterNameIFW[i][OPTEC_LEN_FLTNAME] = '\0';
-                p = p + OPTEC_LEN_FLTNAME;
+                p                                   = p + OPTEC_LEN_FLTNAME;
                 DEBUGF(INDI::Logger::DBG_DEBUG, "filterNameIFW[%d] : %s", i, filterNameIFW[i]);
                 strncat(filterList, filterNameIFW[i], OPTEC_LEN_FLTNAME);
                 strncat(filterList, "/", 1);
@@ -684,16 +693,17 @@ bool FilterIFW::GetFilterNames(const char * groupName)
                 IUFillText(&FilterNameT[i], filterName, filterLabel, filterNameIFW[i]);
             }
 
-            IUFillTextVector(FilterNameTP, FilterNameT, maxFilter, getDeviceName(), "FILTER_NAME", "Filters", groupName, IP_RW, 0, IPS_OK);
+            IUFillTextVector(FilterNameTP, FilterNameT, maxFilter, getDeviceName(), "FILTER_NAME", "Filters", groupName,
+                             IP_RW, 0, IPS_OK);
             defineText(FilterNameTP);
 
             // filterList only use for purpose information
             // Remove space from filterList
-            char * withSpace = filterList;
-            char * withoutSpace = filterList;
-            while(*withSpace != '\0')
+            char *withSpace    = filterList;
+            char *withoutSpace = filterList;
+            while (*withSpace != '\0')
             {
-                if(*withSpace != ' ')
+                if (*withSpace != ' ')
                 {
                     *withoutSpace = *withSpace;
                     withoutSpace++;
@@ -743,7 +753,7 @@ bool FilterIFW::SetFilterNames()
         if (tempolen > OPTEC_LEN_FLTNAME)
             tempolen = OPTEC_LEN_FLTNAME;
         //memcpy(tempo + (8 - tempolen), FilterNameT[i].text, tempolen);    // spaces at begin of name
-        memcpy(tempo, FilterNameT[i].text, tempolen);   // spaces at the end of name
+        memcpy(tempo, FilterNameT[i].text, tempolen); // spaces at the end of name
         tempo[8] = '\0';
         strcat(cmd, tempo);
         strncpy(FilterNameT[i].text, tempo, OPTEC_LEN_FLTNAME);
@@ -826,14 +836,14 @@ bool FilterIFW::GetWheelID()
     WheelIDTP.s = IPS_BUSY;
     IDSetText(&WheelIDTP, nullptr);
 
-    if (!WriteTTY((char *) "WIDENT"))
+    if (!WriteTTY((char *)"WIDENT"))
     {
         DEBUGF(INDI::Logger::DBG_ERROR, "(Function %s()) failed to write to TTY", __FUNCTION__);
         result = false;
     }
     else
     {
-        if (!ReadTTY(response, (char *) "C", OPTEC_TIMEOUT))
+        if (!ReadTTY(response, (char *)"C", OPTEC_TIMEOUT))
         {
             DEBUGF(INDI::Logger::DBG_ERROR, "(Function %s()) failed to read to TTY", __FUNCTION__);
             result = false;
@@ -874,7 +884,7 @@ int FilterIFW::GetFilterPos()
     FilterSlotNP.s = IPS_BUSY;
     IDSetNumber(&FilterSlotNP, nullptr);
 
-    if (!WriteTTY((char *) "WFILTR"))
+    if (!WriteTTY((char *)"WFILTR"))
     {
         DEBUGF(INDI::Logger::DBG_ERROR, "(Function %s()) failed to write to TTY", __FUNCTION__);
         result = -1;
@@ -898,9 +908,9 @@ int FilterIFW::GetFilterPos()
         return result;
     }
 
-    result = atoi(response);
+    result               = atoi(response);
     FilterSlotN[0].value = result;
-    FilterSlotNP.s = IPS_OK;
+    FilterSlotNP.s       = IPS_OK;
     IDSetNumber(&FilterSlotNP, "IFW filter active is n° %s -> %s", response, FilterNameT[result - 1].text);
     return result;
 }
@@ -921,7 +931,7 @@ bool FilterIFW::moveHome()
     IDSetText(&WheelIDTP, nullptr);
     IDSetNumber(&FilterSlotNP, nullptr);
 
-    if (!WriteTTY((char *) "WHOME"))
+    if (!WriteTTY((char *)"WHOME"))
     {
         DEBUGF(INDI::Logger::DBG_ERROR, "(Function %s()) failed to write to TTY", __FUNCTION__);
         result = false;
@@ -929,7 +939,7 @@ bool FilterIFW::moveHome()
     else
     {
         if (isSimulation())
-            sleep(10);          // About the same time as real filter
+            sleep(10); // About the same time as real filter
 
         if (!ReadTTY(response, (char *)"A", OPTEC_TIMEOUT_WHOME))
         {
@@ -938,7 +948,6 @@ bool FilterIFW::moveHome()
         }
         else
         {
-
             if (!strncmp(response, "ER=", 3))
             {
                 DEBUGF(INDI::Logger::DBG_SESSION, "Move to Home error: %s", response);
@@ -974,14 +983,14 @@ bool FilterIFW::GetFirmware()
     FirmwareTP.s = IPS_BUSY;
     IDSetText(&FirmwareTP, nullptr);
 
-    if (!WriteTTY((char *) "WVAAAA"))
+    if (!WriteTTY((char *)"WVAAAA"))
     {
         DEBUGF(INDI::Logger::DBG_ERROR, "(Function %s()) failed to write to TTY", __FUNCTION__);
         result = false;
     }
     else
     {
-        if (!ReadTTY(response, (char *) "V= 2.04", OPTEC_TIMEOUT_FIRMWARE))
+        if (!ReadTTY(response, (char *)"V= 2.04", OPTEC_TIMEOUT_FIRMWARE))
         {
             DEBUGF(INDI::Logger::DBG_ERROR, "(Function %s()) failed to read to TTY", __FUNCTION__);
             result = false;
@@ -1001,7 +1010,7 @@ bool FilterIFW::GetFirmware()
     }
 
     // remove chars fomr the string to get only the nzuméric value of the Firmware version
-    char * p = nullptr;
+    char *p = nullptr;
     for (int i = 0; i < strlen(response); i++)
     {
         if (isdigit(response[i]))
@@ -1021,7 +1030,7 @@ bool FilterIFW::GetFirmware()
 /************************************************************************************
 *
 ************************************************************************************/
-bool FilterIFW::saveConfigItems(FILE * fp)
+bool FilterIFW::saveConfigItems(FILE *fp)
 {
     INDI::FilterWheel::saveConfigItems(fp);
 
@@ -1034,7 +1043,7 @@ bool FilterIFW::saveConfigItems(FILE * fp)
 /************************************************************************************
 *
 ************************************************************************************/
-bool FilterIFW::loadConfig(bool silent, const char * property)
+bool FilterIFW::loadConfig(bool silent, const char *property)
 {
     bool result;
 

@@ -9,7 +9,6 @@ namespace INDI
 {
 namespace AlignmentSubsystem
 {
-
 /*!
  * \class AlignmentSubsystemForMathPlugins
  * \brief This class encapsulates all the alignment subsystem classes that are useful to math plugin implementations.
@@ -17,9 +16,9 @@ namespace AlignmentSubsystem
  */
 class AlignmentSubsystemForMathPlugins : public MathPlugin, public TelescopeDirectionVectorSupportFunctions
 {
-    public:
-        /// \brief Virtual destructor
-        virtual ~AlignmentSubsystemForMathPlugins() {}
+  public:
+    /// \brief Virtual destructor
+    virtual ~AlignmentSubsystemForMathPlugins() {}
 };
 
 } // namespace AlignmentSubsystem

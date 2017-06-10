@@ -40,9 +40,8 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110 - 1301  USA
 #define POLLMS 1000
 
 /* Simulation Parameters */
-#define	SLEWRATE	1		/* slew rate, degrees/s */
-#define SIDRATE		0.004178	/* sidereal rate, degrees/s */
-
+#define SLEWRATE 1        /* slew rate, degrees/s */
+#define SIDRATE  0.004178 /* sidereal rate, degrees/s */
 
 using namespace std;
 
@@ -55,7 +54,7 @@ unique_ptr<LX200Basic> telescope(new LX200Basic());
 /**************************************************************************************
 **
 ***************************************************************************************/
-void ISGetProperties (const char * dev)
+void ISGetProperties(const char *dev)
 {
     telescope->ISGetProperties(dev);
 }
@@ -63,7 +62,7 @@ void ISGetProperties (const char * dev)
 /**************************************************************************************
 **
 ***************************************************************************************/
-void ISNewSwitch (const char * dev, const char * name, ISState * states, char * names[], int n)
+void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
 {
     telescope->ISNewSwitch(dev, name, states, names, n);
 }
@@ -71,7 +70,7 @@ void ISNewSwitch (const char * dev, const char * name, ISState * states, char * 
 /**************************************************************************************
 **
 ***************************************************************************************/
-void ISNewText (const char * dev, const char * name, char * texts[], char * names[], int n)
+void ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
 {
     telescope->ISNewText(dev, name, texts, names, n);
 }
@@ -79,7 +78,7 @@ void ISNewText (const char * dev, const char * name, char * texts[], char * name
 /**************************************************************************************
 **
 ***************************************************************************************/
-void ISNewNumber (const char * dev, const char * name, double values[], char * names[], int n)
+void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
 {
     telescope->ISNewNumber(dev, name, values, names, n);
 }
@@ -87,7 +86,8 @@ void ISNewNumber (const char * dev, const char * name, double values[], char * n
 /**************************************************************************************
 **
 ***************************************************************************************/
-void ISNewBLOB (const char * dev, const char * name, int sizes[], int blobsizes[], char * blobs[], char * formats[], char * names[], int n)
+void ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[],
+               char *names[], int n)
 {
     INDI_UNUSED(dev);
     INDI_UNUSED(name);
@@ -102,7 +102,7 @@ void ISNewBLOB (const char * dev, const char * name, int sizes[], int blobsizes[
 /**************************************************************************************
 **
 ***************************************************************************************/
-void ISSnoopDevice (XMLEle * root)
+void ISSnoopDevice(XMLEle *root)
 {
     INDI_UNUSED(root);
 }
@@ -116,13 +116,12 @@ LX200Basic::LX200Basic()
 
     DBG_SCOPE = INDI::Logger::getInstance().addDebugLevel("Scope Verbose", "SCOPE");
 
-    currentRA = ln_get_apparent_sidereal_time(ln_get_julian_from_sys());
+    currentRA  = ln_get_apparent_sidereal_time(ln_get_julian_from_sys());
     currentDEC = 90;
 
     SetTelescopeCapability(TELESCOPE_CAN_SYNC | TELESCOPE_CAN_GOTO | TELESCOPE_CAN_ABORT);
 
     DEBUG(INDI::Logger::DBG_DEBUG, "Initializing from LX200 Basic device...");
-
 }
 
 /**************************************************************************************
@@ -130,7 +129,6 @@ LX200Basic::LX200Basic()
 ***************************************************************************************/
 LX200Basic::~LX200Basic()
 {
-
 }
 
 /**************************************************************************************
@@ -145,7 +143,7 @@ void LX200Basic::debugTriggered(bool enable)
 /**************************************************************************************
 **
 ***************************************************************************************/
-const char * LX200Basic::getDefaultName()
+const char *LX200Basic::getDefaultName()
 {
     return (char *)"LX200 Basic";
 }
@@ -159,9 +157,10 @@ bool LX200Basic::initProperties()
     INDI::Telescope::initProperties();
 
     // Slew threshold
-    IUFillNumber(&SlewAccuracyN[0], "SlewRA",  "RA (arcmin)", "%10.6m",  0., 60., 1., 3.0);
+    IUFillNumber(&SlewAccuracyN[0], "SlewRA", "RA (arcmin)", "%10.6m", 0., 60., 1., 3.0);
     IUFillNumber(&SlewAccuracyN[1], "SlewDEC", "Dec (arcmin)", "%10.6m", 0., 60., 1., 3.0);
-    IUFillNumberVector(&SlewAccuracyNP, SlewAccuracyN, NARRAY(SlewAccuracyN), getDeviceName(), "Slew Accuracy", "", OPTIONS_TAB, IP_RW, 0, IPS_IDLE);
+    IUFillNumberVector(&SlewAccuracyNP, SlewAccuracyN, NARRAY(SlewAccuracyN), getDeviceName(), "Slew Accuracy", "",
+                       OPTIONS_TAB, IP_RW, 0, IPS_IDLE);
 
     addAuxControls();
 
@@ -171,9 +170,9 @@ bool LX200Basic::initProperties()
 /**************************************************************************************
 ** Define LX200 Basic properties to clients.
 ***************************************************************************************/
-void LX200Basic::ISGetProperties(const char * dev)
+void LX200Basic::ISGetProperties(const char *dev)
 {
-    if(dev && strcmp(dev, getDeviceName()))
+    if (dev && strcmp(dev, getDeviceName()))
         return;
 
     INDI::Telescope::ISGetProperties(dev);
@@ -245,7 +244,7 @@ bool LX200Basic::ReadScopeStatus()
         return true;
     }
 
-    if ( getLX200RA(PortFD, &currentRA) < 0 || getLX200DEC(PortFD, &currentDEC) < 0)
+    if (getLX200RA(PortFD, &currentRA) < 0 || getLX200DEC(PortFD, &currentDEC) < 0)
     {
         EqNP.s = IPS_ALERT;
         IDSetNumber(&EqNP, "Error reading RA/DEC.");
@@ -259,7 +258,6 @@ bool LX200Basic::ReadScopeStatus()
         {
             TrackState = SCOPE_TRACKING;
             IDMessage(getDeviceName(), "Slew is complete. Tracking...");
-
         }
     }
 
@@ -273,7 +271,7 @@ bool LX200Basic::ReadScopeStatus()
 ***************************************************************************************/
 bool LX200Basic::Goto(double r, double d)
 {
-    targetRA = r;
+    targetRA  = r;
     targetDEC = d;
     char RAStr[64], DecStr[64];
 
@@ -291,7 +289,7 @@ bool LX200Basic::Goto(double r, double d)
         }
 
         AbortSP.s = IPS_OK;
-        EqNP.s       = IPS_IDLE;
+        EqNP.s    = IPS_IDLE;
         IDSetSwitch(&AbortSP, "Slew aborted.");
         IDSetNumber(&EqNP, nullptr);
 
@@ -315,12 +313,12 @@ bool LX200Basic::Goto(double r, double d)
             EqNP.s = IPS_ALERT;
             IDSetNumber(&EqNP, "Error Slewing to JNow RA %s - DEC %s\n", RAStr, DecStr);
             slewError(err);
-            return  false;
+            return false;
         }
     }
 
     TrackState = SCOPE_SLEWING;
-    EqNP.s    = IPS_BUSY;
+    EqNP.s     = IPS_BUSY;
 
     IDMessage(getDeviceName(), "Slewing to RA: %s - DEC: %s", RAStr, DecStr);
     return true;
@@ -333,18 +331,17 @@ bool LX200Basic::Sync(double ra, double dec)
 {
     char syncString[256];
 
-    if (isSimulation() == false &&
-            (setObjectRA(PortFD, ra) < 0 || (setObjectDEC(PortFD, dec)) < 0))
+    if (isSimulation() == false && (setObjectRA(PortFD, ra) < 0 || (setObjectDEC(PortFD, dec)) < 0))
     {
         EqNP.s = IPS_ALERT;
         IDSetNumber(&EqNP, "Error setting RA/DEC. Unable to Sync.");
         return false;
     }
 
-    if (isSimulation() == false &&  ::Sync(PortFD, syncString) < 0)
+    if (isSimulation() == false && ::Sync(PortFD, syncString) < 0)
     {
         EqNP.s = IPS_ALERT;
-        IDSetNumber(&EqNP , "Synchronization failed.");
+        IDSetNumber(&EqNP, "Synchronization failed.");
         return false;
     }
 
@@ -354,20 +351,19 @@ bool LX200Basic::Sync(double ra, double dec)
     DEBUG(INDI::Logger::DBG_SESSION, "Synchronization successful.");
 
     TrackState = SCOPE_IDLE;
-    EqNP.s    = IPS_OK;
+    EqNP.s     = IPS_OK;
 
     NewRaDec(currentRA, currentDEC);
 
     return true;
 }
 
-
 /**************************************************************************************
 **
 ***************************************************************************************/
-bool LX200Basic::ISNewNumber (const char * dev, const char * name, double values[], char * names[], int n)
+bool LX200Basic::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
 {
-    if(strcmp(dev, getDeviceName()) == 0)
+    if (strcmp(dev, getDeviceName()) == 0)
     {
         if (!strcmp(name, SlewAccuracyNP.name))
         {
@@ -398,7 +394,7 @@ bool LX200Basic::Abort()
         return false;
     }
 
-    EqNP.s = IPS_IDLE;
+    EqNP.s     = IPS_IDLE;
     TrackState = SCOPE_IDLE;
     IDSetNumber(&EqNP, nullptr);
 
@@ -406,14 +402,11 @@ bool LX200Basic::Abort()
     return true;
 }
 
-
-
 /**************************************************************************************
 **
 ***************************************************************************************/
 void LX200Basic::getBasicData()
 {
-
     // Make sure short
     checkLX200Format(PortFD);
 
@@ -421,13 +414,13 @@ void LX200Basic::getBasicData()
     getLX200RA(PortFD, &currentRA);
     getLX200DEC(PortFD, &currentDEC);
 
-    IDSetNumber (&EqNP, nullptr);
+    IDSetNumber(&EqNP, nullptr);
 }
 
 /**************************************************************************************
 **
 ***************************************************************************************/
-void LX200Basic::mountSim ()
+void LX200Basic::mountSim()
 {
     static struct timeval ltv;
     struct timeval tv;
@@ -435,19 +428,18 @@ void LX200Basic::mountSim ()
     int nlocked;
 
     /* update elapsed time since last poll, don't presume exactly POLLMS */
-    gettimeofday (&tv, nullptr);
+    gettimeofday(&tv, nullptr);
 
     if (ltv.tv_sec == 0 && ltv.tv_usec == 0)
         ltv = tv;
 
-    dt = tv.tv_sec - ltv.tv_sec + (tv.tv_usec - ltv.tv_usec) / 1e6;
+    dt  = tv.tv_sec - ltv.tv_sec + (tv.tv_usec - ltv.tv_usec) / 1e6;
     ltv = tv;
-    da = SLEWRATE * dt;
+    da  = SLEWRATE * dt;
 
     /* Process per current state. We check the state of EQUATORIAL_COORDS and act acoordingly */
     switch (TrackState)
     {
-
         case SCOPE_TRACKING:
             /* RA moves at sidereal, Dec stands still */
             currentRA += (SIDRATE * dt / 15.);
@@ -483,7 +475,6 @@ void LX200Basic::mountSim ()
             if (nlocked == 2)
             {
                 TrackState = SCOPE_TRACKING;
-
             }
 
             break;
@@ -493,8 +484,6 @@ void LX200Basic::mountSim ()
     }
 
     NewRaDec(currentRA, currentDEC);
-
-
 }
 
 /**************************************************************************************
@@ -510,5 +499,4 @@ void LX200Basic::slewError(int slewCode)
         IDSetNumber(&EqNP, "Object below the minimum elevation limit.");
     else
         IDSetNumber(&EqNP, "Slew failed.");
-
 }

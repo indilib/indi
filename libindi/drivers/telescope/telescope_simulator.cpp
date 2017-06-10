@@ -32,50 +32,51 @@
 // We declare an auto pointer to ScopeSim.
 std::unique_ptr<ScopeSim> telescope_sim(new ScopeSim());
 
-#define	GOTO_RATE	5				/* slew rate, degrees/s */
-#define	SLEW_RATE	0.5				/* slew rate, degrees/s */
-#define FINE_SLEW_RATE  0.1                             /* slew rate, degrees/s */
-#define SID_RATE	0.004178			/* sidereal rate, degrees/s */
+#define GOTO_RATE      5        /* slew rate, degrees/s */
+#define SLEW_RATE      0.5      /* slew rate, degrees/s */
+#define FINE_SLEW_RATE 0.1      /* slew rate, degrees/s */
+#define SID_RATE       0.004178 /* sidereal rate, degrees/s */
 
-#define GOTO_LIMIT      5.5                             /* Move at GOTO_RATE until distance from target is GOTO_LIMIT degrees */
-#define SLEW_LIMIT      1                               /* Move at SLEW_LIMIT until distance from target is SLEW_LIMIT degrees */
-#define FINE_SLEW_LIMIT 0.5                             /* Move at FINE_SLEW_RATE until distance from target is FINE_SLEW_LIMIT degrees */
+#define GOTO_LIMIT      5.5 /* Move at GOTO_RATE until distance from target is GOTO_LIMIT degrees */
+#define SLEW_LIMIT      1   /* Move at SLEW_LIMIT until distance from target is SLEW_LIMIT degrees */
+#define FINE_SLEW_LIMIT 0.5 /* Move at FINE_SLEW_RATE until distance from target is FINE_SLEW_LIMIT degrees */
 
-#define	POLLMS		250				/* poll period, ms */
+#define POLLMS 250 /* poll period, ms */
 
-#define RA_AXIS         0
-#define DEC_AXIS        1
-#define GUIDE_NORTH     0
-#define GUIDE_SOUTH     1
-#define GUIDE_WEST      0
-#define GUIDE_EAST      1
+#define RA_AXIS     0
+#define DEC_AXIS    1
+#define GUIDE_NORTH 0
+#define GUIDE_SOUTH 1
+#define GUIDE_WEST  0
+#define GUIDE_EAST  1
 
-#define MIN_AZ_FLIP     180
-#define MAX_AZ_FLIP     200
+#define MIN_AZ_FLIP 180
+#define MAX_AZ_FLIP 200
 
-void ISPoll(void * p);
+void ISPoll(void *p);
 
-void ISGetProperties(const char * dev)
+void ISGetProperties(const char *dev)
 {
     telescope_sim->ISGetProperties(dev);
 }
 
-void ISNewSwitch(const char * dev, const char * name, ISState * states, char * names[], int num)
+void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int num)
 {
     telescope_sim->ISNewSwitch(dev, name, states, names, num);
 }
 
-void ISNewText(	const char * dev, const char * name, char * texts[], char * names[], int num)
+void ISNewText(const char *dev, const char *name, char *texts[], char *names[], int num)
 {
     telescope_sim->ISNewText(dev, name, texts, names, num);
 }
 
-void ISNewNumber(const char * dev, const char * name, double values[], char * names[], int num)
+void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int num)
 {
     telescope_sim->ISNewNumber(dev, name, values, names, num);
 }
 
-void ISNewBLOB (const char * dev, const char * name, int sizes[], int blobsizes[], char * blobs[], char * formats[], char * names[], int n)
+void ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[],
+               char *names[], int n)
 {
     INDI_UNUSED(dev);
     INDI_UNUSED(name);
@@ -86,7 +87,7 @@ void ISNewBLOB (const char * dev, const char * name, int sizes[], int blobsizes[
     INDI_UNUSED(names);
     INDI_UNUSED(n);
 }
-void ISSnoopDevice (XMLEle * root)
+void ISSnoopDevice(XMLEle *root)
 {
     telescope_sim->ISSnoopDevice(root);
 }
@@ -94,25 +95,26 @@ void ISSnoopDevice (XMLEle * root)
 ScopeSim::ScopeSim()
 {
     //ctor
-    currentRA = 0;
+    currentRA  = 0;
     currentDEC = 90;
 
     forceMeridianFlip = false;
 
     DBG_SCOPE = INDI::Logger::getInstance().addDebugLevel("Scope Verbose", "SCOPE");
 
-    SetTelescopeCapability(TELESCOPE_CAN_PARK | TELESCOPE_CAN_SYNC | TELESCOPE_CAN_GOTO | TELESCOPE_CAN_ABORT | TELESCOPE_HAS_TIME | TELESCOPE_HAS_LOCATION, 4);
+    SetTelescopeCapability(TELESCOPE_CAN_PARK | TELESCOPE_CAN_SYNC | TELESCOPE_CAN_GOTO | TELESCOPE_CAN_ABORT |
+                               TELESCOPE_HAS_TIME | TELESCOPE_HAS_LOCATION,
+                           4);
 
     /* initialize random seed: */
-    srand ( time(nullptr) );
+    srand(time(nullptr));
 }
 
 ScopeSim::~ScopeSim()
 {
-
 }
 
-const char * ScopeSim::getDefaultName()
+const char *ScopeSim::getDefaultName()
 {
     return (char *)"Telescope Simulator";
 }
@@ -125,28 +127,33 @@ bool ScopeSim::initProperties()
     /* Simulated periodic error in RA, DEC */
     IUFillNumber(&EqPEN[RA_AXIS], "RA_PE", "RA (hh:mm:ss)", "%010.6m", 0, 24, 0, 15.);
     IUFillNumber(&EqPEN[DEC_AXIS], "DEC_PE", "DEC (dd:mm:ss)", "%010.6m", -90, 90, 0, 15.);
-    IUFillNumberVector(&EqPENV, EqPEN, 2, getDeviceName(), "EQUATORIAL_PE", "Periodic Error", MOTION_TAB, IP_RO, 60, IPS_IDLE);
+    IUFillNumberVector(&EqPENV, EqPEN, 2, getDeviceName(), "EQUATORIAL_PE", "Periodic Error", MOTION_TAB, IP_RO, 60,
+                       IPS_IDLE);
 
     /* Enable client to manually add periodic error northward or southward for simulation purposes */
     IUFillSwitch(&PEErrNSS[DIRECTION_NORTH], "PE_N", "North", ISS_OFF);
     IUFillSwitch(&PEErrNSS[DIRECTION_SOUTH], "PE_S", "South", ISS_OFF);
-    IUFillSwitchVector(&PEErrNSSP, PEErrNSS, 2, getDeviceName(), "PE_NS", "PE N/S", MOTION_TAB, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
+    IUFillSwitchVector(&PEErrNSSP, PEErrNSS, 2, getDeviceName(), "PE_NS", "PE N/S", MOTION_TAB, IP_RW, ISR_ATMOST1, 60,
+                       IPS_IDLE);
 
     /* Enable client to manually add periodic error westward or easthward for simulation purposes */
     IUFillSwitch(&PEErrWES[DIRECTION_WEST], "PE_W", "West", ISS_OFF);
     IUFillSwitch(&PEErrWES[DIRECTION_EAST], "PE_E", "East", ISS_OFF);
-    IUFillSwitchVector(&PEErrWESP, PEErrWES, 2, getDeviceName(), "PE_WE", "PE W/E", MOTION_TAB, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
+    IUFillSwitchVector(&PEErrWESP, PEErrWES, 2, getDeviceName(), "PE_WE", "PE W/E", MOTION_TAB, IP_RW, ISR_ATMOST1, 60,
+                       IPS_IDLE);
 
     /* How fast do we guide compared to sidereal rate */
     IUFillNumber(&GuideRateN[RA_AXIS], "GUIDE_RATE_WE", "W/E Rate", "%g", 0, 1, 0.1, 0.3);
     IUFillNumber(&GuideRateN[DEC_AXIS], "GUIDE_RATE_NS", "N/S Rate", "%g", 0, 1, 0.1, 0.3);
-    IUFillNumberVector(&GuideRateNP, GuideRateN, 2, getDeviceName(), "GUIDE_RATE", "Guiding Rate", MOTION_TAB, IP_RW, 0, IPS_IDLE);
+    IUFillNumberVector(&GuideRateNP, GuideRateN, 2, getDeviceName(), "GUIDE_RATE", "Guiding Rate", MOTION_TAB, IP_RW, 0,
+                       IPS_IDLE);
 
     IUFillSwitch(&SlewRateS[SLEW_GUIDE], "SLEW_GUIDE", "Guide", ISS_OFF);
     IUFillSwitch(&SlewRateS[SLEW_CENTERING], "SLEW_CENTERING", "Centering", ISS_OFF);
     IUFillSwitch(&SlewRateS[SLEW_FIND], "SLEW_FIND", "Find", ISS_OFF);
     IUFillSwitch(&SlewRateS[SLEW_MAX], "SLEW_MAX", "Max", ISS_ON);
-    IUFillSwitchVector(&SlewRateSP, SlewRateS, 4, getDeviceName(), "TELESCOPE_SLEW_RATE", "Slew Rate", MOTION_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+    IUFillSwitchVector(&SlewRateSP, SlewRateS, 4, getDeviceName(), "TELESCOPE_SLEW_RATE", "Slew Rate", MOTION_TAB,
+                       IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
     // Let's simulate it to be an F/7.5 120mm telescope
     ScopeParametersN[0].value = 120;
@@ -168,12 +175,12 @@ bool ScopeSim::initProperties()
     return true;
 }
 
-void ScopeSim::ISGetProperties (const char * dev)
+void ScopeSim::ISGetProperties(const char *dev)
 {
     /* First we let our parent populate */
     INDI::Telescope::ISGetProperties(dev);
 
-    if(isConnected())
+    if (isConnected())
     {
         defineNumber(&GuideNSNP);
         defineNumber(&GuideWENP);
@@ -182,7 +189,6 @@ void ScopeSim::ISGetProperties (const char * dev)
         defineSwitch(&PEErrNSSP);
         defineSwitch(&PEErrWESP);
     }
-
 
     return;
 }
@@ -200,7 +206,7 @@ bool ScopeSim::updateProperties()
         defineSwitch(&PEErrNSSP);
         defineSwitch(&PEErrWESP);
 
-        double HA = ln_get_apparent_sidereal_time(ln_get_julian_from_sys());
+        double HA  = ln_get_apparent_sidereal_time(ln_get_julian_from_sys());
         double DEC = 90;
 
         if (InitPark())
@@ -217,7 +223,6 @@ bool ScopeSim::updateProperties()
             SetAxis1ParkDefault(HA);
             SetAxis2ParkDefault(DEC);
         }
-
     }
     else
     {
@@ -255,24 +260,24 @@ bool ScopeSim::ReadScopeStatus()
     char RA_DISP[64], DEC_DISP[64], RA_GUIDE[64], DEC_GUIDE[64], RA_PE[64], DEC_PE[64], RA_TARGET[64], DEC_TARGET[64];
 
     /* update elapsed time since last poll, don't presume exactly POLLMS */
-    gettimeofday (&tv, nullptr);
+    gettimeofday(&tv, nullptr);
 
     if (ltv.tv_sec == 0 && ltv.tv_usec == 0)
         ltv = tv;
 
-    dt = tv.tv_sec - ltv.tv_sec + (tv.tv_usec - ltv.tv_usec) / 1e6;
+    dt  = tv.tv_sec - ltv.tv_sec + (tv.tv_usec - ltv.tv_usec) / 1e6;
     ltv = tv;
 
-    if ( fabs(targetRA - currentRA) * 15. >= GOTO_LIMIT )
+    if (fabs(targetRA - currentRA) * 15. >= GOTO_LIMIT)
         da_ra = GOTO_RATE * dt;
-    else if ( fabs(targetRA - currentRA) * 15. >= SLEW_LIMIT )
+    else if (fabs(targetRA - currentRA) * 15. >= SLEW_LIMIT)
         da_ra = SLEW_RATE * dt;
     else
         da_ra = FINE_SLEW_RATE * dt;
 
-    if ( fabs(targetDEC - currentDEC) >= GOTO_LIMIT )
+    if (fabs(targetDEC - currentDEC) >= GOTO_LIMIT)
         da_dec = GOTO_RATE * dt;
-    else if ( fabs(targetDEC - currentDEC) >= SLEW_LIMIT )
+    else if (fabs(targetDEC - currentDEC) >= SLEW_LIMIT)
         da_dec = SLEW_RATE * dt;
     else
         da_dec = FINE_SLEW_RATE * dt;
@@ -361,7 +366,7 @@ bool ScopeSim::ReadScopeStatus()
                 dx = fabs(dx);
                 if (dx == 0)
                 {
-                    dx = 1;
+                    dx    = 1;
                     da_ra = GOTO_LIMIT;
                 }
             }
@@ -397,7 +402,6 @@ bool ScopeSim::ReadScopeStatus()
 
                 if (TrackState == SCOPE_SLEWING)
                 {
-
                     // Initially no PE in both axis.
                     EqPEN[0].value = currentRA;
                     EqPEN[1].value = currentDEC;
@@ -452,8 +456,8 @@ bool ScopeSim::ReadScopeStatus()
 
             if (ns_guide_dir != -1)
             {
-
-                dec_guide_dt =  SID_RATE * GuideRateN[DEC_AXIS].value * guiderNSTarget[ns_guide_dir] / 1000.0 * (ns_guide_dir == GUIDE_NORTH ? 1 : -1);
+                dec_guide_dt = SID_RATE * GuideRateN[DEC_AXIS].value * guiderNSTarget[ns_guide_dir] / 1000.0 *
+                               (ns_guide_dir == GUIDE_NORTH ? 1 : -1);
 
                 // If time remaining is more that dt, then decrement and
                 if (guiderNSTarget[ns_guide_dir] >= dt)
@@ -468,13 +472,12 @@ bool ScopeSim::ReadScopeStatus()
                 }
 
                 EqPEN[DEC_AXIS].value += dec_guide_dt;
-
             }
 
             if (we_guide_dir != -1)
             {
-
-                ra_guide_dt = SID_RATE / 15.0 * GuideRateN[RA_AXIS].value * guiderEWTarget[we_guide_dir] / 1000.0 * (we_guide_dir == GUIDE_WEST ? -1 : 1);
+                ra_guide_dt = SID_RATE / 15.0 * GuideRateN[RA_AXIS].value * guiderEWTarget[we_guide_dir] / 1000.0 *
+                              (we_guide_dir == GUIDE_WEST ? -1 : 1);
 
                 if (guiderEWTarget[we_guide_dir] >= dt)
                     guiderEWTarget[we_guide_dir] -= dt;
@@ -488,9 +491,7 @@ bool ScopeSim::ReadScopeStatus()
                 }
 
                 EqPEN[RA_AXIS].value += ra_guide_dt;
-
             }
-
 
             //Mention the followng:
             // Current RA displacemet and direction
@@ -500,11 +501,11 @@ bool ScopeSim::ReadScopeStatus()
 
             dx = EqPEN[RA_AXIS].value - targetRA;
             dy = EqPEN[DEC_AXIS].value - targetDEC;
-            fs_sexa(RA_DISP, fabs(dx), 2, 3600 );
-            fs_sexa(DEC_DISP, fabs(dy), 2, 3600 );
+            fs_sexa(RA_DISP, fabs(dx), 2, 3600);
+            fs_sexa(DEC_DISP, fabs(dy), 2, 3600);
 
-            fs_sexa(RA_GUIDE, fabs(ra_guide_dt), 2, 3600 );
-            fs_sexa(DEC_GUIDE, fabs(dec_guide_dt), 2, 3600 );
+            fs_sexa(RA_GUIDE, fabs(ra_guide_dt), 2, 3600);
+            fs_sexa(DEC_GUIDE, fabs(dec_guide_dt), 2, 3600);
 
             fs_sexa(RA_PE, EqPEN[RA_AXIS].value, 2, 3600);
             fs_sexa(DEC_PE, EqPEN[DEC_AXIS].value, 2, 3600);
@@ -512,16 +513,19 @@ bool ScopeSim::ReadScopeStatus()
             fs_sexa(RA_TARGET, targetRA, 2, 3600);
             fs_sexa(DEC_TARGET, targetDEC, 2, 3600);
 
-
             if ((dx != last_dx || dy != last_dy || ra_guide_dt || dec_guide_dt))
             {
                 last_dx = dx;
                 last_dy = dy;
                 //DEBUGF(INDI::Logger::DBG_DEBUG, "dt is %g\n", dt);
-                DEBUGF(INDI::Logger::DBG_DEBUG, "RA Displacement (%c%s) %s -- %s of target RA %s", dx >= 0 ? '+' : '-', RA_DISP, RA_PE,  (EqPEN[RA_AXIS].value - targetRA) > 0 ? "East" : "West", RA_TARGET);
-                DEBUGF(INDI::Logger::DBG_DEBUG, "DEC Displacement (%c%s) %s -- %s of target RA %s", dy >= 0 ? '+' : '-', DEC_DISP, DEC_PE, (EqPEN[DEC_AXIS].value - targetDEC) > 0 ? "North" : "South", DEC_TARGET);
-                DEBUGF(INDI::Logger::DBG_DEBUG, "RA Guide Correction (%g) %s -- Direction %s", ra_guide_dt, RA_GUIDE, ra_guide_dt > 0 ? "East" : "West");
-                DEBUGF(INDI::Logger::DBG_DEBUG, "DEC Guide Correction (%g) %s -- Direction %s", dec_guide_dt, DEC_GUIDE, dec_guide_dt > 0 ? "North" : "South");
+                DEBUGF(INDI::Logger::DBG_DEBUG, "RA Displacement (%c%s) %s -- %s of target RA %s", dx >= 0 ? '+' : '-',
+                       RA_DISP, RA_PE, (EqPEN[RA_AXIS].value - targetRA) > 0 ? "East" : "West", RA_TARGET);
+                DEBUGF(INDI::Logger::DBG_DEBUG, "DEC Displacement (%c%s) %s -- %s of target RA %s", dy >= 0 ? '+' : '-',
+                       DEC_DISP, DEC_PE, (EqPEN[DEC_AXIS].value - targetDEC) > 0 ? "North" : "South", DEC_TARGET);
+                DEBUGF(INDI::Logger::DBG_DEBUG, "RA Guide Correction (%g) %s -- Direction %s", ra_guide_dt, RA_GUIDE,
+                       ra_guide_dt > 0 ? "East" : "West");
+                DEBUGF(INDI::Logger::DBG_DEBUG, "DEC Guide Correction (%g) %s -- Direction %s", dec_guide_dt, DEC_GUIDE,
+                       dec_guide_dt > 0 ? "North" : "South");
             }
 
             if (ns_guide_dir != -1 || we_guide_dir != -1)
@@ -546,7 +550,7 @@ bool ScopeSim::ReadScopeStatus()
 
 bool ScopeSim::Goto(double r, double d)
 {
-    targetRA = r;
+    targetRA  = r;
     targetDEC = d;
     char RAStr[64], DecStr[64];
 
@@ -554,17 +558,17 @@ bool ScopeSim::Goto(double r, double d)
     fs_sexa(DecStr, targetDEC, 2, 3600);
 
     ln_equ_posn lnradec;
-    lnradec.ra = (currentRA * 360) / 24.0;
+    lnradec.ra  = (currentRA * 360) / 24.0;
     lnradec.dec = currentDEC;
 
     ln_get_hrz_from_equ(&lnradec, &lnobserver, ln_get_julian_from_sys(), &lnaltaz);
     /* libnova measures azimuth from south towards west */
-    double current_az  = range360(lnaltaz.az + 180);
+    double current_az = range360(lnaltaz.az + 180);
     //double current_alt =lnaltaz.alt;
 
     if (current_az > MIN_AZ_FLIP && current_az < MAX_AZ_FLIP)
     {
-        lnradec.ra = (r * 360) / 24.0;
+        lnradec.ra  = (r * 360) / 24.0;
         lnradec.dec = d;
 
         ln_get_hrz_from_equ(&lnradec, &lnobserver, ln_get_julian_from_sys(), &lnaltaz);
@@ -580,7 +584,7 @@ bool ScopeSim::Goto(double r, double d)
 
     TrackState = SCOPE_SLEWING;
 
-    EqNP.s    = IPS_BUSY;
+    EqNP.s = IPS_BUSY;
 
     DEBUGF(INDI::Logger::DBG_SESSION, "Slewing to RA: %s - DEC: %s", RAStr, DecStr);
     return true;
@@ -588,17 +592,16 @@ bool ScopeSim::Goto(double r, double d)
 
 bool ScopeSim::Sync(double ra, double dec)
 {
-
     currentRA  = ra;
     currentDEC = dec;
 
-    EqPEN[RA_AXIS].value = ra;
+    EqPEN[RA_AXIS].value  = ra;
     EqPEN[DEC_AXIS].value = dec;
     IDSetNumber(&EqPENV, nullptr);
 
     DEBUG(INDI::Logger::DBG_SESSION, "Sync is successful.");
 
-    EqNP.s    = IPS_OK;
+    EqNP.s = IPS_OK;
 
     NewRaDec(currentRA, currentDEC);
 
@@ -607,8 +610,8 @@ bool ScopeSim::Sync(double ra, double dec)
 
 bool ScopeSim::Park()
 {
-    targetRA = GetAxis1Park();
-    targetDEC = GetAxis2Park();
+    targetRA   = GetAxis1Park();
+    targetDEC  = GetAxis2Park();
     TrackState = SCOPE_PARKING;
     DEBUG(INDI::Logger::DBG_SESSION, "Parking telescope in progress...");
     return true;
@@ -618,20 +621,21 @@ bool ScopeSim::UnPark()
 {
     if (INDI::Telescope::isLocked())
     {
-        DEBUG(INDI::Logger::DBG_SESSION, "Cannot unpark mount when dome is locking. See: Dome parking policy, in options tab");
+        DEBUG(INDI::Logger::DBG_SESSION,
+              "Cannot unpark mount when dome is locking. See: Dome parking policy, in options tab");
         return false;
     }
     SetParked(false);
     return true;
 }
 
-bool ScopeSim::ISNewNumber (const char * dev, const char * name, double values[], char * names[], int n)
+bool ScopeSim::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
 {
     //  first check if it's for our device
 
-    if(strcmp(dev, getDeviceName()) == 0)
+    if (strcmp(dev, getDeviceName()) == 0)
     {
-        if(strcmp(name, "GUIDE_RATE") == 0)
+        if (strcmp(name, "GUIDE_RATE") == 0)
         {
             IUUpdateNumber(&GuideRateNP, values, names, n);
             GuideRateNP.s = IPS_OK;
@@ -644,7 +648,6 @@ bool ScopeSim::ISNewNumber (const char * dev, const char * name, double values[]
             processGuiderProperties(name, values, names, n);
             return true;
         }
-
     }
 
     //  if we didn't process it, continue up the chain, let somebody else
@@ -652,14 +655,13 @@ bool ScopeSim::ISNewNumber (const char * dev, const char * name, double values[]
     return INDI::Telescope::ISNewNumber(dev, name, values, names, n);
 }
 
-bool ScopeSim::ISNewSwitch (const char * dev, const char * name, ISState * states, char * names[], int n)
+bool ScopeSim::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
 {
-    if(strcmp(dev, getDeviceName()) == 0)
+    if (strcmp(dev, getDeviceName()) == 0)
     {
         // Slew mode
-        if (!strcmp (name, SlewRateSP.name))
+        if (!strcmp(name, SlewRateSP.name))
         {
-
             if (IUUpdateSwitch(&SlewRateSP, states, names, n) < 0)
                 return false;
 
@@ -668,7 +670,7 @@ bool ScopeSim::ISNewSwitch (const char * dev, const char * name, ISState * state
             return true;
         }
 
-        if(strcmp(name, "PE_NS") == 0)
+        if (strcmp(name, "PE_NS") == 0)
         {
             IUUpdateSwitch(&PEErrNSSP, states, names, n);
 
@@ -692,7 +694,7 @@ bool ScopeSim::ISNewSwitch (const char * dev, const char * name, ISState * state
             return true;
         }
 
-        if(strcmp(name, "PE_WE") == 0)
+        if (strcmp(name, "PE_WE") == 0)
         {
             IUUpdateSwitch(&PEErrWESP, states, names, n);
 
@@ -714,9 +716,7 @@ bool ScopeSim::ISNewSwitch (const char * dev, const char * name, ISState * state
             IDSetNumber(&EqPENV, nullptr);
 
             return true;
-
         }
-
     }
 
     //  Nobody has claimed this, so, ignore it
@@ -727,7 +727,6 @@ bool ScopeSim::Abort()
 {
     return true;
 }
-
 
 bool ScopeSim::MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command)
 {
@@ -763,16 +762,13 @@ IPState ScopeSim::GuideSouth(float ms)
     guiderNSTarget[GUIDE_SOUTH] = ms;
     guiderNSTarget[GUIDE_NORTH] = 0;
     return IPS_BUSY;
-
 }
 
 IPState ScopeSim::GuideEast(float ms)
 {
-
     guiderEWTarget[GUIDE_EAST] = ms;
     guiderEWTarget[GUIDE_WEST] = 0;
     return IPS_BUSY;
-
 }
 
 IPState ScopeSim::GuideWest(float ms)
@@ -780,18 +776,17 @@ IPState ScopeSim::GuideWest(float ms)
     guiderEWTarget[GUIDE_WEST] = ms;
     guiderEWTarget[GUIDE_EAST] = 0;
     return IPS_BUSY;
-
 }
 
 bool ScopeSim::updateLocation(double latitude, double longitude, double elevation)
 {
     INDI_UNUSED(elevation);
     // JM: INDI Longitude is 0 to 360 increasing EAST. libnova East is Positive, West is negative
-    lnobserver.lng =  longitude;
+    lnobserver.lng = longitude;
 
     if (lnobserver.lng > 180)
         lnobserver.lng -= 360;
-    lnobserver.lat =  latitude;
+    lnobserver.lat = latitude;
 
     DEBUGF(INDI::Logger::DBG_SESSION, "Location updated: Longitude (%g) Latitude (%g)", lnobserver.lng, lnobserver.lat);
     return true;
@@ -811,10 +806,7 @@ bool ScopeSim::SetDefaultPark()
     SetAxis1Park(ln_get_apparent_sidereal_time(ln_get_julian_from_sys()));
 
     // Set DEC to 90 or -90 depending on the hemisphere
-    SetAxis2Park( (LocationN[LOCATION_LATITUDE].value > 0) ? 90 : -90);
+    SetAxis2Park((LocationN[LOCATION_LATITUDE].value > 0) ? 90 : -90);
 
     return true;
-
 }
-
-

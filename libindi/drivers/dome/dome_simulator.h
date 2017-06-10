@@ -25,44 +25,39 @@
 #include <math.h>
 #include <sys/time.h>
 
-
 class DomeSim : public INDI::Dome
 {
+  public:
+    DomeSim();
+    virtual ~DomeSim();
 
-    public:
-        DomeSim();
-        virtual ~DomeSim();
+    virtual bool initProperties();
+    const char *getDefaultName();
+    bool updateProperties();
 
-        virtual bool initProperties();
-        const char * getDefaultName();
-        bool updateProperties();
+  protected:
+    bool Connect();
+    bool Disconnect();
 
-    protected:
-        bool Connect();
-        bool Disconnect();
+    void TimerHit();
 
-        void TimerHit();
+    virtual IPState Move(DomeDirection dir, DomeMotionCommand operation);
+    virtual IPState MoveRel(double azDiff);
+    virtual IPState MoveAbs(double az);
+    virtual IPState Park();
+    virtual IPState UnPark();
+    virtual IPState ControlShutter(ShutterOperation operation);
+    virtual bool Abort();
 
-        virtual IPState Move(DomeDirection dir, DomeMotionCommand operation);
-        virtual IPState MoveRel(double azDiff);
-        virtual IPState MoveAbs(double az);
-        virtual IPState Park();
-        virtual IPState UnPark();
-        virtual IPState ControlShutter(ShutterOperation operation);
-        virtual bool Abort();
+    // Parking
+    virtual bool SetCurrentPark();
+    virtual bool SetDefaultPark();
 
-        // Parking
-        virtual bool SetCurrentPark();
-        virtual bool SetDefaultPark();
-
-
-    private:
-
-        double targetAz;
-        double shutterTimer;
-        bool SetupParms();
-        int TimeSinceUpdate;
-
+  private:
+    double targetAz;
+    double shutterTimer;
+    bool SetupParms();
+    int TimeSinceUpdate;
 };
 
 #endif
