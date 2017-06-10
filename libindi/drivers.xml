@@ -171,6 +171,10 @@
                 <driver name="MoonLite">indi_moonlite_focus</driver>
                 <version>1.0</version>
         </device>
+        <device label="NightCrawler">
+                <driver name="NightCrawler">indi_nightcrawler_focus</driver>
+                <version>1.0</version>
+        </device>
         <device label="USBFocusV3">
                 <driver name="USBFocusV3">indi_usbfocusv3_focus</driver>
                 <version>0.1</version>

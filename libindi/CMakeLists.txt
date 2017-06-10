@@ -623,6 +623,16 @@ target_link_libraries(indi_nstep_focus indidriver)
 install(TARGETS indi_nstep_focus RUNTIME DESTINATION bin )
 
 
+################ NightCrawler Focuser & Rotator ################
+
+set(nightcrawler_SRCS
+        ${CMAKE_CURRENT_SOURCE_DIR}/drivers/focuser/nightcrawler.cpp
+   )
+
+add_executable(indi_nightcrawler_focus ${nightcrawler_SRCS})
+target_link_libraries(indi_nightcrawler_focus indidriver)
+install(TARGETS indi_nightcrawler_focus RUNTIME DESTINATION bin )
+
 ################ Moonlite Focuser ################
 
 set(moonlite_SRCS
