@@ -20,6 +20,7 @@
 
 #include "nightcrawler.h"
 #include "indicom.h"
+#include "connectionplugins/connectionserial.h"
 
 #include <stdio.h>
 #include <termios.h>
@@ -30,6 +31,8 @@
 #include <memory>
 
 #define NIGHTCRAWLER_TIMEOUT 3
+#define NIGHTCRAWLER_THRESHOLD 0.1
+#define NIGHTCRAWLER_TICKS_DEGREES 0.00095
 #define POLLMS 500
 #define ROTATOR_TAB "Rotator"
 #define AUX_TAB "Aux"
@@ -81,9 +84,6 @@ NightCrawler::NightCrawler()
 
     // Can move in Absolute & Relative motions, can AbortFocuser motion, and has variable speed.
     SetFocuserCapability(FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_REL_MOVE | FOCUSER_CAN_ABORT);
-
-    lastPosition = 0;
-    lastTemperature = 0;
 }
 
 NightCrawler::~NightCrawler()
@@ -109,22 +109,28 @@ bool NightCrawler::initProperties()
     IUFillNumberVector(&SensorNP, SensorN, 2, getDeviceName(), "SENSORS", "Sensors", MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE );
 
     // Temperature offset
-    IUFillNumber(&SensorN[SENSOR_TEMPERATURE], "OFFSET", "OFFSET", "%.2f", -15, 15., 1., 0.);
-    IUFillNumberVector(&SensorNP, SensorN, 1, getDeviceName(), "TEMPERATURE_OFFSET", "Temperature", MAIN_CONTROL_TAB, IP_WO, 0, IPS_IDLE );
+    IUFillNumber(&TemperatureOffsetN[0], "OFFSET", "Offset", "%.2f", -15, 15., 1., 0.);
+    IUFillNumberVector(&TemperatureOffsetNP, TemperatureOffsetN, 1, getDeviceName(), "TEMPERATURE_OFFSET", "Temperature", MAIN_CONTROL_TAB, IP_WO, 0, IPS_IDLE );
 
     // Motor Step Delay
-    IUFillNumber(&FocusStepDelayN[0], "FOCUS_STEP", "Value", "%.f", 7, 100., 1., 10.);
+    IUFillNumber(&FocusStepDelayN[0], "FOCUS_STEP", "Value", "%.f", 7, 100., 1., 7.);
     IUFillNumberVector(&FocusStepDelayNP, FocusStepDelayN, 1, getDeviceName(), "FOCUS_STEP_DELAY", "Step Rate", SETTINGS_TAB, IP_RW, 0, IPS_IDLE );
 
     // Limit Switch
     IUFillLight(&LimitSwitchL[ROTATION_SWITCH], "ROTATION_SWITCH", "Rotation Home", IPS_OK);
-    IUFillLight(&LimitSwitchL[OUT_SWITCH], "OUT_SWITCH", "Out Limit", IPS_OK);
-    IUFillLight(&LimitSwitchL[IN_SWITCH], "IN_SWITCH", "In Limit", IPS_OK);
+    IUFillLight(&LimitSwitchL[OUT_SWITCH], "OUT_SWITCH", "Focus Out Limit", IPS_OK);
+    IUFillLight(&LimitSwitchL[IN_SWITCH], "IN_SWITCH", "Focus In Limit", IPS_OK);
     IUFillLightVector(&LimitSwitchLP, LimitSwitchL, 3, getDeviceName(), "LIMIT_SWITCHES", "Limit Switch", SETTINGS_TAB, IPS_IDLE);
 
-    // Home
-    IUFillSwitch(&FindFocusHomeS[0], "FOCUS_HOME", "Home", ISS_OFF);
-    IUFillSwitchVector(&FindFocusHomeSP, FindFocusHomeS, 1, getDeviceName(), "FIND_FOCUS_HOME", "Focuser", SETTINGS_TAB, IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
+    // Home selection
+    IUFillSwitch(&HomeSelectionS[MOTOR_FOCUS], "FOCUS", "Focuser", ISS_ON);
+    IUFillSwitch(&HomeSelectionS[MOTOR_ROTATOR], "ROTATOR", "Rotator", ISS_ON);
+    IUFillSwitch(&HomeSelectionS[MOTOR_AUX], "AUX", "Aux", ISS_OFF);
+    IUFillSwitchVector(&HomeSelectionSP, HomeSelectionS, 3, getDeviceName(), "HOME_SELECTION", "Home Select", SETTINGS_TAB, IP_RW, ISR_NOFMANY, 0, IPS_IDLE);
+
+    // Home Find
+    IUFillSwitch(&FindHomeS[0], "FIND", "Start", ISS_OFF);
+    IUFillSwitchVector(&FindHomeSP, FindHomeS, 1, getDeviceName(), "FIND_HOME", "Home Find", SETTINGS_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
     // Encoders
     IUFillSwitch(&EncoderS[0], "ENABLED", "Enabled", ISS_ON);
@@ -132,8 +138,8 @@ bool NightCrawler::initProperties()
     IUFillSwitchVector(&EncoderSP, EncoderS, 2, getDeviceName(), "ENCODERS", "Encoders", SETTINGS_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
     // Brightness
-    IUFillNumber(&BrightnessN[BRIGHTNESS_DISPLAY], "BRIGHTNESS_DISPLAY", "Display", "%.f", 0, 255., 10., 0.);
-    IUFillNumber(&BrightnessN[BRIGHTNESS_SLEEP], "BRIGHTNESS_SLEEP", "Sleep", "%.f", 1, 255., 10., 0.);
+    IUFillNumber(&BrightnessN[BRIGHTNESS_DISPLAY], "BRIGHTNESS_DISPLAY", "Display", "%.f", 0, 255., 10., 150.);
+    IUFillNumber(&BrightnessN[BRIGHTNESS_SLEEP], "BRIGHTNESS_SLEEP", "Sleep", "%.f", 1, 255., 10., 16.);
     IUFillNumberVector(&BrightnessNP, BrightnessN, 2, getDeviceName(), "BRIGHTNESS", "Brightness", SETTINGS_TAB, IP_RW, 0, IPS_IDLE );
 
     //////////////////////////////////////////////////////
@@ -141,16 +147,20 @@ bool NightCrawler::initProperties()
     /////////////////////////////////////////////////////
 
     // Rotator GOTO
-    IUFillNumber(&GotoRotatorN[0], "ROTATOR_GOTO_TICK", "Ticks", "%.f", 0, 100000., 0., 0.);
-    IUFillNumberVector(&GotoRotatorNP, GotoRotatorN, 1, getDeviceName(), "GOTO_ROTATOR", "Goto", ROTATOR_TAB, IP_RW, 0, IPS_IDLE );
+    IUFillNumber(&GotoRotatorN[0], "ROTATOR_ABSOLUTE_POSITION", "Ticks", "%.f", -360.0/NIGHTCRAWLER_TICKS_DEGREES, 360.0/NIGHTCRAWLER_TICKS_DEGREES, 0., 0.);
+    IUFillNumberVector(&GotoRotatorNP, GotoRotatorN, 1, getDeviceName(), "ABS_ROTATOR_POSITION", "Goto", ROTATOR_TAB, IP_RW, 0, IPS_IDLE );
+
+    // Rotator Degree
+    IUFillNumber(&GotoRotatorDegreeN[0], "ANGLE", "Degrees", "%.2f", 0, 360., 10., 0.);
+    IUFillNumberVector(&GotoRotatorDegreeNP, GotoRotatorDegreeN, 1, getDeviceName(), "ABS_ROTATOR_ANGLE", "Angle", ROTATOR_TAB, IP_RW, 0, IPS_IDLE );
+
+    // Abort Rotator
+    IUFillSwitch(&AbortRotatorS[0], "ABORT", "Abort", ISS_OFF);
+    IUFillSwitchVector(&AbortRotatorSP, AbortRotatorS, 1, getDeviceName(), "ROTATOR_ABORT_MOTION", "Abort Motion", ROTATOR_TAB, IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
 
     // Rotator Sync
     IUFillNumber(&SyncRotatorN[0], "ROTATOR_SYNC_TICK", "Ticks", "%.f", 0, 100000., 0., 0.);
     IUFillNumberVector(&SyncRotatorNP, SyncRotatorN, 1, getDeviceName(), "SYNC_ROTATOR", "Sync", ROTATOR_TAB, IP_RW, 0, IPS_IDLE );
-
-    // Find Rotator Home
-    IUFillSwitch(&FindRotatorHomeS[0], "ROTATOR_HOME", "Find", ISS_OFF);
-    IUFillSwitchVector(&FindRotatorHomeSP, FindRotatorHomeS, 1, getDeviceName(), "FIND_HOME_ROTATOR", "Home", ROTATOR_TAB, IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
 
     // Rotator Step Delay
     IUFillNumber(&RotatorStepDelayN[0], "ROTATOR_STEP", "Value", "%.f", 1, 100., 1., 10.);
@@ -161,16 +171,16 @@ bool NightCrawler::initProperties()
     /////////////////////////////////////////////////////
 
     // Aux GOTO
-    IUFillNumber(&GotoAuxN[0], "AUX_GOTO_TICK", "Ticks", "%.f", 0, 100000., 0., 0.);
-    IUFillNumberVector(&GotoAuxNP, GotoAuxN, 1, getDeviceName(), "GOTO_AUX", "Goto", AUX_TAB, IP_RW, 0, IPS_IDLE );
+    IUFillNumber(&GotoAuxN[0], "AUX_ABSOLUTE_POSITION", "Ticks", "%.f", 0, 100000., 0., 0.);
+    IUFillNumberVector(&GotoAuxNP, GotoAuxN, 1, getDeviceName(), "ABS_AUX_POSITION", "Goto", AUX_TAB, IP_RW, 0, IPS_IDLE );
+
+    // Abort Aux
+    IUFillSwitch(&AbortAuxS[0], "ABORT", "Abort", ISS_OFF);
+    IUFillSwitchVector(&AbortAuxSP, AbortAuxS, 1, getDeviceName(), "AUX_ABORT_MOTION", "Abort Motion", AUX_TAB, IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
 
     // Aux Sync
     IUFillNumber(&SyncAuxN[0], "AUX_SYNC_TICK", "Ticks", "%.f", 0, 100000., 0., 0.);
     IUFillNumberVector(&SyncAuxNP, SyncAuxN, 1, getDeviceName(), "SYNC_AUX", "Sync", AUX_TAB, IP_RW, 0, IPS_IDLE );
-
-    // Find Aux Home
-    IUFillSwitch(&FindAuxHomeS[0], "AUX_HOME", "Find", ISS_OFF);
-    IUFillSwitchVector(&FindAuxHomeSP, FindAuxHomeS, 1, getDeviceName(), "FIND_HOME_AUX", "Home", AUX_TAB, IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
 
     // Aux Step Delay
     IUFillNumber(&AuxStepDelayN[0], "AUX_STEP", "Value", "%.f", 1, 100., 1., 10.);
@@ -182,7 +192,7 @@ bool NightCrawler::initProperties()
     FocusRelPosN[0].value = 0;
     FocusRelPosN[0].step = 1000;
 
-    FocusAbsPosN[0].min = -0.;
+    FocusAbsPosN[0].min = 0.;
     FocusAbsPosN[0].max = 100000.;
     FocusAbsPosN[0].value = 0;
     FocusAbsPosN[0].step = 1000;
@@ -190,6 +200,8 @@ bool NightCrawler::initProperties()
     addDebugControl();
 
     updatePeriodMS = POLLMS;
+
+    serialConnection->setDefaultBaudRate(Connection::Serial::B_57600);
 
     return true;
 }
@@ -203,48 +215,52 @@ bool NightCrawler::updateProperties()
         // Focus
         defineNumber(&SyncFocusNP);
         defineNumber(&SensorNP);
-        defineNumber(&TemperatureSettingNP);
+        defineNumber(&TemperatureOffsetNP);
         defineNumber(&FocusStepDelayNP);
         defineLight(&LimitSwitchLP);
         defineSwitch(&EncoderSP);
         defineNumber(&BrightnessNP);
-        defineSwitch(&FindFocusHomeSP);
+        defineSwitch(&HomeSelectionSP);
+        defineSwitch(&FindHomeSP);
 
         // Rotator
         defineNumber(&GotoRotatorNP);
+        defineNumber(&GotoRotatorDegreeNP);
+        defineSwitch(&AbortRotatorSP);
         defineNumber(&SyncRotatorNP);
-        defineNumber(&RotatorStepDelayNP);
-        defineSwitch(&FindRotatorHomeSP);
+        defineNumber(&RotatorStepDelayNP);        
 
         // Aux
         defineNumber(&GotoAuxNP);
+        defineSwitch(&AbortAuxSP);
         defineNumber(&SyncAuxNP);
-        defineNumber(&AuxStepDelayNP);
-        defineSwitch(&FindAuxHomeSP);
+        defineNumber(&AuxStepDelayNP);        
     }
     else
     {
         // Focus
         deleteProperty(SyncFocusNP.name);
         deleteProperty(SensorNP.name);
-        deleteProperty(TemperatureSettingNP.name);
+        deleteProperty(TemperatureOffsetNP.name);
         deleteProperty(FocusStepDelayNP.name);
-        deleteProperty(LimitSwitchLP.name);
-        deleteProperty(FindFocusHomeSP.name);
+        deleteProperty(LimitSwitchLP.name);        
         deleteProperty(EncoderSP.name);
         deleteProperty(BrightnessNP.name);
+        deleteProperty(FindHomeSP.name);
+        deleteProperty(HomeSelectionSP.name);
 
         // Rotator
         deleteProperty(GotoRotatorNP.name);
+        deleteProperty(GotoRotatorDegreeNP.name);
+        deleteProperty(AbortRotatorSP.name);
         deleteProperty(SyncRotatorNP.name);
         deleteProperty(RotatorStepDelayNP.name);
-        deleteProperty(FindRotatorHomeSP.name);
 
         // Aux
         deleteProperty(GotoAuxNP.name);
+        deleteProperty(AbortAuxSP.name);
         deleteProperty(SyncAuxNP.name);
         deleteProperty(AuxStepDelayNP.name);
-        deleteProperty(FindAuxHomeSP.name);
     }
 
     return true;
@@ -253,10 +269,7 @@ bool NightCrawler::updateProperties()
 bool NightCrawler::Handshake()
 {
     if (Ack())
-    {
-        DEBUG(INDI::Logger::DBG_SESSION, "NightCrawler is online.");
         return true;
-    }
 
     DEBUG(INDI::Logger::DBG_SESSION, "Error retreiving data from NightCrawler, please ensure NightCrawler controller is powered and the port is correct.");
     return false;
@@ -311,7 +324,7 @@ bool NightCrawler::gotoMotor(MotorType type, int32_t position)
     int nbytes_written = 0, nbytes_read = 0, rc = -1;
     char errstr[MAXRBUF];
 
-    snprintf(cmd, 16, "%dSN%d#", type+1, position);
+    snprintf(cmd, 16, "%dSN %d#", type+1, position);
 
     DEBUGF(INDI::Logger::DBG_DEBUG, "CMD <%s>", cmd);
 
@@ -320,14 +333,14 @@ bool NightCrawler::gotoMotor(MotorType type, int32_t position)
     if ( (rc = tty_write(PortFD, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "gotoMotor: %s.", errstr);
+        DEBUGF(INDI::Logger::DBG_ERROR, "%s: %s.", __FUNCTION__, errstr);
         return false;
     }
 
     if ( (rc = tty_read(PortFD, res, 1, NIGHTCRAWLER_TIMEOUT, &nbytes_read)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "gotoMotor error: %s.", errstr);
+        DEBUGF(INDI::Logger::DBG_ERROR, "%s error: %s.", __FUNCTION__, errstr);
         return false;
     }
 
@@ -354,14 +367,14 @@ bool NightCrawler::getPosition(MotorType type)
     if ( (rc = tty_write(PortFD, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "getPosition: %s.", errstr);
+        DEBUGF(INDI::Logger::DBG_ERROR, "%s: %s.", __FUNCTION__, errstr);
         return false;
     }
 
     if ( (rc = tty_read(PortFD, res, 8, NIGHTCRAWLER_TIMEOUT, &nbytes_read)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "getPosition error: %s.", errstr);
+        DEBUGF(INDI::Logger::DBG_ERROR, "%s error: %s.", __FUNCTION__, errstr);
         return false;
     }
 
@@ -388,20 +401,225 @@ bool NightCrawler::getPosition(MotorType type)
 }
 
 bool NightCrawler::ISNewSwitch (const char * dev, const char * name, ISState * states, char * names[], int n)
-{
+{   
     if(strcmp(dev, getDeviceName()) == 0)
     {
+        if (!strcmp(name, HomeSelectionSP.name))
+        {
+            bool atLeastOne=false;
+            for (int i=0; i < n; i++)
+            {
+                if (states[i] == ISS_ON)
+                {
+                    atLeastOne = true;
+                    break;
+                }
+            }
 
+            if (atLeastOne == false)
+            {
+                HomeSelectionSP.s = IPS_ALERT;
+                DEBUG(INDI::Logger::DBG_ERROR, "At least one selection must be on.");
+                IDSetSwitch(&HomeSelectionSP, NULL);
+                return false;
+            }
+
+            IUUpdateSwitch(&HomeSelectionSP, states, names, n);
+            HomeSelectionSP.s = IPS_OK;
+            IDSetSwitch(&HomeSelectionSP, NULL);
+            return true;
+        }
+        else if (!strcmp(name, FindHomeSP.name))
+        {
+            uint8_t selection = 0;
+            if (HomeSelectionS[MOTOR_FOCUS].s == ISS_ON)
+                selection |= 0x01;
+            if (HomeSelectionS[MOTOR_ROTATOR].s == ISS_ON)
+                selection |= 0x02;
+            if (HomeSelectionS[MOTOR_AUX].s == ISS_ON)
+                selection |= 0x04;
+
+            if (findHome(selection))
+            {
+                FindHomeSP.s = IPS_BUSY;
+                FindHomeS[0].s = ISS_ON;
+                DEBUG(INDI::Logger::DBG_WARNING, "Homing process can take up to 10 minutes. You cannot control the unit until the process is fully complete.");
+            }
+            else
+            {
+                FindHomeSP.s = IPS_ALERT;
+                FindHomeS[0].s = ISS_OFF;
+                DEBUG(INDI::Logger::DBG_ERROR, "Failed to start homing process.");
+            }
+
+            IDSetSwitch(&FindHomeSP, NULL);
+            return true;
+        }
+        else if (!strcmp(name, EncoderSP.name))
+        {
+            IUUpdateSwitch(&EncoderSP, states, names, n);
+            EncoderSP.s = setEncodersEnabled(EncoderS[0].s == ISS_ON) ? IPS_OK : IPS_ALERT;
+            if (EncoderSP.s == IPS_OK)
+                DEBUGF(INDI::Logger::DBG_SESSION, "Encoders are %s", (EncoderS[0].s == ISS_ON) ? "ON" : "OFF");
+            IDSetSwitch(&EncoderSP, NULL);
+            return true;
+        }
+        else if (!strcmp(name, AbortRotatorSP.name))
+        {
+            AbortRotatorSP.s = stopMotor(MOTOR_ROTATOR) ? IPS_OK : IPS_ALERT;
+            IDSetSwitch(&AbortRotatorSP, NULL);
+            if (AbortRotatorSP.s == IPS_OK)
+            {
+                if (GotoRotatorNP.s != IPS_OK)
+                {
+                    GotoRotatorNP.s = IPS_OK;
+                    GotoRotatorDegreeNP.s = IPS_OK;
+                    IDSetNumber(&GotoRotatorNP, NULL);
+                    IDSetNumber(&GotoRotatorDegreeNP, NULL);
+                }
+            }
+            return true;
+        }
+        else if (!strcmp(name, AbortAuxSP.name))
+        {
+            AbortAuxSP.s = stopMotor(MOTOR_AUX) ? IPS_OK : IPS_ALERT;
+            IDSetSwitch(&AbortAuxSP, NULL);
+            if (AbortAuxSP.s == IPS_OK)
+            {
+                if (GotoAuxNP.s != IPS_OK)
+                {
+                    GotoAuxNP.s = IPS_OK;
+                    IDSetNumber(&GotoAuxNP, NULL);
+                }
+            }
+            return true;
+        }
     }
 
     return INDI::Focuser::ISNewSwitch(dev, name, states, names, n);
 }
 
 bool NightCrawler::ISNewNumber (const char * dev, const char * name, double values[], char * names[], int n)
-{
+{    
     if(strcmp(dev, getDeviceName()) == 0)
     {
+        if (!strcmp(name, SyncFocusNP.name))
+        {
+            bool rc = syncMotor(MOTOR_FOCUS, static_cast<uint32_t>(values[0]));
+            SyncFocusNP.s = rc ? IPS_OK : IPS_ALERT;
+            if (rc)
+                SyncFocusN[0].value = values[0];
 
+            IDSetNumber(&SyncFocusNP, NULL);
+            return true;
+        }
+        else if (!strcmp(name, SyncRotatorNP.name))
+        {
+            bool rc = syncMotor(MOTOR_ROTATOR, static_cast<uint32_t>(values[0]));
+            SyncRotatorNP.s = rc ? IPS_OK : IPS_ALERT;
+            if (rc)
+                SyncRotatorN[0].value = values[0];
+
+            IDSetNumber(&SyncRotatorNP, NULL);
+            return true;
+        }
+        else if (!strcmp(name, SyncAuxNP.name))
+        {
+            bool rc = syncMotor(MOTOR_AUX, static_cast<uint32_t>(values[0]));
+            SyncAuxNP.s = rc ? IPS_OK : IPS_ALERT;
+            if (rc)
+                SyncAuxN[0].value = values[0];
+
+            IDSetNumber(&SyncAuxNP, NULL);
+            return true;
+        }
+        else if (!strcmp(name, TemperatureOffsetNP.name))
+        {
+            bool rc = setTemperatureOffset(values[0]);
+            TemperatureOffsetNP.s = rc ? IPS_OK : IPS_ALERT;
+            IDSetNumber(&TemperatureOffsetNP, NULL);
+            return true;
+        }
+        else if (!strcmp(name, FocusStepDelayNP.name))
+        {
+            bool rc = setStepDelay(MOTOR_FOCUS, static_cast<uint32_t>(values[0]));
+            FocusStepDelayNP.s = rc ? IPS_OK : IPS_ALERT;
+            if (rc)
+                FocusStepDelayN[0].value = values[0];
+            IDSetNumber(&FocusStepDelayNP, NULL);
+            return true;
+        }
+        else if (!strcmp(name, RotatorStepDelayNP.name))
+        {
+            bool rc = setStepDelay(MOTOR_ROTATOR, static_cast<uint32_t>(values[0]));
+            RotatorStepDelayNP.s = rc ? IPS_OK : IPS_ALERT;
+            if (rc)
+                RotatorStepDelayN[0].value = values[0];
+            IDSetNumber(&RotatorStepDelayNP, NULL);
+            return true;
+        }
+        else if (!strcmp(name, AuxStepDelayNP.name))
+        {
+            bool rc = setStepDelay(MOTOR_AUX, static_cast<uint32_t>(values[0]));
+            AuxStepDelayNP.s = rc ? IPS_OK : IPS_ALERT;
+            if (rc)
+                AuxStepDelayN[0].value = values[0];
+            IDSetNumber(&AuxStepDelayNP, NULL);
+            return true;
+        }
+        else if (!strcmp(name, BrightnessNP.name))
+        {
+            IUUpdateNumber(&BrightnessNP, values, names, n);
+            bool rcDisplay = setDisplayBrightness(static_cast<uint8_t>(BrightnessN[BRIGHTNESS_DISPLAY].value));
+            bool rcSleep = setSleepBrightness(static_cast<uint8_t>(BrightnessN[BRIGHTNESS_SLEEP].value));
+            if (rcDisplay && rcSleep)
+                BrightnessNP.s = IPS_OK;
+            else
+                BrightnessNP.s = IPS_ALERT;
+
+            IDSetNumber(&BrightnessNP, NULL);
+            return true;
+        }
+        else if (!strcmp(name, GotoRotatorNP.name))
+        {
+           bool rc = gotoMotor(MOTOR_ROTATOR, static_cast<int32_t>(values[0]));
+           GotoRotatorNP.s = rc ? IPS_BUSY : IPS_OK;
+           IDSetNumber(&GotoRotatorNP, NULL);
+           DEBUGF(INDI::Logger::DBG_SESSION, "Rotator moving to %.f ticks...", values[0]);
+           return true;
+        }
+        else if (!strcmp(name, GotoRotatorDegreeNP.name))
+        {
+           // Find shortest distance given target degree
+           double a=values[0];
+           double b=GotoRotatorDegreeN[0].value;
+           double d=fabs(a-b);
+           double r=(d > 180) ? 360 - d : d;
+           int sign = (a - b >= 0 && a - b <= 180) || (a - b <=-180 && a- b>= -360) ? 1 : -1;
+           r *= sign;
+
+           double newTarget = (r+b) / NIGHTCRAWLER_TICKS_DEGREES;
+           if (newTarget < GotoRotatorN[0].min)
+               newTarget -= GotoRotatorN[0].min;
+           else if (newTarget > GotoRotatorN[0].max)
+               newTarget -= GotoRotatorN[0].max;
+
+           bool rc = gotoMotor(MOTOR_ROTATOR, static_cast<int32_t>(newTarget));
+           GotoRotatorNP.s = rc ? IPS_BUSY : IPS_OK;
+           GotoRotatorDegreeNP.s = rc ? IPS_BUSY : IPS_OK;
+           IDSetNumber(&GotoRotatorDegreeNP, NULL);
+           IDSetNumber(&GotoRotatorNP, NULL);
+           DEBUGF(INDI::Logger::DBG_SESSION, "Rotator moving to %.2f degrees (%.f ticks)...", values[0], newTarget);
+           return true;
+        }
+        else if (!strcmp(name, GotoAuxNP.name))
+        {
+           bool rc = gotoMotor(MOTOR_AUX, static_cast<int32_t>(values[0]));
+           GotoAuxNP.s = rc ? IPS_BUSY : IPS_OK;
+           IDSetNumber(&GotoAuxNP, NULL);
+           DEBUGF(INDI::Logger::DBG_SESSION, "Aux moving to %.f...", values[0]);
+           return true;
+        }
     }
 
     return INDI::Focuser::ISNewNumber(dev, name, values, names, n);
@@ -453,75 +671,649 @@ void NightCrawler::TimerHit()
         return;
     }
 
+    bool rc = false;
+    bool sensorsUpdated=false;
+
+    // #1 If we're homing, we check if homing is complete as we cannot check for anything else
+    if (FindHomeSP.s == IPS_BUSY)
+    {
+        if (isHomingComplete())
+        {
+            FindHomeSP.s = IPS_OK;
+            DEBUG(INDI::Logger::DBG_SESSION, "Homing is complete.");
+            FindHomeS[0].s = ISS_OFF;
+            IDSetSwitch(&FindHomeSP, NULL);
+        }
+
+        return;
+    }
+
+    // #2 Get Temperature
+    rc = getTemperature();
+    if (rc && fabs(SensorN[SENSOR_TEMPERATURE].value - lastTemperature) > NIGHTCRAWLER_THRESHOLD)
+    {
+        lastTemperature = SensorN[SENSOR_TEMPERATURE].value;
+        sensorsUpdated = true;
+    }
+
+    // #3 Get Voltage
+    rc = getVoltage();
+    if (rc && fabs(SensorN[SENSOR_VOLTAGE].value - lastVoltage) > NIGHTCRAWLER_THRESHOLD)
+    {
+        lastVoltage = SensorN[SENSOR_VOLTAGE].value;
+        sensorsUpdated = true;
+    }
+
+    if (sensorsUpdated)
+        IDSetNumber(&SensorNP, NULL);
+
+    // #4 Get Limit Switch Status
+    rc = getLimitSwitchStatus();
+    if (rc && (LimitSwitchL[ROTATION_SWITCH].s != rotationLimit || LimitSwitchL[OUT_SWITCH].s != outSwitchLimit
+               || LimitSwitchL[IN_SWITCH].s != inSwitchLimit))
+    {
+        rotationLimit = LimitSwitchL[ROTATION_SWITCH].s;
+        outSwitchLimit = LimitSwitchL[OUT_SWITCH].s;
+        inSwitchLimit = LimitSwitchL[IN_SWITCH].s;
+        IDSetLight(&LimitSwitchLP, NULL);
+    }
+
+    // #5 Focus Position & Status
+    bool absFocusUpdated=false;
+    if (FocusAbsPosNP.s == IPS_BUSY)
+    {
+        // Stopped moving
+        if (isMotorMoving(MOTOR_FOCUS) == false)
+        {
+            FocusAbsPosNP.s = IPS_OK;
+            if (FocusRelPosNP.s != IPS_OK)
+            {
+                FocusRelPosNP.s = IPS_OK;
+                IDSetNumber(&FocusRelPosNP, NULL);
+            }
+            absFocusUpdated = true;
+        }
+    }
+    rc = getPosition(MOTOR_FOCUS);
+    if (rc && FocusAbsPosN[0].value != lastFocuserPosition)
+    {
+        lastFocuserPosition = FocusAbsPosN[0].value;
+        absFocusUpdated = true;
+    }
+    if (absFocusUpdated)
+        IDSetNumber(&FocusAbsPosNP, NULL);
+
+    // #6 Rotator Position & Status
+    bool absRotatorUpdated=false;
+    if (GotoRotatorNP.s == IPS_BUSY)
+    {
+        // Stopped moving
+        if (isMotorMoving(MOTOR_ROTATOR) == false)
+        {
+            GotoRotatorNP.s = IPS_OK;
+            GotoRotatorDegreeNP.s = IPS_OK;
+            absRotatorUpdated = true;
+            DEBUG(INDI::Logger::DBG_SESSION, "Rotator motion complete.");
+        }
+    }
+    rc = getPosition(MOTOR_ROTATOR);
+    if (rc && GotoRotatorN[0].value != lastRotatorPosition)
+    {
+        lastRotatorPosition = GotoRotatorN[0].value;
+        double rawAngle = GotoRotatorN[0].value * NIGHTCRAWLER_TICKS_DEGREES;
+        if (rawAngle < 0)
+            rawAngle += 360;
+        GotoRotatorDegreeN[0].value = rawAngle;
+        absRotatorUpdated = true;
+    }
+    if (absRotatorUpdated)
+    {
+        IDSetNumber(&GotoRotatorNP, NULL);
+        IDSetNumber(&GotoRotatorDegreeNP, NULL);
+    }
+
+    // #7 Aux Position & Status
+    bool absAuxUpdated=false;
+    if (GotoAuxNP.s == IPS_BUSY)
+    {
+        // Stopped moving
+        if (isMotorMoving(MOTOR_AUX) == false)
+        {
+            GotoAuxNP.s = IPS_OK;
+            absAuxUpdated = true;
+            DEBUG(INDI::Logger::DBG_SESSION, "Aux motion complete.");
+        }
+    }
+    rc = getPosition(MOTOR_AUX);
+    if (rc && GotoAuxN[0].value != lastAuxPosition)
+    {
+        lastAuxPosition = GotoAuxN[0].value;
+        absAuxUpdated = true;
+    }
+    if (absAuxUpdated)
+        IDSetNumber(&GotoAuxNP, NULL);
+
     SetTimer(POLLMS);
 }
 
 bool NightCrawler::AbortFocuser()
 {
-    return false;
+    return stopMotor(MOTOR_FOCUS);
 }
 
-bool NightCrawler::syncMotor(MotorType type, int32_t position)
+bool NightCrawler::syncMotor(MotorType type, uint32_t position)
 {
-    return false;
+    char cmd[16] = {0};
+    char res[16] = {0};
+
+    int nbytes_written = 0, nbytes_read = 0, rc = -1;
+    char errstr[MAXRBUF];
+
+    snprintf(cmd, 16, "%dSP %d#", type+1, position);
+
+    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD <%s>", cmd);
+
+    tcflush(PortFD, TCIOFLUSH);
+
+    if ( (rc = tty_write(PortFD, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
+    {
+        tty_error_msg(rc, errstr, MAXRBUF);
+        DEBUGF(INDI::Logger::DBG_ERROR, "%s: %s.", __FUNCTION__, errstr);
+        return false;
+    }
+
+    if ( (rc = tty_read(PortFD, res, 1, NIGHTCRAWLER_TIMEOUT, &nbytes_read)) != TTY_OK)
+    {
+        tty_error_msg(rc, errstr, MAXRBUF);
+        DEBUGF(INDI::Logger::DBG_ERROR, "%s error: %s.", __FUNCTION__, errstr);
+        return false;
+    }
+
+    res[nbytes_read] = '\0';
+
+    DEBUGF(INDI::Logger::DBG_DEBUG, "RES <%s>", res);
+
+    return (res[0] == '#');
 }
 
 bool NightCrawler::startMotor(MotorType type)
 {
-    return false;
+    char cmd[16] = {0};
+    char res[16] = {0};
+
+    int nbytes_written = 0, nbytes_read = 0, rc = -1;
+    char errstr[MAXRBUF];
+
+    snprintf(cmd, 16, "%dSM#", type+1);
+
+    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD <%s>", cmd);
+
+    tcflush(PortFD, TCIOFLUSH);
+
+    if ( (rc = tty_write(PortFD, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
+    {
+        tty_error_msg(rc, errstr, MAXRBUF);
+        DEBUGF(INDI::Logger::DBG_ERROR, "%s: %s.", __FUNCTION__, errstr);
+        return false;
+    }
+
+    if ( (rc = tty_read(PortFD, res, 1, NIGHTCRAWLER_TIMEOUT, &nbytes_read)) != TTY_OK)
+    {
+        tty_error_msg(rc, errstr, MAXRBUF);
+        DEBUGF(INDI::Logger::DBG_ERROR, "%s error: %s.", __FUNCTION__, errstr);
+        return false;
+    }
+
+    res[nbytes_read] = '\0';
+
+    DEBUGF(INDI::Logger::DBG_DEBUG, "RES <%s>", res);
+
+    return (res[0] == '#');
 }
 
 bool NightCrawler::stopMotor(MotorType type)
 {
-    return false;
+    char cmd[16] = {0};
+    char res[16] = {0};
+
+    int nbytes_written = 0, nbytes_read = 0, rc = -1;
+    char errstr[MAXRBUF];
+
+    snprintf(cmd, 16, "%dSQ#", type+1);
+
+    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD <%s>", cmd);
+
+    tcflush(PortFD, TCIOFLUSH);
+
+    if ( (rc = tty_write(PortFD, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
+    {
+        tty_error_msg(rc, errstr, MAXRBUF);
+        DEBUGF(INDI::Logger::DBG_ERROR, "%s: %s.", __FUNCTION__, errstr);
+        return false;
+    }
+
+    if ( (rc = tty_read(PortFD, res, 1, NIGHTCRAWLER_TIMEOUT, &nbytes_read)) != TTY_OK)
+    {
+        tty_error_msg(rc, errstr, MAXRBUF);
+        DEBUGF(INDI::Logger::DBG_ERROR, "%s error: %s.", __FUNCTION__, errstr);
+        return false;
+    }
+
+    res[nbytes_read] = '\0';
+
+    DEBUGF(INDI::Logger::DBG_DEBUG, "RES <%s>", res);
+
+    return (res[0] == '#');
 }
 
 bool NightCrawler::isMotorMoving(MotorType type)
 {
-    return false;
+    char cmd[16] = {0};
+    char res[16] = {0};
+
+    int nbytes_written = 0, nbytes_read = 0, rc = -1;
+    char errstr[MAXRBUF];
+
+    snprintf(cmd, 16, "%dGM#", type+1);
+
+    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD <%s>", cmd);
+
+    tcflush(PortFD, TCIOFLUSH);
+
+    if ( (rc = tty_write(PortFD, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
+    {
+        tty_error_msg(rc, errstr, MAXRBUF);
+        DEBUGF(INDI::Logger::DBG_ERROR, "%s error: %s.", __FUNCTION__, errstr);
+        return false;
+    }
+
+    if ( (rc = tty_read_section(PortFD, res, '#', NIGHTCRAWLER_TIMEOUT, &nbytes_read)) != TTY_OK)
+    {
+        tty_error_msg(rc, errstr, MAXRBUF);
+        DEBUGF(INDI::Logger::DBG_ERROR, "%s error: %s.", __FUNCTION__, errstr);
+        return false;
+    }
+
+    res[nbytes_read-1] = '\0';
+
+    DEBUGF(INDI::Logger::DBG_DEBUG, "RES <%s>", res);
+
+    return (strcmp("01", res) == 0);
 }
 
-bool NightCrawler::getSensors()
+bool NightCrawler::getTemperature()
 {
-   return false;
+    char cmd[16] = "GT#";
+    char res[16] = {0};
+
+    int nbytes_written = 0, nbytes_read = 0, rc = -1;
+    char errstr[MAXRBUF];
+
+    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD <%s>", cmd);
+
+    tcflush(PortFD, TCIOFLUSH);
+
+    if ( (rc = tty_write(PortFD, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
+    {
+        tty_error_msg(rc, errstr, MAXRBUF);
+        DEBUGF(INDI::Logger::DBG_ERROR, "%s error: %s.", __FUNCTION__, errstr);
+        return false;
+    }
+
+    if ( (rc = tty_read_section(PortFD, res, '#', NIGHTCRAWLER_TIMEOUT, &nbytes_read)) != TTY_OK)
+    {
+        tty_error_msg(rc, errstr, MAXRBUF);
+        DEBUGF(INDI::Logger::DBG_ERROR, "%s error: %s.", __FUNCTION__, errstr);
+        return false;
+    }
+
+    res[nbytes_read-1] = '\0';
+
+    DEBUGF(INDI::Logger::DBG_DEBUG, "RES <%s>", res);
+
+    SensorN[SENSOR_TEMPERATURE].value = atoi(res) / 10.0;
+
+    return true;
+}
+
+bool NightCrawler::getVoltage()
+{
+    char cmd[16] = "GV#";
+    char res[16] = {0};
+
+    int nbytes_written = 0, nbytes_read = 0, rc = -1;
+    char errstr[MAXRBUF];
+
+    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD <%s>", cmd);
+
+    tcflush(PortFD, TCIOFLUSH);
+
+    if ( (rc = tty_write(PortFD, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
+    {
+        tty_error_msg(rc, errstr, MAXRBUF);
+        DEBUGF(INDI::Logger::DBG_ERROR, "%s error: %s.", __FUNCTION__, errstr);
+        return false;
+    }
+
+    if ( (rc = tty_read_section(PortFD, res, '#', NIGHTCRAWLER_TIMEOUT, &nbytes_read)) != TTY_OK)
+    {
+        tty_error_msg(rc, errstr, MAXRBUF);
+        DEBUGF(INDI::Logger::DBG_ERROR, "%s error: %s.", __FUNCTION__, errstr);
+        return false;
+    }
+
+    res[nbytes_read-1] = '\0';
+
+    DEBUGF(INDI::Logger::DBG_DEBUG, "RES <%s>", res);
+
+    SensorN[SENSOR_VOLTAGE].value = atoi(res) / 10.0;
+
+    return true;
 }
 
 bool NightCrawler::setTemperatureOffset(double offset)
 {
-    return false;
+    char cmd[16] = {0};
+
+    int nbytes_written = 0, rc = -1;
+    char errstr[MAXRBUF];
+
+    snprintf(cmd, 16, "Pt %03d#", static_cast<int>(offset*10));
+
+    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD <%s>", cmd);
+
+    tcflush(PortFD, TCIOFLUSH);
+
+    if ( (rc = tty_write(PortFD, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
+    {
+        tty_error_msg(rc, errstr, MAXRBUF);
+        DEBUGF(INDI::Logger::DBG_ERROR, "%s error: %s.", __FUNCTION__, errstr);
+        return false;
+    }
+
+    return true;
 }
 
 bool NightCrawler::getStepDelay(MotorType type)
 {
-    return false;
+    char cmd[16] = {0};
+    char res[16] = {0};
+
+    int nbytes_written = 0, nbytes_read = 0, rc = -1;
+    char errstr[MAXRBUF];
+
+    snprintf(cmd, 16, "%dSR#", type+1);
+
+    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD <%s>", cmd);
+
+    tcflush(PortFD, TCIOFLUSH);
+
+    if ( (rc = tty_write(PortFD, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
+    {
+        tty_error_msg(rc, errstr, MAXRBUF);
+        DEBUGF(INDI::Logger::DBG_ERROR, "%s: %s.", __FUNCTION__, errstr);
+        return false;
+    }
+
+    if ( (rc = tty_read_section(PortFD, res, '#', NIGHTCRAWLER_TIMEOUT, &nbytes_read)) != TTY_OK)
+    {
+        tty_error_msg(rc, errstr, MAXRBUF);
+        DEBUGF(INDI::Logger::DBG_ERROR, "%s error: %s.", __FUNCTION__, errstr);
+        return false;
+    }
+
+    res[nbytes_read-1] = '\0';
+
+    DEBUGF(INDI::Logger::DBG_DEBUG, "RES <%s>", res);
+
+    if (type == MOTOR_FOCUS)
+        FocusStepDelayN[0].value = atoi(res);
+    else if (type == MOTOR_ROTATOR)
+        RotatorStepDelayN[0].value = atoi(res);
+    else
+        AuxStepDelayN[0].value = atoi(res);
+
+    return true;
 }
 
 bool NightCrawler::setStepDelay(MotorType type, uint32_t delay)
 {
-    return false;
+    char cmd[16] = {0};
+    char res[16] = {0};
+
+    int nbytes_written = 0, nbytes_read = 0, rc = -1;
+    char errstr[MAXRBUF];
+
+    snprintf(cmd, 16, "%dSR %03d#", type+1, delay);
+
+    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD <%s>", cmd);
+
+    tcflush(PortFD, TCIOFLUSH);
+
+    if ( (rc = tty_write(PortFD, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
+    {
+        tty_error_msg(rc, errstr, MAXRBUF);
+        DEBUGF(INDI::Logger::DBG_ERROR, "%s error: %s.", __FUNCTION__, errstr);
+        return false;
+    }
+
+    if ( (rc = tty_read(PortFD, res, 1, NIGHTCRAWLER_TIMEOUT, &nbytes_read)) != TTY_OK)
+    {
+        tty_error_msg(rc, errstr, MAXRBUF);
+        DEBUGF(INDI::Logger::DBG_ERROR, "%s error: %s.", __FUNCTION__, errstr);
+        return false;
+    }
+
+    res[nbytes_read] = '\0';
+
+    DEBUGF(INDI::Logger::DBG_DEBUG, "RES <%s>", res);
+
+    return (res[0] == '#');
 }
 
 bool NightCrawler::getLimitSwitchStatus()
 {
-    return false;
+    char cmd[16] = "GS#";
+    char res[16] = {0};
+
+    int nbytes_written = 0, nbytes_read = 0, rc = -1;
+    char errstr[MAXRBUF];
+
+    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD <%s>", cmd);
+
+    tcflush(PortFD, TCIOFLUSH);
+
+    if ( (rc = tty_write(PortFD, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
+    {
+        tty_error_msg(rc, errstr, MAXRBUF);
+        DEBUGF(INDI::Logger::DBG_ERROR, "%s error: %s.", __FUNCTION__, errstr);
+        return false;
+    }
+
+    if ( (rc = tty_read_section(PortFD, res, '#', NIGHTCRAWLER_TIMEOUT, &nbytes_read)) != TTY_OK)
+    {
+        tty_error_msg(rc, errstr, MAXRBUF);
+        DEBUGF(INDI::Logger::DBG_ERROR, "%s error: %s.", __FUNCTION__, errstr);
+        return false;
+    }
+
+    res[nbytes_read-1] = '\0';
+
+    DEBUGF(INDI::Logger::DBG_DEBUG, "RES <%s>", res);
+
+    int value = atoi(res);
+
+    LimitSwitchL[ROTATION_SWITCH].s = (value & 0x01) ? IPS_ALERT : IPS_OK;
+    LimitSwitchL[OUT_SWITCH].s      = (value & 0x02) ? IPS_ALERT : IPS_OK;
+    LimitSwitchL[IN_SWITCH].s       = (value & 0x04) ? IPS_ALERT : IPS_OK;
+
+    return true;
 }
 
-bool NightCrawler::findHome(MotorType type)
+bool NightCrawler::findHome(uint8_t motorTypes)
 {
-    return false;
+    char cmd[16] = {0};
+    char res[16] = {0};
+
+    int nbytes_written = 0, nbytes_read = 0, rc = -1;
+    char errstr[MAXRBUF];
+
+    snprintf(cmd, 16, "SH %02d#", motorTypes);
+
+    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD <%s>", cmd);
+
+    tcflush(PortFD, TCIOFLUSH);
+
+    if ( (rc = tty_write(PortFD, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
+    {
+        tty_error_msg(rc, errstr, MAXRBUF);
+        DEBUGF(INDI::Logger::DBG_ERROR, "%s error: %s.", __FUNCTION__, errstr);
+        return false;
+    }
+
+    if ( (rc = tty_read(PortFD, res, 1, NIGHTCRAWLER_TIMEOUT, &nbytes_read)) != TTY_OK)
+    {
+        tty_error_msg(rc, errstr, MAXRBUF);
+        DEBUGF(INDI::Logger::DBG_ERROR, "%s error: %s.", __FUNCTION__, errstr);
+        return false;
+    }
+
+    res[nbytes_read] = '\0';
+
+    DEBUGF(INDI::Logger::DBG_DEBUG, "RES <%s>", res);
+
+    return (res[0] == '#');
+}
+
+bool NightCrawler::isHomingComplete()
+{
+    char res[16] = {0};
+    int nbytes_read = 0, rc = -1;
+
+    if ( (rc = tty_read(PortFD, res, '#', NIGHTCRAWLER_TIMEOUT, &nbytes_read)) != TTY_OK)
+    {
+        // No error as we are waiting until controller returns "OK#"
+        return false;
+    }
+
+    res[nbytes_read-1] = '\0';
+
+    DEBUGF(INDI::Logger::DBG_DEBUG, "RES <%s>", res);
+
+    return (strcmp("OK", res) == 0);
 }
 
 bool NightCrawler::setEncodersEnabled(bool enable)
 {
-    return false;
+    char cmd[16] = {0};
+    char res[16] = {0};
+
+    int nbytes_written = 0, nbytes_read = 0, rc = -1;
+    char errstr[MAXRBUF];
+
+    snprintf(cmd, 16, "PE %s#", enable ? "01" : "00");
+
+    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD <%s>", cmd);
+
+    tcflush(PortFD, TCIOFLUSH);
+
+    if ( (rc = tty_write(PortFD, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
+    {
+        tty_error_msg(rc, errstr, MAXRBUF);
+        DEBUGF(INDI::Logger::DBG_ERROR, "%s error: %s.", __FUNCTION__, errstr);
+        return false;
+    }
+
+    if ( (rc = tty_read_section(PortFD, res, '#', NIGHTCRAWLER_TIMEOUT, &nbytes_read)) != TTY_OK)
+    {
+        tty_error_msg(rc, errstr, MAXRBUF);
+        DEBUGF(INDI::Logger::DBG_ERROR, "%s error: %s.", __FUNCTION__, errstr);
+        return false;
+    }
+
+    res[nbytes_read] = '\0';
+
+    DEBUGF(INDI::Logger::DBG_DEBUG, "RES <%s>", res);
+
+    return true;
 }
 
-bool NightCrawler::getBrightness()
+bool NightCrawler::setDisplayBrightness(uint8_t value)
 {
-    return false;
+    char cmd[16] = {0};
+    char res[16] = {0};
+
+    int nbytes_written = 0, nbytes_read = 0, rc = -1;
+    char errstr[MAXRBUF];
+
+    snprintf(cmd, 16, "PD %03d#", value);
+
+    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD <%s>", cmd);
+
+    tcflush(PortFD, TCIOFLUSH);
+
+    if ( (rc = tty_write(PortFD, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
+    {
+        tty_error_msg(rc, errstr, MAXRBUF);
+        DEBUGF(INDI::Logger::DBG_ERROR, "%s error: %s.", __FUNCTION__, errstr);
+        return false;
+    }
+
+    if ( (rc = tty_read(PortFD, res, 1, NIGHTCRAWLER_TIMEOUT, &nbytes_read)) != TTY_OK)
+    {
+        tty_error_msg(rc, errstr, MAXRBUF);
+        DEBUGF(INDI::Logger::DBG_ERROR, "%s error: %s.", __FUNCTION__, errstr);
+        return false;
+    }
+
+    res[nbytes_read] = '\0';
+
+    DEBUGF(INDI::Logger::DBG_DEBUG, "RES <%s>", res);
+
+    return (res[0] == '#');
 }
 
-bool NightCrawler::setBrightness(uint8_t display, uint8_t sleep)
+bool NightCrawler::setSleepBrightness(uint8_t value)
 {
-    return false;
+    char cmd[16] = {0};
+    char res[16] = {0};
+
+    int nbytes_written = 0, nbytes_read = 0, rc = -1;
+    char errstr[MAXRBUF];
+
+    snprintf(cmd, 16, "PL %03d#", value);
+
+    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD <%s>", cmd);
+
+    tcflush(PortFD, TCIOFLUSH);
+
+    if ( (rc = tty_write(PortFD, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
+    {
+        tty_error_msg(rc, errstr, MAXRBUF);
+        DEBUGF(INDI::Logger::DBG_ERROR, "%s error: %s.", __FUNCTION__, errstr);
+        return false;
+    }
+
+    if ( (rc = tty_read(PortFD, res, 1, NIGHTCRAWLER_TIMEOUT, &nbytes_read)) != TTY_OK)
+    {
+        tty_error_msg(rc, errstr, MAXRBUF);
+        DEBUGF(INDI::Logger::DBG_ERROR, "%s error: %s.", __FUNCTION__, errstr);
+        return false;
+    }
+
+    res[nbytes_read] = '\0';
+
+    DEBUGF(INDI::Logger::DBG_DEBUG, "RES <%s>", res);
+
+    return (res[0] == '#');
+}
+
+bool NightCrawler::saveConfigItems(FILE *fp)
+{
+    Focuser::saveConfigItems(fp);
+
+    IUSaveConfigNumber(fp, &BrightnessNP);
+    IUSaveConfigNumber(fp, &FocusStepDelayNP);
+
+    return true;
 }

@@ -47,6 +47,8 @@ class NightCrawler : public INDI::Focuser
         virtual bool AbortFocuser();
         virtual void TimerHit();
 
+        virtual bool saveConfigItems(FILE *fp);
+
     private:                
 
         // Get Firmware
@@ -61,11 +63,13 @@ class NightCrawler : public INDI::Focuser
         bool getPosition(MotorType type);
         INumber GotoRotatorN[1];
         INumberVectorProperty GotoRotatorNP;
+        INumber GotoRotatorDegreeN[1];
+        INumberVectorProperty GotoRotatorDegreeNP;
         INumber GotoAuxN[1];
         INumberVectorProperty GotoAuxNP;
 
         // Sync to Position
-        bool syncMotor(MotorType type, int32_t position);
+        bool syncMotor(MotorType type, uint32_t position);
         INumber SyncFocusN[1];
         INumberVectorProperty SyncFocusNP;
         INumber SyncRotatorN[1];
@@ -75,19 +79,26 @@ class NightCrawler : public INDI::Focuser
 
         // Start/Stop Motors
         bool startMotor(MotorType type);
+
         bool stopMotor(MotorType type);
+        ISwitch AbortRotatorS[1];
+        ISwitchVectorProperty AbortRotatorSP;
+        ISwitch AbortAuxS[1];
+        ISwitchVectorProperty AbortAuxSP;
+
         bool isMotorMoving(MotorType type);
 
         // Sensors (Temperature + Voltage)
-        bool getSensors();
+        bool getTemperature();
+        bool getVoltage();
         INumber SensorN[2];
         INumberVectorProperty SensorNP;
         enum { SENSOR_TEMPERATURE, SENSOR_VOLTAGE };
 
         // Temperature offset
         bool setTemperatureOffset(double offset);
-        INumber TemperatureSettingN[1];
-        INumberVectorProperty TemperatureSettingNP;
+        INumber TemperatureOffsetN[1];
+        INumberVectorProperty TemperatureOffsetNP;
 
         // Motor step rate in 100 microsecond intervals
         bool getStepDelay(MotorType type);
@@ -106,28 +117,28 @@ class NightCrawler : public INDI::Focuser
         enum { ROTATION_SWITCH, OUT_SWITCH, IN_SWITCH };
 
         // Home
-        bool findHome(MotorType type);
-        ISwitch FindFocusHomeS[1];
-        ISwitchVectorProperty FindFocusHomeSP;
-        ISwitch FindRotatorHomeS[1];
-        ISwitchVectorProperty FindRotatorHomeSP;
-        ISwitch FindAuxHomeS[1];
-        ISwitchVectorProperty FindAuxHomeSP;
+        bool findHome(uint8_t motorTypes);
+        bool isHomingComplete();
+        ISwitch HomeSelectionS[3];
+        ISwitchVectorProperty HomeSelectionSP;
+        ISwitch FindHomeS[1];
+        ISwitchVectorProperty FindHomeSP;
 
         // Encoders
         bool setEncodersEnabled(bool enable);
-        ISwitch EncoderS[1];
+        ISwitch EncoderS[2];
         ISwitchVectorProperty EncoderSP;
 
         // Brightness
-        bool getBrightness();
-        bool setBrightness(uint8_t display, uint8_t sleep);
+        bool setDisplayBrightness(uint8_t value);
+        bool setSleepBrightness(uint8_t value);
         INumber BrightnessN[2];
         INumberVectorProperty BrightnessNP;
         enum { BRIGHTNESS_DISPLAY, BRIGHTNESS_SLEEP };
 
-        double lastTemperature, lastVoltage;
-        uint32_t lastPosition, targetPosition;
+        double lastTemperature=0, lastVoltage=0;
+        uint32_t lastFocuserPosition=0, lastRotatorPosition=0, lastAuxPosition=0, targetPosition=0;
+        IPState rotationLimit=IPS_IDLE, outSwitchLimit=IPS_IDLE, inSwitchLimit = IPS_IDLE;
 
 };
 
