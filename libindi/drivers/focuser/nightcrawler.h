@@ -53,6 +53,8 @@ class NightCrawler : public INDI::Focuser
 
         // Get Firmware
         bool getFirmware();
+        // Get Focuer Type
+        bool getFocuserType();
         // Check if connection is OK
         bool Ack();
 
@@ -136,7 +138,7 @@ class NightCrawler : public INDI::Focuser
         INumberVectorProperty BrightnessNP;
         enum { BRIGHTNESS_DISPLAY, BRIGHTNESS_SLEEP };
 
-        double lastTemperature=0, lastVoltage=0;
+        double lastTemperature=0, lastVoltage=0, ticksPerDegree=0;
         uint32_t lastFocuserPosition=0, lastRotatorPosition=0, lastAuxPosition=0, targetPosition=0;
         IPState rotationLimit=IPS_IDLE, outSwitchLimit=IPS_IDLE, inSwitchLimit = IPS_IDLE;
 

@@ -32,7 +32,11 @@
 
 #define NIGHTCRAWLER_TIMEOUT 3
 #define NIGHTCRAWLER_THRESHOLD 0.1
-#define NIGHTCRAWLER_TICKS_DEGREES 0.00095
+
+#define NC_25_STEPS 374920
+#define NC_30_STEPS 444080
+#define NC_35_STEPS 505960
+
 #define POLLMS 500
 #define ROTATOR_TAB "Rotator"
 #define AUX_TAB "Aux"
@@ -147,7 +151,7 @@ bool NightCrawler::initProperties()
     /////////////////////////////////////////////////////
 
     // Rotator GOTO
-    IUFillNumber(&GotoRotatorN[0], "ROTATOR_ABSOLUTE_POSITION", "Ticks", "%.f", -360.0/NIGHTCRAWLER_TICKS_DEGREES, 360.0/NIGHTCRAWLER_TICKS_DEGREES, 0., 0.);
+    IUFillNumber(&GotoRotatorN[0], "ROTATOR_ABSOLUTE_POSITION", "Ticks", "%.f", 0., 0., 0., 0.);
     IUFillNumberVector(&GotoRotatorNP, GotoRotatorN, 1, getDeviceName(), "ABS_ROTATOR_POSITION", "Goto", ROTATOR_TAB, IP_RW, 0, IPS_IDLE );
 
     // Rotator Degree
@@ -282,7 +286,10 @@ const char * NightCrawler::getDefaultName()
 
 bool NightCrawler::Ack()
 {
-    return getFirmware();
+    bool rcFirmware = getFirmware();
+    bool rcType = getFocuserType();
+
+    return (rcFirmware && rcType);
 }
 
 bool NightCrawler::getFirmware()
@@ -312,6 +319,55 @@ bool NightCrawler::getFirmware()
     resp[nbytes_read-1] = '\0';
 
     DEBUGF(INDI::Logger::DBG_SESSION, "Firmware %s", resp);
+
+    return true;
+}
+
+bool NightCrawler::getFocuserType()
+{
+    int nbytes_written = 0, nbytes_read = 0, rc = -1;
+    char errstr[MAXRBUF];
+    char resp[64];
+
+    tcflush(PortFD, TCIOFLUSH);
+
+    if ( (rc = tty_write(PortFD, "PF#", 3, &nbytes_written)) != TTY_OK)
+    {
+        tty_error_msg(rc, errstr, MAXRBUF);
+        DEBUGF(INDI::Logger::DBG_ERROR, "getFirmware error: %s.", errstr);
+        return false;
+    }
+
+    if ( (rc = tty_read_section(PortFD, resp, '#', NIGHTCRAWLER_TIMEOUT, &nbytes_read)) != TTY_OK)
+    {
+        tty_error_msg(rc, errstr, MAXRBUF);
+        DEBUGF(INDI::Logger::DBG_ERROR, "getFirmware error: %s.", errstr);
+        return false;
+    }
+
+    tcflush(PortFD, TCIOFLUSH);
+
+    resp[nbytes_read-1] = '\0';
+
+    DEBUGF(INDI::Logger::DBG_SESSION, "Focuser Type %s", resp);
+
+    if (!strcmp(resp, "2.5 NC"))
+    {
+        GotoRotatorN[0].min = -NC_25_STEPS;
+        GotoRotatorN[0].max = NC_25_STEPS;
+    }
+    else if (!strcmp(resp, "3.0 NC"))
+    {
+        GotoRotatorN[0].min = -NC_30_STEPS;
+        GotoRotatorN[0].max = NC_30_STEPS;
+    }
+    else
+    {
+        GotoRotatorN[0].min = -NC_35_STEPS;
+        GotoRotatorN[0].max = NC_35_STEPS;
+    }
+
+    ticksPerDegree = GotoRotatorN[0].max / 360.0;
 
     return true;
 }
@@ -598,7 +654,7 @@ bool NightCrawler::ISNewNumber (const char * dev, const char * name, double valu
            int sign = (a - b >= 0 && a - b <= 180) || (a - b <=-180 && a- b>= -360) ? 1 : -1;
            r *= sign;
 
-           double newTarget = (r+b) / NIGHTCRAWLER_TICKS_DEGREES;
+           double newTarget = (r+b) * ticksPerDegree;
            if (newTarget < GotoRotatorN[0].min)
                newTarget -= GotoRotatorN[0].min;
            else if (newTarget > GotoRotatorN[0].max)
@@ -760,10 +816,7 @@ void NightCrawler::TimerHit()
     if (rc && GotoRotatorN[0].value != lastRotatorPosition)
     {
         lastRotatorPosition = GotoRotatorN[0].value;
-        double rawAngle = GotoRotatorN[0].value * NIGHTCRAWLER_TICKS_DEGREES;
-        if (rawAngle < 0)
-            rawAngle += 360;
-        GotoRotatorDegreeN[0].value = rawAngle;
+        GotoRotatorDegreeN[0].value = range360(GotoRotatorN[0].value / ticksPerDegree);
         absRotatorUpdated = true;
     }
     if (absRotatorUpdated)
