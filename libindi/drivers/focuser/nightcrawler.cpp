@@ -167,7 +167,7 @@ bool NightCrawler::initProperties()
     IUFillNumberVector(&SyncRotatorNP, SyncRotatorN, 1, getDeviceName(), "SYNC_ROTATOR", "Sync", ROTATOR_TAB, IP_RW, 0, IPS_IDLE );
 
     // Rotator Step Delay
-    IUFillNumber(&RotatorStepDelayN[0], "ROTATOR_STEP", "Value", "%.f", 1, 100., 1., 10.);
+    IUFillNumber(&RotatorStepDelayN[0], "ROTATOR_STEP", "Value", "%.f", 7, 100., 1., 7.);
     IUFillNumberVector(&RotatorStepDelayNP, RotatorStepDelayN, 1, getDeviceName(), "ROTATOR_STEP_DELAY", "Step Rate", ROTATOR_TAB, IP_RW, 0, IPS_IDLE );
 
     //////////////////////////////////////////////////////
@@ -187,7 +187,7 @@ bool NightCrawler::initProperties()
     IUFillNumberVector(&SyncAuxNP, SyncAuxN, 1, getDeviceName(), "SYNC_AUX", "Sync", AUX_TAB, IP_RW, 0, IPS_IDLE );
 
     // Aux Step Delay
-    IUFillNumber(&AuxStepDelayN[0], "AUX_STEP", "Value", "%.f", 1, 100., 1., 10.);
+    IUFillNumber(&AuxStepDelayN[0], "AUX_STEP", "Value", "%.f", 7, 100., 1., 7.);
     IUFillNumberVector(&AuxStepDelayNP, AuxStepDelayN, 1, getDeviceName(), "AUX_STEP_DELAY", "Step Rate", AUX_TAB, IP_RW, 0, IPS_IDLE );
 
     /* Relative and absolute movement */
@@ -1367,6 +1367,8 @@ bool NightCrawler::saveConfigItems(FILE *fp)
 
     IUSaveConfigNumber(fp, &BrightnessNP);
     IUSaveConfigNumber(fp, &FocusStepDelayNP);
+    IUSaveConfigNumber(fp, &RotatorStepDelayNP);
+    IUSaveConfigNumber(fp, &AuxStepDelayNP);
 
     return true;
 }
