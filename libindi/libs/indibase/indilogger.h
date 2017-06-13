@@ -18,8 +18,10 @@
  Boston, MA 02110-1301, USA.
 *******************************************************************************/
 
-#ifndef LOGGER_H
-#define LOGGER_H
+#pragma once
+
+#include "indiapi.h"
+#include "defaultdevice.h"
 
 #include <stdarg.h>
 #include <fstream>
@@ -27,9 +29,6 @@
 #include <string>
 #include <sstream>
 #include <sys/time.h>
-
-#include <indiapi.h>
-#include <defaultdevice.h>
 
 /**
  * \brief Macro to configure the logger.
@@ -248,5 +247,3 @@ inline Logger::loggerConf operator&(Logger::loggerConf __a, Logger::loggerConf _
     return Logger::loggerConf(static_cast<int>(__a) & static_cast<int>(__b));
 }
 }
-
-#endif /* LOGGER_H */

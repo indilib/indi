@@ -20,15 +20,13 @@
     Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
-#include <indidevapi.h>
-
 #include "lx200ap.h"
+
+#include "indicom.h"
 #include "lx200driver.h"
 #include "lx200apdriver.h"
-#include "lx200aplib.h"
 
-#include <stdio.h>
-#include <stdlib.h>
+#include <math.h>
 #include <string.h>
 #include <unistd.h>
 
@@ -582,8 +580,9 @@ bool LX200AstroPhysics::Goto(double r, double d)
         }
 
         int err = 0;
+
         /* Slew reads the '0', that is not the end of the slew */
-        if (err = Slew(PortFD))
+        if ((err = Slew(PortFD)))
         {
             EqNP.s = IPS_ALERT;
             IDSetNumber(&EqNP, "Error Slewing to JNow RA %s - DEC %s\n", RAStr, DecStr);
@@ -764,7 +763,7 @@ bool LX200AstroPhysics::SetSlewRate(int index)
 
 bool LX200AstroPhysics::Park()
 {
-    if (initStatus = MOUNTNOTINITIALIZED)
+    if (initStatus == MOUNTNOTINITIALIZED)
     {
         DEBUG(INDI::Logger::DBG_WARNING, "You must initialize the mount before parking.");
         return false;
@@ -778,15 +777,16 @@ bool LX200AstroPhysics::Park()
     fs_sexa(AltStr, parkAlt, 2, 3600);
     DEBUGF(INDI::Logger::DBG_DEBUG, "Parking to Az (%s) Alt (%s)...", AzStr, AltStr);
 
-    if (setAPObjectAZ(PortFD, parkAz) < 0 || (setAPObjectAlt(PortFD, parkAlt)) < 0)
+    if (setAPObjectAZ(PortFD, parkAz) < 0 || setAPObjectAlt(PortFD, parkAlt) < 0)
     {
         DEBUG(INDI::Logger::DBG_ERROR, "Error setting Az/Alt.");
         return false;
     }
 
     int err = 0;
+
     /* Slew reads the '0', that is not the end of the slew */
-    if (err = Slew(PortFD))
+    if ((err = Slew(PortFD)))
     {
         DEBUGF(INDI::Logger::DBG_ERROR, "Error Slewing to Az %s - Alt %s", AzStr, AltStr);
         slewError(err);

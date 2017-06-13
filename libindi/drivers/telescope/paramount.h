@@ -20,12 +20,10 @@
  Boston, MA 02110-1301, USA.
 *******************************************************************************/
 
-#ifndef PARAMOUNT_H
-#define PARAMOUNT_H
+#pragma once
 
-#include "indibase/inditelescope.h"
 #include "indiguiderinterface.h"
-#include "indicontroller.h"
+#include "inditelescope.h"
 
 class Paramount : public INDI::Telescope, public INDI::GuiderInterface
 {
@@ -33,38 +31,38 @@ class Paramount : public INDI::Telescope, public INDI::GuiderInterface
     Paramount();
     virtual ~Paramount();
 
-    virtual const char *getDefaultName();
-    virtual bool Handshake();
-    virtual bool ReadScopeStatus();
-    virtual bool initProperties();
-    virtual bool updateProperties();
+    virtual const char *getDefaultName() override;
+    virtual bool Handshake() override;
+    virtual bool ReadScopeStatus() override;
+    virtual bool initProperties() override;
+    virtual bool updateProperties() override;
 
-    virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n);
-    virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n);
+    virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
+    virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
 
   protected:
-    virtual bool MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command);
-    virtual bool MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command);
-    virtual bool Abort();
+    virtual bool MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command) override;
+    virtual bool MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command) override;
+    virtual bool Abort() override;
 
-    virtual bool updateLocation(double latitude, double longitude, double elevation);
-    virtual bool updateTime(ln_date *utc, double utc_offset);
+    virtual bool updateLocation(double latitude, double longitude, double elevation) override;
+    virtual bool updateTime(ln_date *utc, double utc_offset) override;
 
-    bool SetParkPosition(double Axis1Value, double Axis2Value) override;
-    bool Goto(double, double);
-    bool Park();
-    bool UnPark();
-    bool Sync(double ra, double dec);
+    virtual bool SetParkPosition(double Axis1Value, double Axis2Value) override;
+    virtual bool Goto(double, double) override;
+    virtual bool Park() override;
+    virtual bool UnPark() override;
+    virtual bool Sync(double ra, double dec) override;
 
     // Parking
-    virtual bool SetCurrentPark();
-    virtual bool SetDefaultPark();
+    virtual bool SetCurrentPark() override;
+    virtual bool SetDefaultPark() override;
 
     // Guiding
-    virtual IPState GuideNorth(float ms);
-    virtual IPState GuideSouth(float ms);
-    virtual IPState GuideEast(float ms);
-    virtual IPState GuideWest(float ms);
+    virtual IPState GuideNorth(float ms) override;
+    virtual IPState GuideSouth(float ms) override;
+    virtual IPState GuideEast(float ms) override;
+    virtual IPState GuideWest(float ms) override;
 
   private:
     void mountSim();
@@ -103,5 +101,3 @@ class Paramount : public INDI::Telescope, public INDI::GuiderInterface
     INumber TrackRateN[2];
     INumberVectorProperty TrackRateNP;
 };
-
-#endif // PARAMOUNT_H

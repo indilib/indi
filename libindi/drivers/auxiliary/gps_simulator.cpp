@@ -22,11 +22,10 @@
   file called LICENSE.
 *******************************************************************************/
 
-#include <memory>
-#include <libnova.h>
-#include <time.h>
-
 #include "gps_simulator.h"
+
+#include <memory>
+#include <time.h>
 
 // We declare an auto pointer to GPSSimulator.
 std::unique_ptr<GPSSimulator> gpsSimulator(new GPSSimulator());

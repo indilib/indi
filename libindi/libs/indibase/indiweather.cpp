@@ -23,8 +23,11 @@
 *******************************************************************************/
 
 #include "indiweather.h"
+
 #include "connectionplugins/connectionserial.h"
 #include "connectionplugins/connectiontcp.h"
+
+#include <string.h>
 
 #define POLLMS         5000
 #define PARAMETERS_TAB "Parameters"

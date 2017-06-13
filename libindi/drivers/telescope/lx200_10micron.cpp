@@ -20,18 +20,13 @@
     Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
-#include <math.h>
-#include <unistd.h>
-#include <termios.h>
-#include <sys/ioctl.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <netdb.h>
+#include "lx200_10micron.h"
 
 #include "indicom.h"
-#include "lx200_10micron.h"
 #include "lx200driver.h"
+
+#include <string.h>
+#include <termios.h>
 
 #define PRODUCT_TAB   "Product"
 #define LX200_TIMEOUT 5 /* FD timeout in seconds */
@@ -297,9 +292,8 @@ bool LX200_10MICRON::getMountInfo(void)
 // this should move to some generic library
 int LX200_10MICRON::setStandardProcedureWithoutRead(int fd, const char *data)
 {
-    char bool_return[2];
     int error_type;
-    int nbytes_write = 0, nbytes_read = 0;
+    int nbytes_write = 0;
 
     DEBUGFDEVICE(getDefaultName(), DBG_SCOPE, "CMD <%s>", data);
     if ((error_type = tty_write_string(fd, data, &nbytes_write)) != TTY_OK)

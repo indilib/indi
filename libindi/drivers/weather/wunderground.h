@@ -22,8 +22,7 @@
   file called LICENSE.
 *******************************************************************************/
 
-#ifndef WUNDERGROUND_H
-#define WUNDERGROUND_H
+#pragma once
 
 #include "indiweather.h"
 
@@ -54,5 +53,3 @@ class WunderGround : public INDI::Weather
 
     double wunderLat, wunderLong;
 };
-
-#endif // WUNDERGROUND_H

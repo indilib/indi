@@ -1,8 +1,7 @@
-#ifndef INDI_ALIGNMENTSUBSYSTEM_ALIGNMENTSUBSYSTEMFORMATHPLUGINS_H
-#define INDI_ALIGNMENTSUBSYSTEM_ALIGNMENTSUBSYSTEMFORMATHPLUGINS_H
+
+#pragma once
 
 #include "MathPlugin.h"
-#include "InMemoryDatabase.h"
 #include "TelescopeDirectionVectorSupportFunctions.h"
 
 namespace INDI
@@ -23,5 +22,3 @@ class AlignmentSubsystemForMathPlugins : public MathPlugin, public TelescopeDire
 
 } // namespace AlignmentSubsystem
 } // namespace INDI
-
-#endif // INDI_ALIGNMENTSUBSYSTEM_ALIGNMENTSUBSYSTEMFORMATHPLUGINS_H

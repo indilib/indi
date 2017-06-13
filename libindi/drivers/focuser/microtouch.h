@@ -19,10 +19,9 @@
 
 */
 
-#ifndef MICROTOUCH_H
-#define MICROTOUCH_H
+#pragma once
 
-#include "indibase/indifocuser.h"
+#include "indifocuser.h"
 
 #define CMD_GET_STATUS      0x80
 #define CMD_RESET_POSITION  0x81
@@ -116,5 +115,3 @@ class Microtouch : public INDI::Focuser
     INumber ResetToPosN[1];
     INumberVectorProperty ResetToPosNP;
 };
-
-#endif // MICROTOUCH_H

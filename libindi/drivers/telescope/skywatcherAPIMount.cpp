@@ -15,17 +15,12 @@
 
 #include "skywatcherAPIMount.h"
 
-#include "libs/indicom.h"
-#include "libs/indibase/connectionplugins/connectionserial.h"
-#include "indibase/alignment/DriverCommon.h" // For DBG_ALIGNMENT
+#include "indicom.h"
+#include "alignment/DriverCommon.h"
+#include "connectionplugins/connectionserial.h"
 
 #include <chrono>
 #include <thread>
-
-#include <unistd.h> // for sleep
-#include <memory>
-#include <cmath>
-#include <limits>
 
 using namespace INDI::AlignmentSubsystem;
 
@@ -316,7 +311,7 @@ bool SkywatcherAPIMount::initProperties()
     // Allow the base class to initialise its visible before connection properties
     INDI::Telescope::initProperties();
 
-    for (unsigned int i = 0; i < SlewRateSP.nsp; ++i)
+    for (int i = 0; i < SlewRateSP.nsp; ++i)
     {
         sprintf(SlewRateSP.sp[i].label, "%.fx", SlewSpeeds[i]);
         SlewRateSP.sp[i].aux = (void *)&SlewSpeeds[i];

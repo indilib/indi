@@ -20,16 +20,16 @@
 
 */
 
-#ifndef STREAM_RECORDER_H
-#define STREAM_RECORDER_H
+#pragma once
 
-#include <stdint.h>
+#include "indiccd.h"
+#include "indidevapi.h"
+#include "v4l2_record.h"
+
 #include <string>
 #include <map>
 
-#include <indiccd.h>
-#include <indidevapi.h>
-#include "v4l2_record.h"
+#include <stdint.h>
 
 /**
  * \class StreamRecorder
@@ -161,5 +161,3 @@ class StreamRecorder
     struct itimerval tframe1, tframe2;
     double mssum, framecountsec;
 };
-
-#endif // STREAM_RECORDER_H

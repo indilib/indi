@@ -18,10 +18,11 @@
 
 */
 
-#include <string.h>
-
 #include "indilightboxinterface.h"
+
 #include "indilogger.h"
+
+#include <string.h>
 
 INDI::LightBoxInterface::LightBoxInterface(DefaultDevice *device, bool isDimmable)
 {

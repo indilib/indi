@@ -21,6 +21,8 @@ if not, write to the Free Software
 Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110 - 1301  USA
 #endif
 
+#pragma once
+
 #define OFF 0
 #define ON  1
 
@@ -166,9 +168,6 @@ typedef struct
    Or visit http://www.gnu.org/licenses/gpl.html.
 */
 
-#ifndef __serial_h__
-#define __serial_h__
-
 #define PARITY_NONE 0
 #define PARITY_EVEN 1
 #define PARITY_ODD  2
@@ -183,5 +182,3 @@ int init_serial(char *device_name, int bit_rate, int word_size, int parity, int 
 
 /* Calculates the 16 bit CRC of an array of bytes and returns it. */
 unsigned int calc_crc(byte byte_array[], int size);
-
-#endif /*#ifndef __serial_h__*/

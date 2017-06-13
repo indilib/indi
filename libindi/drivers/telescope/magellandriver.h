@@ -19,8 +19,7 @@
 
 */
 
-#ifndef MAGELLANDRIVER_H
-#define MAGELLANDRIVER_H
+#pragma once
 
 /* Just use Default tracking for what ever telescope is feeding Magellan I */
 enum TFreq
@@ -73,6 +72,4 @@ int getCalendarDate(int fd, char *date);
 
 #ifdef __cplusplus
 }
-#endif
-
 #endif

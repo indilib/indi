@@ -24,6 +24,8 @@
 
 #include "indigps.h"
 
+#include <string.h>
+
 #define POLLMS 1000
 
 INDI::GPS::GPS()

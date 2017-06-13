@@ -20,10 +20,9 @@
 */
 
 #include "lx200_OnStep.h"
+
 #include "lx200driver.h"
 
-#include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
 
@@ -266,13 +265,14 @@ bool LX200_OnStep::ISNewNumber(const char *dev, const char *name, double values[
 bool LX200_OnStep::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
 {
     int index = 0;
-    char result[64];
 
     if (strcmp(dev, getDeviceName()) == 0)
     {
         // Track Enable Button
         if (!strcmp(name, EnaTrackSP.name))
         {
+            int ret = 0;
+
             if (TrackState == SCOPE_PARKED)
             {
                 IDSetSwitch(&EnaTrackSP, "Telescope is Parked, Unpark before tracking");
@@ -282,7 +282,7 @@ bool LX200_OnStep::ISNewSwitch(const char *dev, const char *name, ISState *state
             {
                 IUResetSwitch(&EnaTrackSP);
                 EnaTrackSP.s = IPS_IDLE;
-                DisTrackOnStep(PortFD);
+                ret = DisTrackOnStep(PortFD);
                 TrackState = SCOPE_IDLE;
                 IDSetSwitch(&EnaTrackSP, "Idle");
             }
@@ -290,7 +290,7 @@ bool LX200_OnStep::ISNewSwitch(const char *dev, const char *name, ISState *state
             {
                 IUResetSwitch(&EnaTrackSP);
                 EnaTrackSP.s = IPS_OK;
-                EnaTrackOnStep(PortFD);
+                ret = EnaTrackOnStep(PortFD);
                 TrackState = SCOPE_TRACKING;
                 IDSetSwitch(&EnaTrackSP, "Tracking");
             }
@@ -301,17 +301,19 @@ bool LX200_OnStep::ISNewSwitch(const char *dev, const char *name, ISState *state
         // Reticlue +/- Buttons
         if (!strcmp(name, ReticSP.name))
         {
+            int ret = 0;
+
             IUUpdateSwitch(&ReticSP, states, names, n);
             ReticSP.s = IPS_OK;
 
             if (ReticS[0].s == ISS_ON)
             {
-                ReticPlus(PortFD);
+                ret = ReticPlus(PortFD);
                 IDSetSwitch(&ReticSP, "Bright");
             }
             else
             {
-                ReticMoins(PortFD);
+                ret = ReticMoins(PortFD);
                 IDSetSwitch(&ReticSP, "Dark");
             }
 
@@ -444,6 +446,8 @@ void LX200_OnStep::getBasicData()
 
 bool LX200_OnStep::UnPark()
 {
+    int ret = 0;
+
     // First we unpark
     if (isSimulation() == false)
     {
@@ -456,7 +460,7 @@ bool LX200_OnStep::UnPark()
 
     IDMessage(getDeviceName(), "OnStep UnParking telescope in progress... ");
     SetParked(false);
-    EnaTrackOnStep(PortFD);
+    ret = EnaTrackOnStep(PortFD);
     ParkSP.s   = IPS_OK;
     TrackState = SCOPE_TRACKING;
     return true;

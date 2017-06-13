@@ -16,25 +16,18 @@
  Boston, MA 02110-1301, USA.
  *******************************************************************************/
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <math.h>
-#include <unistd.h>
-#include <sys/time.h>
-#include <time.h>
-#include <memory>
-#include <stdarg.h>
-
-#include <sys/wait.h>
-#include <limits.h>
-
 #include "telescope_script.h"
+
+#include <memory>
+
+#include <string.h>
+#include <unistd.h>
+#include <sys/wait.h>
 
 #define POLLMS  1000
 #define MAXARGS 20
 
-enum
+typedef enum
 {
     SCRIPT_CONNECT = 1,
     SCRIPT_DISCONNECT,
@@ -245,10 +238,12 @@ bool ScopeScript::ReadScopeStatus()
     bool status = RunScript(SCRIPT_STATUS, name, nullptr);
     if (status)
     {
-        int parked;
-        float ra, dec;
+        int parked = 0;
+        float ra = 0, dec = 0;
         FILE *file = fopen(name, "r");
-        fscanf(file, "%d %f %f", &parked, &ra, &dec);
+        int ret = 0;
+
+        ret = fscanf(file, "%d %f %f", &parked, &ra, &dec);
         fclose(file);
         unlink(name);
         if (parked != 0)

@@ -18,11 +18,11 @@
 
 */
 
-#ifndef INDILIGHTBOXINTERFACE_H
-#define INDILIGHTBOXINTERFACE_H
+#pragma once
 
 #include "indibase.h"
-#include "indiapi.h"
+
+#include <stdint.h>
 
 /**
  * \class INDI::LightBoxInterface
@@ -114,5 +114,3 @@ class INDI::LightBoxInterface
     uint8_t currentFilterSlot;
     bool isDimmable;
 };
-
-#endif // INDILIGHTBOXINTERFACE_H

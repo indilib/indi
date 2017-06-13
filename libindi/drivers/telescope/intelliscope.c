@@ -20,22 +20,14 @@
 
 #endif
 
-#include <config.h>
+#include "config.h"
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <stdarg.h>
-#include <math.h>
-#include <unistd.h>
-#include <time.h>
+#include "indidevapi.h"
+#include "indicom.h"
 
 #ifndef _WIN32
 #include <termios.h>
 #endif
-
-#include "indidevapi.h"
-#include "indicom.h"
 
 #define mydev                "Intelliscope"
 #define BASIC_GROUP          "Main Control"

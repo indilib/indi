@@ -16,11 +16,9 @@
  Boston, MA 02110-1301, USA.
 *******************************************************************************/
 
-#ifndef INDIFOCUSSER_H
-#define INDIFOCUSSER_H
+#pragma once
 
 #include "defaultdevice.h"
-#include "indicontroller.h"
 #include "indifocuserinterface.h"
 
 namespace Connection
@@ -106,5 +104,3 @@ class INDI::Focuser : public INDI::DefaultDevice, public INDI::FocuserInterface
     bool callHandshake();
     uint8_t focuserConnection = CONNECTION_SERIAL | CONNECTION_TCP;
 };
-
-#endif // INDIFOCUSSER_H

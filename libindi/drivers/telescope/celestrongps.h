@@ -22,20 +22,14 @@
     Version with experimental pulse guide support. GC 04.12.2015
 */
 
-#ifndef CELESTRONGPS_H
-#define CELESTRONGPS_H
-
-#include <inditelescope.h>
-#include "indidevapi.h"
-#include "indicom.h"
-#include "indicontroller.h"
+#pragma once
 
 #include "celestrondriver.h"
 
-#define POLLMS 1000 /* poll period, ms */
-
-//GUIDE: guider header
 #include "indiguiderinterface.h"
+#include "inditelescope.h"
+
+#define POLLMS 1000 /* poll period, ms */
 
 //GUIDE: guider parent
 class CelestronGPS : public INDI::Telescope, public INDI::GuiderInterface
@@ -123,5 +117,3 @@ class CelestronGPS : public INDI::Telescope, public INDI::GuiderInterface
 
     FirmwareInfo fwInfo;
 };
-
-#endif

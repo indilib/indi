@@ -9,8 +9,7 @@
  * Clients should inherit this class alongside INDI::Telescope or a similar class
  */
 
-#ifndef INDI_ALIGNMENTSUBSYSTEM_ALIGNMENTSUBSYSTEMFORDRIVERS_H
-#define INDI_ALIGNMENTSUBSYSTEM_ALIGNMENTSUBSYSTEMFORDRIVERS_H
+#pragma once
 
 #include "MapPropertiesToInMemoryDatabase.h"
 #include "MathPluginManagement.h"
@@ -105,5 +104,3 @@ class AlignmentSubsystemForDrivers : public MapPropertiesToInMemoryDatabase,
 
 } // namespace AlignmentSubsystem
 } // namespace INDI
-
-#endif // INDI_ALIGNMENTSUBSYSTEM_ALIGNMENTSUBSYSTEMFORDRIVERS_H

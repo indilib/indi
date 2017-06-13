@@ -18,15 +18,14 @@
     Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
-#include <math.h>
-#include <memory>
+#include "ieqpro.h"
 
 #include "indicom.h"
-#include "ieqpro.h"
+
+#include <memory>
+
+#include <math.h>
+#include <string.h>
 
 /* Simulation Parameters */
 #define SLEWRATE 1        /* slew rate, degrees/s */
@@ -432,7 +431,7 @@ bool IEQPro::ISNewSwitch(const char *dev, const char *name, ISState *states, cha
 
             TelescopeTrackMode mode = (TelescopeTrackMode)IUFindOnSwitchIndex(&TrackModeSP);
 
-            IEQ_TRACK_RATE rate;
+            IEQ_TRACK_RATE rate = TR_SIDEREAL;
 
             switch (mode)
             {
@@ -490,7 +489,7 @@ bool IEQPro::ReadScopeStatus()
         HemisphereS[newInfo.hemisphere].s = ISS_ON;
         IDSetSwitch(&HemisphereSP, nullptr);
 
-        TelescopeTrackMode trackMode;
+        TelescopeTrackMode trackMode = TRACK_SIDEREAL;
 
         switch (newInfo.trackRate)
         {
@@ -763,7 +762,7 @@ bool IEQPro::MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command)
             break;
 
         case MOTION_STOP:
-            if (stop_ieqpro_motion(PortFD, (dir == DIRECTION_NORTH ? IEQ_N : IEQ_S)) < 0)
+            if (stop_ieqpro_motion(PortFD, (dir == DIRECTION_NORTH ? IEQ_N : IEQ_S)) == false)
             {
                 DEBUG(INDI::Logger::DBG_ERROR, "Error stopping N/S motion.");
                 return false;
@@ -797,7 +796,7 @@ bool IEQPro::MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command)
             break;
 
         case MOTION_STOP:
-            if (stop_ieqpro_motion(PortFD, (dir == DIRECTION_WEST ? IEQ_W : IEQ_E)) < 0)
+            if (stop_ieqpro_motion(PortFD, (dir == DIRECTION_WEST ? IEQ_W : IEQ_E)) == false)
             {
                 DEBUG(INDI::Logger::DBG_ERROR, "Error stopping W/E motion.");
                 return false;

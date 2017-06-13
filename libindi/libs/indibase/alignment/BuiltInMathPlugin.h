@@ -5,8 +5,7 @@
 ///
 /// This file provides the built in math plugin functionality
 
-#ifndef INDI_ALIGNMENTSUBSYSTEM_BUILTINMATHPLUGIN_H
-#define INDI_ALIGNMENTSUBSYSTEM_BUILTINMATHPLUGIN_H
+#pragma once
 
 #include "BasicMathPlugin.h"
 
@@ -38,5 +37,3 @@ class BuiltInMathPlugin : public BasicMathPlugin
 
 } // namespace AlignmentSubsystem
 } // namespace INDI
-
-#endif // INDI_ALIGNMENTSUBSYSTEM_BUILTINMATHPLUGIN_H

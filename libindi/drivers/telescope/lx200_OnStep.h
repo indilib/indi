@@ -19,8 +19,7 @@
 
 */
 
-#ifndef LX200_ONSTEP_H
-#define LX200_ONSTEP_H
+#pragma once
 
 #include "lx200generic.h"
 
@@ -90,5 +89,3 @@ class LX200_OnStep : public LX200Generic
     int currentCatalog;
     int currentSubCatalog;
 };
-
-#endif

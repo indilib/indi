@@ -19,12 +19,16 @@
 
 */
 
-#ifndef V4L2_RECORD_H
-#define V4L2_RECORD_H
+#pragma once
+
+#include "indidevapi.h"
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
+
+#include <vector>
+
 #ifdef OSX_EMBEDED_MODE
 #define v4l2_fourcc(a, b, c, d) ((uint32_t)(a) | ((uint32_t)(b) << 8) | ((uint32_t)(c) << 16) | ((uint32_t)(d) << 24))
 
@@ -40,9 +44,6 @@
 #else
 #include <linux/videodev2.h>
 #endif
-#include <indidevapi.h>
-
-#include <vector>
 
 class V4L2_Recorder
 {
@@ -94,5 +95,3 @@ class V4L2_Record
     V4L2_Recorder *current_recorder;
     V4L2_Recorder *default_recorder;
 };
-
-#endif // V4L2_RECORD_H

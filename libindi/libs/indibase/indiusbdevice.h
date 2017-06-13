@@ -19,23 +19,11 @@
  Boston, MA 02110-1301, USA.
 *******************************************************************************/
 
-#ifndef USBDEVICE_H
-#define USBDEVICE_H
-
 #pragma once
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <errno.h>
-
-#ifdef OSX_EMBEDED_MODE
-#include <libusb.h>
-#else
-#include <libusb.h>
-#endif
-
 #include "indibase.h"
+
+#include <libusb.h>
 
 /**
  * \class INDI::USBDevice
@@ -73,5 +61,3 @@ class INDI::USBDevice
     USBDevice(libusb_device *dev);
     virtual ~USBDevice(void);
 };
-
-#endif // USBDEVICE_H

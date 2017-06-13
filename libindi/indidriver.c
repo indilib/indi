@@ -20,24 +20,23 @@
 
 #endif
 
-#include <stdio.h>
+#include "indidriver.h"
+
+#include "base64.h"
+#include "eventloop.h"
+#include "indicom.h"
+#include "indidevapi.h"
+
+#include <errno.h>
+#include <locale.h>
+#include <pthread.h>
 #include <stdlib.h>
 #include <stdarg.h>
 #include <string.h>
-#include <errno.h>
 #include <time.h>
 #include <unistd.h>
-#include <locale.h>
 #include <sys/types.h>
 #include <sys/stat.h>
-#include <pthread.h>
-
-#include "lilxml.h"
-#include "base64.h"
-#include "eventloop.h"
-#include "indidevapi.h"
-#include "indicom.h"
-#include "indidriver.h"
 
 pthread_mutex_t stdout_mutex = PTHREAD_MUTEX_INITIALIZER;
 
@@ -853,9 +852,9 @@ int IUSnoopBLOB(XMLEle *root, IBLOBVectorProperty *bvp)
  */
 void clientMsgCB(int fd, void *arg)
 {
+    (void)arg;
     char buf[MAXRBUF], msg[MAXRBUF], *bp;
     int nr;
-    arg = arg;
 
     /* one read */
     nr = read(fd, buf, sizeof(buf));
@@ -1082,7 +1081,7 @@ int dispatch(XMLEle *root, char msg[])
                         newsz     = maxn * sizeof(char *);
                         names     = (char **)realloc(names, newsz);
                     }
-                    if (strcmp(pcdataXMLEle(ep), "On") == 0)
+                    if (strncmp(pcdataXMLEle(ep), "On", 2) == 0)
                     {
                         states[n] = ISS_ON;
                         names[n]  = valuXMLAtt(na);
@@ -1461,8 +1460,8 @@ void IUSaveConfigBLOB(FILE *fp, const IBLOBVectorProperty *bvp)
     for (i = 0; i < bvp->nbp; i++)
     {
         IBLOB *bp = &bvp->bp[i];
-        unsigned char *encblob;
-        int j, l;
+        unsigned char *encblob = NULL;
+        int l = 0;
 
         fprintf(fp, "  <oneBLOB\n");
         fprintf(fp, "    name='%s'\n", bp->name);
@@ -1473,7 +1472,7 @@ void IUSaveConfigBLOB(FILE *fp, const IBLOBVectorProperty *bvp)
         l              = to64frombits(encblob, bp->blob, bp->bloblen);
         size_t written = 0;
         size_t towrite = l;
-        while (written < l)
+        while ((int)written < l)
         {
             towrite   = ((l - written) > 72) ? 72 : l - written;
             size_t wr = fwrite(encblob + written, 1, towrite, fp);
@@ -2007,7 +2006,7 @@ void IDSetBLOB(const IBLOBVectorProperty *bvp, const char *fmt, ...)
             printf("    format='%s'>\n", bp->format);
             size_t written = 0;
             size_t towrite = l;
-            while (written < l)
+            while ((int)written < l)
             {
                 towrite   = ((l - written) > 72) ? 72 : l - written;
                 size_t wr = fwrite(encblob + written, 1, towrite, stdout);
@@ -2071,9 +2070,10 @@ int IUFindIndex(const char *needle, char **hay, unsigned int n)
 {
     int i = 0;
 
-    for (i = 0; i < n; i++)
+    for (i = 0; i < (int)n; i++)
+    {
         if (!strcmp(hay[i], needle))
             return i;
-
+    }
     return -1;
 }

@@ -20,13 +20,17 @@
  Boston, MA 02110-1301, USA.
 *******************************************************************************/
 
-#include <wordexp.h>
-#include <math.h>
-
 #include "indidome.h"
+
 #include "indicom.h"
+#include "indicontroller.h"
 #include "connectionplugins/connectionserial.h"
 #include "connectionplugins/connectiontcp.h"
+
+#include <math.h>
+#include <string.h>
+#include <wordexp.h>
+#include <sys/errno.h>
 
 #define DOME_SLAVING_TAB "Slaving"
 #define DOME_COORD_THRESHOLD \
@@ -288,7 +292,6 @@ bool INDI::Dome::updateProperties()
                 deleteProperty(ParkOptionSP.name);
             }
         }
-
         deleteProperty(AutoParkSP.name);
     }
 
@@ -926,6 +929,9 @@ void INDI::Dome::setDomeState(const INDI::Dome::DomeState &value)
             IDSetSwitch(&ParkSP, nullptr);
             IsParked = false;
             break;
+
+        case DOME_MOVING:
+            break;
     }
 
     domeState = value;
@@ -1547,7 +1553,7 @@ IPState INDI::Dome::MoveRel(double azDiff)
         return IPS_ALERT;
     }
 
-    if (DomeRelPosNP.s != IPS_BUSY && DomeMotionSP.s == IPS_BUSY || (domeState == DOME_PARKING))
+    if ((DomeRelPosNP.s != IPS_BUSY && DomeMotionSP.s == IPS_BUSY) || (domeState == DOME_PARKING))
     {
         DEBUG(INDI::Logger::DBG_WARNING, "Please stop dome before issuing any further motion commands.");
         DomeRelPosNP.s = IPS_IDLE;
@@ -1615,7 +1621,7 @@ IPState INDI::Dome::MoveAbs(double az)
         return IPS_ALERT;
     }
 
-    if (DomeRelPosNP.s != IPS_BUSY && DomeMotionSP.s == IPS_BUSY || (domeState == DOME_PARKING))
+    if ((DomeRelPosNP.s != IPS_BUSY && DomeMotionSP.s == IPS_BUSY) || (domeState == DOME_PARKING))
     {
         DEBUG(INDI::Logger::DBG_WARNING, "Please stop dome before issuing any further motion commands.");
         return IPS_ALERT;
@@ -1768,7 +1774,7 @@ IPState INDI::Dome::ControlShutter(ShutterOperation operation)
         IUResetSwitch(&DomeShutterSP);
         DomeShutterS[operation].s = ISS_ON;
         IDSetSwitch(&DomeShutterSP, "Shutter is %s.", (operation == SHUTTER_OPEN ? "open" : "closed"));
-        DomeShutterSP.s;
+        return DomeShutterSP.s;
     }
     else if (DomeShutterSP.s == IPS_BUSY)
     {

@@ -18,15 +18,14 @@
  Boston, MA 02110-1301, USA.
 *******************************************************************************/
 
-#include <cstdio>
-#include <dirent.h>
-#include <limits.h>
-#include <sys/stat.h>
-#include <sys/time.h>
-#include <iostream>
-
-#include <indicom.h>
 #include "indilogger.h"
+
+#include <dirent.h>
+#include <iostream>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/errno.h>
+#include <sys/stat.h>
 
 namespace INDI
 {
@@ -425,6 +424,8 @@ void Logger::print(const char *devicename, const unsigned int verbosityLevel, co
                    //const std::string& message,
                    const char *message, ...)
 {
+    INDI_UNUSED(file);
+    INDI_UNUSED(line);
     bool filelog   = (verbosityLevel & fileVerbosityLevel_) != 0;
     bool screenlog = (verbosityLevel & screenVerbosityLevel_) != 0;
 
@@ -447,7 +448,11 @@ void Logger::print(const char *devicename, const unsigned int verbosityLevel, co
     usec[6] = '\0';
     gettimeofday(&currentTime, nullptr);
     timersub(&currentTime, &initialTime_, &resTime);
+#if defined(__APPLE__)
+    snprintf(usec, 7, "%06d", resTime.tv_usec);
+#else
     snprintf(usec, 7, "%06ld", resTime.tv_usec);
+#endif
     Logger::lock();
 
     if ((configuration_ & file_on) && filelog)

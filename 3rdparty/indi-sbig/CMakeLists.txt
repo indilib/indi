@@ -7,7 +7,7 @@ set (VERSION_MINOR 8)
 LIST(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake_modules/")
 LIST(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/../../cmake_modules/")
 set(BIN_INSTALL_DIR "${CMAKE_INSTALL_PREFIX}/bin")
-  
+
 find_package(CFITSIO REQUIRED)
 find_package(INDI REQUIRED)
 find_package(ZLIB REQUIRED)
@@ -24,6 +24,8 @@ include_directories( ${CFITSIO_INCLUDE_DIR})
 
 ############# SBIG CCD ###############
 if (CFITSIO_FOUND)
+
+set(CMAKE_CXX_FLAGS "-std=c++11 ${CMAKE_CXX_FLAGS}")
 
 set(sbigccd_SRCS
 	${CMAKE_CURRENT_SOURCE_DIR}/sbig_ccd.cpp

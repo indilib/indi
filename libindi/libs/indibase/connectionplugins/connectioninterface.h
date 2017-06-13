@@ -18,12 +18,12 @@
  Boston, MA 02110-1301, USA.
 *******************************************************************************/
 
-#ifndef CONNECTIONINTERFACE_H
-#define CONNECTIONINTERFACE_H
-
-#include <functional>
+#pragma once
 
 #include "indidevapi.h"
+
+#include <functional>
+#include <string>
 
 namespace INDI
 {
@@ -43,19 +43,15 @@ class Interface
 
     virtual void Deactivated() = 0;
 
-    virtual const std::string name() = 0;
+    virtual std::string name() = 0;
 
-    virtual const std::string label() = 0;
+    virtual std::string label() = 0;
 
-    virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) { return false; }
-    virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) { return false; }
-    virtual bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n) { return false; }
+    virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n);
+    virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n);
+    virtual bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n);
 
-    virtual bool saveConfigItems(FILE *fp)
-    {
-        INDI_UNUSED(fp);
-        return true;
-    }
+    virtual bool saveConfigItems(FILE *fp);
 
     void registerHandshake(std::function<bool()> callback);
 
@@ -68,5 +64,3 @@ class Interface
     INDI::DefaultDevice *device = NULL;
 };
 }
-
-#endif

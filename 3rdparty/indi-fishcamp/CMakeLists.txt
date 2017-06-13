@@ -27,6 +27,8 @@ set(fishcampccd_SRCS
         ${CMAKE_CURRENT_SOURCE_DIR}/indi_fishcamp.cpp
 )
 
+SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
+
 add_executable(indi_fishcamp_ccd ${fishcampccd_SRCS})
 
 target_link_libraries(indi_fishcamp_ccd ${FISHCAMP_LIBRARIES} ${INDI_LIBRARIES} ${CFITSIO_LIBRARIES} m ${ZLIB_LIBRARY})

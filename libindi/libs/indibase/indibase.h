@@ -1,7 +1,5 @@
-#ifndef INDIBASE_H
-#define INDIBASE_H
 
-#include <stdint.h>
+#pragma once
 
 #include "indiapi.h"
 #include "indidevapi.h"
@@ -139,5 +137,3 @@ class INDI::BaseMediator
 
     virtual ~BaseMediator() {}
 };
-
-#endif // INDIBASE_H

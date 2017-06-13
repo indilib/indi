@@ -20,27 +20,16 @@
   file called LICENSE.
 *******************************************************************************/
 
-#include <stdio.h>
-#include <errno.h>
-#include <time.h>
-#include <string.h>
-#include <sys/time.h>
-#include <sys/types.h>
-#include <unistd.h>
-#include <sys/stat.h>
-#include <sys/ioctl.h>
-#include <fcntl.h>
-
-#ifdef HAVE_CONFIG_H
-#include <config.h>
-#endif
+#include "STAR2kdriver.h"
 
 #ifndef _WIN32
 #include <termios.h>
 #endif
 
-#include <math.h>
-#include "STAR2kdriver.h"
+#include <stdio.h>
+#include <sys/time.h>
+#include <unistd.h>
+#include <fcntl.h>
 
 /* STAR2000 RS232 box control functions */
 
@@ -71,8 +60,6 @@ int ConnectSTAR2k(char *port)
     return (-1);
 #else
     struct termios tty;
-    char returnStr[128];
-    int numRead;
 
     char initCmd[] = { 0x0D, 0x00 };
 
@@ -167,7 +154,7 @@ void StopPulse(int direction)
     writen(STAR2kPortFD, &STAR2kOpStat, 1);
 }
 
-void DisconnectSTAR2k(void)
+void DisconnectSTAR2k()
 {
     StopPulse(ALL);
 
@@ -179,9 +166,7 @@ void DisconnectSTAR2k(void)
 
 /******************************* Serial port utilities ************************/
 
-static int writen(fd, ptr, nbytes) int fd;
-char *ptr;
-int nbytes;
+static int writen(int fd, char *ptr, int nbytes)
 {
     int nleft, nwritten;
     nleft = nbytes;

@@ -21,22 +21,23 @@
 
 */
 
-#ifndef V4L2_BASE_H
-#define V4L2_BASE_H
+#pragma once
 
-#include <stdio.h>
-#include <stdlib.h>
 //#include "videodev2.h"
-#include <linux/videodev2.h>
-#include <eventloop.h>
-#include <indidevapi.h>
+#include "eventloop.h"
+#include "indidevapi.h"
 // this adds add dependency to indidriver for v4l_legacy, meade_lpi
 
 // Can't use logger as legacy drivers don't use defaultdevice
-//#include <indilogger.h>
+//#include "indilogger.h"
 #include "v4l2_decode/v4l2_decode.h"
 // for direct recording
 #include "v4l2_record/v4l2_record.h"
+
+#include <stdio.h>
+#include <stdlib.h>
+
+#include <linux/videodev2.h>
 
 #define VIDEO_COMPRESSION_LEVEL 4
 
@@ -215,5 +216,3 @@ class V4L2_Base
 
     char deviceName[MAXINDIDEVICE];
 };
-
-#endif

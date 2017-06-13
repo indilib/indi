@@ -18,10 +18,9 @@
 
 */
 
-#ifndef USBFOCUSV3_H
-#define USBFOCUSV3_H
+#pragma once
 
-#include "indibase/indifocuser.h"
+#include "indifocuser.h"
 
 /***************************** USB Focus V3 Commands **************************/
 
@@ -94,18 +93,18 @@ class USBFocusV3 : public INDI::Focuser
 
     typedef enum { FOCUS_HALF_STEP, FOCUS_FULL_STEP } FocusStepMode;
 
-    virtual bool Handshake();
-    virtual bool getControllerStatus();
-    const char *getDefaultName();
-    virtual bool initProperties();
-    virtual bool updateProperties();
-    virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n);
-    virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n);
-    virtual IPState MoveAbsFocuser(uint32_t ticks);
-    virtual IPState MoveRelFocuser(FocusDirection dir, uint32_t ticks);
-    virtual bool SetFocuserSpeed(int speed);
-    virtual bool AbortFocuser();
-    virtual void TimerHit();
+    virtual bool Handshake() override;
+    bool getControllerStatus();
+    virtual const char *getDefaultName() override;
+    virtual bool initProperties() override;
+    virtual bool updateProperties() override;
+    virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
+    virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
+    virtual IPState MoveAbsFocuser(uint32_t ticks) override;
+    virtual IPState MoveRelFocuser(FocusDirection dir, uint32_t ticks) override;
+    virtual bool SetFocuserSpeed(int speed) override;
+    virtual bool AbortFocuser() override;
+    virtual void TimerHit() override;
 
   private:
     unsigned int direction; // 0 standard, 1 reverse
@@ -139,7 +138,7 @@ class USBFocusV3 : public INDI::Focuser
     bool isMoving();
     bool Ack();
 
-    bool MoveFocuser(FocusDirection dir, unsigned int ticks);
+    bool MoveFocuserUF(FocusDirection dir, unsigned int ticks);
     bool setStepMode(FocusStepMode mode);
     bool setRotDir(unsigned int dir);
     bool setMaxPos(unsigned int dir);
@@ -177,5 +176,3 @@ class USBFocusV3 : public INDI::Focuser
     INumber FWversionN[1];
     INumberVectorProperty FWversionNP;
 };
-
-#endif // USBFOCUSV3_H

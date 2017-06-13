@@ -16,11 +16,9 @@
  Boston, MA 02110-1301, USA.
  *******************************************************************************/
 
-#ifndef DOMECRIPT_H
-#define DOMECRIPT_H
+#pragma once
 
-#include "indibase/indidome.h"
-#include "indicontroller.h"
+#include "indidome.h"
 
 class DomeScript : public INDI::Dome
 {
@@ -55,5 +53,3 @@ class DomeScript : public INDI::Dome
     bool ReadDomeStatus();
     bool RunScript(int script, ...);
 };
-
-#endif // DOMECRIPT_H

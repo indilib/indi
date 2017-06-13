@@ -23,8 +23,8 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 #pragma once
 
-#include <stdint.h>
 #include <stddef.h>
+#include <stdint.h>
 #include <assert.h>
 
 enum JsonTag
@@ -52,7 +52,9 @@ union JsonValue {
     JsonValue(double x) : fval(x) {}
     JsonValue(JsonTag tag = JSON_NULL, void *payload = nullptr)
     {
+#if !defined(__arm__)
         assert((uint64_t)(uintptr_t)payload <= JSON_VALUE_PAYLOAD_MASK);
+#endif
         ival = JSON_VALUE_NAN_MASK | ((uint64_t)tag << JSON_VALUE_TAG_SHIFT) | (uintptr_t)payload;
     }
     bool isDouble() const { return (int64_t)ival <= (int64_t)JSON_VALUE_NAN_MASK; }

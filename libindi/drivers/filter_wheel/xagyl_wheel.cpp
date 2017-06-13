@@ -16,13 +16,13 @@
  Boston, MA 02110-1301, USA.
 *******************************************************************************/
 
-#include <termios.h>
-#include <unistd.h>
-#include <memory>
+#include "xagyl_wheel.h"
 
 #include "indicom.h"
-#include "indilogger.h"
-#include "xagyl_wheel.h"
+
+#include <memory>
+#include <string.h>
+#include <termios.h>
 
 #define XAGYL_MAXBUF 32
 #define SETTINGS_TAB "Settings"
@@ -490,6 +490,10 @@ bool XAGYLWheel::setCommand(SET_COMMAND cmd, int value)
         case SET_POSITION:
             simData.position = value;
             return true;
+            break;
+
+        default:
+            break;
     }
 
     char response[XAGYL_MAXBUF];
@@ -531,6 +535,9 @@ bool XAGYLWheel::setCommand(SET_COMMAND cmd, int value)
                     simData.pulseWidth = SettingsN[SET_PULSE_WITDH].min;
 
                 snprintf(response, XAGYL_MAXBUF, "pulseWidth %d", simData.pulseWidth);
+                break;
+
+            default:
                 break;
         }
     }

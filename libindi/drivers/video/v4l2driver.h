@@ -24,41 +24,10 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110 - 1301  USA
 
 #endif
 
-#ifndef V4L2_DRIVER_H
-#define V4L2_DRIVER_H
+#pragma once
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <stdarg.h>
-#include <math.h>
-#include <unistd.h>
-#include <time.h>
-#include <fcntl.h>
-#include <errno.h>
-#include <time.h>
-#include <sys/time.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <netdb.h>
-#include <asm/types.h>
-
-#include "indidevapi.h"
-#include "indicom.h"
-#include <fitsio.h>
-#include "eventloop.h"
-
-#include <config.h>
-
-#include "webcam/v4l2_base.h"
-#include "webcam/v4l2_colorspace.h"
-#include "webcam/v4l2_record/v4l2_record.h"
-#include "webcam/v4l2_record/stream_recorder.h"
 #include "indiccd.h"
-
-// Long Exposure
-#include "lx/Lx.h"
+#include "webcam/v4l2_base.h"
 
 #define IMAGE_CONTROL  "Image Control"
 #define IMAGE_GROUP    "V4L2 Control"
@@ -69,6 +38,8 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110 - 1301  USA
 #define ERRMSGSIZ  1024
 
 #define TEMPFILE_LEN 16
+
+class Lx;
 
 class V4L2_Driver : public INDI::CCD
 {
@@ -234,5 +205,3 @@ class V4L2_Driver : public INDI::CCD
 
     short lxstate;
 };
-
-#endif

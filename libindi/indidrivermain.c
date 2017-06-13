@@ -30,22 +30,22 @@
  * This requires liblilxml.
  */
 
+#include "base64.h"
+#include "eventloop.h"
+#include "indicom.h"
+#include "indidevapi.h"
+#include "indidriver.h"
+#include "lilxml.h"
+
+#include <errno.h>
+#include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <stdarg.h>
 #include <string.h>
-#include <errno.h>
 #include <time.h>
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/stat.h>
-
-#include "lilxml.h"
-#include "base64.h"
-#include "eventloop.h"
-#include "indidevapi.h"
-#include "indicom.h"
-#include "indidriver.h"
 
 #define MAXRBUF 2048
 
@@ -61,8 +61,9 @@ static void usage(void);
 int main(int ac, char *av[])
 {
 #ifndef _WIN32
-    setgid(getgid());
-    setuid(getuid());
+    int ret = setgid(getgid());
+
+    ret = setuid(getuid());
 
     if (geteuid() != getuid())
         exit(255);

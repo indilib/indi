@@ -31,8 +31,7 @@
  * @defgroup API hidapi API
  */
 
-#ifndef HIDAPI_H__
-#define HIDAPI_H__
+#pragma once
 
 #include <wchar.h>
 
@@ -385,6 +384,4 @@ HID_API_EXPORT const wchar_t *HID_API_CALL hid_error(hid_device *device);
 
 #ifdef __cplusplus
 }
-#endif
-
 #endif

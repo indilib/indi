@@ -22,8 +22,7 @@
   file called LICENSE.
 *******************************************************************************/
 
-#ifndef JOYSTICK_H
-#define JOYSTICK_H
+#pragma once
 
 #include <iostream>
 #include <functional>
@@ -118,5 +117,3 @@ class JoyStickDriver
     char dev_path[256];
     int pollMS;
 };
-
-#endif // JOYSTICK_H

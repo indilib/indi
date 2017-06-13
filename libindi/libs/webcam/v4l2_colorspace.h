@@ -1,5 +1,5 @@
-#ifndef V4L2_COLORSPACE_H
-#define V4L2_COLORSPACE_H
+
+#pragma once
 
 #include <linux/videodev2.h>
 
@@ -30,6 +30,4 @@ void linearize(float *buf, unsigned int len, struct v4l2_format *fmt);
 
 #ifdef __cplusplus
 }
-#endif
-
 #endif

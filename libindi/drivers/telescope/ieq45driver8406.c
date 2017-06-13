@@ -19,19 +19,10 @@
 
 #endif
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <stdarg.h>
-#include <math.h>
-#include <sys/time.h>
-#include <unistd.h>
-#include <fcntl.h>
-#include <time.h>
+#include "ieq45driver.h"
 
 #include "indicom.h"
 #include "indidevapi.h"
-#include "ieq45driver.h"
 
 #ifndef _WIN32
 #include <termios.h>

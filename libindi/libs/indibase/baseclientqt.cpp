@@ -18,28 +18,11 @@
  Boston, MA 02110-1301, USA.
 *******************************************************************************/
 
+#include "baseclientqt.h"
+
+#include <locale.h>
 #include <stdlib.h>
 #include <string.h>
-
-#include <sys/types.h>
-#include <fcntl.h>
-#include <locale.h>
-#include <iostream>
-
-#ifndef _WIN32
-#include <unistd.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <netdb.h>
-#include <pthread.h>
-#endif
-
-#include "baseclientqt.h"
-#include <basedevice.h>
-#include <base64.h>
-#include <indicom.h>
-
-#include <errno.h>
 
 #define MAXINDIBUF 49152
 
@@ -123,11 +106,10 @@ bool INDI::BaseClientQt::connectServer()
     }
     else
     {
-        vector<string>::const_iterator stri;
-        for (stri = cDeviceNames.begin(); stri != cDeviceNames.end(); stri++)
+        for (auto& str : cDeviceNames)
         {
             getProp =
-                QString("<getProperties version='%1' device='%2'/>\n").arg(QString::number(INDIV)).arg((*stri).c_str());
+                QString("<getProperties version='%1' device='%2'/>\n").arg(QString::number(INDIV)).arg(str.c_str());
 
             client_socket.write(getProp.toLatin1());
             if (verbose)
@@ -719,13 +701,13 @@ void INDI::BaseClientQt::setBLOBMode(BLOBHandling blobH, const char *dev, const 
     if (!dev[0])
         return;
 
-    BLOBMode *bMode = findBLOBMode(string(dev), prop ? string(prop) : string());
+    BLOBMode *bMode = findBLOBMode(std::string(dev), prop ? std::string(prop) : std::string());
 
     if (bMode == nullptr)
     {
         BLOBMode *newMode = new BLOBMode();
-        newMode->device   = string(dev);
-        newMode->property = prop ? string(prop) : string();
+        newMode->device   = std::string(dev);
+        newMode->property = (prop ? std::string(prop) : std::string());
         newMode->blobMode = blobH;
         blobModes.push_back(newMode);
     }
@@ -765,7 +747,7 @@ BLOBHandling INDI::BaseClientQt::getBLOBMode(const char *dev, const char *prop)
 {
     BLOBHandling bHandle = B_ALSO;
 
-    BLOBMode *bMode = findBLOBMode(dev, prop ? string(prop) : string());
+    BLOBMode *bMode = findBLOBMode(dev, (prop ? std::string(prop) : std::string()));
 
     if (bMode)
         bHandle = bMode->blobMode;
@@ -773,14 +755,12 @@ BLOBHandling INDI::BaseClientQt::getBLOBMode(const char *dev, const char *prop)
     return bHandle;
 }
 
-INDI::BaseClientQt::BLOBMode *INDI::BaseClientQt::findBLOBMode(string device, string property)
+INDI::BaseClientQt::BLOBMode *INDI::BaseClientQt::findBLOBMode(const std::string& device, const std::string& property)
 {
-    std::vector<BLOBMode *>::iterator blobby;
-
-    for (blobby = blobModes.begin(); blobby != blobModes.end(); blobby++)
+    for (auto& blob : blobModes)
     {
-        if ((*blobby)->device == device && (*blobby)->property == property)
-            return (*blobby);
+        if (blob->device == device && blob->property == property)
+            return blob;
     }
 
     return nullptr;

@@ -18,22 +18,18 @@
  Boston, MA 02110-1301, USA.
 *******************************************************************************/
 
-#ifndef INDIBASECLIENTQT_H
-#define INDIBASECLIENTQT_H
-
-#include <vector>
-#include <map>
-#include <string>
-
-#include <QTcpSocket>
+#pragma once
 
 #include "indiapi.h"
 #include "indidevapi.h"
 #include "indibase.h"
 
-#define MAXRBUF 2048
+#include <QTcpSocket>
 
-using namespace std;
+#include <vector>
+#include <string>
+
+#define MAXRBUF 2048
 
 /**
  * \class INDI::BaseClientQt
@@ -105,7 +101,7 @@ class INDI::BaseClientQt : public QObject, public INDI::BaseMediator
 
     /** \returns Returns a vector of all devices created in the client.
     */
-    const vector<INDI::BaseDevice *> &getDevices() const { return cDevices; }
+    const std::vector<INDI::BaseDevice *> &getDevices() const { return cDevices; }
 
     /** \brief Set Binary Large Object policy mode
 
@@ -208,12 +204,12 @@ class INDI::BaseClientQt : public QObject, public INDI::BaseMediator
   private:
     typedef struct
     {
-        string device;
-        string property;
+        std::string device;
+        std::string property;
         BLOBHandling blobMode;
     } BLOBMode;
 
-    BLOBMode *findBLOBMode(string device, string property);
+    BLOBMode *findBLOBMode(const std::string& device, const std::string& property);
 
     /** \brief Connect/Disconnect to INDI driver
         \param status If true, the client will attempt to turn on CONNECTION property within the driver (i.e. turn on the device).
@@ -229,11 +225,11 @@ class INDI::BaseClientQt : public QObject, public INDI::BaseMediator
 
     QTcpSocket client_socket;
 
-    vector<INDI::BaseDevice *> cDevices;
-    vector<string> cDeviceNames;
-    vector<BLOBMode *> blobModes;
+    std::vector<INDI::BaseDevice *> cDevices;
+    std::vector<string> cDeviceNames;
+    std::vector<BLOBMode *> blobModes;
 
-    string cServer;
+    std::string cServer;
     unsigned int cPort;
     bool sConnected;
     bool verbose;
@@ -248,5 +244,3 @@ class INDI::BaseClientQt : public QObject, public INDI::BaseMediator
     void listenINDI();
     void processSocketError(QAbstractSocket::SocketError socketError);
 };
-
-#endif // INDIBaseClientQt_H

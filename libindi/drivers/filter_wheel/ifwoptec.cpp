@@ -17,9 +17,15 @@
 *******************************************************************************/
 
 #include "ifwoptec.h"
+
+#include "indicom.h"
+#include "indicontroller.h"
 #include "connectionplugins/connectionserial.h"
 
-using namespace std;
+#include <memory>
+#include <regex>
+#include <string.h>
+#include <unistd.h>
 
 std::unique_ptr<FilterIFW> filter_ifw(new FilterIFW());
 
@@ -112,7 +118,9 @@ FilterIFW::FilterIFW()
 
     // We add an additional debug level so we can log verbose member function starting
     // DBG_TAG is used by macro DEBUGTAG() define in ifwoptec.h
-    int DBG_TAG = INDI::Logger::getInstance().addDebugLevel("Function tag", "Tag");
+    int DBG_TAG = 0;
+
+    DBG_TAG = INDI::Logger::getInstance().addDebugLevel("Function tag", "Tag");
 }
 
 /************************************************************************************
@@ -178,9 +186,6 @@ bool FilterIFW::initProperties()
 ************************************************************************************/
 bool FilterIFW::updateProperties()
 {
-    char filterName[MAXINDINAME];
-    char filterLabel[MAXINDILABEL];
-
     if (isConnected())
     {
         defineSwitch(&HomeSP);
@@ -353,7 +358,7 @@ bool FilterIFW::ISNewText(const char *dev, const char *name, char *texts[], char
         if (!strcmp(FilterNameTP->name, name))
         {
             // Only these chars are allowed to be able to the IFW display to show names correctly
-            regex rx("^[A-Z0-9=.#/%[:space:]-]{1,8}$");
+            std::regex rx("^[A-Z0-9=.#/%[:space:]-]{1,8}$");
 
             bool match = true;
             //Check only if user allowed chars restriction
@@ -609,7 +614,6 @@ bool FilterIFW::GetFilterNames(const char *groupName)
     char response[OPTEC_MAXLEN_RESP + 1];
     int lenResponse = 0; // Nbr of char in the response string
     int maxFilter   = 0;
-    bool changed; // Use to store if filters number have changed
 
     memset(response, 0, sizeof(response));
 
@@ -897,7 +901,7 @@ int FilterIFW::GetFilterPos()
         if (!ReadTTY(response, filter, OPTEC_TIMEOUT))
         {
             DEBUGF(INDI::Logger::DBG_ERROR, "(Function %s()) failed to read to TTY", __FUNCTION__);
-            result - 1;
+            result = -1;
         }
     }
 
@@ -1011,7 +1015,8 @@ bool FilterIFW::GetFirmware()
 
     // remove chars fomr the string to get only the nzuméric value of the Firmware version
     char *p = nullptr;
-    for (int i = 0; i < strlen(response); i++)
+
+    for (int i = 0; i < (int)strlen(response); i++)
     {
         if (isdigit(response[i]))
         {

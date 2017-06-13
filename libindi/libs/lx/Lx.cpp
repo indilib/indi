@@ -1,13 +1,12 @@
+
 #include "Lx.h"
-#include <indicom.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <termios.h>
+
+#include "indicom.h"
+
+#include <fcntl.h>
+#include <string.h>
 #include <unistd.h>
 #include <sys/ioctl.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <fcntl.h>
 
 // from indicom.cpp for tty_connect
 #define PARITY_NONE 0
@@ -19,7 +18,7 @@ void Lx::setCamerafd(int fd)
     camerafd = fd;
 }
 
-bool Lx::isenabled()
+bool Lx::isEnabled()
 {
     return (LxEnableS[1].s == ISS_ON);
 }
@@ -300,9 +299,8 @@ bool Lx::ISNewText(const char *devname, const char *name, char *texts[], char *n
 
     if (!strcmp(name, LxStartStopCmdTP.name))
     {
-        unsigned int i;
         LxStartStopCmdTP.s = IPS_OK;
-        for (i = 0; i < n; i++)
+        for (int i = 0; i < n; i++)
         {
             tp = IUFindText(&LxStartStopCmdTP, names[i]);
             if (!tp)
@@ -340,7 +338,8 @@ bool Lx::startLx()
 
 int Lx::stopLx()
 {
-    unsigned int index;
+    unsigned int index = 0;
+
     IDMessage(device_name, "Stopping Long Exposure");
     index = IUFindOnSwitchIndex(&LxModeSP);
     switch (index)
@@ -399,8 +398,8 @@ int Lx::openserial(char *devicename)
 
 int Lx::setRTS(int fd, int level)
 {
-    int status;
-    int mcr;
+//    int status;
+    int mcr = 0;
     // does not work for RTS
     //if (ioctl(fd, TIOCMGET, &status) == -1) {
     //    IDLog("setRTS(): TIOCMGET");
@@ -492,10 +491,10 @@ const char *Lx::getSerialEOL()
 
 bool Lx::startLxSerial()
 {
-    unsigned int index;
-    unsigned int speed, wordsize, parity, stops;
-    const char *eol;
-    index = IUFindOnSwitchIndex(&LxSerialOptionSP);
+    unsigned int speed = 0, wordsize = 0, parity = 0, stops = 0;
+    const char *eol = nullptr;
+    unsigned int index = IUFindOnSwitchIndex(&LxSerialOptionSP);
+    int ret = 0;
 
     switch (index)
     {
@@ -523,8 +522,9 @@ bool Lx::startLxSerial()
             tty_connect(LxPortT[0].text, speed, wordsize, parity, stops, &serialfd);
             if (serialfd < 0)
                 return false;
-            write(serialfd, LxStartStopCmdT[0].text, strlen(LxStartStopCmdT[0].text));
-            write(serialfd, eol, strlen(eol));
+
+            ret = write(serialfd, LxStartStopCmdT[0].text, strlen(LxStartStopCmdT[0].text));
+            ret = write(serialfd, eol, strlen(eol));
             break;
     }
     return true;
@@ -532,9 +532,10 @@ bool Lx::startLxSerial()
 
 int Lx::stopLxSerial()
 {
-    unsigned int index;
-    const char *eol;
-    index = IUFindOnSwitchIndex(&LxSerialOptionSP);
+    int ret = 0;
+    const char *eol = nullptr;
+    unsigned int index = IUFindOnSwitchIndex(&LxSerialOptionSP);
+
     switch (index)
     {
         case 0:
@@ -550,9 +551,9 @@ int Lx::stopLxSerial()
                 setRTS(serialfd, 1);
             break;
         case 2:
-            write(serialfd, LxStartStopCmdT[1].text, strlen(LxStartStopCmdT[1].text));
+            ret = write(serialfd, LxStartStopCmdT[1].text, strlen(LxStartStopCmdT[1].text));
             eol = getSerialEOL();
-            write(serialfd, eol, strlen(eol));
+            ret = write(serialfd, eol, strlen(eol));
             break;
     }
     close(serialfd);

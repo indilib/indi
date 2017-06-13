@@ -14,10 +14,8 @@
  * The C# implementation published by Skywatcher/Synta
 */
 
-#ifndef SKYWATCHERAPI_H
-#define SKYWATCHERAPI_H
+#pragma once
 
-#include <cmath>
 #include <string>
 
 #define INDI_DEBUG_LOGGING
@@ -121,7 +119,7 @@ class SkywatcherAPI
     /// Rotation directions are given looking down the axis towards the  motorised pier
     /// for an altitude or declination axis. Or down the pier towards the mount base
     /// for an azimuth or right ascension axis
-    const PositiveRotationSense_t GetPositiveRotationDirection(AXISID Axis);
+    PositiveRotationSense_t GetPositiveRotationDirection(AXISID Axis);
 
     bool GetStatus(AXISID Axis);
 
@@ -324,5 +322,3 @@ class SkywatcherAPI
     INDI::Telescope *pChildTelescope;
 #endif
 };
-
-#endif // SKYWATCHERAPI_H

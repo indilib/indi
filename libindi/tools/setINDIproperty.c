@@ -1,21 +1,22 @@
 /* connect to an INDI server and set one or more device.property.element.
  */
 
+#include "indiapi.h"
+#include "indidevapi.h"
+#include "lilxml.h"
+
+#include <errno.h>
+#include <math.h>
+#include <netdb.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <math.h>
 #include <string.h>
-#include <errno.h>
 #include <signal.h>
 #include <time.h>
 #include <unistd.h>
+#include <netinet/in.h>
 #include <sys/types.h>
 #include <sys/socket.h>
-#include <netinet/in.h>
-#include <netdb.h>
-
-#include "indiapi.h"
-#include "lilxml.h"
 
 /* table of INDI definition elements we can set
  * N.B. do not change defs[] order, they are indexed via -x/-n/-s args
@@ -402,6 +403,7 @@ static int finished()
  */
 static void onAlarm(int dummy)
 {
+    INDI_UNUSED(dummy);
     int i, j;
 
     for (i = 0; i < nsets; i++)
@@ -440,11 +442,14 @@ static void findSet(XMLEle *root, FILE *fp)
 
     /* check type */
     rtype = tagXMLEle(root);
-    for (t = 0; t < NDEFS; t++)
+    for (t = 0; t < (int)NDEFS; t++)
+    {
         if (strcmp(rtype, defs[t].defType) == 0)
             break;
+    }
     if (t == NDEFS)
         return;
+
     alarm(timeout); /* reset timeout */
 
     /* check each set for matching device and property name, send if ok */
@@ -452,6 +457,7 @@ static void findSet(XMLEle *root, FILE *fp)
     rprop = (char *)findXMLAttValu(root, "name");
     if (verbose > 1)
         fprintf(stderr, "Read definition for %s.%s\n", rdev, rprop);
+
     for (s = 0; s < nsets; s++)
     {
         if (!strcmp(rdev, sets[s].d) && !strcmp(rprop, sets[s].p))

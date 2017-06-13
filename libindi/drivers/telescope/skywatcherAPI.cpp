@@ -16,16 +16,10 @@
 
 #include "skywatcherAPI.h"
 
-#include <memory>
 #include <cmath>
-#include <cstdio>
-#include <sstream>
 #include <iomanip>
-#if __cplusplus >= 201103L
+#include <memory>
 #include <thread>
-#include <chrono>
-#endif
-#include <unistd.h>
 
 void AXISSTATUS::SetFullStop()
 {
@@ -261,16 +255,13 @@ bool SkywatcherAPI::GetMotorBoardVersion(AXISID Axis)
     return true;
 }
 
-const SkywatcherAPI::PositiveRotationSense_t SkywatcherAPI::GetPositiveRotationDirection(AXISID Axis)
+SkywatcherAPI::PositiveRotationSense_t SkywatcherAPI::GetPositiveRotationDirection(AXISID Axis)
 {
-    switch (MountCode)
-    {
-    _114GT:
+    INDI_UNUSED(Axis);
+    if (MountCode == _114GT)
         return CLOCKWISE;
 
-        default:
-            return ANTICLOCKWISE;
-    }
+    return ANTICLOCKWISE;
 }
 
 bool SkywatcherAPI::GetStepperClockFrequency(AXISID Axis)
@@ -490,11 +481,7 @@ void SkywatcherAPI::PrepareForSlewing(AXISID Axis, double Speed)
             if (AxesStatus[Axis].FullStop)
                 break;
 
-#if __cplusplus >= 201103L
             std::this_thread::sleep_for(std::chrono::milliseconds(100)); // Sleep for 1/10 second
-#else
-            usleep(100000);     // sleep for 1/10 second
-#endif
         }
     }
 
@@ -727,11 +714,7 @@ void SkywatcherAPI::SlewTo(AXISID Axis, long OffsetInMicrosteps)
                 if (AxesStatus[Axis].FullStop)
                     break;
 
-#if __cplusplus >= 201103L
                 std::this_thread::sleep_for(std::chrono::milliseconds(100)); // Sleep for 1/10 second
-#else
-                usleep(100000); // sleep for 1/10 second
-#endif
             }
         }
     }

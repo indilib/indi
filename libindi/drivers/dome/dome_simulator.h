@@ -16,14 +16,9 @@
  Boston, MA 02110-1301, USA.
 *******************************************************************************/
 
-#ifndef DomeSIM_H
-#define DomeSIM_H
+#pragma once
 
-#include "indibase/indidome.h"
-
-/*  Some headers we need */
-#include <math.h>
-#include <sys/time.h>
+#include "indidome.h"
 
 class DomeSim : public INDI::Dome
 {
@@ -59,5 +54,3 @@ class DomeSim : public INDI::Dome
     bool SetupParms();
     int TimeSinceUpdate;
 };
-
-#endif

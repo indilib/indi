@@ -9,7 +9,6 @@
 #include "MapPropertiesToInMemoryDatabase.h"
 
 #include <cfloat>
-#include <cstdlib>
 
 namespace INDI
 {
@@ -133,7 +132,7 @@ void MapPropertiesToInMemoryDatabase::ProcessSwitchProperties(Telescope *pTelesc
     }
     else if (strcmp(name, AlignmentPointSetCommitV.name) == 0)
     {
-        unsigned int Offset        = AlignmentPointSetPointer.value;
+        const unsigned int Offset        = AlignmentPointSetPointer.value;
         AlignmentPointSetCommitV.s = IPS_OK;
 
         // Perform the database action
@@ -161,7 +160,7 @@ void MapPropertiesToInMemoryDatabase::ProcessSwitchProperties(Telescope *pTelesc
         }
         else if (AlignmentPointSetAction[INSERT].s == ISS_ON)
         {
-            if ((Offset < 0) || (Offset > AlignmentDatabase.size()))
+            if (Offset > AlignmentDatabase.size())
                 AlignmentPointSetCommitV.s = IPS_ALERT;
             else
             {
@@ -173,14 +172,14 @@ void MapPropertiesToInMemoryDatabase::ProcessSwitchProperties(Telescope *pTelesc
         }
         else if (AlignmentPointSetAction[EDIT].s == ISS_ON)
         {
-            if ((Offset < 0) || (Offset >= AlignmentDatabase.size()))
+            if (Offset >= AlignmentDatabase.size())
                 AlignmentPointSetCommitV.s = IPS_ALERT;
             else
                 AlignmentDatabase[Offset] = CurrentValues;
         }
         else if (AlignmentPointSetAction[DELETE].s == ISS_ON)
         {
-            if ((Offset < 0) || (Offset >= AlignmentDatabase.size()))
+            if (Offset >= AlignmentDatabase.size())
                 AlignmentPointSetCommitV.s = IPS_ALERT;
             else
             {
@@ -207,7 +206,7 @@ void MapPropertiesToInMemoryDatabase::ProcessSwitchProperties(Telescope *pTelesc
                 IDSetNumber(&AlignmentPointSetPointerV, nullptr);
             }
 
-            if ((Offset < 0) || (Offset >= AlignmentDatabase.size()))
+            if (Offset >= AlignmentDatabase.size())
                 AlignmentPointSetCommitV.s = IPS_ALERT;
             else
             {
@@ -256,7 +255,9 @@ void MapPropertiesToInMemoryDatabase::ProcessSwitchProperties(Telescope *pTelesc
 
 void MapPropertiesToInMemoryDatabase::UpdateLocation(double latitude, double longitude, double elevation)
 {
+    INDI_UNUSED(elevation);
     ln_lnlat_posn Position;
+
     if (GetDatabaseReferencePosition(Position))
     {
         // Position is already valid

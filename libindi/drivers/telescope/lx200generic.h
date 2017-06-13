@@ -18,15 +18,10 @@
 
 */
 
-#ifndef LX200GENERIC_H
-#define LX200GENERIC_H
+#pragma once
 
 #include "indiguiderinterface.h"
 #include "inditelescope.h"
-#include "indicontroller.h"
-
-#include "indidevapi.h"
-#include "indicom.h"
 
 class LX200Generic : public INDI::Telescope, public INDI::GuiderInterface
 {
@@ -134,5 +129,3 @@ class LX200Generic : public INDI::Telescope, public INDI::GuiderInterface
     ISwitchVectorProperty FocusModeSP;
     ISwitch FocusModeS[3];
 };
-
-#endif

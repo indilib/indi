@@ -22,20 +22,18 @@
   file called LICENSE.
 *******************************************************************************/
 
-#include <memory>
-#include <libnova.h>
-#include <time.h>
-#include <termios.h>
+#include "vantage.h"
 
 #include "indicom.h"
-#include "indilogger.h"
 #include "connectionplugins/connectionserial.h"
 
-#include "vantage.h"
+#include <memory>
+#include <string.h>
+#include <termios.h>
 
 #define VANTAGE_CMD     8
 #define VANTAGE_RES     128
-#define VANTAGE_TIMEOUT 1.5
+#define VANTAGE_TIMEOUT 2
 
 static uint16_t crc_table[] = {
     0x0000, 0x1021, 0x2042, 0x3063, 0x4084, 0x50a5, 0x60c6, 0x70e7, 0x8108, 0x9129, 0xa14a, 0xb16b, 0xc18c, 0xd1ad,

@@ -18,8 +18,7 @@
 
 */
 
-#ifndef LX200SS2000PC_H
-#define LX200SS2000PC_H
+#pragma once
 
 #include "lx200generic.h"
 
@@ -44,5 +43,3 @@ class LX200SS2000PC : public LX200Generic
     static const int ShortTimeOut;
     static const int LongTimeOut;
 };
-
-#endif

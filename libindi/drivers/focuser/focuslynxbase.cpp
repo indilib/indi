@@ -18,17 +18,15 @@
 */
 
 #include "focuslynxbase.h"
+
 #include "indicom.h"
 #include "connectionplugins/connectionserial.h"
-#include "connectionplugins/connectiontcp.h"
 
-#include <stdio.h>
-#include <termios.h>
-#include <string.h>
-#include <sys/time.h>
-#include <unistd.h>
 #include <math.h>
 #include <memory>
+#include <string.h>
+#include <termios.h>
+#include <unistd.h>
 
 #define LYNXFOCUS_MAX_RETRIES        1
 #define LYNXFOCUS_TIMEOUT            2
@@ -46,6 +44,7 @@
 * ***********************************************************************************/
 FocusLynxBase::FocusLynxBase(const char *target)
 {
+    INDI_UNUSED(target);
 }
 
 /************************************************************************************
@@ -2081,7 +2080,7 @@ bool FocusLynxBase::setTemperatureCompensationCoeff(char mode, int16_t coeff)
 
     memset(response, 0, sizeof(response));
 
-    snprintf(cmd, 16, "<%sSCTC%c%c%04d>", getFocusTarget(), mode, coeff >= 0 ? '+' : '-', abs(coeff));
+    snprintf(cmd, 16, "<%sSCTC%c%c%04d>", getFocusTarget(), mode, coeff >= 0 ? '+' : '-', (int)std::abs(coeff));
 
     DEBUGF(INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
 
@@ -2728,7 +2727,7 @@ void FocusLynxBase::TimerHit()
                 if (simStatus[STATUS_HOMING] == ISS_ON)
                 {
                     StatusL[STATUS_HOMED].s = IPS_OK;
-                    simStatus[STATUS_HOMING] == ISS_OFF;
+                    simStatus[STATUS_HOMING] = ISS_OFF;
                 }
             }
         }
@@ -2892,6 +2891,7 @@ bool FocusLynxBase::saveConfigItems(FILE *fp)
 * ***********************************************************************************/
 void FocusLynxBase::debugTriggered(bool enable)
 {
+    INDI_UNUSED(enable);
     //tty_set_debug(enable ? 1 : 0);
 }
 
@@ -2919,6 +2919,9 @@ const char *FocusLynxBase::getFocusTarget()
 
 int FocusLynxBase::getVersion(int *major, int *minor, int *sub)
 {
+    INDI_UNUSED(major);
+    INDI_UNUSED(minor);
+    INDI_UNUSED(sub);
     // This methode have to be overided by child object
     /* For future use of implementation of new firmware 2.0.0
      * and give ability to keep compatible to actual 1.0.9

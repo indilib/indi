@@ -18,8 +18,7 @@
     Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
-#ifndef LX200PULSAR2_H
-#define LX200PULSAR2_H
+#pragma once
 
 #include "lx200generic.h"
 
@@ -84,5 +83,3 @@ class LX200Pulsar2 : public LX200Generic
 
     bool just_started_slewing;
 };
-
-#endif

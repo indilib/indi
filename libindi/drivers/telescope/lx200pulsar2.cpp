@@ -18,17 +18,16 @@
     Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
-#include <cmath>
-#include <cerrno>
-#include <fcntl.h>
-#include <stdio.h>
-#include <termios.h>
-#include <unistd.h>
+#include "lx200pulsar2.h"
 
 #include "indicom.h"
-#include "indilogger.h"
-#include "lx200pulsar2.h"
 #include "lx200driver.h"
+
+#include <cmath>
+#include <string.h>
+#include <termios.h>
+#include <unistd.h>
+#include <sys/errno.h>
 
 extern char lx200Name[MAXINDIDEVICE];
 extern unsigned int DBG_SCOPE;
@@ -619,9 +618,14 @@ bool LX200Pulsar2::ReadScopeStatus(void)
                         IDMessage(getDeviceName(), "Slew is complete. Tracking...");
                     }
                     break;
+
                 case SCOPE_PARKING:
                     if (isSlewComplete())
                         SetParked(true);
+                    break;
+
+                default:
+                    break;
             }
             success = Pulsar2Commands::getObjectRADec(PortFD, &currentRA, &currentDEC);
             if (success)

@@ -20,15 +20,13 @@
  Boston, MA 02110-1301, USA.
 *******************************************************************************/
 
-#ifndef INDIDOME_H
-#define INDIDOME_H
+#pragma once
 
-#include <string>
+#include "defaultdevice.h"
 
 #include <libnova.h>
 
-#include "defaultdevice.h"
-#include "indicontroller.h"
+#include <string>
 
 // Defines a point in a 3 dimension space
 typedef struct
@@ -537,5 +535,3 @@ class INDI::Dome : public INDI::DefaultDevice
     bool callHandshake();
     uint8_t domeConnection = CONNECTION_SERIAL | CONNECTION_TCP;
 };
-
-#endif // INDIDOME_H

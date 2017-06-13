@@ -22,8 +22,7 @@
     Version with experimental pulse guide support. GC 04.12.2015
 */
 
-#ifndef CELESTRONDRIVER_H
-#define CELESTRONDRIVER_H
+#pragma once
 
 #include <string>
 
@@ -134,5 +133,3 @@ bool wakeup(int fd);
  *************************************************************************/
 int SendPulseCmd(int fd, CELESTRON_DIRECTION direction, signed char rate, unsigned char duration_msec);
 int SendPulseStatusCmd(int fd, CELESTRON_DIRECTION direction, bool &pulse_state);
-
-#endif

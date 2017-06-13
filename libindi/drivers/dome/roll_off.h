@@ -16,14 +16,9 @@
  Boston, MA 02110-1301, USA.
 *******************************************************************************/
 
-#ifndef RollOff_H
-#define RollOff_H
+#pragma once
 
-#include "indibase/indidome.h"
-
-/*  Some headers we need */
-#include <math.h>
-#include <sys/time.h>
+#include "indidome.h"
 
 class RollOff : public INDI::Dome
 {
@@ -62,5 +57,3 @@ class RollOff : public INDI::Dome
 
     float CalcTimeLeft(timeval);
 };
-
-#endif

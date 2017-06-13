@@ -16,18 +16,15 @@
  Boston, MA 02110-1301, USA.
 *******************************************************************************/
 
-#ifndef INDIBASEDRIVER_H
-#define INDIBASEDRIVER_H
+#pragma once
 
-#include <vector>
-#include <string>
-
-#include <locale.h>
-
-#include "indiapi.h"
-#include "indidevapi.h"
 #include "indibase.h"
 #include "indiproperty.h"
+
+#include <string>
+#include <vector>
+
+#include <stdint.h>
 
 #define MAXRBUF 2048
 
@@ -150,7 +147,7 @@ class INDI::BaseDevice
     /** \brief Add message to the driver's message queue.
         \param msg Message to add.
     */
-    void addMessage(std::string msg);
+    void addMessage(const std::string& msg);
 
     void checkMessage(XMLEle *root);
     void doMessage(XMLEle *msg);
@@ -214,5 +211,3 @@ class INDI::BaseDevice
     friend class INDI::BaseClientQt;
     friend class INDI::DefaultDevice;
 };
-
-#endif // INDIBASEDRIVER_H

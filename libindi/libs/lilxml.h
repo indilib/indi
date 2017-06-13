@@ -61,8 +61,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110 - 1301  USA
 
  */
 
-#ifndef LILXML_H
-#define LILXML_H
+#pragma once
 
 #include <stdio.h>
 
@@ -311,5 +310,3 @@ extern void indi_xmlMalloc(void *(*newmalloc)(size_t size), void *(*newrealloc)(
 /* For RCS Only -- Do Not Edit
  * @(#) $RCSfile$ $Date: 2007-09-17 16:34:48 +0300 (Mon, 17 Sep 2007) $ $Revision: 713418 $ $Name:  $
  */
-
-#endif /* LILXML_H */

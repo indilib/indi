@@ -20,8 +20,7 @@
     reached at nemosoft@smcc.demon.nl.
 */
 
-#ifndef CCVT_TYPES_H
-#define CCVT_TYPES_H
+#pragma once
 
 typedef struct
 {
@@ -61,5 +60,3 @@ typedef struct
         else         \
             c = 255; \
     }
-
-#endif

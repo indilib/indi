@@ -17,30 +17,26 @@
   Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
-#ifndef FOCUSLYNX_H
-#define FOCUSLYNX_H
+#pragma once
 
-#include <map>
-#include <indicom.h>
 #include "focuslynxbase.h"
-#include <indifocuser.h>
 
 #define POLLMS 1000
 
 class FocusLynxF1 : public FocusLynxBase
 {
   public:
-    FocusLynxF1(const char *target);
+    explicit FocusLynxF1(const char *target);
     ~FocusLynxF1();
 
-    const char *getDefaultName();
-    virtual bool Connect();
-    virtual bool Disconnect();
-    virtual bool updateProperties();
-    virtual bool initProperties();
-    virtual void ISGetProperties(const char *dev);
-    virtual int getVersion(int *major, int *minor, int *sub);
-    const int getPortFD();
+    const char *getDefaultName() override;
+    virtual bool Connect() override;
+    virtual bool Disconnect() override;
+    virtual bool updateProperties() override;
+    virtual bool initProperties() override;
+    virtual void ISGetProperties(const char *dev) override;
+    virtual int getVersion(int *major, int *minor, int *sub) override;
+    int getPortFD();
 
   private:
     // Get functions
@@ -65,14 +61,11 @@ class FocusLynxF1 : public FocusLynxBase
 class FocusLynxF2 : public FocusLynxBase
 {
   public:
-    FocusLynxF2(const char *target);
+    explicit FocusLynxF2(const char *target);
     ~FocusLynxF2();
 
-    const char *getDefaultName();
-    virtual bool Connect();
-    virtual bool Disconnect();
-    virtual void ISGetProperties(const char *dev);
-
-  private:
+    const char *getDefaultName() override;
+    virtual bool Connect() override;
+    virtual bool Disconnect() override;
+    virtual void ISGetProperties(const char *dev) override;
 };
-#endif // FOCUSLYNX_H

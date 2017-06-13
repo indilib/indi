@@ -18,10 +18,9 @@
 
 */
 
-#ifndef MOONLITE_H
-#define MOONLITE_H
+#pragma once
 
-#include "indibase/indifocuser.h"
+#include "indifocuser.h"
 
 class MoonLite : public INDI::Focuser
 {
@@ -86,5 +85,3 @@ class MoonLite : public INDI::Focuser
     INumber SyncN[1];
     INumberVectorProperty SyncNP;
 };
-
-#endif // MOONLITE_H

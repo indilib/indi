@@ -22,20 +22,14 @@
   file called LICENSE.
 *******************************************************************************/
 
-#include <stdlib.h>
-#include <stdio.h>
+#include "sqm.h"
+
+#include "connectionplugins/connectiontcp.h"
+
+#include <memory>
 #include <string.h>
 #include <unistd.h>
-#include <memory>
-#include <sys/ioctl.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <netdb.h>
-#include <fcntl.h>
-
-#include "sqm.h"
-#include "connectionplugins/connectiontcp.h"
+#include <sys/errno.h>
 
 // We declare an auto pointer to SQM.
 std::unique_ptr<SQM> sqm(new SQM());

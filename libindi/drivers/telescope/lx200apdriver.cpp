@@ -24,21 +24,14 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110 - 1301  USA
 
 /*ToDo: compare the routes with the new ones from lx200driver.c r111 */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <stdarg.h>
-#include <math.h>
-#include <sys/time.h>
-#include <unistd.h>
-#include <fcntl.h>
-#include <time.h>
+#include "lx200apdriver.h"
 
 #include "indicom.h"
 #include "indilogger.h"
-#include "indidevapi.h"
 #include "lx200driver.h"
-#include "lx200apdriver.h"
+
+#include <string.h>
+#include <unistd.h>
 
 #ifndef _WIN32
 #include <termios.h>

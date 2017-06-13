@@ -25,6 +25,9 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110 - 1301  USA
 
 #include "v4l2driver.h"
 
+#include "lx/Lx.h"
+#include "webcam/v4l2_record/stream_recorder.h"
+
 V4L2_Driver::V4L2_Driver()
 {
     //sigevent sevp;
@@ -234,7 +237,7 @@ bool V4L2_Driver::updateProperties()
         SetCCDParams(V4LFrame->width, V4LFrame->height, V4LFrame->bpp, 5.6, 5.6);
         PrimaryCCD.setImageExtension("fits");
 
-        v4l_base->setRecorder(streamer->getRecorder());
+        v4l_base->setRecorder(Streamer->getRecorder());
 
         if (v4l_base->isLXmodCapable())
             lx->updateProperties();
@@ -294,7 +297,7 @@ bool V4L2_Driver::ISNewSwitch(const char *dev, const char *name, ISState *states
     if ((!strcmp(name, InputsSP.name)))
     {
         //if ((StreamSP.s == IPS_BUSY) ||  (ExposeTimeNP->s == IPS_BUSY) || (RecordStreamSP.s == IPS_BUSY)) {
-        if (PrimaryCCD.isExposing() || streamer->isBusy())
+        if (PrimaryCCD.isExposing() || Streamer->isBusy())
         {
             DEBUG(INDI::Logger::DBG_ERROR, "Can not set input while capturing.");
             InputsSP.s = IPS_ALERT;
@@ -344,7 +347,7 @@ bool V4L2_Driver::ISNewSwitch(const char *dev, const char *name, ISState *states
     if ((!strcmp(name, CaptureFormatsSP.name)))
     {
         //if ((StreamSP.s == IPS_BUSY) ||  (ExposeTimeNP->s == IPS_BUSY) || (RecordStreamSP.s == IPS_BUSY)) {
-        if (PrimaryCCD.isExposing() || streamer->isBusy())
+        if (PrimaryCCD.isExposing() || Streamer->isBusy())
         {
             DEBUG(INDI::Logger::DBG_ERROR, "Can not set format while capturing.");
             CaptureFormatsSP.s = IPS_ALERT;
@@ -391,7 +394,7 @@ bool V4L2_Driver::ISNewSwitch(const char *dev, const char *name, ISState *states
             IDSetText(&CaptureColorSpaceTP, nullptr);
 #endif
             //direct_record=recorder->setpixelformat(v4l_base->fmt.fmt.pix.pixelformat);
-            streamer->setPixelFormat(v4l_base->fmt.fmt.pix.pixelformat);
+            Streamer->setPixelFormat(v4l_base->fmt.fmt.pix.pixelformat);
 
             IDSetSwitch(&CaptureFormatsSP, "Capture format: %d. %s", index, CaptureFormatsSP.sp[index].name);
             return true;
@@ -402,7 +405,7 @@ bool V4L2_Driver::ISNewSwitch(const char *dev, const char *name, ISState *states
     if ((!strcmp(name, CaptureSizesSP.name)))
     {
         //if ((StreamSP.s == IPS_BUSY) ||  (ExposeTimeNP->s == IPS_BUSY) || (RecordStreamSP.s == IPS_BUSY)) {
-        if (PrimaryCCD.isExposing() || streamer->isBusy())
+        if (PrimaryCCD.isExposing() || Streamer->isBusy())
         {
             DEBUG(INDI::Logger::DBG_ERROR, "Can not set capture size while capturing.");
             CaptureSizesSP.s = IPS_ALERT;
@@ -439,7 +442,7 @@ bool V4L2_Driver::ISNewSwitch(const char *dev, const char *name, ISState *states
             PrimaryCCD.setResolution(w, h);
             updateFrameSize();
             //recorder->setsize(w, h);
-            streamer->setRecorderSize(w, h);
+            Streamer->setRecorderSize(w, h);
 
             CaptureSizesSP.s = IPS_OK;
             IDSetSwitch(&CaptureSizesSP, "Capture size (discrete): %d. %s", index, CaptureSizesSP.sp[index].name);
@@ -450,7 +453,7 @@ bool V4L2_Driver::ISNewSwitch(const char *dev, const char *name, ISState *states
     /* Frame Rate (Discrete) */
     if ((!strcmp(name, FrameRatesSP.name)))
     {
-        if (PrimaryCCD.isExposing() || streamer->isBusy())
+        if (PrimaryCCD.isExposing() || Streamer->isBusy())
         {
             DEBUG(INDI::Logger::DBG_ERROR, "Can not change frame rate while capturing.");
             FrameRatesSP.s = IPS_ALERT;
@@ -478,7 +481,7 @@ bool V4L2_Driver::ISNewSwitch(const char *dev, const char *name, ISState *states
     /* Image Type */
     if (!strcmp(name, ImageColorSP.name))
     {
-        if (streamer->isRecording())
+        if (Streamer->isRecording())
         {
             DEBUG(INDI::Logger::DBG_WARNING, "Can not set Image type (GRAY/COLOR) while recording.");
             return false;
@@ -507,7 +510,7 @@ bool V4L2_Driver::ISNewSwitch(const char *dev, const char *name, ISState *states
     /* Image Depth */
     if (!strcmp(name, ImageDepthSP.name))
     {
-        if (streamer->isRecording())
+        if (Streamer->isRecording())
         {
             DEBUG(INDI::Logger::DBG_WARNING, "Can not set Image depth (8/16bits) while recording.");
             return false;
@@ -651,7 +654,7 @@ bool V4L2_Driver::ISNewNumber(const char *dev, const char *name, double values[]
     /* Capture Size (Step/Continuous) */
     if ((!strcmp(name, CaptureSizesNP.name)))
     {
-        if (PrimaryCCD.isExposing() || streamer->isBusy())
+        if (PrimaryCCD.isExposing() || Streamer->isBusy())
         {
             DEBUG(INDI::Logger::DBG_ERROR, "Can not set capture size while capturing.");
             CaptureSizesNP.s = IPS_BUSY;
@@ -660,10 +663,9 @@ bool V4L2_Driver::ISNewNumber(const char *dev, const char *name, double values[]
         }
         else
         {
-            unsigned int index, sizes[2], w, h;
+            unsigned int sizes[2], w = 0, h = 0;
             double rsizes[2];
-            double fsizes[4];
-            const char *fnames[] = { "X", "Y", "WIDTH", "HEIGHT" };
+
             if (!strcmp(names[0], "Width"))
             {
                 sizes[0] = values[0];
@@ -703,7 +705,7 @@ bool V4L2_Driver::ISNewNumber(const char *dev, const char *name, double values[]
             PrimaryCCD.setResolution(w, h);
             CaptureSizesNP.s = IPS_OK;
             updateFrameSize();
-            streamer->setRecorderSize(w, h);
+            Streamer->setRecorderSize(w, h);
 
             IDSetNumber(&CaptureSizesNP, "Capture size (step/cont): %dx%d", w, h);
             return true;
@@ -751,7 +753,7 @@ bool V4L2_Driver::StartExposure(float duration)
      * If we don't, PrimaryCCD will stop exposing nonetheless and we won't be able to restart an exposure.
      */
     {
-        if (streamer->isBusy())
+        if (Streamer->isBusy())
         {
             DEBUG(INDI::Logger::DBG_ERROR, "Cannot start new exposure while streamer is busy, stop streaming first");
             return !(GetCCDCapability() & CCD_CAN_ABORT);
@@ -771,7 +773,7 @@ bool V4L2_Driver::StartExposure(float duration)
         PrimaryCCD.setExposureDuration(duration);
         this->exposureLeft = duration;
 
-        if (!lx->isenabled() || lx->getLxmode() == LXSERIAL)
+        if (!lx->isEnabled() || lx->getLxmode() == LXSERIAL)
             start_capturing(false);
 
         /* Update exposure duration in client */
@@ -791,7 +793,7 @@ bool V4L2_Driver::StartExposure(float duration)
 
 bool V4L2_Driver::setShutter(double duration)
 {
-    if (lx->isenabled())
+    if (lx->isEnabled())
     {
         DEBUGF(INDI::Logger::DBG_SESSION, "Using long exposure mode for %.3f sec frame.", duration);
         if (!startlongexposure(duration))
@@ -872,6 +874,7 @@ bool V4L2_Driver::setManualExposure(double duration)
     /*if (duration * 10000 != AbsExposureN->value)*/
     {
         double curVal       = AbsExposureN->value;
+
         AbsExposureN->value = duration * 10000;
         ctrl_id             = *((unsigned int *)AbsExposureN->aux0);
         if (v4l_base->setINTControl(ctrl_id, AbsExposureN->value, errmsg) < 0)
@@ -903,7 +906,7 @@ void V4L2_Driver::stdtimerCallback(void *userpointer)
 
 bool V4L2_Driver::start_capturing(bool do_stream)
 {
-    if (streamer->isBusy())
+    if (Streamer->isBusy())
     {
         DEBUG(INDI::Logger::DBG_WARNING, "Cannot start exposure while streaming is in progress");
         return false;
@@ -924,7 +927,7 @@ bool V4L2_Driver::start_capturing(bool do_stream)
     }
 
     if (do_stream)
-        v4l_base->doRecord(streamer->isDirectRecording());
+        v4l_base->doRecord(Streamer->isDirectRecording());
 
     is_capturing = true;
     return true;
@@ -938,18 +941,20 @@ bool V4L2_Driver::stop_capturing()
         return true;
     }
 
-    if (!streamer->isBusy() && 0.0f < exposureLeft)
+    if (!Streamer->isBusy() && 0.0f < exposureLeft)
+    {
         DEBUGF(INDI::Logger::DBG_WARNING, "Stopping running exposure %.3f seconds before completion", exposureLeft);
+    }
 
-    //if(streamer->isDirectRecording())
+    //if(Streamer->isDirectRecording())
     v4l_base->doRecord(false);
 
     char errmsg[ERRMSGSIZ];
+
     if (v4l_base->stop_capturing(errmsg))
     {
         DEBUGF(INDI::Logger::DBG_WARNING, "V4L2 base failed stopping capture (%s)", errmsg);
     }
-
     is_capturing = false;
     return true;
 }
@@ -963,9 +968,8 @@ bool V4L2_Driver::startlongexposure(double timeinsec)
 
 void V4L2_Driver::lxtimerCallback(void *userpointer)
 {
-    struct timespec waittime;
-    char errmsg[ERRMSGSIZ];
     V4L2_Driver *p = (V4L2_Driver *)userpointer;
+
     p->lx->stopLx();
     if (p->lx->getLxmode() == LXSERIAL)
     {
@@ -1001,7 +1005,7 @@ bool V4L2_Driver::UpdateCCDBin(int hor, int ver)
         return false;
     }
 
-    if (streamer->isBusy())
+    if (Streamer->isBusy())
     {
         DEBUG(INDI::Logger::DBG_WARNING, "Cannot change binning while streaming/recording.");
         return false;
@@ -1028,7 +1032,7 @@ bool V4L2_Driver::UpdateCCDFrame(int x, int y, int w, int h)
         PrimaryCCD.setFrame(x, y, w, h);
         updateFrameSize();
         //recorder->setsize(w, h);
-        streamer->setRecorderSize(w, h);
+        Streamer->setRecorderSize(w, h);
         //DEBUGF(INDI::Logger::DBG_SESSION, "updateCCDFrame ok: %d %d %d %d", x, y, w, h);
         //IDLog("updateCCDFrame ok: %d %d %d %d\n", x, y, w, h);
         return true;
@@ -1048,36 +1052,34 @@ void V4L2_Driver::newFrame(void *p)
 
 void V4L2_Driver::stackFrame()
 {
-    struct timeval current_exposure;
-
     if (!V4LFrame->stackedFrame)
     {
-        float *src, *dest;
-        unsigned int i;
+        float *src = nullptr, *dest = nullptr;
 
         V4LFrame->stackedFrame = (float *)malloc(sizeof(float) * v4l_base->getWidth() * v4l_base->getHeight());
         src                    = v4l_base->getLinearY();
         dest                   = V4LFrame->stackedFrame;
-        for (i = 0; i < v4l_base->getWidth() * v4l_base->getHeight(); i++)
+        for (int i = 0; i < v4l_base->getWidth() * v4l_base->getHeight(); i++)
             *dest++ = *src++;
         subframeCount = 1;
     }
     else
     {
-        float *src, *dest;
-        unsigned int i;
+        float *src = nullptr, *dest = nullptr;
 
         src  = v4l_base->getLinearY();
         dest = V4LFrame->stackedFrame;
-        for (i = 0; i < v4l_base->getWidth() * v4l_base->getHeight(); i++)
+        for (int i = 0; i < v4l_base->getWidth() * v4l_base->getHeight(); i++)
+        {
             *dest++ += *src++;
+        }
         subframeCount += 1;
     }
 }
 
 void V4L2_Driver::newFrame()
 {
-    if (streamer->isBusy())
+    if (Streamer->isBusy())
     {
         int width             = v4l_base->getWidth();
         int height            = v4l_base->getHeight();
@@ -1102,10 +1104,10 @@ void V4L2_Driver::newFrame()
         // downscale Y10 Y12 Y16
         if (bpp > dbpp)
         {
-            unsigned int i;
             unsigned short *src = (unsigned short *)buffer;
             unsigned char *dest = buffer;
             unsigned char shift = 0;
+
             if (bpp < 16)
             {
                 switch (bpp)
@@ -1117,7 +1119,7 @@ void V4L2_Driver::newFrame()
                         shift = 4;
                         break;
                 }
-                for (i = 0; i < totalBytes; i++)
+                for (int i = 0; i < totalBytes; i++)
                 {
                     *dest++ = *(src++) >> shift;
                 }
@@ -1125,7 +1127,8 @@ void V4L2_Driver::newFrame()
             else
             {
                 unsigned char *src = (unsigned char *)buffer + 1; // Y16 is little endian
-                for (i = 0; i < totalBytes; i++)
+
+                for (int i = 0; i < totalBytes; i++)
                 {
                     *dest++ = *src;
                     src += 2;
@@ -1134,18 +1137,16 @@ void V4L2_Driver::newFrame()
         }
 
         memcpy(PrimaryCCD.getFrameBuffer(), buffer, frameBytes);
-
-        streamer->newFrame();
-
+        Streamer->newFrame();
         return;
     }
 
     if (PrimaryCCD.isExposing())
     {
-        unsigned int i;
         struct timeval current_exposure;
+
         // Stack Mono frames
-        if ((stackMode) && !(lx->isenabled()) && !(ImageColorS[1].s == ISS_ON))
+        if ((stackMode) && !(lx->isEnabled()) && !(ImageColorS[1].s == ISS_ON))
         {
             stackFrame();
         }
@@ -1153,7 +1154,7 @@ void V4L2_Driver::newFrame()
         gettimeofday(&capture_end, nullptr);
         timersub(&capture_end, &capture_start, &current_exposure);
 
-        if ((stackMode) && !(lx->isenabled()) && !(ImageColorS[1].s == ISS_ON) &&
+        if ((stackMode) && !(lx->isEnabled()) && !(ImageColorS[1].s == ISS_ON) &&
             (timercmp(&current_exposure, &exposure_duration, <)))
             return; // go on stacking
 
@@ -1175,10 +1176,12 @@ void V4L2_Driver::newFrame()
             else
             {
                 float *src = V4LFrame->stackedFrame;
+
                 if ((stackMode != STACK_TAKE_DARK) && (V4LFrame->darkFrame != nullptr))
                 {
                     float *dark = V4LFrame->darkFrame;
-                    for (i = 0; i < v4l_base->getWidth() * v4l_base->getHeight(); i++)
+
+                    for (int i = 0; i < v4l_base->getWidth() * v4l_base->getHeight(); i++)
                     {
                         if (*src > *dark)
                             *src -= *dark;
@@ -1187,7 +1190,6 @@ void V4L2_Driver::newFrame()
                         src++;
                         dark++;
                     }
-
                     src = V4LFrame->stackedFrame;
                 }
                 //IDLog("Copying stack frame from %p to %p.\n", src, dest);
@@ -1197,14 +1199,16 @@ void V4L2_Driver::newFrame()
                     {
                         // depth 8 bits
                         unsigned char *dest = (unsigned char *)PrimaryCCD.getFrameBuffer();
-                        for (i = 0; i < v4l_base->getWidth() * v4l_base->getHeight(); i++)
+
+                        for (int i = 0; i < v4l_base->getWidth() * v4l_base->getHeight(); i++)
                             *dest++ = (unsigned char)((*src++ * 255) / subframeCount);
                     }
                     else
                     {
                         // depth 16 bits
                         unsigned short *dest = (unsigned short *)PrimaryCCD.getFrameBuffer();
-                        for (i = 0; i < v4l_base->getWidth() * v4l_base->getHeight(); i++)
+
+                        for (int i = 0; i < v4l_base->getWidth() * v4l_base->getHeight(); i++)
                             *dest++ = (unsigned short)((*src++ * 65535) / subframeCount);
                     }
 
@@ -1217,14 +1221,16 @@ void V4L2_Driver::newFrame()
                     {
                         // depth 8 bits
                         unsigned char *dest = (unsigned char *)PrimaryCCD.getFrameBuffer();
-                        for (i = 0; i < v4l_base->getWidth() * v4l_base->getHeight(); i++)
+
+                        for (int i = 0; i < v4l_base->getWidth() * v4l_base->getHeight(); i++)
                             *dest++ = (unsigned char)((*src++ * 255));
                     }
                     else
                     {
                         // depth 16 bits
                         unsigned short *dest = (unsigned short *)PrimaryCCD.getFrameBuffer();
-                        for (i = 0; i < v4l_base->getWidth() * v4l_base->getHeight(); i++)
+
+                        for (int i = 0; i < v4l_base->getWidth() * v4l_base->getHeight(); i++)
                             *dest++ = (unsigned short)((*src++ * 65535));
                     }
 
@@ -1242,14 +1248,16 @@ void V4L2_Driver::newFrame()
                     {
                         // depth 8 bits
                         unsigned char *dest = (unsigned char *)PrimaryCCD.getFrameBuffer();
-                        for (i = 0; i < v4l_base->getWidth() * v4l_base->getHeight(); i++)
+
+                        for (int i = 0; i < v4l_base->getWidth() * v4l_base->getHeight(); i++)
                             *dest++ = (unsigned char)((*src++ * 255));
                     }
                     else
                     {
                         // depth 16 bits
                         unsigned short *dest = (unsigned short *)PrimaryCCD.getFrameBuffer();
-                        for (i = 0; i < v4l_base->getWidth() * v4l_base->getHeight(); i++)
+
+                        for (int i = 0; i < v4l_base->getWidth() * v4l_base->getHeight(); i++)
                             *dest++ = (unsigned short)((*src++ * 65535));
                     }
                 }
@@ -1257,17 +1265,15 @@ void V4L2_Driver::newFrame()
         }
         else
         {
-            unsigned char *src, *dest;
             // Binning not supported in color images for now
-            src  = v4l_base->getRGBBuffer();
-            dest = (unsigned char *)PrimaryCCD.getFrameBuffer();
-
+            unsigned char *src  = v4l_base->getRGBBuffer();
+            unsigned char *dest = PrimaryCCD.getFrameBuffer();
             // We have RGB RGB RGB data but for FITS file we need each color in separate plane. i.e. RRR GGG BBB ..etc
             unsigned char *red   = dest;
             unsigned char *green = dest + v4l_base->getWidth() * v4l_base->getHeight() * (v4l_base->getBpp() / 8);
             unsigned char *blue  = dest + v4l_base->getWidth() * v4l_base->getHeight() * (v4l_base->getBpp() / 8) * 2;
 
-            for (int i = 0; i < frameBytes; i += 3)
+            for (int i = 0; i < (int)frameBytes; i += 3)
             {
                 *(red++)   = *(src + i);
                 *(green++) = *(src + i + 1);
@@ -1280,10 +1286,10 @@ void V4L2_Driver::newFrame()
         //IDLog("Copy frame finished.\n");
         frameCount += 1;
 
-        if (lx->isenabled())
+        if (lx->isEnabled())
         {
             //if (!is_streaming && !is_recording)
-            if (streamer->isBusy() == false)
+            if (Streamer->isBusy() == false)
                 stop_capturing();
 
             DEBUGF(INDI::Logger::DBG_SESSION, "Capture of LX frame took %ld.%06ld seconds.", current_exposure.tv_sec,
@@ -1295,7 +1301,7 @@ void V4L2_Driver::newFrame()
         else
         {
             //if (!is_streaming && !is_recording) stop_capturing();
-            if (streamer->isBusy() == false)
+            if (Streamer->isBusy() == false)
                 stop_capturing();
             else
                 IDLog("%s: streamer is busy, continue capturing\n", __FUNCTION__);
@@ -1318,12 +1324,12 @@ void V4L2_Driver::newFrame()
 
 bool V4L2_Driver::AbortExposure()
 {
-    if (lx->isenabled())
+    if (lx->isEnabled())
     {
         lx->stopLx();
         return true;
     }
-    else if (!streamer->isBusy())
+    else if (!Streamer->isBusy())
     {
         if (-1 != stdtimer)
             IERmTimer(stdtimer);
@@ -1364,9 +1370,9 @@ bool V4L2_Driver::Disconnect()
 {
     if (isConnected())
     {
-        v4l_base->disconnectCam(PrimaryCCD.isExposing() || streamer->isBusy());
-        if (PrimaryCCD.isExposing() || streamer->isBusy())
-            streamer->close();
+        v4l_base->disconnectCam(PrimaryCCD.isExposing() || Streamer->isBusy());
+        if (PrimaryCCD.isExposing() || Streamer->isBusy())
+            Streamer->close();
     }
     return true;
 }
@@ -1426,8 +1432,8 @@ void V4L2_Driver::getBasicData()
     updateFrameSize();
     //direct_record=recorder->setpixelformat(v4l_base->fmt.fmt.pix.pixelformat);
     //recorder->setsize(w, h);
-    streamer->setPixelFormat(v4l_base->fmt.fmt.pix.pixelformat);
-    streamer->setRecorderSize(w, h);
+    Streamer->setPixelFormat(v4l_base->fmt.fmt.pix.pixelformat);
+    Streamer->setRecorderSize(w, h);
 }
 
 void V4L2_Driver::updateV4L2Controls()
@@ -1508,7 +1514,7 @@ bool V4L2_Driver::StartStreaming()
 
 bool V4L2_Driver::StopStreaming()
 {
-    if (!streamer->isBusy() /*&& is_capturing*/)
+    if (!Streamer->isBusy() /*&& is_capturing*/)
     {
         /* Strange situation indeed, but it's theoretically possible to try to stop streaming while exposing - safeguard actually */
         DEBUGF(INDI::Logger::DBG_WARNING, "Cannot stop streaming, exposure running (%.1f seconds remaining)",
@@ -1523,5 +1529,5 @@ bool V4L2_Driver::saveConfigItems(FILE *fp)
 {
     INDI::CCD::saveConfigItems(fp);
 
-    return streamer->saveConfigItems(fp);
+    return Streamer->saveConfigItems(fp);
 }

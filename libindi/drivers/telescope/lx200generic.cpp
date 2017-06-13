@@ -27,32 +27,27 @@ Updated driver to use INDI::Telescope (JM)
 
 #endif
 
-#include <config.h>
-#include <libnova.h>
-#include <memory>
-
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <stdarg.h>
-#include <math.h>
-#include <unistd.h>
-#include <time.h>
-#include <sys/time.h>
+#include "lx200generic.h"
 
 #include "indicom.h"
-#include "lx200driver.h"
-#include "lx200gps.h"
-#include "lx200_16.h"
-#include "lx200classic.h"
-#include "lx200ap.h"
-#include "lx200gemini.h"
-#include "lx200zeq25.h"
-#include "lx200pulsar2.h"
-#include "lx200fs2.h"
-#include "lx200ss2000pc.h"
-#include "lx200_OnStep.h"
 #include "lx200_10micron.h"
+#include "lx200_16.h"
+#include "lx200_OnStep.h"
+#include "lx200ap.h"
+#include "lx200classic.h"
+#include "lx200driver.h"
+#include "lx200fs2.h"
+#include "lx200gemini.h"
+#include "lx200pulsar2.h"
+#include "lx200ss2000pc.h"
+#include "lx200zeq25.h"
+
+#include <libnova.h>
+
+#include <math.h>
+#include <memory>
+#include <string.h>
+#include <unistd.h>
 
 // We declare an auto pointer to LX200Generic.
 std::unique_ptr<LX200Generic> telescope;
@@ -536,8 +531,9 @@ bool LX200Generic::Goto(double r, double d)
         }
 
         int err = 0;
+
         /* Slew reads the '0', that is not the end of the slew */
-        if (err = Slew(PortFD))
+        if ((err = Slew(PortFD)))
         {
             EqNP.s = IPS_ALERT;
             IDSetNumber(&EqNP, "Error Slewing to JNow RA %s - DEC %s\n", RAStr, DecStr);
@@ -1221,10 +1217,12 @@ void LX200Generic::getBasicData()
             IDMessage(getDeviceName(), "Failed to retrieve time format from device.");
         else
         {
+            int ret = 0;
+
             timeFormat = (timeFormat == 24) ? LX200_24 : LX200_AM;
             // We always do 24 hours
             if (timeFormat != LX200_24)
-                toggleTimeFormat(PortFD);
+                ret = toggleTimeFormat(PortFD);
         }
 
         SiteNameT[0].text = new char[64];

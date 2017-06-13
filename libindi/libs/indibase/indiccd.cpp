@@ -21,19 +21,22 @@
  the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
  Boston, MA 02110-1301, USA.
 *******************************************************************************/
+
 #include "indiccd.h"
-#include <regex>
-#include <string.h>
-#include <time.h>
-#include <sys/time.h>
-#include <sys/stat.h>
-#include <zlib.h>
-#include <errno.h>
-#include <dirent.h>
+
+#include "indicom.h"
 
 #include <libnova.h>
 #include <fitsio.h>
-#include <indicom.h>
+
+#include <regex>
+
+#include <dirent.h>
+#include <locale.h>
+#include <stdlib.h>
+#include <zlib.h>
+#include <sys/errno.h>
+#include <sys/stat.h>
 
 #ifdef __linux__
 #include "webcam/v4l2_record/stream_recorder.h"
@@ -298,10 +301,10 @@ void CCDChip::binFrame()
         case 8:
         {
             uint8_t *bin_buf = BinFrame;
-            uint8_t val;
             // Try to average pixels since in 8bit they get saturated pretty quickly
             double factor      = (BinX * BinX) / 2;
             double accumulator = 0;
+
             for (int i = 0; i < SubH; i += BinX)
                 for (int j = 0; j < SubW; j += BinX)
                 {
@@ -385,13 +388,10 @@ INDI::CCD::CCD()
     Dec             = -1000;
     MPSAS           = -1000;
     primaryAperture = primaryFocalLength = guiderAperture = guiderFocalLength - 1;
-
-    streamer = nullptr;
 }
 
 INDI::CCD::~CCD()
 {
-    delete (streamer);
 }
 
 void INDI::CCD::SetCCDCapability(uint32_t cap)
@@ -404,11 +404,10 @@ void INDI::CCD::SetCCDCapability(uint32_t cap)
         setDriverInterface(getDriverInterface() & ~GUIDER_INTERFACE);
 
 #ifdef __linux__
-    if (HasStreaming() && streamer == nullptr)
+    if (HasStreaming() && Streamer.get() == nullptr)
     {
-        delete (streamer);
-        streamer = new StreamRecorder(this);
-        streamer->initProperties();
+        Streamer.reset(new StreamRecorder(this));
+        Streamer->initProperties();
     }
 #endif
 }
@@ -686,10 +685,8 @@ void INDI::CCD::ISGetProperties(const char *dev)
 // Streamer
 #ifdef __linux__
     if (HasStreaming())
-        streamer->ISGetProperties(dev);
+        Streamer->ISGetProperties(dev);
 #endif
-
-    return;
 }
 
 bool INDI::CCD::updateProperties()
@@ -845,7 +842,7 @@ bool INDI::CCD::updateProperties()
 // Streamer
 #ifdef __linux__
     if (HasStreaming())
-        streamer->updateProperties();
+        Streamer->updateProperties();
 #endif
 
     return true;
@@ -978,7 +975,7 @@ bool INDI::CCD::ISNewText(const char *dev, const char *name, char *texts[], char
 // Streamer
 #ifdef __linux__
     if (HasStreaming())
-        streamer->ISNewText(dev, name, texts, names, n);
+        Streamer->ISNewText(dev, name, texts, names, n);
 #endif
 
     return INDI::DefaultDevice::ISNewText(dev, name, texts, names, n);
@@ -1248,7 +1245,7 @@ bool INDI::CCD::ISNewNumber(const char *dev, const char *name, double values[], 
 // Streamer
 #ifdef __linux__
     if (HasStreaming())
-        streamer->ISNewNumber(dev, name, values, names, n);
+        Streamer->ISNewNumber(dev, name, values, names, n);
 #endif
 
     return DefaultDevice::ISNewNumber(dev, name, values, names, n);
@@ -1551,7 +1548,7 @@ bool INDI::CCD::ISNewSwitch(const char *dev, const char *name, ISState *states, 
 // Streamer
 #ifdef __linux__
     if (HasStreaming())
-        streamer->ISNewSwitch(dev, name, states, names, n);
+        Streamer->ISNewSwitch(dev, name, states, names, n);
 #endif
 
     return DefaultDevice::ISNewSwitch(dev, name, states, names, n);
@@ -1699,7 +1696,7 @@ void INDI::CCD::addFITSKeywords(fitsfile *fptr, CCDChip *targetChip)
     fits_update_key_s(fptr, TUINT, "XBINNING", &(xbin), "Binning factor in width", &status);
     fits_update_key_s(fptr, TUINT, "YBINNING", &(ybin), "Binning factor in height", &status);
     fits_update_key_s(fptr, TSTRING, "FRAME", frame_s, "Frame Type", &status);
-    if (CurrentFilterSlot != -1 && CurrentFilterSlot <= FilterNames.size())
+    if (CurrentFilterSlot != -1 && CurrentFilterSlot <= (int)FilterNames.size())
     {
         char filter[32];
         strncpy(filter, FilterNames.at(CurrentFilterSlot - 1).c_str(), 32);
@@ -1759,13 +1756,13 @@ void INDI::CCD::addFITSKeywords(fitsfile *fptr, CCDChip *targetChip)
         {
             if (*raPtr == ':')
                 *raPtr = ' ';
-            *raPtr++;
+            raPtr++;
         }
         while (*dePtr != '\0')
         {
             if (*dePtr == ':')
                 *dePtr = ' ';
-            *dePtr++;
+            dePtr++;
         }
 
         fits_update_key_s(fptr, TSTRING, "OBJCTRA", ra_str, "Object RA", &status);
@@ -2700,8 +2697,10 @@ std::string regex_replace_compat(const std::string &input, const std::string &pa
 
 int INDI::CCD::getFileIndex(const char *dir, const char *prefix, const char *ext)
 {
-    DIR *dpdf;
-    struct dirent *epdf;
+    INDI_UNUSED(ext);
+
+    DIR *dpdf = nullptr;
+    struct dirent *epdf = nullptr;
     std::vector<std::string> files = std::vector<std::string>();
 
     std::string prefixIndex = prefix;
@@ -2709,7 +2708,8 @@ int INDI::CCD::getFileIndex(const char *dir, const char *prefix, const char *ext
     prefixIndex             = regex_replace_compat(prefixIndex, "_XXX", "");
 
     // Create directory if does not exist
-    struct stat st = { 0 };
+    struct stat st;
+
     if (stat(dir, &st) == -1)
     {
         DEBUGF(INDI::Logger::DBG_DEBUG, "Creating directory %s...", dir);
@@ -2731,7 +2731,7 @@ int INDI::CCD::getFileIndex(const char *dir, const char *prefix, const char *ext
 
     int maxIndex = 0;
 
-    for (int i = 0; i < files.size(); i++)
+    for (int i = 0; i < (int)files.size(); i++)
     {
         int index = -1;
 

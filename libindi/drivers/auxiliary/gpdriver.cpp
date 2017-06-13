@@ -19,6 +19,7 @@
   The full GNU General Public License is included in this distribution in the
   file called LICENSE.
 *******************************************************************************/
+
 #include "gpdriver.h"
 
 GPUSBDriver::GPUSBDriver()

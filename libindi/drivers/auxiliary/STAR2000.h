@@ -22,21 +22,11 @@
   file called LICENSE.
 *******************************************************************************/
 
-#ifndef STAR2000_H
-#define STAR2000_H
+#pragma once
 
-#include "libs/indibase/defaultdevice.h"
-#include "libs/indibase/indiguiderinterface.h"
+#include "defaultdevice.h"
+#include "indiguiderinterface.h"
 
-/* Standard headers */
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <math.h>
-#include <unistd.h>
-#include <sys/time.h>
-
-#include <sys/time.h>
 #include <time.h>
 
 class STAR2000 : public INDI::GuiderInterface, public INDI::DefaultDevice
@@ -90,5 +80,3 @@ class STAR2000 : public INDI::GuiderInterface, public INDI::DefaultDevice
     int WEDir;
     int NSDir;
 };
-
-#endif // STAR2000_H

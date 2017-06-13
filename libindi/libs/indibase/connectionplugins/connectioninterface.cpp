@@ -17,6 +17,7 @@
 *******************************************************************************/
 
 #include "connectioninterface.h"
+
 #include "defaultdevice.h"
 
 namespace Connection
@@ -36,6 +37,42 @@ Interface::~Interface()
 const char *Interface::getDeviceName()
 {
     return device->getDeviceName();
+}
+
+bool Interface::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
+{
+    INDI_UNUSED(dev);
+    INDI_UNUSED(name);
+    INDI_UNUSED(states);
+    INDI_UNUSED(names);
+    INDI_UNUSED(n);
+    return false;
+}
+
+bool Interface::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
+{
+    INDI_UNUSED(dev);
+    INDI_UNUSED(name);
+    INDI_UNUSED(values);
+    INDI_UNUSED(names);
+    INDI_UNUSED(n);
+    return false;
+}
+
+bool Interface::ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
+{
+    INDI_UNUSED(dev);
+    INDI_UNUSED(name);
+    INDI_UNUSED(texts);
+    INDI_UNUSED(names);
+    INDI_UNUSED(n);
+    return false;
+}
+
+bool Interface::saveConfigItems(FILE *fp)
+{
+    INDI_UNUSED(fp);
+    return true;
 }
 
 void Interface::registerHandshake(std::function<bool()> callback)

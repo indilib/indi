@@ -16,8 +16,7 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
 Lesser General Public License for more details.
 #endif
 
-#ifndef __BASE64_LUTS_H
-#define __BASE64_LUTS_H
+#pragma once
 
 #include <stdint.h>
 
@@ -4250,5 +4249,3 @@ static const uint16_t rbase64lut[] = {
     0,     0,     0,     0,     0,     0,     0,     0,     0,     0,     0,     0,     0,    0,     0,     0,
     0,     0,     0,     0,     0,     0,     0,     0,     0,     0,     0,     0,     0,    0,     0,     0
 };
-
-#endif /* __BASE64_LUTS_H */

@@ -1,5 +1,5 @@
-#ifndef LOADERCLIENT_H
-#define LOADERCLIENT_H
+
+#pragma once
 
 #include "indibase/baseclient.h"
 #include "indibase/basedevice.h"
@@ -36,5 +36,3 @@ class LoaderClient : public INDI::BaseClient, INDI::AlignmentSubsystem::Alignmen
     INDI::BaseDevice *Device;
     std::string DeviceName;
 };
-
-#endif // LOADERCLIENT_H

@@ -16,17 +16,14 @@
  Boston, MA 02110-1301, USA.
 *******************************************************************************/
 
-#include <unistd.h>
-#include <sys/ioctl.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <netdb.h>
-#include <fcntl.h>
-
-#include "indicom.h"
-#include "indilogger.h"
 #include "connectiontcp.h"
+
+#include "indilogger.h"
+
+#include <netdb.h>
+#include <string.h>
+#include <unistd.h>
+#include <sys/errno.h>
 
 namespace Connection
 {

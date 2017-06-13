@@ -22,10 +22,9 @@
   file called LICENSE.
 *******************************************************************************/
 
-#ifndef INDIGPS_H
-#define INDIGPS_H
+#pragma once
 
-#include <defaultdevice.h>
+#include "defaultdevice.h"
 
 /**
  * \class INDI::GPS
@@ -83,5 +82,3 @@ class INDI::GPS : public INDI::DefaultDevice
     ISwitch RefreshS[1];
     ISwitchVectorProperty RefreshSP;
 };
-
-#endif // INDIGPS_H

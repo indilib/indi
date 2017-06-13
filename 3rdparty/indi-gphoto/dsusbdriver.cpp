@@ -19,8 +19,11 @@
 
 */
 
-#include "indilogger.h"
 #include "dsusbdriver.h"
+
+#include "indilogger.h"
+
+#include <string.h>
 
 DSUSBDriver::DSUSBDriver(const char * device)
 {

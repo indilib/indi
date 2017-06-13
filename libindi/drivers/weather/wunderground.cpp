@@ -22,13 +22,15 @@
   file called LICENSE.
 *******************************************************************************/
 
-#include <memory>
-#include <libnova.h>
-#include <time.h>
-#include <curl/curl.h>
+#include "wunderground.h"
 
 #include "gason.h"
-#include "wunderground.h"
+
+#include <curl/curl.h>
+
+#include <locale.h>
+#include <memory>
+#include <string.h>
 
 // We declare an auto pointer to WunderGround.
 std::unique_ptr<WunderGround> wunderGround(new WunderGround());

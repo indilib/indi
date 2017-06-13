@@ -24,11 +24,10 @@
   file called LICENSE.
 *******************************************************************************/
 
-#include <memory>
-#include <cstring>
-#include <cmath>
-
 #include "skysafariclient.h"
+
+#include <cmath>
+#include <string.h>
 
 /**************************************************************************************
 **

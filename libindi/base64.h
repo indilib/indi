@@ -22,8 +22,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110 - 1301  USA
 
 #endif
 
-#ifndef BASE64_H
-#define BASE64_H
+#pragma once
 
 #ifdef __cplusplus
 extern "C" {
@@ -56,6 +55,4 @@ extern int from64tobits_fast(char *out, const char *in, int inlen);
 
 #ifdef __cplusplus
 }
-#endif
-
 #endif

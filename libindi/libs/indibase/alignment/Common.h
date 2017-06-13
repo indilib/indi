@@ -6,14 +6,11 @@
  *
  */
 
-#ifndef INDI_ALIGNMENTSUBSYSTEM_COMMON_H
-#define INDI_ALIGNMENTSUBSYSTEM_COMMON_H
+#pragma once
 
-#include <memory>
 #include <cstring>
 #include <cmath>
-
-#include "indilogger.h"
+#include <memory>
 
 /// \defgroup AlignmentSubsystem INDI Alignment Subsystem
 
@@ -202,5 +199,3 @@ struct AlignmentDatabaseEntry
 
 } // namespace AlignmentSubsystem
 } // namespace INDI
-
-#endif // INDI_ALIGNMENTSUBSYSTEM_COMMON_H

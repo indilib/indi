@@ -1,17 +1,13 @@
-#ifndef LX_H
-#define LX_H
 
-//#include <config.h>
+#pragma once
 
-#include <indiapi.h>
-#include <defaultdevice.h>
-
-//For serial control
-#include <termios.h>
+#include "defaultdevice.h"
 
 //For SPC900 Led control
 #include "webcam/pwc-ioctl.h"
-#include <sys/ioctl.h>
+
+//For serial control
+#include <termios.h>
 
 #define LX_TAB "Long Exposure"
 // LX Modes
@@ -50,7 +46,7 @@ class Lx
     ISwitch LxSerialAddeolS[4];
     ISwitchVectorProperty LxSerialAddeolSP;
 
-    bool isenabled();
+    bool isEnabled();
     void setCamerafd(int fd);
     bool initProperties(INDI::DefaultDevice *device);
     bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n);
@@ -94,4 +90,3 @@ class Lx
     bool startLxPWC();
     int stopLxPWC();
 };
-#endif /* LX_H */

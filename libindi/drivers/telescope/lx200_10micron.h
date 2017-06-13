@@ -18,8 +18,7 @@
     Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
-#ifndef LX200_10MICRON_H
-#define LX200_10MICRON_H
+#pragma once
 
 #include "lx200generic.h"
 
@@ -46,20 +45,20 @@ class LX200_10MICRON : public LX200Generic
     LX200_10MICRON(void);
     ~LX200_10MICRON(void) {}
 
-    virtual const char *getDefaultName(void);
+    virtual const char *getDefaultName() override;
     virtual bool Handshake() override;
-    virtual bool initProperties(void);
-    virtual bool updateProperties(void);
-    virtual bool ReadScopeStatus(void);
-    virtual bool Park(void);
-    virtual bool UnPark(void);
+    virtual bool initProperties() override;
+    virtual bool updateProperties() override;
+    virtual bool ReadScopeStatus() override;
+    virtual bool Park() override;
+    virtual bool UnPark() override;
 
     // TODO move this thing elsewhere
     int monthToNumber(const char *monthName);
     int setStandardProcedureWithoutRead(int fd, const char *data);
 
   protected:
-    virtual void getBasicData(void);
+    virtual void getBasicData() override;
 
     IText ProductT[4];
     ITextVectorProperty ProductTP;
@@ -69,7 +68,4 @@ class LX200_10MICRON : public LX200Generic
     bool getMountInfo(void);
 
     int OldGstat = -1;
-    TelescopeStatus OldTrackState;
 };
-
-#endif

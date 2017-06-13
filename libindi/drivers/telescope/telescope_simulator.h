@@ -16,12 +16,10 @@
  Boston, MA 02110-1301, USA.
 *******************************************************************************/
 
-#ifndef SCOPESIM_H
-#define SCOPESIM_H
+#pragma once
 
-#include "indibase/indiguiderinterface.h"
-#include "indibase/inditelescope.h"
-#include "indicontroller.h"
+#include "indiguiderinterface.h"
+#include "inditelescope.h"
 
 class ScopeSim : public INDI::Telescope, public INDI::GuiderInterface
 {
@@ -86,5 +84,3 @@ class ScopeSim : public INDI::Telescope, public INDI::GuiderInterface
     ISwitch PEErrWES[2];
     ISwitchVectorProperty PEErrWESP;
 };
-
-#endif // SCOPESIM_H

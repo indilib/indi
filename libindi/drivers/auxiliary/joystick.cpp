@@ -19,9 +19,13 @@
   The full GNU General Public License is included in this distribution in the
   file called LICENSE.
 *******************************************************************************/
+
 #include "joystick.h"
+
 #include "joystickdriver.h"
+
 #include <memory>
+#include <string.h>
 
 #define POLLMS 250
 

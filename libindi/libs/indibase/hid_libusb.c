@@ -33,6 +33,12 @@
 
 #define _GNU_SOURCE // needed for wcsdup() before glibc 2.10
 
+#include "hidapi.h"
+
+/* GNU / LibUSB */
+#include "libusb-1.0/libusb.h"
+#include "iconv.h"
+
 /* C */
 #include <stdio.h>
 #include <string.h>
@@ -42,20 +48,7 @@
 #include <errno.h>
 
 /* Unix */
-#include <unistd.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <sys/ioctl.h>
-#include <sys/utsname.h>
-#include <fcntl.h>
 #include <pthread.h>
-#include <wchar.h>
-
-/* GNU / LibUSB */
-#include "libusb-1.0/libusb.h"
-#include "iconv.h"
-
-#include "hidapi.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -453,6 +446,7 @@ struct hid_device_info HID_API_EXPORT *hid_enumerate(unsigned short vendor_id, u
     num_devs = libusb_get_device_list(usb_context, &devs);
     if (num_devs < 0)
         return NULL;
+
     while ((dev = devs[i++]) != NULL)
     {
         struct libusb_device_descriptor desc;
@@ -822,6 +816,9 @@ hid_device *HID_API_EXPORT hid_open_path(const char *path)
     hid_init();
 
     num_devs = libusb_get_device_list(usb_context, &devs);
+    if (num_devs < 0)
+        return NULL;
+
     while ((usb_dev = devs[d++]) != NULL)
     {
         struct libusb_device_descriptor desc;
@@ -1012,7 +1009,7 @@ static void cleanup_mutex(void *param)
 
 int HID_API_EXPORT hid_read_timeout(hid_device *dev, unsigned char *data, size_t length, int milliseconds)
 {
-    int bytes_read = -1;
+    int bytes_read;
 
 #if 0
     int transferred;
@@ -1242,6 +1239,7 @@ int HID_API_EXPORT_CALL hid_get_indexed_string(hid_device *dev, int string_index
 
 HID_API_EXPORT const wchar_t *HID_API_CALL hid_error(hid_device *dev)
 {
+    (void)dev;
     return NULL;
 }
 

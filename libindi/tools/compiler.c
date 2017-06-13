@@ -12,9 +12,9 @@
  * this is not reentrant, but new expressions can be compiled as desired.
  */
 
-#include <stdio.h>
-#include <math.h>
 #include <ctype.h>
+#include <math.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -246,13 +246,10 @@ int getUnsetOperands(char ***ops)
  * since this gets called for all fields, it's not an error to not find name.
  * don't stop when see the first one because a term might appear more than once.
  */
-void compiler_log(name, value) char *name;
-double value;
+void compiler_log(char* name, double value)
 {
-    Var *vp;
-
-    for (vp = vars; vp < &vars[nvars]; vp++)
-        if (vp->name && strcmp(vp->name, name) == 0)
+    for (Var *vp = vars; vp < &vars[nvars]; vp++)
+        if (strcmp(vp->name, name) == 0)
             vp->v = value;
 }
 
@@ -445,11 +442,10 @@ static int chk_funcs()
         { "log", LOG },   { "pi", PITOK },    { "pow", POW },       { "raddeg", RADDEG }, { "sin", SIN },
         { "sqrt", SQRT }, { "tan", TAN },
     };
-    int i;
-
-    for (i = 0; i < sizeof(symtab) / sizeof(symtab[0]); i++)
+    for (int i = 0; i < (int)(sizeof(symtab) / sizeof(symtab[0])); i++)
     {
         int l = strlen(symtab[i].st_name);
+
         if (strncmp(lcexpr, symtab[i].st_name, l) == 0)
         {
             cexpr += l - 1;
@@ -817,7 +813,7 @@ static int execute(result) double *result;
     /* result should now be on top of stack */
     if (sp != &stack[MAX_STACK - 1])
     {
-        (void)sprintf(err_msg, "Bug! stack has %ld items", MAX_STACK - (sp - stack));
+        (void)sprintf(err_msg, "Bug! stack has %ld items", (long int)(MAX_STACK - (sp - stack)));
         return (-1);
     }
     *result = *sp;

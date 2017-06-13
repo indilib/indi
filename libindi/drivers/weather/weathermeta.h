@@ -23,8 +23,7 @@
   file called LICENSE.
 *******************************************************************************/
 
-#ifndef WEATHERMETA_H
-#define WEATHERMETA_H
+#pragma once
 
 #include "defaultdevice.h"
 
@@ -67,5 +66,3 @@ class WeatherMeta : public INDI::DefaultDevice
 
     double updatePeriods[4];
 };
-
-#endif // WEATHERMETA_H

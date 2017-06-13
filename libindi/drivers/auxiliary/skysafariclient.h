@@ -24,8 +24,7 @@
   file called LICENSE.
 *******************************************************************************/
 
-#ifndef SKYSAFARICLIENT_H
-#define SKYSAFARICLIENT_H
+#pragma once
 
 #include "baseclient.h"
 #include "basedevice.h"
@@ -69,17 +68,17 @@ class SkySafariClient : public INDI::BaseClient
 
   protected:
     virtual void newDevice(INDI::BaseDevice *dp);
-    virtual void removeDevice(INDI::BaseDevice *dp) {}
+    virtual void removeDevice(INDI::BaseDevice */*dp*/) {}
     virtual void newProperty(INDI::Property *property);
-    virtual void removeProperty(INDI::Property *property) {}
-    virtual void newBLOB(IBLOB *bp) {}
-    virtual void newSwitch(ISwitchVectorProperty *svp) {}
-    virtual void newNumber(INumberVectorProperty *nvp) {}
-    virtual void newMessage(INDI::BaseDevice *dp, int messageID) {}
-    virtual void newText(ITextVectorProperty *tvp) {}
-    virtual void newLight(ILightVectorProperty *lvp) {}
+    virtual void removeProperty(INDI::Property */*property*/) {}
+    virtual void newBLOB(IBLOB */*bp*/) {}
+    virtual void newSwitch(ISwitchVectorProperty */*svp*/) {}
+    virtual void newNumber(INumberVectorProperty */*nvp*/) {}
+    virtual void newMessage(INDI::BaseDevice */*dp*/, int /*messageID*/) {}
+    virtual void newText(ITextVectorProperty */*tvp*/) {}
+    virtual void newLight(ILightVectorProperty */*lvp*/) {}
     virtual void serverConnected() {}
-    virtual void serverDisconnected(int exit_code) {}
+    virtual void serverDisconnected(int /*exit_code*/) {}
 
   private:
     std::string mount;
@@ -94,8 +93,4 @@ class SkySafariClient : public INDI::BaseClient
     ISwitchVectorProperty *motionNSSP  = nullptr;
     ISwitchVectorProperty *motionWESP  = nullptr;
     ITextVectorProperty *timeUTC       = nullptr;
-
-    GotoMode mode = TRACK;
 };
-
-#endif

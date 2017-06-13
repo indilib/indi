@@ -20,8 +20,7 @@
     Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
-#ifndef LX200ASTROPHYSICS_H
-#define LX200ASTROPHYSICS_H
+#pragma once
 
 #include "lx200generic.h"
 
@@ -106,5 +105,3 @@ class LX200AstroPhysics : public LX200Generic
     bool timeUpdated, locationUpdated;
     int initStatus;
 };
-
-#endif

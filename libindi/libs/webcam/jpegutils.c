@@ -24,16 +24,16 @@
  *  Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
  */
 
-#include <string.h>
-#include <stdlib.h>
-#include <stdint.h>
-#include <stdio.h>
-#include <stddef.h>
 #include "jpegutils.h"
-#include <setjmp.h>
+
 #include <jpeglib.h>
 #include <jerror.h>
+
 #include <assert.h>
+#include <setjmp.h>
+#include <stdint.h>
+#include <stdlib.h>
+#include <string.h>
 
 /*
 * jpeg_data:       buffer with input / output jpeg
@@ -69,6 +69,7 @@ static void jpeg_skip_ff(j_decompress_ptr cinfo);
 
 static void init_source(j_decompress_ptr cinfo)
 {
+    (void)cinfo;
     /* no work necessary here */
 }
 
@@ -114,6 +115,7 @@ static void skip_input_data(j_decompress_ptr cinfo, long num_bytes)
 
 static void term_source(j_decompress_ptr cinfo)
 {
+    (void)cinfo;
     /* no work necessary here */
 }
 
@@ -176,6 +178,7 @@ static void jpeg_skip_ff(j_decompress_ptr cinfo)
 
 static void init_destination(j_compress_ptr cinfo)
 {
+    (void)cinfo;
     /* No work necessary here */
 }
 
@@ -189,6 +192,7 @@ static void init_destination(j_compress_ptr cinfo)
 
 static boolean empty_output_buffer(j_compress_ptr cinfo)
 {
+    (void)cinfo;
     return TRUE;
 }
 
@@ -203,6 +207,7 @@ static boolean empty_output_buffer(j_compress_ptr cinfo)
 
 static void term_destination(j_compress_ptr cinfo)
 {
+    (void)cinfo;
     /* no work necessary here */
 }
 
@@ -831,7 +836,7 @@ ERR_EXIT:
 int decode_jpeg_gray_raw(unsigned char *jpeg_data, int len, int itype, int ctype, unsigned int width,
                          unsigned int height, unsigned char *raw0, unsigned char *raw1, unsigned char *raw2)
 {
-    int numfields, hsf[3], field, yl, yc, xsl, xsc, xs, xd, hdown;
+    int numfields, field, yl, yc, xsl, xsc, xs, xd, hdown;
     unsigned int x, y, vsf[3];
 
     JSAMPROW row0[16] = { buf0[0], buf0[1], buf0[2],  buf0[3],  buf0[4],  buf0[5],  buf0[6],  buf0[7],
@@ -874,9 +879,9 @@ int decode_jpeg_gray_raw(unsigned char *jpeg_data, int len, int itype, int ctype
     guarantee_huff_tables(&dinfo);
     jpeg_start_decompress(&dinfo);
 
-    hsf[0] = 1;
-    hsf[1] = 1;
-    hsf[2] = 1;
+//    hsf[0] = 1;
+//    hsf[1] = 1;
+//    hsf[2] = 1;
     vsf[0] = 1;
     vsf[1] = 1;
     vsf[2] = 1;

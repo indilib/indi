@@ -22,12 +22,13 @@
   file called LICENSE.
 *******************************************************************************/
 
-#ifndef FLIPFLAT_H
-#define FLIPFLAT_H
+#pragma once
 
 #include "defaultdevice.h"
 #include "indilightboxinterface.h"
 #include "indidustcapinterface.h"
+
+#include <stdint.h>
 
 namespace Connection
 {
@@ -88,5 +89,3 @@ class FlipFlat : public INDI::DefaultDevice, public INDI::LightBoxInterface, pub
 
     Connection::Serial *serialConnection = NULL;
 };
-
-#endif

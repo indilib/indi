@@ -18,10 +18,9 @@
  Boston, MA 02110-1301, USA.
 *******************************************************************************/
 
-#ifndef SKYCOMMANDER_H
-#define SKYCOMMANDER_H
+#pragma once
 
-#include "indibase/inditelescope.h"
+#include "inditelescope.h"
 
 class SkyCommander : public INDI::Telescope
 {
@@ -34,5 +33,3 @@ class SkyCommander : public INDI::Telescope
     virtual bool Handshake();
     virtual bool ReadScopeStatus();
 };
-
-#endif

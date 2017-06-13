@@ -18,10 +18,13 @@
  Boston, MA 02110-1301, USA.
 *******************************************************************************/
 
-#ifndef CONNECTIONTCP_H
-#define CONNECTIONTCP_H
+#pragma once
 
 #include "connectioninterface.h"
+
+#include <stdint.h>
+#include <stdlib.h>
+#include <string>
 
 namespace Connection
 {
@@ -39,17 +42,17 @@ class TCP : public Interface
 
     virtual void Deactivated();
 
-    virtual const std::string name() { return "CONNECTION_TCP"; }
+    virtual std::string name() { return "CONNECTION_TCP"; }
 
-    virtual const std::string label() { return "Ethernet"; }
+    virtual std::string label() { return "Ethernet"; }
 
     virtual const char *host() { return AddressT[0].text; }
-    virtual const uint32_t port() { return atoi(AddressT[0].text); }
+    virtual uint32_t port() { return atoi(AddressT[0].text); }
 
     virtual bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n);
     virtual bool saveConfigItems(FILE *fp);
 
-    const int getPortFD() const { return PortFD; }
+    int getPortFD() const { return PortFD; }
     void setDefaultHost(const char *addressHost);
     void setDefaultPort(uint32_t addressPort);
 
@@ -64,5 +67,3 @@ class TCP : public Interface
     int PortFD = -1;
 };
 }
-
-#endif

@@ -31,19 +31,21 @@ redistributed in its entirety provided that this copyright notice is
 not removed.
 --------------------------------------------------------------------
 */
+
 #include "ConvexHull.h"
 
 #include <iostream>
-#include <cmath>
-#include <cstdlib>
 #include <map>
-
-using namespace std;
 
 namespace INDI
 {
 namespace AlignmentSubsystem
 {
+ConvexHull::ConvexHull() : vertices(nullptr), edges(nullptr), faces(nullptr), debug(false), check(false),
+    ScaleFactor(SAFE-1)
+{
+}
+
 bool ConvexHull::AddOne(tVertex p)
 {
     tFace f;
@@ -53,7 +55,7 @@ bool ConvexHull::AddOne(tVertex p)
 
     if (debug)
     {
-        cerr << "AddOne: starting to add v" << p->vnum << ".\n";
+        std::cerr << "AddOne: starting to add v" << p->vnum << ".\n";
         //PrintOut( vertices );
     }
 
@@ -63,7 +65,7 @@ bool ConvexHull::AddOne(tVertex p)
     {
         vol = VolumeSign(f, p);
         if (debug)
-            cerr << "faddr: " << hex << f << "   paddr: " << p << "   Vol = " << dec << vol << '\n';
+            std::cerr << "faddr: " << std::hex << f << "   paddr: " << p << "   Vol = " << std::dec << vol << '\n';
         if (vol < 0)
         {
             f->visible = VISIBLE;
@@ -115,41 +117,41 @@ void ConvexHull::CheckEndpts(void)
                 if (v != e->endpts[0] && v != e->endpts[1])
                 {
                     error = true;
-                    cerr << "CheckEndpts: Error!\n";
-                    cerr << "  addr: " << hex << faces << ':';
-                    cerr << "  edges:";
-                    cerr << "(" << e->endpts[0]->vnum << "," << e->endpts[1]->vnum << ")";
-                    cerr << "\n";
+                    std::cerr << "CheckEndpts: Error!\n";
+                    std::cerr << "  addr: " << std::hex << faces << ':';
+                    std::cerr << "  edges:";
+                    std::cerr << "(" << e->endpts[0]->vnum << "," << e->endpts[1]->vnum << ")";
+                    std::cerr << "\n";
                 }
             }
             faces = faces->next;
         } while (faces != fstart);
 
     if (error)
-        cerr << "Checks: ERROR found and reported above.\n";
+        std::cerr << "Checks: ERROR found and reported above.\n";
     else
-        cerr << "Checks: All endpts of all edges of all faces check.\n";
+        std::cerr << "Checks: All endpts of all edges of all faces check.\n";
 }
 
 void ConvexHull::CheckEuler(int V, int E, int F)
 {
     if (check)
-        cerr << "Checks: V, E, F = " << V << ' ' << E << ' ' << F << ":\t";
+        std::cerr << "Checks: V, E, F = " << V << ' ' << E << ' ' << F << ":\t";
 
     if ((V - E + F) != 2)
-        cerr << "Checks: V-E+F != 2\n";
+        std::cerr << "Checks: V-E+F != 2\n";
     else if (check)
-        cerr << "V-E+F = 2\t";
+        std::cerr << "V-E+F = 2\t";
 
     if (F != (2 * V - 4))
-        cerr << "Checks: F=" << F << " != 2V-4=" << 2 * V - 4 << "; V=" << V << '\n';
+        std::cerr << "Checks: F=" << F << " != 2V-4=" << 2 * V - 4 << "; V=" << V << '\n';
     else if (check)
-        cerr << "F = 2V-4\t";
+        std::cerr << "F = 2V-4\t";
 
     if ((2 * E) != (3 * F))
-        cerr << "Checks: 2E=" << 2 * E << " != 3F=" << 3 * F << "; E=" << E << ", F=" << F << '\n';
+        std::cerr << "Checks: 2E=" << 2 * E << " != 3F=" << 3 * F << "; E=" << E << ", F=" << F << '\n';
     else if (check)
-        cerr << "2E = 3F\n";
+        std::cerr << "2E = 3F\n";
 }
 
 void ConvexHull::Checks(void)
@@ -314,8 +316,8 @@ bool ConvexHull::Collinear(tVertex a, tVertex b, tVertex c)
 
 void ConvexHull::Consistency(void)
 {
-    register tEdge e;
-    register int i, j;
+    tEdge e;
+    int i, j;
 
     e = edges;
 
@@ -337,9 +339,9 @@ void ConvexHull::Consistency(void)
     } while (e != edges);
 
     if (e != edges)
-        cerr << "Checks: edges are NOT consistent.\n";
+        std::cerr << "Checks: edges are NOT consistent.\n";
     else
-        cerr << "Checks: edges consistent.\n";
+        std::cerr << "Checks: edges consistent.\n";
 }
 
 void ConvexHull::ConstructHull(void)
@@ -358,7 +360,7 @@ void ConvexHull::ConstructHull(void)
 
             if (check)
             {
-                cerr << "ConstructHull: After Add of " << v->vnum << " & Cleanup:\n";
+                std::cerr << "ConstructHull: After Add of " << v->vnum << " & Cleanup:\n";
                 Checks();
             }
             //            if ( debug )
@@ -370,8 +372,8 @@ void ConvexHull::ConstructHull(void)
 
 void ConvexHull::Convexity(void)
 {
-    register tFace f;
-    register tVertex v;
+    tFace f;
+    tVertex v;
     int vol;
 
     f = faces;
@@ -395,9 +397,9 @@ void ConvexHull::Convexity(void)
     } while (f != faces);
 
     if (f != faces)
-        cerr << "Checks: NOT convex.\n";
+        std::cerr << "Checks: NOT convex.\n";
     else if (check)
-        cerr << "Checks: convex.\n";
+        std::cerr << "Checks: convex.\n";
 }
 
 void ConvexHull::DoubleTriangle(void)
@@ -411,7 +413,7 @@ void ConvexHull::DoubleTriangle(void)
     while (Collinear(v0, v0->next, v0->next->next))
         if ((v0 = v0->next) == vertices)
         {
-            cout << "DoubleTriangle:  All points are Collinear!\n";
+            std::cout << "DoubleTriangle:  All points are Collinear!\n";
             exit(0);
         }
     v1 = v0->next;
@@ -441,7 +443,7 @@ void ConvexHull::DoubleTriangle(void)
     {
         if ((v3 = v3->next) == v0)
         {
-            cout << "DoubleTriangle:  All points are coplanar!\n";
+            std::cout << "DoubleTriangle:  All points are coplanar!\n";
             exit(0);
         }
         vol = VolumeSign(f0, v3);
@@ -451,7 +453,7 @@ void ConvexHull::DoubleTriangle(void)
     vertices = v3;
     if (debug)
     {
-        cerr << "DoubleTriangle: finished. Head repositioned at v3.\n";
+        std::cerr << "DoubleTriangle: finished. Head repositioned at v3.\n";
         //PrintOut( vertices );
     }
 }
@@ -479,9 +481,9 @@ void ConvexHull::EdgeOrderOnFaces(void)
                     {
                         /* Swap it with the one erroneously put into its place: */
                         if (debug)
-                            cerr << "Making a swap in EdgeOrderOnFaces: F(" << f->vertex[0]->vnum << ','
-                                 << f->vertex[1]->vnum << ',' << f->vertex[2]->vnum << "): e[" << i << "] and e[" << j
-                                 << "]\n";
+                            std::cerr << "Making a swap in EdgeOrderOnFaces: F(" << f->vertex[0]->vnum << ','
+                                      << f->vertex[1]->vnum << ',' << f->vertex[2]->vnum << "): e[" << i << "] and e[" << j
+                                      << "]\n";
                         newEdge    = f->edge[i];
                         f->edge[i] = f->edge[j];
                         f->edge[j] = newEdge;
@@ -608,16 +610,15 @@ ConvexHull::tFace ConvexHull::MakeFace(tVertex v0, tVertex v1, tVertex v2, tFace
 void ConvexHull::MakeNewVertex(double x, double y, double z, int VertexId)
 {
     tVertex v;
-    int vnum = 0;
 
     v       = MakeNullVertex();
     v->v[X] = x * ScaleFactor;
     v->v[Y] = y * ScaleFactor;
     v->v[Z] = z * ScaleFactor;
     v->vnum = VertexId;
-    if ((abs(x) > SAFE) || (abs(y) > SAFE) || (abs(z) > SAFE))
+    if ((std::abs(x) > SAFE) || (std::abs(y) > SAFE) || (std::abs(z) > SAFE))
     {
-        cout << "Coordinate of vertex below might be too large: run with -d flag\n";
+        std::cout << "Coordinate of vertex below might be too large: run with -d flag\n";
         PrintPoint(v);
     }
 }
@@ -637,10 +638,9 @@ ConvexHull::tEdge ConvexHull::MakeNullEdge(void)
 ConvexHull::tFace ConvexHull::MakeNullFace(void)
 {
     tFace f;
-    int i;
 
     f = new tsFace;
-    for (i = 0; i < 3; ++i)
+    for (int i = 0; i < 3; ++i)
     {
         f->edge[i]   = nullptr;
         f->vertex[i] = nullptr;
@@ -700,10 +700,10 @@ void ConvexHull::Print(void)
     } while (v != vertices);
 
     /* PostScript header */
-    cout << "%!PS\n";
-    cout << "%%BoundingBox: " << xmin << ' ' << ymin << ' ' << xmax << ' ' << ymax << '\n';
-    cout << ".00 .00 setlinewidth\n";
-    cout << -xmin + 72 << ' ' << -ymin + 72 << " translate\n";
+    std::cout << "%!PS\n";
+    std::cout << "%%BoundingBox: " << xmin << ' ' << ymin << ' ' << xmax << ' ' << ymax << '\n';
+    std::cout << ".00 .00 setlinewidth\n";
+    std::cout << -xmin + 72 << ' ' << -ymin + 72 << " translate\n";
     /* The +72 shifts the figure one inch from the lower left corner */
 
     /* Vertices. */
@@ -714,11 +714,11 @@ void ConvexHull::Print(void)
             V++;
         v = v->next;
     } while (v != vertices);
-    cout << "\n%% Vertices:\tV = " << V << '\n';
-    cout << "%% index:\t\tx\ty\tz\n";
+    std::cout << "\n%% Vertices:\tV = " << V << '\n';
+    std::cout << "%% index:\t\tx\ty\tz\n";
     do
     {
-        cout << "%% " << v->vnum << ":\t" << v->v[X] << '\t' << v->v[Y] << '\t' << v->v[Z] << '\n';
+        std::cout << "%% " << v->vnum << ":\t" << v->v[X] << '\t' << v->v[Y] << '\t' << v->v[Z] << '\n';
         v = v->next;
     } while (v != vertices);
 
@@ -730,8 +730,8 @@ void ConvexHull::Print(void)
         ++F;
         f = f->next;
     } while (f != faces);
-    cout << "\n%% Faces:\tF = " << F << '\n';
-    cout << "%% Visible faces only: \n";
+    std::cout << "\n%% Faces:\tF = " << F << '\n';
+    std::cout << "%% Visible faces only: \n";
     do
     {
         /* Print face only if it is visible: if normal vector >= 0 */
@@ -741,23 +741,23 @@ void ConvexHull::Print(void)
         SubVec(f->vertex[2]->v, f->vertex[1]->v, b);
         if ((a[0] * b[1] - a[1] * b[0]) >= 0)
         {
-            cout << "%% vnums:  " << f->vertex[0]->vnum << "  " << f->vertex[1]->vnum << "  " << f->vertex[2]->vnum
-                 << '\n';
-            cout << "newpath\n";
-            cout << f->vertex[0]->v[X] << '\t' << f->vertex[0]->v[Y] << "\tmoveto\n";
-            cout << f->vertex[1]->v[X] << '\t' << f->vertex[1]->v[Y] << "\tlineto\n";
-            cout << f->vertex[2]->v[X] << '\t' << f->vertex[2]->v[Y] << "\tlineto\n";
-            cout << "closepath stroke\n\n";
+            std::cout << "%% vnums:  " << f->vertex[0]->vnum << "  " << f->vertex[1]->vnum << "  " << f->vertex[2]->vnum
+                      << '\n';
+            std::cout << "newpath\n";
+            std::cout << f->vertex[0]->v[X] << '\t' << f->vertex[0]->v[Y] << "\tmoveto\n";
+            std::cout << f->vertex[1]->v[X] << '\t' << f->vertex[1]->v[Y] << "\tlineto\n";
+            std::cout << f->vertex[2]->v[X] << '\t' << f->vertex[2]->v[Y] << "\tlineto\n";
+            std::cout << "closepath stroke\n\n";
         }
         f = f->next;
     } while (f != faces);
 
     /* prints a list of all faces */
-    cout << "%% List of all faces: \n";
-    cout << "%%\tv0\tv1\tv2\t(vertex indices)\n";
+    std::cout << "%% List of all faces: \n";
+    std::cout << "%%\tv0\tv1\tv2\t(vertex indices)\n";
     do
     {
-        cout << "%%\t" << f->vertex[0]->vnum << '\t' << f->vertex[1]->vnum << '\t' << f->vertex[2]->vnum << '\n';
+        std::cout << "%%\t" << f->vertex[0]->vnum << '\t' << f->vertex[1]->vnum << '\t' << f->vertex[2]->vnum << '\n';
         f = f->next;
     } while (f != faces);
 
@@ -768,16 +768,16 @@ void ConvexHull::Print(void)
         E++;
         e = e->next;
     } while (e != edges);
-    cout << "\n%% Edges:\tE = " << E << '\n';
+    std::cout << "\n%% Edges:\tE = " << E << '\n';
     /* Edges not printed out (but easily added). */
 
-    cout << "\nshowpage\n\n";
+    std::cout << "\nshowpage\n\n";
 
     check = true;
     CheckEuler(V, E, F);
 }
 
-void ConvexHull::PrintEdges(ofstream &Ofile)
+void ConvexHull::PrintEdges(std::ofstream &Ofile)
 {
     tEdge temp;
     int i;
@@ -787,11 +787,11 @@ void ConvexHull::PrintEdges(ofstream &Ofile)
     if (edges)
         do
         {
-            Ofile << "  addr: " << hex << edges << '\t';
+            Ofile << "  addr: " << std::hex << edges << '\t';
             Ofile << "adj: ";
             for (i = 0; i < 2; ++i)
                 Ofile << edges->adjface[i] << ' ';
-            Ofile << " endpts:" << dec;
+            Ofile << " endpts:" << std::dec;
             for (i = 0; i < 2; ++i)
                 Ofile << edges->endpts[i]->vnum << ' ';
             Ofile << "  del:" << edges->delete_it << '\n';
@@ -799,7 +799,7 @@ void ConvexHull::PrintEdges(ofstream &Ofile)
         } while (edges != temp);
 }
 
-void ConvexHull::PrintFaces(ofstream &Ofile)
+void ConvexHull::PrintFaces(std::ofstream &Ofile)
 {
     int i;
     tFace temp;
@@ -809,11 +809,11 @@ void ConvexHull::PrintFaces(ofstream &Ofile)
     if (faces)
         do
         {
-            Ofile << "  addr: " << hex << faces << "  ";
-            Ofile << "  edges:" << hex;
+            Ofile << "  addr: " << std::hex << faces << "  ";
+            Ofile << "  edges:" << std::hex;
             for (i = 0; i < 3; ++i)
                 Ofile << faces->edge[i] << ' ';
-            Ofile << "  vert:" << dec;
+            Ofile << "  vert:" << std::dec;
             for (i = 0; i < 3; ++i)
                 Ofile << ' ' << faces->vertex[i]->vnum;
             Ofile << "  vis: " << faces->visible << '\n';
@@ -825,12 +825,12 @@ void ConvexHull::PrintObj(const char *FileName)
 {
     tVertex v;
     tFace f;
-    map<int, int> vnumToOffsetMap;
+    std::map<int, int> vnumToOffsetMap;
     int a[3], b[3]; /* used to compute normal vector */
     double c[3], length;
-    ofstream Ofile;
+    std::ofstream Ofile;
 
-    Ofile.open(FileName, ios_base::out | ios_base::trunc);
+    Ofile.open(FileName, std::ios_base::out | std::ios_base::trunc);
 
     Ofile << "# obj file written by chull\n";
     Ofile << "mtllib chull.mtl\n";
@@ -885,7 +885,7 @@ void ConvexHull::PrintObj(const char *FileName)
 
     Ofile.close();
 
-    Ofile.open("chull.mtl", ios_base::out | ios_base::trunc);
+    Ofile.open("chull.mtl", std::ios_base::out | std::ios_base::trunc);
 
     Ofile << "newmtl default\n";
     Ofile << "Ka 0.2 0 0\n";
@@ -897,10 +897,10 @@ void ConvexHull::PrintObj(const char *FileName)
 
 void ConvexHull::PrintOut(const char *FileName, tVertex v)
 {
-    ofstream Ofile;
-    Ofile.open(FileName, ios_base::out | ios_base::trunc);
+    std::ofstream Ofile;
+    Ofile.open(FileName, std::ios_base::out | std::ios_base::trunc);
 
-    Ofile << "\nHead vertex " << v->vnum << " = " << hex << v << " :\n";
+    Ofile << "\nHead vertex " << v->vnum << " = " << std::hex << v << " :\n";
 
     PrintVertices(Ofile);
     PrintEdges(Ofile);
@@ -911,14 +911,13 @@ void ConvexHull::PrintOut(const char *FileName, tVertex v)
 
 void ConvexHull::PrintPoint(tVertex p)
 {
-    int i;
+    for (int i = 0; i < 3; i++)
+        std::cout << '\t' << p->v[i];
 
-    for (i = 0; i < 3; i++)
-        cout << '\t' << p->v[i];
-    cout << '\n';
+    std::cout << '\n';
 }
 
-void ConvexHull::PrintVertices(ofstream &Ofile)
+void ConvexHull::PrintVertices(std::ofstream &Ofile)
 {
     tVertex temp;
 
@@ -927,12 +926,12 @@ void ConvexHull::PrintVertices(ofstream &Ofile)
     if (vertices)
         do
         {
-            Ofile << "  addr " << hex << vertices << "\t";
-            Ofile << "  vnum " << dec << vertices->vnum;
+            Ofile << "  addr " << std::hex << vertices << "\t";
+            Ofile << "  vnum " << std::dec << vertices->vnum;
             Ofile << '(' << vertices->v[X] << ',' << vertices->v[Y] << ',' << vertices->v[Z] << ')';
             Ofile << "  active:" << vertices->onhull;
-            Ofile << "  dup:" << hex << vertices->duplicate;
-            Ofile << "  mark:" << dec << vertices->mark << '\n';
+            Ofile << "  dup:" << std::hex << vertices->duplicate;
+            Ofile << "  mark:" << std::dec << vertices->mark << '\n';
             vertices = vertices->next;
         } while (vertices != temp);
 }
@@ -943,9 +942,9 @@ void ConvexHull::ReadVertices(void)
     int x, y, z;
     int vnum = 0;
 
-    while (!(cin.eof() || cin.fail()))
+    while (!(std::cin.eof() || std::cin.fail()))
     {
-        cin >> x >> y >> z;
+        std::cin >> x >> y >> z;
         v       = MakeNullVertex();
         v->v[X] = x;
         v->v[Y] = y;
@@ -953,7 +952,7 @@ void ConvexHull::ReadVertices(void)
         v->vnum = vnum++;
         if ((abs(x) > SAFE) || (abs(y) > SAFE) || (abs(z) > SAFE))
         {
-            cout << "Coordinate of vertex below might be too large: run with -d flag\n";
+            std::cout << "Coordinate of vertex below might be too large: run with -d flag\n";
             PrintPoint(v);
         }
     }
@@ -1053,8 +1052,8 @@ int ConvexHull::VolumeSign(tFace f, tVertex p)
     {
         /* Compute the volume using integers for comparison. */
         voli = Volumei(f, p);
-        cerr << "Face=" << hex << f << "; Vertex=" << dec << p->vnum << ": vol(int) = " << voli
-             << ", vol(double) = " << vol << "\n";
+        std::cerr << "Face=" << std::hex << f << "; Vertex=" << std::dec << p->vnum << ": vol(int) = " << voli
+                  << ", vol(double) = " << vol << "\n";
     }
 
     /* The volume should be an integer. */

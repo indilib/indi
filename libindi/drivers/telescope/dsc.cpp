@@ -19,17 +19,15 @@
  Boston, MA 02110-1301, USA.
 *******************************************************************************/
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <termios.h>
-#include <unistd.h>
-#include <regex>
-
 #include "dsc.h"
+
 #include "indicom.h"
 
 #include <memory>
+#include <regex>
+#include <string.h>
+#include <termios.h>
+#include <unistd.h>
 
 #define DSC_TIMEOUT 2
 #define AXIS_TAB    "Axis Settings"
@@ -454,8 +452,8 @@ bool DSC::ReadScopeStatus()
 bool DSC::Sync(double ra, double dec)
 {
     AlignmentDatabaseEntry NewEntry;
-    struct ln_equ_posn RaDec;
-    struct ln_hrz_posn AltAz;
+    struct ln_equ_posn RaDec { 0, 0 };
+    struct ln_hrz_posn AltAz { 0, 0 };
 
     if (MountTypeS[MOUNT_EQUATORIAL].s == ISS_ON)
     {

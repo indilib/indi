@@ -18,10 +18,9 @@
 
 */
 
-#ifndef NIGHTCRAWLER_H
-#define NIGHTCRAWLER_H
+#pragma once
 
-#include "indibase/indifocuser.h"
+#include "indifocuser.h"
 
 class NightCrawler : public INDI::Focuser
 {
@@ -143,5 +142,3 @@ class NightCrawler : public INDI::Focuser
         IPState rotationLimit=IPS_IDLE, outSwitchLimit=IPS_IDLE, inSwitchLimit = IPS_IDLE;
 
 };
-
-#endif // NightCrawler_H

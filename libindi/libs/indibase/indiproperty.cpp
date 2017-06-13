@@ -16,14 +16,9 @@
  Boston, MA 02110-1301, USA.
 *******************************************************************************/
 
-#if defined(__APPLE__) || defined(ANDROID)
-#include <stdlib.h>
-#endif
-
-#include "basedevice.h"
-#include "indicom.h"
-#include "base64.h"
 #include "indiproperty.h"
+
+#include <stdlib.h>
 
 INDI::Property::Property()
 {
@@ -147,6 +142,9 @@ const char *INDI::Property::getName() const
         case INDI_BLOB:
             return ((IBLOBVectorProperty *)pPtr)->name;
             break;
+
+        case INDI_UNKNOWN:
+            break;
     }
 
     return nullptr;
@@ -178,8 +176,10 @@ const char *INDI::Property::getLabel() const
         case INDI_BLOB:
             return ((IBLOBVectorProperty *)pPtr)->label;
             break;
-    }
 
+        case INDI_UNKNOWN:
+            break;
+    }
     return nullptr;
 }
 
@@ -208,6 +208,9 @@ const char *INDI::Property::getGroupName() const
 
         case INDI_BLOB:
             return ((IBLOBVectorProperty *)pPtr)->group;
+            break;
+
+        case INDI_UNKNOWN:
             break;
     }
 
@@ -239,6 +242,9 @@ const char *INDI::Property::getDeviceName() const
 
         case INDI_BLOB:
             return ((IBLOBVectorProperty *)pPtr)->device;
+            break;
+
+        case INDI_UNKNOWN:
             break;
     }
 

@@ -26,9 +26,10 @@
 */
 
 #include "ser_recorder.h"
-#include <string.h>
-#include <errno.h>
+
 #include <ctime>
+#include <errno.h>
+#include <string.h>
 #include <sys/time.h>
 
 #define ERRMSGSIZ 1024

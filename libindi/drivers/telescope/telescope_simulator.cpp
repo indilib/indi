@@ -16,18 +16,13 @@
  Boston, MA 02110-1301, USA.
 *******************************************************************************/
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <math.h>
-#include <unistd.h>
-#include <sys/time.h>
-#include <time.h>
-
 #include "telescope_simulator.h"
+
 #include "indicom.h"
 
+#include <math.h>
 #include <memory>
+#include <string.h>
 
 // We declare an auto pointer to ScopeSim.
 std::unique_ptr<ScopeSim> telescope_sim(new ScopeSim());
@@ -730,6 +725,8 @@ bool ScopeSim::Abort()
 
 bool ScopeSim::MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command)
 {
+    INDI_UNUSED(dir);
+    INDI_UNUSED(command);
     if (TrackState == SCOPE_PARKED)
     {
         DEBUG(INDI::Logger::DBG_ERROR, "Please unpark the mount before issuing any motion commands.");
@@ -741,6 +738,8 @@ bool ScopeSim::MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command)
 
 bool ScopeSim::MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command)
 {
+    INDI_UNUSED(dir);
+    INDI_UNUSED(command);
     if (TrackState == SCOPE_PARKED)
     {
         DEBUG(INDI::Logger::DBG_ERROR, "Please unpark the mount before issuing any motion commands.");

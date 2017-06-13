@@ -1,6 +1,3 @@
-#ifndef PWC_IOCTL_H
-#define PWC_IOCTL_H
-
 /* (C) 2001-2004 Nemosoft Unv.
    (C) 2004-2006 Luc Saillard (luc@saillard.org)
 
@@ -51,6 +48,8 @@
 	    S           optional: Set
 	     ... 	the function
  */
+
+#pragma once
 
 #include <linux/types.h>
 
@@ -312,5 +311,3 @@ struct pwc_raw_frame
 			   only the first 3 bytes is filled) */
     __u8 rawframe[0];   /* frame_size = H/4*vbandlength */
 } __attribute__((packed));
-
-#endif

@@ -20,10 +20,10 @@
 
 */
 
-#ifndef V4L2_BUILTIN_DECODER_H
-#define V4L2_BUILTIN_DECODER_H
+#pragma once
 
 #include "v4l2_decode.h"
+
 #include <map>
 
 class V4L2_Builtin_Decoder : public V4L2_Decoder
@@ -87,4 +87,3 @@ class V4L2_Builtin_Decoder : public V4L2_Decoder
     char lut6[64];
     unsigned char bpp;
 };
-#endif

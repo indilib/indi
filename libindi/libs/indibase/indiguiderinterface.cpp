@@ -19,7 +19,6 @@
 */
 
 #include "indiguiderinterface.h"
-#include <indiapi.h>
 
 #include <string.h>
 

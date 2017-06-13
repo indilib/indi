@@ -18,8 +18,7 @@
 
 */
 
-#ifndef LX200DRIVER_H
-#define LX200DRIVER_H
+#pragma once
 
 /* Slew speeds */
 enum TSlew
@@ -302,5 +301,3 @@ int selectCatalogObject(int fd, int catalog, int NNNN);
 int selectSubCatalog(int fd, int catalog, int subCatalog);
 /* Set Debug */
 void setLX200Debug(const char *deviceName, unsigned int debug_level);
-
-#endif

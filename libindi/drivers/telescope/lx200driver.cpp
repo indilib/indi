@@ -22,20 +22,13 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110 - 1301  USA
 
 #endif
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <stdarg.h>
-#include <math.h>
-#include <sys/time.h>
-#include <unistd.h>
-#include <fcntl.h>
-#include <time.h>
+#include "lx200driver.h"
 
 #include "indicom.h"
-#include "indidevapi.h"
-#include "lx200driver.h"
 #include "indilogger.h"
+
+#include <string.h>
+#include <unistd.h>
 
 #ifndef _WIN32
 #include <termios.h>

@@ -19,11 +19,9 @@
 
 */
 
-#ifndef ROBOFOCUS_H
-#define ROBOFOCUS_H
+#pragma once
 
-#include "indibase/indifocuser.h"
-#include "robofocus.h"
+#include "indifocuser.h"
 
 class RoboFocus : public INDI::Focuser
 {
@@ -98,5 +96,3 @@ class RoboFocus : public INDI::Focuser
     INumber SetBacklashN[1];
     INumberVectorProperty SetBacklashNP;
 };
-
-#endif // ROBOFOCUS_H

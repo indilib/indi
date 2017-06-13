@@ -16,18 +16,13 @@
  Boston, MA 02110-1301, USA.
 *******************************************************************************/
 
+#include "defaultdevice.h"
+
+#include "indicom.h"
+#include "connectionplugins/connectionserial.h"
+
 #include <stdlib.h>
 #include <string.h>
-#include <errno.h>
-#include <zlib.h>
-
-#include "defaultdevice.h"
-#include "indicom.h"
-#include "base64.h"
-#include "indiproperty.h"
-
-#include "connectionplugins/connectionserial.h"
-#include "connectionplugins/connectiontcp.h"
 
 const char *COMMUNICATION_TAB = "Communication";
 const char *MAIN_CONTROL_TAB  = "Main Control";
@@ -146,6 +141,9 @@ bool INDI::DefaultDevice::saveAllConfigItems(FILE *fp)
             case INDI_BLOB:
                 bvp = static_cast<IBLOBVectorProperty *>(pPtr);
                 IUSaveConfigBLOB(fp, bvp);
+                break;
+            case INDI_LIGHT:
+            case INDI_UNKNOWN:
                 break;
         }
     }
@@ -328,7 +326,7 @@ bool INDI::DefaultDevice::ISNewSwitch(const char *dev, const char *name, ISState
 
     if (!strcmp(svp->name, ConnectionSP.name))
     {
-        bool rc;
+        bool rc = false;
 
         for (int i = 0; i < n; i++)
         {
@@ -379,7 +377,7 @@ bool INDI::DefaultDevice::ISNewSwitch(const char *dev, const char *name, ISState
 
         int activeConnectionIndex = IUFindOnSwitchIndex(&ConnectionModeSP);
 
-        if (activeConnectionIndex >= 0 && activeConnectionIndex < connections.size())
+        if (activeConnectionIndex >= 0 && activeConnectionIndex < (int)connections.size())
         {
             activeConnection = connections[activeConnectionIndex];
             activeConnection->Activated();
@@ -406,6 +404,7 @@ bool INDI::DefaultDevice::ISNewSwitch(const char *dev, const char *name, ISState
     {
         IUUpdateSwitch(svp, states, names, n);
         ISwitch *sp = IUFindOnSwitch(svp);
+
         if (!sp)
             return false;
 
@@ -413,6 +412,7 @@ bool INDI::DefaultDevice::ISNewSwitch(const char *dev, const char *name, ISState
             setDebug(true);
         else
             setDebug(false);
+
         return true;
     }
 
@@ -488,6 +488,26 @@ bool INDI::DefaultDevice::ISNewText(const char *dev, const char *name, char *tex
     for (Connection::Interface *oneConnection : connections)
         oneConnection->ISNewText(dev, name, texts, names, n);
 
+    return false;
+}
+
+bool INDI::DefaultDevice::ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[],
+                                    char *formats[], char *names[], int n)
+{
+    INDI_UNUSED(dev);
+    INDI_UNUSED(name);
+    INDI_UNUSED(sizes);
+    INDI_UNUSED(blobsizes);
+    INDI_UNUSED(blobs);
+    INDI_UNUSED(formats);
+    INDI_UNUSED(names);
+    INDI_UNUSED(n);
+    return false;
+}
+
+bool INDI::DefaultDevice::ISSnoopDevice(XMLEle *root)
+{
+    INDI_UNUSED(root);
     return false;
 }
 
@@ -664,6 +684,8 @@ void INDI::DefaultDevice::ISGetProperties(const char *dev)
             case INDI_BLOB:
                 IDDefBLOB(static_cast<IBLOBVectorProperty *>(pPtr), nullptr);
                 break;
+            case INDI_UNKNOWN:
+                break;
         }
     }
 
@@ -733,6 +755,8 @@ void INDI::DefaultDevice::resetProperties()
             case INDI_BLOB:
                 static_cast<IBLOBVectorProperty *>(pPtr)->s = IPS_IDLE;
                 IDSetBLOB(static_cast<IBLOBVectorProperty *>(pPtr), nullptr);
+                break;
+            case INDI_UNKNOWN:
                 break;
         }
     }

@@ -6,12 +6,11 @@
  *
  */
 
-#ifndef INDI_ALIGNMENTSUBSYSTEM_MATHPLUGINMANAGEMENT_H
-#define INDI_ALIGNMENTSUBSYSTEM_MATHPLUGINMANAGEMENT_H
-
-#include "../inditelescope.h"
+#pragma once
 
 #include "BuiltInMathPlugin.h"
+
+#include "inditelescope.h"
 
 #include <memory>
 
@@ -41,15 +40,7 @@ class MathPluginManagement : private MathPlugin // Derive from MathPluign to for
     typedef enum MountType { EQUATORIAL, ALTAZ } MountType_t;
 
     /// \brief Default constructor
-    MathPluginManagement()
-        : pGetApproximateMountAlignment(&MathPlugin::GetApproximateMountAlignment),
-          pInitialise(&MathPlugin::Initialise),
-          pSetApproximateMountAlignment(&MathPlugin::SetApproximateMountAlignment),
-          pTransformCelestialToTelescope(&MathPlugin::TransformCelestialToTelescope),
-          pTransformTelescopeToCelestial(&MathPlugin::TransformTelescopeToCelestial), pLoadedMathPlugin(&BuiltInPlugin),
-          LoadedMathPluginHandle(NULL), CurrentInMemoryDatabase(NULL)
-    {
-    }
+    MathPluginManagement();
 
     /// \brief Virtual destructor
     virtual ~MathPluginManagement() {}
@@ -109,7 +100,7 @@ class MathPluginManagement : private MathPlugin // Derive from MathPluign to for
 
     /// \brief Return status of alignment subsystem
     /// \return True if active
-    const bool IsAlignmentSubsystemActive() const { return AlignmentSubsystemActive.s == ISS_ON ? true : false; }
+    bool IsAlignmentSubsystemActive() const { return AlignmentSubsystemActive.s == ISS_ON ? true : false; }
 
     // These must match the function signatures in MathPlugin
     MountAlignment_t GetApproximateMountAlignment();
@@ -156,5 +147,3 @@ class MathPluginManagement : private MathPlugin // Derive from MathPluign to for
 
 } // namespace AlignmentSubsystem
 } // namespace INDI
-
-#endif // INDI_ALIGNMENTSUBSYSTEM_MATHPLUGINMANAGEMENT_H

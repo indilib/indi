@@ -15,15 +15,13 @@
  the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
  Boston, MA 02110-1301, USA.
 *******************************************************************************/
+
 #include "focus_simulator.h"
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
 #include <math.h>
-#include <string.h>
-
 #include <memory>
+#include <string.h>
+#include <unistd.h>
 
 // We declare an auto pointer to focusSim.
 std::unique_ptr<FocusSim> focusSim(new FocusSim());
@@ -310,7 +308,7 @@ IPState FocusSim::MoveAbsFocuser(uint32_t targetTicks)
     double ticks = initTicks + (targetTicks - mid) / 5000.0;
 
     // simulate delay in motion as the focuser moves to the new position
-    usleep(abs(targetTicks - FocusAbsPosN[0].value) * FOCUS_MOTION_DELAY);
+    usleep(std::abs((int)(targetTicks - FocusAbsPosN[0].value) * FOCUS_MOTION_DELAY));
 
     FocusAbsPosN[0].value = targetTicks;
 

@@ -17,19 +17,10 @@
 *******************************************************************************/
 
 #include "temmadriver.h"
+
 #include "indicom.h"
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <stdarg.h>
-#include <math.h>
 #include <unistd.h>
-#include <time.h>
-#include <memory>
-
-#include <string.h>
-#include <sys/stat.h>
 
 using namespace INDI::AlignmentSubsystem;
 
@@ -267,8 +258,8 @@ bool TemmaMount::updateProperties()
 bool TemmaMount::ReadScopeStatus()
 {
     char str[26];
-    int bytesWritten, bytesRead;
-    int numread;
+    int bytesWritten = 0;
+    int numread = 0;
 
     //DEBUG(INDI::Logger::DBG_DEBUG,"Temma::ReadScopeStatus() %d\n",PortFD);
 
@@ -330,10 +321,10 @@ bool TemmaMount::ReadScopeStatus()
 bool TemmaMount::TemmaSync(double ra, double d)
 {
     char str[26];
-    int bytesWritten, bytesRead;
-    int numread;
+    int bytesWritten = 0;
     char sign;
-    double dec;
+    double dec = 0;
+
     /*  sync involves jumping thru considerable hoops
     first we have to set local sideral time
     then we have to send a Z
@@ -386,10 +377,10 @@ bool TemmaMount::Sync(double ra, double dec)
 bool TemmaMount::Goto(double ra, double d)
 {
     char str[26];
-    int bytesWritten, bytesRead;
-    int numread;
+    int bytesWritten = 0;
     char sign;
-    double dec;
+    double dec = 0;
+
     /*  goto involves hoops, but, not as many as a sync
     	first set sideral time
     	then issue the goto command
@@ -724,19 +715,15 @@ IPState TemmaMount::GuideWest(float ms)
 
 bool TemmaMount::updateTime(ln_date *utc, double utc_offset)
 {
-    char str[20];
-    int bytesWritten, bytesRead;
-    int numread;
-
+    INDI_UNUSED(utc);
+    INDI_UNUSED(utc_offset);
     DEBUG(INDI::Logger::DBG_DEBUG, "Temma::UpdateTime()");
     return true;
 }
 
 bool TemmaMount::updateLocation(double latitude, double longitude, double elevation)
 {
-    char str[20];
-    int bytesWritten, bytesRead;
-    int numread;
+    INDI_UNUSED(elevation);
     bool DoFirstTimeStuff = false;
     double lst;
 
@@ -859,8 +846,6 @@ ln_equ_posn TemmaMount::TelescopeToSky(double ra, double dec)
 ln_equ_posn TemmaMount::SkyToTelescope(double ra, double dec)
 {
     ln_equ_posn eq;
-    ln_lnlat_posn here;
-    ln_hrz_posn altaz;
     TelescopeDirectionVector TDV;
     double RightAscension, Declination;
 
@@ -960,7 +945,7 @@ bool TemmaMount::GetTemmaVersion()
 bool TemmaMount::GetTemmaMotorStatus()
 {
     char str[50];
-    int rc, numread, bytesWritten;
+    int numread = 0, bytesWritten = 0;
 
     tty_write(PortFD, "STN-COD\r\n", 9, &bytesWritten); // Ask mount for current status
     memset(str, 0, 50);
@@ -977,7 +962,7 @@ bool TemmaMount::GetTemmaMotorStatus()
 bool TemmaMount::SetTemmaMotorStatus(bool state)
 {
     char str[50];
-    int rc, numread, bytesWritten;
+    int numread = 0, bytesWritten = 0;
 
     if (!state)
     {
@@ -1023,8 +1008,9 @@ int TemmaMount::GetTemmaLst()
 bool TemmaMount::SetTemmaLst()
 {
     char str[50];
-    int bytesWritten, numread;
-    double lst;
+    int bytesWritten = 0;
+    double lst = 0;
+
     DEBUGF(INDI::Logger::DBG_DEBUG, "Setting lst with %4.2f", Longitude);
     lst = get_local_sideral_time(Longitude);
     sprintf(str, "T%.2d%.2d%.2d\r\n", (int)lst, ((int)(lst * 60)) % 60, ((int)(lst * 3600)) % 60);
@@ -1109,10 +1095,11 @@ bool TemmaMount::Handshake()
 
 int TemmaMount::TemmaRead(char *buf, int size)
 {
-    int bytesRead;
-    int count = 0;
-    int ptr   = 0;
-    int rc;
+    int bytesRead = 0;
+    int count     = 0;
+    int ptr       = 0;
+    int rc        = 0;
+
     while (ptr < size)
     {
         rc = tty_read(PortFD, &buf[ptr], 1, 2,

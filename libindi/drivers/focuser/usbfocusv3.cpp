@@ -19,15 +19,14 @@
 */
 
 #include "usbfocusv3.h"
+
 #include "indicom.h"
 
-#include <stdio.h>
-#include <termios.h>
-#include <string.h>
-#include <sys/time.h>
-#include <unistd.h>
 #include <math.h>
 #include <memory>
+#include <string.h>
+#include <termios.h>
+#include <unistd.h>
 
 #define USBFOCUSV3_TIMEOUT 3
 
@@ -240,7 +239,6 @@ bool USBFocusV3::Ack()
     int nbytes_written = 0, nbytes_read = 0, rc = -1;
     char errstr[MAXRBUF];
     char resp[UFORIDLEN + 1];
-    short pos = -1;
 
     do
     {
@@ -638,7 +636,7 @@ bool USBFocusV3::setAutoTempCompThreshold(unsigned int thr)
 
 bool USBFocusV3::setTemperatureCoefficient(unsigned int coefficient)
 {
-    int nbytes_written = 0, nbytes_read = 0, rc = -1;
+    int nbytes_written = 0, rc = -1;
     char errstr[MAXRBUF];
     char cmd[UFOCTLEN + 1];
     char resp[UFORDONELEN + 1];
@@ -697,7 +695,7 @@ bool USBFocusV3::reset()
     return true;
 }
 
-bool USBFocusV3::MoveFocuser(FocusDirection dir, unsigned int rticks)
+bool USBFocusV3::MoveFocuserUF(FocusDirection dir, unsigned int rticks)
 {
     int nbytes_written = 0, rc = -1;
     char errstr[MAXRBUF];
@@ -732,7 +730,7 @@ bool USBFocusV3::MoveFocuser(FocusDirection dir, unsigned int rticks)
     if ((rc = tty_write(PortFD, cmd, UFOCMLEN, &nbytes_written)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "MoveFocuser error: %s.", errstr);
+        DEBUGF(INDI::Logger::DBG_ERROR, "MoveFocuserUF error: %s.", errstr);
         return false;
     }
 
@@ -1016,7 +1014,6 @@ bool USBFocusV3::ISNewSwitch(const char *dev, const char *name, ISState *states,
             IUUpdateSwitch(&StepModeSP, states, names, n);
             int target_mode = IUFindOnSwitchIndex(&StepModeSP);
             if (current_mode == target_mode)
-                ;
             {
                 StepModeSP.s = IPS_OK;
                 IDSetSwitch(&StepModeSP, nullptr);
@@ -1048,7 +1045,6 @@ bool USBFocusV3::ISNewSwitch(const char *dev, const char *name, ISState *states,
             IUUpdateSwitch(&RotDirSP, states, names, n);
             int target_mode = IUFindOnSwitchIndex(&RotDirSP);
             if (current_mode == target_mode)
-                ;
             {
                 RotDirSP.s = IPS_OK;
                 IDSetSwitch(&RotDirSP, nullptr);
@@ -1101,7 +1097,6 @@ bool USBFocusV3::ISNewSwitch(const char *dev, const char *name, ISState *states,
             IUUpdateSwitch(&TempCompSignSP, states, names, n);
             int target_mode = IUFindOnSwitchIndex(&TempCompSignSP);
             if (current_mode == target_mode)
-                ;
             {
                 TempCompSignSP.s = IPS_OK;
                 IDSetSwitch(&TempCompSignSP, nullptr);
@@ -1145,8 +1140,6 @@ bool USBFocusV3::ISNewSwitch(const char *dev, const char *name, ISState *states,
 
 bool USBFocusV3::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
 {
-    int nset = 0, i = 0;
-
     if (strcmp(dev, getDeviceName()) == 0)
     {
         if (!strcmp(name, MaxPositionNP.name))
@@ -1289,9 +1282,9 @@ IPState USBFocusV3::MoveAbsFocuser(uint32_t targetTicks)
     bool rc = false;
 
     if (ticks < 0)
-        rc = MoveFocuser(FOCUS_INWARD, (unsigned int)labs(ticks));
+        rc = MoveFocuserUF(FOCUS_INWARD, (unsigned int)labs(ticks));
     else if (ticks > 0)
-        rc = MoveFocuser(FOCUS_OUTWARD, (unsigned int)labs(ticks));
+        rc = MoveFocuserUF(FOCUS_OUTWARD, (unsigned int)labs(ticks));
 
     if (rc == false)
         return IPS_ALERT;
@@ -1303,8 +1296,7 @@ IPState USBFocusV3::MoveAbsFocuser(uint32_t targetTicks)
 
 IPState USBFocusV3::MoveRelFocuser(FocusDirection dir, uint32_t ticks)
 {
-    double newPosition = 0;
-    bool rc            = false;
+    bool rc = false;
     uint32_t aticks;
 
     if ((dir == FOCUS_INWARD) && (ticks > FocusAbsPosN[0].value))
@@ -1322,7 +1314,7 @@ IPState USBFocusV3::MoveRelFocuser(FocusDirection dir, uint32_t ticks)
         ticks = aticks;
     }
 
-    rc = MoveFocuser(dir, (unsigned int)ticks);
+    rc = MoveFocuserUF(dir, (unsigned int)ticks);
 
     if (rc == false)
         return IPS_ALERT;

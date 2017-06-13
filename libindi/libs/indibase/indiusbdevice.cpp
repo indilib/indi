@@ -21,8 +21,6 @@
 
 #include "indiusbdevice.h"
 
-#include <string.h>
-
 #ifdef NO_ERROR_NAME
 const char *LIBUSB_CALL libusb_error_name(int errcode)
 {

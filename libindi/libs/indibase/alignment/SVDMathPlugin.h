@@ -5,8 +5,7 @@
 ///
 /// This file provides the Singular Value Decomposition (Markley) math plugin functionality
 
-#ifndef INDI_ALIGNMENTSUBSYSTEM_SVDMATHPLUGIN_H
-#define INDI_ALIGNMENTSUBSYSTEM_SVDMATHPLUGIN_H
+#pragma once
 
 #include "BasicMathPlugin.h"
 
@@ -38,5 +37,3 @@ class SVDMathPlugin : public BasicMathPlugin
 
 } // namespace AlignmentSubsystem
 } // namespace INDI
-
-#endif // INDI_ALIGNMENTSUBSYSTEM_SVDMATHPLUGIN_H

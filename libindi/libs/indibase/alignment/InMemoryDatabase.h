@@ -6,12 +6,12 @@
  *
  */
 
-#ifndef INDI_ALIGNMENTSUBSYSTEM_INMEMORYDATABASE_H
-#define INDI_ALIGNMENTSUBSYSTEM_INMEMORYDATABASE_H
+#pragma once
 
 #include "Common.h"
 
 #include <libnova.h>
+
 #include <vector>
 
 namespace INDI
@@ -24,7 +24,7 @@ class InMemoryDatabase
 {
   public:
     /// \brief Default constructor
-    InMemoryDatabase() : LoadDatabaseCallback(0), DatabaseReferencePositionIsValid(false) {}
+    InMemoryDatabase();
 
     /// \brief Virtual destructor
     virtual ~InMemoryDatabase() {}
@@ -37,7 +37,7 @@ class InMemoryDatabase
     /// \param[in] CandidateEntry The candidate entry to check
     /// \param[in] Tolerance The % tolerance used in the checking process (default 0.1%)
     /// \return True if an entry already exists within the required tolerance
-    const bool CheckForDuplicateSyncPoint(const AlignmentDatabaseEntry &CandidateEntry, double Tolerance = 0.1) const;
+    bool CheckForDuplicateSyncPoint(const AlignmentDatabaseEntry &CandidateEntry, double Tolerance = 0.1) const;
 
     /// \brief Get a reference to the in memory database.
     /// \return A reference to the in memory database.
@@ -80,5 +80,3 @@ class InMemoryDatabase
 
 } // namespace AlignmentSubsystem
 } // namespace INDI
-
-#endif // INDI_ALIGNMENTSUBSYSTEM_INMEMORYDATABASE_H

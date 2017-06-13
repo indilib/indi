@@ -6,23 +6,23 @@
  * exit status: 0 at least some found, 1 some not found, 2 real trouble.
  */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <math.h>
-#include <string.h>
-#include <errno.h>
-#include <signal.h>
-#include <time.h>
-#include <unistd.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <netdb.h>
-
+#include "base64.h"
 #include "indiapi.h"
 #include "lilxml.h"
-#include "base64.h"
 #include "zlib.h"
+
+#include <errno.h>
+#include <math.h>
+#include <netdb.h>
+#include <signal.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <time.h>
+#include <unistd.h>
+#include <netinet/in.h>
+#include <sys/types.h>
+#include <sys/socket.h>
 
 /* table of INDI definition elements, plus setBLOB.
  * we also look for set* if -m
@@ -218,8 +218,6 @@ int main(int ac, char *av[])
 
 static void usage()
 {
-    int i;
-
     fprintf(stderr, "Purpose: retrieve readable properties from an INDI server\n");
     fprintf(stderr, "%s\n", "$Revision: 1.11 $");
     fprintf(stderr, "Usage: %s [options] [device.property.element ...]\n", me);
@@ -228,7 +226,7 @@ static void usage()
     fprintf(stderr, "  BLOBs are saved in file named device.property.element.format\n");
     fprintf(stderr, "  In perl try: %s\n", "%props = split (/[=\\n]/, `getINDI`);");
     fprintf(stderr, "  Set element to one of following to return property attribute:\n");
-    for (i = 0; i < NKWA; i++)
+    for (int i = 0; i < (int)NKWA; i++)
         fprintf(stderr, "    %10s to report %s\n", kwattr[i].keyword, kwattr[i].indiattr);
     fprintf(stderr, "Output format: output is fully qualified name=value one per line\n");
     fprintf(stderr, "  or just value if -1 and exactly one query without wildcards.\n");
@@ -401,10 +399,10 @@ static int finished()
  */
 static void onAlarm(int dummy)
 {
+    (void)dummy;
     int trouble = 0;
-    int i;
 
-    for (i = 0; i < nsrchs; i++)
+    for (int i = 0; i < nsrchs; i++)
     {
         if (!srchs[i].ok)
         {
@@ -491,11 +489,10 @@ static void findDPE(XMLEle *root)
 static void findEle(XMLEle *root, char *dev, char *nam, char *defone, SearchDef *sp)
 {
     char *iele = sp->e;
-    XMLEle *ep;
-    int i;
+    XMLEle *ep = NULL;
 
     /* check for attr keyword */
-    for (i = 0; i < NKWA; i++)
+    for (int i = 0; i < (int)NKWA; i++)
     {
         if (strcmp(iele, kwattr[i].keyword) == 0)
         {
@@ -565,7 +562,7 @@ static void oneBLOB(XMLEle *root, char *dev, char *nam, char *enam, char *p, int
 
     /* get format and length */
     format = (char *)findXMLAttValu(root, "format");
-    isz    = !strcmp(&format[strlen(format) - 2], ".z");
+    isz    = !strncmp(&format[strlen(format) - 2], ".z", 2);
 
     /* decode blob from base64 in p */
     blob    = malloc(3 * plen / 4);

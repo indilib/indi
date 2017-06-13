@@ -8,20 +8,25 @@
 
 #include "InMemoryDatabase.h"
 
-#include "indibase/basedevice.h"
+#include "basedevice.h"
 #include "indicom.h"
 
-#include <cstdlib>
-#include <cerrno>
-#include <cstring>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/errno.h>
 #include <sys/stat.h>
 
 namespace INDI
 {
 namespace AlignmentSubsystem
 {
-const bool InMemoryDatabase::CheckForDuplicateSyncPoint(const AlignmentDatabaseEntry &CandidateEntry,
-                                                        double Tolerance) const
+InMemoryDatabase::InMemoryDatabase() : DatabaseReferencePositionIsValid(false),
+    LoadDatabaseCallback(nullptr), LoadDatabaseCallbackThisPointer(nullptr)
+{
+}
+
+bool InMemoryDatabase::CheckForDuplicateSyncPoint(const AlignmentDatabaseEntry &CandidateEntry,
+                                                  double Tolerance) const
 {
     for (AlignmentDatabaseType::const_iterator iTr = MySyncPoints.begin(); iTr != MySyncPoints.end(); iTr++)
     {

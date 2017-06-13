@@ -37,38 +37,21 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110 - 1301  USA
     The client will connect to the CCD driver and attempts to change the CCD temperature.
 */
 
-#include <string>
-#include <iostream>
-#include <fstream>
-
-#include <string.h>
-#include <stdarg.h>
-#include <math.h>
-#include <unistd.h>
-#include <time.h>
-#include <memory>
-#include <sys/types.h>
-#include <sys/stat.h>
-
-#include <config.h>
-
-#include "indibase/baseclient.h"
-#include "indibase/basedevice.h"
-#include "indibase/indiproperty.h"
-
-/* INDI Common Library Routines */
-#include "indicom.h"
-
 #include "tutorial_client.h"
 
-using namespace std;
+#include "indibase/basedevice.h"
+
+#include <fstream>
+#include <iostream>
+#include <memory>
+#include <string.h>
 
 #define MYCCD "Simple CCD"
 
 /* Our client auto pointer */
-unique_ptr<MyClient> camera_client(new MyClient());
+std::unique_ptr<MyClient> camera_client(new MyClient());
 
-int main(int argc, char *argv[])
+int main(int /*argc*/, char **/*argv*/)
 {
     camera_client->setServer("localhost", 7624);
 
@@ -78,9 +61,9 @@ int main(int argc, char *argv[])
 
     camera_client->setBLOBMode(B_ALSO, MYCCD, nullptr);
 
-    cout << "Press any key to terminate the client.\n";
-    string term;
-    cin >> term;
+    std::cout << "Press any key to terminate the client.\n";
+    std::string term;
+    std::cin >> term;
 }
 
 /**************************************************************************************
@@ -207,8 +190,9 @@ void MyClient::newMessage(INDI::BaseDevice *dp, int messageID)
 void MyClient::newBLOB(IBLOB *bp)
 {
     // Save FITS file to disk
-    ofstream myfile;
-    myfile.open("ccd_simulator.fits", ios::out | ios::binary);
+    std::ofstream myfile;
+
+    myfile.open("ccd_simulator.fits", std::ios::out | std::ios::binary);
 
     myfile.write(static_cast<char *>(bp->blob), bp->bloblen);
 

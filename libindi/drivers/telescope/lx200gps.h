@@ -1,6 +1,3 @@
-#ifndef LX200GPS_H
-#define LX200GPS_H
-
 /*
     LX200 GPS
     Copyright (C) 2003 Jasem Mutlaq (mutlaqja@ikarustech.com)
@@ -20,6 +17,8 @@
     Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
 */
+
+#pragma once
 
 #include "lx200autostar.h"
 
@@ -69,5 +68,3 @@ class LX200GPS : public LX200Autostar
     INumberVectorProperty OTATempNP;
     INumber OTATempN[1];
 };
-
-#endif

@@ -17,8 +17,7 @@
     Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
-#ifndef LX200FS2_H
-#define LX200FS2_H
+#pragma once
 
 #include "lx200generic.h"
 
@@ -54,5 +53,3 @@ class LX200FS2 : public LX200Generic
 
     double Elevation, Latitud, Longitude;
 };
-
-#endif

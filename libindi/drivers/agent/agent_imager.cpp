@@ -16,9 +16,10 @@
  Boston, MA 02110-1301, USA.
  *******************************************************************************/
 
-#include <memory>
-
 #include "agent_imager.h"
+
+#include <memory>
+#include <string.h>
 
 #define DEVICE_NAME  "Imager Agent"
 #define DOWNLOAD_TAB "Download images"
@@ -183,19 +184,22 @@ void Imager::initiateDownload()
 {
     int group = (int)DownloadN[0].value;
     int image = (int)DownloadN[1].value;
+    char name[128];
+    std::ifstream file;
+
     if (group == 0 || image == 0)
         return;
-    char name[128];
+
     sprintf(name, IMAGE_NAME, ImageNameT[0].text, ImageNameT[1].text, group, image, format);
-    ifstream file;
-    file.open(name, ios::in | ios::binary | ios::ate);
+    file.open(name, std::ios::in | std::ios::binary | std::ios::ate);
     DownloadN[0].value = 0;
     DownloadN[1].value = 0;
     if (file.is_open())
     {
         long size  = file.tellg();
         char *data = new char[size];
-        file.seekg(0, ios::beg);
+
+        file.seekg(0, std::ios::beg);
         file.read(data, size);
         file.close();
         remove(name);
@@ -517,10 +521,12 @@ void Imager::newProperty(INDI::Property *property)
 
 void Imager::removeProperty(INDI::Property *property)
 {
+    INDI_UNUSED(property);
 }
 
 void Imager::removeDevice(INDI::BaseDevice *dp)
 {
+    INDI_UNUSED(dp);
 }
 
 void Imager::newBLOB(IBLOB *bp)
@@ -528,10 +534,11 @@ void Imager::newBLOB(IBLOB *bp)
     if (ProgressNP.s == IPS_BUSY)
     {
         char name[128];
+        std::ofstream file;
+
         strncpy(format, bp->format, 16);
         sprintf(name, IMAGE_NAME, ImageNameT[0].text, ImageNameT[1].text, group, image, format);
-        ofstream file;
-        file.open(name, ios::out | ios::binary | ios::trunc);
+        file.open(name, std::ios::out | std::ios::binary | std::ios::trunc);
         file.write(static_cast<char *>(bp->blob), bp->bloblen);
         file.close();
         DEBUGF(INDI::Logger::DBG_DEBUG, "Group %d of %d, image %d of %d, saved to %s", group, maxGroup, image, maxImage,
@@ -622,6 +629,7 @@ void Imager::newText(ITextVectorProperty *tvp)
         if (!strcmp(tvp->name, "CCD_FILE_PATH"))
         {
             char name[128];
+
             strcpy(format, strrchr(tvp->tp[0].text, '.'));
             sprintf(name, IMAGE_NAME, ImageNameT[0].text, ImageNameT[1].text, group, image, format);
             rename(tvp->tp[0].text, name);
@@ -654,14 +662,18 @@ void Imager::newText(ITextVectorProperty *tvp)
 
 void Imager::newLight(ILightVectorProperty *lvp)
 {
+    INDI_UNUSED(lvp);
 }
 
 void Imager::newMessage(INDI::BaseDevice *dp, int messageID)
 {
+    INDI_UNUSED(dp);
+    INDI_UNUSED(messageID);
 }
 
 void Imager::serverDisconnected(int exit_code)
 {
+    INDI_UNUSED(exit_code);
     DEBUG(INDI::Logger::DBG_DEBUG, "Server disconnected");
     StatusL[0].s = IPS_ALERT;
     StatusL[1].s = IPS_ALERT;
@@ -684,6 +696,7 @@ Group::Group(int id)
 
 bool Group::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
 {
+    INDI_UNUSED(dev);
     if (strcmp(name, groupSettingsName) == 0)
     {
         IUUpdateNumber(&GroupSettingsNP, values, names, n);

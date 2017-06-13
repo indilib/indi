@@ -16,27 +16,20 @@
  Boston, MA 02110-1301, USA.
  *******************************************************************************/
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <math.h>
-#include <unistd.h>
-#include <sys/time.h>
-#include <time.h>
-#include <memory>
-#include <stdarg.h>
-
-#include <sys/wait.h>
-#include <limits.h>
-
-#include <indicom.h>
-
 #include "dome_script.h"
+
+#include "indicom.h"
+
+#include <math.h>
+#include <memory>
+#include <string.h>
+#include <unistd.h>
+#include <sys/wait.h>
 
 #define POLLMS  2000
 #define MAXARGS 20
 
-enum
+typedef enum
 {
     SCRIPT_CONNECT = 1,
     SCRIPT_DISCONNECT,
@@ -238,7 +231,9 @@ void DomeScript::TimerHit()
         int parked = 0, shutter = 0;
         float az   = 0;
         FILE *file = fopen(name, "r");
-        fscanf(file, "%d %d %f", &parked, &shutter, &az);
+        int ret    = 0;
+
+        ret = fscanf(file, "%d %d %f", &parked, &shutter, &az);
         fclose(file);
         unlink(name);
         DomeAbsPosN[0].value = az = round(range360(az) * 10) / 10;

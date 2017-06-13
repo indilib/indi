@@ -25,10 +25,10 @@
   file called LICENSE.
 *******************************************************************************/
 
-#include <memory>
-#include <cstring>
-
 #include "watchdogclient.h"
+
+#include <string.h>
+#include <memory>
 
 /**************************************************************************************
 **

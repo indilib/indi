@@ -9,14 +9,13 @@
  * Clients should inherit this class alongside INDI::BaseClient
  */
 
-#ifndef INDI_ALIGNMENTSUBSYSTEM_ALIGNMENTSUBSYSTEMFORCLIENTS_H
-#define INDI_ALIGNMENTSUBSYSTEM_ALIGNMENTSUBSYSTEMFORCLIENTS_H
+#pragma once
 
 #include "ClientAPIForAlignmentDatabase.h"
 #include "ClientAPIForMathPluginManagement.h"
 #include "TelescopeDirectionVectorSupportFunctions.h"
 
-#include "indibase/basedevice.h"
+#include "basedevice.h"
 
 namespace INDI
 {
@@ -77,5 +76,3 @@ class AlignmentSubsystemForClients : public ClientAPIForMathPluginManagement,
 
 } // namespace AlignmentSubsystem
 } // namespace INDI
-
-#endif // INDI_ALIGNMENTSUBSYSTEM_ALIGNMENTSUBSYSTEMFORCLIENTS_H

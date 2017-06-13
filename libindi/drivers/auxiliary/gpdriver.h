@@ -20,21 +20,9 @@
   file called LICENSE.
 *******************************************************************************/
 
-#ifndef GPUSBDRIVER_H
-#define GPUSBDRIVER_H
+#pragma once
 
 #include "libs/indibase/indiusbdevice.h"
-
-/* Standard headers */
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <math.h>
-#include <unistd.h>
-#include <sys/time.h>
-
-#include <sys/time.h>
-#include <time.h>
 
 enum
 {
@@ -67,5 +55,3 @@ class GPUSBDriver : public INDI::USBDevice
     char guideCMD[1];
     bool debug;
 };
-
-#endif // GPUSBDriver_H

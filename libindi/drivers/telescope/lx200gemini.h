@@ -23,8 +23,7 @@
     Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
-#ifndef LX200GEMINI_H
-#define LX200GEMINI_H
+#pragma once
 
 #include "lx200generic.h"
 
@@ -78,5 +77,3 @@ class LX200Gemini : public LX200Generic
 
     const uint8_t GEMINI_TIMEOUT = 3;
 };
-
-#endif

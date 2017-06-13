@@ -18,16 +18,10 @@
  Boston, MA 02110-1301, USA.
 *******************************************************************************/
 
-#ifndef PERFECTSTAR_H
-#define PERFECTSTAR_H
+#pragma once
 
-#include "indibase/indifocuser.h"
-#include "indibase/indiusbdevice.h"
-#include "indibase/hidapi.h"
-
-/*  Some headers we need */
-#include <math.h>
-#include <sys/time.h>
+#include "indifocuser.h"
+#include "hidapi.h"
 
 class PerfectStar : public INDI::Focuser
 {
@@ -77,5 +71,3 @@ class PerfectStar : public INDI::Focuser
     INumber SyncN[1];
     INumberVectorProperty SyncNP;
 };
-
-#endif

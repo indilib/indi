@@ -16,15 +16,10 @@
  Boston, MA 02110-1301, USA.
 *******************************************************************************/
 
-#ifndef CCDSIM_H
-#define CCDSIM_H
+#pragma once
 
-#include "indibase/indiccd.h"
-#include "indibase/indifilterinterface.h"
-
-/*  Some headers we need */
-#include <math.h>
-#include <sys/time.h>
+#include "indiccd.h"
+#include "indifilterinterface.h"
 
 class CCDSim : public INDI::CCD, public INDI::FilterInterface
 {
@@ -146,5 +141,3 @@ class CCDSim : public INDI::CCD, public INDI::FilterInterface
     bool GetFilterNames(const char *groupName);
     int QueryFilter();
 };
-
-#endif // CCDSim_H

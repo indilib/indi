@@ -18,11 +18,9 @@
 
 */
 
-#ifndef STEELDRIVE_H
-#define STEELDRIVE_H
+#pragma once
 
-#include <list>
-#include "indibase/indifocuser.h"
+#include "indifocuser.h"
 
 class SteelDrive : public INDI::Focuser
 {
@@ -67,13 +65,6 @@ class SteelDrive : public INDI::Focuser
     void debugTriggered(bool enable);
 
   private:
-    double targetPos, lastPos, lastTemperature, simPosition;
-    unsigned int currentSpeed, temperatureUpdateCounter;
-    bool sim;
-
-    struct timeval focusMoveStart;
-    float focusMoveRequest;
-
     // Get functions
     bool updateVersion();
     bool updateTemperature();
@@ -105,6 +96,13 @@ class SteelDrive : public INDI::Focuser
     float CalcTimeLeft(timeval, float);
     void updateFocusMaxRange(double maxTrip, double gearRatio);
 
+    double targetPos, lastPos, lastTemperature, simPosition;
+    unsigned int currentSpeed, temperatureUpdateCounter;
+    bool sim;
+
+    struct timeval focusMoveStart;
+    float focusMoveRequest;
+
     INumber TemperatureN[1];
     INumberVectorProperty TemperatureNP;
 
@@ -131,5 +129,3 @@ class SteelDrive : public INDI::Focuser
 
     FocusCustomSetting fSettings[5];
 };
-
-#endif // STEELDRIVE_H

@@ -19,16 +19,14 @@
 */
 
 #include "nightcrawler.h"
+
 #include "indicom.h"
 #include "connectionplugins/connectionserial.h"
 
-#include <stdio.h>
-#include <termios.h>
-#include <string.h>
-#include <sys/time.h>
-#include <unistd.h>
 #include <math.h>
 #include <memory>
+#include <string.h>
+#include <termios.h>
 
 #define NIGHTCRAWLER_TIMEOUT 3
 #define NIGHTCRAWLER_THRESHOLD 0.1

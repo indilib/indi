@@ -13,12 +13,11 @@
  * The synscanmount driver by Gerry Rozema.
  */
 
-#ifndef SKYWATCHERAPIMOUNT_H
-#define SKYWATCHERAPIMOUNT_H
-
-#include "indibase/alignment/AlignmentSubsystemForDrivers.h"
+#pragma once
 
 #include "skywatcherAPI.h"
+
+#include "alignment/AlignmentSubsystemForDrivers.h"
 
 typedef enum { PARK_COUNTERCLOCKWISE = 0, PARK_CLOCKWISE } ParkDirection_t;
 typedef enum { PARK_NORTH = 0, PARK_EAST, PARK_SOUTH, PARK_WEST } ParkPosition_t;
@@ -193,5 +192,3 @@ class SkywatcherAPIMount : public SkywatcherAPI,
     double InitialJulianDate;
 #endif
 };
-
-#endif // SKYWATCHERAPIMOUNT_H

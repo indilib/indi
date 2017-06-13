@@ -19,17 +19,18 @@
 
 */
 
-#ifndef SER_RECORDER_H
-#define SER_RECORDER_H
+#pragma once
 
 #include "v4l2_record.h"
+
+#include <cstdint>
+#include <stdio.h>
+
 #ifdef OSX_EMBEDED_MODE
 //#include "videodev2.h"
 #else
 #include <linux/videodev2.h>
 #endif
-#include <cstdint>
-#include <stdio.h>
 
 typedef struct ser_header
 {
@@ -126,5 +127,3 @@ class SER_Recorder : public V4L2_Recorder
     static const uint32_t m_days_in_400_years            = 303 * 365 + 97 * 366;
     static const uint64_t m_septaseconds_per_400_years   = m_days_in_400_years * m_septaseconds_per_day;
 };
-
-#endif // SER_RECORDER_H

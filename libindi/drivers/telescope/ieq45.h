@@ -19,11 +19,10 @@
 
 */
 
-#ifndef IEQ45BASIC_H
-#define IEQ45BASIC_H
+#pragma once
 
-#include "indidevapi.h"
 #include "indicom.h"
+#include "indidevapi.h"
 
 class IEQ45Basic
 {
@@ -111,5 +110,3 @@ class IEQ45Basic
     int lastSet;
     double targetRA, targetDEC;
 };
-
-#endif

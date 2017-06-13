@@ -18,13 +18,7 @@
 
 */
 
-#include <config.h>
-
-#include <math.h>
-
-#ifdef HAVE_NOVA_H
-#include <libnova.h>
-#endif
+#pragma once
 
 #define ATA   0
 #define ATR   1

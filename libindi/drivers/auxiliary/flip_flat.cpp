@@ -22,18 +22,16 @@
   file called LICENSE.
 *******************************************************************************/
 
-#include <memory>
-#include <libnova.h>
-#include <time.h>
-#include <termios.h>
-#include <unistd.h>
-#include <fcntl.h>
-#include <sys/ioctl.h>
+#include "flip_flat.h"
 
 #include "indicom.h"
 #include "connectionplugins/connectionserial.h"
 
-#include "flip_flat.h"
+#include <memory>
+#include <string.h>
+#include <termios.h>
+#include <sys/errno.h>
+#include <sys/ioctl.h>
 
 // We declare an auto pointer to FlipFlat.
 std::unique_ptr<FlipFlat> flipflat(new FlipFlat());
@@ -75,6 +73,7 @@ void ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], 
     INDI_UNUSED(names);
     INDI_UNUSED(n);
 }
+
 void ISSnoopDevice(XMLEle *root)
 {
     flipflat->ISSnoopDevice(root);

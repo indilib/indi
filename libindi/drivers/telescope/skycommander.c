@@ -18,19 +18,10 @@
 
 #endif
 
-#include <config.h>
-
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <stdarg.h>
-#include <math.h>
-#include <unistd.h>
-#include <time.h>
+#include "lx200driver.h"
 
 #include "indidevapi.h"
 #include "indicom.h"
-#include "lx200driver.h"
 
 #ifndef _WIN32
 #include <termios.h>

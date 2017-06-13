@@ -19,16 +19,18 @@
 
 #endif
 
+#include "fli_pdf.h"
+
+#include "indidevapi.h"
+#include "eventloop.h"
+
 #include <memory>
+#include <string.h>
 #include <time.h>
 #include <math.h>
 #include <unistd.h>
 #include <sys/time.h>
 
-#include "indidevapi.h"
-#include "eventloop.h"
-
-#include "fli_pdf.h"
 
 #define POLLMS		1000		/* Polling time (ms) */
 
