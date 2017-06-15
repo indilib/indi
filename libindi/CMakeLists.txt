@@ -15,9 +15,12 @@ if(ANDROID OR "${CMAKE_SYSTEM_NAME}" STREQUAL "Android")
   add_definitions(-DANDROID)
 endif()
 
-if (NOT WIN32)
-set(CMAKE_CXX_FLAGS "-std=c++11 ${CMAKE_CXX_FLAGS}")
-endif(NOT WIN32)
+IF ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
+    SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /std:c++11")
+ELSE ()
+    SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=gnu99")
+    SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
+ENDIF ()
 
 # Ccache support
 IF (ANDROID OR UNIX OR APPLE)
@@ -27,6 +30,91 @@ IF (ANDROID OR UNIX OR APPLE)
         SET_PROPERTY(GLOBAL PROPERTY RULE_LAUNCH_COMPILE ccache)
         SET_PROPERTY(GLOBAL PROPERTY RULE_LAUNCH_LINK ccache)
     ENDIF ()
+ENDIF ()
+
+# Add security (hardening flags)
+IF (UNIX OR APPLE OR ANDROID)
+    SET(SEC_COMP_FLAGS "-D_FORTIFY_SOURCE=2 -fstack-protector-all -fPIE")
+    IF (NOT ANDROID AND NOT "${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang" AND NOT APPLE)
+        SET(SEC_COMP_FLAGS "${SEC_COMP_FLAGS} -Wa,--noexecstack")
+    ENDIF ()
+    SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${SEC_COMP_FLAGS}")
+    SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${SEC_COMP_FLAGS}")
+    SET(SEC_LINK_FLAGS "")
+    IF (NOT APPLE)
+        SET(SEC_LINK_FLAGS "${SEC_LINK_FLAGS} -Wl,-z,nodump -Wl,-z,noexecstack -Wl,-z,relro -Wl,-z,now")
+    ENDIF ()
+    IF (NOT ANDROID AND NOT APPLE)
+        SET(SEC_LINK_FLAGS "${SEC_LINK_FLAGS} -pie")
+    ENDIF ()
+    SET(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${SEC_LINK_FLAGS}")
+    SET(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} ${SEC_LINK_FLAGS}")
+ENDIF ()
+
+# Clang Format support
+IF (UNIX OR APPLE)
+    SET(FORMAT_CODE OFF CACHE BOOL "Enable Clang Format")
+    IF (FORMAT_CODE MATCHES ON)
+        FILE(GLOB_RECURSE ALL_SOURCE_FILES *.c *.cpp *.h)
+
+        FOREACH(SOURCE_FILE ${ALL_SOURCE_FILES})
+            STRING(FIND ${SOURCE_FILE} ${CMAKE_SOURCE_DIR} DIR_FOUND)
+            IF (NOT ${DIR_FOUND} EQUAL 0)
+                LIST(REMOVE_ITEM ALL_SOURCE_FILES ${SOURCE_FILE})
+            ENDIF ()
+        ENDFOREACH ()
+
+        FIND_PROGRAM(CLANGFORMAT_EXE NAMES clang-format-5.0)
+        IF (CLANGFORMAT_EXE)
+            ADD_CUSTOM_TARGET(clang-format COMMAND ${CLANGFORMAT_EXE} -style=file -i ${ALL_SOURCE_FILES})
+        ENDIF ()
+    ENDIF ()
+ENDIF ()
+
+# Warning, debug and linker flags
+IF (UNIX OR APPLE)
+    SET(COMP_FLAGS "")
+    SET(LINKER_FLAGS "")
+    # Verbose warnings and turns all to errors
+    SET(COMP_FLAGS "${COMP_FLAGS} -Wall -Wextra")
+    IF (NOT "${CMAKE_CXX_COMPILER_ID}" STREQUAL "AppleClang")
+        SET(COMP_FLAGS "${COMP_FLAGS} -Werror")
+    ENDIF ()
+    # Omit problematic warnings
+    IF ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
+        SET(COMP_FLAGS "${COMP_FLAGS} -Wno-unused-but-set-variable")
+    ENDIF ()
+
+    # Minimal debug info with Clang
+    IF ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
+        SET(COMP_FLAGS "${COMP_FLAGS} -gline-tables-only")
+    ELSE ()
+        SET(COMP_FLAGS "${COMP_FLAGS} -g")
+    ENDIF ()
+
+    # Note: The following flags are problematic on older systems with gcc 4.8
+    IF ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang" OR ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU" AND CMAKE_CXX_COMPILER_VERSION VERSION_GREATER 4.9.9))
+        # Compress the debug sections
+        # Note: Before valgrind 3.12.0, patch should be applied for valgrind (https://bugs.kde.org/show_bug.cgi?id=303877)
+        IF (NOT APPLE AND NOT ANDROID AND NOT CMAKE_SYSTEM_PROCESSOR MATCHES arm AND NOT CMAKE_CXX_CLANG_TIDY)
+            SET(COMP_FLAGS "${COMP_FLAGS} -Wa,--compress-debug-sections -Wno-unused-command-line-argument")
+            SET(LINKER_FLAGS "${LINKER_FLAGS} -Wl,--compress-debug-sections=zlib")
+        ENDIF ()
+
+        # ld.gold is 2x faster than normal ld
+        IF (NOT APPLE AND NOT CMAKE_SYSTEM_PROCESSOR MATCHES arm)
+            SET(LINKER_FLAGS "${LINKER_FLAGS} -fuse-ld=gold")
+            # Use Identical Code Folding
+            SET(COMP_FLAGS "${COMP_FLAGS} -ffunction-sections")
+            SET(LINKER_FLAGS "${LINKER_FLAGS} -Wl,--icf=safe")
+        ENDIF ()
+    ENDIF ()
+
+    # Apply the flags
+    SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${COMP_FLAGS}")
+    SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${COMP_FLAGS}")
+    SET(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${LINKER_FLAGS}")
+    SET(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} ${LINKER_FLAGS}")
 ENDIF ()
 
 #####################################  INDI version  ################################################
@@ -583,6 +671,16 @@ add_executable(indi_nstep_focus ${nstep_SRCS})
 target_link_libraries(indi_nstep_focus indidriver)
 install(TARGETS indi_nstep_focus RUNTIME DESTINATION bin )
 
+
+################ NightCrawler Focuser & Rotator ################
+
+set(nightcrawler_SRCS
+        ${CMAKE_CURRENT_SOURCE_DIR}/drivers/focuser/nightcrawler.cpp
+   )
+
+add_executable(indi_nightcrawler_focus ${nightcrawler_SRCS})
+target_link_libraries(indi_nightcrawler_focus indidriver)
+install(TARGETS indi_nightcrawler_focus RUNTIME DESTINATION bin )
 
 ################ Moonlite Focuser ################
 

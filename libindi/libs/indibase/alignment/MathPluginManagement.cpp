@@ -8,49 +8,63 @@
 
 #include "MathPluginManagement.h"
 
-#include <cerrno>
-#include <cstring>
-#include <unistd.h> // for sleep
-
 #include <dirent.h>
-#include <sys/types.h>
 #include <dlfcn.h>
+#include <sys/errno.h>
 
 namespace INDI
 {
 namespace AlignmentSubsystem
 {
+MathPluginManagement::MathPluginManagement() : CurrentInMemoryDatabase(nullptr),
+    pGetApproximateMountAlignment(&MathPlugin::GetApproximateMountAlignment),
+    pInitialise(&MathPlugin::Initialise),
+    pSetApproximateMountAlignment(&MathPlugin::SetApproximateMountAlignment),
+    pTransformCelestialToTelescope(&MathPlugin::TransformCelestialToTelescope),
+    pTransformTelescopeToCelestial(&MathPlugin::TransformTelescopeToCelestial),
+    pLoadedMathPlugin(&BuiltInPlugin), LoadedMathPluginHandle(nullptr)
+{
+}
 
-void MathPluginManagement::InitProperties(Telescope * ChildTelescope)
+void MathPluginManagement::InitProperties(Telescope *ChildTelescope)
 {
     EnumeratePlugins();
     AlignmentSubsystemMathPlugins.reset(new ISwitch[MathPluginDisplayNames.size() + 1]);
     IUFillSwitch(AlignmentSubsystemMathPlugins.get(), "INBUILT_MATH_PLUGIN", "Inbuilt Math Plugin", ISS_ON);
-    for (int i = 0; i < MathPluginDisplayNames.size(); i++)
-        IUFillSwitch(AlignmentSubsystemMathPlugins.get() + i + 1, MathPluginDisplayNames[i].c_str(), MathPluginDisplayNames[i].c_str(), ISS_OFF);
-    IUFillSwitchVector(&AlignmentSubsystemMathPluginsV, AlignmentSubsystemMathPlugins.get(), MathPluginDisplayNames.size() + 1,
-                       ChildTelescope->getDeviceName(), "ALIGNMENT_SUBSYSTEM_MATH_PLUGINS", "Math Plugins",
-                       ALIGNMENT_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
+
+    for (int i = 0; i < (int)MathPluginDisplayNames.size(); i++)
+    {
+        IUFillSwitch(AlignmentSubsystemMathPlugins.get() + i + 1, MathPluginDisplayNames[i].c_str(),
+                     MathPluginDisplayNames[i].c_str(), ISS_OFF);
+    }
+    IUFillSwitchVector(&AlignmentSubsystemMathPluginsV, AlignmentSubsystemMathPlugins.get(),
+                       MathPluginDisplayNames.size() + 1, ChildTelescope->getDeviceName(),
+                       "ALIGNMENT_SUBSYSTEM_MATH_PLUGINS", "Math Plugins", ALIGNMENT_TAB, IP_RW, ISR_1OFMANY, 60,
+                       IPS_IDLE);
     ChildTelescope->registerProperty(&AlignmentSubsystemMathPluginsV, INDI_SWITCH);
 
     IUFillSwitch(&AlignmentSubsystemMathPluginInitialise, "ALIGNMENT_SUBSYSTEM_MATH_PLUGIN_INITIALISE", "OK", ISS_OFF);
-    IUFillSwitchVector(&AlignmentSubsystemMathPluginInitialiseV, &AlignmentSubsystemMathPluginInitialise, 1, ChildTelescope->getDeviceName(),
-                       "ALIGNMENT_SUBSYSTEM_MATH_PLUGIN_INITIALISE", "(Re)Initialise Plugin", ALIGNMENT_TAB, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
+    IUFillSwitchVector(&AlignmentSubsystemMathPluginInitialiseV, &AlignmentSubsystemMathPluginInitialise, 1,
+                       ChildTelescope->getDeviceName(), "ALIGNMENT_SUBSYSTEM_MATH_PLUGIN_INITIALISE",
+                       "(Re)Initialise Plugin", ALIGNMENT_TAB, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
     ChildTelescope->registerProperty(&AlignmentSubsystemMathPluginInitialiseV, INDI_SWITCH);
 
     IUFillSwitch(&AlignmentSubsystemActive, "ALIGNMENT SUBSYSTEM ACTIVE", "Alignment Subsystem Active", ISS_OFF);
     IUFillSwitchVector(&AlignmentSubsystemActiveV, &AlignmentSubsystemActive, 1, ChildTelescope->getDeviceName(),
-                       "ALIGNMENT_SUBSYSTEM_ACTIVE", "Activate alignment subsystem", ALIGNMENT_TAB, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
+                       "ALIGNMENT_SUBSYSTEM_ACTIVE", "Activate alignment subsystem", ALIGNMENT_TAB, IP_RW, ISR_ATMOST1,
+                       60, IPS_IDLE);
     ChildTelescope->registerProperty(&AlignmentSubsystemActiveV, INDI_SWITCH);
 
     // The following property is used for configuration purposes only and is not exposed to the client.
     IUFillText(&AlignmentSubsystemCurrentMathPlugin, "ALIGNMENT_SUBSYSTEM_CURRENT_MATH_PLUGIN", "Current Math Plugin",
                AlignmentSubsystemMathPlugins.get()[0].label);
-    IUFillTextVector(&AlignmentSubsystemCurrentMathPluginV, &AlignmentSubsystemCurrentMathPlugin, 1, ChildTelescope->getDeviceName(),
-                     "ALIGNMENT_SUBSYSTEM_CURRENT_MATH_PLUGIN", "Current Math Plugin", ALIGNMENT_TAB, IP_RO, 60, IPS_IDLE);
+    IUFillTextVector(&AlignmentSubsystemCurrentMathPluginV, &AlignmentSubsystemCurrentMathPlugin, 1,
+                     ChildTelescope->getDeviceName(), "ALIGNMENT_SUBSYSTEM_CURRENT_MATH_PLUGIN", "Current Math Plugin",
+                     ALIGNMENT_TAB, IP_RO, 60, IPS_IDLE);
 }
 
-void MathPluginManagement::ProcessTextProperties(Telescope * pTelescope, const char * name, char * texts[], char * names[], int n)
+void MathPluginManagement::ProcessTextProperties(Telescope *pTelescope, const char *name, char *texts[], char *names[],
+                                                 int n)
 {
     DEBUGFDEVICE(pTelescope->getDeviceName(), INDI::Logger::DBG_DEBUG, "ProcessTextProperties - name(%s)", name);
     if (strcmp(name, AlignmentSubsystemCurrentMathPluginV.name) == 0)
@@ -64,7 +78,7 @@ void MathPluginManagement::ProcessTextProperties(Telescope * pTelescope, const c
             if (nullptr != LoadedMathPluginHandle)
             {
                 typedef void Destroy_t(MathPlugin *);
-                Destroy_t * Destroy = (Destroy_t *)dlsym(LoadedMathPluginHandle, "Destroy");
+                Destroy_t *Destroy = (Destroy_t *)dlsym(LoadedMathPluginHandle, "Destroy");
                 if (nullptr != Destroy)
                 {
                     Destroy(pLoadedMathPlugin);
@@ -72,7 +86,6 @@ void MathPluginManagement::ProcessTextProperties(Telescope * pTelescope, const c
                     if (0 == dlclose(LoadedMathPluginHandle))
                     {
                         LoadedMathPluginHandle = nullptr;
-
                     }
                     else
                     {
@@ -89,19 +102,21 @@ void MathPluginManagement::ProcessTextProperties(Telescope * pTelescope, const c
             // It is not the built in so try to load it
             if (nullptr != (LoadedMathPluginHandle = dlopen(AlignmentSubsystemCurrentMathPlugin.text, RTLD_NOW)))
             {
-                typedef MathPlugin * Create_t();
-                Create_t * Create = (Create_t *)dlsym(LoadedMathPluginHandle, "Create");
+                typedef MathPlugin *Create_t();
+                Create_t *Create = (Create_t *)dlsym(LoadedMathPluginHandle, "Create");
                 if (nullptr != Create)
                 {
                     pLoadedMathPlugin = Create();
+
                     // TODO - Update the client to reflect the new plugin
-                    int i;
-                    for (i = 0; i < MathPluginFiles.size(); i++)
+                    int i = 0;
+
+                    for (i = 0; i < (int)MathPluginFiles.size(); i++)
                     {
                         if (0 == strcmp(AlignmentSubsystemCurrentMathPlugin.text, MathPluginFiles[i].c_str()))
                             break;
                     }
-                    if (i < MathPluginFiles.size())
+                    if (i < (int)MathPluginFiles.size())
                     {
                         IUResetSwitch(&AlignmentSubsystemMathPluginsV);
                         (AlignmentSubsystemMathPlugins.get() + i + 1)->s = ISS_ON;
@@ -120,7 +135,8 @@ void MathPluginManagement::ProcessTextProperties(Telescope * pTelescope, const c
             }
             else
             {
-                IDLog("MathPluginManagement - cannot load plugin %s error %s\n", AlignmentSubsystemCurrentMathPlugin.text, dlerror());
+                IDLog("MathPluginManagement - cannot load plugin %s error %s\n",
+                      AlignmentSubsystemCurrentMathPlugin.text, dlerror());
             }
         }
         else
@@ -130,7 +146,7 @@ void MathPluginManagement::ProcessTextProperties(Telescope * pTelescope, const c
             if (nullptr != LoadedMathPluginHandle)
             {
                 typedef void Destroy_t(MathPlugin *);
-                Destroy_t * Destroy = (Destroy_t *)dlsym(LoadedMathPluginHandle, "Destroy");
+                Destroy_t *Destroy = (Destroy_t *)dlsym(LoadedMathPluginHandle, "Destroy");
                 if (nullptr != Destroy)
                 {
                     Destroy(pLoadedMathPlugin);
@@ -138,7 +154,6 @@ void MathPluginManagement::ProcessTextProperties(Telescope * pTelescope, const c
                     if (0 == dlclose(LoadedMathPluginHandle))
                     {
                         LoadedMathPluginHandle = nullptr;
-
                     }
                     else
                     {
@@ -161,7 +176,8 @@ void MathPluginManagement::ProcessTextProperties(Telescope * pTelescope, const c
     }
 }
 
-void MathPluginManagement::ProcessSwitchProperties(Telescope * pTelescope, const char * name, ISState * states, char * names[], int n)
+void MathPluginManagement::ProcessSwitchProperties(Telescope *pTelescope, const char *name, ISState *states,
+                                                   char *names[], int n)
 {
     DEBUGFDEVICE(pTelescope->getDeviceName(), INDI::Logger::DBG_DEBUG, "ProcessSwitchProperties - name(%s)", name);
     if (strcmp(name, AlignmentSubsystemMathPluginsV.name) == 0)
@@ -169,7 +185,7 @@ void MathPluginManagement::ProcessSwitchProperties(Telescope * pTelescope, const
         int CurrentPlugin = IUFindOnSwitchIndex(&AlignmentSubsystemMathPluginsV);
         IUUpdateSwitch(&AlignmentSubsystemMathPluginsV, states, names, n);
         AlignmentSubsystemMathPluginsV.s = IPS_OK; // Assume OK for the time being
-        int NewPlugin  = IUFindOnSwitchIndex(&AlignmentSubsystemMathPluginsV);
+        int NewPlugin                    = IUFindOnSwitchIndex(&AlignmentSubsystemMathPluginsV);
         if (NewPlugin != CurrentPlugin)
         {
             // New plugin requested
@@ -177,7 +193,7 @@ void MathPluginManagement::ProcessSwitchProperties(Telescope * pTelescope, const
             if (0 != CurrentPlugin)
             {
                 typedef void Destroy_t(MathPlugin *);
-                Destroy_t * Destroy = (Destroy_t *)dlsym(LoadedMathPluginHandle, "Destroy");
+                Destroy_t *Destroy = (Destroy_t *)dlsym(LoadedMathPluginHandle, "Destroy");
                 if (nullptr != Destroy)
                 {
                     Destroy(pLoadedMathPlugin);
@@ -185,7 +201,6 @@ void MathPluginManagement::ProcessSwitchProperties(Telescope * pTelescope, const
                     if (0 == dlclose(LoadedMathPluginHandle))
                     {
                         LoadedMathPluginHandle = nullptr;
-
                     }
                     else
                     {
@@ -205,8 +220,8 @@ void MathPluginManagement::ProcessSwitchProperties(Telescope * pTelescope, const
                 std::string PluginPath(MathPluginFiles[NewPlugin - 1]);
                 if (nullptr != (LoadedMathPluginHandle = dlopen(PluginPath.c_str(), RTLD_NOW)))
                 {
-                    typedef MathPlugin * Create_t();
-                    Create_t * Create = (Create_t *)dlsym(LoadedMathPluginHandle, "Create");
+                    typedef MathPlugin *Create_t();
+                    Create_t *Create = (Create_t *)dlsym(LoadedMathPluginHandle, "Create");
                     if (nullptr != Create)
                     {
                         pLoadedMathPlugin = Create();
@@ -255,12 +270,12 @@ void MathPluginManagement::ProcessSwitchProperties(Telescope * pTelescope, const
 
 void MathPluginManagement::SetAlignmentSubsystemActive(bool enable)
 {
-    AlignmentSubsystemActive.s = enable ? ISS_ON : ISS_OFF;
+    AlignmentSubsystemActive.s  = enable ? ISS_ON : ISS_OFF;
     AlignmentSubsystemActiveV.s = IPS_OK;
     IDSetSwitch(&AlignmentSubsystemActiveV, nullptr);
 }
 
-void MathPluginManagement::SaveConfigProperties(FILE * fp)
+void MathPluginManagement::SaveConfigProperties(FILE *fp)
 {
     IUSaveConfigText(fp, &AlignmentSubsystemCurrentMathPluginV);
     IUSaveConfigSwitch(fp, &AlignmentSubsystemActiveV);
@@ -292,7 +307,7 @@ MountAlignment_t MathPluginManagement::GetApproximateMountAlignment()
     return (pLoadedMathPlugin->*pGetApproximateMountAlignment)();
 }
 
-bool MathPluginManagement::Initialise(InMemoryDatabase * pInMemoryDatabase)
+bool MathPluginManagement::Initialise(InMemoryDatabase *pInMemoryDatabase)
 {
     return (pLoadedMathPlugin->*pInitialise)(pInMemoryDatabase);
 }
@@ -302,19 +317,23 @@ void MathPluginManagement::SetApproximateMountAlignment(MountAlignment_t Approxi
     (pLoadedMathPlugin->*pSetApproximateMountAlignment)(ApproximateAlignment);
 }
 
-bool MathPluginManagement::TransformCelestialToTelescope(const double RightAscension, const double Declination, double JulianOffset,
-        TelescopeDirectionVector &ApparentTelescopeDirectionVector)
+bool MathPluginManagement::TransformCelestialToTelescope(const double RightAscension, const double Declination,
+                                                         double JulianOffset,
+                                                         TelescopeDirectionVector &ApparentTelescopeDirectionVector)
 {
     if (AlignmentSubsystemActive.s == ISS_ON)
-        return (pLoadedMathPlugin->*pTransformCelestialToTelescope)(RightAscension, Declination, JulianOffset, ApparentTelescopeDirectionVector);
+        return (pLoadedMathPlugin->*pTransformCelestialToTelescope)(RightAscension, Declination, JulianOffset,
+                                                                    ApparentTelescopeDirectionVector);
     else
         return false;
 }
 
-bool MathPluginManagement::TransformTelescopeToCelestial(const TelescopeDirectionVector &ApparentTelescopeDirectionVector, double &RightAscension, double &Declination)
+bool MathPluginManagement::TransformTelescopeToCelestial(
+    const TelescopeDirectionVector &ApparentTelescopeDirectionVector, double &RightAscension, double &Declination)
 {
     if (AlignmentSubsystemActive.s == ISS_ON)
-        return (pLoadedMathPlugin->*pTransformTelescopeToCelestial)(ApparentTelescopeDirectionVector, RightAscension, Declination);
+        return (pLoadedMathPlugin->*pTransformTelescopeToCelestial)(ApparentTelescopeDirectionVector, RightAscension,
+                                                                    Declination);
     else
         return false;
 }
@@ -324,20 +343,20 @@ void MathPluginManagement::EnumeratePlugins()
     MathPluginFiles.clear();
     MathPluginDisplayNames.clear();
 #ifndef OSX_EMBEDED_MODE
-    dirent * de;
-    DIR * dp;
+    dirent *de;
+    DIR *dp;
 
     errno = 0;
-    dp = opendir( INDI_MATH_PLUGINS_DIRECTORY );
+    dp    = opendir(INDI_MATH_PLUGINS_DIRECTORY);
     if (dp)
     {
         while (true)
         {
-            void * Handle;
+            void *Handle;
             std::string PluginPath(INDI_MATH_PLUGINS_DIRECTORY "/");
 
             errno = 0;
-            de = readdir( dp );
+            de    = readdir(dp);
             if (de == nullptr)
                 break;
             if (0 == strcmp(de->d_name, "."))
@@ -355,8 +374,8 @@ void MathPluginManagement::EnumeratePlugins()
             }
 
             // Try to get the plugin display name
-            typedef const char * GetDisplayName_t();
-            GetDisplayName_t * GetDisplayNamePtr = (GetDisplayName_t *)dlsym(Handle, "GetDisplayName");
+            typedef const char *GetDisplayName_t();
+            GetDisplayName_t *GetDisplayNamePtr = (GetDisplayName_t *)dlsym(Handle, "GetDisplayName");
             if (nullptr == GetDisplayNamePtr)
             {
                 IDLog("EnumeratePlugins - cannot get plugin %s DisplayName error %s\n", PluginPath.c_str(), dlerror());
@@ -365,14 +384,14 @@ void MathPluginManagement::EnumeratePlugins()
             IDLog("EnumeratePlugins - found plugin %s\n", GetDisplayNamePtr());
 
             MathPluginDisplayNames.push_back(GetDisplayNamePtr());
-            MathPluginFiles.push_back( PluginPath );
+            MathPluginFiles.push_back(PluginPath);
             dlclose(Handle);
         }
-        closedir( dp );
+        closedir(dp);
     }
     else
     {
-        IDLog("EnumeratePlugins - Failed to open %s error %s\n", INDI_MATH_PLUGINS_DIRECTORY, strerror(errno) );
+        IDLog("EnumeratePlugins - Failed to open %s error %s\n", INDI_MATH_PLUGINS_DIRECTORY, strerror(errno));
     }
 #endif
 }

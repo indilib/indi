@@ -18,45 +18,42 @@
 *******************************************************************************/
 #include "dome_simulator.h"
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
+#include "indicom.h"
+
 #include <math.h>
-#include <string.h>
-
 #include <memory>
-
-#include <indicom.h>
+#include <unistd.h>
 
 // We declare an auto pointer to domeSim.
 std::unique_ptr<DomeSim> domeSim(new DomeSim());
 
-#define DOME_SPEED      10.0            /* 10 degrees per second, constant */
-#define SHUTTER_TIMER   5.0             /* Shutter closes/open in 5 seconds */
+#define DOME_SPEED    10.0 /* 10 degrees per second, constant */
+#define SHUTTER_TIMER 5.0  /* Shutter closes/open in 5 seconds */
 
-void ISPoll(void * p);
+void ISPoll(void *p);
 
-void ISGetProperties(const char * dev)
+void ISGetProperties(const char *dev)
 {
     domeSim->ISGetProperties(dev);
 }
 
-void ISNewSwitch(const char * dev, const char * name, ISState * states, char * names[], int num)
+void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int num)
 {
     domeSim->ISNewSwitch(dev, name, states, names, num);
 }
 
-void ISNewText(	const char * dev, const char * name, char * texts[], char * names[], int num)
+void ISNewText(const char *dev, const char *name, char *texts[], char *names[], int num)
 {
     domeSim->ISNewText(dev, name, texts, names, num);
 }
 
-void ISNewNumber(const char * dev, const char * name, double values[], char * names[], int num)
+void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int num)
 {
     domeSim->ISNewNumber(dev, name, values, names, num);
 }
 
-void ISNewBLOB (const char * dev, const char * name, int sizes[], int blobsizes[], char * blobs[], char * formats[], char * names[], int n)
+void ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[],
+               char *names[], int n)
 {
     INDI_UNUSED(dev);
     INDI_UNUSED(name);
@@ -68,21 +65,20 @@ void ISNewBLOB (const char * dev, const char * name, int sizes[], int blobsizes[
     INDI_UNUSED(n);
 }
 
-void ISSnoopDevice (XMLEle * root)
+void ISSnoopDevice(XMLEle *root)
 {
     domeSim->ISSnoopDevice(root);
 }
 
 DomeSim::DomeSim()
 {
-    targetAz = 0;
-    shutterTimer = 0;
-    prev_az = 0;
-    prev_alt = 0;
+    targetAz        = 0;
+    shutterTimer    = 0;
+    prev_az         = 0;
+    prev_alt        = 0;
     TimeSinceUpdate = 0;
 
     SetDomeCapability(DOME_CAN_ABORT | DOME_CAN_ABS_MOVE | DOME_CAN_REL_MOVE | DOME_CAN_PARK | DOME_HAS_SHUTTER);
-
 }
 
 /************************************************************************************
@@ -101,12 +97,12 @@ bool DomeSim::initProperties()
 
 bool DomeSim::SetupParms()
 {
-    targetAz = 0;
+    targetAz     = 0;
     shutterTimer = SHUTTER_TIMER;
 
     DomeAbsPosN[0].value = 0;
 
-    DomeParamN[0].value  = 5;
+    DomeParamN[0].value = 5;
 
     IDSetNumber(&DomeAbsPosNP, nullptr);
     IDSetNumber(&DomeParamNP, nullptr);
@@ -128,10 +124,9 @@ bool DomeSim::SetupParms()
 
 DomeSim::~DomeSim()
 {
-
 }
 
-const char * DomeSim::getDefaultName()
+const char *DomeSim::getDefaultName()
 {
     return (char *)"Dome Simulator";
 }
@@ -150,7 +145,7 @@ bool DomeSim::updateProperties()
 
 bool DomeSim::Connect()
 {
-    SetTimer(1000);     //  start the timer
+    SetTimer(1000); //  start the timer
     return true;
 }
 
@@ -159,12 +154,12 @@ bool DomeSim::Disconnect()
     return true;
 }
 
-
 void DomeSim::TimerHit()
 {
     int nexttimer = 1000;
 
-    if(isConnected() == false) return;  //  No need to reset timer if we are not connected anymore
+    if (isConnected() == false)
+        return; //  No need to reset timer if we are not connected anymore
 
     if (DomeAbsPosNP.s == IPS_BUSY)
     {
@@ -199,7 +194,7 @@ void DomeSim::TimerHit()
     {
         if (shutterTimer-- <= 0)
         {
-            shutterTimer = 0;
+            shutterTimer    = 0;
             DomeShutterSP.s = IPS_OK;
             DEBUGF(INDI::Logger::DBG_SESSION, "Shutter is %s.", (DomeShutterS[0].s == ISS_ON ? "open" : "closed"));
             IDSetSwitch(&DomeShutterSP, nullptr);
@@ -214,7 +209,7 @@ void DomeSim::TimerHit()
     //  Once every 10 seconds is more than sufficient
     //  with this added, dome simulator will now correctly track telescope simulator
     //  which does not emit new ra/dec co-ords if they are not changing
-    if(isParked() == false && TimeSinceUpdate++ > 9)
+    if (isParked() == false && TimeSinceUpdate++ > 9)
     {
         TimeSinceUpdate = 0;
         UpdateMountCoords();
@@ -226,18 +221,17 @@ IPState DomeSim::Move(DomeDirection dir, DomeMotionCommand operation)
 {
     if (operation == MOTION_START)
     {
-        targetAz = (dir == DOME_CW) ? 1e6 : -1e6;
+        targetAz       = (dir == DOME_CW) ? 1e6 : -1e6;
         DomeAbsPosNP.s = IPS_BUSY;
     }
     else
     {
-        targetAz = 0;
+        targetAz       = 0;
         DomeAbsPosNP.s = IPS_IDLE;
     }
 
     IDSetNumber(&DomeAbsPosNP, nullptr);
-    return ( (operation == MOTION_START) ? IPS_BUSY : IPS_OK);
-
+    return ((operation == MOTION_START) ? IPS_BUSY : IPS_OK);
 }
 
 IPState DomeSim::MoveAbs(double az)
@@ -248,16 +242,14 @@ IPState DomeSim::MoveAbs(double az)
     if (fabs(az - DomeAbsPosN[0].value) < DOME_SPEED)
         return IPS_OK;
 
-
-
     // It will take a few cycles to reach final position
     return IPS_BUSY;
-
 }
 
 IPState DomeSim::MoveRel(double azDiff)
 {
-    targetAz = DomeAbsPosN[0].value + azDiff;;
+    targetAz = DomeAbsPosN[0].value + azDiff;
+    ;
 
     if (targetAz < DomeAbsPosN[0].min)
         targetAz += DomeAbsPosN[0].max;
@@ -270,18 +262,18 @@ IPState DomeSim::MoveRel(double azDiff)
 
     // It will take a few cycles to reach final position
     return IPS_BUSY;
-
 }
 
 IPState DomeSim::Park()
 {
     if (INDI::Dome::isLocked())
     {
-        DEBUG(INDI::Logger::DBG_SESSION, "Cannot Park Dome when mount is locking. See: Telescope parking policy, in options tab");
+        DEBUG(INDI::Logger::DBG_SESSION,
+              "Cannot Park Dome when mount is locking. See: Telescope parking policy, in options tab");
         return IPS_ALERT;
     }
 
-    targetAz = DomeParamN[1].value;
+    targetAz = DomeParamN[0].value;
     Dome::ControlShutter(SHUTTER_CLOSE);
     Dome::MoveAbs(GetAxis1Park());
 
@@ -325,4 +317,3 @@ bool DomeSim::SetDefaultPark()
     SetAxis1Park(90);
     return true;
 }
-

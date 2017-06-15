@@ -21,13 +21,12 @@
  Boston, MA 02110-1301, USA.
 *******************************************************************************/
 
-#ifndef DSC_H
-#define DSC_H
+#pragma once
+
+#include "inditelescope.h"
+#include "alignment/AlignmentSubsystemForDrivers.h"
 
 #include <libnova.h>
-
-#include "indibase/inditelescope.h"
-#include <alignment/AlignmentSubsystemForDrivers.h>
 
 typedef struct SyncData
 {
@@ -42,67 +41,81 @@ typedef struct SyncData
 
 class DSC : public INDI::Telescope, INDI::AlignmentSubsystem::AlignmentSubsystemForDrivers
 {
-    public:
-        DSC();
-        virtual ~DSC();
+  public:
+    DSC();
+    virtual ~DSC();
 
-        virtual bool ISNewText (const char * dev, const char * name, char * texts[], char * names[], int n);
-        virtual bool ISNewNumber (const char * dev, const char * name, double values[], char * names[], int n);
-        virtual bool ISNewSwitch (const char * dev, const char * name, ISState * states, char * names[], int n);
+    virtual bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n) override;
+    virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
+    virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
 
-    protected:
+  protected:
+    virtual const char *getDefaultName() override;
+    virtual bool Handshake() override;
 
-        virtual const char * getDefaultName();
-        virtual bool Handshake();
+    virtual bool initProperties() override;
+    virtual bool updateProperties() override;
+    virtual bool saveConfigItems(FILE *fp) override;
+    virtual bool ReadScopeStatus() override;
 
-        virtual bool initProperties();
-        virtual bool updateProperties();
-        virtual bool saveConfigItems(FILE * fp);
-        virtual bool ReadScopeStatus();
+    virtual bool Sync(double ra, double dec) override;
+    virtual bool updateLocation(double latitude, double longitude, double elevation) override;
 
-        virtual bool Sync(double ra, double dec) override;
-        virtual bool updateLocation(double latitude, double longitude, double elevation) override;
+    virtual void simulationTriggered(bool enable) override;
 
-        virtual void simulationTriggered(bool enable) override;
+  private:
+    ln_equ_posn TelescopeEquatorialToSky();
+    ln_equ_posn TelescopeHorizontalToSky();
 
-    private:
+    INumber EncoderN[4];
+    INumberVectorProperty EncoderNP;
+    enum
+    {
+        AXIS1_ENCODER,
+        AXIS2_ENCODER,
+        AXIS1_RAW_ENCODER,
+        AXIS2_RAW_ENCODER
+    };
 
-        ln_equ_posn TelescopeEquatorialToSky();
-        ln_equ_posn TelescopeHorizontalToSky();
+    INumber AxisSettingsN[4];
+    INumberVectorProperty AxisSettingsNP;
+    //enum { AXIS1_TICKS, AXIS2_TICKS};
+    enum
+    {
+        AXIS1_TICKS,
+        AXIS1_DEGREE_OFFSET,
+        AXIS2_TICKS,
+        AXIS2_DEGREE_OFFSET
+    };
 
-        INumber EncoderN[4];
-        INumberVectorProperty EncoderNP;
-        enum { AXIS1_ENCODER, AXIS2_ENCODER, AXIS1_RAW_ENCODER, AXIS2_RAW_ENCODER };
+    ISwitch AxisRangeS[2];
+    ISwitchVectorProperty AxisRangeSP;
+    enum
+    {
+        AXIS_FULL_STEP,
+        AXIS_HALF_STEP
+    };
 
-        INumber AxisSettingsN[4];
-        INumberVectorProperty AxisSettingsNP;
-        //enum { AXIS1_TICKS, AXIS2_TICKS};
-        enum { AXIS1_TICKS, AXIS1_DEGREE_OFFSET, AXIS2_TICKS, AXIS2_DEGREE_OFFSET};
+    ISwitch ReverseS[2];
+    ISwitchVectorProperty ReverseSP;
 
-        ISwitch AxisRangeS[2];
-        ISwitchVectorProperty AxisRangeSP;
-        enum { AXIS_FULL_STEP, AXIS_HALF_STEP };
+    ISwitch MountTypeS[2];
+    ISwitchVectorProperty MountTypeSP;
+    enum
+    {
+        MOUNT_EQUATORIAL,
+        MOUNT_ALTAZ
+    };
 
-        ISwitch ReverseS[2];
-        ISwitchVectorProperty ReverseSP;
+    //INumber EncoderOffsetN[6];
+    //INumberVectorProperty EncoderOffsetNP;
+    //enum { OFFSET_AXIS1_SCALE, OFFSET_AXIS1_OFFSET, AXIS1_DEGREE_OFFSET, OFFSET_AXIS2_SCALE, OFFSET_AXIS2_OFFSET, AXIS2_DEGREE_OFFSET };
 
-        ISwitch MountTypeS[2];
-        ISwitchVectorProperty MountTypeSP;
-        enum { MOUNT_EQUATORIAL, MOUNT_ALTAZ };
+    // Simulation Only
+    INumber SimEncoderN[2];
+    INumberVectorProperty SimEncoderNP;
 
-        //INumber EncoderOffsetN[6];
-        //INumberVectorProperty EncoderOffsetNP;
-        //enum { OFFSET_AXIS1_SCALE, OFFSET_AXIS1_OFFSET, AXIS1_DEGREE_OFFSET, OFFSET_AXIS2_SCALE, OFFSET_AXIS2_OFFSET, AXIS2_DEGREE_OFFSET };
-
-        // Simulation Only
-        INumber SimEncoderN[2];
-        INumberVectorProperty SimEncoderNP;
-
-        ln_lnlat_posn observer;
-        ln_hrz_posn encoderHorizontalCoordinates;
-        ln_equ_posn encoderEquatorialCoordinates;
-
-        SyncData syncdata, syncdata2;
+    ln_lnlat_posn observer;
+    ln_hrz_posn encoderHorizontalCoordinates;
+    ln_equ_posn encoderEquatorialCoordinates;
 };
-
-#endif

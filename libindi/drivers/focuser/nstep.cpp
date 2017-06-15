@@ -20,39 +20,39 @@
   Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
-#include <stdio.h>
-#include <memory>
-#include <unistd.h>
-
-#include <indicom.h>
-
 #include "nstep.h"
 
-#define POLLMS  2000
+#include "indicom.h"
+
+#include <memory>
+#include <string.h>
+
+#define POLLMS 2000
 
 std::unique_ptr<NSTEP> nstep(new NSTEP());
 
-void ISGetProperties(const char * dev)
+void ISGetProperties(const char *dev)
 {
     nstep->ISGetProperties(dev);
 }
 
-void ISNewSwitch(const char * dev, const char * name, ISState * states, char * names[], int num)
+void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int num)
 {
     nstep->ISNewSwitch(dev, name, states, names, num);
 }
 
-void ISNewText(const char * dev, const char * name, char * texts[], char * names[], int num)
+void ISNewText(const char *dev, const char *name, char *texts[], char *names[], int num)
 {
     nstep->ISNewText(dev, name, texts, names, num);
 }
 
-void ISNewNumber(const char * dev, const char * name, double values[], char * names[], int num)
+void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int num)
 {
     nstep->ISNewNumber(dev, name, values, names, num);
 }
 
-void ISNewBLOB(const char * dev, const char * name, int sizes[], int blobsizes[], char * blobs[], char * formats[], char * names[], int n)
+void ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[],
+               char *names[], int n)
 {
     INDI_UNUSED(dev);
     INDI_UNUSED(name);
@@ -64,7 +64,7 @@ void ISNewBLOB(const char * dev, const char * name, int sizes[], int blobsizes[]
     INDI_UNUSED(n);
 }
 
-void ISSnoopDevice(XMLEle * root)
+void ISSnoopDevice(XMLEle *root)
 {
     nstep->ISSnoopDevice(root);
 }
@@ -83,63 +83,63 @@ NSTEP::~NSTEP()
         Disconnect();
 }
 
-bool NSTEP::command(const char * request, char * response, int count)
+bool NSTEP::command(const char *request, char *response, int count)
 {
-    DEBUGF(INDI::Logger::DBG_DEBUG,  "Write [%s]", request);
+    DEBUGF(INDI::Logger::DBG_DEBUG, "Write [%s]", request);
     if (isSimulation())
     {
         if (!strcmp(request, ":RT"))
         {
             strcpy(response, "+150");
-            DEBUGF(INDI::Logger::DBG_DEBUG,  "Read [%s]", response);
+            DEBUGF(INDI::Logger::DBG_DEBUG, "Read [%s]", response);
             return true;
         }
         if (!strcmp(request, ":RP"))
         {
             sprintf(response, "%+07ld", sim_position);
-            DEBUGF(INDI::Logger::DBG_DEBUG,  "Read [%s]", response);
+            DEBUGF(INDI::Logger::DBG_DEBUG, "Read [%s]", response);
             return true;
         }
         if (!strcmp(request, ":RS"))
         {
             strcpy(response, "100");
-            DEBUGF(INDI::Logger::DBG_DEBUG,  "Read [%s]", response);
+            DEBUGF(INDI::Logger::DBG_DEBUG, "Read [%s]", response);
             return true;
         }
         if (!strcmp(request, ":RO"))
         {
             strcpy(response, "001");
-            DEBUGF(INDI::Logger::DBG_DEBUG,  "Read [%s]", response);
+            DEBUGF(INDI::Logger::DBG_DEBUG, "Read [%s]", response);
             return true;
         }
         if (!strcmp(request, ":RA"))
         {
             strcpy(response, "+010");
-            DEBUGF(INDI::Logger::DBG_DEBUG,  "Read [%s]", response);
+            DEBUGF(INDI::Logger::DBG_DEBUG, "Read [%s]", response);
             return true;
         }
         if (!strcmp(request, ":RB"))
         {
             strcpy(response, "005");
-            DEBUGF(INDI::Logger::DBG_DEBUG,  "Read [%s]", response);
+            DEBUGF(INDI::Logger::DBG_DEBUG, "Read [%s]", response);
             return true;
         }
         if (!strcmp(request, ":RG"))
         {
             strcpy(response, "2");
-            DEBUGF(INDI::Logger::DBG_DEBUG,  "Read [%s]", response);
+            DEBUGF(INDI::Logger::DBG_DEBUG, "Read [%s]", response);
             return true;
         }
         if (!strcmp(request, ":RW"))
         {
             strcpy(response, "0");
-            DEBUGF(INDI::Logger::DBG_DEBUG,  "Read [%s]", response);
+            DEBUGF(INDI::Logger::DBG_DEBUG, "Read [%s]", response);
             return true;
         }
         if (!strcmp(request, "S"))
         {
             strcpy(response, "0");
-            DEBUGF(INDI::Logger::DBG_DEBUG,  "Read [%s]", response);
+            DEBUGF(INDI::Logger::DBG_DEBUG, "Read [%s]", response);
             return true;
         }
         return true;
@@ -168,12 +168,12 @@ bool NSTEP::command(const char * request, char * response, int count)
         pthread_mutex_unlock(&lock);
         return false;
     }
-    DEBUGF(INDI::Logger::DBG_DEBUG,  "Read [%s]", response);
+    DEBUGF(INDI::Logger::DBG_DEBUG, "Read [%s]", response);
     pthread_mutex_unlock(&lock);
     return true;
 }
 
-const char * NSTEP::getDefaultName()
+const char *NSTEP::getDefaultName()
 {
     return "NStep";
 }
@@ -208,35 +208,39 @@ bool NSTEP::initProperties()
     addDebugControl();
     addSimulationControl();
 
-    FocusAbsPosN[0].min = -999999;
-    FocusAbsPosN[0].max = 999999;
+    FocusAbsPosN[0].min  = -999999;
+    FocusAbsPosN[0].max  = 999999;
     FocusAbsPosN[0].step = 1;
 
-    FocusRelPosN[0].min = -999;
-    FocusRelPosN[0].max = 999;
+    FocusRelPosN[0].min  = -999;
+    FocusRelPosN[0].max  = 999;
     FocusRelPosN[0].step = 1;
 
-    FocusSpeedN[0].min = 1;
-    FocusSpeedN[0].max = 254;
+    FocusSpeedN[0].min  = 1;
+    FocusSpeedN[0].max  = 254;
     FocusSpeedN[0].step = 1;
 
     FocusMotionSP.r = ISR_1OFMANY;
 
     IUFillSwitch(&TempCompS[0], "ENABLED", "Temperature compensation enabled", ISS_OFF);
     IUFillSwitch(&TempCompS[1], "DISABLED", "Temperature compensation disabled", ISS_ON);
-    IUFillSwitchVector(&TempCompSP, TempCompS, 2, getDeviceName(), "COMPENSATION_MODE", "Compensation mode", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 0, IPS_OK);
+    IUFillSwitchVector(&TempCompSP, TempCompS, 2, getDeviceName(), "COMPENSATION_MODE", "Compensation mode",
+                       MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 0, IPS_OK);
 
     IUFillNumber(&TempCompN[0], "TEMP_CHANGE", "Temperature change", "%.1f", -99, 99, 0.1, 0);
     IUFillNumber(&TempCompN[1], "TEMP_MOVE", "Compensation move", "%.0f", 0, 999, 1, 0);
-    IUFillNumberVector(&TempCompNP, TempCompN, 2, getDeviceName(), "COMPENSATION_SETTING", "Compensation settings", MAIN_CONTROL_TAB, IP_RW, 0, IPS_OK);
+    IUFillNumberVector(&TempCompNP, TempCompN, 2, getDeviceName(), "COMPENSATION_SETTING", "Compensation settings",
+                       MAIN_CONTROL_TAB, IP_RW, 0, IPS_OK);
 
     IUFillNumber(&TempN[0], "TEMPERATURE", "Temperature", "%.1f", 0, 999, 0, 0);
-    IUFillNumberVector(&TempNP, TempN, 1, getDeviceName(), "TEMPERATURE", "Temperature", MAIN_CONTROL_TAB, IP_RO, 0, IPS_OK);
+    IUFillNumberVector(&TempNP, TempN, 1, getDeviceName(), "TEMPERATURE", "Temperature", MAIN_CONTROL_TAB, IP_RO, 0,
+                       IPS_OK);
 
     IUFillSwitch(&SteppingModeS[0], "WAVE", "Wave", ISS_ON);
     IUFillSwitch(&SteppingModeS[1], "HALF", "Half", ISS_OFF);
     IUFillSwitch(&SteppingModeS[2], "FULL", "Full", ISS_OFF);
-    IUFillSwitchVector(&SteppingModeSP, SteppingModeS, 3, getDeviceName(), "STEPPING_MODE", "Stepping mode", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 0, IPS_OK);
+    IUFillSwitchVector(&SteppingModeSP, SteppingModeS, 3, getDeviceName(), "STEPPING_MODE", "Stepping mode",
+                       MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 0, IPS_OK);
 
     FocusAbsPosNP.p = IP_RO;
 
@@ -289,9 +293,9 @@ bool NSTEP::updateProperties()
                 }
                 if (command(":RG", buf, 1))
                 {
-                    char value = *buf;
+                    char value     = *buf;
                     TempCompS[0].s = value == '2' ? ISS_ON : ISS_OFF;
-                    TempCompS[1].s = value == '0'  ? ISS_ON : ISS_OFF;
+                    TempCompS[1].s = value == '0' ? ISS_ON : ISS_OFF;
                     defineSwitch(&TempCompSP);
                 }
                 else
@@ -331,7 +335,7 @@ bool NSTEP::updateProperties()
         }
         if (command(":RW", buf, 1))
         {
-            steppingMode = *buf;
+            steppingMode       = *buf;
             SteppingModeS[0].s = steppingMode == '0' ? ISS_ON : ISS_OFF;
             SteppingModeS[1].s = steppingMode == '1' ? ISS_ON : ISS_OFF;
             SteppingModeS[2].s = steppingMode == '2' ? ISS_ON : ISS_OFF;
@@ -351,14 +355,15 @@ bool NSTEP::updateProperties()
         deleteProperty(FocusSpeedNP.name);
         deleteProperty(SteppingModeSP.name);
     }
-    return INDI::Focuser::updateProperties();;
+    return INDI::Focuser::updateProperties();
+    ;
 }
 
-bool NSTEP::ISNewSwitch (const char * dev, const char * name, ISState * states, char * names[], int n)
+bool NSTEP::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
 {
     if (strcmp(dev, getDeviceName()) == 0)
     {
-        if (!strcmp (name, TempCompSP.name))
+        if (!strcmp(name, TempCompSP.name))
         {
             IUUpdateSwitch(&TempCompSP, states, names, n);
             TempCompSP.s = IPS_OK;
@@ -383,7 +388,7 @@ bool NSTEP::ISNewSwitch (const char * dev, const char * name, ISState * states, 
             IDSetSwitch(&TempCompSP, nullptr);
             return true;
         }
-        if (!strcmp (name, SteppingModeSP.name))
+        if (!strcmp(name, SteppingModeSP.name))
         {
             IUUpdateSwitch(&SteppingModeSP, states, names, n);
             SteppingModeSP.s = IPS_OK;
@@ -418,9 +423,9 @@ bool NSTEP::ISNewSwitch (const char * dev, const char * name, ISState * states, 
     return INDI::Focuser::ISNewSwitch(dev, name, states, names, n);
 }
 
-bool NSTEP::ISNewNumber (const char * dev, const char * name, double values[], char * names[], int n)
+bool NSTEP::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
 {
-    if(strcmp(dev, getDeviceName()) == 0)
+    if (strcmp(dev, getDeviceName()) == 0)
     {
         if (!strcmp(name, TempCompNP.name))
         {
@@ -442,7 +447,6 @@ bool NSTEP::ISNewNumber (const char * dev, const char * name, double values[], c
     }
     return INDI::Focuser::ISNewNumber(dev, name, values, names, n);
 }
-
 
 IPState NSTEP::MoveRelFocuser(FocusDirection dir, unsigned int ticks)
 {
@@ -495,7 +499,7 @@ void NSTEP::TimerHit()
             sscanf(buf, "%d", &tmp);
             if (tmp != temperature)
             {
-                temperature = tmp;
+                temperature    = tmp;
                 TempN[0].value = temperature / 10.0;
                 defineNumber(&TempNP);
             }
@@ -510,7 +514,7 @@ void NSTEP::TimerHit()
             sscanf(buf, "%d", &tmp);
             if (tmp != position)
             {
-                position = tmp;
+                position              = tmp;
                 FocusAbsPosN[0].value = position;
                 defineNumber(&FocusAbsPosNP);
             }
@@ -533,11 +537,9 @@ void NSTEP::TimerHit()
     }
 }
 
-
-bool NSTEP::saveConfigItems(FILE * fp)
+bool NSTEP::saveConfigItems(FILE *fp)
 {
     IUSaveConfigSwitch(fp, &TempCompSP);
     IUSaveConfigNumber(fp, &TempCompNP);
     return INDI::Focuser::saveConfigItems(fp);
 }
-

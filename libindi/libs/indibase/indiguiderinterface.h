@@ -18,8 +18,7 @@
 
 */
 
-#ifndef GUIDERINTERFACE_H
-#define GUIDERINTERFACE_H
+#pragma once
 
 #include "indibase.h"
 
@@ -41,59 +40,66 @@
 */
 class INDI::GuiderInterface
 {
+  public:
+    /**
+     * \brief Guide north for ms milliseconds
+     * \return IPS_OK if operation is completed successfully, IPS_BUSY if operation will take take to
+     * complete, or IPS_ALERT if operation failed.
+     */
+    virtual IPState GuideNorth(float ms) = 0;
 
-    public:
+    /**
+     * \brief Guide south for ms milliseconds
+     * \return IPS_OK if operation is completed successfully, IPS_BUSY if operation will take take to
+     * complete, or IPS_ALERT if operation failed.
+     */
+    virtual IPState GuideSouth(float ms) = 0;
 
-        /** \brief Guide north for ms milliseconds
-            \return IPS_OK if operation is completed successfully, IPS_BUSY if operation will take take to complete, or IPS_ALERT if operation failed.
-        */
-        virtual IPState GuideNorth(float ms) = 0;
+    /**
+     * \brief Guide east for ms milliseconds
+     * \return IPS_OK if operation is completed successfully, IPS_BUSY if operation will take take to
+     * complete, or IPS_ALERT if operation failed.
+     */
+    virtual IPState GuideEast(float ms) = 0;
 
-        /** \brief Guide south for ms milliseconds
-            \return IPS_OK if operation is completed successfully, IPS_BUSY if operation will take take to complete, or IPS_ALERT if operation failed.
-        */
-        virtual IPState GuideSouth(float ms) = 0;
+    /**
+     * \brief Guide west for ms milliseconds
+     * \return IPS_OK if operation is completed successfully, IPS_BUSY if operation will take take to
+     * complete, or IPS_ALERT if operation failed.
+     */
+    virtual IPState GuideWest(float ms) = 0;
 
-        /** \brief Guide east for ms milliseconds
-            \return IPS_OK if operation is completed successfully, IPS_BUSY if operation will take take to complete, or IPS_ALERT if operation failed.
-        */
-        virtual IPState GuideEast(float ms) = 0;
+    /**
+     * \brief Call GuideComplete once the guiding pulse is complete.
+     * @param axis Axis of completed guiding operation.
+     */
+    virtual void GuideComplete(INDI_EQ_AXIS axis);
 
-        /** \brief Guide west for ms milliseconds
-            \return IPS_OK if operation is completed successfully, IPS_BUSY if operation will take take to complete, or IPS_ALERT if operation failed.
-        */
-        virtual IPState GuideWest(float ms) = 0;
+  protected:
+    GuiderInterface();
+    ~GuiderInterface();
 
-        /**
-         * \brief Call GuideComplete once the guiding pulse is complete.
-         * @param axis Axis of completed guiding operation.
-         */
-        virtual void GuideComplete(INDI_EQ_AXIS axis);
+    /**
+     * \brief Initilize guider properties. It is recommended to call this function within
+     * initProperties() of your primary device
+     * \param deviceName Name of the primary device
+     * \param groupName Group or tab name to be used to define guider properties.
+     */
+    void initGuiderProperties(const char *deviceName, const char *groupName);
 
-    protected:
+    /**
+     * \brief Call this function whenever client updates GuideNSNP or GuideWSP properties in the
+     * primary device. This function then takes care of issuing the corresponding GuideXXXX
+     * function accordingly.
+     * \param name device name
+     * \param values value as passed by the client
+     * \param names names as passed by the client
+     * \param n number of values and names pair to process.
+     */
+    void processGuiderProperties(const char *name, double values[], char *names[], int n);
 
-        GuiderInterface();
-        ~GuiderInterface();
-
-        /** \brief Initilize guider properties. It is recommended to call this function within initProperties() of your primary device
-            \param deviceName Name of the primary device
-            \param groupName Group or tab name to be used to define guider properties.
-        */
-        void initGuiderProperties(const char * deviceName, const char * groupName);
-
-        /** \brief Call this function whenever client updates GuideNSNP or GuideWSP properties in the primary device. This function then takes care of issuing the corresponding
-         * GuideXXXX function accordingly.
-         * \param name device name
-         * \param values value as passed by the client
-         * \param names names as passed by the client
-         * \param n number of values and names pair to process.
-        */
-        void processGuiderProperties(const char * name, double values[], char * names[], int n);
-
-        INumber GuideNSN[2];
-        INumberVectorProperty GuideNSNP;
-        INumber GuideWEN[2];
-        INumberVectorProperty GuideWENP;
+    INumber GuideNSN[2];
+    INumberVectorProperty GuideNSNP;
+    INumber GuideWEN[2];
+    INumberVectorProperty GuideWENP;
 };
-
-#endif // GUIDERINTERFACE_H

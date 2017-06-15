@@ -22,17 +22,16 @@
     Version with experimental pulse guide support. GC 04.12.2015
 */
 
-#ifndef CELESTRONDRIVER_H
-#define CELESTRONDRIVER_H
+#pragma once
 
 #include <string>
 
-typedef enum     { GPS_OFF, GPS_ON } CELESTRON_GPS_STATUS;
-typedef enum     { SR_1, SR_2, SR_3, SR_4, SR_5, SR_6, SR_7, SR_8, SR_9} CELESTRON_SLEW_RATE;
-typedef enum     { TRACK_OFF, TRACK_ALTAZ, TRACK_EQN, TRACK_EQS} CELESTRON_TRACK_MODE;
-typedef enum     { RA_AXIS, DEC_AXIS } CELESTRON_AXIS;
-typedef enum     { CELESTRON_N, CELESTRON_S, CELESTRON_W, CELESTRON_E} CELESTRON_DIRECTION;
-typedef enum     { FW_MODEL, FW_VERSION, FW_GPS, FW_RA, FW_DEC } CELESTRON_FIRMWARE;
+typedef enum { GPS_OFF, GPS_ON } CELESTRON_GPS_STATUS;
+typedef enum { SR_1, SR_2, SR_3, SR_4, SR_5, SR_6, SR_7, SR_8, SR_9 } CELESTRON_SLEW_RATE;
+typedef enum { TRACK_OFF, TRACK_ALTAZ, TRACK_EQN, TRACK_EQS } CELESTRON_TRACK_MODE;
+typedef enum { RA_AXIS, DEC_AXIS } CELESTRON_AXIS;
+typedef enum { CELESTRON_N, CELESTRON_S, CELESTRON_W, CELESTRON_E } CELESTRON_DIRECTION;
+typedef enum { FW_MODEL, FW_VERSION, FW_GPS, FW_RA, FW_DEC } CELESTRON_FIRMWARE;
 
 typedef struct
 {
@@ -50,7 +49,7 @@ typedef struct
 **************************************************************************/
 void set_celestron_debug(bool enable);
 void set_celestron_simulation(bool enable);
-void set_celestron_device(const char * name);
+void set_celestron_device(const char *name);
 
 /**************************************************************************
  Simulation
@@ -72,23 +71,23 @@ bool check_celestron_connection(int fd);
  Get Info
 **************************************************************************/
 /** Get All firmware information in addition to model and version */
-bool get_celestron_firmware(int fd, FirmwareInfo * info);
+bool get_celestron_firmware(int fd, FirmwareInfo *info);
 /** Get version */
-bool get_celestron_version(int fd, FirmwareInfo * info);
+bool get_celestron_version(int fd, FirmwareInfo *info);
 /** Get Mount model */
-bool get_celestron_model(int fd, FirmwareInfo * info);
+bool get_celestron_model(int fd, FirmwareInfo *info);
 /** Get GPS Firmware version */
-bool get_celestron_gps_firmware(int fd, FirmwareInfo * info);
+bool get_celestron_gps_firmware(int fd, FirmwareInfo *info);
 /** Get RA Firmware version */
-bool get_celestron_ra_firmware(int fd, FirmwareInfo * info);
+bool get_celestron_ra_firmware(int fd, FirmwareInfo *info);
 /** Get DEC Firmware version */
-bool get_celestron_dec_firmware(int fd, FirmwareInfo * info);
+bool get_celestron_dec_firmware(int fd, FirmwareInfo *info);
 /** Get RA/DEC */
-bool get_celestron_coords(int fd, double * ra, double * dec);
+bool get_celestron_coords(int fd, double *ra, double *dec);
 /** Get Az/Alt */
-bool get_celestron_coords_azalt(int fd, double latitude, double * az, double * alt);
+bool get_celestron_coords_azalt(int fd, double latitude, double *az, double *alt);
 /** Get UTC/Date/Time */
-bool get_celestron_utc_date_time(int fd, double * utc_hours, int * yy, int * mm, int * dd, int * hh, int * minute, int * ss);
+bool get_celestron_utc_date_time(int fd, double *utc_hours, int *yy, int *mm, int *dd, int *hh, int *minute, int *ss);
 
 /**************************************************************************
  Motion
@@ -104,12 +103,12 @@ bool sync_celestron(int fd, double ra, double dec);
  Time & Location
 **************************************************************************/
 bool set_celestron_location(int fd, double longitude, double latitude);
-bool set_celestron_datetime(int fd, struct ln_date * utc, double utc_offset);
+bool set_celestron_datetime(int fd, struct ln_date *utc, double utc_offset);
 
 /**************************************************************************
  Track Mode
 **************************************************************************/
-bool get_celestron_track_mode(int fd, CELESTRON_TRACK_MODE * mode);
+bool get_celestron_track_mode(int fd, CELESTRON_TRACK_MODE *mode);
 bool set_celestron_track_mode(int fd, CELESTRON_TRACK_MODE mode);
 
 /**************************************************************************
@@ -134,5 +133,3 @@ bool wakeup(int fd);
  *************************************************************************/
 int SendPulseCmd(int fd, CELESTRON_DIRECTION direction, signed char rate, unsigned char duration_msec);
 int SendPulseStatusCmd(int fd, CELESTRON_DIRECTION direction, bool &pulse_state);
-
-#endif

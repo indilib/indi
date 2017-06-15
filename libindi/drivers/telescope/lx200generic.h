@@ -18,125 +18,116 @@
 
 */
 
-#ifndef LX200GENERIC_H
-#define LX200GENERIC_H
+#pragma once
 
 #include "indiguiderinterface.h"
 #include "inditelescope.h"
-#include "indicontroller.h"
 
-#include "indidevapi.h"
-#include "indicom.h"
-
-class LX200Generic: public INDI::Telescope, public INDI::GuiderInterface
+class LX200Generic : public INDI::Telescope, public INDI::GuiderInterface
 {
-    public:
-        LX200Generic();
-        virtual ~LX200Generic();
+  public:
+    LX200Generic();
+    virtual ~LX200Generic();
 
-        virtual const char * getDefaultName();
-        virtual const char * getDriverName();
-        virtual bool Handshake();
-        virtual bool ReadScopeStatus();
-        virtual void ISGetProperties(const char * dev);
-        virtual bool initProperties();
-        virtual bool updateProperties();
-        virtual bool ISNewNumber (const char * dev, const char * name, double values[], char * names[], int n);
-        virtual bool ISNewSwitch (const char * dev, const char * name, ISState * states, char * names[], int n);
-        virtual bool ISNewText (const char * dev, const char * name, char * texts[], char * names[], int n);
+    virtual const char *getDefaultName();
+    virtual const char *getDriverName();
+    virtual bool Handshake();
+    virtual bool ReadScopeStatus();
+    virtual void ISGetProperties(const char *dev);
+    virtual bool initProperties();
+    virtual bool updateProperties();
+    virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n);
+    virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n);
+    virtual bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n);
 
-        void updateFocusTimer();
-        void guideTimeout();
+    void updateFocusTimer();
+    void guideTimeout();
 
-    protected:
+  protected:
+    virtual bool SetSlewRate(int index);
+    virtual bool SetTrackMode(int mode);
+    virtual bool MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command);
+    virtual bool MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command);
+    virtual bool Abort();
 
-        virtual bool SetSlewRate(int index);
-        virtual bool SetTrackMode(int mode);
-        virtual bool MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command);
-        virtual bool MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command);
-        virtual bool Abort();
+    virtual bool updateTime(ln_date *utc, double utc_offset);
+    virtual bool updateLocation(double latitude, double longitude, double elevation);
 
-        virtual bool updateTime(ln_date * utc, double utc_offset);
-        virtual bool updateLocation(double latitude, double longitude, double elevation);
+    virtual IPState GuideNorth(float ms);
+    virtual IPState GuideSouth(float ms);
+    virtual IPState GuideEast(float ms);
+    virtual IPState GuideWest(float ms);
 
-        virtual IPState GuideNorth(float ms);
-        virtual IPState GuideSouth(float ms);
-        virtual IPState GuideEast(float ms);
-        virtual IPState GuideWest(float ms);
+    virtual bool Goto(double, double);
+    virtual bool Park();
+    virtual bool Sync(double ra, double dec);
 
-        virtual bool Goto(double, double);
-        virtual bool Park();
-        virtual bool Sync(double ra, double dec);
+    virtual bool isSlewComplete();
+    virtual bool checkConnection();
 
-        virtual bool isSlewComplete();
-        virtual bool checkConnection();
+    virtual void debugTriggered(bool enable);
 
-        virtual void debugTriggered(bool enable);
+    virtual void getBasicData();
+    void slewError(int slewCode);
+    void getAlignment();
+    void sendScopeTime();
+    void sendScopeLocation();
+    void mountSim();
 
-        virtual void getBasicData();
-        void slewError(int slewCode);
-        void getAlignment();
-        void sendScopeTime();
-        void sendScopeLocation();
-        void mountSim();
+    static void updateFocusHelper(void *p);
+    static void guideTimeoutHelper(void *p);
 
         virtual int SendPulseCmd(int direction, int duration_msec);
 
         static void updateFocusHelper(void * p);
         static void guideTimeoutHelper(void * p);
 
-        int    GuideNSTID;
-        int    GuideWETID;
+    int timeFormat;
+    int currentSiteNum;
+    int trackingMode;
+    long guide_direction;
 
-        int timeFormat;
-        int currentSiteNum;
-        int trackingMode;
-        long guide_direction;
+    unsigned int DBG_SCOPE;
 
-        unsigned int DBG_SCOPE;
+    double JD;
+    double targetRA, targetDEC;
+    double currentRA, currentDEC;
+    int MaxReticleFlashRate;
+    bool hasFocus = true;
 
-        double JD;
-        double targetRA, targetDEC;
-        double currentRA, currentDEC;
-        int MaxReticleFlashRate;
-        bool hasFocus = true;
+    /* Telescope Alignment Mode */
+    ISwitchVectorProperty AlignmentSP;
+    ISwitch AlignmentS[3];
 
-        /* Telescope Alignment Mode */
-        ISwitchVectorProperty AlignmentSP;
-        ISwitch AlignmentS[3];
+    /* Tracking Mode */
+    ISwitchVectorProperty TrackModeSP;
+    ISwitch TrackModeS[4];
 
-        /* Tracking Mode */
-        ISwitchVectorProperty TrackModeSP;
-        ISwitch TrackModeS[4];
+    /* Tracking Frequency */
+    INumberVectorProperty TrackingFreqNP;
+    INumber TrackFreqN[1];
 
-        /* Tracking Frequency */
-        INumberVectorProperty TrackingFreqNP;
-        INumber TrackFreqN[1];
+    /* Use pulse-guide commands */
+    ISwitchVectorProperty UsePulseCmdSP;
+    ISwitch UsePulseCmdS[2];
 
-        /* Use pulse-guide commands */
-        ISwitchVectorProperty UsePulseCmdSP;
-        ISwitch UsePulseCmdS[2];
+    /* Site Management */
+    ISwitchVectorProperty SiteSP;
+    ISwitch SiteS[4];
 
-        /* Site Management */
-        ISwitchVectorProperty SiteSP;
-        ISwitch SiteS[4];
+    /* Site Name */
+    ITextVectorProperty SiteNameTP;
+    IText SiteNameT[1];
 
-        /* Site Name */
-        ITextVectorProperty SiteNameTP;
-        IText   SiteNameT[1];
+    /* Focus motion */
+    ISwitchVectorProperty FocusMotionSP;
+    ISwitch FocusMotionS[2];
 
-        /* Focus motion */
-        ISwitchVectorProperty	FocusMotionSP;
-        ISwitch  FocusMotionS[2];
+    /* Focus Timer */
+    INumberVectorProperty FocusTimerNP;
+    INumber FocusTimerN[1];
 
-        /* Focus Timer */
-        INumberVectorProperty FocusTimerNP;
-        INumber  FocusTimerN[1];
-
-        /* Focus Mode */
-        ISwitchVectorProperty FocusModeSP;
-        ISwitch  FocusModeS[3];
-
+    /* Focus Mode */
+    ISwitchVectorProperty FocusModeSP;
+    ISwitch FocusModeS[3];
 };
-
-#endif

@@ -17,46 +17,39 @@
     Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
-#ifndef LX200FS2_H
-#define LX200FS2_H
+#pragma once
 
 #include "lx200generic.h"
 
 class LX200FS2 : public LX200Generic
 {
-    public:
+  public:
+    LX200FS2();
+    ~LX200FS2() {}
 
-        LX200FS2();
-        ~LX200FS2() {}
+    virtual bool initProperties();
+    virtual bool updateProperties();
+    virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n);
 
-        virtual bool initProperties();
-        virtual bool updateProperties();
-        virtual bool ISNewNumber (const char * dev, const char * name, double values[], char * names[], int n);
+  protected:
+    virtual const char *getDefaultName();
+    virtual bool isSlewComplete();
+    virtual bool checkConnection();
 
-    protected:
+    virtual bool saveConfigItems(FILE *fp);
 
-        virtual const char * getDefaultName();
-        virtual bool isSlewComplete();
-        virtual bool checkConnection();
+    // Time and Location
+    virtual bool updateLocation(double latitude, double longitude, double elevation);
+    virtual bool updateTime(ln_date *utc, double utc_offset);
 
-        virtual bool saveConfigItems(FILE * fp);
+    // Parking
+    virtual bool Park();
+    virtual bool UnPark();
+    virtual bool SetCurrentPark();
+    virtual bool SetDefaultPark();
 
-        // Time and Location
-        virtual bool updateLocation(double latitude, double longitude, double elevation);
-        virtual bool updateTime(ln_date * utc, double utc_offset);
+    INumber SlewAccuracyN[2];
+    INumberVectorProperty SlewAccuracyNP;
 
-        // Parking
-        virtual bool Park();
-        virtual bool UnPark();
-        virtual bool SetCurrentPark();
-        virtual bool SetDefaultPark();
-
-        INumber SlewAccuracyN[2];
-        INumberVectorProperty SlewAccuracyNP;
-
-        double Elevation, Latitud, Longitude;
-
+    double Elevation, Latitud, Longitude;
 };
-
-
-#endif

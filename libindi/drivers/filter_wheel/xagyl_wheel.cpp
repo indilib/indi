@@ -16,43 +16,44 @@
  Boston, MA 02110-1301, USA.
 *******************************************************************************/
 
-#include <termios.h>
-#include <unistd.h>
-#include <memory>
-
-#include "indicom.h"
-#include "indilogger.h"
 #include "xagyl_wheel.h"
 
-#define XAGYL_MAXBUF    32
-#define SETTINGS_TAB    "Settings"
+#include "indicom.h"
+
+#include <memory>
+#include <string.h>
+#include <termios.h>
+
+#define XAGYL_MAXBUF 32
+#define SETTINGS_TAB "Settings"
 
 // We declare an auto pointer to XAGYLWheel.
 std::unique_ptr<XAGYLWheel> xagylWheel(new XAGYLWheel());
 
-void ISPoll(void * p);
+void ISPoll(void *p);
 
-void ISGetProperties(const char * dev)
+void ISGetProperties(const char *dev)
 {
     xagylWheel->ISGetProperties(dev);
 }
 
-void ISNewSwitch(const char * dev, const char * name, ISState * states, char * names[], int num)
+void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int num)
 {
     xagylWheel->ISNewSwitch(dev, name, states, names, num);
 }
 
-void ISNewText(	const char * dev, const char * name, char * texts[], char * names[], int num)
+void ISNewText(const char *dev, const char *name, char *texts[], char *names[], int num)
 {
     xagylWheel->ISNewText(dev, name, texts, names, num);
 }
 
-void ISNewNumber(const char * dev, const char * name, double values[], char * names[], int num)
+void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int num)
 {
     xagylWheel->ISNewNumber(dev, name, values, names, num);
 }
 
-void ISNewBLOB (const char * dev, const char * name, int sizes[], int blobsizes[], char * blobs[], char * formats[], char * names[], int n)
+void ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[],
+               char *names[], int n)
 {
     INDI_UNUSED(dev);
     INDI_UNUSED(name);
@@ -63,22 +64,22 @@ void ISNewBLOB (const char * dev, const char * name, int sizes[], int blobsizes[
     INDI_UNUSED(names);
     INDI_UNUSED(n);
 }
-void ISSnoopDevice (XMLEle * root)
+void ISSnoopDevice(XMLEle *root)
 {
     xagylWheel->ISSnoopDevice(root);
 }
 
 XAGYLWheel::XAGYLWheel()
 {
-    sim = false;
-    OffsetN = nullptr;
+    sim             = false;
+    OffsetN         = nullptr;
     firmwareVersion = 0;
 
-    simData.position = 1;
-    simData.speed = 0xA;
+    simData.position   = 1;
+    simData.speed      = 0xA;
     simData.pulseWidth = 1500;
-    simData.threshold = 30;
-    simData.jitter = 1;
+    simData.threshold  = 30;
+    simData.jitter     = 1;
     simData.offset[0] = simData.offset[1] = simData.offset[2] = simData.offset[3] = simData.offset[4] = 0;
     strncpy(simData.product, "Xagyl FW5125VX", 16);
     strncpy(simData.version, "FW3.1.5", 16);
@@ -91,10 +92,9 @@ XAGYLWheel::XAGYLWheel()
 
 XAGYLWheel::~XAGYLWheel()
 {
-
 }
 
-const char * XAGYLWheel::getDefaultName()
+const char *XAGYLWheel::getDefaultName()
 {
     return (char *)"XAGYL Wheel";
 }
@@ -107,7 +107,8 @@ bool XAGYLWheel::initProperties()
     IUFillText(&FirmwareInfoT[0], "Product", "", nullptr);
     IUFillText(&FirmwareInfoT[1], "Firmware", "", nullptr);
     IUFillText(&FirmwareInfoT[2], "Serial #", "", nullptr);
-    IUFillTextVector(&FirmwareInfoTP, FirmwareInfoT, 3, getDeviceName(), "Info", "", MAIN_CONTROL_TAB, IP_RO, 60, IPS_IDLE);
+    IUFillTextVector(&FirmwareInfoTP, FirmwareInfoT, 3, getDeviceName(), "Info", "", MAIN_CONTROL_TAB, IP_RO, 60,
+                     IPS_IDLE);
 
     // Settings
     IUFillNumber(&SettingsN[0], "Speed", "", "%.f", 0, 100, 10., 0.);
@@ -121,7 +122,8 @@ bool XAGYLWheel::initProperties()
     IUFillSwitch(&ResetS[1], "Initialize", "", ISS_OFF);
     IUFillSwitch(&ResetS[2], "Clear Calibration", "", ISS_OFF);
     IUFillSwitch(&ResetS[3], "Perform Calibration", "", ISS_OFF);
-    IUFillSwitchVector(&ResetSP, ResetS, 4, getDeviceName(), "Commands", "", MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
+    IUFillSwitchVector(&ResetSP, ResetS, 4, getDeviceName(), "Commands", "", MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1, 0,
+                       IPS_IDLE);
 
     addAuxControls();
 
@@ -185,13 +187,14 @@ bool XAGYLWheel::Handshake()
             DEBUGF(INDI::Logger::DBG_ERROR, "Unable to parse (%s)", resp);
     }
 
-    DEBUG(INDI::Logger::DBG_SESSION, "Error retreiving data from XAGYL Filter Wheel, please ensure filter wheel is powered and the port is correct.");
+    DEBUG(INDI::Logger::DBG_SESSION, "Error retreiving data from XAGYL Filter Wheel, please ensure filter wheel is "
+                                     "powered and the port is correct.");
     return false;
 }
 
-bool XAGYLWheel::ISNewSwitch (const char * dev, const char * name, ISState * states, char * names[], int n)
+bool XAGYLWheel::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
 {
-    if(strcmp(dev, getDeviceName()) == 0)
+    if (strcmp(dev, getDeviceName()) == 0)
     {
         if (!strcmp(ResetSP.name, name))
         {
@@ -223,9 +226,7 @@ bool XAGYLWheel::ISNewSwitch (const char * dev, const char * name, ISState * sta
                     case 6:
                         DEBUG(INDI::Logger::DBG_SESSION, "Calibrating...");
                         break;
-
                 }
-
             }
 
             ResetSP.s = rc ? IPS_OK : IPS_ALERT;
@@ -238,9 +239,9 @@ bool XAGYLWheel::ISNewSwitch (const char * dev, const char * name, ISState * sta
     return INDI::FilterWheel::ISNewSwitch(dev, name, states, names, n);
 }
 
-bool XAGYLWheel::ISNewNumber (const char * dev, const char * name, double values[], char * names[], int n)
+bool XAGYLWheel::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
 {
-    if(strcmp(dev, getDeviceName()) == 0)
+    if (strcmp(dev, getDeviceName()) == 0)
     {
         if (!strcmp(OffsetNP.name, name))
         {
@@ -257,7 +258,6 @@ bool XAGYLWheel::ISNewNumber (const char * dev, const char * name, double values
                             rc_offset = setOffset(i, -1);
                     }
                 }
-
             }
 
             OffsetNP.s = rc_offset ? IPS_OK : IPS_ALERT;
@@ -350,7 +350,7 @@ bool XAGYLWheel::ISNewNumber (const char * dev, const char * name, double values
 void XAGYLWheel::initOffset()
 {
     free(OffsetN);
-    OffsetN = (INumber *) malloc(FilterSlotN[0].max * sizeof(INumber));
+    OffsetN = (INumber *)malloc(FilterSlotN[0].max * sizeof(INumber));
     char offsetName[MAXINDINAME], offsetLabel[MAXINDILABEL];
     for (int i = 0; i < FilterSlotN[0].max; i++)
     {
@@ -359,10 +359,11 @@ void XAGYLWheel::initOffset()
         IUFillNumber(OffsetN + i, offsetName, offsetLabel, "%.f", -99, 99, 10, 0);
     }
 
-    IUFillNumberVector(&OffsetNP, OffsetN, FilterSlotN[0].max, getDeviceName(), "Offsets", "", FILTER_TAB, IP_RW, 0, IPS_IDLE);
+    IUFillNumberVector(&OffsetNP, OffsetN, FilterSlotN[0].max, getDeviceName(), "Offsets", "", FILTER_TAB, IP_RW, 0,
+                       IPS_IDLE);
 }
 
-bool XAGYLWheel::getCommand(GET_COMMAND cmd, char * result)
+bool XAGYLWheel::getCommand(GET_COMMAND cmd, char *result)
 {
     int nbytes_written = 0, nbytes_read = 0, rc = -1;
     char errstr[MAXRBUF];
@@ -428,7 +429,7 @@ bool XAGYLWheel::getCommand(GET_COMMAND cmd, char * result)
     }
     else
     {
-        if ( (rc = tty_read_section(PortFD, result, 0xA, XAGYL_MAXBUF, &nbytes_read)) != TTY_OK)
+        if ((rc = tty_read_section(PortFD, result, 0xA, XAGYL_MAXBUF, &nbytes_read)) != TTY_OK)
         {
             tty_error_msg(rc, errstr, MAXRBUF);
             DEBUGF(INDI::Logger::DBG_ERROR, "%s: %s.", command, errstr);
@@ -489,6 +490,10 @@ bool XAGYLWheel::setCommand(SET_COMMAND cmd, int value)
         case SET_POSITION:
             simData.position = value;
             return true;
+            break;
+
+        default:
+            break;
     }
 
     char response[XAGYL_MAXBUF];
@@ -531,9 +536,12 @@ bool XAGYLWheel::setCommand(SET_COMMAND cmd, int value)
 
                 snprintf(response, XAGYL_MAXBUF, "pulseWidth %d", simData.pulseWidth);
                 break;
+
+            default:
+                break;
         }
     }
-    else if ( (rc = tty_read_section(PortFD, response, 0xA, XAGYL_MAXBUF, &nbytes_read)) != TTY_OK)
+    else if ((rc = tty_read_section(PortFD, response, 0xA, XAGYL_MAXBUF, &nbytes_read)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
         DEBUGF(INDI::Logger::DBG_ERROR, "%s: %s.", command, errstr);
@@ -553,7 +561,6 @@ bool XAGYLWheel::SelectFilter(int f)
 
     if (rc)
     {
-
         SetTimer(500);
         return true;
     }
@@ -577,7 +584,7 @@ void XAGYLWheel::TimerHit()
         SetTimer(500);
 }
 
-bool XAGYLWheel::GetFilterNames(const char * groupName)
+bool XAGYLWheel::GetFilterNames(const char *groupName)
 {
     char filterName[MAXINDINAME];
     char filterLabel[MAXINDILABEL];
@@ -595,7 +602,8 @@ bool XAGYLWheel::GetFilterNames(const char * groupName)
         IUFillText(&FilterNameT[i], filterName, filterLabel, filterLabel);
     }
 
-    IUFillTextVector(FilterNameTP, FilterNameT, MaxFilter, getDeviceName(), "FILTER_NAME", "Filter", groupName, IP_RW, 0, IPS_IDLE);
+    IUFillTextVector(FilterNameTP, FilterNameT, MaxFilter, getDeviceName(), "FILTER_NAME", "Filter", groupName, IP_RW,
+                     0, IPS_IDLE);
 
     return true;
 }
@@ -670,7 +678,7 @@ bool XAGYLWheel::getMaximumSpeed()
         return false;
 
     int maxSpeed = 0;
-    int rc = sscanf(resp, "MaxSpeed %d%%", &maxSpeed);
+    int rc       = sscanf(resp, "MaxSpeed %d%%", &maxSpeed);
 
     if (rc > 0)
     {
@@ -689,7 +697,7 @@ bool XAGYLWheel::getJitter()
         return false;
 
     int jitter = 0;
-    int rc = sscanf(resp, "Jitter %d", &jitter);
+    int rc     = sscanf(resp, "Jitter %d", &jitter);
 
     if (rc > 0)
     {
@@ -698,7 +706,6 @@ bool XAGYLWheel::getJitter()
     }
     else
         return false;
-
 }
 
 bool XAGYLWheel::getThreshold()
@@ -709,7 +716,7 @@ bool XAGYLWheel::getThreshold()
         return false;
 
     int threshold = 0;
-    int rc = sscanf(resp, "Threshold %d", &threshold);
+    int rc        = sscanf(resp, "Threshold %d", &threshold);
 
     if (rc > 0)
     {
@@ -728,7 +735,7 @@ bool XAGYLWheel::getPulseWidth()
         return false;
 
     int pulseWidth = 0;
-    int rc = sscanf(resp, "Pulse Width %duS", &pulseWidth);
+    int rc         = sscanf(resp, "Pulse Width %duS", &pulseWidth);
 
     if (rc > 0)
     {
@@ -747,7 +754,7 @@ bool XAGYLWheel::getMaxFilterSlots()
         return false;
 
     int maxFilterSlots = 0;
-    int rc = sscanf(resp, "FilterSlots %d", &maxFilterSlots);
+    int rc             = sscanf(resp, "FilterSlots %d", &maxFilterSlots);
 
     if (rc > 0)
     {
@@ -810,7 +817,7 @@ bool XAGYLWheel::setOffset(int filter, int value)
         simData.offset[filter] += value;
         snprintf(resp, XAGYL_MAXBUF, "P%d Offset %02d", filter + 1, simData.offset[filter]);
     }
-    else if ( (rc = tty_read_section(PortFD, resp, 0xA, XAGYL_MAXBUF, &nbytes_read)) != TTY_OK)
+    else if ((rc = tty_read_section(PortFD, resp, 0xA, XAGYL_MAXBUF, &nbytes_read)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
         DEBUGF(INDI::Logger::DBG_ERROR, "%s: %s.", command, errstr);
@@ -855,7 +862,7 @@ bool XAGYLWheel::getOffset(int filter)
         snprintf(resp, XAGYL_MAXBUF, "P%d Offset %02d", filter + 1, simData.offset[filter]);
     else
     {
-        if ( (rc = tty_read_section(PortFD, resp, 0xA, XAGYL_MAXBUF, &nbytes_read)) != TTY_OK)
+        if ((rc = tty_read_section(PortFD, resp, 0xA, XAGYL_MAXBUF, &nbytes_read)) != TTY_OK)
         {
             tty_error_msg(rc, errstr, MAXRBUF);
             DEBUGF(INDI::Logger::DBG_ERROR, "%s: %s.", command, errstr);
@@ -863,7 +870,6 @@ bool XAGYLWheel::getOffset(int filter)
         }
 
         resp[nbytes_read - 1] = '\0';
-
     }
 
     DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", resp);
@@ -879,4 +885,3 @@ bool XAGYLWheel::getOffset(int filter)
     else
         return false;
 }
-

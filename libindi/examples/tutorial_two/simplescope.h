@@ -1,6 +1,3 @@
-#ifndef SIMPLESCOPE_H
-#define SIMPLESCOPE_H
-
 /*
    INDI Developers Manual
    Tutorial #2
@@ -22,33 +19,32 @@
     A simple GOTO telescope that simulator slewing operation.
 */
 
-#include "indibase/inditelescope.h"
+#pragma once
+
+#include "inditelescope.h"
 
 class SimpleScope : public INDI::Telescope
 {
-    public:
-        SimpleScope();
+  public:
+    SimpleScope();
 
-    protected:
-        // General device functions
-        bool Connect();
-        bool Disconnect();
-        const char * getDefaultName();
-        bool initProperties();
+  protected:
+    // General device functions
+    bool Connect();
+    bool Disconnect();
+    const char *getDefaultName();
+    bool initProperties();
 
-        // Telescoe specific functions
-        bool ReadScopeStatus();
-        bool Goto(double, double);
-        bool Abort();
+    // Telescope specific functions
+    bool ReadScopeStatus();
+    bool Goto(double, double);
+    bool Abort();
 
-    private:
-        double currentRA;
-        double currentDEC;
-        double targetRA;
-        double targetDEC;
+  private:
+    double currentRA;
+    double currentDEC;
+    double targetRA;
+    double targetDEC;
 
-        unsigned int DBG_SCOPE;
-
+    unsigned int DBG_SCOPE;
 };
-
-#endif // SIMPLESCOPE_H

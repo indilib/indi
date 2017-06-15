@@ -19,87 +19,80 @@
 
 */
 
-#ifndef ROBOFOCUS_H
-#define ROBOFOCUS_H
+#pragma once
 
-#include "indibase/indifocuser.h"
-#include "robofocus.h"
+#include "indifocuser.h"
 
 class RoboFocus : public INDI::Focuser
 {
-    public:
-        RoboFocus();
-        ~RoboFocus();
+  public:
+    RoboFocus();
+    ~RoboFocus();
 
-        virtual bool Handshake();
-        const char * getDefaultName();
-        virtual bool initProperties();
-        virtual bool updateProperties();
-        virtual bool ISNewNumber (const char * dev, const char * name, double values[], char * names[], int n);
-        virtual bool ISNewSwitch (const char * dev, const char * name, ISState * states, char * names[], int n);
-        virtual IPState MoveAbsFocuser(uint32_t ticks);
-        virtual IPState MoveRelFocuser(FocusDirection dir, uint32_t ticks);
-        virtual bool AbortFocuser();
-        virtual void TimerHit();
+    virtual bool Handshake();
+    const char *getDefaultName();
+    virtual bool initProperties();
+    virtual bool updateProperties();
+    virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n);
+    virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n);
+    virtual IPState MoveAbsFocuser(uint32_t ticks);
+    virtual IPState MoveRelFocuser(FocusDirection dir, uint32_t ticks);
+    virtual bool AbortFocuser();
+    virtual void TimerHit();
 
-    protected:
-        bool saveConfigItems(FILE * fp);
+  protected:
+    bool saveConfigItems(FILE *fp);
 
-    private:
+  private:
+    int timerID;
+    double targetPos;
+    double simulatedTemperature;
+    double simulatedPosition;
 
-        int timerID;
-        double targetPos;
-        double simulatedTemperature;
-        double simulatedPosition;
+    unsigned char CheckSum(char *rf_cmd);
+    unsigned char CalculateSum(char *rf_cmd);
+    int SendCommand(char *rf_cmd);
+    int ReadResponse(char *buf);
+    void GetFocusParams();
 
-        unsigned char CheckSum(char * rf_cmd);
-        unsigned char CalculateSum(char * rf_cmd);
-        int SendCommand(char * rf_cmd);
-        int ReadResponse(char * buf);
-        void GetFocusParams();
+    int updateRFPosition(double *value);
+    int updateRFTemperature(double *value);
+    int updateRFBacklash(double *value);
+    int updateRFFirmware(char *rf_cmd);
+    int updateRFMotorSettings(double *duty, double *delay, double *ticks);
+    int updateRFPositionRelativeInward(double value);
+    int updateRFPositionRelativeOutward(double value);
+    int updateRFPositionAbsolute(double value);
+    int updateRFPowerSwitches(int s, int new_sn, int *cur_s1LL, int *cur_s2LR, int *cur_s3RL, int *cur_s4RR);
+    int updateRFMaxPosition(double *value);
+    int updateRFSetPosition(double *value);
 
-        int updateRFPosition(double * value);
-        int updateRFTemperature(double * value) ;
-        int updateRFBacklash(double * value);
-        int updateRFFirmware(char * rf_cmd) ;
-        int updateRFMotorSettings(double * duty, double * delay, double * ticks);
-        int updateRFPositionRelativeInward(double value);
-        int updateRFPositionRelativeOutward(double value);
-        int updateRFPositionAbsolute(double value);
-        int updateRFPowerSwitches(int s, int  new_sn, int * cur_s1LL, int * cur_s2LR, int * cur_s3RL, int * cur_s4RR) ;
-        int updateRFMaxPosition(double * value);
-        int updateRFSetPosition(double * value);
+    int ReadUntilComplete(char *buf, int timeout);
 
-        int ReadUntilComplete(char * buf, int timeout);
+    INumber TemperatureN[1];
+    INumberVectorProperty TemperatureNP;
 
+    INumber SettingsN[3];
+    INumberVectorProperty SettingsNP;
 
-        INumber TemperatureN[1];
-        INumberVectorProperty TemperatureNP;
+    ISwitch PowerSwitchesS[4];
+    ISwitchVectorProperty PowerSwitchesSP;
 
-        INumber SettingsN[3];
-        INumberVectorProperty SettingsNP;
+    INumber MinMaxPositionN[2];
+    INumberVectorProperty MinMaxPositionNP;
 
-        ISwitch PowerSwitchesS[4];
-        ISwitchVectorProperty PowerSwitchesSP;
+    INumber MaxTravelN[1];
+    INumberVectorProperty MaxTravelNP;
 
-        INumber MinMaxPositionN[2];
-        INumberVectorProperty MinMaxPositionNP;
+    INumber SetRegisterPositionN[1];
+    INumberVectorProperty SetRegisterPositionNP;
 
-        INumber MaxTravelN[1];
-        INumberVectorProperty MaxTravelNP;
+    INumber RelMovementN[1];
+    INumberVectorProperty RelMovementNP;
 
-        INumber SetRegisterPositionN[1];
-        INumberVectorProperty SetRegisterPositionNP;
+    INumber AbsMovementN[1];
+    INumberVectorProperty AbsMovementNP;
 
-        INumber RelMovementN[1];
-        INumberVectorProperty RelMovementNP;
-
-        INumber AbsMovementN[1];
-        INumberVectorProperty AbsMovementNP;
-
-        INumber SetBacklashN[1];
-        INumberVectorProperty SetBacklashNP;
-
+    INumber SetBacklashN[1];
+    INumberVectorProperty SetBacklashNP;
 };
-
-#endif // ROBOFOCUS_H

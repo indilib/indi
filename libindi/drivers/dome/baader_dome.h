@@ -18,84 +18,80 @@
  Boston, MA 02110-1301, USA.
 *******************************************************************************/
 
-#ifndef BaaderDome_H
-#define BaaderDome_H
+#pragma once
 
 #include "indibase/indidome.h"
 
-/*  Some headers we need */
-#include <math.h>
-#include <sys/time.h>
-
-
 class BaaderDome : public INDI::Dome
 {
-    public:
+  public:
+    typedef enum { DOME_UNKNOWN, DOME_CALIBRATING, DOME_READY } DomeStatus;
+    typedef enum {
+        CALIBRATION_UNKNOWN,
+        CALIBRATION_STAGE1,
+        CALIBRATION_STAGE2,
+        CALIBRATION_STAGE3,
+        CALIBRATION_COMPLETE
+    } CalibrationStage;
+    typedef enum { FLAP_OPEN, FLAP_CLOSE } FlapOperation;
+    typedef enum { FLAP_OPENED, FLAP_CLOSED, FLAP_MOVING, FLAP_UNKNOWN } FlapStatus;
 
-        typedef enum { DOME_UNKNOWN, DOME_CALIBRATING, DOME_READY } DomeStatus;
-        typedef enum { CALIBRATION_UNKNOWN, CALIBRATION_STAGE1, CALIBRATION_STAGE2, CALIBRATION_STAGE3, CALIBRATION_COMPLETE } CalibrationStage;
-        typedef enum { FLAP_OPEN, FLAP_CLOSE } FlapOperation;
-        typedef enum { FLAP_OPENED,  FLAP_CLOSED,  FLAP_MOVING, FLAP_UNKNOWN } FlapStatus;
+    BaaderDome();
+    virtual ~BaaderDome();
 
-        BaaderDome();
-        virtual ~BaaderDome();
+    virtual const char *getDefaultName() override;
+    virtual bool initProperties() override;
+    virtual bool updateProperties() override;
+    virtual bool saveConfigItems(FILE *fp) override;
 
-        const char * getDefaultName();
-        virtual bool initProperties();
-        virtual bool updateProperties();
-        virtual bool saveConfigItems(FILE * fp);
+    virtual bool Handshake() override;
 
-        virtual bool Handshake() override;
+    virtual void TimerHit() override;
 
-        void TimerHit();
+    virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
 
-        virtual bool ISNewSwitch (const char * dev, const char * name, ISState * states, char * names[], int n);
+    virtual IPState MoveRel(double azDiff) override;
+    virtual IPState MoveAbs(double az) override;
+    virtual IPState ControlShutter(ShutterOperation operation) override;
+    virtual bool Abort() override;
 
-        virtual IPState MoveRel(double azDiff);
-        virtual IPState MoveAbs(double az);
-        virtual IPState ControlShutter(ShutterOperation operation);
-        virtual bool Abort();
+    // Parking
+    virtual IPState Park() override;
+    virtual IPState UnPark() override;
+    virtual bool SetCurrentPark() override;
+    virtual bool SetDefaultPark() override;
 
-        // Parking
-        virtual IPState Park();
-        virtual IPState UnPark();
-        virtual bool SetCurrentPark();
-        virtual bool SetDefaultPark();
+  protected:
+    ISwitch CalibrateS[1];
+    ISwitchVectorProperty CalibrateSP;
 
-    protected:
+    ISwitch DomeFlapS[2];
+    ISwitchVectorProperty DomeFlapSP;
 
-        ISwitch CalibrateS[1];
-        ISwitchVectorProperty CalibrateSP;
+    // Commands
+    bool Ack();
+    bool UpdatePosition();
+    bool UpdateShutterStatus();
+    int ControlDomeFlap(FlapOperation operation);
+    bool UpdateFlapStatus();
+    bool SaveEncoderPosition();
+    const char *GetFlapStatusString(FlapStatus status);
 
-        ISwitch DomeFlapS[2];
-        ISwitchVectorProperty DomeFlapSP;
+    //Misc
+    unsigned short MountAzToDomeAz(double mountAz);
+    double DomeAzToMountAz(unsigned short domeAz);
+    bool SetupParms();
 
-        // Commands
-        bool Ack();
-        bool UpdatePosition();
-        bool UpdateShutterStatus();
-        int  ControlDomeFlap(FlapOperation operation);
-        bool UpdateFlapStatus();
-        bool SaveEncoderPosition();
-        const char * GetFlapStatusString(FlapStatus status);
+    DomeStatus status;
+    FlapStatus flapStatus;
+    CalibrationStage calibrationStage;
+    double targetAz, calibrationStart, calibrationTarget1, calibrationTarget2;
+    ShutterOperation targetShutter;
+    FlapOperation targetFlap;
+    double prev_az, prev_alt;
 
-        //Misc
-        unsigned short MountAzToDomeAz(double mountAz);
-        double DomeAzToMountAz(unsigned short domeAz);
-        bool SetupParms();
-
-        DomeStatus status;
-        FlapStatus flapStatus;
-        CalibrationStage calibrationStage;
-        double targetAz, calibrationStart, calibrationTarget1, calibrationTarget2;
-        ShutterOperation targetShutter;
-        FlapOperation targetFlap;
-        double prev_az, prev_alt;
-
-        bool sim;
-        double simShutterTimer, simFlapTimer;
-        ShutterStatus simShutterStatus;
-        FlapStatus simFlapStatus;
+    bool sim;
+    double simShutterTimer, simFlapTimer;
+    ShutterStatus simShutterStatus;
+    FlapStatus simFlapStatus;
 };
-
-#endif

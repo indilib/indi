@@ -769,8 +769,8 @@ bool QHYCCD::setupParams()
     PrimaryCCD.setFrameBufferSize(nbuf);
 
 #ifndef __APPLE__
-    streamer->setPixelFormat(V4L2_PIX_FMT_GREY);
-    streamer->setRecorderSize(imagew,imageh);
+    Streamer->setPixelFormat(V4L2_PIX_FMT_GREY);
+    Streamer->setRecorderSize(imagew,imageh);
 #endif
     return true;
 }
@@ -799,7 +799,7 @@ bool QHYCCD::StartExposure(float duration)
   int ret = QHYCCD_ERROR;
 
 #ifndef __APPLE__
-  if (streamer->isBusy())
+  if (Streamer->isBusy())
   {
       DEBUG(INDI::Logger::DBG_ERROR, "Cannot take exposure while streaming/recording is active.");
       return false;
@@ -957,7 +957,7 @@ bool QHYCCD::UpdateCCDFrame(int x, int y, int w, int h)
   PrimaryCCD.setFrameBufferSize(nbuf);
 
 #ifndef __APPLE__
-  streamer->setRecorderSize(camroiwidth, camroiheight);
+  Streamer->setRecorderSize(camroiwidth, camroiheight);
 #endif
   return true;
 }
@@ -1491,7 +1491,7 @@ bool QHYCCD::StartStreaming()
     if (BayerT[2].text && formats.count(BayerT[2].text) != 0)
         qhyFormat = formats.at(BayerT[2].text);
 
-    streamer->setPixelFormat(qhyFormat);
+    Streamer->setPixelFormat(qhyFormat);
 
     SetQHYCCDStreamMode(camhandle, 0x01);
     BeginQHYCCDLive(camhandle);
@@ -1540,7 +1540,7 @@ void* QHYCCD::streamVideo()
       pthread_mutex_unlock(&condMutex);
 
       if ( (ret = GetQHYCCDLiveFrame(camhandle, &w, &h, &bpp, &channels, PrimaryCCD.getFrameBuffer())) == QHYCCD_SUCCESS)
-          streamer->newFrame();
+          Streamer->newFrame();
   }
 
   pthread_mutex_unlock(&condMutex);

@@ -23,24 +23,29 @@
     Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
-#include <math.h>
-#include <termios.h>
 #include "lx200gemini.h"
+
+#include "indicom.h"
 #include "lx200driver.h"
+
+#include <string.h>
+#include <termios.h>
 
 LX200Gemini::LX200Gemini()
 {
     setVersion(1, 2);
 
-    SetTelescopeCapability(TELESCOPE_CAN_PARK | TELESCOPE_CAN_SYNC | TELESCOPE_CAN_GOTO | TELESCOPE_CAN_ABORT | TELESCOPE_HAS_TIME | TELESCOPE_HAS_LOCATION | TELESCOPE_HAS_PIER_SIDE, 4);
+    SetTelescopeCapability(TELESCOPE_CAN_PARK | TELESCOPE_CAN_SYNC | TELESCOPE_CAN_GOTO | TELESCOPE_CAN_ABORT |
+                               TELESCOPE_HAS_TIME | TELESCOPE_HAS_LOCATION | TELESCOPE_HAS_PIER_SIDE,
+                           4);
 }
 
-const char * LX200Gemini::getDefaultName()
+const char *LX200Gemini::getDefaultName()
 {
     return (char *)"Losmandy Gemini";
 }
 
-void LX200Gemini::ISGetProperties(const char * dev)
+void LX200Gemini::ISGetProperties(const char *dev)
 {
     LX200Generic::ISGetProperties(dev);
 
@@ -56,12 +61,15 @@ bool LX200Gemini::initProperties()
     IUFillSwitch(&ParkSettingsS[PARK_HOME], "HOME", "Home", ISS_ON);
     IUFillSwitch(&ParkSettingsS[PARK_STARTUP], "STARTUP", "Startup", ISS_OFF);
     IUFillSwitch(&ParkSettingsS[PARK_ZENITH], "ZENITH", "Zenith", ISS_OFF);
-    IUFillSwitchVector(&ParkSettingsSP, ParkSettingsS, 3, getDeviceName(), "PARK_SETTINGS", "Park Settings", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
+    IUFillSwitchVector(&ParkSettingsSP, ParkSettingsS, 3, getDeviceName(), "PARK_SETTINGS", "Park Settings",
+                       MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
 
     IUFillSwitch(&StartupModeS[COLD_START], "COLD_START", "Cold", ISS_ON);
     IUFillSwitch(&StartupModeS[PARK_STARTUP], "WARM_START", "Warm", ISS_OFF);
     IUFillSwitch(&StartupModeS[PARK_ZENITH], "WARM_RESTART", "Restart", ISS_OFF);
-    IUFillSwitchVector(&StartupModeSP, StartupModeS, 3, getDeviceName(), "STARTUP_MODE", "Startup Mode", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
+    IUFillSwitchVector(&StartupModeSP, StartupModeS, 3, getDeviceName(), "STARTUP_MODE", "Startup Mode",
+                       MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
+    return true;
 }
 
 bool LX200Gemini::updateProperties()
@@ -83,9 +91,9 @@ bool LX200Gemini::updateProperties()
     return true;
 }
 
-bool LX200Gemini::ISNewSwitch (const char * dev, const char * name, ISState * states, char * names[], int n)
+bool LX200Gemini::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
 {
-    if(!strcmp(dev, getDeviceName()))
+    if (!strcmp(dev, getDeviceName()))
     {
         if (!strcmp(name, StartupModeSP.name))
         {
@@ -115,7 +123,7 @@ bool LX200Gemini::checkConnection()
         return true;
 
     // Response
-    char response[2] = {0};
+    char response[2] = { 0 };
     int rc = 0, nbytes_read = 0, nbytes_written = 0;
 
     DEBUGF(INDI::Logger::DBG_DEBUG, "CMD: <%#02X>", 0x06);
@@ -124,7 +132,7 @@ bool LX200Gemini::checkConnection()
 
     char ack[1] = { 0x06 };
 
-    if ( (rc = tty_write(PortFD, ack, 1, &nbytes_written)) != TTY_OK)
+    if ((rc = tty_write(PortFD, ack, 1, &nbytes_written)) != TTY_OK)
     {
         char errmsg[256];
         tty_error_msg(rc, errmsg, 256);
@@ -133,7 +141,7 @@ bool LX200Gemini::checkConnection()
     }
 
     // Read response
-    if ( (rc = tty_read_section(PortFD, response, '#', GEMINI_TIMEOUT, &nbytes_read)) != TTY_OK)
+    if ((rc = tty_read_section(PortFD, response, '#', GEMINI_TIMEOUT, &nbytes_read)) != TTY_OK)
     {
         char errmsg[256];
         tty_error_msg(rc, errmsg, 256);
@@ -151,7 +159,7 @@ bool LX200Gemini::checkConnection()
     if (response[0] == 'b')
     {
         DEBUG(INDI::Logger::DBG_DEBUG, "Mount is waiting for selection of the startup mode.");
-        char cmd[4] = "bC#";
+        char cmd[4]     = "bC#";
         int startupMode = IUFindOnSwitchIndex(&StartupModeSP);
         if (startupMode == WARM_START)
             strncpy(cmd, "bW#", 4);
@@ -160,7 +168,7 @@ bool LX200Gemini::checkConnection()
 
         DEBUGF(INDI::Logger::DBG_DEBUG, "CMD: <%s>", cmd);
 
-        if ( (rc = tty_write(PortFD, cmd, 4, &nbytes_written)) != TTY_OK)
+        if ((rc = tty_write(PortFD, cmd, 4, &nbytes_written)) != TTY_OK)
         {
             char errmsg[256];
             tty_error_msg(rc, errmsg, 256);
@@ -194,16 +202,16 @@ bool LX200Gemini::checkConnection()
 bool LX200Gemini::isSlewComplete()
 {
     // Send ':Gv#'
-    const char * cmd = "#:Gv#";
+    const char *cmd = "#:Gv#";
     // Response
-    char response[2] = {0};
+    char response[2] = { 0 };
     int rc = 0, nbytes_read = 0, nbytes_written = 0;
 
     DEBUGF(INDI::Logger::DBG_DEBUG, "CMD: <%s>", cmd);
 
     tcflush(PortFD, TCIOFLUSH);
 
-    if ( (rc = tty_write(PortFD, cmd, 5, &nbytes_written)) != TTY_OK)
+    if ((rc = tty_write(PortFD, cmd, 5, &nbytes_written)) != TTY_OK)
     {
         char errmsg[256];
         tty_error_msg(rc, errmsg, 256);
@@ -212,7 +220,7 @@ bool LX200Gemini::isSlewComplete()
     }
 
     // Read 1 character
-    if ( (rc = tty_read(PortFD, response, 1, GEMINI_TIMEOUT, &nbytes_read)) != TTY_OK)
+    if ((rc = tty_read(PortFD, response, 1, GEMINI_TIMEOUT, &nbytes_read)) != TTY_OK)
     {
         char errmsg[256];
         tty_error_msg(rc, errmsg, 256);
@@ -252,19 +260,18 @@ bool LX200Gemini::ReadScopeStatus()
 
             TrackState = SCOPE_TRACKING;
             IDMessage(getDeviceName(), "Slew is complete. Tracking...");
-
         }
     }
-    else if(TrackState == SCOPE_PARKING)
+    else if (TrackState == SCOPE_PARKING)
     {
-        if(isSlewComplete())
+        if (isSlewComplete())
         {
             SetParked(true);
             sleepMount();
         }
     }
 
-    if ( getLX200RA(PortFD, &currentRA) < 0 || getLX200DEC(PortFD, &currentDEC) < 0)
+    if (getLX200RA(PortFD, &currentRA) < 0 || getLX200DEC(PortFD, &currentDEC) < 0)
     {
         EqNP.s = IPS_ALERT;
         IDSetNumber(&EqNP, "Error reading RA/DEC.");
@@ -281,16 +288,16 @@ bool LX200Gemini::ReadScopeStatus()
 void LX200Gemini::syncSideOfPier()
 {
     // Send ':Gv#'
-    const char * cmd = "#:Gm#";
+    const char *cmd = "#:Gm#";
     // Response
-    char response[2] = {0};
+    char response[2] = { 0 };
     int rc = 0, nbytes_read = 0, nbytes_written = 0;
 
     DEBUGF(INDI::Logger::DBG_DEBUG, "CMD: <%s>", cmd);
 
     tcflush(PortFD, TCIOFLUSH);
 
-    if ( (rc = tty_write(PortFD, cmd, 5, &nbytes_written)) != TTY_OK)
+    if ((rc = tty_write(PortFD, cmd, 5, &nbytes_written)) != TTY_OK)
     {
         char errmsg[256];
         tty_error_msg(rc, errmsg, 256);
@@ -299,7 +306,7 @@ void LX200Gemini::syncSideOfPier()
     }
 
     // Read 1 character
-    if ( (rc = tty_read_section(PortFD, response, '#', GEMINI_TIMEOUT, &nbytes_read)) != TTY_OK)
+    if ((rc = tty_read_section(PortFD, response, '#', GEMINI_TIMEOUT, &nbytes_read)) != TTY_OK)
     {
         char errmsg[256];
         tty_error_msg(rc, errmsg, 256);
@@ -334,7 +341,7 @@ bool LX200Gemini::Park()
 
     tcflush(PortFD, TCIOFLUSH);
 
-    if ( (rc = tty_write(PortFD, cmd, 5, &nbytes_written)) != TTY_OK)
+    if ((rc = tty_write(PortFD, cmd, 5, &nbytes_written)) != TTY_OK)
     {
         char errmsg[256];
         tty_error_msg(rc, errmsg, 256);
@@ -342,7 +349,7 @@ bool LX200Gemini::Park()
         return false;
     }
 
-    ParkSP.s = IPS_BUSY;
+    ParkSP.s   = IPS_BUSY;
     TrackState = SCOPE_PARKING;
     return true;
 }
@@ -357,7 +364,7 @@ bool LX200Gemini::UnPark()
 
 bool LX200Gemini::sleepMount()
 {
-    const char * cmd = "#:hN#";
+    const char *cmd = "#:hN#";
 
     // Response
     int rc = 0, nbytes_written = 0;
@@ -366,7 +373,7 @@ bool LX200Gemini::sleepMount()
 
     tcflush(PortFD, TCIOFLUSH);
 
-    if ( (rc = tty_write(PortFD, cmd, 5, &nbytes_written)) != TTY_OK)
+    if ((rc = tty_write(PortFD, cmd, 5, &nbytes_written)) != TTY_OK)
     {
         char errmsg[256];
         tty_error_msg(rc, errmsg, 256);
@@ -380,7 +387,7 @@ bool LX200Gemini::sleepMount()
 
 bool LX200Gemini::wakeupMount()
 {
-    const char * cmd = "#:hW#";
+    const char *cmd = "#:hW#";
 
     // Response
     int rc = 0, nbytes_written = 0;
@@ -389,7 +396,7 @@ bool LX200Gemini::wakeupMount()
 
     tcflush(PortFD, TCIOFLUSH);
 
-    if ( (rc = tty_write(PortFD, cmd, 5, &nbytes_written)) != TTY_OK)
+    if ((rc = tty_write(PortFD, cmd, 5, &nbytes_written)) != TTY_OK)
     {
         char errmsg[256];
         tty_error_msg(rc, errmsg, 256);
@@ -401,7 +408,7 @@ bool LX200Gemini::wakeupMount()
     return true;
 }
 
-bool LX200Gemini::saveConfigItems(FILE * fp)
+bool LX200Gemini::saveConfigItems(FILE *fp)
 {
     LX200Generic::saveConfigItems(fp);
 

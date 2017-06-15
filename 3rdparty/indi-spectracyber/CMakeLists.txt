@@ -30,6 +30,13 @@ set(indispectracyber_SRCS
    ${CMAKE_CURRENT_SOURCE_DIR}/spectracyber.cpp
    )
 
+IF ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
+    SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /std:c++11")
+ELSE ()
+    SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=gnu99")
+    SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
+ENDIF ()
+
 add_executable(indi_spectracyber ${indispectracyber_SRCS})
 
 target_link_libraries(indi_spectracyber ${INDI_LIBRARIES} ${NOVA_LIBRARIES} ${ZLIB_LIBRARY} ${CMAKE_THREAD_LIBS_INIT})

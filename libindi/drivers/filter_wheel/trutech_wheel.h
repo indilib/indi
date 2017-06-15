@@ -18,38 +18,31 @@
  Boston, MA 02110-1301, USA.
 *******************************************************************************/
 
-#ifndef TRUTECHWHEEL_H
-#define TRUTECHWHEEL_H
+#pragma once
 
-#include "indibase/indifilterwheel.h"
+#include "indifilterwheel.h"
 
 class TruTech : public INDI::FilterWheel
 {
-    public:
-        TruTech();
-        virtual ~TruTech();
+  public:
+    TruTech();
+    virtual ~TruTech();
 
-        virtual bool ISNewSwitch (const char * dev, const char * name, ISState * states, char * names[], int n);
+    virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n);
 
-    protected:
-        const char * getDefaultName();
-        bool initProperties();
-        bool updateProperties();
+  protected:
+    const char *getDefaultName();
+    bool initProperties();
+    bool updateProperties();
 
-        bool Handshake();
-        bool SelectFilter(int);
-        void TimerHit();
+    bool Handshake();
+    bool SelectFilter(int);
+    void TimerHit();
 
-        virtual bool SetFilterNames()
-        {
-            return true;
-        }
-        virtual bool GetFilterNames(const char * groupName);
+    virtual bool SetFilterNames() { return true; }
+    virtual bool GetFilterNames(const char *groupName);
 
-    private:
-
-        ISwitch HomeS[1];
-        ISwitchVectorProperty HomeSP;
+  private:
+    ISwitch HomeS[1];
+    ISwitchVectorProperty HomeSP;
 };
-
-#endif // TruTech_H

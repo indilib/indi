@@ -19,23 +19,11 @@
  Boston, MA 02110-1301, USA.
 *******************************************************************************/
 
-#ifndef USBDEVICE_H
-#define USBDEVICE_H
-
 #pragma once
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <errno.h>
-
-#ifdef OSX_EMBEDED_MODE
-#include <libusb.h>
-#else
-#include <libusb.h>
-#endif
-
 #include "indibase.h"
+
+#include <libusb.h>
 
 /**
  * \class INDI::USBDevice
@@ -45,32 +33,31 @@
 */
 class INDI::USBDevice
 {
-    protected:
-        libusb_device * dev;
-        libusb_device_handle * usb_handle;
+  protected:
+    libusb_device *dev;
+    libusb_device_handle *usb_handle;
 
-        int ProductId;
-        int VendorId;
+    int ProductId;
+    int VendorId;
 
-        int OutputType;
-        int OutputEndpoint;
-        int InputType;
-        int InputEndpoint;
+    int OutputType;
+    int OutputEndpoint;
+    int InputType;
+    int InputEndpoint;
 
-        libusb_device * FindDevice(int, int, int);
+    libusb_device *FindDevice(int, int, int);
 
-    public:
-        int WriteInterrupt(unsigned char *, int, int);
-        int ReadInterrupt(unsigned char *, int, int);
-        int WriteBulk(unsigned char * buf, int nbytes, int timeout);
-        int ReadBulk(unsigned char * buf, int nbytes, int timeout);
-        int ControlMessage(unsigned char request_type, unsigned char request, unsigned int value, unsigned int index, unsigned char * data, unsigned char len);
-        int FindEndpoints();
-        int Open();
-        void Close();
-        USBDevice(void);
-        USBDevice(libusb_device * dev);
-        virtual ~USBDevice(void);
+  public:
+    int WriteInterrupt(unsigned char *, int, int);
+    int ReadInterrupt(unsigned char *, int, int);
+    int WriteBulk(unsigned char *buf, int nbytes, int timeout);
+    int ReadBulk(unsigned char *buf, int nbytes, int timeout);
+    int ControlMessage(unsigned char request_type, unsigned char request, unsigned int value, unsigned int index,
+                       unsigned char *data, unsigned char len);
+    int FindEndpoints();
+    int Open();
+    void Close();
+    USBDevice(void);
+    USBDevice(libusb_device *dev);
+    virtual ~USBDevice(void);
 };
-
-#endif // USBDEVICE_H

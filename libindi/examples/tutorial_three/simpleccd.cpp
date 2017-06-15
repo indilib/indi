@@ -20,42 +20,42 @@
     refer to the INDI Generic CCD driver template in INDI SVN (under 3rdparty).
 */
 
-#include <sys/time.h>
-#include <memory>
-
 #include "simpleccd.h"
 
-const int POLLMS           = 500;       /* Polling interval 500 ms */
-const int MAX_CCD_TEMP     = 45;		/* Max CCD temperature */
-const int MIN_CCD_TEMP	   = -55;		/* Min CCD temperature */
-const float TEMP_THRESHOLD = .25;		/* Differential temperature threshold (C)*/
+#include <memory>
+
+const int POLLMS           = 500; /* Polling interval 500 ms */
+//const int MAX_CCD_TEMP     = 45;  /* Max CCD temperature */
+//const int MIN_CCD_TEMP     = -55; /* Min CCD temperature */
+//const float TEMP_THRESHOLD = .25; /* Differential temperature threshold (C)*/
 
 /* Macro shortcut to CCD temperature value */
-#define currentCCDTemperature   TemperatureN[0].value
+#define currentCCDTemperature TemperatureN[0].value
 
 std::unique_ptr<SimpleCCD> simpleCCD(new SimpleCCD());
 
-void ISGetProperties(const char * dev)
+void ISGetProperties(const char *dev)
 {
     simpleCCD->ISGetProperties(dev);
 }
 
-void ISNewSwitch(const char * dev, const char * name, ISState * states, char * names[], int num)
+void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int num)
 {
     simpleCCD->ISNewSwitch(dev, name, states, names, num);
 }
 
-void ISNewText(	const char * dev, const char * name, char * texts[], char * names[], int num)
+void ISNewText(const char *dev, const char *name, char *texts[], char *names[], int num)
 {
     simpleCCD->ISNewText(dev, name, texts, names, num);
 }
 
-void ISNewNumber(const char * dev, const char * name, double values[], char * names[], int num)
+void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int num)
 {
     simpleCCD->ISNewNumber(dev, name, values, names, num);
 }
 
-void ISNewBLOB (const char * dev, const char * name, int sizes[], int blobsizes[], char * blobs[], char * formats[], char * names[], int n)
+void ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[],
+               char *names[], int n)
 {
     INDI_UNUSED(dev);
     INDI_UNUSED(name);
@@ -67,7 +67,7 @@ void ISNewBLOB (const char * dev, const char * name, int sizes[], int blobsizes[
     INDI_UNUSED(n);
 }
 
-void ISSnoopDevice (XMLEle * root)
+void ISSnoopDevice(XMLEle *root)
 {
     simpleCCD->ISSnoopDevice(root);
 }
@@ -102,7 +102,7 @@ bool SimpleCCD::Disconnect()
 /**************************************************************************************
 ** INDI is asking us for our default device name
 ***************************************************************************************/
-const char * SimpleCCD::getDefaultName()
+const char *SimpleCCD::getDefaultName()
 {
     return "Simple CCD";
 }
@@ -123,7 +123,6 @@ bool SimpleCCD::initProperties()
     addAuxControls();
 
     return true;
-
 }
 
 /********************************************************************************************
@@ -158,7 +157,7 @@ void SimpleCCD::setupParams()
     // Let's calculate how much memory we need for the primary CCD buffer
     int nbuf;
     nbuf = PrimaryCCD.getXRes() * PrimaryCCD.getYRes() * PrimaryCCD.getBPP() / 8;
-    nbuf += 512;                    //  leave a little extra at the end
+    nbuf += 512; //  leave a little extra at the end
     PrimaryCCD.setFrameBufferSize(nbuf);
 }
 
@@ -210,7 +209,8 @@ float SimpleCCD::CalcTimeLeft()
     struct timeval now;
     gettimeofday(&now, nullptr);
 
-    timesince = (double)(now.tv_sec * 1000.0 + now.tv_usec / 1000) - (double)(ExpStart.tv_sec * 1000.0 + ExpStart.tv_usec / 1000);
+    timesince = (double)(now.tv_sec * 1000.0 + now.tv_usec / 1000) -
+                (double)(ExpStart.tv_sec * 1000.0 + ExpStart.tv_usec / 1000);
     timesince = timesince / 1000;
 
     timeleft = ExposureRequest - timesince;
@@ -224,8 +224,8 @@ void SimpleCCD::TimerHit()
 {
     long timeleft;
 
-    if(isConnected() == false)
-        return;  //  No need to reset timer if we are not connected anymore
+    if (isConnected() == false)
+        return; //  No need to reset timer if we are not connected anymore
 
     if (InExposure)
     {
@@ -233,7 +233,7 @@ void SimpleCCD::TimerHit()
 
         // Less than a 0.1 second away from exposure completion
         // This is an over simplified timing method, check CCDSimulator and simpleCCD for better timing checks
-        if(timeleft < 0.1)
+        if (timeleft < 0.1)
         {
             /* We're done exposing */
             IDMessage(getDeviceName(), "Exposure done, downloading image...");
@@ -246,12 +246,10 @@ void SimpleCCD::TimerHit()
 
             /* grab and save image */
             grabImage();
-
         }
         else
             // Just update time left in client
             PrimaryCCD.setExposureLeft(timeleft);
-
     }
 
     // TemperatureNP is defined in INDI::CCD
@@ -295,14 +293,14 @@ void SimpleCCD::TimerHit()
 void SimpleCCD::grabImage()
 {
     // Let's get a pointer to the frame buffer
-    uint8_t * image = PrimaryCCD.getFrameBuffer();
+    uint8_t *image = PrimaryCCD.getFrameBuffer();
 
     // Get width and height
-    int width = PrimaryCCD.getSubW() / PrimaryCCD.getBinX() * PrimaryCCD.getBPP() / 8;
+    int width  = PrimaryCCD.getSubW() / PrimaryCCD.getBinX() * PrimaryCCD.getBPP() / 8;
     int height = PrimaryCCD.getSubH() / PrimaryCCD.getBinY();
 
     // Fill buffer with random pattern
-    for (int i = 0; i < height ; i++)
+    for (int i = 0; i < height; i++)
         for (int j = 0; j < width; j++)
             image[i * width + j] = rand() % 255;
 

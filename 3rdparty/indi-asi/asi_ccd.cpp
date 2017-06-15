@@ -552,7 +552,7 @@ bool ASICCD::setupParams()
 
   #if !defined(__APPLE__) && !defined(__CYGWIN__)
   updateRecorderFormat();
-  streamer->setRecorderSize(w,h);
+  Streamer->setRecorderSize(w,h);
   #endif
 
   return true;
@@ -695,7 +695,7 @@ bool ASICCD::ISNewSwitch (const char *dev, const char *name, ISState *states, ch
         if (!strcmp(name, VideoFormatSP.name))
         {
             #if !defined(__APPLE__) && !defined(__CYGWIN__)
-            if (streamer->isBusy())
+            if (Streamer->isBusy())
             {
                 VideoFormatSP.s = IPS_ALERT;
                 DEBUG(INDI::Logger::DBG_ERROR, "Cannot change format while streaming/recording.");
@@ -912,7 +912,7 @@ bool ASICCD::UpdateCCDFrame(int x, int y, int w, int h)
   }
 
   #if !defined(__APPLE__) && !defined(__CYGWIN__)
-  streamer->setRecorderSize(bin_width, bin_height);
+  Streamer->setRecorderSize(bin_width, bin_height);
   #endif
 
   // Set UNBINNED coords
@@ -1516,23 +1516,23 @@ void ASICCD::updateRecorderFormat()
     switch (getImageType())
     {
       case ASI_IMG_Y8:
-        streamer->setPixelFormat(V4L2_PIX_FMT_GREY);
+        Streamer->setPixelFormat(V4L2_PIX_FMT_GREY);
         break;
 
       case ASI_IMG_RAW8:
         if (m_camInfo->BayerPattern == ASI_BAYER_RG)
-            streamer->setPixelFormat(V4L2_PIX_FMT_SRGGB8);
+            Streamer->setPixelFormat(V4L2_PIX_FMT_SRGGB8);
         else if (m_camInfo->BayerPattern == ASI_BAYER_BG)
-            streamer->setPixelFormat(V4L2_PIX_FMT_SBGGR8);
+            Streamer->setPixelFormat(V4L2_PIX_FMT_SBGGR8);
         else if (m_camInfo->BayerPattern == ASI_BAYER_GR)
-            streamer->setPixelFormat(V4L2_PIX_FMT_SGRBG8);
+            Streamer->setPixelFormat(V4L2_PIX_FMT_SGRBG8);
         else if (m_camInfo->BayerPattern == ASI_BAYER_GB)
-            streamer->setPixelFormat(V4L2_PIX_FMT_SGBRG8);
+            Streamer->setPixelFormat(V4L2_PIX_FMT_SGBRG8);
          break;
 
       case ASI_IMG_RAW16:
         if (m_camInfo->BayerPattern == ASI_BAYER_BG)
-         streamer->setPixelFormat(V4L2_PIX_FMT_SBGGR16);
+         Streamer->setPixelFormat(V4L2_PIX_FMT_SBGGR16);
         else
         {
             DEBUGF(INDI::Logger::DBG_WARNING, "16 bit bayer format %s it not supported by the SER recorder.", getBayerString());
@@ -1540,7 +1540,7 @@ void ASICCD::updateRecorderFormat()
         break;
 
       case ASI_IMG_RGB24:
-       streamer->setPixelFormat(V4L2_PIX_FMT_RGB24);
+       Streamer->setPixelFormat(V4L2_PIX_FMT_RGB24);
         break;
 
     }
@@ -1582,11 +1582,11 @@ void* ASICCD::streamVideo()
 
           DEBUGF(INDI::Logger::DBG_ERROR, "Error reading video data (%d)", ret);
           streamPredicate=0;
-          streamer->setStream(false);
+          Streamer->setStream(false);
           continue;
       }
 
-      streamer->newFrame();
+      Streamer->newFrame();
   }
 
   pthread_mutex_unlock(&condMutex);

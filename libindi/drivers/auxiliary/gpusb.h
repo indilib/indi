@@ -20,78 +20,57 @@
   file called LICENSE.
 *******************************************************************************/
 
-#ifndef GPUSB_H
-#define GPUSB_H
+#pragma once
 
-#include "libs/indibase/defaultdevice.h"
-#include "libs/indibase/indiguiderinterface.h"
-
-
-/* Standard headers */
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <math.h>
-#include <unistd.h>
-#include <sys/time.h>
-
-#include <sys/time.h>
-#include <time.h>
+#include "defaultdevice.h"
+#include "indiguiderinterface.h"
 
 class GPUSBDriver;
 
 class GPUSB : public INDI::GuiderInterface, public INDI::DefaultDevice
 {
-    public:
-        GPUSB();
-        virtual ~GPUSB();
+  public:
+    GPUSB();
+    virtual ~GPUSB();
 
-        virtual bool initProperties();
-        virtual bool updateProperties();
-        virtual void ISGetProperties (const char * dev);
-        virtual bool ISNewNumber (const char * dev, const char * name, double values[], char * names[], int n);
-        virtual bool ISNewSwitch (const char * dev, const char * name, ISState * states, char * names[], int n);
-        virtual bool ISNewText (const char * dev, const char * name, char * texts[], char * names[], int n);
-        virtual bool ISSnoopDevice (XMLEle * root);
+    virtual bool initProperties();
+    virtual bool updateProperties();
+    virtual void ISGetProperties(const char *dev);
+    virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n);
+    virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n);
+    virtual bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n);
+    virtual bool ISSnoopDevice(XMLEle *root);
 
-    protected:
+  protected:
+    //  Generic indi device entries
+    bool Connect();
+    bool Disconnect();
+    const char *getDefaultName();
+    void debugTriggered(bool enable);
 
-        //  Generic indi device entries
-        bool Connect();
-        bool Disconnect();
-        const char * getDefaultName();
-        void debugTriggered(bool enable);
+    void TimerHit();
 
-        void TimerHit();
+    virtual IPState GuideNorth(float ms);
+    virtual IPState GuideSouth(float ms);
+    virtual IPState GuideEast(float ms);
+    virtual IPState GuideWest(float ms);
 
-        virtual IPState GuideNorth(float ms);
-        virtual IPState GuideSouth(float ms);
-        virtual IPState GuideEast(float ms);
-        virtual IPState GuideWest(float ms);
+  private:
+    float CalcWEPulseTimeLeft();
+    float CalcNSPulseTimeLeft();
 
-    private:
+    bool InWEPulse;
+    float WEPulseRequest;
+    struct timeval WEPulseStart;
+    int WEtimerID;
 
-        float CalcWEPulseTimeLeft();
-        float CalcNSPulseTimeLeft();
+    bool InNSPulse;
+    float NSPulseRequest;
+    struct timeval NSPulseStart;
+    int NStimerID;
 
+    int WEDir;
+    int NSDir;
 
-        bool InWEPulse;
-        float WEPulseRequest;
-        struct timeval WEPulseStart;
-        int WEtimerID;
-
-
-        bool InNSPulse;
-        float NSPulseRequest;
-        struct timeval NSPulseStart;
-        int NStimerID;
-
-        int WEDir;
-        int NSDir;
-
-        GPUSBDriver * driver;
-
-
+    GPUSBDriver *driver;
 };
-
-#endif // GPUSB_H

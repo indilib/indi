@@ -17,6 +17,8 @@
 *******************************************************************************/
 
 #include "indifilterwheel.h"
+
+#include "indicontroller.h"
 #include "connectionplugins/connectionserial.h"
 #include "connectionplugins/connectiontcp.h"
 
@@ -35,7 +37,6 @@ INDI::FilterWheel::~FilterWheel()
     //dtor
 }
 
-
 bool INDI::FilterWheel::initProperties()
 {
     DefaultDevice::initProperties();
@@ -52,20 +53,14 @@ bool INDI::FilterWheel::initProperties()
     if (filterConnection & CONNECTION_SERIAL)
     {
         serialConnection = new Connection::Serial(this);
-        serialConnection->registerHandshake([&]()
-        {
-            return callHandshake();
-        });
+        serialConnection->registerHandshake([&]() { return callHandshake(); });
         registerConnection(serialConnection);
     }
 
     if (filterConnection & CONNECTION_TCP)
     {
         tcpConnection = new Connection::TCP(this);
-        tcpConnection->registerHandshake([&]()
-        {
-            return callHandshake();
-        });
+        tcpConnection->registerHandshake([&]() { return callHandshake(); });
 
         registerConnection(tcpConnection);
     }
@@ -73,12 +68,12 @@ bool INDI::FilterWheel::initProperties()
     return true;
 }
 
-void INDI::FilterWheel::ISGetProperties (const char * dev)
+void INDI::FilterWheel::ISGetProperties(const char *dev)
 {
     //  First we let our parent populate
     //IDLog("INDI::FilterWheel::ISGetProperties %s\n",dev);
     DefaultDevice::ISGetProperties(dev);
-    if(isConnected())
+    if (isConnected())
     {
         defineNumber(&FilterSlotNP);
 
@@ -98,7 +93,7 @@ bool INDI::FilterWheel::updateProperties()
     //  Define more properties after we are connected
     //  first we want to update the values to reflect our actual wheel
 
-    if(isConnected())
+    if (isConnected())
     {
         //initFilterProperties(getDeviceName(), FILTER_TAB);
         defineNumber(&FilterSlotNP);
@@ -119,22 +114,22 @@ bool INDI::FilterWheel::updateProperties()
     return true;
 }
 
-bool INDI::FilterWheel::ISNewSwitch (const char * dev, const char * name, ISState * states, char * names[], int n)
+bool INDI::FilterWheel::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
 {
     controller->ISNewSwitch(dev, name, states, names, n);
     return DefaultDevice::ISNewSwitch(dev, name, states, names, n);
 }
 
-bool INDI::FilterWheel::ISNewNumber (const char * dev, const char * name, double values[], char * names[], int n)
+bool INDI::FilterWheel::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
 {
     //  first check if it's for our device
     //IDLog("INDI::FilterWheel::ISNewNumber %s\n",name);
-    if(strcmp(dev, getDeviceName()) == 0)
+    if (strcmp(dev, getDeviceName()) == 0)
     {
         //  This is for our device
         //  Now lets see if it's something we process here
 
-        if(strcmp(name, "FILTER_SLOT") == 0)
+        if (strcmp(name, "FILTER_SLOT") == 0)
         {
             processFilterSlot(dev, values, names);
             return true;
@@ -145,28 +140,27 @@ bool INDI::FilterWheel::ISNewNumber (const char * dev, const char * name, double
     return DefaultDevice::ISNewNumber(dev, name, values, names, n);
 }
 
-bool INDI::FilterWheel::ISNewText (const char * dev, const char * name, char * texts[], char * names[], int n)
+bool INDI::FilterWheel::ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
 {
     //  Ok, lets see if this is a property wer process
     //IDLog("INDI::FilterWheel got %d new text items name %s\n",n,name);
     //  first check if it's for our device
-    if(strcmp(dev, getDeviceName()) == 0)
+    if (strcmp(dev, getDeviceName()) == 0)
     {
         //  This is for our device
         //  Now lets see if it's something we process here
-        if(strcmp(name, FilterNameTP->name) == 0)
+        if (strcmp(name, FilterNameTP->name) == 0)
         {
             processFilterName(dev, texts, names, n);
             return true;
         }
-
     }
 
     controller->ISNewText(dev, name, texts, names, n);
     return DefaultDevice::ISNewText(dev, name, texts, names, n);
 }
 
-bool INDI::FilterWheel::saveConfigItems(FILE * fp)
+bool INDI::FilterWheel::saveConfigItems(FILE *fp)
 {
     DefaultDevice::saveConfigItems(fp);
 
@@ -183,7 +177,6 @@ int INDI::FilterWheel::QueryFilter()
     return -1;
 }
 
-
 bool INDI::FilterWheel::SelectFilter(int)
 {
     return false;
@@ -194,32 +187,30 @@ bool INDI::FilterWheel::SetFilterNames()
     return true;
 }
 
-
-bool INDI::FilterWheel::GetFilterNames(const char * groupName)
+bool INDI::FilterWheel::GetFilterNames(const char *groupName)
 {
     INDI_UNUSED(groupName);
     return false;
 }
 
-bool INDI::FilterWheel::ISSnoopDevice (XMLEle * root)
+bool INDI::FilterWheel::ISSnoopDevice(XMLEle *root)
 {
     controller->ISSnoopDevice(root);
 
     return INDI::DefaultDevice::ISSnoopDevice(root);
 }
 
-
-void INDI::FilterWheel::joystickHelper(const char * joystick_n, double mag, double angle, void * context)
+void INDI::FilterWheel::joystickHelper(const char *joystick_n, double mag, double angle, void *context)
 {
     static_cast<INDI::FilterWheel *>(context)->processJoystick(joystick_n, mag, angle);
 }
 
-void INDI::FilterWheel::buttonHelper(const char * button_n, ISState state, void * context)
+void INDI::FilterWheel::buttonHelper(const char *button_n, ISState state, void *context)
 {
     static_cast<INDI::FilterWheel *>(context)->processButton(button_n, state);
 }
 
-void INDI::FilterWheel::processJoystick(const char * joystick_n, double mag, double angle)
+void INDI::FilterWheel::processJoystick(const char *joystick_n, double mag, double angle)
 {
     if (!strcmp(joystick_n, "Change Filter"))
     {
@@ -236,7 +227,6 @@ void INDI::FilterWheel::processJoystick(const char * joystick_n, double mag, dou
                     TargetFilter = FilterSlotN[0].value - 1;
 
                 SelectFilter(TargetFilter);
-
             }
             // South
             if (angle > 180 && angle < 360)
@@ -248,15 +238,12 @@ void INDI::FilterWheel::processJoystick(const char * joystick_n, double mag, dou
                     TargetFilter = FilterSlotN[0].value + 1;
 
                 SelectFilter(TargetFilter);
-
             }
-
         }
     }
-
 }
 
-void INDI::FilterWheel::processButton(const char * button_n, ISState state)
+void INDI::FilterWheel::processButton(const char *button_n, ISState state)
 {
     //ignore OFF
     if (state == ISS_OFF)
@@ -268,7 +255,6 @@ void INDI::FilterWheel::processButton(const char * button_n, ISState state)
         TargetFilter = FilterSlotN[0].min;
         SelectFilter(TargetFilter);
     }
-
 }
 
 bool INDI::FilterWheel::Handshake()

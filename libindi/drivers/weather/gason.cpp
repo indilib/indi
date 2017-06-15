@@ -22,45 +22,46 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
 #include "gason.h"
+
 #include <stdlib.h>
 
-#define JSON_ZONE_SIZE 4096
+#define JSON_ZONE_SIZE  4096
 #define JSON_STACK_SIZE 32
 
-const char * jsonStrError(int err)
+const char *jsonStrError(int err)
 {
     switch (err)
     {
 #define XX(no, str) \
     case JSON_##no: \
         return str;
-            JSON_ERRNO_MAP(XX)
+        JSON_ERRNO_MAP(XX)
 #undef XX
         default:
             return "unknown";
     }
 }
 
-void * JsonAllocator::allocate(size_t size)
+void *JsonAllocator::allocate(size_t size)
 {
     size = (size + 7) & ~7;
 
     if (head && head->used + size <= JSON_ZONE_SIZE)
     {
-        char * p = (char *)head + head->used;
+        char *p = (char *)head + head->used;
         head->used += size;
         return p;
     }
 
     size_t allocSize = sizeof(Zone) + size;
-    Zone * zone = (Zone *)malloc(allocSize <= JSON_ZONE_SIZE ? JSON_ZONE_SIZE : allocSize);
+    Zone *zone       = (Zone *)malloc(allocSize <= JSON_ZONE_SIZE ? JSON_ZONE_SIZE : allocSize);
     if (zone == nullptr)
         return nullptr;
     zone->used = allocSize;
     if (allocSize <= JSON_ZONE_SIZE || head == nullptr)
     {
         zone->next = head;
-        head = zone;
+        head       = zone;
     }
     else
     {
@@ -74,7 +75,7 @@ void JsonAllocator::deallocate()
 {
     while (head)
     {
-        Zone * next = head->next;
+        Zone *next = head->next;
         free(head);
         head = next;
     }
@@ -107,7 +108,7 @@ static inline int char2int(char c)
     return (c & ~' ') - 'A' + 10;
 }
 
-static double string2double(char * s, char ** endptr)
+static double string2double(char *s, char **endptr)
 {
     char ch = *s;
     if (ch == '-')
@@ -158,7 +159,7 @@ static double string2double(char * s, char ** endptr)
     return ch == '-' ? -result : result;
 }
 
-static inline JsonNode * insertAfter(JsonNode * tail, JsonNode * node)
+static inline JsonNode *insertAfter(JsonNode *tail, JsonNode *node)
 {
     if (!tail)
         return node->next = node;
@@ -167,26 +168,26 @@ static inline JsonNode * insertAfter(JsonNode * tail, JsonNode * node)
     return node;
 }
 
-static inline JsonValue listToValue(JsonTag tag, JsonNode * tail)
+static inline JsonValue listToValue(JsonTag tag, JsonNode *tail)
 {
     if (tail)
     {
-        auto head = tail->next;
+        auto head  = tail->next;
         tail->next = nullptr;
         return JsonValue(tag, head);
     }
     return JsonValue(tag, nullptr);
 }
 
-int jsonParse(char * s, char ** endptr, JsonValue * value, JsonAllocator &allocator)
+int jsonParse(char *s, char **endptr, JsonValue *value, JsonAllocator &allocator)
 {
-    JsonNode * tails[JSON_STACK_SIZE];
+    JsonNode *tails[JSON_STACK_SIZE];
     JsonTag tags[JSON_STACK_SIZE];
-    char * keys[JSON_STACK_SIZE];
+    char *keys[JSON_STACK_SIZE];
     JsonValue o;
-    int pos = -1;
+    int pos        = -1;
     bool separator = true;
-    JsonNode * node;
+    JsonNode *node;
     *endptr = s;
 
     while (*s)
@@ -194,7 +195,8 @@ int jsonParse(char * s, char ** endptr, JsonValue * value, JsonAllocator &alloca
         while (isspace(*s))
         {
             ++s;
-            if (!*s) break;
+            if (!*s)
+                break;
         }
         *endptr = s++;
         switch (**endptr)
@@ -224,7 +226,7 @@ int jsonParse(char * s, char ** endptr, JsonValue * value, JsonAllocator &alloca
                 break;
             case '"':
                 o = JsonValue(JSON_STRING, s);
-                for (char * it = s; *s; ++it, ++s)
+                for (char *it = s; *s; ++it, ++s)
                 {
                     int c = *it = *s;
                     if (c == '\\')
@@ -273,13 +275,13 @@ int jsonParse(char * s, char ** endptr, JsonValue * value, JsonAllocator &alloca
                                 else if (c < 0x800)
                                 {
                                     *it++ = 0xC0 | (c >> 6);
-                                    *it = 0x80 | (c & 0x3F);
+                                    *it   = 0x80 | (c & 0x3F);
                                 }
                                 else
                                 {
                                     *it++ = 0xE0 | (c >> 12);
                                     *it++ = 0x80 | ((c >> 6) & 0x3F);
-                                    *it = 0x80 | (c & 0x3F);
+                                    *it   = 0x80 | (c & 0x3F);
                                 }
                                 break;
                             default:
@@ -343,17 +345,17 @@ int jsonParse(char * s, char ** endptr, JsonValue * value, JsonAllocator &alloca
                 if (++pos == JSON_STACK_SIZE)
                     return JSON_STACK_OVERFLOW;
                 tails[pos] = nullptr;
-                tags[pos] = JSON_ARRAY;
-                keys[pos] = nullptr;
-                separator = true;
+                tags[pos]  = JSON_ARRAY;
+                keys[pos]  = nullptr;
+                separator  = true;
                 continue;
             case '{':
                 if (++pos == JSON_STACK_SIZE)
                     return JSON_STACK_OVERFLOW;
                 tails[pos] = nullptr;
-                tags[pos] = JSON_OBJECT;
-                keys[pos] = nullptr;
-                separator = true;
+                tags[pos]  = JSON_OBJECT;
+                keys[pos]  = nullptr;
+                separator  = true;
                 continue;
             case ':':
                 if (separator || keys[pos] == nullptr)
@@ -376,7 +378,7 @@ int jsonParse(char * s, char ** endptr, JsonValue * value, JsonAllocator &alloca
         if (pos == -1)
         {
             *endptr = s;
-            *value = o;
+            *value  = o;
             return JSON_OK;
         }
 
@@ -389,15 +391,15 @@ int jsonParse(char * s, char ** endptr, JsonValue * value, JsonAllocator &alloca
                 keys[pos] = o.toString();
                 continue;
             }
-            if ((node = (JsonNode *) allocator.allocate(sizeof(JsonNode))) == nullptr)
+            if ((node = (JsonNode *)allocator.allocate(sizeof(JsonNode))) == nullptr)
                 return JSON_ALLOCATION_FAILURE;
-            tails[pos] = insertAfter(tails[pos], node);
+            tails[pos]      = insertAfter(tails[pos], node);
             tails[pos]->key = keys[pos];
-            keys[pos] = nullptr;
+            keys[pos]       = nullptr;
         }
         else
         {
-            if ((node = (JsonNode *) allocator.allocate(sizeof(JsonNode) - sizeof(char *))) == nullptr)
+            if ((node = (JsonNode *)allocator.allocate(sizeof(JsonNode) - sizeof(char *))) == nullptr)
                 return JSON_ALLOCATION_FAILURE;
             tails[pos] = insertAfter(tails[pos], node);
         }

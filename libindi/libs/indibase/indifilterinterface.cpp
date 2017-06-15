@@ -18,26 +18,25 @@
 
 */
 
-#include <string.h>
-
 #include "indifilterinterface.h"
+
 #include "indilogger.h"
 
 INDI::FilterInterface::FilterInterface()
 {
-    FilterNameTP  = new ITextVectorProperty;
+    FilterNameTP = new ITextVectorProperty;
     FilterNameT  = nullptr;
 }
 
-void INDI::FilterInterface::initFilterProperties(const char * deviceName, const char * groupName)
+void INDI::FilterInterface::initFilterProperties(const char *deviceName, const char *groupName)
 {
     IUFillNumber(&FilterSlotN[0], "FILTER_SLOT_VALUE", "Filter", "%3.0f", 1.0, 12.0, 1.0, 1.0);
-    IUFillNumberVector(&FilterSlotNP, FilterSlotN, 1, deviceName, "FILTER_SLOT", "Filter Slot", groupName, IP_RW, 60, IPS_IDLE);
+    IUFillNumberVector(&FilterSlotNP, FilterSlotN, 1, deviceName, "FILTER_SLOT", "Filter Slot", groupName, IP_RW, 60,
+                       IPS_IDLE);
 }
 
 INDI::FilterInterface::~FilterInterface()
 {
-
     delete FilterNameTP;
 }
 
@@ -46,22 +45,23 @@ void INDI::FilterInterface::SelectFilterDone(int f)
     //  The hardware has finished changing
     //  filters
     FilterSlotN[0].value = f;
-    FilterSlotNP.s = IPS_OK;
+    FilterSlotNP.s       = IPS_OK;
     // Tell the clients we are done, and
     //  filter is now useable
     IDSetNumber(&FilterSlotNP, nullptr);
 }
 
-void INDI::FilterInterface::processFilterSlot(const char * deviceName, double values[], char * names[])
+void INDI::FilterInterface::processFilterSlot(const char *deviceName, double values[], char *names[])
 {
     TargetFilter = values[0];
 
-    INumber * np = IUFindNumber(&FilterSlotNP, names[0]);
+    INumber *np = IUFindNumber(&FilterSlotNP, names[0]);
 
     if (!np)
     {
         FilterSlotNP.s = IPS_ALERT;
-        DEBUGFDEVICE(deviceName, Logger::DBG_ERROR, "Unknown error. %s is not a member of %s property.", names[0], FilterSlotNP.name);
+        DEBUGFDEVICE(deviceName, Logger::DBG_ERROR, "Unknown error. %s is not a member of %s property.", names[0],
+                     FilterSlotNP.name);
         IDSetNumber(&FilterSlotNP, nullptr);
         return;
     }
@@ -69,14 +69,14 @@ void INDI::FilterInterface::processFilterSlot(const char * deviceName, double va
     if (TargetFilter < FilterSlotN[0].min || TargetFilter > FilterSlotN[0].max)
     {
         FilterSlotNP.s = IPS_ALERT;
-        DEBUGFDEVICE(deviceName, Logger::DBG_ERROR, "Error: valid range of filter is from %g to %g", FilterSlotN[0].min, FilterSlotN[0].max);
+        DEBUGFDEVICE(deviceName, Logger::DBG_ERROR, "Error: valid range of filter is from %g to %g", FilterSlotN[0].min,
+                     FilterSlotN[0].max);
         IDSetNumber(&FilterSlotNP, nullptr);
         return;
     }
 
     FilterSlotNP.s = IPS_BUSY;
     DEBUGFDEVICE(deviceName, Logger::DBG_SESSION, "Setting current filter to slot %d", TargetFilter);
-
 
     if (SelectFilter(TargetFilter) == false)
     {
@@ -85,10 +85,9 @@ void INDI::FilterInterface::processFilterSlot(const char * deviceName, double va
 
     IDSetNumber(&FilterSlotNP, nullptr);
     return;
-
 }
 
-void INDI::FilterInterface::processFilterName(const char * deviceName, char * texts[], char * names[], int n)
+void INDI::FilterInterface::processFilterName(const char *deviceName, char *texts[], char *names[], int n)
 {
     FilterNameTP->s = IPS_OK;
     IUUpdateText(FilterNameTP, texts, names, n);
@@ -101,5 +100,4 @@ void INDI::FilterInterface::processFilterName(const char * deviceName, char * te
         DEBUGDEVICE(deviceName, Logger::DBG_ERROR, "Error updating names of filters.");
         IDSetText(FilterNameTP, nullptr);
     }
-
 }

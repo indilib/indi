@@ -18,22 +18,18 @@
  Boston, MA 02110-1301, USA.
 *******************************************************************************/
 
-#ifndef INDIBASECLIENTQT_H
-#define INDIBASECLIENTQT_H
-
-#include <vector>
-#include <map>
-#include <string>
-
-#include <QTcpSocket>
+#pragma once
 
 #include "indiapi.h"
 #include "indidevapi.h"
 #include "indibase.h"
 
-#define MAXRBUF 2048
+#include <QTcpSocket>
 
-using namespace std;
+#include <vector>
+#include <string>
+
+#define MAXRBUF 2048
 
 /**
  * \class INDI::BaseClientQt
@@ -55,7 +51,7 @@ class INDI::BaseClientQt : public QObject, public INDI::BaseMediator
 {
     Q_OBJECT
 
-public:
+  public:
     BaseClientQt();
     virtual ~BaseClientQt();
 
@@ -63,7 +59,7 @@ public:
         \param hostname INDI server host name or IP address.
         \param port INDI server port.
     */
-    void setServer(const char * hostname, unsigned int port);
+    void setServer(const char *hostname, unsigned int port);
 
     /** \brief Add a device to the watch list.
 
@@ -72,8 +68,7 @@ public:
         INDI::BaseDevice object to handle them. If no devices are watched, then all devices owned by INDI server
         will be created and handled.
     */
-    void watchDevice(const char * deviceName);
-
+    void watchDevice(const char *deviceName);
 
     /** \brief Connect to INDI server.
 
@@ -92,24 +87,21 @@ public:
     /** \brief Connect to INDI driver
         \param deviceName Name of the device to connect to.
     */
-    void connectDevice(const char * deviceName);
+    void connectDevice(const char *deviceName);
 
     /** \brief Disconnect INDI driver
         \param deviceName Name of the device to disconnect.
     */
-    void disconnectDevice(const char * deviceName);
+    void disconnectDevice(const char *deviceName);
 
     /** \param deviceName Name of device to search for in the list of devices owned by INDI server,
          \returns If \e deviceName exists, it returns an instance of the device. Otherwise, it returns NULL.
     */
-    INDI::BaseDevice * getDevice(const char * deviceName);
+    INDI::BaseDevice *getDevice(const char *deviceName);
 
     /** \returns Returns a vector of all devices created in the client.
     */
-    const vector<INDI::BaseDevice *> &getDevices() const
-    {
-        return cDevices;
-    }
+    const std::vector<INDI::BaseDevice *> &getDevices() const { return cDevices; }
 
     /** \brief Set Binary Large Object policy mode
 
@@ -127,7 +119,7 @@ public:
       \param dev name of device, required.
       \param prop name of property, optional.
     */
-    void setBLOBMode(BLOBHandling blobH, const char * dev, const char * prop = NULL);
+    void setBLOBMode(BLOBHandling blobH, const char *dev, const char *prop = NULL);
 
     /**
      * @brief getBLOBMode Get Binary Large Object policy mode IF set previously by setBLOBMode
@@ -135,39 +127,33 @@ public:
      * @param prop property name, can be NULL to return overall device policy if it exists.
      * @return BLOB Policy, if not found, it always returns B_ALSO
      */
-    BLOBHandling getBLOBMode(const char * dev, const char * prop = NULL);
+    BLOBHandling getBLOBMode(const char *dev, const char *prop = NULL);
 
     // Update
-    static void * listenHelper(void * context);
+    static void *listenHelper(void *context);
 
-    const char * getHost()
-    {
-        return cServer.c_str();
-    }
-    int getPort()
-    {
-        return cPort;
-    }
+    const char *getHost() { return cServer.c_str(); }
+    int getPort() { return cPort; }
 
     /** \brief Send new Text command to server */
-    void sendNewText (ITextVectorProperty * pp);
+    void sendNewText(ITextVectorProperty *pp);
     /** \brief Send new Text command to server */
-    void sendNewText (const char * deviceName, const char * propertyName, const char * elementName, const char * text);
+    void sendNewText(const char *deviceName, const char *propertyName, const char *elementName, const char *text);
     /** \brief Send new Number command to server */
-    void sendNewNumber (INumberVectorProperty * pp);
+    void sendNewNumber(INumberVectorProperty *pp);
     /** \brief Send new Number command to server */
-    void sendNewNumber (const char * deviceName, const char * propertyName, const char * elementName, double value);
+    void sendNewNumber(const char *deviceName, const char *propertyName, const char *elementName, double value);
     /** \brief Send new Switch command to server */
-    void sendNewSwitch (ISwitchVectorProperty * pp);
+    void sendNewSwitch(ISwitchVectorProperty *pp);
     /** \brief Send new Switch command to server */
-    void sendNewSwitch (const char * deviceName, const char * propertyName, const char * elementName);
+    void sendNewSwitch(const char *deviceName, const char *propertyName, const char *elementName);
 
     /** \brief Send opening tag for BLOB command to server */
-    void startBlob( const char * devName, const char * propName, const char * timestamp);
+    void startBlob(const char *devName, const char *propName, const char *timestamp);
     /** \brief Send ONE blob content to server. The BLOB data in raw binary format and will be converted to base64 and sent to server */
-    void sendOneBlob(IBLOB * bp);
+    void sendOneBlob(IBLOB *bp);
     /** \brief Send ONE blob content to server. The BLOB data in raw binary format and will be converted to base64 and sent to server */
-    void sendOneBlob( const char * blobName, unsigned int blobSize, const char * blobFormat, void * blobBuffer);
+    void sendOneBlob(const char *blobName, unsigned int blobSize, const char *blobFormat, void *blobBuffer);
     /** \brief Send closing tag for BLOB command to server */
     void finishBlob();
 
@@ -176,19 +162,13 @@ public:
      * @param enable If true, enable <b>FULL</b> verbose output. Any XML message received, including BLOBs, are printed on
      * standard output. Only use this for debugging purposes.
      */
-    void setVerbose(bool enable)
-    {
-        verbose = enable;
-    }
+    void setVerbose(bool enable) { verbose = enable; }
 
     /**
      * @brief isVerbose Is client in verbose mode?
      * @return Is client in verbose mode?
      */
-    bool isVerbose() const
-    {
-        return verbose;
-    }
+    bool isVerbose() const { return verbose; }
 
     /**
      * @brief setConnectionTimeout Set connection timeout. By default it is 3 seconds.
@@ -198,47 +178,45 @@ public:
     void setConnectionTimeout(uint32_t seconds, uint32_t microseconds)
     {
         timeout_sec = seconds;
-        timeout_us = microseconds;
+        timeout_us  = microseconds;
     }
 
-protected:
-
+  protected:
     /** \brief Dispatch command received from INDI server to respective devices handled by the client */
-    int dispatchCommand(XMLEle * root, char * errmsg);
+    int dispatchCommand(XMLEle *root, char *errmsg);
 
     /** \brief Remove device */
-    int deleteDevice( const char * devName, char * errmsg );
+    int deleteDevice(const char *devName, char *errmsg);
 
     /** \brief Delete property command */
-    int delPropertyCmd (XMLEle * root, char * errmsg);
+    int delPropertyCmd(XMLEle *root, char *errmsg);
 
     /** \brief Find and return a particular device */
-    INDI::BaseDevice * findDev( const char * devName, char * errmsg);
+    INDI::BaseDevice *findDev(const char *devName, char *errmsg);
     /** \brief Add a new device */
-    INDI::BaseDevice * addDevice (XMLEle * dep, char * errmsg);
+    INDI::BaseDevice *addDevice(XMLEle *dep, char *errmsg);
     /** \brief Find a device, and if it doesn't exist, create it if create is set to 1 */
-    INDI::BaseDevice * findDev (XMLEle * root, int create, char * errmsg);
+    INDI::BaseDevice *findDev(XMLEle *root, int create, char *errmsg);
 
     /**  Process messages */
-    int messageCmd (XMLEle * root, char * errmsg);
+    int messageCmd(XMLEle *root, char *errmsg);
 
-private:
-
+  private:
     typedef struct
     {
-        string device;
-        string property;
+        std::string device;
+        std::string property;
         BLOBHandling blobMode;
     } BLOBMode;
 
-    BLOBMode * findBLOBMode(string device, string property);
+    BLOBMode *findBLOBMode(const std::string& device, const std::string& property);
 
     /** \brief Connect/Disconnect to INDI driver
         \param status If true, the client will attempt to turn on CONNECTION property within the driver (i.e. turn on the device).
          Otherwise, CONNECTION will be turned off.
         \param deviceName Name of the device to connect to.
     */
-    void setDriverConnection(bool status, const char * deviceName);
+    void setDriverConnection(bool status, const char *deviceName);
 
     /**
      * @brief clear Clear devices and blob modes
@@ -247,25 +225,22 @@ private:
 
     QTcpSocket client_socket;
 
-    vector<INDI::BaseDevice *> cDevices;
-    vector<string> cDeviceNames;
-    vector<BLOBMode *> blobModes;
+    std::vector<INDI::BaseDevice *> cDevices;
+    std::vector<std::string> cDeviceNames;
+    std::vector<BLOBMode *> blobModes;
 
-    string cServer;
+    std::string cServer;
     unsigned int cPort;
     bool sConnected;
     bool verbose;
 
     // Parse & FILE buffers for IO
 
-    LilXML * lillp;			/* XML parser context */
+    LilXML *lillp; /* XML parser context */
     uint32_t timeout_sec, timeout_us;
 
-private slots:
+  private slots:
 
     void listenINDI();
-    void processSocketError( QAbstractSocket::SocketError socketError );
-
+    void processSocketError(QAbstractSocket::SocketError socketError);
 };
-
-#endif // INDIBaseClientQt_H

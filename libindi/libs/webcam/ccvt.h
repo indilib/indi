@@ -47,9 +47,7 @@
  Finishing touches: adding const, adding libs for 'show'
 */
 
-
-#ifndef CCVT_H
-#define CCVT_H
+#pragma once
 
 #ifdef __cplusplus
 extern "C" {
@@ -85,52 +83,52 @@ extern "C" {
 /*@{*/
 
 /** 4:2:0 YUV planar to RGB/BGR     */
-void ccvt_420p_bgr24(int width, int height, const void * src, void * dst);
+void ccvt_420p_bgr24(int width, int height, const void *src, void *dst);
 /** 4:2:0 YUV planar to RGB/BGR     */
-void ccvt_420p_rgb24(int width, int height, const void * src, void * dst);
+void ccvt_420p_rgb24(int width, int height, const void *src, void *dst);
 /** 4:2:0 YUV planar to RGB/BGR     */
-void ccvt_420p_bgr32(int width, int height, const void * src, void * dst);
+void ccvt_420p_bgr32(int width, int height, const void *src, void *dst);
 /** 4:2:0 YUV planar to RGB/BGR     */
-void ccvt_420p_rgb32(int width, int height, const void * src, void * dst);
+void ccvt_420p_rgb32(int width, int height, const void *src, void *dst);
 
 /** 4:2:2 YUYV interlaced to RGB/BGR */
-void ccvt_yuyv_rgb32(int width, int height, const void * src, void * dst);
+void ccvt_yuyv_rgb32(int width, int height, const void *src, void *dst);
 /** 4:2:2 YUYV interlaced to RGB/BGR */
-void ccvt_yuyv_bgr32(int width, int height, const void * src, void * dst);
+void ccvt_yuyv_bgr32(int width, int height, const void *src, void *dst);
 /** 4:2:2 YUYV interlaced to BGR24 */
-void ccvt_yuyv_bgr24(int width, int height, const void * src, void * dst);
+void ccvt_yuyv_bgr24(int width, int height, const void *src, void *dst);
 /** 4:2:2 YUYV interlaced to RGB24 */
-void ccvt_yuyv_rgb24(int width, int height, const void * src, void * dst);
+void ccvt_yuyv_rgb24(int width, int height, const void *src, void *dst);
 
 /** 4:2:2 YUYV interlaced to 4:2:0 YUV planar */
-void ccvt_yuyv_420p(int width, int height, const void * src, void * dsty, void * dstu, void * dstv);
+void ccvt_yuyv_420p(int width, int height, const void *src, void *dsty, void *dstu, void *dstv);
 
 /* RGB/BGR to 4:2:0 YUV interlaced */
 
 /** RGB/BGR to 4:2:0 YUV planar     */
-void ccvt_rgb24_420p(int width, int height, const void * src, void * dsty, void * dstu, void * dstv);
+void ccvt_rgb24_420p(int width, int height, const void *src, void *dsty, void *dstu, void *dstv);
 /** RGB/BGR to 4:2:0 YUV planar     */
-void ccvt_bgr24_420p(int width, int height, const void * src, void * dsty, void * dstu, void * dstv);
+void ccvt_bgr24_420p(int width, int height, const void *src, void *dsty, void *dstu, void *dstv);
 
 /** RGB/BGR to RGB/BGR */
-void ccvt_bgr24_bgr32(int width, int height, const void * const src, void * const dst);
+void ccvt_bgr24_bgr32(int width, int height, const void *const src, void *const dst);
 /** RGB/BGR to RGB/BGR */
-void ccvt_bgr24_rgb32(int width, int height, const void * const src, void * const dst);
+void ccvt_bgr24_rgb32(int width, int height, const void *const src, void *const dst);
 /** RGB/BGR to RGB/BGR */
-void ccvt_bgr32_bgr24(int width, int height, const void * const src, void * const dst);
+void ccvt_bgr32_bgr24(int width, int height, const void *const src, void *const dst);
 /** RGB/BGR to RGB/BGR */
-void ccvt_bgr32_rgb24(int width, int height, const void * const src, void * const dst);
+void ccvt_bgr32_rgb24(int width, int height, const void *const src, void *const dst);
 /** RGB/BGR to RGB/BGR */
-void ccvt_rgb24_bgr32(int width, int height, const void * const src, void * const dst);
+void ccvt_rgb24_bgr32(int width, int height, const void *const src, void *const dst);
 /** RGB/BGR to RGB/BGR */
-void ccvt_rgb24_rgb32(int width, int height, const void * const src, void * const dst);
+void ccvt_rgb24_rgb32(int width, int height, const void *const src, void *const dst);
 /** RGB/BGR to RGB/BGR */
-void ccvt_rgb32_bgr24(int width, int height, const void * const src, void * const dst);
+void ccvt_rgb32_bgr24(int width, int height, const void *const src, void *const dst);
 /** RGB/BGR to RGB/BGR */
-void ccvt_rgb32_rgb24(int width, int height, const void * const src, void * const dst);
+void ccvt_rgb32_rgb24(int width, int height, const void *const src, void *const dst);
 
 /** RGB to YUV */
-int RGB2YUV (int x_dim, int y_dim, void * bmp, void * y_out, void * u_out, void * v_out, int flip);
+int RGB2YUV(int x_dim, int y_dim, void *bmp, void *y_out, void *u_out, void *v_out, int flip);
 
 /**
  * @short mjpegtoyuv420p MPEG to YUV 420 P
@@ -145,7 +143,7 @@ int RGB2YUV (int x_dim, int y_dim, void * bmp, void * y_out, void * u_out, void 
  * 2006 by Krzysztof Blaszkowski (kb@sysmikro.com.pl)
  * 2007 by Angel Carpinteo (ack@telefonica.net)
  */
-int mjpegtoyuv420p(unsigned char * map, unsigned char * cap_map, int width, int height, unsigned int size);
+int mjpegtoyuv420p(unsigned char *map, unsigned char *cap_map, int width, int height, unsigned int size);
 
 /*
  * BAYER2RGB24 ROUTINE TAKEN FROM:
@@ -176,11 +174,11 @@ int mjpegtoyuv420p(unsigned char * map, unsigned char * cap_map, int width, int 
  */
 
 /** Bayer 8bit to RGB 24 */
-void bayer2rgb24(unsigned char * dst, unsigned char * src, long int WIDTH, long int HEIGHT);
+void bayer2rgb24(unsigned char *dst, unsigned char *src, long int WIDTH, long int HEIGHT);
 /** Bayer 16 bit to RGB 24 */
-void bayer16_2_rgb24(unsigned short * dst, unsigned short * src, long int WIDTH, long int HEIGHT);
+void bayer16_2_rgb24(unsigned short *dst, unsigned short *src, long int WIDTH, long int HEIGHT);
 /** Bayer RGGB to RGB 24 */
-void bayer_rggb_2rgb24(unsigned char * dst, unsigned char * srcc, long int WIDTH, long int HEIGHT);
+void bayer_rggb_2rgb24(unsigned char *dst, unsigned char *srcc, long int WIDTH, long int HEIGHT);
 
 /*@}*/
 
@@ -190,14 +188,11 @@ void bayer_rggb_2rgb24(unsigned char * dst, unsigned char * srcc, long int WIDTH
 
 enum Options
 {
-    ioNoBlock = (1 << 0),
-    ioUseSelect = (1 << 1),
+    ioNoBlock      = (1 << 0),
+    ioUseSelect    = (1 << 1),
     haveBrightness = (1 << 2),
-    haveContrast = (1 << 3),
-    haveHue = (1 << 4),
-    haveColor = (1 << 5),
-    haveWhiteness = (1 << 6)
+    haveContrast   = (1 << 3),
+    haveHue        = (1 << 4),
+    haveColor      = (1 << 5),
+    haveWhiteness  = (1 << 6)
 };
-
-
-#endif

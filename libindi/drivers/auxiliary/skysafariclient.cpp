@@ -24,11 +24,10 @@
   file called LICENSE.
 *******************************************************************************/
 
-#include <memory>
-#include <cstring>
-#include <cmath>
-
 #include "skysafariclient.h"
+
+#include <cmath>
+#include <string.h>
 
 /**************************************************************************************
 **
@@ -43,13 +42,12 @@ SkySafariClient::SkySafariClient()
 ***************************************************************************************/
 SkySafariClient::~SkySafariClient()
 {
-
 }
 
 /**************************************************************************************
 **
 ***************************************************************************************/
-void SkySafariClient::newDevice(INDI::BaseDevice * dp)
+void SkySafariClient::newDevice(INDI::BaseDevice *dp)
 {
     IDLog("Receiving %s Device...\n", dp->getDeviceName());
 
@@ -63,7 +61,7 @@ void SkySafariClient::newDevice(INDI::BaseDevice * dp)
 /**************************************************************************************
 **
 *************************************************************************************/
-void SkySafariClient::newProperty(INDI::Property * property)
+void SkySafariClient::newProperty(INDI::Property *property)
 {
     if (!strcmp(property->getName(), "TELESCOPE_PARK"))
         mountParkSP = property->getSwitch();
@@ -85,7 +83,6 @@ void SkySafariClient::newProperty(INDI::Property * property)
         timeUTC = property->getText();
 }
 
-
 /**************************************************************************************
 **
 ***************************************************************************************/
@@ -103,7 +100,7 @@ bool SkySafariClient::parkMount()
     if (mountParkSP == nullptr)
         return false;
 
-    ISwitch * sw = IUFindSwitch(mountParkSP, "PARK");
+    ISwitch *sw = IUFindSwitch(mountParkSP, "PARK");
 
     if (sw == nullptr)
         return false;
@@ -240,4 +237,3 @@ bool SkySafariClient::setTimeUTC()
 
     return true;
 }
-

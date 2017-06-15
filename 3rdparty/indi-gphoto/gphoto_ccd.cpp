@@ -616,7 +616,7 @@ bool GPhotoCCD::ISNewSwitch(const char *dev, const char *name, ISState *states, 
           IUUpdateSwitch(&livePreviewSP, states, names, n);
 
           #ifdef __linux__
-          if (streamer->isBusy())
+          if (Streamer->isBusy())
           {
               livePreviewS[0].s = ISS_OFF;
               livePreviewS[1].s = ISS_ON;
@@ -1005,7 +1005,7 @@ void GPhotoCCD::TimerHit()
         return;
 
     #ifdef __linux__
-    if (streamer->isBusy())
+    if (Streamer->isBusy())
     {
         bool rc = captureLiveVideo();
 
@@ -1014,7 +1014,7 @@ void GPhotoCCD::TimerHit()
         else
         {
             DEBUG(INDI::Logger::DBG_ERROR, "Error capturing video stream.");
-            streamer->setStream(false);
+            Streamer->setStream(false);
         }
     }
     #endif
@@ -1659,16 +1659,16 @@ bool GPhotoCCD::captureLiveVideo()
    {
        last_naxis = naxis;
        if (naxis == 3)
-           streamer->setPixelFormat(V4L2_PIX_FMT_RGB24);
+           Streamer->setPixelFormat(V4L2_PIX_FMT_RGB24);
        else
-           streamer->setPixelFormat(V4L2_PIX_FMT_GREY);
+           Streamer->setPixelFormat(V4L2_PIX_FMT_GREY);
 
        PrimaryCCD.setNAxis(naxis);
    }
 
    if (last_w != w || last_h != h)
    {
-       streamer->setRecorderSize(w,h);
+       Streamer->setRecorderSize(w,h);
        PrimaryCCD.setFrameBufferSize(size, false);
        PrimaryCCD.setFrame(0,0, w, h);
 
@@ -1682,7 +1682,7 @@ bool GPhotoCCD::captureLiveVideo()
       previewFile = NULL;
    }
 
-   streamer->newFrame();
+   Streamer->newFrame();
 
    return true;
 }

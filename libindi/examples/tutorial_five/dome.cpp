@@ -23,34 +23,36 @@
     driver arrives in the dome driver. Alternatively, you can directly parse the XML root element in ISSnoopDevice(XMLEle *root) to extract the required data.
 */
 
-#include <unistd.h>
-#include <memory>
-
 #include "dome.h"
+
+#include <memory>
+#include <string.h>
+#include <unistd.h>
 
 std::unique_ptr<Dome> dome(new Dome());
 
-void ISGetProperties(const char * dev)
+void ISGetProperties(const char *dev)
 {
     dome->ISGetProperties(dev);
 }
 
-void ISNewSwitch(const char * dev, const char * name, ISState * states, char * names[], int num)
+void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int num)
 {
     dome->ISNewSwitch(dev, name, states, names, num);
 }
 
-void ISNewText(	const char * dev, const char * name, char * texts[], char * names[], int num)
+void ISNewText(const char *dev, const char *name, char *texts[], char *names[], int num)
 {
     dome->ISNewText(dev, name, texts, names, num);
 }
 
-void ISNewNumber(const char * dev, const char * name, double values[], char * names[], int num)
+void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int num)
 {
     dome->ISNewNumber(dev, name, values, names, num);
 }
 
-void ISNewBLOB (const char * dev, const char * name, int sizes[], int blobsizes[], char * blobs[], char * formats[], char * names[], int n)
+void ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[],
+               char *names[], int n)
 {
     INDI_UNUSED(dev);
     INDI_UNUSED(name);
@@ -62,7 +64,7 @@ void ISNewBLOB (const char * dev, const char * name, int sizes[], int blobsizes[
     INDI_UNUSED(n);
 }
 
-void ISSnoopDevice (XMLEle * root)
+void ISSnoopDevice(XMLEle *root)
 {
     dome->ISSnoopDevice(root);
 }
@@ -92,7 +94,7 @@ bool Dome::Disconnect()
 /**************************************************************************************
 ** INDI is asking us for our default device name
 ***************************************************************************************/
-const char * Dome::getDefaultName()
+const char *Dome::getDefaultName()
 {
     return "Dome";
 }
@@ -107,8 +109,8 @@ bool Dome::initProperties()
 
     IUFillSwitch(&ShutterS[0], "Open", "", ISS_ON);
     IUFillSwitch(&ShutterS[1], "Close", "", ISS_OFF);
-    IUFillSwitchVector(&ShutterSP, ShutterS, 2, getDeviceName(), "Shutter Door", "", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
-
+    IUFillSwitchVector(&ShutterSP, ShutterS, 2, getDeviceName(), "Shutter Door", "", MAIN_CONTROL_TAB, IP_RW,
+                       ISR_1OFMANY, 0, IPS_IDLE);
 
     // We init here the property we wish to "snoop" from the target device
     IUFillLight(&RainL[0], "Status", "", IPS_IDLE);
@@ -116,7 +118,6 @@ bool Dome::initProperties()
     IUFillLightVector(&RainLP, RainL, 1, "Rain Detector", "Rain Alert", "", MAIN_CONTROL_TAB, IPS_IDLE);
 
     return true;
-
 }
 
 /********************************************************************************************
@@ -144,7 +145,7 @@ bool Dome::updateProperties()
 /********************************************************************************************
 ** Client is asking us to update a switch
 *********************************************************************************************/
-bool Dome::ISNewSwitch (const char * dev, const char * name, ISState * states, char * names[], int n)
+bool Dome::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
 {
     if (!strcmp(dev, getDeviceName()))
     {
@@ -158,7 +159,7 @@ bool Dome::ISNewSwitch (const char * dev, const char * name, ISState * states, c
             {
                 if (RainL[0].s == IPS_ALERT)
                 {
-                    ShutterSP.s = IPS_ALERT;
+                    ShutterSP.s   = IPS_ALERT;
                     ShutterS[0].s = ISS_OFF;
                     ShutterS[1].s = ISS_ON;
                     IDSetSwitch(&ShutterSP, "It is raining, cannot open Shutter.");
@@ -189,7 +190,7 @@ bool Dome::ISNewSwitch (const char * dev, const char * name, ISState * states, c
 /********************************************************************************************
 ** We received snooped property update from rain detector device
 *********************************************************************************************/
-bool Dome::ISSnoopDevice(XMLEle * root)
+bool Dome::ISSnoopDevice(XMLEle *root)
 {
     IPState old_state = RainL[0].s;
 
@@ -233,4 +234,3 @@ void Dome::closeShutter()
 
     IDSetSwitch(&ShutterSP, "Shutter is closed.");
 }
-

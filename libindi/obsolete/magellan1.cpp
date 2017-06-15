@@ -22,33 +22,23 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110 - 1301  USA
 
 #endif
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <stdarg.h>
-#include <math.h>
-#include <unistd.h>
-#include <time.h>
-#include <sys/time.h>
-
-#include "magellandriver.h"
 #include "magellan1.h"
 
-#include <config.h>
+#include "magellandriver.h"
 
-Magellan1 * telescope = nullptr;
+Magellan1 *telescope = nullptr;
 
-extern char * me;
+extern char *me;
 
-#define COMM_GROUP	"Communication"
-#define BASIC_GROUP	"Position"
+#define COMM_GROUP  "Communication"
+#define BASIC_GROUP "Position"
 
-#define MAGELLAN_TRACK	0
-#define MAGELLAN_SYNC	1
+#define MAGELLAN_TRACK 0
+#define MAGELLAN_SYNC  1
 
 /* Handy Macros */
-#define currentRA	EquatorialCoordsRN[0].value
-#define currentDEC	EquatorialCoordsRN[1].value
+#define currentRA  EquatorialCoordsRN[0].value
+#define currentDEC EquatorialCoordsRN[1].value
 
 static void ISPoll(void *);
 static void retryConnection(void *);
@@ -62,15 +52,17 @@ static void retryConnection(void *);
 /********************************************
  Property: Connection
 *********************************************/
-static ISwitch ConnectS[]          	= {{"CONNECT" , "Connect" , ISS_OFF, 0, 0}, {"DISCONNECT", "Disconnect", ISS_ON, 0, 0}};
-ISwitchVectorProperty ConnectSP		= { mydev, "CONNECTION" , "Connection", COMM_GROUP, IP_RW, ISR_1OFMANY, 0, IPS_IDLE, ConnectS, NARRAY(ConnectS), "", 0};
+static ISwitch ConnectS[] = { { "CONNECT", "Connect", ISS_OFF, 0, 0 }, { "DISCONNECT", "Disconnect", ISS_ON, 0, 0 } };
+ISwitchVectorProperty ConnectSP = { mydev, "CONNECTION", "Connection", COMM_GROUP,       IP_RW, ISR_1OFMANY,
+                                    0,     IPS_IDLE,     ConnectS,     NARRAY(ConnectS), "",    0 };
 
 /********************************************
  Property: Device Port
 *********************************************/
 /*wildi removed static */
-static IText PortT[]			= {{"PORT", "Port", 0, 0, 0, 0}};
-ITextVectorProperty PortTP	= { mydev, "DEVICE_PORT", "Ports", COMM_GROUP, IP_RW, 0, IPS_IDLE, PortT, NARRAY(PortT), "", 0};
+static IText PortT[]       = { { "PORT", "Port", 0, 0, 0, 0 } };
+ITextVectorProperty PortTP = { mydev,    "DEVICE_PORT", "Ports",       COMM_GROUP, IP_RW, 0,
+                               IPS_IDLE, PortT,         NARRAY(PortT), "",         0 };
 
 /**********************************************************************************************/
 /************************************ GROUP: Position Display**********************************/
@@ -80,9 +72,12 @@ ITextVectorProperty PortTP	= { mydev, "DEVICE_PORT", "Ports", COMM_GROUP, IP_RW,
  Property: Equatorial Coordinates JNow
  Perm: RO
 *********************************************/
-INumber EquatorialCoordsRN[]	 	= { {"RA",  "RA  H:M:S", "%10.6m",  0., 24., 0., 0., 0, 0, 0}, {"DEC", "Dec D:M:S", "%10.6m", -90., 90., 0., 0., 0, 0, 0}};
-INumberVectorProperty EquatorialCoordsRNP = { mydev, "EQUATORIAL_EOD_COORD", "Equatorial JNow", BASIC_GROUP, IP_RO, 120, IPS_IDLE, EquatorialCoordsRN, NARRAY(EquatorialCoordsRN), "", 0};
-
+INumber EquatorialCoordsRN[]              = { { "RA", "RA  H:M:S", "%10.6m", 0., 24., 0., 0., 0, 0, 0 },
+                                 { "DEC", "Dec D:M:S", "%10.6m", -90., 90., 0., 0., 0, 0, 0 } };
+INumberVectorProperty EquatorialCoordsRNP = {
+    mydev,    "EQUATORIAL_EOD_COORD", "Equatorial JNow",          BASIC_GROUP, IP_RO, 120,
+    IPS_IDLE, EquatorialCoordsRN,     NARRAY(EquatorialCoordsRN), "",          0
+};
 
 /*****************************************************************************************************/
 /**************************************** END PROPERTIES *********************************************/
@@ -103,41 +98,42 @@ void ISInit()
     }
 
     isInit = 1;
-    IEAddTimer (POLLMS, ISPoll, nullptr);
+    IEAddTimer(POLLMS, ISPoll, nullptr);
 }
 
-void ISGetProperties (const char * dev)
+void ISGetProperties(const char *dev)
 {
     ISInit();
     telescope->ISGetProperties(dev);
 }
 
-void ISNewSwitch (const char * dev, const char * name, ISState * states, char * names[], int n)
+void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
 {
     ISInit();
     telescope->ISNewSwitch(dev, name, states, names, n);
 }
 
-void ISNewText (const char * dev, const char * name, char * texts[], char * names[], int n)
+void ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
 {
     ISInit();
     telescope->ISNewText(dev, name, texts, names, n);
 }
 
-void ISNewNumber (const char * dev, const char * name, double values[], char * names[], int n)
+void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
 {
     ISInit();
     telescope->ISNewNumber(dev, name, values, names, n);
 }
 
-void ISPoll (void * p)
+void ISPoll(void *p)
 {
     telescope->ISPoll();
-    IEAddTimer (POLLMS, ISPoll, nullptr);
+    IEAddTimer(POLLMS, ISPoll, nullptr);
     p = p;
 }
 
-void ISNewBLOB (const char * dev, const char * name, int sizes[], int blobsizes[], char * blobs[], char * formats[], char * names[], int n)
+void ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[],
+               char *names[], int n)
 {
     INDI_UNUSED(dev);
     INDI_UNUSED(name);
@@ -149,7 +145,7 @@ void ISNewBLOB (const char * dev, const char * name, int sizes[], int blobsizes[
     INDI_UNUSED(n);
 }
 
-void ISSnoopDevice (XMLEle * root)
+void ISSnoopDevice(XMLEle *root)
 {
     telescope->ISSnoopDevice(root);
 }
@@ -177,57 +173,56 @@ Magellan1::~Magellan1()
 {
 }
 
-void Magellan1::setCurrentDeviceName(const char * devName)
+void Magellan1::setCurrentDeviceName(const char *devName)
 {
     strcpy(thisDevice, devName);
 }
 
-void Magellan1::ISGetProperties(const char * dev)
+void Magellan1::ISGetProperties(const char *dev)
 {
-
-    if (dev && strcmp (thisDevice, dev))
+    if (dev && strcmp(thisDevice, dev))
         return;
 
     // COMM_GROUP
-    IDDefSwitch (&ConnectSP, nullptr);
-    IDDefText   (&PortTP, nullptr);
+    IDDefSwitch(&ConnectSP, nullptr);
+    IDDefText(&PortTP, nullptr);
 
     // POSITION_GROUP
-    IDDefNumber (&EquatorialCoordsRNP, nullptr);
+    IDDefNumber(&EquatorialCoordsRNP, nullptr);
 
     /* Send the basic data to the new client if the previous client(s) are already connected. */
     if (ConnectSP.s == IPS_OK)
         getBasicData();
 }
 
-void Magellan1::ISSnoopDevice (XMLEle * root)
+void Magellan1::ISSnoopDevice(XMLEle *root)
 {
     INDI_UNUSED(root);
 }
 
-void Magellan1::ISNewText (const char * dev, const char * name, char * texts[], char * names[], int n)
+void Magellan1::ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
 {
-    IText * tp;
+    IText *tp;
 
     /* Ignore other devices */
-    if (strcmp (dev, thisDevice))
+    if (strcmp(dev, thisDevice))
         return;
 
     /* See if the port is updated */
-    if (!strcmp(name, PortTP.name) )
+    if (!strcmp(name, PortTP.name))
     {
         PortTP.s = IPS_OK;
-        tp = IUFindText( &PortTP, names[0] );
+        tp       = IUFindText(&PortTP, names[0]);
         if (!tp)
             return;
 
         IUSaveText(&PortTP.tp[0], texts[0]);
-        IDSetText (&PortTP, nullptr);
+        IDSetText(&PortTP, nullptr);
         return;
     }
 }
 
-void Magellan1::ISNewNumber (const char * dev, const char * name, double values[], char * names[], int n)
+void Magellan1::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
 {
     INDI_UNUSED(dev);
     INDI_UNUSED(name);
@@ -236,20 +231,21 @@ void Magellan1::ISNewNumber (const char * dev, const char * name, double values[
     INDI_UNUSED(n);
 }
 
-void Magellan1::ISNewSwitch (const char * dev, const char * name, ISState * states, char * names[], int n)
+void Magellan1::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
 {
     INDI_UNUSED(names);
 
     /* Ignore other devices */
-    if (strcmp (thisDevice, dev))
+    if (strcmp(thisDevice, dev))
         return;
 
     // FIRST Switch ALWAYS for Connection
-    if (!strcmp (name, ConnectSP.name))
+    if (!strcmp(name, ConnectSP.name))
     {
         bool connectionEstablished = (ConnectS[0].s == ISS_ON);
-        if (IUUpdateSwitch(&ConnectSP, states, names, n) < 0) return;
-        if ( (connectionEstablished && ConnectS[0].s == ISS_ON) || (!connectionEstablished && ConnectS[1].s == ISS_ON))
+        if (IUUpdateSwitch(&ConnectSP, states, names, n) < 0)
+            return;
+        if ((connectionEstablished && ConnectS[0].s == ISS_ON) || (!connectionEstablished && ConnectS[1].s == ISS_ON))
         {
             ConnectSP.s = IPS_OK;
             IDSetSwitch(&ConnectSP, nullptr);
@@ -260,9 +256,8 @@ void Magellan1::ISNewSwitch (const char * dev, const char * name, ISState * stat
     }
 }
 
-void Magellan1::handleError(ISwitchVectorProperty * svp, int err, const char * msg)
+void Magellan1::handleError(ISwitchVectorProperty *svp, int err, const char *msg)
 {
-
     svp->s = IPS_ALERT;
 
     /* First check to see if the telescope is connected */
@@ -271,7 +266,7 @@ void Magellan1::handleError(ISwitchVectorProperty * svp, int err, const char * m
         /* The telescope is off locally */
         ConnectS[0].s = ISS_OFF;
         ConnectS[1].s = ISS_ON;
-        ConnectSP.s = IPS_BUSY;
+        ConnectSP.s   = IPS_BUSY;
         IDSetSwitch(&ConnectSP, "Telescope is not responding to commands, will retry in 10 seconds.");
 
         IDSetSwitch(svp, nullptr);
@@ -287,14 +282,13 @@ void Magellan1::handleError(ISwitchVectorProperty * svp, int err, const char * m
     }
     else
         /* Changing property failed, user should retry. */
-        IDSetSwitch( svp , "%s failed.", msg);
+        IDSetSwitch(svp, "%s failed.", msg);
 
     fault = true;
 }
 
-void Magellan1::handleError(INumberVectorProperty * nvp, int err, const char * msg)
+void Magellan1::handleError(INumberVectorProperty *nvp, int err, const char *msg)
 {
-
     nvp->s = IPS_ALERT;
 
     /* First check to see if the telescope is connected */
@@ -303,7 +297,7 @@ void Magellan1::handleError(INumberVectorProperty * nvp, int err, const char * m
         /* The telescope is off locally */
         ConnectS[0].s = ISS_OFF;
         ConnectS[1].s = ISS_ON;
-        ConnectSP.s = IPS_BUSY;
+        ConnectSP.s   = IPS_BUSY;
         IDSetSwitch(&ConnectSP, "Telescope is not responding to commands, will retry in 10 seconds.");
 
         IDSetNumber(nvp, nullptr);
@@ -319,14 +313,13 @@ void Magellan1::handleError(INumberVectorProperty * nvp, int err, const char * m
     }
     else
         /* Changing property failed, user should retry. */
-        IDSetNumber( nvp , "%s failed.", msg);
+        IDSetNumber(nvp, "%s failed.", msg);
 
     fault = true;
 }
 
-void Magellan1::handleError(ITextVectorProperty * tvp, int err, const char * msg)
+void Magellan1::handleError(ITextVectorProperty *tvp, int err, const char *msg)
 {
-
     tvp->s = IPS_ALERT;
 
     /* First check to see if the telescope is connected */
@@ -335,7 +328,7 @@ void Magellan1::handleError(ITextVectorProperty * tvp, int err, const char * msg
         /* The telescope is off locally */
         ConnectS[0].s = ISS_OFF;
         ConnectS[1].s = ISS_ON;
-        ConnectSP.s = IPS_BUSY;
+        ConnectSP.s   = IPS_BUSY;
         IDSetSwitch(&ConnectSP, "Telescope is not responding to commands, will retry in 10 seconds.");
 
         IDSetText(tvp, nullptr);
@@ -353,7 +346,7 @@ void Magellan1::handleError(ITextVectorProperty * tvp, int err, const char * msg
     else
     {
         /* Changing property failed, user should retry. */
-        IDSetText( tvp , "%s failed.", msg);
+        IDSetText(tvp, "%s failed.", msg);
     }
 
     fault = true;
@@ -361,10 +354,8 @@ void Magellan1::handleError(ITextVectorProperty * tvp, int err, const char * msg
 
 void Magellan1::correctFault()
 {
-
     fault = false;
     IDMessage(thisDevice, "Telescope is online.");
-
 }
 
 bool Magellan1::isTelescopeOn(void)
@@ -372,9 +363,9 @@ bool Magellan1::isTelescopeOn(void)
     return (ConnectSP.sp[0].s == ISS_ON);
 }
 
-static void retryConnection(void * p)
+static void retryConnection(void *p)
 {
-    int fd = *( (int *) p);
+    int fd = *((int *)p);
 
     if (check_magellan_connection(fd))
     {
@@ -385,10 +376,9 @@ static void retryConnection(void * p)
 
     ConnectS[0].s = ISS_ON;
     ConnectS[1].s = ISS_OFF;
-    ConnectSP.s = IPS_OK;
+    ConnectSP.s   = IPS_OK;
 
     IDSetSwitch(&ConnectSP, "The connection to the telescope has been resumed.");
-
 }
 
 void Magellan1::ISPoll()
@@ -398,7 +388,7 @@ void Magellan1::ISPoll()
     if (!isTelescopeOn())
         return;
 
-    if ( (err = getMAGELLANRA(fd, &currentRA)) < 0 || (err = getMAGELLANDEC(fd, &currentDEC)) < 0)
+    if ((err = getMAGELLANRA(fd, &currentRA)) < 0 || (err = getMAGELLANDEC(fd, &currentDEC)) < 0)
     {
         EquatorialCoordsRNP.s = IPS_ALERT;
         IDSetNumber(&EquatorialCoordsRNP, nullptr);
@@ -406,13 +396,14 @@ void Magellan1::ISPoll()
         return;
     }
 
-    if (fault) correctFault();
+    if (fault)
+        correctFault();
 
     EquatorialCoordsRNP.s = IPS_OK;
 
     lastRA  = currentRA;
     lastDEC = currentDEC;
-    IDSetNumber (&EquatorialCoordsRNP, nullptr);
+    IDSetNumber(&EquatorialCoordsRNP, nullptr);
 }
 
 void Magellan1::getBasicData()
@@ -421,17 +412,16 @@ void Magellan1::getBasicData()
     int err;
 
     /* Magellan 1 Get Calendar Date As a Test (always 1/1/96) */
-    if ( (err = getCalendarDate(fd, calendarDate)) < 0)
+    if ((err = getCalendarDate(fd, calendarDate)) < 0)
         IDMessage(thisDevice, "Failed to retrieve calendar date from device.");
     else
         IDMessage(thisDevice, "Successfully retrieved calendar date from device.");
-
 
     /* Only 24 Time format on Magellan and you cant get to the local time
        which you can set in Magellan I */
     timeFormat = MAGELLAN_24;
 
-    if ( (err = getMAGELLANRA(fd, &targetRA)) < 0 || (err = getMAGELLANDEC(fd, &targetDEC)) < 0)
+    if ((err = getMAGELLANRA(fd, &targetRA)) < 0 || (err = getMAGELLANDEC(fd, &targetDEC)) < 0)
     {
         EquatorialCoordsRNP.s = IPS_ALERT;
         IDSetNumber(&EquatorialCoordsRNP, nullptr);
@@ -439,14 +429,14 @@ void Magellan1::getBasicData()
         return;
     }
 
-    if (fault) correctFault();
+    if (fault)
+        correctFault();
 
     EquatorialCoordsRNP.np[0].value = targetRA;
     EquatorialCoordsRNP.np[1].value = targetDEC;
 
     EquatorialCoordsRNP.s = IPS_OK;
-    IDSetNumber (&EquatorialCoordsRNP, nullptr);
-
+    IDSetNumber(&EquatorialCoordsRNP, nullptr);
 }
 
 void Magellan1::connectTelescope()
@@ -460,14 +450,17 @@ void Magellan1::connectTelescope()
             {
                 ConnectS[0].s = ISS_OFF;
                 ConnectS[1].s = ISS_ON;
-                IDSetSwitch (&ConnectSP, "Error connecting to port %s. Make sure you have BOTH write and read permission to your port.\n", PortTP.tp[0].text);
+                IDSetSwitch(
+                    &ConnectSP,
+                    "Error connecting to port %s. Make sure you have BOTH write and read permission to your port.\n",
+                    PortTP.tp[0].text);
                 return;
             }
             if (check_magellan_connection(fd))
             {
                 ConnectS[0].s = ISS_OFF;
                 ConnectS[1].s = ISS_ON;
-                IDSetSwitch (&ConnectSP, "Error connecting to Telescope. Telescope is offline.");
+                IDSetSwitch(&ConnectSP, "Error connecting to Telescope. Telescope is offline.");
                 return;
             }
 
@@ -476,22 +469,17 @@ void Magellan1::connectTelescope()
 #endif
 
             ConnectSP.s = IPS_OK;
-            IDSetSwitch (&ConnectSP, "Telescope is online. Retrieving basic data...");
+            IDSetSwitch(&ConnectSP, "Telescope is online. Retrieving basic data...");
             getBasicData();
             break;
 
         case ISS_OFF:
             ConnectS[0].s = ISS_OFF;
             ConnectS[1].s = ISS_ON;
-            ConnectSP.s = IPS_IDLE;
-            IDSetSwitch (&ConnectSP, "Telescope is offline.");
+            ConnectSP.s   = IPS_IDLE;
+            IDSetSwitch(&ConnectSP, "Telescope is offline.");
             IDLog("Telescope is offline.");
             tty_disconnect(fd);
             break;
-
     }
-
 }
-
-
-

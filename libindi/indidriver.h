@@ -24,8 +24,12 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110 - 1301  USA
 
 #endif
 
-#ifndef INDIDRIVER_H
-#define INDIDRIVER_H
+#pragma once
+
+#include "indiapi.h"
+#include "lilxml.h"
+
+#include <stdio.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -34,21 +38,21 @@ extern "C" {
 /* insure RO properties are never modified. RO Sanity Check */
 typedef struct
 {
-char propName[MAXINDINAME];
+    char propName[MAXINDINAME];
     char devName[MAXINDIDEVICE];
     IPerm perm;
-    const void * ptr;
+    const void *ptr;
     int type;
 } ROSC;
 
-extern ROSC * propCache;
-extern int nPropCache;			/* # of elements in roCheck */
-extern int verbose;			/* chatty */
-extern char * me;				/* a.out name */
-extern LilXML * clixml;			/* XML parser context */
+extern ROSC *propCache;
+extern int nPropCache; /* # of elements in roCheck */
+extern int verbose;    /* chatty */
+extern char *me;       /* a.out name */
+extern LilXML *clixml; /* XML parser context */
 
-extern int dispatch (XMLEle * root, char msg[]);
-extern void clientMsgCB(int fd, void * arg);
+extern int dispatch(XMLEle *root, char msg[]);
+extern void clientMsgCB(int fd, void *arg);
 
 /**
  * \defgroup configFunctions Configuration Functions: Functions drivers call to save and load configuraion options.
@@ -76,7 +80,6 @@ be used as the configuration filename</li>
 \version libindi 1.1+
 */
 
-
 /*@{*/
 
 /** \brief Open a configuration file for writing and return a configuration file FILE pointer.
@@ -87,7 +90,7 @@ be used as the configuration filename</li>
     \param errmsg In case of errors, store the error message in this buffer. The size of the buffer must be at least MAXRBUF.
     \return pointer to FILE if configuration file is opened successful, otherwise NULL and errmsg is set.
 */
-extern FILE * IUGetConfigFP(const char * filename, const char * dev, const char * mode, char errmsg[]);
+extern FILE *IUGetConfigFP(const char *filename, const char *dev, const char *mode, char errmsg[]);
 
 /** \brief Loads and processes a configuration file.
 
@@ -105,7 +108,7 @@ extern FILE * IUGetConfigFP(const char * filename, const char * dev, const char 
     \param errmsg In case of errors, store the error message in this buffer. The size of the buffer must be at least MAXRBUF.
     \return 0 on successful, -1 if there is an error and errmsg is set.
 */
-extern int IUReadConfig(const char * filename, const char * dev, const char * property, int silent, char errmsg[]);
+extern int IUReadConfig(const char *filename, const char *dev, const char *property, int silent, char errmsg[]);
 
 /** \brief Copies an existing configuration file into a default configuration file.
 
@@ -119,7 +122,7 @@ extern int IUReadConfig(const char * filename, const char * dev, const char * pr
            If the file already exists, the function returns. If the file doesn't exist, it gets created and its contents copied from the source_config file.
     \param dev device name. This is used if either the source_config or desg_config are NULL, and INDICONFIG environment variable is not set as described in the <b>Detailed Description</b> introduction.
 */
-extern void IUSaveDefaultConfig(const char * source_config, const char * dest_config, const char * dev);
+extern void IUSaveDefaultConfig(const char *source_config, const char *dest_config, const char *dev);
 
 /** \brief Add opening or closing tag to a configuration file.
 
@@ -129,37 +132,35 @@ extern void IUSaveDefaultConfig(const char * source_config, const char * dest_co
     \param dev device name. Used only for sending notification to the driver if silent is set to 1.
     \param silent If silent is 1, it will suppress any output messages to the driver.
 */
-extern void IUSaveConfigTag(FILE * fp, int ctag, const char * dev, int silent);
+extern void IUSaveConfigTag(FILE *fp, int ctag, const char *dev, int silent);
 
 /** \brief Add a number vector property value to the configuration file
     \param fp file pointer to a configuration file.
     \param nvp pointer to a number vector property.
 */
-extern void IUSaveConfigNumber (FILE * fp, const INumberVectorProperty * nvp);
+extern void IUSaveConfigNumber(FILE *fp, const INumberVectorProperty *nvp);
 
 /** \brief Add a text vector property value to the configuration file
     \param fp file pointer to a configuration file.
     \param tvp pointer to a text vector property.
 */
-extern void IUSaveConfigText (FILE * fp, const ITextVectorProperty * tvp);
+extern void IUSaveConfigText(FILE *fp, const ITextVectorProperty *tvp);
 
 /** \brief Add a switch vector property value to the configuration file
     \param fp file pointer to a configuration file.
     \param svp pointer to a switch vector property.
 */
-extern void IUSaveConfigSwitch (FILE * fp, const ISwitchVectorProperty * svp);
+extern void IUSaveConfigSwitch(FILE *fp, const ISwitchVectorProperty *svp);
 
 /** \brief Add a BLOB vector property value to the configuration file
     \param fp file pointer to a configuration file.
     \param bvp pointer to a BLOB vector property.
     \note If the BLOB size is large, this function will block until the BLOB contents are written to the file.
 */
-extern void IUSaveConfigBLOB (FILE * fp, const IBLOBVectorProperty * bvp);
+extern void IUSaveConfigBLOB(FILE *fp, const IBLOBVectorProperty *bvp);
 
 /*@}*/
 
 #ifdef __cplusplus
 }
-#endif
-
 #endif

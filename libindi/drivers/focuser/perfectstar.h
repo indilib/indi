@@ -18,67 +18,56 @@
  Boston, MA 02110-1301, USA.
 *******************************************************************************/
 
-#ifndef PERFECTSTAR_H
-#define PERFECTSTAR_H
+#pragma once
 
-#include "indibase/indifocuser.h"
-#include "indibase/indiusbdevice.h"
-#include "indibase/hidapi.h"
-
-/*  Some headers we need */
-#include <math.h>
-#include <sys/time.h>
+#include "indifocuser.h"
+#include "hidapi.h"
 
 class PerfectStar : public INDI::Focuser
 {
-    public:
+  public:
+    // Perfect Star (PS) status
+    typedef enum { PS_NOOP, PS_IN, PS_OUT, PS_GOTO, PS_SETPOS, PS_LOCKED, PS_HALT = 0xFF } PS_STATUS;
 
-        // Perfect Star (PS) status
-        typedef enum { PS_NOOP, PS_IN, PS_OUT, PS_GOTO, PS_SETPOS, PS_LOCKED, PS_HALT = 0xFF } PS_STATUS;
+    PerfectStar();
+    virtual ~PerfectStar();
 
-        PerfectStar();
-        virtual ~PerfectStar();
+    virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n);
 
-        virtual bool ISNewNumber (const char * dev, const char * name, double values[], char * names[], int n);
+    const char *getDefaultName();
+    virtual bool initProperties();
+    virtual bool updateProperties();
+    virtual bool saveConfigItems(FILE *fp);
 
-        const char * getDefaultName();
-        virtual bool initProperties();
-        virtual bool updateProperties();
-        virtual bool saveConfigItems(FILE * fp);
+    bool Connect();
+    bool Disconnect();
 
-        bool Connect();
-        bool Disconnect();
+    void TimerHit();
 
-        void TimerHit();
+    virtual IPState MoveAbsFocuser(uint32_t ticks);
+    virtual IPState MoveRelFocuser(FocusDirection dir, uint32_t ticks);
+    virtual bool AbortFocuser();
 
-        virtual IPState MoveAbsFocuser(uint32_t ticks);
-        virtual IPState MoveRelFocuser(FocusDirection dir, uint32_t ticks);
-        virtual bool AbortFocuser();
+  private:
+    hid_device *handle;
+    PS_STATUS status;
+    bool sim;
+    uint32_t simPosition;
+    uint32_t targetPosition;
 
-    private:
+    bool setPosition(uint32_t ticks);
+    bool getPosition(uint32_t *ticks);
 
-        hid_device * handle;
-        PS_STATUS status;
-        bool sim;
-        uint32_t simPosition;
-        uint32_t targetPosition;
+    bool setStatus(PS_STATUS targetStatus);
+    bool getStatus(PS_STATUS *currentStatus);
 
-        bool setPosition(uint32_t ticks);
-        bool getPosition(uint32_t * ticks);
+    bool sync(uint32_t ticks);
 
-        bool setStatus(PS_STATUS targetStatus);
-        bool getStatus(PS_STATUS * currentStatus);
+    // Max position in ticks
+    INumber MaxPositionN[1];
+    INumberVectorProperty MaxPositionNP;
 
-        bool sync(uint32_t ticks);
-
-        // Max position in ticks
-        INumber MaxPositionN[1];
-        INumberVectorProperty MaxPositionNP;
-
-        // Sync to a particular position
-        INumber SyncN[1];
-        INumberVectorProperty SyncNP;
-
+    // Sync to a particular position
+    INumber SyncN[1];
+    INumberVectorProperty SyncNP;
 };
-
-#endif

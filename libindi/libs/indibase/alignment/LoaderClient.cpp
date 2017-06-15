@@ -1,10 +1,7 @@
 #include "LoaderClient.h"
 
-
-
 #include <cstring>
 #include <sstream>
-
 
 using namespace INDI::AlignmentSubsystem;
 
@@ -20,7 +17,7 @@ LoaderClient::~LoaderClient()
 
 // Public methods
 
-void LoaderClient::Initialise(int argc, char * argv[])
+void LoaderClient::Initialise(int argc, char *argv[])
 {
     std::string HostName("localhost");
     int Port = 7624;
@@ -65,27 +62,27 @@ void LoaderClient::Load()
 
 // Protected methods
 
-void LoaderClient::newBLOB(IBLOB * bp)
+void LoaderClient::newBLOB(IBLOB *bp)
 {
     ProcessNewBLOB(bp);
 }
 
-void LoaderClient::newDevice(INDI::BaseDevice * dp)
+void LoaderClient::newDevice(INDI::BaseDevice *dp)
 {
     ProcessNewDevice(dp);
 }
 
-void LoaderClient::newNumber(INumberVectorProperty * nvp)
+void LoaderClient::newNumber(INumberVectorProperty *nvp)
 {
     ProcessNewNumber(nvp);
 }
 
-void LoaderClient::newProperty(INDI::Property * property)
+void LoaderClient::newProperty(INDI::Property *property)
 {
     ProcessNewProperty(property);
 }
 
-void LoaderClient::newSwitch(ISwitchVectorProperty * svp)
+void LoaderClient::newSwitch(ISwitchVectorProperty *svp)
 {
     ProcessNewSwitch(svp);
 }

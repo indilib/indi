@@ -16,29 +16,25 @@
  Boston, MA 02110-1301, USA.
  *******************************************************************************/
 
-#ifndef AGENT_IMAGER_H
-#define AGENT_IMAGER_H
+#pragma once
 
-#include <fitsio.h>
-#include <string.h>
-
-#include "defaultdevice.h"
 #include "baseclient.h"
+#include "defaultdevice.h"
 
 #define MAX_GROUP_COUNT 16
 
 class Group
 {
-private:
+  private:
     char groupName[16];
     char groupSettingsName[32];
 
-public:
+  public:
     Group(int id);
     INumberVectorProperty GroupSettingsNP;
     INumber GroupSettingsN[4];
 
-    bool ISNewNumber(const char * dev, const char * name, double values[], char * names[], int n);
+    bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n);
 
     void defineProperties();
     void deleteProperties();
@@ -46,14 +42,12 @@ public:
 
 class Imager : public virtual INDI::DefaultDevice, public virtual INDI::BaseClient
 {
-
-private:
-
+  private:
     char format[16];
     int group, maxGroup;
     int image, maxImage;
-    char * controlledCCD;
-    char * controlledFilterWheel;
+    char *controlledCCD;
+    char *controlledFilterWheel;
 
     ITextVectorProperty ControlledDeviceTP;
     IText ControlledDeviceT[2];
@@ -72,21 +66,19 @@ private:
     IBLOBVectorProperty FitsBP;
     IBLOB FitsB[1];
 
-
     INumberVectorProperty CCDImageExposureNP;
     INumber CCDImageExposureN[1];
     INumberVectorProperty CCDImageBinNP;
     INumber CCDImageBinN[2];
     ISwitch CCDUploadS[3];
     ISwitchVectorProperty CCDUploadSP;
-    IText   CCDUploadSettingsT[2];
+    IText CCDUploadSettingsT[2];
     ITextVectorProperty CCDUploadSettingsTP;
 
     INumberVectorProperty FilterSlotNP;
     INumber FilterSlotN[1];
 
-
-    Group * groups[MAX_GROUP_COUNT];
+    Group *groups[MAX_GROUP_COUNT];
 
     bool isRunning();
     bool isCCDConnected();
@@ -100,14 +92,12 @@ private:
     void batchDone();
     void initiateDownload();
 
-protected:
-
-    virtual const char * getDefaultName();
+  protected:
+    virtual const char *getDefaultName();
     virtual bool Connect();
     virtual bool Disconnect();
 
-public:
-
+  public:
     Imager();
     virtual ~Imager();
 
@@ -115,27 +105,26 @@ public:
 
     virtual bool initProperties();
     virtual bool updateProperties();
-    virtual void ISGetProperties(const char * dev);
-    virtual bool ISNewNumber(const char * dev, const char * name, double values[], char * names[], int n);
-    virtual bool ISNewSwitch(const char * dev, const char * name, ISState * states, char * names[], int n);
-    virtual bool ISNewText(const char * dev, const char * name, char * texts[], char * names[], int n);
-    virtual bool ISNewBLOB(const char * dev, const char * name, int sizes[], int blobsizes[], char * blobs[], char * formats[], char * names[], int n);
-    virtual bool ISSnoopDevice (XMLEle * root);
+    virtual void ISGetProperties(const char *dev);
+    virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n);
+    virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n);
+    virtual bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n);
+    virtual bool ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[],
+                           char *formats[], char *names[], int n);
+    virtual bool ISSnoopDevice(XMLEle *root);
 
     // BaseClient
 
-    virtual void newDevice(INDI::BaseDevice * dp);
-    virtual void newProperty(INDI::Property * property);
-    virtual void removeProperty(INDI::Property * property);
-    virtual void removeDevice(INDI::BaseDevice * dp);
-    virtual void newBLOB(IBLOB * bp);
-    virtual void newSwitch(ISwitchVectorProperty * svp);
-    virtual void newNumber(INumberVectorProperty * nvp);
-    virtual void newText(ITextVectorProperty * tvp);
-    virtual void newLight(ILightVectorProperty * lvp);
-    virtual void newMessage(INDI::BaseDevice * dp, int messageID);
+    virtual void newDevice(INDI::BaseDevice *dp);
+    virtual void newProperty(INDI::Property *property);
+    virtual void removeProperty(INDI::Property *property);
+    virtual void removeDevice(INDI::BaseDevice *dp);
+    virtual void newBLOB(IBLOB *bp);
+    virtual void newSwitch(ISwitchVectorProperty *svp);
+    virtual void newNumber(INumberVectorProperty *nvp);
+    virtual void newText(ITextVectorProperty *tvp);
+    virtual void newLight(ILightVectorProperty *lvp);
+    virtual void newMessage(INDI::BaseDevice *dp, int messageID);
     virtual void serverConnected();
     virtual void serverDisconnected(int exit_code);
 };
-
-#endif
