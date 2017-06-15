@@ -290,6 +290,8 @@ void tty_set_debug(int debug)
 int tty_timeout(int fd, int timeout)
 {
 #if defined(_WIN32) || defined(ANDROID)
+    INDI_UNUSED(fd);
+    INDI_UNUSED(timeout);
     return TTY_ERRNO;
 #else
 

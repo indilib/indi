@@ -226,7 +226,7 @@ class INDI::BaseClientQt : public QObject, public INDI::BaseMediator
     QTcpSocket client_socket;
 
     std::vector<INDI::BaseDevice *> cDevices;
-    std::vector<string> cDeviceNames;
+    std::vector<std::string> cDeviceNames;
     std::vector<BLOBMode *> blobModes;
 
     std::string cServer;

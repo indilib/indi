@@ -18,8 +18,8 @@
 
 #include "baseclient.h"
 
-#include "basedevice.h"
 #include "base64.h"
+#include "basedevice.h"
 
 #include <fcntl.h>
 #include <locale.h>

@@ -22,12 +22,17 @@ include_directories( ${INDI_INCLUDE_DIR})
 include_directories( ${CFITSIO_INCLUDE_DIR})
 include_directories( ${FISHCAMP_INCLUDE_DIR})
 
+IF ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
+    SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /std:c++11")
+ELSE ()
+    SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=gnu99")
+    SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
+ENDIF ()
+
 ############# FISHCAMP STARFISH CCD ###############
 set(fishcampccd_SRCS
         ${CMAKE_CURRENT_SOURCE_DIR}/indi_fishcamp.cpp
 )
-
-SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
 
 add_executable(indi_fishcamp_ccd ${fishcampccd_SRCS})
 

@@ -20,9 +20,14 @@
 
 #include "baseclientqt.h"
 
+#include "base64.h"
+#include "basedevice.h"
+
+#include <iostream>
+#include <string>
+
 #include <locale.h>
 #include <stdlib.h>
-#include <string.h>
 
 #define MAXINDIBUF 49152
 
@@ -199,11 +204,11 @@ void INDI::BaseClientQt::setDriverConnection(bool status, const char *deviceName
 
 INDI::BaseDevice *INDI::BaseClientQt::getDevice(const char *deviceName)
 {
-    vector<INDI::BaseDevice *>::const_iterator devi;
-    for (devi = cDevices.begin(); devi != cDevices.end(); ++devi)
-        if (!strcmp(deviceName, (*devi)->getDeviceName()))
-            return (*devi);
-
+    for (auto& dev : cDevices)
+    {
+        if (!strcmp(deviceName, dev->getDeviceName()))
+            return dev;
+    }
     return nullptr;
 }
 
@@ -634,7 +639,8 @@ void INDI::BaseClientQt::sendOneBlob(IBLOB *bp)
 
     size_t written = 0;
     size_t towrite = l;
-    while (written < l)
+
+    while ((int)written < l)
     {
         towrite   = ((l - written) > 72) ? 72 : l - written;
         size_t wr = client_socket.write(reinterpret_cast<const char *>(encblob + written), towrite);
@@ -673,7 +679,8 @@ void INDI::BaseClientQt::sendOneBlob(const char *blobName, unsigned int blobSize
 
     size_t written = 0;
     size_t towrite = l;
-    while (written < l)
+
+    while ((int)written < l)
     {
         towrite   = ((l - written) > 72) ? 72 : l - written;
         size_t wr = client_socket.write(reinterpret_cast<const char *>(encblob + written), towrite);
