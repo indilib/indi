@@ -22,8 +22,7 @@
   file called LICENSE.
 *******************************************************************************/
 
-#ifndef GPSSIMULATOR_H
-#define GPSSIMULATOR_H
+#pragma once
 
 #include "indigps.h"
 
@@ -41,5 +40,3 @@ class GPSSimulator : public INDI::GPS
 
     IPState updateGPS();
 };
-
-#endif // GPSSIMULATOR_H

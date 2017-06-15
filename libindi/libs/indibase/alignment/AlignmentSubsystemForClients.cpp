@@ -8,8 +8,6 @@
 
 #include "AlignmentSubsystemForClients.h"
 
-#include <cstring>
-
 namespace INDI
 {
 namespace AlignmentSubsystem

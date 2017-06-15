@@ -17,13 +17,11 @@
 
 *******************************************************************************/
 
-#ifndef TEMMAMOUNT_H
-#define TEMMAMOUNT_H
+#pragma once
 
-#include "indibase/indiguiderinterface.h"
-#include "indibase/inditelescope.h"
-#include "indicontroller.h"
-#include "indibase/alignment/AlignmentSubsystemForDrivers.h"
+#include "indiguiderinterface.h"
+#include "inditelescope.h"
+#include "alignment/AlignmentSubsystemForDrivers.h"
 
 #define TEMMA_SLEW_RATES 4
 
@@ -103,5 +101,3 @@ class TemmaMount : public INDI::Telescope,
     //  Initial implementation doesn't need this one
     //virtual void GuideComplete(INDI_EQ_AXIS axis);
 };
-
-#endif // TEMMAMOUNT_H

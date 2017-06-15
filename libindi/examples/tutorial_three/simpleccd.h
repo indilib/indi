@@ -1,6 +1,3 @@
-#ifndef SIMPLECCD_H
-#define SIMPLECCD_H
-
 /*
    INDI Developers Manual
    Tutorial #3
@@ -23,7 +20,9 @@
     refer to the INDI Generic CCD driver template in INDI SVN (under 3rdparty).
 */
 
-#include "indibase/indiccd.h"
+#pragma once
+
+#include "indiccd.h"
 
 class SimpleCCD : public INDI::CCD
 {
@@ -57,7 +56,4 @@ class SimpleCCD : public INDI::CCD
 
     float ExposureRequest;
     float TemperatureRequest;
-    int timerID;
 };
-
-#endif // SIMPLECCD_H

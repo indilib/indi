@@ -19,13 +19,13 @@
 */
 
 #include "lx200_16.h"
+
+#include "indicom.h"
 #include "lx200driver.h"
 
-#include <stdio.h>
-#include <stdlib.h>
+#include <math.h>
 #include <string.h>
 #include <unistd.h>
-#include <math.h>
 
 #define LX16_TAB "GPS/16 inch Features"
 
@@ -159,7 +159,7 @@ bool LX200_16::ISNewNumber(const char *dev, const char *name, double values[], c
 
 bool LX200_16::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
 {
-    int index;
+    int index = 0;
 
     if (strcmp(dev, getDeviceName()) == 0)
     {
@@ -195,14 +195,16 @@ bool LX200_16::ISNewSwitch(const char *dev, const char *name, ISState *states, c
 
         if (!strcmp(name, HomeSearchSP.name))
         {
+            int ret = 0;
+
             IUResetSwitch(&HomeSearchSP);
             IUUpdateSwitch(&HomeSearchSP, states, names, n);
             index = IUFindOnSwitchIndex(&HomeSearchSP);
 
             if (index == 0)
-                seekHomeAndSave(PortFD);
+                ret = seekHomeAndSave(PortFD);
             else
-                seekHomeAndSet(PortFD);
+                ret = seekHomeAndSet(PortFD);
 
             HomeSearchSP.s = IPS_BUSY;
             IDSetSwitch(&HomeSearchSP, index == 0 ? "Seek Home and Save" : "Seek Home and Set");
@@ -211,14 +213,16 @@ bool LX200_16::ISNewSwitch(const char *dev, const char *name, ISState *states, c
 
         if (!strcmp(name, FieldDeRotatorSP.name))
         {
+            int ret = 0;
+
             IUResetSwitch(&FieldDeRotatorSP);
             IUUpdateSwitch(&FieldDeRotatorSP, states, names, n);
             index = IUFindOnSwitchIndex(&FieldDeRotatorSP);
 
             if (index == 0)
-                turnFieldDeRotatorOn(PortFD);
+                ret = turnFieldDeRotatorOn(PortFD);
             else
-                turnFieldDeRotatorOff(PortFD);
+                ret = turnFieldDeRotatorOff(PortFD);
 
             FieldDeRotatorSP.s = IPS_OK;
             IDSetSwitch(&FieldDeRotatorSP, index == 0 ? "Field deRotator is ON" : "Field deRotator is OFF");

@@ -17,6 +17,8 @@
 *******************************************************************************/
 
 #include "indifilterwheel.h"
+
+#include "indicontroller.h"
 #include "connectionplugins/connectionserial.h"
 #include "connectionplugins/connectiontcp.h"
 

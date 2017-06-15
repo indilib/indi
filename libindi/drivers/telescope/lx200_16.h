@@ -1,6 +1,3 @@
-#ifndef LX200_16_H
-#define LX200_16_H
-
 /*
     LX200 16"
     Copyright (C) 2003 Jasem Mutlaq (mutlaqja@ikarustech.com)
@@ -20,6 +17,8 @@
     Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
 */
+
+#pragma once
 
 #include "lx200gps.h"
 
@@ -56,5 +55,3 @@ class LX200_16 : public LX200GPS
     double targetAZ, targetALT;
     double currentAZ, currentALT;
 };
-
-#endif

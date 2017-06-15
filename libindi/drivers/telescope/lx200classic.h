@@ -18,8 +18,7 @@
 
 */
 
-#ifndef LX200CLASSIC_H
-#define LX200CLASSIC_H
+#pragma once
 
 #include "lx200generic.h"
 
@@ -62,5 +61,3 @@ class LX200Classic : public LX200Generic
     int currentCatalog;
     int currentSubCatalog;
 };
-
-#endif

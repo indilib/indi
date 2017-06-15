@@ -15,32 +15,26 @@
  the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
  Boston, MA 02110-1301, USA.
 *******************************************************************************/
+
+#include "basedevice.h"
+
+#include "base64.h"
+#include "config.h"
+#include "indicom.h"
+
+#include <locale.h>
 #include <stdlib.h>
 #include <string.h>
-#include <errno.h>
 #include <zlib.h>
-#include <locale.h>
-#include <sys/types.h>
+#include <sys/errno.h>
 #include <sys/stat.h>
-
-#include "config.h"
-#include "basedevice.h"
-#include "indicom.h"
-#include "base64.h"
-#include "indiproperty.h"
-
-#ifndef _WIN32
-#include <unistd.h>
-#endif
 
 #if defined(_MSC_VER)
 #define snprintf _snprintf
 #pragma warning(push)
-///@todo Introduce plattform indipendent safe functions as macros to fix this
+///@todo Introduce platform independent safe functions as macros to fix this
 #pragma warning(disable : 4996)
 #endif
-
-using namespace std;
 
 INDI::BaseDevice::BaseDevice()
 {
@@ -240,16 +234,16 @@ IPerm INDI::BaseDevice::getPropertyPermission(const char *name)
 void *INDI::BaseDevice::getRawProperty(const char *name, INDI_PROPERTY_TYPE type)
 {
     INDI_PROPERTY_TYPE pType;
-    void *pPtr;
+    void *pPtr = nullptr;
     bool pRegistered = false;
 
     std::vector<INDI::Property *>::iterator orderi = pAll.begin();
 
-    INumberVectorProperty *nvp;
-    ITextVectorProperty *tvp;
-    ISwitchVectorProperty *svp;
-    ILightVectorProperty *lvp;
-    IBLOBVectorProperty *bvp;
+    INumberVectorProperty *nvp = nullptr;
+    ITextVectorProperty *tvp = nullptr;
+    ISwitchVectorProperty *svp = nullptr;
+    ILightVectorProperty *lvp = nullptr;
+    IBLOBVectorProperty *bvp = nullptr;
 
     for (; orderi != pAll.end(); ++orderi)
     {
@@ -302,6 +296,7 @@ void *INDI::BaseDevice::getRawProperty(const char *name, INDI_PROPERTY_TYPE type
 
                 if (!strcmp(name, bvp->name) && pRegistered)
                     return pPtr;
+            case INDI_UNKNOWN:
                 break;
         }
     }
@@ -374,6 +369,8 @@ INDI::Property *INDI::BaseDevice::getProperty(const char *name, INDI_PROPERTY_TY
 
                 if (!strcmp(name, bvp->name) && pRegistered)
                     return *orderi;
+                break;
+            case INDI_UNKNOWN:
                 break;
         }
     }
@@ -452,6 +449,8 @@ int INDI::BaseDevice::removeProperty(const char *name, char *errmsg)
                     orderi = pAll.erase(orderi);
                     return 0;
                 }
+                break;
+            case INDI_UNKNOWN:
                 break;
         }
     }
@@ -937,10 +936,10 @@ bool INDI::BaseDevice::isConnected()
  */
 int INDI::BaseDevice::setValue(XMLEle *root, char *errmsg)
 {
-    XMLAtt *ap;
-    XMLEle *ep;
-    char *rtag, *name;
-    double timeout;
+    XMLAtt *ap = nullptr;
+    XMLEle *ep = nullptr;
+    char *rtag = nullptr, *name = nullptr;
+    double timeout = 0;
     IPState state;
     bool stateSet = false, timeoutSet = false;
 
@@ -1079,6 +1078,7 @@ int INDI::BaseDevice::setValue(XMLEle *root, char *errmsg)
     {
         IPState lState;
         ILightVectorProperty *lvp = getLight(name);
+
         if (lvp == nullptr)
             return -1;
 
@@ -1103,6 +1103,7 @@ int INDI::BaseDevice::setValue(XMLEle *root, char *errmsg)
     else if (!strcmp(rtag, "setBLOBVector"))
     {
         IBLOBVectorProperty *bvp = getBLOB(name);
+
         if (bvp == nullptr)
             return -1;
 
@@ -1244,13 +1245,13 @@ void INDI::BaseDevice::doMessage(XMLEle *msg)
     else
         snprintf(msgBuffer, MAXRBUF, "%s: %s ", timestamp(), valuXMLAtt(message));
 
-    string finalMsg = msgBuffer;
+    std::string finalMsg = msgBuffer;
 
     // Prepend to the log
     addMessage(finalMsg);
 }
 
-void INDI::BaseDevice::addMessage(string msg)
+void INDI::BaseDevice::addMessage(const std::string& msg)
 {
     messageLog.push_back(msg);
 
@@ -1258,15 +1259,15 @@ void INDI::BaseDevice::addMessage(string msg)
         mediator->newMessage(this, messageLog.size() - 1);
 }
 
-string INDI::BaseDevice::messageQueue(int index) const
+std::string INDI::BaseDevice::messageQueue(int index) const
 {
-    if (index >= messageLog.size())
+    if (index >= (int)messageLog.size())
         return nullptr;
 
     return messageLog.at(index);
 }
 
-string INDI::BaseDevice::lastMessage()
+std::string INDI::BaseDevice::lastMessage()
 {
     return messageLog.back();
 }

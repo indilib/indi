@@ -46,27 +46,28 @@
 
 #include "config.h"
 
+#include "fq.h"
+#include "indiapi.h"
+#include "indidevapi.h"
+#include "lilxml.h"
+
+#include <errno.h>
+#include <fcntl.h>
+#include <libgen.h>
+#include <netdb.h>
+#include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>
-#include <signal.h>
 #include <string.h>
-#include <errno.h>
-#include <unistd.h>
 #include <time.h>
-#include <fcntl.h>
+#include <unistd.h>
+#include <arpa/inet.h>
+#include <netinet/in.h>
 #include <sys/time.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/socket.h>
-#include <netinet/in.h>
-#include <netdb.h>
-#include <arpa/inet.h>
-#include <libgen.h>
-
-#include "lilxml.h"
-#include "indiapi.h"
-#include "fq.h"
 
 #define INDIPORT      7624    /* default TCP/IP port to listen */
 #define REMOTEDVR     (-1234) /* invalid PID to flag remote drivers */
@@ -90,9 +91,6 @@ typedef struct
     char *cp;          /* content: buf or malloced */
     char buf[MAXWSIZ]; /* local buf for most messages */
 } Msg;
-
-/* BLOB handling, NEVER is the default */
-typedef enum { B_NEVER = 0, B_ALSO, B_ONLY } BLOBHandling;
 
 /* device + property name */
 typedef struct
@@ -172,7 +170,7 @@ static int terminateddrv = 0;
 
 static void logStartup(int ac, char *av[]);
 static void usage(void);
-static void noZombies(void);
+//static void noZombies(void);
 static void reapZombies(void);
 static void noSIGPIPE(void);
 static void indiFIFO(void);
@@ -380,25 +378,23 @@ static void usage(void)
 }
 
 /* arrange for no zombies if drivers die */
-static void noZombies()
-{
-    struct sigaction sa;
-    sa.sa_handler = SIG_IGN;
-    sigemptyset(&sa.sa_mask);
-#ifdef SA_NOCLDWAIT
-    sa.sa_flags = SA_NOCLDWAIT;
-#else
-    sa.sa_flags = 0;
-#endif
-    (void)sigaction(SIGCHLD, &sa, NULL);
-}
+//static void noZombies()
+//{
+//    struct sigaction sa;
+//    sa.sa_handler = SIG_IGN;
+//    sigemptyset(&sa.sa_mask);
+//#ifdef SA_NOCLDWAIT
+//    sa.sa_flags = SA_NOCLDWAIT;
+//#else
+//    sa.sa_flags = 0;
+//#endif
+//    (void)sigaction(SIGCHLD, &sa, NULL);
+//}
 
 /* reap zombies when drivers die, in order to leave SIGCHLD unmodified for subprocesses */
 static void zombieRaised(int signum, siginfo_t *sig, void *data)
 {
-    if (data)
-        ;
-
+    INDI_UNUSED(data);
     switch (signum)
     {
         case SIGCHLD:
@@ -961,7 +957,7 @@ static void newFIFO(void)
             // Remove quotes if any
             char *ptr = tDriver;
             int len   = strlen(tDriver);
-            while (ptr = strstr(tDriver, "\""))
+            while ((ptr = strstr(tDriver, "\"")))
             {
                 memmove(ptr, ptr + 1, --len);
                 ptr[len] = '\0';
@@ -1246,7 +1242,7 @@ static int readFromDriver(DvrInfo *dp)
 {
     char buf[MAXRBUF];
     int shutany = 0;
-    ssize_t i, nr;
+    ssize_t nr;
     char err[1024];
     XMLEle **nodes;
     XMLEle *root;

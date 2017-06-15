@@ -1,5 +1,5 @@
-#ifndef MATHPLUGINMANAGERCLIENT_H
-#define MATHPLUGINMANAGERCLIENT_H
+
+#pragma once
 
 #include "indibase/baseclient.h"
 #include "indibase/basedevice.h"
@@ -37,5 +37,3 @@ class MathPluginManagerClient : public INDI::BaseClient, INDI::AlignmentSubsyste
     INDI::BaseDevice *Device;
     std::string DeviceName;
 };
-
-#endif // MATHPLUGINMANAGERCLIENT_H

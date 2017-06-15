@@ -16,8 +16,7 @@
  Boston, MA 02110-1301, USA.
 *******************************************************************************/
 
-#ifndef XAGYLWHEEL_H
-#define XAGYLWHEEL_H
+#pragma once
 
 #include "indibase/indifilterwheel.h"
 
@@ -114,5 +113,3 @@ class XAGYLWheel : public INDI::FilterWheel
     SimData simData;
     uint8_t firmwareVersion;
 };
-
-#endif

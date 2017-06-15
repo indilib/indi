@@ -16,8 +16,7 @@
  Boston, MA 02110-1301, USA.
 *******************************************************************************/
 
-#ifndef INDIBASETYPES_H
-#define INDIBASETYPES_H
+#pragma once
 
 /*! INDI property type */
 typedef enum {
@@ -54,5 +53,3 @@ typedef enum {
     INDI_PROPERTY_DUPLICATED = -3,
     INDI_DISPATCH_ERROR      = -4
 } INDI_ERROR_TYPE;
-
-#endif // INDIBASETYPES_H

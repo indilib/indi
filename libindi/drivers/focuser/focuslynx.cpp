@@ -20,15 +20,13 @@
 // using namespace std;
 
 #include "focuslynx.h"
+
+#include "indicom.h"
 #include "connectionplugins/connectionserial.h"
 
-#include <stdio.h>
-#include <termios.h>
-#include <string.h>
-#include <sys/time.h>
-#include <unistd.h>
-#include <math.h>
 #include <memory>
+#include <string.h>
+#include <termios.h>
 
 #define FOCUSNAMEF1 "FocusLynx F1"
 #define FOCUSNAMEF2 "FocusLynx F2"
@@ -244,7 +242,7 @@ bool FocusLynxF1::Disconnect()
 /************************************************************************************
  *
 * ***********************************************************************************/
-const int FocusLynxF1::getPortFD()
+int FocusLynxF1::getPortFD()
 // Would be used by F2 instance to communicate with teh HUB
 {
     DEBUGF(INDI::Logger::DBG_SESSION, "F1 PortFD : %d", PortFD);

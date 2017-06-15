@@ -18,16 +18,12 @@
  Boston, MA 02110-1301, USA.
 *******************************************************************************/
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <termios.h>
-#include <unistd.h>
-
 #include "skycommander.h"
+
 #include "indicom.h"
 
 #include <memory>
+#include <termios.h>
 
 #define SKYCOMMANDER_TIMEOUT 3
 

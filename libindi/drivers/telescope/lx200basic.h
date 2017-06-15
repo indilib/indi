@@ -18,8 +18,7 @@
 
 */
 
-#ifndef LX200BASIC_H
-#define LX200BASIC_H
+#pragma once
 
 #include "inditelescope.h"
 
@@ -29,22 +28,22 @@ class LX200Basic : public INDI::Telescope
     LX200Basic();
     ~LX200Basic();
 
-    virtual const char *getDefaultName();
-    virtual bool Handshake();
-    virtual bool ReadScopeStatus();
-    virtual void ISGetProperties(const char *dev);
-    virtual bool initProperties();
-    virtual bool updateProperties();
-    virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n);
+    virtual const char *getDefaultName() override;
+    virtual bool Handshake() override;
+    virtual bool ReadScopeStatus() override;
+    virtual void ISGetProperties(const char *dev) override;
+    virtual bool initProperties() override;
+    virtual bool updateProperties() override;
+    virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
 
   protected:
-    virtual bool Abort();
-    virtual bool Goto(double, double);
-    virtual bool Sync(double ra, double dec);
+    virtual bool Abort() override;
+    virtual bool Goto(double, double) override;
+    virtual bool Sync(double ra, double dec) override;
 
-    virtual void debugTriggered(bool enable);
+    virtual void debugTriggered(bool enable) override;
 
-    virtual void getBasicData();
+    void getBasicData();
 
   private:
     bool isSlewComplete();
@@ -54,10 +53,7 @@ class LX200Basic : public INDI::Telescope
     INumber SlewAccuracyN[2];
     INumberVectorProperty SlewAccuracyNP;
 
-    bool simulation;
     double targetRA, targetDEC;
     double currentRA, currentDEC;
     unsigned int DBG_SCOPE;
 };
-
-#endif

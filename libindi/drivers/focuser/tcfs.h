@@ -19,16 +19,11 @@
 
 */
 
-#ifndef TCFS_H
-#define TCFS_H
+#pragma once
+
+#include "indifocuser.h"
 
 #include <string>
-
-#include <indidevapi.h>
-#include <indicom.h>
-#include <indibase/indifocuser.h>
-
-using namespace std;
 
 #define TCFS_MAX_CMD      16
 #define TCFS_MAX_TRIES    3
@@ -94,7 +89,7 @@ class TCFS : public INDI::Focuser
     bool dispatch_command(TCFSCommand command);
 
     // Variables
-    string default_port;
+    std::string default_port;
 
     int fd;
     char command[TCFS_MAX_CMD];
@@ -107,5 +102,3 @@ class TCFS : public INDI::Focuser
     TCFSCommand currentCommand;
     bool isTCFS3;
 };
-
-#endif

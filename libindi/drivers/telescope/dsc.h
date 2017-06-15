@@ -21,13 +21,12 @@
  Boston, MA 02110-1301, USA.
 *******************************************************************************/
 
-#ifndef DSC_H
-#define DSC_H
+#pragma once
+
+#include "inditelescope.h"
+#include "alignment/AlignmentSubsystemForDrivers.h"
 
 #include <libnova.h>
-
-#include "indibase/inditelescope.h"
-#include <alignment/AlignmentSubsystemForDrivers.h>
 
 typedef struct SyncData
 {
@@ -46,18 +45,18 @@ class DSC : public INDI::Telescope, INDI::AlignmentSubsystem::AlignmentSubsystem
     DSC();
     virtual ~DSC();
 
-    virtual bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n);
-    virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n);
-    virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n);
+    virtual bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n) override;
+    virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
+    virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
 
   protected:
-    virtual const char *getDefaultName();
-    virtual bool Handshake();
+    virtual const char *getDefaultName() override;
+    virtual bool Handshake() override;
 
-    virtual bool initProperties();
-    virtual bool updateProperties();
-    virtual bool saveConfigItems(FILE *fp);
-    virtual bool ReadScopeStatus();
+    virtual bool initProperties() override;
+    virtual bool updateProperties() override;
+    virtual bool saveConfigItems(FILE *fp) override;
+    virtual bool ReadScopeStatus() override;
 
     virtual bool Sync(double ra, double dec) override;
     virtual bool updateLocation(double latitude, double longitude, double elevation) override;
@@ -119,8 +118,4 @@ class DSC : public INDI::Telescope, INDI::AlignmentSubsystem::AlignmentSubsystem
     ln_lnlat_posn observer;
     ln_hrz_posn encoderHorizontalCoordinates;
     ln_equ_posn encoderEquatorialCoordinates;
-
-    SyncData syncdata, syncdata2;
 };
-
-#endif

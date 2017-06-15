@@ -25,15 +25,15 @@
 
 #define _GNU_SOURCE 1
 
-#include <stdlib.h>
-#include <math.h>
-#include <stdio.h>
-#include <string.h>
-#include <fcntl.h>
 #include <errno.h>
+#include <fcntl.h>
+#include <locale.h>
+#include <math.h>
 #include <stdarg.h>
 #include <stdint.h>
-#include <locale.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
 #ifdef __APPLE__
 #include <sys/param.h>
@@ -290,6 +290,8 @@ void tty_set_debug(int debug)
 int tty_timeout(int fd, int timeout)
 {
 #if defined(_WIN32) || defined(ANDROID)
+    INDI_UNUSED(fd);
+    INDI_UNUSED(timeout);
     return TTY_ERRNO;
 #else
 
@@ -376,8 +378,7 @@ int tty_write_string(int fd, const char *buf, int *nbytes_written)
 
     if (tty_debug)
     {
-        int i = 0;
-        for (i = 0; i < nbytes; i++)
+        for (int i = 0; i < (int)nbytes; i++)
             IDLog("%s: buffer[%d]=%#X (%c)\n", __FUNCTION__, i, (unsigned char)buf[i], buf[i]);
     }
 
@@ -468,7 +469,7 @@ int tty_read_section(int fd, char *buf, char stop_char, int timeout, int *nbytes
         if ((err = tty_timeout(fd, timeout)))
             return err;
 
-        read_char = buf + *nbytes_read;
+        read_char = (uint8_t*)(buf + *nbytes_read);
         bytesRead = read(fd, read_char, 1);
 
         if (bytesRead < 0)
@@ -1060,7 +1061,7 @@ int crackIPState(const char *str, IPState *ip)
 {
     if (!strcmp(str, "Idle"))
         *ip = IPS_IDLE;
-    else if (!strcmp(str, "Ok"))
+    else if (!strncmp(str, "Ok", 2))
         *ip = IPS_OK;
     else if (!strcmp(str, "Busy"))
         *ip = IPS_BUSY;
@@ -1076,7 +1077,7 @@ int crackIPState(const char *str, IPState *ip)
  */
 int crackISState(const char *str, ISState *ip)
 {
-    if (!strcmp(str, "On"))
+    if (!strncmp(str, "On", 2))
         *ip = ISS_ON;
     else if (!strcmp(str, "Off"))
         *ip = ISS_OFF;
@@ -1087,11 +1088,11 @@ int crackISState(const char *str, ISState *ip)
 
 int crackIPerm(const char *str, IPerm *ip)
 {
-    if (!strcmp(str, "rw"))
+    if (!strncmp(str, "rw", 2))
         *ip = IP_RW;
-    else if (!strcmp(str, "ro"))
+    else if (!strncmp(str, "ro", 2))
         *ip = IP_RO;
-    else if (!strcmp(str, "wo"))
+    else if (!strncmp(str, "wo", 2))
         *ip = IP_WO;
     else
         return (-1);

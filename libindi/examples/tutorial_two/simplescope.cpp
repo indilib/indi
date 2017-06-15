@@ -19,14 +19,14 @@
     A simple GOTO telescope that simulator slewing operation.
 */
 
-#include <sys/time.h>
+#include "simplescope.h"
+
+#include "indicom.h"
+
 #include <math.h>
 #include <memory>
 
-#include "simplescope.h"
-#include "indicom.h"
-
-const float SIDRATE = 0.004178; /* sidereal rate, degrees/s */
+//const float SIDE_RATE = 0.004178; /* sidereal rate, degrees/s */
 const int SLEW_RATE = 1;        /* slew rate, degrees/s */
 const int POLLMS    = 250;      /* poll period, ms */
 

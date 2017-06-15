@@ -23,11 +23,9 @@
 
 */
 
-#ifndef NFOCUS_H
-#define NFOCUS_H
+#pragma once
 
-#include "indibase/indifocuser.h"
-#include "nfocus.h"
+#include "indifocuser.h"
 
 class NFocus : public INDI::Focuser
 {
@@ -87,5 +85,3 @@ class NFocus : public INDI::Focuser
     INumber AbsMovementN[1];
     INumberVectorProperty AbsMovementNP;
 };
-
-#endif // NFOCUS_H

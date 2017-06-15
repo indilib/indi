@@ -20,16 +20,15 @@
 */
 
 #include "microtouch.h"
-#include "indicom.h"
 
-#include <stdio.h>
-#include <termios.h>
-#include <string.h>
-#include <sys/time.h>
-#include <unistd.h>
+#include "indicom.h"
+#include "connectionplugins/connectionserial.h"
+
 #include <math.h>
 #include <memory>
-#include "connectionplugins/connectionserial.h"
+#include <string.h>
+#include <termios.h>
+#include <unistd.h>
 
 #define MICROTOUCH_TIMEOUT 3
 
@@ -244,10 +243,11 @@ bool Microtouch::updateTemperature()
 
 bool Microtouch::updatePosition()
 {
-    unsigned short int pos = WriteCmdGetShortInt(CMD_GET_POSITION);
-    if (pos > -1)
+    int pos = (int)WriteCmdGetShortInt(CMD_GET_POSITION);
+
+    if (pos >= 0)
     {
-        FocusAbsPosN[0].value = pos;
+        FocusAbsPosN[0].value = (double)pos;
         return true;
     }
     else
@@ -338,8 +338,6 @@ bool Microtouch::setTemperatureCalibration(double calibration)
 
 bool Microtouch::setTemperatureCoefficient(double coefficient)
 {
-    char errstr[MAXRBUF];
-
     int tcoeff = (int)(coefficient * 128);
 
     DEBUGF(INDI::Logger::DBG_DEBUG, "Setting new temperaturecoefficient  : %d.", tcoeff);
@@ -349,7 +347,6 @@ bool Microtouch::setTemperatureCoefficient(double coefficient)
         DEBUG(INDI::Logger::DBG_ERROR, "setTemperatureCoefficient error: Setting temperaturecoefficient failed.");
         return false;
     }
-
     return true;
 }
 
@@ -393,6 +390,7 @@ bool Microtouch::setMotorSpeed(char speed)
 
 bool Microtouch::setSpeed(unsigned short speed)
 {
+    INDI_UNUSED(speed);
     /*    int nbytes_written=0, rc=-1;
     char errstr[MAXRBUF];
     char cmd[7];
@@ -438,7 +436,6 @@ bool Microtouch::ISNewSwitch(const char *dev, const char *name, ISState *states,
             IUUpdateSwitch(&MotorSpeedSP, states, names, n);
             int target_mode = IUFindOnSwitchIndex(&MotorSpeedSP);
             if (current_mode == target_mode)
-                ;
             {
                 MotorSpeedSP.s = IPS_OK;
                 IDSetSwitch(&MotorSpeedSP, nullptr);
@@ -503,8 +500,6 @@ bool Microtouch::ISNewSwitch(const char *dev, const char *name, ISState *states,
 
 bool Microtouch::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
 {
-    int nset = 0, i = 0;
-
     if (strcmp(dev, getDeviceName()) == 0)
     {
         if (!strcmp(name, MaxTravelNP.name))
@@ -585,11 +580,10 @@ bool Microtouch::SetFocuserSpeed(int speed)
 
 IPState Microtouch::MoveFocuser(FocusDirection dir, int speed, uint16_t duration)
 {
-    if (speed != currentSpeed)
+    if (speed != (int)currentSpeed)
     {
-        bool rc = false;
+        bool rc = setSpeed(speed);
 
-        rc = setSpeed(speed);
         if (rc == false)
             return IPS_ALERT;
     }

@@ -22,21 +22,13 @@
   file called LICENSE.
 *******************************************************************************/
 
-#include <memory>
-#include <libnova.h>
-#include <time.h>
-#include <curl/curl.h>
-
 #include "weathermeta.h"
+
+#include <memory>
+#include <string.h>
 
 // We declare an auto pointer to WeatherMeta.
 std::unique_ptr<WeatherMeta> weatherMeta(new WeatherMeta());
-
-static size_t WriteCallback(void *contents, size_t size, size_t nmemb, void *userp)
-{
-    ((std::string *)userp)->append((char *)contents, size * nmemb);
-    return size * nmemb;
-}
 
 void ISGetProperties(const char *dev)
 {

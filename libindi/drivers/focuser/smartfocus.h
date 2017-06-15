@@ -16,33 +16,32 @@
  Boston, MA 02110-1301, USA.
 *******************************************************************************/
 
-#ifndef SMARTFOCUS_H
-#define SMARTFOCUS_H
+#pragma once
 
-#include "indibase/indifocuser.h"
+#include "indifocuser.h"
 
 class SmartFocus : public INDI::Focuser
 {
   public:
     SmartFocus(void);
 
-    const char *getDefaultName(void);
+    const char *getDefaultName() override;
 
-    bool initProperties(void);
-    bool updateProperties(void);
+    bool initProperties() override;
+    bool updateProperties() override;
 
-    virtual bool Handshake();
+    virtual bool Handshake() override;
 
-    virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n);
-    //virtual bool ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n);
+    virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
+    //virtual bool ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n) override;
 
-    virtual bool AbortFocuser(void);
-    virtual IPState MoveAbsFocuser(uint32_t ticks);
-    virtual IPState MoveRelFocuser(FocusDirection dir, uint32_t ticks);
-    virtual void TimerHit(void);
+    virtual bool AbortFocuser() override;
+    virtual IPState MoveAbsFocuser(uint32_t ticks) override;
+    virtual IPState MoveRelFocuser(FocusDirection dir, uint32_t ticks) override;
+    virtual void TimerHit() override;
 
   protected:
-    bool saveConfigItems(FILE *fp);
+    virtual bool saveConfigItems(FILE *fp) override;
 
   private:
     typedef unsigned short Position;
@@ -110,5 +109,3 @@ class SmartFocus : public INDI::Focuser
     INumber MaxPositionN[1];
     INumberVectorProperty MaxPositionNP;
 };
-
-#endif

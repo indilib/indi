@@ -8,26 +8,35 @@
 
 #include "MathPluginManagement.h"
 
-#include <cerrno>
-#include <cstring>
-#include <unistd.h> // for sleep
-
 #include <dirent.h>
-#include <sys/types.h>
 #include <dlfcn.h>
+#include <sys/errno.h>
 
 namespace INDI
 {
 namespace AlignmentSubsystem
 {
+MathPluginManagement::MathPluginManagement() : CurrentInMemoryDatabase(nullptr),
+    pGetApproximateMountAlignment(&MathPlugin::GetApproximateMountAlignment),
+    pInitialise(&MathPlugin::Initialise),
+    pSetApproximateMountAlignment(&MathPlugin::SetApproximateMountAlignment),
+    pTransformCelestialToTelescope(&MathPlugin::TransformCelestialToTelescope),
+    pTransformTelescopeToCelestial(&MathPlugin::TransformTelescopeToCelestial),
+    pLoadedMathPlugin(&BuiltInPlugin), LoadedMathPluginHandle(nullptr)
+{
+}
+
 void MathPluginManagement::InitProperties(Telescope *ChildTelescope)
 {
     EnumeratePlugins();
     AlignmentSubsystemMathPlugins.reset(new ISwitch[MathPluginDisplayNames.size() + 1]);
     IUFillSwitch(AlignmentSubsystemMathPlugins.get(), "INBUILT_MATH_PLUGIN", "Inbuilt Math Plugin", ISS_ON);
-    for (int i = 0; i < MathPluginDisplayNames.size(); i++)
+
+    for (int i = 0; i < (int)MathPluginDisplayNames.size(); i++)
+    {
         IUFillSwitch(AlignmentSubsystemMathPlugins.get() + i + 1, MathPluginDisplayNames[i].c_str(),
                      MathPluginDisplayNames[i].c_str(), ISS_OFF);
+    }
     IUFillSwitchVector(&AlignmentSubsystemMathPluginsV, AlignmentSubsystemMathPlugins.get(),
                        MathPluginDisplayNames.size() + 1, ChildTelescope->getDeviceName(),
                        "ALIGNMENT_SUBSYSTEM_MATH_PLUGINS", "Math Plugins", ALIGNMENT_TAB, IP_RW, ISR_1OFMANY, 60,
@@ -98,14 +107,16 @@ void MathPluginManagement::ProcessTextProperties(Telescope *pTelescope, const ch
                 if (nullptr != Create)
                 {
                     pLoadedMathPlugin = Create();
+
                     // TODO - Update the client to reflect the new plugin
-                    int i;
-                    for (i = 0; i < MathPluginFiles.size(); i++)
+                    int i = 0;
+
+                    for (i = 0; i < (int)MathPluginFiles.size(); i++)
                     {
                         if (0 == strcmp(AlignmentSubsystemCurrentMathPlugin.text, MathPluginFiles[i].c_str()))
                             break;
                     }
-                    if (i < MathPluginFiles.size())
+                    if (i < (int)MathPluginFiles.size())
                     {
                         IUResetSwitch(&AlignmentSubsystemMathPluginsV);
                         (AlignmentSubsystemMathPlugins.get() + i + 1)->s = ISS_ON;

@@ -6,8 +6,6 @@
  *
  */
 
-#include "AlignmentSubsystemForClients.h"
-
 #include "AlignmentSubsystemForDrivers.h"
 
 namespace INDI

@@ -21,13 +21,15 @@
 #include "trutech_wheel.h"
 
 #include "indicom.h"
+
 #include <memory>
+#include <string.h>
 
 #define CMD_SIZE 5
 #define CMD_JUNK 64
 #define CMD_RESP 15
 
-const uint8_t COMM_PRE  = 0x01;
+//const uint8_t COMM_PRE  = 0x01;
 const uint8_t COMM_INIT = 0xA5;
 const uint8_t COMM_FILL = 0x20;
 
@@ -100,6 +102,7 @@ bool TruTech::initProperties()
     FilterSlotN[0].max = 5;
 
     addAuxControls();
+    return true;
 }
 
 bool TruTech::updateProperties()

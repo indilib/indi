@@ -16,11 +16,10 @@
  Boston, MA 02110-1301, USA.
 *******************************************************************************/
 
-#ifndef SYNSCANMOUNT_H
-#define SYNSCANMOUNT_H
+#pragma once
 
-#include "indibase/inditelescope.h"
-#include "indibase/alignment/AlignmentSubsystemForDrivers.h"
+#include "inditelescope.h"
+#include "alignment/AlignmentSubsystemForDrivers.h"
 
 #define SYNSCAN_SLEW_RATES 9
 
@@ -81,5 +80,3 @@ class SynscanMount : public INDI::Telescope, public INDI::AlignmentSubsystem::Al
     virtual bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n);
     bool Sync(double ra, double dec);
 };
-
-#endif // SYNSCANMOUNT_H

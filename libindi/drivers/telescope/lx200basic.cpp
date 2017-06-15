@@ -22,20 +22,15 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110 - 1301  USA
 
 #endif
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <stdarg.h>
-#include <math.h>
-#include <unistd.h>
-#include <time.h>
-#include <memory>
-
-#include <config.h>
-
-#include "lx200driver.h"
 #include "lx200basic.h"
+
 #include "indicom.h"
+#include "lx200driver.h"
+
+#include <math.h>
+#include <memory>
+#include <string.h>
+#include <unistd.h>
 
 #define POLLMS 1000
 
@@ -43,10 +38,8 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110 - 1301  USA
 #define SLEWRATE 1        /* slew rate, degrees/s */
 #define SIDRATE  0.004178 /* sidereal rate, degrees/s */
 
-using namespace std;
-
 /* Our telescope auto pointer */
-unique_ptr<LX200Basic> telescope(new LX200Basic());
+std::unique_ptr<LX200Basic> telescope(new LX200Basic());
 
 /**************************************************************************************
 ** Send client definitions of all properties.
@@ -307,8 +300,9 @@ bool LX200Basic::Goto(double r, double d)
         }
 
         int err = 0;
+
         /* Slew reads the '0', that is not the end of the slew */
-        if (err = Slew(PortFD))
+        if ((err = Slew(PortFD)))
         {
             EqNP.s = IPS_ALERT;
             IDSetNumber(&EqNP, "Error Slewing to JNow RA %s - DEC %s\n", RAStr, DecStr);

@@ -16,14 +16,10 @@
  Boston, MA 02110-1301, USA.
  *******************************************************************************/
 
-#ifndef AGENT_IMAGER_H
-#define AGENT_IMAGER_H
+#pragma once
 
-#include <fitsio.h>
-#include <string.h>
-
-#include "defaultdevice.h"
 #include "baseclient.h"
+#include "defaultdevice.h"
 
 #define MAX_GROUP_COUNT 16
 
@@ -132,5 +128,3 @@ class Imager : public virtual INDI::DefaultDevice, public virtual INDI::BaseClie
     virtual void serverConnected();
     virtual void serverDisconnected(int exit_code);
 };
-
-#endif

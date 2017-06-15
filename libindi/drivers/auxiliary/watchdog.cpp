@@ -25,15 +25,13 @@
   file called LICENSE.
 *******************************************************************************/
 
-#include <memory>
-#include <libnova.h>
-#include <time.h>
-#include <unistd.h>
-#include <sys/wait.h>
-#include <errno.h>
-
 #include "watchdog.h"
 #include "watchdogclient.h"
+
+#include <memory>
+#include <string.h>
+#include <unistd.h>
+#include <sys/wait.h>
 
 #define POLLMS 1000
 

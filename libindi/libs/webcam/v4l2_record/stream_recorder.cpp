@@ -20,13 +20,15 @@
 
 */
 
-#include <indilogger.h>
+#include "stream_recorder.h"
+
+#include "indilogger.h"
+
+#include <zlib.h>
 
 #include <signal.h>
-#include <zlib.h>
+#include <sys/errno.h>
 #include <sys/stat.h>
-
-#include "stream_recorder.h"
 
 const char *STREAM_TAB = "Streaming";
 
@@ -502,7 +504,7 @@ bool StreamRecorder::startRecording()
         return true;
 
     /* get filter name for pattern substitution */
-    if (ccd->CurrentFilterSlot != -1 && ccd->CurrentFilterSlot <= ccd->FilterNames.size())
+    if (ccd->CurrentFilterSlot != -1 && ccd->CurrentFilterSlot <= (int)ccd->FilterNames.size())
     {
         filtername      = ccd->FilterNames.at(ccd->CurrentFilterSlot - 1);
         patterns["_F_"] = filtername;

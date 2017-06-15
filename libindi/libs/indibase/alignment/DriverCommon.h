@@ -6,8 +6,7 @@
  *
  */
 
-#ifndef INDI_ALIGNMENTSUBSYSTEM_DRIVERCOMMON_H
-#define INDI_ALIGNMENTSUBSYSTEM_DRIVERCOMMON_H
+#pragma once
 
 #include "indilogger.h"
 
@@ -23,5 +22,3 @@ extern int DBG_ALIGNMENT;
 
 } // namespace AlignmentSubsystem
 } // namespace INDI
-
-#endif // INDI_ALIGNMENTSUBSYSTEM_DRIVERCOMMON_H

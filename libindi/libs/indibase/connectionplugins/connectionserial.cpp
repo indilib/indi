@@ -16,12 +16,15 @@
  Boston, MA 02110-1301, USA.
 *******************************************************************************/
 
-#include <dirent.h> // for scandir
-#include <errno.h>  // for errno
-#include <string.h> // for strerror
+#include "connectionserial.h"
+
 #include "indicom.h"
 #include "indilogger.h"
-#include "connectionserial.h"
+
+#include <dirent.h>
+#include <errno.h>
+#include <string.h>
+#include <sys/errno.h>
 
 namespace Connection
 {
@@ -216,7 +219,6 @@ bool Serial::Disconnect()
         tty_disconnect(PortFD);
         PortFD = -1;
     }
-
     return true;
 }
 
@@ -267,7 +269,7 @@ void Serial::setDefaultBaudRate(BaudRate newRate)
     BaudRateS[newRate].s = ISS_ON;
 }
 
-const uint32_t Serial::baud()
+uint32_t Serial::baud()
 {
     return atoi(IUFindOnSwitch(&BaudRateSP)->name);
 }
@@ -280,6 +282,7 @@ int dev_file_select(const dirent *entry)
     static const char *filter_names[] = { "ttyUSB", "ttyACM", "rfcomm", nullptr };
 #endif
     const char **filter;
+
     for (filter = filter_names; *filter; ++filter)
     {
         if (strstr(entry->d_name, *filter) != nullptr)
@@ -327,6 +330,7 @@ bool Serial::Refresh(bool silent)
     }
 
     int pCount = m_Ports.size();
+
     if (pCount == 0)
     {
         if (silent == false)
@@ -341,6 +345,7 @@ bool Serial::Refresh(bool silent)
 
     SystemPortS = new ISwitch[pCount];
     ISwitch *sp = SystemPortS;
+
     for (int i = pCount - 1; i >= 0; i--)
     {
         IUFillSwitch(sp++, m_Ports[i].c_str(), m_Ports[i].c_str(), ISS_OFF);

@@ -16,17 +16,9 @@
  Boston, MA 02110-1301, USA.
 *******************************************************************************/
 
-#ifndef FILTERIFW_H
-#define FILTERIFW_H
+#pragma once
 
-#include <indifilterwheel.h>
-#include <indicom.h>
-#include <regex>
-
-#include <iostream>
-#include <unistd.h>
-#include <termios.h>
-#include <memory>
+#include "indifilterwheel.h"
 
 #define VERSION    0
 #define SUBVERSION 2
@@ -90,28 +82,28 @@ class FilterIFW : public INDI::FilterWheel
     FilterIFW();
     virtual ~FilterIFW();
 
-    virtual bool initProperties();
-    virtual bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n);
-    virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n);
+    virtual bool initProperties() override;
+    virtual bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n) override;
+    virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
 
   protected:
-    virtual bool updateProperties();
-    virtual bool Handshake();
-    virtual bool Disconnect();
-    virtual bool WriteTTY(char *command);
-    virtual bool ReadTTY(char *resp, char *simulation, int timeout);
-    virtual const char *getDefaultName();
-    virtual bool moveHome();
-    virtual bool SelectFilter(int);
-    virtual void TimerHit();
-    virtual bool saveConfigItems(FILE *fp);
-    virtual void simulationTriggered(bool enable);
-    virtual bool loadConfig(bool silent = false, const char *property = NULL);
-    virtual bool SetFilterNames();
-    virtual bool GetFilterNames(const char *groupName);
-    virtual bool GetWheelID();
-    virtual int GetFilterPos();
-    virtual bool GetFirmware();
+    virtual bool updateProperties() override;
+    virtual bool Handshake() override;
+    virtual bool Disconnect() override;
+    bool WriteTTY(char *command);
+    bool ReadTTY(char *resp, char *simulation, int timeout);
+    virtual const char *getDefaultName() override;
+    bool moveHome();
+    virtual bool SelectFilter(int) override;
+    virtual void TimerHit() override;
+    virtual bool saveConfigItems(FILE *fp) override;
+    virtual void simulationTriggered(bool enable) override;
+    virtual bool loadConfig(bool silent = false, const char *property = nullptr) override;
+    virtual bool SetFilterNames() override;
+    virtual bool GetFilterNames(const char *groupName) override;
+    bool GetWheelID();
+    int GetFilterPos();
+    bool GetFirmware();
 
     // Filter Wheel ID
     ITextVectorProperty WheelIDTP;
@@ -142,5 +134,3 @@ class FilterIFW : public INDI::FilterWheel
     // Filterwheel has been changed
     bool isWheelChanged = true;
 };
-
-#endif // FILTERIFW_H

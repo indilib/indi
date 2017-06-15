@@ -17,21 +17,17 @@
     License along with this library; if not, write to the Free Software
     Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
+    NOTES on 9407 vs 8406:
+	.-Diferente init V#,
+        .- Diferent response to :MS#
+	.- Diff RT0,1, .. codification
+
 #endif
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <stdarg.h>
-#include <math.h>
-#include <sys/time.h>
-#include <unistd.h>
-#include <fcntl.h>
-#include <time.h>
+#include "ieq45driver.h"
 
 #include "indicom.h"
 #include "indidevapi.h"
-#include "ieq45driver.h"
 
 #ifndef _WIN32
 #include <termios.h>
@@ -40,6 +36,7 @@
 #define IEQ45_TIMEOUT 5 /* FD timeout in seconds */
 
 int controller_format;
+int is8407ver = 0;
 
 /**************************************************************************
  Diagnostics
@@ -154,13 +151,14 @@ int selectSubCatalog(int fd, int catalog, int subCatalog);
 
 int check_IEQ45_connection(int in_fd)
 {
-    int i                 = 0;
-    char firmwareDate[14] = ":FirmWareDate#";
-    char MountAlign[64];
+    int i                  = 0;
+    char firmwareVersion[] = ":V#";
+    char MountInfo[]       = ":MountInfo#";
+    char response[64];
     int nbytes_read = 0;
 
 #ifdef INDI_DEBUG
-    IDLog("Testing telescope's connection using FirmwareDate command...\n");
+    IDLog("Testing telescope's connection using :V# command...\n");
 #endif
 
     if (in_fd <= 0)
@@ -168,9 +166,23 @@ int check_IEQ45_connection(int in_fd)
 
     for (i = 0; i < 2; i++)
     {
-        if (write(in_fd, firmwareDate, 14) < 0)
+        if (write(in_fd, firmwareVersion, sizeof(firmwareVersion)) < 0)
             return -1;
-        tty_read(in_fd, MountAlign, 1, IEQ45_TIMEOUT, &nbytes_read);
+        tty_read(in_fd, response, 1, IEQ45_TIMEOUT, &nbytes_read);
+        if (nbytes_read != 1)
+            return -1;
+        usleep(50000);
+    }
+
+#ifdef INDI_DEBUG
+    IDLog("Initializating telescope's using :MountInfo# command...\n");
+#endif
+
+    for (i = 0; i < 2; i++)
+    {
+        if (write(in_fd, MountInfo, sizeof(MountInfo)) < 0)
+            return -1;
+        tty_read(in_fd, response, 1, IEQ45_TIMEOUT, &nbytes_read);
         if (nbytes_read == 1)
             return 0;
         usleep(50000);
@@ -214,6 +226,7 @@ int getCommandSexa(int fd, double *value, const char *cmd)
     //IEQ45 sometimes send a malformed RA/DEC (intermediate spaces)
     //so I clean before:
     remove_spaces(temp_string);
+
     if (f_scansexa(temp_string, value))
     {
 #ifdef INDI_DEBUG
@@ -1118,6 +1131,9 @@ int Slew(int fd)
         return error_type;
 
     error_type = tty_read(fd, slewNum, 1, IEQ45_TIMEOUT, &nbytes_read);
+#ifdef INDI_DEBUG
+//IDLog("SLEW _MS# %s %u \n", slewNum, nbytes_read);
+#endif
 
     if (nbytes_read < 1)
         return error_type;
@@ -1125,9 +1141,9 @@ int Slew(int fd)
     /* We don't need to read the string message, just return corresponding error code */
     tcflush(fd, TCIFLUSH);
 
-    if (slewNum[0] == '0')
+    if (slewNum[0] == '1')
         return 0;
-    else if (slewNum[0] == '1')
+    else if (slewNum[0] == '0')
         return 1;
     else
         return 2;
@@ -1411,7 +1427,7 @@ int selectTrackingMode(int fd, int trackMode)
 #ifdef INDI_DEBUG
             IDLog("Setting tracking mode to sidereal.\n");
 #endif
-            if ((error_type = tty_write_string(fd, ":RT2#", &nbytes_write)) != TTY_OK)
+            if ((error_type = tty_write_string(fd, ":RT0#", &nbytes_write)) != TTY_OK)
                 return error_type;
             /*if (portWrite(":TQ#") < 0)
        return -1;*/
@@ -1420,7 +1436,7 @@ int selectTrackingMode(int fd, int trackMode)
 #ifdef INDI_DEBUG
             IDLog("Setting tracking mode to LUNAR.\n");
 #endif
-            if ((error_type = tty_write_string(fd, ":RT0#", &nbytes_write)) != TTY_OK)
+            if ((error_type = tty_write_string(fd, ":RT1#", &nbytes_write)) != TTY_OK)
                 return error_type;
             /*if (portWrite(":TL#") < 0)
        return -1;*/
@@ -1429,16 +1445,16 @@ int selectTrackingMode(int fd, int trackMode)
 #ifdef INDI_DEBUG
             IDLog("Setting tracking mode to SOLAR.\n");
 #endif
-            if ((error_type = tty_write_string(fd, ":RT1#", &nbytes_write)) != TTY_OK)
+            if ((error_type = tty_write_string(fd, ":RT2#", &nbytes_write)) != TTY_OK)
                 return error_type;
             /*if (portWrite(":TM#") < 0)
       return -1;*/
             break;
         case IEQ45_TRACK_ZERO:
 #ifdef INDI_DEBUG
-            IDLog("Setting tracking mode to ZERO.\n");
+            IDLog("Setting tracking mode to custom.\n");
 #endif
-            if ((error_type = tty_write_string(fd, ":RT9#", &nbytes_write)) != TTY_OK)
+            if ((error_type = tty_write_string(fd, ":RT4#", &nbytes_write)) != TTY_OK)
                 return error_type;
             /*if (portWrite(":TM#") < 0)
       return -1;*/

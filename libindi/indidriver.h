@@ -24,8 +24,12 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110 - 1301  USA
 
 #endif
 
-#ifndef INDIDRIVER_H
-#define INDIDRIVER_H
+#pragma once
+
+#include "indiapi.h"
+#include "lilxml.h"
+
+#include <stdio.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -159,6 +163,4 @@ extern void IUSaveConfigBLOB(FILE *fp, const IBLOBVectorProperty *bvp);
 
 #ifdef __cplusplus
 }
-#endif
-
 #endif

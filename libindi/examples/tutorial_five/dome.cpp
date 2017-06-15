@@ -23,10 +23,11 @@
     driver arrives in the dome driver. Alternatively, you can directly parse the XML root element in ISSnoopDevice(XMLEle *root) to extract the required data.
 */
 
-#include <unistd.h>
-#include <memory>
-
 #include "dome.h"
+
+#include <memory>
+#include <string.h>
+#include <unistd.h>
 
 std::unique_ptr<Dome> dome(new Dome());
 

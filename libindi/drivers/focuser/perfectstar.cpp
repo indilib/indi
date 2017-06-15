@@ -20,13 +20,9 @@
 
 #include "perfectstar.h"
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
 #include <math.h>
-#include <string.h>
-
 #include <memory>
+#include <string.h>
 
 #define POLLMS              1000 /* 1000 ms */
 #define PERFECTSTAR_TIMEOUT 1000 /* 1000 ms */

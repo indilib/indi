@@ -23,30 +23,16 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110 - 1301  USA
 
 #endif
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <stdarg.h>
-#include <math.h>
-#include <unistd.h>
-#include <time.h>
-#include <memory>
-
-#include <config.h>
-
-/* INDI Common Library Routines */
-#include "indicom.h"
-
-/* IEQ45 Command Set */
-#include "ieq45driver.h"
-
-/* Our driver header */
 #include "ieq45.h"
 
-using namespace std;
+#include "config.h"
+#include "ieq45driver.h"
+#include "indicom.h"
+
+#include <memory>
 
 /* Our telescope auto pointer */
-unique_ptr<IEQ45Basic> telescope(0);
+std::unique_ptr<IEQ45Basic> telescope(0);
 
 const int POLLMS  = 100;     // Period of update, 1 second.
 const char *mydev = "IEQ45"; // Name of our device.

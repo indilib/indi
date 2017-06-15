@@ -20,6 +20,13 @@ include_directories( ${CFITSIO_INCLUDE_DIR})
 include_directories( ${GLIB2_INCLUDE_DIRS})
 include_directories( ${Arv_INCLUDE_DIRS})
 
+IF ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
+    SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /std:c++11")
+ELSE ()
+    SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=gnu99")
+    SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
+ENDIF ()
+
 ############# GENERIC CCD ###############
 if (CFITSIO_FOUND)
 

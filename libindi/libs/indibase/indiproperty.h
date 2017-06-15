@@ -16,8 +16,7 @@
  Boston, MA 02110-1301, USA.
 *******************************************************************************/
 
-#ifndef INDI_INDIPROPERTY_H
-#define INDI_INDIPROPERTY_H
+#pragma once
 
 #include "indibase.h"
 
@@ -73,5 +72,3 @@ class Property
 };
 
 } // namespace INDI
-
-#endif // INDI_INDIPROPERTY_H

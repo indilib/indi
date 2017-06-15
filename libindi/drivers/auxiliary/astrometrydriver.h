@@ -22,10 +22,11 @@
   file called LICENSE.
 *******************************************************************************/
 
-#ifndef ASTROMETRYDRIVER_H
-#define ASTROMETRYDRIVER_H
+#pragma once
 
 #include "defaultdevice.h"
+
+#include <pthread.h>
 
 class AstrometryDriver : public INDI::DefaultDevice
 {
@@ -97,18 +98,17 @@ class AstrometryDriver : public INDI::DefaultDevice
     void runSolver();
 
     /**
-         * @brief processBLOB Read blob FITS. Uncompress if necessary, write to temporary file, and run solver against it.
-         * @param data raw data FITS buffer
-         * @param size size of FITS data
-         * @param len size of raw data. If no compression is used then len = size. If compression is used, then len is the compressed buffer size
-         * and size is the uncompressed final valid data size.
-         * @return True if blob buffer was processed correctly and solver started, false otherwise.
-         */
+     * @brief processBLOB Read blob FITS. Uncompress if necessary, write to temporary file, and run
+     * solver against it.
+     * @param data raw data FITS buffer
+     * @param size size of FITS data
+     * @param len size of raw data. If no compression is used then len = size. If compression is used,
+     * then len is the compressed buffer size and size is the uncompressed final valid data size.
+     * @return True if blob buffer was processed correctly and solver started, false otherwise.
+     */
     bool processBLOB(uint8_t *data, uint32_t size, uint32_t len);
 
     // Thread for listenINDI()
     pthread_t solverThread;
     pthread_mutex_t lock;
 };
-
-#endif

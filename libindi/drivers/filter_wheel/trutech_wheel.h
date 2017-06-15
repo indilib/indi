@@ -18,10 +18,9 @@
  Boston, MA 02110-1301, USA.
 *******************************************************************************/
 
-#ifndef TRUTECHWHEEL_H
-#define TRUTECHWHEEL_H
+#pragma once
 
-#include "indibase/indifilterwheel.h"
+#include "indifilterwheel.h"
 
 class TruTech : public INDI::FilterWheel
 {
@@ -47,5 +46,3 @@ class TruTech : public INDI::FilterWheel
     ISwitch HomeS[1];
     ISwitchVectorProperty HomeSP;
 };
-
-#endif // TruTech_H

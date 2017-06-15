@@ -20,8 +20,9 @@
   file called LICENSE.
 *******************************************************************************/
 
-#include <string.h>
 #include "joystickdriver.h"
+
+#include <string.h>
 
 #define MAX_JOYSTICKS 3
 

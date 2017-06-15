@@ -19,15 +19,14 @@
 */
 
 #include "steeldrive.h"
+
 #include "indicom.h"
 
-#include <stdio.h>
-#include <termios.h>
-#include <string.h>
-#include <sys/time.h>
-#include <unistd.h>
 #include <math.h>
 #include <memory>
+#include <string.h>
+#include <termios.h>
+#include <unistd.h>
 
 #define STEELDRIVE_MAX_RETRIES       1
 #define STEELDRIVE_TIMEOUT           1
@@ -1298,11 +1297,10 @@ bool SteelDrive::SetFocuserSpeed(int speed)
 
 IPState SteelDrive::MoveFocuser(FocusDirection dir, int speed, uint16_t duration)
 {
-    if (speed != currentSpeed)
+    if (speed != (int)currentSpeed)
     {
-        bool rc = false;
+        bool rc = setSpeed(speed);
 
-        rc = setSpeed(speed);
         if (rc == false)
             return IPS_ALERT;
     }

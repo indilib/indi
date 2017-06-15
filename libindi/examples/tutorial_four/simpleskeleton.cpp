@@ -34,19 +34,17 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110 - 1301  USA
     \note Please note that if you create your own skeleton file, you must append _sk postfix to your skeleton file name.
 */
 
-#include <memory>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <unistd.h>
-#include <stdlib.h>
-
-/* Our driver header */
 #include "simpleskeleton.h"
+
+#include <memory>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/stat.h>
 
 /* Our simpleSkeleton auto pointer */
 std::unique_ptr<SimpleSkeleton> simpleSkeleton(new SimpleSkeleton());
 
-const int POLLMS = 1000; // Period of update, 1 second.
+//const int POLLMS = 1000; // Period of update, 1 second.
 
 /**************************************************************************************
 **
@@ -139,7 +137,7 @@ bool SimpleSkeleton::initProperties()
     std::vector<INDI::Property *> *pAll = getProperties();
 
     // Let's print a list of all device properties
-    for (int i = 0; i < pAll->size(); i++)
+    for (int i = 0; i < (int)pAll->size(); i++)
         IDLog("Property #%d: %s\n", i, pAll->at(i)->getName());
 
     return true;
@@ -168,6 +166,10 @@ void SimpleSkeleton::ISGetProperties(const char *dev)
 ***************************************************************************************/
 bool SimpleSkeleton::ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
 {
+    INDI_UNUSED(name);
+    INDI_UNUSED(texts);
+    INDI_UNUSED(names);
+    INDI_UNUSED(n);
     // Ignore if not ours
     if (strcmp(dev, getDeviceName()))
         return false;

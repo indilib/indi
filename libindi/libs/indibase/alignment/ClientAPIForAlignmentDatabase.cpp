@@ -8,17 +8,16 @@
 
 #include "ClientAPIForAlignmentDatabase.h"
 
-#include <cstring>
-
-#include <indicom.h>
+#include "indicom.h"
 
 namespace INDI
 {
 namespace AlignmentSubsystem
 {
 ClientAPIForAlignmentDatabase::ClientAPIForAlignmentDatabase()
-    : Device(nullptr), MandatoryNumbers(nullptr), OptionalBinaryBlob(nullptr), PointsetSize(nullptr),
-      CurrentEntry(nullptr), Action(nullptr), Commit(nullptr), DriverActionComplete(false)
+    : DriverActionComplete(false), Device(nullptr), MandatoryNumbers(nullptr),
+      OptionalBinaryBlob(nullptr), PointsetSize(nullptr), CurrentEntry(nullptr),
+      Action(nullptr), Commit(nullptr)
 {
     pthread_cond_init(&DriverActionCompleteCondition, nullptr);
     pthread_mutex_init(&DriverActionCompleteMutex, nullptr);
@@ -166,7 +165,6 @@ bool ClientAPIForAlignmentDatabase::EditSyncPoint(unsigned int Offset, const Ali
     WaitForDriverCompletion();
 
     ISwitchVectorProperty *pAction           = Action->getSwitch();
-    INumberVectorProperty *pMandatoryNumbers = MandatoryNumbers->getNumber();
     INumberVectorProperty *pCurrentEntry     = CurrentEntry->getNumber();
     ISwitchVectorProperty *pCommit           = Commit->getSwitch();
 
@@ -215,7 +213,7 @@ bool ClientAPIForAlignmentDatabase::EditSyncPoint(unsigned int Offset, const Ali
     return true;
 }
 
-const int ClientAPIForAlignmentDatabase::GetDatabaseSize()
+int ClientAPIForAlignmentDatabase::GetDatabaseSize()
 {
     return 0;
 }
@@ -231,7 +229,6 @@ bool ClientAPIForAlignmentDatabase::InsertSyncPoint(unsigned int Offset, const A
     WaitForDriverCompletion();
 
     ISwitchVectorProperty *pAction           = Action->getSwitch();
-    INumberVectorProperty *pMandatoryNumbers = MandatoryNumbers->getNumber();
     INumberVectorProperty *pCurrentEntry     = CurrentEntry->getNumber();
     ISwitchVectorProperty *pCommit           = Commit->getSwitch();
 
@@ -364,7 +361,6 @@ void ClientAPIForAlignmentDatabase::ProcessNewNumber(INumberVectorProperty *Numb
 
 void ClientAPIForAlignmentDatabase::ProcessNewProperty(INDI::Property *PropertyPointer)
 {
-    int ReturnCode;
     bool GotOneOfMine = true;
 
     if (!strcmp(PropertyPointer->getName(), "ALIGNMENT_POINT_MANDATORY_NUMBERS"))

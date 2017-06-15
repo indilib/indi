@@ -8,8 +8,6 @@
 
 #include "TelescopeDirectionVectorSupportFunctions.h"
 
-#include <cmath>
-
 namespace INDI
 {
 namespace AlignmentSubsystem

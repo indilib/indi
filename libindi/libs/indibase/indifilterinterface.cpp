@@ -18,9 +18,8 @@
 
 */
 
-#include <string.h>
-
 #include "indifilterinterface.h"
+
 #include "indilogger.h"
 
 INDI::FilterInterface::FilterInterface()

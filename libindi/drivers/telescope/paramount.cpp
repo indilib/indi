@@ -20,19 +20,14 @@
  Boston, MA 02110-1301, USA.
 *******************************************************************************/
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <math.h>
-#include <unistd.h>
-#include <sys/time.h>
-#include <time.h>
-#include <regex>
-
 #include "paramount.h"
+
 #include "indicom.h"
 
+#include <math.h>
 #include <memory>
+#include <regex>
+#include <string.h>
 
 // We declare an auto pointer to Paramount.
 std::unique_ptr<Paramount> paramount_mount(new Paramount());
@@ -132,7 +127,7 @@ bool Paramount::initProperties()
     /* Make sure to init parent properties first */
     INDI::Telescope::initProperties();
 
-    for (unsigned int i = 0; i < SlewRateSP.nsp - 1; i++)
+    for (int i = 0; i < SlewRateSP.nsp-1; i++)
     {
         sprintf(SlewRateSP.sp[i].label, "%.fx", slewspeeds[i]);
         SlewRateSP.sp[i].aux = (void *)&slewspeeds[i];
@@ -405,7 +400,7 @@ bool Paramount::Goto(double r, double d)
 
     ln_get_hrz_from_equ(&lnradec, &lnobserver, ln_get_julian_from_sys(), &lnaltaz);
     /* libnova measures azimuth from south towards west */
-    double current_az = range360(lnaltaz.az + 180);
+//    double current_az = range360(lnaltaz.az + 180);
     //double current_alt =lnaltaz.alt;
 
     char pCMD[MAXRBUF];
@@ -842,6 +837,8 @@ bool Paramount::updateLocation(double latitude, double longitude, double elevati
 
 bool Paramount::updateTime(ln_date *utc, double utc_offset)
 {
+    INDI_UNUSED(utc);
+    INDI_UNUSED(utc_offset);
     return true;
 }
 
@@ -927,19 +924,22 @@ void Paramount::mountSim()
                     currentDEC += da_dec;
                 else if (MovementNSS[DIRECTION_SOUTH].s == ISS_ON)
                     currentDEC -= da_dec;
+                break;
 
+            default:
                 break;
         }
 
         switch (MovementWESP.s)
         {
             case IPS_BUSY:
-
                 if (MovementWES[DIRECTION_WEST].s == ISS_ON)
                     currentRA += da_ra / 15.;
                 else if (MovementWES[DIRECTION_EAST].s == ISS_ON)
                     currentRA -= da_ra / 15.;
+                break;
 
+            default:
                 break;
         }
 

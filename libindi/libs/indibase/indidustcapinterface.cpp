@@ -18,10 +18,9 @@
 
 */
 
-#include <string.h>
-
 #include "indidustcapinterface.h"
-#include "indilogger.h"
+
+#include <string.h>
 
 INDI::DustCapInterface::DustCapInterface()
 {
@@ -45,6 +44,7 @@ void INDI::DustCapInterface::initDustCapProperties(const char *deviceName, const
 bool INDI::DustCapInterface::processDustCapSwitch(const char *dev, const char *name, ISState *states, char *names[],
                                                   int n)
 {
+    INDI_UNUSED(dev);
     // Park/UnPark Dust Cover
     if (!strcmp(ParkCapSP.name, name))
     {

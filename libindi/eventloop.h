@@ -22,8 +22,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110 - 1301  USA
 
 #endif
 
-#ifndef EVENT_LOOP_H
-#define EVENT_LOOP_H
+#pragma once
 
 /** \file eventloop.h
     \brief Public interface to INDI's eventloop mechanism.
@@ -106,6 +105,4 @@ extern int deferLoop0(int maxms, int *flagp);
 
 #ifdef __cplusplus
 }
-#endif
-
 #endif

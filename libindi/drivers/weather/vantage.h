@@ -22,8 +22,7 @@
   file called LICENSE.
 *******************************************************************************/
 
-#ifndef VANTAGE_H
-#define VANTAGE_H
+#pragma once
 
 #include "indiweather.h"
 
@@ -45,16 +44,14 @@ class Vantage : public INDI::Weather
 
     //  Generic indi device entries
     virtual bool Handshake() override;
-    const char *getDefaultName();
+    virtual const char *getDefaultName() override;
 
-    virtual bool initProperties();
+    virtual bool initProperties() override;
 
   protected:
-    virtual IPState updateWeather();
+    virtual IPState updateWeather() override;
 
   private:
     bool ack();
     bool wakeup();
 };
-
-#endif

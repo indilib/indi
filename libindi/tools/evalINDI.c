@@ -10,21 +10,22 @@
  * exit val==0
  */
 
+#include "indiapi.h"
+#include "indidevapi.h"
+#include "lilxml.h"
+
+#include <errno.h>
+#include <math.h>
+#include <netdb.h>
+#include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <math.h>
 #include <string.h>
-#include <signal.h>
-#include <errno.h>
 #include <time.h>
 #include <unistd.h>
+#include <netinet/in.h>
 #include <sys/types.h>
 #include <sys/socket.h>
-#include <netinet/in.h>
-#include <netdb.h>
-
-#include "indiapi.h"
-#include "lilxml.h"
 
 extern int compileExpr(char *expr, char *errmsg);
 extern int evalExpr(double *vp, char *errmsg);
@@ -388,10 +389,11 @@ static int setOp(XMLEle *root)
         for (ep = nextXMLEle(root, 1); ep; ep = nextXMLEle(root, 0))
         {
             char *et = tagXMLEle(ep);
+
             if (!strcmp(et, "defSwitch") || !strcmp(et, "oneSwitch"))
             {
                 sprintf(prop, "%s.%s.%s", d, n, findXMLAttValu(ep, "name"));
-                v = (double)!strcmp(pcdataXMLEle(ep), "On");
+                v = (double)!strncmp(pcdataXMLEle(ep), "On", 2);
                 if (setOperand(prop, v) == 0)
                 {
                     nset++;
@@ -491,7 +493,7 @@ static int pstatestr(char *state)
 {
     if (!strcmp(state, "Idle"))
         return (0);
-    if (!strcmp(state, "Ok"))
+    if (!strncmp(state, "Ok", 2))
         return (1);
     if (!strcmp(state, "Busy"))
         return (2);
@@ -577,6 +579,8 @@ static void onAlarm(int dummy)
 {
     char **ops;
     int nops;
+
+    INDI_UNUSED(dummy);
 
     /* report any unseen operands if any, else just say timed out */
     if ((nops = getUnsetOperands(&ops)) > 0)

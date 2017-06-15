@@ -18,11 +18,10 @@
 
 */
 
-#ifndef MAGELLAN1_H
-#define MAGELLAN1_H
+#pragma once
 
-#include "indidevapi.h"
 #include "indicom.h"
+#include "indidevapi.h"
 
 #define POLLMS 1000 /* poll period, ms */
 
@@ -72,5 +71,3 @@ class Magellan1
     int lastSet;
     double targetRA, targetDEC;
 };
-
-#endif

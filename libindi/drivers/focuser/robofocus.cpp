@@ -20,13 +20,12 @@
 */
 
 #include "robofocus.h"
+
 #include "indicom.h"
 
-#include <termios.h>
-#include <string.h>
-#include <sys/time.h>
-#include <unistd.h>
 #include <memory>
+#include <string.h>
+#include <termios.h>
 
 #define RF_MAX_CMD  9
 #define RF_TIMEOUT  15
@@ -238,9 +237,8 @@ unsigned char RoboFocus::CheckSum(char *rf_cmd)
 {
     char substr[255];
     unsigned char val = 0;
-    int i             = 0;
 
-    for (i = 0; i < 8; i++)
+    for (int i = 0; i < 8; i++)
         substr[i] = rf_cmd[i];
 
     val = CalculateSum(substr);
@@ -255,9 +253,8 @@ unsigned char RoboFocus::CheckSum(char *rf_cmd)
 unsigned char RoboFocus::CalculateSum(char *rf_cmd)
 {
     unsigned char val = 0;
-    int i             = 0;
 
-    for (i = 0; i < 8; i++)
+    for (int i = 0; i < 8; i++)
         val = val + (unsigned char)rf_cmd[i];
 
     return val % 256;
@@ -265,7 +262,7 @@ unsigned char RoboFocus::CalculateSum(char *rf_cmd)
 
 int RoboFocus::SendCommand(char *rf_cmd)
 {
-    int nbytes_written = 0, nbytes_read = 0, check_ret = 0, err_code = 0;
+    int nbytes_written = 0, err_code = 0;
     char rf_cmd_cks[32], robofocus_error[MAXRBUF];
 
     unsigned char val = 0;
@@ -713,6 +710,7 @@ int RoboFocus::updateRFPositionAbsolute(double value)
 
 int RoboFocus::updateRFPowerSwitches(int s, int new_sn, int *cur_s1LL, int *cur_s2LR, int *cur_s3RL, int *cur_s4RR)
 {
+    INDI_UNUSED(s);
     char rf_cmd[32];
     char rf_cmd_tmp[32];
     int robofocus_rc;
@@ -1461,7 +1459,7 @@ void RoboFocus::TimerHit()
         }
         else if (nbytes_read < 0)
         {
-            FocusAbsPosNP.s == IPS_ALERT;
+            FocusAbsPosNP.s = IPS_ALERT;
             DEBUG(INDI::Logger::DBG_ERROR, "Read error! Reconnect and try again.");
             IDSetNumber(&FocusAbsPosNP, nullptr);
             return;

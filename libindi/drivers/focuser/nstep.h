@@ -21,10 +21,9 @@
   Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
-#ifndef NSTEP_H
-#define NSTEP_H
+#pragma once
 
-#include "indibase/indifocuser.h"
+#include "indifocuser.h"
 
 class NSTEP : public INDI::Focuser
 {
@@ -64,5 +63,3 @@ class NSTEP : public INDI::Focuser
     bool SetFocuserSpeed(int speed);
     bool saveConfigItems(FILE *fp);
 };
-
-#endif // NSTEP_H

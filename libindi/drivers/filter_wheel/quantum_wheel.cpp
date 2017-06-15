@@ -16,13 +16,13 @@
  Boston, MA 02110-1301, USA.
 *******************************************************************************/
 
-#include <stdio.h>
-#include <memory>
-#include <unistd.h>
-#include <fcntl.h>
-#include <termios.h>
-
 #include "quantum_wheel.h"
+
+#include "connectionplugins/connectionserial.h"
+
+#include <memory>
+#include <string.h>
+#include <unistd.h>
 
 #define VERSION_MAJOR 0
 #define VERSION_MINOR 2
@@ -179,7 +179,7 @@ bool QFW::SelectFilter(int position)
     sprintf(targetpos, "G%d\r\n\n", position);
 
     // write command
-    write(PortFD, targetpos, strlen(targetpos));
+    res = write(PortFD, targetpos, strlen(targetpos));
 
     // format target marker P[0-6]
     sprintf(targetpos, "P%d\r\n", position);

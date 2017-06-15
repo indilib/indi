@@ -19,15 +19,14 @@
 */
 
 #include "moonlite.h"
+
 #include "indicom.h"
 
-#include <stdio.h>
-#include <termios.h>
-#include <string.h>
-#include <sys/time.h>
-#include <unistd.h>
 #include <math.h>
 #include <memory>
+#include <string.h>
+#include <termios.h>
+#include <unistd.h>
 
 #define MOONLITE_TIMEOUT 3
 
@@ -438,10 +437,9 @@ bool MoonLite::setTemperatureCalibration(double calibration)
     int nbytes_written = 0, rc = -1;
     char errstr[MAXRBUF];
     char cmd[7];
-
     int cal = calibration * 2;
 
-    snprintf(cmd, 7, ":PO%02hhX#", cal);
+    snprintf(cmd, 7, ":PO%02X#", cal);
 
     tcflush(PortFD, TCIOFLUSH);
 
@@ -463,7 +461,7 @@ bool MoonLite::setTemperatureCoefficient(double coefficient)
 
     int coeff = coefficient * 2;
 
-    snprintf(cmd, 7, ":SC%02hhX#", coeff);
+    snprintf(cmd, 7, ":SC%02X#", coeff);
 
     tcflush(PortFD, TCIOFLUSH);
 
@@ -615,7 +613,6 @@ bool MoonLite::ISNewSwitch(const char *dev, const char *name, ISState *states, c
             IUUpdateSwitch(&StepModeSP, states, names, n);
             int target_mode = IUFindOnSwitchIndex(&StepModeSP);
             if (current_mode == target_mode)
-                ;
             {
                 StepModeSP.s = IPS_OK;
                 IDSetSwitch(&StepModeSP, nullptr);
@@ -741,11 +738,10 @@ bool MoonLite::SetFocuserSpeed(int speed)
 
 IPState MoonLite::MoveFocuser(FocusDirection dir, int speed, uint16_t duration)
 {
-    if (speed != currentSpeed)
+    if (speed != (int)currentSpeed)
     {
-        bool rc = false;
+        bool rc = setSpeed(speed);
 
-        rc = setSpeed(speed);
         if (rc == false)
             return IPS_ALERT;
     }

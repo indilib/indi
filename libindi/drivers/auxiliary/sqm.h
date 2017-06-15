@@ -22,8 +22,7 @@
   file called LICENSE.
 *******************************************************************************/
 
-#ifndef SQM_H
-#define SQM_H
+#pragma once
 
 #include "defaultdevice.h"
 
@@ -61,5 +60,3 @@ class SQM : public INDI::DefaultDevice
 
     int PortFD = -1;
 };
-
-#endif

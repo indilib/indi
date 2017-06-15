@@ -18,20 +18,11 @@
  Boston, MA 02110-1301, USA.
 *******************************************************************************/
 
-#ifndef HITECASTRODCFOCUSER_H
-#define HITECASTRODCFOCUSER_H
+#pragma once
 
-#include <string>
-#include <vector>
-#include <exception>
-
-#include "indibase/indifocuser.h"
-#include "indibase/indiusbdevice.h"
-#include "indibase/hidapi.h"
-
-/*  Some headers we need */
-#include <math.h>
-#include <sys/time.h>
+#include "hidapi.h"
+#include "indifocuser.h"
+#include "indiusbdevice.h"
 
 class HitecAstroDCFocuser : public INDI::Focuser, public INDI::USBDevice
 {
@@ -76,5 +67,3 @@ class HitecAstroDCFocuser : public INDI::Focuser, public INDI::USBDevice
     ISwitch ReverseDirectionS[1];
     ISwitchVectorProperty ReverseDirectionSP;
 };
-
-#endif /* HITECASTRODCFOCUSER */

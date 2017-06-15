@@ -43,7 +43,6 @@ void ClientAPIForMathPluginManagement::ProcessNewDevice(INDI::BaseDevice *Device
 
 void ClientAPIForMathPluginManagement::ProcessNewProperty(INDI::Property *PropertyPointer)
 {
-    int ReturnCode;
     bool GotOneOfMine = true;
 
     if (!strcmp(PropertyPointer->getName(), "ALIGNMENT_SUBSYSTEM_MATH_PLUGINS"))

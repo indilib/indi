@@ -24,8 +24,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110 - 1301  USA
 
 #endif
 
-#ifndef INDI_DEVAPI_H
-#define INDI_DEVAPI_H
+#pragma once
 
 /** \file indidevapi.h
     \brief Interface to the reference INDI C API device implementation on the Device Driver side.
@@ -849,6 +848,4 @@ extern void xmlv1(void);
 
 #ifdef __cplusplus
 }
-#endif
-
 #endif

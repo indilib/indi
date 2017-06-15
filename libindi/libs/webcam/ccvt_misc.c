@@ -59,7 +59,9 @@
 
 #include "ccvt.h"
 #include "ccvt_types.h"
+#include "indidevapi.h"
 #include "jpegutils.h"
+
 #include <stdlib.h>
 #include <string.h>
 
@@ -72,10 +74,10 @@ void InitLookupTable(void);
 /* YUYV: two Y's and one U/V */
 void ccvt_yuyv_rgb32(int width, int height, const void *src, void *dst)
 {
-    width  = width;
-    height = height;
-    src    = src;
-    dst    = dst;
+    INDI_UNUSED(width);
+    INDI_UNUSED(height);
+    INDI_UNUSED(src);
+    INDI_UNUSED(dst);
 }
 
 void ccvt_yuyv_bgr32(int width, int height, const void *src, void *dst)

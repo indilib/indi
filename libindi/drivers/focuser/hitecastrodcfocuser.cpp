@@ -20,13 +20,8 @@
 
 #include "hitecastrodcfocuser.h"
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <math.h>
-#include <string.h>
-
 #include <memory>
+#include <string.h>
 
 #define POLLMS         100   /* 0.1s */
 #define HID_TIMEOUT    10000 /* 10s */

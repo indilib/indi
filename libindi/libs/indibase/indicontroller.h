@@ -16,13 +16,12 @@
  Boston, MA 02110-1301, USA.
 *******************************************************************************/
 
-#ifndef CONTROLLER_H
-#define CONTROLLER_H
+#pragma once
+
+#include "defaultdevice.h"
 
 #include <ciso646> // detect std::lib
 #include <functional>
-#include <indiapi.h>
-#include <defaultdevice.h>
 
 namespace INDI
 {
@@ -157,5 +156,3 @@ class Controller
     IText *JoystickSettingT;
 };
 }
-
-#endif /* CONTROLLER_H */

@@ -15,24 +15,19 @@
  the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
  Boston, MA 02110-1301, USA.
 *******************************************************************************/
+
+#include "baseclient.h"
+
+#include "base64.h"
+#include "basedevice.h"
+
+#include <fcntl.h>
+#include <locale.h>
+#include <netdb.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <sys/select.h>
-#include <netinet/in.h>
-#include <netdb.h>
-#include <fcntl.h>
-#include <locale.h>
-#include <pthread.h>
-
-#include "baseclient.h"
-#include "basedevice.h"
-#include "base64.h"
-#include "indicom.h"
-
-#include <errno.h>
+#include <sys/errno.h>
 
 #define MAXINDIBUF 49152
 
@@ -71,7 +66,7 @@ void INDI::BaseClient::setServer(const char *hostname, unsigned int port)
 
 void INDI::BaseClient::watchDevice(const char *deviceName)
 {
-    cDeviceNames.push_back(deviceName);
+    cDeviceNames.emplace_back(std::string(deviceName));
 }
 
 bool INDI::BaseClient::connectServer()
@@ -286,11 +281,11 @@ void INDI::BaseClient::setDriverConnection(bool status, const char *deviceName)
 
 INDI::BaseDevice *INDI::BaseClient::getDevice(const char *deviceName)
 {
-    vector<INDI::BaseDevice *>::const_iterator devi;
-    for (devi = cDevices.begin(); devi != cDevices.end(); ++devi)
-        if (!strcmp(deviceName, (*devi)->getDeviceName()))
-            return (*devi);
-
+    for (auto& device : cDevices)
+    {
+        if (!strcmp(deviceName, device->getDeviceName()))
+            return device;
+    }
     return nullptr;
 }
 
@@ -304,16 +299,14 @@ void INDI::BaseClient::listenINDI()
 {
     char buffer[MAXINDIBUF];
     char msg[MAXRBUF];
-
     int n = 0, err_code = 0;
     int maxfd = 0;
     fd_set rs;
-
-    XMLEle **nodes;
-    XMLEle *root;
+    XMLEle **nodes = nullptr;
+    XMLEle *root = nullptr;
     int inode = 0;
-
     char *orig = setlocale(LC_NUMERIC, "C");
+
     if (cDeviceNames.empty())
     {
         fprintf(svrwfp, "<getProperties version='%g'/>\n", INDIV);
@@ -322,12 +315,11 @@ void INDI::BaseClient::listenINDI()
     }
     else
     {
-        vector<string>::const_iterator stri;
-        for (stri = cDeviceNames.begin(); stri != cDeviceNames.end(); stri++)
+        for (auto& str : cDeviceNames)
         {
-            fprintf(svrwfp, "<getProperties version='%g' device='%s'/>\n", INDIV, (*stri).c_str());
+            fprintf(svrwfp, "<getProperties version='%g' device='%s'/>\n", INDIV, str.c_str());
             if (verbose)
-                fprintf(stderr, "<getProperties version='%g' device='%s'/>\n", INDIV, (*stri).c_str());
+                fprintf(stderr, "<getProperties version='%g' device='%s'/>\n", INDIV, str.c_str());
         }
     }
     setlocale(LC_NUMERIC, orig);
@@ -359,7 +351,7 @@ void INDI::BaseClient::listenINDI()
             break;
         }
 
-        // Received terminiation string from main thread
+        // Received termination string from main thread
         if (n > 0 && FD_ISSET(m_receiveFd, &rs))
         {
             sConnected = false;
@@ -775,7 +767,7 @@ void INDI::BaseClient::sendOneBlob(IBLOB *bp)
 
     size_t written = 0;
     size_t towrite = 0;
-    while (written < l)
+    while ((int)written < l)
     {
         towrite   = ((l - written) > 72) ? 72 : l - written;
         size_t wr = fwrite(encblob + written, 1, towrite, svrwfp);
@@ -810,7 +802,7 @@ void INDI::BaseClient::sendOneBlob(const char *blobName, unsigned int blobSize, 
 
     size_t written = 0;
     size_t towrite = 0;
-    while (written < l)
+    while ((int)written < l)
     {
         towrite   = ((l - written) > 72) ? 72 : l - written;
         size_t wr = fwrite(encblob + written, 1, towrite, svrwfp);
@@ -841,13 +833,13 @@ void INDI::BaseClient::setBLOBMode(BLOBHandling blobH, const char *dev, const ch
     if (!dev[0])
         return;
 
-    BLOBMode *bMode = findBLOBMode(string(dev), prop ? string(prop) : string());
+    BLOBMode *bMode = findBLOBMode(std::string(dev), (prop ? std::string(prop) : std::string()));
 
     if (bMode == nullptr)
     {
         BLOBMode *newMode = new BLOBMode();
-        newMode->device   = string(dev);
-        newMode->property = prop ? string(prop) : string();
+        newMode->device   = std::string(dev);
+        newMode->property = (prop ? std::string(prop) : std::string());
         newMode->blobMode = blobH;
         blobModes.push_back(newMode);
     }
@@ -885,7 +877,7 @@ BLOBHandling INDI::BaseClient::getBLOBMode(const char *dev, const char *prop)
 {
     BLOBHandling bHandle = B_ALSO;
 
-    BLOBMode *bMode = findBLOBMode(dev, prop ? string(prop) : string());
+    BLOBMode *bMode = findBLOBMode(dev, (prop ? std::string(prop) : std::string()));
 
     if (bMode)
         bHandle = bMode->blobMode;
@@ -893,14 +885,12 @@ BLOBHandling INDI::BaseClient::getBLOBMode(const char *dev, const char *prop)
     return bHandle;
 }
 
-INDI::BaseClient::BLOBMode *INDI::BaseClient::findBLOBMode(string device, string property)
+INDI::BaseClient::BLOBMode *INDI::BaseClient::findBLOBMode(const std::string& device, const std::string& property)
 {
-    std::vector<BLOBMode *>::iterator blobby;
-
-    for (blobby = blobModes.begin(); blobby != blobModes.end(); blobby++)
+    for (auto& blob : blobModes)
     {
-        if ((*blobby)->device == device && (*blobby)->property == property)
-            return (*blobby);
+        if (blob->device == device && blob->property == property)
+            return blob;
     }
 
     return nullptr;

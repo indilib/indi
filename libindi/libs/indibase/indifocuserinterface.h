@@ -18,11 +18,11 @@
 
 */
 
-#ifndef INDIFOCUSERINTERFACE_H
-#define INDIFOCUSERINTERFACE_H
+#pragma once
 
 #include "indibase.h"
-#include "indiapi.h"
+
+#include <stdint.h>
 
 /**
  * \class INDI::FocuserInterface
@@ -30,7 +30,7 @@
 
    A focuser can be an independent device, or an embedded focuser within another device (e.g. Camera).
 
-   \e IMPORTANT: initFocuserProperties() must be called before any other function to initilize the focuser properties.
+   \e IMPORTANT: initFocuserProperties() must be called before any other function to initialize the focuser properties.
 
    \e IMPORTANT: processFocuserNumber() and processFocuserSwitch() must be called in your driver's ISNewNumber() and ISNewSwitch functions recepectively.
 \author Jasem Mutlaq
@@ -53,44 +53,46 @@ class INDI::FocuserInterface
     } FocuserCapability;
 
     /**
-         * @brief GetFocuserCapability returns the capability of the focuser
-         */
+     * @brief GetFocuserCapability returns the capability of the focuser
+     */
     uint32_t GetFocuserCapability() const { return capability; }
 
     /**
-         * @brief SetFocuserCapability sets the focuser capabilities. All capabilities must be initialized.
-         * @param cap pointer to focuser capability struct.
-         */
+     * @brief SetFocuserCapability sets the focuser capabilities. All capabilities must be initialized.
+     * @param cap pointer to focuser capability struct.
+     */
     void SetFocuserCapability(uint32_t cap);
 
     /**
-         * @return True if the focuser has absolute position encoders.
-         */
+     * @return True if the focuser has absolute position encoders.
+     */
     bool CanAbsMove() { return capability & FOCUSER_CAN_ABS_MOVE; }
 
     /**
-         * @return True if the focuser has relative position encoders.
-         */
+     * @return True if the focuser has relative position encoders.
+     */
     bool CanRelMove() { return capability & FOCUSER_CAN_REL_MOVE; }
 
     /**
-         * @return True if the focuser motion can be aborted.
-         */
+     * @return True if the focuser motion can be aborted.
+     */
     bool CanAbort() { return capability & FOCUSER_CAN_ABORT; }
 
     /**
-         * @return True if the focuser has multiple speeds.
-         */
+     * @return True if the focuser has multiple speeds.
+     */
     bool HasVariableSpeed() { return capability & FOCUSER_HAS_VARIABLE_SPEED; }
 
   protected:
     FocuserInterface();
     virtual ~FocuserInterface();
 
-    /** \brief Initilize focuser properties. It is recommended to call this function within initProperties() of your primary device
-            \param deviceName Name of the primary device
-            \param groupName Group or tab name to be used to define focuser properties.
-        */
+    /**
+     * \brief Initilize focuser properties. It is recommended to call this function within
+     * initProperties() of your primary device
+     * \param deviceName Name of the primary device
+     * \param groupName Group or tab name to be used to define focuser properties.
+     */
     void initFocuserProperties(const char *deviceName, const char *groupName);
 
     /** \brief Process focus number properties */
@@ -100,40 +102,47 @@ class INDI::FocuserInterface
     bool processFocuserSwitch(const char *dev, const char *name, ISState *states, char *names[], int n);
 
     /**
-         * @brief SetFocuserSpeed Set Focuser speed
-         * @param speed focuser speed
-         * @return true if successful, false otherwise
-         */
+     * @brief SetFocuserSpeed Set Focuser speed
+     * @param speed focuser speed
+     * @return true if successful, false otherwise
+     */
     virtual bool SetFocuserSpeed(int speed);
 
-    /** \brief MoveFocuser the focuser in a particular direction with a specific speed for a finite duration.
-            \param dir Direction of focuser, either FOCUS_INWARD or FOCUS_OUTWARD.
-            \param speed Speed of focuser if supported by the focuser.
-            \param duration The timeout in milliseconds before the focus motion halts.
-            \return Return IPS_OK if motion is completed and focuser reached requested position. Return IPS_BUSY if focuser started motion to requested position and is in progress.
-                    Return IPS_ALERT if there is an error.
-        */
+    /**
+     * \brief MoveFocuser the focuser in a particular direction with a specific speed for a
+     * finite duration.
+     * \param dir Direction of focuser, either FOCUS_INWARD or FOCUS_OUTWARD.
+     * \param speed Speed of focuser if supported by the focuser.
+     * \param duration The timeout in milliseconds before the focus motion halts.
+     * \return Return IPS_OK if motion is completed and focuser reached requested position.
+     * Return IPS_BUSY if focuser started motion to requested position and is in progress.
+     * Return IPS_ALERT if there is an error.
+     */
     virtual IPState MoveFocuser(FocusDirection dir, int speed, uint16_t duration);
 
-    /** \brief MoveFocuser the focuser to an absolute position.
-            \param ticks The new position of the focuser.
-            \return Return IPS_OK if motion is completed and focuser reached requested position. Return IPS_BUSY if focuser started motion to requested position and is in progress.
-                    Return IPS_ALERT if there is an error.
-        */
+    /**
+     * \brief MoveFocuser the focuser to an absolute position.
+     * \param ticks The new position of the focuser.
+     * \return Return IPS_OK if motion is completed and focuser reached requested position. Return
+     * IPS_BUSY if focuser started motion to requested position and is in progress.
+     * Return IPS_ALERT if there is an error.
+     */
     virtual IPState MoveAbsFocuser(uint32_t ticks);
 
-    /** \brief MoveFocuser the focuser to an relative position.
-            \param dir Direction of focuser, either FOCUS_INWARD or FOCUS_OUTWARD.
-            \param ticks The relative ticks to move.
-            \return Return IPS_OK if motion is completed and focuser reached requested position. Return IPS_BUSY if focuser started motion to requested position and is in progress.
-                    Return IPS_ALERT if there is an error.
-        */
+    /**
+     * \brief MoveFocuser the focuser to an relative position.
+     * \param dir Direction of focuser, either FOCUS_INWARD or FOCUS_OUTWARD.
+     * \param ticks The relative ticks to move.
+     * \return Return IPS_OK if motion is completed and focuser reached requested position. Return
+     * IPS_BUSY if focuser started motion to requested position and is in progress.
+     * Return IPS_ALERT if there is an error.
+     */
     virtual IPState MoveRelFocuser(FocusDirection dir, uint32_t ticks);
 
     /**
-         * @brief AbortFocuser all focus motion
-         * @return True if abort is successful, false otherwise.
-         */
+     * @brief AbortFocuser all focus motion
+     * @return True if abort is successful, false otherwise.
+     */
     virtual bool AbortFocuser();
 
     INumberVectorProperty FocusSpeedNP;
@@ -154,5 +163,3 @@ class INDI::FocuserInterface
     char focuserName[MAXINDIDEVICE];
     double lastTimerValue;
 };
-
-#endif // INDIFOCUSERINTERFACE_H

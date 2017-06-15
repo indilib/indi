@@ -18,11 +18,11 @@
 
 */
 
-#ifndef FOCUSLYNXBASE_H
-#define FOCUSLYNXBASE_H
+#pragma once
+
+#include "indifocuser.h"
 
 #include <map>
-#include "indibase/indifocuser.h"
 
 class FocusLynxBase : public INDI::Focuser
 {
@@ -57,31 +57,31 @@ class FocusLynxBase : public INDI::Focuser
         GOTO_HOME
     };
 
-    virtual bool Connect();
-    virtual bool Disconnect();
-    virtual bool Handshake();
-    const char *getDefaultName();
-    virtual bool initProperties();
-    virtual void ISGetProperties(const char *dev);
-    virtual bool updateProperties();
-    virtual bool saveConfigItems(FILE *fp);
+    virtual bool Connect() override;
+    virtual bool Disconnect() override;
+    virtual bool Handshake() override;
+    virtual const char *getDefaultName() override;
+    virtual bool initProperties() override;
+    virtual void ISGetProperties(const char *dev) override;
+    virtual bool updateProperties() override;
+    virtual bool saveConfigItems(FILE *fp) override;
 
-    virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n);
-    virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n);
-    virtual bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n);
+    virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
+    virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
+    virtual bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n) override;
 
-    virtual IPState MoveAbsFocuser(uint32_t ticks);
-    virtual IPState MoveRelFocuser(FocusDirection dir, uint32_t ticks);
-    virtual IPState MoveFocuser(FocusDirection dir, int speed, uint16_t duration);
-    virtual bool AbortFocuser();
-    virtual void TimerHit();
-    virtual bool RemoteDisconnect();
-    virtual bool RemoteConnect();
+    virtual IPState MoveAbsFocuser(uint32_t ticks) override;
+    virtual IPState MoveRelFocuser(FocusDirection dir, uint32_t ticks) override;
+    virtual IPState MoveFocuser(FocusDirection dir, int speed, uint16_t duration) override;
+    virtual bool AbortFocuser() override;
+    virtual void TimerHit() override;
+    bool RemoteDisconnect();
+    bool RemoteConnect();
     virtual int getVersion(int *major, int *minor, int *sub);
 
     void setFocusTarget(const char *target);
     const char *getFocusTarget();
-    void debugTriggered(bool enable);
+    virtual void debugTriggered(bool enable) override;
 
     // Device
     bool setDeviceType(int index);
@@ -223,5 +223,3 @@ class FocusLynxBase : public INDI::Focuser
     bool isSynced;
     bool isHoming;
 };
-
-#endif // FOCUSLYNXBASE_H

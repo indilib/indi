@@ -18,25 +18,17 @@
     Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <stdarg.h>
-#include <math.h>
-#include <sys/time.h>
-#include <unistd.h>
-#include <termios.h>
-#include <fcntl.h>
-#include <time.h>
-#include <ctype.h>
+#include "ieqprodriver.h"
 
 #include "indicom.h"
-#include "indidevapi.h"
 #include "indilogger.h"
 
 #include <libnova.h>
 
-#include "ieqprodriver.h"
+#include <math.h>
+#include <string.h>
+#include <termios.h>
+#include <unistd.h>
 
 #define IEQPRO_TIMEOUT 5 /* FD timeout in seconds */
 
@@ -968,11 +960,10 @@ bool start_ieqpro_guide(int fd, IEQ_DIRECTION dir, int ms)
     char cmd[16];
     int errcode = 0;
     char errmsg[MAXRBUF];
-    char response[8];
-    int nbytes_read    = 0;
     int nbytes_written = 0;
 
-    char dir_c;
+    char dir_c = 0;
+
     switch (dir)
     {
         case IEQ_N:

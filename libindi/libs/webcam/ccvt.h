@@ -47,8 +47,7 @@
  Finishing touches: adding const, adding libs for 'show'
 */
 
-#ifndef CCVT_H
-#define CCVT_H
+#pragma once
 
 #ifdef __cplusplus
 extern "C" {
@@ -197,5 +196,3 @@ enum Options
     haveColor      = (1 << 5),
     haveWhiteness  = (1 << 6)
 };
-
-#endif

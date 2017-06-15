@@ -18,19 +18,18 @@
 
 #include "inditelescope.h"
 
-#include "indiapi.h"
 #include "indicom.h"
+#include "indicontroller.h"
 #include "connectionplugins/connectionserial.h"
 #include "connectionplugins/connectiontcp.h"
 
 #include <cmath>
 #include <pwd.h>
 #include <stdlib.h>
-#include <stdio.h>
 #include <string.h>
 #include <unistd.h>
 #include <wordexp.h>
-#include <indiapi.h>
+#include <sys/errno.h>
 
 namespace
 {
@@ -571,6 +570,8 @@ void INDI::Telescope::NewRaDec(double ra, double dec)
 
 bool INDI::Telescope::Sync(double ra, double dec)
 {
+    INDI_UNUSED(ra);
+    INDI_UNUSED(dec);
     //  if we get here, our mount doesn't support sync
     DEBUG(Logger::DBG_ERROR, "Telescope does not support Sync.");
     return false;
@@ -1302,7 +1303,6 @@ bool INDI::Telescope::updateTime(ln_date *utc, double utc_offset)
 {
     INDI_UNUSED(utc);
     INDI_UNUSED(utc_offset);
-
     return true;
 }
 
@@ -1311,7 +1311,13 @@ bool INDI::Telescope::updateLocation(double latitude, double longitude, double e
     INDI_UNUSED(latitude);
     INDI_UNUSED(longitude);
     INDI_UNUSED(elevation);
+    return true;
+}
 
+bool INDI::Telescope::SetParkPosition(double Axis1Value, double Axis2Value)
+{
+    INDI_UNUSED(Axis1Value);
+    INDI_UNUSED(Axis2Value);
     return true;
 }
 

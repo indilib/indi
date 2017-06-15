@@ -17,19 +17,8 @@
 *******************************************************************************/
 
 #include "synscanmount.h"
+
 #include "indicom.h"
-
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <stdarg.h>
-#include <math.h>
-#include <unistd.h>
-#include <time.h>
-#include <memory>
-
-#include <string.h>
-#include <sys/stat.h>
 
 using namespace INDI::AlignmentSubsystem;
 
@@ -204,9 +193,9 @@ bool SynscanMount::updateProperties()
 
 bool SynscanMount::AnalyzeHandset()
 {
-    bool r;
-    bool rc;
-    int caps;
+    bool rc = true;
+    int caps = 0;
+
     //  call the parent
     //r=INDI::Telescope::Connect();
     //if( !r) {
@@ -285,7 +274,7 @@ bool SynscanMount::AnalyzeHandset()
     //SetApproximateMountAlignmentFromMountType(EQUATORIAL);
     //SetApproximateMountAlignment(NORTH_CELESTIAL_POLE);
 
-    return r;
+    return true;
 }
 
 bool SynscanMount::ReadScopeStatus()
@@ -774,8 +763,7 @@ int SynscanMount::PassthruCommand(int cmd, int target, int msgsize, int data, in
 bool SynscanMount::ReadTime()
 {
     char str[20];
-    int bytesWritten, bytesRead;
-    int numread;
+    int bytesWritten = 0, bytesRead = 0;
 
     //  lets see if this hand controller responds to a time request
     bytesRead = 0;
@@ -828,8 +816,7 @@ bool SynscanMount::ReadTime()
 bool SynscanMount::ReadLocation()
 {
     char str[20];
-    int bytesWritten, bytesRead;
-    int numread;
+    int bytesWritten = 0, bytesRead = 0;
 
     //fprintf(stderr,"Read Location\n");
 
@@ -899,8 +886,7 @@ bool SynscanMount::ReadLocation()
 bool SynscanMount::updateTime(ln_date *utc, double utc_offset)
 {
     char str[20];
-    int bytesWritten, bytesRead;
-    int numread;
+    int bytesWritten = 0, bytesRead = 0;
 
     //  start by formatting a time for the hand controller
     //  we are going to set controller to local time
@@ -942,11 +928,10 @@ bool SynscanMount::updateTime(ln_date *utc, double utc_offset)
 bool SynscanMount::updateLocation(double latitude, double longitude, double elevation)
 {
     char str[20];
-    int bytesWritten, bytesRead;
-    int numread;
-    int s;
+    int bytesWritten = 0, bytesRead = 0;
+    int s = 0;
     bool IsWest = false;
-    double tmp;
+    double tmp = 0;
 
     ln_lnlat_posn p1;
     lnh_lnlat_posn p2;
@@ -1019,9 +1004,7 @@ bool SynscanMount::Sync(double ra, double dec)
 {
     ln_equ_posn eq;
     AlignmentDatabaseEntry NewEntry;
-    ln_lnlat_posn here;
-    ln_hrz_posn altaz;
-    double lst, lha;
+    double lst = 0, lha = 0;
 
     DEBUGF(INDI::Logger::DBG_SESSION, "Sync %g %g -> %g %g\n", currentRA, currentDEC, ra, dec);
 
@@ -1136,10 +1119,8 @@ ln_equ_posn SynscanMount::TelescopeToSky(double ra, double dec)
 ln_equ_posn SynscanMount::SkyToTelescope(double ra, double dec)
 {
     ln_equ_posn eq;
-    ln_lnlat_posn here;
-    ln_hrz_posn altaz;
     TelescopeDirectionVector TDV;
-    double RightAscension, Declination;
+    double RightAscension = 0, Declination = 0;
 
     /*
     */

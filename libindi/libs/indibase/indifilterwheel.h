@@ -16,22 +16,20 @@
  Boston, MA 02110-1301, USA.
 *******************************************************************************/
 
-#ifndef INDI_FILTERWHEEL_H
-#define INDI_FILTERWHEEL_H
+#pragma once
 
 #include "defaultdevice.h"
-#include "indicontroller.h"
 #include "indifilterinterface.h"
 
 /**
  * \class INDI::FilterWheel
-   \brief Class to provide general functionality of a filter wheel device.
-
-   Developers need to subclass INDI::FilterWheel to implement any driver for filter wheels within INDI.
-
-\author Gerry Rozema, Jasem Mutlaq
-\see INDI::FilterInterface
-*/
+ * \brief Class to provide general functionality of a filter wheel device.
+ *
+ * Developers need to subclass INDI::FilterWheel to implement any driver for filter wheels within INDI.
+ *
+ * \author Gerry Rozema, Jasem Mutlaq
+ * \see INDI::FilterInterface
+ */
 class INDI::FilterWheel : public INDI::DefaultDevice, public INDI::FilterInterface
 {
   protected:
@@ -39,9 +37,10 @@ class INDI::FilterWheel : public INDI::DefaultDevice, public INDI::FilterInterfa
     virtual ~FilterWheel();
 
   public:
-    /** \struct FilterConnection
-            \brief Holds the connection mode of the Filter.
-        */
+    /**
+     * \struct FilterConnection
+     * \brief Holds the connection mode of the Filter.
+     */
     enum
     {
         CONNECTION_NONE   = 1 << 0, /** Do not use any connection plugin */
@@ -61,15 +60,15 @@ class INDI::FilterWheel : public INDI::DefaultDevice, public INDI::FilterInterfa
     static void buttonHelper(const char *button_n, ISState state, void *context);
 
     /**
-         * @brief setFilterConnection Set Filter connection mode. Child class should call this in the constructor before INDI::Filter registers
-         * any connection interfaces
-         * @param value ORed combination of FilterConnection values.
-         */
+     * @brief setFilterConnection Set Filter connection mode. Child class should call this in the constructor before INDI::Filter registers
+     * any connection interfaces
+     * @param value ORed combination of FilterConnection values.
+     */
     void setFilterConnection(const uint8_t &value);
 
     /**
-         * @return Get current Filter connection mode
-         */
+     * @return Get current Filter connection mode
+     */
     uint8_t getFilterConnection() const;
 
   protected:
@@ -90,12 +89,10 @@ class INDI::FilterWheel : public INDI::DefaultDevice, public INDI::FilterInterfa
     Connection::Serial *serialConnection = NULL;
     Connection::TCP *tcpConnection       = NULL;
 
-    // For Serial & TCP connections
+    /// For Serial & TCP connections
     int PortFD = -1;
 
   private:
     bool callHandshake();
     uint8_t filterConnection = CONNECTION_NONE;
 };
-
-#endif // INDI::FilterWheel_H

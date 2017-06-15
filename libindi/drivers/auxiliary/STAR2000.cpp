@@ -21,9 +21,14 @@
   The full GNU General Public License is included in this distribution in the
   file called LICENSE.
 *******************************************************************************/
+
 #include "STAR2000.h"
+
 #include "STAR2kdriver.h"
+
 #include <memory>
+#include <string.h>
+#include <unistd.h>
 
 #define POLLMS 250
 
@@ -240,7 +245,6 @@ float STAR2000::CalcNSPulseTimeLeft()
 void STAR2000::TimerHit()
 {
     float timeleft;
-    int rc;
 
     if (InWEPulse)
     {

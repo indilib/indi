@@ -1,6 +1,8 @@
 #if 0
-    Sky Commander INDI driver
-    Copyright (C) 2005 Jasem Mutlaq (mutlaqja@ikarustech.com)
+    Intelliscope INDI driver
+    Copyright (C) 2005 Douglas Philipson (dougp AT intermind DOT net)
+
+    Based on code by Jasem Mutlaq (mutlaqja@ikarustech.com)
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -14,34 +16,25 @@
 
     You should have received a copy of the GNU Lesser General Public
     License along with this library; if not, write to the Free Software
-    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
 
 #endif
 
-#include <config.h>
-
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <stdarg.h>
-#include <math.h>
-#include <unistd.h>
-#include <time.h>
+#include "config.h"
 
 #include "indidevapi.h"
 #include "indicom.h"
-#include "lx200driver.h"
 
 #ifndef _WIN32
 #include <termios.h>
 #endif
 
-#define mydev                "Sky Commander"
+#define mydev                "Intelliscope"
 #define BASIC_GROUP          "Main Control"
 #define POLLMS               1000
 #define currentRA            eq[0].value
 #define currentDEC           eq[1].value
-#define SKYCOMMANDER_TIMEOUT 5
+#define INTELLISCOPE_TIMEOUT 5
 
 static void ISPoll(void *);
 static void ISInit(void);
@@ -147,30 +140,46 @@ void ISSnoopDevice(XMLEle *root)
     INDI_UNUSED(root);
 }
 
-int updateSkyCommanderCoord(int fd, double *ra, double *dec)
+int updateIntelliscopeCoord(int fd, double *ra, double *dec)
 {
     char coords[16];
-    char CR[1] = { (char)0x0D };
+    char CR[1] = { (char)0x51 }; /* "Q" */
     float RA = 0.0, DEC = 0.0;
     int error_type;
     int nbytes_read = 0;
 
+    /*IDLog ("Sending a Q\n");*/
     error_type = write(fd, CR, 1);
-
-    error_type = tty_read(fd, coords, 16, SKYCOMMANDER_TIMEOUT, &nbytes_read);
-    /*read_ret = portRead(coords, 16, LX200_TIMEOUT);*/
+    /* We start at 14 bytes in case its a Sky Wizard,
+     but read one more later it if it's a intelliscope */
+    /*read_ret = portRead (coords, 14, LX200_TIMEOUT);*/
+    error_type = tty_read(fd, coords, 14, INTELLISCOPE_TIMEOUT, &nbytes_read);
     tcflush(fd, TCIFLUSH);
+    /*IDLog ("portRead() = [%s]\n", coords);*/
 
+    /* Remove the Q in the response from the Intelliscope  but not the Sky Wizard */
+    if (coords[0] == 'Q')
+    {
+        coords[0] = ' ';
+        /* Read one more byte if Intelliscope to get the "CR" */
+        error_type = tty_read(fd, coords, 1, INTELLISCOPE_TIMEOUT, &nbytes_read);
+        /*read_ret = portRead (coords, 1, LX200_TIMEOUT);*/
+    }
     nbytes_read = sscanf(coords, " %g %g", &RA, &DEC);
+    /*IDLog ("sscanf() RA = [%f]\n", RA * 0.0390625);*/
+    /*IDLog ("sscanf() DEC = [%f]\n", DEC * 0.0390625);*/
 
+    /*IDLog ("Intelliscope output [%s]", coords);*/
     if (nbytes_read < 2)
     {
-        IDLog("Error in Sky commander number format [%s], exiting.\n", coords);
-        return error_type;
+#ifdef INDI_DEBUG
+        IDLog("Error in Intelliscope number format [%s], exiting.\n", coords);
+#endif
+        return -1;
     }
 
-    *ra  = RA;
-    *dec = DEC;
+    *ra  = RA * 0.0390625;
+    *dec = DEC * 0.0390625;
 
     return 0;
 }
@@ -186,7 +195,7 @@ void ISPoll(void *p)
             case IPS_IDLE:
             case IPS_OK:
             case IPS_BUSY:
-                if (updateSkyCommanderCoord(fd, &currentRA, &currentDEC) < 0)
+                if (updateIntelliscopeCoord(fd, &currentRA, &currentDEC) < 0)
                 {
                     eqNum.s = IPS_ALERT;
                     IDSetNumber(&eqNum, "Unknown error while reading telescope coordinates");
@@ -219,14 +228,14 @@ void connectTelescope(void)
             }
 
             PowerSP.s = IPS_OK;
-            IDSetSwitch(&PowerSP, "Sky Commander is online.");
+            IDSetSwitch(&PowerSP, "Intelliscope is online.");
             break;
 
         case ISS_OFF:
             tty_disconnect(fd);
             IUResetSwitch(&PowerSP);
             eqNum.s = PortTP.s = PowerSP.s = IPS_IDLE;
-            IDSetSwitch(&PowerSP, "Sky Commander is offline.");
+            IDSetSwitch(&PowerSP, "Intelliscope is offline.");
             IDSetText(&PortTP, NULL);
             IDSetNumber(&eqNum, NULL);
             break;

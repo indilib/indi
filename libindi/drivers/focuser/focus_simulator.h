@@ -16,10 +16,9 @@
  Boston, MA 02110-1301, USA.
 *******************************************************************************/
 
-#ifndef FOCUSSIM_H
-#define FOCUSSIM_H
+#pragma once
 
-#include "indibase/indifocuser.h"
+#include "indifocuser.h"
 
 class FocusSim : public INDI::Focuser
 {
@@ -68,5 +67,3 @@ class FocusSim : public INDI::Focuser
     ISwitchVectorProperty ModeSP;
     ISwitch ModeS[MODE_COUNT];
 };
-
-#endif

@@ -18,9 +18,7 @@
 
 */
 
-#ifndef LX200APDRIVER_H
-#define LX200APDRIVER_H
-#endif
+#pragma once
 
 #define getAPDeclinationAxis(fd, x)            getCommandString(fd, x, "#:pS#")
 #define getAPVersionNumber(fd, x)              getCommandString(fd, x, "#:V#")

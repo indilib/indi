@@ -19,9 +19,14 @@
   The full GNU General Public License is included in this distribution in the
   file called LICENSE.
 *******************************************************************************/
+
 #include "gpusb.h"
+
 #include "gpdriver.h"
+
 #include <memory>
+#include <string.h>
+#include <unistd.h>
 
 #define POLLMS 250
 

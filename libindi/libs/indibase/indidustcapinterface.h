@@ -18,11 +18,9 @@
 
 */
 
-#ifndef INDIDUSTINTERFACE_H
-#define INDIDUSTINTERFACE_H
+#pragma once
 
 #include "indibase.h"
-#include "indiapi.h"
 
 /**
  * \class INDI::DustCapInterface
@@ -74,5 +72,3 @@ class INDI::DustCapInterface
   private:
     char dustCapName[MAXINDIDEVICE];
 };
-
-#endif // INDIDUSTCAPINTERFACE_H

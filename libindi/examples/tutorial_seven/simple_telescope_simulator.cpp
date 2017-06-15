@@ -1,12 +1,18 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <math.h>
-#include <unistd.h>
-#include <sys/time.h>
-#include <time.h>
+/*
+   INDI Developers Manual
+   Tutorial #7
+
+   "Simple telescope simulator"
+
+   We construct a most basic (and useless) device driver to illustrate INDI.
+
+   Refer to README, which contains instruction on how to build this driver, and use it
+   with an INDI-compatible client.
+
+*/
 
 #include "simple_telescope_simulator.h"
+
 #include "indicom.h"
 
 #include <memory>
@@ -55,6 +61,14 @@ const double ScopeSim::MICROSTEPS_PER_DEGREE   = MICROSTEPS_PER_REVOLUTION / 360
 const double ScopeSim::DEFAULT_SLEW_RATE       = MICROSTEPS_PER_DEGREE * 2.0;
 const long ScopeSim::MAX_DEC                   = 90.0 * MICROSTEPS_PER_DEGREE;
 const long ScopeSim::MIN_DEC                   = -90.0 * MICROSTEPS_PER_DEGREE;
+
+ScopeSim::ScopeSim() : AxisStatusDEC(STOPPED), AxisDirectionDEC(FORWARD),
+    AxisSlewRateDEC(DEFAULT_SLEW_RATE), CurrentEncoderMicrostepsDEC(0), GotoTargetMicrostepsDEC(0),
+    AxisStatusRA(STOPPED), AxisDirectionRA(FORWARD), AxisSlewRateRA(DEFAULT_SLEW_RATE),
+    CurrentEncoderMicrostepsRA(0), GotoTargetMicrostepsRA(0), TraceThisTickCount(0), TraceThisTick(false),
+    DBG_SIMULATOR(INDI::Logger::getInstance().addDebugLevel("Simulator Verbose", "SIMULATOR"))
+{
+}
 
 // Private methods
 

@@ -25,8 +25,7 @@
   file called LICENSE.
 *******************************************************************************/
 
-#ifndef WATCHDOG_H
-#define WATCHDOG_H
+#pragma once
 
 #include "defaultdevice.h"
 
@@ -89,5 +88,3 @@ class WatchDog : public INDI::DefaultDevice
 
     ShutdownStages shutdownStage;
 };
-
-#endif

@@ -59,12 +59,11 @@
 
 #include "v4l2_builtin_decoder.h"
 
-#include <string.h> // memcpy
-//#include <stdio.h> // FILE *
+//#include "indilogger.h"
 #include "../ccvt.h"
 #include "../v4l2_colorspace.h"
 
-//#include <indilogger.h>
+#include <string.h> // memcpy
 
 V4L2_Builtin_Decoder::V4L2_Builtin_Decoder()
 {
@@ -133,8 +132,8 @@ void V4L2_Builtin_Decoder::decode(unsigned char *frame, struct v4l2_buffer *buf)
             {
                 unsigned char *src  = frame + crop.c.left + (crop.c.top * fmt.fmt.pix.width);
                 unsigned char *dest = YBuf;
-                unsigned int i;
-                for (i = 0; i < crop.c.height; i++)
+
+                for (unsigned int i = 0; i < (unsigned int)crop.c.height; i++)
                 {
                     memcpy(dest, src, crop.c.width);
                     src += fmt.fmt.pix.width;
@@ -152,8 +151,8 @@ void V4L2_Builtin_Decoder::decode(unsigned char *frame, struct v4l2_buffer *buf)
             {
                 unsigned char *src  = frame + 2 * (crop.c.left) + (crop.c.top * fmt.fmt.pix.bytesperline);
                 unsigned char *dest = yuyvBuffer;
-                unsigned int i;
-                for (i = 0; i < crop.c.height; i++)
+
+                for (unsigned int i = 0; i < (unsigned int)crop.c.height; i++)
                 {
                     memcpy(dest, src, 2 * crop.c.width);
                     src += fmt.fmt.pix.bytesperline;
@@ -172,9 +171,9 @@ void V4L2_Builtin_Decoder::decode(unsigned char *frame, struct v4l2_buffer *buf)
             {
                 unsigned char *src  = frame + crop.c.left + (crop.c.top * fmt.fmt.pix.width);
                 unsigned char *dest = YBuf;
-                unsigned int i;
+
                 //IDLog("grabImage: src=%d dest=%d\n", src, dest);
-                for (i = 0; i < crop.c.height; i++)
+                for (unsigned int i = 0; i < (unsigned int)crop.c.height; i++)
                 {
                     memcpy(dest, src, crop.c.width);
                     src += fmt.fmt.pix.width;
@@ -188,7 +187,7 @@ void V4L2_Builtin_Decoder::decode(unsigned char *frame, struct v4l2_buffer *buf)
                 {
                     dest = VBuf;
                 }
-                for (i = 0; i < crop.c.height / 2; i++)
+                for (unsigned int i = 0; i < (unsigned int)crop.c.height / 2; i++)
                 {
                     memcpy(dest, src, crop.c.width / 2);
                     src += fmt.fmt.pix.width / 2;
@@ -203,7 +202,7 @@ void V4L2_Builtin_Decoder::decode(unsigned char *frame, struct v4l2_buffer *buf)
                 {
                     dest = UBuf;
                 }
-                for (i = 0; i < crop.c.height / 2; i++)
+                for (unsigned int i = 0; i < (unsigned int)crop.c.height / 2; i++)
                 {
                     memcpy(dest, src, crop.c.width / 2);
                     src += fmt.fmt.pix.width / 2;
@@ -236,10 +235,10 @@ void V4L2_Builtin_Decoder::decode(unsigned char *frame, struct v4l2_buffer *buf)
             if (useSoftCrop && doCrop)
             {
                 unsigned char *src  = frame + crop.c.left + (crop.c.top * fmt.fmt.pix.bytesperline);
-                unsigned char *dest = YBuf, *destv;
-                unsigned int i, j;
+                unsigned char *dest = YBuf, *destv = nullptr;
+
                 //IDLog("grabImage: src=%d dest=%d\n", src, dest);
-                for (i = 0; i < crop.c.height; i++)
+                for (unsigned int i = 0; i < (unsigned int)crop.c.height; i++)
                 {
                     memcpy(dest, src, crop.c.width);
                     src += fmt.fmt.pix.bytesperline;
@@ -255,10 +254,10 @@ void V4L2_Builtin_Decoder::decode(unsigned char *frame, struct v4l2_buffer *buf)
                     dest  = VBuf;
                     destv = UBuf;
                 }
-                for (i = 0; i < crop.c.height / 2; i++)
+                for (unsigned int i = 0; i < (unsigned int)crop.c.height / 2; i++)
                 {
                     unsigned char *s = src;
-                    for (j = 0; j < crop.c.width; j += 2)
+                    for (unsigned int j = 0; j < (unsigned int)crop.c.width; j += 2)
                     {
                         *(dest++)  = *(s++);
                         *(destv++) = *(s++);
@@ -271,10 +270,9 @@ void V4L2_Builtin_Decoder::decode(unsigned char *frame, struct v4l2_buffer *buf)
                 unsigned char *src   = frame;
                 unsigned char *dest  = YBuf;
                 unsigned char *destv = VBuf;
-                unsigned int i, j;
-                unsigned char *s;
+                unsigned char *s = nullptr;
 
-                for (i = 0; i < bufheight; i++)
+                for (unsigned int i = 0; i < bufheight; i++)
                 {
                     memcpy(dest, src, bufwidth);
                     src += fmt.fmt.pix.bytesperline;
@@ -287,11 +285,11 @@ void V4L2_Builtin_Decoder::decode(unsigned char *frame, struct v4l2_buffer *buf)
                     dest  = VBuf;
                     destv = UBuf;
                 }
-                for (i = 0; i < bufheight / 2; i++)
+                for (unsigned int i = 0; i < bufheight / 2; i++)
                 {
                     s = src;
                     //IDLog("NV12: converting UV line %d at %p, offset %d, pUbuf %p offset %d,  pVbuf %p offset %d\n", i, s, s- (frame + (fmt.fmt.pix.bytesperline * bufheight)), dest, dest-UBuf, destv, destv-VBuf);
-                    for (j = 0; j < bufwidth; j += 2)
+                    for (unsigned int j = 0; j < bufwidth; j += 2)
                     {
                         *(dest++)  = *(s++);
                         *(destv++) = *(s++);
@@ -306,8 +304,8 @@ void V4L2_Builtin_Decoder::decode(unsigned char *frame, struct v4l2_buffer *buf)
             {
                 unsigned char *src  = frame + 2 * (crop.c.left) + (crop.c.top * fmt.fmt.pix.bytesperline);
                 unsigned char *dest = yuyvBuffer;
-                unsigned int i;
-                for (i = 0; i < crop.c.height; i++)
+
+                for (unsigned int i = 0; i < (unsigned int)crop.c.height; i++)
                 {
                     memcpy(dest, src, 2 * crop.c.width);
                     src += fmt.fmt.pix.bytesperline;
@@ -324,10 +322,9 @@ void V4L2_Builtin_Decoder::decode(unsigned char *frame, struct v4l2_buffer *buf)
         case V4L2_PIX_FMT_VYUY:
         case V4L2_PIX_FMT_YVYU:
         {
-            unsigned char *src;
+            unsigned char *src = nullptr;
             unsigned char *dest = yuyvBuffer;
-            unsigned char *s, *s1, *s2, *s3, *s4;
-            int i, j;
+            unsigned char *s = nullptr, *s1 = nullptr, *s2 = nullptr, *s3 = nullptr, *s4 = nullptr;
 
             if (useSoftCrop && doCrop)
             {
@@ -339,7 +336,7 @@ void V4L2_Builtin_Decoder::decode(unsigned char *frame, struct v4l2_buffer *buf)
                 src = frame;
                 //IDLog("Decoding UYVY  %dx%d frame at %lx\n", width, height, src);
             }
-            for (i = 0; i < bufheight; i++)
+            for (int i = 0; i < (int)bufheight; i++)
             {
                 s = src;
                 switch (fmt.fmt.pix.pixelformat)
@@ -363,7 +360,7 @@ void V4L2_Builtin_Decoder::decode(unsigned char *frame, struct v4l2_buffer *buf)
                         s4 = (s + 1);
                         break;
                 }
-                for (j = 0; j < (bufwidth / 2); j++)
+                for (int j = 0; j < (int)(bufwidth / 2); j++)
                 {
                     *(dest++) = *(s1);
                     *(dest++) = *(s2);
@@ -381,8 +378,8 @@ void V4L2_Builtin_Decoder::decode(unsigned char *frame, struct v4l2_buffer *buf)
 
         case V4L2_PIX_FMT_RGB24:
         {
-            unsigned char *src, *dest = rgb24_buffer;
-            unsigned int i;
+            unsigned char *src = nullptr, *dest = rgb24_buffer;
+
             if (useSoftCrop && doCrop)
             {
                 src = frame + (3 * (crop.c.left)) + (crop.c.top * fmt.fmt.pix.bytesperline);
@@ -391,7 +388,7 @@ void V4L2_Builtin_Decoder::decode(unsigned char *frame, struct v4l2_buffer *buf)
             {
                 src = frame;
             }
-            for (i = 0; i < bufheight; i++)
+            for (unsigned int i = 0; i < bufheight; i++)
             {
                 memcpy(dest, src, 3 * bufwidth);
                 src += fmt.fmt.pix.bytesperline;
@@ -404,7 +401,7 @@ void V4L2_Builtin_Decoder::decode(unsigned char *frame, struct v4l2_buffer *buf)
         case V4L2_PIX_FMT_RGB555:
         {
             unsigned char *src, *dest = rgb24_buffer;
-            unsigned int i, j;
+
             if (useSoftCrop && doCrop)
             {
                 src = frame + (2 * (crop.c.left)) + (crop.c.top * fmt.fmt.pix.bytesperline);
@@ -413,10 +410,10 @@ void V4L2_Builtin_Decoder::decode(unsigned char *frame, struct v4l2_buffer *buf)
             {
                 src = frame;
             }
-            for (i = 0; i < bufheight; i++)
+            for (unsigned int i = 0; i < bufheight; i++)
             {
                 unsigned char *s = src;
-                for (j = 0; j < bufwidth; j++)
+                for (unsigned int j = 0; j < bufwidth; j++)
                 {
                     *(dest++) = lut5[((*(s + 1) & 0x7C) >> 2)];                        // R
                     *(dest++) = lut5[(((*(s + 1) & 0x03) << 3) | ((*(s)&0xE0) >> 5))]; // G
@@ -430,8 +427,8 @@ void V4L2_Builtin_Decoder::decode(unsigned char *frame, struct v4l2_buffer *buf)
 
         case V4L2_PIX_FMT_RGB565:
         {
-            unsigned char *src, *dest = rgb24_buffer;
-            unsigned int i, j;
+            unsigned char *src = nullptr, *dest = rgb24_buffer;
+
             if (useSoftCrop && doCrop)
             {
                 src = frame + (2 * (crop.c.left)) + (crop.c.top * fmt.fmt.pix.bytesperline);
@@ -440,10 +437,10 @@ void V4L2_Builtin_Decoder::decode(unsigned char *frame, struct v4l2_buffer *buf)
             {
                 src = frame;
             }
-            for (i = 0; i < bufheight; i++)
+            for (unsigned int i = 0; i < bufheight; i++)
             {
                 unsigned char *s = src;
-                for (j = 0; j < bufwidth; j++)
+                for (unsigned int j = 0; j < bufwidth; j++)
                 {
                     *(dest++) = lut5[((*(s + 1) & 0xF8) >> 3)];                        // R
                     *(dest++) = lut6[(((*(s + 1) & 0x07) << 3) | ((*(s)&0xE0) >> 5))]; // G
@@ -475,9 +472,9 @@ void V4L2_Builtin_Decoder::decode(unsigned char *frame, struct v4l2_buffer *buf)
             break;
         default:
         {
-            unsigned int i;
             unsigned char *src = YBuf;
-            for (i = 0; i < bufheight * bufwidth; i++)
+
+            for (unsigned int i = 0; i < bufheight * bufwidth; i++)
             {
                 *(src++) = random() % 255;
             }
@@ -517,6 +514,7 @@ void V4L2_Builtin_Decoder::usesoftcrop(bool c)
 
 void V4L2_Builtin_Decoder::setformat(struct v4l2_format f, bool use_ext_pix_format)
 {
+    (void)use_ext_pix_format;
     fmt = f;
     if (supported_formats.count(fmt.fmt.pix.pixelformat) == 1)
         bpp = supported_formats.at(fmt.fmt.pix.pixelformat)->bpp;

@@ -19,12 +19,10 @@
 */
 
 #include "lx200autostar.h"
+
 #include "lx200driver.h"
 
-#include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
-#include <unistd.h>
 
 #define FIRMWARE_TAB "Firmware data"
 

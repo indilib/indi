@@ -18,14 +18,9 @@
  Boston, MA 02110-1301, USA.
 *******************************************************************************/
 
-#ifndef BaaderDome_H
-#define BaaderDome_H
+#pragma once
 
 #include "indibase/indidome.h"
-
-/*  Some headers we need */
-#include <math.h>
-#include <sys/time.h>
 
 class BaaderDome : public INDI::Dome
 {
@@ -44,27 +39,27 @@ class BaaderDome : public INDI::Dome
     BaaderDome();
     virtual ~BaaderDome();
 
-    const char *getDefaultName();
-    virtual bool initProperties();
-    virtual bool updateProperties();
-    virtual bool saveConfigItems(FILE *fp);
+    virtual const char *getDefaultName() override;
+    virtual bool initProperties() override;
+    virtual bool updateProperties() override;
+    virtual bool saveConfigItems(FILE *fp) override;
 
     virtual bool Handshake() override;
 
-    void TimerHit();
+    virtual void TimerHit() override;
 
-    virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n);
+    virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
 
-    virtual IPState MoveRel(double azDiff);
-    virtual IPState MoveAbs(double az);
-    virtual IPState ControlShutter(ShutterOperation operation);
-    virtual bool Abort();
+    virtual IPState MoveRel(double azDiff) override;
+    virtual IPState MoveAbs(double az) override;
+    virtual IPState ControlShutter(ShutterOperation operation) override;
+    virtual bool Abort() override;
 
     // Parking
-    virtual IPState Park();
-    virtual IPState UnPark();
-    virtual bool SetCurrentPark();
-    virtual bool SetDefaultPark();
+    virtual IPState Park() override;
+    virtual IPState UnPark() override;
+    virtual bool SetCurrentPark() override;
+    virtual bool SetDefaultPark() override;
 
   protected:
     ISwitch CalibrateS[1];
@@ -100,5 +95,3 @@ class BaaderDome : public INDI::Dome
     ShutterStatus simShutterStatus;
     FlapStatus simFlapStatus;
 };
-
-#endif

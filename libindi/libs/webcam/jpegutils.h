@@ -8,8 +8,10 @@
  *
  */
 
-#ifndef __JPEGUTILS_H__
-#define __JPEGUTILS_H__
+#pragma once
+
+#include <stddef.h>
+#include <stdio.h>
 
 /**
  * \defgroup jpegSpace Functions to encode and decode JPEG
@@ -63,5 +65,3 @@ int encode_jpeg_raw(unsigned char *jpeg_data, int len, int quality, int itype, i
                     unsigned int height, unsigned char *raw0, unsigned char *raw1, unsigned char *raw2);
 
 /*@}*/
-
-#endif

@@ -18,8 +18,7 @@
     Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
-#ifndef IEQPRODRIVER_H
-#define IEQPRODRIVER_H
+#pragma once
 
 #include <string>
 
@@ -151,5 +150,3 @@ bool set_ieqpro_local_date(int fd, int yy, int mm, int dd);
 bool set_ieqpro_local_time(int fd, int hh, int mm, int ss);
 bool set_ieqpro_utc_offset(int fd, double offset_hours);
 bool set_ieqpro_daylight_saving(int fd, bool enabled);
-
-#endif

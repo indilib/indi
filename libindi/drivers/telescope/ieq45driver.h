@@ -19,8 +19,7 @@
 
 */
 
-#ifndef IEQ45DRIVER_H
-#define IEQ45DRIVER_H
+#pragma once
 
 /* Slew speeds */
 enum TSlew
@@ -306,6 +305,4 @@ int selectSubCatalog(int fd, int catalog, int subCatalog);
 
 #ifdef __cplusplus
 }
-#endif
-
 #endif

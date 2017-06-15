@@ -18,15 +18,11 @@
 *******************************************************************************/
 #include "dome_simulator.h"
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
+#include "indicom.h"
+
 #include <math.h>
-#include <string.h>
-
 #include <memory>
-
-#include <indicom.h>
+#include <unistd.h>
 
 // We declare an auto pointer to domeSim.
 std::unique_ptr<DomeSim> domeSim(new DomeSim());
@@ -277,7 +273,7 @@ IPState DomeSim::Park()
         return IPS_ALERT;
     }
 
-    targetAz = DomeParamN[1].value;
+    targetAz = DomeParamN[0].value;
     Dome::ControlShutter(SHUTTER_CLOSE);
     Dome::MoveAbs(GetAxis1Park());
 

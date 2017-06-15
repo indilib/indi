@@ -6,14 +6,13 @@
  *
  */
 
-#ifndef INDI_ALIGNMENTSUBSYSTEM_CLIENTAPIFORMATHPLUGINMANAGEMENT_H
-#define INDI_ALIGNMENTSUBSYSTEM_CLIENTAPIFORMATHPLUGINMANAGEMENT_H
+#pragma once
 
-#include <vector>
+#include "basedevice.h"
+#include "baseclient.h"
+
 #include <string>
-
-#include "indibase/basedevice.h"
-#include "indibase/baseclient.h"
+#include <vector>
 
 namespace INDI
 {
@@ -102,5 +101,3 @@ class ClientAPIForMathPluginManagement
 
 } // namespace AlignmentSubsystem
 } // namespace INDI
-
-#endif // INDI_ALIGNMENTSUBSYSTEM_CLIENTAPIFORMATHPLUGINMANAGEMENT_H

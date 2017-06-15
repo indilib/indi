@@ -25,8 +25,7 @@
   file called LICENSE.
 *******************************************************************************/
 
-#ifndef SKYSAFARI_H
-#define SKYSAFARI_H
+#pragma once
 
 #include "defaultdevice.h"
 
@@ -112,5 +111,3 @@ class SkySafari : public INDI::DefaultDevice
     double timeUTCOffset = 0;
     int timeYear = 0, timeMonth = 0, timeDay = 0, timeHour = 0, timeMin = 0, timeSec = 0;
 };
-
-#endif

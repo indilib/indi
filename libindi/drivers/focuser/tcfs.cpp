@@ -19,32 +19,23 @@
 
 */
 
-#include <stdlib.h>
-#include <string.h>
-#include <stdarg.h>
-#include <math.h>
-#include <unistd.h>
-#include <time.h>
-#include <errno.h>
-#include <sys/time.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <termios.h>
-#include <memory>
-#include <indicom.h>
-
 #include "tcfs.h"
+
+#include "indicom.h"
 #include "connectionplugins/connectionserial.h"
+
+#include <math.h>
+#include <memory>
+#include <string.h>
+#include <termios.h>
 
 #define mydev           "Optec TCF-S"
 #define currentPosition FocusAbsPosN[0].value
-#define isFocusSleep    (FocusPowerSP->sp[0].s == ISS_ON)
-#define inAutoMode      (FocusModeSP->sp[0].s != ISS_ON)
 
 const int POLLMS = 500;
 
 // We declare an auto pointer to TCFS.
-unique_ptr<TCFS> tcfs(new TCFS());
+std::unique_ptr<TCFS> tcfs(new TCFS());
 
 void ISPoll(void *p);
 
@@ -331,7 +322,7 @@ bool TCFS::ISNewSwitch(const char *dev, const char *name, ISState *states, char 
         }
     }
 
-    if (isFocusSleep)
+    if (FocusPowerSP->sp[0].s == ISS_ON)
     {
         sProp->s = IPS_IDLE;
         IUResetSwitch(sProp);
@@ -390,7 +381,7 @@ bool TCFS::ISNewSwitch(const char *dev, const char *name, ISState *states, char 
 
     if (!strcmp(sProp->name, "FOCUS_GOTO"))
     {
-        if (inAutoMode)
+        if (FocusModeSP->sp[0].s != ISS_ON)
         {
             sProp->s = IPS_IDLE;
             IDSetSwitch(sProp, nullptr);
@@ -471,7 +462,7 @@ IPState TCFS::MoveAbsFocuser(uint32_t ticks)
 
 IPState TCFS::MoveRelFocuser(FocusDirection dir, uint32_t ticks)
 {
-    if (inAutoMode)
+    if (FocusModeSP->sp[0].s != ISS_ON)
     {
         DEBUG(INDI::Logger::DBG_WARNING, "The focuser can only be moved in Manual mode.");
         return IPS_ALERT;

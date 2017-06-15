@@ -20,13 +20,12 @@
   Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
-#include <stdio.h>
-#include <memory>
-#include <unistd.h>
-
-#include <indicom.h>
-
 #include "nstep.h"
+
+#include "indicom.h"
+
+#include <memory>
+#include <string.h>
 
 #define POLLMS 2000
 

@@ -32,14 +32,12 @@
 */
 
 #include "nfocus.h"
+
 #include "indicom.h"
 
-#include <termios.h>
 #include <string.h>
-#include <sys/time.h>
-#include <unistd.h>
 #include <memory>
-#include <stdlib.h>
+#include <termios.h>
 
 #define NF_MAX_CMD  8  /* cmd length */
 #define NF_TIMEOUT  15 /* com timeout */
@@ -454,7 +452,6 @@ int NFocus::moveNFOutward(double *value)
 {
     char rf_cmd[32];
     int ret_read_tmp;
-    float temp;
 
     rf_cmd[0] = 0;
 

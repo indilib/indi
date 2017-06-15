@@ -18,8 +18,7 @@
 
 */
 
-#ifndef LX200AUTOSTAR_H
-#define LX200AUTOSTAR_H
+#pragma once
 
 #include "lx200generic.h"
 
@@ -45,5 +44,3 @@ class LX200Autostar : public LX200Generic
     INumberVectorProperty FocusSpeedNP;
     INumber FocusSpeedN[1];
 };
-
-#endif

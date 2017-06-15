@@ -18,8 +18,7 @@
 
 */
 
-#ifndef SIMPLE_SKELETON_H
-#define SIMPLE_SKELETON_H
+#pragma once
 
 /** \file simpleskeleton.h
     \brief Construct a basic INDI CCD device that demonstrates ability to define properties from a skeleton file.
@@ -31,9 +30,7 @@
     \note Please note that if you create your own skeleton file, you must append _sk postfix to your skeleton file name.
 */
 
-#include "indidevapi.h"
-#include "indicom.h"
-#include "indibase/defaultdevice.h"
+#include "defaultdevice.h"
 
 class SimpleSkeleton : public INDI::DefaultDevice
 {
@@ -54,5 +51,3 @@ class SimpleSkeleton : public INDI::DefaultDevice
     virtual bool Connect();
     virtual bool Disconnect();
 };
-
-#endif

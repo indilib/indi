@@ -22,25 +22,19 @@
     Version with experimental pulse guide support. GC 04.12.2015
 */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <stdarg.h>
-#include <math.h>
-#include <sys/time.h>
-#include <unistd.h>
-#include <termios.h>
-#include <fcntl.h>
-#include <time.h>
-
-#include <libnova.h>
-#include <map>
+#include "celestrondriver.h"
 
 #include "indicom.h"
-#include "indidevapi.h"
 #include "indilogger.h"
 
-#include "celestrondriver.h"
+#include <libnova.h>
+
+#include <map>
+
+#include <string.h>
+#include <math.h>
+#include <termios.h>
+#include <unistd.h>
 
 #define CELESTRON_TIMEOUT 5 /* FD timeout in seconds */
 std::map<int, std::string> celestronModels;
@@ -1686,7 +1680,7 @@ bool wakeup(int fd)
     char errmsg[MAXRBUF];
     int nbytes_written = 0;
     int nbytes_read    = 0;
-    char response[1];
+    char response[2];
 
     DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
 

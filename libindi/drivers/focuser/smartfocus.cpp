@@ -17,17 +17,15 @@
 *******************************************************************************/
 
 #include "smartfocus.h"
+
 #include "indicom.h"
 
 #include <fcntl.h>
-#ifdef __APPLE__
-#include <termios.h>
-#else
-#include <termio.h>
-#endif
-#include <unistd.h>
-
 #include <memory>
+#include <string.h>
+#include <termios.h>
+#include <unistd.h>
+#include <sys/errno.h>
 
 std::unique_ptr<SmartFocus> smartFocus(new SmartFocus());
 
@@ -384,7 +382,8 @@ SmartFocus::Flags SmartFocus::SFgetFlags(void)
 
 void SmartFocus::SFgetState(void)
 {
-    const Flags flags                     = SFgetFlags();
+    const Flags flags = SFgetFlags();
+
     FlagsL[STATUS_SERIAL_FRAMING_ERROR].s = (flags & SerFramingError ? IPS_ALERT : IPS_OK);
     FlagsL[STATUS_SERIAL_OVERRUN_ERROR].s = (flags & SerOverrunError ? IPS_ALERT : IPS_OK);
     FlagsL[STATUS_MOTOR_ENCODE_ERROR].s   = (flags & MotorEncoderError ? IPS_ALERT : IPS_OK);
@@ -409,7 +408,8 @@ bool SmartFocus::send(const char *command, const size_t nbytes, const char *from
 {
     int nbytes_written = 0;
     const int rc       = tty_write(PortFD, command, nbytes, &nbytes_written);
-    const bool success = (rc == TTY_OK && nbytes_written == nbytes);
+    const bool success = (rc == TTY_OK && nbytes_written == (int)nbytes);
+
     if (!success && log_error)
     {
         char errstr[MAXRBUF];
@@ -423,7 +423,8 @@ bool SmartFocus::recv(char *respons, const size_t nbytes, const char *from, cons
 {
     int nbytes_read    = 0;
     const int rc       = tty_read(PortFD, respons, nbytes, ReadTimeOut, &nbytes_read);
-    const bool success = (rc == TTY_OK && nbytes_read == nbytes);
+    const bool success = (rc == TTY_OK && nbytes_read == (int)nbytes);
+
     if (!success && log_error)
     {
         char errstr[MAXRBUF];

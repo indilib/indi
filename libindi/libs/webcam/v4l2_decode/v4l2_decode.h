@@ -20,15 +20,16 @@
 
 */
 
-#ifndef V4L2_DECODE_H
-#define V4L2_DECODE_H
+#pragma once
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <linux/videodev2.h>
 #include "indidevapi.h"
 
 #include <vector>
+
+#include <stdio.h>
+#include <stdlib.h>
+
+#include <linux/videodev2.h>
 
 class V4L2_Decoder
 {
@@ -74,5 +75,3 @@ class V4L2_Decode
     V4L2_Decoder *current_decoder;
     V4L2_Decoder *default_decoder;
 };
-
-#endif

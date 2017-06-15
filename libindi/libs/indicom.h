@@ -39,8 +39,7 @@
     \author Jasem Mutlaq
 */
 
-#ifndef INDICOM_H
-#define INDICOM_H
+#pragma once
 
 #define J2000       2451545.0
 #define ERRMSG_SIZE 1024
@@ -254,6 +253,4 @@ double get_local_hour_angle(double local_sideral_time, double ra);
 
 #ifdef __cplusplus
 }
-#endif
-
 #endif

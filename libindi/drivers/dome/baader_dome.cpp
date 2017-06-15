@@ -19,17 +19,15 @@
  the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
  Boston, MA 02110-1301, USA.
 *******************************************************************************/
-#include "indicom.h"
+
 #include "baader_dome.h"
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
+#include "indicom.h"
+
 #include <math.h>
+#include <memory>
 #include <string.h>
 #include <termios.h>
-
-#include <memory>
 
 // We declare an auto pointer to BaaderDome.
 std::unique_ptr<BaaderDome> baaderDome(new BaaderDome());

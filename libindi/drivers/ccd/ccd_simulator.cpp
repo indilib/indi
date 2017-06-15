@@ -15,17 +15,13 @@
  the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
  Boston, MA 02110-1301, USA.
 *******************************************************************************/
+
 #include "ccd_simulator.h"
 
-#include <cstdio>
-#include <stdlib.h>
-#include <unistd.h>
-#include <math.h>
-#include <string.h>
-
-#include <memory>
-
 #include <libnova.h>
+
+#include <locale.h>
+#include <math.h>
 
 // We declare an auto pointer to ccdsim.
 std::unique_ptr<CCDSim> ccdsim(new CCDSim());
@@ -165,8 +161,6 @@ bool CCDSim::SetupParms()
 
 bool CCDSim::Connect()
 {
-    int nbuf;
-
     SetTimer(1000); //  start the timer
     return true;
 }
@@ -652,10 +646,8 @@ int CCDSim::DrawCcdFrame(CCDChip *targetChip)
         //  star we can see on this exposure
         //  and only fetch to that magnitude
         //  for now, just use the limiting mag number with some room to spare
-        float lookuplimit;
+        float lookuplimit = limitingmag;
 
-        lookuplimit = limitingmag;
-        lookuplimit = lookuplimit;
         if (radius > 60)
             lookuplimit = 11;
 

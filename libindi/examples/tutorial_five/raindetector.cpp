@@ -15,9 +15,10 @@
     \author Jasem Mutlaq
 */
 
-#include <memory>
-
 #include "raindetector.h"
+
+#include <memory>
+#include <string.h>
 
 std::unique_ptr<RainDetector> rainDetector(new RainDetector());
 

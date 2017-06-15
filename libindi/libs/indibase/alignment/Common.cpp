@@ -10,7 +10,6 @@
 
 #include <gsl/gsl_matrix.h>
 #include <gsl/gsl_blas.h>
-#include <cmath>
 
 namespace INDI
 {

@@ -23,10 +23,13 @@
     Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
-#include <math.h>
-#include <termios.h>
 #include "lx200gemini.h"
+
+#include "indicom.h"
 #include "lx200driver.h"
+
+#include <string.h>
+#include <termios.h>
 
 LX200Gemini::LX200Gemini()
 {
@@ -66,6 +69,7 @@ bool LX200Gemini::initProperties()
     IUFillSwitch(&StartupModeS[PARK_ZENITH], "WARM_RESTART", "Restart", ISS_OFF);
     IUFillSwitchVector(&StartupModeSP, StartupModeS, 3, getDeviceName(), "STARTUP_MODE", "Startup Mode",
                        MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
+    return true;
 }
 
 bool LX200Gemini::updateProperties()

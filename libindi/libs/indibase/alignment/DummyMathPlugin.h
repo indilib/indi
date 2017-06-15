@@ -1,5 +1,5 @@
-#ifndef INDI_ALIGNMENTSUBSYSTEM_DUMMYMATHPLUGIN_H
-#define INDI_ALIGNMENTSUBSYSTEM_DUMMYMATHPLUGIN_H
+
+#pragma once
 
 #include "AlignmentSubsystemForMathPlugins.h"
 #include "ConvexHull.h"
@@ -26,5 +26,3 @@ class DummyMathPlugin : public AlignmentSubsystemForMathPlugins
 
 } // namespace AlignmentSubsystem
 } // namespace INDI
-
-#endif // INDI_ALIGNMENTSUBSYSTEM_DUMMYMATHPLUGIN_H

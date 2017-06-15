@@ -16,10 +16,9 @@
  Boston, MA 02110-1301, USA.
 *******************************************************************************/
 
-#ifndef FILTERSIM_H
-#define FILTERSIM_H
+#pragma once
 
-#include "indibase/indifilterwheel.h"
+#include "indifilterwheel.h"
 
 class FilterSim : public INDI::FilterWheel
 {
@@ -39,5 +38,3 @@ class FilterSim : public INDI::FilterWheel
     virtual bool SetFilterNames() { return true; }
     virtual bool GetFilterNames(const char *groupName);
 };
-
-#endif // FILTERSIM_H

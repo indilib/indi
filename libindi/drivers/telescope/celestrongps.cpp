@@ -24,18 +24,14 @@ Version with experimental pulse guide support. GC 04.12.2015
 
 #endif
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <stdarg.h>
-#include <math.h>
-#include <unistd.h>
-#include <time.h>
-#include <sys/time.h>
-
-#include <memory>
-
 #include "celestrongps.h"
+
+#include "indicom.h"
+
+#include <math.h>
+#include <memory>
+#include <string.h>
+#include <unistd.h>
 
 /* Simulation Parameters */
 #define GOTO_RATE       5        /* slew rate, degrees/s */
@@ -799,19 +795,22 @@ void CelestronGPS::mountSim()
                     currentDEC += da_dec;
                 else if (MovementNSS[DIRECTION_SOUTH].s == ISS_ON)
                     currentDEC -= da_dec;
+                break;
 
+            default:
                 break;
         }
 
         switch (MovementWESP.s)
         {
             case IPS_BUSY:
-
                 if (MovementWES[DIRECTION_WEST].s == ISS_ON)
                     currentRA += da_ra / 15.;
                 else if (MovementWES[DIRECTION_EAST].s == ISS_ON)
                     currentRA -= da_ra / 15.;
+                break;
 
+            default:
                 break;
         }
 
@@ -1362,26 +1361,26 @@ void CelestronGPS::guideTimeout(CELESTRON_DIRECTION calldir)
 
     DEBUG(INDI::Logger::DBG_DEBUG, " END-OF-TIMER");
     DEBUGF(INDI::Logger::DBG_DEBUG, "   USE_PULSE_CMD = %i", use_pulse_cmd);
-    DEBUGF(INDI::Logger::DBG_DEBUG, "   GUIDE_DIRECTION = %i", guide_direction);
+    DEBUGF(INDI::Logger::DBG_DEBUG, "   GUIDE_DIRECTION = %i", (int)guide_direction);
     DEBUGF(INDI::Logger::DBG_DEBUG, "   CALL_DIRECTION = %i", calldir);
 
-    if (guide_direction == -1)
-    {
-        stop_celestron_motion(PortFD, CELESTRON_N);
-        stop_celestron_motion(PortFD, CELESTRON_S);
-        stop_celestron_motion(PortFD, CELESTRON_E);
-        stop_celestron_motion(PortFD, CELESTRON_W);
-
-        MovementNSSP.s = IPS_IDLE;
-        MovementWESP.s = IPS_IDLE;
-        IUResetSwitch(&MovementNSSP);
-        IUResetSwitch(&MovementWESP);
-        IDSetSwitch(&MovementNSSP, nullptr);
-        IDSetSwitch(&MovementWESP, nullptr);
-        IERmTimer(GuideNSTID);
-        IERmTimer(GuideWETID);
-    }
-    else if (!use_pulse_cmd)
+//    if (guide_direction == -1)
+//    {
+//        stop_celestron_motion(PortFD, CELESTRON_N);
+//        stop_celestron_motion(PortFD, CELESTRON_S);
+//        stop_celestron_motion(PortFD, CELESTRON_E);
+//        stop_celestron_motion(PortFD, CELESTRON_W);
+//
+//        MovementNSSP.s = IPS_IDLE;
+//        MovementWESP.s = IPS_IDLE;
+//        IUResetSwitch(&MovementNSSP);
+//        IUResetSwitch(&MovementWESP);
+//        IDSetSwitch(&MovementNSSP, nullptr);
+//        IDSetSwitch(&MovementWESP, nullptr);
+//        IERmTimer(GuideNSTID);
+//        IERmTimer(GuideWETID);
+//    } else
+    if (!use_pulse_cmd)
     {
         if (calldir == CELESTRON_N || calldir == CELESTRON_S)
         {
@@ -1433,7 +1432,7 @@ void CelestronGPS::guideTimeout(CELESTRON_DIRECTION calldir)
         }
     }
 
-    if (calldir == CELESTRON_N || calldir == CELESTRON_S || guide_direction == -1)
+    if (calldir == CELESTRON_N || calldir == CELESTRON_S)
     {
         GuideNSNP.np[0].value = 0;
         GuideNSNP.np[1].value = 0;
@@ -1441,7 +1440,7 @@ void CelestronGPS::guideTimeout(CELESTRON_DIRECTION calldir)
         GuideNSTID            = 0;
         IDSetNumber(&GuideNSNP, nullptr);
     }
-    if (calldir == CELESTRON_W || calldir == CELESTRON_E || guide_direction == -1)
+    if (calldir == CELESTRON_W || calldir == CELESTRON_E)
     {
         GuideWENP.np[0].value = 0;
         GuideWENP.np[1].value = 0;

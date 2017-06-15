@@ -23,24 +23,20 @@
 
   The full GNU General Public License is included in this distribution in the
   file called LICENSE.
-*******************************************************************************/
+*******************************************************************************/#include "skysafari.h"
+#include "skysafariclient.h"
 
-#include <memory>
+#include "indicom.h"
+
 #include <libnova.h>
-#include <time.h>
-#include <unistd.h>
-#include <sys/wait.h>
-#include <errno.h>
 
 #include <fcntl.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <netdb.h>
+#include <memory>
+#include <string.h>
+#include <unistd.h>
 #include <arpa/inet.h>
-
-#include "skysafari.h"
-#include "skysafariclient.h"
-#include "indicom.h"
+#include <sys/errno.h>
+#include <sys/socket.h>
 
 #define POLLMS 100
 
@@ -798,7 +794,7 @@ void SkySafari::sendUTCtimedate()
     }
 }
 
-// Had to get this from stackoverlow, why C++ STL lacks such basic functionality?!!!
+// Had to get this from stackoverflow, why C++ STL lacks such basic functionality?!!!
 template <typename Out>
 void SkySafari::split(const std::string &s, char delim, Out result)
 {

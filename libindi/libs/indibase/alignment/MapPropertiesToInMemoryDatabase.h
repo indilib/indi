@@ -6,11 +6,11 @@
  *
  */
 
-#ifndef INDI_ALIGNMENTSUBSYSTEM_MAPPROPERTIESTOINMEMORYDATABASE_H
-#define INDI_ALIGNMENTSUBSYSTEM_MAPPROPERTIESTOINMEMORYDATABASE_H
+#pragma once
 
-#include "../inditelescope.h"
 #include "InMemoryDatabase.h"
+
+#include "inditelescope.h"
 
 namespace INDI
 {
@@ -137,5 +137,3 @@ class MapPropertiesToInMemoryDatabase : public InMemoryDatabase
 
 } // namespace AlignmentSubsystem
 } // namespace INDI
-
-#endif // INDI_ALIGNMENTSUBSYSTEM_MAPPROPERTIESTOINMEMORYDATABASE_H

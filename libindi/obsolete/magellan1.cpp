@@ -22,19 +22,9 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110 - 1301  USA
 
 #endif
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <stdarg.h>
-#include <math.h>
-#include <unistd.h>
-#include <time.h>
-#include <sys/time.h>
-
-#include "magellandriver.h"
 #include "magellan1.h"
 
-#include <config.h>
+#include "magellandriver.h"
 
 Magellan1 *telescope = nullptr;
 

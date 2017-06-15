@@ -6,10 +6,8 @@
  *
  */
 
-#ifndef INDI_ALIGNMENTSUBSYSTEM_MATHPLUGIN_H
-#define INDI_ALIGNMENTSUBSYSTEM_MATHPLUGIN_H
+#pragma once
 
-#include "Common.h"
 #include "InMemoryDatabase.h"
 
 namespace INDI
@@ -84,5 +82,3 @@ class MathPlugin
 
 } // namespace AlignmentSubsystem
 } // namespace INDI
-
-#endif // INDI_ALIGNMENTSUBSYSTEM_MATHPLUGIN_H

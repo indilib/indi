@@ -1,4 +1,6 @@
+
 #include "v4l2_colorspace.h"
+
 #include <math.h>
 
 unsigned char lutrangey8[256];
@@ -25,11 +27,12 @@ void initColorSpace()
 
 void rangeY8(unsigned char *buf, unsigned int len)
 {
-    unsigned int i;
     unsigned char *s = buf;
-    for (i = 0; i < len; i++)
+
+    for (unsigned int i = 0; i < len; i++)
     {
-        *s++ = lutrangey8[*s];
+        *s = lutrangey8[*s];
+        s++;
     }
 }
 
@@ -43,13 +46,19 @@ void linearize(float *buf, unsigned int len, struct v4l2_format *fmt)
             // Old obsolete HDTV standard. Replaced by REC 709.
             // This is the transfer function for SMPTE 240M
             for (i = 0; i < len; i++)
-                *src++ = (*src < 0.0913) ? *src / 4.0 : pow((*src + 0.1115) / 1.1115, 1.0 / 0.45);
+            {
+                *src = (*src < 0.0913) ? *src / 4.0 : pow((*src + 0.1115) / 1.1115, 1.0 / 0.45);
+                src++;
+            }
             break;
         case V4L2_COLORSPACE_SRGB:
             // This is used for sRGB as specified by the IEC FDIS 61966-2-1 standard
             for (i = 0; i < len; i++)
-                *src++ = (*src < -0.04045) ? -pow((-*src + 0.055) / 1.055, 2.4) :
-                                             ((*src <= 0.04045) ? *src / 12.92 : pow((*src + 0.055) / 1.055, 2.4));
+            {
+                *src = (*src < -0.04045) ? -pow((-*src + 0.055) / 1.055, 2.4) :
+                       ((*src <= 0.04045) ? *src / 12.92 : pow((*src + 0.055) / 1.055, 2.4));
+                src++;
+            }
             break;
         //case V4L2_COLORSPACE_ADOBERGB:
         //r = pow(r, 2.19921875);
@@ -59,8 +68,11 @@ void linearize(float *buf, unsigned int len, struct v4l2_format *fmt)
         default:
             // All others use the transfer function specified by REC 709
             for (i = 0; i < len; i++)
-                *src++ = (*src <= -0.081) ? -pow((*src - 0.099) / -1.099, 1.0 / 0.45) :
-                                            ((*src < 0.081) ? *src / 4.5 : pow((*src + 0.099) / 1.099, 1.0 / 0.45));
+            {
+                *src = (*src <= -0.081) ? -pow((*src - 0.099) / -1.099, 1.0 / 0.45) :
+                       ((*src < 0.081) ? *src / 4.5 : pow((*src + 0.099) / 1.099, 1.0 / 0.45));
+                src++;
+            }
     }
 }
 

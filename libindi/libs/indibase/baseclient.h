@@ -16,22 +16,17 @@
  Boston, MA 02110-1301, USA.
 *******************************************************************************/
 
-#ifndef INDIBASECLIENT_H
-#define INDIBASECLIENT_H
+#pragma once
 
-#include <vector>
-#include <map>
+#include "indiapi.h"
+#include "indibase.h"
+
 #include <string>
+#include <vector>
 
 #include <pthread.h>
 
-#include "indiapi.h"
-#include "indidevapi.h"
-#include "indibase.h"
-
 #define MAXRBUF 2048
-
-using namespace std;
 
 /**
  * \class INDI::BaseClient
@@ -104,7 +99,7 @@ class INDI::BaseClient : public INDI::BaseMediator
 
     /** \returns Returns a vector of all devices created in the client.
     */
-    const vector<INDI::BaseDevice *> &getDevices() const { return cDevices; }
+    const std::vector<INDI::BaseDevice *> &getDevices() const { return cDevices; }
 
     /** \brief Set Binary Large Object policy mode
 
@@ -207,12 +202,12 @@ class INDI::BaseClient : public INDI::BaseMediator
   private:
     typedef struct
     {
-        string device;
-        string property;
+        std::string device;
+        std::string property;
         BLOBHandling blobMode;
     } BLOBMode;
 
-    BLOBMode *findBLOBMode(string device, string property);
+    BLOBMode *findBLOBMode(const std::string& device, const std::string& property);
 
     /** \brief Connect/Disconnect to INDI driver
         \param status If true, the client will attempt to turn on CONNECTION property within the driver (i.e. turn on the device).
@@ -237,11 +232,11 @@ class INDI::BaseClient : public INDI::BaseMediator
     // Listen to INDI server and process incoming messages
     void listenINDI();
 
-    vector<INDI::BaseDevice *> cDevices;
-    vector<string> cDeviceNames;
-    vector<BLOBMode *> blobModes;
+    std::vector<INDI::BaseDevice *> cDevices;
+    std::vector<std::string> cDeviceNames;
+    std::vector<BLOBMode *> blobModes;
 
-    string cServer;
+    std::string cServer;
     unsigned int cPort;
     bool sConnected;
     bool verbose;
@@ -251,5 +246,3 @@ class INDI::BaseClient : public INDI::BaseMediator
     LilXML *lillp; /* XML parser context */
     uint32_t timeout_sec, timeout_us;
 };
-
-#endif // INDIBASECLIENT_H

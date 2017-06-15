@@ -18,10 +18,11 @@
 
 */
 
-#include <string.h>
-
 #include "indifocuserinterface.h"
+
 #include "indilogger.h"
+
+#include <string.h>
 
 INDI::FocuserInterface::FocuserInterface()
 {
@@ -220,6 +221,7 @@ bool INDI::FocuserInterface::processFocuserNumber(const char *dev, const char *n
 bool INDI::FocuserInterface::processFocuserSwitch(const char *dev, const char *name, ISState *states, char *names[],
                                                   int n)
 {
+    INDI_UNUSED(dev);
     //  This one is for us
     if (strcmp(name, "FOCUS_MOTION") == 0)
     {
@@ -262,18 +264,24 @@ bool INDI::FocuserInterface::processFocuserSwitch(const char *dev, const char *n
 
 IPState INDI::FocuserInterface::MoveFocuser(FocusDirection dir, int speed, uint16_t duration)
 {
+    INDI_UNUSED(dir);
+    INDI_UNUSED(speed);
+    INDI_UNUSED(duration);
     // Must be implemented by child class
     return IPS_ALERT;
 }
 
 IPState INDI::FocuserInterface::MoveRelFocuser(FocusDirection dir, uint32_t ticks)
 {
+    INDI_UNUSED(dir);
+    INDI_UNUSED(ticks);
     // Must be implemented by child class
     return IPS_ALERT;
 }
 
 IPState INDI::FocuserInterface::MoveAbsFocuser(uint32_t ticks)
 {
+    INDI_UNUSED(ticks);
     // Must be implemented by child class
     return IPS_ALERT;
 }

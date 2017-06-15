@@ -19,14 +19,12 @@
 */
 
 #include "lx200ss2000pc.h"
+
+#include "indicom.h"
 #include "lx200driver.h"
 
 #include <cmath>
-#include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
-#include <termios.h>
-#include <unistd.h>
 
 const int LX200SS2000PC::ShortTimeOut = 2;  // In seconds.
 const int LX200SS2000PC::LongTimeOut  = 10; // In seconds.
@@ -152,8 +150,9 @@ bool LX200SS2000PC::setCalenderDate(int year, int month, int day)
     {
         char buffer[64];
         int nbytes_written = 0;
+
         snprintf(buffer, sizeof(buffer), ":SC %02d/%02d/%02d#", month, day, (year % 100));
-        result = (tty_write_string(PortFD, buffer, &nbytes_written) == TTY_OK && nbytes_written == strlen(buffer));
+        result = (tty_write_string(PortFD, buffer, &nbytes_written) == TTY_OK && nbytes_written == (int)strlen(buffer));
         if (result)
         {
             int nbytes_read = 0;

@@ -18,8 +18,7 @@
     Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
-#ifndef LX200ZEQ25_H
-#define LX200ZEQ25_H
+#pragma once
 
 #include "lx200generic.h"
 
@@ -29,18 +28,18 @@ class LX200ZEQ25 : public LX200Generic
     LX200ZEQ25();
     ~LX200ZEQ25() {}
 
-    virtual bool updateProperties();
-    virtual bool initProperties();
+    virtual bool updateProperties() override;
+    virtual bool initProperties() override;
 
-    virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n);
-    virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n);
+    virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
+    virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
 
   protected:
-    virtual const char *getDefaultName();
+    virtual const char *getDefaultName() override;
 
-    virtual void getBasicData();
-    virtual bool checkConnection();
-    virtual bool isSlewComplete();
+    virtual void getBasicData() override;
+    virtual bool checkConnection() override;
+    virtual bool isSlewComplete() override;
 
     virtual bool ReadScopeStatus() override;
 
@@ -88,5 +87,3 @@ class LX200ZEQ25 : public LX200Generic
     INumber GuideRateN[1];
     INumberVectorProperty GuideRateNP;
 };
-
-#endif

@@ -22,8 +22,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110 - 1301  USA
 
 #endif
 
-#ifndef INDI_API_H
-#define INDI_API_H
+#pragma once
 
 /** \mainpage Instrument Neutral Distributed Interface INDI
  *
@@ -428,5 +427,3 @@ typedef struct _IBLOBVectorProperty /* BLOB vector property descriptor */
 /** \brief Handy macro to find the number of elements in array a[]. Must be used with actual array, not pointer.
 */
 #define NARRAY(a) (sizeof(a) / sizeof(a[0]))
-
-#endif

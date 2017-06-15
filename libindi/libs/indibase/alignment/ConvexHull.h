@@ -6,8 +6,7 @@
  *
  */
 
-#ifndef CONVEXHULL_H
-#define CONVEXHULL_H
+#pragma once
 
 // This C++ code is based on the c code described below
 // it was ported to c++ by Roger James in December 2013
@@ -42,11 +41,12 @@ not removed.
 --------------------------------------------------------------------
 */
 
-#include <fstream>
-#include <cstring> // I like to use NULL
-#include <cmath>
-#include <limits>
 #include <gsl/gsl_matrix.h>
+
+#include <cmath>
+#include <cstring>
+#include <fstream>
+#include <limits>
 
 namespace INDI
 {
@@ -59,7 +59,7 @@ namespace AlignmentSubsystem
 class ConvexHull
 {
   public:
-    ConvexHull() : vertices(NULL), edges(NULL), faces(NULL), debug(false), check(false), ScaleFactor(SAFE - 1) {}
+    ConvexHull();
     virtual ~ConvexHull() {}
 
     enum
@@ -254,7 +254,7 @@ class ConvexHull
 
     /** \brief Set the floating point to integer scaling factor
         */
-    const int GetScaleFactor(void) const { return ScaleFactor; }
+    int GetScaleFactor(void) const { return ScaleFactor; }
 
     /** \brief MakeCcw puts the vertices in the face structure in counterclock wise
         order.  We want to store the vertices in the same
@@ -375,5 +375,3 @@ class ConvexHull
 
 } // namespace AlignmentSubsystem
 } // namespace INDI
-
-#endif // CONVEXHULL_H

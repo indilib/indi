@@ -18,12 +18,12 @@
   The full GNU General Public License is included in this distribution in the
   file called LICENSE.
 *******************************************************************************/
-#ifndef INDIDEVICE_H
-#define INDIDEVICE_H
 
-#include <libindi/indidevapi.h>
-#include <libindi/indicom.h>
-#include <libindi/defaultdriver.h>
+#pragma once
+
+#include "defaultdriver.h"
+#include "indicom.h"
+#include "indidevapi.h"
 
 class IndiDevice : public INDI::DefaultDriver
 {
@@ -78,5 +78,3 @@ class IndiDevice : public INDI::DefaultDriver
 
 extern IndiDevice *device;
 extern IndiDevice *_create_device();
-
-#endif // INDIDEVICE_H

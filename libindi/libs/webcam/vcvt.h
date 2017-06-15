@@ -42,8 +42,7 @@
    *dst		pointer at offset (!) in view
 */
 
-#ifndef VCVT_H
-#define VCVT_H
+#pragma once
 
 #ifdef __cplusplus
 extern "C" {
@@ -65,6 +64,4 @@ void vcvt_420i_yuyv(int width, int height, int plus, void *src, void *dst);
 
 #ifdef __cplusplus
 }
-#endif
-
 #endif

@@ -20,6 +20,16 @@
 
 */
 
+#include "v4l2_base.h"
+
+#include "ccvt.h"
+#include "eventloop.h"
+#include "indidevapi.h"
+#include "indilogger.h"
+#include "lilxml.h"
+// PWC framerate support
+#include "pwc-ioctl.h"
+
 #include <iostream>
 
 #include <sys/ioctl.h>
@@ -36,16 +46,6 @@
 #include <time.h>
 #include <math.h>
 #include <sys/time.h>
-
-#include "ccvt.h"
-#include "v4l2_base.h"
-#include "eventloop.h"
-#include "indidevapi.h"
-#include "lilxml.h"
-#include "indilogger.h"
-
-/* PWC framerate support*/
-#include "pwc-ioctl.h"
 
 /* Kernel headers version */
 #include <linux/version.h>
@@ -370,6 +370,9 @@ void V4L2_Base::setRecorder(V4L2_Recorder *r)
 
 int V4L2_Base::connectCam(const char *devpath, char *errmsg, int pixelFormat, int width, int height)
 {
+    INDI_UNUSED(pixelFormat);
+    INDI_UNUSED(width);
+    INDI_UNUSED(height);
     selectCallBackID      = -1;
     cancrop               = true;
     cansetrate            = true;
@@ -428,22 +431,22 @@ bool V4L2_Base::isLXmodCapable()
  * @return the milliseconds offset to apply to the timestamp returned by gettimeofday for
  * it to have the same reference as clock_gettime.
  */
-static long getEpochTimeShift()
-{
-    struct timeval epochtime = { 0 };
-    struct timespec vsTime   = { 0 };
-
-    gettimeofday(&epochtime, nullptr);
-    clock_gettime(CLOCK_MONOTONIC, &vsTime);
-
-    long const uptime_ms = vsTime.tv_sec * 1000 + (long)round(vsTime.tv_nsec / 1000000.0);
-    long const epoch_ms  = epochtime.tv_sec * 1000 + (long)round(epochtime.tv_usec / 1000.0);
-
-    long const epoch_shift = epoch_ms - uptime_ms;
-    //DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG,"%s: epoch shift is %ld",__FUNCTION__,epoch_shift);
-
-    return epoch_shift;
-}
+//static long getEpochTimeShift()
+//{
+//    struct timeval epochtime = { 0, 0 };
+//    struct timespec vsTime   = { 0, 0 };
+//
+//    gettimeofday(&epochtime, nullptr);
+//    clock_gettime(CLOCK_MONOTONIC, &vsTime);
+//
+//    long const uptime_ms = vsTime.tv_sec * 1000 + (long)round(vsTime.tv_nsec / 1000000.0);
+//    long const epoch_ms  = epochtime.tv_sec * 1000 + (long)round(epochtime.tv_usec / 1000.0);
+//
+//    long const epoch_shift = epoch_ms - uptime_ms;
+//    //DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG,"%s: epoch shift is %ld",__FUNCTION__,epoch_shift);
+//
+//    return epoch_shift;
+//}
 
 /* @brief Reading a frame from the V4L2 driver.
  *
@@ -593,10 +596,10 @@ int V4L2_Base::read_frame(char *errmsg)
                 /* FIXME: try monotonic clock when timestamp clock type is unknown */
                 case V4L2_BUF_FLAG_TIMESTAMP_MONOTONIC:
                 {
-                    struct timespec uptime = { 0 };
+                    struct timespec uptime = { 0, 0 };
                     clock_gettime(CLOCK_MONOTONIC, &uptime);
 
-                    struct timeval epochtime = { 0 };
+                    struct timeval epochtime = { 0, 0 };
                     /*gettimeofday(&epochtime, nullptr); uncomment this to get the timestamp from epoch start */
 
                     float const secs =
@@ -704,7 +707,7 @@ int V4L2_Base::read_frame(char *errmsg)
 int V4L2_Base::stop_capturing(char *errmsg)
 {
     enum v4l2_buf_type type;
-    unsigned int i;
+
     switch (io)
     {
         case IO_METHOD_READ:
@@ -968,9 +971,7 @@ void V4L2_Base::init_userp(unsigned int buffer_size)
 
 int V4L2_Base::check_device(char *errmsg)
 {
-    unsigned int min;
     struct v4l2_input input_avail;
-    ISwitch *inputs = nullptr;
 
     if (-1 == XIOCTL(fd, VIDIOC_QUERYCAP, &cap))
     {
@@ -994,9 +995,9 @@ int V4L2_Base::check_device(char *errmsg)
     setframerate = &V4L2_Base::stdsetframerate;
     getframerate = &V4L2_Base::stdgetframerate;
 
-    if (!(strncmp((const char *)cap.driver, "pwc", sizeof(cap.driver))))
-    {
-        unsigned int qual = 3;
+//    if (!(strncmp((const char *)cap.driver, "pwc", sizeof(cap.driver))))
+//    {
+        //unsigned int qual = 3;
         //pwc driver does not allow to get current fps with VIDIOCPWC
         //frameRate.numerator=1; // using default module load fps
         //frameRate.denominator=10;
@@ -1006,7 +1007,7 @@ int V4L2_Base::check_device(char *errmsg)
         //else
         //  DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG,"  Setting pwc video quality to High (uncompressed)\n");
         //setframerate=&V4L2_Base::pwcsetframerate;
-    }
+//    }
 
     DEBUGDEVICE(deviceName, INDI::Logger::DBG_DEBUG, "Driver capabilities:");
     if (cap.capabilities & V4L2_CAP_VIDEO_CAPTURE)
@@ -1399,7 +1400,7 @@ void V4L2_Base::getinputs(ISwitchVectorProperty *inputssp)
     memset(inputs, 0, inputsLen);
 
     /* Ask device about each input */
-    for (input_avail.index = 0; input_avail.index < enumeratedInputs; input_avail.index++)
+    for (input_avail.index = 0; (int)input_avail.index < enumeratedInputs; input_avail.index++)
     {
         /* Enumeration ends with EINVAL */
         if (XIOCTL(fd, VIDIOC_ENUMINPUT, &input_avail))
@@ -1472,7 +1473,7 @@ void V4L2_Base::getcaptureformats(ISwitchVectorProperty *captureformatssp)
 
     /* Ask device about each format */
     fmt_avail.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
-    for (fmt_avail.index = 0; fmt_avail.index < enumeratedCaptureFormats; fmt_avail.index++)
+    for (fmt_avail.index = 0; (int)fmt_avail.index < enumeratedCaptureFormats; fmt_avail.index++)
     {
         /* Enumeration ends with EINVAL */
         if (XIOCTL(fd, VIDIOC_ENUM_FMT, &fmt_avail))
@@ -1502,7 +1503,7 @@ void V4L2_Base::getcaptureformats(ISwitchVectorProperty *captureformatssp)
     /* And mark current */
     for (unsigned int i = 0; i < fmt_avail.index; i++)
     {
-        if (fmt.fmt.pix.pixelformat == *(int *)formats[i].aux)
+        if ((int)fmt.fmt.pix.pixelformat == *(int *)formats[i].aux)
         {
             formats[i].s = ISS_ON;
             DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG, "Current capture format is %d. %c%c%c%c.", i,
@@ -1690,20 +1691,19 @@ void V4L2_Base::getframerates(ISwitchVectorProperty *frameratessp, INumberVector
 
 int V4L2_Base::setcroprect(int x, int y, int w, int h, char *errmsg)
 {
-    struct v4l2_crop oldcrop = crop;
-    bool softcrop;
+    bool softcrop = false;
 
     crop.type     = V4L2_BUF_TYPE_VIDEO_CAPTURE;
     crop.c.left   = x;
     crop.c.top    = y;
     crop.c.width  = w;
     crop.c.height = h;
-    if (crop.c.left + crop.c.width > fmt.fmt.pix.width)
+    if ((int)(crop.c.left + crop.c.width) > (int)fmt.fmt.pix.width)
     {
         strncpy(errmsg, "crop width exceeds image width", ERRMSGSIZ);
         return -1;
     }
-    if (crop.c.top + crop.c.height > fmt.fmt.pix.height)
+    if ((int)(crop.c.top + crop.c.height) > (int)fmt.fmt.pix.height)
     {
         strncpy(errmsg, "crop height exceeds image height", ERRMSGSIZ);
         return -1;
@@ -1714,8 +1714,8 @@ int V4L2_Base::setcroprect(int x, int y, int w, int h, char *errmsg)
         strncpy(errmsg, "crop width/height must be pair", ERRMSGSIZ);
         return -1;
     }
-    if ((crop.c.left == 0) && (crop.c.top == 0) && (crop.c.width == fmt.fmt.pix.width) &&
-        (crop.c.height == fmt.fmt.pix.height))
+    if ((crop.c.left == 0) && (crop.c.top == 0) && ((int)crop.c.width == (int)fmt.fmt.pix.width) &&
+        ((int)crop.c.height == (int)fmt.fmt.pix.height))
     {
         cropset = false;
         decoder->resetcrop();
@@ -1876,6 +1876,7 @@ int V4L2_Base::setSize(int x, int y)
 
 void V4L2_Base::setColorProcessing(bool quantization, bool colorconvert, bool linearization)
 {
+    INDI_UNUSED(colorconvert);
     decoder->setQuantization(quantization);
     decoder->setLinearization(linearization);
     bpp = decoder->getBpp();
@@ -2047,7 +2048,7 @@ void V4L2_Base::enumerate_menu(void)
     CLEAR(querymenu);
     querymenu.id = queryctrl.id;
 
-    for (querymenu.index = queryctrl.minimum; querymenu.index <= queryctrl.maximum; querymenu.index++)
+    for (querymenu.index = queryctrl.minimum; (int)querymenu.index <= queryctrl.maximum; querymenu.index++)
     {
         if (0 == XIOCTL(fd, VIDIOC_QUERYMENU, &querymenu))
         {
@@ -2229,7 +2230,7 @@ void V4L2_Base::queryControls(INumberVectorProperty *nvp, unsigned int *nnumber,
                 CLEAR(querymenu);
                 querymenu.id = queryctrl.id;
 
-                for (querymenu.index = queryctrl.minimum; querymenu.index <= queryctrl.maximum; querymenu.index++)
+                for (querymenu.index = queryctrl.minimum; (int)querymenu.index <= queryctrl.maximum; querymenu.index++)
                 {
                     if (0 == XIOCTL(fd, VIDIOC_QUERYMENU, &querymenu))
                     {
@@ -2255,7 +2256,7 @@ void V4L2_Base::queryControls(INumberVectorProperty *nvp, unsigned int *nnumber,
                                      (int)sizeof(sname), sname, (int)sizeof(menuoptname), menuoptname, nmenuopt);
                         //IUFillSwitch(&sw[nmenuopt], menuoptname, (const char *)sname, (control.value==nmenuopt?ISS_ON:ISS_OFF));
                         IUFillSwitch(&sw[nmenuopt], menuoptname, (const char *)entityXML((char *)sname),
-                                     (control.value == nmenuopt ? ISS_ON : ISS_OFF));
+                                     (control.value == (int)nmenuopt ? ISS_ON : ISS_OFF));
                         nmenuopt += 1;
                     }
                     else
@@ -2384,7 +2385,7 @@ void V4L2_Base::queryControls(INumberVectorProperty *nvp, unsigned int *nnumber,
                 CLEAR(querymenu);
                 querymenu.id = queryctrl.id;
 
-                for (querymenu.index = queryctrl.minimum; querymenu.index <= queryctrl.maximum; querymenu.index++)
+                for (querymenu.index = queryctrl.minimum; (int)querymenu.index <= queryctrl.maximum; querymenu.index++)
                 {
                     if (0 == XIOCTL(fd, VIDIOC_QUERYMENU, &querymenu))
                     {
@@ -2410,7 +2411,7 @@ void V4L2_Base::queryControls(INumberVectorProperty *nvp, unsigned int *nnumber,
                                      (int)sizeof(sname), sname, (int)sizeof(menuoptname), menuoptname, nmenuopt);
                         //IUFillSwitch(&sw[nmenuopt], menuoptname, (const char *)sname, (control.value==nmenuopt?ISS_ON:ISS_OFF));
                         IUFillSwitch(&sw[nmenuopt], menuoptname, (const char *)entityXML((char *)querymenu.name),
-                                     (control.value == nmenuopt ? ISS_ON : ISS_OFF));
+                                     (control.value == (int)nmenuopt ? ISS_ON : ISS_OFF));
                         nmenuopt += 1;
                     }
                     else
@@ -2828,7 +2829,7 @@ bool V4L2_Base::queryExtControls(INumberVectorProperty *nvp, unsigned int *nnumb
             CLEAR(querymenu);
             querymenu.id = queryctrl.id;
 
-            for (querymenu.index = queryctrl.minimum; querymenu.index <= queryctrl.maximum; querymenu.index++)
+            for (querymenu.index = queryctrl.minimum; (int)querymenu.index <= queryctrl.maximum; querymenu.index++)
             {
                 if (0 == XIOCTL(fd, VIDIOC_QUERYMENU, &querymenu))
                 {
@@ -2855,7 +2856,7 @@ bool V4L2_Base::queryExtControls(INumberVectorProperty *nvp, unsigned int *nnumb
                                  querymenu.index);
                     //IUFillSwitch(&sw[nmenuopt], menuoptname, (const char *)sname, (control.value==nmenuopt?ISS_ON:ISS_OFF));
                     IUFillSwitch(&sw[nmenuopt], menuoptname, (const char *)entityXML((char *)querymenu.name),
-                                 (control.value == nmenuopt ? ISS_ON : ISS_OFF));
+                                 (control.value == (int)nmenuopt ? ISS_ON : ISS_OFF));
                     sw[nmenuopt].aux                    = malloc(sizeof(unsigned int));
                     *(unsigned int *)(sw[nmenuopt].aux) = (querymenu.index);
                     nmenuopt += 1;

@@ -20,22 +20,10 @@
   file called LICENSE.
 *******************************************************************************/
 
-#ifndef GPUSB_H
-#define GPUSB_H
+#pragma once
 
-#include "libs/indibase/defaultdevice.h"
-#include "libs/indibase/indiguiderinterface.h"
-
-/* Standard headers */
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <math.h>
-#include <unistd.h>
-#include <sys/time.h>
-
-#include <sys/time.h>
-#include <time.h>
+#include "defaultdevice.h"
+#include "indiguiderinterface.h"
 
 class GPUSBDriver;
 
@@ -86,5 +74,3 @@ class GPUSB : public INDI::GuiderInterface, public INDI::DefaultDevice
 
     GPUSBDriver *driver;
 };
-
-#endif // GPUSB_H

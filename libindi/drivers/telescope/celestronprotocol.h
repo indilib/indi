@@ -22,8 +22,7 @@
 *
 */
 
-#ifndef CELESTRON_PROTOCOL_H
-#define CELESTRON_PROTOCOL_H
+#pragma once
 
 #include <libnova.h>
 
@@ -137,6 +136,4 @@ void Fan(int fan);
 
 #ifdef __cplusplus
 }
-#endif
-
 #endif

@@ -882,9 +882,7 @@ static int decodeEntity(char *ent, int *cp)
     } enttable[] = {
         { "&amp;", '&' }, { "&apos;", '\'' }, { "&lt;", '<' }, { "&gt;", '>' }, { "&quot;", '"' },
     };
-    int i;
-
-    for (i = 0; i < sizeof(enttable) / sizeof(enttable[0]); i++)
+    for (int i = 0; i < (int)(sizeof(enttable) / sizeof(enttable[0])); i++)
     {
         if (strcmp(ent, enttable[i].ent) == 0)
         {

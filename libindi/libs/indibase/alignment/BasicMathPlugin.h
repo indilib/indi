@@ -6,8 +6,7 @@
 /// This file provides the common functionality for the built in
 /// and SVD math plugins
 
-#ifndef INDI_ALIGNMENTSUBSYSTEM_BASICMATHPLUGIN_H
-#define INDI_ALIGNMENTSUBSYSTEM_BASICMATHPLUGIN_H
+#pragma once
 
 #include "AlignmentSubsystemForMathPlugins.h"
 #include "ConvexHull.h"
@@ -108,5 +107,3 @@ class BasicMathPlugin : public AlignmentSubsystemForMathPlugins
 
 } // namespace AlignmentSubsystem
 } // namespace INDI
-
-#endif // INDI_ALIGNMENTSUBSYSTEM_BASICMATHPLUGIN_H

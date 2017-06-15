@@ -22,14 +22,15 @@
  file called LICENSE.
  */
 
-#include <stdio.h>
-#include <memory>
-#include <unistd.h>
+#include "sxconfig.h"
+#include "sxao.h"
 
 #include <indicom.h>
 
-#include "sxconfig.h"
-#include "sxao.h"
+#include <stdio.h>
+#include <memory>
+#include <string.h>
+#include <unistd.h>
 
 std::unique_ptr<SXAO> sxao(new SXAO);
 

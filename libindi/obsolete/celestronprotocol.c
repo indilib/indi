@@ -24,29 +24,11 @@
  *
  */
 
-#include <stdio.h>
-#include <errno.h>
-#include <time.h>
-#include <string.h>
-#include <sys/time.h>
-#include <sys/types.h>
-#include <unistd.h>
-#include <sys/stat.h>
-#include <sys/ioctl.h>
-#include <fcntl.h>
-
-/* do NOT change this to config-kstars.h! 
-INDI is independent of KStars*/
-#ifdef HAVE_CONFIG_H
-#include <config.h>
-#endif
+#include "celestronprotocol.h"
 
 #ifndef _WIN32
 #include <termios.h>
 #endif
-
-#include <math.h>
-#include "celestronprotocol.h"
 
 #define NULL_PTR(x) (x *)0
 
