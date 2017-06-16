@@ -2718,7 +2718,7 @@ void FocusLynxBase::TimerHit()
 
             simStatus[STATUS_MOVING] = ISS_ON;
 
-            if (fabs(simPosition - targetPosition) < 100)
+            if (std::abs((int64_t)simPosition - (int64_t)targetPosition) < 100)
             {
                 FocusAbsPosN[0].value    = targetPosition;
                 simPosition              = FocusAbsPosN[0].value;

@@ -104,8 +104,8 @@ int read_ppm(FILE *handle, struct dcraw_header *header, uint8_t **memptr, size_t
 {
     char prefix[] = {0, 0};
     int bpp, maxcolor, row, i;
-    uint8_t *ppm = NULL;
-    uint8_t *r_data = NULL, *g_data, *b_data;
+    uint8_t *ppm = nullptr;
+    uint8_t *r_data = nullptr, *g_data = nullptr, *b_data = nullptr;
     int width, height;
     int naxis = 2;
 
@@ -254,9 +254,10 @@ int dcraw_parse_header_info(const char *filename, struct dcraw_header *header)
     char *cmd, timestr[10], month[10], daystr[10];
     int day, year;
     float r, g, b, gp;
+    int ret = 0;
 
     memset(header, 0, sizeof(struct dcraw_header));
-    asprintf(&cmd, "%s -i -t 0 -v %s 2> /dev/null", dcraw_cmd, filename);
+    ret = asprintf(&cmd, "%s -i -t 0 -v %s 2> /dev/null", dcraw_cmd, filename);
     DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG, "%s", cmd);
     handle = popen(cmd, "r");
     free(cmd);
@@ -370,8 +371,9 @@ int read_libraw(const char *filename, uint8_t **memptr, size_t *memsize, int *n_
 int read_dcraw(const char *filename, uint8_t **memptr, size_t *memsize, int *n_axis, int *w, int *h, int *bitsperpixel)
 {
     struct dcraw_header header;
-    FILE *handle = NULL;
-    char *cmd;
+    FILE *handle = nullptr;
+    char *cmd = nullptr;
+    int ret = 0;
 
     if (dcraw_parse_header_info(filename, &header)  || ! header.width  || ! header.height)
     {
@@ -380,7 +382,7 @@ int read_dcraw(const char *filename, uint8_t **memptr, size_t *memsize, int *n_a
     }
 
     DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG, "Reading exposure %d x %d", header.width, header.height);
-    asprintf(&cmd, "%s -c -t 0 -4 -D %s", dcraw_cmd, filename);
+    ret = asprintf(&cmd, "%s -c -t 0 -4 -D %s", dcraw_cmd, filename);
 
     DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG, "%s", cmd);
 
@@ -401,13 +403,13 @@ int read_dcraw(const char *filename, uint8_t **memptr, size_t *memsize, int *n_a
 
 int read_jpeg(const char *filename, uint8_t **memptr, size_t *memsize, int *naxis, int *w, int *h )
 {
-    unsigned char *r_data = NULL, *g_data, *b_data;
+    unsigned char *r_data = nullptr, *g_data = nullptr, *b_data = nullptr;
 
     /* these are standard libjpeg structures for reading(decompression) */
     struct jpeg_decompress_struct cinfo;
     struct jpeg_error_mgr jerr;
     /* libjpeg data structure for storing one row, that is, scanline of an image */
-    JSAMPROW row_pointer[1] = {NULL};
+    JSAMPROW row_pointer[1] = { nullptr };
 
     FILE *infile = fopen( filename, "rb" );
 
