@@ -15,6 +15,16 @@ endif(APPLE)
 
 set(LIBRARIES_FOUND TRUE)
 
+# Ccache support
+IF (ANDROID OR UNIX OR APPLE)
+    FIND_PROGRAM(CCACHE_FOUND ccache)
+    SET(CCACHE_SUPPORT OFF CACHE BOOL "Enable ccache support")
+    IF ((CCACHE_FOUND OR ANDROID) AND CCACHE_SUPPORT MATCHES ON)
+        SET_PROPERTY(GLOBAL PROPERTY RULE_LAUNCH_COMPILE ccache)
+        SET_PROPERTY(GLOBAL PROPERTY RULE_LAUNCH_LINK ccache)
+    ENDIF ()
+ENDIF ()
+
 # Define standard set of drivers to build (default linux target)
 option(WITH_EQMOD "Install EQMod Driver" On)
 option(WITH_NSE "Install Nexstar Evo Driver" On)
