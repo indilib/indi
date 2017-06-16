@@ -30,7 +30,7 @@ for lib in $LIBS ; do
     echo "Building $lib ..."
     mkdir -p build/$lib
     pushd build/$lib
-    cmake -DCMAKE_INSTALL_PREFIX=/usr/local . $SRC/$lib
+    cmake -DCMAKE_INSTALL_PREFIX=/usr/local . $SRC/$lib -DCMAKE_BUILD_TYPE=$1
     make
     sudo make install
     popd
