@@ -80,13 +80,13 @@ IF (UNIX OR APPLE)
     SET(COMP_FLAGS "")
     SET(LINKER_FLAGS "")
     # Verbose warnings and turns all to errors
-    SET(COMP_FLAGS "${COMP_FLAGS} -Wall -Wextra")
-    IF (NOT "${CMAKE_CXX_COMPILER_ID}" STREQUAL "AppleClang")
-        SET(COMP_FLAGS "${COMP_FLAGS} -Werror")
-    ENDIF ()
+    SET(COMP_FLAGS "${COMP_FLAGS} -Wall -Wextra -Werror")
     # Omit problematic warnings
     IF ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
         SET(COMP_FLAGS "${COMP_FLAGS} -Wno-unused-but-set-variable")
+    ENDIF ()
+    IF ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "AppleClang")
+        SET(COMP_FLAGS "${COMP_FLAGS} -Wno-nonnull -Wno-deprecated-declarations")
     ENDIF ()
 
     # Minimal debug info with Clang

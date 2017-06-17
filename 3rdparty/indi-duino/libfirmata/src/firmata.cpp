@@ -379,7 +379,7 @@ void Firmata::DoMessage(void)
 			for (int i=4;i < parse_count -1 ; i++) {
 				i2c_val = ( i2c_val << 7 ) | ( parse_buf[i]  & 0x7F );			
 			}
-			if (debug) printf("I2C_REPLY value: SlaveAddres %u = %d\n", slaveAddress, i2c_val);
+			if (debug) printf("I2C_REPLY value: SlaveAddres %u = %ld\n", slaveAddress, i2c_val);
 
 		}
 		return;
