@@ -20,21 +20,23 @@ DO NOT WORK as expected. Return value is 0 always. The reason is firmata protoco
 don sent analog/digital input values when query PIN_STATE
 */
 
+int main(int argc, char **argv)
+{
+    if (argc < 2)
+    {
+        fprintf(stderr, "Usage: read_msg <serial port path> \n");
+        exit(1);
+    }
+    char *serial = argv[1];
+    Firmata *sf  = new Firmata(serial);
+    sf->setPinMode(12, FIRMATA_MODE_INPUT);
+    while (true)
+    {
+        sf->askPinState(12);
+        sleep(2);
+        printf("Digital pin 12 is:%lu\n", sf->pin_info[12].value);
+    }
 
-int main(int argc, char** argv) {
-	if (argc < 2) {
-		fprintf(stderr,"Usage: read_msg <serial port path> \n");
-		exit(1);
-	}
-	char* serial = argv[1];
-	Firmata* sf = new Firmata(serial);
-	sf->setPinMode(12,FIRMATA_MODE_INPUT);
-	while(true) {
-		sf->askPinState(12);
-		sleep(2);
-		printf("Digital pin 12 is:%lu\n",sf->pin_info[12].value);
-	}
-
-	delete sf;
-	return 0;
+    delete sf;
+    return 0;
 }

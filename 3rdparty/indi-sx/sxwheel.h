@@ -32,9 +32,9 @@
 
 #include <hidapi.h>
 
-class SXWHEEL: public INDI::FilterWheel {
+class SXWHEEL : public INDI::FilterWheel
+{
   private:
-
     hid_device *handle;
     int SendWheelMessage(int a, int b);
 
@@ -58,7 +58,6 @@ class SXWHEEL: public INDI::FilterWheel {
     void TimerHit();
     virtual bool SetFilterNames() { return true; }
     bool GetFilterNames(const char *);
-
 };
 
 #endif // SXWHEEL_H

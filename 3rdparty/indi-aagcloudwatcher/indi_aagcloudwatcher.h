@@ -22,11 +22,9 @@
   
   Anemometer code contributed by Joao Bento.
 #endif
-  
-  
-#ifndef INDI_AAGCLOUDWATCHER_H
-#define	INDI_AAGCLOUDWATCHER_H
 
+#ifndef INDI_AAGCLOUDWATCHER_H
+#define INDI_AAGCLOUDWATCHER_H
 
 #include <cstdlib>
 #include <memory>
@@ -35,33 +33,35 @@
 #include <basedevice.h>
 #include "CloudWatcherController.h"
 
-  
-enum HeatingAlgorithmStatus { normal, increasingToPulse, pulse };
+enum HeatingAlgorithmStatus
+{
+    normal,
+    increasingToPulse,
+    pulse
+};
 
-
-
-    
-class AAGCloudWatcher : public INDI::DefaultDevice {
+class AAGCloudWatcher : public INDI::DefaultDevice
+{
   public:
     AAGCloudWatcher();
     ~AAGCloudWatcher();
 
-    virtual void ISGetProperties (const char *dev);
-    virtual bool ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n);
-    virtual bool ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n);
-    virtual bool ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n);
+    virtual void ISGetProperties(const char *dev);
+    virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n);
+    virtual bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n);
+    virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n);
     const char *getDefaultName();
     bool isConnected();
     bool sendData();
     int getRefreshPeriod();
     float getLastReadPeriod();
     bool heatingAlgorithm();
-    
-  private:    
+
+  private:
     float lastReadPeriod;
     CloudWatcherConstants constants;
     CloudWatcherController *cwc;
-    
+
     virtual bool initProperties();
     virtual bool Connect();
     virtual bool Disconnect();
@@ -70,17 +70,14 @@ class AAGCloudWatcher : public INDI::DefaultDevice {
     bool resetData();
     double getNumberValueFromVector(INumberVectorProperty *nvp, const char *name);
     bool isWetRain();
-    
 
-    
     HeatingAlgorithmStatus heatingStatus;
-    
+
     time_t pulseStartTime;
     time_t wetStartTime;
-    
+
     float desiredSensorTemperature;
-    float globalRainSensorHeater;  
-    
+    float globalRainSensorHeater;
 };
 
 /**
@@ -94,17 +91,17 @@ void ISPoll(void *p);
  */
 void ISInit();
 
-void ISGetProperties (const char *dev);
+void ISGetProperties(const char *dev);
 
-void ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n);
+void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n);
 
-void ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n);
+void ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n);
 
-void ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n);
+void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n);
 
-void ISSnoopDevice (XMLEle *root);
+void ISSnoopDevice(XMLEle *root);
 
-void ISNewBLOB (const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[], char *names[], int n);
+void ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[],
+               char *names[], int n);
 
-
-#endif	/* INDI_AAGCLOUDWATCHER_H */
+#endif /* INDI_AAGCLOUDWATCHER_H */

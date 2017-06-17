@@ -10,7 +10,6 @@
 #include <vector>
 #include <string>
 
-std::vector<std::string> tokenize_str(const std::string & str, const std::string &delims=", \t");
+std::vector<std::string> tokenize_str(const std::string &str, const std::string &delims = ", \t");
 
 #endif /* __Util_hh */
-

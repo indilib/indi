@@ -7,17 +7,15 @@
  */
 
 #ifdef HAVE_CONFIG_H
-#  include "config.h"
+#include "config.h"
 #endif
 
 #include "DsiColorIII.h"
 
 using namespace DSI;
 
-void
-DsiColorIII::initImager(const char *devname)
+void DsiColorIII::initImager(const char *devname)
 {
-
     command(DeviceCommand::SET_ROW_COUNT_EVEN, read_height_even);
     command(DeviceCommand::SET_ROW_COUNT_ODD, read_height_odd);
 
@@ -34,9 +32,10 @@ DsiColorIII::initImager(const char *devname)
      * do anything about.  Although MaximDL uses 4 exposures of 1000 ticks
      * (100 ms) each, this shorter exposure works just fine.
      */
-    for (int i = 0; i < 1; i++) {
+    for (int i = 0; i < 1; i++)
+    {
         unsigned char *foo = getImage(1);
-	delete [] foo;
+        delete[] foo;
     }
 }
 
@@ -65,23 +64,24 @@ DsiColorIII::DsiColorIII(const char *devname) : Device(devname)
     read_height_odd  = 1050;
     read_height      = read_height_even + read_height_odd;
 
-    read_bpp         = 2;
+    read_bpp = 2;
 
     image_width    = 1360;
     image_height   = 1024;
-    image_offset_x =  30;
-    image_offset_y =  13; 
-
+    image_offset_x = 30;
+    image_offset_y = 13;
 
     timeout_response = 1000;
     timeout_request  = 1000;
     timeout_image    = 5000;
-    pixel_size_x   = 6.45;
-    pixel_size_y   = 6.45;
+    pixel_size_x     = 6.45;
+    pixel_size_y     = 6.45;
 
-    exposure_time  =  10;
+    exposure_time = 10;
 
     initImager();
 }
 
-DsiColorIII::~DsiColorIII() {}
+DsiColorIII::~DsiColorIII()
+{
+}

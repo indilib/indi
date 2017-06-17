@@ -115,29 +115,29 @@
 
 class MGenAutoguider : public INDI::CCD
 {
-public:
+  public:
     MGenAutoguider();
     virtual ~MGenAutoguider();
 
-public:
-    static MGenAutoguider & instance();
+  public:
+    static MGenAutoguider &instance();
 
-public:
-    virtual bool ISNewNumber(char const * dev, char const * name, double values[], char * names[], int n);
+  public:
+    virtual bool ISNewNumber(char const *dev, char const *name, double values[], char *names[], int n);
     virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n);
 
-public:
+  public:
     /** \brief Returning the current operational mode of the device.
      * \return the current operational mode of the device.
      */
     IOMode getOpMode() const;
 
-protected:
+  protected:
     /** \internal The device object used to communicate with the MGen.
      */
-    class MGenDevice * device;
+    class MGenDevice *device;
 
-protected:
+  protected:
     /** \internal Version information retrieved from the device.
      */
     struct version
@@ -145,28 +145,29 @@ protected:
         struct timespec timestamp; /*!< The last time this structure was read from the device. */
         struct firmware
         {
-            IText text; /*!< Firmware version as read from the device. */
+            IText text;                   /*!< Firmware version as read from the device. */
             ITextVectorProperty property; /*!< Firmware version INDI property. */
         } firmware;
     } version;
 
-protected:
+  protected:
     struct voltage
     {
         struct timespec timestamp; /*!< The last time this structure was read from the device. */
         struct numbers
         {
-            INumber logic; /*!< Logic supply voltage, [4.8V,5.1V] with DC power, ~4.7V with USB power, stable over 4.5V. */
-            INumber input; /*!< DC input voltage, must be in [9V,15V] (max DC input 20V). */
+            INumber
+                logic; /*!< Logic supply voltage, [4.8V,5.1V] with DC power, ~4.7V with USB power, stable over 4.5V. */
+            INumber input;     /*!< DC input voltage, must be in [9V,15V] (max DC input 20V). */
             INumber reference; /*!< Reference voltage, ~1.23V (more than 10% difference shows internal problem). */
         } levels;
         INumberVectorProperty property; /*!< Voltage INDI property. */
     } voltage;
 
-protected:
+  protected:
     struct ui
     {
-        int timer; /*!< The timer counting for the refresh event updating the remote user interface. */
+        int timer;                 /*!< The timer counting for the refresh event updating the remote user interface. */
         struct timespec timestamp; /*!< The last time this structure was read from the device. */
         struct framerate
         {
@@ -175,31 +176,31 @@ protected:
         } framerate;
         struct buttons
         {
-            ISwitch switches[6]; /*!< Button switches for ESC, SET, UP, LEFT, RIGHT and DOWN. */
+            ISwitch switches[6];                 /*!< Button switches for ESC, SET, UP, LEFT, RIGHT and DOWN. */
             ISwitchVectorProperty properties[2]; /*!< Button INDI properties, {ESC,SET} and {UP,LEFT,RIGHT,DOWN}. */
         } buttons;
     } ui;
 
-protected:
+  protected:
     struct heartbeat
     {
         struct timespec timestamp; /*!< The last time this structure was read from the device. */
         unsigned int no_ack_count; /*!< Number of times device didn't acknowledge NOP1, used as connection keepalive. */
     } heartbeat;
 
-protected:
+  protected:
     virtual bool initProperties();
     virtual bool updateProperties();
     virtual void TimerHit();
 
-protected:
+  protected:
     virtual bool Connect();
     virtual bool Disconnect();
 
-protected:
+  protected:
     virtual const char *getDefaultName();
 
-protected:
+  protected:
     /** \internal Sending a NOP1 to the device to check it is still acknowledging.
      * This function will be called periodically to check if the device is still alive.
      * \return true if command was acknoldeged.

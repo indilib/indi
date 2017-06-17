@@ -30,113 +30,112 @@
 
 using namespace std;
 
-class MICCD: public INDI::CCD, public INDI::FilterInterface
+class MICCD : public INDI::CCD, public INDI::FilterInterface
 {
-public:
+  public:
+    MICCD(int cameraId, bool eth = false);
+    virtual ~MICCD();
 
-  MICCD(int cameraId, bool eth = false);
-  virtual ~MICCD();
+    const char *getDefaultName();
 
-  const char *getDefaultName();
+    bool initProperties();
+    void ISGetProperties(const char *dev);
+    bool updateProperties();
 
-  bool initProperties();
-  void ISGetProperties(const char *dev);
-  bool updateProperties();
+    bool Connect();
+    bool Disconnect();
 
-  bool Connect();
-  bool Disconnect();
+    int SetTemperature(double temperature);
+    bool StartExposure(float duration);
+    bool AbortExposure();
 
-  int  SetTemperature(double temperature);
-  bool StartExposure(float duration);
-  bool AbortExposure();
+    IPState GuideNorth(float);
+    IPState GuideSouth(float);
+    IPState GuideEast(float);
+    IPState GuideWest(float);
 
-  IPState GuideNorth(float);
-  IPState GuideSouth(float);
-  IPState GuideEast(float);
-  IPState GuideWest(float);
+    bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n);
+    bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int num);
+    bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n);
 
-  bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n);
-  bool ISNewText(	const char *dev, const char *name, char *texts[], char *names[], int num);
-  bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n);
+  protected:
+    // Misc.
+    void TimerHit();
+    bool saveConfigItems(FILE *fp);
 
-protected:
+    // CCD
+    virtual bool UpdateCCDFrame(int x, int y, int w, int h);
+    virtual bool UpdateCCDBin(int binx, int biny);
 
-  // Misc.
-  void TimerHit();
-  bool saveConfigItems(FILE *fp);
+    // Filter Wheel CFW
+    virtual int QueryFilter();
+    virtual bool SelectFilter(int position);
+    virtual bool SetFilterNames();
+    virtual bool GetFilterNames(const char *groupName);
 
-  // CCD
-  virtual bool UpdateCCDFrame(int x, int y, int w, int h);
-  virtual bool UpdateCCDBin(int binx, int biny);
+    INumber FanN[1];
+    INumberVectorProperty FanNP;
 
-  // Filter Wheel CFW
-  virtual int  QueryFilter();
-  virtual bool SelectFilter(int position);
-  virtual bool SetFilterNames();
-  virtual bool GetFilterNames(const char *groupName);
+    INumber WindowHeatingN[1];
+    INumberVectorProperty WindowHeatingNP;
 
-  INumber               FanN[1];
-  INumberVectorProperty FanNP;
+    INumber CoolerN[1];
+    INumberVectorProperty CoolerNP;
 
-  INumber               WindowHeatingN[1];
-  INumberVectorProperty WindowHeatingNP;
+    INumber TemperatureRampN[1];
+    INumberVectorProperty TemperatureRampNP;
 
-  INumber               CoolerN[1];
-  INumberVectorProperty CoolerNP;
+    INumber GainN[1];
+    INumberVectorProperty GainNP;
 
-  INumber               TemperatureRampN[1];
-  INumberVectorProperty TemperatureRampNP;
+    ISwitch ReadModeS[3];
+    ISwitchVectorProperty ReadModeSP;
 
-  INumber               GainN[1];
-  INumberVectorProperty GainNP;
+  private:
+    char name[MAXINDIDEVICE];
 
-  ISwitch               ReadModeS[3];
-  ISwitchVectorProperty ReadModeSP;
+    int cameraId;
+    camera_t *cameraHandle;
+    bool isEth;
 
-private:
-  char name[MAXINDIDEVICE];
+    bool hasGain;
+    bool useShutter;
 
-  int cameraId;
-  camera_t *cameraHandle;
-  bool isEth;
+    int numReadModes;
+    int numFilters;
+    float minExpTime;
+    int maxFanValue;
+    int maxHeatingValue;
+    int maxBinX;
+    int maxBinY;
 
-  bool hasGain;
-  bool useShutter;
+    int temperatureID;
+    int timerID;
 
-  int numReadModes;
-  int numFilters;
-  float minExpTime;
-  int maxFanValue;
-  int maxHeatingValue;
-  int maxBinX;
-  int maxBinY;
+    bool downloading;
+    bool coolerEnabled;
 
-  int temperatureID;
-  int timerID;
+    CCDChip::CCD_FRAME imageFrameType;
 
-  bool downloading;
-  bool coolerEnabled;
+    float TemperatureRequest;
+    float ExposureRequest;
+    struct timeval ExpStart;
 
-  CCDChip::CCD_FRAME imageFrameType;
+    bool setupParams();
 
-  float TemperatureRequest;
-  float ExposureRequest;
-  struct timeval ExpStart;
+    float calcTimeLeft();
+    int grabImage();
 
-  bool setupParams();
+    void updateTemperature();
+    static void updateTemperatureHelper(void *);
 
-  float calcTimeLeft();
-  int grabImage();
-
-  void updateTemperature();
-  static void updateTemperatureHelper(void *);
-
-  friend void ::ISGetProperties(const char *dev);
-  friend void ::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int num);
-  friend void ::ISNewText(const char *dev, const char *name, char *texts[], char *names[], int num);
-  friend void ::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int num);
-  friend void ::ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[], char *names[], int n);
-  friend void ::ISSnoopDevice(XMLEle *root);
+    friend void ::ISGetProperties(const char *dev);
+    friend void ::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int num);
+    friend void ::ISNewText(const char *dev, const char *name, char *texts[], char *names[], int num);
+    friend void ::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int num);
+    friend void ::ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[],
+                            char *formats[], char *names[], int n);
+    friend void ::ISSnoopDevice(XMLEle *root);
 };
 
 #endif // MI_CCD_H

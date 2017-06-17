@@ -23,10 +23,16 @@
 
 class EQMod;
 
-class EQModError 
+class EQModError
 {
-public:
-    enum Severity { ErrDisconnect = 1, ErrInvalidCmd, ErrCmdFailed, ErrInvalidParameter } severity;
+  public:
+    enum Severity
+    {
+        ErrDisconnect = 1,
+        ErrInvalidCmd,
+        ErrCmdFailed,
+        ErrInvalidParameter
+    } severity;
     char message[ERROR_MSG_LENGTH];
 
     EQModError(Severity sev, const char *msg, ...);

@@ -31,29 +31,28 @@
 
 class GPSD : public INDI::GPS
 {
-    public:
-        GPSD();
-        virtual ~GPSD();
+  public:
+    GPSD();
+    virtual ~GPSD();
 
-        IText GPSstatusT[1];
-        ITextVectorProperty GPSstatusTP;
+    IText GPSstatusT[1];
+    ITextVectorProperty GPSstatusTP;
 
-        INumber PolarisN[1];
-        INumberVectorProperty PolarisNP;
+    INumber PolarisN[1];
+    INumberVectorProperty PolarisNP;
 
-        ISwitch RefreshS[1];
-        ISwitchVectorProperty RefreshSP;
+    ISwitch RefreshS[1];
+    ISwitchVectorProperty RefreshSP;
 
-    protected:
-        gpsmm *gps;
-        //  Generic indi device entries
-        bool Connect();
-        bool Disconnect();
-        const char *getDefaultName();
-        bool initProperties();
-        bool updateProperties();
-        IPState updateGPS();
-
+  protected:
+    gpsmm *gps;
+    //  Generic indi device entries
+    bool Connect();
+    bool Disconnect();
+    const char *getDefaultName();
+    bool initProperties();
+    bool updateProperties();
+    IPState updateGPS();
 };
 
 #endif // GPS_DRIVER_H

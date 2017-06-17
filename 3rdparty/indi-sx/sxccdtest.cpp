@@ -40,117 +40,123 @@ using namespace std;
 
 int n;
 DEVICE devices[20];
-const char* names[20];
+const char *names[20];
 
 HANDLE handles[20];
 struct t_sxccd_params params;
-unsigned short pixels[10*10];
+unsigned short pixels[10 * 10];
 
-int main() {
-  int i;
-  unsigned int ui;
-  unsigned short us;
-  unsigned long ul;
+int main()
+{
+    int i;
+    unsigned int ui;
+    unsigned short us;
+    unsigned long ul;
 
-	sxDebug(true);
+    sxDebug(true);
 
-  cout << "sx_ccd_test version " << VERSION_MAJOR << "." << VERSION_MINOR << endl << endl;
-  n = sxList(devices, names, 20);
-  cout << "sxList() -> " << n << endl << endl;
+    cout << "sx_ccd_test version " << VERSION_MAJOR << "." << VERSION_MINOR << endl << endl;
+    n = sxList(devices, names, 20);
+    cout << "sxList() -> " << n << endl << endl;
 
-  for (int j = 0; j < n; j++) {
-    HANDLE handle;
+    for (int j = 0; j < n; j++)
+    {
+        HANDLE handle;
 
-    cout << "testing " << names[j] << " -----------------------------------" << endl << endl;
+        cout << "testing " << names[j] << " -----------------------------------" << endl << endl;
 
-    i = sxOpen(devices[j], &handle);
-    cout << "sxOpen() -> " << i << endl << endl;
+        i = sxOpen(devices[j], &handle);
+        cout << "sxOpen() -> " << i << endl << endl;
 
-    //i = sxReset(handle);
-    //cout << "sxReset() -> " << i << endl << endl;
+        //i = sxReset(handle);
+        //cout << "sxReset() -> " << i << endl << endl;
 
-    us = sxGetCameraModel(handle);
-    cout << "sxGetCameraModel() -> " << us << endl << endl;
+        us = sxGetCameraModel(handle);
+        cout << "sxGetCameraModel() -> " << us << endl << endl;
 
-    //ul = sxGetFirmwareVersion(handle);
-    //cout << "sxGetFirmwareVersion() -> " << ul << endl << endl;
+        //ul = sxGetFirmwareVersion(handle);
+        //cout << "sxGetFirmwareVersion() -> " << ul << endl << endl;
 
-    //us = sxGetBuildNumber(handle);
-    //cout << "sxGetBuildNumber() -> " << us << endl << endl;
+        //us = sxGetBuildNumber(handle);
+        //cout << "sxGetBuildNumber() -> " << us << endl << endl;
 
-    memset(&params, 0, sizeof(params));
-    i = sxGetCameraParams(handle, 0, &params);
-    cout << "sxGetCameraParams(..., 0,...) -> " << i << endl << endl;
+        memset(&params, 0, sizeof(params));
+        i = sxGetCameraParams(handle, 0, &params);
+        cout << "sxGetCameraParams(..., 0,...) -> " << i << endl << endl;
 
+        i = sxSetTimer(handle, 900);
+        cout << "sxSetTimer(900) -> " << i << endl << endl;
 
-    i = sxSetTimer(handle, 900);
-    cout << "sxSetTimer(900) -> " << i << endl << endl;
+        while ((i = sxGetTimer(handle)) > 0)
+        {
+            cout << "sxGetTimer() -> " << i << endl << endl;
+            sleep(1);
+        }
+        cout << "sxGetTimer() -> " << i << endl << endl;
 
-    while ((i = sxGetTimer(handle))>0) {
-      cout << "sxGetTimer() -> " << i << endl << endl;
-      sleep(1);
-    }
-    cout << "sxGetTimer() -> " << i << endl << endl;
+        if (params.extra_caps & SXUSB_CAPS_SHUTTER)
+        {
+            i = sxSetShutter(handle, 0);
+            cout << "sxSetShutter(0) -> " << i << endl << endl;
+            sleep(1);
+            i = sxSetShutter(handle, 1);
+            cout << "sxSetShutter(1) -> " << i << endl << endl;
+        }
 
-    if (params.extra_caps & SXUSB_CAPS_SHUTTER) {
-      i = sxSetShutter(handle, 0);
-      cout << "sxSetShutter(0) -> " << i << endl << endl;
-      sleep(1);
-      i = sxSetShutter(handle, 1);
-      cout << "sxSetShutter(1) -> " << i << endl << endl;
-    }
+        if (params.extra_caps & SXUSB_CAPS_COOLER)
+        {
+            unsigned short int temp;
+            unsigned char status;
+            i = sxSetCooler(handle, 1, (-10 + 273) * 10, &status, &temp);
+            cout << "sxSetCooler() -> " << i << endl << endl;
+        }
 
-    if (params.extra_caps & SXUSB_CAPS_COOLER) {
-      unsigned short int temp;
-      unsigned char status;
-      i = sxSetCooler(handle, 1, (-10 + 273) * 10, &status, &temp);
-      cout << "sxSetCooler() -> " << i << endl << endl;
-    }
+        i = sxClearPixels(handle, 0, 0);
+        cout << "sxClearPixels(..., 0) -> " << i << endl << endl;
 
-    i = sxClearPixels(handle, 0, 0);
-    cout << "sxClearPixels(..., 0) -> " << i << endl << endl;
+        usleep(1000);
 
-    usleep(1000);
+        i = sxLatchPixels(handle, 0, 0, 0, 0, 10, 10, 1, 1);
+        cout << "sxLatchPixels(..., 0, ...) -> " << i << endl << endl;
 
-    i = sxLatchPixels(handle, 0, 0, 0, 0, 10, 10, 1, 1);
-    cout << "sxLatchPixels(..., 0, ...) -> " << i << endl << endl;
+        i = sxReadPixels(handle, pixels, 2 * 10 * 10);
+        cout << "sxReadPixels() -> " << i << endl << endl;
 
-    i = sxReadPixels(handle, pixels, 2*10*10);
-    cout << "sxReadPixels() -> " << i << endl << endl;
-
-    for (int x=0; x<10; x++) {
-      for (int y=0; y<10; y++)
-        cout << pixels[x*10+y] << " ";
-      cout << endl;
-    }
-    cout << endl;
-
-    if (params.extra_caps & SXCCD_CAPS_GUIDER) {
-      memset(&params, 0, sizeof(params));
-      i = sxGetCameraParams(handle, 1, &params);
-      cout << "sxGetCameraParams(..., 1,...) -> " << i << endl << endl;
-
-      i = sxClearPixels(handle, 0, 1);
-      cout << "sxClearPixels(..., 1) -> " << i << endl << endl;
-
-      usleep(1000);
-
-      i = sxLatchPixels(handle, 0, 1, 0, 0, 10, 10, 1, 1);
-      cout << "sxLatchPixels(..., 1, ...) -> " << i << endl << endl;
-
-      i = sxReadPixels(handle, pixels, 10*10);
-      cout << "sxReadPixels() -> " << i << endl << endl;
-
-      for (int x=0; x<10; x++) {
-        for (int y=0; y<10; y++)
-          cout << pixels[x*10+y] << " ";
+        for (int x = 0; x < 10; x++)
+        {
+            for (int y = 0; y < 10; y++)
+                cout << pixels[x * 10 + y] << " ";
+            cout << endl;
+        }
         cout << endl;
-      }
-      cout << endl;
+
+        if (params.extra_caps & SXCCD_CAPS_GUIDER)
+        {
+            memset(&params, 0, sizeof(params));
+            i = sxGetCameraParams(handle, 1, &params);
+            cout << "sxGetCameraParams(..., 1,...) -> " << i << endl << endl;
+
+            i = sxClearPixels(handle, 0, 1);
+            cout << "sxClearPixels(..., 1) -> " << i << endl << endl;
+
+            usleep(1000);
+
+            i = sxLatchPixels(handle, 0, 1, 0, 0, 10, 10, 1, 1);
+            cout << "sxLatchPixels(..., 1, ...) -> " << i << endl << endl;
+
+            i = sxReadPixels(handle, pixels, 10 * 10);
+            cout << "sxReadPixels() -> " << i << endl << endl;
+
+            for (int x = 0; x < 10; x++)
+            {
+                for (int y = 0; y < 10; y++)
+                    cout << pixels[x * 10 + y] << " ";
+                cout << endl;
+            }
+            cout << endl;
+        }
+
+        sxClose(&handle);
+        cout << "sxClose() " << endl << endl;
     }
-
-    sxClose(&handle);
-    cout << "sxClose() " << endl << endl;
-  }
 }
-

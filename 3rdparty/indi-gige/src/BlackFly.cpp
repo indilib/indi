@@ -21,8 +21,7 @@
 
 using namespace arv;
 
-BlackFly::BlackFly(void* camera_device)
-    : ArvGeneric(camera_device)
+BlackFly::BlackFly(void *camera_device) : ArvGeneric(camera_device)
 {
     printf("%s\n", __PRETTY_FUNCTION__);
 }
@@ -30,23 +29,25 @@ BlackFly::BlackFly(void* camera_device)
 bool BlackFly::_custom_settings()
 {
     printf("%s\n", __PRETTY_FUNCTION__);
-    ::ArvDevice* dev = this->dev;
-#define WRITE_REGISTER(reg, val)                                        \
-    {                                                                   \
-        error = NULL;                                                   \
-        result = arv_device_write_register(dev, (reg),(val), &error);   \
-        if ((result != 1) || (error != NULL)) {                         \
-            goto error;                                                 \
-        }                                                               \
-    }                                   
+    ::ArvDevice *dev = this->dev;
+#define WRITE_REGISTER(reg, val)                                       \
+    {                                                                  \
+        error  = NULL;                                                 \
+        result = arv_device_write_register(dev, (reg), (val), &error); \
+        if ((result != 1) || (error != NULL))                          \
+        {                                                              \
+            goto error;                                                \
+        }                                                              \
+    }
 
     gboolean result;
     guint32 val;
     GError *error = NULL;
 
     int i;
-    for(i=0; i<4; i++) {
-        WRITE_REGISTER(0xF0F00614UL, 0x00000000UL); /* Set Isochronous transfer off */    
+    for (i = 0; i < 4; i++)
+    {
+        WRITE_REGISTER(0xF0F00614UL, 0x00000000UL); /* Set Isochronous transfer off */
         WRITE_REGISTER(0xF0F00608UL, 0xE0000000UL); /* Set Current video format 7 */
         WRITE_REGISTER(0xF0F00604UL, 0x00000000UL); /* Set Current video mode 0  */
 
@@ -60,7 +61,6 @@ bool BlackFly::_custom_settings()
 
         /* Disable auto-frame-rate */
         WRITE_REGISTER(0xF0F0081CUL, 0xC2000FFFUL); /* FRAME_RATE, No AUTO, OFF */
-
     }
 
     return true;
@@ -73,7 +73,8 @@ bool BlackFly::connect(void)
 {
     printf("%s\n", __PRETTY_FUNCTION__);
     bool const ret = ArvGeneric::connect();
-    if (ret) {
+    if (ret)
+    {
         this->_configure();
     }
     return ret;
@@ -81,28 +82,29 @@ bool BlackFly::connect(void)
 
 void BlackFly::_fixup(void)
 {
-    ::ArvDevice* dev = this->dev;
-#define WRITE_REGISTER(reg, val)                                        \
-    {                                                                   \
-        error = NULL;                                                   \
-        result = arv_device_write_register(dev, (reg),(val), &error);   \
-        if ((result != 1) || (error != NULL)) {                         \
-            goto error;                                                 \
-        }                                                               \
-    }                                   
+    ::ArvDevice *dev = this->dev;
+#define WRITE_REGISTER(reg, val)                                       \
+    {                                                                  \
+        error  = NULL;                                                 \
+        result = arv_device_write_register(dev, (reg), (val), &error); \
+        if ((result != 1) || (error != NULL))                          \
+        {                                                              \
+            goto error;                                                \
+        }                                                              \
+    }
 
     gboolean result;
     guint32 val;
     GError *error = NULL;
 
     int i;
-    for(i=0; i<4; i++) {
-        WRITE_REGISTER(0xF0F00614UL, 0x00000000UL); /* Isochronous transfer off */    
+    for (i = 0; i < 4; i++)
+    {
+        WRITE_REGISTER(0xF0F00614UL, 0x00000000UL); /* Isochronous transfer off */
         WRITE_REGISTER(0xF0F00630UL, 0x00800000UL); /* Little Endian, please! */
     }
 error:
     return;
-
 }
 
 void BlackFly::exposure_start(void)
@@ -130,7 +132,7 @@ bool BlackFly::_get_initial_config(void)
 
     /* Probably can find this somewhere in genicam, too, but it depends on framerate
      * and the maximum exposure is consequently not published */
-    this->cam.exposure.update(5000,11900000);
+    this->cam.exposure.update(5000, 11900000);
 }
 
 bool BlackFly::_set_initial_config(void)
@@ -139,4 +141,3 @@ bool BlackFly::_set_initial_config(void)
     ArvGeneric::_set_initial_config();
     this->_custom_settings();
 }
-

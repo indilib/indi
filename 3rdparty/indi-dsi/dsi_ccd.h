@@ -24,20 +24,21 @@
 
 using namespace std;
 
-namespace DSI {
-    class Device;
+namespace DSI
+{
+class Device;
 }
 
 class DSICCD : public INDI::CCD
 {
-public:
+  public:
     DSICCD();
 
-    bool ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n);
+    bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n);
 
-    bool ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n);
+    bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n);
 
-protected:
+  protected:
     // General device functions
     bool Connect();
     bool Disconnect();
@@ -54,11 +55,11 @@ protected:
     // misc functions
     virtual bool saveConfigItems(FILE *fp);
 
-private:
+  private:
     // Utility functions
     float CalcTimeLeft();
-    void  setupParams();
-    void  grabImage();
+    void setupParams();
+    void grabImage();
 
     // Are we exposing?
     bool InExposure;
@@ -68,7 +69,7 @@ private:
 
     float ExposureRequest;
     float TemperatureRequest;
-    int   timerID;
+    int timerID;
     float max_exposure;
     float last_exposure_length;
     int sub_count;

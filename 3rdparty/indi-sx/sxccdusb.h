@@ -51,63 +51,63 @@
  *      0 1
  *      2 3
  */
-#define SXCCD_COLOR_PACKED_RGB          0x8000
-#define SXCCD_COLOR_PACKED_BGR          0x4000
-#define SXCCD_COLOR_PACKED_RED_SIZE     0x0F00
-#define SXCCD_COLOR_PACKED_GREEN_SIZE   0x00F0
-#define SXCCD_COLOR_PACKED_BLUE_SIZE    0x000F
-#define SXCCD_COLOR_MATRIX_ALT_EVEN     0x2000
-#define SXCCD_COLOR_MATRIX_ALT_ODD      0x1000
-#define SXCCD_COLOR_MATRIX_2X2          0x0000
-#define SXCCD_COLOR_MATRIX_RED_MASK     0x0F00
-#define SXCCD_COLOR_MATRIX_GREEN_MASK   0x00F0
-#define SXCCD_COLOR_MATRIX_BLUE_MASK    0x000F
-#define SXCCD_COLOR_MONOCHROME          0x0FFF
+#define SXCCD_COLOR_PACKED_RGB        0x8000
+#define SXCCD_COLOR_PACKED_BGR        0x4000
+#define SXCCD_COLOR_PACKED_RED_SIZE   0x0F00
+#define SXCCD_COLOR_PACKED_GREEN_SIZE 0x00F0
+#define SXCCD_COLOR_PACKED_BLUE_SIZE  0x000F
+#define SXCCD_COLOR_MATRIX_ALT_EVEN   0x2000
+#define SXCCD_COLOR_MATRIX_ALT_ODD    0x1000
+#define SXCCD_COLOR_MATRIX_2X2        0x0000
+#define SXCCD_COLOR_MATRIX_RED_MASK   0x0F00
+#define SXCCD_COLOR_MATRIX_GREEN_MASK 0x00F0
+#define SXCCD_COLOR_MATRIX_BLUE_MASK  0x000F
+#define SXCCD_COLOR_MONOCHROME        0x0FFF
 
 /*
  * Capabilities (Caps) bit definitions.
  */
-#define SXCCD_CAPS_STAR2K               0x01
-#define SXCCD_CAPS_COMPRESS             0x02
-#define SXCCD_CAPS_EEPROM               0x04
-#define SXCCD_CAPS_GUIDER               0x08
-#define SXUSB_CAPS_COOLER               0x10
-#define SXUSB_CAPS_SHUTTER              0x20
+#define SXCCD_CAPS_STAR2K   0x01
+#define SXCCD_CAPS_COMPRESS 0x02
+#define SXCCD_CAPS_EEPROM   0x04
+#define SXCCD_CAPS_GUIDER   0x08
+#define SXUSB_CAPS_COOLER   0x10
+#define SXUSB_CAPS_SHUTTER  0x20
 
 /*
  * CCD command flags bit definitions.
  */
-#define CCD_EXP_FLAGS_FIELD_ODD         0x01
-#define CCD_EXP_FLAGS_FIELD_EVEN        0x02
-#define CCD_EXP_FLAGS_FIELD_BOTH        (CCD_EXP_FLAGS_FIELD_EVEN|CCD_EXP_FLAGS_FIELD_ODD)
-#define CCD_EXP_FLAGS_FIELD_MASK        CCD_EXP_FLAGS_FIELD_BOTH
-#define CCD_EXP_FLAGS_SPARE2            0x04
-#define CCD_EXP_FLAGS_NOWIPE_FRAME      0x08
-#define CCD_EXP_FLAGS_SPARE4            0x10
-#define CCD_EXP_FLAGS_TDI               0x20
-#define CCD_EXP_FLAGS_NOCLEAR_FRAME     0x40
-#define CCD_EXP_FLAGS_NOCLEAR_REGISTER  0x80
+#define CCD_EXP_FLAGS_FIELD_ODD        0x01
+#define CCD_EXP_FLAGS_FIELD_EVEN       0x02
+#define CCD_EXP_FLAGS_FIELD_BOTH       (CCD_EXP_FLAGS_FIELD_EVEN | CCD_EXP_FLAGS_FIELD_ODD)
+#define CCD_EXP_FLAGS_FIELD_MASK       CCD_EXP_FLAGS_FIELD_BOTH
+#define CCD_EXP_FLAGS_SPARE2           0x04
+#define CCD_EXP_FLAGS_NOWIPE_FRAME     0x08
+#define CCD_EXP_FLAGS_SPARE4           0x10
+#define CCD_EXP_FLAGS_TDI              0x20
+#define CCD_EXP_FLAGS_NOCLEAR_FRAME    0x40
+#define CCD_EXP_FLAGS_NOCLEAR_REGISTER 0x80
 
 // Upper bits in byte of CCD_EXP_FLAGS word
-#define CCD_EXP_FLAGS_SPARE8            0x01
-#define CCD_EXP_FLAGS_SPARE9            0x02
-#define CCD_EXP_FLAGS_SPARE10           0x04
-#define CCD_EXP_FLAGS_SPARE11           0x08
-#define CCD_EXP_FLAGS_SPARE12           0x10
-#define CCD_EXP_FLAGS_SHUTTER_MANUAL    0x20
-#define CCD_EXP_FLAGS_SHUTTER_OPEN      0x40
-#define CCD_EXP_FLAGS_SHUTTER_CLOSE     0x80
+#define CCD_EXP_FLAGS_SPARE8         0x01
+#define CCD_EXP_FLAGS_SPARE9         0x02
+#define CCD_EXP_FLAGS_SPARE10        0x04
+#define CCD_EXP_FLAGS_SPARE11        0x08
+#define CCD_EXP_FLAGS_SPARE12        0x10
+#define CCD_EXP_FLAGS_SHUTTER_MANUAL 0x20
+#define CCD_EXP_FLAGS_SHUTTER_OPEN   0x40
+#define CCD_EXP_FLAGS_SHUTTER_CLOSE  0x80
 
 /*
  * Serial port queries.
  */
-#define SXCCD_SERIAL_PORT_AVAIL_OUTPUT  0
-#define SXCCD_SERIAL_PORT_AVAIL_INPUT   1
+#define SXCCD_SERIAL_PORT_AVAIL_OUTPUT 0
+#define SXCCD_SERIAL_PORT_AVAIL_INPUT  1
 
 /*
  * Limits.
  */
-#define SXCCD_MAX_CAMS                  2
+#define SXCCD_MAX_CAMS 2
 
 /*
  * libusb types abstraction.
@@ -119,7 +119,8 @@
 /*
  * Structure to hold camera information.
  */
-struct t_sxccd_params {
+struct t_sxccd_params
+{
     unsigned short hfront_porch;
     unsigned short hback_porch;
     unsigned short width;
@@ -150,9 +151,15 @@ unsigned short sxGetBuildNumber(HANDLE sxHandle);
 int sxReset(HANDLE sxHandle);
 int sxGetCameraParams(HANDLE sxHandle, unsigned short camIndex, struct t_sxccd_params *params);
 int sxClearPixels(HANDLE sxHandle, unsigned short flags, unsigned short camIndex);
-int sxLatchPixels(HANDLE sxHandle, unsigned short flags, unsigned short camIndex, unsigned short xoffset, unsigned short yoffset, unsigned short width, unsigned short height, unsigned short xbin, unsigned short ybin);
-int sxExposePixels(HANDLE sxHandle, unsigned short flags, unsigned short camIndex, unsigned short xoffset, unsigned short yoffset, unsigned short width, unsigned short height, unsigned short xbin, unsigned short ybin, unsigned long msec);
-int sxExposePixelsGated(HANDLE sxHandle, unsigned short flags, unsigned short camIndex, unsigned short xoffset, unsigned short yoffset, unsigned short width, unsigned short height, unsigned short xbin, unsigned short ybin, unsigned long msec);
+int sxLatchPixels(HANDLE sxHandle, unsigned short flags, unsigned short camIndex, unsigned short xoffset,
+                  unsigned short yoffset, unsigned short width, unsigned short height, unsigned short xbin,
+                  unsigned short ybin);
+int sxExposePixels(HANDLE sxHandle, unsigned short flags, unsigned short camIndex, unsigned short xoffset,
+                   unsigned short yoffset, unsigned short width, unsigned short height, unsigned short xbin,
+                   unsigned short ybin, unsigned long msec);
+int sxExposePixelsGated(HANDLE sxHandle, unsigned short flags, unsigned short camIndex, unsigned short xoffset,
+                        unsigned short yoffset, unsigned short width, unsigned short height, unsigned short xbin,
+                        unsigned short ybin, unsigned long msec);
 int sxReadPixels(HANDLE sxHandle, void *pixels, unsigned long count);
 int sxSetShutter(HANDLE sxHandle, unsigned short state);
 int sxSetTimer(HANDLE sxHandle, unsigned long msec);
@@ -160,10 +167,12 @@ unsigned long sxGetTimer(HANDLE sxHandle);
 int sxSetSTAR2000(HANDLE sxHandle, char star2k);
 int sxSetSerialPort(HANDLE sxHandle, unsigned short portIndex, unsigned short property, unsigned short value);
 unsigned short sxGetSerialPort(HANDLE sxHandle, unsigned short portIndex, unsigned short property);
-int sxWriteSerialPort(HANDLE sxHandle, unsigned short portIndex, unsigned short flush, unsigned short count, char *data);
+int sxWriteSerialPort(HANDLE sxHandle, unsigned short portIndex, unsigned short flush, unsigned short count,
+                      char *data);
 int sxReadSerialPort(HANDLE sxHandle, unsigned short portIndex, unsigned short count, char *data);
 int sxReadEEPROM(HANDLE sxHandle, unsigned short address, unsigned short count, char *data);
-int sxSetCooler(HANDLE sxHandle, unsigned char SetStatus, unsigned short SetTemp, unsigned char *RetStatus, unsigned short *RetTemp);
+int sxSetCooler(HANDLE sxHandle, unsigned char SetStatus, unsigned short SetTemp, unsigned char *RetStatus,
+                unsigned short *RetTemp);
 bool sxIsInterlaced(short model);
 bool sxIsColor(short model);
 

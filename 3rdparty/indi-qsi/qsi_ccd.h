@@ -41,12 +41,10 @@ using namespace std;
 
 #define MAX_FILTERS_SIZE 12
 
-
 class QSICCD : public INDI::CCD, public INDI::FilterInterface
 {
-        protected:
-        private:
-
+  protected:
+  private:
     QSICamera QSICam;
 
     INumber CoolerN[1];
@@ -75,7 +73,7 @@ class QSICCD : public INDI::CCD, public INDI::FilterInterface
 
     bool canAbort, canSetGain, canSetAB, canControlFan, canChangeReadoutSpeed, canFlush;
     short targetFilter;
-    double ccdTemp, targetTemperature;    
+    double ccdTemp, targetTemperature;
     unsigned short *imageBuffer;
     double ExposureRequest;
     int imageWidth, imageHeight;
@@ -84,7 +82,7 @@ class QSICCD : public INDI::CCD, public INDI::FilterInterface
     struct timeval ExpStart;
     std::string filterDesignation[MAX_FILTERS_SIZE];
 
-    float CalcTimeLeft(timeval,float);
+    float CalcTimeLeft(timeval, float);
     int grabImage();
     bool setupParams();
     bool manageDefaults();
@@ -92,13 +90,12 @@ class QSICCD : public INDI::CCD, public INDI::FilterInterface
     void shutterControl();
     void turnWheel();
 
-    virtual bool GetFilterNames(const char* groupName);
+    virtual bool GetFilterNames(const char *groupName);
     virtual bool SetFilterNames();
     virtual bool SelectFilter(int);
     virtual int QueryFilter();
 
-public:
-
+  public:
     QSICCD();
     virtual ~QSICCD();
 
@@ -110,7 +107,7 @@ public:
     bool Connect();
     bool Disconnect();
 
-    int  SetTemperature(double temperature);
+    int SetTemperature(double temperature);
     bool StartExposure(float duration);
     bool AbortExposure();
 
@@ -120,15 +117,14 @@ public:
     virtual bool UpdateCCDBin(int binx, int biny);
     virtual void addFITSKeywords(fitsfile *fptr, CCDChip *targetChip);
 
-    virtual bool ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n);
-    virtual bool ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n);
-    virtual bool ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n);
+    virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n);
+    virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n);
+    virtual bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n);
 
     virtual IPState GuideNorth(float);
     virtual IPState GuideSouth(float);
     virtual IPState GuideEast(float);
     virtual IPState GuideWest(float);
-
 };
 
 #endif // QSI_CCD_H

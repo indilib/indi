@@ -23,78 +23,79 @@
   Anemometer code contributed by Joao Bento.
 #endif
 
-
 #include "CloudWatcherController.h"
-
-
 
 /**
  * Just a test main function. Used for debugging. Ignore it.
  */
-int main(int argc, char** argv) {
+int main(int argc, char **argv)
+{
+    CloudWatcherController *cwc = new CloudWatcherController(const_cast<char *>("/dev/ttyUSB0"), false);
 
-  CloudWatcherController *cwc = new CloudWatcherController(const_cast<char *>("/dev/ttyUSB0"), false);
+    int check = cwc->checkCloudWatcher();
 
-  int check = cwc->checkCloudWatcher();
+    if (check)
+    {
+        std::cout << "Cloudwatcher present\n";
+    }
+    else
+    {
+        std::cout << "Cloudwatcher NOT present\n";
+    }
 
-  if (check) {
-    std::cout << "Cloudwatcher present\n";
-  } else {
-    std::cout << "Cloudwatcher NOT present\n";
-  }
+    CloudWatcherConstants constants;
 
-  CloudWatcherConstants constants;
+    check = cwc->getConstants(&constants);
 
-  check = cwc->getConstants(&constants);
+    if (check)
+    {
+        std::cout << "Firmware Version: " << constants.firmwareVersion << "\n";
+        std::cout << "Serial Number: " << constants.internalSerialNumber << "\n";
+        std::cout << "Zener Voltage: " << constants.zenerVoltage << "\n";
+        std::cout << "LDR Max Resistance: " << constants.ldrMaxResistance << "\n";
+        std::cout << "LDR PullUp Resistance: " << constants.ldrPullUpResistance << "\n";
+        std::cout << "Rain Beta Factor: " << constants.rainBetaFactor << "\n";
+        std::cout << "Rain Resistance At 25º: " << constants.rainResistanceAt25 << "\n";
+        std::cout << "Rain PullUp Resistance: " << constants.rainPullUpResistance << "\n";
+        std::cout << "Ambient Beta Factor: " << constants.ambientBetaFactor << "\n";
+        std::cout << "Ambient Resistance At 25º: " << constants.ambientResistanceAt25 << "\n";
+        std::cout << "Ambient PullUp Resistance: " << constants.ambientPullUpResistance << "\n";
+        std::cout << "Anemometer Status: " << constants.anemometerStatus << "\n";
+    }
+    else
+    {
+        std::cout << "Problem getting constants\n";
+    }
 
-  if (check) {
-    std::cout << "Firmware Version: " << constants.firmwareVersion << "\n";
-    std::cout << "Serial Number: " << constants.internalSerialNumber << "\n";
-    std::cout << "Zener Voltage: " << constants.zenerVoltage << "\n";
-    std::cout << "LDR Max Resistance: " << constants.ldrMaxResistance << "\n";
-    std::cout << "LDR PullUp Resistance: " << constants.ldrPullUpResistance << "\n";
-    std::cout << "Rain Beta Factor: " << constants.rainBetaFactor << "\n";
-    std::cout << "Rain Resistance At 25º: " << constants.rainResistanceAt25 << "\n";
-    std::cout << "Rain PullUp Resistance: " << constants.rainPullUpResistance << "\n";
-    std::cout << "Ambient Beta Factor: " << constants.ambientBetaFactor << "\n";
-    std::cout << "Ambient Resistance At 25º: " << constants.ambientResistanceAt25 << "\n";
-    std::cout << "Ambient PullUp Resistance: " << constants.ambientPullUpResistance << "\n";
-    std::cout << "Anemometer Status: " << constants.anemometerStatus << "\n";
-  } else {
-    std::cout << "Problem getting constants\n";
-  }
+    CloudWatcherData cwd;
 
+    check = cwc->getAllData(&cwd);
 
+    if (check)
+    {
+        std::cout << "Sky: " << cwd.sky << "\n";
+        std::cout << "Sensor: " << cwd.sensor << "\n";
+        std::cout << "Rain: " << cwd.rain << "\n";
+        std::cout << "Supply: " << cwd.supply << "\n";
+        std::cout << "Ambient: " << cwd.ambient << "\n";
+        std::cout << "LDR: " << cwd.ldr << "\n";
+        std::cout << "Rain Temperature: " << cwd.rainTemperature << "\n";
+        std::cout << "Read Cycle: " << cwd.readCycle << "\n";
+        std::cout << "Wind Speed: " << cwd.windSpeed << "\n";
+        std::cout << "Total Readings: " << cwd.totalReadings << "\n";
+        std::cout << "Internal Errors: " << cwd.internalErrors << "\n";
+        std::cout << "First Byte Errors: " << cwd.firstByteErrors << "\n";
+        std::cout << "Second Byte Errors: " << cwd.secondByteErrors << "\n";
+        std::cout << "Command Byte Errors: " << cwd.commandByteErrors << "\n";
+        std::cout << "PEC Byte Errors: " << cwd.pecByteErrors << "\n";
+        std::cout << "Rain Heater: " << cwd.rainHeater << "\n";
+    }
+    else
+    {
+        std::cout << "Problem getting data\n";
+    }
 
-  CloudWatcherData cwd;
+    delete cwc;
 
-  check = cwc->getAllData(&cwd);
-
-  if (check) {
-    std::cout << "Sky: " << cwd.sky << "\n";
-    std::cout << "Sensor: " << cwd.sensor << "\n";
-    std::cout << "Rain: " << cwd.rain << "\n";
-    std::cout << "Supply: " << cwd.supply << "\n";
-    std::cout << "Ambient: " << cwd.ambient << "\n";
-    std::cout << "LDR: " << cwd.ldr << "\n";
-    std::cout << "Rain Temperature: " << cwd.rainTemperature << "\n";
-    std::cout << "Read Cycle: " << cwd.readCycle << "\n";
-    std::cout << "Wind Speed: " << cwd.windSpeed << "\n";
-    std::cout << "Total Readings: " << cwd.totalReadings << "\n";
-    std::cout << "Internal Errors: " << cwd.internalErrors << "\n";
-    std::cout << "First Byte Errors: " << cwd.firstByteErrors << "\n";
-    std::cout << "Second Byte Errors: " << cwd.secondByteErrors << "\n";
-    std::cout << "Command Byte Errors: " << cwd.commandByteErrors << "\n";
-    std::cout << "PEC Byte Errors: " << cwd.pecByteErrors << "\n";
-    std::cout << "Rain Heater: " << cwd.rainHeater << "\n";
-  } else {
-    std::cout << "Problem getting data\n";
-  }
-
-
-  delete cwc;
-
-  return 0;
+    return 0;
 }
-
-

@@ -32,12 +32,15 @@
 
 class ApogeeCCD : public INDI::CCD
 {
-public:
-
+  public:
     ApogeeCCD();
     virtual ~ApogeeCCD();
 
-    enum { NETWORK_SUBNET, NETWORK_ADDRESS };
+    enum
+    {
+        NETWORK_SUBNET,
+        NETWORK_ADDRESS
+    };
 
     const char *getDefaultName();
 
@@ -48,7 +51,7 @@ public:
     bool Connect();
     bool Disconnect();
 
-    int  SetTemperature(double temperature);
+    int SetTemperature(double temperature);
     bool StartExposure(float duration);
     bool AbortExposure();
 
@@ -57,17 +60,15 @@ public:
     virtual bool UpdateCCDFrame(int x, int y, int w, int h);
     virtual bool UpdateCCDBin(int binx, int biny);
 
-    virtual bool ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n);
-    virtual bool ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n);
-    virtual bool ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n);
+    virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n);
+    virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n);
+    virtual bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n);
 
-   protected:
-
+  protected:
     void debugTriggered(bool enabled);
     bool saveConfigItems(FILE *fp);
 
-   private:
-
+  private:
     ApogeeCam *ApgCam;
 
     INumber CoolerN[1];
@@ -108,26 +109,25 @@ public:
     FindDeviceUsb lookUsb;
     CamModel::PlatformType model;
 
-    void checkStatus( const Apg::Status status );
+    void checkStatus(const Apg::Status status);
     std::vector<std::string> MakeTokens(const std::string &str, const std::string &separator);
-    std::string GetItemFromFindStr( const std::string & msg, const std::string & item );
+    std::string GetItemFromFindStr(const std::string &msg, const std::string &item);
     //std::string GetAddress( const std::string & msg );
-    std::string GetUsbAddress( const std::string & msg );
-    std::string GetEthernetAddress( const std::string & msg );
-    std::string GetIPAddress( const std::string & msg );
-    CamModel::PlatformType GetModel(const std::string & msg );
-    uint16_t GetID( const std::string & msg );
-    uint16_t GetFrmwrRev( const std::string & msg );
+    std::string GetUsbAddress(const std::string &msg);
+    std::string GetEthernetAddress(const std::string &msg);
+    std::string GetIPAddress(const std::string &msg);
+    CamModel::PlatformType GetModel(const std::string &msg);
+    uint16_t GetID(const std::string &msg);
+    uint16_t GetFrmwrRev(const std::string &msg);
 
-    bool IsDeviceFilterWheel( const std::string & msg );
-    bool IsAscent( const std::string & msg );
-    void printInfo( const std::string & model, uint16_t maxImgRows, uint16_t maxImgCols );
+    bool IsDeviceFilterWheel(const std::string &msg);
+    bool IsAscent(const std::string &msg);
+    void printInfo(const std::string &model, uint16_t maxImgRows, uint16_t maxImgCols);
 
-    float CalcTimeLeft(timeval,float);
+    float CalcTimeLeft(timeval, float);
     int grabImage();
     bool getCameraParams();
     void activateCooler(bool enable);
-
 };
 
 #endif // APOGEE_CCD_H

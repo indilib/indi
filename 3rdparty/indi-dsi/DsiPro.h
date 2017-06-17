@@ -8,22 +8,18 @@
 
 #include "DsiDevice.h"
 
-namespace DSI {
+namespace DSI
+{
+class DsiPro : public Device
+{
+  private:
+  protected:
+    void initImager(const char *devname = 0);
 
-    class DsiPro : public Device {
-
-      private:
-
-      protected:
-
-        void initImager(const char *devname = 0);
-
-      public:
-
-        DsiPro(const char *devname = 0);
-        ~DsiPro();
-    };
+  public:
+    DsiPro(const char *devname = 0);
+    ~DsiPro();
+};
 };
 
 #endif /* __DsiPro_hh */
-

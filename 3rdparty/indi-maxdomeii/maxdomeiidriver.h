@@ -30,20 +30,36 @@ extern "C" {
 #define MAXDOMEII_WE_DIR 0x02
 
 // Azimuth motor status. When motor is idle, sometimes returns 0, sometimes 4. After connect, it returns 5
-enum AZ_Status {As_IDLE = 1, As_MOVING_WE, As_MOVING_EW, As_IDEL2, As_ERROR};
+enum AZ_Status
+{
+    As_IDLE = 1,
+    As_MOVING_WE,
+    As_MOVING_EW,
+    As_IDEL2,
+    As_ERROR
+};
 
 // Shutter status
-enum SH_Status {Ss_CLOSED = 0, Ss_OPENING, Ss_OPEN, Ss_CLOSING, Ss_ABORTED, Ss_ERROR};
+enum SH_Status
+{
+    Ss_CLOSED = 0,
+    Ss_OPENING,
+    Ss_OPEN,
+    Ss_CLOSING,
+    Ss_ABORTED,
+    Ss_ERROR
+};
 
 extern const char *ErrorMessages[];
 
-int Connect_MaxDomeII(const char *device); 
+int Connect_MaxDomeII(const char *device);
 int Disconnect_MaxDomeII(int fd);
 
 int Abort_Azimuth_MaxDomeII(int fd);
 int Home_Azimuth_MaxDomeII(int fd);
 int Goto_Azimuth_MaxDomeII(int fd, int nDir, int nTicks);
-int Status_MaxDomeII(int fd, enum SH_Status *nShutterStatus, enum AZ_Status *nAzimuthStatus, unsigned *nAzimuthPosition, unsigned *nHomePosition);
+int Status_MaxDomeII(int fd, enum SH_Status *nShutterStatus, enum AZ_Status *nAzimuthStatus, unsigned *nAzimuthPosition,
+                     unsigned *nHomePosition);
 int Ack_MaxDomeII(int fd);
 int SetPark_MaxDomeII(int fd, int nParkOnShutter, int nTicks);
 int SetTicksPerCount_MaxDomeII(int fd, int nTicks);

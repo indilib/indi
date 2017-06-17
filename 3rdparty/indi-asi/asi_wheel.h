@@ -28,32 +28,33 @@
 
 #include <indifilterwheel.h>
 
-class ASIWHEEL: public INDI::FilterWheel {
-	private:
-		int fw_id;
+class ASIWHEEL : public INDI::FilterWheel
+{
+  private:
+    int fw_id;
 
-	public:
-		ASIWHEEL(int id, EFW_INFO info, bool enumerate);
-		~ASIWHEEL();
+  public:
+    ASIWHEEL(int id, EFW_INFO info, bool enumerate);
+    ~ASIWHEEL();
 
-		void debugTriggered(bool enable);
-		void simulationTriggered(bool enable);
+    void debugTriggered(bool enable);
+    void simulationTriggered(bool enable);
 
-		bool Connect();
-		bool Disconnect();
-		const char *getDefaultName();
+    bool Connect();
+    bool Disconnect();
+    const char *getDefaultName();
 
-		bool initProperties();
+    bool initProperties();
 
-		void ISGetProperties(const char *dev);
+    void ISGetProperties(const char *dev);
 
-		int QueryFilter();
-		bool SelectFilter(int);
-		void TimerHit();
-		virtual bool SetFilterNames() { return true; }
-		bool GetFilterNames(const char *);
+    int QueryFilter();
+    bool SelectFilter(int);
+    void TimerHit();
+    virtual bool SetFilterNames() { return true; }
+    bool GetFilterNames(const char *);
 
-		char name[NAME_MAX];
+    char name[NAME_MAX];
 };
 
 #endif // __ASI_WHEEL_H

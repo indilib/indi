@@ -4,7 +4,7 @@
  */
 
 #ifdef HAVE_CONFIG_H
-#  include "config.h"
+#include "config.h"
 #endif
 
 #include "DsiPro.h"
@@ -12,10 +12,8 @@
 
 using namespace DSI;
 
-void
-DsiPro::initImager(const char *devname)
+void DsiPro::initImager(const char *devname)
 {
-
     command(DeviceCommand::SET_ROW_COUNT_EVEN, read_height_even);
     command(DeviceCommand::SET_ROW_COUNT_ODD, read_height_odd);
 
@@ -32,9 +30,10 @@ DsiPro::initImager(const char *devname)
      * do anything about.  Although MaximDL uses 4 exposures of 1000 ticks
      * (100 ms) each, this shorter exposure works just fine.
      */
-    for (int i = 0; i < 1; i++) {
+    for (int i = 0; i < 1; i++)
+    {
         unsigned char *foo = getImage(1);
-	delete [] foo;
+        delete[] foo;
     }
 }
 
@@ -54,7 +53,6 @@ DsiPro::DsiPro(const char *devname) : Device(devname)
     /* The DSI Pro I is not supposed to equipped with a temperature sensor */
     has_tempsensor = false;
 
-
     /* Sony lists the pixel size a 9.6x7.5 microns.  Craig Stark, in a note at
      * http://www.skyinsight.com/wiki/ regarding the Orion Star Shoot, points
      * out that that size does not fill the size of the chip. I'm not sure we
@@ -69,19 +67,18 @@ DsiPro::DsiPro(const char *devname) : Device(devname)
     read_height_odd  = 252;
     read_height      = read_height_even + read_height_odd;
 
-    read_bpp         = 2;
+    read_bpp = 2;
 
     image_width    = 508;
     image_height   = 488;
-    image_offset_x =  23;
-    image_offset_y =  13;
+    image_offset_x = 23;
+    image_offset_y = 13;
     pixel_size_x   = 9.6;
     pixel_size_y   = 7.5;
 
-    exposure_time  =  10;
+    exposure_time = 10;
 
     initImager();
-
 }
 
 DsiPro::~DsiPro()

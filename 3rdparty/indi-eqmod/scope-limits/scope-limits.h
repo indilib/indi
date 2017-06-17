@@ -21,55 +21,54 @@
 #include <inditelescope.h>
 #include <vector>
 
-typedef struct horizonpoint {
-  double az;
-  double alt;
+typedef struct horizonpoint
+{
+    double az;
+    double alt;
 } horizonpoint;
 
 bool cmphorizonpoint(horizonpoint h1, horizonpoint h2);
 
-class HorizonLimits 
+class HorizonLimits
 {
- protected:
- private:
+  protected:
+  private:
+    INDI::Telescope *telescope;
+    ITextVectorProperty *HorizonLimitsDataFileTP;
+    IBLOBVectorProperty *HorizonLimitsDataFitsBP;
+    INumberVectorProperty *HorizonLimitsPointNP;
+    ISwitchVectorProperty *HorizonLimitsTraverseSP;
+    ISwitchVectorProperty *HorizonLimitsManageSP;
+    ISwitchVectorProperty *HorizonLimitsFileOperationSP;
+    ISwitchVectorProperty *HorizonLimitsOnLimitSP;
+    ISwitchVectorProperty *HorizonLimitsLimitGotoSP;
 
-  INDI::Telescope *telescope;
-  ITextVectorProperty *HorizonLimitsDataFileTP;
-  IBLOBVectorProperty *HorizonLimitsDataFitsBP;
-  INumberVectorProperty *HorizonLimitsPointNP;
-  ISwitchVectorProperty *HorizonLimitsTraverseSP;
-  ISwitchVectorProperty *HorizonLimitsManageSP;
-  ISwitchVectorProperty *HorizonLimitsFileOperationSP;
-  ISwitchVectorProperty *HorizonLimitsOnLimitSP;
-  ISwitchVectorProperty *HorizonLimitsLimitGotoSP;
+    std::vector<horizonpoint> *horizon;
+    unsigned int horizonindex;
 
-  std::vector<horizonpoint> *horizon;
-  unsigned int horizonindex;
+    char *WriteDataFile(const char *filename);
+    char *LoadDataFile(const char *filename);
+    char errorline[128];
+    char *sline;
 
-  char *WriteDataFile(const char *filename);
-  char *LoadDataFile(const char *filename);
-  char errorline[128]; 
-  char *sline;
+  public:
+    HorizonLimits(INDI::Telescope *);
+    virtual ~HorizonLimits();
 
-public:
+    const char *getDeviceName(); // used for logger
 
-  HorizonLimits(INDI::Telescope *);
-  virtual ~HorizonLimits();
+    virtual bool initProperties();
+    virtual bool updateProperties();
+    virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n);
+    virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n);
+    virtual bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n);
+    virtual bool ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[],
+                           char *formats[], char *names[], int n);
 
-  const char *getDeviceName(); // used for logger
- 
-  virtual bool initProperties(); 
-  virtual bool updateProperties();
-  virtual bool ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n);
-  virtual bool ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n);
-  virtual bool ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n);
-  virtual bool ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[], char *names[], int n);
-
-  virtual void Init();
-  virtual bool inLimits(double az, double alt);
-  virtual bool inGotoLimits(double az, double alt);
-  virtual bool checkLimits(double az, double alt, INDI::Telescope::TelescopeStatus status, bool ingoto);
-
+    virtual void Init();
+    virtual bool inLimits(double az, double alt);
+    virtual bool inGotoLimits(double az, double alt);
+    virtual bool checkLimits(double az, double alt, INDI::Telescope::TelescopeStatus status, bool ingoto);
 };
 
 #endif // SCOPE_LIMITS_H

@@ -8,19 +8,17 @@
 
 #include "DsiDevice.h"
 
-namespace DSI {
+namespace DSI
+{
+class DsiProIII : public Device
+{
+  private:
+    void initImager(const char *devname = 0);
 
-    class DsiProIII : public Device {
-
-      private:
-        void initImager(const char *devname = 0);
-
-      public:
-
-        DsiProIII(const char *devname);
-        ~DsiProIII();
-    };
+  public:
+    DsiProIII(const char *devname);
+    ~DsiProIII();
+};
 };
 
 #endif /* __DsiProIII_hh */
-

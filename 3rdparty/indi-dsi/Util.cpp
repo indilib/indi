@@ -3,7 +3,7 @@
  */
 
 #ifdef HAVE_CONFIG_H
-#  include "config.h"
+#include "config.h"
 #endif
 
 #include "Util.h"
@@ -17,7 +17,6 @@ using namespace std;
 #include <iomanip>
 #include <stdexcept>
 
-
 /// \brief convert input string into vector of string tokens
 ///
 /// \note consecutive delimiters will be treated as single delimiter
@@ -27,14 +26,13 @@ using namespace std;
 /// \param delims list of delimiters.
 ///
 /// \see http://www.rosettacode.org/wiki/Tokenizing_A_String
-std::vector<std::string>
-tokenize_str(const std::string &str, const std::string &delims)
+std::vector<std::string> tokenize_str(const std::string &str, const std::string &delims)
 {
     using namespace std;
     // Skip delims at beginning, find start of first token
     string::size_type lastPos = str.find_first_not_of(delims, 0);
     // Find next delimiter @ end of token
-    string::size_type pos     = str.find_first_of(delims, lastPos);
+    string::size_type pos = str.find_first_of(delims, lastPos);
 
     // output vector
     vector<string> tokens;
@@ -46,7 +44,7 @@ tokenize_str(const std::string &str, const std::string &delims)
         // Skip delims.  Note the "not_of". this is beginning of token
         lastPos = str.find_first_not_of(delims, pos);
         // Find next delimiter at end of token.
-        pos     = str.find_first_of(delims, lastPos);
+        pos = str.find_first_of(delims, lastPos);
     }
 
     return tokens;

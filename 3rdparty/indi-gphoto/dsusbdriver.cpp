@@ -25,7 +25,7 @@
 
 #include <string.h>
 
-DSUSBDriver::DSUSBDriver(const char * device)
+DSUSBDriver::DSUSBDriver(const char *device)
 {
     strncpy(this->device, device, MAXINDIDEVICE);
 
@@ -41,7 +41,7 @@ DSUSBDriver::DSUSBDriver(const char * device)
 
     if (dev)
     {
-        int rc = Open();
+        int rc    = Open();
         connected = (rc != -1);
         DEBUGDEVICE(device, INDI::Logger::DBG_DEBUG, "Connected to DSUSB!");
         readState();

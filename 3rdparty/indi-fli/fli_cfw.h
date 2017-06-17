@@ -32,8 +32,7 @@ using namespace std;
 
 class FLICFW : public INDI::FilterWheel
 {
-public:
-
+  public:
     FLICFW();
     virtual ~FLICFW();
 
@@ -46,17 +45,15 @@ public:
     bool Connect();
     bool Disconnect();
 
-    virtual bool ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n);
+    virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n);
 
-    protected:
-
-    virtual bool GetFilterNames(const char* groupName);
+  protected:
+    virtual bool GetFilterNames(const char *groupName);
     virtual bool SelectFilter(int);
     virtual int QueryFilter();
     void TimerHit();
 
-    private:
-
+  private:
     typedef struct
     {
         flidomain_t domain;
@@ -68,7 +65,6 @@ public:
         long current_pos;
         long count;
     } filter_t;
-
 
     ISwitch PortS[4];
     ISwitchVectorProperty PortSP;
@@ -88,7 +84,6 @@ public:
     bool findFLICFW(flidomain_t domain);
     void turnWheel();
     bool setupParams();
-
 };
 
 #endif // FLI_CFW_H

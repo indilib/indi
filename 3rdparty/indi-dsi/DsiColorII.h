@@ -9,22 +9,18 @@
 
 #include "DsiDevice.h"
 
-namespace DSI {
+namespace DSI
+{
+class DsiColorII : public Device
+{
+  private:
+  protected:
+    void initImager(const char *devname = 0);
 
-    class DsiColorII : public Device {
-
-      private:
-
-      protected:
-
-        void initImager(const char *devname = 0);
-
-      public:
-
-        DsiColorII(const char *devname = 0);
-        ~DsiColorII();
-    };
+  public:
+    DsiColorII(const char *devname = 0);
+    ~DsiColorII();
+};
 };
 
 #endif /* __DsiColorII_hh */
-

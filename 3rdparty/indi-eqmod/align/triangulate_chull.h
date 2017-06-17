@@ -20,19 +20,16 @@
 
 #include "triangulate.h"
 
-
-class TriangulateCHull: public Triangulate 
+class TriangulateCHull : public Triangulate
 {
+  public:
+    TriangulateCHull(std::map<HtmID, PointSet::Point> *p);
+    void Reset();
+    void AddPoint(HtmID id);
+    //XMLEle *toXML();
 
- public:
-  TriangulateCHull(std::map<HtmID, PointSet::Point> *p);
-  void Reset();
-  void AddPoint(HtmID id);
-  //XMLEle *toXML();
-
- private:
-  int vnum;
-
+  private:
+    int vnum;
 };
 
-#endif// TRIANGULATE_CHULL_H
+#endif // TRIANGULATE_CHULL_H

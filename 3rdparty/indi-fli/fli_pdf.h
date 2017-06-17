@@ -28,11 +28,9 @@
 
 using namespace std;
 
-
 class FLIPDF : public INDI::Focuser
 {
-public:
-
+  public:
     FLIPDF();
     virtual ~FLIPDF();
 
@@ -45,16 +43,14 @@ public:
     bool Connect();
     bool Disconnect();
 
-    virtual bool ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n);
+    virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n);
 
-    protected:
-
+  protected:
     virtual IPState MoveAbsFocuser(uint32_t ticks);
     virtual IPState MoveRelFocuser(FocusDirection dir, uint32_t ticks);
     void TimerHit();
 
-    private:
-
+  private:
     typedef struct
     {
         flidomain_t domain;
@@ -90,9 +86,6 @@ public:
     bool findFLIPDF(flidomain_t domain);
     bool setupParams();
     void goHomePosition();
-
-
-
 };
 
 #endif // FLI_PDF_H
