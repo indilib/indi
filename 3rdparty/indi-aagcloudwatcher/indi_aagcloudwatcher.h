@@ -23,15 +23,11 @@
   Anemometer code contributed by Joao Bento.
 #endif
 
-#ifndef INDI_AAGCLOUDWATCHER_H
-#define INDI_AAGCLOUDWATCHER_H
+#pragma once
 
-#include <cstdlib>
-#include <memory>
-#include <sys/stat.h>
-#include <defaultdevice.h>
-#include <basedevice.h>
 #include "CloudWatcherController.h"
+
+#include <defaultdevice.h>
 
 enum HeatingAlgorithmStatus
 {
@@ -103,5 +99,3 @@ void ISSnoopDevice(XMLEle *root);
 
 void ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[],
                char *names[], int n);
-
-#endif /* INDI_AAGCLOUDWATCHER_H */

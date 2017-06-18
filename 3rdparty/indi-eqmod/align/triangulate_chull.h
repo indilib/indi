@@ -15,8 +15,7 @@
     along with the Skywatcher Protocol INDI driver.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef TRIANGULATE_CHULL_H
-#define TRIANGULATE_CHULL_H
+#pragma once
 
 #include "triangulate.h"
 
@@ -31,5 +30,3 @@ class TriangulateCHull : public Triangulate
   private:
     int vnum;
 };
-
-#endif // TRIANGULATE_CHULL_H

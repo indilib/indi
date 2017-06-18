@@ -3,16 +3,8 @@
  * Copyright © 2015, Ben Gilsrud
  */
 
-#ifdef HAVE_CONFIG_H
-#include "config.h"
-#endif
-
-#include <string>
-#include <iostream>
-#include <ostream>
-#include <iomanip>
-
 #include "DsiDeviceFactory.h"
+
 #include "DsiPro.h"
 #include "DsiColor.h"
 #include "DsiProII.h"
@@ -21,7 +13,8 @@
 #include "DsiColorIII.h"
 #include "DsiException.h"
 
-using namespace std;
+#include <iomanip>
+#include <iostream>
 
 DSI::Device *DSI::DeviceFactory::getInstance(const char *devname)
 {
@@ -34,11 +27,11 @@ DSI::Device *DSI::DeviceFactory::getInstance(const char *devname)
     }
     catch (dsi_exception e)
     {
-        cerr << e.what();
+        std::cerr << e.what();
         return NULL;
     }
 
-    cerr << "Found Camera " << tmp->getCameraName() << endl << "Found CCD " << tmp->getCcdChipName() << endl;
+    std::cerr << "Found Camera " << tmp->getCameraName() << std::endl << "Found CCD " << tmp->getCcdChipName() << std::endl;
 
     std::string ccdChipName = tmp->getCcdChipName();
     delete tmp;

@@ -3,12 +3,11 @@
  *
  */
 
-#ifndef __NamedEnum_hh
-#define __NamedEnum_hh
+#pragma once
 
-#include <string>
-#include <functional>
 #include <algorithm>
+#include <functional>
+#include <string>
 #include <set>
 
 template <class TValue, class T>
@@ -16,7 +15,7 @@ class NamedEnum
 {
   protected:
     // Constructors
-    explicit NamedEnum(const std::string _name, const TValue &_value);
+    NamedEnum(const std::string _name, const TValue &_value);
 
   private:
     // Predicate for finding the corresponding instance
@@ -84,9 +83,7 @@ class NamedEnum
 };
 
 template <class TValue, class T>
-inline NamedEnum<TValue, T>::NamedEnum(std::string name, const TValue &value) : m_name(name), m_value(value)
+inline NamedEnum<TValue, T>::NamedEnum(std::string name, const TValue &value) : m_value(value), m_name(name)
 {
     s_instances.insert(this);
 }
-
-#endif /* __NamedEnum_hh */

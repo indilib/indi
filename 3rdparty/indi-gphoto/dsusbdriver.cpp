@@ -21,7 +21,7 @@
 
 #include "dsusbdriver.h"
 
-#include "indilogger.h"
+#include <indilogger.h>
 
 #include <string.h>
 

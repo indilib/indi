@@ -27,14 +27,13 @@
  file called LICENSE.
  */
 
-#include <stdio.h>
-#include <unistd.h>
-#include <memory.h>
-#include <stdint.h>
-#include <math.h>
+#include "sxccd.h"
 
 #include "sxconfig.h"
-#include "sxccd.h"
+
+#include <cmath>
+
+#include <unistd.h>
 
 #define SX_GUIDE_EAST  0x08 /* RA+ */
 #define SX_GUIDE_NORTH 0x04 /* DEC+ */
@@ -43,7 +42,7 @@
 #define SX_CLEAR_NS    0x09
 #define SX_CLEAR_WE    0x06
 
-static int count;
+static int count = 0;
 static SXCCD *cameras[20];
 
 #define TIMER 1000
@@ -56,33 +55,33 @@ static void cleanup()
     }
 }
 
-static void deinterlace(unsigned short *data, int width, int height)
-{
-    int row, column;
-    long *averages = (long *)malloc((height + 1) * sizeof(long));
-    for (row = 0; row < height; row++)
-    {
-        long average = 0;
-        int r        = row * width;
-        for (column = 0; column < width; column++)
-        {
-            average += data[r + column];
-        }
-        averages[row] = average;
-    }
-    averages[row] = averages[row - 1];
-    for (row = 1; row < height; row += 2)
-    {
-        double q = (averages[row]) / ((averages[row - 1] + averages[row + 1]) / 2.0);
-        int r    = row * width;
-        for (column = 0; column < width; column++)
-        {
-            int c   = r + column;
-            data[c] = (unsigned short)(data[c] / q);
-        }
-    }
-    free(averages);
-}
+//static void deinterlace(unsigned short *data, int width, int height)
+//{
+//    int row, column;
+//    long *averages = (long *)malloc((height + 1) * sizeof(long));
+//    for (row = 0; row < height; row++)
+//    {
+//        long average = 0;
+//        int r        = row * width;
+//        for (column = 0; column < width; column++)
+//        {
+//            average += data[r + column];
+//        }
+//        averages[row] = average;
+//    }
+//    averages[row] = averages[row - 1];
+//    for (row = 1; row < height; row += 2)
+//    {
+//        double q = (averages[row]) / ((averages[row - 1] + averages[row + 1]) / 2.0);
+//        int r    = row * width;
+//        for (column = 0; column < width; column++)
+//        {
+//            int c   = r + column;
+//            data[c] = (unsigned short)(data[c] / q);
+//        }
+//    }
+//    free(averages);
+//}
 
 void ISInit()
 {
@@ -277,7 +276,6 @@ bool SXCCD::initProperties()
 
 bool SXCCD::updateProperties()
 {
-    struct t_sxccd_params params;
     INDI::CCD::updateProperties();
     if (isConnected())
     {
@@ -436,7 +434,7 @@ void SXCCD::TimerHit()
             if (TemperatureReported != TemperatureN[0].value)
             {
                 TemperatureReported = TemperatureN[0].value;
-                if (abs(TemperatureRequest - TemperatureReported) < 1)
+                if (std::fabs(TemperatureRequest - TemperatureReported) < 1)
                     TemperatureNP.s = IPS_OK;
                 else
                     TemperatureNP.s = IPS_BUSY;
@@ -461,7 +459,7 @@ int SXCCD::SetTemperature(double temperature)
     sxSetCooler(handle, (unsigned char)(CoolerS[0].s == ISS_ON), (unsigned short)(TemperatureRequest * 10 + 2730),
                 &status, &sx_temperature);
     TemperatureReported = TemperatureN[0].value = (sx_temperature - 2730) / 10.0;
-    if (abs(TemperatureRequest - TemperatureReported) < 1)
+    if (std::fabs(TemperatureRequest - TemperatureReported) < 1)
         result = 1;
     else
         result = 0;
@@ -774,6 +772,7 @@ void SXCCD::NSGuiderTimerHit()
 
 void SXCCD::ISGetProperties(const char *dev)
 {
+    INDI_UNUSED(dev);
     INDI::CCD::ISGetProperties(name);
     addDebugControl();
 }

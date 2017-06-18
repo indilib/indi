@@ -27,28 +27,11 @@
 /* TELESCOPE_MOTION_RATE in arcmin/s */
 /* use/snoop a GPS ??*/
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <math.h>
-#include <unistd.h>
-#include <sys/time.h>
-#include <time.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-
-#include <libnova.h>
-
-#include <indicom.h>
-
 #include "eqmod.h"
-#include "eqmoderror.h"
-#include "config.h"
 
-#include "skywatcher.h"
 #include "mach_gettime.h"
 
-#include <memory>
+#include <indicom.h>
 
 #ifdef WITH_ALIGN
 #include <alignment/DriverCommon.h> // For DBG_ALIGNMENT
@@ -326,7 +309,7 @@ bool EQMod::initProperties()
 
     loadProperties();
 
-    for (unsigned int i = 0; i < SlewRateSP.nsp - 1; i++)
+    for (int i = 0; i < SlewRateSP.nsp - 1; i++)
     {
         sprintf(SlewRateSP.sp[i].label, "%.fx", slewspeeds[i]);
         SlewRateSP.sp[i].aux = (void *)&slewspeeds[i];
@@ -539,7 +522,7 @@ bool EQMod::updateProperties()
 
             if (isDebug())
             {
-                for (unsigned int i = 0; i < MountInformationTP->ntp; i++)
+                for (int i = 0; i < MountInformationTP->ntp; i++)
                     DEBUGF(INDI::Logger::DBG_DEBUG, "Got Board Property %s: %s", MountInformationTP->tp[i].name,
                            MountInformationTP->tp[i].text);
             }
@@ -548,7 +531,7 @@ bool EQMod::updateProperties()
             mount->InquireDEEncoderInfo(SteppersNP);
             if (isDebug())
             {
-                for (unsigned int i = 0; i < SteppersNP->nnp; i++)
+                for (int i = 0; i < SteppersNP->nnp; i++)
                     DEBUGF(INDI::Logger::DBG_DEBUG, "Got Encoder Property %s: %.0f", SteppersNP->np[i].label,
                            SteppersNP->np[i].value);
             }
@@ -783,8 +766,8 @@ bool EQMod::ReadScopeStatus()
     //TODO use dt to track mount desynchronisation/inactivity?
 
     // Time
-    double juliandate;
-    double lst;
+    double juliandate = 0;
+    double lst = 0;
     //double datevalues[2];
     char hrlst[12];
 
@@ -1076,6 +1059,8 @@ bool EQMod::ReadScopeStatus()
 
         if (TrackState == SCOPE_AUTOHOMING)
         {
+            unsigned long indexRA = 0, indexDE = 0;
+
             DEBUGF(INDI::Logger::DBG_DEBUG, "Autohoming status: %d", AutohomeState);
             switch (AutohomeState)
             {
@@ -1217,7 +1202,6 @@ bool EQMod::ReadScopeStatus()
                     }
                     break;
                 case AUTO_HOME_WAIT_PHASE3:
-                    unsigned long indexRA, indexDE;
                     if (mount->IsRARunning())
                     {
                         if (ah_waitRA < 0)
@@ -3262,20 +3246,20 @@ void EQMod::computePolarAlign(SyncData s1, SyncData s2, double lat, double *tpaa
 From // // http://www.whim.org/nebula/math/pdf/twostar.pdf
  */
 {
-    double delta1, alpha1, delta2, alpha2;
-    double d1, d2; /* corrected delta1/delta2 */
-    double cdelta1, calpha1, cdelta2, calpha2;
-    double Delta;
-    double cosDelta1, cosDelta2;
-    double cosd2md1, cosd2pd1, d2pd1;
-    double tpadelta, tpaalpha;
-    double sintpadelta, costpaalpha, sintpaalpha;
-    double cosama1, cosama2;
-    double cosaz, sinaz;
-    double beta;
+    double delta1 = 0, alpha1 = 0, delta2 = 0, alpha2 = 0;
+    double d1 = 0, d2 = 0; /* corrected delta1/delta2 */
+    double cdelta1 = 0, calpha1 = 0, cdelta2 = 0, calpha2 = 0;
+    double Delta = 0;
+    double cosDelta1 = 0, cosDelta2 = 0;
+    double cosd2pd1 = 0, d2pd1 = 0;
+    double tpadelta = 0, tpaalpha = 0;
+    double sintpadelta = 0, costpaalpha = 0, sintpaalpha = 0;
+    double cosama1 = 0, cosama2 = 0;
+    double cosaz = 0, sinaz = 0;
+    double beta = 0;
 
     // Star s2 polar align
-    double s2tra, s2tdec;
+    double s2tra = 0, s2tdec = 0;
     char s2trasexa[13], s2tdecsexa[13];
     char s2rasexa[13], s2decsexa[13];
 

@@ -15,8 +15,7 @@
     along with the Skywatcher Protocol INDI driver.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef TRIANGULATE_H
-#define TRIANGULATE_H
+#pragma once
 
 #include "pointset.h"
 
@@ -51,5 +50,3 @@ class Triangulate
     std::vector<Face *> vfaces;
     bool isvalid;
 };
-
-#endif // TRIANGULATE_H

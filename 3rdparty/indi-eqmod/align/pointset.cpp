@@ -15,23 +15,14 @@
     along with the Skywatcher Protocol INDI driver.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include <errno.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <wordexp.h>
-#include <math.h>
-#include <time.h>
-#include <libnova.h>
-
-/* For IDLog/Debug */
-#include <indidevapi.h>
-
 #include "pointset.h"
+
 #include "triangulate.h"
 #include "triangulate_chull.h"
 
-using namespace INDI;
+#include <math.h>
+#include <string.h>
+#include <wordexp.h>
 
 double PointSet::range24(double r)
 {
@@ -150,6 +141,7 @@ const char *PointSet::getDeviceName()
 std::set<PointSet::Distance, bool (*)(PointSet::Distance, PointSet::Distance)> *
 PointSet::ComputeDistances(double alt, double az, PointFilter filter, bool ingoto)
 {
+    INDI_UNUSED(filter);
     std::map<HtmID, Point>::iterator it;
     std::set<Distance, bool (*)(Distance, Distance)> *distances =
         new std::set<Distance, bool (*)(Distance, Distance)>(compelt);
@@ -396,8 +388,7 @@ char *PointSet::WriteDataFile(const char *filename)
 XMLEle *PointSet::toXML()
 {
     AlignData aligndata;
-    XMLEle *root, *alignxml, *sitexml; //, *mountxml;
-    XMLAtt *ap;
+    XMLEle *root = nullptr, *alignxml = nullptr, *sitexml = nullptr; //, *mountxml;
     char sitename[26];
     char sitedata[26];
     std::map<HtmID, Point>::iterator it;
@@ -538,10 +529,13 @@ bool PointSet::isPointInside(Point *p, std::vector<HtmID> f, bool ingoto)
 std::vector<HtmID> PointSet::findFace(double currentRA, double currentDEC, double jd, double pointalt, double pointaz,
                                       ln_lnlat_posn *position, bool ingoto)
 {
+    INDI_UNUSED(pointalt);
+    INDI_UNUSED(pointaz);
     Point point;
-    double horangle, altangle;
+    double horangle = 0, altangle = 0;
     std::vector<Face *> faces;
     std::vector<Face *>::iterator it;
+
     point.aligndata.jd        = jd;
     point.aligndata.targetRA  = currentRA;
     point.aligndata.targetDEC = currentDEC;

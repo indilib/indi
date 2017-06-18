@@ -22,16 +22,11 @@
 
 */
 
-#ifndef INDIDUINO_H
-#define INDIDUINO_H
+#pragma once
 
 #include <defaultdevice.h>
-#include <indicom.h>
 
-/* Firmata */
-#include "firmata.h"
-
-#include "indicontroller.h"
+class Firmata;
 
 /* NAMES in the xml skeleton file to 
    used to define I/O arduino mapping*/
@@ -63,20 +58,20 @@ class indiduino : public INDI::DefaultDevice
     indiduino();
     ~indiduino();
 
-    virtual bool initProperties();
-    virtual bool Connect();
-    virtual bool Disconnect();
-    virtual void TimerHit();
+    virtual bool initProperties() override;
+    virtual bool Connect() override;
+    virtual bool Disconnect() override;
+    virtual void TimerHit() override;
     /** \brief Called when connected state changes, to add/remove properties */
-    virtual bool updateProperties();
+    virtual bool updateProperties() override;
 
-    virtual void ISGetProperties(const char *dev);
-    virtual bool ISSnoopDevice(XMLEle *root);
-    virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n);
-    virtual bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n);
-    virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n);
+    virtual void ISGetProperties(const char *dev) override;
+    virtual bool ISSnoopDevice(XMLEle *root) override;
+    virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
+    virtual bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n) override;
+    virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
     virtual bool ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[],
-                           char *formats[], char *names[], int n);
+                           char *formats[], char *names[], int n) override;
 
     // Joystick helpers
     static void joystickHelper(const char *joystick_n, double mag, double angle, void *context);
@@ -88,7 +83,7 @@ class indiduino : public INDI::DefaultDevice
     void processAxis(const char *axis_n, double value);
 
   protected:
-    const char *getDefaultName();
+    virtual const char *getDefaultName() override;
 
   private:
     char skelFileName[MAX_SKELTON_FILE_NAME_LEN];
@@ -99,5 +94,3 @@ class indiduino : public INDI::DefaultDevice
     Firmata *sf;
     INDI::Controller *controller;
 };
-
-#endif

@@ -19,20 +19,16 @@
 
 */
 
-#include <memory>
-#include <time.h>
-#include <math.h>
-#include <unistd.h>
-#include <sys/time.h>
+#include "asi_ccd.h"
+
+#include "config.h"
 
 #if !defined(__APPLE__) && !defined(__CYGWIN__)
 #include <stream_recorder.h>
 #endif
 
-#include <indidevapi.h>
-
-#include "asi_ccd.h"
-#include "config.h"
+#include <math.h>
+#include <unistd.h>
 
 #define POLLMS                  250 /* Polling time (ms) */
 #define TEMPERATURE_UPDATE_FREQ 4   /* Update every 4 POLLMS ~ 1 second */
@@ -687,8 +683,6 @@ bool ASICCD::ISNewSwitch(const char *dev, const char *name, ISState *states, cha
         {
             if (IUUpdateSwitch(&CoolerSP, states, names, n) < 0)
                 return false;
-
-            bool rc = false;
 
             if (CoolerS[0].s == ISS_ON)
                 activateCooler(true);
@@ -1562,6 +1556,9 @@ void ASICCD::updateRecorderFormat()
 
         case ASI_IMG_RGB24:
             Streamer->setPixelFormat(V4L2_PIX_FMT_RGB24);
+            break;
+
+        case ASI_IMG_END:
             break;
     }
 #endif

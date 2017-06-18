@@ -22,15 +22,14 @@
  file called LICENSE.
  */
 
-#include "sxconfig.h"
 #include "sxao.h"
+
+#include "sxconfig.h"
 
 #include <indicom.h>
 
-#include <stdio.h>
 #include <memory>
 #include <string.h>
-#include <unistd.h>
 
 std::unique_ptr<SXAO> sxao(new SXAO);
 
@@ -125,9 +124,8 @@ bool SXAO::Connect()
     {
         return true;
     }
-    int connectrc = 0;
     char buf[MAXRBUF];
-    bool rc;
+    bool rc = false;
     const char *port = PortT[0].text;
 
     if (isSimulation())

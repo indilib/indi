@@ -1,6 +1,8 @@
 
 #include "simulator.h"
 
+#include <string.h>
+
 EQModSimulator::EQModSimulator(INDI::Telescope *t)
 {
     telescope = t;
@@ -8,8 +10,6 @@ EQModSimulator::EQModSimulator(INDI::Telescope *t)
 
 void EQModSimulator::Connect()
 {
-    char *settingstexts[2];
-    char *settingsnames[] = { (char *)"SIM_RASETTING", (char *)"SIM_DESETTING" };
     ISwitch *sw           = IUFindOnSwitch(SimModeSP);
     sksim                 = new SkywatcherSimulator();
     if (!strcmp(sw->name, "SIM_EQ6"))

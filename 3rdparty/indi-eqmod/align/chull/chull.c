@@ -20,8 +20,10 @@ redistributed in its entirety provided that this copyright notice is
 not removed.
 --------------------------------------------------------------------
 */
+
+#include "macros.h"
+
 #include <stdio.h>
-#include <math.h>
 
 /*Define Boolean type */
 typedef enum { FALSE, TRUE } bool;
@@ -113,8 +115,6 @@ void PrintEdges(void);
 void PrintFaces(void);
 void CheckEndpts(void);
 void EdgeOrderOnFaces(void);
-
-#include "macros.h"
 
 /*-------------------------------------------------------------------*/
 /* Geehalel: Use as a library */
@@ -327,9 +327,8 @@ void SubVec(int a[3], int b[3], int c[3])
 ---------------------------------------------------------------------*/
 void DoubleTriangle(void)
 {
-    tVertex v0, v1, v2, v3, t;
+    tVertex v0, v1, v2, v3;
     tFace f0, f1 = NULL;
-    tEdge e0, e1, e2, s;
     int vol;
 
     /* Find 3 noncollinear points. */
@@ -383,8 +382,7 @@ vertices are those in the list marked as onhull.
 void ConstructHull(void)
 {
     tVertex v, vnext;
-    int vol;
-    bool changed; /* T if addition changes hull; not used. */
+    bool changed = FALSE; /* T if addition changes hull; not used. */
 
     v = vertices;
     do
@@ -512,8 +510,8 @@ Same computation, but computes using ints, and returns the actual volume.
 ---------------------------------------------------------------------*/
 int Volumei(tFace f, tVertex p)
 {
-    int vol;
-    int ax, ay, az, bx, by, bz, cx, cy, cz, dx, dy, dz;
+    int vol = 0;
+    int ax = 0, ay = 0, az = 0, bx = 0, by = 0, bz = 0, cx = 0, cy = 0, cz = 0;
 
     ax = f->vertex[0]->v[X] - p->v[X];
     ay = f->vertex[0]->v[Y] - p->v[Y];
@@ -969,20 +967,20 @@ void Checks(void)
 
     Consistency();
     Convexity();
-    if (v = vertices)
+    if ((v = vertices))
         do
         {
             if (v->mark)
                 V++;
             v = v->next;
         } while (v != vertices);
-    if (e = edges)
+    if ((e = edges))
         do
         {
             E++;
             e = e->next;
         } while (e != edges);
-    if (f = faces)
+    if ((f = faces))
         do
         {
             F++;

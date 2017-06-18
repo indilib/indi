@@ -1,6 +1,3 @@
-#ifndef FLI_PDF_H
-#define FLI_PDF_H
-
 #if 0
     FLI PDF
     INDI Interface for Finger Lakes Instrument Focusers
@@ -21,6 +18,8 @@
     Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
 #endif
+
+#pragma once
 
 #include <libfli.h>
 #include <indifocuser.h>
@@ -87,5 +86,3 @@ class FLIPDF : public INDI::Focuser
     bool setupParams();
     void goHomePosition();
 };
-
-#endif // FLI_PDF_H

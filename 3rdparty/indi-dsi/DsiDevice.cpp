@@ -8,36 +8,22 @@
  *    [TRM] EZ-USB Technical Reference Manual, Document #001-13670 Rev. *A
  */
 
-#ifdef HAVE_CONFIG_H
-#include "config.h"
-#endif
-
-#include <stdlib.h>
-#include <errno.h>
-#include <assert.h>
-#include <unistd.h>
-#include <math.h>
-
-#include "DsiTypes.h"
-#include "DsiException.h"
 #include "DsiDevice.h"
 
+#include "DsiException.h"
 #include "Util.h"
+
+#include <cstring>
+#include <iomanip>
+#include <iostream>
+#include <math.h>
+#include <memory>
+#include <unistd.h>
 
 /* Convenient mnemonic for libusb timeouts which are always in this unit. */
 #ifndef MILLISEC
 #define MILLISEC 2
 #endif
-
-using namespace std;
-#include <cstring>
-#include <iostream>
-#include <sstream>
-#include <iomanip>
-#include <stdexcept>
-#include <memory>
-
-#include <sys/time.h>
 
 static unsigned int last_time;
 
@@ -50,15 +36,16 @@ static unsigned int get_sysclock_ms()
 
 static std::unique_ptr<std::string> format_buffer(unsigned char data[], size_t length)
 {
-    ostringstream buffer;
-    for (int i = 0; i < length; i++)
+    std::ostringstream buffer;
+
+    for (unsigned int i = 0; i < length; i++)
     {
         if (i > 0 && (i % 8) == 0)
         {
             break;
-            buffer << endl << "    " << setfill('0') << setw(8) << hex << i;
+            buffer << std::endl << "    " << std::setfill('0') << std::setw(8) << std::hex << i;
         }
-        buffer << " " << setfill('0') << setw(2) << hex << (unsigned int)data[i];
+        buffer << " " << std::setfill('0') << std::setw(2) << std::hex << (unsigned int)data[i];
     }
     for (int i = 8 - length; i > 0; i--)
     {
@@ -72,10 +59,11 @@ static std::unique_ptr<std::string> format_buffer(unsigned char data[], size_t l
 static void log_command_info(bool iswrite, const char *prefix, unsigned int length, char *buffer, unsigned int *result)
 {
     unsigned int now = get_sysclock_ms();
-    stringstream tmp;
-    tmp << prefix << " " << hex << (unsigned int)length;
-    cerr << setfill(' ') << setw(40) << left << tmp.str();
-    cerr << "[dt=" << dec << now - last_time << "]" << endl;
+    std::stringstream tmp;
+
+    tmp << prefix << " " << std::hex << (unsigned int)length;
+    std::cerr << std::setfill(' ') << std::setw(40) << std::left << tmp.str();
+    std::cerr << "[dt=" << std::dec << now - last_time << "]" << std::endl;
     last_time = now;
 
     tmp.str("");
@@ -84,20 +72,20 @@ static void log_command_info(bool iswrite, const char *prefix, unsigned int leng
         tmp << "    00000000:" << *format_buffer((unsigned char *)buffer, length);
         const DSI::DeviceCommand *command = DSI::DeviceCommand::find((int)buffer[2]);
 
-        cerr << setfill(' ') << setw(60) << left << tmp.str() << command->name();
+        std::cerr << std::setfill(' ') << std::setw(60) << std::left << tmp.str() << command->name();
         if (result)
-            cerr << " " << *result;
-        cerr << endl;
+            std::cerr << " " << *result;
+        std::cerr << std::endl;
     }
     else
     {
         if (strcmp(prefix, "r 86") != 0)
         {
             tmp << "    00000000:" << *format_buffer((unsigned char *)buffer, buffer[0]);
-            cerr << setfill(' ') << setw(60) << left << tmp.str() << "ACK";
+            std::cerr << std::setfill(' ') << std::setw(60) << std::left << tmp.str() << "ACK";
             if (result)
-                cerr << " " << *result;
-            cerr << endl;
+                std::cerr << " " << *result;
+            std::cerr << std::endl;
         }
     }
 }
@@ -115,7 +103,7 @@ static void log_command_info(bool iswrite, const char *prefix, unsigned int leng
  *
  * @return
  */
-DSI::Device::Device(const char *devname) : usb_speed((UsbSpeed)UsbSpeed::FULL), readout_mode(ReadoutMode::DUAL)
+DSI::Device::Device(const char *devname) : readout_mode(ReadoutMode::DUAL), usb_speed(UsbSpeed::FULL)
 {
     command_sequence_number = 0;
     eeprom_length           = -1;
@@ -143,12 +131,12 @@ DSI::Device::Device(const char *devname) : usb_speed((UsbSpeed)UsbSpeed::FULL), 
 
 DSI::Device::~Device()
 {
-    cerr << "in DSI::Device::~Device" << endl;
+    std::cerr << "in DSI::Device::~Device" << std::endl;
     int result;
     if (handle != 0)
     {
         result = libusb_release_interface(handle, 0);
-        cerr << "usb_release_interface(handle, 0) -> " << result << endl;
+        std::cerr << "usb_release_interface(handle, 0) -> " << result << std::endl;
         libusb_close(handle);
     }
     handle                  = 0;
@@ -174,25 +162,26 @@ void DSI::Device::setCameraName(std::string &newname)
 
 void DSI::Device::initImager(const char *devname)
 {
-    int rc;
-    int cnt;
-    int i;
+    int rc = 0;
+    int cnt = 0;
+    int i = 0;
     libusb_device **list = NULL;
     struct libusb_device_descriptor desc;
+    std::string bus_name, device_name;
 
-    string bus_name, device_name;
     if (devname != 0)
     {
-        vector<string> foo = tokenize_str(devname, ":,");
+        std::vector<std::string> foo = tokenize_str(devname, ":,");
+
         if (((foo.size() != 3)) || (foo[0] != "usb"))
-            throw dsi_exception(string("invalid device specifier, ") + devname);
+            throw dsi_exception(std::string("invalid device specifier, ") + devname);
         bus_name    = foo[1];
         device_name = foo[2];
     }
 
-    int retcode;
+    int retcode = 0;
 
-    if (rc = libusb_init(NULL))
+    if ((rc = libusb_init(NULL)))
     {
         throw dsi_exception(libusb_error_name(rc));
     }
@@ -342,10 +331,11 @@ void DSI::Device::loadVersion()
 
     if (dsi_family != 10 || dsi_model != 1 || dsi_firmware_version != 1)
     {
-        ostringstream msg;
+        std::ostringstream msg;
+
         msg << "unsupported imager (" << dsi_family << "," << dsi_model << "," << dsi_firmware_version << ","
             << dsi_firmware_revision << ") should be (10,1,1,any)";
-        throw out_of_range(msg.str());
+        throw std::out_of_range(msg.str());
     }
 }
 
@@ -386,9 +376,9 @@ DSI::ReadoutMode DSI::Device::getReadoutMode()
     int result = command(DeviceCommand::GET_READOUT_MODE);
     if (!ReadoutMode::isValidValue(result))
     {
-        ostringstream msg;
+        std::ostringstream msg;
         msg << "ReadoutMode value (" << result << ") not recognized";
-        throw out_of_range(msg.str());
+        throw std::out_of_range(msg.str());
     }
     return *ReadoutMode::find(result);
 }
@@ -416,9 +406,9 @@ void DSI::Device::loadStatus()
 
     if (!UsbSpeed::isValidValue(result))
     {
-        ostringstream msg;
+        std::ostringstream msg;
         msg << "USB Speed value (" << _usbSpeed << ") not recognized";
-        throw out_of_range(msg.str());
+        throw std::out_of_range(msg.str());
     }
     usb_speed = *UsbSpeed::find(result);
 
@@ -573,15 +563,16 @@ std::string *DSI::Device::getString(int __offset, int __length)
         result.assign((char *)eepromData + 1, eepromData[0]);
     }
     delete[] eepromData;
-    return new string(result);
+    return new std::string(result);
 }
 
 void DSI::Device::setString(std::string __value, int __offset, int __length)
 {
     unsigned char *value = new unsigned char[__length];
+    int n = 0;
+
     memset(value, 0xff, __length);
-    int n;
-    if (__value.length() > __length - 2)
+    if ((int)__value.length() > __length - 2)
     {
         n = __length - 2;
     }
@@ -707,7 +698,7 @@ int DSI::Device::startExposure(int howlong, int gain, int offs)
     }
     else // This is what the DSI III monkey found while sniffing USB (gs)
     {
-        cerr << "Epsosure time: " << exposure_time << ", Gain: " << gain << ", Offset: " << offs << endl;
+        std::cerr << "Epsosure time: " << exposure_time << ", Gain: " << gain << ", Offset: " << offs << std::endl;
 
         // first, set gain and offset
         status = command(DeviceCommand::SET_GAIN, gain);
@@ -775,19 +766,19 @@ int DSI::Device::startExposure(int howlong, int gain, int offs)
 
 unsigned char *DSI::Device::downloadImage()
 {
-    int status;
-    int transfered;
-    int interlaced;
-    int rawtemp;
-    unsigned int t_read_width;
-    unsigned int t_read_height_even;
-    unsigned int t_read_height_odd;
-    unsigned int t_read_height;
-    unsigned int t_read_bpp;
-    unsigned int t_image_width;
-    unsigned int t_image_height;
-    unsigned int t_image_offset_x;
-    unsigned int t_image_offset_y;
+    int status = 0;
+    int transfered = 0;
+    int interlaced = 0;
+    int rawtemp = 0;
+    unsigned int t_read_width = 0;
+    unsigned int t_read_height_even = 0;
+    unsigned int t_read_height_odd = 0;
+    unsigned int t_read_height = 0;
+    unsigned int t_read_bpp = 0;
+    unsigned int t_image_width = 0;
+    unsigned int t_image_height = 0;
+    unsigned int t_image_offset_x = 0;
+    unsigned int t_image_offset_y = 0;
 
     if (read_height_even > 0)
         interlaced = 1;
@@ -823,10 +814,8 @@ unsigned char *DSI::Device::downloadImage()
     unsigned int odd_size  = t_read_bpp * t_read_width * t_read_height_odd;
     unsigned int even_size = t_read_bpp * t_read_width * t_read_height_even;
     unsigned int all_size  = t_read_bpp * t_read_width * t_read_height;
-
     unsigned char *odd_data = new unsigned char[odd_size];
-
-    unsigned char *even_data;
+    unsigned char *even_data = nullptr;
 
     if (interlaced)
         even_data = new unsigned char[even_size];
@@ -842,17 +831,17 @@ unsigned char *DSI::Device::downloadImage()
         {
             log_command_info(false, "r 86", (status > 0 ? status : 0), (char *)even_data, 0);
 
-            cerr << dec << "read even data, status = (" << status << ") " << (status > 0 ? "" : strerror(-status))
-                 << endl
+            std::cerr << std::dec << "read even data, status = (" << status << ") " << (status > 0 ? "" : strerror(-status))
+                 << std::endl
                  << "    requested " << even_size << " bytes " << t_read_width << " x " << t_read_height_even
-                 << " (even pixels)" << endl
-                 << "Transfered: " << transfered << " bytes" << endl;
+                 << " (even pixels)" << std::endl
+                 << "Transfered: " << transfered << " bytes" << std::endl;
         }
 
         if (status != 0)
         {
-            stringstream ss;
-            ss << dec << "read even data, status = (" << status << ") " << strerror(-status);
+            std::stringstream ss;
+            ss << std::dec << "read even data, status = (" << status << ") " << strerror(-status);
             throw device_read_error(ss.str());
         }
 
@@ -861,17 +850,17 @@ unsigned char *DSI::Device::downloadImage()
         {
             log_command_info(false, "r 86", (status > 0 ? status : 0), (char *)odd_data, 0);
 
-            cerr << dec << "read odd data, status = (" << status << ") " << (status > 0 ? "" : strerror(-status))
-                 << endl
+            std::cerr << std::dec << "read odd data, status = (" << status << ") " << (status > 0 ? "" : strerror(-status))
+                 << std::endl
                  << "    requested " << odd_size << " bytes " << t_read_width << " x " << t_read_height_odd
-                 << " (odd pixels)" << endl
-                 << "Transfered: " << transfered << " bytes" << endl;
+                 << " (odd pixels)" << std::endl
+                 << "Transfered: " << transfered << " bytes" << std::endl;
         }
 
         if (status != 0)
         {
-            stringstream ss;
-            ss << dec << "read odd data, status = (" << status << ") " << strerror(-status);
+            std::stringstream ss;
+            ss << std::dec << "read odd data, status = (" << status << ") " << strerror(-status);
             throw device_read_error(ss.str());
         }
     }
@@ -885,16 +874,16 @@ unsigned char *DSI::Device::downloadImage()
         {
             log_command_info(false, "r 86", (status > 0 ? status : 0), (char *)odd_data, 0);
 
-            cerr << dec << "read progressive data, status = (" << status << ") " << endl
+            std::cerr << std::dec << "read progressive data, status = (" << status << ") " << std::endl
                  << "    requested " << odd_size << " bytes " << t_read_width << " x " << t_read_height_odd
-                 << " (pixels)" << endl
-                 << "Transfered: " << transfered << " bytes" << endl;
+                 << " (pixels)" << std::endl
+                 << "Transfered: " << transfered << " bytes" << std::endl;
         }
 
         if (status != 0)
         {
-            stringstream ss;
-            ss << dec << "read progressive data, status = (" << status << ") ";
+            std::stringstream ss;
+            ss << std::dec << "read progressive data, status = (" << status << ") ";
             throw device_read_error(ss.str());
         }
     }
@@ -912,19 +901,19 @@ unsigned char *DSI::Device::downloadImage()
     /* disable 2x2 binning after downloading image (gs) */
     disable2x2Binning();
 
-    unsigned char msb, lsb, is_odd;
-    unsigned int x_ptr, line_start, y_ptr, read_ptr, write_ptr;
+    unsigned char msb = 0, lsb = 0, is_odd = 0;
+    unsigned int x_ptr = 0, line_start = 0, y_ptr = 0, read_ptr = 0, write_ptr = 0;
     char *even = (char *)even_data;
     char *odd  = (char *)odd_data;
 
     if (log_commands)
-        cerr << "t_image_height  =" << t_image_height << endl
-             << "t_image_width   =" << t_image_width << endl
-             << "t_image_offset_x=" << t_image_offset_x << endl
-             << "t_image_offset_y=" << t_image_offset_y << endl
-             << "t_read_width    =" << t_read_width << endl
-             << "t_read_height   =" << t_read_height << endl
-             << "t_read_bpp      =" << t_read_bpp << endl;
+        std::cerr << "t_image_height  =" << t_image_height << std::endl
+             << "t_image_width   =" << t_image_width << std::endl
+             << "t_image_offset_x=" << t_image_offset_x << std::endl
+             << "t_image_offset_y=" << t_image_offset_y << std::endl
+             << "t_read_width    =" << t_read_width << std::endl
+             << "t_read_height   =" << t_read_height << std::endl
+             << "t_read_bpp      =" << t_read_bpp << std::endl;
 
     if (interlaced)
     {
@@ -933,9 +922,9 @@ unsigned char *DSI::Device::downloadImage()
             line_start = t_read_width * ((y_ptr + t_image_offset_y) / 2);
             is_odd     = (y_ptr + t_image_offset_y) % 2;
 
-            cerr << "starting image row " << y_ptr << ", write_ptr=" << write_ptr << ", line_start=" << line_start
+            std::cerr << "starting image row " << y_ptr << ", write_ptr=" << write_ptr << ", line_start=" << line_start
                  << ", is_odd=" << (is_odd == 0 ? 0 : 1) << ", read_ptr=" << (line_start + t_image_offset_x) * 2
-                 << endl;
+                 << std::endl;
 
             for (x_ptr = 0; x_ptr < t_image_width; x_ptr++)
             {
@@ -961,11 +950,11 @@ unsigned char *DSI::Device::downloadImage()
         {
             line_start = t_read_width * (y_ptr + t_image_offset_y);
 
-            // cerr << "starting image row " << y_ptr
+            // std::cerr << "starting image row " << y_ptr
             //      << ", write_ptr=" << write_ptr
             //      << ", line_start=" << line_start
             //      << ", read_ptr=" << (line_start+t_image_offset_x)*2
-            //      << endl;
+            //      << std::endl;
             for (x_ptr = 0; x_ptr < t_image_width; x_ptr++)
             {
                 read_ptr = (line_start + x_ptr + t_image_offset_x) * 2;
@@ -980,7 +969,7 @@ unsigned char *DSI::Device::downloadImage()
     }
 
     if (log_commands)
-        cerr << "write_ptr=" << write_ptr << endl;
+        std::cerr << "write_ptr=" << write_ptr << std::endl;
 
     delete[] odd_data;
 
@@ -1058,16 +1047,16 @@ void DSI::Device::disable2x2Binning()
 
 unsigned char *DSI::Device::getImage(DeviceCommand __command, int howlong)
 {
-    int transfered;
+    int transfered = 0;
 
     if (((__command == DeviceCommand::TRIGGER)) || (__command == DeviceCommand::TEST_PATTERN))
     {
         // Monkey code.  Monkey see (SniffUSB), monkey do).  Some part of this
         // is required because w/o it, I get segfaults on the second attempt
         // to run the code.
-        int status;
-        int interlaced;
-        int rawtemp;
+        int status = 0;
+        int interlaced = 0;
+        int rawtemp = 0;
 
         if (read_height_even > 0)
             interlaced = 1;
@@ -1198,15 +1187,15 @@ unsigned char *DSI::Device::getImage(DeviceCommand __command, int howlong)
             status = command(__command);
         }
 
-        unsigned int t_read_width;
-        unsigned int t_read_height_even;
-        unsigned int t_read_height_odd;
-        unsigned int t_read_height;
-        unsigned int t_read_bpp;
-        unsigned int t_image_width;
-        unsigned int t_image_height;
-        unsigned int t_image_offset_x;
-        unsigned int t_image_offset_y;
+        unsigned int t_read_width = 0;
+        unsigned int t_read_height_even = 0;
+        unsigned int t_read_height_odd = 0;
+        unsigned int t_read_height = 0;
+        unsigned int t_read_bpp = 0;
+        unsigned int t_image_width = 0;
+        unsigned int t_image_height = 0;
+        unsigned int t_image_offset_x = 0;
+        unsigned int t_image_offset_y = 0;
 
         /* XXX: I'm a bit confused about the test pattern.  It *looks* like
          * the camera always sends back the same amount of data, but the
@@ -1271,10 +1260,8 @@ unsigned char *DSI::Device::getImage(DeviceCommand __command, int howlong)
         unsigned int odd_size  = t_read_bpp * t_read_width * t_read_height_odd;
         unsigned int even_size = t_read_bpp * t_read_width * t_read_height_even;
         unsigned int all_size  = t_read_bpp * t_read_width * t_read_height;
-
         unsigned char *odd_data = new unsigned char[odd_size];
-
-        unsigned char *even_data;
+        unsigned char *even_data = nullptr;
 
         if (interlaced)
             even_data = new unsigned char[even_size];
@@ -1308,16 +1295,16 @@ unsigned char *DSI::Device::getImage(DeviceCommand __command, int howlong)
             {
                 log_command_info(false, "r 86", (status > 0 ? status : 0), (char *)even_data, 0);
 
-                cerr << dec << "read even data, status = (" << status << ") " << (status > 0 ? "" : strerror(-status))
-                     << endl
+                std::cerr << std::dec << "read even data, status = (" << status << ") " << (status > 0 ? "" : strerror(-status))
+                     << std::endl
                      << "    requested " << even_size << " bytes " << t_read_width << " x " << t_read_height_even
-                     << " (even pixels)" << endl;
+                     << " (even pixels)" << std::endl;
             }
 
             if (status < 0)
             {
-                stringstream ss;
-                ss << dec << "read even data, status = (" << status << ") " << strerror(-status);
+                std::stringstream ss;
+                ss << std::dec << "read even data, status = (" << status << ") " << strerror(-status);
                 throw device_read_error(ss.str());
             }
         }
@@ -1327,16 +1314,16 @@ unsigned char *DSI::Device::getImage(DeviceCommand __command, int howlong)
         {
             log_command_info(false, "r 86", (status > 0 ? status : 0), (char *)even_data, 0);
 
-            cerr << dec << "read odd data, status = (" << status << ") " << (status > 0 ? "" : strerror(-status))
-                 << endl
+            std::cerr << std::dec << "read odd data, status = (" << status << ") " << (status > 0 ? "" : strerror(-status))
+                 << std::endl
                  << "    requested " << odd_size << " bytes " << t_read_width << " x " << t_read_height_odd
-                 << " (odd pixels)" << endl;
+                 << " (odd pixels)" << std::endl;
         }
 
         if (status < 0)
         {
-            stringstream ss;
-            ss << dec << "read odd data, status = (" << status << ") " << strerror(-status);
+            std::stringstream ss;
+            ss << std::dec << "read odd data, status = (" << status << ") " << strerror(-status);
             throw device_read_error(ss.str());
         }
 
@@ -1350,19 +1337,19 @@ unsigned char *DSI::Device::getImage(DeviceCommand __command, int howlong)
 
         disable2x2Binning();
 
-        unsigned char msb, lsb, is_odd;
-        unsigned int x_ptr, line_start, y_ptr, read_ptr, write_ptr;
+        unsigned char msb = 0, lsb = 0, is_odd = 0;
+        unsigned int x_ptr = 0, line_start = 0, y_ptr = 0, read_ptr = 0, write_ptr = 0;
         char *even = (char *)even_data;
         char *odd  = (char *)odd_data;
 
         if (log_commands)
-            cerr << "t_image_height  =" << t_image_height << endl
-                 << "t_image_width   =" << t_image_width << endl
-                 << "t_image_offset_x=" << t_image_offset_x << endl
-                 << "t_image_offset_y=" << t_image_offset_y << endl
-                 << "t_read_width    =" << t_read_width << endl
-                 << "t_read_height   =" << t_read_height << endl
-                 << "t_read_bpp      =" << t_read_bpp << endl;
+            std::cerr << "t_image_height  =" << t_image_height << std::endl
+                 << "t_image_width   =" << t_image_width << std::endl
+                 << "t_image_offset_x=" << t_image_offset_x << std::endl
+                 << "t_image_offset_y=" << t_image_offset_y << std::endl
+                 << "t_read_width    =" << t_read_width << std::endl
+                 << "t_read_height   =" << t_read_height << std::endl
+                 << "t_read_bpp      =" << t_read_bpp << std::endl;
 
         if (interlaced)
         {
@@ -1371,9 +1358,9 @@ unsigned char *DSI::Device::getImage(DeviceCommand __command, int howlong)
                 line_start = t_read_width * ((y_ptr + t_image_offset_y) / 2);
                 is_odd     = (y_ptr + t_image_offset_y) % 2;
 
-                cerr << "starting image row " << y_ptr << ", write_ptr=" << write_ptr << ", line_start=" << line_start
+                std::cerr << "starting image row " << y_ptr << ", write_ptr=" << write_ptr << ", line_start=" << line_start
                      << ", is_odd=" << (is_odd == 0 ? 0 : 1) << ", read_ptr=" << (line_start + t_image_offset_x) * 2
-                     << endl;
+                     << std::endl;
                 for (x_ptr = 0; x_ptr < t_image_width; x_ptr++)
                 {
                     read_ptr = (line_start + x_ptr + t_image_offset_x) * 2;
@@ -1398,10 +1385,10 @@ unsigned char *DSI::Device::getImage(DeviceCommand __command, int howlong)
             {
                 line_start = t_read_width * (y_ptr + t_image_offset_y);
 
-                //cerr << "starting image row " << y_ptr
+                //std::cerr << "starting image row " << y_ptr
                 //     << ", write_ptr=" << write_ptr
                 //     << ", line_start=" << line_start
-                //     << ", read_ptr=" << (line_start+t_image_offset_x)*2 << endl;
+                //     << ", read_ptr=" << (line_start+t_image_offset_x)*2 << std::endl;
                 for (x_ptr = 0; x_ptr < t_image_width; x_ptr++)
                 {
                     read_ptr = (line_start + x_ptr + t_image_offset_x) * 2;
@@ -1416,7 +1403,7 @@ unsigned char *DSI::Device::getImage(DeviceCommand __command, int howlong)
         }
 
         if (log_commands)
-            cerr << "write_ptr=" << write_ptr << endl;
+            std::cerr << "write_ptr=" << write_ptr << std::endl;
 
         delete[] odd_data;
 
@@ -1671,8 +1658,8 @@ unsigned int DSI::Device::command(unsigned char *__buffer, int __length, int __e
 
     if (buffer[0] != transfered)
     {
-        ostringstream msg;
-        msg << "response length " << dec << (int)buffer[0] << " does not match bytes read " << transfered << endl;
+        std::ostringstream msg;
+        msg << "response length " << std::dec << (int)buffer[0] << " does not match bytes read " << transfered << std::endl;
         throw bad_length(msg.str());
     }
 
@@ -1682,7 +1669,7 @@ unsigned int DSI::Device::command(unsigned char *__buffer, int __length, int __e
         {
             log_command_info(false, "r 81", buffer[0], (char *)buffer, 0);
         }
-        ostringstream msg;
+        std::ostringstream msg;
         msg << "response sequence number (" << (unsigned int)buffer[1] << ") does not match request ("
             << command_sequence_number << ") for command " << command->name();
         throw bad_command(msg.str());
@@ -1690,8 +1677,8 @@ unsigned int DSI::Device::command(unsigned char *__buffer, int __length, int __e
 
     if (buffer[2] != (&DeviceResponse::ACK)->value())
     {
-        ostringstream msg;
-        msg << "command " << command->name() << " did not get ACK (was " << setfill('0') << setw(2) << buffer[2] << ")";
+        std::ostringstream msg;
+        msg << "command " << command->name() << " did not get ACK (was " << std::setfill('0') << std::setw(2) << buffer[2] << ")";
         throw bad_response(msg.str());
     }
 

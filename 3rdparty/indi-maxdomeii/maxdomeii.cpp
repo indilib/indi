@@ -19,23 +19,18 @@
     Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
-/* MaxDome II Command Set */
-#include "maxdomeiidriver.h"
-
-/* Our driver header */
 #include "maxdomeii.h"
+
+#include "config.h"
+#include "maxdomeiidriver.h"  // MaxDome II Command Set
 
 #include <connectionplugins/connectionserial.h>
 
-#include "config.h"
+#include <memory>
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
 #include <math.h>
 #include <string.h>
-
-#include <memory>
+#include <unistd.h>
 
 const int POLLMS = 1000; // Period of update, 1 second.
 
@@ -647,7 +642,6 @@ bool MaxDomeII::ISNewNumber(const char *dev, const char *name, double values[], 
     {
         double nVal;
         IPState error;
-        int nRetry = 3;
 
         if (IUUpdateNumber(&ShutterOperationAzimuthNP, values, names, n) < 0)
             return false;
@@ -768,9 +762,8 @@ bool MaxDomeII::ISNewSwitch(const char *dev, const char *name, ISState *states, 
 ***************************************************************************************/
 int MaxDomeII::AzimuthDistance(int nPos1, int nPos2)
 {
-    int nDif;
+    int nDif = std::abs(nPos1 - nPos2);
 
-    nDif = fabs(nPos1 - nPos2);
     if (nDif > nTicksPerTurn / 2)
         nDif = nTicksPerTurn - nDif;
 

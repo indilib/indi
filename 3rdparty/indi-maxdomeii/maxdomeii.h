@@ -20,11 +20,8 @@
 
 */
 
-#ifndef MAXDOMEII_H
-#define MAXDOMEII_H
+#pragma once
 
-#include <indidevapi.h>
-#include <indicom.h>
 #include <indidome.h>
 
 #define MD_AZIMUTH_IDLE   0
@@ -37,29 +34,29 @@ class MaxDomeII : public INDI::Dome
     MaxDomeII();
     ~MaxDomeII();
 
-    const char *getDefaultName();
-    bool initProperties();
-    bool updateProperties();
-    virtual bool saveConfigItems(FILE *fp);
+    virtual const char *getDefaultName() override;
+    virtual bool initProperties() override;
+    virtual bool updateProperties() override;
+    virtual bool saveConfigItems(FILE *fp) override;
 
     virtual bool Disconnect() override;
     virtual bool Handshake() override;
 
-    void TimerHit();
+    virtual void TimerHit() override;
 
-    virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n);
-    virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n);
+    virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
+    virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
 
-    virtual IPState MoveAbs(double az);
+    virtual IPState MoveAbs(double az) override;
     //virtual IPState Home();
-    virtual bool Abort();
+    virtual bool Abort() override;
 
   protected:
     // Parking
     IPState ConfigurePark(int nCSBP, double ParkAzimuth);
-    virtual bool SetCurrentPark();
-    virtual bool SetDefaultPark();
-    virtual IPState ControlShutter(ShutterOperation operation);
+    virtual bool SetCurrentPark() override;
+    virtual bool SetDefaultPark() override;
+    virtual IPState ControlShutter(ShutterOperation operation) override;
 
     /*******************************************************/
     /* Misc routines
@@ -109,5 +106,3 @@ class MaxDomeII : public INDI::Dome
 
     bool SetupParms();
 };
-
-#endif

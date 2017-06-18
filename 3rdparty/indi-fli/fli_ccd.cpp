@@ -125,6 +125,7 @@ bool FLICCD::initProperties()
 
     addSimulationControl();
     addDebugControl();
+    return true;
 }
 
 void FLICCD::ISGetProperties(const char *dev)
@@ -244,7 +245,7 @@ bool FLICCD::setupParams()
 
     if (sim)
         IUSaveText(&CamInfoT[0], getDeviceName());
-    else if (err = FLIGetModel(fli_dev, FLICam.model, 32))
+    else if ((err = FLIGetModel(fli_dev, FLICam.model, 32)))
     {
         DEBUGF(INDI::Logger::DBG_ERROR, "FLIGetModel() failed. %s.", strerror((int)-err));
         return false;
@@ -382,21 +383,21 @@ bool FLICCD::setupParams()
     if (!sim)
     {
         /* Default frame type is NORMAL */
-        if (err = FLISetFrameType(fli_dev, FLI_FRAME_TYPE_NORMAL))
+        if ((err = FLISetFrameType(fli_dev, FLI_FRAME_TYPE_NORMAL)))
         {
             DEBUGF(INDI::Logger::DBG_DEBUG, "FLISetFrameType() failed. %s.", strerror((int)-err));
             return false;
         }
 
         /* X horizontal binning */
-        if (err = FLISetHBin(fli_dev, PrimaryCCD.getBinX()))
+        if ((err = FLISetHBin(fli_dev, PrimaryCCD.getBinX())))
         {
             DEBUGF(INDI::Logger::DBG_ERROR, "FLISetBin() failed. %s.", strerror((int)-err));
             return false;
         }
 
         /* Y vertical binning */
-        if (err = FLISetVBin(fli_dev, PrimaryCCD.getBinY()))
+        if ((err = FLISetVBin(fli_dev, PrimaryCCD.getBinY())))
         {
             DEBUGF(INDI::Logger::DBG_ERROR, "FLISetVBin() failed. %s.", strerror((int)-err));
             return false;
@@ -447,12 +448,12 @@ bool FLICCD::StartExposure(float duration)
 
     if (!sim)
     {
-        if (err = FLISetExposureTime(fli_dev, (long)(duration * 1000)))
+        if ((err = FLISetExposureTime(fli_dev, (long)(duration * 1000))))
         {
             DEBUGF(INDI::Logger::DBG_ERROR, "FLISetExposureTime() failed. %s.", strerror((int)-err));
             return false;
         }
-        if (err = FLIExposeFrame(fli_dev))
+        if ((err = FLIExposeFrame(fli_dev)))
         {
             DEBUGF(INDI::Logger::DBG_ERROR, "FLIExposeFrame() failed. %s.", strerror((int)-err));
             return false;
@@ -485,6 +486,7 @@ bool FLICCD::AbortExposure()
 
 bool FLICCD::UpdateCCDFrameType(CCDChip::CCD_FRAME fType)
 {
+    INDI_UNUSED(fType);
     int err                           = 0;
     CCDChip::CCD_FRAME imageFrameType = PrimaryCCD.getFrameType();
     // in indiccd.cpp imageFrameType is already set
@@ -678,14 +680,14 @@ void FLICCD::TimerHit()
         case IPS_OK:
             if (sim == false)
             {
-                if (err = FLIGetTemperature(fli_dev, &ccdTemp))
+                if ((err = FLIGetTemperature(fli_dev, &ccdTemp)))
                 {
                     TemperatureNP.s = IPS_IDLE;
                     IDSetNumber(&TemperatureNP, NULL);
                     DEBUGF(INDI::Logger::DBG_ERROR, "FLIGetTemperature() failed. %s.", strerror((int)-err));
                     break;
                 }
-                if (err = FLIGetCoolerPower(fli_dev, &ccdPower))
+                if ((err = FLIGetCoolerPower(fli_dev, &ccdPower)))
                 {
                     CoolerNP.s = IPS_IDLE;
                     IDSetNumber(&TemperatureNP, NULL);
@@ -724,7 +726,7 @@ void FLICCD::TimerHit()
                     break;
                 }
 
-                if (err = FLIGetCoolerPower(fli_dev, &ccdPower))
+                if ((err = FLIGetCoolerPower(fli_dev, &ccdPower)))
                 {
                     CoolerNP.s = IPS_IDLE;
                     IDSetNumber(&TemperatureNP, "FLIGetCoolerPower() failed. %s.", strerror((int)-err));

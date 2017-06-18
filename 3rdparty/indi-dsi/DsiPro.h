@@ -3,8 +3,7 @@
  *
  */
 
-#ifndef __DsiPro_hh
-#define __DsiPro_hh
+#pragma once
 
 #include "DsiDevice.h"
 
@@ -21,5 +20,3 @@ class DsiPro : public Device
     ~DsiPro();
 };
 };
-
-#endif /* __DsiPro_hh */

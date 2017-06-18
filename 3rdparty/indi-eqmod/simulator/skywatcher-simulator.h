@@ -1,4 +1,6 @@
 
+#pragma once
+
 #include <sys/time.h>
 
 /* Microstepping */
@@ -100,10 +102,6 @@ class SkywatcherSimulator
     // Motor status (Skywatcher protocol)
     unsigned int ra_status;
     unsigned int de_status;
-
-    //PWM
-    unsigned int *ra_pwm_table;
-    unsigned int *de_pwm_table;
 
     // USART
     char reply[32];

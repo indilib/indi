@@ -15,25 +15,7 @@
     along with the Skywatcher Protocol INDI driver.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <math.h>
-#include <unistd.h>
-#include <sys/time.h>
-#include <time.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <memory>
-
-#include <libnova.h>
-
-#include <indicom.h>
-
 #include "align.h"
-#include "pointset.h"
-
-#include "config.h"
 
 #include "../eqmod.h"
 
@@ -287,8 +269,8 @@ void Align::AlignNStar(double jd, struct ln_lnlat_posn *position, double current
         //MATRIX_LOG("invT", invT);
         if (!(ingoto))
         {
-            double alignedalt, alignedaz;
-            double lst;
+            double lst = 0;
+
             lst = ln_get_apparent_sidereal_time(jd);
             lst += (position->lng / 15.0);
             lst = pointset->range24(lst);
@@ -463,12 +445,13 @@ void Align::AlignGoto(SyncData globalsync, double jd, struct ln_lnlat_posn *posi
 
 void Align::AlignSync(SyncData globalsync, SyncData thissync)
 {
+    INDI_UNUSED(globalsync);
     double values[6]     = { thissync.lst,       thissync.jd,          thissync.targetRA,
                          thissync.targetDEC, thissync.telescopeRA, thissync.telescopeDEC };
     const char *names[6] = { "ALIGNPOINT_SYNCTIME",     "ALIGNPOINT_JD",           "ALIGNPOINT_CELESTIAL_RA",
                              "ALIGNPOINT_CELESTIAL_DE", "ALIGNPOINT_TELESCOPE_RA", "ALIGNPOINT_TELESCOPE_DE" };
-    ISwitch *alignsyncsw;
-    /*syncdata.lst = lst; syncdata.jd = jd; 
+
+    /*syncdata.lst = lst; syncdata.jd = jd;
   syncdata.targetRA = targetRA;  syncdata.targetDEC = targetDEC;  
   syncdata.telescopeRA = telescopeRA;  syncdata.telescopeDEC = telescopeDEC;  
   IDLog("AlignSync \n");
@@ -713,10 +696,14 @@ bool Align::ISNewText(const char *dev, const char *name, char *texts[], char *na
 bool Align::ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[],
                       char *names[], int num)
 {
-    if (strcmp(dev, telescope->getDeviceName()) == 0)
-    {
-    }
-
+    INDI_UNUSED(dev);
+    INDI_UNUSED(name);
+    INDI_UNUSED(sizes);
+    INDI_UNUSED(blobsizes);
+    INDI_UNUSED(blobs);
+    INDI_UNUSED(formats);
+    INDI_UNUSED(names);
+    INDI_UNUSED(num);
     return false;
 }
 

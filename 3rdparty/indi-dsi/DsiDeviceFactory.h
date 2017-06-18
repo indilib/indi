@@ -3,8 +3,7 @@
  *
  */
 
-#ifndef __DsiDeviceFactory_hh
-#define __DsiDeviceFactory_hh
+#pragma once
 
 #include "DsiDevice.h"
 
@@ -16,5 +15,3 @@ class DeviceFactory
     static Device *getInstance(const char *devpath = 0);
 };
 };
-
-#endif /* __DsiDeviceFactory_hh */

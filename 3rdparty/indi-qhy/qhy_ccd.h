@@ -19,17 +19,14 @@
  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-#ifndef QHY_CCD_H
-#define QHY_CCD_H
+#pragma once
+
+#include "qhyccd.h"
 
 #include <indiccd.h>
 #include <indifilterinterface.h>
-#include <iostream>
 
-#include "qhyccd.h"
-#include "log4z.h"
-
-using namespace std;
+#include <pthread.h>
 
 #define DEVICE struct usb_device *
 
@@ -39,53 +36,53 @@ class QHYCCD : public INDI::CCD, public INDI::FilterInterface
     QHYCCD(const char *name);
     virtual ~QHYCCD();
 
-    const char *getDefaultName();
+    virtual const char *getDefaultName() override;
 
-    bool initProperties();
-    void ISGetProperties(const char *dev);
-    bool updateProperties();
+    virtual bool initProperties() override;
+    virtual void ISGetProperties(const char *dev) override;
+    virtual bool updateProperties() override;
 
-    bool Connect();
-    bool Disconnect();
+    virtual bool Connect() override;
+    virtual bool Disconnect() override;
 
-    int SetTemperature(double temperature);
-    bool StartExposure(float duration);
-    bool AbortExposure();
+    virtual int SetTemperature(double temperature) override;
+    virtual bool StartExposure(float duration) override;
+    virtual bool AbortExposure() override;
 
-    void debugTriggered(bool enable);
+    virtual void debugTriggered(bool enable) override;
 
-    bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n);
-    bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int num);
-    bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n);
+    virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
+    virtual bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int num) override;
+    virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
 
     static void *streamVideoHelper(void *context);
     void *streamVideo();
 
   protected:
     // Misc.
-    void TimerHit();
-    bool saveConfigItems(FILE *fp);
+    virtual void TimerHit() override;
+    virtual bool saveConfigItems(FILE *fp) override;
 
     // CCD
-    virtual bool UpdateCCDFrame(int x, int y, int w, int h);
-    virtual bool UpdateCCDBin(int binx, int biny);
+    virtual bool UpdateCCDFrame(int x, int y, int w, int h) override;
+    virtual bool UpdateCCDBin(int binx, int biny) override;
 
     // Guide Port
-    virtual IPState GuideNorth(float);
-    virtual IPState GuideSouth(float);
-    virtual IPState GuideEast(float);
-    virtual IPState GuideWest(float);
+    virtual IPState GuideNorth(float) override;
+    virtual IPState GuideSouth(float) override;
+    virtual IPState GuideEast(float) override;
+    virtual IPState GuideWest(float) override;
 
     // Filter Wheel CFW
-    virtual int QueryFilter();
-    virtual bool SelectFilter(int position);
-    virtual bool SetFilterNames();
-    virtual bool GetFilterNames(const char *groupName);
+    virtual int QueryFilter() override;
+    virtual bool SelectFilter(int position) override;
+    virtual bool SetFilterNames() override;
+    virtual bool GetFilterNames(const char *groupName) override;
 
 #ifndef __APPLE__
     // Streaming
-    virtual bool StartStreaming();
-    virtual bool StopStreaming();
+    virtual bool StartStreaming() override;
+    virtual bool StopStreaming() override;
 #endif
 
     ISwitch CoolerS[2];
@@ -174,5 +171,3 @@ class QHYCCD : public INDI::CCD, public INDI::FilterInterface
                             char *formats[], char *names[], int n);
     friend void ::ISSnoopDevice(XMLEle *root);
 };
-
-#endif // QHY_CCD_H

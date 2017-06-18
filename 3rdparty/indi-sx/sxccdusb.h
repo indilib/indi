@@ -35,8 +35,7 @@
   of the copyright holder.
 */
 
-#ifndef SXCCDUSB_H_
-#define SXCCDUSB_H_
+#pragma once
 
 #ifdef OSX_EMBEDED_MODE
 #include <libusb.h>
@@ -175,5 +174,3 @@ int sxSetCooler(HANDLE sxHandle, unsigned char SetStatus, unsigned short SetTemp
                 unsigned short *RetTemp);
 bool sxIsInterlaced(short model);
 bool sxIsColor(short model);
-
-#endif /* SXCCDUSB_H_ */

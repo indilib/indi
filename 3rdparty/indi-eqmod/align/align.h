@@ -15,15 +15,13 @@
     along with the Skywatcher Protocol INDI driver.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef ALIGN_H
-#define ALIGN_H
+#pragma once
 
-#include <stdio.h>
+#include "pointset.h"
+
 #include <inditelescope.h>
 
 typedef struct SyncData SyncData;
-
-#include "pointset.h"
 
 class Align
 {
@@ -84,5 +82,3 @@ class Align
     virtual void AlignSync(SyncData globalsync, SyncData thissync);
     virtual void AlignStandardSync(SyncData globalsync, SyncData *thissync, struct ln_lnlat_posn *position);
 };
-
-#endif // ALIGN_H

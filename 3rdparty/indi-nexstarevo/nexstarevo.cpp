@@ -1,20 +1,10 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <math.h>
-#include <unistd.h>
-#include <sys/time.h>
-#include <time.h>
+
+#include "nexstarevo.h"
 
 #include "config.h"
-#include "nexstarevo.h"
+
 #include <indicom.h>
 #include <connectionplugins/connectionserial.h>
-#include <connectionplugins/connectiontcp.h>
-
-#include "NexStarAUXScope.h"
-
-#include <memory>
 
 using namespace INDI::AlignmentSubsystem;
 
@@ -75,10 +65,8 @@ const long NexStarEvo::MIN_ALT              = -90.0 * STEPS_PER_DEGREE;
 const double NexStarEvo::TRACK_SCALE = 60000 / STEPS_PER_DEGREE;
 
 NexStarEvo::NexStarEvo()
-    : AxisStatusAZ(STOPPED), AxisDirectionAZ(FORWARD), AxisSlewRateAZ(DEFAULT_SLEW_RATE), CurrentAZ(0),
-      AxisStatusALT(STOPPED), AxisDirectionALT(FORWARD), AxisSlewRateALT(DEFAULT_SLEW_RATE), CurrentALT(0),
-      ScopeStatus(IDLE), PreviousNSMotion(PREVIOUS_NS_MOTION_UNKNOWN), PreviousWEMotion(PREVIOUS_WE_MOTION_UNKNOWN),
-      TraceThisTickCount(0), TraceThisTick(false), scope(),
+    : ScopeStatus(IDLE), AxisStatusALT(STOPPED), AxisDirectionALT(FORWARD), AxisStatusAZ(STOPPED),
+      AxisDirectionAZ(FORWARD), TraceThisTickCount(0), TraceThisTick(false),
       DBG_NSEVO(INDI::Logger::getInstance().addDebugLevel("NexStar Evo Verbose", "NSEVO"))
 {
     setVersion(NSEVO_VERSION_MAJOR, NSEVO_VERSION_MINOR);
@@ -299,7 +287,7 @@ bool NexStarEvo::Goto(double ra, double dec)
     // Call the alignment subsystem to translate the celestial reference frame coordinate
     // into a telescope reference frame coordinate
     TelescopeDirectionVector TDV;
-    ln_hrz_posn AltAz, trgAltAz;
+    ln_hrz_posn AltAz;
 
     AltAz = AltAzFromRaDec(ra, dec, -timeshift);
 

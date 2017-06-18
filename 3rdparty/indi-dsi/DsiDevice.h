@@ -4,8 +4,13 @@
  *
  */
 
-#ifndef __DsiDevice_hh
-#define __DsiDevice_hh
+#pragma once
+
+#include "DsiTypes.h"
+
+#include <libusb-1.0/libusb.h>
+
+#include <string>
 
 #ifndef LONGEXP
 #define LONGEXP 20000
@@ -14,13 +19,6 @@
 #ifndef VDD_TRH
 #define VDD_TRH 10000
 #endif
-
-#include <libusb-1.0/libusb.h>
-#include <string>
-
-#include "DsiTypes.h"
-
-using namespace std;
 
 namespace DSI
 {
@@ -230,5 +228,3 @@ class Device
     bool isDebug() { return log_commands; }
 };
 };
-
-#endif /* __DsiDevice_hh */

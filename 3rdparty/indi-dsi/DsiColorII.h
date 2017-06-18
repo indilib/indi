@@ -4,8 +4,7 @@
  *
  */
 
-#ifndef __DsiColorII_hh
-#define __DsiColorII_hh
+#pragma once
 
 #include "DsiDevice.h"
 
@@ -22,5 +21,3 @@ class DsiColorII : public Device
     ~DsiColorII();
 };
 };
-
-#endif /* __DsiColorII_hh */

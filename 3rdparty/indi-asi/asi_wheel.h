@@ -21,10 +21,10 @@
  The full GNU General Public License is included in this distribution in the
  file called LICENSE.
  */
-#ifndef __ASI_WHEEL_H
-#define __ASI_WHEEL_H
 
-#define NAME_MAX 100
+#pragma once
+
+#include "EFW_filter.h"
 
 #include <indifilterwheel.h>
 
@@ -37,24 +37,22 @@ class ASIWHEEL : public INDI::FilterWheel
     ASIWHEEL(int id, EFW_INFO info, bool enumerate);
     ~ASIWHEEL();
 
-    void debugTriggered(bool enable);
-    void simulationTriggered(bool enable);
+    virtual void debugTriggered(bool enable) override;
+    virtual void simulationTriggered(bool enable) override;
 
-    bool Connect();
-    bool Disconnect();
-    const char *getDefaultName();
+    virtual bool Connect() override;
+    virtual bool Disconnect() override;
+    virtual const char *getDefaultName() override;
 
-    bool initProperties();
+    virtual bool initProperties() override;
 
-    void ISGetProperties(const char *dev);
+    virtual void ISGetProperties(const char *dev) override;
 
-    int QueryFilter();
-    bool SelectFilter(int);
-    void TimerHit();
-    virtual bool SetFilterNames() { return true; }
-    bool GetFilterNames(const char *);
+    virtual int QueryFilter() override;
+    virtual bool SelectFilter(int) override;
+    virtual void TimerHit() override;
+    virtual bool SetFilterNames() override { return true; }
+    virtual bool GetFilterNames(const char *) override;
 
-    char name[NAME_MAX];
+    char name[100];
 };
-
-#endif // __ASI_WHEEL_H

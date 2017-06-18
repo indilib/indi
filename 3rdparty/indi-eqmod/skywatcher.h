@@ -15,16 +15,17 @@
     along with the Skywatcher Protocol INDI driver.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef SKYWATCHER_H
-#define SKYWATCHER_H
-
-#include <sys/time.h>
-#include <time.h>
-#include <inditelescope.h>
-#include <lilxml.h>
+#pragma once
 
 #include "eqmoderror.h"
-//#include "eqmod.h"
+
+#include <inditelescope.h>
+
+#include <lilxml.h>
+
+#include <time.h>
+#include <sys/time.h>
+
 class EQMod; // TODO
 
 #include "simulator/simulator.h"
@@ -169,8 +170,8 @@ class Skywatcher
 
     enum SkywatcherAxis
     {
-        Axis1 = '1', // RA/AZ
-        Axis2 = '2', // DE/ALT
+        Axis1 = 0, // RA/AZ
+        Axis2 = 1, // DE/ALT
         NUMBER_OF_SKYWATCHERAXIS
     };
 
@@ -308,7 +309,6 @@ class Skywatcher
     char response[SKYWATCHER_MAX_CMD];
 
     bool debug;
-    const char *deviceName;
     bool debugnextread;
     EQMod *telescope;
     bool reconnect;
@@ -324,5 +324,3 @@ class Skywatcher
 
     unsigned long lastreadIndexer[NUMBER_OF_SKYWATCHERAXIS];
 };
-
-#endif

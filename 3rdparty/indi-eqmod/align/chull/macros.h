@@ -4,6 +4,9 @@
  	macros used to access data structures and perform quick tests.
 
   ====================================================================*/
+
+#pragma once
+
 #include <stdlib.h>
 
 /* general-purpose macros */

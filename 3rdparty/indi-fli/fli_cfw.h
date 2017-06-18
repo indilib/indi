@@ -1,6 +1,3 @@
-#ifndef FLI_CFW_H
-#define FLI_CFW_H
-
 #if 0
     FLI CFW
     INDI Interface for Finger Lakes Instrument Filter Wheels
@@ -21,6 +18,8 @@
     Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
 #endif
+
+#pragma once
 
 #include <libfli.h>
 #include <indifilterwheel.h>
@@ -85,5 +84,3 @@ class FLICFW : public INDI::FilterWheel
     void turnWheel();
     bool setupParams();
 };
-
-#endif // FLI_CFW_H

@@ -2,20 +2,12 @@
  * Copyright (c) 2009, Roland Roberts
  */
 
-#ifdef HAVE_CONFIG_H
-#include "config.h"
-#endif
-
 #include "Util.h"
 
-using namespace std;
-#include <string>
-#include <vector>
 #include <cstring>
+#include <iomanip>
 #include <iostream>
 #include <sstream>
-#include <iomanip>
-#include <stdexcept>
 
 /// \brief convert input string into vector of string tokens
 ///

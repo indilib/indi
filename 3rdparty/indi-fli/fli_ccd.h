@@ -21,8 +21,7 @@
 
 */
 
-#ifndef FLI_CCD_H
-#define FLI_CCD_H
+#pragma once
 
 #include <libfli.h>
 #include <indiccd.h>
@@ -110,5 +109,3 @@ class FLICCD : public INDI::CCD
     // Simulation mode
     bool sim;
 };
-
-#endif // FLI_CCD_H

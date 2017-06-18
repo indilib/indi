@@ -26,12 +26,12 @@
  file called LICENSE.
  */
 
-#include <stdio.h>
-#include <memory>
-#include <unistd.h>
+#include "sxwheel.h"
 
 #include "sxconfig.h"
-#include "sxwheel.h"
+
+#include <memory>
+#include <unistd.h>
 
 std::unique_ptr<SXWHEEL> sxwheel(new SXWHEEL());
 

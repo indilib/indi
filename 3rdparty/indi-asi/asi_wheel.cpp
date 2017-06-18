@@ -30,14 +30,12 @@
  file called LICENSE.
  */
 
-#include <stdio.h>
-#include <memory>
-#include <unistd.h>
-#include <string.h>
+#include "asi_wheel.h"
 
 #include "config.h"
-#include "EFW_filter.h"
-#include "asi_wheel.h"
+
+#include <string.h>
+#include <unistd.h>
 
 #define POLLMS      250 /* Polling time (ms) */
 #define MAX_DEVICES 16  /* Max device cameraCount */
@@ -161,7 +159,8 @@ void ISSnoopDevice(XMLEle *root)
 
 ASIWHEEL::ASIWHEEL(int id, EFW_INFO info, bool enumerate)
 {
-    char str[NAME_MAX];
+    char str[100];
+
     if (enumerate)
         snprintf(str, sizeof(str), "%s %d", info.Name, id);
     else
@@ -261,7 +260,7 @@ bool ASIWHEEL::Connect()
 
 bool ASIWHEEL::Disconnect()
 {
-    EFW_ERROR_CODE result;
+    EFW_ERROR_CODE result = EFW_SUCCESS;
 
     if (isSimulation())
     {
@@ -296,9 +295,11 @@ void ASIWHEEL::ISGetProperties(const char *dev)
 
 int ASIWHEEL::QueryFilter()
 {
-    EFW_ERROR_CODE result;
+    EFW_ERROR_CODE result = EFW_SUCCESS;
+
     if (!isSimulation() && fw_id >= 0)
         result = EFWGetPosition(fw_id, &CurrentFilter);
+
     CurrentFilter++;
     if (result != EFW_SUCCESS)
     {

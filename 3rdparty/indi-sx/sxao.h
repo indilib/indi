@@ -22,8 +22,7 @@
  file called LICENSE.
  */
 
-#ifndef SXAO_H
-#define SXAO_H
+#pragma once
 
 #include <defaultdevice.h>
 #include <indiguiderinterface.h>
@@ -85,5 +84,3 @@ class SXAO : public INDI::DefaultDevice, INDI::GuiderInterface
 
     const char *getDefaultName();
 };
-
-#endif // SXAO_H

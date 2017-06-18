@@ -1,8 +1,8 @@
-#ifndef NEXSTARAUX_H
-#define NEXSTARAUX_H
 
+#pragma once
+
+#include <vector>
 #include <netinet/in.h>
-#include <queue>
 
 typedef std::vector<unsigned char> buffer;
 
@@ -121,5 +121,3 @@ class NexStarAUXScope
     struct sockaddr_in addr;
     bool simulator = false;
 };
-
-#endif // NEXSTARAUX_H

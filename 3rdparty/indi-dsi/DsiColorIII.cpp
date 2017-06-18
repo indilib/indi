@@ -6,16 +6,15 @@
  *
  */
 
-#ifdef HAVE_CONFIG_H
-#include "config.h"
-#endif
-
 #include "DsiColorIII.h"
+
+#include <indidevapi.h>
 
 using namespace DSI;
 
 void DsiColorIII::initImager(const char *devname)
 {
+    INDI_UNUSED(devname);
     command(DeviceCommand::SET_ROW_COUNT_EVEN, read_height_even);
     command(DeviceCommand::SET_ROW_COUNT_ODD, read_height_odd);
 

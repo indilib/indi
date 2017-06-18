@@ -20,26 +20,19 @@
   file called LICENSE.
 *******************************************************************************/
 
-#include <unistd.h>
-#include <stdlib.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <fcntl.h>
-#include <stdio.h>
-#include <stdarg.h>
-#include <string.h>
-#include <sys/ioctl.h> /* ioctl()*/
+#include "gphoto_driver.h"
+
+#include "dsusbdriver.h"
 
 #include <indilogger.h>
 
-#include <sys/time.h>
-#include <time.h>
-
-#include <pthread.h>
 #include <gphoto2/gphoto2-version.h>
 
-#include "gphoto_driver.h"
-#include "dsusbdriver.h"
+#include <fcntl.h>
+#include <pthread.h>
+#include <string.h>
+#include <unistd.h>
+#include <sys/ioctl.h> /* ioctl()*/
 
 static GPPortInfoList *portinfolist   = NULL;
 static CameraAbilitiesList *abilities = NULL;
@@ -1426,6 +1419,7 @@ int gphoto_close(gphoto_driver *gphoto)
 
 gphoto_widget *gphoto_get_widget_info(gphoto_driver *gphoto, gphoto_widget_list **iter)
 {
+    INDI_UNUSED(gphoto);
     gphoto_widget *widget;
 
     if (!*iter)

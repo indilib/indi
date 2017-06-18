@@ -22,20 +22,18 @@
 
 #include "qhy_ccd.h"
 
-#include "qhy_fw.h"
-
 #include "config.h"
 #ifndef __APPLE__
 #include "stream_recorder.h"
 #endif
 
-#include <algorithm>
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-parameter"
+#include <log4z.h>
+#pragma GCC diagnostic pop
 
-#include <memory>
-#include <time.h>
+#include <algorithm>
 #include <math.h>
-#include <unistd.h>
-#include <sys/time.h>
 
 #define POLLMS               1000  /* Polling time (ms) */
 #define TEMP_THRESHOLD       0.2   /* Differential temperature threshold (C)*/
@@ -136,7 +134,7 @@ void ISInit()
     std::vector<std::string> devices = GetDevicesIDs();
 
     cameraCount = (int)devices.size();
-    for (unsigned int i = 0; i < cameraCount; i++)
+    for (int i = 0; i < cameraCount; i++)
     {
         cameras[i] = new QHYCCD(devices[i].c_str());
     }
@@ -525,11 +523,10 @@ bool QHYCCD::updateProperties()
 
 bool QHYCCD::Connect()
 {
-    sim = isSimulation();
-
-    int ret;
-
+    unsigned int ret = 0;
     uint32_t cap;
+
+    sim = isSimulation();
 
     if (sim)
     {
@@ -805,7 +802,7 @@ int QHYCCD::SetTemperature(double temperature)
 
 bool QHYCCD::StartExposure(float duration)
 {
-    int ret = QHYCCD_ERROR;
+    unsigned int ret = QHYCCD_ERROR;
 
 #ifndef __APPLE__
     if (Streamer->isBusy())

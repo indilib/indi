@@ -20,23 +20,21 @@
 
 */
 
-#ifndef GPHOTO_CCD_H
-#define GPHOTO_CCD_H
+#pragma once
+
+#include "gphoto_driver.h"
 
 #include <indiccd.h>
 #include <indifocuserinterface.h>
 
-#include <iostream>
 #include <map>
 #include <string>
-#include <cstring>
 
 #define MAXEXPERR 10 /* max err in exp time we allow, secs */
 #define OPENDT    5  /* open retry delay, secs */
 
 typedef struct _Camera Camera;
 
-using namespace std;
 
 enum
 {
@@ -128,7 +126,7 @@ class GPhotoCCD : public INDI::CCD, public INDI::FocuserInterface
     bool sim;
 
     gphoto_driver *gphotodrv;
-    map<string, cam_opt *> CamOptions;
+    std::map<std::string, cam_opt *> CamOptions;
     int expTID; /* exposure callback timer id, if any */
     int optTID; /* callback for exposure timer id */
     int focusSpeed;
@@ -186,5 +184,3 @@ class GPhotoCCD : public INDI::CCD, public INDI::FocuserInterface
     friend void ::ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[],
                             char *formats[], char *names[], int n);
 };
-
-#endif

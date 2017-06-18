@@ -18,20 +18,14 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-#include <sys/time.h>
-#include <memory>
-#include <stdint.h>
-#include <arpa/inet.h>
-#include <math.h>
-#include <sys/time.h>
-#include <unistd.h>
-#include <fcntl.h>
-
-#include <indiapi.h>
-#include <iostream>
 #include "dsi_ccd.h"
-#include "DsiDeviceFactory.h"
+
 #include "config.h"
+#include "DsiDeviceFactory.h"
+
+#include <iostream>
+#include <math.h>
+#include <arpa/inet.h>
 
 const int POLLMS = 250;
 
@@ -90,7 +84,8 @@ DSICCD::DSICCD()
 bool DSICCD::Connect()
 {
     uint32_t cap = 0;
-    string ccd;
+    std::string ccd;
+
     dsi = DSI::DeviceFactory::getInstance(NULL);
     if (!dsi)
     {
@@ -314,10 +309,6 @@ bool DSICCD::StartExposure(float duration)
     InExposure = true;
     DEBUG(INDI::Logger::DBG_SESSION, "Exposure has begun.");
 
-    // Get width and height
-    int width  = PrimaryCCD.getSubW() / PrimaryCCD.getBinX();
-    int height = PrimaryCCD.getSubH() / PrimaryCCD.getBinY();
-
     /* Adjust gain and offset (gs)
        The gain is normalized in the same way as in Meade envisage (0..100)
        while the offset takes the values (-50..50) instead of (0..10) to 
@@ -499,12 +490,8 @@ bool DSICCD::saveConfigItems(FILE *fp)
 
 void DSICCD::grabImage()
 {
-    int sub;
-    uint16_t val;
-    struct timeval start, end;
-    int rc;
-    uint16_t *buf;
-    int x, y;
+    uint16_t *buf = nullptr;
+    int x = 0, y = 0;
 
     // Let's get a pointer to the frame buffer
     uint8_t *image = PrimaryCCD.getFrameBuffer();

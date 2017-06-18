@@ -15,11 +15,9 @@
     along with the Skywatcher Protocol INDI driver.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef EQMODERROR_H
-#define EQMODERROR_H
+#pragma once
 
 #define ERROR_MSG_LENGTH 250
-#include <indidevapi.h>
 
 class EQMod;
 
@@ -39,5 +37,3 @@ class EQModError
     const char *severityString();
     bool DefaultHandleException(EQMod *device);
 };
-
-#endif

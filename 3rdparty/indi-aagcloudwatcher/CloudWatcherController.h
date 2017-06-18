@@ -23,20 +23,12 @@
   Anemometer code contributed by Joao Bento.
 #endif
 
-#ifndef CLOUDWATCHERCONTROLLER_H
-#define CLOUDWATCHERCONTROLLER_H
+#pragma once
 
-#include <fcntl.h>
 #include <termios.h>
-#include <cstdarg>
-#include <iostream>
-#include <cstdio>
-#include <cstring>
-#include <cmath>
-#include <sys/time.h>
 
 /**
- *  A struct  to group and send all AAG Cloud Watcher constants
+ *  A struct to group and send all AAG Cloud Watcher constants
  */
 
 struct CloudWatcherConstants
@@ -467,5 +459,3 @@ class CloudWatcherController
    */
     bool getWindSpeed(int *windSpeed);
 };
-
-#endif /* CLOUDWATCHERCONTROLLER_H */

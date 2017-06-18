@@ -15,38 +15,13 @@
     along with the Skywatcher Protocol INDI driver.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
-#include <stdarg.h>
-#include <math.h>
-#include <unistd.h>
-#include <time.h>
-#include <errno.h>
-#include <sys/time.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <sys/socket.h>
-#include <sys/ioctl.h>
-#include <netinet/in.h>
-#include <termios.h>
-#include <memory>
-#include <wordexp.h>
-#include <netdb.h>
-#include <fcntl.h>
-
-#include <libnova.h>
-
-/* Normally unused-only for debug */
-#include <indidevapi.h>
-#include <indicom.h>
-
-#include "config.h"
-#include "eqmoderror.h"
 #include "skywatcher.h"
+
 #include "eqmod.h"
 
-#include "simulator/simulator.h"
+#include <indicom.h>
+
+#include <termios.h>
 
 extern int DBG_SCOPE_STATUS;
 extern int DBG_COMM;
@@ -386,12 +361,13 @@ void Skywatcher::Init() throw(EQModError)
 
 void Skywatcher::InquireBoardVersion(ITextVectorProperty *boardTP) throw(EQModError)
 {
-    unsigned long tmpMCVersion = 0;
     unsigned nprop             = 0;
     char *boardinfo[2];
     const char *boardinfopropnames[] = { "MOUNT_TYPE", "MOTOR_CONTROLLER" };
 
     /*
+  unsigned long tmpMCVersion = 0;
+
   dispatch_command(InquireMotorBoardVersion, Axis1, NULL);
   read_eqmod();
   tmpMCVersion=Revu24str2long(response+1);
@@ -771,7 +747,7 @@ void Skywatcher::SlewTo(long deltaraencoder, long deltadeencoder)
 {
     SkywatcherAxisStatus newstatus;
     bool useHighSpeed        = false;
-    unsigned long highperiod = 10, lowperiod = 18, lowspeedmargin = 20000, breaks = 400;
+    unsigned long lowperiod = 18, lowspeedmargin = 20000, breaks = 400;
     /* highperiod = RA 450X DE (+5) 200x, low period 32x */
 
     DEBUGF(INDI::Logger::DBG_DEBUG, "%s() : deltaRA = %ld deltaDE = %ld", __FUNCTION__, deltaraencoder, deltadeencoder);
@@ -783,7 +759,7 @@ void Skywatcher::SlewTo(long deltaraencoder, long deltadeencoder)
         newstatus.direction = BACKWARD;
     if (deltaraencoder < 0)
         deltaraencoder = -deltaraencoder;
-    if (deltaraencoder > lowspeedmargin)
+    if (deltaraencoder > (long)lowspeedmargin)
         useHighSpeed = true;
     else
         useHighSpeed = false;
@@ -813,7 +789,7 @@ void Skywatcher::SlewTo(long deltaraencoder, long deltadeencoder)
         newstatus.direction = BACKWARD;
     if (deltadeencoder < 0)
         deltadeencoder = -deltadeencoder;
-    if (deltadeencoder > lowspeedmargin)
+    if (deltadeencoder > (long)lowspeedmargin)
         useHighSpeed = true;
     else
         useHighSpeed = false;
@@ -843,7 +819,7 @@ void Skywatcher::AbsSlewTo(unsigned long raencoder, unsigned long deencoder, boo
     SkywatcherAxisStatus newstatus;
     bool useHighSpeed = false;
     long deltaraencoder, deltadeencoder;
-    unsigned long highperiod = 10, lowperiod = 18, lowspeedmargin = 20000, breaks = 400;
+    unsigned long lowperiod = 18, lowspeedmargin = 20000, breaks = 400;
     /* highperiod = RA 450X DE (+5) 200x, low period 32x */
 
     DEBUGF(INDI::Logger::DBG_DEBUG, "%s() : absRA = %ld raup = %c absDE = %ld deup = %c", __FUNCTION__, raencoder,
@@ -859,7 +835,7 @@ void Skywatcher::AbsSlewTo(unsigned long raencoder, unsigned long deencoder, boo
         newstatus.direction = BACKWARD;
     if (deltaraencoder < 0)
         deltaraencoder = -deltaraencoder;
-    if (deltaraencoder > lowspeedmargin)
+    if (deltaraencoder > (long)lowspeedmargin)
         useHighSpeed = true;
     else
         useHighSpeed = false;
@@ -890,7 +866,7 @@ void Skywatcher::AbsSlewTo(unsigned long raencoder, unsigned long deencoder, boo
         newstatus.direction = BACKWARD;
     if (deltadeencoder < 0)
         deltadeencoder = -deltadeencoder;
-    if (deltadeencoder > lowspeedmargin)
+    if (deltadeencoder > (long)lowspeedmargin)
         useHighSpeed = true;
     else
         useHighSpeed = false;

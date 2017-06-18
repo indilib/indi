@@ -28,24 +28,19 @@
 
 */
 
-#include <stdlib.h>
-#include <string.h>
-#include <stdarg.h>
-#include <math.h>
-#include <unistd.h>
-#include <time.h>
-#include <errno.h>
-#include <sys/time.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <termios.h>
-#include <memory>
+#include "spectracyber.h"
+
+#include "config.h"
+
 #include <indicom.h>
 
 #include <libnova/libnova.h>
 
-#include "spectracyber.h"
-#include "config.h"
+#include <memory>
+#include <stdlib.h>
+#include <string.h>
+#include <termios.h>
+#include <unistd.h>
 
 #define mydev         "SpectraCyber"
 #define BASIC_GROUP   "Main Control"
@@ -57,14 +52,14 @@
 
 const int POLLMS = 1000;
 
-const int SPECTROMETER_READ_BUFFER  = 16;
+//const int SPECTROMETER_READ_BUFFER  = 16;
 const int SPECTROMETER_ERROR_BUFFER = 128;
 const int SPECTROMETER_CMD_LEN      = 5;
 const int SPECTROMETER_CMD_REPLY    = 4;
 
-const double SPECTROMETER_MIN_FREQ  = 46.4;
+//const double SPECTROMETER_MIN_FREQ  = 46.4;
 const double SPECTROMETER_REST_FREQ = 48.6;
-const double SPECTROMETER_MAX_FREQ  = 51.2;
+//const double SPECTROMETER_MAX_FREQ  = 51.2;
 const double SPECTROMETER_RF_FREQ   = 1371.805;
 
 const unsigned int SPECTROMETER_OFFSET = 0x050;
@@ -76,7 +71,7 @@ const char *contFMT = ".ascii_cont";
 const char *specFMT = ".ascii_spec";
 
 // We declare an auto pointer to spectrometer.
-unique_ptr<SpectraCyber> spectracyber(new SpectraCyber());
+std::unique_ptr<SpectraCyber> spectracyber(new SpectraCyber());
 
 void ISGetProperties(const char *dev)
 {
@@ -85,17 +80,17 @@ void ISGetProperties(const char *dev)
 
 void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int num)
 {
-    spectracyber->ISNewSwitch(name, states, names, num);
+    spectracyber->ISNewSwitch(dev, name, states, names, num);
 }
 
 void ISNewText(const char *dev, const char *name, char *texts[], char *names[], int num)
 {
-    spectracyber->ISNewText(name, texts, names, num);
+    spectracyber->ISNewText(dev, name, texts, names, num);
 }
 
 void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int num)
 {
-    spectracyber->ISNewNumber(name, values, names, num);
+    spectracyber->ISNewNumber(dev, name, values, names, num);
 }
 
 void ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[],
@@ -233,6 +228,7 @@ bool SpectraCyber::initProperties()
     IUFillNumberVector(&EquatorialCoordsRNP, EquatorialCoordsRN, NARRAY(EquatorialCoordsRN), "", "EQUATORIAL_EOD_COORD",
                        "Equatorial AutoSet", "", IP_RW, 0, IPS_IDLE);
     /**************************************************************************/
+    return true;
 }
 
 /****************************************************************
@@ -311,8 +307,11 @@ bool SpectraCyber::Disconnect()
 **
 **
 *****************************************************************/
-bool SpectraCyber::ISNewNumber(const char *name, double values[], char *names[], int n)
+bool SpectraCyber::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
 {
+    if (strcmp(dev, getDeviceName()) != 0)
+        return false;
+
     static double cont_offset = 0;
     static double spec_offset = 0;
 
@@ -403,14 +402,18 @@ bool SpectraCyber::ISNewNumber(const char *name, double values[], char *names[],
         IDSetNumber(nProp, NULL);
         return true;
     }
+    return true;
 }
 
 /****************************************************************
 **
 **
 *****************************************************************/
-bool SpectraCyber::ISNewText(const char *name, char *texts[], char *names[], int n)
+bool SpectraCyber::ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
 {
+    if (strcmp(dev, getDeviceName()) != 0)
+        return false;
+
     ITextVectorProperty *tProp = getText(name);
 
     if (tProp == NULL)
@@ -450,15 +453,18 @@ bool SpectraCyber::ISNewText(const char *name, char *texts[], char *names[], int
         return true;
     }
 
-    return false;
+    return true;
 }
 
 /****************************************************************
 **
 **
 *****************************************************************/
-bool SpectraCyber::ISNewSwitch(const char *name, ISState *states, char *names[], int n)
+bool SpectraCyber::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
 {
+    if (strcmp(dev, getDeviceName()) != 0)
+        return false;
+
     // First process parent!
     if (INDI::DefaultDevice::ISNewSwitch(getDeviceName(), name, states, names, n) == true)
         return true;
@@ -678,7 +684,7 @@ bool SpectraCyber::ISNewSwitch(const char *name, ISState *states, char *names[],
         return true;
     }
 
-    return false;
+    return true;
 }
 
 bool SpectraCyber::dispatch_command(SpectrometerCommand command_type)
@@ -840,6 +846,11 @@ bool SpectraCyber::dispatch_command(SpectrometerCommand command_type)
             command[3] = '0';
             command[4] = '0';
             break;
+
+        // Noise source
+        case NOISE_SOURCE:
+            // TODO: Do something here?
+            break;
     }
 
     if (isDebug())
@@ -897,7 +908,7 @@ bool SpectraCyber::update_freq(double nFreq)
 
 bool SpectraCyber::reset()
 {
-    int err_code = 0, nbytes_written = 0, nbytes_read = 0;
+    int err_code = 0, nbytes_read = 0;
     char response[4];
     char err_msg[SPECTROMETER_ERROR_BUFFER];
 
@@ -969,6 +980,9 @@ void SpectraCyber::TimerHit()
 
             current_freq += sample_rate / 1000.;
             break;
+
+        default:
+            break;
     }
 
     switch (DataStreamBP->s)
@@ -1015,6 +1029,9 @@ void SpectraCyber::TimerHit()
             IDSetBLOB(DataStreamBP, NULL);
 
             break;
+
+        default:
+            break;
     }
 
     SetTimer(POLLMS);
@@ -1034,7 +1051,7 @@ void SpectraCyber::abort_scan()
 
 bool SpectraCyber::read_channel()
 {
-    int err_code = 0, nbytes_written = 0, nbytes_read = 0;
+    int err_code = 0, nbytes_read = 0;
     char response[SPECTROMETER_CMD_REPLY];
     char err_msg[SPECTROMETER_ERROR_BUFFER];
 

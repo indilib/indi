@@ -1,19 +1,15 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <time.h>
-#include <string.h>
-#include <ctype.h>
-#include <arpa/inet.h>
+
+#include "gphoto_readimage.h"
 
 #include <indilogger.h>
-
-#include <unistd.h>
 
 #include <jpeglib.h>
 #include <fitsio.h>
 #include <libraw.h>
 
-#include "gphoto_readimage.h"
+#include <unistd.h>
+#include <arpa/inet.h>
+
 
 char dcraw_cmd[] = "dcraw";
 char device[64];

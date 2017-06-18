@@ -24,6 +24,9 @@ include_directories( ${CMAKE_CURRENT_SOURCE_DIR})
 include_directories( ${Boost_INCLUDE_DIRS})
 include_directories( ${CURL_INCLUDE_DIR})
 
+SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-error")
+SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-error")
+
 set(libapogee_SRCS
    GenOneLinuxUSB.cpp
    linuxHelpers.cpp

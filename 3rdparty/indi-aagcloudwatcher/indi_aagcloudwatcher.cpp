@@ -25,7 +25,14 @@
 
 /* Our driver header */
 #include "indi_aagcloudwatcher.h"
+
 #include "config.h"
+
+#include <defaultdevice.h>
+
+#include <cstring>
+#include <cmath>
+#include <memory>
 
 #define ABS_ZERO 273.15
 
@@ -670,6 +677,7 @@ bool AAGCloudWatcher::heatingAlgorithm()
     IUUpdateSwitch(svp, statesSw, namesSw, 3);
     svp->s = IPS_OK;
     IDSetSwitch(svp, NULL);
+    return true;
 }
 
 void ISPoll(void *p)
@@ -974,7 +982,7 @@ bool AAGCloudWatcher::sendData()
     nvpLimits          = getNumber("limitsBrightness");
     int darkLimit      = getNumberValueFromVector(nvpLimits, "dark");
     int lightLimit     = getNumberValueFromVector(nvpLimits, "light");
-    int veryLightLimit = getNumberValueFromVector(nvpLimits, "veryLight");
+//    int veryLightLimit = getNumberValueFromVector(nvpLimits, "veryLight");
 
     ISState statesBrightness[3];
     char *namesBrightness[3];
@@ -1047,6 +1055,7 @@ bool AAGCloudWatcher::sendData()
     IUUpdateSwitch(svpWC, statesWind, namesWind, 4);
     svpWC->s = IPS_OK;
     IDSetSwitch(svpWC, NULL);
+    return true;
 }
 
 double AAGCloudWatcher::getNumberValueFromVector(INumberVectorProperty *nvp, const char *name)
@@ -1058,6 +1067,7 @@ double AAGCloudWatcher::getNumberValueFromVector(INumberVectorProperty *nvp, con
             return nvp->np[i].value;
         }
     }
+    return 0;
 }
 
 bool AAGCloudWatcher::resetData()
@@ -1189,6 +1199,7 @@ bool AAGCloudWatcher::resetData()
     ISwitchVectorProperty *svp = getSwitch("heaterStatus");
     svp->s                     = IPS_IDLE;
     IDSetSwitch(svp, NULL);
+    return true;
 }
 
 bool AAGCloudWatcher::sendConstants()
@@ -1254,6 +1265,7 @@ bool AAGCloudWatcher::sendConstants()
     IUUpdateText(tvp, valuesT, namesT, 1);
     tvp->s = IPS_OK;
     IDSetText(tvp, NULL);
+    return true;
 }
 
 bool AAGCloudWatcher::resetConstants()
@@ -1321,6 +1333,7 @@ bool AAGCloudWatcher::resetConstants()
     IUUpdateText(tvp, valuesT, namesT, 1);
     tvp->s = IPS_IDLE;
     IDSetText(tvp, NULL);
+    return true;
 }
 
 bool AAGCloudWatcher::Connect()

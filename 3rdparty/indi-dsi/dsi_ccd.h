@@ -17,12 +17,10 @@
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
-#ifndef DSICCD_H
-#define DSICCD_H
+
+#pragma once
 
 #include <indiccd.h>
-
-using namespace std;
 
 namespace DSI
 {
@@ -34,26 +32,25 @@ class DSICCD : public INDI::CCD
   public:
     DSICCD();
 
-    bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n);
-
-    bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n);
+    virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
+    virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
 
   protected:
     // General device functions
-    bool Connect();
-    bool Disconnect();
-    const char *getDefaultName();
-    bool initProperties();
-    bool updateProperties();
+    virtual bool Connect() override;
+    virtual bool Disconnect() override;
+    virtual const char *getDefaultName() override;
+    virtual bool initProperties() override;
+    virtual bool updateProperties() override;
 
     // CCD specific functions
-    bool UpdateCCDBin(int hor, int ver);
-    bool StartExposure(float duration);
-    bool AbortExposure();
-    void TimerHit();
+    virtual bool UpdateCCDBin(int hor, int ver) override;
+    virtual bool StartExposure(float duration) override;
+    virtual bool AbortExposure() override;
+    virtual void TimerHit() override;
 
     // misc functions
-    virtual bool saveConfigItems(FILE *fp);
+    virtual bool saveConfigItems(FILE *fp) override;
 
   private:
     // Utility functions
@@ -88,5 +85,3 @@ class DSICCD : public INDI::CCD
 
     DSI::Device *dsi;
 };
-
-#endif /* DSICCD_H */

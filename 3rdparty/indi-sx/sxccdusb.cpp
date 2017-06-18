@@ -35,15 +35,16 @@
  of the copyright holder.
  */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <memory.h>
-#include <stdarg.h>
-#include <unistd.h>
-#include <string.h>
-
-#include "sxconfig.h"
 #include "sxccdusb.h"
+
+#include <indidevapi.h>
+
+#include <memory>
+
+#include <stdarg.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
 
 /*
  * Control request fields.
@@ -129,41 +130,41 @@ static struct
     int pid;
     const char *name;
     int seq;
-} SX_PIDS[] = { { 0x105, "SXVF-M5" },
-                { 0x305, "SXVF-M5C" },
-                { 0x107, "SXVF-M7" },
-                { 0x307, "SXVF-M7C" },
-                { 0x308, "SXVF-M8C" },
-                { 0x109, "SXVF-M9" },
-                { 0x325, "SXVR-M25C" },
-                { 0x326, "SXVR-M26C" },
-                { 0x115, "SXVR-H5" },
-                { 0x119, "SXVR-H9" },
-                { 0x319, "SXVR-H9C" },
-                { 0x100, "SXVR-H9" },
-                { 0x300, "SXVR-H9C" },
-                { 0x126, "SXVR-H16" },
-                { 0x128, "SXVR-H18" },
-                { 0x135, "SXVR-H35" },
-                { 0x136, "SXVR-H36" },
-                { 0x137, "SXVR-H360" },
-                { 0x139, "SXVR-H390" },
-                { 0x194, "SXVR-H694" },
-                { 0x394, "SXVR-H694C" },
-                { 0x174, "SXVR-H674" },
-                { 0x374, "SXVR-H674C" },
-                { 0x198, "SX-814" },
-                { 0x398, "SX-814C" },
-                { 0x189, "SX-825" },
-                { 0x389, "SX-825C" },
-                { 0x184, "SX-834" },
-                { 0x384, "SX-834C" },
-                { 0x507, "LodeStar" },
-                { 0x517, "CoStar" },
-                { 0x509, "SuperStar" },
-                { 0x525, "UltraStar" },
-                { 0x200, "MX Camera" },
-                { 0, NULL } };
+} SX_PIDS[] = { { 0x105, "SXVF-M5", 0 },
+                { 0x305, "SXVF-M5C", 0 },
+                { 0x107, "SXVF-M7", 0 },
+                { 0x307, "SXVF-M7C", 0 },
+                { 0x308, "SXVF-M8C", 0 },
+                { 0x109, "SXVF-M9", 0 },
+                { 0x325, "SXVR-M25C", 0 },
+                { 0x326, "SXVR-M26C", 0 },
+                { 0x115, "SXVR-H5", 0 },
+                { 0x119, "SXVR-H9", 0 },
+                { 0x319, "SXVR-H9C", 0 },
+                { 0x100, "SXVR-H9", 0 },
+                { 0x300, "SXVR-H9C", 0 },
+                { 0x126, "SXVR-H16", 0 },
+                { 0x128, "SXVR-H18", 0 },
+                { 0x135, "SXVR-H35", 0 },
+                { 0x136, "SXVR-H36", 0 },
+                { 0x137, "SXVR-H360", 0 },
+                { 0x139, "SXVR-H390", 0 },
+                { 0x194, "SXVR-H694", 0 },
+                { 0x394, "SXVR-H694C", 0 },
+                { 0x174, "SXVR-H674", 0 },
+                { 0x374, "SXVR-H674C", 0 },
+                { 0x198, "SX-814", 0 },
+                { 0x398, "SX-814C", 0 },
+                { 0x189, "SX-825", 0 },
+                { 0x389, "SX-825C", 0 },
+                { 0x184, "SX-834", 0 },
+                { 0x384, "SX-834C", 0 },
+                { 0x507, "LodeStar", 0 },
+                { 0x517, "CoStar", 0 },
+                { 0x509, "SuperStar", 0 },
+                { 0x525, "UltraStar", 0 },
+                { 0x200, "MX Camera", 0 },
+                { 0, NULL, 0 } };
 
 libusb_context *ctx = NULL;
 
@@ -327,7 +328,6 @@ int sxOpen(HANDLE *sxHandles)
 
 void sxClose(HANDLE *sxHandle)
 {
-    int rc;
     libusb_close(*sxHandle);
     *sxHandle = NULL;
     DEBUG(log(true, "sxClose: libusb_close\n"));
@@ -750,6 +750,10 @@ int sxSetSTAR2000(HANDLE sxHandle, char star2k)
 
 int sxSetSerialPort(HANDLE sxHandle, unsigned short portIndex, unsigned short property, unsigned short value)
 {
+    INDI_UNUSED(sxHandle);
+    INDI_UNUSED(portIndex);
+    INDI_UNUSED(property);
+    INDI_UNUSED(value);
     log(false, "sxSetSerialPort is not implemented");
     return 0;
 }

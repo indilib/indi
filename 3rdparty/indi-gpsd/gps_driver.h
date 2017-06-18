@@ -23,11 +23,11 @@
   file called LICENSE.
 *******************************************************************************/
 
-#ifndef GPS_DRIVER_H
-#define GPS_DRIVER_H
+#pragma once
 
 #include "indigps.h"
-#include <libgpsmm.h>
+
+class gpsmm;
 
 class GPSD : public INDI::GPS
 {
@@ -47,12 +47,10 @@ class GPSD : public INDI::GPS
   protected:
     gpsmm *gps;
     //  Generic indi device entries
-    bool Connect();
-    bool Disconnect();
-    const char *getDefaultName();
-    bool initProperties();
-    bool updateProperties();
-    IPState updateGPS();
+    virtual bool Connect() override;
+    virtual bool Disconnect() override;
+    virtual const char *getDefaultName() override;
+    virtual bool initProperties() override;
+    virtual bool updateProperties() override;
+    virtual IPState updateGPS() override;
 };
-
-#endif // GPS_DRIVER_H

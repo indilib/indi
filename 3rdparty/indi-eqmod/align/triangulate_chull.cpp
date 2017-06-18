@@ -16,6 +16,7 @@
 */
 
 #include "triangulate_chull.h"
+
 #include "chull.h"
 
 TriangulateCHull::TriangulateCHull(std::map<HtmID, PointSet::Point> *p) : Triangulate::Triangulate(p)

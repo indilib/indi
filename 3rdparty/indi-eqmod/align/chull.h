@@ -15,8 +15,7 @@
     along with the Skywatcher Protocol INDI driver.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef CHULL_H
-#define CHULL_H
+#pragma once
 
 #ifdef __cplusplus
 extern "C" {
@@ -111,5 +110,3 @@ extern void EdgeOrderOnFaces(void);
 #ifdef __cplusplus
 }
 #endif
-
-#endif //CHULL_H

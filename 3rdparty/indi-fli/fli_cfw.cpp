@@ -107,6 +107,7 @@ bool FLICFW::initProperties()
     IUFillSwitch(&FilterS[1], "FILTER_CCW", "-", ISS_OFF);
     IUFillSwitchVector(&FilterSP, FilterS, 2, getDeviceName(), "FILTER_WHEEL_MOTION", "Turn Wheel", FILTER_TAB, IP_RW,
                        ISR_1OFMANY, 60, IPS_IDLE);
+    return true;
 }
 
 void FLICFW::ISGetProperties(const char *dev)

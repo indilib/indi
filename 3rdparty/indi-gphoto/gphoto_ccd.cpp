@@ -20,26 +20,18 @@
 
 */
 
-#include <memory>
-#include <time.h>
-#include <math.h>
-#include <unistd.h>
-#include <sys/time.h>
-
-#include <indidevapi.h>
-#include <eventloop.h>
-#include <indilogger.h>
-
-#ifdef __linux__
-#include <stream_recorder.h>
-#endif
+#include "gphoto_ccd.h"
 
 #include "config.h"
-
 #include "gphoto_driver.h"
 #include "gphoto_readimage.h"
 
-#include "gphoto_ccd.h"
+#if defined(__linux__)
+#include <stream_recorder.h>
+#endif
+
+#include <math.h>
+#include <unistd.h>
 
 #define FOCUS_TAB    "Focus"
 #define MAX_DEVICES  5 /* Max device cameraCount */
@@ -1142,12 +1134,12 @@ void GPhotoCCD::UpdateExtendedOptions(void *p)
 
 void GPhotoCCD::UpdateExtendedOptions(bool force)
 {
-    map<string, cam_opt *>::iterator it;
     if (!expTID)
     {
-        for (it = CamOptions.begin(); it != CamOptions.end(); it++)
+        for (auto& option : CamOptions)
         {
-            cam_opt *opt = (*it).second;
+            cam_opt *opt = option.second;
+
             if (force || gphoto_widget_changed(opt->widget))
             {
                 gphoto_read_widget(opt->widget);
@@ -1163,8 +1155,8 @@ bool GPhotoCCD::grabImage()
 {
     //char ext[16];
     uint8_t *memptr = PrimaryCCD.getFrameBuffer();
-    size_t memsize;
-    int fd, naxis = 2, w, h, bpp = 8;
+    size_t memsize = 0;
+    int fd = 0, naxis = 2, w = 0, h = 0, bpp = 8;
 
     if (sim)
     {
@@ -1617,8 +1609,8 @@ bool GPhotoCCD::captureLiveVideo()
     int rc = GP_OK;
     char errMsg[MAXRBUF];
 
-    const char *previewData;
-    unsigned long int previewSize;
+    const char *previewData = nullptr;
+    unsigned long int previewSize = 0;
 
     CameraFile *previewFile = NULL;
 
@@ -1714,8 +1706,8 @@ bool GPhotoCCD::startLivePreview()
 
     int rc = GP_OK;
     char errMsg[MAXRBUF];
-    const char *previewData;
-    unsigned long int previewSize;
+    const char *previewData = nullptr;
+    unsigned long int previewSize = 0;
 
     CameraFile *previewFile = NULL;
 

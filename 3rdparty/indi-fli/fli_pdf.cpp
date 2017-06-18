@@ -127,6 +127,7 @@ bool FLIPDF::initProperties()
     IUFillText(&FocusInfoT[1], "HW Rev", "", "");
     IUFillText(&FocusInfoT[2], "FW Rev", "", "");
     IUFillTextVector(&FocusInfoTP, FocusInfoT, 3, getDeviceName(), "Model", "", "Focuser Info", IP_RO, 60, IPS_IDLE);
+    return true;
 }
 
 void FLIPDF::ISGetProperties(const char *dev)

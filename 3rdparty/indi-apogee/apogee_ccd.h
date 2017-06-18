@@ -92,9 +92,7 @@ class ApogeeCCD : public INDI::CCD
     ISwitch FanStatusS[4];
     ISwitchVectorProperty FanStatusSP;
 
-    double ccdTemp;
     double minDuration;
-    unsigned short *imageBuffer;
     double ExposureRequest;
     int imageWidth, imageHeight;
     int timerID;

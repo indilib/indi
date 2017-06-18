@@ -23,23 +23,22 @@
 
  */
 
-#ifndef SBIG_CCD_H
-#define SBIG_CCD_H
+#pragma once
+
+#include "config.h"
 
 #include <indiccd.h>
 #include <indifilterinterface.h>
-#include <iostream>
+
 #ifdef OSX_EMBEDED_MODE
 #include <SBIGUDrv/SBIGUDrv.h>
 #else
 #include <sbigudrv.h>
 #endif
 
-#include "config.h"
+#include <string>
 
 //#define ASYNC_READOUT
-
-using namespace std;
 
 #define DEVICE struct usb_device *
 
@@ -118,19 +117,20 @@ class SBIGCCD : public INDI::CCD, public INDI::FilterInterface
   public:
     SBIGCCD();
     virtual ~SBIGCCD();
-    const char *getDefaultName();
-    bool initProperties();
-    void ISGetProperties(const char *dev);
-    bool updateProperties();
-    bool Connect();
-    bool Disconnect();
-    bool StartExposure(float duration);
-    bool AbortExposure();
-    bool StartGuideExposure(float duration);
-    bool AbortGuideExposure();
-    virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n);
-    virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n);
-    virtual bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n);
+
+    virtual const char *getDefaultName() override;
+    virtual bool initProperties() override;
+    virtual void ISGetProperties(const char *dev) override;
+    virtual bool updateProperties() override;
+    virtual bool Connect() override;
+    virtual bool Disconnect() override;
+    virtual bool StartExposure(float duration) override;
+    virtual bool AbortExposure() override;
+    virtual bool StartGuideExposure(float duration) override;
+    virtual bool AbortGuideExposure() override;
+    virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
+    virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
+    virtual bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n) override;
     void updateTemperature();
     static void updateTemperatureHelper(void *);
 #ifdef ASYNC_READOUT
@@ -139,31 +139,31 @@ class SBIGCCD : public INDI::CCD, public INDI::FilterInterface
     bool isExposureDone(CCDChip *targetChip);
 
   protected:
-    void TimerHit();
-    virtual int SetTemperature(double temperature);
-    virtual bool UpdateCCDFrame(int x, int y, int w, int h);
-    virtual bool UpdateGuiderFrame(int x, int y, int w, int h);
-    virtual bool UpdateCCDBin(int binx, int biny);
-    virtual bool UpdateGuiderBin(int binx, int biny);
-    virtual void addFITSKeywords(fitsfile *fptr, CCDChip *targetChip);
-    virtual bool UpdateCCDFrameType(CCDChip::CCD_FRAME fType);
-    virtual bool saveConfigItems(FILE *fp);
-    IPState GuideNorth(float);
-    IPState GuideSouth(float);
-    IPState GuideEast(float);
-    IPState GuideWest(float);
+    virtual void TimerHit() override;
+    virtual int SetTemperature(double temperature) override;
+    virtual bool UpdateCCDFrame(int x, int y, int w, int h) override;
+    virtual bool UpdateGuiderFrame(int x, int y, int w, int h) override;
+    virtual bool UpdateCCDBin(int binx, int biny) override;
+    virtual bool UpdateGuiderBin(int binx, int biny) override;
+    virtual void addFITSKeywords(fitsfile *fptr, CCDChip *targetChip) override;
+    virtual bool UpdateCCDFrameType(CCDChip::CCD_FRAME fType) override;
+    virtual bool saveConfigItems(FILE *fp) override;
+    virtual IPState GuideNorth(float) override;
+    virtual IPState GuideSouth(float) override;
+    virtual IPState GuideEast(float) override;
+    virtual IPState GuideWest(float) override;
 
     // Filter Wheel CFW
-    virtual int QueryFilter();
-    virtual bool SelectFilter(int position);
-    virtual bool SetFilterNames();
-    virtual bool GetFilterNames(const char *groupName);
+    virtual int QueryFilter() override;
+    virtual bool SelectFilter(int position) override;
+    virtual bool SetFilterNames() override;
+    virtual bool GetFilterNames(const char *groupName) override;
 
     int m_fd;
     CAMERA_TYPE m_camera_type;
     int m_drv_handle;
     bool m_link_status;
-    string m_start_exposure_timestamp;
+    std::string m_start_exposure_timestamp;
 
     void InitVars();
     int OpenDriver();
@@ -256,7 +256,7 @@ class SBIGCCD : public INDI::CCD, public INDI::FilterInterface
     inline bool GetLinkStatus() { return (m_link_status); }
     inline void SetLinkStatus(bool val = false) { m_link_status = val; }
     int SetDeviceName(const char *);
-    inline string GetStartExposureTimestamp() { return (m_start_exposure_timestamp); }
+    inline std::string GetStartExposureTimestamp() { return (m_start_exposure_timestamp); }
     inline void SetStartExposureTimestamp(const char *p) { m_start_exposure_timestamp = p; }
 
     // Driver Related Commands:
@@ -343,5 +343,3 @@ class SBIGCCD : public INDI::CCD, public INDI::FilterInterface
     friend void ::ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[],
                             char *formats[], char *names[], int n);
 };
-
-#endif // SBIG_CCD_H

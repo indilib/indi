@@ -19,16 +19,12 @@
  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-#ifndef MI_CCD_H
-#define MI_CCD_H
-
-#include <indiccd.h>
-#include <indifilterinterface.h>
-#include <iostream>
+#pragma once
 
 #include "gxccd.h"
 
-using namespace std;
+#include <indiccd.h>
+#include <indifilterinterface.h>
 
 class MICCD : public INDI::CCD, public INDI::FilterInterface
 {
@@ -36,42 +32,42 @@ class MICCD : public INDI::CCD, public INDI::FilterInterface
     MICCD(int cameraId, bool eth = false);
     virtual ~MICCD();
 
-    const char *getDefaultName();
+    virtual const char *getDefaultName() override;
 
-    bool initProperties();
-    void ISGetProperties(const char *dev);
-    bool updateProperties();
+    virtual bool initProperties() override;
+    virtual void ISGetProperties(const char *dev) override;
+    virtual bool updateProperties() override;
 
-    bool Connect();
-    bool Disconnect();
+    virtual bool Connect() override;
+    virtual bool Disconnect() override;
 
-    int SetTemperature(double temperature);
-    bool StartExposure(float duration);
-    bool AbortExposure();
+    virtual int SetTemperature(double temperature) override;
+    virtual bool StartExposure(float duration) override;
+    virtual bool AbortExposure() override;
 
-    IPState GuideNorth(float);
-    IPState GuideSouth(float);
-    IPState GuideEast(float);
-    IPState GuideWest(float);
+    virtual IPState GuideNorth(float) override;
+    virtual IPState GuideSouth(float) override;
+    virtual IPState GuideEast(float) override;
+    virtual IPState GuideWest(float) override;
 
-    bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n);
-    bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int num);
-    bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n);
+    virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
+    virtual bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int num) override;
+    virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
 
   protected:
     // Misc.
-    void TimerHit();
-    bool saveConfigItems(FILE *fp);
+    virtual void TimerHit() override;
+    virtual bool saveConfigItems(FILE *fp) override;
 
     // CCD
-    virtual bool UpdateCCDFrame(int x, int y, int w, int h);
-    virtual bool UpdateCCDBin(int binx, int biny);
+    virtual bool UpdateCCDFrame(int x, int y, int w, int h) override;
+    virtual bool UpdateCCDBin(int binx, int biny) override;
 
     // Filter Wheel CFW
-    virtual int QueryFilter();
-    virtual bool SelectFilter(int position);
-    virtual bool SetFilterNames();
-    virtual bool GetFilterNames(const char *groupName);
+    virtual int QueryFilter() override;
+    virtual bool SelectFilter(int position) override;
+    virtual bool SetFilterNames() override;
+    virtual bool GetFilterNames(const char *groupName) override;
 
     INumber FanN[1];
     INumberVectorProperty FanNP;
@@ -113,7 +109,6 @@ class MICCD : public INDI::CCD, public INDI::FilterInterface
     int timerID;
 
     bool downloading;
-    bool coolerEnabled;
 
     CCDChip::CCD_FRAME imageFrameType;
 
@@ -137,5 +132,3 @@ class MICCD : public INDI::CCD, public INDI::FilterInterface
                             char *formats[], char *names[], int n);
     friend void ::ISSnoopDevice(XMLEle *root);
 };
-
-#endif // MI_CCD_H

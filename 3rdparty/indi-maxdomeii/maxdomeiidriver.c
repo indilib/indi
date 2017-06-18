@@ -18,24 +18,9 @@
 
 */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <stdarg.h>
-#include <math.h>
-#include <sys/time.h>
-#include <unistd.h>
-#include <fcntl.h>
-#include <time.h>
-#include <errno.h>
+#include <maxdomeiidriver.h>
 
-#include "indicom.h"
-#include "indidevapi.h"
-#include "maxdomeiidriver.h"
-
-#ifndef _WIN32
-#include <termios.h>
-#endif
+#include <indicom.h>
 
 #define MAXDOME_TIMEOUT 5  /* FD timeout in seconds */
 #define MAX_BUFFER      15 // Message length can be up to 12 bytes.
@@ -297,20 +282,20 @@ int Status_MaxDomeII(int fd, enum SH_Status *nShutterStatus, enum AZ_Status *nAz
                      unsigned *nHomePosition)
 {
     unsigned char cMessage[MAX_BUFFER];
-    int nErrorType;
-    int nBytesWrite;
-    int nReturn;
+    int nErrorType = 0;
+    int nBytesWrite = 0;
+    int nReturn = 0;
 
     cMessage[0] = 0x01;
     cMessage[1] = 0x02; // Will follow 2 bytes more
     cMessage[2] = STATUS_CMD;
-    cMessage[3] = checksum_MaxDomeII(cMessage, 3);
-    nErrorType  = tty_write(fd, cMessage, 4, &nBytesWrite);
+    cMessage[3] = checksum_MaxDomeII((char*)cMessage, 3);
+    nErrorType  = tty_write(fd, (char*)cMessage, 4, &nBytesWrite);
 
     if (nErrorType != TTY_OK)
         return -5;
 
-    nReturn = ReadResponse_MaxDomeII(fd, cMessage);
+    nReturn = ReadResponse_MaxDomeII(fd, (char*)cMessage);
     if (nReturn != 0)
         return nReturn;
 

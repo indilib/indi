@@ -28,26 +28,14 @@
 
  */
 
-#include <memory>
-#include <time.h>
+#include "sbig_ccd.h"
+
+#include <eventloop.h>
+
 #include <math.h>
 #include <unistd.h>
-#include <sys/time.h>
-
-#include <sys/socket.h>
-#include <netinet/in.h>
 #include <arpa/inet.h>
-
-#include "indidevapi.h"
-#include "eventloop.h"
-#include <indilogger.h>
-#ifdef OSX_EMBEDED_MODE
-#include "ccvt.h"
-#define ulong unsigned long
-#else
-#include "ccvt.h"
-#endif
-#include "sbig_ccd.h"
+#include <netinet/in.h>
 
 #define TEMPERATURE_POLL_MS 5000 /* Temperature Polling time (ms) */
 #define MAX_RESOLUTION      4096 /* Maximum resolutoin for secondary chip */
@@ -1876,11 +1864,12 @@ const char *SBIGCCD::GetCameraID()
 
 void SBIGCCD::GetExtendedCCDInfo()
 {
-    int res;
+    int res = 0;
     GetCCDInfoParams gccdip;
     GetCCDInfoResults4 imaging_ccd_results4;
     GetCCDInfoResults4 tracking_ccd_results4;
     GetCCDInfoResults6 results6;
+
     if (isSimulation())
     {
         hasGuideHead   = true;

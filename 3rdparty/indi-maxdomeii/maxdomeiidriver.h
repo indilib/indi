@@ -18,8 +18,7 @@
 
 */
 
-#ifndef MAXDOMEIIDRIVER_H
-#define MAXDOMEIIDRIVER_H
+#pragma once
 
 #ifdef __cplusplus
 extern "C" {
@@ -73,6 +72,4 @@ int Exit_Shutter_MaxDomeII(int fd);
 
 #ifdef __cplusplus
 }
-#endif
-
 #endif

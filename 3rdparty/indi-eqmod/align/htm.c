@@ -2,11 +2,11 @@
 http://skyserver.org/htm/src/cpp/htmIndex.tar.gz
 */
 
-#include <stdio.h>
-#include <math.h>
-#include <string.h>
-
 #include "htm.h"
+
+#include <math.h>
+#include <stdio.h>
+#include <string.h>
 
 /*
  * cc_name2ID
@@ -290,9 +290,10 @@ uint64 cc_radec2ID(double ra, double dec, int depth)
 // typedef longlong uint64;
 uint64 idByPoint(double x, double y, double z)
 {
-    uint64 ID = 0;
-
-    return ID;
+    (void)x;
+    (void)y;
+    (void)z;
+    return 0;
 }
 
 int cc_isinside(double *p, double *v1, double *v2, double *v3) // p need not be nromalilzed!!!

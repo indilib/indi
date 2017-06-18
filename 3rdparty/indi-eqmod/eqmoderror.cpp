@@ -15,10 +15,8 @@
     along with the Skywatcher Protocol INDI driver.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include <stdarg.h>
-#include <stdio.h>
-
 #include "eqmoderror.h"
+
 #include "eqmod.h"
 
 EQModError::EQModError(Severity sev, const char *msg, ...)

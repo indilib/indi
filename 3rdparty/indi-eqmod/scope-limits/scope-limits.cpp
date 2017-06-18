@@ -15,19 +15,14 @@
     along with the Skywatcher Protocol INDI driver.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include <indicom.h>
-
 #include "scope-limits.h"
-
-#include "config.h"
 
 #include "../eqmod.h"
 
+#include <indicom.h>
+
 #include <algorithm> // std::sort
-
 #include <wordexp.h>
-
-//using namespace INDI;
 
 bool cmphorizonpoint(horizonpoint h1, horizonpoint h2)
 {
@@ -256,7 +251,7 @@ bool HorizonLimits::ISNewSwitch(const char *dev, const char *name, ISState *stat
             }
             else if (!strcmp(sw->name, "HORIZONLIMITSLISTDELETE"))
             {
-                if (!horizon || (horizonindex < 0) || (horizonindex >= horizon->size()))
+                if (!horizon || (horizonindex >= horizon->size()))
                 {
                     DEBUG(INDI::Logger::DBG_WARNING, "Horizon Limits: Can not delete point");
                     HorizonLimitsManageSP->s = IPS_ALERT;
@@ -372,10 +367,14 @@ bool HorizonLimits::ISNewText(const char *dev, const char *name, char *texts[], 
 bool HorizonLimits::ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[],
                               char *formats[], char *names[], int num)
 {
-    if (strcmp(dev, telescope->getDeviceName()) == 0)
-    {
-    }
-
+    INDI_UNUSED(dev);
+    INDI_UNUSED(name);
+    INDI_UNUSED(sizes);
+    INDI_UNUSED(blobsizes);
+    INDI_UNUSED(blobs);
+    INDI_UNUSED(formats);
+    INDI_UNUSED(names);
+    INDI_UNUSED(num);
     return false;
 }
 

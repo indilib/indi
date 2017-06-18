@@ -21,15 +21,11 @@
  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
-#include <memory>
-#include <time.h>
-#include <math.h>
-#include <unistd.h>
-#include <sys/time.h>
-
 #include "mi_ccd.h"
 
 #include "config.h"
+
+#include <math.h>
 
 #define POLLMS         1000 /* Polling time (ms) */
 #define TEMP_THRESHOLD 0.2  /* Differential temperature threshold (°C) */

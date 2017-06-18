@@ -15,10 +15,10 @@
     along with the Skywatcher Protocol INDI driver.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef SCOPE_LIMITS_H
-#define SCOPE_LIMITS_H
+#pragma once
 
 #include <inditelescope.h>
+
 #include <vector>
 
 typedef struct horizonpoint
@@ -70,5 +70,3 @@ class HorizonLimits
     virtual bool inGotoLimits(double az, double alt);
     virtual bool checkLimits(double az, double alt, INDI::Telescope::TelescopeStatus status, bool ingoto);
 };
-
-#endif // SCOPE_LIMITS_H

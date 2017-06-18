@@ -1,20 +1,14 @@
-#include <stdio.h>
-#include <fcntl.h>
-#include <assert.h>
-#include <stdlib.h>
-#include <string.h>
-#include <math.h>
-#include <unistd.h>
-#include <sys/time.h>
-#include <time.h>
-#include <algorithm>
-#include <queue>
-#include <netinet/in.h>
-#include <arpa/inet.h>
 
-#include <indicom.h>
-#include <inditelescope.h>
 #include "NexStarAUXScope.h"
+
+#include <inditelescope.h>
+
+#include <algorithm>
+#include <math.h>
+#include <queue>
+#include <string.h>
+#include <unistd.h>
+#include <arpa/inet.h>
 
 #define BUFFER_SIZE 10240
 int MAX_CMD_LEN = 32;
@@ -40,7 +34,7 @@ void prnBytes(unsigned char *b, int n)
 void dumpMsg(buffer buf)
 {
     fprintf(stderr, "MSG: ");
-    for (int i = 0; i < buf.size(); i++)
+    for (unsigned int i = 0; i < buf.size(); i++)
     {
         fprintf(stderr, "%02x ", buf[i]);
     }
@@ -86,8 +80,10 @@ void AUXCommand::dumpCmd()
     if (DEBUG)
     {
         fprintf(stderr, "(%02x) %02x -> %02x: ", cmd, src, dst);
-        for (int i = 0; i < data.size(); i++)
+        for (unsigned int i = 0; i < data.size(); i++)
+        {
             fprintf(stderr, "%02x ", data[i]);
+        }
         fprintf(stderr, "\n");
     }
 }
@@ -100,7 +96,7 @@ void AUXCommand::fillBuf(buffer &buf)
     buf[2] = (unsigned char)src;
     buf[3] = (unsigned char)dst;
     buf[4] = (unsigned char)cmd;
-    for (int i = 0; i < data.size(); i++)
+    for (unsigned int i = 0; i < data.size(); i++)
     {
         buf[i + 5] = data[i];
     }
@@ -740,13 +736,14 @@ int sendBuffer(int sock, buffer buf, long tout_msec)
 bool NexStarAUXScope::sendCmd(AUXCommand &c)
 {
     buffer buf;
+
     if (DEBUG)
     {
         fprintf(stderr, "Send: ");
         c.dumpCmd();
     }
     c.fillBuf(buf);
-    return sendBuffer(sock, buf, 500) == buf.size();
+    return sendBuffer(sock, buf, 500) == (int)buf.size();
 }
 
 int debug_timeout = 30;

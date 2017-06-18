@@ -1305,9 +1305,9 @@ void QSICCD::shutterControl()
 
 void QSICCD::TimerHit()
 {
-    long timeleft;
-    double ccdTemp;
-    double coolerPower;
+    long timeleft = 0;
+    double ccdTemp = 0;
+    double coolerPower = 0;
 
     if (isConnected() == false)
         return; //  No need to reset timer if we are not connected anymore
@@ -1445,7 +1445,7 @@ void QSICCD::TimerHit()
 
 void QSICCD::turnWheel()
 {
-    short current_filter;
+    short current_filter = 0;
 
     switch (FilterS[0].s)
     {

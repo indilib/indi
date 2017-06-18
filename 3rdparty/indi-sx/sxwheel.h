@@ -25,8 +25,8 @@
  The full GNU General Public License is included in this distribution in the
  file called LICENSE.
  */
-#ifndef SXWHEEL_H
-#define SXWHEEL_H
+
+#pragma once
 
 #include <indifilterwheel.h>
 
@@ -59,5 +59,3 @@ class SXWHEEL : public INDI::FilterWheel
     virtual bool SetFilterNames() { return true; }
     bool GetFilterNames(const char *);
 };
-
-#endif // SXWHEEL_H

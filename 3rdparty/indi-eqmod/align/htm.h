@@ -2,8 +2,7 @@
 http://skyserver.org/htm/src/cpp/htmIndex.tar.gz
 */
 
-#ifndef HTM_H
-#define HTM_H
+#pragma once
 
 #ifdef __cplusplus
 extern "C" {
@@ -75,6 +74,4 @@ uint64 cc_radec2ID(double ra, double dec, int depth);
 
 #ifdef __cplusplus
 }
-#endif
-
 #endif

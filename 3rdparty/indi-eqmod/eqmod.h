@@ -15,12 +15,7 @@
     along with the Skywatcher Protocol INDI driver.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef EQMOD_H
-#define EQMOD_H
-
-#include <inditelescope.h>
-#include <indiguiderinterface.h>
-#include <libnova.h>
+#pragma once
 
 #include "config.h"
 #include "skywatcher.h"
@@ -31,6 +26,11 @@
 #ifdef WITH_SCOPE_LIMITS
 #include "scope-limits/scope-limits.h"
 #endif
+
+#include <inditelescope.h>
+#include <indiguiderinterface.h>
+
+#include <libnova.h>
 
 typedef struct SyncData
 {
@@ -102,11 +102,9 @@ class EQMod : public INDI::Telescope, public INDI::GuiderInterface
     INumberVectorProperty *PeriodsNP           = NULL;
     INumberVectorProperty *JulianNP            = NULL;
     INumberVectorProperty *TimeLSTNP           = NULL;
-    ITextVectorProperty *TimeUTCTP             = NULL;
     ILightVectorProperty *RAStatusLP           = NULL;
     ILightVectorProperty *DEStatusLP           = NULL;
     INumberVectorProperty *SlewSpeedsNP        = NULL;
-    ISwitchVectorProperty *SlewModeSP          = NULL;
     ISwitchVectorProperty *HemisphereSP        = NULL;
     ISwitchVectorProperty *TrackModeSP         = NULL;
     ISwitchVectorProperty *TrackDefaultSP      = NULL;
@@ -116,8 +114,6 @@ class EQMod : public INDI::Telescope, public INDI::GuiderInterface
     INumberVectorProperty *StandardSyncPointNP = NULL;
     INumberVectorProperty *SyncPolarAlignNP    = NULL;
     ISwitchVectorProperty *SyncManageSP        = NULL;
-    INumberVectorProperty *ParkPositionNP      = NULL;
-    ISwitchVectorProperty *ParkOptionSP        = NULL;
     ISwitchVectorProperty *ReverseDECSP        = NULL;
     INumberVectorProperty *BacklashNP          = NULL;
     ISwitchVectorProperty *UseBacklashSP       = NULL;
@@ -272,5 +268,3 @@ class EQMod : public INDI::Telescope, public INDI::GuiderInterface
     };
     AutoHomeStatus AutohomeState;
 };
-
-#endif // EQMOD_H

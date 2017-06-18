@@ -5,8 +5,7 @@
  * All rights reserved.
  */
 
-#ifndef GXCCD_H_
-#define GXCCD_H_
+#pragma once
 
 #ifdef __cplusplus
 extern "C" {
@@ -460,5 +459,3 @@ void gxccd_get_last_error(camera_t *camera, char *buf, size_t size);
 #ifdef __cplusplus
 }
 #endif /* __cplusplus */
-
-#endif /* not GXCCD_H_ */

@@ -15,15 +15,13 @@
     along with the Skywatcher Protocol INDI driver.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef POINTSET_H
-#define POINTSET_H
+#pragma once
+
+#include "htm.h"
 
 #include <map>
 #include <set>
 #include <vector>
-
-#include "htm.h"
-#include <lilxml.h>
 
 // to get access to lat/long data
 #include <inditelescope.h>
@@ -100,4 +98,3 @@ class PointSet
     struct ln_lnlat_posn *lnalignpos;
     friend class TriangulateCHull;
 };
-#endif

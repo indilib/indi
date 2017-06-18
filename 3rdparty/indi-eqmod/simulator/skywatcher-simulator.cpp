@@ -1,7 +1,9 @@
 
 #include "skywatcher-simulator.h"
-#include <string.h>
+
 #include <indidevapi.h>
+
+#include <string.h>
 
 void SkywatcherSimulator::send_byte(unsigned char c)
 {
@@ -148,7 +150,6 @@ void SkywatcherSimulator::compute_ra_position()
     timersub(&raTime, &lastraTime, &resTime);
     if (GETMOTORPROPERTY(ra_status, RUNNING))
     {
-        unsigned int newpos;
         unsigned int stepmul = (GETMOTORPROPERTY(ra_status, HIGHSPEED)) ? ra_highspeed_ratio : 1;
         unsigned int deltastep;
         deltastep = ((((resTime.tv_sec * MICROSECONDS) + resTime.tv_usec) * stepmul) / ra_period);
@@ -193,7 +194,6 @@ void SkywatcherSimulator::compute_de_position()
     timersub(&deTime, &lastdeTime, &resTime);
     if (GETMOTORPROPERTY(de_status, RUNNING))
     {
-        unsigned int newpos;
         unsigned int stepmul = (GETMOTORPROPERTY(de_status, HIGHSPEED)) ? de_highspeed_ratio : 1;
         unsigned int deltastep;
         deltastep = ((((resTime.tv_sec * MICROSECONDS) + resTime.tv_usec) * stepmul) / de_period);

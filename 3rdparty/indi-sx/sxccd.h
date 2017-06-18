@@ -27,11 +27,11 @@
   file called LICENSE.
 */
 
-#ifndef SXCCD_H_
-#define SXCCD_H_
+#pragma once
+
+#include "sxccdusb.h"
 
 #include <indiccd.h>
-#include "sxccdusb.h"
 
 void ExposureTimerCallback(void *p);
 void GuideExposureTimerCallback(void *p);
@@ -113,5 +113,3 @@ class SXCCD : public INDI::CCD
                             char *formats[], char *names[], int n);
     friend void ::ISSnoopDevice(XMLEle *root);
 };
-
-#endif /* SXCCD_H_ */

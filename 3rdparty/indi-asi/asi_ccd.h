@@ -19,34 +19,30 @@
 
 */
 
-#ifndef ASI_CCD_H
-#define ASI_CCD_H
-
-#include <indiccd.h>
-#include <iostream>
+#pragma once
 
 #include "ASICamera2.h"
 
-using namespace std;
+#include <indiccd.h>
 
 class ASICCD : public INDI::CCD
 {
   public:
-    ASICCD(ASI_CAMERA_INFO *camInfo);
+    explicit ASICCD(ASI_CAMERA_INFO *camInfo);
     virtual ~ASICCD();
 
-    const char *getDefaultName();
+    virtual const char *getDefaultName() override;
 
-    bool initProperties();
-    void ISGetProperties(const char *dev);
-    bool updateProperties();
+    virtual bool initProperties() override;
+    virtual void ISGetProperties(const char *dev) override;
+    virtual bool updateProperties() override;
 
-    bool Connect();
-    bool Disconnect();
+    virtual bool Connect() override;
+    virtual bool Disconnect() override;
 
-    int SetTemperature(double temperature);
-    bool StartExposure(float duration);
-    bool AbortExposure();
+    virtual int SetTemperature(double temperature) override;
+    virtual bool StartExposure(float duration) override;
+    virtual bool AbortExposure() override;
 
 #if !defined(__APPLE__) && !defined(__CYGWIN__)
     static void *streamVideoHelper(void *context);
@@ -54,30 +50,30 @@ class ASICCD : public INDI::CCD
 #endif
 
   protected:
-    bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n);
-    bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n);
+    virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
+    virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
 
 // Streaming
 #if !defined(__APPLE__) && !defined(__CYGWIN__)
-    bool StartStreaming();
-    bool StopStreaming();
+    virtual bool StartStreaming() override;
+    virtual bool StopStreaming() override;
 #endif
 
-    void TimerHit();
-    virtual bool UpdateCCDFrame(int x, int y, int w, int h);
-    virtual bool UpdateCCDBin(int binx, int biny);
+    virtual void TimerHit() override;
+    virtual bool UpdateCCDFrame(int x, int y, int w, int h) override;
+    virtual bool UpdateCCDBin(int binx, int biny) override;
 
     // Guide Port
-    virtual IPState GuideNorth(float ms);
-    virtual IPState GuideSouth(float ms);
-    virtual IPState GuideEast(float ms);
-    virtual IPState GuideWest(float ms);
+    virtual IPState GuideNorth(float ms) override;
+    virtual IPState GuideSouth(float ms) override;
+    virtual IPState GuideEast(float ms) override;
+    virtual IPState GuideWest(float ms) override;
 
     // ASI specific keywords
-    virtual void addFITSKeywords(fitsfile *fptr, CCDChip *targetChip);
+    virtual void addFITSKeywords(fitsfile *fptr, CCDChip *targetChip) override;
 
     // Save config
-    virtual bool saveConfigItems(FILE *fp);
+    virtual bool saveConfigItems(FILE *fp) override;
 
   private:
     /** Get image from CCD and send it to client */
@@ -128,7 +124,9 @@ class ASICCD : public INDI::CCD
 
     bool sim;
     int streamPredicate;
+#if !defined(__APPLE__) && !defined(__CYGWIN__)
     pthread_t primary_thread;
+#endif
     bool terminateThread;
     int exposureRetries;
 
@@ -153,5 +151,3 @@ class ASICCD : public INDI::CCD
     friend void ::ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[],
                             char *formats[], char *names[], int n);
 };
-
-#endif // ASI_CCD_H

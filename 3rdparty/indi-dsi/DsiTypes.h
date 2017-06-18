@@ -3,8 +3,7 @@
  *
  */
 
-#ifndef __DsiTypes_hh
-#define __DsiTypes_hh
+#pragma once
 
 #include "NamedEnum.h"
 
@@ -198,4 +197,3 @@ class VddMode : public NamedEnum<int, VddMode>
     static const VddMode OFF;
 };
 };
-#endif /* __DsiTypes_hh */

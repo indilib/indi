@@ -22,16 +22,16 @@
   The full GNU General Public License is included in this distribution in the
   file called LICENSE.
 *******************************************************************************/
-#include <memory>
-#include <libnova.h>
-#include <time.h>
 
 #include "gps_driver.h"
+
 #include "config.h"
 
 #include <libgpsmm.h>
 
-using namespace std;
+#include <libnova.h>
+
+#include <memory>
 
 // We declare an auto pointer to GPSD.
 std::unique_ptr<GPSD> gpsd(new GPSD());

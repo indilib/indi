@@ -25,10 +25,12 @@
 
 #include "CloudWatcherController.h"
 
+#include <iostream>
+
 /**
  * Just a test main function. Used for debugging. Ignore it.
  */
-int main(int argc, char **argv)
+int main(int /*argc*/, char ** /*argv*/)
 {
     CloudWatcherController *cwc = new CloudWatcherController(const_cast<char *>("/dev/ttyUSB0"), false);
 

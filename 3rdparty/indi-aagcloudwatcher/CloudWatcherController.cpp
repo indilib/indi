@@ -23,9 +23,16 @@
   Anemometer code contributed by Joao Bento.
 #endif
 
-#include <unistd.h>
-
 #include "CloudWatcherController.h"
+
+#include <cmath>
+#include <cstdio>
+#include <cstring>
+#include <fcntl.h>
+#include <iostream>
+#include <stdarg.h>
+#include <unistd.h>
+#include <sys/time.h>
 
 /******************************************************************/
 /* PUBLIC MEMBERS                                                */
@@ -821,7 +828,9 @@ bool CloudWatcherController::sendCloudwatcherCommand(const char *command)
 
 bool CloudWatcherController::getCloudWatcherAnswer(char *buffer, int nBlocks)
 {
-    int r = readSerial(buffer, nBlocks * BLOCK_SIZE);
+    int ret = 0;
+
+    ret = readSerial(buffer, nBlocks * BLOCK_SIZE);
 
     int valid = checkValidMessage(buffer, nBlocks);
 

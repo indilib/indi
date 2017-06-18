@@ -31,6 +31,7 @@ void Triangulate::Reset()
 
 void Triangulate::AddPoint(HtmID id)
 {
+    INDI_UNUSED(id);
     isvalid = false;
 }
 

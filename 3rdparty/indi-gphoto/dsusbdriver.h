@@ -19,11 +19,11 @@
 
 */
 
-#include <indiusbdevice.h>
-#include <string>
+#pragma once
 
-#ifndef DSUSBDRIVER_H
-#define DSUSBDRIVER_H
+#include <indiusbdevice.h>
+
+#include <stdint.h>
 
 class DSUSBDriver : public INDI::USBDevice
 {
@@ -42,5 +42,3 @@ class DSUSBDriver : public INDI::USBDevice
     char device[MAXINDIDEVICE];
     bool connected = false;
 };
-
-#endif // DSUSBDRIVER_H

@@ -20,8 +20,7 @@
   file called LICENSE.
 *******************************************************************************/
 
-#ifndef _GPHOTO_DRIVER_H_
-#define _GPHOTO_DRIVER_H_
+#pragma once
 
 #include <gphoto2/gphoto2.h>
 
@@ -109,5 +108,3 @@ void gphoto_set_debug(const char *name);
 int gphoto_mirrorlock(gphoto_driver *gphoto, int msec);
 const char *gphoto_get_manufacturer(gphoto_driver *gphoto);
 const char *gphoto_get_model(gphoto_driver *gphoto);
-
-#endif

@@ -25,26 +25,18 @@
 
 #endif
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <stdarg.h>
-#include <math.h>
-#include <unistd.h>
-#include <time.h>
-#include <memory>
-#include <sys/types.h>
-#include <sys/stat.h>
-
-#include <config.h>
-
-/* Our driver header */
 #include "indiduino.h"
 
-using namespace std;
+#include "config.h"
+#include "firmata.h"
+
+#include <indicontroller.h>
+
+#include <memory>
+#include <sys/stat.h>
 
 /* Our indiduino auto pointer */
-unique_ptr<indiduino> indiduino_prt(new indiduino());
+std::unique_ptr<indiduino> indiduino_prt(new indiduino());
 
 const int POLLMS = 500; // Period of update, 1 second.
 
@@ -135,14 +127,12 @@ void indiduino::TimerHit()
     sf->OnIdle();
 
     std::vector<INDI::Property *> *pAll = getProperties();
-    for (int i = 0; i < pAll->size(); i++)
+
+    for (unsigned int i = 0; i < pAll->size(); i++)
     {
-        const char *name;
-        const char *label;
-        INDI_PROPERTY_TYPE type;
-        name  = pAll->at(i)->getName();
-        label = pAll->at(i)->getLabel();
-        type  = pAll->at(i)->getType();
+        const char *name = pAll->at(i)->getName();
+        INDI_PROPERTY_TYPE type = pAll->at(i)->getType();
+
         //DIGITAL INPUT
         if (type == INDI_LIGHT)
         {
@@ -393,7 +383,6 @@ bool indiduino::ISNewNumber(const char *dev, const char *name, double values[], 
         }
         if (pin_config->IOType == AI)
         {
-            int pin = pin_config->pin;
             IUUpdateNumber(nvp, values, names, n);
             nvp->s = IPS_IDLE;
             change = true;
@@ -416,8 +405,6 @@ bool indiduino::ISNewNumber(const char *dev, const char *name, double values[], 
 ***************************************************************************************/
 bool indiduino::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
 {
-    int lightState = 0;
-    int lightIndex = 0;
     for (int i = 0; i < n; i++)
     {
         if (states[i] == ISS_ON)
@@ -496,8 +483,6 @@ bool indiduino::ISNewBLOB(const char *dev, const char *name, int sizes[], int bl
 {
     if (strcmp(dev, getDeviceName()))
         return false;
-
-    const char *testBLOB = "This is a test BLOB from the driver";
 
     IBLOBVectorProperty *bvp = getBLOB(name);
 
@@ -611,15 +596,11 @@ bool indiduino::setPinModesFromSKEL()
 
     IDLog("Setting pins behaviour from <indiduino> tags\n");
     std::vector<INDI::Property *> *pAll = getProperties();
-    for (int i = 0; i < pAll->size(); i++)
+
+    for (unsigned int i = 0; i < pAll->size(); i++)
     {
-        const char *name;
-        const char *label;
-        const char *aux;
-        INDI_PROPERTY_TYPE type;
-        name  = pAll->at(i)->getName();
-        label = pAll->at(i)->getLabel();
-        type  = pAll->at(i)->getType();
+        const char *name = pAll->at(i)->getName();
+        INDI_PROPERTY_TYPE type = pAll->at(i)->getType();
 
         if (ep == NULL)
         {
@@ -633,11 +614,11 @@ bool indiduino::setPinModesFromSKEL()
         {
             break;
         }
-        ioep == NULL;
+        ioep = NULL;
         if (type == INDI_SWITCH)
         {
             ISwitchVectorProperty *svp = getSwitch(name);
-            ioep == NULL;
+            ioep = NULL;
             for (int i = 0; i < svp->nsp; i++)
             {
                 ISwitch *sqp = &svp->sp[i];
@@ -682,7 +663,8 @@ bool indiduino::setPinModesFromSKEL()
         if (type == INDI_TEXT)
         {
             ITextVectorProperty *tvp = getText(name);
-            ioep == NULL;
+
+            ioep = NULL;
             for (int i = 0; i < tvp->ntp; i++)
             {
                 IText *tqp = &tvp->tp[i];
@@ -714,7 +696,8 @@ bool indiduino::setPinModesFromSKEL()
         if (type == INDI_LIGHT)
         {
             ILightVectorProperty *lvp = getLight(name);
-            ioep == NULL;
+
+            ioep = NULL;
             for (int i = 0; i < lvp->nlp; i++)
             {
                 ILight *lqp = &lvp->lp[i];
@@ -748,7 +731,8 @@ bool indiduino::setPinModesFromSKEL()
         if (type == INDI_NUMBER)
         {
             INumberVectorProperty *nvp = getNumber(name);
-            ioep == NULL;
+
+            ioep = NULL;
             for (int i = 0; i < nvp->nnp; i++)
             {
                 INumber *eqp = &nvp->np[i];
@@ -942,11 +926,16 @@ void indiduino::axisHelper(const char *axis_n, double value, void *context)
 
 void indiduino::processAxis(const char *axis_n, double value)
 {
+    INDI_UNUSED(axis_n);
+    INDI_UNUSED(value);
     // TO BE IMPLEMENTED
 }
 
 void indiduino::processJoystick(const char *joystick_n, double mag, double angle)
 {
+    INDI_UNUSED(joystick_n);
+    INDI_UNUSED(mag);
+    INDI_UNUSED(angle);
     // TO BE IMPLEMENTED
 }
 
