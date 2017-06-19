@@ -30,7 +30,7 @@
 #include <inditelescope.h>
 #include <indiguiderinterface.h>
 
-#include <libnova.h>
+#include <libnova/ln_types.h>
 
 typedef struct SyncData
 {

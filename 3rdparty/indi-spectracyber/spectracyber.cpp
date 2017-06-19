@@ -34,7 +34,7 @@
 
 #include <indicom.h>
 
-#include <libnova/libnova.h>
+#include <libnova/julian_day.h>
 
 #include <memory>
 #include <stdlib.h>

@@ -20,6 +20,9 @@
 #include "triangulate.h"
 #include "triangulate_chull.h"
 
+#include <libnova/sidereal_time.h>
+#include <libnova/transform.h>
+
 #include <math.h>
 #include <string.h>
 #include <wordexp.h>

@@ -32,11 +32,12 @@
 #include "mach_gettime.h"
 
 #include <indicom.h>
-
 #ifdef WITH_ALIGN
 #include <alignment/DriverCommon.h> // For DBG_ALIGNMENT
 using namespace INDI::AlignmentSubsystem;
 #endif
+
+#include <libnova/sidereal_time.h>
 
 #define DEVICE_NAME "EQMod Mount"
 

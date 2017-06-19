@@ -19,6 +19,9 @@
 
 #include "../eqmod.h"
 
+#include <libnova/sidereal_time.h>
+#include <libnova/transform.h>
+
 using namespace INDI;
 
 #define MATRIX_LOG(name, in)                                                                                    \
