@@ -692,7 +692,7 @@ bool SpectraCyber::dispatch_command(SpectrometerCommand command_type)
     char spectrometer_error[SPECTROMETER_ERROR_BUFFER];
     int err_code = 0, nbytes_written = 0, final_value = 0;
     // Maximum of 3 hex digits in addition to null terminator
-    char hex[4];
+    char hex[5];
     INumberVectorProperty *nProp = NULL;
     ISwitchVectorProperty *sProp = NULL;
 
@@ -710,7 +710,7 @@ bool SpectraCyber::dispatch_command(SpectrometerCommand command_type)
             // Equation is
             // Value = ((X - 10) * 63) / 15.75, where X is the user selection (10dB to 25.75dB)
             final_value = (int)((nProp->np[0].value - 10) * 63) / 15.75;
-            sprintf(hex, "%02X", final_value);
+            sprintf(hex, "%02X", (uint16_t)final_value);
             command[3] = hex[0];
             command[4] = hex[1];
             break;
@@ -724,7 +724,7 @@ bool SpectraCyber::dispatch_command(SpectrometerCommand command_type)
             command[2]  = '0';
             command[3]  = '0';
             final_value = get_on_switch(sProp);
-            sprintf(hex, "%d", final_value);
+            sprintf(hex, "%d", (uint8_t)final_value);
             command[4] = hex[0];
             break;
 
@@ -737,7 +737,7 @@ bool SpectraCyber::dispatch_command(SpectrometerCommand command_type)
             command[2]  = '0';
             command[3]  = '0';
             final_value = get_on_switch(sProp);
-            sprintf(hex, "%d", final_value);
+            sprintf(hex, "%d", (uint8_t)final_value);
             command[4] = hex[0];
             break;
 
@@ -750,7 +750,7 @@ bool SpectraCyber::dispatch_command(SpectrometerCommand command_type)
             command[2]  = '0';
             command[3]  = '0';
             final_value = get_on_switch(sProp);
-            sprintf(hex, "%d", final_value);
+            sprintf(hex, "%d", (uint8_t)final_value);
             command[4] = hex[0];
 
             break;
@@ -764,7 +764,7 @@ bool SpectraCyber::dispatch_command(SpectrometerCommand command_type)
             command[2]  = '0';
             command[3]  = '0';
             final_value = get_on_switch(sProp);
-            sprintf(hex, "%d", final_value);
+            sprintf(hex, "%d", (uint8_t)final_value);
             command[4] = hex[0];
             break;
 
@@ -775,7 +775,7 @@ bool SpectraCyber::dispatch_command(SpectrometerCommand command_type)
                 return false;
             command[1]  = 'O';
             final_value = (int)nProp->np[CONTINUUM_CHANNEL].value / 0.001;
-            sprintf(hex, "%03X", final_value);
+            sprintf(hex, "%03X", (uint32_t)final_value);
             command[2] = hex[0];
             command[3] = hex[1];
             command[4] = hex[2];
@@ -788,7 +788,7 @@ bool SpectraCyber::dispatch_command(SpectrometerCommand command_type)
                 return false;
             command[1]  = 'J';
             final_value = (int)nProp->np[SPECTRAL_CHANNEL].value / 0.001;
-            sprintf(hex, "%03X", final_value);
+            sprintf(hex, "%03X", (uint32_t)final_value);
             command[2] = hex[0];
             command[3] = hex[1];
             command[4] = hex[2];
@@ -807,7 +807,7 @@ bool SpectraCyber::dispatch_command(SpectrometerCommand command_type)
 
             final_value = (int)((FreqNP->np[0].value + SPECTROMETER_REST_CORRECTION - FreqNP->np[0].min) / 0.005 +
                                 SPECTROMETER_OFFSET);
-            sprintf(hex, "%03X", final_value);
+            sprintf(hex, "%03X", (uint32_t)final_value);
             if (isDebug())
                 IDLog("Required Freq is: %.3f --- Min Freq is: %.3f --- Spec Offset is: %d -- Final Value (Dec): %d "
                       "--- Final Value (Hex): %s\n",

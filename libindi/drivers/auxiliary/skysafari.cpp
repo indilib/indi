@@ -795,21 +795,13 @@ void SkySafari::sendUTCtimedate()
 }
 
 // Had to get this from stackoverflow, why C++ STL lacks such basic functionality?!!!
-template <typename Out>
-void SkySafari::split(const std::string &s, char delim, Out result)
-{
-    std::stringstream ss;
-    ss.str(s);
-    std::string item;
-    while (std::getline(ss, item, delim))
-    {
-        *(result++) = item;
+std::vector<std::string> SkySafari::split(const std::string &text, char sep) {
+    std::vector<std::string> tokens;
+    std::size_t start = 0, end = 0;
+    while ((end = text.find(sep, start)) != std::string::npos) {
+        tokens.push_back(text.substr(start, end - start));
+        start = end + 1;
     }
-}
-
-std::vector<std::string> SkySafari::split(const std::string &s, char delim)
-{
-    std::vector<std::string> elems;
-    split(s, delim, std::back_inserter(elems));
-    return elems;
+    tokens.push_back(text.substr(start));
+    return tokens;
 }

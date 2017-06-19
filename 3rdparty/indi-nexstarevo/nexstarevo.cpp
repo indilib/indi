@@ -738,6 +738,7 @@ void NexStarEvo::TimerHit()
                     break;
                 }
             }
+            break;
 
         case SCOPE_TRACKING:
         {
