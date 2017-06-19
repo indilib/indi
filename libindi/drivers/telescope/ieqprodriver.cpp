@@ -23,7 +23,7 @@
 #include "indicom.h"
 #include "indilogger.h"
 
-#include <libnova.h>
+#include <libnova/julian_day.h>
 
 #include <math.h>
 #include <string.h>

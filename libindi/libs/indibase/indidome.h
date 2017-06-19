@@ -24,7 +24,7 @@
 
 #include "defaultdevice.h"
 
-#include <libnova.h>
+#include <libnova/ln_types.h>
 
 #include <string>
 

@@ -28,6 +28,8 @@ Version with experimental pulse guide support. GC 04.12.2015
 
 #include "indicom.h"
 
+#include <libnova/transform.h>
+
 #include <math.h>
 #include <memory>
 #include <string.h>

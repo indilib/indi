@@ -28,7 +28,7 @@
 
 #include "indicom.h"
 
-#include <libnova.h>
+#include <libnova/julian_day.h>
 
 #include <fcntl.h>
 #include <memory>
