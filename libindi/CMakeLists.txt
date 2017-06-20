@@ -85,12 +85,16 @@ IF (UNIX OR APPLE)
     ENDIF ()
 ENDIF ()
 
+SET(FIX_WARNINGS OFF CACHE BOOL "Enable strict compilation mode to turn compiler warnings to errors")
 # Warning, debug and linker flags
 IF (UNIX OR APPLE)
     SET(COMP_FLAGS "")
     SET(LINKER_FLAGS "")
     # Verbose warnings and turns all to errors
-    SET(COMP_FLAGS "${COMP_FLAGS} -Wall -Wextra -Werror")
+    SET(COMP_FLAGS "${COMP_FLAGS} -Wall -Wextra")
+    IF (FIX_WARNINGS)
+        SET(COMP_FLAGS "${COMP_FLAGS} -Werror")
+    ENDIF ()
     # Omit problematic warnings
     IF ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
         SET(COMP_FLAGS "${COMP_FLAGS} -Wno-unused-but-set-variable")

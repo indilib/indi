@@ -4,6 +4,7 @@ PROJECT(libindi-3rdparty CXX C)
 LIST(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake_modules/")
 LIST(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/../cmake_modules/")
 include(GNUInstallDirs)
+include(CheckCCompilerFlag)
 
 ## libnova.h is in /usr/local/include but it includes other files like <libnova/ln_types.h> while ln_types.h
 ## is in the same directory on libnova.h. On Linux, this is fine since /usr/include is already included and therefore
@@ -27,7 +28,16 @@ ENDIF ()
 
 # Add security (hardening flags)
 IF (UNIX OR APPLE OR ANDROID)
-    SET(SEC_COMP_FLAGS "-D_FORTIFY_SOURCE=2 -fstack-protector-all -fPIE")
+    # Older compilers are predefining _FORTIFY_SOURCE, so defining it causes a
+    # warning, which is then considered an error. Second issue is that for
+    # these compilers, _FORTIFY_SOURCE must be used while optimizing, else
+    # causes a warning, which also results in an error. And finally, CMake is
+    # not using optimization when testing for libraries, hence breaking the build.
+    CHECK_C_COMPILER_FLAG("-Werror -D_FORTIFY_SOURCE=2" COMPATIBLE_FORTIFY_SOURCE)
+    IF (${COMPATIBLE_FORTIFY_SOURCE})
+        SET(SEC_COMP_FLAGS "-D_FORTIFY_SOURCE=2")
+    ENDIF ()
+    SET(SEC_COMP_FLAGS "${SEC_COMP_FLAGS} -fstack-protector-all -fPIE")
     IF (NOT ANDROID AND NOT "${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang" AND NOT APPLE)
         SET(SEC_COMP_FLAGS "${SEC_COMP_FLAGS} -Wa,--noexecstack")
     ENDIF ()
@@ -77,11 +87,15 @@ IF (UNIX OR APPLE)
 ENDIF ()
 
 # Warning, debug and linker flags
+SET(FIX_WARNINGS OFF CACHE BOOL "Enable strict compilation mode to turn compiler warnings to errors")
 IF (UNIX OR APPLE)
     SET(COMP_FLAGS "")
     SET(LINKER_FLAGS "")
     # Verbose warnings and turns all to errors
-    SET(COMP_FLAGS "${COMP_FLAGS} -Wall -Wextra -Werror")
+    SET(COMP_FLAGS "${COMP_FLAGS} -Wall -Wextra")
+    IF (FIX_WARNINGS)
+        SET(COMP_FLAGS "${COMP_FLAGS} -Werror")
+    ENDIF ()
     # Omit problematic warnings
     IF ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
         SET(COMP_FLAGS "${COMP_FLAGS} -Wno-unused-but-set-variable")
