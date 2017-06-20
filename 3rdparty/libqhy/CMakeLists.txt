@@ -4,6 +4,9 @@ PROJECT(libqhy C CXX)
 set(LIBQHY_VERSION "0.1.8")
 set(LIBQHY_SOVERSION "0")
 
+SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-error")
+SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-error")
+
 IF (APPLE)
 
 install(FILES qhyccd.h qhyccdcamdef.h qhyccderr.h qhyccdstruct.h log4z.h DESTINATION include/libqhy)

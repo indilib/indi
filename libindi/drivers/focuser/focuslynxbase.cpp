@@ -2390,7 +2390,7 @@ bool FocusLynxBase::sync(uint32_t position)
         {
             tty_error_msg(errcode, errmsg, MAXRBUF);
             DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
-            return IPS_ALERT;
+            return false;
         }
 
         if (isResponseOK() == false)

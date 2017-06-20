@@ -10,7 +10,7 @@
 
 #include "Common.h"
 
-#include <libnova.h>
+#include <libnova/ln_types.h>
 
 #include <vector>
 

@@ -43,19 +43,19 @@
 
 #include "mgc.h"
 
-class MGCP_ENTER_NORMAL_MODE: MGC
+class MGCP_ENTER_NORMAL_MODE : MGC
 {
-public:
+  public:
     virtual IOByte opCode() const { return 0x42; }
     virtual IOMode opMode() const { return OPM_COMPATIBLE; }
 
-public:
-    virtual IOResult ask(MGenDevice& root) throw (IOError)
+  public:
+    virtual IOResult ask(MGenDevice &root) throw(IOError)
     {
-        if(CR_SUCCESS != MGC::ask(root))
+        if (CR_SUCCESS != MGC::ask(root))
             return CR_FAILURE;
 
-        if(root.lock())
+        if (root.lock())
         {
             root.write(query);
             sleep(1);
@@ -64,9 +64,8 @@ public:
         return CR_SUCCESS;
     }
 
-public:
-    MGCP_ENTER_NORMAL_MODE():
-        MGC(IOBuffer { opCode() }, IOBuffer ()) {};
+  public:
+    MGCP_ENTER_NORMAL_MODE() : MGC(IOBuffer{ opCode() }, IOBuffer()){};
 };
 
 #endif /* _3RDPARTY_INDI_MGEN_MGCP_ENTER_NORMAL_MODE_H_ */

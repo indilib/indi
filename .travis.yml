@@ -1,4 +1,6 @@
-compiler: gcc
+compiler:
+ - gcc
+
 language: cpp
 sudo: required
 dist: trusty
@@ -11,13 +13,46 @@ os:
 matrix:
   include:
     - os: linux
-      env: COMPILER_NAME=gcc CXX=g++-5 CC=gcc-5
       addons:
         apt:
           packages:
             - g++-5
           sources: &sources
             - ubuntu-toolchain-r-test
+      env:
+        - MATRIX_EVAL="CC=gcc-5 && CXX=g++-5"
+
+    - os: linux
+      addons:
+        apt:
+          packages:
+            - g++-6
+          sources: &sources
+            - ubuntu-toolchain-r-test
+      env:
+        - MATRIX_EVAL="CC=gcc-6 && CXX=g++-6"
+
+    - os: linux
+      addons:
+        apt:
+          packages:
+            - g++-7
+          sources: &sources
+            - ubuntu-toolchain-r-test
+      env:
+        - MATRIX_EVAL="CC=gcc-7 && CXX=g++-7"
+
+    - os: linux
+      addons:
+        apt:
+          sources:
+            - ubuntu-toolchain-r-test
+            - llvm-toolchain-trusty-4.0
+          packages:
+            - g++-5
+            - clang-4.0
+      env:
+        - MATRIX_EVAL="CC=clang-4.0 && CXX=clang++-4.0"
 
 branches:
   only:
@@ -30,6 +65,7 @@ branches:
     - feature/travisosx
 
 before_install:
+    - eval "${MATRIX_EVAL}"
     - echo Install dependencies
     - travis-ci/deps-${TRAVIS_OS_NAME}.sh
 

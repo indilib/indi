@@ -22,25 +22,23 @@
 
 #include "qhy_ccd.h"
 
-#include "qhy_fw.h"
-
 #include "config.h"
 #ifndef __APPLE__
 #include "stream_recorder.h"
 #endif
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-parameter"
+#include <log4z.h>
+#pragma GCC diagnostic pop
+
 #include <algorithm>
-
-#include <memory>
-#include <time.h>
 #include <math.h>
-#include <unistd.h>
-#include <sys/time.h>
 
-#define POLLMS                  1000        /* Polling time (ms) */
-#define TEMP_THRESHOLD          0.2         /* Differential temperature threshold (C)*/
-#define MINIMUM_CCD_EXPOSURE    0.001       /* 0.001 seconds minimum exposure */
-#define MAX_DEVICES             4           /* Max device cameraCount */
+#define POLLMS               1000  /* Polling time (ms) */
+#define TEMP_THRESHOLD       0.2   /* Differential temperature threshold (C)*/
+#define MINIMUM_CCD_EXPOSURE 0.001 /* 0.001 seconds minimum exposure */
+#define MAX_DEVICES          4     /* Max device cameraCount */
 
 //NB Disable for real driver
 //#define USE_SIMULATION
@@ -48,172 +46,176 @@
 static int cameraCount = 0;
 static QHYCCD *cameras[MAX_DEVICES];
 
-pthread_cond_t      cv  = PTHREAD_COND_INITIALIZER;
-pthread_mutex_t     condMutex     = PTHREAD_MUTEX_INITIALIZER;
+pthread_cond_t cv         = PTHREAD_COND_INITIALIZER;
+pthread_mutex_t condMutex = PTHREAD_MUTEX_INITIALIZER;
 
-namespace {
+namespace
+{
 static void QhyCCDCleanup()
 {
-  for (int i = 0; i < cameraCount; i++)
-  {
-    delete cameras[i];
-  }
+    for (int i = 0; i < cameraCount; i++)
+    {
+        delete cameras[i];
+    }
 
-  //ReleaseQHYCCDResource();
+    //ReleaseQHYCCDResource();
 }
 
 // Scan for the available devices
 std::vector<std::string> GetDevicesIDs()
 {
-  char camid[MAXINDIDEVICE];
-  int ret = QHYCCD_ERROR;
-  int deviceCount = 0;
-  std::vector<std::string> devices;
+    char camid[MAXINDIDEVICE];
+    int ret         = QHYCCD_ERROR;
+    int deviceCount = 0;
+    std::vector<std::string> devices;
 
 #if defined(USE_SIMULATION)
-  deviceCount = 2;
+    deviceCount = 2;
 #else
-  deviceCount = ScanQHYCCD();
+    deviceCount = ScanQHYCCD();
 #endif
 
-  for (int i = 0; i < deviceCount; i++)
-  {
-    memset(camid,'\0', MAXINDIDEVICE);
-
-#if defined(USE_SIMULATION)
-    ret = QHYCCD_SUCCESS;
-    snprintf(camid, MAXINDIDEVICE, "Model %d", i+1);
-#else
-    ret = GetQHYCCDId(i, camid);
-#endif
-    if  (ret == QHYCCD_SUCCESS)
+    for (int i = 0; i < deviceCount; i++)
     {
-      devices.push_back(std::string(camid));
-    } else {
-      IDLog("#%d GetQHYCCDId error (%d)\n", i, ret);
-    }
-  }
+        memset(camid, '\0', MAXINDIDEVICE);
 
-  return devices;
+#if defined(USE_SIMULATION)
+        ret = QHYCCD_SUCCESS;
+        snprintf(camid, MAXINDIDEVICE, "Model %d", i + 1);
+#else
+        ret = GetQHYCCDId(i, camid);
+#endif
+        if (ret == QHYCCD_SUCCESS)
+        {
+            devices.push_back(std::string(camid));
+        }
+        else
+        {
+            IDLog("#%d GetQHYCCDId error (%d)\n", i, ret);
+        }
+    }
+
+    return devices;
 }
 }
 
 void ISInit()
 {
-  static bool isInit = false;
+    static bool isInit = false;
 
-  if (isInit)
-    return;
+    if (isInit)
+        return;
 
-  for (int i = 0; i < MAX_DEVICES; ++i)
-    cameras[i] = nullptr;
+    for (int i = 0; i < MAX_DEVICES; ++i)
+        cameras[i] = nullptr;
 
 #if !defined(USE_SIMULATION)
-  int ret = InitQHYCCDResource();
+    int ret = InitQHYCCDResource();
 
-  if (ret != QHYCCD_SUCCESS)
-  {
-    IDLog("Init QHYCCD SDK failed (%d)\n", ret);
-    isInit = true;
-    return;
-  }
+    if (ret != QHYCCD_SUCCESS)
+    {
+        IDLog("Init QHYCCD SDK failed (%d)\n", ret);
+        isInit = true;
+        return;
+    }
 #endif
 
 #if defined(OSX_EMBEDED_MODE)
-  char firmwarePath[128];
-  sprintf(firmwarePath, "%s/Contents/Resources", getenv("INDIPREFIX"));
-  OSXInitQHYCCDFirmware(firmwarePath);
+    char firmwarePath[128];
+    sprintf(firmwarePath, "%s/Contents/Resources", getenv("INDIPREFIX"));
+    OSXInitQHYCCDFirmware(firmwarePath);
 #elif defined(__APPLE__)
-  char firmwarePath[128] = "/usr/local/lib/qhy";
-  if (getenv("QHY_FIRMWARE_DIR") != NULL)
-    strncpy(firmwarePath, getenv("QHY_FIRMWARE_DIR"), 128);
-  OSXInitQHYCCDFirmware(firmwarePath);
+    char firmwarePath[128] = "/usr/local/lib/qhy";
+    if (getenv("QHY_FIRMWARE_DIR") != NULL)
+        strncpy(firmwarePath, getenv("QHY_FIRMWARE_DIR"), 128);
+    OSXInitQHYCCDFirmware(firmwarePath);
 #endif
 
-  std::vector<std::string> devices = GetDevicesIDs();
+    std::vector<std::string> devices = GetDevicesIDs();
 
-  cameraCount = (int)devices.size();
-  for (unsigned int i = 0; i < cameraCount; i++)
-  {
-    cameras[i] = new QHYCCD(devices[i].c_str());
-  }
-  if (cameraCount > 0)
-  {
-    atexit(QhyCCDCleanup);
-    isInit = true;
-  }
+    cameraCount = (int)devices.size();
+    for (int i = 0; i < cameraCount; i++)
+    {
+        cameras[i] = new QHYCCD(devices[i].c_str());
+    }
+    if (cameraCount > 0)
+    {
+        atexit(QhyCCDCleanup);
+        isInit = true;
+    }
 }
 
 void ISGetProperties(const char *dev)
 {
-  ISInit();
-  for (int i = 0; i < cameraCount; i++)
-  {
-    QHYCCD *camera = cameras[i];
-    if (dev == NULL || !strcmp(dev, camera->name))
+    ISInit();
+    for (int i = 0; i < cameraCount; i++)
     {
-      camera->ISGetProperties(dev);
-      if (dev != NULL)
-        break;
+        QHYCCD *camera = cameras[i];
+        if (dev == NULL || !strcmp(dev, camera->name))
+        {
+            camera->ISGetProperties(dev);
+            if (dev != NULL)
+                break;
+        }
     }
-  }
 }
 
 void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int num)
 {
-  ISInit();
-  for (int i = 0; i < cameraCount; i++)
-  {
-    QHYCCD *camera = cameras[i];
-    if (dev == NULL || !strcmp(dev, camera->name))
+    ISInit();
+    for (int i = 0; i < cameraCount; i++)
     {
-      camera->ISNewSwitch(dev, name, states, names, num);
-      if (dev != NULL)
-        break;
+        QHYCCD *camera = cameras[i];
+        if (dev == NULL || !strcmp(dev, camera->name))
+        {
+            camera->ISNewSwitch(dev, name, states, names, num);
+            if (dev != NULL)
+                break;
+        }
     }
-  }
 }
 
 void ISNewText(const char *dev, const char *name, char *texts[], char *names[], int num)
 {
-  ISInit();
-  for (int i = 0; i < cameraCount; i++)
-  {
-    QHYCCD *camera = cameras[i];
-    if (dev == NULL || !strcmp(dev, camera->name))
+    ISInit();
+    for (int i = 0; i < cameraCount; i++)
     {
-      camera->ISNewText(dev, name, texts, names, num);
-      if (dev != NULL)
-        break;
+        QHYCCD *camera = cameras[i];
+        if (dev == NULL || !strcmp(dev, camera->name))
+        {
+            camera->ISNewText(dev, name, texts, names, num);
+            if (dev != NULL)
+                break;
+        }
     }
-  }
 }
 
 void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int num)
 {
-  ISInit();
-  for (int i = 0; i < cameraCount; i++)
-  {
-    QHYCCD *camera = cameras[i];
-    if (dev == NULL || !strcmp(dev, camera->name))
+    ISInit();
+    for (int i = 0; i < cameraCount; i++)
     {
-      camera->ISNewNumber(dev, name, values, names, num);
-      if (dev != NULL)
-        break;
+        QHYCCD *camera = cameras[i];
+        if (dev == NULL || !strcmp(dev, camera->name))
+        {
+            camera->ISNewNumber(dev, name, values, names, num);
+            if (dev != NULL)
+                break;
+        }
     }
-  }
 }
 
-void ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[], char *names[], int n)
+void ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[],
+               char *names[], int n)
 {
-  INDI_UNUSED(dev);
-  INDI_UNUSED(name);
-  INDI_UNUSED(sizes);
-  INDI_UNUSED(blobsizes);
-  INDI_UNUSED(blobs);
-  INDI_UNUSED(formats);
-  INDI_UNUSED(names);
-  INDI_UNUSED(n);
+    INDI_UNUSED(dev);
+    INDI_UNUSED(name);
+    INDI_UNUSED(sizes);
+    INDI_UNUSED(blobsizes);
+    INDI_UNUSED(blobs);
+    INDI_UNUSED(formats);
+    INDI_UNUSED(names);
+    INDI_UNUSED(n);
 }
 
 void ISSnoopDevice(XMLEle *root)
@@ -222,8 +224,8 @@ void ISSnoopDevice(XMLEle *root)
 
     for (int i = 0; i < cameraCount; i++)
     {
-      QHYCCD *camera = cameras[i];
-      camera->ISSnoopDevice(root);
+        QHYCCD *camera = cameras[i];
+        camera->ISSnoopDevice(root);
     }
 }
 
@@ -234,14 +236,14 @@ QHYCCD::QHYCCD(const char *name)
     FilterSlotN[0].max = 5;
 
     HasUSBTraffic = false;
-    HasUSBSpeed = false;
-    HasGain = false;
-    HasOffset = false;
-    HasFilters = false;
+    HasUSBSpeed   = false;
+    HasGain       = false;
+    HasOffset     = false;
+    HasFilters    = false;
     coolerEnabled = false;
 
     snprintf(this->name, MAXINDINAME, "QHY CCD %.15s", name);
-    snprintf(this->camid,MAXINDINAME,"%s",name);
+    snprintf(this->camid, MAXINDINAME, "%s", name);
     setDeviceName(this->name);
 
     setVersion(INDI_QHY_VERSION_MAJOR, INDI_QHY_VERSION_MINOR);
@@ -254,9 +256,9 @@ QHYCCD::~QHYCCD()
     ReleaseQHYCCDResource();
 }
 
-const char * QHYCCD::getDefaultName()
+const char *QHYCCD::getDefaultName()
 {
-  return ((char *) "QHY CCD");
+    return ((char *)"QHY CCD");
 }
 
 bool QHYCCD::initProperties()
@@ -270,11 +272,13 @@ bool QHYCCD::initProperties()
     // CCD Cooler Switch
     IUFillSwitch(&CoolerS[0], "COOLER_ON", "On", ISS_OFF);
     IUFillSwitch(&CoolerS[1], "COOLER_OFF", "Off", ISS_ON);
-    IUFillSwitchVector(&CoolerSP, CoolerS, 2, getDeviceName(), "CCD_COOLER", "Cooler", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+    IUFillSwitchVector(&CoolerSP, CoolerS, 2, getDeviceName(), "CCD_COOLER", "Cooler", MAIN_CONTROL_TAB, IP_RW,
+                       ISR_1OFMANY, 0, IPS_IDLE);
 
     // CCD Regulation power
     IUFillNumber(&CoolerN[0], "CCD_COOLER_VALUE", "Cooling Power (%)", "%+06.2f", 0., 1., .2, 0.0);
-    IUFillNumberVector(&CoolerNP, CoolerN, 1, getDeviceName(), "CCD_COOLER_POWER", "Cooling Power", MAIN_CONTROL_TAB, IP_RO, 60, IPS_IDLE);
+    IUFillNumberVector(&CoolerNP, CoolerN, 1, getDeviceName(), "CCD_COOLER_POWER", "Cooling Power", MAIN_CONTROL_TAB,
+                       IP_RO, 60, IPS_IDLE);
 
     // CCD Gain
     IUFillNumber(&GainN[0], "GAIN", "Gain", "%3.0f", 0, 100, 1, 11);
@@ -282,15 +286,18 @@ bool QHYCCD::initProperties()
 
     // CCD Offset
     IUFillNumber(&OffsetN[0], "Offset", "Offset", "%3.0f", 0, 0, 1, 0);
-    IUFillNumberVector(&OffsetNP, OffsetN, 1, getDeviceName(), "CCD_OFFSET", "Offset", MAIN_CONTROL_TAB, IP_RW, 60, IPS_IDLE);
+    IUFillNumberVector(&OffsetNP, OffsetN, 1, getDeviceName(), "CCD_OFFSET", "Offset", MAIN_CONTROL_TAB, IP_RW, 60,
+                       IPS_IDLE);
 
     // USB Speed
     IUFillNumber(&SpeedN[0], "Speed", "Speed", "%3.0f", 0, 0, 1, 0);
-    IUFillNumberVector(&SpeedNP, SpeedN, 1, getDeviceName(), "USB_SPEED", "USB Speed", MAIN_CONTROL_TAB, IP_RW, 60, IPS_IDLE);
+    IUFillNumberVector(&SpeedNP, SpeedN, 1, getDeviceName(), "USB_SPEED", "USB Speed", MAIN_CONTROL_TAB, IP_RW, 60,
+                       IPS_IDLE);
 
     // USB Traffic
     IUFillNumber(&USBTrafficN[0], "Speed", "Speed", "%3.0f", 0, 0, 1, 0);
-    IUFillNumberVector(&USBTrafficNP, USBTrafficN, 1, getDeviceName(), "USB_TRAFFIC", "USB Traffic", MAIN_CONTROL_TAB, IP_RW, 60, IPS_IDLE);
+    IUFillNumberVector(&USBTrafficNP, USBTrafficN, 1, getDeviceName(), "USB_TRAFFIC", "USB Traffic", MAIN_CONTROL_TAB,
+                       IP_RW, 60, IPS_IDLE);
 
     // Set minimum exposure speed to 0.001 seconds
     PrimaryCCD.setMinMaxStep("CCD_EXPOSURE", "CCD_EXPOSURE_VALUE", MINIMUM_CCD_EXPOSURE, 3600, 1, false);
@@ -304,220 +311,222 @@ bool QHYCCD::initProperties()
 
 void QHYCCD::ISGetProperties(const char *dev)
 {
-  INDI::CCD::ISGetProperties(dev);
+    INDI::CCD::ISGetProperties(dev);
 
-  if (isConnected())
-  {
-      if (HasCooler())
-      {
-          defineSwitch(&CoolerSP);
-          defineNumber(&CoolerNP);          
-      }
+    if (isConnected())
+    {
+        if (HasCooler())
+        {
+            defineSwitch(&CoolerSP);
+            defineNumber(&CoolerNP);
+        }
 
-      if(HasUSBSpeed)
-         defineNumber(&SpeedNP);
+        if (HasUSBSpeed)
+            defineNumber(&SpeedNP);
 
-      if(HasGain)
-        defineNumber(&GainNP);
+        if (HasGain)
+            defineNumber(&GainNP);
 
-      if(HasOffset)
-        defineNumber(&OffsetNP);
+        if (HasOffset)
+            defineNumber(&OffsetNP);
 
-      if(HasFilters)
-      {
-          //Define the Filter Slot and name properties
-          defineNumber(&FilterSlotNP);
-          if (FilterNameT != NULL)
-              defineText(FilterNameTP);
-      }
+        if (HasFilters)
+        {
+            //Define the Filter Slot and name properties
+            defineNumber(&FilterSlotNP);
+            if (FilterNameT != NULL)
+                defineText(FilterNameTP);
+        }
 
-      if (HasUSBTraffic)
-        defineNumber(&USBTrafficNP);
-  }
-
+        if (HasUSBTraffic)
+            defineNumber(&USBTrafficNP);
+    }
 }
 
 bool QHYCCD::updateProperties()
 {
-  INDI::CCD::updateProperties();
-  double min,max,step;
+    INDI::CCD::updateProperties();
+    double min, max, step;
 
-  if (isConnected())
-  {
-      if (HasCooler())
-      {
-          defineSwitch(&CoolerSP);
-          defineNumber(&CoolerNP);
+    if (isConnected())
+    {
+        if (HasCooler())
+        {
+            defineSwitch(&CoolerSP);
+            defineNumber(&CoolerNP);
 
-          temperatureID = IEAddTimer(POLLMS, QHYCCD::updateTemperatureHelper, this);
-      }
+            temperatureID = IEAddTimer(POLLMS, QHYCCD::updateTemperatureHelper, this);
+        }
 
-      if(HasUSBSpeed)
-      {
-          if (sim)
-          {
-              SpeedN[0].min = 1;
-              SpeedN[0].max = 5;
-              SpeedN[0].step = 1;
-              SpeedN[0].value = 1;
-          }
-          else
-          {
-              int ret = GetQHYCCDParamMinMaxStep(camhandle,CONTROL_SPEED,&min,&max,&step);
-              if(ret == QHYCCD_SUCCESS)
-              {
-                  SpeedN[0].min = min;
-                  SpeedN[0].max = max;
-                  SpeedN[0].step = step;
-              }
+        if (HasUSBSpeed)
+        {
+            if (sim)
+            {
+                SpeedN[0].min   = 1;
+                SpeedN[0].max   = 5;
+                SpeedN[0].step  = 1;
+                SpeedN[0].value = 1;
+            }
+            else
+            {
+                int ret = GetQHYCCDParamMinMaxStep(camhandle, CONTROL_SPEED, &min, &max, &step);
+                if (ret == QHYCCD_SUCCESS)
+                {
+                    SpeedN[0].min  = min;
+                    SpeedN[0].max  = max;
+                    SpeedN[0].step = step;
+                }
 
-              SpeedN[0].value = GetQHYCCDParam(camhandle,CONTROL_SPEED);
+                SpeedN[0].value = GetQHYCCDParam(camhandle, CONTROL_SPEED);
 
-              DEBUGF(INDI::Logger::DBG_DEBUG, "USB Speed. Value: %g Min: %g Max: %g Step %g", SpeedN[0].value, SpeedN[0].min, SpeedN[0].max, SpeedN[0].step);
-          }
+                DEBUGF(INDI::Logger::DBG_DEBUG, "USB Speed. Value: %g Min: %g Max: %g Step %g", SpeedN[0].value,
+                       SpeedN[0].min, SpeedN[0].max, SpeedN[0].step);
+            }
 
-          defineNumber(&SpeedNP);
-      }
+            defineNumber(&SpeedNP);
+        }
 
-      if(HasGain)
-      {
-          if (sim)
-          {
-              GainN[0].min = 0;
-              GainN[0].max = 100;
-              GainN[0].step = 10;
-              GainN[0].value = 50;
-          }
-          else
-          {
-              int ret = GetQHYCCDParamMinMaxStep(camhandle,CONTROL_GAIN,&min,&max,&step);
-              if(ret == QHYCCD_SUCCESS)
-              {
-                  GainN[0].min = min;
-                  GainN[0].max = max;
-                  GainN[0].step = step;
-              }
-              GainN[0].value = GetQHYCCDParam(camhandle,CONTROL_GAIN);
+        if (HasGain)
+        {
+            if (sim)
+            {
+                GainN[0].min   = 0;
+                GainN[0].max   = 100;
+                GainN[0].step  = 10;
+                GainN[0].value = 50;
+            }
+            else
+            {
+                int ret = GetQHYCCDParamMinMaxStep(camhandle, CONTROL_GAIN, &min, &max, &step);
+                if (ret == QHYCCD_SUCCESS)
+                {
+                    GainN[0].min  = min;
+                    GainN[0].max  = max;
+                    GainN[0].step = step;
+                }
+                GainN[0].value = GetQHYCCDParam(camhandle, CONTROL_GAIN);
 
-              DEBUGF(INDI::Logger::DBG_DEBUG, "Gain. Value: %g Min: %g Max: %g Step %g", GainN[0].value, GainN[0].min, GainN[0].max, GainN[0].step);
-          }
+                DEBUGF(INDI::Logger::DBG_DEBUG, "Gain. Value: %g Min: %g Max: %g Step %g", GainN[0].value, GainN[0].min,
+                       GainN[0].max, GainN[0].step);
+            }
 
-          defineNumber(&GainNP);
-      }
+            defineNumber(&GainNP);
+        }
 
-      if(HasOffset)
-      {
-          if (sim)
-          {
-              OffsetN[0].min = 1;
-              OffsetN[0].max = 10;
-              OffsetN[0].step = 1;
-              OffsetN[0].value = 1;
-          }
-          else
-          {
-              int ret = GetQHYCCDParamMinMaxStep(camhandle,CONTROL_OFFSET,&min,&max,&step);
-              if(ret == QHYCCD_SUCCESS)
-              {
-                  OffsetN[0].min = min;
-                  OffsetN[0].max = max;
-                  OffsetN[0].step = step;
-              }
-              OffsetN[0].value = GetQHYCCDParam(camhandle,CONTROL_OFFSET);
+        if (HasOffset)
+        {
+            if (sim)
+            {
+                OffsetN[0].min   = 1;
+                OffsetN[0].max   = 10;
+                OffsetN[0].step  = 1;
+                OffsetN[0].value = 1;
+            }
+            else
+            {
+                int ret = GetQHYCCDParamMinMaxStep(camhandle, CONTROL_OFFSET, &min, &max, &step);
+                if (ret == QHYCCD_SUCCESS)
+                {
+                    OffsetN[0].min  = min;
+                    OffsetN[0].max  = max;
+                    OffsetN[0].step = step;
+                }
+                OffsetN[0].value = GetQHYCCDParam(camhandle, CONTROL_OFFSET);
 
-              DEBUGF(INDI::Logger::DBG_DEBUG, "Offset. Value: %g Min: %g Max: %g Step %g", OffsetN[0].value, OffsetN[0].min, OffsetN[0].max, OffsetN[0].step);
-          }
+                DEBUGF(INDI::Logger::DBG_DEBUG, "Offset. Value: %g Min: %g Max: %g Step %g", OffsetN[0].value,
+                       OffsetN[0].min, OffsetN[0].max, OffsetN[0].step);
+            }
 
-          //Define the Offset
-          defineNumber(&OffsetNP);
-      }
+            //Define the Offset
+            defineNumber(&OffsetNP);
+        }
 
-      if(HasFilters)
-      {
-          //Define the Filter Slot and name properties
-          defineNumber(&FilterSlotNP);
+        if (HasFilters)
+        {
+            //Define the Filter Slot and name properties
+            defineNumber(&FilterSlotNP);
 
-          if (FilterNameT == NULL)
-              GetFilterNames(FILTER_TAB);
-          if (FilterNameT)
-              defineText(FilterNameTP);
-      }
+            if (FilterNameT == NULL)
+                GetFilterNames(FILTER_TAB);
+            if (FilterNameT)
+                defineText(FilterNameTP);
+        }
 
-      if (HasUSBTraffic)
-      {
-          if (sim)
-          {
-              USBTrafficN[0].min = 1;
-              USBTrafficN[0].max = 100;
-              USBTrafficN[0].step = 5;
-              USBTrafficN[0].value = 20;
-          }
-          else
-          {
-              int ret = GetQHYCCDParamMinMaxStep(camhandle,CONTROL_USBTRAFFIC,&min,&max,&step);
-              if(ret == QHYCCD_SUCCESS)
-              {
-                  USBTrafficN[0].min = min;
-                  USBTrafficN[0].max = max;
-                  USBTrafficN[0].step = step;
-              }
-              USBTrafficN[0].value = GetQHYCCDParam(camhandle,CONTROL_USBTRAFFIC);
+        if (HasUSBTraffic)
+        {
+            if (sim)
+            {
+                USBTrafficN[0].min   = 1;
+                USBTrafficN[0].max   = 100;
+                USBTrafficN[0].step  = 5;
+                USBTrafficN[0].value = 20;
+            }
+            else
+            {
+                int ret = GetQHYCCDParamMinMaxStep(camhandle, CONTROL_USBTRAFFIC, &min, &max, &step);
+                if (ret == QHYCCD_SUCCESS)
+                {
+                    USBTrafficN[0].min  = min;
+                    USBTrafficN[0].max  = max;
+                    USBTrafficN[0].step = step;
+                }
+                USBTrafficN[0].value = GetQHYCCDParam(camhandle, CONTROL_USBTRAFFIC);
 
-              DEBUGF(INDI::Logger::DBG_DEBUG, "USB Traffic. Value: %g Min: %g Max: %g Step %g", USBTrafficN[0].value, USBTrafficN[0].min, USBTrafficN[0].max, USBTrafficN[0].step);
-          }
-        defineNumber(&USBTrafficNP);
-      }
+                DEBUGF(INDI::Logger::DBG_DEBUG, "USB Traffic. Value: %g Min: %g Max: %g Step %g", USBTrafficN[0].value,
+                       USBTrafficN[0].min, USBTrafficN[0].max, USBTrafficN[0].step);
+            }
+            defineNumber(&USBTrafficNP);
+        }
 
-    // Let's get parameters now from CCD
-    setupParams();
+        // Let's get parameters now from CCD
+        setupParams();
 
-    //timerID = SetTimer(POLLMS);
-  } else
-  {
+        //timerID = SetTimer(POLLMS);
+    }
+    else
+    {
+        if (HasCooler())
+        {
+            deleteProperty(CoolerSP.name);
+            deleteProperty(CoolerNP.name);
+        }
 
-      if (HasCooler())
-      {
-          deleteProperty(CoolerSP.name);
-          deleteProperty(CoolerNP.name);
-      }
+        if (HasUSBSpeed)
+        {
+            deleteProperty(SpeedNP.name);
+        }
 
-      if(HasUSBSpeed)
-      {
-          deleteProperty(SpeedNP.name);
-      }
+        if (HasGain)
+        {
+            deleteProperty(GainNP.name);
+        }
 
-      if(HasGain)
-      {
-          deleteProperty(GainNP.name);
-      }
+        if (HasOffset)
+        {
+            deleteProperty(OffsetNP.name);
+        }
 
-      if(HasOffset)
-      {
-          deleteProperty(OffsetNP.name);
-      }
+        if (HasFilters)
+        {
+            deleteProperty(FilterSlotNP.name);
+            deleteProperty(FilterNameTP->name);
+        }
 
-      if(HasFilters)
-      {
-          deleteProperty(FilterSlotNP.name);
-          deleteProperty(FilterNameTP->name);
-      }
+        if (HasUSBTraffic)
+            deleteProperty(USBTrafficNP.name);
 
-      if (HasUSBTraffic)
-        deleteProperty(USBTrafficNP.name);
+        RemoveTimer(timerID);
+    }
 
-    RemoveTimer(timerID);
-  }
-
-  return true;
+    return true;
 }
 
 bool QHYCCD::Connect()
 {
-    sim = isSimulation();
-
-    int ret;
-
+    unsigned int ret = 0;
     uint32_t cap;
+
+    sim = isSimulation();
 
     if (sim)
     {
@@ -525,10 +534,10 @@ bool QHYCCD::Connect()
         SetCCDCapability(cap);
 
         HasUSBTraffic = true;
-        HasUSBSpeed = true;
-        HasGain = true;
-        HasOffset = true;
-        HasFilters = true;
+        HasUSBSpeed   = true;
+        HasGain       = true;
+        HasOffset     = true;
+        HasFilters    = true;
 
         return true;
     }
@@ -546,9 +555,9 @@ bool QHYCCD::Connect()
     }
     camhandle = OpenQHYCCD(camid);
 
-    if(camhandle != NULL)
+    if (camhandle != NULL)
     {
-        DEBUGF(INDI::Logger::DBG_SESSION, "Connected to %s.",camid);
+        DEBUGF(INDI::Logger::DBG_SESSION, "Connected to %s.", camid);
 
 #ifdef __APPLE__
         cap = CCD_CAN_ABORT | CCD_CAN_SUBFRAME;
@@ -557,44 +566,44 @@ bool QHYCCD::Connect()
 #endif
 
         // Disable the stream mode before connecting
-        ret = SetQHYCCDStreamMode(camhandle,0);
+        ret = SetQHYCCDStreamMode(camhandle, 0);
         if (ret == QHYCCD_SUCCESS)
         {
-          DEBUGF(INDI::Logger::DBG_ERROR, "Error: Can't disable stream mode (%d)", ret);
+            DEBUGF(INDI::Logger::DBG_ERROR, "Error: Can't disable stream mode (%d)", ret);
         }
         ret = InitQHYCCD(camhandle);
-        if(ret != QHYCCD_SUCCESS)
+        if (ret != QHYCCD_SUCCESS)
         {
             DEBUGF(INDI::Logger::DBG_ERROR, "Error: Init Camera failed (%d)", ret);
             return false;
         }
 
-        ret = IsQHYCCDControlAvailable(camhandle,CAM_MECHANICALSHUTTER);
-        if(ret == QHYCCD_SUCCESS)
+        ret = IsQHYCCDControlAvailable(camhandle, CAM_MECHANICALSHUTTER);
+        if (ret == QHYCCD_SUCCESS)
         {
             cap |= CCD_HAS_SHUTTER;
         }
 
         DEBUGF(INDI::Logger::DBG_DEBUG, "Shutter Control: %s", cap & CCD_HAS_SHUTTER ? "True" : "False");
 
-        ret = IsQHYCCDControlAvailable(camhandle,CONTROL_COOLER);
-        if(ret == QHYCCD_SUCCESS)
+        ret = IsQHYCCDControlAvailable(camhandle, CONTROL_COOLER);
+        if (ret == QHYCCD_SUCCESS)
         {
             cap |= CCD_HAS_COOLER;
         }
 
         DEBUGF(INDI::Logger::DBG_DEBUG, "Cooler Control: %s", cap & CCD_HAS_COOLER ? "True" : "False");
 
-        ret = IsQHYCCDControlAvailable(camhandle,CONTROL_ST4PORT);
-        if(ret == QHYCCD_SUCCESS)
+        ret = IsQHYCCDControlAvailable(camhandle, CONTROL_ST4PORT);
+        if (ret == QHYCCD_SUCCESS)
         {
             cap |= CCD_HAS_ST4_PORT;
         }
 
-        DEBUGF(INDI::Logger::DBG_DEBUG, "Guider Port Control: %s", cap & CCD_HAS_ST4_PORT  ? "True" : "False");
+        DEBUGF(INDI::Logger::DBG_DEBUG, "Guider Port Control: %s", cap & CCD_HAS_ST4_PORT ? "True" : "False");
 
-        ret = IsQHYCCDControlAvailable(camhandle,CONTROL_SPEED);
-        if(ret == QHYCCD_SUCCESS)
+        ret = IsQHYCCDControlAvailable(camhandle, CONTROL_SPEED);
+        if (ret == QHYCCD_SUCCESS)
         {
             HasUSBSpeed = true;
 
@@ -608,24 +617,24 @@ bool QHYCCD::Connect()
 
         DEBUGF(INDI::Logger::DBG_DEBUG, "USB Speed Control: %s", HasUSBSpeed ? "True" : "False");
 
-        ret = IsQHYCCDControlAvailable(camhandle,CONTROL_GAIN);
-        if(ret == QHYCCD_SUCCESS)
+        ret = IsQHYCCDControlAvailable(camhandle, CONTROL_GAIN);
+        if (ret == QHYCCD_SUCCESS)
         {
             HasGain = true;
         }
 
         DEBUGF(INDI::Logger::DBG_DEBUG, "Gain Control: %s", HasGain ? "True" : "False");
 
-        ret = IsQHYCCDControlAvailable(camhandle,CONTROL_OFFSET);
-        if(ret == QHYCCD_SUCCESS)
+        ret = IsQHYCCDControlAvailable(camhandle, CONTROL_OFFSET);
+        if (ret == QHYCCD_SUCCESS)
         {
             HasOffset = true;
         }
 
         DEBUGF(INDI::Logger::DBG_DEBUG, "Offset Control: %s", HasOffset ? "True" : "False");
 
-        ret = IsQHYCCDControlAvailable(camhandle,CONTROL_CFWPORT);
-        if(ret == QHYCCD_SUCCESS)
+        ret = IsQHYCCDControlAvailable(camhandle, CONTROL_CFWPORT);
+        if (ret == QHYCCD_SUCCESS)
         {
             HasFilters = true;
         }
@@ -661,8 +670,7 @@ bool QHYCCD::Connect()
 
         DEBUGF(INDI::Logger::DBG_DEBUG, "Binning Control: %s", cap & CCD_CAN_BIN ? "True" : "False");
 
-
-        ret= IsQHYCCDControlAvailable(camhandle, CONTROL_USBTRAFFIC);
+        ret = IsQHYCCDControlAvailable(camhandle, CONTROL_USBTRAFFIC);
         if (ret == QHYCCD_SUCCESS)
         {
             HasUSBTraffic = true;
@@ -674,23 +682,22 @@ bool QHYCCD::Connect()
 
         DEBUGF(INDI::Logger::DBG_DEBUG, "USB Traffic Control: %s", HasUSBTraffic ? "True" : "False");
 
-        ret = IsQHYCCDControlAvailable(camhandle,CAM_COLOR);
+        ret = IsQHYCCDControlAvailable(camhandle, CAM_COLOR);
         //if(ret != QHYCCD_ERROR && ret != QHYCCD_ERROR_NOTSUPPORT)
-        if(ret != QHYCCD_ERROR)
+        if (ret != QHYCCD_ERROR)
         {
-             if(ret == BAYER_GB)
-                 IUSaveText(&BayerT[2], "GBRG");
-             else if (ret == BAYER_GR)
-                 IUSaveText(&BayerT[2], "GRBG");
-             else if (ret == BAYER_BG)
-                 IUSaveText(&BayerT[2], "BGGR");
-             else
-                 IUSaveText(&BayerT[2], "RGGB");
+            if (ret == BAYER_GB)
+                IUSaveText(&BayerT[2], "GBRG");
+            else if (ret == BAYER_GR)
+                IUSaveText(&BayerT[2], "GRBG");
+            else if (ret == BAYER_BG)
+                IUSaveText(&BayerT[2], "BGGR");
+            else
+                IUSaveText(&BayerT[2], "RGGB");
 
-             DEBUGF(INDI::Logger::DBG_DEBUG, "Color CCD: %s", BayerT[2].text);
+            DEBUGF(INDI::Logger::DBG_DEBUG, "Color CCD: %s", BayerT[2].text);
 
-             cap |= CCD_HAS_BAYER;
-
+            cap |= CCD_HAS_BAYER;
         }
 
         SetCCDCapability(cap);
@@ -698,54 +705,52 @@ bool QHYCCD::Connect()
         terminateThread = false;
 
 #ifndef __APPLE__
-        pthread_create( &primary_thread, NULL, &streamVideoHelper, this);
+        pthread_create(&primary_thread, NULL, &streamVideoHelper, this);
 #endif
         return true;
     }
 
-    DEBUGF(INDI::Logger::DBG_ERROR, "Connecting to CCD failed (%s)",camid);
+    DEBUGF(INDI::Logger::DBG_ERROR, "Connecting to CCD failed (%s)", camid);
 
     return false;
-
 }
 
 bool QHYCCD::Disconnect()
 {
-  DEBUG(INDI::Logger::DBG_SESSION, "CCD is offline.");
+    DEBUG(INDI::Logger::DBG_SESSION, "CCD is offline.");
 
-  pthread_mutex_lock(&condMutex);
+    pthread_mutex_lock(&condMutex);
 #ifndef __APPLE__
-  streamPredicate=0;
+    streamPredicate = 0;
 #endif
-  terminateThread=true;
-  pthread_cond_signal(&cv);
-  pthread_mutex_unlock(&condMutex);
+    terminateThread = true;
+    pthread_cond_signal(&cv);
+    pthread_mutex_unlock(&condMutex);
 
-  if (sim == false)
-  {
-      CloseQHYCCD(camhandle);
-      //ReleaseQHYCCDResource();
-  }
+    if (sim == false)
+    {
+        CloseQHYCCD(camhandle);
+        //ReleaseQHYCCDResource();
+    }
 
-  return true;
+    return true;
 }
 
 bool QHYCCD::setupParams()
 {
-
-    uint32_t nbuf,ret,imagew,imageh,bpp;
-    double chipw,chiph,pixelw,pixelh;
+    uint32_t nbuf, ret, imagew, imageh, bpp;
+    double chipw, chiph, pixelw, pixelh;
 
     if (sim)
     {
-        chipw=imagew=1280;
-        chiph=imageh=1024;
+        chipw = imagew = 1280;
+        chiph = imageh = 1024;
         pixelh = pixelw = 5.4;
-        bpp=8;
+        bpp             = 8;
     }
     else
     {
-        ret = GetQHYCCDChipInfo(camhandle,&chipw,&chiph,&imagew,&imageh,&pixelw,&pixelh,&bpp);
+        ret = GetQHYCCDChipInfo(camhandle, &chipw, &chiph, &imagew, &imageh, &pixelw, &pixelh, &bpp);
 
         /* JM: We need GetQHYCCDErrorString(ret) to get the string description of the error, please implement this in the SDK */
         if (ret != QHYCCD_SUCCESS)
@@ -754,23 +759,24 @@ bool QHYCCD::setupParams()
             return false;
         }
 
-        DEBUGF(INDI::Logger::DBG_DEBUG, "GetQHYCCDChipInfo: chipW :%g chipH: %g imageW: %d imageH: %d pixelW: %g pixelH: %g bbp %d",
-                                chipw,chiph,imagew,imageh,pixelw,pixelh,bpp);
+        DEBUGF(INDI::Logger::DBG_DEBUG,
+               "GetQHYCCDChipInfo: chipW :%g chipH: %g imageW: %d imageH: %d pixelW: %g pixelH: %g bbp %d", chipw,
+               chiph, imagew, imageh, pixelw, pixelh, bpp);
 
-        camroix = 0;
-        camroiy = 0;
-        camroiwidth = imagew;
+        camroix      = 0;
+        camroiy      = 0;
+        camroiwidth  = imagew;
         camroiheight = imageh;
     }
 
-    SetCCDParams(imagew,imageh,bpp,pixelw,pixelh);
+    SetCCDParams(imagew, imageh, bpp, pixelw, pixelh);
 
     nbuf = PrimaryCCD.getXRes() * PrimaryCCD.getYRes() * PrimaryCCD.getBPP() / 8;
     PrimaryCCD.setFrameBufferSize(nbuf);
 
 #ifndef __APPLE__
     Streamer->setPixelFormat(V4L2_PIX_FMT_GREY);
-    Streamer->setRecorderSize(imagew,imageh);
+    Streamer->setRecorderSize(imagew, imageh);
 #endif
     return true;
 }
@@ -778,17 +784,17 @@ bool QHYCCD::setupParams()
 int QHYCCD::SetTemperature(double temperature)
 {
     // If there difference, for example, is less than 0.1 degrees, let's immediately return OK.
-    if (fabs(temperature- TemperatureN[0].value) < TEMP_THRESHOLD)
+    if (fabs(temperature - TemperatureN[0].value) < TEMP_THRESHOLD)
         return 1;
 
     DEBUGF(INDI::Logger::DBG_DEBUG, "SetTemperature %g", temperature);
 
-    TemperatureRequest = temperature;        
+    TemperatureRequest = temperature;
 
     // Enable cooler
     setCooler(true);
 
-    // this muse be call every second to control 
+    // this muse be call every second to control
     //ControlQHYCCDTemp(camhandle,TemperatureRequest);
 
     return 0;
@@ -796,106 +802,111 @@ int QHYCCD::SetTemperature(double temperature)
 
 bool QHYCCD::StartExposure(float duration)
 {
-  int ret = QHYCCD_ERROR;
+    unsigned int ret = QHYCCD_ERROR;
 
 #ifndef __APPLE__
-  if (Streamer->isBusy())
-  {
-      DEBUG(INDI::Logger::DBG_ERROR, "Cannot take exposure while streaming/recording is active.");
-      return false;
-  }
+    if (Streamer->isBusy())
+    {
+        DEBUG(INDI::Logger::DBG_ERROR, "Cannot take exposure while streaming/recording is active.");
+        return false;
+    }
 #endif
-  //AbortPrimaryFrame = false;
+    //AbortPrimaryFrame = false;
 
-  if (duration < MINIMUM_CCD_EXPOSURE)
-  {
-    DEBUGF(INDI::Logger::DBG_WARNING, "Exposure shorter than minimum duration %g s requested. Setting exposure time to %g s.", duration, MINIMUM_CCD_EXPOSURE);
-    duration = MINIMUM_CCD_EXPOSURE;
-  }
+    if (duration < MINIMUM_CCD_EXPOSURE)
+    {
+        DEBUGF(INDI::Logger::DBG_WARNING,
+               "Exposure shorter than minimum duration %g s requested. Setting exposure time to %g s.", duration,
+               MINIMUM_CCD_EXPOSURE);
+        duration = MINIMUM_CCD_EXPOSURE;
+    }
 
-  imageFrameType = PrimaryCCD.getFrameType();
+    imageFrameType = PrimaryCCD.getFrameType();
 
-  if (imageFrameType == CCDChip::BIAS_FRAME)
-  {
-    duration = MINIMUM_CCD_EXPOSURE;
-    DEBUGF(INDI::Logger::DBG_SESSION, "Bias Frame (s) : %g", duration);
-  }
-  else if(imageFrameType == CCDChip::DARK_FRAME)
-  {
-      ControlQHYCCDShutter(camhandle,MACHANICALSHUTTER_CLOSE);
-  }
-  else
-  {
-      ControlQHYCCDShutter(camhandle,MACHANICALSHUTTER_FREE);
-  }
+    if (imageFrameType == CCDChip::BIAS_FRAME)
+    {
+        duration = MINIMUM_CCD_EXPOSURE;
+        DEBUGF(INDI::Logger::DBG_SESSION, "Bias Frame (s) : %g", duration);
+    }
+    else if (imageFrameType == CCDChip::DARK_FRAME)
+    {
+        ControlQHYCCDShutter(camhandle, MACHANICALSHUTTER_CLOSE);
+    }
+    else
+    {
+        ControlQHYCCDShutter(camhandle, MACHANICALSHUTTER_FREE);
+    }
 
-  DEBUGF(INDI::Logger::DBG_DEBUG, "Current exposure time is %f us",duration * 1000 * 1000);
-  ExposureRequest = duration;
-  PrimaryCCD.setExposureDuration(duration);
+    DEBUGF(INDI::Logger::DBG_DEBUG, "Current exposure time is %f us", duration * 1000 * 1000);
+    ExposureRequest = duration;
+    PrimaryCCD.setExposureDuration(duration);
 
-  if (sim)
-      ret = QHYCCD_SUCCESS;
-  else
-  {
-      if(LastExposureRequest != ExposureRequest)
-      {
-          ret = SetQHYCCDParam(camhandle,CONTROL_EXPOSURE,ExposureRequest * 1000 * 1000);
+    if (sim)
+        ret = QHYCCD_SUCCESS;
+    else
+    {
+        if (LastExposureRequest != ExposureRequest)
+        {
+            ret = SetQHYCCDParam(camhandle, CONTROL_EXPOSURE, ExposureRequest * 1000 * 1000);
 
-          if(ret != QHYCCD_SUCCESS)
-          {
-              DEBUGF(INDI::Logger::DBG_ERROR, "Set expose time failed (%d).", ret);
-              return false;
-          }
+            if (ret != QHYCCD_SUCCESS)
+            {
+                DEBUGF(INDI::Logger::DBG_ERROR, "Set expose time failed (%d).", ret);
+                return false;
+            }
 
-          LastExposureRequest = ExposureRequest;
-      }
-  }
+            LastExposureRequest = ExposureRequest;
+        }
+    }
 
-  if (sim)
-      ret = QHYCCD_SUCCESS;
-  else
-      ret = SetQHYCCDBinMode(camhandle,camxbin,camybin);
-  if(ret != QHYCCD_SUCCESS)
-  {
-      DEBUGF(INDI::Logger::DBG_SESSION, "Set QHYCCD Bin mode failed (%d)", ret);
-      return false;
-  }
+    if (sim)
+        ret = QHYCCD_SUCCESS;
+    else
+        ret = SetQHYCCDBinMode(camhandle, camxbin, camybin);
+    if (ret != QHYCCD_SUCCESS)
+    {
+        DEBUGF(INDI::Logger::DBG_SESSION, "Set QHYCCD Bin mode failed (%d)", ret);
+        return false;
+    }
 
-  DEBUGF(INDI::Logger::DBG_DEBUG, "SetQHYCCDBinMode (%dx%d). Software binning (%dx%d)", camxbin, camybin, PrimaryCCD.getBinX(), PrimaryCCD.getBinY());
+    DEBUGF(INDI::Logger::DBG_DEBUG, "SetQHYCCDBinMode (%dx%d). Software binning (%dx%d)", camxbin, camybin,
+           PrimaryCCD.getBinX(), PrimaryCCD.getBinY());
 
-  if (sim)
-      ret = QHYCCD_SUCCESS;
-  else
-     ret = SetQHYCCDResolution(camhandle,camroix,camroiy,camroiwidth,camroiheight);
-  if(ret != QHYCCD_SUCCESS)
-  {
-      DEBUGF(INDI::Logger::DBG_SESSION, "Set QHYCCD ROI resolution (%d,%d) (%d,%d) failed (%d)", camroix, camroiy, camroiwidth, camroiheight, ret);
-      return false;
-  }
+    if (sim)
+        ret = QHYCCD_SUCCESS;
+    else
+        ret = SetQHYCCDResolution(camhandle, camroix, camroiy, camroiwidth, camroiheight);
+    if (ret != QHYCCD_SUCCESS)
+    {
+        DEBUGF(INDI::Logger::DBG_SESSION, "Set QHYCCD ROI resolution (%d,%d) (%d,%d) failed (%d)", camroix, camroiy,
+               camroiwidth, camroiheight, ret);
+        return false;
+    }
 
-  DEBUGF(INDI::Logger::DBG_DEBUG, "SetQHYCCDResolution camroix %d camroiy %d camroiwidth %d camroiheight %d", camroix,camroiy,camroiwidth,camroiheight);
+    DEBUGF(INDI::Logger::DBG_DEBUG, "SetQHYCCDResolution camroix %d camroiy %d camroiwidth %d camroiheight %d", camroix,
+           camroiy, camroiwidth, camroiheight);
 
-  if (sim)
-      ret = QHYCCD_SUCCESS;
-  else
-      ret = ExpQHYCCDSingleFrame(camhandle);
-  if(ret == QHYCCD_ERROR)
-  {
-      DEBUGF(INDI::Logger::DBG_SESSION, "Begin QHYCCD expose failed (%d)", ret);
-      return false;
-  }
+    if (sim)
+        ret = QHYCCD_SUCCESS;
+    else
+        ret = ExpQHYCCDSingleFrame(camhandle);
+    if (ret == QHYCCD_ERROR)
+    {
+        DEBUGF(INDI::Logger::DBG_SESSION, "Begin QHYCCD expose failed (%d)", ret);
+        return false;
+    }
 
-  gettimeofday(&ExpStart, NULL);
-  DEBUGF(INDI::Logger::DBG_DEBUG, "Taking a %g seconds frame...", ExposureRequest);
+    gettimeofday(&ExpStart, NULL);
+    DEBUGF(INDI::Logger::DBG_DEBUG, "Taking a %g seconds frame...", ExposureRequest);
 
-  InExposure = true;
+    InExposure = true;
 
- // if (ExposureRequest*1000 < POLLMS)
- //     SetTimer(ExposureRequest*1000);
- // else
-      SetTimer(POLLMS);
+    // if (ExposureRequest*1000 < POLLMS)
+    //     SetTimer(ExposureRequest*1000);
+    // else
+    SetTimer(POLLMS);
 
-  return true;
+    return true;
 }
 
 bool QHYCCD::AbortExposure()
@@ -909,7 +920,7 @@ bool QHYCCD::AbortExposure()
     }
 
     ret = CancelQHYCCDExposingAndReadout(camhandle);
-    if(ret == QHYCCD_SUCCESS)
+    if (ret == QHYCCD_SUCCESS)
     {
         //AbortPrimaryFrame = true;
         InExposure = false;
@@ -924,7 +935,7 @@ bool QHYCCD::AbortExposure()
 
 bool QHYCCD::UpdateCCDFrame(int x, int y, int w, int h)
 {
-  /*
+    /*
   long x_1 = x / PrimaryCCD.getBinX();
   long y_1 = y / PrimaryCCD.getBinY();
 
@@ -942,24 +953,25 @@ bool QHYCCD::UpdateCCDFrame(int x, int y, int w, int h)
       return false;
   }*/
 
-  camroix = x;
-  camroiy = y;
-  camroiwidth = w;
-  camroiheight = h;
+    camroix      = x;
+    camroiy      = y;
+    camroiwidth  = w;
+    camroiheight = h;
 
-  DEBUGF(INDI::Logger::DBG_DEBUG, "Final binned (%dx%d) image area is (%d, %d), (%d, %d)", PrimaryCCD.getBinX(), PrimaryCCD.getBinY(), camroix/PrimaryCCD.getBinX(), camroiy/PrimaryCCD.getBinY(),
-         camroiwidth/PrimaryCCD.getBinX(), camroiheight/PrimaryCCD.getBinY());
+    DEBUGF(INDI::Logger::DBG_DEBUG, "Final binned (%dx%d) image area is (%d, %d), (%d, %d)", PrimaryCCD.getBinX(),
+           PrimaryCCD.getBinY(), camroix / PrimaryCCD.getBinX(), camroiy / PrimaryCCD.getBinY(),
+           camroiwidth / PrimaryCCD.getBinX(), camroiheight / PrimaryCCD.getBinY());
 
-  // Set UNBINNED coords
-  PrimaryCCD.setFrame(x, y, w,  h);
-  int nbuf;
-  nbuf=(camroiwidth * camroiheight * PrimaryCCD.getBPP()/8);                 //  this is pixel count  
-  PrimaryCCD.setFrameBufferSize(nbuf);
+    // Set UNBINNED coords
+    PrimaryCCD.setFrame(x, y, w, h);
+    int nbuf;
+    nbuf = (camroiwidth * camroiheight * PrimaryCCD.getBPP() / 8); //  this is pixel count
+    PrimaryCCD.setFrameBufferSize(nbuf);
 
 #ifndef __APPLE__
-  Streamer->setRecorderSize(camroiwidth, camroiheight);
+    Streamer->setRecorderSize(camroiwidth, camroiheight);
 #endif
-  return true;
+    return true;
 }
 
 bool QHYCCD::UpdateCCDBin(int hor, int ver)
@@ -978,7 +990,6 @@ bool QHYCCD::UpdateCCDBin(int hor, int ver)
         return false;
     }
 
-
     if (hor > 1 && GetCCDCapability() & CCD_HAS_BAYER)
     {
         DEBUG(INDI::Logger::DBG_ERROR, "Binning not supported for color CCDs.");
@@ -987,25 +998,25 @@ bool QHYCCD::UpdateCCDBin(int hor, int ver)
 
     if (useSoftBin)
         ret = QHYCCD_SUCCESS;
-    else if(hor == 1 && ver == 1)
+    else if (hor == 1 && ver == 1)
     {
-        ret = IsQHYCCDControlAvailable(camhandle,CAM_BIN1X1MODE);
+        ret = IsQHYCCDControlAvailable(camhandle, CAM_BIN1X1MODE);
     }
-    else if(hor == 2 && ver == 2)
+    else if (hor == 2 && ver == 2)
     {
-        ret = IsQHYCCDControlAvailable(camhandle,CAM_BIN2X2MODE);
+        ret = IsQHYCCDControlAvailable(camhandle, CAM_BIN2X2MODE);
     }
-    else if(hor == 3 && ver == 3)
+    else if (hor == 3 && ver == 3)
     {
-        ret = IsQHYCCDControlAvailable(camhandle,CAM_BIN3X3MODE);
+        ret = IsQHYCCDControlAvailable(camhandle, CAM_BIN3X3MODE);
     }
-    else if(hor == 4 && ver == 4)
+    else if (hor == 4 && ver == 4)
     {
-        ret = IsQHYCCDControlAvailable(camhandle,CAM_BIN4X4MODE);
+        ret = IsQHYCCDControlAvailable(camhandle, CAM_BIN4X4MODE);
     }
 
     // Binning ALWAYS succeeds
-    if (ret!= QHYCCD_SUCCESS)
+    if (ret != QHYCCD_SUCCESS)
     {
         useSoftBin = true;
     }
@@ -1014,139 +1025,138 @@ bool QHYCCD::UpdateCCDBin(int hor, int ver)
     camxbin = 1;
     camybin = 1;
 
-    PrimaryCCD.setBin(hor,ver);
+    PrimaryCCD.setBin(hor, ver);
 
     return UpdateCCDFrame(PrimaryCCD.getSubX(), PrimaryCCD.getSubY(), PrimaryCCD.getSubW(), PrimaryCCD.getSubH());
 }
 
 float QHYCCD::calcTimeLeft()
 {
-  double timesince;
-  double timeleft;
-  struct timeval now;
-  gettimeofday(&now, NULL);
+    double timesince;
+    double timeleft;
+    struct timeval now;
+    gettimeofday(&now, NULL);
 
-  timesince = (double) (now.tv_sec * 1000.0 + now.tv_usec / 1000) - (double) (ExpStart.tv_sec * 1000.0 + ExpStart.tv_usec / 1000);
-  timesince = timesince / 1000;
+    timesince = (double)(now.tv_sec * 1000.0 + now.tv_usec / 1000) -
+                (double)(ExpStart.tv_sec * 1000.0 + ExpStart.tv_usec / 1000);
+    timesince = timesince / 1000;
 
-  timeleft = ExposureRequest - timesince;
-  return timeleft;
+    timeleft = ExposureRequest - timesince;
+    return timeleft;
 }
 
 /* Downloads the image from the CCD. */
 int QHYCCD::grabImage()
-{  
-  if (sim)
-  {
-      unsigned char * image = (unsigned char *) PrimaryCCD.getFrameBuffer();
-      int width = PrimaryCCD.getSubW() / PrimaryCCD.getBinX() * PrimaryCCD.getBPP() / 8;
-      int height = PrimaryCCD.getSubH() / PrimaryCCD.getBinY();
-
-      for (int i = 0; i < height; i++)
-          for (int j = 0; j < width; j++)
-              image[i * width + j] = rand() % 255;
-  } 
-  else
-  {
-
-    uint32_t ret, w,h,bpp,channels;
-
-    DEBUG(INDI::Logger::DBG_DEBUG, "Blocking read call.");
-    ret = GetQHYCCDSingleFrame(camhandle,&w,&h,&bpp,&channels,PrimaryCCD.getFrameBuffer());
-    DEBUG(INDI::Logger::DBG_DEBUG, "Blocking read call finished.");
-
-    if (ret != QHYCCD_SUCCESS)
+{
+    if (sim)
     {
-        DEBUGF(INDI::Logger::DBG_ERROR, "GetQHYCCDSingleFrame error (%d)", ret);
-        PrimaryCCD.setExposureFailed();
-        return -1;
+        unsigned char *image = (unsigned char *)PrimaryCCD.getFrameBuffer();
+        int width            = PrimaryCCD.getSubW() / PrimaryCCD.getBinX() * PrimaryCCD.getBPP() / 8;
+        int height           = PrimaryCCD.getSubH() / PrimaryCCD.getBinY();
+
+        for (int i = 0; i < height; i++)
+            for (int j = 0; j < width; j++)
+                image[i * width + j] = rand() % 255;
     }
-  }
+    else
+    {
+        uint32_t ret, w, h, bpp, channels;
 
-  // Perform software binning if necessary
-  if (useSoftBin)
-      PrimaryCCD.binFrame();
+        DEBUG(INDI::Logger::DBG_DEBUG, "Blocking read call.");
+        ret = GetQHYCCDSingleFrame(camhandle, &w, &h, &bpp, &channels, PrimaryCCD.getFrameBuffer());
+        DEBUG(INDI::Logger::DBG_DEBUG, "Blocking read call finished.");
 
-  DEBUG(INDI::Logger::DBG_DEBUG, "Download complete.");
-  if (ExposureRequest > POLLMS * 5)
-      DEBUG(INDI::Logger::DBG_SESSION, "Download complete.");
+        if (ret != QHYCCD_SUCCESS)
+        {
+            DEBUGF(INDI::Logger::DBG_ERROR, "GetQHYCCDSingleFrame error (%d)", ret);
+            PrimaryCCD.setExposureFailed();
+            return -1;
+        }
+    }
 
-  ExposureComplete(&PrimaryCCD);
+    // Perform software binning if necessary
+    if (useSoftBin)
+        PrimaryCCD.binFrame();
 
-  return 0;
+    DEBUG(INDI::Logger::DBG_DEBUG, "Download complete.");
+    if (ExposureRequest > POLLMS * 5)
+        DEBUG(INDI::Logger::DBG_SESSION, "Download complete.");
+
+    ExposureComplete(&PrimaryCCD);
+
+    return 0;
 }
 
 void QHYCCD::TimerHit()
 {
-  if (isConnected() == false)
-    return;
+    if (isConnected() == false)
+        return;
 
-   if (InExposure)
-   {
-       long timeleft = calcTimeLeft();
+    if (InExposure)
+    {
+        long timeleft = calcTimeLeft();
 
-       if (timeleft < 1.0)
-       {
-           if (timeleft > 0.25)
-           {
-               //  a quarter of a second or more
-               //  just set a tighter timer
-               SetTimer(250);
-           }
-           else
-           {
-               if (timeleft > 0.07)
-               {
-                   //  use an even tighter timer
-                   SetTimer(50);
-               }
-               else
-               {
-                   /* We're done exposing */
-                   DEBUG(INDI::Logger::DBG_DEBUG, "Exposure done, downloading image...");
-                   // Don't spam the session log unless it is a long exposure > 5 seconds
-                   if (ExposureRequest > POLLMS * 5)
-                       DEBUG(INDI::Logger::DBG_SESSION, "Exposure done, downloading image...");
+        if (timeleft < 1.0)
+        {
+            if (timeleft > 0.25)
+            {
+                //  a quarter of a second or more
+                //  just set a tighter timer
+                SetTimer(250);
+            }
+            else
+            {
+                if (timeleft > 0.07)
+                {
+                    //  use an even tighter timer
+                    SetTimer(50);
+                }
+                else
+                {
+                    /* We're done exposing */
+                    DEBUG(INDI::Logger::DBG_DEBUG, "Exposure done, downloading image...");
+                    // Don't spam the session log unless it is a long exposure > 5 seconds
+                    if (ExposureRequest > POLLMS * 5)
+                        DEBUG(INDI::Logger::DBG_SESSION, "Exposure done, downloading image...");
 
-                   PrimaryCCD.setExposureLeft(0);
-                   InExposure = false;
-                   /* grab and save image */
-                   grabImage();
+                    PrimaryCCD.setExposureLeft(0);
+                    InExposure = false;
+                    /* grab and save image */
+                    grabImage();
+                }
+            }
+        }
+        else
+        {
+            DEBUGF(INDI::Logger::DBG_DEBUG, "Exposure in progress: Time left %ld", timeleft);
+            SetTimer(POLLMS);
+        }
 
-               }
-           }
-       }
-       else
-       {
-           DEBUGF(INDI::Logger::DBG_DEBUG, "Exposure in progress: Time left %ld", timeleft);
-           SetTimer(POLLMS);
-       }
-
-       PrimaryCCD.setExposureLeft(timeleft);
-   }
+        PrimaryCCD.setExposureLeft(timeleft);
+    }
 }
 
 IPState QHYCCD::GuideNorth(float duration)
 {
-   ControlQHYCCDGuide(camhandle,1,duration);
-   return IPS_OK;
+    ControlQHYCCDGuide(camhandle, 1, duration);
+    return IPS_OK;
 }
 
 IPState QHYCCD::GuideSouth(float duration)
 {
-    ControlQHYCCDGuide(camhandle,2,duration);
+    ControlQHYCCDGuide(camhandle, 2, duration);
     return IPS_OK;
 }
 
 IPState QHYCCD::GuideEast(float duration)
 {
-    ControlQHYCCDGuide(camhandle,0,duration);
+    ControlQHYCCDGuide(camhandle, 0, duration);
     return IPS_OK;
 }
 
 IPState QHYCCD::GuideWest(float duration)
 {
-    ControlQHYCCDGuide(camhandle,3,duration);
+    ControlQHYCCDGuide(camhandle, 3, duration);
     return IPS_OK;
 }
 
@@ -1156,7 +1166,6 @@ bool QHYCCD::SelectFilter(int position)
     char currentpos[64];
     int checktimes = 0;
 
-
     int ret;
     if (sim)
         ret = QHYCCD_SUCCESS;
@@ -1165,18 +1174,17 @@ bool QHYCCD::SelectFilter(int position)
         // JM: THIS WILL CRASH! I am using another method with same result!
         //sprintf(&targetpos,"%d",position - 1);
         targetpos = '0' + (position - 1);
-        ret = SendOrder2QHYCCDCFW(camhandle,&targetpos,1);
+        ret       = SendOrder2QHYCCDCFW(camhandle, &targetpos, 1);
     }
 
-    if(ret == QHYCCD_SUCCESS)
+    if (ret == QHYCCD_SUCCESS)
     {
-        while(checktimes < 90)
+        while (checktimes < 90)
         {
-            ret = GetQHYCCDCFWStatus(camhandle,currentpos);
-            if(ret == QHYCCD_SUCCESS)
+            ret = GetQHYCCDCFWStatus(camhandle, currentpos);
+            if (ret == QHYCCD_SUCCESS)
             {
-                
-                if((targetpos + 1) == currentpos[0])
+                if ((targetpos + 1) == currentpos[0])
                 {
                     break;
                 }
@@ -1202,7 +1210,7 @@ bool QHYCCD::SetFilterNames()
     return true;
 }
 
-bool QHYCCD::GetFilterNames(const char* groupName)
+bool QHYCCD::GetFilterNames(const char *groupName)
 {
     char filterName[MAXINDINAME];
     char filterLabel[MAXINDILABEL];
@@ -1214,15 +1222,16 @@ bool QHYCCD::GetFilterNames(const char* groupName)
 
     FilterNameT = new IText[MaxFilter];
 
-    for (int i=0; i < MaxFilter; i++)
+    for (int i = 0; i < MaxFilter; i++)
     {
-        snprintf(filterName, MAXINDINAME, "FILTER_SLOT_NAME_%d", i+1);
-        snprintf(filterLabel, MAXINDILABEL, "Filter#%d", i+1);
-        snprintf(filterBand, MAXINDILABEL, "Filter #%d", i+1);
+        snprintf(filterName, MAXINDINAME, "FILTER_SLOT_NAME_%d", i + 1);
+        snprintf(filterLabel, MAXINDILABEL, "Filter#%d", i + 1);
+        snprintf(filterBand, MAXINDILABEL, "Filter #%d", i + 1);
         IUFillText(&FilterNameT[i], filterName, filterLabel, filterBand);
     }
 
-    IUFillTextVector(FilterNameTP, FilterNameT, MaxFilter, getDeviceName(), "FILTER_NAME", "Filter", groupName, IP_RW, 0, IPS_IDLE);
+    IUFillTextVector(FilterNameTP, FilterNameT, MaxFilter, getDeviceName(), "FILTER_NAME", "Filter", groupName, IP_RW,
+                     0, IPS_IDLE);
 
     return true;
 }
@@ -1232,99 +1241,95 @@ int QHYCCD::QueryFilter()
     return CurrentFilter;
 }
 
-bool QHYCCD::ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n)
+bool QHYCCD::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
 {
-    if(strcmp(dev,getDeviceName())==0)
+    if (strcmp(dev, getDeviceName()) == 0)
     {
-        if(strcmp(name,CoolerSP.name) == 0)
+        if (strcmp(name, CoolerSP.name) == 0)
         {
-          IUUpdateSwitch(&CoolerSP, states, names, n);
+            IUUpdateSwitch(&CoolerSP, states, names, n);
 
-          setCooler(CoolerS[0].s == ISS_ON);
+            setCooler(CoolerS[0].s == ISS_ON);
 
-          return true;
+            return true;
         }
     }
 
     //  Nobody has claimed this, so, ignore it
-    return INDI::CCD::ISNewSwitch(dev,name,states,names,n);
+    return INDI::CCD::ISNewSwitch(dev, name, states, names, n);
 }
 
-
-bool QHYCCD::ISNewText( const char *dev, const char *name, char *texts[], char *names[], int n)
+bool QHYCCD::ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
 {
-    if(strcmp(dev,getDeviceName())==0)
+    if (strcmp(dev, getDeviceName()) == 0)
     {
         //  This is for our device
         //  Now lets see if it's something we process here
-        if(strcmp(name,FilterNameTP->name)==0)
+        if (strcmp(name, FilterNameTP->name) == 0)
         {
             processFilterName(dev, texts, names, n);
             return true;
         }
-
     }
 
-    return INDI::CCD::ISNewText(dev,name,texts,names,n);
+    return INDI::CCD::ISNewText(dev, name, texts, names, n);
 }
 
-bool QHYCCD::ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n)
+bool QHYCCD::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
 {
     //  first check if it's for our device
     //IDLog("INDI::CCD::ISNewNumber %s\n",name);
-    if(strcmp(dev,getDeviceName())==0)
+    if (strcmp(dev, getDeviceName()) == 0)
     {
-        if (strcmp(name,FilterSlotNP.name)==0)
+        if (strcmp(name, FilterSlotNP.name) == 0)
         {
             processFilterSlot(getDeviceName(), values, names);
             return true;
         }
 
-        if(strcmp(name,GainNP.name) == 0)
+        if (strcmp(name, GainNP.name) == 0)
         {
             IUUpdateNumber(&GainNP, values, names, n);
             GainRequest = GainN[0].value;
-            if(LastGainRequest != GainRequest)
+            if (LastGainRequest != GainRequest)
             {
-                SetQHYCCDParam(camhandle,CONTROL_GAIN,GainN[0].value);
+                SetQHYCCDParam(camhandle, CONTROL_GAIN, GainN[0].value);
                 LastGainRequest = GainRequest;
             }
-            DEBUGF(INDI::Logger::DBG_SESSION, "Current %s value %f",GainNP.name,GainN[0].value);
+            DEBUGF(INDI::Logger::DBG_SESSION, "Current %s value %f", GainNP.name, GainN[0].value);
             GainNP.s = IPS_OK;
             IDSetNumber(&GainNP, NULL);
             //saveConfig();
             return true;
         }
 
-
-        if(strcmp(name,OffsetNP.name) == 0)
+        if (strcmp(name, OffsetNP.name) == 0)
         {
             IUUpdateNumber(&OffsetNP, values, names, n);
-            SetQHYCCDParam(camhandle,CONTROL_OFFSET,OffsetN[0].value);
-            DEBUGF(INDI::Logger::DBG_SESSION, "Current %s value %f",OffsetNP.name,OffsetN[0].value);
+            SetQHYCCDParam(camhandle, CONTROL_OFFSET, OffsetN[0].value);
+            DEBUGF(INDI::Logger::DBG_SESSION, "Current %s value %f", OffsetNP.name, OffsetN[0].value);
             OffsetNP.s = IPS_OK;
             IDSetNumber(&OffsetNP, NULL);
             saveConfig();
             return true;
         }
 
-        if(strcmp(name,SpeedNP.name) == 0)
+        if (strcmp(name, SpeedNP.name) == 0)
         {
             IUUpdateNumber(&SpeedNP, values, names, n);
-            SetQHYCCDParam(camhandle,CONTROL_SPEED,SpeedN[0].value);
-            DEBUGF(INDI::Logger::DBG_SESSION, "Current %s value %f",SpeedNP.name,SpeedN[0].value);
+            SetQHYCCDParam(camhandle, CONTROL_SPEED, SpeedN[0].value);
+            DEBUGF(INDI::Logger::DBG_SESSION, "Current %s value %f", SpeedNP.name, SpeedN[0].value);
             SpeedNP.s = IPS_OK;
             IDSetNumber(&SpeedNP, NULL);
             saveConfig();
             return true;
         }
 
-
-        if(strcmp(name,USBTrafficNP.name) == 0)
+        if (strcmp(name, USBTrafficNP.name) == 0)
         {
             IUUpdateNumber(&USBTrafficNP, values, names, n);
-            SetQHYCCDParam(camhandle,CONTROL_USBTRAFFIC,USBTrafficN[0].value);
-            DEBUGF(INDI::Logger::DBG_SESSION, "Current %s value %f",USBTrafficNP.name,USBTrafficN[0].value);
+            SetQHYCCDParam(camhandle, CONTROL_USBTRAFFIC, USBTrafficN[0].value);
+            DEBUGF(INDI::Logger::DBG_SESSION, "Current %s value %f", USBTrafficNP.name, USBTrafficN[0].value);
             USBTrafficNP.s = IPS_OK;
             IDSetNumber(&USBTrafficNP, NULL);
             saveConfig();
@@ -1333,7 +1338,7 @@ bool QHYCCD::ISNewNumber (const char *dev, const char *name, double values[], ch
     }
     //  if we didn't process it, continue up the chain, let somebody else
     //  give it a shot
-    return INDI::CCD::ISNewNumber(dev,name,values,names,n);
+    return INDI::CCD::ISNewNumber(dev, name, values, names, n);
 }
 
 void QHYCCD::setCooler(bool enable)
@@ -1356,9 +1361,9 @@ void QHYCCD::setCooler(bool enable)
         coolerEnabled = false;
 
         if (sim == false)
-            SetQHYCCDParam(camhandle,CONTROL_MANULPWM,0);
+            SetQHYCCDParam(camhandle, CONTROL_MANULPWM, 0);
 
-        CoolerSP.s = IPS_IDLE;
+        CoolerSP.s   = IPS_IDLE;
         CoolerS[0].s = ISS_OFF;
         CoolerS[1].s = ISS_ON;
         IDSetSwitch(&CoolerSP, NULL);
@@ -1374,19 +1379,19 @@ void QHYCCD::setCooler(bool enable)
 
 bool QHYCCD::isQHY5PIIC()
 {
-  return std::string(camid, 9) == "QHY5PII-C";
+    return std::string(camid, 9) == "QHY5PII-C";
 }
 
 void QHYCCD::updateTemperatureHelper(void *p)
 {
-    if (static_cast<QHYCCD*>(p)->isConnected())
-        static_cast<QHYCCD*>(p)->updateTemperature();
+    if (static_cast<QHYCCD *>(p)->isConnected())
+        static_cast<QHYCCD *>(p)->updateTemperature();
 }
 
 void QHYCCD::updateTemperature()
 {
-    double ccdtemp=0,coolpower=0;
-    double nextPoll=POLLMS;
+    double ccdtemp = 0, coolpower = 0;
+    double nextPoll = POLLMS;
 
     if (sim)
     {
@@ -1400,28 +1405,29 @@ void QHYCCD::updateTemperature()
     }
     else
     {
-        ccdtemp = GetQHYCCDParam(camhandle,CONTROL_CURTEMP);
-        coolpower = GetQHYCCDParam(camhandle,CONTROL_CURPWM);
-        ControlQHYCCDTemp(camhandle,TemperatureRequest);
+        ccdtemp   = GetQHYCCDParam(camhandle, CONTROL_CURTEMP);
+        coolpower = GetQHYCCDParam(camhandle, CONTROL_CURPWM);
+        ControlQHYCCDTemp(camhandle, TemperatureRequest);
     }
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "CCD Temp: %g CCD RAW Cooling Power: %g, CCD Cooling percentage: %g", ccdtemp, coolpower, coolpower / 255.0 * 100);
+    DEBUGF(INDI::Logger::DBG_DEBUG, "CCD Temp: %g CCD RAW Cooling Power: %g, CCD Cooling percentage: %g", ccdtemp,
+           coolpower, coolpower / 255.0 * 100);
 
     TemperatureN[0].value = ccdtemp;
-    CoolerN[0].value = coolpower / 255.0 * 100;
+    CoolerN[0].value      = coolpower / 255.0 * 100;
 
     if (coolpower > 0 && CoolerS[0].s == ISS_OFF)
     {
-        CoolerNP.s = IPS_BUSY;
-        CoolerSP.s = IPS_OK;
+        CoolerNP.s   = IPS_BUSY;
+        CoolerSP.s   = IPS_OK;
         CoolerS[0].s = ISS_ON;
         CoolerS[1].s = ISS_OFF;
         IDSetSwitch(&CoolerSP, NULL);
     }
     else if (coolpower <= 0 && CoolerS[0].s == ISS_ON)
     {
-        CoolerNP.s = IPS_IDLE;
-        CoolerSP.s = IPS_IDLE;
+        CoolerNP.s   = IPS_IDLE;
+        CoolerSP.s   = IPS_IDLE;
         CoolerS[0].s = ISS_OFF;
         CoolerS[1].s = ISS_ON;
         IDSetSwitch(&CoolerSP, NULL);
@@ -1430,10 +1436,10 @@ void QHYCCD::updateTemperature()
     if (TemperatureNP.s == IPS_BUSY && fabs(TemperatureN[0].value - TemperatureRequest) <= TEMP_THRESHOLD)
     {
         TemperatureN[0].value = TemperatureRequest;
-        TemperatureNP.s = IPS_OK;
+        TemperatureNP.s       = IPS_OK;
     }
 
-/*
+    /*
     //we need call ControlQHYCCDTemp every second to control temperature
     if (TemperatureNP.s == IPS_BUSY)
         nextPoll = TEMPERATURE_BUSY_MS;
@@ -1442,8 +1448,7 @@ void QHYCCD::updateTemperature()
     IDSetNumber(&TemperatureNP, NULL);
     IDSetNumber(&CoolerNP, NULL);
 
-    temperatureID = IEAddTimer(nextPoll,QHYCCD::updateTemperatureHelper, this);
-
+    temperatureID = IEAddTimer(nextPoll, QHYCCD::updateTemperatureHelper, this);
 }
 
 bool QHYCCD::saveConfigItems(FILE *fp)
@@ -1480,12 +1485,14 @@ bool QHYCCD::StartStreaming()
         return false;
     }
 
-    DEBUGF(INDI::Logger::DBG_SESSION, "Starting streaming with a period of %g seconds.", PrimaryCCD.getExposureDuration());
+    DEBUGF(INDI::Logger::DBG_SESSION, "Starting streaming with a period of %g seconds.",
+           PrimaryCCD.getExposureDuration());
 
     // N.B. There is no corresponding value for GBGR. It is odd that QHY selects this as the default as no one seems to process it
-    const std::map<const char *, uint32_t> formats = { { "GBGR", V4L2_PIX_FMT_GREY} , {"GRGB", V4L2_PIX_FMT_SGRBG8}, { "BGGR", V4L2_PIX_FMT_SBGGR8},
-                                                       {"RGGB", V4L2_PIX_FMT_SRGGB8} };
-
+    const std::map<const char *, uint32_t> formats = { { "GBGR", V4L2_PIX_FMT_GREY },
+                                                       { "GRGB", V4L2_PIX_FMT_SGRBG8 },
+                                                       { "BGGR", V4L2_PIX_FMT_SBGGR8 },
+                                                       { "RGGB", V4L2_PIX_FMT_SRGGB8 } };
 
     uint32_t qhyFormat = V4L2_PIX_FMT_GREY;
     if (BayerT[2].text && formats.count(BayerT[2].text) != 0)
@@ -1517,34 +1524,35 @@ bool QHYCCD::StopStreaming()
     return true;
 }
 
-void * QHYCCD::streamVideoHelper(void* context)
+void *QHYCCD::streamVideoHelper(void *context)
 {
-    return ((QHYCCD*)context)->streamVideo();
+    return ((QHYCCD *)context)->streamVideo();
 }
 
-void* QHYCCD::streamVideo()
+void *QHYCCD::streamVideo()
 {
-  uint32_t ret=0, w,h,bpp,channels;
+    uint32_t ret = 0, w, h, bpp, channels;
 
-  while (true)
-  {
-      pthread_mutex_lock(&condMutex);
+    while (true)
+    {
+        pthread_mutex_lock(&condMutex);
 
-      while (streamPredicate == 0)
-          pthread_cond_wait(&cv, &condMutex);
+        while (streamPredicate == 0)
+            pthread_cond_wait(&cv, &condMutex);
 
-      if (terminateThread)
-          break;
+        if (terminateThread)
+            break;
 
-      // release condMutex
-      pthread_mutex_unlock(&condMutex);
+        // release condMutex
+        pthread_mutex_unlock(&condMutex);
 
-      if ( (ret = GetQHYCCDLiveFrame(camhandle, &w, &h, &bpp, &channels, PrimaryCCD.getFrameBuffer())) == QHYCCD_SUCCESS)
-          Streamer->newFrame();
-  }
+        if ((ret = GetQHYCCDLiveFrame(camhandle, &w, &h, &bpp, &channels, PrimaryCCD.getFrameBuffer())) ==
+            QHYCCD_SUCCESS)
+            Streamer->newFrame();
+    }
 
-  pthread_mutex_unlock(&condMutex);
-  return 0;
+    pthread_mutex_unlock(&condMutex);
+    return 0;
 }
 #endif
 
@@ -1555,4 +1563,3 @@ void QHYCCD::debugTriggered(bool enable)
     else
         SetQHYCCDLogLevel(LOG_LEVEL_ERROR);
 }
-

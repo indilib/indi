@@ -27,6 +27,10 @@
 #include "connectionplugins/connectionserial.h"
 #include "connectionplugins/connectiontcp.h"
 
+#include <libnova/julian_day.h>
+#include <libnova/sidereal_time.h>
+#include <libnova/transform.h>
+
 #include <math.h>
 #include <string.h>
 #include <wordexp.h>

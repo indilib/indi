@@ -23,6 +23,8 @@
 #include "indicom.h"
 #include "lx200driver.h"
 
+#include <libnova/transform.h>
+
 #include <math.h>
 #include <string.h>
 #include <termios.h>

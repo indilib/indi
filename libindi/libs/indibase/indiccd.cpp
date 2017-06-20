@@ -26,8 +26,11 @@
 
 #include "indicom.h"
 
-#include <libnova.h>
 #include <fitsio.h>
+
+#include <libnova/julian_day.h>
+#include <libnova/ln_types.h>
+#include <libnova/precession.h>
 
 #include <regex>
 
