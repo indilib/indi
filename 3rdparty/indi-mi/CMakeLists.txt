@@ -35,12 +35,7 @@ elseif (CMAKE_HOST_SYSTEM_PROCESSOR MATCHES "i[3-6]86")
     set(MILIB ${CMAKE_CURRENT_SOURCE_DIR}/libgxccd32.bin)
 endif ()
 
-IF ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
-    SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /std:c++11")
-ELSE ()
-    SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=gnu99")
-    SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
-ENDIF ()
+include(../CMakeCommon.cmake)
 
 ########### MI CCD ###########
 set(indi_miccd_SRCS
