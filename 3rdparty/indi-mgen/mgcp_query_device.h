@@ -43,19 +43,19 @@
 
 #include "mgc.h"
 
-class MGCP_QUERY_DEVICE: MGC
+class MGCP_QUERY_DEVICE : MGC
 {
-public:
+  public:
     virtual IOByte opCode() const { return 0xAA; }
     virtual IOMode opMode() const { return OPM_UNKNOWN; }
 
-public:
-    virtual IOResult ask(MGenDevice& root) throw (IOError)
+  public:
+    virtual IOResult ask(MGenDevice &root) throw(IOError)
     {
-        if(CR_SUCCESS != MGC::ask(root))
+        if (CR_SUCCESS != MGC::ask(root))
             return CR_FAILURE;
 
-        if(root.lock())
+        if (root.lock())
         {
             root.write(query);
 
@@ -63,16 +63,16 @@ public:
 
             root.unlock();
 
-            if(answer[0] == (unsigned char) ~query[0] && 5 == bytes_read)
+            if (answer[0] == (unsigned char)~query[0] && 5 == bytes_read)
             {
                 _D("device acknowledged identification, analyzing '%02X%02X%02X'", answer[2], answer[3], answer[4]);
 
-                IOBuffer const app_mode_answer { (unsigned char) ~query[0], 3, 0x01, 0x80, 0x02 };
-                IOBuffer const boot_mode_answer { (unsigned char) ~query[0], 3, 0x01, 0x80, 0x01 };
+                IOBuffer const app_mode_answer{ (unsigned char)~query[0], 3, 0x01, 0x80, 0x02 };
+                IOBuffer const boot_mode_answer{ (unsigned char)~query[0], 3, 0x01, 0x80, 0x01 };
 
-                if( answer != app_mode_answer && answer != boot_mode_answer )
+                if (answer != app_mode_answer && answer != boot_mode_answer)
                 {
-                    _E("device identification returned unknown mode","");
+                    _E("device identification returned unknown mode", "");
                     return CR_FAILURE;
                 }
 
@@ -87,9 +87,8 @@ public:
         return CR_FAILURE;
     }
 
-public:
-    MGCP_QUERY_DEVICE():
-        MGC(IOBuffer { opCode(), 1, 1 }, IOBuffer (5)) {};
+  public:
+    MGCP_QUERY_DEVICE() : MGC(IOBuffer{ opCode(), 1, 1 }, IOBuffer(5)){};
 };
 
 #endif /* _3RDPARTY_INDI_MGEN_MGCP_QUERY_DEVICE_H_ */

@@ -26,6 +26,8 @@
 #include "lx200driver.h"
 #include "lx200apdriver.h"
 
+#include <libnova/transform.h>
+
 #include <math.h>
 #include <string.h>
 #include <unistd.h>

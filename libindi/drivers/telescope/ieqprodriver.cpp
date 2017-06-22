@@ -23,7 +23,7 @@
 #include "indicom.h"
 #include "indilogger.h"
 
-#include <libnova.h>
+#include <libnova/julian_day.h>
 
 #include <math.h>
 #include <string.h>
@@ -743,6 +743,7 @@ bool set_ieqpro_track_mode(int fd, IEQ_TRACK_RATE rate)
             break;
         case TR_KING:
             strcpy(cmd, ":RT3#");
+            break;
         case TR_CUSTOM:
             strcpy(cmd, ":RT4#");
             break;

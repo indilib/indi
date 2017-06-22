@@ -781,7 +781,7 @@ void ScopeSim::TimerHit()
                 }
                 else
                 {
-                    AzimuthOffsetMicrosteps = abs(AzimuthOffsetMicrosteps);
+                    AzimuthOffsetMicrosteps = std::abs(AzimuthOffsetMicrosteps);
                     if (AzimuthOffsetMicrosteps < MICROSTEPS_PER_REVOLUTION / 2.0)
                     {
                         // Forward
@@ -795,7 +795,7 @@ void ScopeSim::TimerHit()
                         AxisSlewRateRA  = MICROSTEPS_PER_REVOLUTION - AzimuthOffsetMicrosteps;
                     }
                 }
-                AxisSlewRateRA  = abs(AzimuthOffsetMicrosteps);
+                AxisSlewRateRA  = std::abs(AzimuthOffsetMicrosteps);
                 AxisDirectionRA = AzimuthOffsetMicrosteps > 0 ? FORWARD : REVERSE; // !!!! BEWARE INERTIA FREE MOUNT
                 AxisStatusRA    = SLEWING;
                 DEBUGF(DBG_SIMULATOR, "TimerHit - Tracking AxisSlewRateRA %lf AxisDirectionRA %d", AxisSlewRateRA,
@@ -812,7 +812,7 @@ void ScopeSim::TimerHit()
             {
                 // Calculate the slewing rates needed to reach that position
                 // at the correct time.
-                AxisSlewRateDEC  = abs(AltitudeOffsetMicrosteps);
+                AxisSlewRateDEC  = std::abs(AltitudeOffsetMicrosteps);
                 AxisDirectionDEC = AltitudeOffsetMicrosteps > 0 ? FORWARD : REVERSE; // !!!! BEWARE INERTIA FREE MOUNT
                 AxisStatusDEC    = SLEWING;
                 DEBUGF(DBG_SIMULATOR, "TimerHit - Tracking AxisSlewRateDEC %lf AxisDirectionDEC %d", AxisSlewRateDEC,

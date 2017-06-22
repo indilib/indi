@@ -9,6 +9,7 @@ set(CMAKE_INCLUDE_CURRENT_DIR ON)
 
 include(GNUInstallDirs)
 include(FeatureSummary)
+include(CheckCCompilerFlag)
 
 if(ANDROID OR "${CMAKE_SYSTEM_NAME}" STREQUAL "Android")
   set(ANDROID ON)
@@ -34,7 +35,20 @@ ENDIF ()
 
 # Add security (hardening flags)
 IF (UNIX OR APPLE OR ANDROID)
-    SET(SEC_COMP_FLAGS "-D_FORTIFY_SOURCE=2 -fstack-protector-all -fPIE")
+    # Older compilers are predefining _FORTIFY_SOURCE, so defining it causes a
+    # warning, which is then considered an error. Second issue is that for
+    # these compilers, _FORTIFY_SOURCE must be used while optimizing, else
+    # causes a warning, which also results in an error. And finally, CMake is
+    # not using optimization when testing for libraries, hence breaking the build.
+    CHECK_C_COMPILER_FLAG("-Werror -D_FORTIFY_SOURCE=2" COMPATIBLE_FORTIFY_SOURCE)
+    IF (${COMPATIBLE_FORTIFY_SOURCE})
+        SET(SEC_COMP_FLAGS "-D_FORTIFY_SOURCE=2")
+    ENDIF ()
+    SET(SEC_COMP_FLAGS "${SEC_COMP_FLAGS} -fstack-protector-all -fPIE")
+    # Make sure to add optimization flag. Some systems require this for _FORTIFY_SOURCE.
+    IF (NOT CMAKE_BUILD_TYPE MATCHES "MinSizeRel" AND NOT CMAKE_BUILD_TYPE MATCHES "Release" AND NOT CMAKE_BUILD_TYPE MATCHES "Debug")
+        SET(SEC_COMP_FLAGS "${SEC_COMP_FLAGS} -O1")
+    ENDIF ()
     IF (NOT ANDROID AND NOT "${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang" AND NOT APPLE)
         SET(SEC_COMP_FLAGS "${SEC_COMP_FLAGS} -Wa,--noexecstack")
     ENDIF ()
@@ -71,18 +85,25 @@ IF (UNIX OR APPLE)
     ENDIF ()
 ENDIF ()
 
+SET(FIX_WARNINGS OFF CACHE BOOL "Enable strict compilation mode to turn compiler warnings to errors")
 # Warning, debug and linker flags
 IF (UNIX OR APPLE)
     SET(COMP_FLAGS "")
     SET(LINKER_FLAGS "")
     # Verbose warnings and turns all to errors
     SET(COMP_FLAGS "${COMP_FLAGS} -Wall -Wextra")
-    IF (NOT "${CMAKE_CXX_COMPILER_ID}" STREQUAL "AppleClang")
+    IF (FIX_WARNINGS)
         SET(COMP_FLAGS "${COMP_FLAGS} -Werror")
     ENDIF ()
     # Omit problematic warnings
     IF ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
         SET(COMP_FLAGS "${COMP_FLAGS} -Wno-unused-but-set-variable")
+    ENDIF ()
+    IF ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU" AND CMAKE_CXX_COMPILER_VERSION VERSION_GREATER 6.9.9)
+        SET(COMP_FLAGS "${COMP_FLAGS} -Wno-format-truncation")
+    ENDIF ()
+    IF ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "AppleClang")
+        SET(COMP_FLAGS "${COMP_FLAGS} -Wno-nonnull -Wno-deprecated-declarations")
     ENDIF ()
 
     # Minimal debug info with Clang

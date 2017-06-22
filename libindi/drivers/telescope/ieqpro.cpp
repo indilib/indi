@@ -22,6 +22,8 @@
 
 #include "indicom.h"
 
+#include <libnova/sidereal_time.h>
+
 #include <memory>
 
 #include <math.h>

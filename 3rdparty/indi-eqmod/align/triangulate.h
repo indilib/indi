@@ -15,41 +15,38 @@
     along with the Skywatcher Protocol INDI driver.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef TRIANGULATE_H
-#define TRIANGULATE_H
+#pragma once
 
 #include "pointset.h"
 
 class Face
 {
- public:
-
-  Face(HtmID v0, HtmID v1, HtmID v2)
-    :v(3, 0)
+  public:
+    Face(HtmID v0, HtmID v1, HtmID v2) : v(3, 0)
     {
-      v[0]=v0; v[1]=v1; v[2]=v2;
+        v[0] = v0;
+        v[1] = v1;
+        v[2] = v2;
     }
-  std::vector<HtmID> v;
+    std::vector<HtmID> v;
 };
 
-class Triangulate 
+class Triangulate
 {
-  //  typedef struct Face {
-  //  HtmID v[3];
-  //} Face;
- public:
-  Triangulate(std::map<HtmID, PointSet::Point> *p);
-  virtual void Reset();
-  virtual void AddPoint(HtmID id);
-  virtual XMLEle *toXML();
-  virtual std::vector<Face *> getFaces();
-  virtual bool isValid();
+    //  typedef struct Face {
+    //  HtmID v[3];
+    //} Face;
+  public:
+    Triangulate(std::map<HtmID, PointSet::Point> *p);
+    virtual void Reset();
+    virtual void AddPoint(HtmID id);
+    virtual XMLEle *toXML();
+    virtual std::vector<Face *> getFaces();
+    virtual bool isValid();
 
- protected:
-  std::map<HtmID, PointSet::Point> *pmap;
-  std::vector<HtmID> vvertices;
-  std::vector<Face *> vfaces;
-  bool isvalid;
+  protected:
+    std::map<HtmID, PointSet::Point> *pmap;
+    std::vector<HtmID> vvertices;
+    std::vector<Face *> vfaces;
+    bool isvalid;
 };
-
-#endif// TRIANGULATE_H

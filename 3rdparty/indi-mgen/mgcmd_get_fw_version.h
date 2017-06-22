@@ -43,22 +43,22 @@
 
 #include "mgc.h"
 
-class MGCMD_GET_FW_VERSION: MGC
+class MGCMD_GET_FW_VERSION : MGC
 {
-public:
+  public:
     virtual IOByte opCode() const { return 0x03; }
     virtual IOMode opMode() const { return OPM_APPLICATION; }
 
-public:
-    unsigned short fw_version() const { return (unsigned short) (answer[2]<<8) | answer[1]; }
+  public:
+    unsigned short fw_version() const { return (unsigned short)(answer[2] << 8) | answer[1]; }
 
-public:
-    virtual IOResult ask(MGenDevice& root) throw (IOError)
+  public:
+    virtual IOResult ask(MGenDevice &root) throw(IOError)
     {
-        if(CR_SUCCESS != MGC::ask(root))
+        if (CR_SUCCESS != MGC::ask(root))
             return CR_FAILURE;
 
-        if(root.lock())
+        if (root.lock())
         {
             root.write(query);
 
@@ -66,7 +66,7 @@ public:
 
             root.unlock();
 
-            if(answer[0] == query[0] && ( 1 == bytes_read || 3 == bytes_read ))
+            if (answer[0] == query[0] && (1 == bytes_read || 3 == bytes_read))
                 return CR_SUCCESS;
 
             _E("no ack (%d bytes read)", bytes_read);
@@ -75,9 +75,8 @@ public:
         return CR_FAILURE;
     }
 
-public:
-    MGCMD_GET_FW_VERSION():
-        MGC(IOBuffer { opCode() }, IOBuffer (1+1+2)) {};
+  public:
+    MGCMD_GET_FW_VERSION() : MGC(IOBuffer{ opCode() }, IOBuffer(1 + 1 + 2)){};
 };
 
 #endif /* _3RDPARTY_INDI_MGEN_MGCMD_GET_FW_VERSION_H_ */

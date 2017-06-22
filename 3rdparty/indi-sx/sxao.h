@@ -22,15 +22,15 @@
  file called LICENSE.
  */
 
-#ifndef SXAO_H
-#define SXAO_H
+#pragma once
 
 #include <defaultdevice.h>
 #include <indiguiderinterface.h>
 
 extern const char *GUIDE_CONTROL_TAB;
 
-class SXAO: public INDI::DefaultDevice, INDI::GuiderInterface {
+class SXAO : public INDI::DefaultDevice, INDI::GuiderInterface
+{
   private:
     int PortFD;
     char lastLimit = -1;
@@ -56,10 +56,10 @@ class SXAO: public INDI::DefaultDevice, INDI::GuiderInterface {
     void debugTriggered(bool enable);
     void simulationTriggered(bool enable);
 
-    void ISGetProperties (const char *dev);
-    bool ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n);
-    bool ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n);
-    bool ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n);
+    void ISGetProperties(const char *dev);
+    bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n);
+    bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n);
+    bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n);
 
     bool Connect();
     bool Disconnect();
@@ -79,10 +79,8 @@ class SXAO: public INDI::DefaultDevice, INDI::GuiderInterface {
 
     bool AOCenter();
     bool AOUnjam();
-  
+
     void CheckLimit(bool force);
 
     const char *getDefaultName();
 };
-
-#endif // SXAO_H

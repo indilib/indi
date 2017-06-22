@@ -540,6 +540,7 @@ int V4L2_Base::read_frame(char *errmsg)
                         /* Fall through */
                         DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG,
                                      "%s: transitory internal error with DQBUF ioctl (EIO)", __FUNCTION__);
+                        return 0;
 
                     case EINVAL:
                     case EPIPE:

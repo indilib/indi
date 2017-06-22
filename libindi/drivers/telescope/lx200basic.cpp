@@ -27,6 +27,8 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110 - 1301  USA
 #include "indicom.h"
 #include "lx200driver.h"
 
+#include <libnova/sidereal_time.h>
+
 #include <math.h>
 #include <memory>
 #include <string.h>

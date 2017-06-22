@@ -11,29 +11,28 @@
    Firmata C++ library. 
 */
 
-
 #include <vector>
 #include <stdint.h>
 #include <arduino.h>
 
-#define FIRMATA_MAX_DATA_BYTES            32 // max number of data bytes in non-Sysex messages
+#define FIRMATA_MAX_DATA_BYTES 32 // max number of data bytes in non-Sysex messages
 //#define FIRMATA_DEFAULT_BAUD          115200
 #define FIRMATA_DEFAULT_BAUD          57600
-#define FIRMATA_FIRMWARE_VERSION_SIZE      2 // number of bytes in firmware version
+#define FIRMATA_FIRMWARE_VERSION_SIZE 2 // number of bytes in firmware version
 
 // message command bytes (128-255/0x80-0xFF)
-#define FIRMATA_DIGITAL_MESSAGE         0x90 // send data for a digital pin
-#define FIRMATA_ANALOG_MESSAGE          0xE0 // send data for an analog pin (or PWM)
-#define FIRMATA_REPORT_ANALOG           0xC0 // enable analog input by pin #
-#define FIRMATA_REPORT_DIGITAL          0xD0 // enable digital input by port pair
+#define FIRMATA_DIGITAL_MESSAGE 0x90 // send data for a digital pin
+#define FIRMATA_ANALOG_MESSAGE  0xE0 // send data for an analog pin (or PWM)
+#define FIRMATA_REPORT_ANALOG   0xC0 // enable analog input by pin #
+#define FIRMATA_REPORT_DIGITAL  0xD0 // enable digital input by port pair
 //
-#define FIRMATA_SET_PIN_MODE            0xF4 // set a pin to INPUT/OUTPUT/PWM/etc
+#define FIRMATA_SET_PIN_MODE 0xF4 // set a pin to INPUT/OUTPUT/PWM/etc
 //
-#define FIRMATA_REPORT_VERSION          0xF9 // report protocol version
-#define FIRMATA_SYSTEM_RESET            0xFF // reset from MIDI
+#define FIRMATA_REPORT_VERSION 0xF9 // report protocol version
+#define FIRMATA_SYSTEM_RESET   0xFF // reset from MIDI
 //
-#define FIRMATA_START_SYSEX             0xF0 // start a MIDI Sysex message
-#define FIRMATA_END_SYSEX               0xF7 // end a MIDI Sysex message
+#define FIRMATA_START_SYSEX 0xF0 // start a MIDI Sysex message
+#define FIRMATA_END_SYSEX   0xF7 // end a MIDI Sysex message
 
 // extended command set using sysex (0-127/0x00-0x7F)
 /* 0x00-0x0F reserved for custom commands */
@@ -58,82 +57,81 @@
 #define FIRMATA_SYSEX_REALTIME          0x7F // MIDI Reserved for realtime messages
 
 // pin modes
-#define FIRMATA_MODE_INPUT    0x00
-#define FIRMATA_MODE_OUTPUT   0x01
-#define FIRMATA_MODE_ANALOG   0x02
-#define FIRMATA_MODE_PWM      0x03
-#define FIRMATA_MODE_SERVO    0x04
-#define FIRMATA_MODE_SHIFT    0x05
-#define FIRMATA_MODE_I2C      0x06
+#define FIRMATA_MODE_INPUT  0x00
+#define FIRMATA_MODE_OUTPUT 0x01
+#define FIRMATA_MODE_ANALOG 0x02
+#define FIRMATA_MODE_PWM    0x03
+#define FIRMATA_MODE_SERVO  0x04
+#define FIRMATA_MODE_SHIFT  0x05
+#define FIRMATA_MODE_I2C    0x06
 
-#define FIRMATA_I2C_WRITE B00000000
-#define FIRMATA_I2C_READ B00001000
-#define FIRMATA_I2C_READ_CONTINUOUSLY B00010000
-#define FIRMATA_I2C_STOP_READING B00011000
-#define FIRMATA_I2C_READ_WRITE_MODE_MASK B00011000
+#define FIRMATA_I2C_WRITE                   B00000000
+#define FIRMATA_I2C_READ                    B00001000
+#define FIRMATA_I2C_READ_CONTINUOUSLY       B00010000
+#define FIRMATA_I2C_STOP_READING            B00011000
+#define FIRMATA_I2C_READ_WRITE_MODE_MASK    B00011000
 #define FIRMATA_I2C_10BIT_ADDRESS_MODE_MASK B00100000
 
-
-#define MAX_STRING_DATA_LEN   164
+#define MAX_STRING_DATA_LEN 164
 
 using namespace std;
 
-typedef struct {
-	uint8_t mode;
-	uint8_t analog_channel;
-	uint64_t supported_modes;
-	uint64_t value;
+typedef struct
+{
+    uint8_t mode;
+    uint8_t analog_channel;
+    uint64_t supported_modes;
+    uint64_t value;
 } pin_t;
 
+class Firmata
+{
+  public:
+    Firmata();
+    Firmata(const char *_serialPort);
+    ~Firmata();
 
+    int writeDigitalPin(unsigned char pin, unsigned char mode); // mode can be ARDUINO_HIGH or ARDUINO_LOW
+    int setPinMode(unsigned char pin, unsigned char mode);
+    int setPwmPin(unsigned char pin, int16_t value);
+    int mapAnalogChannels();
+    int askFirmwareVersion();
+    int askCapabilities();
+    int askPinState(int pin);
+    int reportDigitalPorts(int enable);
+    int reportAnalogPorts(int enable);
+    int setSamplingInterval(int16_t value);
+    int systemReset();
+    int closePort();
+    int flushPort();
+    //int getSysExData();
+    int sendStringData(char *data);
+    pin_t pin_info[128];
+    void print_state();
+    char firmata_name[140];
+    char string_buffer[MAX_STRING_DATA_LEN];
+    int OnIdle();
+    bool portOpen;
 
-class Firmata {
-	public:
-		Firmata();
-		Firmata(const char* _serialPort);
-		~Firmata();
+  private:
+    int parse_count;
+    int parse_command_len;
+    uint8_t parse_buf[4096];
+    void Parse(const uint8_t *buf, int len);
+    void DoMessage(void);
 
+  protected:
+    Arduino *arduino;
 
-		int writeDigitalPin(unsigned char pin, unsigned char mode); // mode can be ARDUINO_HIGH or ARDUINO_LOW
-		int setPinMode(unsigned char pin, unsigned char mode);
-		int setPwmPin(unsigned char pin, int16_t value);
-		int mapAnalogChannels();
-		int askFirmwareVersion();
-		int askCapabilities();
-		int askPinState(int pin);
-		int reportDigitalPorts(int enable);
-		int reportAnalogPorts(int enable);
-		int setSamplingInterval(int16_t value);
-		int systemReset();
-		int closePort();
-		int flushPort();
-		//int getSysExData();
-		int sendStringData(char* data);
-		pin_t pin_info[128];
-		void print_state();
-		char firmata_name[140];
-		char string_buffer[MAX_STRING_DATA_LEN];
-		int OnIdle();
-		bool portOpen;
-        private:
-		int parse_count;
-		int parse_command_len;
-		uint8_t parse_buf[4096];
-		void Parse(const uint8_t *buf, int len);
-		void DoMessage(void);
-	protected:
+    int waitForData;
+    int executeMultiByteCommand;
+    int multiByteChannel;
+    unsigned char serialInBuf[FIRMATA_MAX_DATA_BYTES];
+    unsigned char serialOutBuf[FIRMATA_MAX_DATA_BYTES];
 
-		Arduino* arduino;
-
-		int waitForData;
-		int executeMultiByteCommand;
-		int multiByteChannel;
-		unsigned char serialInBuf[FIRMATA_MAX_DATA_BYTES];
-		unsigned char serialOutBuf[FIRMATA_MAX_DATA_BYTES];
-
-		vector<unsigned char> sysExBuf;
-		char firmwareVersion[FIRMATA_FIRMWARE_VERSION_SIZE];
-		int digitalPortValue[ARDUINO_DIG_PORTS]; /// bitpacked digital pin state
-		int init(const char* _serialPort);
-    		int sendValueAsTwo7bitBytes(int value);
+    vector<unsigned char> sysExBuf;
+    char firmwareVersion[FIRMATA_FIRMWARE_VERSION_SIZE];
+    int digitalPortValue[ARDUINO_DIG_PORTS]; /// bitpacked digital pin state
+    int init(const char *_serialPort);
+    int sendValueAsTwo7bitBytes(int value);
 };

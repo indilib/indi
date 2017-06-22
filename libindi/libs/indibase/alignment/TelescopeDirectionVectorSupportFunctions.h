@@ -10,7 +10,9 @@
 
 #include "Common.h"
 
-#include <libnova.h>
+#include <libnova/ln_types.h>
+#include <libnova/transform.h>
+#include <libnova/utility.h>
 
 namespace INDI
 {

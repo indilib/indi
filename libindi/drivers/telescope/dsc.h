@@ -26,7 +26,7 @@
 #include "inditelescope.h"
 #include "alignment/AlignmentSubsystemForDrivers.h"
 
-#include <libnova.h>
+#include <libnova/ln_types.h>
 
 typedef struct SyncData
 {

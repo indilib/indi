@@ -19,28 +19,26 @@
 
 */
 
-#include <indiusbdevice.h>
-#include <string>
+#pragma once
 
-#ifndef DSUSBDRIVER_H
-#define DSUSBDRIVER_H
+#include <indiusbdevice.h>
+
+#include <stdint.h>
 
 class DSUSBDriver : public INDI::USBDevice
 {
-public:
-    DSUSBDriver(const char * device);
+  public:
+    DSUSBDriver(const char *device);
     ~DSUSBDriver() {}
 
     bool isConnected() { return connected; }
     bool openShutter();
     bool closeShutter();
 
-private:
+  private:
     bool readState();
 
-    uint8_t infoByte=0;
+    uint8_t infoByte = 0;
     char device[MAXINDIDEVICE];
-    bool connected=false;
+    bool connected = false;
 };
-
-#endif // DSUSBDRIVER_H

@@ -24,7 +24,7 @@
 
 #pragma once
 
-#include <libnova.h>
+#include <libnova/julian_day.h>
 
 /* These are user defined quantities that set the limits over which it */
 /* is safe to operate the telescope.  */

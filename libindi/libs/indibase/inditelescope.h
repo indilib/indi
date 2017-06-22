@@ -20,7 +20,7 @@
 
 #include "defaultdevice.h"
 
-#include <libnova.h>
+#include <libnova/julian_day.h>
 
 #include <string>
 

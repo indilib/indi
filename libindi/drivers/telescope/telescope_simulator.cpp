@@ -20,6 +20,9 @@
 
 #include "indicom.h"
 
+#include <libnova/sidereal_time.h>
+#include <libnova/transform.h>
+
 #include <math.h>
 #include <memory>
 #include <string.h>

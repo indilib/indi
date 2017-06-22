@@ -455,9 +455,9 @@ IPState TCFS::MoveAbsFocuser(uint32_t ticks)
     delta = ticks - currentPosition;
 
     if (delta < 0)
-        return MoveRelFocuser(FOCUS_INWARD, (uint32_t)fabs(delta));
+        return MoveRelFocuser(FOCUS_INWARD, (uint32_t)std::abs(delta));
     else
-        return MoveRelFocuser(FOCUS_OUTWARD, (uint32_t)fabs(delta));
+        return MoveRelFocuser(FOCUS_OUTWARD, (uint32_t)std::abs(delta));
 }
 
 IPState TCFS::MoveRelFocuser(FocusDirection dir, uint32_t ticks)

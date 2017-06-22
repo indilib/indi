@@ -18,6 +18,9 @@ set(LIBFISHCAMP_SOVERSION "1")
 
 set(fishcamp_LIB_SRCS fishcamp.c)
 
+SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-error")
+SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-error")
+
 #build a shared library
 ADD_LIBRARY(fishcamp SHARED ${fishcamp_LIB_SRCS})
 

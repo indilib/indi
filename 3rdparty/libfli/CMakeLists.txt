@@ -4,6 +4,9 @@ PROJECT(libfli CXX C)
 include(GNUInstallDirs)
 ADD_DEFINITIONS(-Wall -O2)
 
+SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-error")
+SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-error")
+
 set(fli_LIB_SRCS
    libfli.c libfli-camera.c libfli-camera-parport.c libfli-camera-usb.c
    libfli-filter-focuser.c libfli-mem.c libfli-serial.c libfli-sys.c

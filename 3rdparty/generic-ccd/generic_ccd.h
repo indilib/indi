@@ -31,66 +31,65 @@ using namespace std;
 
 #define DEVICE struct usb_device *
 
-class GenericCCD: public INDI::CCD {
-public:
+class GenericCCD : public INDI::CCD
+{
+  public:
+    GenericCCD(DEVICE device, const char *name);
+    virtual ~GenericCCD();
 
-  GenericCCD(DEVICE device, const char *name);
-  virtual ~GenericCCD();
+    const char *getDefaultName();
 
-  const char *getDefaultName();
+    bool initProperties();
+    void ISGetProperties(const char *dev);
+    bool updateProperties();
 
-  bool initProperties();
-  void ISGetProperties(const char *dev);
-  bool updateProperties();
+    bool Connect();
+    bool Disconnect();
 
-  bool Connect();
-  bool Disconnect();
+    int SetTemperature(double temperature);
+    bool StartExposure(float duration);
+    bool AbortExposure();
 
-  int  SetTemperature(double temperature);
-  bool StartExposure(float duration);
-  bool AbortExposure();
+  protected:
+    void TimerHit();
+    virtual bool UpdateCCDFrame(int x, int y, int w, int h);
+    virtual bool UpdateCCDBin(int binx, int biny);
+    virtual bool UpdateCCDFrameType(CCDChip::CCD_FRAME fType);
 
-protected:
+    // Guide Port
+    virtual IPState GuideNorth(float ms);
+    virtual IPState GuideSouth(float ms);
+    virtual IPState GuideEast(float ms);
+    virtual IPState GuideWest(float ms);
 
-  void TimerHit();
-  virtual bool UpdateCCDFrame(int x, int y, int w, int h);
-  virtual bool UpdateCCDBin(int binx, int biny);
-  virtual bool UpdateCCDFrameType(CCDChip::CCD_FRAME fType);
+  private:
+    DEVICE device;
+    char name[32];
 
-  // Guide Port
-  virtual IPState GuideNorth(float ms);
-  virtual IPState GuideSouth(float ms);
-  virtual IPState GuideEast(float ms);
-  virtual IPState GuideWest(float ms);
+    double ccdTemp;
+    double minDuration;
+    unsigned short *imageBuffer;
 
-private:
-  DEVICE device;
-  char name[32];
+    int timerID;
 
-  double ccdTemp;
-  double minDuration;
-  unsigned short *imageBuffer;
+    CCDChip::CCD_FRAME imageFrameType;
 
-  int timerID;
+    struct timeval ExpStart;
 
-  CCDChip::CCD_FRAME imageFrameType;
+    float ExposureRequest;
+    float TemperatureRequest;
 
-  struct timeval ExpStart;
+    float CalcTimeLeft();
+    int grabImage();
+    bool setupParams();
+    bool sim;
 
-  float ExposureRequest;
-  float TemperatureRequest;
-
-
-  float CalcTimeLeft();
-  int grabImage();
-  bool setupParams();
-  bool sim;
-
-  friend void ::ISGetProperties(const char *dev);
-  friend void ::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int num);
-  friend void ::ISNewText(const char *dev, const char *name, char *texts[], char *names[], int num);
-  friend void ::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int num);
-  friend void ::ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[], char *names[], int n);
+    friend void ::ISGetProperties(const char *dev);
+    friend void ::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int num);
+    friend void ::ISNewText(const char *dev, const char *name, char *texts[], char *names[], int num);
+    friend void ::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int num);
+    friend void ::ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[],
+                            char *formats[], char *names[], int n);
 };
 
 #endif // GENERIC_CCD_H

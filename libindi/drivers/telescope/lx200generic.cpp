@@ -42,7 +42,7 @@ Updated driver to use INDI::Telescope (JM)
 #include "lx200ss2000pc.h"
 #include "lx200zeq25.h"
 
-#include <libnova.h>
+#include <libnova/sidereal_time.h>
 
 #include <math.h>
 #include <memory>
