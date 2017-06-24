@@ -15,7 +15,7 @@ endif(APPLE)
 
 set(LIBRARIES_FOUND TRUE)
 
-include(CMakeCommon.cmake)
+include(CMakeCommon)
 
 # Clang Format support
 IF (UNIX OR APPLE)

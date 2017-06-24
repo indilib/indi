@@ -24,7 +24,7 @@ include_directories( ${INDI_INCLUDE_DIR})
 include_directories( ${NOVA_INCLUDE_DIR})
 include_directories( ${EV_INCLUDE_DIR})
 
-include(../CMakeCommon.cmake)
+include(CMakeCommon)
 
 add_executable(indi_nexstarevo_telescope nexstarevo.cpp NexStarAUXScope.cpp)
 target_link_libraries(indi_nexstarevo_telescope ${INDI_LIBRARIES} ${NOVA_LIBRARIES} ${GSL_LIBRARIES})

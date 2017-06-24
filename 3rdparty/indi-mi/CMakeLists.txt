@@ -35,7 +35,7 @@ elseif (CMAKE_HOST_SYSTEM_PROCESSOR MATCHES "i[3-6]86")
     set(MILIB ${CMAKE_CURRENT_SOURCE_DIR}/libgxccd32.bin)
 endif ()
 
-include(../CMakeCommon.cmake)
+include(CMakeCommon)
 
 ########### MI CCD ###########
 set(indi_miccd_SRCS

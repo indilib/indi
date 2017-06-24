@@ -24,7 +24,7 @@ include_directories( ${CMAKE_CURRENT_SOURCE_DIR})
 include_directories( ${INDI_INCLUDE_DIR})
 include_directories( ${CFITSIO_INCLUDE_DIR})
 
-include(../CMakeCommon.cmake)
+include(CMakeCommon)
 
 ########### DSI ###########
 set(indidsi_SRCS

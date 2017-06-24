@@ -24,7 +24,7 @@ include_directories( ${INDI_INCLUDE_DIR})
 include_directories( ${CFITSIO_INCLUDE_DIR})
 include_directories( ${FLI_INCLUDE_DIR})
 
-include(../CMakeCommon.cmake)
+include(CMakeCommon)
 
 ###### FLI Precision Digital Focuser ######
 set(flipdf_SRCS

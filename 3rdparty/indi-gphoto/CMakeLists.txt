@@ -26,7 +26,7 @@ find_package(USB-1 REQUIRED)
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/config.h.cmake ${CMAKE_CURRENT_BINARY_DIR}/config.h )
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/indi_gphoto.xml.cmake ${CMAKE_CURRENT_BINARY_DIR}/indi_gphoto.xml )
 
-include(../CMakeCommon.cmake)
+include(CMakeCommon)
 
 #find_program(DCRAW_EXECUTABLE NAMES dcraw
 #    PATHS

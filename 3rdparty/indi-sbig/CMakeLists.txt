@@ -22,7 +22,7 @@ include_directories( ${INDI_INCLUDE_DIR})
 include_directories( ${SBIG_INCLUDE_DIR})
 include_directories( ${CFITSIO_INCLUDE_DIR})
 
-include(../CMakeCommon.cmake)
+include(CMakeCommon)
 
 ############# SBIG CCD ###############
 if (CFITSIO_FOUND)

@@ -34,7 +34,7 @@ include_directories( ${NOVA_INCLUDE_DIR})
 include_directories( ${NOVA_INCLUDE_DIR}/..)
 include_directories( ${GSL_INCLUDE_DIR} )
 
-include(../CMakeCommon.cmake)
+include(CMakeCommon)
 
 ########### EQMod ###############
 set(eqmod_SRCS
