@@ -115,3 +115,5 @@ IF (CLANG_SANITIZERS AND
     SET(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -fsanitize=address,undefined -fno-omit-frame-pointer")
 ENDIF ()
 
+# Unity Build support
+include(UnityBuild)

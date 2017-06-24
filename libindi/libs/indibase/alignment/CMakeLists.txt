@@ -16,29 +16,32 @@ endif(SKYWATCHER_API_USE_INITIAL_JULIAN_DATE)
 ##################################################
 ####### INDI AlignmentDriver shared library ######
 ##################################################
-set (AlignmentDriver_SRCS
-        ${CMAKE_SOURCE_DIR}/libs/indibase/alignment/AlignmentSubsystemForDrivers.cpp
-        ${CMAKE_SOURCE_DIR}/libs/indibase/alignment/AlignmentSubsystemForMathPlugins.h
-        ${CMAKE_SOURCE_DIR}/libs/indibase/alignment/BasicMathPlugin.cpp
-        ${CMAKE_SOURCE_DIR}/libs/indibase/alignment/BuiltInMathPlugin.cpp
-        ${CMAKE_SOURCE_DIR}/libs/indibase/alignment/ConvexHull.cpp
-        ${CMAKE_SOURCE_DIR}/libs/indibase/alignment/DriverCommon.cpp
-        ${CMAKE_SOURCE_DIR}/libs/indibase/alignment/InMemoryDatabase.cpp
-        ${CMAKE_SOURCE_DIR}/libs/indibase/alignment/MapPropertiesToInMemoryDatabase.cpp
-        ${CMAKE_SOURCE_DIR}/libs/indibase/alignment/MathPlugin.cpp
-        ${CMAKE_SOURCE_DIR}/libs/indibase/alignment/MathPluginManagement.cpp
-        ${CMAKE_SOURCE_DIR}/libs/indibase/alignment/TelescopeDirectionVectorSupportFunctions.cpp
-        ${CMAKE_SOURCE_DIR}/libs/indibase/alignment/Common.cpp
-    )
+SET(AlignmentDriver_SRC
+    ${CMAKE_SOURCE_DIR}/libs/indibase/alignment/AlignmentSubsystemForDrivers.cpp ;
+    ${CMAKE_SOURCE_DIR}/libs/indibase/alignment/AlignmentSubsystemForMathPlugins.h ;
+    ${CMAKE_SOURCE_DIR}/libs/indibase/alignment/BasicMathPlugin.cpp ;
+    ${CMAKE_SOURCE_DIR}/libs/indibase/alignment/BuiltInMathPlugin.cpp ;
+    ${CMAKE_SOURCE_DIR}/libs/indibase/alignment/ConvexHull.cpp ;
+    ${CMAKE_SOURCE_DIR}/libs/indibase/alignment/DriverCommon.cpp ;
+    ${CMAKE_SOURCE_DIR}/libs/indibase/alignment/InMemoryDatabase.cpp ;
+    ${CMAKE_SOURCE_DIR}/libs/indibase/alignment/MapPropertiesToInMemoryDatabase.cpp ;
+    ${CMAKE_SOURCE_DIR}/libs/indibase/alignment/MathPlugin.cpp ;
+    ${CMAKE_SOURCE_DIR}/libs/indibase/alignment/MathPluginManagement.cpp ;
+    ${CMAKE_SOURCE_DIR}/libs/indibase/alignment/TelescopeDirectionVectorSupportFunctions.cpp ;
+    ${CMAKE_SOURCE_DIR}/libs/indibase/alignment/Common.cpp)
+
+IF (UNITY_BUILD)
+    ENABLE_UNITY_BUILD(AlignmentDriver AlignmentDriver_SRC 15 cpp)
+ENDIF ()
 
 if (CYGWIN)
-set (AlignmentDriver_SRCS ${AlignmentDriver_SRCS}
+set (AlignmentDriver_SRC ${AlignmentDriver_SRC}
         ${CMAKE_SOURCE_DIR}/libs/lilxml.c
         ${CMAKE_SOURCE_DIR}/libs/indicom.c)
-add_library(AlignmentDriver STATIC ${AlignmentDriver_SRCS})
+add_library(AlignmentDriver STATIC ${AlignmentDriver_SRC})
 target_link_libraries(AlignmentDriver dl ${GSL_LIBRARIES} ${NOVA_LIBRARIES})
 else(CYGWIN)
-add_library(AlignmentDriver SHARED ${AlignmentDriver_SRCS})
+add_library(AlignmentDriver SHARED ${AlignmentDriver_SRC})
 set_target_properties(AlignmentDriver PROPERTIES COMPILE_FLAGS "-fPIC")
 if (APPLE)
 target_link_libraries(AlignmentDriver dl -L/usr/local/lib ${GSL_LIBRARIES})
