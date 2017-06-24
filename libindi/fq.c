@@ -43,10 +43,10 @@
      \author Elwood Downey
 */
 
+#include "fq.h"
+
 #include <stdlib.h>
 #include <string.h>
-
-#include "fq.h"
 
 struct _FQ
 {
@@ -58,9 +58,9 @@ struct _FQ
 };
 
 /* default memory managers, override with setMemFuncsFQ() */
-static void *(*mymalloc)(size_t size)             = malloc;
-static void *(*myrealloc)(void *ptr, size_t size) = realloc;
-static void (*myfree)(void *ptr)                  = free;
+static void *(*fqmalloc)(size_t size)             = malloc;
+static void *(*fqrealloc)(void *ptr, size_t size) = realloc;
+static void (*fqfree)(void *ptr)                  = free;
 
 static void chkFQ(FQ *q);
 
@@ -70,9 +70,9 @@ static void chkFQ(FQ *q);
  */
 FQ *newFQ(int grow)
 {
-    FQ *q = (FQ *)(*mymalloc)(sizeof(FQ));
+    FQ *q = (FQ *)(*fqmalloc)(sizeof(FQ));
     memset(q, 0, sizeof(FQ));
-    q->q    = (*mymalloc)(1); /* seed for realloc */
+    q->q    = (*fqmalloc)(1); /* seed for realloc */
     q->grow = grow > 0 ? grow : 1;
     return (q);
 }
@@ -80,8 +80,8 @@ FQ *newFQ(int grow)
 /* delete a FQ no longer needed */
 void delFQ(FQ *q)
 {
-    (*myfree)(q->q); /* guaranteed set in newFQ() */
-    (*myfree)((void *)q);
+    (*fqfree)(q->q); /* guaranteed set in newFQ() */
+    (*fqfree)((void *)q);
 }
 
 /* push an element onto the given FQ */
@@ -126,9 +126,9 @@ int nFQ(FQ *q)
 void setMemFuncsFQ(void *(*newmalloc)(size_t size), void *(*newrealloc)(void *ptr, size_t size),
                    void (*newfree)(void *ptr))
 {
-    mymalloc  = newmalloc;
-    myrealloc = newrealloc;
-    myfree    = newfree;
+    fqmalloc  = newmalloc;
+    fqrealloc = newrealloc;
+    fqfree    = newfree;
 }
 
 /* insure q can hold one more element */
@@ -147,7 +147,7 @@ static void chkFQ(FQ *q)
 
     /* realloc to minimum number of grow-sized chunks required */
     q->nmem = q->grow * (q->head / q->grow + 1);
-    q->q    = (*myrealloc)(q->q, q->nmem * sizeof(void *));
+    q->q    = (*fqrealloc)(q->q, q->nmem * sizeof(void *));
 }
 
 #if defined(TEST_FQ)
