@@ -30,6 +30,10 @@ IF (UNIX OR APPLE OR ANDROID)
         SET(SEC_COMP_FLAGS "-D_FORTIFY_SOURCE=2")
     ENDIF ()
     SET(SEC_COMP_FLAGS "${SEC_COMP_FLAGS} -fstack-protector-all -fPIE")
+    # Make sure to add optimization flag. Some systems require this for _FORTIFY_SOURCE.
+    IF (NOT CMAKE_BUILD_TYPE MATCHES "MinSizeRel" AND NOT CMAKE_BUILD_TYPE MATCHES "Release" AND NOT CMAKE_BUILD_TYPE MATCHES "Debug")
+        SET(SEC_COMP_FLAGS "${SEC_COMP_FLAGS} -O1")
+    ENDIF ()
     IF (NOT ANDROID AND NOT "${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang" AND NOT APPLE)
         SET(SEC_COMP_FLAGS "${SEC_COMP_FLAGS} -Wa,--noexecstack")
     ENDIF ()
@@ -110,3 +114,4 @@ IF (CLANG_SANITIZERS AND
     SET(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -fsanitize=address,undefined -fno-omit-frame-pointer")
     SET(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -fsanitize=address,undefined -fno-omit-frame-pointer")
 ENDIF ()
+

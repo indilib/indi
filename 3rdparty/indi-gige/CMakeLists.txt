@@ -20,7 +20,7 @@ include_directories( ${CFITSIO_INCLUDE_DIR})
 include_directories( ${GLIB2_INCLUDE_DIRS})
 include_directories( ${Arv_INCLUDE_DIRS})
 
-include(../CMakeCommon.cmake)
+include(CMakeCommon)
 
 ############# GENERIC CCD ###############
 if (CFITSIO_FOUND)

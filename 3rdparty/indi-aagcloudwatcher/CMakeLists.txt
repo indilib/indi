@@ -18,7 +18,7 @@ include_directories(${INDI_INCLUDE_DIR})
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/config.h.cmake ${CMAKE_CURRENT_BINARY_DIR}/config.h )
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/indi_aagcloudwatcher.xml.cmake ${CMAKE_CURRENT_BINARY_DIR}/indi_aagcloudwatcher.xml)
 
-include(../CMakeCommon.cmake)
+include(CMakeCommon)
 
 set(indiaag_SRCS
    ${CMAKE_CURRENT_SOURCE_DIR}/indi_aagcloudwatcher.cpp

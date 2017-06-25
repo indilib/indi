@@ -30,7 +30,7 @@ set(indispectracyber_SRCS
    ${CMAKE_CURRENT_SOURCE_DIR}/spectracyber.cpp
    )
 
-include(../CMakeCommon.cmake)
+include(CMakeCommon)
 
 add_executable(indi_spectracyber ${indispectracyber_SRCS})
 

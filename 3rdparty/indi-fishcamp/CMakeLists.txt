@@ -22,7 +22,7 @@ include_directories( ${INDI_INCLUDE_DIR})
 include_directories( ${CFITSIO_INCLUDE_DIR})
 include_directories( ${FISHCAMP_INCLUDE_DIR})
 
-include(../CMakeCommon.cmake)
+include(CMakeCommon)
 
 ############# FISHCAMP STARFISH CCD ###############
 set(fishcampccd_SRCS

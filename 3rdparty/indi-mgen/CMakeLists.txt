@@ -23,7 +23,7 @@ include_directories(${INDI_INCLUDE_DIR})
 include_directories(${FTDI1_INCLUDE_DIR})
 include_directories(${LIBUSB_1_INCLUDE_DIRS})
 
-include(../CMakeCommon.cmake)
+include(CMakeCommon)
 
 ########### MGenAutoguider ###########
 set(indimgenautoguider_SRCS
