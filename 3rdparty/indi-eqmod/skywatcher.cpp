@@ -425,7 +425,7 @@ void Skywatcher::InquireBoardVersion(ITextVectorProperty *boardTP)
     }
 
     boardinfo[1] = (char *)malloc(5);
-    sprintf(boardinfo[1], "%04x", (uint32_t)(MCVersion >> 8));
+    sprintf(boardinfo[1], "%04lx", (MCVersion >> 8));
     boardinfo[1][4] = '\0';
     // should test this is ok
     IUUpdateText(boardTP, boardinfo, (char **)boardinfopropnames, nprop);
