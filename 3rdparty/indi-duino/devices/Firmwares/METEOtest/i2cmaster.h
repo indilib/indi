@@ -1,5 +1,5 @@
 #ifndef _I2CMASTER_H
-#define _I2CMASTER_H   1
+#define _I2CMASTER_H 1
 /************************************************************************* 
 * Title:    C include file for the I2C master interface 
 *           (i2cmaster.S or twimaster.c)
@@ -88,11 +88,10 @@
 #include <avr/io.h>
 
 /** defines the data direction (reading from I2C device) in i2c_start(),i2c_rep_start() */
-#define I2C_READ    1
+#define I2C_READ 1
 
 /** defines the data direction (writing to I2C device) in i2c_start(),i2c_rep_start() */
-#define I2C_WRITE   0
-
+#define I2C_WRITE 0
 
 /**
  @brief initialize the I2C master interace. Need to be called only once 
@@ -101,14 +100,12 @@
  */
 extern void i2c_init(void);
 
-
 /** 
  @brief Terminates the data transfer and releases the I2C bus 
  @param void
  @return none
  */
 extern void i2c_stop(void);
-
 
 /** 
  @brief Issues a start condition and sends address and transfer direction 
@@ -119,7 +116,6 @@ extern void i2c_stop(void);
  */
 extern unsigned char i2c_start(unsigned char addr);
 
-
 /**
  @brief Issues a repeated start condition and sends address and transfer direction 
 
@@ -128,7 +124,6 @@ extern unsigned char i2c_start(unsigned char addr);
  @retval  1 failed to access device
  */
 extern unsigned char i2c_rep_start(unsigned char addr);
-
 
 /**
  @brief Issues a start condition and sends address and transfer direction 
@@ -139,7 +134,6 @@ extern unsigned char i2c_rep_start(unsigned char addr);
  */
 extern void i2c_start_wait(unsigned char addr);
 
- 
 /**
  @brief Send one byte to I2C device
  @param    data  byte to be transfered
@@ -147,7 +141,6 @@ extern void i2c_start_wait(unsigned char addr);
  @retval   1 write failed
  */
 extern unsigned char i2c_write(unsigned char data);
-
 
 /**
  @brief    read one byte from the I2C device, request more data from device 
@@ -171,8 +164,7 @@ extern unsigned char i2c_readNak(void);
  @return   byte read from I2C device
  */
 extern unsigned char i2c_read(unsigned char ack);
-#define i2c_read(ack)  (ack) ? i2c_readAck() : i2c_readNak(); 
-
+#define i2c_read(ack) (ack) ? i2c_readAck() : i2c_readNak();
 
 /**@}*/
 #endif

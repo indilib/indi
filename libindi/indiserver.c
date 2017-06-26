@@ -594,7 +594,7 @@ static void startLocalDvr(DvrInfo *dp)
      */
     mp = newMsg();
     pushFQ(dp->msgq, mp);
-    sprintf(buf, "<getProperties version='%g'/>\n", INDIV);
+    snprintf(buf, sizeof(buf), "<getProperties version='%g'/>\n", INDIV);
     setMsgStr(mp, buf);
     mp->count++;
 

@@ -43,34 +43,34 @@
 
 #include "mgc.h"
 
-class MGIO_INSERT_BUTTON: MGC
+class MGIO_INSERT_BUTTON : MGC
 {
-public:
+  public:
     virtual IOByte opCode() const { return 0x5D; }
     virtual IOMode opMode() const { return OPM_APPLICATION; }
 
-public:
+  public:
     enum Button
     {
-        IOB_NONE = -1,
-        IOB_ESC = 0,
-        IOB_SET = 1,
-        IOB_LEFT = 2,
-        IOB_RIGHT = 3,
-        IOB_UP = 4,
-        IOB_DOWN = 5,
+        IOB_NONE     = -1,
+        IOB_ESC      = 0,
+        IOB_SET      = 1,
+        IOB_LEFT     = 2,
+        IOB_RIGHT    = 3,
+        IOB_UP       = 4,
+        IOB_DOWN     = 5,
         IOB_LONG_ESC = 6,
     };
 
-public:
-    virtual IOResult ask(MGenDevice& root) throw (IOError)
+  public:
+    virtual IOResult ask(MGenDevice &root) throw(IOError)
     {
-        if(CR_SUCCESS != MGC::ask(root))
+        if (CR_SUCCESS != MGC::ask(root))
             return CR_FAILURE;
 
-        if(root.lock())
+        if (root.lock())
         {
-            _D("sending button %d",query[2]);
+            _D("sending button %d", query[2]);
 
             query[2] &= 0x7F;
             root.write(query);
@@ -85,9 +85,8 @@ public:
         return CR_SUCCESS;
     }
 
-public:
-    MGIO_INSERT_BUTTON(Button button):
-        MGC(IOBuffer {opCode(), 0x01, (unsigned char) button}, IOBuffer (2)) {};
+  public:
+    MGIO_INSERT_BUTTON(Button button) : MGC(IOBuffer{ opCode(), 0x01, (unsigned char)button }, IOBuffer(2)){};
 };
 
 #endif /* _3RDPARTY_INDI_MGEN_MGIO_INSERT_BUTTON_H_ */

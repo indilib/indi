@@ -34,12 +34,7 @@ include_directories( ${NOVA_INCLUDE_DIR})
 include_directories( ${NOVA_INCLUDE_DIR}/..)
 include_directories( ${GSL_INCLUDE_DIR} )
 
-IF ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
-    SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /std:c++11")
-ELSE ()
-    SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=gnu99")
-    SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
-ENDIF ()
+include(CMakeCommon)
 
 ########### EQMod ###############
 set(eqmod_SRCS
@@ -65,11 +60,7 @@ endif(WITH_SCOPE_LIMITS)
 add_executable(indi_eqmod_telescope ${eqmod_SRCS})
 
 if(WITH_ALIGN)
-if (CYGWIN)
-target_link_libraries(indi_eqmod_telescope ${INDI_LIBRARIES} ${NOVA_LIBRARIES} ${INDI_ALIGN_LIBRARIES} ${GSL_LIBRARIES} ${ZLIB_LIBRARY})
-else()
-target_link_libraries(indi_eqmod_telescope ${INDI_LIBRARIES} ${NOVA_LIBRARIES} ${INDI_ALIGN_LIBRARIES})
-endif(CYGWIN)
+  target_link_libraries(indi_eqmod_telescope ${INDI_LIBRARIES} ${NOVA_LIBRARIES} ${INDI_ALIGN_LIBRARIES} ${GSL_LIBRARIES} ${ZLIB_LIBRARY})
 else(WITH_ALIGN)
   target_link_libraries(indi_eqmod_telescope ${INDI_LIBRARIES} ${NOVA_LIBRARIES})
 endif(WITH_ALIGN)

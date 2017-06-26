@@ -18,12 +18,7 @@ include_directories(${INDI_INCLUDE_DIR})
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/config.h.cmake ${CMAKE_CURRENT_BINARY_DIR}/config.h )
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/indi_aagcloudwatcher.xml.cmake ${CMAKE_CURRENT_BINARY_DIR}/indi_aagcloudwatcher.xml)
 
-IF ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
-    SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /std:c++11")
-ELSE ()
-    SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=gnu99")
-    SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
-ENDIF ()
+include(CMakeCommon)
 
 set(indiaag_SRCS
    ${CMAKE_CURRENT_SOURCE_DIR}/indi_aagcloudwatcher.cpp

@@ -73,21 +73,21 @@ void ISPoll(void *);
 double min(void);
 double max(void);
 
-#define FILTER_WHEEL_TAB	"Filter Wheel"
+#define FILTER_WHEEL_TAB "Filter Wheel"
 
-#define MAX_CCD_TEMP	45		/* Max CCD temperature */
-#define MIN_CCD_TEMP	-55		/* Min CCD temperature */
-#define MAX_X_BIN	16		/* Max Horizontal binning */
-#define MAX_Y_BIN	16		/* Max Vertical binning */
-#define MAX_PIXELS	4096		/* Max number of pixels in one dimension */
-#define POLLMS		1000		/* Polling time (ms) */
-#define TEMP_THRESHOLD  .25		/* Differential temperature threshold (C)*/
-#define NFLUSHES	1		/* Number of times a CCD array is flushed before an exposure */
+#define MAX_CCD_TEMP   45   /* Max CCD temperature */
+#define MIN_CCD_TEMP   -55  /* Min CCD temperature */
+#define MAX_X_BIN      16   /* Max Horizontal binning */
+#define MAX_Y_BIN      16   /* Max Vertical binning */
+#define MAX_PIXELS     4096 /* Max number of pixels in one dimension */
+#define POLLMS         1000 /* Polling time (ms) */
+#define TEMP_THRESHOLD .25  /* Differential temperature threshold (C)*/
+#define NFLUSHES       1    /* Number of times a CCD array is flushed before an exposure */
 
-#define LAST_FILTER  5          /* Max slot index */
-#define FIRST_FILTER 1          /* Min slot index */
+#define LAST_FILTER  5 /* Max slot index */
+#define FIRST_FILTER 1 /* Min slot index */
 
-#define currentFilter   FilterN[0].value
+#define currentFilter FilterN[0].value
 
 std::unique_ptr<QSICCD> qsiCCD(new QSICCD());
 
@@ -101,7 +101,7 @@ void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names
     qsiCCD->ISNewSwitch(dev, name, states, names, num);
 }
 
-void ISNewText(	const char *dev, const char *name, char *texts[], char *names[], int num)
+void ISNewText(const char *dev, const char *name, char *texts[], char *names[], int num)
 {
     qsiCCD->ISNewText(dev, name, texts, names, num);
 }
@@ -111,7 +111,8 @@ void ISNewNumber(const char *dev, const char *name, double values[], char *names
     qsiCCD->ISNewNumber(dev, name, values, names, num);
 }
 
-void ISNewBLOB (const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[], char *names[], int n)
+void ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[],
+               char *names[], int n)
 {
     INDI_UNUSED(dev);
     INDI_UNUSED(name);
@@ -122,32 +123,30 @@ void ISNewBLOB (const char *dev, const char *name, int sizes[], int blobsizes[],
     INDI_UNUSED(names);
     INDI_UNUSED(n);
 }
-void ISSnoopDevice (XMLEle *root)
+void ISSnoopDevice(XMLEle *root)
 {
     qsiCCD->ISSnoopDevice(root);
 }
 
 QSICCD::QSICCD()
 {
-    targetFilter = 0;
-    canSetGain = false;
-    canControlFan = false;
-    canSetAB = false;
-    canFlush = false;
+    targetFilter          = 0;
+    canSetGain            = false;
+    canControlFan         = false;
+    canSetAB              = false;
+    canFlush              = false;
     canChangeReadoutSpeed = false;
 
     QSICam.put_UseStructuredExceptions(true);
 
     setVersion(QSI_VERSION_MAJOR, QSI_VERSION_MINOR);
-
 }
 
 QSICCD::~QSICCD()
 {
-
 }
 
-const char * QSICCD::getDefaultName()
+const char *QSICCD::getDefaultName()
 {
     return (char *)"QSI CCD";
 }
@@ -159,22 +158,27 @@ bool QSICCD::initProperties()
 
     IUFillSwitch(&CoolerS[0], "COOLER_ON", "ON", ISS_OFF);
     IUFillSwitch(&CoolerS[1], "COOLER_OFF", "OFF", ISS_ON);
-    IUFillSwitchVector(&CoolerSP, CoolerS, 2, getDeviceName(), "CCD_COOLER", "Cooler", MAIN_CONTROL_TAB, IP_WO, ISR_1OFMANY, 0, IPS_IDLE);
+    IUFillSwitchVector(&CoolerSP, CoolerS, 2, getDeviceName(), "CCD_COOLER", "Cooler", MAIN_CONTROL_TAB, IP_WO,
+                       ISR_1OFMANY, 0, IPS_IDLE);
 
     IUFillSwitch(&ShutterS[0], "SHUTTER_ON", "Manual open", ISS_OFF);
     IUFillSwitch(&ShutterS[1], "SHUTTER_OFF", "Manual close", ISS_OFF);
-    IUFillSwitchVector(&ShutterSP, ShutterS, 2, getDeviceName(), "CCD_SHUTTER", "Shutter", MAIN_CONTROL_TAB, IP_WO, ISR_1OFMANY, 0, IPS_IDLE);
+    IUFillSwitchVector(&ShutterSP, ShutterS, 2, getDeviceName(), "CCD_SHUTTER", "Shutter", MAIN_CONTROL_TAB, IP_WO,
+                       ISR_1OFMANY, 0, IPS_IDLE);
 
     IUFillNumber(&CoolerN[0], "CCD_COOLER_VALUE", "Cooling Power (%)", "%+06.2f", 0., 1., .2, 0.0);
-    IUFillNumberVector(&CoolerNP, CoolerN, 1, getDeviceName(), "CCD_COOLER_POWER", "Cooling Power", MAIN_CONTROL_TAB, IP_RO, 60, IPS_IDLE);
+    IUFillNumberVector(&CoolerNP, CoolerN, 1, getDeviceName(), "CCD_COOLER_POWER", "Cooling Power", MAIN_CONTROL_TAB,
+                       IP_RO, 60, IPS_IDLE);
 
     IUFillSwitch(&ReadOutS[0], "QUALITY_HIGH", "High Quality", ISS_ON);
     IUFillSwitch(&ReadOutS[1], "QUALITY_LOW", "Fast", ISS_OFF);
-    IUFillSwitchVector(&ReadOutSP, ReadOutS, 2, getDeviceName(), "READOUT_QUALITY", "Readout Speed", OPTIONS_TAB, IP_WO, ISR_1OFMANY, 0, IPS_IDLE);
+    IUFillSwitchVector(&ReadOutSP, ReadOutS, 2, getDeviceName(), "READOUT_QUALITY", "Readout Speed", OPTIONS_TAB, IP_WO,
+                       ISR_1OFMANY, 0, IPS_IDLE);
 
     IUFillSwitch(&FilterS[0], "FILTER_CW", "+", ISS_OFF);
     IUFillSwitch(&FilterS[1], "FILTER_CCW", "-", ISS_OFF);
-    IUFillSwitchVector(&FilterSP, FilterS, 2, getDeviceName(), "FILTER_WHEEL_MOTION", "Turn Wheel", FILTER_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
+    IUFillSwitchVector(&FilterSP, FilterS, 2, getDeviceName(), "FILTER_WHEEL_MOTION", "Turn Wheel", FILTER_TAB, IP_RW,
+                       ISR_1OFMANY, 60, IPS_IDLE);
 
     IUFillSwitch(&GainS[0], "High", "", ISS_OFF);
     IUFillSwitch(&GainS[1], "Low", "", ISS_OFF);
@@ -188,7 +192,8 @@ bool QSICCD::initProperties()
 
     IUFillSwitch(&ABS[0], "Normal", "", ISS_ON);
     IUFillSwitch(&ABS[1], "High", "", ISS_OFF);
-    IUFillSwitchVector(&ABSP, ABS, 2, getDeviceName(), "AntiBlooming", "", OPTIONS_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
+    IUFillSwitchVector(&ABSP, ABS, 2, getDeviceName(), "AntiBlooming", "", OPTIONS_TAB, IP_RW, ISR_1OFMANY, 60,
+                       IPS_IDLE);
 
     initFilterProperties(getDeviceName(), FILTER_TAB);
 
@@ -201,7 +206,6 @@ bool QSICCD::initProperties()
 
 bool QSICCD::updateProperties()
 {
-
     INDI::CCD::updateProperties();
 
     if (isConnected())
@@ -252,10 +256,10 @@ bool QSICCD::updateProperties()
 
 bool QSICCD::setupParams()
 {
-    string name,model;
+    string name, model;
     double temperature;
-    double pixel_size_x,pixel_size_y;
-    long sub_frame_x,sub_frame_y;
+    double pixel_size_x, pixel_size_y;
+    long sub_frame_x, sub_frame_y;
     try
     {
         QSICam.get_Name(name);
@@ -265,7 +269,8 @@ bool QSICCD::setupParams()
         QSICam.get_NumX(&sub_frame_x);
         QSICam.get_NumY(&sub_frame_y);
         QSICam.get_CCDTemperature(&temperature);
-    } catch (std::runtime_error err)
+    }
+    catch (std::runtime_error err)
     {
         DEBUGF(INDI::Logger::DBG_ERROR, "Setup Params failed. %s.", err.what());
         return false;
@@ -273,7 +278,7 @@ bool QSICCD::setupParams()
 
     DEBUGF(INDI::Logger::DBG_SESSION, "The CCD Temperature is %f.", temperature);
 
-    TemperatureN[0].value = temperature;			/* CCD chip temperatre (degrees C) */
+    TemperatureN[0].value = temperature; /* CCD chip temperatre (degrees C) */
     IDSetNumber(&TemperatureNP, NULL);
 
     SetCCDParams(sub_frame_x, sub_frame_y, 16, pixel_size_x, pixel_size_y);
@@ -282,14 +287,15 @@ bool QSICCD::setupParams()
     imageHeight = PrimaryCCD.getSubH();
 
     int nbuf;
-    nbuf=PrimaryCCD.getXRes()*PrimaryCCD.getYRes() * PrimaryCCD.getBPP()/8;                 //  this is pixel count
-    nbuf+=512;                      //  leave a little extra at the end
+    nbuf = PrimaryCCD.getXRes() * PrimaryCCD.getYRes() * PrimaryCCD.getBPP() / 8; //  this is pixel count
+    nbuf += 512;                                                                  //  leave a little extra at the end
     PrimaryCCD.setFrameBufferSize(nbuf);
 
     try
     {
-     QSICam.get_Name(name);
-    } catch (std::runtime_error& err)
+        QSICam.get_Name(name);
+    }
+    catch (std::runtime_error &err)
     {
         DEBUGF(INDI::Logger::DBG_ERROR, "get_Name() failed. %s.", err.what());
         return false;
@@ -299,34 +305,35 @@ bool QSICCD::setupParams()
     int filter_count;
     try
     {
-            QSICam.get_FilterCount(filter_count);
-    } catch (std::runtime_error err)
+        QSICam.get_FilterCount(filter_count);
+    }
+    catch (std::runtime_error err)
     {
-            DEBUGF(INDI::Logger::DBG_SESSION, "get_FilterCount() failed. %s.", err.what());
-            return false;
+        DEBUGF(INDI::Logger::DBG_SESSION, "get_FilterCount() failed. %s.", err.what());
+        return false;
     }
 
-    DEBUGF(INDI::Logger::DBG_SESSION,"The filter count is %d", filter_count);
-
+    DEBUGF(INDI::Logger::DBG_SESSION, "The filter count is %d", filter_count);
 
     FilterSlotN[0].max = filter_count;
-    FilterSlotNP.s = IPS_OK;
+    FilterSlotNP.s     = IPS_OK;
 
     IUUpdateMinMax(&FilterSlotNP);
     IDSetNumber(&FilterSlotNP, NULL);
 
     FilterSP.s = IPS_OK;
-    IDSetSwitch(&FilterSP,NULL);
+    IDSetSwitch(&FilterSP, NULL);
 
     if (FilterNameT == NULL)
         GetFilterNames(FILTER_TAB);
 
-    double minDuration=0;
+    double minDuration = 0;
 
     try
     {
         QSICam.get_MinExposureTime(&minDuration);
-    } catch (std::runtime_error err)
+    }
+    catch (std::runtime_error err)
     {
         DEBUGF(INDI::Logger::DBG_ERROR, "get_MinExposureTime() failed. %s.", err.what());
         return false;
@@ -334,28 +341,29 @@ bool QSICCD::setupParams()
 
     PrimaryCCD.setMinMaxStep("CCD_EXPOSURE", "CCD_EXPOSURE_VALUE", minDuration, 3600, 1, true);
 
-    bool coolerOn=false;
+    bool coolerOn = false;
 
     try
     {
-         QSICam.get_CoolerOn(&coolerOn);
-    } catch (std::runtime_error err)
+        QSICam.get_CoolerOn(&coolerOn);
+    }
+    catch (std::runtime_error err)
     {
-            CoolerSP.s = IPS_IDLE;
-            CoolerS[0].s = ISS_OFF;
-            CoolerS[1].s = ISS_ON;
-            DEBUGF(INDI::Logger::DBG_ERROR, "Error: CoolerOn() failed. %s.", err.what());
-            IDSetSwitch(&CoolerSP, NULL);
-            return false;
+        CoolerSP.s   = IPS_IDLE;
+        CoolerS[0].s = ISS_OFF;
+        CoolerS[1].s = ISS_ON;
+        DEBUGF(INDI::Logger::DBG_ERROR, "Error: CoolerOn() failed. %s.", err.what());
+        IDSetSwitch(&CoolerSP, NULL);
+        return false;
     }
 
     CoolerS[0].s = coolerOn ? ISS_ON : ISS_OFF;
     CoolerS[1].s = coolerOn ? ISS_OFF : ISS_ON;
-    CoolerSP.s = IPS_OK;
+    CoolerSP.s   = IPS_OK;
     IDSetSwitch(&CoolerSP, NULL);
 
     QSICamera::CameraGain cGain = QSICamera::CameraGainAuto;
-    canSetGain = false;
+    canSetGain                  = false;
 
     QSICam.get_CanSetGain(&canSetGain);
 
@@ -380,7 +388,7 @@ bool QSICCD::setupParams()
     }
 
     QSICamera::AntiBloom cAB = QSICamera::AntiBloomNormal;
-    canSetAB = true;
+    canSetAB                 = true;
 
     try
     {
@@ -399,9 +407,8 @@ bool QSICCD::setupParams()
         defineSwitch(&ABSP);
     }
 
-
     QSICamera::FanMode fMode = QSICamera::fanOff;
-    canControlFan = true;
+    canControlFan            = true;
 
     try
     {
@@ -476,13 +483,14 @@ int QSICCD::SetTemperature(double temperature)
     try
     {
         QSICam.get_CanSetCCDTemperature(&canSetTemp);
-    } catch (std::runtime_error err)
+    }
+    catch (std::runtime_error err)
     {
         DEBUGF(INDI::Logger::DBG_ERROR, "CanSetCCDTemperature() failed. %s.", err.what());
         return -1;
     }
 
-    if(!canSetTemp)
+    if (!canSetTemp)
     {
         DEBUG(INDI::Logger::DBG_SESSION, "Cannot set CCD temperature, CanSetCCDTemperature == false\n");
         return -1;
@@ -499,7 +507,8 @@ int QSICCD::SetTemperature(double temperature)
     try
     {
         QSICam.put_SetCCDTemperature(temperature);
-    } catch (std::runtime_error err)
+    }
+    catch (std::runtime_error err)
     {
         DEBUGF(INDI::Logger::DBG_ERROR, "put_SetCCDTemperature() failed. %s.", err.what());
         return -1;
@@ -509,48 +518,48 @@ int QSICCD::SetTemperature(double temperature)
     return 0;
 }
 
-bool QSICCD::ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n)
+bool QSICCD::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
 {
-    if(strcmp(dev,getDeviceName())==0)
+    if (strcmp(dev, getDeviceName()) == 0)
     {
-
         /* Readout Speed */
         if (!strcmp(name, ReadOutSP.name))
         {
-            if (IUUpdateSwitch(&ReadOutSP, states, names, n) < 0) return false;
+            if (IUUpdateSwitch(&ReadOutSP, states, names, n) < 0)
+                return false;
 
             if (ReadOutS[0].s == ISS_ON)
             {
                 try
                 {
-                 QSICam.put_ReadoutSpeed(QSICamera::HighImageQuality);
-                } catch (std::runtime_error err)
-                {
-                        IUResetSwitch(&ReadOutSP);
-                        ReadOutSP.s = IPS_ALERT;
-                        DEBUGF(INDI::Logger::DBG_ERROR, "put_ReadoutSpeed() failed. %s.", err.what());
-                        IDSetSwitch(&ReadOutSP, NULL);
-                        return false;
+                    QSICam.put_ReadoutSpeed(QSICamera::HighImageQuality);
                 }
-
+                catch (std::runtime_error err)
+                {
+                    IUResetSwitch(&ReadOutSP);
+                    ReadOutSP.s = IPS_ALERT;
+                    DEBUGF(INDI::Logger::DBG_ERROR, "put_ReadoutSpeed() failed. %s.", err.what());
+                    IDSetSwitch(&ReadOutSP, NULL);
+                    return false;
+                }
             }
             else
             {
                 try
                 {
-                 QSICam.put_ReadoutSpeed(QSICamera::FastReadout);
-                } catch (std::runtime_error err)
+                    QSICam.put_ReadoutSpeed(QSICamera::FastReadout);
+                }
+                catch (std::runtime_error err)
                 {
-                        IUResetSwitch(&ReadOutSP);
-                        ReadOutSP.s = IPS_ALERT;
-                        DEBUGF(INDI::Logger::DBG_ERROR, "put_ReadoutSpeed() failed. %s.", err.what());
-                        IDSetSwitch(&ReadOutSP, NULL);
-                        return false;
+                    IUResetSwitch(&ReadOutSP);
+                    ReadOutSP.s = IPS_ALERT;
+                    DEBUGF(INDI::Logger::DBG_ERROR, "put_ReadoutSpeed() failed. %s.", err.what());
+                    IDSetSwitch(&ReadOutSP, NULL);
+                    return false;
                 }
 
                 ReadOutSP.s = IPS_OK;
                 IDSetSwitch(&ReadOutSP, NULL);
-
             }
 
             ReadOutSP.s = IPS_OK;
@@ -558,24 +567,25 @@ bool QSICCD::ISNewSwitch (const char *dev, const char *name, ISState *states, ch
             return true;
         }
 
-
-         /* Cooler */
-        if (!strcmp (name, CoolerSP.name))
+        /* Cooler */
+        if (!strcmp(name, CoolerSP.name))
         {
-          if (IUUpdateSwitch(&CoolerSP, states, names, n) < 0) return false;
+            if (IUUpdateSwitch(&CoolerSP, states, names, n) < 0)
+                return false;
 
-          if (CoolerS[0].s == ISS_ON)
-            activateCooler(true);
-          else
-              activateCooler(false);
+            if (CoolerS[0].s == ISS_ON)
+                activateCooler(true);
+            else
+                activateCooler(false);
 
-          return true;
+            return true;
         }
 
         /* Shutter */
-        if (!strcmp (name, ShutterSP.name))
+        if (!strcmp(name, ShutterSP.name))
         {
-            if (IUUpdateSwitch(&ShutterSP, states, names, n) < 0) return false;
+            if (IUUpdateSwitch(&ShutterSP, states, names, n) < 0)
+                return false;
             shutterControl();
             return true;
         }
@@ -595,16 +605,16 @@ bool QSICCD::ISNewSwitch (const char *dev, const char *name, ISState *states, ch
 
             try
             {
-                QSICam.put_CameraGain( ((QSICamera::CameraGain) targetGain));
-
-            }  catch (std::runtime_error err)
+                QSICam.put_CameraGain(((QSICamera::CameraGain)targetGain));
+            }
+            catch (std::runtime_error err)
             {
-                                    IUResetSwitch(&GainSP);
-                                    GainS[prevGain].s = ISS_ON;
-                                    GainSP.s = IPS_ALERT;
-                                    DEBUGF(INDI::Logger::DBG_ERROR, "put_CameraGain failed. %s.", err.what());
-                                    IDSetSwitch(&GainSP, NULL);
-                                    return false;
+                IUResetSwitch(&GainSP);
+                GainS[prevGain].s = ISS_ON;
+                GainSP.s          = IPS_ALERT;
+                DEBUGF(INDI::Logger::DBG_ERROR, "put_CameraGain failed. %s.", err.what());
+                IDSetSwitch(&GainSP, NULL);
+                return false;
             }
 
             GainSP.s = IPS_OK;
@@ -627,16 +637,16 @@ bool QSICCD::ISNewSwitch (const char *dev, const char *name, ISState *states, ch
 
             try
             {
-                QSICam.put_FanMode( ((QSICamera::FanMode) targetFan));
-
-            }  catch (std::runtime_error err)
+                QSICam.put_FanMode(((QSICamera::FanMode)targetFan));
+            }
+            catch (std::runtime_error err)
             {
-                                    IUResetSwitch(&FanSP);
-                                    FanS[prevFan].s = ISS_ON;
-                                    FanSP.s = IPS_ALERT;
-                                    DEBUGF(INDI::Logger::DBG_ERROR, "put_FanMode failed. %s.", err.what());
-                                    IDSetSwitch(&FanSP, NULL);
-                                    return false;
+                IUResetSwitch(&FanSP);
+                FanS[prevFan].s = ISS_ON;
+                FanSP.s         = IPS_ALERT;
+                DEBUGF(INDI::Logger::DBG_ERROR, "put_FanMode failed. %s.", err.what());
+                IDSetSwitch(&FanSP, NULL);
+                return false;
             }
 
             FanSP.s = IPS_OK;
@@ -659,13 +669,13 @@ bool QSICCD::ISNewSwitch (const char *dev, const char *name, ISState *states, ch
 
             try
             {
-                QSICam.put_AntiBlooming( ((QSICamera::AntiBloom) targetAB));
-
-            }  catch (std::runtime_error err)
+                QSICam.put_AntiBlooming(((QSICamera::AntiBloom)targetAB));
+            }
+            catch (std::runtime_error err)
             {
                 IUResetSwitch(&ABSP);
                 ABS[prevAB].s = ISS_ON;
-                ABSP.s = IPS_ALERT;
+                ABSP.s        = IPS_ALERT;
                 DEBUGF(INDI::Logger::DBG_ERROR, "put_AntiBlooming failed. %s.", err.what());
                 IDSetSwitch(&ABSP, NULL);
                 return false;
@@ -677,24 +687,25 @@ bool QSICCD::ISNewSwitch (const char *dev, const char *name, ISState *states, ch
         }
 
         /* Filter Wheel */
-        if (!strcmp (name, FilterSP.name))
+        if (!strcmp(name, FilterSP.name))
         {
-            if (IUUpdateSwitch(&FilterSP, states, names, n) < 0) return false;
+            if (IUUpdateSwitch(&FilterSP, states, names, n) < 0)
+                return false;
             turnWheel();
             return true;
         }
     }
 
-        //  Nobody has claimed this, so, ignore it
-        return INDI::CCD::ISNewSwitch(dev,name,states,names,n);
+    //  Nobody has claimed this, so, ignore it
+    return INDI::CCD::ISNewSwitch(dev, name, states, names, n);
 }
 
-bool QSICCD::ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n)
+bool QSICCD::ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
 {
-    int maxFilters = (int) FilterSlotN[0].max;
+    int maxFilters = (int)FilterSlotN[0].max;
     //std::string filterDesignation[maxFilters];
 
-    if(strcmp(dev,getDeviceName())==0)
+    if (strcmp(dev, getDeviceName()) == 0)
     {
         if (!strcmp(name, FilterNameTP->name))
         {
@@ -705,7 +716,7 @@ bool QSICCD::ISNewText (const char *dev, const char *name, char *texts[], char *
                 return false;
             }
 
-            for (int i=0; i < maxFilters; i++)
+            for (int i = 0; i < maxFilters; i++)
                 filterDesignation[i] = FilterNameT[i].text;
 
             if (SetFilterNames() == true)
@@ -720,23 +731,20 @@ bool QSICCD::ISNewText (const char *dev, const char *name, char *texts[], char *
                 IDSetText(FilterNameTP, "Error updating filter names.");
                 return false;
             }
-
         }
     }
 
     return INDI::CCD::ISNewText(dev, name, texts, names, n);
-
 }
 
 bool QSICCD::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
 {
     INumber *np;
 
-    if(strcmp(dev,getDeviceName())==0)
+    if (strcmp(dev, getDeviceName()) == 0)
     {
         if (!strcmp(FilterSlotNP.name, name))
         {
-
             targetFilter = values[0];
 
             np = IUFindNumber(&FilterSlotNP, names[0]);
@@ -752,7 +760,8 @@ bool QSICCD::ISNewNumber(const char *dev, const char *name, double values[], cha
             try
             {
                 QSICam.get_FilterCount(filter_count);
-            } catch (std::runtime_error err)
+            }
+            catch (std::runtime_error err)
             {
                 DEBUGF(INDI::Logger::DBG_ERROR, "get_FilterCount() failed. %s.", err.what());
                 IDSetNumber(&FilterSlotNP, NULL);
@@ -760,7 +769,8 @@ bool QSICCD::ISNewNumber(const char *dev, const char *name, double values[], cha
             if (targetFilter < FIRST_FILTER || targetFilter > filter_count)
             {
                 FilterSlotNP.s = IPS_ALERT;
-                DEBUGF(INDI::Logger::DBG_ERROR, "Error: valid range of filter is from %d to %d", FIRST_FILTER, LAST_FILTER);
+                DEBUGF(INDI::Logger::DBG_ERROR, "Error: valid range of filter is from %d to %d", FIRST_FILTER,
+                       LAST_FILTER);
                 IDSetNumber(&FilterSlotNP, NULL);
                 return false;
             }
@@ -771,7 +781,6 @@ bool QSICCD::ISNewNumber(const char *dev, const char *name, double values[], cha
             DEBUGF(INDI::Logger::DBG_DEBUG, "Setting current filter to slot %d", targetFilter);
             IDSetNumber(&FilterSlotNP, NULL);
 
-
             SelectFilter(targetFilter);
 
             /* Check current filter position */
@@ -780,7 +789,7 @@ bool QSICCD::ISNewNumber(const char *dev, const char *name, double values[], cha
             if (newFilter == targetFilter)
             {
                 FilterSlotN[0].value = targetFilter;
-                FilterSlotNP.s = IPS_OK;
+                FilterSlotNP.s       = IPS_OK;
                 DEBUGF(INDI::Logger::DBG_DEBUG, "Filter set to slot #%d", targetFilter);
                 IDSetNumber(&FilterSlotNP, NULL);
                 return true;
@@ -788,24 +797,24 @@ bool QSICCD::ISNewNumber(const char *dev, const char *name, double values[], cha
             else
                 return false;
         }
-
     }
 
     //  if we didn't process it, continue up the chain, let somebody else
     //  give it a shot
-    return INDI::CCD::ISNewNumber(dev,name,values,names,n);
+    return INDI::CCD::ISNewNumber(dev, name, values, names, n);
 }
 
 bool QSICCD::StartExposure(float duration)
 {
     imageFrameType = PrimaryCCD.getFrameType();
 
-    if(imageFrameType == CCDChip::BIAS_FRAME)
+    if (imageFrameType == CCDChip::BIAS_FRAME)
     {
         ExposureRequest = 0;
         PrimaryCCD.setExposureDuration(0);
         DEBUG(INDI::Logger::DBG_SESSION, "Bias Frame (s) : 0");
-    } else
+    }
+    else
     {
         ExposureRequest = duration;
         PrimaryCCD.setExposureDuration(ExposureRequest);
@@ -817,7 +826,7 @@ bool QSICCD::StartExposure(float duration)
         {
             QSICam.put_PreExposureFlush(QSICamera::FlushNormal);
         }
-        catch (std::runtime_error& err)
+        catch (std::runtime_error &err)
         {
             DEBUGF(INDI::Logger::DBG_WARNING, "Warning! Pre-exposure flushing failed. %s.", err.what());
         }
@@ -828,8 +837,9 @@ bool QSICCD::StartExposure(float duration)
     {
         try
         {
-            QSICam.StartExposure (ExposureRequest,false);
-        } catch (std::runtime_error& err)
+            QSICam.StartExposure(ExposureRequest, false);
+        }
+        catch (std::runtime_error &err)
         {
             DEBUGF(INDI::Logger::DBG_ERROR, "StartExposure() failed. %s.", err.what());
             return false;
@@ -839,15 +849,16 @@ bool QSICCD::StartExposure(float duration)
     {
         try
         {
-            QSICam.StartExposure (ExposureRequest,true);
-        } catch (std::runtime_error& err)
+            QSICam.StartExposure(ExposureRequest, true);
+        }
+        catch (std::runtime_error &err)
         {
             DEBUGF(INDI::Logger::DBG_ERROR, "StartExposure() failed. %s.", err.what());
             return false;
         }
     }
 
-    gettimeofday(&ExpStart,NULL);
+    gettimeofday(&ExpStart, NULL);
     DEBUGF(INDI::Logger::DBG_DEBUG, "Taking a %g seconds frame...", ExposureRequest);
 
     InExposure = true;
@@ -860,13 +871,13 @@ bool QSICCD::AbortExposure()
     {
         try
         {
-          QSICam.AbortExposure();
-        } catch (std::runtime_error err)
-        {
-          DEBUGF(INDI::Logger::DBG_ERROR, "AbortExposure() failed. %s.", err.what());
-          return false;
+            QSICam.AbortExposure();
         }
-
+        catch (std::runtime_error err)
+        {
+            DEBUGF(INDI::Logger::DBG_ERROR, "AbortExposure() failed. %s.", err.what());
+            return false;
+        }
 
         InExposure = false;
         return true;
@@ -875,16 +886,17 @@ bool QSICCD::AbortExposure()
     return false;
 }
 
-float QSICCD::CalcTimeLeft(timeval start,float req)
+float QSICCD::CalcTimeLeft(timeval start, float req)
 {
     double timesince;
     double timeleft;
     struct timeval now;
-    gettimeofday(&now,NULL);
+    gettimeofday(&now, NULL);
 
-    timesince=(double)(now.tv_sec * 1000.0 + now.tv_usec/1000) - (double)(start.tv_sec * 1000.0 + start.tv_usec/1000);
-    timesince=timesince/1000;
-    timeleft=req-timesince;
+    timesince =
+        (double)(now.tv_sec * 1000.0 + now.tv_usec / 1000) - (double)(start.tv_sec * 1000.0 + start.tv_usec / 1000);
+    timesince = timesince / 1000;
+    timeleft  = req - timesince;
     return timeleft;
 }
 
@@ -910,7 +922,6 @@ bool QSICCD::UpdateCCDFrame(int x, int y, int w, int h)
         return false;
     }
 
-
     if (isDebug())
         IDLog("The Final image area is (%ld, %ld), (%ld, %ld)\n", x_1, y_1, x_2, y_2);
 
@@ -923,18 +934,19 @@ bool QSICCD::UpdateCCDFrame(int x, int y, int w, int h)
         QSICam.put_StartY(y_1);
         QSICam.put_NumX(imageWidth);
         QSICam.put_NumY(imageHeight);
-    } catch (std::runtime_error err)
+    }
+    catch (std::runtime_error err)
     {
-        snprintf(errmsg, ERRMSG_SIZE, "Setting image area failed. %s.\n",err.what());
+        snprintf(errmsg, ERRMSG_SIZE, "Setting image area failed. %s.\n", err.what());
         DEBUGF(INDI::Logger::DBG_ERROR, "Setting image area failed. %s.", err.what());
         return false;
     }
 
     // Set UNBINNED coords
-    PrimaryCCD.setFrame(x, y, w,  h);
+    PrimaryCCD.setFrame(x, y, w, h);
     int nbuf;
-    nbuf=(imageWidth*imageHeight * PrimaryCCD.getBPP()/8);                 //  this is pixel count
-    nbuf+=512;                      //  leave a little extra at the end
+    nbuf = (imageWidth * imageHeight * PrimaryCCD.getBPP() / 8); //  this is pixel count
+    nbuf += 512;                                                 //  leave a little extra at the end
     PrimaryCCD.setFrameBufferSize(nbuf);
 
     return true;
@@ -945,7 +957,8 @@ bool QSICCD::UpdateCCDBin(int binx, int biny)
     try
     {
         QSICam.put_BinX(binx);
-    } catch (std::runtime_error err)
+    }
+    catch (std::runtime_error err)
     {
         DEBUGF(INDI::Logger::DBG_ERROR, "put_BinX() failed. %s.", err.what());
         return false;
@@ -954,7 +967,8 @@ bool QSICCD::UpdateCCDBin(int binx, int biny)
     try
     {
         QSICam.put_BinY(biny);
-    } catch (std::runtime_error err)
+    }
+    catch (std::runtime_error err)
     {
         DEBUGF(INDI::Logger::DBG_ERROR, "put_BinY() failed. %s.", err.what());
         return false;
@@ -969,51 +983,53 @@ bool QSICCD::UpdateCCDBin(int binx, int biny)
  N.B. No processing is done on the image */
 int QSICCD::grabImage()
 {
-        unsigned short* image = (unsigned short *) PrimaryCCD.getFrameBuffer();
+    unsigned short *image = (unsigned short *)PrimaryCCD.getFrameBuffer();
 
-        int x,y,z;
-        try {
-            bool imageReady = false;
-            QSICam.get_ImageReady(&imageReady);
-            while(!imageReady)
-            {
-                usleep(500);
-                QSICam.get_ImageReady(&imageReady);
-            }
-
-            QSICam.get_ImageArraySize(x,y,z);
-            QSICam.get_ImageArray(image);
-            imageBuffer = image;
-            imageWidth  = x;
-            imageHeight = y;
-        } catch (std::runtime_error err)
+    int x, y, z;
+    try
+    {
+        bool imageReady = false;
+        QSICam.get_ImageReady(&imageReady);
+        while (!imageReady)
         {
-            DEBUGF(INDI::Logger::DBG_ERROR, "get_ImageArray() failed. %s.", err.what());
-            return -1;
+            usleep(500);
+            QSICam.get_ImageReady(&imageReady);
         }
 
-        DEBUG(INDI::Logger::DBG_SESSION, "Download complete.");
-	
-        ExposureComplete(&PrimaryCCD);
+        QSICam.get_ImageArraySize(x, y, z);
+        QSICam.get_ImageArray(image);
+        imageBuffer = image;
+        imageWidth  = x;
+        imageHeight = y;
+    }
+    catch (std::runtime_error err)
+    {
+        DEBUGF(INDI::Logger::DBG_ERROR, "get_ImageArray() failed. %s.", err.what());
+        return -1;
+    }
 
-	return 0;
+    DEBUG(INDI::Logger::DBG_SESSION, "Download complete.");
+
+    ExposureComplete(&PrimaryCCD);
+
+    return 0;
 }
 
 void QSICCD::addFITSKeywords(fitsfile *fptr, CCDChip *targetChip)
 {
-
     INDI::CCD::addFITSKeywords(fptr, targetChip);
 
-    int status=0;
+    int status = 0;
     double electronsPerADU;
 
     try
     {
         QSICam.get_ElectronsPerADU(&electronsPerADU);
-    } catch (std::runtime_error& err)
+    }
+    catch (std::runtime_error &err)
     {
-            DEBUGF(INDI::Logger::DBG_ERROR, "get_ElectronsPerADU failed. %s.", err.what());
-            return;
+        DEBUGF(INDI::Logger::DBG_ERROR, "get_ElectronsPerADU failed. %s.", err.what());
+        return;
     }
 
     fits_update_key_s(fptr, TDOUBLE, "EPERADU", &electronsPerADU, "Electrons per ADU", &status);
@@ -1021,34 +1037,35 @@ void QSICCD::addFITSKeywords(fitsfile *fptr, CCDChip *targetChip)
 
 bool QSICCD::manageDefaults()
 {
-        /* X horizontal binning */
-        try
-        {
-            QSICam.put_BinX(PrimaryCCD.getBinX());
-        } catch (std::runtime_error err) {
-            DEBUGF(INDI::Logger::DBG_ERROR, "Error: put_BinX() failed. %s.", err.what());
-            return false;
-        }
+    /* X horizontal binning */
+    try
+    {
+        QSICam.put_BinX(PrimaryCCD.getBinX());
+    }
+    catch (std::runtime_error err)
+    {
+        DEBUGF(INDI::Logger::DBG_ERROR, "Error: put_BinX() failed. %s.", err.what());
+        return false;
+    }
 
-        /* Y vertical binning */
-        try {
-            QSICam.put_BinY(PrimaryCCD.getBinY());
-        } catch (std::runtime_error err)
-        {
-            DEBUGF(INDI::Logger::DBG_ERROR, "Error: put_BinY() failed. %s.", err.what());
-            return false;
-        }
+    /* Y vertical binning */
+    try
+    {
+        QSICam.put_BinY(PrimaryCCD.getBinY());
+    }
+    catch (std::runtime_error err)
+    {
+        DEBUGF(INDI::Logger::DBG_ERROR, "Error: put_BinY() failed. %s.", err.what());
+        return false;
+    }
 
+    DEBUGF(INDI::Logger::DBG_DEBUG, "Setting default binning %d x %d.\n", PrimaryCCD.getBinX(), PrimaryCCD.getBinY());
 
-        DEBUGF(INDI::Logger::DBG_DEBUG, "Setting default binning %d x %d.\n", PrimaryCCD.getBinX(), PrimaryCCD.getBinY());
+    UpdateCCDFrame(PrimaryCCD.getSubX(), PrimaryCCD.getSubY(), PrimaryCCD.getXRes(), PrimaryCCD.getYRes());
 
-        UpdateCCDFrame(PrimaryCCD.getSubX(), PrimaryCCD.getSubY(), PrimaryCCD.getXRes(), PrimaryCCD.getYRes());
-
-
-        /* Success */
-        return true;
+    /* Success */
+    return true;
 }
-
 
 bool QSICCD::Connect()
 {
@@ -1056,62 +1073,64 @@ bool QSICCD::Connect()
 
     DEBUG(INDI::Logger::DBG_SESSION, "Attempting to find QSI CCD...");
 
-            try
-            {
-                QSICam.get_Connected(&connected);
-            } catch (std::runtime_error err)
-            {
-                DEBUGF(INDI::Logger::DBG_ERROR, "Error: get_Connected() failed. %s.", err.what());
-                return false;
-            }
+    try
+    {
+        QSICam.get_Connected(&connected);
+    }
+    catch (std::runtime_error err)
+    {
+        DEBUGF(INDI::Logger::DBG_ERROR, "Error: get_Connected() failed. %s.", err.what());
+        return false;
+    }
 
-            if(!connected)
-            {
-                try
-                {
-                    QSICam.put_Connected(true);
-                } catch (std::runtime_error err)
-                {
-                    DEBUGF(INDI::Logger::DBG_ERROR, "Error: put_Connected(true) failed. %s.", err.what());
-                    return false;
-                }
-            }
+    if (!connected)
+    {
+        try
+        {
+            QSICam.put_Connected(true);
+        }
+        catch (std::runtime_error err)
+        {
+            DEBUGF(INDI::Logger::DBG_ERROR, "Error: put_Connected(true) failed. %s.", err.what());
+            return false;
+        }
+    }
 
-            bool hasST4Port=false;
-            try
-            {
-                QSICam.get_CanPulseGuide(&hasST4Port);
-            }
-            catch (std::runtime_error err)
-            {
-                  DEBUGF(INDI::Logger::DBG_ERROR, "get_canPulseGuide() failed. %s.", err.what());
-                  return false;
-            }
+    bool hasST4Port = false;
+    try
+    {
+        QSICam.get_CanPulseGuide(&hasST4Port);
+    }
+    catch (std::runtime_error err)
+    {
+        DEBUGF(INDI::Logger::DBG_ERROR, "get_canPulseGuide() failed. %s.", err.what());
+        return false;
+    }
 
-            try
-            {
-                QSICam.get_CanAbortExposure(&canAbort);
-            } catch (std::runtime_error err)
-            {
-                DEBUGF(INDI::Logger::DBG_ERROR, "get_CanAbortExposure() failed. %s.", err.what());
-                return false;
-            }
+    try
+    {
+        QSICam.get_CanAbortExposure(&canAbort);
+    }
+    catch (std::runtime_error err)
+    {
+        DEBUGF(INDI::Logger::DBG_ERROR, "get_CanAbortExposure() failed. %s.", err.what());
+        return false;
+    }
 
-            uint32_t cap= CCD_CAN_BIN | CCD_CAN_SUBFRAME | CCD_HAS_COOLER | CCD_HAS_SHUTTER;
+    uint32_t cap = CCD_CAN_BIN | CCD_CAN_SUBFRAME | CCD_HAS_COOLER | CCD_HAS_SHUTTER;
 
-            if (canAbort)
-                cap |= CCD_CAN_ABORT;
+    if (canAbort)
+        cap |= CCD_CAN_ABORT;
 
-            if (hasST4Port)
-                cap |= CCD_HAS_ST4_PORT;
+    if (hasST4Port)
+        cap |= CCD_HAS_ST4_PORT;
 
-            SetCCDCapability(cap);
+    SetCCDCapability(cap);
 
-            /* Success! */
-            DEBUG(INDI::Logger::DBG_SESSION, "CCD is online. Retrieving basic data.");
-            return true;
+    /* Success! */
+    DEBUG(INDI::Logger::DBG_SESSION, "CCD is online. Retrieving basic data.");
+    return true;
 }
-
 
 bool QSICCD::Disconnect()
 {
@@ -1120,7 +1139,8 @@ bool QSICCD::Disconnect()
     try
     {
         QSICam.get_Connected(&connected);
-    } catch (std::runtime_error err)
+    }
+    catch (std::runtime_error err)
     {
         DEBUGF(INDI::Logger::DBG_ERROR, "Error: get_Connected() failed. %s.", err.what());
         return false;
@@ -1131,7 +1151,8 @@ bool QSICCD::Disconnect()
         try
         {
             QSICam.put_Connected(false);
-        } catch (std::runtime_error err)
+        }
+        catch (std::runtime_error err)
         {
             DEBUGF(INDI::Logger::DBG_ERROR, "Error: put_Connected(false) failed. %s.", err.what());
             return false;
@@ -1144,95 +1165,101 @@ bool QSICCD::Disconnect()
 
 void QSICCD::activateCooler(bool enable)
 {
+    bool coolerOn;
 
-        bool coolerOn;
+    if (enable)
+    {
+        try
+        {
+            QSICam.get_CoolerOn(&coolerOn);
+        }
+        catch (std::runtime_error err)
+        {
+            CoolerSP.s   = IPS_IDLE;
+            CoolerS[0].s = ISS_OFF;
+            CoolerS[1].s = ISS_ON;
+            DEBUGF(INDI::Logger::DBG_ERROR, "Error: CoolerOn() failed. %s.", err.what());
+            IDSetSwitch(&CoolerSP, NULL);
+            return;
+        }
 
-        if (enable)
+        if (!coolerOn)
         {
             try
             {
-                QSICam.get_CoolerOn(&coolerOn);
-            } catch (std::runtime_error err)
+                QSICam.put_CoolerOn(true);
+            }
+            catch (std::runtime_error err)
             {
-                CoolerSP.s = IPS_IDLE;
+                CoolerSP.s   = IPS_IDLE;
                 CoolerS[0].s = ISS_OFF;
                 CoolerS[1].s = ISS_ON;
-                DEBUGF(INDI::Logger::DBG_ERROR, "Error: CoolerOn() failed. %s.", err.what());
-                IDSetSwitch(&CoolerSP, NULL);
+                DEBUGF(INDI::Logger::DBG_ERROR, "Error: put_CoolerOn(true) failed. %s.", err.what());
                 return;
             }
-
-            if(!coolerOn)
-            {
-                try
-                {
-                    QSICam.put_CoolerOn(true);
-                } catch (std::runtime_error err)
-                {
-                    CoolerSP.s = IPS_IDLE;
-                    CoolerS[0].s = ISS_OFF;
-                    CoolerS[1].s = ISS_ON;
-                    DEBUGF(INDI::Logger::DBG_ERROR, "Error: put_CoolerOn(true) failed. %s.", err.what());
-                    return;
-                }
-            }
-
-            /* Success! */
-            CoolerS[0].s = ISS_ON;
-            CoolerS[1].s = ISS_OFF;
-            CoolerSP.s = IPS_OK;
-            DEBUG(INDI::Logger::DBG_SESSION, "Cooler ON");
-            IDSetSwitch(&CoolerSP, NULL);
-            CoolerNP.s = IPS_BUSY;
         }
-        else
+
+        /* Success! */
+        CoolerS[0].s = ISS_ON;
+        CoolerS[1].s = ISS_OFF;
+        CoolerSP.s   = IPS_OK;
+        DEBUG(INDI::Logger::DBG_SESSION, "Cooler ON");
+        IDSetSwitch(&CoolerSP, NULL);
+        CoolerNP.s = IPS_BUSY;
+    }
+    else
+    {
+        CoolerS[0].s = ISS_OFF;
+        CoolerS[1].s = ISS_ON;
+        CoolerSP.s   = IPS_IDLE;
+
+        try
         {
-              CoolerS[0].s = ISS_OFF;
-              CoolerS[1].s = ISS_ON;
-              CoolerSP.s = IPS_IDLE;
-
-              try
-              {
-                 QSICam.get_CoolerOn(&coolerOn);
-                 if(coolerOn) QSICam.put_CoolerOn(false);
-              } catch (std::runtime_error err)
-              {
-                 DEBUGF(INDI::Logger::DBG_ERROR, "Error: CoolerOn() failed. %s.", err.what());
-                 IDSetSwitch(&CoolerSP, NULL);
-                 return;                                              
-              }
-              DEBUG(INDI::Logger::DBG_SESSION, "Cooler is OFF.");
-              IDSetSwitch(&CoolerSP, NULL);
+            QSICam.get_CoolerOn(&coolerOn);
+            if (coolerOn)
+                QSICam.put_CoolerOn(false);
         }
+        catch (std::runtime_error err)
+        {
+            DEBUGF(INDI::Logger::DBG_ERROR, "Error: CoolerOn() failed. %s.", err.what());
+            IDSetSwitch(&CoolerSP, NULL);
+            return;
+        }
+        DEBUG(INDI::Logger::DBG_SESSION, "Cooler is OFF.");
+        IDSetSwitch(&CoolerSP, NULL);
+    }
 }
 
 void QSICCD::shutterControl()
 {
+    bool hasShutter;
+    try
+    {
+        QSICam.get_HasShutter(&hasShutter);
+    }
+    catch (std::runtime_error err)
+    {
+        ShutterSP.s   = IPS_IDLE;
+        ShutterS[0].s = ISS_OFF;
+        ShutterS[1].s = ISS_OFF;
+        DEBUGF(INDI::Logger::DBG_ERROR, "QSICamera::get_HasShutter() failed. %s.", err.what());
+        return;
+    }
 
-        bool hasShutter;
-        try{
-            QSICam.get_HasShutter(&hasShutter);
-        }catch (std::runtime_error err)
+    if (hasShutter)
+    {
+        switch (ShutterS[0].s)
         {
-            ShutterSP.s   = IPS_IDLE;
-            ShutterS[0].s = ISS_OFF;
-            ShutterS[1].s = ISS_OFF;
-            DEBUGF(INDI::Logger::DBG_ERROR, "QSICamera::get_HasShutter() failed. %s.", err.what());
-            return;
-        }
-
-        if(hasShutter){
-            switch (ShutterS[0].s)
-            {
-              case ISS_ON:
+            case ISS_ON:
 
                 try
-            {
+                {
                     QSICam.put_ManualShutterMode(true);
                     QSICam.put_ManualShutterOpen(true);
-                }catch (std::runtime_error err)
+                }
+                catch (std::runtime_error err)
                 {
-                    ShutterSP.s = IPS_IDLE;
+                    ShutterSP.s   = IPS_IDLE;
                     ShutterS[0].s = ISS_OFF;
                     ShutterS[1].s = ISS_ON;
                     DEBUGF(INDI::Logger::DBG_ERROR, "Error: ManualShutterOpen() failed. %s.", err.what());
@@ -1243,19 +1270,21 @@ void QSICCD::shutterControl()
                 /* Success! */
                 ShutterS[0].s = ISS_ON;
                 ShutterS[1].s = ISS_OFF;
-                ShutterSP.s = IPS_OK;
+                ShutterSP.s   = IPS_OK;
                 DEBUG(INDI::Logger::DBG_SESSION, "Shutter opened manually.");
                 IDSetSwitch(&ShutterSP, NULL);
                 break;
 
-              case ISS_OFF:
+            case ISS_OFF:
 
-                try{
+                try
+                {
                     QSICam.put_ManualShutterOpen(false);
                     QSICam.put_ManualShutterMode(false);
-                }catch (std::runtime_error err)
+                }
+                catch (std::runtime_error err)
                 {
-                    ShutterSP.s = IPS_IDLE;
+                    ShutterSP.s   = IPS_IDLE;
                     ShutterS[0].s = ISS_ON;
                     ShutterS[1].s = ISS_OFF;
                     DEBUGF(INDI::Logger::DBG_ERROR, "Error: ManualShutterOpen() failed. %s.", err.what());
@@ -1266,29 +1295,28 @@ void QSICCD::shutterControl()
                 /* Success! */
                 ShutterS[0].s = ISS_OFF;
                 ShutterS[1].s = ISS_ON;
-                ShutterSP.s = IPS_IDLE;
+                ShutterSP.s   = IPS_IDLE;
                 DEBUG(INDI::Logger::DBG_SESSION, "Shutter closed manually.");
                 IDSetSwitch(&ShutterSP, NULL);
                 break;
-            }
         }
+    }
 }
-
 
 void QSICCD::TimerHit()
 {
-    long timeleft;
-    double ccdTemp;
-    double coolerPower;
+    long timeleft = 0;
+    double ccdTemp = 0;
+    double coolerPower = 0;
 
-    if(isConnected() == false)
-        return;  //  No need to reset timer if we are not connected anymore
+    if (isConnected() == false)
+        return; //  No need to reset timer if we are not connected anymore
 
     if (InExposure)
     {
         bool imageReady;
 
-        timeleft=CalcTimeLeft(ExpStart, ExposureRequest);
+        timeleft = CalcTimeLeft(ExpStart, ExposureRequest);
 
         if (timeleft < 1)
         {
@@ -1298,7 +1326,6 @@ void QSICCD::TimerHit()
             {
                 usleep(100);
                 QSICam.get_ImageReady(&imageReady);
-
             }
 
             /* We're done exposing */
@@ -1307,108 +1334,109 @@ void QSICCD::TimerHit()
             InExposure = false;
             /* grab and save image */
             grabImage();
-
         }
         else
         {
             DEBUGF(INDI::Logger::DBG_DEBUG, "Image not ready, time left %ld\n", timeleft);
             PrimaryCCD.setExposureLeft(timeleft);
-
         }
-
     }
 
     switch (TemperatureNP.s)
     {
-      case IPS_IDLE:
-      case IPS_OK:
-        try
-       {
-            QSICam.get_CCDTemperature(&ccdTemp);
-        } catch (std::runtime_error err)
-        {
-            TemperatureNP.s = IPS_IDLE;
-            DEBUGF(INDI::Logger::DBG_ERROR, "get_CCDTemperature() failed. %s.", err.what());
+        case IPS_IDLE:
+        case IPS_OK:
+            try
+            {
+                QSICam.get_CCDTemperature(&ccdTemp);
+            }
+            catch (std::runtime_error err)
+            {
+                TemperatureNP.s = IPS_IDLE;
+                DEBUGF(INDI::Logger::DBG_ERROR, "get_CCDTemperature() failed. %s.", err.what());
+                IDSetNumber(&TemperatureNP, NULL);
+                return;
+            }
+
+            if (fabs(TemperatureN[0].value - ccdTemp) >= TEMP_THRESHOLD)
+            {
+                TemperatureN[0].value = ccdTemp;
+                IDSetNumber(&TemperatureNP, NULL);
+            }
+            break;
+
+        case IPS_BUSY:
+            try
+            {
+                QSICam.get_CCDTemperature(&TemperatureN[0].value);
+            }
+            catch (std::runtime_error err)
+            {
+                TemperatureNP.s = IPS_ALERT;
+                DEBUGF(INDI::Logger::DBG_ERROR, "get_CCDTemperature() failed. %s.", err.what());
+                IDSetNumber(&TemperatureNP, NULL);
+                return;
+            }
+
+            if (fabs(TemperatureN[0].value - targetTemperature) <= TEMP_THRESHOLD)
+                TemperatureNP.s = IPS_OK;
+
             IDSetNumber(&TemperatureNP, NULL);
-            return;
-        }
+            break;
 
-        if (fabs(TemperatureN[0].value - ccdTemp) >= TEMP_THRESHOLD)
-        {
-           TemperatureN[0].value = ccdTemp;
-           IDSetNumber(&TemperatureNP, NULL);
-        }
-        break;
-
-      case IPS_BUSY:
-        try
-        {
-            QSICam.get_CCDTemperature(&TemperatureN[0].value);
-        } catch (std::runtime_error err)
-        {
-            TemperatureNP.s = IPS_ALERT;
-            DEBUGF(INDI::Logger::DBG_ERROR, "get_CCDTemperature() failed. %s.", err.what());
-            IDSetNumber(&TemperatureNP, NULL);
-            return;
-        }
-
-        if (fabs(TemperatureN[0].value - targetTemperature) <= TEMP_THRESHOLD)
-            TemperatureNP.s = IPS_OK;
-
-        IDSetNumber(&TemperatureNP, NULL);
-        break;
-
-      case IPS_ALERT:
-        break;
+        case IPS_ALERT:
+            break;
     }
 
     switch (CoolerNP.s)
     {
-      case IPS_IDLE:
-      case IPS_OK:
-        try
-        {
-            QSICam.get_CoolerPower(&coolerPower);
-        } catch (std::runtime_error err)
-        {
-            CoolerNP.s = IPS_IDLE;
-            DEBUGF(INDI::Logger::DBG_ERROR, "get_CoolerPower() failed. %s.", err.what());
-            IDSetNumber(&CoolerNP, NULL);
-            return;
-        }
+        case IPS_IDLE:
+        case IPS_OK:
+            try
+            {
+                QSICam.get_CoolerPower(&coolerPower);
+            }
+            catch (std::runtime_error err)
+            {
+                CoolerNP.s = IPS_IDLE;
+                DEBUGF(INDI::Logger::DBG_ERROR, "get_CoolerPower() failed. %s.", err.what());
+                IDSetNumber(&CoolerNP, NULL);
+                return;
+            }
 
-        if (CoolerN[0].value != coolerPower)
-        {
+            if (CoolerN[0].value != coolerPower)
+            {
+                CoolerN[0].value = coolerPower;
+                IDSetNumber(&CoolerNP, NULL);
+            }
+
+            if (coolerPower > 0)
+                CoolerNP.s = IPS_BUSY;
+
+            break;
+
+        case IPS_BUSY:
+            try
+            {
+                QSICam.get_CoolerPower(&coolerPower);
+            }
+            catch (std::runtime_error err)
+            {
+                CoolerNP.s = IPS_ALERT;
+                DEBUGF(INDI::Logger::DBG_ERROR, "get_CoolerPower() failed. %s.", err.what());
+                IDSetNumber(&CoolerNP, NULL);
+                return;
+            }
+
+            if (coolerPower == 0)
+                CoolerNP.s = IPS_IDLE;
+
             CoolerN[0].value = coolerPower;
             IDSetNumber(&CoolerNP, NULL);
-        }
+            break;
 
-        if (coolerPower > 0)
-            CoolerNP.s = IPS_BUSY;
-
-        break;
-
-      case IPS_BUSY:
-        try
-       {
-            QSICam.get_CoolerPower(&coolerPower);
-        } catch (std::runtime_error err)
-        {
-            CoolerNP.s = IPS_ALERT;
-            DEBUGF(INDI::Logger::DBG_ERROR, "get_CoolerPower() failed. %s.", err.what());
-            IDSetNumber(&CoolerNP, NULL);
-            return;
-        }
-
-        if (coolerPower == 0)
-            CoolerNP.s = IPS_IDLE;
-
-        CoolerN[0].value = coolerPower;
-        IDSetNumber(&CoolerNP, NULL);
-        break;
-
-      case IPS_ALERT:
-         break;
+        case IPS_ALERT:
+            break;
     }
 
     SetTimer(POLLMS);
@@ -1417,25 +1445,28 @@ void QSICCD::TimerHit()
 
 void QSICCD::turnWheel()
 {
-        short current_filter;
+    short current_filter = 0;
 
-        switch (FilterS[0].s)
-        {
-          case ISS_ON:
+    switch (FilterS[0].s)
+    {
+        case ISS_ON:
             if (current_filter < LAST_FILTER)
                 current_filter++;
-            else current_filter = FIRST_FILTER;
+            else
+                current_filter = FIRST_FILTER;
             try
             {
                 current_filter = QueryFilter();
-                if(current_filter < LAST_FILTER)
+                if (current_filter < LAST_FILTER)
                     current_filter++;
-                else current_filter = FIRST_FILTER;
+                else
+                    current_filter = FIRST_FILTER;
 
                 SelectFilter(current_filter);
-            } catch (std::runtime_error err)
+            }
+            catch (std::runtime_error err)
             {
-                FilterSP.s = IPS_IDLE;
+                FilterSP.s   = IPS_IDLE;
                 FilterS[0].s = ISS_OFF;
                 FilterS[1].s = ISS_OFF;
                 DEBUGF(INDI::Logger::DBG_ERROR, "QSICamera::get_FilterPos() failed. %s.", err.what());
@@ -1443,25 +1474,26 @@ void QSICCD::turnWheel()
             }
 
             FilterSlotN[0].value = current_filter;
-            FilterS[0].s = ISS_OFF;
-            FilterS[1].s = ISS_OFF;
-            FilterSP.s = IPS_OK;
+            FilterS[0].s         = ISS_OFF;
+            FilterS[1].s         = ISS_OFF;
+            FilterSP.s           = IPS_OK;
             DEBUGF(INDI::Logger::DBG_DEBUG, "The current filter is %d", current_filter);
             IDSetSwitch(&FilterSP, NULL);
             break;
 
-          case ISS_OFF:
-           try
-           {
+        case ISS_OFF:
+            try
+            {
                 current_filter = QueryFilter();
-                if(current_filter > FIRST_FILTER)
+                if (current_filter > FIRST_FILTER)
                     current_filter--;
                 else
                     current_filter = LAST_FILTER;
-              SelectFilter(current_filter);
-            } catch (std::runtime_error err)
+                SelectFilter(current_filter);
+            }
+            catch (std::runtime_error err)
             {
-                FilterSP.s = IPS_IDLE;
+                FilterSP.s   = IPS_IDLE;
                 FilterS[0].s = ISS_OFF;
                 FilterS[1].s = ISS_OFF;
                 DEBUGF(INDI::Logger::DBG_ERROR, "QSICamera::get_FilterPos() failed. %s.", err.what());
@@ -1469,14 +1501,14 @@ void QSICCD::turnWheel()
             }
 
             FilterSlotN[0].value = current_filter;
-            FilterS[0].s = ISS_OFF;
-            FilterS[1].s = ISS_OFF;
-            FilterSP.s = IPS_OK;
+            FilterS[0].s         = ISS_OFF;
+            FilterS[1].s         = ISS_OFF;
+            FilterSP.s           = IPS_OK;
             DEBUGF(INDI::Logger::DBG_DEBUG, "The current filter is %d\n", current_filter);
             IDSetSwitch(&FilterSP, NULL);
             IDSetNumber(&FilterSlotNP, NULL);
             break;
-        }
+    }
 }
 
 IPState QSICCD::GuideNorth(float duration)
@@ -1488,7 +1520,7 @@ IPState QSICCD::GuideNorth(float duration)
     catch (std::runtime_error err)
     {
         DEBUGF(INDI::Logger::DBG_ERROR, "PulseGuide() failed. %s.", err.what());
-       return IPS_ALERT;
+        return IPS_ALERT;
     }
 
     return IPS_OK;
@@ -1503,11 +1535,10 @@ IPState QSICCD::GuideSouth(float duration)
     catch (std::runtime_error err)
     {
         DEBUGF(INDI::Logger::DBG_ERROR, "PulseGuide() failed. %s.", err.what());
-       return IPS_ALERT;
+        return IPS_ALERT;
     }
 
     return IPS_OK;
-
 }
 
 IPState QSICCD::GuideEast(float duration)
@@ -1519,11 +1550,10 @@ IPState QSICCD::GuideEast(float duration)
     catch (std::runtime_error err)
     {
         DEBUGF(INDI::Logger::DBG_ERROR, "PulseGuide() failed. %s.", err.what());
-       return IPS_ALERT;
+        return IPS_ALERT;
     }
 
     return IPS_OK;
-
 }
 
 IPState QSICCD::GuideWest(float duration)
@@ -1535,18 +1565,17 @@ IPState QSICCD::GuideWest(float duration)
     catch (std::runtime_error err)
     {
         DEBUGF(INDI::Logger::DBG_ERROR, "PulseGuide() failed. %s.", err.what());
-       return IPS_ALERT;
+        return IPS_ALERT;
     }
 
     return IPS_OK;
 }
 
-
-bool QSICCD::GetFilterNames(const char* groupName)
+bool QSICCD::GetFilterNames(const char *groupName)
 {
     char filterName[MAXINDINAME];
     char filterLabel[MAXINDILABEL];
-    int maxFilters = (int) FilterSlotN[0].max;
+    int maxFilters = (int)FilterSlotN[0].max;
 
     if (FilterNameT != NULL)
     {
@@ -1556,7 +1585,7 @@ bool QSICCD::GetFilterNames(const char* groupName)
 
     try
     {
-     QSICam.get_Names(filterDesignation);
+        QSICam.get_Names(filterDesignation);
     }
     catch (std::runtime_error err)
     {
@@ -1566,14 +1595,15 @@ bool QSICCD::GetFilterNames(const char* groupName)
 
     FilterNameT = new IText[maxFilters];
 
-    for (int i=0; i < maxFilters; i++)
+    for (int i = 0; i < maxFilters; i++)
     {
-        snprintf(filterName, MAXINDINAME, "FILTER_SLOT_NAME_%d", i+1);
-        snprintf(filterLabel, MAXINDILABEL, "Filter #%d", i+1);
+        snprintf(filterName, MAXINDINAME, "FILTER_SLOT_NAME_%d", i + 1);
+        snprintf(filterLabel, MAXINDILABEL, "Filter #%d", i + 1);
         IUFillText(&FilterNameT[i], filterName, filterLabel, filterDesignation[i].c_str());
     }
 
-    IUFillTextVector(FilterNameTP, FilterNameT, maxFilters, getDeviceName(), "FILTER_NAME", "Filter", groupName, IP_RW,1, IPS_IDLE);
+    IUFillTextVector(FilterNameTP, FilterNameT, maxFilters, getDeviceName(), "FILTER_NAME", "Filter", groupName, IP_RW,
+                     1, IPS_IDLE);
 
     return true;
 }
@@ -1600,7 +1630,8 @@ bool QSICCD::SelectFilter(int targetFilter)
     try
     {
         QSICam.put_Position(filter);
-    } catch(std::runtime_error err)
+    }
+    catch (std::runtime_error err)
     {
         FilterSlotNP.s = IPS_ALERT;
         DEBUGF(INDI::Logger::DBG_ERROR, "put_Position() failed. %s.", err.what());
@@ -1617,7 +1648,8 @@ int QSICCD::QueryFilter()
     try
     {
         QSICam.get_Position(&newFilter);
-    } catch(std::runtime_error err)
+    }
+    catch (std::runtime_error err)
     {
         FilterSlotNP.s = IPS_ALERT;
         DEBUGF(INDI::Logger::DBG_ERROR, "get_Position() failed. %s.", err.what());
@@ -1627,4 +1659,3 @@ int QSICCD::QueryFilter()
 
     return newFilter + 1;
 }
-

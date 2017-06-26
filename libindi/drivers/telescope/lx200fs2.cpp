@@ -21,6 +21,8 @@
 
 #include "indicom.h"
 
+#include <libnova/transform.h>
+
 #include <math.h>
 #include <string.h>
 

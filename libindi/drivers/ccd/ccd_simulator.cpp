@@ -18,7 +18,8 @@
 
 #include "ccd_simulator.h"
 
-#include <libnova.h>
+#include <libnova/julian_day.h>
+#include <libnova/precession.h>
 
 #include <locale.h>
 #include <math.h>

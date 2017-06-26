@@ -1009,7 +1009,7 @@ static void cleanup_mutex(void *param)
 
 int HID_API_EXPORT hid_read_timeout(hid_device *dev, unsigned char *data, size_t length, int milliseconds)
 {
-    int bytes_read;
+    volatile int bytes_read = 0;
 
 #if 0
     int transferred;

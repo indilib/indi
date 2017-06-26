@@ -28,44 +28,43 @@
 #include <indicom.h>
 #include "tess_algebra.h"
 
-
-
-#define TESS_TIMEOUT	  	0.5		/* FD timeout in seconds */
-#define TESS_BUFFER     	255
-#define TESS_MSG_SIZE   	92
-#define MAX_CONNETIONS_FAILS 	10 	        /* Max number of connections fails after disconnect */
-#define ALTAZ_FAST_CHANGE       10              /* If ALTAZ COORDs change more disactivate filter to increse responsiveness */
+#define TESS_TIMEOUT         0.5 /* FD timeout in seconds */
+#define TESS_BUFFER          255
+#define TESS_MSG_SIZE        92
+#define MAX_CONNETIONS_FAILS 10 /* Max number of connections fails after disconnect */
+#define ALTAZ_FAST_CHANGE    10 /* If ALTAZ COORDs change more disactivate filter to increse responsiveness */
 
 class inditess : public INDI::DefaultDevice
 {
- public:
- inditess();
- ~inditess();
+  public:
+    inditess();
+    ~inditess();
 
- virtual void ISGetProperties (const char *dev);
- virtual bool ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n);
- virtual bool ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n);
- virtual bool ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n);
- virtual bool ISNewBLOB (const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[], char *names[], int n); 
- float  HzToMag(float HzTSL );
+    virtual void ISGetProperties(const char *dev);
+    virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n);
+    virtual bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n);
+    virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n);
+    virtual bool ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[],
+                           char *formats[], char *names[], int n);
+    float HzToMag(float HzTSL);
 
-protected:
- virtual void TimerHit();
+  protected:
+    virtual void TimerHit();
 
-private:
- const char *getDefaultName();
- virtual bool initProperties(); 
- virtual bool Connect();
- virtual bool Disconnect();
- int HrztoEqu(double alt,double az,double *ra,double *dec);
- float filter;
- bool is_connected(void);
- int    fd;
- float fH,tO,tA,aX,aY,aZ,mX,mY,mZ;
- float Lat,Lon;
- float az_offset,alt_offset;
- vector a_avg,m_avg,heading, MagMax, MagMin;
- vector p;
+  private:
+    const char *getDefaultName();
+    virtual bool initProperties();
+    virtual bool Connect();
+    virtual bool Disconnect();
+    int HrztoEqu(double alt, double az, double *ra, double *dec);
+    float filter;
+    bool is_connected(void);
+    int fd;
+    float fH, tO, tA, aX, aY, aZ, mX, mY, mZ;
+    float Lat, Lon;
+    float az_offset, alt_offset;
+    vector a_avg, m_avg, heading, MagMax, MagMin;
+    vector p;
 };
 
 #endif

@@ -43,19 +43,19 @@
 
 #include "mgc.h"
 
-class MGCMD_NOP1: MGC
+class MGCMD_NOP1 : MGC
 {
-public:
+  public:
     virtual IOByte opCode() const { return 0xFF; }
     virtual IOMode opMode() const { return OPM_APPLICATION; }
 
-public:
-    virtual IOResult ask(MGenDevice& root) throw (IOError)
+  public:
+    virtual IOResult ask(MGenDevice &root) throw(IOError)
     {
-        if(CR_SUCCESS != MGC::ask(root))
+        if (CR_SUCCESS != MGC::ask(root))
             return CR_FAILURE;
 
-        if(root.lock())
+        if (root.lock())
         {
             root.write(query);
 
@@ -63,7 +63,7 @@ public:
 
             root.unlock();
 
-            if(answer[0] == query[0] && 1 == bytes_read)
+            if (answer[0] == query[0] && 1 == bytes_read)
                 return CR_SUCCESS;
 
             _E("no ack (%d bytes read)", bytes_read);
@@ -72,9 +72,8 @@ public:
         return CR_FAILURE;
     }
 
-public:
-    MGCMD_NOP1():
-        MGC(IOBuffer { opCode() }, IOBuffer (1)) {};
+  public:
+    MGCMD_NOP1() : MGC(IOBuffer{ opCode() }, IOBuffer(1)){};
 };
 
 #endif /* _3RDPARTY_INDI_MGEN_MGCMD_NOP1_H_ */

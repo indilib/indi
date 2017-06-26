@@ -194,7 +194,7 @@ void PerfectStar::TimerHit()
             else
                 simPosition -= 500;
 
-            if (fabs(simPosition - targetPosition) < 500)
+            if (std::abs((int64_t)simPosition - (int64_t)targetPosition) < 500)
             {
                 FocusAbsPosN[0].value = targetPosition;
                 simPosition           = FocusAbsPosN[0].value;

@@ -42,9 +42,9 @@ bool INDI::Focuser::initProperties()
     initFocuserProperties(getDeviceName(), MAIN_CONTROL_TAB);
 
     // Presets
-    IUFillNumber(&PresetN[0], "Preset 1", "", "%6.2f", 0, 60000, 1000, 0);
-    IUFillNumber(&PresetN[1], "Preset 2", "", "%6.2f", 0, 60000, 1000, 0);
-    IUFillNumber(&PresetN[2], "Preset 3", "", "%6.2f", 0, 60000, 1000, 0);
+    IUFillNumber(&PresetN[0], "PRESET_1", "Preset 1", "%.f", 0, 100000, 1000, 0);
+    IUFillNumber(&PresetN[1], "PRESET_2", "Preset 2", "%.f", 0, 100000, 1000, 0);
+    IUFillNumber(&PresetN[2], "PRESET_3", "Preset 3", "%.f", 0, 100000, 1000, 0);
     IUFillNumberVector(&PresetNP, PresetN, 3, getDeviceName(), "Presets", "", "Presets", IP_RW, 0, IPS_IDLE);
 
     //Preset GOTO

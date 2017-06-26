@@ -18,27 +18,12 @@
 
 */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <stdarg.h>
-#include <math.h>
-#include <sys/time.h>
-#include <unistd.h>
-#include <fcntl.h>
-#include <time.h>
-#include <errno.h>
+#include <maxdomeiidriver.h>
 
-#include "indicom.h"
-#include "indidevapi.h"
-#include "maxdomeiidriver.h"
+#include <indicom.h>
 
-#ifndef _WIN32
-#include <termios.h>
-#endif
-
-#define MAXDOME_TIMEOUT	5		/* FD timeout in seconds */
-#define MAX_BUFFER 15			// Message length can be up to 12 bytes.
+#define MAXDOME_TIMEOUT 5  /* FD timeout in seconds */
+#define MAX_BUFFER      15 // Message length can be up to 12 bytes.
 
 // Start byte
 #define START 0x01
@@ -48,31 +33,31 @@
 #define TO_COMPUTER 0x80
 
 // Commands available
-#define ABORT_CMD   0x03		// Abort azimuth movement
-#define HOME_CMD    0x04		// Move until 'home' position is detected
-#define GOTO_CMD    0x05		// Go to azimuth position
-#define SHUTTER_CMD 0x06		// Send a command to Shutter
-#define STATUS_CMD  0x07		// Retrieve status
-#define TICKS_CMD   0x09		// Set the number of tick per revolution of the dome
-#define ACK_CMD     0x0A		// ACK (?)
-#define SETPARK_CMD 0x0B		// Set park coordinates and if need to park before to operating shutter
+#define ABORT_CMD   0x03 // Abort azimuth movement
+#define HOME_CMD    0x04 // Move until 'home' position is detected
+#define GOTO_CMD    0x05 // Go to azimuth position
+#define SHUTTER_CMD 0x06 // Send a command to Shutter
+#define STATUS_CMD  0x07 // Retrieve status
+#define TICKS_CMD   0x09 // Set the number of tick per revolution of the dome
+#define ACK_CMD     0x0A // ACK (?)
+#define SETPARK_CMD 0x0B // Set park coordinates and if need to park before to operating shutter
 
 // Shutter commands
 #define OPEN_SHUTTER            0x01
 #define OPEN_UPPER_ONLY_SHUTTER 0x02
 #define CLOSE_SHUTTER           0x03
-#define EXIT_SHUTTER            0x04  // Command send to shutter on program exit
+#define EXIT_SHUTTER            0x04 // Command send to shutter on program exit
 #define ABORT_SHUTTER           0x07
 
 // Error messages
-const char *ErrorMessages[] = {"Ok", // no error
-								"No response from MAX DOME", // -1
-								"Invalid declared message length", // -2
-								"Message too short", // -3
-								"Checksum error", // -4
-								"Could not send command", // -5
-								"Response do not match command", // -6
-								""};
+const char *ErrorMessages[] = { "Ok",                              // no error
+                                "No response from MAX DOME",       // -1
+                                "Invalid declared message length", // -2
+                                "Message too short",               // -3
+                                "Checksum error",                  // -4
+                                "Could not send command",          // -5
+                                "Response do not match command",   // -6
+                                "" };
 
 /*
 	Opens serial port with proper configuration
@@ -82,16 +67,16 @@ const char *ErrorMessages[] = {"Ok", // no error
 */
 int Connect_MaxDomeII(const char *device)
 {
-	int fd;
-	
-	if(tty_connect(device, 19200, 8, 0, 1, &fd) != TTY_OK)
-	 {
-	   return -1;
-	 }
-	 
-	 //fd = OpenSerialPort(device);
-	 
-	 return fd;
+    int fd;
+
+    if (tty_connect(device, 19200, 8, 0, 1, &fd) != TTY_OK)
+    {
+        return -1;
+    }
+
+    //fd = OpenSerialPort(device);
+
+    return fd;
 }
 
 /*
@@ -102,10 +87,10 @@ int Connect_MaxDomeII(const char *device)
 */
 int Disconnect_MaxDomeII(int fd)
 {
-	Exit_Shutter_MaxDomeII(fd); // Really don't know why this is needed, but ASCOM driver does it.
-	tty_disconnect(fd);
-	
-	return 0;
+    Exit_Shutter_MaxDomeII(fd); // Really don't know why this is needed, but ASCOM driver does it.
+    tty_disconnect(fd);
+
+    return 0;
 }
 
 /*
@@ -119,15 +104,15 @@ int Disconnect_MaxDomeII(int fd)
 */
 signed char checksum_MaxDomeII(char *cMessage, int nLen)
 {
-	int nIdx; 
-	char nChecksum = 0; 
-	
-	for (nIdx = 1; nIdx < nLen && nIdx < MAX_BUFFER; nIdx++)
-	{
-		nChecksum -= cMessage[nIdx];
-	}
-	
-	return nChecksum;
+    int nIdx;
+    char nChecksum = 0;
+
+    for (nIdx = 1; nIdx < nLen && nIdx < MAX_BUFFER; nIdx++)
+    {
+        nChecksum -= cMessage[nIdx];
+    }
+
+    return nChecksum;
 }
 
 /*
@@ -140,43 +125,43 @@ signed char checksum_MaxDomeII(char *cMessage, int nLen)
 */
 int ReadResponse_MaxDomeII(int fd, char *cMessage)
 {
-	int nBytesRead;
-	int nLen = MAX_BUFFER;
-	int nErrorType = TTY_OK;
-	char nChecksum;
-	
-	*cMessage = 0x00;
-	cMessage[13] = 0x00;
-	// Look for a 0x01 starting character, until time out occurs or MAX_BUFFER characters was read
-	while (*cMessage != 0x01 && nErrorType == TTY_OK)
-	{
-		nErrorType = tty_read(fd, cMessage, 1, MAXDOME_TIMEOUT, &nBytesRead);
-		//fprintf(stderr,"\nIn 1: %ld %02x\n", nBytesRead, (int)cMessage[0]);
-	}
-	
-	if (nErrorType != TTY_OK || *cMessage != 0x01)
-		return -1;
-	
-	// Read message length 
-	nErrorType = tty_read(fd, cMessage + 1, 1, MAXDOME_TIMEOUT, &nBytesRead);
-	
-	//fprintf(stderr,"\nInLen: %d\n",(int) cMessage[1]);
-	if (nErrorType != TTY_OK || cMessage[1] < 0x02 || cMessage[1] > 0x0E)
-		return -2;
-	
-	nLen = cMessage[1];
-	// Read the rest of the message
-	nErrorType = tty_read(fd, cMessage + 2, nLen, MAXDOME_TIMEOUT, &nBytesRead);
-	
-	//fprintf(stderr,"\nIn: %s\n", cMessage);
-	if (nErrorType != TTY_OK || nBytesRead != nLen)
-		return -3;
-	
-	nChecksum = checksum_MaxDomeII(cMessage, nLen + 2);
-	if (nChecksum != 0x00)
-		return -4;
-		
-	return 0;
+    int nBytesRead;
+    int nLen       = MAX_BUFFER;
+    int nErrorType = TTY_OK;
+    char nChecksum;
+
+    *cMessage    = 0x00;
+    cMessage[13] = 0x00;
+    // Look for a 0x01 starting character, until time out occurs or MAX_BUFFER characters was read
+    while (*cMessage != 0x01 && nErrorType == TTY_OK)
+    {
+        nErrorType = tty_read(fd, cMessage, 1, MAXDOME_TIMEOUT, &nBytesRead);
+        //fprintf(stderr,"\nIn 1: %ld %02x\n", nBytesRead, (int)cMessage[0]);
+    }
+
+    if (nErrorType != TTY_OK || *cMessage != 0x01)
+        return -1;
+
+    // Read message length
+    nErrorType = tty_read(fd, cMessage + 1, 1, MAXDOME_TIMEOUT, &nBytesRead);
+
+    //fprintf(stderr,"\nInLen: %d\n",(int) cMessage[1]);
+    if (nErrorType != TTY_OK || cMessage[1] < 0x02 || cMessage[1] > 0x0E)
+        return -2;
+
+    nLen = cMessage[1];
+    // Read the rest of the message
+    nErrorType = tty_read(fd, cMessage + 2, nLen, MAXDOME_TIMEOUT, &nBytesRead);
+
+    //fprintf(stderr,"\nIn: %s\n", cMessage);
+    if (nErrorType != TTY_OK || nBytesRead != nLen)
+        return -3;
+
+    nChecksum = checksum_MaxDomeII(cMessage, nLen + 2);
+    if (nChecksum != 0x00)
+        return -4;
+
+    return 0;
 }
 
 /*
@@ -188,27 +173,27 @@ int ReadResponse_MaxDomeII(int fd, char *cMessage)
 int Abort_Azimuth_MaxDomeII(int fd)
 {
     char cMessage[MAX_BUFFER];
-	int nErrorType;
-	int nBytesWrite;
-	int nReturn;
-	
-	cMessage[0] = 0x01;
-	cMessage[1] = 0x02;		// Will follow 2 bytes more
-	cMessage[2] = ABORT_CMD;
-	cMessage[3] = checksum_MaxDomeII(cMessage, 3);
-	nErrorType = tty_write(fd, cMessage, 4, &nBytesWrite);
-	
-	if (nErrorType != TTY_OK)
-		return -5;
-		
-	nReturn = ReadResponse_MaxDomeII(fd, cMessage);
-	if (nReturn != 0)
-		return nReturn;
-	
-	if (cMessage[2] == (char)(ABORT_CMD | TO_COMPUTER))
-		return 0;
-	
-	return -6;	// Response don't match command
+    int nErrorType;
+    int nBytesWrite;
+    int nReturn;
+
+    cMessage[0] = 0x01;
+    cMessage[1] = 0x02; // Will follow 2 bytes more
+    cMessage[2] = ABORT_CMD;
+    cMessage[3] = checksum_MaxDomeII(cMessage, 3);
+    nErrorType  = tty_write(fd, cMessage, 4, &nBytesWrite);
+
+    if (nErrorType != TTY_OK)
+        return -5;
+
+    nReturn = ReadResponse_MaxDomeII(fd, cMessage);
+    if (nReturn != 0)
+        return nReturn;
+
+    if (cMessage[2] == (char)(ABORT_CMD | TO_COMPUTER))
+        return 0;
+
+    return -6; // Response don't match command
 }
 
 /*
@@ -220,27 +205,27 @@ int Abort_Azimuth_MaxDomeII(int fd)
 int Home_Azimuth_MaxDomeII(int fd)
 {
     char cMessage[MAX_BUFFER];
-	int nErrorType;
-	int nBytesWrite;
-	int nReturn;
-	
-	cMessage[0] = 0x01;
-	cMessage[1] = 0x02;		// Will follow 2 bytes more
-	cMessage[2] = HOME_CMD;
-        cMessage[3] = checksum_MaxDomeII(cMessage, 3);
-	nErrorType = tty_write(fd, cMessage, 4, &nBytesWrite);
-	
-	if (nErrorType != TTY_OK)
-		return -5;
-		
-	nReturn = ReadResponse_MaxDomeII(fd, cMessage);
-	if (nReturn != 0)
-		return nReturn;
-	
-	if (cMessage[2] == (char)(HOME_CMD | TO_COMPUTER))
-		return 0;
-	
-	return -6;	// Response don't match command
+    int nErrorType;
+    int nBytesWrite;
+    int nReturn;
+
+    cMessage[0] = 0x01;
+    cMessage[1] = 0x02; // Will follow 2 bytes more
+    cMessage[2] = HOME_CMD;
+    cMessage[3] = checksum_MaxDomeII(cMessage, 3);
+    nErrorType  = tty_write(fd, cMessage, 4, &nBytesWrite);
+
+    if (nErrorType != TTY_OK)
+        return -5;
+
+    nReturn = ReadResponse_MaxDomeII(fd, cMessage);
+    if (nReturn != 0)
+        return nReturn;
+
+    if (cMessage[2] == (char)(HOME_CMD | TO_COMPUTER))
+        return 0;
+
+    return -6; // Response don't match command
 }
 
 /*
@@ -254,33 +239,33 @@ int Home_Azimuth_MaxDomeII(int fd)
 int Goto_Azimuth_MaxDomeII(int fd, int nDir, int nTicks)
 {
     char cMessage[MAX_BUFFER];
-    int nErrorType=0;
+    int nErrorType = 0;
     int nBytesWrite;
-	int nReturn;
-	
-	cMessage[0] = 0x01;
-	cMessage[1] = 0x05;		// Will follow 5 bytes more
-	cMessage[2] = GOTO_CMD;
-	cMessage[3] = (char)nDir;
-	// Note: we not use nTicks >> 8 in order to remain compatible with both little-endian and big-endian procesors
-	cMessage[4] = (char)(nTicks / 256);
-	cMessage[5] = (char)(nTicks % 256);
-	cMessage[6] = checksum_MaxDomeII(cMessage, 6);
-	nErrorType = tty_write(fd, cMessage, 7, &nBytesWrite);
-	
-	//fprintf(stderr,"\nOut: %ld %02x %02x %02x %02x %02x %02x %02x\n", nBytesWrite, (int)cMessage[0], (int)cMessage[1], (int)cMessage[2], (int)cMessage[3], (int)cMessage[4], (int)cMessage[5], (int)cMessage[6]);
-	//if (nErrorType != TTY_OK)
-	if (nBytesWrite != 7)
-		return -5;
-		
-	nReturn = ReadResponse_MaxDomeII(fd, cMessage);
-	if (nReturn != 0)
-		return nReturn;
-	
-	if (cMessage[2] == (char)(GOTO_CMD | TO_COMPUTER))
-		return 0;
-	
-	return -6;	// Response don't match command
+    int nReturn;
+
+    cMessage[0] = 0x01;
+    cMessage[1] = 0x05; // Will follow 5 bytes more
+    cMessage[2] = GOTO_CMD;
+    cMessage[3] = (char)nDir;
+    // Note: we not use nTicks >> 8 in order to remain compatible with both little-endian and big-endian procesors
+    cMessage[4] = (char)(nTicks / 256);
+    cMessage[5] = (char)(nTicks % 256);
+    cMessage[6] = checksum_MaxDomeII(cMessage, 6);
+    nErrorType  = tty_write(fd, cMessage, 7, &nBytesWrite);
+
+    //fprintf(stderr,"\nOut: %ld %02x %02x %02x %02x %02x %02x %02x\n", nBytesWrite, (int)cMessage[0], (int)cMessage[1], (int)cMessage[2], (int)cMessage[3], (int)cMessage[4], (int)cMessage[5], (int)cMessage[6]);
+    //if (nErrorType != TTY_OK)
+    if (nBytesWrite != 7)
+        return -5;
+
+    nReturn = ReadResponse_MaxDomeII(fd, cMessage);
+    if (nReturn != 0)
+        return nReturn;
+
+    if (cMessage[2] == (char)(GOTO_CMD | TO_COMPUTER))
+        return 0;
+
+    return -6; // Response don't match command
 }
 
 /*
@@ -293,37 +278,38 @@ int Goto_Azimuth_MaxDomeII(int fd, int nDir, int nTicks)
 	@param nHomePosition Returns last position where home was detected
 	@return 0 command received by MAX DOME. -5 Couldn't send command. -6 Response don't match command. See ReadResponse() return
 */
-int Status_MaxDomeII(int fd, enum SH_Status *nShutterStatus, enum AZ_Status *nAzimuthStatus, unsigned *nAzimuthPosition, unsigned *nHomePosition)
+int Status_MaxDomeII(int fd, enum SH_Status *nShutterStatus, enum AZ_Status *nAzimuthStatus, unsigned *nAzimuthPosition,
+                     unsigned *nHomePosition)
 {
     unsigned char cMessage[MAX_BUFFER];
-	int nErrorType;
-	int nBytesWrite;
-	int nReturn;
-	
-	cMessage[0] = 0x01;
-	cMessage[1] = 0x02;		// Will follow 2 bytes more
-	cMessage[2] = STATUS_CMD;
-	cMessage[3] = checksum_MaxDomeII(cMessage, 3);
-	nErrorType = tty_write(fd, cMessage, 4, &nBytesWrite);
-	
-	if (nErrorType != TTY_OK)
-		return -5;
-		
-	nReturn = ReadResponse_MaxDomeII(fd, cMessage);
-	if (nReturn != 0)
-		return nReturn;
-	
-	if (cMessage[2] == (unsigned char)(STATUS_CMD | TO_COMPUTER))
-	{
-		*nShutterStatus = (int)cMessage[3];
-		*nAzimuthStatus = (int)cMessage[4];
-		*nAzimuthPosition = (unsigned)(((unsigned)cMessage[5]) * 256 + ((unsigned)cMessage[6])); 
-		*nHomePosition = ((unsigned)cMessage[7]) * 256 + ((unsigned)cMessage[8]);
-		
-		return 0;
-	}
-	
-	return -6;	// Response don't match command
+    int nErrorType = 0;
+    int nBytesWrite = 0;
+    int nReturn = 0;
+
+    cMessage[0] = 0x01;
+    cMessage[1] = 0x02; // Will follow 2 bytes more
+    cMessage[2] = STATUS_CMD;
+    cMessage[3] = checksum_MaxDomeII((char*)cMessage, 3);
+    nErrorType  = tty_write(fd, (char*)cMessage, 4, &nBytesWrite);
+
+    if (nErrorType != TTY_OK)
+        return -5;
+
+    nReturn = ReadResponse_MaxDomeII(fd, (char*)cMessage);
+    if (nReturn != 0)
+        return nReturn;
+
+    if (cMessage[2] == (unsigned char)(STATUS_CMD | TO_COMPUTER))
+    {
+        *nShutterStatus   = (int)cMessage[3];
+        *nAzimuthStatus   = (int)cMessage[4];
+        *nAzimuthPosition = (unsigned)(((unsigned)cMessage[5]) * 256 + ((unsigned)cMessage[6]));
+        *nHomePosition    = ((unsigned)cMessage[7]) * 256 + ((unsigned)cMessage[8]);
+
+        return 0;
+    }
+
+    return -6; // Response don't match command
 }
 
 /*
@@ -335,32 +321,32 @@ int Status_MaxDomeII(int fd, enum SH_Status *nShutterStatus, enum AZ_Status *nAz
 int Ack_MaxDomeII(int fd)
 {
     char cMessage[MAX_BUFFER];
-	int nErrorType = TTY_OK;
-	int nBytesWrite;
-	int nReturn;
-	
-	cMessage[0] = 0x01;
-	cMessage[1] = 0x02;		// Will follow 2 bytes more
-	cMessage[2] = ACK_CMD;
-	cMessage[3] = checksum_MaxDomeII(cMessage, 3);
-	nErrorType = tty_write(fd, cMessage, 4, &nBytesWrite);
-	//nBytesWrite = write(fd, cMessage, 4);
-	//if (nBytesWrite != 4)
-	//	nErrorType = TTY_WRITE_ERROR;
-	//fprintf(stderr,"\nOut: %ld %02x %02x %02x %02x\n", nBytesWrite, (int)cMessage[0], (int)cMessage[1], (int)cMessage[2], (int)cMessage[3]);
-	if (nErrorType != TTY_OK)
-		return -5;
-		
-	nReturn = ReadResponse_MaxDomeII(fd, cMessage);
-	//fprintf(stderr,"\nIn: %02x %02x %02x %02x %02x\n", cMessage[0], cMessage[1], cMessage[2], cMessage[3], cMessage[4]);
-	if (nReturn != 0)
-		return nReturn;
-	
-	if (cMessage[2] == (char)(ACK_CMD | TO_COMPUTER))
-		return 0;
-	
-	//fprintf(stderr,"\nIn: %02x %02x", (unsigned char)(ACK_CMD | TO_COMPUTER), cMessage[2]);
-	return -6;	// Response don't match command
+    int nErrorType = TTY_OK;
+    int nBytesWrite;
+    int nReturn;
+
+    cMessage[0] = 0x01;
+    cMessage[1] = 0x02; // Will follow 2 bytes more
+    cMessage[2] = ACK_CMD;
+    cMessage[3] = checksum_MaxDomeII(cMessage, 3);
+    nErrorType  = tty_write(fd, cMessage, 4, &nBytesWrite);
+    //nBytesWrite = write(fd, cMessage, 4);
+    //if (nBytesWrite != 4)
+    //	nErrorType = TTY_WRITE_ERROR;
+    //fprintf(stderr,"\nOut: %ld %02x %02x %02x %02x\n", nBytesWrite, (int)cMessage[0], (int)cMessage[1], (int)cMessage[2], (int)cMessage[3]);
+    if (nErrorType != TTY_OK)
+        return -5;
+
+    nReturn = ReadResponse_MaxDomeII(fd, cMessage);
+    //fprintf(stderr,"\nIn: %02x %02x %02x %02x %02x\n", cMessage[0], cMessage[1], cMessage[2], cMessage[3], cMessage[4]);
+    if (nReturn != 0)
+        return nReturn;
+
+    if (cMessage[2] == (char)(ACK_CMD | TO_COMPUTER))
+        return 0;
+
+    //fprintf(stderr,"\nIn: %02x %02x", (unsigned char)(ACK_CMD | TO_COMPUTER), cMessage[2]);
+    return -6; // Response don't match command
 }
 
 /*
@@ -374,31 +360,31 @@ int Ack_MaxDomeII(int fd)
 int SetPark_MaxDomeII(int fd, int nParkOnShutter, int nTicks)
 {
     char cMessage[MAX_BUFFER];
-	int nErrorType;
-	int nBytesWrite;
-	int nReturn;
-	
-	cMessage[0] = 0x01;
-	cMessage[1] = 0x05;		// Will follow 5 bytes more
-	cMessage[2] = SETPARK_CMD;
-	cMessage[3] = (char)nParkOnShutter;
-	// Note: we not use nTicks >> 8 in order to remain compatible with both little-endian and big-endian procesors
-	cMessage[4] = (char)(nTicks / 256);
-	cMessage[5] = (char)(nTicks % 256);
-	cMessage[6] = checksum_MaxDomeII(cMessage, 6);
-	nErrorType = tty_write(fd, cMessage, 7, &nBytesWrite);
-	
-	if (nErrorType != TTY_OK)
-		return -5;
-		
-	nReturn = ReadResponse_MaxDomeII(fd, cMessage);
-	if (nReturn != 0)
-		return nReturn;
-	
-	if (cMessage[2] == (char)(SETPARK_CMD | TO_COMPUTER))
-		return 0;
-	
-	return -6;	// Response don't match command
+    int nErrorType;
+    int nBytesWrite;
+    int nReturn;
+
+    cMessage[0] = 0x01;
+    cMessage[1] = 0x05; // Will follow 5 bytes more
+    cMessage[2] = SETPARK_CMD;
+    cMessage[3] = (char)nParkOnShutter;
+    // Note: we not use nTicks >> 8 in order to remain compatible with both little-endian and big-endian procesors
+    cMessage[4] = (char)(nTicks / 256);
+    cMessage[5] = (char)(nTicks % 256);
+    cMessage[6] = checksum_MaxDomeII(cMessage, 6);
+    nErrorType  = tty_write(fd, cMessage, 7, &nBytesWrite);
+
+    if (nErrorType != TTY_OK)
+        return -5;
+
+    nReturn = ReadResponse_MaxDomeII(fd, cMessage);
+    if (nReturn != 0)
+        return nReturn;
+
+    if (cMessage[2] == (char)(SETPARK_CMD | TO_COMPUTER))
+        return 0;
+
+    return -6; // Response don't match command
 }
 
 /*
@@ -411,30 +397,30 @@ int SetPark_MaxDomeII(int fd, int nParkOnShutter, int nTicks)
 int SetTicksPerCount_MaxDomeII(int fd, int nTicks)
 {
     char cMessage[MAX_BUFFER];
-	int nErrorType;
-	int nBytesWrite;
-	int nReturn;
-	
-	cMessage[0] = 0x01;
-	cMessage[1] = 0x04;		// Will follow 4 bytes more
-	cMessage[2] = TICKS_CMD;
-	// Note: we not use nTicks >> 8 in order to remain compatible with both little-endian and big-endian procesors
-	cMessage[3] = (char)(nTicks / 256);
-	cMessage[4] = (char)(nTicks % 256);
-	cMessage[5] = checksum_MaxDomeII(cMessage, 5);
-	nErrorType = tty_write(fd, cMessage, 6, &nBytesWrite);
-	
-	if (nErrorType != TTY_OK)
-		return -5;
-    
-	nReturn = ReadResponse_MaxDomeII(fd, cMessage);
-	if (nReturn != 0)
-		return nReturn;
-	
-	if (cMessage[2] == (char)(TICKS_CMD | TO_COMPUTER))
-		return 0;
-	
-	return -6;	// Response don't match command
+    int nErrorType;
+    int nBytesWrite;
+    int nReturn;
+
+    cMessage[0] = 0x01;
+    cMessage[1] = 0x04; // Will follow 4 bytes more
+    cMessage[2] = TICKS_CMD;
+    // Note: we not use nTicks >> 8 in order to remain compatible with both little-endian and big-endian procesors
+    cMessage[3] = (char)(nTicks / 256);
+    cMessage[4] = (char)(nTicks % 256);
+    cMessage[5] = checksum_MaxDomeII(cMessage, 5);
+    nErrorType  = tty_write(fd, cMessage, 6, &nBytesWrite);
+
+    if (nErrorType != TTY_OK)
+        return -5;
+
+    nReturn = ReadResponse_MaxDomeII(fd, cMessage);
+    if (nReturn != 0)
+        return nReturn;
+
+    if (cMessage[2] == (char)(TICKS_CMD | TO_COMPUTER))
+        return 0;
+
+    return -6; // Response don't match command
 }
 
 ///////////////////////////////////////////////////////////////////////////
@@ -452,28 +438,28 @@ int SetTicksPerCount_MaxDomeII(int fd, int nTicks)
 int Open_Shutter_MaxDomeII(int fd)
 {
     char cMessage[MAX_BUFFER];
-	int nErrorType;
-	int nBytesWrite;
-	int nReturn;
-	
-	cMessage[0] = 0x01;
-	cMessage[1] = 0x03;		// Will follow 3 bytes more
-	cMessage[2] = SHUTTER_CMD;
-	cMessage[3] = OPEN_SHUTTER;
-	cMessage[4] = checksum_MaxDomeII(cMessage, 4);
-	nErrorType = tty_write(fd, cMessage, 5, &nBytesWrite);
-	
-	if (nErrorType != TTY_OK)
-		return -5;
-		
-	nReturn = ReadResponse_MaxDomeII(fd, cMessage);
-	if (nReturn != 0)
-		return nReturn;
-	
-	if (cMessage[2] == (char)(SHUTTER_CMD | TO_COMPUTER))
-		return 0;
-	
-	return -6;	// Response don't match command
+    int nErrorType;
+    int nBytesWrite;
+    int nReturn;
+
+    cMessage[0] = 0x01;
+    cMessage[1] = 0x03; // Will follow 3 bytes more
+    cMessage[2] = SHUTTER_CMD;
+    cMessage[3] = OPEN_SHUTTER;
+    cMessage[4] = checksum_MaxDomeII(cMessage, 4);
+    nErrorType  = tty_write(fd, cMessage, 5, &nBytesWrite);
+
+    if (nErrorType != TTY_OK)
+        return -5;
+
+    nReturn = ReadResponse_MaxDomeII(fd, cMessage);
+    if (nReturn != 0)
+        return nReturn;
+
+    if (cMessage[2] == (char)(SHUTTER_CMD | TO_COMPUTER))
+        return 0;
+
+    return -6; // Response don't match command
 }
 
 /*
@@ -485,28 +471,28 @@ int Open_Shutter_MaxDomeII(int fd)
 int Open_Upper_Shutter_Only_MaxDomeII(int fd)
 {
     char cMessage[MAX_BUFFER];
-	int nErrorType;
-	int nBytesWrite;
-	int nReturn;
-	
-	cMessage[0] = 0x01;
-	cMessage[1] = 0x03;		// Will follow 3 bytes more
-	cMessage[2] = SHUTTER_CMD;
-	cMessage[3] = OPEN_UPPER_ONLY_SHUTTER;
-	cMessage[4] = checksum_MaxDomeII(cMessage, 4);
-	nErrorType = tty_write(fd, cMessage, 5, &nBytesWrite);
-	
-	if (nErrorType != TTY_OK)
-		return -5;
-		
-	nReturn = ReadResponse_MaxDomeII(fd, cMessage);
-	if (nReturn != 0)
-		return nReturn;
-	
-	if (cMessage[2] == (char)(SHUTTER_CMD | TO_COMPUTER))
-		return 0;
-	
-	return -6;	// Response don't match command
+    int nErrorType;
+    int nBytesWrite;
+    int nReturn;
+
+    cMessage[0] = 0x01;
+    cMessage[1] = 0x03; // Will follow 3 bytes more
+    cMessage[2] = SHUTTER_CMD;
+    cMessage[3] = OPEN_UPPER_ONLY_SHUTTER;
+    cMessage[4] = checksum_MaxDomeII(cMessage, 4);
+    nErrorType  = tty_write(fd, cMessage, 5, &nBytesWrite);
+
+    if (nErrorType != TTY_OK)
+        return -5;
+
+    nReturn = ReadResponse_MaxDomeII(fd, cMessage);
+    if (nReturn != 0)
+        return nReturn;
+
+    if (cMessage[2] == (char)(SHUTTER_CMD | TO_COMPUTER))
+        return 0;
+
+    return -6; // Response don't match command
 }
 
 /*
@@ -518,28 +504,28 @@ int Open_Upper_Shutter_Only_MaxDomeII(int fd)
 int Close_Shutter_MaxDomeII(int fd)
 {
     char cMessage[MAX_BUFFER];
-	int nErrorType;
-	int nBytesWrite;
-	int nReturn;
-	
-	cMessage[0] = 0x01;
-	cMessage[1] = 0x03;		// Will follow 3 bytes more
-	cMessage[2] = SHUTTER_CMD;
-	cMessage[3] = CLOSE_SHUTTER;
-	cMessage[4] = checksum_MaxDomeII(cMessage, 4);
-	nErrorType = tty_write(fd, cMessage, 5, &nBytesWrite);
-	
-	if (nErrorType != TTY_OK)
-		return -5;
-		
-	nReturn = ReadResponse_MaxDomeII(fd, cMessage);
-	if (nReturn != 0)
-		return nReturn;
-	
-	if (cMessage[2] == (char)(SHUTTER_CMD | TO_COMPUTER))
-		return 0;
-	
-	return -6;	// Response don't match command
+    int nErrorType;
+    int nBytesWrite;
+    int nReturn;
+
+    cMessage[0] = 0x01;
+    cMessage[1] = 0x03; // Will follow 3 bytes more
+    cMessage[2] = SHUTTER_CMD;
+    cMessage[3] = CLOSE_SHUTTER;
+    cMessage[4] = checksum_MaxDomeII(cMessage, 4);
+    nErrorType  = tty_write(fd, cMessage, 5, &nBytesWrite);
+
+    if (nErrorType != TTY_OK)
+        return -5;
+
+    nReturn = ReadResponse_MaxDomeII(fd, cMessage);
+    if (nReturn != 0)
+        return nReturn;
+
+    if (cMessage[2] == (char)(SHUTTER_CMD | TO_COMPUTER))
+        return 0;
+
+    return -6; // Response don't match command
 }
 
 /*
@@ -551,28 +537,28 @@ int Close_Shutter_MaxDomeII(int fd)
 int Abort_Shutter_MaxDomeII(int fd)
 {
     char cMessage[MAX_BUFFER];
-	int nErrorType;
-	int nBytesWrite;
-	int nReturn;
-	
-	cMessage[0] = 0x01;
-	cMessage[1] = 0x03;		// Will follow 3 bytes more
-	cMessage[2] = SHUTTER_CMD;
-	cMessage[3] = ABORT_SHUTTER;
-	cMessage[4] = checksum_MaxDomeII(cMessage, 4);
-	nErrorType = tty_write(fd, cMessage, 5, &nBytesWrite);
-	
-	if (nErrorType != TTY_OK)
-		return -5;
-		
-	nReturn = ReadResponse_MaxDomeII(fd, cMessage);
-	if (nReturn != 0)
-		return nReturn;
-	
-	if (cMessage[2] == (char)(SHUTTER_CMD | TO_COMPUTER))
-		return 0;
-	
-	return -6;	// Response don't match command
+    int nErrorType;
+    int nBytesWrite;
+    int nReturn;
+
+    cMessage[0] = 0x01;
+    cMessage[1] = 0x03; // Will follow 3 bytes more
+    cMessage[2] = SHUTTER_CMD;
+    cMessage[3] = ABORT_SHUTTER;
+    cMessage[4] = checksum_MaxDomeII(cMessage, 4);
+    nErrorType  = tty_write(fd, cMessage, 5, &nBytesWrite);
+
+    if (nErrorType != TTY_OK)
+        return -5;
+
+    nReturn = ReadResponse_MaxDomeII(fd, cMessage);
+    if (nReturn != 0)
+        return nReturn;
+
+    if (cMessage[2] == (char)(SHUTTER_CMD | TO_COMPUTER))
+        return 0;
+
+    return -6; // Response don't match command
 }
 
 /*
@@ -584,27 +570,26 @@ int Abort_Shutter_MaxDomeII(int fd)
 int Exit_Shutter_MaxDomeII(int fd)
 {
     char cMessage[MAX_BUFFER];
-	int nErrorType;
-	int nBytesWrite;
-	int nReturn;
-	
-	cMessage[0] = 0x01;
-	cMessage[1] = 0x03;		// Will follow 3 bytes more
-	cMessage[2] = SHUTTER_CMD;
-	cMessage[3] = EXIT_SHUTTER;
-	cMessage[4] = checksum_MaxDomeII(cMessage, 4);
-	nErrorType = tty_write(fd, cMessage, 5, &nBytesWrite);
-	
-	if (nErrorType != TTY_OK)
-		return -5;
-		
-	nReturn = ReadResponse_MaxDomeII(fd, cMessage);
-	if (nReturn != 0)
-		return nReturn;
-	
-	if (cMessage[2] == (char)(SHUTTER_CMD | TO_COMPUTER))
-		return 0;
-	
-	return -6;	// Response don't match command
-}
+    int nErrorType;
+    int nBytesWrite;
+    int nReturn;
 
+    cMessage[0] = 0x01;
+    cMessage[1] = 0x03; // Will follow 3 bytes more
+    cMessage[2] = SHUTTER_CMD;
+    cMessage[3] = EXIT_SHUTTER;
+    cMessage[4] = checksum_MaxDomeII(cMessage, 4);
+    nErrorType  = tty_write(fd, cMessage, 5, &nBytesWrite);
+
+    if (nErrorType != TTY_OK)
+        return -5;
+
+    nReturn = ReadResponse_MaxDomeII(fd, cMessage);
+    if (nReturn != 0)
+        return nReturn;
+
+    if (cMessage[2] == (char)(SHUTTER_CMD | TO_COMPUTER))
+        return 0;
+
+    return -6; // Response don't match command
+}

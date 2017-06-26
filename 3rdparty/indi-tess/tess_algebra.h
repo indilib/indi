@@ -24,11 +24,11 @@
 #ifndef inditess_algebra_H
 #define inditess_algebra_H
 
-
-typedef struct {
-	float x;
-	float y;
-	float z;
+typedef struct
+{
+    float x;
+    float y;
+    float z;
 } vector;
 
 int get_heading(const vector *a, const vector *m, const vector *p, vector *headingVector);
@@ -36,6 +36,6 @@ void vector_cross(const vector *a, const vector *b, vector *out);
 float vector_dot(const vector *a, const vector *b);
 void vector_normalize(vector *a);
 void MaxMin(void);
-void magReset(vector MagMax,vector MagMin);
+void magReset(vector MagMax, vector MagMin);
 
 #endif

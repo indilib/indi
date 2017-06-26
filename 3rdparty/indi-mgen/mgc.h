@@ -45,18 +45,18 @@
 
 class MGC
 {
-public:
+  public:
     /** \internal Stringifying the name of the command */
-    char const * name() const { return typeid(*this).name(); }
+    char const *name() const { return typeid(*this).name(); }
 
-public:
+  public:
     /** \brief Returning the character operation code of the command */
     virtual IOByte opCode() const = 0;
 
     /** \brief Returning the operation mode for this command */
     virtual IOMode opMode() const = 0;
 
-protected:
+  protected:
     /** \internal The I/O query buffer to be written to the device */
     IOBuffer query;
 
@@ -64,9 +64,9 @@ protected:
     IOBuffer answer;
 
     /** \brief Basic verifications to call before running the actual command implementation */
-    virtual IOResult ask(MGenDevice& root) throw (IOError)
+    virtual IOResult ask(MGenDevice &root) throw(IOError)
     {
-        if(opMode() != OPM_UNKNOWN && opMode() != root.getOpMode())
+        if (opMode() != OPM_UNKNOWN && opMode() != root.getOpMode())
         {
             _E("operating mode %s does not support command", MGenDevice::DBG_OpModeString(opMode()));
             return CR_FAILURE;
@@ -75,12 +75,10 @@ protected:
         return CR_SUCCESS;
     }
 
-protected:
-    MGC(IOBuffer query, IOBuffer answer):
-        query(query),
-        answer(answer) {};
+  protected:
+    MGC(IOBuffer query, IOBuffer answer) : query(query), answer(answer){};
 
-    virtual ~MGC() {};
+    virtual ~MGC(){};
 };
 
 #endif /* 3RDPARTY_INDI_MGEN_MGENCOMMAND_HPP_ */

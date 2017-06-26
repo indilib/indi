@@ -36,19 +36,19 @@
 
 class MGenDevice
 {
-protected:
+  protected:
     pthread_mutex_t _lock;
-    struct ftdi_context * ftdi;
+    struct ftdi_context *ftdi;
     bool is_device_connected;
     bool tried_turn_on;
     IOMode mode;
     unsigned short vid, pid;
 
-public:
+  public:
     bool lock();
     void unlock();
 
-public:
+  public:
     /** \brief Connecting a device identified by VID:PID.
      *
      * This function only connects to the FTDI device.
@@ -78,20 +78,20 @@ public:
      */
     void disable();
 
-public:
+  public:
     /** \brief Writing the query field of a command to the device.
      * \return the number of bytes written, or -1 if the command is invalid or device is not accessible.
      * \throw IOError when device communication is malfunctioning.
      */
-    int write(IOBuffer const &) throw (IOError);
+    int write(IOBuffer const &) throw(IOError);
 
     /** \brief Reading the answer part of a command from the device.
      * \return the number of bytes read, or -1 if the command is invalid or device is not accessible.
      * \throw IOError when device communication is malfunctioning.
      */
-    int read(IOBuffer &) throw (IOError);
+    int read(IOBuffer &) throw(IOError);
 
-public:
+  public:
     /** \brief Turning the device on.
      *
      * This function uses the FTDI special functions to obtain the same functionality as a long press on ESC to
@@ -101,7 +101,7 @@ public:
      */
     int TurnPowerOn();
 
-public:
+  public:
     /** \brief Returning the current operational mode the device is in.
      * \return the IOMode the device was set to by setOpMode().
      */
@@ -117,9 +117,9 @@ public:
 
     /** \internal Debug helper to stringify the operational mode.
      */
-    static char const * const DBG_OpModeString(IOMode);
+    static char const *const DBG_OpModeString(IOMode);
 
-public:
+  public:
     MGenDevice();
     virtual ~MGenDevice();
 };

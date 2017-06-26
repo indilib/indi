@@ -32,14 +32,14 @@
 
 #include "generic_ccd.h"
 
-#define MAX_CCD_TEMP	45		/* Max CCD temperature */
-#define MIN_CCD_TEMP	-55		/* Min CCD temperature */
-#define MAX_X_BIN	16		/* Max Horizontal binning */
-#define MAX_Y_BIN	16		/* Max Vertical binning */
-#define MAX_PIXELS	4096		/* Max number of pixels in one dimension */
-#define POLLMS		1000		/* Polling time (ms) */
-#define TEMP_THRESHOLD  .25		/* Differential temperature threshold (C)*/
-#define MAX_DEVICES 20  /* Max device cameraCount */
+#define MAX_CCD_TEMP   45   /* Max CCD temperature */
+#define MIN_CCD_TEMP   -55  /* Min CCD temperature */
+#define MAX_X_BIN      16   /* Max Horizontal binning */
+#define MAX_Y_BIN      16   /* Max Vertical binning */
+#define MAX_PIXELS     4096 /* Max number of pixels in one dimension */
+#define POLLMS         1000 /* Polling time (ms) */
+#define TEMP_THRESHOLD .25  /* Differential temperature threshold (C)*/
+#define MAX_DEVICES    20   /* Max device cameraCount */
 
 static int cameraCount;
 static GenericCCD *cameras[MAX_DEVICES];
@@ -50,23 +50,27 @@ static GenericCCD *cameras[MAX_DEVICES];
  *
  **********************************************************/
 
-static struct {
-  int vid;
-  int pid;
-  const char *name;
+static struct
+{
+    int vid;
+    int pid;
+    const char *name;
 } deviceTypes[] = { { 0x0001, 0x0001, "Model 1" }, { 0x0001, 0x0002, "Model 2" }, { 0, 0, NULL } };
 
-static void cleanup() {
-  for (int i = 0; i < cameraCount; i++) {
-    delete cameras[i];
-  }
+static void cleanup()
+{
+    for (int i = 0; i < cameraCount; i++)
+    {
+        delete cameras[i];
+    }
 }
 
-void ISInit() {
-  static bool isInit = false;
-  if (!isInit) {
-
-    /**********************************************************
+void ISInit()
+{
+    static bool isInit = false;
+    if (!isInit)
+    {
+        /**********************************************************
      *
      *  IMPORRANT: If available use CCD API function for enumeration available CCD's otherwise use code like this:
      *
@@ -87,74 +91,88 @@ void ISInit() {
      }
      */
 
-      /* For demo purposes we are creating two test devices */
-      cameraCount = 2;
-      struct usb_device *dev = NULL;
-      cameras[0] = new GenericCCD(dev, deviceTypes[0].name);
-      cameras[1] = new GenericCCD(dev, deviceTypes[1].name);
+        /* For demo purposes we are creating two test devices */
+        cameraCount            = 2;
+        struct usb_device *dev = NULL;
+        cameras[0]             = new GenericCCD(dev, deviceTypes[0].name);
+        cameras[1]             = new GenericCCD(dev, deviceTypes[1].name);
 
-    atexit(cleanup);
-    isInit = true;
-  }
-}
-
-void ISGetProperties(const char *dev) {
-  ISInit();
-  for (int i = 0; i < cameraCount; i++) {
-    GenericCCD *camera = cameras[i];
-    if (dev == NULL || !strcmp(dev, camera->name)) {
-      camera->ISGetProperties(dev);
-      if (dev != NULL)
-        break;
+        atexit(cleanup);
+        isInit = true;
     }
-  }
 }
 
-void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int num) {
-  ISInit();
-  for (int i = 0; i < cameraCount; i++) {
-    GenericCCD *camera = cameras[i];
-    if (dev == NULL || !strcmp(dev, camera->name)) {
-      camera->ISNewSwitch(dev, name, states, names, num);
-      if (dev != NULL)
-        break;
+void ISGetProperties(const char *dev)
+{
+    ISInit();
+    for (int i = 0; i < cameraCount; i++)
+    {
+        GenericCCD *camera = cameras[i];
+        if (dev == NULL || !strcmp(dev, camera->name))
+        {
+            camera->ISGetProperties(dev);
+            if (dev != NULL)
+                break;
+        }
     }
-  }
 }
 
-void ISNewText(const char *dev, const char *name, char *texts[], char *names[], int num) {
-  ISInit();
-  for (int i = 0; i < cameraCount; i++) {
-    GenericCCD *camera = cameras[i];
-    if (dev == NULL || !strcmp(dev, camera->name)) {
-      camera->ISNewText(dev, name, texts, names, num);
-      if (dev != NULL)
-        break;
+void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int num)
+{
+    ISInit();
+    for (int i = 0; i < cameraCount; i++)
+    {
+        GenericCCD *camera = cameras[i];
+        if (dev == NULL || !strcmp(dev, camera->name))
+        {
+            camera->ISNewSwitch(dev, name, states, names, num);
+            if (dev != NULL)
+                break;
+        }
     }
-  }
 }
 
-void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int num) {
-  ISInit();
-  for (int i = 0; i < cameraCount; i++) {
-    GenericCCD *camera = cameras[i];
-    if (dev == NULL || !strcmp(dev, camera->name)) {
-      camera->ISNewNumber(dev, name, values, names, num);
-      if (dev != NULL)
-        break;
+void ISNewText(const char *dev, const char *name, char *texts[], char *names[], int num)
+{
+    ISInit();
+    for (int i = 0; i < cameraCount; i++)
+    {
+        GenericCCD *camera = cameras[i];
+        if (dev == NULL || !strcmp(dev, camera->name))
+        {
+            camera->ISNewText(dev, name, texts, names, num);
+            if (dev != NULL)
+                break;
+        }
     }
-  }
 }
 
-void ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[], char *names[], int n) {
-  INDI_UNUSED(dev);
-  INDI_UNUSED(name);
-  INDI_UNUSED(sizes);
-  INDI_UNUSED(blobsizes);
-  INDI_UNUSED(blobs);
-  INDI_UNUSED(formats);
-  INDI_UNUSED(names);
-  INDI_UNUSED(n);
+void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int num)
+{
+    ISInit();
+    for (int i = 0; i < cameraCount; i++)
+    {
+        GenericCCD *camera = cameras[i];
+        if (dev == NULL || !strcmp(dev, camera->name))
+        {
+            camera->ISNewNumber(dev, name, values, names, num);
+            if (dev != NULL)
+                break;
+        }
+    }
+}
+
+void ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[],
+               char *names[], int n)
+{
+    INDI_UNUSED(dev);
+    INDI_UNUSED(name);
+    INDI_UNUSED(sizes);
+    INDI_UNUSED(blobsizes);
+    INDI_UNUSED(blobs);
+    INDI_UNUSED(formats);
+    INDI_UNUSED(names);
+    INDI_UNUSED(n);
 }
 void ISSnoopDevice(XMLEle *root)
 {
@@ -162,72 +180,71 @@ void ISSnoopDevice(XMLEle *root)
 
     for (int i = 0; i < cameraCount; i++)
     {
-      GenericCCD *camera = cameras[i];
-      camera->ISSnoopDevice(root);
+        GenericCCD *camera = cameras[i];
+        camera->ISSnoopDevice(root);
     }
 }
 
 GenericCCD::GenericCCD(DEVICE device, const char *name)
 {
-  this->device = device;
-  snprintf(this->name, 32, "Generic CCD %s", name);
-  setDeviceName(this->name);
+    this->device = device;
+    snprintf(this->name, 32, "Generic CCD %s", name);
+    setDeviceName(this->name);
 
-  setVersion(GENERIC_VERSION_MAJOR, GENERIC_VERSION_MINOR);
+    setVersion(GENERIC_VERSION_MAJOR, GENERIC_VERSION_MINOR);
 }
 
-GenericCCD::~GenericCCD() {
-
+GenericCCD::~GenericCCD()
+{
 }
 
-const char * GenericCCD::getDefaultName() {
-  return "Generic CCD";
+const char *GenericCCD::getDefaultName()
+{
+    return "Generic CCD";
 }
 
-bool GenericCCD::initProperties() {
-  // Init parent properties first
-  INDI::CCD::initProperties();
+bool GenericCCD::initProperties()
+{
+    // Init parent properties first
+    INDI::CCD::initProperties();
 
-  uint32_t cap = CCD_CAN_ABORT | CCD_CAN_BIN | CCD_CAN_SUBFRAME | CCD_HAS_COOLER | CCD_HAS_SHUTTER | CCD_HAS_ST4_PORT;
-  SetCCDCapability(cap);
+    uint32_t cap = CCD_CAN_ABORT | CCD_CAN_BIN | CCD_CAN_SUBFRAME | CCD_HAS_COOLER | CCD_HAS_SHUTTER | CCD_HAS_ST4_PORT;
+    SetCCDCapability(cap);
 
-  addConfigurationControl();
-  addDebugControl();
-  return true;
+    addConfigurationControl();
+    addDebugControl();
+    return true;
 }
 
-void GenericCCD::ISGetProperties(const char *dev) {
-  INDI::CCD::ISGetProperties(dev);
-
+void GenericCCD::ISGetProperties(const char *dev)
+{
+    INDI::CCD::ISGetProperties(dev);
 }
 
-bool GenericCCD::updateProperties() {
-  INDI::CCD::updateProperties();
+bool GenericCCD::updateProperties()
+{
+    INDI::CCD::updateProperties();
 
-  if (isConnected())
-  {
+    if (isConnected())
+    {
+        // Let's get parameters now from CCD
+        setupParams();
 
-    // Let's get parameters now from CCD
-    setupParams();
+        timerID = SetTimer(POLLMS);
+    }
+    else
+    {
+        rmTimer(timerID);
+    }
 
-    timerID = SetTimer(POLLMS);
-  } else
-  {
-
-    rmTimer(timerID);
-  }
-
-  return true;
+    return true;
 }
 
 bool GenericCCD::Connect()
 {
+    DEBUG(INDI::Logger::DBG_SESSION, "Attempting to find the Generic CCD...");
 
-
-  DEBUG(INDI::Logger::DBG_SESSION,  "Attempting to find the Generic CCD...");
-
-
-  /**********************************************************
+    /**********************************************************
    *
    *
    *
@@ -240,16 +257,15 @@ bool GenericCCD::Connect()
    *
    **********************************************************/
 
-  /* Success! */
-  DEBUG(INDI::Logger::DBG_SESSION,  "CCD is online. Retrieving basic data.");
+    /* Success! */
+    DEBUG(INDI::Logger::DBG_SESSION, "CCD is online. Retrieving basic data.");
 
-  return true;
+    return true;
 }
 
 bool GenericCCD::Disconnect()
 {
-
-  /**********************************************************
+    /**********************************************************
    *
    *
    *
@@ -262,18 +278,17 @@ bool GenericCCD::Disconnect()
    *
    **********************************************************/
 
-  DEBUG(INDI::Logger::DBG_SESSION,  "CCD is offline.");
-  return true;
+    DEBUG(INDI::Logger::DBG_SESSION, "CCD is offline.");
+    return true;
 }
 
 bool GenericCCD::setupParams()
 {
+    float x_pixel_size, y_pixel_size;
+    int bit_depth = 16;
+    int x_1, y_1, x_2, y_2;
 
-  float x_pixel_size, y_pixel_size;
-  int bit_depth = 16;
-  int x_1, y_1, x_2, y_2;
-
-  /**********************************************************
+    /**********************************************************
    *
    *
    *
@@ -289,49 +304,48 @@ bool GenericCCD::setupParams()
    *
    **********************************************************/
 
-  ///////////////////////////
-  // 1. Get Pixel size
-  ///////////////////////////
-  // Actucal CALL to CCD to get pixel size here
-  x_pixel_size = 5.4;
-  y_pixel_size = 5.4;
+    ///////////////////////////
+    // 1. Get Pixel size
+    ///////////////////////////
+    // Actucal CALL to CCD to get pixel size here
+    x_pixel_size = 5.4;
+    y_pixel_size = 5.4;
 
-  ///////////////////////////
-  // 2. Get Frame
-  ///////////////////////////
+    ///////////////////////////
+    // 2. Get Frame
+    ///////////////////////////
 
-  // Actucal CALL to CCD to get frame information here
-   x_1 = y_1 = 0;
-   x_2 = 1280;
-   y_2 = 1024;
+    // Actucal CALL to CCD to get frame information here
+    x_1 = y_1 = 0;
+    x_2       = 1280;
+    y_2       = 1024;
 
-  ///////////////////////////
-  // 3. Get temperature
-  ///////////////////////////
-  // Setting sample temperature -- MAKE CALL TO API FUNCTION TO GET TEMPERATURE IN REAL DRIVER
-  TemperatureN[0].value = 25.0;
-  DEBUGF(INDI::Logger::DBG_SESSION,  "The CCD Temperature is %f", TemperatureN[0].value);
-  IDSetNumber(&TemperatureNP, NULL);
+    ///////////////////////////
+    // 3. Get temperature
+    ///////////////////////////
+    // Setting sample temperature -- MAKE CALL TO API FUNCTION TO GET TEMPERATURE IN REAL DRIVER
+    TemperatureN[0].value = 25.0;
+    DEBUGF(INDI::Logger::DBG_SESSION, "The CCD Temperature is %f", TemperatureN[0].value);
+    IDSetNumber(&TemperatureNP, NULL);
 
-  ///////////////////////////
-  // 4. Get temperature
-  ///////////////////////////
-  bit_depth = 16;
-  SetCCDParams(x_2 - x_1, y_2 - y_1, bit_depth, x_pixel_size, y_pixel_size);
+    ///////////////////////////
+    // 4. Get temperature
+    ///////////////////////////
+    bit_depth = 16;
+    SetCCDParams(x_2 - x_1, y_2 - y_1, bit_depth, x_pixel_size, y_pixel_size);
 
-  // Now we usually do the following in the hardware
-  // Set Frame to LIGHT or NORMAL
-  // Set Binning to 1x1
-  /* Default frame type is NORMAL */
+    // Now we usually do the following in the hardware
+    // Set Frame to LIGHT or NORMAL
+    // Set Binning to 1x1
+    /* Default frame type is NORMAL */
 
-  // Let's calculate required buffer
-  int nbuf;
-  nbuf = PrimaryCCD.getXRes() * PrimaryCCD.getYRes() * PrimaryCCD.getBPP() / 8;    //  this is pixel cameraCount
-  nbuf += 512;    //  leave a little extra at the end
-  PrimaryCCD.setFrameBufferSize(nbuf);
+    // Let's calculate required buffer
+    int nbuf;
+    nbuf = PrimaryCCD.getXRes() * PrimaryCCD.getYRes() * PrimaryCCD.getBPP() / 8; //  this is pixel cameraCount
+    nbuf += 512;                                                                  //  leave a little extra at the end
+    PrimaryCCD.setFrameBufferSize(nbuf);
 
-  return true;
-
+    return true;
 }
 
 int GenericCCD::SetTemperature(double temperature)
@@ -355,24 +369,23 @@ int GenericCCD::SetTemperature(double temperature)
     return 0;
 }
 
-
-
 bool GenericCCD::StartExposure(float duration)
 {
+    if (duration < minDuration)
+    {
+        DEBUGF(INDI::Logger::DBG_WARNING,
+               "Exposure shorter than minimum duration %g s requested. \n Setting exposure time to %g s.", duration,
+               minDuration);
+        duration = minDuration;
+    }
 
-  if (duration < minDuration)
-  {
-    DEBUGF(INDI::Logger::DBG_WARNING, "Exposure shorter than minimum duration %g s requested. \n Setting exposure time to %g s.", duration, minDuration);
-    duration = minDuration;
-  }
+    if (imageFrameType == CCDChip::BIAS_FRAME)
+    {
+        duration = minDuration;
+        DEBUGF(INDI::Logger::DBG_SESSION, "Bias Frame (s) : %g\n", minDuration);
+    }
 
-  if (imageFrameType == CCDChip::BIAS_FRAME)
-  {
-    duration = minDuration;
-    DEBUGF(INDI::Logger::DBG_SESSION, "Bias Frame (s) : %g\n", minDuration);
-  }
-
-  /**********************************************************
+    /**********************************************************
    *
    *
    *
@@ -386,21 +399,20 @@ bool GenericCCD::StartExposure(float duration)
    *
    **********************************************************/
 
-  PrimaryCCD.setExposureDuration(duration);
-  ExposureRequest = duration;
+    PrimaryCCD.setExposureDuration(duration);
+    ExposureRequest = duration;
 
-  gettimeofday(&ExpStart, NULL);
-  DEBUGF(INDI::Logger::DBG_SESSION, "Taking a %g seconds frame...", ExposureRequest);
+    gettimeofday(&ExpStart, NULL);
+    DEBUGF(INDI::Logger::DBG_SESSION, "Taking a %g seconds frame...", ExposureRequest);
 
-  InExposure = true;
+    InExposure = true;
 
-  return true;
+    return true;
 }
 
 bool GenericCCD::AbortExposure()
 {
-
-  /**********************************************************
+    /**********************************************************
    *
    *
    *
@@ -413,22 +425,22 @@ bool GenericCCD::AbortExposure()
    *
    **********************************************************/
 
-  InExposure = false;
-  return true;
+    InExposure = false;
+    return true;
 }
 
 bool GenericCCD::UpdateCCDFrameType(CCDChip::CCD_FRAME fType)
 {
-  CCDChip::CCD_FRAME imageFrameType = PrimaryCCD.getFrameType();
+    CCDChip::CCD_FRAME imageFrameType = PrimaryCCD.getFrameType();
 
-  if (fType == imageFrameType)
-    return true;
+    if (fType == imageFrameType)
+        return true;
 
-  switch (imageFrameType)
-  {
-  case CCDChip::BIAS_FRAME:
-  case CCDChip::DARK_FRAME:
-    /**********************************************************
+    switch (imageFrameType)
+    {
+        case CCDChip::BIAS_FRAME:
+        case CCDChip::DARK_FRAME:
+            /**********************************************************
      *
      *
      *
@@ -443,11 +455,11 @@ bool GenericCCD::UpdateCCDFrameType(CCDChip::CCD_FRAME fType)
      *
      *
      **********************************************************/
-    break;
+            break;
 
-  case CCDChip::LIGHT_FRAME:
-  case CCDChip::FLAT_FRAME:
-    /**********************************************************
+        case CCDChip::LIGHT_FRAME:
+        case CCDChip::FLAT_FRAME:
+            /**********************************************************
      *
      *
      *
@@ -462,35 +474,35 @@ bool GenericCCD::UpdateCCDFrameType(CCDChip::CCD_FRAME fType)
      *
      *
      **********************************************************/
-    break;
-  }
+            break;
+    }
 
-  PrimaryCCD.setFrameType(fType);
+    PrimaryCCD.setFrameType(fType);
 
-  return true;
-
+    return true;
 }
 
 bool GenericCCD::UpdateCCDFrame(int x, int y, int w, int h)
 {
-  /* Add the X and Y offsets */
-  long x_1 = x;
-  long y_1 = y;
+    /* Add the X and Y offsets */
+    long x_1 = x;
+    long y_1 = y;
 
-  long bin_width = x_1 + (w / PrimaryCCD.getBinX());
-  long bin_height = y_1 + (h / PrimaryCCD.getBinY());
+    long bin_width  = x_1 + (w / PrimaryCCD.getBinX());
+    long bin_height = y_1 + (h / PrimaryCCD.getBinY());
 
-  if (bin_width > PrimaryCCD.getXRes() / PrimaryCCD.getBinX())
-  {
-    DEBUGF(INDI::Logger::DBG_SESSION,  "Error: invalid width requested %d", w);
-    return false;
-  } else if (bin_height > PrimaryCCD.getYRes() / PrimaryCCD.getBinY())
-  {
-    DEBUGF(INDI::Logger::DBG_SESSION,  "Error: invalid height request %d", h);
-    return false;
-  }
+    if (bin_width > PrimaryCCD.getXRes() / PrimaryCCD.getBinX())
+    {
+        DEBUGF(INDI::Logger::DBG_SESSION, "Error: invalid width requested %d", w);
+        return false;
+    }
+    else if (bin_height > PrimaryCCD.getYRes() / PrimaryCCD.getBinY())
+    {
+        DEBUGF(INDI::Logger::DBG_SESSION, "Error: invalid height request %d", h);
+        return false;
+    }
 
-  /**********************************************************
+    /**********************************************************
    *
    *
    *
@@ -507,23 +519,22 @@ bool GenericCCD::UpdateCCDFrame(int x, int y, int w, int h)
    *
    **********************************************************/
 
-  // Set UNBINNED coords
-  PrimaryCCD.setFrame(x_1, y_1, w, h);
+    // Set UNBINNED coords
+    PrimaryCCD.setFrame(x_1, y_1, w, h);
 
-  int nbuf;
-  nbuf = (bin_width * bin_height * PrimaryCCD.getBPP() / 8);    //  this is pixel count
-  nbuf += 512;    //  leave a little extra at the end
-  PrimaryCCD.setFrameBufferSize(nbuf);
+    int nbuf;
+    nbuf = (bin_width * bin_height * PrimaryCCD.getBPP() / 8); //  this is pixel count
+    nbuf += 512;                                               //  leave a little extra at the end
+    PrimaryCCD.setFrameBufferSize(nbuf);
 
-  DEBUGF(INDI::Logger::DBG_DEBUG, "Setting frame buffer size to %d bytes.", nbuf);
+    DEBUGF(INDI::Logger::DBG_DEBUG, "Setting frame buffer size to %d bytes.", nbuf);
 
-  return true;
+    return true;
 }
 
 bool GenericCCD::UpdateCCDBin(int binx, int biny)
 {
-
-  /**********************************************************
+    /**********************************************************
    *
    *
    *
@@ -536,32 +547,33 @@ bool GenericCCD::UpdateCCDBin(int binx, int biny)
    *
    **********************************************************/
 
-  PrimaryCCD.setBin(binx, biny);
+    PrimaryCCD.setBin(binx, biny);
 
-  return UpdateCCDFrame(PrimaryCCD.getSubX(), PrimaryCCD.getSubY(), PrimaryCCD.getSubW(), PrimaryCCD.getSubH());
+    return UpdateCCDFrame(PrimaryCCD.getSubX(), PrimaryCCD.getSubY(), PrimaryCCD.getSubW(), PrimaryCCD.getSubH());
 }
 
 float GenericCCD::CalcTimeLeft()
 {
-  double timesince;
-  double timeleft;
-  struct timeval now;
-  gettimeofday(&now, NULL);
+    double timesince;
+    double timeleft;
+    struct timeval now;
+    gettimeofday(&now, NULL);
 
-  timesince = (double) (now.tv_sec * 1000.0 + now.tv_usec / 1000) - (double) (ExpStart.tv_sec * 1000.0 + ExpStart.tv_usec / 1000);
-  timesince = timesince / 1000;
+    timesince = (double)(now.tv_sec * 1000.0 + now.tv_usec / 1000) -
+                (double)(ExpStart.tv_sec * 1000.0 + ExpStart.tv_usec / 1000);
+    timesince = timesince / 1000;
 
-  timeleft = ExposureRequest - timesince;
-  return timeleft;
+    timeleft = ExposureRequest - timesince;
+    return timeleft;
 }
 
 /* Downloads the image from the CCD.
  N.B. No processing is done on the image */
 int GenericCCD::grabImage()
 {
-  uint8_t * image = PrimaryCCD.getFrameBuffer();
-  int width = PrimaryCCD.getSubW() / PrimaryCCD.getBinX() * PrimaryCCD.getBPP() / 8;
-  int height = PrimaryCCD.getSubH() / PrimaryCCD.getBinY();
+    uint8_t *image = PrimaryCCD.getFrameBuffer();
+    int width      = PrimaryCCD.getSubW() / PrimaryCCD.getBinX() * PrimaryCCD.getBPP() / 8;
+    int height     = PrimaryCCD.getSubH() / PrimaryCCD.getBinY();
 
     /**********************************************************
      *
@@ -572,43 +584,50 @@ int GenericCCD::grabImage()
      *
      *
      **********************************************************/
-      for (int i = 0; i < height; i++)
+    for (int i = 0; i < height; i++)
         for (int j = 0; j < width; j++)
-          image[i * width + j] = rand() % 255;
+            image[i * width + j] = rand() % 255;
 
-  DEBUG(INDI::Logger::DBG_SESSION, "Download complete.");
+    DEBUG(INDI::Logger::DBG_SESSION, "Download complete.");
 
-  ExposureComplete(&PrimaryCCD);
+    ExposureComplete(&PrimaryCCD);
 
-  return 0;
+    return 0;
 }
 
 void GenericCCD::TimerHit()
 {
-  int timerID = -1;
-  long timeleft;
+    int timerID = -1;
+    long timeleft;
 
-  if (isConnected() == false)
-    return;  //  No need to reset timer if we are not connected anymore
+    if (isConnected() == false)
+        return; //  No need to reset timer if we are not connected anymore
 
-  if (InExposure) {
-    timeleft = CalcTimeLeft();
+    if (InExposure)
+    {
+        timeleft = CalcTimeLeft();
 
-    if (timeleft < 1.0) {
-      if (timeleft > 0.25) {
-        //  a quarter of a second or more
-        //  just set a tighter timer
-        timerID = SetTimer(250);
-      } else {
-        if (timeleft > 0.07) {
-          //  use an even tighter timer
-          timerID = SetTimer(50);
-        } else {
-          //  it's real close now, so spin on it
-          while (timeleft > 0)
-          {
-
-            /**********************************************************
+        if (timeleft < 1.0)
+        {
+            if (timeleft > 0.25)
+            {
+                //  a quarter of a second or more
+                //  just set a tighter timer
+                timerID = SetTimer(250);
+            }
+            else
+            {
+                if (timeleft > 0.07)
+                {
+                    //  use an even tighter timer
+                    timerID = SetTimer(50);
+                }
+                else
+                {
+                    //  it's real close now, so spin on it
+                    while (timeleft > 0)
+                    {
+                        /**********************************************************
              *
              *  IMPORRANT: If supported by your CCD API
              *  Add a call here to check if the image is ready for download
@@ -617,42 +636,41 @@ void GenericCCD::TimerHit()
              *
              **********************************************************/
 
-            // Breaking in simulation, in real driver either loop until time left = 0 or use an API call to know if the image is ready for download
-             break;
+                        // Breaking in simulation, in real driver either loop until time left = 0 or use an API call to know if the image is ready for download
+                        break;
 
-            //int slv;
-            //slv = 100000 * timeleft;
-            //usleep(slv);
-          }
+                        //int slv;
+                        //slv = 100000 * timeleft;
+                        //usleep(slv);
+                    }
 
-          /* We're done exposing */
-          DEBUG(INDI::Logger::DBG_SESSION,  "Exposure done, downloading image...");
+                    /* We're done exposing */
+                    DEBUG(INDI::Logger::DBG_SESSION, "Exposure done, downloading image...");
 
-          PrimaryCCD.setExposureLeft(0);
-          InExposure = false;
-          /* grab and save image */
-          grabImage();
-
+                    PrimaryCCD.setExposureLeft(0);
+                    InExposure = false;
+                    /* grab and save image */
+                    grabImage();
+                }
+            }
         }
-      }
-    } else {
+        else
+        {
+            if (isDebug())
+            {
+                IDLog("With time left %ld\n", timeleft);
+                IDLog("image not yet ready....\n");
+            }
 
-      if (isDebug()) {
-        IDLog("With time left %ld\n", timeleft);
-        IDLog("image not yet ready....\n");
-      }
-
-      PrimaryCCD.setExposureLeft(timeleft);
-
+            PrimaryCCD.setExposureLeft(timeleft);
+        }
     }
 
-  }
-
-  switch (TemperatureNP.s)
-  {
-  case IPS_IDLE:
-  case IPS_OK:
-    /**********************************************************
+    switch (TemperatureNP.s)
+    {
+        case IPS_IDLE:
+        case IPS_OK:
+            /**********************************************************
      *
      *
      *
@@ -664,10 +682,10 @@ void GenericCCD::TimerHit()
      *
      *
      **********************************************************/
-    break;
+            break;
 
-  case IPS_BUSY:
-      /**********************************************************
+        case IPS_BUSY:
+            /**********************************************************
        *
        *
        *
@@ -679,28 +697,28 @@ void GenericCCD::TimerHit()
        *
        *
        **********************************************************/
-       TemperatureN[0].value = TemperatureRequest;    
+            TemperatureN[0].value = TemperatureRequest;
 
-    // If we're within threshold, let's make it BUSY ---> OK
-    if (fabs(TemperatureRequest - TemperatureN[0].value) <= TEMP_THRESHOLD)
-      TemperatureNP.s = IPS_OK;
+            // If we're within threshold, let's make it BUSY ---> OK
+            if (fabs(TemperatureRequest - TemperatureN[0].value) <= TEMP_THRESHOLD)
+                TemperatureNP.s = IPS_OK;
 
-    IDSetNumber(&TemperatureNP, NULL);
-    break;
+            IDSetNumber(&TemperatureNP, NULL);
+            break;
 
-  case IPS_ALERT:
-    break;
-  }
+        case IPS_ALERT:
+            break;
+    }
 
-  if (timerID == -1)
-    SetTimer(POLLMS);
-  return;
+    if (timerID == -1)
+        SetTimer(POLLMS);
+    return;
 }
 
 IPState GenericCCD::GuideNorth(float ms)
 {
     INDI_UNUSED(ms);
-  /**********************************************************
+    /**********************************************************
    *
    *
    *
@@ -718,7 +736,7 @@ IPState GenericCCD::GuideNorth(float ms)
    *
    **********************************************************/
 
-  return IPS_OK;
+    return IPS_OK;
 }
 
 IPState GenericCCD::GuideSouth(float ms)
@@ -792,4 +810,3 @@ IPState GenericCCD::GuideWest(float ms)
 
     return IPS_OK;
 }
-

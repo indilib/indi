@@ -24,12 +24,7 @@ include_directories( ${INDI_INCLUDE_DIR})
 include_directories( ${CFITSIO_INCLUDE_DIR})
 include_directories( ${FLI_INCLUDE_DIR})
 
-IF ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
-    SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /std:c++11")
-ELSE ()
-    SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=gnu99")
-    SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
-ENDIF ()
+include(CMakeCommon)
 
 ###### FLI Precision Digital Focuser ######
 set(flipdf_SRCS
