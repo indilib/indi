@@ -42,6 +42,9 @@ LX200ZEQ25::LX200ZEQ25()
     SetTelescopeCapability(TELESCOPE_CAN_PARK | TELESCOPE_CAN_SYNC | TELESCOPE_CAN_GOTO | TELESCOPE_CAN_ABORT |
                                TELESCOPE_HAS_TIME | TELESCOPE_HAS_LOCATION,
                            9);
+
+    // Regular isSlewCommand. 8401 uses :SE?#
+    strncpy(isSlewCommand, ":SE#", 16);
 }
 
 bool LX200ZEQ25::initProperties()
@@ -250,12 +253,18 @@ bool LX200ZEQ25::isSlewComplete()
     int nbytes_read    = 0;
     int nbytes_written = 0;
 
-    strncpy(cmd, ":SE#", 16);
+    strncpy(cmd, isSlewCommand, 16);
 
     DEBUGF(INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
 
     if ((errcode = tty_write(PortFD, cmd, 4, &nbytes_written)) != TTY_OK)
     {
+        // Some controllers supports :SE?#, so we switch to that format if we get error
+        if (!strcmp(isSlewCommand, ":SE#"))
+            strncpy(isSlewCommand, ":SE?#", 16);
+        else
+            strncpy(isSlewCommand, ":SE#", 16);
+
         tty_error_msg(errcode, errmsg, MAXRBUF);
         DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
         return false;
