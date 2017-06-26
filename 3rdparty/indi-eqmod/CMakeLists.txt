@@ -36,6 +36,10 @@ include_directories( ${GSL_INCLUDE_DIR} )
 
 include(CMakeCommon)
 
+IF ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU" AND CMAKE_CXX_COMPILER_VERSION VERSION_GREATER 6.9.9)
+    SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-format-overflow")
+ENDIF ()
+
 ########### EQMod ###############
 set(eqmod_SRCS
    ${CMAKE_CURRENT_SOURCE_DIR}/eqmod.cpp ${CMAKE_CURRENT_SOURCE_DIR}/eqmoderror.cpp ${CMAKE_CURRENT_SOURCE_DIR}/skywatcher.cpp)
