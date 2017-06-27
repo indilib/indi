@@ -28,7 +28,6 @@ class LX200SS2000PC : public LX200Generic
     LX200SS2000PC(void);
 
     virtual const char *getDefaultName(void);
-    virtual bool updateProperties(void);
     virtual bool updateTime(ln_date *utc, double utc_offset);
 
   protected:

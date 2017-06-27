@@ -559,11 +559,12 @@ inline bool isParking(const int fd)
 
 LX200Pulsar2::LX200Pulsar2(void) : LX200Generic(), just_started_slewing(false)
 {
-    setVersion(1, 0);
+    setVersion(1, 1);
+    setLX200Capability(0);
+
     SetTelescopeCapability(TELESCOPE_CAN_SYNC | TELESCOPE_CAN_GOTO | TELESCOPE_CAN_PARK | TELESCOPE_CAN_ABORT |
                                TELESCOPE_HAS_TIME | TELESCOPE_HAS_LOCATION | TELESCOPE_HAS_PIER_SIDE,
                            4);
-    hasFocus = false;
 }
 
 const char *LX200Pulsar2::getDefaultName(void)
@@ -700,13 +701,6 @@ bool LX200Pulsar2::updateProperties(void)
         defineSwitch(&PeriodicErrorCorrectionSP);
         defineSwitch(&PoleCrossingSP);
         defineSwitch(&RefractionCorrectionSP);
-        // Delete unsupported properties
-        deleteProperty(AlignmentSP.name);
-        deleteProperty(SiteSP.name);
-        deleteProperty(SiteNameTP.name);
-        deleteProperty(TrackingFreqNP.name);
-        deleteProperty(TrackModeSP.name);
-        deleteProperty(ActiveDeviceTP.name);
         getBasicData();
     }
     else

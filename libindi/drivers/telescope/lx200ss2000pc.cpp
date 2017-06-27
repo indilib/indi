@@ -32,30 +32,15 @@ const int LX200SS2000PC::LongTimeOut  = 10; // In seconds.
 LX200SS2000PC::LX200SS2000PC(void) : LX200Generic()
 {
     setVersion(1, 0);
+    setLX200Capability(0);
+
     SetTelescopeCapability(
-        TELESCOPE_CAN_SYNC | TELESCOPE_CAN_GOTO | TELESCOPE_CAN_ABORT | TELESCOPE_HAS_TIME | TELESCOPE_HAS_LOCATION, 4);
-    hasFocus = false;
+        TELESCOPE_CAN_SYNC | TELESCOPE_CAN_GOTO | TELESCOPE_CAN_ABORT | TELESCOPE_HAS_TIME | TELESCOPE_HAS_LOCATION, 4);    
 }
 
 const char *LX200SS2000PC::getDefaultName(void)
 {
     return const_cast<const char *>("SkySensor2000PC");
-}
-
-bool LX200SS2000PC::updateProperties(void)
-{
-    bool result = LX200Generic::updateProperties();
-    if (isConnected())
-    {
-        deleteProperty(AlignmentSP.name);
-        deleteProperty(SiteSP.name);
-        deleteProperty(SiteNameTP.name);
-        deleteProperty(TrackingFreqNP.name);
-        deleteProperty(TrackModeSP.name);
-        // Enable it again for testing (http://indilib.org/forum/mounts/1821-skysensor2000pc-error-reading-ra-dec-not-in-logs.html?)
-        //deleteProperty(UsePulseCmdSP.name);
-    }
-    return result;
 }
 
 bool LX200SS2000PC::updateTime(ln_date *utc, double utc_offset)

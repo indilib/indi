@@ -86,6 +86,4 @@ class LX200ZEQ25 : public LX200Generic
     /* Guide Rate */
     INumber GuideRateN[1];
     INumberVectorProperty GuideRateNP;
-
-    char isSlewCommand[16];
 };
