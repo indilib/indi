@@ -121,6 +121,10 @@
                 <driver name="ZEQ25">indi_lx200zeq25</driver>
                 <version>1.0</version>
         </device>
+        <device label="GotoNova" focal_length="" aperture="">
+                <driver name="GotoNova">indi_lx200gotonova</driver>
+                <version>1.0</version>
+        </device>
         <device label="Pulsar2" focal_length="" aperture="">
                 <driver name="Pulsar2">indi_lx200pulsar2</driver>
                 <version>1.0</version>
