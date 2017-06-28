@@ -174,6 +174,7 @@ class Skywatcher
         Axis2 = 1, // DE/ALT
         NUMBER_OF_SKYWATCHERAXIS
     };
+    char AxisCmd[2] {'1', '2'};
 
     enum SkywatcherDirection
     {
