@@ -67,6 +67,8 @@ class LX200AstroPhysics : public LX200Generic
     virtual bool updateLocation(double latitude, double longitude, double elevation);
     virtual bool SetSlewRate(int index);
 
+    virtual bool saveConfigItems(FILE *fp) override;
+
     virtual void debugTriggered(bool enable);
     bool setBasicDataPart0();
     bool setBasicDataPart1();

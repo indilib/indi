@@ -884,3 +884,12 @@ bool LX200AstroPhysics::SetDefaultPark()
 
     return true;
 }
+
+bool LX200AstroPhysics::saveConfigItems(FILE *fp)
+{
+    LX200Generic::saveConfigItems(fp);
+
+    IUSaveConfigSwitch(fp, &SyncCMRSP);
+
+    return true;
+}
