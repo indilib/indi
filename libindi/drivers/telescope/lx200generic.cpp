@@ -1733,4 +1733,6 @@ bool LX200Generic::saveConfigItems(FILE *fp)
 
     if (genericCapability & LX200_HAS_PULSE_GUIDING)
         IUSaveConfigSwitch(fp, &UsePulseCmdSP);
+
+    return true;
 }
