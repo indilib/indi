@@ -1019,7 +1019,7 @@ void Skywatcher::SetSpeed(SkywatcherAxis axis, unsigned long period)
     char cmd[7];
     SkywatcherAxisStatus *currentstatus;
 
-    DEBUGF(DBG_MOUNT, "%s() : Axis = %c -- period=%ld", __FUNCTION__, axis, period);
+    DEBUGF(DBG_MOUNT, "%s() : Axis = %c -- period=%ld", __FUNCTION__, AxisCmd[axis], period);
 
     ReadMotorStatus(axis);
     if (axis == Axis1)
@@ -1028,7 +1028,7 @@ void Skywatcher::SetSpeed(SkywatcherAxis axis, unsigned long period)
         currentstatus = &DEStatus;
     if ((currentstatus->speedmode == HIGHSPEED) && (period < minperiods[axis]))
     {
-        DEBUGF(INDI::Logger::DBG_WARNING, "Setting axis %c period to minimum. Requested is %d, minimum is %d\n", axis,
+        DEBUGF(INDI::Logger::DBG_WARNING, "Setting axis %c period to minimum. Requested is %d, minimum is %d\n", AxisCmd[axis],
                period, minperiods[axis]);
         period = minperiods[axis];
     }
@@ -1052,9 +1052,9 @@ void Skywatcher::SetSpeed(SkywatcherAxis axis, unsigned long period)
 void Skywatcher::SetTarget(SkywatcherAxis axis, unsigned long increment)
 {
     char cmd[7];
-    DEBUGF(DBG_MOUNT, "%s() : Axis = %c -- increment=%ld", __FUNCTION__, axis, increment);
+    DEBUGF(DBG_MOUNT, "%s() : Axis = %c -- increment=%ld", __FUNCTION__, AxisCmd[axis], increment);
     long2Revu24str(increment, cmd);
-    //IDLog("Setting target for axis %c  to %d\n", axis, increment);
+    //IDLog("Setting target for axis %c  to %d\n", AxisCmd[axis], increment);
     dispatch_command(SetGotoTargetIncrement, axis, cmd);
     read_eqmod();
     Target[axis] = increment;
@@ -1063,9 +1063,9 @@ void Skywatcher::SetTarget(SkywatcherAxis axis, unsigned long increment)
 void Skywatcher::SetTargetBreaks(SkywatcherAxis axis, unsigned long increment)
 {
     char cmd[7];
-    DEBUGF(DBG_MOUNT, "%s() : Axis = %c -- increment=%ld", __FUNCTION__, axis, increment);
+    DEBUGF(DBG_MOUNT, "%s() : Axis = %c -- increment=%ld", __FUNCTION__, AxisCmd[axis], increment);
     long2Revu24str(increment, cmd);
-    //IDLog("Setting target for axis %c  to %d\n", axis, increment);
+    //IDLog("Setting target for axis %c  to %d\n", AxisCmd[axis], increment);
     dispatch_command(SetBreakPointIncrement, axis, cmd);
     read_eqmod();
     TargetBreaks[axis] = increment;
@@ -1074,9 +1074,9 @@ void Skywatcher::SetTargetBreaks(SkywatcherAxis axis, unsigned long increment)
 void Skywatcher::SetAbsTarget(SkywatcherAxis axis, unsigned long target)
 {
     char cmd[7];
-    DEBUGF(DBG_MOUNT, "%s() : Axis = %c -- target=%ld", __FUNCTION__, axis, target);
+    DEBUGF(DBG_MOUNT, "%s() : Axis = %c -- target=%ld", __FUNCTION__, AxisCmd[axis], target);
     long2Revu24str(target, cmd);
-    //IDLog("Setting target for axis %c  to %d\n", axis, increment);
+    //IDLog("Setting target for axis %c  to %d\n", AxisCmd[axis], increment);
     dispatch_command(SetGotoTarget, axis, cmd);
     read_eqmod();
     Target[axis] = target;
@@ -1085,9 +1085,9 @@ void Skywatcher::SetAbsTarget(SkywatcherAxis axis, unsigned long target)
 void Skywatcher::SetAbsTargetBreaks(SkywatcherAxis axis, unsigned long breakstep)
 {
     char cmd[7];
-    DEBUGF(DBG_MOUNT, "%s() : Axis = %c -- breakstep=%ld", __FUNCTION__, axis, breakstep);
+    DEBUGF(DBG_MOUNT, "%s() : Axis = %c -- breakstep=%ld", __FUNCTION__, AxisCmd[axis], breakstep);
     long2Revu24str(breakstep, cmd);
-    //IDLog("Setting target for axis %c  to %d\n", axis, increment);
+    //IDLog("Setting target for axis %c  to %d\n", AxisCmd[axis], increment);
     dispatch_command(SetBreakStep, axis, cmd);
     read_eqmod();
     TargetBreaks[axis] = breakstep;
@@ -1096,9 +1096,9 @@ void Skywatcher::SetAbsTargetBreaks(SkywatcherAxis axis, unsigned long breakstep
 void Skywatcher::SetFeature(SkywatcherAxis axis, unsigned long command)
 {
     char cmd[7];
-    DEBUGF(DBG_MOUNT, "%s() : Axis = %c -- command=%ld", __FUNCTION__, axis, command);
+    DEBUGF(DBG_MOUNT, "%s() : Axis = %c -- command=%ld", __FUNCTION__, AxisCmd[axis], command);
     long2Revu24str(command, cmd);
-    //IDLog("Setting target for axis %c  to %d\n", axis, increment);
+    //IDLog("Setting target for axis %c  to %d\n", AxisCmd[axis], increment);
     dispatch_command(SetFeatureCmd, axis, cmd);
     read_eqmod();
 }
@@ -1106,9 +1106,9 @@ void Skywatcher::SetFeature(SkywatcherAxis axis, unsigned long command)
 void Skywatcher::GetFeature(SkywatcherAxis axis, unsigned long command)
 {
     char cmd[7];
-    DEBUGF(DBG_MOUNT, "%s() : Axis = %c -- command=%ld", __FUNCTION__, axis, command);
+    DEBUGF(DBG_MOUNT, "%s() : Axis = %c -- command=%ld", __FUNCTION__, AxisCmd[axis], command);
     long2Revu24str(command, cmd);
-    //IDLog("Setting target for axis %c  to %d\n", axis, increment);
+    //IDLog("Setting target for axis %c  to %d\n", AxisCmd[axis], increment);
     dispatch_command(GetFeatureCmd, axis, cmd);
     read_eqmod();
 }
@@ -1194,10 +1194,10 @@ void Skywatcher::SetST4DEGuideRate(unsigned char r)
 void Skywatcher::SetST4GuideRate(SkywatcherAxis axis, unsigned char r)
 {
     char cmd[2];
-    DEBUGF(DBG_MOUNT, "%s() : Axis = %c -- rate=%c", __FUNCTION__, axis, r);
+    DEBUGF(DBG_MOUNT, "%s() : Axis = %c -- rate=%c", __FUNCTION__, AxisCmd[axis], r);
     cmd[0] = r;
     cmd[1] = '\0';
-    //IDLog("Setting target for axis %c  to %d\n", axis, increment);
+    //IDLog("Setting target for axis %c  to %d\n", AxisCmd[axis], increment);
     dispatch_command(SetST4GuideRateCmd, axis, cmd);
     read_eqmod();
 }
@@ -1261,9 +1261,9 @@ void Skywatcher::GetDEPPECStatus(bool *intraining, bool *inppec)
 void Skywatcher::SetAxisPosition(SkywatcherAxis axis, unsigned long step)
 {
     char cmd[7];
-    DEBUGF(DBG_MOUNT, "%s() : Axis = %c -- step=%ld", __FUNCTION__, axis, step);
+    DEBUGF(DBG_MOUNT, "%s() : Axis = %c -- step=%ld", __FUNCTION__, AxisCmd[axis], step);
     long2Revu24str(step, cmd);
-    //IDLog("Setting target for axis %c  to %d\n", axis, increment);
+    //IDLog("Setting target for axis %c  to %d\n", AxisCmd[axis], increment);
     dispatch_command(SetAxisPositionCmd, axis, cmd);
     read_eqmod();
 }
@@ -1282,11 +1282,11 @@ void Skywatcher::StartMotor(SkywatcherAxis axis)
 {
     bool usebacklash       = UseBacklash[axis];
     unsigned long backlash = Backlash[axis];
-    DEBUGF(DBG_MOUNT, "%s() : Axis = %c", __FUNCTION__, axis);
+    DEBUGF(DBG_MOUNT, "%s() : Axis = %c", __FUNCTION__, AxisCmd[axis]);
 
     if (usebacklash)
     {
-        DEBUGF(INDI::Logger::DBG_SESSION, "Checking backlash compensation for axis %c", axis);
+        DEBUGF(INDI::Logger::DBG_SESSION, "Checking backlash compensation for axis %c", AxisCmd[axis]);
         if (NewStatus[axis].direction != LastRunningStatus[axis].direction)
         {
             unsigned long currentsteps;
@@ -1295,7 +1295,7 @@ void Skywatcher::StartMotor(SkywatcherAxis axis)
             motioncmd[1]      = (NewStatus[axis].direction == FORWARD ? '0' : '1'); // same direction
             bool *motorrunning;
             struct timespec wait;
-            DEBUGF(INDI::Logger::DBG_SESSION, "Performing backlash compensation for axis %c, microsteps = %d", axis,
+            DEBUGF(INDI::Logger::DBG_SESSION, "Performing backlash compensation for axis %c, microsteps = %d", AxisCmd[axis],
                    backlash);
             // Axis Position
             dispatch_command(GetAxisPosition, axis, NULL);
@@ -1392,7 +1392,7 @@ void Skywatcher::SetMotion(SkywatcherAxis axis, SkywatcherAxisStatus newstatus)
     char motioncmd[3];
     SkywatcherAxisStatus *currentstatus;
 
-    DEBUGF(DBG_MOUNT, "%s() : Axis = %c -- dir=%s mode=%s speedmode=%s", __FUNCTION__, axis,
+    DEBUGF(DBG_MOUNT, "%s() : Axis = %c -- dir=%s mode=%s speedmode=%s", __FUNCTION__, AxisCmd[axis],
            ((newstatus.direction == FORWARD) ? "forward" : "backward"),
            ((newstatus.slewmode == SLEW) ? "slew" : "goto"),
            ((newstatus.speedmode == LOWSPEED) ? "lowspeed" : "highspeed"));
@@ -1484,7 +1484,7 @@ void Skywatcher::StopMotor(SkywatcherAxis axis)
         LastRunningStatus[Axis1] = RAStatus;
     if (axis == Axis2 && DERunning)
         LastRunningStatus[Axis2] = DEStatus;
-    DEBUGF(DBG_MOUNT, "%s() : Axis = %c", __FUNCTION__, axis);
+    DEBUGF(DBG_MOUNT, "%s() : Axis = %c", __FUNCTION__, AxisCmd[axis]);
     dispatch_command(NotInstantAxisStop, axis, NULL);
     read_eqmod();
 }
@@ -1496,7 +1496,7 @@ void Skywatcher::InstantStopMotor(SkywatcherAxis axis)
         LastRunningStatus[Axis1] = RAStatus;
     if (axis == Axis2 && DERunning)
         LastRunningStatus[Axis2] = DEStatus;
-    DEBUGF(DBG_MOUNT, "%s() : Axis = %c", __FUNCTION__, axis);
+    DEBUGF(DBG_MOUNT, "%s() : Axis = %c", __FUNCTION__, AxisCmd[axis]);
     dispatch_command(InstantAxisStop, axis, NULL);
     read_eqmod();
 }
@@ -1510,7 +1510,7 @@ void Skywatcher::StopWaitMotor(SkywatcherAxis axis)
         LastRunningStatus[Axis1] = RAStatus;
     if (axis == Axis2 && DERunning)
         LastRunningStatus[Axis2] = DEStatus;
-    DEBUGF(DBG_MOUNT, "%s() : Axis = %c", __FUNCTION__, axis);
+    DEBUGF(DBG_MOUNT, "%s() : Axis = %c", __FUNCTION__, AxisCmd[axis]);
     dispatch_command(NotInstantAxisStop, axis, NULL);
     read_eqmod();
     if (axis == Axis1)
@@ -1532,7 +1532,7 @@ void Skywatcher::StopWaitMotor(SkywatcherAxis axis)
 void Skywatcher::CheckMotorStatus(SkywatcherAxis axis)
 {
     struct timeval now;
-    DEBUGF(DBG_SCOPE_STATUS, "%s() : Axis = %c", __FUNCTION__, axis);
+    DEBUGF(DBG_SCOPE_STATUS, "%s() : Axis = %c", __FUNCTION__, AxisCmd[axis]);
     gettimeofday(&now, NULL);
     if (((now.tv_sec - lastreadmotorstatus[axis].tv_sec) + ((now.tv_usec - lastreadmotorstatus[axis].tv_usec) / 1e6)) >
         SKYWATCHER_MAXREFRESH)
@@ -1557,9 +1557,9 @@ bool Skywatcher::dispatch_command(SkywatcherCommand cmd, SkywatcherAxis axis, ch
     command[0] = '\0';
 
     if (command_arg == NULL)
-        snprintf(command, SKYWATCHER_MAX_CMD, "%c%c%c%c", SkywatcherLeadingChar, cmd, axis, SkywatcherTrailingChar);
+        snprintf(command, SKYWATCHER_MAX_CMD, "%c%c%c%c", SkywatcherLeadingChar, cmd, AxisCmd[axis], SkywatcherTrailingChar);
     else
-        snprintf(command, SKYWATCHER_MAX_CMD, "%c%c%c%s%c", SkywatcherLeadingChar, cmd, axis, command_arg,
+        snprintf(command, SKYWATCHER_MAX_CMD, "%c%c%c%s%c", SkywatcherLeadingChar, cmd, AxisCmd[axis], command_arg,
                  SkywatcherTrailingChar);
     if (!isSimulation())
     {
