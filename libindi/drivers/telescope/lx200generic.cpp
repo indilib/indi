@@ -1726,3 +1726,11 @@ void LX200Generic::guideTimeout()
         IDSetNumber(&GuideWENP, nullptr);
     }
 }
+
+bool LX200Generic::saveConfigItems(FILE *fp)
+{
+    INDI::Telescope::saveConfigItems(fp);
+
+    if (genericCapability & LX200_HAS_PULSE_GUIDING)
+        IUSaveConfigSwitch(fp, &UsePulseCmdSP);
+}
