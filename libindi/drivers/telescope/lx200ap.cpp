@@ -31,6 +31,7 @@
 #include <math.h>
 #include <string.h>
 #include <unistd.h>
+#include <termios.h>
 
 #define FIRMWARE_TAB "Firmware data"
 #define MOUNT_TAB    "Mount"
@@ -40,6 +41,10 @@ LX200AstroPhysics::LX200AstroPhysics() : LX200Generic()
 {
     timeUpdated = locationUpdated = false;
     initStatus                    = MOUNTNOTINITIALIZED;
+
+    setLX200Capability(LX200_HAS_PULSE_GUIDING | LX200_HAS_TRACK_MODE);
+
+    SetTelescopeCapability(GetTelescopeCapability() | TELESCOPE_HAS_PIER_SIDE, 4);
 
     //ctor
     currentRA  = get_local_sideral_time(0);
@@ -393,7 +398,7 @@ bool LX200AstroPhysics::ISNewNumber(const char *dev, const char *name, double va
     return LX200Generic::ISNewNumber(dev, name, values, names, n);
 }
 
-bool LX200AstroPhysics::isMountInit(void)
+bool LX200AstroPhysics::isMountInit()
 {
     return (StartUpSP.s != IPS_IDLE);
 }
@@ -460,6 +465,8 @@ bool LX200AstroPhysics::ReadScopeStatus()
     }
 
     NewRaDec(currentRA, currentDEC);
+
+    syncSideOfPier();
 
     return true;
 }
@@ -886,6 +893,47 @@ bool LX200AstroPhysics::SetDefaultPark()
     SetAxis2Park(LocationN[LOCATION_LATITUDE].value);
 
     return true;
+}
+
+void LX200AstroPhysics::syncSideOfPier()
+{
+    const char *cmd = ":pS#";
+    // Response
+    char response[16] = { 0 };
+    int rc = 0, nbytes_read = 0, nbytes_written = 0;
+
+    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD: <%s>", cmd);
+
+    tcflush(PortFD, TCIOFLUSH);
+
+    if ((rc = tty_write(PortFD, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
+    {
+        char errmsg[256];
+        tty_error_msg(rc, errmsg, 256);
+        DEBUGF(INDI::Logger::DBG_ERROR, "Error writing to device %s (%d)", errmsg, rc);
+        return;
+    }
+
+    // Read Side
+    if ((rc = tty_read_section(PortFD, response, '#', 3, &nbytes_read)) != TTY_OK)
+    {
+        char errmsg[256];
+        tty_error_msg(rc, errmsg, 256);
+        DEBUGF(INDI::Logger::DBG_ERROR, "Error reading from device %s (%d)", errmsg, rc);
+        return;
+    }
+
+    response[nbytes_read - 1] = '\0';
+
+    tcflush(PortFD, TCIOFLUSH);
+
+    DEBUGF(INDI::Logger::DBG_DEBUG, "RES: <%s>", response);
+
+    if (!strcmp(response, "East"))
+        setPierSide(INDI::Telescope::PIER_EAST);
+    else
+        setPierSide(INDI::Telescope::PIER_WEST);
+
 }
 
 bool LX200AstroPhysics::saveConfigItems(FILE *fp)
