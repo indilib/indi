@@ -1350,9 +1350,6 @@ void LX200Generic::sendScopeTime()
     snprintf(utcStr, 8, "%02d", lx200_utc_offset * -1);
     IUSaveText(&TimeT[1], utcStr);
 
-    if (isDebug())
-        IDLog("Telescope TimeT Offset: %s\n", TimeT[1].text);
-
     getLocalTime24(PortFD, &ctime);
     getSexComponents(ctime, &h, &m, &s);
 
@@ -1385,11 +1382,8 @@ void LX200Generic::sendScopeTime()
     strftime(cdate, 32, "%Y-%m-%dT%H:%M:%S", &utm);
     IUSaveText(&TimeT[0], cdate);
 
-    if (isDebug())
-    {
-        IDLog("Telescope Local Time: %02d:%02d:%02d\n", h, m, s);
-        IDLog("Telescope UTC Time: %s\n", TimeT[0].text);
-    }
+    DEBUGF(INDI::Logger::DBG_DEBUG, "Mount controller Local Time: %02d:%02d:%02d", h, m, s);
+    DEBUGF(INDI::Logger::DBG_DEBUG, "Mount controller UTC Time: %s", TimeT[0].text);
 
     // Let's send everything to the client
     IDSetText(&TimeTP, nullptr);
@@ -1409,23 +1403,17 @@ void LX200Generic::sendScopeLocation()
     }
 
     if (getSiteLatitude(PortFD, &dd, &mm) < 0)
-        IDMessage(getDeviceName(), "Failed to get site latitude from device.");
+        DEBUG(INDI::Logger::DBG_WARNING, "Failed to get site latitude from device.");
     else
     {
         if (dd > 0)
             LocationNP.np[0].value = dd + mm / 60.0;
         else
-            LocationNP.np[0].value = dd - mm / 60.0;
-
-        if (isDebug())
-        {
-            IDLog("Autostar Latitude: %d:%d\n", dd, mm);
-            IDLog("INDI Latitude: %g\n", LocationNP.np[0].value);
-        }
+            LocationNP.np[0].value = dd - mm / 60.0;        
     }
 
     if (getSiteLongitude(PortFD, &dd, &mm) < 0)
-        IDMessage(getDeviceName(), "Failed to get site longitude from device.");
+        DEBUG(INDI::Logger::DBG_WARNING, "Failed to get site longitude from device.");
     else
     {
         if (dd > 0)
@@ -1439,6 +1427,8 @@ void LX200Generic::sendScopeLocation()
             IDLog("INDI Longitude: %g\n", LocationNP.np[1].value);
         }
     }
+
+    DEBUGF(INDI::Logger::DBG_DEBUG, "Latitude: %g Longitude: %g", LocationN[LOCATION_LATITUDE].value, LocationN[LOCATION_LONGITUDE].value);
 
     IDSetNumber(&LocationNP, nullptr);
 }
