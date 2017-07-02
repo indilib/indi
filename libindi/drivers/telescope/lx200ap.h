@@ -42,8 +42,6 @@ class LX200AstroPhysics : public LX200Generic
     virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
     virtual void ISGetProperties(const char *dev) override;
 
-
-
   protected:
     virtual const char *getDefaultName() override;
     virtual bool initProperties() override;
@@ -86,6 +84,7 @@ class LX200AstroPhysics : public LX200Generic
 
     ISwitch SyncCMRS[2];
     ISwitchVectorProperty SyncCMRSP;
+    enum { USE_REGULAR_SYNC, USE_CMR_SYNC };
 
     IText VersionT[1];
     ITextVectorProperty VersionInfo;

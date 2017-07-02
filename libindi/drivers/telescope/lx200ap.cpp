@@ -91,8 +91,8 @@ bool LX200AstroPhysics::initProperties()
     IUFillSwitchVector(&SwapSP, SwapS, 2, getDeviceName(), "SWAP", "Swap buttons", MOTION_TAB, IP_RW, ISR_1OFMANY, 0,
                        IPS_IDLE);
 
-    IUFillSwitch(&SyncCMRS[0], ":CM#", ":CM#", ISS_ON);
-    IUFillSwitch(&SyncCMRS[1], ":CMR#", ":CMR#", ISS_OFF);
+    IUFillSwitch(&SyncCMRS[USE_REGULAR_SYNC], ":CM#", ":CM#", ISS_ON);
+    IUFillSwitch(&SyncCMRS[USE_CMR_SYNC], ":CMR#", ":CMR#", ISS_OFF);
     IUFillSwitchVector(&SyncCMRSP, SyncCMRS, 2, getDeviceName(), "SYNCCMR", "Sync", MOTION_TAB, IP_RW, ISR_1OFMANY, 0,
                        IPS_IDLE);
 
@@ -633,30 +633,48 @@ bool LX200AstroPhysics::Sync(double ra, double dec)
 {
     char syncString[256];
 
-    int i = IUFindOnSwitchIndex(&SyncCMRSP);
+    int syncType = IUFindOnSwitchIndex(&SyncCMRSP);
 
-    if (i == 0)
-        return LX200Generic::Sync(ra, dec);
-
-    if (isSimulation() == false && (setObjectRA(PortFD, ra) < 0 || (setObjectDEC(PortFD, dec)) < 0))
+    if (isSimulation() == false)
     {
-        EqNP.s = IPS_ALERT;
-        IDSetNumber(&EqNP, "Error setting RA/DEC. Unable to Sync.");
-        return false;
-    }
+        if (setAPObjectRA(PortFD, ra) < 0 || setAPObjectDEC(PortFD, dec) < 0)
+        {
+            EqNP.s = IPS_ALERT;
+            IDSetNumber(&EqNP, "Error setting RA/DEC. Unable to Sync.");
+            return false;
+        }
 
-    if (isSimulation() == false && APSyncCMR(PortFD, syncString) < 0)
-    {
-        EqNP.s = IPS_ALERT;
-        IDSetNumber(&EqNP, "Synchronization failed.");
-        return false;
+        bool syncOK = true;
+
+        switch (syncType)
+        {
+            case USE_REGULAR_SYNC:
+            if (::Sync(PortFD, syncString) < 0)
+                syncOK = false;
+            break;
+
+            case USE_CMR_SYNC:
+            if (APSyncCMR(PortFD, syncString) < 0)
+                syncOK = false;
+            break;
+
+        default:
+            break;
+        }
+
+        if (syncOK == false)
+        {
+            EqNP.s = IPS_ALERT;
+            IDSetNumber(&EqNP, "Synchronization failed.");
+            return false;
+        }
+
     }
 
     currentRA  = ra;
     currentDEC = dec;
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "Synchronization successful %s", syncString);
-
+    DEBUGF(INDI::Logger::DBG_DEBUG, "%s Synchronization successful %s", (syncType == USE_REGULAR_SYNC ? "CM" : "CMR"), syncString);
     DEBUG(INDI::Logger::DBG_SESSION, "Synchronization successful.");
 
     TrackState = SCOPE_IDLE;
@@ -941,6 +959,7 @@ bool LX200AstroPhysics::saveConfigItems(FILE *fp)
     LX200Generic::saveConfigItems(fp);
 
     IUSaveConfigSwitch(fp, &SyncCMRSP);
+    IUSaveConfigSwitch(fp, &SlewSpeedSP);
 
     return true;
 }
