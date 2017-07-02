@@ -28,6 +28,10 @@ set(inditess_SRCS
    ${CMAKE_CURRENT_SOURCE_DIR}/tess_algebra.cpp
    )
 
+IF (UNITY_BUILD)
+    ENABLE_UNITY_BUILD(inditess inditess_SRCS 10 cpp)
+ENDIF ()
+
 add_executable(indi_tess ${inditess_SRCS})
 target_link_libraries(indi_tess ${INDI_LIBRARIES} ${NOVA_LIBRARIES})
 

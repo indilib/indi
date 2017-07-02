@@ -57,6 +57,10 @@ set(indigphoto_SRCS
    ${CMAKE_CURRENT_SOURCE_DIR}/dsusbdriver.cpp
    )
 
+IF (UNITY_BUILD)
+    ENABLE_UNITY_BUILD(indigphoto indi_gphotoSRCS 10 cpp)
+ENDIF ()
+
 SET_SOURCE_FILES_PROPERTIES(gphoto_readimage.cpp PROPERTIES COMPILE_FLAGS "-Wno-deprecated-declarations")
 
 add_executable(indi_gphoto_ccd ${indigphoto_SRCS})

@@ -31,6 +31,10 @@ set(indimgenautoguider_SRCS
    ${CMAKE_CURRENT_SOURCE_DIR}/mgen_device.cpp
    )
 
+IF (UNITY_BUILD)
+    ENABLE_UNITY_BUILD(indimgen indimgenautoguider_SRCS 10 cpp)
+ENDIF ()
+
 add_executable(indi_mgenautoguider ${indimgenautoguider_SRCS})
 
 target_link_libraries(indi_mgenautoguider ${INDI_DRIVER_LIBRARIES} ${FTDI1_LIBRARIES} ${LIBUSB_1_LIBRARIES} pthread)

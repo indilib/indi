@@ -41,6 +41,10 @@ set(indidsi_SRCS
    ${CMAKE_CURRENT_SOURCE_DIR}/Util.cpp
    )
 
+IF (UNITY_BUILD)
+    ENABLE_UNITY_BUILD(indidsi indidsi_SRCS 10 cpp)
+ENDIF ()
+
 add_executable(indi_dsi_ccd ${indidsi_SRCS})
 
 target_link_libraries(indi_dsi_ccd ${INDI_LIBRARIES} ${CFITSIO_LIBRARIES} ${LIBUSB_1_LIBRARIES} )
