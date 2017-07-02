@@ -139,7 +139,8 @@ int MGenDevice::Connect(unsigned short vid, unsigned short pid)
                     if (devlist)
                         for (struct ftdi_device_list const *dev_index = devlist; dev_index; dev_index = dev_index->next)
                         {
-                            struct libusb_device_descriptor desc = { 0 };
+                            struct libusb_device_descriptor desc;
+                            memset(&desc,0,sizeof(desc));
 
                             if (libusb_get_device_descriptor(dev_index->dev, &desc) < 0)
                             {
