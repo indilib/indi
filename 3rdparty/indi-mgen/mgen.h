@@ -53,9 +53,6 @@ enum IOMode
     OPM_APPLICATION, /*!< Normal applicative mode */
 };
 
-/** \internal Debug helper to stringify an IOMode value */
-char const *const DBG_OpModeString(IOMode);
-
 /** \brief The result of a command */
 enum IOResult
 {
