@@ -177,7 +177,7 @@ void ISSnoopDevice(XMLEle *root)
     INDI_UNUSED(root);
 }
 
-MGenAutoguider::MGenAutoguider() : device(NULL), version({ 0 }), voltage({ 0 }), ui({ 0 }), heartbeat({ 0 })
+MGenAutoguider::MGenAutoguider(): device(NULL)
 {
     SetCCDParams(128, 64, 8, 5.0f, 5.0f);
     PrimaryCCD.setFrameBufferSize(PrimaryCCD.getXRes() * PrimaryCCD.getYRes() * PrimaryCCD.getBPP() / 8, true);
