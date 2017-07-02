@@ -424,7 +424,7 @@ void MGenAutoguider::TimerHit()
     if (device->isConnected())
         try
         {
-            struct timespec tm = { 0 };
+            struct timespec tm = { .tv_sec = 0, .tv_nsec = 0 };
             if (clock_gettime(CLOCK_MONOTONIC, &tm))
                 return;
 
