@@ -229,7 +229,6 @@ int MGenDevice::setOpMode(IOMode const _mode)
             break;
 
         case OPM_UNKNOWN:
-        case OPM_BOOT:
         default:
             baudrate = 9600;
             break;
@@ -324,8 +323,6 @@ char const *const MGenDevice::DBG_OpModeString(IOMode mode)
             return "UNKNOWN";
         case OPM_COMPATIBLE:
             return "COMPATIBLE";
-        case OPM_BOOT:
-            return "BOOT";
         case OPM_APPLICATION:
             return "APPLICATION";
         default:

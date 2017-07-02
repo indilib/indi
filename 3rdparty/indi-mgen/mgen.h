@@ -50,7 +50,6 @@ enum IOMode
 {
     OPM_UNKNOWN,     /*!< Unknown mode, no exchange done yet or connection error */
     OPM_COMPATIBLE,  /*!< Compatible mode, to check device state */
-    OPM_BOOT,        /*!< Boot mode */
     OPM_APPLICATION, /*!< Normal applicative mode */
 };
 

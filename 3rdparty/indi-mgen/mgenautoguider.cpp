@@ -333,7 +333,6 @@ bool MGenAutoguider::Connect()
 
                         break;
 
-                    /*case OPM_BOOT:*/
                     case OPM_COMPATIBLE:
                         _D("switching from compatible to normal mode", "");
 
