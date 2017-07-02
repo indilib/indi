@@ -316,7 +316,7 @@ int MGenDevice::read(IOBuffer &answer) throw(IOError)
     return 0;
 }
 
-char const *const MGenDevice::DBG_OpModeString(IOMode mode)
+char const * MGenDevice::DBG_OpModeString(IOMode mode)
 {
     switch (mode)
     {

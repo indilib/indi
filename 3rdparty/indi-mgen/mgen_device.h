@@ -117,7 +117,7 @@ class MGenDevice
 
     /** \internal Debug helper to stringify the operational mode.
      */
-    static char const *const DBG_OpModeString(IOMode);
+    static char const * DBG_OpModeString(IOMode);
 
   public:
     MGenDevice();
