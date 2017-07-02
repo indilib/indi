@@ -44,7 +44,7 @@ LX200AstroPhysics::LX200AstroPhysics() : LX200Generic()
 
     setLX200Capability(LX200_HAS_PULSE_GUIDING | LX200_HAS_TRACK_MODE);
 
-    SetTelescopeCapability(GetTelescopeCapability() | TELESCOPE_HAS_PIER_SIDE, 4);
+    SetTelescopeCapability(GetTelescopeCapability() | TELESCOPE_HAS_PIER_SIDE, 3);
 
     //ctor
     currentRA  = get_local_sideral_time(0);
