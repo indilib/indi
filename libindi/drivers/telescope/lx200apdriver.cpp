@@ -10,7 +10,7 @@ either
 version 2.1 of the License, or (at your option) any later version.
 
 This library is distributed in the hope that it will be useful,
-     but WITHOUT ANY WARRANTY;
+but WITHOUT ANY WARRANTY;
 without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
 Lesser General Public License for more details.
@@ -132,31 +132,31 @@ int getAPUTCOffset(int fd, double *value)
             temp_string[1] = '0';
             switch (temp_string[2])
             {
-                case '5':
+            case '5':
 
-                    temp_string[2] = '1';
-                    break;
-                case '4':
+                temp_string[2] = '1';
+                break;
+            case '4':
 
-                    temp_string[2] = '2';
-                    break;
-                case '3':
+                temp_string[2] = '2';
+                break;
+            case '3':
 
-                    temp_string[2] = '3';
-                    break;
-                case '2':
+                temp_string[2] = '3';
+                break;
+            case '2':
 
-                    temp_string[2] = '4';
-                    break;
-                case '1':
+                temp_string[2] = '4';
+                break;
+            case '1':
 
-                    temp_string[2] = '5';
-                    break;
-                default:
-                    DEBUGFDEVICE(lx200ap_name, INDI::Logger::DBG_ERROR, "getAPUTCOffset: string not handled %s",
-                                 temp_string);
-                    return -1;
-                    break;
+                temp_string[2] = '5';
+                break;
+            default:
+                DEBUGFDEVICE(lx200ap_name, INDI::Logger::DBG_ERROR, "getAPUTCOffset: string not handled %s",
+                             temp_string);
+                return -1;
+                break;
             }
         }
         else if (temp_string[1] == '0')
@@ -169,36 +169,36 @@ int getAPUTCOffset(int fd, double *value)
             temp_string[1] = '0';
             switch (temp_string[2])
             {
-                case '9':
+            case '9':
 
-                    temp_string[2] = '7';
-                    break;
-                case '8':
+                temp_string[2] = '7';
+                break;
+            case '8':
 
-                    temp_string[2] = '8';
-                    break;
-                case '7':
+                temp_string[2] = '8';
+                break;
+            case '7':
 
-                    temp_string[2] = '9';
-                    break;
-                case '6':
+                temp_string[2] = '9';
+                break;
+            case '6':
 
-                    temp_string[2] = '0';
-                    break;
-                case '5':
-                    temp_string[1] = '1';
-                    temp_string[2] = '1';
-                    break;
-                case '4':
+                temp_string[2] = '0';
+                break;
+            case '5':
+                temp_string[1] = '1';
+                temp_string[2] = '1';
+                break;
+            case '4':
 
-                    temp_string[1] = '1';
-                    temp_string[2] = '2';
-                    break;
-                default:
-                    DEBUGFDEVICE(lx200ap_name, INDI::Logger::DBG_ERROR, "getAPUTCOffset: string not handled %s",
-                                 temp_string);
-                    return -1;
-                    break;
+                temp_string[1] = '1';
+                temp_string[2] = '2';
+                break;
+            default:
+                DEBUGFDEVICE(lx200ap_name, INDI::Logger::DBG_ERROR, "getAPUTCOffset: string not handled %s",
+                             temp_string);
+                return -1;
+                break;
             }
         }
         else
@@ -330,88 +330,92 @@ int selectAPMoveToRate(int fd, int moveToRate)
 
     switch (moveToRate)
     {
-        /* 1200x */
-        case 0:
-            DEBUGDEVICE(lx200ap_name, INDI::Logger::DBG_DEBUG, "selectAPMoveToRate: Setting move to rate to 1200x");
-            DEBUGFDEVICE(lx200ap_name, AP_DBG_SCOPE, "CMD <%s>", "#:RC3#");
+    /* 12x*/
+    case 0:
+        DEBUGDEVICE(lx200ap_name, INDI::Logger::DBG_DEBUG, "selectAPMoveToRate: Setting move to rate to 12x");
+        DEBUGFDEVICE(lx200ap_name, AP_DBG_SCOPE, "CMD <%s>", "#:RC0#");
 
-            if ((error_type = tty_write_string(fd, "#:RC3#", &nbytes_write)) != TTY_OK)
-                return error_type;
-            break;
+        if ((error_type = tty_write_string(fd, "#:RC0#", &nbytes_write)) != TTY_OK)
+            return error_type;
+        break;
 
-        /* 600x */
-        case 1:
-            DEBUGDEVICE(lx200ap_name, INDI::Logger::DBG_DEBUG, "selectAPMoveToRate: Setting move to rate to 600x");
-            DEBUGFDEVICE(lx200ap_name, AP_DBG_SCOPE, "CMD <%s>", "#:RC2#");
-            if ((error_type = tty_write_string(fd, "#:RC2#", &nbytes_write)) != TTY_OK)
-                return error_type;
-            break;
+    /* 64x */
+    case 1:
+        DEBUGDEVICE(lx200ap_name, INDI::Logger::DBG_DEBUG, "selectAPMoveToRate: Setting move to rate to 64x");
+        DEBUGFDEVICE(lx200ap_name, AP_DBG_SCOPE, "CMD <%s>", "#:RC1#");
 
-        /* 64x */
-        case 2:
-            DEBUGDEVICE(lx200ap_name, INDI::Logger::DBG_DEBUG, "selectAPMoveToRate: Setting move to rate to 64x");
-            DEBUGFDEVICE(lx200ap_name, AP_DBG_SCOPE, "CMD <%s>", "#:RC1#");
+        if ((error_type = tty_write_string(fd, "#:RC1#", &nbytes_write)) != TTY_OK)
+            return error_type;
+        break;
 
-            if ((error_type = tty_write_string(fd, "#:RC1#", &nbytes_write)) != TTY_OK)
-                return error_type;
-            break;
-        /* 12x*/
-        case 3:
-            DEBUGDEVICE(lx200ap_name, INDI::Logger::DBG_DEBUG, "selectAPMoveToRate: Setting move to rate to 12x");
-            DEBUGFDEVICE(lx200ap_name, AP_DBG_SCOPE, "CMD <%s>", "#:RC0#");
+    /* 600x */
+    case 2:
+        DEBUGDEVICE(lx200ap_name, INDI::Logger::DBG_DEBUG, "selectAPMoveToRate: Setting move to rate to 600x");
+        DEBUGFDEVICE(lx200ap_name, AP_DBG_SCOPE, "CMD <%s>", "#:RC2#");
+        if ((error_type = tty_write_string(fd, "#:RC2#", &nbytes_write)) != TTY_OK)
+            return error_type;
+        break;
 
-            if ((error_type = tty_write_string(fd, "#:RC0#", &nbytes_write)) != TTY_OK)
-                return error_type;
-            break;
+    /* 1200x */
+    case 3:
+        DEBUGDEVICE(lx200ap_name, INDI::Logger::DBG_DEBUG, "selectAPMoveToRate: Setting move to rate to 1200x");
+        DEBUGFDEVICE(lx200ap_name, AP_DBG_SCOPE, "CMD <%s>", "#:RC3#");
 
-        default:
-            return -1;
-            break;
+        if ((error_type = tty_write_string(fd, "#:RC3#", &nbytes_write)) != TTY_OK)
+            return error_type;
+        break;
+
+    default:
+        return -1;
+        break;
     }
     return 0;
 }
+
 int selectAPSlewRate(int fd, int slewRate)
 {
     int error_type;
     int nbytes_write = 0;
     switch (slewRate)
     {
-        /* 1200x */
-        case 0:
+    /* 600x */
+    case 0:
 
-            DEBUGDEVICE(lx200ap_name, INDI::Logger::DBG_DEBUG, "selectAPSlewRate: Setting slew to rate to 1200x");
-            DEBUGFDEVICE(lx200ap_name, AP_DBG_SCOPE, "CMD <%s>", "#:RS2#");
+        DEBUGDEVICE(lx200ap_name, INDI::Logger::DBG_DEBUG, "selectAPSlewRate: Setting slew to rate to 600x");
+        DEBUGFDEVICE(lx200ap_name, AP_DBG_SCOPE, "CMD <%s>", "#:RS0#");
 
-            if ((error_type = tty_write_string(fd, "#:RS2#", &nbytes_write)) != TTY_OK)
-                return error_type;
-            break;
+        if ((error_type = tty_write_string(fd, "#:RS0#", &nbytes_write)) != TTY_OK)
+            return error_type;
+        break;
 
-        /* 900x */
-        case 1:
+    /* 900x */
+    case 1:
 
-            DEBUGDEVICE(lx200ap_name, INDI::Logger::DBG_DEBUG, "selectAPSlewRate: Setting slew to rate to 900x");
-            DEBUGFDEVICE(lx200ap_name, AP_DBG_SCOPE, "CMD <%s>", "#:RS1#");
+        DEBUGDEVICE(lx200ap_name, INDI::Logger::DBG_DEBUG, "selectAPSlewRate: Setting slew to rate to 900x");
+        DEBUGFDEVICE(lx200ap_name, AP_DBG_SCOPE, "CMD <%s>", "#:RS1#");
 
-            if ((error_type = tty_write_string(fd, "#:RS1#", &nbytes_write)) != TTY_OK)
-                return error_type;
-            break;
+        if ((error_type = tty_write_string(fd, "#:RS1#", &nbytes_write)) != TTY_OK)
+            return error_type;
+        break;
 
-        /* 600x */
-        case 2:
 
-            DEBUGDEVICE(lx200ap_name, INDI::Logger::DBG_DEBUG, "selectAPSlewRate: Setting slew to rate to 600x");
-            DEBUGFDEVICE(lx200ap_name, AP_DBG_SCOPE, "CMD <%s>", "#:RS0#");
+    /* 1200x */
+    case 2:
 
-            if ((error_type = tty_write_string(fd, "#:RS0#", &nbytes_write)) != TTY_OK)
-                return error_type;
-            break;
+        DEBUGDEVICE(lx200ap_name, INDI::Logger::DBG_DEBUG, "selectAPSlewRate: Setting slew to rate to 1200x");
+        DEBUGFDEVICE(lx200ap_name, AP_DBG_SCOPE, "CMD <%s>", "#:RS2#");
 
-        default:
-            return -1;
-            break;
+        if ((error_type = tty_write_string(fd, "#:RS2#", &nbytes_write)) != TTY_OK)
+            return error_type;
+        break;
+
+    default:
+        return -1;
+        break;
     }
     return 0;
 }
+
 int selectAPTrackingMode(int fd, int trackMode)
 {
     int error_type;
@@ -419,50 +423,50 @@ int selectAPTrackingMode(int fd, int trackMode)
 
     switch (trackMode)
     {
-        /* Sidereal */
-        case 0:
+    /* Sidereal */
+    case 0:
 
-            DEBUGDEVICE(lx200ap_name, INDI::Logger::DBG_DEBUG,
-                        "selectAPTrackingMode: Setting tracking mode to sidereal.");
-            DEBUGFDEVICE(lx200ap_name, AP_DBG_SCOPE, "CMD <%s>", "#:RT2#");
+        DEBUGDEVICE(lx200ap_name, INDI::Logger::DBG_DEBUG,
+                    "selectAPTrackingMode: Setting tracking mode to sidereal.");
+        DEBUGFDEVICE(lx200ap_name, AP_DBG_SCOPE, "CMD <%s>", "#:RT2#");
 
-            if ((error_type = tty_write_string(fd, "#:RT2#", &nbytes_write)) != TTY_OK)
-                return error_type;
-            break;
+        if ((error_type = tty_write_string(fd, "#:RT2#", &nbytes_write)) != TTY_OK)
+            return error_type;
+        break;
 
         /* Solar */
-        case 1:
+    case 1:
 
-            DEBUGDEVICE(lx200ap_name, INDI::Logger::DBG_DEBUG, "selectAPTrackingMode: Setting tracking mode to solar.");
-            DEBUGFDEVICE(lx200ap_name, AP_DBG_SCOPE, "CMD <%s>", "#:RT1#");
+        DEBUGDEVICE(lx200ap_name, INDI::Logger::DBG_DEBUG, "selectAPTrackingMode: Setting tracking mode to solar.");
+        DEBUGFDEVICE(lx200ap_name, AP_DBG_SCOPE, "CMD <%s>", "#:RT1#");
 
-            if ((error_type = tty_write_string(fd, "#:RT1#", &nbytes_write)) != TTY_OK)
-                return error_type;
-            break;
+        if ((error_type = tty_write_string(fd, "#:RT1#", &nbytes_write)) != TTY_OK)
+            return error_type;
+        break;
 
         /* Lunar */
-        case 2:
+    case 2:
 
-            DEBUGDEVICE(lx200ap_name, INDI::Logger::DBG_DEBUG, "selectAPTrackingMode: Setting tracking mode to lunar.");
-            DEBUGFDEVICE(lx200ap_name, AP_DBG_SCOPE, "CMD <%s>", "#:RT0#");
+        DEBUGDEVICE(lx200ap_name, INDI::Logger::DBG_DEBUG, "selectAPTrackingMode: Setting tracking mode to lunar.");
+        DEBUGFDEVICE(lx200ap_name, AP_DBG_SCOPE, "CMD <%s>", "#:RT0#");
 
-            if ((error_type = tty_write_string(fd, "#:RT0#", &nbytes_write)) != TTY_OK)
-                return error_type;
-            break;
+        if ((error_type = tty_write_string(fd, "#:RT0#", &nbytes_write)) != TTY_OK)
+            return error_type;
+        break;
 
         /* Zero */
-        case 3:
+    case 3:
 
-            DEBUGDEVICE(lx200ap_name, INDI::Logger::DBG_DEBUG, "selectAPTrackingMode: Setting tracking mode to Zero.");
-            DEBUGFDEVICE(lx200ap_name, AP_DBG_SCOPE, "CMD <%s>", "#:RT9#");
+        DEBUGDEVICE(lx200ap_name, INDI::Logger::DBG_DEBUG, "selectAPTrackingMode: Setting tracking mode to Zero.");
+        DEBUGFDEVICE(lx200ap_name, AP_DBG_SCOPE, "CMD <%s>", "#:RT9#");
 
-            if ((error_type = tty_write_string(fd, "#:RT9#", &nbytes_write)) != TTY_OK)
-                return error_type;
-            break;
+        if ((error_type = tty_write_string(fd, "#:RT9#", &nbytes_write)) != TTY_OK)
+            return error_type;
+        break;
 
-        default:
-            return -1;
-            break;
+    default:
+        return -1;
+        break;
     }
     return 0;
 }
@@ -474,22 +478,22 @@ int swapAPButtons(int fd, int currentSwap)
 
     switch (currentSwap)
     {
-        case 0:
+    case 0:
 
-            DEBUGFDEVICE(lx200ap_name, AP_DBG_SCOPE, "CMD <%s>", "#:NS#");
-            if ((error_type = tty_write_string(fd, "#:NS#", &nbytes_write)) != TTY_OK)
-                return error_type;
-            break;
+        DEBUGFDEVICE(lx200ap_name, AP_DBG_SCOPE, "CMD <%s>", "#:NS#");
+        if ((error_type = tty_write_string(fd, "#:NS#", &nbytes_write)) != TTY_OK)
+            return error_type;
+        break;
 
-        case 1:
-            DEBUGFDEVICE(lx200ap_name, AP_DBG_SCOPE, "CMD <%s>", "#:EW#");
-            if ((error_type = tty_write_string(fd, "#:EW#", &nbytes_write)) != TTY_OK)
-                return error_type;
-            break;
+    case 1:
+        DEBUGFDEVICE(lx200ap_name, AP_DBG_SCOPE, "CMD <%s>", "#:EW#");
+        if ((error_type = tty_write_string(fd, "#:EW#", &nbytes_write)) != TTY_OK)
+            return error_type;
+        break;
 
-        default:
-            return -1;
-            break;
+    default:
+        return -1;
+        break;
     }
     return 0;
 }
