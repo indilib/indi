@@ -205,7 +205,7 @@ bool LX200GotoNova::isSlewComplete()
 
     DEBUGF(INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
 
-    if ((errcode = tty_write(PortFD, cmd, 4, &nbytes_written)) != TTY_OK)
+    if ((errcode = tty_write(PortFD, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
     {
         tty_error_msg(errcode, errmsg, MAXRBUF);
         DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
