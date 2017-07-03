@@ -1,7 +1,7 @@
 /*
-    ZEQ25 INDI driver
+    GotoNova INDI driver
 
-    Copyright (C) 2015 Jasem Mutlaq
+    Copyright (C) 2017 Jasem Mutlaq
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -22,17 +22,16 @@
 
 #include "lx200generic.h"
 
-class LX200ZEQ25 : public LX200Generic
+class LX200GotoNova : public LX200Generic
 {
   public:
-    LX200ZEQ25();
-    ~LX200ZEQ25() {}
+    LX200GotoNova();
+    ~LX200GotoNova() {}
 
     virtual bool updateProperties() override;
     virtual bool initProperties() override;
 
     virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
-    virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
 
   protected:
     virtual const char *getDefaultName() override;
@@ -51,33 +50,50 @@ class LX200ZEQ25 : public LX200Generic
     virtual bool MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command) override;
     virtual bool MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command) override;
 
-    // Parking
-    virtual bool SetCurrentPark() override;
-    virtual bool SetDefaultPark() override;
+    virtual bool saveConfigItems(FILE *fp) override;
+
     virtual bool Park() override;
     virtual bool UnPark() override;
 
-        virtual bool SetSlewRate(int index) override;
-        virtual bool SetTrackMode(int mode) override;
-        virtual bool Goto(double, double) override;
-        virtual bool updateTime(ln_date * utc, double utc_offset) override;
-        virtual bool updateLocation(double latitude, double longitude, double elevation) override;
-        virtual bool MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command) override;
-        virtual bool MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command) override;
-        virtual int SendPulseCmd(int direction, int duration_msec) override;
+  private:
+    int setGotoNovaStandardProcedure(int fd, const char *data);
+    void setGuidingEnabled(bool enable);
 
-    bool isZEQ25Home();
-    int gotoZEQ25Home();
+    // Settings
+    int setGotoNovaLatitude(double Lat);
+    int setGotoNovaLongitude(double Long);
+    int setGotoNovaUTCOffset(double hours);
 
-    bool isZEQ25Parked();
+    // Motion
+    int slewGotoNova();
+    int moveGotoNovaTo(int direction);
+    int haltGotoNovaMovement();
 
-    bool getMountInfo();
+    // Park
+    int setGotoNovaParkPosition(int position);
+
+    // Track Mode
+    int setGotoNovaTrackMode(int mode);
+    int getGotoNovaTrackMode(int *mode);
+
+    // Guide Rate
+    int setGotoNovaGuideRate(int rate);
+    int getGotoNovaGuideRate(int *rate);
+
+    // Pier Side
+    void syncSideOfPier();
+
+    // Simulation
     void mountSim();
 
-    ISwitch HomeS[1];
-    ISwitchVectorProperty HomeSP;
+    // Custom Parking Position
+    ISwitch ParkPositionS[5];
+    ISwitchVectorProperty ParkPositionSP;
+    enum { PS_NORTH_POLE, PS_LEFT_VERTICAL, PS_LEFT_HORIZON, PS_RIGHT_VERTICAL, PS_RIGHT_HORIZON };
 
     /* Guide Rate */
-    INumber GuideRateN[1];
-    INumberVectorProperty GuideRateNP;
+    ISwitch GuideRateS[4];
+    ISwitchVectorProperty GuideRateSP;
+
+    bool isGuiding=false;
 };

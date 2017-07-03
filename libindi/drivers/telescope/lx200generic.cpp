@@ -41,6 +41,7 @@ Updated driver to use INDI::Telescope (JM)
 #include "lx200pulsar2.h"
 #include "lx200ss2000pc.h"
 #include "lx200zeq25.h"
+#include "lx200gotonova.h"
 
 #include <libnova/sidereal_time.h>
 
@@ -132,6 +133,13 @@ void ISInit()
 
         if (telescope.get() == 0)
             telescope.reset(new LX200ZEQ25());
+    }
+    else if (strstr(me, "indi_lx200gotonova"))
+    {
+        IDLog("initializing from GotoNova device...\n");
+
+        if (telescope.get() == 0)
+            telescope.reset(new LX200GotoNova());
     }
     else if (strstr(me, "indi_lx200pulsar2"))
     {
@@ -225,6 +233,9 @@ LX200Generic::LX200Generic()
 
     currentRA  = ln_get_apparent_sidereal_time(ln_get_julian_from_sys());
     currentDEC = 90;
+
+    setLX200Capability(LX200_HAS_FOCUS | LX200_HAS_TRACKING_FREQ | LX200_HAS_ALIGNMENT_TYPE | LX200_HAS_SITES |
+                       LX200_HAS_PULSE_GUIDING | LX200_HAS_TRACK_MODE);
 
     SetTelescopeCapability(TELESCOPE_CAN_PARK | TELESCOPE_CAN_SYNC | TELESCOPE_CAN_GOTO | TELESCOPE_CAN_ABORT |
                                TELESCOPE_HAS_TIME | TELESCOPE_HAS_LOCATION,
@@ -333,18 +344,28 @@ void LX200Generic::ISGetProperties(const char *dev)
 
     if (isConnected())
     {
-        defineSwitch(&AlignmentSP);
-        defineSwitch(&TrackModeSP);
-        defineNumber(&TrackingFreqNP);
-        defineSwitch(&UsePulseCmdSP);
+        if (genericCapability & LX200_HAS_ALIGNMENT_TYPE)
+            defineSwitch(&AlignmentSP);
 
-        defineSwitch(&SiteSP);
-        defineText(&SiteNameTP);
+        if (genericCapability & LX200_HAS_TRACK_MODE)
+            defineSwitch(&TrackModeSP);
+
+        if (genericCapability & LX200_HAS_TRACKING_FREQ)
+            defineNumber(&TrackingFreqNP);
+
+        if (genericCapability & LX200_HAS_PULSE_GUIDING)
+            defineSwitch(&UsePulseCmdSP);
+
+        if (genericCapability & LX200_HAS_SITES)
+        {
+            defineSwitch(&SiteSP);
+            defineText(&SiteNameTP);
+        }
 
         defineNumber(&GuideNSNP);
         defineNumber(&GuideWENP);
 
-        if (hasFocus)
+        if (genericCapability & LX200_HAS_FOCUS)
         {
             defineSwitch(&FocusMotionSP);
             defineNumber(&FocusTimerNP);
@@ -359,18 +380,28 @@ bool LX200Generic::updateProperties()
 
     if (isConnected())
     {
-        defineSwitch(&AlignmentSP);
-        defineSwitch(&TrackModeSP);
-        defineNumber(&TrackingFreqNP);
-        defineSwitch(&UsePulseCmdSP);
+        if (genericCapability & LX200_HAS_ALIGNMENT_TYPE)
+            defineSwitch(&AlignmentSP);
 
-        defineSwitch(&SiteSP);
-        defineText(&SiteNameTP);
+        if (genericCapability & LX200_HAS_TRACK_MODE)
+            defineSwitch(&TrackModeSP);
+
+        if (genericCapability & LX200_HAS_TRACKING_FREQ)
+            defineNumber(&TrackingFreqNP);
+
+        if (genericCapability & LX200_HAS_PULSE_GUIDING)
+            defineSwitch(&UsePulseCmdSP);
+
+        if (genericCapability & LX200_HAS_SITES)
+        {
+            defineSwitch(&SiteSP);
+            defineText(&SiteNameTP);
+        }
 
         defineNumber(&GuideNSNP);
         defineNumber(&GuideWENP);
 
-        if (hasFocus)
+        if (genericCapability & LX200_HAS_FOCUS)
         {
             defineSwitch(&FocusMotionSP);
             defineNumber(&FocusTimerNP);
@@ -378,23 +409,31 @@ bool LX200Generic::updateProperties()
         }
 
         getBasicData();
-
-        //loadConfig(true);
     }
     else
     {
-        deleteProperty(AlignmentSP.name);
-        deleteProperty(TrackModeSP.name);
-        deleteProperty(TrackingFreqNP.name);
-        deleteProperty(UsePulseCmdSP.name);
+        if (genericCapability & LX200_HAS_ALIGNMENT_TYPE)
+            deleteProperty(AlignmentSP.name);
 
-        deleteProperty(SiteSP.name);
-        deleteProperty(SiteNameTP.name);
+        if (genericCapability & LX200_HAS_TRACK_MODE)
+            deleteProperty(TrackModeSP.name);
+
+        if (genericCapability & LX200_HAS_TRACKING_FREQ)
+            deleteProperty(TrackingFreqNP.name);
+
+        if (genericCapability & LX200_HAS_PULSE_GUIDING)
+            deleteProperty(UsePulseCmdSP.name);
+
+        if (genericCapability & LX200_HAS_SITES)
+        {
+            deleteProperty(SiteSP.name);
+            deleteProperty(SiteNameTP.name);
+        }
 
         deleteProperty(GuideNSNP.name);
         deleteProperty(GuideWENP.name);
 
-        if (hasFocus)
+        if (genericCapability & LX200_HAS_FOCUS)
         {
             deleteProperty(FocusMotionSP.name);
             deleteProperty(FocusTimerNP.name);
@@ -1311,9 +1350,6 @@ void LX200Generic::sendScopeTime()
     snprintf(utcStr, 8, "%02d", lx200_utc_offset * -1);
     IUSaveText(&TimeT[1], utcStr);
 
-    if (isDebug())
-        IDLog("Telescope TimeT Offset: %s\n", TimeT[1].text);
-
     getLocalTime24(PortFD, &ctime);
     getSexComponents(ctime, &h, &m, &s);
 
@@ -1346,11 +1382,8 @@ void LX200Generic::sendScopeTime()
     strftime(cdate, 32, "%Y-%m-%dT%H:%M:%S", &utm);
     IUSaveText(&TimeT[0], cdate);
 
-    if (isDebug())
-    {
-        IDLog("Telescope Local Time: %02d:%02d:%02d\n", h, m, s);
-        IDLog("Telescope UTC Time: %s\n", TimeT[0].text);
-    }
+    DEBUGF(INDI::Logger::DBG_DEBUG, "Mount controller Local Time: %02d:%02d:%02d", h, m, s);
+    DEBUGF(INDI::Logger::DBG_DEBUG, "Mount controller UTC Time: %s", TimeT[0].text);
 
     // Let's send everything to the client
     IDSetText(&TimeTP, nullptr);
@@ -1370,23 +1403,17 @@ void LX200Generic::sendScopeLocation()
     }
 
     if (getSiteLatitude(PortFD, &dd, &mm) < 0)
-        IDMessage(getDeviceName(), "Failed to get site latitude from device.");
+        DEBUG(INDI::Logger::DBG_WARNING, "Failed to get site latitude from device.");
     else
     {
         if (dd > 0)
             LocationNP.np[0].value = dd + mm / 60.0;
         else
-            LocationNP.np[0].value = dd - mm / 60.0;
-
-        if (isDebug())
-        {
-            IDLog("Autostar Latitude: %d:%d\n", dd, mm);
-            IDLog("INDI Latitude: %g\n", LocationNP.np[0].value);
-        }
+            LocationNP.np[0].value = dd - mm / 60.0;        
     }
 
     if (getSiteLongitude(PortFD, &dd, &mm) < 0)
-        IDMessage(getDeviceName(), "Failed to get site longitude from device.");
+        DEBUG(INDI::Logger::DBG_WARNING, "Failed to get site longitude from device.");
     else
     {
         if (dd > 0)
@@ -1400,6 +1427,8 @@ void LX200Generic::sendScopeLocation()
             IDLog("INDI Longitude: %g\n", LocationNP.np[1].value);
         }
     }
+
+    DEBUGF(INDI::Logger::DBG_DEBUG, "Latitude: %g Longitude: %g", LocationN[LOCATION_LATITUDE].value, LocationN[LOCATION_LONGITUDE].value);
 
     IDSetNumber(&LocationNP, nullptr);
 }
@@ -1691,4 +1720,14 @@ void LX200Generic::guideTimeout()
         GuideWETID            = 0;
         IDSetNumber(&GuideWENP, nullptr);
     }
+}
+
+bool LX200Generic::saveConfigItems(FILE *fp)
+{
+    INDI::Telescope::saveConfigItems(fp);
+
+    if (genericCapability & LX200_HAS_PULSE_GUIDING)
+        IUSaveConfigSwitch(fp, &UsePulseCmdSP);
+
+    return true;
 }

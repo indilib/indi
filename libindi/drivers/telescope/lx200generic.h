@@ -29,6 +29,23 @@ class LX200Generic : public INDI::Telescope, public INDI::GuiderInterface
     LX200Generic();
     virtual ~LX200Generic();
 
+    /**
+     * \struct LX200Capability
+     * \brief Holds properties of LX200 Generic that might be used by child classes
+     */
+    enum
+    {
+        LX200_HAS_FOCUS             = 1 << 0, /** Define focus properties */
+        LX200_HAS_TRACKING_FREQ     = 1 << 1, /** Define Tracking Frequency */
+        LX200_HAS_ALIGNMENT_TYPE    = 1 << 2, /** Define Alignment Type */
+        LX200_HAS_SITES             = 1 << 3, /** Define Sites */
+        LX200_HAS_PULSE_GUIDING     = 1 << 4, /** Define Pulse Guiding */
+        LX200_HAS_TRACK_MODE        = 1 << 5  /** Define Track Mode */
+    } LX200Capability;
+
+    uint32_t getLX200Capability() const { return genericCapability; }
+    void setLX200Capability(uint32_t cap) { genericCapability = cap; }
+
     virtual const char *getDefaultName();
     virtual const char *getDriverName();
     virtual bool Handshake();
@@ -65,6 +82,8 @@ class LX200Generic : public INDI::Telescope, public INDI::GuiderInterface
     virtual bool isSlewComplete();
     virtual bool checkConnection();
 
+    virtual bool saveConfigItems(FILE *fp);
+
     virtual void debugTriggered(bool enable);
 
     virtual void getBasicData();
@@ -93,7 +112,6 @@ class LX200Generic : public INDI::Telescope, public INDI::GuiderInterface
     double targetRA, targetDEC;
     double currentRA, currentDEC;
     int MaxReticleFlashRate;
-    bool hasFocus = true;
 
     /* Telescope Alignment Mode */
     ISwitchVectorProperty AlignmentSP;
@@ -130,4 +148,7 @@ class LX200Generic : public INDI::Telescope, public INDI::GuiderInterface
     /* Focus Mode */
     ISwitchVectorProperty FocusModeSP;
     ISwitch FocusModeS[3];
+
+    uint32_t genericCapability;
+
 };
