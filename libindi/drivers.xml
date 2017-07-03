@@ -121,7 +121,7 @@
                 <driver name="ZEQ25">indi_lx200zeq25</driver>
                 <version>1.0</version>
         </device>
-        <device label="GotoNova" focal_length="" aperture="">
+        <device label="GotoNova 8400 Kit" focal_length="" aperture="">
                 <driver name="GotoNova">indi_lx200gotonova</driver>
                 <version>1.0</version>
         </device>
