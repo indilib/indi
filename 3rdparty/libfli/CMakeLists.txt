@@ -20,7 +20,7 @@ ADD_LIBRARY(fli SHARED ${fli_LIB_SRCS})
 set_target_properties(fli PROPERTIES VERSION 1.8 SOVERSION 1)
 
 #need to link to some other libraries ? just add them here
-TARGET_LINK_LIBRARIES(fli)
+TARGET_LINK_LIBRARIES(fli -lm)
 
 #add an install target here
 INSTALL(FILES libfli.h DESTINATION include)
