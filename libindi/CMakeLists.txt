@@ -125,8 +125,8 @@ find_package(Threads REQUIRED)
 include_directories( ${CMAKE_CURRENT_SOURCE_DIR})
 # 3. Build
 SET(indiserver_SRC
-    ${CMAKE_CURRENT_SOURCE_DIR}/indiserver.c ;
-    ${CMAKE_CURRENT_SOURCE_DIR}/fq.c ;
+    ${CMAKE_CURRENT_SOURCE_DIR}/indiserver.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/fq.c
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/lilxml.c)
 
 IF (UNITY_BUILD)
@@ -165,12 +165,12 @@ include_directories( ${NOVA_INCLUDE_DIR})
 # 3. Build
 
 SET(indiclient_C_SRC
-    ${CMAKE_CURRENT_SOURCE_DIR}/libs/lilxml.c ;
+    ${CMAKE_CURRENT_SOURCE_DIR}/libs/lilxml.c
     ${CMAKE_CURRENT_SOURCE_DIR}/base64.c)
 
 SET(indiclient_CXX_SRC
-    ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/basedevice.cpp ;
-    ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/baseclient.cpp ;
+    ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/basedevice.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/baseclient.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indiproperty.cpp)
 
 IF (UNITY_BUILD)
@@ -231,11 +231,11 @@ include_directories( ${NOVA_INCLUDE_DIR})
 # 3. Build
 message(STATUS "Building INDI Client with Qt5 support")
 SET(indiclientqt_C_SRC
-    ${CMAKE_CURRENT_SOURCE_DIR}/libs/lilxml.c ;
+    ${CMAKE_CURRENT_SOURCE_DIR}/libs/lilxml.c
     ${CMAKE_CURRENT_SOURCE_DIR}/base64.c)
 SET(indiclientqt_CXX_SRC
-    ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/basedevice.cpp ;
-    ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/baseclientqt.cpp ;
+    ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/basedevice.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/baseclientqt.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indiproperty.cpp)
 IF (UNITY_BUILD)
     ENABLE_UNITY_BUILD(indiclientqt_c indiclientqt_C_SRC 10 cpp)
@@ -311,17 +311,17 @@ ENDIF()
 
 IF (UNIX AND NOT APPLE)
     SET(libwebcam_C_SRC
-        ${CMAKE_CURRENT_SOURCE_DIR}/libs/webcam/v4l2_colorspace.c ;
-        ${CMAKE_CURRENT_SOURCE_DIR}/libs/webcam/ccvt_c2.c ;
-        ${CMAKE_CURRENT_SOURCE_DIR}/libs/webcam/ccvt_misc.c ;
+        ${CMAKE_CURRENT_SOURCE_DIR}/libs/webcam/v4l2_colorspace.c
+        ${CMAKE_CURRENT_SOURCE_DIR}/libs/webcam/ccvt_c2.c
+        ${CMAKE_CURRENT_SOURCE_DIR}/libs/webcam/ccvt_misc.c
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/webcam/jpegutils.c)
     SET(libwebcam_CXX_SRC
-        ${CMAKE_CURRENT_SOURCE_DIR}/libs/webcam/v4l2_base.cpp ;
-        ${CMAKE_CURRENT_SOURCE_DIR}/libs/webcam/v4l2_decode/v4l2_decode.cpp ;
-        ${CMAKE_CURRENT_SOURCE_DIR}/libs/webcam/v4l2_decode/v4l2_builtin_decoder.cpp ;
-        ${CMAKE_CURRENT_SOURCE_DIR}/libs/webcam/v4l2_record/v4l2_record.cpp ;
-        ${CMAKE_CURRENT_SOURCE_DIR}/libs/webcam/v4l2_record/ser_recorder.cpp ;
-        ${CMAKE_CURRENT_SOURCE_DIR}/libs/webcam/v4l2_record/stream_recorder.cpp ;
+        ${CMAKE_CURRENT_SOURCE_DIR}/libs/webcam/v4l2_base.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/libs/webcam/v4l2_decode/v4l2_decode.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/libs/webcam/v4l2_decode/v4l2_builtin_decoder.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/libs/webcam/v4l2_record/v4l2_record.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/libs/webcam/v4l2_record/ser_recorder.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/libs/webcam/v4l2_record/stream_recorder.cpp
         )
     IF (UNITY_BUILD)
         ENABLE_UNITY_BUILD(libwebcam libwebcam_C_SRC 10 c)
@@ -330,33 +330,33 @@ IF (UNIX AND NOT APPLE)
 endif()
 
 SET(indidriver_C_SRC
-    ${CMAKE_CURRENT_SOURCE_DIR}/indidriver.c ;
-    ${CMAKE_CURRENT_SOURCE_DIR}/indidrivermain.c ;
-    ${CMAKE_CURRENT_SOURCE_DIR}/eventloop.c ;
-    ${CMAKE_CURRENT_SOURCE_DIR}/libs/lilxml.c ;
+    ${CMAKE_CURRENT_SOURCE_DIR}/indidriver.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/indidrivermain.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/eventloop.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/libs/lilxml.c
     ${CMAKE_CURRENT_SOURCE_DIR}/base64.c)
 
 SET(indidriver_CXX_SRC
-    ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/basedevice.cpp ;
-    ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/defaultdevice.cpp ;
-    ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indiproperty.cpp ;
-    ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indiccd.cpp ;
-    ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/inditelescope.cpp ;
-    ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indifilterwheel.cpp ;
-    ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indifocuserinterface.cpp ;
-    ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indifocuser.cpp ;
-    ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indiusbdevice.cpp ;
-    ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indiguiderinterface.cpp ;
-    ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indifilterinterface.cpp ;
-    ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indidome.cpp ;
-    ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indigps.cpp ;
-    ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indiweather.cpp ;
-    ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indidustcapinterface.cpp ;
-    ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indilightboxinterface.cpp ;
-    ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indilogger.cpp ;
-    ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indicontroller.cpp ;
-    ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/connectionplugins/connectioninterface.cpp ;
-    ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/connectionplugins/connectionserial.cpp ;
+    ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/basedevice.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/defaultdevice.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indiproperty.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indiccd.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/inditelescope.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indifilterwheel.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indifocuserinterface.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indifocuser.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indiusbdevice.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indiguiderinterface.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indifilterinterface.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indidome.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indigps.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indiweather.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indidustcapinterface.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indilightboxinterface.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indilogger.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indicontroller.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/connectionplugins/connectioninterface.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/connectionplugins/connectionserial.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/connectionplugins/connectiontcp.cpp)
 
 IF (UNITY_BUILD)
@@ -422,8 +422,8 @@ install(TARGETS indi_imager_agent RUNTIME DESTINATION bin)
 
 ########### LX200 Basic #############
 SET(lx200basic_SRC
-    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/telescope/lx200driver.cpp ;
-    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/telescope/lx200basic.cpp ;)
+    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/telescope/lx200driver.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/telescope/lx200basic.cpp)
 
 IF (UNITY_BUILD)
     ENABLE_UNITY_BUILD(lx200basic lx200basic_SRC 10 cpp)
@@ -439,21 +439,21 @@ install(TARGETS indi_lx200basic RUNTIME DESTINATION bin)
 
 ########### LX200 Generic ###########
 SET(lx200generic_SRCS
-    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/telescope/lx200driver.cpp ;
-    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/telescope/lx200autostar.cpp ;
-    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/telescope/lx200_16.cpp ;
-    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/telescope/lx200gps.cpp ;
-    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/telescope/lx200generic.cpp ;
-    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/telescope/lx200classic.cpp ;
-    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/telescope/lx200apdriver.cpp ;
-    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/telescope/lx200gemini.cpp ;
-    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/telescope/lx200zeq25.cpp ;
+    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/telescope/lx200driver.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/telescope/lx200autostar.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/telescope/lx200_16.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/telescope/lx200gps.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/telescope/lx200generic.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/telescope/lx200classic.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/telescope/lx200apdriver.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/telescope/lx200gemini.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/telescope/lx200zeq25.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/drivers/telescope/lx200gotonova.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/telescope/lx200pulsar2.cpp ;
-    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/telescope/lx200ap.cpp ;
-    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/telescope/lx200fs2.cpp ;
-    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/telescope/lx200ss2000pc.cpp ;
-    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/telescope/lx200_OnStep.cpp ;
+    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/telescope/lx200pulsar2.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/telescope/lx200ap.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/telescope/lx200fs2.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/telescope/lx200ss2000pc.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/telescope/lx200_OnStep.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/drivers/telescope/lx200_10micron.cpp)
 
 IF (UNITY_BUILD)
@@ -554,7 +554,7 @@ install(TARGETS indi_dsc_telescope RUNTIME DESTINATION bin)
 
 ########### IEQ Pro / CEM60 #############
 SET(ieq_SRC
-    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/telescope/ieqprodriver.cpp ;
+    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/telescope/ieqprodriver.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/drivers/telescope/ieqpro.cpp)
 
 IF (UNITY_BUILD)
@@ -682,7 +682,7 @@ install(TARGETS indi_steeldrive_focus RUNTIME DESTINATION bin)
 ################ FocusLynx Focuser ################
 
 SET(focuslynx_SRC
-    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/focuser/focuslynxbase.cpp ;
+    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/focuser/focuslynxbase.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/drivers/focuser/focuslynx.cpp)
 
 IF (UNITY_BUILD)
@@ -836,8 +836,8 @@ install(TARGETS indi_script_dome RUNTIME DESTINATION bin)
 ########### INDI::CCD V4L Driver ###############
 IF (UNIX AND NOT APPLE)
     SET(v4l2driverccd_SRC
-        ${CMAKE_CURRENT_SOURCE_DIR}/libs/lx/Lx.cpp ;
-        ${CMAKE_CURRENT_SOURCE_DIR}/drivers/video/v4l2driver.cpp ;
+        ${CMAKE_CURRENT_SOURCE_DIR}/libs/lx/Lx.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/drivers/video/v4l2driver.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/drivers/video/indi_v4l2driver.cpp)
 
     IF (UNITY_BUILD)
@@ -858,7 +858,7 @@ ENDIF ()
 ########### SkySafari Middleware ##############
 IF (INDI_BUILD_POSIX_CLIENT)
     SET(skysafari_SRC
-        ${CMAKE_CURRENT_SOURCE_DIR}/drivers/auxiliary/skysafari.cpp ;
+        ${CMAKE_CURRENT_SOURCE_DIR}/drivers/auxiliary/skysafari.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/drivers/auxiliary/skysafariclient.cpp)
 
     IF (UNITY_BUILD)
@@ -875,7 +875,7 @@ ENDIF ()
 ########### Watch dog ###############
 if (INDI_BUILD_POSIX_CLIENT)
     SET(watchdog_SRC
-        ${CMAKE_CURRENT_SOURCE_DIR}/drivers/auxiliary/watchdog.cpp ;
+        ${CMAKE_CURRENT_SOURCE_DIR}/drivers/auxiliary/watchdog.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/drivers/auxiliary/watchdogclient.cpp)
 
     IF (UNITY_BUILD)
@@ -934,7 +934,7 @@ install(TARGETS indi_star2000 RUNTIME DESTINATION bin)
 ########### GPUSB Driver ###############
 
 SET(gpusb_SRC
-    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/auxiliary/gpdriver.cpp ;
+    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/auxiliary/gpdriver.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/drivers/auxiliary/gpusb.cpp)
 
 IF (UNITY_BUILD)
@@ -952,7 +952,7 @@ ENDIF ()
 ########### Joystick Driver ###############
 IF (UNIX AND NOT APPLE)
     SET(joystick_SRC
-        ${CMAKE_CURRENT_SOURCE_DIR}/drivers/auxiliary/joystickdriver.cpp ;
+        ${CMAKE_CURRENT_SOURCE_DIR}/drivers/auxiliary/joystickdriver.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/drivers/auxiliary/joystick.cpp)
 
     IF (UNITY_BUILD)
@@ -1002,7 +1002,7 @@ ENDIF ()
 ########### WunderGround Driver ###############
 
 SET(WunderGround_SRC
-    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/weather/gason.cpp ;
+    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/weather/gason.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/drivers/weather/wunderground.cpp)
 
 IF (UNITY_BUILD)
@@ -1019,9 +1019,9 @@ install(TARGETS indi_wunderground_weather RUNTIME DESTINATION bin)
 
 ########### getINDI ##############
 SET(indi_get_SRC
-    ${CMAKE_CURRENT_SOURCE_DIR}/eventloop.c ;
-    ${CMAKE_CURRENT_SOURCE_DIR}/base64.c ;
-    ${CMAKE_CURRENT_SOURCE_DIR}/tools/getINDIproperty.c ;
+    ${CMAKE_CURRENT_SOURCE_DIR}/eventloop.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/base64.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/tools/getINDIproperty.c
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/lilxml.c)
 
 IF (UNITY_BUILD)
@@ -1041,8 +1041,8 @@ install(TARGETS indi_getprop RUNTIME DESTINATION bin )
 
 ########### setINDI ##############
 SET(indi_set_SRC
-    ${CMAKE_CURRENT_SOURCE_DIR}/eventloop.c ;
-    ${CMAKE_CURRENT_SOURCE_DIR}/base64.c ;
+    ${CMAKE_CURRENT_SOURCE_DIR}/eventloop.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/base64.c
     ${CMAKE_CURRENT_SOURCE_DIR}/tools/setINDIproperty.c
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/lilxml.c)
 
@@ -1063,10 +1063,10 @@ install(TARGETS indi_setprop RUNTIME DESTINATION bin )
 
 ########### evalINDI ##############
 SET(indi_eval_SRC
-    ${CMAKE_CURRENT_SOURCE_DIR}/eventloop.c ;
-    ${CMAKE_CURRENT_SOURCE_DIR}/base64.c ;
-    ${CMAKE_CURRENT_SOURCE_DIR}/tools/compiler.c ;
-    ${CMAKE_CURRENT_SOURCE_DIR}/tools/evalINDI.c ;
+    ${CMAKE_CURRENT_SOURCE_DIR}/eventloop.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/base64.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/tools/compiler.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/tools/evalINDI.c
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/lilxml.c)
 
 IF (UNITY_BUILD)
