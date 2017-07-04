@@ -47,8 +47,6 @@ class LX200GotoNova : public LX200Generic
     virtual bool Goto(double, double) override;
     virtual bool updateTime(ln_date *utc, double utc_offset) override;
     virtual bool updateLocation(double latitude, double longitude, double elevation) override;
-    virtual bool MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command) override;
-    virtual bool MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command) override;
 
     virtual bool saveConfigItems(FILE *fp) override;
 
@@ -65,9 +63,7 @@ class LX200GotoNova : public LX200Generic
     int setGotoNovaUTCOffset(double hours);
 
     // Motion
-    int slewGotoNova();
-    int moveGotoNovaTo(int direction);
-    int haltGotoNovaMovement();
+    int slewGotoNova();    
 
     // Park
     int setGotoNovaParkPosition(int position);

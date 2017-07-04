@@ -38,7 +38,7 @@ LX200GotoNova::LX200GotoNova()
 {
     setVersion(1, 0);
 
-    setLX200Capability(LX200_HAS_TRACK_MODE);
+    setLX200Capability(LX200_HAS_TRACK_MODE | LX200_HAS_FOCUS);
 
     SetTelescopeCapability(TELESCOPE_CAN_PARK | TELESCOPE_CAN_SYNC | TELESCOPE_CAN_GOTO | TELESCOPE_CAN_ABORT |
                            TELESCOPE_HAS_TIME | TELESCOPE_HAS_LOCATION,
@@ -519,113 +519,6 @@ int LX200GotoNova::setGotoNovaStandardProcedure(int fd, const char *data)
 
     DEBUGF(DBG_SCOPE, "CMD <%s> successful.", data);
 
-    return 0;
-}
-
-bool LX200GotoNova::MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command)
-{
-    int current_move = (dir == DIRECTION_NORTH) ? LX200_NORTH : LX200_SOUTH;
-
-    switch (command)
-    {
-    case MOTION_START:
-        if (isSimulation() == false && moveGotoNovaTo(current_move) < 0)
-        {
-            DEBUG(INDI::Logger::DBG_ERROR, "Error setting N/S motion direction.");
-            return false;
-        }
-        else
-            DEBUGF(INDI::Logger::DBG_SESSION, "Moving toward %s.",
-                   (current_move == LX200_NORTH) ? "North" : "South");
-        break;
-
-    case MOTION_STOP:
-        if (isSimulation() == false && haltGotoNovaMovement() < 0)
-        {
-            DEBUG(INDI::Logger::DBG_ERROR, "Error stopping N/S motion.");
-            return false;
-        }
-        else
-            DEBUGF(INDI::Logger::DBG_SESSION, "Movement toward %s halted.",
-                   (current_move == LX200_NORTH) ? "North" : "South");
-        break;
-    }
-
-    return true;
-}
-
-bool LX200GotoNova::MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command)
-{
-    int current_move = (dir == DIRECTION_WEST) ? LX200_WEST : LX200_EAST;
-
-    switch (command)
-    {
-    case MOTION_START:
-        if (isSimulation() == false && moveGotoNovaTo(current_move) < 0)
-        {
-            DEBUG(INDI::Logger::DBG_ERROR, "Error setting W/E motion direction.");
-            return false;
-        }
-        else
-            DEBUGF(INDI::Logger::DBG_SESSION, "Moving toward %s.", (current_move == LX200_WEST) ? "West" : "East");
-        break;
-
-    case MOTION_STOP:
-        if (isSimulation() == false && haltGotoNovaMovement() < 0)
-        {
-            DEBUG(INDI::Logger::DBG_ERROR, "Error stopping W/E motion.");
-            return false;
-        }
-        else
-            DEBUGF(INDI::Logger::DBG_SESSION, "Movement toward %s halted.",
-                   (current_move == LX200_WEST) ? "West" : "East");
-        break;
-    }
-
-    return true;
-}
-
-int LX200GotoNova::moveGotoNovaTo(int direction)
-{
-    DEBUGF(DBG_SCOPE, "<%s>", __FUNCTION__);
-    int nbytes_write = 0;
-
-    switch (direction)
-    {
-    case LX200_NORTH:
-        DEBUGF(DBG_SCOPE, "CMD <%s>", ":mn#");
-        tty_write_string(PortFD, ":mn#", &nbytes_write);
-        break;
-    case LX200_WEST:
-        DEBUGF(DBG_SCOPE, "CMD <%s>", ":mw#");
-        tty_write_string(PortFD, ":mw#", &nbytes_write);
-        break;
-    case LX200_EAST:
-        DEBUGF(DBG_SCOPE, "CMD <%s>", ":me#");
-        tty_write_string(PortFD, ":me#", &nbytes_write);
-        break;
-    case LX200_SOUTH:
-        DEBUGF(DBG_SCOPE, "CMD <%s>", ":ms#");
-        tty_write_string(PortFD, ":ms#", &nbytes_write);
-        break;
-    default:
-        break;
-    }
-
-    tcflush(PortFD, TCIFLUSH);
-    return 0;
-}
-
-int LX200GotoNova::haltGotoNovaMovement()
-{
-    DEBUGF(DBG_SCOPE, "<%s>", __FUNCTION__);
-    int error_type;
-    int nbytes_write = 0;
-
-    if ((error_type = tty_write_string(PortFD, ":q#", &nbytes_write)) != TTY_OK)
-        return error_type;
-
-    tcflush(PortFD, TCIFLUSH);
     return 0;
 }
 
