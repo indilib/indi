@@ -26,8 +26,8 @@
 
 #include <zlib.h>
 
+#include <errno.h>
 #include <signal.h>
-#include <sys/errno.h>
 #include <sys/stat.h>
 
 const char *STREAM_TAB = "Streaming";

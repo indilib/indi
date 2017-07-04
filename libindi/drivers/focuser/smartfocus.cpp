@@ -20,12 +20,12 @@
 
 #include "indicom.h"
 
+#include <errno.h>
 #include <fcntl.h>
 #include <memory>
 #include <string.h>
 #include <termios.h>
 #include <unistd.h>
-#include <sys/errno.h>
 
 std::unique_ptr<SmartFocus> smartFocus(new SmartFocus());
 

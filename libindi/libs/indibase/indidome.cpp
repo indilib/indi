@@ -31,10 +31,10 @@
 #include <libnova/sidereal_time.h>
 #include <libnova/transform.h>
 
+#include <errno.h>
 #include <math.h>
 #include <string.h>
 #include <wordexp.h>
-#include <sys/errno.h>
 
 #define DOME_SLAVING_TAB "Slaving"
 #define DOME_COORD_THRESHOLD \

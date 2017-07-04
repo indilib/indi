@@ -27,10 +27,10 @@
 #include "indicom.h"
 #include "connectionplugins/connectionserial.h"
 
+#include <errno.h>
 #include <memory>
 #include <string.h>
 #include <termios.h>
-#include <sys/errno.h>
 #include <sys/ioctl.h>
 
 // We declare an auto pointer to FlipFlat.

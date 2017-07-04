@@ -24,10 +24,10 @@
 #include "lx200driver.h"
 
 #include <cmath>
+#include <errno.h>
 #include <string.h>
 #include <termios.h>
 #include <unistd.h>
-#include <sys/errno.h>
 
 extern char lx200Name[MAXINDIDEVICE];
 extern unsigned int DBG_SCOPE;

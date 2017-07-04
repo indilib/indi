@@ -35,10 +35,10 @@
 #include <regex>
 
 #include <dirent.h>
+#include <errno.h>
 #include <locale.h>
 #include <stdlib.h>
 #include <zlib.h>
-#include <sys/errno.h>
 #include <sys/stat.h>
 
 #ifdef __linux__

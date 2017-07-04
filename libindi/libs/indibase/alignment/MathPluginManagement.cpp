@@ -10,7 +10,7 @@
 
 #include <dirent.h>
 #include <dlfcn.h>
-#include <sys/errno.h>
+#include <errno.h>
 
 namespace INDI
 {
