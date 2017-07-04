@@ -290,8 +290,3 @@ int main(int ac, char *av[])
     return (0);
 }
 #endif
-/* For RCS Only -- Do Not Edit */
-static char *rcsid[2] = {
-    (char *)rcsid,
-    "@(#) $RCSfile$ $Date: 2006-09-30 14:19:41 +0300 (Sat, 30 Sep 2006) $ $Revision: 590506 $ $Name:  $"
-};
