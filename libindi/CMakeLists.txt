@@ -242,7 +242,7 @@ IF (UNITY_BUILD)
     ENABLE_UNITY_BUILD(indiclientqt_cxx indiclientqt_CXX_SRC 10 cpp)
 ENDIF ()
 
-SET(indiclientqt_C_SRC {indiclientqt_C_SRC}
+SET(indiclientqt_C_SRC ${indiclientqt_C_SRC}
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indicom.c)
 
 add_library(indiclientqt STATIC ${indiclientqt_C_SRC} ${indiclientqt_CXX_SRC})
