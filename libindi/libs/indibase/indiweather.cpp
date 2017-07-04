@@ -29,7 +29,6 @@
 
 #include <string.h>
 
-#define POLLMS         5000
 #define PARAMETERS_TAB "Parameters"
 
 INDI::Weather::Weather()
@@ -311,7 +310,7 @@ void INDI::Weather::TimerHit()
             return;
 
         // Alert
-        // We retry every POLLMS until we get OK
+        // We retry every 5000 ms until we get OK
         case IPS_ALERT:
             ParametersNP.s = state;
             IDSetNumber(&ParametersNP, nullptr);
@@ -322,7 +321,7 @@ void INDI::Weather::TimerHit()
             break;
     }
 
-    updateTimerID = SetTimer(POLLMS);
+    updateTimerID = SetTimer(5000);
 }
 
 IPState INDI::Weather::updateWeather()

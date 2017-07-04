@@ -25,6 +25,10 @@ ${CMAKE_CURRENT_SOURCE_DIR}/ssagccd.cpp
 ${CMAKE_CURRENT_SOURCE_DIR}/openssag_loader.cpp
 ${CMAKE_CURRENT_SOURCE_DIR}/openssag.cpp )
 
+IF (UNITY_BUILD)
+    ENABLE_UNITY_BUILD(indissag indissag_SRCS 10 cpp)
+ENDIF ()
+
 add_executable(indi_ssag_ccd ${indissag_SRCS})
 
 target_link_libraries(indi_ssag_ccd ${INDI_LIBRARIES} ${CFITSIO_LIBRARIES} ${LIBUSB_1_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT})
