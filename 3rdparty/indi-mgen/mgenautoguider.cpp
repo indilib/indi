@@ -97,28 +97,40 @@ bool MGenAutoguider::ISNewSwitch(const char *dev, const char *name, ISState *sta
             {
                 IUUpdateSwitch(&ui.remote.property, states, names, n);
                 ISwitch *const key_switch = IUFindOnSwitch(&ui.remote.property);
-                ui.is_enabled = key_switch->aux == nullptr ? false : true;
-                ui.remote.property.s = IPS_OK;
+                if (key_switch)
+                {
+                    ui.is_enabled = key_switch->aux == nullptr ? false : true;
+                    ui.remote.property.s = IPS_OK;
+                }
+                else ui.remote.property.s = IPS_ALERT;
                 IDSetSwitch(&ui.remote.property, NULL);
             }
             if (!strcmp(name, "MGEN_UI_BUTTONS1"))
             {
                 IUUpdateSwitch(&ui.buttons.properties[0], states, names, n);
-                ISwitch *const key_switch         = IUFindOnSwitch(&ui.buttons.properties[0]);
-                MGIO_INSERT_BUTTON::Button button = *(reinterpret_cast<MGIO_INSERT_BUTTON::Button *>(key_switch->aux));
-                MGIO_INSERT_BUTTON(button).ask(*device);
-                key_switch->s              = ISS_OFF;
-                ui.buttons.properties[0].s = IPS_OK;
+                ISwitch *const key_switch = IUFindOnSwitch(&ui.buttons.properties[0]);
+                if (key_switch)
+                {
+                    MGIO_INSERT_BUTTON::Button button = *(reinterpret_cast<MGIO_INSERT_BUTTON::Button *>(key_switch->aux));
+                    MGIO_INSERT_BUTTON(button).ask(*device);
+                    key_switch->s              = ISS_OFF;
+                    ui.buttons.properties[0].s = IPS_OK;
+                }
+                else ui.buttons.properties[0].s = IPS_ALERT;
                 IDSetSwitch(&ui.buttons.properties[0], NULL);
             }
             if (!strcmp(name, "MGEN_UI_BUTTONS2"))
             {
                 IUUpdateSwitch(&ui.buttons.properties[1], states, names, n);
-                ISwitch *const key_switch         = IUFindOnSwitch(&ui.buttons.properties[1]);
-                MGIO_INSERT_BUTTON::Button button = *(reinterpret_cast<MGIO_INSERT_BUTTON::Button *>(key_switch->aux));
-                MGIO_INSERT_BUTTON(button).ask(*device);
-                key_switch->s              = ISS_OFF;
-                ui.buttons.properties[1].s = IPS_OK;
+                ISwitch *const key_switch = IUFindOnSwitch(&ui.buttons.properties[1]);
+                if (key_switch)
+                {
+                    MGIO_INSERT_BUTTON::Button button = *(reinterpret_cast<MGIO_INSERT_BUTTON::Button *>(key_switch->aux));
+                    MGIO_INSERT_BUTTON(button).ask(*device);
+                    key_switch->s              = ISS_OFF;
+                    ui.buttons.properties[1].s = IPS_OK;
+                }
+                else ui.buttons.properties[1].s = IPS_ALERT;
                 IDSetSwitch(&ui.buttons.properties[1], NULL);
             }
         }
