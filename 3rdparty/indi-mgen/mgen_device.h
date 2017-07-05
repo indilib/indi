@@ -83,13 +83,13 @@ class MGenDevice
      * \return the number of bytes written, or -1 if the command is invalid or device is not accessible.
      * \throw IOError when device communication is malfunctioning.
      */
-    int write(IOBuffer const &) throw(IOError);
+    int write(IOBuffer const &); //throw(IOError);
 
     /** \brief Reading the answer part of a command from the device.
      * \return the number of bytes read, or -1 if the command is invalid or device is not accessible.
      * \throw IOError when device communication is malfunctioning.
      */
-    int read(IOBuffer &) throw(IOError);
+    int read(IOBuffer &); //throw(IOError);
 
   public:
     /** \brief Turning the device on.

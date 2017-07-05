@@ -50,7 +50,7 @@ class MGCP_QUERY_DEVICE : MGC
     virtual IOMode opMode() const { return OPM_UNKNOWN; }
 
   public:
-    virtual IOResult ask(MGenDevice &root) throw(IOError)
+    virtual IOResult ask(MGenDevice &root) //throw(IOError)
     {
         if (CR_SUCCESS != MGC::ask(root))
             return CR_FAILURE;

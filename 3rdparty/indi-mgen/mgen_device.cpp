@@ -275,7 +275,7 @@ int MGenDevice::setOpMode(IOMode const _mode)
     return res;
 }
 
-int MGenDevice::write(IOBuffer const &query) throw(IOError)
+int MGenDevice::write(IOBuffer const &query) //throw(IOError)
 {
     if (!ftdi)
         return -1;
@@ -294,7 +294,7 @@ int MGenDevice::write(IOBuffer const &query) throw(IOError)
     return bytes_written;
 }
 
-int MGenDevice::read(IOBuffer &answer) throw(IOError)
+int MGenDevice::read(IOBuffer &answer) //throw(IOError)
 {
     if (!ftdi)
         return -1;
