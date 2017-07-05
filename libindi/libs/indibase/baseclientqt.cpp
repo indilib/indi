@@ -788,6 +788,17 @@ void INDI::BaseClientQt::processSocketError(QAbstractSocket::SocketError socketE
     serverDisconnected(-1);
 }
 
+bool INDI::BaseClientQt::getDevices(std::vector<INDI::BaseDevice *> &deviceList, uint16_t driverInterface )
+{
+    for (INDI::BaseDevice *device : cDevices)
+    {
+        if (device->getDriverInterface() | driverInterface)
+            deviceList.push_back(device);
+    }
+
+    return (deviceList.size() > 0);
+}
+
 #if defined(_MSC_VER)
 #undef snprintf
 #pragma warning(pop)
