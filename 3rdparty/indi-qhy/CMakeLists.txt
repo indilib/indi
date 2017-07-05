@@ -37,11 +37,12 @@ else()
 set(indiqhy_SRCS
    ${CMAKE_CURRENT_SOURCE_DIR}/qhy_ccd.cpp
    )
-# Force linking all referenced libraries because the recent libqhy versions are not linked against libpthread
-SET(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,--no-as-needed")
 endif(APPLE)
 
 add_executable(indi_qhy_ccd ${indiqhy_SRCS})
+
+# Force linking all referenced libraries because the recent libqhy versions are not linked against libpthread
+SET(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,--no-as-needed")
 
 target_link_libraries(indi_qhy_ccd ${INDI_LIBRARIES} ${CFITSIO_LIBRARIES} ${QHY_LIBRARIES} ${LIBUSB_1_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT})
 
