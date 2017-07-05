@@ -24,12 +24,12 @@
 #include "connectionplugins/connectiontcp.h"
 
 #include <cmath>
+#include <errno.h>
 #include <pwd.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
 #include <wordexp.h>
-#include <sys/errno.h>
 
 namespace
 {

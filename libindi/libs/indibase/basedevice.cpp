@@ -22,11 +22,11 @@
 #include "config.h"
 #include "indicom.h"
 
+#include <errno.h>
 #include <locale.h>
 #include <stdlib.h>
 #include <string.h>
 #include <zlib.h>
-#include <sys/errno.h>
 #include <sys/stat.h>
 
 #if defined(_MSC_VER)

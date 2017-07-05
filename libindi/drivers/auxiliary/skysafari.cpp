@@ -30,12 +30,12 @@
 
 #include <libnova/julian_day.h>
 
+#include <errno.h>
 #include <fcntl.h>
 #include <memory>
 #include <string.h>
 #include <unistd.h>
 #include <arpa/inet.h>
-#include <sys/errno.h>
 #include <sys/socket.h>
 
 #define POLLMS 100

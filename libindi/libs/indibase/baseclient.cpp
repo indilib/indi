@@ -21,13 +21,13 @@
 #include "base64.h"
 #include "basedevice.h"
 
+#include <errno.h>
 #include <fcntl.h>
 #include <locale.h>
 #include <netdb.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include <sys/errno.h>
 
 #define MAXINDIBUF 49152
 
