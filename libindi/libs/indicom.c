@@ -31,7 +31,8 @@
 
 #include "config.h"
 
-#include <libnova.h>
+#include <libnova/julian_day.h>
+#include <libnova/sidereal_time.h>
 
 #include <errno.h>
 #include <fcntl.h>
