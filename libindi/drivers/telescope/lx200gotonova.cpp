@@ -38,7 +38,7 @@ LX200GotoNova::LX200GotoNova()
 {
     setVersion(1, 0);
 
-    setLX200Capability(LX200_HAS_TRACK_MODE);
+    setLX200Capability(LX200_HAS_TRACK_MODE | LX200_HAS_FOCUS);
 
     SetTelescopeCapability(TELESCOPE_CAN_PARK | TELESCOPE_CAN_SYNC | TELESCOPE_CAN_GOTO | TELESCOPE_CAN_ABORT |
                            TELESCOPE_HAS_TIME | TELESCOPE_HAS_LOCATION,
@@ -54,6 +54,12 @@ bool LX200GotoNova::initProperties()
     strcpy(SlewRateS[1].label, "64x");
     strcpy(SlewRateS[2].label, "256x");
     strcpy(SlewRateS[3].label, "512x");
+
+    // Sync Type
+    IUFillSwitch(&SyncCMRS[USE_REGULAR_SYNC], ":CM#", ":CM#", ISS_ON);
+    IUFillSwitch(&SyncCMRS[USE_CMR_SYNC], ":CMR#", ":CMR#", ISS_OFF);
+    IUFillSwitchVector(&SyncCMRSP, SyncCMRS, 2, getDeviceName(), "SYNCCMR", "Sync", MOTION_TAB, IP_RW, ISR_1OFMANY, 0,
+                       IPS_IDLE);
 
     // Park Position
     IUFillSwitch(&ParkPositionS[PS_NORTH_POLE], "North Pole", "", ISS_ON);
@@ -83,12 +89,14 @@ bool LX200GotoNova::updateProperties()
     LX200Generic::updateProperties();
 
     if (isConnected())
-    {        
+    {
+        defineSwitch(&SyncCMRSP);
         defineSwitch(&ParkPositionSP);
         defineSwitch(&GuideRateSP);
     }
     else
     {
+        deleteProperty(SyncCMRSP.name);
         deleteProperty(ParkPositionSP.name);
         deleteProperty(GuideRateSP.name);
     }
@@ -185,6 +193,17 @@ bool LX200GotoNova::ISNewSwitch(const char *dev, const char *name, ISState *stat
             }
 
             IDSetSwitch(&GuideRateSP, nullptr);
+            return true;
+        }
+
+        // Sync type
+        if (!strcmp(name, SyncCMRSP.name))
+        {
+            IUResetSwitch(&SyncCMRSP);
+            IUUpdateSwitch(&SyncCMRSP, states, names, n);
+            IUFindOnSwitchIndex(&SyncCMRSP);
+            SyncCMRSP.s = IPS_OK;
+            IDSetSwitch(&SyncCMRSP, nullptr);
             return true;
         }
     }
@@ -311,6 +330,89 @@ bool LX200GotoNova::Goto(double r, double d)
     IDMessage(getDeviceName(), "Slewing to RA: %s - DEC: %s", RAStr, DecStr);
     return true;
 }
+
+bool LX200GotoNova::Sync(double ra, double dec)
+{
+    char syncString[256];
+
+    int syncType = IUFindOnSwitchIndex(&SyncCMRSP);
+
+    if (isSimulation() == false)
+    {
+        if (setObjectRA(PortFD, ra) < 0 || setObjectDEC(PortFD, dec) < 0)
+        {
+            EqNP.s = IPS_ALERT;
+            IDSetNumber(&EqNP, "Error setting RA/DEC. Unable to Sync.");
+            return false;
+        }
+
+        bool syncOK = true;
+
+        switch (syncType)
+        {
+        case USE_REGULAR_SYNC:
+            if (::Sync(PortFD, syncString) < 0)
+                syncOK = false;
+            break;
+
+        case USE_CMR_SYNC:
+            if (GotonovaSyncCMR(syncString) < 0)
+                syncOK = false;
+            break;
+
+        default:
+            break;
+        }
+
+        if (syncOK == false)
+        {
+            EqNP.s = IPS_ALERT;
+            IDSetNumber(&EqNP, "Synchronization failed.");
+            return false;
+        }
+
+    }
+
+    currentRA  = ra;
+    currentDEC = dec;
+
+    DEBUGF(INDI::Logger::DBG_DEBUG, "%s Synchronization successful %s", (syncType == USE_REGULAR_SYNC ? "CM" : "CMR"), syncString);
+    DEBUG(INDI::Logger::DBG_SESSION, "Synchronization successful.");
+
+    TrackState = SCOPE_IDLE;
+    EqNP.s     = IPS_OK;
+
+    NewRaDec(currentRA, currentDEC);
+
+    return true;
+}
+
+int LX200GotoNova::GotonovaSyncCMR(char *matchedObject)
+{
+    int error_type;
+    int nbytes_write = 0;
+    int nbytes_read  = 0;
+
+    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD <%s>", "#:CMR#");
+
+    if ((error_type = tty_write_string(PortFD, ":CMR#", &nbytes_write)) != TTY_OK)
+        return error_type;
+
+    if ((error_type = tty_read_section(PortFD, matchedObject, '#', 3, &nbytes_read)) != TTY_OK)
+        return error_type;
+
+    matchedObject[nbytes_read - 1] = '\0';
+
+    DEBUGF(INDI::Logger::DBG_DEBUG, "RES <%s>", matchedObject);
+
+    /* Sleep 10ms before flushing. This solves some issues with LX200 compatible devices. */
+    usleep(10000);
+
+    tcflush(PortFD, TCIFLUSH);
+
+    return 0;
+}
+
 
 int LX200GotoNova::slewGotoNova()
 {
@@ -519,113 +621,6 @@ int LX200GotoNova::setGotoNovaStandardProcedure(int fd, const char *data)
 
     DEBUGF(DBG_SCOPE, "CMD <%s> successful.", data);
 
-    return 0;
-}
-
-bool LX200GotoNova::MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command)
-{
-    int current_move = (dir == DIRECTION_NORTH) ? LX200_NORTH : LX200_SOUTH;
-
-    switch (command)
-    {
-    case MOTION_START:
-        if (isSimulation() == false && moveGotoNovaTo(current_move) < 0)
-        {
-            DEBUG(INDI::Logger::DBG_ERROR, "Error setting N/S motion direction.");
-            return false;
-        }
-        else
-            DEBUGF(INDI::Logger::DBG_SESSION, "Moving toward %s.",
-                   (current_move == LX200_NORTH) ? "North" : "South");
-        break;
-
-    case MOTION_STOP:
-        if (isSimulation() == false && haltGotoNovaMovement() < 0)
-        {
-            DEBUG(INDI::Logger::DBG_ERROR, "Error stopping N/S motion.");
-            return false;
-        }
-        else
-            DEBUGF(INDI::Logger::DBG_SESSION, "Movement toward %s halted.",
-                   (current_move == LX200_NORTH) ? "North" : "South");
-        break;
-    }
-
-    return true;
-}
-
-bool LX200GotoNova::MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command)
-{
-    int current_move = (dir == DIRECTION_WEST) ? LX200_WEST : LX200_EAST;
-
-    switch (command)
-    {
-    case MOTION_START:
-        if (isSimulation() == false && moveGotoNovaTo(current_move) < 0)
-        {
-            DEBUG(INDI::Logger::DBG_ERROR, "Error setting W/E motion direction.");
-            return false;
-        }
-        else
-            DEBUGF(INDI::Logger::DBG_SESSION, "Moving toward %s.", (current_move == LX200_WEST) ? "West" : "East");
-        break;
-
-    case MOTION_STOP:
-        if (isSimulation() == false && haltGotoNovaMovement() < 0)
-        {
-            DEBUG(INDI::Logger::DBG_ERROR, "Error stopping W/E motion.");
-            return false;
-        }
-        else
-            DEBUGF(INDI::Logger::DBG_SESSION, "Movement toward %s halted.",
-                   (current_move == LX200_WEST) ? "West" : "East");
-        break;
-    }
-
-    return true;
-}
-
-int LX200GotoNova::moveGotoNovaTo(int direction)
-{
-    DEBUGF(DBG_SCOPE, "<%s>", __FUNCTION__);
-    int nbytes_write = 0;
-
-    switch (direction)
-    {
-    case LX200_NORTH:
-        DEBUGF(DBG_SCOPE, "CMD <%s>", ":mn#");
-        tty_write_string(PortFD, ":mn#", &nbytes_write);
-        break;
-    case LX200_WEST:
-        DEBUGF(DBG_SCOPE, "CMD <%s>", ":mw#");
-        tty_write_string(PortFD, ":mw#", &nbytes_write);
-        break;
-    case LX200_EAST:
-        DEBUGF(DBG_SCOPE, "CMD <%s>", ":me#");
-        tty_write_string(PortFD, ":me#", &nbytes_write);
-        break;
-    case LX200_SOUTH:
-        DEBUGF(DBG_SCOPE, "CMD <%s>", ":ms#");
-        tty_write_string(PortFD, ":ms#", &nbytes_write);
-        break;
-    default:
-        break;
-    }
-
-    tcflush(PortFD, TCIFLUSH);
-    return 0;
-}
-
-int LX200GotoNova::haltGotoNovaMovement()
-{
-    DEBUGF(DBG_SCOPE, "<%s>", __FUNCTION__);
-    int error_type;
-    int nbytes_write = 0;
-
-    if ((error_type = tty_write_string(PortFD, ":q#", &nbytes_write)) != TTY_OK)
-        return error_type;
-
-    tcflush(PortFD, TCIFLUSH);
     return 0;
 }
 
@@ -911,6 +906,7 @@ bool LX200GotoNova::saveConfigItems(FILE *fp)
 {
     LX200Generic::saveConfigItems(fp);
 
+    IUSaveConfigSwitch(fp, &SyncCMRSP);
     IUSaveConfigSwitch(fp, &ParkPositionSP);
 
     return true;

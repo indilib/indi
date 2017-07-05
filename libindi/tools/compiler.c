@@ -843,7 +843,3 @@ int len;
     *name = '\0';
     return (0);
 }
-
-/* For RCS Only -- Do Not Edit */
-static char *rcsid[2] = { (char *)rcsid,
-                          "@(#) $RCSfile: compiler.c,v $ $Date: 2005/11/21 21:33:32 $ $Revision: 1.1 $ $Name:  $" };

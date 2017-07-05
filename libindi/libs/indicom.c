@@ -25,6 +25,14 @@
 
 #define _GNU_SOURCE 1
 
+#include "indicom.h"
+
+#include "indidevapi.h"
+
+#include "config.h"
+
+#include <libnova.h>
+
 #include <errno.h>
 #include <fcntl.h>
 #include <locale.h>
@@ -43,12 +51,6 @@
 #include <IOKit/serial/ioss.h>
 #include <sys/ioctl.h>
 #endif
-
-#include <config.h>
-#include <libnova.h>
-
-#include "indicom.h"
-#include "indidevapi.h"
 
 #ifdef _WIN32
 #undef CX

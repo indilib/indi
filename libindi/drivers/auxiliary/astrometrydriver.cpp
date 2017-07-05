@@ -26,9 +26,9 @@
 
 #include <memory>
 
+#include <errno.h>
 #include <string.h>
 #include <zlib.h>
-#include <sys/errno.h>
 
 // We declare an auto pointer to AstrometryDriver.
 std::unique_ptr<AstrometryDriver> astrometry(new AstrometryDriver());

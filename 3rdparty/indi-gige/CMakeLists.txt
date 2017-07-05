@@ -32,6 +32,10 @@ if (CFITSIO_FOUND)
     ${CMAKE_CURRENT_SOURCE_DIR}/src/BlackFly.cpp
 )
 
+IF (UNITY_BUILD)
+    ENABLE_UNITY_BUILD(indigige GIGE_SRCS 10 cpp)
+ENDIF ()
+
 add_executable(indi_gige_ccd ${GIGE_SRCS})
 
 #target_link_libraries(indi_gige_ccd ${INDI_LIBRARIES} ${CFITSIO_LIBRARIES} m ${ZLIB_LIBRARY} ${GLIB2_LIBRARY} ${ARV_LIBRARY})

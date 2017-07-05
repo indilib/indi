@@ -41,27 +41,33 @@ IF ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU" AND CMAKE_CXX_COMPILER_VERSION VER
 ENDIF ()
 
 ########### EQMod ###############
-set(eqmod_SRCS
+set(eqmod_CXX_SRCS
    ${CMAKE_CURRENT_SOURCE_DIR}/eqmod.cpp ${CMAKE_CURRENT_SOURCE_DIR}/eqmoderror.cpp ${CMAKE_CURRENT_SOURCE_DIR}/skywatcher.cpp)
 
 if (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
-  set(eqmod_SRCS ${eqmod_SRCS}
+  set(eqmod_CXX_SRCS ${eqmod_CXX_SRCS}
     ${CMAKE_CURRENT_SOURCE_DIR}/mach_gettime.cpp)
 endif()
 
-set(eqmod_SRCS ${eqmod_SRCS}
+set(eqmod_CXX_SRCS ${eqmod_CXX_SRCS}
    ${CMAKE_CURRENT_SOURCE_DIR}/simulator/simulator.cpp    ${CMAKE_CURRENT_SOURCE_DIR}/simulator/skywatcher-simulator.cpp)
 if(WITH_ALIGN_GEEHALEL)
-  set(eqmod_SRCS ${eqmod_SRCS}
-   ${CMAKE_CURRENT_SOURCE_DIR}/align/align.cpp ${CMAKE_CURRENT_SOURCE_DIR}/align/pointset.cpp ${CMAKE_CURRENT_SOURCE_DIR}/align/htm.c
-   ${CMAKE_CURRENT_SOURCE_DIR}/align/triangulate.cpp ${CMAKE_CURRENT_SOURCE_DIR}/align/triangulate_chull.cpp ${CMAKE_CURRENT_SOURCE_DIR}/align/chull/chull.c)
+  set(eqmod_CXX_SRCS ${eqmod_CXX_SRCS}
+   ${CMAKE_CURRENT_SOURCE_DIR}/align/align.cpp ${CMAKE_CURRENT_SOURCE_DIR}/align/pointset.cpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/align/triangulate.cpp ${CMAKE_CURRENT_SOURCE_DIR}/align/triangulate_chull.cpp)
+  set(eqmod_C_SRCS ${CMAKE_CURRENT_SOURCE_DIR}/align/htm.c ${CMAKE_CURRENT_SOURCE_DIR}/align/chull/chull.c)
 endif(WITH_ALIGN_GEEHALEL)
 if(WITH_SCOPE_LIMITS)
-  set(eqmod_SRCS ${eqmod_SRCS}
+  set(eqmod_CXX_SRCS ${eqmod_CXX_SRCS}
     ${CMAKE_CURRENT_SOURCE_DIR}/scope-limits/scope-limits.cpp)
 endif(WITH_SCOPE_LIMITS)
 
-add_executable(indi_eqmod_telescope ${eqmod_SRCS})
+IF (UNITY_BUILD)
+    ENABLE_UNITY_BUILD(eqmod_c eqmod_C_SRCS 10 c)
+    ENABLE_UNITY_BUILD(eqmod_cxx eqmod_CXX_SRCS 10 cpp)
+ENDIF ()
+
+add_executable(indi_eqmod_telescope ${eqmod_C_SRCS} ${eqmod_CXX_SRCS})
 
 if(WITH_ALIGN)
   target_link_libraries(indi_eqmod_telescope ${INDI_LIBRARIES} ${NOVA_LIBRARIES} ${INDI_ALIGN_LIBRARIES} ${GSL_LIBRARIES} ${ZLIB_LIBRARY})

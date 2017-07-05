@@ -26,10 +26,10 @@
 
 #include "connectionplugins/connectiontcp.h"
 
+#include <errno.h>
 #include <memory>
 #include <string.h>
 #include <unistd.h>
-#include <sys/errno.h>
 
 // We declare an auto pointer to SQM.
 std::unique_ptr<SQM> sqm(new SQM());
