@@ -70,7 +70,8 @@ class MGIO_INSERT_BUTTON : MGC
 
         if (root.lock())
         {
-            _D("sending button %d", query[2]);
+            IOByte const b = query[2];
+            _D("sending button %d", b);
 
             query[2] &= 0x7F;
             root.write(query);
@@ -79,6 +80,8 @@ class MGIO_INSERT_BUTTON : MGC
             query[2] |= 0x80;
             root.write(query);
             root.read(answer);
+
+            _D("button %d sent", b);
 
             root.unlock();
         }

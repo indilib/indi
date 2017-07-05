@@ -93,24 +93,44 @@ bool MGenAutoguider::ISNewSwitch(const char *dev, const char *name, ISState *sta
     {
         if (!strcmp(dev, getDeviceName()))
         {
+            if (!strcmp(name, "MGEN_UI_REMOTE"))
+            {
+                IUUpdateSwitch(&ui.remote.property, states, names, n);
+                ISwitch *const key_switch = IUFindOnSwitch(&ui.remote.property);
+                if (key_switch)
+                {
+                    ui.is_enabled = key_switch->aux == nullptr ? false : true;
+                    ui.remote.property.s = IPS_OK;
+                }
+                else ui.remote.property.s = IPS_ALERT;
+                IDSetSwitch(&ui.remote.property, NULL);
+            }
             if (!strcmp(name, "MGEN_UI_BUTTONS1"))
             {
                 IUUpdateSwitch(&ui.buttons.properties[0], states, names, n);
-                ISwitch *const key_switch         = IUFindOnSwitch(&ui.buttons.properties[0]);
-                MGIO_INSERT_BUTTON::Button button = *(reinterpret_cast<MGIO_INSERT_BUTTON::Button *>(key_switch->aux));
-                MGIO_INSERT_BUTTON(button).ask(*device);
-                key_switch->s              = ISS_OFF;
-                ui.buttons.properties[0].s = IPS_OK;
+                ISwitch *const key_switch = IUFindOnSwitch(&ui.buttons.properties[0]);
+                if (key_switch)
+                {
+                    MGIO_INSERT_BUTTON::Button button = *(reinterpret_cast<MGIO_INSERT_BUTTON::Button *>(key_switch->aux));
+                    MGIO_INSERT_BUTTON(button).ask(*device);
+                    key_switch->s              = ISS_OFF;
+                    ui.buttons.properties[0].s = IPS_OK;
+                }
+                else ui.buttons.properties[0].s = IPS_ALERT;
                 IDSetSwitch(&ui.buttons.properties[0], NULL);
             }
             if (!strcmp(name, "MGEN_UI_BUTTONS2"))
             {
                 IUUpdateSwitch(&ui.buttons.properties[1], states, names, n);
-                ISwitch *const key_switch         = IUFindOnSwitch(&ui.buttons.properties[1]);
-                MGIO_INSERT_BUTTON::Button button = *(reinterpret_cast<MGIO_INSERT_BUTTON::Button *>(key_switch->aux));
-                MGIO_INSERT_BUTTON(button).ask(*device);
-                key_switch->s              = ISS_OFF;
-                ui.buttons.properties[1].s = IPS_OK;
+                ISwitch *const key_switch = IUFindOnSwitch(&ui.buttons.properties[1]);
+                if (key_switch)
+                {
+                    MGIO_INSERT_BUTTON::Button button = *(reinterpret_cast<MGIO_INSERT_BUTTON::Button *>(key_switch->aux));
+                    MGIO_INSERT_BUTTON(button).ask(*device);
+                    key_switch->s              = ISS_OFF;
+                    ui.buttons.properties[1].s = IPS_OK;
+                }
+                else ui.buttons.properties[1].s = IPS_ALERT;
                 IDSetSwitch(&ui.buttons.properties[1], NULL);
             }
         }
@@ -150,7 +170,7 @@ bool MGenAutoguider::ISNewNumber(char const *dev, char const *name, double value
                 IDSetNumber(&ui.framerate.property, NULL);
                 RemoveTimer(ui.timer);
                 TimerHit();
-                _S("UI refresh rate is now %+02.2 frames per second", ui.framerate.number.value);
+                _S("UI refresh rate is now %+02.2f frames per second", ui.framerate.number.value);
                 return true;
             }
         }
@@ -219,8 +239,14 @@ bool MGenAutoguider::initProperties()
 
     {
         char const TAB[] = "Remote UI";
+        IUFillSwitch(&ui.remote.switches[0], "MGEN_UI_FRAMERATE_ENABLE", "Enable", ISS_OFF);
+        ui.remote.switches[0].aux = (void*)1;
+        IUFillSwitch(&ui.remote.switches[1], "MGEN_UI_FRAMERATE_DISABLE", "Disable", ISS_ON);
+        ui.remote.switches[1].aux = (void*)0;
+        IUFillSwitchVector(&ui.remote.property, &ui.remote.switches[0], 2, getDeviceName(), "MGEN_UI_REMOTE",
+                           "Enable Remote UI", TAB, IP_RW, ISR_1OFMANY, 0, IPS_OK);
         /* FIXME frame rate kills connection quickly, make INDI::CCD blob compressed by default at the expense of server cpu power */
-        IUFillNumber(&ui.framerate.number, "MGEN_UI_FRAMERATE", "Frame rate", "%+02.2f fps", 0, 4, 0.25f, 0.25f);
+        IUFillNumber(&ui.framerate.number, "MGEN_UI_FRAMERATE", "Frame rate", "%+02.2f fps", 0, 4, 0.25f, 0.5f);
         IUFillNumberVector(&ui.framerate.property, &ui.framerate.number, 1, getDeviceName(), "MGEN_UI_OPTIONS", "UI",
                            TAB, IP_RW, 60, IPS_IDLE);
 
@@ -257,6 +283,7 @@ bool MGenAutoguider::updateProperties()
         _D("registering properties", "");
         defineText(&version.firmware.property);
         defineNumber(&voltage.property);
+        defineSwitch(&ui.remote.property);
         defineNumber(&ui.framerate.property);
         defineSwitch(&ui.buttons.properties[0]);
         defineSwitch(&ui.buttons.properties[1]);
@@ -266,6 +293,7 @@ bool MGenAutoguider::updateProperties()
         _D("removing properties", "");
         deleteProperty(version.firmware.property.name);
         deleteProperty(voltage.property.name);
+        deleteProperty(ui.remote.property.name);
         deleteProperty(ui.framerate.property.name);
         deleteProperty(ui.buttons.properties[0].name);
         deleteProperty(ui.buttons.properties[1].name);
@@ -486,7 +514,7 @@ void MGenAutoguider::TimerHit()
             }
 
             /* Update UI frame - I'm trading efficiency for code clarity, sorry for the computation with doubles */
-            if (0 == ui.timestamp.tv_sec || 0 < ui.framerate.number.value)
+            if (ui.is_enabled && (0 == ui.timestamp.tv_sec || 0 < ui.framerate.number.value))
             {
                 double const ui_period = 1.0f / ui.framerate.number.value;
                 double const ui_next =
