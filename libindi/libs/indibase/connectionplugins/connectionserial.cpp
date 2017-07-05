@@ -24,7 +24,6 @@
 #include <dirent.h>
 #include <errno.h>
 #include <string.h>
-#include <sys/errno.h>
 
 namespace Connection
 {

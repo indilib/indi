@@ -21,13 +21,13 @@
 #include "base64.h"
 #include "basedevice.h"
 
+#include <errno.h>
 #include <fcntl.h>
 #include <locale.h>
 #include <netdb.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include <sys/errno.h>
 
 #define MAXINDIBUF 49152
 
@@ -894,4 +894,15 @@ INDI::BaseClient::BLOBMode *INDI::BaseClient::findBLOBMode(const std::string& de
     }
 
     return nullptr;
+}
+
+bool INDI::BaseClient::getDevices(std::vector<INDI::BaseDevice *> &deviceList, uint16_t driverInterface )
+{
+    for (INDI::BaseDevice *device : cDevices)
+    {
+        if (device->getDriverInterface() | driverInterface)
+            deviceList.push_back(device);
+    }
+
+    return (deviceList.size() > 0);
 }

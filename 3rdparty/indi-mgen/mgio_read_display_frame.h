@@ -93,7 +93,7 @@ class MGIO_READ_DISPLAY_FRAME : MGC
     };
 
   public:
-    virtual IOResult ask(MGenDevice &root) throw(IOError)
+    virtual IOResult ask(MGenDevice &root) //throw(IOError)
     {
         if (CR_SUCCESS != MGC::ask(root))
             return CR_FAILURE;
@@ -114,6 +114,8 @@ class MGIO_READ_DISPLAY_FRAME : MGC
 
         if (root.lock())
         {
+            _D("reading UI frame",0);
+
             for (unsigned int block = 0; block < 8 * 128; block += 128)
             {
                 /* Query is using 10 bits of the address over two bytes, then 1 byte for the count */
@@ -139,6 +141,8 @@ class MGIO_READ_DISPLAY_FRAME : MGC
             /* Device replies with opcode only, and subfunc is done */
             answer.resize(1);
             root.read(answer);
+
+            _D("done reading UI frame",0);
 
             root.unlock();
         }

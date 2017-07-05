@@ -1,9 +1,7 @@
 
 include(CheckCCompilerFlag)
 
-IF ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
-    SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /std:c++11")
-ELSE ()
+IF (NOT "${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
     SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=gnu99")
     SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
 ENDIF ()
@@ -80,21 +78,23 @@ IF (UNIX OR APPLE)
 
     # Note: The following flags are problematic on older systems with gcc 4.8
     IF ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang" OR ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU" AND CMAKE_CXX_COMPILER_VERSION VERSION_GREATER 4.9.9))
-        # Compress the debug sections
-        # Note: Before valgrind 3.12.0, patch should be applied for valgrind (https://bugs.kde.org/show_bug.cgi?id=303877)
-        IF (NOT APPLE AND NOT ANDROID AND NOT CMAKE_SYSTEM_PROCESSOR MATCHES arm AND NOT CMAKE_CXX_CLANG_TIDY)
-            SET(COMP_FLAGS "${COMP_FLAGS} -Wa,--compress-debug-sections")
-            SET(LINKER_FLAGS "${LINKER_FLAGS} -Wl,--compress-debug-sections=zlib")
-        ENDIF ()
         IF ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang" OR "${CMAKE_CXX_COMPILER_ID}" STREQUAL "AppleClang")
             SET(COMP_FLAGS "${COMP_FLAGS} -Wno-unused-command-line-argument")
         ENDIF ()
-        # ld.gold is 2x faster than normal ld
-        IF (NOT APPLE AND NOT CMAKE_SYSTEM_PROCESSOR MATCHES arm)
+        FIND_PROGRAM(LDGOLD_FOUND ld.gold)
+        SET(LDGOLD_SUPPORT OFF CACHE BOOL "Enable ld.gold support")
+        # Optional ld.gold is 2x faster than normal ld
+        IF (LDGOLD_FOUND AND LDGOLD_SUPPORT MATCHES ON AND NOT APPLE AND NOT CMAKE_SYSTEM_PROCESSOR MATCHES arm)
             SET(LINKER_FLAGS "${LINKER_FLAGS} -fuse-ld=gold")
             # Use Identical Code Folding
             SET(COMP_FLAGS "${COMP_FLAGS} -ffunction-sections")
             SET(LINKER_FLAGS "${LINKER_FLAGS} -Wl,--icf=safe")
+            # Compress the debug sections
+            # Note: Before valgrind 3.12.0, patch should be applied for valgrind (https://bugs.kde.org/show_bug.cgi?id=303877)
+            IF (NOT APPLE AND NOT ANDROID AND NOT CMAKE_SYSTEM_PROCESSOR MATCHES arm AND NOT CMAKE_CXX_CLANG_TIDY)
+                SET(COMP_FLAGS "${COMP_FLAGS} -Wa,--compress-debug-sections")
+                SET(LINKER_FLAGS "${LINKER_FLAGS} -Wl,--compress-debug-sections=zlib")
+            ENDIF ()
         ENDIF ()
     ENDIF ()
 

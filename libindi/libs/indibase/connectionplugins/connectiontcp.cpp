@@ -20,10 +20,10 @@
 
 #include "indilogger.h"
 
+#include <errno.h>
 #include <netdb.h>
 #include <string.h>
 #include <unistd.h>
-#include <sys/errno.h>
 
 namespace Connection
 {
