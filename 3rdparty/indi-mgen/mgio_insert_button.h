@@ -63,7 +63,7 @@ class MGIO_INSERT_BUTTON : MGC
     };
 
   public:
-    virtual IOResult ask(MGenDevice &root) throw(IOError)
+    virtual IOResult ask(MGenDevice &root) //throw(IOError)
     {
         if (CR_SUCCESS != MGC::ask(root))
             return CR_FAILURE;

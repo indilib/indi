@@ -69,7 +69,7 @@ option(WITH_GPSD "Install GPSD Driver" On)
 option(WITH_GIGE "Install GiGE machine vision Driver" Off)
 option(WITH_DSI "Install Meade DSI Driver" On)
 option(WITH_ASICAM "Install ZWO Optics ASI Driver" On)
-option(WITH_MGEN "Install MGen Autoguider" Off)
+option(WITH_MGEN "Install MGen Autoguider" On)
 
 # Add/remove cases for OSX
 IF (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
@@ -81,6 +81,7 @@ IF (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
     set(WITH_FISHCAMP Off)
     set(WITH_GIGE Off)
     set(WITH_DSI Off)
+    set(WITH_MGEN Off)
 ENDIF ()
 # Dsi contains invalid C++ codes what does not compile with Clang
 IF ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "AppleClang" OR "${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")

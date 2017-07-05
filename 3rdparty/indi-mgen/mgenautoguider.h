@@ -148,6 +148,7 @@ class MGenAutoguider : public INDI::CCD
             IText text;                   /*!< Firmware version as read from the device. */
             ITextVectorProperty property; /*!< Firmware version INDI property. */
         } firmware;
+        version(): timestamp({ .tv_sec = 0, .tv_nsec = 0 }) {}
     } version;
 
   protected:
@@ -162,6 +163,7 @@ class MGenAutoguider : public INDI::CCD
             INumber reference; /*!< Reference voltage, ~1.23V (more than 10% difference shows internal problem). */
         } levels;
         INumberVectorProperty property; /*!< Voltage INDI property. */
+        voltage(): timestamp({ .tv_sec = 0, .tv_nsec = 0 }) {}
     } voltage;
 
   protected:
@@ -179,6 +181,7 @@ class MGenAutoguider : public INDI::CCD
             ISwitch switches[6];                 /*!< Button switches for ESC, SET, UP, LEFT, RIGHT and DOWN. */
             ISwitchVectorProperty properties[2]; /*!< Button INDI properties, {ESC,SET} and {UP,LEFT,RIGHT,DOWN}. */
         } buttons;
+        ui(): timer(0), timestamp({ .tv_sec = 0, .tv_nsec = 0 }) {}
     } ui;
 
   protected:
@@ -186,6 +189,7 @@ class MGenAutoguider : public INDI::CCD
     {
         struct timespec timestamp; /*!< The last time this structure was read from the device. */
         unsigned int no_ack_count; /*!< Number of times device didn't acknowledge NOP1, used as connection keepalive. */
+        heartbeat(): timestamp({ .tv_sec = 0, .tv_nsec = 0 }), no_ack_count(0) {}
     } heartbeat;
 
   protected:

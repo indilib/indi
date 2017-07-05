@@ -177,7 +177,7 @@ void ISSnoopDevice(XMLEle *root)
     INDI_UNUSED(root);
 }
 
-MGenAutoguider::MGenAutoguider() : device(NULL), version({ 0 }), voltage({ 0 }), ui({ 0 }), heartbeat({ 0 })
+MGenAutoguider::MGenAutoguider(): device(NULL)
 {
     SetCCDParams(128, 64, 8, 5.0f, 5.0f);
     PrimaryCCD.setFrameBufferSize(PrimaryCCD.getXRes() * PrimaryCCD.getYRes() * PrimaryCCD.getBPP() / 8, true);
@@ -333,7 +333,6 @@ bool MGenAutoguider::Connect()
 
                         break;
 
-                    /*case OPM_BOOT:*/
                     case OPM_COMPATIBLE:
                         _D("switching from compatible to normal mode", "");
 
@@ -425,7 +424,7 @@ void MGenAutoguider::TimerHit()
     if (device->isConnected())
         try
         {
-            struct timespec tm = { 0 };
+            struct timespec tm = { .tv_sec = 0, .tv_nsec = 0 };
             if (clock_gettime(CLOCK_MONOTONIC, &tm))
                 return;
 

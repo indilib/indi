@@ -53,7 +53,7 @@ class MGCMD_GET_FW_VERSION : MGC
     unsigned short fw_version() const { return (unsigned short)(answer[2] << 8) | answer[1]; }
 
   public:
-    virtual IOResult ask(MGenDevice &root) throw(IOError)
+    virtual IOResult ask(MGenDevice &root) //throw(IOError)
     {
         if (CR_SUCCESS != MGC::ask(root))
             return CR_FAILURE;

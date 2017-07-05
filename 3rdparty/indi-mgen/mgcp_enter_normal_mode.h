@@ -50,7 +50,7 @@ class MGCP_ENTER_NORMAL_MODE : MGC
     virtual IOMode opMode() const { return OPM_COMPATIBLE; }
 
   public:
-    virtual IOResult ask(MGenDevice &root) throw(IOError)
+    virtual IOResult ask(MGenDevice &root) //throw(IOError)
     {
         if (CR_SUCCESS != MGC::ask(root))
             return CR_FAILURE;

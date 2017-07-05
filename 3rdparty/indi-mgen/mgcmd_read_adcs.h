@@ -55,7 +55,7 @@ class MGCMD_READ_ADCS : MGC
     float refer_voltage() const { return 3.91e-5f * ((unsigned short)(answer[10] << 8) | answer[9]); }
 
   public:
-    virtual IOResult ask(MGenDevice &root) throw(IOError)
+    virtual IOResult ask(MGenDevice &root) //throw(IOError)
     {
         if (CR_SUCCESS != MGC::ask(root))
             return CR_FAILURE;

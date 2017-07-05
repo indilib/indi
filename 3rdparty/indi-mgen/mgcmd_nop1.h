@@ -50,7 +50,7 @@ class MGCMD_NOP1 : MGC
     virtual IOMode opMode() const { return OPM_APPLICATION; }
 
   public:
-    virtual IOResult ask(MGenDevice &root) throw(IOError)
+    virtual IOResult ask(MGenDevice &root) //throw(IOError)
     {
         if (CR_SUCCESS != MGC::ask(root))
             return CR_FAILURE;
