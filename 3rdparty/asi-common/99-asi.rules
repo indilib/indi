@@ -1,33 +1,65 @@
 ACTION=="add", ATTR{idVendor}=="03c3", RUN+="/bin/sh -c '/bin/echo 200 >/sys/module/usbcore/parameters/usbfs_memory_mb'"
-ATTR{product}=="ASI120MM", ATTR{idVendor}=="03c3", ATTR{idProduct}=="120a", MODE="0666"
-ATTR{product}=="ASI120MC", ATTR{idVendor}=="03c3", ATTR{idProduct}=="120b", MODE="0666"
-ATTR{product}=="ASI120MC", ATTR{idVendor}=="03c3", ATTR{idProduct}=="120b", MODE="0666"
-ATTR{product}=="ASI174MM", ATTR{idVendor}=="03c3", ATTR{idProduct}=="174b", MODE="0666"
-ATTR{product}=="ASI174MC", ATTR{idVendor}=="03c3", ATTR{idProduct}=="174a", MODE="0666"
-ATTR{product}=="ASI130MM", ATTR{idVendor}=="03c3", ATTR{idProduct}=="130a", MODE="0666"
-ATTR{product}=="ASI035MM", ATTR{idVendor}=="03c3", ATTR{idProduct}=="035a", MODE="0666"
-ATTR{product}=="ASI035MC", ATTR{idVendor}=="03c3", ATTR{idProduct}=="035b", MODE="0666"
-ATTR{product}=="ASI034MC", ATTR{idVendor}=="03c3", ATTR{idProduct}=="034b", MODE="0666"
-ATTR{product}=="ASI030MC", ATTR{idVendor}=="03c3", ATTR{idProduct}=="030a", MODE="0666"
-ATTR{product}=="ASI120MM-S", ATTR{idVendor}=="03c3", ATTR{idProduct}=="120d", MODE="0666"
-ATTR{product}=="ASI120MC-S", ATTR{idVendor}=="03c3", ATTR{idProduct}=="120e", MODE="0666"
-ATTR{product}=="ASI185MC", ATTR{idVendor}=="03c3", ATTR{idProduct}=="185a", MODE="0666"
-ATTR{product}=="ASI136MC", ATTR{idVendor}=="03c3", ATTR{idProduct}=="136a", MODE="0666"
-ATTR{product}=="ASI178MC", ATTR{idVendor}=="03c3", ATTR{idProduct}=="178a", MODE="0666"
-ATTR{product}=="ASI224MC", ATTR{idVendor}=="03c3", ATTR{idProduct}=="224a", MODE="0666"
-ATTR{product}=="ASI174MM COOL", ATTR{idVendor}=="03c3", ATTR{idProduct}=="174d", MODE="0666"
-ATTR{product}=="ASI174MC COOL", ATTR{idVendor}=="03c3", ATTR{idProduct}=="174c", MODE="0666"
-ATTR{product}=="ASI178MC COOL", ATTR{idVendor}=="03c3", ATTR{idProduct}=="178b", MODE="0666"
-ATTR{product}=="ASI224MC COOL", ATTR{idVendor}=="03c3", ATTR{idProduct}=="224b", MODE="0666"
-ATTR{product}=="ASI185MC COOL", ATTR{idVendor}=="03c3", ATTR{idProduct}=="185b", MODE="0666"
-ATTR{product}=="ASI178MM", ATTR{idVendor}=="03c3", ATTR{idProduct}=="178c", MODE="0666"
-ATTR{product}=="ASI178MM COOL", ATTR{idVendor}=="03c3", ATTR{idProduct}=="178d", MODE="0666"
-ATTR{product}=="ASI1600MC", ATTR{idVendor}=="03c3", ATTR{idProduct}=="1600", MODE="0666"
-ATTR{product}=="ASI1600MM", ATTR{idVendor}=="03c3", ATTR{idProduct}=="1602", MODE="0666"
-ATTR{product}=="ASI1600MC COOL", ATTR{idVendor}=="03c3", ATTR{idProduct}=="1601", MODE="0666"
-ATTR{product}=="ASI1600MM COOL", ATTR{idVendor}=="03c3", ATTR{idProduct}=="1603", MODE="0666"
-ATTR{product}=="ASI290MC", ATTR{idVendor}=="03c3", ATTR{idProduct}=="290a", MODE="0666"
-ATTR{product}=="ASI290MM", ATTR{idVendor}=="03c3", ATTR{idProduct}=="290b", MODE="0666"
-ATTR{product}=="ASI290MC COOL", ATTR{idVendor}=="03c3", ATTR{idProduct}=="290c", MODE="0666"
-ATTR{product}=="ASI290MM COOL", ATTR{idVendor}=="03c3", ATTR{idProduct}=="290d", MODE="0666"
-ATTR{product}=="ASI071MC COOL", ATTR{idVendor}=="03c3", ATTR{idProduct}=="071a", MODE="0666"
+# ASI120MM
+ATTR{idVendor}=="03c3", ATTR{idProduct}=="120a", MODE="0666"
+# ASI120MC
+ATTR{idVendor}=="03c3", ATTR{idProduct}=="120b", MODE="0666"
+# ASI120MC
+ATTR{idVendor}=="03c3", ATTR{idProduct}=="120b", MODE="0666"
+# ASI174MM
+ATTR{idVendor}=="03c3", ATTR{idProduct}=="174b", MODE="0666"
+# ASI174MC
+ATTR{idVendor}=="03c3", ATTR{idProduct}=="174a", MODE="0666"
+# ASI130MM
+ATTR{idVendor}=="03c3", ATTR{idProduct}=="130a", MODE="0666"
+# ASI035MM
+ATTR{idVendor}=="03c3", ATTR{idProduct}=="035a", MODE="0666"
+# ASI035MC
+ATTR{idVendor}=="03c3", ATTR{idProduct}=="035b", MODE="0666"
+# ASI034MC
+ATTR{idVendor}=="03c3", ATTR{idProduct}=="034b", MODE="0666"
+# ASI030MC
+ATTR{idVendor}=="03c3", ATTR{idProduct}=="030a", MODE="0666"
+# ASI120MM-S
+ATTR{idVendor}=="03c3", ATTR{idProduct}=="120d", MODE="0666"
+# ASI120MC-S
+ATTR{idVendor}=="03c3", ATTR{idProduct}=="120e", MODE="0666"
+# ASI185MC
+ATTR{idVendor}=="03c3", ATTR{idProduct}=="185a", MODE="0666"
+# ASI136MC
+ATTR{idVendor}=="03c3", ATTR{idProduct}=="136a", MODE="0666"
+# ASI178MC
+ATTR{idVendor}=="03c3", ATTR{idProduct}=="178a", MODE="0666"
+# ASI224MC
+ATTR{idVendor}=="03c3", ATTR{idProduct}=="224a", MODE="0666"
+# ASI174MM COOL
+ATTR{idVendor}=="03c3", ATTR{idProduct}=="174d", MODE="0666"
+# ASI174MC COOL
+ATTR{idVendor}=="03c3", ATTR{idProduct}=="174c", MODE="0666"
+# ASI178MC COOL
+ATTR{idVendor}=="03c3", ATTR{idProduct}=="178b", MODE="0666"
+# ASI224MC COOL
+ATTR{idVendor}=="03c3", ATTR{idProduct}=="224b", MODE="0666"
+# ASI185MC COOL
+ATTR{idVendor}=="03c3", ATTR{idProduct}=="185b", MODE="0666"
+# ASI178MM
+ATTR{idVendor}=="03c3", ATTR{idProduct}=="178c", MODE="0666"
+# ASI178MM COOL
+ATTR{idVendor}=="03c3", ATTR{idProduct}=="178d", MODE="0666"
+# ASI1600MC
+ATTR{idVendor}=="03c3", ATTR{idProduct}=="1600", MODE="0666"
+# ASI1600MM
+ATTR{idVendor}=="03c3", ATTR{idProduct}=="1602", MODE="0666"
+# ASI1600MC COOL
+ATTR{idVendor}=="03c3", ATTR{idProduct}=="1601", MODE="0666"
+# ASI1600MM COOL
+ATTR{idVendor}=="03c3", ATTR{idProduct}=="1603", MODE="0666"
+# ASI290MC
+ATTR{idVendor}=="03c3", ATTR{idProduct}=="290a", MODE="0666"
+# ASI290MM
+ATTR{idVendor}=="03c3", ATTR{idProduct}=="290b", MODE="0666"
+# ASI290MC COOL
+ATTR{idVendor}=="03c3", ATTR{idProduct}=="290c", MODE="0666"
+# ASI290MM COOL
+ATTR{idVendor}=="03c3", ATTR{idProduct}=="290d", MODE="0666"
+# ASI071MC COOL
+ATTR{idVendor}=="03c3", ATTR{idProduct}=="071a", MODE="0666"
