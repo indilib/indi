@@ -57,7 +57,9 @@ class LX200ZEQ25 : public LX200Generic
     virtual bool Park() override;
     virtual bool UnPark() override;
 
-  private:
+    virtual int SendPulseCmd(int direction, int duration_msec) override;
+
+ private:
     int setZEQ25StandardProcedure(int fd, const char *data);
     int setZEQ25Latitude(double Lat);
     int setZEQ25Longitude(double Long);

@@ -96,6 +96,8 @@ class LX200Generic : public INDI::Telescope, public INDI::GuiderInterface
     static void updateFocusHelper(void *p);
     static void guideTimeoutHelper(void *p);
 
+    virtual int SendPulseCmd(int direction, int duration_msec);
+
     int GuideNSTID;
     int GuideWETID;
 

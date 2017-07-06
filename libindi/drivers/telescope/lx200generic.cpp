@@ -1461,7 +1461,7 @@ IPState LX200Generic::GuideNorth(float ms)
 
     if (use_pulse_cmd)
     {
-        SendPulseCmd(PortFD, LX200_NORTH, ms);
+        SendPulseCmd(LX200_NORTH, ms);
     }
     else
     {
@@ -1513,7 +1513,7 @@ IPState LX200Generic::GuideSouth(float ms)
 
     if (use_pulse_cmd)
     {
-        SendPulseCmd(PortFD, LX200_SOUTH, ms);
+        SendPulseCmd(LX200_SOUTH, ms);
     }
     else
     {
@@ -1565,7 +1565,7 @@ IPState LX200Generic::GuideEast(float ms)
 
     if (use_pulse_cmd)
     {
-        SendPulseCmd(PortFD, LX200_EAST, ms);
+        SendPulseCmd(LX200_EAST, ms);
     }
     else
     {
@@ -1617,7 +1617,7 @@ IPState LX200Generic::GuideWest(float ms)
 
     if (use_pulse_cmd)
     {
-        SendPulseCmd(PortFD, LX200_WEST, ms);
+        SendPulseCmd(LX200_WEST, ms);
     }
     else
     {
@@ -1641,7 +1641,12 @@ IPState LX200Generic::GuideWest(float ms)
     return IPS_BUSY;
 }
 
-void LX200Generic::guideTimeoutHelper(void *p)
+int LX200Generic::SendPulseCmd(int direction, int duration_msec)
+{
+    return ::SendPulseCmd(PortFD, direction, duration_msec);
+}
+
+void LX200Generic::guideTimeoutHelper(void * p)
 {
     ((LX200Generic *)p)->guideTimeout();
 }
