@@ -510,10 +510,10 @@ bool LX200Generic::ReadScopeStatus()
     return true;
 }
 
-bool LX200Generic::Goto(double r, double d)
+bool LX200Generic::Goto(double ra, double dec)
 {
-    targetRA  = r;
-    targetDEC = d;
+    targetRA  = ra;
+    targetDEC = dec;
     char RAStr[64], DecStr[64];
     int fracbase = 0;
 
@@ -528,6 +528,7 @@ bool LX200Generic::Goto(double r, double d)
             fracbase = 3600;
             break;
     }
+
     fs_sexa(RAStr, targetRA, 2, fracbase);
     fs_sexa(DecStr, targetDEC, 2, fracbase);
 
@@ -574,8 +575,7 @@ bool LX200Generic::Goto(double r, double d)
         /* Slew reads the '0', that is not the end of the slew */
         if ((err = Slew(PortFD)))
         {
-            EqNP.s = IPS_ALERT;
-            IDSetNumber(&EqNP, "Error Slewing to JNow RA %s - DEC %s\n", RAStr, DecStr);
+            DEBUGF(INDI::Logger::DBG_ERROR, "Error Slewing to JNow RA %s - DEC %s", RAStr, DecStr);
             slewError(err);
             return false;
         }
@@ -1283,14 +1283,15 @@ void LX200Generic::getBasicData()
 
 void LX200Generic::slewError(int slewCode)
 {
-    EqNP.s = IPS_ALERT;
-
     if (slewCode == 1)
-        IDSetNumber(&EqNP, "Object below horizon.");
+        DEBUG(INDI::Logger::DBG_ERROR, "Object below horizon.");
     else if (slewCode == 2)
-        IDSetNumber(&EqNP, "Object below the minimum elevation limit.");
+        DEBUG(INDI::Logger::DBG_ERROR, "Object below the minimum elevation limit.");
     else
-        IDSetNumber(&EqNP, "Slew failed.");
+        DEBUG(INDI::Logger::DBG_ERROR, "Slew failed.");
+
+    EqNP.s = IPS_ALERT;
+    IDSetNumber(&EqNP, nullptr);
 }
 
 void LX200Generic::getAlignment()

@@ -61,42 +61,70 @@ class LX200Generic : public INDI::Telescope, public INDI::GuiderInterface
     void guideTimeout();
 
   protected:
+    // Slew Rate
     virtual bool SetSlewRate(int index);
+    // Track Mode (Sidereal, Solar..etc)
     virtual bool SetTrackMode(int mode);
+
+    // NSWE Motion Commands
     virtual bool MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command);
     virtual bool MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command);
+
+    // Abort ALL motion
     virtual bool Abort();
 
+    // Time and Location
     virtual bool updateTime(ln_date *utc, double utc_offset);
     virtual bool updateLocation(double latitude, double longitude, double elevation);
 
+    // Guide Commands
     virtual IPState GuideNorth(float ms);
     virtual IPState GuideSouth(float ms);
     virtual IPState GuideEast(float ms);
     virtual IPState GuideWest(float ms);
 
-    virtual bool Goto(double, double);
+    // Guide Pulse Commands
+    virtual int SendPulseCmd(int direction, int duration_msec);
+
+    // Goto
+    virtual bool Goto(double ra, double dec);
+
+    // Is slew over?
+    virtual bool isSlewComplete();
+
+    // Park Mount
     virtual bool Park();
+
+    // Sync coordinates
     virtual bool Sync(double ra, double dec);
 
-    virtual bool isSlewComplete();
+    // Check if mount is responsive
     virtual bool checkConnection();
 
+    // Save properties in config file
     virtual bool saveConfigItems(FILE *fp);
 
+    // Action to perform when Debug is turned on or off
     virtual void debugTriggered(bool enable);
 
+    // Initial function to get data after connection is successful
     virtual void getBasicData();
+
+    // Send slew error message to client
     void slewError(int slewCode);
+
+    // Get mount alignment type (AltAz..etc)
     void getAlignment();
+
+    // Send Mount time and location settings to client
     void sendScopeTime();
     void sendScopeLocation();
+
+    // Simulate Mount in simulation mode
     void mountSim();
 
     static void updateFocusHelper(void *p);
     static void guideTimeoutHelper(void *p);
-
-    virtual int SendPulseCmd(int direction, int duration_msec);
 
     int GuideNSTID;
     int GuideWETID;
