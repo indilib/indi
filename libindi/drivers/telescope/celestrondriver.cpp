@@ -126,6 +126,7 @@ bool check_celestron_connection(int fd)
         celestronModels[10] = "GT";
         celestronModels[11] = "4/5 SE";
         celestronModels[12] = "6/8 SE";
+        celestronModels[13] = "CGE Pro";
         celestronModels[14] = "CGEM DX";
         celestronModels[20] = "AVX";
     }

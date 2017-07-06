@@ -282,7 +282,8 @@ bool CelestronGPS::updateProperties()
 
         // JM 2014-04-14: User (davidw) reported AVX mount serial communication times out issuing "h" command with firmware 5.28
         // Therefore disabling query until it is fixed.
-        if (fwInfo.controllerVersion >= 2.3 && fwInfo.Model != "AVX")
+        // 2017-07-06: Looks like CGE Pro also does not support this
+        if (fwInfo.controllerVersion >= 2.3 && fwInfo.Model != "AVX" && fwInfo.Model != "CGE Pro")
         {
             double utc_offset;
             int yy, dd, mm, hh, minute, ss;
@@ -1134,11 +1135,9 @@ bool CelestronGPS::setTrackMode(CELESTRON_TRACK_MODE mode)
 //GUIDE Guiding functions.
 IPState CelestronGPS::GuideNorth(float ms)
 {
-    DEBUGF(INDI::Logger::DBG_WARNING, "GUIDE CMD: N %.0f ms", ms);
+    DEBUGF(INDI::Logger::DBG_DEBUG, "GUIDE CMD: N %.0f ms", ms);
     int use_pulse_cmd;
     use_pulse_cmd = IUFindOnSwitchIndex(&UsePulseCmdSP);
-
-    DEBUGF(INDI::Logger::DBG_WARNING, " PULSEGUIDE IS %s", (use_pulse_cmd ? "ON" : "OFF"));
 
     if (!use_pulse_cmd && (MovementNSSP.s == IPS_BUSY || MovementWESP.s == IPS_BUSY))
     {
@@ -1149,7 +1148,6 @@ IPState CelestronGPS::GuideNorth(float ms)
     // If already moving (no pulse command), then stop movement
     if (MovementNSSP.s == IPS_BUSY)
     {
-        DEBUG(INDI::Logger::DBG_WARNING, " STOP NS MOVEMENT");
         int dir = IUFindOnSwitchIndex(&MovementNSSP);
         MoveNS(dir == 0 ? DIRECTION_NORTH : DIRECTION_SOUTH, MOTION_STOP);
     }
@@ -1162,12 +1160,10 @@ IPState CelestronGPS::GuideNorth(float ms)
 
     if (use_pulse_cmd)
     {
-        DEBUG(INDI::Logger::DBG_DEBUG, " CALL SendPulseCmd");
         SendPulseCmd(PortFD, CELESTRON_N, 50, ms / 10.0);
     }
     else
     {
-        DEBUG(INDI::Logger::DBG_WARNING, " PULSEGUIDE OFF, STARTING MOTION");
         MovementNSS[0].s = ISS_ON;
         MoveNS(DIRECTION_NORTH, MOTION_START);
     }
@@ -1183,11 +1179,9 @@ IPState CelestronGPS::GuideNorth(float ms)
 
 IPState CelestronGPS::GuideSouth(float ms)
 {
-    DEBUGF(INDI::Logger::DBG_WARNING, "GUIDE CMD: S %.0f ms", ms);
+    DEBUGF(INDI::Logger::DBG_DEBUG, "GUIDE CMD: S %.0f ms", ms);
     int use_pulse_cmd;
     use_pulse_cmd = IUFindOnSwitchIndex(&UsePulseCmdSP);
-
-    DEBUGF(INDI::Logger::DBG_WARNING, " PULSEGUIDE IS %s", (use_pulse_cmd ? "ON" : "OFF"));
 
     if (!use_pulse_cmd && (MovementNSSP.s == IPS_BUSY || MovementWESP.s == IPS_BUSY))
     {
@@ -1198,7 +1192,6 @@ IPState CelestronGPS::GuideSouth(float ms)
     // If already moving (no pulse command), then stop movement
     if (MovementNSSP.s == IPS_BUSY)
     {
-        DEBUG(INDI::Logger::DBG_WARNING, " STOP NS MOVEMENT");
         int dir = IUFindOnSwitchIndex(&MovementNSSP);
         MoveNS(dir == 0 ? DIRECTION_NORTH : DIRECTION_SOUTH, MOTION_STOP);
     }
@@ -1211,12 +1204,10 @@ IPState CelestronGPS::GuideSouth(float ms)
 
     if (use_pulse_cmd)
     {
-        DEBUG(INDI::Logger::DBG_DEBUG, " CALL SendPulseCmd");
         SendPulseCmd(PortFD, CELESTRON_S, 50, ms / 10.0);
     }
     else
     {
-        DEBUG(INDI::Logger::DBG_WARNING, " PULSEGUIDE OFF, STARTING MOTION");
         MovementNSS[1].s = ISS_ON;
         MoveNS(DIRECTION_SOUTH, MOTION_START);
     }
@@ -1232,11 +1223,9 @@ IPState CelestronGPS::GuideSouth(float ms)
 
 IPState CelestronGPS::GuideEast(float ms)
 {
-    DEBUGF(INDI::Logger::DBG_WARNING, "GUIDE CMD: E %.0f ms", ms);
+    DEBUGF(INDI::Logger::DBG_DEBUG, "GUIDE CMD: E %.0f ms", ms);
     int use_pulse_cmd;
     use_pulse_cmd = IUFindOnSwitchIndex(&UsePulseCmdSP);
-
-    DEBUGF(INDI::Logger::DBG_WARNING, " PULSEGUIDE IS %s", (use_pulse_cmd ? "ON" : "OFF"));
 
     if (!use_pulse_cmd && (MovementNSSP.s == IPS_BUSY || MovementWESP.s == IPS_BUSY))
     {
@@ -1247,7 +1236,6 @@ IPState CelestronGPS::GuideEast(float ms)
     // If already moving (no pulse command), then stop movement
     if (MovementWESP.s == IPS_BUSY)
     {
-        DEBUG(INDI::Logger::DBG_WARNING, " STOP WE MOVEMENT");
         int dir = IUFindOnSwitchIndex(&MovementWESP);
         MoveWE(dir == 0 ? DIRECTION_WEST : DIRECTION_EAST, MOTION_STOP);
     }
@@ -1260,12 +1248,10 @@ IPState CelestronGPS::GuideEast(float ms)
 
     if (use_pulse_cmd)
     {
-        DEBUG(INDI::Logger::DBG_DEBUG, " CALL SendPulseCmd");
         SendPulseCmd(PortFD, CELESTRON_E, 50, ms / 10.0);
     }
     else
     {
-        DEBUG(INDI::Logger::DBG_WARNING, " PULSEGUIDE OFF, STARTING MOTION");
         MovementWES[1].s = ISS_ON;
         MoveWE(DIRECTION_EAST, MOTION_START);
     }
@@ -1281,11 +1267,9 @@ IPState CelestronGPS::GuideEast(float ms)
 
 IPState CelestronGPS::GuideWest(float ms)
 {
-    DEBUGF(INDI::Logger::DBG_WARNING, "GUIDE CMD: W %.0f ms", ms);
+    DEBUGF(INDI::Logger::DBG_DEBUG, "GUIDE CMD: W %.0f ms", ms);
     int use_pulse_cmd;
     use_pulse_cmd = IUFindOnSwitchIndex(&UsePulseCmdSP);
-
-    DEBUGF(INDI::Logger::DBG_WARNING, " PULSEGUIDE IS %s", (use_pulse_cmd ? "ON" : "OFF"));
 
     if (!use_pulse_cmd && (MovementNSSP.s == IPS_BUSY || MovementWESP.s == IPS_BUSY))
     {
@@ -1296,7 +1280,6 @@ IPState CelestronGPS::GuideWest(float ms)
     // If already moving (no pulse command), then stop movement
     if (MovementWESP.s == IPS_BUSY)
     {
-        DEBUG(INDI::Logger::DBG_DEBUG, " STOP WE MOVEMENT");
         int dir = IUFindOnSwitchIndex(&MovementWESP);
         MoveWE(dir == 0 ? DIRECTION_WEST : DIRECTION_EAST, MOTION_STOP);
     }
@@ -1309,12 +1292,10 @@ IPState CelestronGPS::GuideWest(float ms)
 
     if (use_pulse_cmd)
     {
-        DEBUG(INDI::Logger::DBG_DEBUG, " CALL SendPulseCmd");
         SendPulseCmd(PortFD, CELESTRON_W, 50, ms / 10.0);
     }
     else
     {
-        DEBUG(INDI::Logger::DBG_WARNING, " PULSEGUIDE OFF, STARTING MOTION");
         MovementWES[0].s = ISS_ON;
         MoveWE(DIRECTION_WEST, MOTION_START);
     }
