@@ -25,7 +25,7 @@ else (NOVA_INCLUDE_DIR AND NOVA_LIBRARIES)
     ${GNUWIN32_DIR}/include
   )
 
-  find_library(NOVA_LIBRARIES NAMES nova libnova
+  find_library(NOVA_LIBRARIES NAMES nova libnova libnovad
     PATHS
     ${_obLinkDir}
     ${GNUWIN32_DIR}/lib
