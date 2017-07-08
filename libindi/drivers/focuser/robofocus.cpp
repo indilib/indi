@@ -28,7 +28,7 @@
 #include <termios.h>
 
 #define RF_MAX_CMD  9
-#define RF_TIMEOUT  15
+#define RF_TIMEOUT  3
 #define RF_STEP_RES 5
 
 #define RF_MAX_TRIES 3
