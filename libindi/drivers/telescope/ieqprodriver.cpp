@@ -188,7 +188,7 @@ bool get_ieqpro_status(int fd, IEQInfo *info)
             return false;
         }
 
-        if ((errcode = tty_read_section(fd, response, '#', IEQPRO_TIMEOUT, &nbytes_read)))
+        if ((errcode = tty_read(fd, response, 7, IEQPRO_TIMEOUT, &nbytes_read)))
         {
             tty_error_msg(errcode, errmsg, MAXRBUF);
             DEBUGFDEVICE(ieqpro_device, INDI::Logger::DBG_ERROR, "%s", errmsg);
