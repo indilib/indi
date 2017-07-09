@@ -1643,16 +1643,29 @@ bool QSICCD::SelectFilter(int targetFilter)
     {
         FilterSlotNP.s = IPS_ALERT;
         DEBUGF(INDI::Logger::DBG_ERROR, "put_Position() failed. %s.", err.what());
-        IDSetNumber(&FilterSlotNP, nullptr);
         return false;
     }
 
-    return true;
+    // Check current filter position
+    short newFilter = QueryFilter();
+
+    if (newFilter == targetFilter)
+    {
+        FilterSlotN[0].value = targetFilter;
+        FilterSlotNP.s       = IPS_OK;
+        DEBUGF(INDI::Logger::DBG_DEBUG, "Filter set to slot #%d", targetFilter);
+        IDSetNumber(&FilterSlotNP, nullptr);
+        return true;
+    }
+
+    IDSetNumber(&FilterSlotNP, nullptr);
+    FilterSlotNP.s = IPS_ALERT;
+    return false;
 }
 
 int QSICCD::QueryFilter()
 {
-    short newFilter;
+    short newFilter=0;
     try
     {
         QSICam.get_Position(&newFilter);
