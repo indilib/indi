@@ -76,8 +76,8 @@ class LX200AstroPhysics : public LX200Generic
     INumber HorizontalCoordsN[2];
     INumberVectorProperty HorizontalCoordsNP;
 
-    ISwitch MotionSpeedS[4];
-    ISwitchVectorProperty MotionSpeedSP;
+    ISwitch APSlewSpeedS[3];
+    ISwitchVectorProperty APSlewSpeedSP;
 
     ISwitch SwapS[2];
     ISwitchVectorProperty SwapSP;
