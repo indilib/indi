@@ -1470,7 +1470,7 @@ void V4L2_Driver::updateV4L2Controls()
         //IDLog("Def switch %d %s\n", i, Options[i].label);
         defineSwitch(&Options[i]);
 
-        if (!strcmp(Options[i].label, "Exposure, Auto"))
+        if (!strcmp(Options[i].label, "Exposure, Auto") || !strcmp(Options[i].label, "Auto Exposure"))
             ManualExposureSP = Options + i;
     }
 
