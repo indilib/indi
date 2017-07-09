@@ -1586,7 +1586,7 @@ bool QSICCD::GetFilterNames(const char *groupName)
         FilterNameT = nullptr;
     }
 
-    std::string filterDesignation[filterCount];
+    auto* filterDesignation = new std::string[filterCount];
 
     try
     {
@@ -1594,6 +1594,7 @@ bool QSICCD::GetFilterNames(const char *groupName)
     }
     catch (std::runtime_error err)
     {
+        delete [] filterDesignation;
         DEBUGF(INDI::Logger::DBG_ERROR, "QSICamera::get_Names() failed. %s.", err.what());
         return false;
     }
@@ -1606,16 +1607,16 @@ bool QSICCD::GetFilterNames(const char *groupName)
         snprintf(filterLabel, MAXINDILABEL, "Filter #%d", i + 1);
         IUFillText(&FilterNameT[i], filterName, filterLabel, filterDesignation[i].c_str());
     }
-
     IUFillTextVector(FilterNameTP, FilterNameT, filterCount, getDeviceName(), "FILTER_NAME", "Filter", groupName, IP_RW, 1, IPS_IDLE);
-
+    delete [] filterDesignation;
     return true;
 }
 
 bool QSICCD::SetFilterNames()
 {
-    std::string filterDesignation[FilterSlotNP.nnp];
-    for (int i=0; i < FilterSlotNP.nnp; i++)
+    auto* filterDesignation = new std::string[FilterSlotNP.nnp];
+
+    for (int i = 0; i < FilterSlotNP.nnp; i++)
         filterDesignation[i] = FilterNameT[i].text;
 
     try
@@ -1624,10 +1625,12 @@ bool QSICCD::SetFilterNames()
     }
     catch (std::runtime_error err)
     {
+        delete [] filterDesignation;
         DEBUGF(INDI::Logger::DBG_ERROR, "put_Names() failed. %s.", err.what());
         IDSetText(FilterNameTP, nullptr);
         return false;
     }
+    delete [] filterDesignation;
 
     return true;
 }
