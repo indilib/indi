@@ -34,8 +34,6 @@ QSICriticalSection CCCDCamera::csQSI;
 CCCDCamera::CCCDCamera()
 {
 	m_pusBuffer						= NULL;
-	m_bDownloading					= false;
-	m_iNumPixelsRead				= 0;
 	m_bIsConnected					= false;
 	m_bIsMainCamera					= true;
 	m_USBSerialNumber 				= "";
@@ -96,14 +94,20 @@ CCCDCamera::CCCDCamera()
 	m_bStructuredExceptions				= true;
 
 	QSI_Registry rReg;
-	m_Max_Pixels_Per_Block = rReg.GetMaxPixelsPerBlock( MAX_PIXELS_READ_PER_BLOCK );
-	if (m_Max_Pixels_Per_Block < 1000) 
-		m_Max_Pixels_Per_Block = 1000;
 
 	m_usLastOverscanMean = 0;
 	m_bImageValid = false;
 	m_dLastDuration = 0.0;
 	m_USBSerialNumber = std::string( "" );
+	m_dLastOverscanMean = 0;
+	m_dOverscanAdjustment = 0;
+	m_verMaintenance = 0;
+	m_iOverscanAdjustment = 0;
+	m_verAux = 0;
+	m_verMajor = 0;
+	m_verMinor = 0;
+
+	m_iError = 0;
 }
 
 CCCDCamera::~CCCDCamera()
@@ -607,7 +611,7 @@ int  CCCDCamera::get_CCDTemperature(double* pVal)
 	return S_OK;
 }
 
-int (CCCDCamera::get_Connected)(bool* pVal)	
+int CCCDCamera::get_Connected(bool* pVal)	
 {
 	// 
 	// Connected
@@ -1608,7 +1612,7 @@ int  CCCDCamera::put_SetCCDTemperature(double newVal)
 		return Error ( "Camera Error", IID_ICamera, MAKE_HRESULT(1,FACILITY_ITF, m_iError) );
 
 	if (newVal > 100.0 || newVal < -100.0)
-		return Error ( "Not Connected", IID_ICamera, MAKE_HRESULT(1,FACILITY_ITF, QSI_INVALIDTEMP) );
+		return Error ( "Temperature Out of Range", IID_ICamera, MAKE_HRESULT(1,FACILITY_ITF, QSI_INVALIDTEMP) );
 
 	m_iError = this->get_CoolerOn(&bCoolerOn);
 	if ( m_iError ) 
@@ -2163,6 +2167,7 @@ int CCCDCamera::put_ReadoutSpeed(ReadoutSpeed newVal)
 	csQSI.Unlock();
 	if( m_iError ) 
 		return Error ( "Cannot set advanced settings", IID_ICamera, MAKE_HRESULT(1,FACILITY_ITF, m_iError) );	
+	return S_OK;
 }
 
 int CCCDCamera::get_FanMode(FanMode& pVal)
@@ -2320,7 +2325,7 @@ int  CCCDCamera::put_Names( std::string newVal[])
 	if (!m_DeviceDetails.HasFilter || m_DeviceDetails.NumFilters < 1)
 		return Error ( "No Filter Wheel", IID_ICamera, MAKE_HRESULT(1,FACILITY_ITF, QSI_NOFILTER) );
 
-	int iNumFilters = m_AdvSettings.fwWheel.Filters.size() <= m_DeviceDetails.NumFilters?m_AdvSettings.fwWheel.Filters.size():m_DeviceDetails.NumFilters;
+	int iNumFilters = (int)m_AdvSettings.fwWheel.Filters.size() <= (int)m_DeviceDetails.NumFilters?m_AdvSettings.fwWheel.Filters.size():m_DeviceDetails.NumFilters;
 
 	for (int i = 0; i <  iNumFilters; i++)
 	{
@@ -2514,7 +2519,7 @@ int  CCCDCamera::put_FocusOffset( long newVal[])
 	if (!m_DeviceDetails.HasFilter || m_DeviceDetails.NumFilters < 1)
 		return Error ( "No Filter Wheel", IID_ICamera, MAKE_HRESULT(1,FACILITY_ITF, QSI_NOFILTER) );
 
-	int iNumFilters = m_AdvSettings.fwWheel.Filters.size() <= m_DeviceDetails.NumFilters?m_AdvSettings.fwWheel.Filters.size():m_DeviceDetails.NumFilters;
+	int iNumFilters = (int)m_AdvSettings.fwWheel.Filters.size() <= (int)m_DeviceDetails.NumFilters?m_AdvSettings.fwWheel.Filters.size():m_DeviceDetails.NumFilters;
 
 	for (int i = 0; i < iNumFilters; i++)
 	{
@@ -2590,7 +2595,6 @@ int CCCDCamera::put_Connected(bool bCon)
 	// link. Set False to disable the link (this does not switch off the cooler).
 	// You can also read the property to check whether it is connected.
 	//
-	char szSerialNum[USB_SERIAL_LENGTH+1];
 	m_bIsConnected = false;
 	if (bCon)
 	{
@@ -2706,9 +2710,6 @@ int CCCDCamera::put_Connected(bool bCon)
 			return Error ( "Out of memory", IID_ICamera, MAKE_HRESULT(1,FACILITY_ITF, QSI_NOMEMORY) );
 		
 		m_bIsConnected = true;
-		// Insure camera starts with a consistent filter position
-		if (m_DeviceDetails.HasFilter)
-			put_Position(0);
 
 		// Get Hardware and Firmware version
 		m_iError = m_QSIInterface.GetVersionInfo(m_HWVersion, m_FWVersion);
@@ -2775,10 +2776,11 @@ int CCCDCamera::FillImageBuffer(bool bMakeRequest)
 	// The interface methods call this and then transfer the data
 	// from the USHORT buffer and convert it into the appropriate
 	// format
-	// Declare variables
-	int iTotalPixelsToRead, iPixelsPerRead;
-	bool TransferDone = false;
-	int iPixelsThisRead = 0;
+
+	int iStride;
+	int iRowsRead;
+	int iPixelSize = sizeof(USHORT); // Always 16 bit pixels for now
+	int	iTotRowsRead;
 
 	if (!m_bIsConnected  || m_pusBuffer == NULL)
 		return Error ( "Not connected", IID_ICamera, MAKE_HRESULT(1,FACILITY_ITF, QSI_NOTCONNECTED) );
@@ -2786,76 +2788,49 @@ int CCCDCamera::FillImageBuffer(bool bMakeRequest)
 	if (!m_DownloadPending)
 		return S_OK;
 
+	// Surround entire operation with a semaphore so the read data isn;t interrupted by a status request
+	csQSI.Lock();
 	m_DownloadPending = false;
-
-	// Calculate the total pixels to be read
-	iTotalPixelsToRead = m_ExposureNumY * m_ExposureNumX;
-
 	// Calculate the amount of pixels to read per block
 	if (m_ExposureNumX<=0 || m_ExposureNumY <= 0)
+	{
+		csQSI.Unlock();
 		return Error ( "Image transfer error", IID_ICamera, MAKE_HRESULT(1,FACILITY_ITF, QSI_INVALIDIMAGEPARAMETER) );
-
-	// Force iPixelsPerRead to be a multiple of Row Length, no greater that RowLength.  If RowLength > Max_Pixels, use Max_Pixels
-	iPixelsPerRead = m_Max_Pixels_Per_Block / m_ExposureNumX * m_ExposureNumX;  // CHECK
-	if (iPixelsPerRead == 0)
-		iPixelsPerRead = m_Max_Pixels_Per_Block;
-
-	// Set flag saying a download is in progress (used by GetCameraState)
-	m_bDownloading = true;
-
-	// Set number of pixels read so far to zero
-	m_iNumPixelsRead = 0;
+	}
 
 	if (bMakeRequest)
 	{
 		// Send transfer image command to camera
-		csQSI.Lock();
 		m_iError = m_QSIInterface.CMD_TransferImage();
-		csQSI.Unlock();
 
-		if( m_iError ) 
+		if( m_iError )
+		{
+			csQSI.Unlock();
 			return Error ( "Image transfer error", IID_ICamera, MAKE_HRESULT(1,FACILITY_ITF, m_iError) );
+		}
 	}
-	
-	while (!TransferDone)
+
+	// Some callers require each row word aligned, so this may be some number of bytes more that number of columns
+	// MaxIm is always row align, so stride is just the size of the row in bytes.
+	iStride = m_ExposureSettings.ColumnsToRead * iPixelSize;
+	iTotRowsRead = 0;
+
+	while (iTotRowsRead < m_ExposureSettings.RowsToRead)
 	{
-		if( m_iNumPixelsRead + iPixelsPerRead > iTotalPixelsToRead ) // We're executing the last read; base case if called recursively
+		// ReadImageByRow may return fewer rows than requested.  It is up to the caller to make additional calls to retreive the entire image.
+		m_iError = m_QSIInterface.ReadImageByRow( (BYTE *)m_pusBuffer + (iTotRowsRead * iStride), (m_ExposureSettings.RowsToRead - iTotRowsRead),
+													m_ExposureSettings.ColumnsToRead, iStride, iPixelSize, iRowsRead);
+		if (m_iError != ALL_OK)
 		{
-			// Calculate the remaining amount of pixels to read
-			iPixelsPerRead = iTotalPixelsToRead - m_iNumPixelsRead;
-
-			// Read last block
-			csQSI.Lock();
-			m_iError = m_QSIInterface.ReadImage ( m_pusBuffer + m_iNumPixelsRead, iPixelsPerRead * 2, &iPixelsThisRead ); // *2 because 1 pixel = 2 bytes
-			csQSI.Unlock();			
-			if( m_iError ) 
-				return Error ( "Image transfer error", IID_ICamera, MAKE_HRESULT(1,FACILITY_ITF, m_iError) );
-
-			// Set flags and percentage as done
-			m_bDownloading = false;
-			TransferDone = true;
+			csQSI.Unlock();
+			return Error ( "Image transfer error", IID_ICamera, MAKE_HRESULT(1,FACILITY_ITF, m_iError) );
 		}
-		else
-		{
-			// Read block
-			csQSI.Lock();
-			m_iError = m_QSIInterface.ReadImage ( m_pusBuffer+this->m_iNumPixelsRead, iPixelsPerRead*2, &iPixelsThisRead ); // *2 because 1 pixel = 2 bytes
-			csQSI.Unlock();			
-			if( m_iError != ALL_OK && m_iError ) 
-				return Error ( "Image transfer error", IID_ICamera, MAKE_HRESULT(1,FACILITY_ITF, m_iError) );
-			m_iError = ALL_OK;
-
-			// Update the number of pixels read
-			m_iNumPixelsRead += iPixelsPerRead;
-
-			TransferDone = false;
-		}
-
-	} // End of while
-
+		iTotRowsRead += iRowsRead;  // Update the number of pixels read, ReadImage may return less row that we requested.
+	}
 	//
 	// Image is now in m_pusBuffer
 	//
+	csQSI.Unlock();
 	
 	m_iError = GetAutoZeroData( bMakeRequest ); // true == issue autozero request to camera
 	if( m_iError != ALL_OK ) 
@@ -2863,41 +2838,41 @@ int CCCDCamera::FillImageBuffer(bool bMakeRequest)
 
 	// Now apply the Hot Pixel map
 	m_QSIInterface.HotPixelRemap((BYTE *)m_pusBuffer, 0, m_ExposureSettings, m_DeviceDetails, m_AutoZeroData.zeroLevel);
-
 	m_bImageValid = true;
 	return S_OK;
 }
 
 int CCCDCamera::GetAutoZeroData(bool bMakeRequest)
 {
-	int iPixelsThisRead = 0;
+	int iPixelSize = sizeof(USHORT);
+	int iRowsRead;
+
+	csQSI.Lock();
 	if (bMakeRequest) // Send AZ request to camera.  Other callers just expect the data to be ready to read (ie FocusImage).
 	{
-		csQSI.Lock();
 		m_iError = m_QSIInterface.CMD_GetAutoZero( m_AutoZeroData );
-		csQSI.Unlock();
-
-		if( m_iError != ALL_OK ) 
+		if( m_iError != ALL_OK )
+		{
+			csQSI.Unlock();
 			return m_iError;
+		}
 	}
 
 	if (m_AutoZeroData.zeroEnable && m_AutoZeroData.pixelCount > 0 && m_AutoZeroData.pixelCount <= 8192)
 	{
-		csQSI.Lock();
-		m_iError = m_QSIInterface.ReadImage ( m_usOverScanPixels, m_AutoZeroData.pixelCount * 2, &iPixelsThisRead );
-		csQSI.Unlock();
+		m_iError = m_QSIInterface.ReadImageByRow( (BYTE *)m_usOverScanPixels, 1, m_AutoZeroData.pixelCount,
+													m_AutoZeroData.pixelCount * 2, iPixelSize, iRowsRead);
 		m_QSIInterface.LogWrite(2, _T("AutoZero adjust pixels started."));
 
 		if( m_iError == ALL_OK )
-		{
 			m_QSIInterface.GetAutoZeroAdjustment(m_AutoZeroData, m_usOverScanPixels, &m_usLastOverscanMean, &m_iOverscanAdjustment, &m_dOverscanAdjustment);
-		} 
 
 		if (m_iError == ALL_OK)
-			m_QSIInterface.LogWrite(2, "AutoZero analyze overscan completed OK.");
+			m_QSIInterface.LogWrite(2, "AutoZero analyze over-scan completed OK.");
 		else
-			m_QSIInterface.LogWrite(2, "AutoZero analyze overscan failed. Error Code: %x", m_iError);
+			m_QSIInterface.LogWrite(2, "AutoZero analyze over-scan failed. Error Code: %x", m_iError);
 	}
+	csQSI.Unlock();
 	return S_OK;
 }
 
@@ -2907,7 +2882,6 @@ int  CCCDCamera::get_PowerOfTwoBinning(bool* pVal)
 		return Error ( "Not connected", IID_ICamera, MAKE_HRESULT(1,FACILITY_ITF, QSI_NOTCONNECTED) );
 
 	*pVal = m_DeviceDetails.TwoTimesBinning;
-
 	return S_OK;
 }
 
@@ -2956,8 +2930,6 @@ int  CCCDCamera::get_HasFilterWheel(bool* pVal)
 
 int  CCCDCamera::get_SerialNumber(std::string& pVal)
 {
-	char tcsBuf[33];	
-
 	if (!m_bIsConnected)
 		return Error ( "Not Connected", IID_ICamera, MAKE_HRESULT(1,FACILITY_ITF, QSI_NOTCONNECTED) );
 
@@ -2969,8 +2941,6 @@ int  CCCDCamera::get_SerialNumber(std::string& pVal)
 
 int  CCCDCamera::get_ModelNumber(std::string& pVal)
 {
-	char tcsBuf[33];
-
 	if (!m_bIsConnected)
 		return Error ( "Not Connected", IID_ICamera, MAKE_HRESULT(1,FACILITY_ITF, QSI_NOTCONNECTED) );
 
@@ -3237,9 +3207,6 @@ int CCCDCamera::get_AntiBlooming(AntiBloom * pVal)
 
 	if (!m_bIsConnected)
 		return Error ( "Not Connected", IID_ICamera, MAKE_HRESULT(1,FACILITY_ITF, QSI_NOTCONNECTED) );
-
-    if (!m_AdvEnabledOptions.AntiBlooming)
-        return Error ( "Option not available on this model", IID_ICamera, MAKE_HRESULT(1,FACILITY_ITF, QSI_NOTSUPPORTED) );
 
 	QSI_Registry Registry;
 
@@ -3618,7 +3585,6 @@ int CCCDCamera::put_QSIOpen(bool bCon)
 	// 
 	// Low Level open for QSI commands.  Does not communicate with camera ala put-Connected.
 	//
-	char szSerialNum[USB_SERIAL_LENGTH+1];
 	m_bIsConnected = false;
 	if (bCon)
 	{
@@ -3752,6 +3718,7 @@ int CCCDCamera::get_MaskPixels(bool* pVal)
 	if (!m_bIsConnected)
 		return Error ( "Not Connected", IID_ICamera, MAKE_HRESULT(1,FACILITY_ITF, QSI_NOTCONNECTED) );
 	*pVal = m_QSIInterface.m_hpmMap.m_bEnable;
+	return S_OK;
 }
 
 int CCCDCamera::put_PixelMask(std::vector<Pixel> pixels)
@@ -4014,7 +3981,7 @@ int CCCDCamera::HSRImage(double Duration, USHORT * pImage)
 	//             CCDCamera.HSRImage ( Duration, Image )
 	// Parameters
 	//             Double Duration - Duration of exposure in seconds
-	//             VARIANT Image - Returned image from camrea
+	//             USHORT Image - Returned image from camera
 	// Returns
 	//             Boolean - True if successful
 	// Exceptions
@@ -4026,8 +3993,9 @@ int CCCDCamera::HSRImage(double Duration, USHORT * pImage)
 	//               any reason, such as a hardware or communications error
 	// 
 	// Remarks
-	// 
+	// High Speed Readout Image
 	// Starts an exposure and complete it with an image. Must complete in under 5 seconds.
+	// Does exposure and transfer in one api call.
 	// 
 	if (!m_bIsConnected)
 		return Error ( _T("Not Connected"), IID_ICamera, MAKE_HRESULT(1,FACILITY_ITF, QSI_NOTCONNECTED) );
@@ -4056,7 +4024,7 @@ int CCCDCamera::HSRImage(double Duration, USHORT * pImage)
 	m_ExposureNumY = m_ExposureSettings.RowsToRead;
 	m_ExposureSettings.OpenShutter      = true;
 
-	// ASCOM requires light paramater to be ignored if no shutter present
+	// ASCOM requires light parameter to be ignored if no shutter present
 	if (!m_DeviceDetails.HasShutter)
 		m_ExposureSettings.OpenShutter = true;
 
@@ -4142,7 +4110,7 @@ int CCCDCamera::Flush(void)
 	// 
 	if (!m_bIsConnected)
 		return Error ( _T("Not Connected"), IID_ICamera, MAKE_HRESULT(1,FACILITY_ITF, QSI_NOTCONNECTED) );
-
+/*
 	QSI_ExposureSettings ExposureSettings;
 	ExposureSettings.BinFactorX				= 1;
 	ExposureSettings.BinFactorY				= 1;
@@ -4159,7 +4127,7 @@ int CCCDCamera::Flush(void)
 	ExposureSettings.UseExtTrigger			= false;
 	ExposureSettings.StrobeShutterOutput	= false;
 	ExposureSettings.ProbeForImplemented	= false;
-
+*/
 	csQSI.Lock();
 	if (m_DeviceDetails.HasCMD_StartExposureEx)
 		m_iError = m_QSIInterface.CMD_StartExposureEx( m_ExposureSettings );

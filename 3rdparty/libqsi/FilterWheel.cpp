@@ -18,6 +18,7 @@ DRC 03.23.11 Original Version
 
 FilterWheel::FilterWheel()
 {
+	m_iNumFilters = 0;
 }
 
 FilterWheel::FilterWheel(int iNumFilters)
@@ -49,7 +50,7 @@ void FilterWheel::GetWheels( std::string strSerialNumber, std::vector<FilterWhee
 
 	reg.GetAllKeys(strKeyPath, &vKeys);
 
-	for (int i=0; i < vKeys.size(); i++)
+	for (int i=0; i < (int)vKeys.size(); i++)
 	{
 		FilterWheel fwWheel;
 		if (fwWheel.LoadFromRegistry(strSerialNumber, vKeys[i], iNumFiltersExpected) )

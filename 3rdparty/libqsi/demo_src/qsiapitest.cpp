@@ -101,7 +101,7 @@ int main(int argc, char** argv)
 	std::string desc("");
 	std::string info("");
 	std::string modelNumber("");
-	char filename[256];
+	char filename[256] = "";
 	long * offsets = NULL;
 	bool LEDEnabled;
 	bool soundEnabled;
@@ -142,11 +142,10 @@ int main(int argc, char** argv)
 	double coolerPower;
 	double eADU;
 	double fwc;
-	double time;
 	double pixelX;
 	double pixelY;
 
-	double expTimes[] = {0.0025, 0.0125, 0.0625, 0.3125, 1.5625, 7.8125, 39.0625, 195.3125};
+	// double expTimes[] = {0.0025, 0.0125, 0.0625, 0.3125, 1.5625, 7.8125, 39.0625, 195.3125};
 
 	//QSICamera cam2;
 	//
@@ -194,8 +193,8 @@ int main(int argc, char** argv)
 		std::cout << "qsiapitest version: " << info << "\n";
 		//Discover the connected cameras
 		int iNumFound;
-		std::string camSerial[QSICamera::MAXCAMERAS];
-		std::string camDesc[QSICamera::MAXCAMERAS];
+		std::string camSerial[QSICamera::MAXCAMERAS] = "";
+		std::string camDesc[QSICamera::MAXCAMERAS] = "";
 
 		cam.get_AvailableCameras(camSerial, camDesc, iNumFound);
 
@@ -346,6 +345,7 @@ int main(int argc, char** argv)
 		cam.put_BinY(1);
 
 		// Demonstrate how to abort an exposure
+		cam.get_CanAbortExposure(&canAbort);
 		if (canAbort)
 			cam.AbortExposure();
 		// Query if camera can bin asymmetrically (binx != biny)
@@ -789,7 +789,7 @@ int main(int argc, char** argv)
 			std::cout << "Image data ";
 			for (int k = 0; k < 16; k++)
 			{
-				std::cout << image[k, 0] << " ";
+			  std::cout << image[k] << " ";
 			}
 			std::cout << "\n";
 		}
@@ -830,7 +830,8 @@ int main(int argc, char** argv)
 int WriteTIFF(unsigned short * buffer, int cols, int rows, char * filename)
 {
 	TIFF *image;
-	unsigned char out[cols*rows];
+	unsigned char *out;
+	out = new unsigned char[cols*rows];
 
 	AdjustImage(buffer, cols, rows, out);
 
@@ -850,7 +851,7 @@ int WriteTIFF(unsigned short * buffer, int cols, int rows, char * filename)
 	
 	TIFFSetField(image, TIFFTAG_COMPRESSION, COMPRESSION_NONE);
 	TIFFSetField(image, TIFFTAG_PHOTOMETRIC, PHOTOMETRIC_MINISBLACK);
-	TIFFSetField(image, TIFFTAG_FILLORDER, FILLORDER_LSB2MSB);
+	TIFFSetField(image, TIFFTAG_FILLORDER, FILLORDER_MSB2LSB);
 	TIFFSetField(image, TIFFTAG_PLANARCONFIG, PLANARCONFIG_CONTIG);
 	
 	TIFFSetField(image, TIFFTAG_XRESOLUTION, 150.0);
@@ -865,6 +866,8 @@ int WriteTIFF(unsigned short * buffer, int cols, int rows, char * filename)
 	
 	// Close the file
 	TIFFClose(image);
+	delete[] (out);
+	return 0;
 }
 
 void AdjustImage(unsigned short * buffer, int x, int y, unsigned char * out)
