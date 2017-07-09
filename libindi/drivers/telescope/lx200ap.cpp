@@ -44,7 +44,7 @@ LX200AstroPhysics::LX200AstroPhysics() : LX200Generic()
 
     setLX200Capability(LX200_HAS_PULSE_GUIDING | LX200_HAS_TRACK_MODE);
 
-    SetTelescopeCapability(GetTelescopeCapability() | TELESCOPE_HAS_PIER_SIDE, 3);
+    SetTelescopeCapability(GetTelescopeCapability() | TELESCOPE_HAS_PIER_SIDE, 4);
 
     //ctor
     currentRA  = get_local_sideral_time(0);
@@ -75,17 +75,19 @@ bool LX200AstroPhysics::initProperties()
     IUFillNumberVector(&HorizontalCoordsNP, HorizontalCoordsN, 2, getDeviceName(), "HORIZONTAL_COORD",
                        "Horizontal Coords", MAIN_CONTROL_TAB, IP_RW, 120, IPS_IDLE);
 
-    // Slew speed when performing regular GOTO
-    IUFillSwitch(&SlewRateS[0], "600", "600x", ISS_OFF);
-    IUFillSwitch(&SlewRateS[1], "900", "900x", ISS_OFF);
-    IUFillSwitch(&SlewRateS[2], "1200", "1200x", ISS_ON);
 
     // Motion speed of axis when pressing NSWE buttons
-    IUFillSwitch(&MotionSpeedS[0], "12", "12x", ISS_OFF);
-    IUFillSwitch(&MotionSpeedS[1], "64", "64x", ISS_ON);
-    IUFillSwitch(&MotionSpeedS[2], "600", "600x", ISS_OFF);
-    IUFillSwitch(&MotionSpeedS[3], "1200", "1200x", ISS_OFF);
-    IUFillSwitchVector(&MotionSpeedSP, MotionSpeedS, 4, getDeviceName(), "Motion Speed", "", MOTION_TAB, IP_RW, ISR_1OFMANY,
+    IUFillSwitch(&SlewRateS[0], "12", "12x", ISS_OFF);
+    IUFillSwitch(&SlewRateS[1], "64", "64x", ISS_ON);
+    IUFillSwitch(&SlewRateS[2], "600", "600x", ISS_OFF);
+    IUFillSwitch(&SlewRateS[3], "1200", "1200x", ISS_OFF);
+    IUFillSwitchVector(&SlewRateSP, SlewRateS, 4, getDeviceName(), "TELESCOPE_SLEW_RATE", "Slew Rate", MOTION_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+
+    // Slew speed when performing regular GOTO
+    IUFillSwitch(&APSlewSpeedS[0], "600", "600x", ISS_ON);
+    IUFillSwitch(&APSlewSpeedS[1], "900", "900x", ISS_OFF);
+    IUFillSwitch(&APSlewSpeedS[2], "1200", "1200x", ISS_OFF);
+    IUFillSwitchVector(&APSlewSpeedSP, APSlewSpeedS, 3, getDeviceName(), "GOTO Rate", "", MOTION_TAB, IP_RW, ISR_1OFMANY,
                        0, IPS_IDLE);
 
     IUFillSwitch(&SwapS[0], "NS", "North/South", ISS_OFF);
@@ -129,7 +131,7 @@ void LX200AstroPhysics::ISGetProperties(const char *dev)
 
         /* Motion group */
         defineSwitch(&TrackModeSP);
-        defineSwitch(&MotionSpeedSP);
+        defineSwitch(&APSlewSpeedSP);
         defineSwitch(&SwapSP);
         defineSwitch(&SyncCMRSP);
         defineNumber(&SlewAccuracyNP);
@@ -151,7 +153,7 @@ bool LX200AstroPhysics::updateProperties()
 
         /* Motion group */
         defineSwitch(&TrackModeSP);
-        defineSwitch(&MotionSpeedSP);
+        defineSwitch(&APSlewSpeedSP);
         defineSwitch(&SwapSP);
         defineSwitch(&SyncCMRSP);
         defineNumber(&SlewAccuracyNP);
@@ -164,7 +166,7 @@ bool LX200AstroPhysics::updateProperties()
         deleteProperty(VersionInfo.name);
         //deleteProperty(DeclinationAxisTP.name);
         deleteProperty(TrackModeSP.name);
-        deleteProperty(MotionSpeedSP.name);
+        deleteProperty(APSlewSpeedSP.name);
         deleteProperty(SwapSP.name);
         deleteProperty(SyncCMRSP.name);
         deleteProperty(SlewAccuracyNP.name);
@@ -220,8 +222,8 @@ bool LX200AstroPhysics::ISNewSwitch(const char *dev, const char *name, ISState *
                 SlewRateSP.s = IPS_OK;
                 IDSetSwitch(&SlewRateSP, nullptr);
 
-                MotionSpeedSP.s = IPS_OK;
-                IDSetSwitch(&MotionSpeedSP, nullptr);
+                APSlewSpeedSP.s = IPS_OK;
+                IDSetSwitch(&APSlewSpeedSP, nullptr);
 
                 IUSaveText(&VersionT[0], "1.0");
                 VersionInfo.s = IPS_OK;
@@ -247,24 +249,30 @@ bool LX200AstroPhysics::ISNewSwitch(const char *dev, const char *name, ISState *
                 TrackModeSP.s = IPS_OK;
                 IDSetSwitch(&TrackModeSP, nullptr);
 
+                // On most mounts SlewRateS defines the MoveTo AND Slew (GOTO) speeds
+                // lx200ap is different - some of the MoveTo speeds are not VALID
+                // Slew speeds so we have to keep two lists.
+                //
+                // SlewRateS is used as the MoveTo speed
                 switch_nr = IUFindOnSwitchIndex(&SlewRateSP);
-                if ( (err = selectAPSlewRate(PortFD, switch_nr)) < 0)
+                if ( (err = selectAPMoveToRate(PortFD, switch_nr)) < 0)
                 {
-                    DEBUGF(INDI::Logger::DBG_ERROR, "StartUpSP: Error setting slew rate (%d).", err);
+                    DEBUGF(INDI::Logger::DBG_ERROR, "StartUpSP: Error setting move rate (%d).", err);
                     return false;
                 }
 
                 SlewRateSP.s = IPS_OK;
                 IDSetSwitch(&SlewRateSP, nullptr);
 
-                switch_nr = IUFindOnSwitchIndex(&MotionSpeedSP);
-                if ( (err = selectAPMoveToRate(PortFD, switch_nr)) < 0)
+                // APSlewSpeedsS defines the Slew (GOTO) speeds valid on the AP mounts
+                switch_nr = IUFindOnSwitchIndex(&APSlewSpeedSP);
+                if ( (err = selectAPSlewRate(PortFD, switch_nr)) < 0)
                 {
-                    DEBUGF(INDI::Logger::DBG_ERROR, "StartUpSP: Error setting move to rate (%d).", err);
+                    DEBUGF(INDI::Logger::DBG_ERROR, "StartUpSP: Error setting slew to rate (%d).", err);
                     return false;
                 }
-                MotionSpeedSP.s = IPS_OK;
-                IDSetSwitch(&MotionSpeedSP, nullptr);
+                APSlewSpeedSP.s = IPS_OK;
+                IDSetSwitch(&APSlewSpeedSP, nullptr);
 
                 getLX200RA(PortFD, &currentRA);
                 getLX200DEC(PortFD, &currentDEC);
@@ -348,21 +356,21 @@ bool LX200AstroPhysics::ISNewSwitch(const char *dev, const char *name, ISState *
     }
 
     // ===========================================================
-    // Motion Speed. For setting NSWE speed only. Does not affect slewing speed
+    // GOTO ("slew") Speed.
     // ===========================================================
-    if (!strcmp(name, MotionSpeedSP.name))
+    if (!strcmp(name, APSlewSpeedSP.name))
     {
-        IUUpdateSwitch(&MotionSpeedSP, states, names, n);
-        int moveRate = IUFindOnSwitchIndex(&MotionSpeedSP);
+        IUUpdateSwitch(&APSlewSpeedSP, states, names, n);
+        int slewRate = IUFindOnSwitchIndex(&APSlewSpeedSP);
 
-        if (isSimulation() == false && (err = selectAPMoveToRate(PortFD, moveRate) < 0))
+        if (isSimulation() == false && (err = selectAPSlewRate(PortFD, slewRate) < 0))
         {
             DEBUGF(INDI::Logger::DBG_ERROR, "Error setting move to rate (%d).", err);
             return false;
         }
 
-        MotionSpeedSP.s = IPS_OK;
-        IDSetSwitch(&MotionSpeedSP, nullptr);
+        APSlewSpeedSP.s = IPS_OK;
+        IDSetSwitch(&APSlewSpeedSP, nullptr);
         return true;
     }
 
@@ -784,9 +792,13 @@ void LX200AstroPhysics::debugTriggered(bool enable)
     set_lx200ap_name(getDeviceName(), DBG_SCOPE);
 }
 
+
+// For most mounts the SetSlewRate() method sets both the MoveTo and Slew (GOTO) speeds.
+// For AP mounts these two speeds are handled separately - so SetSlewRate() actually sets the MoveTo speed for AP mounts - confusing!
+// ApSetSlew
 bool LX200AstroPhysics::SetSlewRate(int index)
 {
-    if (isSimulation() == false && selectAPSlewRate(PortFD, index) < 0)
+    if (isSimulation() == false && selectAPMoveToRate(PortFD, index) < 0)
     {
         SlewRateSP.s = IPS_ALERT;
         IDSetSwitch(&SlewRateSP, "Error setting slew mode.");
@@ -966,7 +978,7 @@ bool LX200AstroPhysics::saveConfigItems(FILE *fp)
     LX200Generic::saveConfigItems(fp);
 
     IUSaveConfigSwitch(fp, &SyncCMRSP);
-    IUSaveConfigSwitch(fp, &MotionSpeedSP);
+    IUSaveConfigSwitch(fp, &APSlewSpeedSP);
 
     return true;
 }
