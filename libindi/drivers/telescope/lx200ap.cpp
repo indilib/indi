@@ -361,9 +361,9 @@ bool LX200AstroPhysics::ISNewSwitch(const char *dev, const char *name, ISState *
     if (!strcmp(name, APSlewSpeedSP.name))
     {
         IUUpdateSwitch(&APSlewSpeedSP, states, names, n);
-        int moveRate = IUFindOnSwitchIndex(&APSlewSpeedSP);
+        int slewRate = IUFindOnSwitchIndex(&APSlewSpeedSP);
 
-        if (isSimulation() == false && (err = selectAPSlewRate(PortFD, moveRate) < 0))
+        if (isSimulation() == false && (err = selectAPSlewRate(PortFD, slewRate) < 0))
         {
             DEBUGF(INDI::Logger::DBG_ERROR, "Error setting move to rate (%d).", err);
             return false;
