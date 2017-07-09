@@ -22,6 +22,10 @@
         + Check if flushing is supported.
         + Always set BIAS exposure to zero.
 
+    2017:
+        + Save Gain, Fan, and Anti-blooming in configuration file.
+        + Use FilterWheelInterface functions.
+
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
     License as published by the Free Software Foundation; either
@@ -75,17 +79,9 @@ double max(void);
 
 #define FILTER_WHEEL_TAB "Filter Wheel"
 
-#define MAX_CCD_TEMP   45   /* Max CCD temperature */
-#define MIN_CCD_TEMP   -55  /* Min CCD temperature */
-#define MAX_X_BIN      16   /* Max Horizontal binning */
-#define MAX_Y_BIN      16   /* Max Vertical binning */
-#define MAX_PIXELS     4096 /* Max number of pixels in one dimension */
 #define POLLMS         1000 /* Polling time (ms) */
 #define TEMP_THRESHOLD .25  /* Differential temperature threshold (C)*/
 #define NFLUSHES       1    /* Number of times a CCD array is flushed before an exposure */
-
-#define LAST_FILTER  5 /* Max slot index */
-#define FIRST_FILTER 1 /* Min slot index */
 
 #define currentFilter FilterN[0].value
 
@@ -130,12 +126,15 @@ void ISSnoopDevice(XMLEle *root)
 
 QSICCD::QSICCD()
 {
-    targetFilter          = 0;
     canSetGain            = false;
     canControlFan         = false;
     canSetAB              = false;
     canFlush              = false;
     canChangeReadoutSpeed = false;
+
+    // Initial setting. Updated after connction to camera.
+    FilterSlotN[0].min = 1;
+    FilterSlotN[0].max = 5;
 
     QSICam.put_UseStructuredExceptions(true);
 
@@ -180,9 +179,9 @@ bool QSICCD::initProperties()
     IUFillSwitchVector(&FilterSP, FilterS, 2, getDeviceName(), "FILTER_WHEEL_MOTION", "Turn Wheel", FILTER_TAB, IP_RW,
                        ISR_1OFMANY, 60, IPS_IDLE);
 
-    IUFillSwitch(&GainS[0], "High", "", ISS_OFF);
+    IUFillSwitch(&GainS[0], "High", "", ISS_ON);
     IUFillSwitch(&GainS[1], "Low", "", ISS_OFF);
-    IUFillSwitch(&GainS[2], "Auto", "", ISS_ON);
+    IUFillSwitch(&GainS[2], "Auto", "", ISS_OFF);
     IUFillSwitchVector(&GainSP, GainS, 3, getDeviceName(), "Gain", "", OPTIONS_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
 
     IUFillSwitch(&FanS[0], "Off", "", ISS_OFF);
@@ -218,9 +217,6 @@ bool QSICCD::updateProperties()
 
         setupParams();
 
-        if (FilterNameT != NULL)
-            defineText(FilterNameTP);
-
         manageDefaults();
 
         timerID = SetTimer(POLLMS);
@@ -245,7 +241,7 @@ bool QSICCD::updateProperties()
         if (canChangeReadoutSpeed)
             deleteProperty(ReadOutSP.name);
 
-        if (FilterNameT != NULL)
+        if (FilterNameT != nullptr)
             deleteProperty(FilterNameTP->name);
 
         rmTimer(timerID);
@@ -279,7 +275,7 @@ bool QSICCD::setupParams()
     DEBUGF(INDI::Logger::DBG_SESSION, "The CCD Temperature is %f.", temperature);
 
     TemperatureN[0].value = temperature; /* CCD chip temperatre (degrees C) */
-    IDSetNumber(&TemperatureNP, NULL);
+    IDSetNumber(&TemperatureNP, nullptr);
 
     SetCCDParams(sub_frame_x, sub_frame_y, 16, pixel_size_x, pixel_size_y);
 
@@ -315,16 +311,18 @@ bool QSICCD::setupParams()
 
     DEBUGF(INDI::Logger::DBG_SESSION, "The filter count is %d", filter_count);
 
+    FilterSlotN[0].min = 1;
     FilterSlotN[0].max = filter_count;
     FilterSlotNP.s     = IPS_OK;
 
     IUUpdateMinMax(&FilterSlotNP);
-    IDSetNumber(&FilterSlotNP, NULL);
+    IDSetNumber(&FilterSlotNP, nullptr);
 
     FilterSP.s = IPS_OK;
-    IDSetSwitch(&FilterSP, NULL);
+    IDSetSwitch(&FilterSP, nullptr);
 
-    if (FilterNameT == NULL)
+    // Only generate filter names if there are none initially
+    if (FilterNameT == nullptr)
         GetFilterNames(FILTER_TAB);
 
     double minDuration = 0;
@@ -353,14 +351,14 @@ bool QSICCD::setupParams()
         CoolerS[0].s = ISS_OFF;
         CoolerS[1].s = ISS_ON;
         DEBUGF(INDI::Logger::DBG_ERROR, "Error: CoolerOn() failed. %s.", err.what());
-        IDSetSwitch(&CoolerSP, NULL);
+        IDSetSwitch(&CoolerSP, nullptr);
         return false;
     }
 
     CoolerS[0].s = coolerOn ? ISS_ON : ISS_OFF;
     CoolerS[1].s = coolerOn ? ISS_OFF : ISS_ON;
     CoolerSP.s   = IPS_OK;
-    IDSetSwitch(&CoolerSP, NULL);
+    IDSetSwitch(&CoolerSP, nullptr);
 
     QSICamera::CameraGain cGain = QSICamera::CameraGainAuto;
     canSetGain                  = false;
@@ -539,7 +537,7 @@ bool QSICCD::ISNewSwitch(const char *dev, const char *name, ISState *states, cha
                     IUResetSwitch(&ReadOutSP);
                     ReadOutSP.s = IPS_ALERT;
                     DEBUGF(INDI::Logger::DBG_ERROR, "put_ReadoutSpeed() failed. %s.", err.what());
-                    IDSetSwitch(&ReadOutSP, NULL);
+                    IDSetSwitch(&ReadOutSP, nullptr);
                     return false;
                 }
             }
@@ -554,16 +552,16 @@ bool QSICCD::ISNewSwitch(const char *dev, const char *name, ISState *states, cha
                     IUResetSwitch(&ReadOutSP);
                     ReadOutSP.s = IPS_ALERT;
                     DEBUGF(INDI::Logger::DBG_ERROR, "put_ReadoutSpeed() failed. %s.", err.what());
-                    IDSetSwitch(&ReadOutSP, NULL);
+                    IDSetSwitch(&ReadOutSP, nullptr);
                     return false;
                 }
 
                 ReadOutSP.s = IPS_OK;
-                IDSetSwitch(&ReadOutSP, NULL);
+                IDSetSwitch(&ReadOutSP, nullptr);
             }
 
             ReadOutSP.s = IPS_OK;
-            IDSetSwitch(&ReadOutSP, NULL);
+            IDSetSwitch(&ReadOutSP, nullptr);
             return true;
         }
 
@@ -599,7 +597,7 @@ bool QSICCD::ISNewSwitch(const char *dev, const char *name, ISState *states, cha
             if (prevGain == targetGain)
             {
                 GainSP.s = IPS_OK;
-                IDSetSwitch(&GainSP, NULL);
+                IDSetSwitch(&GainSP, nullptr);
                 return true;
             }
 
@@ -613,12 +611,12 @@ bool QSICCD::ISNewSwitch(const char *dev, const char *name, ISState *states, cha
                 GainS[prevGain].s = ISS_ON;
                 GainSP.s          = IPS_ALERT;
                 DEBUGF(INDI::Logger::DBG_ERROR, "put_CameraGain failed. %s.", err.what());
-                IDSetSwitch(&GainSP, NULL);
+                IDSetSwitch(&GainSP, nullptr);
                 return false;
             }
 
             GainSP.s = IPS_OK;
-            IDSetSwitch(&GainSP, NULL);
+            IDSetSwitch(&GainSP, nullptr);
             return true;
         }
 
@@ -631,7 +629,7 @@ bool QSICCD::ISNewSwitch(const char *dev, const char *name, ISState *states, cha
             if (prevFan == targetFan)
             {
                 FanSP.s = IPS_OK;
-                IDSetSwitch(&FanSP, NULL);
+                IDSetSwitch(&FanSP, nullptr);
                 return true;
             }
 
@@ -645,12 +643,12 @@ bool QSICCD::ISNewSwitch(const char *dev, const char *name, ISState *states, cha
                 FanS[prevFan].s = ISS_ON;
                 FanSP.s         = IPS_ALERT;
                 DEBUGF(INDI::Logger::DBG_ERROR, "put_FanMode failed. %s.", err.what());
-                IDSetSwitch(&FanSP, NULL);
+                IDSetSwitch(&FanSP, nullptr);
                 return false;
             }
 
             FanSP.s = IPS_OK;
-            IDSetSwitch(&FanSP, NULL);
+            IDSetSwitch(&FanSP, nullptr);
             return true;
         }
 
@@ -663,7 +661,7 @@ bool QSICCD::ISNewSwitch(const char *dev, const char *name, ISState *states, cha
             if (prevAB == targetAB)
             {
                 ABSP.s = IPS_OK;
-                IDSetSwitch(&ABSP, NULL);
+                IDSetSwitch(&ABSP, nullptr);
                 return true;
             }
 
@@ -677,12 +675,12 @@ bool QSICCD::ISNewSwitch(const char *dev, const char *name, ISState *states, cha
                 ABS[prevAB].s = ISS_ON;
                 ABSP.s        = IPS_ALERT;
                 DEBUGF(INDI::Logger::DBG_ERROR, "put_AntiBlooming failed. %s.", err.what());
-                IDSetSwitch(&ABSP, NULL);
+                IDSetSwitch(&ABSP, nullptr);
                 return false;
             }
 
             ABSP.s = IPS_OK;
-            IDSetSwitch(&ABSP, NULL);
+            IDSetSwitch(&ABSP, nullptr);
             return true;
         }
 
@@ -702,12 +700,18 @@ bool QSICCD::ISNewSwitch(const char *dev, const char *name, ISState *states, cha
 
 bool QSICCD::ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
 {
-    int maxFilters = (int)FilterSlotN[0].max;
+    //int maxFilters = (int)FilterSlotN[0].max;
     //std::string filterDesignation[maxFilters];
 
     if (strcmp(dev, getDeviceName()) == 0)
     {
-        if (!strcmp(name, FilterNameTP->name))
+        if (strcmp(name, FilterNameTP->name) == 0)
+        {
+            processFilterName(dev, texts, names, n);
+            return true;
+        }
+
+        /*if (!strcmp(name, FilterNameTP->name))
         {
             if (IUUpdateText(FilterNameTP, texts, names, n) < 0)
             {
@@ -722,7 +726,7 @@ bool QSICCD::ISNewText(const char *dev, const char *name, char *texts[], char *n
             if (SetFilterNames() == true)
             {
                 FilterNameTP->s = IPS_OK;
-                IDSetText(FilterNameTP, NULL);
+                IDSetText(FilterNameTP, nullptr);
                 return true;
             }
             else
@@ -731,7 +735,7 @@ bool QSICCD::ISNewText(const char *dev, const char *name, char *texts[], char *n
                 IDSetText(FilterNameTP, "Error updating filter names.");
                 return false;
             }
-        }
+        }*/
     }
 
     return INDI::CCD::ISNewText(dev, name, texts, names, n);
@@ -739,11 +743,9 @@ bool QSICCD::ISNewText(const char *dev, const char *name, char *texts[], char *n
 
 bool QSICCD::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
 {
-    INumber *np;
-
     if (strcmp(dev, getDeviceName()) == 0)
     {
-        if (!strcmp(FilterSlotNP.name, name))
+        /*if (!strcmp(FilterSlotNP.name, name))
         {
             targetFilter = values[0];
 
@@ -764,14 +766,14 @@ bool QSICCD::ISNewNumber(const char *dev, const char *name, double values[], cha
             catch (std::runtime_error err)
             {
                 DEBUGF(INDI::Logger::DBG_ERROR, "get_FilterCount() failed. %s.", err.what());
-                IDSetNumber(&FilterSlotNP, NULL);
+                IDSetNumber(&FilterSlotNP, nullptr);
             }
             if (targetFilter < FIRST_FILTER || targetFilter > filter_count)
             {
                 FilterSlotNP.s = IPS_ALERT;
                 DEBUGF(INDI::Logger::DBG_ERROR, "Error: valid range of filter is from %d to %d", FIRST_FILTER,
                        LAST_FILTER);
-                IDSetNumber(&FilterSlotNP, NULL);
+                IDSetNumber(&FilterSlotNP, nullptr);
                 return false;
             }
 
@@ -779,11 +781,11 @@ bool QSICCD::ISNewNumber(const char *dev, const char *name, double values[], cha
 
             FilterSlotNP.s = IPS_BUSY;
             DEBUGF(INDI::Logger::DBG_DEBUG, "Setting current filter to slot %d", targetFilter);
-            IDSetNumber(&FilterSlotNP, NULL);
+            IDSetNumber(&FilterSlotNP, nullptr);
 
             SelectFilter(targetFilter);
 
-            /* Check current filter position */
+            // Check current filter position
             short newFilter = QueryFilter();
 
             if (newFilter == targetFilter)
@@ -791,11 +793,17 @@ bool QSICCD::ISNewNumber(const char *dev, const char *name, double values[], cha
                 FilterSlotN[0].value = targetFilter;
                 FilterSlotNP.s       = IPS_OK;
                 DEBUGF(INDI::Logger::DBG_DEBUG, "Filter set to slot #%d", targetFilter);
-                IDSetNumber(&FilterSlotNP, NULL);
+                IDSetNumber(&FilterSlotNP, nullptr);
                 return true;
             }
             else
                 return false;
+        }*/
+
+        if (strcmp(name, FilterSlotNP.name) == 0)
+        {
+            processFilterSlot(getDeviceName(), values, names);
+            return true;
         }
     }
 
@@ -858,7 +866,7 @@ bool QSICCD::StartExposure(float duration)
         }
     }
 
-    gettimeofday(&ExpStart, NULL);
+    gettimeofday(&ExpStart, nullptr);
     DEBUGF(INDI::Logger::DBG_DEBUG, "Taking a %g seconds frame...", ExposureRequest);
 
     InExposure = true;
@@ -891,7 +899,7 @@ float QSICCD::CalcTimeLeft(timeval start, float req)
     double timesince;
     double timeleft;
     struct timeval now;
-    gettimeofday(&now, NULL);
+    gettimeofday(&now, nullptr);
 
     timesince =
         (double)(now.tv_sec * 1000.0 + now.tv_usec / 1000) - (double)(start.tv_sec * 1000.0 + start.tv_usec / 1000);
@@ -998,7 +1006,6 @@ int QSICCD::grabImage()
 
         QSICam.get_ImageArraySize(x, y, z);
         QSICam.get_ImageArray(image);
-        imageBuffer = image;
         imageWidth  = x;
         imageHeight = y;
     }
@@ -1179,7 +1186,7 @@ void QSICCD::activateCooler(bool enable)
             CoolerS[0].s = ISS_OFF;
             CoolerS[1].s = ISS_ON;
             DEBUGF(INDI::Logger::DBG_ERROR, "Error: CoolerOn() failed. %s.", err.what());
-            IDSetSwitch(&CoolerSP, NULL);
+            IDSetSwitch(&CoolerSP, nullptr);
             return;
         }
 
@@ -1204,7 +1211,7 @@ void QSICCD::activateCooler(bool enable)
         CoolerS[1].s = ISS_OFF;
         CoolerSP.s   = IPS_OK;
         DEBUG(INDI::Logger::DBG_SESSION, "Cooler ON");
-        IDSetSwitch(&CoolerSP, NULL);
+        IDSetSwitch(&CoolerSP, nullptr);
         CoolerNP.s = IPS_BUSY;
     }
     else
@@ -1222,11 +1229,11 @@ void QSICCD::activateCooler(bool enable)
         catch (std::runtime_error err)
         {
             DEBUGF(INDI::Logger::DBG_ERROR, "Error: CoolerOn() failed. %s.", err.what());
-            IDSetSwitch(&CoolerSP, NULL);
+            IDSetSwitch(&CoolerSP, nullptr);
             return;
         }
         DEBUG(INDI::Logger::DBG_SESSION, "Cooler is OFF.");
-        IDSetSwitch(&CoolerSP, NULL);
+        IDSetSwitch(&CoolerSP, nullptr);
     }
 }
 
@@ -1263,7 +1270,7 @@ void QSICCD::shutterControl()
                     ShutterS[0].s = ISS_OFF;
                     ShutterS[1].s = ISS_ON;
                     DEBUGF(INDI::Logger::DBG_ERROR, "Error: ManualShutterOpen() failed. %s.", err.what());
-                    IDSetSwitch(&ShutterSP, NULL);
+                    IDSetSwitch(&ShutterSP, nullptr);
                     return;
                 }
 
@@ -1272,7 +1279,7 @@ void QSICCD::shutterControl()
                 ShutterS[1].s = ISS_OFF;
                 ShutterSP.s   = IPS_OK;
                 DEBUG(INDI::Logger::DBG_SESSION, "Shutter opened manually.");
-                IDSetSwitch(&ShutterSP, NULL);
+                IDSetSwitch(&ShutterSP, nullptr);
                 break;
 
             case ISS_OFF:
@@ -1288,7 +1295,7 @@ void QSICCD::shutterControl()
                     ShutterS[0].s = ISS_ON;
                     ShutterS[1].s = ISS_OFF;
                     DEBUGF(INDI::Logger::DBG_ERROR, "Error: ManualShutterOpen() failed. %s.", err.what());
-                    IDSetSwitch(&ShutterSP, NULL);
+                    IDSetSwitch(&ShutterSP, nullptr);
                     return;
                 }
 
@@ -1297,7 +1304,7 @@ void QSICCD::shutterControl()
                 ShutterS[1].s = ISS_ON;
                 ShutterSP.s   = IPS_IDLE;
                 DEBUG(INDI::Logger::DBG_SESSION, "Shutter closed manually.");
-                IDSetSwitch(&ShutterSP, NULL);
+                IDSetSwitch(&ShutterSP, nullptr);
                 break;
         }
     }
@@ -1354,14 +1361,14 @@ void QSICCD::TimerHit()
             {
                 TemperatureNP.s = IPS_IDLE;
                 DEBUGF(INDI::Logger::DBG_ERROR, "get_CCDTemperature() failed. %s.", err.what());
-                IDSetNumber(&TemperatureNP, NULL);
+                IDSetNumber(&TemperatureNP, nullptr);
                 return;
             }
 
             if (fabs(TemperatureN[0].value - ccdTemp) >= TEMP_THRESHOLD)
             {
                 TemperatureN[0].value = ccdTemp;
-                IDSetNumber(&TemperatureNP, NULL);
+                IDSetNumber(&TemperatureNP, nullptr);
             }
             break;
 
@@ -1374,14 +1381,14 @@ void QSICCD::TimerHit()
             {
                 TemperatureNP.s = IPS_ALERT;
                 DEBUGF(INDI::Logger::DBG_ERROR, "get_CCDTemperature() failed. %s.", err.what());
-                IDSetNumber(&TemperatureNP, NULL);
+                IDSetNumber(&TemperatureNP, nullptr);
                 return;
             }
 
             if (fabs(TemperatureN[0].value - targetTemperature) <= TEMP_THRESHOLD)
                 TemperatureNP.s = IPS_OK;
 
-            IDSetNumber(&TemperatureNP, NULL);
+            IDSetNumber(&TemperatureNP, nullptr);
             break;
 
         case IPS_ALERT:
@@ -1400,14 +1407,14 @@ void QSICCD::TimerHit()
             {
                 CoolerNP.s = IPS_IDLE;
                 DEBUGF(INDI::Logger::DBG_ERROR, "get_CoolerPower() failed. %s.", err.what());
-                IDSetNumber(&CoolerNP, NULL);
+                IDSetNumber(&CoolerNP, nullptr);
                 return;
             }
 
             if (CoolerN[0].value != coolerPower)
             {
                 CoolerN[0].value = coolerPower;
-                IDSetNumber(&CoolerNP, NULL);
+                IDSetNumber(&CoolerNP, nullptr);
             }
 
             if (coolerPower > 0)
@@ -1424,7 +1431,7 @@ void QSICCD::TimerHit()
             {
                 CoolerNP.s = IPS_ALERT;
                 DEBUGF(INDI::Logger::DBG_ERROR, "get_CoolerPower() failed. %s.", err.what());
-                IDSetNumber(&CoolerNP, NULL);
+                IDSetNumber(&CoolerNP, nullptr);
                 return;
             }
 
@@ -1432,7 +1439,7 @@ void QSICCD::TimerHit()
                 CoolerNP.s = IPS_IDLE;
 
             CoolerN[0].value = coolerPower;
-            IDSetNumber(&CoolerNP, NULL);
+            IDSetNumber(&CoolerNP, nullptr);
             break;
 
         case IPS_ALERT:
@@ -1450,17 +1457,13 @@ void QSICCD::turnWheel()
     switch (FilterS[0].s)
     {
         case ISS_ON:
-            if (current_filter < LAST_FILTER)
-                current_filter++;
-            else
-                current_filter = FIRST_FILTER;
             try
             {
                 current_filter = QueryFilter();
-                if (current_filter < LAST_FILTER)
+                if (current_filter < FilterSlotNP.nnp)
                     current_filter++;
                 else
-                    current_filter = FIRST_FILTER;
+                    current_filter = 1;
 
                 SelectFilter(current_filter);
             }
@@ -1478,17 +1481,17 @@ void QSICCD::turnWheel()
             FilterS[1].s         = ISS_OFF;
             FilterSP.s           = IPS_OK;
             DEBUGF(INDI::Logger::DBG_DEBUG, "The current filter is %d", current_filter);
-            IDSetSwitch(&FilterSP, NULL);
+            IDSetSwitch(&FilterSP, nullptr);
             break;
 
         case ISS_OFF:
             try
             {
                 current_filter = QueryFilter();
-                if (current_filter > FIRST_FILTER)
+                if (current_filter > 1)
                     current_filter--;
                 else
-                    current_filter = LAST_FILTER;
+                    current_filter = FilterSlotNP.nnp;
                 SelectFilter(current_filter);
             }
             catch (std::runtime_error err)
@@ -1504,9 +1507,9 @@ void QSICCD::turnWheel()
             FilterS[0].s         = ISS_OFF;
             FilterS[1].s         = ISS_OFF;
             FilterSP.s           = IPS_OK;
-            DEBUGF(INDI::Logger::DBG_DEBUG, "The current filter is %d\n", current_filter);
-            IDSetSwitch(&FilterSP, NULL);
-            IDSetNumber(&FilterSlotNP, NULL);
+            DEBUGF(INDI::Logger::DBG_DEBUG, "The current filter is %d", current_filter);
+            IDSetSwitch(&FilterSP, nullptr);
+            IDSetNumber(&FilterSlotNP, nullptr);
             break;
     }
 }
@@ -1575,13 +1578,16 @@ bool QSICCD::GetFilterNames(const char *groupName)
 {
     char filterName[MAXINDINAME];
     char filterLabel[MAXINDILABEL];
-    int maxFilters = (int)FilterSlotN[0].max;
 
-    if (FilterNameT != NULL)
+    int maxFilter = FilterSlotN[0].max;
+
+    if (FilterNameT != nullptr)
     {
         delete FilterNameT;
-        FilterNameT = NULL;
+        FilterNameT = nullptr;
     }
+
+    std::string filterDesignation[maxFilter];
 
     try
     {
@@ -1593,23 +1599,26 @@ bool QSICCD::GetFilterNames(const char *groupName)
         return false;
     }
 
-    FilterNameT = new IText[maxFilters];
+    FilterNameT = new IText[maxFilter];
 
-    for (int i = 0; i < maxFilters; i++)
+    for (int i = 0; i < maxFilter; i++)
     {
         snprintf(filterName, MAXINDINAME, "FILTER_SLOT_NAME_%d", i + 1);
         snprintf(filterLabel, MAXINDILABEL, "Filter #%d", i + 1);
         IUFillText(&FilterNameT[i], filterName, filterLabel, filterDesignation[i].c_str());
     }
 
-    IUFillTextVector(FilterNameTP, FilterNameT, maxFilters, getDeviceName(), "FILTER_NAME", "Filter", groupName, IP_RW,
-                     1, IPS_IDLE);
+    IUFillTextVector(FilterNameTP, FilterNameT, maxFilter, getDeviceName(), "FILTER_NAME", "Filter", groupName, IP_RW, 1, IPS_IDLE);
 
     return true;
 }
 
 bool QSICCD::SetFilterNames()
 {
+    std::string filterDesignation[FilterSlotNP.nnp];
+    for (int i=0; i < FilterSlotNP.nnp; i++)
+        filterDesignation[i] = FilterNameT[i].text;
+
     try
     {
         QSICam.put_Names(filterDesignation);
@@ -1617,7 +1626,7 @@ bool QSICCD::SetFilterNames()
     catch (std::runtime_error err)
     {
         DEBUGF(INDI::Logger::DBG_ERROR, "put_Names() failed. %s.", err.what());
-        IDSetText(FilterNameTP, NULL);
+        IDSetText(FilterNameTP, nullptr);
         return false;
     }
 
@@ -1635,7 +1644,7 @@ bool QSICCD::SelectFilter(int targetFilter)
     {
         FilterSlotNP.s = IPS_ALERT;
         DEBUGF(INDI::Logger::DBG_ERROR, "put_Position() failed. %s.", err.what());
-        IDSetNumber(&FilterSlotNP, NULL);
+        IDSetNumber(&FilterSlotNP, nullptr);
         return false;
     }
 
@@ -1653,9 +1662,23 @@ int QSICCD::QueryFilter()
     {
         FilterSlotNP.s = IPS_ALERT;
         DEBUGF(INDI::Logger::DBG_ERROR, "get_Position() failed. %s.", err.what());
-        IDSetNumber(&FilterSlotNP, NULL);
+        IDSetNumber(&FilterSlotNP, nullptr);
         return -1;
     }
 
     return newFilter + 1;
+}
+
+bool QSICCD::saveConfigItems(FILE *fp)
+{
+    INDI::CCD::saveConfigItems(fp);
+
+    if (canSetGain)
+        IUSaveConfigSwitch(fp, &GainSP);
+    if (canControlFan)
+        IUSaveConfigSwitch(fp, &FanSP);
+    if (canSetAB)
+        IUSaveConfigSwitch(fp, &ABSP);
+
+    return true;
 }
