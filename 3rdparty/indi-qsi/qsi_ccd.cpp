@@ -212,10 +212,16 @@ bool QSICCD::updateProperties()
         defineSwitch(&CoolerSP);
         defineSwitch(&ShutterSP);
         defineNumber(&CoolerNP);
-        defineNumber(&FilterSlotNP);
-        defineSwitch(&FilterSP);
 
         setupParams();
+
+        if (filterCount > 0)
+        {
+            defineSwitch(&FilterSP);
+            defineNumber(&FilterSlotNP);
+            if (FilterNameT != nullptr)
+                defineText(FilterNameTP);
+        }
 
         manageDefaults();
 
@@ -226,8 +232,6 @@ bool QSICCD::updateProperties()
         deleteProperty(CoolerSP.name);
         deleteProperty(ShutterSP.name);
         deleteProperty(CoolerNP.name);
-        deleteProperty(FilterSlotNP.name);
-        deleteProperty(FilterSP.name);
 
         if (canSetGain)
             deleteProperty(GainSP.name);
@@ -241,8 +245,13 @@ bool QSICCD::updateProperties()
         if (canChangeReadoutSpeed)
             deleteProperty(ReadOutSP.name);
 
-        if (FilterNameT != nullptr)
-            deleteProperty(FilterNameTP->name);
+        if (filterCount > 0)
+        {
+            deleteProperty(FilterSlotNP.name);
+            deleteProperty(FilterSP.name);
+            if (FilterNameT != nullptr)
+                deleteProperty(FilterNameTP->name);
+        }
 
         rmTimer(timerID);
     }
@@ -298,28 +307,20 @@ bool QSICCD::setupParams()
     }
     DEBUGF(INDI::Logger::DBG_SESSION, "%s", name.c_str());
 
-    int filter_count;
     try
     {
-        QSICam.get_FilterCount(filter_count);
+        QSICam.get_FilterCount(filterCount);
+        DEBUGF(INDI::Logger::DBG_SESSION, "The filter count is %d", filterCount);
+
+        FilterSlotN[0].min = 1;
+        FilterSlotN[0].max = filterCount;
+        FilterSlotNP.s     = IPS_OK;
     }
     catch (std::runtime_error err)
     {
         DEBUGF(INDI::Logger::DBG_SESSION, "get_FilterCount() failed. %s.", err.what());
         return false;
     }
-
-    DEBUGF(INDI::Logger::DBG_SESSION, "The filter count is %d", filter_count);
-
-    FilterSlotN[0].min = 1;
-    FilterSlotN[0].max = filter_count;
-    FilterSlotNP.s     = IPS_OK;
-
-    IUUpdateMinMax(&FilterSlotNP);
-    IDSetNumber(&FilterSlotNP, nullptr);
-
-    FilterSP.s = IPS_OK;
-    IDSetSwitch(&FilterSP, nullptr);
 
     // Only generate filter names if there are none initially
     if (FilterNameT == nullptr)
@@ -1460,7 +1461,7 @@ void QSICCD::turnWheel()
             try
             {
                 current_filter = QueryFilter();
-                if (current_filter < FilterSlotNP.nnp)
+                if (current_filter < filterCount)
                     current_filter++;
                 else
                     current_filter = 1;
@@ -1491,7 +1492,7 @@ void QSICCD::turnWheel()
                 if (current_filter > 1)
                     current_filter--;
                 else
-                    current_filter = FilterSlotNP.nnp;
+                    current_filter = filterCount;
                 SelectFilter(current_filter);
             }
             catch (std::runtime_error err)
@@ -1579,15 +1580,13 @@ bool QSICCD::GetFilterNames(const char *groupName)
     char filterName[MAXINDINAME];
     char filterLabel[MAXINDILABEL];
 
-    int maxFilter = FilterSlotN[0].max;
-
     if (FilterNameT != nullptr)
     {
         delete FilterNameT;
         FilterNameT = nullptr;
     }
 
-    std::string filterDesignation[maxFilter];
+    std::string filterDesignation[filterCount];
 
     try
     {
@@ -1599,16 +1598,16 @@ bool QSICCD::GetFilterNames(const char *groupName)
         return false;
     }
 
-    FilterNameT = new IText[maxFilter];
+    FilterNameT = new IText[filterCount];
 
-    for (int i = 0; i < maxFilter; i++)
+    for (int i = 0; i < filterCount; i++)
     {
         snprintf(filterName, MAXINDINAME, "FILTER_SLOT_NAME_%d", i + 1);
         snprintf(filterLabel, MAXINDILABEL, "Filter #%d", i + 1);
         IUFillText(&FilterNameT[i], filterName, filterLabel, filterDesignation[i].c_str());
     }
 
-    IUFillTextVector(FilterNameTP, FilterNameT, maxFilter, getDeviceName(), "FILTER_NAME", "Filter", groupName, IP_RW, 1, IPS_IDLE);
+    IUFillTextVector(FilterNameTP, FilterNameT, filterCount, getDeviceName(), "FILTER_NAME", "Filter", groupName, IP_RW, 1, IPS_IDLE);
 
     return true;
 }

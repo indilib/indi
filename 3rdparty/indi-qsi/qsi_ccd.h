@@ -111,6 +111,7 @@ private:
     bool canAbort, canSetGain, canSetAB, canControlFan, canChangeReadoutSpeed, canFlush;
 
     // Filter Wheel
+    int filterCount=0;
     void turnWheel();
 
     // Temperature
