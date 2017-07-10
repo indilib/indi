@@ -33,7 +33,9 @@
 
 LX200Gemini::LX200Gemini()
 {
-    setVersion(1, 2);
+    setVersion(1, 3);
+
+    setLX200Capability(LX200_HAS_SITES);
 
     SetTelescopeCapability(TELESCOPE_CAN_PARK | TELESCOPE_CAN_SYNC | TELESCOPE_CAN_GOTO | TELESCOPE_CAN_ABORT |
                                TELESCOPE_HAS_TIME | TELESCOPE_HAS_LOCATION | TELESCOPE_HAS_PIER_SIDE,
@@ -78,9 +80,6 @@ bool LX200Gemini::updateProperties()
 
     if (isConnected())
     {
-        deleteProperty(AlignmentSP.name);
-        deleteProperty(UsePulseCmdSP.name);
-        deleteProperty(TrackingFreqNP.name);
         defineSwitch(&ParkSettingsSP);
     }
     else

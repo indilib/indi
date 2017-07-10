@@ -71,7 +71,7 @@
 	</device>
         <device label="Losmandy Gemini" focal_length="" aperture="">
                 <driver name="Losmandy Gemini">indi_lx200gemini</driver>
-                <version>1.2</version>
+                <version>1.3</version>
         </device>
 	<device label="Mel Bartels" focal_length="" aperture="">
 		<driver name="LX200 Basic">indi_lx200basic</driver>
