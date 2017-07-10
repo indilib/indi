@@ -35,7 +35,7 @@ LX200Gemini::LX200Gemini()
 {
     setVersion(1, 3);
 
-    setLX200Capability(LX200_HAS_SITES);
+    setLX200Capability(LX200_HAS_SITES | LX200_HAS_FOCUS | LX200_HAS_TRACK_MODE);
 
     SetTelescopeCapability(TELESCOPE_CAN_PARK | TELESCOPE_CAN_SYNC | TELESCOPE_CAN_GOTO | TELESCOPE_CAN_ABORT |
                                TELESCOPE_HAS_TIME | TELESCOPE_HAS_LOCATION | TELESCOPE_HAS_PIER_SIDE,
@@ -71,6 +71,13 @@ bool LX200Gemini::initProperties()
     IUFillSwitch(&StartupModeS[PARK_ZENITH], "WARM_RESTART", "Restart", ISS_OFF);
     IUFillSwitchVector(&StartupModeSP, StartupModeS, 3, getDeviceName(), "STARTUP_MODE", "Startup Mode",
                        MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
+
+
+    IUFillSwitch(&TrackModeS[GEMINI_TRACK_SIDEREAL], "TRACK_SIDEREAL", "Sidereal", ISS_ON);
+    IUFillSwitch(&TrackModeS[GEMINI_TRACK_KING], "TRACK_CUSTOM", "King", ISS_OFF);
+    IUFillSwitch(&TrackModeS[GEMINI_TRACK_LUNAR], "TRACK_LUNAR", "Lunar", ISS_OFF);
+    IUFillSwitch(&TrackModeS[GEMINI_TRACK_SOLAR], "TRACK_SOLAR", "Solar", ISS_OFF);
+
     return true;
 }
 
@@ -415,4 +422,44 @@ bool LX200Gemini::saveConfigItems(FILE *fp)
     IUSaveConfigSwitch(fp, &ParkSettingsSP);
 
     return true;
+}
+
+bool LX200Gemini::SetTrackMode(int mode)
+{
+    int rc = TTY_OK, nbytes_written=0;
+    char prefix[16] = {0};
+    char cmd[16] = {0};
+
+    snprintf(prefix, 16, ">130:%d", mode + 131);
+
+    uint8_t checksum = calculateChecksum(prefix);
+
+    snprintf(cmd, 16, "%s%c#", prefix, checksum);
+
+    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD: <%s>", cmd);
+
+    if ((rc = tty_write_string(PortFD, cmd, &nbytes_written)) != TTY_OK)
+    {
+        char errmsg[256];
+        tty_error_msg(rc, errmsg, 256);
+        DEBUGF(INDI::Logger::DBG_ERROR, "Error writing to device %s (%d)", errmsg, rc);
+        return false;
+    }
+
+    tcflush(PortFD, TCIFLUSH);
+
+    return true;
+}
+
+uint8_t LX200Gemini::calculateChecksum(char *cmd)
+{
+    uint8_t result = cmd[0];
+
+    for (size_t i=1; i < strlen(cmd); i++)
+        result = result ^ cmd[i];
+
+    result = result % 128;
+    result += 64;
+
+    return result;
 }
