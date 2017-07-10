@@ -193,8 +193,8 @@ int main(int argc, char** argv)
 		std::cout << "qsiapitest version: " << info << "\n";
 		//Discover the connected cameras
 		int iNumFound;
-		std::string camSerial[QSICamera::MAXCAMERAS] = "";
-		std::string camDesc[QSICamera::MAXCAMERAS] = "";
+		std::string camSerial[QSICamera::MAXCAMERAS];
+		std::string camDesc[QSICamera::MAXCAMERAS];
 
 		cam.get_AvailableCameras(camSerial, camDesc, iNumFound);
 
