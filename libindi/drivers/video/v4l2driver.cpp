@@ -892,16 +892,25 @@ bool V4L2_Driver::setManualExposure(double duration)
     return true;
 }
 
+/** \internal Timer callback.
+ *
+ * This provides a very rough estimation of the remaining exposure to the client.
+ */
 void V4L2_Driver::stdtimerCallback(void *userpointer)
 {
     V4L2_Driver *p = (V4L2_Driver *)userpointer;
-    p->exposureLeft -= 1.0f;
     //DEBUGF(INDI::Logger::DBG_SESSION,"Exposure running, %f seconds left...",p->exposureLeft);
-    p->PrimaryCCD.setExposureLeft(p->exposureLeft);
     if (1.0f < p->exposureLeft)
+    {
+        p->exposureLeft -= 1.0f;
         p->stdtimer = IEAddTimer(1000, (IE_TCF *)stdtimerCallback, userpointer);
+    }
     else
+    {
+        p->exposureLeft = 0.0f;
         p->stdtimer = -1;
+    }
+    p->PrimaryCCD.setExposureLeft(p->exposureLeft);
 }
 
 bool V4L2_Driver::start_capturing(bool do_stream)
@@ -941,7 +950,7 @@ bool V4L2_Driver::stop_capturing()
         return true;
     }
 
-    if (!Streamer->isBusy() && 0.0f < exposureLeft)
+    if (!Streamer->isBusy() && 1.0f < exposureLeft)
     {
         DEBUGF(INDI::Logger::DBG_WARNING, "Stopping running exposure %.3f seconds before completion", exposureLeft);
     }
