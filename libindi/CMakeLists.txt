@@ -146,7 +146,7 @@ endif (INDI_BUILD_SERVER)
 # Supported OS: Linux, BSD, MacOS, Windows, Cygwin
 # N.B. Windows support pending migration of networking code
 #################################################################################################
-if (INDI_BUILD_CLIENT AND NOT ANDROID AND NOT WIN32)
+if (INDI_BUILD_CLIENT AND NOT ANDROID)
 # 1. Dependencies
 find_package(Threads REQUIRED)
 find_package(ZLIB REQUIRED)
@@ -185,7 +185,7 @@ endif (NOT CYGWIN AND NOT WIN32)
 target_link_libraries(indiclient ${CMAKE_THREAD_LIBS_INIT})
 install(TARGETS indiclient ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR})
 install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/baseclient.h DESTINATION ${INCLUDE_INSTALL_DIR}/libindi COMPONENT Devel)
-endif (INDI_BUILD_CLIENT AND NOT ANDROID AND NOT WIN32)
+endif (INDI_BUILD_CLIENT AND NOT ANDROID)
 
 #################################################################################################
 #
