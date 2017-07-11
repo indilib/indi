@@ -23,6 +23,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110 - 1301  USA
 
 #endif
 
+#include <cmath>
 #include "v4l2driver.h"
 
 #include "lx/Lx.h"
@@ -762,7 +763,8 @@ bool V4L2_Driver::StartExposure(float duration)
         if (is_capturing)
         {
             DEBUGF(INDI::Logger::DBG_ERROR,
-                   "Cannot start new exposure until the current one completes (%.3f seconds left).", exposureLeft);
+                   "Cannot start new exposure until the current one completes (%.3f seconds left).",
+                   getRemainingExposure());
             return !(GetCCDCapability() & CCD_CAN_ABORT);
         }
     }
@@ -771,7 +773,6 @@ bool V4L2_Driver::StartExposure(float duration)
     {
         V4LFrame->expose = duration;
         PrimaryCCD.setExposureDuration(duration);
-        this->exposureLeft = duration;
 
         if (!lx->isEnabled() || lx->getLxmode() == LXSERIAL)
             start_capturing(false);
@@ -796,41 +797,36 @@ bool V4L2_Driver::setShutter(double duration)
     if (lx->isEnabled())
     {
         DEBUGF(INDI::Logger::DBG_SESSION, "Using long exposure mode for %.3f sec frame.", duration);
-        if (!startlongexposure(duration))
+        if (startlongexposure(duration))
+        {
+            DEBUGF(INDI::Logger::DBG_SESSION, "Started %.3f-second long exposure.", duration);
+            return true;
+        }
+        else
         {
             DEBUGF(INDI::Logger::DBG_WARNING,
                    "Unable to start %.3f-second long exposure, falling back to auto exposure", duration);
             return false;
         }
     }
-    else if (AbsExposureN && ManualExposureSP && (AbsExposureN->max >= (duration * 10000)) &&
-             (AbsExposureN->min <= (duration * 10000)))
+    else if (setManualExposure(duration))
     {
-        // INT control for manual exposure duration is an integer - log is cheating a bit
-        DEBUGF(INDI::Logger::DBG_SESSION, "Using device %d-tick manual exposure for %.3f-second exposure",
-               (int)(duration * 10000), duration);
-        if (!setManualExposure(duration))
-        {
-            DEBUGF(INDI::Logger::DBG_WARNING,
-                   "Unable to set %.3f-second manual exposure, falling back to auto exposure", duration);
-            return false;
-        }
+        exposure_duration.tv_sec  = (long) duration;
+        exposure_duration.tv_usec = (long) ((duration - (double) exposure_duration.tv_sec) * 1000000.0f);
 
-        timerclear(&exposure_duration);
-        exposure_duration.tv_sec  = (long)duration;
-        exposure_duration.tv_usec = (long)((duration - (double)exposure_duration.tv_sec) * 1000000.0);
+        gettimeofday(&capture_start, nullptr);
+        frameCount    = 0;
+        subframeCount = 0;
+
+        DEBUGF(INDI::Logger::DBG_SESSION, "Started %.3f-second manual exposure.", duration);
+        return true;
     }
     else
     {
-        DEBUGF(INDI::Logger::DBG_WARNING, "Failed %.3f-second manual exposure, out of device tick bounds [%.f,%.f] seconds.",
-               duration, AbsExposureN ? AbsExposureN->min : 0, AbsExposureN ? AbsExposureN->max/10000.0 : 0);
+        DEBUGF(INDI::Logger::DBG_WARNING, "Failed %.3f-second manual exposure, no adequate control is registered.",
+               duration);
         return false;
     }
-
-    gettimeofday(&capture_start, nullptr);
-    frameCount    = 0;
-    subframeCount = 0;
-    return true;
 }
 
 bool V4L2_Driver::setManualExposure(double duration)
@@ -869,39 +865,58 @@ bool V4L2_Driver::setManualExposure(double duration)
     }
 
     /* N.B. Check how this differs from one camera to another. This is just a proof of concept for now */
-    /* With DMx 21A04.AS, exposing twice with the same duration causes an incomplete frame to pop in the buffer list
-     * This can be worked around by verifying the buffer size, but it won't work for anything else than Y8/Y16, so set exposure unconditionally */
+    /* With DMx 21AU04.AS, exposing twice with the same duration causes an incomplete frame to pop in the buffer list
+     * This can be worked around by verifying the buffer size, but it won't work for anything else than Y8/Y16, so set
+     * exposure unconditionally */
     /*if (duration * 10000 != AbsExposureN->value)*/
-    {
-        double curVal       = AbsExposureN->value;
 
-        AbsExposureN->value = duration * 10000;
-        ctrl_id             = *((unsigned int *)AbsExposureN->aux0);
+    // INT control for manual exposure duration is an integer in 1/10000 seconds
+    long const ticks = lround(duration * 10000.0f);
+
+    if (AbsExposureN->min <= ticks && ticks <= AbsExposureN->max)
+    {
+        double const restoredValue = AbsExposureN->value;
+        AbsExposureN->value = ticks;
+
+        DEBUGF(INDI::Logger::DBG_DEBUG, "%.3f-second exposure translates to %ld 1/10,000th-second device ticks.",
+               duration, ticks);
+
+        ctrl_id = *((unsigned int *)AbsExposureN->aux0);
         if (v4l_base->setINTControl(ctrl_id, AbsExposureN->value, errmsg) < 0)
         {
             ImageAdjustNP.s     = IPS_ALERT;
-            AbsExposureN->value = curVal;
-            IDSetNumber(&ImageAdjustNP, "Unable to adjust AbsExposure. %s", errmsg);
+            AbsExposureN->value = restoredValue;
+            IDSetNumber(&ImageAdjustNP, "Failed requesting %.3f-second exposure to the driver (%s).", duration, errmsg);
             return false;
         }
 
         ImageAdjustNP.s = IPS_OK;
         IDSetNumber(&ImageAdjustNP, nullptr);
     }
+    else
+    {
+        DEBUGF(INDI::Logger::DBG_WARNING, "Failed %.3f-second manual exposure, out of device bounds [%.3f,%.3f].",
+               duration, (double) AbsExposureN->min / 10000.0f, (double) AbsExposureN->max / 10000.0f);
+        return false;
+    }
 
     return true;
 }
 
+/** \internal Timer callback.
+ *
+ * This provides a very rough estimation of the remaining exposure to the client.
+ */
 void V4L2_Driver::stdtimerCallback(void *userpointer)
 {
     V4L2_Driver *p = (V4L2_Driver *)userpointer;
-    p->exposureLeft -= 1.0f;
-    //DEBUGF(INDI::Logger::DBG_SESSION,"Exposure running, %f seconds left...",p->exposureLeft);
-    p->PrimaryCCD.setExposureLeft(p->exposureLeft);
-    if (1.0f < p->exposureLeft)
+    float remaining = p->getRemainingExposure();
+    //DEBUGF(INDI::Logger::DBG_SESSION,"Exposure running, %f seconds left...", remaining);
+    if (1.0f < remaining)
         p->stdtimer = IEAddTimer(1000, (IE_TCF *)stdtimerCallback, userpointer);
     else
         p->stdtimer = -1;
+    p->PrimaryCCD.setExposureLeft(remaining);
 }
 
 bool V4L2_Driver::start_capturing(bool do_stream)
@@ -915,7 +930,7 @@ bool V4L2_Driver::start_capturing(bool do_stream)
     if (is_capturing)
     {
         DEBUGF(INDI::Logger::DBG_WARNING, "Cannot start exposure while another is in progress (%.3f seconds left)",
-               exposureLeft);
+               getRemainingExposure());
         return false;
     }
 
@@ -941,9 +956,10 @@ bool V4L2_Driver::stop_capturing()
         return true;
     }
 
-    if (!Streamer->isBusy() && 0.0f < exposureLeft)
+    if (!Streamer->isBusy() && 0.0f < getRemainingExposure())
     {
-        DEBUGF(INDI::Logger::DBG_WARNING, "Stopping running exposure %.3f seconds before completion", exposureLeft);
+        DEBUGF(INDI::Logger::DBG_WARNING, "Stopping running exposure %.3f seconds before completion",
+               getRemainingExposure());
     }
 
     //if(Streamer->isDirectRecording())
@@ -1077,6 +1093,21 @@ void V4L2_Driver::stackFrame()
     }
 }
 
+struct timeval V4L2_Driver::getElapsedExposure() const
+{
+    struct timeval now = { .tv_sec = 0, .tv_usec = 0 }, elapsed = { .tv_sec = 0, .tv_usec = 0 };
+    gettimeofday(&now, nullptr);
+    timersub(&now, &capture_start, &elapsed);
+    return elapsed;
+}
+
+float V4L2_Driver::getRemainingExposure() const
+{
+    struct timeval elapsed = getElapsedExposure(), remaining = { .tv_sec = 0, .tv_usec = 0 };
+    timersub(&exposure_duration,&elapsed,&remaining);
+    return (float) remaining.tv_sec + (float) remaining.tv_usec / 1000000.0f;
+}
+
 void V4L2_Driver::newFrame()
 {
     if (Streamer->isBusy())
@@ -1143,7 +1174,6 @@ void V4L2_Driver::newFrame()
 
     if (PrimaryCCD.isExposing())
     {
-        struct timeval current_exposure;
 
         // Stack Mono frames
         if ((stackMode) && !(lx->isEnabled()) && !(ImageColorS[1].s == ISS_ON))
@@ -1151,8 +1181,7 @@ void V4L2_Driver::newFrame()
             stackFrame();
         }
 
-        gettimeofday(&capture_end, nullptr);
-        timersub(&capture_end, &capture_start, &current_exposure);
+        struct timeval const current_exposure = getElapsedExposure();
 
         if ((stackMode) && !(lx->isEnabled()) && !(ImageColorS[1].s == ISS_ON) &&
             (timercmp(&current_exposure, &exposure_duration, <)))
@@ -1518,7 +1547,7 @@ bool V4L2_Driver::StopStreaming()
     {
         /* Strange situation indeed, but it's theoretically possible to try to stop streaming while exposing - safeguard actually */
         DEBUGF(INDI::Logger::DBG_WARNING, "Cannot stop streaming, exposure running (%.1f seconds remaining)",
-               exposureLeft);
+               getRemainingExposure());
         return false;
     }
 
