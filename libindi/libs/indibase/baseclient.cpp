@@ -185,14 +185,16 @@ bool INDI::BaseClient::connectServer()
 
     sConnected = true;
 
-    int result = pthread_create(&listen_thread, nullptr, &INDI::BaseClient::listenHelper, this);
+    /*int result = pthread_create(&listen_thread, nullptr, &INDI::BaseClient::listenHelper, this);
 
     if (result != 0)
     {
         sConnected = false;
         perror("thread");
         return false;
-    }
+    }*/
+
+    listen_thread = new std::thread(listenHelper, this);
 
     serverConnected();
 
@@ -219,7 +221,10 @@ bool INDI::BaseClient::disconnectServer()
 
     cDeviceNames.clear();
 
-    pthread_join(listen_thread, nullptr);
+    listen_thread->join();
+    delete(listen_thread);
+    listen_thread=nullptr;
+    //pthread_join(listen_thread, nullptr);
 
     return true;
 }
@@ -414,7 +419,8 @@ void INDI::BaseClient::listenINDI()
     serverDisconnected((sConnected == false) ? 0 : -1);
     sConnected = false;
 
-    pthread_exit(0);
+
+    //pthread_exit(0);
 }
 
 int INDI::BaseClient::dispatchCommand(XMLEle *root, char *errmsg)

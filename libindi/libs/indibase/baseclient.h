@@ -24,7 +24,7 @@
 #include <string>
 #include <vector>
 
-#include <pthread.h>
+#include <thread>
 
 #define MAXRBUF 2048
 
@@ -238,7 +238,7 @@ class INDI::BaseClient : public INDI::BaseMediator
      */
     void clear();
 
-    pthread_t listen_thread;
+    std::thread *listen_thread=nullptr;
 
     FILE *svrwfp; /* FILE * to talk to server */
     int sockfd;

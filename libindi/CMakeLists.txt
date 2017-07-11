@@ -73,7 +73,7 @@ set(PKG_CONFIG_LIBDIR ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR})
 
 OPTION (INDI_BUILD_SERVER "Build INDI Server" ON)
 OPTION (INDI_BUILD_DRIVERS "Build INDI Drivers, Tools, and Examples" ON)
-OPTION (INDI_BUILD_POSIX_CLIENT "Build INDI POSIX Client" ON)
+OPTION (INDI_BUILD_CLIENT "Build INDI POSIX Client" ON)
 OPTION (INDI_BUILD_QT5_CLIENT "Build INDI Qt5 Client" OFF)
 OPTION (INDI_BUILD_UNITTESTS "Build INDI tests" OFF)
 OPTION (INDI_FAST_BLOB "Build INDI with Fast BLOB support" ON)
@@ -141,15 +141,12 @@ endif (INDI_BUILD_SERVER)
 
 #################################################################################################
 #
-# Component   : INDI POSIX Client
-# Dependencies: pthreads, zlib, cfitsio, nova
-# Supported OS: Linux, BSD, MacOS, Cygwin
+# Component   : INDI Client
+# Dependencies: zlib, cfitsio, nova
+# Supported OS: Linux, BSD, MacOS, Windows, Cygwin
 #
 #################################################################################################
-if (INDI_BUILD_POSIX_CLIENT)
-if (WIN32 OR ANDROID)
-    message(WARNING "INDI POSIX Client is only supported under Linux, BSD, MacOS, and Cygwin while current system is " ${CMAKE_SYSTEM_NAME})
-else()
+if (INDI_BUILD_CLIENT)
 # 1. Dependencies
 find_package(Threads REQUIRED)
 find_package(ZLIB REQUIRED)
@@ -188,8 +185,7 @@ endif (NOT CYGWIN AND NOT WIN32)
 target_link_libraries(indiclient ${CMAKE_THREAD_LIBS_INIT})
 install(TARGETS indiclient ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR})
 install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/baseclient.h DESTINATION ${INCLUDE_INSTALL_DIR}/libindi COMPONENT Devel)
-endif (WIN32 OR ANDROID)
-endif (INDI_BUILD_POSIX_CLIENT)
+endif (INDI_BUILD_CLIENT)
 
 #################################################################################################
 #
@@ -856,7 +852,7 @@ ENDIF ()
 #####################################
 
 ########### SkySafari Middleware ##############
-IF (INDI_BUILD_POSIX_CLIENT)
+IF (INDI_BUILD_CLIENT)
     SET(skysafari_SRC
         ${CMAKE_CURRENT_SOURCE_DIR}/drivers/auxiliary/skysafari.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/drivers/auxiliary/skysafariclient.cpp)
@@ -873,7 +869,7 @@ ELSE ()
 ENDIF ()
 
 ########### Watch dog ###############
-if (INDI_BUILD_POSIX_CLIENT)
+if (INDI_BUILD_CLIENT)
     SET(watchdog_SRC
         ${CMAKE_CURRENT_SOURCE_DIR}/drivers/auxiliary/watchdog.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/drivers/auxiliary/watchdogclient.cpp)
@@ -1085,7 +1081,7 @@ install(TARGETS indi_eval RUNTIME DESTINATION bin )
 #################################################################################
 ## Build Examples
 
-IF (INDI_BUILD_POSIX_CLIENT)
+IF (INDI_BUILD_CLIENT)
     add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/examples)
 ELSE ()
     message(WARNING "Skipping build of examples since INDI POSIX client is not built")
@@ -1134,7 +1130,7 @@ endif (WIN32 OR ANDROID)
 endif(INDI_BUILD_DRIVERS)
 
 # Install common dev files for all except server
-if (INDI_BUILD_DRIVERS OR INDI_BUILD_POSIX_CLIENT OR INDI_BUILD_QT5_CLIENT)
+if (INDI_BUILD_DRIVERS OR INDI_BUILD_CLIENT OR INDI_BUILD_QT5_CLIENT)
     install(FILES ${CMAKE_CURRENT_BINARY_DIR}/indiversion.h DESTINATION ${INCLUDE_INSTALL_DIR}/libindi COMPONENT Devel)
     install( FILES
         ${CMAKE_CURRENT_SOURCE_DIR}/indiapi.h
@@ -1172,7 +1168,7 @@ install( FILES
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/connectionplugins/connectionserial.h
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/connectionplugins/connectiontcp.h
     DESTINATION ${INCLUDE_INSTALL_DIR}/libindi/connectionplugins COMPONENT Devel)
-endif (INDI_BUILD_DRIVERS OR INDI_BUILD_POSIX_CLIENT OR INDI_BUILD_QT5_CLIENT)
+endif (INDI_BUILD_DRIVERS OR INDI_BUILD_CLIENT OR INDI_BUILD_QT5_CLIENT)
 
 feature_summary(WHAT ALL FATAL_ON_MISSING_REQUIRED_PACKAGES)
 
@@ -1183,8 +1179,8 @@ endif()
 if (INDI_BUILD_DRIVERS)
     message(STATUS "## INDI Drivers, Tools, and Examples")
 endif()
-if (INDI_BUILD_POSIX_CLIENT)
-    message(STATUS "## INDI POSIX Client")
+if (INDI_BUILD_CLIENT)
+    message(STATUS "## INDI Client")
 endif()
 if (INDI_BUILD_QT5_CLIENT)
     message(STATUS "## INDI Qt5 Client")
