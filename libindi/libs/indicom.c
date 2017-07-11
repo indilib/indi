@@ -187,6 +187,17 @@ int f_scansexa(const char *str0, /* input string */
     strncpy(str, str0, sizeof(str) - 1);
     str[sizeof(str) - 1] = '\0';
 
+    /* remove any spaces */
+    char* i = str;
+    char* j = str;
+    while(*j != 0)
+    {
+        *i = *j++;
+        if(*i != ' ')
+            i++;
+    }
+    *i = 0;
+
     neg = strchr(str, '-');
     if (neg)
         *neg = ' ';
