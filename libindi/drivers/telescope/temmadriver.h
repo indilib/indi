@@ -56,8 +56,8 @@ class TemmaMount : public INDI::Telescope,
     bool SlewActive;
     unsigned char Slewbits;
     //bool TemmaConnect(const char *port);
-    INumber GuideRateN[2];
-    INumberVectorProperty GuideRateNP;
+    //INumber GuideRateN[2];
+    //INumberVectorProperty GuideRateNP;
 
   public:
     TemmaMount();
@@ -71,7 +71,6 @@ class TemmaMount : public INDI::Telescope,
 
     virtual bool initProperties();
     virtual bool ReadScopeStatus();
-    virtual bool Connect();
     bool Goto(double, double);
     bool Park();
     bool UnPark();

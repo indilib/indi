@@ -84,23 +84,6 @@ TemmaMount::~TemmaMount()
     //dtor
 }
 
-bool TemmaMount::Connect()
-{
-    bool rc = false;
-
-    if (isConnected())
-        return true;
-
-    //rc=Connect(PortT[0].text, atoi(IUFindOnSwitch(&BaudRateSP)->name));
-    rc = INDI::Telescope::Connect();
-
-    if (rc)
-    {
-    }
-
-    return rc;
-}
-
 const char *TemmaMount::getDefaultName()
 {
     return "Temma";
@@ -126,10 +109,13 @@ bool TemmaMount::initProperties()
                        IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
     /* How fast do we guide compared to sidereal rate */
+    // N.B. 2017-07-11 NOT used in driver, so disabling it
+    /*
     IUFillNumber(&GuideRateN[0], "GUIDE_RATE_WE", "W/E Rate", "%g", 0, 1, 0.1, 0.3);
     IUFillNumber(&GuideRateN[1], "GUIDE_RATE_NS", "N/S Rate", "%g", 0, 1, 0.1, 0.3);
     IUFillNumberVector(&GuideRateNP, GuideRateN, 2, getDeviceName(), "GUIDE_RATE", "Guiding Rate", MOTION_TAB, IP_RW, 0,
                        IPS_IDLE);
+    */
 
     //  probably want to debug this
     //addDebugControl();
@@ -151,8 +137,8 @@ void TemmaMount::ISGetProperties(const char *dev)
     /* First we let our parent populate */
     INDI::Telescope::ISGetProperties(dev);
 
-    defineNumber(&GuideNSNP);
-    defineNumber(&GuideWENP);
+    //defineNumber(&GuideNSNP);
+    //defineNumber(&GuideWENP);
 
     // JM 2016-11-10: This is not used anywhere in the code now. Enable it again when you use it
     //defineNumber(&GuideRateNP);
@@ -165,13 +151,13 @@ bool TemmaMount::ISNewNumber(const char *dev, const char *name, double values[],
     {
         // It is for us
         //  call upstream for guider properties
-        if (!strcmp(name, "GUIDE_RATE"))
+        /*if (!strcmp(name, "GUIDE_RATE"))
         {
             IUUpdateNumber(&GuideRateNP, values, names, n);
             GuideRateNP.s = IPS_OK;
             IDSetNumber(&GuideRateNP, nullptr);
             return true;
-        }
+        }*/
         if (!strcmp(name, GuideNSNP.name) || !strcmp(name, GuideWENP.name))
         {
             processGuiderProperties(name, values, names, n);
@@ -219,8 +205,7 @@ bool TemmaMount::ISNewText(const char *dev, const char *name, char *texts[], cha
 
 bool TemmaMount::updateProperties()
 {
-    INDI::Telescope::updateProperties();
-    DEBUG(INDI::Logger::DBG_SESSION, "Update Properties");
+    INDI::Telescope::updateProperties();    
 
     if (isConnected())
     {
@@ -1065,10 +1050,6 @@ bool TemmaMount::SetTemmaLattitude(double lat)
 
     return true;
 }
-
-#include <termios.h>
-#include <unistd.h>
-#include <fcntl.h>
 
 bool TemmaMount::Handshake()
 {
