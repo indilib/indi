@@ -24,18 +24,36 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <locale.h>
-#include <netdb.h>
 #include <stdlib.h>
+#include <stdarg.h>
 #include <string.h>
+
+#ifdef __unix__
+#include <netdb.h>
 #include <unistd.h>
+#define net_read read
+#define net_write write
+#define net_close close
+#endif
+
+#ifdef _WINDOWS
+#include <WinSock2.h>
+#include <windows.h>
+
+#define errno WSAGetLastError()
+#define net_read(x,y,z) recv(x,y,z,0)
+#define net_write(x,y,z) send(x,(const char *)(y),z,0)
+#define net_close closesocket
+
+#pragma comment(lib, "Ws2_32.lib")
+#endif
 
 #define MAXINDIBUF 49152
 
 INDI::BaseClient::BaseClient()
 {
     cServer    = "localhost";
-    cPort      = 7624;
-    svrwfp     = nullptr;
+    cPort      = 7624;    
     sConnected = false;
     verbose    = false;
 
@@ -71,20 +89,29 @@ void INDI::BaseClient::watchDevice(const char *deviceName)
 
 bool INDI::BaseClient::connectServer()
 {
+#ifdef _WINDOWS
+    WSADATA wsaData;
+    int iResult = WSAStartup(MAKEWORD(2,2), &wsaData);
+    if (iResult != NO_ERROR)
+    {
+      IDLog("Error at WSAStartup()\n");
+      return false;
+    }
+#endif
+
     struct timeval ts;
     ts.tv_sec  = timeout_sec;
     ts.tv_usec = timeout_us;
 
     struct sockaddr_in serv_addr;
-    struct hostent *hp;
-    int pipefd[2];
+    struct hostent *hp;    
     int ret = 0;
 
     /* lookup host address */
     hp = gethostbyname(cServer.c_str());
     if (!hp)
     {
-        herror("gethostbyname");
+        perror("gethostbyname");
         return false;
     }
 
@@ -93,20 +120,39 @@ bool INDI::BaseClient::connectServer()
     serv_addr.sin_family      = AF_INET;
     serv_addr.sin_addr.s_addr = ((struct in_addr *)(hp->h_addr_list[0]))->s_addr;
     serv_addr.sin_port        = htons(cPort);
+#ifdef _WINDOWS
+    if ((sockfd = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP)) == INVALID_SOCKET)
+    {
+        IDLog("Socket error: %d\n", WSAGetLastError());
+        WSACleanup();
+        return false;
+    }
+#else
     if ((sockfd = socket(AF_INET, SOCK_STREAM, 0)) < 0)
     {
         perror("socket");
         return false;
     }
+#endif
 
     /* set the socket in non-blocking */
     //set socket nonblocking flag
+    #ifdef _WINDOWS
+    u_long iMode = 0;
+    iResult = ioctlsocket(sockfd, FIONBIO, &iMode);
+    if (iResult != NO_ERROR)
+    {
+      IDLog("ioctlsocket failed with error: %ld\n", iResult);
+      return false;
+    }
+    #else
     int flags = 0;
     if ((flags = fcntl(sockfd, F_GETFL, 0)) < 0)
         return false;
 
     if (fcntl(sockfd, F_SETFL, flags | O_NONBLOCK) < 0)
         return false;
+    #endif
 
     //clear out descriptor sets for select
     //add socket to the descriptor sets
@@ -121,7 +167,7 @@ bool INDI::BaseClient::connectServer()
         if (errno != EINPROGRESS)
         {
             perror("connect");
-            close(sockfd);
+            net_close(sockfd);
             return false;
         }
     }
@@ -135,13 +181,18 @@ bool INDI::BaseClient::connectServer()
         //we had a timeout
         if (ret == 0)
         {
+#ifdef _WINDOWS
+            IDLog("select timeout\n");
+#else
             errno = ETIMEDOUT;
             perror("select timeout");
+#endif
             return false;
         }
     }
 
     /* we had a positivite return so a descriptor is ready */
+    #ifdef __unix__
     int error     = 0;
     socklen_t len = sizeof(error);
     if (FD_ISSET(sockfd, &rset) || FD_ISSET(sockfd, &wset))
@@ -153,7 +204,7 @@ bool INDI::BaseClient::connectServer()
         }
     }
     else
-        return false;
+        return false;    
 
     /* check if we had a socket error */
     if (error)
@@ -162,16 +213,10 @@ bool INDI::BaseClient::connectServer()
         perror("socket");
         return false;
     }
+    #endif
 
-    /* prepare for line-oriented i/o with client */
-    svrwfp = fdopen(sockfd, "w");
-
-    if (svrwfp == nullptr)
-    {
-        perror("fdopen");
-        return false;
-    }
-
+    #ifdef __unix__
+    int pipefd[2];
     ret = socketpair(PF_UNIX, SOCK_STREAM, 0, pipefd);
 
     if (ret < 0)
@@ -182,6 +227,7 @@ bool INDI::BaseClient::connectServer()
 
     m_receiveFd = pipefd[0];
     m_sendFd    = pipefd[1];
+    #endif
 
     sConnected = true;
 
@@ -209,13 +255,13 @@ bool INDI::BaseClient::disconnectServer()
 
     sConnected = false;
 
+#ifdef _WINDOWS
+    net_close(sockfd);
+    WSACleanup();
+#else
     shutdown(sockfd, SHUT_RDWR);
-
     while (write(m_sendFd, "1", 1) <= 0)
-
-        if (svrwfp != nullptr)
-            fclose(svrwfp);
-    svrwfp = nullptr;
+#endif
 
     clear();
 
@@ -314,7 +360,7 @@ void INDI::BaseClient::listenINDI()
 
     if (cDeviceNames.empty())
     {
-        fprintf(svrwfp, "<getProperties version='%g'/>\n", INDIV);
+        sendString("<getProperties version='%g'/>\n", INDIV);
         if (verbose)
             fprintf(stderr, "<getProperties version='%g'/>\n", INDIV);
     }
@@ -322,14 +368,12 @@ void INDI::BaseClient::listenINDI()
     {
         for (auto& str : cDeviceNames)
         {
-            fprintf(svrwfp, "<getProperties version='%g' device='%s'/>\n", INDIV, str.c_str());
+            sendString("<getProperties version='%g' device='%s'/>\n", INDIV, str.c_str());
             if (verbose)
-                fprintf(stderr, "<getProperties version='%g' device='%s'/>\n", INDIV, str.c_str());
+                IDLog("<getProperties version='%g' device='%s'/>\n", INDIV, str.c_str());
         }
     }
     setlocale(LC_NUMERIC, orig);
-
-    fflush(svrwfp);
 
     FD_ZERO(&rs);
 
@@ -337,9 +381,11 @@ void INDI::BaseClient::listenINDI()
     if (sockfd > maxfd)
         maxfd = sockfd;
 
+#ifdef __unix__
     FD_SET(m_receiveFd, &rs);
     if (m_receiveFd > maxfd)
         maxfd = m_receiveFd;
+#endif
 
     clear();
     lillp = newLilXML();
@@ -351,27 +397,33 @@ void INDI::BaseClient::listenINDI()
 
         if (n < 0)
         {
-            fprintf(stderr, "INDI server %s/%d disconnected.\n", cServer.c_str(), cPort);
-            close(sockfd);
+            IDLog("INDI server %s/%d disconnected.\n", cServer.c_str(), cPort);
+            net_close(sockfd);
             break;
         }
 
+#ifdef __unix__
         // Received termination string from main thread
         if (n > 0 && FD_ISSET(m_receiveFd, &rs))
         {
             sConnected = false;
             break;
         }
+#endif
 
         if (n > 0 && FD_ISSET(sockfd, &rs))
         {
+#ifdef _WINDOWS
+            n = recv(sockfd, buffer, MAXINDIBUF, 0);
+#else
             n = recv(sockfd, buffer, MAXINDIBUF, MSG_DONTWAIT);
+#endif
             if (n <= 0)
             {
                 if (n == 0)
                 {
-                    fprintf(stderr, "INDI server %s/%d disconnected.\n", cServer.c_str(), cPort);
-                    close(sockfd);
+                    IDLog("INDI server %s/%d disconnected.\n", cServer.c_str(), cPort);
+                    net_close(sockfd);
                     break;
                 }
                 else
@@ -384,7 +436,7 @@ void INDI::BaseClient::listenINDI()
             {
                 if (msg[0])
                 {
-                    fprintf(stderr, "Bad XML from %s/%d: %s\n%s\n", cServer.c_str(), cPort, msg, buffer);
+                    IDLog("Bad XML from %s/%d: %s\n%s\n", cServer.c_str(), cPort, msg, buffer);
                     return;
                 }
                 return;
@@ -608,20 +660,19 @@ void INDI::BaseClient::sendNewText(ITextVectorProperty *tvp)
 {
     tvp->s = IPS_BUSY;
 
-    fprintf(svrwfp, "<newTextVector\n");
-    fprintf(svrwfp, "  device='%s'\n", tvp->device);
-    fprintf(svrwfp, "  name='%s'\n>", tvp->name);
+    sendString("<newTextVector\n");
+    sendString("  device='%s'\n", tvp->device);
+    sendString("  name='%s'\n>", tvp->name);
 
     for (int i = 0; i < tvp->ntp; i++)
     {
-        fprintf(svrwfp, "  <oneText\n");
-        fprintf(svrwfp, "    name='%s'>\n", tvp->tp[i].name);
-        fprintf(svrwfp, "      %s\n", tvp->tp[i].text);
-        fprintf(svrwfp, "  </oneText>\n");
+        sendString("  <oneText\n");
+        sendString("    name='%s'>\n", tvp->tp[i].name);
+        sendString("      %s\n", tvp->tp[i].text);
+        sendString("  </oneText>\n");
     }
-    fprintf(svrwfp, "</newTextVector>\n");
+    sendString("</newTextVector>\n");
 
-    fflush(svrwfp);
 }
 
 void INDI::BaseClient::sendNewText(const char *deviceName, const char *propertyName, const char *elementName,
@@ -653,20 +704,18 @@ void INDI::BaseClient::sendNewNumber(INumberVectorProperty *nvp)
 
     nvp->s = IPS_BUSY;
 
-    fprintf(svrwfp, "<newNumberVector\n");
-    fprintf(svrwfp, "  device='%s'\n", nvp->device);
-    fprintf(svrwfp, "  name='%s'\n>", nvp->name);
+    sendString("<newNumberVector\n");
+    sendString("  device='%s'\n", nvp->device);
+    sendString("  name='%s'\n>", nvp->name);
 
     for (int i = 0; i < nvp->nnp; i++)
     {
-        fprintf(svrwfp, "  <oneNumber\n");
-        fprintf(svrwfp, "    name='%s'>\n", nvp->np[i].name);
-        fprintf(svrwfp, "      %g\n", nvp->np[i].value);
-        fprintf(svrwfp, "  </oneNumber>\n");
+        sendString("  <oneNumber\n");
+        sendString("    name='%s'>\n", nvp->np[i].name);
+        sendString("      %g\n", nvp->np[i].value);
+        sendString("  </oneNumber>\n");
     }
-    fprintf(svrwfp, "</newNumberVector>\n");
-
-    fflush(svrwfp);
+    sendString("</newNumberVector>\n");
 
     setlocale(LC_NUMERIC, orig);
 }
@@ -699,32 +748,30 @@ void INDI::BaseClient::sendNewSwitch(ISwitchVectorProperty *svp)
     svp->s            = IPS_BUSY;
     ISwitch *onSwitch = IUFindOnSwitch(svp);
 
-    fprintf(svrwfp, "<newSwitchVector\n");
+    sendString("<newSwitchVector\n");
 
-    fprintf(svrwfp, "  device='%s'\n", svp->device);
-    fprintf(svrwfp, "  name='%s'>\n", svp->name);
+    sendString("  device='%s'\n", svp->device);
+    sendString("  name='%s'>\n", svp->name);
 
     if (svp->r == ISR_1OFMANY && onSwitch)
     {
-        fprintf(svrwfp, "  <oneSwitch\n");
-        fprintf(svrwfp, "    name='%s'>\n", onSwitch->name);
-        fprintf(svrwfp, "      %s\n", (onSwitch->s == ISS_ON) ? "On" : "Off");
-        fprintf(svrwfp, "  </oneSwitch>\n");
+        sendString("  <oneSwitch\n");
+        sendString("    name='%s'>\n", onSwitch->name);
+        sendString("      %s\n", (onSwitch->s == ISS_ON) ? "On" : "Off");
+        sendString("  </oneSwitch>\n");
     }
     else
     {
         for (int i = 0; i < svp->nsp; i++)
         {
-            fprintf(svrwfp, "  <oneSwitch\n");
-            fprintf(svrwfp, "    name='%s'>\n", svp->sp[i].name);
-            fprintf(svrwfp, "      %s\n", (svp->sp[i].s == ISS_ON) ? "On" : "Off");
-            fprintf(svrwfp, "  </oneSwitch>\n");
+            sendString("  <oneSwitch\n");
+            sendString("    name='%s'>\n", svp->sp[i].name);
+            sendString("      %s\n", (svp->sp[i].s == ISS_ON) ? "On" : "Off");
+            sendString("  </oneSwitch>\n");
         }
     }
 
-    fprintf(svrwfp, "</newSwitchVector>\n");
-
-    fflush(svrwfp);
+    sendString("</newSwitchVector>\n");
 }
 
 void INDI::BaseClient::sendNewSwitch(const char *deviceName, const char *propertyName, const char *elementName)
@@ -751,85 +798,86 @@ void INDI::BaseClient::sendNewSwitch(const char *deviceName, const char *propert
 
 void INDI::BaseClient::startBlob(const char *devName, const char *propName, const char *timestamp)
 {
-    fprintf(svrwfp, "<newBLOBVector\n");
-    fprintf(svrwfp, "  device='%s'\n", devName);
-    fprintf(svrwfp, "  name='%s'\n", propName);
-    fprintf(svrwfp, "  timestamp='%s'>\n", timestamp);
+    sendString("<newBLOBVector\n");
+    sendString("  device='%s'\n", devName);
+    sendString("  name='%s'\n", propName);
+    sendString("  timestamp='%s'>\n", timestamp);
 }
 
 void INDI::BaseClient::sendOneBlob(IBLOB *bp)
 {
     unsigned char *encblob;
+    char nl = '\n';
     int l;
 
     encblob = (unsigned char *)malloc(4 * bp->size / 3 + 4);
     l       = to64frombits(encblob, reinterpret_cast<const unsigned char *>(bp->blob), bp->size);
 
-    fprintf(svrwfp, "  <oneBLOB\n");
-    fprintf(svrwfp, "    name='%s'\n", bp->name);
-    fprintf(svrwfp, "    size='%ud'\n", bp->size);
-    fprintf(svrwfp, "    enclen='%d'\n", l);
-    fprintf(svrwfp, "    format='%s'>\n", bp->format);
+    sendString("  <oneBLOB\n");
+    sendString("    name='%s'\n", bp->name);
+    sendString("    size='%ud'\n", bp->size);
+    sendString("    enclen='%d'\n", l);
+    sendString("    format='%s'>\n", bp->format);
 
     size_t written = 0;
     size_t towrite = 0;
     while ((int)written < l)
     {
-        towrite   = ((l - written) > 72) ? 72 : l - written;
-        size_t wr = fwrite(encblob + written, 1, towrite, svrwfp);
+        towrite   = ((l - written) > 72) ? 72 : l - written;        
+        size_t wr = net_write(sockfd, encblob + written, towrite);
         if (wr > 0)
             written += wr;
         if ((written % 72) == 0)
-            fputc('\n', svrwfp);
+            net_write(sockfd, &nl, 1);
     }
 
     if ((written % 72) != 0)
-        fputc('\n', svrwfp);
+        net_write(sockfd, &nl, 1);
 
     free(encblob);
 
-    fprintf(svrwfp, "   </oneBLOB>\n");
+    sendString("   </oneBLOB>\n");
 }
 
 void INDI::BaseClient::sendOneBlob(const char *blobName, unsigned int blobSize, const char *blobFormat,
                                    void *blobBuffer)
 {
     unsigned char *encblob;
+    char nl = '\n';
     int l;
 
     encblob = (unsigned char *)malloc(4 * blobSize / 3 + 4);
     l       = to64frombits(encblob, reinterpret_cast<const unsigned char *>(blobBuffer), blobSize);
 
-    fprintf(svrwfp, "  <oneBLOB\n");
-    fprintf(svrwfp, "    name='%s'\n", blobName);
-    fprintf(svrwfp, "    size='%ud'\n", blobSize);
-    fprintf(svrwfp, "    enclen='%d'\n", l);
-    fprintf(svrwfp, "    format='%s'>\n", blobFormat);
+    sendString("  <oneBLOB\n");
+    sendString("    name='%s'\n", blobName);
+    sendString("    size='%ud'\n", blobSize);
+    sendString("    enclen='%d'\n", l);
+    sendString("    format='%s'>\n", blobFormat);
 
     size_t written = 0;
     size_t towrite = 0;
     while ((int)written < l)
     {
         towrite   = ((l - written) > 72) ? 72 : l - written;
-        size_t wr = fwrite(encblob + written, 1, towrite, svrwfp);
+        size_t wr = net_write(sockfd, encblob + written, towrite);
         if (wr > 0)
             written += wr;
         if ((written % 72) == 0)
-            fputc('\n', svrwfp);
+            net_write(sockfd, &nl, 1);
     }
 
     if ((written % 72) != 0)
-        fputc('\n', svrwfp);
+        net_write(sockfd, &nl, 1);
 
     free(encblob);
 
-    fprintf(svrwfp, "   </oneBLOB>\n");
+    sendString("   </oneBLOB>\n");
 }
 
 void INDI::BaseClient::finishBlob()
 {
-    fprintf(svrwfp, "</newBLOBVector>\n");
-    fflush(svrwfp);
+    sendString("</newBLOBVector>\n");
 }
 
 void INDI::BaseClient::setBLOBMode(BLOBHandling blobH, const char *dev, const char *prop)
@@ -866,17 +914,15 @@ void INDI::BaseClient::setBLOBMode(BLOBHandling blobH, const char *dev, const ch
     switch (blobH)
     {
         case B_NEVER:
-            fprintf(svrwfp, "%sNever</enableBLOB>\n", blobOpenTag);
+            sendString("%sNever</enableBLOB>\n", blobOpenTag);
             break;
         case B_ALSO:
-            fprintf(svrwfp, "%sAlso</enableBLOB>\n", blobOpenTag);
+            sendString("%sAlso</enableBLOB>\n", blobOpenTag);
             break;
         case B_ONLY:
-            fprintf(svrwfp, "%sOnly</enableBLOB>\n", blobOpenTag);
+            sendString("%sOnly</enableBLOB>\n", blobOpenTag);
             break;
     }
-
-    fflush(svrwfp);
 }
 
 BLOBHandling INDI::BaseClient::getBLOBMode(const char *dev, const char *prop)
@@ -911,4 +957,14 @@ bool INDI::BaseClient::getDevices(std::vector<INDI::BaseDevice *> &deviceList, u
     }
 
     return (deviceList.size() > 0);
+}
+
+void INDI::BaseClient::sendString(const char *fmt, ...)
+{
+    char message[MAXRBUF];
+    va_list ap;
+    va_start(ap, fmt);
+    vsnprintf(message, MAXRBUF, fmt, ap);
+    va_end(ap);
+    net_write(sockfd, message, strlen(message));
 }

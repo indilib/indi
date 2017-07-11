@@ -26,6 +26,10 @@
 
 #include <thread>
 
+#ifdef _WINDOWS
+#include <WinSock2.h>
+#endif
+
 #define MAXRBUF 2048
 
 /**
@@ -240,14 +244,18 @@ class INDI::BaseClient : public INDI::BaseMediator
 
     std::thread *listen_thread=nullptr;
 
-    FILE *svrwfp; /* FILE * to talk to server */
+#ifdef _WINDOWS
+    SOCKET sockfd;
+#else
     int sockfd;
-
     int m_receiveFd;
     int m_sendFd;
+#endif
 
     // Listen to INDI server and process incoming messages
     void listenINDI();
+
+    void sendString(const char *fmt, ...);
 
     std::vector<INDI::BaseDevice *> cDevices;
     std::vector<std::string> cDeviceNames;
