@@ -2589,8 +2589,12 @@ int V4L2_Base::setINTControl(unsigned int ctrl_id, double new_value, char *errms
     if ((queryctrl.flags & V4L2_CTRL_FLAG_READ_ONLY) || (queryctrl.flags & V4L2_CTRL_FLAG_GRABBED) ||
         (queryctrl.flags & V4L2_CTRL_FLAG_INACTIVE) || (queryctrl.flags & V4L2_CTRL_FLAG_VOLATILE))
     {
-        DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG, "Can not set control %.*s (%d)", (int)sizeof(queryctrl.name),
-                     queryctrl.name, queryctrl.flags);
+        DEBUGFDEVICE(deviceName, INDI::Logger::DBG_WARNING, "Setting INT control %.*s will fail, currently %s%s%s%s",
+                     (int)sizeof(queryctrl.name), queryctrl.name,
+                     queryctrl.flags&V4L2_CTRL_FLAG_READ_ONLY?"read only ":"",
+                     queryctrl.flags&V4L2_CTRL_FLAG_GRABBED?"grabbed ":"",
+                     queryctrl.flags&V4L2_CTRL_FLAG_INACTIVE?"inactive ":"",
+                     queryctrl.flags&V4L2_CTRL_FLAG_VOLATILE?"volatile":"");
         return 0;
     }
 
@@ -2601,7 +2605,11 @@ int V4L2_Base::setINTControl(unsigned int ctrl_id, double new_value, char *errms
     control.id    = ctrl_id;
     control.value = (int)new_value;
     if (-1 == XIOCTL(fd, VIDIOC_S_CTRL, &control))
+    {
+        DEBUGFDEVICE(deviceName, INDI::Logger::DBG_ERROR, "Setting INT control %.*s failed (%s)",
+               (int)sizeof(queryctrl.name), queryctrl.name, errmsg);
         return errno_exit("VIDIOC_S_CTRL", errmsg);
+    }
     return 0;
 }
 
@@ -2617,8 +2625,12 @@ int V4L2_Base::setOPTControl(unsigned int ctrl_id, unsigned int new_value, char 
     if ((queryctrl.flags & V4L2_CTRL_FLAG_READ_ONLY) || (queryctrl.flags & V4L2_CTRL_FLAG_GRABBED) ||
         (queryctrl.flags & V4L2_CTRL_FLAG_INACTIVE) || (queryctrl.flags & V4L2_CTRL_FLAG_VOLATILE))
     {
-        DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG, "Can not set control %.*s (%d)", (int)sizeof(queryctrl.name),
-                     queryctrl.name, queryctrl.flags);
+        DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG, "Setting OPT control %.*s will fail, currently %s%s%s%s",
+                     (int)sizeof(queryctrl.name), queryctrl.name,
+                     queryctrl.flags&V4L2_CTRL_FLAG_READ_ONLY?"read only ":"",
+                     queryctrl.flags&V4L2_CTRL_FLAG_GRABBED?"grabbed ":"",
+                     queryctrl.flags&V4L2_CTRL_FLAG_INACTIVE?"inactive ":"",
+                     queryctrl.flags&V4L2_CTRL_FLAG_VOLATILE?"volatile":"");
         return 0;
     }
 
@@ -2629,7 +2641,11 @@ int V4L2_Base::setOPTControl(unsigned int ctrl_id, unsigned int new_value, char 
     control.id    = ctrl_id;
     control.value = new_value;
     if (-1 == XIOCTL(fd, VIDIOC_S_CTRL, &control))
+    {
+        DEBUGFDEVICE(deviceName, INDI::Logger::DBG_ERROR, "Setting INT control %.*s failed (%s)",
+               (int)sizeof(queryctrl.name), queryctrl.name, errmsg);
         return errno_exit("VIDIOC_S_CTRL", errmsg);
+    }
     return 0;
 }
 

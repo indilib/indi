@@ -838,13 +838,7 @@ bool V4L2_Driver::setShutter(double duration)
 
 bool V4L2_Driver::setManualExposure(double duration)
 {
-    if (ManualExposureSP == nullptr)
-    {
-        DEBUGF(INDI::Logger::DBG_ERROR, "Failed exposing, the manual/auto exposure control is undefined", "");
-        return false;
-    }
-
-    if (AbsExposureN == nullptr)
+    if (AbsExposureN)
     {
         DEBUGF(INDI::Logger::DBG_ERROR, "Failed exposing, the absolute exposure duration control is undefined", "");
         return false;
@@ -852,29 +846,40 @@ bool V4L2_Driver::setManualExposure(double duration)
 
     char errmsg[MAXRBUF];
 
-    // Manual mode should be set before changing Exposure (Auto)
-    if (ManualExposureSP->sp[0].s == ISS_OFF)
+    /* Manual mode should be set before changing Exposure (Auto), if possible.
+     * In some cases there might be no control available, so don't fail and try to continue.
+     */
+    if (ManualExposureSP)
     {
-        ManualExposureSP->sp[0].s = ISS_ON;
-        ManualExposureSP->sp[1].s = ISS_OFF;
-        ManualExposureSP->s       = IPS_IDLE;
-
-        unsigned int const ctrlindex = ManualExposureSP->sp[0].aux ? *(unsigned int *)(ManualExposureSP->sp[0].aux) : 0;
-        unsigned int const ctrl_id = (*((unsigned int *)ManualExposureSP->aux));
-
-        if (v4l_base->setOPTControl(ctrl_id, ctrlindex, errmsg) < 0)
+        if (ManualExposureSP->sp[0].s == ISS_OFF)
         {
-            ManualExposureSP->sp[0].s = ISS_OFF;
-            ManualExposureSP->sp[1].s = ISS_ON;
-            ManualExposureSP->s       = IPS_ALERT;
+            ManualExposureSP->sp[0].s = ISS_ON;
+            ManualExposureSP->sp[1].s = ISS_OFF;
+            ManualExposureSP->s       = IPS_IDLE;
+
+            unsigned int const ctrlindex = ManualExposureSP->sp[0].aux ? *(unsigned int *)(ManualExposureSP->sp[0].aux) : 0;
+            unsigned int const ctrl_id = (*((unsigned int *)ManualExposureSP->aux));
+
+            if (v4l_base->setOPTControl(ctrl_id, ctrlindex, errmsg) < 0)
+            {
+                ManualExposureSP->sp[0].s = ISS_OFF;
+                ManualExposureSP->sp[1].s = ISS_ON;
+                ManualExposureSP->s       = IPS_ALERT;
+                IDSetSwitch(ManualExposureSP, nullptr);
+
+                DEBUGF(INDI::Logger::DBG_ERROR, "Unable to adjust manual/auto exposure control. %s", errmsg);
+                return false;
+            }
+
+            ManualExposureSP->s = IPS_OK;
             IDSetSwitch(ManualExposureSP, nullptr);
-
-            DEBUGF(INDI::Logger::DBG_ERROR, "Unable to adjust manual/auto exposure control. %s", errmsg);
-            return false;
         }
-
-        ManualExposureSP->s = IPS_OK;
-        IDSetSwitch(ManualExposureSP, nullptr);
+    }
+    else
+    {
+        DEBUGF(INDI::Logger::DBG_ERROR, "Failed switching to manual exposure, control is unavailable", "");
+        /* Don't fail, let the driver try to set the absolute duration, we'll see what happens */
+        /* return false; */
     }
 
     /* N.B. Check how this differs from one camera to another. This is just a proof of concept for now */
@@ -1527,6 +1532,12 @@ void V4L2_Driver::updateV4L2Controls()
         }
         else DEBUGF(INDI::Logger::DBG_DEBUG,"- %s", Options[i].label);
     }
+
+    if(!AbsExposureN)
+        DEBUGF(INDI::Logger::DBG_WARNING,"Absolute exposure duration control is not possible on the device!","");
+
+    if(!ManualExposureSP)
+        DEBUGF(INDI::Logger::DBG_WARNING,"Manual/auto exposure control is not possible on the device!","");
 
     //v4l_base->enumerate_ctrl();
 }
