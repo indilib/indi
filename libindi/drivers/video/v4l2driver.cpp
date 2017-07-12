@@ -720,13 +720,13 @@ bool V4L2_Driver::ISNewNumber(const char *dev, const char *name, double values[]
         if (IUUpdateNumber(&ImageAdjustNP, values, names, n) < 0)
             return false;
 
-        unsigned int ctrl_id;
         for (int i = 0; i < ImageAdjustNP.nnp; i++)
         {
-            ctrl_id = *((unsigned int *)ImageAdjustNP.np[i].aux0);
+            unsigned int const ctrl_id = *((unsigned int *)ImageAdjustNP.np[i].aux0);
+            double const value = ImageAdjustNP.np[i].value;
 
-            DEBUGF(INDI::Logger::DBG_DEBUG, "  Setting %s (%s) to %d, ctrl_id = 0x%X", ImageAdjustNP.np[i].name,
-                   ImageAdjustNP.np[i].label, (int)ImageAdjustNP.np[i].value, ctrl_id);
+            DEBUGF(INDI::Logger::DBG_DEBUG, "  Setting %s (%s) to %f, ctrl_id = 0x%X", ImageAdjustNP.np[i].name,
+                   ImageAdjustNP.np[i].label, value, ctrl_id);
 
             if (v4l_base->setINTControl(ctrl_id, ImageAdjustNP.np[i].value, errmsg) < 0)
             {
@@ -737,6 +737,13 @@ bool V4L2_Driver::ISNewNumber(const char *dev, const char *name, double values[]
             /* Some controls may have been ajusted by the driver */
             /* a read is mandatory as VIDIOC_S_CTRL is write only and does not return the actual new value */
             v4l_base->getControl(ctrl_id, &(ImageAdjustNP.np[i].value), errmsg);
+
+            /* Warn the client if the control returned another value than what was set */
+            if(value != ImageAdjustNP.np[i].value)
+            {
+                DEBUGF(INDI::Logger::DBG_WARNING, "Control %s set to %f returned %f (ctrl_id =  0x%X)",
+                       ImageAdjustNP.np[i].label, value, ImageAdjustNP.np[i].value, ctrl_id);
+            }
         }
         ImageAdjustNP.s = IPS_OK;
         IDSetNumber(&ImageAdjustNP, nullptr);
@@ -831,11 +838,19 @@ bool V4L2_Driver::setShutter(double duration)
 
 bool V4L2_Driver::setManualExposure(double duration)
 {
-    if (AbsExposureN == nullptr || ManualExposureSP == nullptr)
+    if (ManualExposureSP == nullptr)
+    {
+        DEBUGF(INDI::Logger::DBG_ERROR, "Failed exposing, the manual/auto exposure control is undefined", "");
         return false;
+    }
+
+    if (AbsExposureN == nullptr)
+    {
+        DEBUGF(INDI::Logger::DBG_ERROR, "Failed exposing, the absolute exposure duration control is undefined", "");
+        return false;
+    }
 
     char errmsg[MAXRBUF];
-    unsigned int ctrl_id, ctrlindex;
 
     // Manual mode should be set before changing Exposure (Auto)
     if (ManualExposureSP->sp[0].s == ISS_OFF)
@@ -844,19 +859,17 @@ bool V4L2_Driver::setManualExposure(double duration)
         ManualExposureSP->sp[1].s = ISS_OFF;
         ManualExposureSP->s       = IPS_IDLE;
 
-        if (ManualExposureSP->sp[0].aux != nullptr)
-            ctrlindex = *(unsigned int *)(ManualExposureSP->sp[0].aux);
-        else
-            ctrlindex = 0;
+        unsigned int const ctrlindex = ManualExposureSP->sp[0].aux ? *(unsigned int *)(ManualExposureSP->sp[0].aux) : 0;
+        unsigned int const ctrl_id = (*((unsigned int *)ManualExposureSP->aux));
 
-        ctrl_id = (*((unsigned int *)ManualExposureSP->aux));
         if (v4l_base->setOPTControl(ctrl_id, ctrlindex, errmsg) < 0)
         {
             ManualExposureSP->sp[0].s = ISS_OFF;
             ManualExposureSP->sp[1].s = ISS_ON;
             ManualExposureSP->s       = IPS_ALERT;
             IDSetSwitch(ManualExposureSP, nullptr);
-            DEBUGF(INDI::Logger::DBG_ERROR, "Unable to adjust setting. %s", errmsg);
+
+            DEBUGF(INDI::Logger::DBG_ERROR, "Unable to adjust manual/auto exposure control. %s", errmsg);
             return false;
         }
 
@@ -881,7 +894,8 @@ bool V4L2_Driver::setManualExposure(double duration)
         DEBUGF(INDI::Logger::DBG_DEBUG, "%.3f-second exposure translates to %ld 1/10,000th-second device ticks.",
                duration, ticks);
 
-        ctrl_id = *((unsigned int *)AbsExposureN->aux0);
+        unsigned int const ctrl_id = *((unsigned int *)AbsExposureN->aux0);
+
         if (v4l_base->setINTControl(ctrl_id, AbsExposureN->value, errmsg) < 0)
         {
             ImageAdjustNP.s     = IPS_ALERT;
@@ -1468,6 +1482,9 @@ void V4L2_Driver::getBasicData()
 void V4L2_Driver::updateV4L2Controls()
 {
     unsigned int i;
+
+    DEBUGF(INDI::Logger::DBG_DEBUG,"Enumerating V4L2 controls...","");
+
     // #1 Query for INTEGER controls, and fill up the structure
     free(ImageAdjustNP.np);
     ImageAdjustNP.nnp = 0;
@@ -1476,13 +1493,16 @@ void V4L2_Driver::updateV4L2Controls()
     //defineNumber(&ImageAdjustNP);
     v4l_base->enumerate_ext_ctrl();
     useExtCtrl = false;
+
     if (v4l_base->queryExtControls(&ImageAdjustNP, &v4ladjustments, &Options, &v4loptions, getDeviceName(),
                                    IMAGE_BOOLEAN))
         useExtCtrl = true;
     else
         v4l_base->queryControls(&ImageAdjustNP, &v4ladjustments, &Options, &v4loptions, getDeviceName(), IMAGE_BOOLEAN);
+
     if (v4ladjustments > 0)
     {
+        DEBUGF(INDI::Logger::DBG_DEBUG,"Found %d V4L2 adjustments", v4ladjustments);
         defineNumber(&ImageAdjustNP);
 
         for (int i = 0; i < ImageAdjustNP.nnp; i++)
@@ -1490,17 +1510,22 @@ void V4L2_Driver::updateV4L2Controls()
             if (!strcmp(ImageAdjustNP.np[i].label, "Exposure (Absolute)"))
             {
                 AbsExposureN = ImageAdjustNP.np + i;
-                break;
+                DEBUGF(INDI::Logger::DBG_DEBUG,"- %s (used for absolute exposure duration)", ImageAdjustNP.np[i].label);
             }
+            else DEBUGF(INDI::Logger::DBG_DEBUG,"- %s", ImageAdjustNP.np[i].label);
         }
     }
+    DEBUGF(INDI::Logger::DBG_DEBUG,"Found %d V4L2 options", v4loptions);
     for (i = 0; i < v4loptions; i++)
     {
-        //IDLog("Def switch %d %s\n", i, Options[i].label);
         defineSwitch(&Options[i]);
 
         if (!strcmp(Options[i].label, "Exposure, Auto") || !strcmp(Options[i].label, "Auto Exposure"))
+        {
             ManualExposureSP = Options + i;
+            DEBUGF(INDI::Logger::DBG_DEBUG,"- %s (used for manual/auto exposure control)", Options[i].label);
+        }
+        else DEBUGF(INDI::Logger::DBG_DEBUG,"- %s", Options[i].label);
     }
 
     //v4l_base->enumerate_ctrl();
