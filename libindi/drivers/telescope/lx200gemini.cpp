@@ -215,7 +215,7 @@ bool LX200Gemini::isSlewComplete()
 
     DEBUGF(INDI::Logger::DBG_DEBUG, "CMD: <%s>", cmd);
 
-    tcflush(PortFD, TCIOFLUSH);
+    tcflush(PortFD, TCIFLUSH);
 
     if ((rc = tty_write(PortFD, cmd, 5, &nbytes_written)) != TTY_OK)
     {
@@ -236,7 +236,7 @@ bool LX200Gemini::isSlewComplete()
 
     response[1] = '\0';
 
-    tcflush(PortFD, TCIOFLUSH);
+    tcflush(PortFD, TCIFLUSH);
 
     DEBUGF(INDI::Logger::DBG_DEBUG, "RES: <%s>", response);
 
@@ -301,7 +301,7 @@ void LX200Gemini::syncSideOfPier()
 
     DEBUGF(INDI::Logger::DBG_DEBUG, "CMD: <%s>", cmd);
 
-    tcflush(PortFD, TCIOFLUSH);
+    tcflush(PortFD, TCIFLUSH);
 
     if ((rc = tty_write(PortFD, cmd, 5, &nbytes_written)) != TTY_OK)
     {
@@ -322,7 +322,7 @@ void LX200Gemini::syncSideOfPier()
 
     response[nbytes_read - 1] = '\0';
 
-    tcflush(PortFD, TCIOFLUSH);
+    tcflush(PortFD, TCIFLUSH);
 
     DEBUGF(INDI::Logger::DBG_DEBUG, "RES: <%s>", response);
 
@@ -345,7 +345,7 @@ bool LX200Gemini::Park()
 
     DEBUGF(INDI::Logger::DBG_DEBUG, "CMD: <%s>", cmd);
 
-    tcflush(PortFD, TCIOFLUSH);
+    tcflush(PortFD, TCIFLUSH);
 
     if ((rc = tty_write(PortFD, cmd, 5, &nbytes_written)) != TTY_OK)
     {
@@ -377,7 +377,7 @@ bool LX200Gemini::sleepMount()
 
     DEBUGF(INDI::Logger::DBG_DEBUG, "CMD: <%s>", cmd);
 
-    tcflush(PortFD, TCIOFLUSH);
+    tcflush(PortFD, TCIFLUSH);
 
     if ((rc = tty_write(PortFD, cmd, 5, &nbytes_written)) != TTY_OK)
     {
@@ -400,7 +400,7 @@ bool LX200Gemini::wakeupMount()
 
     DEBUGF(INDI::Logger::DBG_DEBUG, "CMD: <%s>", cmd);
 
-    tcflush(PortFD, TCIOFLUSH);
+    tcflush(PortFD, TCIFLUSH);
 
     if ((rc = tty_write(PortFD, cmd, 5, &nbytes_written)) != TTY_OK)
     {
