@@ -129,12 +129,12 @@ bool LX200Gemini::checkConnection()
         return true;
 
     // Response
-    char response[2] = { 0 };
+    char response[8] = { 0 };
     int rc = 0, nbytes_read = 0, nbytes_written = 0;
 
     DEBUGF(INDI::Logger::DBG_DEBUG, "CMD: <%#02X>", 0x06);
 
-    tcflush(PortFD, TCIOFLUSH);
+    tcflush(PortFD, TCIFLUSH);
 
     char ack[1] = { 0x06 };
 
@@ -155,9 +155,9 @@ bool LX200Gemini::checkConnection()
         return false;
     }
 
-    response[1] = '\0';
+    //response[1] = '\0';
 
-    tcflush(PortFD, TCIOFLUSH);
+    tcflush(PortFD, TCIFLUSH);
 
     DEBUGF(INDI::Logger::DBG_DEBUG, "RES: <%s>", response);
 
