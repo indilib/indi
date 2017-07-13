@@ -809,6 +809,7 @@ void INDI::BaseClient::sendOneBlob(IBLOB *bp)
     unsigned char *encblob;
     char nl = '\n';
     int l;
+    int ret = 0;
 
     encblob = (unsigned char *)malloc(4 * bp->size / 3 + 4);
     l       = to64frombits(encblob, reinterpret_cast<const unsigned char *>(bp->blob), bp->size);
@@ -823,16 +824,16 @@ void INDI::BaseClient::sendOneBlob(IBLOB *bp)
     size_t towrite = 0;
     while ((int)written < l)
     {
-        towrite   = ((l - written) > 72) ? 72 : l - written;        
+        towrite   = ((l - written) > 72) ? 72 : l - written;
         size_t wr = net_write(sockfd, encblob + written, towrite);
         if (wr > 0)
             written += wr;
         if ((written % 72) == 0)
-            net_write(sockfd, &nl, 1);
+            ret = net_write(sockfd, &nl, 1);
     }
 
     if ((written % 72) != 0)
-        net_write(sockfd, &nl, 1);
+        ret = net_write(sockfd, &nl, 1);
 
     free(encblob);
 
@@ -845,6 +846,7 @@ void INDI::BaseClient::sendOneBlob(const char *blobName, unsigned int blobSize, 
     unsigned char *encblob;
     char nl = '\n';
     int l;
+    int ret = 0;
 
     encblob = (unsigned char *)malloc(4 * blobSize / 3 + 4);
     l       = to64frombits(encblob, reinterpret_cast<const unsigned char *>(blobBuffer), blobSize);
@@ -864,11 +866,11 @@ void INDI::BaseClient::sendOneBlob(const char *blobName, unsigned int blobSize, 
         if (wr > 0)
             written += wr;
         if ((written % 72) == 0)
-            net_write(sockfd, &nl, 1);
+            ret = net_write(sockfd, &nl, 1);
     }
 
     if ((written % 72) != 0)
-        net_write(sockfd, &nl, 1);
+        ret = net_write(sockfd, &nl, 1);
 
     free(encblob);
 
@@ -961,10 +963,12 @@ bool INDI::BaseClient::getDevices(std::vector<INDI::BaseDevice *> &deviceList, u
 
 void INDI::BaseClient::sendString(const char *fmt, ...)
 {
+    int ret = 0;
     char message[MAXRBUF];
     va_list ap;
+
     va_start(ap, fmt);
     vsnprintf(message, MAXRBUF, fmt, ap);
     va_end(ap);
-    net_write(sockfd, message, strlen(message));
+    ret = net_write(sockfd, message, strlen(message));
 }
