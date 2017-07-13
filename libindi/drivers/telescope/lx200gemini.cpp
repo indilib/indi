@@ -284,9 +284,9 @@ bool LX200Gemini::ReadScopeStatus()
         return false;
     }
 
-    syncSideOfPier();
-
     NewRaDec(currentRA, currentDEC);
+
+    syncSideOfPier();
 
     return true;
 }
@@ -296,7 +296,7 @@ void LX200Gemini::syncSideOfPier()
     // Send ':Gv#'
     const char *cmd = "#:Gm#";
     // Response
-    char response[2] = { 0 };
+    char response[8] = { 0 };
     int rc = 0, nbytes_read = 0, nbytes_written = 0;
 
     DEBUGF(INDI::Logger::DBG_DEBUG, "CMD: <%s>", cmd);
