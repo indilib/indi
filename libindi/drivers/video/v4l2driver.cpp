@@ -838,7 +838,7 @@ bool V4L2_Driver::setShutter(double duration)
 
 bool V4L2_Driver::setManualExposure(double duration)
 {
-    if (AbsExposureN)
+    if (nullptr == AbsExposureN)
     {
         DEBUGF(INDI::Logger::DBG_ERROR, "Failed exposing, the absolute exposure duration control is undefined", "");
         return false;
