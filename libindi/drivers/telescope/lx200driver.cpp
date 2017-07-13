@@ -381,7 +381,7 @@ int getCalendarDate(int fd, char *date)
 int getTimeFormat(int fd, int *format)
 {
     DEBUGFDEVICE(lx200Name, DBG_SCOPE, "<%s>", __FUNCTION__);
-    char temp_string[16];
+    char temp_string[16]={0};
     int error_type;
     int nbytes_write = 0, nbytes_read = 0;
     int tMode;
@@ -472,16 +472,19 @@ int getSiteName(int fd, char *siteName, int siteNum)
 int getSiteLatitude(int fd, int *dd, int *mm)
 {
     DEBUGFDEVICE(lx200Name, DBG_SCOPE, "<%s>", __FUNCTION__);
-    char temp_string[16];
+    char temp_string[16]={0};
     int error_type;
     int nbytes_write = 0, nbytes_read = 0;
 
     DEBUGFDEVICE(lx200Name, DBG_SCOPE, "CMD <%s>", ":Gt#");
 
+    tcflush(fd, TCIFLUSH);
+
     if ((error_type = tty_write_string(fd, ":Gt#", &nbytes_write)) != TTY_OK)
         return error_type;
 
     error_type = tty_read_section(fd, temp_string, '#', LX200_TIMEOUT, &nbytes_read);
+
     tcflush(fd, TCIFLUSH);
 
     if (nbytes_read < 1)
@@ -505,7 +508,7 @@ int getSiteLatitude(int fd, int *dd, int *mm)
 int getSiteLongitude(int fd, int *ddd, int *mm)
 {
     DEBUGFDEVICE(lx200Name, DBG_SCOPE, "<%s>", __FUNCTION__);
-    char temp_string[16];
+    char temp_string[16]={0};
     int error_type;
     int nbytes_write = 0, nbytes_read = 0;
 
@@ -540,7 +543,7 @@ int getTrackFreq(int fd, double *value)
 {
     DEBUGFDEVICE(lx200Name, DBG_SCOPE, "<%s>", __FUNCTION__);
     float Freq;
-    char temp_string[16];
+    char temp_string[16]={0};
     int error_type;
     int nbytes_write = 0, nbytes_read = 0;
 
@@ -575,7 +578,7 @@ int getTrackFreq(int fd, double *value)
 int getHomeSearchStatus(int fd, int *status)
 {
     DEBUGFDEVICE(lx200Name, DBG_SCOPE, "<%s>", __FUNCTION__);
-    char temp_string[16];
+    char temp_string[16]={0};
     int error_type;
     int nbytes_write = 0, nbytes_read = 0;
 
@@ -609,7 +612,7 @@ int getHomeSearchStatus(int fd, int *status)
 int getOTATemp(int fd, double *value)
 {
     DEBUGFDEVICE(lx200Name, DBG_SCOPE, "<%s>", __FUNCTION__);
-    char temp_string[16];
+    char temp_string[16]={0};
     int error_type;
     int nbytes_write = 0, nbytes_read = 0;
     float temp;
@@ -653,10 +656,13 @@ int setStandardProcedure(int fd, const char *data)
 
     DEBUGFDEVICE(lx200Name, DBG_SCOPE, "CMD <%s>", data);
 
+    tcflush(fd, TCIFLUSH);
+
     if ((error_type = tty_write_string(fd, data, &nbytes_write)) != TTY_OK)
         return error_type;
 
     error_type = tty_read(fd, bool_return, 1, LX200_TIMEOUT, &nbytes_read);
+
     tcflush(fd, TCIFLUSH);
 
     if (nbytes_read < 1)
@@ -675,7 +681,7 @@ int setStandardProcedure(int fd, const char *data)
 
 int setCommandInt(int fd, int data, const char *cmd)
 {
-    char temp_string[16];
+    char temp_string[16]={0};
     int error_type;
     int nbytes_write = 0;
 
@@ -683,11 +689,15 @@ int setCommandInt(int fd, int data, const char *cmd)
 
     DEBUGFDEVICE(lx200Name, DBG_SCOPE, "CMD <%s>", temp_string);
 
+    tcflush(fd, TCIFLUSH);
+
     if ((error_type = tty_write_string(fd, temp_string, &nbytes_write)) != TTY_OK)
     {
         DEBUGFDEVICE(lx200Name, DBG_SCOPE, "CMD <%s> failed.", temp_string);
         return error_type;
     }
+
+    tcflush(fd, TCIFLUSH);
 
     DEBUGFDEVICE(lx200Name, DBG_SCOPE, "CMD <%s> successful.", temp_string);
 
@@ -697,7 +707,7 @@ int setCommandInt(int fd, int data, const char *cmd)
 int setMinElevationLimit(int fd, int min)
 {
     DEBUGFDEVICE(lx200Name, DBG_SCOPE, "<%s>", __FUNCTION__);
-    char temp_string[16];
+    char temp_string[16]={0};
 
     snprintf(temp_string, sizeof(temp_string), ":Sh%02d#", min);
 
@@ -708,7 +718,7 @@ int setMaxElevationLimit(int fd, int max)
 {
     DEBUGFDEVICE(lx200Name, DBG_SCOPE, "<%s>", __FUNCTION__);
 
-    char temp_string[16];
+    char temp_string[16]={0};
 
     snprintf(temp_string, sizeof(temp_string), ":So%02d*#", max);
 
@@ -719,7 +729,7 @@ int setMaxSlewRate(int fd, int slewRate)
 {
     DEBUGFDEVICE(lx200Name, DBG_SCOPE, "<%s>", __FUNCTION__);
 
-    char temp_string[16];
+    char temp_string[16]={0};
 
     if (slewRate < 2 || slewRate > 8)
         return -1;
@@ -807,7 +817,7 @@ int setObjectDEC(int fd, double dec)
 
 int setCommandXYZ(int fd, int x, int y, int z, const char *cmd)
 {
-    char temp_string[16];
+    char temp_string[16]={0};
 
     snprintf(temp_string, sizeof(temp_string), "%s %02d:%02d:%02d#", cmd, x, y, z);
 
@@ -856,10 +866,13 @@ int setCalenderDate(int fd, int dd, int mm, int yy)
 
     DEBUGFDEVICE(lx200Name, DBG_SCOPE, "CMD <%s>", temp_string);
 
+    tcflush(fd, TCIFLUSH);
+
     if ((error_type = tty_write_string(fd, temp_string, &nbytes_write)) != TTY_OK)
         return error_type;
 
     error_type = tty_read(fd, bool_return, 1, LX200_TIMEOUT, &nbytes_read);
+
     tcflush(fd, TCIFLUSH);
 
     if (nbytes_read < 1)
@@ -888,7 +901,7 @@ int setCalenderDate(int fd, int dd, int mm, int yy)
 int setUTCOffset(int fd, double hours)
 {
     DEBUGFDEVICE(lx200Name, DBG_SCOPE, "<%s>", __FUNCTION__);
-    char temp_string[16];
+    char temp_string[16]={0};
 
     snprintf(temp_string, sizeof(temp_string), ":SG %+03d#", (int)hours);
 
@@ -925,7 +938,7 @@ int setObjAz(int fd, double az)
 {
     DEBUGFDEVICE(lx200Name, DBG_SCOPE, "<%s>", __FUNCTION__);
     int d, m, s;
-    char temp_string[16];
+    char temp_string[16]={0};
 
     getSexComponents(az, &d, &m, &s);
 
@@ -938,7 +951,7 @@ int setObjAlt(int fd, double alt)
 {
     DEBUGFDEVICE(lx200Name, DBG_SCOPE, "<%s>", __FUNCTION__);
     int d, m, s;
-    char temp_string[16];
+    char temp_string[16]={0};
 
     getSexComponents(alt, &d, &m, &s);
 
@@ -950,7 +963,7 @@ int setObjAlt(int fd, double alt)
 int setSiteName(int fd, char *siteName, int siteNum)
 {
     DEBUGFDEVICE(lx200Name, DBG_SCOPE, "<%s>", __FUNCTION__);
-    char temp_string[16];
+    char temp_string[16]={0};
 
     switch (siteNum)
     {
@@ -1092,7 +1105,7 @@ int setGPSFocuserSpeed(int fd, int speed)
 int setTrackFreq(int fd, double trackF)
 {
     DEBUGFDEVICE(lx200Name, DBG_SCOPE, "<%s>", __FUNCTION__);
-    char temp_string[16];
+    char temp_string[16]={0};
 
     snprintf(temp_string, sizeof(temp_string), ":ST %04.1f#", trackF);
 
@@ -1320,7 +1333,7 @@ int selectSite(int fd, int siteNum)
 int selectCatalogObject(int fd, int catalog, int NNNN)
 {
     DEBUGFDEVICE(lx200Name, DBG_SCOPE, "<%s>", __FUNCTION__);
-    char temp_string[16];
+    char temp_string[16]={0};
     int error_type;
     int nbytes_write = 0;
 
@@ -1351,7 +1364,7 @@ int selectCatalogObject(int fd, int catalog, int NNNN)
 int selectSubCatalog(int fd, int catalog, int subCatalog)
 {
     DEBUGFDEVICE(lx200Name, DBG_SCOPE, "<%s>", __FUNCTION__);
-    char temp_string[16];
+    char temp_string[16]={0};
     switch (catalog)
     {
         case LX200_STAR_C:
@@ -1376,12 +1389,14 @@ int getLX200Format(void)
 
 int checkLX200Format(int fd)
 {
-    char temp_string[16];
+    char temp_string[16] = {0};
     controller_format = LX200_LONG_FORMAT;
     int error_type;
     int nbytes_write = 0, nbytes_read = 0;
 
     DEBUGFDEVICE(lx200Name, DBG_SCOPE, "CMD <%s>", ":GR#");
+
+    tcflush(fd, TCIFLUSH);
 
     if ((error_type = tty_write_string(fd, ":GR#", &nbytes_write)) != TTY_OK)
         return error_type;
@@ -1420,6 +1435,8 @@ int checkLX200Format(int fd)
 
     DEBUGFDEVICE(lx200Name, DBG_SCOPE, "CMD <%s>", ":GR#");
 
+    tcflush(fd, TCIFLUSH);
+
     if ((error_type = tty_write_string(fd, ":GR#", &nbytes_write)) != TTY_OK)
         return error_type;
 
@@ -1445,6 +1462,8 @@ int checkLX200Format(int fd)
         controller_format = LX200_LONG_FORMAT;
         DEBUGDEVICE(lx200Name, DBG_SCOPE, "Coordinate format is high precision.");
     }
+
+    tcflush(fd, TCIFLUSH);
 
     return 0;
 }
