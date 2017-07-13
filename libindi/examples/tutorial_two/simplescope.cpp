@@ -142,7 +142,7 @@ bool SimpleScope::Goto(double ra, double dec)
 {
     targetRA  = ra;
     targetDEC = dec;
-    char RAStr[64], DecStr[64];
+    char RAStr[64]={0}, DecStr[64]={0};
 
     // Parse the RA/DEC into strings
     fs_sexa(RAStr, targetRA, 2, 3600);
@@ -241,7 +241,7 @@ bool SimpleScope::ReadScopeStatus()
             break;
     }
 
-    char RAStr[64], DecStr[64];
+    char RAStr[64]={0}, DecStr[64]={0};
 
     // Parse the RA/DEC into strings
     fs_sexa(RAStr, currentRA, 2, 3600);

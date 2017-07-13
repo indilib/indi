@@ -116,7 +116,7 @@ bool JoyStick::Disconnect()
 
 void JoyStick::setupParams()
 {
-    char propName[16], propLabel[16];
+    char propName[16]={0}, propLabel[16]={0};
 
     if (driver == nullptr)
         return;

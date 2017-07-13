@@ -514,7 +514,7 @@ bool LX200Generic::Goto(double ra, double dec)
 {
     targetRA  = ra;
     targetDEC = dec;
-    char RAStr[64], DecStr[64];
+    char RAStr[64]={0}, DecStr[64]={0};
     int fracbase = 0;
 
     switch (getLX200Format())
@@ -591,7 +591,7 @@ bool LX200Generic::Goto(double ra, double dec)
 
 bool LX200Generic::Sync(double ra, double dec)
 {
-    char syncString[256];
+    char syncString[256]={0};
 
     if (isSimulation() == false && (setObjectRA(PortFD, ra) < 0 || (setObjectDEC(PortFD, dec)) < 0))
     {
@@ -824,7 +824,7 @@ bool LX200Generic::updateLocation(double latitude, double longitude, double elev
         return false;
     }
 
-    char l[32], L[32];
+    char l[32]={0}, L[32]={0};
     fs_sexa(l, latitude, 3, 3600);
     fs_sexa(L, longitude, 4, 3600);
 
@@ -1326,7 +1326,7 @@ void LX200Generic::getAlignment()
 
 void LX200Generic::sendScopeTime()
 {
-    char cdate[32];
+    char cdate[32]={0};
     double ctime;
     int h, m, s, lx200_utc_offset = 0;
     int day, month, year, result;
@@ -1347,7 +1347,7 @@ void LX200Generic::sendScopeTime()
     getUTCOffset(PortFD, &lx200_utc_offset);
 
     // LX200 TimeT Offset is defined at the number of hours added to LOCAL TIME to get TimeT. This is contrary to the normal definition.
-    char utcStr[8];
+    char utcStr[8]={0};
     snprintf(utcStr, 8, "%02d", lx200_utc_offset * -1);
     IUSaveText(&TimeT[1], utcStr);
 

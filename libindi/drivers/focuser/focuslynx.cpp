@@ -299,14 +299,14 @@ void FocusLynxF1::ISGetProperties(const char *dev)
 * ***********************************************************************************/
 bool FocusLynxF1::getHubConfig()
 {
-    char cmd[32];
+    char cmd[32]={0};
     int errcode = 0;
     char errmsg[MAXRBUF];
-    char response[32];
+    char response[32]={0};
     int nbytes_read    = 0;
     int nbytes_written = 0;
-    char key[16];
-    char text[32];
+    char key[16]={0};
+    char text[32]={0};
 
     /* Answer from the HUB
      <FHGETHUBINFO>!
@@ -814,7 +814,7 @@ int FocusLynxF1::getVersion(int *major, int *minor, int *sub)
  * Not yet implemented in this version of the driver
  */
 {
-    char sMajor[8], sMinor[8], sSub[8];
+    char sMajor[8]={0}, sMinor[8]={0}, sSub[8]={0};
     int rc = sscanf(version, "%[^.].%[^.].%s", sMajor, sMinor, sSub);
 
     DEBUGF(INDI::Logger::DBG_DEBUG, "Version major: %s, minor: %s, subversion: %s", sMajor, sMinor, sSub);

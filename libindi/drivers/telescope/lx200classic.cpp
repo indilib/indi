@@ -145,7 +145,7 @@ bool LX200Classic::ISNewNumber(const char *dev, const char *name, double values[
     {
         if (!strcmp(name, ObjectNoNP.name))
         {
-            char object_name[256];
+            char object_name[256]={0};
 
             if (selectCatalogObject(PortFD, currentCatalog, (int)values[0]) < 0)
             {

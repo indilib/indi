@@ -268,7 +268,7 @@ bool LX200Basic::Goto(double r, double d)
 {
     targetRA  = r;
     targetDEC = d;
-    char RAStr[64], DecStr[64];
+    char RAStr[64]={0}, DecStr[64]={0};
 
     fs_sexa(RAStr, targetRA, 2, 3600);
     fs_sexa(DecStr, targetDEC, 2, 3600);
@@ -325,7 +325,7 @@ bool LX200Basic::Goto(double r, double d)
 ***************************************************************************************/
 bool LX200Basic::Sync(double ra, double dec)
 {
-    char syncString[256];
+    char syncString[256]={0};
 
     if (isSimulation() == false && (setObjectRA(PortFD, ra) < 0 || (setObjectDEC(PortFD, dec)) < 0))
     {

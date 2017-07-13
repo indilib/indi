@@ -528,7 +528,7 @@ bool FilterIFW::SelectFilter(int f)
 {
     DEBUGTAG();
     bool result = true;
-    char cmd[32];
+    char cmd[32]={0};
     char response[OPTEC_MAXLEN_RESP + 1];
 
     memset(response, 0, sizeof(response));
@@ -735,7 +735,7 @@ bool FilterIFW::SetFilterNames()
 {
     DEBUGTAG();
     bool result = true;
-    char cmd[72];
+    char cmd[72]={0};
     char tempo[OPTEC_LEN_FLTNAME + 1];
     char response[OPTEC_MAXLEN_RESP + 1];
     int tempolen;
@@ -881,7 +881,7 @@ int FilterIFW::GetFilterPos()
     DEBUGTAG();
     int result = 1;
     char response[OPTEC_MAXLEN_RESP + 1];
-    char filter[2];
+    char filter[2]={0};
 
     memset(response, 0, sizeof(response));
 

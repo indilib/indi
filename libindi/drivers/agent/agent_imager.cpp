@@ -184,7 +184,7 @@ void Imager::initiateDownload()
 {
     int group = (int)DownloadN[0].value;
     int image = (int)DownloadN[1].value;
-    char name[128];
+    char name[128]={0};
     std::ifstream file;
 
     if (group == 0 || image == 0)
@@ -533,7 +533,7 @@ void Imager::newBLOB(IBLOB *bp)
 {
     if (ProgressNP.s == IPS_BUSY)
     {
-        char name[128];
+        char name[128]={0};
         std::ofstream file;
 
         strncpy(format, bp->format, 16);
@@ -628,7 +628,7 @@ void Imager::newText(ITextVectorProperty *tvp)
     {
         if (!strcmp(tvp->name, "CCD_FILE_PATH"))
         {
-            char name[128];
+            char name[128]={0};
 
             strcpy(format, strrchr(tvp->tp[0].text, '.'));
             sprintf(name, IMAGE_NAME, ImageNameT[0].text, ImageNameT[1].text, group, image, format);

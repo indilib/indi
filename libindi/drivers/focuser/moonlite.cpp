@@ -197,7 +197,7 @@ bool MoonLite::Ack()
 {
     int nbytes_written = 0, nbytes_read = 0, rc = -1;
     char errstr[MAXRBUF];
-    char resp[5];
+    char resp[5]={0};
     short pos = -1;
 
     tcflush(PortFD, TCIOFLUSH);
@@ -230,7 +230,7 @@ bool MoonLite::updateStepMode()
 {
     int nbytes_written = 0, nbytes_read = 0, rc = -1;
     char errstr[MAXRBUF];
-    char resp[4];
+    char resp[4]={0};
 
     tcflush(PortFD, TCIOFLUSH);
 
@@ -270,7 +270,7 @@ bool MoonLite::updateTemperature()
 {
     int nbytes_written = 0, nbytes_read = 0, rc = -1;
     char errstr[MAXRBUF];
-    char resp[5];
+    char resp[5]={0};
     unsigned int temp;
 
     tcflush(PortFD, TCIOFLUSH);
@@ -312,7 +312,7 @@ bool MoonLite::updatePosition()
 {
     int nbytes_written = 0, nbytes_read = 0, rc = -1;
     char errstr[MAXRBUF];
-    char resp[5];
+    char resp[5]={0};
     int pos = -1;
 
     tcflush(PortFD, TCIOFLUSH);
@@ -352,7 +352,7 @@ bool MoonLite::updateSpeed()
 {
     int nbytes_written = 0, nbytes_read = 0, rc = -1;
     char errstr[MAXRBUF];
-    char resp[3];
+    char resp[3]={0};
     short speed;
 
     tcflush(PortFD, TCIOFLUSH);
@@ -400,7 +400,7 @@ bool MoonLite::isMoving()
 {
     int nbytes_written = 0, nbytes_read = 0, rc = -1;
     char errstr[MAXRBUF];
-    char resp[4];
+    char resp[4]={0};
 
     tcflush(PortFD, TCIOFLUSH);
 
@@ -436,7 +436,7 @@ bool MoonLite::setTemperatureCalibration(double calibration)
 {
     int nbytes_written = 0, rc = -1;
     char errstr[MAXRBUF];
-    char cmd[7];
+    char cmd[7]={0};
     int cal = calibration * 2;
 
     snprintf(cmd, 7, ":PO%02X#", cal);
@@ -457,7 +457,7 @@ bool MoonLite::setTemperatureCoefficient(double coefficient)
 {
     int nbytes_written = 0, rc = -1;
     char errstr[MAXRBUF];
-    char cmd[7];
+    char cmd[7]={0};
 
     int coeff = coefficient * 2;
 
@@ -479,7 +479,7 @@ bool MoonLite::sync(uint16_t offset)
 {
     int nbytes_written = 0, rc = -1;
     char errstr[MAXRBUF];
-    char cmd[9];
+    char cmd[9]={0};
 
     snprintf(cmd, 9, ":SP%04X#", offset);
 
@@ -498,7 +498,7 @@ bool MoonLite::MoveFocuser(unsigned int position)
 {
     int nbytes_written = 0, rc = -1;
     char errstr[MAXRBUF];
-    char cmd[9];
+    char cmd[9]={0};
 
     if (position < FocusAbsPosN[0].min || position > FocusAbsPosN[0].max)
     {
@@ -537,7 +537,7 @@ bool MoonLite::setStepMode(FocusStepMode mode)
 {
     int nbytes_written = 0, rc = -1;
     char errstr[MAXRBUF];
-    char cmd[4];
+    char cmd[4]={0};
 
     tcflush(PortFD, TCIOFLUSH);
 
@@ -560,7 +560,7 @@ bool MoonLite::setSpeed(unsigned short speed)
 {
     int nbytes_written = 0, rc = -1;
     char errstr[MAXRBUF];
-    char cmd[7];
+    char cmd[7]={0};
 
     int hex_value = 1;
 
@@ -582,7 +582,7 @@ bool MoonLite::setTemperatureCompensation(bool enable)
 {
     int nbytes_written = 0, rc = -1;
     char errstr[MAXRBUF];
-    char cmd[4];
+    char cmd[4]={0};
 
     tcflush(PortFD, TCIOFLUSH);
 

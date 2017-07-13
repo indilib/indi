@@ -346,7 +346,7 @@ bool get_ieqpro_main_firmware(int fd, FirmwareInfo *info)
 
         if (nbytes_read == 13)
         {
-            char board[6], controller[6];
+            char board[6] = {0}, controller[6] = {0};
 
             strncpy(board, response, 6);
             strncpy(controller, response + 6, 6);
@@ -406,7 +406,7 @@ bool get_ieqpro_radec_firmware(int fd, FirmwareInfo *info)
 
         if (nbytes_read == 13)
         {
-            char ra[6], dec[6];
+            char ra[6] = {0}, dec[6] = {0};
 
             strncpy(ra, response, 6);
             strncpy(dec, response + 6, 6);
@@ -1880,7 +1880,7 @@ bool get_ieqpro_coords(int fd, double *ra, double *dec)
         response[nbytes_read] = '\0';
         DEBUGFDEVICE(ieqpro_device, INDI::Logger::DBG_EXTRA_1, "RES (%s)", response);
 
-        char ra_str[16], dec_str[16];
+        char ra_str[16]= {0}, dec_str[16] = {0};
 
         strncpy(dec_str, response, 9);
         strncpy(ra_str, response + 9, 8);
@@ -1943,7 +1943,7 @@ bool get_ieqpro_utc_date_time(int fd, double *utc_hours, int *yy, int *mm, int *
         response[nbytes_read] = '\0';
         DEBUGFDEVICE(ieqpro_device, INDI::Logger::DBG_DEBUG, "RES (%s)", response);
 
-        char utc_str[4], yy_str[2], mm_str[2], dd_str[2], hh_str[2], minute_str[2], ss_str[2], dst_str[1];
+        char utc_str[4]={0}, yy_str[2]={0}, mm_str[2]={0}, dd_str[2]={0}, hh_str[2]={0}, minute_str[2]={0}, ss_str[2]={0}, dst_str[1]={0};
 
         // UTC Offset
         strncpy(utc_str, response, 4);

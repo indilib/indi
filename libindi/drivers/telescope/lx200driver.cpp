@@ -216,7 +216,7 @@ char ACK(int fd)
 
 int getCommandSexa(int fd, double *value, const char *cmd)
 {
-    char temp_string[16];
+    char temp_string[16]={0};
     int error_type;
     int nbytes_write = 0, nbytes_read = 0;
 
@@ -250,7 +250,7 @@ int getCommandSexa(int fd, double *value, const char *cmd)
 
 int getCommandInt(int fd, int *value, const char *cmd)
 {
-    char temp_string[16];
+    char temp_string[16]={0};
     float temp_number;
     int error_type;
     int nbytes_write = 0, nbytes_read = 0;
@@ -347,7 +347,7 @@ int getCalendarDate(int fd, char *date)
     int dd, mm, yy, YYYY;
     int error_type;
     int nbytes_read = 0;
-    char mell_prefix[3];
+    char mell_prefix[3]={0};
     int len = 0;
 
     if ((error_type = getCommandString(fd, date, ":GC#")))

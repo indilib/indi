@@ -171,8 +171,8 @@ bool QFW::SelectFilter(int position)
         return true;
     }
     // goto
-    char targetpos[255];
-    char curpos[255];
+    char targetpos[255]={0};
+    char curpos[255]={0};
     int res;
 
     // format target position G[0-6]

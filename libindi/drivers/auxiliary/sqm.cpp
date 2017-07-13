@@ -140,7 +140,7 @@ bool SQM::updateProperties()
 bool SQM::getReadings()
 {
     const char *cmd = "rx";
-    char buffer[57];
+    char buffer[57]={0};
 
     DEBUGF(INDI::Logger::DBG_DEBUG, "CMD: %s", cmd);
 
@@ -202,7 +202,7 @@ const char *SQM::getDefaultName()
 bool SQM::getDeviceInfo()
 {
     const char *cmd = "ix";
-    char buffer[39];
+    char buffer[39]={0};
 
     PortFD = tcpConnection->getPortFD();
 

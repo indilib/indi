@@ -775,8 +775,8 @@ void SkySafari::sendUTCtimedate()
 
         ln_zonedate_to_date(&zonedate, &utcdate);
 
-        char bufDT[32];
-        char bufOff[8];
+        char bufDT[32]={0};
+        char bufOff[8]={0};
 
         snprintf(bufDT, 32, "%04d-%02d-%02dT%02d:%02d:%02d", utcdate.years, utcdate.months, utcdate.days, utcdate.hours,
                  utcdate.minutes, (int)(utcdate.seconds));

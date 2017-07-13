@@ -266,8 +266,8 @@ void IEQPro::getStartupData()
     int yy, dd, mm, hh, minute, ss;
     if (get_ieqpro_utc_date_time(PortFD, &utc_offset, &yy, &mm, &dd, &hh, &minute, &ss))
     {
-        char isoDateTime[32];
-        char utcOffset[8];
+        char isoDateTime[32]={0};
+        char utcOffset[8]={0};
 
         snprintf(isoDateTime, 32, "%04d-%02d-%02dT%02d:%02d:%02d", yy, mm, dd, hh, minute, ss);
         snprintf(utcOffset, 8, "%4.2f", utc_offset);
@@ -564,7 +564,7 @@ bool IEQPro::Goto(double r, double d)
 {
     targetRA  = r;
     targetDEC = d;
-    char RAStr[64], DecStr[64];
+    char RAStr[64]={0}, DecStr[64]={0};
 
     fs_sexa(RAStr, targetRA, 2, 3600);
     fs_sexa(DecStr, targetDEC, 2, 3600);
@@ -628,7 +628,7 @@ bool IEQPro::Park()
 
     if (park_ieqpro(PortFD))
     {
-        char RAStr[64], DecStr[64];
+        char RAStr[64]={0}, DecStr[64]={0};
         fs_sexa(RAStr, targetRA, 2, 3600);
         fs_sexa(DecStr, targetDEC, 2, 3600);
 
@@ -724,7 +724,7 @@ bool IEQPro::updateLocation(double latitude, double longitude, double elevation)
         return false;
     }
 
-    char l[32], L[32];
+    char l[32]={0}, L[32]={0};
     fs_sexa(l, latitude, 3, 3600);
     fs_sexa(L, longitude, 4, 3600);
 

@@ -202,7 +202,7 @@ void HitecAstroDCFocuser::TimerHit()
         if (_duration == 0)
         {
             int rc;
-            unsigned char command[8];
+            unsigned char command[8]={0};
             _state = IDLE;
             memset(command, 0, 8);
             command[0] = _stop;
@@ -263,7 +263,7 @@ IPState HitecAstroDCFocuser::MoveRelFocuser(FocusDirection dir, uint32_t ticks)
 {
     int rc, speed = (int)SlewSpeedN[0].value; //_slew_speed;
     int32_t iticks = ticks;
-    unsigned char command[8];
+    unsigned char command[8]={0};
     IPState rval;
 
     DEBUGF(INDI::Logger::DBG_DEBUG, "::move() begin %d ticks at speed %d", ticks, speed);
@@ -335,7 +335,7 @@ IPState HitecAstroDCFocuser::MoveRelFocuser(FocusDirection dir, uint32_t ticks)
 IPState HitecAstroDCFocuser::MoveFocuser(FocusDirection dir, int speed, uint16_t duration)
 {
     int rc;
-    unsigned char command[8];
+    unsigned char command[8]={0};
     IPState rval;
 
     DEBUGF(INDI::Logger::DBG_DEBUG, "::MoveFocuser(%d %d %d)", dir, speed, duration);

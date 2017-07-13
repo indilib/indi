@@ -1335,7 +1335,7 @@ char *INDI::Dome::LoadParkData()
     wordexp_t wexp;
     FILE *fp;
     LilXML *lp;
-    static char errmsg[512];
+    static char errmsg[512]={0};
 
     XMLEle *parkxml;
     XMLAtt *ap;
@@ -1429,7 +1429,7 @@ bool INDI::Dome::WriteParkData()
 {
     wordexp_t wexp;
     FILE *fp;
-    char pcdata[30];
+    char pcdata[30]={0};
 
     if (wordexp(Parkdatafile, &wexp, 0))
     {

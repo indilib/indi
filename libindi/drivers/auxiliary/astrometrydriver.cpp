@@ -383,7 +383,7 @@ void *AstrometryDriver::runSolverHelper(void *context)
 
 void AstrometryDriver::runSolver()
 {
-    char cmd[MAXRBUF], line[256], parity_str[8];
+    char cmd[MAXRBUF]={0}, line[256]={0}, parity_str[8]={0};
     float ra = -1000, dec = -1000, angle = -1000, pixscale = -1000, parity = 0;
     snprintf(cmd, MAXRBUF, "%s %s -W /tmp/solution.wcs /tmp/ccdsolver.fits",
              SolverSettingsT[ASTROMETRY_SETTINGS_BINARY].text, SolverSettingsT[ASTROMETRY_SETTINGS_OPTIONS].text);

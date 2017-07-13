@@ -294,7 +294,7 @@ bool FlipFlat::ping()
 
     DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", response);
 
-    char productString[3];
+    char productString[3]={0};
     snprintf(productString, 3, "%s", response + 2);
 
     rc = sscanf(productString, "%d", &productID);
@@ -690,7 +690,7 @@ bool FlipFlat::getFirmwareVersion()
 
     DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", response);
 
-    char versionString[4];
+    char versionString[4]={0};
     snprintf(versionString, 4, "%s", response + 4);
     IUSaveText(&FirmwareT[0], versionString);
     IDSetText(&FirmwareTP, nullptr);
@@ -746,7 +746,7 @@ bool FlipFlat::getBrightness()
 
     DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", response);
 
-    char brightnessString[4];
+    char brightnessString[4]={0};
     snprintf(brightnessString, 4, "%s", response + 4);
 
     int brightnessValue = 0;
@@ -808,7 +808,7 @@ bool FlipFlat::SetLightBoxBrightness(uint16_t value)
 
     DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", response);
 
-    char brightnessString[4];
+    char brightnessString[4]={0};
     snprintf(brightnessString, 4, "%s", response + 4);
 
     int brightnessValue = 0;
