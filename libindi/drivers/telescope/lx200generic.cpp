@@ -964,10 +964,8 @@ bool LX200Generic::ISNewSwitch(const char *dev, const char *name, ISState *state
             else
                 getSiteName(PortFD, SiteNameTP.tp[0].text, currentSiteNum);
 
-            if (isDebug())
-                IDLog("Selecting site %d\n", currentSiteNum);
-
-            sendScopeLocation();
+            if (GetTelescopeCapability() & TELESCOPE_HAS_LOCATION)
+                sendScopeLocation();
 
             SiteNameTP.s = SiteSP.s = IPS_OK;
 
@@ -1248,37 +1246,51 @@ void LX200Generic::getBasicData()
 {
     if (isSimulation() == false)
     {
-        getAlignment();
-
         checkLX200Format(PortFD);
 
-        if (getTimeFormat(PortFD, &timeFormat) < 0)
-            IDMessage(getDeviceName(), "Failed to retrieve time format from device.");
-        else
-        {
-            int ret = 0;
+        if (genericCapability & LX200_HAS_ALIGNMENT_TYPE)
+            getAlignment();
 
-            timeFormat = (timeFormat == 24) ? LX200_24 : LX200_AM;
-            // We always do 24 hours
-            if (timeFormat != LX200_24)
-                ret = toggleTimeFormat(PortFD);
+        if (GetTelescopeCapability() & TELESCOPE_HAS_TIME)
+        {
+            if (getTimeFormat(PortFD, &timeFormat) < 0)
+                IDMessage(getDeviceName(), "Failed to retrieve time format from device.");
+            else
+            {
+                int ret = 0;
+
+                timeFormat = (timeFormat == 24) ? LX200_24 : LX200_AM;
+                // We always do 24 hours
+                if (timeFormat != LX200_24)
+                    ret = toggleTimeFormat(PortFD);
+            }
         }
 
-        SiteNameT[0].text = new char[64];
+        if (genericCapability & LX200_HAS_SITES)
+        {
+            SiteNameT[0].text = new char[64];
 
-        if (getSiteName(PortFD, SiteNameT[0].text, currentSiteNum) < 0)
-            IDMessage(getDeviceName(), "Failed to get site name from device");
-        else
-            IDSetText(&SiteNameTP, nullptr);
+            if (getSiteName(PortFD, SiteNameT[0].text, currentSiteNum) < 0)
+                IDMessage(getDeviceName(), "Failed to get site name from device");
+            else
+                IDSetText(&SiteNameTP, nullptr);
+        }
 
-        if (getTrackFreq(PortFD, &TrackFreqN[0].value) < 0)
-            IDMessage(getDeviceName(), "Failed to get tracking frequency from device.");
-        else
-            IDSetNumber(&TrackingFreqNP, nullptr);
+
+        if (genericCapability & LX200_HAS_TRACKING_FREQ)
+        {
+            if (getTrackFreq(PortFD, &TrackFreqN[0].value) < 0)
+                IDMessage(getDeviceName(), "Failed to get tracking frequency from device.");
+            else
+                IDSetNumber(&TrackingFreqNP, nullptr);
+        }
+
     }
 
-    sendScopeLocation();
-    sendScopeTime();
+    if (GetTelescopeCapability() & TELESCOPE_HAS_LOCATION)
+        sendScopeLocation();
+    if (GetTelescopeCapability() & TELESCOPE_HAS_TIME)
+        sendScopeTime();
 }
 
 void LX200Generic::slewError(int slewCode)
