@@ -28,14 +28,6 @@
 #include <stdarg.h>
 #include <string.h>
 
-#ifdef __unix__
-#include <netdb.h>
-#include <unistd.h>
-#define net_read read
-#define net_write write
-#define net_close close
-#endif
-
 #ifdef _WINDOWS
 #include <WinSock2.h>
 #include <windows.h>
@@ -46,6 +38,14 @@
 #define net_close closesocket
 
 #pragma comment(lib, "Ws2_32.lib")
+#else
+#include <netdb.h>
+#include <unistd.h>
+#include <sys/types.h>
+#include <netinet/in.h>
+#define net_read read
+#define net_write write
+#define net_close close
 #endif
 
 #define MAXINDIBUF 49152
@@ -192,7 +192,7 @@ bool INDI::BaseClient::connectServer()
     }
 
     /* we had a positivite return so a descriptor is ready */
-    #ifdef __unix__
+    #ifndef _WINDOWS
     int error     = 0;
     socklen_t len = sizeof(error);
     if (FD_ISSET(sockfd, &rset) || FD_ISSET(sockfd, &wset))
@@ -215,7 +215,7 @@ bool INDI::BaseClient::connectServer()
     }
     #endif
 
-    #ifdef __unix__
+    #ifndef _WINDOWS
     int pipefd[2];
     ret = socketpair(PF_UNIX, SOCK_STREAM, 0, pipefd);
 
@@ -381,7 +381,7 @@ void INDI::BaseClient::listenINDI()
     if (sockfd > maxfd)
         maxfd = sockfd;
 
-#ifdef __unix__
+#ifndef _WINDOWS
     FD_SET(m_receiveFd, &rs);
     if (m_receiveFd > maxfd)
         maxfd = m_receiveFd;
@@ -402,7 +402,7 @@ void INDI::BaseClient::listenINDI()
             break;
         }
 
-#ifdef __unix__
+#ifndef _WINDOWS
         // Received termination string from main thread
         if (n > 0 && FD_ISSET(m_receiveFd, &rs))
         {
