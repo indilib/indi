@@ -391,7 +391,7 @@ void SkySafari::processCommand(std::string cmd)
 
     if (skySafariClient->isConnected() == false)
     {
-        DEBUG(INDI::Logger::DBG_ERROR, "Internal client is not connected! Restart driver and try again.");
+        DEBUG(INDI::Logger::DBG_ERROR, "Internal client is not connected! Please make sure the mount name is set in the Options tab. Disconnect and reconnect to try again.");
         return;
     }
 
