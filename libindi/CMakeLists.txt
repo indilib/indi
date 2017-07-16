@@ -157,8 +157,10 @@ include_directories( ${CMAKE_CURRENT_BINARY_DIR})
 include_directories( ${CMAKE_CURRENT_SOURCE_DIR})
 include_directories( ${CMAKE_CURRENT_SOURCE_DIR}/libs)
 include_directories( ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase)
+include_directories( ${ZLIB_INCLUDE_DIR})
 include_directories( ${CFITSIO_INCLUDE_DIR})
-include_directories( ${NOVA_INCLUDE_DIR})
+get_filename_component(NOVA_INCLUDE_PARENT_DIR ${NOVA_INCLUDE_DIR} DIRECTORY)
+include_directories( ${NOVA_INCLUDE_PARENT_DIR})
 # 3. Build
 
 SET(indiclient_C_SRC
