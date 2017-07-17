@@ -408,9 +408,6 @@ bool LX200AstroPhysics::ISNewSwitch(const char *dev, const char *name, ISState *
 
         int pemstate = IUFindOnSwitchIndex(&PEMStateSP);
 
-        DEBUGF(INDI::Logger::DBG_ERROR, "pemstate = %d", pemstate);
-
-
         if (isSimulation() == false && (err = selectAPPEMState(PortFD, pemstate) < 0))
         {
             DEBUGF(INDI::Logger::DBG_ERROR, "Error setting PEM state (%d).", err);
@@ -1046,14 +1043,14 @@ void LX200AstroPhysics::queryPEMState()
 
     DEBUGF(INDI::Logger::DBG_DEBUG, "RES: <%s>", response);
 
-    bool pemstate = false;
+    int pemstate = PEM_STATE_UNKNOWN;
     if (!strcmp(response, "PLAYBACK"))
     {
-        pemstate = true;
+        pemstate = PEM_STATE_ON;
     }
     else if (!strcmp(response, "OFF"))
     {
-        pemstate = false;
+        pemstate = PEM_STATE_OFF;
     }
     else
     {
@@ -1061,10 +1058,10 @@ void LX200AstroPhysics::queryPEMState()
         return;
     }
 
-    if (pemstate != lastPEMState)
+    if (pemstate != PEM_STATE_UNKNOWN && (pemstate != lastPEMState || lastPEMState == PEM_STATE_UNKNOWN))
     {
-        PEMStateS[PEM_OFF].s = (pemstate) ? ISS_OFF : ISS_ON;
-        PEMStateS[PEM_ON].s  = (pemstate) ? ISS_ON  : ISS_OFF;
+        PEMStateS[PEM_OFF].s = (pemstate == PEM_STATE_ON) ? ISS_OFF : ISS_ON;
+        PEMStateS[PEM_ON].s  = (pemstate == PEM_STATE_ON) ? ISS_ON  : ISS_OFF;
         PEMStateSP.s         = IPS_OK;
         IDSetSwitch(&PEMStateSP, nullptr);
 

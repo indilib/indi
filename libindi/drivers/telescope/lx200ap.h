@@ -110,5 +110,7 @@ class LX200AstroPhysics : public LX200Generic
 
     bool timeUpdated, locationUpdated;
     int initStatus;
-    bool lastPEMState;
+    enum { PEM_STATE_OFF, PEM_STATE_ON, PEM_STATE_UNKNOWN };
+    int lastPEMState = PEM_STATE_UNKNOWN;
+
 };
