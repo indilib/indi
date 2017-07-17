@@ -323,6 +323,31 @@ int APSyncCMR(int fd, char *matchedObject)
     return 0;
 }
 
+int selectAPPEMState(int fd, bool pemstate)
+{
+    int error_type;
+    int nbytes_write = 0;
+
+    if (pemstate)
+    {
+        DEBUGDEVICE(lx200ap_name, INDI::Logger::DBG_DEBUG, "selectAPPEMState: Setting PEM ON");
+        DEBUGFDEVICE(lx200ap_name, AP_DBG_SCOPE, "CMD <%s>", "#:pP#");
+
+        if ((error_type = tty_write_string(fd, "#:pP#", &nbytes_write)) != TTY_OK)
+            return error_type;    
+    }
+    else
+    {
+        DEBUGDEVICE(lx200ap_name, INDI::Logger::DBG_DEBUG, "selectAPPEMState: Setting PEM OFF");
+        DEBUGFDEVICE(lx200ap_name, AP_DBG_SCOPE, "CMD <%s>", "#:p#");
+
+        if ((error_type = tty_write_string(fd, "#:p#", &nbytes_write)) != TTY_OK)
+            return error_type;
+    }
+
+    return 0;
+}
+
 int selectAPMoveToRate(int fd, int moveToRate)
 {
     int error_type;

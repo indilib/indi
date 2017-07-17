@@ -113,6 +113,13 @@ bool LX200AstroPhysics::initProperties()
     IUFillNumberVector(&SlewAccuracyNP, SlewAccuracyN, 2, getDeviceName(), "Slew Accuracy", "", MOUNT_TAB, IP_RW, 0,
                        IPS_IDLE);
 
+    // PEM on/off
+    IUFillSwitch(&PEMStateS[PEM_OFF], "PEM OFF", "PEM OFF", ISS_OFF);
+    IUFillSwitch(&PEMStateS[PEM_ON], "PEM ON", "PEM ON", ISS_ON);
+    IUFillSwitchVector(&PEMStateSP, PEMStateS, 2, getDeviceName(), "PEM", "PEM Playback", MOTION_TAB, IP_RW, ISR_1OFMANY, 0,
+                       IPS_IDLE);
+
+
     SetParkDataType(PARK_AZ_ALT);
 
     return true;
@@ -134,6 +141,7 @@ void LX200AstroPhysics::ISGetProperties(const char *dev)
         defineSwitch(&APSlewSpeedSP);
         defineSwitch(&SwapSP);
         defineSwitch(&SyncCMRSP);
+        defineSwitch(&PEMStateSP);
         defineNumber(&SlewAccuracyNP);
 
         DEBUG(INDI::Logger::DBG_SESSION, "Please initialize the mount before issuing any command.");
@@ -155,6 +163,7 @@ bool LX200AstroPhysics::updateProperties()
         defineSwitch(&TrackModeSP);
         defineSwitch(&APSlewSpeedSP);
         defineSwitch(&SwapSP);
+        defineSwitch(&PEMStateSP);
         defineSwitch(&SyncCMRSP);
         defineNumber(&SlewAccuracyNP);
 
@@ -169,6 +178,7 @@ bool LX200AstroPhysics::updateProperties()
         deleteProperty(APSlewSpeedSP.name);
         deleteProperty(SwapSP.name);
         deleteProperty(SyncCMRSP.name);
+        deleteProperty(PEMStateSP.name);
         deleteProperty(SlewAccuracyNP.name);
     }
 
@@ -387,6 +397,19 @@ bool LX200AstroPhysics::ISNewSwitch(const char *dev, const char *name, ISState *
         return true;
     }
 
+    // =======================================
+    // Choose the PEM playback mode
+    // =======================================
+    if (!strcmp(name, PEMStateSP.name))
+    {
+        IUResetSwitch(&PEMStateSP);
+        IUUpdateSwitch(&PEMStateSP, states, names, n);
+        IUFindOnSwitchIndex(&PEMStateSP);
+        PEMStateSP.s = IPS_OK;
+        IDSetSwitch(&PEMStateSP, nullptr);
+        return true;
+    }
+
     return LX200Generic::ISNewSwitch(dev, name, states, names, n);
 }
 
@@ -485,6 +508,8 @@ bool LX200AstroPhysics::ReadScopeStatus()
     NewRaDec(currentRA, currentDEC);
 
     syncSideOfPier();
+
+    queryPEMState();
 
     return true;
 }
@@ -968,9 +993,52 @@ void LX200AstroPhysics::syncSideOfPier()
 
     if (!strcmp(response, "East"))
         setPierSide(INDI::Telescope::PIER_EAST);
-    else
+    else if (!strcmp(response, "West"))
         setPierSide(INDI::Telescope::PIER_WEST);
+    else
+        DEBUGF(INDI::Logger::DBG_ERROR, "Invalid response for pier side from device -> %s", response);
+}
 
+void LX200AstroPhysics::queryPEMState()
+{
+    const char *cmd = ":pG#";
+    // Response
+    char response[16] = { 0 };
+    int rc = 0, nbytes_read = 0, nbytes_written = 0;
+
+    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD: <%s>", cmd);
+
+    tcflush(PortFD, TCIOFLUSH);
+
+    if ((rc = tty_write(PortFD, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
+    {
+        char errmsg[256];
+        tty_error_msg(rc, errmsg, 256);
+        DEBUGF(INDI::Logger::DBG_ERROR, "Error writing to device %s (%d)", errmsg, rc);
+        return;
+    }
+
+    // Read PEM State
+    if ((rc = tty_read_section(PortFD, response, '#', 3, &nbytes_read)) != TTY_OK)
+    {
+        char errmsg[256];
+        tty_error_msg(rc, errmsg, 256);
+        DEBUGF(INDI::Logger::DBG_ERROR, "Error reading from device %s (%d)", errmsg, rc);
+        return;
+    }
+
+    response[nbytes_read - 1] = '\0';
+
+    tcflush(PortFD, TCIOFLUSH);
+
+    DEBUGF(INDI::Logger::DBG_DEBUG, "RES: <%s>", response);
+
+//    if (!strcmp(response, "East"))
+//        setPierSide(INDI::Telescope::PIER_EAST);
+//    else if (!strcmp(response, "West"))
+//        setPierSide(INDI::Telescope::PIER_WEST);
+//    else
+//        DEBUGF(INDI::Logger::DBG_ERROR, "Invalid response for pier side from device -> %s", response);
 }
 
 bool LX200AstroPhysics::saveConfigItems(FILE *fp)
@@ -978,6 +1046,7 @@ bool LX200AstroPhysics::saveConfigItems(FILE *fp)
     LX200Generic::saveConfigItems(fp);
 
     IUSaveConfigSwitch(fp, &SyncCMRSP);
+    IUSaveConfigSwitch(fp, &PEMStateSP);
     IUSaveConfigSwitch(fp, &APSlewSpeedSP);
 
     return true;
