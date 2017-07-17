@@ -67,7 +67,7 @@ inline static locale_char_t *indi_setlocale(int category, const locale_char_t *l
     return setlocale(category, locale);
 }
 
-inline static void indi_resotre_locale(int category, locale_char_t *prev)
+inline static void indi_restore_locale(int category, locale_char_t *prev)
 {
     setlocale(category, prev);
 }
