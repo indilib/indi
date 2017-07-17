@@ -968,8 +968,10 @@ void LX200AstroPhysics::syncSideOfPier()
 
     if (!strcmp(response, "East"))
         setPierSide(INDI::Telescope::PIER_EAST);
-    else
+    else if (!strcmp(response, "West"))
         setPierSide(INDI::Telescope::PIER_WEST);
+    else
+        DEBUGF(INDI::Logger::DBG_ERROR, "Invalid pier side response from device-> %s", response);
 
 }
 
