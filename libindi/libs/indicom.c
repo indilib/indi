@@ -28,6 +28,7 @@
 #include "indicom.h"
 
 #include "indidevapi.h"
+#include "locale_compat.h"
 
 #include "config.h"
 
@@ -38,7 +39,6 @@
 
 #include <errno.h>
 #include <fcntl.h>
-#include <locale.h>
 #include <math.h>
 #include <stdarg.h>
 #include <stdint.h>
@@ -179,7 +179,7 @@ int fs_sexa(char *out, double a, int w, int fracbase)
 int f_scansexa(const char *str0, /* input string */
                double *dp)       /* cracked value, if return 0 */
 {
-    char *orig = setlocale(LC_NUMERIC, "C");
+    locale_char_t *orig = indi_locale_C_numeric_push();
 
     double a = 0, b = 0, c = 0;
     char str[128];
@@ -207,7 +207,7 @@ int f_scansexa(const char *str0, /* input string */
 
     r = sscanf(str, "%lf%*[^0-9]%lf%*[^0-9]%lf", &a, &b, &c);
 
-    setlocale(LC_NUMERIC, orig);
+    indi_locale_C_numeric_pop(orig);
 
     if (r < 1)
         return (-1);

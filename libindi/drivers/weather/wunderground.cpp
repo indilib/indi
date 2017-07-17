@@ -25,10 +25,10 @@
 #include "wunderground.h"
 
 #include "gason.h"
+#include "locale_compat.h"
 
 #include <curl/curl.h>
 
-#include <locale.h>
 #include <memory>
 #include <string.h>
 
@@ -184,7 +184,7 @@ IPState WunderGround::updateWeather()
     if (wunderLat == -1000 || wunderLong == -1000)
         return IPS_BUSY;
 
-    char *orig = setlocale(LC_NUMERIC, "C");
+    AutoCNumeric locale;
 
     snprintf(requestURL, MAXRBUF, "http://api.wunderground.com/api/%s/conditions/q/%g,%g.json", wunderAPIKeyT[0].text,
              wunderLat, wunderLong);
@@ -212,7 +212,6 @@ IPState WunderGround::updateWeather()
         DEBUGF(INDI::Logger::DBG_ERROR, "%s at %zd", jsonStrError(status), endptr - source);
         DEBUGF(INDI::Logger::DBG_DEBUG, "%s", requestURL);
         DEBUGF(INDI::Logger::DBG_DEBUG, "%s", readBuffer.c_str());
-        setlocale(LC_NUMERIC, orig);
         return IPS_ALERT;
     }
 
@@ -279,7 +278,6 @@ IPState WunderGround::updateWeather()
         }
     }
 
-    setlocale(LC_NUMERIC, orig);
     return IPS_OK;
 }
 

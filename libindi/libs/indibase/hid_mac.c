@@ -37,7 +37,6 @@
 #include <IOKit/hid/IOHIDKeys.h>
 #include <CoreFoundation/CoreFoundation.h>
 
-#include <locale.h>
 #include <wchar.h>
 #include <pthread.h>
 #include <sys/time.h>

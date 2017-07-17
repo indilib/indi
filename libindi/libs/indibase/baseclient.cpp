@@ -20,10 +20,10 @@
 
 #include "base64.h"
 #include "basedevice.h"
+#include "locale_compat.h"
 
 #include <errno.h>
 #include <fcntl.h>
-#include <locale.h>
 #include <stdlib.h>
 #include <stdarg.h>
 #include <string.h>
@@ -363,7 +363,8 @@ void INDI::BaseClient::listenINDI()
     XMLEle **nodes = nullptr;
     XMLEle *root = nullptr;
     int inode = 0;
-    char *orig = setlocale(LC_NUMERIC, "C");
+
+    AutoCNumeric locale;
 
     if (cDeviceNames.empty())
     {
@@ -380,7 +381,8 @@ void INDI::BaseClient::listenINDI()
                 IDLog("<getProperties version='%g' device='%s'/>\n", INDIV, str.c_str());
         }
     }
-    setlocale(LC_NUMERIC, orig);
+
+    locale.Restore();
 
     FD_ZERO(&rs);
 
@@ -707,7 +709,7 @@ void INDI::BaseClient::sendNewText(const char *deviceName, const char *propertyN
 
 void INDI::BaseClient::sendNewNumber(INumberVectorProperty *nvp)
 {
-    char *orig = setlocale(LC_NUMERIC, "C");
+    AutoCNumeric locale;
 
     nvp->s = IPS_BUSY;
 
@@ -723,8 +725,6 @@ void INDI::BaseClient::sendNewNumber(INumberVectorProperty *nvp)
         sendString("  </oneNumber>\n");
     }
     sendString("</newNumberVector>\n");
-
-    setlocale(LC_NUMERIC, orig);
 }
 
 void INDI::BaseClient::sendNewNumber(const char *deviceName, const char *propertyName, const char *elementName,
