@@ -95,10 +95,6 @@ class LX200AstroPhysics : public LX200Generic
     INumber SlewAccuracyN[2];
     INumberVectorProperty SlewAccuracyNP;
 
-    ISwitch PEMStateS[2];
-    ISwitchVectorProperty PEMStateSP;
-    enum { PEM_OFF, PEM_ON };
-
   private:
     bool isMountInit(void);
     bool setBasicDataPart0();
@@ -106,11 +102,8 @@ class LX200AstroPhysics : public LX200Generic
 
     // Side of pier
     void syncSideOfPier();
-    void queryPEMState();
+    void syncPECState();
 
     bool timeUpdated, locationUpdated;
     int initStatus;
-    enum { PEM_STATE_OFF, PEM_STATE_ON, PEM_STATE_UNKNOWN };
-    int lastPEMState = PEM_STATE_UNKNOWN;
-
 };

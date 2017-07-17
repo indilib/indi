@@ -323,14 +323,14 @@ int APSyncCMR(int fd, char *matchedObject)
     return 0;
 }
 
-int selectAPPEMState(int fd, bool pemstate)
+int selectAPPECState(int fd, bool pecstate)
 {
     int error_type;
     int nbytes_write = 0;
 
-    if (pemstate)
+    if (pecstate)
     {
-        DEBUGDEVICE(lx200ap_name, INDI::Logger::DBG_DEBUG, "selectAPPEMState: Setting PEM ON");
+        DEBUGDEVICE(lx200ap_name, INDI::Logger::DBG_DEBUG, "selectAPPECState: Setting PEC ON");
         DEBUGFDEVICE(lx200ap_name, AP_DBG_SCOPE, "CMD <%s>", "#:pP#");
 
         if ((error_type = tty_write_string(fd, "#:pP#", &nbytes_write)) != TTY_OK)
@@ -338,7 +338,7 @@ int selectAPPEMState(int fd, bool pemstate)
     }
     else
     {
-        DEBUGDEVICE(lx200ap_name, INDI::Logger::DBG_DEBUG, "selectAPPEMState: Setting PEM OFF");
+        DEBUGDEVICE(lx200ap_name, INDI::Logger::DBG_DEBUG, "selectAPPECState: Setting PEC OFF");
         DEBUGFDEVICE(lx200ap_name, AP_DBG_SCOPE, "CMD <%s>", "#:p#");
 
         if ((error_type = tty_write_string(fd, "#:p#", &nbytes_write)) != TTY_OK)

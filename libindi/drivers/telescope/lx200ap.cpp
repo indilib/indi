@@ -44,7 +44,7 @@ LX200AstroPhysics::LX200AstroPhysics() : LX200Generic()
 
     setLX200Capability(LX200_HAS_PULSE_GUIDING | LX200_HAS_TRACK_MODE);
 
-    SetTelescopeCapability(GetTelescopeCapability() | TELESCOPE_HAS_PIER_SIDE, 4);
+    SetTelescopeCapability(GetTelescopeCapability() | TELESCOPE_HAS_PIER_SIDE | TELESCOPE_HAS_PEC, 4);
 
     //ctor
     currentRA  = get_local_sideral_time(0);
@@ -113,13 +113,6 @@ bool LX200AstroPhysics::initProperties()
     IUFillNumberVector(&SlewAccuracyNP, SlewAccuracyN, 2, getDeviceName(), "Slew Accuracy", "", MOUNT_TAB, IP_RW, 0,
                        IPS_IDLE);
 
-    // PEM on/off
-    IUFillSwitch(&PEMStateS[PEM_OFF], "PEM OFF", "PEM OFF", ISS_OFF);
-    IUFillSwitch(&PEMStateS[PEM_ON], "PEM ON", "PEM ON", ISS_ON);
-    IUFillSwitchVector(&PEMStateSP, PEMStateS, 2, getDeviceName(), "PEM", "PEM Playback", MOTION_TAB, IP_RW, ISR_1OFMANY, 0,
-                       IPS_IDLE);
-
-
     SetParkDataType(PARK_AZ_ALT);
 
     return true;
@@ -141,7 +134,6 @@ void LX200AstroPhysics::ISGetProperties(const char *dev)
         defineSwitch(&APSlewSpeedSP);
         defineSwitch(&SwapSP);
         defineSwitch(&SyncCMRSP);
-        defineSwitch(&PEMStateSP);
         defineNumber(&SlewAccuracyNP);
 
         DEBUG(INDI::Logger::DBG_SESSION, "Please initialize the mount before issuing any command.");
@@ -163,7 +155,6 @@ bool LX200AstroPhysics::updateProperties()
         defineSwitch(&TrackModeSP);
         defineSwitch(&APSlewSpeedSP);
         defineSwitch(&SwapSP);
-        defineSwitch(&PEMStateSP);
         defineSwitch(&SyncCMRSP);
         defineNumber(&SlewAccuracyNP);
 
@@ -178,7 +169,6 @@ bool LX200AstroPhysics::updateProperties()
         deleteProperty(APSlewSpeedSP.name);
         deleteProperty(SwapSP.name);
         deleteProperty(SyncCMRSP.name);
-        deleteProperty(PEMStateSP.name);
         deleteProperty(SlewAccuracyNP.name);
     }
 
@@ -398,24 +388,24 @@ bool LX200AstroPhysics::ISNewSwitch(const char *dev, const char *name, ISState *
     }
 
     // =======================================
-    // Choose the PEM playback mode
+    // Choose the PEC playback mode
     // =======================================
-    if (!strcmp(name, PEMStateSP.name))
+    if (!strcmp(name, PECStateSP.name))
     {
-        IUResetSwitch(&PEMStateSP);
-        IUUpdateSwitch(&PEMStateSP, states, names, n);
-        IUFindOnSwitchIndex(&PEMStateSP);
+        IUResetSwitch(&PECStateSP);
+        IUUpdateSwitch(&PECStateSP, states, names, n);
+        IUFindOnSwitchIndex(&PECStateSP);
 
-        int pemstate = IUFindOnSwitchIndex(&PEMStateSP);
+        int pecstate = IUFindOnSwitchIndex(&PECStateSP);
 
-        if (isSimulation() == false && (err = selectAPPEMState(PortFD, pemstate) < 0))
+        if (isSimulation() == false && (err = selectAPPECState(PortFD, pecstate) < 0))
         {
-            DEBUGF(INDI::Logger::DBG_ERROR, "Error setting PEM state (%d).", err);
+            DEBUGF(INDI::Logger::DBG_ERROR, "Error setting PEC state (%d).", err);
             return false;
         }
 
-        PEMStateSP.s = IPS_OK;
-        IDSetSwitch(&PEMStateSP, nullptr);
+        PECStateSP.s = IPS_OK;
+        IDSetSwitch(&PECStateSP, nullptr);
 
         return true;
     }
@@ -519,7 +509,7 @@ bool LX200AstroPhysics::ReadScopeStatus()
 
     syncSideOfPier();
 
-    queryPEMState();
+    syncPECState();
 
     return true;
 }
@@ -1009,7 +999,7 @@ void LX200AstroPhysics::syncSideOfPier()
         DEBUGF(INDI::Logger::DBG_ERROR, "Invalid response for pier side from device -> %s", response);
 }
 
-void LX200AstroPhysics::queryPEMState()
+void LX200AstroPhysics::syncPECState()
 {
     const char *cmd = ":pG#";
     // Response
@@ -1028,7 +1018,7 @@ void LX200AstroPhysics::queryPEMState()
         return;
     }
 
-    // Read PEM State
+    // Read PEC State
     if ((rc = tty_read_section(PortFD, response, '#', 3, &nbytes_read)) != TTY_OK)
     {
         char errmsg[256];
@@ -1043,30 +1033,13 @@ void LX200AstroPhysics::queryPEMState()
 
     DEBUGF(INDI::Logger::DBG_DEBUG, "RES: <%s>", response);
 
-    int pemstate = PEM_STATE_UNKNOWN;
+
     if (!strcmp(response, "PLAYBACK"))
-    {
-        pemstate = PEM_STATE_ON;
-    }
+        setPECState(INDI::Telescope::PEC_ON);
     else if (!strcmp(response, "OFF"))
-    {
-        pemstate = PEM_STATE_OFF;
-    }
+        setPECState(INDI::Telescope::PEC_OFF);
     else
-    {
-        DEBUGF(INDI::Logger::DBG_ERROR, "Invalid response for pem state from device -> %s", response);
-        return;
-    }
-
-    if (pemstate != PEM_STATE_UNKNOWN && (pemstate != lastPEMState || lastPEMState == PEM_STATE_UNKNOWN))
-    {
-        PEMStateS[PEM_OFF].s = (pemstate == PEM_STATE_ON) ? ISS_OFF : ISS_ON;
-        PEMStateS[PEM_ON].s  = (pemstate == PEM_STATE_ON) ? ISS_ON  : ISS_OFF;
-        PEMStateSP.s         = IPS_OK;
-        IDSetSwitch(&PEMStateSP, nullptr);
-
-        lastPEMState = pemstate;
-    }
+        DEBUGF(INDI::Logger::DBG_ERROR, "Invalid response for pec state from device -> %s", response);
 
     return;
 }
@@ -1078,7 +1051,6 @@ bool LX200AstroPhysics::saveConfigItems(FILE *fp)
     LX200Generic::saveConfigItems(fp);
 
     IUSaveConfigSwitch(fp, &SyncCMRSP);
-    IUSaveConfigSwitch(fp, &PEMStateSP);
     IUSaveConfigSwitch(fp, &APSlewSpeedSP);
 
     return true;
