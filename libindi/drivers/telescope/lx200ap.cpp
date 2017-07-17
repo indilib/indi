@@ -405,8 +405,21 @@ bool LX200AstroPhysics::ISNewSwitch(const char *dev, const char *name, ISState *
         IUResetSwitch(&PEMStateSP);
         IUUpdateSwitch(&PEMStateSP, states, names, n);
         IUFindOnSwitchIndex(&PEMStateSP);
+
+        int pemstate = IUFindOnSwitchIndex(&PEMStateSP);
+
+        DEBUGF(INDI::Logger::DBG_ERROR, "pemstate = %d", pemstate);
+
+
+        if (isSimulation() == false && (err = selectAPPEMState(PortFD, pemstate) < 0))
+        {
+            DEBUGF(INDI::Logger::DBG_ERROR, "Error setting PEM state (%d).", err);
+            return false;
+        }
+
         PEMStateSP.s = IPS_OK;
         IDSetSwitch(&PEMStateSP, nullptr);
+
         return true;
     }
 
@@ -1033,13 +1046,35 @@ void LX200AstroPhysics::queryPEMState()
 
     DEBUGF(INDI::Logger::DBG_DEBUG, "RES: <%s>", response);
 
-//    if (!strcmp(response, "East"))
-//        setPierSide(INDI::Telescope::PIER_EAST);
-//    else if (!strcmp(response, "West"))
-//        setPierSide(INDI::Telescope::PIER_WEST);
-//    else
-//        DEBUGF(INDI::Logger::DBG_ERROR, "Invalid response for pier side from device -> %s", response);
+    bool pemstate = false;
+    if (!strcmp(response, "PLAYBACK"))
+    {
+        pemstate = true;
+    }
+    else if (!strcmp(response, "OFF"))
+    {
+        pemstate = false;
+    }
+    else
+    {
+        DEBUGF(INDI::Logger::DBG_ERROR, "Invalid response for pem state from device -> %s", response);
+        return;
+    }
+
+    if (pemstate != lastPEMState)
+    {
+        PEMStateS[PEM_OFF].s = (pemstate) ? ISS_OFF : ISS_ON;
+        PEMStateS[PEM_ON].s  = (pemstate) ? ISS_ON  : ISS_OFF;
+        PEMStateSP.s         = IPS_OK;
+        IDSetSwitch(&PEMStateSP, nullptr);
+
+        lastPEMState = pemstate;
+    }
+
+    return;
 }
+
+
 
 bool LX200AstroPhysics::saveConfigItems(FILE *fp)
 {

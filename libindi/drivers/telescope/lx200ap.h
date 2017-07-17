@@ -110,4 +110,5 @@ class LX200AstroPhysics : public LX200Generic
 
     bool timeUpdated, locationUpdated;
     int initStatus;
+    bool lastPEMState;
 };
