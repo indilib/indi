@@ -32,7 +32,6 @@
 #include <WinSock2.h>
 #include <windows.h>
 
-#define errno WSAGetLastError()
 #define net_read(x,y,z) recv(x,y,z,0)
 #define net_write(x,y,z) send(x,(const char *)(y),z,0)
 #define net_close closesocket
@@ -46,6 +45,10 @@
 #define net_read read
 #define net_write write
 #define net_close close
+#endif
+
+#ifdef _MSC_VER
+# define snprintf _snprintf
 #endif
 
 #define MAXINDIBUF 49152
@@ -351,7 +354,11 @@ void INDI::BaseClient::listenINDI()
     char buffer[MAXINDIBUF];
     char msg[MAXRBUF];
     int n = 0, err_code = 0;
+#ifdef _WINDOWS
+    SOCKET maxfd = 0;
+#else
     int maxfd = 0;
+#endif
     fd_set rs;
     XMLEle **nodes = nullptr;
     XMLEle *root = nullptr;

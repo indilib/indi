@@ -31,8 +31,10 @@
 
 #include "config.h"
 
+#if defined(HAVE_LIBNOVA)
 #include <libnova/julian_day.h>
 #include <libnova/sidereal_time.h>
+#endif // HAVE_LIBNOVA
 
 #include <errno.h>
 #include <fcntl.h>
@@ -43,6 +45,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 
 #ifdef __APPLE__
 #include <sys/param.h>
@@ -1364,12 +1367,14 @@ double rangeDec(double decdegrees)
     return decdegrees;
 }
 
+#if defined(HAVE_LIBNOVA)
 double get_local_sideral_time(double longitude)
 {
     double SD = ln_get_apparent_sidereal_time(ln_get_julian_from_sys()) - (360.0 - longitude) / 15.0;
 
     return range24(SD);
 }
+#endif // HAVE_LIBNOVA
 
 double get_local_hour_angle(double sideral_time, double ra)
 {

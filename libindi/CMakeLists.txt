@@ -142,7 +142,7 @@ endif (INDI_BUILD_SERVER)
 #################################################################################################
 #
 # Component   : INDI Client
-# Dependencies: zlib, cfitsio, nova
+# Dependencies: zlib, cfitsio
 # Supported OS: Linux, BSD, MacOS, Windows, Cygwin
 # N.B. Windows support pending migration of networking code
 #################################################################################################
@@ -151,7 +151,6 @@ if (INDI_BUILD_CLIENT AND NOT ANDROID)
 find_package(Threads REQUIRED)
 find_package(ZLIB REQUIRED)
 find_package(CFITSIO REQUIRED)
-find_package(Nova REQUIRED)
 # 2. Includes
 include_directories( ${CMAKE_CURRENT_BINARY_DIR})
 include_directories( ${CMAKE_CURRENT_SOURCE_DIR})
@@ -159,8 +158,6 @@ include_directories( ${CMAKE_CURRENT_SOURCE_DIR}/libs)
 include_directories( ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase)
 include_directories( ${ZLIB_INCLUDE_DIR})
 include_directories( ${CFITSIO_INCLUDE_DIR})
-get_filename_component(NOVA_INCLUDE_PARENT_DIR ${NOVA_INCLUDE_DIR} DIRECTORY)
-include_directories( ${NOVA_INCLUDE_PARENT_DIR})
 # 3. Build
 
 SET(indiclient_C_SRC
@@ -192,7 +189,7 @@ endif (INDI_BUILD_CLIENT AND NOT ANDROID)
 #################################################################################################
 #
 # Component   : INDI Qt5 Client
-# Dependencies: Qt5Network, zlib, cfitsio, nova
+# Dependencies: Qt5Network, zlib, cfitsio
 # Supported OS: Linux, BSD, MacOS, Cygwin, Windows, Android
 #
 #################################################################################################
@@ -217,7 +214,6 @@ else ()
     find_package(Qt5Network)
     find_package(ZLIB REQUIRED)
     find_package(CFITSIO REQUIRED)
-    find_package(Nova REQUIRED)
 endif ()
 # 2. Includes
 include_directories( ${CMAKE_CURRENT_BINARY_DIR})
@@ -1130,6 +1126,18 @@ ENDIF (GTEST_FOUND)
 
 endif (WIN32 OR ANDROID)
 endif(INDI_BUILD_DRIVERS)
+
+# allow code common to both the drivers and the client
+# (like indicom.c) to check for presence of libnova. libnova is
+# required for the drivers, but is not required for indiclient
+if (NOVA_FOUND)
+  add_definitions(-DHAVE_LIBNOVA)
+endif()
+
+if (MSVC)
+  add_definitions(-D_CRT_SECURE_NO_WARNINGS)
+  add_definitions(-D_WINSOCK_DEPRECATED_NO_WARNINGS)
+endif()
 
 # Install common dev files for all except server
 if (INDI_BUILD_DRIVERS OR INDI_BUILD_CLIENT OR INDI_BUILD_QT5_CLIENT)
