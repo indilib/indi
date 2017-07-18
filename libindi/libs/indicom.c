@@ -81,7 +81,7 @@
 
 int tty_debug = 0;
 
-#ifndef _WIN32
+#if defined(HAVE_LIBNOVA)
 int extractISOTime(const char *timestr, struct ln_date *iso_date)
 {
     struct tm utm;
