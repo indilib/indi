@@ -197,7 +197,7 @@ bool Serial::Connect(const char *port, uint32_t baud)
 
     DEBUGF(INDI::Logger::DBG_DEBUG, "Connecting to %s", port);
 
-    if ((connectrc = tty_connect(port, baud, 8, 0, 1, &PortFD)) != TTY_OK)
+    if ((connectrc = tty_connect(port, baud, wordSize, parity, stopBits, &PortFD)) != TTY_OK)
     {
         tty_error_msg(connectrc, errorMsg, MAXRBUF);
 

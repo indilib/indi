@@ -90,7 +90,26 @@ class Serial : public Interface
      */
     bool Refresh(bool silent = false);
 
-  protected:
+    uint8_t getWordSize() const { return wordSize; }
+    /**
+     * @brief setWordSize Set word size to be used in the serial connection. Default 8
+     */
+    void setWordSize(const uint8_t &value) { wordSize = value; }
+
+    uint8_t getParity() const { return parity ; }
+    /**
+     * @brief setParity Set parity to be used in the serial connection. Default 0 (NONE)
+     * @param value 0 for NONE, 1 for EVEN, 2 for ODD
+     */
+    void setParity(const uint8_t &value) { parity = value; }
+
+    uint8_t getStopBits() const { return stopBits; }
+    /**
+     * @brief setStopBits Set stop bits to be used in the serial connection. Default 0
+     */
+    void setStopBits(const uint8_t &value) { stopBits = value ; }
+
+protected:
     /**
      * \brief Connect to serial port device. Default parameters are 8 bits, 1 stop bit, no parity.
      * Override if different from default.
@@ -120,5 +139,10 @@ class Serial : public Interface
     ISwitchVectorProperty RefreshSP;
 
     int PortFD = -1;
+
+    // Default 8N1 parameters
+    uint8_t wordSize=8;
+    uint8_t parity=0;
+    uint8_t stopBits=1;
 };
 }
