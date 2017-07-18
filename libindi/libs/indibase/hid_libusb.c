@@ -34,6 +34,7 @@
 #define _GNU_SOURCE // needed for wcsdup() before glibc 2.10
 
 #include "hidapi.h"
+#include "locale_compat.h"
 
 /* GNU / LibUSB */
 #include "libusb-1.0/libusb.h"
@@ -44,7 +45,6 @@
 #include <string.h>
 #include <stdlib.h>
 #include <ctype.h>
-#include <locale.h>
 #include <errno.h>
 
 /* Unix */
@@ -404,16 +404,16 @@ int HID_API_EXPORT hid_init(void)
 {
     if (!usb_context)
     {
-        const char *locale;
+        locale_char_t *locale;
 
         /* Init Libusb */
         if (libusb_init(&usb_context))
             return -1;
 
         /* Set the locale if it's not set. */
-        locale = setlocale(LC_CTYPE, NULL);
+        locale = indi_setlocale(LC_CTYPE, NULL);
         if (!locale)
-            setlocale(LC_CTYPE, "");
+            indi_setlocale(LC_CTYPE, INDI_LOCALE(""));
     }
 
     return 0;
@@ -1393,12 +1393,12 @@ static struct lang_map_entry lang_map[] = {
 
 uint16_t get_usb_code_for_current_locale(void)
 {
-    char *locale;
+    locale_char_t *locale;
     char search_string[64];
     char *ptr;
 
     /* Get the current locale. */
-    locale = setlocale(0, NULL);
+    locale = indi_setlocale(0, NULL);
     if (!locale)
         return 0x0;
 

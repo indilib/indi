@@ -22,11 +22,11 @@
 
 #include "base64.h"
 #include "basedevice.h"
+#include "locale_compat.h"
 
 #include <iostream>
 #include <string>
 
-#include <locale.h>
 #include <stdlib.h>
 
 #define MAXINDIBUF 49152
@@ -98,7 +98,8 @@ bool INDI::BaseClientQt::connectServer()
 
     serverConnected();
 
-    char *orig = setlocale(LC_NUMERIC, "C");
+    AutoCNumeric locale;
+
     QString getProp;
     if (cDeviceNames.empty())
     {
@@ -121,7 +122,6 @@ bool INDI::BaseClientQt::connectServer()
                 std::cerr << getProp.toLatin1().constData() << std::endl;
         }
     }
-    setlocale(LC_NUMERIC, orig);
 
     return true;
 }
@@ -455,7 +455,7 @@ int INDI::BaseClientQt::messageCmd(XMLEle *root, char *errmsg)
 
 void INDI::BaseClientQt::sendNewText(ITextVectorProperty *tvp)
 {
-    char *orig = setlocale(LC_NUMERIC, "C");
+    AutoCNumeric locale;
 
     tvp->s = IPS_BUSY;
 
@@ -475,8 +475,6 @@ void INDI::BaseClientQt::sendNewText(ITextVectorProperty *tvp)
     prop += QString("</newTextVector>\n");
 
     client_socket.write(prop.toLatin1());
-
-    setlocale(LC_NUMERIC, orig);
 }
 
 void INDI::BaseClientQt::sendNewText(const char *deviceName, const char *propertyName, const char *elementName,
@@ -504,7 +502,7 @@ void INDI::BaseClientQt::sendNewText(const char *deviceName, const char *propert
 
 void INDI::BaseClientQt::sendNewNumber(INumberVectorProperty *nvp)
 {
-    char *orig = setlocale(LC_NUMERIC, "C");
+    AutoCNumeric locale;
 
     nvp->s = IPS_BUSY;
 
@@ -524,8 +522,6 @@ void INDI::BaseClientQt::sendNewNumber(INumberVectorProperty *nvp)
     prop += QString("</newNumberVector>\n");
 
     client_socket.write(prop.toLatin1());
-
-    setlocale(LC_NUMERIC, orig);
 }
 
 void INDI::BaseClientQt::sendNewNumber(const char *deviceName, const char *propertyName, const char *elementName,
