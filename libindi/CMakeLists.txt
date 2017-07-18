@@ -370,12 +370,14 @@ else()
 ## Static indidriver Library
 add_library(indidriverstatic STATIC ${indidriver_C_SRC} ${indidriver_CXX_SRC} ${libwebcam_C_SRC} ${libwebcam_CXX_SRC} ${hidapi_SRCS})
 set_target_properties(indidriverstatic PROPERTIES COMPILE_FLAGS "-fPIC")
+target_compile_definitions(indidriverstatic PRIVATE "-DHAVE_LIBNOVA")
 set_target_properties(indidriverstatic PROPERTIES VERSION ${CMAKE_INDI_VERSION_STRING} SOVERSION ${INDI_SOVERSION} OUTPUT_NAME indidriver)
 target_link_libraries(indidriverstatic ${LIBUSB_1_LIBRARIES} ${NOVA_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${CFITSIO_LIBRARIES} ${M_LIB} ${ZLIB_LIBRARY} ${JPEG_LIBRARY})
 install(TARGETS indidriverstatic ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR})
 ## Dynamic indidriver Library
 add_library(indidriver SHARED ${indidriver_C_SRC} ${indidriver_CXX_SRC} ${libwebcam_C_SRC} ${libwebcam_CXX_SRC} ${hidapi_SRCS})
 set_target_properties(indidriver PROPERTIES COMPILE_FLAGS "-fPIC")
+target_compile_definitions(indidriver PRIVATE "-DHAVE_LIBNOVA")
 set_target_properties(indidriver PROPERTIES VERSION ${CMAKE_INDI_VERSION_STRING} SOVERSION ${INDI_SOVERSION} OUTPUT_NAME indidriver)
 target_link_libraries(indidriver ${LIBUSB_1_LIBRARIES} ${NOVA_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${CFITSIO_LIBRARIES} ${M_LIB} ${ZLIB_LIBRARY} ${JPEG_LIBRARY})
 install(TARGETS indidriver LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR})
@@ -1119,13 +1121,6 @@ ENDIF (GTEST_FOUND)
 
 endif (WIN32 OR ANDROID)
 endif(INDI_BUILD_DRIVERS)
-
-# allow code common to both the drivers and the client
-# (like indicom.c) to check for presence of libnova. libnova is
-# required for the drivers, but is not required for indiclient
-if (NOVA_FOUND)
-  add_definitions(-DHAVE_LIBNOVA)
-endif()
 
 if (MSVC)
   add_definitions(-D_CRT_SECURE_NO_WARNINGS)
