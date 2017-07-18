@@ -548,6 +548,8 @@ bool INDI::Telescope::saveConfigItems(FILE *fp)
         IUSaveConfigText(fp, &ScopeConfigNameTP);
     if (SlewRateS != nullptr)
         IUSaveConfigSwitch(fp, &SlewRateSP);
+    if (HasPECState())
+        IUSaveConfigSwitch(fp, &PECStateSP);
 
     controller->saveConfigItems(fp);
 
