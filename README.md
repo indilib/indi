@@ -15,7 +15,7 @@ INDI is the defacto standard for open astronomical device control. INDI Library 
 On Debian/Ubuntu:
 
 ```
-sudo apt-get install libnova-dev libcfitsio-dev libusb-1.0-0-dev zlib1g-dev libgsl-dev build-essential cmake git libjpeg-dev libcurl4-gnutls-dev
+sudo apt-get install libnova-dev libcfitsio-dev libusb-1.0-0-dev zlib1g-dev libgsl-dev build-essential cmake git libjpeg-dev libcurl4-gnutls-dev qtbase5-dev
 ```
 ## Get the code
 ```
