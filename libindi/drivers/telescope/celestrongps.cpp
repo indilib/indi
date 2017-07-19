@@ -1112,6 +1112,7 @@ bool CelestronGPS::saveConfigItems(FILE *fp)
 
     IUSaveConfigSwitch(fp, &UseHibernateSP);
     IUSaveConfigSwitch(fp, &TrackSP);
+    IUSaveConfigSwitch(fp, &UsePulseCmdSP);
 
     return true;
 }
