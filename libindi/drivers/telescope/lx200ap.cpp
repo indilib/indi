@@ -44,7 +44,7 @@ LX200AstroPhysics::LX200AstroPhysics() : LX200Generic()
 
     setLX200Capability(LX200_HAS_PULSE_GUIDING | LX200_HAS_TRACK_MODE);
 
-    SetTelescopeCapability(GetTelescopeCapability() | TELESCOPE_HAS_PIER_SIDE, 4);
+    SetTelescopeCapability(GetTelescopeCapability() | TELESCOPE_HAS_PIER_SIDE | TELESCOPE_HAS_PEC, 4);
 
     //ctor
     currentRA  = get_local_sideral_time(0);
@@ -384,6 +384,29 @@ bool LX200AstroPhysics::ISNewSwitch(const char *dev, const char *name, ISState *
         IUFindOnSwitchIndex(&SyncCMRSP);
         SyncCMRSP.s = IPS_OK;
         IDSetSwitch(&SyncCMRSP, nullptr);
+        return true;
+    }
+
+    // =======================================
+    // Choose the PEC playback mode
+    // =======================================
+    if (!strcmp(name, PECStateSP.name))
+    {
+        IUResetSwitch(&PECStateSP);
+        IUUpdateSwitch(&PECStateSP, states, names, n);
+        IUFindOnSwitchIndex(&PECStateSP);
+
+        int pecstate = IUFindOnSwitchIndex(&PECStateSP);
+
+        if (isSimulation() == false && (err = selectAPPECState(PortFD, pecstate) < 0))
+        {
+            DEBUGF(INDI::Logger::DBG_ERROR, "Error setting PEC state (%d).", err);
+            return false;
+        }
+
+        PECStateSP.s = IPS_OK;
+        IDSetSwitch(&PECStateSP, nullptr);
+
         return true;
     }
 
