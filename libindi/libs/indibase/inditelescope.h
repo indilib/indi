@@ -104,6 +104,13 @@ class INDI::Telescope : public INDI::DefaultDevice
         PIER_EAST    = 1
     };
 
+    enum TelescopePECState
+    {
+        PEC_UNKNOWN = -1,
+        PEC_OFF     = 0,
+        PEC_ON      = 1
+    };
+
     /**
      * \struct TelescopeConnection
      * \brief Holds the connection mode of the telescope.
@@ -127,7 +134,8 @@ class INDI::Telescope : public INDI::DefaultDevice
         TELESCOPE_CAN_ABORT     = 1 << 3, /** Can the telescope abort motion? */
         TELESCOPE_HAS_TIME      = 1 << 4, /** Does the telescope have configurable date and time settings? */
         TELESCOPE_HAS_LOCATION  = 1 << 5, /** Does the telescope have configuration location settings? */
-        TELESCOPE_HAS_PIER_SIDE = 1 << 6  /** Does the telescope have pier side property? */
+        TELESCOPE_HAS_PIER_SIDE = 1 << 6, /** Does the telescope have pier side property? */
+        TELESCOPE_HAS_PEC       = 1 << 7  /** Does the telescope have PEC playback? */
     } TelescopeCapability;
 
     Telescope();
@@ -188,6 +196,11 @@ class INDI::Telescope : public INDI::DefaultDevice
      * @return True if telescope supports pier side property
      */
     bool HasPierSide() { return capability & TELESCOPE_HAS_PIER_SIDE; }
+
+    /**
+     * @return True if telescope supports PEC playback property
+     */
+    bool HasPECState() { return capability & TELESCOPE_HAS_PEC; }
 
     /** \brief Called to initialize basic properties required all the time */
     virtual bool initProperties();
@@ -306,6 +319,9 @@ class INDI::Telescope : public INDI::DefaultDevice
 
     void setPierSide(TelescopePierSide side);
     TelescopePierSide getPierSide() { return currentPierSide; }
+
+    void setPECState(TelescopePECState state);
+    TelescopePECState getPECState() { return currentPECState; }
 
   protected:
     virtual bool saveConfigItems(FILE *fp);
@@ -570,6 +586,15 @@ class INDI::Telescope : public INDI::DefaultDevice
 
     // Pier Side
     TelescopePierSide lastPierSide, currentPierSide;
+
+    // PEC State
+    ISwitch PECStateS[2];
+    ISwitchVectorProperty PECStateSP;
+
+
+    // PEC State
+    TelescopePECState lastPECState, currentPECState;
+
 
     uint32_t capability;
     int last_we_motion, last_ns_motion;

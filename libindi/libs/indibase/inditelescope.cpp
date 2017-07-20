@@ -63,6 +63,9 @@ INDI::Telescope::Telescope()
 
     currentPierSide = PIER_EAST;
     lastPierSide    = PIER_UNKNOWN;
+
+    currentPECState = PEC_OFF;
+    lastPECState    = PEC_UNKNOWN;
 }
 
 INDI::Telescope::~Telescope()
@@ -120,6 +123,11 @@ bool INDI::Telescope::initProperties()
     IUFillSwitch(&PierSideS[PIER_EAST], "PIER_EAST", "East (pointing west)", ISS_ON);
     IUFillSwitchVector(&PierSideSP, PierSideS, 2, getDeviceName(), "TELESCOPE_PIER_SIDE", "Pier Side", MAIN_CONTROL_TAB,
                        IP_RO, ISR_1OFMANY, 60, IPS_IDLE);
+    // PEC State
+    IUFillSwitch(&PECStateS[PEC_OFF], "PEC OFF", "PEC OFF", ISS_OFF);
+    IUFillSwitch(&PECStateS[PEC_ON], "PEC ON", "PEC ON", ISS_ON);
+    IUFillSwitchVector(&PECStateSP, PECStateS, 2, getDeviceName(), "PEC", "PEC Playback", MOTION_TAB, IP_RW, ISR_1OFMANY, 0,
+                       IPS_IDLE);
 
     IUFillSwitch(&CoordS[0], "TRACK", "Track", ISS_ON);
     IUFillSwitch(&CoordS[1], "SLEW", "Slew", ISS_OFF);
@@ -280,6 +288,9 @@ void INDI::Telescope::ISGetProperties(const char *dev)
         if (HasPierSide())
             defineSwitch(&PierSideSP);
 
+        if (HasPECState())
+            defineSwitch(&PECStateSP);
+
         defineSwitch(&ScopeConfigsSP);
     }
 
@@ -340,6 +351,9 @@ bool INDI::Telescope::updateProperties()
         if (HasPierSide())
             defineSwitch(&PierSideSP);
 
+        if (HasPECState())
+            defineSwitch(&PECStateSP);
+
         defineText(&ScopeConfigNameTP);
         defineSwitch(&ScopeConfigsSP);
     }
@@ -377,6 +391,9 @@ bool INDI::Telescope::updateProperties()
 
         if (HasPierSide())
             deleteProperty(PierSideSP.name);
+
+        if (HasPECState())
+            deleteProperty(PECStateSP.name);
 
         deleteProperty(ScopeConfigNameTP.name);
         deleteProperty(ScopeConfigsSP.name);
@@ -531,6 +548,8 @@ bool INDI::Telescope::saveConfigItems(FILE *fp)
         IUSaveConfigText(fp, &ScopeConfigNameTP);
     if (SlewRateS != nullptr)
         IUSaveConfigSwitch(fp, &SlewRateSP);
+    if (HasPECState())
+        IUSaveConfigSwitch(fp, &PECStateSP);
 
     controller->saveConfigItems(fp);
 
@@ -1887,6 +1906,22 @@ void INDI::Telescope::setPierSide(TelescopePierSide side)
         IDSetSwitch(&PierSideSP, nullptr);
 
         lastPierSide = currentPierSide;
+    }
+}
+
+void INDI::Telescope::setPECState(TelescopePECState state)
+{
+    currentPECState = state;
+
+    if (currentPECState != lastPECState)
+    {
+
+        PECStateS[PEC_OFF].s = (state == PEC_ON) ? ISS_OFF : ISS_ON;
+        PECStateS[PEC_ON].s  = (state == PEC_ON) ? ISS_ON  : ISS_OFF;
+        PECStateSP.s         = IPS_OK;
+        IDSetSwitch(&PECStateSP, nullptr);
+
+        lastPECState = currentPECState;
     }
 }
 

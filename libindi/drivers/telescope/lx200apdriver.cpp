@@ -323,6 +323,41 @@ int APSyncCMR(int fd, char *matchedObject)
     return 0;
 }
 
+int selectAPPECState(int fd, int pecstate)
+{
+    int error_type;
+    int nbytes_write = 0;
+
+    switch (pecstate)
+    {
+    // PEC OFF
+    case 0:
+        DEBUGDEVICE(lx200ap_name, INDI::Logger::DBG_DEBUG, "selectAPPECState: Setting PEC OFF");
+        DEBUGFDEVICE(lx200ap_name, AP_DBG_SCOPE, "CMD <%s>", "#:p#");
+
+        if ((error_type = tty_write_string(fd, "#:p#", &nbytes_write)) != TTY_OK)
+            return error_type;
+
+        break;
+
+        // PEC ON
+    case 1:
+        DEBUGDEVICE(lx200ap_name, INDI::Logger::DBG_DEBUG, "selectAPPECState: Setting PEC ON");
+        DEBUGFDEVICE(lx200ap_name, AP_DBG_SCOPE, "CMD <%s>", "#:pP#");
+
+        if ((error_type = tty_write_string(fd, "#:pP#", &nbytes_write)) != TTY_OK)
+            return error_type;
+
+        break;
+
+    default:
+        return -1;
+        break;
+    }
+
+    return 0;
+}
+
 int selectAPMoveToRate(int fd, int moveToRate)
 {
     int error_type;
