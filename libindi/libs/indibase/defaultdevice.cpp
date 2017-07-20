@@ -134,7 +134,7 @@ bool INDI::DefaultDevice::saveAllConfigItems(FILE *fp)
             case INDI_SWITCH:
                 svp = static_cast<ISwitchVectorProperty *>(pPtr);
                 /* Never save CONNECTION property. Don't save switches with no switches on if the rule is one of many */
-                if (!strcmp(svp->name, "CONNECTION") || (svp->r == ISR_1OFMANY && !IUFindOnSwitch(svp)))
+                if (!strcmp(svp->name, INDI::SP::CONNECTION) || (svp->r == ISR_1OFMANY && !IUFindOnSwitch(svp)))
                     continue;
                 IUSaveConfigSwitch(fp, svp);
                 break;
@@ -765,7 +765,7 @@ void INDI::DefaultDevice::resetProperties()
 void INDI::DefaultDevice::setConnected(bool status, IPState state, const char *msg)
 {
     ISwitch *sp                = nullptr;
-    ISwitchVectorProperty *svp = getSwitch("CONNECTION");
+    ISwitchVectorProperty *svp = getSwitch(INDI::SP::CONNECTION);
     if (!svp)
         return;
 
@@ -844,7 +844,7 @@ bool INDI::DefaultDevice::initProperties()
 
     IUFillSwitch(&ConnectionS[0], "CONNECT", "Connect", ISS_OFF);
     IUFillSwitch(&ConnectionS[1], "DISCONNECT", "Disconnect", ISS_ON);
-    IUFillSwitchVector(&ConnectionSP, ConnectionS, 2, getDeviceName(), "CONNECTION", "Connection", "Main Control",
+    IUFillSwitchVector(&ConnectionSP, ConnectionS, 2, getDeviceName(), INDI::SP::CONNECTION, "Connection", "Main Control",
                        IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
     registerProperty(&ConnectionSP, INDI_SWITCH);
 

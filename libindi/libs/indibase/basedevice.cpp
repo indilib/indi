@@ -914,7 +914,7 @@ int INDI::BaseDevice::buildProp(XMLEle *root, char *errmsg)
 
 bool INDI::BaseDevice::isConnected()
 {
-    ISwitchVectorProperty *svp = getSwitch("CONNECTION");
+    ISwitchVectorProperty *svp = getSwitch(INDI::SP::CONNECTION);
     if (!svp)
         return false;
 

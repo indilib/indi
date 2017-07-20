@@ -487,7 +487,7 @@ void Imager::newDevice(INDI::BaseDevice *dp)
 void Imager::newProperty(INDI::Property *property)
 {
     const char *deviceName = property->getDeviceName();
-    if (!strcmp(property->getName(), "CONNECTION"))
+    if (!strcmp(property->getName(), INDI::SP::CONNECTION))
     {
         bool state = ((ISwitchVectorProperty *)property->getProperty())->sp[0].s;
         if (!strcmp(deviceName, controlledCCD))
@@ -571,7 +571,7 @@ void Imager::newSwitch(ISwitchVectorProperty *svp)
 {
     const char *deviceName = svp->device;
     bool state             = svp->sp[0].s;
-    if (!strcmp(svp->name, "CONNECTION"))
+    if (!strcmp(svp->name, INDI::SP::CONNECTION))
     {
         if (!strcmp(deviceName, controlledCCD))
         {

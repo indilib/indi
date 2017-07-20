@@ -1151,6 +1151,7 @@ if (INDI_BUILD_DRIVERS OR INDI_BUILD_CLIENT OR INDI_BUILD_QT5_CLIENT)
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indiguiderinterface.h
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indifilterinterface.h
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indiproperty.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indistandardproperty.h
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indidome.h
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indigps.h
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indilightboxinterface.h
