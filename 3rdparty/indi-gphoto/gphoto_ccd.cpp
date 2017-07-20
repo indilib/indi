@@ -800,9 +800,17 @@ bool GPhotoCCD::Connect()
         }
     }
 
-    double min_exposure = 0.001, max_exposure = 3600;
-    gphoto_get_minmax_exposure(gphotodrv, &min_exposure, &max_exposure);
-    PrimaryCCD.setMinMaxStep("CCD_EXPOSURE", "CCD_EXPOSURE_VALUE", min_exposure, max_exposure, 1, true);
+    if (sim)
+    {
+        PrimaryCCD.setMinMaxStep("CCD_EXPOSURE", "CCD_EXPOSURE_VALUE", 0.001, 3600, 1, true);
+    }
+    else
+    {
+        double min_exposure = 0.001, max_exposure = 3600;
+
+        gphoto_get_minmax_exposure(gphotodrv, &min_exposure, &max_exposure);
+        PrimaryCCD.setMinMaxStep("CCD_EXPOSURE", "CCD_EXPOSURE_VALUE", min_exposure, max_exposure, 1, true);
+    }
 
     if (mFormatS)
     {
@@ -823,7 +831,7 @@ bool GPhotoCCD::Connect()
         options = gphoto_get_formats(gphotodrv, &max_opts);
     }
 
-    if (max_opts > 0)
+    if (!sim && max_opts > 0)
     {
         mFormatS      = create_switch("FORMAT", options, max_opts, setidx);
         mFormatSP.sp  = mFormatS;
@@ -871,9 +879,12 @@ bool GPhotoCCD::Connect()
         options = gphoto_get_iso(gphotodrv, &max_opts);
     }
 
-    mIsoS      = create_switch("ISO", options, max_opts, setidx);
-    mIsoSP.sp  = mIsoS;
-    mIsoSP.nsp = max_opts;
+    if (!sim)
+    {
+        mIsoS      = create_switch("ISO", options, max_opts, setidx);
+        mIsoSP.sp  = mIsoS;
+        mIsoSP.nsp = max_opts;
+    }
 
     if (mExposurePresetS)
     {
@@ -895,7 +906,7 @@ bool GPhotoCCD::Connect()
         options  = gphoto_get_exposure_presets(gphotodrv, &max_opts);
     }
 
-    if (max_opts > 0)
+    if (!sim && max_opts > 0)
     {
         mExposurePresetS      = create_switch("EXPOSURE_PRESET", options, max_opts, setidx);
         mExposurePresetSP.sp  = mExposurePresetS;
@@ -904,7 +915,8 @@ bool GPhotoCCD::Connect()
 
     // Get Capture target
     int captureTarget = -1;
-    if (gphoto_get_capture_target(gphotodrv, &captureTarget) == GP_OK)
+
+    if (!sim && gphoto_get_capture_target(gphotodrv, &captureTarget) == GP_OK)
     {
         IUResetSwitch(&captureTargetSP);
         captureTargetS[CAPTURE_INTERNAL_RAM].s = (captureTarget == 0) ? ISS_ON : ISS_OFF;
@@ -915,8 +927,10 @@ bool GPhotoCCD::Connect()
     DEBUGF(INDI::Logger::DBG_SESSION, "%s is online.", getDeviceName());
 
     if (!sim && gphoto_get_manufacturer(gphotodrv) && gphoto_get_model(gphotodrv))
+    {
         DEBUGF(INDI::Logger::DBG_SESSION, "Detected %s Model %s.", gphoto_get_manufacturer(gphotodrv),
                gphoto_get_model(gphotodrv));
+    }
 
     frameInitialized = false;
 
