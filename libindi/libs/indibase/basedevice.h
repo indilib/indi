@@ -72,6 +72,7 @@ class INDI::BaseDevice
         DUSTCAP_INTERFACE   = (1 << 9),  /**< Dust Cap Interface */
         LIGHTBOX_INTERFACE  = (1 << 10), /**< Light Box Interface */
         AUX_INTERFACE       = (1 << 15), /**< Auxiliary interface */
+        DETECTOR_INTERFACE  = (1 << 16), /**< Auxiliary interface */
     };
 
     /** \return Return vector number property given its name */
@@ -194,7 +195,7 @@ class INDI::BaseDevice
                cout << "We received a camera!" << endl;
      @endcode
      */
-    virtual uint16_t getDriverInterface();
+    virtual uint32_t getDriverInterface();
 
   protected:
     /** \brief Build a property given the supplied XML element (defXXX)

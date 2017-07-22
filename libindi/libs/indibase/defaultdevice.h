@@ -273,14 +273,14 @@ class INDI::DefaultDevice : public INDI::BaseDevice
     /**
      * @return getInterface Return the interface declared by the driver.
      */
-    virtual uint16_t getDriverInterface();
+    virtual uint32_t getDriverInterface();
 
     /**
      * @brief setInterface Set driver interface. By default the driver interface is set to GENERAL_DEVICE.
      * You may send an ORed list of DeviceInterface values.
      * @param value ORed list of DeviceInterface values.
      */
-    void setDriverInterface(uint16_t value);
+    void setDriverInterface(uint32_t value);
 
   protected:
     /**

@@ -1394,7 +1394,7 @@ const char *INDI::BaseDevice::getDriverVersion()
     return nullptr;
 }
 
-uint16_t INDI::BaseDevice::getDriverInterface()
+uint32_t INDI::BaseDevice::getDriverInterface()
 {
     ITextVectorProperty *driverInfo = getText("DRIVER_INFO");
 
