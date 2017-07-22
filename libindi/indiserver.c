@@ -831,6 +831,8 @@ static void indiRun(void)
     s = select(maxfd + 1, &rs, &ws, NULL, NULL);
     if (s < 0)
     {
+        if(errno==EINTR)
+            return;
         fprintf(stderr, "%s: select(%d): %s\n", indi_tstamp(NULL), maxfd + 1, strerror(errno));
         Bye();
     }
