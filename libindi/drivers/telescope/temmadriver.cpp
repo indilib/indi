@@ -18,7 +18,9 @@
 
 #include "temmadriver.h"
 
-#include "indicom.h"
+#include <indicom.h>
+
+#include <connectionplugins/connectionserial.h>
 
 #include <unistd.h>
 
@@ -108,7 +110,11 @@ bool TemmaMount::initProperties()
     IUFillSwitchVector(&SlewRateSP, SlewRateS, 2, getDeviceName(), "TELESCOPE_SLEW_RATE", "Slew Rate", MOTION_TAB,
                        IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
-    /* How fast do we guide compared to sidereal rate */
+    //  Temma runs at 19200 8 e 1
+    serialConnection->setDefaultBaudRate(Connection::Serial::B_19200);
+    serialConnection->setParity(1);
+
+   /* How fast do we guide compared to sidereal rate */
     // N.B. 2017-07-11 NOT used in driver, so disabling it
     /*
     IUFillNumber(&GuideRateN[0], "GUIDE_RATE_WE", "W/E Rate", "%g", 0, 1, 0.1, 0.3);
@@ -276,6 +282,10 @@ bool TemmaMount::ReadScopeStatus()
         {
             DEBUG(INDI::Logger::DBG_DEBUG, "Goto finished");
             GotoInProgress = false;
+            // if we were in motion, change status from busy
+            // to ok
+            EqNP.s=IPS_OK;
+            IDSetNumber(&EqNP,NULL);
             if (ParkInProgress)
             {
                 SetParked(true);
@@ -288,6 +298,10 @@ bool TemmaMount::ReadScopeStatus()
         else
         {
             DEBUG(INDI::Logger::DBG_DEBUG, "Goto in Progress");
+            //  make sure our status light shows busy
+            //  so domes dont chase this number
+            EqNP.s=IPS_BUSY;
+            IDSetNumber(&EqNP,NULL);
         }
     }
 
@@ -920,8 +934,12 @@ bool TemmaMount::GetTemmaVersion()
     }
 
     DEBUGF(INDI::Logger::DBG_DEBUG, "Temma Version %d %s", numread, str);
-    if (str[0] != 'v')
+    if (str[0] != 'v') {
+        //  Sometimes there is garbage in the buffers and we dont get what we expect
+        //  Lets read a big chunk and assume it will time out
+fprintf(stderr,"Read Version failed %d %s\n",numread,str);
         return false;
+    }
     //if(str[0] != 'E' ) return false;
 
     return true;
@@ -1054,9 +1072,18 @@ bool TemmaMount::SetTemmaLattitude(double lat)
 bool TemmaMount::Handshake()
 {
     DEBUG(INDI::Logger::DBG_DEBUG, "Calling get version");
+    /*
+        This is an ugly hack, but, it works
+        On first open we often dont get an immediate read from the temma
+        but it seems to read much more reliably if we enforce a short wait
+        between opening the port and doing the first query for version
+        
+    */
+    usleep(100);
     bool rc = GetTemmaVersion();
-    if (!rc)
+    if (!rc)  {
         return false;
+    }
 
     rc = GetTemmaLst();
     if (rc)
@@ -1106,11 +1133,13 @@ int TemmaMount::TemmaRead(char *buf, int size)
         }
         else
         {
+fprintf(stderr,"timed out reading %d\n",count);
             DEBUGF(INDI::Logger::DBG_DEBUG, "We timed out reading bytes %d", count);
             return 0;
         }
     }
     //  if we get here, we got more than size bytes, and still dont have a cr/lf
+fprintf(stderr,"Read error after %d bytes\n",bytesRead);
     DEBUGF(INDI::Logger::DBG_DEBUG, "Read return error after %d bytes", bytesRead);
     return -1;
 }
