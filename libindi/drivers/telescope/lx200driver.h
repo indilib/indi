@@ -107,68 +107,68 @@ enum TFreq
 #define MaxFocuserSpeed     4
 
 /* GET formatted sexagisemal value from device, return as double */
-#define getLX200RA(fd, x)     getCommandSexa(fd, x, "#:GR#")
-#define getLX200DEC(fd, x)    getCommandSexa(fd, x, "#:GD#")
-#define getObjectRA(fd, x)    getCommandSexa(fd, x, "#:Gr#")
-#define getObjectDEC(fd, x)   getCommandSexa(fd, x, "#:Gd#")
-#define getLocalTime12(fd, x) getCommandSexa(fd, x, "#:Ga#")
-#define getLocalTime24(fd, x) getCommandSexa(fd, x, "#:GL#")
-#define getSDTime(fd, x)      getCommandSexa(fd, x, "#:GS#")
-#define getLX200Alt(fd, x)    getCommandSexa(fd, x, "#:GA#")
-#define getLX200Az(fd, x)     getCommandSexa(fd, x, "#:GZ#")
+#define getLX200RA(fd, x)     getCommandSexa(fd, x, ":GR#")
+#define getLX200DEC(fd, x)    getCommandSexa(fd, x, ":GD#")
+#define getObjectRA(fd, x)    getCommandSexa(fd, x, ":Gr#")
+#define getObjectDEC(fd, x)   getCommandSexa(fd, x, ":Gd#")
+#define getLocalTime12(fd, x) getCommandSexa(fd, x, ":Ga#")
+#define getLocalTime24(fd, x) getCommandSexa(fd, x, ":GL#")
+#define getSDTime(fd, x)      getCommandSexa(fd, x, ":GS#")
+#define getLX200Alt(fd, x)    getCommandSexa(fd, x, ":GA#")
+#define getLX200Az(fd, x)     getCommandSexa(fd, x, ":GZ#")
 
 /* GET String from device and store in supplied buffer x */
-#define getObjectInfo(fd, x)    getCommandString(fd, x, "#:LI#")
-#define getVersionDate(fd, x)   getCommandString(fd, x, "#:GVD#")
-#define getVersionTime(fd, x)   getCommandString(fd, x, "#:GVT#")
-#define getFullVersion(fd, x)   getCommandString(fd, x, "#:GVF#")
-#define getVersionNumber(fd, x) getCommandString(fd, x, "#:GVN#")
-#define getProductName(fd, x)   getCommandString(fd, x, "#:GVP#")
-#define turnGPS_StreamOn(fd)    getCommandString(fd, x, "#:gps#")
+#define getObjectInfo(fd, x)    getCommandString(fd, x, ":LI#")
+#define getVersionDate(fd, x)   getCommandString(fd, x, ":GVD#")
+#define getVersionTime(fd, x)   getCommandString(fd, x, ":GVT#")
+#define getFullVersion(fd, x)   getCommandString(fd, x, ":GVF#")
+#define getVersionNumber(fd, x) getCommandString(fd, x, ":GVN#")
+#define getProductName(fd, x)   getCommandString(fd, x, ":GVP#")
+#define turnGPS_StreamOn(fd)    getCommandString(fd, x, ":gps#")
 
 /* GET Int from device and store in supplied pointer to integer x */
-#define getUTCOffset(fd, x)         getCommandInt(fd, x, "#:GG#")
-#define getMaxElevationLimit(fd, x) getCommandInt(fd, x, "#:Go#")
-#define getMinElevationLimit(fd, x) getCommandInt(fd, x, "#:Gh#")
+#define getUTCOffset(fd, x)         getCommandInt(fd, x, ":GG#")
+#define getMaxElevationLimit(fd, x) getCommandInt(fd, x, ":Go#")
+#define getMinElevationLimit(fd, x) getCommandInt(fd, x, ":Gh#")
 
 /* Generic set, x is an integer */
-#define setReticleDutyFlashCycle(fd, x) setCommandInt(fd, x, "#:BD")
-#define setReticleFlashRate(fd, x)      setCommandInt(fd, x, "#:B")
-#define setFocuserSpeed(fd, x)          setCommandInt(fd, x, "#:F")
-#define setSlewSpeed(fd, x)             setCommandInt(fd, x, "#:Sw")
+#define setReticleDutyFlashCycle(fd, x) setCommandInt(fd, x, ":BD")
+#define setReticleFlashRate(fd, x)      setCommandInt(fd, x, ":B")
+#define setFocuserSpeed(fd, x)          setCommandInt(fd, x, ":F")
+#define setSlewSpeed(fd, x)             setCommandInt(fd, x, ":Sw")
 
 /* Set X:Y:Z */
-#define setLocalTime(fd, x, y, z) setCommandXYZ(fd, x, y, z, "#:SL")
-#define setSDTime(fd, x, y, z)    setCommandXYZ(fd, x, y, z, "#:SS")
+#define setLocalTime(fd, x, y, z) setCommandXYZ(fd, x, y, z, ":SL")
+#define setSDTime(fd, x, y, z)    setCommandXYZ(fd, x, y, z, ":SS")
 
 /* GPS Specefic */
-#define turnGPSOn(fd)                   write(fd, "#:g+#", 5)
-#define turnGPSOff(fd)                  write(fd, "#:g-#", 5)
-#define alignGPSScope(fd)               write(fd, "#:Aa#", 5)
-#define gpsSleep(fd)                    write(fd, "#:hN#", 5)
-#define gpsWakeUp(fd)                   write(fd, "#:hW#", 5);
-#define gpsRestart(fd)                  write(fd, "#:I#", 4);
-#define updateGPS_System(fd)            setStandardProcedure(fd, "#:gT#")
-#define enableDecAltPec(fd)             write(fd, "#:QA+#", 6)
-#define disableDecAltPec(fd)            write(fd, "#:QA-#", 6)
-#define enableRaAzPec(fd)               write(fd, "#:QZ+#", 6)
-#define disableRaAzPec(fd)              write(fd, "#:QZ-#", 6)
-#define activateAltDecAntiBackSlash(fd) write(fd, "#$BAdd#", 7)
-#define activateAzRaAntiBackSlash(fd)   write(fd, "#$BZdd#", 7)
-#define SelenographicSync(fd)           write(fd, "#:CL#", 5);
+#define turnGPSOn(fd)                   write(fd, ":g+#", 4)
+#define turnGPSOff(fd)                  write(fd, ":g-#", 4)
+#define alignGPSScope(fd)               write(fd, ":Aa#", 4)
+#define gpsSleep(fd)                    write(fd, ":hN#", 4)
+#define gpsWakeUp(fd)                   write(fd, ":hW#", 4);
+#define gpsRestart(fd)                  write(fd, ":I#", 3);
+#define updateGPS_System(fd)            setStandardProcedure(fd, ":gT#")
+#define enableDecAltPec(fd)             write(fd, ":QA+#", 4)
+#define disableDecAltPec(fd)            write(fd, ":QA-#", 4)
+#define enableRaAzPec(fd)               write(fd, ":QZ+#", 4)
+#define disableRaAzPec(fd)              write(fd, ":QZ-#", 4)
+#define activateAltDecAntiBackSlash(fd) write(fd, ":$BAdd#", 7)
+#define activateAzRaAntiBackSlash(fd)   write(fd, ":$BZdd#", 7)
+#define SelenographicSync(fd)           write(fd, ":CL#", 4);
 
-#define slewToAltAz(fd)               setStandardProcedure(fd, "#:MA#")
-#define toggleTimeFormat(fd)          write(fd, "#:H#", 4)
-#define increaseReticleBrightness(fd) write(fd, "#:B+#", 5)
-#define decreaseReticleBrightness(fd) write(fd, "#:B-#", 5)
-#define turnFanOn(fd)                 write(fd, "#:f+#", 5)
-#define turnFanOff(fd)                write(fd, "#:f-#", 5)
-#define seekHomeAndSave(fd)           write(fd, "#:hS#", 5)
-#define seekHomeAndSet(fd)            write(fd, "#:hF#", 5)
-#define turnFieldDeRotatorOn(fd)      write(fd, "#:r+#", 5)
-#define turnFieldDeRotatorOff(fd)     write(fd, "#:r-#", 5)
-#define slewToPark(fd)                write(fd, "#:hP#", 5)
-#define initTelescope(fd)             write(fd, "#:I#", 4)
+#define slewToAltAz(fd)               setStandardProcedure(fd, ":MA#")
+#define toggleTimeFormat(fd)          write(fd, ":H#", 3)
+#define increaseReticleBrightness(fd) write(fd, ":B+#", 4)
+#define decreaseReticleBrightness(fd) write(fd, ":B-#", 4)
+#define turnFanOn(fd)                 write(fd, ":f+#", 4)
+#define turnFanOff(fd)                write(fd, ":f-#", 4)
+#define seekHomeAndSave(fd)           write(fd, ":hS#", 4)
+#define seekHomeAndSet(fd)            write(fd, ":hF#", 4)
+#define turnFieldDeRotatorOn(fd)      write(fd, ":r+#", 4)
+#define turnFieldDeRotatorOff(fd)     write(fd, ":r-#", 4)
+#define slewToPark(fd)                write(fd, ":hP#", 4)
+#define initTelescope(fd)             write(fd, ":I#", 3)
 
 /**************************************************************************
  Basic I/O - OBSELETE
