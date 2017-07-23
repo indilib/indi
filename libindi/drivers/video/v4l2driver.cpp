@@ -1512,7 +1512,8 @@ void V4L2_Driver::updateV4L2Controls()
 
         for (int i = 0; i < ImageAdjustNP.nnp; i++)
         {
-            if (!strcmp(ImageAdjustNP.np[i].label, "Exposure (Absolute)"))
+            if (!strcmp(ImageAdjustNP.np[i].label, "Exposure (Absolute)") ||
+                !strcmp(ImageAdjustNP.np[i].label, "Exposure Time, Absolute"))
             {
                 AbsExposureN = ImageAdjustNP.np + i;
                 DEBUGF(INDI::Logger::DBG_DEBUG,"- %s (used for absolute exposure duration)", ImageAdjustNP.np[i].label);
