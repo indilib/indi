@@ -1739,7 +1739,7 @@ int V4L2_Base::setcroprect(int x, int y, int w, int h, char *errmsg)
         if ((!cancrop) && (!softcrop))
         {
             cropset = false;
-            strncpy(errmsg, "No hardware and sofwtare cropping for this format", ERRMSGSIZ);
+            strncpy(errmsg, "No hardware and software cropping for this format.", ERRMSGSIZ);
             return -1;
         }
     }
