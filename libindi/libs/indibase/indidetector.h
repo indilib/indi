@@ -213,10 +213,6 @@ class DetectorDevice
   private:
     /// # of Axis
     int NAxis;
-    /// Pixel size in microns, x direction
-    float FitSizex;
-    /// Pixel size in microns, y direction (no. of streams)
-    float FitSizey;
     /// Bytes per Sample
     int BPS;
     double bandwidth;
@@ -224,7 +220,6 @@ class DetectorDevice
     double samplingFreq;
     uint8_t *RawFrame;
     int RawFrameSize;
-    bool SendCompressed;
     double captureDuration;
     timeval startCaptureTime;
     char captureExtention[MAXINDIBLOBFMT];
@@ -240,9 +235,6 @@ class DetectorDevice
 
     IBLOB FitsB;
     IBLOBVectorProperty FitsBP;
-
-    ISwitch ResetS[1];
-    ISwitchVectorProperty ResetSP;
 
     friend class INDI::Detector;
 };
@@ -467,8 +459,6 @@ class INDI::Detector : public INDI::DefaultDevice
 
   private:
     uint32_t capability;
-
-    bool ValidDetectorRotation;
 
     bool uploadFile(DetectorDevice *targetDevice, const void *fitsData, size_t totalBytes, bool sendCapture, bool saveCapture);
     void getMinMax(double *min, double *max, DetectorDevice *targetDevice);
