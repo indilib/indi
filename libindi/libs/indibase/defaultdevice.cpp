@@ -821,12 +821,12 @@ bool INDI::DefaultDevice::updateProperties()
     return true;
 }
 
-uint32_t INDI::DefaultDevice::getDriverInterface()
+uint16_t INDI::DefaultDevice::getDriverInterface()
 {
     return interfaceDescriptor;
 }
 
-void INDI::DefaultDevice::setDriverInterface(uint32_t value)
+void INDI::DefaultDevice::setDriverInterface(uint16_t value)
 {
     char interfaceStr[16];
     interfaceDescriptor = value;
