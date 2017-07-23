@@ -5,5 +5,9 @@
       <driver name="SBIG CCD">indi_sbig_ccd</driver>
       <version>1.8</version>
     </device>
+    <device label="SBIG ST-I">
+      <driver name="SBIG CCD">indi_sbig_ccd</driver>
+      <version>1.8</version>
+    </device>
   </devGroup>
 </driversList>
