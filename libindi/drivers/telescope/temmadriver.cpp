@@ -272,6 +272,7 @@ bool TemmaMount::ReadScopeStatus()
     //DEBUG(INDI::Logger::DBG_DEBUG,"%d  %d  %d\n",d,m,s);
     currentDEC = d * 3600 + m * 60 + s * 6;
     currentDEC /= 3600;
+    if(str[7]=='-') currentDEC*=-1;
 
     NewRaDec(currentRA, currentDEC);
 
