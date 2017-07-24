@@ -25,6 +25,7 @@
 #include "sqm.h"
 
 #include "connectionplugins/connectiontcp.h"
+#include "connectionplugins/connectionserial.h"
 
 #include <errno.h>
 #include <memory>
@@ -104,12 +105,24 @@ bool SQM::initProperties()
     IUFillNumber(&UnitInfoN[3], "Serial", "", "%.f", 0, 1000000, 0, 0);
     IUFillNumberVector(&UnitInfoNP, UnitInfoN, 4, getDeviceName(), "Unit Info", "", UNIT_TAB, IP_RW, 0, IPS_IDLE);
 
-    tcpConnection = new Connection::TCP(this);
-    tcpConnection->setDefaultHost("192.168.1.1");
-    tcpConnection->setDefaultPort(10001);
-    tcpConnection->registerHandshake([&]() { return getDeviceInfo(); });
 
-    registerConnection(tcpConnection);
+
+    if (sqmConnection & CONNECTION_SERIAL)
+    {
+        serialConnection = new Connection::Serial(this);
+//        serialConnection->registerHandshake([&]() { return getDeviceInfo(); });
+        registerConnection(serialConnection);
+    }
+
+    if (sqmConnection & CONNECTION_TCP)
+    {
+        tcpConnection = new Connection::TCP(this);
+        tcpConnection->setDefaultHost("192.168.1.1");
+        tcpConnection->setDefaultPort(10001);
+        tcpConnection->registerHandshake([&]() { return getDeviceInfo(); });
+
+        registerConnection(tcpConnection);
+    }
 
     addDebugControl();
 
@@ -204,7 +217,8 @@ bool SQM::getDeviceInfo()
     const char *cmd = "ix";
     char buffer[39]={0};
 
-    PortFD = tcpConnection->getPortFD();
+//    PortFD = tcpConnection->getPortFD();
+    PortFD = serialConnection->getPortFD();
 
     DEBUGF(INDI::Logger::DBG_DEBUG, "CMD: %s", cmd);
 
@@ -212,7 +226,7 @@ bool SQM::getDeviceInfo()
 
     if (written < 2)
     {
-        DEBUGF(INDI::Logger::DBG_ERROR, "Error getting device info: %s", strerror(errno));
+        DEBUGF(INDI::Logger::DBG_ERROR, "Error getting device info while writing to device: %s", strerror(errno));
         return false;
     }
 
@@ -223,7 +237,7 @@ bool SQM::getDeviceInfo()
         ssize_t response = read(PortFD, buffer + received, 39 - received);
         if (response < 0)
         {
-            DEBUGF(INDI::Logger::DBG_ERROR, "Error getting device info: %s", strerror(errno));
+            DEBUGF(INDI::Logger::DBG_ERROR, "Error getting device info wile reading response: %s", strerror(errno));
             return false;
         }
 
