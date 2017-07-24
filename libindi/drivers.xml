@@ -57,6 +57,10 @@
                 <driver name="Astro-Electronic FS-2">indi_lx200fs2</driver>
                 <version>2.0</version>
 	</device>
+        <device label="Avalon" focal_length="" aperture="">
+                <driver name="LX200 Basic">indi_lx200basic</driver>
+                <version>2.0</version>
+        </device>
         <device label="Paramount" focal_length="" aperture="">
                 <driver name="Paramount">indi_paramount_telescope</driver>
                 <version>0.1</version>
