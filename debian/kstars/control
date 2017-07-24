@@ -39,7 +39,7 @@ Architecture: any
 Section: science
 conflicts: kstars
 replaces: kstars
-Depends: ${shlibs:Depends}, ${misc:Depends}, kstars-bleeding-data (>= ${source:Version}), kstars-bleeding-dbg (= ${binary:Version}), kded5, kinit, libindi1, indi-bin, breeze-icon-theme, oxygen-icon-theme
+Depends: ${shlibs:Depends}, ${misc:Depends}, kstars-bleeding-data (>= ${source:Version}), kstars-bleeding-dbg (= ${binary:Version}), kded5, kinit, libindi1, indi-bin, breeze-icon-theme, oxygen-icon-theme, qml-module-qtquick-controls
 Description: desktop planetarium for KDE
  KStars is a desktop planetarium for KDE, depicting an accurate graphical
  simulation of the night sky, from any location on Earth, at any date and time.
@@ -66,7 +66,7 @@ Package: kstars-bleeding-dbg
 Architecture: any
 Section: debug
 Priority: extra
-Depends: kstars-bleeding (= ${binary:Version}), ${misc:Depends}, kde-runtime
+Depends: kstars-bleeding (= ${binary:Version}), ${misc:Depends}
 Description: debug information for the desktop planetarium for KDE
  This package contains debugging files used to investigate problems with the
  desktop planetarium for KDE.

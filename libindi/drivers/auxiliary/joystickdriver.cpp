@@ -20,24 +20,25 @@
   file called LICENSE.
 *******************************************************************************/
 
-#include <string.h>
 #include "joystickdriver.h"
 
-#define MAX_JOYSTICKS   3
+#include <string.h>
+
+#define MAX_JOYSTICKS 3
 
 JoyStickDriver::JoyStickDriver()
 {
-    active = false;
-    pollMS = 100;
+    active      = false;
+    pollMS      = 100;
     joystick_fd = 0;
     joystick_ev = new js_event();
     joystick_st = new joystick_state();
 
     strncpy(dev_path, JOYSTICK_DEV, 256);
 
-    joystickCallbackFunc   = joystickEvent;
-    axisCallbackFunc       = axisEvent;
-    buttonCallbackFunc     = buttonEvent;
+    joystickCallbackFunc = joystickEvent;
+    axisCallbackFunc     = axisEvent;
+    buttonCallbackFunc   = buttonEvent;
 }
 
 JoyStickDriver::~JoyStickDriver()
@@ -45,7 +46,6 @@ JoyStickDriver::~JoyStickDriver()
     Disconnect();
     delete joystick_st;
     delete joystick_ev;
-
 }
 
 void JoyStickDriver::setJoystickCallback(joystickFunc JoystickCallback)
@@ -87,7 +87,6 @@ bool JoyStickDriver::Connect()
     }
 
     return false;
-
 }
 
 bool JoyStickDriver::Disconnect()
@@ -102,12 +101,12 @@ bool JoyStickDriver::Disconnect()
     joystick_fd = 0;
 
     return true;
-
 }
 
-void* JoyStickDriver::loop(void *obj)
+void *JoyStickDriver::loop(void *obj)
 {
-    while (reinterpret_cast<JoyStickDriver *>(obj)->active) reinterpret_cast<JoyStickDriver *>(obj)->readEv();
+    while (reinterpret_cast<JoyStickDriver *>(obj)->active)
+        reinterpret_cast<JoyStickDriver *>(obj)->readEv();
     return obj;
 }
 
@@ -125,21 +124,20 @@ void JoyStickDriver::readEv()
         if (joystick_ev->type & JS_EVENT_AXIS)
         {
             joystick_st->axis[joystick_ev->number] = joystick_ev->value;
-            int joystick_n = joystick_ev->number;
+            int joystick_n                         = joystick_ev->number;
             if (joystick_n % 2 != 0)
                 joystick_n--;
-            if (joystick_n/2.0 < MAX_JOYSTICKS)
+            if (joystick_n / 2.0 < MAX_JOYSTICKS)
             {
                 joystick_position pos = joystickPosition(joystick_n);
-                joystickCallbackFunc(joystick_n/2, pos.r, pos.theta);
+                joystickCallbackFunc(joystick_n / 2, pos.r, pos.theta);
             }
 
-             axisCallbackFunc(joystick_ev->number, joystick_ev->value);
+            axisCallbackFunc(joystick_ev->number, joystick_ev->value);
         }
-
     }
     else
-        usleep(pollMS*1000);
+        usleep(pollMS * 1000);
 }
 
 joystick_position JoyStickDriver::joystickPosition(int n)
@@ -148,15 +146,15 @@ joystick_position JoyStickDriver::joystickPosition(int n)
 
     if (n > -1 && n < axes)
     {
-        int i0 = n, i1 = n+1;
-        float x0 = joystick_st->axis[i0]/32767.0f, y0 = -joystick_st->axis[i1]/32767.0f;
-        float x  = x0 * sqrt(1 - pow(y0, 2)/2.0f), y  = y0 * sqrt(1 - pow(x0, 2)/2.0f);
+        int i0 = n, i1 = n + 1;
+        float x0 = joystick_st->axis[i0] / 32767.0f, y0 = -joystick_st->axis[i1] / 32767.0f;
+        float x = x0 * sqrt(1 - pow(y0, 2) / 2.0f), y = y0 * sqrt(1 - pow(x0, 2) / 2.0f);
 
         pos.x = x0;
         pos.y = y0;
 
-        pos.theta = atan2(y, x) * (180.0/3.141592653589);
-        pos.r = sqrt(pow(y, 2) + pow(x, 2));
+        pos.theta = atan2(y, x) * (180.0 / 3.141592653589);
+        pos.r     = sqrt(pow(y, 2) + pow(x, 2));
 
         // For direction keys and scale/throttle keys
         if (pos.r == 0)
@@ -182,14 +180,14 @@ joystick_position JoyStickDriver::joystickPosition(int n)
                     pos.theta = 0;
             }
         }
-        else if (pos.theta<0)
+        else if (pos.theta < 0)
             pos.theta += 360;
 
         // Make sure to reset angle if magnitude is zero
         if (pos.r == 0)
             pos.theta = 0;
-
-    } else
+    }
+    else
     {
         pos.theta = pos.r = pos.x = pos.y = 0.0f;
     }
@@ -202,7 +200,7 @@ bool JoyStickDriver::buttonPressed(int n)
     return n > -1 && n < buttons ? joystick_st->button[n] : 0;
 }
 
-void  JoyStickDriver::setPoll(int ms)
+void JoyStickDriver::setPoll(int ms)
 {
     pollMS = ms;
 }
@@ -226,7 +224,7 @@ void JoyStickDriver::buttonEvent(int button_n, int button_value)
     (void)button_value;
 }
 
-const char * JoyStickDriver::getName()
+const char *JoyStickDriver::getName()
 {
     return name;
 }
@@ -238,7 +236,7 @@ __u32 JoyStickDriver::getVersion()
 
 __u8 JoyStickDriver::getNumOfJoysticks()
 {
-    int n_joysticks = axes/2;
+    int n_joysticks = axes / 2;
 
     if (n_joysticks > MAX_JOYSTICKS)
         n_joysticks = MAX_JOYSTICKS;
@@ -255,4 +253,3 @@ __u8 JoyStickDriver::getNumrOfButtons()
 {
     return buttons;
 }
-

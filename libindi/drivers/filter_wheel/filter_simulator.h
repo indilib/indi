@@ -16,30 +16,25 @@
  Boston, MA 02110-1301, USA.
 *******************************************************************************/
 
-#ifndef FILTERSIM_H
-#define FILTERSIM_H
+#pragma once
 
-#include "indibase/indifilterwheel.h"
+#include "indifilterwheel.h"
 
 class FilterSim : public INDI::FilterWheel
 {
-    protected:
-    private:
-    public:
-        FilterSim();
-        virtual ~FilterSim();
+  protected:
+  private:
+  public:
+    FilterSim();
+    virtual ~FilterSim();
 
-        const char *getDefaultName();
+    const char *getDefaultName();
 
-        bool Connect();
-        bool Disconnect();
-        bool SelectFilter(int);
-        void TimerHit();
+    bool Connect();
+    bool Disconnect();
+    bool SelectFilter(int);
+    void TimerHit();
 
-        virtual bool SetFilterNames() { return true; }
-        virtual bool GetFilterNames(const char* groupName);
-
-
+    virtual bool SetFilterNames() { return true; }
+    virtual bool GetFilterNames(const char *groupName);
 };
-
-#endif // FILTERSIM_H

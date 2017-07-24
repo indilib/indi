@@ -16,8 +16,7 @@
  Boston, MA 02110-1301, USA.
 *******************************************************************************/
 
-#ifndef XAGYLWHEEL_H
-#define XAGYLWHEEL_H
+#pragma once
 
 #include "indibase/indifilterwheel.h"
 
@@ -35,10 +34,21 @@ typedef struct
 } SimData;
 
 class XAGYLWheel : public INDI::FilterWheel
-{    
-public:
-    typedef enum { INFO_PRODUCT_NAME, INFO_FIRMWARE_VERSION, INFO_FILTER_POSITION, INFO_SERIAL_NUMBER, INFO_MAX_SPEED, INFO_JITTER, INFO_OFFSET, INFO_THRESHOLD, INFO_MAX_SLOTS, INFO_PULSE_WIDTH} GET_COMMAND;
-    typedef enum { SET_SPEED, SET_JITTER, SET_THRESHOLD, SET_PULSE_WITDH, SET_POSITION} SET_COMMAND;
+{
+  public:
+    typedef enum {
+        INFO_PRODUCT_NAME,
+        INFO_FIRMWARE_VERSION,
+        INFO_FILTER_POSITION,
+        INFO_SERIAL_NUMBER,
+        INFO_MAX_SPEED,
+        INFO_JITTER,
+        INFO_OFFSET,
+        INFO_THRESHOLD,
+        INFO_MAX_SLOTS,
+        INFO_PULSE_WIDTH
+    } GET_COMMAND;
+    typedef enum { SET_SPEED, SET_JITTER, SET_THRESHOLD, SET_PULSE_WITDH, SET_POSITION } SET_COMMAND;
 
     XAGYLWheel();
     virtual ~XAGYLWheel();
@@ -46,10 +56,10 @@ public:
     virtual bool initProperties();
     virtual bool updateProperties();
 
-    virtual bool ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n);
-    virtual bool ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n);
+    virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n);
+    virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n);
 
-protected:
+  protected:
     const char *getDefaultName();
 
     bool Handshake();
@@ -57,9 +67,9 @@ protected:
 
     bool SelectFilter(int);
     virtual bool SetFilterNames() { return true; }
-    virtual bool GetFilterNames(const char* groupName);
+    virtual bool GetFilterNames(const char *groupName);
 
-private:
+  private:
     bool getCommand(GET_COMMAND cmd, char *result);
     bool setCommand(SET_COMMAND cmd, int value);
 
@@ -72,7 +82,7 @@ private:
     bool getFilterPosition();
     bool getMaximumSpeed();
     bool getJitter();
-    bool getThreshold();    
+    bool getThreshold();
     bool getMaxFilterSlots();
     bool getPulseWidth();
 
@@ -89,7 +99,7 @@ private:
 
     // Settings
     INumberVectorProperty SettingsNP;
-    INumber SettingsN[4];        
+    INumber SettingsN[4];
 
     // Filter Offset
     INumberVectorProperty OffsetNP;
@@ -103,5 +113,3 @@ private:
     SimData simData;
     uint8_t firmwareVersion;
 };
-
-#endif

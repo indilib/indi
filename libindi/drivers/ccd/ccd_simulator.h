@@ -16,20 +16,14 @@
  Boston, MA 02110-1301, USA.
 *******************************************************************************/
 
-#ifndef CCDSIM_H
-#define CCDSIM_H
+#pragma once
 
-#include "indibase/indiccd.h"
-#include "indibase/indifilterinterface.h"
-
-/*  Some headers we need */
-#include <math.h>
-#include <sys/time.h>
-
+#include "indiccd.h"
+#include "indifilterinterface.h"
 
 class CCDSim : public INDI::CCD, public INDI::FilterInterface
 {
-public:
+  public:
     CCDSim();
     virtual ~CCDSim();
 
@@ -38,8 +32,7 @@ public:
     bool initProperties();
     bool updateProperties();
 
-    void ISGetProperties (const char *dev);
-
+    void ISGetProperties(const char *dev);
 
     bool Connect();
     bool Disconnect();
@@ -50,109 +43,101 @@ public:
     bool AbortExposure();
     bool AbortGuideExposure();
 
-
     void TimerHit();
 
     int DrawCcdFrame(CCDChip *targetChip);
 
-    int DrawImageStar(CCDChip *targetChip, float,float,float);
-    int AddToPixel(CCDChip *targetChip, int,int,int);
+    int DrawImageStar(CCDChip *targetChip, float, float, float);
+    int AddToPixel(CCDChip *targetChip, int, int, int);
 
     IPState GuideNorth(float);
     IPState GuideSouth(float);
     IPState GuideEast(float);
     IPState GuideWest(float);
 
-    virtual bool ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n);
-    virtual bool ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n);
-    virtual bool ISNewText(	const char *dev, const char *name, char *texts[], char *names[], int num);
-    virtual bool ISSnoopDevice (XMLEle *root);
+    virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n);
+    virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n);
+    virtual bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int num);
+    virtual bool ISSnoopDevice(XMLEle *root);
 
-    protected:
-
+  protected:
     virtual bool saveConfigItems(FILE *fp);
     virtual void activeDevicesUpdated();
     virtual int SetTemperature(double temperature);
 
-    private:
+  private:
+    float TemperatureRequest;
 
-        float TemperatureRequest;
+    float ExposureRequest;
+    struct timeval ExpStart;
 
-        float ExposureRequest;
-        struct timeval ExpStart;
+    float GuideExposureRequest;
+    struct timeval GuideExpStart;
 
-        float GuideExposureRequest;
-        struct timeval GuideExpStart;
+    float CalcTimeLeft(timeval, float);
 
-        float CalcTimeLeft(timeval,float);
+    int testvalue;
+    int ShowStarField;
+    int bias;
+    int maxnoise;
+    int maxval;
+    int maxpix;
+    int minpix;
+    float skyglow;
+    float limitingmag;
+    float saturationmag;
+    float seeing;
+    float ImageScalex;
+    float ImageScaley;
+    float OAGoffset;
+    float rotationCW;
+    float TimeFactor;
+    //  our zero point calcs used for drawing stars
+    float k;
+    float z;
 
-        int testvalue;
-        int ShowStarField;
-        int bias;
-        int maxnoise;
-        int maxval;
-        int maxpix;
-        int minpix;
-        float skyglow;
-        float limitingmag;
-        float saturationmag;
-        float seeing;
-        float ImageScalex;
-        float ImageScaley;
-        float OAGoffset;
-        float rotationCW;
-        float TimeFactor;
-        //  our zero point calcs used for drawing stars
-        float k;
-        float z;
+    bool AbortGuideFrame;
+    bool AbortPrimaryFrame;
 
-        bool AbortGuideFrame;
-        bool AbortPrimaryFrame;
+    float GuideRate;
 
+    float PEPeriod;
+    float PEMax;
 
-        float GuideRate;
+    double raPE, decPE;
+    bool usePE;
+    time_t RunStart;
 
-        float PEPeriod;
-        float PEMax;
+    float polarError;
+    float polarDrift;
 
-        double raPE,decPE;
-        bool usePE;
-        time_t RunStart;
+    //  And this lives in our simulator settings page
 
-        float polarError;
-        float polarDrift;
+    INumberVectorProperty *SimulatorSettingsNV;
+    INumber SimulatorSettingsN[14];
 
-        //  And this lives in our simulator settings page
+    ISwitch TimeFactorS[3];
+    ISwitchVectorProperty *TimeFactorSV;
 
-        INumberVectorProperty *SimulatorSettingsNV;
-        INumber SimulatorSettingsN[14];
+    bool SetupParms();
 
-        ISwitch TimeFactorS[3];
-        ISwitchVectorProperty *TimeFactorSV;
+    //  We are going to snoop these from focuser
+    INumberVectorProperty FWHMNP;
+    INumber FWHMN[1];
 
-        bool SetupParms();
+    // We are going to snoop these from telescope
+    //INumber ScopeParametersN[4];
+    //INumberVectorProperty ScopeParametersNP;
 
-        //  We are going to snoop these from focuser
-        INumberVectorProperty FWHMNP;
-        INumber FWHMN[1];
+    INumberVectorProperty EqPENP;
+    INumber EqPEN[2];
 
-        // We are going to snoop these from telescope
-        //INumber ScopeParametersN[4];
-        //INumberVectorProperty ScopeParametersNP;
+    ISwitch CoolerS[2];
+    ISwitchVectorProperty CoolerSP;
 
-        INumberVectorProperty EqPENP;
-        INumber EqPEN[2];
-
-        ISwitch CoolerS[2];
-        ISwitchVectorProperty CoolerSP;
-
-        // Filter
-        bool SelectFilter(int);
-        bool SetFilterNames() { return true; }
-        bool GetFilterNames(const char* groupName);
-        int QueryFilter();
-
-
+    // Filter
+    bool SelectFilter(int);
+    bool SetFilterNames() { return true; }
+    bool GetFilterNames(const char *groupName);
+    int QueryFilter();
 };
-
-#endif // CCDSim_H

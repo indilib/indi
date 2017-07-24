@@ -1,0 +1,3 @@
+# FILTER WHEELS
+SUBSYSTEMS=="usb", ATTRS{idVendor}=="03c3", ATTRS{idProduct}=="1f01", MODE="0666"
+

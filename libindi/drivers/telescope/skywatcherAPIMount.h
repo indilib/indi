@@ -13,19 +13,20 @@
  * The synscanmount driver by Gerry Rozema.
  */
 
-#ifndef SKYWATCHERAPIMOUNT_H
-#define SKYWATCHERAPIMOUNT_H
-
-#include "indibase/alignment/AlignmentSubsystemForDrivers.h"
+#pragma once
 
 #include "skywatcherAPI.h"
+
+#include "alignment/AlignmentSubsystemForDrivers.h"
 
 typedef enum { PARK_COUNTERCLOCKWISE = 0, PARK_CLOCKWISE } ParkDirection_t;
 typedef enum { PARK_NORTH = 0, PARK_EAST, PARK_SOUTH, PARK_WEST } ParkPosition_t;
 
-class SkywatcherAPIMount : public SkywatcherAPI, public INDI::Telescope, public INDI::AlignmentSubsystem::AlignmentSubsystemForDrivers
+class SkywatcherAPIMount : public SkywatcherAPI,
+                           public INDI::Telescope,
+                           public INDI::AlignmentSubsystem::AlignmentSubsystemForDrivers
 {
-public:
+  public:
     SkywatcherAPIMount();
     virtual ~SkywatcherAPIMount();
 
@@ -35,11 +36,12 @@ public:
     virtual const char *getDefaultName();
     virtual bool Goto(double ra, double dec);
     virtual bool initProperties();
-    virtual void ISGetProperties (const char *dev);
-    virtual bool ISNewBLOB (const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[], char *names[], int n);
-    virtual bool ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n);
-    virtual bool ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n);
-    virtual bool ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n);
+    virtual void ISGetProperties(const char *dev);
+    virtual bool ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[],
+                           char *formats[], char *names[], int n);
+    virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n);
+    virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n);
+    virtual bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n);
     double GetSlewRate();
     virtual bool MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command);
     virtual bool MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command);
@@ -53,49 +55,94 @@ public:
     virtual bool updateLocation(double latitude, double longitude, double elevation);
     virtual bool updateProperties();
 
-private:
+  private:
     // Overrides for the pure virtual functions in SkyWatcherAPI
     int skywatcher_tty_read(int fd, char *buf, int nbytes, int timeout, int *nbytes_read);
-    int skywatcher_tty_write(int fd, const char * buffer, int nbytes, int *nbytes_written);
+    int skywatcher_tty_write(int fd, const char *buffer, int nbytes, int *nbytes_written);
 
-    void SkywatcherMicrostepsFromTelescopeDirectionVector(const INDI::AlignmentSubsystem::TelescopeDirectionVector TelescopeDirectionVector,
-                                                            long& Axis1Microsteps, long& Axis2Microsteps);
-    const INDI::AlignmentSubsystem::TelescopeDirectionVector TelescopeDirectionVectorFromSkywatcherMicrosteps(long Axis1Microsteps, long Axis2Microsteps);
+    void SkywatcherMicrostepsFromTelescopeDirectionVector(
+        const INDI::AlignmentSubsystem::TelescopeDirectionVector TelescopeDirectionVector, long &Axis1Microsteps,
+        long &Axis2Microsteps);
+    const INDI::AlignmentSubsystem::TelescopeDirectionVector
+    TelescopeDirectionVectorFromSkywatcherMicrosteps(long Axis1Microsteps, long Axis2Microsteps);
 
     void UpdateDetailedMountInformation(bool InformClient);
 
     // Properties
 
-    static const char* DetailedMountInfoPage;
-    enum { MOTOR_CONTROL_FIRMWARE_VERSION, MOUNT_CODE, IS_DC_MOTOR };
+    static const char *DetailedMountInfoPage;
+    enum
+    {
+        MOTOR_CONTROL_FIRMWARE_VERSION,
+        MOUNT_CODE,
+        IS_DC_MOTOR
+    };
     INumber BasicMountInfo[3];
     INumberVectorProperty BasicMountInfoV;
-    enum { MT_EQ6, MT_HEQ5, MT_EQ5, MT_EQ3, MT_GT, MT_MF, MT_114GT, MT_DOB, MT_UNKNOWN };
+    enum
+    {
+        MT_EQ6,
+        MT_HEQ5,
+        MT_EQ5,
+        MT_EQ3,
+        MT_GT,
+        MT_MF,
+        MT_114GT,
+        MT_DOB,
+        MT_UNKNOWN
+    };
     ISwitch MountType[9];
     ISwitchVectorProperty MountTypeV;
-    enum { MICROSTEPS_PER_REVOLUTION, STEPPER_CLOCK_FREQUENCY, HIGH_SPEED_RATIO, MICROSTEPS_PER_WORM_REVOLUTION };
+    enum
+    {
+        MICROSTEPS_PER_REVOLUTION,
+        STEPPER_CLOCK_FREQUENCY,
+        HIGH_SPEED_RATIO,
+        MICROSTEPS_PER_WORM_REVOLUTION
+    };
     INumber AxisOneInfo[4];
     INumberVectorProperty AxisOneInfoV;
     INumber AxisTwoInfo[4];
     INumberVectorProperty AxisTwoInfoV;
-    enum { FULL_STOP, SLEWING, SLEWING_TO, SLEWING_FORWARD, HIGH_SPEED, NOT_INITIALISED };
+    enum
+    {
+        FULL_STOP,
+        SLEWING,
+        SLEWING_TO,
+        SLEWING_FORWARD,
+        HIGH_SPEED,
+        NOT_INITIALISED
+    };
     ISwitch AxisOneState[6];
     ISwitchVectorProperty AxisOneStateV;
     ISwitch AxisTwoState[6];
     ISwitchVectorProperty AxisTwoStateV;
-    enum { RAW_MICROSTEPS, OFFSET_FROM_INITIAL, DEGREES_FROM_INITIAL };
+    enum
+    {
+        RAW_MICROSTEPS,
+        OFFSET_FROM_INITIAL,
+        DEGREES_FROM_INITIAL
+    };
     INumber AxisOneEncoderValues[3];
     INumberVectorProperty AxisOneEncoderValuesV;
     INumber AxisTwoEncoderValues[3];
     INumberVectorProperty AxisTwoEncoderValuesV;
 
     // A switch for silent/highspeed slewing modes
-    enum { SLEW_SILENT, SLEW_NORMAL };
+    enum
+    {
+        SLEW_SILENT,
+        SLEW_NORMAL
+    };
     ISwitch SlewModes[2];
     ISwitchVectorProperty SlewModesSP;
 
     // A switch for SoftPEC modes
-    enum { SOFTPEC_ENABLED, SOFTPEC_DISABLED };
+    enum
+    {
+        SOFTPEC_ENABLED,
+        SOFTPEC_DISABLED
+    };
     ISwitch SoftPECModes[2];
     ISwitchVectorProperty SoftPECModesSP;
 
@@ -116,13 +163,17 @@ private:
     ISwitchVectorProperty UnparkPositionSP;
 
     // Previous motion direction
-    typedef enum { PREVIOUS_NS_MOTION_NORTH = DIRECTION_NORTH,
-                    PREVIOUS_NS_MOTION_SOUTH = DIRECTION_SOUTH,
-                    PREVIOUS_NS_MOTION_UNKNOWN = -1} PreviousNSMotion_t;
+    typedef enum {
+        PREVIOUS_NS_MOTION_NORTH   = DIRECTION_NORTH,
+        PREVIOUS_NS_MOTION_SOUTH   = DIRECTION_SOUTH,
+        PREVIOUS_NS_MOTION_UNKNOWN = -1
+    } PreviousNSMotion_t;
     PreviousNSMotion_t PreviousNSMotion;
-    typedef enum { PREVIOUS_WE_MOTION_WEST = DIRECTION_WEST,
-                    PREVIOUS_WE_MOTION_EAST = DIRECTION_EAST,
-                    PREVIOUS_WE_MOTION_UNKNOWN = -1} PreviousWEMotion_t;
+    typedef enum {
+        PREVIOUS_WE_MOTION_WEST    = DIRECTION_WEST,
+        PREVIOUS_WE_MOTION_EAST    = DIRECTION_EAST,
+        PREVIOUS_WE_MOTION_UNKNOWN = -1
+    } PreviousWEMotion_t;
     PreviousWEMotion_t PreviousWEMotion;
 
     // Tracking
@@ -141,5 +192,3 @@ private:
     double InitialJulianDate;
 #endif
 };
-
-#endif // SKYWATCHERAPIMOUNT_H

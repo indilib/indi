@@ -24,52 +24,47 @@
   file called LICENSE.
 *******************************************************************************/
 
-#ifndef WATCHDOGCLIENT_H
-#define WATCHDOGCLIENT_H
+#pragma once
 
 #include "baseclient.h"
 #include "basedevice.h"
 
+#include <string.h>
+
 class WatchDogClient : public INDI::BaseClient
 {
-public:
+  public:
+    WatchDogClient();
+    ~WatchDogClient();
 
-   WatchDogClient();
-   ~WatchDogClient();
+    bool isBusy() { return isRunning; }
+    bool isConnected() { return isReady; }
 
-   bool isBusy()      { return isRunning; }
-   bool isConnected() { return isReady; }
+    void setDome(const std::string &value);
+    void setMount(const std::string &value);
 
-   void setDome(const std::string &value);
-   void setMount(const std::string &value);
+    bool parkDome();
+    bool parkMount();
+    IPState getDomeParkState();
+    IPState getMountParkState();
 
-   bool parkDome();
-   bool parkMount();
-   IPState getDomeParkState();
-   IPState getMountParkState();
+  protected:
+    virtual void newDevice(INDI::BaseDevice *dp);
+    virtual void removeDevice(INDI::BaseDevice */*dp*/) {}
+    virtual void newProperty(INDI::Property *property);
+    virtual void removeProperty(INDI::Property */*property*/) {}
+    virtual void newBLOB(IBLOB */*bp*/) {}
+    virtual void newSwitch(ISwitchVectorProperty */*svp*/) {}
+    virtual void newNumber(INumberVectorProperty */*nvp*/) {}
+    virtual void newMessage(INDI::BaseDevice */*dp*/, int /*messageID*/) {}
+    virtual void newText(ITextVectorProperty */*tvp*/) {}
+    virtual void newLight(ILightVectorProperty */*lvp*/) {}
+    virtual void serverConnected() {}
+    virtual void serverDisconnected(int /*exit_code*/) {}
 
-protected:
+  private:
+    std::string dome, mount;
+    bool isReady, isRunning, domeOnline, mountOnline;
 
-   virtual void newDevice(INDI::BaseDevice *dp);
-   virtual void removeDevice(INDI::BaseDevice *dp) {}
-   virtual void newProperty(INDI::Property *property);
-   virtual void removeProperty(INDI::Property *property) {}
-   virtual void newBLOB(IBLOB *bp) {}
-   virtual void newSwitch(ISwitchVectorProperty *svp) {}
-   virtual void newNumber(INumberVectorProperty *nvp) {}
-   virtual void newMessage(INDI::BaseDevice *dp, int messageID) {}
-   virtual void newText(ITextVectorProperty *tvp) {}
-   virtual void newLight(ILightVectorProperty *lvp) {}
-   virtual void serverConnected() {}
-   virtual void serverDisconnected(int exit_code) {}
-
-private:
-
-   std::string dome, mount;
-   bool isReady, isRunning, domeOnline, mountOnline;
-
-   ISwitchVectorProperty *mountParkSP, *domeParkSP;
-
+    ISwitchVectorProperty *mountParkSP, *domeParkSP;
 };
-
-#endif

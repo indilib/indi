@@ -17,7 +17,7 @@ brew install \
 	libusb \
 	gpsd \
 	libraw \
-	cfitsio \
+	libcfitsio \
 	libnova 
 			
 brew cask install \

@@ -15,58 +15,58 @@
  the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
  Boston, MA 02110-1301, USA.
 *******************************************************************************/
+
 #include "focus_simulator.h"
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
 #include <math.h>
-#include <string.h>
-
 #include <memory>
+#include <string.h>
+#include <unistd.h>
 
 // We declare an auto pointer to focusSim.
 std::unique_ptr<FocusSim> focusSim(new FocusSim());
 
-#define SIM_SEEING  0
-#define SIM_FWHM    1
-#define FOCUS_MOTION_DELAY  100                /* Focuser takes 100 microsecond to move for each step, completing 100,000 steps in 10 seconds */
+#define SIM_SEEING 0
+#define SIM_FWHM   1
+#define FOCUS_MOTION_DELAY \
+    100 /* Focuser takes 100 microsecond to move for each step, completing 100,000 steps in 10 seconds */
 
 void ISPoll(void *p);
 
 void ISGetProperties(const char *dev)
 {
-        focusSim->ISGetProperties(dev);
+    focusSim->ISGetProperties(dev);
 }
 
 void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int num)
 {
-        focusSim->ISNewSwitch(dev, name, states, names, num);
+    focusSim->ISNewSwitch(dev, name, states, names, num);
 }
 
-void ISNewText(	const char *dev, const char *name, char *texts[], char *names[], int num)
+void ISNewText(const char *dev, const char *name, char *texts[], char *names[], int num)
 {
-        focusSim->ISNewText(dev, name, texts, names, num);
+    focusSim->ISNewText(dev, name, texts, names, num);
 }
 
 void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int num)
 {
-        focusSim->ISNewNumber(dev, name, values, names, num);
+    focusSim->ISNewNumber(dev, name, values, names, num);
 }
 
-void ISNewBLOB (const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[], char *names[], int n)
+void ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[],
+               char *names[], int n)
 {
-  INDI_UNUSED(dev);
-  INDI_UNUSED(name);
-  INDI_UNUSED(sizes);
-  INDI_UNUSED(blobsizes);
-  INDI_UNUSED(blobs);
-  INDI_UNUSED(formats);
-  INDI_UNUSED(names);
-  INDI_UNUSED(n);
+    INDI_UNUSED(dev);
+    INDI_UNUSED(name);
+    INDI_UNUSED(sizes);
+    INDI_UNUSED(blobsizes);
+    INDI_UNUSED(blobs);
+    INDI_UNUSED(formats);
+    INDI_UNUSED(names);
+    INDI_UNUSED(n);
 }
 
-void ISSnoopDevice (XMLEle *root)
+void ISSnoopDevice(XMLEle *root)
 {
     focusSim->ISSnoopDevice(root);
 }
@@ -84,7 +84,6 @@ FocusSim::FocusSim()
 ************************************************************************************/
 FocusSim::~FocusSim()
 {
-
 }
 
 /************************************************************************************
@@ -107,9 +106,9 @@ bool FocusSim::Disconnect()
 /************************************************************************************
  *
 ************************************************************************************/
-const char * FocusSim::getDefaultName()
+const char *FocusSim::getDefaultName()
 {
-        return (char *)"Focuser Simulator";
+    return (char *)"Focuser Simulator";
 }
 
 /************************************************************************************
@@ -117,13 +116,13 @@ const char * FocusSim::getDefaultName()
 ************************************************************************************/
 void FocusSim::ISGetProperties(const char *dev)
 {
-  if(dev && strcmp(dev,getDeviceName()))
-    return;
+    if (dev && strcmp(dev, getDeviceName()))
+        return;
 
-  INDI::Focuser::ISGetProperties(dev);
+    INDI::Focuser::ISGetProperties(dev);
 
-  defineSwitch(&ModeSP);
-  loadConfig(true, "Mode");
+    defineSwitch(&ModeSP);
+    loadConfig(true, "Mode");
 }
 
 /************************************************************************************
@@ -133,23 +132,25 @@ bool FocusSim::initProperties()
 {
     INDI::Focuser::initProperties();
 
-    IUFillNumber(&SeeingN[0],"SIM_SEEING","arcseconds","%4.2f",0,60,0,3.5);
-    IUFillNumberVector(&SeeingNP,SeeingN,1,getDeviceName(),"SEEING_SETTINGS","Seeing",MAIN_CONTROL_TAB,IP_RW,60,IPS_IDLE);
+    IUFillNumber(&SeeingN[0], "SIM_SEEING", "arcseconds", "%4.2f", 0, 60, 0, 3.5);
+    IUFillNumberVector(&SeeingNP, SeeingN, 1, getDeviceName(), "SEEING_SETTINGS", "Seeing", MAIN_CONTROL_TAB, IP_RW, 60,
+                       IPS_IDLE);
 
-    IUFillNumber(&FWHMN[0],"SIM_FWHM","arcseconds","%4.2f",0,60,0,7.5);
-    IUFillNumberVector(&FWHMNP,FWHMN,1,getDeviceName(), "FWHM","FWHM",MAIN_CONTROL_TAB,IP_RO,60,IPS_IDLE);
+    IUFillNumber(&FWHMN[0], "SIM_FWHM", "arcseconds", "%4.2f", 0, 60, 0, 7.5);
+    IUFillNumberVector(&FWHMNP, FWHMN, 1, getDeviceName(), "FWHM", "FWHM", MAIN_CONTROL_TAB, IP_RO, 60, IPS_IDLE);
 
     IUFillSwitch(&ModeS[MODE_ALL], "All", "All", ISS_ON);
     IUFillSwitch(&ModeS[MODE_ABSOLUTE], "Absolute", "Absolute", ISS_OFF);
     IUFillSwitch(&ModeS[MODE_RELATIVE], "Relative", "Relative", ISS_OFF);
     IUFillSwitch(&ModeS[MODE_TIMER], "Timer", "Timer", ISS_OFF);
-    IUFillSwitchVector(&ModeSP, ModeS, MODE_COUNT, getDeviceName(), "Mode", "Mode", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
+    IUFillSwitchVector(&ModeSP, ModeS, MODE_COUNT, getDeviceName(), "Mode", "Mode", MAIN_CONTROL_TAB, IP_RW,
+                       ISR_1OFMANY, 60, IPS_IDLE);
 
     initTicks = sqrt(FWHMN[0].value - SeeingN[0].value) / 0.75;
 
-    FocusSpeedN[0].min = 1;
-    FocusSpeedN[0].max = 5;
-    FocusSpeedN[0].step = 1;
+    FocusSpeedN[0].min   = 1;
+    FocusSpeedN[0].max   = 5;
+    FocusSpeedN[0].step  = 1;
     FocusSpeedN[0].value = 1;
 
     FocusAbsPosN[0].value = FocusAbsPosN[0].max / 2;
@@ -183,71 +184,70 @@ bool FocusSim::updateProperties()
 /************************************************************************************
  *
 ************************************************************************************/
-bool FocusSim::ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n)
+bool FocusSim::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
 {
-  if(strcmp(dev,getDeviceName())==0)
-  {
-    // Modes
-    if (!strcmp(ModeSP.name, name))
+    if (strcmp(dev, getDeviceName()) == 0)
     {
-        IUUpdateSwitch(&ModeSP, states, names, n);
-        uint32_t cap=0;
-        int index = IUFindOnSwitchIndex(&ModeSP);
-
-        switch (index)
+        // Modes
+        if (!strcmp(ModeSP.name, name))
         {
-        case MODE_ALL:
-            cap = FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_REL_MOVE | FOCUSER_HAS_VARIABLE_SPEED;
-            break;
+            IUUpdateSwitch(&ModeSP, states, names, n);
+            uint32_t cap = 0;
+            int index    = IUFindOnSwitchIndex(&ModeSP);
 
-        case MODE_ABSOLUTE:
-            cap = FOCUSER_CAN_ABS_MOVE;
-            break;
+            switch (index)
+            {
+                case MODE_ALL:
+                    cap = FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_REL_MOVE | FOCUSER_HAS_VARIABLE_SPEED;
+                    break;
 
-        case MODE_RELATIVE:
-            cap = FOCUSER_CAN_REL_MOVE;
-            break;
+                case MODE_ABSOLUTE:
+                    cap = FOCUSER_CAN_ABS_MOVE;
+                    break;
 
-        case MODE_TIMER:
-            cap = FOCUSER_HAS_VARIABLE_SPEED;
-            break;
+                case MODE_RELATIVE:
+                    cap = FOCUSER_CAN_REL_MOVE;
+                    break;
 
-        default:
-            ModeSP.s = IPS_ALERT;
-            IDSetSwitch(&ModeSP, "Unknown mode index %d", index);
+                case MODE_TIMER:
+                    cap = FOCUSER_HAS_VARIABLE_SPEED;
+                    break;
+
+                default:
+                    ModeSP.s = IPS_ALERT;
+                    IDSetSwitch(&ModeSP, "Unknown mode index %d", index);
+                    return true;
+            }
+
+            SetFocuserCapability(cap);
+            ModeSP.s = IPS_OK;
+            IDSetSwitch(&ModeSP, nullptr);
             return true;
         }
-
-        SetFocuserCapability(cap);
-        ModeSP.s = IPS_OK;
-        IDSetSwitch(&ModeSP, NULL);
-        return true;
     }
-  }
 
-  return INDI::Focuser::ISNewSwitch(dev, name, states, names, n);
+    return INDI::Focuser::ISNewSwitch(dev, name, states, names, n);
 }
 
 /************************************************************************************
  *
 ************************************************************************************/
-bool FocusSim::ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n)
+bool FocusSim::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
 {
-    if(strcmp(dev,getDeviceName())==0)
+    if (strcmp(dev, getDeviceName()) == 0)
     {
-        if(strcmp(name,"SEEING_SETTINGS")==0)
+        if (strcmp(name, "SEEING_SETTINGS") == 0)
         {
             SeeingNP.s = IPS_OK;
             IUUpdateNumber(&SeeingNP, values, names, n);
 
-            IDSetNumber(&SeeingNP,NULL);
+            IDSetNumber(&SeeingNP, nullptr);
             return true;
-
         }
     }
 
     // Let INDI::Focuser handle any other number properties
-    return INDI::Focuser::ISNewNumber(dev,name,values,names,n);
+    return INDI::Focuser::ISNewNumber(dev, name, values, names, n);
 }
 
 /************************************************************************************
@@ -255,8 +255,8 @@ bool FocusSim::ISNewNumber (const char *dev, const char *name, double values[], 
 ************************************************************************************/
 IPState FocusSim::MoveFocuser(FocusDirection dir, int speed, uint16_t duration)
 {
-    double mid = (FocusAbsPosN[0].max - FocusAbsPosN[0].min)/2;
-    int mode = IUFindOnSwitchIndex(&ModeSP);
+    double mid         = (FocusAbsPosN[0].max - FocusAbsPosN[0].min) / 2;
+    int mode           = IUFindOnSwitchIndex(&ModeSP);
     double targetTicks = ((dir == FOCUS_INWARD) ? -1 : 1) * (speed * duration);
 
     internalTicks += targetTicks;
@@ -272,24 +272,25 @@ IPState FocusSim::MoveFocuser(FocusDirection dir, int speed, uint16_t duration)
     }
 
     // simulate delay in motion as the focuser moves to the new position
-    usleep(duration*1000);
+    usleep(duration * 1000);
 
-    double ticks = initTicks + (internalTicks-mid) / 5000.0;
+    double ticks = initTicks + (internalTicks - mid) / 5000.0;
 
-    FWHMN[0].value = 0.5625*ticks*ticks + SeeingN[0].value;
+    FWHMN[0].value = 0.5625 * ticks * ticks + SeeingN[0].value;
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "TIMER Current internal ticks: %g FWHM ticks: %g FWHM: %g", internalTicks, ticks, FWHMN[0].value);
+    DEBUGF(INDI::Logger::DBG_DEBUG, "TIMER Current internal ticks: %g FWHM ticks: %g FWHM: %g", internalTicks, ticks,
+           FWHMN[0].value);
 
     if (mode == MODE_ALL)
     {
         FocusAbsPosN[0].value = internalTicks;
-        IDSetNumber(&FocusAbsPosNP, NULL);
+        IDSetNumber(&FocusAbsPosNP, nullptr);
     }
 
     if (FWHMN[0].value < SeeingN[0].value)
         FWHMN[0].value = SeeingN[0].value;
 
-    IDSetNumber(&FWHMNP, NULL);
+    IDSetNumber(&FWHMNP, nullptr);
 
     return IPS_OK;
 }
@@ -299,7 +300,7 @@ IPState FocusSim::MoveFocuser(FocusDirection dir, int speed, uint16_t duration)
 ************************************************************************************/
 IPState FocusSim::MoveAbsFocuser(uint32_t targetTicks)
 {
-    double mid = (FocusAbsPosN[0].max - FocusAbsPosN[0].min)/2;
+    double mid = (FocusAbsPosN[0].max - FocusAbsPosN[0].min) / 2;
 
     internalTicks = targetTicks;
 
@@ -307,18 +308,19 @@ IPState FocusSim::MoveAbsFocuser(uint32_t targetTicks)
     double ticks = initTicks + (targetTicks - mid) / 5000.0;
 
     // simulate delay in motion as the focuser moves to the new position
-    usleep( abs(targetTicks - FocusAbsPosN[0].value) * FOCUS_MOTION_DELAY);
+    usleep(std::abs((int)(targetTicks - FocusAbsPosN[0].value) * FOCUS_MOTION_DELAY));
 
     FocusAbsPosN[0].value = targetTicks;
 
-    FWHMN[0].value = 0.5625*ticks*ticks +  SeeingN[0].value;
+    FWHMN[0].value = 0.5625 * ticks * ticks + SeeingN[0].value;
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "ABS Current internal ticks: %g FWHM ticks: %g FWHM: %g", internalTicks, ticks, FWHMN[0].value);
+    DEBUGF(INDI::Logger::DBG_DEBUG, "ABS Current internal ticks: %g FWHM ticks: %g FWHM: %g", internalTicks, ticks,
+           FWHMN[0].value);
 
     if (FWHMN[0].value < SeeingN[0].value)
         FWHMN[0].value = SeeingN[0].value;
 
-    IDSetNumber(&FWHMNP, NULL);
+    IDSetNumber(&FWHMNP, nullptr);
 
     return IPS_OK;
 }
@@ -328,31 +330,32 @@ IPState FocusSim::MoveAbsFocuser(uint32_t targetTicks)
 ************************************************************************************/
 IPState FocusSim::MoveRelFocuser(FocusDirection dir, uint32_t ticks)
 {
-    double mid = (FocusAbsPosN[0].max - FocusAbsPosN[0].min)/2;
-    int mode = IUFindOnSwitchIndex(&ModeSP);
+    double mid = (FocusAbsPosN[0].max - FocusAbsPosN[0].min) / 2;
+    int mode   = IUFindOnSwitchIndex(&ModeSP);
 
     if (mode == MODE_ALL || mode == MODE_ABSOLUTE)
     {
         uint32_t targetTicks = FocusAbsPosN[0].value + (ticks * (dir == FOCUS_INWARD ? -1 : 1));
 
         FocusAbsPosNP.s = IPS_BUSY;
-        IDSetNumber(&FocusAbsPosNP, NULL);
+        IDSetNumber(&FocusAbsPosNP, nullptr);
 
         return MoveAbsFocuser(targetTicks);
     }
 
     internalTicks += (dir == FOCUS_INWARD ? -1 : 1) * static_cast<int32_t>(ticks);
 
-    ticks = initTicks + (internalTicks-mid) / 5000.0;
+    ticks = initTicks + (internalTicks - mid) / 5000.0;
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "REL Current internal ticks: %g FWHM ticks: %g FWHM: %g", internalTicks, ticks, FWHMN[0].value);
+    DEBUGF(INDI::Logger::DBG_DEBUG, "REL Current internal ticks: %g FWHM ticks: %g FWHM: %g", internalTicks, ticks,
+           FWHMN[0].value);
 
-    FWHMN[0].value = 0.5625*ticks*ticks +  SeeingN[0].value;
+    FWHMN[0].value = 0.5625 * ticks * ticks + SeeingN[0].value;
 
     if (FWHMN[0].value < SeeingN[0].value)
         FWHMN[0].value = SeeingN[0].value;
 
-    IDSetNumber(&FWHMNP, NULL);
+    IDSetNumber(&FWHMNP, nullptr);
 
     return IPS_OK;
 }
@@ -362,7 +365,6 @@ IPState FocusSim::MoveRelFocuser(FocusDirection dir, uint32_t ticks)
 ************************************************************************************/
 bool FocusSim::SetFocuserSpeed(int speed)
 {
-  INDI_UNUSED(speed);
-  return true;
+    INDI_UNUSED(speed);
+    return true;
 }
-

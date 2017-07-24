@@ -20,95 +20,89 @@
     Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
-#ifndef LX200ASTROPHYSICS_H
-#define LX200ASTROPHYSICS_H
+#pragma once
 
 #include "lx200generic.h"
 
 #define SYNCCM  0
 #define SYNCCMR 1
 
-#define NOTESTABLISHED 0 
-#define ESTABLISHED 1
-#define MOUNTNOTINITIALIZED 0 
-#define MOUNTINITIALIZED 1 
+#define NOTESTABLISHED      0
+#define ESTABLISHED         1
+#define MOUNTNOTINITIALIZED 0
+#define MOUNTINITIALIZED    1
 
 class LX200AstroPhysics : public LX200Generic
 {
- public:
-  LX200AstroPhysics();
-  ~LX200AstroPhysics() {}
+  public:
+    LX200AstroPhysics();
+    ~LX200AstroPhysics() {}
 
- virtual bool ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n);
- virtual bool ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n);
- virtual void ISGetProperties(const char *dev);
+    virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
+    virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
+    virtual void ISGetProperties(const char *dev) override;
 
- void setupTelescope();
+  protected:
+    virtual const char *getDefaultName() override;
+    virtual bool initProperties() override;
+    virtual bool updateProperties() override;
 
- bool isMountInit(void) ;
+    virtual bool ReadScopeStatus() override;
+    virtual bool Handshake() override;
+    virtual bool Disconnect() override;
 
-protected:
+    // Parking
+    virtual bool SetCurrentPark() override;
+    virtual bool SetDefaultPark() override;
+    virtual bool Park() override;
+    virtual bool UnPark() override;
 
- virtual const char *getDefaultName();
- bool initProperties();
- bool updateProperties();
+    virtual bool Sync(double ra, double dec) override;
+    virtual bool Goto(double, double) override;
+    virtual bool updateTime(ln_date *utc, double utc_offset) override;
+    virtual bool updateLocation(double latitude, double longitude, double elevation) override;
+    virtual bool SetSlewRate(int index) override;
 
- virtual bool ReadScopeStatus();
- virtual bool Handshake();
- virtual bool Disconnect();
+    virtual bool saveConfigItems(FILE *fp) override;
 
- // Parking
- virtual bool SetCurrentPark();
- virtual bool SetDefaultPark();
- virtual bool Park();
- virtual bool UnPark();
+    virtual void debugTriggered(bool enable) override;
 
- virtual bool Sync(double ra, double dec);
- virtual bool Goto(double, double); 
- virtual bool updateTime(ln_date * utc, double utc_offset);
- virtual bool updateLocation(double latitude, double longitude, double elevation);
- virtual bool SetSlewRate(int index);
+    ISwitch StartUpS[2];
+    ISwitchVectorProperty StartUpSP;
 
- virtual void debugTriggered(bool enable);
- bool  setBasicDataPart0();
- bool  setBasicDataPart1();
+    INumber HourangleCoordsN[2];
+    INumberVectorProperty HourangleCoordsNP;
 
- ISwitch StartUpS[2];
- ISwitchVectorProperty StartUpSP;
+    INumber HorizontalCoordsN[2];
+    INumberVectorProperty HorizontalCoordsNP;
 
- INumber HourangleCoordsN[2];
- INumberVectorProperty HourangleCoordsNP;
+    ISwitch APSlewSpeedS[3];
+    ISwitchVectorProperty APSlewSpeedSP;
 
- INumber HorizontalCoordsN[2];
- INumberVectorProperty HorizontalCoordsNP;
+    ISwitch SwapS[2];
+    ISwitchVectorProperty SwapSP;
 
- ISwitch SlewSpeedS[3];
- ISwitchVectorProperty SlewSpeedSP;
+    ISwitch SyncCMRS[2];
+    ISwitchVectorProperty SyncCMRSP;
+    enum { USE_REGULAR_SYNC, USE_CMR_SYNC };
 
- ISwitch SwapS[2];
- ISwitchVectorProperty SwapSP;
+    IText VersionT[1];
+    ITextVectorProperty VersionInfo;
 
- ISwitch SyncCMRS[2];
- ISwitchVectorProperty SyncCMRSP;
+    IText DeclinationAxisT[1];
+    ITextVectorProperty DeclinationAxisTP;
 
- IText   VersionT[1];
- ITextVectorProperty VersionInfo;
+    INumber SlewAccuracyN[2];
+    INumberVectorProperty SlewAccuracyNP;
 
- IText   DeclinationAxisT[1];
- ITextVectorProperty DeclinationAxisTP;
+  private:
+    bool isMountInit(void);
+    bool setBasicDataPart0();
+    bool setBasicDataPart1();
 
- //INumber APSiderealTimeN[1];
- //INumberVectorProperty APSiderealTimeNP;
+    // Side of pier
+    void syncSideOfPier();
 
- INumber SlewAccuracyN[2];
- INumberVectorProperty SlewAccuracyNP;
-
-private:
-
- bool timeUpdated, locationUpdated;
- int initStatus;
-
+    bool timeUpdated, locationUpdated;
+    int initStatus;
 };
-
-#endif
- 

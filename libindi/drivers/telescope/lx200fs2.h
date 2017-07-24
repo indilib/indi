@@ -1,4 +1,4 @@
-/*    
+/*
     Astro-Electronic FS-2
     Copyright (C) 2015 Jasem Mutlaq (mutlaqja@ikarustech.com)
 
@@ -17,27 +17,24 @@
     Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
-#ifndef LX200FS2_H
-#define LX200FS2_H
+#pragma once
 
 #include "lx200generic.h"
 
 class LX200FS2 : public LX200Generic
 {
-public:
-
+  public:
     LX200FS2();
     ~LX200FS2() {}
 
     virtual bool initProperties();
     virtual bool updateProperties();
-    virtual bool ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n);
+    virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n);
 
-protected:
-
+  protected:
     virtual const char *getDefaultName();
     virtual bool isSlewComplete();
-    virtual bool checkConnection();        
+    virtual bool checkConnection();
 
     virtual bool saveConfigItems(FILE *fp);
 
@@ -53,10 +50,6 @@ protected:
 
     INumber SlewAccuracyN[2];
     INumberVectorProperty SlewAccuracyNP;
-    
+
     double Elevation, Latitud, Longitude;
-
 };
-
-
-#endif

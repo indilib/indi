@@ -19,42 +19,40 @@
 
 */
 
-#ifndef MICROTOUCH_H
-#define MICROTOUCH_H
+#pragma once
 
-#include "indibase/indifocuser.h"
+#include "indifocuser.h"
 
-#define CMD_GET_STATUS 0x80
-#define CMD_RESET_POSITION 0x81
-#define CMD_IS_MOVING 0x82
-#define CMD_HALT 0x83
+#define CMD_GET_STATUS      0x80
+#define CMD_RESET_POSITION  0x81
+#define CMD_IS_MOVING       0x82
+#define CMD_HALT            0x83
 #define CMD_GET_TEMPERATURE 0x84
-#define CMD_SET_COEFF 0x85
-#define CMD_GET_COEFF 0x86
-#define CMD_TEMPCOMP_ON 0x87
-#define CMD_TEMPCOMP_OFF 0x88
+#define CMD_SET_COEFF       0x85
+#define CMD_GET_COEFF       0x86
+#define CMD_TEMPCOMP_ON     0x87
+#define CMD_TEMPCOMP_OFF    0x88
 #define CMD_UPDATE_POSITION 0x8c
-#define CMD_GET_POSITION 0x8d
+#define CMD_GET_POSITION    0x8d
 #define CMD_SET_MOTOR_SPEED 0x9d
 #define CMD_GET_MOTOR_SPEED 0x9e
 #define CMD_SET_TEMP_OFFSET 0x9f
 
 #define FOCUS_MOTORSPEED_NORMAL 8
-#define FOCUS_MOTORSPEED_FAST 4
-
+#define FOCUS_MOTORSPEED_FAST   4
 
 class Microtouch : public INDI::Focuser
 {
-public:
+  public:
     Microtouch();
     ~Microtouch();
 
     virtual bool Handshake();
-    const char * getDefaultName();
+    const char *getDefaultName();
     virtual bool initProperties();
     virtual bool updateProperties();
-    virtual bool ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n);
-    virtual bool ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n);
+    virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n);
+    virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n);
     virtual IPState MoveFocuser(FocusDirection dir, int speed, uint16_t duration);
     virtual IPState MoveAbsFocuser(uint32_t ticks);
     virtual IPState MoveRelFocuser(FocusDirection dir, uint32_t ticks);
@@ -62,8 +60,7 @@ public:
     virtual bool AbortFocuser();
     virtual void TimerHit();
 
-private:
-
+  private:
     double targetPos, lastPos, lastTemperature;
     unsigned int currentSpeed;
 
@@ -86,9 +83,9 @@ private:
     bool setTemperatureCalibration(double calibration);
     bool setTemperatureCoefficient(double coefficient);
     bool setTemperatureCompensation(bool enable);
-    float CalcTimeLeft(timeval,float);
-    bool  WriteCmd(char cmd);
-    bool WriteCmdGetResponse(char cmd,char* readbuffer, char numbytes);
+    float CalcTimeLeft(timeval, float);
+    bool WriteCmd(char cmd);
+    bool WriteCmdGetResponse(char cmd, char *readbuffer, char numbytes);
     char WriteCmdGetByte(char cmd);
     bool WriteCmdSetByte(char cmd, char val);
     signed short int WriteCmdGetShortInt(char cmd);
@@ -117,7 +114,4 @@ private:
 
     INumber ResetToPosN[1];
     INumberVectorProperty ResetToPosNP;
-
 };
-
-#endif // MICROTOUCH_H

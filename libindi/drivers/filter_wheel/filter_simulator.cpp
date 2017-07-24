@@ -27,36 +27,37 @@ void ISPoll(void *p);
 
 void ISGetProperties(const char *dev)
 {
-        filter_sim->ISGetProperties(dev);
+    filter_sim->ISGetProperties(dev);
 }
 
 void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int num)
 {
-        filter_sim->ISNewSwitch(dev, name, states, names, num);
+    filter_sim->ISNewSwitch(dev, name, states, names, num);
 }
 
-void ISNewText(	const char *dev, const char *name, char *texts[], char *names[], int num)
+void ISNewText(const char *dev, const char *name, char *texts[], char *names[], int num)
 {
-        filter_sim->ISNewText(dev, name, texts, names, num);
+    filter_sim->ISNewText(dev, name, texts, names, num);
 }
 
 void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int num)
 {
-        filter_sim->ISNewNumber(dev, name, values, names, num);
+    filter_sim->ISNewNumber(dev, name, values, names, num);
 }
 
-void ISNewBLOB (const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[], char *names[], int n)
+void ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[],
+               char *names[], int n)
 {
-  INDI_UNUSED(dev);
-  INDI_UNUSED(name);
-  INDI_UNUSED(sizes);
-  INDI_UNUSED(blobsizes);
-  INDI_UNUSED(blobs);
-  INDI_UNUSED(formats);
-  INDI_UNUSED(names);
-  INDI_UNUSED(n);
+    INDI_UNUSED(dev);
+    INDI_UNUSED(name);
+    INDI_UNUSED(sizes);
+    INDI_UNUSED(blobsizes);
+    INDI_UNUSED(blobs);
+    INDI_UNUSED(formats);
+    INDI_UNUSED(names);
+    INDI_UNUSED(n);
 }
-void ISSnoopDevice (XMLEle *root)
+void ISSnoopDevice(XMLEle *root)
 {
     filter_sim->ISSnoopDevice(root);
 }
@@ -78,7 +79,7 @@ const char *FilterSim::getDefaultName()
 
 bool FilterSim::Connect()
 {
-    CurrentFilter=1;
+    CurrentFilter      = 1;
     FilterSlotN[0].min = 1;
     FilterSlotN[0].max = 8;
     return true;
@@ -91,7 +92,7 @@ bool FilterSim::Disconnect()
 
 bool FilterSim::SelectFilter(int f)
 {
-    CurrentFilter=f;
+    CurrentFilter = f;
     SetTimer(500);
     return true;
 }
@@ -101,7 +102,7 @@ void FilterSim::TimerHit()
     SelectFilterDone(CurrentFilter);
 }
 
-bool FilterSim::GetFilterNames(const char* groupName)
+bool FilterSim::GetFilterNames(const char *groupName)
 {
     char filterName[MAXINDINAME];
     char filterLabel[MAXINDILABEL];
@@ -109,19 +110,20 @@ bool FilterSim::GetFilterNames(const char* groupName)
 
     const char *filterDesignation[8] = { "Red", "Green", "Blue", "H_Alpha", "SII", "OIII", "LPR", "Luminosity" };
 
-    if (FilterNameT != NULL)
+    if (FilterNameT != nullptr)
         delete FilterNameT;
 
     FilterNameT = new IText[MaxFilter];
 
-    for (int i=0; i < MaxFilter; i++)
+    for (int i = 0; i < MaxFilter; i++)
     {
-        snprintf(filterName, MAXINDINAME, "FILTER_SLOT_NAME_%d", i+1);
-        snprintf(filterLabel, MAXINDILABEL, "Filter#%d", i+1);
+        snprintf(filterName, MAXINDINAME, "FILTER_SLOT_NAME_%d", i + 1);
+        snprintf(filterLabel, MAXINDILABEL, "Filter#%d", i + 1);
         IUFillText(&FilterNameT[i], filterName, filterLabel, filterDesignation[i]);
     }
 
-    IUFillTextVector(FilterNameTP, FilterNameT, MaxFilter, getDeviceName(), "FILTER_NAME", "Filter", groupName, IP_RW, 0, IPS_IDLE);
+    IUFillTextVector(FilterNameTP, FilterNameT, MaxFilter, getDeviceName(), "FILTER_NAME", "Filter", groupName, IP_RW,
+                     0, IPS_IDLE);
 
     return true;
 }

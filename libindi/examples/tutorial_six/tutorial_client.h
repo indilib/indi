@@ -18,8 +18,7 @@
 
 */
 
-#ifndef TUTORIAL_CLIENT_H
-#define TUTORIAL_CLIENT_H
+#pragma once
 
 /** \file tutorial_client.h
     \brief Construct a basic INDI client that demonstrates INDI::Client capabilities. This client must be used with tutorial_three device "Simple CCD".
@@ -35,38 +34,31 @@
 
 */
 
-#include "indidevapi.h"
-#include "indicom.h"
-#include "indibase/baseclient.h"
+#include "baseclient.h"
 
 class MyClient : public INDI::BaseClient
 {
- public:
-
+  public:
     MyClient();
     ~MyClient();
 
     void setTemperature();
     void takeExposure();
 
-protected:
-
+  protected:
     virtual void newDevice(INDI::BaseDevice *dp);
-    virtual void removeDevice(INDI::BaseDevice *dp) {}
+    virtual void removeDevice(INDI::BaseDevice */*dp*/) {}
     virtual void newProperty(INDI::Property *property);
-    virtual void removeProperty(INDI::Property *property) {}
+    virtual void removeProperty(INDI::Property */*property*/) {}
     virtual void newBLOB(IBLOB *bp);
-    virtual void newSwitch(ISwitchVectorProperty *svp) {}
+    virtual void newSwitch(ISwitchVectorProperty */*svp*/) {}
     virtual void newNumber(INumberVectorProperty *nvp);
     virtual void newMessage(INDI::BaseDevice *dp, int messageID);
-    virtual void newText(ITextVectorProperty *tvp) {}
-    virtual void newLight(ILightVectorProperty *lvp) {}
+    virtual void newText(ITextVectorProperty */*tvp*/) {}
+    virtual void newLight(ILightVectorProperty */*lvp*/) {}
     virtual void serverConnected() {}
-    virtual void serverDisconnected(int exit_code) {}
+    virtual void serverDisconnected(int /*exit_code*/) {}
 
-private:
-   INDI::BaseDevice * ccd_simulator;
-
+  private:
+    INDI::BaseDevice *ccd_simulator;
 };
-
-#endif

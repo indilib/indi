@@ -21,13 +21,15 @@
 #include "trutech_wheel.h"
 
 #include "indicom.h"
+
 #include <memory>
+#include <string.h>
 
-#define CMD_SIZE			5
-#define CMD_JUNK			64
-#define CMD_RESP			15
+#define CMD_SIZE 5
+#define CMD_JUNK 64
+#define CMD_RESP 15
 
-const uint8_t COMM_PRE  = 0x01;
+//const uint8_t COMM_PRE  = 0x01;
 const uint8_t COMM_INIT = 0xA5;
 const uint8_t COMM_FILL = 0x20;
 
@@ -46,7 +48,7 @@ void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names
     tru_wheel->ISNewSwitch(dev, name, states, names, num);
 }
 
-void ISNewText(	const char *dev, const char *name, char *texts[], char *names[], int num)
+void ISNewText(const char *dev, const char *name, char *texts[], char *names[], int num)
 {
     tru_wheel->ISNewText(dev, name, texts, names, num);
 }
@@ -56,7 +58,8 @@ void ISNewNumber(const char *dev, const char *name, double values[], char *names
     tru_wheel->ISNewNumber(dev, name, values, names, num);
 }
 
-void ISNewBLOB (const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[], char *names[], int n)
+void ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[],
+               char *names[], int n)
 {
     INDI_UNUSED(dev);
     INDI_UNUSED(name);
@@ -67,14 +70,14 @@ void ISNewBLOB (const char *dev, const char *name, int sizes[], int blobsizes[],
     INDI_UNUSED(names);
     INDI_UNUSED(n);
 }
-void ISSnoopDevice (XMLEle *root)
+void ISSnoopDevice(XMLEle *root)
 {
     tru_wheel->ISSnoopDevice(root);
 }
 
 TruTech::TruTech()
 {
-    setFilterConnection(CONNECTION_SERIAL | CONNECTION_TCP);    
+    setFilterConnection(CONNECTION_SERIAL | CONNECTION_TCP);
 }
 
 TruTech::~TruTech()
@@ -91,13 +94,15 @@ bool TruTech::initProperties()
     INDI::FilterWheel::initProperties();
 
     IUFillSwitch(&HomeS[0], "Find", "Find", ISS_OFF);
-    IUFillSwitchVector(&HomeSP, HomeS, 1, getDeviceName(), "HOME", "Home", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
+    IUFillSwitchVector(&HomeSP, HomeS, 1, getDeviceName(), "HOME", "Home", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 60,
+                       IPS_IDLE);
 
-    CurrentFilter=1;
+    CurrentFilter      = 1;
     FilterSlotN[0].min = 1;
     FilterSlotN[0].max = 5;
 
     addAuxControls();
+    return true;
 }
 
 bool TruTech::updateProperties()
@@ -112,21 +117,22 @@ bool TruTech::updateProperties()
     return true;
 }
 
-bool TruTech::ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n)
+bool TruTech::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
 {
-    if(strcmp(dev,getDeviceName())==0)
+    if (strcmp(dev, getDeviceName()) == 0)
     {
         if (!strcmp(HomeSP.name, name))
         {
-            int rc=0, nbytes_written=0;
-            uint8_t type = 0x03;
+            int rc = 0, nbytes_written = 0;
+            uint8_t type   = 0x03;
             uint8_t chksum = COMM_INIT + type + COMM_FILL;
             char filter_command[CMD_SIZE];
             snprintf(filter_command, CMD_SIZE, "%c%c%c%c", COMM_INIT, type, COMM_FILL, chksum);
 
             DEBUGF(INDI::Logger::DBG_DEBUG, "CMD: %#02X %#02X %#02X %#02X", COMM_INIT, type, COMM_FILL, chksum);
 
-            if (isSimulation() == false && (rc = tty_write(PortFD, filter_command, CMD_SIZE, &nbytes_written)) != TTY_OK)
+            if (isSimulation() == false &&
+                (rc = tty_write(PortFD, filter_command, CMD_SIZE, &nbytes_written)) != TTY_OK)
             {
                 char error_message[ERRMSG_SIZE];
                 tty_error_msg(rc, error_message, ERRMSG_SIZE);
@@ -136,15 +142,15 @@ bool TruTech::ISNewSwitch (const char *dev, const char *name, ISState *states, c
             }
             else
             {
-                CurrentFilter = 1;
+                CurrentFilter        = 1;
                 FilterSlotN[0].value = 1;
-                FilterSlotNP.s = IPS_OK;
-                HomeSP.s = IPS_OK;
+                FilterSlotNP.s       = IPS_OK;
+                HomeSP.s             = IPS_OK;
                 DEBUG(INDI::Logger::DBG_SESSION, "Filter set to Home.");
-                IDSetNumber(&FilterSlotNP, NULL);
+                IDSetNumber(&FilterSlotNP, nullptr);
             }
 
-            IDSetSwitch(&HomeSP, NULL);
+            IDSetSwitch(&HomeSP, nullptr);
             return true;
         }
     }
@@ -162,9 +168,9 @@ bool TruTech::SelectFilter(int f)
 {
     TargetFilter = f;
 
-    int rc=0, nbytes_written=0;
+    int rc = 0, nbytes_written = 0;
     char filter_command[CMD_SIZE];
-    uint8_t type = 0x01;
+    uint8_t type   = 0x01;
     uint8_t chksum = COMM_INIT + type + static_cast<uint8_t>(f);
     snprintf(filter_command, CMD_SIZE, "%c%c%c%c", COMM_INIT, type, f, chksum);
 
@@ -183,15 +189,14 @@ bool TruTech::SelectFilter(int f)
     CurrentFilter = f;
     SelectFilterDone(CurrentFilter);
     return true;
-
 }
 
 void TruTech::TimerHit()
 {
- // Maybe needed later?
+    // Maybe needed later?
 }
 
-bool TruTech::GetFilterNames(const char* groupName)
+bool TruTech::GetFilterNames(const char *groupName)
 {
     char filterName[MAXINDINAME];
     char filterLabel[MAXINDILABEL];
@@ -199,19 +204,20 @@ bool TruTech::GetFilterNames(const char* groupName)
 
     const char *filterDesignation[8] = { "Red", "Green", "Blue", "H_Alpha", "SII", "OIII", "LPR", "Luminosity" };
 
-    if (FilterNameT != NULL)
+    if (FilterNameT != nullptr)
         delete FilterNameT;
 
     FilterNameT = new IText[MaxFilter];
 
-    for (int i=0; i < MaxFilter; i++)
+    for (int i = 0; i < MaxFilter; i++)
     {
-        snprintf(filterName, MAXINDINAME, "FILTER_SLOT_NAME_%d", i+1);
-        snprintf(filterLabel, MAXINDILABEL, "Filter#%d", i+1);
+        snprintf(filterName, MAXINDINAME, "FILTER_SLOT_NAME_%d", i + 1);
+        snprintf(filterLabel, MAXINDILABEL, "Filter#%d", i + 1);
         IUFillText(&FilterNameT[i], filterName, filterLabel, filterDesignation[i]);
     }
 
-    IUFillTextVector(FilterNameTP, FilterNameT, MaxFilter, getDeviceName(), "FILTER_NAME", "Filter", groupName, IP_RW, 0, IPS_IDLE);
+    IUFillTextVector(FilterNameTP, FilterNameT, MaxFilter, getDeviceName(), "FILTER_NAME", "Filter", groupName, IP_RW,
+                     0, IPS_IDLE);
 
     return true;
 }

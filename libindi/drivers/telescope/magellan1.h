@@ -18,60 +18,56 @@
 
 */
 
-#ifndef MAGELLAN1_H
-#define MAGELLAN1_H
+#pragma once
 
-#include "indidevapi.h"
 #include "indicom.h"
+#include "indidevapi.h"
 
-#define	POLLMS		1000	     /* poll period, ms */
+#define POLLMS 1000 /* poll period, ms */
 
-/* 
+/*
    The device name below eventhough we have a Magellan I
    should remain set to a KStars registered telescope so
    It allows the service to be stopped
 */
-#define mydev		"Magellan I" /* The device name */
+#define mydev "Magellan I" /* The device name */
 
 class Magellan1
 {
- public:
- Magellan1();
- virtual ~Magellan1();
+  public:
+    Magellan1();
+    virtual ~Magellan1();
 
- virtual void ISGetProperties (const char *dev);
- virtual void ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n);
- virtual void ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n);
- virtual void ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n);
- virtual void ISSnoopDevice (XMLEle *root);
- virtual void ISPoll ();
- virtual void getBasicData();
+    virtual void ISGetProperties(const char *dev);
+    virtual void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n);
+    virtual void ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n);
+    virtual void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n);
+    virtual void ISSnoopDevice(XMLEle *root);
+    virtual void ISPoll();
+    virtual void getBasicData();
 
- void handleError(ISwitchVectorProperty *svp, int err, const char *msg);
- void handleError(INumberVectorProperty *nvp, int err, const char *msg);
- void handleError(ITextVectorProperty *tvp, int err, const char *msg);
- bool isTelescopeOn(void);
- void connectTelescope();
- void setCurrentDeviceName(const char * devName);
- void correctFault();
+    void handleError(ISwitchVectorProperty *svp, int err, const char *msg);
+    void handleError(INumberVectorProperty *nvp, int err, const char *msg);
+    void handleError(ITextVectorProperty *tvp, int err, const char *msg);
+    bool isTelescopeOn(void);
+    void connectTelescope();
+    void setCurrentDeviceName(const char *devName);
+    void correctFault();
 
- int    fd;
+    int fd;
 
- protected:
-  int timeFormat;
-  int currentSiteNum;
-  int trackingMode;
+  protected:
+    int timeFormat;
+    int currentSiteNum;
+    int trackingMode;
 
-  double JD;
-  double lastRA;
-  double lastDEC;
-  bool   fault;
-  bool   simulation;
-  char   thisDevice[64];
-  int    currentSet;
-  int    lastSet;
-  double targetRA, targetDEC;
-
+    double JD;
+    double lastRA;
+    double lastDEC;
+    bool fault;
+    bool simulation;
+    char thisDevice[64];
+    int currentSet;
+    int lastSet;
+    double targetRA, targetDEC;
 };
-
-#endif

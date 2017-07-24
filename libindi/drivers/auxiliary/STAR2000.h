@@ -22,39 +22,27 @@
   file called LICENSE.
 *******************************************************************************/
 
-#ifndef STAR2000_H
-#define STAR2000_H
+#pragma once
 
-#include "libs/indibase/defaultdevice.h"
-#include "libs/indibase/indiguiderinterface.h"
+#include "defaultdevice.h"
+#include "indiguiderinterface.h"
 
-
-/* Standard headers */
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <math.h>
-#include <unistd.h>
-#include <sys/time.h>
-
-#include <sys/time.h>
 #include <time.h>
 
 class STAR2000 : public INDI::GuiderInterface, public INDI::DefaultDevice
 {
-    public:
+  public:
     STAR2000();
 
     virtual bool initProperties();
     virtual bool updateProperties();
-    virtual void ISGetProperties (const char *dev);
-    virtual bool ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n);
-    virtual bool ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n);
-    virtual bool ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n);
-    virtual bool ISSnoopDevice (XMLEle *root);
+    virtual void ISGetProperties(const char *dev);
+    virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n);
+    virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n);
+    virtual bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n);
+    virtual bool ISSnoopDevice(XMLEle *root);
 
-    protected:
-
+  protected:
     virtual bool saveConfigItems(FILE *fp);
 
     //  Generic indi device entries
@@ -75,17 +63,14 @@ class STAR2000 : public INDI::GuiderInterface, public INDI::DefaultDevice
     ITextVectorProperty PortTP;
     IText PortT[1];
 
-    private:
-
+  private:
     float CalcWEPulseTimeLeft();
     float CalcNSPulseTimeLeft();
-
 
     bool InWEPulse;
     float WEPulseRequest;
     struct timeval WEPulseStart;
     int WEtimerID;
-
 
     bool InNSPulse;
     float NSPulseRequest;
@@ -94,7 +79,4 @@ class STAR2000 : public INDI::GuiderInterface, public INDI::DefaultDevice
 
     int WEDir;
     int NSDir;
-
 };
-
-#endif // STAR2000_H

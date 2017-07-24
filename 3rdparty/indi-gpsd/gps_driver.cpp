@@ -22,18 +22,19 @@
   The full GNU General Public License is included in this distribution in the
   file called LICENSE.
 *******************************************************************************/
-#include <memory>
-#include <libnova.h>
-#include <time.h>
 
 #include "gps_driver.h"
+
 #include "config.h"
 
 #include <libgpsmm.h>
 
-using namespace std;
+#include <libnova/julian_day.h>
+#include <libnova/sidereal_time.h>
 
-// We declare an auto pointer to GPD.
+#include <memory>
+
+// We declare an auto pointer to GPSD.
 std::unique_ptr<GPSD> gpsd(new GPSD());
 
 void ISGetProperties(const char *dev)
@@ -46,7 +47,7 @@ void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names
     gpsd->ISNewSwitch(dev, name, states, names, num);
 }
 
-void ISNewText(	const char *dev, const char *name, char *texts[], char *names[], int num)
+void ISNewText(const char *dev, const char *name, char *texts[], char *names[], int num)
 {
     gpsd->ISNewText(dev, name, texts, names, num);
 }
@@ -56,45 +57,47 @@ void ISNewNumber(const char *dev, const char *name, double values[], char *names
     gpsd->ISNewNumber(dev, name, values, names, num);
 }
 
-void ISNewBLOB (const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[], char *names[], int n)
+void ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[],
+               char *names[], int n)
 {
-  INDI_UNUSED(dev);
-  INDI_UNUSED(name);
-  INDI_UNUSED(sizes);
-  INDI_UNUSED(blobsizes);
-  INDI_UNUSED(blobs);
-  INDI_UNUSED(formats);
-  INDI_UNUSED(names);
-  INDI_UNUSED(n);
+    INDI_UNUSED(dev);
+    INDI_UNUSED(name);
+    INDI_UNUSED(sizes);
+    INDI_UNUSED(blobsizes);
+    INDI_UNUSED(blobs);
+    INDI_UNUSED(formats);
+    INDI_UNUSED(names);
+    INDI_UNUSED(n);
 }
 
-void ISSnoopDevice (XMLEle *root)
+void ISSnoopDevice(XMLEle *root)
 {
     INDI_UNUSED(root);
 }
 
 GPSD::GPSD()
 {
-   setVersion(GPSD_VERSION_MAJOR,GPSD_VERSION_MINOR);
-   gps=NULL;
+    setVersion(GPSD_VERSION_MAJOR, GPSD_VERSION_MINOR);
+    gps = NULL;
 }
 
 GPSD::~GPSD()
 {
-
 }
 
-const char * GPSD::getDefaultName()
+const char *GPSD::getDefaultName()
 {
     return (char *)"GPSD";
 }
 
 bool GPSD::Connect()
 {
-    if (gps==NULL) {
-        gps=new gpsmm("localhost", DEFAULT_GPSD_PORT);
-    } 
-    if (gps->stream(WATCH_ENABLE|WATCH_JSON) == NULL) {
+    if (gps == NULL)
+    {
+        gps = new gpsmm("localhost", DEFAULT_GPSD_PORT);
+    }
+    if (gps->stream(WATCH_ENABLE | WATCH_JSON) == NULL)
+    {
         IDMessage(getDeviceName(), "No GPSD running.");
         return false;
     }
@@ -104,7 +107,7 @@ bool GPSD::Connect()
 bool GPSD::Disconnect()
 {
     delete gps;
-    gps=NULL;
+    gps = NULL;
     IDMessage(getDeviceName(), "GPS disconnected successfully.");
     return true;
 }
@@ -114,17 +117,17 @@ bool GPSD::initProperties()
     // We init parent properties first
     INDI::GPS::initProperties();
 
-    IUFillText(&GPSstatusT[0],"GPS_FIX","Fix Mode",NULL);
-    IUFillTextVector(&GPSstatusTP,GPSstatusT,1,getDeviceName(),
-        "GPS_STATUS","GPS Status",MAIN_CONTROL_TAB,IP_RO,60,IPS_IDLE);
+    IUFillText(&GPSstatusT[0], "GPS_FIX", "Fix Mode", NULL);
+    IUFillTextVector(&GPSstatusTP, GPSstatusT, 1, getDeviceName(), "GPS_STATUS", "GPS Status", MAIN_CONTROL_TAB, IP_RO,
+                     60, IPS_IDLE);
 
-    IUFillNumber(&PolarisN[0],"HA","Polaris Hour Angle","%010.6m",0,24,0,0.0);
-    IUFillNumberVector(&PolarisNP,PolarisN,1,getDeviceName(),
-        "POLARIS","Polaris",MAIN_CONTROL_TAB,IP_RO,60,IPS_IDLE);
+    IUFillNumber(&PolarisN[0], "HA", "Polaris Hour Angle", "%010.6m", 0, 24, 0, 0.0);
+    IUFillNumberVector(&PolarisNP, PolarisN, 1, getDeviceName(), "POLARIS", "Polaris", MAIN_CONTROL_TAB, IP_RO, 60,
+                       IPS_IDLE);
 
     IUFillSwitch(&RefreshS[0], "REFRESH", "Update", ISS_OFF);
-    IUFillSwitchVector(&RefreshSP, RefreshS, 1, getDeviceName(), 
-        "GPS_REFRESH","GPS",MAIN_CONTROL_TAB,IP_RW,ISR_ATMOST1,0,IPS_IDLE);
+    IUFillSwitchVector(&RefreshSP, RefreshS, 1, getDeviceName(), "GPS_REFRESH", "GPS", MAIN_CONTROL_TAB, IP_RW,
+                       ISR_ATMOST1, 0, IPS_IDLE);
 
     return true;
 }
@@ -134,12 +137,15 @@ bool GPSD::updateProperties()
     // Call parent update properties first
     INDI::GPS::updateProperties();
 
-    if (isConnected()) {
+    if (isConnected())
+    {
         deleteProperty(RefreshSP.name);
         defineText(&GPSstatusTP);
         defineNumber(&PolarisNP);
         defineSwitch(&RefreshSP);
-    } else {
+    }
+    else
+    {
         // We're disconnected
         deleteProperty(GPSstatusTP.name);
         deleteProperty(PolarisNP.name);
@@ -162,95 +168,119 @@ IPState GPSD::updateGPS()
     RefreshSP.s = IPS_BUSY;
     IDSetSwitch(&RefreshSP, NULL);
 
-    struct gps_data_t* gpsData;
+    struct gps_data_t *gpsData;
 
     TimeTP.s = IPS_OK;
 
-    if (!gps->waiting(100000)) {
-        if (GPSstatusTP.s != IPS_BUSY) {
-            IDMessage(getDeviceName(), "Waiting for gps data...");
-            GPSstatusTP.s = IPS_BUSY;
-        }
-        return IPS_BUSY;
-    }
-
-    if ((gpsData = gps->read()) == NULL) {
-        IDMessage(getDeviceName(), "GPSD read error.");
-        IDSetText(&GPSstatusTP, NULL);
-        return IPS_ALERT;
-    }
-    
-    if (gpsData->status == STATUS_NO_FIX) {
-        GPSstatusT[0].text = (char*) "NO FIX";
-        if (GPSstatusTP.s == IPS_OK) {
-            IDMessage(getDeviceName(), "GPS fix lost.");
-        }
-        GPSstatusTP.s = IPS_BUSY;
-        IDSetText(&GPSstatusTP, NULL);
-        return IPS_BUSY;
-    }
-
-    // detect gps fix
-    if (GPSstatusTP.s != IPS_OK)
-        IDMessage(getDeviceName(), "GPS fix obtained.");
-    
-    // update gps fix status
-    if ( gpsData->fix.mode == MODE_3D ) {
-        GPSstatusT[0].text = (char*) "3D FIX";
-        GPSstatusTP.s = IPS_OK;
-        IDSetText(&GPSstatusTP, NULL);
-    } else if ( gpsData->fix.mode == MODE_2D ) {
-        GPSstatusT[0].text = (char*) "2D FIX";
-        GPSstatusTP.s = IPS_OK;
-        IDSetText(&GPSstatusTP, NULL);
-    } else {
-        GPSstatusT[0].text = (char*) "NO FIX";
-        GPSstatusTP.s = IPS_BUSY;
-        IDSetText(&GPSstatusTP, NULL);
-        return IPS_BUSY;
-    }
-
-    // Update time. We are using system time
-    // assuming the system is synced with the gps 
+    // Update time regardless having gps fix.
+    // We are using system time assuming the system is synced with the gps
     // by gpsd using chronyd or ntpd.
     static char ts[32];
     struct tm *utc, *local;
 
     // To get time from gps fix we can use
     // raw_time = gpsData->fix.time;
+    // but this will remove all sophistication of ntp etc.
+    // Better just use the best estimation the system can provide.
+
     time_t raw_time;
     time(&raw_time);
 
-    utc  = gmtime(&raw_time);    
-    strftime (ts, sizeof(ts), "%Y-%m-%dT%H:%M:%S", utc);
+    utc = gmtime(&raw_time);
+    strftime(ts, sizeof(ts), "%Y-%m-%dT%H:%M:%S", utc);
     IUSaveText(&TimeT[0], ts);
 
-    local= localtime(&raw_time);
-    snprintf(ts, sizeof(ts), "%4.2f", (local->tm_gmtoff/3600.0));
-    IUSaveText(&TimeT[1], ts);
-
-    // get utc_offset
-    double offset = local->tm_gmtoff / 3600;
-
-    // adjust offset for DST
-    if (local->tm_isdst)
-        offset -= 1;
-
-    // convert offset to string
-    sprintf(ts,"%0.0f", offset);
+    local = localtime(&raw_time);
+    snprintf(ts, sizeof(ts), "%4.2f", (local->tm_gmtoff / 3600.0));
     IUSaveText(&TimeT[1], ts);
 
     TimeTP.s = IPS_OK;
 
+    if (!gps->waiting(100000))
+    {
+        if (GPSstatusTP.s != IPS_BUSY)
+        {
+            IDMessage(getDeviceName(), "Waiting for gps data...");
+            GPSstatusTP.s = IPS_BUSY;
+        }
+        return IPS_BUSY;
+    }
+
+    if ((gpsData = gps->read()) == NULL)
+    {
+        IDMessage(getDeviceName(), "GPSD read error.");
+        IDSetText(&GPSstatusTP, NULL);
+        return IPS_ALERT;
+    }
+
+    if (gpsData->status == STATUS_NO_FIX)
+    {
+        // We have no fix and there is no point in further processing.
+        GPSstatusT[0].text = (char *)"NO FIX";
+        if (GPSstatusTP.s == IPS_OK)
+        {
+            IDMessage(getDeviceName(), "GPS fix lost.");
+        }
+        GPSstatusTP.s = IPS_BUSY;
+        IDSetText(&GPSstatusTP, NULL);
+        return IPS_BUSY;
+    }
+    else
+    {
+        // We may have a fix. Check if fix structure contains proper fix.
+        // We require at least 2D fix - the altitude is not so crucial (?)
+        if (gpsData->fix.mode < MODE_2D)
+        {
+            // The position is not realy measured yet - we have no valid data
+            // Keep looking
+            GPSstatusT[0].text = (char *)"NO FIX";
+            if (GPSstatusTP.s == IPS_OK)
+            {
+                IDMessage(getDeviceName(), "GPS fix lost.");
+            }
+            GPSstatusTP.s = IPS_BUSY;
+            IDSetText(&GPSstatusTP, NULL);
+            return IPS_BUSY;
+        }
+    }
+
+    // detect gps fix showing up after not being avaliable
+    if (GPSstatusTP.s != IPS_OK)
+        IDMessage(getDeviceName(), "GPS fix obtained.");
+
+    // update gps fix status
+    if (gpsData->fix.mode == MODE_3D)
+    {
+        GPSstatusT[0].text = (char *)"3D FIX";
+        GPSstatusTP.s      = IPS_OK;
+        IDSetText(&GPSstatusTP, NULL);
+    }
+    else if (gpsData->fix.mode == MODE_2D)
+    {
+        GPSstatusT[0].text = (char *)"2D FIX";
+        GPSstatusTP.s      = IPS_OK;
+        IDSetText(&GPSstatusTP, NULL);
+    }
+    else
+    {
+        GPSstatusT[0].text = (char *)"NO FIX";
+        GPSstatusTP.s      = IPS_BUSY;
+        IDSetText(&GPSstatusTP, NULL);
+        return IPS_BUSY;
+    }
+
     // update gps location
     // we should have a gps fix data now
     // fprintf(stderr,"Fix: %d time: %lf\n", data->fix.mode, data->fix.time);
-            
-    LocationN[LOCATION_LATITUDE].value = gpsData->fix.latitude;
+
+    LocationN[LOCATION_LATITUDE].value  = gpsData->fix.latitude;
     LocationN[LOCATION_LONGITUDE].value = gpsData->fix.longitude;
-    if ( gpsData->fix.mode == MODE_3D ) {
+    if (gpsData->fix.mode == MODE_3D)
+    {
         LocationN[LOCATION_ELEVATION].value = gpsData->fix.altitude;
-    } else {
+    }
+    else
+    {
         // Presume we are at sea level if we heve no elevation data
         LocationN[LOCATION_ELEVATION].value = 0;
     }
@@ -260,11 +290,11 @@ IPState GPSD::updateGPS()
     double jd, lst, polarislsrt;
 
     // polaris location - RA 02h 31m 47s DEC 89° 15' 50'' (J2000)
-    jd = ln_get_julian_from_timet(&raw_time);
-    lst=ln_get_apparent_sidereal_time(jd);
+    jd  = ln_get_julian_from_timet(&raw_time);
+    lst = ln_get_apparent_sidereal_time(jd);
 
     // Local Hour Angle = Local Sidereal Time - Polaris Right Ascension
-    polarislsrt = lst - 2.529722222 + (gpsData->fix.longitude / 15.0);
+    polarislsrt       = lst - 2.529722222 + (gpsData->fix.longitude / 15.0);
     PolarisN[0].value = polarislsrt;
 
     GPSstatusTP.s = IPS_OK;
@@ -276,4 +306,3 @@ IPState GPSD::updateGPS()
 
     return IPS_OK;
 }
-

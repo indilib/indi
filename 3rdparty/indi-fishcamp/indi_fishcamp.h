@@ -29,81 +29,80 @@
 
 using namespace std;
 
-class FishCampCCD: public INDI::CCD
+class FishCampCCD : public INDI::CCD
 {
-public:
+  public:
+    FishCampCCD(int CamNum);
+    virtual ~FishCampCCD();
 
-  FishCampCCD(int CamNum);
-  virtual ~FishCampCCD();
+    const char *getDefaultName();
 
-  const char *getDefaultName();
+    bool initProperties();
+    void ISGetProperties(const char *dev);
+    bool updateProperties();
 
-  bool initProperties();
-  void ISGetProperties(const char *dev);
-  bool updateProperties();
+    bool Connect();
+    bool Disconnect();
 
-  bool Connect();
-  bool Disconnect();
+    bool StartExposure(float duration);
+    bool AbortExposure();
 
-  bool StartExposure(float duration);
-  bool AbortExposure();
+    virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n);
 
-  virtual bool ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n);
+  protected:
+    void TimerHit();
+    virtual bool UpdateCCDFrame(int x, int y, int w, int h);
+    virtual bool UpdateCCDBin(int binx, int biny);
+    virtual bool UpdateCCDFrameType(CCDChip::CCD_FRAME fType);
+    virtual int SetTemperature(double temperature);
 
-protected:
+    virtual void simulationTriggered(bool enable);
 
-  void TimerHit();
-  virtual bool UpdateCCDFrame(int x, int y, int w, int h);
-  virtual bool UpdateCCDBin(int binx, int biny);
-  virtual bool UpdateCCDFrameType(CCDChip::CCD_FRAME fType);
-  virtual int SetTemperature(double temperature);
+    // Guide Port
+    virtual IPState GuideNorth(float);
+    virtual IPState GuideSouth(float);
+    virtual IPState GuideEast(float);
+    virtual IPState GuideWest(float);
 
-  virtual void simulationTriggered(bool enable);
+  private:
+    char name[MAXINDINAME];
 
-  // Guide Port
-  virtual IPState GuideNorth(float);
-  virtual IPState GuideSouth(float);
-  virtual IPState GuideEast(float);
-  virtual IPState GuideWest(float);
+    INumber GainN[1];
+    INumberVectorProperty GainNP;
 
-private:
-  char name[MAXINDINAME];
+    INumber CoolerN[1];
+    INumberVectorProperty CoolerNP;
 
-  INumber GainN[1];
-  INumberVectorProperty GainNP;
+    IText CamInfoT[6];
+    ITextVectorProperty CamInfoTP;
 
-  INumber CoolerN[1];
-  INumberVectorProperty CoolerNP;
+    int cameraNum;
+    double ccdTemp;
+    double minDuration;
+    unsigned short *imageBuffer;
+    fc_camInfo camInfo;
+    int timerID;
 
-  IText CamInfoT[6];
-  ITextVectorProperty CamInfoTP;
+    CCDChip::CCD_FRAME imageFrameType;
 
-  int cameraNum;
-  double ccdTemp;
-  double minDuration;
-  unsigned short *imageBuffer;
-  fc_camInfo camInfo;
-  int timerID;
+    struct timeval ExpStart;
 
-  CCDChip::CCD_FRAME imageFrameType;
+    float ExposureRequest;
+    float TemperatureRequest;
 
-  struct timeval ExpStart;
+    float CalcTimeLeft();
+    int grabImage();
+    bool setupParams();
+    bool setGain(double gain);
 
-  float ExposureRequest;
-  float TemperatureRequest;
+    bool sim;
 
-  float CalcTimeLeft();
-  int grabImage();
-  bool setupParams();
-  bool setGain(double gain);
-
-  bool sim;
-
-  friend void ::ISGetProperties(const char *dev);
-  friend void ::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int num);
-  friend void ::ISNewText(const char *dev, const char *name, char *texts[], char *names[], int num);
-  friend void ::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int num);
-  friend void ::ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[], char *names[], int n);
+    friend void ::ISGetProperties(const char *dev);
+    friend void ::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int num);
+    friend void ::ISNewText(const char *dev, const char *name, char *texts[], char *names[], int num);
+    friend void ::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int num);
+    friend void ::ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[],
+                            char *formats[], char *names[], int n);
 };
 
 #endif // FISHCAMP_CCD_H

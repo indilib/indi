@@ -1,6 +1,3 @@
-#ifndef SIMPLEDEVICE_H
-#define SIMPLEDEVICE_H
-
 /*
    INDI Developers Manual
    Tutorial #1
@@ -22,18 +19,17 @@
     A very minimal device! It also allows you to connect/disconnect and performs no other functions.
 */
 
-#include "indibase/defaultdevice.h"
+#pragma once
+
+#include "defaultdevice.h"
 
 class SimpleDevice : public INDI::DefaultDevice
 {
-public:
+  public:
     SimpleDevice();
 
-protected:
+  protected:
     bool Connect();
     bool Disconnect();
     const char *getDefaultName();
-
 };
-
-#endif // SIMPLEDEVICE_H

@@ -18,129 +18,131 @@
  Boston, MA 02110-1301, USA.
 *******************************************************************************/
 
-#ifndef CONNECTIONSERIAL_H
-#define CONNECTIONSERIAL_H
+#pragma once
+
+#include "connectioninterface.h"
 
 #include <string>
-#include "connectioninterface.h"
 
 namespace Connection
 {
-
 class Serial : public Interface
 {
+  public:
+    /**
+     * \typedef BaudRate
+     * \brief Supported baud rates
+     * \note: Default baud rate is 9600. To change default baud rate, use setDefaultBaudrate(..) function.
+     */
+    typedef enum { B_9600, B_19200, B_38400, B_57600, B_115200, B_230400 } BaudRate;
 
-    public:
+    Serial(INDI::DefaultDevice *dev);
+    virtual ~Serial();
 
-        /** \typedef BaudRate
-            \brief Supported baud rates
-            \note: Default baud rate is 9600. To change default baud rate, use setDefaultBaudrate(..) function.
-        */
-        typedef enum
-        {
-            B_9600,
-            B_19200,
-            B_38400,
-            B_57600,
-            B_115200,
-            B_230400
-        } BaudRate;
+    virtual bool Connect();
 
-        Serial(INDI::DefaultDevice * dev);
-        virtual ~Serial();
+    virtual bool Disconnect();
 
-        virtual bool Connect();
+    virtual void Activated();
 
-        virtual bool Disconnect();
+    virtual void Deactivated();
 
-        virtual void Activated();
+    virtual std::string name() { return "CONNECTION_SERIAL"; }
 
-        virtual void Deactivated();
+    virtual std::string label() { return "Serial"; }
 
-        virtual const std::string name()
-        {
-            return "CONNECTION_SERIAL";
-        }
+    /**
+     * @return Currently active device port
+     */
+    virtual const char *port() { return PortT[0].text; }
 
-        virtual const std::string label()
-        {
-            return "Serial";
-        }
+    /**
+     * @return Currently active baud rate raw value (e.g. 9600, 19200..etc)
+     */
+    virtual uint32_t baud();
 
-        /**
-         * @return Currently active device port
-         */
-        virtual const char * port()
-        {
-            return PortT[0].text;
-        }
+    /**
+     * @brief setDefaultPort Set default port. Call this function in initProperties() of your driver
+     * if you want to change default port.
+     * @param defaultPort Name of desired default port
+     */
+    void setDefaultPort(const char *defaultPort);
 
-        /**
-         * @return Curerntly active baud rate raw value (e.g. 9600, 19200..etc)
-         */
-        virtual const uint32_t baud();
+    /**
+     * @brief setDefaultBaudRate Set default baud rate. The default baud rate is 9600 unless
+     * otherwise changed by this function. Call this function in initProperties() of your driver.
+     * @param newRate Desired new rate
+     */
+    void setDefaultBaudRate(BaudRate newRate);
 
-        /**
-         * @brief setDefaultPort Set default port. Call this function in initProperties() of your driver if you want to change default port.
-         * @param defaultPort Name of desired default port
-         */
-        void setDefaultPort(const char * defaultPort);
+    /**
+     * @return Return port file descriptor. If connection is successful, PortFD is a positive
+     * integer otherwise it is set to -1
+     */
+    int getPortFD() const { return PortFD; }
 
-        /**
-         * @brief setDefaultBaudRate Set default baud rate. The default baud rate is 9600 unless otherwise changed by this function.
-         * Call this function in initProperties() of your driver.
-         * @param newRate Desired new rate
-         */
-        void setDefaultBaudRate(BaudRate newRate);
+    virtual bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n);
+    virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n);
+    virtual bool saveConfigItems(FILE *fp);
 
-        /**
-         * @return Return port file descriptor. If connection is successful, PortFD is a positive integer otherwise it is set to -1
-         */
-        const int getPortFD() const
-        {
-            return PortFD;
-        }
+    /**
+     * Refresh the list of system ports
+     */
+    bool Refresh(bool silent = false);
 
-        virtual bool ISNewText (const char * dev, const char * name, char * texts[], char * names[], int n);
-        virtual bool ISNewSwitch (const char * dev, const char * name, ISState * states, char * names[], int n);
-        virtual bool saveConfigItems(FILE * fp);
+    uint8_t getWordSize() const { return wordSize; }
+    /**
+     * @brief setWordSize Set word size to be used in the serial connection. Default 8
+     */
+    void setWordSize(const uint8_t &value) { wordSize = value; }
 
-        /**
-         * Refresh the list of system ports
-         */
-        bool Refresh(bool silent=false);
+    uint8_t getParity() const { return parity ; }
+    /**
+     * @brief setParity Set parity to be used in the serial connection. Default 0 (NONE)
+     * @param value 0 for NONE, 1 for EVEN, 2 for ODD
+     */
+    void setParity(const uint8_t &value) { parity = value; }
+
+    uint8_t getStopBits() const { return stopBits; }
+    /**
+     * @brief setStopBits Set stop bits to be used in the serial connection. Default 0
+     */
+    void setStopBits(const uint8_t &value) { stopBits = value ; }
 
 protected:
+    /**
+     * \brief Connect to serial port device. Default parameters are 8 bits, 1 stop bit, no parity.
+     * Override if different from default.
+     * \param port Port to connect to.
+     * \param baud Baud rate
+     * \return True if connection is successful, false otherwise
+     * \warning Do not call this function directly, it is called by Connection::Serial Connect() function.
+     */
+    virtual bool Connect(const char *port, uint32_t baud);
 
-        /** \brief Connect to serial port device. Default parameters are 8 bits, 1 stop bit, no parity. Override if different from default.
-          \param port Port to connect to.
-          \param baud Baud rate
-          \return True if connection is successful, false otherwise
-          \warning Do not call this function directly, it is called by Connection::Serial Connect() function.
-        */
-        virtual bool Connect(const char * port, uint32_t baud);
+    virtual bool processHandshake();
 
-        virtual bool processHandshake();
+    // Device physical port
+    ITextVectorProperty PortTP;
+    IText PortT[1];
 
-        // Device physical port
-        ITextVectorProperty PortTP;
-        IText PortT[1];
+    ISwitch BaudRateS[6];
+    ISwitchVectorProperty BaudRateSP;
 
-        ISwitch BaudRateS[6];
-        ISwitchVectorProperty BaudRateSP;
+    ISwitch AutoSearchS[2];
+    ISwitchVectorProperty AutoSearchSP;
 
-        ISwitch AutoSearchS[2];
-        ISwitchVectorProperty AutoSearchSP;
+    ISwitch *SystemPortS = nullptr;
+    ISwitchVectorProperty SystemPortSP;
 
-        ISwitch * SystemPortS=NULL;
-        ISwitchVectorProperty SystemPortSP;
+    ISwitch RefreshS[1];
+    ISwitchVectorProperty RefreshSP;
 
-        ISwitch RefreshS[1];
-        ISwitchVectorProperty RefreshSP;
+    int PortFD = -1;
 
-        int PortFD=-1;
+    // Default 8N1 parameters
+    uint8_t wordSize=8;
+    uint8_t parity=0;
+    uint8_t stopBits=1;
 };
-
 }
-
-#endif

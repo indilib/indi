@@ -6,23 +6,22 @@
 
 #include "DriverCommon.h"
 
-#include <gsl/gsl_permutation.h>
-#include <gsl/gsl_linalg.h>
-#include <gsl/gsl_blas.h>
-
 namespace INDI
 {
 namespace AlignmentSubsystem
 {
-
 // Private methods
 
-void  BuiltInMathPlugin::CalculateTransformMatrices(const TelescopeDirectionVector &Alpha1, const TelescopeDirectionVector &Alpha2, const TelescopeDirectionVector &Alpha3,
-        const TelescopeDirectionVector &Beta1, const TelescopeDirectionVector &Beta2, const TelescopeDirectionVector &Beta3,
-        gsl_matrix * pAlphaToBeta, gsl_matrix * pBetaToAlpha)
+void BuiltInMathPlugin::CalculateTransformMatrices(const TelescopeDirectionVector &Alpha1,
+                                                   const TelescopeDirectionVector &Alpha2,
+                                                   const TelescopeDirectionVector &Alpha3,
+                                                   const TelescopeDirectionVector &Beta1,
+                                                   const TelescopeDirectionVector &Beta2,
+                                                   const TelescopeDirectionVector &Beta3, gsl_matrix *pAlphaToBeta,
+                                                   gsl_matrix *pBetaToAlpha)
 {
     // Derive the Actual to Apparent transformation matrix
-    gsl_matrix * pAlphaMatrix = gsl_matrix_alloc(3, 3);
+    gsl_matrix *pAlphaMatrix = gsl_matrix_alloc(3, 3);
     gsl_matrix_set(pAlphaMatrix, 0, 0, Alpha1.x);
     gsl_matrix_set(pAlphaMatrix, 1, 0, Alpha1.y);
     gsl_matrix_set(pAlphaMatrix, 2, 0, Alpha1.z);
@@ -35,7 +34,7 @@ void  BuiltInMathPlugin::CalculateTransformMatrices(const TelescopeDirectionVect
 
     Dump3x3("AlphaMatrix", pAlphaMatrix);
 
-    gsl_matrix * pBetaMatrix = gsl_matrix_alloc(3, 3);
+    gsl_matrix *pBetaMatrix = gsl_matrix_alloc(3, 3);
     gsl_matrix_set(pBetaMatrix, 0, 0, Beta1.x);
     gsl_matrix_set(pBetaMatrix, 1, 0, Beta1.y);
     gsl_matrix_set(pBetaMatrix, 2, 0, Beta1.z);
@@ -50,7 +49,7 @@ void  BuiltInMathPlugin::CalculateTransformMatrices(const TelescopeDirectionVect
 
     // Use the quick and dirty method
     // This can result in matrices which are not true transforms
-    gsl_matrix * pInvertedAlphaMatrix = gsl_matrix_alloc(3, 3);
+    gsl_matrix *pInvertedAlphaMatrix = gsl_matrix_alloc(3, 3);
 
     if (!MatrixInvert3x3(pAlphaMatrix, pInvertedAlphaMatrix))
     {
@@ -59,7 +58,7 @@ void  BuiltInMathPlugin::CalculateTransformMatrices(const TelescopeDirectionVect
         // one row or column that contains only zeroes
         gsl_matrix_set_identity(pInvertedAlphaMatrix);
         ASSDEBUG("CalculateTransformMatrices - Alpha matrix is singular!");
-        IDMessage(NULL, "Alpha matrix is singular and cannot be inverted.");
+        IDMessage(nullptr, "Alpha matrix is singular and cannot be inverted.");
     }
     else
     {
@@ -67,7 +66,7 @@ void  BuiltInMathPlugin::CalculateTransformMatrices(const TelescopeDirectionVect
 
         Dump3x3("AlphaToBeta", pAlphaToBeta);
 
-        if (NULL != pBetaToAlpha)
+        if (nullptr != pBetaToAlpha)
         {
             // Invert the matrix to get the Apparent to Actual transform
             if (!MatrixInvert3x3(pAlphaToBeta, pBetaToAlpha))
@@ -77,7 +76,9 @@ void  BuiltInMathPlugin::CalculateTransformMatrices(const TelescopeDirectionVect
                 // one row or column that contains only zeroes
                 gsl_matrix_set_identity(pBetaToAlpha);
                 ASSDEBUG("CalculateTransformMatrices - AlphaToBeta matrix is singular!");
-                IDMessage(NULL, "Calculated Celestial to Telescope transformation matrix is singular (not a true transform).");
+                IDMessage(
+                    nullptr,
+                    "Calculated Celestial to Telescope transformation matrix is singular (not a true transform).");
             }
 
             Dump3x3("BetaToAlpha", pBetaToAlpha);

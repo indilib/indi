@@ -15,6 +15,40 @@ endif(APPLE)
 
 set(LIBRARIES_FOUND TRUE)
 
+include(CMakeCommon)
+
+# Clang Format support
+IF (UNIX OR APPLE)
+    SET(FORMAT_CODE OFF CACHE BOOL "Enable Clang Format")
+    IF (FORMAT_CODE MATCHES ON)
+        FILE(GLOB_RECURSE ALL_SOURCE_FILES *.c *.cpp *.h)
+
+        FOREACH(SOURCE_FILE ${ALL_SOURCE_FILES})
+            STRING(FIND ${SOURCE_FILE} ${CMAKE_SOURCE_DIR} DIR_FOUND)
+            IF (NOT ${DIR_FOUND} EQUAL 0)
+                LIST(REMOVE_ITEM ALL_SOURCE_FILES ${SOURCE_FILE})
+            ENDIF ()
+            # Don't apply the format for 3rd party libraries
+            STRING(FIND ${SOURCE_FILE} libapogee DIR1_FOUND)
+            STRING(FIND ${SOURCE_FILE} libfishcamp DIR2_FOUND)
+            STRING(FIND ${SOURCE_FILE} libfli DIR3_FOUND)
+            STRING(FIND ${SOURCE_FILE} libqhy DIR4_FOUND)
+            STRING(FIND ${SOURCE_FILE} libqsi DIR5_FOUND)
+            STRING(FIND ${SOURCE_FILE} libsbig DIR6_FOUND)
+            STRING(FIND ${SOURCE_FILE} fxload-libusb DIR7_FOUND)
+            IF (NOT ${DIR1_FOUND} EQUAL -1 OR NOT ${DIR2_FOUND} EQUAL -1 OR NOT ${DIR3_FOUND} EQUAL -1 OR NOT ${DIR4_FOUND} EQUAL -1 OR
+                NOT ${DIR5_FOUND} EQUAL -1 OR NOT ${DIR6_FOUND} EQUAL -1 OR NOT ${DIR7_FOUND} EQUAL -1)
+                LIST(REMOVE_ITEM ALL_SOURCE_FILES ${SOURCE_FILE})
+            ENDIF ()
+        ENDFOREACH ()
+
+        FIND_PROGRAM(CLANGFORMAT_EXE NAMES clang-format-5.0)
+        IF (CLANGFORMAT_EXE)
+            ADD_CUSTOM_TARGET(clang-format COMMAND ${CLANGFORMAT_EXE} -style=file -i ${ALL_SOURCE_FILES})
+        ENDIF ()
+    ENDIF ()
+ENDIF ()
+
 # Define standard set of drivers to build (default linux target)
 option(WITH_EQMOD "Install EQMod Driver" On)
 option(WITH_NSE "Install Nexstar Evo Driver" On)
@@ -26,7 +60,7 @@ option(WITH_MI "Install Moravian Driver" Off)
 option(WITH_FLI "Install FLI Driver" On)
 option(WITH_SBIG "Install SBIG Driver" On)
 option(WITH_APOGEE "Install Apogee Driver" On)
-option(WITH_QHY "Install QHY Driver" Off)
+option(WITH_QHY "Install QHY Driver" On)
 option(WITH_GPHOTO "Install GPhoto Driver" On)
 option(WITH_QSI "Install QSI Driver" On)
 option(WITH_DUINO "Install Ariduino Driver" On)
@@ -35,21 +69,24 @@ option(WITH_GPSD "Install GPSD Driver" On)
 option(WITH_GIGE "Install GiGE machine vision Driver" Off)
 option(WITH_DSI "Install Meade DSI Driver" On)
 option(WITH_ASICAM "Install ZWO Optics ASI Driver" On)
-option(WITH_MGEN "Install MGen Autoguider" Off)
+option(WITH_MGEN "Install MGen Autoguider" On)
 
 # Add/remove cases for OSX
-if (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
-set(WITH_MI FALSE)
-set(WITH_FLI FALSE)
-set(WITH_SBIG FALSE)
-set(WITH_APOGEE FALSE)
-set(WITH_QHY FALSE) 
-set(WITH_DUINO FALSE) 
-set(WITH_FISHCAMP FALSE) 
-set(WITH_GIGE FALSE) 
-set(WITH_DSI FALSE) 
-set(WITH_ASICAM FALSE) 
-endif()
+IF (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
+    set(WITH_MI Off)
+    set(WITH_FLI Off)
+    set(WITH_SBIG Off)
+    set(WITH_APOGEE Off)
+    set(WITH_DUINO Off)
+    set(WITH_FISHCAMP Off)
+    set(WITH_GIGE Off)
+    set(WITH_DSI Off)
+    set(WITH_MGEN Off)
+ENDIF ()
+# Dsi contains invalid C++ codes what does not compile with Clang
+IF ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "AppleClang" OR "${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
+    SET(WITH_DSI Off)
+ENDIF ()
 
 ## EQMod
 if (WITH_EQMOD)
@@ -155,6 +192,7 @@ endif(WITH_FISHCAMP)
 
 ## ASI
 if (WITH_ASICAM)
+add_subdirectory(asi-common)
 add_subdirectory(indi-asi)
 endif(WITH_ASICAM)
 
@@ -190,6 +228,11 @@ add_subdirectory(indi-mgen)
 endif (WITH_MGEN)
 
 #endif (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
+
+
+if (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
+add_subdirectory(fxload-libusb)
+endif()
 
 # Check if libraries are found. If not, we must build them, install them, THEN run CMake again to build and instal the drivers. If all the libraraies are installed, then we build and install the drivers only now.
 if (LIBRARIES_FOUND)

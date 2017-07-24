@@ -22,33 +22,29 @@
   file called LICENSE.
 *******************************************************************************/
 
-#ifndef SQM_H
-#define SQM_H
+#pragma once
 
 #include "defaultdevice.h"
 
 namespace Connection
 {
-    class TCP;
+class TCP;
 }
 
 class SQM : public INDI::DefaultDevice
 {
-    public:
-
+  public:
     SQM();
     virtual ~SQM();
 
     virtual bool initProperties();
     virtual bool updateProperties();
 
-    protected:
-
+  protected:
     const char *getDefaultName();
-    void TimerHit();    
+    void TimerHit();
 
-private:
-
+  private:
     bool getReadings();
     bool getDeviceInfo();
 
@@ -60,9 +56,7 @@ private:
     INumberVectorProperty UnitInfoNP;
     INumber UnitInfoN[4];
 
-    Connection::TCP *tcpConnection=NULL;
+    Connection::TCP *tcpConnection = NULL;
 
-    int PortFD=-1;
+    int PortFD = -1;
 };
-
-#endif

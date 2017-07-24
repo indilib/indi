@@ -18,7 +18,6 @@
 	#pragma message "libftdi-0.1 selected."
 #elif defined(USELIBFTDIONE)
 	#pragma message "libftdi-1.0 selected."
-	#error "ftdi-1.0 NOT_IMPLEMENTED"
 #elif defined (USELIBFTD2XX)
 	#pragma message "libftd2xx selected."
 #else
@@ -52,11 +51,9 @@ HostIO_USB::HostIO_USB(void)
 
 	this->m_log = new QSILog("QSIINTERFACELOG.TXT", "LOGUSBTOFILE", "USB");
 
-#if defined(USELIBFTDIZERO)
+#if defined(USELIBFTDIZERO) || defined(USELIBFTDIONE)
 	m_iUSBStatus = ftdi_init(&m_ftdi);
 	m_ftdiIsOpen = false;
-#elif defined(USELIBFTDIONE)
-
 #elif defined(USELIBFTD2XX)
 	m_DeviceHandle = NULL;
 #endif
@@ -67,10 +64,8 @@ HostIO_USB::HostIO_USB(void)
 
 HostIO_USB::~HostIO_USB()
 {
-#if defined(USELIBFTDIZERO)
+#if defined(USELIBFTDIZERO) || defined(USELIBFTDIONE)
 	ftdi_deinit(&m_ftdi);
-#elif defined(USELIBFTDIONE)
-
 #elif defined(USELIBFTD2XX)
 
 #endif
@@ -81,16 +76,16 @@ int HostIO_USB::ListDevices( std::vector<CameraID> & vID )
 {
 	m_log->Write(2, "List All Devices Started");
 	vID.clear();
-#if defined(USELIBFTDIZERO)
+#if defined(USELIBFTDIZERO) || defined(USELIBFTDIONE)
 
 	ftdi_device_list* devlist=NULL;
 	ftdi_device_list* curdev=NULL;
 	char  szMan[256];
 	int count;
-	char pDesc[USB_DESCRIPTION_LENGTH];
-	char pSerial[USB_SERIAL_LENGTH];
+	char pDesc[USB_DESCRIPTION_LENGTH] = "";
+	char pSerial[USB_SERIAL_LENGTH] = "";
 
-	for (int j = 0; j < m_vidpids.size(); j++)
+	for (int j = 0; j < (int)m_vidpids.size(); j++)
 	{
 		m_iUSBStatus = ftdi_usb_find_all(&m_ftdi, &devlist, m_vidpids[j].VID, m_vidpids[j].PID);
 		curdev = devlist;
@@ -126,7 +121,7 @@ int HostIO_USB::ListDevices( std::vector<CameraID> & vID )
 						Desc = Desc.erase(Desc.find_last_not_of(" ")+1);	// Trim right spaces
 					}
 
-					CameraID id(SerialNum, SerialToOpen, Desc, m_vidpids[j].VID, m_vidpids[j].PID);
+					CameraID id(SerialNum, SerialToOpen, Desc, m_vidpids[j].VID, m_vidpids[j].PID, CameraID::CP_USB);
 					vID.push_back(id);
 				}
 			}
@@ -139,14 +134,12 @@ int HostIO_USB::ListDevices( std::vector<CameraID> & vID )
 	
 	m_iUSBStatus = -m_iUSBStatus; // Error codes from ftdi are neg, we expect pos
 	
-#elif defined(USELIBFTDIONE)
-
 #elif defined(USELIBFTD2XX)
 
 	FT_STATUS ftStatus = 0;
 	FT_DEVICE_LIST_INFO_NODE *devinfo;
 
-	for (int j = 0; j < m_vidpids.size(); j++)
+	for (int j = 0; j < (int)m_vidpids.size(); j++)
 	{
 		DWORD numDevs = 0;
 		ftStatus = FT_SetVIDPID(m_vidpids[j].VID, m_vidpids[j].PID);		
@@ -190,7 +183,7 @@ int HostIO_USB::ListDevices( std::vector<CameraID> & vID )
 								Desc = Desc.erase(Desc.find_last_not_of(" ")+1);	// Trim right spaces
 							}
 
-							CameraID id(SerialNum, SerialToOpen, Desc, (devinfo[i].ID >> 16) & 0x0000FFFF, devinfo[i].ID & 0x0000FFFF);
+							CameraID id(SerialNum, SerialToOpen, Desc, (devinfo[i].ID >> 16) & 0x0000FFFF, devinfo[i].ID & 0x0000FFFF, CameraID::CP_USB);
 							vID.push_back(id);
 						}
 					}
@@ -211,7 +204,7 @@ int HostIO_USB::OpenEx(CameraID  cID )
 {
 	m_log->Write(2, "OpenEx name: %s", cID.Description.c_str());
 
-#if defined(USELIBFTDIZERO)
+#if defined(USELIBFTDIZERO) || defined(USELIBFTDIONE)
 	m_iUSBStatus = ftdi_set_interface( &m_ftdi, INTERFACE_A ); 
 	m_iUSBStatus |= ftdi_usb_open_desc(&m_ftdi, cID.VendorID, cID.ProductID, cID.Description.c_str(), cID.SerialNumber.c_str());
 	if (m_iUSBStatus == 0)
@@ -241,8 +234,6 @@ int HostIO_USB::OpenEx(CameraID  cID )
 			m_iUSBStatus = -m_iUSBStatus; // Error codes from ftdi are neg, we expect pos
 		}
 	}
-
-#elif defined(USELIBFTDIONE)
 
 #elif defined(USELIBFTD2XX)
 	m_iUSBStatus = FT_SetVIDPID(cID.VendorID, cID.ProductID);
@@ -304,12 +295,10 @@ int HostIO_USB::SetTimeouts(int iReadTimeout, int iWriteTimeout)
 	if (iWriteTimeout < MINIMUM_WRITE_TIMEOUT) iWriteTimeout = MINIMUM_WRITE_TIMEOUT;
 	m_log->Write(2, "SetTimeouts set to %d ReadTimeout %d WriteTimeout", iReadTimeout, iWriteTimeout);
 	
-#if defined(USELIBFTDIZERO)
+#if defined(USELIBFTDIZERO) || defined(USELIBFTDIONE)
 	m_ftdi.usb_read_timeout = iReadTimeout;
 	m_ftdi.usb_write_timeout = iWriteTimeout;
 	m_iUSBStatus = 0;
-#elif defined(USELIBFTDIONE)
-
 #elif defined(USELIBFTD2XX)
 	m_iUSBStatus =  FT_SetTimeouts(m_DeviceHandle, iReadTimeout, iWriteTimeout);
 #endif
@@ -338,7 +327,7 @@ int HostIO_USB::Close()
 
 	m_log->Write(2, "Close");
 
-#if defined(USELIBFTDIZERO)
+#if defined(USELIBFTDIZERO) || defined(USELIBFTDIONE)
 	if (m_ftdiIsOpen)
 	{
 		m_iUSBStatus = ftdi_usb_close(&m_ftdi);
@@ -347,8 +336,6 @@ int HostIO_USB::Close()
 	ftdi_deinit(&m_ftdi);
 	m_iUSBStatus = ftdi_init(&m_ftdi);
 	m_iUSBStatus = -m_iUSBStatus; // Error codes from ftdi are neg, we expect pos
-#elif defined(USELIBFTDIONE)
-
 #elif defined(USELIBFTD2XX)
 	if (m_DeviceHandle != 0)
 		m_iUSBStatus = FT_Close(m_DeviceHandle);
@@ -369,7 +356,7 @@ int HostIO_USB::Write(unsigned char * lpvBuffer, int dwBuffSize, int * lpdwBytes
 	m_log->Write(2, _T("Write %d bytes, Data:"), dwBuffSize);
 	m_log->WriteBuffer(2, lpvBuffer, dwBuffSize, dwBuffSize, 256);
 
-#if defined(USELIBFTDIZERO)
+#if defined(USELIBFTDIZERO) || defined(USELIBFTDIONE)
 	m_iUSBStatus = ftdi_write_data(&m_ftdi, lpvBuffer, dwBuffSize);
 	if (m_iUSBStatus >= 0)
 	{
@@ -381,8 +368,6 @@ int HostIO_USB::Write(unsigned char * lpvBuffer, int dwBuffSize, int * lpdwBytes
 		*lpdwBytes = 0;
 		m_iUSBStatus = -m_iUSBStatus; // Error codes from ftdi are negative, we expect positive
 	}
-#elif defined(USELIBFTDIONE)
-
 #elif defined(USELIBFTD2XX)
 	m_iUSBStatus =  FT_Write(m_DeviceHandle, lpvBuffer, dwBuffSize, (LPDWORD)lpdwBytes);
 #endif
@@ -396,7 +381,7 @@ int HostIO_USB::Read(unsigned char * lpvBuffer, int dwBuffSize, int * lpdwBytesR
 {
 	m_log->Write(2, "Read buffer size: %d bytes", dwBuffSize);
 
-#if defined(USELIBFTDIZERO)
+#if defined(USELIBFTDIZERO) || defined(USELIBFTDIONE)
 	m_iUSBStatus = my_ftdi_read_data(&m_ftdi, lpvBuffer, dwBuffSize);
 	if (m_iUSBStatus > 0)
 	{
@@ -410,8 +395,6 @@ int HostIO_USB::Read(unsigned char * lpvBuffer, int dwBuffSize, int * lpdwBytesR
 		if (m_iUSBStatus == 0) m_iUSBStatus = 4; // read returned with zero bytes.
 		if (m_iUSBStatus == 4) m_log->Write(2, "***USB_Read Timeout***");
 	}
-#elif defined(USELIBFTDIONE)
-
 #elif defined(USELIBFTD2XX)
 	m_iUSBStatus = FT_Read(m_DeviceHandle, lpvBuffer, dwBuffSize, (LPDWORD)lpdwBytesRead);
 #endif
@@ -426,11 +409,9 @@ int HostIO_USB::GetReadQueueStatus(int * lpdwAmountInRxQueue)
 {
 	m_log->Write(2, "GetQueueStatus");
 
-#if defined(USELIBFTDIZERO)
+#if defined(USELIBFTDIZERO) || defined(USELIBFTDIONE)
 	m_iUSBStatus = 0;
 	*lpdwAmountInRxQueue = m_ftdi.readbuffer_remaining;	
-#elif defined(USELIBFTDIONE)
-
 #elif defined(USELIBFTD2XX)
 	m_iUSBStatus = FT_GetQueueStatus(m_DeviceHandle, (DWORD*)lpdwAmountInRxQueue);
 #endif
@@ -444,12 +425,10 @@ int HostIO_USB::GetReadWriteQueueStatus(int * lpdwAmountInRxQueue, int * lpdwAmo
 {
 	m_log->Write(2, "GetStatus of RX TX queues");
 
-#if defined(USELIBFTDIZERO)
+#if defined(USELIBFTDIZERO) || defined(USELIBFTDIONE)
 	m_iUSBStatus = 0;
 	*lpdwAmountInRxQueue = m_ftdi.readbuffer_remaining;
 	*lpdwAmountInTxQueue = 0;	
-#elif defined(USELIBFTDIONE)
-
 #elif defined(USELIBFTD2XX)
 	DWORD dwDummy = 0;  				// Used in place of lpdwEventStatus
 	m_iUSBStatus = FT_GetStatus(m_DeviceHandle, (DWORD*)lpdwAmountInRxQueue, (DWORD*)lpdwAmountInTxQueue, &dwDummy);
@@ -465,11 +444,9 @@ int HostIO_USB::SetLatencyTimer(UCHAR ucTimer)
 {
 	m_log->Write(2, "SetLatencyTimer %0hx", ucTimer);
 
-#if defined(USELIBFTDIZERO)
+#if defined(USELIBFTDIZERO) || defined(USELIBFTDIONE)
 	m_iUSBStatus = ftdi_set_latency_timer(&m_ftdi, ucTimer);
 	m_iUSBStatus = -m_iUSBStatus;
-#elif defined(USELIBFTDIONE)
-
 #elif defined(USELIBFTD2XX)
 	m_iUSBStatus = FT_SetLatencyTimer(m_DeviceHandle, ucTimer);
 #endif
@@ -483,11 +460,9 @@ int HostIO_USB::ResetDevice()
 {
 	m_log->Write(2, "ResetDevice");
 
-#if defined(USELIBFTDIZERO)
+#if defined(USELIBFTDIZERO) || defined(USELIBFTDIONE)
 	m_iUSBStatus = ftdi_usb_reset(&m_ftdi);
 	m_iUSBStatus = -m_iUSBStatus;
-#elif defined(USELIBFTDIONE)
-
 #elif defined(USELIBFTD2XX)
 	m_iUSBStatus = FT_ResetDevice(m_DeviceHandle);
 #endif
@@ -501,11 +476,9 @@ int HostIO_USB::Purge()
 {
 	m_log->Write(2, "Purge() started.");
 
-#if defined(USELIBFTDIZERO)
+#if defined(USELIBFTDIZERO) || defined(USELIBFTDIONE)
 	m_iUSBStatus = ftdi_usb_purge_buffers(&m_ftdi);
 	m_iUSBStatus = -m_iUSBStatus;
-#elif defined(USELIBFTDIONE)
-
 #elif defined(USELIBFTD2XX)
 	int iMask = FT_PURGE_RX | FT_PURGE_TX;
 	m_iUSBStatus = FT_Purge(m_DeviceHandle, iMask);
@@ -520,7 +493,7 @@ int HostIO_USB::SetUSBParameters(DWORD dwInSize, DWORD dwOutSize)
 {
 	m_log->Write(2, "SetUSBParamters %d In Size, %d Out Size", dwInSize, dwOutSize);
 
-#if defined(USELIBFTDIZERO)
+#if defined(USELIBFTDIZERO) || defined(USELIBFTDIONE)
 	m_iUSBStatus = 0;
 	if (dwInSize  != 0) 
 		// m_iUSBStatus = ftdi_read_data_set_chunksize(&m_ftdi, dwInSize);
@@ -528,10 +501,8 @@ int HostIO_USB::SetUSBParameters(DWORD dwInSize, DWORD dwOutSize)
 	if (dwOutSize != 0) 
 		m_iUSBStatus += ftdi_write_data_set_chunksize(&m_ftdi, dwOutSize);
 	m_iUSBStatus = -m_iUSBStatus;
-#elif defined(USELIBFTDIONE)
-
 #elif defined(USELIBFTD2XX)
-	// SetUSBParamters corrupts memory on Fedora 17.  Disable this call
+	// SetUSBParameters corrupts memory on Fedora 17.  Disable this call
 	// and use default setttings.
 	//TODO current release of ftdi dll fails with this call. 
 	//TODO m_iUSBStatus = FT_SetUSBParameters(m_DeviceHandle, dwInSize, dwOutSize);
@@ -568,10 +539,82 @@ int HostIO_USB::SetIOTimeout (IOTimeout ioTimeout)
 	return SetTimeouts (iReadTO, iWriteTO)	;	
 }
 
+int HostIO_USB::MaxBytesPerReadBlock()
+{
+	// Maximum number of pixels (not bytes) to read per block
+	// Limited by ftdi constraints. 62 bytes of real data per packet, 510 for ft2232H
+	// Max is 65536 BYTES total
+	return 510 * 128 / 2;
+}
 
 
+int HostIO_USB::WritePacket(UCHAR * pBuff, int iBuffLen, int * iBytesWritten)
+{
+	return Write(pBuff, iBuffLen, iBytesWritten);
+}
 
-#if defined(USELIBFTDIZERO)
+int HostIO_USB::ReadPacket(UCHAR * pBuff, int iBuffLen, int * iBytesRead)
+{
+	int iStatus;
+	int dwBytesToRead;
+	int dwBytesReturned;
+
+	// Read command and length of Rx packet
+	m_log->Write(2, _T("Read Returned Packet Header, 2 bytes to read."));
+	iStatus = Read(pBuff, PKT_HEAD_LENGTH, &dwBytesReturned);
+	if (iStatus != ALL_OK)
+	{
+		m_log->Write(2, _T("***Read Returned Packet Header Failed. Error code %x"), iStatus);
+		iStatus += ERR_PKT_RxHeaderFailed;
+		goto SendPacketExit;
+	}
+	// Make sure the entire Rx packet header was read
+	if (dwBytesReturned != PKT_HEAD_LENGTH)
+	{
+		m_log->Write(2, _T("***Read Returned Packet Header Failed. Wrong number Bytes returned.  Returned %d Bytes"), dwBytesReturned);
+		iStatus = ERR_PKT_RxHeaderFailed;
+		goto SendPacketExit;
+	}
+	
+	dwBytesToRead = (int)*(pBuff + PKT_LENGTH);
+
+	// Make sure Rx packet isn't greater than allowed
+	if (dwBytesToRead + PKT_HEAD_LENGTH > MAX_PKT_LENGTH)
+	{
+		m_log->Write(2, _T("***Read Returned Packet Header Failed. Packet Too Long, %d, Bytes"), dwBytesToRead + PKT_HEAD_LENGTH);
+		iStatus = ERR_PKT_RxPacketTooLong;
+		goto SendPacketExit;
+	}
+	// Get remaining data of Rx packet
+	m_log->Write(2, _T("Read Remaining Packet Data, %d bytes to read."), dwBytesToRead);
+	iStatus = Read(pBuff + PKT_HEAD_LENGTH, dwBytesToRead, &dwBytesReturned);
+	if (iStatus != ALL_OK)
+	{
+		m_log->Write(2, _T("***Read Remaining Packeted Data Failed. Error Code %x"), iStatus);
+		iStatus += ERR_PKT_RxFailed;
+		goto SendPacketExit;
+	}
+	// Make sure the entire Rx packet was read
+	if (dwBytesReturned == 0)
+	{
+		m_log->Write(2, _T("***Read Remaining Packeted Data Failed. Zero bytes returned."));
+		iStatus = ERR_PKT_RxNone;
+		goto SendPacketExit;
+	}
+
+	*iBytesRead = dwBytesReturned + PKT_HEAD_LENGTH;
+
+SendPacketExit:
+	return iStatus;
+}
+
+IOType HostIO_USB::GetTransferType()
+{
+	return IOType_MultiRow;
+}
+
+
+#if defined(USELIBFTDIZERO) || defined(USELIBFTDIONE)
 
 int HostIO_USB::my_ftdi_read_data(struct ftdi_context *ftdi, unsigned char *buf, int size)
 {
@@ -621,8 +664,6 @@ int HostIO_USB::my_ftdi_read_data(struct ftdi_context *ftdi, unsigned char *buf,
 	}
 	return offset;
 }
-
-#elif defined(USELIBFTDIONE)
 
 #elif defined(USELIBFTD2XX)
 

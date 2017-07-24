@@ -22,17 +22,16 @@
     Version with experimental pulse guide support. GC 04.12.2015
 */
 
-#ifndef CELESTRONDRIVER_H
-#define CELESTRONDRIVER_H
+#pragma once
 
 #include <string>
 
-typedef enum     { GPS_OFF, GPS_ON } CELESTRON_GPS_STATUS;
-typedef enum     { SR_1, SR_2, SR_3, SR_4, SR_5, SR_6, SR_7, SR_8, SR_9} CELESTRON_SLEW_RATE;
-typedef enum     { TRACK_OFF, TRACK_ALTAZ, TRACK_EQN, TRACK_EQS} CELESTRON_TRACK_MODE;
-typedef enum     { RA_AXIS, DEC_AXIS } CELESTRON_AXIS;
-typedef enum     { CELESTRON_N, CELESTRON_S, CELESTRON_W, CELESTRON_E} CELESTRON_DIRECTION;
-typedef enum     { FW_MODEL, FW_VERSION, FW_GPS, FW_RA, FW_DEC } CELESTRON_FIRMWARE;
+typedef enum { GPS_OFF, GPS_ON } CELESTRON_GPS_STATUS;
+typedef enum { SR_1, SR_2, SR_3, SR_4, SR_5, SR_6, SR_7, SR_8, SR_9 } CELESTRON_SLEW_RATE;
+typedef enum { TRACK_OFF, TRACK_ALTAZ, TRACK_EQN, TRACK_EQS } CELESTRON_TRACK_MODE;
+typedef enum { RA_AXIS, DEC_AXIS } CELESTRON_AXIS;
+typedef enum { CELESTRON_N, CELESTRON_S, CELESTRON_W, CELESTRON_E } CELESTRON_DIRECTION;
+typedef enum { FW_MODEL, FW_VERSION, FW_GPS, FW_RA, FW_DEC } CELESTRON_FIRMWARE;
 
 typedef struct
 {
@@ -133,6 +132,4 @@ bool wakeup(int fd);
  Pulse Guide (experimental)
  *************************************************************************/
 int SendPulseCmd(int fd, CELESTRON_DIRECTION direction, signed char rate, unsigned char duration_msec);
-int SendPulseStatusCmd(int fd, CELESTRON_DIRECTION direction, bool & pulse_state);
-
-#endif
+int SendPulseStatusCmd(int fd, CELESTRON_DIRECTION direction, bool &pulse_state);

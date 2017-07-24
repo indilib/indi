@@ -19,9 +19,14 @@
   The full GNU General Public License is included in this distribution in the
   file called LICENSE.
 *******************************************************************************/
+
 #include "gpusb.h"
+
 #include "gpdriver.h"
+
 #include <memory>
+#include <string.h>
+#include <unistd.h>
 
 #define POLLMS 250
 
@@ -30,36 +35,37 @@ std::unique_ptr<GPUSB> gpGuide(new GPUSB());
 
 void ISGetProperties(const char *dev)
 {
-        gpGuide->ISGetProperties(dev);
+    gpGuide->ISGetProperties(dev);
 }
 
 void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int num)
 {
-        gpGuide->ISNewSwitch(dev, name, states, names, num);
+    gpGuide->ISNewSwitch(dev, name, states, names, num);
 }
 
-void ISNewText(	const char *dev, const char *name, char *texts[], char *names[], int num)
+void ISNewText(const char *dev, const char *name, char *texts[], char *names[], int num)
 {
-        gpGuide->ISNewText(dev, name, texts, names, num);
+    gpGuide->ISNewText(dev, name, texts, names, num);
 }
 
 void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int num)
 {
-        gpGuide->ISNewNumber(dev, name, values, names, num);
+    gpGuide->ISNewNumber(dev, name, values, names, num);
 }
 
-void ISNewBLOB (const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[], char *names[], int n)
+void ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[],
+               char *names[], int n)
 {
-  INDI_UNUSED(dev);
-  INDI_UNUSED(name);
-  INDI_UNUSED(sizes);
-  INDI_UNUSED(blobsizes);
-  INDI_UNUSED(blobs);
-  INDI_UNUSED(formats);
-  INDI_UNUSED(names);
-  INDI_UNUSED(n);
+    INDI_UNUSED(dev);
+    INDI_UNUSED(name);
+    INDI_UNUSED(sizes);
+    INDI_UNUSED(blobsizes);
+    INDI_UNUSED(blobs);
+    INDI_UNUSED(formats);
+    INDI_UNUSED(names);
+    INDI_UNUSED(n);
 }
-void ISSnoopDevice (XMLEle *root)
+void ISSnoopDevice(XMLEle *root)
 {
     INDI_UNUSED(root);
 }
@@ -69,7 +75,7 @@ GPUSB::GPUSB()
     driver = new GPUSBDriver();
     WEDir = NSDir = 0;
     InWEPulse = InNSPulse = false;
-    WEPulseRequest = NSPulseRequest =0;
+    WEPulseRequest = NSPulseRequest = 0;
     WEtimerID = NStimerID = 0;
 }
 
@@ -78,11 +84,9 @@ GPUSB::~GPUSB()
     //dtor
 
     delete (driver);
-
 }
 
-
-const char * GPUSB::getDefaultName()
+const char *GPUSB::getDefaultName()
 {
     return (char *)"GPUSB";
 }
@@ -99,7 +103,6 @@ bool GPUSB::Connect()
         IDMessage(getDeviceName(), "Error: cannot find GPUSB device.");
 
     return rc;
-    
 }
 
 bool GPUSB::Disconnect()
@@ -120,7 +123,6 @@ bool GPUSB::initProperties()
 
 bool GPUSB::updateProperties()
 {
-
     INDI::DefaultDevice::updateProperties();
 
     if (isConnected())
@@ -135,19 +137,18 @@ bool GPUSB::updateProperties()
     }
 
     return true;
-
 }
 
-void GPUSB::ISGetProperties (const char *dev)
+void GPUSB::ISGetProperties(const char *dev)
 {
     INDI::DefaultDevice::ISGetProperties(dev);
 }
 
-bool GPUSB::ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n)
+bool GPUSB::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
 {
-    if(strcmp(dev,getDeviceName())==0)
+    if (strcmp(dev, getDeviceName()) == 0)
     {
-        if (!strcmp(name,GuideNSNP.name) || !strcmp(name,GuideWENP.name))
+        if (!strcmp(name, GuideNSNP.name) || !strcmp(name, GuideWENP.name))
         {
             processGuiderProperties(name, values, names, n);
             return true;
@@ -157,17 +158,17 @@ bool GPUSB::ISNewNumber (const char *dev, const char *name, double values[], cha
     return INDI::DefaultDevice::ISNewNumber(dev, name, values, names, n);
 }
 
-bool GPUSB::ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n)
+bool GPUSB::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
 {
     return INDI::DefaultDevice::ISNewSwitch(dev, name, states, names, n);
 }
 
-bool GPUSB::ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n)
+bool GPUSB::ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
 {
     return INDI::DefaultDevice::ISNewText(dev, name, texts, names, n);
 }
 
-bool GPUSB::ISSnoopDevice (XMLEle *root)
+bool GPUSB::ISSnoopDevice(XMLEle *root)
 {
     return INDI::DefaultDevice::ISSnoopDevice(root);
 }
@@ -182,13 +183,13 @@ float GPUSB::CalcWEPulseTimeLeft()
     double timesince;
     double timeleft;
     struct timeval now;
-    gettimeofday(&now,NULL);
+    gettimeofday(&now, nullptr);
 
-    timesince=(double)(now.tv_sec * 1000.0 + now.tv_usec/1000) - (double)(WEPulseStart.tv_sec * 1000.0 + WEPulseStart.tv_usec/1000);
-    timesince=timesince/1000;
+    timesince = (double)(now.tv_sec * 1000.0 + now.tv_usec / 1000) -
+                (double)(WEPulseStart.tv_sec * 1000.0 + WEPulseStart.tv_usec / 1000);
+    timesince = timesince / 1000;
 
-
-    timeleft=WEPulseRequest-timesince;
+    timeleft = WEPulseRequest - timesince;
     return timeleft;
 }
 
@@ -197,50 +198,50 @@ float GPUSB::CalcNSPulseTimeLeft()
     double timesince;
     double timeleft;
     struct timeval now;
-    gettimeofday(&now,NULL);
+    gettimeofday(&now, nullptr);
 
-    timesince=(double)(now.tv_sec * 1000.0 + now.tv_usec/1000) - (double)(NSPulseStart.tv_sec * 1000.0 + NSPulseStart.tv_usec/1000);
-    timesince=timesince/1000;
+    timesince = (double)(now.tv_sec * 1000.0 + now.tv_usec / 1000) -
+                (double)(NSPulseStart.tv_sec * 1000.0 + NSPulseStart.tv_usec / 1000);
+    timesince = timesince / 1000;
 
-
-    timeleft=NSPulseRequest-timesince;
+    timeleft = NSPulseRequest - timesince;
     return timeleft;
 }
-
 
 void GPUSB::TimerHit()
 {
     float timeleft;
 
-    if(InWEPulse)
+    if (InWEPulse)
     {
-        timeleft=CalcWEPulseTimeLeft();
+        timeleft = CalcWEPulseTimeLeft();
 
-        if(timeleft < 1.0)
+        if (timeleft < 1.0)
         {
-            if(timeleft > 0.25)
+            if (timeleft > 0.25)
             {
                 //  a quarter of a second or more
                 //  just set a tighter timer
                 WEtimerID = SetTimer(250);
-            } else
+            }
+            else
             {
-                if(timeleft >0.07)
+                if (timeleft > 0.07)
                 {
                     //  use an even tighter timer
                     WEtimerID = SetTimer(50);
-                } else
+                }
+                else
                 {
                     //  it's real close now, so spin on it
-                    while(timeleft > 0)
+                    while (timeleft > 0)
                     {
                         int slv;
-                        slv=100000*timeleft;
+                        slv = 100000 * timeleft;
                         //IDLog("usleep %d\n",slv);
                         usleep(slv);
-                        timeleft=CalcWEPulseTimeLeft();
+                        timeleft = CalcWEPulseTimeLeft();
                     }
-
 
                     driver->stopPulse(WEDir);
                     InWEPulse = false;
@@ -248,61 +249,61 @@ void GPUSB::TimerHit()
                     // If we have another pulse, keep going
                     if (!InNSPulse)
                         SetTimer(250);
-
                 }
             }
-        } else if (!InNSPulse)
+        }
+        else if (!InNSPulse)
         {
             WEtimerID = SetTimer(250);
         }
     }
 
-    if(InNSPulse)
+    if (InNSPulse)
     {
-        timeleft=CalcNSPulseTimeLeft();
+        timeleft = CalcNSPulseTimeLeft();
 
-        if(timeleft < 1.0)
+        if (timeleft < 1.0)
         {
-            if(timeleft > 0.25)
+            if (timeleft > 0.25)
             {
                 //  a quarter of a second or more
                 //  just set a tighter timer
-                NStimerID =  SetTimer(250);
-            } else
+                NStimerID = SetTimer(250);
+            }
+            else
             {
-                if(timeleft >0.07)
+                if (timeleft > 0.07)
                 {
                     //  use an even tighter timer
                     NStimerID = SetTimer(50);
-                } else
+                }
+                else
                 {
                     //  it's real close now, so spin on it
-                    while(timeleft > 0)
+                    while (timeleft > 0)
                     {
                         int slv;
-                        slv=100000*timeleft;
+                        slv = 100000 * timeleft;
                         //IDLog("usleep %d\n",slv);
                         usleep(slv);
-                        timeleft=CalcNSPulseTimeLeft();
+                        timeleft = CalcNSPulseTimeLeft();
                     }
 
                     driver->stopPulse(NSDir);
                     InNSPulse = false;
                 }
             }
-        } else
+        }
+        else
         {
             NStimerID = SetTimer(250);
         }
     }
-
 }
 
 IPState GPUSB::GuideNorth(float ms)
 {
-
     RemoveTimer(NStimerID);
-
 
     driver->startPulse(GPUSB_NORTH);
 
@@ -312,19 +313,17 @@ IPState GPUSB::GuideNorth(float ms)
 
     if (ms <= POLLMS)
     {
-
-        usleep(ms*1000);
+        usleep(ms * 1000);
 
         driver->stopPulse(GPUSB_NORTH);
         return IPS_OK;
     }
 
-    NSPulseRequest=ms/1000.0;
-    gettimeofday(&NSPulseStart,NULL);
-    InNSPulse=true;
+    NSPulseRequest = ms / 1000.0;
+    gettimeofday(&NSPulseStart, nullptr);
+    InNSPulse = true;
 
-
-    NStimerID = SetTimer(ms-50);
+    NStimerID = SetTimer(ms - 50);
 
     return IPS_BUSY;
 }
@@ -341,19 +340,17 @@ IPState GPUSB::GuideSouth(float ms)
 
     if (ms <= POLLMS)
     {
-
-        usleep(ms*1000);
+        usleep(ms * 1000);
 
         driver->stopPulse(GPUSB_SOUTH);
         return IPS_OK;
     }
 
-    NSPulseRequest=ms/1000.0;
-    gettimeofday(&NSPulseStart,NULL);
-    InNSPulse=true;
+    NSPulseRequest = ms / 1000.0;
+    gettimeofday(&NSPulseStart, nullptr);
+    InNSPulse = true;
 
-
-    NStimerID = SetTimer(ms-50);
+    NStimerID = SetTimer(ms - 50);
 
     return IPS_BUSY;
 }
@@ -370,25 +367,23 @@ IPState GPUSB::GuideEast(float ms)
 
     if (ms <= POLLMS)
     {
-
-        usleep(ms*1000);
+        usleep(ms * 1000);
 
         driver->stopPulse(GPUSB_EAST);
         return IPS_OK;
     }
 
-    WEPulseRequest=ms/1000.0;
-    gettimeofday(&WEPulseStart,NULL);
-    InWEPulse=true;
+    WEPulseRequest = ms / 1000.0;
+    gettimeofday(&WEPulseStart, nullptr);
+    InWEPulse = true;
 
-    WEtimerID = SetTimer(ms-50);
+    WEtimerID = SetTimer(ms - 50);
 
     return IPS_BUSY;
 }
 
 IPState GPUSB::GuideWest(float ms)
 {
-
     RemoveTimer(WEtimerID);
 
     driver->startPulse(GPUSB_WEST);
@@ -399,20 +394,17 @@ IPState GPUSB::GuideWest(float ms)
 
     if (ms <= POLLMS)
     {
-
-        usleep(ms*1000);
+        usleep(ms * 1000);
 
         driver->stopPulse(GPUSB_WEST);
         return IPS_OK;
     }
 
-    WEPulseRequest=ms/1000.0;
-    gettimeofday(&WEPulseStart,NULL);
-    InWEPulse=true;
+    WEPulseRequest = ms / 1000.0;
+    gettimeofday(&WEPulseStart, nullptr);
+    InWEPulse = true;
 
-
-    WEtimerID = SetTimer(ms-50);
+    WEtimerID = SetTimer(ms - 50);
 
     return IPS_BUSY;
-
 }

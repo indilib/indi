@@ -16,56 +16,44 @@
  Boston, MA 02110-1301, USA.
 *******************************************************************************/
 
-#ifndef RollOff_H
-#define RollOff_H
+#pragma once
 
-#include "indibase/indidome.h"
-
-/*  Some headers we need */
-#include <math.h>
-#include <sys/time.h>
-
+#include "indidome.h"
 
 class RollOff : public INDI::Dome
 {
+  public:
+    RollOff();
+    virtual ~RollOff();
 
-    public:
-        RollOff();
-        virtual ~RollOff();
+    virtual bool initProperties();
+    const char *getDefaultName();
+    bool updateProperties();
+    virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n);
+    virtual bool saveConfigItems(FILE *fp);
+    virtual bool ISSnoopDevice(XMLEle *root);
 
-        virtual bool initProperties();
-        const char *getDefaultName();
-        bool updateProperties();
-		virtual bool ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n);
-		virtual bool saveConfigItems(FILE *fp);
-        virtual bool ISSnoopDevice (XMLEle *root);
+  protected:
+    bool Connect();
+    bool Disconnect();
 
-      protected:
+    void TimerHit();
 
-        bool Connect();
-        bool Disconnect();
+    virtual IPState Move(DomeDirection dir, DomeMotionCommand operation);
+    virtual IPState Park();
+    virtual IPState UnPark();
+    virtual bool Abort();
 
-        void TimerHit();
-        
-        virtual IPState Move(DomeDirection dir, DomeMotionCommand operation);
-        virtual IPState Park();
-        virtual IPState UnPark();                
-        virtual bool Abort();
+    virtual bool getFullOpenedLimitSwitch();
+    virtual bool getFullClosedLimitSwitch();
 
-        virtual bool getFullOpenedLimitSwitch();
-        virtual bool getFullClosedLimitSwitch();
-        
-    private:
+  private:
+    ISState fullOpenLimitSwitch;
+    ISState fullClosedLimitSwitch;
 
-        ISState fullOpenLimitSwitch;
-        ISState fullClosedLimitSwitch;
-        
-        double MotionRequest;
-        struct timeval MotionStart;
-        bool SetupParms();
-        
-        float CalcTimeLeft(timeval);
+    double MotionRequest;
+    struct timeval MotionStart;
+    bool SetupParms();
 
+    float CalcTimeLeft(timeval);
 };
-
-#endif

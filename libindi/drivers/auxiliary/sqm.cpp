@@ -22,27 +22,21 @@
   file called LICENSE.
 *******************************************************************************/
 
-#include <stdlib.h>
-#include <stdio.h>
+#include "sqm.h"
+
+#include "connectionplugins/connectiontcp.h"
+
+#include <errno.h>
+#include <memory>
 #include <string.h>
 #include <unistd.h>
-#include <memory>
-#include <sys/ioctl.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <netdb.h>
-#include <fcntl.h>
-
-#include "sqm.h"
-#include "connectionplugins/connectiontcp.h"
 
 // We declare an auto pointer to SQM.
 std::unique_ptr<SQM> sqm(new SQM());
 
-#define UNIT_TAB        "Unit"
-#define SQM_TIMEOUT     3
-#define POLLMS          1000
+#define UNIT_TAB    "Unit"
+#define SQM_TIMEOUT 3
+#define POLLMS      1000
 
 void ISGetProperties(const char *dev)
 {
@@ -54,7 +48,7 @@ void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names
     sqm->ISNewSwitch(dev, name, states, names, num);
 }
 
-void ISNewText(	const char *dev, const char *name, char *texts[], char *names[], int num)
+void ISNewText(const char *dev, const char *name, char *texts[], char *names[], int num)
 {
     sqm->ISNewText(dev, name, texts, names, num);
 }
@@ -64,7 +58,8 @@ void ISNewNumber(const char *dev, const char *name, double values[], char *names
     sqm->ISNewNumber(dev, name, values, names, num);
 }
 
-void ISNewBLOB (const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[], char *names[], int n)
+void ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[],
+               char *names[], int n)
 {
     INDI_UNUSED(dev);
     INDI_UNUSED(name);
@@ -75,19 +70,18 @@ void ISNewBLOB (const char *dev, const char *name, int sizes[], int blobsizes[],
     INDI_UNUSED(names);
     INDI_UNUSED(n);
 }
-void ISSnoopDevice (XMLEle *root)
+void ISSnoopDevice(XMLEle *root)
 {
     sqm->ISSnoopDevice(root);
 }
 
 SQM::SQM()
 {
-    setVersion(1,0);    
+    setVersion(1, 0);
 }
 
 SQM::~SQM()
 {
-
 }
 
 bool SQM::initProperties()
@@ -100,7 +94,8 @@ bool SQM::initProperties()
     IUFillNumber(&AverageReadingN[2], "SENSOR_COUNTS", "Period (counts)", "%6.2f", 0, 1000000, 0, 0);
     IUFillNumber(&AverageReadingN[3], "SENSOR_PERIOD", "Period (s)", "%6.2f", 0, 1000000, 0, 0);
     IUFillNumber(&AverageReadingN[4], "SKY_TEMPERATURE", "Temperature (C)", "%6.2f", -50, 80, 0, 0);
-    IUFillNumberVector(&AverageReadingNP, AverageReadingN, 5, getDeviceName(), "SKY_QUALITY", "Readings", MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE);
+    IUFillNumberVector(&AverageReadingNP, AverageReadingN, 5, getDeviceName(), "SKY_QUALITY", "Readings",
+                       MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE);
 
     // Unit Info
     IUFillNumber(&UnitInfoN[0], "Protocol", "", "%.f", 0, 1000000, 0, 0);
@@ -143,9 +138,9 @@ bool SQM::updateProperties()
 }
 
 bool SQM::getReadings()
-{        
+{
     const char *cmd = "rx";
-    char buffer[57];
+    char buffer[57]={0};
 
     DEBUGF(INDI::Logger::DBG_DEBUG, "CMD: %s", cmd);
 
@@ -161,7 +156,7 @@ bool SQM::getReadings()
 
     while (received < 57)
     {
-        ssize_t response = read(PortFD, buffer+received, 57-received);
+        ssize_t response = read(PortFD, buffer + received, 57 - received);
         if (response < 0)
         {
             DEBUGF(INDI::Logger::DBG_ERROR, "Error getting device readings: %s", strerror(errno));
@@ -179,9 +174,10 @@ bool SQM::getReadings()
 
     DEBUGF(INDI::Logger::DBG_DEBUG, "RES: %s", buffer);
 
-    float mpsas,period_seconds,temperature;
+    float mpsas, period_seconds, temperature;
     int frequency, period_counts;
-    int rc = sscanf(buffer, "r,%fm,%dHz,%dc,%fs,%fC", &mpsas, &frequency, &period_counts, &period_seconds, &temperature);
+    int rc =
+        sscanf(buffer, "r,%fm,%dHz,%dc,%fs,%fC", &mpsas, &frequency, &period_counts, &period_seconds, &temperature);
 
     if (rc < 5)
     {
@@ -198,7 +194,7 @@ bool SQM::getReadings()
     return true;
 }
 
-const char * SQM::getDefaultName()
+const char *SQM::getDefaultName()
 {
     return (char *)"SQM";
 }
@@ -206,7 +202,7 @@ const char * SQM::getDefaultName()
 bool SQM::getDeviceInfo()
 {
     const char *cmd = "ix";
-    char buffer[39];
+    char buffer[39]={0};
 
     PortFD = tcpConnection->getPortFD();
 
@@ -224,7 +220,7 @@ bool SQM::getDeviceInfo()
 
     while (received < 39)
     {
-        ssize_t response = read(PortFD, buffer+received, 39-received);
+        ssize_t response = read(PortFD, buffer + received, 39 - received);
         if (response < 0)
         {
             DEBUGF(INDI::Logger::DBG_ERROR, "Error getting device info: %s", strerror(errno));
@@ -267,7 +263,7 @@ void SQM::TimerHit()
     bool rc = getReadings();
 
     AverageReadingNP.s = rc ? IPS_OK : IPS_ALERT;
-    IDSetNumber(&AverageReadingNP, NULL);
+    IDSetNumber(&AverageReadingNP, nullptr);
 
     SetTimer(POLLMS);
 }

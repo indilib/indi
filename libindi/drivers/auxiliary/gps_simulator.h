@@ -22,26 +22,21 @@
   file called LICENSE.
 *******************************************************************************/
 
-#ifndef GPSSIMULATOR_H
-#define GPSSIMULATOR_H
+#pragma once
 
 #include "indigps.h"
 
 class GPSSimulator : public INDI::GPS
 {
-    public:
+  public:
     GPSSimulator();
     virtual ~GPSSimulator();
 
-    protected:
-
+  protected:
     //  Generic indi device entries
     bool Connect();
     bool Disconnect();
     const char *getDefaultName();
 
     IPState updateGPS();
-
 };
-
-#endif // GPSSIMULATOR_H

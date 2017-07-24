@@ -22,36 +22,35 @@
   file called LICENSE.
 *******************************************************************************/
 
-#ifndef FLIPFLAT_H
-#define FLIPFLAT_H
+#pragma once
 
 #include "defaultdevice.h"
 #include "indilightboxinterface.h"
 #include "indidustcapinterface.h"
 
+#include <stdint.h>
+
 namespace Connection
 {
-    class Serial;
+class Serial;
 }
 
 class FlipFlat : public INDI::DefaultDevice, public INDI::LightBoxInterface, public INDI::DustCapInterface
 {
-    public:
-
+  public:
     FlipFlat();
     virtual ~FlipFlat();
 
     virtual bool initProperties();
-    virtual void ISGetProperties (const char *dev);
+    virtual void ISGetProperties(const char *dev);
     virtual bool updateProperties();
 
-    virtual bool ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n);
-    virtual bool ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n);
-    virtual bool ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n);
-    virtual bool ISSnoopDevice (XMLEle *root);
+    virtual bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n);
+    virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n);
+    virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n);
+    virtual bool ISSnoopDevice(XMLEle *root);
 
-    protected:
-
+  protected:
     const char *getDefaultName();
 
     virtual bool saveConfigItems(FILE *fp);
@@ -65,8 +64,7 @@ class FlipFlat : public INDI::DefaultDevice, public INDI::LightBoxInterface, pub
     virtual bool SetLightBoxBrightness(uint16_t value);
     virtual bool EnableLightBox(bool enable);
 
-private:
-
+  private:
     bool getStartupData();
     bool ping();
     bool getStatus();
@@ -83,13 +81,11 @@ private:
     ITextVectorProperty FirmwareTP;
     IText FirmwareT[1];
 
-    int PortFD=-1;
+    int PortFD = -1;
     int productID;
     bool isFlipFlat;
-    uint8_t simulationWorkCounter=0;
+    uint8_t simulationWorkCounter = 0;
     uint8_t prevCoverStatus, prevLightStatus, prevMotorStatus, prevBrightness;
 
-    Connection::Serial *serialConnection=NULL;
+    Connection::Serial *serialConnection = NULL;
 };
-
-#endif

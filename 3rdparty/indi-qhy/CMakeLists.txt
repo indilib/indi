@@ -1,10 +1,6 @@
 cmake_minimum_required(VERSION 2.8)
 PROJECT(indi_qhy CXX C)
 
-if (NOT WIN32 AND NOT ANDROID)
-set(CMAKE_CXX_FLAGS "-std=c++11 ${CMAKE_CXX_FLAGS}")
-endif(NOT WIN32 AND NOT ANDROID)
-
 LIST(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake_modules/")
 LIST(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/../../cmake_modules/")
 include(GNUInstallDirs)
@@ -28,18 +24,20 @@ include_directories( ${INDI_INCLUDE_DIR})
 include_directories( ${CFITSIO_INCLUDE_DIR})
 include_directories( ${QHY_INCLUDE_DIR})
 
+include(CMakeCommon)
+
 ########### QHY CCD ###########
 
-if(APPLE)
-set(indiqhy_SRCS
-   ${CMAKE_CURRENT_SOURCE_DIR}/qhy_ccd.cpp
-   ${CMAKE_CURRENT_SOURCE_DIR}/qhy_fw.cpp
-   )
-else()
-set(indiqhy_SRCS
-   ${CMAKE_CURRENT_SOURCE_DIR}/qhy_ccd.cpp
-   )
-endif(APPLE)
+IF (APPLE)
+    SET(indiqhy_SRCS
+        ${CMAKE_CURRENT_SOURCE_DIR}/qhy_ccd.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/qhy_fw.cpp)
+ELSE ()
+    SET(indiqhy_SRCS
+        ${CMAKE_CURRENT_SOURCE_DIR}/qhy_ccd.cpp)
+    # Force linking all referenced libraries because the recent libqhy versions are not linked against libpthread
+    SET(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,--no-as-needed")
+ENDIF ()
 
 add_executable(indi_qhy_ccd ${indiqhy_SRCS})
 

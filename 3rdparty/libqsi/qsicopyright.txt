@@ -1,5 +1,5 @@
 
-Copyright (C) 2006-2011
+Copyright (C) 2006-2017
 Quantum Scientific Imaging Inc.
 12 Coteau Dr., Poplarville, MS 39470 USA
 www.qsimaging.com        

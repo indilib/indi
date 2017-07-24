@@ -28,48 +28,48 @@
 
 TEST(CORE_BASE64, Test_to64frombits)
 {
-	int len = 0, size = sizeof("FOOBARBAZ")-1 * 4 / 3+4 + 1;
-	const unsigned char convert[] = "FOOBARBAZ";
-	unsigned char* p_outbuf = NULL;
+    int len = 0, size = sizeof("FOOBARBAZ") - 1 * 4 / 3 + 4 + 1;
+    const unsigned char convert[] = "FOOBARBAZ";
+    unsigned char *p_outbuf       = nullptr;
 
-	p_outbuf = (unsigned char*)calloc(1, size);
-	ASSERT_TRUE(p_outbuf);	
+    p_outbuf = (unsigned char *)calloc(1, size);
+    ASSERT_TRUE(p_outbuf);
 
-	len = to64frombits(p_outbuf, convert, sizeof(convert)-1);
-	ASSERT_EQ(sizeof("Rk9PQkFSQkFa")-1, len);
-	ASSERT_STREQ("Rk9PQkFSQkFa", (const char*)p_outbuf);
+    len = to64frombits(p_outbuf, convert, sizeof(convert) - 1);
+    ASSERT_EQ(sizeof("Rk9PQkFSQkFa") - 1, len);
+    ASSERT_STREQ("Rk9PQkFSQkFa", (const char *)p_outbuf);
 
-	free(p_outbuf);
+    free(p_outbuf);
 }
 
 TEST(CORE_BASE64, Test_from64tobits)
 {
-	int len = 0, size = sizeof("Rk9PQkFSQkFa")-1 * 3 / 4 + 1;
-	const char convert[] = "Rk9PQkFSQkFa";
-	char* p_outbuf = NULL;
+    int len = 0, size = sizeof("Rk9PQkFSQkFa") - 1 * 3 / 4 + 1;
+    const char convert[] = "Rk9PQkFSQkFa";
+    char *p_outbuf       = nullptr;
 
-	p_outbuf = (char*)calloc(1, size);
-	ASSERT_TRUE(p_outbuf);	
+    p_outbuf = (char *)calloc(1, size);
+    ASSERT_TRUE(p_outbuf);
 
-	len = from64tobits(p_outbuf, convert);
-	ASSERT_EQ(sizeof("FOOBARBAZ")-1, len);
-	ASSERT_STREQ("FOOBARBAZ", (char*)p_outbuf);
+    len = from64tobits(p_outbuf, convert);
+    ASSERT_EQ(sizeof("FOOBARBAZ") - 1, len);
+    ASSERT_STREQ("FOOBARBAZ", (char *)p_outbuf);
 
-	free(p_outbuf);
+    free(p_outbuf);
 }
 
 TEST(CORE_BASE64, Test_from64tobits_fast)
 {
-	int len = 0, size = sizeof("Rk9PQkFSQkFa")-1 * 3 / 4 + 1;
-	const char convert[] = "Rk9PQkFSQkFa";
-	char* p_outbuf = NULL;
+    int len = 0, size = sizeof("Rk9PQkFSQkFa") - 1 * 3 / 4 + 1;
+    const char convert[] = "Rk9PQkFSQkFa";
+    char *p_outbuf       = nullptr;
 
-	p_outbuf = (char*)calloc(1, size);
-	ASSERT_TRUE(p_outbuf);
+    p_outbuf = (char *)calloc(1, size);
+    ASSERT_TRUE(p_outbuf);
 
-	len = from64tobits_fast(p_outbuf, convert, strlen(convert));
-	ASSERT_EQ(sizeof("FOOBARBAZ")-1, len);
-	ASSERT_STREQ("FOOBARBAZ", (char*)p_outbuf);
+    len = from64tobits_fast(p_outbuf, convert, strlen(convert));
+    ASSERT_EQ(sizeof("FOOBARBAZ") - 1, len);
+    ASSERT_STREQ("FOOBARBAZ", (char *)p_outbuf);
 
-	free(p_outbuf);
+    free(p_outbuf);
 }

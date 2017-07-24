@@ -4,7 +4,7 @@
 
    "Hello INDI"
 
-   We construct a most basic (and useless) device driver to illustate INDI.
+   We construct a most basic (and useless) device driver to illustrate INDI.
 
    Refer to README, which contains instruction on how to build this driver, and use it
    with an INDI-compatible client.
@@ -19,48 +19,49 @@
     A very minimal device! It also allows you to connect/disconnect and performs no other functions.
 */
 
-#include <memory>
-
 #include "simpledevice.h"
+
+#include <memory>
 
 std::unique_ptr<SimpleDevice> simpleDevice(new SimpleDevice());
 
 /**************************************************************************************
 ** Return properties of device.
 ***************************************************************************************/
-void ISGetProperties (const char *dev)
+void ISGetProperties(const char *dev)
 {
- simpleDevice->ISGetProperties(dev);
+    simpleDevice->ISGetProperties(dev);
 }
 
 /**************************************************************************************
 ** Process new switch from client
 ***************************************************************************************/
-void ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n)
+void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
 {
- simpleDevice->ISNewSwitch(dev, name, states, names, n);
+    simpleDevice->ISNewSwitch(dev, name, states, names, n);
 }
 
 /**************************************************************************************
 ** Process new text from client
 ***************************************************************************************/
-void ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n)
+void ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
 {
- simpleDevice->ISNewText(dev, name, texts, names, n);
+    simpleDevice->ISNewText(dev, name, texts, names, n);
 }
 
 /**************************************************************************************
 ** Process new number from client
 ***************************************************************************************/
-void ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n)
+void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
 {
- simpleDevice->ISNewNumber(dev, name, values, names, n);
+    simpleDevice->ISNewNumber(dev, name, values, names, n);
 }
 
 /**************************************************************************************
 ** Process new blob from client
 ***************************************************************************************/
-void ISNewBLOB (const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[], char *names[], int n)
+void ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[],
+               char *names[], int n)
 {
     simpleDevice->ISNewBLOB(dev, name, sizes, blobsizes, blobs, formats, names, n);
 }
@@ -68,9 +69,9 @@ void ISNewBLOB (const char *dev, const char *name, int sizes[], int blobsizes[],
 /**************************************************************************************
 ** Process snooped property from another driver
 ***************************************************************************************/
-void ISSnoopDevice (XMLEle *root)
+void ISSnoopDevice(XMLEle *root)
 {
-  INDI_UNUSED(root);
+    INDI_UNUSED(root);
 }
 
 SimpleDevice::SimpleDevice()
@@ -98,7 +99,7 @@ bool SimpleDevice::Disconnect()
 /**************************************************************************************
 ** INDI is asking us for our default device name
 ***************************************************************************************/
-const char * SimpleDevice::getDefaultName()
+const char *SimpleDevice::getDefaultName()
 {
     return "Simple Device";
 }

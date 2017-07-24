@@ -3,7 +3,7 @@
 <devGroup group="Aux">
     <device label="Lacerta MGen Autoguider">
         <driver name="MGen Autoguider">indi_mgenautoguider</driver>
-        <version>0.1</version>
+        <version>0.2</version>
     </device>
 </devGroup>
 </driversList>

@@ -20,27 +20,16 @@
   file called LICENSE.
 *******************************************************************************/
 
-#include <stdio.h>
-#include <errno.h>
-#include <time.h>
-#include <string.h>
-#include <sys/time.h>
-#include <sys/types.h>
-#include <unistd.h>
-#include <sys/stat.h>
-#include <sys/ioctl.h>
-#include <fcntl.h>
-
-#ifdef HAVE_CONFIG_H
-#include <config.h>
-#endif
+#include "STAR2kdriver.h"
 
 #ifndef _WIN32
 #include <termios.h>
 #endif
 
-#include <math.h>
-#include "STAR2kdriver.h"
+#include <stdio.h>
+#include <sys/time.h>
+#include <unistd.h>
+#include <fcntl.h>
 
 /* STAR2000 RS232 box control functions */
 
@@ -49,7 +38,6 @@ void DisconnectSTAR2k(void);
 
 void StartPulse(int direction);
 void StopPulse(int direction);
-
 
 /* Serial communication utilities (taken from celestronprotocol.c) */
 
@@ -64,57 +52,54 @@ static int STAR2kConnectFlag = 0;
 
 static char STAR2kOpStat = 0;
 
-
 /************************* STAR2000 control functions *************************/
 
 int ConnectSTAR2k(char *port)
 {
 #ifdef _WIN32
-  return(-1);
+    return (-1);
 #else
-  struct termios tty;
-  char returnStr[128];
-  int numRead;
+    struct termios tty;
 
-  char initCmd[] = { 0x0D, 0x00 };
+    char initCmd[] = { 0x0D, 0x00 };
 
-  fprintf(stderr, "Connecting to port: %s\n",port);
+    fprintf(stderr, "Connecting to port: %s\n", port);
 
-  if(STAR2kConnectFlag != 0)
-    return(0);
+    if (STAR2kConnectFlag != 0)
+        return (0);
 
-  /* Make the connection */
+    /* Make the connection */
 
-  STAR2kPortFD = open(port,O_RDWR);
-  if(STAR2kPortFD == -1)
-    return(-1);
+    STAR2kPortFD = open(port, O_RDWR);
+    if (STAR2kPortFD == -1)
+        return (-1);
 
-  tcgetattr(STAR2kPortFD,&tty);
-  cfsetospeed(&tty, (speed_t) B9600);
-  cfsetispeed(&tty, (speed_t) B9600);
-  tty.c_cflag = (tty.c_cflag & ~CSIZE) | CS8;
-  tty.c_iflag =  IGNBRK;
-  tty.c_lflag = 0;
-  tty.c_oflag = 0;
-  tty.c_cflag |= CLOCAL | CREAD;
-  tty.c_cc[VMIN] = 1;
-  tty.c_cc[VTIME] = 5;
-  tty.c_iflag &= ~(IXON|IXOFF|IXANY);
-  tty.c_cflag &= ~(PARENB | PARODD);
-  tcsetattr(STAR2kPortFD, TCSANOW, &tty);
+    tcgetattr(STAR2kPortFD, &tty);
+    cfsetospeed(&tty, (speed_t)B9600);
+    cfsetispeed(&tty, (speed_t)B9600);
+    tty.c_cflag = (tty.c_cflag & ~CSIZE) | CS8;
+    tty.c_iflag = IGNBRK;
+    tty.c_lflag = 0;
+    tty.c_oflag = 0;
+    tty.c_cflag |= CLOCAL | CREAD;
+    tty.c_cc[VMIN]  = 1;
+    tty.c_cc[VTIME] = 5;
+    tty.c_iflag &= ~(IXON | IXOFF | IXANY);
+    tty.c_cflag &= ~(PARENB | PARODD);
+    tcsetattr(STAR2kPortFD, TCSANOW, &tty);
 
-  /* Flush the input (read) buffer */
+    /* Flush the input (read) buffer */
 
-  tcflush(STAR2kPortFD,TCIOFLUSH);
+    tcflush(STAR2kPortFD, TCIOFLUSH);
 
-  /* initialize connection */
+    /* initialize connection */
 
-  usleep(500000);
-  writen(STAR2kPortFD,initCmd,2);
+    usleep(500000);
+    writen(STAR2kPortFD, initCmd, 2);
 
-  STAR2kOpStat = 0;
+    STAR2kOpStat = 0;
 
-  return(0);
+    return (0);
 #endif
 }
 
@@ -123,83 +108,77 @@ int ConnectSTAR2k(char *port)
 
 void StartPulse(int direction)
 {
+    if (direction == NORTH)
+    {
+        STAR2kOpStat |= S2K_NORTH_1;
+    }
+    else if (direction == EAST)
+    {
+        STAR2kOpStat |= S2K_EAST_1;
+    }
+    else if (direction == SOUTH)
+    {
+        STAR2kOpStat |= S2K_SOUTH_1;
+    }
+    else if (direction == WEST)
+    {
+        STAR2kOpStat |= S2K_WEST_1;
+    }
 
-  if(direction == NORTH)
-  {
-      STAR2kOpStat |= S2K_NORTH_1;
-  }
-  else if(direction == EAST)
-  {
-      STAR2kOpStat |= S2K_EAST_1;
-  }
-  else if(direction == SOUTH)
-  {
-      STAR2kOpStat |= S2K_SOUTH_1;
-  }
-  else if(direction == WEST)
-  {
-      STAR2kOpStat |= S2K_WEST_1;
-  }
-
-  writen(STAR2kPortFD,&STAR2kOpStat,1);
-
+    writen(STAR2kPortFD, &STAR2kOpStat, 1);
 }
 
 void StopPulse(int direction)
 {
-  
-  if(direction == NORTH)
-  {
-      STAR2kOpStat &= S2K_NORTH_0;
-  }
-  else if(direction == EAST)
-  {
-      STAR2kOpStat &= S2K_EAST_0;
-  }
-  else if(direction == SOUTH)
-  {
-      STAR2kOpStat &= S2K_SOUTH_0;
-  }
-  else if(direction == WEST)
-  {
-      STAR2kOpStat &= S2K_WEST_0;
-  }
-  else if(direction == ALL)
-  {
-      STAR2kOpStat = 0;
-  }
+    if (direction == NORTH)
+    {
+        STAR2kOpStat &= S2K_NORTH_0;
+    }
+    else if (direction == EAST)
+    {
+        STAR2kOpStat &= S2K_EAST_0;
+    }
+    else if (direction == SOUTH)
+    {
+        STAR2kOpStat &= S2K_SOUTH_0;
+    }
+    else if (direction == WEST)
+    {
+        STAR2kOpStat &= S2K_WEST_0;
+    }
+    else if (direction == ALL)
+    {
+        STAR2kOpStat = 0;
+    }
 
-  writen(STAR2kPortFD,&STAR2kOpStat,1);
-
+    writen(STAR2kPortFD, &STAR2kOpStat, 1);
 }
 
-void DisconnectSTAR2k(void)
+void DisconnectSTAR2k()
 {
-  StopPulse(ALL);
+    StopPulse(ALL);
 
-  if(STAR2kConnectFlag == 1)
-    close(STAR2kPortFD);
+    if (STAR2kConnectFlag == 1)
+        close(STAR2kPortFD);
 
-  STAR2kConnectFlag = 0;
+    STAR2kConnectFlag = 0;
 }
 
 /******************************* Serial port utilities ************************/
 
-static int writen(fd, ptr, nbytes)
-int fd;
-char *ptr;
-int nbytes;
+static int writen(int fd, char *ptr, int nbytes)
 {
-  int nleft, nwritten;
-  nleft = nbytes;
-  while (nleft > 0) 
-  {
-    nwritten = write (fd, ptr, nleft);
-    if (nwritten <=0 ) break;
-    nleft -= nwritten;
-    ptr += nwritten;
-  }
-  return (nbytes - nleft);
+    int nleft, nwritten;
+    nleft = nbytes;
+    while (nleft > 0)
+    {
+        nwritten = write(fd, ptr, nleft);
+        if (nwritten <= 0)
+            break;
+        nleft -= nwritten;
+        ptr += nwritten;
+    }
+    return (nbytes - nleft);
 }
 
 /******************************************************************************/

@@ -18,25 +18,24 @@
 
 */
 
-#ifndef MOONLITE_H
-#define MOONLITE_H
+#pragma once
 
-#include "indibase/indifocuser.h"
+#include "indifocuser.h"
 
 class MoonLite : public INDI::Focuser
 {
-public:
+  public:
     MoonLite();
     ~MoonLite();
 
     typedef enum { FOCUS_HALF_STEP, FOCUS_FULL_STEP } FocusStepMode;
 
     virtual bool Handshake();
-    const char * getDefaultName();
+    const char *getDefaultName();
     virtual bool initProperties();
     virtual bool updateProperties();
-    virtual bool ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n);
-    virtual bool ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n);
+    virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n);
+    virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n);
     virtual IPState MoveFocuser(FocusDirection dir, int speed, uint16_t duration);
     virtual IPState MoveAbsFocuser(uint32_t ticks);
     virtual IPState MoveRelFocuser(FocusDirection dir, uint32_t ticks);
@@ -44,8 +43,7 @@ public:
     virtual bool AbortFocuser();
     virtual void TimerHit();
 
-private:
-
+  private:
     double targetPos, lastPos, lastTemperature;
     unsigned int currentSpeed;
 
@@ -67,7 +65,7 @@ private:
     bool setTemperatureCalibration(double calibration);
     bool setTemperatureCoefficient(double coefficient);
     bool setTemperatureCompensation(bool enable);
-    float CalcTimeLeft(timeval,float);
+    float CalcTimeLeft(timeval, float);
 
     INumber TemperatureN[1];
     INumberVectorProperty TemperatureNP;
@@ -86,7 +84,4 @@ private:
 
     INumber SyncN[1];
     INumberVectorProperty SyncNP;
-
 };
-
-#endif // MOONLITE_H

@@ -15,7 +15,7 @@ INDI is the defacto standard for open astronomical device control. INDI Library 
 On Debian/Ubuntu:
 
 ```
-sudo apt-get install libnova-dev libcfitsio-dev libusb-1.0-0-dev zlib1g-dev libgsl-dev build-essential cmake git libjpeg-dev libcurl4-gnutls-dev
+sudo apt-get install libnova-dev libcfitsio-dev libusb-1.0-0-dev zlib1g-dev libgsl-dev build-essential cmake git libjpeg-dev libcurl4-gnutls-dev qtbase5-dev
 ```
 ## Get the code
 ```
@@ -96,11 +96,21 @@ INDI server is the public network access point where one or more INDI Clients ma
 
 # Development
 
-## Code Style: All contributed code must be formatted using [AStyle](http://astyle.sourceforge.net/) with options -A1 -W3 -k2 -S -xG -C
 ## [INDI API](http://www.indilib.org/api/index.html)
 ## [INDI Developer Manual](http://indilib.org/develop/developer-manual.html)
 ## [Tutorials](http://indilib.org/develop/tutorials.html)
 ## [![Join the chat at https://gitter.im/knro/indi](https://badges.gitter.im/knro/indi.svg)](https://gitter.im/knro/indi?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+
+### How to create Github pull request (PR)
+
+How I submit a PR:
+1. Login with a Github account and fork the official INDI repository.
+2. Clone the official INDI repository and add the forked INDI repository as a remote (git remote add ...).
+3. Create a local Git branch (git co -b my_branch).
+4. Work on the patch and commit the changes.
+5. If it is ready push this branch to your fork repo (git push -f my_fork my_branch:my_branch).
+6. Go to the official repo's github website in a browser, it will popup a message to create a PR. Create it.
+7. Pushing updates to the PR: just update your branch (git push -f my_fork my_branch:my_branch)..
 
 # Unit tests
 
@@ -117,6 +127,4 @@ cd test
 ctest -V
 ```
 
-For more details refer to teh scripts in the tavis-ci directory.
-
- 
+For more details refer to the scripts in the travis-ci directory.

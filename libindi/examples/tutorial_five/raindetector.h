@@ -1,6 +1,3 @@
-#ifndef RAINDETECTOR_H
-#define RAINDETECTOR_H
-
 /*
    INDI Developers Manual
    Tutorial #5 - Snooping
@@ -12,8 +9,6 @@
 
 */
 
-#include "indibase/defaultdevice.h"
-
 /** \file raindetector.h
 *   \brief Construct a rain detector device that the user may operate to raise a rain alert. This rain light property defined by this driver is \e snooped by the Dome driver
 *         then takes whatever appropiate action to protect the dome.
@@ -23,13 +18,17 @@
 *            The rain detector emits a signal each time it detects raid. This signal is \e snooped by the dome driver.
 */
 
+#pragma once
+
+#include "defaultdevice.h"
+
 class RainDetector : public INDI::DefaultDevice
 {
-public:
+  public:
     RainDetector();
-    bool ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n);
+    bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n);
 
-protected:
+  protected:
     // General device functions
     bool Connect();
     bool Disconnect();
@@ -37,12 +36,10 @@ protected:
     bool initProperties();
     bool updateProperties();
 
-private:
+  private:
     ILight RainL[1];
     ILightVectorProperty RainLP;
 
     ISwitch RainS[2];
     ISwitchVectorProperty RainSP;
 };
-
-#endif // RAINDETECTOR_H

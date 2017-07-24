@@ -20,37 +20,25 @@
   file called LICENSE.
 *******************************************************************************/
 
-#ifndef GPUSBDRIVER_H
-#define GPUSBDRIVER_H
+#pragma once
 
 #include "libs/indibase/indiusbdevice.h"
 
-/* Standard headers */
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <math.h>
-#include <unistd.h>
-#include <sys/time.h>
-
-#include <sys/time.h>
-#include <time.h>
-
 enum
 {
-    GPUSB_NORTH = 0x08,
-    GPUSB_SOUTH = 0x04,
-    GPUSB_EAST  = 0x01,
-    GPUSB_WEST  = 0x02,
-    GPUSB_LED_RED  = 0x10,
-    GPUSB_LED_ON  = 0x20,
-    GPUSB_CLEAR_RA = 0xFC,
-    GPUSB_CLEAR_DEC= 0xF3
+    GPUSB_NORTH     = 0x08,
+    GPUSB_SOUTH     = 0x04,
+    GPUSB_EAST      = 0x01,
+    GPUSB_WEST      = 0x02,
+    GPUSB_LED_RED   = 0x10,
+    GPUSB_LED_ON    = 0x20,
+    GPUSB_CLEAR_RA  = 0xFC,
+    GPUSB_CLEAR_DEC = 0xF3
 };
 
 class GPUSBDriver : public INDI::USBDevice
 {
-    public:
+  public:
     GPUSBDriver();
     virtual ~GPUSBDriver();
 
@@ -63,10 +51,7 @@ class GPUSBDriver : public INDI::USBDevice
 
     void setDebug(bool enable) { debug = enable; }
 
-private:
+  private:
     char guideCMD[1];
     bool debug;
-
 };
-
-#endif // GPUSBDriver_H

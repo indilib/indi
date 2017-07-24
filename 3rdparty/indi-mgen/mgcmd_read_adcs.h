@@ -43,24 +43,24 @@
 
 #include "mgc.h"
 
-class MGCMD_READ_ADCS: MGC
+class MGCMD_READ_ADCS : MGC
 {
-public:
+  public:
     virtual IOByte opCode() const { return 0xA0; }
     virtual IOMode opMode() const { return OPM_APPLICATION; }
 
-public:
-    float logic_voltage() const { return 1.6813e-4f * ((unsigned short) (answer[2]<<8) | answer[1]); }
-    float input_voltage() const { return 3.1364e-4f * ((unsigned short) (answer[4]<<8) | answer[3]); }
-    float refer_voltage() const { return 3.91e-5f * ((unsigned short) (answer[10]<<8) | answer[9]); }
+  public:
+    float logic_voltage() const { return 1.6813e-4f * ((unsigned short)(answer[2] << 8) | answer[1]); }
+    float input_voltage() const { return 3.1364e-4f * ((unsigned short)(answer[4] << 8) | answer[3]); }
+    float refer_voltage() const { return 3.91e-5f * ((unsigned short)(answer[10] << 8) | answer[9]); }
 
-public:
-    virtual IOResult ask(MGenDevice& root) throw (IOError)
+  public:
+    virtual IOResult ask(MGenDevice &root) //throw(IOError)
     {
-        if(CR_SUCCESS != MGC::ask(root))
+        if (CR_SUCCESS != MGC::ask(root))
             return CR_FAILURE;
 
-        if(root.lock())
+        if (root.lock())
         {
             root.write(query);
 
@@ -68,7 +68,7 @@ public:
 
             root.unlock();
 
-            if(answer[0] == query[0] && ( 1+5*2 == bytes_read ))
+            if (answer[0] == query[0] && (1 + 5 * 2 == bytes_read))
                 return CR_SUCCESS;
 
             _E("no ack (%d bytes read)", bytes_read);
@@ -77,9 +77,8 @@ public:
         return CR_FAILURE;
     }
 
-public:
-    MGCMD_READ_ADCS():
-        MGC(IOBuffer { opCode() }, IOBuffer (1+5*2)) {};
+  public:
+    MGCMD_READ_ADCS() : MGC(IOBuffer{ opCode() }, IOBuffer(1 + 5 * 2)){};
 };
 
 #endif /* _3RDPARTY_INDI_MGEN_MGCMD_READ_ADCS_H_ */

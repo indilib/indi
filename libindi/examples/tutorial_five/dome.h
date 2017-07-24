@@ -1,6 +1,3 @@
-#ifndef DOME_H
-#define DOME_H
-
 /*
    INDI Developers Manual
    Tutorial #5 - Snooping
@@ -26,16 +23,18 @@
     driver arrives in the dome driver. Alternatively, you can directly parse the XML root element in ISSnoopDevice(XMLEle *root) to extract the required data.
 */
 
-#include "indibase/defaultdevice.h"
+#pragma once
+
+#include "defaultdevice.h"
 
 class Dome : public INDI::DefaultDevice
 {
-public:
+  public:
     Dome();
-    bool ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n);
-    bool ISSnoopDevice (XMLEle *root);
+    bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n);
+    bool ISSnoopDevice(XMLEle *root);
 
-protected:
+  protected:
     // General device functions
     bool Connect();
     bool Disconnect();
@@ -43,7 +42,7 @@ protected:
     bool initProperties();
     bool updateProperties();
 
-private:
+  private:
     void closeShutter();
 
     ISwitch ShutterS[2];
@@ -51,7 +50,4 @@ private:
 
     ILight RainL[1];
     ILightVectorProperty RainLP;
-
 };
-
-#endif // DOME_H

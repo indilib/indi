@@ -20,49 +20,49 @@
 
 */
 
-#ifndef GPHOTO_CCD_H
-#define GPHOTO_CCD_H
+#pragma once
+
+#include "gphoto_driver.h"
 
 #include <indiccd.h>
 #include <indifocuserinterface.h>
 
-#include <iostream>
 #include <map>
 #include <string>
-#include <cstring>
 
-#define	MAXEXPERR	10		/* max err in exp time we allow, secs */
-#define	OPENDT		5		/* open retry delay, secs */
+#define MAXEXPERR 10 /* max err in exp time we allow, secs */
+#define OPENDT    5  /* open retry delay, secs */
 
 typedef struct _Camera Camera;
 
-using namespace std;
 
-enum { ON_S, OFF_S };
+enum
+{
+    ON_S,
+    OFF_S
+};
 
 typedef struct
 {
     gphoto_widget *widget;
-    union
-    {
-        INumber	num;
-        ISwitch	*sw;
-        IText	text;
+    union {
+        INumber num;
+        ISwitch *sw;
+        IText text;
     } item;
-    union
-    {
-        INumberVectorProperty	num;
-        ISwitchVectorProperty	sw;
-        ITextVectorProperty	text;
+    union {
+        INumberVectorProperty num;
+        ISwitchVectorProperty sw;
+        ITextVectorProperty text;
     } prop;
 } cam_opt;
 
-class GPhotoCCD: public INDI::CCD, public INDI::FocuserInterface
+class GPhotoCCD : public INDI::CCD, public INDI::FocuserInterface
 {
-public:
+  public:
     explicit GPhotoCCD();
     explicit GPhotoCCD(const char *model, const char *port);
-    virtual	~GPhotoCCD();
+    virtual ~GPhotoCCD();
 
     const char *getDefaultName();
 
@@ -78,7 +78,7 @@ public:
 
     virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n);
     virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n);
-    virtual bool ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n);
+    virtual bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n);
 
     static void ExposureUpdate(void *vp);
     void ExposureUpdate();
@@ -86,8 +86,7 @@ public:
     static void UpdateExtendedOptions(void *vp);
     void UpdateExtendedOptions(bool force = false);
 
-protected:
-
+  protected:
     // Misc.
     bool saveConfigItems(FILE *fp);
     void addFITSKeywords(fitsfile *fptr, CCDChip *targetChip);
@@ -95,20 +94,20 @@ protected:
 
     // Focusing
     bool SetFocuserSpeed(int speed);
-    IPState MoveFocuser(FocusDirection dir, int speed, uint16_t duration);    
+    IPState MoveFocuser(FocusDirection dir, int speed, uint16_t duration);
 
-    // Streaming
-    #ifdef __linux__
+// Streaming
+#ifdef __linux__
     bool StartStreaming();
     bool StopStreaming();
     bool captureLiveVideo();
-    #endif
+#endif
 
     // Preview
     bool startLivePreview();
     bool stopLivePreview();
 
-private:
+  private:
     ISwitch *create_switch(const char *basestr, char **options, int max_opts, int setidx);
     void AddWidget(gphoto_widget *widget);
     void UpdateWidget(cam_opt *opt);
@@ -127,9 +126,9 @@ private:
     bool sim;
 
     gphoto_driver *gphotodrv;
-    map<string, cam_opt *> CamOptions;
-    int expTID;			/* exposure callback timer id, if any */
-    int optTID;			/* callback for exposure timer id */
+    std::map<std::string, cam_opt *> CamOptions;
+    int expTID; /* exposure callback timer id, if any */
+    int optTID; /* callback for exposure timer id */
     int focusSpeed;
 
     char *on_off[2];
@@ -147,13 +146,21 @@ private:
     INumber mExposureN[1];
     INumberVectorProperty mExposureNP;
 
-    ISwitch *mIsoS=NULL;
+    ISwitch *mIsoS = NULL;
     ISwitchVectorProperty mIsoSP;
-    ISwitch *mFormatS=NULL;
+    ISwitch *mFormatS = NULL;
     ISwitchVectorProperty mFormatSP;
 
     ISwitch transferFormatS[2];
     ISwitchVectorProperty transferFormatSP;
+
+    ISwitch captureTargetS[2];
+    ISwitchVectorProperty captureTargetSP;
+    enum
+    {
+        CAPTURE_INTERNAL_RAM,
+        CAPTURE_SD_CARD
+    };
 
     ISwitch autoFocusS[1];
     ISwitchVectorProperty autoFocusSP;
@@ -161,17 +168,19 @@ private:
     ISwitch livePreviewS[2];
     ISwitchVectorProperty livePreviewSP;
 
-    IBLOBVectorProperty *imageBP=NULL;
-    IBLOB *imageB=NULL;
+    ISwitch *mExposurePresetS = NULL;
+    ISwitchVectorProperty mExposurePresetSP;
 
-    Camera *camera=NULL;
+    IBLOBVectorProperty *imageBP = NULL;
+    IBLOB *imageB                = NULL;
+
+    Camera *camera = NULL;
 
     friend void ::ISSnoopDevice(XMLEle *root);
     friend void ::ISGetProperties(const char *dev);
     friend void ::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int num);
     friend void ::ISNewText(const char *dev, const char *name, char *texts[], char *names[], int num);
     friend void ::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int num);
-    friend void ::ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[], char *names[], int n);
+    friend void ::ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[],
+                            char *formats[], char *names[], int n);
 };
-
-#endif

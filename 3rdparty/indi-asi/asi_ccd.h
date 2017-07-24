@@ -19,141 +19,135 @@
 
 */
 
-#ifndef ASI_CCD_H
-#define ASI_CCD_H
-
-#include <indiccd.h>
-#include <iostream>
+#pragma once
 
 #include "ASICamera2.h"
 
-using namespace std;
+#include <indiccd.h>
 
-class ASICCD: public INDI::CCD
+class ASICCD : public INDI::CCD
 {
-public:
+  public:
+    explicit ASICCD(ASI_CAMERA_INFO *camInfo);
+    virtual ~ASICCD();
 
-  ASICCD(ASI_CAMERA_INFO *camInfo);
-  virtual ~ASICCD();
+    virtual const char *getDefaultName() override;
 
-  const char *getDefaultName();
+    virtual bool initProperties() override;
+    virtual void ISGetProperties(const char *dev) override;
+    virtual bool updateProperties() override;
 
-  bool initProperties();
-  void ISGetProperties(const char *dev);
-  bool updateProperties();
+    virtual bool Connect() override;
+    virtual bool Disconnect() override;
 
-  bool Connect();
-  bool Disconnect();
+    virtual int SetTemperature(double temperature) override;
+    virtual bool StartExposure(float duration) override;
+    virtual bool AbortExposure() override;
 
-  int  SetTemperature(double temperature);
-  bool StartExposure(float duration);
-  bool AbortExposure();
+#if !defined(__APPLE__) && !defined(__CYGWIN__)
+    static void *streamVideoHelper(void *context);
+    void *streamVideo();
+#endif
 
-  #if !defined(__APPLE__) && !defined(__CYGWIN__)
-  static void * streamVideoHelper(void* context);
-  void * streamVideo();
-  #endif
+  protected:
+    virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
+    virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
 
-protected:
+// Streaming
+#if !defined(__APPLE__) && !defined(__CYGWIN__)
+    virtual bool StartStreaming() override;
+    virtual bool StopStreaming() override;
+#endif
 
-  bool ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n);
-  bool ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n);
+    virtual void TimerHit() override;
+    virtual bool UpdateCCDFrame(int x, int y, int w, int h) override;
+    virtual bool UpdateCCDBin(int binx, int biny) override;
 
-  // Streaming
-  #if !defined(__APPLE__) && !defined(__CYGWIN__)
-  bool StartStreaming();
-  bool StopStreaming();
-  #endif
+    // Guide Port
+    virtual IPState GuideNorth(float ms) override;
+    virtual IPState GuideSouth(float ms) override;
+    virtual IPState GuideEast(float ms) override;
+    virtual IPState GuideWest(float ms) override;
 
-  void TimerHit();
-  virtual bool UpdateCCDFrame(int x, int y, int w, int h);
-  virtual bool UpdateCCDBin(int binx, int biny);
+    // ASI specific keywords
+    virtual void addFITSKeywords(fitsfile *fptr, CCDChip *targetChip) override;
 
-  // Guide Port
-  virtual IPState GuideNorth(float ms);
-  virtual IPState GuideSouth(float ms);
-  virtual IPState GuideEast(float ms);
-  virtual IPState GuideWest(float ms);
+    // Save config
+    virtual bool saveConfigItems(FILE *fp) override;
 
-  // ASI specific keywords
-  virtual void addFITSKeywords(fitsfile *fptr, CCDChip *targetChip);
+  private:
+    /** Get image from CCD and send it to client */
+    int grabImage();
+    /** Get initial parameters from camera */
+    bool setupParams();
+    /** Calculate time left in seconds after start_time */
+    float calcTimeLeft(float duration, timeval *start_time);
+    /** Create number and switch controls for camera by querying the API */
+    void createControls(int piNumberOfControls);
+    /** Get the current Bayer string used */
+    const char *getBayerString();
+    /** Update control values from camera */
+    void updateControls();
+    /** Return user selected image type */
+    ASI_IMG_TYPE getImageType();
+    /** Update SER recorder video format */
+    void updateRecorderFormat();
+    /** Control cooler */
+    bool activateCooler(bool enable);
 
-  // Save config
-  virtual bool saveConfigItems(FILE *fp);
+    char name[MAXINDIDEVICE];
 
-private:
+    /** Additional Properties to INDI::CCD */
+    INumber CoolerN[1];
+    INumberVectorProperty CoolerNP;
 
-  /** Get image from CCD and send it to client */
-  int grabImage();
-  /** Get initial parameters from camera */
-  bool setupParams();
-  /** Calculate time left in seconds after start_time */
-  float calcTimeLeft(float duration, timeval *start_time);
-  /** Create number and switch controls for camera by querying the API */
-  void createControls(int piNumberOfControls);
-  /** Get the current Bayer string used */
-  const char *getBayerString();
-  /** Update control values from camera */
-  void updateControls();
-  /** Return user selected image type */
-  ASI_IMG_TYPE getImageType();
-  /** Update SER recorder video format */
-  void updateRecorderFormat();
-  /** Control cooler */
-  bool activateCooler(bool enable);
+    ISwitch CoolerS[2];
+    ISwitchVectorProperty CoolerSP;
 
-  char name[MAXINDIDEVICE];
+    INumber *ControlN = NULL;
+    INumberVectorProperty ControlNP;
 
-  /** Additional Properties to INDI::CCD */
-  INumber CoolerN[1];
-  INumberVectorProperty CoolerNP;
+    ISwitch *ControlS = NULL;
+    ISwitchVectorProperty ControlSP;
 
-  ISwitch CoolerS[2];
-  ISwitchVectorProperty CoolerSP;
+    ISwitch *VideoFormatS;
+    ISwitchVectorProperty VideoFormatSP;
 
-  INumber *ControlN=NULL;
-  INumberVectorProperty ControlNP;
+    double minimumExposureDuration = 0;
+    struct timeval ExpStart;
+    float ExposureRequest;
+    float TemperatureRequest;
+    int TemperatureUpdateCounter;
 
-  ISwitch *ControlS=NULL;
-  ISwitchVectorProperty ControlSP;
+    ASI_CAMERA_INFO *m_camInfo;
+    ASI_CONTROL_CAPS *pControlCaps;
 
-  ISwitch *VideoFormatS;
-  ISwitchVectorProperty VideoFormatSP;
+    bool sim;
+    int streamPredicate;
+#if !defined(__APPLE__) && !defined(__CYGWIN__)
+    pthread_t primary_thread;
+#endif
+    bool terminateThread;
+    int exposureRetries;
 
-  double minimumExposureDuration = 0;
-  struct timeval ExpStart;
-  float ExposureRequest;
-  float TemperatureRequest;
-  int TemperatureUpdateCounter;
+    // ST4
+    bool InWEPulse;
+    float WEPulseRequest;
+    struct timeval WEPulseStart;
+    int WEtimerID;
 
-  ASI_CAMERA_INFO *m_camInfo;
-  ASI_CONTROL_CAPS *pControlCaps;
+    bool InNSPulse;
+    float NSPulseRequest;
+    struct timeval NSPulseStart;
+    int NStimerID;
 
-  bool sim;
-  int streamPredicate;
-  pthread_t primary_thread;
-  bool terminateThread;
-  int exposureRetries;
+    ASI_GUIDE_DIRECTION WEDir;
+    ASI_GUIDE_DIRECTION NSDir;
 
-  // ST4
-  bool InWEPulse;
-  float WEPulseRequest;
-  struct timeval WEPulseStart;
-  int WEtimerID;
-
-  bool InNSPulse;
-  float NSPulseRequest;
-  struct timeval NSPulseStart;
-  int NStimerID;
-
-  ASI_GUIDE_DIRECTION WEDir;
-  ASI_GUIDE_DIRECTION NSDir;
-
-  friend void ::ISGetProperties(const char *dev);
-  friend void ::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int num);
-  friend void ::ISNewText(const char *dev, const char *name, char *texts[], char *names[], int num);
-  friend void ::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int num);
-  friend void ::ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[], char *names[], int n);
+    friend void ::ISGetProperties(const char *dev);
+    friend void ::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int num);
+    friend void ::ISNewText(const char *dev, const char *name, char *texts[], char *names[], int num);
+    friend void ::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int num);
+    friend void ::ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[],
+                            char *formats[], char *names[], int n);
 };
-
-#endif // ASI_CCD_H

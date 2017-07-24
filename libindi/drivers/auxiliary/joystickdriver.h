@@ -22,8 +22,7 @@
   file called LICENSE.
 *******************************************************************************/
 
-#ifndef JOYSTICK_H
-#define JOYSTICK_H
+#pragma once
 
 #include <iostream>
 #include <functional>
@@ -66,58 +65,55 @@ typedef struct
  */
 class JoyStickDriver
 {
-public:
-  JoyStickDriver();
-  ~JoyStickDriver();
+  public:
+    JoyStickDriver();
+    ~JoyStickDriver();
 
-  typedef std::function<void (int joystick_n, double mag, double angle)> joystickFunc;
-  typedef std::function<void (int axis_n, double value)> axisFunc;
-  typedef std::function<void (int button_n, int value)> buttonFunc;
+    typedef std::function<void(int joystick_n, double mag, double angle)> joystickFunc;
+    typedef std::function<void(int axis_n, double value)> axisFunc;
+    typedef std::function<void(int button_n, int value)> buttonFunc;
 
-  bool Connect();
-  bool Disconnect();
+    bool Connect();
+    bool Disconnect();
 
-  void setPort(const char *port);
-  void setPoll(int ms);
+    void setPort(const char *port);
+    void setPoll(int ms);
 
-  const char *getName();
-  __u32 getVersion();
-  __u8 getNumOfJoysticks();
-  __u8 getNumOfAxes();
-  __u8 getNumrOfButtons();
+    const char *getName();
+    __u32 getVersion();
+    __u8 getNumOfJoysticks();
+    __u8 getNumOfAxes();
+    __u8 getNumrOfButtons();
 
-  joystick_position joystickPosition(int n);
-  bool buttonPressed(int n);
+    joystick_position joystickPosition(int n);
+    bool buttonPressed(int n);
 
-  void setJoystickCallback(joystickFunc joystickCallback);
-  void setAxisCallback(axisFunc axisCallback);
-  void setButtonCallback(buttonFunc buttonCallback);
+    void setJoystickCallback(joystickFunc joystickCallback);
+    void setAxisCallback(axisFunc axisCallback);
+    void setButtonCallback(buttonFunc buttonCallback);
 
-protected:
-  static void joystickEvent(int joystick_n, double mag, double angle);
-  static void axisEvent(int axis_n, int value);
-  static void buttonEvent(int button_n, int value);
+  protected:
+    static void joystickEvent(int joystick_n, double mag, double angle);
+    static void axisEvent(int axis_n, int value);
+    static void buttonEvent(int button_n, int value);
 
-  static void* loop(void* obj);
-  void readEv();
+    static void *loop(void *obj);
+    void readEv();
 
-  joystickFunc joystickCallbackFunc;
-  buttonFunc buttonCallbackFunc;
-  axisFunc axisCallbackFunc;
+    joystickFunc joystickCallbackFunc;
+    buttonFunc buttonCallbackFunc;
+    axisFunc axisCallbackFunc;
 
-private:
-  pthread_t thread;
-  bool active;
-  int joystick_fd;
-  js_event *joystick_ev;
-  joystick_state *joystick_st;
-  __u32 version;
-  __u8 axes;
-  __u8 buttons;
-  char name[256];
-  char dev_path[256];
-  int pollMS;
-
+  private:
+    pthread_t thread;
+    bool active;
+    int joystick_fd;
+    js_event *joystick_ev;
+    joystick_state *joystick_st;
+    __u32 version;
+    __u8 axes;
+    __u8 buttons;
+    char name[256];
+    char dev_path[256];
+    int pollMS;
 };
-
-#endif // JOYSTICK_H
