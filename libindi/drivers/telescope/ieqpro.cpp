@@ -600,7 +600,6 @@ bool IEQPro::Sync(double ra, double dec)
         DEBUG(INDI::Logger::DBG_ERROR, "Failed to sync.");
     }
 
-    TrackState = SCOPE_IDLE;
     EqNP.s     = IPS_OK;
 
     currentRA  = ra;
