@@ -168,7 +168,7 @@ void INDI::BaseClientQt::setDriverConnection(bool status, const char *deviceName
         return;
     }
 
-    drv_connection = drv->getSwitch("CONNECTION");
+    drv_connection = drv->getSwitch(INDI::SP::CONNECTION);
 
     if (drv_connection == nullptr)
         return;
