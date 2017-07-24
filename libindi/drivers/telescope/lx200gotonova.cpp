@@ -33,6 +33,8 @@
 /* Simulation Parameters */
 #define SLEWRATE 1        /* slew rate, degrees/s */
 #define SIDRATE  0.004178 /* sidereal rate, degrees/s */
+#define GOTONOVA_TIMEOUT 5 /* timeout */
+#define GOTONOVA_CALDATE_RESULT "                                #                                #" /* result of calendar date */
 
 LX200GotoNova::LX200GotoNova()
 {
@@ -501,6 +503,51 @@ bool LX200GotoNova::updateTime(ln_date *utc, double utc_offset)
     return true;
 }
 
+int LX200GotoNova::setCalenderDate(int fd, int dd, int mm, int yy)
+{
+    char read_buffer[16];
+    char response[67];
+    char good_result[] = GOTONOVA_CALDATE_RESULT;
+    int error_type;
+    int nbytes_write = 0, nbytes_read = 0;
+    yy = yy % 100;
+
+    snprintf(read_buffer, sizeof(read_buffer), ":SC %02d/%02d/%02d#", mm, dd, yy);
+
+    DEBUGF(DBG_SCOPE, "CMD <%s>", read_buffer);
+
+    tcflush(fd, TCIFLUSH);
+
+    if ((error_type = tty_write_string(fd, read_buffer, &nbytes_write)) != TTY_OK)
+        return error_type;
+
+    error_type = tty_read(fd, response, sizeof(response), GOTONOVA_TIMEOUT, &nbytes_read);
+
+    tcflush(fd, TCIFLUSH);
+
+    if (nbytes_read < 1)
+    {   
+        DEBUG(INDI::Logger::DBG_ERROR, "Unable to read response");
+        return error_type;
+    }
+
+    response[nbytes_read] = '\0';
+
+    DEBUGF(DBG_SCOPE, "RES <%s>", response);
+
+    if (strncmp(response, good_result, strlen(good_result)) == 0) {
+        return 0;
+    }
+
+    /* Sleep 10ms before flushing. This solves some issues with LX200 compatible devices. */
+    usleep(10000);
+    tcflush(fd, TCIFLUSH);
+
+    DEBUGF(INDI::Logger::DBG_DEBUG, "Set date failed! Response: <%s>", response);
+
+    return -1;
+}
+
 bool LX200GotoNova::updateLocation(double latitude, double longitude, double elevation)
 {
     INDI_UNUSED(elevation);
@@ -549,7 +596,7 @@ int LX200GotoNova::setGotoNovaLongitude(double Long)
 
     getSexComponents(Long, &d, &m, &s);
 
-    snprintf(temp_string, sizeof(temp_string), ":Sg %c%03d:%02d:%02d#", sign, abs(d), m, s);
+    snprintf(temp_string, sizeof(temp_string), ":Sg %c%03d*%02d:%02d#", sign, abs(d), m, s);
 
     return (setGotoNovaStandardProcedure(PortFD, temp_string));
 }
@@ -567,7 +614,7 @@ int LX200GotoNova::setGotoNovaLatitude(double Lat)
 
     getSexComponents(Lat, &d, &m, &s);
 
-    snprintf(temp_string, sizeof(temp_string), ":St %c%02d:%02d:%02d#", sign, abs(d), m, s);
+    snprintf(temp_string, sizeof(temp_string), ":St %c%02d*%02d:%02d#", sign, abs(d), m, s);
 
     return (setGotoNovaStandardProcedure(PortFD, temp_string));
 }
@@ -585,7 +632,7 @@ int LX200GotoNova::setGotoNovaUTCOffset(double hours)
 
     getSexComponents(hours, &h, &m, &s);
 
-    snprintf(temp_string, sizeof(temp_string), ":SG %c%02d:%02d#", sign, abs(h), m);
+    snprintf(temp_string, sizeof(temp_string), ":SG %c%02d#", sign, abs(h));
 
     return (setGotoNovaStandardProcedure(PortFD, temp_string));
 }
