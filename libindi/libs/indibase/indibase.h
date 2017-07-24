@@ -53,6 +53,7 @@ class DomeInterface;
 class DustCapInterface;
 class LightBoxInterface;
 class CCD;
+class Detector;
 class Telescope;
 class FilterWheel;
 class Focuser;

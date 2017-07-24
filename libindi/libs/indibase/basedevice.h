@@ -71,6 +71,7 @@ class INDI::BaseDevice
         AO_INTERFACE        = (1 << 8),  /**< Adaptive Optics Interface */
         DUSTCAP_INTERFACE   = (1 << 9),  /**< Dust Cap Interface */
         LIGHTBOX_INTERFACE  = (1 << 10), /**< Light Box Interface */
+        DETECTOR_INTERFACE  = (1 << 11), /**< Detector interface, must subclass INDI::Detector */
         AUX_INTERFACE       = (1 << 15), /**< Auxiliary interface */
     };
 
