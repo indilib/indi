@@ -63,6 +63,7 @@ class LX200GotoNova : public LX200Generic
     int setGotoNovaLatitude(double Lat);
     int setGotoNovaLongitude(double Long);
     int setGotoNovaUTCOffset(double hours);
+    int setCalenderDate(int fd, int dd, int mm, int yy);
 
     // Motion
     int slewGotoNova();    
