@@ -237,7 +237,7 @@ bool SQM::getDeviceInfo()
         ssize_t response = read(PortFD, buffer + received, 39 - received);
         if (response < 0)
         {
-            DEBUGF(INDI::Logger::DBG_ERROR, "Error getting device info wile reading response: %s", strerror(errno));
+            DEBUGF(INDI::Logger::DBG_ERROR, "Error getting device info wile reading response : %s", strerror(errno));
             return false;
         }
 
