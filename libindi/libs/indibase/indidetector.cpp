@@ -40,31 +40,6 @@
 const char *CAPTURE_SETTINGS_TAB = "Capture Settings";
 const char *CAPTURE_INFO_TAB     = "Capture Info";
 
-// Create dir recursively
-static int _mkdir(const char *dir, mode_t mode)
-{
-    char tmp[PATH_MAX];
-    char *p = nullptr;
-    size_t len;
-
-    snprintf(tmp, sizeof(tmp), "%s", dir);
-    len = strlen(tmp);
-    if (tmp[len - 1] == '/')
-        tmp[len - 1] = 0;
-    for (p = tmp + 1; *p; p++)
-        if (*p == '/')
-        {
-            *p = 0;
-            if (mkdir(tmp, mode) == -1 && errno != EEXIST)
-                return -1;
-            *p = '/';
-        }
-    if (mkdir(tmp, mode) == -1 && errno != EEXIST)
-        return -1;
-
-    return 0;
-}
-
 DetectorDevice::DetectorDevice()
 {
     RawFrame     = (uint8_t *)malloc(sizeof(uint8_t)); // Seed for realloc
