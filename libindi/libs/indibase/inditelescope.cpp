@@ -1430,17 +1430,18 @@ void INDI::Telescope::SetParked(bool isparked)
     IsParked = isparked;
     IUResetSwitch(&ParkSP);
 
-    ParkSP.s = IPS_OK;
     if (IsParked)
     {
         ParkS[0].s = ISS_ON;
         TrackState = SCOPE_PARKED;
+        ParkSP.s = IPS_OK;
         DEBUG(INDI::Logger::DBG_SESSION, "Mount is parked.");
     }
     else
     {
         ParkS[1].s = ISS_ON;
         TrackState = SCOPE_IDLE;
+        ParkSP.s = IPS_IDLE;
         DEBUG(INDI::Logger::DBG_SESSION, "Mount is unparked.");
     }
 
