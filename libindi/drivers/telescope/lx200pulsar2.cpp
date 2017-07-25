@@ -1301,7 +1301,6 @@ bool LX200Pulsar2::Sync(double ra, double dec)
         currentRA  = ra;
         currentDEC = dec;
         DEBUG(INDI::Logger::DBG_SESSION, "Synchronization successful.");
-        TrackState = SCOPE_IDLE;
         EqNP.s     = IPS_OK;
         NewRaDec(currentRA, currentDEC);
     }

@@ -718,7 +718,6 @@ bool LX200AstroPhysics::Sync(double ra, double dec)
     DEBUGF(INDI::Logger::DBG_DEBUG, "%s Synchronization successful %s", (syncType == USE_REGULAR_SYNC ? "CM" : "CMR"), syncString);
     DEBUG(INDI::Logger::DBG_SESSION, "Synchronization successful.");
 
-    TrackState = SCOPE_IDLE;
     EqNP.s     = IPS_OK;
 
     NewRaDec(currentRA, currentDEC);

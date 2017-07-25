@@ -346,7 +346,6 @@ bool LX200Basic::Sync(double ra, double dec)
 
     DEBUG(INDI::Logger::DBG_SESSION, "Synchronization successful.");
 
-    TrackState = SCOPE_IDLE;
     EqNP.s     = IPS_OK;
 
     NewRaDec(currentRA, currentDEC);
