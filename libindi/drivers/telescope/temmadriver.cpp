@@ -71,7 +71,7 @@ void ISSnoopDevice(XMLEle *root)
 TemmaMount::TemmaMount()
 {
     SetTelescopeCapability(TELESCOPE_CAN_PARK | TELESCOPE_CAN_ABORT | TELESCOPE_CAN_SYNC | TELESCOPE_CAN_GOTO |
-                               TELESCOPE_HAS_TIME | TELESCOPE_HAS_LOCATION,
+                               TELESCOPE_HAS_TIME | TELESCOPE_HAS_LOCATION | TELESCOPE_HAS_PIER_SIDE,
                            TEMMA_SLEW_RATES);
     //SetTelescopeCapability(TELESCOPE_CAN_PARK | TELESCOPE_CAN_ABORT | TELESCOPE_CAN_SYNC | TELESCOPE_CAN_GOTO | TELESCOPE_HAS_TIME | TELESCOPE_HAS_LOCATION);
     SetParkDataType(PARK_RA_DEC);
@@ -99,7 +99,7 @@ bool TemmaMount::initProperties()
     r = INDI::Telescope::initProperties();
 
     SetTelescopeCapability(TELESCOPE_CAN_PARK | TELESCOPE_CAN_ABORT | TELESCOPE_CAN_SYNC | TELESCOPE_CAN_GOTO |
-                               TELESCOPE_HAS_TIME | TELESCOPE_HAS_LOCATION,
+                               TELESCOPE_HAS_TIME | TELESCOPE_HAS_LOCATION| TELESCOPE_HAS_PIER_SIDE,
                            TEMMA_SLEW_RATES);
     //SetTelescopeCapability(TELESCOPE_CAN_PARK | TELESCOPE_CAN_ABORT | TELESCOPE_CAN_SYNC | TELESCOPE_CAN_GOTO | TELESCOPE_HAS_TIME | TELESCOPE_HAS_LOCATION);
     SetParkDataType(PARK_RA_DEC_ENCODER);
@@ -251,6 +251,7 @@ bool TemmaMount::ReadScopeStatus()
     char str[26];
     int bytesWritten = 0;
     int numread = 0;
+    char side;
 
     //DEBUG(INDI::Logger::DBG_DEBUG,"Temma::ReadScopeStatus() %d\n",PortFD);
 
@@ -272,11 +273,22 @@ bool TemmaMount::ReadScopeStatus()
     //DEBUG(INDI::Logger::DBG_DEBUG,"%d  %d  %d\n",d,m,s);
     currentDEC = d * 3600 + m * 60 + s * 6;
     currentDEC /= 3600;
+    if(str[7]=='-') currentDEC*=-1;
 
-    NewRaDec(currentRA, currentDEC);
 
-    if (GotoInProgress)
-    {
+    side=str[13];
+    switch(side) {
+      case 'E':
+      setPierSide(PIER_EAST);
+      break;
+
+      case 'W':
+      setPierSide(PIER_WEST);
+      break;
+
+      case 'F':
+      if (GotoInProgress)
+      {
         //  lets see if our goto has finished
         if (strstr(str, "F"))
         {
@@ -303,7 +315,15 @@ bool TemmaMount::ReadScopeStatus()
             EqNP.s=IPS_BUSY;
             IDSetNumber(&EqNP,NULL);
         }
+      }
+      break;
+
     }
+
+
+    NewRaDec(currentRA, currentDEC);
+
+
 
     //GetTemmaLst();
 
