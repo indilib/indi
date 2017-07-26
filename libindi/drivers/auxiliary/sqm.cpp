@@ -110,7 +110,7 @@ bool SQM::initProperties()
     if (sqmConnection & CONNECTION_SERIAL)
     {
         serialConnection = new Connection::Serial(this);
-//        serialConnection->registerHandshake([&]() { return getDeviceInfo(); });
+        serialConnection->registerHandshake([&]() { return getDeviceInfo(); });
         registerConnection(serialConnection);
     }
 
@@ -217,9 +217,11 @@ bool SQM::getDeviceInfo()
     const char *cmd = "ix";
     char buffer[39]={0};
 
-//    PortFD = tcpConnection->getPortFD();
-    PortFD = serialConnection->getPortFD();
-
+    if (getActiveConnection() == serialConnection) {
+        PortFD = serialConnection->getPortFD();
+    } else if (getActiveConnection() == tcpConnection) {
+        PortFD = tcpConnection->getPortFD();
+    }
     DEBUGF(INDI::Logger::DBG_DEBUG, "CMD: %s", cmd);
 
     ssize_t written = write(PortFD, cmd, 2);
@@ -237,7 +239,7 @@ bool SQM::getDeviceInfo()
         ssize_t response = read(PortFD, buffer + received, 39 - received);
         if (response < 0)
         {
-            DEBUGF(INDI::Logger::DBG_ERROR, "Error getting device info wile reading response : %s", strerror(errno));
+            DEBUGF(INDI::Logger::DBG_ERROR, "Error getting device info while reading response: %s", strerror(errno));
             return false;
         }
 
