@@ -1614,9 +1614,9 @@ bool QSICCD::GetFilterNames(const char *groupName)
 
 bool QSICCD::SetFilterNames()
 {
-    auto* filterDesignation = new std::string[FilterSlotNP.nnp];
+    auto* filterDesignation = new std::string[filterCount];
 
-    for (int i = 0; i < FilterSlotNP.nnp; i++)
+    for (int i = 0; i < filterCount; i++)
         filterDesignation[i] = FilterNameT[i].text;
 
     try
