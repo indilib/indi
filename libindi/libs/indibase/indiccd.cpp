@@ -57,7 +57,7 @@ const char *RAPIDGUIDE_TAB     = "Rapid Guide";
 const char *WCS_TAB            = "WCS";
 
 // Create dir recursively
-static int _mkdir(const char *dir, mode_t mode)
+static int _ccd_mkdir(const char *dir, mode_t mode)
 {
     char tmp[PATH_MAX];
     char *p = nullptr;
@@ -2714,7 +2714,7 @@ int INDI::CCD::getFileIndex(const char *dir, const char *prefix, const char *ext
     if (stat(dir, &st) == -1)
     {
         DEBUGF(INDI::Logger::DBG_DEBUG, "Creating directory %s...", dir);
-        if (_mkdir(dir, 0755) == -1)
+        if (_ccd_mkdir(dir, 0755) == -1)
             DEBUGF(INDI::Logger::DBG_ERROR, "Error creating directory %s (%s)", dir, strerror(errno));
     }
 
