@@ -41,7 +41,7 @@ const char *CAPTURE_SETTINGS_TAB = "Capture Settings";
 const char *CAPTURE_INFO_TAB     = "Capture Info";
 
 // Create dir recursively
-static int _mkdir(const char *dir, mode_t mode)
+static int _det_mkdir(const char *dir, mode_t mode)
 {
     char tmp[PATH_MAX];
     char *p = nullptr;
@@ -1100,7 +1100,7 @@ int INDI::Detector::getFileIndex(const char *dir, const char *prefix, const char
     if (stat(dir, &st) == -1)
     {
         DEBUGF(INDI::Logger::DBG_DEBUG, "Creating directory %s...", dir);
-        if (_mkdir(dir, 0755) == -1)
+        if (_det_mkdir(dir, 0755) == -1)
             DEBUGF(INDI::Logger::DBG_ERROR, "Error creating directory %s (%s)", dir, strerror(errno));
     }
 
