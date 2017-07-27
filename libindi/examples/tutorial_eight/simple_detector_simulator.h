@@ -50,7 +50,7 @@ class SimpleDetector : public INDI::Detector
     void grabFrame();
 
     // Are we exposing?
-    bool InExposure;
+    bool InCapture;
     // Struct to keep timing
     struct timeval CapStart;
 
