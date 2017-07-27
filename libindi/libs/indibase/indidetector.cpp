@@ -788,13 +788,16 @@ bool INDI::Detector::CaptureComplete(DetectorDevice *targetDevice)
             int img_type  = 0;
             int byte_type = 0;
             int status    = 0;
-            long naxis    = targetDevice->getNAxis();
+            long naxis    = 2;
             long naxes[naxis];
             int nelements = 0;
             std::string bit_depth;
             char error_status[MAXRBUF];
 
             fitsfile *fptr = nullptr;
+
+            naxes[0] = targetDevice->getSamplingFrequency() * targetDevice->getCaptureDuration() * targetDevice->getBPS() / 8;
+            naxes[1] = 1;
 
             switch (targetDevice->getBPS())
             {
