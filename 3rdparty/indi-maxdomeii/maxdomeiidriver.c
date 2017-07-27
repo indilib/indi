@@ -18,7 +18,7 @@
 
 */
 
-#include <maxdomeiidriver.h>
+#include "maxdomeiidriver.h"
 
 #include <indicom.h>
 
