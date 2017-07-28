@@ -1,0 +1,19 @@
+<drivers>
+  <driver name='indi_gpusb' description='GPUSB' version='1.4.0'/>
+  <driver name='indi_lynx_focus' description='FocusLynx Focuser' version='1.4.0'/>
+  <driver name='indi_microtouch_focus' description='Microtouch Focuser' version='1.4.0'/>
+  <driver name='indi_moonlite_focus' description='Moonlite Focuser' version='1.4.0'/>
+  <driver name='indi_nightcrawler_focus' description='NightCrawler Focuser and Rotator' version='1.4.0'/>
+  <driver name='indi_nstep_focus' description='Rigelsys NStep Focuser' version='1.4.0'/>
+  <driver name='indi_optec_wheel' description='Optec Wheel IFW' version='1.4.0'/>
+  <driver name='indi_perfectstar_focus' description='PerfectStar Focuser' version='1.4.0'/>
+  <driver name='indi_quantum_wheel' description='Quantum Wheel' version='1.4.0'/>
+  <driver name='indi_robo_focus' description='Robo Focuser' version='1.4.0'/>
+  <driver name='indi_simulator_focus' description='Focuser Simulator' version='1.4.0'/>
+  <driver name='indi_simulator_wheel' description='Filter Simulator' version='1.4.0'/>
+  <driver name='indi_smartfocus_focus' description='JMI Smart Focus Focuser' version='1.4.0'/>
+  <driver name='indi_star2000' description='STAR2000 Driver' version='1.4.0'/>
+  <driver name='indi_steeldrive_focus' description='Baader SteelDrive Focuser' version='1.4.0'/>
+  <driver name='indi_tcfs_focus' description='Optec TCF-S' version='1.4.0'/>
+  <driver name='indi_xagyl_wheel' description='XAGYL Wheel' version='1.4.0'/>
+</drivers>

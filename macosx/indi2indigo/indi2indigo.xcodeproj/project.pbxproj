@@ -1,0 +1,2524 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 46;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		591BFB431F2BCACA00BA7BBD /* trutech_wheel.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 9D9F3C971F2B687B004E5539 /* trutech_wheel.cpp */; };
+		591BFB611F2BD5BE00BA7BBD /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 591BFB601F2BD5BE00BA7BBD /* AppDelegate.swift */; };
+		591BFB651F2BD5BE00BA7BBD /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 591BFB641F2BD5BE00BA7BBD /* Assets.xcassets */; };
+		591BFB6E1F2BD61900BA7BBD /* MainMenu.xib in Resources */ = {isa = PBXBuildFile; fileRef = 591BFB6D1F2BD61900BA7BBD /* MainMenu.xib */; };
+		591BFB6F1F2BE24D00BA7BBD /* indi_lynx_focus in Resources */ = {isa = PBXBuildFile; fileRef = 9D654D0B1F2B5F71000B7DB9 /* indi_lynx_focus */; };
+		591BFB701F2BE24D00BA7BBD /* indi_microtouch_focus in Resources */ = {isa = PBXBuildFile; fileRef = 9D654D4F1F2B63B9000B7DB9 /* indi_microtouch_focus */; };
+		591BFB711F2BE24D00BA7BBD /* indi_moonlite_focus in Resources */ = {isa = PBXBuildFile; fileRef = 9D654D5E1F2B641D000B7DB9 /* indi_moonlite_focus */; };
+		591BFB721F2BE24D00BA7BBD /* indi_nightcrawler_focus in Resources */ = {isa = PBXBuildFile; fileRef = 9D654D6D1F2B6434000B7DB9 /* indi_nightcrawler_focus */; };
+		591BFB731F2BE24D00BA7BBD /* indi_nstep_focus in Resources */ = {isa = PBXBuildFile; fileRef = 9D654D7C1F2B644A000B7DB9 /* indi_nstep_focus */; };
+		591BFB741F2BE24D00BA7BBD /* indi_perfectstar_focus in Resources */ = {isa = PBXBuildFile; fileRef = 9D654D8B1F2B645B000B7DB9 /* indi_perfectstar_focus */; };
+		591BFB751F2BE24D00BA7BBD /* indi_robo_focus in Resources */ = {isa = PBXBuildFile; fileRef = 9D654D9A1F2B6477000B7DB9 /* indi_robo_focus */; };
+		591BFB761F2BE24D00BA7BBD /* indi_smartfocus_focus in Resources */ = {isa = PBXBuildFile; fileRef = 9D654DA91F2B6487000B7DB9 /* indi_smartfocus_focus */; };
+		591BFB771F2BE24D00BA7BBD /* indi_steeldrive_focus in Resources */ = {isa = PBXBuildFile; fileRef = 9D654DB81F2B6499000B7DB9 /* indi_steeldrive_focus */; };
+		591BFB781F2BE24D00BA7BBD /* indi_tcfs_focus in Resources */ = {isa = PBXBuildFile; fileRef = 9D654DC71F2B64AB000B7DB9 /* indi_tcfs_focus */; };
+		591BFB791F2BE24D00BA7BBD /* indi_simulator_focus in Resources */ = {isa = PBXBuildFile; fileRef = 9D9F3CA91F2B6895004E5539 /* indi_simulator_focus */; };
+		591BFB7A1F2BE24D00BA7BBD /* indi_simulator_wheel in Resources */ = {isa = PBXBuildFile; fileRef = 9D9F3CB91F2B68B7004E5539 /* indi_simulator_wheel */; };
+		591BFB7B1F2BE24D00BA7BBD /* indi_optec_wheel in Resources */ = {isa = PBXBuildFile; fileRef = 9D9F3CC71F2B6982004E5539 /* indi_optec_wheel */; };
+		591BFB7C1F2BE24D00BA7BBD /* indi_quantum_wheel in Resources */ = {isa = PBXBuildFile; fileRef = 9D9F3CD61F2B6992004E5539 /* indi_quantum_wheel */; };
+		591BFB7D1F2BE24D00BA7BBD /* indi_trutech_wheel in Resources */ = {isa = PBXBuildFile; fileRef = 9D9F3CE51F2B699F004E5539 /* indi_trutech_wheel */; };
+		591BFB7E1F2BE24D00BA7BBD /* indi_xagyl_wheel in Resources */ = {isa = PBXBuildFile; fileRef = 9D9F3CF41F2B69AB004E5539 /* indi_xagyl_wheel */; };
+		591BFB7F1F2BE24D00BA7BBD /* indi_star2000 in Resources */ = {isa = PBXBuildFile; fileRef = 9D9F3D181F2B6AB6004E5539 /* indi_star2000 */; };
+		591BFB801F2BE24D00BA7BBD /* indi_gpusb in Resources */ = {isa = PBXBuildFile; fileRef = 9D9F3D291F2B6ADD004E5539 /* indi_gpusb */; };
+		591BFB811F2BE25400BA7BBD /* indi.xml in Resources */ = {isa = PBXBuildFile; fileRef = 9D9F3DA51F2B72A6004E5539 /* indi.xml */; };
+		9D654CBF1F2B5CAF000B7DB9 /* baseclient.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 9D654CB51F2B5CAF000B7DB9 /* baseclient.cpp */; };
+		9D654CC01F2B5CAF000B7DB9 /* baseclient.h in Headers */ = {isa = PBXBuildFile; fileRef = 9D654CB61F2B5CAF000B7DB9 /* baseclient.h */; };
+		9D654CC11F2B5CAF000B7DB9 /* basedevice.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 9D654CB71F2B5CAF000B7DB9 /* basedevice.cpp */; };
+		9D654CC21F2B5CAF000B7DB9 /* basedevice.h in Headers */ = {isa = PBXBuildFile; fileRef = 9D654CB81F2B5CAF000B7DB9 /* basedevice.h */; };
+		9D654CC31F2B5CAF000B7DB9 /* defaultdevice.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 9D654CB91F2B5CAF000B7DB9 /* defaultdevice.cpp */; };
+		9D654CC41F2B5CAF000B7DB9 /* defaultdevice.h in Headers */ = {isa = PBXBuildFile; fileRef = 9D654CBA1F2B5CAF000B7DB9 /* defaultdevice.h */; };
+		9D654CC51F2B5CAF000B7DB9 /* indifocuser.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 9D654CBB1F2B5CAF000B7DB9 /* indifocuser.cpp */; };
+		9D654CC61F2B5CAF000B7DB9 /* indifocuser.h in Headers */ = {isa = PBXBuildFile; fileRef = 9D654CBC1F2B5CAF000B7DB9 /* indifocuser.h */; };
+		9D654CC71F2B5CAF000B7DB9 /* indifocuserinterface.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 9D654CBD1F2B5CAF000B7DB9 /* indifocuserinterface.cpp */; };
+		9D654CC81F2B5CAF000B7DB9 /* indifocuserinterface.h in Headers */ = {isa = PBXBuildFile; fileRef = 9D654CBE1F2B5CAF000B7DB9 /* indifocuserinterface.h */; };
+		9D654CCF1F2B5CFC000B7DB9 /* indiapi.h in Headers */ = {isa = PBXBuildFile; fileRef = 9D654CCB1F2B5CFC000B7DB9 /* indiapi.h */; };
+		9D654CD01F2B5CFC000B7DB9 /* indidriver.c in Sources */ = {isa = PBXBuildFile; fileRef = 9D654CCC1F2B5CFC000B7DB9 /* indidriver.c */; };
+		9D654CD11F2B5CFC000B7DB9 /* indidriver.h in Headers */ = {isa = PBXBuildFile; fileRef = 9D654CCD1F2B5CFC000B7DB9 /* indidriver.h */; };
+		9D654CD21F2B5CFC000B7DB9 /* indidrivermain.c in Sources */ = {isa = PBXBuildFile; fileRef = 9D654CCE1F2B5CFC000B7DB9 /* indidrivermain.c */; };
+		9D654CD41F2B5D07000B7DB9 /* indidevapi.h in Headers */ = {isa = PBXBuildFile; fileRef = 9D654CD31F2B5D07000B7DB9 /* indidevapi.h */; };
+		9D654CD91F2B5D1D000B7DB9 /* indicom.c in Sources */ = {isa = PBXBuildFile; fileRef = 9D654CD51F2B5D1D000B7DB9 /* indicom.c */; };
+		9D654CDA1F2B5D1D000B7DB9 /* indicom.h in Headers */ = {isa = PBXBuildFile; fileRef = 9D654CD61F2B5D1D000B7DB9 /* indicom.h */; };
+		9D654CDB1F2B5D1D000B7DB9 /* lilxml.c in Sources */ = {isa = PBXBuildFile; fileRef = 9D654CD71F2B5D1D000B7DB9 /* lilxml.c */; };
+		9D654CDC1F2B5D1D000B7DB9 /* lilxml.h in Headers */ = {isa = PBXBuildFile; fileRef = 9D654CD81F2B5D1D000B7DB9 /* lilxml.h */; };
+		9D654CDF1F2B5D32000B7DB9 /* base64.c in Sources */ = {isa = PBXBuildFile; fileRef = 9D654CDD1F2B5D32000B7DB9 /* base64.c */; };
+		9D654CE01F2B5D32000B7DB9 /* base64.h in Headers */ = {isa = PBXBuildFile; fileRef = 9D654CDE1F2B5D32000B7DB9 /* base64.h */; };
+		9D654CE51F2B5DF6000B7DB9 /* locale_compat.h in Headers */ = {isa = PBXBuildFile; fileRef = 9D654CE41F2B5DF6000B7DB9 /* locale_compat.h */; };
+		9D654D121F2B5F8E000B7DB9 /* focuslynx.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 9D654CEA1F2B5EA4000B7DB9 /* focuslynx.cpp */; };
+		9D654D131F2B5FC8000B7DB9 /* libindi.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 9D654CAB1F2B5BF7000B7DB9 /* libindi.a */; };
+		9D654D1D1F2B6035000B7DB9 /* connectioninterface.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 9D654D171F2B602A000B7DB9 /* connectioninterface.cpp */; };
+		9D654D1E1F2B6035000B7DB9 /* connectionserial.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 9D654D191F2B602A000B7DB9 /* connectionserial.cpp */; };
+		9D654D1F1F2B6035000B7DB9 /* connectiontcp.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 9D654D1B1F2B602A000B7DB9 /* connectiontcp.cpp */; };
+		9D654D201F2B604A000B7DB9 /* connectioninterface.h in Headers */ = {isa = PBXBuildFile; fileRef = 9D654D181F2B602A000B7DB9 /* connectioninterface.h */; };
+		9D654D211F2B604A000B7DB9 /* connectionserial.h in Headers */ = {isa = PBXBuildFile; fileRef = 9D654D1A1F2B602A000B7DB9 /* connectionserial.h */; };
+		9D654D221F2B604A000B7DB9 /* connectiontcp.h in Headers */ = {isa = PBXBuildFile; fileRef = 9D654D1C1F2B602A000B7DB9 /* connectiontcp.h */; };
+		9D654D251F2B6064000B7DB9 /* indilogger.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 9D654D231F2B6064000B7DB9 /* indilogger.cpp */; };
+		9D654D261F2B6064000B7DB9 /* indilogger.h in Headers */ = {isa = PBXBuildFile; fileRef = 9D654D241F2B6064000B7DB9 /* indilogger.h */; };
+		9D654D2C1F2B6132000B7DB9 /* indiproperty.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 9D654D2A1F2B6132000B7DB9 /* indiproperty.cpp */; };
+		9D654D2D1F2B6132000B7DB9 /* indiproperty.h in Headers */ = {isa = PBXBuildFile; fileRef = 9D654D2B1F2B6132000B7DB9 /* indiproperty.h */; };
+		9D654D2F1F2B614D000B7DB9 /* indibasetypes.h in Headers */ = {isa = PBXBuildFile; fileRef = 9D654D2E1F2B614D000B7DB9 /* indibasetypes.h */; };
+		9D654D321F2B6180000B7DB9 /* indicontroller.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 9D654D301F2B6180000B7DB9 /* indicontroller.cpp */; };
+		9D654D331F2B6180000B7DB9 /* indicontroller.h in Headers */ = {isa = PBXBuildFile; fileRef = 9D654D311F2B6180000B7DB9 /* indicontroller.h */; };
+		9D654D351F2B61B9000B7DB9 /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 9D654D341F2B61B9000B7DB9 /* Foundation.framework */; };
+		9D654D3C1F2B62B5000B7DB9 /* eventloop.c in Sources */ = {isa = PBXBuildFile; fileRef = 9D654D3A1F2B62B5000B7DB9 /* eventloop.c */; };
+		9D654D3D1F2B62B5000B7DB9 /* eventloop.h in Headers */ = {isa = PBXBuildFile; fileRef = 9D654D3B1F2B62B5000B7DB9 /* eventloop.h */; };
+		9D654D3E1F2B6373000B7DB9 /* focuslynxbase.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 9D654CEC1F2B5EA4000B7DB9 /* focuslynxbase.cpp */; };
+		9D654D401F2B6387000B7DB9 /* libz.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = 9D654D3F1F2B6387000B7DB9 /* libz.tbd */; };
+		9D654D481F2B63B9000B7DB9 /* libz.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = 9D654D3F1F2B6387000B7DB9 /* libz.tbd */; };
+		9D654D491F2B63B9000B7DB9 /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 9D654D341F2B61B9000B7DB9 /* Foundation.framework */; };
+		9D654D4A1F2B63B9000B7DB9 /* libindi.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 9D654CAB1F2B5BF7000B7DB9 /* libindi.a */; };
+		9D654D501F2B63D9000B7DB9 /* microtouch.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 9D654CF11F2B5EA4000B7DB9 /* microtouch.cpp */; };
+		9D654D571F2B641D000B7DB9 /* libz.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = 9D654D3F1F2B6387000B7DB9 /* libz.tbd */; };
+		9D654D581F2B641D000B7DB9 /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 9D654D341F2B61B9000B7DB9 /* Foundation.framework */; };
+		9D654D591F2B641D000B7DB9 /* libindi.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 9D654CAB1F2B5BF7000B7DB9 /* libindi.a */; };
+		9D654D5F1F2B6426000B7DB9 /* moonlite.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 9D654CF31F2B5EA4000B7DB9 /* moonlite.cpp */; };
+		9D654D661F2B6434000B7DB9 /* libz.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = 9D654D3F1F2B6387000B7DB9 /* libz.tbd */; };
+		9D654D671F2B6434000B7DB9 /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 9D654D341F2B61B9000B7DB9 /* Foundation.framework */; };
+		9D654D681F2B6434000B7DB9 /* libindi.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 9D654CAB1F2B5BF7000B7DB9 /* libindi.a */; };
+		9D654D6E1F2B643B000B7DB9 /* nightcrawler.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 9D654CF71F2B5EA4000B7DB9 /* nightcrawler.cpp */; };
+		9D654D751F2B644A000B7DB9 /* libz.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = 9D654D3F1F2B6387000B7DB9 /* libz.tbd */; };
+		9D654D761F2B644A000B7DB9 /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 9D654D341F2B61B9000B7DB9 /* Foundation.framework */; };
+		9D654D771F2B644A000B7DB9 /* libindi.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 9D654CAB1F2B5BF7000B7DB9 /* libindi.a */; };
+		9D654D7D1F2B6453000B7DB9 /* nstep.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 9D654CF91F2B5EA4000B7DB9 /* nstep.cpp */; };
+		9D654D841F2B645B000B7DB9 /* libz.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = 9D654D3F1F2B6387000B7DB9 /* libz.tbd */; };
+		9D654D851F2B645B000B7DB9 /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 9D654D341F2B61B9000B7DB9 /* Foundation.framework */; };
+		9D654D861F2B645B000B7DB9 /* libindi.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 9D654CAB1F2B5BF7000B7DB9 /* libindi.a */; };
+		9D654D8C1F2B6462000B7DB9 /* perfectstar.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 9D654CFB1F2B5EA4000B7DB9 /* perfectstar.cpp */; };
+		9D654D931F2B6477000B7DB9 /* libz.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = 9D654D3F1F2B6387000B7DB9 /* libz.tbd */; };
+		9D654D941F2B6477000B7DB9 /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 9D654D341F2B61B9000B7DB9 /* Foundation.framework */; };
+		9D654D951F2B6477000B7DB9 /* libindi.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 9D654CAB1F2B5BF7000B7DB9 /* libindi.a */; };
+		9D654D9B1F2B647F000B7DB9 /* robofocus.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 9D654CFD1F2B5EA4000B7DB9 /* robofocus.cpp */; };
+		9D654DA21F2B6487000B7DB9 /* libz.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = 9D654D3F1F2B6387000B7DB9 /* libz.tbd */; };
+		9D654DA31F2B6487000B7DB9 /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 9D654D341F2B61B9000B7DB9 /* Foundation.framework */; };
+		9D654DA41F2B6487000B7DB9 /* libindi.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 9D654CAB1F2B5BF7000B7DB9 /* libindi.a */; };
+		9D654DAA1F2B648F000B7DB9 /* smartfocus.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 9D654CFF1F2B5EA4000B7DB9 /* smartfocus.cpp */; };
+		9D654DB11F2B6499000B7DB9 /* libz.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = 9D654D3F1F2B6387000B7DB9 /* libz.tbd */; };
+		9D654DB21F2B6499000B7DB9 /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 9D654D341F2B61B9000B7DB9 /* Foundation.framework */; };
+		9D654DB31F2B6499000B7DB9 /* libindi.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 9D654CAB1F2B5BF7000B7DB9 /* libindi.a */; };
+		9D654DB91F2B64A1000B7DB9 /* steeldrive.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 9D654D011F2B5EA4000B7DB9 /* steeldrive.cpp */; };
+		9D654DC01F2B64AB000B7DB9 /* libz.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = 9D654D3F1F2B6387000B7DB9 /* libz.tbd */; };
+		9D654DC11F2B64AB000B7DB9 /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 9D654D341F2B61B9000B7DB9 /* Foundation.framework */; };
+		9D654DC21F2B64AB000B7DB9 /* libindi.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 9D654CAB1F2B5BF7000B7DB9 /* libindi.a */; };
+		9D654DC81F2B64B3000B7DB9 /* tcfs.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 9D654D031F2B5EA4000B7DB9 /* tcfs.cpp */; };
+		9D654DE31F2B6523000B7DB9 /* hid_mac.c in Sources */ = {isa = PBXBuildFile; fileRef = 9D654DE11F2B6523000B7DB9 /* hid_mac.c */; };
+		9D654DE41F2B6523000B7DB9 /* hidapi.h in Headers */ = {isa = PBXBuildFile; fileRef = 9D654DE21F2B6523000B7DB9 /* hidapi.h */; };
+		9D9F3C8C1F2B6853004E5539 /* indifilterinterface.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 9D9F3C881F2B6853004E5539 /* indifilterinterface.cpp */; };
+		9D9F3C8D1F2B6853004E5539 /* indifilterinterface.h in Headers */ = {isa = PBXBuildFile; fileRef = 9D9F3C891F2B6853004E5539 /* indifilterinterface.h */; };
+		9D9F3C8E1F2B6853004E5539 /* indifilterwheel.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 9D9F3C8A1F2B6853004E5539 /* indifilterwheel.cpp */; };
+		9D9F3C8F1F2B6853004E5539 /* indifilterwheel.h in Headers */ = {isa = PBXBuildFile; fileRef = 9D9F3C8B1F2B6853004E5539 /* indifilterwheel.h */; };
+		9D9F3CA21F2B6895004E5539 /* libz.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = 9D654D3F1F2B6387000B7DB9 /* libz.tbd */; };
+		9D9F3CA31F2B6895004E5539 /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 9D654D341F2B61B9000B7DB9 /* Foundation.framework */; };
+		9D9F3CA41F2B6895004E5539 /* libindi.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 9D654CAB1F2B5BF7000B7DB9 /* libindi.a */; };
+		9D9F3CAB1F2B68B0004E5539 /* focus_simulator.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 9D654CE81F2B5EA4000B7DB9 /* focus_simulator.cpp */; };
+		9D9F3CB01F2B68B7004E5539 /* focus_simulator.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 9D654CE81F2B5EA4000B7DB9 /* focus_simulator.cpp */; };
+		9D9F3CB21F2B68B7004E5539 /* libz.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = 9D654D3F1F2B6387000B7DB9 /* libz.tbd */; };
+		9D9F3CB31F2B68B7004E5539 /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 9D654D341F2B61B9000B7DB9 /* Foundation.framework */; };
+		9D9F3CB41F2B68B7004E5539 /* libindi.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 9D654CAB1F2B5BF7000B7DB9 /* libindi.a */; };
+		9D9F3CC01F2B6982004E5539 /* libz.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = 9D654D3F1F2B6387000B7DB9 /* libz.tbd */; };
+		9D9F3CC11F2B6982004E5539 /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 9D654D341F2B61B9000B7DB9 /* Foundation.framework */; };
+		9D9F3CC21F2B6982004E5539 /* libindi.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 9D654CAB1F2B5BF7000B7DB9 /* libindi.a */; };
+		9D9F3CC81F2B6989004E5539 /* ifwoptec.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 9D9F3C931F2B687B004E5539 /* ifwoptec.cpp */; };
+		9D9F3CCF1F2B6992004E5539 /* libz.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = 9D654D3F1F2B6387000B7DB9 /* libz.tbd */; };
+		9D9F3CD01F2B6992004E5539 /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 9D654D341F2B61B9000B7DB9 /* Foundation.framework */; };
+		9D9F3CD11F2B6992004E5539 /* libindi.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 9D654CAB1F2B5BF7000B7DB9 /* libindi.a */; };
+		9D9F3CD71F2B6998004E5539 /* quantum_wheel.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 9D9F3C951F2B687B004E5539 /* quantum_wheel.cpp */; };
+		9D9F3CDE1F2B699F004E5539 /* libz.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = 9D654D3F1F2B6387000B7DB9 /* libz.tbd */; };
+		9D9F3CDF1F2B699F004E5539 /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 9D654D341F2B61B9000B7DB9 /* Foundation.framework */; };
+		9D9F3CE01F2B699F004E5539 /* libindi.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 9D654CAB1F2B5BF7000B7DB9 /* libindi.a */; };
+		9D9F3CED1F2B69AB004E5539 /* libz.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = 9D654D3F1F2B6387000B7DB9 /* libz.tbd */; };
+		9D9F3CEE1F2B69AB004E5539 /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 9D654D341F2B61B9000B7DB9 /* Foundation.framework */; };
+		9D9F3CEF1F2B69AB004E5539 /* libindi.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 9D654CAB1F2B5BF7000B7DB9 /* libindi.a */; };
+		9D9F3CF51F2B69B1004E5539 /* xagyl_wheel.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 9D9F3C991F2B687B004E5539 /* xagyl_wheel.cpp */; };
+		9D9F3D111F2B6AB6004E5539 /* libz.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = 9D654D3F1F2B6387000B7DB9 /* libz.tbd */; };
+		9D9F3D121F2B6AB6004E5539 /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 9D654D341F2B61B9000B7DB9 /* Foundation.framework */; };
+		9D9F3D131F2B6AB6004E5539 /* libindi.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 9D654CAB1F2B5BF7000B7DB9 /* libindi.a */; };
+		9D9F3D191F2B6AC2004E5539 /* STAR2kdriver.c in Sources */ = {isa = PBXBuildFile; fileRef = 9D9F3D071F2B6AA5004E5539 /* STAR2kdriver.c */; };
+		9D9F3D1A1F2B6AC3004E5539 /* STAR2000.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 9D9F3D091F2B6AA5004E5539 /* STAR2000.cpp */; };
+		9D9F3D221F2B6ADD004E5539 /* libz.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = 9D654D3F1F2B6387000B7DB9 /* libz.tbd */; };
+		9D9F3D231F2B6ADD004E5539 /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 9D654D341F2B61B9000B7DB9 /* Foundation.framework */; };
+		9D9F3D241F2B6ADD004E5539 /* libindi.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 9D654CAB1F2B5BF7000B7DB9 /* libindi.a */; };
+		9D9F3D2A1F2B6AE4004E5539 /* gpdriver.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 9D9F3D031F2B6A44004E5539 /* gpdriver.cpp */; };
+		9D9F3D2B1F2B6AE5004E5539 /* gpusb.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 9D9F3D051F2B6A8D004E5539 /* gpusb.cpp */; };
+		9D9F3D321F2B6B33004E5539 /* indiguiderinterface.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 9D9F3D301F2B6B33004E5539 /* indiguiderinterface.cpp */; };
+		9D9F3D331F2B6B33004E5539 /* indiguiderinterface.h in Headers */ = {isa = PBXBuildFile; fileRef = 9D9F3D311F2B6B33004E5539 /* indiguiderinterface.h */; };
+		9D9F3D361F2B6B65004E5539 /* indiusbdevice.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 9D9F3D341F2B6B65004E5539 /* indiusbdevice.cpp */; };
+		9D9F3D371F2B6B65004E5539 /* indiusbdevice.h in Headers */ = {isa = PBXBuildFile; fileRef = 9D9F3D351F2B6B65004E5539 /* indiusbdevice.h */; };
+		9D9F3D3C1F2B6C19004E5539 /* libusb.h in Headers */ = {isa = PBXBuildFile; fileRef = 9D9F3D3B1F2B6C19004E5539 /* libusb.h */; };
+		9D9F3D3F1F2B6C35004E5539 /* libusb-1.0.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 9D9F3D3E1F2B6C35004E5539 /* libusb-1.0.a */; };
+		9D9F3D401F2B6C3E004E5539 /* libusb-1.0.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 9D9F3D3E1F2B6C35004E5539 /* libusb-1.0.a */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		9D654D141F2B5FEA000B7DB9 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 9D654CA31F2B5BF7000B7DB9 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 9D654CAA1F2B5BF7000B7DB9;
+			remoteInfo = indi;
+		};
+		9D654D431F2B63B9000B7DB9 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 9D654CA31F2B5BF7000B7DB9 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 9D654CAA1F2B5BF7000B7DB9;
+			remoteInfo = indi;
+		};
+		9D654D531F2B641D000B7DB9 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 9D654CA31F2B5BF7000B7DB9 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 9D654CAA1F2B5BF7000B7DB9;
+			remoteInfo = indi;
+		};
+		9D654D621F2B6434000B7DB9 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 9D654CA31F2B5BF7000B7DB9 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 9D654CAA1F2B5BF7000B7DB9;
+			remoteInfo = indi;
+		};
+		9D654D711F2B644A000B7DB9 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 9D654CA31F2B5BF7000B7DB9 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 9D654CAA1F2B5BF7000B7DB9;
+			remoteInfo = indi;
+		};
+		9D654D801F2B645B000B7DB9 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 9D654CA31F2B5BF7000B7DB9 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 9D654CAA1F2B5BF7000B7DB9;
+			remoteInfo = indi;
+		};
+		9D654D8F1F2B6477000B7DB9 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 9D654CA31F2B5BF7000B7DB9 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 9D654CAA1F2B5BF7000B7DB9;
+			remoteInfo = indi;
+		};
+		9D654D9E1F2B6487000B7DB9 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 9D654CA31F2B5BF7000B7DB9 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 9D654CAA1F2B5BF7000B7DB9;
+			remoteInfo = indi;
+		};
+		9D654DAD1F2B6499000B7DB9 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 9D654CA31F2B5BF7000B7DB9 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 9D654CAA1F2B5BF7000B7DB9;
+			remoteInfo = indi;
+		};
+		9D654DBC1F2B64AB000B7DB9 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 9D654CA31F2B5BF7000B7DB9 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 9D654CAA1F2B5BF7000B7DB9;
+			remoteInfo = indi;
+		};
+		9D9F3C9D1F2B6895004E5539 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 9D654CA31F2B5BF7000B7DB9 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 9D654CAA1F2B5BF7000B7DB9;
+			remoteInfo = indi;
+		};
+		9D9F3CAE1F2B68B7004E5539 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 9D654CA31F2B5BF7000B7DB9 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 9D654CAA1F2B5BF7000B7DB9;
+			remoteInfo = indi;
+		};
+		9D9F3CBC1F2B6982004E5539 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 9D654CA31F2B5BF7000B7DB9 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 9D654CAA1F2B5BF7000B7DB9;
+			remoteInfo = indi;
+		};
+		9D9F3CCB1F2B6992004E5539 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 9D654CA31F2B5BF7000B7DB9 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 9D654CAA1F2B5BF7000B7DB9;
+			remoteInfo = indi;
+		};
+		9D9F3CDA1F2B699F004E5539 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 9D654CA31F2B5BF7000B7DB9 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 9D654CAA1F2B5BF7000B7DB9;
+			remoteInfo = indi;
+		};
+		9D9F3CE91F2B69AB004E5539 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 9D654CA31F2B5BF7000B7DB9 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 9D654CAA1F2B5BF7000B7DB9;
+			remoteInfo = indi;
+		};
+		9D9F3D0D1F2B6AB6004E5539 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 9D654CA31F2B5BF7000B7DB9 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 9D654CAA1F2B5BF7000B7DB9;
+			remoteInfo = indi;
+		};
+		9D9F3D1D1F2B6ADD004E5539 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 9D654CA31F2B5BF7000B7DB9 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 9D654CAA1F2B5BF7000B7DB9;
+			remoteInfo = indi;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		9D654D091F2B5F71000B7DB9 /* CopyFiles */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = /usr/share/man/man1/;
+			dstSubfolderSpec = 0;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 1;
+		};
+		9D654D4B1F2B63B9000B7DB9 /* CopyFiles */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = /usr/share/man/man1/;
+			dstSubfolderSpec = 0;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 1;
+		};
+		9D654D5A1F2B641D000B7DB9 /* CopyFiles */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = /usr/share/man/man1/;
+			dstSubfolderSpec = 0;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 1;
+		};
+		9D654D691F2B6434000B7DB9 /* CopyFiles */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = /usr/share/man/man1/;
+			dstSubfolderSpec = 0;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 1;
+		};
+		9D654D781F2B644A000B7DB9 /* CopyFiles */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = /usr/share/man/man1/;
+			dstSubfolderSpec = 0;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 1;
+		};
+		9D654D871F2B645B000B7DB9 /* CopyFiles */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = /usr/share/man/man1/;
+			dstSubfolderSpec = 0;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 1;
+		};
+		9D654D961F2B6477000B7DB9 /* CopyFiles */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = /usr/share/man/man1/;
+			dstSubfolderSpec = 0;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 1;
+		};
+		9D654DA51F2B6487000B7DB9 /* CopyFiles */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = /usr/share/man/man1/;
+			dstSubfolderSpec = 0;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 1;
+		};
+		9D654DB41F2B6499000B7DB9 /* CopyFiles */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = /usr/share/man/man1/;
+			dstSubfolderSpec = 0;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 1;
+		};
+		9D654DC31F2B64AB000B7DB9 /* CopyFiles */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = /usr/share/man/man1/;
+			dstSubfolderSpec = 0;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 1;
+		};
+		9D9F3CA51F2B6895004E5539 /* CopyFiles */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = /usr/share/man/man1/;
+			dstSubfolderSpec = 0;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 1;
+		};
+		9D9F3CB51F2B68B7004E5539 /* CopyFiles */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = /usr/share/man/man1/;
+			dstSubfolderSpec = 0;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 1;
+		};
+		9D9F3CC31F2B6982004E5539 /* CopyFiles */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = /usr/share/man/man1/;
+			dstSubfolderSpec = 0;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 1;
+		};
+		9D9F3CD21F2B6992004E5539 /* CopyFiles */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = /usr/share/man/man1/;
+			dstSubfolderSpec = 0;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 1;
+		};
+		9D9F3CE11F2B699F004E5539 /* CopyFiles */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = /usr/share/man/man1/;
+			dstSubfolderSpec = 0;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 1;
+		};
+		9D9F3CF01F2B69AB004E5539 /* CopyFiles */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = /usr/share/man/man1/;
+			dstSubfolderSpec = 0;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 1;
+		};
+		9D9F3D141F2B6AB6004E5539 /* CopyFiles */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = /usr/share/man/man1/;
+			dstSubfolderSpec = 0;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 1;
+		};
+		9D9F3D251F2B6ADD004E5539 /* CopyFiles */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = /usr/share/man/man1/;
+			dstSubfolderSpec = 0;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 1;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
+/* Begin PBXFileReference section */
+		591BFB421F2BC8D500BA7BBD /* config.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = config.h; sourceTree = "<group>"; };
+		591BFB5E1F2BD5BE00BA7BBD /* Install INDI Drivers.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Install INDI Drivers.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		591BFB601F2BD5BE00BA7BBD /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
+		591BFB641F2BD5BE00BA7BBD /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		591BFB691F2BD5BE00BA7BBD /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		591BFB6D1F2BD61900BA7BBD /* MainMenu.xib */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.xib; path = MainMenu.xib; sourceTree = "<group>"; };
+		591BFB821F2BECA100BA7BBD /* Install INDI Drivers.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = "Install INDI Drivers.entitlements"; sourceTree = "<group>"; };
+		9D654CAB1F2B5BF7000B7DB9 /* libindi.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = libindi.a; sourceTree = BUILT_PRODUCTS_DIR; };
+		9D654CB51F2B5CAF000B7DB9 /* baseclient.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = baseclient.cpp; sourceTree = "<group>"; };
+		9D654CB61F2B5CAF000B7DB9 /* baseclient.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = baseclient.h; sourceTree = "<group>"; };
+		9D654CB71F2B5CAF000B7DB9 /* basedevice.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = basedevice.cpp; sourceTree = "<group>"; };
+		9D654CB81F2B5CAF000B7DB9 /* basedevice.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = basedevice.h; sourceTree = "<group>"; };
+		9D654CB91F2B5CAF000B7DB9 /* defaultdevice.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = defaultdevice.cpp; sourceTree = "<group>"; };
+		9D654CBA1F2B5CAF000B7DB9 /* defaultdevice.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = defaultdevice.h; sourceTree = "<group>"; };
+		9D654CBB1F2B5CAF000B7DB9 /* indifocuser.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = indifocuser.cpp; sourceTree = "<group>"; };
+		9D654CBC1F2B5CAF000B7DB9 /* indifocuser.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = indifocuser.h; sourceTree = "<group>"; };
+		9D654CBD1F2B5CAF000B7DB9 /* indifocuserinterface.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = indifocuserinterface.cpp; sourceTree = "<group>"; };
+		9D654CBE1F2B5CAF000B7DB9 /* indifocuserinterface.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = indifocuserinterface.h; sourceTree = "<group>"; };
+		9D654CCB1F2B5CFC000B7DB9 /* indiapi.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = indiapi.h; path = ../indiapi.h; sourceTree = "<group>"; };
+		9D654CCC1F2B5CFC000B7DB9 /* indidriver.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = indidriver.c; path = ../indidriver.c; sourceTree = "<group>"; };
+		9D654CCD1F2B5CFC000B7DB9 /* indidriver.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = indidriver.h; path = ../indidriver.h; sourceTree = "<group>"; };
+		9D654CCE1F2B5CFC000B7DB9 /* indidrivermain.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = indidrivermain.c; path = ../indidrivermain.c; sourceTree = "<group>"; };
+		9D654CD31F2B5D07000B7DB9 /* indidevapi.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = indidevapi.h; path = ../indidevapi.h; sourceTree = "<group>"; };
+		9D654CD51F2B5D1D000B7DB9 /* indicom.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = indicom.c; sourceTree = "<group>"; };
+		9D654CD61F2B5D1D000B7DB9 /* indicom.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = indicom.h; sourceTree = "<group>"; };
+		9D654CD71F2B5D1D000B7DB9 /* lilxml.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = lilxml.c; sourceTree = "<group>"; };
+		9D654CD81F2B5D1D000B7DB9 /* lilxml.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = lilxml.h; sourceTree = "<group>"; };
+		9D654CDD1F2B5D32000B7DB9 /* base64.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = base64.c; path = ../base64.c; sourceTree = "<group>"; };
+		9D654CDE1F2B5D32000B7DB9 /* base64.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = base64.h; path = ../base64.h; sourceTree = "<group>"; };
+		9D654CE31F2B5D84000B7DB9 /* CMakeLists.txt */ = {isa = PBXFileReference; lastKnownFileType = text; name = CMakeLists.txt; path = ../CMakeLists.txt; sourceTree = "<group>"; };
+		9D654CE41F2B5DF6000B7DB9 /* locale_compat.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = locale_compat.h; sourceTree = "<group>"; };
+		9D654CE81F2B5EA4000B7DB9 /* focus_simulator.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = focus_simulator.cpp; sourceTree = "<group>"; };
+		9D654CE91F2B5EA4000B7DB9 /* focus_simulator.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = focus_simulator.h; sourceTree = "<group>"; };
+		9D654CEA1F2B5EA4000B7DB9 /* focuslynx.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = focuslynx.cpp; sourceTree = "<group>"; };
+		9D654CEB1F2B5EA4000B7DB9 /* focuslynx.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = focuslynx.h; sourceTree = "<group>"; };
+		9D654CEC1F2B5EA4000B7DB9 /* focuslynxbase.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = focuslynxbase.cpp; sourceTree = "<group>"; };
+		9D654CED1F2B5EA4000B7DB9 /* focuslynxbase.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = focuslynxbase.h; sourceTree = "<group>"; };
+		9D654CF01F2B5EA4000B7DB9 /* indi_tcfs_sk.xml */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = indi_tcfs_sk.xml; sourceTree = "<group>"; };
+		9D654CF11F2B5EA4000B7DB9 /* microtouch.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = microtouch.cpp; sourceTree = "<group>"; };
+		9D654CF21F2B5EA4000B7DB9 /* microtouch.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = microtouch.h; sourceTree = "<group>"; };
+		9D654CF31F2B5EA4000B7DB9 /* moonlite.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = moonlite.cpp; sourceTree = "<group>"; };
+		9D654CF41F2B5EA4000B7DB9 /* moonlite.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = moonlite.h; sourceTree = "<group>"; };
+		9D654CF51F2B5EA4000B7DB9 /* nfocus.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = nfocus.cpp; sourceTree = "<group>"; };
+		9D654CF61F2B5EA4000B7DB9 /* nfocus.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = nfocus.h; sourceTree = "<group>"; };
+		9D654CF71F2B5EA4000B7DB9 /* nightcrawler.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = nightcrawler.cpp; sourceTree = "<group>"; };
+		9D654CF81F2B5EA4000B7DB9 /* nightcrawler.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = nightcrawler.h; sourceTree = "<group>"; };
+		9D654CF91F2B5EA4000B7DB9 /* nstep.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = nstep.cpp; sourceTree = "<group>"; };
+		9D654CFA1F2B5EA4000B7DB9 /* nstep.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = nstep.h; sourceTree = "<group>"; };
+		9D654CFB1F2B5EA4000B7DB9 /* perfectstar.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = perfectstar.cpp; sourceTree = "<group>"; };
+		9D654CFC1F2B5EA4000B7DB9 /* perfectstar.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = perfectstar.h; sourceTree = "<group>"; };
+		9D654CFD1F2B5EA4000B7DB9 /* robofocus.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = robofocus.cpp; sourceTree = "<group>"; };
+		9D654CFE1F2B5EA4000B7DB9 /* robofocus.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = robofocus.h; sourceTree = "<group>"; };
+		9D654CFF1F2B5EA4000B7DB9 /* smartfocus.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = smartfocus.cpp; sourceTree = "<group>"; };
+		9D654D001F2B5EA4000B7DB9 /* smartfocus.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = smartfocus.h; sourceTree = "<group>"; };
+		9D654D011F2B5EA4000B7DB9 /* steeldrive.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = steeldrive.cpp; sourceTree = "<group>"; };
+		9D654D021F2B5EA4000B7DB9 /* steeldrive.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = steeldrive.h; sourceTree = "<group>"; };
+		9D654D031F2B5EA4000B7DB9 /* tcfs.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = tcfs.cpp; sourceTree = "<group>"; };
+		9D654D041F2B5EA4000B7DB9 /* tcfs.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = tcfs.h; sourceTree = "<group>"; };
+		9D654D0B1F2B5F71000B7DB9 /* indi_lynx_focus */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = indi_lynx_focus; sourceTree = BUILT_PRODUCTS_DIR; };
+		9D654D171F2B602A000B7DB9 /* connectioninterface.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = connectioninterface.cpp; sourceTree = "<group>"; };
+		9D654D181F2B602A000B7DB9 /* connectioninterface.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = connectioninterface.h; sourceTree = "<group>"; };
+		9D654D191F2B602A000B7DB9 /* connectionserial.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = connectionserial.cpp; sourceTree = "<group>"; };
+		9D654D1A1F2B602A000B7DB9 /* connectionserial.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = connectionserial.h; sourceTree = "<group>"; };
+		9D654D1B1F2B602A000B7DB9 /* connectiontcp.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = connectiontcp.cpp; sourceTree = "<group>"; };
+		9D654D1C1F2B602A000B7DB9 /* connectiontcp.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = connectiontcp.h; sourceTree = "<group>"; };
+		9D654D231F2B6064000B7DB9 /* indilogger.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = indilogger.cpp; sourceTree = "<group>"; };
+		9D654D241F2B6064000B7DB9 /* indilogger.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = indilogger.h; sourceTree = "<group>"; };
+		9D654D281F2B60EC000B7DB9 /* Cocoa.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Cocoa.framework; path = System/Library/Frameworks/Cocoa.framework; sourceTree = SDKROOT; };
+		9D654D2A1F2B6132000B7DB9 /* indiproperty.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = indiproperty.cpp; sourceTree = "<group>"; };
+		9D654D2B1F2B6132000B7DB9 /* indiproperty.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = indiproperty.h; sourceTree = "<group>"; };
+		9D654D2E1F2B614D000B7DB9 /* indibasetypes.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = indibasetypes.h; path = indibase/indibasetypes.h; sourceTree = "<group>"; };
+		9D654D301F2B6180000B7DB9 /* indicontroller.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = indicontroller.cpp; sourceTree = "<group>"; };
+		9D654D311F2B6180000B7DB9 /* indicontroller.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = indicontroller.h; sourceTree = "<group>"; };
+		9D654D341F2B61B9000B7DB9 /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = System/Library/Frameworks/Foundation.framework; sourceTree = SDKROOT; };
+		9D654D3A1F2B62B5000B7DB9 /* eventloop.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = eventloop.c; path = ../eventloop.c; sourceTree = "<group>"; };
+		9D654D3B1F2B62B5000B7DB9 /* eventloop.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = eventloop.h; path = ../eventloop.h; sourceTree = "<group>"; };
+		9D654D3F1F2B6387000B7DB9 /* libz.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libz.tbd; path = usr/lib/libz.tbd; sourceTree = SDKROOT; };
+		9D654D4F1F2B63B9000B7DB9 /* indi_microtouch_focus */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = indi_microtouch_focus; sourceTree = BUILT_PRODUCTS_DIR; };
+		9D654D5E1F2B641D000B7DB9 /* indi_moonlite_focus */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = indi_moonlite_focus; sourceTree = BUILT_PRODUCTS_DIR; };
+		9D654D6D1F2B6434000B7DB9 /* indi_nightcrawler_focus */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = indi_nightcrawler_focus; sourceTree = BUILT_PRODUCTS_DIR; };
+		9D654D7C1F2B644A000B7DB9 /* indi_nstep_focus */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = indi_nstep_focus; sourceTree = BUILT_PRODUCTS_DIR; };
+		9D654D8B1F2B645B000B7DB9 /* indi_perfectstar_focus */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = indi_perfectstar_focus; sourceTree = BUILT_PRODUCTS_DIR; };
+		9D654D9A1F2B6477000B7DB9 /* indi_robo_focus */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = indi_robo_focus; sourceTree = BUILT_PRODUCTS_DIR; };
+		9D654DA91F2B6487000B7DB9 /* indi_smartfocus_focus */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = indi_smartfocus_focus; sourceTree = BUILT_PRODUCTS_DIR; };
+		9D654DB81F2B6499000B7DB9 /* indi_steeldrive_focus */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = indi_steeldrive_focus; sourceTree = BUILT_PRODUCTS_DIR; };
+		9D654DC71F2B64AB000B7DB9 /* indi_tcfs_focus */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = indi_tcfs_focus; sourceTree = BUILT_PRODUCTS_DIR; };
+		9D654DE11F2B6523000B7DB9 /* hid_mac.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = hid_mac.c; sourceTree = "<group>"; };
+		9D654DE21F2B6523000B7DB9 /* hidapi.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = hidapi.h; sourceTree = "<group>"; };
+		9D9F3C881F2B6853004E5539 /* indifilterinterface.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = indifilterinterface.cpp; sourceTree = "<group>"; };
+		9D9F3C891F2B6853004E5539 /* indifilterinterface.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = indifilterinterface.h; sourceTree = "<group>"; };
+		9D9F3C8A1F2B6853004E5539 /* indifilterwheel.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = indifilterwheel.cpp; sourceTree = "<group>"; };
+		9D9F3C8B1F2B6853004E5539 /* indifilterwheel.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = indifilterwheel.h; sourceTree = "<group>"; };
+		9D9F3C911F2B687B004E5539 /* filter_simulator.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = filter_simulator.cpp; sourceTree = "<group>"; };
+		9D9F3C921F2B687B004E5539 /* filter_simulator.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = filter_simulator.h; sourceTree = "<group>"; };
+		9D9F3C931F2B687B004E5539 /* ifwoptec.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = ifwoptec.cpp; sourceTree = "<group>"; };
+		9D9F3C941F2B687B004E5539 /* ifwoptec.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ifwoptec.h; sourceTree = "<group>"; };
+		9D9F3C951F2B687B004E5539 /* quantum_wheel.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = quantum_wheel.cpp; sourceTree = "<group>"; };
+		9D9F3C961F2B687B004E5539 /* quantum_wheel.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = quantum_wheel.h; sourceTree = "<group>"; };
+		9D9F3C971F2B687B004E5539 /* trutech_wheel.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = trutech_wheel.cpp; sourceTree = "<group>"; };
+		9D9F3C981F2B687B004E5539 /* trutech_wheel.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = trutech_wheel.h; sourceTree = "<group>"; };
+		9D9F3C991F2B687B004E5539 /* xagyl_wheel.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = xagyl_wheel.cpp; sourceTree = "<group>"; };
+		9D9F3C9A1F2B687B004E5539 /* xagyl_wheel.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = xagyl_wheel.h; sourceTree = "<group>"; };
+		9D9F3CA91F2B6895004E5539 /* indi_simulator_focus */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = indi_simulator_focus; sourceTree = BUILT_PRODUCTS_DIR; };
+		9D9F3CB91F2B68B7004E5539 /* indi_simulator_wheel */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = indi_simulator_wheel; sourceTree = BUILT_PRODUCTS_DIR; };
+		9D9F3CC71F2B6982004E5539 /* indi_optec_wheel */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = indi_optec_wheel; sourceTree = BUILT_PRODUCTS_DIR; };
+		9D9F3CD61F2B6992004E5539 /* indi_quantum_wheel */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = indi_quantum_wheel; sourceTree = BUILT_PRODUCTS_DIR; };
+		9D9F3CE51F2B699F004E5539 /* indi_trutech_wheel */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = indi_trutech_wheel; sourceTree = BUILT_PRODUCTS_DIR; };
+		9D9F3CF41F2B69AB004E5539 /* indi_xagyl_wheel */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = indi_xagyl_wheel; sourceTree = BUILT_PRODUCTS_DIR; };
+		9D9F3D031F2B6A44004E5539 /* gpdriver.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = gpdriver.cpp; sourceTree = "<group>"; };
+		9D9F3D041F2B6A44004E5539 /* gpdriver.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = gpdriver.h; sourceTree = "<group>"; };
+		9D9F3D051F2B6A8D004E5539 /* gpusb.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = gpusb.cpp; sourceTree = "<group>"; };
+		9D9F3D061F2B6A8D004E5539 /* gpusb.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = gpusb.h; sourceTree = "<group>"; };
+		9D9F3D071F2B6AA5004E5539 /* STAR2kdriver.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = STAR2kdriver.c; sourceTree = "<group>"; };
+		9D9F3D081F2B6AA5004E5539 /* STAR2kdriver.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = STAR2kdriver.h; sourceTree = "<group>"; };
+		9D9F3D091F2B6AA5004E5539 /* STAR2000.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = STAR2000.cpp; sourceTree = "<group>"; };
+		9D9F3D0A1F2B6AA5004E5539 /* STAR2000.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = STAR2000.h; sourceTree = "<group>"; };
+		9D9F3D181F2B6AB6004E5539 /* indi_star2000 */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = indi_star2000; sourceTree = BUILT_PRODUCTS_DIR; };
+		9D9F3D291F2B6ADD004E5539 /* indi_gpusb */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = indi_gpusb; sourceTree = BUILT_PRODUCTS_DIR; };
+		9D9F3D301F2B6B33004E5539 /* indiguiderinterface.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = indiguiderinterface.cpp; sourceTree = "<group>"; };
+		9D9F3D311F2B6B33004E5539 /* indiguiderinterface.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = indiguiderinterface.h; sourceTree = "<group>"; };
+		9D9F3D341F2B6B65004E5539 /* indiusbdevice.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = indiusbdevice.cpp; sourceTree = "<group>"; };
+		9D9F3D351F2B6B65004E5539 /* indiusbdevice.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = indiusbdevice.h; sourceTree = "<group>"; };
+		9D9F3D3B1F2B6C19004E5539 /* libusb.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = libusb.h; sourceTree = "<group>"; };
+		9D9F3D3E1F2B6C35004E5539 /* libusb-1.0.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; path = "libusb-1.0.a"; sourceTree = "<group>"; };
+		9D9F3D7E1F2B6DBC004E5539 /* libnovas.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; path = libnovas.a; sourceTree = "<group>"; };
+		9D9F3DA51F2B72A6004E5539 /* indi.xml */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = indi.xml; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		591BFB5B1F2BD5BE00BA7BBD /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		9D654CA81F2B5BF7000B7DB9 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				9D9F3D3F1F2B6C35004E5539 /* libusb-1.0.a in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		9D654D081F2B5F71000B7DB9 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				9D654D401F2B6387000B7DB9 /* libz.tbd in Frameworks */,
+				9D654D351F2B61B9000B7DB9 /* Foundation.framework in Frameworks */,
+				9D654D131F2B5FC8000B7DB9 /* libindi.a in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		9D654D471F2B63B9000B7DB9 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				9D654D481F2B63B9000B7DB9 /* libz.tbd in Frameworks */,
+				9D654D491F2B63B9000B7DB9 /* Foundation.framework in Frameworks */,
+				9D654D4A1F2B63B9000B7DB9 /* libindi.a in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		9D654D561F2B641D000B7DB9 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				9D654D571F2B641D000B7DB9 /* libz.tbd in Frameworks */,
+				9D654D581F2B641D000B7DB9 /* Foundation.framework in Frameworks */,
+				9D654D591F2B641D000B7DB9 /* libindi.a in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		9D654D651F2B6434000B7DB9 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				9D654D661F2B6434000B7DB9 /* libz.tbd in Frameworks */,
+				9D654D671F2B6434000B7DB9 /* Foundation.framework in Frameworks */,
+				9D654D681F2B6434000B7DB9 /* libindi.a in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		9D654D741F2B644A000B7DB9 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				9D654D751F2B644A000B7DB9 /* libz.tbd in Frameworks */,
+				9D654D761F2B644A000B7DB9 /* Foundation.framework in Frameworks */,
+				9D654D771F2B644A000B7DB9 /* libindi.a in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		9D654D831F2B645B000B7DB9 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				9D654D841F2B645B000B7DB9 /* libz.tbd in Frameworks */,
+				9D654D851F2B645B000B7DB9 /* Foundation.framework in Frameworks */,
+				9D654D861F2B645B000B7DB9 /* libindi.a in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		9D654D921F2B6477000B7DB9 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				9D654D931F2B6477000B7DB9 /* libz.tbd in Frameworks */,
+				9D654D941F2B6477000B7DB9 /* Foundation.framework in Frameworks */,
+				9D654D951F2B6477000B7DB9 /* libindi.a in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		9D654DA11F2B6487000B7DB9 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				9D654DA21F2B6487000B7DB9 /* libz.tbd in Frameworks */,
+				9D654DA31F2B6487000B7DB9 /* Foundation.framework in Frameworks */,
+				9D654DA41F2B6487000B7DB9 /* libindi.a in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		9D654DB01F2B6499000B7DB9 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				9D654DB11F2B6499000B7DB9 /* libz.tbd in Frameworks */,
+				9D654DB21F2B6499000B7DB9 /* Foundation.framework in Frameworks */,
+				9D654DB31F2B6499000B7DB9 /* libindi.a in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		9D654DBF1F2B64AB000B7DB9 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				9D654DC01F2B64AB000B7DB9 /* libz.tbd in Frameworks */,
+				9D654DC11F2B64AB000B7DB9 /* Foundation.framework in Frameworks */,
+				9D654DC21F2B64AB000B7DB9 /* libindi.a in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		9D9F3CA11F2B6895004E5539 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				9D9F3CA21F2B6895004E5539 /* libz.tbd in Frameworks */,
+				9D9F3CA31F2B6895004E5539 /* Foundation.framework in Frameworks */,
+				9D9F3CA41F2B6895004E5539 /* libindi.a in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		9D9F3CB11F2B68B7004E5539 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				9D9F3CB21F2B68B7004E5539 /* libz.tbd in Frameworks */,
+				9D9F3CB31F2B68B7004E5539 /* Foundation.framework in Frameworks */,
+				9D9F3CB41F2B68B7004E5539 /* libindi.a in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		9D9F3CBF1F2B6982004E5539 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				9D9F3CC01F2B6982004E5539 /* libz.tbd in Frameworks */,
+				9D9F3CC11F2B6982004E5539 /* Foundation.framework in Frameworks */,
+				9D9F3CC21F2B6982004E5539 /* libindi.a in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		9D9F3CCE1F2B6992004E5539 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				9D9F3CCF1F2B6992004E5539 /* libz.tbd in Frameworks */,
+				9D9F3CD01F2B6992004E5539 /* Foundation.framework in Frameworks */,
+				9D9F3CD11F2B6992004E5539 /* libindi.a in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		9D9F3CDD1F2B699F004E5539 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				9D9F3CDE1F2B699F004E5539 /* libz.tbd in Frameworks */,
+				9D9F3CDF1F2B699F004E5539 /* Foundation.framework in Frameworks */,
+				9D9F3CE01F2B699F004E5539 /* libindi.a in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		9D9F3CEC1F2B69AB004E5539 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				9D9F3CED1F2B69AB004E5539 /* libz.tbd in Frameworks */,
+				9D9F3CEE1F2B69AB004E5539 /* Foundation.framework in Frameworks */,
+				9D9F3CEF1F2B69AB004E5539 /* libindi.a in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		9D9F3D101F2B6AB6004E5539 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				9D9F3D111F2B6AB6004E5539 /* libz.tbd in Frameworks */,
+				9D9F3D121F2B6AB6004E5539 /* Foundation.framework in Frameworks */,
+				9D9F3D131F2B6AB6004E5539 /* libindi.a in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		9D9F3D211F2B6ADD004E5539 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				9D9F3D221F2B6ADD004E5539 /* libz.tbd in Frameworks */,
+				9D9F3D231F2B6ADD004E5539 /* Foundation.framework in Frameworks */,
+				9D9F3D241F2B6ADD004E5539 /* libindi.a in Frameworks */,
+				9D9F3D401F2B6C3E004E5539 /* libusb-1.0.a in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		591BFB5F1F2BD5BE00BA7BBD /* Install INDI Drivers */ = {
+			isa = PBXGroup;
+			children = (
+				591BFB601F2BD5BE00BA7BBD /* AppDelegate.swift */,
+				591BFB6D1F2BD61900BA7BBD /* MainMenu.xib */,
+				591BFB641F2BD5BE00BA7BBD /* Assets.xcassets */,
+				591BFB691F2BD5BE00BA7BBD /* Info.plist */,
+				591BFB821F2BECA100BA7BBD /* Install INDI Drivers.entitlements */,
+			);
+			path = "Install INDI Drivers";
+			sourceTree = "<group>";
+		};
+		9D654CA21F2B5BF7000B7DB9 = {
+			isa = PBXGroup;
+			children = (
+				9D9F3DA51F2B72A6004E5539 /* indi.xml */,
+				9D9F3D381F2B6BD9004E5539 /* indigo */,
+				9D654CB21F2B5C4E000B7DB9 /* libindi */,
+				9D9F3D801F2B6F04004E5539 /* 3rdparty */,
+				591BFB5F1F2BD5BE00BA7BBD /* Install INDI Drivers */,
+				9D654D271F2B60EC000B7DB9 /* Frameworks */,
+				9D654CAC1F2B5BF7000B7DB9 /* Products */,
+			);
+			sourceTree = "<group>";
+			wrapsLines = 0;
+		};
+		9D654CAC1F2B5BF7000B7DB9 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				9D654CAB1F2B5BF7000B7DB9 /* libindi.a */,
+				9D654D0B1F2B5F71000B7DB9 /* indi_lynx_focus */,
+				9D654D4F1F2B63B9000B7DB9 /* indi_microtouch_focus */,
+				9D654D5E1F2B641D000B7DB9 /* indi_moonlite_focus */,
+				9D654D6D1F2B6434000B7DB9 /* indi_nightcrawler_focus */,
+				9D654D7C1F2B644A000B7DB9 /* indi_nstep_focus */,
+				9D654D8B1F2B645B000B7DB9 /* indi_perfectstar_focus */,
+				9D654D9A1F2B6477000B7DB9 /* indi_robo_focus */,
+				9D654DA91F2B6487000B7DB9 /* indi_smartfocus_focus */,
+				9D654DB81F2B6499000B7DB9 /* indi_steeldrive_focus */,
+				9D654DC71F2B64AB000B7DB9 /* indi_tcfs_focus */,
+				9D9F3CA91F2B6895004E5539 /* indi_simulator_focus */,
+				9D9F3CB91F2B68B7004E5539 /* indi_simulator_wheel */,
+				9D9F3CC71F2B6982004E5539 /* indi_optec_wheel */,
+				9D9F3CD61F2B6992004E5539 /* indi_quantum_wheel */,
+				9D9F3CE51F2B699F004E5539 /* indi_trutech_wheel */,
+				9D9F3CF41F2B69AB004E5539 /* indi_xagyl_wheel */,
+				9D9F3D181F2B6AB6004E5539 /* indi_star2000 */,
+				9D9F3D291F2B6ADD004E5539 /* indi_gpusb */,
+				591BFB5E1F2BD5BE00BA7BBD /* Install INDI Drivers.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		9D654CB21F2B5C4E000B7DB9 /* libindi */ = {
+			isa = PBXGroup;
+			children = (
+				591BFB421F2BC8D500BA7BBD /* config.h */,
+				9D654CE61F2B5E6E000B7DB9 /* drivers */,
+				9D654CB31F2B5C69000B7DB9 /* libs */,
+			);
+			name = libindi;
+			path = ../../libindi;
+			sourceTree = "<group>";
+		};
+		9D654CB31F2B5C69000B7DB9 /* libs */ = {
+			isa = PBXGroup;
+			children = (
+				9D654CE31F2B5D84000B7DB9 /* CMakeLists.txt */,
+				9D654CE41F2B5DF6000B7DB9 /* locale_compat.h */,
+				9D654CCB1F2B5CFC000B7DB9 /* indiapi.h */,
+				9D654CD31F2B5D07000B7DB9 /* indidevapi.h */,
+				9D654CCD1F2B5CFC000B7DB9 /* indidriver.h */,
+				9D654D2E1F2B614D000B7DB9 /* indibasetypes.h */,
+				9D654CCC1F2B5CFC000B7DB9 /* indidriver.c */,
+				9D654CCE1F2B5CFC000B7DB9 /* indidrivermain.c */,
+				9D654CD61F2B5D1D000B7DB9 /* indicom.h */,
+				9D654CD51F2B5D1D000B7DB9 /* indicom.c */,
+				9D654CD81F2B5D1D000B7DB9 /* lilxml.h */,
+				9D654CD71F2B5D1D000B7DB9 /* lilxml.c */,
+				9D654CDE1F2B5D32000B7DB9 /* base64.h */,
+				9D654CDD1F2B5D32000B7DB9 /* base64.c */,
+				9D654CB41F2B5C7B000B7DB9 /* indibase */,
+			);
+			path = libs;
+			sourceTree = "<group>";
+		};
+		9D654CB41F2B5C7B000B7DB9 /* indibase */ = {
+			isa = PBXGroup;
+			children = (
+				9D654CB61F2B5CAF000B7DB9 /* baseclient.h */,
+				9D654CB51F2B5CAF000B7DB9 /* baseclient.cpp */,
+				9D654CB81F2B5CAF000B7DB9 /* basedevice.h */,
+				9D654CB71F2B5CAF000B7DB9 /* basedevice.cpp */,
+				9D654CBA1F2B5CAF000B7DB9 /* defaultdevice.h */,
+				9D654CB91F2B5CAF000B7DB9 /* defaultdevice.cpp */,
+				9D654CBC1F2B5CAF000B7DB9 /* indifocuser.h */,
+				9D654CBB1F2B5CAF000B7DB9 /* indifocuser.cpp */,
+				9D654CBE1F2B5CAF000B7DB9 /* indifocuserinterface.h */,
+				9D654CBD1F2B5CAF000B7DB9 /* indifocuserinterface.cpp */,
+				9D9F3C891F2B6853004E5539 /* indifilterinterface.h */,
+				9D9F3C881F2B6853004E5539 /* indifilterinterface.cpp */,
+				9D9F3C8B1F2B6853004E5539 /* indifilterwheel.h */,
+				9D9F3C8A1F2B6853004E5539 /* indifilterwheel.cpp */,
+				9D9F3D311F2B6B33004E5539 /* indiguiderinterface.h */,
+				9D9F3D301F2B6B33004E5539 /* indiguiderinterface.cpp */,
+				9D654D311F2B6180000B7DB9 /* indicontroller.h */,
+				9D654D301F2B6180000B7DB9 /* indicontroller.cpp */,
+				9D654D241F2B6064000B7DB9 /* indilogger.h */,
+				9D654D231F2B6064000B7DB9 /* indilogger.cpp */,
+				9D654D2B1F2B6132000B7DB9 /* indiproperty.h */,
+				9D654D2A1F2B6132000B7DB9 /* indiproperty.cpp */,
+				9D654DE21F2B6523000B7DB9 /* hidapi.h */,
+				9D654DE11F2B6523000B7DB9 /* hid_mac.c */,
+				9D9F3D351F2B6B65004E5539 /* indiusbdevice.h */,
+				9D9F3D341F2B6B65004E5539 /* indiusbdevice.cpp */,
+				9D654D161F2B602A000B7DB9 /* connectionplugins */,
+			);
+			path = indibase;
+			sourceTree = "<group>";
+		};
+		9D654CE61F2B5E6E000B7DB9 /* drivers */ = {
+			isa = PBXGroup;
+			children = (
+				9D654D3A1F2B62B5000B7DB9 /* eventloop.c */,
+				9D654D3B1F2B62B5000B7DB9 /* eventloop.h */,
+				9D9F3C901F2B687B004E5539 /* filter_wheel */,
+				9D654CE71F2B5E7A000B7DB9 /* focuser */,
+				9D9F3D021F2B6A2D004E5539 /* auxiliary */,
+			);
+			path = drivers;
+			sourceTree = "<group>";
+		};
+		9D654CE71F2B5E7A000B7DB9 /* focuser */ = {
+			isa = PBXGroup;
+			children = (
+				9D654CE91F2B5EA4000B7DB9 /* focus_simulator.h */,
+				9D654CE81F2B5EA4000B7DB9 /* focus_simulator.cpp */,
+				9D654CEB1F2B5EA4000B7DB9 /* focuslynx.h */,
+				9D654CEA1F2B5EA4000B7DB9 /* focuslynx.cpp */,
+				9D654CED1F2B5EA4000B7DB9 /* focuslynxbase.h */,
+				9D654CEC1F2B5EA4000B7DB9 /* focuslynxbase.cpp */,
+				9D654CF21F2B5EA4000B7DB9 /* microtouch.h */,
+				9D654CF11F2B5EA4000B7DB9 /* microtouch.cpp */,
+				9D654CF41F2B5EA4000B7DB9 /* moonlite.h */,
+				9D654CF31F2B5EA4000B7DB9 /* moonlite.cpp */,
+				9D654CF61F2B5EA4000B7DB9 /* nfocus.h */,
+				9D654CF51F2B5EA4000B7DB9 /* nfocus.cpp */,
+				9D654CF81F2B5EA4000B7DB9 /* nightcrawler.h */,
+				9D654CF71F2B5EA4000B7DB9 /* nightcrawler.cpp */,
+				9D654CFA1F2B5EA4000B7DB9 /* nstep.h */,
+				9D654CF91F2B5EA4000B7DB9 /* nstep.cpp */,
+				9D654CFC1F2B5EA4000B7DB9 /* perfectstar.h */,
+				9D654CFB1F2B5EA4000B7DB9 /* perfectstar.cpp */,
+				9D654CFE1F2B5EA4000B7DB9 /* robofocus.h */,
+				9D654CFD1F2B5EA4000B7DB9 /* robofocus.cpp */,
+				9D654D001F2B5EA4000B7DB9 /* smartfocus.h */,
+				9D654CFF1F2B5EA4000B7DB9 /* smartfocus.cpp */,
+				9D654D021F2B5EA4000B7DB9 /* steeldrive.h */,
+				9D654D011F2B5EA4000B7DB9 /* steeldrive.cpp */,
+				9D654D041F2B5EA4000B7DB9 /* tcfs.h */,
+				9D654D031F2B5EA4000B7DB9 /* tcfs.cpp */,
+				9D654CF01F2B5EA4000B7DB9 /* indi_tcfs_sk.xml */,
+			);
+			path = focuser;
+			sourceTree = "<group>";
+		};
+		9D654D161F2B602A000B7DB9 /* connectionplugins */ = {
+			isa = PBXGroup;
+			children = (
+				9D654D171F2B602A000B7DB9 /* connectioninterface.cpp */,
+				9D654D181F2B602A000B7DB9 /* connectioninterface.h */,
+				9D654D191F2B602A000B7DB9 /* connectionserial.cpp */,
+				9D654D1A1F2B602A000B7DB9 /* connectionserial.h */,
+				9D654D1B1F2B602A000B7DB9 /* connectiontcp.cpp */,
+				9D654D1C1F2B602A000B7DB9 /* connectiontcp.h */,
+			);
+			path = connectionplugins;
+			sourceTree = "<group>";
+		};
+		9D654D271F2B60EC000B7DB9 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				9D654D3F1F2B6387000B7DB9 /* libz.tbd */,
+				9D654D341F2B61B9000B7DB9 /* Foundation.framework */,
+				9D654D281F2B60EC000B7DB9 /* Cocoa.framework */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
+		9D9F3C901F2B687B004E5539 /* filter_wheel */ = {
+			isa = PBXGroup;
+			children = (
+				9D9F3C911F2B687B004E5539 /* filter_simulator.cpp */,
+				9D9F3C921F2B687B004E5539 /* filter_simulator.h */,
+				9D9F3C931F2B687B004E5539 /* ifwoptec.cpp */,
+				9D9F3C941F2B687B004E5539 /* ifwoptec.h */,
+				9D9F3C951F2B687B004E5539 /* quantum_wheel.cpp */,
+				9D9F3C961F2B687B004E5539 /* quantum_wheel.h */,
+				9D9F3C971F2B687B004E5539 /* trutech_wheel.cpp */,
+				9D9F3C981F2B687B004E5539 /* trutech_wheel.h */,
+				9D9F3C991F2B687B004E5539 /* xagyl_wheel.cpp */,
+				9D9F3C9A1F2B687B004E5539 /* xagyl_wheel.h */,
+			);
+			path = filter_wheel;
+			sourceTree = "<group>";
+		};
+		9D9F3D021F2B6A2D004E5539 /* auxiliary */ = {
+			isa = PBXGroup;
+			children = (
+				9D9F3D041F2B6A44004E5539 /* gpdriver.h */,
+				9D9F3D031F2B6A44004E5539 /* gpdriver.cpp */,
+				9D9F3D061F2B6A8D004E5539 /* gpusb.h */,
+				9D9F3D051F2B6A8D004E5539 /* gpusb.cpp */,
+				9D9F3D081F2B6AA5004E5539 /* STAR2kdriver.h */,
+				9D9F3D071F2B6AA5004E5539 /* STAR2kdriver.c */,
+				9D9F3D0A1F2B6AA5004E5539 /* STAR2000.h */,
+				9D9F3D091F2B6AA5004E5539 /* STAR2000.cpp */,
+			);
+			path = auxiliary;
+			sourceTree = "<group>";
+		};
+		9D9F3D381F2B6BD9004E5539 /* indigo */ = {
+			isa = PBXGroup;
+			children = (
+				9D9F3D3D1F2B6C20004E5539 /* lib */,
+				9D9F3D391F2B6BF2004E5539 /* include */,
+			);
+			name = indigo;
+			path = ../../../indigo/build;
+			sourceTree = "<group>";
+		};
+		9D9F3D391F2B6BF2004E5539 /* include */ = {
+			isa = PBXGroup;
+			children = (
+				9D9F3D3A1F2B6C19004E5539 /* libusb-1.0 */,
+			);
+			path = include;
+			sourceTree = "<group>";
+		};
+		9D9F3D3A1F2B6C19004E5539 /* libusb-1.0 */ = {
+			isa = PBXGroup;
+			children = (
+				9D9F3D3B1F2B6C19004E5539 /* libusb.h */,
+			);
+			path = "libusb-1.0";
+			sourceTree = "<group>";
+		};
+		9D9F3D3D1F2B6C20004E5539 /* lib */ = {
+			isa = PBXGroup;
+			children = (
+				9D9F3D7E1F2B6DBC004E5539 /* libnovas.a */,
+				9D9F3D3E1F2B6C35004E5539 /* libusb-1.0.a */,
+			);
+			path = lib;
+			sourceTree = "<group>";
+		};
+		9D9F3D801F2B6F04004E5539 /* 3rdparty */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			name = 3rdparty;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXHeadersBuildPhase section */
+		9D654CA91F2B5BF7000B7DB9 /* Headers */ = {
+			isa = PBXHeadersBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				9D9F3D331F2B6B33004E5539 /* indiguiderinterface.h in Headers */,
+				9D654CE51F2B5DF6000B7DB9 /* locale_compat.h in Headers */,
+				9D654CC01F2B5CAF000B7DB9 /* baseclient.h in Headers */,
+				9D654CC21F2B5CAF000B7DB9 /* basedevice.h in Headers */,
+				9D654CC61F2B5CAF000B7DB9 /* indifocuser.h in Headers */,
+				9D654DE41F2B6523000B7DB9 /* hidapi.h in Headers */,
+				9D654D3D1F2B62B5000B7DB9 /* eventloop.h in Headers */,
+				9D9F3D371F2B6B65004E5539 /* indiusbdevice.h in Headers */,
+				9D654CC41F2B5CAF000B7DB9 /* defaultdevice.h in Headers */,
+				9D654CC81F2B5CAF000B7DB9 /* indifocuserinterface.h in Headers */,
+				9D654D261F2B6064000B7DB9 /* indilogger.h in Headers */,
+				9D654D331F2B6180000B7DB9 /* indicontroller.h in Headers */,
+				9D654CCF1F2B5CFC000B7DB9 /* indiapi.h in Headers */,
+				9D654CD11F2B5CFC000B7DB9 /* indidriver.h in Headers */,
+				9D654D2D1F2B6132000B7DB9 /* indiproperty.h in Headers */,
+				9D9F3C8F1F2B6853004E5539 /* indifilterwheel.h in Headers */,
+				9D654CD41F2B5D07000B7DB9 /* indidevapi.h in Headers */,
+				9D654D2F1F2B614D000B7DB9 /* indibasetypes.h in Headers */,
+				9D654D201F2B604A000B7DB9 /* connectioninterface.h in Headers */,
+				9D654CDC1F2B5D1D000B7DB9 /* lilxml.h in Headers */,
+				9D654CDA1F2B5D1D000B7DB9 /* indicom.h in Headers */,
+				9D9F3C8D1F2B6853004E5539 /* indifilterinterface.h in Headers */,
+				9D654D211F2B604A000B7DB9 /* connectionserial.h in Headers */,
+				9D9F3D3C1F2B6C19004E5539 /* libusb.h in Headers */,
+				9D654CE01F2B5D32000B7DB9 /* base64.h in Headers */,
+				9D654D221F2B604A000B7DB9 /* connectiontcp.h in Headers */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXHeadersBuildPhase section */
+
+/* Begin PBXNativeTarget section */
+		591BFB5D1F2BD5BE00BA7BBD /* Install INDI Drivers */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 591BFB6A1F2BD5BE00BA7BBD /* Build configuration list for PBXNativeTarget "Install INDI Drivers" */;
+			buildPhases = (
+				591BFB5A1F2BD5BE00BA7BBD /* Sources */,
+				591BFB5B1F2BD5BE00BA7BBD /* Frameworks */,
+				591BFB5C1F2BD5BE00BA7BBD /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = "Install INDI Drivers";
+			productName = "Install INDI Drivers";
+			productReference = 591BFB5E1F2BD5BE00BA7BBD /* Install INDI Drivers.app */;
+			productType = "com.apple.product-type.application";
+		};
+		9D654CAA1F2B5BF7000B7DB9 /* indi */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 9D654CAF1F2B5BF7000B7DB9 /* Build configuration list for PBXNativeTarget "indi" */;
+			buildPhases = (
+				9D654CA71F2B5BF7000B7DB9 /* Sources */,
+				9D654CA81F2B5BF7000B7DB9 /* Frameworks */,
+				9D654CA91F2B5BF7000B7DB9 /* Headers */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = indi;
+			productName = indi;
+			productReference = 9D654CAB1F2B5BF7000B7DB9 /* libindi.a */;
+			productType = "com.apple.product-type.library.static";
+		};
+		9D654D0A1F2B5F71000B7DB9 /* indi_lynx_focus */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 9D654D0F1F2B5F71000B7DB9 /* Build configuration list for PBXNativeTarget "indi_lynx_focus" */;
+			buildPhases = (
+				9D654D071F2B5F71000B7DB9 /* Sources */,
+				9D654D081F2B5F71000B7DB9 /* Frameworks */,
+				9D654D091F2B5F71000B7DB9 /* CopyFiles */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				9D654D151F2B5FEA000B7DB9 /* PBXTargetDependency */,
+			);
+			name = indi_lynx_focus;
+			productName = indi_lynx_focus;
+			productReference = 9D654D0B1F2B5F71000B7DB9 /* indi_lynx_focus */;
+			productType = "com.apple.product-type.tool";
+		};
+		9D654D411F2B63B9000B7DB9 /* indi_microtouch_focus */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 9D654D4C1F2B63B9000B7DB9 /* Build configuration list for PBXNativeTarget "indi_microtouch_focus" */;
+			buildPhases = (
+				9D654D441F2B63B9000B7DB9 /* Sources */,
+				9D654D471F2B63B9000B7DB9 /* Frameworks */,
+				9D654D4B1F2B63B9000B7DB9 /* CopyFiles */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				9D654D421F2B63B9000B7DB9 /* PBXTargetDependency */,
+			);
+			name = indi_microtouch_focus;
+			productName = indi_lynx_focus;
+			productReference = 9D654D4F1F2B63B9000B7DB9 /* indi_microtouch_focus */;
+			productType = "com.apple.product-type.tool";
+		};
+		9D654D511F2B641D000B7DB9 /* indi_moonlite_focus */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 9D654D5B1F2B641D000B7DB9 /* Build configuration list for PBXNativeTarget "indi_moonlite_focus" */;
+			buildPhases = (
+				9D654D541F2B641D000B7DB9 /* Sources */,
+				9D654D561F2B641D000B7DB9 /* Frameworks */,
+				9D654D5A1F2B641D000B7DB9 /* CopyFiles */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				9D654D521F2B641D000B7DB9 /* PBXTargetDependency */,
+			);
+			name = indi_moonlite_focus;
+			productName = indi_lynx_focus;
+			productReference = 9D654D5E1F2B641D000B7DB9 /* indi_moonlite_focus */;
+			productType = "com.apple.product-type.tool";
+		};
+		9D654D601F2B6434000B7DB9 /* indi_nightcrawler_focus */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 9D654D6A1F2B6434000B7DB9 /* Build configuration list for PBXNativeTarget "indi_nightcrawler_focus" */;
+			buildPhases = (
+				9D654D631F2B6434000B7DB9 /* Sources */,
+				9D654D651F2B6434000B7DB9 /* Frameworks */,
+				9D654D691F2B6434000B7DB9 /* CopyFiles */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				9D654D611F2B6434000B7DB9 /* PBXTargetDependency */,
+			);
+			name = indi_nightcrawler_focus;
+			productName = indi_lynx_focus;
+			productReference = 9D654D6D1F2B6434000B7DB9 /* indi_nightcrawler_focus */;
+			productType = "com.apple.product-type.tool";
+		};
+		9D654D6F1F2B644A000B7DB9 /* indi_nstep_focus */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 9D654D791F2B644A000B7DB9 /* Build configuration list for PBXNativeTarget "indi_nstep_focus" */;
+			buildPhases = (
+				9D654D721F2B644A000B7DB9 /* Sources */,
+				9D654D741F2B644A000B7DB9 /* Frameworks */,
+				9D654D781F2B644A000B7DB9 /* CopyFiles */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				9D654D701F2B644A000B7DB9 /* PBXTargetDependency */,
+			);
+			name = indi_nstep_focus;
+			productName = indi_lynx_focus;
+			productReference = 9D654D7C1F2B644A000B7DB9 /* indi_nstep_focus */;
+			productType = "com.apple.product-type.tool";
+		};
+		9D654D7E1F2B645B000B7DB9 /* indi_perfectstar_focus */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 9D654D881F2B645B000B7DB9 /* Build configuration list for PBXNativeTarget "indi_perfectstar_focus" */;
+			buildPhases = (
+				9D654D811F2B645B000B7DB9 /* Sources */,
+				9D654D831F2B645B000B7DB9 /* Frameworks */,
+				9D654D871F2B645B000B7DB9 /* CopyFiles */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				9D654D7F1F2B645B000B7DB9 /* PBXTargetDependency */,
+			);
+			name = indi_perfectstar_focus;
+			productName = indi_lynx_focus;
+			productReference = 9D654D8B1F2B645B000B7DB9 /* indi_perfectstar_focus */;
+			productType = "com.apple.product-type.tool";
+		};
+		9D654D8D1F2B6477000B7DB9 /* indi_robo_focus */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 9D654D971F2B6477000B7DB9 /* Build configuration list for PBXNativeTarget "indi_robo_focus" */;
+			buildPhases = (
+				9D654D901F2B6477000B7DB9 /* Sources */,
+				9D654D921F2B6477000B7DB9 /* Frameworks */,
+				9D654D961F2B6477000B7DB9 /* CopyFiles */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				9D654D8E1F2B6477000B7DB9 /* PBXTargetDependency */,
+			);
+			name = indi_robo_focus;
+			productName = indi_lynx_focus;
+			productReference = 9D654D9A1F2B6477000B7DB9 /* indi_robo_focus */;
+			productType = "com.apple.product-type.tool";
+		};
+		9D654D9C1F2B6487000B7DB9 /* indi_smartfocus_focus */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 9D654DA61F2B6487000B7DB9 /* Build configuration list for PBXNativeTarget "indi_smartfocus_focus" */;
+			buildPhases = (
+				9D654D9F1F2B6487000B7DB9 /* Sources */,
+				9D654DA11F2B6487000B7DB9 /* Frameworks */,
+				9D654DA51F2B6487000B7DB9 /* CopyFiles */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				9D654D9D1F2B6487000B7DB9 /* PBXTargetDependency */,
+			);
+			name = indi_smartfocus_focus;
+			productName = indi_lynx_focus;
+			productReference = 9D654DA91F2B6487000B7DB9 /* indi_smartfocus_focus */;
+			productType = "com.apple.product-type.tool";
+		};
+		9D654DAB1F2B6499000B7DB9 /* indi_steeldrive_focus */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 9D654DB51F2B6499000B7DB9 /* Build configuration list for PBXNativeTarget "indi_steeldrive_focus" */;
+			buildPhases = (
+				9D654DAE1F2B6499000B7DB9 /* Sources */,
+				9D654DB01F2B6499000B7DB9 /* Frameworks */,
+				9D654DB41F2B6499000B7DB9 /* CopyFiles */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				9D654DAC1F2B6499000B7DB9 /* PBXTargetDependency */,
+			);
+			name = indi_steeldrive_focus;
+			productName = indi_lynx_focus;
+			productReference = 9D654DB81F2B6499000B7DB9 /* indi_steeldrive_focus */;
+			productType = "com.apple.product-type.tool";
+		};
+		9D654DBA1F2B64AB000B7DB9 /* indi_tcfs_focus */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 9D654DC41F2B64AB000B7DB9 /* Build configuration list for PBXNativeTarget "indi_tcfs_focus" */;
+			buildPhases = (
+				9D654DBD1F2B64AB000B7DB9 /* Sources */,
+				9D654DBF1F2B64AB000B7DB9 /* Frameworks */,
+				9D654DC31F2B64AB000B7DB9 /* CopyFiles */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				9D654DBB1F2B64AB000B7DB9 /* PBXTargetDependency */,
+			);
+			name = indi_tcfs_focus;
+			productName = indi_lynx_focus;
+			productReference = 9D654DC71F2B64AB000B7DB9 /* indi_tcfs_focus */;
+			productType = "com.apple.product-type.tool";
+		};
+		9D9F3C9B1F2B6895004E5539 /* indi_simulator_focus */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 9D9F3CA61F2B6895004E5539 /* Build configuration list for PBXNativeTarget "indi_simulator_focus" */;
+			buildPhases = (
+				9D9F3C9E1F2B6895004E5539 /* Sources */,
+				9D9F3CA11F2B6895004E5539 /* Frameworks */,
+				9D9F3CA51F2B6895004E5539 /* CopyFiles */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				9D9F3C9C1F2B6895004E5539 /* PBXTargetDependency */,
+			);
+			name = indi_simulator_focus;
+			productName = indi_lynx_focus;
+			productReference = 9D9F3CA91F2B6895004E5539 /* indi_simulator_focus */;
+			productType = "com.apple.product-type.tool";
+		};
+		9D9F3CAC1F2B68B7004E5539 /* indi_simulator_wheel */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 9D9F3CB61F2B68B7004E5539 /* Build configuration list for PBXNativeTarget "indi_simulator_wheel" */;
+			buildPhases = (
+				9D9F3CAF1F2B68B7004E5539 /* Sources */,
+				9D9F3CB11F2B68B7004E5539 /* Frameworks */,
+				9D9F3CB51F2B68B7004E5539 /* CopyFiles */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				9D9F3CAD1F2B68B7004E5539 /* PBXTargetDependency */,
+			);
+			name = indi_simulator_wheel;
+			productName = indi_lynx_focus;
+			productReference = 9D9F3CB91F2B68B7004E5539 /* indi_simulator_wheel */;
+			productType = "com.apple.product-type.tool";
+		};
+		9D9F3CBA1F2B6982004E5539 /* indi_optec_wheel */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 9D9F3CC41F2B6982004E5539 /* Build configuration list for PBXNativeTarget "indi_optec_wheel" */;
+			buildPhases = (
+				9D9F3CBD1F2B6982004E5539 /* Sources */,
+				9D9F3CBF1F2B6982004E5539 /* Frameworks */,
+				9D9F3CC31F2B6982004E5539 /* CopyFiles */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				9D9F3CBB1F2B6982004E5539 /* PBXTargetDependency */,
+			);
+			name = indi_optec_wheel;
+			productName = indi_lynx_focus;
+			productReference = 9D9F3CC71F2B6982004E5539 /* indi_optec_wheel */;
+			productType = "com.apple.product-type.tool";
+		};
+		9D9F3CC91F2B6992004E5539 /* indi_quantum_wheel */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 9D9F3CD31F2B6992004E5539 /* Build configuration list for PBXNativeTarget "indi_quantum_wheel" */;
+			buildPhases = (
+				9D9F3CCC1F2B6992004E5539 /* Sources */,
+				9D9F3CCE1F2B6992004E5539 /* Frameworks */,
+				9D9F3CD21F2B6992004E5539 /* CopyFiles */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				9D9F3CCA1F2B6992004E5539 /* PBXTargetDependency */,
+			);
+			name = indi_quantum_wheel;
+			productName = indi_lynx_focus;
+			productReference = 9D9F3CD61F2B6992004E5539 /* indi_quantum_wheel */;
+			productType = "com.apple.product-type.tool";
+		};
+		9D9F3CD81F2B699F004E5539 /* indi_trutech_wheel */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 9D9F3CE21F2B699F004E5539 /* Build configuration list for PBXNativeTarget "indi_trutech_wheel" */;
+			buildPhases = (
+				9D9F3CDB1F2B699F004E5539 /* Sources */,
+				9D9F3CDD1F2B699F004E5539 /* Frameworks */,
+				9D9F3CE11F2B699F004E5539 /* CopyFiles */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				9D9F3CD91F2B699F004E5539 /* PBXTargetDependency */,
+			);
+			name = indi_trutech_wheel;
+			productName = indi_lynx_focus;
+			productReference = 9D9F3CE51F2B699F004E5539 /* indi_trutech_wheel */;
+			productType = "com.apple.product-type.tool";
+		};
+		9D9F3CE71F2B69AB004E5539 /* indi_xagyl_wheel */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 9D9F3CF11F2B69AB004E5539 /* Build configuration list for PBXNativeTarget "indi_xagyl_wheel" */;
+			buildPhases = (
+				9D9F3CEA1F2B69AB004E5539 /* Sources */,
+				9D9F3CEC1F2B69AB004E5539 /* Frameworks */,
+				9D9F3CF01F2B69AB004E5539 /* CopyFiles */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				9D9F3CE81F2B69AB004E5539 /* PBXTargetDependency */,
+			);
+			name = indi_xagyl_wheel;
+			productName = indi_lynx_focus;
+			productReference = 9D9F3CF41F2B69AB004E5539 /* indi_xagyl_wheel */;
+			productType = "com.apple.product-type.tool";
+		};
+		9D9F3D0B1F2B6AB6004E5539 /* indi_star2000 */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 9D9F3D151F2B6AB6004E5539 /* Build configuration list for PBXNativeTarget "indi_star2000" */;
+			buildPhases = (
+				9D9F3D0E1F2B6AB6004E5539 /* Sources */,
+				9D9F3D101F2B6AB6004E5539 /* Frameworks */,
+				9D9F3D141F2B6AB6004E5539 /* CopyFiles */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				9D9F3D0C1F2B6AB6004E5539 /* PBXTargetDependency */,
+			);
+			name = indi_star2000;
+			productName = indi_lynx_focus;
+			productReference = 9D9F3D181F2B6AB6004E5539 /* indi_star2000 */;
+			productType = "com.apple.product-type.tool";
+		};
+		9D9F3D1B1F2B6ADD004E5539 /* indi_gpusb */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 9D9F3D261F2B6ADD004E5539 /* Build configuration list for PBXNativeTarget "indi_gpusb" */;
+			buildPhases = (
+				9D9F3D1E1F2B6ADD004E5539 /* Sources */,
+				9D9F3D211F2B6ADD004E5539 /* Frameworks */,
+				9D9F3D251F2B6ADD004E5539 /* CopyFiles */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				9D9F3D1C1F2B6ADD004E5539 /* PBXTargetDependency */,
+			);
+			name = indi_gpusb;
+			productName = indi_lynx_focus;
+			productReference = 9D9F3D291F2B6ADD004E5539 /* indi_gpusb */;
+			productType = "com.apple.product-type.tool";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		9D654CA31F2B5BF7000B7DB9 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				LastSwiftUpdateCheck = 0830;
+				LastUpgradeCheck = 0830;
+				ORGANIZATIONNAME = "CloudMakers, s. r. o.";
+				TargetAttributes = {
+					591BFB5D1F2BD5BE00BA7BBD = {
+						CreatedOnToolsVersion = 8.3.3;
+						DevelopmentTeam = AG8BXW65A2;
+						ProvisioningStyle = Manual;
+						SystemCapabilities = {
+							com.apple.ApplicationGroups.Mac = {
+								enabled = 1;
+							};
+							com.apple.Sandbox = {
+								enabled = 1;
+							};
+						};
+					};
+					9D654CAA1F2B5BF7000B7DB9 = {
+						CreatedOnToolsVersion = 8.3.3;
+						DevelopmentTeam = AG8BXW65A2;
+						ProvisioningStyle = Automatic;
+					};
+					9D654D0A1F2B5F71000B7DB9 = {
+						CreatedOnToolsVersion = 8.3.3;
+						DevelopmentTeam = AG8BXW65A2;
+						ProvisioningStyle = Automatic;
+					};
+					9D654D411F2B63B9000B7DB9 = {
+						DevelopmentTeam = AG8BXW65A2;
+					};
+					9D654D511F2B641D000B7DB9 = {
+						DevelopmentTeam = AG8BXW65A2;
+					};
+					9D654D601F2B6434000B7DB9 = {
+						DevelopmentTeam = AG8BXW65A2;
+					};
+					9D654D6F1F2B644A000B7DB9 = {
+						DevelopmentTeam = AG8BXW65A2;
+					};
+					9D654D7E1F2B645B000B7DB9 = {
+						DevelopmentTeam = AG8BXW65A2;
+					};
+					9D654D8D1F2B6477000B7DB9 = {
+						DevelopmentTeam = AG8BXW65A2;
+					};
+					9D654D9C1F2B6487000B7DB9 = {
+						DevelopmentTeam = AG8BXW65A2;
+					};
+					9D654DAB1F2B6499000B7DB9 = {
+						DevelopmentTeam = AG8BXW65A2;
+					};
+					9D654DBA1F2B64AB000B7DB9 = {
+						DevelopmentTeam = AG8BXW65A2;
+					};
+					9D9F3C9B1F2B6895004E5539 = {
+						DevelopmentTeam = AG8BXW65A2;
+					};
+					9D9F3CAC1F2B68B7004E5539 = {
+						DevelopmentTeam = AG8BXW65A2;
+					};
+					9D9F3CBA1F2B6982004E5539 = {
+						DevelopmentTeam = AG8BXW65A2;
+					};
+					9D9F3CC91F2B6992004E5539 = {
+						DevelopmentTeam = AG8BXW65A2;
+					};
+					9D9F3CD81F2B699F004E5539 = {
+						DevelopmentTeam = AG8BXW65A2;
+					};
+					9D9F3CE71F2B69AB004E5539 = {
+						DevelopmentTeam = AG8BXW65A2;
+					};
+					9D9F3D0B1F2B6AB6004E5539 = {
+						DevelopmentTeam = AG8BXW65A2;
+					};
+					9D9F3D1B1F2B6ADD004E5539 = {
+						DevelopmentTeam = AG8BXW65A2;
+					};
+				};
+			};
+			buildConfigurationList = 9D654CA61F2B5BF7000B7DB9 /* Build configuration list for PBXProject "indi2indigo" */;
+			compatibilityVersion = "Xcode 3.2";
+			developmentRegion = English;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = 9D654CA21F2B5BF7000B7DB9;
+			productRefGroup = 9D654CAC1F2B5BF7000B7DB9 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				9D654CAA1F2B5BF7000B7DB9 /* indi */,
+				9D9F3C9B1F2B6895004E5539 /* indi_simulator_focus */,
+				9D654D0A1F2B5F71000B7DB9 /* indi_lynx_focus */,
+				9D654D411F2B63B9000B7DB9 /* indi_microtouch_focus */,
+				9D654D511F2B641D000B7DB9 /* indi_moonlite_focus */,
+				9D654D601F2B6434000B7DB9 /* indi_nightcrawler_focus */,
+				9D654D6F1F2B644A000B7DB9 /* indi_nstep_focus */,
+				9D654D7E1F2B645B000B7DB9 /* indi_perfectstar_focus */,
+				9D654D8D1F2B6477000B7DB9 /* indi_robo_focus */,
+				9D654D9C1F2B6487000B7DB9 /* indi_smartfocus_focus */,
+				9D654DAB1F2B6499000B7DB9 /* indi_steeldrive_focus */,
+				9D654DBA1F2B64AB000B7DB9 /* indi_tcfs_focus */,
+				9D9F3CAC1F2B68B7004E5539 /* indi_simulator_wheel */,
+				9D9F3CBA1F2B6982004E5539 /* indi_optec_wheel */,
+				9D9F3CC91F2B6992004E5539 /* indi_quantum_wheel */,
+				9D9F3CD81F2B699F004E5539 /* indi_trutech_wheel */,
+				9D9F3CE71F2B69AB004E5539 /* indi_xagyl_wheel */,
+				9D9F3D0B1F2B6AB6004E5539 /* indi_star2000 */,
+				9D9F3D1B1F2B6ADD004E5539 /* indi_gpusb */,
+				591BFB5D1F2BD5BE00BA7BBD /* Install INDI Drivers */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		591BFB5C1F2BD5BE00BA7BBD /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				591BFB811F2BE25400BA7BBD /* indi.xml in Resources */,
+				591BFB6F1F2BE24D00BA7BBD /* indi_lynx_focus in Resources */,
+				591BFB701F2BE24D00BA7BBD /* indi_microtouch_focus in Resources */,
+				591BFB711F2BE24D00BA7BBD /* indi_moonlite_focus in Resources */,
+				591BFB721F2BE24D00BA7BBD /* indi_nightcrawler_focus in Resources */,
+				591BFB731F2BE24D00BA7BBD /* indi_nstep_focus in Resources */,
+				591BFB741F2BE24D00BA7BBD /* indi_perfectstar_focus in Resources */,
+				591BFB751F2BE24D00BA7BBD /* indi_robo_focus in Resources */,
+				591BFB761F2BE24D00BA7BBD /* indi_smartfocus_focus in Resources */,
+				591BFB771F2BE24D00BA7BBD /* indi_steeldrive_focus in Resources */,
+				591BFB781F2BE24D00BA7BBD /* indi_tcfs_focus in Resources */,
+				591BFB791F2BE24D00BA7BBD /* indi_simulator_focus in Resources */,
+				591BFB7A1F2BE24D00BA7BBD /* indi_simulator_wheel in Resources */,
+				591BFB7B1F2BE24D00BA7BBD /* indi_optec_wheel in Resources */,
+				591BFB7C1F2BE24D00BA7BBD /* indi_quantum_wheel in Resources */,
+				591BFB7D1F2BE24D00BA7BBD /* indi_trutech_wheel in Resources */,
+				591BFB7E1F2BE24D00BA7BBD /* indi_xagyl_wheel in Resources */,
+				591BFB7F1F2BE24D00BA7BBD /* indi_star2000 in Resources */,
+				591BFB801F2BE24D00BA7BBD /* indi_gpusb in Resources */,
+				591BFB651F2BD5BE00BA7BBD /* Assets.xcassets in Resources */,
+				591BFB6E1F2BD61900BA7BBD /* MainMenu.xib in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		591BFB5A1F2BD5BE00BA7BBD /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				591BFB611F2BD5BE00BA7BBD /* AppDelegate.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		9D654CA71F2B5BF7000B7DB9 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				9D9F3D321F2B6B33004E5539 /* indiguiderinterface.cpp in Sources */,
+				9D654CDF1F2B5D32000B7DB9 /* base64.c in Sources */,
+				9D654DE31F2B6523000B7DB9 /* hid_mac.c in Sources */,
+				9D654CC11F2B5CAF000B7DB9 /* basedevice.cpp in Sources */,
+				9D9F3C8E1F2B6853004E5539 /* indifilterwheel.cpp in Sources */,
+				9D654CBF1F2B5CAF000B7DB9 /* baseclient.cpp in Sources */,
+				9D9F3C8C1F2B6853004E5539 /* indifilterinterface.cpp in Sources */,
+				9D654D251F2B6064000B7DB9 /* indilogger.cpp in Sources */,
+				9D9F3D361F2B6B65004E5539 /* indiusbdevice.cpp in Sources */,
+				9D654CC31F2B5CAF000B7DB9 /* defaultdevice.cpp in Sources */,
+				9D654D2C1F2B6132000B7DB9 /* indiproperty.cpp in Sources */,
+				9D654CD21F2B5CFC000B7DB9 /* indidrivermain.c in Sources */,
+				9D654D3C1F2B62B5000B7DB9 /* eventloop.c in Sources */,
+				9D654D1E1F2B6035000B7DB9 /* connectionserial.cpp in Sources */,
+				9D654D1F1F2B6035000B7DB9 /* connectiontcp.cpp in Sources */,
+				9D654D1D1F2B6035000B7DB9 /* connectioninterface.cpp in Sources */,
+				9D654CC71F2B5CAF000B7DB9 /* indifocuserinterface.cpp in Sources */,
+				9D654D321F2B6180000B7DB9 /* indicontroller.cpp in Sources */,
+				9D654CD91F2B5D1D000B7DB9 /* indicom.c in Sources */,
+				9D654CDB1F2B5D1D000B7DB9 /* lilxml.c in Sources */,
+				9D654CC51F2B5CAF000B7DB9 /* indifocuser.cpp in Sources */,
+				9D654CD01F2B5CFC000B7DB9 /* indidriver.c in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		9D654D071F2B5F71000B7DB9 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				9D654D3E1F2B6373000B7DB9 /* focuslynxbase.cpp in Sources */,
+				9D654D121F2B5F8E000B7DB9 /* focuslynx.cpp in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		9D654D441F2B63B9000B7DB9 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				9D654D501F2B63D9000B7DB9 /* microtouch.cpp in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		9D654D541F2B641D000B7DB9 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				9D654D5F1F2B6426000B7DB9 /* moonlite.cpp in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		9D654D631F2B6434000B7DB9 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				9D654D6E1F2B643B000B7DB9 /* nightcrawler.cpp in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		9D654D721F2B644A000B7DB9 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				9D654D7D1F2B6453000B7DB9 /* nstep.cpp in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		9D654D811F2B645B000B7DB9 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				9D654D8C1F2B6462000B7DB9 /* perfectstar.cpp in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		9D654D901F2B6477000B7DB9 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				9D654D9B1F2B647F000B7DB9 /* robofocus.cpp in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		9D654D9F1F2B6487000B7DB9 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				9D654DAA1F2B648F000B7DB9 /* smartfocus.cpp in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		9D654DAE1F2B6499000B7DB9 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				9D654DB91F2B64A1000B7DB9 /* steeldrive.cpp in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		9D654DBD1F2B64AB000B7DB9 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				9D654DC81F2B64B3000B7DB9 /* tcfs.cpp in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		9D9F3C9E1F2B6895004E5539 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				9D9F3CAB1F2B68B0004E5539 /* focus_simulator.cpp in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		9D9F3CAF1F2B68B7004E5539 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				9D9F3CB01F2B68B7004E5539 /* focus_simulator.cpp in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		9D9F3CBD1F2B6982004E5539 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				9D9F3CC81F2B6989004E5539 /* ifwoptec.cpp in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		9D9F3CCC1F2B6992004E5539 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				9D9F3CD71F2B6998004E5539 /* quantum_wheel.cpp in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		9D9F3CDB1F2B699F004E5539 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				591BFB431F2BCACA00BA7BBD /* trutech_wheel.cpp in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		9D9F3CEA1F2B69AB004E5539 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				9D9F3CF51F2B69B1004E5539 /* xagyl_wheel.cpp in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		9D9F3D0E1F2B6AB6004E5539 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				9D9F3D191F2B6AC2004E5539 /* STAR2kdriver.c in Sources */,
+				9D9F3D1A1F2B6AC3004E5539 /* STAR2000.cpp in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		9D9F3D1E1F2B6ADD004E5539 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				9D9F3D2A1F2B6AE4004E5539 /* gpdriver.cpp in Sources */,
+				9D9F3D2B1F2B6AE5004E5539 /* gpusb.cpp in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		9D654D151F2B5FEA000B7DB9 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 9D654CAA1F2B5BF7000B7DB9 /* indi */;
+			targetProxy = 9D654D141F2B5FEA000B7DB9 /* PBXContainerItemProxy */;
+		};
+		9D654D421F2B63B9000B7DB9 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 9D654CAA1F2B5BF7000B7DB9 /* indi */;
+			targetProxy = 9D654D431F2B63B9000B7DB9 /* PBXContainerItemProxy */;
+		};
+		9D654D521F2B641D000B7DB9 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 9D654CAA1F2B5BF7000B7DB9 /* indi */;
+			targetProxy = 9D654D531F2B641D000B7DB9 /* PBXContainerItemProxy */;
+		};
+		9D654D611F2B6434000B7DB9 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 9D654CAA1F2B5BF7000B7DB9 /* indi */;
+			targetProxy = 9D654D621F2B6434000B7DB9 /* PBXContainerItemProxy */;
+		};
+		9D654D701F2B644A000B7DB9 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 9D654CAA1F2B5BF7000B7DB9 /* indi */;
+			targetProxy = 9D654D711F2B644A000B7DB9 /* PBXContainerItemProxy */;
+		};
+		9D654D7F1F2B645B000B7DB9 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 9D654CAA1F2B5BF7000B7DB9 /* indi */;
+			targetProxy = 9D654D801F2B645B000B7DB9 /* PBXContainerItemProxy */;
+		};
+		9D654D8E1F2B6477000B7DB9 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 9D654CAA1F2B5BF7000B7DB9 /* indi */;
+			targetProxy = 9D654D8F1F2B6477000B7DB9 /* PBXContainerItemProxy */;
+		};
+		9D654D9D1F2B6487000B7DB9 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 9D654CAA1F2B5BF7000B7DB9 /* indi */;
+			targetProxy = 9D654D9E1F2B6487000B7DB9 /* PBXContainerItemProxy */;
+		};
+		9D654DAC1F2B6499000B7DB9 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 9D654CAA1F2B5BF7000B7DB9 /* indi */;
+			targetProxy = 9D654DAD1F2B6499000B7DB9 /* PBXContainerItemProxy */;
+		};
+		9D654DBB1F2B64AB000B7DB9 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 9D654CAA1F2B5BF7000B7DB9 /* indi */;
+			targetProxy = 9D654DBC1F2B64AB000B7DB9 /* PBXContainerItemProxy */;
+		};
+		9D9F3C9C1F2B6895004E5539 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 9D654CAA1F2B5BF7000B7DB9 /* indi */;
+			targetProxy = 9D9F3C9D1F2B6895004E5539 /* PBXContainerItemProxy */;
+		};
+		9D9F3CAD1F2B68B7004E5539 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 9D654CAA1F2B5BF7000B7DB9 /* indi */;
+			targetProxy = 9D9F3CAE1F2B68B7004E5539 /* PBXContainerItemProxy */;
+		};
+		9D9F3CBB1F2B6982004E5539 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 9D654CAA1F2B5BF7000B7DB9 /* indi */;
+			targetProxy = 9D9F3CBC1F2B6982004E5539 /* PBXContainerItemProxy */;
+		};
+		9D9F3CCA1F2B6992004E5539 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 9D654CAA1F2B5BF7000B7DB9 /* indi */;
+			targetProxy = 9D9F3CCB1F2B6992004E5539 /* PBXContainerItemProxy */;
+		};
+		9D9F3CD91F2B699F004E5539 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 9D654CAA1F2B5BF7000B7DB9 /* indi */;
+			targetProxy = 9D9F3CDA1F2B699F004E5539 /* PBXContainerItemProxy */;
+		};
+		9D9F3CE81F2B69AB004E5539 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 9D654CAA1F2B5BF7000B7DB9 /* indi */;
+			targetProxy = 9D9F3CE91F2B69AB004E5539 /* PBXContainerItemProxy */;
+		};
+		9D9F3D0C1F2B6AB6004E5539 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 9D654CAA1F2B5BF7000B7DB9 /* indi */;
+			targetProxy = 9D9F3D0D1F2B6AB6004E5539 /* PBXContainerItemProxy */;
+		};
+		9D9F3D1C1F2B6ADD004E5539 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 9D654CAA1F2B5BF7000B7DB9 /* indi */;
+			targetProxy = 9D9F3D1D1F2B6ADD004E5539 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		591BFB6B1F2BD5BE00BA7BBD /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CODE_SIGN_ENTITLEMENTS = "Install INDI Drivers/Install INDI Drivers.entitlements";
+				CODE_SIGN_IDENTITY = "Developer ID Application";
+				COMBINE_HIDPI_IMAGES = YES;
+				DEVELOPMENT_TEAM = AG8BXW65A2;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				INFOPLIST_FILE = "Install INDI Drivers/Info.plist";
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks";
+				MACOSX_DEPLOYMENT_TARGET = 10.10;
+				PRODUCT_BUNDLE_IDENTIFIER = "eu.cloudmakers.Install-INDI-Drivers";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				PROVISIONING_PROFILE_SPECIFIER = "";
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 3.0;
+			};
+			name = Debug;
+		};
+		591BFB6C1F2BD5BE00BA7BBD /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CODE_SIGN_ENTITLEMENTS = "Install INDI Drivers/Install INDI Drivers.entitlements";
+				CODE_SIGN_IDENTITY = "Developer ID Application";
+				COMBINE_HIDPI_IMAGES = YES;
+				DEVELOPMENT_TEAM = AG8BXW65A2;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				INFOPLIST_FILE = "Install INDI Drivers/Info.plist";
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks";
+				MACOSX_DEPLOYMENT_TARGET = 10.10;
+				PRODUCT_BUNDLE_IDENTIFIER = "eu.cloudmakers.Install-INDI-Drivers";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				PROVISIONING_PROFILE_SPECIFIER = "";
+				SWIFT_OPTIMIZATION_LEVEL = "-Owholemodule";
+				SWIFT_VERSION = 3.0;
+			};
+			name = Release;
+		};
+		9D654CAD1F2B5BF7000B7DB9 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++0x";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_WARN_BOOL_CONVERSION = NO;
+				CLANG_WARN_CONSTANT_CONVERSION = NO;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = NO;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = NO;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = NO;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_IDENTITY = "-";
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu99;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = NO;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				LIBRARY_SEARCH_PATHS = ../../../indigo/build/lib;
+				MACOSX_DEPLOYMENT_TARGET = 10.10;
+				MTL_ENABLE_DEBUG_INFO = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = macosx;
+				SYSTEM_HEADER_SEARCH_PATHS = "../../../indigo/build/include/** ../../libindi/**";
+				USER_HEADER_SEARCH_PATHS = "../../libindi/**";
+			};
+			name = Debug;
+		};
+		9D654CAE1F2B5BF7000B7DB9 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++0x";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_WARN_BOOL_CONVERSION = NO;
+				CLANG_WARN_CONSTANT_CONVERSION = NO;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = NO;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = NO;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = NO;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_IDENTITY = "-";
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu99;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = NO;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				LIBRARY_SEARCH_PATHS = ../../../indigo/build/lib;
+				MACOSX_DEPLOYMENT_TARGET = 10.10;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				SDKROOT = macosx;
+				SYSTEM_HEADER_SEARCH_PATHS = "../../../indigo/build/include/** ../../libindi/**";
+				USER_HEADER_SEARCH_PATHS = "../../libindi/**";
+			};
+			name = Release;
+		};
+		9D654CB01F2B5BF7000B7DB9 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				DEVELOPMENT_TEAM = AG8BXW65A2;
+				EXECUTABLE_PREFIX = lib;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Debug;
+		};
+		9D654CB11F2B5BF7000B7DB9 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				DEVELOPMENT_TEAM = AG8BXW65A2;
+				EXECUTABLE_PREFIX = lib;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Release;
+		};
+		9D654D101F2B5F71000B7DB9 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				DEVELOPMENT_TEAM = AG8BXW65A2;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Debug;
+		};
+		9D654D111F2B5F71000B7DB9 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				DEVELOPMENT_TEAM = AG8BXW65A2;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Release;
+		};
+		9D654D4D1F2B63B9000B7DB9 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				DEVELOPMENT_TEAM = AG8BXW65A2;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Debug;
+		};
+		9D654D4E1F2B63B9000B7DB9 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				DEVELOPMENT_TEAM = AG8BXW65A2;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Release;
+		};
+		9D654D5C1F2B641D000B7DB9 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				DEVELOPMENT_TEAM = AG8BXW65A2;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Debug;
+		};
+		9D654D5D1F2B641D000B7DB9 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				DEVELOPMENT_TEAM = AG8BXW65A2;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Release;
+		};
+		9D654D6B1F2B6434000B7DB9 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				DEVELOPMENT_TEAM = AG8BXW65A2;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Debug;
+		};
+		9D654D6C1F2B6434000B7DB9 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				DEVELOPMENT_TEAM = AG8BXW65A2;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Release;
+		};
+		9D654D7A1F2B644A000B7DB9 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				DEVELOPMENT_TEAM = AG8BXW65A2;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Debug;
+		};
+		9D654D7B1F2B644A000B7DB9 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				DEVELOPMENT_TEAM = AG8BXW65A2;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Release;
+		};
+		9D654D891F2B645B000B7DB9 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				DEVELOPMENT_TEAM = AG8BXW65A2;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Debug;
+		};
+		9D654D8A1F2B645B000B7DB9 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				DEVELOPMENT_TEAM = AG8BXW65A2;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Release;
+		};
+		9D654D981F2B6477000B7DB9 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				DEVELOPMENT_TEAM = AG8BXW65A2;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Debug;
+		};
+		9D654D991F2B6477000B7DB9 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				DEVELOPMENT_TEAM = AG8BXW65A2;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Release;
+		};
+		9D654DA71F2B6487000B7DB9 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				DEVELOPMENT_TEAM = AG8BXW65A2;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Debug;
+		};
+		9D654DA81F2B6487000B7DB9 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				DEVELOPMENT_TEAM = AG8BXW65A2;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Release;
+		};
+		9D654DB61F2B6499000B7DB9 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				DEVELOPMENT_TEAM = AG8BXW65A2;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Debug;
+		};
+		9D654DB71F2B6499000B7DB9 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				DEVELOPMENT_TEAM = AG8BXW65A2;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Release;
+		};
+		9D654DC51F2B64AB000B7DB9 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				DEVELOPMENT_TEAM = AG8BXW65A2;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Debug;
+		};
+		9D654DC61F2B64AB000B7DB9 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				DEVELOPMENT_TEAM = AG8BXW65A2;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Release;
+		};
+		9D9F3CA71F2B6895004E5539 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				DEVELOPMENT_TEAM = AG8BXW65A2;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Debug;
+		};
+		9D9F3CA81F2B6895004E5539 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				DEVELOPMENT_TEAM = AG8BXW65A2;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Release;
+		};
+		9D9F3CB71F2B68B7004E5539 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				DEVELOPMENT_TEAM = AG8BXW65A2;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Debug;
+		};
+		9D9F3CB81F2B68B7004E5539 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				DEVELOPMENT_TEAM = AG8BXW65A2;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Release;
+		};
+		9D9F3CC51F2B6982004E5539 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				DEVELOPMENT_TEAM = AG8BXW65A2;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Debug;
+		};
+		9D9F3CC61F2B6982004E5539 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				DEVELOPMENT_TEAM = AG8BXW65A2;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Release;
+		};
+		9D9F3CD41F2B6992004E5539 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				DEVELOPMENT_TEAM = AG8BXW65A2;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Debug;
+		};
+		9D9F3CD51F2B6992004E5539 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				DEVELOPMENT_TEAM = AG8BXW65A2;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Release;
+		};
+		9D9F3CE31F2B699F004E5539 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				DEVELOPMENT_TEAM = AG8BXW65A2;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Debug;
+		};
+		9D9F3CE41F2B699F004E5539 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				DEVELOPMENT_TEAM = AG8BXW65A2;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Release;
+		};
+		9D9F3CF21F2B69AB004E5539 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				DEVELOPMENT_TEAM = AG8BXW65A2;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Debug;
+		};
+		9D9F3CF31F2B69AB004E5539 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				DEVELOPMENT_TEAM = AG8BXW65A2;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Release;
+		};
+		9D9F3D161F2B6AB6004E5539 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				DEVELOPMENT_TEAM = AG8BXW65A2;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Debug;
+		};
+		9D9F3D171F2B6AB6004E5539 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				DEVELOPMENT_TEAM = AG8BXW65A2;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Release;
+		};
+		9D9F3D271F2B6ADD004E5539 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				DEVELOPMENT_TEAM = AG8BXW65A2;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Debug;
+		};
+		9D9F3D281F2B6ADD004E5539 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				DEVELOPMENT_TEAM = AG8BXW65A2;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		591BFB6A1F2BD5BE00BA7BBD /* Build configuration list for PBXNativeTarget "Install INDI Drivers" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				591BFB6B1F2BD5BE00BA7BBD /* Debug */,
+				591BFB6C1F2BD5BE00BA7BBD /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		9D654CA61F2B5BF7000B7DB9 /* Build configuration list for PBXProject "indi2indigo" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				9D654CAD1F2B5BF7000B7DB9 /* Debug */,
+				9D654CAE1F2B5BF7000B7DB9 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		9D654CAF1F2B5BF7000B7DB9 /* Build configuration list for PBXNativeTarget "indi" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				9D654CB01F2B5BF7000B7DB9 /* Debug */,
+				9D654CB11F2B5BF7000B7DB9 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		9D654D0F1F2B5F71000B7DB9 /* Build configuration list for PBXNativeTarget "indi_lynx_focus" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				9D654D101F2B5F71000B7DB9 /* Debug */,
+				9D654D111F2B5F71000B7DB9 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		9D654D4C1F2B63B9000B7DB9 /* Build configuration list for PBXNativeTarget "indi_microtouch_focus" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				9D654D4D1F2B63B9000B7DB9 /* Debug */,
+				9D654D4E1F2B63B9000B7DB9 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		9D654D5B1F2B641D000B7DB9 /* Build configuration list for PBXNativeTarget "indi_moonlite_focus" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				9D654D5C1F2B641D000B7DB9 /* Debug */,
+				9D654D5D1F2B641D000B7DB9 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		9D654D6A1F2B6434000B7DB9 /* Build configuration list for PBXNativeTarget "indi_nightcrawler_focus" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				9D654D6B1F2B6434000B7DB9 /* Debug */,
+				9D654D6C1F2B6434000B7DB9 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		9D654D791F2B644A000B7DB9 /* Build configuration list for PBXNativeTarget "indi_nstep_focus" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				9D654D7A1F2B644A000B7DB9 /* Debug */,
+				9D654D7B1F2B644A000B7DB9 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		9D654D881F2B645B000B7DB9 /* Build configuration list for PBXNativeTarget "indi_perfectstar_focus" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				9D654D891F2B645B000B7DB9 /* Debug */,
+				9D654D8A1F2B645B000B7DB9 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		9D654D971F2B6477000B7DB9 /* Build configuration list for PBXNativeTarget "indi_robo_focus" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				9D654D981F2B6477000B7DB9 /* Debug */,
+				9D654D991F2B6477000B7DB9 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		9D654DA61F2B6487000B7DB9 /* Build configuration list for PBXNativeTarget "indi_smartfocus_focus" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				9D654DA71F2B6487000B7DB9 /* Debug */,
+				9D654DA81F2B6487000B7DB9 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		9D654DB51F2B6499000B7DB9 /* Build configuration list for PBXNativeTarget "indi_steeldrive_focus" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				9D654DB61F2B6499000B7DB9 /* Debug */,
+				9D654DB71F2B6499000B7DB9 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		9D654DC41F2B64AB000B7DB9 /* Build configuration list for PBXNativeTarget "indi_tcfs_focus" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				9D654DC51F2B64AB000B7DB9 /* Debug */,
+				9D654DC61F2B64AB000B7DB9 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		9D9F3CA61F2B6895004E5539 /* Build configuration list for PBXNativeTarget "indi_simulator_focus" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				9D9F3CA71F2B6895004E5539 /* Debug */,
+				9D9F3CA81F2B6895004E5539 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		9D9F3CB61F2B68B7004E5539 /* Build configuration list for PBXNativeTarget "indi_simulator_wheel" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				9D9F3CB71F2B68B7004E5539 /* Debug */,
+				9D9F3CB81F2B68B7004E5539 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		9D9F3CC41F2B6982004E5539 /* Build configuration list for PBXNativeTarget "indi_optec_wheel" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				9D9F3CC51F2B6982004E5539 /* Debug */,
+				9D9F3CC61F2B6982004E5539 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		9D9F3CD31F2B6992004E5539 /* Build configuration list for PBXNativeTarget "indi_quantum_wheel" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				9D9F3CD41F2B6992004E5539 /* Debug */,
+				9D9F3CD51F2B6992004E5539 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		9D9F3CE21F2B699F004E5539 /* Build configuration list for PBXNativeTarget "indi_trutech_wheel" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				9D9F3CE31F2B699F004E5539 /* Debug */,
+				9D9F3CE41F2B699F004E5539 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		9D9F3CF11F2B69AB004E5539 /* Build configuration list for PBXNativeTarget "indi_xagyl_wheel" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				9D9F3CF21F2B69AB004E5539 /* Debug */,
+				9D9F3CF31F2B69AB004E5539 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		9D9F3D151F2B6AB6004E5539 /* Build configuration list for PBXNativeTarget "indi_star2000" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				9D9F3D161F2B6AB6004E5539 /* Debug */,
+				9D9F3D171F2B6AB6004E5539 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		9D9F3D261F2B6ADD004E5539 /* Build configuration list for PBXNativeTarget "indi_gpusb" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				9D9F3D271F2B6ADD004E5539 /* Debug */,
+				9D9F3D281F2B6ADD004E5539 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 9D654CA31F2B5BF7000B7DB9 /* Project object */;
+}
