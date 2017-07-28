@@ -1,4 +1,4 @@
-SBIG INDI Driver
+RTL-SDR INDI Driver
 ================
 
 This package provides the INDI driver for the Realtek RTL2832U chip driven receivers.

@@ -1,23 +1,20 @@
 /*
-   INDI Developers Manual
-   Tutorial #3
+    indi_rtlsdr_detector - a software defined radio driver for INDI
+    Copyright (C) 2017  Ilia Platone
 
-   "Simple Detector Driver"
+    This library is free software; you can redistribute it and/or
+    modify it under the terms of the GNU Lesser General Public
+    License as published by the Free Software Foundation; either
+    version 2 of the License, or (at your option) any later version.
 
-   We develop a simple Detector driver.
+    This library is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+    Lesser General Public License for more details.
 
-   Refer to README, which contains instruction on how to build this driver, and use it
-   with an INDI-compatible client.
-
-*/
-
-/** \file simpleDetector.h
-	\brief Construct a basic INDI Detector device that simulates capture & temperature settings. It also generates a random pattern and uploads it as a FITS file.
-	\author Ilia Platone
-
-	\example simpleDetector.h
-	A simple detector device that can capture stream frames and controls temperature. It returns a FITS image to the client. To build drivers for complex Detectors, please
-	refer to the INDI Generic Detector driver template in INDI github (under 3rdparty).
+    You should have received a copy of the GNU Lesser General Public
+    License along with this library; if not, write to the Free Software
+    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
 #pragma once
