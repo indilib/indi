@@ -102,7 +102,7 @@ bool RTLSDR::Connect()
 	rtlsdr_set_center_freq(rtl_dev, 100000000);
 
 	/* Set the bandwidth */
-	rtlsdr_set_tuner_bandwidth(rtl_dev, 10000);
+	//rtlsdr_set_tuner_bandwidth(rtl_dev, 10000);
 
 	rtlsdr_set_agc_mode(rtl_dev, 1);
 
@@ -208,6 +208,7 @@ bool RTLSDR::StartCapture(float duration)
 bool RTLSDR::CaptureParamsUpdated(float bw, float capfreq, float samfreq, float bps)
 {
     	INDI_UNUSED(bps);
+    	INDI_UNUSED(bw);
 	int r = 0;
 	r = rtlsdr_set_center_freq(rtl_dev, (uint32_t)capfreq);
 	if(r != 0)
@@ -215,9 +216,9 @@ bool RTLSDR::CaptureParamsUpdated(float bw, float capfreq, float samfreq, float 
 	r = rtlsdr_set_sample_rate(rtl_dev, (uint32_t)samfreq);
 	if(r != 0)
 		return false;
-	r = rtlsdr_set_tuner_bandwidth(rtl_dev, (uint32_t)bw);
-	if(r != 0)
-		return false;
+	//r = rtlsdr_set_tuner_bandwidth(rtl_dev, (uint32_t)bw);
+	//if(r != 0)
+	//	return false;
 	return true;
 }
 
