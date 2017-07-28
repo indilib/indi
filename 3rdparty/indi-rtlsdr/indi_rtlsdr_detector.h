@@ -51,6 +51,7 @@ class RTLSDR : public INDI::Detector
 
 
   private:
+	int Bps;
 	rtlsdr_dev_t *rtl_dev = NULL;
 	// Utility functions
 	float CalcTimeLeft();

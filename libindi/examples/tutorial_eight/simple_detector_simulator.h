@@ -55,6 +55,7 @@ class SimpleDetector : public INDI::Detector
     // Struct to keep timing
     struct timeval CapStart;
 
+    float Bps, Capfreq, Samfreq, Bw;
     float CaptureRequest;
     float TemperatureRequest;
 };

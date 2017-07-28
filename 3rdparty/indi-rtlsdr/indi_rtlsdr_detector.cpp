@@ -208,7 +208,7 @@ bool RTLSDR::StartCapture(float duration)
 bool RTLSDR::CaptureParamsUpdated(float bw, float capfreq, float samfreq, float bps)
 {
 	int r = 0;
-	bps = 0;
+	Bps = bps;
 	r = rtlsdr_set_center_freq(rtl_dev, (uint32_t)capfreq);
 	if(r != 0)
 		return false;

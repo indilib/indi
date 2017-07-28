@@ -151,6 +151,10 @@ bool SimpleDetector::updateProperties()
 ***************************************************************************************/
 bool SimpleDetector::CaptureParamsUpdated(float bw, float capfreq, float samfreq, float bps)
 {
+	Bps = bps;
+	Capfreq = capfreq;
+	Samfreq = samfreq;
+	Bw = bw;
 	return true;
 }
 
