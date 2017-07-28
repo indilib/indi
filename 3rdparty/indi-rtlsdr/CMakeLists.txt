@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 2.7)
 PROJECT(indi_rtlsdr CXX C)
 
 set (VERSION_MAJOR 1)
-set (VERSION_MINOR 8)
+set (VERSION_MINOR 0)
 
 LIST(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake_modules/")
 LIST(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/../../cmake_modules/")
@@ -14,6 +14,7 @@ find_package(ZLIB REQUIRED)
 find_package(RTLSDR REQUIRED)
 
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/config.h.cmake ${CMAKE_CURRENT_BINARY_DIR}/config.h )
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/indi_rtlsdr.xml.cmake ${CMAKE_CURRENT_BINARY_DIR}/indi_rtlsdr.xml)
 
 include_directories( ${CMAKE_CURRENT_BINARY_DIR})
 include_directories( ${CMAKE_CURRENT_SOURCE_DIR})
