@@ -46,12 +46,10 @@ class RTLSDR : public INDI::Detector
 	bool StartCapture(float duration);
 	bool CaptureParamsUpdated(float bw, float capfreq, float samfreq, float bps);
 	bool AbortCapture();
-	int SetTemperature(double temperature);
 	void TimerHit();
 
 
   private:
-	int Bps;
 	rtlsdr_dev_t *rtl_dev = NULL;
 	// Utility functions
 	float CalcTimeLeft();
@@ -64,7 +62,4 @@ class RTLSDR : public INDI::Detector
 	struct timeval CapStart;
 
 	float CaptureRequest;
-	float TemperatureRequest;
-	INumber *SettingsN;
-	INumberVectorProperty SettingsNP;
 };
