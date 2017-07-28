@@ -21,14 +21,7 @@
 
 #include <memory>
 
-const int POLLMS		   = 500; /* Polling interval 500 ms */
-//const int MAX_DETECTOR_TEMP	 = 45;  /* Max Detector temperature */
-//const int MIN_DETECTOR_TEMP	 = -55; /* Min Detector temperature */
-//const float TEMP_THRESHOLD = .25; /* Differential temperature threshold (C)*/
-
-/* Macro shortcut to Detector temperature value */
-#define currentDetectorTemperature TemperatureN[0].value
-
+const int POLLMS = 500; /* Polling interval 500 ms */
 
 std::unique_ptr<RTLSDR> rtlsdrDetector(new RTLSDR());
 
@@ -232,17 +225,6 @@ bool RTLSDR::AbortCapture()
 }
 
 /**************************************************************************************
-** Client is asking us to set a new temperature
-***************************************************************************************/
-int RTLSDR::SetTemperature(double temperature)
-{
-	TemperatureRequest = temperature;
-
-	// 0 means it will take a while to change the temperature
-	return 0;
-}
-
-/**************************************************************************************
 ** How much longer until exposure is done?
 ***************************************************************************************/
 float RTLSDR::CalcTimeLeft()
@@ -261,7 +243,7 @@ float RTLSDR::CalcTimeLeft()
 }
 
 /**************************************************************************************
-** Main device loop. We check for exposure and temperature progress here
+** Main device loop. We check for capture progress here
 ***************************************************************************************/
 void RTLSDR::TimerHit()
 {
@@ -293,37 +275,6 @@ void RTLSDR::TimerHit()
 		else
 			// Just update time left in client
 			PrimaryDetector.setCaptureLeft(timeleft);
-	}
-
-	// TemperatureNP is defined in INDI::Detector
-	switch (TemperatureNP.s)
-	{
-		case IPS_IDLE:
-		case IPS_OK:
-			break;
-
-		case IPS_BUSY:
-			/* If target temperature is higher, then increase current Detector temperature */
-			if (currentDetectorTemperature < TemperatureRequest)
-				currentDetectorTemperature++;
-			/* If target temperature is lower, then decrese current Detector temperature */
-			else if (currentDetectorTemperature > TemperatureRequest)
-				currentDetectorTemperature--;
-			/* If they're equal, stop updating */
-			else
-			{
-				TemperatureNP.s = IPS_OK;
-				IDSetNumber(&TemperatureNP, "Target temperature reached.");
-
-				break;
-			}
-
-			IDSetNumber(&TemperatureNP, nullptr);
-
-			break;
-
-		case IPS_ALERT:
-			break;
 	}
 
 	SetTimer(POLLMS);
