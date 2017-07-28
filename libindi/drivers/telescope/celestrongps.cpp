@@ -142,7 +142,7 @@ bool CelestronGPS::initProperties()
     IUFillNumber(&HorizontalCoordsN[AXIS_ALT], "ALT", "Alt  D:M:S", "%10.6m", -90., 90.0, 0.0, 0);
     IUFillNumberVector(&HorizontalCoordsNP, HorizontalCoordsN, 2, getDeviceName(), "HORIZONTAL_COORD", "Horizontal Coord", MAIN_CONTROL_TAB, IP_RW, 0, IPS_IDLE);*/
 
-    IUFillSwitch(&TrackS[0], "TRACK_OFF", "Off", ISS_OFF);
+    IUFillSwitch(&TrackS[0], "TRACKING_OFF", "Off", ISS_OFF);
     IUFillSwitch(&TrackS[1], "TRACK_ALTAZ", "Alt/Az", ISS_OFF);
     IUFillSwitch(&TrackS[2], "TRACK_EQN", "Eq North", ISS_OFF);
     IUFillSwitch(&TrackS[3], "TRACK_EQS", "Eq South", ISS_OFF);
@@ -250,7 +250,7 @@ bool CelestronGPS::updateProperties()
             TrackS[mode].s = ISS_ON;
             TrackSP.s      = IPS_OK;
 
-            if (mode == TRACK_OFF)
+            if (mode == TRACKING_OFF)
                 DEBUG(INDI::Logger::DBG_SESSION, "Mount tracking is off.");
         }
         else
@@ -521,7 +521,7 @@ bool CelestronGPS::ReadScopeStatus()
             // are we done?
             if (is_scope_slewing(PortFD) == false)
             {
-                if (set_celestron_track_mode(PortFD, TRACK_OFF))
+                if (set_celestron_track_mode(PortFD, TRACKING_OFF))
                     DEBUG(INDI::Logger::DBG_DEBUG, "Mount tracking is off.");
 
                 SetParked(true);
@@ -638,8 +638,8 @@ bool CelestronGPS::ISNewSwitch(const char *dev, const char *name, ISState *state
 
             for (int i = 0; i < n; i++)
             {
-                if (!strcmp(names[i], "TRACK_OFF") && states[i] == ISS_ON)
-                    return setTrackMode(TRACK_OFF);
+                if (!strcmp(names[i], "TRACKING_OFF") && states[i] == ISS_ON)
+                    return setTrackMode(TRACKING_OFF);
                 else if (!strcmp(names[i], "TRACK_ALTAZ") && states[i] == ISS_ON)
                     return setTrackMode(TRACK_ALTAZ);
                 else if (!strcmp(names[i], "TRACK_EQN") && states[i] == ISS_ON)

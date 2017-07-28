@@ -129,6 +129,17 @@ bool INDI::Telescope::initProperties()
     IUFillSwitchVector(&PECStateSP, PECStateS, 2, getDeviceName(), "PEC", "PEC Playback", MOTION_TAB, IP_RW, ISR_1OFMANY, 0,
                        IPS_IDLE);
 
+    // Track Mode. Child class must call AddTrackMode to add members
+    IUFillSwitchVector(&TrackModeSP, TrackModeS, 0, getDeviceName(), "TELESCOPE_TRACK_MODE", "Track Mode", MAIN_CONTROL_TAB,
+                       IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+
+    // Track State
+    IUFillSwitch(&TrackStateS[TRACK_ON], "TRACK_ON", "On", ISS_OFF);
+    IUFillSwitch(&TrackStateS[TRACK_OFF], "TRACK_OFF", "Off", ISS_ON);
+    IUFillSwitchVector(&TrackStateSP, TrackStateS, 2, getDeviceName(), "TELESCOPE_TRACK_STATE", "Track State", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 0,
+                       IPS_IDLE);
+
+    // On Coord Set actions
     IUFillSwitch(&CoordS[0], "TRACK", "Track", ISS_ON);
     IUFillSwitch(&CoordS[1], "SLEW", "Slew", ISS_OFF);
     IUFillSwitch(&CoordS[2], "SYNC", "Sync", ISS_OFF);
@@ -258,6 +269,10 @@ void INDI::Telescope::ISGetProperties(const char *dev)
         defineNumber(&EqNP);
         if (CanAbort())
             defineSwitch(&AbortSP);
+        if (HasTrackMode() && TrackModeS != nullptr)
+            defineSwitch(&TrackModeSP);
+        if (CanControlTrack())
+            defineSwitch(&TrackStateSP);
 
         if (HasTime())
             defineText(&TimeTP);
@@ -325,6 +340,11 @@ bool INDI::Telescope::updateProperties()
         if (CanAbort())
             defineSwitch(&AbortSP);
 
+        if (HasTrackMode() && TrackModeS != nullptr)
+            defineSwitch(&TrackModeSP);
+        if (CanControlTrack())
+            defineSwitch(&TrackStateSP);
+
         if (CanGOTO())
         {
             defineSwitch(&MovementNSSP);
@@ -364,6 +384,10 @@ bool INDI::Telescope::updateProperties()
         deleteProperty(EqNP.name);
         if (CanAbort())
             deleteProperty(AbortSP.name);
+        if (HasTrackMode() && TrackModeS != nullptr)
+            deleteProperty(TrackModeSP.name);
+        if (CanControlTrack())
+            deleteProperty(TrackStateSP.name);
 
         if (CanGOTO())
         {
@@ -565,6 +589,13 @@ void INDI::Telescope::NewRaDec(double ra, double dec)
         case SCOPE_PARKED:
         case SCOPE_IDLE:
             EqNP.s = IPS_IDLE;
+            if (CanControlTrack())
+            {
+                TrackStateSP.s = IPS_IDLE;
+                TrackStateS[TRACK_ON].s = ISS_OFF;
+                TrackStateS[TRACK_OFF].s = ISS_ON;
+                IDSetSwitch(&TrackStateSP, nullptr);
+            }
             break;
 
         case SCOPE_SLEWING:
@@ -574,6 +605,13 @@ void INDI::Telescope::NewRaDec(double ra, double dec)
 
         case SCOPE_TRACKING:
             EqNP.s = IPS_OK;
+            if (CanControlTrack())
+            {
+                TrackStateSP.s = IPS_BUSY;
+                TrackStateS[TRACK_ON].s = ISS_ON;
+                TrackStateS[TRACK_OFF].s = ISS_OFF;
+                IDSetSwitch(&TrackStateSP, nullptr);
+            }
             break;
 
         default:
@@ -725,7 +763,9 @@ bool INDI::Telescope::ISNewNumber(const char *dev, const char *name, double valu
                     }
                 }
 
-                // Issue GOTO
+                // Remember Track State
+                RememberTrackState = TrackState;
+                // Issue GOTO                
                 rc = Goto(ra, dec);
                 if (rc)
                 {
@@ -833,7 +873,9 @@ bool INDI::Telescope::ISNewSwitch(const char *dev, const char *name, ISState *st
             return true;
         }
 
+        ///////////////////////////////////
         // Slew Rate
+        ///////////////////////////////////
         if (!strcmp(name, SlewRateSP.name))
         {
             int preIndex = IUFindOnSwitchIndex(&SlewRateSP);
@@ -851,6 +893,9 @@ bool INDI::Telescope::ISNewSwitch(const char *dev, const char *name, ISState *st
             return true;
         }
 
+        ///////////////////////////////////
+        // Parking
+        ///////////////////////////////////
         if (!strcmp(name, ParkSP.name))
         {
             if (TrackState == SCOPE_PARKING)
@@ -915,6 +960,9 @@ bool INDI::Telescope::ISNewSwitch(const char *dev, const char *name, ISState *st
             return true;
         }
 
+        ///////////////////////////////////
+        // NS Motion
+        ///////////////////////////////////
         if (!strcmp(name, MovementNSSP.name))
         {
             // Check if it is already parked.
@@ -970,6 +1018,9 @@ bool INDI::Telescope::ISNewSwitch(const char *dev, const char *name, ISState *st
             return true;
         }
 
+        ///////////////////////////////////
+        // WE Motion
+        ///////////////////////////////////
         if (!strcmp(name, MovementWESP.name))
         {
             // Check if it is already parked.
@@ -1025,6 +1076,9 @@ bool INDI::Telescope::ISNewSwitch(const char *dev, const char *name, ISState *st
             return true;
         }
 
+        ///////////////////////////////////
+        // Abort Motion
+        ///////////////////////////////////
         if (!strcmp(name, AbortSP.name))
         {
             IUResetSwitch(&AbortSP);
@@ -1061,8 +1115,11 @@ bool INDI::Telescope::ISNewSwitch(const char *dev, const char *name, ISState *st
                 }
 
                 last_ns_motion = last_we_motion = -1;
-                if (TrackState != SCOPE_PARKED)
-                    TrackState = SCOPE_IDLE;
+
+                // JM 2017-07-28: Abort shouldn't affect tracking state. It should affect motion and that's it.
+                //if (TrackState != SCOPE_PARKED)
+                    //TrackState = SCOPE_IDLE;
+                TrackState = RememberTrackState;
             }
             else
                 AbortSP.s = IPS_ALERT;
@@ -1072,6 +1129,84 @@ bool INDI::Telescope::ISNewSwitch(const char *dev, const char *name, ISState *st
             return true;
         }
 
+        ///////////////////////////////////
+        // Track Mode
+        ///////////////////////////////////
+        if (!strcmp(name, TrackModeSP.name))
+        {
+            const char *targetMode = IUFindOnSwitchName(states, names, n);
+            int targetIndex = -1;
+            for (int i=0; i < TrackModeSP.nsp; i++)
+            {
+               if (!strcmp(targetMode, TrackModeS[i].name))
+               {
+                   targetIndex = i;
+                   break;
+               }
+            }
+
+            if (targetIndex == -1)
+            {
+                TrackModeSP.s = IPS_ALERT;
+                IDSetSwitch(&TrackModeSP, NULL);
+                DEBUGF(INDI::Logger::DBG_ERROR, "Unable to find %s tracking mode!", targetMode);
+                return false;
+            }
+
+            bool rc = SetTrackMode(targetIndex);
+
+            if (rc)
+            {
+                IUUpdateSwitch(&TrackModeSP, states, names, n);
+                TrackModeSP.s = IPS_OK;
+            }
+            else
+                TrackModeSP.s = IPS_ALERT;
+
+            IDSetSwitch(&TrackModeSP, NULL);
+            return false;
+        }
+
+        ///////////////////////////////////
+        // Track State
+        ///////////////////////////////////
+        if (!strcmp(name, TrackStateSP.name))
+        {
+            int previousState = IUFindOnSwitchIndex(&TrackStateSP);
+            IUUpdateSwitch(&TrackStateSP, states, names, n);
+            int targetState = IUFindOnSwitchIndex(&TrackStateSP);
+
+            if (previousState == targetState)
+            {
+                IDSetSwitch(&TrackStateSP, NULL);
+                return true;
+            }
+
+            bool rc = SetTrackEnabled((targetState == TRACK_ON) ? true : false);
+
+            if (rc)
+            {
+                TrackState = (targetState == TRACK_ON) ? SCOPE_TRACKING : SCOPE_IDLE;
+
+                TrackStateSP.s = (targetState == TRACK_ON) ? IPS_BUSY : IPS_IDLE;
+
+                TrackStateS[TRACK_ON].s = (targetState == TRACK_ON) ? ISS_ON : ISS_OFF;
+                TrackStateS[TRACK_OFF].s = (targetState == TRACK_ON) ? ISS_OFF : ISS_ON;
+            }
+            else
+            {
+                TrackStateSP.s = IPS_ALERT;
+                IUResetSwitch(&TrackStateSP);
+                TrackStateS[previousState].s = ISS_ON;
+            }
+
+            IDSetSwitch(&TrackStateSP, NULL);
+            return true;
+        }
+
+        ///////////////////////////////////
+        // Park Options
+        ///////////////////////////////////
         if (!strcmp(name, ParkOptionSP.name))
         {
             IUUpdateSwitch(&ParkOptionSP, states, names, n);
@@ -1115,7 +1250,9 @@ bool INDI::Telescope::ISNewSwitch(const char *dev, const char *name, ISState *st
             return true;
         }
 
-        // Dome parking policy
+        ///////////////////////////////////
+        // Parking Dome Policy
+        ///////////////////////////////////
         if (!strcmp(name, DomeClosedLockTP.name))
         {
             if (n == 1)
@@ -1143,7 +1280,9 @@ bool INDI::Telescope::ISNewSwitch(const char *dev, const char *name, ISState *st
             return true;
         }
 
-        // Lock Axis
+        ///////////////////////////////////
+        // Joystick Lock Axis
+        ///////////////////////////////////
         if (!strcmp(name, LockAxisSP.name))
         {
             IUUpdateSwitch(&LockAxisSP, states, names, n);
@@ -1158,6 +1297,9 @@ bool INDI::Telescope::ISNewSwitch(const char *dev, const char *name, ISState *st
             return true;
         }
 
+        ///////////////////////////////////
+        // Scope Apply Config
+        ///////////////////////////////////
         if (name && std::string(name) == "APPLY_SCOPE_CONFIG")
         {
             IUUpdateSwitch(&ScopeConfigsSP, states, names, n);
@@ -1245,6 +1387,33 @@ bool INDI::Telescope::UnPark()
 {
     DEBUG(INDI::Logger::DBG_WARNING, "UnParking is not supported.");
     return false;
+}
+
+bool INDI::Telescope::SetTrackMode(uint8_t mode)
+{
+    INDI_UNUSED(mode);
+    DEBUG(INDI::Logger::DBG_WARNING, "Tracking mode is not supported.");
+    return false;
+}
+
+bool INDI::Telescope::SetTrackEnabled(bool enabled)
+{
+    INDI_UNUSED(enabled);
+    DEBUG(INDI::Logger::DBG_WARNING, "Tracking state is not supported.");
+    return false;
+}
+
+int INDI::Telescope::AddTrackMode(const char *name, const char *label, bool isDefault)
+{
+    TrackModeS = (TrackModeS == nullptr) ? (ISwitch *)malloc(sizeof(INumber)) :
+                                           (ISwitch *)realloc(TrackModeS, (TrackModeSP.nsp + 1) * sizeof(INumber));
+
+    IUFillSwitch(&TrackModeS[TrackModeSP.nsp], name, label, isDefault ? ISS_ON : ISS_OFF);
+
+    TrackModeSP.sp = TrackModeS;
+    TrackModeSP.nsp++;
+
+    return (TrackModeSP.nsp-1);
 }
 
 bool INDI::Telescope::SetCurrentPark()

@@ -101,7 +101,7 @@ ScopeSim::ScopeSim()
     DBG_SCOPE = INDI::Logger::getInstance().addDebugLevel("Scope Verbose", "SCOPE");
 
     SetTelescopeCapability(TELESCOPE_CAN_PARK | TELESCOPE_CAN_SYNC | TELESCOPE_CAN_GOTO | TELESCOPE_CAN_ABORT |
-                               TELESCOPE_HAS_TIME | TELESCOPE_HAS_LOCATION,
+                               TELESCOPE_HAS_TIME | TELESCOPE_HAS_LOCATION | TELESCOPE_HAS_TRACK_MODE | TELESCOPE_CAN_CONTROL_TRACK,
                            4);
 
     /* initialize random seed: */
@@ -152,6 +152,10 @@ bool ScopeSim::initProperties()
     IUFillSwitch(&SlewRateS[SLEW_MAX], "SLEW_MAX", "Max", ISS_ON);
     IUFillSwitchVector(&SlewRateSP, SlewRateS, 4, getDeviceName(), "TELESCOPE_SLEW_RATE", "Slew Rate", MOTION_TAB,
                        IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+
+    // Add Tracking Modes
+    AddTrackMode("TRACK_SIDEREAL", "Sidereal", true);
+    AddTrackMode("TRACK_CUSTOM", "Custom");
 
     // Let's simulate it to be an F/7.5 120mm telescope
     ScopeParametersN[0].value = 120;
@@ -421,12 +425,21 @@ bool ScopeSim::ReadScopeStatus()
             break;
 
         case SCOPE_IDLE:
-            currentRA += (SID_RATE * dt) / 15.0;
-            currentRA = range24(currentRA);
-            break;
+             if (TrackStateS[TRACK_OFF].s == ISS_ON)
+             {
+                 currentRA += (SID_RATE * dt) / 15.0;
+                 currentRA = range24(currentRA);
+             }
+        break;
 
         case SCOPE_TRACKING:
-            /* tracking */
+            // If mount is tracking and tracking is OFF, we act like IDLE
+            if (TrackStateS[TRACK_OFF].s == ISS_ON)
+            {
+                currentRA += (SID_RATE * dt) / 15.0;
+                currentRA = range24(currentRA);
+                break;
+            }
 
             dt *= 1000;
             if (guiderNSTarget[GUIDE_NORTH] > 0)
@@ -810,5 +823,17 @@ bool ScopeSim::SetDefaultPark()
     // Set DEC to 90 or -90 depending on the hemisphere
     SetAxis2Park((LocationN[LOCATION_LATITUDE].value > 0) ? 90 : -90);
 
+    return true;
+}
+
+bool ScopeSim::SetTrackMode(uint8_t mode)
+{
+    INDI_UNUSED(mode);
+    return true;
+}
+
+bool ScopeSim::SetTrackEnabled(bool enabled)
+{
+    INDI_UNUSED(enabled);
     return true;
 }

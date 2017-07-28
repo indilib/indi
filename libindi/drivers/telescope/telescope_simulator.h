@@ -49,6 +49,9 @@ class ScopeSim : public INDI::Telescope, public INDI::GuiderInterface
     virtual IPState GuideWest(float ms);
     virtual bool updateLocation(double latitude, double longitude, double elevation);
 
+    virtual bool SetTrackMode(uint8_t mode) override;
+    virtual bool SetTrackEnabled(bool enabled) override;
+
     bool Goto(double, double);
     bool Park();
     bool UnPark();
