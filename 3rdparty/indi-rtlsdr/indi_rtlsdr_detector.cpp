@@ -18,8 +18,11 @@
 */
 
 #include "indi_rtlsdr_detector.h"
-
+#include <unistd.h>
+#include <indilogger.h>
 #include <memory>
+
+#define MAX_TRIES 20
 
 const int POLLMS = 500; /* Polling interval 500 ms */
 
@@ -82,7 +85,7 @@ bool RTLSDR::Connect()
 
 	int r = rtlsdr_open(&rtl_dev, 0);
 	if (r < 0) {
-		fprintf(stderr, "Failed to open rtlsdr device #%d.\n", dev_index);
+		DEBUG(INDI::Logger::DBG_ERROR, "Failed to open rtlsdr device.\n");
 		return false;
 	}
 	// Let's set a timer that checks teleDetectors status every POLLMS milliseconds.
@@ -292,16 +295,24 @@ void RTLSDR::grabFrame()
 	// Get width and height
 	int len  = PrimaryDetector.getSamplingFrequency() * PrimaryDetector.getCaptureDuration() * PrimaryDetector.getBPS() / 8;
 	int n_read = 0;
-	int r = rtlsdr_read_sync(rtl_dev, image, len, &n_read);
+	int b_read = 0;
+	int ntries = 0;
+retry:
+	int r = rtlsdr_read_sync(rtl_dev, image, len - b_read, &n_read);
 
 	if (r < 0) {
-		fprintf(stderr, "WARNING: sync read failed.\n");
+		usleep(10000);
+		DEBUG(INDI::Logger::DBG_WARNING, "sync read failed.\n");
+		if(ntries ++ < MAX_TRIES)
+			goto retry;
+		DEBUG(INDI::Logger::DBG_ERROR, "Too much wrong reads, exiting.\n");
 		return;
 	}
 
 	if (n_read < len) {
-		fprintf(stderr, "Short read, samples lost, exiting!\n");
-		return;
+		b_read = n_read;
+		DEBUG(INDI::Logger::DBG_WARNING, "Short read, samples lost!\n");
+		goto retry;
 	}
 
 	IDMessage(getDeviceName(), "Download complete.");

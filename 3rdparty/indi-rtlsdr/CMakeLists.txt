@@ -38,4 +38,4 @@ install(TARGETS indi_rtlsdr_detector RUNTIME DESTINATION bin)
 
 endif (CFITSIO_FOUND)
 
-install(FILES indi_rtlsdr.xml DESTINATION ${INDI_DATA_DIR})
+install(FILES ${CMAKE_CURRENT_BINARY_DIR}/indi_rtlsdr.xml DESTINATION ${INDI_DATA_DIR})
