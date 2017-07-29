@@ -567,9 +567,9 @@ bool QHYCCD::Connect()
 
         // Disable the stream mode before connecting
         ret = SetQHYCCDStreamMode(camhandle, 0);
-        if (ret == QHYCCD_SUCCESS)
+        if (ret != QHYCCD_SUCCESS)
         {
-            DEBUGF(INDI::Logger::DBG_ERROR, "Error: Can't disable stream mode (%d)", ret);
+            DEBUGF(INDI::Logger::DBG_ERROR, "Error: Can not disable stream mode (%d)", ret);
         }
         ret = InitQHYCCD(camhandle);
         if (ret != QHYCCD_SUCCESS)
