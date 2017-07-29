@@ -139,6 +139,12 @@ bool INDI::Telescope::initProperties()
     IUFillSwitchVector(&TrackStateSP, TrackStateS, 2, getDeviceName(), "TELESCOPE_TRACK_STATE", "Track State", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 0,
                        IPS_IDLE);
 
+    // Track Rate
+    IUFillNumber(&TrackRateN[AXIS_RA], "TRACK_RATE_RA", "RA (arcsecs/s)", "%.6f", -16384.0, 16384.0, 0.000001, 15.041067);
+    IUFillNumber(&TrackRateN[AXIS_DE], "TRACK_RATE_DE", "DE (arcsecs/s)", "%.6f", -16384.0, 16384.0, 0.000001, 0.0);
+    IUFillNumberVector(&TrackRateNP, TrackRateN, 2, getDeviceName(), "TELESCOPE_TRACK_RATE", "Track Rates", MAIN_CONTROL_TAB,
+                       IP_RW, 60, IPS_IDLE);
+
     // On Coord Set actions
     IUFillSwitch(&CoordS[0], "TRACK", "Track", ISS_ON);
     IUFillSwitch(&CoordS[1], "SLEW", "Slew", ISS_OFF);
@@ -271,6 +277,8 @@ void INDI::Telescope::ISGetProperties(const char *dev)
             defineSwitch(&AbortSP);
         if (HasTrackMode() && TrackModeS != nullptr)
             defineSwitch(&TrackModeSP);
+        if (HasTrackRate())
+            defineNumber(&TrackRateNP);
         if (CanControlTrack())
             defineSwitch(&TrackStateSP);
 
@@ -342,6 +350,8 @@ bool INDI::Telescope::updateProperties()
 
         if (HasTrackMode() && TrackModeS != nullptr)
             defineSwitch(&TrackModeSP);
+        if (HasTrackRate())
+            defineNumber(&TrackRateNP);
         if (CanControlTrack())
             defineSwitch(&TrackStateSP);
 
@@ -386,6 +396,8 @@ bool INDI::Telescope::updateProperties()
             deleteProperty(AbortSP.name);
         if (HasTrackMode() && TrackModeS != nullptr)
             deleteProperty(TrackModeSP.name);
+        if (HasTrackRate())
+            deleteProperty(TrackRateNP.name);
         if (CanControlTrack())
             deleteProperty(TrackStateSP.name);
 
@@ -574,6 +586,10 @@ bool INDI::Telescope::saveConfigItems(FILE *fp)
         IUSaveConfigSwitch(fp, &SlewRateSP);
     if (HasPECState())
         IUSaveConfigSwitch(fp, &PECStateSP);
+    if (HasTrackMode())
+        IUSaveConfigSwitch(fp, &TrackModeSP);
+    if (HasTrackRate())
+        IUSaveConfigNumber(fp, &TrackRateNP);
 
     controller->saveConfigItems(fp);
 
@@ -712,6 +728,9 @@ bool INDI::Telescope::ISNewNumber(const char *dev, const char *name, double valu
     //  first check if it's for our device
     if (strcmp(dev, getDeviceName()) == 0)
     {
+        ///////////////////////////////////
+        // Goto & Sync for Equatorial Coords
+        ///////////////////////////////////
         if (strcmp(name, "EQUATORIAL_EOD_COORD") == 0)
         {
             //  this is for us, and it is a goto
@@ -784,6 +803,9 @@ bool INDI::Telescope::ISNewNumber(const char *dev, const char *name, double valu
             return rc;
         }
 
+        ///////////////////////////////////
+        // Geographic Coords
+        ///////////////////////////////////
         if (strcmp(name, "GEOGRAPHIC_COORD") == 0)
         {
             int latindex       = IUFindIndex("LAT", names, n);
@@ -803,6 +825,9 @@ bool INDI::Telescope::ISNewNumber(const char *dev, const char *name, double valu
             return processLocationInfo(targetLat, targetLong, targetElev);
         }
 
+        ///////////////////////////////////
+        // Telescope Info
+        ///////////////////////////////////
         if (strcmp(name, "TELESCOPE_INFO") == 0)
         {
             ScopeParametersNP.s = IPS_OK;
@@ -813,6 +838,9 @@ bool INDI::Telescope::ISNewNumber(const char *dev, const char *name, double valu
             return true;
         }
 
+        ///////////////////////////////////
+        // Park Position
+        ///////////////////////////////////
         if (strcmp(name, ParkPositionNP.name) == 0)
         {
             double axis1 = NAN, axis2 = NAN;
@@ -848,6 +876,45 @@ bool INDI::Telescope::ISNewNumber(const char *dev, const char *name, double valu
                 ParkPositionNP.s = IPS_ALERT;
 
             IDSetNumber(&ParkPositionNP, nullptr);
+            return true;
+        }
+
+        ///////////////////////////////////
+        // Track Rate
+        ///////////////////////////////////
+        if (strcmp(name, TrackRateNP.name) == 0)
+        {
+            double axis1 = NAN, axis2 = NAN;
+            for (int x = 0; x < n; x++)
+            {
+                INumber *trackAxis = IUFindNumber(&TrackRateNP, names[x]);
+                if (trackAxis == &TrackRateN[AXIS_RA])
+                {
+                    axis1 = values[x];
+                }
+                else if (trackAxis == &TrackRateN[AXIS_DE])
+                {
+                    axis2 = values[x];
+                }
+            }
+
+            if (std::isnan(axis1) == false && std::isnan(axis2) == false)
+            {
+                bool rc = false;
+
+                rc = SetTrackRate(axis1, axis2);
+
+                if (rc)
+                {
+                    IUUpdateNumber(&TrackRateNP, values, names, n);
+                }
+
+                TrackRateNP.s = rc ? IPS_OK : IPS_ALERT;
+            }
+            else
+                TrackRateNP.s = IPS_ALERT;
+
+            IDSetNumber(&TrackRateNP, nullptr);
             return true;
         }
     }
@@ -1393,6 +1460,14 @@ bool INDI::Telescope::SetTrackMode(uint8_t mode)
 {
     INDI_UNUSED(mode);
     DEBUG(INDI::Logger::DBG_WARNING, "Tracking mode is not supported.");
+    return false;
+}
+
+bool INDI::Telescope::SetTrackRate(double raRate, double deRate)
+{
+    INDI_UNUSED(raRate);
+    INDI_UNUSED(deRate);
+    DEBUG(INDI::Logger::DBG_WARNING, "Custom tracking rates is not supported.");
     return false;
 }
 

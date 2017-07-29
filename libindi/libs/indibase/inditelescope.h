@@ -144,6 +144,7 @@ class INDI::Telescope : public INDI::DefaultDevice
         TELESCOPE_HAS_PEC           = 1 << 7,  /** Does the telescope have PEC playback? */
         TELESCOPE_HAS_TRACK_MODE    = 1 << 8,  /** Does the telescope have track modes (sidereal, lunar, solar..etc)? */
         TELESCOPE_CAN_CONTROL_TRACK = 1 << 9,  /** Can the telescope engage and disengage tracking? */
+        TELESCOPE_HAS_TRACK_RATE    = 1 << 10,  /** Does the telescope have custom track rates? */
     } TelescopeCapability;
 
     Telescope();
@@ -219,6 +220,11 @@ class INDI::Telescope : public INDI::DefaultDevice
      * @return True if telescope supports track modes
      */
     bool HasTrackMode() { return capability & TELESCOPE_HAS_TRACK_MODE; }
+
+    /**
+     * @return True if telescope supports custom tracking rates.
+     */
+    bool HasTrackRate() { return capability & TELESCOPE_HAS_TRACK_RATE; }
 
     /** \brief Called to initialize basic properties required all the time */
     virtual bool initProperties();
@@ -415,7 +421,7 @@ class INDI::Telescope : public INDI::DefaultDevice
     virtual bool UnPark();
 
     /**
-     * \brief Abort telescope motion
+     * \brief Abort any telescope motion including tracking if possible.
      * \return True if successful, false otherwise
      * \note If not implemented by the child class, this function by default returns false with a
      * warning message.
@@ -430,6 +436,16 @@ class INDI::Telescope : public INDI::DefaultDevice
      * warning message.
      */
     virtual bool SetTrackMode(uint8_t mode);
+
+    /**
+     * @brief SetTrackRate Set custom tracking rates.
+     * @param raRate RA tracking rate in arcsecs/s
+     * @param deRate DEC tracking rate in arcsecs/s
+     * @return True if successful, false otherwise
+     * @note If not implemented by the child class, this function by default returns false with a
+     * warning message.
+     */
+    virtual bool SetTrackRate(double raRate, double deRate);
 
     /**
      * @brief AddTrackMode
@@ -650,6 +666,10 @@ class INDI::Telescope : public INDI::DefaultDevice
     // Track State
     ISwitchVectorProperty TrackStateSP;
     ISwitch TrackStateS[2];
+
+    // Track Rate
+    INumberVectorProperty TrackRateNP;
+    INumber TrackRateN[2];
 
     // PEC State
     TelescopePECState lastPECState, currentPECState;

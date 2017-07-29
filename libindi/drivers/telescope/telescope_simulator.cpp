@@ -101,7 +101,7 @@ ScopeSim::ScopeSim()
     DBG_SCOPE = INDI::Logger::getInstance().addDebugLevel("Scope Verbose", "SCOPE");
 
     SetTelescopeCapability(TELESCOPE_CAN_PARK | TELESCOPE_CAN_SYNC | TELESCOPE_CAN_GOTO | TELESCOPE_CAN_ABORT |
-                               TELESCOPE_HAS_TIME | TELESCOPE_HAS_LOCATION | TELESCOPE_HAS_TRACK_MODE | TELESCOPE_CAN_CONTROL_TRACK,
+                               TELESCOPE_HAS_TIME | TELESCOPE_HAS_LOCATION | TELESCOPE_HAS_TRACK_MODE | TELESCOPE_CAN_CONTROL_TRACK | TELESCOPE_HAS_TRACK_RATE,
                            4);
 
     /* initialize random seed: */
@@ -425,23 +425,21 @@ bool ScopeSim::ReadScopeStatus()
             break;
 
         case SCOPE_IDLE:
-             if (TrackStateS[TRACK_OFF].s == ISS_ON)
-             {
-                 currentRA += (SID_RATE * dt) / 15.0;
-                 currentRA = range24(currentRA);
-             }
+                 //currentRA += (SID_RATE * dt) / 15.0;
+                currentRA += (TrackRateN[AXIS_RA].value/3600.0 * dt) / 15.0;
+                currentRA = range24(currentRA);
         break;
 
         case SCOPE_TRACKING:
-            // If mount is tracking and tracking is OFF, we act like IDLE
-            if (TrackStateS[TRACK_OFF].s == ISS_ON)
+            // In case of custom tracking rate
+            if (TrackModeS[1].s == ISS_ON)
             {
-                currentRA += (SID_RATE * dt) / 15.0;
-                currentRA = range24(currentRA);
-                break;
+                currentRA  += ( ((SID_RATE) - (TrackRateN[AXIS_RA].value/3600.0)) * dt) / 15.0;
+                currentDEC += ( (TrackRateN[AXIS_DE].value/3600.0) * dt);
             }
 
             dt *= 1000;
+
             if (guiderNSTarget[GUIDE_NORTH] > 0)
             {
                 DEBUGF(INDI::Logger::DBG_DEBUG, "Commanded to GUIDE NORTH for %g ms", guiderNSTarget[GUIDE_NORTH]);
@@ -467,7 +465,7 @@ bool ScopeSim::ReadScopeStatus()
 
             if (ns_guide_dir != -1)
             {
-                dec_guide_dt = SID_RATE * GuideRateN[DEC_AXIS].value * guiderNSTarget[ns_guide_dir] / 1000.0 *
+                dec_guide_dt = TrackRateN[AXIS_RA].value/3600.0 * GuideRateN[DEC_AXIS].value * guiderNSTarget[ns_guide_dir] / 1000.0 *
                                (ns_guide_dir == GUIDE_NORTH ? 1 : -1);
 
                 // If time remaining is more that dt, then decrement and
@@ -487,7 +485,7 @@ bool ScopeSim::ReadScopeStatus()
 
             if (we_guide_dir != -1)
             {
-                ra_guide_dt = SID_RATE / 15.0 * GuideRateN[RA_AXIS].value * guiderEWTarget[we_guide_dir] / 1000.0 *
+                ra_guide_dt = (TrackRateN[AXIS_RA].value/3600.0) / 15.0 * GuideRateN[RA_AXIS].value * guiderEWTarget[we_guide_dir] / 1000.0 *
                               (we_guide_dir == GUIDE_WEST ? -1 : 1);
 
                 if (guiderEWTarget[we_guide_dir] >= dt)
@@ -835,5 +833,12 @@ bool ScopeSim::SetTrackMode(uint8_t mode)
 bool ScopeSim::SetTrackEnabled(bool enabled)
 {
     INDI_UNUSED(enabled);
+    return true;
+}
+
+bool ScopeSim::SetTrackRate(double raRate, double deRate)
+{
+    INDI_UNUSED(raRate);
+    INDI_UNUSED(deRate);
     return true;
 }

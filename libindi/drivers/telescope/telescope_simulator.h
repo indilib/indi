@@ -51,6 +51,7 @@ class ScopeSim : public INDI::Telescope, public INDI::GuiderInterface
 
     virtual bool SetTrackMode(uint8_t mode) override;
     virtual bool SetTrackEnabled(bool enabled) override;
+    virtual bool SetTrackRate(double raRate, double deRate) override;
 
     bool Goto(double, double);
     bool Park();
