@@ -27,6 +27,7 @@
 class IEQPro : public INDI::Telescope, public INDI::GuiderInterface
 {
   public:
+
     IEQPro();
     ~IEQPro();
 
@@ -65,6 +66,15 @@ class IEQPro : public INDI::Telescope, public INDI::GuiderInterface
     virtual bool SetCurrentPark() override;
     virtual bool SetDefaultPark() override;
 
+    // Track Mode
+    virtual bool SetTrackMode(uint8_t mode) override;
+
+    // Track Rate
+    virtual bool SetTrackRate(double raRate, double deRate) override;
+
+    // Track On/Off
+    virtual bool SetTrackEnabled(bool enabled) override;
+
     // Slew Rate
     virtual bool SetSlewRate(int index) override;
 
@@ -88,12 +98,12 @@ class IEQPro : public INDI::Telescope, public INDI::GuiderInterface
     ITextVectorProperty FirmwareTP;
 
     /* Tracking Mode */
-    ISwitchVectorProperty TrackModeSP;
-    ISwitch TrackModeS[4];
+    //ISwitchVectorProperty TrackModeSP;
+    //ISwitch TrackModeS[4];
 
     /* Custom Tracking Rate */
-    INumber CustomTrackRateN[1];
-    INumberVectorProperty CustomTrackRateNP;
+    //INumber CustomTrackRateN[1];
+    //INumberVectorProperty CustomTrackRateNP;
 
     /* GPS Status */
     ISwitch GPSStatusS[3];

@@ -30,9 +30,9 @@
 #include <string.h>
 
 /* Simulation Parameters */
-#define SLEWRATE 1        /* slew rate, degrees/s */
-#define SIDRATE  0.004178 /* sidereal rate, degrees/s */
-#define POLLMS   1000     /* poll period, ms */
+#define SLEWRATE 1          /* slew rate, degrees/s */
+#define SIDRATE  15.041067  /* sidereal rate, arcsecs/s */
+#define POLLMS   1000       /* poll period, ms */
 
 #define MOUNTINFO_TAB "Mount Info"
 
@@ -95,7 +95,7 @@ IEQPro::IEQPro()
     DBG_SCOPE = INDI::Logger::getInstance().addDebugLevel("Scope Verbose", "SCOPE");
 
     SetTelescopeCapability(TELESCOPE_CAN_PARK | TELESCOPE_CAN_SYNC | TELESCOPE_CAN_GOTO | TELESCOPE_CAN_ABORT |
-                               TELESCOPE_HAS_TIME | TELESCOPE_HAS_LOCATION,
+                               TELESCOPE_HAS_TIME | TELESCOPE_HAS_LOCATION | TELESCOPE_HAS_TRACK_MODE | TELESCOPE_CAN_CONTROL_TRACK | TELESCOPE_HAS_TRACK_RATE,
                            9);
 }
 
@@ -122,17 +122,17 @@ bool IEQPro::initProperties()
                      IPS_IDLE);
 
     /* Tracking Mode */
-    IUFillSwitch(&TrackModeS[TRACK_SIDEREAL], "TRACK_SIDEREAL", "Sidereal", ISS_ON);
-    IUFillSwitch(&TrackModeS[TRACK_SOLAR], "TRACK_SOLAR", "Solar", ISS_OFF);
-    IUFillSwitch(&TrackModeS[TRACK_LUNAR], "TRACK_LUNAR", "Lunar", ISS_OFF);
-    IUFillSwitch(&TrackModeS[TRACK_CUSTOM], "TRACK_CUSTOM", "Custom", ISS_OFF);
-    IUFillSwitchVector(&TrackModeSP, TrackModeS, 4, getDeviceName(), "TELESCOPE_TRACK_MODE", "Track Mode",
-                       MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+    AddTrackMode("TRACK_SIDEREAL", "Sidereal", true);
+    AddTrackMode("TRACK_SOLAR", "Solar");
+    AddTrackMode("TRACK_LUNAR", "Lunar");
+    AddTrackMode("TRACK_KING", "King");
+    AddTrackMode("TRACK_CUSTOM", "Custom");
 
-    /* Custom Tracking Rate */
-    IUFillNumber(&CustomTrackRateN[0], "TRACK_RATE_CUSTOM", "Rate", "%g", -0.0100, 0.0100, 0.005, 0);
-    IUFillNumberVector(&CustomTrackRateNP, CustomTrackRateN, 1, getDeviceName(), "TELESCOPE_TRACK_RATE", "Track Rates",
-                       MOTION_TAB, IP_RW, 60, IPS_IDLE);
+    // Set TrackRate limits within +/- 0.0100 of Sidereal rate
+    TrackRateN[AXIS_RA].min = 15.031067;
+    TrackRateN[AXIS_RA].max = 15.051067;
+    TrackRateN[AXIS_DE].min = 0;
+    TrackRateN[AXIS_DE].max = 15.051067;
 
     /* GPS Status */
     IUFillSwitch(&GPSStatusS[GPS_OFF], "Off", "", ISS_ON);
@@ -187,9 +187,6 @@ bool IEQPro::updateProperties()
     {
         defineSwitch(&HomeSP);
 
-        defineSwitch(&TrackModeSP);
-        defineNumber(&CustomTrackRateNP);
-
         defineNumber(&GuideNSNP);
         defineNumber(&GuideWENP);
         defineNumber(&GuideRateNP);
@@ -204,9 +201,6 @@ bool IEQPro::updateProperties()
     else
     {
         deleteProperty(HomeSP.name);
-
-        deleteProperty(TrackModeSP.name);
-        deleteProperty(CustomTrackRateNP.name);
 
         deleteProperty(GuideNSNP.name);
         deleteProperty(GuideWENP.name);
@@ -308,29 +302,6 @@ bool IEQPro::ISNewNumber(const char *dev, const char *name, double values[], cha
 {
     if (!strcmp(dev, getDeviceName()))
     {
-        // Custom Tracking Rate
-        if (!strcmp(name, CustomTrackRateNP.name))
-        {
-            if (TrackModeS[TRACK_CUSTOM].s != ISS_ON)
-            {
-                CustomTrackRateNP.s = IPS_IDLE;
-                DEBUG(INDI::Logger::DBG_ERROR, "Can only set tracking rate if tracking mode is set to custom.");
-                IDSetNumber(&CustomTrackRateNP, nullptr);
-                return true;
-            }
-
-            IUUpdateNumber(&CustomTrackRateNP, values, names, n);
-
-            if (set_ieqpro_custom_track_rate(PortFD, CustomTrackRateN[0].value))
-                CustomTrackRateNP.s = IPS_OK;
-            else
-                CustomTrackRateNP.s = IPS_ALERT;
-
-            IDSetNumber(&CustomTrackRateNP, nullptr);
-
-            return true;
-        }
-
         // Guiding Rate
         if (!strcmp(name, GuideRateNP.name))
         {
@@ -426,41 +397,6 @@ bool IEQPro::ISNewSwitch(const char *dev, const char *name, ISState *states, cha
 
             return true;
         }
-
-        if (!strcmp(name, TrackModeSP.name))
-        {
-            IUUpdateSwitch(&TrackModeSP, states, names, n);
-
-            TelescopeTrackMode mode = (TelescopeTrackMode)IUFindOnSwitchIndex(&TrackModeSP);
-
-            IEQ_TRACK_RATE rate = TR_SIDEREAL;
-
-            switch (mode)
-            {
-                case TRACK_SIDEREAL:
-                    rate = TR_SIDEREAL;
-                    break;
-                case TRACK_SOLAR:
-                    rate = TR_SOLAR;
-                    break;
-                case TRACK_LUNAR:
-                    rate = TR_LUNAR;
-                    break;
-                case TRACK_CUSTOM:
-                    rate = TR_CUSTOM;
-                    break;
-            }
-
-            if (set_ieqpro_track_mode(PortFD, rate))
-            {
-                if (TrackState == SCOPE_TRACKING)
-                    TrackModeSP.s = IPS_BUSY;
-                else
-                    TrackModeSP.s = IPS_OK;
-            }
-            else
-                TrackModeSP.s = IPS_ALERT;
-        }
     }
 
     return INDI::Telescope::ISNewSwitch(dev, name, states, names, n);
@@ -491,6 +427,7 @@ bool IEQPro::ReadScopeStatus()
         HemisphereS[newInfo.hemisphere].s = ISS_ON;
         IDSetSwitch(&HemisphereSP, nullptr);
 
+        /*
         TelescopeTrackMode trackMode = TRACK_SIDEREAL;
 
         switch (newInfo.trackRate)
@@ -510,7 +447,7 @@ bool IEQPro::ReadScopeStatus()
             case TR_CUSTOM:
                 trackMode = TRACK_CUSTOM;
                 break;
-        }
+        }*/
 
         switch (newInfo.systemStatus)
         {
@@ -546,7 +483,7 @@ bool IEQPro::ReadScopeStatus()
         }
 
         IUResetSwitch(&TrackModeSP);
-        TrackModeS[trackMode].s = ISS_ON;
+        TrackModeS[newInfo.trackRate].s = ISS_ON;
         IDSetSwitch(&TrackModeSP, nullptr);
 
         scopeInfo = newInfo;
@@ -844,8 +781,6 @@ bool IEQPro::saveConfigItems(FILE *fp)
 {
     INDI::Telescope::saveConfigItems(fp);
 
-    IUSaveConfigNumber(fp, &CustomTrackRateNP);
-
     return true;
 }
 
@@ -869,10 +804,18 @@ void IEQPro::mountSim()
     /* Process per current state. We check the state of EQUATORIAL_COORDS and act acoordingly */
     switch (TrackState)
     {
-        case SCOPE_TRACKING:
-            /* RA moves at sidereal, Dec stands still */
-            currentRA += (SIDRATE * dt / 15.);
+        case SCOPE_IDLE:
+            currentRA += (TrackRateN[AXIS_RA].value/3600.0 * dt) / 15.0;
+            currentRA = range24(currentRA);
             break;
+
+        case SCOPE_TRACKING:
+        if (TrackModeS[1].s == ISS_ON)
+        {
+            currentRA  += ( ((SIDRATE) - (TrackRateN[AXIS_RA].value/3600.0)) * dt) / 15.0;
+            currentDEC += ( (TrackRateN[AXIS_DE].value/3600.0) * dt);
+        }
+        break;
 
         case SCOPE_SLEWING:
         case SCOPE_PARKING:
@@ -946,4 +889,44 @@ bool IEQPro::SetDefaultPark()
     SetAxis2Park((HemisphereS[HEMI_NORTH].s == ISS_ON) ? 90 : -90);
 
     return true;
+}
+
+bool IEQPro::SetTrackMode(uint8_t mode)
+{
+    IEQ_TRACK_RATE rate = static_cast<IEQ_TRACK_RATE>(mode);
+
+    if (set_ieqpro_track_mode(PortFD, rate))
+        return true;
+
+    return false;
+}
+
+bool IEQPro::SetTrackRate(double raRate, double deRate)
+{
+    static bool deRateWarning = true;
+
+        if (TrackModeS[TR_CUSTOM].s != ISS_ON)
+        {
+            DEBUG(INDI::Logger::DBG_ERROR, "Can only set tracking rate if tracking mode is set to custom.");
+            return false;
+        }
+
+        // Convert to arcsecs/s to +/- 0.0100 accepted by
+        double ieqRARate = raRate - 15.041067;
+        if (deRate != 0 && deRateWarning)
+        {
+            // Only send warning once per session
+            deRateWarning = false;
+            DEBUG(INDI::Logger::DBG_WARNING, "Custom Declination tracking rate is not implemented yet.");
+        }
+
+        if (set_ieqpro_custom_ra_track_rate(PortFD, ieqRARate))
+            return true;
+
+        return false;
+}
+
+bool IEQPro::SetTrackEnabled(bool enabled)
+{
+    return set_ieqpro_track_enabled(PortFD, enabled);
 }
