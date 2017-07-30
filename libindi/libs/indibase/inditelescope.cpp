@@ -277,10 +277,11 @@ void INDI::Telescope::ISGetProperties(const char *dev)
             defineSwitch(&AbortSP);
         if (HasTrackMode() && TrackModeS != nullptr)
             defineSwitch(&TrackModeSP);
-        if (HasTrackRate())
-            defineNumber(&TrackRateNP);
         if (CanControlTrack())
             defineSwitch(&TrackStateSP);
+        if (HasTrackRate())
+            defineNumber(&TrackRateNP);
+
 
         if (HasTime())
             defineText(&TimeTP);
@@ -350,10 +351,11 @@ bool INDI::Telescope::updateProperties()
 
         if (HasTrackMode() && TrackModeS != nullptr)
             defineSwitch(&TrackModeSP);
-        if (HasTrackRate())
-            defineNumber(&TrackRateNP);
         if (CanControlTrack())
             defineSwitch(&TrackStateSP);
+        if (HasTrackRate())
+            defineNumber(&TrackRateNP);
+
 
         if (CanGOTO())
         {
@@ -517,6 +519,7 @@ bool INDI::Telescope::ISSnoopDevice(XMLEle *root)
                 // Dome options is dome parks or both and dome is parking.
                 if ((DomeClosedLockT[2].s == ISS_ON || DomeClosedLockT[3].s == ISS_ON) && !IsLocked && !IsParked)
                 {
+                    RememberTrackState = TrackState;
                     Park();
                     DEBUG(INDI::Logger::DBG_SESSION, "Dome is closing, parking mount...");
                 }
@@ -884,36 +887,19 @@ bool INDI::Telescope::ISNewNumber(const char *dev, const char *name, double valu
         ///////////////////////////////////
         if (strcmp(name, TrackRateNP.name) == 0)
         {
-            double axis1 = NAN, axis2 = NAN;
-            for (int x = 0; x < n; x++)
+            double preAxis1 = TrackRateN[AXIS_RA].value, preAxis2 = TrackRateN[AXIS_DE].value;
+            bool rc = (IUUpdateNumber(&TrackRateNP, values, names, n) == 0);
+
+            if (rc)
+                rc = SetTrackRate(TrackRateN[AXIS_RA].value, TrackRateN[AXIS_DE].value);
+
+            if (rc == false)
             {
-                INumber *trackAxis = IUFindNumber(&TrackRateNP, names[x]);
-                if (trackAxis == &TrackRateN[AXIS_RA])
-                {
-                    axis1 = values[x];
-                }
-                else if (trackAxis == &TrackRateN[AXIS_DE])
-                {
-                    axis2 = values[x];
-                }
+               TrackRateN[AXIS_RA].value = preAxis1;
+               TrackRateN[AXIS_DE].value = preAxis2;
             }
 
-            if (std::isnan(axis1) == false && std::isnan(axis2) == false)
-            {
-                bool rc = false;
-
-                rc = SetTrackRate(axis1, axis2);
-
-                if (rc)
-                {
-                    IUUpdateNumber(&TrackRateNP, values, names, n);
-                }
-
-                TrackRateNP.s = rc ? IPS_OK : IPS_ALERT;
-            }
-            else
-                TrackRateNP.s = IPS_ALERT;
-
+            TrackRateNP.s = rc ? IPS_OK : IPS_ALERT;
             IDSetNumber(&TrackRateNP, nullptr);
             return true;
         }
@@ -999,6 +985,8 @@ bool INDI::Telescope::ISNewSwitch(const char *dev, const char *name, ISState *st
                 IDSetSwitch(&ParkSP, nullptr);
                 return true;
             }
+
+            RememberTrackState = TrackState;
 
             IUResetSwitch(&ParkSP);
             bool rc = toPark ? Park() : UnPark();
@@ -1186,7 +1174,12 @@ bool INDI::Telescope::ISNewSwitch(const char *dev, const char *name, ISState *st
                 // JM 2017-07-28: Abort shouldn't affect tracking state. It should affect motion and that's it.
                 //if (TrackState != SCOPE_PARKED)
                     //TrackState = SCOPE_IDLE;
-                TrackState = RememberTrackState;
+                // For Idle, Tracking, Parked state, we do not change its status, it should remain as is.
+                // For Slewing & Parking, state should go back to last rememberd state.
+                if (TrackState == SCOPE_SLEWING || TrackState == SCOPE_PARKING)
+                {
+                    TrackState = RememberTrackState;
+                }
             }
             else
                 AbortSP.s = IPS_ALERT;
