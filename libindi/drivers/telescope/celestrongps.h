@@ -75,6 +75,10 @@ class CelestronGPS : public INDI::Telescope, public INDI::GuiderInterface
     static void guideTimeoutHelperW(void *p);
     static void guideTimeoutHelperE(void *p);
 
+    // Tracking
+    virtual bool SetTrackMode(uint8_t mode) override;
+    virtual bool SetTrackEnabled(bool enabled) override;
+
     // Parking
     virtual bool Park();
     virtual bool UnPark();

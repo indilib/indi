@@ -138,16 +138,9 @@ bool CelestronGPS::initProperties()
     IUFillTextVector(&FirmwareTP, FirmwareT, 5, getDeviceName(), "Firmware Info", "", MOUNTINFO_TAB, IP_RO, 0,
                      IPS_IDLE);
 
-    /*IUFillNumber(&HorizontalCoordsN[AXIS_AZ], "AZ", "Az D:M:S", "%10.6m", 0.0, 360.0, 0.0, 0);
-    IUFillNumber(&HorizontalCoordsN[AXIS_ALT], "ALT", "Alt  D:M:S", "%10.6m", -90., 90.0, 0.0, 0);
-    IUFillNumberVector(&HorizontalCoordsNP, HorizontalCoordsN, 2, getDeviceName(), "HORIZONTAL_COORD", "Horizontal Coord", MAIN_CONTROL_TAB, IP_RW, 0, IPS_IDLE);*/
-
-    IUFillSwitch(&TrackS[0], "TRACKING_OFF", "Off", ISS_OFF);
-    IUFillSwitch(&TrackS[1], "TRACK_ALTAZ", "Alt/Az", ISS_OFF);
-    IUFillSwitch(&TrackS[2], "TRACK_EQN", "Eq North", ISS_OFF);
-    IUFillSwitch(&TrackS[3], "TRACK_EQS", "Eq South", ISS_OFF);
-    IUFillSwitchVector(&TrackSP, TrackS, 4, getDeviceName(), "TELESCOPE_TRACK_MODE", "Track Mode", MOUNTINFO_TAB, IP_RW,
-                       ISR_1OFMANY, 0, IPS_IDLE);
+    AddTrackMode("TRACK_ALTAZ", "Alt/Az");
+    AddTrackMode("TRACK_EQN", "Eq North", true);
+    AddTrackMode("TRACK_EQS", "Eq South");
 
     IUFillSwitch(&UseHibernateS[0], "Enable", "", ISS_OFF);
     IUFillSwitch(&UseHibernateS[1], "Disable", "", ISS_ON);
@@ -209,7 +202,7 @@ bool CelestronGPS::updateProperties()
 {
     if (isConnected())
     {
-        uint32_t cap = TELESCOPE_CAN_GOTO | TELESCOPE_CAN_ABORT | TELESCOPE_CAN_PARK;
+        uint32_t cap = TELESCOPE_CAN_GOTO | TELESCOPE_CAN_ABORT | TELESCOPE_CAN_PARK | TELESCOPE_HAS_TRACK_MODE | TELESCOPE_CAN_CONTROL_TRACK;
 
         if (get_celestron_firmware(PortFD, &fwInfo))
         {
@@ -243,20 +236,6 @@ bool CelestronGPS::updateProperties()
 
         INDI::Telescope::updateProperties();
 
-        CELESTRON_TRACK_MODE mode;
-        if (get_celestron_track_mode(PortFD, &mode))
-        {
-            IUResetSwitch(&TrackSP);
-            TrackS[mode].s = ISS_ON;
-            TrackSP.s      = IPS_OK;
-
-            if (mode == TRACKING_OFF)
-                DEBUG(INDI::Logger::DBG_SESSION, "Mount tracking is off.");
-        }
-        else
-            TrackSP.s = IPS_ALERT;
-
-        defineSwitch(&TrackSP);
         if (fwInfo.Version != "Invalid")
             defineText(&FirmwareTP);
 
@@ -279,6 +258,26 @@ bool CelestronGPS::updateProperties()
         defineSwitch(&UsePulseCmdSP);
         defineNumber(&GuideNSNP);
         defineNumber(&GuideWENP);
+
+        CELESTRON_TRACK_MODE mode;
+        if (get_celestron_track_mode(PortFD, &mode))
+        {
+            if (mode != TRACKING_OFF)
+            {
+                IUResetSwitch(&TrackSP);
+                TrackS[mode-1].s = ISS_ON;
+                TrackSP.s      = IPS_OK;
+
+                TrackState = SCOPE_TRACKING;
+            }
+            else
+            {
+                DEBUG(INDI::Logger::DBG_SESSION, "Mount tracking is off.");
+                TrackState = SCOPE_IDLE;
+            }
+        }
+        else
+            TrackSP.s = IPS_ALERT;
 
         // JM 2014-04-14: User (davidw) reported AVX mount serial communication times out issuing "h" command with firmware 5.28
         // Therefore disabling query until it is fixed.
@@ -626,31 +625,6 @@ bool CelestronGPS::ISNewSwitch(const char *dev, const char *name, ISState *state
 {
     if (!strcmp(getDeviceName(), dev))
     {
-        if (!strcmp(name, TrackSP.name))
-        {
-            // Don't update tracking if mount is already parked.
-            if (isParked())
-            {
-                TrackSP.s = IPS_IDLE;
-                IDSetSwitch(&TrackSP, nullptr);
-                return true;
-            }
-
-            for (int i = 0; i < n; i++)
-            {
-                if (!strcmp(names[i], "TRACKING_OFF") && states[i] == ISS_ON)
-                    return setTrackMode(TRACKING_OFF);
-                else if (!strcmp(names[i], "TRACK_ALTAZ") && states[i] == ISS_ON)
-                    return setTrackMode(TRACK_ALTAZ);
-                else if (!strcmp(names[i], "TRACK_EQN") && states[i] == ISS_ON)
-                    return setTrackMode(TRACK_EQN);
-                else if (!strcmp(names[i], "TRACK_EQS") && states[i] == ISS_ON)
-                    return setTrackMode(TRACK_EQS);
-            }
-
-            return false;
-        }
-
         // Enable/Disable hibernate
         if (!strcmp(name, UseHibernateSP.name))
         {
@@ -851,9 +825,9 @@ void CelestronGPS::mountSim()
     /* Process per current state. We check the state of EQUATORIAL_COORDS and act acoordingly */
     switch (TrackState)
     {
-        case SCOPE_TRACKING:
-            /* RA moves at sidereal, Dec stands still */
-            currentRA += (SID_RATE * dt / 15.);
+        case SCOPE_IDLE:
+            currentRA = get_sim_ra() + (SID_RATE * dt) / 15.0;
+            currentRA = range24(currentRA);
             break;
 
         case SCOPE_SLEWING:
@@ -1434,4 +1408,25 @@ void CelestronGPS::guideTimeout(CELESTRON_DIRECTION calldir)
     }
 
     DEBUG(INDI::Logger::DBG_WARNING, "GUIDE CMD COMPLETED");
+}
+
+bool CelestronGPS::SetTrackMode(uint8_t mode)
+{
+    // Don't update tracking if mount is already parked.
+    if (isParked())
+        return true;
+
+    bool rc = setTrackMode(static_cast<CELESTRON_TRACK_MODE>(mode+1));
+    if (rc)
+        TrackState = SCOPE_TRACKING;
+
+    return rc;
+}
+
+bool CelestronGPS::SetTrackEnabled(bool enabled)
+{
+    if (enabled)
+        return setTrackMode(static_cast<CELESTRON_TRACK_MODE>(IUFindOnSwitchIndex(&TrackModeSP)+1));
+
+    return  setTrackMode(TRACKING_OFF);
 }

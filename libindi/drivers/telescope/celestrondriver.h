@@ -58,7 +58,9 @@ void set_sim_gps_status(CELESTRON_GPS_STATUS value);
 void set_sim_slew_rate(CELESTRON_SLEW_RATE value);
 void set_sim_slewing(bool isSlewing);
 void set_sim_ra(double ra);
+double get_sim_ra();
 void set_sim_dec(double dec);
+double get_sim_dec();
 void set_sim_az(double az);
 void set_sim_alt(double alt);
 

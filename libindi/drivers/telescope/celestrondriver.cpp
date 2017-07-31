@@ -90,9 +90,19 @@ void set_sim_ra(double ra)
     simData.ra = ra;
 }
 
+double get_sim_ra()
+{
+    return simData.ra;
+}
+
 void set_sim_dec(double dec)
 {
     simData.dec = dec;
+}
+
+double get_sim_dec()
+{
+    return simData.dec;
 }
 
 void set_sim_az(double az)
