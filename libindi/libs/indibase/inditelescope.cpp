@@ -608,13 +608,6 @@ void INDI::Telescope::NewRaDec(double ra, double dec)
         case SCOPE_PARKED:
         case SCOPE_IDLE:
             EqNP.s = IPS_IDLE;
-            if (CanControlTrack() && TrackStateS[TRACK_ON].s == ISS_ON)
-            {
-                TrackStateSP.s = IPS_IDLE;
-                TrackStateS[TRACK_ON].s = ISS_OFF;
-                TrackStateS[TRACK_OFF].s = ISS_ON;
-                IDSetSwitch(&TrackStateSP, nullptr);
-            }
             break;
 
         case SCOPE_SLEWING:
@@ -624,17 +617,24 @@ void INDI::Telescope::NewRaDec(double ra, double dec)
 
         case SCOPE_TRACKING:
             EqNP.s = IPS_OK;
-            if (CanControlTrack() && TrackStateS[TRACK_OFF].s == ISS_ON)
-            {
-                TrackStateSP.s = IPS_BUSY;
-                TrackStateS[TRACK_ON].s = ISS_ON;
-                TrackStateS[TRACK_OFF].s = ISS_OFF;
-                IDSetSwitch(&TrackStateSP, nullptr);
-            }
             break;
 
         default:
             break;
+    }
+
+    if (TrackState != SCOPE_TRACKING && CanControlTrack() && TrackStateS[TRACK_ON].s == ISS_ON)
+    {
+        TrackStateSP.s = IPS_IDLE;
+        TrackStateS[TRACK_ON].s = ISS_OFF;
+        TrackStateS[TRACK_OFF].s = ISS_ON;
+        IDSetSwitch(&TrackStateSP, nullptr);
+    } else if (TrackState == SCOPE_TRACKING && CanControlTrack() && TrackStateS[TRACK_OFF].s == ISS_ON)
+    {
+        TrackStateSP.s = IPS_BUSY;
+        TrackStateS[TRACK_ON].s = ISS_ON;
+        TrackStateS[TRACK_OFF].s = ISS_OFF;
+        IDSetSwitch(&TrackStateSP, nullptr);
     }
 
     if (EqN[AXIS_RA].value != ra || EqN[AXIS_DE].value != dec || EqNP.s != lastEqState)
@@ -1055,6 +1055,9 @@ bool INDI::Telescope::ISNewSwitch(const char *dev, const char *name, ISState *st
             }
             else
             {
+                if (TrackState != SCOPE_SLEWING && TrackState != SCOPE_PARKING)
+                    RememberTrackState = TrackState;
+
                 if (MoveNS(current_motion == 0 ? DIRECTION_NORTH : DIRECTION_SOUTH, MOTION_START))
                 {
                     MovementNSSP.s = IPS_BUSY;
@@ -1113,6 +1116,9 @@ bool INDI::Telescope::ISNewSwitch(const char *dev, const char *name, ISState *st
             }
             else
             {
+                if (TrackState != SCOPE_SLEWING && TrackState != SCOPE_PARKING)
+                    RememberTrackState = TrackState;
+
                 if (MoveWE(current_motion == 0 ? DIRECTION_WEST : DIRECTION_EAST, MOTION_START))
                 {
                     MovementWESP.s = IPS_BUSY;
