@@ -136,7 +136,7 @@ bool INDI::Telescope::initProperties()
     // Track State
     IUFillSwitch(&TrackStateS[TRACK_ON], "TRACK_ON", "On", ISS_OFF);
     IUFillSwitch(&TrackStateS[TRACK_OFF], "TRACK_OFF", "Off", ISS_ON);
-    IUFillSwitchVector(&TrackStateSP, TrackStateS, 2, getDeviceName(), "TELESCOPE_TRACK_STATE", "Track State", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 0,
+    IUFillSwitchVector(&TrackStateSP, TrackStateS, 2, getDeviceName(), "TELESCOPE_TRACK_STATE", "Tracking", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 0,
                        IPS_IDLE);
 
     // Track Rate
@@ -608,7 +608,7 @@ void INDI::Telescope::NewRaDec(double ra, double dec)
         case SCOPE_PARKED:
         case SCOPE_IDLE:
             EqNP.s = IPS_IDLE;
-            if (CanControlTrack())
+            if (CanControlTrack() && TrackStateS[TRACK_ON].s == ISS_ON)
             {
                 TrackStateSP.s = IPS_IDLE;
                 TrackStateS[TRACK_ON].s = ISS_OFF;
@@ -624,7 +624,7 @@ void INDI::Telescope::NewRaDec(double ra, double dec)
 
         case SCOPE_TRACKING:
             EqNP.s = IPS_OK;
-            if (CanControlTrack())
+            if (CanControlTrack() && TrackStateS[TRACK_OFF].s == ISS_ON)
             {
                 TrackStateSP.s = IPS_BUSY;
                 TrackStateS[TRACK_ON].s = ISS_ON;
