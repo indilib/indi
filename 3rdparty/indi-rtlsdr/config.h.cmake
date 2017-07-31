@@ -7,5 +7,6 @@
 /* Define if you have fitsio.h */
 #cmakedefine   HAVE_CFITSIO_H 1
 
-#define VERSION_MAJOR @VERSION_MAJOR@
-#define VERSION_MINOR @VERSION_MINOR@
+/* Define Driver version */
+#define RTLSDR_VERSION_MAJOR @RTLSDR_VERSION_MAJOR@
+#define RTLSDR_VERSION_MINOR @RTLSDR_VERSION_MINOR@

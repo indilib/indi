@@ -32,7 +32,7 @@ enum Settings
 class RTLSDR : public INDI::Detector
 {
   public:
-	RTLSDR();
+    RTLSDR(uint32_t index);
 
   protected:
 	// General device functions
@@ -50,7 +50,7 @@ class RTLSDR : public INDI::Detector
 
 
   private:
-	rtlsdr_dev_t *rtl_dev = NULL;
+    rtlsdr_dev_t *rtl_dev = { nullptr };
 	// Utility functions
 	float CalcTimeLeft();
 	void setupParams();
@@ -62,4 +62,6 @@ class RTLSDR : public INDI::Detector
 	struct timeval CapStart;
 
 	float CaptureRequest;
+
+    uint32_t detectorIndex = { 0 };
 };

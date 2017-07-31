@@ -23,73 +23,168 @@
 #include <memory>
 
 #define MAX_TRIES 20
+#define MAX_DEVICES 4
 
 const int POLLMS = 500; /* Polling interval 500 ms */
 
-std::unique_ptr<RTLSDR> rtlsdrDetector(new RTLSDR());
+static int iNumofConnectedDetectors;
+static RTLSDR *receivers[MAX_DEVICES];
+
+static void cleanup()
+{
+    for (int i = 0; i < iNumofConnectedDetectors; i++)
+    {
+        delete receivers[i];
+    }
+}
+
+void ISInit()
+{
+    static bool isInit = false;
+    if (!isInit)
+    {
+        iNumofConnectedDetectors = 0;
+
+        iNumofConnectedDetectors = rtlsdr_get_device_count();
+        if (iNumofConnectedDetectors > MAX_DEVICES)
+            iNumofConnectedDetectors = MAX_DEVICES;
+        if (iNumofConnectedDetectors <= 0)
+        {
+            //Try sending IDMessage as well?
+            IDLog("No RTLSDR receivers detected. Power on?");
+            IDMessage(nullptr, "No RTLSDR receivers detected. Power on?");
+        }
+        else
+        {
+            for (int i = 0; i < iNumofConnectedDetectors; i++)
+            {
+                receivers[i] = new RTLSDR(i);
+            }
+        }
+
+        atexit(cleanup);
+        isInit = true;
+    }
+}
 
 void ISGetProperties(const char *dev)
 {
-	rtlsdrDetector->ISGetProperties(dev);
+    ISInit();
+
+    if (iNumofConnectedDetectors == 0)
+    {
+        IDMessage(nullptr, "No RTLSDR receivers detected. Power on?");
+        return;
+    }
+
+    for (int i = 0; i < iNumofConnectedDetectors; i++)
+    {
+        RTLSDR *receiver = receivers[i];
+        if (dev == NULL || !strcmp(dev, receiver->getDeviceName()))
+        {
+            receiver->ISGetProperties(dev);
+            if (dev != NULL)
+                break;
+        }
+    }
 }
 
 void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int num)
 {
-	rtlsdrDetector->ISNewSwitch(dev, name, states, names, num);
+    ISInit();
+    for (int i = 0; i < iNumofConnectedDetectors; i++)
+    {
+        RTLSDR *receiver = receivers[i];
+        if (dev == NULL || !strcmp(dev, receiver->getDeviceName()))
+        {
+            receiver->ISNewSwitch(dev, name, states, names, num);
+            if (dev != NULL)
+                break;
+        }
+    }
 }
 
 void ISNewText(const char *dev, const char *name, char *texts[], char *names[], int num)
 {
-	rtlsdrDetector->ISNewText(dev, name, texts, names, num);
+    ISInit();
+    for (int i = 0; i < iNumofConnectedDetectors; i++)
+    {
+        RTLSDR *receiver = receivers[i];
+        if (dev == NULL || !strcmp(dev, receiver->getDeviceName()))
+        {
+            receiver->ISNewText(dev, name, texts, names, num);
+            if (dev != NULL)
+                break;
+        }
+    }
 }
 
 void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int num)
 {
-	rtlsdrDetector->ISNewNumber(dev, name, values, names, num);
+    ISInit();
+    for (int i = 0; i < iNumofConnectedDetectors; i++)
+    {
+        RTLSDR *receiver = receivers[i];
+        if (dev == NULL || !strcmp(dev, receiver->getDeviceName()))
+        {
+            receiver->ISNewNumber(dev, name, values, names, num);
+            if (dev != NULL)
+                break;
+        }
+    }
 }
 
 void ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[],
-			   char *names[], int n)
+               char *names[], int n)
 {
-	INDI_UNUSED(dev);
-	INDI_UNUSED(name);
-	INDI_UNUSED(sizes);
-	INDI_UNUSED(blobsizes);
-	INDI_UNUSED(blobs);
-	INDI_UNUSED(formats);
-	INDI_UNUSED(names);
-	INDI_UNUSED(n);
+    INDI_UNUSED(dev);
+    INDI_UNUSED(name);
+    INDI_UNUSED(sizes);
+    INDI_UNUSED(blobsizes);
+    INDI_UNUSED(blobs);
+    INDI_UNUSED(formats);
+    INDI_UNUSED(names);
+    INDI_UNUSED(n);
 }
 
 void ISSnoopDevice(XMLEle *root)
 {
-	rtlsdrDetector->ISSnoopDevice(root);
+    ISInit();
+
+    for (int i = 0; i < iNumofConnectedDetectors; i++)
+    {
+        RTLSDR *receiver = receivers[i];
+        receiver->ISSnoopDevice(root);
+    }
 }
 
-RTLSDR::RTLSDR()
+RTLSDR::RTLSDR(uint32_t index)
 {
 	InCapture = false;
+
+    detectorIndex = index;
+
+    char name[MAXINDIDEVICE];
+    snprintf(name, MAXINDIDEVICE, "%s %d", getDefaultName(), index);
+    setDeviceName(name);
 }
 
 /**************************************************************************************
 ** Client is asking us to establish connection to the device
 ***************************************************************************************/
 bool RTLSDR::Connect()
-{
-	IDMessage(getDeviceName(), "RTL-SDR Detector connected successfully!");
-	int dev_index = rtlsdr_get_device_count();
-
-	if (dev_index < 1) {
+{    	
+    int r = rtlsdr_open(&rtl_dev, detectorIndex);
+    if (r < 0)
+    {
+        DEBUGF(INDI::Logger::DBG_ERROR, "Failed to open rtlsdr device index %d.", detectorIndex);
 		return false;
 	}
 
-	int r = rtlsdr_open(&rtl_dev, 0);
-	if (r < 0) {
-		DEBUG(INDI::Logger::DBG_ERROR, "Failed to open rtlsdr device.\n");
-		return false;
-	}
+    DEBUG(INDI::Logger::DBG_SESSION, "RTL-SDR Detector connected successfully!");
 	// Let's set a timer that checks teleDetectors status every POLLMS milliseconds.
-	SetTimer(POLLMS);
+    // JM 2017-07-31 SetTimer already called in updateProperties(). Just call it once
+    //SetTimer(POLLMS);
 
 	/* Set the sample rate */
 	rtlsdr_set_sample_rate(rtl_dev, 2048000);
@@ -114,7 +209,7 @@ bool RTLSDR::Connect()
 bool RTLSDR::Disconnect()
 {
 	rtlsdr_close(rtl_dev);
-	IDMessage(getDeviceName(), "RTL-SDR Detector disconnected successfully!");
+    DEBUG(INDI::Logger::DBG_SESSION, "RTL-SDR Detector disconnected successfully!");
 	return true;
 }
 
@@ -264,7 +359,7 @@ void RTLSDR::TimerHit()
 		if (timeleft < 0.1)
 		{
 			/* We're done exposing */
-			IDMessage(getDeviceName(), "Capture done, downloading image...");
+            DEBUG(INDI::Logger::DBG_SESSION, "Capture done, downloading image...");
 
 			// Set exposure left to zero
 			PrimaryDetector.setCaptureLeft(0);
@@ -302,20 +397,20 @@ retry:
 
 	if (r < 0) {
 		usleep(10000);
-		DEBUG(INDI::Logger::DBG_WARNING, "sync read failed.\n");
+        DEBUG(INDI::Logger::DBG_WARNING, "sync read failed.");
 		if(ntries ++ < MAX_TRIES)
 			goto retry;
-		DEBUG(INDI::Logger::DBG_ERROR, "Too much wrong reads, exiting.\n");
+        DEBUG(INDI::Logger::DBG_ERROR, "Too much wrong reads, exiting.");
 		return;
 	}
 
 	if (n_read < len) {
 		b_read = n_read;
-		DEBUG(INDI::Logger::DBG_WARNING, "Short read, samples lost!\n");
+        DEBUG(INDI::Logger::DBG_WARNING, "Short read, samples lost!");
 		goto retry;
 	}
 
-	IDMessage(getDeviceName(), "Download complete.");
+    DEBUG(INDI::Logger::DBG_SESSION, "Download complete.");
 
 	// Let INDI::Detector know we're done filling the image buffer
 	CaptureComplete(&PrimaryDetector);

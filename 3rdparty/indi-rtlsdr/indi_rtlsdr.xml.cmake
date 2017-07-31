@@ -2,8 +2,8 @@
 <driversList>
 <devGroup group="Detectors">
         <device label="RTL-SDR Receiver" mdpd="true">
-                <driver name="RTL-SDR Receiver">indi_rtlsdr_ccd</driver>
-                <version>@ASI_VERSION_MAJOR@.@ASI_VERSION_MINOR@</version>
+                <driver name="RTL-SDR Receiver">indi_rtlsdr_detector</driver>
+                <version>@RTLSDR_VERSION_MAJOR@.@RTLSDR_VERSION_MINOR@</version>
 	</device>
 </devGroup>
 </driversList>
