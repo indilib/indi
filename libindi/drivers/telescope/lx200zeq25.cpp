@@ -837,7 +837,7 @@ int LX200ZEQ25::haltZEQ25Movement()
     return 0;
 }
 
-bool LX200ZEQ25::SetTrackMode(int mode)
+bool LX200ZEQ25::SetTrackMode(uint8_t mode)
 {
     return (setZEQ25TrackMode(mode) == 0);
 }

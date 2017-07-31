@@ -64,7 +64,7 @@ class LX200Generic : public INDI::Telescope, public INDI::GuiderInterface
     // Slew Rate
     virtual bool SetSlewRate(int index);
     // Track Mode (Sidereal, Solar..etc)
-    virtual bool SetTrackMode(int mode);
+    virtual bool SetTrackMode(uint8_t mode);
 
     // NSWE Motion Commands
     virtual bool MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command);
@@ -144,10 +144,6 @@ class LX200Generic : public INDI::Telescope, public INDI::GuiderInterface
     /* Telescope Alignment Mode */
     ISwitchVectorProperty AlignmentSP;
     ISwitch AlignmentS[3];
-
-    /* Tracking Mode */
-    ISwitchVectorProperty TrackModeSP;
-    ISwitch TrackModeS[4];
 
     /* Tracking Frequency */
     INumberVectorProperty TrackingFreqNP;

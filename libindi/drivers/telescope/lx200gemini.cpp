@@ -424,7 +424,7 @@ bool LX200Gemini::saveConfigItems(FILE *fp)
     return true;
 }
 
-bool LX200Gemini::SetTrackMode(int mode)
+bool LX200Gemini::SetTrackMode(uint8_t mode)
 {
     int rc = TTY_OK, nbytes_written=0;
     char prefix[16] = {0};

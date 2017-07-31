@@ -670,7 +670,7 @@ int LX200GotoNova::setGotoNovaStandardProcedure(int fd, const char *data)
     return 0;
 }
 
-bool LX200GotoNova::SetTrackMode(int mode)
+bool LX200GotoNova::SetTrackMode(uint8_t mode)
 {
     return (setGotoNovaTrackMode(mode) == 0);
 }

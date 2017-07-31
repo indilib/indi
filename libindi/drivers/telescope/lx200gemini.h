@@ -48,7 +48,7 @@ class LX200Gemini : public LX200Generic
     virtual bool Park()override ;
     virtual bool UnPark() override;
 
-    virtual bool SetTrackMode(int mode) override;
+    virtual bool SetTrackMode(uint8_t mode) override;
 
     virtual bool checkConnection() override;
 

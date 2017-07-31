@@ -1,6 +1,6 @@
 #if 0
 LX200 Generic
-Copyright (C) 2003 - 2015 Jasem Mutlaq (mutlaqja@ikarustech.com)
+Copyright (C) 2003 - 2017 Jasem Mutlaq (mutlaqja@ikarustech.com)
 
 This library is free software;
 you can redistribute it and / or
@@ -283,12 +283,19 @@ bool LX200Generic::initProperties()
     IUFillSwitchVector(&SlewRateSP, SlewRateS, 4, getDeviceName(), "TELESCOPE_SLEW_RATE", "Slew Rate", MOTION_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 #endif
 
+#if 0
     IUFillSwitch(&TrackModeS[0], "TRACK_SIDEREAL", "Sidereal", ISS_ON);
     IUFillSwitch(&TrackModeS[1], "TRACK_SOLAR", "Solar", ISS_OFF);
     IUFillSwitch(&TrackModeS[2], "TRACK_LUNAR", "Lunar", ISS_OFF);
     IUFillSwitch(&TrackModeS[3], "TRACK_CUSTOM", "Custom", ISS_OFF);
     IUFillSwitchVector(&TrackModeSP, TrackModeS, 4, getDeviceName(), "TELESCOPE_TRACK_MODE", "Track Mode", MOTION_TAB,
                        IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+#endif
+
+    AddTrackMode("TRACK_SIDEREAL", "Sidereal", true);
+    AddTrackMode("TRACK_SOLAR", "Solar");
+    AddTrackMode("TRACK_LUNAR", "Lunar");
+    AddTrackMode("TRACK_CUSTOM", "Custom");
 
     IUFillNumber(&TrackFreqN[0], "trackFreq", "Freq", "%g", 56.4, 60.1, 0.1, 60.1);
     IUFillNumberVector(&TrackingFreqNP, TrackFreqN, 1, getDeviceName(), "Tracking Frequency", "", MOTION_TAB, IP_RW, 0,
@@ -340,15 +347,15 @@ void LX200Generic::ISGetProperties(const char *dev)
     if (dev && strcmp(dev, getDeviceName()))
         return;
 
+    if (genericCapability & LX200_HAS_TRACK_MODE)
+        SetTelescopeCapability(GetTelescopeCapability() | TELESCOPE_HAS_TRACK_MODE);
+
     INDI::Telescope::ISGetProperties(dev);
 
     if (isConnected())
     {
         if (genericCapability & LX200_HAS_ALIGNMENT_TYPE)
-            defineSwitch(&AlignmentSP);
-
-        if (genericCapability & LX200_HAS_TRACK_MODE)
-            defineSwitch(&TrackModeSP);
+            defineSwitch(&AlignmentSP);        
 
         if (genericCapability & LX200_HAS_TRACKING_FREQ)
             defineNumber(&TrackingFreqNP);
@@ -1089,7 +1096,7 @@ bool LX200Generic::ISNewSwitch(const char *dev, const char *name, ISState *state
     return INDI::Telescope::ISNewSwitch(dev, name, states, names, n);
 }
 
-bool LX200Generic::SetTrackMode(int mode)
+bool LX200Generic::SetTrackMode(uint8_t mode)
 {
     return (selectTrackingMode(PortFD, mode) == 0);
 }
