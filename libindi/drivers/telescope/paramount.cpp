@@ -111,7 +111,7 @@ Paramount::Paramount()
     DBG_SCOPE = INDI::Logger::getInstance().addDebugLevel("Scope Verbose", "SCOPE");
 
     SetTelescopeCapability(TELESCOPE_CAN_PARK | TELESCOPE_CAN_SYNC | TELESCOPE_CAN_GOTO | TELESCOPE_CAN_ABORT |
-                               TELESCOPE_HAS_TIME | TELESCOPE_HAS_LOCATION,
+                               TELESCOPE_HAS_TIME | TELESCOPE_HAS_LOCATION | TELESCOPE_HAS_TRACK_MODE | TELESCOPE_HAS_TRACK_RATE | TELESCOPE_CAN_CONTROL_TRACK,
                            9);
     setTelescopeConnection(CONNECTION_TCP);
 }
@@ -152,18 +152,27 @@ bool Paramount::initProperties()
                        IPS_IDLE);
 
     // Tracking Mode
+#if 0
     IUFillSwitch(&TrackModeS[TRACK_SIDEREAL], "TRACK_SIDEREAL", "Sidereal", ISS_OFF);
     IUFillSwitch(&TrackModeS[TRACK_SOLAR], "TRACK_SOLAR", "Solar", ISS_OFF);
     IUFillSwitch(&TrackModeS[TRACK_LUNAR], "TRACK_LUNAR", "Lunar", ISS_OFF);
     IUFillSwitch(&TrackModeS[TRACK_CUSTOM], "TRACK_CUSTOM", "Custom", ISS_OFF);
     IUFillSwitchVector(&TrackModeSP, TrackModeS, 4, getDeviceName(), "TELESCOPE_TRACK_MODE", "Track Mode",
                        MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
+#endif
+
+    AddTrackMode("TRACK_SIDEREAL", "Sidereal", true);
+    AddTrackMode("TRACK_SOLAR", "Solar");
+    AddTrackMode("TRACK_LUNAR", "Lunar");
+    AddTrackMode("TRACK_CUSTOM", "Custom");
 
     // Custom Tracking Rate
+#if 0
     IUFillNumber(&TrackRateN[0], "TRACK_RATE_RA", "RA (arcsecs/s)", "%.6f", -16384.0, 16384.0, 0.000001, 15.041067);
     IUFillNumber(&TrackRateN[1], "TRACK_RATE_DE", "DE (arcsecs/s)", "%.6f", -16384.0, 16384.0, 0.000001, 0);
     IUFillNumberVector(&TrackRateNP, TrackRateN, 2, getDeviceName(), "TELESCOPE_TRACK_RATE", "Track Rates",
                        MAIN_CONTROL_TAB, IP_RW, 60, IPS_IDLE);
+#endif
 
     // Let's simulate it to be an F/7.5 120mm telescope with 50m 175mm guide scope
     ScopeParametersN[0].value = 120;
@@ -194,16 +203,16 @@ bool Paramount::updateProperties()
         {
             IUResetSwitch(&TrackModeSP);
             TrackModeS[TRACK_SIDEREAL].s = ISS_ON;
-            TrackModeSP.s                = IPS_BUSY;
+            TrackState = SCOPE_TRACKING;
         }
         else
         {
             IUResetSwitch(&TrackModeSP);
-            TrackModeSP.s = IPS_IDLE;
+            TrackState = SCOPE_IDLE;
         }
 
-        defineSwitch(&TrackModeSP);
-        defineNumber(&TrackRateNP);
+        //defineSwitch(&TrackModeSP);
+        //defineNumber(&TrackRateNP);
 
         defineNumber(&JogRateNP);
 
@@ -233,8 +242,8 @@ bool Paramount::updateProperties()
     }
     else
     {
-        deleteProperty(TrackModeSP.name);
-        deleteProperty(TrackRateNP.name);
+        //deleteProperty(TrackModeSP.name);
+        //deleteProperty(TrackRateNP.name);
 
         deleteProperty(JogRateNP.name);
 
@@ -248,6 +257,9 @@ bool Paramount::updateProperties()
 
 bool Paramount::Handshake()
 {
+    if (isSimulation())
+        return true;
+
     int rc = 0, nbytes_written = 0, nbytes_read = 0;
     char pCMD[MAXRBUF], pRES[MAXRBUF];
 
@@ -629,27 +641,7 @@ bool Paramount::ISNewNumber(const char *dev, const char *name, double values[], 
             GuideRateNP.s = IPS_OK;
             IDSetNumber(&GuideRateNP, nullptr);
             return true;
-        }
-
-        // Tracking Rate
-        if (!strcmp(name, TrackRateNP.name))
-        {
-            IUUpdateNumber(&TrackRateNP, values, names, n);
-            if (IUFindOnSwitchIndex(&TrackModeSP) != TRACK_CUSTOM)
-            {
-                DEBUG(INDI::Logger::DBG_ERROR, "Can only set tracking rate if track mode is custom.");
-                TrackRateNP.s = IPS_ALERT;
-            }
-            else
-            {
-                TrackRateNP.s = setTheSkyTracking(true, false, TrackRateN[RA_AXIS].value, TrackRateN[DEC_AXIS].value) ?
-                                    IPS_OK :
-                                    IPS_ALERT;
-            }
-
-            IDSetNumber(&TrackRateNP, nullptr);
-            return true;
-        }
+        }        
 
         if (!strcmp(name, GuideNSNP.name) || !strcmp(name, GuideWENP.name))
         {
@@ -667,48 +659,7 @@ bool Paramount::ISNewSwitch(const char *dev, const char *name, ISState *states, 
 {
     if (strcmp(dev, getDeviceName()) == 0)
     {
-        // Tracking Mode
-        if (!strcmp(TrackModeSP.name, name))
-        {
-            int previousTrackMode = IUFindOnSwitchIndex(&TrackModeSP);
 
-            IUUpdateSwitch(&TrackModeSP, states, names, n);
-
-            int currentTrackMode = IUFindOnSwitchIndex(&TrackModeSP);
-
-            // Engage tracking?
-            bool enable     = (currentTrackMode != -1);
-            bool isSidereal = (currentTrackMode == TRACK_SIDEREAL);
-            double dRA = 0, dDE = 0;
-            if (currentTrackMode == TRACK_SOLAR)
-                dRA = TRACKRATE_SOLAR;
-            else if (currentTrackMode == TRACK_LUNAR)
-                dRA = TRACKRATE_LUNAR;
-            else if (currentTrackMode == TRACK_CUSTOM)
-            {
-                dRA = TrackRateN[RA_AXIS].value;
-                dDE = TrackRateN[DEC_AXIS].value;
-            }
-
-            bool rc = setTheSkyTracking(enable, isSidereal, dRA, dDE);
-
-            if (rc == false)
-            {
-                TrackModeSP.s = IPS_ALERT;
-                if (previousTrackMode != -1)
-                {
-                    IUResetSwitch(&TrackModeSP);
-                    TrackModeS[previousTrackMode].s = ISS_ON;
-                }
-            }
-            else
-            {
-                TrackModeSP.s = enable ? IPS_BUSY : IPS_IDLE;
-            }
-
-            IDSetSwitch(&TrackModeSP, nullptr);
-            return true;
-        }
     }
 
     //  Nobody has claimed this, so, ignore it
@@ -953,7 +904,7 @@ void Paramount::mountSim()
     /* Process per current state. We check the state of EQUATORIAL_COORDS and act acoordingly */
     switch (TrackState)
     {
-        case SCOPE_TRACKING:
+        case SCOPE_IDLE:
             /* RA moves at sidereal, Dec stands still */
             currentRA += (SID_RATE * dt / 15.);
             break;
@@ -1130,4 +1081,53 @@ bool Paramount::setTheSkyTracking(bool enable, bool isSidereal, double raRate, d
         return false;
 
     return true;
+}
+
+bool Paramount::SetTrackRate(double raRate, double deRate)
+{
+    if (IUFindOnSwitchIndex(&TrackModeSP) != TRACK_CUSTOM)
+    {
+        DEBUG(INDI::Logger::DBG_ERROR, "Can only set tracking rate if track mode is custom.");
+        return false;
+    }
+
+   return setTheSkyTracking(true, false, raRate, deRate);
+}
+
+bool Paramount::SetTrackMode(uint8_t mode)
+{
+    // Engage tracking?
+    bool enable     = (TrackStateS[TRACK_ON].s == ISS_ON);;
+    bool isSidereal = (mode == TRACK_SIDEREAL);
+    double dRA = TRACKRATE_SIDEREAL, dDE = 0;
+    if (mode == TRACK_SOLAR)
+        dRA = TRACKRATE_SOLAR;
+    else if (mode == TRACK_LUNAR)
+        dRA = TRACKRATE_LUNAR;
+    else if (mode == TRACK_CUSTOM)
+    {
+        dRA = TrackRateN[RA_AXIS].value;
+        dDE = TrackRateN[DEC_AXIS].value;
+    }
+
+    return setTheSkyTracking(enable, isSidereal, dRA, dDE);
+}
+
+bool Paramount::SetTrackEnabled(bool enabled)
+{
+    bool enable     = enabled;
+    int mode = IUFindOnSwitchIndex(&TrackModeSP);
+    bool isSidereal = (mode == TRACK_SIDEREAL);
+    double dRA = TRACKRATE_SIDEREAL, dDE = 0;
+    if (mode == TRACK_SOLAR)
+        dRA = TRACKRATE_SOLAR;
+    else if (mode == TRACK_LUNAR)
+        dRA = TRACKRATE_LUNAR;
+    else if (mode == TRACK_CUSTOM)
+    {
+        dRA = TrackRateN[RA_AXIS].value;
+        dDE = TrackRateN[DEC_AXIS].value;
+    }
+
+    return setTheSkyTracking(enable, isSidereal, dRA, dDE);
 }

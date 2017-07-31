@@ -54,6 +54,11 @@ class Paramount : public INDI::Telescope, public INDI::GuiderInterface
     virtual bool UnPark() override;
     virtual bool Sync(double ra, double dec) override;
 
+    // Tracking
+    virtual bool SetTrackMode(uint8_t mode) override;
+    virtual bool SetTrackRate(double raRate, double deRate) override;
+    virtual bool SetTrackEnabled(bool enabled);
+
     // Parking
     virtual bool SetCurrentPark() override;
     virtual bool SetDefaultPark() override;
