@@ -148,6 +148,13 @@ void ISInit()
 void ISGetProperties(const char *dev)
 {
     ISInit();
+
+    if (cameraCount == 0)
+    {
+        IDMessage(nullptr, "No QHY cameras detected. Power on?");
+        return;
+    }
+
     for (int i = 0; i < cameraCount; i++)
     {
         QHYCCD *camera = cameras[i];

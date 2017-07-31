@@ -147,6 +147,18 @@ bool SimpleDetector::updateProperties()
 }
 
 /**************************************************************************************
+** Client is updating capture settings
+***************************************************************************************/
+bool SimpleDetector::CaptureParamsUpdated(float bw, float capfreq, float samfreq, float bps)
+{
+    	INDI_UNUSED(bps);
+    	INDI_UNUSED(capfreq);
+    	INDI_UNUSED(samfreq);
+    	INDI_UNUSED(bw);
+	return true;
+}
+
+/**************************************************************************************
 ** Setting up Detector parameters
 ***************************************************************************************/
 void SimpleDetector::setupParams()

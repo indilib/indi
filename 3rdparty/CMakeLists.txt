@@ -70,6 +70,7 @@ option(WITH_GIGE "Install GiGE machine vision Driver" Off)
 option(WITH_DSI "Install Meade DSI Driver" On)
 option(WITH_ASICAM "Install ZWO Optics ASI Driver" On)
 option(WITH_MGEN "Install MGen Autoguider" On)
+option(WITH_RTLSDR "Install RTL-SDR Receiver" On)
 
 # Add/remove cases for OSX
 IF (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
@@ -226,6 +227,11 @@ endif (WITH_GIGE)
 if (WITH_MGEN)
 add_subdirectory(indi-mgen)
 endif (WITH_MGEN)
+
+## Cloud Watcher
+if (WITH_RTLSDR)
+add_subdirectory(indi-rtlsdr)
+endif (WITH_RTLSDR)
 
 #endif (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
 

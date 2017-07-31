@@ -133,6 +133,13 @@ void ISInit()
 void ISGetProperties(const char *dev)
 {
     ISInit();
+
+    if (cameraCount == 0)
+    {
+        IDMessage(nullptr, "No cameras detected.Check power and make sure camera is not mounted by other programs and try again.");
+        return;
+    }
+
     for (int i = 0; i < cameraCount; i++)
     {
         GPhotoCCD *camera = cameras[i];

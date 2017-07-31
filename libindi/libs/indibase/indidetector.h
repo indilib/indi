@@ -69,19 +69,19 @@ class DetectorDevice
      * @brief getBandwidth Get requested Bandwidth for the Detector device in Hz.
      * @return requested Bandwidth for the Detector device in Hz.
      */
-    inline double getBandwidth() { return DetectorInfoN[DETECTOR_BANDWIDTH].value; }
+    inline double getBandwidth() { return bandwidth; }
 
     /**
      * @brief getSamplingFrequency Get requested Capture frequency for the Detector device in Hz.
      * @return requested Capture frequency for the Detector device in Hz.
      */
-    inline double getCaptureFrequency() { return DetectorInfoN[DETECTOR_CAPTUREFREQUENCY].value; }
+    inline double getCaptureFrequency() { return captureFreq; }
 
     /**
      * @brief getSamplingFrequency Get requested Sampling frequency for the Detector device in Hz.
      * @return requested Sampling frequency for the Detector device in Hz.
      */
-    inline double getSamplingFrequency() { return DetectorInfoN[DETECTOR_SAMPLINGFREQUENCY].value; }
+    inline double getSamplingFrequency() { return samplingFreq; }
 
     /**
      * @brief getCaptureDuration Get requested Capture duration for the Detector device in seconds.
@@ -334,6 +334,17 @@ class INDI::Detector : public INDI::DefaultDevice
      * \note This function is not implemented in INDI::Detector, it must be implemented in the child class
      */
     virtual bool StartCapture(float duration);
+
+    /**
+     * \brief Set common capture params
+     * \param bw Detector bandwidth (in Hz)
+     * \param cfreq Capture frequency of the detector (Hz, observed frequency).
+     * \param sfreq Sampling frequency of the detector (Hz, electronic speed of the detector).
+     * \param bps Bit resolution of a single sample.
+     * \return true if OK and Capture will take some time to complete, false on error.
+     * \note This function is not implemented in INDI::Detector, it must be implemented in the child class
+     */
+    virtual bool CaptureParamsUpdated(float bw, float capfreq, float samfreq, float bps);
 
     /**
      * \brief Uploads target Device exposed buffer as FITS to the client. Dervied classes should class
