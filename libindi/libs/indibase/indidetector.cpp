@@ -249,19 +249,19 @@ bool INDI::Detector::initProperties()
     // PrimaryDetector Capture
     IUFillNumber(&PrimaryDetector.FramedCaptureN[0], "DETECTOR_CAPTURE_VALUE", "Duration (s)", "%5.2f", 0.01, 3600, 1.0, 1.0);
     IUFillNumberVector(&PrimaryDetector.FramedCaptureNP, PrimaryDetector.FramedCaptureN, 1, getDeviceName(), "DETECTOR_CAPTURE",
-                       "Expose", MAIN_CONTROL_TAB, IP_RW, 60, IPS_IDLE);
+                       "Capture", MAIN_CONTROL_TAB, IP_RW, 60, IPS_IDLE);
 
     // PrimaryDetector Abort
     IUFillSwitch(&PrimaryDetector.AbortCaptureS[0], "ABORT", "Abort", ISS_OFF);
     IUFillSwitchVector(&PrimaryDetector.AbortCaptureSP, PrimaryDetector.AbortCaptureS, 1, getDeviceName(), "DETECTOR_ABORT_CAPTURE",
-                       "Expose Abort", MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
+                       "Capture Abort", MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
 
     // PrimaryDetector Info
-    IUFillNumber(&PrimaryDetector.DetectorInfoN[DetectorDevice::DETECTOR_BANDWIDTH], "DETECTOR_BANDWIDTH", "Bandwidth (Hz)", "%4.0f", 1, 16000, 0, 0);
-    IUFillNumber(&PrimaryDetector.DetectorInfoN[DetectorDevice::DETECTOR_CAPTUREFREQUENCY], "DETECTOR_CAPTURE_FREQUENCY", "Observed frequency (Hz)", "%18.2f", 0.01, 1.0e+15, 0, 0);
-    IUFillNumber(&PrimaryDetector.DetectorInfoN[DetectorDevice::DETECTOR_SAMPLINGFREQUENCY], "DETECTOR_SAMPLING_FREQUENCY", "Sampling frequency (Hz)", "%14.2f", 1, 1.0e+10, 0, 0);
-    IUFillNumber(&PrimaryDetector.DetectorInfoN[DetectorDevice::DETECTOR_BITSPERSAMPLE], "DETECTOR_BITSPERSAMPLE", "Bits per pixel", "%3.0f", 1, 64, 0, 0);
-    IUFillNumberVector(&PrimaryDetector.DetectorInfoNP, PrimaryDetector.DetectorInfoN, 6, getDeviceName(), "DETECTOR_INFO", "PrimaryDetector Information", CAPTURE_INFO_TAB, IP_RO, 60, IPS_IDLE);
+    IUFillNumber(&PrimaryDetector.DetectorInfoN[DetectorDevice::DETECTOR_BANDWIDTH], "DETECTOR_BANDWIDTH", "Bandwidth (Hz)", "%4.0f", 0.01, 16000, 0.01, 0);
+    IUFillNumber(&PrimaryDetector.DetectorInfoN[DetectorDevice::DETECTOR_CAPTUREFREQUENCY], "DETECTOR_CAPTURE_FREQUENCY", "Observed frequency (Hz)", "%18.2f", 0.01, 1.0e+15, 0.01, 0);
+    IUFillNumber(&PrimaryDetector.DetectorInfoN[DetectorDevice::DETECTOR_SAMPLINGFREQUENCY], "DETECTOR_SAMPLING_FREQUENCY", "Sampling frequency (Hz)", "%14.2f", 0.01, 1.0e+10, 0.01, 0);
+    IUFillNumber(&PrimaryDetector.DetectorInfoN[DetectorDevice::DETECTOR_BITSPERSAMPLE], "DETECTOR_BITSPERSAMPLE", "Bits per sample", "%3.0f", 1, 64, 1, 8);
+    IUFillNumberVector(&PrimaryDetector.DetectorInfoNP, PrimaryDetector.DetectorInfoN, 4, getDeviceName(), "DETECTOR_INFO", "Primary Detector Information", CAPTURE_INFO_TAB, IP_RW, 60, IPS_IDLE);
 
     // PrimaryDetector Device Data Blob
     IUFillBLOB(&PrimaryDetector.FitsB, "DETECTOR1", "Capture", "");
@@ -650,6 +650,12 @@ bool INDI::Detector::StartCapture(float duration)
     return false;
 }
 
+bool INDI::Detector::CaptureParamsUpdated(float bw, float capfreq, float samfreq, float bps)
+{
+    DEBUGF(INDI::Logger::DBG_WARNING, "INDI::Detector::CaptureParamsUpdated %15.0f %15.0f %15.0f %15.0f -  Should never get here", bw, capfreq, samfreq, bps);
+    return false;
+}
+
 bool INDI::Detector::AbortCapture()
 {
     DEBUG(INDI::Logger::DBG_WARNING, "INDI::Detector::AbortCapture -  Should never get here");
@@ -804,23 +810,23 @@ bool INDI::Detector::CaptureComplete(DetectorDevice *targetDevice)
                 case 8:
                     byte_type = TBYTE;
                     img_type  = BYTE_IMG;
-                    bit_depth = "8 bits per pixel";
+                    bit_depth = "8 bits per sample";
                     break;
 
                 case 16:
                     byte_type = TUSHORT;
                     img_type  = USHORT_IMG;
-                    bit_depth = "16 bits per pixel";
+                    bit_depth = "16 bits per sample";
                     break;
 
                 case 32:
                     byte_type = TULONG;
                     img_type  = ULONG_IMG;
-                    bit_depth = "32 bits per pixel";
+                    bit_depth = "32 bits per sample";
                     break;
 
                 default:
-                    DEBUGF(Logger::DBG_ERROR, "Unsupported bits per pixel value %d", targetDevice->getBPS());
+                    DEBUGF(Logger::DBG_ERROR, "Unsupported bits per sample value %d", targetDevice->getBPS());
                     return false;
                     break;
             }
@@ -997,6 +1003,7 @@ void INDI::Detector::SetDetectorParams(float bw, float capfreq, float samfreq, f
     PrimaryDetector.setCaptureFreq(capfreq);
     PrimaryDetector.setSamplingFreq(samfreq);
     PrimaryDetector.setBPS(bps);
+    CaptureParamsUpdated(bw, capfreq, samfreq, bps);
 }
 
 bool INDI::Detector::saveConfigItems(FILE *fp)
