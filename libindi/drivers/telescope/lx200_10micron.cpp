@@ -33,9 +33,7 @@
 
 LX200_10MICRON::LX200_10MICRON(void) : LX200Generic()
 {
-    // LX200Generic via the TelescopeCapability settings are fine
-    setLX200Capability(LX200_HAS_TRACK_MODE);
-
+    setLX200Capability(0);
     setVersion(1, 0);
 }
 

@@ -40,7 +40,6 @@ class LX200Generic : public INDI::Telescope, public INDI::GuiderInterface
         LX200_HAS_ALIGNMENT_TYPE    = 1 << 2, /** Define Alignment Type */
         LX200_HAS_SITES             = 1 << 3, /** Define Sites */
         LX200_HAS_PULSE_GUIDING     = 1 << 4, /** Define Pulse Guiding */
-        LX200_HAS_TRACK_MODE        = 1 << 5  /** Define Track Mode */
     } LX200Capability;
 
     uint32_t getLX200Capability() const { return genericCapability; }
@@ -64,7 +63,7 @@ class LX200Generic : public INDI::Telescope, public INDI::GuiderInterface
     // Slew Rate
     virtual bool SetSlewRate(int index);
     // Track Mode (Sidereal, Solar..etc)
-    virtual bool SetTrackMode(uint8_t mode);
+    virtual bool SetTrackMode(uint8_t mode) override;
 
     // NSWE Motion Commands
     virtual bool MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command);

@@ -235,10 +235,10 @@ LX200Generic::LX200Generic()
     currentDEC = 90;
 
     setLX200Capability(LX200_HAS_FOCUS | LX200_HAS_TRACKING_FREQ | LX200_HAS_ALIGNMENT_TYPE | LX200_HAS_SITES |
-                       LX200_HAS_PULSE_GUIDING | LX200_HAS_TRACK_MODE);
+                       LX200_HAS_PULSE_GUIDING);
 
     SetTelescopeCapability(TELESCOPE_CAN_PARK | TELESCOPE_CAN_SYNC | TELESCOPE_CAN_GOTO | TELESCOPE_CAN_ABORT |
-                               TELESCOPE_HAS_TIME | TELESCOPE_HAS_LOCATION,
+                               TELESCOPE_HAS_TIME | TELESCOPE_HAS_LOCATION | TELESCOPE_HAS_TRACK_MODE,
                            4);
 
     DEBUG(INDI::Logger::DBG_DEBUG, "Initializing from Generic LX200 device...");
@@ -347,9 +347,6 @@ void LX200Generic::ISGetProperties(const char *dev)
     if (dev && strcmp(dev, getDeviceName()))
         return;
 
-    if (genericCapability & LX200_HAS_TRACK_MODE)
-        SetTelescopeCapability(GetTelescopeCapability() | TELESCOPE_HAS_TRACK_MODE);
-
     INDI::Telescope::ISGetProperties(dev);
 
     if (isConnected())
@@ -390,9 +387,6 @@ bool LX200Generic::updateProperties()
         if (genericCapability & LX200_HAS_ALIGNMENT_TYPE)
             defineSwitch(&AlignmentSP);
 
-        if (genericCapability & LX200_HAS_TRACK_MODE)
-            defineSwitch(&TrackModeSP);
-
         if (genericCapability & LX200_HAS_TRACKING_FREQ)
             defineNumber(&TrackingFreqNP);
 
@@ -421,9 +415,6 @@ bool LX200Generic::updateProperties()
     {
         if (genericCapability & LX200_HAS_ALIGNMENT_TYPE)
             deleteProperty(AlignmentSP.name);
-
-        if (genericCapability & LX200_HAS_TRACK_MODE)
-            deleteProperty(TrackModeSP.name);
 
         if (genericCapability & LX200_HAS_TRACKING_FREQ)
             deleteProperty(TrackingFreqNP.name);
@@ -1029,32 +1020,6 @@ bool LX200Generic::ISNewSwitch(const char *dev, const char *name, ISState *state
             return true;
         }
 
-        // Tracking mode
-        if (!strcmp(name, TrackModeSP.name))
-        {
-            IUResetSwitch(&TrackModeSP);
-            IUUpdateSwitch(&TrackModeSP, states, names, n);
-            trackingMode = IUFindOnSwitchIndex(&TrackModeSP);
-
-            if (isSimulation() == false && SetTrackMode(trackingMode) == false)
-            {
-                TrackModeSP.s = IPS_ALERT;
-                IDSetSwitch(&TrackModeSP, "Error setting tracking mode.");
-                return false;
-            }
-
-            // Only update tracking frequency if it is defined and not deleted by child classes
-            if (isSimulation() == false && getProperty(TrackingFreqNP.name, INDI_NUMBER) != nullptr)
-            {
-                getTrackFreq(PortFD, &TrackFreqN[0].value);
-                IDSetNumber(&TrackingFreqNP, nullptr);
-            }
-
-            TrackModeSP.s = IPS_OK;
-            IDSetSwitch(&TrackModeSP, nullptr);
-            return true;
-        }
-
         // Focus speed
         if (!strcmp(name, FocusModeSP.name))
         {
@@ -1098,7 +1063,18 @@ bool LX200Generic::ISNewSwitch(const char *dev, const char *name, ISState *state
 
 bool LX200Generic::SetTrackMode(uint8_t mode)
 {
-    return (selectTrackingMode(PortFD, mode) == 0);
+    if (isSimulation())
+        return true;
+
+    bool rc = (selectTrackingMode(PortFD, mode) == 0);
+
+    // Only update tracking frequency if it is defined and not deleted by child classes
+    if (rc &&  (genericCapability & LX200_HAS_TRACKING_FREQ))
+    {
+        getTrackFreq(PortFD, &TrackFreqN[0].value);
+        IDSetNumber(&TrackingFreqNP, nullptr);
+    }
+    return rc;
 }
 
 bool LX200Generic::SetSlewRate(int index)

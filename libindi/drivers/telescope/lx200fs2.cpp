@@ -31,7 +31,7 @@ LX200FS2::LX200FS2() : LX200Generic()
     setVersion(2, 1);
 
     SetTelescopeCapability(
-        TELESCOPE_CAN_PARK | TELESCOPE_CAN_SYNC | TELESCOPE_CAN_GOTO | TELESCOPE_CAN_ABORT | TELESCOPE_HAS_LOCATION, 4);
+        TELESCOPE_CAN_PARK | TELESCOPE_CAN_SYNC | TELESCOPE_CAN_GOTO | TELESCOPE_CAN_ABORT, 4);
 }
 
 bool LX200FS2::initProperties()
@@ -126,21 +126,6 @@ bool LX200FS2::saveConfigItems(FILE *fp)
 
     IUSaveConfigNumber(fp, &SlewAccuracyNP);
 
-    return true;
-}
-
-bool LX200FS2::updateLocation(double latitude, double longitude, double elevation)
-{
-    LocationN[LOCATION_ELEVATION].value = elevation;
-    LocationN[LOCATION_LONGITUDE].value = longitude;
-    LocationN[LOCATION_LATITUDE].value  = latitude;
-    return true;
-}
-
-bool LX200FS2::updateTime(ln_date *utc, double utc_offset)
-{
-    INDI_UNUSED(utc);
-    INDI_UNUSED(utc_offset);
     return true;
 }
 

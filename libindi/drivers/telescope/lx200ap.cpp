@@ -42,7 +42,7 @@ LX200AstroPhysics::LX200AstroPhysics() : LX200Generic()
     timeUpdated = locationUpdated = false;
     initStatus                    = MOUNTNOTINITIALIZED;
 
-    setLX200Capability(LX200_HAS_PULSE_GUIDING | LX200_HAS_TRACK_MODE);
+    setLX200Capability(LX200_HAS_PULSE_GUIDING);
 
     SetTelescopeCapability(GetTelescopeCapability() | TELESCOPE_HAS_PIER_SIDE | TELESCOPE_HAS_PEC, 4);
 
@@ -130,7 +130,6 @@ void LX200AstroPhysics::ISGetProperties(const char *dev)
         //defineText(&DeclinationAxisTP);
 
         /* Motion group */
-        defineSwitch(&TrackModeSP);
         defineSwitch(&APSlewSpeedSP);
         defineSwitch(&SwapSP);
         defineSwitch(&SyncCMRSP);
@@ -152,7 +151,6 @@ bool LX200AstroPhysics::updateProperties()
         //defineText(&DeclinationAxisTP);
 
         /* Motion group */
-        defineSwitch(&TrackModeSP);
         defineSwitch(&APSlewSpeedSP);
         defineSwitch(&SwapSP);
         defineSwitch(&SyncCMRSP);
@@ -165,7 +163,6 @@ bool LX200AstroPhysics::updateProperties()
         deleteProperty(StartUpSP.name);
         deleteProperty(VersionInfo.name);
         //deleteProperty(DeclinationAxisTP.name);
-        deleteProperty(TrackModeSP.name);
         deleteProperty(APSlewSpeedSP.name);
         deleteProperty(SwapSP.name);
         deleteProperty(SyncCMRSP.name);
@@ -300,34 +297,6 @@ bool LX200AstroPhysics::ISNewSwitch(const char *dev, const char *name, ISState *
             StartUpSP.s = IPS_OK;
             IDSetSwitch(&StartUpSP, "Mount is already initialized.");
         }
-        return true;
-    }
-
-    // =======================================
-    // Tracking Mode
-    // =======================================
-    if (!strcmp(name, TrackModeSP.name))
-    {
-        IUResetSwitch(&TrackModeSP);
-        IUUpdateSwitch(&TrackModeSP, states, names, n);
-        trackingMode = IUFindOnSwitchIndex(&TrackModeSP);
-
-        if (isSimulation() == false && (err = selectAPTrackingMode(PortFD, trackingMode) < 0))
-        {
-            DEBUGF(INDI::Logger::DBG_ERROR, "Error setting tracking mode (%d).", err);
-            return false;
-        }
-        TrackModeSP.s = IPS_OK;
-        IDSetSwitch(&TrackModeSP, nullptr);
-
-        /* What is this for?
-        if( trackingMode != 3) // not zero
-        {
-            AbortSlewSP.s = IPS_IDLE;
-            IDSetSwitch(&AbortSlewSP, nullptr);
-        }
-        */
-
         return true;
     }
 
@@ -1003,6 +972,19 @@ bool LX200AstroPhysics::saveConfigItems(FILE *fp)
 
     IUSaveConfigSwitch(fp, &SyncCMRSP);
     IUSaveConfigSwitch(fp, &APSlewSpeedSP);
+
+    return true;
+}
+
+bool LX200AstroPhysics::SetTrackMode(uint8_t mode)
+{
+    int err=0;
+
+    if (isSimulation() == false && (err = selectAPTrackingMode(PortFD, mode) < 0))
+    {
+        DEBUGF(INDI::Logger::DBG_ERROR, "Error setting tracking mode (%d).", err);
+        return false;
+    }
 
     return true;
 }
