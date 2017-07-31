@@ -165,8 +165,8 @@ EQMod::EQMod()
 
     mount = new Skywatcher(this);
 
-    SetTelescopeCapability(TELESCOPE_CAN_PARK | TELESCOPE_CAN_SYNC | TELESCOPE_CAN_GOTO | TELESCOPE_CAN_ABORT |
-                               TELESCOPE_HAS_TIME | TELESCOPE_HAS_LOCATION | TELESCOPE_HAS_PIER_SIDE,
+    SetTelescopeCapability(TELESCOPE_CAN_PARK | TELESCOPE_CAN_SYNC | TELESCOPE_CAN_GOTO | TELESCOPE_CAN_ABORT | TELESCOPE_HAS_TIME | TELESCOPE_HAS_LOCATION
+                           | TELESCOPE_HAS_PIER_SIDE | TELESCOPE_HAS_TRACK_RATE | TELESCOPE_HAS_TRACK_MODE | TELESCOPE_CAN_CONTROL_TRACK,
                            SLEWMODES);
 
     RAInverted = DEInverted = false;
@@ -322,6 +322,11 @@ bool EQMod::initProperties()
     strncpy(SlewRateSP.sp[SlewRateSP.nsp - 1].name, "SLEWCUSTOM", MAXINDINAME);
     strncpy(SlewRateSP.sp[SlewRateSP.nsp - 1].label, "Custom", MAXINDILABEL);
 
+    AddTrackMode("TRACK_SIDEREAL", "Sidereal", true);
+    AddTrackMode("TRACK_SOLAR", "Solar");
+    AddTrackMode("TRACK_LUNAR", "Lunar");
+    AddTrackMode("TRACK_CUSTOM", "Custom");
+
     SetParkDataType(PARK_RA_DEC_ENCODER);
 
     setDriverInterface(getDriverInterface() | GUIDER_INTERFACE);
@@ -356,9 +361,6 @@ void EQMod::ISGetProperties(const char *dev)
         defineLight(RAStatusLP);
         defineLight(DEStatusLP);
         defineSwitch(HemisphereSP);
-        defineSwitch(TrackModeSP);
-
-        defineNumber(TrackRatesNP);
         defineNumber(HorizontalCoordNP);
         defineSwitch(ReverseDECSP);
         defineNumber(StandardSyncNP);
@@ -429,9 +431,7 @@ bool EQMod::loadProperties()
     DEStatusLP         = getLight("DESTATUS");
     SlewSpeedsNP       = getNumber("SLEWSPEEDS");
     HemisphereSP       = getSwitch("HEMISPHERE");
-    TrackModeSP        = getSwitch("TELESCOPE_TRACK_MODE");
     TrackDefaultSP     = getSwitch("TELESCOPE_TRACK_DEFAULT");
-    TrackRatesNP       = getNumber("TELESCOPE_TRACK_RATE");
     ReverseDECSP       = getSwitch("REVERSEDEC");
 
     HorizontalCoordNP   = getNumber("HORIZONTAL_COORD");
@@ -497,9 +497,6 @@ bool EQMod::updateProperties()
         defineLight(RAStatusLP);
         defineLight(DEStatusLP);
         defineSwitch(HemisphereSP);
-        defineSwitch(TrackModeSP);
-
-        defineNumber(TrackRatesNP);
         defineNumber(HorizontalCoordNP);
         defineSwitch(ReverseDECSP);
         defineNumber(StandardSyncNP);
@@ -632,8 +629,6 @@ bool EQMod::updateProperties()
         deleteProperty(DEStatusLP->name);
         deleteProperty(SlewSpeedsNP->name);
         deleteProperty(HemisphereSP->name);
-        deleteProperty(TrackModeSP->name);
-        deleteProperty(TrackRatesNP->name);
         deleteProperty(HorizontalCoordNP->name);
         deleteProperty(ReverseDECSP->name);
         deleteProperty(StandardSyncNP->name);
@@ -968,7 +963,7 @@ bool EQMod::ReadScopeStatus()
 
                         if (RememberTrackState == SCOPE_TRACKING)
                         {
-                            sw   = IUFindOnSwitch(TrackModeSP);
+                            sw   = IUFindOnSwitch(&TrackModeSP);
                             name = sw->name;
                             mount->StartRATracking(GetRATrackRate());
                             mount->StartDETracking(GetDETrackRate());
@@ -981,13 +976,19 @@ bool EQMod::ReadScopeStatus()
                             state = ISS_ON;
                             mount->StartRATracking(GetDefaultRATrackRate());
                             mount->StartDETracking(GetDefaultDETrackRate());
+
+#if 0
                             IUResetSwitch(TrackModeSP);
                             IUUpdateSwitch(TrackModeSP, &state, &name, 1);
                             TrackModeSP->s = IPS_BUSY;
                             IDSetSwitch(TrackModeSP, NULL);
+#endif
                         }
+
+#if 0
                         TrackModeSP->s = IPS_BUSY;
                         IDSetSwitch(TrackModeSP, NULL);
+#endif
                         DEBUGF(INDI::Logger::DBG_SESSION, "Telescope slew is complete. Tracking %s...", name);
                     }
                     else
@@ -1640,7 +1641,7 @@ double EQMod::GetRATrackRate()
 {
     double rate = 0.0;
     ISwitch *sw;
-    sw = IUFindOnSwitch(TrackModeSP);
+    sw = IUFindOnSwitch(&TrackModeSP);
     if (!sw)
         return 0.0;
     if (!strcmp(sw->name, "TRACK_SIDEREAL"))
@@ -1657,7 +1658,7 @@ double EQMod::GetRATrackRate()
     }
     else if (!strcmp(sw->name, "TRACK_CUSTOM"))
     {
-        rate = IUFindNumber(TrackRatesNP, "TRACK_RATE_RA")->value;
+        rate = IUFindNumber(&TrackRateNP, "TRACK_RATE_RA")->value;
     }
     else
         return 0.0;
@@ -1670,7 +1671,7 @@ double EQMod::GetDETrackRate()
 {
     double rate = 0.0;
     ISwitch *sw;
-    sw = IUFindOnSwitch(TrackModeSP);
+    sw = IUFindOnSwitch(&TrackModeSP);
     if (!sw)
         return 0.0;
     if (!strcmp(sw->name, "TRACK_SIDEREAL"))
@@ -1687,7 +1688,7 @@ double EQMod::GetDETrackRate()
     }
     else if (!strcmp(sw->name, "TRACK_CUSTOM"))
     {
-        rate = IUFindNumber(TrackRatesNP, "TRACK_RATE_DE")->value;
+        rate = IUFindNumber(&TrackRateNP, "TRACK_RATE_DE")->value;
     }
     else
         return 0.0;
@@ -1717,7 +1718,7 @@ double EQMod::GetDefaultRATrackRate()
     }
     else if (!strcmp(sw->name, "TRACK_CUSTOM"))
     {
-        rate = IUFindNumber(TrackRatesNP, "TRACK_RATE_RA")->value;
+        rate = IUFindNumber(&TrackRateNP, "TRACK_RATE_RA")->value;
     }
     else
         return 0.0;
@@ -1747,7 +1748,7 @@ double EQMod::GetDefaultDETrackRate()
     }
     else if (!strcmp(sw->name, "TRACK_CUSTOM"))
     {
-        rate = IUFindNumber(TrackRatesNP, "TRACK_RATE_DE")->value;
+        rate = IUFindNumber(&TrackRateNP, "TRACK_RATE_DE")->value;
     }
     else
         return 0.0;
@@ -1921,14 +1922,19 @@ bool EQMod::Goto(double r, double d)
     fs_sexa(RAStr, targetRA, 2, 3600);
     fs_sexa(DecStr, targetDEC, 2, 3600);
 
-    RememberTrackState = TrackState;
+    // This is already set before Goto in INDI::Telescope
+    //RememberTrackState = TrackState;
+
     TrackState         = SCOPE_SLEWING;
 
     //EqREqNP.s = IPS_BUSY;
     EqNP.s = IPS_BUSY;
 
+#if 0
+    // 2017-08-01 Jasem: We should set TrackState to IPS_IDLE instead here?
     TrackModeSP->s = IPS_IDLE;
     IDSetSwitch(TrackModeSP, NULL);
+#endif
 
     DEBUGF(INDI::Logger::DBG_SESSION, "Slewing to RA: %s - DEC: %s", RAStr, DecStr);
     return true;
@@ -1964,8 +1970,8 @@ bool EQMod::Park()
         {
             return (e.DefaultHandleException(this));
         }
-        TrackModeSP->s = IPS_IDLE;
-        IDSetSwitch(TrackModeSP, NULL);
+        //TrackModeSP->s = IPS_IDLE;
+        //IDSetSwitch(TrackModeSP, NULL);
         TrackState = SCOPE_PARKING;
         ParkSP.s   = IPS_BUSY;
         IDSetSwitch(&ParkSP, NULL);
@@ -2298,36 +2304,6 @@ bool EQMod::ISNewNumber(const char *dev, const char *name, double values[], char
             return true;
         }
 
-        if (strcmp(name, TrackRatesNP->name) == 0)
-        {
-            ISwitch *sw;
-            sw = IUFindOnSwitch(TrackModeSP);
-            if ((!sw) && (!strcmp(sw->name, "CUSTOM")))
-            {
-                try
-                {
-                    for (int i = 0; i < n; i++)
-                    {
-                        if (strcmp(names[i], "TRACK_RATE_RA") == 0)
-                            mount->SetRARate(values[i] / SKYWATCHER_STELLAR_SPEED);
-                        else if (strcmp(names[i], "TRACK_RATE_DE") == 0)
-                            mount->SetDERate(values[i] / SKYWATCHER_STELLAR_SPEED);
-                    }
-                }
-                catch (EQModError e)
-                {
-                    return (e.DefaultHandleException(this));
-                }
-            }
-            IUUpdateNumber(TrackRatesNP, values, names, n);
-            TrackRatesNP->s = IPS_OK;
-            IDSetNumber(TrackRatesNP, NULL);
-            DEBUGF(INDI::Logger::DBG_SESSION, "Setting Custom Tracking Rates - RA=%.6f  DE=%.6f arcsec/s",
-                   IUFindNumber(TrackRatesNP, "TRACK_RATE_RA")->value,
-                   IUFindNumber(TrackRatesNP, "TRACK_RATE_DE")->value);
-            return true;
-        }
-
         // Guider interface
         if (!strcmp(name, GuideNSNP.name) || !strcmp(name, GuideWENP.name))
         {
@@ -2478,75 +2454,6 @@ bool EQMod::ISNewSwitch(const char *dev, const char *name, ISState *states, char
                    IUFindSwitch(UseBacklashSP, "USEBACKLASHDE")->s == ISS_ON ? "True" : "False");
             UseBacklashSP->s = IPS_IDLE;
             IDSetSwitch(UseBacklashSP, NULL);
-            return true;
-        }
-
-        if (strcmp(name, TrackModeSP->name) == 0)
-        {
-            ISwitch *swbefore, *swafter;
-            swbefore = IUFindOnSwitch(TrackModeSP);
-            IUUpdateSwitch(TrackModeSP, states, names, n);
-            swafter = IUFindOnSwitch(TrackModeSP);
-            //DEBUGF(INDI::Logger::DBG_SESSION, "Track mode :  from %s to %s.", (swbefore?swbefore->name:"None"), swafter->name);
-            try
-            {
-                // If no switch is set before, let's try to start tracking
-                if (swbefore == NULL)
-                {
-                    if (TrackState == SCOPE_IDLE)
-                    {
-                        DEBUGF(INDI::Logger::DBG_SESSION, "Start Tracking (%s).", swafter->name);
-                        TrackState     = SCOPE_TRACKING;
-                        TrackModeSP->s = IPS_BUSY;
-                        IDSetSwitch(TrackModeSP, NULL);
-                        mount->StartRATracking(GetRATrackRate());
-                        mount->StartDETracking(GetDETrackRate());
-                    }
-                    else
-                    {
-                        TrackModeSP->s = IPS_IDLE;
-                        IDSetSwitch(TrackModeSP, NULL);
-                        DEBUGF(INDI::Logger::DBG_WARNING, "Can not start Tracking (%s). Scope not idle", swafter->name);
-                    }
-                }
-                else
-                {
-                    // If the same switch is sent, we stop tracking
-                    // 2015-09-05 Jasem: OR if no switch is set, we stop tracking
-                    if (swbefore == swafter || swafter == NULL)
-                    {
-                        if (TrackState == SCOPE_TRACKING)
-                        {
-                            if (swafter)
-                                DEBUGF(INDI::Logger::DBG_SESSION, "Stop Tracking (%s).", swafter->name);
-                            else
-                                DEBUGF(INDI::Logger::DBG_SESSION, "Stop Tracking (%s).", swbefore->name);
-                            TrackState     = SCOPE_IDLE;
-                            TrackModeSP->s = IPS_IDLE;
-                            IUResetSwitch(TrackModeSP);
-                            IDSetSwitch(TrackModeSP, NULL);
-                            mount->StopRA();
-                            mount->StopDE();
-                        }
-                    }
-                    // If new switch is sent, we change tracking rate
-                    else
-                    {
-                        if (TrackState == SCOPE_TRACKING)
-                        {
-                            DEBUGF(INDI::Logger::DBG_SESSION, "Changed Tracking rate (%s).", swafter->name);
-                            mount->StartRATracking(GetRATrackRate());
-                            mount->StartDETracking(GetDETrackRate());
-                            TrackModeSP->s = IPS_BUSY;
-                            IDSetSwitch(TrackModeSP, NULL);
-                        }
-                    }
-                }
-            }
-            catch (EQModError e)
-            {
-                return (e.DefaultHandleException(this));
-            }
             return true;
         }
 
@@ -3054,7 +2961,7 @@ double EQMod::GetDESlew()
 bool EQMod::MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command)
 {
     const char *dirStr = (dir == DIRECTION_NORTH) ? "North" : "South";
-    double rate        = (dir == DIRECTION_NORTH) ? GetDESlew() : GetDESlew() * -1;
+    double rate        = (dir == DIRECTION_NORTH) ? GetDESlew() : GetDESlew() * -1;    
 
     try
     {
@@ -3077,7 +2984,8 @@ bool EQMod::MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command)
             case MOTION_STOP:
                 DEBUGF(INDI::Logger::DBG_SESSION, "%s Slew stopped", dirStr);
                 mount->StopDE();
-                if (TrackModeSP->s == IPS_BUSY)
+                //if (TrackModeSP->s == IPS_BUSY)
+                if (RememberTrackState == SCOPE_TRACKING)
                 {
                     DEBUG(INDI::Logger::DBG_SESSION, "Restarting DE Tracking...");
                     TrackState = SCOPE_TRACKING;
@@ -3122,14 +3030,14 @@ bool EQMod::MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command)
             case MOTION_STOP:
                 DEBUGF(INDI::Logger::DBG_SESSION, "%s Slew stopped", dirStr);
                 mount->StopRA();
-                if (TrackModeSP->s == IPS_BUSY)
+                //if (TrackModeSP->s == IPS_BUSY)
+                if (RememberTrackState == SCOPE_TRACKING)
                 {
                     DEBUG(INDI::Logger::DBG_SESSION, "Restarting RA Tracking...");
                     TrackState = SCOPE_TRACKING;
                     mount->StartRATracking(GetRATrackRate());
                 }
                 else
-
                     TrackState = SCOPE_IDLE;
                 break;
         }
@@ -3170,9 +3078,11 @@ bool EQMod::Abort()
     IDSetNumber(&GuideNSNP, NULL);
     GuideWENP.s = IPS_IDLE;
     IDSetNumber(&GuideWENP, NULL);
+#if 0
     TrackModeSP->s = IPS_IDLE;
     IUResetSwitch(TrackModeSP);
     IDSetSwitch(TrackModeSP, NULL);
+#endif
     AutohomeState = AUTO_HOME_IDLE;
     AutoHomeSP->s = IPS_IDLE;
     IUResetSwitch(AutoHomeSP);
@@ -3492,5 +3402,82 @@ bool EQMod::saveConfigItems(FILE *fp)
     if (align)
         align->saveConfigItems(fp);
 #endif
+    return true;
+}
+
+bool EQMod::SetTrackRate(double raRate, double deRate)
+{
+    if (IUFindOnSwitchIndex(&TrackModeSP) == TRACK_CUSTOM)
+    {
+        try
+        {
+            // 2017-08-01 Jasem: What do do when raRate or deRate are zero? Invalid parameters out of range.
+            // Should we only change rate if motor IS already running?
+            mount->SetRARate(raRate / SKYWATCHER_STELLAR_SPEED);
+            mount->SetDERate(deRate / SKYWATCHER_STELLAR_SPEED);
+        }
+        catch (EQModError e)
+        {
+            return (e.DefaultHandleException(this));
+        }
+
+        DEBUGF(INDI::Logger::DBG_SESSION, "Setting Custom Tracking Rates - RA=%.6f  DE=%.6f arcsec/s", raRate, deRate);
+
+        return true;
+    }
+    else
+        DEBUG(INDI::Logger::DBG_ERROR, "Tracking mode must be set to CUSTOM first.");
+
+    return false;
+}
+
+bool EQMod::SetTrackMode(uint8_t mode)
+{
+    IUResetSwitch(&TrackModeSP);
+    TrackModeS[mode].s = ISS_ON;
+
+    // If we're already tracking, we change tracking mode
+    if (TrackState == SCOPE_TRACKING)
+    {
+        // 2017-08-01 Jasem: Is it OK to change tracking rates while already tracking??
+        try
+        {
+            mount->StartRATracking(GetRATrackRate());
+            mount->StartDETracking(GetDETrackRate());
+        }
+        catch (EQModError e)
+        {
+            return (e.DefaultHandleException(this));
+        }
+    }
+
+    // If scope is IDLE, we do not take any action.
+    return true;
+}
+
+bool EQMod::SetTrackEnabled(bool enabled)
+{
+    try
+    {
+        if (TrackState == SCOPE_IDLE && enabled)
+        {
+            DEBUGF(INDI::Logger::DBG_SESSION, "Start Tracking (%s).", IUFindOnSwitch(&TrackModeSP)->label);
+            TrackState     = SCOPE_TRACKING;
+            mount->StartRATracking(GetRATrackRate());
+            mount->StartDETracking(GetDETrackRate());
+        }
+        else if (TrackState == SCOPE_TRACKING && enabled == false)
+        {
+            DEBUGF(INDI::Logger::DBG_WARNING, "Stopping Tracking (%s).", IUFindOnSwitch(&TrackModeSP)->label);
+            TrackState     = SCOPE_IDLE;
+            mount->StopRA();
+            mount->StopDE();
+        }
+    }
+    catch (EQModError e)
+    {
+        return (e.DefaultHandleException(this));
+    }
+
     return true;
 }
