@@ -22,8 +22,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110 - 1301  USA
 
 #endif
 
-/*ToDo: compare the routes with the new ones from lx200driver.c r111 */
-
+#include <math.h>
 #include "lx200apdriver.h"
 
 #include "indicom.h"
@@ -593,4 +592,101 @@ int setAPSiteLatitude(int fd, double Lat)
     DEBUGFDEVICE(lx200ap_name, AP_DBG_SCOPE, "CMD <%s>", temp_string);
 
     return (setStandardProcedure(fd, temp_string));
+}
+
+int setAPRATrackRate(int fd, double rate)
+{
+    char cmd[16];
+    char sign;
+    int errcode = 0;
+    char errmsg[MAXRBUF];
+    char response[8];
+    int nbytes_read    = 0;
+    int nbytes_written = 0;
+
+    if (rate < 0)
+        sign = '-';
+    else
+        sign = '+';
+
+    snprintf(cmd, 16, ":RR%c%03.4f#", sign, fabs(rate));
+
+    DEBUGFDEVICE(lx200ap_name, INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
+
+    tcflush(fd, TCIFLUSH);
+
+    if ((errcode = tty_write(fd, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
+    {
+        tty_error_msg(errcode, errmsg, MAXRBUF);
+        DEBUGFDEVICE(lx200ap_name, INDI::Logger::DBG_ERROR, "%s", errmsg);
+        return errcode;
+    }
+
+    if ((errcode = tty_read(fd, response, 1, LX200_TIMEOUT, &nbytes_read)))
+    {
+        tty_error_msg(errcode, errmsg, MAXRBUF);
+        DEBUGFDEVICE(lx200ap_name, INDI::Logger::DBG_ERROR, "%s", errmsg);
+        return errcode;
+    }
+
+    if (nbytes_read > 0)
+    {
+        response[nbytes_read] = '\0';
+        DEBUGFDEVICE(lx200ap_name, INDI::Logger::DBG_DEBUG, "RES (%s)", response);
+
+        tcflush(fd, TCIFLUSH);
+        return 0;
+    }
+
+    DEBUGFDEVICE(lx200ap_name, INDI::Logger::DBG_ERROR, "Only received #%d bytes, expected 1.", nbytes_read);
+    return -1;
+}
+
+int setAPDETrackRate(int fd, double rate)
+{
+    char cmd[16];
+    char sign;
+    int errcode = 0;
+    char errmsg[MAXRBUF];
+    char response[8];
+    int nbytes_read    = 0;
+    int nbytes_written = 0;
+
+    if (rate < 0)
+        sign = '-';
+    else
+        sign = '+';
+
+    snprintf(cmd, 16, ":RD%c%03.4f#", sign, fabs(rate));
+
+    DEBUGFDEVICE(lx200ap_name, INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
+
+
+    tcflush(fd, TCIFLUSH);
+
+    if ((errcode = tty_write(fd, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
+    {
+        tty_error_msg(errcode, errmsg, MAXRBUF);
+        DEBUGFDEVICE(lx200ap_name, INDI::Logger::DBG_ERROR, "%s", errmsg);
+        return errcode;
+    }
+
+    if ((errcode = tty_read(fd, response, 1, LX200_TIMEOUT, &nbytes_read)))
+    {
+        tty_error_msg(errcode, errmsg, MAXRBUF);
+        DEBUGFDEVICE(lx200ap_name, INDI::Logger::DBG_ERROR, "%s", errmsg);
+        return errcode;
+    }
+
+    if (nbytes_read > 0)
+    {
+        response[nbytes_read] = '\0';
+        DEBUGFDEVICE(lx200ap_name, INDI::Logger::DBG_DEBUG, "RES (%s)", response);
+
+        tcflush(fd, TCIFLUSH);
+        return 0;
+    }
+
+    DEBUGFDEVICE(lx200ap_name, INDI::Logger::DBG_ERROR, "Only received #%d bytes, expected 1.", nbytes_read);
+    return -1;
 }

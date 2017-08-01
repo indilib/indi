@@ -44,7 +44,7 @@ LX200AstroPhysics::LX200AstroPhysics() : LX200Generic()
 
     setLX200Capability(LX200_HAS_PULSE_GUIDING);
 
-    SetTelescopeCapability(GetTelescopeCapability() | TELESCOPE_HAS_PIER_SIDE | TELESCOPE_HAS_PEC, 4);
+    SetTelescopeCapability(GetTelescopeCapability() | TELESCOPE_HAS_PIER_SIDE | TELESCOPE_HAS_PEC | TELESCOPE_CAN_CONTROL_TRACK | TELESCOPE_HAS_TRACK_RATE, 4);
 
     //ctor
     currentRA  = get_local_sideral_time(0);
@@ -75,6 +75,15 @@ bool LX200AstroPhysics::initProperties()
     IUFillNumberVector(&HorizontalCoordsNP, HorizontalCoordsN, 2, getDeviceName(), "HORIZONTAL_COORD",
                        "Horizontal Coords", MAIN_CONTROL_TAB, IP_RW, 120, IPS_IDLE);
 
+
+    // Only limit tracking mode to first 3 modes in LX200 Generic (Sidereal, Lunar, Solar)
+    TrackModeSP.nsp = 3;
+
+    // FIXME What are these limits for Astrophysics?
+    TrackRateN[AXIS_RA].min = 15.031067;
+    TrackRateN[AXIS_RA].max = 15.051067;
+    TrackRateN[AXIS_DE].min = 0;
+    TrackRateN[AXIS_DE].max = 15.051067;
 
     // Motion speed of axis when pressing NSWE buttons
     IUFillSwitch(&SlewRateS[0], "12", "12x", ISS_OFF);
@@ -985,6 +994,39 @@ bool LX200AstroPhysics::SetTrackMode(uint8_t mode)
         DEBUGF(INDI::Logger::DBG_ERROR, "Error setting tracking mode (%d).", err);
         return false;
     }
+
+    return true;
+}
+
+bool LX200AstroPhysics::SetTrackEnabled(bool enabled)
+{
+    if (isSimulation())
+        return true;
+
+    if (enabled)
+        return SetTrackMode(IUFindOnSwitchIndex(&TrackModeSP));
+
+    int rc = selectAPTrackingMode(PortFD, 3);
+    if (rc < 0)
+    {
+            DEBUGF(INDI::Logger::DBG_ERROR, "Error turning tracking off (%d).", rc);
+            return false;
+    }
+
+    return true;
+}
+
+bool LX200AstroPhysics::SetTrackRate(double raRate, double deRate)
+{
+    if (isSimulation())
+        return true;
+
+    // Convert to arcsecs/s to +/- 0.0100 accepted by
+    double APRARate = raRate - 15.041067;
+    double APDERate = deRate;
+
+    if (setAPRATrackRate(PortFD, APRARate) < 0 || setAPDETrackRate(PortFD, APDERate) < 0)
+        return false;
 
     return true;
 }

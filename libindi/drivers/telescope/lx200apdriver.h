@@ -51,6 +51,8 @@ int setAPObjectRA(int fd, double ra);
 int setAPObjectDEC(int fd, double dec);
 int setAPSiteLongitude(int fd, double Long);
 int setAPSiteLatitude(int fd, double Lat);
+int setAPRATrackRate(int fd, double rate);
+int setAPDETrackRate(int fd, double rate);
 
 #ifdef __cplusplus
 }

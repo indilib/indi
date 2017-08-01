@@ -65,6 +65,8 @@ class LX200AstroPhysics : public LX200Generic
 
     // Tracking
     virtual bool SetTrackMode(uint8_t mode) override;
+    virtual bool SetTrackEnabled(bool enabled) override;
+    virtual bool SetTrackRate(double raRate, double deRate) override;
 
     virtual bool saveConfigItems(FILE *fp) override;
 
