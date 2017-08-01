@@ -1248,6 +1248,12 @@ bool INDI::Telescope::ISNewSwitch(const char *dev, const char *name, ISState *st
                 return true;
             }
 
+            if (TrackState == SCOPE_PARKED)
+            {
+                DEBUG(INDI::Logger::DBG_WARNING, "Telescope is Parked, Unpark before tracking.");
+                return false;
+            }
+
             bool rc = SetTrackEnabled((targetState == TRACK_ON) ? true : false);
 
             if (rc)
