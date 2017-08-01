@@ -684,6 +684,19 @@ add_executable(indi_lynx_focus ${focuslynx_SRC})
 target_link_libraries(indi_lynx_focus indidriver)
 install(TARGETS indi_lynx_focus RUNTIME DESTINATION bin)
 
+################ Optec Gemini Focuser Rotator ########
+
+SET(gemini_SRC
+    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/focuser/gemini.cpp)
+
+IF (UNITY_BUILD)
+    ENABLE_UNITY_BUILD(gemini gemini_SRC 10 cpp)
+ENDIF ()
+
+add_executable(indi_gemini_focus ${gemini_SRC})
+target_link_libraries(indi_gemini_focus indidriver)
+install(TARGETS indi_gemini_focus RUNTIME DESTINATION bin)
+
 ################ PerfectStar Focuser ################
 
 SET(perfectstar_SRC
