@@ -131,8 +131,8 @@ bool IEQPro::initProperties()
     // Set TrackRate limits within +/- 0.0100 of Sidereal rate
     TrackRateN[AXIS_RA].min = 15.031067;
     TrackRateN[AXIS_RA].max = 15.051067;
-    TrackRateN[AXIS_DE].min = 0;
-    TrackRateN[AXIS_DE].max = 15.051067;
+    TrackRateN[AXIS_DE].min = -0.01;
+    TrackRateN[AXIS_DE].max = 0.01;
 
     /* GPS Status */
     IUFillSwitch(&GPSStatusS[GPS_OFF], "Off", "", ISS_ON);
