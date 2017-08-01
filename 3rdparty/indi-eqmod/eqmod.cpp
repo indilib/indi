@@ -3397,6 +3397,8 @@ bool EQMod::saveConfigItems(FILE *fp)
         IUSaveConfigSwitch(fp, UseBacklashSP);
     if (GuideRateNP)
         IUSaveConfigNumber(fp, GuideRateNP);
+    if (SlewSpeedsNP)
+        IUSaveConfigNumber(fp, SlewSpeedsNP);
 
 #ifdef WITH_ALIGN_GEEHALEL
     if (align)
