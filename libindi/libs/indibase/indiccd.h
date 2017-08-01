@@ -758,6 +758,9 @@ class INDI::CCD : public INDI::DefaultDevice, INDI::GuiderInterface
     // Sky Quality
     double MPSAS;
 
+    // Rotator Angle
+    double RotatorAngle;
+
     std::vector<std::string> FilterNames;
     int CurrentFilterSlot;
 

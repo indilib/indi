@@ -387,9 +387,10 @@ INDI::CCD::CCD()
     GuiderExposureTime = 0.0;
     CurrentFilterSlot  = -1;
 
-    RA              = -1000;
-    Dec             = -1000;
-    MPSAS           = -1000;
+    RA              = NAN;
+    Dec             = NAN;
+    MPSAS           = NAN;
+    RotatorAngle    = NAN;
     primaryAperture = primaryFocalLength = guiderAperture = guiderFocalLength - 1;
 }
 
@@ -665,6 +666,7 @@ bool INDI::CCD::initProperties()
 
     // Snoop properties of interest
     IDSnoopDevice(ActiveDeviceT[0].text, "EQUATORIAL_EOD_COORD");
+    IDSnoopDevice(ActiveDeviceT[1].text, "ABS_ROTATOR_ANGLE");
     IDSnoopDevice(ActiveDeviceT[0].text, "TELESCOPE_INFO");
     IDSnoopDevice(ActiveDeviceT[2].text, "FILTER_SLOT");
     IDSnoopDevice(ActiveDeviceT[2].text, "FILTER_NAME");
@@ -918,6 +920,19 @@ bool INDI::CCD::ISSnoopDevice(XMLEle *root)
             }
         }
     }
+    else if (!strcmp(propName, "ABS_ROTATOR_ANGLE"))
+    {
+        for (ep = nextXMLEle(root, 1); ep != nullptr; ep = nextXMLEle(root, 0))
+        {
+            const char *name = findXMLAttValu(ep, "name");
+
+            if (!strcmp(name, "ANGLE"))
+            {
+                RotatorAngle = atof(pcdataXMLEle(ep));
+                break;
+            }
+        }
+    }
 
     return INDI::DefaultDevice::ISSnoopDevice(root);
 }
@@ -939,6 +954,7 @@ bool INDI::CCD::ISNewText(const char *dev, const char *name, char *texts[], char
             strncpy(EqNP.device, ActiveDeviceT[0].text, MAXINDIDEVICE);
             IDSnoopDevice(ActiveDeviceT[0].text, "EQUATORIAL_EOD_COORD");
             IDSnoopDevice(ActiveDeviceT[0].text, "TELESCOPE_INFO");
+            IDSnoopDevice(ActiveDeviceT[1].text, "ABS_ROTATOR_ANGLE");
             IDSnoopDevice(ActiveDeviceT[2].text, "FILTER_SLOT");
             IDSnoopDevice(ActiveDeviceT[2].text, "FILTER_NAME");
             IDSnoopDevice(ActiveDeviceT[3].text, "SKY_QUALITY");
@@ -1732,12 +1748,17 @@ void INDI::CCD::addFITSKeywords(fitsfile *fptr, CCDChip *targetChip)
     else if (TelescopeTypeS[TELESCOPE_GUIDE].s == ISS_ON && guiderFocalLength != -1)
         fits_update_key_s(fptr, TDOUBLE, "FOCALLEN", &guiderFocalLength, "Focal Length (mm)", &status);
 
-    if (MPSAS != -1000)
+    if (MPSAS != NAN)
     {
         fits_update_key_s(fptr, TDOUBLE, "MPSAS", &MPSAS, "Sky Quality (mag per arcsec^2)", &status);
     }
 
-    if (targetChip->getFrameType() == CCDChip::LIGHT_FRAME && RA != -1000 && Dec != -1000)
+    if (RotatorAngle != NAN)
+    {
+        fits_update_key_s(fptr, TDOUBLE, "ROTATANG", &MPSAS, "Rotator angle in degrees", &status);
+    }
+
+    if (targetChip->getFrameType() == CCDChip::LIGHT_FRAME && RA != NAN && Dec != NAN)
     {
         ln_equ_posn epochPos, J2000Pos;
         epochPos.ra  = RA * 15.0;
