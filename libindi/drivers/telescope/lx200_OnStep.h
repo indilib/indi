@@ -47,6 +47,7 @@ class LX200_OnStep : public LX200Generic
   protected:
     virtual void getBasicData();
     virtual bool UnPark();
+    virtual bool SetTrackEnabled(bool enabled) override;
 
     ITextVectorProperty ObjectInfoTP;
     IText ObjectInfoT[1];
@@ -73,8 +74,8 @@ class LX200_OnStep : public LX200Generic
     IText VersionT[5];
 
     // Enable / Disable Tracking
-    ISwitchVectorProperty EnaTrackSP;
-    ISwitch EnaTrackS[1];
+    //ISwitchVectorProperty EnaTrackSP;
+    //ISwitch EnaTrackS[1];
     int IsTracking = 0;
 
     // Reticle +/- Buttons
