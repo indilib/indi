@@ -79,11 +79,12 @@ bool LX200AstroPhysics::initProperties()
     // Only limit tracking mode to first 3 modes in LX200 Generic (Sidereal, Lunar, Solar)
     TrackModeSP.nsp = 3;
 
-    // FIXME What are these limits for Astrophysics?
-    TrackRateN[AXIS_RA].min = 15.031067;
-    TrackRateN[AXIS_RA].max = 15.051067;
-    TrackRateN[AXIS_DE].min = 0;
-    TrackRateN[AXIS_DE].max = 15.051067;
+    // Max rate is 999.99999X for the GTOCP4.
+    // Using :RR998.9999#  just to be safe. 15.041067*998.99999 = 15026.02578
+    TrackRateN[AXIS_RA].min = -15026.0258;
+    TrackRateN[AXIS_RA].max = 15026.0258;
+    TrackRateN[AXIS_DE].min = -998.9999;
+    TrackRateN[AXIS_DE].max = 998.9999;
 
     // Motion speed of axis when pressing NSWE buttons
     IUFillSwitch(&SlewRateS[0], "12", "12x", ISS_OFF);
@@ -1021,8 +1022,20 @@ bool LX200AstroPhysics::SetTrackRate(double raRate, double deRate)
     if (isSimulation())
         return true;
 
-    // Convert to arcsecs/s to +/- 0.0100 accepted by
-    double APRARate = raRate - 15.041067;
+    // Convert to arcsecs/s to AP sidereal multiplier
+    /*
+    :RR0.0000#      =       normal sidereal tracking in RA - similar to  :RT2#
+    :RR+1.0000#     =       1 + normal sidereal     =       2X sidereal
+    :RR+9.0000#     =       9 + normal sidereal     =       10X sidereal
+    :RR-1.0000#     =       normal sidereal - 1     =       0 or Stop - similar to  :RT9#
+    :RR-11.0000#    =       normal sidereal - 11    =       -10X sidereal (East at 10X)
+
+    :RD0.0000#      =       normal zero rate for Dec.
+    :RD5.0000#      =       5 + normal zero rate    =       5X sidereal clockwise from above - equivalent to South
+    :RD-5.0000#     =       normal zero rate - 5    =       5X sidereal counter-clockwise from above - equivalent to North
+    */
+
+    double APRARate = (raRate - 15.041067) / 15.041067;
     double APDERate = deRate;
 
     if (setAPRATrackRate(PortFD, APRARate) < 0 || setAPDETrackRate(PortFD, APDERate) < 0)
