@@ -3411,16 +3411,26 @@ bool EQMod::SetTrackRate(double raRate, double deRate)
 {
     if (IUFindOnSwitchIndex(&TrackModeSP) == TRACK_CUSTOM)
     {
-        try
+        // If mount is tracking, change track rate now
+        if (TrackState == SCOPE_TRACKING)
         {
-            // 2017-08-01 Jasem: What do do when raRate or deRate are zero? Invalid parameters out of range.
-            // Should we only change rate if motor IS already running?
-            mount->SetRARate(raRate / SKYWATCHER_STELLAR_SPEED);
-            mount->SetDERate(deRate / SKYWATCHER_STELLAR_SPEED);
-        }
-        catch (EQModError e)
-        {
-            return (e.DefaultHandleException(this));
+            // Give warning is tracking sign would cause a reverse in direction
+            if ( (raRate * TrackRateN[RA_AXIS].value < 0) || (deRate * TrackRateN[DEC_AXIS].value < 0) )
+            {
+                DEBUG(INDI::Logger::DBG_ERROR, "Cannot reverse tracking while tracking is engaged. Disengage tracking then try again.");
+                return false;
+            }
+
+            try
+            {
+                mount->SetRARate(raRate / SKYWATCHER_STELLAR_SPEED);
+                mount->SetDERate(deRate / SKYWATCHER_STELLAR_SPEED);
+            }
+            catch (EQModError e)
+            {
+                return (e.DefaultHandleException(this));
+            }
+
         }
 
         DEBUGF(INDI::Logger::DBG_SESSION, "Setting Custom Tracking Rates - RA=%.6f  DE=%.6f arcsec/s", raRate, deRate);
