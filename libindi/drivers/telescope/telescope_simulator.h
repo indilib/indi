@@ -27,40 +27,40 @@ class ScopeSim : public INDI::Telescope, public INDI::GuiderInterface
     ScopeSim();
     virtual ~ScopeSim();
 
-    virtual const char *getDefaultName();
-    virtual bool Connect();
-    virtual bool Disconnect();
-    virtual bool ReadScopeStatus();
-    virtual bool initProperties();
-    virtual void ISGetProperties(const char *dev);
-    virtual bool updateProperties();
+    virtual const char *getDefaultName() override;
+    virtual bool Connect() override;
+    virtual bool Disconnect() override;
+    virtual bool ReadScopeStatus() override;
+    virtual bool initProperties() override;
+    virtual void ISGetProperties(const char *dev) override;
+    virtual bool updateProperties() override;
 
-    virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n);
-    virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n);
+    virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
+    virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
 
   protected:
-    virtual bool MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command);
-    virtual bool MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command);
-    virtual bool Abort();
+    virtual bool MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command) override;
+    virtual bool MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command) override;
+    virtual bool Abort() override;
 
-    virtual IPState GuideNorth(float ms);
-    virtual IPState GuideSouth(float ms);
-    virtual IPState GuideEast(float ms);
-    virtual IPState GuideWest(float ms);
-    virtual bool updateLocation(double latitude, double longitude, double elevation);
+    virtual IPState GuideNorth(float ms) override;
+    virtual IPState GuideSouth(float ms) override;
+    virtual IPState GuideEast(float ms) override;
+    virtual IPState GuideWest(float ms) override;
+    virtual bool updateLocation(double latitude, double longitude, double elevation) override;
 
     virtual bool SetTrackMode(uint8_t mode) override;
     virtual bool SetTrackEnabled(bool enabled) override;
     virtual bool SetTrackRate(double raRate, double deRate) override;
 
-    bool Goto(double, double);
-    bool Park();
-    bool UnPark();
-    bool Sync(double ra, double dec);
+    virtual bool Goto(double, double) override;
+    virtual bool Park() override;
+    virtual bool UnPark() override;
+    virtual bool Sync(double ra, double dec) override;
 
     // Parking
-    virtual bool SetCurrentPark();
-    virtual bool SetDefaultPark();
+    virtual bool SetCurrentPark() override;
+    virtual bool SetDefaultPark() override;
 
   private:
     double currentRA;

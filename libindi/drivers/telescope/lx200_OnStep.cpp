@@ -555,7 +555,7 @@ void LX200_OnStep::OnStepStat()
 
 bool LX200_OnStep::SetTrackEnabled(bool enabled)
 {
-    int ret=0;
+    int ret = 0;
 
     if (enabled)
         ret = EnaTrackOnStep(PortFD);

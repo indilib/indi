@@ -57,7 +57,7 @@ class Paramount : public INDI::Telescope, public INDI::GuiderInterface
     // Tracking
     virtual bool SetTrackMode(uint8_t mode) override;
     virtual bool SetTrackRate(double raRate, double deRate) override;
-    virtual bool SetTrackEnabled(bool enabled);
+    virtual bool SetTrackEnabled(bool enabled) override;
 
     // Parking
     virtual bool SetCurrentPark() override;
@@ -103,6 +103,6 @@ class Paramount : public INDI::Telescope, public INDI::GuiderInterface
     ISwitchVectorProperty TrackModeSP;
 
     // Tracking Rate
-    INumber TrackRateN[2];
-    INumberVectorProperty TrackRateNP;
+//    INumber TrackRateN[2];
+//    INumberVectorProperty TrackRateNP;
 };

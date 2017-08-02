@@ -37,16 +37,16 @@ class LX200_OnStep : public LX200Generic
     LX200_OnStep();
     ~LX200_OnStep() {}
 
-    const char *getDefaultName();
-    bool initProperties();
-    void ISGetProperties(const char *dev);
-    bool updateProperties();
-    bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n);
-    bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n);
+    virtual const char *getDefaultName() override;
+    virtual bool initProperties() override;
+    virtual void ISGetProperties(const char *dev) override;
+    virtual bool updateProperties() override;
+    virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
+    virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
 
   protected:
-    virtual void getBasicData();
-    virtual bool UnPark();
+    virtual void getBasicData() override;
+    virtual bool UnPark() override;
     virtual bool SetTrackEnabled(bool enabled) override;
 
     ITextVectorProperty ObjectInfoTP;
