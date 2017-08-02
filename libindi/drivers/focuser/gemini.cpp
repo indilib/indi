@@ -169,18 +169,18 @@ bool Gemini::initProperties()
     // Enable/Disable backlash
     IUFillSwitch(&FocuserBacklashCompensationS[0], "Enable", "", ISS_OFF);
     IUFillSwitch(&FocuserBacklashCompensationS[1], "Disable", "", ISS_ON);
-    IUFillSwitchVector(&FocuserBacklashCompensationSP, FocuserBacklashCompensationS, 2, getDeviceName(), "Backlash Compensation", "",
+    IUFillSwitchVector(&FocuserBacklashCompensationSP, FocuserBacklashCompensationS, 2, getDeviceName(), "FOCUSER_BACKLASH_COMPENSATION", "Backlash Compensation",
                        FOCUS_SETTINGS_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
     // Backlash Value
     IUFillNumber(&FocuserBacklashN[0], "Value", "", "%.f", 0, 99, 5., 0.);
-    IUFillNumberVector(&FocuserBacklashNP, FocuserBacklashN, 1, getDeviceName(), "Backlash", "", FOCUS_SETTINGS_TAB, IP_RW, 0,
+    IUFillNumberVector(&FocuserBacklashNP, FocuserBacklashN, 1, getDeviceName(), "FOCUSER_BACKLASH", "Backlash", FOCUS_SETTINGS_TAB, IP_RW, 0,
                        IPS_IDLE);
 
     // Go to home/center
     IUFillSwitch(&FocuserGotoS[GOTO_CENTER], "Center", "", ISS_OFF);
     IUFillSwitch(&FocuserGotoS[GOTO_HOME], "Home", "", ISS_OFF);
-    IUFillSwitchVector(&FocuserGotoSP, FocuserGotoS, 2, getDeviceName(), "GOTO", "", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 0,
+    IUFillSwitchVector(&FocuserGotoSP, FocuserGotoS, 2, getDeviceName(), "FOCUSER_GOTO", "", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 0,
                        IPS_IDLE);
 
     // Sync to a particular position
@@ -196,7 +196,7 @@ bool Gemini::initProperties()
     IUFillLight(&FocuserStatusL[STATUS_REMOTEIO], "Remote IO", "", IPS_IDLE);
     IUFillLight(&FocuserStatusL[STATUS_HNDCTRL], "Hnd Ctrl", "", IPS_IDLE);
     IUFillLight(&FocuserStatusL[STATUS_REVERSE], "Reverse", "", IPS_IDLE);
-    IUFillLightVector(&FocuserStatusLP, FocuserStatusL, 8, getDeviceName(), "Focuser", "", STATUS_TAB, IPS_IDLE);
+    IUFillLightVector(&FocuserStatusLP, FocuserStatusL, 8, getDeviceName(), "FOCUSER_STATUS", "Focuser", STATUS_TAB, IPS_IDLE);
 
     ////////////////////////////////////////////////////////////
     // Rotator Properties
@@ -217,7 +217,7 @@ bool Gemini::initProperties()
     IUFillLight(&RotatorStatusL[STATUS_REMOTEIO], "Remote IO", "", IPS_IDLE);
     IUFillLight(&RotatorStatusL[STATUS_HNDCTRL], "Hnd Ctrl", "", IPS_IDLE);
     IUFillLight(&RotatorStatusL[STATUS_REVERSE], "Reverse", "", IPS_IDLE);
-    IUFillLightVector(&RotatorStatusLP, RotatorStatusL, 8, getDeviceName(), "Rotator", "", STATUS_TAB, IPS_IDLE);
+    IUFillLightVector(&RotatorStatusLP, RotatorStatusL, 8, getDeviceName(), "ROTATOR_STATUS", "Rotator", STATUS_TAB, IPS_IDLE);
 
     // Rotator Ticks
     IUFillNumber(&RotatorAbsPosN[0], "ROTATOR_ABSOLUTE_POSITION", "Ticks", "%.f", 0., 0., 0., 0.);
@@ -234,13 +234,24 @@ bool Gemini::initProperties()
     // Reverse direction
     IUFillSwitch(&RotatorReverseS[0], "Enable", "", ISS_OFF);
     IUFillSwitch(&RotatorReverseS[1], "Disable", "", ISS_ON);
-    IUFillSwitchVector(&RotatorReverseSP, RotatorReverseS, 2, getDeviceName(), "Reverse", "", ROTATOR_TAB, IP_RW, ISR_1OFMANY,
+    IUFillSwitchVector(&RotatorReverseSP, RotatorReverseS, 2, getDeviceName(), "ROTATOR_REVERSE", "", ROTATOR_TAB, IP_RW, ISR_1OFMANY,
                        0, IPS_IDLE);
 
     // Rotator Go to home/center
     IUFillSwitch(&RotatorGotoS[GOTO_CENTER], "Center", "", ISS_OFF);
     IUFillSwitch(&RotatorGotoS[GOTO_HOME], "Home", "", ISS_OFF);
-    IUFillSwitchVector(&RotatorGotoSP, RotatorGotoS, 2, getDeviceName(), "GOTO", "", ROTATOR_TAB, IP_RW, ISR_1OFMANY, 0,
+    IUFillSwitchVector(&RotatorGotoSP, RotatorGotoS, 2, getDeviceName(), "ROTATOR_GOTO", "", ROTATOR_TAB, IP_RW, ISR_1OFMANY, 0,
+                       IPS_IDLE);
+
+    // Enable/Disable backlash
+    IUFillSwitch(&RotatorBacklashCompensationS[0], "Enable", "", ISS_OFF);
+    IUFillSwitch(&RotatorBacklashCompensationS[1], "Disable", "", ISS_ON);
+    IUFillSwitchVector(&RotatorBacklashCompensationSP, RotatorBacklashCompensationS, 2, getDeviceName(), "ROTATOR_BACKLASH_COMPENSATION", "Backlash Compensation",
+                       ROTATOR_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+
+    // Backlash Value
+    IUFillNumber(&RotatorBacklashN[0], "Value", "", "%.f", 0, 99, 5., 0.);
+    IUFillNumberVector(&RotatorBacklashNP, RotatorBacklashN, 1, getDeviceName(), "ROTATOR_BACKLASH", "Backlash", ROTATOR_TAB, IP_RW, 0,
                        IPS_IDLE);
 
     ////////////////////////////////////////////////////////////
@@ -745,7 +756,7 @@ bool Gemini::ISNewNumber(const char *dev, const char *name, double values[], cha
         if (!strcmp(RotatorAbsAngleNP.name, name))
         {
             IUUpdateNumber(&RotatorAbsAngleNP, values, names, n);
-            RotatorAbsAngleNP.s = MoveAbsRotatorAngle(static_cast<uint32_t>(RotatorAbsAngleN[0].value));
+            RotatorAbsAngleNP.s = MoveAbsRotatorAngle(RotatorAbsAngleN[0].value);
             IDSetNumber(&RotatorAbsAngleNP, nullptr);
             return true;
         }
@@ -3455,7 +3466,7 @@ IPState Gemini::MoveAbsRotatorAngle(double angle)
     char response[16];
     int nbytes_written = 0;
 
-    targetRotatorAngle = angle * 1000;
+    targetRotatorAngle = angle * 1000.0;
 
     memset(response, 0, sizeof(response));
 
