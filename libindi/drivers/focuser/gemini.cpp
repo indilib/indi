@@ -688,6 +688,8 @@ bool Gemini::getFocusConfig()
     }
     else
     {
+        tcflush(PortFD, TCIFLUSH);
+
         if ((errcode = tty_write(PortFD, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
         {
             tty_error_msg(errcode, errmsg, MAXRBUF);
@@ -1175,7 +1177,7 @@ bool Gemini::getFocusStatus()
     memset(response, 0, sizeof(response));
     if (isSimulation())
     {
-        strncpy(response, "Temp(C) = +21.7\n", 16);
+        strncpy(response, "CurrTemp = +21.7\n", 16);
         nbytes_read = strlen(response);
     }
     else if ((errcode = tty_read_section(PortFD, response, 0xA, GEMINI_TIMEOUT, &nbytes_read)) != TTY_OK)
@@ -1210,11 +1212,13 @@ bool Gemini::getFocusStatus()
         }
     }
 
-    // Get Current Position
+    ///////////////////////////////////////
+    // #1 Get Current Position
+    ///////////////////////////////////////
     memset(response, 0, sizeof(response));
     if (isSimulation())
     {
-        snprintf(response, 32, "Curr Pos = %06d\n", simPosition);
+        snprintf(response, 32, "CurrStep = %06d\n", simPosition);
         nbytes_read = strlen(response);
     }
     else if ((errcode = tty_read_section(PortFD, response, 0xA, GEMINI_TIMEOUT, &nbytes_read)) != TTY_OK)
@@ -1236,11 +1240,13 @@ bool Gemini::getFocusStatus()
     else
         return false;
 
-    // Get Target Position
+    ///////////////////////////////////////
+    // #2 Get Target Position
+    ///////////////////////////////////////
     memset(response, 0, sizeof(response));
     if (isSimulation())
     {
-        snprintf(response, 32, "Targ Pos = %06d\n", targetPosition);
+        snprintf(response, 32, "TargStep = %06d\n", targetPosition);
         nbytes_read = strlen(response);
     }
     else if ((errcode = tty_read_section(PortFD, response, 0xA, GEMINI_TIMEOUT, &nbytes_read)) != TTY_OK)
@@ -1254,11 +1260,13 @@ bool Gemini::getFocusStatus()
 
     // Get Status Parameters
 
-    // #1 is Moving?
+    ///////////////////////////////////////
+    // #3 is Moving?
+    ///////////////////////////////////////
     memset(response, 0, sizeof(response));
     if (isSimulation())
     {
-        snprintf(response, 32, "Is Moving = %d\n", (simStatus[STATUS_MOVING] == ISS_ON) ? 1 : 0);
+        snprintf(response, 32, "IsMoving = %d\n", (simStatus[STATUS_MOVING] == ISS_ON) ? 1 : 0);
         nbytes_read = strlen(response);
     }
     else if ((errcode = tty_read_section(PortFD, response, 0xA, GEMINI_TIMEOUT, &nbytes_read)) != TTY_OK)
@@ -1277,11 +1285,13 @@ bool Gemini::getFocusStatus()
 
     StatusL[STATUS_MOVING].s = isMoving ? IPS_BUSY : IPS_IDLE;
 
-    // #2 is Homing?
+    ///////////////////////////////////////
+    // #4 is Homing?
+    ///////////////////////////////////////
     memset(response, 0, sizeof(response));
     if (isSimulation())
     {
-        snprintf(response, 32, "Is Homing = %d\n", (simStatus[STATUS_HOMING] == ISS_ON) ? 1 : 0);
+        snprintf(response, 32, "IsHoming = %d\n", (simStatus[STATUS_HOMING] == ISS_ON) ? 1 : 0);
         nbytes_read = strlen(response);
     }
     else if ((errcode = tty_read_section(PortFD, response, 0xA, GEMINI_TIMEOUT, &nbytes_read)) != TTY_OK)
@@ -1307,11 +1317,13 @@ bool Gemini::getFocusStatus()
     if (StatusL[STATUS_HOMING].s == IPS_BUSY)
         isHoming = true;
 
-    // #3 is Homed?
+    ///////////////////////////////////////
+    // #6 is Homed?
+    ///////////////////////////////////////
     memset(response, 0, sizeof(response));
     if (isSimulation())
     {
-        snprintf(response, 32, "Is Homed = %d\n", (simStatus[STATUS_HOMED] == ISS_ON) ? 1 : 0);
+        snprintf(response, 32, "IsHomed = %d\n", (simStatus[STATUS_HOMED] == ISS_ON) ? 1 : 0);
         nbytes_read = strlen(response);
     }
     else if ((errcode = tty_read_section(PortFD, response, 0xA, GEMINI_TIMEOUT, &nbytes_read)) != TTY_OK)
@@ -1333,34 +1345,13 @@ bool Gemini::getFocusStatus()
     if (isAbsolute == false)
         StatusL[STATUS_HOMED].s = IPS_IDLE;
 
-    // #4 FF Detected?
+    ///////////////////////////////////////
+    // #7 Temperature probe?
+    ///////////////////////////////////////
     memset(response, 0, sizeof(response));
     if (isSimulation())
     {
-        snprintf(response, 32, "FFDetect = %d\n", (simStatus[STATUS_FFDETECT] == ISS_ON) ? 1 : 0);
-        nbytes_read = strlen(response);
-    }
-    else if ((errcode = tty_read_section(PortFD, response, 0xA, GEMINI_TIMEOUT, &nbytes_read)) != TTY_OK)
-    {
-        tty_error_msg(errcode, errmsg, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
-        return false;
-    }
-    response[nbytes_read - 1] = '\0';
-    DEBUGF(DBG_FOCUS, "RES (%s)", response);
-
-    int FFDetect;
-    rc = sscanf(response, "%16[^=]=%d", key, &FFDetect);
-    if (rc != 2)
-        return false;
-
-    StatusL[STATUS_FFDETECT].s = FFDetect ? IPS_OK : IPS_IDLE;
-
-    // #5 Temperature probe?
-    memset(response, 0, sizeof(response));
-    if (isSimulation())
-    {
-        snprintf(response, 32, "TmpProbe = %d\n", (simStatus[STATUS_TMPPROBE] == ISS_ON) ? 1 : 0);
+        snprintf(response, 32, "TempProb = %d\n", (simStatus[STATUS_TMPPROBE] == ISS_ON) ? 1 : 0);
         nbytes_read = strlen(response);
     }
     else if ((errcode = tty_read_section(PortFD, response, 0xA, GEMINI_TIMEOUT, &nbytes_read)) != TTY_OK)
@@ -1379,7 +1370,9 @@ bool Gemini::getFocusStatus()
 
     StatusL[STATUS_TMPPROBE].s = TmpProbe ? IPS_OK : IPS_IDLE;
 
-    // #6 Remote IO?
+    ///////////////////////////////////////
+    // #8 Remote IO?
+    ///////////////////////////////////////
     memset(response, 0, sizeof(response));
     if (isSimulation())
     {
@@ -1402,11 +1395,13 @@ bool Gemini::getFocusStatus()
 
     StatusL[STATUS_REMOTEIO].s = RemoteIO ? IPS_OK : IPS_IDLE;
 
-    // #7 Hand controller?
+    ///////////////////////////////////////
+    // #9 Hand controller?
+    ///////////////////////////////////////
     memset(response, 0, sizeof(response));
     if (isSimulation())
     {
-        snprintf(response, 32, "Hnd Ctlr = %d\n", (simStatus[STATUS_HNDCTRL] == ISS_ON) ? 1 : 0);
+        snprintf(response, 32, "HCStatus = %d\n", (simStatus[STATUS_HNDCTRL] == ISS_ON) ? 1 : 0);
         nbytes_read = strlen(response);
     }
     else if ((errcode = tty_read_section(PortFD, response, 0xA, GEMINI_TIMEOUT, &nbytes_read)) != TTY_OK)
