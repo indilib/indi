@@ -89,14 +89,21 @@ protected:
 
   protected:
     // Move from private to public to validate
-    bool configurationComplete;
+    bool focuserConfigurationComplete = false;
+    bool rotatorConfigurationComplete = false;
 
   private:
-    uint32_t simPosition;
-    uint32_t targetPosition;
-    uint32_t maxControllerTicks;
+    uint32_t focuserSimPosition=0;
+    uint32_t rotatorSimPosition=0;
+    uint32_t rotatorSimPA=0;
+    uint32_t targetFocuserPosition=0;
+    uint32_t targetRotatorPosition=0;
+    uint32_t targetRotatorAngle=0;
+    uint32_t maxControllerTicks=0;
 
     ISState focuserSimStatus[8];
+    ISState rotatorSimStatus[8];
+
     bool simCompensationOn;
     char focusTarget[8];
 
@@ -123,8 +130,8 @@ protected:
     bool setTemperatureCompensationOnStart(bool enable);
 
     // Backlash
-    bool setBacklashCompensation(bool enable);
-    bool setBacklashCompensationSteps(uint16_t steps);
+    bool setBacklashCompensation(DeviceType type, bool enable);
+    bool setBacklashCompensationSteps(DeviceType type, uint16_t steps);
 
     // Sync
     bool sync(uint32_t position);
@@ -132,7 +139,7 @@ protected:
     // Motion functions
     bool home(DeviceType type);
     bool center(DeviceType type);
-    bool reverseRotator(bool enable);
+    bool homeOnStart(DeviceType type, bool enable);
 
     ////////////////////////////////////////////////////////////
     // Focuser Properties
@@ -166,21 +173,21 @@ protected:
     INumber FocuserBacklashN[1];
     INumberVectorProperty FocuserBacklashNP;
 
+    // Home On Start
+    ISwitch FocuserHomeOnStartS[2];
+    ISwitchVectorProperty FocuserHomeOnStartSP;
+
     // Go to home/center
-    ISwitch GotoS[2];
-    ISwitchVectorProperty GotoSP;
+    ISwitch FocuserGotoS[2];
+    ISwitchVectorProperty FocuserGotoSP;
 
     // Status indicators
-    ILight FocuserStatusL[7];
+    ILight FocuserStatusL[8];
     ILightVectorProperty FocuserStatusLP;
 
     // Sync to a particular position
     INumber SyncN[1];
     INumberVectorProperty SyncNP;
-
-    // Max Travel for relative focusers
-    INumber MaxTravelN[1];
-    INumberVectorProperty MaxTravelNP;    
 
     bool isFocuserAbsolute;
     bool isFocuserSynced;
@@ -194,21 +201,30 @@ protected:
     bool getRotatorConfig();
     bool getRotatorStatus();
 
+    IPState MoveAbsRotatorTicks(uint32_t targetTicks);
+    IPState MoveAbsRotatorAngle(double angle);
+
+    bool reverseRotator(bool enable);
+
     ////////////////////////////////////////////////////////////
     // Rotator Properties
     ///////////////////////////////////////////////////////////
+
+    // Status
+    ILight RotatorStatusL[8];
+    ILightVectorProperty RotatorStatusLP;
 
     // Reverse Direction
     ISwitch RotatorReverseS[2];
     ISwitchVectorProperty RotatorReverseSP;
 
     // Rotator Steps
-    INumber GotoRotatorN[1];
-    INumberVectorProperty GotoRotatorNP;
+    INumber RotatorAbsPosN[1];
+    INumberVectorProperty RotatorAbsPosNP;
 
     // Rotator Degrees or PA (Position Angle)
-    INumber GotoRotatorDegreeN[1];
-    INumberVectorProperty GotoRotatorDegreeNP;
+    INumber RotatorAbsAngleN[1];
+    INumberVectorProperty RotatorAbsAngleNP;
 
     // Enable/Disable backlash
     ISwitch RotatorBacklashCompensationS[2];
@@ -217,6 +233,20 @@ protected:
     // Backlash Value
     INumber RotatorBacklashN[1];
     INumberVectorProperty RotatorBacklashNP;
+
+    // Home On Start
+    ISwitch RotatorHomeOnStartS[2];
+    ISwitchVectorProperty RotatorHomeOnStartSP;
+
+    // Abort
+    ISwitch AbortRotatorS[1];
+    ISwitchVectorProperty AbortRotatorSP;
+
+    // Go to home/center
+    ISwitch RotatorGotoS[2];
+    ISwitchVectorProperty RotatorGotoSP;
+
+    bool isRotatorHoming;
 
     ////////////////////////////////////////////////////////////
     // Hub Functions

@@ -37,6 +37,7 @@
 #define FOCUS_SETTINGS_TAB "Settings"
 #define FOCUS_STATUS_TAB   "Status"
 #define ROTATOR_TAB "Rotator"
+#define HUB_TAB "Hub"
 
 #define POLLMS 1000
 
@@ -86,7 +87,7 @@ void ISSnoopDevice(XMLEle *root)
 Gemini::Gemini()
 {
     focusMoveRequest = 0;
-    simPosition      = 0;
+    focuserSimPosition      = 0;
 
     // Can move in Absolute & Relative motions and can AbortFocuser motion.
     SetFocuserCapability(FOCUSER_CAN_ABORT | FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_REL_MOVE);
@@ -121,7 +122,9 @@ bool Gemini::initProperties()
 {
     INDI::Focuser::initProperties();
 
-    // Focuser temperature
+    ////////////////////////////////////////////////////////////
+    // Focuser Properties
+    ///////////////////////////////////////////////////////////
 
     IUFillNumber(&TemperatureN[0], "TEMPERATURE", "Celsius", "%6.2f", -50, 70., 0., 0.);
     IUFillNumberVector(&TemperatureNP, TemperatureN, 1, getDeviceName(), "FOCUS_TEMPERATURE", "Temperature",
@@ -148,6 +151,12 @@ bool Gemini::initProperties()
     IUFillNumberVector(&TemperatureCoeffNP, TemperatureCoeffN, 5, getDeviceName(), "T. Coeff", "", FOCUS_SETTINGS_TAB,
                        IP_RW, 0, IPS_IDLE);
 
+    // Enable/Disable Home on Start
+    IUFillSwitch(&FocuserHomeOnStartS[0], "Enable", "", ISS_OFF);
+    IUFillSwitch(&FocuserHomeOnStartS[1], "Disable", "", ISS_ON);
+    IUFillSwitchVector(&FocuserHomeOnStartSP, FocuserHomeOnStartS, 2, getDeviceName(), "Home on Start", "",
+                       FOCUS_SETTINGS_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+
     // Enable/Disable temperature Mode
     IUFillSwitch(&TemperatureCompensateModeS[0], "A", "", ISS_OFF);
     IUFillSwitch(&TemperatureCompensateModeS[1], "B", "", ISS_OFF);
@@ -168,20 +177,10 @@ bool Gemini::initProperties()
     IUFillNumberVector(&FocuserBacklashNP, FocuserBacklashN, 1, getDeviceName(), "Backlash", "", FOCUS_SETTINGS_TAB, IP_RW, 0,
                        IPS_IDLE);
 
-    // Max Travel
-    IUFillNumber(&MaxTravelN[0], "Ticks", "", "%.f", 0, 100000, 0., 0.);
-    IUFillNumberVector(&MaxTravelNP, MaxTravelN, 1, getDeviceName(), "Max Travel", "", FOCUS_SETTINGS_TAB, IP_RW, 0,
-                       IPS_IDLE);
-
-    // Reset to Factory setting
-    IUFillSwitch(&ResetS[0], "Factory", "", ISS_OFF);
-    IUFillSwitchVector(&ResetSP, ResetS, 1, getDeviceName(), "Reset", "", FOCUS_SETTINGS_TAB, IP_RW, ISR_ATMOST1, 0,
-                       IPS_IDLE);
-
     // Go to home/center
-    IUFillSwitch(&GotoS[GOTO_CENTER], "Center", "", ISS_OFF);
-    IUFillSwitch(&GotoS[GOTO_HOME], "Home", "", ISS_OFF);
-    IUFillSwitchVector(&GotoSP, GotoS, 2, getDeviceName(), "GOTO", "", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 0,
+    IUFillSwitch(&FocuserGotoS[GOTO_CENTER], "Center", "", ISS_OFF);
+    IUFillSwitch(&FocuserGotoS[GOTO_HOME], "Home", "", ISS_OFF);
+    IUFillSwitchVector(&FocuserGotoSP, FocuserGotoS, 2, getDeviceName(), "GOTO", "", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 0,
                        IPS_IDLE);
 
     // Reverse direction
@@ -194,7 +193,7 @@ bool Gemini::initProperties()
     IUFillNumber(&SyncN[0], "FOCUS_SYNC_OFFSET", "Offset", "%6.0f", 0, 100000., 0., 0.);
     IUFillNumberVector(&SyncNP, SyncN, 1, getDeviceName(), "FOCUS_SYNC", "Sync", MAIN_CONTROL_TAB, IP_RW, 0, IPS_IDLE);
 
-    // Status indicators
+    // Focus Status indicators
     IUFillLight(&FocuserStatusL[STATUS_MOVING], "Is Moving", "", IPS_IDLE);
     IUFillLight(&FocuserStatusL[STATUS_HOMING], "Is Homing", "", IPS_IDLE);
     IUFillLight(&FocuserStatusL[STATUS_HOMED], "Is Homed", "", IPS_IDLE);
@@ -202,19 +201,49 @@ bool Gemini::initProperties()
     IUFillLight(&FocuserStatusL[STATUS_TMPPROBE], "Tmp Probe", "", IPS_IDLE);
     IUFillLight(&FocuserStatusL[STATUS_REMOTEIO], "Remote IO", "", IPS_IDLE);
     IUFillLight(&FocuserStatusL[STATUS_HNDCTRL], "Hnd Ctrl", "", IPS_IDLE);
-    IUFillLightVector(&FocuserStatusLP, FocuserStatusL, 7, getDeviceName(), "Focuser", "", FOCUS_STATUS_TAB, IPS_IDLE);
+    IUFillLight(&FocuserStatusL[STATUS_REVERSE], "Reverse", "", IPS_IDLE);
+    IUFillLightVector(&FocuserStatusLP, FocuserStatusL, 8, getDeviceName(), "Focuser", "", FOCUS_STATUS_TAB, IPS_IDLE);
+
+    ////////////////////////////////////////////////////////////
+    // Rotator Properties
+    ///////////////////////////////////////////////////////////
+
+    // Enable/Disable Home on Start
+    IUFillSwitch(&RotatorHomeOnStartS[0], "Enable", "", ISS_OFF);
+    IUFillSwitch(&RotatorHomeOnStartS[1], "Disable", "", ISS_ON);
+    IUFillSwitchVector(&RotatorHomeOnStartSP, RotatorHomeOnStartS, 2, getDeviceName(), "Home on Start", "",
+                       ROTATOR_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+
+    // Rotator Status indicators
+    IUFillLight(&RotatorStatusL[STATUS_MOVING], "Is Moving", "", IPS_IDLE);
+    IUFillLight(&RotatorStatusL[STATUS_HOMING], "Is Homing", "", IPS_IDLE);
+    IUFillLight(&RotatorStatusL[STATUS_HOMED], "Is Homed", "", IPS_IDLE);
+    IUFillLight(&RotatorStatusL[STATUS_FFDETECT], "FF Detect", "", IPS_IDLE);
+    IUFillLight(&RotatorStatusL[STATUS_TMPPROBE], "Tmp Probe", "", IPS_IDLE);
+    IUFillLight(&RotatorStatusL[STATUS_REMOTEIO], "Remote IO", "", IPS_IDLE);
+    IUFillLight(&RotatorStatusL[STATUS_HNDCTRL], "Hnd Ctrl", "", IPS_IDLE);
+    IUFillLight(&RotatorStatusL[STATUS_REVERSE], "Reverse", "", IPS_IDLE);
+    IUFillLightVector(&RotatorStatusLP, RotatorStatusL, 8, getDeviceName(), "Rotator", "", ROTATOR_TAB, IPS_IDLE);
+
+    ////////////////////////////////////////////////////////////
+    // Hub Properties
+    ///////////////////////////////////////////////////////////
 
     // Focus name configure in the HUB
     IUFillText(&HFocusNameT[DEVICE_FOCUSER], "FocusName", "Focuser name", "");
     IUFillText(&HFocusNameT[DEVICE_ROTATOR], "RotatorName", "Rotator name", "");
-    IUFillTextVector(&HFocusNameTP, HFocusNameT, 2, getDeviceName(), "HUBNAMES", "HUB", FOCUS_SETTINGS_TAB, IP_RW, 0,
+    IUFillTextVector(&HFocusNameTP, HFocusNameT, 2, getDeviceName(), "HUBNAMES", "HUB", HUB_TAB, IP_RW, 0,
                      IPS_IDLE);
 
     // Led intensity value
     IUFillNumber(&LedN[0], "Intensity", "", "%.f", 0, 100, 5., 0.);
     IUFillNumberVector(&LedNP, LedN, 1, getDeviceName(), "Led", "", FOCUS_SETTINGS_TAB, IP_RW, 0, IPS_IDLE);
 
-    //simPosition = FocusAbsPosN[0].value;
+    // Reset to Factory setting
+    IUFillSwitch(&ResetS[0], "Factory", "", ISS_OFF);
+    IUFillSwitchVector(&ResetSP, ResetS, 1, getDeviceName(), "Reset", "", FOCUS_SETTINGS_TAB, IP_RW, ISR_ATMOST1, 0,
+                       IPS_IDLE);
+
     addAuxControls();
 
     serialConnection->setDefaultBaudRate(Connection::Serial::B_115200);
@@ -231,35 +260,33 @@ bool Gemini::updateProperties()
 
     if (isConnected())
     {
-        defineText(&HFocusNameTP);
-        // If focuser is relative, we define SYNC command.
-        if (isFocuserAbsolute == false)
-            defineNumber(&SyncNP);
-
+        // Focuser Properties
         defineNumber(&TemperatureNP);
         defineNumber(&TemperatureCoeffNP);
         defineSwitch(&TemperatureCompensateModeSP);
         defineSwitch(&TemperatureCompensateSP);
         defineSwitch(&TemperatureCompensateOnStartSP);
-
         defineSwitch(&FocuserBacklashCompensationSP);
         defineNumber(&FocuserBacklashNP);
-
-        if (isFocuserAbsolute == false)
-            defineNumber(&MaxTravelNP);
-
-        defineSwitch(&ResetSP);
-
-        // If focuser is relative, we only exposure "Center" command as it cannot home
-        if (isFocuserAbsolute == false)
-            GotoSP.nsp = 1;
-
-        defineNumber(&LedNP);
-
-        defineSwitch(&GotoSP);
-        defineSwitch(&RotatorReverseSP);
-
+        defineSwitch(&FocuserHomeOnStartSP);
+        defineSwitch(&FocuserGotoSP);
         defineLight(&FocuserStatusLP);
+
+        // Rotator Properties
+        defineNumber(&RotatorAbsPosNP);
+        defineNumber(&RotatorAbsAngleNP);
+        defineSwitch(&AbortRotatorSP);
+        defineSwitch(&RotatorGotoSP);
+        defineSwitch(&RotatorBacklashCompensationSP);
+        defineNumber(&RotatorBacklashNP);
+        defineSwitch(&RotatorHomeOnStartSP);
+        defineSwitch(&RotatorReverseSP);
+        defineLight(&RotatorStatusLP);
+
+        // Hub Properties
+        defineText(&HFocusNameTP);
+        defineSwitch(&ResetSP);
+        defineNumber(&LedNP);
 
         if (getFocusConfig())
             DEBUG(INDI::Logger::DBG_SESSION, "Gemini paramaters updated, focuser ready for use.");
@@ -274,25 +301,33 @@ bool Gemini::updateProperties()
         if (isFocuserAbsolute == false)
             deleteProperty(SyncNP.name);
 
+        // Focuser Properties
         deleteProperty(TemperatureNP.name);
         deleteProperty(TemperatureCoeffNP.name);
         deleteProperty(TemperatureCompensateModeSP.name);
         deleteProperty(TemperatureCompensateSP.name);
         deleteProperty(TemperatureCompensateOnStartSP.name);
-
         deleteProperty(FocuserBacklashCompensationSP.name);
         deleteProperty(FocuserBacklashNP.name);
-
-        if (isFocuserAbsolute == false)
-            deleteProperty(MaxTravelNP.name);
-
-        deleteProperty(ResetSP.name);
-        deleteProperty(GotoSP.name);
-        deleteProperty(RotatorReverseSP.name);
-
+        deleteProperty(FocuserGotoSP.name);
+        deleteProperty(FocuserHomeOnStartSP.name);
         deleteProperty(FocuserStatusLP.name);
+
+        // Rotator Properties
+        deleteProperty(RotatorAbsPosNP.name);
+        deleteProperty(RotatorAbsAngleNP.name);
+        deleteProperty(AbortRotatorSP.name);
+        deleteProperty(RotatorGotoSP.name);
+        deleteProperty(RotatorBacklashCompensationSP.name);
+        deleteProperty(RotatorBacklashNP.name);
+        deleteProperty(RotatorHomeOnStartSP.name);
+        deleteProperty(RotatorReverseSP.name);
+        deleteProperty(RotatorStatusLP.name);
+
+        // Hub Properties
         deleteProperty(HFocusNameTP.name);
         deleteProperty(LedNP.name);
+        deleteProperty(ResetSP.name);
     }
 
     return true;
@@ -391,12 +426,52 @@ bool Gemini::ISNewSwitch(const char *dev, const char *name, ISState *states, cha
             return true;
         }
 
-        // Backlash enable/disable
+        // Focuser Home on Start Enable/Disable
+        if (!strcmp(FocuserHomeOnStartSP.name, name))
+        {
+            int prevIndex = IUFindOnSwitchIndex(&FocuserHomeOnStartSP);
+            IUUpdateSwitch(&FocuserHomeOnStartSP, states, names, n);
+            if (homeOnStart(DEVICE_FOCUSER, FocuserHomeOnStartS[0].s == ISS_ON))
+            {
+                FocuserHomeOnStartSP.s = IPS_OK;
+            }
+            else
+            {
+                IUResetSwitch(&FocuserHomeOnStartSP);
+                FocuserHomeOnStartSP.s           = IPS_ALERT;
+                FocuserHomeOnStartS[prevIndex].s = ISS_ON;
+            }
+
+            IDSetSwitch(&FocuserHomeOnStartSP, nullptr);
+            return true;
+        }
+
+        // Rotator Home on Start Enable/Disable
+        if (!strcmp(RotatorHomeOnStartSP.name, name))
+        {
+            int prevIndex = IUFindOnSwitchIndex(&RotatorHomeOnStartSP);
+            IUUpdateSwitch(&RotatorHomeOnStartSP, states, names, n);
+            if (homeOnStart(DEVICE_ROTATOR, RotatorHomeOnStartS[0].s == ISS_ON))
+            {
+                RotatorHomeOnStartSP.s = IPS_OK;
+            }
+            else
+            {
+                IUResetSwitch(&RotatorHomeOnStartSP);
+                RotatorHomeOnStartSP.s           = IPS_ALERT;
+                RotatorHomeOnStartS[prevIndex].s = ISS_ON;
+            }
+
+            IDSetSwitch(&RotatorHomeOnStartSP, nullptr);
+            return true;
+        }
+
+        // Focuser Backlash enable/disable
         if (!strcmp(FocuserBacklashCompensationSP.name, name))
         {
             int prevIndex = IUFindOnSwitchIndex(&FocuserBacklashCompensationSP);
             IUUpdateSwitch(&FocuserBacklashCompensationSP, states, names, n);
-            if (setBacklashCompensation(FocuserBacklashCompensationS[0].s == ISS_ON))
+            if (setBacklashCompensation(DEVICE_FOCUSER, FocuserBacklashCompensationS[0].s == ISS_ON))
             {
                 FocuserBacklashCompensationSP.s = IPS_OK;
             }
@@ -408,6 +483,26 @@ bool Gemini::ISNewSwitch(const char *dev, const char *name, ISState *states, cha
             }
 
             IDSetSwitch(&FocuserBacklashCompensationSP, nullptr);
+            return true;
+        }
+
+        // Rotator Backlash enable/disable
+        if (!strcmp(RotatorBacklashCompensationSP.name, name))
+        {
+            int prevIndex = IUFindOnSwitchIndex(&RotatorBacklashCompensationSP);
+            IUUpdateSwitch(&RotatorBacklashCompensationSP, states, names, n);
+            if (setBacklashCompensation(DEVICE_ROTATOR, RotatorBacklashCompensationS[0].s == ISS_ON))
+            {
+                RotatorBacklashCompensationSP.s = IPS_OK;
+            }
+            else
+            {
+                IUResetSwitch(&RotatorBacklashCompensationSP);
+                RotatorBacklashCompensationSP.s           = IPS_ALERT;
+                RotatorBacklashCompensationS[prevIndex].s = ISS_ON;
+            }
+
+            IDSetSwitch(&RotatorBacklashCompensationSP, nullptr);
             return true;
         }
 
@@ -424,27 +519,51 @@ bool Gemini::ISNewSwitch(const char *dev, const char *name, ISState *states, cha
             return true;
         }
 
-        // Go to home/center
-        if (!strcmp(GotoSP.name, name))
+        // Focser Go to home/center
+        if (!strcmp(FocuserGotoSP.name, name))
         {
-            IUUpdateSwitch(&GotoSP, states, names, n);
+            IUUpdateSwitch(&FocuserGotoSP, states, names, n);
 
-            if (GotoS[GOTO_HOME].s == ISS_ON)
+            if (FocuserGotoS[GOTO_HOME].s == ISS_ON)
             {
                 if (home(DEVICE_FOCUSER))
-                    GotoSP.s = IPS_BUSY;
+                    FocuserGotoSP.s = IPS_BUSY;
                 else
-                    GotoSP.s = IPS_ALERT;
+                    FocuserGotoSP.s = IPS_ALERT;
             }
             else
             {
                 if (center(DEVICE_FOCUSER))
-                    GotoSP.s = IPS_BUSY;
+                    FocuserGotoSP.s = IPS_BUSY;
                 else
-                    GotoSP.s = IPS_ALERT;
+                    FocuserGotoSP.s = IPS_ALERT;
             }
 
-            IDSetSwitch(&GotoSP, nullptr);
+            IDSetSwitch(&FocuserGotoSP, nullptr);
+            return true;
+        }
+
+        // Rotator Go to home/center
+        if (!strcmp(RotatorGotoSP.name, name))
+        {
+            IUUpdateSwitch(&RotatorGotoSP, states, names, n);
+
+            if (RotatorGotoS[GOTO_HOME].s == ISS_ON)
+            {
+                if (home(DEVICE_ROTATOR))
+                    RotatorGotoSP.s = IPS_BUSY;
+                else
+                    RotatorGotoSP.s = IPS_ALERT;
+            }
+            else
+            {
+                if (center(DEVICE_ROTATOR))
+                    RotatorGotoSP.s = IPS_BUSY;
+                else
+                    RotatorGotoSP.s = IPS_ALERT;
+            }
+
+            IDSetSwitch(&RotatorGotoSP, nullptr);
             return true;
         }
 
@@ -515,11 +634,11 @@ bool Gemini::ISNewNumber(const char *dev, const char *name, double values[], cha
             return true;
         }
 
-        // Backlash Value
+        // Focuser Backlash Value
         if (!strcmp(FocuserBacklashNP.name, name))
         {
             IUUpdateNumber(&FocuserBacklashNP, values, names, n);
-            if (setBacklashCompensationSteps(FocuserBacklashN[0].value) == false)
+            if (setBacklashCompensationSteps(DEVICE_FOCUSER, FocuserBacklashN[0].value) == false)
             {
                 DEBUG(INDI::Logger::DBG_ERROR, "Failed to set temperature coefficients.");
                 FocuserBacklashNP.s = IPS_ALERT;
@@ -529,6 +648,23 @@ bool Gemini::ISNewNumber(const char *dev, const char *name, double values[], cha
 
             FocuserBacklashNP.s = IPS_OK;
             IDSetNumber(&FocuserBacklashNP, nullptr);
+            return true;
+        }
+
+        // Rotator Backlash Value
+        if (!strcmp(RotatorBacklashNP.name, name))
+        {
+            IUUpdateNumber(&RotatorBacklashNP, values, names, n);
+            if (setBacklashCompensationSteps(DEVICE_ROTATOR, RotatorBacklashN[0].value) == false)
+            {
+                DEBUG(INDI::Logger::DBG_ERROR, "Failed to set temperature coefficients.");
+                RotatorBacklashNP.s = IPS_ALERT;
+                IDSetNumber(&RotatorBacklashNP, nullptr);
+                return false;
+            }
+
+            RotatorBacklashNP.s = IPS_OK;
+            IDSetNumber(&RotatorBacklashNP, nullptr);
             return true;
         }
 
@@ -545,45 +681,6 @@ bool Gemini::ISNewNumber(const char *dev, const char *name, double values[], cha
             return true;
         }
 
-        // Max Travel
-        if (!strcmp(MaxTravelNP.name, name))
-        {
-            IUUpdateNumber(&MaxTravelNP, values, names, n);
-
-            if (MaxTravelN[0].value > 0)
-            {
-                // If reverse is enabled.
-                if (RotatorReverseS[0].s == ISS_ON)
-                {
-                    FocusAbsPosN[0].min = SyncN[0].min = (maxControllerTicks - MaxTravelN[0].value);
-                    FocusAbsPosN[0].max = SyncN[0].max = maxControllerTicks;
-                    FocusAbsPosN[0].step = SyncN[0].step = maxControllerTicks / 50.0;
-                }
-                // If reverse is disabled
-                else
-                {
-                    FocusAbsPosN[0].min = SyncN[0].min = 0;
-                    FocusAbsPosN[0].max = SyncN[0].max = MaxTravelN[0].value;
-                    FocusAbsPosN[0].step = SyncN[0].step = MaxTravelN[0].value / 50.0;
-                }
-
-                FocusRelPosN[0].max  = (FocusAbsPosN[0].max - FocusAbsPosN[0].min) / 2;
-                FocusRelPosN[0].step = FocusRelPosN[0].max / 100.0;
-                FocusRelPosN[0].min  = 0;
-
-                IUUpdateMinMax(&FocusAbsPosNP);
-                IUUpdateMinMax(&FocusRelPosNP);
-                IUUpdateMinMax(&SyncNP);
-
-                DEBUGF(INDI::Logger::DBG_SESSION, "Focuser absolute limits: min (%g) max (%g)", FocusAbsPosN[0].min,
-                        FocusAbsPosN[0].max);
-            }
-
-            MaxTravelNP.s = IPS_OK;
-            IDSetNumber(&MaxTravelNP, nullptr);
-            return true;
-        }
-
         // Set LED intensity to the HUB itself via function setLedLevel()
         if (!strcmp(LedNP.name, name))
         {
@@ -596,6 +693,25 @@ bool Gemini::ISNewNumber(const char *dev, const char *name, double values[], cha
             IDSetNumber(&LedNP, nullptr);
             return true;
         }
+
+        // Set Rotator Absolute Steps
+        if (!strcmp(RotatorAbsPosNP.name, name))
+        {
+            IUUpdateNumber(&RotatorAbsPosNP, values, names, n);
+            RotatorAbsPosNP.s = MoveAbsRotatorTicks(static_cast<uint32_t>(RotatorAbsPosN[0].value));
+            IDSetNumber(&RotatorAbsPosNP, nullptr);
+            return true;
+        }
+
+        // Set Rotator Absolute Angle
+        if (!strcmp(RotatorAbsAngleNP.name, name))
+        {
+            IUUpdateNumber(&RotatorAbsAngleNP, values, names, n);
+            RotatorAbsAngleNP.s = MoveAbsRotatorAngle(static_cast<uint32_t>(RotatorAbsAngleN[0].value));
+            IDSetNumber(&RotatorAbsAngleNP, nullptr);
+            return true;
+        }
+
     }
 
     return INDI::Focuser::ISNewNumber(dev, name, values, names, n);
@@ -1038,36 +1154,11 @@ bool Gemini::getFocusConfig()
     FocuserBacklashNP.s       = IPS_OK;
     IDSetNumber(&FocuserBacklashNP, nullptr);
 
-    // Led brightnesss
-    memset(response, 0, sizeof(response));
-    if (isSimulation())
-    {
-        snprintf(response, sizeof(response), "LED Brt = %d\n", 75);
-        nbytes_read = strlen(response);
-    }
-    else if ((errcode = tty_read_section(PortFD, response, 0xA, GEMINI_TIMEOUT, &nbytes_read)) != TTY_OK)
-    {
-        tty_error_msg(errcode, errmsg, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
-        return false;
-    }
-    response[nbytes_read - 1] = '\0';
-    DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", response);
-
-    int LEDBrightness;
-    rc = sscanf(response, "%16[^=]=%d", key, &LEDBrightness);
-    if (rc != 2)
-        return false;
-
-    LedN[0].value = LEDBrightness;
-    LedNP.s       = IPS_OK;
-    IDSetNumber(&LedNP, nullptr);
-
     // Temperature Compensation on Start
     memset(response, 0, sizeof(response));
     if (isSimulation())
     {
-        snprintf(response, sizeof(response), "TC@Start = %d\n", TemperatureCompensateOnStartS[0].s == ISS_ON ? 1 : 0);
+        snprintf(response, sizeof(response), "TC Start = %d\n", TemperatureCompensateOnStartS[0].s == ISS_ON ? 1 : 0);
         nbytes_read = strlen(response);
     }
     else if ((errcode = tty_read_section(PortFD, response, 0xA, GEMINI_TIMEOUT, &nbytes_read)) != TTY_OK)
@@ -1089,6 +1180,35 @@ bool Gemini::getFocusConfig()
     TemperatureCompensateOnStartS[1].s = TCOnStart ? ISS_OFF : ISS_ON;
     TemperatureCompensateOnStartSP.s   = IPS_OK;
     IDSetSwitch(&TemperatureCompensateOnStartSP, nullptr);
+
+    // Get Status Parameters
+    memset(response, 0, sizeof(response));
+
+    // Home on start on?
+    if (isSimulation())
+    {
+        snprintf(response, sizeof(response), "HOnStart = %d\n", FocuserHomeOnStartS[0].s == ISS_ON ? 1 : 0);
+        nbytes_read = strlen(response);
+    }
+    else if ((errcode = tty_read_section(PortFD, response, 0xA, GEMINI_TIMEOUT, &nbytes_read)) != TTY_OK)
+    {
+        tty_error_msg(errcode, errmsg, MAXRBUF);
+        DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
+        return false;
+    }
+    response[nbytes_read - 1] = '\0';
+    DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", response);
+
+    int StartOnHome;
+    rc = sscanf(response, "%16[^=]=%d", key, &StartOnHome);
+    if (rc != 2)
+        return false;
+
+    IUResetSwitch(&FocuserHomeOnStartSP);
+    FocuserHomeOnStartS[0].s = StartOnHome ? ISS_ON : ISS_OFF;
+    FocuserHomeOnStartS[1].s = StartOnHome ? ISS_OFF : ISS_ON;
+    FocuserHomeOnStartSP.s   = IPS_OK;
+    IDSetSwitch(&FocuserHomeOnStartSP, nullptr);
 
     // Added By Philippe Besson the 28th of June for 'END' evalution
     // END is reached
@@ -1119,7 +1239,7 @@ bool Gemini::getFocusConfig()
 
     tcflush(PortFD, TCIFLUSH);
 
-    configurationComplete = true;
+    focuserConfigurationComplete = true;
 
     return true;
 }
@@ -1129,7 +1249,7 @@ bool Gemini::getFocusConfig()
 * ***********************************************************************************/
 bool Gemini::getRotatorStatus()
 {
-    const char *cmd = "<F100GETSTA>";
+    const char *cmd = "<R100GETSTA>";
     int errcode = 0;
     char errmsg[MAXRBUF];
     char response[32];
@@ -1168,52 +1288,13 @@ bool Gemini::getRotatorStatus()
         }*/
     }
 
-    // Get Temperature
-    memset(response, 0, sizeof(response));
-    if (isSimulation())
-    {
-        strncpy(response, "CurrTemp = +21.7\n", 16);
-        nbytes_read = strlen(response);
-    }
-    else if ((errcode = tty_read_section(PortFD, response, 0xA, GEMINI_TIMEOUT, &nbytes_read)) != TTY_OK)
-    {
-        tty_error_msg(errcode, errmsg, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
-        return false;
-    }
-    response[nbytes_read - 1] = '\0';
-    DEBUGF(DBG_FOCUS, "RES (%s)", response);
-
-    float temperature = 0;
-    int rc = sscanf(response, "%16[^=]=%f", key, &temperature);
-    if (rc == 2)
-    {
-        TemperatureN[0].value = temperature;
-        IDSetNumber(&TemperatureNP, nullptr);
-    }
-    else
-    {
-        char np[8];
-        int rc = sscanf(response, "%16[^=]= %s", key, np);
-
-        if (rc != 2 || strcmp(np, "NP"))
-        {
-            if (TemperatureNP.s != IPS_ALERT)
-            {
-                TemperatureNP.s = IPS_ALERT;
-                IDSetNumber(&TemperatureNP, nullptr);
-            }
-            return false;
-        }
-    }
-
     ///////////////////////////////////////
     // #1 Get Current Position
     ///////////////////////////////////////
     memset(response, 0, sizeof(response));
     if (isSimulation())
     {
-        snprintf(response, 32, "CurrStep = %06d\n", simPosition);
+        snprintf(response, 32, "CurrStep = %06d\n", rotatorSimPosition);
         nbytes_read = strlen(response);
     }
     else if ((errcode = tty_read_section(PortFD, response, 0xA, GEMINI_TIMEOUT, &nbytes_read)) != TTY_OK)
@@ -1225,12 +1306,12 @@ bool Gemini::getRotatorStatus()
     response[nbytes_read - 1] = '\0';
     DEBUGF(DBG_FOCUS, "RES (%s)", response);
 
-    uint32_t currPos = 0;
-    rc = sscanf(response, "%16[^=]=%d", key, &currPos);
+    int currPos = 0;
+    int rc = sscanf(response, "%16[^=]=%d", key, &currPos);
     if (rc == 2)
     {
-        FocusAbsPosN[0].value = currPos;
-        IDSetNumber(&FocusAbsPosNP, nullptr);
+        RotatorAbsPosN[0].value = currPos;
+        IDSetNumber(&RotatorAbsPosNP, nullptr);
     }
     else
         return false;
@@ -1241,7 +1322,53 @@ bool Gemini::getRotatorStatus()
     memset(response, 0, sizeof(response));
     if (isSimulation())
     {
-        snprintf(response, 32, "TargStep = %06d\n", targetPosition);
+        snprintf(response, 32, "TargStep = %06d\n", targetFocuserPosition);
+        nbytes_read = strlen(response);
+    }
+    else if ((errcode = tty_read_section(PortFD, response, 0xA, GEMINI_TIMEOUT, &nbytes_read)) != TTY_OK)
+    {
+        tty_error_msg(errcode, errmsg, MAXRBUF);
+        DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
+        return false;
+    }
+    response[nbytes_read - 1] = '\0';
+    DEBUGF(DBG_FOCUS, "RES (%s)", response);
+
+    ///////////////////////////////////////
+    // #3 Get Current PA
+    ///////////////////////////////////////
+    memset(response, 0, sizeof(response));
+    if (isSimulation())
+    {
+        snprintf(response, 32, "CurenPA = %06d\n", rotatorSimPA);
+        nbytes_read = strlen(response);
+    }
+    else if ((errcode = tty_read_section(PortFD, response, 0xA, GEMINI_TIMEOUT, &nbytes_read)) != TTY_OK)
+    {
+        tty_error_msg(errcode, errmsg, MAXRBUF);
+        DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
+        return false;
+    }
+    response[nbytes_read - 1] = '\0';
+    DEBUGF(DBG_FOCUS, "RES (%s)", response);
+
+    int currPA = 0;
+    rc = sscanf(response, "%16[^=]=%d", key, &currPA);
+    if (rc == 2)
+    {
+        RotatorAbsAngleN[0].value = currPA / 1000.0;
+        IDSetNumber(&RotatorAbsAngleNP, nullptr);
+    }
+    else
+        return false;
+
+    ///////////////////////////////////////
+    // #3 Get Target PA
+    ///////////////////////////////////////
+    memset(response, 0, sizeof(response));
+    if (isSimulation())
+    {
+        snprintf(response, 32, "TargetPA = %06d\n", targetFocuserPosition);
         nbytes_read = strlen(response);
     }
     else if ((errcode = tty_read_section(PortFD, response, 0xA, GEMINI_TIMEOUT, &nbytes_read)) != TTY_OK)
@@ -1256,12 +1383,12 @@ bool Gemini::getRotatorStatus()
     // Get Status Parameters
 
     ///////////////////////////////////////
-    // #3 is Moving?
+    // #5 is Moving?
     ///////////////////////////////////////
     memset(response, 0, sizeof(response));
     if (isSimulation())
     {
-        snprintf(response, 32, "IsMoving = %d\n", (focuserSimStatus[STATUS_MOVING] == ISS_ON) ? 1 : 0);
+        snprintf(response, 32, "IsMoving = %d\n", (rotatorSimStatus[STATUS_MOVING] == ISS_ON) ? 1 : 0);
         nbytes_read = strlen(response);
     }
     else if ((errcode = tty_read_section(PortFD, response, 0xA, GEMINI_TIMEOUT, &nbytes_read)) != TTY_OK)
@@ -1278,15 +1405,15 @@ bool Gemini::getRotatorStatus()
     if (rc != 2)
         return false;
 
-    FocuserStatusL[STATUS_MOVING].s = isMoving ? IPS_BUSY : IPS_IDLE;
+    RotatorStatusL[STATUS_MOVING].s = isMoving ? IPS_BUSY : IPS_IDLE;
 
     ///////////////////////////////////////
-    // #4 is Homing?
+    // #6 is Homing?
     ///////////////////////////////////////
     memset(response, 0, sizeof(response));
     if (isSimulation())
     {
-        snprintf(response, 32, "IsHoming = %d\n", (focuserSimStatus[STATUS_HOMING] == ISS_ON) ? 1 : 0);
+        snprintf(response, 32, "IsHoming = %d\n", (rotatorSimStatus[STATUS_HOMING] == ISS_ON) ? 1 : 0);
         nbytes_read = strlen(response);
     }
     else if ((errcode = tty_read_section(PortFD, response, 0xA, GEMINI_TIMEOUT, &nbytes_read)) != TTY_OK)
@@ -1303,14 +1430,11 @@ bool Gemini::getRotatorStatus()
     if (rc != 2)
         return false;
 
-    FocuserStatusL[STATUS_HOMING].s = _isHoming ? IPS_BUSY : IPS_IDLE;
-    // For relative focusers home is not applicable.
-    if (isFocuserAbsolute == false)
-        FocuserStatusL[STATUS_HOMING].s = IPS_IDLE;
+    RotatorStatusL[STATUS_HOMING].s = _isHoming ? IPS_BUSY : IPS_IDLE;
 
     // We set that isHoming in process, but we don't set it to false here it must be reset in TimerHit
-    if (FocuserStatusL[STATUS_HOMING].s == IPS_BUSY)
-        isFocuserHoming = true;
+    if (RotatorStatusL[STATUS_HOMING].s == IPS_BUSY)
+        isRotatorHoming = true;
 
     ///////////////////////////////////////
     // #6 is Homed?
@@ -1318,7 +1442,7 @@ bool Gemini::getRotatorStatus()
     memset(response, 0, sizeof(response));
     if (isSimulation())
     {
-        snprintf(response, 32, "IsHomed = %d\n", (focuserSimStatus[STATUS_HOMED] == ISS_ON) ? 1 : 0);
+        snprintf(response, 32, "IsHomed = %d\n", (rotatorSimStatus[STATUS_HOMED] == ISS_ON) ? 1 : 0);
         nbytes_read = strlen(response);
     }
     else if ((errcode = tty_read_section(PortFD, response, 0xA, GEMINI_TIMEOUT, &nbytes_read)) != TTY_OK)
@@ -1335,88 +1459,7 @@ bool Gemini::getRotatorStatus()
     if (rc != 2)
         return false;
 
-    FocuserStatusL[STATUS_HOMED].s = isHomed ? IPS_OK : IPS_IDLE;
-    // For relative focusers home is not applicable.
-    if (isFocuserAbsolute == false)
-        FocuserStatusL[STATUS_HOMED].s = IPS_IDLE;
-
-    ///////////////////////////////////////
-    // #7 Temperature probe?
-    ///////////////////////////////////////
-    memset(response, 0, sizeof(response));
-    if (isSimulation())
-    {
-        snprintf(response, 32, "TempProb = %d\n", (focuserSimStatus[STATUS_TMPPROBE] == ISS_ON) ? 1 : 0);
-        nbytes_read = strlen(response);
-    }
-    else if ((errcode = tty_read_section(PortFD, response, 0xA, GEMINI_TIMEOUT, &nbytes_read)) != TTY_OK)
-    {
-        tty_error_msg(errcode, errmsg, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
-        return false;
-    }
-    response[nbytes_read - 1] = '\0';
-    DEBUGF(DBG_FOCUS, "RES (%s)", response);
-
-    int TmpProbe;
-    rc = sscanf(response, "%16[^=]=%d", key, &TmpProbe);
-    if (rc != 2)
-        return false;
-
-    FocuserStatusL[STATUS_TMPPROBE].s = TmpProbe ? IPS_OK : IPS_IDLE;
-
-    ///////////////////////////////////////
-    // #8 Remote IO?
-    ///////////////////////////////////////
-    memset(response, 0, sizeof(response));
-    if (isSimulation())
-    {
-        snprintf(response, 32, "RemoteIO = %d\n", (focuserSimStatus[STATUS_REMOTEIO] == ISS_ON) ? 1 : 0);
-        nbytes_read = strlen(response);
-    }
-    else if ((errcode = tty_read_section(PortFD, response, 0xA, GEMINI_TIMEOUT, &nbytes_read)) != TTY_OK)
-    {
-        tty_error_msg(errcode, errmsg, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
-        return false;
-    }
-    response[nbytes_read - 1] = '\0';
-    DEBUGF(DBG_FOCUS, "RES (%s)", response);
-
-    int RemoteIO;
-    rc = sscanf(response, "%16[^=]=%d", key, &RemoteIO);
-    if (rc != 2)
-        return false;
-
-    FocuserStatusL[STATUS_REMOTEIO].s = RemoteIO ? IPS_OK : IPS_IDLE;
-
-    ///////////////////////////////////////
-    // #9 Hand controller?
-    ///////////////////////////////////////
-    memset(response, 0, sizeof(response));
-    if (isSimulation())
-    {
-        snprintf(response, 32, "HCStatus = %d\n", (focuserSimStatus[STATUS_HNDCTRL] == ISS_ON) ? 1 : 0);
-        nbytes_read = strlen(response);
-    }
-    else if ((errcode = tty_read_section(PortFD, response, 0xA, GEMINI_TIMEOUT, &nbytes_read)) != TTY_OK)
-    {
-        tty_error_msg(errcode, errmsg, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
-        return false;
-    }
-    response[nbytes_read - 1] = '\0';
-    DEBUGF(DBG_FOCUS, "RES (%s)", response);
-
-    int HndCtlr;
-    rc = sscanf(response, "%16[^=]=%d", key, &HndCtlr);
-    if (rc != 2)
-        return false;
-
-    FocuserStatusL[STATUS_HNDCTRL].s = HndCtlr ? IPS_OK : IPS_IDLE;
-
-    FocuserStatusLP.s = IPS_OK;
-    IDSetLight(&FocuserStatusLP, nullptr);
+    RotatorStatusL[STATUS_HOMED].s = isHomed ? IPS_OK : IPS_IDLE;
 
     // Added By Philippe Besson the 28th of June for 'END' evalution
     // END is reached
@@ -1508,8 +1551,9 @@ bool Gemini::getRotatorConfig()
     }*/
 
     memset(response, 0, sizeof(response));
-
+    ////////////////////////////////////////////////////////////
     // Nickname
+    ////////////////////////////////////////////////////////////
     if (isSimulation())
     {
         strncpy(response, "NickName=Juli\n", sizeof(response));
@@ -1538,7 +1582,9 @@ bool Gemini::getRotatorConfig()
 
     memset(response, 0, sizeof(response));
 
-    // Get Max Position
+    ////////////////////////////////////////////////////////////
+    // Get Max steps
+    ////////////////////////////////////////////////////////////
     if (isSimulation())
     {
         snprintf(response, sizeof(response), "MaxSteps = %06d\n", 100000);
@@ -1557,18 +1603,19 @@ bool Gemini::getRotatorConfig()
     rc = sscanf(response, "%16[^=]=%d", key, &maxPos);
     if (rc == 2)
     {
-        GotoRotatorN[0].min = 0;
-        GotoRotatorN[0].max = maxPos;
-        GotoRotatorN[0].step = maxPos/50.0;
+        RotatorAbsPosN[0].min = 0;
+        RotatorAbsPosN[0].max = maxPos;
+        RotatorAbsPosN[0].step = maxPos/50.0;
 
-        maxControllerTicks = maxPos;
     }
     else
         return false;
 
     memset(response, 0, sizeof(response));
 
+    ////////////////////////////////////////////////////////////
     // Get Device Type
+    ////////////////////////////////////////////////////////////
     if (isSimulation())
     {
         strncpy(response, "Dev Type = B\n", sizeof(response));
@@ -1586,7 +1633,9 @@ bool Gemini::getRotatorConfig()
     // Get Status Parameters
     memset(response, 0, sizeof(response));
 
+    ////////////////////////////////////////////////////////////
     // Backlash Compensation
+    ////////////////////////////////////////////////////////////
     memset(response, 0, sizeof(response));
     if (isSimulation())
     {
@@ -1613,7 +1662,9 @@ bool Gemini::getRotatorConfig()
     RotatorBacklashCompensationSP.s   = IPS_OK;
     IDSetSwitch(&RotatorBacklashCompensationSP, nullptr);
 
+    ////////////////////////////////////////////////////////////
     // Backlash Value
+    ////////////////////////////////////////////////////////////
     memset(response, 0, sizeof(response));
     if (isSimulation())
     {
@@ -1638,11 +1689,13 @@ bool Gemini::getRotatorConfig()
     RotatorBacklashNP.s       = IPS_OK;
     IDSetNumber(&RotatorBacklashNP, nullptr);
 
-    // Led brightnesss
+    ////////////////////////////////////////////////////////////
+    // PAOffset
+    ////////////////////////////////////////////////////////////
     memset(response, 0, sizeof(response));
     if (isSimulation())
     {
-        snprintf(response, sizeof(response), "LED Brt = %d\n", 75);
+        snprintf(response, sizeof(response), "PAOffset = %d\n", static_cast<int>(RotatorAbsAngleN[0].value*1000));
         nbytes_read = strlen(response);
     }
     else if ((errcode = tty_read_section(PortFD, response, 0xA, GEMINI_TIMEOUT, &nbytes_read)) != TTY_OK)
@@ -1654,20 +1707,20 @@ bool Gemini::getRotatorConfig()
     response[nbytes_read - 1] = '\0';
     DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", response);
 
-    int LEDBrightness;
-    rc = sscanf(response, "%16[^=]=%d", key, &LEDBrightness);
+    int PAOffset;
+    rc = sscanf(response, "%16[^=]=%d", key, &PAOffset);
     if (rc != 2)
         return false;
 
-    LedN[0].value = LEDBrightness;
-    LedNP.s       = IPS_OK;
-    IDSetNumber(&LedNP, nullptr);
+    RotatorAbsAngleN[0].value = PAOffset / 1000.0;
+    IDSetNumber(&RotatorAbsAngleNP, nullptr);
 
-    // Temperature Compensation on Start
-    memset(response, 0, sizeof(response));
+    ////////////////////////////////////////////////////////////
+    // Home on start on?
+    ////////////////////////////////////////////////////////////
     if (isSimulation())
     {
-        snprintf(response, sizeof(response), "TC@Start = %d\n", TemperatureCompensateOnStartS[0].s == ISS_ON ? 1 : 0);
+        snprintf(response, sizeof(response), "HOnStart = %d\n", RotatorHomeOnStartS[0].s == ISS_ON ? 1 : 0);
         nbytes_read = strlen(response);
     }
     else if ((errcode = tty_read_section(PortFD, response, 0xA, GEMINI_TIMEOUT, &nbytes_read)) != TTY_OK)
@@ -1679,16 +1732,72 @@ bool Gemini::getRotatorConfig()
     response[nbytes_read - 1] = '\0';
     DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", response);
 
-    int TCOnStart;
-    rc = sscanf(response, "%16[^=]=%d", key, &TCOnStart);
+    int StartOnHome;
+    rc = sscanf(response, "%16[^=]=%d", key, &StartOnHome);
     if (rc != 2)
         return false;
 
-    IUResetSwitch(&TemperatureCompensateOnStartSP);
-    TemperatureCompensateOnStartS[0].s = TCOnStart ? ISS_ON : ISS_OFF;
-    TemperatureCompensateOnStartS[1].s = TCOnStart ? ISS_OFF : ISS_ON;
-    TemperatureCompensateOnStartSP.s   = IPS_OK;
-    IDSetSwitch(&TemperatureCompensateOnStartSP, nullptr);
+    IUResetSwitch(&RotatorHomeOnStartSP);
+    RotatorHomeOnStartS[0].s = StartOnHome ? ISS_ON : ISS_OFF;
+    RotatorHomeOnStartS[1].s = StartOnHome ? ISS_OFF : ISS_ON;
+    RotatorHomeOnStartSP.s   = IPS_OK;
+    IDSetSwitch(&RotatorHomeOnStartSP, nullptr);
+
+    ////////////////////////////////////////////////////////////
+    // Reverse?
+    ////////////////////////////////////////////////////////////
+    memset(response, 0, sizeof(response));
+    if (isSimulation())
+    {
+        snprintf(response, 32, "Reverse = %d\n", (rotatorSimStatus[STATUS_REVERSE] == ISS_ON) ? 1 : 0);
+        nbytes_read = strlen(response);
+    }
+    else if ((errcode = tty_read_section(PortFD, response, 0xA, GEMINI_TIMEOUT, &nbytes_read)) != TTY_OK)
+    {
+        tty_error_msg(errcode, errmsg, MAXRBUF);
+        DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
+        return false;
+    }
+    response[nbytes_read - 1] = '\0';
+    DEBUGF(DBG_FOCUS, "RES (%s)", response);
+
+    int reverse;
+    rc = sscanf(response, "%16[^=]=%d", key, &reverse);
+    if (rc != 2)
+        return false;
+
+    RotatorStatusL[STATUS_REVERSE].s = reverse ? IPS_OK : IPS_IDLE;
+
+    // If reverse is enable and switch shows disabled, let's change that
+    // same thing is reverse is disabled but switch is enabled
+    if ((reverse && RotatorReverseS[1].s == ISS_ON) || (!reverse && RotatorReverseS[0].s == ISS_ON))
+    {
+        IUResetSwitch(&RotatorReverseSP);
+        RotatorReverseS[0].s = (reverse == 1) ? ISS_ON : ISS_OFF;
+        RotatorReverseS[1].s = (reverse == 0) ? ISS_ON : ISS_OFF;
+        IDSetSwitch(&RotatorReverseSP, nullptr);
+    }
+
+    RotatorStatusLP.s = IPS_OK;
+    IDSetLight(&RotatorStatusLP, nullptr);
+
+    ////////////////////////////////////////////////////////////
+    // Max Speed - Not used
+    ////////////////////////////////////////////////////////////
+    memset(response, 0, sizeof(response));
+    if (isSimulation())
+    {
+        snprintf(response, 32, "MaxSpeed = %d\n", 800);
+        nbytes_read = strlen(response);
+    }
+    else if ((errcode = tty_read_section(PortFD, response, 0xA, GEMINI_TIMEOUT, &nbytes_read)) != TTY_OK)
+    {
+        tty_error_msg(errcode, errmsg, MAXRBUF);
+        DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
+        return false;
+    }
+    response[nbytes_read - 1] = '\0';
+    DEBUGF(DBG_FOCUS, "RES (%s)", response);
 
     // Added By Philippe Besson the 28th of June for 'END' evalution
     // END is reached
@@ -1719,7 +1828,7 @@ bool Gemini::getRotatorConfig()
 
     tcflush(PortFD, TCIFLUSH);
 
-    configurationComplete = true;
+    rotatorConfigurationComplete = true;
 
     return true;
 }
@@ -1813,7 +1922,7 @@ bool Gemini::getFocusStatus()
     memset(response, 0, sizeof(response));
     if (isSimulation())
     {
-        snprintf(response, 32, "CurrStep = %06d\n", simPosition);
+        snprintf(response, 32, "CurrStep = %06d\n", focuserSimPosition);
         nbytes_read = strlen(response);
     }
     else if ((errcode = tty_read_section(PortFD, response, 0xA, GEMINI_TIMEOUT, &nbytes_read)) != TTY_OK)
@@ -1841,7 +1950,7 @@ bool Gemini::getFocusStatus()
     memset(response, 0, sizeof(response));
     if (isSimulation())
     {
-        snprintf(response, 32, "TargStep = %06d\n", targetPosition);
+        snprintf(response, 32, "TargStep = %06d\n", targetFocuserPosition);
         nbytes_read = strlen(response);
     }
     else if ((errcode = tty_read_section(PortFD, response, 0xA, GEMINI_TIMEOUT, &nbytes_read)) != TTY_OK)
@@ -2070,7 +2179,7 @@ bool Gemini::setLedLevel(int level)
 
     memset(response, 0, sizeof(response));
 
-    snprintf(cmd, 16, "<FHSCLB%d>", level);
+    snprintf(cmd, 16, "<H100SETLED%d>", level);
 
     DEBUGF(INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
 
@@ -2171,8 +2280,11 @@ bool Gemini::home(DeviceType type)
 
     if (isSimulation())
     {
-        focuserSimStatus[STATUS_HOMING] = ISS_ON;
-        targetPosition           = 0;
+        if (type == DEVICE_FOCUSER)
+            focuserSimStatus[STATUS_HOMING] = ISS_ON;
+        else
+            rotatorSimStatus[STATUS_HOMING] = ISS_ON;
+        targetFocuserPosition           = 0;
     }
     else
     {
@@ -2203,6 +2315,56 @@ bool Gemini::home(DeviceType type)
 /************************************************************************************
  *
 * ***********************************************************************************/
+bool Gemini::homeOnStart(DeviceType type, bool enable)
+{
+    char cmd[32];;
+    int errcode = 0;
+    char errmsg[MAXRBUF];
+    char response[16];
+    int nbytes_written = 0;
+
+    memset(response, 0, sizeof(response));
+
+    snprintf(cmd, 32, "<%c100SETHOS%d>", (type == DEVICE_FOCUSER ? 'F' : 'R'), enable ? 1 : 0);
+    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
+
+    if (isSimulation())
+    {
+        if (type == DEVICE_FOCUSER)
+            focuserSimStatus[STATUS_HOMING] = ISS_ON;
+        else
+            rotatorSimStatus[STATUS_HOMING] = ISS_ON;
+
+        targetFocuserPosition           = 0;
+    }
+    else
+    {
+        tcflush(PortFD, TCIFLUSH);
+
+        if ((errcode = tty_write(PortFD, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
+        {
+            tty_error_msg(errcode, errmsg, MAXRBUF);
+            DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
+            return false;
+        }
+
+        if (isResponseOK() == false)
+            return false;
+    }
+
+    FocusAbsPosNP.s = IPS_BUSY;
+    IDSetNumber(&FocusAbsPosNP, nullptr);
+
+    isRotatorHoming = true;
+
+    tcflush(PortFD, TCIFLUSH);
+
+    return true;
+}
+
+/************************************************************************************
+ *
+* ***********************************************************************************/
 bool Gemini::center(DeviceType type)
 {
     char cmd[32];
@@ -2222,8 +2384,11 @@ bool Gemini::center(DeviceType type)
 
     if (isSimulation())
     {
-        focuserSimStatus[STATUS_MOVING] = ISS_ON;
-        targetPosition           = FocusAbsPosN[0].max / 2;
+        if (type == DEVICE_FOCUSER)
+            focuserSimStatus[STATUS_MOVING] = ISS_ON;
+        else
+            rotatorSimStatus[STATUS_MOVING] = ISS_ON;
+        targetFocuserPosition           = FocusAbsPosN[0].max / 2;
     }
     else
     {
@@ -2493,7 +2658,7 @@ bool Gemini::setTemperatureCompensationOnStart(bool enable)
 /************************************************************************************
  *
 * ***********************************************************************************/
-bool Gemini::setBacklashCompensation(bool enable)
+bool Gemini::setBacklashCompensation(DeviceType type, bool enable)
 {
     char cmd[16];
     int errcode = 0;
@@ -2504,7 +2669,7 @@ bool Gemini::setBacklashCompensation(bool enable)
 
     memset(response, 0, sizeof(response));
 
-    snprintf(cmd, 16, "<F100SETBCE%d>", enable ? 1 : 0);
+    snprintf(cmd, 16, "<%c100SETBCE%d>", (type == DEVICE_FOCUSER ? 'F' : 'R'), enable ? 1 : 0);
 
     DEBUGF(INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
 
@@ -2551,7 +2716,7 @@ bool Gemini::setBacklashCompensation(bool enable)
 /************************************************************************************
  *
 * ***********************************************************************************/
-bool Gemini::setBacklashCompensationSteps(uint16_t steps)
+bool Gemini::setBacklashCompensationSteps(DeviceType type, uint16_t steps)
 {
     char cmd[16];
     int errcode = 0;
@@ -2562,7 +2727,7 @@ bool Gemini::setBacklashCompensationSteps(uint16_t steps)
 
     memset(response, 0, sizeof(response));
 
-    snprintf(cmd, 16, "<F100SETBCS%02d>", steps);
+    snprintf(cmd, 16, "<%c100SETBCS%02d>", (type == DEVICE_FOCUSER ? 'F' : 'R'), steps);
 
     DEBUGF(INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
 
@@ -2685,7 +2850,7 @@ bool Gemini::sync(uint32_t position)
 
     if (isSimulation())
     {
-        simPosition = position;
+        focuserSimPosition = position;
     }
     else
     {
@@ -2761,6 +2926,7 @@ bool Gemini::resetFactory()
         {
             return true;
             getFocusConfig();
+            getRotatorConfig();
         }
         else
             return false;
@@ -2888,7 +3054,7 @@ IPState Gemini::MoveAbsFocuser(uint32_t targetTicks)
         return IPS_ALERT;
     }
 
-    targetPosition = targetTicks;
+    targetFocuserPosition = targetTicks;
 
     memset(response, 0, sizeof(response));
 
@@ -2949,12 +3115,13 @@ void Gemini::TimerHit()
     if (isConnected() == false)
         return;
 
-    if (configurationComplete == false)
+    if (focuserConfigurationComplete == false || rotatorConfigurationComplete == false)
     {
         SetTimer(POLLMS);
         return;
     }
 
+    // Focuser Status
     bool statusrc = false;
     for (int i = 0; i < 2; i++)
     {
@@ -2974,17 +3141,17 @@ void Gemini::TimerHit()
     {
         if (isSimulation())
         {
-            if (FocusAbsPosN[0].value < targetPosition)
-                simPosition += 100;
+            if (FocusAbsPosN[0].value < targetFocuserPosition)
+                focuserSimPosition += 100;
             else
-                simPosition -= 100;
+                focuserSimPosition -= 100;
 
             focuserSimStatus[STATUS_MOVING] = ISS_ON;
 
-            if (std::abs((int64_t)simPosition - (int64_t)targetPosition) < 100)
+            if (std::abs((int64_t)focuserSimPosition - (int64_t)targetFocuserPosition) < 100)
             {
-                FocusAbsPosN[0].value    = targetPosition;
-                simPosition              = FocusAbsPosN[0].value;
+                FocusAbsPosN[0].value    = targetFocuserPosition;
+                focuserSimPosition              = FocusAbsPosN[0].value;
                 focuserSimStatus[STATUS_MOVING] = ISS_OFF;
                 FocuserStatusL[STATUS_MOVING].s = IPS_IDLE;
                 if (focuserSimStatus[STATUS_HOMING] == ISS_ON)
@@ -2998,10 +3165,10 @@ void Gemini::TimerHit()
         if (isFocuserHoming && FocuserStatusL[STATUS_HOMED].s == IPS_OK)
         {
             isFocuserHoming = false;
-            GotoSP.s = IPS_OK;
-            IUResetSwitch(&GotoSP);
-            GotoS[GOTO_HOME].s = ISS_ON;
-            IDSetSwitch(&GotoSP, nullptr);
+            FocuserGotoSP.s = IPS_OK;
+            IUResetSwitch(&FocuserGotoSP);
+            FocuserGotoS[GOTO_HOME].s = ISS_ON;
+            IDSetSwitch(&FocuserGotoSP, nullptr);
             FocusAbsPosNP.s = IPS_OK;
             IDSetNumber(&FocusRelPosNP, nullptr);
             DEBUG(INDI::Logger::DBG_SESSION, "Focuser reached home position.");
@@ -3012,30 +3179,94 @@ void Gemini::TimerHit()
             FocusRelPosNP.s = IPS_OK;
             IDSetNumber(&FocusAbsPosNP, nullptr);
             IDSetNumber(&FocusRelPosNP, nullptr);
-            if (GotoSP.s == IPS_BUSY)
+            if (FocuserGotoSP.s == IPS_BUSY)
             {
-                IUResetSwitch(&GotoSP);
-                GotoSP.s = IPS_OK;
-                IDSetSwitch(&GotoSP, nullptr);
+                IUResetSwitch(&FocuserGotoSP);
+                FocuserGotoSP.s = IPS_OK;
+                IDSetSwitch(&FocuserGotoSP, nullptr);
             }
             DEBUG(INDI::Logger::DBG_SESSION, "Focuser reached requested position.");
         }
-        else if (FocuserStatusL[STATUS_MOVING].s == IPS_BUSY && focusMoveRequest > 0)
-        {
-            float remaining = calcTimeLeft(focusMoveStart, focusMoveRequest);
+    }
+    if (FocuserStatusL[STATUS_HOMING].s == IPS_BUSY && FocuserGotoSP.s != IPS_BUSY)
+    {
+        FocuserGotoSP.s = IPS_BUSY;
+        IDSetSwitch(&FocuserGotoSP, nullptr);
+    }
 
-            if (remaining < POLLMS)
+    // Rotator Status
+    statusrc = false;
+    for (int i = 0; i < 2; i++)
+    {
+        statusrc = getRotatorStatus();
+        if (statusrc)
+            break;
+    }
+
+    if (statusrc == false)
+    {
+        DEBUG(INDI::Logger::DBG_WARNING, "Unable to read rotator status....");
+        SetTimer(POLLMS);
+        return;
+    }
+
+    if (RotatorAbsPosNP.s == IPS_BUSY || RotatorAbsAngleNP.s == IPS_BUSY)
+    {
+        /*if (isSimulation())
+        {
+            if (RotatorAbsPosN[0].value < targetRotatorPosition)
+                RotatorSimPosition += 100;
+            else
+                RotatorSimPosition -= 100;
+
+            RotatorSimStatus[STATUS_MOVING] = ISS_ON;
+
+            if (std::abs((int64_t)RotatorSimPosition - (int64_t)targetRotatorPosition) < 100)
             {
-                sleep(remaining);
-                AbortFocuser();
-                focusMoveRequest = 0;
+                RotatorAbsPosN[0].value    = targetRotatorPosition;
+                RotatorSimPosition              = RotatorAbsPosN[0].value;
+                RotatorSimStatus[STATUS_MOVING] = ISS_OFF;
+                RotatorStatusL[STATUS_MOVING].s = IPS_IDLE;
+                if (RotatorSimStatus[STATUS_HOMING] == ISS_ON)
+                {
+                    RotatorStatusL[STATUS_HOMED].s = IPS_OK;
+                    RotatorSimStatus[STATUS_HOMING] = ISS_OFF;
+                }
             }
+        }*/
+
+        if (isRotatorHoming && RotatorStatusL[STATUS_HOMED].s == IPS_OK)
+        {
+            isRotatorHoming = false;
+            RotatorGotoSP.s = IPS_OK;
+            IUResetSwitch(&RotatorGotoSP);
+            RotatorGotoS[GOTO_HOME].s = ISS_ON;
+            IDSetSwitch(&RotatorGotoSP, nullptr);
+            RotatorAbsPosNP.s = IPS_OK;
+            IDSetNumber(&RotatorAbsPosNP, nullptr);
+            RotatorAbsAngleNP.s = IPS_OK;
+            IDSetNumber(&RotatorAbsAngleNP, nullptr);
+            DEBUG(INDI::Logger::DBG_SESSION, "Rotator reached home position.");
+        }
+        else if (RotatorStatusL[STATUS_MOVING].s == IPS_IDLE)
+        {
+            RotatorAbsPosNP.s = IPS_OK;
+            IDSetNumber(&RotatorAbsPosNP, nullptr);
+            RotatorAbsAngleNP.s = IPS_OK;
+            IDSetNumber(&RotatorAbsAngleNP, nullptr);
+            if (RotatorGotoSP.s == IPS_BUSY)
+            {
+                IUResetSwitch(&RotatorGotoSP);
+                RotatorGotoSP.s = IPS_OK;
+                IDSetSwitch(&RotatorGotoSP, nullptr);
+            }
+            DEBUG(INDI::Logger::DBG_SESSION, "Rotator reached requested position.");
         }
     }
-    if (FocuserStatusL[STATUS_HOMING].s == IPS_BUSY && GotoSP.s != IPS_BUSY)
+    if (RotatorStatusL[STATUS_HOMING].s == IPS_BUSY && RotatorGotoSP.s != IPS_BUSY)
     {
-        GotoSP.s = IPS_BUSY;
-        IDSetSwitch(&GotoSP, nullptr);
+        RotatorGotoSP.s = IPS_BUSY;
+        IDSetSwitch(&RotatorGotoSP, nullptr);
     }
 
     SetTimer(POLLMS);
@@ -3086,11 +3317,11 @@ bool Gemini::AbortFocuser()
         IDSetNumber(&FocusRelPosNP, nullptr);
     }
 
-    FocusTimerNP.s = FocusAbsPosNP.s = GotoSP.s = IPS_IDLE;
-    IUResetSwitch(&GotoSP);
+    FocusTimerNP.s = FocusAbsPosNP.s = FocuserGotoSP.s = IPS_IDLE;
+    IUResetSwitch(&FocuserGotoSP);
     IDSetNumber(&FocusTimerNP, nullptr);
     IDSetNumber(&FocusAbsPosNP, nullptr);
-    IDSetSwitch(&GotoSP, nullptr);
+    IDSetSwitch(&FocuserGotoSP, nullptr);
 
     tcflush(PortFD, TCIFLUSH);
 
@@ -3115,6 +3346,88 @@ float Gemini::calcTimeLeft(timeval start, float req)
 }
 
 /************************************************************************************
+*
+* ***********************************************************************************/
+IPState Gemini::MoveAbsRotatorTicks(uint32_t targetTicks)
+{
+    char cmd[32];
+    int errcode = 0;
+    char errmsg[MAXRBUF];
+    char response[16];
+    int nbytes_written = 0;
+
+    targetRotatorPosition = targetTicks;
+
+    memset(response, 0, sizeof(response));
+
+    snprintf(cmd, 32, "<R100MOVABS%06d>", targetTicks);
+
+    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
+
+    if (isSimulation() == false)
+    {
+        tcflush(PortFD, TCIFLUSH);
+
+        if ((errcode = tty_write(PortFD, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
+        {
+            tty_error_msg(errcode, errmsg, MAXRBUF);
+            DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
+            return IPS_ALERT;
+        }
+
+        if (isResponseOK() == false)
+            return IPS_ALERT;
+    }
+
+    RotatorAbsPosNP.s = IPS_BUSY;
+
+    tcflush(PortFD, TCIFLUSH);
+
+    return IPS_BUSY;
+}
+
+/************************************************************************************
+*
+* ***********************************************************************************/
+IPState Gemini::MoveAbsRotatorAngle(double angle)
+{
+    char cmd[32];
+    int errcode = 0;
+    char errmsg[MAXRBUF];
+    char response[16];
+    int nbytes_written = 0;
+
+    targetRotatorAngle = angle * 1000;
+
+    memset(response, 0, sizeof(response));
+
+    snprintf(cmd, 32, "<R100MOVPA%06d>", targetRotatorAngle);
+
+    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
+
+    if (isSimulation() == false)
+    {
+        tcflush(PortFD, TCIFLUSH);
+
+        if ((errcode = tty_write(PortFD, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
+        {
+            tty_error_msg(errcode, errmsg, MAXRBUF);
+            DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
+            return IPS_ALERT;
+        }
+
+        if (isResponseOK() == false)
+            return IPS_ALERT;
+    }
+
+    RotatorAbsAngleNP.s = IPS_BUSY;
+
+    tcflush(PortFD, TCIFLUSH);
+
+    return IPS_BUSY;
+}
+
+/************************************************************************************
  *
 * ***********************************************************************************/
 bool Gemini::saveConfigItems(FILE *fp)
@@ -3123,13 +3436,16 @@ bool Gemini::saveConfigItems(FILE *fp)
 
     IUSaveConfigSwitch(fp, &TemperatureCompensateSP);
     IUSaveConfigSwitch(fp, &TemperatureCompensateOnStartSP);
-    IUSaveConfigSwitch(fp, &RotatorReverseSP);
     IUSaveConfigNumber(fp, &TemperatureCoeffNP);
     IUSaveConfigSwitch(fp, &TemperatureCompensateModeSP);
     IUSaveConfigSwitch(fp, &FocuserBacklashCompensationSP);
+    IUSaveConfigSwitch(fp, &FocuserHomeOnStartSP);
     IUSaveConfigNumber(fp, &FocuserBacklashNP);
-    if (isFocuserAbsolute == false)
-        IUSaveConfigNumber(fp, &MaxTravelNP);
+
+    IUSaveConfigSwitch(fp, &RotatorBacklashCompensationSP);
+    IUSaveConfigNumber(fp, &RotatorBacklashNP);
+    IUSaveConfigSwitch(fp, &RotatorReverseSP);
+    IUSaveConfigSwitch(fp, &RotatorHomeOnStartSP);
 
     return true;
 }
