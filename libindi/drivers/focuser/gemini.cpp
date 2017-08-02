@@ -216,6 +216,8 @@ bool Gemini::initProperties()
     //simPosition = FocusAbsPosN[0].value;
     addAuxControls();
 
+    serialConnection->setDefaultBaudRate(Connection::Serial::B_19200);
+
     return true;
 }
 
@@ -1423,39 +1425,6 @@ bool Gemini::getFocusStatus()
 
     StatusL[STATUS_HNDCTRL].s = HndCtlr ? IPS_OK : IPS_IDLE;
 
-    // #8 Reverse?
-    memset(response, 0, sizeof(response));
-    if (isSimulation())
-    {
-        snprintf(response, 32, "Reverse = %d\n", (simStatus[STATUS_REVERSE] == ISS_ON) ? 1 : 0);
-        nbytes_read = strlen(response);
-    }
-    else if ((errcode = tty_read_section(PortFD, response, 0xA, GEMINI_TIMEOUT, &nbytes_read)) != TTY_OK)
-    {
-        tty_error_msg(errcode, errmsg, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
-        return false;
-    }
-    response[nbytes_read - 1] = '\0';
-    DEBUGF(DBG_FOCUS, "RES (%s)", response);
-
-    int reverse;
-    rc = sscanf(response, "%16[^=]=%d", key, &reverse);
-    if (rc != 2)
-        return false;
-
-    StatusL[STATUS_REVERSE].s = reverse ? IPS_OK : IPS_IDLE;
-
-    // If reverse is enable and switch shows disabled, let's change that
-    // same thing is reverse is disabled but switch is enabled
-    if ((reverse && ReverseS[1].s == ISS_ON) || (!reverse && ReverseS[0].s == ISS_ON))
-    {
-        IUResetSwitch(&ReverseSP);
-        ReverseS[0].s = (reverse == 1) ? ISS_ON : ISS_OFF;
-        ReverseS[1].s = (reverse == 0) ? ISS_ON : ISS_OFF;
-        IDSetSwitch(&ReverseSP, nullptr);
-    }
-
     StatusLP.s = IPS_OK;
     IDSetLight(&StatusLP, nullptr);
 
@@ -1482,7 +1451,10 @@ bool Gemini::getFocusStatus()
         DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", response);
 
         if (strcmp(response, "END"))
+        {
+            DEBUG(INDI::Logger::DBG_WARNING, "Invalid END response.");
             return false;
+        }
     }
     // End of added code by Philippe Besson
 
