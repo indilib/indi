@@ -216,7 +216,7 @@ bool Gemini::initProperties()
     //simPosition = FocusAbsPosN[0].value;
     addAuxControls();
 
-    serialConnection->setDefaultBaudRate(Connection::Serial::B_19200);
+    serialConnection->setDefaultBaudRate(Connection::Serial::B_115200);
 
     return true;
 }
