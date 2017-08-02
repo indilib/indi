@@ -27,8 +27,7 @@
 class Gemini : public INDI::Focuser
 {
   public:
-    Gemini();
-    Gemini(const char *target);
+    Gemini();    
     ~Gemini();
 
     enum
@@ -76,13 +75,11 @@ protected:
     virtual IPState MoveRelFocuser(FocusDirection dir, uint32_t ticks) override;
     virtual IPState MoveFocuser(FocusDirection dir, int speed, uint16_t duration) override;
     virtual bool AbortFocuser() override;
-    virtual void TimerHit() override;
 
-    virtual int getVersion(int *major, int *minor, int *sub);
+    // Rotator Functions
+    // TODO
 
-    virtual void debugTriggered(bool enable) override;
-
-    uint32_t DBG_FOCUS;
+    virtual void TimerHit() override;    
 
     // Misc functions
     bool ack();
@@ -127,7 +124,6 @@ protected:
     bool sync(uint32_t position);
 
     // Motion functions
-    bool stop();
     bool home();
     bool center();
     bool reverse(bool enable);
@@ -207,4 +203,6 @@ protected:
     bool isAbsolute;
     bool isSynced;
     bool isHoming;
+
+    uint32_t DBG_FOCUS;
 };

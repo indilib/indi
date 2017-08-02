@@ -82,23 +82,15 @@ void ISSnoopDevice(XMLEle *root)
 /************************************************************************************
  *
 * ***********************************************************************************/
-Gemini::Gemini(const char *target)
-{
-    INDI_UNUSED(target);
-}
-
-/************************************************************************************
- *
-* ***********************************************************************************/
 Gemini::Gemini()
 {
     focusMoveRequest = 0;
     simPosition      = 0;
 
-    // Can move in Absolute & Relative motions, can AbortFocuser motion, and has variable speed.
+    // Can move in Absolute & Relative motions and can AbortFocuser motion.
     SetFocuserCapability(FOCUSER_CAN_ABORT | FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_REL_MOVE);
 
-    isAbsolute = false;
+    isAbsolute = true;
     isSynced   = false;
     isHoming   = false;
 
@@ -109,7 +101,9 @@ Gemini::Gemini()
     simStatus[STATUS_TMPPROBE] = ISS_ON;
     simStatus[STATUS_REMOTEIO] = ISS_ON;
     simStatus[STATUS_HNDCTRL]  = ISS_ON;
-    simStatus[STATUS_REVERSE]  = ISS_OFF;    
+    simStatus[STATUS_REVERSE]  = ISS_OFF;
+
+    DBG_FOCUS = INDI::Logger::getInstance().addDebugLevel("Verbose", "Verbose");
 }
 
 /************************************************************************************
@@ -338,8 +332,7 @@ const char *Gemini::getDefaultName()
  *
 * ***********************************************************************************/
 bool Gemini::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
-{
-    DEBUGF(INDI::Logger::DBG_SESSION, "Device: %s", dev);
+{    
     if (strcmp(dev, getDeviceName()) == 0)
     {
         // Temperature Compensation
@@ -588,7 +581,7 @@ bool Gemini::ISNewNumber(const char *dev, const char *name, double values[], cha
                 IUUpdateMinMax(&SyncNP);
 
                 DEBUGF(INDI::Logger::DBG_SESSION, "Focuser absolute limits: min (%g) max (%g)", FocusAbsPosN[0].min,
-                       FocusAbsPosN[0].max);
+                        FocusAbsPosN[0].max);
             }
 
             MaxTravelNP.s = IPS_OK;
@@ -618,7 +611,7 @@ bool Gemini::ISNewNumber(const char *dev, const char *name, double values[], cha
 * ***********************************************************************************/
 bool Gemini::ack()
 {
-    char cmd[32];
+    const char *cmd = "<F100GETDNN>";
     int errcode = 0;
     char errmsg[MAXRBUF];
     char response[16];
@@ -627,13 +620,11 @@ bool Gemini::ack()
 
     memset(response, 0, sizeof(response));
 
-    // FIXME
-    //snprintf(cmd, 32, "<%sHELLO>", getFocusTarget());
     DEBUGF(INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
 
     if (isSimulation())
     {
-        strncpy(response, "Optec 2\" TCF-S", 16);
+        strncpy(response, "Castor", 16);
         nbytes_read = strlen(response) + 1;
     }
     else
@@ -662,9 +653,12 @@ bool Gemini::ack()
         DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", response);
         DEBUGF(INDI::Logger::DBG_SESSION, "%s is detected.", response);
 
+        tcflush(PortFD, TCIFLUSH);
+
         return true;
     }
 
+    tcflush(PortFD, TCIFLUSH);
     return false;
 }
 
@@ -673,29 +667,21 @@ bool Gemini::ack()
 * ***********************************************************************************/
 bool Gemini::getFocusConfig()
 {
-    char cmd[32];
+    const char *cmd = "<F100GETCFG>";
     int errcode = 0;
     char errmsg[MAXRBUF];
-    char response[32];
+    char response[64];
     int nbytes_read    = 0;
     int nbytes_written = 0;
     char key[16];
 
     memset(response, 0, sizeof(response));
 
-    // FIXME
-    //snprintf(cmd, 32, "<%sGETCONFIG>", getFocusTarget());
     DEBUGF(INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
 
     if (isSimulation())
     {
-        // FIXME
-        /*
-        if (!strcmp(getFocusTarget(), "F1"))
-            strncpy(response, "CONFIG1", 16);
-        else
-            strncpy(response, "CONFIG2", 16);
-            */
+        strncpy(response, "!00", sizeof(response));
         nbytes_read = strlen(response) + 1;
     }
     else
@@ -710,22 +696,22 @@ bool Gemini::getFocusConfig()
         if (isResponseOK() == false)
             return false;
 
-        if ((errcode = tty_read_section(PortFD, response, 0xA, GEMINI_TIMEOUT, &nbytes_read)) != TTY_OK)
+        /*if ((errcode = tty_read_section(PortFD, response, 0xA, GEMINI_TIMEOUT, &nbytes_read)) != TTY_OK)
         {
             tty_error_msg(errcode, errmsg, MAXRBUF);
             DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
             return false;
-        }
+        }*/
     }
 
-    if (nbytes_read > 0)
+    /*if (nbytes_read > 0)
     {
         response[nbytes_read - 1] = '\0';
         DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", response);
 
         if ((strcmp(response, "CONFIG1")) && (strcmp(response, "CONFIG2")))
             return false;
-    }
+    }*/
 
     memset(response, 0, sizeof(response));
 
@@ -733,7 +719,7 @@ bool Gemini::getFocusConfig()
     if (isSimulation())
     {
         // FIXME
-        //snprintf(response, sizeof(response), "NickName=Focuser#%s\n", getFocusTarget());
+        strncpy(response, "NickName=Tommy\n", sizeof(response));
         nbytes_read = strlen(response);
     }
     else if ((errcode = tty_read_section(PortFD, response, 0xA, GEMINI_TIMEOUT, &nbytes_read)) != TTY_OK)
@@ -762,7 +748,7 @@ bool Gemini::getFocusConfig()
     // Get Max Position
     if (isSimulation())
     {
-        snprintf(response, 32, "Max Pos = %06d\n", 100000);
+        snprintf(response, sizeof(response), "Max Pos = %06d\n", 100000);
         nbytes_read = strlen(response);
     }
     else if ((errcode = tty_read_section(PortFD, response, 0xA, GEMINI_TIMEOUT, &nbytes_read)) != TTY_OK)
@@ -775,7 +761,7 @@ bool Gemini::getFocusConfig()
     DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", response);
 
     uint32_t maxPos = 0;
-    rc              = sscanf(response, "%16[^=]=%d", key, &maxPos);
+    rc = sscanf(response, "%16[^=]=%d", key, &maxPos);
     if (rc == 2)
     {
         FocusAbsPosN[0].max = SyncN[0].max = maxPos;
@@ -800,7 +786,7 @@ bool Gemini::getFocusConfig()
     // Get Device Type
     if (isSimulation())
     {
-        snprintf(response, 32, "Dev Typ = %s\n", "OA");
+        strncpy(response, "Dev Typ = A\n", sizeof(response));
         nbytes_read = strlen(response);
     }
     else if ((errcode = tty_read_section(PortFD, response, 0xA, GEMINI_TIMEOUT, &nbytes_read)) != TTY_OK)
@@ -813,13 +799,12 @@ bool Gemini::getFocusConfig()
     DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", response);
 
     // Get Status Parameters
-
     memset(response, 0, sizeof(response));
 
     // Temperature Compensation On?
     if (isSimulation())
     {
-        snprintf(response, 32, "TComp ON = %d\n", TemperatureCompensateS[0].s == ISS_ON ? 1 : 0);
+        snprintf(response, sizeof(response), "TComp ON = %d\n", TemperatureCompensateS[0].s == ISS_ON ? 1 : 0);
         nbytes_read = strlen(response);
     }
     else if ((errcode = tty_read_section(PortFD, response, 0xA, GEMINI_TIMEOUT, &nbytes_read)) != TTY_OK)
@@ -847,7 +832,7 @@ bool Gemini::getFocusConfig()
     // Temperature Coeff A
     if (isSimulation())
     {
-        snprintf(response, 32, "TempCo A = %d\n", (int)TemperatureCoeffN[FOCUS_A_COEFF].value);
+        snprintf(response, sizeof(response), "TempCo A = %d\n", (int)TemperatureCoeffN[FOCUS_A_COEFF].value);
         nbytes_read = strlen(response);
     }
     else if ((errcode = tty_read_section(PortFD, response, 0xA, GEMINI_TIMEOUT, &nbytes_read)) != TTY_OK)
@@ -871,7 +856,7 @@ bool Gemini::getFocusConfig()
     // Temperature Coeff B
     if (isSimulation())
     {
-        snprintf(response, 32, "TempCo B = %d\n", (int)TemperatureCoeffN[FOCUS_B_COEFF].value);
+        snprintf(response, sizeof(response), "TempCo B = %d\n", (int)TemperatureCoeffN[FOCUS_B_COEFF].value);
         nbytes_read = strlen(response);
     }
     else if ((errcode = tty_read_section(PortFD, response, 0xA, GEMINI_TIMEOUT, &nbytes_read)) != TTY_OK)
@@ -895,7 +880,7 @@ bool Gemini::getFocusConfig()
     // Temperature Coeff C
     if (isSimulation())
     {
-        snprintf(response, 32, "TempCo C = %d\n", (int)TemperatureCoeffN[FOCUS_C_COEFF].value);
+        snprintf(response, sizeof(response), "TempCo C = %d\n", (int)TemperatureCoeffN[FOCUS_C_COEFF].value);
         nbytes_read = strlen(response);
     }
     else if ((errcode = tty_read_section(PortFD, response, 0xA, GEMINI_TIMEOUT, &nbytes_read)) != TTY_OK)
@@ -919,7 +904,7 @@ bool Gemini::getFocusConfig()
     // Temperature Coeff D
     if (isSimulation())
     {
-        snprintf(response, 32, "TempCo D = %d\n", (int)TemperatureCoeffN[FOCUS_D_COEFF].value);
+        snprintf(response, sizeof(response), "TempCo D = %d\n", (int)TemperatureCoeffN[FOCUS_D_COEFF].value);
         nbytes_read = strlen(response);
     }
     else if ((errcode = tty_read_section(PortFD, response, 0xA, GEMINI_TIMEOUT, &nbytes_read)) != TTY_OK)
@@ -943,7 +928,7 @@ bool Gemini::getFocusConfig()
     // Temperature Coeff E
     if (isSimulation())
     {
-        snprintf(response, 32, "TempCo E = %d\n", (int)TemperatureCoeffN[FOCUS_E_COEFF].value);
+        snprintf(response, sizeof(response), "TempCo E = %d\n", (int)TemperatureCoeffN[FOCUS_E_COEFF].value);
         nbytes_read = strlen(response);
     }
     else if ((errcode = tty_read_section(PortFD, response, 0xA, GEMINI_TIMEOUT, &nbytes_read)) != TTY_OK)
@@ -970,7 +955,7 @@ bool Gemini::getFocusConfig()
     // Temperature Compensation Mode
     if (isSimulation())
     {
-        snprintf(response, 32, "TC Mode = %c\n", 'C');
+        snprintf(response, sizeof(response), "TC Mode = %c\n", 'C');
         nbytes_read = strlen(response);
     }
     else if ((errcode = tty_read_section(PortFD, response, 0xA, GEMINI_TIMEOUT, &nbytes_read)) != TTY_OK)
@@ -1006,7 +991,7 @@ bool Gemini::getFocusConfig()
     memset(response, 0, sizeof(response));
     if (isSimulation())
     {
-        snprintf(response, 32, "BLC En = %d\n", BacklashCompensationS[0].s == ISS_ON ? 1 : 0);
+        snprintf(response, sizeof(response), "BLC En = %d\n", BacklashCompensationS[0].s == ISS_ON ? 1 : 0);
         nbytes_read = strlen(response);
     }
     else if ((errcode = tty_read_section(PortFD, response, 0xA, GEMINI_TIMEOUT, &nbytes_read)) != TTY_OK)
@@ -1033,7 +1018,7 @@ bool Gemini::getFocusConfig()
     memset(response, 0, sizeof(response));
     if (isSimulation())
     {
-        snprintf(response, 32, "BLC Stps = %d\n", 50);
+        snprintf(response, sizeof(response), "BLC Stps = %d\n", 50);
         nbytes_read = strlen(response);
     }
     else if ((errcode = tty_read_section(PortFD, response, 0xA, GEMINI_TIMEOUT, &nbytes_read)) != TTY_OK)
@@ -1058,7 +1043,7 @@ bool Gemini::getFocusConfig()
     memset(response, 0, sizeof(response));
     if (isSimulation())
     {
-        snprintf(response, 32, "LED Brt = %d\n", 75);
+        snprintf(response, sizeof(response), "LED Brt = %d\n", 75);
         nbytes_read = strlen(response);
     }
     else if ((errcode = tty_read_section(PortFD, response, 0xA, GEMINI_TIMEOUT, &nbytes_read)) != TTY_OK)
@@ -1083,7 +1068,7 @@ bool Gemini::getFocusConfig()
     memset(response, 0, sizeof(response));
     if (isSimulation())
     {
-        snprintf(response, 32, "TC@Start = %d\n", TemperatureCompensateOnStartS[0].s == ISS_ON ? 1 : 0);
+        snprintf(response, sizeof(response), "TC@Start = %d\n", TemperatureCompensateOnStartS[0].s == ISS_ON ? 1 : 0);
         nbytes_read = strlen(response);
     }
     else if ((errcode = tty_read_section(PortFD, response, 0xA, GEMINI_TIMEOUT, &nbytes_read)) != TTY_OK)
@@ -1145,7 +1130,7 @@ bool Gemini::getFocusConfig()
 * ***********************************************************************************/
 bool Gemini::getFocusStatus()
 {
-    char cmd[32];
+    const char *cmd = "<F100GETSTA>";
     int errcode = 0;
     char errmsg[MAXRBUF];
     char response[32];
@@ -1155,19 +1140,11 @@ bool Gemini::getFocusStatus()
 
     memset(response, 0, sizeof(response));
 
-    // FIXME
-    //snprintf(cmd, 32, "<%sGETSTATUS>", getFocusTarget());
     DEBUGF(INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
 
     if (isSimulation())
     {
-        // FIXME
-        /*
-        if (!strcmp(getFocusTarget(), "F1"))
-            strncpy(response, "STATUS1", 16);
-        else
-            strncpy(response, "STATUS2", 16);
-            */
+        strncpy(response, "!00", 16);
         nbytes_read = strlen(response) + 1;
     }
     else
@@ -1184,345 +1161,335 @@ bool Gemini::getFocusStatus()
         if (isResponseOK() == false)
             return false;
 
-        if ((errcode = tty_read_section(PortFD, response, 0xA, GEMINI_TIMEOUT, &nbytes_read)) != TTY_OK)
+        /*if ((errcode = tty_read_section(PortFD, response, 0xA, GEMINI_TIMEOUT, &nbytes_read)) != TTY_OK)
         {
             tty_error_msg(errcode, errmsg, MAXRBUF);
             DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
             return false;
+        }*/
+    }
+
+    // Get Temperature
+    memset(response, 0, sizeof(response));
+    if (isSimulation())
+    {
+        strncpy(response, "Temp(C) = +21.7\n", 16);
+        nbytes_read = strlen(response);
+    }
+    else if ((errcode = tty_read_section(PortFD, response, 0xA, GEMINI_TIMEOUT, &nbytes_read)) != TTY_OK)
+    {
+        tty_error_msg(errcode, errmsg, MAXRBUF);
+        DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
+        return false;
+    }
+    response[nbytes_read - 1] = '\0';
+    DEBUGF(DBG_FOCUS, "RES (%s)", response);
+
+    float temperature = 0;
+    int rc = sscanf(response, "%16[^=]=%f", key, &temperature);
+    if (rc == 2)
+    {
+        TemperatureN[0].value = temperature;
+        IDSetNumber(&TemperatureNP, nullptr);
+    }
+    else
+    {
+        char np[8];
+        int rc = sscanf(response, "%16[^=]= %s", key, np);
+
+        if (rc != 2 || strcmp(np, "NP"))
+        {
+            if (TemperatureNP.s != IPS_ALERT)
+            {
+                TemperatureNP.s = IPS_ALERT;
+                IDSetNumber(&TemperatureNP, nullptr);
+            }
+            return false;
         }
+    }
+
+    // Get Current Position
+    memset(response, 0, sizeof(response));
+    if (isSimulation())
+    {
+        snprintf(response, 32, "Curr Pos = %06d\n", simPosition);
+        nbytes_read = strlen(response);
+    }
+    else if ((errcode = tty_read_section(PortFD, response, 0xA, GEMINI_TIMEOUT, &nbytes_read)) != TTY_OK)
+    {
+        tty_error_msg(errcode, errmsg, MAXRBUF);
+        DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
+        return false;
+    }
+    response[nbytes_read - 1] = '\0';
+    DEBUGF(DBG_FOCUS, "RES (%s)", response);
+
+    uint32_t currPos = 0;
+    rc = sscanf(response, "%16[^=]=%d", key, &currPos);
+    if (rc == 2)
+    {
+        FocusAbsPosN[0].value = currPos;
+        IDSetNumber(&FocusAbsPosNP, nullptr);
+    }
+    else
+        return false;
+
+    // Get Target Position
+    memset(response, 0, sizeof(response));
+    if (isSimulation())
+    {
+        snprintf(response, 32, "Targ Pos = %06d\n", targetPosition);
+        nbytes_read = strlen(response);
+    }
+    else if ((errcode = tty_read_section(PortFD, response, 0xA, GEMINI_TIMEOUT, &nbytes_read)) != TTY_OK)
+    {
+        tty_error_msg(errcode, errmsg, MAXRBUF);
+        DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
+        return false;
+    }
+    response[nbytes_read - 1] = '\0';
+    DEBUGF(DBG_FOCUS, "RES (%s)", response);
+
+    // Get Status Parameters
+
+    // #1 is Moving?
+    memset(response, 0, sizeof(response));
+    if (isSimulation())
+    {
+        snprintf(response, 32, "Is Moving = %d\n", (simStatus[STATUS_MOVING] == ISS_ON) ? 1 : 0);
+        nbytes_read = strlen(response);
+    }
+    else if ((errcode = tty_read_section(PortFD, response, 0xA, GEMINI_TIMEOUT, &nbytes_read)) != TTY_OK)
+    {
+        tty_error_msg(errcode, errmsg, MAXRBUF);
+        DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
+        return false;
+    }
+    response[nbytes_read - 1] = '\0';
+    DEBUGF(DBG_FOCUS, "RES (%s)", response);
+
+    int isMoving;
+    rc = sscanf(response, "%16[^=]=%d", key, &isMoving);
+    if (rc != 2)
+        return false;
+
+    StatusL[STATUS_MOVING].s = isMoving ? IPS_BUSY : IPS_IDLE;
+
+    // #2 is Homing?
+    memset(response, 0, sizeof(response));
+    if (isSimulation())
+    {
+        snprintf(response, 32, "Is Homing = %d\n", (simStatus[STATUS_HOMING] == ISS_ON) ? 1 : 0);
+        nbytes_read = strlen(response);
+    }
+    else if ((errcode = tty_read_section(PortFD, response, 0xA, GEMINI_TIMEOUT, &nbytes_read)) != TTY_OK)
+    {
+        tty_error_msg(errcode, errmsg, MAXRBUF);
+        DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
+        return false;
+    }
+    response[nbytes_read - 1] = '\0';
+    DEBUGF(DBG_FOCUS, "RES (%s)", response);
+
+    int _isHoming;
+    rc = sscanf(response, "%16[^=]=%d", key, &_isHoming);
+    if (rc != 2)
+        return false;
+
+    StatusL[STATUS_HOMING].s = _isHoming ? IPS_BUSY : IPS_IDLE;
+    // For relative focusers home is not applicable.
+    if (isAbsolute == false)
+        StatusL[STATUS_HOMING].s = IPS_IDLE;
+
+    // We set that isHoming in process, but we don't set it to false here it must be reset in TimerHit
+    if (StatusL[STATUS_HOMING].s == IPS_BUSY)
+        isHoming = true;
+
+    // #3 is Homed?
+    memset(response, 0, sizeof(response));
+    if (isSimulation())
+    {
+        snprintf(response, 32, "Is Homed = %d\n", (simStatus[STATUS_HOMED] == ISS_ON) ? 1 : 0);
+        nbytes_read = strlen(response);
+    }
+    else if ((errcode = tty_read_section(PortFD, response, 0xA, GEMINI_TIMEOUT, &nbytes_read)) != TTY_OK)
+    {
+        tty_error_msg(errcode, errmsg, MAXRBUF);
+        DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
+        return false;
+    }
+    response[nbytes_read - 1] = '\0';
+    DEBUGF(DBG_FOCUS, "RES (%s)", response);
+
+    int isHomed;
+    rc = sscanf(response, "%16[^=]=%d", key, &isHomed);
+    if (rc != 2)
+        return false;
+
+    StatusL[STATUS_HOMED].s = isHomed ? IPS_OK : IPS_IDLE;
+    // For relative focusers home is not applicable.
+    if (isAbsolute == false)
+        StatusL[STATUS_HOMED].s = IPS_IDLE;
+
+    // #4 FF Detected?
+    memset(response, 0, sizeof(response));
+    if (isSimulation())
+    {
+        snprintf(response, 32, "FFDetect = %d\n", (simStatus[STATUS_FFDETECT] == ISS_ON) ? 1 : 0);
+        nbytes_read = strlen(response);
+    }
+    else if ((errcode = tty_read_section(PortFD, response, 0xA, GEMINI_TIMEOUT, &nbytes_read)) != TTY_OK)
+    {
+        tty_error_msg(errcode, errmsg, MAXRBUF);
+        DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
+        return false;
+    }
+    response[nbytes_read - 1] = '\0';
+    DEBUGF(DBG_FOCUS, "RES (%s)", response);
+
+    int FFDetect;
+    rc = sscanf(response, "%16[^=]=%d", key, &FFDetect);
+    if (rc != 2)
+        return false;
+
+    StatusL[STATUS_FFDETECT].s = FFDetect ? IPS_OK : IPS_IDLE;
+
+    // #5 Temperature probe?
+    memset(response, 0, sizeof(response));
+    if (isSimulation())
+    {
+        snprintf(response, 32, "TmpProbe = %d\n", (simStatus[STATUS_TMPPROBE] == ISS_ON) ? 1 : 0);
+        nbytes_read = strlen(response);
+    }
+    else if ((errcode = tty_read_section(PortFD, response, 0xA, GEMINI_TIMEOUT, &nbytes_read)) != TTY_OK)
+    {
+        tty_error_msg(errcode, errmsg, MAXRBUF);
+        DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
+        return false;
+    }
+    response[nbytes_read - 1] = '\0';
+    DEBUGF(DBG_FOCUS, "RES (%s)", response);
+
+    int TmpProbe;
+    rc = sscanf(response, "%16[^=]=%d", key, &TmpProbe);
+    if (rc != 2)
+        return false;
+
+    StatusL[STATUS_TMPPROBE].s = TmpProbe ? IPS_OK : IPS_IDLE;
+
+    // #6 Remote IO?
+    memset(response, 0, sizeof(response));
+    if (isSimulation())
+    {
+        snprintf(response, 32, "RemoteIO = %d\n", (simStatus[STATUS_REMOTEIO] == ISS_ON) ? 1 : 0);
+        nbytes_read = strlen(response);
+    }
+    else if ((errcode = tty_read_section(PortFD, response, 0xA, GEMINI_TIMEOUT, &nbytes_read)) != TTY_OK)
+    {
+        tty_error_msg(errcode, errmsg, MAXRBUF);
+        DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
+        return false;
+    }
+    response[nbytes_read - 1] = '\0';
+    DEBUGF(DBG_FOCUS, "RES (%s)", response);
+
+    int RemoteIO;
+    rc = sscanf(response, "%16[^=]=%d", key, &RemoteIO);
+    if (rc != 2)
+        return false;
+
+    StatusL[STATUS_REMOTEIO].s = RemoteIO ? IPS_OK : IPS_IDLE;
+
+    // #7 Hand controller?
+    memset(response, 0, sizeof(response));
+    if (isSimulation())
+    {
+        snprintf(response, 32, "Hnd Ctlr = %d\n", (simStatus[STATUS_HNDCTRL] == ISS_ON) ? 1 : 0);
+        nbytes_read = strlen(response);
+    }
+    else if ((errcode = tty_read_section(PortFD, response, 0xA, GEMINI_TIMEOUT, &nbytes_read)) != TTY_OK)
+    {
+        tty_error_msg(errcode, errmsg, MAXRBUF);
+        DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
+        return false;
+    }
+    response[nbytes_read - 1] = '\0';
+    DEBUGF(DBG_FOCUS, "RES (%s)", response);
+
+    int HndCtlr;
+    rc = sscanf(response, "%16[^=]=%d", key, &HndCtlr);
+    if (rc != 2)
+        return false;
+
+    StatusL[STATUS_HNDCTRL].s = HndCtlr ? IPS_OK : IPS_IDLE;
+
+    // #8 Reverse?
+    memset(response, 0, sizeof(response));
+    if (isSimulation())
+    {
+        snprintf(response, 32, "Reverse = %d\n", (simStatus[STATUS_REVERSE] == ISS_ON) ? 1 : 0);
+        nbytes_read = strlen(response);
+    }
+    else if ((errcode = tty_read_section(PortFD, response, 0xA, GEMINI_TIMEOUT, &nbytes_read)) != TTY_OK)
+    {
+        tty_error_msg(errcode, errmsg, MAXRBUF);
+        DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
+        return false;
+    }
+    response[nbytes_read - 1] = '\0';
+    DEBUGF(DBG_FOCUS, "RES (%s)", response);
+
+    int reverse;
+    rc = sscanf(response, "%16[^=]=%d", key, &reverse);
+    if (rc != 2)
+        return false;
+
+    StatusL[STATUS_REVERSE].s = reverse ? IPS_OK : IPS_IDLE;
+
+    // If reverse is enable and switch shows disabled, let's change that
+    // same thing is reverse is disabled but switch is enabled
+    if ((reverse && ReverseS[1].s == ISS_ON) || (!reverse && ReverseS[0].s == ISS_ON))
+    {
+        IUResetSwitch(&ReverseSP);
+        ReverseS[0].s = (reverse == 1) ? ISS_ON : ISS_OFF;
+        ReverseS[1].s = (reverse == 0) ? ISS_ON : ISS_OFF;
+        IDSetSwitch(&ReverseSP, nullptr);
+    }
+
+    StatusLP.s = IPS_OK;
+    IDSetLight(&StatusLP, nullptr);
+
+    // Added By Philippe Besson the 28th of June for 'END' evalution
+    // END is reached
+    memset(response, 0, sizeof(response));
+    if (isSimulation())
+    {
+        strncpy(response, "END\n", 16);
+        nbytes_read = strlen(response);
+    }
+    else if ((errcode = tty_read_section(PortFD, response, 0xA, GEMINI_TIMEOUT, &nbytes_read)) != TTY_OK)
+    {
+        tty_error_msg(errcode, errmsg, MAXRBUF);
+        DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
+        return false;
     }
 
     if (nbytes_read > 0)
     {
         response[nbytes_read - 1] = '\0';
-        DEBUGF(DBG_FOCUS, "RES (%s)", response);
 
-        if ((strcmp(response, "STATUS1")) && (strcmp(response, "STATUS2")))
+        // Display the response to be sure to have read the complet TTY Buffer.
+        DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", response);
+
+        if (strcmp(response, "END"))
             return false;
-
-        // Get Temperature
-        memset(response, 0, sizeof(response));
-        if (isSimulation())
-        {
-            strncpy(response, "Temp(C) = +21.7\n", 16);
-            nbytes_read = strlen(response);
-        }
-        else if ((errcode = tty_read_section(PortFD, response, 0xA, GEMINI_TIMEOUT, &nbytes_read)) != TTY_OK)
-        {
-            tty_error_msg(errcode, errmsg, MAXRBUF);
-            DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
-            return false;
-        }
-        response[nbytes_read - 1] = '\0';
-        DEBUGF(DBG_FOCUS, "RES (%s)", response);
-
-        float temperature = 0;
-        int rc            = sscanf(response, "%16[^=]=%f", key, &temperature);
-        if (rc == 2)
-        {
-            TemperatureN[0].value = temperature;
-            IDSetNumber(&TemperatureNP, nullptr);
-        }
-        else
-        {
-            char np[8];
-            int rc = sscanf(response, "%16[^=]= %s", key, np);
-
-            if (rc != 2 || strcmp(np, "NP"))
-            {
-                if (TemperatureNP.s != IPS_ALERT)
-                {
-                    TemperatureNP.s = IPS_ALERT;
-                    IDSetNumber(&TemperatureNP, nullptr);
-                }
-                return false;
-            }
-        }
-
-        // Get Current Position
-        memset(response, 0, sizeof(response));
-        if (isSimulation())
-        {
-            snprintf(response, 32, "Curr Pos = %06d\n", simPosition);
-            nbytes_read = strlen(response);
-        }
-        else if ((errcode = tty_read_section(PortFD, response, 0xA, GEMINI_TIMEOUT, &nbytes_read)) != TTY_OK)
-        {
-            tty_error_msg(errcode, errmsg, MAXRBUF);
-            DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
-            return false;
-        }
-        response[nbytes_read - 1] = '\0';
-        DEBUGF(DBG_FOCUS, "RES (%s)", response);
-
-        uint32_t currPos = 0;
-        rc               = sscanf(response, "%16[^=]=%d", key, &currPos);
-        if (rc == 2)
-        {
-            FocusAbsPosN[0].value = currPos;
-            IDSetNumber(&FocusAbsPosNP, nullptr);
-        }
-        else
-            return false;
-
-        // Get Target Position
-        memset(response, 0, sizeof(response));
-        if (isSimulation())
-        {
-            snprintf(response, 32, "Targ Pos = %06d\n", targetPosition);
-            nbytes_read = strlen(response);
-        }
-        else if ((errcode = tty_read_section(PortFD, response, 0xA, GEMINI_TIMEOUT, &nbytes_read)) != TTY_OK)
-        {
-            tty_error_msg(errcode, errmsg, MAXRBUF);
-            DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
-            return false;
-        }
-        response[nbytes_read - 1] = '\0';
-        DEBUGF(DBG_FOCUS, "RES (%s)", response);
-
-        // Get Status Parameters
-
-        // #1 is Moving?
-        memset(response, 0, sizeof(response));
-        if (isSimulation())
-        {
-            snprintf(response, 32, "Is Moving = %d\n", (simStatus[STATUS_MOVING] == ISS_ON) ? 1 : 0);
-            nbytes_read = strlen(response);
-        }
-        else if ((errcode = tty_read_section(PortFD, response, 0xA, GEMINI_TIMEOUT, &nbytes_read)) != TTY_OK)
-        {
-            tty_error_msg(errcode, errmsg, MAXRBUF);
-            DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
-            return false;
-        }
-        response[nbytes_read - 1] = '\0';
-        DEBUGF(DBG_FOCUS, "RES (%s)", response);
-
-        int isMoving;
-        rc = sscanf(response, "%16[^=]=%d", key, &isMoving);
-        if (rc != 2)
-            return false;
-
-        StatusL[STATUS_MOVING].s = isMoving ? IPS_BUSY : IPS_IDLE;
-
-        // #2 is Homing?
-        memset(response, 0, sizeof(response));
-        if (isSimulation())
-        {
-            snprintf(response, 32, "Is Homing = %d\n", (simStatus[STATUS_HOMING] == ISS_ON) ? 1 : 0);
-            nbytes_read = strlen(response);
-        }
-        else if ((errcode = tty_read_section(PortFD, response, 0xA, GEMINI_TIMEOUT, &nbytes_read)) != TTY_OK)
-        {
-            tty_error_msg(errcode, errmsg, MAXRBUF);
-            DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
-            return false;
-        }
-        response[nbytes_read - 1] = '\0';
-        DEBUGF(DBG_FOCUS, "RES (%s)", response);
-
-        int _isHoming;
-        rc = sscanf(response, "%16[^=]=%d", key, &_isHoming);
-        if (rc != 2)
-            return false;
-
-        StatusL[STATUS_HOMING].s = _isHoming ? IPS_BUSY : IPS_IDLE;
-        // For relative focusers home is not applicable.
-        if (isAbsolute == false)
-            StatusL[STATUS_HOMING].s = IPS_IDLE;
-
-        // We set that isHoming in process, but we don't set it to false here it must be reset in TimerHit
-        if (StatusL[STATUS_HOMING].s == IPS_BUSY)
-            isHoming = true;
-
-        // #3 is Homed?
-        memset(response, 0, sizeof(response));
-        if (isSimulation())
-        {
-            snprintf(response, 32, "Is Homed = %d\n", (simStatus[STATUS_HOMED] == ISS_ON) ? 1 : 0);
-            nbytes_read = strlen(response);
-        }
-        else if ((errcode = tty_read_section(PortFD, response, 0xA, GEMINI_TIMEOUT, &nbytes_read)) != TTY_OK)
-        {
-            tty_error_msg(errcode, errmsg, MAXRBUF);
-            DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
-            return false;
-        }
-        response[nbytes_read - 1] = '\0';
-        DEBUGF(DBG_FOCUS, "RES (%s)", response);
-
-        int isHomed;
-        rc = sscanf(response, "%16[^=]=%d", key, &isHomed);
-        if (rc != 2)
-            return false;
-
-        StatusL[STATUS_HOMED].s = isHomed ? IPS_OK : IPS_IDLE;
-        // For relative focusers home is not applicable.
-        if (isAbsolute == false)
-            StatusL[STATUS_HOMED].s = IPS_IDLE;
-
-        // #4 FF Detected?
-        memset(response, 0, sizeof(response));
-        if (isSimulation())
-        {
-            snprintf(response, 32, "FFDetect = %d\n", (simStatus[STATUS_FFDETECT] == ISS_ON) ? 1 : 0);
-            nbytes_read = strlen(response);
-        }
-        else if ((errcode = tty_read_section(PortFD, response, 0xA, GEMINI_TIMEOUT, &nbytes_read)) != TTY_OK)
-        {
-            tty_error_msg(errcode, errmsg, MAXRBUF);
-            DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
-            return false;
-        }
-        response[nbytes_read - 1] = '\0';
-        DEBUGF(DBG_FOCUS, "RES (%s)", response);
-
-        int FFDetect;
-        rc = sscanf(response, "%16[^=]=%d", key, &FFDetect);
-        if (rc != 2)
-            return false;
-
-        StatusL[STATUS_FFDETECT].s = FFDetect ? IPS_OK : IPS_IDLE;
-
-        // #5 Temperature probe?
-        memset(response, 0, sizeof(response));
-        if (isSimulation())
-        {
-            snprintf(response, 32, "TmpProbe = %d\n", (simStatus[STATUS_TMPPROBE] == ISS_ON) ? 1 : 0);
-            nbytes_read = strlen(response);
-        }
-        else if ((errcode = tty_read_section(PortFD, response, 0xA, GEMINI_TIMEOUT, &nbytes_read)) != TTY_OK)
-        {
-            tty_error_msg(errcode, errmsg, MAXRBUF);
-            DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
-            return false;
-        }
-        response[nbytes_read - 1] = '\0';
-        DEBUGF(DBG_FOCUS, "RES (%s)", response);
-
-        int TmpProbe;
-        rc = sscanf(response, "%16[^=]=%d", key, &TmpProbe);
-        if (rc != 2)
-            return false;
-
-        StatusL[STATUS_TMPPROBE].s = TmpProbe ? IPS_OK : IPS_IDLE;
-
-        // #6 Remote IO?
-        memset(response, 0, sizeof(response));
-        if (isSimulation())
-        {
-            snprintf(response, 32, "RemoteIO = %d\n", (simStatus[STATUS_REMOTEIO] == ISS_ON) ? 1 : 0);
-            nbytes_read = strlen(response);
-        }
-        else if ((errcode = tty_read_section(PortFD, response, 0xA, GEMINI_TIMEOUT, &nbytes_read)) != TTY_OK)
-        {
-            tty_error_msg(errcode, errmsg, MAXRBUF);
-            DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
-            return false;
-        }
-        response[nbytes_read - 1] = '\0';
-        DEBUGF(DBG_FOCUS, "RES (%s)", response);
-
-        int RemoteIO;
-        rc = sscanf(response, "%16[^=]=%d", key, &RemoteIO);
-        if (rc != 2)
-            return false;
-
-        StatusL[STATUS_REMOTEIO].s = RemoteIO ? IPS_OK : IPS_IDLE;
-
-        // #7 Hand controller?
-        memset(response, 0, sizeof(response));
-        if (isSimulation())
-        {
-            snprintf(response, 32, "Hnd Ctlr = %d\n", (simStatus[STATUS_HNDCTRL] == ISS_ON) ? 1 : 0);
-            nbytes_read = strlen(response);
-        }
-        else if ((errcode = tty_read_section(PortFD, response, 0xA, GEMINI_TIMEOUT, &nbytes_read)) != TTY_OK)
-        {
-            tty_error_msg(errcode, errmsg, MAXRBUF);
-            DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
-            return false;
-        }
-        response[nbytes_read - 1] = '\0';
-        DEBUGF(DBG_FOCUS, "RES (%s)", response);
-
-        int HndCtlr;
-        rc = sscanf(response, "%16[^=]=%d", key, &HndCtlr);
-        if (rc != 2)
-            return false;
-
-        StatusL[STATUS_HNDCTRL].s = HndCtlr ? IPS_OK : IPS_IDLE;
-
-        // #8 Reverse?
-        memset(response, 0, sizeof(response));
-        if (isSimulation())
-        {
-            snprintf(response, 32, "Reverse = %d\n", (simStatus[STATUS_REVERSE] == ISS_ON) ? 1 : 0);
-            nbytes_read = strlen(response);
-        }
-        else if ((errcode = tty_read_section(PortFD, response, 0xA, GEMINI_TIMEOUT, &nbytes_read)) != TTY_OK)
-        {
-            tty_error_msg(errcode, errmsg, MAXRBUF);
-            DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
-            return false;
-        }
-        response[nbytes_read - 1] = '\0';
-        DEBUGF(DBG_FOCUS, "RES (%s)", response);
-
-        int reverse;
-        rc = sscanf(response, "%16[^=]=%d", key, &reverse);
-        if (rc != 2)
-            return false;
-
-        StatusL[STATUS_REVERSE].s = reverse ? IPS_OK : IPS_IDLE;
-
-        // If reverse is enable and switch shows disabled, let's change that
-        // same thing is reverse is disabled but switch is enabled
-        if ((reverse && ReverseS[1].s == ISS_ON) || (!reverse && ReverseS[0].s == ISS_ON))
-        {
-            IUResetSwitch(&ReverseSP);
-            ReverseS[0].s = (reverse == 1) ? ISS_ON : ISS_OFF;
-            ReverseS[1].s = (reverse == 0) ? ISS_ON : ISS_OFF;
-            IDSetSwitch(&ReverseSP, nullptr);
-        }
-
-        StatusLP.s = IPS_OK;
-        IDSetLight(&StatusLP, nullptr);
-
-        // Added By Philippe Besson the 28th of June for 'END' evalution
-        // END is reached
-        memset(response, 0, sizeof(response));
-        if (isSimulation())
-        {
-            strncpy(response, "END\n", 16);
-            nbytes_read = strlen(response);
-        }
-        else if ((errcode = tty_read_section(PortFD, response, 0xA, GEMINI_TIMEOUT, &nbytes_read)) != TTY_OK)
-        {
-            tty_error_msg(errcode, errmsg, MAXRBUF);
-            DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
-            return false;
-        }
-
-        if (nbytes_read > 0)
-        {
-            response[nbytes_read - 1] = '\0';
-
-            // Display the response to be sure to have read the complet TTY Buffer.
-            DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", response);
-
-            if (strcmp(response, "END"))
-                return false;
-        }
-        // End of added code by Philippe Besson
-
-        tcflush(PortFD, TCIFLUSH);
-
-        return true;
     }
+    // End of added code by Philippe Besson
 
-    return false;
+    tcflush(PortFD, TCIFLUSH);
+
+    return true;
+
 }
 
 /************************************************************************************
@@ -1784,7 +1751,7 @@ bool Gemini::center()
 /************************************************************************************
  *
 * ***********************************************************************************/
-bool Gemini::setTemperatureCompensation(bool /*enable*/)
+bool Gemini::setTemperatureCompensation(bool enable)
 {
     char cmd[16];
     int errcode = 0;
@@ -1795,8 +1762,7 @@ bool Gemini::setTemperatureCompensation(bool /*enable*/)
 
     memset(response, 0, sizeof(response));
 
-    // FIXME
-    //snprintf(cmd, 16, "<%sSCTE%d>", getFocusTarget(), enable ? 1 : 0);
+    snprintf(cmd, 16, "<F100SETTCE%d>", enable ? 1 : 0);
 
     DEBUGF(INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
 
@@ -1845,7 +1811,7 @@ bool Gemini::setTemperatureCompensation(bool /*enable*/)
 /************************************************************************************
  *
 * ***********************************************************************************/
-bool Gemini::setTemperatureCompensationMode(char /*mode*/)
+bool Gemini::setTemperatureCompensationMode(char mode)
 {
     char cmd[16];
     int errcode = 0;
@@ -1856,8 +1822,7 @@ bool Gemini::setTemperatureCompensationMode(char /*mode*/)
 
     memset(response, 0, sizeof(response));
 
-    // FIXME
-    //snprintf(cmd, 16, "<%sSCTM%c>", getFocusTarget(), mode);
+    snprintf(cmd, 16, "<F100SETTCM%c>", mode);
 
     DEBUGF(INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
 
@@ -1906,7 +1871,7 @@ bool Gemini::setTemperatureCompensationMode(char /*mode*/)
 /************************************************************************************
  *
 * ***********************************************************************************/
-bool Gemini::setTemperatureCompensationCoeff(char /*mode*/, int16_t /*coeff*/)
+bool Gemini::setTemperatureCompensationCoeff(char mode, int16_t coeff)
 {
     char cmd[16];
     int errcode = 0;
@@ -1917,8 +1882,7 @@ bool Gemini::setTemperatureCompensationCoeff(char /*mode*/, int16_t /*coeff*/)
 
     memset(response, 0, sizeof(response));
 
-    // FIXME
-    //snprintf(cmd, 16, "<%sSCTC%c%c%04d>", getFocusTarget(), mode, coeff >= 0 ? '+' : '-', (int)std::abs(coeff));
+    snprintf(cmd, 16, "<F100SETTCC%c%c%04d>", mode, coeff >= 0 ? '+' : '-', (int)std::abs(coeff));
 
     DEBUGF(INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
 
@@ -1967,7 +1931,7 @@ bool Gemini::setTemperatureCompensationCoeff(char /*mode*/, int16_t /*coeff*/)
 /************************************************************************************
  *
 * ***********************************************************************************/
-bool Gemini::setTemperatureCompensationOnStart(bool /*enable*/)
+bool Gemini::setTemperatureCompensationOnStart(bool enable)
 {
     char cmd[16];
     int errcode = 0;
@@ -1978,8 +1942,7 @@ bool Gemini::setTemperatureCompensationOnStart(bool /*enable*/)
 
     memset(response, 0, sizeof(response));
 
-    // FIXME
-    //snprintf(cmd, 16, "<%sSCTS%d>", getFocusTarget(), enable ? 1 : 0);
+    snprintf(cmd, 16, "<F100SETTCS%d>", enable ? 1 : 0);
 
     DEBUGF(INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
 
@@ -2028,7 +1991,7 @@ bool Gemini::setTemperatureCompensationOnStart(bool /*enable*/)
 /************************************************************************************
  *
 * ***********************************************************************************/
-bool Gemini::setBacklashCompensation(bool /*enable*/)
+bool Gemini::setBacklashCompensation(bool enable)
 {
     char cmd[16];
     int errcode = 0;
@@ -2040,7 +2003,7 @@ bool Gemini::setBacklashCompensation(bool /*enable*/)
     memset(response, 0, sizeof(response));
 
     // FIXME
-    //snprintf(cmd, 16, "<%sSCBE%d>", getFocusTarget(), enable ? 1 : 0);
+    snprintf(cmd, 16, "<F100SETBCE%d>", enable ? 1 : 0);
 
     DEBUGF(INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
 
@@ -2087,7 +2050,7 @@ bool Gemini::setBacklashCompensation(bool /*enable*/)
 /************************************************************************************
  *
 * ***********************************************************************************/
-bool Gemini::setBacklashCompensationSteps(uint16_t /*steps*/)
+bool Gemini::setBacklashCompensationSteps(uint16_t steps)
 {
     char cmd[16];
     int errcode = 0;
@@ -2098,8 +2061,7 @@ bool Gemini::setBacklashCompensationSteps(uint16_t /*steps*/)
 
     memset(response, 0, sizeof(response));
 
-    // FIXME
-    //snprintf(cmd, 16, "<%sSCBS%02d>", getFocusTarget(), steps);
+    snprintf(cmd, 16, "<F100SETBCS%02d>", steps);
 
     DEBUGF(INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
 
@@ -2157,8 +2119,7 @@ bool Gemini::reverse(bool enable)
 
     memset(response, 0, sizeof(response));
 
-    // FIXME
-    //snprintf(cmd, 16, "<%sREVERSE%d>", getFocusTarget(), enable ? 1 : 0);
+    snprintf(cmd, 16, "<R100SETREV%d>", enable ? 1 : 0);
 
     DEBUGF(INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
 
@@ -2204,7 +2165,8 @@ bool Gemini::reverse(bool enable)
 }
 
 /************************************************************************************
- *
+ * FIXME! It appeas SYNC command is not available?
+ * http://www.optecinc.com/astronomy/catalog/gemini/pdf/Gemini%20Command%20Processing_rev%202.1.pdf
 * ***********************************************************************************/
 bool Gemini::sync(uint32_t position)
 {
@@ -2251,7 +2213,7 @@ bool Gemini::sync(uint32_t position)
 * ***********************************************************************************/
 bool Gemini::resetFactory()
 {
-    char cmd[32];
+    const char *cmd = "<H100RESETH>";
     int errcode = 0;
     char errmsg[MAXRBUF];
     char response[16];
@@ -2260,8 +2222,6 @@ bool Gemini::resetFactory()
 
     memset(response, 0, sizeof(response));
 
-    // FIXME
-    //snprintf(cmd, 32, "<%sRESET>", getFocusTarget());
     DEBUGF(INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
 
     if (isSimulation())
@@ -2355,14 +2315,15 @@ bool Gemini::isResponseOK()
 /************************************************************************************
 *
 * ***********************************************************************************/
-IPState Gemini::MoveFocuser(FocusDirection /*dir*/, int /*speed*/, uint16_t duration)
+IPState Gemini::MoveFocuser(FocusDirection dir, int speed, uint16_t duration)
 {
     char cmd[16];
     int errcode = 0;
     char errmsg[MAXRBUF];
     char response[16];
-    int nbytes_read    = 0;
     int nbytes_written = 0;
+
+    INDI_UNUSED(speed);
 
     // Relative focusers must be synced initially.
     if (isAbsolute == false && isSynced == false)
@@ -2374,17 +2335,11 @@ IPState Gemini::MoveFocuser(FocusDirection /*dir*/, int /*speed*/, uint16_t dura
 
     memset(response, 0, sizeof(response));
 
-    // FIXME
-    //snprintf(cmd, 16, "<%sM%cR%c>", getFocusTarget(), (dir == FOCUS_INWARD) ? 'I' : 'O', (speed == 0) ? '0' : '1');
+    snprintf(cmd, 16, "<F100DOMOVE%c>", (dir == FOCUS_INWARD) ? '0' : '1');
 
     DEBUGF(INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
 
-    if (isSimulation())
-    {
-        strncpy(response, "M", 16);
-        nbytes_read = strlen(response) + 1;
-    }
-    else
+    if (isSimulation() == false)
     {
         tcflush(PortFD, TCIFLUSH);
 
@@ -2400,33 +2355,18 @@ IPState Gemini::MoveFocuser(FocusDirection /*dir*/, int /*speed*/, uint16_t dura
 
         gettimeofday(&focusMoveStart, nullptr);
         focusMoveRequest = duration / 1000.0;
-
-        if ((errcode = tty_read_section(PortFD, response, 0xA, GEMINI_TIMEOUT, &nbytes_read)) != TTY_OK)
-        {
-            tty_error_msg(errcode, errmsg, MAXRBUF);
-            DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
-            return IPS_ALERT;
-        }
     }
 
-    if (nbytes_read > 0)
+    if (duration <= POLLMS)
     {
-        response[nbytes_read - 1] = '\0';
-        DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", response);
-
-        if (duration <= POLLMS)
-        {
-            usleep(POLLMS * 1000);
-            AbortFocuser();
-            return IPS_OK;
-        }
-
-        tcflush(PortFD, TCIFLUSH);
-
-        return IPS_BUSY;
+        usleep(POLLMS * 1000);
+        AbortFocuser();
+        return IPS_OK;
     }
 
-    return IPS_ALERT;
+    tcflush(PortFD, TCIFLUSH);
+
+    return IPS_BUSY;
 }
 
 /************************************************************************************
@@ -2438,7 +2378,6 @@ IPState Gemini::MoveAbsFocuser(uint32_t targetTicks)
     int errcode = 0;
     char errmsg[MAXRBUF];
     char response[16];
-    int nbytes_read    = 0;
     int nbytes_written = 0;
 
     // Relative focusers must be synced initially.
@@ -2453,18 +2392,11 @@ IPState Gemini::MoveAbsFocuser(uint32_t targetTicks)
 
     memset(response, 0, sizeof(response));
 
-    // FIXME
-    //snprintf(cmd, 32, "<%sMA%06d>", getFocusTarget(), targetTicks);
+    snprintf(cmd, 32, "<F100MOVABS%06d>", targetTicks);
 
     DEBUGF(INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
 
-    if (isSimulation())
-    {
-        strncpy(response, "M", 16);
-        nbytes_read              = strlen(response) + 1;
-        simStatus[STATUS_MOVING] = ISS_ON;
-    }
-    else
+    if (isSimulation() == false)
     {
         tcflush(PortFD, TCIFLUSH);
 
@@ -2477,28 +2409,13 @@ IPState Gemini::MoveAbsFocuser(uint32_t targetTicks)
 
         if (isResponseOK() == false)
             return IPS_ALERT;
-
-        if ((errcode = tty_read_section(PortFD, response, 0xA, GEMINI_TIMEOUT, &nbytes_read)) != TTY_OK)
-        {
-            tty_error_msg(errcode, errmsg, MAXRBUF);
-            DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
-            return IPS_ALERT;
-        }
     }
 
-    if (nbytes_read > 0)
-    {
-        response[nbytes_read - 1] = '\0';
-        DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", response);
+    FocusAbsPosNP.s = IPS_BUSY;
 
-        FocusAbsPosNP.s = IPS_BUSY;
+    tcflush(PortFD, TCIFLUSH);
 
-        tcflush(PortFD, TCIFLUSH);
-
-        return IPS_BUSY;
-    }
-
-    return IPS_ALERT;
+    return IPS_BUSY;
 }
 
 /************************************************************************************
@@ -2629,7 +2546,7 @@ void Gemini::TimerHit()
 * ***********************************************************************************/
 bool Gemini::AbortFocuser()
 {
-    char cmd[32];
+    const char *cmd = "<F100DOHALT>";
     int errcode = 0;
     char errmsg[MAXRBUF];
     char response[16];
@@ -2637,13 +2554,12 @@ bool Gemini::AbortFocuser()
     int nbytes_written = 0;
 
     memset(response, 0, sizeof(response));
-    // FIXME
-    //snprintf(cmd, 32, "<%sHALT>", getFocusTarget());
+
     DEBUGF(INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
 
     if (isSimulation())
     {
-        strncpy(response, "HALTED", 16);
+        strncpy(response, "!00", 16);
         nbytes_read              = strlen(response) + 1;
         simStatus[STATUS_MOVING] = ISS_OFF;
         simStatus[STATUS_HOMING] = ISS_OFF;
@@ -2661,38 +2577,24 @@ bool Gemini::AbortFocuser()
 
         if (isResponseOK() == false)
             return false;
-
-        if ((errcode = tty_read_section(PortFD, response, 0xA, GEMINI_TIMEOUT, &nbytes_read)) != TTY_OK)
-        {
-            tty_error_msg(errcode, errmsg, MAXRBUF);
-            DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
-            return false;
-        }
     }
 
-    if (nbytes_read > 0)
+
+    if (FocusRelPosNP.s == IPS_BUSY)
     {
-        response[nbytes_read - 1] = '\0';
-        DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", response);
-
-        if (FocusRelPosNP.s == IPS_BUSY)
-        {
-            FocusRelPosNP.s = IPS_IDLE;
-            IDSetNumber(&FocusRelPosNP, nullptr);
-        }
-
-        FocusTimerNP.s = FocusAbsPosNP.s = GotoSP.s = IPS_IDLE;
-        IUResetSwitch(&GotoSP);
-        IDSetNumber(&FocusTimerNP, nullptr);
-        IDSetNumber(&FocusAbsPosNP, nullptr);
-        IDSetSwitch(&GotoSP, nullptr);
-
-        tcflush(PortFD, TCIFLUSH);
-
-        return true;
+        FocusRelPosNP.s = IPS_IDLE;
+        IDSetNumber(&FocusRelPosNP, nullptr);
     }
 
-    return false;
+    FocusTimerNP.s = FocusAbsPosNP.s = GotoSP.s = IPS_IDLE;
+    IUResetSwitch(&GotoSP);
+    IDSetNumber(&FocusTimerNP, nullptr);
+    IDSetNumber(&FocusAbsPosNP, nullptr);
+    IDSetSwitch(&GotoSP, nullptr);
+
+    tcflush(PortFD, TCIFLUSH);
+
+    return true;
 }
 
 /************************************************************************************
@@ -2706,7 +2608,7 @@ float Gemini::calcTimeLeft(timeval start, float req)
     gettimeofday(&now, nullptr);
 
     timesince =
-        (double)(now.tv_sec * 1000.0 + now.tv_usec / 1000) - (double)(start.tv_sec * 1000.0 + start.tv_usec / 1000);
+            (double)(now.tv_sec * 1000.0 + now.tv_usec / 1000) - (double)(start.tv_sec * 1000.0 + start.tv_usec / 1000);
     timesince = timesince / 1000;
     timeleft  = req - timesince;
     return timeleft;
@@ -2732,29 +2634,3 @@ bool Gemini::saveConfigItems(FILE *fp)
     return true;
 }
 
-/************************************************************************************
- *
-* ***********************************************************************************/
-void Gemini::debugTriggered(bool enable)
-{
-    INDI_UNUSED(enable);
-    //tty_set_debug(enable ? 1 : 0);
-}
-
-/************************************************************************************
- *
-* ***********************************************************************************/
-
-int Gemini::getVersion(int *major, int *minor, int *sub)
-{
-    INDI_UNUSED(major);
-    INDI_UNUSED(minor);
-    INDI_UNUSED(sub);
-    // This methode have to be overided by child object
-    /* For future use of implementation of new firmware 2.0.0
-     * and give ability to keep compatible to actual 1.0.9
-     * WIll be to avoid calling to new functions
-     * Not yet implemented in this version of the driver
-     */
-    return 0;
-}
