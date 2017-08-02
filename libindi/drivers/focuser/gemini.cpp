@@ -1524,29 +1524,22 @@ bool Gemini::setLedLevel(int level)
 /************************************************************************************
  *
 * ***********************************************************************************/
-bool Gemini::setDeviceNickname(const char */*nickname*/)
+bool Gemini::setDeviceNickname(const char *nickname)
 // Write via the serial port to the HUB the choiced nikname of he focuser
 {
     char cmd[32];
     int errcode = 0;
     char errmsg[MAXRBUF];
     char response[16];
-    int nbytes_read    = 0;
     int nbytes_written = 0;
 
     memset(response, 0, sizeof(response));
 
-    // FIXME
-    //snprintf(cmd, 32, "<%sSCNN%s>", getFocusTarget(), nickname);
+    snprintf(cmd, 32, "<F100SETDNN%s>", nickname);
 
     DEBUGF(INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
 
-    if (isSimulation())
-    {
-        strncpy(response, "SET", 16);
-        nbytes_read = strlen(response) + 1;
-    }
-    else
+    if (isSimulation() == false)
     {
         tcflush(PortFD, TCIFLUSH);
 
@@ -1559,51 +1552,28 @@ bool Gemini::setDeviceNickname(const char */*nickname*/)
 
         if (isResponseOK() == false)
             return false;
-
-        if ((errcode = tty_read_section(PortFD, response, 0xA, GEMINI_TIMEOUT, &nbytes_read)) != TTY_OK)
-        {
-            tty_error_msg(errcode, errmsg, MAXRBUF);
-            DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
-            return false;
-        }
     }
 
-    if (nbytes_read > 0)
-    {
-        response[nbytes_read - 1] = '\0';
-        DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", response);
-        tcflush(PortFD, TCIFLUSH);
-
-        if (!strcmp(response, "SET"))
-            return true;
-        else
-            return false;
-    }
-
-    return false;
+   tcflush(PortFD, TCIFLUSH);
+   return true;
 }
 /************************************************************************************
  *
 * ***********************************************************************************/
 bool Gemini::home()
 {
-    char cmd[32];
+    const char *cmd = "<F100DOHOME>";
     int errcode = 0;
     char errmsg[MAXRBUF];
     char response[16];
-    int nbytes_read    = 0;
     int nbytes_written = 0;
 
     memset(response, 0, sizeof(response));
 
-    // FIXME
-    //snprintf(cmd, 32, "<%sHOME>", getFocusTarget());
     DEBUGF(INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
 
     if (isSimulation())
     {
-        strncpy(response, "H", 16);
-        nbytes_read              = strlen(response) + 1;
         simStatus[STATUS_HOMING] = ISS_ON;
         targetPosition           = 0;
     }
@@ -1620,31 +1590,17 @@ bool Gemini::home()
 
         if (isResponseOK() == false)
             return false;
-
-        if ((errcode = tty_read_section(PortFD, response, 0xA, GEMINI_TIMEOUT, &nbytes_read)) != TTY_OK)
-        {
-            tty_error_msg(errcode, errmsg, MAXRBUF);
-            DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
-            return false;
-        }
     }
 
-    if (nbytes_read > 0)
-    {
-        response[nbytes_read - 1] = '\0';
-        DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", response);
-        FocusAbsPosNP.s = IPS_BUSY;
-        IDSetNumber(&FocusAbsPosNP, nullptr);
+    FocusAbsPosNP.s = IPS_BUSY;
+    IDSetNumber(&FocusAbsPosNP, nullptr);
 
-        isHoming = true;
-        DEBUG(INDI::Logger::DBG_SESSION, "Focuser moving to home position...");
+    isHoming = true;
+    DEBUG(INDI::Logger::DBG_SESSION, "Focuser moving to home position...");
 
-        tcflush(PortFD, TCIFLUSH);
+    tcflush(PortFD, TCIFLUSH);
 
-        return true;
-    }
-
-    return false;
+    return true;
 }
 
 /************************************************************************************
@@ -1652,11 +1608,10 @@ bool Gemini::home()
 * ***********************************************************************************/
 bool Gemini::center()
 {
-    char cmd[32];
+    const char *cmd = "<F100CENTER>";
     int errcode = 0;
     char errmsg[MAXRBUF];
     char response[16];
-    int nbytes_read    = 0;
     int nbytes_written = 0;
 
     if (isAbsolute == false)
@@ -1664,14 +1619,10 @@ bool Gemini::center()
 
     memset(response, 0, sizeof(response));
 
-    // FIXME
-    //snprintf(cmd, 32, "<%sCENTER>", getFocusTarget());
     DEBUGF(INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
 
     if (isSimulation())
     {
-        strncpy(response, "M", 16);
-        nbytes_read              = strlen(response) + 1;
         simStatus[STATUS_MOVING] = ISS_ON;
         targetPosition           = FocusAbsPosN[0].max / 2;
     }
@@ -1688,31 +1639,16 @@ bool Gemini::center()
 
         if (isResponseOK() == false)
             return false;
-
-        if ((errcode = tty_read_section(PortFD, response, 0xA, GEMINI_TIMEOUT, &nbytes_read)) != TTY_OK)
-        {
-            tty_error_msg(errcode, errmsg, MAXRBUF);
-            DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
-            return false;
-        }
     }
 
-    if (nbytes_read > 0)
-    {
-        response[nbytes_read - 1] = '\0';
-        DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", response);
+    DEBUG(INDI::Logger::DBG_SESSION, "Focuser moving to center position...");
 
-        DEBUG(INDI::Logger::DBG_SESSION, "Focuser moving to center position...");
+    FocusAbsPosNP.s = IPS_BUSY;
+    IDSetNumber(&FocusAbsPosNP, nullptr);
 
-        FocusAbsPosNP.s = IPS_BUSY;
-        IDSetNumber(&FocusAbsPosNP, nullptr);
+    tcflush(PortFD, TCIFLUSH);
 
-        tcflush(PortFD, TCIFLUSH);
-
-        return true;
-    }
-
-    return false;
+    return true;
 }
 
 /************************************************************************************
