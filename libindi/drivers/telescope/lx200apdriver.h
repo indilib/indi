@@ -29,6 +29,11 @@
 #define setAPBackLashCompensation(fd, x, y, z) setCommandXYZ(fd, x, y, z, "#:Br")
 #define setAPMotionStop(fd)                    write(fd, "#:Q", 3)
 
+#define AP_TRACKING_SIDERAL     0
+#define AP_TRACKING_SOLAR       1
+#define AP_TRACKING_LUNAR       2
+#define AP_TRACKING_OFF         3
+
 #ifdef __cplusplus
 extern "C" {
 #endif

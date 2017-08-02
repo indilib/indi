@@ -458,7 +458,7 @@ int selectAPTrackingMode(int fd, int trackMode)
     switch (trackMode)
     {
     /* Sidereal */
-    case 0:
+    case AP_TRACKING_SIDERAL:
 
         DEBUGDEVICE(lx200ap_name, INDI::Logger::DBG_DEBUG,
                     "selectAPTrackingMode: Setting tracking mode to sidereal.");
@@ -469,7 +469,7 @@ int selectAPTrackingMode(int fd, int trackMode)
         break;
 
         /* Solar */
-    case 1:
+    case AP_TRACKING_SOLAR:
 
         DEBUGDEVICE(lx200ap_name, INDI::Logger::DBG_DEBUG, "selectAPTrackingMode: Setting tracking mode to solar.");
         DEBUGFDEVICE(lx200ap_name, AP_DBG_SCOPE, "CMD <%s>", "#:RT1#");
@@ -479,7 +479,7 @@ int selectAPTrackingMode(int fd, int trackMode)
         break;
 
         /* Lunar */
-    case 2:
+    case AP_TRACKING_LUNAR:
 
         DEBUGDEVICE(lx200ap_name, INDI::Logger::DBG_DEBUG, "selectAPTrackingMode: Setting tracking mode to lunar.");
         DEBUGFDEVICE(lx200ap_name, AP_DBG_SCOPE, "CMD <%s>", "#:RT0#");
@@ -489,7 +489,7 @@ int selectAPTrackingMode(int fd, int trackMode)
         break;
 
         /* Zero */
-    case 3:
+    case AP_TRACKING_OFF:
 
         DEBUGDEVICE(lx200ap_name, INDI::Logger::DBG_DEBUG, "selectAPTrackingMode: Setting tracking mode to Zero.");
         DEBUGFDEVICE(lx200ap_name, AP_DBG_SCOPE, "CMD <%s>", "#:RT9#");

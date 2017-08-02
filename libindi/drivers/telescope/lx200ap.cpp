@@ -223,9 +223,6 @@ bool LX200AstroPhysics::ISNewSwitch(const char *dev, const char *name, ISState *
 
             if (isSimulation())
             {
-                TrackModeSP.s = IPS_OK;
-                IDSetSwitch(&TrackModeSP, nullptr);
-
                 SlewRateSP.s = IPS_OK;
                 IDSetSwitch(&SlewRateSP, nullptr);
 
@@ -253,8 +250,7 @@ bool LX200AstroPhysics::ISNewSwitch(const char *dev, const char *name, ISState *
                     return false;
                 }
 
-                TrackModeSP.s = IPS_OK;
-                IDSetSwitch(&TrackModeSP, nullptr);
+                TrackState = (switch_nr != AP_TRACKING_OFF) ? SCOPE_TRACKING : SCOPE_IDLE;
 
                 // On most mounts SlewRateS defines the MoveTo AND Slew (GOTO) speeds
                 // lx200ap is different - some of the MoveTo speeds are not VALID
@@ -1010,7 +1006,7 @@ bool LX200AstroPhysics::SetTrackEnabled(bool enabled)
     if (enabled)
         return SetTrackMode(IUFindOnSwitchIndex(&TrackModeSP));
 
-    int rc = selectAPTrackingMode(PortFD, 3);
+    int rc = selectAPTrackingMode(PortFD, AP_TRACKING_OFF);
     if (rc < 0)
     {
             DEBUGF(INDI::Logger::DBG_ERROR, "Error turning tracking off (%d).", rc);
@@ -1037,6 +1033,13 @@ bool LX200AstroPhysics::SetTrackRate(double raRate, double deRate)
     :RD5.0000#      =       5 + normal zero rate    =       5X sidereal clockwise from above - equivalent to South
     :RD-5.0000#     =       normal zero rate - 5    =       5X sidereal counter-clockwise from above - equivalent to North
     */
+
+    // Give warning is tracking sign would cause a reverse in direction
+    if ( (raRate * TrackRateN[AXIS_RA].value < 0) || (deRate * TrackRateN[AXIS_DE].value < 0) )
+    {
+        DEBUG(INDI::Logger::DBG_ERROR, "Cannot reverse tracking while tracking is engaged. Disengage tracking then try again.");
+        return false;
+    }
 
     double APRARate = (raRate - TRACKRATE_SIDEREAL) / TRACKRATE_SIDEREAL;
     double APDERate = deRate / TRACKRATE_SIDEREAL;
