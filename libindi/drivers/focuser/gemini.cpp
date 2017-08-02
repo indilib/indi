@@ -1153,7 +1153,7 @@ bool Gemini::getFocusStatus()
     }
     else
     {
-        //tcflush(PortFD, TCIFLUSH);
+        tcflush(PortFD, TCIFLUSH);
 
         if ((errcode = tty_write(PortFD, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
         {
