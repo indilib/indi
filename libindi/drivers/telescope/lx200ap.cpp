@@ -1036,7 +1036,7 @@ bool LX200AstroPhysics::SetTrackRate(double raRate, double deRate)
     */
 
     double APRARate = (raRate - 15.041067) / 15.041067;
-    double APDERate = deRate;
+    double APDERate = (deRate - 15.041067) / 15.041067;
 
     if (setAPRATrackRate(PortFD, APRARate) < 0 || setAPDETrackRate(PortFD, APDERate) < 0)
         return false;

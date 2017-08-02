@@ -1264,6 +1264,7 @@ bool INDI::Telescope::ISNewSwitch(const char *dev, const char *name, ISState *st
 
                 TrackStateS[TRACK_ON].s = (targetState == TRACK_ON) ? ISS_ON : ISS_OFF;
                 TrackStateS[TRACK_OFF].s = (targetState == TRACK_ON) ? ISS_OFF : ISS_ON;
+                TrackStateSP.s = IPS_OK;
             }
             else
             {
