@@ -35,7 +35,7 @@
 #define GEMINI_POSITION_THRESHOLD 5  /* Only send position updates to client if the diff exceeds 5 steps */
 
 #define FOCUS_SETTINGS_TAB "Settings"
-#define FOCUS_STATUS_TAB   "Status"
+#define STATUS_TAB   "Status"
 #define ROTATOR_TAB "Rotator"
 #define HUB_TAB "Hub"
 
@@ -154,7 +154,7 @@ bool Gemini::initProperties()
     // Enable/Disable Home on Start
     IUFillSwitch(&FocuserHomeOnStartS[0], "Enable", "", ISS_OFF);
     IUFillSwitch(&FocuserHomeOnStartS[1], "Disable", "", ISS_ON);
-    IUFillSwitchVector(&FocuserHomeOnStartSP, FocuserHomeOnStartS, 2, getDeviceName(), "Home on Start", "",
+    IUFillSwitchVector(&FocuserHomeOnStartSP, FocuserHomeOnStartS, 2, getDeviceName(), "FOCUSER_HOME_ON_START", "Home on Start",
                        FOCUS_SETTINGS_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
     // Enable/Disable temperature Mode
@@ -183,12 +183,6 @@ bool Gemini::initProperties()
     IUFillSwitchVector(&FocuserGotoSP, FocuserGotoS, 2, getDeviceName(), "GOTO", "", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 0,
                        IPS_IDLE);
 
-    // Reverse direction
-    IUFillSwitch(&RotatorReverseS[0], "Enable", "", ISS_OFF);
-    IUFillSwitch(&RotatorReverseS[1], "Disable", "", ISS_ON);
-    IUFillSwitchVector(&RotatorReverseSP, RotatorReverseS, 2, getDeviceName(), "Reverse", "", FOCUS_SETTINGS_TAB, IP_RW, ISR_1OFMANY,
-                       0, IPS_IDLE);
-
     // Sync to a particular position
     IUFillNumber(&SyncN[0], "FOCUS_SYNC_OFFSET", "Offset", "%6.0f", 0, 100000., 0., 0.);
     IUFillNumberVector(&SyncNP, SyncN, 1, getDeviceName(), "FOCUS_SYNC", "Sync", MAIN_CONTROL_TAB, IP_RW, 0, IPS_IDLE);
@@ -202,7 +196,7 @@ bool Gemini::initProperties()
     IUFillLight(&FocuserStatusL[STATUS_REMOTEIO], "Remote IO", "", IPS_IDLE);
     IUFillLight(&FocuserStatusL[STATUS_HNDCTRL], "Hnd Ctrl", "", IPS_IDLE);
     IUFillLight(&FocuserStatusL[STATUS_REVERSE], "Reverse", "", IPS_IDLE);
-    IUFillLightVector(&FocuserStatusLP, FocuserStatusL, 8, getDeviceName(), "Focuser", "", FOCUS_STATUS_TAB, IPS_IDLE);
+    IUFillLightVector(&FocuserStatusLP, FocuserStatusL, 8, getDeviceName(), "Focuser", "", STATUS_TAB, IPS_IDLE);
 
     ////////////////////////////////////////////////////////////
     // Rotator Properties
@@ -211,7 +205,7 @@ bool Gemini::initProperties()
     // Enable/Disable Home on Start
     IUFillSwitch(&RotatorHomeOnStartS[0], "Enable", "", ISS_OFF);
     IUFillSwitch(&RotatorHomeOnStartS[1], "Disable", "", ISS_ON);
-    IUFillSwitchVector(&RotatorHomeOnStartSP, RotatorHomeOnStartS, 2, getDeviceName(), "Home on Start", "",
+    IUFillSwitchVector(&RotatorHomeOnStartSP, RotatorHomeOnStartS, 2, getDeviceName(), "ROTATOR_HOME_ON_START", "Home on Start",
                        ROTATOR_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
     // Rotator Status indicators
@@ -223,7 +217,31 @@ bool Gemini::initProperties()
     IUFillLight(&RotatorStatusL[STATUS_REMOTEIO], "Remote IO", "", IPS_IDLE);
     IUFillLight(&RotatorStatusL[STATUS_HNDCTRL], "Hnd Ctrl", "", IPS_IDLE);
     IUFillLight(&RotatorStatusL[STATUS_REVERSE], "Reverse", "", IPS_IDLE);
-    IUFillLightVector(&RotatorStatusLP, RotatorStatusL, 8, getDeviceName(), "Rotator", "", ROTATOR_TAB, IPS_IDLE);
+    IUFillLightVector(&RotatorStatusLP, RotatorStatusL, 8, getDeviceName(), "Rotator", "", STATUS_TAB, IPS_IDLE);
+
+    // Rotator Ticks
+    IUFillNumber(&RotatorAbsPosN[0], "ROTATOR_ABSOLUTE_POSITION", "Ticks", "%.f", 0., 0., 0., 0.);
+    IUFillNumberVector(&RotatorAbsPosNP, RotatorAbsPosN, 1, getDeviceName(), "ABS_ROTATOR_POSITION", "Goto", ROTATOR_TAB, IP_RW, 0, IPS_IDLE );
+
+    // Rotator Degree
+    IUFillNumber(&RotatorAbsAngleN[0], "ANGLE", "Degrees", "%.2f", 0, 360., 10., 0.);
+    IUFillNumberVector(&RotatorAbsAngleNP, RotatorAbsAngleN, 1, getDeviceName(), "ABS_ROTATOR_ANGLE", "Angle", ROTATOR_TAB, IP_RW, 0, IPS_IDLE );
+
+    // Abort Rotator
+    IUFillSwitch(&AbortRotatorS[0], "ABORT", "Abort", ISS_OFF);
+    IUFillSwitchVector(&AbortRotatorSP, AbortRotatorS, 1, getDeviceName(), "ROTATOR_ABORT_MOTION", "Abort Motion", ROTATOR_TAB, IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
+
+    // Reverse direction
+    IUFillSwitch(&RotatorReverseS[0], "Enable", "", ISS_OFF);
+    IUFillSwitch(&RotatorReverseS[1], "Disable", "", ISS_ON);
+    IUFillSwitchVector(&RotatorReverseSP, RotatorReverseS, 2, getDeviceName(), "Reverse", "", ROTATOR_TAB, IP_RW, ISR_1OFMANY,
+                       0, IPS_IDLE);
+
+    // Rotator Go to home/center
+    IUFillSwitch(&RotatorGotoS[GOTO_CENTER], "Center", "", ISS_OFF);
+    IUFillSwitch(&RotatorGotoS[GOTO_HOME], "Home", "", ISS_OFF);
+    IUFillSwitchVector(&RotatorGotoSP, RotatorGotoS, 2, getDeviceName(), "GOTO", "", ROTATOR_TAB, IP_RW, ISR_1OFMANY, 0,
+                       IPS_IDLE);
 
     ////////////////////////////////////////////////////////////
     // Hub Properties
@@ -237,11 +255,11 @@ bool Gemini::initProperties()
 
     // Led intensity value
     IUFillNumber(&LedN[0], "Intensity", "", "%.f", 0, 100, 5., 0.);
-    IUFillNumberVector(&LedNP, LedN, 1, getDeviceName(), "Led", "", FOCUS_SETTINGS_TAB, IP_RW, 0, IPS_IDLE);
+    IUFillNumberVector(&LedNP, LedN, 1, getDeviceName(), "Led", "", HUB_TAB, IP_RW, 0, IPS_IDLE);
 
     // Reset to Factory setting
     IUFillSwitch(&ResetS[0], "Factory", "", ISS_OFF);
-    IUFillSwitchVector(&ResetSP, ResetS, 1, getDeviceName(), "Reset", "", FOCUS_SETTINGS_TAB, IP_RW, ISR_ATMOST1, 0,
+    IUFillSwitchVector(&ResetSP, ResetS, 1, getDeviceName(), "Reset", "", HUB_TAB, IP_RW, ISR_ATMOST1, 0,
                        IPS_IDLE);
 
     addAuxControls();
@@ -288,11 +306,11 @@ bool Gemini::updateProperties()
         defineSwitch(&ResetSP);
         defineNumber(&LedNP);
 
-        if (getFocusConfig())
-            DEBUG(INDI::Logger::DBG_SESSION, "Gemini paramaters updated, focuser ready for use.");
+        if (getFocusConfig() && getRotatorConfig())
+            DEBUG(INDI::Logger::DBG_SESSION, "Gemini paramaters updated, rotating focuser ready for use.");
         else
         {
-            DEBUG(INDI::Logger::DBG_ERROR, "Failed to retrieve focuser configuration settings...");
+            DEBUG(INDI::Logger::DBG_ERROR, "Failed to retrieve rotating focuser configuration settings...");
             return false;
         }
     }
@@ -578,6 +596,26 @@ bool Gemini::ISNewSwitch(const char *dev, const char *name, ISState *states, cha
                 RotatorReverseSP.s = IPS_ALERT;
 
             IDSetSwitch(&RotatorReverseSP, nullptr);
+            return true;
+        }
+
+        // Halt Rotator
+        if (!strcmp(AbortRotatorSP.name, name))
+        {
+            if (halt(DEVICE_ROTATOR))
+            {
+                RotatorAbsPosNP.s = RotatorAbsAngleNP.s = RotatorGotoSP.s = IPS_IDLE;
+                IDSetNumber(&RotatorAbsPosNP, nullptr);
+                IDSetNumber(&RotatorAbsAngleNP, nullptr);
+                IUResetSwitch(&RotatorGotoSP);
+                IDSetSwitch(&RotatorGotoSP, nullptr);
+
+                AbortRotatorSP.s = IPS_OK;
+            }
+            else
+                AbortRotatorSP.s = IPS_ALERT;
+
+            IDSetSwitch(&AbortRotatorSP, nullptr);
             return true;
         }
     }
@@ -2265,6 +2303,54 @@ bool Gemini::setNickname(DeviceType type, const char *nickname)
 /************************************************************************************
  *
 * ***********************************************************************************/
+bool Gemini::halt(DeviceType type)
+{
+    char cmd[32];;
+    int errcode = 0;
+    char errmsg[MAXRBUF];
+    char response[16];
+    int nbytes_written = 0;
+
+    memset(response, 0, sizeof(response));
+
+    snprintf(cmd, 32, "<%c100DOHALT>", (type == DEVICE_FOCUSER ? 'F' : 'R'));
+    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
+
+    if (isSimulation())
+    {
+        if (type == DEVICE_FOCUSER)
+            focuserSimStatus[STATUS_MOVING] = ISS_OFF;
+        else
+        {
+            rotatorSimStatus[STATUS_MOVING] = ISS_OFF;
+            isRotatorHoming = false;
+        }
+    }
+    else
+    {
+        tcflush(PortFD, TCIFLUSH);
+
+        if ((errcode = tty_write(PortFD, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
+        {
+            tty_error_msg(errcode, errmsg, MAXRBUF);
+            DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
+            return false;
+        }
+
+        if (isResponseOK() == false)
+            return false;
+    }
+
+    isRotatorHoming = false;
+
+    tcflush(PortFD, TCIFLUSH);
+
+    return true;
+}
+
+/************************************************************************************
+ *
+* ***********************************************************************************/
 bool Gemini::home(DeviceType type)
 {
     char cmd[32];;
@@ -3319,7 +3405,6 @@ bool Gemini::AbortFocuser()
 
     FocusTimerNP.s = FocusAbsPosNP.s = FocuserGotoSP.s = IPS_IDLE;
     IUResetSwitch(&FocuserGotoSP);
-    IDSetNumber(&FocusTimerNP, nullptr);
     IDSetNumber(&FocusAbsPosNP, nullptr);
     IDSetSwitch(&FocuserGotoSP, nullptr);
 

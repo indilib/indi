@@ -138,6 +138,7 @@ protected:
 
     // Motion functions
     bool home(DeviceType type);
+    bool halt(DeviceType type);
     bool center(DeviceType type);
     bool homeOnStart(DeviceType type, bool enable);
 
