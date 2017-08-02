@@ -59,7 +59,6 @@ class Gemini : public INDI::Focuser
     virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
     virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
     virtual bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n) override;
-    virtual void ISGetProperties(const char *dev) override;
 
 protected:
 
@@ -75,9 +74,6 @@ protected:
     virtual IPState MoveRelFocuser(FocusDirection dir, uint32_t ticks) override;
     virtual IPState MoveFocuser(FocusDirection dir, int speed, uint16_t duration) override;
     virtual bool AbortFocuser() override;
-
-    // Rotator Functions
-    // TODO
 
     virtual void TimerHit() override;    
 
@@ -132,13 +128,15 @@ protected:
     bool setLedLevel(int level);
 
     // Device Nickname
-    bool setDeviceNickname(const char *nickname);
+    bool setFocuserNickname(const char *nickname);
 
     // Misc functions
     bool resetFactory();
     float calcTimeLeft(timeval, float);
 
-    // Properties
+    ////////////////////////////////////////////////////////////
+    // Focuser Properties
+    ///////////////////////////////////////////////////////////
 
     // Set/Get Temperature
     INumber TemperatureN[1];
@@ -168,21 +166,13 @@ protected:
     INumber BacklashN[1];
     INumberVectorProperty BacklashNP;
 
-    // Reset to Factory setting
-    ISwitch ResetS[1];
-    ISwitchVectorProperty ResetSP;
-
-    // Reverse Direction
-    ISwitch ReverseS[2];
-    ISwitchVectorProperty ReverseSP;
-
     // Go to home/center
     ISwitch GotoS[2];
     ISwitchVectorProperty GotoSP;
 
     // Status indicators
-    ILight StatusL[8];
-    ILightVectorProperty StatusLP;
+    ILight FocuserStatusL[8];
+    ILightVectorProperty FocuserStatusLP;
 
     // Sync to a particular position
     INumber SyncN[1];
@@ -190,7 +180,27 @@ protected:
 
     // Max Travel for relative focusers
     INumber MaxTravelN[1];
-    INumberVectorProperty MaxTravelNP;
+    INumberVectorProperty MaxTravelNP;    
+
+    bool isAbsolute;
+    bool isSynced;
+    bool isHoming;
+
+    ////////////////////////////////////////////////////////////
+    // Rotator Properties
+    ///////////////////////////////////////////////////////////
+
+    // Reverse Direction
+    ISwitch RotatorReverseS[2];
+    ISwitchVectorProperty RotatorReverseSP;
+
+    ////////////////////////////////////////////////////////////
+    // Hub Properties
+    ///////////////////////////////////////////////////////////
+
+    // Reset to Factory setting
+    ISwitch ResetS[1];
+    ISwitchVectorProperty ResetSP;
 
     // Focus name configure in the HUB
     IText HFocusNameT[1];
@@ -199,10 +209,6 @@ protected:
     // Led Intensity Value
     INumber LedN[1];
     INumberVectorProperty LedNP;
-
-    bool isAbsolute;
-    bool isSynced;
-    bool isHoming;
 
     uint32_t DBG_FOCUS;
 };
