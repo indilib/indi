@@ -1613,8 +1613,6 @@ bool Gemini::getRotatorConfig()
         return false;
 
     IUSaveText(&HFocusNameT[DEVICE_ROTATOR], nickname);
-    IDSetText(&HFocusNameTP, nullptr);
-
     HFocusNameTP.s = IPS_OK;
     IDSetText(&HFocusNameTP, nullptr);
 
@@ -1644,7 +1642,7 @@ bool Gemini::getRotatorConfig()
         RotatorAbsPosN[0].min = 0;
         RotatorAbsPosN[0].max = maxPos;
         RotatorAbsPosN[0].step = maxPos/50.0;
-
+        IUUpdateMinMax(&RotatorAbsPosNP);
     }
     else
         return false;
@@ -1728,34 +1726,9 @@ bool Gemini::getRotatorConfig()
     IDSetNumber(&RotatorBacklashNP, nullptr);
 
     ////////////////////////////////////////////////////////////
-    // PAOffset
-    ////////////////////////////////////////////////////////////
-    memset(response, 0, sizeof(response));
-    if (isSimulation())
-    {
-        snprintf(response, sizeof(response), "PAOffset = %d\n", static_cast<int>(RotatorAbsAngleN[0].value*1000));
-        nbytes_read = strlen(response);
-    }
-    else if ((errcode = tty_read_section(PortFD, response, 0xA, GEMINI_TIMEOUT, &nbytes_read)) != TTY_OK)
-    {
-        tty_error_msg(errcode, errmsg, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
-        return false;
-    }
-    response[nbytes_read - 1] = '\0';
-    DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", response);
-
-    int PAOffset;
-    rc = sscanf(response, "%16[^=]=%d", key, &PAOffset);
-    if (rc != 2)
-        return false;
-
-    RotatorAbsAngleN[0].value = PAOffset / 1000.0;
-    IDSetNumber(&RotatorAbsAngleNP, nullptr);
-
-    ////////////////////////////////////////////////////////////
     // Home on start on?
     ////////////////////////////////////////////////////////////
+    memset(response, 0, sizeof(response));
     if (isSimulation())
     {
         snprintf(response, sizeof(response), "HOnStart = %d\n", RotatorHomeOnStartS[0].s == ISS_ON ? 1 : 0);
