@@ -561,6 +561,9 @@ bool LX200AstroPhysics::setBasicDataPart1()
         return false;
     }
 
+    // AP always track after unpark? Must check
+    TrackState = SCOPE_TRACKING;
+
     return true;
 }
 
