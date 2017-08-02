@@ -1038,8 +1038,8 @@ bool LX200AstroPhysics::SetTrackRate(double raRate, double deRate)
     :RD-5.0000#     =       normal zero rate - 5    =       5X sidereal counter-clockwise from above - equivalent to North
     */
 
-    double APRARate = (raRate - 15.041067) / 15.041067;
-    double APDERate = deRate;
+    double APRARate = (raRate - TRACKRATE_SIDEREAL) / TRACKRATE_SIDEREAL;
+    double APDERate = deRate / TRACKRATE_SIDEREAL;
 
     if (setAPRATrackRate(PortFD, APRARate) < 0 || setAPDETrackRate(PortFD, APDERate) < 0)
         return false;

@@ -39,7 +39,6 @@ Version with experimental pulse guide support. GC 04.12.2015
 #define GOTO_RATE       5        /* slew rate, degrees/s */
 #define SLEW_RATE       0.5      /* slew rate, degrees/s */
 #define FINE_SLEW_RATE  0.1      /* slew rate, degrees/s */
-#define SID_RATE        0.004178 /* sidereal rate, degrees/s */
 #define GOTO_LIMIT      5.5      /* Move at GOTO_RATE until distance from target is GOTO_LIMIT degrees */
 #define SLEW_LIMIT      1        /* Move at SLEW_LIMIT until distance from target is SLEW_LIMIT degrees */
 #define FINE_SLEW_LIMIT 0.5      /* Move at FINE_SLEW_RATE until distance from target is FINE_SLEW_LIMIT degrees */
@@ -826,7 +825,7 @@ void CelestronGPS::mountSim()
     switch (TrackState)
     {
         case SCOPE_IDLE:
-            currentRA = get_sim_ra() + (SID_RATE * dt) / 15.0;
+            currentRA = get_sim_ra() + (TRACKRATE_SIDEREAL/3600.0 * dt) / 15.0;
             currentRA = range24(currentRA);
             break;
 

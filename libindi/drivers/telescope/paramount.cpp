@@ -38,8 +38,6 @@ std::unique_ptr<Paramount> paramount_mount(new Paramount());
 #define GOTO_RATE      5         /* slew rate, degrees/s */
 #define SLEW_RATE      0.5       /* slew rate, degrees/s */
 #define FINE_SLEW_RATE 0.1       /* slew rate, degrees/s */
-#define SID_RATE       0.004178  /* sidereal rate, degrees/s */
-#define SID_RATE_MS    0.0150408 /* Sidereal rate, arcseconds/ms */
 
 #define GOTO_LIMIT      5.5 /* Move at GOTO_RATE until distance from target is GOTO_LIMIT degrees */
 #define SLEW_LIMIT      1   /* Move at SLEW_LIMIT until distance from target is SLEW_LIMIT degrees */
@@ -906,7 +904,7 @@ void Paramount::mountSim()
     {
         case SCOPE_IDLE:
             /* RA moves at sidereal, Dec stands still */
-            currentRA += (SID_RATE * dt / 15.);
+            currentRA += (TRACKRATE_SIDEREAL/3600.0 * dt / 15.);
             break;
 
         case SCOPE_SLEWING:
@@ -1016,7 +1014,7 @@ bool Paramount::sendTheSkyOKCommand(const char *command, const char *errorMessag
 IPState Paramount::GuideNorth(float ms)
 {
     // Movement in arcseconds
-    double dDec = GuideRateN[DEC_AXIS].value * SID_RATE_MS * ms;
+    double dDec = GuideRateN[DEC_AXIS].value * TRACKRATE_SIDEREAL * ms / 1000.0;
 
     char pCMD[MAXRBUF];
     snprintf(pCMD, MAXRBUF, "sky6DirectGuide.MoveTelescope(%g, %g);", 0., dDec);
@@ -1030,7 +1028,7 @@ IPState Paramount::GuideNorth(float ms)
 IPState Paramount::GuideSouth(float ms)
 {
     // Movement in arcseconds
-    double dDec = GuideRateN[DEC_AXIS].value * SID_RATE_MS * ms * -1;
+    double dDec = GuideRateN[DEC_AXIS].value * TRACKRATE_SIDEREAL * ms / -1000.0;
 
     char pCMD[MAXRBUF];
     snprintf(pCMD, MAXRBUF, "sky6DirectGuide.MoveTelescope(%g, %g);", 0., dDec);
@@ -1044,7 +1042,7 @@ IPState Paramount::GuideSouth(float ms)
 IPState Paramount::GuideEast(float ms)
 {
     // Movement in arcseconds
-    double dRA = GuideRateN[RA_AXIS].value * SID_RATE_MS * ms;
+    double dRA = GuideRateN[RA_AXIS].value * TRACKRATE_SIDEREAL * ms / 1000.0;
 
     char pCMD[MAXRBUF];
     snprintf(pCMD, MAXRBUF, "sky6DirectGuide.MoveTelescope(%g, %g);", dRA, 0.);
@@ -1058,7 +1056,7 @@ IPState Paramount::GuideEast(float ms)
 IPState Paramount::GuideWest(float ms)
 {
     // Movement in arcseconds
-    double dRA = GuideRateN[RA_AXIS].value * SID_RATE_MS * ms * -1;
+    double dRA = GuideRateN[RA_AXIS].value * TRACKRATE_SIDEREAL * ms / -1000.0;
 
     char pCMD[MAXRBUF];
     snprintf(pCMD, MAXRBUF, "sky6DirectGuide.MoveTelescope(%g, %g);", dRA, 0.);

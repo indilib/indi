@@ -33,7 +33,6 @@ std::unique_ptr<ScopeSim> telescope_sim(new ScopeSim());
 #define GOTO_RATE      5        /* slew rate, degrees/s */
 #define SLEW_RATE      0.5      /* slew rate, degrees/s */
 #define FINE_SLEW_RATE 0.1      /* slew rate, degrees/s */
-#define SID_RATE       0.004178 /* sidereal rate, degrees/s */
 
 #define GOTO_LIMIT      5.5 /* Move at GOTO_RATE until distance from target is GOTO_LIMIT degrees */
 #define SLEW_LIMIT      1   /* Move at SLEW_LIMIT until distance from target is SLEW_LIMIT degrees */
@@ -425,7 +424,7 @@ bool ScopeSim::ReadScopeStatus()
             break;
 
         case SCOPE_IDLE:
-                 //currentRA += (SID_RATE * dt) / 15.0;
+                 //currentRA += (TRACKRATE_SIDEREAL/3600.0 * dt) / 15.0;
                 currentRA += (TrackRateN[AXIS_RA].value/3600.0 * dt) / 15.0;
                 currentRA = range24(currentRA);
         break;
@@ -434,7 +433,7 @@ bool ScopeSim::ReadScopeStatus()
             // In case of custom tracking rate
             if (TrackModeS[1].s == ISS_ON)
             {
-                currentRA  += ( ((SID_RATE) - (TrackRateN[AXIS_RA].value/3600.0)) * dt) / 15.0;
+                currentRA  += ( ((TRACKRATE_SIDEREAL/3600.0) - (TrackRateN[AXIS_RA].value/3600.0)) * dt) / 15.0;
                 currentDEC += ( (TrackRateN[AXIS_DE].value/3600.0) * dt);
             }
 
@@ -687,13 +686,13 @@ bool ScopeSim::ISNewSwitch(const char *dev, const char *name, ISState *states, c
 
             if (PEErrNSS[DIRECTION_NORTH].s == ISS_ON)
             {
-                EqPEN[DEC_AXIS].value += SID_RATE * GuideRateN[DEC_AXIS].value;
-                DEBUGF(INDI::Logger::DBG_DEBUG, "Simulating PE in NORTH direction for value of %g", SID_RATE);
+                EqPEN[DEC_AXIS].value += TRACKRATE_SIDEREAL/3600.0 * GuideRateN[DEC_AXIS].value;
+                DEBUGF(INDI::Logger::DBG_DEBUG, "Simulating PE in NORTH direction for value of %g", TRACKRATE_SIDEREAL/3600.0);
             }
             else
             {
-                EqPEN[DEC_AXIS].value -= SID_RATE * GuideRateN[DEC_AXIS].value;
-                DEBUGF(INDI::Logger::DBG_DEBUG, "Simulating PE in SOUTH direction for value of %g", SID_RATE);
+                EqPEN[DEC_AXIS].value -= TRACKRATE_SIDEREAL/3600.0 * GuideRateN[DEC_AXIS].value;
+                DEBUGF(INDI::Logger::DBG_DEBUG, "Simulating PE in SOUTH direction for value of %g", TRACKRATE_SIDEREAL/3600.0);
             }
 
             IUResetSwitch(&PEErrNSSP);
@@ -711,13 +710,13 @@ bool ScopeSim::ISNewSwitch(const char *dev, const char *name, ISState *states, c
 
             if (PEErrWES[DIRECTION_WEST].s == ISS_ON)
             {
-                EqPEN[RA_AXIS].value -= SID_RATE / 15. * GuideRateN[RA_AXIS].value;
-                DEBUGF(INDI::Logger::DBG_DEBUG, "Simulator PE in WEST direction for value of %g", SID_RATE);
+                EqPEN[RA_AXIS].value -= TRACKRATE_SIDEREAL/3600.0 / 15. * GuideRateN[RA_AXIS].value;
+                DEBUGF(INDI::Logger::DBG_DEBUG, "Simulator PE in WEST direction for value of %g", TRACKRATE_SIDEREAL/3600.0);
             }
             else
             {
-                EqPEN[RA_AXIS].value += SID_RATE / 15. * GuideRateN[RA_AXIS].value;
-                DEBUGF(INDI::Logger::DBG_DEBUG, "Simulator PE in EAST direction for value of %g", SID_RATE);
+                EqPEN[RA_AXIS].value += TRACKRATE_SIDEREAL/3600.0 / 15. * GuideRateN[RA_AXIS].value;
+                DEBUGF(INDI::Logger::DBG_DEBUG, "Simulator PE in EAST direction for value of %g", TRACKRATE_SIDEREAL/3600.0);
             }
 
             IUResetSwitch(&PEErrWESP);

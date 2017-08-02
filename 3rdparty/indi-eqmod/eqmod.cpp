@@ -59,12 +59,6 @@ std::unique_ptr<EQMod> eqmod(new EQMod());
 #define RAGOTORESOLUTION     5 /* GOTO Resolution in arcsecs */
 #define DEGOTORESOLUTION     5 /* GOTO Resolution in arcsecs */
 
-#define STELLAR_DAY        86164.098903691
-#define TRACKRATE_SIDEREAL ((360.0 * 3600.0) / STELLAR_DAY)
-#define SOLAR_DAY          86400
-#define TRACKRATE_SOLAR    ((360.0 * 3600.0) / SOLAR_DAY)
-#define TRACKRATE_LUNAR    14.511415
-
 /* Preset Slew Speeds */
 #define SLEWMODES 11
 double slewspeeds[SLEWMODES - 1] = { 1.0, 2.0, 4.0, 8.0, 32.0, 64.0, 128.0, 600.0, 700.0, 800.0 };

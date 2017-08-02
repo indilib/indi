@@ -31,7 +31,6 @@
 
 /* Simulation Parameters */
 #define SLEWRATE 1          /* slew rate, degrees/s */
-#define SIDRATE  15.041067  /* sidereal rate, arcsecs/s */
 #define POLLMS   1000       /* poll period, ms */
 
 #define MOUNTINFO_TAB "Mount Info"
@@ -129,8 +128,8 @@ bool IEQPro::initProperties()
     AddTrackMode("TRACK_CUSTOM", "Custom");
 
     // Set TrackRate limits within +/- 0.0100 of Sidereal rate
-    TrackRateN[AXIS_RA].min = 15.031067;
-    TrackRateN[AXIS_RA].max = 15.051067;
+    TrackRateN[AXIS_RA].min = TRACKRATE_SIDEREAL - 0.01;
+    TrackRateN[AXIS_RA].max = TRACKRATE_SIDEREAL + 0.01;
     TrackRateN[AXIS_DE].min = -0.01;
     TrackRateN[AXIS_DE].max = 0.01;
 
@@ -812,7 +811,7 @@ void IEQPro::mountSim()
         case SCOPE_TRACKING:
         if (TrackModeS[1].s == ISS_ON)
         {
-            currentRA  += ( ((SIDRATE) - (TrackRateN[AXIS_RA].value/3600.0)) * dt) / 15.0;
+            currentRA  += ( ((TRACKRATE_SIDEREAL/3600.0) - (TrackRateN[AXIS_RA].value/3600.0)) * dt) / 15.0;
             currentDEC += ( (TrackRateN[AXIS_DE].value/3600.0) * dt);
         }
         break;
@@ -912,7 +911,7 @@ bool IEQPro::SetTrackRate(double raRate, double deRate)
         }
 
         // Convert to arcsecs/s to +/- 0.0100 accepted by
-        double ieqRARate = raRate - 15.041067;
+        double ieqRARate = raRate - TRACKRATE_SIDEREAL;
         if (deRate != 0 && deRateWarning)
         {
             // Only send warning once per session

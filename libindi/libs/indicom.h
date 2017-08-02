@@ -43,7 +43,12 @@
 
 #define J2000       2451545.0
 #define ERRMSG_SIZE 1024
-#define INDI_DEBUG
+
+#define STELLAR_DAY        86164.098903691
+#define TRACKRATE_SIDEREAL ((360.0 * 3600.0) / STELLAR_DAY)
+#define SOLAR_DAY          86400
+#define TRACKRATE_SOLAR    ((360.0 * 3600.0) / SOLAR_DAY)
+#define TRACKRATE_LUNAR    14.511415
 
 extern const char *Direction[];
 extern const char *SolarSystem[];
