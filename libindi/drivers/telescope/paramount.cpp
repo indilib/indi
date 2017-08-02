@@ -1106,8 +1106,8 @@ bool Paramount::SetTrackMode(uint8_t mode)
         dRA = TRACKRATE_LUNAR;
     else if (mode == TRACK_CUSTOM)
     {
-        dRA = TrackRateN[RA_AXIS].value;
-        dDE = TrackRateN[DEC_AXIS].value;
+//        dRA = TrackRateN[RA_AXIS].value;
+//        dDE = TrackRateN[DEC_AXIS].value;
     }
 
     return setTheSkyTracking(enable, isSidereal, dRA, dDE);
@@ -1125,8 +1125,8 @@ bool Paramount::SetTrackEnabled(bool enabled)
         dRA = TRACKRATE_LUNAR;
     else if (mode == TRACK_CUSTOM)
     {
-        dRA = TrackRateN[RA_AXIS].value;
-        dDE = TrackRateN[DEC_AXIS].value;
+//        dRA = TrackRateN[RA_AXIS].value;
+//        dDE = TrackRateN[DEC_AXIS].value;
     }
 
     return setTheSkyTracking(enable, isSidereal, dRA, dDE);

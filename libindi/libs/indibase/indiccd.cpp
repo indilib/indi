@@ -33,6 +33,7 @@
 #include <libnova/ln_types.h>
 #include <libnova/precession.h>
 
+#include <cmath>
 #include <regex>
 
 #include <dirent.h>
@@ -387,10 +388,10 @@ INDI::CCD::CCD()
     GuiderExposureTime = 0.0;
     CurrentFilterSlot  = -1;
 
-    RA              = NAN;
-    Dec             = NAN;
-    MPSAS           = NAN;
-    RotatorAngle    = NAN;
+    RA              = std::numeric_limits<double>::quiet_NaN();
+    Dec             = std::numeric_limits<double>::quiet_NaN();
+    MPSAS           = std::numeric_limits<double>::quiet_NaN();
+    RotatorAngle    = std::numeric_limits<double>::quiet_NaN();
     primaryAperture = primaryFocalLength = guiderAperture = guiderFocalLength - 1;
 }
 
@@ -1748,17 +1749,17 @@ void INDI::CCD::addFITSKeywords(fitsfile *fptr, CCDChip *targetChip)
     else if (TelescopeTypeS[TELESCOPE_GUIDE].s == ISS_ON && guiderFocalLength != -1)
         fits_update_key_s(fptr, TDOUBLE, "FOCALLEN", &guiderFocalLength, "Focal Length (mm)", &status);
 
-    if (MPSAS != NAN)
+    if (!std::isnan(MPSAS))
     {
         fits_update_key_s(fptr, TDOUBLE, "MPSAS", &MPSAS, "Sky Quality (mag per arcsec^2)", &status);
     }
 
-    if (RotatorAngle != NAN)
+    if (!std::isnan(RotatorAngle))
     {
         fits_update_key_s(fptr, TDOUBLE, "ROTATANG", &MPSAS, "Rotator angle in degrees", &status);
     }
 
-    if (targetChip->getFrameType() == CCDChip::LIGHT_FRAME && RA != NAN && Dec != NAN)
+    if (targetChip->getFrameType() == CCDChip::LIGHT_FRAME && !std::isnan(RA) && !std::isnan(Dec))
     {
         ln_equ_posn epochPos, J2000Pos;
         epochPos.ra  = RA * 15.0;
