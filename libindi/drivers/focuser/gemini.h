@@ -39,7 +39,8 @@ class Gemini : public INDI::Focuser
         FOCUS_E_COEFF,
         FOCUS_F_COEFF
     };
-    typedef enum {
+    enum
+    {
         STATUS_MOVING,
         STATUS_HOMING,
         STATUS_HOMED,
@@ -49,12 +50,17 @@ class Gemini : public INDI::Focuser
         STATUS_HNDCTRL,
         STATUS_REVERSE,
         STATUS_UNKNOWN
-    } LYNX_STATUS;
+    };
     enum
     {
         GOTO_CENTER,
         GOTO_HOME
-    };
+    };    
+    typedef enum
+    {
+        DEVICE_FOCUSER,
+        DEVICE_ROTATOR
+    } DeviceType;
 
     virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
     virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
@@ -90,12 +96,16 @@ protected:
     uint32_t targetPosition;
     uint32_t maxControllerTicks;
 
-    ISState simStatus[8];
+    ISState focuserSimStatus[8];
     bool simCompensationOn;
     char focusTarget[8];
 
     struct timeval focusMoveStart;
     float focusMoveRequest;
+
+    ////////////////////////////////////////////////////////////
+    // Focuser Functions
+    ///////////////////////////////////////////////////////////
 
     // Get functions
     bool getFocusConfig();
@@ -120,19 +130,9 @@ protected:
     bool sync(uint32_t position);
 
     // Motion functions
-    bool home();
-    bool center();
-    bool reverse(bool enable);
-
-    // Led level
-    bool setLedLevel(int level);
-
-    // Device Nickname
-    bool setFocuserNickname(const char *nickname);
-
-    // Misc functions
-    bool resetFactory();
-    float calcTimeLeft(timeval, float);
+    bool home(DeviceType type);
+    bool center(DeviceType type);
+    bool reverseRotator(bool enable);
 
     ////////////////////////////////////////////////////////////
     // Focuser Properties
@@ -159,19 +159,19 @@ protected:
     ISwitchVectorProperty TemperatureCompensateModeSP;
 
     // Enable/Disable backlash
-    ISwitch BacklashCompensationS[2];
-    ISwitchVectorProperty BacklashCompensationSP;
+    ISwitch FocuserBacklashCompensationS[2];
+    ISwitchVectorProperty FocuserBacklashCompensationSP;
 
     // Backlash Value
-    INumber BacklashN[1];
-    INumberVectorProperty BacklashNP;
+    INumber FocuserBacklashN[1];
+    INumberVectorProperty FocuserBacklashNP;
 
     // Go to home/center
     ISwitch GotoS[2];
     ISwitchVectorProperty GotoSP;
 
     // Status indicators
-    ILight FocuserStatusL[8];
+    ILight FocuserStatusL[7];
     ILightVectorProperty FocuserStatusLP;
 
     // Sync to a particular position
@@ -182,9 +182,17 @@ protected:
     INumber MaxTravelN[1];
     INumberVectorProperty MaxTravelNP;    
 
-    bool isAbsolute;
-    bool isSynced;
-    bool isHoming;
+    bool isFocuserAbsolute;
+    bool isFocuserSynced;
+    bool isFocuserHoming;
+
+    ////////////////////////////////////////////////////////////
+    // Rotator Functions
+    ///////////////////////////////////////////////////////////
+
+    // Get functions
+    bool getRotatorConfig();
+    bool getRotatorStatus();
 
     ////////////////////////////////////////////////////////////
     // Rotator Properties
@@ -194,6 +202,36 @@ protected:
     ISwitch RotatorReverseS[2];
     ISwitchVectorProperty RotatorReverseSP;
 
+    // Rotator Steps
+    INumber GotoRotatorN[1];
+    INumberVectorProperty GotoRotatorNP;
+
+    // Rotator Degrees or PA (Position Angle)
+    INumber GotoRotatorDegreeN[1];
+    INumberVectorProperty GotoRotatorDegreeNP;
+
+    // Enable/Disable backlash
+    ISwitch RotatorBacklashCompensationS[2];
+    ISwitchVectorProperty RotatorBacklashCompensationSP;
+
+    // Backlash Value
+    INumber RotatorBacklashN[1];
+    INumberVectorProperty RotatorBacklashNP;
+
+    ////////////////////////////////////////////////////////////
+    // Hub Functions
+    ///////////////////////////////////////////////////////////
+
+    // Led level
+    bool setLedLevel(int level);
+
+    // Device Nickname
+    bool setNickname(DeviceType type, const char *nickname);
+
+    // Misc functions
+    bool resetFactory();
+    float calcTimeLeft(timeval, float);
+
     ////////////////////////////////////////////////////////////
     // Hub Properties
     ///////////////////////////////////////////////////////////
@@ -202,8 +240,8 @@ protected:
     ISwitch ResetS[1];
     ISwitchVectorProperty ResetSP;
 
-    // Focus name configure in the HUB
-    IText HFocusNameT[1];
+    // Focus and rotator name configure in the HUB
+    IText HFocusNameT[2];
     ITextVectorProperty HFocusNameTP;
 
     // Led Intensity Value
