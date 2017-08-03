@@ -180,7 +180,7 @@ bool Gemini::initProperties()
     // Go to home/center
     IUFillSwitch(&FocuserGotoS[GOTO_CENTER], "Center", "", ISS_OFF);
     IUFillSwitch(&FocuserGotoS[GOTO_HOME], "Home", "", ISS_OFF);
-    IUFillSwitchVector(&FocuserGotoSP, FocuserGotoS, 2, getDeviceName(), "FOCUSER_GOTO", "", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 0,
+    IUFillSwitchVector(&FocuserGotoSP, FocuserGotoS, 2, getDeviceName(), "FOCUSER_GOTO", "Goto", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 0,
                        IPS_IDLE);
 
     // Sync to a particular position
@@ -234,13 +234,13 @@ bool Gemini::initProperties()
     // Reverse direction
     IUFillSwitch(&RotatorReverseS[0], "Enable", "", ISS_OFF);
     IUFillSwitch(&RotatorReverseS[1], "Disable", "", ISS_ON);
-    IUFillSwitchVector(&RotatorReverseSP, RotatorReverseS, 2, getDeviceName(), "ROTATOR_REVERSE", "", ROTATOR_TAB, IP_RW, ISR_1OFMANY,
+    IUFillSwitchVector(&RotatorReverseSP, RotatorReverseS, 2, getDeviceName(), "ROTATOR_REVERSE", "Reverse", ROTATOR_TAB, IP_RW, ISR_1OFMANY,
                        0, IPS_IDLE);
 
     // Rotator Go to home/center
     IUFillSwitch(&RotatorGotoS[GOTO_CENTER], "Center", "", ISS_OFF);
     IUFillSwitch(&RotatorGotoS[GOTO_HOME], "Home", "", ISS_OFF);
-    IUFillSwitchVector(&RotatorGotoSP, RotatorGotoS, 2, getDeviceName(), "ROTATOR_GOTO", "", ROTATOR_TAB, IP_RW, ISR_1OFMANY, 0,
+    IUFillSwitchVector(&RotatorGotoSP, RotatorGotoS, 2, getDeviceName(), "ROTATOR_GOTO", "Goto", ROTATOR_TAB, IP_RW, ISR_1OFMANY, 0,
                        IPS_IDLE);
 
     // Enable/Disable backlash
@@ -1509,6 +1509,7 @@ bool Gemini::getRotatorStatus()
         return false;
 
     RotatorStatusL[STATUS_HOMED].s = isHomed ? IPS_OK : IPS_IDLE;
+    IDSetLight(&RotatorStatusLP, nullptr);
 
     // Added By Philippe Besson the 28th of June for 'END' evalution
     // END is reached
