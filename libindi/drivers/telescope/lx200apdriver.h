@@ -32,7 +32,8 @@
 #define AP_TRACKING_SIDERAL     0
 #define AP_TRACKING_SOLAR       1
 #define AP_TRACKING_LUNAR       2
-#define AP_TRACKING_OFF         3
+#define AP_TRACKING_CUSTOM      3
+#define AP_TRACKING_OFF         4
 
 #ifdef __cplusplus
 extern "C" {

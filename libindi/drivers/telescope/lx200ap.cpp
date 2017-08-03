@@ -76,9 +76,6 @@ bool LX200AstroPhysics::initProperties()
                        "Horizontal Coords", MAIN_CONTROL_TAB, IP_RW, 120, IPS_IDLE);
 
 
-    // Only limit tracking mode to first 3 modes in LX200 Generic (Sidereal, Lunar, Solar)
-    TrackModeSP.nsp = 3;
-
     // Max rate is 999.99999X for the GTOCP4.
     // Using :RR998.9999#  just to be safe. 15.041067*998.99999 = 15026.02578
     TrackRateN[AXIS_RA].min = -15026.0258;
@@ -1004,7 +1001,19 @@ bool LX200AstroPhysics::SetTrackEnabled(bool enabled)
         return true;
 
     if (enabled)
-        return SetTrackMode(IUFindOnSwitchIndex(&TrackModeSP));
+    {
+        int currentTrackingMode = IUFindOnSwitchIndex(&TrackModeSP);
+        // If tracking is custom, then first engage sidereal tracking, then apply custom tracking rates
+        // or should we do it the way around?
+        if (currentTrackingMode == AP_TRACKING_CUSTOM)
+        {
+            bool rc1 = SetTrackMode(AP_TRACKING_SIDERAL);
+            bool rc2 = SetTrackRate(TrackRateN[AXIS_RA].value, TrackRateN[AXIS_DE].value);
+            return (rc1 && rc2);
+        }
+
+        return SetTrackMode(currentTrackingMode);
+    }
 
     int rc = selectAPTrackingMode(PortFD, AP_TRACKING_OFF);
     if (rc < 0)
@@ -1034,18 +1043,29 @@ bool LX200AstroPhysics::SetTrackRate(double raRate, double deRate)
     :RD-5.0000#     =       normal zero rate - 5    =       5X sidereal counter-clockwise from above - equivalent to North
     */
 
-    // Give warning is tracking sign would cause a reverse in direction
-    if ( (raRate * TrackRateN[AXIS_RA].value < 0) || (deRate * TrackRateN[AXIS_DE].value < 0) )
+    if (IUFindOnSwitchIndex(&TrackModeSP) != AP_TRACKING_CUSTOM)
     {
-        DEBUG(INDI::Logger::DBG_ERROR, "Cannot reverse tracking while tracking is engaged. Disengage tracking then try again.");
+        DEBUG(INDI::Logger::DBG_ERROR, "Tracking mode must be set to CUSTOM first.");
         return false;
     }
 
-    double APRARate = (raRate - TRACKRATE_SIDEREAL) / TRACKRATE_SIDEREAL;
-    double APDERate = deRate / TRACKRATE_SIDEREAL;
+    // If mount is tracking, change track rate now
+    if (TrackState == SCOPE_TRACKING)
+    {
+        // Give warning is tracking sign would cause a reverse in direction
+        if ( (raRate * TrackRateN[AXIS_RA].value < 0) || (deRate * TrackRateN[AXIS_DE].value < 0) )
+        {
+            DEBUG(INDI::Logger::DBG_ERROR, "Cannot reverse tracking while tracking is engaged. Disengage tracking then try again.");
+            return false;
+        }
 
-    if (setAPRATrackRate(PortFD, APRARate) < 0 || setAPDETrackRate(PortFD, APDERate) < 0)
-        return false;
+        double APRARate = (raRate - TRACKRATE_SIDEREAL) / TRACKRATE_SIDEREAL;
+        double APDERate = deRate / TRACKRATE_SIDEREAL;
 
+        if (setAPRATrackRate(PortFD, APRARate) < 0 || setAPDETrackRate(PortFD, APDERate) < 0)
+            return false;
+    }
+
+    // If tracking is off, then just accept the value and re-apply them again when tracking is enagned
     return true;
 }
