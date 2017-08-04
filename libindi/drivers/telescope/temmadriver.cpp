@@ -743,7 +743,6 @@ bool TemmaMount::updateTime(ln_date *utc, double utc_offset)
 bool TemmaMount::updateLocation(double latitude, double longitude, double elevation)
 {
     INDI_UNUSED(elevation);
-    bool DoFirstTimeStuff = false;
     double lst;
 
     Longitude = longitude;
@@ -759,7 +758,6 @@ bool TemmaMount::updateLocation(double latitude, double longitude, double elevat
         //GetTemmaLattitude();
         SetTemmaLst();
         TemmaInitialized = true;
-        DoFirstTimeStuff = true;
 
         //  We were NOT intialized, so, in case there is not park position set
         //  Sync to the position of bar vertical, telescope pointed at pole

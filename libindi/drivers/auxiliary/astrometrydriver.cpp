@@ -344,6 +344,9 @@ bool AstrometryDriver::processBLOB(uint8_t *data, uint32_t size, uint32_t len)
     if (fp == nullptr)
     {
         DEBUGF(INDI::Logger::DBG_ERROR, "Unable to save image file (%s). %s", imageFileName, strerror(errno));
+        if (size != len)
+            delete[] processedData;
+
         return false;
     }
 

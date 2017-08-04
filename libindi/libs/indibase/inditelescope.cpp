@@ -1485,8 +1485,8 @@ bool INDI::Telescope::SetTrackEnabled(bool enabled)
 
 int INDI::Telescope::AddTrackMode(const char *name, const char *label, bool isDefault)
 {
-    TrackModeS = (TrackModeS == nullptr) ? (ISwitch *)malloc(sizeof(INumber)) :
-                                           (ISwitch *)realloc(TrackModeS, (TrackModeSP.nsp + 1) * sizeof(INumber));
+    TrackModeS = (TrackModeS == nullptr) ? (ISwitch *)malloc(sizeof(ISwitch)) :
+                                           (ISwitch *)realloc(TrackModeS, (TrackModeSP.nsp + 1) * sizeof(ISwitch));
 
     IUFillSwitch(&TrackModeS[TrackModeSP.nsp], name, label, isDefault ? ISS_ON : ISS_OFF);
 
