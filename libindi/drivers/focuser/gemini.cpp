@@ -1337,8 +1337,12 @@ bool Gemini::getRotatorStatus()
     int rc = sscanf(response, "%16[^=]=%d", key, &currPos);
     if (rc == 2)
     {
-        RotatorAbsPosN[0].value = currPos;
-        IDSetNumber(&RotatorAbsPosNP, nullptr);
+        // Do not spam unless there is an actual change
+        if (RotatorAbsPosN[0].value != currPos)
+        {
+            RotatorAbsPosN[0].value = currPos;
+            IDSetNumber(&RotatorAbsPosNP, nullptr);
+        }
     }
     else
         return false;
@@ -1383,8 +1387,13 @@ bool Gemini::getRotatorStatus()
     rc = sscanf(response, "%16[^=]=%d", key, &currPA);
     if (rc == 2)
     {
-        RotatorAbsAngleN[0].value = currPA / 1000.0;
-        IDSetNumber(&RotatorAbsAngleNP, nullptr);
+        // Only send when above a threshold
+        double diffPA = fabs(RotatorAbsAngleN[0].value - currPA / 1000.0);
+        if (diffPA >= 0.01)
+        {
+            RotatorAbsAngleN[0].value = currPA / 1000.0;
+            IDSetNumber(&RotatorAbsAngleNP, nullptr);
+        }
     }
     else
         return false;
