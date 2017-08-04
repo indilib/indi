@@ -251,7 +251,14 @@ void rmTimer(int timer_id)
         tp[-1] = tp[0];
 
     /* shrink list */
-    timef = (TF *)realloc(timef, (--ntimef) * sizeof(TF));
+    ntimef--;
+    if (ntimef == 0)
+    {
+        free(timef);
+        timef = NULL;
+        return;
+    }
+    timef = (TF *)realloc(timef, ntimef * sizeof(TF));
 }
 
 /* add a new work procedure, fp, to be called with ud when nothing else to do.

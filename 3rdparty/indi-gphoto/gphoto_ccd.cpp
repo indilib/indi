@@ -467,7 +467,7 @@ bool GPhotoCCD::updateProperties()
 
 bool GPhotoCCD::ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
 {
-    if (strcmp(dev, getDeviceName()) == 0)
+    if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
         if (strcmp(name, PortTP.name) == 0)
         {
@@ -506,7 +506,7 @@ bool GPhotoCCD::ISNewText(const char *dev, const char *name, char *texts[], char
 
 bool GPhotoCCD::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
 {
-    if (strcmp(dev, getDeviceName()) == 0)
+    if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
         if (!strcmp(name, mIsoSP.name))
         {
@@ -739,7 +739,7 @@ bool GPhotoCCD::ISNewSwitch(const char *dev, const char *name, ISState *states, 
 
 bool GPhotoCCD::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
 {
-    if (strcmp(dev, getDeviceName()) == 0)
+    if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
         if (strstr(name, "FOCUS_"))
             return processFocuserNumber(dev, name, values, names, n);

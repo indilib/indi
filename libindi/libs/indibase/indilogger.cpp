@@ -274,7 +274,7 @@ bool Logger::ISNewSwitch(const char *dev, const char *name, ISState *states, cha
 }
 
 // Definition (and initialization) of static attributes
-Logger *Logger::m_ = 0;
+Logger *Logger::m_ = nullptr;
 
 #ifdef LOGGER_MULTITHREAD
 pthread_mutex_t Logger::lock_ = PTHREAD_MUTEX_INITIALIZER;
@@ -296,27 +296,11 @@ void Logger::unlock()
 }
 #endif
 
-/**
- * \brief Constructor.
- * It is a private constructor, called only by getInstance() and only the
- * first time. It is called inside a lock, so lock inside this method
- * is not required.
- * It only initializes the initial time. All configuration is done inside the
- * configure() method.
- */
 Logger::Logger() : configured_(false)
 {
     gettimeofday(&initialTime_, nullptr);
 }
 
-/**
- * \brief Method to configure the logger. Called by the DEBUG_CONF() macro. To make implementation easier, the old stream is always closed.
- * Then, in case, it is open again in append mode.
- * @param outputFile of the file used for logging
- * @param configuration (i.e., log on file and on screen on or off)
- * @param fileVerbosityLevel threshold for file
- * @param screenVerbosityLevel threshold for screen
- */
 void Logger::configure(const std::string &outputFile, const loggerConf configuration, const int fileVerbosityLevel,
                        const int screenVerbosityLevel)
 {
@@ -363,39 +347,25 @@ void Logger::configure(const std::string &outputFile, const loggerConf configura
     Logger::unlock();
 }
 
-/**
- * \brief Destructor.
- * It only closes the file, if open, and cleans memory.
- */
-
 Logger::~Logger()
 {
     Logger::lock();
     if (configuration_ & file_on)
         out_.close();
-    delete m_;
+
+    m_ = nullptr;
     Logger::unlock();
 }
 
-/**
- * \brief Method to get a reference to the object (i.e., Singleton)
- * It is a static method.
- * @return Reference to the object.
- */
 Logger &Logger::getInstance()
 {
     Logger::lock();
-    if (m_ == 0)
+    if (m_ == nullptr)
         m_ = new Logger;
     Logger::unlock();
     return *m_;
 }
 
-/**
- * \brief Method used to print message called by the DEBUG() macro.
-   @ param i which debugging to query its rank. The lower the rank, the more priority it is.
-   @ return rank of debugging level requested.
- */
 unsigned int Logger::rank(unsigned int l)
 {
     switch (l)
