@@ -1158,8 +1158,8 @@ void LX200Generic::mountSim()
 {
     static struct timeval ltv;
     struct timeval tv;
-    double dt, da, dx;
-    int nlocked;
+    double dt=0, da=0, dx=0;
+    int nlocked=0;
 
     /* update elapsed time since last poll, don't presume exactly POLLMS */
     gettimeofday(&tv, nullptr);
