@@ -890,15 +890,46 @@ bool INDI::Telescope::ISNewNumber(const char *dev, const char *name, double valu
             double preAxis1 = TrackRateN[AXIS_RA].value, preAxis2 = TrackRateN[AXIS_DE].value;
             bool rc = (IUUpdateNumber(&TrackRateNP, values, names, n) == 0);
 
-            if (rc)
-                rc = SetTrackRate(TrackRateN[AXIS_RA].value, TrackRateN[AXIS_DE].value);
-
             if (rc == false)
             {
-               TrackRateN[AXIS_RA].value = preAxis1;
-               TrackRateN[AXIS_DE].value = preAxis2;
+                TrackRateNP.s = IPS_ALERT;
+                IDSetNumber(&TrackRateNP, nullptr);
+                return false;
             }
 
+            if (TrackState == SCOPE_TRACKING)
+            {
+                // Check that we have custom mode selected
+                if (strcmp(IUFindOnSwitch(&TrackModeSP)->name, "TRACK_CUSTOM"))
+                {
+                    DEBUG(INDI::Logger::DBG_ERROR, "Tracking mode must be set to CUSTOM first.");
+                    TrackRateNP.s = IPS_ALERT;
+                    TrackRateN[AXIS_RA].value = preAxis1;
+                    TrackRateN[AXIS_DE].value = preAxis2;
+                    IDSetNumber(&TrackRateNP, nullptr);
+                    return false;
+                }
+
+                // Check that we do not abruplty change positive tracking rates to negative ones.
+                // tracking must be stopped first.
+                // Give warning is tracking sign would cause a reverse in direction
+                if ( (preAxis1 * TrackRateN[AXIS_RA].value < 0) || (preAxis2 * TrackRateN[AXIS_DE].value < 0) )
+                {
+                    DEBUG(INDI::Logger::DBG_ERROR, "Cannot reverse tracking while tracking is engaged. Disengage tracking then try again.");
+                    return false;
+                }
+
+                // All is fine, ask mount to change tracking rate
+                rc = SetTrackRate(TrackRateN[AXIS_RA].value, TrackRateN[AXIS_DE].value);
+
+                if (rc == false)
+                {
+                   TrackRateN[AXIS_RA].value = preAxis1;
+                   TrackRateN[AXIS_DE].value = preAxis2;
+                }
+            }
+
+            // If mount is NOT tracking, we simply accept whatever valid values for use when mount tracking is engaged.
             TrackRateNP.s = rc ? IPS_OK : IPS_ALERT;
             IDSetNumber(&TrackRateNP, nullptr);
             return true;
@@ -1200,36 +1231,33 @@ bool INDI::Telescope::ISNewSwitch(const char *dev, const char *name, ISState *st
         ///////////////////////////////////
         if (!strcmp(name, TrackModeSP.name))
         {
-            const char *targetMode = IUFindOnSwitchName(states, names, n);
-            int targetIndex = -1;
-            for (int i=0; i < TrackModeSP.nsp; i++)
+            int prevIndex = IUFindOnSwitchIndex(&TrackModeSP);
+            IUUpdateSwitch(&TrackModeSP, states, names, n);
+            int currIndex = IUFindOnSwitchIndex(&TrackModeSP);
+            // If same as previous index, or if scope is already idle, then just update switch and return. No commands are sent to the mount.
+            if (prevIndex == currIndex || TrackState == SCOPE_IDLE)
             {
-               if (!strcmp(targetMode, TrackModeS[i].name))
-               {
-                   targetIndex = i;
-                   break;
-               }
+                TrackModeSP.s = IPS_OK;
+                IDSetSwitch(&TrackModeSP, nullptr);
+                return true;
             }
 
-            if (targetIndex == -1)
+            if (TrackState == SCOPE_PARKED)
             {
-                TrackModeSP.s = IPS_ALERT;
-                IDSetSwitch(&TrackModeSP, NULL);
-                DEBUGF(INDI::Logger::DBG_ERROR, "Unable to find %s tracking mode!", targetMode);
+                DEBUG(INDI::Logger::DBG_WARNING, "Telescope is Parked, Unpark before changing track mode.");
                 return false;
             }
 
-            bool rc = SetTrackMode(targetIndex);
-
+            bool rc = SetTrackMode(currIndex);
             if (rc)
-            {
-                IUUpdateSwitch(&TrackModeSP, states, names, n);
                 TrackModeSP.s = IPS_OK;
-            }
             else
+            {
+                IUResetSwitch(&TrackModeSP);
+                TrackModeS[prevIndex].s = ISS_ON;
                 TrackModeSP.s = IPS_ALERT;
-
-            IDSetSwitch(&TrackModeSP, NULL);
+            }
+            IDSetSwitch(&TrackModeSP, nullptr);
             return false;
         }
 
