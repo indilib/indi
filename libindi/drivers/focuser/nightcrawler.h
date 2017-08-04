@@ -62,10 +62,10 @@ class NightCrawler : public INDI::Focuser
 
         // Get Position
         bool getPosition(MotorType type);
-        INumber GotoRotatorN[1];
-        INumberVectorProperty GotoRotatorNP;
-        INumber GotoRotatorDegreeN[1];
-        INumberVectorProperty GotoRotatorDegreeNP;
+        INumber RotatorAbsPosN[1];
+        INumberVectorProperty RotatorAbsPosNP;
+        INumber RotatorAbsAngleN[1];
+        INumberVectorProperty RotatorAbsAngleNP;
         INumber GotoAuxN[1];
         INumberVectorProperty GotoAuxNP;
 

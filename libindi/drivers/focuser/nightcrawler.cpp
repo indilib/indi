@@ -149,12 +149,12 @@ bool NightCrawler::initProperties()
     /////////////////////////////////////////////////////
 
     // Rotator GOTO
-    IUFillNumber(&GotoRotatorN[0], "ROTATOR_ABSOLUTE_POSITION", "Ticks", "%.f", 0., 0., 0., 0.);
-    IUFillNumberVector(&GotoRotatorNP, GotoRotatorN, 1, getDeviceName(), "ABS_ROTATOR_POSITION", "Goto", ROTATOR_TAB, IP_RW, 0, IPS_IDLE );
+    IUFillNumber(&RotatorAbsPosN[0], "ROTATOR_ABSOLUTE_POSITION", "Ticks", "%.f", 0., 0., 0., 0.);
+    IUFillNumberVector(&RotatorAbsPosNP, RotatorAbsPosN, 1, getDeviceName(), "ABS_ROTATOR_POSITION", "Goto", ROTATOR_TAB, IP_RW, 0, IPS_IDLE );
 
     // Rotator Degree
-    IUFillNumber(&GotoRotatorDegreeN[0], "ANGLE", "Degrees", "%.2f", 0, 360., 10., 0.);
-    IUFillNumberVector(&GotoRotatorDegreeNP, GotoRotatorDegreeN, 1, getDeviceName(), "ABS_ROTATOR_ANGLE", "Angle", ROTATOR_TAB, IP_RW, 0, IPS_IDLE );
+    IUFillNumber(&RotatorAbsAngleN[0], "ANGLE", "Degrees", "%.2f", 0, 360., 10., 0.);
+    IUFillNumberVector(&RotatorAbsAngleNP, RotatorAbsAngleN, 1, getDeviceName(), "ABS_ROTATOR_ANGLE", "Angle", ROTATOR_TAB, IP_RW, 0, IPS_IDLE );
 
     // Abort Rotator
     IUFillSwitch(&AbortRotatorS[0], "ABORT", "Abort", ISS_OFF);
@@ -226,8 +226,8 @@ bool NightCrawler::updateProperties()
         defineSwitch(&FindHomeSP);
 
         // Rotator
-        defineNumber(&GotoRotatorNP);
-        defineNumber(&GotoRotatorDegreeNP);
+        defineNumber(&RotatorAbsPosNP);
+        defineNumber(&RotatorAbsAngleNP);
         defineSwitch(&AbortRotatorSP);
         defineNumber(&SyncRotatorNP);
         defineNumber(&RotatorStepDelayNP);        
@@ -252,8 +252,8 @@ bool NightCrawler::updateProperties()
         deleteProperty(HomeSelectionSP.name);
 
         // Rotator
-        deleteProperty(GotoRotatorNP.name);
-        deleteProperty(GotoRotatorDegreeNP.name);
+        deleteProperty(RotatorAbsPosNP.name);
+        deleteProperty(RotatorAbsAngleNP.name);
         deleteProperty(AbortRotatorSP.name);
         deleteProperty(SyncRotatorNP.name);
         deleteProperty(RotatorStepDelayNP.name);
@@ -351,21 +351,21 @@ bool NightCrawler::getFocuserType()
 
     if (!strcmp(resp, "2.5 NC"))
     {
-        GotoRotatorN[0].min = -NC_25_STEPS;
-        GotoRotatorN[0].max = NC_25_STEPS;
+        RotatorAbsPosN[0].min = -NC_25_STEPS;
+        RotatorAbsPosN[0].max = NC_25_STEPS;
     }
     else if (!strcmp(resp, "3.0 NC"))
     {
-        GotoRotatorN[0].min = -NC_30_STEPS;
-        GotoRotatorN[0].max = NC_30_STEPS;
+        RotatorAbsPosN[0].min = -NC_30_STEPS;
+        RotatorAbsPosN[0].max = NC_30_STEPS;
     }
     else
     {
-        GotoRotatorN[0].min = -NC_35_STEPS;
-        GotoRotatorN[0].max = NC_35_STEPS;
+        RotatorAbsPosN[0].min = -NC_35_STEPS;
+        RotatorAbsPosN[0].max = NC_35_STEPS;
     }
 
-    ticksPerDegree = GotoRotatorN[0].max / 360.0;
+    ticksPerDegree = RotatorAbsPosN[0].max / 360.0;
 
     return true;
 }
@@ -443,7 +443,7 @@ bool NightCrawler::getPosition(MotorType type)
         if (type == MOTOR_FOCUS)
             FocusAbsPosN[0].value = position;
         else if (type == MOTOR_ROTATOR)
-            GotoRotatorN[0].value = position;
+            RotatorAbsPosN[0].value = position;
         else
             GotoAuxN[0].value = position;
 
@@ -524,12 +524,12 @@ bool NightCrawler::ISNewSwitch (const char * dev, const char * name, ISState * s
             IDSetSwitch(&AbortRotatorSP, NULL);
             if (AbortRotatorSP.s == IPS_OK)
             {
-                if (GotoRotatorNP.s != IPS_OK)
+                if (RotatorAbsPosNP.s != IPS_OK)
                 {
-                    GotoRotatorNP.s = IPS_OK;
-                    GotoRotatorDegreeNP.s = IPS_OK;
-                    IDSetNumber(&GotoRotatorNP, NULL);
-                    IDSetNumber(&GotoRotatorDegreeNP, NULL);
+                    RotatorAbsPosNP.s = IPS_OK;
+                    RotatorAbsAngleNP.s = IPS_OK;
+                    IDSetNumber(&RotatorAbsPosNP, NULL);
+                    IDSetNumber(&RotatorAbsAngleNP, NULL);
                 }
             }
             return true;
@@ -634,35 +634,35 @@ bool NightCrawler::ISNewNumber (const char * dev, const char * name, double valu
             IDSetNumber(&BrightnessNP, NULL);
             return true;
         }
-        else if (!strcmp(name, GotoRotatorNP.name))
+        else if (!strcmp(name, RotatorAbsPosNP.name))
         {
            bool rc = gotoMotor(MOTOR_ROTATOR, static_cast<int32_t>(values[0]));
-           GotoRotatorNP.s = rc ? IPS_BUSY : IPS_OK;
-           IDSetNumber(&GotoRotatorNP, NULL);
+           RotatorAbsPosNP.s = rc ? IPS_BUSY : IPS_OK;
+           IDSetNumber(&RotatorAbsPosNP, NULL);
            DEBUGF(INDI::Logger::DBG_SESSION, "Rotator moving to %.f ticks...", values[0]);
            return true;
         }
-        else if (!strcmp(name, GotoRotatorDegreeNP.name))
+        else if (!strcmp(name, RotatorAbsAngleNP.name))
         {
            // Find shortest distance given target degree
            double a=values[0];
-           double b=GotoRotatorDegreeN[0].value;
+           double b=RotatorAbsAngleN[0].value;
            double d=fabs(a-b);
            double r=(d > 180) ? 360 - d : d;
            int sign = (a - b >= 0 && a - b <= 180) || (a - b <=-180 && a- b>= -360) ? 1 : -1;
            r *= sign;
 
            double newTarget = (r+b) * ticksPerDegree;
-           if (newTarget < GotoRotatorN[0].min)
-               newTarget -= GotoRotatorN[0].min;
-           else if (newTarget > GotoRotatorN[0].max)
-               newTarget -= GotoRotatorN[0].max;
+           if (newTarget < RotatorAbsPosN[0].min)
+               newTarget -= RotatorAbsPosN[0].min;
+           else if (newTarget > RotatorAbsPosN[0].max)
+               newTarget -= RotatorAbsPosN[0].max;
 
            bool rc = gotoMotor(MOTOR_ROTATOR, static_cast<int32_t>(newTarget));
-           GotoRotatorNP.s = rc ? IPS_BUSY : IPS_OK;
-           GotoRotatorDegreeNP.s = rc ? IPS_BUSY : IPS_OK;
-           IDSetNumber(&GotoRotatorDegreeNP, NULL);
-           IDSetNumber(&GotoRotatorNP, NULL);
+           RotatorAbsPosNP.s = rc ? IPS_BUSY : IPS_OK;
+           RotatorAbsAngleNP.s = rc ? IPS_BUSY : IPS_OK;
+           IDSetNumber(&RotatorAbsAngleNP, NULL);
+           IDSetNumber(&RotatorAbsPosNP, NULL);
            DEBUGF(INDI::Logger::DBG_SESSION, "Rotator moving to %.2f degrees (%.f ticks)...", values[0], newTarget);
            return true;
         }
@@ -799,28 +799,28 @@ void NightCrawler::TimerHit()
 
     // #6 Rotator Position & Status
     bool absRotatorUpdated=false;
-    if (GotoRotatorNP.s == IPS_BUSY)
+    if (RotatorAbsPosNP.s == IPS_BUSY)
     {
         // Stopped moving
         if (isMotorMoving(MOTOR_ROTATOR) == false)
         {
-            GotoRotatorNP.s = IPS_OK;
-            GotoRotatorDegreeNP.s = IPS_OK;
+            RotatorAbsPosNP.s = IPS_OK;
+            RotatorAbsAngleNP.s = IPS_OK;
             absRotatorUpdated = true;
             DEBUG(INDI::Logger::DBG_SESSION, "Rotator motion complete.");
         }
     }
     rc = getPosition(MOTOR_ROTATOR);
-    if (rc && GotoRotatorN[0].value != lastRotatorPosition)
+    if (rc && RotatorAbsPosN[0].value != lastRotatorPosition)
     {
-        lastRotatorPosition = GotoRotatorN[0].value;
-        GotoRotatorDegreeN[0].value = range360(GotoRotatorN[0].value / ticksPerDegree);
+        lastRotatorPosition = RotatorAbsPosN[0].value;
+        RotatorAbsAngleN[0].value = range360(RotatorAbsPosN[0].value / ticksPerDegree);
         absRotatorUpdated = true;
     }
     if (absRotatorUpdated)
     {
-        IDSetNumber(&GotoRotatorNP, NULL);
-        IDSetNumber(&GotoRotatorDegreeNP, NULL);
+        IDSetNumber(&RotatorAbsPosNP, NULL);
+        IDSetNumber(&RotatorAbsAngleNP, NULL);
     }
 
     // #7 Aux Position & Status
