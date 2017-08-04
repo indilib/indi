@@ -133,9 +133,6 @@ protected:
     bool setBacklashCompensation(DeviceType type, bool enable);
     bool setBacklashCompensationSteps(DeviceType type, uint16_t steps);
 
-    // Sync
-    bool sync(uint32_t position);
-
     // Motion functions
     bool home(DeviceType type);
     bool halt(DeviceType type);
@@ -186,12 +183,7 @@ protected:
     ILight FocuserStatusL[8];
     ILightVectorProperty FocuserStatusLP;
 
-    // Sync to a particular position
-    INumber SyncN[1];
-    INumberVectorProperty SyncNP;
-
     bool isFocuserAbsolute;
-    bool isFocuserSynced;
     bool isFocuserHoming;
 
     ////////////////////////////////////////////////////////////

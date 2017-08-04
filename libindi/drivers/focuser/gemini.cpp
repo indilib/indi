@@ -93,7 +93,6 @@ Gemini::Gemini()
     SetFocuserCapability(FOCUSER_CAN_ABORT | FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_REL_MOVE);
 
     isFocuserAbsolute = true;
-    isFocuserSynced   = false;
     isFocuserHoming   = false;
 
     focuserSimStatus[STATUS_MOVING]   = ISS_OFF;
@@ -182,10 +181,6 @@ bool Gemini::initProperties()
     IUFillSwitch(&FocuserGotoS[GOTO_HOME], "Home", "", ISS_OFF);
     IUFillSwitchVector(&FocuserGotoSP, FocuserGotoS, 2, getDeviceName(), "FOCUSER_GOTO", "Goto", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 0,
                        IPS_IDLE);
-
-    // Sync to a particular position
-    IUFillNumber(&SyncN[0], "FOCUS_SYNC_OFFSET", "Offset", "%6.0f", 0, 100000., 0., 0.);
-    IUFillNumberVector(&SyncNP, SyncN, 1, getDeviceName(), "FOCUS_SYNC", "Sync", MAIN_CONTROL_TAB, IP_RW, 0, IPS_IDLE);
 
     // Focus Status indicators
     IUFillLight(&FocuserStatusL[STATUS_MOVING], "Is Moving", "", IPS_IDLE);
@@ -327,9 +322,6 @@ bool Gemini::updateProperties()
     }
     else
     {
-        if (isFocuserAbsolute == false)
-            deleteProperty(SyncNP.name);
-
         // Focuser Properties
         deleteProperty(TemperatureNP.name);
         deleteProperty(TemperatureCoeffNP.name);
@@ -717,19 +709,6 @@ bool Gemini::ISNewNumber(const char *dev, const char *name, double values[], cha
             return true;
         }
 
-        // Sync
-        if (!strcmp(SyncNP.name, name))
-        {
-            IUUpdateNumber(&SyncNP, values, names, n);
-            if (sync(SyncN[0].value) == false)
-                SyncNP.s = IPS_ALERT;
-            else
-                SyncNP.s = IPS_OK;
-
-            IDSetNumber(&SyncNP, nullptr);
-            return true;
-        }
-
         // Set LED intensity to the HUB itself via function setLedLevel()
         if (!strcmp(LedNP.name, name))
         {
@@ -928,9 +907,9 @@ bool Gemini::getFocusConfig()
     rc = sscanf(response, "%16[^=]=%d", key, &maxPos);
     if (rc == 2)
     {
-        FocusAbsPosN[0].max = SyncN[0].max = maxPos;
-        FocusAbsPosN[0].step = SyncN[0].step = maxPos / 50.0;
-        FocusAbsPosN[0].min = SyncN[0].min = 0;
+        FocusAbsPosN[0].max = maxPos;
+        FocusAbsPosN[0].step = maxPos / 50.0;
+        FocusAbsPosN[0].min = 0;
 
         FocusRelPosN[0].max  = maxPos / 2;
         FocusRelPosN[0].step = maxPos / 100.0;
@@ -938,7 +917,6 @@ bool Gemini::getFocusConfig()
 
         IUUpdateMinMax(&FocusAbsPosNP);
         IUUpdateMinMax(&FocusRelPosNP);
-        IUUpdateMinMax(&SyncNP);
 
         maxControllerTicks = maxPos;
     }
@@ -2901,50 +2879,6 @@ bool Gemini::reverseRotator(bool enable)
 }
 
 /************************************************************************************
- * FIXME! It appeas SYNC command is not available?
- * http://www.optecinc.com/astronomy/catalog/gemini/pdf/Gemini%20Command%20Processing_rev%202.1.pdf
-* ***********************************************************************************/
-bool Gemini::sync(uint32_t position)
-{
-    char cmd[32];
-    int errcode = 0;
-    char errmsg[MAXRBUF];
-    char response[16];
-    int nbytes_written = 0;
-
-    memset(response, 0, sizeof(response));
-
-    // FIXME
-    //snprintf(cmd, 32, "<%sSCCP%06d>", getFocusTarget(), position);
-
-    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
-
-    if (isSimulation())
-    {
-        focuserSimPosition = position;
-    }
-    else
-    {
-        tcflush(PortFD, TCIFLUSH);
-
-        if ((errcode = tty_write(PortFD, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
-        {
-            tty_error_msg(errcode, errmsg, MAXRBUF);
-            DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
-            return false;
-        }
-
-        if (isResponseOK() == false)
-            return false;
-    }
-
-    tcflush(PortFD, TCIFLUSH);
-    DEBUGF(INDI::Logger::DBG_SESSION, "Setting current position to %d", position);
-    isFocuserSynced = true;
-    return true;
-}
-
-/************************************************************************************
  *
 * ***********************************************************************************/
 bool Gemini::resetFactory()
@@ -3062,14 +2996,6 @@ IPState Gemini::MoveFocuser(FocusDirection dir, int speed, uint16_t duration)
 
     INDI_UNUSED(speed);
 
-    // Relative focusers must be synced initially.
-    if (isFocuserAbsolute == false && isFocuserSynced == false)
-    {
-        DEBUG(INDI::Logger::DBG_ERROR,
-              "Relative focusers must be synced. Please sync before issuing any motion commands.");
-        return IPS_ALERT;
-    }
-
     memset(response, 0, sizeof(response));
 
     snprintf(cmd, 16, "<F100DOMOVE%c>", (dir == FOCUS_INWARD) ? '0' : '1');
@@ -3117,14 +3043,6 @@ IPState Gemini::MoveAbsFocuser(uint32_t targetTicks)
     char response[16];
     int nbytes_written = 0;
 
-    // Relative focusers must be synced initially.
-    if (isFocuserAbsolute == false && isFocuserSynced == false)
-    {
-        DEBUG(INDI::Logger::DBG_ERROR,
-              "Relative focusers must be synced. Please sync before issuing any motion commands.");
-        return IPS_ALERT;
-    }
-
     targetFocuserPosition = targetTicks;
 
     memset(response, 0, sizeof(response));
@@ -3161,14 +3079,6 @@ IPState Gemini::MoveAbsFocuser(uint32_t targetTicks)
 IPState Gemini::MoveRelFocuser(FocusDirection dir, uint32_t ticks)
 {
     uint32_t newPosition = 0;
-
-    // Relative focusers must be synced initially.
-    if (isFocuserAbsolute == false && isFocuserSynced == false)
-    {
-        DEBUG(INDI::Logger::DBG_ERROR,
-              "Relative focusers must be synced. Please sync before issuing any motion commands.");
-        return IPS_ALERT;
-    }
 
     if (dir == FOCUS_INWARD)
         newPosition = FocusAbsPosN[0].value - ticks;
