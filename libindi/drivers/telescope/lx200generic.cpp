@@ -10,7 +10,7 @@ either
 version 2.1 of the License, or (at your option) any later version.
 
 This library is distributed in the hope that it will be useful,
-     but WITHOUT ANY WARRANTY;
+but WITHOUT ANY WARRANTY;
 without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
 Lesser General Public License for more details.
@@ -21,37 +21,37 @@ if not, write to the Free Software
 Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110 - 1301  USA
 
 2013 - 10 - 27:
-Updated driver to use INDI::Telescope (JM)
-2015 - 11 - 25:
-    Use variable updatePeriodMS instead of static POLLMS
+    Updated driver to use INDI::Telescope (JM)
+  2015 - 11 - 25:
+  Use variable updatePeriodMS instead of static POLLMS
 
-#endif
+  #endif
 
-#include "lx200generic.h"
+  #include "lx200generic.h"
 
-#include "indicom.h"
-#include "lx200_10micron.h"
-#include "lx200_16.h"
-#include "lx200_OnStep.h"
-#include "lx200ap.h"
-#include "lx200classic.h"
-#include "lx200driver.h"
-#include "lx200fs2.h"
-#include "lx200gemini.h"
-#include "lx200pulsar2.h"
-#include "lx200ss2000pc.h"
-#include "lx200zeq25.h"
-#include "lx200gotonova.h"
+  #include "indicom.h"
+  #include "lx200_10micron.h"
+  #include "lx200_16.h"
+  #include "lx200_OnStep.h"
+  #include "lx200ap.h"
+  #include "lx200classic.h"
+  #include "lx200driver.h"
+  #include "lx200fs2.h"
+  #include "lx200gemini.h"
+  #include "lx200pulsar2.h"
+  #include "lx200ss2000pc.h"
+  #include "lx200zeq25.h"
+  #include "lx200gotonova.h"
 
-#include <libnova/sidereal_time.h>
+  #include <libnova/sidereal_time.h>
 
-#include <math.h>
-#include <memory>
-#include <string.h>
-#include <unistd.h>
+  #include <math.h>
+  #include <memory>
+  #include <string.h>
+  #include <unistd.h>
 
-// We declare an auto pointer to LX200Generic.
-std::unique_ptr<LX200Generic> telescope;
+  // We declare an auto pointer to LX200Generic.
+  std::unique_ptr<LX200Generic> telescope;
 
 /* There is _one_ binary for all LX200 drivers, but each binary is renamed
 ** to its device name (i.e. lx200gps, lx200_16..etc). The main function will
@@ -238,7 +238,7 @@ LX200Generic::LX200Generic()
                        LX200_HAS_PULSE_GUIDING);
 
     SetTelescopeCapability(TELESCOPE_CAN_PARK | TELESCOPE_CAN_SYNC | TELESCOPE_CAN_GOTO | TELESCOPE_CAN_ABORT |
-                               TELESCOPE_HAS_TIME | TELESCOPE_HAS_LOCATION | TELESCOPE_HAS_TRACK_MODE,
+                           TELESCOPE_HAS_TIME | TELESCOPE_HAS_LOCATION | TELESCOPE_HAS_TRACK_MODE,
                            4);
 
     DEBUG(INDI::Logger::DBG_DEBUG, "Initializing from Generic LX200 device...");
@@ -352,7 +352,7 @@ void LX200Generic::ISGetProperties(const char *dev)
     if (isConnected())
     {
         if (genericCapability & LX200_HAS_ALIGNMENT_TYPE)
-            defineSwitch(&AlignmentSP);        
+            defineSwitch(&AlignmentSP);
 
         if (genericCapability & LX200_HAS_TRACKING_FREQ)
             defineNumber(&TrackingFreqNP);
@@ -517,14 +517,14 @@ bool LX200Generic::Goto(double ra, double dec)
 
     switch (getLX200Format())
     {
-        case LX200_LONGER_FORMAT:
-            fracbase = 360000;
-            break;
-        case LX200_LONG_FORMAT:
-        case LX200_SHORT_FORMAT:
-        default:
-            fracbase = 3600;
-            break;
+    case LX200_LONGER_FORMAT:
+        fracbase = 360000;
+        break;
+    case LX200_LONG_FORMAT:
+    case LX200_SHORT_FORMAT:
+    default:
+        fracbase = 3600;
+        break;
     }
 
     fs_sexa(RAStr, targetRA, 2, fracbase);
@@ -671,27 +671,27 @@ bool LX200Generic::MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command)
 
     switch (command)
     {
-        case MOTION_START:
-            if (isSimulation() == false && MoveTo(PortFD, current_move) < 0)
-            {
-                DEBUG(INDI::Logger::DBG_ERROR, "Error setting N/S motion direction.");
-                return false;
-            }
-            else
-                DEBUGF(INDI::Logger::DBG_SESSION, "Moving toward %s.",
-                       (current_move == LX200_NORTH) ? "North" : "South");
-            break;
+    case MOTION_START:
+        if (isSimulation() == false && MoveTo(PortFD, current_move) < 0)
+        {
+            DEBUG(INDI::Logger::DBG_ERROR, "Error setting N/S motion direction.");
+            return false;
+        }
+        else
+            DEBUGF(INDI::Logger::DBG_SESSION, "Moving toward %s.",
+                   (current_move == LX200_NORTH) ? "North" : "South");
+        break;
 
-        case MOTION_STOP:
-            if (isSimulation() == false && HaltMovement(PortFD, current_move) < 0)
-            {
-                DEBUG(INDI::Logger::DBG_ERROR, "Error stopping N/S motion.");
-                return false;
-            }
-            else
-                DEBUGF(INDI::Logger::DBG_SESSION, "Movement toward %s halted.",
-                       (current_move == LX200_NORTH) ? "North" : "South");
-            break;
+    case MOTION_STOP:
+        if (isSimulation() == false && HaltMovement(PortFD, current_move) < 0)
+        {
+            DEBUG(INDI::Logger::DBG_ERROR, "Error stopping N/S motion.");
+            return false;
+        }
+        else
+            DEBUGF(INDI::Logger::DBG_SESSION, "Movement toward %s halted.",
+                   (current_move == LX200_NORTH) ? "North" : "South");
+        break;
     }
 
     return true;
@@ -703,26 +703,26 @@ bool LX200Generic::MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command)
 
     switch (command)
     {
-        case MOTION_START:
-            if (isSimulation() == false && MoveTo(PortFD, current_move) < 0)
-            {
-                DEBUG(INDI::Logger::DBG_ERROR, "Error setting W/E motion direction.");
-                return false;
-            }
-            else
-                DEBUGF(INDI::Logger::DBG_SESSION, "Moving toward %s.", (current_move == LX200_WEST) ? "West" : "East");
-            break;
+    case MOTION_START:
+        if (isSimulation() == false && MoveTo(PortFD, current_move) < 0)
+        {
+            DEBUG(INDI::Logger::DBG_ERROR, "Error setting W/E motion direction.");
+            return false;
+        }
+        else
+            DEBUGF(INDI::Logger::DBG_SESSION, "Moving toward %s.", (current_move == LX200_WEST) ? "West" : "East");
+        break;
 
-        case MOTION_STOP:
-            if (isSimulation() == false && HaltMovement(PortFD, current_move) < 0)
-            {
-                DEBUG(INDI::Logger::DBG_ERROR, "Error stopping W/E motion.");
-                return false;
-            }
-            else
-                DEBUGF(INDI::Logger::DBG_SESSION, "Movement toward %s halted.",
-                       (current_move == LX200_WEST) ? "West" : "East");
-            break;
+    case MOTION_STOP:
+        if (isSimulation() == false && HaltMovement(PortFD, current_move) < 0)
+        {
+            DEBUG(INDI::Logger::DBG_ERROR, "Error stopping W/E motion.");
+            return false;
+        }
+        else
+            DEBUGF(INDI::Logger::DBG_SESSION, "Movement toward %s halted.",
+                   (current_move == LX200_WEST) ? "West" : "East");
+        break;
     }
 
     return true;
@@ -1103,54 +1103,54 @@ void LX200Generic::updateFocusTimer()
 {
     switch (FocusTimerNP.s)
     {
-        case IPS_IDLE:
-            break;
+    case IPS_IDLE:
+        break;
 
-        case IPS_BUSY:
+    case IPS_BUSY:
+        if (isDebug())
+            IDLog("Focus Timer Value is %g\n", FocusTimerN[0].value);
+
+        FocusTimerN[0].value -= 50;
+
+        if (FocusTimerN[0].value <= 0)
+        {
             if (isDebug())
-                IDLog("Focus Timer Value is %g\n", FocusTimerN[0].value);
+                IDLog("Focus Timer Expired\n");
 
-            FocusTimerN[0].value -= 50;
-
-            if (FocusTimerN[0].value <= 0)
+            if (isSimulation() == false && setFocuserSpeedMode(telescope->PortFD, 0) < 0)
             {
+                FocusModeSP.s = IPS_ALERT;
+                IDSetSwitch(&FocusModeSP, "Error setting focuser mode.");
+
                 if (isDebug())
-                    IDLog("Focus Timer Expired\n");
+                    IDLog("Error setting focuser mode\n");
 
-                if (isSimulation() == false && setFocuserSpeedMode(telescope->PortFD, 0) < 0)
-                {
-                    FocusModeSP.s = IPS_ALERT;
-                    IDSetSwitch(&FocusModeSP, "Error setting focuser mode.");
-
-                    if (isDebug())
-                        IDLog("Error setting focuser mode\n");
-
-                    return;
-                }
-
-                FocusMotionSP.s = IPS_IDLE;
-                FocusTimerNP.s  = IPS_OK;
-                FocusModeSP.s   = IPS_OK;
-
-                IUResetSwitch(&FocusMotionSP);
-                IUResetSwitch(&FocusModeSP);
-                FocusModeS[0].s = ISS_ON;
-
-                IDSetSwitch(&FocusModeSP, nullptr);
-                IDSetSwitch(&FocusMotionSP, nullptr);
+                return;
             }
 
-            IDSetNumber(&FocusTimerNP, nullptr);
+            FocusMotionSP.s = IPS_IDLE;
+            FocusTimerNP.s  = IPS_OK;
+            FocusModeSP.s   = IPS_OK;
 
-            if (FocusTimerN[0].value > 0)
-                IEAddTimer(50, LX200Generic::updateFocusHelper, this);
-            break;
+            IUResetSwitch(&FocusMotionSP);
+            IUResetSwitch(&FocusModeSP);
+            FocusModeS[0].s = ISS_ON;
 
-        case IPS_OK:
-            break;
+            IDSetSwitch(&FocusModeSP, nullptr);
+            IDSetSwitch(&FocusMotionSP, nullptr);
+        }
 
-        case IPS_ALERT:
-            break;
+        IDSetNumber(&FocusTimerNP, nullptr);
+
+        if (FocusTimerN[0].value > 0)
+            IEAddTimer(50, LX200Generic::updateFocusHelper, this);
+        break;
+
+    case IPS_OK:
+        break;
+
+    case IPS_ALERT:
+        break;
     }
 }
 
@@ -1174,51 +1174,80 @@ void LX200Generic::mountSim()
     /* Process per current state. We check the state of EQUATORIAL_COORDS and act acoordingly */
     switch (TrackState)
     {
-        case SCOPE_TRACKING:
-            /* RA moves at sidereal, Dec stands still */
-            currentRA += (SIDRATE * dt / 15.);
+
+    case SCOPE_IDLE:
+        currentRA  += (TRACKRATE_SIDEREAL/3600.0 * dt / 15.);
+        break;
+
+    case SCOPE_TRACKING:
+        switch (IUFindOnSwitchIndex(&TrackModeSP))
+        {
+        case TRACK_SIDEREAL:
+            da = 0;
+            dx = 0;
             break;
 
-        case SCOPE_SLEWING:
-        case SCOPE_PARKING:
-            /* slewing - nail it when both within one pulse @ SLEWRATE */
-            nlocked = 0;
+        case TRACK_LUNAR:
+            da = ((TRACKRATE_LUNAR-TRACKRATE_SIDEREAL)/3600.0 * dt / 15.);
+            dx = 0;
+            break;
 
-            dx = targetRA - currentRA;
+        case TRACK_SOLAR:
+            da = ((TRACKRATE_SOLAR-TRACKRATE_SIDEREAL)/3600.0 * dt / 15.);
+            dx = 0;
+            break;
 
-            if (fabs(dx) <= da)
-            {
-                currentRA = targetRA;
-                nlocked++;
-            }
-            else if (dx > 0)
-                currentRA += da / 15.;
+        case TRACK_CUSTOM:
+            da = ((TrackRateN[AXIS_RA].value-TRACKRATE_SIDEREAL)/3600.0 * dt / 15.);
+            dx = (TrackRateN[AXIS_DE].value/3600.0 * dt);
+            break;
+
+        }
+
+        currentRA  += da;
+        currentDEC += dx;
+        break;
+
+    case SCOPE_SLEWING:
+    case SCOPE_PARKING:
+        /* slewing - nail it when both within one pulse @ SLEWRATE */
+        nlocked = 0;
+
+        dx = targetRA - currentRA;
+
+        if (fabs(dx) <= da)
+        {
+            currentRA = targetRA;
+            nlocked++;
+        }
+        else if (dx > 0)
+            currentRA += da / 15.;
+        else
+            currentRA -= da / 15.;
+
+        dx = targetDEC - currentDEC;
+        if (fabs(dx) <= da)
+        {
+            currentDEC = targetDEC;
+            nlocked++;
+        }
+        else if (dx > 0)
+            currentDEC += da;
+        else
+            currentDEC -= da;
+
+        if (nlocked == 2)
+        {
+            if (TrackState == SCOPE_SLEWING)
+                TrackState = SCOPE_TRACKING;
             else
-                currentRA -= da / 15.;
+                SetParked(true);
+        }
 
-            dx = targetDEC - currentDEC;
-            if (fabs(dx) <= da)
-            {
-                currentDEC = targetDEC;
-                nlocked++;
-            }
-            else if (dx > 0)
-                currentDEC += da;
-            else
-                currentDEC -= da;
+        break;
 
-            if (nlocked == 2)
-            {
-                if (TrackState == SCOPE_SLEWING)
-                    TrackState = SCOPE_TRACKING;
-                else
-                    SetParked(true);
-            }
-
-            break;
-
-        default:
-            break;
+    default:
+        break;
     }
 
     NewRaDec(currentRA, currentDEC);
@@ -1303,15 +1332,15 @@ void LX200Generic::getAlignment()
 
     switch (align)
     {
-        case 'P':
-            AlignmentS[0].s = ISS_ON;
-            break;
-        case 'A':
-            AlignmentS[1].s = ISS_ON;
-            break;
-        case 'L':
-            AlignmentS[2].s = ISS_ON;
-            break;
+    case 'P':
+        AlignmentS[0].s = ISS_ON;
+        break;
+    case 'A':
+        AlignmentS[1].s = ISS_ON;
+        break;
+    case 'L':
+        AlignmentS[2].s = ISS_ON;
+        break;
     }
 
     AlignmentSP.s = IPS_OK;
@@ -1404,7 +1433,7 @@ void LX200Generic::sendScopeLocation()
         if (dd > 0)
             LocationNP.np[0].value = dd + mm / 60.0;
         else
-            LocationNP.np[0].value = dd - mm / 60.0;        
+            LocationNP.np[0].value = dd - mm / 60.0;
     }
 
     if (getSiteLongitude(PortFD, &dd, &mm) < 0)

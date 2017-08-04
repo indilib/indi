@@ -1083,19 +1083,11 @@ bool Paramount::setTheSkyTracking(bool enable, bool isSidereal, double raRate, d
 
 bool Paramount::SetTrackRate(double raRate, double deRate)
 {
-    if (IUFindOnSwitchIndex(&TrackModeSP) != TRACK_CUSTOM)
-    {
-        DEBUG(INDI::Logger::DBG_ERROR, "Can only set tracking rate if track mode is custom.");
-        return false;
-    }
-
    return setTheSkyTracking(true, false, raRate, deRate);
 }
 
 bool Paramount::SetTrackMode(uint8_t mode)
 {
-    // Engage tracking?
-    bool enable     = (TrackStateS[TRACK_ON].s == ISS_ON);;
     bool isSidereal = (mode == TRACK_SIDEREAL);
     double dRA = TRACKRATE_SIDEREAL, dDE = 0;
     if (mode == TRACK_SOLAR)
@@ -1104,28 +1096,19 @@ bool Paramount::SetTrackMode(uint8_t mode)
         dRA = TRACKRATE_LUNAR;
     else if (mode == TRACK_CUSTOM)
     {
-//        dRA = TrackRateN[RA_AXIS].value;
-//        dDE = TrackRateN[DEC_AXIS].value;
+        dRA = TrackRateN[RA_AXIS].value;
+        dDE = TrackRateN[DEC_AXIS].value;
     }
 
-    return setTheSkyTracking(enable, isSidereal, dRA, dDE);
+    return setTheSkyTracking(true, isSidereal, dRA, dDE);
 }
 
 bool Paramount::SetTrackEnabled(bool enabled)
 {
-    bool enable     = enabled;
-    int mode = IUFindOnSwitchIndex(&TrackModeSP);
-    bool isSidereal = (mode == TRACK_SIDEREAL);
-    double dRA = TRACKRATE_SIDEREAL, dDE = 0;
-    if (mode == TRACK_SOLAR)
-        dRA = TRACKRATE_SOLAR;
-    else if (mode == TRACK_LUNAR)
-        dRA = TRACKRATE_LUNAR;
-    else if (mode == TRACK_CUSTOM)
-    {
-//        dRA = TrackRateN[RA_AXIS].value;
-//        dDE = TrackRateN[DEC_AXIS].value;
-    }
-
-    return setTheSkyTracking(enable, isSidereal, dRA, dDE);
+    // On engaging track, we simply set the current track mode and it will take care of the rest including custom track rates.
+    if (enabled)
+        return SetTrackMode(IUFindOnSwitchIndex(&TrackModeSP));
+    else
+    // Otherwise, simply switch everything off
+        return setTheSkyTracking(false, false, 0, 0);
 }

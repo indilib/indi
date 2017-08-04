@@ -94,7 +94,7 @@ IEQPro::IEQPro()
     DBG_SCOPE = INDI::Logger::getInstance().addDebugLevel("Scope Verbose", "SCOPE");
 
     SetTelescopeCapability(TELESCOPE_CAN_PARK | TELESCOPE_CAN_SYNC | TELESCOPE_CAN_GOTO | TELESCOPE_CAN_ABORT |
-                               TELESCOPE_HAS_TIME | TELESCOPE_HAS_LOCATION | TELESCOPE_HAS_TRACK_MODE | TELESCOPE_CAN_CONTROL_TRACK | TELESCOPE_HAS_TRACK_RATE,
+                           TELESCOPE_HAS_TIME | TELESCOPE_HAS_LOCATION | TELESCOPE_HAS_TRACK_MODE | TELESCOPE_CAN_CONTROL_TRACK | TELESCOPE_HAS_TRACK_RATE,
                            9);
 }
 
@@ -340,58 +340,58 @@ bool IEQPro::ISNewSwitch(const char *dev, const char *name, ISState *states, cha
 
             switch (operation)
             {
-                case IEQ_FIND_HOME:
-                    if (firmwareInfo.Model.find("CEM") == std::string::npos)
-                    {
-                        HomeSP.s = IPS_IDLE;
-                        IDSetSwitch(&HomeSP, nullptr);
-                        DEBUG(INDI::Logger::DBG_WARNING, "Home search is not supported in this model.");
-                        return true;
-                    }
-
-                    if (find_ieqpro_home(PortFD) == false)
-                    {
-                        HomeSP.s = IPS_ALERT;
-                        IDSetSwitch(&HomeSP, nullptr);
-                        return false;
-                    }
-
-                    HomeSP.s = IPS_OK;
+            case IEQ_FIND_HOME:
+                if (firmwareInfo.Model.find("CEM") == std::string::npos)
+                {
+                    HomeSP.s = IPS_IDLE;
                     IDSetSwitch(&HomeSP, nullptr);
-                    DEBUG(INDI::Logger::DBG_SESSION, "Searching for home position...");
+                    DEBUG(INDI::Logger::DBG_WARNING, "Home search is not supported in this model.");
                     return true;
+                }
 
-                    break;
-
-                case IEQ_SET_HOME:
-                    if (set_ieqpro_current_home(PortFD) == false)
-                    {
-                        HomeSP.s = IPS_ALERT;
-                        IDSetSwitch(&HomeSP, nullptr);
-                        return false;
-                    }
-
-                    HomeSP.s = IPS_OK;
+                if (find_ieqpro_home(PortFD) == false)
+                {
+                    HomeSP.s = IPS_ALERT;
                     IDSetSwitch(&HomeSP, nullptr);
-                    DEBUG(INDI::Logger::DBG_SESSION, "Home position set to current coordinates.");
-                    return true;
+                    return false;
+                }
 
-                    break;
+                HomeSP.s = IPS_OK;
+                IDSetSwitch(&HomeSP, nullptr);
+                DEBUG(INDI::Logger::DBG_SESSION, "Searching for home position...");
+                return true;
 
-                case IEQ_GOTO_HOME:
-                    if (goto_ieqpro_home(PortFD) == false)
-                    {
-                        HomeSP.s = IPS_ALERT;
-                        IDSetSwitch(&HomeSP, nullptr);
-                        return false;
-                    }
+                break;
 
-                    HomeSP.s = IPS_OK;
+            case IEQ_SET_HOME:
+                if (set_ieqpro_current_home(PortFD) == false)
+                {
+                    HomeSP.s = IPS_ALERT;
                     IDSetSwitch(&HomeSP, nullptr);
-                    DEBUG(INDI::Logger::DBG_SESSION, "Slewing to home position...");
-                    return true;
+                    return false;
+                }
 
-                    break;
+                HomeSP.s = IPS_OK;
+                IDSetSwitch(&HomeSP, nullptr);
+                DEBUG(INDI::Logger::DBG_SESSION, "Home position set to current coordinates.");
+                return true;
+
+                break;
+
+            case IEQ_GOTO_HOME:
+                if (goto_ieqpro_home(PortFD) == false)
+                {
+                    HomeSP.s = IPS_ALERT;
+                    IDSetSwitch(&HomeSP, nullptr);
+                    return false;
+                }
+
+                HomeSP.s = IPS_OK;
+                IDSetSwitch(&HomeSP, nullptr);
+                DEBUG(INDI::Logger::DBG_SESSION, "Slewing to home position...");
+                return true;
+
+                break;
             }
 
             return true;
@@ -450,35 +450,35 @@ bool IEQPro::ReadScopeStatus()
 
         switch (newInfo.systemStatus)
         {
-            case ST_STOPPED:
-                TrackModeSP.s = IPS_IDLE;
-                TrackState    = SCOPE_IDLE;
-                break;
-            case ST_PARKED:
-                TrackModeSP.s = IPS_IDLE;
-                TrackState    = SCOPE_PARKED;
-                if (isParked() == false)
-                    SetParked(true);
-                break;
-            case ST_HOME:
-                TrackModeSP.s = IPS_IDLE;
-                TrackState    = SCOPE_IDLE;
-                break;
-            case ST_SLEWING:
-            case ST_MERIDIAN_FLIPPING:
-                if (TrackState != SCOPE_SLEWING && TrackState != SCOPE_PARKING)
-                    TrackState = SCOPE_SLEWING;
-                break;
-            case ST_TRACKING_PEC_OFF:
-            case ST_TRACKING_PEC_ON:
-            case ST_GUIDING:
-                TrackModeSP.s = IPS_BUSY;
-                TrackState    = SCOPE_TRACKING;
-                if (scopeInfo.systemStatus == ST_SLEWING)
-                    DEBUG(INDI::Logger::DBG_SESSION, "Slew complete, tracking...");
-                else if (scopeInfo.systemStatus == ST_MERIDIAN_FLIPPING)
-                    DEBUG(INDI::Logger::DBG_SESSION, "Meridian flip complete, tracking...");
-                break;
+        case ST_STOPPED:
+            TrackModeSP.s = IPS_IDLE;
+            TrackState    = SCOPE_IDLE;
+            break;
+        case ST_PARKED:
+            TrackModeSP.s = IPS_IDLE;
+            TrackState    = SCOPE_PARKED;
+            if (isParked() == false)
+                SetParked(true);
+            break;
+        case ST_HOME:
+            TrackModeSP.s = IPS_IDLE;
+            TrackState    = SCOPE_IDLE;
+            break;
+        case ST_SLEWING:
+        case ST_MERIDIAN_FLIPPING:
+            if (TrackState != SCOPE_SLEWING && TrackState != SCOPE_PARKING)
+                TrackState = SCOPE_SLEWING;
+            break;
+        case ST_TRACKING_PEC_OFF:
+        case ST_TRACKING_PEC_ON:
+        case ST_GUIDING:
+            TrackModeSP.s = IPS_BUSY;
+            TrackState    = SCOPE_TRACKING;
+            if (scopeInfo.systemStatus == ST_SLEWING)
+                DEBUG(INDI::Logger::DBG_SESSION, "Slew complete, tracking...");
+            else if (scopeInfo.systemStatus == ST_MERIDIAN_FLIPPING)
+                DEBUG(INDI::Logger::DBG_SESSION, "Meridian flip complete, tracking...");
+            break;
         }
 
         IUResetSwitch(&TrackModeSP);
@@ -688,25 +688,25 @@ bool IEQPro::MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command)
 
     switch (command)
     {
-        case MOTION_START:
-            if (start_ieqpro_motion(PortFD, (dir == DIRECTION_NORTH ? IEQ_N : IEQ_S)) == false)
-            {
-                DEBUG(INDI::Logger::DBG_ERROR, "Error setting N/S motion direction.");
-                return false;
-            }
-            else
-                DEBUGF(INDI::Logger::DBG_SESSION, "Moving toward %s.", (dir == DIRECTION_NORTH) ? "North" : "South");
-            break;
+    case MOTION_START:
+        if (start_ieqpro_motion(PortFD, (dir == DIRECTION_NORTH ? IEQ_N : IEQ_S)) == false)
+        {
+            DEBUG(INDI::Logger::DBG_ERROR, "Error setting N/S motion direction.");
+            return false;
+        }
+        else
+            DEBUGF(INDI::Logger::DBG_SESSION, "Moving toward %s.", (dir == DIRECTION_NORTH) ? "North" : "South");
+        break;
 
-        case MOTION_STOP:
-            if (stop_ieqpro_motion(PortFD, (dir == DIRECTION_NORTH ? IEQ_N : IEQ_S)) == false)
-            {
-                DEBUG(INDI::Logger::DBG_ERROR, "Error stopping N/S motion.");
-                return false;
-            }
-            else
-                DEBUGF(INDI::Logger::DBG_SESSION, "%s motion stopped.", (dir == DIRECTION_NORTH) ? "North" : "South");
-            break;
+    case MOTION_STOP:
+        if (stop_ieqpro_motion(PortFD, (dir == DIRECTION_NORTH ? IEQ_N : IEQ_S)) == false)
+        {
+            DEBUG(INDI::Logger::DBG_ERROR, "Error stopping N/S motion.");
+            return false;
+        }
+        else
+            DEBUGF(INDI::Logger::DBG_SESSION, "%s motion stopped.", (dir == DIRECTION_NORTH) ? "North" : "South");
+        break;
     }
 
     return true;
@@ -722,25 +722,25 @@ bool IEQPro::MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command)
 
     switch (command)
     {
-        case MOTION_START:
-            if (start_ieqpro_motion(PortFD, (dir == DIRECTION_WEST ? IEQ_W : IEQ_E)) == false)
-            {
-                DEBUG(INDI::Logger::DBG_ERROR, "Error setting N/S motion direction.");
-                return false;
-            }
-            else
-                DEBUGF(INDI::Logger::DBG_SESSION, "Moving toward %s.", (dir == DIRECTION_WEST) ? "West" : "East");
-            break;
+    case MOTION_START:
+        if (start_ieqpro_motion(PortFD, (dir == DIRECTION_WEST ? IEQ_W : IEQ_E)) == false)
+        {
+            DEBUG(INDI::Logger::DBG_ERROR, "Error setting N/S motion direction.");
+            return false;
+        }
+        else
+            DEBUGF(INDI::Logger::DBG_SESSION, "Moving toward %s.", (dir == DIRECTION_WEST) ? "West" : "East");
+        break;
 
-        case MOTION_STOP:
-            if (stop_ieqpro_motion(PortFD, (dir == DIRECTION_WEST ? IEQ_W : IEQ_E)) == false)
-            {
-                DEBUG(INDI::Logger::DBG_ERROR, "Error stopping W/E motion.");
-                return false;
-            }
-            else
-                DEBUGF(INDI::Logger::DBG_SESSION, "%s motion stopped.", (dir == DIRECTION_WEST) ? "West" : "East");
-            break;
+    case MOTION_STOP:
+        if (stop_ieqpro_motion(PortFD, (dir == DIRECTION_WEST ? IEQ_W : IEQ_E)) == false)
+        {
+            DEBUG(INDI::Logger::DBG_ERROR, "Error stopping W/E motion.");
+            return false;
+        }
+        else
+            DEBUGF(INDI::Logger::DBG_SESSION, "%s motion stopped.", (dir == DIRECTION_WEST) ? "West" : "East");
+        break;
     }
 
     return true;
@@ -803,12 +803,12 @@ void IEQPro::mountSim()
     /* Process per current state. We check the state of EQUATORIAL_COORDS and act acoordingly */
     switch (TrackState)
     {
-        case SCOPE_IDLE:
-            currentRA += (TrackRateN[AXIS_RA].value/3600.0 * dt) / 15.0;
-            currentRA = range24(currentRA);
-            break;
+    case SCOPE_IDLE:
+        currentRA += (TrackRateN[AXIS_RA].value/3600.0 * dt) / 15.0;
+        currentRA = range24(currentRA);
+        break;
 
-        case SCOPE_TRACKING:
+    case SCOPE_TRACKING:
         if (TrackModeS[1].s == ISS_ON)
         {
             currentRA  += ( ((TRACKRATE_SIDEREAL/3600.0) - (TrackRateN[AXIS_RA].value/3600.0)) * dt) / 15.0;
@@ -816,55 +816,55 @@ void IEQPro::mountSim()
         }
         break;
 
-        case SCOPE_SLEWING:
-        case SCOPE_PARKING:
-            /* slewing - nail it when both within one pulse @ SLEWRATE */
-            nlocked = 0;
+    case SCOPE_SLEWING:
+    case SCOPE_PARKING:
+        /* slewing - nail it when both within one pulse @ SLEWRATE */
+        nlocked = 0;
 
-            dx = targetRA - currentRA;
+        dx = targetRA - currentRA;
 
-            // Take shortest path
-            if (fabs(dx) > 12)
-                dx *= -1;
+        // Take shortest path
+        if (fabs(dx) > 12)
+            dx *= -1;
 
-            if (fabs(dx) <= da)
-            {
-                currentRA = targetRA;
-                nlocked++;
-            }
-            else if (dx > 0)
-                currentRA += da / 15.;
+        if (fabs(dx) <= da)
+        {
+            currentRA = targetRA;
+            nlocked++;
+        }
+        else if (dx > 0)
+            currentRA += da / 15.;
+        else
+            currentRA -= da / 15.;
+
+        if (currentRA < 0)
+            currentRA += 24;
+        else if (currentRA > 24)
+            currentRA -= 24;
+
+        dx = targetDEC - currentDEC;
+        if (fabs(dx) <= da)
+        {
+            currentDEC = targetDEC;
+            nlocked++;
+        }
+        else if (dx > 0)
+            currentDEC += da;
+        else
+            currentDEC -= da;
+
+        if (nlocked == 2)
+        {
+            if (TrackState == SCOPE_SLEWING)
+                set_sim_system_status(ST_TRACKING_PEC_OFF);
             else
-                currentRA -= da / 15.;
+                set_sim_system_status(ST_PARKED);
+        }
 
-            if (currentRA < 0)
-                currentRA += 24;
-            else if (currentRA > 24)
-                currentRA -= 24;
+        break;
 
-            dx = targetDEC - currentDEC;
-            if (fabs(dx) <= da)
-            {
-                currentDEC = targetDEC;
-                nlocked++;
-            }
-            else if (dx > 0)
-                currentDEC += da;
-            else
-                currentDEC -= da;
-
-            if (nlocked == 2)
-            {
-                if (TrackState == SCOPE_SLEWING)
-                    set_sim_system_status(ST_TRACKING_PEC_OFF);
-                else
-                    set_sim_system_status(ST_PARKED);
-            }
-
-            break;
-
-        default:
-            break;
+    default:
+        break;
     }
 
     set_sim_ra(currentRA);
@@ -904,28 +904,31 @@ bool IEQPro::SetTrackRate(double raRate, double deRate)
 {
     static bool deRateWarning = true;
 
-        if (TrackModeS[TR_CUSTOM].s != ISS_ON)
-        {
-            DEBUG(INDI::Logger::DBG_ERROR, "Can only set tracking rate if tracking mode is set to custom.");
-            return false;
-        }
+    // Convert to arcsecs/s to +/- 0.0100 accepted by
+    double ieqRARate = raRate - TRACKRATE_SIDEREAL;
+    if (deRate != 0 && deRateWarning)
+    {
+        // Only send warning once per session
+        deRateWarning = false;
+        DEBUG(INDI::Logger::DBG_WARNING, "Custom Declination tracking rate is not implemented yet.");
+    }
 
-        // Convert to arcsecs/s to +/- 0.0100 accepted by
-        double ieqRARate = raRate - TRACKRATE_SIDEREAL;
-        if (deRate != 0 && deRateWarning)
-        {
-            // Only send warning once per session
-            deRateWarning = false;
-            DEBUG(INDI::Logger::DBG_WARNING, "Custom Declination tracking rate is not implemented yet.");
-        }
+    if (set_ieqpro_custom_ra_track_rate(PortFD, ieqRARate))
+        return true;
 
-        if (set_ieqpro_custom_ra_track_rate(PortFD, ieqRARate))
-            return true;
-
-        return false;
+    return false;
 }
 
 bool IEQPro::SetTrackEnabled(bool enabled)
 {
+    if (enabled)
+    {
+        // If we are engaging tracking, let us first set tracking mode, and if we have custom mode, then tracking rate.
+        // NOTE: Is this the correct order? or should tracking be switched on first before making these changes? Need to test.
+       SetTrackMode(IUFindOnSwitchIndex(&TrackModeSP));
+       if (TrackModeS[TR_CUSTOM].s == ISS_ON)
+           SetTrackRate(TrackRateN[AXIS_RA].value, TrackRateN[AXIS_DE].value);
+    }
+
     return set_ieqpro_track_enabled(PortFD, enabled);
 }

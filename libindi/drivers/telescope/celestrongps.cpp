@@ -1094,15 +1094,10 @@ bool CelestronGPS::setTrackMode(CELESTRON_TRACK_MODE mode)
 {
     if (set_celestron_track_mode(PortFD, mode))
     {
-        IUResetSwitch(&TrackSP);
-        TrackS[mode].s = ISS_ON;
-        TrackSP.s      = IPS_OK;
-        IDSetSwitch(&TrackSP, nullptr);
-
+        TrackState = (mode == TRACKING_OFF) ? SCOPE_IDLE : SCOPE_TRACKING;
         return true;
     }
 
-    TrackSP.s = IPS_ALERT;
     return false;
 }
 
@@ -1411,21 +1406,10 @@ void CelestronGPS::guideTimeout(CELESTRON_DIRECTION calldir)
 
 bool CelestronGPS::SetTrackMode(uint8_t mode)
 {
-    // Don't update tracking if mount is already parked.
-    if (isParked())
-        return true;
-
-    bool rc = setTrackMode(static_cast<CELESTRON_TRACK_MODE>(mode+1));
-    if (rc)
-        TrackState = SCOPE_TRACKING;
-
-    return rc;
+   return setTrackMode(static_cast<CELESTRON_TRACK_MODE>(mode+1));
 }
 
 bool CelestronGPS::SetTrackEnabled(bool enabled)
 {
-    if (enabled)
-        return setTrackMode(static_cast<CELESTRON_TRACK_MODE>(IUFindOnSwitchIndex(&TrackModeSP)+1));
-
-    return  setTrackMode(TRACKING_OFF);
+    return setTrackMode(enabled ? static_cast<CELESTRON_TRACK_MODE>(IUFindOnSwitchIndex(&TrackModeSP)+1) : TRACKING_OFF);
 }

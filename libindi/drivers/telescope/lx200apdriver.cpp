@@ -458,7 +458,7 @@ int selectAPTrackingMode(int fd, int trackMode)
     switch (trackMode)
     {
     /* Sidereal */
-    case AP_TRACKING_SIDERAL:
+    case AP_TRACKING_SIDEREAL:
 
         DEBUGDEVICE(lx200ap_name, INDI::Logger::DBG_DEBUG,
                     "selectAPTrackingMode: Setting tracking mode to sidereal.");
@@ -487,6 +487,10 @@ int selectAPTrackingMode(int fd, int trackMode)
         if ((error_type = tty_write_string(fd, "#:RT0#", &nbytes_write)) != TTY_OK)
             return error_type;
         break;
+
+    case AP_TRACKING_CUSTOM:
+            DEBUGDEVICE(lx200ap_name, INDI::Logger::DBG_DEBUG, "selectAPTrackingMode: Setting tracking mode to Custom.");
+            break;
 
         /* Zero */
     case AP_TRACKING_OFF:

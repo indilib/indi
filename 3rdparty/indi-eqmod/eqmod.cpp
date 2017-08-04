@@ -808,7 +808,7 @@ bool EQMod::ReadScopeStatus()
                                     &ghalignedDEC);
             aligned = true;
         }
-//   else
+        //   else
 #endif
 #ifdef WITH_ALIGN
         const char *maligns[3] = { "ZENITH", "NORTH", "SOUTH" };
@@ -820,7 +820,7 @@ bool EQMod::ReadScopeStatus()
         DEBUGF(INDI::AlignmentSubsystem::DBG_ALIGNMENT,
                "Status: Mnt. Algnt. %s Date %lf encoders RA=%ld DE=%ld Telescope RA %lf DEC %lf",
                maligns[GetApproximateMountAlignment()], juliandate, currentRAEncoder, currentDEEncoder, currentRA,
-               currentDEC);
+                currentDEC);
         DEBUGF(INDI::AlignmentSubsystem::DBG_ALIGNMENT, " Direction RA(deg.)  %lf DEC %lf TDV(x %lf y %lf z %lf)",
                RaDec.ra, RaDec.dec, TDV.x, TDV.y, TDV.z);
         aligned = true;
@@ -916,8 +916,8 @@ bool EQMod::ReadScopeStatus()
                        gotoparams.iterative_count, 3600 * fabs(gotoparams.ratarget - currentRA),
                        3600 * fabs(gotoparams.detarget - currentDEC));
                 if ((gotoparams.iterative_count <= GOTO_ITERATIVE_LIMIT) &&
-                    (((3600 * fabs(gotoparams.ratarget - currentRA)) > RAGOTORESOLUTION) ||
-                     ((3600 * fabs(gotoparams.detarget - currentDEC)) > DEGOTORESOLUTION)))
+                        (((3600 * fabs(gotoparams.ratarget - currentRA)) > RAGOTORESOLUTION) ||
+                         ((3600 * fabs(gotoparams.detarget - currentDEC)) > DEGOTORESOLUTION)))
                 {
                     gotoparams.racurrent        = currentRA;
                     gotoparams.decurrent        = currentDEC;
@@ -937,8 +937,8 @@ bool EQMod::ReadScopeStatus()
                     ISwitch *sw;
                     sw = IUFindSwitch(&CoordSP, "TRACK");
                     if ((gotoparams.iterative_count > GOTO_ITERATIVE_LIMIT) &&
-                        (((3600 * fabs(gotoparams.ratarget - currentRA)) > RAGOTORESOLUTION) ||
-                         ((3600 * fabs(gotoparams.detarget - currentDEC)) > DEGOTORESOLUTION)))
+                            (((3600 * fabs(gotoparams.ratarget - currentRA)) > RAGOTORESOLUTION) ||
+                             ((3600 * fabs(gotoparams.detarget - currentDEC)) > DEGOTORESOLUTION)))
                     {
                         DEBUGF(INDI::Logger::DBG_SESSION,
                                "Iterative Goto Limit reached (%d iterations): RA diff = %4.2f arcsecs DE diff = %4.2f "
@@ -1060,307 +1060,307 @@ bool EQMod::ReadScopeStatus()
             DEBUGF(INDI::Logger::DBG_DEBUG, "Autohoming status: %d", AutohomeState);
             switch (AutohomeState)
             {
-                case AUTO_HOME_IDLE:
-                case AUTO_HOME_CONFIRM:
-                    AutohomeState = AUTO_HOME_IDLE;
-                    TrackState    = SCOPE_IDLE;
-                    DEBUG(INDI::Logger::DBG_SESSION, "Invalid status while Autohoming. Aborting");
-                    break;
-                case AUTO_HOME_WAIT_PHASE1:
-                    if (!(mount->IsRARunning()) && !(mount->IsDERunning()))
-                    {
-                        DEBUG(INDI::Logger::DBG_SESSION, "Autohome phase 1: end");
-                        DEBUG(INDI::Logger::DBG_SESSION,
-                              "AutoHome phase 2: reading home position indexes for extra moves");
-                        mount->GetRAIndexer();
-                        mount->GetDEIndexer();
-                        unsigned long raindex = mount->GetlastreadRAIndexer();
-                        unsigned long deindex = mount->GetlastreadDEIndexer();
-                        DEBUGF(INDI::Logger::DBG_SESSION,
-                               "AutoHome phase 2: read home position indexes: RA=0x%x DE=0x%x", raindex, deindex);
-                        if (raindex == 0 || raindex == 0xFFFFFF)
-                            ah_bIndexChanged_RA = false;
-                        else
-                            ah_bIndexChanged_RA = true;
-                        if (deindex == 0 || deindex == 0xFFFFFF)
-                            ah_bIndexChanged_DE = false;
-                        else
-                            ah_bIndexChanged_DE = true;
-                        if (ah_bIndexChanged_RA)
-                        {
-                            DEBUGF(INDI::Logger::DBG_SESSION,
-                                   "AutoHome phase 2: RA home index changed RA=0x%x, slewing again", raindex);
-                            ah_iPosition_RA = mount->GetRAEncoder();
-                            ah_iChanges     = (5 * mount->GetRAEncoderTotal()) / 360;
-                            if (ah_bSlewingUp_RA)
-                                ah_iPosition_RA = ah_iPosition_RA - ah_iChanges;
-                            else
-                                ah_iPosition_RA = ah_iPosition_RA + ah_iChanges;
-                        }
-                        if (ah_bIndexChanged_DE)
-                        {
-                            DEBUGF(INDI::Logger::DBG_SESSION,
-                                   "AutoHome phase 2: DE home index changed DE=0x%x, slewing again", deindex);
-                            ah_iPosition_DE = mount->GetDEEncoder();
-                            ah_iChanges     = (5 * mount->GetDEEncoderTotal()) / 360;
-                            if (ah_bSlewingUp_DE)
-                                ah_iPosition_DE = ah_iPosition_DE - ah_iChanges;
-                            else
-                                ah_iPosition_DE = ah_iPosition_DE + ah_iChanges;
-                        }
-                        if ((ah_bIndexChanged_RA) || (ah_bIndexChanged_DE))
-                        {
-                            DEBUGF(INDI::Logger::DBG_SESSION,
-                                   "AutoHome phase 2: slewing to RA=0x%x (up=%c) DE=0x%x (up=%c)", ah_iPosition_RA,
-                                   (ah_bSlewingUp_RA ? '1' : '0'), ah_iPosition_DE, (ah_bSlewingUp_DE ? '1' : '0'));
-                            mount->AbsSlewTo(ah_iPosition_RA, ah_iPosition_DE, ah_bSlewingUp_RA, ah_bSlewingUp_DE);
-                            DEBUG(INDI::Logger::DBG_SESSION,
-                                  "Autohome phase 2: start slewing, waiting for motors to stop");
-                        }
-                        else
-                        {
-                            DEBUG(INDI::Logger::DBG_SESSION, "Autohome phase 2: nothing to do");
-                        }
-                        AutohomeState = AUTO_HOME_WAIT_PHASE2;
-                    }
-                    else
-                    {
-                        DEBUG(INDI::Logger::DBG_DEBUG, "Autohome phase 1: Waiting for motors to stop");
-                    }
-                    break;
-                case AUTO_HOME_WAIT_PHASE2:
-                    if (!(mount->IsRARunning()) && !(mount->IsDERunning()))
-                    {
-                        DEBUG(INDI::Logger::DBG_SESSION, "Autohome phase 2: end");
-                        DEBUG(INDI::Logger::DBG_SESSION, "AutoHome phase 3: resetting home position indexes");
-                        if (ah_bIndexChanged_RA)
-                        {
-                            unsigned long raindex = mount->GetlastreadRAIndexer();
-                            mount->ResetRAIndexer();
-                            mount->GetRAIndexer();
-                            DEBUGF(INDI::Logger::DBG_SESSION,
-                                   "AutoHome phase 3: resetting RA home index: 0x%x (was 0x%x)",
-                                   mount->GetlastreadRAIndexer(), raindex);
-                        }
-                        if (ah_bIndexChanged_DE)
-                        {
-                            unsigned long deindex = mount->GetlastreadDEIndexer();
-                            mount->ResetDEIndexer();
-                            mount->GetDEIndexer();
-                            DEBUGF(INDI::Logger::DBG_SESSION,
-                                   "AutoHome phase 3: resetting DE home index: 0x%x (was 0x%x)",
-                                   mount->GetlastreadDEIndexer(), deindex);
-                        }
-                        DEBUG(INDI::Logger::DBG_SESSION,
-                              "AutoHome phase 3: reading home position indexes to update directions");
-                        if (ah_bIndexChanged_RA)
-                        {
-                            mount->GetRAIndexer();
-                            if (mount->GetlastreadRAIndexer() == 0)
-                                ah_bSlewingUp_RA = false;
-                            else
-                                ah_bSlewingUp_RA = true;
-                            DEBUGF(INDI::Logger::DBG_SESSION,
-                                   "AutoHome phase 3: reading RA home position index: RA=0x%x up=%c",
-                                   mount->GetlastreadRAIndexer(), (ah_bSlewingUp_RA ? '1' : '0'));
-                        }
-                        if (ah_bIndexChanged_DE)
-                        {
-                            mount->GetDEIndexer();
-                            if (mount->GetlastreadDEIndexer() == 0)
-                                ah_bSlewingUp_DE = false;
-                            else
-                                ah_bSlewingUp_DE = true;
-                            DEBUGF(INDI::Logger::DBG_SESSION,
-                                   "AutoHome phase 3: reading DE home position index: DE=0x%x up=%c",
-                                   mount->GetlastreadDEIndexer(), (ah_bSlewingUp_DE ? '1' : '0'));
-                        }
-
-                        if (!ah_bSlewingUp_RA)
-                        {
-                            DEBUG(INDI::Logger::DBG_SESSION,
-                                  "AutoHome phase 3: starting RA negative slewing, waiting RA home indexer");
-                            ah_waitRA = -1;
-                            mount->SlewRA(-800.0);
-                        }
-                        if (!ah_bSlewingUp_DE)
-                        {
-                            DEBUG(INDI::Logger::DBG_SESSION,
-                                  "AutoHome phase 3: starting DE negative slewing, waiting DE home indexer");
-                            ah_waitDE = -1;
-                            mount->SlewDE(-800.0);
-                        }
-                        AutohomeState = AUTO_HOME_WAIT_PHASE3;
-                    }
-                    else
-                    {
-                        DEBUG(INDI::Logger::DBG_DEBUG, "Autohome phase 2: Waiting for motors to stop");
-                    }
-                    break;
-                case AUTO_HOME_WAIT_PHASE3:
-                    if (mount->IsRARunning())
-                    {
-                        if (ah_waitRA < 0)
-                        {
-                            mount->GetRAIndexer();
-                            if ((indexRA = mount->GetlastreadRAIndexer()) != 0xFFFFFF)
-                            {
-                                ah_waitRA = 3000 / POLLMS;
-                                DEBUGF(INDI::Logger::DBG_SESSION,
-                                       "Autohome phase 3: detected RA Index changed, waiting %d poll periods",
-                                       ah_waitRA);
-                            }
-                        }
-                        else
-                            ah_waitRA -= 1;
-                        if (ah_waitRA == 0)
-                        {
-                            DEBUG(INDI::Logger::DBG_SESSION, "Autohome phase 3: stopping RA");
-                            mount->StopRA();
-                        }
-                    }
-                    if (mount->IsDERunning())
-                    {
-                        if (ah_waitDE < 0)
-                        {
-                            mount->GetDEIndexer();
-                            if ((indexDE = mount->GetlastreadDEIndexer()) != 0xFFFFFF)
-                            {
-                                ah_waitDE = 3000 / POLLMS;
-                                DEBUGF(INDI::Logger::DBG_SESSION,
-                                       "Autohome phase 3: detected DE Index changed, waiting %d poll periods",
-                                       ah_waitDE);
-                            }
-                        }
-                        else
-                            ah_waitDE -= 1;
-                        if (ah_waitDE == 0)
-                        {
-                            DEBUG(INDI::Logger::DBG_SESSION, "Autohome phase 3: stopping DE");
-                            mount->StopDE();
-                        }
-                    }
-                    if (!(mount->IsRARunning()) && !(mount->IsDERunning()))
-                    {
-                        if (!ah_bSlewingUp_RA)
-                        {
-                            mount->ResetRAIndexer();
-                            mount->GetRAIndexer();
-                            DEBUGF(INDI::Logger::DBG_SESSION,
-                                   "AutoHome phase 3: resetting RA home index: 0x%x (was 0x%x)",
-                                   mount->GetlastreadRAIndexer(), indexRA);
-                            ah_bSlewingUp_RA = true;
-                        }
-                        if (!ah_bSlewingUp_DE)
-                        {
-                            mount->ResetDEIndexer();
-                            mount->GetDEIndexer();
-                            DEBUGF(INDI::Logger::DBG_SESSION,
-                                   "AutoHome phase 3: resetting DE home index: 0x%x (was 0x%x)",
-                                   mount->GetlastreadDEIndexer(), indexDE);
-                            ah_bSlewingUp_DE = true;
-                        }
-                        DEBUG(INDI::Logger::DBG_SESSION, "Autohome phase 3: end");
-                        DEBUG(INDI::Logger::DBG_SESSION, "Autohome phase 4: *** find the home position index ***");
-                        DEBUG(INDI::Logger::DBG_SESSION,
-                              "AutoHome phase 4: starting RA positive slewing, waiting RA home indexer");
-                        ah_waitRA           = -1;
+            case AUTO_HOME_IDLE:
+            case AUTO_HOME_CONFIRM:
+                AutohomeState = AUTO_HOME_IDLE;
+                TrackState    = SCOPE_IDLE;
+                DEBUG(INDI::Logger::DBG_SESSION, "Invalid status while Autohoming. Aborting");
+                break;
+            case AUTO_HOME_WAIT_PHASE1:
+                if (!(mount->IsRARunning()) && !(mount->IsDERunning()))
+                {
+                    DEBUG(INDI::Logger::DBG_SESSION, "Autohome phase 1: end");
+                    DEBUG(INDI::Logger::DBG_SESSION,
+                          "AutoHome phase 2: reading home position indexes for extra moves");
+                    mount->GetRAIndexer();
+                    mount->GetDEIndexer();
+                    unsigned long raindex = mount->GetlastreadRAIndexer();
+                    unsigned long deindex = mount->GetlastreadDEIndexer();
+                    DEBUGF(INDI::Logger::DBG_SESSION,
+                           "AutoHome phase 2: read home position indexes: RA=0x%x DE=0x%x", raindex, deindex);
+                    if (raindex == 0 || raindex == 0xFFFFFF)
                         ah_bIndexChanged_RA = false;
-                        mount->SlewRA(400.0);
-
-                        DEBUG(INDI::Logger::DBG_SESSION,
-                              "AutoHome phase 4: starting DE positive slewing, waiting DE home indexer");
-                        ah_waitDE = -1;
-                        mount->SlewDE(400.0);
+                    else
+                        ah_bIndexChanged_RA = true;
+                    if (deindex == 0 || deindex == 0xFFFFFF)
                         ah_bIndexChanged_DE = false;
-                        AutohomeState       = AUTO_HOME_WAIT_PHASE4;
+                    else
+                        ah_bIndexChanged_DE = true;
+                    if (ah_bIndexChanged_RA)
+                    {
+                        DEBUGF(INDI::Logger::DBG_SESSION,
+                               "AutoHome phase 2: RA home index changed RA=0x%x, slewing again", raindex);
+                        ah_iPosition_RA = mount->GetRAEncoder();
+                        ah_iChanges     = (5 * mount->GetRAEncoderTotal()) / 360;
+                        if (ah_bSlewingUp_RA)
+                            ah_iPosition_RA = ah_iPosition_RA - ah_iChanges;
+                        else
+                            ah_iPosition_RA = ah_iPosition_RA + ah_iChanges;
                     }
-                    break;
-                case AUTO_HOME_WAIT_PHASE4:
-                    if (!ah_bIndexChanged_RA)
+                    if (ah_bIndexChanged_DE)
+                    {
+                        DEBUGF(INDI::Logger::DBG_SESSION,
+                               "AutoHome phase 2: DE home index changed DE=0x%x, slewing again", deindex);
+                        ah_iPosition_DE = mount->GetDEEncoder();
+                        ah_iChanges     = (5 * mount->GetDEEncoderTotal()) / 360;
+                        if (ah_bSlewingUp_DE)
+                            ah_iPosition_DE = ah_iPosition_DE - ah_iChanges;
+                        else
+                            ah_iPosition_DE = ah_iPosition_DE + ah_iChanges;
+                    }
+                    if ((ah_bIndexChanged_RA) || (ah_bIndexChanged_DE))
+                    {
+                        DEBUGF(INDI::Logger::DBG_SESSION,
+                               "AutoHome phase 2: slewing to RA=0x%x (up=%c) DE=0x%x (up=%c)", ah_iPosition_RA,
+                               (ah_bSlewingUp_RA ? '1' : '0'), ah_iPosition_DE, (ah_bSlewingUp_DE ? '1' : '0'));
+                        mount->AbsSlewTo(ah_iPosition_RA, ah_iPosition_DE, ah_bSlewingUp_RA, ah_bSlewingUp_DE);
+                        DEBUG(INDI::Logger::DBG_SESSION,
+                              "Autohome phase 2: start slewing, waiting for motors to stop");
+                    }
+                    else
+                    {
+                        DEBUG(INDI::Logger::DBG_SESSION, "Autohome phase 2: nothing to do");
+                    }
+                    AutohomeState = AUTO_HOME_WAIT_PHASE2;
+                }
+                else
+                {
+                    DEBUG(INDI::Logger::DBG_DEBUG, "Autohome phase 1: Waiting for motors to stop");
+                }
+                break;
+            case AUTO_HOME_WAIT_PHASE2:
+                if (!(mount->IsRARunning()) && !(mount->IsDERunning()))
+                {
+                    DEBUG(INDI::Logger::DBG_SESSION, "Autohome phase 2: end");
+                    DEBUG(INDI::Logger::DBG_SESSION, "AutoHome phase 3: resetting home position indexes");
+                    if (ah_bIndexChanged_RA)
+                    {
+                        unsigned long raindex = mount->GetlastreadRAIndexer();
+                        mount->ResetRAIndexer();
+                        mount->GetRAIndexer();
+                        DEBUGF(INDI::Logger::DBG_SESSION,
+                               "AutoHome phase 3: resetting RA home index: 0x%x (was 0x%x)",
+                               mount->GetlastreadRAIndexer(), raindex);
+                    }
+                    if (ah_bIndexChanged_DE)
+                    {
+                        unsigned long deindex = mount->GetlastreadDEIndexer();
+                        mount->ResetDEIndexer();
+                        mount->GetDEIndexer();
+                        DEBUGF(INDI::Logger::DBG_SESSION,
+                               "AutoHome phase 3: resetting DE home index: 0x%x (was 0x%x)",
+                               mount->GetlastreadDEIndexer(), deindex);
+                    }
+                    DEBUG(INDI::Logger::DBG_SESSION,
+                          "AutoHome phase 3: reading home position indexes to update directions");
+                    if (ah_bIndexChanged_RA)
                     {
                         mount->GetRAIndexer();
-                        ah_iPosition_RA = mount->GetlastreadRAIndexer();
-                        if (ah_iPosition_RA != 0)
-                        {
-                            ah_bIndexChanged_RA      = true;
-                            ah_sHomeIndexPosition_RA = ah_iPosition_RA;
-                            DEBUGF(INDI::Logger::DBG_SESSION,
-                                   "Autohome phase 4: detected RA Home index: 0x%x, stopping motor", ah_iPosition_RA);
-                            mount->StopRA();
-                        }
+                        if (mount->GetlastreadRAIndexer() == 0)
+                            ah_bSlewingUp_RA = false;
+                        else
+                            ah_bSlewingUp_RA = true;
+                        DEBUGF(INDI::Logger::DBG_SESSION,
+                               "AutoHome phase 3: reading RA home position index: RA=0x%x up=%c",
+                               mount->GetlastreadRAIndexer(), (ah_bSlewingUp_RA ? '1' : '0'));
                     }
-                    if (!ah_bIndexChanged_DE)
+                    if (ah_bIndexChanged_DE)
                     {
                         mount->GetDEIndexer();
-                        ah_iPosition_DE = mount->GetlastreadDEIndexer();
-                        if (ah_iPosition_DE != 0)
+                        if (mount->GetlastreadDEIndexer() == 0)
+                            ah_bSlewingUp_DE = false;
+                        else
+                            ah_bSlewingUp_DE = true;
+                        DEBUGF(INDI::Logger::DBG_SESSION,
+                               "AutoHome phase 3: reading DE home position index: DE=0x%x up=%c",
+                               mount->GetlastreadDEIndexer(), (ah_bSlewingUp_DE ? '1' : '0'));
+                    }
+
+                    if (!ah_bSlewingUp_RA)
+                    {
+                        DEBUG(INDI::Logger::DBG_SESSION,
+                              "AutoHome phase 3: starting RA negative slewing, waiting RA home indexer");
+                        ah_waitRA = -1;
+                        mount->SlewRA(-800.0);
+                    }
+                    if (!ah_bSlewingUp_DE)
+                    {
+                        DEBUG(INDI::Logger::DBG_SESSION,
+                              "AutoHome phase 3: starting DE negative slewing, waiting DE home indexer");
+                        ah_waitDE = -1;
+                        mount->SlewDE(-800.0);
+                    }
+                    AutohomeState = AUTO_HOME_WAIT_PHASE3;
+                }
+                else
+                {
+                    DEBUG(INDI::Logger::DBG_DEBUG, "Autohome phase 2: Waiting for motors to stop");
+                }
+                break;
+            case AUTO_HOME_WAIT_PHASE3:
+                if (mount->IsRARunning())
+                {
+                    if (ah_waitRA < 0)
+                    {
+                        mount->GetRAIndexer();
+                        if ((indexRA = mount->GetlastreadRAIndexer()) != 0xFFFFFF)
                         {
-                            ah_bIndexChanged_DE      = true;
-                            ah_sHomeIndexPosition_DE = ah_iPosition_DE;
+                            ah_waitRA = 3000 / POLLMS;
                             DEBUGF(INDI::Logger::DBG_SESSION,
-                                   "Autohome phase 4: detected DE Home index: 0x%x, stopping motor", ah_iPosition_DE);
-                            mount->StopDE();
+                                   "Autohome phase 3: detected RA Index changed, waiting %d poll periods",
+                                   ah_waitRA);
                         }
                     }
-                    if (!(mount->IsRARunning()) && !(mount->IsDERunning()))
+                    else
+                        ah_waitRA -= 1;
+                    if (ah_waitRA == 0)
                     {
-                        DEBUG(INDI::Logger::DBG_SESSION, "Autohome phase 4: end");
-                        DEBUG(INDI::Logger::DBG_SESSION, "Autohome phase 5: Moving back 10 deg.");
-                        ah_iChanges     = (10 * mount->GetRAEncoderTotal()) / 360;
-                        ah_iPosition_RA = ah_iPosition_RA - ah_iChanges;
-                        ah_iChanges     = (10 * mount->GetDEEncoderTotal()) / 360;
-                        ah_iPosition_DE = ah_iPosition_DE - ah_iChanges;
-                        DEBUGF(INDI::Logger::DBG_SESSION,
-                               "AutoHome phase 5: slewing to RA=0x%x (up=%c) DE=0x%x (up=%c)", ah_iPosition_RA, '0',
-                               ah_iPosition_DE, '0');
-                        mount->AbsSlewTo(ah_iPosition_RA, ah_iPosition_DE, false, false);
-                        AutohomeState = AUTO_HOME_WAIT_PHASE5;
+                        DEBUG(INDI::Logger::DBG_SESSION, "Autohome phase 3: stopping RA");
+                        mount->StopRA();
                     }
-                    break;
-                case AUTO_HOME_WAIT_PHASE5:
-                    if (!(mount->IsRARunning()) && !(mount->IsDERunning()))
+                }
+                if (mount->IsDERunning())
+                {
+                    if (ah_waitDE < 0)
                     {
-                        DEBUG(INDI::Logger::DBG_SESSION, "Autohome phase 5: end");
-                        DEBUG(INDI::Logger::DBG_SESSION, "Autohome phase 6: Goto Home Position");
-                        DEBUGF(INDI::Logger::DBG_SESSION,
-                               "AutoHome phase 6: slewing to RA=0x%x (up=%c) DE=0x%x (up=%c)", ah_sHomeIndexPosition_RA,
-                               '1', ah_sHomeIndexPosition_DE, '1');
-                        mount->AbsSlewTo(ah_sHomeIndexPosition_RA, ah_sHomeIndexPosition_DE, true, true);
-                        AutohomeState = AUTO_HOME_WAIT_PHASE6;
+                        mount->GetDEIndexer();
+                        if ((indexDE = mount->GetlastreadDEIndexer()) != 0xFFFFFF)
+                        {
+                            ah_waitDE = 3000 / POLLMS;
+                            DEBUGF(INDI::Logger::DBG_SESSION,
+                                   "Autohome phase 3: detected DE Index changed, waiting %d poll periods",
+                                   ah_waitDE);
+                        }
                     }
                     else
+                        ah_waitDE -= 1;
+                    if (ah_waitDE == 0)
                     {
-                        DEBUG(INDI::Logger::DBG_DEBUG, "Autohome phase 5: Waiting for motors to stop");
+                        DEBUG(INDI::Logger::DBG_SESSION, "Autohome phase 3: stopping DE");
+                        mount->StopDE();
                     }
-                    break;
-                case AUTO_HOME_WAIT_PHASE6:
-                    if (!(mount->IsRARunning()) && !(mount->IsDERunning()))
+                }
+                if (!(mount->IsRARunning()) && !(mount->IsDERunning()))
+                {
+                    if (!ah_bSlewingUp_RA)
                     {
-                        DEBUG(INDI::Logger::DBG_SESSION, "Autohome phase 6: end");
-                        DEBUGF(INDI::Logger::DBG_SESSION, "AutoHome phase 6: Mount at RA=0x%x DE=0x%x",
-                               mount->GetRAEncoder(), mount->GetDEEncoder());
+                        mount->ResetRAIndexer();
+                        mount->GetRAIndexer();
                         DEBUGF(INDI::Logger::DBG_SESSION,
-                               "Autohome: Mount at Home Position, setting encoders RA=0x%x DE=0X%x",
-                               mount->GetRAEncoderHome(), mount->GetDEEncoderHome());
-                        mount->SetRAAxisPosition(mount->GetRAEncoderHome());
-                        mount->SetDEAxisPosition(mount->GetDEEncoderHome());
-                        TrackState    = SCOPE_IDLE;
-                        AutohomeState = AUTO_HOME_IDLE;
-                        AutoHomeSP->s = IPS_IDLE;
-                        IUResetSwitch(AutoHomeSP);
-                        IDSetSwitch(AutoHomeSP, NULL);
-                        DEBUG(INDI::Logger::DBG_SESSION, "Autohome: end");
+                               "AutoHome phase 3: resetting RA home index: 0x%x (was 0x%x)",
+                               mount->GetlastreadRAIndexer(), indexRA);
+                        ah_bSlewingUp_RA = true;
                     }
-                    else
+                    if (!ah_bSlewingUp_DE)
                     {
-                        DEBUG(INDI::Logger::DBG_DEBUG, "Autohome phase 6: Waiting for motors to stop");
+                        mount->ResetDEIndexer();
+                        mount->GetDEIndexer();
+                        DEBUGF(INDI::Logger::DBG_SESSION,
+                               "AutoHome phase 3: resetting DE home index: 0x%x (was 0x%x)",
+                               mount->GetlastreadDEIndexer(), indexDE);
+                        ah_bSlewingUp_DE = true;
                     }
-                    break;
-                default:
-                    DEBUGF(INDI::Logger::DBG_WARNING, "Unknown Autohome status %d: aborting", AutohomeState);
-                    Abort();
-                    break;
+                    DEBUG(INDI::Logger::DBG_SESSION, "Autohome phase 3: end");
+                    DEBUG(INDI::Logger::DBG_SESSION, "Autohome phase 4: *** find the home position index ***");
+                    DEBUG(INDI::Logger::DBG_SESSION,
+                          "AutoHome phase 4: starting RA positive slewing, waiting RA home indexer");
+                    ah_waitRA           = -1;
+                    ah_bIndexChanged_RA = false;
+                    mount->SlewRA(400.0);
+
+                    DEBUG(INDI::Logger::DBG_SESSION,
+                          "AutoHome phase 4: starting DE positive slewing, waiting DE home indexer");
+                    ah_waitDE = -1;
+                    mount->SlewDE(400.0);
+                    ah_bIndexChanged_DE = false;
+                    AutohomeState       = AUTO_HOME_WAIT_PHASE4;
+                }
+                break;
+            case AUTO_HOME_WAIT_PHASE4:
+                if (!ah_bIndexChanged_RA)
+                {
+                    mount->GetRAIndexer();
+                    ah_iPosition_RA = mount->GetlastreadRAIndexer();
+                    if (ah_iPosition_RA != 0)
+                    {
+                        ah_bIndexChanged_RA      = true;
+                        ah_sHomeIndexPosition_RA = ah_iPosition_RA;
+                        DEBUGF(INDI::Logger::DBG_SESSION,
+                               "Autohome phase 4: detected RA Home index: 0x%x, stopping motor", ah_iPosition_RA);
+                        mount->StopRA();
+                    }
+                }
+                if (!ah_bIndexChanged_DE)
+                {
+                    mount->GetDEIndexer();
+                    ah_iPosition_DE = mount->GetlastreadDEIndexer();
+                    if (ah_iPosition_DE != 0)
+                    {
+                        ah_bIndexChanged_DE      = true;
+                        ah_sHomeIndexPosition_DE = ah_iPosition_DE;
+                        DEBUGF(INDI::Logger::DBG_SESSION,
+                               "Autohome phase 4: detected DE Home index: 0x%x, stopping motor", ah_iPosition_DE);
+                        mount->StopDE();
+                    }
+                }
+                if (!(mount->IsRARunning()) && !(mount->IsDERunning()))
+                {
+                    DEBUG(INDI::Logger::DBG_SESSION, "Autohome phase 4: end");
+                    DEBUG(INDI::Logger::DBG_SESSION, "Autohome phase 5: Moving back 10 deg.");
+                    ah_iChanges     = (10 * mount->GetRAEncoderTotal()) / 360;
+                    ah_iPosition_RA = ah_iPosition_RA - ah_iChanges;
+                    ah_iChanges     = (10 * mount->GetDEEncoderTotal()) / 360;
+                    ah_iPosition_DE = ah_iPosition_DE - ah_iChanges;
+                    DEBUGF(INDI::Logger::DBG_SESSION,
+                           "AutoHome phase 5: slewing to RA=0x%x (up=%c) DE=0x%x (up=%c)", ah_iPosition_RA, '0',
+                           ah_iPosition_DE, '0');
+                    mount->AbsSlewTo(ah_iPosition_RA, ah_iPosition_DE, false, false);
+                    AutohomeState = AUTO_HOME_WAIT_PHASE5;
+                }
+                break;
+            case AUTO_HOME_WAIT_PHASE5:
+                if (!(mount->IsRARunning()) && !(mount->IsDERunning()))
+                {
+                    DEBUG(INDI::Logger::DBG_SESSION, "Autohome phase 5: end");
+                    DEBUG(INDI::Logger::DBG_SESSION, "Autohome phase 6: Goto Home Position");
+                    DEBUGF(INDI::Logger::DBG_SESSION,
+                           "AutoHome phase 6: slewing to RA=0x%x (up=%c) DE=0x%x (up=%c)", ah_sHomeIndexPosition_RA,
+                           '1', ah_sHomeIndexPosition_DE, '1');
+                    mount->AbsSlewTo(ah_sHomeIndexPosition_RA, ah_sHomeIndexPosition_DE, true, true);
+                    AutohomeState = AUTO_HOME_WAIT_PHASE6;
+                }
+                else
+                {
+                    DEBUG(INDI::Logger::DBG_DEBUG, "Autohome phase 5: Waiting for motors to stop");
+                }
+                break;
+            case AUTO_HOME_WAIT_PHASE6:
+                if (!(mount->IsRARunning()) && !(mount->IsDERunning()))
+                {
+                    DEBUG(INDI::Logger::DBG_SESSION, "Autohome phase 6: end");
+                    DEBUGF(INDI::Logger::DBG_SESSION, "AutoHome phase 6: Mount at RA=0x%x DE=0x%x",
+                           mount->GetRAEncoder(), mount->GetDEEncoder());
+                    DEBUGF(INDI::Logger::DBG_SESSION,
+                           "Autohome: Mount at Home Position, setting encoders RA=0x%x DE=0X%x",
+                           mount->GetRAEncoderHome(), mount->GetDEEncoderHome());
+                    mount->SetRAAxisPosition(mount->GetRAEncoderHome());
+                    mount->SetDEAxisPosition(mount->GetDEEncoderHome());
+                    TrackState    = SCOPE_IDLE;
+                    AutohomeState = AUTO_HOME_IDLE;
+                    AutoHomeSP->s = IPS_IDLE;
+                    IUResetSwitch(AutoHomeSP);
+                    IDSetSwitch(AutoHomeSP, NULL);
+                    DEBUG(INDI::Logger::DBG_SESSION, "Autohome: end");
+                }
+                else
+                {
+                    DEBUG(INDI::Logger::DBG_DEBUG, "Autohome phase 6: Waiting for motors to stop");
+                }
+                break;
+            default:
+                DEBUGF(INDI::Logger::DBG_WARNING, "Unknown Autohome status %d: aborting", AutohomeState);
+                Abort();
+                break;
             }
         }
     }
@@ -2955,40 +2955,40 @@ double EQMod::GetDESlew()
 bool EQMod::MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command)
 {
     const char *dirStr = (dir == DIRECTION_NORTH) ? "North" : "South";
-    double rate        = (dir == DIRECTION_NORTH) ? GetDESlew() : GetDESlew() * -1;    
+    double rate        = (dir == DIRECTION_NORTH) ? GetDESlew() : GetDESlew() * -1;
 
     try
     {
         switch (command)
         {
-            case MOTION_START:
-                if (gotoInProgress() || (TrackState == SCOPE_PARKING) || (TrackState == SCOPE_PARKED))
-                {
-                    DEBUG(INDI::Logger::DBG_WARNING, "Can not slew while goto/park in progress, or scope parked.");
-                    return false;
-                }
+        case MOTION_START:
+            if (gotoInProgress() || (TrackState == SCOPE_PARKING) || (TrackState == SCOPE_PARKED))
+            {
+                DEBUG(INDI::Logger::DBG_WARNING, "Can not slew while goto/park in progress, or scope parked.");
+                return false;
+            }
 
-                DEBUGF(INDI::Logger::DBG_SESSION, "Starting %s slew.", dirStr);
-                if (DEInverted)
-                    rate = -rate;
-                mount->SlewDE(rate);
-                TrackState = SCOPE_SLEWING;
-                break;
+            DEBUGF(INDI::Logger::DBG_SESSION, "Starting %s slew.", dirStr);
+            if (DEInverted)
+                rate = -rate;
+            mount->SlewDE(rate);
+            TrackState = SCOPE_SLEWING;
+            break;
 
-            case MOTION_STOP:
-                DEBUGF(INDI::Logger::DBG_SESSION, "%s Slew stopped", dirStr);
-                mount->StopDE();
-                //if (TrackModeSP->s == IPS_BUSY)
-                if (RememberTrackState == SCOPE_TRACKING)
-                {
-                    DEBUG(INDI::Logger::DBG_SESSION, "Restarting DE Tracking...");
-                    TrackState = SCOPE_TRACKING;
-                    mount->StartDETracking(GetDETrackRate());
-                }
-                else
-                    TrackState = SCOPE_IDLE;
+        case MOTION_STOP:
+            DEBUGF(INDI::Logger::DBG_SESSION, "%s Slew stopped", dirStr);
+            mount->StopDE();
+            //if (TrackModeSP->s == IPS_BUSY)
+            if (RememberTrackState == SCOPE_TRACKING)
+            {
+                DEBUG(INDI::Logger::DBG_SESSION, "Restarting DE Tracking...");
+                TrackState = SCOPE_TRACKING;
+                mount->StartDETracking(GetDETrackRate());
+            }
+            else
+                TrackState = SCOPE_IDLE;
 
-                break;
+            break;
         }
     }
     catch (EQModError e)
@@ -3007,33 +3007,33 @@ bool EQMod::MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command)
     {
         switch (command)
         {
-            case MOTION_START:
-                if (gotoInProgress() || (TrackState == SCOPE_PARKING) || (TrackState == SCOPE_PARKED))
-                {
-                    DEBUG(INDI::Logger::DBG_WARNING, "Can not slew while goto/park in progress, or scope parked.");
-                    return false;
-                }
+        case MOTION_START:
+            if (gotoInProgress() || (TrackState == SCOPE_PARKING) || (TrackState == SCOPE_PARKED))
+            {
+                DEBUG(INDI::Logger::DBG_WARNING, "Can not slew while goto/park in progress, or scope parked.");
+                return false;
+            }
 
-                DEBUGF(INDI::Logger::DBG_SESSION, "Starting %s slew.", dirStr);
-                if (RAInverted)
-                    rate = -rate;
-                mount->SlewRA(rate);
-                TrackState = SCOPE_SLEWING;
-                break;
+            DEBUGF(INDI::Logger::DBG_SESSION, "Starting %s slew.", dirStr);
+            if (RAInverted)
+                rate = -rate;
+            mount->SlewRA(rate);
+            TrackState = SCOPE_SLEWING;
+            break;
 
-            case MOTION_STOP:
-                DEBUGF(INDI::Logger::DBG_SESSION, "%s Slew stopped", dirStr);
-                mount->StopRA();
-                //if (TrackModeSP->s == IPS_BUSY)
-                if (RememberTrackState == SCOPE_TRACKING)
-                {
-                    DEBUG(INDI::Logger::DBG_SESSION, "Restarting RA Tracking...");
-                    TrackState = SCOPE_TRACKING;
-                    mount->StartRATracking(GetRATrackRate());
-                }
-                else
-                    TrackState = SCOPE_IDLE;
-                break;
+        case MOTION_STOP:
+            DEBUGF(INDI::Logger::DBG_SESSION, "%s Slew stopped", dirStr);
+            mount->StopRA();
+            //if (TrackModeSP->s == IPS_BUSY)
+            if (RememberTrackState == SCOPE_TRACKING)
+            {
+                DEBUG(INDI::Logger::DBG_SESSION, "Restarting RA Tracking...");
+                TrackState = SCOPE_TRACKING;
+                mount->StartRATracking(GetRATrackRate());
+            }
+            else
+                TrackState = SCOPE_IDLE;
+            break;
         }
     }
     catch (EQModError e)
@@ -3220,9 +3220,9 @@ From // // http://www.whim.org/nebula/math/pdf/twostar.pdf
     delta2 = d2;
 
     sintpadelta =
-        (sin(delta1) * sin(cdelta1)) + (sin(delta2) * sin(cdelta2)) -
-        cosDelta1 * ((sin(delta1) * sin(cdelta2)) + (sin(cdelta1) * sin(delta2))) +
-        (cos(delta1) * cos(delta2) * sin(alpha2 - alpha1) * cos(cdelta1) * cos(cdelta2) * sin(calpha2 - calpha1));
+            (sin(delta1) * sin(cdelta1)) + (sin(delta2) * sin(cdelta2)) -
+            cosDelta1 * ((sin(delta1) * sin(cdelta2)) + (sin(cdelta1) * sin(delta2))) +
+            (cos(delta1) * cos(delta2) * sin(alpha2 - alpha1) * cos(cdelta1) * cos(cdelta2) * sin(calpha2 - calpha1));
     sintpadelta = sintpadelta / (sin(Delta) * sin(Delta));
     tpadelta    = asin(sintpadelta);
     cosama1     = (sin(delta1) - (sin(cdelta1) * sintpadelta)) / (cos(cdelta1) * cos(tpadelta));
@@ -3403,61 +3403,36 @@ bool EQMod::saveConfigItems(FILE *fp)
 
 bool EQMod::SetTrackRate(double raRate, double deRate)
 {
-    if (IUFindOnSwitchIndex(&TrackModeSP) == TRACK_CUSTOM)
+    try
     {
-        // If mount is tracking, change track rate now
-        if (TrackState == SCOPE_TRACKING)
-        {
-            // Give warning is tracking sign would cause a reverse in direction
-            if ( (raRate * TrackRateN[RA_AXIS].value < 0) || (deRate * TrackRateN[DEC_AXIS].value < 0) )
-            {
-                DEBUG(INDI::Logger::DBG_ERROR, "Cannot reverse tracking while tracking is engaged. Disengage tracking then try again.");
-                return false;
-            }
-
-            try
-            {
-                mount->SetRARate(raRate / SKYWATCHER_STELLAR_SPEED);
-                mount->SetDERate(deRate / SKYWATCHER_STELLAR_SPEED);
-            }
-            catch (EQModError e)
-            {
-                return (e.DefaultHandleException(this));
-            }
-
-        }
-
-        DEBUGF(INDI::Logger::DBG_SESSION, "Setting Custom Tracking Rates - RA=%.6f  DE=%.6f arcsec/s", raRate, deRate);
-
-        return true;
+        mount->SetRARate(raRate / SKYWATCHER_STELLAR_SPEED);
+        mount->SetDERate(deRate / SKYWATCHER_STELLAR_SPEED);
     }
-    else
-        DEBUG(INDI::Logger::DBG_ERROR, "Tracking mode must be set to CUSTOM first.");
+    catch (EQModError e)
+    {
+        return (e.DefaultHandleException(this));
+    }
 
-    return false;
+    DEBUGF(INDI::Logger::DBG_SESSION, "Setting Custom Tracking Rates - RA=%.6f  DE=%.6f arcsec/s", raRate, deRate);
+
+    return true;
 }
 
 bool EQMod::SetTrackMode(uint8_t mode)
 {
-    IUResetSwitch(&TrackModeSP);
-    TrackModeS[mode].s = ISS_ON;
+    // GetRATrackRate..etc al already check TrackModeSP to obtain the appropiate tracking rate, so no need for mode here.
+    INDI_UNUSED(mode);
 
-    // If we're already tracking, we change tracking mode
-    if (TrackState == SCOPE_TRACKING)
+    try
     {
-        // 2017-08-01 Jasem: Is it OK to change tracking rates while already tracking??
-        try
-        {
-            mount->StartRATracking(GetRATrackRate());
-            mount->StartDETracking(GetDETrackRate());
-        }
-        catch (EQModError e)
-        {
-            return (e.DefaultHandleException(this));
-        }
+        mount->StartRATracking(GetRATrackRate());
+        mount->StartDETracking(GetDETrackRate());
+    }
+    catch (EQModError e)
+    {
+        return (e.DefaultHandleException(this));
     }
 
-    // If scope is IDLE, we do not take any action.
     return true;
 }
 
@@ -3465,14 +3440,14 @@ bool EQMod::SetTrackEnabled(bool enabled)
 {
     try
     {
-        if (TrackState == SCOPE_IDLE && enabled)
+        if (enabled)
         {
             DEBUGF(INDI::Logger::DBG_SESSION, "Start Tracking (%s).", IUFindOnSwitch(&TrackModeSP)->label);
             TrackState     = SCOPE_TRACKING;
             mount->StartRATracking(GetRATrackRate());
             mount->StartDETracking(GetDETrackRate());
         }
-        else if (TrackState == SCOPE_TRACKING && enabled == false)
+        else if (enabled == false)
         {
             DEBUGF(INDI::Logger::DBG_WARNING, "Stopping Tracking (%s).", IUFindOnSwitch(&TrackModeSP)->label);
             TrackState     = SCOPE_IDLE;

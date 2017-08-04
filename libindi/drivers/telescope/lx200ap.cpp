@@ -986,7 +986,18 @@ bool LX200AstroPhysics::SetTrackMode(uint8_t mode)
 {
     int err=0;
 
-    if (isSimulation() == false && (err = selectAPTrackingMode(PortFD, mode) < 0))
+    if (mode == TRACK_CUSTOM)
+    {
+        if (isSimulation() == false && (err = selectAPTrackingMode(PortFD, AP_TRACKING_SIDEREAL)) < 0)
+        {
+            DEBUGF(INDI::Logger::DBG_ERROR, "Error setting tracking mode (%d).", err);
+            return false;
+        }
+
+        return SetTrackRate(TrackRateN[AXIS_RA].value, TrackRateN[AXIS_DE].value);
+    }
+
+    if (isSimulation() == false && (err = selectAPTrackingMode(PortFD, mode)) < 0)
     {
         DEBUGF(INDI::Logger::DBG_ERROR, "Error setting tracking mode (%d).", err);
         return false;
@@ -997,39 +1008,11 @@ bool LX200AstroPhysics::SetTrackMode(uint8_t mode)
 
 bool LX200AstroPhysics::SetTrackEnabled(bool enabled)
 {
-    if (isSimulation())
-        return true;
-
-    if (enabled)
-    {
-        int currentTrackingMode = IUFindOnSwitchIndex(&TrackModeSP);
-        // If tracking is custom, then first engage sidereal tracking, then apply custom tracking rates
-        // or should we do it the way around?
-        if (currentTrackingMode == AP_TRACKING_CUSTOM)
-        {
-            bool rc1 = SetTrackMode(AP_TRACKING_SIDERAL);
-            bool rc2 = SetTrackRate(TrackRateN[AXIS_RA].value, TrackRateN[AXIS_DE].value);
-            return (rc1 && rc2);
-        }
-
-        return SetTrackMode(currentTrackingMode);
-    }
-
-    int rc = selectAPTrackingMode(PortFD, AP_TRACKING_OFF);
-    if (rc < 0)
-    {
-            DEBUGF(INDI::Logger::DBG_ERROR, "Error turning tracking off (%d).", rc);
-            return false;
-    }
-
-    return true;
+   return SetTrackMode(enabled ? IUFindOnSwitchIndex(&TrackModeSP) : AP_TRACKING_OFF);
 }
 
 bool LX200AstroPhysics::SetTrackRate(double raRate, double deRate)
 {
-    if (isSimulation())
-        return true;
-
     // Convert to arcsecs/s to AP sidereal multiplier
     /*
     :RR0.0000#      =       normal sidereal tracking in RA - similar to  :RT2#
@@ -1043,29 +1026,14 @@ bool LX200AstroPhysics::SetTrackRate(double raRate, double deRate)
     :RD-5.0000#     =       normal zero rate - 5    =       5X sidereal counter-clockwise from above - equivalent to North
     */
 
-    if (IUFindOnSwitchIndex(&TrackModeSP) != AP_TRACKING_CUSTOM)
+    double APRARate = (raRate - TRACKRATE_SIDEREAL) / TRACKRATE_SIDEREAL;
+    double APDERate = deRate / TRACKRATE_SIDEREAL;
+
+    if (isSimulation() == false)
     {
-        DEBUG(INDI::Logger::DBG_ERROR, "Tracking mode must be set to CUSTOM first.");
-        return false;
-    }
-
-    // If mount is tracking, change track rate now
-    if (TrackState == SCOPE_TRACKING)
-    {
-        // Give warning is tracking sign would cause a reverse in direction
-        if ( (raRate * TrackRateN[AXIS_RA].value < 0) || (deRate * TrackRateN[AXIS_DE].value < 0) )
-        {
-            DEBUG(INDI::Logger::DBG_ERROR, "Cannot reverse tracking while tracking is engaged. Disengage tracking then try again.");
-            return false;
-        }
-
-        double APRARate = (raRate - TRACKRATE_SIDEREAL) / TRACKRATE_SIDEREAL;
-        double APDERate = deRate / TRACKRATE_SIDEREAL;
-
         if (setAPRATrackRate(PortFD, APRARate) < 0 || setAPDETrackRate(PortFD, APDERate) < 0)
             return false;
     }
 
-    // If tracking is off, then just accept the value and re-apply them again when tracking is enagned
     return true;
 }
