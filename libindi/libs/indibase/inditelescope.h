@@ -50,6 +50,17 @@
  * should remove any additional properties it defined in updateProperties() if applicable</li>
  * </ul>
  *
+ * TrackState is used to monitor changes in Tracking state. There are three main tracking properties:
+ * + TrackMode: Changes tracking mode or rate. Common modes are TRACK_SIDEREAL, TRACK_LUNAR, TRACK_SOLAR, and TRACK_CUSTOM
+ * + TrackRate: If the mount supports custom tracking rates, it should set the capability flag TELESCOPE_HAS_TRACK_RATE. If the user
+ *              changes the custom tracking rates while the mount is tracking, it it sent to the child class via SetTrackRate(...) function.
+ *              The base class will reject any track rates that switch from positive to negative (reverse) tracking rates as the mount must be stopped before
+ *              such change takes place.
+ * + TrackState: Engages or Disengages tracking. When engaging tracking, the child class should take the necessary steps to set the appropiate TrackMode and TrackRate
+ *               properties before or after engaging tracking as governed by the mount protocol.
+ *
+ * Ideally, the child class should avoid changing property states directly within a function call from the base class as such state changes take place in the base class
+ * after checking the return values of such functions.
  * \author Jasem Mutlaq, Gerry Rozema
  * \see TelescopeSimulator and SynScan drivers for examples of implementations of INDI::Telescope.
  */
