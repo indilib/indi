@@ -39,12 +39,12 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <stdio.h>
-#include <errno.h>
+#include <cerrno>
 #include <sys/mman.h>
-#include <string.h>
+#include <cstring>
 #include <asm/types.h> /* for videodev2.h */
-#include <time.h>
-#include <math.h>
+#include <ctime>
+#include <cmath>
 #include <sys/time.h>
 
 /* Kernel headers version */
@@ -1335,7 +1335,7 @@ int V4L2_Base::init_device(char *errmsg)
     return 0;
 }
 
-void V4L2_Base::close_device(void)
+void V4L2_Base::close_device()
 {
     char errmsg[ERRMSGSIZ];
     uninit_device(errmsg);
@@ -1958,7 +1958,7 @@ void V4L2_Base::findMinMax()
     cerr << "Min X: " << xmin << " - Max X: " << xmax << " - Min Y: " << ymin << " - Max Y: " << ymax << endl;
 }
 
-void V4L2_Base::enumerate_ctrl(void)
+void V4L2_Base::enumerate_ctrl()
 {
     char errmsg[ERRMSGSIZ];
     CLEAR(queryctrl);
@@ -2035,7 +2035,7 @@ void V4L2_Base::enumerate_ctrl(void)
     }
 }
 
-void V4L2_Base::enumerate_menu(void)
+void V4L2_Base::enumerate_menu()
 {
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 5, 0))
     if (queryctrl.type == V4L2_CTRL_TYPE_MENU)
@@ -2649,7 +2649,7 @@ int V4L2_Base::setOPTControl(unsigned int ctrl_id, unsigned int new_value, char 
     return 0;
 }
 
-bool V4L2_Base::enumerate_ext_ctrl(void)
+bool V4L2_Base::enumerate_ext_ctrl()
 {
     //struct v4l2_queryctrl queryctrl;
 

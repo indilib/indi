@@ -22,14 +22,14 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110 - 1301  USA
 
 #endif
 
-#include <math.h>
+#include <cmath>
 #include "lx200apdriver.h"
 
 #include "indicom.h"
 #include "indilogger.h"
 #include "lx200driver.h"
 
-#include <string.h>
+#include <cstring>
 #include <unistd.h>
 
 #ifndef _WIN32

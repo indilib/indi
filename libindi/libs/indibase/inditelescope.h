@@ -77,7 +77,7 @@ class INDI::Telescope : public INDI::DefaultDevice
     };
     enum TelescopeMotionCommand
     {
-        MOTION_START,
+        MOTION_START = 0,
         MOTION_STOP
     };
     enum TelescopeSlewRate

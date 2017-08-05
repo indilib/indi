@@ -209,7 +209,7 @@ void IEQ45Basic::init_properties()
 ***************************************************************************************/
 void IEQ45Basic::ISGetProperties(const char *dev)
 {
-    if (dev && strcmp(mydev, dev))
+    if (dev != nullptr && strcmp(mydev, dev))
         return;
 
     // Main Control

@@ -163,7 +163,7 @@ void V4L2_Driver::initCamBase()
 
 void V4L2_Driver::ISGetProperties(const char *dev)
 {
-    if (dev && strcmp(getDeviceName(), dev))
+    if (dev != nullptr && strcmp(getDeviceName(), dev) != 0)
         return;
 
     INDI::CCD::ISGetProperties(dev);
@@ -291,11 +291,11 @@ bool V4L2_Driver::ISNewSwitch(const char *dev, const char *name, ISState *states
     unsigned int iopt;
 
     /* ignore if not ours */
-    if (dev && strcmp(getDeviceName(), dev))
+    if (dev != nullptr && strcmp(getDeviceName(), dev) != 0)
         return true;
 
     /* Input */
-    if ((!strcmp(name, InputsSP.name)))
+    if (strcmp(name, InputsSP.name) == 0)
     {
         //if ((StreamSP.s == IPS_BUSY) ||  (ExposeTimeNP->s == IPS_BUSY) || (RecordStreamSP.s == IPS_BUSY)) {
         if (PrimaryCCD.isExposing() || Streamer->isBusy())
@@ -345,7 +345,7 @@ bool V4L2_Driver::ISNewSwitch(const char *dev, const char *name, ISState *states
     }
 
     /* Capture Format */
-    if ((!strcmp(name, CaptureFormatsSP.name)))
+    if (strcmp(name, CaptureFormatsSP.name) == 0)
     {
         //if ((StreamSP.s == IPS_BUSY) ||  (ExposeTimeNP->s == IPS_BUSY) || (RecordStreamSP.s == IPS_BUSY)) {
         if (PrimaryCCD.isExposing() || Streamer->isBusy())
@@ -403,7 +403,7 @@ bool V4L2_Driver::ISNewSwitch(const char *dev, const char *name, ISState *states
     }
 
     /* Capture Size (Discrete) */
-    if ((!strcmp(name, CaptureSizesSP.name)))
+    if (strcmp(name, CaptureSizesSP.name) == 0)
     {
         //if ((StreamSP.s == IPS_BUSY) ||  (ExposeTimeNP->s == IPS_BUSY) || (RecordStreamSP.s == IPS_BUSY)) {
         if (PrimaryCCD.isExposing() || Streamer->isBusy())
@@ -452,7 +452,7 @@ bool V4L2_Driver::ISNewSwitch(const char *dev, const char *name, ISState *states
     }
 
     /* Frame Rate (Discrete) */
-    if ((!strcmp(name, FrameRatesSP.name)))
+    if (strcmp(name, FrameRatesSP.name) == 0)
     {
         if (PrimaryCCD.isExposing() || Streamer->isBusy())
         {
@@ -480,7 +480,7 @@ bool V4L2_Driver::ISNewSwitch(const char *dev, const char *name, ISState *states
     }
 
     /* Image Type */
-    if (!strcmp(name, ImageColorSP.name))
+    if (strcmp(name, ImageColorSP.name) == 0)
     {
         if (Streamer->isRecording())
         {
@@ -509,7 +509,7 @@ bool V4L2_Driver::ISNewSwitch(const char *dev, const char *name, ISState *states
     }
 
     /* Image Depth */
-    if (!strcmp(name, ImageDepthSP.name))
+    if (strcmp(name, ImageDepthSP.name) == 0)
     {
         if (Streamer->isRecording())
         {
@@ -533,7 +533,7 @@ bool V4L2_Driver::ISNewSwitch(const char *dev, const char *name, ISState *states
     }
 
     /* Stacking Mode */
-    if (!strcmp(name, StackModeSP.name))
+    if (strcmp(name, StackModeSP.name) == 0)
     {
         IUResetSwitch(&StackModeSP);
         IUUpdateSwitch(&StackModeSP, states, names, n);
@@ -554,7 +554,7 @@ bool V4L2_Driver::ISNewSwitch(const char *dev, const char *name, ISState *states
 
     /* V4L2 Options/Menus */
     for (iopt = 0; iopt < v4loptions; iopt++)
-        if (!strcmp(Options[iopt].name, name))
+        if (strcmp(Options[iopt].name, name) == 0)
             break;
     if (iopt < v4loptions)
     {
@@ -596,7 +596,7 @@ bool V4L2_Driver::ISNewSwitch(const char *dev, const char *name, ISState *states
     }
 
     /* ColorProcessing */
-    if (!strcmp(name, ColorProcessingSP.name))
+    if (strcmp(name, ColorProcessingSP.name) == 0)
     {
         if (ImageColorS[IMAGE_GRAYSCALE].s == ISS_ON)
         {
@@ -626,10 +626,10 @@ bool V4L2_Driver::ISNewText(const char *dev, const char *name, char *texts[], ch
     IText *tp;
 
     /* ignore if not ours */
-    if (dev && strcmp(getDeviceName(), dev))
+    if (dev != nullptr && strcmp(getDeviceName(), dev) != 0)
         return true;
 
-    if (!strcmp(name, PortTP.name))
+    if (strcmp(name, PortTP.name) == 0)
     {
         PortTP.s = IPS_OK;
         tp       = IUFindText(&PortTP, names[0]);
@@ -649,11 +649,11 @@ bool V4L2_Driver::ISNewNumber(const char *dev, const char *name, double values[]
     char errmsg[ERRMSGSIZ];
 
     /* ignore if not ours */
-    if (dev && strcmp(getDeviceName(), dev))
+    if (dev != nullptr && strcmp(getDeviceName(), dev) != 0)
         return true;
 
     /* Capture Size (Step/Continuous) */
-    if ((!strcmp(name, CaptureSizesNP.name)))
+    if (strcmp(name, CaptureSizesNP.name) == 0)
     {
         if (PrimaryCCD.isExposing() || Streamer->isBusy())
         {
@@ -667,7 +667,7 @@ bool V4L2_Driver::ISNewNumber(const char *dev, const char *name, double values[]
             unsigned int sizes[2], w = 0, h = 0;
             double rsizes[2];
 
-            if (!strcmp(names[0], "Width"))
+            if (strcmp(names[0], "Width") == 0)
             {
                 sizes[0] = values[0];
                 sizes[1] = values[1];
@@ -684,7 +684,7 @@ bool V4L2_Driver::ISNewNumber(const char *dev, const char *name, double values[]
                 IDSetNumber(&CaptureSizesNP, nullptr);
                 return false;
             }
-            if (!strcmp(names[0], "Width"))
+            if (strcmp(names[0], "Width") == 0)
             {
                 w         = v4l_base->getWidth();
                 rsizes[0] = (double)w;
@@ -713,7 +713,7 @@ bool V4L2_Driver::ISNewNumber(const char *dev, const char *name, double values[]
         }
     }
 
-    if (!strcmp(ImageAdjustNP.name, name))
+    if (strcmp(ImageAdjustNP.name, name) == 0)
     {
         ImageAdjustNP.s = IPS_IDLE;
 
@@ -1427,7 +1427,7 @@ bool V4L2_Driver::Disconnect()
 
 const char *V4L2_Driver::getDefaultName()
 {
-    return (char *)"V4L2 CCD";
+    return (const char *)"V4L2 CCD";
 }
 
 /* Retrieves basic data from the device upon connection.*/
@@ -1512,8 +1512,8 @@ void V4L2_Driver::updateV4L2Controls()
 
         for (int i = 0; i < ImageAdjustNP.nnp; i++)
         {
-            if (!strcmp(ImageAdjustNP.np[i].label, "Exposure (Absolute)") ||
-                !strcmp(ImageAdjustNP.np[i].label, "Exposure Time, Absolute"))
+            if (strcmp(ImageAdjustNP.np[i].label, "Exposure (Absolute)") == 0 ||
+                strcmp(ImageAdjustNP.np[i].label, "Exposure Time, Absolute") == 0)
             {
                 AbsExposureN = ImageAdjustNP.np + i;
                 DEBUGF(INDI::Logger::DBG_DEBUG,"- %s (used for absolute exposure duration)", ImageAdjustNP.np[i].label);
@@ -1526,7 +1526,7 @@ void V4L2_Driver::updateV4L2Controls()
     {
         defineSwitch(&Options[i]);
 
-        if (!strcmp(Options[i].label, "Exposure, Auto") || !strcmp(Options[i].label, "Auto Exposure"))
+        if (strcmp(Options[i].label, "Exposure, Auto") == 0 || strcmp(Options[i].label, "Auto Exposure") == 0)
         {
             ManualExposureSP = Options + i;
             DEBUGF(INDI::Logger::DBG_DEBUG,"- %s (used for manual/auto exposure control)", Options[i].label);

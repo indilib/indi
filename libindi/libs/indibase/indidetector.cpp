@@ -30,9 +30,9 @@
 #include <regex>
 
 #include <dirent.h>
-#include <errno.h>
+#include <cerrno>
 #include <locale.h>
-#include <stdlib.h>
+#include <cstdlib>
 #include <zlib.h>
 #include <sys/stat.h>
 
@@ -452,7 +452,7 @@ bool INDI::Detector::ISSnoopDevice(XMLEle *root)
 bool INDI::Detector::ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
 {
     //  first check if it's for our device
-    if (strcmp(dev, getDeviceName()) == 0)
+    if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
         //  This is for our device
         //  Now lets see if it's something we process here
@@ -501,7 +501,7 @@ bool INDI::Detector::ISNewNumber(const char *dev, const char *name, double value
 {
     //  first check if it's for our device
     //IDLog("INDI::Detector::ISNewNumber %s\n",name);
-    if (strcmp(dev, getDeviceName()) == 0)
+    if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
         if (!strcmp(name, "DETECTOR_CAPTURE"))
         {
@@ -574,7 +574,7 @@ bool INDI::Detector::ISNewNumber(const char *dev, const char *name, double value
 
 bool INDI::Detector::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
 {
-    if (strcmp(dev, getDeviceName()) == 0)
+    if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
         if (!strcmp(name, UploadSP.name))
         {
@@ -727,7 +727,7 @@ void INDI::Detector::addFITSKeywords(fitsfile *fptr, DetectorDevice *targetDevic
 
     if (RA != -1000 && Dec != -1000)
     {
-        ln_equ_posn epochPos, J2000Pos;
+        ln_equ_posn epochPos { 0, 0 }, J2000Pos { 0, 0 };
         epochPos.ra  = RA * 15.0;
         epochPos.dec = Dec;
 

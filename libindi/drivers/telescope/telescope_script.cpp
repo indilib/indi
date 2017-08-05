@@ -18,9 +18,9 @@
 
 #include "telescope_script.h"
 
+#include <cstring>
 #include <memory>
 
-#include <string.h>
 #include <unistd.h>
 #include <sys/wait.h>
 
@@ -51,19 +51,19 @@ void ISGetProperties(const char *dev)
     scope_script->ISGetProperties(dev);
 }
 
-void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int num)
+void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
 {
-    scope_script->ISNewSwitch(dev, name, states, names, num);
+    scope_script->ISNewSwitch(dev, name, states, names, n);
 }
 
-void ISNewText(const char *dev, const char *name, char *texts[], char *names[], int num)
+void ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
 {
-    scope_script->ISNewText(dev, name, texts, names, num);
+    scope_script->ISNewText(dev, name, texts, names, n);
 }
 
-void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int num)
+void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
 {
-    scope_script->ISNewNumber(dev, name, values, names, num);
+    scope_script->ISNewNumber(dev, name, values, names, n);
 }
 
 void ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[],
@@ -89,13 +89,9 @@ ScopeScript::ScopeScript()
     SetTelescopeCapability(TELESCOPE_CAN_PARK | TELESCOPE_CAN_SYNC | TELESCOPE_CAN_GOTO | TELESCOPE_CAN_ABORT, 4);
 }
 
-ScopeScript::~ScopeScript()
-{
-}
-
 const char *ScopeScript::getDefaultName()
 {
-    return (char *)"Telescope Scripting Gateway";
+    return (const char *)"Telescope Scripting Gateway";
 }
 
 bool ScopeScript::initProperties()
@@ -142,14 +138,11 @@ void ScopeScript::ISGetProperties(const char *dev)
 
 bool ScopeScript::ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
 {
-    if (!strcmp(dev, getDeviceName()))
+    if (strcmp(dev, getDeviceName()) == 0 && strcmp(name, ScriptsTP.name) == 0)
     {
-        if (!strcmp(name, ScriptsTP.name))
-        {
-            IUUpdateText(&ScriptsTP, texts, names, n);
-            IDSetText(&ScriptsTP, nullptr);
-            return true;
-        }
+        IUUpdateText(&ScriptsTP, texts, names, n);
+        IDSetText(&ScriptsTP, nullptr);
+        return true;
     }
     return Telescope::ISNewText(dev, name, texts, names, n);
 }
@@ -157,6 +150,7 @@ bool ScopeScript::ISNewText(const char *dev, const char *name, char *texts[], ch
 bool ScopeScript::RunScript(int script, ...)
 {
     int pid = fork();
+
     if (pid == -1)
     {
         DEBUG(INDI::Logger::DBG_ERROR, "Fork failed");
@@ -165,13 +159,17 @@ bool ScopeScript::RunScript(int script, ...)
     else if (pid == 0)
     {
         char tmp[256];
-        strcpy(tmp, ScriptsT[script].text);
-        char **args = (char **)malloc(MAXARGS * sizeof(char *));
+
+        strncpy(tmp, ScriptsT[script].text, sizeof(tmp));
+
+        auto **args = (char **)malloc(MAXARGS * sizeof(char *));
         int arg     = 1;
         char *p     = tmp;
+
         while (arg < MAXARGS)
         {
             char *pp = strstr(p, " ");
+
             if (pp == nullptr)
                 break;
             *pp++       = 0;
@@ -215,7 +213,7 @@ bool ScopeScript::Connect()
     bool status = RunScript(SCRIPT_CONNECT, nullptr);
     if (status)
     {
-        DEBUG(INDI::Logger::DBG_SESSION, "Succesfully connected");
+        DEBUG(INDI::Logger::DBG_SESSION, "Successfully connected");
         ReadScopeStatus();
         SetTimer(POLLMS);
     }
@@ -227,7 +225,7 @@ bool ScopeScript::Disconnect()
     bool status = RunScript(SCRIPT_DISCONNECT, nullptr);
     if (status)
     {
-        DEBUG(INDI::Logger::DBG_SESSION, "Succesfully disconnected");
+        DEBUG(INDI::Logger::DBG_SESSION, "Successfully disconnected");
     }
     return status;
 }
@@ -340,7 +338,7 @@ bool ScopeScript::Abort()
     bool status = RunScript(SCRIPT_ABORT, nullptr);
     if (status)
     {
-        DEBUG(INDI::Logger::DBG_SESSION, "Succesfully aborted");
+        DEBUG(INDI::Logger::DBG_SESSION, "Successfully aborted");
     }
     else
     {

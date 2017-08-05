@@ -23,7 +23,7 @@
 
 #include "indicom.h"
 
-#include <math.h>
+#include <cmath>
 #include <memory>
 
 //const float SIDE_RATE = 0.004178; /* sidereal rate, degrees/s */
@@ -165,13 +165,14 @@ bool SimpleScope::Abort()
 {
     return true;
 }
+
 /**************************************************************************************
 ** Client is asking us to report telescope status
 ***************************************************************************************/
 bool SimpleScope::ReadScopeStatus()
 {
-    static struct timeval ltv;
-    struct timeval tv;
+    static struct timeval ltv { 0, 0 };
+    struct timeval tv { 0, 0 };
     double dt = 0, da_ra = 0, da_dec = 0, dx = 0, dy = 0;
     int nlocked;
 

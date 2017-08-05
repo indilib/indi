@@ -28,8 +28,8 @@
 
 #include <libnova/transform.h>
 
-#include <math.h>
-#include <string.h>
+#include <cmath>
+#include <cstring>
 #include <unistd.h>
 #include <termios.h>
 
@@ -314,7 +314,7 @@ bool LX200AstroPhysics::ISNewSwitch(const char *dev, const char *name, ISState *
         IUUpdateSwitch(&SwapSP, states, names, n);
         currentSwap = IUFindOnSwitchIndex(&SwapSP);
 
-        if ((isSimulation() == false && (err = swapAPButtons(PortFD, currentSwap)) < 0))
+        if ((!isSimulation() && (err = swapAPButtons(PortFD, currentSwap)) < 0))
         {
             DEBUGF(INDI::Logger::DBG_ERROR, "Error swapping buttons (%d).", err);
             return false;
@@ -335,7 +335,7 @@ bool LX200AstroPhysics::ISNewSwitch(const char *dev, const char *name, ISState *
         IUUpdateSwitch(&APSlewSpeedSP, states, names, n);
         int slewRate = IUFindOnSwitchIndex(&APSlewSpeedSP);
 
-        if (isSimulation() == false && (err = selectAPSlewRate(PortFD, slewRate) < 0))
+        if (!isSimulation() && (err = selectAPSlewRate(PortFD, slewRate) < 0))
         {
             DEBUGF(INDI::Logger::DBG_ERROR, "Error setting move to rate (%d).", err);
             return false;
@@ -370,7 +370,7 @@ bool LX200AstroPhysics::ISNewSwitch(const char *dev, const char *name, ISState *
 
         int pecstate = IUFindOnSwitchIndex(&PECStateSP);
 
-        if (isSimulation() == false && (err = selectAPPECState(PortFD, pecstate) < 0))
+        if (!isSimulation() && (err = selectAPPECState(PortFD, pecstate) < 0))
         {
             DEBUGF(INDI::Logger::DBG_ERROR, "Error setting PEC state (%d).", err);
             return false;
@@ -467,7 +467,7 @@ bool LX200AstroPhysics::ReadScopeStatus()
         {
             DEBUG(INDI::Logger::DBG_DEBUG, "Parking slew is complete. Asking astrophysics mount to park...");
 
-            if (isSimulation() == false && setAPPark(PortFD) < 0)
+            if (!isSimulation() && setAPPark(PortFD) < 0)
             {
                 DEBUG(INDI::Logger::DBG_ERROR, "Parking Failed.");
                 return false;
@@ -548,7 +548,7 @@ bool LX200AstroPhysics::setBasicDataPart1()
     UnPark();
 
     // Stop
-    if (isSimulation() == false && (err = setAPMotionStop(PortFD)) < 0)
+    if (!isSimulation() && (err = setAPMotionStop(PortFD)) < 0)
     {
         DEBUGF(INDI::Logger::DBG_ERROR, "Stop motion (:Q#) failed, check the mount (%d): %s", strerror(err));
         return false;
@@ -598,7 +598,7 @@ bool LX200AstroPhysics::Goto(double r, double d)
         usleep(100000);
     }
 
-    if (isSimulation() == false)
+    if (!isSimulation())
     {
         if (setAPObjectRA(PortFD, targetRA) < 0 || (setAPObjectDEC(PortFD, targetDEC)) < 0)
         {
@@ -651,7 +651,7 @@ bool LX200AstroPhysics::Sync(double ra, double dec)
 
     int syncType = IUFindOnSwitchIndex(&SyncCMRSP);
 
-    if (isSimulation() == false)
+    if (!isSimulation())
     {
         if (setAPObjectRA(PortFD, ra) < 0 || setAPObjectDEC(PortFD, dec) < 0)
         {
@@ -759,13 +759,13 @@ bool LX200AstroPhysics::updateLocation(double latitude, double longitude, double
         return true;
     }
 
-    if (isSimulation() == false && setAPSiteLongitude(PortFD, 360.0 - longitude) < 0)
+    if (!isSimulation() && setAPSiteLongitude(PortFD, 360.0 - longitude) < 0)
     {
         DEBUG(INDI::Logger::DBG_ERROR, "Error setting site longitude coordinates");
         return false;
     }
 
-    if (isSimulation() == false && setAPSiteLatitude(PortFD, latitude) < 0)
+    if (!isSimulation() && setAPSiteLatitude(PortFD, latitude) < 0)
     {
         DEBUG(INDI::Logger::DBG_ERROR, "Error setting site latitude coordinates");
         return false;
@@ -795,7 +795,7 @@ void LX200AstroPhysics::debugTriggered(bool enable)
 // ApSetSlew
 bool LX200AstroPhysics::SetSlewRate(int index)
 {
-    if (isSimulation() == false && selectAPMoveToRate(PortFD, index) < 0)
+    if (!isSimulation() && selectAPMoveToRate(PortFD, index) < 0)
     {
         SlewRateSP.s = IPS_ALERT;
         IDSetSwitch(&SlewRateSP, "Error setting slew mode.");
@@ -849,7 +849,7 @@ bool LX200AstroPhysics::Park()
 bool LX200AstroPhysics::UnPark()
 {
     // First we unpark astrophysics
-    if (isSimulation() == false)
+    if (!isSimulation())
     {
         if (setAPUnPark(PortFD) < 0)
         {
@@ -988,7 +988,7 @@ bool LX200AstroPhysics::SetTrackMode(uint8_t mode)
 
     if (mode == TRACK_CUSTOM)
     {
-        if (isSimulation() == false && (err = selectAPTrackingMode(PortFD, AP_TRACKING_SIDEREAL)) < 0)
+        if (!isSimulation() && (err = selectAPTrackingMode(PortFD, AP_TRACKING_SIDEREAL)) < 0)
         {
             DEBUGF(INDI::Logger::DBG_ERROR, "Error setting tracking mode (%d).", err);
             return false;
@@ -997,7 +997,7 @@ bool LX200AstroPhysics::SetTrackMode(uint8_t mode)
         return SetTrackRate(TrackRateN[AXIS_RA].value, TrackRateN[AXIS_DE].value);
     }
 
-    if (isSimulation() == false && (err = selectAPTrackingMode(PortFD, mode)) < 0)
+    if (!isSimulation() && (err = selectAPTrackingMode(PortFD, mode)) < 0)
     {
         DEBUGF(INDI::Logger::DBG_ERROR, "Error setting tracking mode (%d).", err);
         return false;
@@ -1029,7 +1029,7 @@ bool LX200AstroPhysics::SetTrackRate(double raRate, double deRate)
     double APRARate = (raRate - TRACKRATE_SIDEREAL) / TRACKRATE_SIDEREAL;
     double APDERate = deRate / TRACKRATE_SIDEREAL;
 
-    if (isSimulation() == false)
+    if (!isSimulation())
     {
         if (setAPRATrackRate(PortFD, APRARate) < 0 || setAPDETrackRate(PortFD, APDERate) < 0)
             return false;

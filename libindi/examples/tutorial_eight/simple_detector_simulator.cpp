@@ -39,19 +39,19 @@ void ISGetProperties(const char *dev)
     simpleDetector->ISGetProperties(dev);
 }
 
-void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int num)
+void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
 {
-    simpleDetector->ISNewSwitch(dev, name, states, names, num);
+    simpleDetector->ISNewSwitch(dev, name, states, names, n);
 }
 
-void ISNewText(const char *dev, const char *name, char *texts[], char *names[], int num)
+void ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
 {
-    simpleDetector->ISNewText(dev, name, texts, names, num);
+    simpleDetector->ISNewText(dev, name, texts, names, n);
 }
 
-void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int num)
+void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
 {
-    simpleDetector->ISNewNumber(dev, name, values, names, num);
+    simpleDetector->ISNewNumber(dev, name, values, names, n);
 }
 
 void ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[],
@@ -70,11 +70,6 @@ void ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], 
 void ISSnoopDevice(XMLEle *root)
 {
     simpleDetector->ISSnoopDevice(root);
-}
-
-SimpleDetector::SimpleDetector()
-{
-    InCapture = false;
 }
 
 /**************************************************************************************
@@ -218,7 +213,8 @@ float SimpleDetector::CalcTimeLeft()
 {
     double timesince;
     double timeleft;
-    struct timeval now;
+    struct timeval now { 0, 0 };
+
     gettimeofday(&now, nullptr);
 
     timesince = (double)(now.tv_sec * 1000.0 + now.tv_usec / 1000) -
@@ -236,7 +232,7 @@ void SimpleDetector::TimerHit()
 {
     long timeleft;
 
-    if (isConnected() == false)
+    if (!isConnected())
         return; //  No need to reset timer if we are not connected anymore
 
     if (InCapture)
@@ -296,7 +292,6 @@ void SimpleDetector::TimerHit()
     }
 
     SetTimer(POLLMS);
-    return;
 }
 
 /**************************************************************************************

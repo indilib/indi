@@ -21,7 +21,7 @@
 #include "lx200classic.h"
 #include "lx200driver.h"
 
-#include <string.h>
+#include <cstring>
 
 #define LIBRARY_TAB "Library"
 
@@ -94,7 +94,7 @@ bool LX200Classic::initProperties()
 
 void LX200Classic::ISGetProperties(const char *dev)
 {
-    if (dev && strcmp(dev, getDeviceName()))
+    if (dev != nullptr && strcmp(dev, getDeviceName()) != 0)
         return;
 
     LX200Generic::ISGetProperties(dev);
@@ -141,7 +141,7 @@ bool LX200Classic::updateProperties()
 
 bool LX200Classic::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
 {
-    if (strcmp(dev, getDeviceName()) == 0)
+    if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
         if (!strcmp(name, ObjectNoNP.name))
         {
@@ -239,7 +239,7 @@ bool LX200Classic::ISNewSwitch(const char *dev, const char *name, ISState *state
 {
     int index = 0;
 
-    if (strcmp(dev, getDeviceName()) == 0)
+    if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
         // Star Catalog
         if (!strcmp(name, StarCatalogSP.name))

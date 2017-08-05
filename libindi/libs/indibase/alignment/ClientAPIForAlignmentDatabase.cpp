@@ -15,9 +15,6 @@ namespace INDI
 namespace AlignmentSubsystem
 {
 ClientAPIForAlignmentDatabase::ClientAPIForAlignmentDatabase()
-    : DriverActionComplete(false), Device(nullptr), MandatoryNumbers(nullptr),
-      OptionalBinaryBlob(nullptr), PointsetSize(nullptr), CurrentEntry(nullptr),
-      Action(nullptr), Commit(nullptr)
 {
     pthread_cond_init(&DriverActionCompleteCondition, nullptr);
     pthread_mutex_init(&DriverActionCompleteMutex, nullptr);
@@ -318,7 +315,7 @@ bool ClientAPIForAlignmentDatabase::LoadDatabase()
 
 void ClientAPIForAlignmentDatabase::ProcessNewBLOB(IBLOB *BLOBPointer)
 {
-    if (!strcmp(BLOBPointer->bvp->name, "ALIGNMENT_POINT_OPTIONAL_BINARY_BLOB"))
+    if (strcmp(BLOBPointer->bvp->name, "ALIGNMENT_POINT_OPTIONAL_BINARY_BLOB") == 0)
     {
         if (IPS_BUSY != BLOBPointer->bvp->s)
         {
@@ -337,7 +334,7 @@ void ClientAPIForAlignmentDatabase::ProcessNewDevice(INDI::BaseDevice *DevicePoi
 
 void ClientAPIForAlignmentDatabase::ProcessNewNumber(INumberVectorProperty *NumberVectorProperty)
 {
-    if (!strcmp(NumberVectorProperty->name, "ALIGNMENT_POINT_MANDATORY_NUMBERS"))
+    if (strcmp(NumberVectorProperty->name, "ALIGNMENT_POINT_MANDATORY_NUMBERS") == 0)
     {
         if (IPS_BUSY != NumberVectorProperty->s)
         {
@@ -347,7 +344,7 @@ void ClientAPIForAlignmentDatabase::ProcessNewNumber(INumberVectorProperty *Numb
                 SignalDriverCompletion();
         }
     }
-    else if (!strcmp(NumberVectorProperty->name, "ALIGNMENT_POINTSET_CURRENT_ENTRY"))
+    else if (strcmp(NumberVectorProperty->name, "ALIGNMENT_POINTSET_CURRENT_ENTRY") == 0)
     {
         if (IPS_BUSY != NumberVectorProperty->s)
         {
@@ -363,21 +360,21 @@ void ClientAPIForAlignmentDatabase::ProcessNewProperty(INDI::Property *PropertyP
 {
     bool GotOneOfMine = true;
 
-    if (!strcmp(PropertyPointer->getName(), "ALIGNMENT_POINT_MANDATORY_NUMBERS"))
+    if (strcmp(PropertyPointer->getName(), "ALIGNMENT_POINT_MANDATORY_NUMBERS") == 0)
         MandatoryNumbers = PropertyPointer;
-    else if (!strcmp(PropertyPointer->getName(), "ALIGNMENT_POINT_OPTIONAL_BINARY_BLOB"))
+    else if (strcmp(PropertyPointer->getName(), "ALIGNMENT_POINT_OPTIONAL_BINARY_BLOB") == 0)
     {
         OptionalBinaryBlob = PropertyPointer;
         // Make sure the format string is set up
         strncpy(OptionalBinaryBlob->getBLOB()->bp->format, "alignmentPrivateData", MAXINDIBLOBFMT);
     }
-    else if (!strcmp(PropertyPointer->getName(), "ALIGNMENT_POINTSET_SIZE"))
+    else if (strcmp(PropertyPointer->getName(), "ALIGNMENT_POINTSET_SIZE") == 0)
         PointsetSize = PropertyPointer;
-    else if (!strcmp(PropertyPointer->getName(), "ALIGNMENT_POINTSET_CURRENT_ENTRY"))
+    else if (strcmp(PropertyPointer->getName(), "ALIGNMENT_POINTSET_CURRENT_ENTRY") == 0)
         CurrentEntry = PropertyPointer;
-    else if (!strcmp(PropertyPointer->getName(), "ALIGNMENT_POINTSET_ACTION"))
+    else if (strcmp(PropertyPointer->getName(), "ALIGNMENT_POINTSET_ACTION") == 0)
         Action = PropertyPointer;
-    else if (!strcmp(PropertyPointer->getName(), "ALIGNMENT_POINTSET_COMMIT"))
+    else if (strcmp(PropertyPointer->getName(), "ALIGNMENT_POINTSET_COMMIT") == 0)
         Commit = PropertyPointer;
     else
         GotOneOfMine = false;
@@ -395,12 +392,12 @@ void ClientAPIForAlignmentDatabase::ProcessNewProperty(INDI::Property *PropertyP
 
 void ClientAPIForAlignmentDatabase::ProcessNewSwitch(ISwitchVectorProperty *SwitchVectorProperty)
 {
-    if (!strcmp(SwitchVectorProperty->name, "ALIGNMENT_POINTSET_ACTION"))
+    if (strcmp(SwitchVectorProperty->name, "ALIGNMENT_POINTSET_ACTION") == 0)
     {
         if (IPS_BUSY != SwitchVectorProperty->s)
             SignalDriverCompletion();
     }
-    else if (!strcmp(SwitchVectorProperty->name, "ALIGNMENT_POINTSET_COMMIT"))
+    else if (strcmp(SwitchVectorProperty->name, "ALIGNMENT_POINTSET_COMMIT") == 0)
     {
         if (IPS_BUSY != SwitchVectorProperty->s)
             SignalDriverCompletion();
@@ -602,50 +599,44 @@ bool ClientAPIForAlignmentDatabase::SendEntryData(const AlignmentDatabaseEntry &
 
 bool ClientAPIForAlignmentDatabase::SetDriverBusy()
 {
-    int ReturnCode;
-    ReturnCode = pthread_mutex_lock(&DriverActionCompleteMutex);
-    if (ReturnCode)
+    int ReturnCode = pthread_mutex_lock(&DriverActionCompleteMutex);
+
+    if (ReturnCode != 0)
         return false;
     DriverActionComplete = false;
     IDLog("SetDriverBusy\n");
     ReturnCode = pthread_mutex_unlock(&DriverActionCompleteMutex);
-    if (ReturnCode)
-        return false;
-    else
-        return true;
+    return ReturnCode == 0;
 }
 
 bool ClientAPIForAlignmentDatabase::SignalDriverCompletion()
 {
-    int ReturnCode;
-    ReturnCode = pthread_mutex_lock(&DriverActionCompleteMutex);
-    if (ReturnCode)
+    int ReturnCode = pthread_mutex_lock(&DriverActionCompleteMutex);
+
+    if (ReturnCode != 0)
         return false;
     DriverActionComplete = true;
     ReturnCode           = pthread_cond_signal(&DriverActionCompleteCondition);
-    if (ReturnCode)
+    if (ReturnCode != 0)
     {
         ReturnCode = pthread_mutex_unlock(&DriverActionCompleteMutex);
         return false;
     }
     IDLog("SignalDriverCompletion\n");
     ReturnCode = pthread_mutex_unlock(&DriverActionCompleteMutex);
-    if (ReturnCode)
-        return false;
-    else
-        return true;
+    return ReturnCode == 0;
 }
 
 bool ClientAPIForAlignmentDatabase::WaitForDriverCompletion()
 {
-    int ReturnCode;
-    ReturnCode = pthread_mutex_lock(&DriverActionCompleteMutex);
+    int ReturnCode = pthread_mutex_lock(&DriverActionCompleteMutex);
+
     while (!DriverActionComplete)
     {
         IDLog("WaitForDriverCompletion - Waiting\n");
         ReturnCode = pthread_cond_wait(&DriverActionCompleteCondition, &DriverActionCompleteMutex);
         IDLog("WaitForDriverCompletion - Back from wait ReturnCode = %d\n", ReturnCode);
-        if (ReturnCode)
+        if (ReturnCode != 0)
         {
             ReturnCode = pthread_mutex_unlock(&DriverActionCompleteMutex);
             return false;
@@ -653,10 +644,7 @@ bool ClientAPIForAlignmentDatabase::WaitForDriverCompletion()
     }
     IDLog("WaitForDriverCompletion - Finished waiting\n");
     ReturnCode = pthread_mutex_unlock(&DriverActionCompleteMutex);
-    if (ReturnCode)
-        return false;
-    else
-        return true;
+    return ReturnCode == 0;
 }
 
 } // namespace AlignmentSubsystem

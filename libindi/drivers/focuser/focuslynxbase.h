@@ -70,7 +70,7 @@ class FocusLynxBase : public INDI::Focuser
     virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
     virtual bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n) override;
 
-    virtual IPState MoveAbsFocuser(uint32_t ticks) override;
+    virtual IPState MoveAbsFocuser(uint32_t targetPosition) override;
     virtual IPState MoveRelFocuser(FocusDirection dir, uint32_t ticks) override;
     virtual IPState MoveFocuser(FocusDirection dir, int speed, uint16_t duration) override;
     virtual bool AbortFocuser() override;

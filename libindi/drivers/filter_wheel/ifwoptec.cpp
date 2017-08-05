@@ -24,7 +24,7 @@
 
 #include <memory>
 #include <regex>
-#include <string.h>
+#include <cstring>
 #include <unistd.h>
 
 std::unique_ptr<FilterIFW> filter_ifw(new FilterIFW());
@@ -40,7 +40,7 @@ void ISInit()
         return;
 
     isInit = 1;
-    if (filter_ifw.get() == 0)
+    if (filter_ifw.get() == nullptr)
         filter_ifw.reset(new FilterIFW());
 }
 
@@ -56,28 +56,28 @@ void ISGetProperties(const char *dev)
 /************************************************************************************
 *
 ************************************************************************************/
-void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int num)
+void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
 {
     ISInit();
-    filter_ifw->ISNewSwitch(dev, name, states, names, num);
+    filter_ifw->ISNewSwitch(dev, name, states, names, n);
 }
 
 /************************************************************************************
 *
 ************************************************************************************/
-void ISNewText(const char *dev, const char *name, char *texts[], char *names[], int num)
+void ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
 {
     ISInit();
-    filter_ifw->ISNewText(dev, name, texts, names, num);
+    filter_ifw->ISNewText(dev, name, texts, names, n);
 }
 
 /************************************************************************************
 *
 ************************************************************************************/
-void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int num)
+void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
 {
     ISInit();
-    filter_ifw->ISNewNumber(dev, name, values, names, num);
+    filter_ifw->ISNewNumber(dev, name, values, names, n);
 }
 
 /************************************************************************************
@@ -111,7 +111,7 @@ FilterIFW::FilterIFW()
 {
     //ctor
     setVersion(VERSION, SUBVERSION);
-    strcpy(filterSim, filterSim5); // For simulation mode
+    strncpy(filterSim, filterSim5, sizeof(filterSim)); // For simulation mode
 
     // Set communication to serail only and avoid driver crash at starting up
     setFilterConnection(CONNECTION_SERIAL);
@@ -126,17 +126,9 @@ FilterIFW::FilterIFW()
 /************************************************************************************
 *
 ************************************************************************************/
-FilterIFW::~FilterIFW()
-{
-    //dtor
-}
-
-/************************************************************************************
-*
-************************************************************************************/
 const char *FilterIFW::getDefaultName()
 {
-    return (char *)"Optec IFW";
+    return (const char *)"Optec IFW";
 }
 
 /**************************************************************************************
@@ -255,7 +247,7 @@ bool FilterIFW::ReadTTY(char *resp, char *simulation, int timeout)
 
     if (isSimulation())
     {
-        strcpy(response, simulation);
+        strncpy(response, simulation, sizeof(response));
         nbytes_read = strlen(response) + 2; // +2 for simulation = "\n\r" see below
     }
     else
@@ -277,7 +269,7 @@ bool FilterIFW::ReadTTY(char *resp, char *simulation, int timeout)
 
     response[nbytes_read - 2] = '\0'; //Remove control char from string (\n\r)
     DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", response);
-    strcpy(resp, response);
+    strncpy(resp, response, sizeof(response));
     return true;
 }
 
@@ -301,7 +293,7 @@ bool FilterIFW::Handshake()
         return false;
     }
 
-    if (strcmp(response, "!"))
+    if (strcmp(response, "!") != 0)
     {
         DEBUG(INDI::Logger::DBG_ERROR, "failed, wrong response from IFW");
         DEBUGF(INDI::Logger::DBG_DEBUG, "Response : (%s)", response);
@@ -335,7 +327,7 @@ bool FilterIFW::Disconnect()
         return false;
     }
 
-    if (strcmp(response, "END"))
+    if (strcmp(response, "END") != 0)
     {
         DEBUG(INDI::Logger::DBG_ERROR, "failed, wrong response from IFW");
         return false;
@@ -352,10 +344,10 @@ bool FilterIFW::Disconnect()
 ************************************************************************************/
 bool FilterIFW::ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
 {
-    if (!strcmp(dev, getDeviceName()))
+    if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
         // User has changed one or more names from filter related to the Wheel ID present in the IFW
-        if (!strcmp(FilterNameTP->name, name))
+        if (strcmp(FilterNameTP->name, name) == 0)
         {
             // Only these chars are allowed to be able to the IFW display to show names correctly
             std::regex rx("^[A-Z0-9=.#/%[:space:]-]{1,8}$");
@@ -401,9 +393,9 @@ bool FilterIFW::ISNewText(const char *dev, const char *name, char *texts[], char
 ************************************************************************************/
 bool FilterIFW::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
 {
-    if (!strcmp(dev, getDeviceName()))
+    if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
-        if (!strcmp(HomeSP.name, name))
+        if (strcmp(HomeSP.name, name) == 0)
         {
             bool result = true;
             // User request the IWF reset (Home procedure will read the Wheel ID, load from EEProm the filters names and goes to filter N°1
@@ -423,7 +415,7 @@ bool FilterIFW::ISNewSwitch(const char *dev, const char *name, ISState *states, 
             {
                 DEBUG(INDI::Logger::DBG_DEBUG, "Getting filter information...");
 
-                if (!(GetFilterNames(FILTER_TAB) && GetFilterPos()))
+                if (!(GetFilterNames(FILTER_TAB) && GetFilterPos() != 0))
                 {
                     HomeSP.s = IPS_ALERT;
                     result   = false;
@@ -441,7 +433,7 @@ bool FilterIFW::ISNewSwitch(const char *dev, const char *name, ISState *states, 
             return true;
         }
 
-        if (!strcmp(FilterNbrSP.name, name))
+        if (strcmp(FilterNbrSP.name, name) == 0)
         {
             IUUpdateSwitch(&FilterNbrSP, states, names, n);
 
@@ -450,23 +442,23 @@ bool FilterIFW::ISNewSwitch(const char *dev, const char *name, ISState *states, 
 
             if ((FilterNbrS[0].s == ISS_ON) & (FilterSlotN[0].max != 5))
             {
-                strcpy(filterSim, filterSim5);
-                FilterNbrSP.s = (GetFilterNames(FILTER_TAB) && GetFilterPos()) ? IPS_OK : IPS_ALERT;
+                strncpy(filterSim, filterSim5, sizeof(filterSim));
+                FilterNbrSP.s = (GetFilterNames(FILTER_TAB) && GetFilterPos() != 0) ? IPS_OK : IPS_ALERT;
             }
             else if ((FilterNbrS[1].s == ISS_ON) & (FilterSlotN[0].max != 6))
             {
-                strcpy(filterSim, filterSim6);
-                FilterNbrSP.s = (GetFilterNames(FILTER_TAB) && GetFilterPos()) ? IPS_OK : IPS_ALERT;
+                strncpy(filterSim, filterSim6, sizeof(filterSim));
+                FilterNbrSP.s = (GetFilterNames(FILTER_TAB) && GetFilterPos() != 0) ? IPS_OK : IPS_ALERT;
             }
             else if ((FilterNbrS[2].s == ISS_ON) & (FilterSlotN[0].max != 8))
             {
-                strcpy(filterSim, filterSim8);
-                FilterNbrSP.s = (GetFilterNames(FILTER_TAB) && GetFilterPos()) ? IPS_OK : IPS_ALERT;
+                strncpy(filterSim, filterSim8, sizeof(filterSim));
+                FilterNbrSP.s = (GetFilterNames(FILTER_TAB) && GetFilterPos() != 0) ? IPS_OK : IPS_ALERT;
             }
             else if ((FilterNbrS[3].s == ISS_ON) & (FilterSlotN[0].max != 9))
             {
-                strcpy(filterSim, filterSim9);
-                FilterNbrSP.s = (GetFilterNames(FILTER_TAB) && GetFilterPos()) ? IPS_OK : IPS_ALERT;
+                strncpy(filterSim, filterSim9, sizeof(filterSim));
+                FilterNbrSP.s = (GetFilterNames(FILTER_TAB) && GetFilterPos() != 0) ? IPS_OK : IPS_ALERT;
             }
             else
                 FilterNbrSP.s = IPS_OK;
@@ -484,7 +476,7 @@ bool FilterIFW::ISNewSwitch(const char *dev, const char *name, ISState *states, 
 
         // Set switch from user selection to allowed use of all chars or restricted to display IFW
         // 0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ=.#/-%
-        if (!strcmp(CharSetSP.name, name))
+        if (strcmp(CharSetSP.name, name) == 0)
         {
             IUUpdateSwitch(&CharSetSP, states, names, n);
             CharSetSP.s = IPS_OK;
@@ -578,7 +570,7 @@ bool FilterIFW::SelectFilter(int f)
             DEBUGF(INDI::Logger::DBG_ERROR, "(Function %s()) failed to read to TTY", __FUNCTION__);
             result = false;
         }
-        else if (strncmp(response, "*", 1))
+        else if (strncmp(response, "*", 1) != 0)
         {
             DEBUGF(INDI::Logger::DBG_SESSION, "Error: %s", response);
             PRINT_ER(response);
@@ -794,7 +786,7 @@ bool FilterIFW::SetFilterNames()
         }
         else
         {
-            if (!strncmp(response, "ER=", 3))
+            if (strncmp(response, "ER=", 3) == 0)
             {
                 DEBUGF(INDI::Logger::DBG_SESSION, "Error: %s", response);
                 PRINT_ER(response);
@@ -852,7 +844,7 @@ bool FilterIFW::GetWheelID()
             DEBUGF(INDI::Logger::DBG_ERROR, "(Function %s()) failed to read to TTY", __FUNCTION__);
             result = false;
         }
-        else if (!strncmp(response, "ER=", 3))
+        else if (strncmp(response, "ER=", 3) == 0)
         {
             DEBUGF(INDI::Logger::DBG_SESSION, "Get wheel ID error: %s", response);
             PRINT_ER(response);
@@ -952,7 +944,7 @@ bool FilterIFW::moveHome()
         }
         else
         {
-            if (!strncmp(response, "ER=", 3))
+            if (strncmp(response, "ER=", 3) == 0)
             {
                 DEBUGF(INDI::Logger::DBG_SESSION, "Move to Home error: %s", response);
                 PRINT_ER(response);
@@ -999,7 +991,7 @@ bool FilterIFW::GetFirmware()
             DEBUGF(INDI::Logger::DBG_ERROR, "(Function %s()) failed to read to TTY", __FUNCTION__);
             result = false;
         }
-        else if (!strncmp(response, "ER=", 3))
+        else if (strncmp(response, "ER=", 3) == 0)
         {
             DEBUGF(INDI::Logger::DBG_SESSION, "Get wheel ID error: %s", response);
             PRINT_ER(response);
@@ -1018,7 +1010,7 @@ bool FilterIFW::GetFirmware()
 
     for (int i = 0; i < (int)strlen(response); i++)
     {
-        if (isdigit(response[i]))
+        if (isdigit(response[i]) != 0)
         {
             p = response + i;
             break;

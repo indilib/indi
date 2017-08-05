@@ -37,8 +37,8 @@
 #include <regex>
 
 #include <dirent.h>
-#include <errno.h>
-#include <stdlib.h>
+#include <cerrno>
+#include <cstdlib>
 #include <zlib.h>
 #include <sys/stat.h>
 
@@ -941,7 +941,7 @@ bool INDI::CCD::ISSnoopDevice(XMLEle *root)
 bool INDI::CCD::ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
 {
     //  first check if it's for our device
-    if (strcmp(dev, getDeviceName()) == 0)
+    if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
         //  This is for our device
         //  Now lets see if it's something we process here
@@ -1005,7 +1005,7 @@ bool INDI::CCD::ISNewNumber(const char *dev, const char *name, double values[], 
 {
     //  first check if it's for our device
     //IDLog("INDI::CCD::ISNewNumber %s\n",name);
-    if (strcmp(dev, getDeviceName()) == 0)
+    if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
         if (!strcmp(name, "CCD_EXPOSURE"))
         {
@@ -1273,7 +1273,7 @@ bool INDI::CCD::ISNewNumber(const char *dev, const char *name, double values[], 
 
 bool INDI::CCD::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
 {
-    if (strcmp(dev, getDeviceName()) == 0)
+    if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
         if (!strcmp(name, UploadSP.name))
         {
@@ -1761,7 +1761,7 @@ void INDI::CCD::addFITSKeywords(fitsfile *fptr, CCDChip *targetChip)
 
     if (targetChip->getFrameType() == CCDChip::LIGHT_FRAME && !std::isnan(RA) && !std::isnan(Dec))
     {
-        ln_equ_posn epochPos, J2000Pos;
+        ln_equ_posn epochPos { 0, 0 }, J2000Pos { 0, 0 };
         epochPos.ra  = RA * 15.0;
         epochPos.dec = Dec;
 

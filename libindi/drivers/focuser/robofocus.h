@@ -27,7 +27,7 @@ class RoboFocus : public INDI::Focuser
 {
   public:
     RoboFocus();
-    ~RoboFocus();
+    virtual ~RoboFocus() = default;
 
     virtual bool Handshake();
     const char *getDefaultName();
@@ -35,7 +35,7 @@ class RoboFocus : public INDI::Focuser
     virtual bool updateProperties();
     virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n);
     virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n);
-    virtual IPState MoveAbsFocuser(uint32_t ticks);
+    virtual IPState MoveAbsFocuser(uint32_t targetTicks);
     virtual IPState MoveRelFocuser(FocusDirection dir, uint32_t ticks);
     virtual bool AbortFocuser();
     virtual void TimerHit();
@@ -44,13 +44,8 @@ class RoboFocus : public INDI::Focuser
     bool saveConfigItems(FILE *fp);
 
   private:
-    int timerID;
-    double targetPos;
-    double simulatedTemperature;
-    double simulatedPosition;
-
     unsigned char CheckSum(char *rf_cmd);
-    unsigned char CalculateSum(char *rf_cmd);
+    unsigned char CalculateSum(const char *rf_cmd);
     int SendCommand(char *rf_cmd);
     int ReadResponse(char *buf);
     void GetFocusParams();
@@ -65,9 +60,14 @@ class RoboFocus : public INDI::Focuser
     int updateRFPositionAbsolute(double value);
     int updateRFPowerSwitches(int s, int new_sn, int *cur_s1LL, int *cur_s2LR, int *cur_s3RL, int *cur_s4RR);
     int updateRFMaxPosition(double *value);
-    int updateRFSetPosition(double *value);
+    int updateRFSetPosition(const double *value);
 
     int ReadUntilComplete(char *buf, int timeout);
+
+    int timerID { -1 };
+    double targetPos { 0 };
+    double simulatedTemperature { 0 };
+    double simulatedPosition { 0 };
 
     INumber TemperatureN[1];
     INumberVectorProperty TemperatureNP;

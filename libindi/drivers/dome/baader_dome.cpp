@@ -24,16 +24,15 @@
 
 #include "indicom.h"
 
-#include <math.h>
+#include <cmath>
+#include <cstring>
 #include <memory>
-#include <string.h>
 #include <termios.h>
 
 // We declare an auto pointer to BaaderDome.
 std::unique_ptr<BaaderDome> baaderDome(new BaaderDome());
 
 #define POLLMS            1000 /* Update frequency 1000 ms */
-#define DOME_AZ_THRESHOLD 1    /* Error threshold in degrees*/
 #define DOME_CMD          9    /* Dome command in bytes */
 #define DOME_BUF          16   /* Dome command buffer */
 #define DOME_TIMEOUT      3    /* 3 seconds comm timeout */
@@ -50,19 +49,19 @@ void ISGetProperties(const char *dev)
     baaderDome->ISGetProperties(dev);
 }
 
-void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int num)
+void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
 {
-    baaderDome->ISNewSwitch(dev, name, states, names, num);
+    baaderDome->ISNewSwitch(dev, name, states, names, n);
 }
 
-void ISNewText(const char *dev, const char *name, char *texts[], char *names[], int num)
+void ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
 {
-    baaderDome->ISNewText(dev, name, texts, names, num);
+    baaderDome->ISNewText(dev, name, texts, names, n);
 }
 
-void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int num)
+void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
 {
-    baaderDome->ISNewNumber(dev, name, values, names, num);
+    baaderDome->ISNewNumber(dev, name, values, names, n);
 }
 
 void ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[],
@@ -90,8 +89,6 @@ BaaderDome::BaaderDome()
     flapStatus       = FLAP_UNKNOWN;
     simShutterStatus = SHUTTER_CLOSED;
     simFlapStatus    = FLAP_CLOSED;
-    prev_az          = 0;
-    prev_alt         = 0;
 
     status           = DOME_UNKNOWN;
     targetShutter    = SHUTTER_CLOSE;
@@ -102,16 +99,6 @@ BaaderDome::BaaderDome()
                       DOME_HAS_VARIABLE_SPEED);
 }
 
-/************************************************************************************
- *
-* ***********************************************************************************/
-BaaderDome::~BaaderDome()
-{
-}
-
-/************************************************************************************
- *
-* ***********************************************************************************/
 bool BaaderDome::initProperties()
 {
     INDI::Dome::initProperties();
@@ -176,7 +163,7 @@ bool BaaderDome::Handshake()
 * ***********************************************************************************/
 const char *BaaderDome::getDefaultName()
 {
-    return (char *)"Baader Dome";
+    return (const char *)"Baader Dome";
 }
 
 /************************************************************************************
@@ -207,9 +194,9 @@ bool BaaderDome::updateProperties()
 * ***********************************************************************************/
 bool BaaderDome::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
 {
-    if (strcmp(dev, getDeviceName()) == 0)
+    if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
-        if (!strcmp(name, CalibrateSP.name))
+        if (strcmp(name, CalibrateSP.name) == 0)
         {
             IUResetSwitch(&CalibrateSP);
 
@@ -244,7 +231,7 @@ bool BaaderDome::ISNewSwitch(const char *dev, const char *name, ISState *states,
             if (calibrationTarget1 > 360)
                 calibrationTarget1 -= 360;
 
-            if (MoveAbs(calibrationTarget1) == false)
+            if (MoveAbs(calibrationTarget1) == IPS_IDLE)
             {
                 CalibrateSP.s = IPS_ALERT;
                 DEBUG(INDI::Logger::DBG_ERROR, "Calibration failue due to dome motion failure.");
@@ -260,7 +247,7 @@ bool BaaderDome::ISNewSwitch(const char *dev, const char *name, ISState *states,
             return true;
         }
 
-        if (!strcmp(name, DomeFlapSP.name))
+        if (strcmp(name, DomeFlapSP.name) == 0)
         {
             int ret        = 0;
             int prevStatus = IUFindOnSwitchIndex(&DomeFlapSP);
@@ -352,8 +339,8 @@ bool BaaderDome::Ack()
 
     if (rc > 0)
         return true;
-    else
-        return false;
+
+    return false;
 }
 
 /************************************************************************************
@@ -405,7 +392,7 @@ bool BaaderDome::UpdateShutterStatus()
         DomeShutterSP.s = IPS_OK;
         IUResetSwitch(&DomeShutterSP);
 
-        if (!strcmp(status, "ope"))
+        if (strcmp(status, "ope") == 0)
         {
             if (shutterState == SHUTTER_MOVING && targetShutter == SHUTTER_OPEN)
                 DEBUGF(INDI::Logger::DBG_SESSION, "%s", GetShutterStatusString(SHUTTER_OPENED));
@@ -413,7 +400,7 @@ bool BaaderDome::UpdateShutterStatus()
             shutterState                 = SHUTTER_OPENED;
             DomeShutterS[SHUTTER_OPEN].s = ISS_ON;
         }
-        else if (!strcmp(status, "clo"))
+        else if (strcmp(status, "clo") == 0)
         {
             if (shutterState == SHUTTER_MOVING && targetShutter == SHUTTER_CLOSE)
                 DEBUGF(INDI::Logger::DBG_SESSION, "%s", GetShutterStatusString(SHUTTER_CLOSED));
@@ -421,7 +408,7 @@ bool BaaderDome::UpdateShutterStatus()
             shutterState                  = SHUTTER_CLOSED;
             DomeShutterS[SHUTTER_CLOSE].s = ISS_ON;
         }
-        else if (!strcmp(status, "run"))
+        else if (strcmp(status, "run") == 0)
         {
             shutterState    = SHUTTER_MOVING;
             DomeShutterSP.s = IPS_BUSY;
@@ -432,11 +419,9 @@ bool BaaderDome::UpdateShutterStatus()
             DomeShutterSP.s = IPS_ALERT;
             DEBUGF(INDI::Logger::DBG_ERROR, "Unknown Shutter status: %s.", resp);
         }
-
         return true;
     }
-    else
-        return false;
+    return false;
 }
 
 /************************************************************************************
@@ -511,9 +496,8 @@ bool BaaderDome::UpdatePosition()
             DomeAbsPosN[0].value = DomeAzToMountAz(domeAz);
             return true;
         }
-        else
-            return false;
     }
+    return false;
 }
 
 /************************************************************************************
@@ -561,7 +545,7 @@ double BaaderDome::DomeAzToMountAz(unsigned short domeAz)
 * ***********************************************************************************/
 void BaaderDome::TimerHit()
 {
-    if (isConnected() == false)
+    if (!isConnected())
         return; //  No need to reset timer if we are not connected anymore
 
     UpdatePosition();
@@ -676,7 +660,6 @@ void BaaderDome::TimerHit()
         IDSetSwitch(&DomeFlapSP, nullptr);
 
     SetTimer(POLLMS);
-    return;
 }
 
 /************************************************************************************
@@ -726,10 +709,10 @@ IPState BaaderDome::MoveAbs(double az)
 
     DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", resp);
 
-    if (!strcmp(resp, "d#gotmess"))
+    if (strcmp(resp, "d#gotmess") == 0)
         return IPS_BUSY;
-    else
-        return IPS_ALERT;
+
+    return IPS_ALERT;
 }
 
 /************************************************************************************
@@ -817,13 +800,12 @@ IPState BaaderDome::ControlShutter(ShutterOperation operation)
 
     DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", resp);
 
-    if (!strcmp(resp, "d#gotmess"))
+    if (strcmp(resp, "d#gotmess") == 0)
     {
         shutterState = simShutterStatus = SHUTTER_MOVING;
         return IPS_BUSY;
     }
-    else
-        return IPS_ALERT;
+    return IPS_ALERT;
 }
 
 /************************************************************************************
@@ -910,13 +892,12 @@ int BaaderDome::ControlDomeFlap(FlapOperation operation)
 
     DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", resp);
 
-    if (!strcmp(resp, "d#gotmess"))
+    if (strcmp(resp, "d#gotmess") == 0)
     {
         flapStatus = simFlapStatus = FLAP_MOVING;
         return 1;
     }
-    else
-        return -1;
+    return -1;
 }
 
 /************************************************************************************
@@ -968,7 +949,7 @@ bool BaaderDome::UpdateFlapStatus()
         DomeFlapSP.s = IPS_OK;
         IUResetSwitch(&DomeFlapSP);
 
-        if (!strcmp(status, "ope"))
+        if (strcmp(status, "ope") == 0)
         {
             if (flapStatus == FLAP_MOVING && targetFlap == FLAP_OPEN)
                 DEBUGF(INDI::Logger::DBG_SESSION, "%s", GetFlapStatusString(FLAP_OPENED));
@@ -976,7 +957,7 @@ bool BaaderDome::UpdateFlapStatus()
             flapStatus             = FLAP_OPENED;
             DomeFlapS[FLAP_OPEN].s = ISS_ON;
         }
-        else if (!strcmp(status, "clo"))
+        else if (strcmp(status, "clo") == 0)
         {
             if (flapStatus == FLAP_MOVING && targetFlap == FLAP_CLOSE)
                 DEBUGF(INDI::Logger::DBG_SESSION, "%s", GetFlapStatusString(FLAP_CLOSED));
@@ -984,7 +965,7 @@ bool BaaderDome::UpdateFlapStatus()
             flapStatus              = FLAP_CLOSED;
             DomeFlapS[FLAP_CLOSE].s = ISS_ON;
         }
-        else if (!strcmp(status, "run"))
+        else if (strcmp(status, "run") == 0)
         {
             flapStatus   = FLAP_MOVING;
             DomeFlapSP.s = IPS_BUSY;
@@ -995,11 +976,9 @@ bool BaaderDome::UpdateFlapStatus()
             DomeFlapSP.s = IPS_ALERT;
             DEBUGF(INDI::Logger::DBG_ERROR, "Unknown flap status: %s.", resp);
         }
-
         return true;
     }
-    else
-        return false;
+    return false;
 }
 
 /************************************************************************************
@@ -1041,10 +1020,7 @@ bool BaaderDome::SaveEncoderPosition()
 
     DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", resp);
 
-    if (!strcmp(resp, "d#gotmess"))
-        return true;
-    else
-        return false;
+    return strcmp(resp, "d#gotmess") == 0;
 }
 
 /************************************************************************************

@@ -18,7 +18,7 @@
 
 #include "indicontroller.h"
 
-#include <string.h>
+#include <cstring>
 
 namespace INDI
 {
@@ -93,7 +93,7 @@ bool Controller::initProperties()
 
 void Controller::ISGetProperties(const char *dev)
 {
-    if (dev && strcmp(dev, device->getDeviceName()))
+    if (dev != nullptr && strcmp(dev, device->getDeviceName()))
         return;
 
     if (device->isConnected())

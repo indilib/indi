@@ -37,7 +37,7 @@ class BaaderDome : public INDI::Dome
     typedef enum { FLAP_OPENED, FLAP_CLOSED, FLAP_MOVING, FLAP_UNKNOWN } FlapStatus;
 
     BaaderDome();
-    virtual ~BaaderDome();
+    virtual ~BaaderDome() = default;
 
     virtual const char *getDefaultName() override;
     virtual bool initProperties() override;
@@ -62,12 +62,6 @@ class BaaderDome : public INDI::Dome
     virtual bool SetDefaultPark() override;
 
   protected:
-    ISwitch CalibrateS[1];
-    ISwitchVectorProperty CalibrateSP;
-
-    ISwitch DomeFlapS[2];
-    ISwitchVectorProperty DomeFlapSP;
-
     // Commands
     bool Ack();
     bool UpdatePosition();
@@ -77,21 +71,29 @@ class BaaderDome : public INDI::Dome
     bool SaveEncoderPosition();
     const char *GetFlapStatusString(FlapStatus status);
 
-    //Misc
+    // Misc
     unsigned short MountAzToDomeAz(double mountAz);
     double DomeAzToMountAz(unsigned short domeAz);
     bool SetupParms();
 
-    DomeStatus status;
-    FlapStatus flapStatus;
-    CalibrationStage calibrationStage;
-    double targetAz, calibrationStart, calibrationTarget1, calibrationTarget2;
-    ShutterOperation targetShutter;
-    FlapOperation targetFlap;
-    double prev_az, prev_alt;
+    ISwitch CalibrateS[1];
+    ISwitchVectorProperty CalibrateSP;
 
-    bool sim;
-    double simShutterTimer, simFlapTimer;
-    ShutterStatus simShutterStatus;
-    FlapStatus simFlapStatus;
+    ISwitch DomeFlapS[2];
+    ISwitchVectorProperty DomeFlapSP;
+
+    DomeStatus status { DOME_UNKNOWN };
+    FlapStatus flapStatus { FLAP_OPENED };
+    CalibrationStage calibrationStage { CALIBRATION_UNKNOWN };
+    double targetAz { 0 };
+    double calibrationStart { 0 };
+    double calibrationTarget1 { 0 };
+    double calibrationTarget2 { 0 };
+    ShutterOperation targetShutter { SHUTTER_OPEN };
+    FlapOperation targetFlap { FLAP_OPEN };
+    bool sim { false };
+    double simShutterTimer { 0 };
+    double simFlapTimer { 0 };
+    ShutterStatus simShutterStatus { SHUTTER_OPENED };
+    FlapStatus simFlapStatus { FLAP_OPENED };
 };

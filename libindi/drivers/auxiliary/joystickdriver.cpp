@@ -22,7 +22,7 @@
 
 #include "joystickdriver.h"
 
-#include <string.h>
+#include <cstring>
 
 #define MAX_JOYSTICKS 3
 

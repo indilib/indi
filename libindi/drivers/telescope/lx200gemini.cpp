@@ -28,7 +28,7 @@
 #include "indicom.h"
 #include "lx200driver.h"
 
-#include <string.h>
+#include <cstring>
 #include <termios.h>
 
 LX200Gemini::LX200Gemini()
@@ -44,7 +44,7 @@ LX200Gemini::LX200Gemini()
 
 const char *LX200Gemini::getDefaultName()
 {
-    return (char *)"Losmandy Gemini";
+    return (const char *)"Losmandy Gemini";
 }
 
 void LX200Gemini::ISGetProperties(const char *dev)
@@ -99,7 +99,7 @@ bool LX200Gemini::updateProperties()
 
 bool LX200Gemini::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
 {
-    if (!strcmp(dev, getDeviceName()))
+    if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
         if (!strcmp(name, StartupModeSP.name))
         {
@@ -248,7 +248,7 @@ bool LX200Gemini::isSlewComplete()
 
 bool LX200Gemini::ReadScopeStatus()
 {
-    if (isConnected() == false)
+    if (!isConnected())
         return false;
 
     if (isSimulation())

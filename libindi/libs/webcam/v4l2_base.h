@@ -35,7 +35,7 @@
 #include "v4l2_record/v4l2_record.h"
 
 #include <stdio.h>
-#include <stdlib.h>
+#include <cstdlib>
 
 #include <linux/videodev2.h>
 
@@ -98,9 +98,9 @@ class V4L2_Base
     static void newFrame(int fd, void *p);
 
     //void setDropFrameCount(unsigned int count) { dropFrameCount = count;}
-    void enumerate_ctrl(void);
-    void enumerate_menu(void);
-    bool enumerate_ext_ctrl(void);
+    void enumerate_ctrl();
+    void enumerate_menu();
+    bool enumerate_ext_ctrl();
     int queryINTControls(INumberVectorProperty *nvp);
     bool queryExtControls(INumberVectorProperty *nvp, unsigned int *nnumber, ISwitchVectorProperty **options,
                           unsigned int *noptions, const char *dev, const char *group);
@@ -149,7 +149,7 @@ class V4L2_Base
     int init_mmap(char *errmsg);
     int errno_exit(const char *s, char *errmsg);
 
-    void close_device(void);
+    void close_device();
     void init_userp(unsigned int buffer_size);
     void init_read(unsigned int buffer_size);
 

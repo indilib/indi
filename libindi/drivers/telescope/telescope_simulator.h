@@ -25,7 +25,7 @@ class ScopeSim : public INDI::Telescope, public INDI::GuiderInterface
 {
   public:
     ScopeSim();
-    virtual ~ScopeSim();
+    virtual ~ScopeSim() = default;
 
     virtual const char *getDefaultName() override;
     virtual bool Connect() override;
@@ -63,15 +63,15 @@ class ScopeSim : public INDI::Telescope, public INDI::GuiderInterface
     virtual bool SetDefaultPark() override;
 
   private:
-    double currentRA;
-    double currentDEC;
-    double targetRA;
-    double targetDEC;
+    double currentRA { 0 };
+    double currentDEC { 90 };
+    double targetRA { 0 };
+    double targetDEC { 0 };
 
-    ln_lnlat_posn lnobserver;
-    ln_hrz_posn lnaltaz;
-    bool forceMeridianFlip;
-    unsigned int DBG_SCOPE;
+    ln_lnlat_posn lnobserver { 0, 0 };
+    ln_hrz_posn lnaltaz { 0, 0 };
+    bool forceMeridianFlip { false };
+    unsigned int DBG_SCOPE { 0 };
 
     double guiderEWTarget[2];
     double guiderNSTarget[2];

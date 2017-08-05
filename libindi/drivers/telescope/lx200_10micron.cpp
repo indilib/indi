@@ -25,13 +25,13 @@
 #include "indicom.h"
 #include "lx200driver.h"
 
-#include <string.h>
+#include <cstring>
 #include <termios.h>
 
 #define PRODUCT_TAB   "Product"
 #define LX200_TIMEOUT 5 /* FD timeout in seconds */
 
-LX200_10MICRON::LX200_10MICRON(void) : LX200Generic()
+LX200_10MICRON::LX200_10MICRON() : LX200Generic()
 {
     setLX200Capability(0);
     setVersion(1, 0);
@@ -39,7 +39,7 @@ LX200_10MICRON::LX200_10MICRON(void) : LX200Generic()
 
 // Called by INDI::DefaultDevice::ISGetProperties
 // Note that getDriverName calls ::getDefaultName which returns LX200 Generic
-const char *LX200_10MICRON::getDefaultName(void)
+const char *LX200_10MICRON::getDefaultName()
 {
     return (const char *)"10micron";
 }
@@ -66,7 +66,7 @@ bool LX200_10MICRON::Handshake()
 }
 
 // Called by ISGetProperties to initialize basic properties that are required all the time
-bool LX200_10MICRON::initProperties(void)
+bool LX200_10MICRON::initProperties()
 {
     const bool result = LX200Generic::initProperties();
 
@@ -97,7 +97,7 @@ int LX200_10MICRON::monthToNumber(const char *monthName)
 }
 
 // Called by INDI::Telescope when connected state changes to add/remove properties
-bool LX200_10MICRON::updateProperties(void)
+bool LX200_10MICRON::updateProperties()
 {
     bool result = LX200Generic::updateProperties();
 
@@ -119,7 +119,7 @@ bool LX200_10MICRON::updateProperties(void)
 // The child class should call newRaDec() whenever a new value is read from the telescope.
 bool LX200_10MICRON::ReadScopeStatus()
 {
-    if (isConnected() == false)
+    if (!isConnected())
     {
         return false;
     }
@@ -196,7 +196,7 @@ bool LX200_10MICRON::ReadScopeStatus()
             break;
         case GSTAT_PARKED:
             TrackState = SCOPE_PARKED;
-            if (isParked() == false)
+            if (!isParked())
                 SetParked(true);
             break;
         case GSTAT_SLEWING_OR_STOPPING:
@@ -233,13 +233,13 @@ bool LX200_10MICRON::ReadScopeStatus()
 }
 
 // Called by updateProperties
-void LX200_10MICRON::getBasicData(void)
+void LX200_10MICRON::getBasicData()
 {
     DEBUGFDEVICE(getDefaultName(), DBG_SCOPE, "<%s>", __FUNCTION__);
 
     // cannot call LX200Generic::getBasicData(); as getTimeFormat :Gc# and getSiteName :GM# are not implemented on 10Micron
     // TODO delete SiteNameT SiteNameTP
-    if (isSimulation() == false)
+    if (!isSimulation())
     {
         getAlignment();
         checkLX200Format(fd);
@@ -257,7 +257,7 @@ void LX200_10MICRON::getBasicData(void)
 }
 
 // Called by getBasicData
-bool LX200_10MICRON::getMountInfo(void)
+bool LX200_10MICRON::getMountInfo()
 {
     DEBUG(INDI::Logger::DBG_SESSION, "Getting product info.");
     char ProductName[80];
@@ -302,7 +302,7 @@ int LX200_10MICRON::setStandardProcedureWithoutRead(int fd, const char *data)
     return 0;
 }
 
-bool LX200_10MICRON::Park(void)
+bool LX200_10MICRON::Park()
 {
     DEBUG(INDI::Logger::DBG_SESSION, "Parking.");
     if (setStandardProcedureWithoutRead(fd, "#:KA#") < 0)
@@ -312,7 +312,7 @@ bool LX200_10MICRON::Park(void)
     return true;
 }
 
-bool LX200_10MICRON::UnPark(void)
+bool LX200_10MICRON::UnPark()
 {
     DEBUG(INDI::Logger::DBG_SESSION, "Unparking.");
     if (setStandardProcedureWithoutRead(fd, "#:PO#") < 0)

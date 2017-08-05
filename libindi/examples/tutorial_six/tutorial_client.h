@@ -40,7 +40,7 @@ class MyClient : public INDI::BaseClient
 {
   public:
     MyClient();
-    ~MyClient();
+    ~MyClient() = default;
 
     void setTemperature();
     void takeExposure();

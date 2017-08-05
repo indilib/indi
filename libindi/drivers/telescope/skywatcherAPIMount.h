@@ -28,7 +28,7 @@ class SkywatcherAPIMount : public SkywatcherAPI,
 {
   public:
     SkywatcherAPIMount();
-    virtual ~SkywatcherAPIMount();
+    virtual ~SkywatcherAPIMount() = default;
 
     //  overrides of base class virtual functions
     virtual bool Abort();
@@ -70,7 +70,7 @@ class SkywatcherAPIMount : public SkywatcherAPI,
 
     // Properties
 
-    static const char *DetailedMountInfoPage;
+    static constexpr const char *DetailedMountInfoPage { "Detailed Mount Information" };
     enum
     {
         MOTOR_CONTROL_FIRMWARE_VERSION,
@@ -168,27 +168,25 @@ class SkywatcherAPIMount : public SkywatcherAPI,
         PREVIOUS_NS_MOTION_SOUTH   = DIRECTION_SOUTH,
         PREVIOUS_NS_MOTION_UNKNOWN = -1
     } PreviousNSMotion_t;
-    PreviousNSMotion_t PreviousNSMotion;
     typedef enum {
         PREVIOUS_WE_MOTION_WEST    = DIRECTION_WEST,
         PREVIOUS_WE_MOTION_EAST    = DIRECTION_EAST,
         PREVIOUS_WE_MOTION_UNKNOWN = -1
     } PreviousWEMotion_t;
-    PreviousWEMotion_t PreviousWEMotion;
 
     // Tracking
-    ln_equ_posn CurrentTrackingTarget;
-    long OldTrackingTarget[2];
-    struct ln_hrz_posn CurrentAltAz;
-    bool ResetTrackingSeconds;
-    int TrackingSecs;
+    ln_equ_posn CurrentTrackingTarget { 0, 0 };
+    long OldTrackingTarget[2] { 0, 0 };
+    struct ln_hrz_posn CurrentAltAz { 0, 0 };
+    bool ResetTrackingSeconds { false };
+    int TrackingSecs { 0 };
 
     /// Save the serial port name
     std::string SerialPortName;
     /// Recover after disconnection
-    bool RecoverAfterReconnection;
+    bool RecoverAfterReconnection { false };
 
 #ifdef USE_INITIAL_JULIAN_DATE
-    double InitialJulianDate;
+    double InitialJulianDate { 0 };
 #endif
 };

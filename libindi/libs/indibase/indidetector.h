@@ -23,7 +23,7 @@
 #include <fitsio.h>
 
 #include <memory>
-#include <string.h>
+#include <cstring>
 
 #include <stdint.h>
 
