@@ -692,10 +692,6 @@ bool EQMod::Handshake()
         return (e.DefaultHandleException(this));
     }
 
-#ifdef WITH_ALIGN
-    // Set this according to mount type
-    SetApproximateMountAlignmentFromMountType(EQUATORIAL);
-#endif
 
     DEBUG(INDI::Logger::DBG_SESSION, "Successfully connected to EQMod Mount.");
     return true;
@@ -811,33 +807,36 @@ bool EQMod::ReadScopeStatus()
         //   else
 #endif
 #ifdef WITH_ALIGN
-        const char *maligns[3] = { "ZENITH", "NORTH", "SOUTH" };
-        struct ln_equ_posn RaDec;
-        // Use HA/Dec as  telescope coordinate system
-        RaDec.ra                     = ((lst - currentRA) * 360.0) / 24.0;
-        RaDec.dec                    = currentDEC;
-        TelescopeDirectionVector TDV = TelescopeDirectionVectorFromLocalHourAngleDeclination(RaDec);
-        DEBUGF(INDI::AlignmentSubsystem::DBG_ALIGNMENT,
-               "Status: Mnt. Algnt. %s Date %lf encoders RA=%ld DE=%ld Telescope RA %lf DEC %lf",
-               maligns[GetApproximateMountAlignment()], juliandate, currentRAEncoder, currentDEEncoder, currentRA,
-                currentDEC);
-        DEBUGF(INDI::AlignmentSubsystem::DBG_ALIGNMENT, " Direction RA(deg.)  %lf DEC %lf TDV(x %lf y %lf z %lf)",
-               RaDec.ra, RaDec.dec, TDV.x, TDV.y, TDV.z);
-        aligned = true;
-        if ((GetAlignmentDatabase().size() < 2) || (!TransformTelescopeToCelestial(TDV, alignedRA, alignedDEC)))
+	if (IsAlignmentSubsystemActive())
         {
-            //if (!TransformTelescopeToCelestial( TDV, alignedRA, alignedDEC)) {
-            aligned = false;
-            DEBUGF(INDI::AlignmentSubsystem::DBG_ALIGNMENT,
-                   "Failed TransformTelescopeToCelestial: Scope RA=%g Scope DE=%f, Aligned RA=%f DE=%f", currentRA,
-                   currentDEC, alignedRA, alignedDEC);
-        }
-        else
-        {
-            DEBUGF(INDI::AlignmentSubsystem::DBG_ALIGNMENT,
-                   "TransformTelescopeToCelestial: Scope RA=%f Scope DE=%f, Aligned RA=%f DE=%f", currentRA, currentDEC,
-                   alignedRA, alignedDEC);
-        }
+            const char *maligns[3] = {"ZENITH", "NORTH", "SOUTH"};
+	    double juliandate, lst;
+	    double alignedRA, alignedDEC;
+	    struct ln_equ_posn RaDec;
+	    bool aligned;
+	    juliandate = ln_get_julian_from_sys();
+	    lst = ln_get_apparent_sidereal_time(juliandate) + (LocationN[1].value * 24.0 /360.0);
+	    // Use HA/Dec as  telescope coordinate system
+	    RaDec.ra = ((lst - currentRA) * 360.0) / 24.0;
+	    //RaDec.ra = (ra * 360.0) / 24.0;
+	    RaDec.dec = currentDEC;
+	    INDI::AlignmentSubsystem::TelescopeDirectionVector TDV = TelescopeDirectionVectorFromLocalHourAngleDeclination(RaDec);
+	    //AlignmentSubsystem::TelescopeDirectionVector TDV = TelescopeDirectionVectorFromEquatorialCoordinates(RaDec);
+	    DEBUGF(INDI::AlignmentSubsystem::DBG_ALIGNMENT, "Status: Mnt. Algnt. %s Date %lf RA %lf DEC %lf HA %lf TDV(x %lf y %lf z %lf)",
+		   maligns[GetApproximateMountAlignment()], juliandate, currentRA, currentDEC, RaDec.ra, TDV.x, TDV.y, TDV.z);
+	    aligned=true;
+	    if (TransformTelescopeToCelestial(TDV, alignedRA, alignedDEC))
+	    {
+                aligned = false;
+		DEBUGF(INDI::AlignmentSubsystem::DBG_ALIGNMENT, "Failed TransformTelescopeToCelestial: Scope RA=%g Scope DE=%f, Aligned RA=%f DE=%f", currentRA, currentDEC, alignedRA, alignedDEC);
+	    }
+	    else
+	    {
+                DEBUGF(INDI::AlignmentSubsystem::DBG_ALIGNMENT, "TransformTelescopeToCelestial: Scope RA=%f Scope DE=%f, Aligned RA=%f DE=%f", currentRA, currentDEC, alignedRA, alignedDEC);
+		//ra = alignedRA;
+		//dec = alignedDEC;
+            }
+	}
 #endif
         if (!aligned && (syncdata.lst != 0.0))
         {
@@ -1832,35 +1831,30 @@ bool EQMod::Goto(double r, double d)
     }
 #endif
 #ifdef WITH_ALIGN
-    TelescopeDirectionVector TDV;
-    aligned = true;
-    if ((GetAlignmentDatabase().size() < 2) || (!TransformCelestialToTelescope(r, d, 0.0, TDV)))
+    if (IsAlignmentSubsystemActive())
     {
-        //if (!TransformCelestialToTelescope(r, d, 0.0, TDV)) {
-        DEBUGF(INDI::AlignmentSubsystem::DBG_ALIGNMENT,
-               "Failed TransformCelestialToTelescope:  RA=%lf DE=%lf, Goto RA=%lf DE=%lf", r, d, gotoparams.ratarget,
-               gotoparams.detarget);
-        if (syncdata.lst != 0.0)
+      INDI::AlignmentSubsystem::TelescopeDirectionVector TDV;
+	if (!TransformCelestialToTelescope(r, d, 0.0, TDV))
         {
-            gotoparams.ratarget -= syncdata.deltaRA;
-            gotoparams.detarget -= syncdata.deltaDEC;
+            DEBUGF(INDI::AlignmentSubsystem::DBG_ALIGNMENT, "Failed TransformCelestialToTelescope: Goto RA=%lf DE=%lf", r, d);
         }
-    }
-    else
-    {
-        struct ln_equ_posn RaDec;
-        LocalHourAngleDeclinationFromTelescopeDirectionVector(TDV, RaDec);
-        DEBUGF(INDI::AlignmentSubsystem::DBG_ALIGNMENT,
-               "TransformCelestialToTelescope: RA=%lf DE=%lf, TDV (x :%lf, y: %lf, z: %lf), local hour RA %lf DEC %lf",
-               r, d, TDV.x, TDV.y, TDV.z, RaDec.ra, RaDec.dec);
-        RaDec.ra = (RaDec.ra * 24.0) / 360.0;
-        RaDec.ra = range24(lst - RaDec.ra);
-
-        gotoparams.ratarget = RaDec.ra;
-        gotoparams.detarget = RaDec.dec;
-        DEBUGF(INDI::AlignmentSubsystem::DBG_ALIGNMENT,
-               "TransformCelestialToTelescope: RA=%lf DE=%lf, Goto RA=%lf DE=%lf", r, d, gotoparams.ratarget,
-               gotoparams.detarget);
+        else
+        {
+            struct ln_equ_posn RaDec;
+	    double juliandate, lst;
+	    juliandate = ln_get_julian_from_sys();
+	    lst = ln_get_apparent_sidereal_time(juliandate) + (LocationN[1].value * 24.0 /360.0);
+	    LocalHourAngleDeclinationFromTelescopeDirectionVector(TDV, RaDec);
+	    DEBUGF(INDI::AlignmentSubsystem::DBG_ALIGNMENT, "TransformCelestialToTelescope: RA=%lf DE=%lf, TDV (x :%lf, y: %lf, z: %lf), local hour RA %lf DEC %lf",
+		   r, d, TDV.x, TDV.y, TDV.z, RaDec.ra, RaDec.dec);
+	    RaDec.ra = (RaDec.ra * 24.0) / 360.0;
+	    RaDec.ra = range24(lst - RaDec.ra);
+	    DEBUGF(INDI::AlignmentSubsystem::DBG_ALIGNMENT, "TransformCelestialToTelescope: RA=%lf DE=%lf, Goto RA=%lf DE=%lf",
+		   r, d, RaDec.ra, RaDec.dec);
+	    gotoparams.ratarget = RaDec.ra;
+	    gotoparams.detarget = RaDec.dec;
+	    aligned=true;
+	}
     }
 #endif
 
@@ -2057,32 +2051,34 @@ bool EQMod::Sync(double ra, double dec)
 #ifdef WITH_ALIGN
     if (!isStandardSync())
     {
-        AlignmentDatabaseEntry NewEntry;
-        struct ln_equ_posn RaDec;
-        RaDec.ra  = ((lst - tmpsyncdata.telescopeRA) * 360.0) / 24.0;
-        RaDec.dec = tmpsyncdata.telescopeDEC;
-        //NewEntry.ObservationJulianDate = ln_get_julian_from_sys();
-        NewEntry.ObservationJulianDate = juliandate;
-        NewEntry.RightAscension        = ra;
-        NewEntry.Declination           = dec;
-        NewEntry.TelescopeDirection    = TelescopeDirectionVectorFromLocalHourAngleDeclination(RaDec);
-        NewEntry.PrivateDataSize       = 0;
-        DEBUGF(INDI::AlignmentSubsystem::DBG_ALIGNMENT, "New sync point Date %lf RA %lf DEC %lf TDV(x %lf y %lf z %lf)",
-               NewEntry.ObservationJulianDate, NewEntry.RightAscension, NewEntry.Declination,
-               NewEntry.TelescopeDirection.x, NewEntry.TelescopeDirection.y, NewEntry.TelescopeDirection.z);
-        if (!CheckForDuplicateSyncPoint(NewEntry))
+        if (IsAlignmentSubsystemActive())
         {
-            GetAlignmentDatabase().push_back(NewEntry);
+	    INDI::AlignmentSubsystem::AlignmentDatabaseEntry NewEntry;
+	    struct ln_equ_posn RaDec;
+	    double juliandate, lst;
+	    juliandate = ln_get_julian_from_sys();
+	    lst = ln_get_apparent_sidereal_time(juliandate) + (LocationN[1].value * 24.0 /360.0);
+	    RaDec.ra = ((lst -tmpsyncdata.telescopeRA) * 360.0) / 24.0;
+	    RaDec.dec = tmpsyncdata.telescopeDEC;
+	    NewEntry.ObservationJulianDate = juliandate;
+	    NewEntry.RightAscension = ra;
+	    NewEntry.Declination = dec;
+	    NewEntry.TelescopeDirection = TelescopeDirectionVectorFromLocalHourAngleDeclination(RaDec);
+	    NewEntry.PrivateDataSize = 0;
+	    DEBUGF(INDI::AlignmentSubsystem::DBG_ALIGNMENT, "New sync point Date %lf RA %lf DEC %lf TDV(x %lf y %lf z %lf)",
+		   NewEntry.ObservationJulianDate, NewEntry.RightAscension, NewEntry.Declination,
+		   NewEntry.TelescopeDirection.x, NewEntry.TelescopeDirection.y, NewEntry.TelescopeDirection.z);
+	    if (CheckForDuplicateSyncPoint(NewEntry))
+            {
+	        GetAlignmentDatabase().push_back(NewEntry);
 
-            // Tell the client about size change
-            UpdateSize();
+		// Tell the client about size change
+		UpdateSize();
 
-            // Tell the math plugin to reinitialise
-            Initialise(this);
-
-            //if (GetAlignmentDatabase().size() >= 2)  return true;
-        }
-        //if (GetAlignmentDatabase().size() >= 2) return false;
+		// Tell the math plugin to reinitialise
+		Initialise(this);
+	    }
+	}
     }
 #endif
 #if defined WITH_ALIGN_GEEHALEL || defined WITH_ALIGN
