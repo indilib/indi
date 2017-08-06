@@ -113,6 +113,12 @@ struct TelescopeDirectionVector
     {
         return TelescopeDirectionVector(x - RHS.x, y - RHS.y, z - RHS.z);
     }
+  
+    /// \brief Override the + operator to return a binary vector addition
+    inline const TelescopeDirectionVector operator+(const TelescopeDirectionVector &RHS) const
+    {
+        return TelescopeDirectionVector(x + RHS.x, y + RHS.y, z + RHS.z);
+    }
 
     /// \brief Override the ^ operator to return a dot product
     inline double operator^(const TelescopeDirectionVector &RHS) const { return x * RHS.x + y * RHS.y + z * RHS.z; }

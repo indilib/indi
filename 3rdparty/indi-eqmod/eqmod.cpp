@@ -811,7 +811,7 @@ bool EQMod::ReadScopeStatus()
         {
             const char *maligns[3] = {"ZENITH", "NORTH", "SOUTH"};
 	    double juliandate, lst;
-	    double alignedRA, alignedDEC;
+	    //double alignedRA, alignedDEC;
 	    struct ln_equ_posn RaDec;
 	    bool aligned;
 	    juliandate = ln_get_julian_from_sys();
@@ -822,10 +822,10 @@ bool EQMod::ReadScopeStatus()
 	    RaDec.dec = currentDEC;
 	    INDI::AlignmentSubsystem::TelescopeDirectionVector TDV = TelescopeDirectionVectorFromLocalHourAngleDeclination(RaDec);
 	    //AlignmentSubsystem::TelescopeDirectionVector TDV = TelescopeDirectionVectorFromEquatorialCoordinates(RaDec);
-	    DEBUGF(INDI::AlignmentSubsystem::DBG_ALIGNMENT, "Status: Mnt. Algnt. %s Date %lf RA %lf DEC %lf HA %lf TDV(x %lf y %lf z %lf)",
-		   maligns[GetApproximateMountAlignment()], juliandate, currentRA, currentDEC, RaDec.ra, TDV.x, TDV.y, TDV.z);
+	    DEBUGF(INDI::AlignmentSubsystem::DBG_ALIGNMENT, "Status: Mnt. Algnt. %s LST %lf RA %lf DEC %lf HA %lf TDV(x %lf y %lf z %lf)",
+		   maligns[GetApproximateMountAlignment()], lst, currentRA, currentDEC, RaDec.ra, TDV.x, TDV.y, TDV.z);
 	    aligned=true;
-	    if (TransformTelescopeToCelestial(TDV, alignedRA, alignedDEC))
+	    if (!TransformTelescopeToCelestial(TDV, alignedRA, alignedDEC))
 	    {
                 aligned = false;
 		DEBUGF(INDI::AlignmentSubsystem::DBG_ALIGNMENT, "Failed TransformTelescopeToCelestial: Scope RA=%g Scope DE=%f, Aligned RA=%f DE=%f", currentRA, currentDEC, alignedRA, alignedDEC);
@@ -2068,7 +2068,7 @@ bool EQMod::Sync(double ra, double dec)
 	    DEBUGF(INDI::AlignmentSubsystem::DBG_ALIGNMENT, "New sync point Date %lf RA %lf DEC %lf TDV(x %lf y %lf z %lf)",
 		   NewEntry.ObservationJulianDate, NewEntry.RightAscension, NewEntry.Declination,
 		   NewEntry.TelescopeDirection.x, NewEntry.TelescopeDirection.y, NewEntry.TelescopeDirection.z);
-	    if (CheckForDuplicateSyncPoint(NewEntry))
+	    if (!CheckForDuplicateSyncPoint(NewEntry))
             {
 	        GetAlignmentDatabase().push_back(NewEntry);
 

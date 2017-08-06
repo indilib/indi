@@ -14,9 +14,9 @@ namespace INDI
 {
 namespace AlignmentSubsystem
 {
-#define ASSDEBUG(msg) INDI::Logger::getInstance().print("alignmentSubsystem", DBG_ALIGNMENT, __FILE__, __LINE__, msg)
+#define ASSDEBUG(msg) INDI::Logger::getInstance().print("EQMod Mount", DBG_ALIGNMENT, __FILE__, __LINE__, msg)
 #define ASSDEBUGF(msg, ...) \
-    INDI::Logger::getInstance().print("AlignmentSubsystem", DBG_ALIGNMENT, __FILE__, __LINE__, msg, __VA_ARGS__)
+    INDI::Logger::getInstance().print("EQMod Mount", DBG_ALIGNMENT, __FILE__, __LINE__, msg, __VA_ARGS__)
 
 extern int DBG_ALIGNMENT;
 

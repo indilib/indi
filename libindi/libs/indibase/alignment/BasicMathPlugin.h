@@ -94,6 +94,12 @@ class BasicMathPlugin : public AlignmentSubsystemForMathPlugins
     bool RayTriangleIntersection(TelescopeDirectionVector &Ray, TelescopeDirectionVector &TriangleVertex1,
                                  TelescopeDirectionVector &TriangleVertex2, TelescopeDirectionVector &TriangleVertex3);
 
+    /// \brief Computes the cross product of two vectors u and v and put the result in product
+    void CrossProduct(const gsl_vector *u, const gsl_vector *v, gsl_vector *product);
+
+    /// \brief  Computes the rotation matrix pR that rotates unit vector pA to unit vector pB    
+    void RotationMatrixFromVectors(gsl_vector *pA, gsl_vector *pB, gsl_matrix *pR);
+      
     // Transformation matrixes for 1, 2 and 2 sync points case
     gsl_matrix *pActualToApparentTransform;
     gsl_matrix *pApparentToActualTransform;

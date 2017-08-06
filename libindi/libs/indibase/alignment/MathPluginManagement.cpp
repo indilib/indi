@@ -186,6 +186,8 @@ void MathPluginManagement::ProcessSwitchProperties(Telescope *pTelescope, const 
         IUUpdateSwitch(&AlignmentSubsystemMathPluginsV, states, names, n);
         AlignmentSubsystemMathPluginsV.s = IPS_OK; // Assume OK for the time being
         int NewPlugin                    = IUFindOnSwitchIndex(&AlignmentSubsystemMathPluginsV);
+	// geehalel keep the alignment type when loading plugins
+	MountAlignment_t MountAlignment = GetApproximateMountAlignment();
         if (NewPlugin != CurrentPlugin)
         {
             // New plugin requested
@@ -226,6 +228,9 @@ void MathPluginManagement::ProcessSwitchProperties(Telescope *pTelescope, const 
                     {
                         pLoadedMathPlugin = Create();
                         IUSaveText(&AlignmentSubsystemCurrentMathPlugin, PluginPath.c_str());
+			// geehalel: intialise and set alignment type
+			pLoadedMathPlugin->Initialise(CurrentInMemoryDatabase);
+			pLoadedMathPlugin->SetApproximateMountAlignment(MountAlignment);
                     }
                     else
                     {
