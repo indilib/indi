@@ -118,11 +118,45 @@ void ISInit()
                 return;
             }
 
-            for (int i = 0; i < cameraCount; i++)
+            int availableCameras = cameraCount;
+            int cameraIndex = 0;
+            cameraCount=0;
+
+            while (availableCameras > 0)
             {
-                gp_list_get_name(list, i, &model);
-                gp_list_get_value(list, i, &port);
-                cameras[i] = new GPhotoCCD(model, port);
+                gp_list_get_name(list, cameraIndex, &model);
+                gp_list_get_value(list, cameraIndex, &port);
+
+                cameraIndex++;
+                availableCameras--;
+
+                if (strcmp(me, "indi_gphoto_ccd"))
+                {
+                    char prefix[MAXINDINAME];
+                    char name[MAXINDINAME];
+                    bool modelFound = false;
+
+                    for (int j = 0; camInfos[j].exec != NULL; j++)
+                    {
+                        if (strstr(model, camInfos[j].model))
+                        {
+                            strncpy(prefix, camInfos[j].driver, MAXINDINAME);
+                            snprintf(name, MAXINDIDEVICE, "%s %s", prefix, model + strlen(camInfos[j].model) + 1);
+                            cameras[cameraCount] = new GPhotoCCD(model, port);
+                            cameras[cameraCount]->setDeviceName(name);
+                            cameraCount++;
+                            modelFound = true;
+                            break;
+                        }
+                    }
+
+                    if (modelFound == false)
+                        IDLog("Failed to find model %s in supported cameras.", model);
+                }
+                else
+                {
+                    cameras[cameraCount++] = new GPhotoCCD(model, port);
+                }
             }
             atexit(cleanup);
             isInit = true;
@@ -262,10 +296,10 @@ const char *GPhotoCCD::getDefaultName()
 
 bool GPhotoCCD::initProperties()
 {
-    if (strcmp(me, "indi_gphoto_ccd"))
+    /*if (strcmp(me, "indi_gphoto_ccd"))
     {
         char prefix[MAXINDINAME];
-        bool modelFound = false;
+        modelFound = false;
 
         for (int i = 0; camInfos[i].exec != NULL; i++)
         {
@@ -283,16 +317,17 @@ bool GPhotoCCD::initProperties()
             DEBUGF(INDI::Logger::DBG_ERROR, "Failed to find model %s in %s", model, getDeviceName());
             return false;
         }
-    }
-    else
-    {
+    }*/
+    //else
+    //{
         // For now let's set name to default name. In the future, we need to to support multiple devices per one driver
         if (*getDeviceName() == '\0')
             strncpy(name, getDefaultName(), MAXINDINAME);
         else
             strncpy(name, getDeviceName(), MAXINDINAME);
         setDeviceName(this->name);
-    }
+        //modelFound = true;
+    //}
 
     // Init parent properties first
     INDI::CCD::initProperties();
@@ -1622,7 +1657,7 @@ bool GPhotoCCD::StopStreaming()
 
 bool GPhotoCCD::captureLiveVideo()
 {
-    static int last_naxis = -1, last_w = -1, last_h = -1;
+    //static int last_naxis = -1;, last_w = -1, last_h = -1;
 
     if (sim)
         return false;
@@ -1668,7 +1703,7 @@ bool GPhotoCCD::captureLiveVideo()
     uint8_t *ccdBuffer      = PrimaryCCD.getFrameBuffer();
     unsigned char *inBuffer = (unsigned char *)(const_cast<char *>(previewData));
     size_t size             = 0;
-    int w, h, naxis;
+    int w=0, h=0, naxis=0;
 
     // Read jpeg from memory
     rc = read_jpeg_mem(inBuffer, previewSize, &ccdBuffer, &size, &naxis, &w, &h);
@@ -1687,9 +1722,8 @@ bool GPhotoCCD::captureLiveVideo()
 
     PrimaryCCD.setFrameBuffer(ccdBuffer);
 
-    if (naxis != last_naxis)
+    if (naxis != PrimaryCCD.getNAxis())
     {
-        last_naxis = naxis;
         if (naxis == 3)
             Streamer->setPixelFormat(V4L2_PIX_FMT_RGB24);
         else
@@ -1698,15 +1732,15 @@ bool GPhotoCCD::captureLiveVideo()
         PrimaryCCD.setNAxis(naxis);
     }
 
-    if (last_w != w || last_h != h)
+    //if (last_w != w || last_h != h)
+    if (PrimaryCCD.getSubW() != w || PrimaryCCD.getSubH() != h)
     {
         Streamer->setRecorderSize(w, h);
-        PrimaryCCD.setFrameBufferSize(size, false);
         PrimaryCCD.setFrame(0, 0, w, h);
-
-        last_w = w;
-        last_h = h;
     }
+
+    if (PrimaryCCD.getFrameBufferSize() != static_cast<int>(size))
+        PrimaryCCD.setFrameBufferSize(size, false);
 
     if (previewFile)
     {
