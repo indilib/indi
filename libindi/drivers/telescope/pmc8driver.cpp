@@ -856,97 +856,84 @@ bool start_ieqpro_guide(int fd, IEQ_DIRECTION dir, int ms)
 }
 #endif
 
-bool park_pmc8(int fd)
+
+bool set_pmc8_point_position_axis(int fd, PMC8_AXIS axis, int point)
 {
-    char cmdra[]  = "ESPt0000000!";
-    char cmdde[]  = "ESPt1000000!";
+
+    char cmd[32];
     int errcode = 0;
     char errmsg[MAXRBUF];
     char response[16];
     int nbytes_read    = 0;
     int nbytes_written = 0;
 
-    DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_DEBUG, "CMD (%s)", cmdra);
 
     if (pmc8_simulation)
     {
-        strcpy(response, cmdra);
-        nbytes_read = strlen(response);
-    }
-    else
-    {
-        tcflush(fd, TCIFLUSH);
-
-        if ((errcode = tty_write(fd, cmdra, strlen(cmdra), &nbytes_written)) != TTY_OK)
-        {
-            tty_error_msg(errcode, errmsg, MAXRBUF);
-            DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "%s", errmsg);
-            return false;
-        }
-
-        if ((errcode = tty_read(fd, response, strlen(cmdra), PMC8_TIMEOUT, &nbytes_read)))
-        {
-            tty_error_msg(errcode, errmsg, MAXRBUF);
-            DEBUGFDEVICE(pmc8, INDI::Logger::DBG_ERROR, "%s", errmsg);
-            return false;
-        }
+        // FIXME - (MSF) - need to implement simulation code for setting point position
+        return true;
     }
 
-    response[nbytes_read] = '\0';
 
-    if (nbytes_read > 0)
-        DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_DEBUG, "RES (%s)", response);
+    snprintf(cmd, sizeof(cmd), "ESPt%d%d!", axis, point);
 
-
-    if (strncmp(cmdra, response, strlen(cmdra)))
-    {
-        DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "RA Home cmd response incorrect: %s - expected %s", response, cmdra);
-        return false;
-    }
-
-    DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_DEBUG, "CMD (%s)", cmdde);
-
-    if (pmc8_simulation)
-    {
-        strcpy(response, cmdde);
-        nbytes_read = strlen(response);
-    }
-    else
-    {
-        tcflush(fd, TCIFLUSH);
-
-        if ((errcode = tty_write(fd, cmdde, strlen(cmdde), &nbytes_written)) != TTY_OK)
-        {
-            tty_error_msg(errcode, errmsg, MAXRBUF);
-            DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "%s", errmsg);
-            return false;
-        }
-
-        if ((errcode = tty_read(fd, response, strlen(cmdde), PMC8_TIMEOUT, &nbytes_read)))
-        {
-            tty_error_msg(errcode, errmsg, MAXRBUF);
-            DEBUGFDEVICE(pmc8, INDI::Logger::DBG_ERROR, "%s", errmsg);
-            return false;
-        }
-    }
-
-    response[nbytes_read] = '\0';
-
-    if (nbytes_read > 0)
-        DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_DEBUG, "RES (%s)", response);
-
-
-    if (strncmp(cmdra, response, strlen(cmdde)))
-    {
-        DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "DEC Home cmd response incorrect: %s - expected %s", response, cmdde);
-        return false;
-    }
-
+    DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
 
 
     tcflush(fd, TCIFLUSH);
 
+    if ((errcode = tty_write(fd, cmdra, strlen(cmdra), &nbytes_written)) != TTY_OK)
+    {
+        tty_error_msg(errcode, errmsg, MAXRBUF);
+        DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "%s", errmsg);
+        return false;
+    }
 
+    if ((errcode = tty_read(fd, response, strlen(cmdra), PMC8_TIMEOUT, &nbytes_read)))
+    {
+        tty_error_msg(errcode, errmsg, MAXRBUF);
+        DEBUGFDEVICE(pmc8, INDI::Logger::DBG_ERROR, "%s", errmsg);
+        return false;
+    }
+
+    response[nbytes_read] = '\0';
+
+    if (nbytes_read > 0)
+        DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_DEBUG, "RES (%s)", response);
+
+
+    if (strncmp(cmd, response, strlen(cmd)))
+    {
+        DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "Axis Set Point cmd response incorrect: %s - expected %s", response, cmd);
+        return false;
+    }
+
+    return true;
+}
+
+
+bool set_pmc8_point_position(int fd, int rapoint, decpoint)
+{
+    bool rc;
+
+    rc = set_point_position_axis(fd, RA_AXIS, rapoint);
+
+    if (!rc)
+        return rc;
+
+    rc = set_point_position_axis(fd, DEC_AXIS, decpoint);
+}
+
+bool park_pmc8(int fd)
+{
+
+    bool rc;
+
+    rc = set_pmc8_point_position(fd, 0, 0);
+
+    // FIXME - (MSF) Need to add code to handle simulation and also setting any scope state values
+
+    return rc;
 }
 
 
@@ -1005,7 +992,96 @@ bool abort_pmc8(int fd)
     return true;
 }
 
-bool slew_ieqpro(int fd)
+bool convert_ra_to_motor(double ra, TelescopePierSide sop, int *mcounts)
+{
+    double motor_angle, hour_angle;
+
+    hour_angle = SiderealTime - ra;
+
+    // limit values to +/- 12 hours
+    if (hour_angle > 12)
+        hour_angle = hour_angle - 24;
+    else if (hour_angle <= -12)
+        hour_angle = hour_angle + 24;
+
+
+    if (sop == INDI::Telescope::PIER_EAST)
+        motor_angle = hour_angle - 6;
+    else if (sop == INDI::Telescope::PIER_WEST)
+        motor_angle = hour_angle + 6;
+    else
+        return false;
+
+    *mcounts = motor_angle * PMC8_AXIS0_SCALE / 24;
+
+    return true;
+}
+
+bool convert_motor_to_ra
+{
+    Public Function MotorCounts_to_RA(MC_value As Int32) As Double
+        Dim MotorAngle As Double
+        Dim RA_value As Double
+        Dim HourAngle As Double
+        Dim DECCounts As Int32
+
+        DECCounts = GetDECMotorPosition()
+
+        MotorAngle = (24.0# * MC_value) / Telescope.MountRACCounts
+
+        If DECCounts < 0 Then
+            HourAngle = MotorAngle + 6
+        ElseIf DECCounts >= 0 Then
+            HourAngle = MotorAngle - 6
+        End If
+
+        RA_value = SiderealTime - HourAngle
+
+        If RA_value >= 24.0# Then
+            RA_value = RA_value - 24.0#
+        ElseIf RA_value < 0.0# Then
+            RA_value = RA_value + 24.0#
+        End If
+
+        Return RA_value
+    End Function
+}
+
+bool convert_dec_to_motor(double dec, TelescopePierSide sop, int *mcounts)
+{
+    double motor_angle;
+
+    if (sop == INDI::Telescope::PIER_EAST)
+        motor_angle = (dec - 90.0);
+    else if (sop == INDI::Telescope::PIER_WEST)
+        motor_angle = -(dec - 90.0);
+    else
+        return false;
+
+     *mcounts = (motor_angle / 360.0) * PMC8_AXIS1_SCALE;
+
+     return true;
+}
+
+bool convert_motor_to_dec()
+{
+    Public Function MotorCounts_to_DEC(MC_value As Int32) As Double
+        Dim MotorAngle As Double
+        Dim DEC_value As Double
+
+        MotorAngle = (360.0# * MC_value) / Telescope.MountDECCounts
+
+        If MotorAngle >= 0 Then
+            DEC_value = 90 - MotorAngle
+        ElseIf MotorAngle < 0 Then
+            DEC_value = 90 + MotorAngle
+        End If
+
+        Return DEC_value
+    End Function
+}
+
+bool slew_pmc8(int fd)
 {
     char cmd[]  = ":MS#";
     int errcode = 0;
