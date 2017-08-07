@@ -229,8 +229,8 @@ void MathPluginManagement::ProcessSwitchProperties(Telescope *pTelescope, const 
                         pLoadedMathPlugin = Create();
                         IUSaveText(&AlignmentSubsystemCurrentMathPlugin, PluginPath.c_str());
 			// geehalel: intialise and set alignment type
-			pLoadedMathPlugin->Initialise(CurrentInMemoryDatabase);
 			pLoadedMathPlugin->SetApproximateMountAlignment(MountAlignment);
+			pLoadedMathPlugin->Initialise(CurrentInMemoryDatabase);
                     }
                     else
                     {
