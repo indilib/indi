@@ -2487,7 +2487,6 @@ bool Gemini::setTemperatureCompensation(bool enable)
     int errcode = 0;
     char errmsg[MAXRBUF];
     char response[16];
-    int nbytes_read    = 0;
     int nbytes_written = 0;
 
     memset(response, 0, sizeof(response));
@@ -2496,12 +2495,7 @@ bool Gemini::setTemperatureCompensation(bool enable)
 
     DEBUGF(INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
 
-    if (isSimulation())
-    {
-        strncpy(response, "END", 16);
-        nbytes_read = strlen(response) + 1;
-    }
-    else
+    if (isSimulation() == false)
     {
         tcflush(PortFD, TCIFLUSH);
 
@@ -2514,28 +2508,9 @@ bool Gemini::setTemperatureCompensation(bool enable)
 
         if (isResponseOK() == false)
             return false;
-
-        if ((errcode = tty_read_section(PortFD, response, 0xA, GEMINI_TIMEOUT, &nbytes_read)) != TTY_OK)
-        {
-            tty_error_msg(errcode, errmsg, MAXRBUF);
-            DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
-            return false;
-        }
     }
 
-    if (nbytes_read > 0)
-    {
-        response[nbytes_read - 1] = '\0';
-        DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", response);
-        tcflush(PortFD, TCIFLUSH);
-
-        if (!strcmp(response, "END"))
-            return true;
-        else
-            return false;
-    }
-
-    return false;
+    return true;
 }
 
 /************************************************************************************
@@ -2547,7 +2522,6 @@ bool Gemini::setTemperatureCompensationMode(char mode)
     int errcode = 0;
     char errmsg[MAXRBUF];
     char response[16];
-    int nbytes_read    = 0;
     int nbytes_written = 0;
 
     memset(response, 0, sizeof(response));
@@ -2556,12 +2530,7 @@ bool Gemini::setTemperatureCompensationMode(char mode)
 
     DEBUGF(INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
 
-    if (isSimulation())
-    {
-        strncpy(response, "END", 16);
-        nbytes_read = strlen(response) + 1;
-    }
-    else
+    if (isSimulation() == false)
     {
         tcflush(PortFD, TCIFLUSH);
 
@@ -2574,28 +2543,9 @@ bool Gemini::setTemperatureCompensationMode(char mode)
 
         if (isResponseOK() == false)
             return false;
-
-        if ((errcode = tty_read_section(PortFD, response, 0xA, GEMINI_TIMEOUT, &nbytes_read)) != TTY_OK)
-        {
-            tty_error_msg(errcode, errmsg, MAXRBUF);
-            DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
-            return false;
-        }
     }
 
-    if (nbytes_read > 0)
-    {
-        response[nbytes_read - 1] = '\0';
-        DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", response);
-        tcflush(PortFD, TCIFLUSH);
-
-        if (!strcmp(response, "END"))
-            return true;
-        else
-            return false;
-    }
-
-    return false;
+    return true;
 }
 
 /************************************************************************************
@@ -2603,25 +2553,19 @@ bool Gemini::setTemperatureCompensationMode(char mode)
 * ***********************************************************************************/
 bool Gemini::setTemperatureCompensationCoeff(char mode, int16_t coeff)
 {
-    char cmd[16];
+    char cmd[32];
     int errcode = 0;
     char errmsg[MAXRBUF];
     char response[16];
-    int nbytes_read    = 0;
     int nbytes_written = 0;
 
     memset(response, 0, sizeof(response));
 
-    snprintf(cmd, 16, "<F100SETTCC%c%c%04d>", mode, coeff >= 0 ? '+' : '-', (int)std::abs(coeff));
+    snprintf(cmd, 32, "<F100SETTCC%c%c%04d>", mode, coeff >= 0 ? '+' : '-', (int)std::abs(coeff));
 
     DEBUGF(INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
 
-    if (isSimulation())
-    {
-        strncpy(response, "END", 16);
-        nbytes_read = strlen(response) + 1;
-    }
-    else
+    if (isSimulation() == false)
     {
         tcflush(PortFD, TCIFLUSH);
 
@@ -2633,29 +2577,10 @@ bool Gemini::setTemperatureCompensationCoeff(char mode, int16_t coeff)
         }
 
         if (isResponseOK() == false)
-            return false;
-
-        if ((errcode = tty_read_section(PortFD, response, 0xA, GEMINI_TIMEOUT, &nbytes_read)) != TTY_OK)
-        {
-            tty_error_msg(errcode, errmsg, MAXRBUF);
-            DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
-            return false;
-        }
+            return false;        
     }
 
-    if (nbytes_read > 0)
-    {
-        response[nbytes_read - 1] = '\0';
-        DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", response);
-        tcflush(PortFD, TCIFLUSH);
-
-        if (!strcmp(response, "END"))
-            return true;
-        else
-            return false;
-    }
-
-    return false;
+    return true;
 }
 
 /************************************************************************************
