@@ -29,7 +29,7 @@
 #include <unistd.h>
 
 #define GEMINI_MAX_RETRIES        1
-#define GEMINI_TIMEOUT            2
+#define GEMINI_TIMEOUT            3
 #define GEMINI_MAXBUF             16
 #define GEMINI_TEMPERATURE_FREQ   20 /* Update every 20 POLLMS cycles. For POLLMS 500ms = 10 seconds freq */
 #define GEMINI_POSITION_THRESHOLD 5  /* Only send position updates to client if the diff exceeds 5 steps */
@@ -2267,6 +2267,7 @@ bool Gemini::setNickname(DeviceType type, const char *nickname)
     int errcode = 0;
     char errmsg[MAXRBUF];
     char response[16];
+    int nbytes_read=0;
     int nbytes_written = 0;
 
     memset(response, 0, sizeof(response));
@@ -2288,6 +2289,9 @@ bool Gemini::setNickname(DeviceType type, const char *nickname)
 
         if (isResponseOK() == false)
             return false;
+
+        // Read the 'END'
+        tty_read_section(PortFD, response, 0xA, GEMINI_TIMEOUT, &nbytes_read);
     }
 
    tcflush(PortFD, TCIFLUSH);
@@ -2303,6 +2307,7 @@ bool Gemini::halt(DeviceType type)
     int errcode = 0;
     char errmsg[MAXRBUF];
     char response[16];
+    int nbytes_read=0;
     int nbytes_written = 0;
 
     memset(response, 0, sizeof(response));
@@ -2333,6 +2338,9 @@ bool Gemini::halt(DeviceType type)
 
         if (isResponseOK() == false)
             return false;
+
+        // Read the 'END'
+        tty_read_section(PortFD, response, 0xA, GEMINI_TIMEOUT, &nbytes_read);
     }
 
     isRotatorHoming = false;
@@ -2351,6 +2359,7 @@ bool Gemini::home(DeviceType type)
     int errcode = 0;
     char errmsg[MAXRBUF];
     char response[16];
+    int nbytes_read=0;
     int nbytes_written = 0;
 
     memset(response, 0, sizeof(response));
@@ -2384,6 +2393,9 @@ bool Gemini::home(DeviceType type)
 
         if (isResponseOK() == false)
             return false;
+
+        // Read the 'END'
+        tty_read_section(PortFD, response, 0xA, GEMINI_TIMEOUT, &nbytes_read);
     }
 
     tcflush(PortFD, TCIFLUSH);
@@ -2436,6 +2448,7 @@ bool Gemini::center(DeviceType type)
     int errcode = 0;
     char errmsg[MAXRBUF];
     char response[16];
+    int nbytes_read=0;
     int nbytes_written = 0;
 
     memset(response, 0, sizeof(response));
@@ -2471,6 +2484,9 @@ bool Gemini::center(DeviceType type)
 
         if (isResponseOK() == false)
             return false;
+
+        // Read the 'END'
+        tty_read_section(PortFD, response, 0xA, GEMINI_TIMEOUT, &nbytes_read);
     }
 
     tcflush(PortFD, TCIFLUSH);
@@ -2487,6 +2503,7 @@ bool Gemini::setTemperatureCompensation(bool enable)
     int errcode = 0;
     char errmsg[MAXRBUF];
     char response[16];
+    int nbytes_read=0;
     int nbytes_written = 0;
 
     memset(response, 0, sizeof(response));
@@ -2508,6 +2525,9 @@ bool Gemini::setTemperatureCompensation(bool enable)
 
         if (isResponseOK() == false)
             return false;
+
+        // Read the 'END'
+        tty_read_section(PortFD, response, 0xA, GEMINI_TIMEOUT, &nbytes_read);
     }
 
     return true;
@@ -2522,6 +2542,7 @@ bool Gemini::setTemperatureCompensationMode(char mode)
     int errcode = 0;
     char errmsg[MAXRBUF];
     char response[16];
+    int nbytes_read=0;
     int nbytes_written = 0;
 
     memset(response, 0, sizeof(response));
@@ -2543,6 +2564,9 @@ bool Gemini::setTemperatureCompensationMode(char mode)
 
         if (isResponseOK() == false)
             return false;
+
+        // Read the 'END'
+        tty_read_section(PortFD, response, 0xA, GEMINI_TIMEOUT, &nbytes_read);
     }
 
     return true;
@@ -2557,6 +2581,7 @@ bool Gemini::setTemperatureCompensationCoeff(char mode, int16_t coeff)
     int errcode = 0;
     char errmsg[MAXRBUF];
     char response[16];
+    int nbytes_read=0;
     int nbytes_written = 0;
 
     memset(response, 0, sizeof(response));
@@ -2577,7 +2602,10 @@ bool Gemini::setTemperatureCompensationCoeff(char mode, int16_t coeff)
         }
 
         if (isResponseOK() == false)
-            return false;        
+            return false;
+
+        // Read the 'END'
+        tty_read_section(PortFD, response, 0xA, GEMINI_TIMEOUT, &nbytes_read);
     }
 
     return true;
@@ -2592,6 +2620,7 @@ bool Gemini::setTemperatureCompensationOnStart(bool enable)
     int errcode = 0;
     char errmsg[MAXRBUF];
     char response[16];
+    int nbytes_read=0;
     int nbytes_written = 0;
 
     memset(response, 0, sizeof(response));
@@ -2602,16 +2631,21 @@ bool Gemini::setTemperatureCompensationOnStart(bool enable)
 
     tcflush(PortFD, TCIFLUSH);
 
-    if ((errcode = tty_write(PortFD, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
+    if (isSimulation() == false)
     {
-        tty_error_msg(errcode, errmsg, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
-        return false;
+        if ((errcode = tty_write(PortFD, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
+        {
+            tty_error_msg(errcode, errmsg, MAXRBUF);
+            DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
+            return false;
+        }
+
+        if (isResponseOK() == false)
+            return false;
+
+        // Read the 'END'
+        tty_read_section(PortFD, response, 0xA, GEMINI_TIMEOUT, &nbytes_read);
     }
-
-    if (isResponseOK() == false)
-        return false;
-
 
     return true;
 }
@@ -2625,6 +2659,7 @@ bool Gemini::setBacklashCompensation(DeviceType type, bool enable)
     int errcode = 0;
     char errmsg[MAXRBUF];
     char response[16];
+    int nbytes_read=0;
     int nbytes_written = 0;
 
     memset(response, 0, sizeof(response));
@@ -2643,7 +2678,10 @@ bool Gemini::setBacklashCompensation(DeviceType type, bool enable)
         }
 
         if (isResponseOK() == false)
-            return false;        
+            return false;
+
+        // Read the 'END'
+        tty_read_section(PortFD, response, 0xA, GEMINI_TIMEOUT, &nbytes_read);
     }
 
     return true;
@@ -2658,6 +2696,7 @@ bool Gemini::setBacklashCompensationSteps(DeviceType type, uint16_t steps)
     int errcode = 0;
     char errmsg[MAXRBUF];
     char response[16];
+    int nbytes_read=0;
     int nbytes_written = 0;
 
     memset(response, 0, sizeof(response));
@@ -2677,6 +2716,9 @@ bool Gemini::setBacklashCompensationSteps(DeviceType type, uint16_t steps)
 
         if (isResponseOK() == false)
             return false;
+
+        // Read the 'END'
+        tty_read_section(PortFD, response, 0xA, GEMINI_TIMEOUT, &nbytes_read);
     }
 
     return true;
@@ -2712,12 +2754,8 @@ bool Gemini::reverseRotator(bool enable)
         if (isResponseOK() == false)
             return false;
 
-        if ((errcode = tty_read_section(PortFD, response, 0xA, GEMINI_TIMEOUT, &nbytes_read)) != TTY_OK)
-        {
-            tty_error_msg(errcode, errmsg, MAXRBUF);
-            DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
-            return false;
-        }
+        // Read the 'END'
+        tty_read_section(PortFD, response, 0xA, GEMINI_TIMEOUT, &nbytes_read);
     }
 
     return true;
@@ -2818,11 +2856,7 @@ bool Gemini::isResponseOK()
         DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", response);
 
         if (!strcmp(response, "!00"))
-        {
-            // Read the 'END'
-            tty_read_section(PortFD, response, 0xA, GEMINI_TIMEOUT, &nbytes_read);
             return true;
-        }
         else
         {
             memset(response, 0, sizeof(response));
