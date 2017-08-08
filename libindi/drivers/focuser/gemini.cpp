@@ -2865,7 +2865,7 @@ bool Gemini::isResponseOK()
         else
         {
             memset(response, 0, sizeof(response));
-            while (strstr(response, "ENDR") == nullptr)
+            while (strstr(response, "END") == nullptr)
             {
                 if ((errcode = tty_read_section(PortFD, response, 0xA, GEMINI_TIMEOUT, &nbytes_read)) != TTY_OK)
                 {
@@ -3281,7 +3281,7 @@ IPState Gemini::MoveAbsRotatorAngle(double angle)
 
     memset(response, 0, sizeof(response));
 
-    snprintf(cmd, 32, "<R100MOVPA%06d>", targetRotatorAngle);
+    snprintf(cmd, 32, "<R100MOVEPA%06d>", targetRotatorAngle);
 
     DEBUGF(INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
 
