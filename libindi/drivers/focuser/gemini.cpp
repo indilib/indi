@@ -2818,7 +2818,11 @@ bool Gemini::isResponseOK()
         DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", response);
 
         if (!strcmp(response, "!00"))
+        {
+            // Read the 'END'
+            tty_read_section(PortFD, response, 0xA, GEMINI_TIMEOUT, &nbytes_read);
             return true;
+        }
         else
         {
             memset(response, 0, sizeof(response));
