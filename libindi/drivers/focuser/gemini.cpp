@@ -2447,10 +2447,16 @@ bool Gemini::center(DeviceType type)
     if (isSimulation())
     {
         if (type == DEVICE_FOCUSER)
+        {
             focuserSimStatus[STATUS_MOVING] = ISS_ON;
+            targetFocuserPosition = FocusAbsPosN[0].max / 2;
+        }
         else
+        {
             rotatorSimStatus[STATUS_MOVING] = ISS_ON;
-        targetRotatorPosition = RotatorAbsPosN[0].max / 2;
+            targetRotatorPosition = RotatorAbsPosN[0].max / 2;
+        }
+
     }
     else
     {
@@ -2935,7 +2941,7 @@ bool Gemini::isResponseOK()
 
     if (isSimulation())
     {
-        strcpy(response, "!");
+        strcpy(response, "!00");
         nbytes_read = strlen(response) + 1;
     }
     else
@@ -2953,10 +2959,17 @@ bool Gemini::isResponseOK()
         response[nbytes_read - 1] = '\0';
         DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", response);
 
-        if (response[0] == '!')
+        if (!strcmp(response, "!00"))
             return true;
         else
         {
+             memset(response, 0, sizeof(response));
+            if ((errcode = tty_read_section(PortFD, response, 0xA, GEMINI_TIMEOUT, &nbytes_read)) != TTY_OK)
+            {
+                tty_error_msg(errcode, errmsg, MAXRBUF);
+                DEBUGF(INDI::Logger::DBG_ERROR, "TTY error: %s", errmsg);
+                return false;
+            }
             DEBUGF(INDI::Logger::DBG_ERROR, "Controller error: %s", response);
             return false;
         }
