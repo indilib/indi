@@ -953,11 +953,32 @@ bool INDI::CCD::ISNewText(const char *dev, const char *name, char *texts[], char
 
             // Update the property name!
             strncpy(EqNP.device, ActiveDeviceT[0].text, MAXINDIDEVICE);
-            IDSnoopDevice(ActiveDeviceT[0].text, "EQUATORIAL_EOD_COORD");
-            IDSnoopDevice(ActiveDeviceT[0].text, "TELESCOPE_INFO");
-            IDSnoopDevice(ActiveDeviceT[1].text, "ABS_ROTATOR_ANGLE");
-            IDSnoopDevice(ActiveDeviceT[2].text, "FILTER_SLOT");
-            IDSnoopDevice(ActiveDeviceT[2].text, "FILTER_NAME");
+            if (strlen(ActiveDeviceT[2].text) > 0)
+            {
+                IDSnoopDevice(ActiveDeviceT[0].text, "EQUATORIAL_EOD_COORD");
+                IDSnoopDevice(ActiveDeviceT[0].text, "TELESCOPE_INFO");
+            }
+            else
+            {
+                RA = std::numeric_limits<double>::quiet_NaN();
+                Dec = std::numeric_limits<double>::quiet_NaN();
+            }
+
+            if (strlen(ActiveDeviceT[1].text) > 0)
+                IDSnoopDevice(ActiveDeviceT[1].text, "ABS_ROTATOR_ANGLE");
+            else
+                MPSAS = std::numeric_limits<double>::quiet_NaN();
+
+            if (strlen(ActiveDeviceT[2].text) > 0)
+            {
+                IDSnoopDevice(ActiveDeviceT[2].text, "FILTER_SLOT");
+                IDSnoopDevice(ActiveDeviceT[2].text, "FILTER_NAME");
+            }
+            else
+            {
+                CurrentFilterSlot = -1;
+            }
+
             IDSnoopDevice(ActiveDeviceT[3].text, "SKY_QUALITY");
 
             // Tell children active devices was updated.
@@ -1668,8 +1689,12 @@ void INDI::CCD::addFITSKeywords(fitsfile *fptr, CCDChip *targetChip)
     fits_update_key_s(fptr, TSTRING, "INSTRUME", fitsString, "CCD Name", &status);
 
     // Telescope
-    strncpy(fitsString, ActiveDeviceT[0].text, MAXINDIDEVICE);
-    fits_update_key_s(fptr, TSTRING, "TELESCOP", fitsString, "Telescope name", &status);
+    if (strlen(ActiveDeviceT[0].text) > 0)
+    {
+        strncpy(fitsString, ActiveDeviceT[0].text, MAXINDIDEVICE);
+        fits_update_key_s(fptr, TSTRING, "TELESCOP", fitsString, "Telescope name", &status);
+    }
+
 
     // Observer
     strncpy(fitsString, FITSHeaderT[FITS_OBSERVER].text, MAXINDIDEVICE);
