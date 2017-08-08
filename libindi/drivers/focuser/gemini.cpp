@@ -2448,7 +2448,10 @@ bool Gemini::homeOnStart(DeviceType type, bool enable)
 * ***********************************************************************************/
 bool Gemini::center(DeviceType type)
 {
-    char cmd[32];
+    if (type == DEVICE_ROTATOR)
+        return MoveAbsRotatorTicks(RotatorAbsPosN[0].max/2);
+
+    const char * cmd = "<F100CENTER>";
     int errcode = 0;
     char errmsg[MAXRBUF];
     char response[16];
@@ -2456,8 +2459,6 @@ bool Gemini::center(DeviceType type)
     int nbytes_written = 0;
 
     memset(response, 0, sizeof(response));
-
-    snprintf(cmd, 32, "<%c100CENTER>", (type == DEVICE_FOCUSER ? 'F' : 'R'));
 
     DEBUGF(INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
 
@@ -2864,7 +2865,7 @@ bool Gemini::isResponseOK()
         else
         {
             memset(response, 0, sizeof(response));
-            while (strcmp(response, "END"))
+            while (strstr(response, "ENDR") == nullptr)
             {
                 if ((errcode = tty_read_section(PortFD, response, 0xA, GEMINI_TIMEOUT, &nbytes_read)) != TTY_OK)
                 {
@@ -2872,6 +2873,7 @@ bool Gemini::isResponseOK()
                     DEBUGF(INDI::Logger::DBG_ERROR, "TTY error: %s", errmsg);
                     return false;
                 }
+                response[nbytes_read - 1] = '\0';
                 DEBUGF(INDI::Logger::DBG_ERROR, "Controller error: %s", response);
             }
 
