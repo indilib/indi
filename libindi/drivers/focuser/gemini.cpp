@@ -2412,6 +2412,7 @@ bool Gemini::homeOnStart(DeviceType type, bool enable)
     int errcode = 0;
     char errmsg[MAXRBUF];
     char response[16];
+    int nbytes_read=0;
     int nbytes_written = 0;
 
     memset(response, 0, sizeof(response));
@@ -2432,6 +2433,9 @@ bool Gemini::homeOnStart(DeviceType type, bool enable)
 
         if (isResponseOK() == false)
             return false;
+
+        // Read the 'END'
+        tty_read_section(PortFD, response, 0xA, GEMINI_TIMEOUT, &nbytes_read);
     }
 
     tcflush(PortFD, TCIFLUSH);
