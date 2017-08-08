@@ -29,7 +29,7 @@ class Paramount : public INDI::Telescope, public INDI::GuiderInterface
 {
   public:
     Paramount();
-    virtual ~Paramount();
+    virtual ~Paramount() = default;
 
     virtual const char *getDefaultName() override;
     virtual bool Handshake() override;
@@ -81,14 +81,14 @@ class Paramount : public INDI::Telescope, public INDI::GuiderInterface
     bool stopOpenLoopMotion();
     bool setTheSkyTracking(bool enable, bool isSidereal, double raRate, double deRate);
 
-    double currentRA;
-    double currentDEC;
-    double targetRA;
-    double targetDEC;
+    double currentRA { 0 };
+    double currentDEC { 90 };
+    double targetRA { 0 };
+    double targetDEC { 0 };
 
-    ln_lnlat_posn lnobserver;
-    ln_hrz_posn lnaltaz;
-    unsigned int DBG_SCOPE;
+    ln_lnlat_posn lnobserver { 0, 0 };
+    ln_hrz_posn lnaltaz { 0, 0 };
+    unsigned int DBG_SCOPE { 0 };
 
     // Jog Rate
     INumber JogRateN[2];

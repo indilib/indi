@@ -26,8 +26,8 @@
 
 #include <memory>
 
-#include <math.h>
-#include <string.h>
+#include <cmath>
+#include <cstring>
 
 /* Simulation Parameters */
 #define SLEWRATE 1          /* slew rate, degrees/s */
@@ -43,19 +43,19 @@ void ISGetProperties(const char *dev)
     scope->ISGetProperties(dev);
 }
 
-void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int num)
+void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
 {
-    scope->ISNewSwitch(dev, name, states, names, num);
+    scope->ISNewSwitch(dev, name, states, names, n);
 }
 
-void ISNewText(const char *dev, const char *name, char *texts[], char *names[], int num)
+void ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
 {
-    scope->ISNewText(dev, name, texts, names, num);
+    scope->ISNewText(dev, name, texts, names, n);
 }
 
-void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int num)
+void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
 {
-    scope->ISNewNumber(dev, name, values, names, num);
+    scope->ISNewNumber(dev, name, values, names, n);
 }
 
 void ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[],
@@ -299,7 +299,7 @@ void IEQPro::getStartupData()
 
 bool IEQPro::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
 {
-    if (!strcmp(dev, getDeviceName()))
+    if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
         // Guiding Rate
         if (!strcmp(name, GuideRateNP.name))
@@ -457,7 +457,7 @@ bool IEQPro::ReadScopeStatus()
         case ST_PARKED:
             TrackModeSP.s = IPS_IDLE;
             TrackState    = SCOPE_PARKED;
-            if (isParked() == false)
+            if (!isParked())
                 SetParked(true);
             break;
         case ST_HOME:

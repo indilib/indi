@@ -22,9 +22,9 @@
 #include "indicom.h"
 #include "connectionplugins/connectionserial.h"
 
-#include <math.h>
+#include <cmath>
 #include <memory>
-#include <string.h>
+#include <cstring>
 #include <termios.h>
 #include <unistd.h>
 
@@ -48,19 +48,19 @@ void ISGetProperties(const char *dev)
     geminiFR->ISGetProperties(dev);
 }
 
-void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int num)
+void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
 {
-    geminiFR->ISNewSwitch(dev, name, states, names, num);
+    geminiFR->ISNewSwitch(dev, name, states, names, n);
 }
 
-void ISNewText(const char *dev, const char *name, char *texts[], char *names[], int num)
+void ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
 {
-    geminiFR->ISNewText(dev, name, texts, names, num);
+    geminiFR->ISNewText(dev, name, texts, names, n);
 }
 
-void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int num)
+void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
 {
-    geminiFR->ISNewNumber(dev, name, values, names, num);
+    geminiFR->ISNewNumber(dev, name, values, names, n);
 }
 
 void ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[],
@@ -384,10 +384,10 @@ const char *Gemini::getDefaultName()
 * ***********************************************************************************/
 bool Gemini::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
 {    
-    if (strcmp(dev, getDeviceName()) == 0)
+    if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
         // Temperature Compensation
-        if (!strcmp(TemperatureCompensateSP.name, name))
+        if (strcmp(TemperatureCompensateSP.name, name) == 0)
         {
             int prevIndex = IUFindOnSwitchIndex(&TemperatureCompensateSP);
             IUUpdateSwitch(&TemperatureCompensateSP, states, names, n);
@@ -528,7 +528,7 @@ bool Gemini::ISNewSwitch(const char *dev, const char *name, ISState *states, cha
         }
 
         // Reset to Factory setting
-        if (!strcmp(ResetSP.name, name))
+        if (strcmp(ResetSP.name, name) == 0)
         {
             IUResetSwitch(&ResetSP);
             if (resetFactory())
@@ -653,7 +653,7 @@ bool Gemini::ISNewSwitch(const char *dev, const char *name, ISState *states, cha
 * ***********************************************************************************/
 bool Gemini::ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
 {
-    if (strcmp(dev, getDeviceName()) == 0)
+    if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
         // Set device nickname to the HUB itself
         if (!strcmp(name, HFocusNameTP.name))
@@ -675,7 +675,7 @@ bool Gemini::ISNewText(const char *dev, const char *name, char *texts[], char *n
 * ***********************************************************************************/
 bool Gemini::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
 {
-    if (strcmp(dev, getDeviceName()) == 0)
+    if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
         // Temperature Coefficient
         if (!strcmp(TemperatureCoeffNP.name, name))
@@ -2276,7 +2276,7 @@ bool Gemini::setNickname(DeviceType type, const char *nickname)
 
     DEBUGF(INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
 
-    if (isSimulation() == false)
+    if (!isSimulation())
     {
         tcflush(PortFD, TCIFLUSH);
 
@@ -2902,7 +2902,7 @@ IPState Gemini::MoveFocuser(FocusDirection dir, int speed, uint16_t duration)
 
     DEBUGF(INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
 
-    if (isSimulation() == false)
+    if (!isSimulation())
     {
         tcflush(PortFD, TCIFLUSH);
 
@@ -2951,7 +2951,7 @@ IPState Gemini::MoveAbsFocuser(uint32_t targetTicks)
 
     DEBUGF(INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
 
-    if (isSimulation() == false)
+    if (!isSimulation())
     {
         tcflush(PortFD, TCIFLUSH);
 
@@ -2993,7 +2993,7 @@ IPState Gemini::MoveRelFocuser(FocusDirection dir, uint32_t ticks)
 * ***********************************************************************************/
 void Gemini::TimerHit()
 {
-    if (isConnected() == false)
+    if (!isConnected())
         return;
 
     if (focuserConfigurationComplete == false || rotatorConfigurationComplete == false)
@@ -3215,7 +3215,7 @@ float Gemini::calcTimeLeft(timeval start, float req)
 {
     double timesince;
     double timeleft;
-    struct timeval now;
+    struct timeval now { 0, 0 };
     gettimeofday(&now, nullptr);
 
     timesince =
@@ -3244,7 +3244,7 @@ IPState Gemini::MoveAbsRotatorTicks(uint32_t targetTicks)
 
     DEBUGF(INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
 
-    if (isSimulation() == false)
+    if (!isSimulation())
     {
         tcflush(PortFD, TCIFLUSH);
 
@@ -3285,7 +3285,7 @@ IPState Gemini::MoveAbsRotatorAngle(double angle)
 
     DEBUGF(INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
 
-    if (isSimulation() == false)
+    if (!isSimulation())
     {
         tcflush(PortFD, TCIFLUSH);
 

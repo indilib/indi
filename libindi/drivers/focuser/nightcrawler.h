@@ -24,121 +24,122 @@
 
 class NightCrawler : public INDI::Focuser
 {
-    public:
+  public:
 
-        typedef enum { MOTOR_FOCUS, MOTOR_ROTATOR, MOTOR_AUX } MotorType;
+    typedef enum { MOTOR_FOCUS, MOTOR_ROTATOR, MOTOR_AUX } MotorType;
 
-        NightCrawler();
-        ~NightCrawler();
+    NightCrawler();
+    virtual ~NightCrawler() = default;
 
-        virtual bool Handshake();
-        const char * getDefaultName();
-        virtual bool initProperties();
-        virtual bool updateProperties();
-        virtual bool ISNewNumber (const char * dev, const char * name, double values[], char * names[], int n);
-        virtual bool ISNewSwitch (const char * dev, const char * name, ISState * states, char * names[], int n);
+    virtual bool Handshake();
+    const char * getDefaultName();
+    virtual bool initProperties();
+    virtual bool updateProperties();
+    virtual bool ISNewNumber (const char * dev, const char * name, double values[], char * names[], int n);
+    virtual bool ISNewSwitch (const char * dev, const char * name, ISState * states, char * names[], int n);
 
-    protected:
+  protected:
+    virtual IPState MoveAbsFocuser(uint32_t targetTicks);
+    virtual IPState MoveRelFocuser(FocusDirection dir, uint32_t ticks);
 
-        virtual IPState MoveAbsFocuser(uint32_t ticks);
-        virtual IPState MoveRelFocuser(FocusDirection dir, uint32_t ticks);
+    virtual bool AbortFocuser();
+    virtual void TimerHit();
 
-        virtual bool AbortFocuser();
-        virtual void TimerHit();
+    virtual bool saveConfigItems(FILE *fp);
 
-        virtual bool saveConfigItems(FILE *fp);
+  private:
+    // Get Firmware
+    bool getFirmware();
+    // Get Focuer Type
+    bool getFocuserType();
+    // Check if connection is OK
+    bool Ack();
+    // Goto Position
+    bool gotoMotor(MotorType type, int32_t position);
+    // Get Position
+    bool getPosition(MotorType type);
+    // Sync to Position
+    bool syncMotor(MotorType type, uint32_t position);
+    // Start/Stop Motors
+    bool startMotor(MotorType type);
+    bool stopMotor(MotorType type);
+    bool isMotorMoving(MotorType type);
+    // Sensors (Temperature + Voltage)
+    bool getTemperature();
+    bool getVoltage();
+    // Temperature offset
+    bool setTemperatureOffset(double offset);
+    // Motor step rate in 100 microsecond intervals
+    bool getStepDelay(MotorType type);
+    bool setStepDelay(MotorType type, uint32_t delay);
+    // Limit Switch
+    bool getLimitSwitchStatus();
+    // Home
+    bool findHome(uint8_t motorTypes);
+    bool isHomingComplete();
+    // Encoders
+    bool setEncodersEnabled(bool enable);
+    // Brightness
+    bool setDisplayBrightness(uint8_t value);
+    bool setSleepBrightness(uint8_t value);
 
-    private:                
+    INumber RotatorAbsPosN[1];
+    INumberVectorProperty RotatorAbsPosNP;
+    INumber RotatorAbsAngleN[1];
+    INumberVectorProperty RotatorAbsAngleNP;
+    INumber GotoAuxN[1];
+    INumberVectorProperty GotoAuxNP;
 
-        // Get Firmware
-        bool getFirmware();
-        // Get Focuer Type
-        bool getFocuserType();
-        // Check if connection is OK
-        bool Ack();
+    INumber SyncFocusN[1];
+    INumberVectorProperty SyncFocusNP;
+    INumber SyncRotatorN[1];
+    INumberVectorProperty SyncRotatorNP;
+    INumber SyncAuxN[1];
+    INumberVectorProperty SyncAuxNP;
 
-        // Goto Position
-        bool gotoMotor(MotorType type, int32_t position);
+    ISwitch AbortRotatorS[1];
+    ISwitchVectorProperty AbortRotatorSP;
+    ISwitch AbortAuxS[1];
+    ISwitchVectorProperty AbortAuxSP;
 
-        // Get Position
-        bool getPosition(MotorType type);
-        INumber RotatorAbsPosN[1];
-        INumberVectorProperty RotatorAbsPosNP;
-        INumber RotatorAbsAngleN[1];
-        INumberVectorProperty RotatorAbsAngleNP;
-        INumber GotoAuxN[1];
-        INumberVectorProperty GotoAuxNP;
+    INumber SensorN[2];
+    INumberVectorProperty SensorNP;
+    enum { SENSOR_TEMPERATURE, SENSOR_VOLTAGE };
 
-        // Sync to Position
-        bool syncMotor(MotorType type, uint32_t position);
-        INumber SyncFocusN[1];
-        INumberVectorProperty SyncFocusNP;
-        INumber SyncRotatorN[1];
-        INumberVectorProperty SyncRotatorNP;
-        INumber SyncAuxN[1];
-        INumberVectorProperty SyncAuxNP;
+    INumber TemperatureOffsetN[1];
+    INumberVectorProperty TemperatureOffsetNP;
 
-        // Start/Stop Motors
-        bool startMotor(MotorType type);
+    INumber FocusStepDelayN[1];
+    INumberVectorProperty FocusStepDelayNP;
+    INumber RotatorStepDelayN[1];
+    INumberVectorProperty RotatorStepDelayNP;
+    INumber AuxStepDelayN[1];
+    INumberVectorProperty AuxStepDelayNP;
 
-        bool stopMotor(MotorType type);
-        ISwitch AbortRotatorS[1];
-        ISwitchVectorProperty AbortRotatorSP;
-        ISwitch AbortAuxS[1];
-        ISwitchVectorProperty AbortAuxSP;
+    ILight LimitSwitchL[3];
+    ILightVectorProperty LimitSwitchLP;
+    enum { ROTATION_SWITCH, OUT_SWITCH, IN_SWITCH };
 
-        bool isMotorMoving(MotorType type);
+    ISwitch HomeSelectionS[3];
+    ISwitchVectorProperty HomeSelectionSP;
+    ISwitch FindHomeS[1];
+    ISwitchVectorProperty FindHomeSP;
 
-        // Sensors (Temperature + Voltage)
-        bool getTemperature();
-        bool getVoltage();
-        INumber SensorN[2];
-        INumberVectorProperty SensorNP;
-        enum { SENSOR_TEMPERATURE, SENSOR_VOLTAGE };
+    ISwitch EncoderS[2];
+    ISwitchVectorProperty EncoderSP;
 
-        // Temperature offset
-        bool setTemperatureOffset(double offset);
-        INumber TemperatureOffsetN[1];
-        INumberVectorProperty TemperatureOffsetNP;
+    INumber BrightnessN[2];
+    INumberVectorProperty BrightnessNP;
+    enum { BRIGHTNESS_DISPLAY, BRIGHTNESS_SLEEP };
 
-        // Motor step rate in 100 microsecond intervals
-        bool getStepDelay(MotorType type);
-        bool setStepDelay(MotorType type, uint32_t delay);
-        INumber FocusStepDelayN[1];
-        INumberVectorProperty FocusStepDelayNP;
-        INumber RotatorStepDelayN[1];
-        INumberVectorProperty RotatorStepDelayNP;
-        INumber AuxStepDelayN[1];
-        INumberVectorProperty AuxStepDelayNP;
-
-        // Limit Switch
-        bool getLimitSwitchStatus();
-        ILight LimitSwitchL[3];
-        ILightVectorProperty LimitSwitchLP;
-        enum { ROTATION_SWITCH, OUT_SWITCH, IN_SWITCH };
-
-        // Home
-        bool findHome(uint8_t motorTypes);
-        bool isHomingComplete();
-        ISwitch HomeSelectionS[3];
-        ISwitchVectorProperty HomeSelectionSP;
-        ISwitch FindHomeS[1];
-        ISwitchVectorProperty FindHomeSP;
-
-        // Encoders
-        bool setEncodersEnabled(bool enable);
-        ISwitch EncoderS[2];
-        ISwitchVectorProperty EncoderSP;
-
-        // Brightness
-        bool setDisplayBrightness(uint8_t value);
-        bool setSleepBrightness(uint8_t value);
-        INumber BrightnessN[2];
-        INumberVectorProperty BrightnessNP;
-        enum { BRIGHTNESS_DISPLAY, BRIGHTNESS_SLEEP };
-
-        double lastTemperature=0, lastVoltage=0, ticksPerDegree=0;
-        uint32_t lastFocuserPosition=0, lastRotatorPosition=0, lastAuxPosition=0, targetPosition=0;
-        IPState rotationLimit=IPS_IDLE, outSwitchLimit=IPS_IDLE, inSwitchLimit = IPS_IDLE;
-
+    double lastTemperature { 0 };
+    double lastVoltage { 0 };
+    double ticksPerDegree { 0 };
+    uint32_t lastFocuserPosition { 0 };
+    uint32_t lastRotatorPosition { 0 };
+    uint32_t lastAuxPosition { 0 };
+    uint32_t targetPosition { 0 };
+    IPState rotationLimit { IPS_IDLE };
+    IPState outSwitchLimit { IPS_IDLE };
+    IPState inSwitchLimit { IPS_IDLE };
 };

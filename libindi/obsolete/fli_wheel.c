@@ -22,13 +22,13 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
+#include <cstring>
 #include <stdarg.h>
-#include <math.h>
+#include <cmath>
 #include <unistd.h>
-#include <time.h>
+#include <ctime>
 #include <fcntl.h>
-#include <errno.h>
+#include <cerrno>
 #include <sys/stat.h>
 #include <sys/time.h>
 #include <sys/types.h>
@@ -146,7 +146,7 @@ void ISGetProperties(const char *dev)
 {
     ISInit();
 
-    if (dev && strcmp(mydev, dev))
+    if (dev != nullptr && strcmp(mydev, dev))
         return;
 
     /* Main Control */
@@ -175,7 +175,7 @@ void ISSnoopDevice(XMLEle *root)
 void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
 {
     /* ignore if not ours */
-    if (dev && strcmp(dev, mydev))
+    if (dev != nullptr && strcmp(dev, mydev))
         return;
 
     ISInit();
@@ -208,7 +208,7 @@ void ISNewText(const char *dev, const char *name, char *texts[], char *names[], 
     ISInit();
 
     /* ignore if not ours */
-    if (dev && strcmp(mydev, dev))
+    if (dev != nullptr && strcmp(mydev, dev))
         return;
 
     /* suppress warning */
@@ -228,7 +228,7 @@ void ISNewNumber(const char *dev, const char *name, double values[], char *names
     n = n;
 
     /* ignore if not ours */
-    if (dev && strcmp(dev, mydev))
+    if (dev != nullptr && strcmp(dev, mydev))
         return;
 
     ISInit();

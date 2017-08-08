@@ -77,7 +77,7 @@ class IEQ45Basic
     void init_properties();
     void get_initial_data();
     void connect_telescope();
-    bool is_connected(void);
+    bool is_connected();
 
     /*******************************************************/
     /* Misc routines

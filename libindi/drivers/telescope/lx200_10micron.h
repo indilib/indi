@@ -42,8 +42,8 @@ typedef enum {
 class LX200_10MICRON : public LX200Generic
 {
   public:
-    LX200_10MICRON(void);
-    ~LX200_10MICRON(void) {}
+    LX200_10MICRON();
+    ~LX200_10MICRON() {}
 
     virtual const char *getDefaultName() override;
     virtual bool Handshake() override;
@@ -65,7 +65,7 @@ class LX200_10MICRON : public LX200Generic
 
   private:
     int fd = -1; // short notation for PortFD/sockfd
-    bool getMountInfo(void);
+    bool getMountInfo();
 
     int OldGstat = -1;
 };

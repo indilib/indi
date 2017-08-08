@@ -76,7 +76,7 @@ protected:
     virtual bool saveConfigItems(FILE *fp) override;
 
     // Focuser Functions
-    virtual IPState MoveAbsFocuser(uint32_t ticks) override;
+    virtual IPState MoveAbsFocuser(uint32_t targetPosition) override;
     virtual IPState MoveRelFocuser(FocusDirection dir, uint32_t ticks) override;
     virtual IPState MoveFocuser(FocusDirection dir, int speed, uint16_t duration) override;
     virtual bool AbortFocuser() override;

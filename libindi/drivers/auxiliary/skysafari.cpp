@@ -30,10 +30,11 @@
 
 #include <libnova/julian_day.h>
 
-#include <errno.h>
-#include <fcntl.h>
+#include <cerrno>
+#include <cstring>
 #include <memory>
-#include <string.h>
+
+#include <fcntl.h>
 #include <unistd.h>
 #include <arpa/inet.h>
 #include <sys/socket.h>
@@ -48,19 +49,19 @@ void ISGetProperties(const char *dev)
     tommyGoodBoy->ISGetProperties(dev);
 }
 
-void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int num)
+void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
 {
-    tommyGoodBoy->ISNewSwitch(dev, name, states, names, num);
+    tommyGoodBoy->ISNewSwitch(dev, name, states, names, n);
 }
 
-void ISNewText(const char *dev, const char *name, char *texts[], char *names[], int num)
+void ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
 {
-    tommyGoodBoy->ISNewText(dev, name, texts, names, num);
+    tommyGoodBoy->ISNewText(dev, name, texts, names, n);
 }
 
-void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int num)
+void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
 {
-    tommyGoodBoy->ISNewNumber(dev, name, values, names, num);
+    tommyGoodBoy->ISNewNumber(dev, name, values, names, n);
 }
 
 void ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[],
@@ -95,7 +96,7 @@ SkySafari::~SkySafari()
 
 const char *SkySafari::getDefaultName()
 {
-    return (char *)"SkySafari";
+    return (const char *)"SkySafari";
 }
 
 bool SkySafari::Connect()
@@ -157,7 +158,7 @@ void SkySafari::ISGetProperties(const char *dev)
 
 bool SkySafari::ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
 {
-    if (strcmp(dev, getDeviceName()) == 0)
+    if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
         if (!strcmp(SettingsTP.name, name))
         {
@@ -186,7 +187,7 @@ bool SkySafari::ISNewNumber(const char *dev, const char *name, double values[], 
 
 bool SkySafari::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
 {
-    if (strcmp(dev, getDeviceName()) == 0)
+    if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
         if (!strcmp(ServerControlSP.name, name))
         {
@@ -241,7 +242,7 @@ bool SkySafari::saveConfigItems(FILE *fp)
 
 void SkySafari::TimerHit()
 {
-    if (isConnected() == false)
+    if (!isConnected())
         return;
 
     if (clientFD == -1)

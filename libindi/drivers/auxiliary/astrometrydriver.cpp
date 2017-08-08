@@ -26,8 +26,9 @@
 
 #include <memory>
 
-#include <errno.h>
-#include <string.h>
+#include <cerrno>
+#include <cstring>
+
 #include <zlib.h>
 
 // We declare an auto pointer to AstrometryDriver.
@@ -40,19 +41,19 @@ void ISGetProperties(const char *dev)
     astrometry->ISGetProperties(dev);
 }
 
-void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int num)
+void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
 {
-    astrometry->ISNewSwitch(dev, name, states, names, num);
+    astrometry->ISNewSwitch(dev, name, states, names, n);
 }
 
-void ISNewText(const char *dev, const char *name, char *texts[], char *names[], int num)
+void ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
 {
-    astrometry->ISNewText(dev, name, texts, names, num);
+    astrometry->ISNewText(dev, name, texts, names, n);
 }
 
-void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int num)
+void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
 {
-    astrometry->ISNewNumber(dev, name, values, names, num);
+    astrometry->ISNewNumber(dev, name, values, names, n);
 }
 
 void ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[],
@@ -69,10 +70,6 @@ void ISSnoopDevice(XMLEle *root)
 AstrometryDriver::AstrometryDriver()
 {
     setVersion(1, 0);
-}
-
-AstrometryDriver::~AstrometryDriver()
-{
 }
 
 bool AstrometryDriver::initProperties()
@@ -169,7 +166,7 @@ bool AstrometryDriver::updateProperties()
 
 const char *AstrometryDriver::getDefaultName()
 {
-    return (char *)"Astrometry";
+    return (const char *)"Astrometry";
 }
 
 bool AstrometryDriver::Connect()
@@ -190,9 +187,9 @@ bool AstrometryDriver::ISNewNumber(const char *dev, const char *name, double val
 bool AstrometryDriver::ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[],
                                  char *formats[], char *names[], int n)
 {
-    if (strcmp(dev, getDeviceName()) == 0)
+    if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
-        if (!strcmp(name, SolverDataBP.name))
+        if (strcmp(name, SolverDataBP.name) == 0)
         {
             SolverDataBP.s = IPS_OK;
             IDSetBLOB(&SolverDataBP, nullptr);
@@ -219,11 +216,11 @@ bool AstrometryDriver::ISNewBLOB(const char *dev, const char *name, int sizes[],
 
 bool AstrometryDriver::ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
 {
-    if (strcmp(dev, getDeviceName()) == 0)
+    if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
         //  This is for our device
         //  Now lets see if it's something we process here
-        if (!strcmp(name, ActiveDeviceTP.name))
+        if (strcmp(name, ActiveDeviceTP.name) == 0)
         {
             ActiveDeviceTP.s = IPS_OK;
             IUUpdateText(&ActiveDeviceTP, texts, names, n);
@@ -238,7 +235,7 @@ bool AstrometryDriver::ISNewText(const char *dev, const char *name, char *texts[
             return true;
         }
 
-        if (!strcmp(name, SolverSettingsTP.name))
+        if (strcmp(name, SolverSettingsTP.name) == 0)
         {
             IUUpdateText(&SolverSettingsTP, texts, names, n);
             SolverSettingsTP.s = IPS_OK;
@@ -252,10 +249,10 @@ bool AstrometryDriver::ISNewText(const char *dev, const char *name, char *texts[
 
 bool AstrometryDriver::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
 {
-    if (strcmp(dev, getDeviceName()) == 0)
+    if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
         // Astrometry Enable/Disable
-        if (!strcmp(name, SolverSP.name))
+        if (strcmp(name, SolverSP.name) == 0)
         {
             pthread_mutex_lock(&lock);
 
@@ -403,7 +400,7 @@ void AstrometryDriver::runSolver()
         return;
     }
 
-    while (fgets(line, sizeof(line), handle))
+    while (fgets(line, sizeof(line), handle) != nullptr)
     {
         DEBUGF(INDI::Logger::DBG_DEBUG, "%s", line);
 
@@ -412,9 +409,9 @@ void AstrometryDriver::runSolver()
         sscanf(line, "Field parity: %s", parity_str);
         sscanf(line, "%*[^p]pixel scale %f", &pixscale);
 
-        if (!strcmp(parity_str, "pos"))
+        if (strcmp(parity_str, "pos") == 0)
             parity = 1;
-        else if (!strcmp(parity_str, "neg"))
+        else if (strcmp(parity_str, "neg") == 0)
             parity = -1;
 
         if (ra != -1000 && dec != -1000 && angle != -1000 && pixscale != -1000)
@@ -464,5 +461,5 @@ void AstrometryDriver::runSolver()
     DEBUG(INDI::Logger::DBG_SESSION, "Solver failed.");
     pthread_mutex_unlock(&lock);
 
-    pthread_exit(0);
+    pthread_exit(nullptr);
 }

@@ -24,8 +24,8 @@
 
 #include "indicom.h"
 
+#include <cstring>
 #include <memory>
-#include <string.h>
 
 #define POLLMS 2000
 
@@ -36,19 +36,19 @@ void ISGetProperties(const char *dev)
     nstep->ISGetProperties(dev);
 }
 
-void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int num)
+void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
 {
-    nstep->ISNewSwitch(dev, name, states, names, num);
+    nstep->ISNewSwitch(dev, name, states, names, n);
 }
 
-void ISNewText(const char *dev, const char *name, char *texts[], char *names[], int num)
+void ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
 {
-    nstep->ISNewText(dev, name, texts, names, num);
+    nstep->ISNewText(dev, name, texts, names, n);
 }
 
-void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int num)
+void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
 {
-    nstep->ISNewNumber(dev, name, values, names, num);
+    nstep->ISNewNumber(dev, name, values, names, n);
 }
 
 void ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[],
@@ -71,16 +71,15 @@ void ISSnoopDevice(XMLEle *root)
 
 NSTEP::NSTEP()
 {
-    setDeviceName(getDefaultName());
+    setDeviceName(NSTEP::getDefaultName());
     setVersion(1, 0);
     SetFocuserCapability(FOCUSER_CAN_ABORT | FOCUSER_CAN_REL_MOVE);
-    sim_position = 0;
 }
 
 NSTEP::~NSTEP()
 {
     if (isConnected())
-        Disconnect();
+        NSTEP::Disconnect();
 }
 
 bool NSTEP::command(const char *request, char *response, int count)
@@ -88,57 +87,57 @@ bool NSTEP::command(const char *request, char *response, int count)
     DEBUGF(INDI::Logger::DBG_DEBUG, "Write [%s]", request);
     if (isSimulation())
     {
-        if (!strcmp(request, ":RT"))
+        if (strcmp(request, ":RT") == 0)
         {
-            strcpy(response, "+150");
+            strncpy(response, "+150", 5);
             DEBUGF(INDI::Logger::DBG_DEBUG, "Read [%s]", response);
             return true;
         }
-        if (!strcmp(request, ":RP"))
+        if (strcmp(request, ":RP") == 0)
         {
             sprintf(response, "%+07ld", sim_position);
             DEBUGF(INDI::Logger::DBG_DEBUG, "Read [%s]", response);
             return true;
         }
-        if (!strcmp(request, ":RS"))
+        if (strcmp(request, ":RS") == 0)
         {
-            strcpy(response, "100");
+            strncpy(response, "100", 4);
             DEBUGF(INDI::Logger::DBG_DEBUG, "Read [%s]", response);
             return true;
         }
-        if (!strcmp(request, ":RO"))
+        if (strcmp(request, ":RO") == 0)
         {
-            strcpy(response, "001");
+            strncpy(response, "001", 4);
             DEBUGF(INDI::Logger::DBG_DEBUG, "Read [%s]", response);
             return true;
         }
-        if (!strcmp(request, ":RA"))
+        if (strcmp(request, ":RA") == 0)
         {
-            strcpy(response, "+010");
+            strncpy(response, "+010", 5);
             DEBUGF(INDI::Logger::DBG_DEBUG, "Read [%s]", response);
             return true;
         }
-        if (!strcmp(request, ":RB"))
+        if (strcmp(request, ":RB") == 0)
         {
-            strcpy(response, "005");
+            strncpy(response, "005", 4);
             DEBUGF(INDI::Logger::DBG_DEBUG, "Read [%s]", response);
             return true;
         }
-        if (!strcmp(request, ":RG"))
+        if (strcmp(request, ":RG") == 0)
         {
-            strcpy(response, "2");
+            strncpy(response, "2", 2);
             DEBUGF(INDI::Logger::DBG_DEBUG, "Read [%s]", response);
             return true;
         }
-        if (!strcmp(request, ":RW"))
+        if (strcmp(request, ":RW") == 0)
         {
-            strcpy(response, "0");
+            strncpy(response, "0", 2);
             DEBUGF(INDI::Logger::DBG_DEBUG, "Read [%s]", response);
             return true;
         }
-        if (!strcmp(request, "S"))
+        if (strcmp(request, "S") == 0)
         {
-            strcpy(response, "0");
+            strncpy(response, "0", 2);
             DEBUGF(INDI::Logger::DBG_DEBUG, "Read [%s]", response);
             return true;
         }
@@ -147,9 +146,10 @@ bool NSTEP::command(const char *request, char *response, int count)
     int actual, total;
     pthread_mutex_lock(&lock);
     int rc = TTY_OK;
-    if (request)
+
+    if (request != nullptr)
         rc = tty_write(PortFD, request, strlen(request), &actual);
-    if (rc == TTY_OK && response)
+    if (rc == TTY_OK && response != nullptr)
     {
         total = 0;
         while (rc == TTY_OK && count > 0)
@@ -187,17 +187,15 @@ bool NSTEP::Handshake()
     }
 
     char b = 0x06;
-    int actual;
+    int actual = 0;
     int rc = tty_write(PortFD, &b, 1, &actual);
+
     if (rc == TTY_OK)
     {
         rc = tty_read(PortFD, &b, 1, 5, &actual);
         if (rc == TTY_OK && b == 'S')
             return true;
-        else
-            return false;
     }
-
     return false;
 }
 
@@ -361,9 +359,9 @@ bool NSTEP::updateProperties()
 
 bool NSTEP::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
 {
-    if (strcmp(dev, getDeviceName()) == 0)
+    if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
-        if (!strcmp(name, TempCompSP.name))
+        if (strcmp(name, TempCompSP.name) == 0)
         {
             IUUpdateSwitch(&TempCompSP, states, names, n);
             TempCompSP.s = IPS_OK;
@@ -388,7 +386,7 @@ bool NSTEP::ISNewSwitch(const char *dev, const char *name, ISState *states, char
             IDSetSwitch(&TempCompSP, nullptr);
             return true;
         }
-        if (!strcmp(name, SteppingModeSP.name))
+        if (strcmp(name, SteppingModeSP.name) == 0)
         {
             IUUpdateSwitch(&SteppingModeSP, states, names, n);
             SteppingModeSP.s = IPS_OK;
@@ -425,9 +423,9 @@ bool NSTEP::ISNewSwitch(const char *dev, const char *name, ISState *states, char
 
 bool NSTEP::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
 {
-    if (strcmp(dev, getDeviceName()) == 0)
+    if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
-        if (!strcmp(name, TempCompNP.name))
+        if (strcmp(name, TempCompNP.name) == 0)
         {
             IUUpdateNumber(&TempCompNP, values, names, n);
             PresetNP.s = IPS_OK;
@@ -472,21 +470,13 @@ IPState NSTEP::MoveRelFocuser(FocusDirection dir, unsigned int ticks)
 bool NSTEP::AbortFocuser()
 {
     sprintf(buf, ":F1%c000#", steppingMode);
-    if (command(buf, nullptr, 0))
-    {
-        return true;
-    }
-    return false;
+    return command(buf, nullptr, 0);
 }
 
 bool NSTEP::SetFocuserSpeed(int speed)
 {
     sprintf(buf, ":CS%03d#", speed);
-    if (command(buf, buf, 2))
-    {
-        return true;
-    }
-    return false;
+    return command(buf, buf, 2);
 }
 
 void NSTEP::TimerHit()

@@ -24,7 +24,7 @@ class ScopeScript : public INDI::Telescope
 {
   public:
     ScopeScript();
-    virtual ~ScopeScript();
+    virtual ~ScopeScript() = default;
 
     virtual const char *getDefaultName() override;
     virtual bool initProperties() override;

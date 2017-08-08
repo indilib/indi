@@ -23,7 +23,7 @@
 class SmartFocus : public INDI::Focuser
 {
   public:
-    SmartFocus(void);
+    SmartFocus();
 
     const char *getDefaultName() override;
 
@@ -36,15 +36,15 @@ class SmartFocus : public INDI::Focuser
     //virtual bool ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n) override;
 
     virtual bool AbortFocuser() override;
-    virtual IPState MoveAbsFocuser(uint32_t ticks) override;
+    virtual IPState MoveAbsFocuser(uint32_t targetPosition) override;
     virtual IPState MoveRelFocuser(FocusDirection dir, uint32_t ticks) override;
     virtual void TimerHit() override;
 
+    typedef unsigned short Position;
   protected:
     virtual bool saveConfigItems(FILE *fp) override;
 
   private:
-    typedef unsigned short Position;
     typedef unsigned char Flags;
 
     enum State
@@ -74,35 +74,19 @@ class SmartFocus : public INDI::Focuser
         AtMaxPosition     = 0x80
     };
 
-    static const Position PositionInvalid;
-    static const int TimerInterval;
-    static const int ReadTimeOut;
-
-    static const char goto_position;
-    static const char stop_focuser;
-    static const char read_id_register;
-    static const char read_id_respons;
-    static const char read_position;
-    static const char read_flags;
-    static const char motion_complete;
-    static const char motion_error;
-    static const char motion_stopped;
-
-    Position position;
-    State state;
-    int timer_id;
-
-    bool SFacknowledge(void);
-    bool SFisIdle(void) const { return (state == Idle); }
-    bool SFisMoving(void) const { return !SFisIdle(); }
-    Position SFgetPosition(void);
-    Flags SFgetFlags(void);
-    void SFgetState(void);
-    void SFstartTimer(void);
-    void SFstopTimer(void);
+    bool SFacknowledge();
+    bool SFisIdle() const { return (state == Idle); }
+    bool SFisMoving() const { return !SFisIdle(); }
+    Position SFgetPosition();
+    Flags SFgetFlags();
+    void SFgetState();
 
     bool send(const char *command, const size_t nbytes, const char *from, const bool log_error = true);
     bool recv(char *respons, const size_t nbytes, const char *from, const bool log_error = true);
+
+    Position position { 0 };
+    State state { Idle };
+    int timer_id { 0 };
 
     ILight FlagsL[5];
     ILightVectorProperty FlagsLP;

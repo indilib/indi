@@ -26,7 +26,7 @@ class SkyCommander : public INDI::Telescope
 {
   public:
     SkyCommander();
-    virtual ~SkyCommander();
+    virtual ~SkyCommander() = default;
 
   protected:
     virtual const char *getDefaultName();

@@ -180,7 +180,7 @@ void Magellan1::setCurrentDeviceName(const char *devName)
 
 void Magellan1::ISGetProperties(const char *dev)
 {
-    if (dev && strcmp(thisDevice, dev))
+    if (dev != nullptr && strcmp(thisDevice, dev))
         return;
 
     // COMM_GROUP
@@ -358,7 +358,7 @@ void Magellan1::correctFault()
     IDMessage(thisDevice, "Telescope is online.");
 }
 
-bool Magellan1::isTelescopeOn(void)
+bool Magellan1::isTelescopeOn()
 {
     return (ConnectSP.sp[0].s == ISS_ON);
 }

@@ -256,7 +256,7 @@ void MapPropertiesToInMemoryDatabase::ProcessSwitchProperties(Telescope *pTelesc
 void MapPropertiesToInMemoryDatabase::UpdateLocation(double latitude, double longitude, double elevation)
 {
     INDI_UNUSED(elevation);
-    ln_lnlat_posn Position;
+    ln_lnlat_posn Position { 0, 0 };
 
     if (GetDatabaseReferencePosition(Position))
     {

@@ -27,24 +27,6 @@
 
 class NSTEP : public INDI::Focuser
 {
-  private:
-    char buf[MAXRBUF];
-    long sim_position, position;
-    int temperature;
-    char steppingMode;
-    pthread_mutex_t lock;
-
-    INumber TempN[1];
-    INumberVectorProperty TempNP;
-    ISwitch TempCompS[2];
-    ISwitchVectorProperty TempCompSP;
-    INumber TempCompN[2];
-    INumberVectorProperty TempCompNP;
-    ISwitch SteppingModeS[3];
-    ISwitchVectorProperty SteppingModeSP;
-
-    bool command(const char *request, char *response, int timeout);
-
   public:
     NSTEP();
     ~NSTEP();
@@ -62,4 +44,23 @@ class NSTEP : public INDI::Focuser
     bool AbortFocuser();
     bool SetFocuserSpeed(int speed);
     bool saveConfigItems(FILE *fp);
+
+  private:
+    bool command(const char *request, char *response, int count);
+
+    char buf[MAXRBUF];
+    long sim_position { 0 };
+    long position { 0 };
+    int temperature { 0 };
+    char steppingMode { 0 };
+    pthread_mutex_t lock;
+
+    INumber TempN[1];
+    INumberVectorProperty TempNP;
+    ISwitch TempCompS[2];
+    ISwitchVectorProperty TempCompSP;
+    INumber TempCompN[2];
+    INumberVectorProperty TempCompNP;
+    ISwitch SteppingModeS[3];
+    ISwitchVectorProperty SteppingModeSP;
 };

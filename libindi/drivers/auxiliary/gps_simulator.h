@@ -30,7 +30,7 @@ class GPSSimulator : public INDI::GPS
 {
   public:
     GPSSimulator();
-    virtual ~GPSSimulator();
+    virtual ~GPSSimulator() = default;
 
   protected:
     //  Generic indi device entries

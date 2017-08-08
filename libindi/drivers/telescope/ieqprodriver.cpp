@@ -25,8 +25,8 @@
 
 #include <libnova/julian_day.h>
 
-#include <math.h>
-#include <string.h>
+#include <cmath>
+#include <cstring>
 #include <termios.h>
 #include <unistd.h>
 
@@ -226,12 +226,12 @@ bool get_ieqpro_firmware(int fd, FirmwareInfo *info)
 
     rc = get_ieqpro_model(fd, info);
 
-    if (rc == false)
+    if (!rc)
         return rc;
 
     rc = get_ieqpro_main_firmware(fd, info);
 
-    if (rc == false)
+    if (!rc)
         return rc;
 
     rc = get_ieqpro_radec_firmware(fd, info);

@@ -25,8 +25,8 @@
 
 #include <libnova/transform.h>
 
-#include <math.h>
-#include <string.h>
+#include <cmath>
+#include <cstring>
 #include <termios.h>
 #include <unistd.h>
 
@@ -108,7 +108,7 @@ bool LX200GotoNova::updateProperties()
 
 const char *LX200GotoNova::getDefaultName()
 {
-    return (char *)"GotoNova";
+    return (const char *)"GotoNova";
 }
 
 bool LX200GotoNova::checkConnection()
@@ -160,7 +160,7 @@ bool LX200GotoNova::checkConnection()
 
 bool LX200GotoNova::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
 {
-    if (strcmp(dev, getDeviceName()) == 0)
+    if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
         // Park Position
         if (!strcmp(ParkPositionSP.name, name))
@@ -308,7 +308,7 @@ bool LX200GotoNova::Goto(double r, double d)
         usleep(100000);
     }
 
-    if (isSimulation() == false)
+    if (!isSimulation())
     {
         if (setObjectRA(PortFD, targetRA) < 0 || (setObjectDEC(PortFD, targetDEC)) < 0)
         {
@@ -339,7 +339,7 @@ bool LX200GotoNova::Sync(double ra, double dec)
 
     int syncType = IUFindOnSwitchIndex(&SyncCMRSP);
 
-    if (isSimulation() == false)
+    if (!isSimulation())
     {
         if (setObjectRA(PortFD, ra) < 0 || setObjectDEC(PortFD, dec) < 0)
         {
@@ -561,13 +561,13 @@ bool LX200GotoNova::updateLocation(double latitude, double longitude, double ele
     else
         final_longitude = longitude;
 
-    if (isSimulation() == false && setGotoNovaLongitude(final_longitude) < 0)
+    if (!isSimulation() && setGotoNovaLongitude(final_longitude) < 0)
     {
         DEBUG(INDI::Logger::DBG_ERROR, "Error setting site longitude coordinates");
         return false;
     }
 
-    if (isSimulation() == false && setGotoNovaLatitude(latitude) < 0)
+    if (!isSimulation() && setGotoNovaLatitude(latitude) < 0)
     {
         DEBUG(INDI::Logger::DBG_ERROR, "Error setting site latitude coordinates");
         return false;
@@ -711,7 +711,7 @@ bool LX200GotoNova::UnPark()
 
 bool LX200GotoNova::ReadScopeStatus()
 {
-    if (isConnected() == false)
+    if (!isConnected())
         return false;
 
     if (isSimulation())

@@ -30,7 +30,7 @@
 #include <curl/curl.h>
 
 #include <memory>
-#include <string.h>
+#include <cstring>
 
 // We declare an auto pointer to WunderGround.
 std::unique_ptr<WunderGround> wunderGround(new WunderGround());
@@ -46,19 +46,19 @@ void ISGetProperties(const char *dev)
     wunderGround->ISGetProperties(dev);
 }
 
-void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int num)
+void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
 {
-    wunderGround->ISNewSwitch(dev, name, states, names, num);
+    wunderGround->ISNewSwitch(dev, name, states, names, n);
 }
 
-void ISNewText(const char *dev, const char *name, char *texts[], char *names[], int num)
+void ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
 {
-    wunderGround->ISNewText(dev, name, texts, names, num);
+    wunderGround->ISNewText(dev, name, texts, names, n);
 }
 
-void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int num)
+void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
 {
-    wunderGround->ISNewNumber(dev, name, values, names, num);
+    wunderGround->ISNewNumber(dev, name, values, names, n);
 }
 
 void ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[],
@@ -94,7 +94,7 @@ WunderGround::~WunderGround()
 
 const char *WunderGround::getDefaultName()
 {
-    return (char *)"WunderGround";
+    return (const char *)"WunderGround";
 }
 
 bool WunderGround::Connect()
@@ -149,7 +149,7 @@ void WunderGround::ISGetProperties(const char *dev)
 
 bool WunderGround::ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
 {
-    if (!strcmp(dev, getDeviceName()))
+    if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
         if (!strcmp(wunderAPIKeyTP.name, name))
         {

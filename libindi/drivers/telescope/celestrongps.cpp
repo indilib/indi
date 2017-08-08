@@ -30,9 +30,9 @@ Version with experimental pulse guide support. GC 04.12.2015
 
 #include <libnova/transform.h>
 
-#include <math.h>
+#include <cmath>
 #include <memory>
-#include <string.h>
+#include <cstring>
 #include <unistd.h>
 
 /* Simulation Parameters */
@@ -169,7 +169,7 @@ void CelestronGPS::ISGetProperties(const char *dev)
 {
     static bool configLoaded = false;
 
-    if (dev && strcmp(dev, getDeviceName()))
+    if (dev != nullptr && strcmp(dev, getDeviceName()) != 0)
         return;
 
     INDI::Telescope::ISGetProperties(dev);
@@ -603,7 +603,7 @@ bool CelestronGPS::Handshake()
     {
         DEBUG(INDI::Logger::DBG_SESSION, "Waking up mount...");
         bool rc = wakeup(PortFD);
-        if (rc == false)
+        if (!rc)
         {
             DEBUG(INDI::Logger::DBG_ERROR, "Waking up mount failed! Make sure mount is powered and connected. "
                                            "Hibernate requires firmware version >= 5.21");
@@ -652,7 +652,7 @@ bool CelestronGPS::ISNewNumber(const char *dev, const char *name, double values[
 {
     //double newAlt=0, newAz=0;
 
-    if (!strcmp(dev, getDeviceName()))
+    if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
         /*if ( !strcmp (name, HorizontalCoordsNP.name) )
         {

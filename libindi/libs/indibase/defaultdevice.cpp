@@ -21,8 +21,8 @@
 #include "indicom.h"
 #include "connectionplugins/connectionserial.h"
 
-#include <stdlib.h>
-#include <string.h>
+#include <cstdlib>
+#include <cstring>
 
 const char *COMMUNICATION_TAB = "Communication";
 const char *MAIN_CONTROL_TAB  = "Main Control";
@@ -73,7 +73,7 @@ bool INDI::DefaultDevice::loadConfig(bool silent, const char *property)
 
     pResult = IUReadConfig(nullptr, deviceID, property, silent ? 1 : 0, errmsg) == 0 ? true : false;
 
-    if (silent == false)
+    if (!silent)
     {
         if (pResult)
         {
@@ -163,7 +163,7 @@ bool INDI::DefaultDevice::saveConfig(bool silent, const char *property)
 
         if (fp == nullptr)
         {
-            if (silent == false)
+            if (!silent)
                 DEBUGF(INDI::Logger::DBG_ERROR, "Error saving configuration. %s", errmsg);
             return false;
         }
@@ -186,7 +186,7 @@ bool INDI::DefaultDevice::saveConfig(bool silent, const char *property)
 
         if (fp == nullptr)
         {
-            if (silent == false)
+            if (!silent)
                 DEBUGF(INDI::Logger::DBG_ERROR, "Error saving configuration. %s", errmsg);
             return false;
         }
@@ -333,7 +333,7 @@ bool INDI::DefaultDevice::ISNewSwitch(const char *dev, const char *name, ISState
             if (!strcmp(names[i], "CONNECT") && (states[i] == ISS_ON))
             {
                 // If not connected, attempt to connect
-                if (isConnected() == false)
+                if (!isConnected())
                 {
                     rc = Connect();
 

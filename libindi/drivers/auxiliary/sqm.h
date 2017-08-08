@@ -30,14 +30,14 @@ class SQM : public INDI::DefaultDevice
 {
   public:
     SQM();
-    virtual ~SQM();
+    virtual ~SQM() = default;
 
     virtual bool initProperties();
     virtual bool updateProperties();
 
     /**
-     * \struct SqmConnection
-     * \brief Holds the connection mode of the device.
+     * @struct SqmConnection
+     * @brief Holds the connection mode of the device.
      */
     enum
     {
@@ -62,9 +62,9 @@ class SQM : public INDI::DefaultDevice
     INumberVectorProperty UnitInfoNP;
     INumber UnitInfoN[4];
 
-    Connection::Serial *serialConnection = NULL;
-    Connection::TCP *tcpConnection       = NULL;
+    Connection::Serial *serialConnection { nullptr };
+    Connection::TCP *tcpConnection { nullptr };
 
-    int PortFD = -1;
-    uint8_t sqmConnection = CONNECTION_SERIAL | CONNECTION_TCP;
+    int PortFD { -1 };
+    uint8_t sqmConnection { CONNECTION_SERIAL | CONNECTION_TCP };
 };

@@ -45,9 +45,9 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110 - 1301  USA
 
   #include <libnova/sidereal_time.h>
 
-  #include <math.h>
+  #include <cmath>
   #include <memory>
-  #include <string.h>
+  #include <cstring>
   #include <unistd.h>
 
   // We declare an auto pointer to LX200Generic.
@@ -180,22 +180,22 @@ void ISGetProperties(const char *dev)
     telescope->ISGetProperties(dev);
 }
 
-void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int num)
+void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
 {
     ISInit();
-    telescope->ISNewSwitch(dev, name, states, names, num);
+    telescope->ISNewSwitch(dev, name, states, names, n);
 }
 
-void ISNewText(const char *dev, const char *name, char *texts[], char *names[], int num)
+void ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
 {
     ISInit();
-    telescope->ISNewText(dev, name, texts, names, num);
+    telescope->ISNewText(dev, name, texts, names, n);
 }
 
-void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int num)
+void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
 {
     ISInit();
-    telescope->ISNewNumber(dev, name, values, names, num);
+    telescope->ISNewNumber(dev, name, values, names, n);
 }
 
 void ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[],
@@ -256,7 +256,7 @@ void LX200Generic::debugTriggered(bool enable)
 
 const char *LX200Generic::getDefaultName()
 {
-    return (char *)"LX200 Generic";
+    return (const char *)"LX200 Generic";
 }
 
 const char *LX200Generic::getDriverName()
@@ -344,7 +344,7 @@ bool LX200Generic::initProperties()
 
 void LX200Generic::ISGetProperties(const char *dev)
 {
-    if (dev && strcmp(dev, getDeviceName()))
+    if (dev != nullptr && strcmp(dev, getDeviceName()) != 0)
         return;
 
     INDI::Telescope::ISGetProperties(dev);
@@ -462,7 +462,7 @@ bool LX200Generic::isSlewComplete()
 
 bool LX200Generic::ReadScopeStatus()
 {
-    if (isConnected() == false)
+    if (!isConnected())
         return false;
 
     if (isSimulation())
@@ -559,7 +559,7 @@ bool LX200Generic::Goto(double ra, double dec)
         usleep(100000);
     }
 
-    if (isSimulation() == false)
+    if (!isSimulation())
     {
         if (setObjectRA(PortFD, targetRA) < 0 || (setObjectDEC(PortFD, targetDEC)) < 0)
         {
@@ -591,14 +591,14 @@ bool LX200Generic::Sync(double ra, double dec)
 {
     char syncString[256]={0};
 
-    if (isSimulation() == false && (setObjectRA(PortFD, ra) < 0 || (setObjectDEC(PortFD, dec)) < 0))
+    if (!isSimulation() && (setObjectRA(PortFD, ra) < 0 || (setObjectDEC(PortFD, dec)) < 0))
     {
         EqNP.s = IPS_ALERT;
         IDSetNumber(&EqNP, "Error setting RA/DEC. Unable to Sync.");
         return false;
     }
 
-    if (isSimulation() == false && ::Sync(PortFD, syncString) < 0)
+    if (!isSimulation() && ::Sync(PortFD, syncString) < 0)
     {
         EqNP.s = IPS_ALERT;
         IDSetNumber(&EqNP, "Synchronization failed.");
@@ -619,12 +619,12 @@ bool LX200Generic::Sync(double ra, double dec)
 
 bool LX200Generic::Park()
 {
-    if (isSimulation() == false)
+    if (!isSimulation())
     {
         // If scope is moving, let's stop it first.
         if (EqNP.s == IPS_BUSY)
         {
-            if (isSimulation() == false && abortSlew(PortFD) < 0)
+            if (!isSimulation() && abortSlew(PortFD) < 0)
             {
                 AbortSP.s = IPS_ALERT;
                 IDSetSwitch(&AbortSP, "Abort slew failed.");
@@ -651,7 +651,7 @@ bool LX200Generic::Park()
             usleep(100000);
         }
 
-        if (isSimulation() == false && slewToPark(PortFD) < 0)
+        if (!isSimulation() && slewToPark(PortFD) < 0)
         {
             ParkSP.s = IPS_ALERT;
             IDSetSwitch(&ParkSP, "Parking Failed.");
@@ -672,7 +672,7 @@ bool LX200Generic::MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command)
     switch (command)
     {
     case MOTION_START:
-        if (isSimulation() == false && MoveTo(PortFD, current_move) < 0)
+        if (!isSimulation() && MoveTo(PortFD, current_move) < 0)
         {
             DEBUG(INDI::Logger::DBG_ERROR, "Error setting N/S motion direction.");
             return false;
@@ -683,7 +683,7 @@ bool LX200Generic::MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command)
         break;
 
     case MOTION_STOP:
-        if (isSimulation() == false && HaltMovement(PortFD, current_move) < 0)
+        if (!isSimulation() && HaltMovement(PortFD, current_move) < 0)
         {
             DEBUG(INDI::Logger::DBG_ERROR, "Error stopping N/S motion.");
             return false;
@@ -704,7 +704,7 @@ bool LX200Generic::MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command)
     switch (command)
     {
     case MOTION_START:
-        if (isSimulation() == false && MoveTo(PortFD, current_move) < 0)
+        if (!isSimulation() && MoveTo(PortFD, current_move) < 0)
         {
             DEBUG(INDI::Logger::DBG_ERROR, "Error setting W/E motion direction.");
             return false;
@@ -714,7 +714,7 @@ bool LX200Generic::MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command)
         break;
 
     case MOTION_STOP:
-        if (isSimulation() == false && HaltMovement(PortFD, current_move) < 0)
+        if (!isSimulation() && HaltMovement(PortFD, current_move) < 0)
         {
             DEBUG(INDI::Logger::DBG_ERROR, "Error stopping W/E motion.");
             return false;
@@ -730,7 +730,7 @@ bool LX200Generic::MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command)
 
 bool LX200Generic::Abort()
 {
-    if (isSimulation() == false && abortSlew(PortFD) < 0)
+    if (!isSimulation() && abortSlew(PortFD) < 0)
     {
         DEBUG(INDI::Logger::DBG_ERROR, "Failed to abort slew.");
         return false;
@@ -809,13 +809,13 @@ bool LX200Generic::updateLocation(double latitude, double longitude, double elev
     if (isSimulation())
         return true;
 
-    if (isSimulation() == false && setSiteLongitude(PortFD, 360.0 - longitude) < 0)
+    if (!isSimulation() && setSiteLongitude(PortFD, 360.0 - longitude) < 0)
     {
         DEBUG(INDI::Logger::DBG_ERROR, "Error setting site longitude coordinates");
         return false;
     }
 
-    if (isSimulation() == false && setSiteLatitude(PortFD, latitude) < 0)
+    if (!isSimulation() && setSiteLatitude(PortFD, latitude) < 0)
     {
         DEBUG(INDI::Logger::DBG_ERROR, "Error setting site latitude coordinates");
         return false;
@@ -832,11 +832,11 @@ bool LX200Generic::updateLocation(double latitude, double longitude, double elev
 
 bool LX200Generic::ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
 {
-    if (strcmp(dev, getDeviceName()) == 0)
+    if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
         if (!strcmp(name, SiteNameTP.name))
         {
-            if (isSimulation() == false && setSiteName(PortFD, texts[0], currentSiteNum) < 0)
+            if (!isSimulation() && setSiteName(PortFD, texts[0], currentSiteNum) < 0)
             {
                 SiteNameTP.s = IPS_ALERT;
                 IDSetText(&SiteNameTP, "Setting site name");
@@ -856,14 +856,14 @@ bool LX200Generic::ISNewText(const char *dev, const char *name, char *texts[], c
 
 bool LX200Generic::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
 {
-    if (strcmp(dev, getDeviceName()) == 0)
+    if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
         // Update Frequency
         if (!strcmp(name, TrackingFreqNP.name))
         {
             DEBUGF(INDI::Logger::DBG_DEBUG, "Trying to set track freq of: %f\n", values[0]);
 
-            if (isSimulation() == false && setTrackFreq(PortFD, values[0]) < 0)
+            if (!isSimulation() && setTrackFreq(PortFD, values[0]) < 0)
             {
                 TrackingFreqNP.s = IPS_ALERT;
                 IDSetNumber(&TrackingFreqNP, "Error setting tracking frequency");
@@ -919,7 +919,7 @@ bool LX200Generic::ISNewSwitch(const char *dev, const char *name, ISState *state
 {
     int index = 0;
 
-    if (strcmp(dev, getDeviceName()) == 0)
+    if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
         // Alignment
         if (!strcmp(name, AlignmentSP.name))
@@ -929,7 +929,7 @@ bool LX200Generic::ISNewSwitch(const char *dev, const char *name, ISState *state
 
             index = IUFindOnSwitchIndex(&AlignmentSP);
 
-            if (isSimulation() == false && setAlignmentMode(PortFD, index) < 0)
+            if (!isSimulation() && setAlignmentMode(PortFD, index) < 0)
             {
                 AlignmentSP.s = IPS_ALERT;
                 IDSetSwitch(&AlignmentSP, "Error setting alignment mode.");
@@ -949,7 +949,7 @@ bool LX200Generic::ISNewSwitch(const char *dev, const char *name, ISState *state
 
             currentSiteNum = IUFindOnSwitchIndex(&SiteSP) + 1;
 
-            if (isSimulation() == false && selectSite(PortFD, currentSiteNum) < 0)
+            if (!isSimulation() && selectSite(PortFD, currentSiteNum) < 0)
             {
                 SiteSP.s = IPS_ALERT;
                 IDSetSwitch(&SiteSP, "Error selecting sites.");
@@ -1000,7 +1000,7 @@ bool LX200Generic::ISNewSwitch(const char *dev, const char *name, ISState *state
                 return true;
             }
 
-            if (isSimulation() == false && setFocuserMotion(PortFD, index) < 0)
+            if (!isSimulation() && setFocuserMotion(PortFD, index) < 0)
             {
                 FocusMotionSP.s = IPS_ALERT;
                 IDSetSwitch(&FocusMotionSP, "Error setting focuser speed.");
@@ -1038,7 +1038,7 @@ bool LX200Generic::ISNewSwitch(const char *dev, const char *name, ISState *state
                 IDSetNumber(&FocusTimerNP, nullptr);
             }
 
-            if (isSimulation() == false)
+            if (!isSimulation())
                 setFocuserSpeedMode(PortFD, index);
             FocusModeSP.s = IPS_OK;
             IDSetSwitch(&FocusModeSP, nullptr);
@@ -1082,7 +1082,7 @@ bool LX200Generic::SetSlewRate(int index)
     // Convert index to Meade format
     index = 3 - index;
 
-    if (isSimulation() == false && setSlewMode(PortFD, index) < 0)
+    if (!isSimulation() && setSlewMode(PortFD, index) < 0)
     {
         SlewRateSP.s = IPS_ALERT;
         IDSetSwitch(&SlewRateSP, "Error setting slew mode.");
@@ -1117,7 +1117,7 @@ void LX200Generic::updateFocusTimer()
             if (isDebug())
                 IDLog("Focus Timer Expired\n");
 
-            if (isSimulation() == false && setFocuserSpeedMode(telescope->PortFD, 0) < 0)
+            if (!isSimulation() && setFocuserSpeedMode(telescope->PortFD, 0) < 0)
             {
                 FocusModeSP.s = IPS_ALERT;
                 IDSetSwitch(&FocusModeSP, "Error setting focuser mode.");
@@ -1255,7 +1255,7 @@ void LX200Generic::mountSim()
 
 void LX200Generic::getBasicData()
 {
-    if (isSimulation() == false)
+    if (!isSimulation())
     {
         checkLX200Format(PortFD);
 

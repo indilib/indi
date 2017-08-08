@@ -25,7 +25,7 @@
 #include "joystickdriver.h"
 
 #include <memory>
-#include <string.h>
+#include <cstring>
 
 #define POLLMS 250
 
@@ -37,19 +37,19 @@ void ISGetProperties(const char *dev)
     joystick->ISGetProperties(dev);
 }
 
-void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int num)
+void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
 {
-    joystick->ISNewSwitch(dev, name, states, names, num);
+    joystick->ISNewSwitch(dev, name, states, names, n);
 }
 
-void ISNewText(const char *dev, const char *name, char *texts[], char *names[], int num)
+void ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
 {
-    joystick->ISNewText(dev, name, texts, names, num);
+    joystick->ISNewText(dev, name, texts, names, n);
 }
 
-void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int num)
+void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
 {
-    joystick->ISNewNumber(dev, name, values, names, num);
+    joystick->ISNewNumber(dev, name, values, names, n);
 }
 
 void ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[],
@@ -88,7 +88,7 @@ JoyStick::~JoyStick()
 
 const char *JoyStick::getDefaultName()
 {
-    return (char *)"Joystick";
+    return (const char *)"Joystick";
 }
 
 bool JoyStick::Connect()
@@ -265,7 +265,7 @@ bool JoyStick::ISSnoopDevice(XMLEle *root)
 
 bool JoyStick::ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
 {
-    if (strcmp(dev, getDeviceName()) == 0)
+    if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
         if (strcmp(name, PortTP.name) == 0)
         {
@@ -300,7 +300,7 @@ void JoyStick::axisHelper(int axis_n, int value)
 
 void JoyStick::joystickEvent(int joystick_n, double mag, double angle)
 {
-    if (isConnected() == false)
+    if (!isConnected())
         return;
 
     if (isDebug())
@@ -319,7 +319,7 @@ void JoyStick::joystickEvent(int joystick_n, double mag, double angle)
 
 void JoyStick::axisEvent(int axis_n, int value)
 {
-    if (isConnected() == false)
+    if (!isConnected())
         return;
 
     if (isDebug())
@@ -337,7 +337,7 @@ void JoyStick::axisEvent(int axis_n, int value)
 
 void JoyStick::buttonEvent(int button_n, int value)
 {
-    if (isConnected() == false)
+    if (!isConnected())
         return;
 
     if (isDebug())

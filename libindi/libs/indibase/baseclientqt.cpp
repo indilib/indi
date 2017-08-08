@@ -27,7 +27,7 @@
 #include <iostream>
 #include <string>
 
-#include <stdlib.h>
+#include <cstdlib>
 
 #define MAXINDIBUF 49152
 

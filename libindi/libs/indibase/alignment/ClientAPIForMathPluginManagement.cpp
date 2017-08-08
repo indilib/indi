@@ -26,7 +26,7 @@ bool ClientAPIForMathPluginManagement::EnumerateMathPlugins(MathPluginsList &Ava
     ISwitchVectorProperty *pPlugins = MathPlugins->getSwitch();
 
     for (int i = 0; i < pPlugins->nsp; i++)
-        AvailableMathPlugins.push_back(std::string(pPlugins->sp[i].label));
+        AvailableMathPlugins.emplace_back(std::string(pPlugins->sp[i].label));
 
     return true;
 }
@@ -45,9 +45,9 @@ void ClientAPIForMathPluginManagement::ProcessNewProperty(INDI::Property *Proper
 {
     bool GotOneOfMine = true;
 
-    if (!strcmp(PropertyPointer->getName(), "ALIGNMENT_SUBSYSTEM_MATH_PLUGINS"))
+    if (strcmp(PropertyPointer->getName(), "ALIGNMENT_SUBSYSTEM_MATH_PLUGINS") == 0)
         MathPlugins = PropertyPointer;
-    else if (!strcmp(PropertyPointer->getName(), "ALIGNMENT_SUBSYSTEM_MATH_PLUGIN_INITIALISE"))
+    else if (strcmp(PropertyPointer->getName(), "ALIGNMENT_SUBSYSTEM_MATH_PLUGIN_INITIALISE") == 0)
         PluginInitialise = PropertyPointer;
     else
         GotOneOfMine = false;
@@ -64,12 +64,12 @@ void ClientAPIForMathPluginManagement::ProcessNewProperty(INDI::Property *Proper
 
 void ClientAPIForMathPluginManagement::ProcessNewSwitch(ISwitchVectorProperty *SwitchVectorProperty)
 {
-    if (!strcmp(SwitchVectorProperty->name, "ALIGNMENT_SUBSYSTEM_MATH_PLUGINS"))
+    if (strcmp(SwitchVectorProperty->name, "ALIGNMENT_SUBSYSTEM_MATH_PLUGINS") == 0)
     {
         if (IPS_BUSY != SwitchVectorProperty->s)
             SignalDriverCompletion();
     }
-    else if (!strcmp(SwitchVectorProperty->name, "ALIGNMENT_SUBSYSTEM_MATH_PLUGIN_INITIALISE"))
+    else if (strcmp(SwitchVectorProperty->name, "ALIGNMENT_SUBSYSTEM_MATH_PLUGIN_INITIALISE") == 0)
     {
         if (IPS_BUSY != SwitchVectorProperty->s)
             SignalDriverCompletion();
@@ -129,50 +129,44 @@ bool ClientAPIForMathPluginManagement::ReInitialiseMathPlugin()
 
 bool ClientAPIForMathPluginManagement::SetDriverBusy()
 {
-    int ReturnCode;
-    ReturnCode = pthread_mutex_lock(&DriverActionCompleteMutex);
-    if (ReturnCode)
+    int ReturnCode = pthread_mutex_lock(&DriverActionCompleteMutex);
+
+    if (ReturnCode != 0)
         return false;
     DriverActionComplete = false;
     IDLog("SetDriverBusy\n");
     ReturnCode = pthread_mutex_unlock(&DriverActionCompleteMutex);
-    if (ReturnCode)
-        return false;
-    else
-        return true;
+    return ReturnCode == 0;
 }
 
 bool ClientAPIForMathPluginManagement::SignalDriverCompletion()
 {
-    int ReturnCode;
-    ReturnCode = pthread_mutex_lock(&DriverActionCompleteMutex);
-    if (ReturnCode)
+    int ReturnCode = pthread_mutex_lock(&DriverActionCompleteMutex);
+
+    if (ReturnCode != 0)
         return false;
     DriverActionComplete = true;
     ReturnCode           = pthread_cond_signal(&DriverActionCompleteCondition);
-    if (ReturnCode)
+    if (ReturnCode != 0)
     {
         ReturnCode = pthread_mutex_unlock(&DriverActionCompleteMutex);
         return false;
     }
     IDLog("SignalDriverCompletion\n");
     ReturnCode = pthread_mutex_unlock(&DriverActionCompleteMutex);
-    if (ReturnCode)
-        return false;
-    else
-        return true;
+    return ReturnCode == 0;
 }
 
 bool ClientAPIForMathPluginManagement::WaitForDriverCompletion()
 {
-    int ReturnCode;
-    ReturnCode = pthread_mutex_lock(&DriverActionCompleteMutex);
+    int ReturnCode = pthread_mutex_lock(&DriverActionCompleteMutex);
+
     while (!DriverActionComplete)
     {
         IDLog("WaitForDriverCompletion - Waiting\n");
         ReturnCode = pthread_cond_wait(&DriverActionCompleteCondition, &DriverActionCompleteMutex);
         IDLog("WaitForDriverCompletion - Back from wait ReturnCode = %d\n", ReturnCode);
-        if (ReturnCode)
+        if (ReturnCode != 0)
         {
             ReturnCode = pthread_mutex_unlock(&DriverActionCompleteMutex);
             return false;
@@ -180,10 +174,7 @@ bool ClientAPIForMathPluginManagement::WaitForDriverCompletion()
     }
     IDLog("WaitForDriverCompletion - Finished waiting\n");
     ReturnCode = pthread_mutex_unlock(&DriverActionCompleteMutex);
-    if (ReturnCode)
-        return false;
-    else
-        return true;
+    return ReturnCode == 0;
 }
 
 } // namespace AlignmentSubsystem

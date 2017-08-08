@@ -209,7 +209,7 @@ int numberFormat(char *buf, const char *format, double value);
 /** \brief Create an ISO 8601 formatted time stamp. The format is YYYY-MM-DDTHH:MM:SS
     \return The formatted time stamp.
 */
-const char *timestamp(void);
+const char *timestamp();
 
 /**
  * @brief rangeHA Limits the hour angle value to be between -12 ---> 12

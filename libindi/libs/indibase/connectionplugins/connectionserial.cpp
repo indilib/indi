@@ -22,8 +22,8 @@
 #include "indilogger.h"
 
 #include <dirent.h>
-#include <errno.h>
-#include <string.h>
+#include <cerrno>
+#include <cstring>
 
 namespace Connection
 {
@@ -305,7 +305,7 @@ bool Serial::Refresh(bool silent)
     int devCount = scandir("/dev", &namelist, dev_file_select, alphasort);
     if (devCount < 0)
     {
-        if (silent == false)
+        if (!silent)
             DEBUGF(INDI::Logger::DBG_ERROR, "Failed to scan directory /dev. Error: %s", strerror(errno));
     }
     else
@@ -332,13 +332,13 @@ bool Serial::Refresh(bool silent)
 
     if (pCount == 0)
     {
-        if (silent == false)
+        if (!silent)
             DEBUG(INDI::Logger::DBG_WARNING, "No candidate ports found on the system.");
         return false;
     }
     else
     {
-        if (silent == false)
+        if (!silent)
             DEBUGF(INDI::Logger::DBG_SESSION, "Scan complete. Found %d port(s).", pCount);
     }
 

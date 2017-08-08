@@ -27,16 +27,15 @@
 #include "connectionplugins/connectiontcp.h"
 #include "connectionplugins/connectionserial.h"
 
-#include <errno.h>
+#include <cerrno>
 #include <memory>
-#include <string.h>
+#include <cstring>
 #include <unistd.h>
 
 // We declare an auto pointer to SQM.
 std::unique_ptr<SQM> sqm(new SQM());
 
 #define UNIT_TAB    "Unit"
-#define SQM_TIMEOUT 3
 #define POLLMS      1000
 
 void ISGetProperties(const char *dev)
@@ -44,19 +43,19 @@ void ISGetProperties(const char *dev)
     sqm->ISGetProperties(dev);
 }
 
-void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int num)
+void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
 {
-    sqm->ISNewSwitch(dev, name, states, names, num);
+    sqm->ISNewSwitch(dev, name, states, names, n);
 }
 
-void ISNewText(const char *dev, const char *name, char *texts[], char *names[], int num)
+void ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
 {
-    sqm->ISNewText(dev, name, texts, names, num);
+    sqm->ISNewText(dev, name, texts, names, n);
 }
 
-void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int num)
+void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
 {
-    sqm->ISNewNumber(dev, name, values, names, num);
+    sqm->ISNewNumber(dev, name, values, names, n);
 }
 
 void ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[],
@@ -79,10 +78,6 @@ void ISSnoopDevice(XMLEle *root)
 SQM::SQM()
 {
     setVersion(1, 0);
-}
-
-SQM::~SQM()
-{
 }
 
 bool SQM::initProperties()
@@ -209,7 +204,7 @@ bool SQM::getReadings()
 
 const char *SQM::getDefaultName()
 {
-    return (char *)"SQM";
+    return (const char *)"SQM";
 }
 
 bool SQM::getDeviceInfo()
@@ -273,7 +268,7 @@ bool SQM::getDeviceInfo()
 
 void SQM::TimerHit()
 {
-    if (isConnected() == false)
+    if (!isConnected())
         return;
 
     bool rc = getReadings();

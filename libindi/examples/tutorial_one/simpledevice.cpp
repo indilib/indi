@@ -74,10 +74,6 @@ void ISSnoopDevice(XMLEle *root)
     INDI_UNUSED(root);
 }
 
-SimpleDevice::SimpleDevice()
-{
-}
-
 /**************************************************************************************
 ** Client is asking us to establish connection to the device
 ***************************************************************************************/

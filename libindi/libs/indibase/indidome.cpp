@@ -31,9 +31,9 @@
 #include <libnova/sidereal_time.h>
 #include <libnova/transform.h>
 
-#include <errno.h>
-#include <math.h>
-#include <string.h>
+#include <cerrno>
+#include <cmath>
+#include <cstring>
 #include <wordexp.h>
 
 #define DOME_SLAVING_TAB "Slaving"
@@ -306,7 +306,7 @@ bool INDI::Dome::updateProperties()
 bool INDI::Dome::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
 {
     //  first check if it's for our device
-    if (strcmp(dev, getDeviceName()) == 0)
+    if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
         if (!strcmp(name, PresetNP.name))
         {
@@ -371,7 +371,7 @@ bool INDI::Dome::ISNewNumber(const char *dev, const char *name, double values[],
 
 bool INDI::Dome::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
 {
-    if (strcmp(dev, getDeviceName()) == 0)
+    if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
         if (!strcmp(PresetGotoSP.name, name))
         {
@@ -604,7 +604,7 @@ bool INDI::Dome::ISNewSwitch(const char *dev, const char *name, ISState *states,
 
 bool INDI::Dome::ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
 {
-    if (strcmp(dev, getDeviceName()) == 0)
+    if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
         if (strcmp(name, ActiveDeviceTP.name) == 0)
         {
@@ -769,7 +769,7 @@ bool INDI::Dome::ISSnoopDevice(XMLEle *root)
         {
             if (CanPark() && AutoParkS[0].s == ISS_ON)
             {
-                if (isParked() == false)
+                if (!isParked())
                 {
                     DEBUG(INDI::Logger::DBG_WARNING, "Weather conditions in the danger zone! Parking dome...");
                     Dome::Park();

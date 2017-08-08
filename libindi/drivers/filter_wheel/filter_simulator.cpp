@@ -30,19 +30,19 @@ void ISGetProperties(const char *dev)
     filter_sim->ISGetProperties(dev);
 }
 
-void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int num)
+void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
 {
-    filter_sim->ISNewSwitch(dev, name, states, names, num);
+    filter_sim->ISNewSwitch(dev, name, states, names, n);
 }
 
-void ISNewText(const char *dev, const char *name, char *texts[], char *names[], int num)
+void ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
 {
-    filter_sim->ISNewText(dev, name, texts, names, num);
+    filter_sim->ISNewText(dev, name, texts, names, n);
 }
 
-void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int num)
+void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
 {
-    filter_sim->ISNewNumber(dev, name, values, names, num);
+    filter_sim->ISNewNumber(dev, name, values, names, n);
 }
 
 void ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[],
@@ -62,19 +62,9 @@ void ISSnoopDevice(XMLEle *root)
     filter_sim->ISSnoopDevice(root);
 }
 
-FilterSim::FilterSim()
-{
-    //ctor
-}
-
-FilterSim::~FilterSim()
-{
-    //dtor
-}
-
 const char *FilterSim::getDefaultName()
 {
-    return (char *)"Filter Simulator";
+    return (const char *)"Filter Simulator";
 }
 
 bool FilterSim::Connect()
