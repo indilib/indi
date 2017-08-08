@@ -548,14 +548,25 @@ bool Gemini::ISNewSwitch(const char *dev, const char *name, ISState *states, cha
             if (FocuserGotoS[GOTO_HOME].s == ISS_ON)
             {
                 if (home(DEVICE_FOCUSER))
+                {
                     FocuserGotoSP.s = IPS_BUSY;
+                    FocusAbsPosNP.s = IPS_BUSY;
+                    IDSetNumber(&FocusAbsPosNP, nullptr);
+                    isFocuserHoming = true;
+                    DEBUG(INDI::Logger::DBG_SESSION, "Focuser moving to home position...");
+                }
                 else
                     FocuserGotoSP.s = IPS_ALERT;
             }
             else
             {
                 if (center(DEVICE_FOCUSER))
+                {
                     FocuserGotoSP.s = IPS_BUSY;
+                    DEBUG(INDI::Logger::DBG_SESSION, "Focuser moving to center position...");
+                    FocusAbsPosNP.s = IPS_BUSY;
+                    IDSetNumber(&FocusAbsPosNP, nullptr);
+                }
                 else
                     FocuserGotoSP.s = IPS_ALERT;
             }
@@ -572,14 +583,25 @@ bool Gemini::ISNewSwitch(const char *dev, const char *name, ISState *states, cha
             if (RotatorGotoS[GOTO_HOME].s == ISS_ON)
             {
                 if (home(DEVICE_ROTATOR))
+                {
                     RotatorGotoSP.s = IPS_BUSY;
+                    RotatorAbsPosNP.s = IPS_BUSY;
+                    IDSetNumber(&RotatorAbsPosNP, nullptr);
+                    isRotatorHoming = true;
+                    DEBUG(INDI::Logger::DBG_SESSION, "Rotator moving to home position...");
+                }
                 else
                     RotatorGotoSP.s = IPS_ALERT;
             }
             else
             {
                 if (center(DEVICE_ROTATOR))
+                {
                     RotatorGotoSP.s = IPS_BUSY;
+                    DEBUG(INDI::Logger::DBG_SESSION, "Rotator moving to center position...");
+                    RotatorAbsPosNP.s = IPS_BUSY;
+                    IDSetNumber(&RotatorAbsPosNP, nullptr);
+                }
                 else
                     RotatorGotoSP.s = IPS_ALERT;
             }
@@ -2339,10 +2361,15 @@ bool Gemini::home(DeviceType type)
     if (isSimulation())
     {
         if (type == DEVICE_FOCUSER)
+        {
             focuserSimStatus[STATUS_HOMING] = ISS_ON;
+            targetFocuserPosition = 0;
+        }
         else
+        {
             rotatorSimStatus[STATUS_HOMING] = ISS_ON;
-        targetFocuserPosition           = 0;
+            targetRotatorPosition = 0;
+        }
     }
     else
     {
@@ -2358,12 +2385,6 @@ bool Gemini::home(DeviceType type)
         if (isResponseOK() == false)
             return false;
     }
-
-    FocusAbsPosNP.s = IPS_BUSY;
-    IDSetNumber(&FocusAbsPosNP, nullptr);
-
-    isFocuserHoming = true;
-    DEBUG(INDI::Logger::DBG_SESSION, "Focuser moving to home position...");
 
     tcflush(PortFD, TCIFLUSH);
 
@@ -2386,16 +2407,7 @@ bool Gemini::homeOnStart(DeviceType type, bool enable)
     snprintf(cmd, 32, "<%c100SETHOS%d>", (type == DEVICE_FOCUSER ? 'F' : 'R'), enable ? 1 : 0);
     DEBUGF(INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
 
-    if (isSimulation())
-    {
-        if (type == DEVICE_FOCUSER)
-            focuserSimStatus[STATUS_HOMING] = ISS_ON;
-        else
-            rotatorSimStatus[STATUS_HOMING] = ISS_ON;
-
-        targetFocuserPosition           = 0;
-    }
-    else
+    if (isSimulation() == false)
     {
         tcflush(PortFD, TCIFLUSH);
 
@@ -2409,11 +2421,6 @@ bool Gemini::homeOnStart(DeviceType type, bool enable)
         if (isResponseOK() == false)
             return false;
     }
-
-    FocusAbsPosNP.s = IPS_BUSY;
-    IDSetNumber(&FocusAbsPosNP, nullptr);
-
-    isRotatorHoming = true;
 
     tcflush(PortFD, TCIFLUSH);
 
@@ -2459,11 +2466,6 @@ bool Gemini::center(DeviceType type)
         if (isResponseOK() == false)
             return false;
     }
-
-    DEBUG(INDI::Logger::DBG_SESSION, "Focuser moving to center position...");
-
-    FocusAbsPosNP.s = IPS_BUSY;
-    IDSetNumber(&FocusAbsPosNP, nullptr);
 
     tcflush(PortFD, TCIFLUSH);
 
@@ -2659,7 +2661,6 @@ bool Gemini::setTemperatureCompensationOnStart(bool enable)
     int errcode = 0;
     char errmsg[MAXRBUF];
     char response[16];
-    int nbytes_read    = 0;
     int nbytes_written = 0;
 
     memset(response, 0, sizeof(response));
@@ -2668,46 +2669,20 @@ bool Gemini::setTemperatureCompensationOnStart(bool enable)
 
     DEBUGF(INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
 
-    if (isSimulation())
+    tcflush(PortFD, TCIFLUSH);
+
+    if ((errcode = tty_write(PortFD, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
     {
-        strncpy(response, "SET", 16);
-        nbytes_read = strlen(response) + 1;
-    }
-    else
-    {
-        tcflush(PortFD, TCIFLUSH);
-
-        if ((errcode = tty_write(PortFD, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
-        {
-            tty_error_msg(errcode, errmsg, MAXRBUF);
-            DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
-            return false;
-        }
-
-        if (isResponseOK() == false)
-            return false;
-
-        if ((errcode = tty_read_section(PortFD, response, 0xA, GEMINI_TIMEOUT, &nbytes_read)) != TTY_OK)
-        {
-            tty_error_msg(errcode, errmsg, MAXRBUF);
-            DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
-            return false;
-        }
+        tty_error_msg(errcode, errmsg, MAXRBUF);
+        DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
+        return false;
     }
 
-    if (nbytes_read > 0)
-    {
-        response[nbytes_read - 1] = '\0';
-        DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", response);
-        tcflush(PortFD, TCIFLUSH);
+    if (isResponseOK() == false)
+        return false;
 
-        if (!strcmp(response, "SET"))
-            return true;
-        else
-            return false;
-    }
 
-    return false;
+    return true;
 }
 
 /************************************************************************************
