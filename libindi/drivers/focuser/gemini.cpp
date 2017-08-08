@@ -2964,13 +2964,17 @@ bool Gemini::isResponseOK()
         else
         {
              memset(response, 0, sizeof(response));
-            if ((errcode = tty_read_section(PortFD, response, 0xA, GEMINI_TIMEOUT, &nbytes_read)) != TTY_OK)
+            while (strcmp(response, "END"))
             {
-                tty_error_msg(errcode, errmsg, MAXRBUF);
-                DEBUGF(INDI::Logger::DBG_ERROR, "TTY error: %s", errmsg);
-                return false;
+                if ((errcode = tty_read_section(PortFD, response, 0xA, GEMINI_TIMEOUT, &nbytes_read)) != TTY_OK)
+                {
+                    tty_error_msg(errcode, errmsg, MAXRBUF);
+                    DEBUGF(INDI::Logger::DBG_ERROR, "TTY error: %s", errmsg);
+                    return false;
+                }
+                DEBUGF(INDI::Logger::DBG_ERROR, "Controller error: %s", response);
             }
-            DEBUGF(INDI::Logger::DBG_ERROR, "Controller error: %s", response);
+
             return false;
         }
     }
