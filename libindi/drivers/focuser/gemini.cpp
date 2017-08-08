@@ -2431,9 +2431,6 @@ bool Gemini::center(DeviceType type)
     char response[16];
     int nbytes_written = 0;
 
-    if (isFocuserAbsolute == false)
-        return (MoveAbsFocuser(FocusAbsPosN[0].max / 2) != IPS_ALERT);
-
     memset(response, 0, sizeof(response));
 
     snprintf(cmd, 32, "<%c100CENTER>", (type == DEVICE_FOCUSER ? 'F' : 'R'));
@@ -2446,7 +2443,7 @@ bool Gemini::center(DeviceType type)
             focuserSimStatus[STATUS_MOVING] = ISS_ON;
         else
             rotatorSimStatus[STATUS_MOVING] = ISS_ON;
-        targetFocuserPosition           = FocusAbsPosN[0].max / 2;
+        targetRotatorPosition = RotatorAbsPosN[0].max / 2;
     }
     else
     {
