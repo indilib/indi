@@ -28,7 +28,6 @@
 
 //const float SIDE_RATE = 0.004178; /* sidereal rate, degrees/s */
 const int SLEW_RATE = 1;        /* slew rate, degrees/s */
-const int POLLMS    = 250;      /* poll period, ms */
 
 std::unique_ptr<SimpleScope> simpleScope(new SimpleScope());
 
