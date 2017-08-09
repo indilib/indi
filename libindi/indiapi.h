@@ -62,6 +62,7 @@ INDI is intended for developers who seek a scalable API for device control and a
 <li><a href="classINDI_1_1GPS.html">GPS</a></li>
 <li><a href="classINDI_1_1USBDevice.html">USB</a></li>
 </ul>
+<li>@ref INDI::StandardProperties "INDI Standard Properties"</li>
 <li><a href="md_libs_indibase_alignment_alignment_white_paper.html">INDI Alignment Subsystem</a></li>
 <li><a href="structINDI_1_1Logger.html">INDI Debugging & Logging API</a></li>
 <li><a href="indicom_8h.html">INDI Common Routine Library</a></li>

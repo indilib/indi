@@ -106,24 +106,12 @@ bool SimpleScope::initProperties()
 }
 
 /**************************************************************************************
-** Client is asking us to establish connection to the device
+** INDI is asking us to check communication with the device via a handshake
 ***************************************************************************************/
-bool SimpleScope::Connect()
+bool SimpleScope::Handshake()
 {
-    DEBUG(INDI::Logger::DBG_SESSION, "Simple Scope connected successfully!");
-
-    // Let's set a timer that checks telescopes status every POLLMS milliseconds.
-    SetTimer(POLLMS);
-
-    return true;
-}
-
-/**************************************************************************************
-** Client is asking us to terminate connection to the device
-***************************************************************************************/
-bool SimpleScope::Disconnect()
-{
-    DEBUG(INDI::Logger::DBG_SESSION, "Simple Scope disconnected successfully!");
+    // When communicating with a real mount, we check here if commands are receieved
+    // and acknolowedged by the mount. For SimpleScope, we simply return true.
     return true;
 }
 

@@ -27,7 +27,7 @@ namespace INDI
 
 /**
  * @class INDI::StandardProperties
-   @brief Common properties standarized across drivers and clients alike.
+   @brief INDI Standard Properties are common properties standarized across drivers and clients alike.
 
 INDI does not place any special semantics on property names (i.e. properties are just texts, numbers, or switches that represent no physical function). While GUI clients can construct graphical representation of properties in order to permit the user to operate the device, we run into situations where clients and drivers need to agree on the exact meaning of some fundamental properties.
 What if some client need to be aware of the existence of some property in order to perform some function useful to the user? How can that client tie itself to such a property if the property can be arbitrary defined by drivers?
@@ -42,7 +42,12 @@ The properties are defined as string constants. To refer to the property in devi
 
 The standard properties are divided into the following categories:
 <ol>
-<li>@ref GeneralProperties</li>
+<li>@ref GeneralProperties "General Properties" shared across multiple devices.</li>
+<li>@ref Connection::Interface "Connection Properties"
+<ul>
+    <li>@ref SerialProperties "Serial Properties" used to communicate with and manager serial devices (including Bluetooth).</li>
+</ul>
+</li>
 </ol>
 @author Jasem Mutlaq
 */
@@ -51,6 +56,14 @@ class StandardProperty
 public:
     /**
      * \defgroup GeneralProperties Standard Properties - General: Common properties shared across devices of multiple genres.
+     * The following tables describe standard properties pertaining to generic devices. The name of a standard property and its members must be
+     * strictly reserved in all drivers. However, it is permissible to change the label element of properties. You can find numerous uses of the
+     * standard properties in the INDI library driver repository.
+     *
+     * As a <b>general</b> rule of the thumb, the status of properties reflects the command execution result:
+     * IPS_OKAY: Command excuted successfully.
+     * IPS_BUSY: Command execution under progress.
+     * IPS_ALERT: Command execution failed.
      */
 
     /*@{*/
@@ -63,6 +76,37 @@ public:
      * CONNECTION | SWITCH | DISCONNECT | ON | Disconnect device
      */
     static constexpr const char *CONNECTION = "CONNECTION";
+
+    /*@}*/
+
+    /**
+     * \defgroup SerialProperties Standard Properties - Serial: Properties used to communicate with and manage serial devices including
+     * bluetooth. Unless otherwise noted, all the properties are saved in the configuration file so that they are remembered across sessions.
+     */
+
+    /*@{*/
+
+    /**
+     * @brief Device serial (or bluetooth) connection port. The default value on Linux is <i>/dev/ttyUSB0</i> while on MacOS it is <i>/dev/cu.usbserial</i>
+     * It is part of Connection::SerialInterface to manage connections to serial devices.
+     * Name | Type | Member | Default | Description
+     * ---- | ---- | ------ | ------- | -----------
+     * DEVICE_PORT | TEXT | PORT | /dev/ttyUSB0 | Device serial connection port
+     */
+    static constexpr const char *DEVICE_PORT = "DEVICE_PORT";
+
+    /**
+     * @brief Toggle device auto search.
+     * If enabled and on connection failure with the default port, the SerialInterface class shall scan the system for available
+     * serial ports and attempts connection and handshake with each until successful. Please note if this option is enabled it can take
+     * a while before connection is established depending on how many ports are available on the system and the handshake timeout of the
+     * the underlying device.
+     * Name | Type | Member | Default | Description
+     * ---- | ---- | ------ | ------- | -----------
+     * DEVICE_AUTO_SEARCH | SWITCH | ENABLED | ON | Auto Search ON
+     * DEVICE_AUTO_SEARCH | SWITCH | DISABLED | OFF | Auto Search OFF
+     */
+    static constexpr const char *DEVICE_AUTO_SEARCH = "DEVICE_AUTO_SEARCH";
 
     /*@}*/
 
