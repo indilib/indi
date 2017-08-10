@@ -62,7 +62,7 @@ StreamRecorder::StreamRecorder(INDI::CCD *mainCCD)
     recorder->init();
     direct_record = false;
 
-    DEBUGF(INDI::Logger::DBG_SESSION, "Using default recorder (%s)", recorder->getName());
+    DEBUGF(INDI::Logger::DBG_DEBUG, "Using default recorder (%s)", recorder->getName());
 }
 
 StreamRecorder::~StreamRecorder()
