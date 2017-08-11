@@ -663,6 +663,10 @@ bool GPhotoCCD::ISNewSwitch(const char *dev, const char *name, ISState *states, 
 
             if (!sim)
                 gphoto_set_upload_settings(gphotodrv, IUFindOnSwitchIndex(&UploadSP));
+
+            // Default behavior required (enable path property)
+            INDI::CCD::ISNewSwitch(dev, name, states, names, n);
+
             return true;
         }
 
