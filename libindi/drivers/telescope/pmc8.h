@@ -22,7 +22,7 @@
 
 #pragma once
 
-#include "pmc8.h"
+#include "pmc8driver.h"
 #include "indiguiderinterface.h"
 #include "inditelescope.h"
 
@@ -107,22 +107,6 @@ class PMC8 : public INDI::Telescope, public INDI::GuiderInterface
     //INumber CustomTrackRateN[1];
     //INumberVectorProperty CustomTrackRateNP;
 
-    /* GPS Status */
-    ISwitch GPSStatusS[3];
-    ISwitchVectorProperty GPSStatusSP;
-
-    /* Time Source */
-    ISwitch TimeSourceS[3];
-    ISwitchVectorProperty TimeSourceSP;
-
-    /* Hemisphere */
-    ISwitch HemisphereS[2];
-    ISwitchVectorProperty HemisphereSP;
-
-    /* Home Control */
-    ISwitch HomeS[3];
-    ISwitchVectorProperty HomeSP;
-
     /* Guide Rate */
     INumber GuideRateN[1];
     INumberVectorProperty GuideRateNP;
@@ -131,7 +115,7 @@ class PMC8 : public INDI::Telescope, public INDI::GuiderInterface
     double currentRA, currentDEC;
     double targetRA, targetDEC;
 
-    IEQInfo scopeInfo;
+    PMC8Info scopeInfo;
     FirmwareInfo firmwareInfo;
 };
 

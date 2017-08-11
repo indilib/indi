@@ -24,8 +24,10 @@
 
 #include "indicom.h"
 #include "indilogger.h"
+#include "inditelescope.h"
 
 #include <libnova/julian_day.h>
+#include <libnova/sidereal_time.h>
 
 #include <math.h>
 #include <string.h>
@@ -47,8 +49,8 @@
 
 bool pmc8_debug                 = false;
 bool pmc8_simulation            = false;
-char pmc8_device[MAXINDIDEVICE] = "iEQ";
-IEQInfo simInfo;
+char pmc8_device[MAXINDIDEVICE] = "PMC8";
+PMC8Info simInfo;
 
 struct
 {
@@ -134,7 +136,7 @@ bool check_pmc8_connection(int fd)
 
     for (int i = 0; i < 2; i++)
     {
-        if (pmv8_simulation)
+        if (pmc8_simulation)
         {
             strcpy(response, PMC8_SIMUL_VERSION_RESP);
             nbytes_read = strlen(response);
@@ -151,7 +153,7 @@ bool check_pmc8_connection(int fd)
                 continue;
             }
 
-            if ((errcode = tty_read_section(fd, response, '#', IEQPRO_TIMEOUT, &nbytes_read)))
+            if ((errcode = tty_read_section(fd, response, '#', PMC8_TIMEOUT, &nbytes_read)))
             {
                 tty_error_msg(errcode, errmsg, MAXRBUF);
                 DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "%s", errmsg);
@@ -176,7 +178,7 @@ bool check_pmc8_connection(int fd)
     return false;
 }
 
-bool get_pmc8_status(int fd, IEQInfo *info)
+bool get_pmc8_status(int fd, PMC8Info *info)
 {
     char cmd[]  = ":GAS#";
     int errcode = 0;
@@ -187,11 +189,12 @@ bool get_pmc8_status(int fd, IEQInfo *info)
 
     DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_EXTRA_1, "CMD (%s)", cmd);
 
-    if (ieqpro_simulation)
+    if (pmc8_simulation)
     {
-        snprintf(response, 8, "%d%d%d%d%d%d#", simInfo.gpsStatus, simInfo.systemStatus, simInfo.trackRate,
-                 simInfo.slewRate + 1, simInfo.timeSource + 1, simInfo.hemisphere);
-        nbytes_read = strlen(response);
+        // FIXME - (MSF) Need to implement simcode for get status
+//        snprintf(response, 8, "%d%d%d%d%d%d#", simInfo.gpsStatus, simInfo.systemStatus, simInfo.trackRate,
+//                 simInfo.slewRate + 1, simInfo.timeSource + 1, simInfo.hemisphere);
+//        nbytes_read = strlen(response);
     }
     else
     {
@@ -204,7 +207,7 @@ bool get_pmc8_status(int fd, IEQInfo *info)
             return false;
         }
 
-        if ((errcode = tty_read_section(fd, response, '#', IEQPRO_TIMEOUT, &nbytes_read)))
+        if ((errcode = tty_read_section(fd, response, '#', PMC8_TIMEOUT, &nbytes_read)))
         {
             tty_error_msg(errcode, errmsg, MAXRBUF);
             DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "%s", errmsg);
@@ -217,6 +220,8 @@ bool get_pmc8_status(int fd, IEQInfo *info)
         response[nbytes_read] = '\0';
         DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_EXTRA_1, "RES (%s)", response);
 
+#if 0
+        // FIXME - (MSF) need to implement pmc8 get status command
         if (nbytes_read == 7)
         {
             info->gpsStatus    = (IEQ_GPS_STATUS)(response[0] - '0');
@@ -230,25 +235,11 @@ bool get_pmc8_status(int fd, IEQInfo *info)
 
             return true;
         }
+#endif
     }
 
     DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "Only received #%d bytes, expected 7.", nbytes_read);
     return false;
-}
-
-bool get_pmc8_firmware(int fd, FirmwareInfo *info)
-{
-    bool rc = false;
-
-    rc = get_pmc8_model(fd, info);
-
-    if (rc == false)
-        return rc;
-
-    rc = get_pmc8_main_firmware(fd, info);
-
-    return rc;
-
 }
 
 bool get_pmc8_model(int fd, FirmwareInfo *info)
@@ -261,6 +252,7 @@ bool get_pmc8_model(int fd, FirmwareInfo *info)
 bool get_pmc8_main_firmware(int fd, FirmwareInfo *info)
 {
     char cmd[]  = "ESGv!";
+    char board[16];
     int errcode = 0;
     char errmsg[MAXRBUF];
     char response[24];
@@ -285,7 +277,7 @@ bool get_pmc8_main_firmware(int fd, FirmwareInfo *info)
             return false;
         }
 
-        if ((errcode = tty_read_section(fd, response, '#', IEQPRO_TIMEOUT, &nbytes_read)))
+        if ((errcode = tty_read_section(fd, response, '#', PMC8_TIMEOUT, &nbytes_read)))
         {
             tty_error_msg(errcode, errmsg, MAXRBUF);
             DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "%s", errmsg);
@@ -317,10 +309,28 @@ bool get_pmc8_main_firmware(int fd, FirmwareInfo *info)
     return false;
 }
 
-#if 0
-// these commands dont exist for PMC8
-bool start_ieqpro_motion(int fd, IEQ_DIRECTION dir)
+
+bool get_pmc8_firmware(int fd, FirmwareInfo *info)
 {
+    bool rc = false;
+
+    rc = get_pmc8_model(fd, info);
+
+    if (rc == false)
+        return rc;
+
+    rc = get_pmc8_main_firmware(fd, info);
+
+    return rc;
+
+}
+
+
+bool start_pmc8_motion(int fd, PMC8_DIRECTION dir)
+{
+
+
+#if 0
     char cmd[16];
     int errcode = 0;
     char errmsg[MAXRBUF];
@@ -328,23 +338,23 @@ bool start_ieqpro_motion(int fd, IEQ_DIRECTION dir)
 
     switch (dir)
     {
-        case IEQ_N:
+        case PMC8_N:
             strcpy(cmd, ":mn#");
             break;
-        case IEQ_S:
+        case PMC8_S:
             strcpy(cmd, ":ms#");
             break;
-        case IEQ_W:
+        case PMC8_W:
             strcpy(cmd, ":mw#");
             break;
-        case IEQ_E:
+        case PMC8_E:
             strcpy(cmd, ":me#");
             break;
     }
 
     DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
 
-    if (ieqpro_simulation)
+    if (pmc8_simulation)
         return true;
 
     tcflush(fd, TCIFLUSH);
@@ -358,10 +368,15 @@ bool start_ieqpro_motion(int fd, IEQ_DIRECTION dir)
 
     tcflush(fd, TCIFLUSH);
     return true;
+#else
+    // FIXME - (MSF) implement start_pmc8_motion
+    return false;
+#endif
 }
 
-bool stop_ieqpro_motion(int fd, IEQ_DIRECTION dir)
+bool stop_pmc8_motion(int fd, PMC8_DIRECTION dir)
 {
+#if 0
     char cmd[16];
     int errcode = 0;
     char errmsg[MAXRBUF];
@@ -371,20 +386,20 @@ bool stop_ieqpro_motion(int fd, IEQ_DIRECTION dir)
 
     switch (dir)
     {
-        case IEQ_N:
-        case IEQ_S:
+        case PMC8_N:
+        case PMC8_S:
             strcpy(cmd, ":qD#");
             break;
 
-        case IEQ_W:
-        case IEQ_E:
+        case PMC8_W:
+        case PMC8_E:
             strcpy(cmd, ":qR#");
             break;
     }
 
     DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
 
-    if (ieqpro_simulation)
+    if (pmc8_simulation)
     {
         strcpy(response, "1");
         nbytes_read = strlen(response);
@@ -400,7 +415,7 @@ bool stop_ieqpro_motion(int fd, IEQ_DIRECTION dir)
             return false;
         }
 
-        if ((errcode = tty_read(fd, response, 1, IEQPRO_TIMEOUT, &nbytes_read)))
+        if ((errcode = tty_read(fd, response, 1, PMC8_TIMEOUT, &nbytes_read)))
         {
             tty_error_msg(errcode, errmsg, MAXRBUF);
             DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "%s", errmsg);
@@ -419,9 +434,12 @@ bool stop_ieqpro_motion(int fd, IEQ_DIRECTION dir)
 
     DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "Only received #%d bytes, expected 1.", nbytes_read);
     return false;
-}
-#endif
 
+#else
+    // FIXME - (MSF) implement start_pmc8_motion
+    return false;
+#endif
+}
 
 #if 0
 // PMC8 slew rate is 25x the tracking rate - no need to set
@@ -438,7 +456,7 @@ bool set_pmc8_slew_rate(int fd, IEQ_SLEW_RATE rate)
 
     DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
 
-    if (ieqpro_simulation)
+    if (pmc8_simulation)
     {
         simInfo.slewRate = rate;
         strcpy(response, "1");
@@ -455,7 +473,7 @@ bool set_pmc8_slew_rate(int fd, IEQ_SLEW_RATE rate)
             return false;
         }
 
-        if ((errcode = tty_read(fd, response, 1, IEQPRO_TIMEOUT, &nbytes_read)))
+        if ((errcode = tty_read(fd, response, 1, PMC8_TIMEOUT, &nbytes_read)))
         {
             tty_error_msg(errcode, errmsg, MAXRBUF);
             DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "%s", errmsg);
@@ -515,7 +533,8 @@ bool set_pmc8_axis_rate(int fd, PMC8_AXIS axis, float rate)
 
     if (pmc8_simulation)
     {
-        simInfo.trackRate = rate;
+        // FIXME- (MSF) Add simulation support for set axis rate
+//        simInfo.trackRate = rate;
         return true;
     }
     else
@@ -529,7 +548,7 @@ bool set_pmc8_axis_rate(int fd, PMC8_AXIS axis, float rate)
             return false;
         }
 
-        if ((errcode = tty_read(fd, response, strlen(cmd), IEQPRO_TIMEOUT, &nbytes_read)))
+        if ((errcode = tty_read(fd, response, strlen(cmd), PMC8_TIMEOUT, &nbytes_read)))
         {
             tty_error_msg(errcode, errmsg, MAXRBUF);
             DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "%s", errmsg);
@@ -567,9 +586,7 @@ bool set_pmc8_track_mode(int fd, PMC8_TRACK_RATE rate)
             break;
     }
 
-    rc = set_pmc8_axis_rate(fd, RA_AXIS, ratereal);
-
-    return rc;
+    return set_pmc8_axis_rate(fd, RA_AXIS, ratereal);
 }
 
 #if 0
@@ -593,7 +610,7 @@ bool set_ieqpro_custom_ra_track_rate(int fd, double rate)
 
     DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
 
-    if (ieqpro_simulation)
+    if (pmc8_simulation)
     {
         strcpy(response, "1");
         nbytes_read = strlen(response);
@@ -609,7 +626,7 @@ bool set_ieqpro_custom_ra_track_rate(int fd, double rate)
             return false;
         }
 
-        if ((errcode = tty_read(fd, response, 1, IEQPRO_TIMEOUT, &nbytes_read)))
+        if ((errcode = tty_read(fd, response, 1, PMC8_TIMEOUT, &nbytes_read)))
         {
             tty_error_msg(errcode, errmsg, MAXRBUF);
             DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "%s", errmsg);
@@ -651,7 +668,7 @@ bool set_ieqpro_custom_de_track_rate(int fd, double rate)
 
     DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
 
-    if (ieqpro_simulation)
+    if (pmc8_simulation)
     {
         strcpy(response, "1");
         nbytes_read = strlen(response);
@@ -667,7 +684,7 @@ bool set_ieqpro_custom_de_track_rate(int fd, double rate)
             return false;
         }
 
-        if ((errcode = tty_read(fd, response, 1, IEQPRO_TIMEOUT, &nbytes_read)))
+        if ((errcode = tty_read(fd, response, 1, PMC8_TIMEOUT, &nbytes_read)))
         {
             tty_error_msg(errcode, errmsg, MAXRBUF);
             DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "%s", errmsg);
@@ -688,121 +705,22 @@ bool set_ieqpro_custom_de_track_rate(int fd, double rate)
     return false;
 }
 #endif
-#if 0
-// not yet implemented for PMC8
-bool set_ieqpro_guide_rate(int fd, double rate)
+
+bool set_pmc8_guide_rate(int fd, double rate)
 {
-    char cmd[16];
-    int errcode = 0;
-    char errmsg[MAXRBUF];
-    char response[8];
-    int nbytes_read    = 0;
-    int nbytes_written = 0;
 
-    int num = rate * 100;
-    snprintf(cmd, 16, ":RG%03d#", num);
-
-    DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
-
-    if (ieqpro_simulation)
-    {
-        simData.guide_rate = rate;
-        strcpy(response, "1");
-        nbytes_read = strlen(response);
-    }
-    else
-    {
-        tcflush(fd, TCIFLUSH);
-
-        if ((errcode = tty_write(fd, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
-        {
-            tty_error_msg(errcode, errmsg, MAXRBUF);
-            DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "%s", errmsg);
-            return false;
-        }
-
-        if ((errcode = tty_read(fd, response, 1, IEQPRO_TIMEOUT, &nbytes_read)))
-        {
-            tty_error_msg(errcode, errmsg, MAXRBUF);
-            DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "%s", errmsg);
-            return false;
-        }
-    }
-
-    if (nbytes_read > 0)
-    {
-        response[nbytes_read] = '\0';
-        DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_DEBUG, "RES (%s)", response);
-
-        tcflush(fd, TCIFLUSH);
-        return true;
-    }
-
-    DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "Only received #%d bytes, expected 1.", nbytes_read);
+    DEBUGDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "set_pmc8_guide_rate not implemented!");
     return false;
 }
-#endif
-#if 0
+
 // not yet implemented for PMC8
 bool get_ieqpro_guide_rate(int fd, double *rate)
 {
-    char cmd[]  = ":AG#";
-    int errcode = 0;
-    char errmsg[MAXRBUF];
-    char response[8];
-    int nbytes_read    = 0;
-    int nbytes_written = 0;
 
-    DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
-
-    if (ieqpro_simulation)
-    {
-        snprintf(response, 8, "%3d#", (int)(simData.guide_rate * 100));
-        nbytes_read = strlen(response);
-    }
-    else
-    {
-        tcflush(fd, TCIFLUSH);
-
-        if ((errcode = tty_write(fd, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
-        {
-            tty_error_msg(errcode, errmsg, MAXRBUF);
-            DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "%s", errmsg);
-            return false;
-        }
-
-        if ((errcode = tty_read(fd, response, 4, IEQPRO_TIMEOUT, &nbytes_read)))
-        {
-            tty_error_msg(errcode, errmsg, MAXRBUF);
-            DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "%s", errmsg);
-            return false;
-        }
-    }
-
-    if (nbytes_read > 0)
-    {
-        response[nbytes_read] = '\0';
-        DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_DEBUG, "RES (%s)", response);
-
-        int rate_num;
-
-        if (sscanf(response, "%d#", &rate_num) > 0)
-        {
-            *rate = rate_num / 100.0;
-            tcflush(fd, TCIFLUSH);
-            return true;
-        }
-        else
-        {
-            DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "Error: Malformed result (%s).", response);
-            return false;
-        }
-    }
-
-    DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "Only received #%d bytes, expected 1.", nbytes_read);
+    DEBUGDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "get_pmc8_guide_rate not implemented!");
     return false;
 }
-#endif
+
 #if 0
 // not yet implemented for PMC8
 bool start_ieqpro_guide(int fd, IEQ_DIRECTION dir, int ms)
@@ -837,7 +755,7 @@ bool start_ieqpro_guide(int fd, IEQ_DIRECTION dir, int ms)
 
     DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
 
-    if (ieqpro_simulation)
+    if (pmc8_simulation)
         return true;
     else
     {
@@ -857,7 +775,77 @@ bool start_ieqpro_guide(int fd, IEQ_DIRECTION dir, int ms)
 #endif
 
 
-bool set_pmc8_point_position_axis(int fd, PMC8_AXIS axis, int point)
+bool set_pmc8_target_position_axis(int fd, PMC8_AXIS axis, int point)
+{
+
+    char cmd[32];
+    int errcode = 0;
+    char errmsg[MAXRBUF];
+    char response[16];
+    int nbytes_read    = 0;
+    int nbytes_written = 0;
+
+
+    if (pmc8_simulation)
+    {
+        // FIXME - (MSF) - need to implement simulation code for setting target position
+        return true;
+    }
+
+
+    snprintf(cmd, sizeof(cmd), "ESPt%d%d!", axis, point);
+
+    DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
+
+
+    tcflush(fd, TCIFLUSH);
+
+    if ((errcode = tty_write(fd, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
+    {
+        tty_error_msg(errcode, errmsg, MAXRBUF);
+        DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "%s", errmsg);
+        return false;
+    }
+
+    if ((errcode = tty_read(fd, response, strlen(cmd), PMC8_TIMEOUT, &nbytes_read)))
+    {
+        tty_error_msg(errcode, errmsg, MAXRBUF);
+        DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "%s", errmsg);
+        return false;
+    }
+
+    response[nbytes_read] = '\0';
+
+    if (nbytes_read > 0)
+        DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_DEBUG, "RES (%s)", response);
+
+
+    if (strncmp(cmd, response, strlen(cmd)))
+    {
+        DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "Axis Set Point cmd response incorrect: %s - expected %s", response, cmd);
+        return false;
+    }
+
+    return true;
+}
+
+
+bool set_pmc8_target_position(int fd, int rapoint, int decpoint)
+{
+    bool rc;
+
+    rc = set_pmc8_target_position_axis(fd, RA_AXIS, rapoint);
+
+    if (!rc)
+        return rc;
+
+    rc = set_pmc8_target_position_axis(fd, DEC_AXIS, decpoint);
+
+    return rc;
+}
+
+
+bool set_pmc8_position_axis(int fd, PMC8_AXIS axis, int point)
 {
 
     char cmd[32];
@@ -882,17 +870,17 @@ bool set_pmc8_point_position_axis(int fd, PMC8_AXIS axis, int point)
 
     tcflush(fd, TCIFLUSH);
 
-    if ((errcode = tty_write(fd, cmdra, strlen(cmdra), &nbytes_written)) != TTY_OK)
+    if ((errcode = tty_write(fd, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
     {
         tty_error_msg(errcode, errmsg, MAXRBUF);
         DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "%s", errmsg);
         return false;
     }
 
-    if ((errcode = tty_read(fd, response, strlen(cmdra), PMC8_TIMEOUT, &nbytes_read)))
+    if ((errcode = tty_read(fd, response, strlen(cmd), PMC8_TIMEOUT, &nbytes_read)))
     {
         tty_error_msg(errcode, errmsg, MAXRBUF);
-        DEBUGFDEVICE(pmc8, INDI::Logger::DBG_ERROR, "%s", errmsg);
+        DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "%s", errmsg);
         return false;
     }
 
@@ -912,24 +900,105 @@ bool set_pmc8_point_position_axis(int fd, PMC8_AXIS axis, int point)
 }
 
 
-bool set_pmc8_point_position(int fd, int rapoint, decpoint)
+bool set_pmc8_position(int fd, int rapoint, int decpoint)
 {
     bool rc;
 
-    rc = set_point_position_axis(fd, RA_AXIS, rapoint);
+    rc = set_pmc8_position_axis(fd, RA_AXIS, rapoint);
 
     if (!rc)
         return rc;
 
-    rc = set_point_position_axis(fd, DEC_AXIS, decpoint);
+    rc = set_pmc8_position_axis(fd, DEC_AXIS, decpoint);
+
+    return rc;
 }
+
+
+bool get_pmc8_position_axis(int fd, PMC8_AXIS axis, int &point)
+{
+
+    char cmd[32];
+    int errcode = 0;
+    char errmsg[MAXRBUF];
+    char response[16];
+    int nbytes_read    = 0;
+    int nbytes_written = 0;
+
+
+    if (pmc8_simulation)
+    {
+        // FIXME - (MSF) - need to implement simulation code for setting point position
+        return true;
+    }
+
+
+    snprintf(cmd, sizeof(cmd), "ESGp%d!", axis);
+
+    DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
+
+
+    tcflush(fd, TCIFLUSH);
+
+    if ((errcode = tty_write(fd, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
+    {
+        tty_error_msg(errcode, errmsg, MAXRBUF);
+        DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "%s", errmsg);
+        return false;
+    }
+
+    if ((errcode = tty_read(fd, response, 12, PMC8_TIMEOUT, &nbytes_read)))
+    {
+        tty_error_msg(errcode, errmsg, MAXRBUF);
+        DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "%s", errmsg);
+        return false;
+    }
+
+    response[nbytes_read] = '\0';
+
+    DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_DEBUG, "RES (%s)", response);
+
+    if (nbytes_read != 12)
+    {
+        DEBUGDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "Axis Set Point cmd response incorrect");
+        return false;
+    }
+
+
+    char num_str[16]= {0};
+
+    strcpy(num_str, "0X");
+    strncpy(num_str, response+4, 7);
+
+    point = atoi(num_str);
+
+    DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_DEBUG, "get pos num_str = %s atoi() returns %d", num_str, point);
+
+    return true;
+}
+
+
+bool get_pmc8_position(int fd, int &rapoint, int &decpoint)
+{
+    bool rc;
+
+    rc = get_pmc8_position_axis(fd, RA_AXIS, rapoint);
+
+    if (!rc)
+        return rc;
+
+    rc = get_pmc8_position_axis(fd, DEC_AXIS, decpoint);
+
+    return rc;
+}
+
 
 bool park_pmc8(int fd)
 {
 
     bool rc;
 
-    rc = set_pmc8_point_position(fd, 0, 0);
+    rc = set_pmc8_target_position(fd, 0, 0);
 
     // FIXME - (MSF) Need to add code to handle simulation and also setting any scope state values
 
@@ -939,28 +1008,20 @@ bool park_pmc8(int fd)
 
 bool unpark_pmc8(int fd)
 {
-    //char cmd[]  = ":MP0#";
-    int errcode = 0;
-    char errmsg[MAXRBUF];
-    char response[8];
-    int nbytes_read    = 0;
-    int nbytes_written = 0;
-
     // nothing really to do for PMC8 there is no unpark command
 
     if (pmc8_simulation)
     {
         // FIXME - (MSF) need to do something in simulation to show it is unparked?
-        DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_DEBUG, "PMC8 unparked in simulation - need to add more code?");
+        DEBUGDEVICE(pmc8_device, INDI::Logger::DBG_DEBUG, "PMC8 unparked in simulation - need to add more code?");
         return true;
     }
 
 
     // FIXME - (MSF) probably need to set a state variable to show we're unparked
-    DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_DEBUG, "PMC8 unparked");
+    DEBUGDEVICE(pmc8_device, INDI::Logger::DBG_DEBUG, "PMC8 unparked");
 
     return true;
-
 }
 
 bool abort_pmc8(int fd)
@@ -971,32 +1032,34 @@ bool abort_pmc8(int fd)
     if (pmc8_simulation)
     {
         // FIXME - (MSF) need to do something to represent mount has stopped slewing
-        DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_DEBUG, "PMC8 slew stopped in simulation - need to add more code?");
+        DEBUGDEVICE(pmc8_device, INDI::Logger::DBG_DEBUG, "PMC8 slew stopped in simulation - need to add more code?");
         return true;
     }
 
     rc = set_pmc8_axis_rate(fd, RA_AXIS, 0);
     if (!rc)
     {
-        DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "Error stopping RA axis!");
+        DEBUGDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "Error stopping RA axis!");
         return false;
     }
 
     rc = set_pmc8_axis_rate(fd, DEC_AXIS, 0);
     if (!rc)
     {
-        DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "Error stopping DEC axis!");
+        DEBUGDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "Error stopping DEC axis!");
         return false;
     }
 
     return true;
 }
 
-bool convert_ra_to_motor(double ra, TelescopePierSide sop, int *mcounts)
+bool convert_ra_to_motor(double ra, INDI::Telescope::TelescopePierSide sop, int *mcounts)
 {
-    double motor_angle, hour_angle;
+    double motor_angle, hour_angle, sid_time;
 
-    hour_angle = SiderealTime - ra;
+    sid_time = ln_get_apparent_sidereal_time(ln_get_julian_from_sys());
+
+    hour_angle = sid_time - ra;
 
     // limit values to +/- 12 hours
     if (hour_angle > 12)
@@ -1017,37 +1080,39 @@ bool convert_ra_to_motor(double ra, TelescopePierSide sop, int *mcounts)
     return true;
 }
 
-bool convert_motor_to_ra
+bool convert_motor_to_radec(int racounts, int deccounts, double &ra_value, double &dec_value)
 {
-    Public Function MotorCounts_to_RA(MC_value As Int32) As Double
-        Dim MotorAngle As Double
-        Dim RA_value As Double
-        Dim HourAngle As Double
-        Dim DECCounts As Int32
+    double motor_angle;
+    double hour_angle;
+    double sid_time;
 
-        DECCounts = GetDECMotorPosition()
+    sid_time = ln_get_apparent_sidereal_time(ln_get_julian_from_sys());
 
-        MotorAngle = (24.0# * MC_value) / Telescope.MountRACCounts
+    motor_angle = (24.0 * racounts) / PMC8_AXIS0_SCALE;
 
-        If DECCounts < 0 Then
-            HourAngle = MotorAngle + 6
-        ElseIf DECCounts >= 0 Then
-            HourAngle = MotorAngle - 6
-        End If
+    if (deccounts < 0)
+        hour_angle = motor_angle + 6;
+    else
+        hour_angle = motor_angle - 6;
 
-        RA_value = SiderealTime - HourAngle
+    ra_value = sid_time - hour_angle;
 
-        If RA_value >= 24.0# Then
-            RA_value = RA_value - 24.0#
-        ElseIf RA_value < 0.0# Then
-            RA_value = RA_value + 24.0#
-        End If
+    if (ra_value >= 24.0)
+        ra_value = ra_value - 24.0;
+    else if (ra_value < 0.0)
+         ra_value = ra_value + 24.0;
 
-        Return RA_value
-    End Function
+    motor_angle = (360.0 * deccounts) / PMC8_AXIS1_SCALE;
+
+    if (motor_angle >= 0)
+        dec_value = 90 - motor_angle;
+    else
+        dec_value = 90 + motor_angle;
+
+    return true;
 }
 
-bool convert_dec_to_motor(double dec, TelescopePierSide sop, int *mcounts)
+bool convert_dec_to_motor(double dec, INDI::Telescope::TelescopePierSide sop, int *mcounts)
 {
     double motor_angle;
 
@@ -1063,6 +1128,8 @@ bool convert_dec_to_motor(double dec, TelescopePierSide sop, int *mcounts)
      return true;
 }
 
+#if 0
+// need to work on this
 bool convert_motor_to_dec()
 {
     Public Function MotorCounts_to_DEC(MC_value As Int32) As Double
@@ -1080,115 +1147,125 @@ bool convert_motor_to_dec()
         Return DEC_value
     End Function
 }
+#endif
 
-bool slew_pmc8(int fd)
+// "slew" on PMC8 is instantaneous once you set the target ra/dec
+// no concept of setting target and then starting a slew operation as two steps
+bool slew_pmc8(int fd, double ra, double dec)
 {
-    char cmd[]  = ":MS#";
-    int errcode = 0;
-    char errmsg[MAXRBUF];
-    char response[8];
-    int nbytes_read    = 0;
-    int nbytes_written = 0;
+    bool rc;
+    int racounts, deccounts;
+    INDI::Telescope::TelescopePierSide sop;
 
-    DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
 
-    if (ieqpro_simulation)
+    sop = destSideOfPier(ra, dec);
+
+    rc = convert_ra_to_motor(ra, sop, &racounts);
+    if (!rc)
     {
-        simInfo.rememberSystemStatus = simInfo.systemStatus;
-        simInfo.systemStatus = ST_SLEWING;
-        strcpy(response, "1");
-        nbytes_read = strlen(response);
+        DEBUGDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "sync_pmc8: error convering RA to motor counts");
+        return false;
+    }
+
+    rc = convert_dec_to_motor(ra, sop, &deccounts);
+    if (!rc)
+    {
+        DEBUGDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "sync_pmc8: error convering DEC to motor counts");
+        return false;
+    }
+
+    if (pmc8_simulation)
+    {
+        // FIXME - (MSF) need to implement pmc8 slew sim
+//        strcpy(response, "1");
+//        nbytes_read = strlen(response);
+        DEBUGDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "Need to implement PMC8 slew simulation");
+        return false;
     }
     else
     {
-        tcflush(fd, TCIFLUSH);
-
-        if ((errcode = tty_write(fd, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
-        {
-            tty_error_msg(errcode, errmsg, MAXRBUF);
-            DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "%s", errmsg);
-            return false;
-        }
-
-        if ((errcode = tty_read(fd, response, 1, IEQPRO_TIMEOUT, &nbytes_read)))
-        {
-            tty_error_msg(errcode, errmsg, MAXRBUF);
-            DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "%s", errmsg);
-            return false;
-        }
+        rc = set_pmc8_target_position(fd, racounts, deccounts);
     }
 
-    if (nbytes_read > 0)
+    if (!rc)
     {
-        response[nbytes_read] = '\0';
-        DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_DEBUG, "RES (%s)", response);
-
-        if (!strcmp(response, "1"))
-        {
-            tcflush(fd, TCIFLUSH);
-            return true;
-        }
-        else
-        {
-            DEBUGDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "Requested object is below horizon.");
-            tcflush(fd, TCIFLUSH);
-            return false;
-        }
+        DEBUGDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "Error slewing PMC8");
+        return false;
     }
 
-    DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "Only received #%d bytes, expected 1.", nbytes_read);
-    return false;
+    return true;
 }
 
-bool sync_ieqpro(int fd)
+INDI::Telescope::TelescopePierSide destSideOfPier(double ra, double dec)
 {
-    char cmd[]  = ":CM#";
-    int errcode = 0;
-    char errmsg[MAXRBUF];
-    char response[8];
-    int nbytes_read    = 0;
-    int nbytes_written = 0;
+    double hour_angle, sid_time;
 
-    DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
+    sid_time = ln_get_apparent_sidereal_time(ln_get_julian_from_sys());
 
-    if (ieqpro_simulation)
+    hour_angle = sid_time - ra;
+
+    // limit values to +/- 12 hours
+    if (hour_angle > 12)
+        hour_angle = hour_angle - 24;
+    else if (hour_angle <= -12)
+        hour_angle = hour_angle + 24;
+
+
+    if (hour_angle < 0.0)
+        return INDI::Telescope::PIER_WEST;
+    else
+        return INDI::Telescope::PIER_EAST;
+}
+
+bool sync_pmc8(int fd, double ra, double dec)
+{
+    bool rc;
+    int racounts, deccounts;
+    INDI::Telescope::TelescopePierSide sop;
+
+
+    sop = destSideOfPier(ra, dec);
+
+    rc = convert_ra_to_motor(ra, sop, &racounts);
+    if (!rc)
     {
-        strcpy(response, "1");
-        nbytes_read = strlen(response);
+        DEBUGDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "sync_pmc8: error convering RA to motor counts");
+        return false;
+    }
+
+    rc = convert_dec_to_motor(ra, sop, &deccounts);
+    if (!rc)
+    {
+        DEBUGDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "sync_pmc8: error convering DEC to motor counts");
+        return false;
+    }
+
+    if (pmc8_simulation)
+    {
+        // FIXME - (MSF) need to implement pmc8 sync sim
+//        strcpy(response, "1");
+//        nbytes_read = strlen(response);
+        DEBUGDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "Need to implement PMC8 sync simulation");
+        return false;
     }
     else
     {
-        tcflush(fd, TCIFLUSH);
-
-        if ((errcode = tty_write(fd, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
-        {
-            tty_error_msg(errcode, errmsg, MAXRBUF);
-            DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "%s", errmsg);
-            return false;
-        }
-
-        if ((errcode = tty_read(fd, response, 1, IEQPRO_TIMEOUT, &nbytes_read)))
-        {
-            tty_error_msg(errcode, errmsg, MAXRBUF);
-            DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "%s", errmsg);
-            return false;
-        }
+        rc = set_pmc8_position(fd, racounts, deccounts);
     }
 
-    if (nbytes_read > 0)
+    if (!rc)
     {
-        response[nbytes_read] = '\0';
-        DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_DEBUG, "RES (%s)", response);
-
-        tcflush(fd, TCIFLUSH);
-        return true;
+        DEBUGDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "Error setting pmc8 position");
+        return false;
     }
 
-    DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "Only received #%d bytes, expected 1.", nbytes_read);
-    return false;
+    return true;
 }
 
-bool set_ieqpro_track_enabled(int fd, bool enabled)
+#if 0
+// probably handled in pmc8.cpp
+
+bool set_pmc8_track_enabled(int fd, bool enabled)
 {
     char cmd[32];
     int errcode = 0;
@@ -1201,158 +1278,72 @@ bool set_ieqpro_track_enabled(int fd, bool enabled)
 
     DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
 
-    if (ieqpro_simulation)
+    if (pmc8_simulation)
     {
-        simInfo.systemStatus = enabled ? ST_TRACKING_PEC_ON : ST_STOPPED;
-        strcpy(response, "1");
-        nbytes_read = strlen(response);
+        // FIXME - (MSF) - need to implement pmc8 track enabled sim
+//        simInfo.systemStatus = enabled ? ST_TRACKING_PEC_ON : ST_STOPPED;
+//        strcpy(response, "1");
+//        nbytes_read = strlen(response);
+
+        DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "Need to implement pmc8 track enabled sim");
+        return false;
     }
     else
     {
-        tcflush(fd, TCIFLUSH);
-
-        if ((errcode = tty_write(fd, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
-        {
-            tty_error_msg(errcode, errmsg, MAXRBUF);
-            DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "%s", errmsg);
-            return false;
-        }
-
-        if ((errcode = tty_read(fd, response, 1, IEQPRO_TIMEOUT, &nbytes_read)))
-        {
-            tty_error_msg(errcode, errmsg, MAXRBUF);
-            DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "%s", errmsg);
-            return false;
-        }
+        return SetTrackMode(enabled ? IUFindOnSwitchIndex(&TrackModeSP) : AP_TRACKING_OFF);
     }
-
-    if (nbytes_read > 0)
-    {
-        response[nbytes_read] = '\0';
-        DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_DEBUG, "RES (%s)", response);
-
-        tcflush(fd, TCIFLUSH);
-        return true;
-    }
-
-    DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "Only received #%d bytes, expected 1.", nbytes_read);
-    return false;
 }
+#endif
 
-bool set_ieqpro_ra(int fd, double ra)
+
+bool set_pmc8_radec(int fd, double ra, double dec)
 {
-    char cmd[32];
-    int errcode = 0;
-    char errmsg[MAXRBUF];
-    char response[8];
-    int nbytes_read    = 0;
-    int nbytes_written = 0;
+    bool rc;
+    int racounts, deccounts;
+    INDI::Telescope::TelescopePierSide sop;
 
-    // Send as milliseconds resolution
-    int ieqValue = ra * 60 * 60 * 1000;
 
-    snprintf(cmd, 32, ":Sr%08d#", ieqValue);
+    sop = destSideOfPier(ra, dec);
 
-    DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
-
-    if (ieqpro_simulation)
+    rc = convert_ra_to_motor(ra, sop, &racounts);
+    if (!rc)
     {
-        simData.ra = ra;
-        strcpy(response, "1");
-        nbytes_read = strlen(response);
+        DEBUGDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "set_pmc8_radec: error convering RA to motor counts");
+        return false;
+    }
+
+    rc = convert_dec_to_motor(ra, sop, &deccounts);
+    if (!rc)
+    {
+        DEBUGDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "set_pmc8_radec: error convering DEC to motor counts");
+        return false;
+    }
+
+    if (pmc8_simulation)
+    {
+        // FIXME - (MSF) need to implement pmc8 sync sim
+//        strcpy(response, "1");
+//        nbytes_read = strlen(response);
+        DEBUGDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "Need to implement PMC8 sync simulation");
+        return false;
     }
     else
     {
-        tcflush(fd, TCIFLUSH);
 
-        if ((errcode = tty_write(fd, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
-        {
-            tty_error_msg(errcode, errmsg, MAXRBUF);
-            DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "%s", errmsg);
-            return false;
-        }
-
-        if ((errcode = tty_read(fd, response, 1, IEQPRO_TIMEOUT, &nbytes_read)))
-        {
-            tty_error_msg(errcode, errmsg, MAXRBUF);
-            DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "%s", errmsg);
-            return false;
-        }
+        rc = set_pmc8_target_position(fd, racounts, deccounts);
     }
 
-    if (nbytes_read > 0)
+    if (!rc)
     {
-        response[nbytes_read] = '\0';
-        DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_DEBUG, "RES (%s)", response);
-
-        tcflush(fd, TCIFLUSH);
-        return true;
+        DEBUGDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "Error setting target positoin");
+        return false;
     }
 
-    DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "Only received #%d bytes, expected 1.", nbytes_read);
-    return false;
+    return true;
 }
 
-bool set_ieqpro_dec(int fd, double dec)
-{
-    char cmd[32];
-    char sign;
-    int errcode = 0;
-    char errmsg[MAXRBUF];
-    char response[8];
-    int nbytes_read    = 0;
-    int nbytes_written = 0;
-
-    if (dec >= 0)
-        sign = '+';
-    else
-        sign = '-';
-
-    // Send as 0.01 arcseconds resolution
-    int ieqValue = fabs(dec) * 60 * 60 * 100;
-
-    snprintf(cmd, 32, ":Sd%c%08d#", sign, ieqValue);
-
-    DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
-
-    if (ieqpro_simulation)
-    {
-        simData.dec = dec;
-        strcpy(response, "1");
-        nbytes_read = strlen(response);
-    }
-    else
-    {
-        tcflush(fd, TCIFLUSH);
-
-        if ((errcode = tty_write(fd, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
-        {
-            tty_error_msg(errcode, errmsg, MAXRBUF);
-            DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "%s", errmsg);
-            return false;
-        }
-
-        if ((errcode = tty_read(fd, response, 1, IEQPRO_TIMEOUT, &nbytes_read)))
-        {
-            tty_error_msg(errcode, errmsg, MAXRBUF);
-            DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "%s", errmsg);
-            return false;
-        }
-    }
-
-    if (nbytes_read > 0)
-    {
-        response[nbytes_read] = '\0';
-        DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_DEBUG, "RES (%s)", response);
-
-        tcflush(fd, TCIFLUSH);
-        return true;
-    }
-
-    DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "Only received #%d bytes, expected 1.", nbytes_read);
-    return false;
-}
-
+#if 0
+// convert as required
 bool set_ieqpro_longitude(int fd, double longitude)
 {
     char cmd[16];
@@ -1373,7 +1364,7 @@ bool set_ieqpro_longitude(int fd, double longitude)
 
     DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
 
-    if (ieqpro_simulation)
+    if (pmc8_simulation)
     {
         strcpy(response, "1");
         nbytes_read = strlen(response);
@@ -1389,7 +1380,7 @@ bool set_ieqpro_longitude(int fd, double longitude)
             return false;
         }
 
-        if ((errcode = tty_read(fd, response, 1, IEQPRO_TIMEOUT, &nbytes_read)))
+        if ((errcode = tty_read(fd, response, 1, PMC8_TIMEOUT, &nbytes_read)))
         {
             tty_error_msg(errcode, errmsg, MAXRBUF);
             DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "%s", errmsg);
@@ -1430,7 +1421,7 @@ bool set_ieqpro_latitude(int fd, double latitude)
 
     DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
 
-    if (ieqpro_simulation)
+    if (pmc8_simulation)
     {
         strcpy(response, "1");
         nbytes_read = strlen(response);
@@ -1446,7 +1437,7 @@ bool set_ieqpro_latitude(int fd, double latitude)
             return false;
         }
 
-        if ((errcode = tty_read(fd, response, 1, IEQPRO_TIMEOUT, &nbytes_read)))
+        if ((errcode = tty_read(fd, response, 1, PMC8_TIMEOUT, &nbytes_read)))
         {
             tty_error_msg(errcode, errmsg, MAXRBUF);
             DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "%s", errmsg);
@@ -1480,7 +1471,7 @@ bool get_ieqpro_longitude(int fd, double *longitude)
 
     DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
 
-    if (ieqpro_simulation)
+    if (pmc8_simulation)
     {
         strcpy(response, "+172800");
         nbytes_read = strlen(response);
@@ -1495,7 +1486,7 @@ bool get_ieqpro_longitude(int fd, double *longitude)
             DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "%s", errmsg);
             return false;
         }
-        if ((errcode = tty_read_section(fd, response, '#', IEQPRO_TIMEOUT, &nbytes_read)))
+        if ((errcode = tty_read_section(fd, response, '#', PMC8_TIMEOUT, &nbytes_read)))
         {
             tty_error_msg(errcode, errmsg, MAXRBUF);
             DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "%s", errmsg);
@@ -1539,7 +1530,7 @@ bool get_ieqpro_latitude(int fd, double *latitude)
 
     DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
 
-    if (ieqpro_simulation)
+    if (pmc8_simulation)
     {
         strcpy(response, "+106200");
         nbytes_read = strlen(response);
@@ -1554,7 +1545,7 @@ bool get_ieqpro_latitude(int fd, double *latitude)
             DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "%s", errmsg);
             return false;
         }
-        if ((errcode = tty_read_section(fd, response, '#', IEQPRO_TIMEOUT, &nbytes_read)))
+        if ((errcode = tty_read_section(fd, response, '#', PMC8_TIMEOUT, &nbytes_read)))
         {
             tty_error_msg(errcode, errmsg, MAXRBUF);
             DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "%s", errmsg);
@@ -1598,7 +1589,7 @@ bool set_ieqpro_local_date(int fd, int yy, int mm, int dd)
 
     DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
 
-    if (ieqpro_simulation)
+    if (pmc8_simulation)
     {
         strcpy(response, "1");
         nbytes_read = strlen(response);
@@ -1614,7 +1605,7 @@ bool set_ieqpro_local_date(int fd, int yy, int mm, int dd)
             return false;
         }
 
-        if ((errcode = tty_read(fd, response, 1, IEQPRO_TIMEOUT, &nbytes_read)))
+        if ((errcode = tty_read(fd, response, 1, PMC8_TIMEOUT, &nbytes_read)))
         {
             tty_error_msg(errcode, errmsg, MAXRBUF);
             DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "%s", errmsg);
@@ -1648,7 +1639,7 @@ bool set_ieqpro_local_time(int fd, int hh, int mm, int ss)
 
     DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
 
-    if (ieqpro_simulation)
+    if (pmc8_simulation)
     {
         strcpy(response, "1");
         nbytes_read = strlen(response);
@@ -1664,7 +1655,7 @@ bool set_ieqpro_local_time(int fd, int hh, int mm, int ss)
             return false;
         }
 
-        if ((errcode = tty_read(fd, response, 1, IEQPRO_TIMEOUT, &nbytes_read)))
+        if ((errcode = tty_read(fd, response, 1, PMC8_TIMEOUT, &nbytes_read)))
         {
             tty_error_msg(errcode, errmsg, MAXRBUF);
             DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "%s", errmsg);
@@ -1701,7 +1692,7 @@ bool set_ieqpro_daylight_saving(int fd, bool enabled)
 
     DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
 
-    if (ieqpro_simulation)
+    if (pmc8_simulation)
     {
         strcpy(response, "1");
         nbytes_read = strlen(response);
@@ -1717,7 +1708,7 @@ bool set_ieqpro_daylight_saving(int fd, bool enabled)
             return false;
         }
 
-        if ((errcode = tty_read(fd, response, 1, IEQPRO_TIMEOUT, &nbytes_read)))
+        if ((errcode = tty_read(fd, response, 1, PMC8_TIMEOUT, &nbytes_read)))
         {
             tty_error_msg(errcode, errmsg, MAXRBUF);
             DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "%s", errmsg);
@@ -1759,7 +1750,7 @@ bool set_ieqpro_utc_offset(int fd, double offset)
 
     DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
 
-    if (ieqpro_simulation)
+    if (pmc8_simulation)
     {
         strcpy(response, "1");
         nbytes_read = strlen(response);
@@ -1775,7 +1766,7 @@ bool set_ieqpro_utc_offset(int fd, double offset)
             return false;
         }
 
-        if ((errcode = tty_read(fd, response, 1, IEQPRO_TIMEOUT, &nbytes_read)))
+        if ((errcode = tty_read(fd, response, 1, PMC8_TIMEOUT, &nbytes_read)))
         {
             tty_error_msg(errcode, errmsg, MAXRBUF);
             DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "%s", errmsg);
@@ -1795,81 +1786,30 @@ bool set_ieqpro_utc_offset(int fd, double offset)
     DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "Only received #%d bytes, expected 1.", nbytes_read);
     return false;
 }
+#endif
 
-bool get_ieqpro_coords(int fd, double *ra, double *dec)
+bool get_pmc8_position_axis()
 {
-    char cmd[]  = ":GEC#";
-    int errcode = 0;
-    char errmsg[MAXRBUF];
-    char response[32];
-    int nbytes_read    = 0;
-    int nbytes_written = 0;
 
-    DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_EXTRA_1, "CMD (%s)", cmd);
-
-    if (ieqpro_simulation)
-    {
-        char ra_str[16], dec_str[16];
-
-        char sign;
-        if (simData.dec >= 0)
-            sign = '+';
-        else
-            sign = '-';
-
-        int ieqDEC = fabs(simData.dec) * 60 * 60 * 100;
-
-        snprintf(dec_str, 16, "%c%08d", sign, ieqDEC);
-
-        int ieqRA = simData.ra * 60 * 60 * 1000;
-        snprintf(ra_str, 16, "%08d", ieqRA);
-
-        snprintf(response, 32, "%s%s#", dec_str, ra_str);
-        nbytes_read = strlen(response);
-    }
-    else
-    {
-        tcflush(fd, TCIFLUSH);
-
-        if ((errcode = tty_write(fd, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
-        {
-            tty_error_msg(errcode, errmsg, MAXRBUF);
-            DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "%s", errmsg);
-            return false;
-        }
-
-        if ((errcode = tty_read_section(fd, response, '#', IEQPRO_TIMEOUT, &nbytes_read)))
-        {
-            tty_error_msg(errcode, errmsg, MAXRBUF);
-            DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "%s", errmsg);
-            return false;
-        }
-    }
-
-    if (nbytes_read > 0)
-    {
-        tcflush(fd, TCIFLUSH);
-        response[nbytes_read] = '\0';
-        DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_EXTRA_1, "RES (%s)", response);
-
-        char ra_str[16]= {0}, dec_str[16] = {0};
-
-        strncpy(dec_str, response, 9);
-        strncpy(ra_str, response + 9, 8);
-
-        int ieqDEC = atoi(dec_str);
-        int ieqRA  = atoi(ra_str);
-
-        *ra  = ieqRA / (60.0 * 60.0 * 1000.0);
-        *dec = ieqDEC / (60.0 * 60.0 * 100.0);
-
-        return true;
-    }
-
-    DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "Only received #%d bytes, expected 1.", nbytes_read);
-    return false;
 }
 
+bool get_pmc8_coords(int fd, double *ra, double *dec)
+{
+    int racounts, deccounts;
+    bool rc;
+
+    rc = get_pmc8_position(fd, racounts, deccounts);
+
+    if (!rc)
+    {
+        DEBUGDEVICE(pmc8_device, INDI::Logger::DBG_DEBUG, "Error getting PMC8 motor position");
+        return false;
+    }
+
+
+}
+
+#if 0
 bool get_ieqpro_utc_date_time(int fd, double *utc_hours, int *yy, int *mm, int *dd, int *hh, int *minute, int *ss)
 {
     char cmd[]  = ":GLT#";
@@ -1885,7 +1825,7 @@ bool get_ieqpro_utc_date_time(int fd, double *utc_hours, int *yy, int *mm, int *
     // However as pointed out by user Shepherd on INDI forums, actual format is
     // sMMMxYYMMDDHHMMSS#
     // Where x is either 0 or 1 denoting daying savings
-    if (ieqpro_simulation)
+    if (pmc8_simulation)
     {
         strncpy(response, "+1800150331173000#", 32);
         nbytes_read = strlen(response);
@@ -1901,7 +1841,7 @@ bool get_ieqpro_utc_date_time(int fd, double *utc_hours, int *yy, int *mm, int *
             return false;
         }
 
-        if ((errcode = tty_read_section(fd, response, '#', IEQPRO_TIMEOUT, &nbytes_read)))
+        if ((errcode = tty_read_section(fd, response, '#', PMC8_TIMEOUT, &nbytes_read)))
         {
             tty_error_msg(errcode, errmsg, MAXRBUF);
             DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "%s", errmsg);
@@ -1969,3 +1909,4 @@ bool get_ieqpro_utc_date_time(int fd, double *utc_hours, int *yy, int *mm, int *
     return false;
 }
 
+#endif

@@ -86,81 +86,58 @@ PMC8::PMC8()
     currentRA  = ln_get_apparent_sidereal_time(ln_get_julian_from_sys());
     currentDEC = 90;
 
-    scopeInfo.gpsStatus    = GPS_OFF;
-    scopeInfo.systemStatus = ST_STOPPED;
-    scopeInfo.trackRate    = TR_SIDEREAL;
-    scopeInfo.slewRate     = SR_1;
-    scopeInfo.timeSource   = TS_RS232;
-    scopeInfo.hemisphere   = HEMI_NORTH;
+
+    // FIXME - (MSF) Not sure we even need a scopeInfo object(?)
+//    scopeInfo.gpsStatus    = GPS_OFF;
+//    scopeInfo.systemStatus = ST_STOPPED;
+//    scopeInfo.trackRate    = TR_SIDEREAL;
+//    scopeInfo.slewRate     = SR_1;
+//    scopeInfo.timeSource   = TS_RS232;
+//    scopeInfo.hemisphere   = HEMI_NORTH;
 
     DBG_SCOPE = INDI::Logger::getInstance().addDebugLevel("Scope Verbose", "SCOPE");
 
     SetTelescopeCapability(TELESCOPE_CAN_PARK | TELESCOPE_CAN_SYNC | TELESCOPE_CAN_GOTO | TELESCOPE_CAN_ABORT |
-                               TELESCOPE_HAS_TIME | TELESCOPE_HAS_LOCATION | TELESCOPE_HAS_TRACK_MODE | TELESCOPE_CAN_CONTROL_TRACK | TELESCOPE_HAS_TRACK_RATE,
-                           9);
+                           TELESCOPE_HAS_TRACK_MODE | TELESCOPE_CAN_CONTROL_TRACK | TELESCOPE_HAS_TRACK_RATE,
+                           4);
 }
 
-IEQPro::~IEQPro()
+PMC8::~PMC8()
 {
 }
 
-const char *IEQPro::getDefaultName()
+const char *PMC8::getDefaultName()
 {
-    return (const char *)"iEQ";
+    return (const char *)"PMC8";
 }
 
-bool IEQPro::initProperties()
+bool PMC8::initProperties()
 {
     INDI::Telescope::initProperties();
 
     /* Firmware */
-    IUFillText(&FirmwareT[FW_MODEL], "Model", "", 0);
-    IUFillText(&FirmwareT[FW_BOARD], "Board", "", 0);
-    IUFillText(&FirmwareT[FW_CONTROLLER], "Controller", "", 0);
-    IUFillText(&FirmwareT[FW_RA], "RA", "", 0);
-    IUFillText(&FirmwareT[FW_DEC], "DEC", "", 0);
-    IUFillTextVector(&FirmwareTP, FirmwareT, 5, getDeviceName(), "Firmware Info", "", MOUNTINFO_TAB, IP_RO, 0,
-                     IPS_IDLE);
+    // FIXME - (MSF) Need to figure out which fields we're keeping and initialize
+//    IUFillText(&FirmwareT[FW_MODEL], "Model", "", 0);
+//    IUFillText(&FirmwareT[FW_BOARD], "Board", "", 0);
+//    IUFillText(&FirmwareT[FW_CONTROLLER], "Controller", "", 0);
+//    IUFillText(&FirmwareT[FW_RA], "RA", "", 0);
+//    IUFillText(&FirmwareT[FW_DEC], "DEC", "", 0);
+//    IUFillTextVector(&FirmwareTP, FirmwareT, 5, getDeviceName(), "Firmware Info", "", MOUNTINFO_TAB, IP_RO, 0,
+//                     IPS_IDLE);
 
     /* Tracking Mode */
     AddTrackMode("TRACK_SIDEREAL", "Sidereal", true);
     AddTrackMode("TRACK_SOLAR", "Solar");
     AddTrackMode("TRACK_LUNAR", "Lunar");
-    AddTrackMode("TRACK_KING", "King");
-    AddTrackMode("TRACK_CUSTOM", "Custom");
+//    AddTrackMode("TRACK_KING", "King");
+//    AddTrackMode("TRACK_CUSTOM", "Custom");
 
     // Set TrackRate limits within +/- 0.0100 of Sidereal rate
-    TrackRateN[AXIS_RA].min = TRACKRATE_SIDEREAL - 0.01;
-    TrackRateN[AXIS_RA].max = TRACKRATE_SIDEREAL + 0.01;
-    TrackRateN[AXIS_DE].min = -0.01;
-    TrackRateN[AXIS_DE].max = 0.01;
+//    TrackRateN[AXIS_RA].min = TRACKRATE_SIDEREAL - 0.01;
+//    TrackRateN[AXIS_RA].max = TRACKRATE_SIDEREAL + 0.01;
+//    TrackRateN[AXIS_DE].min = -0.01;
+//    TrackRateN[AXIS_DE].max = 0.01;
 
-    /* GPS Status */
-    IUFillSwitch(&GPSStatusS[GPS_OFF], "Off", "", ISS_ON);
-    IUFillSwitch(&GPSStatusS[GPS_ON], "On", "", ISS_OFF);
-    IUFillSwitch(&GPSStatusS[GPS_DATA_OK], "Data OK", "", ISS_OFF);
-    IUFillSwitchVector(&GPSStatusSP, GPSStatusS, 3, getDeviceName(), "GPS_STATUS", "GPS", MOUNTINFO_TAB, IP_RO,
-                       ISR_1OFMANY, 0, IPS_IDLE);
-
-    /* Time Source */
-    IUFillSwitch(&TimeSourceS[TS_RS232], "RS232", "", ISS_ON);
-    IUFillSwitch(&TimeSourceS[TS_CONTROLLER], "Controller", "", ISS_OFF);
-    IUFillSwitch(&TimeSourceS[TS_GPS], "GPS", "", ISS_OFF);
-    IUFillSwitchVector(&TimeSourceSP, TimeSourceS, 3, getDeviceName(), "TIME_SOURCE", "Time Source", MOUNTINFO_TAB,
-                       IP_RO, ISR_1OFMANY, 0, IPS_IDLE);
-
-    /* Hemisphere */
-    IUFillSwitch(&HemisphereS[HEMI_SOUTH], "South", "", ISS_OFF);
-    IUFillSwitch(&HemisphereS[HEMI_NORTH], "North", "", ISS_ON);
-    IUFillSwitchVector(&HemisphereSP, HemisphereS, 2, getDeviceName(), "HEMISPHERE", "Hemisphere", MOUNTINFO_TAB, IP_RO,
-                       ISR_1OFMANY, 0, IPS_IDLE);
-
-    /* Home */
-    IUFillSwitch(&HomeS[IEQ_FIND_HOME], "FindHome", "Find Home", ISS_OFF);
-    IUFillSwitch(&HomeS[IEQ_SET_HOME], "SetCurrentAsHome", "Set current as Home", ISS_OFF);
-    IUFillSwitch(&HomeS[IEQ_GOTO_HOME], "GoToHome", "Go to Home", ISS_OFF);
-    IUFillSwitchVector(&HomeSP, HomeS, 3, getDeviceName(), "HOME", "Home", MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1, 0,
-                       IPS_IDLE);
 
     /* How fast do we guide compared to sidereal rate */
     IUFillNumber(&GuideRateN[0], "GUIDE_RATE", "x Sidereal", "%g", 0.1, 0.9, 0.1, 0.5);
@@ -171,8 +148,6 @@ bool IEQPro::initProperties()
 
     initGuiderProperties(getDeviceName(), MOTION_TAB);
 
-    setDriverInterface(getDriverInterface() | GUIDER_INTERFACE);
-
     SetParkDataType(PARK_RA_DEC);
 
     addAuxControls();
@@ -180,52 +155,43 @@ bool IEQPro::initProperties()
     return true;
 }
 
-bool IEQPro::updateProperties()
+bool PMC8::updateProperties()
 {
     INDI::Telescope::updateProperties();
 
     if (isConnected())
     {
-        defineSwitch(&HomeSP);
-
         defineNumber(&GuideNSNP);
         defineNumber(&GuideWENP);
         defineNumber(&GuideRateNP);
 
         defineText(&FirmwareTP);
-        defineSwitch(&GPSStatusSP);
-        defineSwitch(&TimeSourceSP);
-        defineSwitch(&HemisphereSP);
 
         getStartupData();
     }
     else
     {
-        deleteProperty(HomeSP.name);
-
-        deleteProperty(GuideNSNP.name);
-        deleteProperty(GuideWENP.name);
-        deleteProperty(GuideRateNP.name);
+       deleteProperty(GuideNSNP.name);
+       deleteProperty(GuideWENP.name);
+       deleteProperty(GuideRateNP.name);
 
         deleteProperty(FirmwareTP.name);
-        deleteProperty(GPSStatusSP.name);
-        deleteProperty(TimeSourceSP.name);
-        deleteProperty(HemisphereSP.name);
     }
 
     return true;
 }
 
-void IEQPro::getStartupData()
+void PMC8::getStartupData()
 {
     DEBUG(INDI::Logger::DBG_DEBUG, "Getting firmware data...");
-    if (get_ieqpro_firmware(PortFD, &firmwareInfo))
+    if (get_pmc8_firmware(PortFD, &firmwareInfo))
     {
-        IUSaveText(&FirmwareT[0], firmwareInfo.Model.c_str());
-        IUSaveText(&FirmwareT[1], firmwareInfo.MainBoardFirmware.c_str());
-        IUSaveText(&FirmwareT[2], firmwareInfo.ControllerFirmware.c_str());
-        IUSaveText(&FirmwareT[3], firmwareInfo.RAFirmware.c_str());
-        IUSaveText(&FirmwareT[4], firmwareInfo.DEFirmware.c_str());
+        // FIXME - (MSF) Need to add code to get firmware data
+//        IUSaveText(&FirmwareT[0], firmwareInfo.Model.c_str());
+//        IUSaveText(&FirmwareT[1], firmwareInfo.MainBoardFirmware.c_str());
+//        IUSaveText(&FirmwareT[2], firmwareInfo.ControllerFirmware.c_str());
+//        IUSaveText(&FirmwareT[3], firmwareInfo.RAFirmware.c_str());
+//        IUSaveText(&FirmwareT[4], firmwareInfo.DEFirmware.c_str());
 
         FirmwareTP.s = IPS_OK;
         IDSetText(&FirmwareTP, nullptr);
@@ -233,15 +199,18 @@ void IEQPro::getStartupData()
 
     DEBUG(INDI::Logger::DBG_DEBUG, "Getting guiding rate...");
     double guideRate = 0;
-    if (get_ieqpro_guide_rate(PortFD, &guideRate))
+    if (get_pmc8_guide_rate(PortFD, &guideRate))
     {
         GuideRateN[0].value = guideRate;
         IDSetNumber(&GuideRateNP, nullptr);
     }
 
+#if 0
+    // FIXEME - (MSF) Need to handle southern hemisphere for DEC?
     double HA  = ln_get_apparent_sidereal_time(ln_get_julian_from_sys());
-    double DEC = (HemisphereS[HEMI_NORTH].s == ISS_ON) ? 90 : -90;
+    double DEC = 90;
 
+    // currently only park at motor position (0, 0)
     if (InitPark())
     {
         // If loading parking data is successful, we just set the default parking values.
@@ -256,39 +225,7 @@ void IEQPro::getStartupData()
         SetAxis1ParkDefault(HA);
         SetAxis2ParkDefault(DEC);
     }
-
-    double utc_offset;
-    int yy, dd, mm, hh, minute, ss;
-    if (get_ieqpro_utc_date_time(PortFD, &utc_offset, &yy, &mm, &dd, &hh, &minute, &ss))
-    {
-        char isoDateTime[32]={0};
-        char utcOffset[8]={0};
-
-        snprintf(isoDateTime, 32, "%04d-%02d-%02dT%02d:%02d:%02d", yy, mm, dd, hh, minute, ss);
-        snprintf(utcOffset, 8, "%4.2f", utc_offset);
-
-        IUSaveText(IUFindText(&TimeTP, "UTC"), isoDateTime);
-        IUSaveText(IUFindText(&TimeTP, "OFFSET"), utcOffset);
-
-        DEBUGF(INDI::Logger::DBG_SESSION, "Mount UTC offset is %s. UTC time is %s", utcOffset, isoDateTime);
-
-        IDSetText(&TimeTP, nullptr);
-    }
-
-    // Get Longitude and Latitude from mount
-    double longitude = 0, latitude = 0;
-    if (get_ieqpro_latitude(PortFD, &latitude) && get_ieqpro_longitude(PortFD, &longitude))
-    {
-        // Convert to INDI standard longitude (0 to 360 Eastward)
-        if (longitude < 0)
-            longitude += 360;
-
-        LocationN[LOCATION_LATITUDE].value  = latitude;
-        LocationN[LOCATION_LONGITUDE].value = longitude;
-        LocationNP.s                        = IPS_OK;
-
-        IDSetNumber(&LocationNP, nullptr);
-    }
+#endif
 
     if (isSimulation())
     {
@@ -299,16 +236,17 @@ void IEQPro::getStartupData()
     }
 }
 
-bool IEQPro::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
+bool PMC8::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
 {
     if (!strcmp(dev, getDeviceName()))
     {
+        // FIXME - (MSF) will add setting guide rate when firmware supports
         // Guiding Rate
         if (!strcmp(name, GuideRateNP.name))
         {
             IUUpdateNumber(&GuideRateNP, values, names, n);
 
-            if (set_ieqpro_guide_rate(PortFD, GuideRateN[0].value))
+            if (set_pmc8_guide_rate(PortFD, GuideRateN[0].value))
                 GuideRateNP.s = IPS_OK;
             else
                 GuideRateNP.s = IPS_ALERT;
@@ -328,106 +266,29 @@ bool IEQPro::ISNewNumber(const char *dev, const char *name, double values[], cha
     return INDI::Telescope::ISNewNumber(dev, name, values, names, n);
 }
 
-bool IEQPro::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
+bool PMC8::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
 {
     if (!strcmp(getDeviceName(), dev))
     {
-        if (!strcmp(name, HomeSP.name))
-        {
-            IUUpdateSwitch(&HomeSP, states, names, n);
 
-            IEQ_HOME_OPERATION operation = (IEQ_HOME_OPERATION)IUFindOnSwitchIndex(&HomeSP);
-
-            IUResetSwitch(&HomeSP);
-
-            switch (operation)
-            {
-                case IEQ_FIND_HOME:
-                    if (firmwareInfo.Model.find("CEM") == std::string::npos)
-                    {
-                        HomeSP.s = IPS_IDLE;
-                        IDSetSwitch(&HomeSP, nullptr);
-                        DEBUG(INDI::Logger::DBG_WARNING, "Home search is not supported in this model.");
-                        return true;
-                    }
-
-                    if (find_ieqpro_home(PortFD) == false)
-                    {
-                        HomeSP.s = IPS_ALERT;
-                        IDSetSwitch(&HomeSP, nullptr);
-                        return false;
-                    }
-
-                    HomeSP.s = IPS_OK;
-                    IDSetSwitch(&HomeSP, nullptr);
-                    DEBUG(INDI::Logger::DBG_SESSION, "Searching for home position...");
-                    return true;
-
-                    break;
-
-                case IEQ_SET_HOME:
-                    if (set_ieqpro_current_home(PortFD) == false)
-                    {
-                        HomeSP.s = IPS_ALERT;
-                        IDSetSwitch(&HomeSP, nullptr);
-                        return false;
-                    }
-
-                    HomeSP.s = IPS_OK;
-                    IDSetSwitch(&HomeSP, nullptr);
-                    DEBUG(INDI::Logger::DBG_SESSION, "Home position set to current coordinates.");
-                    return true;
-
-                    break;
-
-                case IEQ_GOTO_HOME:
-                    if (goto_ieqpro_home(PortFD) == false)
-                    {
-                        HomeSP.s = IPS_ALERT;
-                        IDSetSwitch(&HomeSP, nullptr);
-                        return false;
-                    }
-
-                    HomeSP.s = IPS_OK;
-                    IDSetSwitch(&HomeSP, nullptr);
-                    DEBUG(INDI::Logger::DBG_SESSION, "Slewing to home position...");
-                    return true;
-
-                    break;
-            }
-
-            return true;
-        }
     }
 
     return INDI::Telescope::ISNewSwitch(dev, name, states, names, n);
 }
 
-bool IEQPro::ReadScopeStatus()
+bool PMC8::ReadScopeStatus()
 {
     bool rc = false;
 
-    IEQInfo newInfo;
+    PMC8Info newInfo;
 
     if (isSimulation())
         mountSim();
 
-    rc = get_ieqpro_status(PortFD, &newInfo);
+    rc = get_pmc8_status(PortFD, &newInfo);
 
     if (rc)
     {
-        IUResetSwitch(&GPSStatusSP);
-        GPSStatusS[newInfo.gpsStatus].s = ISS_ON;
-        IDSetSwitch(&GPSStatusSP, nullptr);
-
-        IUResetSwitch(&TimeSourceSP);
-        TimeSourceS[newInfo.timeSource].s = ISS_ON;
-        IDSetSwitch(&TimeSourceSP, nullptr);
-
-        IUResetSwitch(&HemisphereSP);
-        HemisphereS[newInfo.hemisphere].s = ISS_ON;
-        IDSetSwitch(&HemisphereSP, nullptr);
-
         /*
         TelescopeTrackMode trackMode = TRACK_SIDEREAL;
 
@@ -450,6 +311,8 @@ bool IEQPro::ReadScopeStatus()
                 break;
         }*/
 
+#if 0
+        // FIXME - (MSF) do we need a status for the mount now we have new tracking code?
         switch (newInfo.systemStatus)
         {
             case ST_STOPPED:
@@ -482,15 +345,15 @@ bool IEQPro::ReadScopeStatus()
                     DEBUG(INDI::Logger::DBG_SESSION, "Meridian flip complete, tracking...");
                 break;
         }
-
         IUResetSwitch(&TrackModeSP);
         TrackModeS[newInfo.trackRate].s = ISS_ON;
         IDSetSwitch(&TrackModeSP, nullptr);
+#endif
 
         scopeInfo = newInfo;
     }
 
-    rc = get_ieqpro_coords(PortFD, &currentRA, &currentDEC);
+    rc = get_pmc8_coords(PortFD, &currentRA, &currentDEC);
 
     if (rc)
         NewRaDec(currentRA, currentDEC);
@@ -498,7 +361,7 @@ bool IEQPro::ReadScopeStatus()
     return rc;
 }
 
-bool IEQPro::Goto(double r, double d)
+bool PMC8::Goto(double r, double d)
 {
     targetRA  = r;
     targetDEC = d;
@@ -507,13 +370,13 @@ bool IEQPro::Goto(double r, double d)
     fs_sexa(RAStr, targetRA, 2, 3600);
     fs_sexa(DecStr, targetDEC, 2, 3600);
 
-    if (set_ieqpro_ra(PortFD, r) == false || set_ieqpro_dec(PortFD, d) == false)
+    if (set_pmc8_radec(PortFD, r, d) == false)
     {
         DEBUG(INDI::Logger::DBG_ERROR, "Error setting RA/DEC.");
         return false;
     }
 
-    if (slew_ieqpro(PortFD) == false)
+    if (slew_pmc8(PortFD) == false)
     {
         DEBUG(INDI::Logger::DBG_ERROR, "Failed to slew.");
         return false;
@@ -525,15 +388,15 @@ bool IEQPro::Goto(double r, double d)
     return true;
 }
 
-bool IEQPro::Sync(double ra, double dec)
+bool PMC8::Sync(double ra, double dec)
 {
-    if (set_ieqpro_ra(PortFD, ra) == false || set_ieqpro_dec(PortFD, dec) == false)
+    if (set_pmc8_radec(PortFD, ra, dec) == false)
     {
         DEBUG(INDI::Logger::DBG_ERROR, "Error setting RA/DEC.");
         return false;
     }
 
-    if (sync_ieqpro(PortFD) == false)
+    if (sync_pmc8(PortFD) == false)
     {
         DEBUG(INDI::Logger::DBG_ERROR, "Failed to sync.");
     }
@@ -548,38 +411,42 @@ bool IEQPro::Sync(double ra, double dec)
     return true;
 }
 
-bool IEQPro::Abort()
+bool PMC8::Abort()
 {
-    return abort_ieqpro(PortFD);
+    return abort_pmc8(PortFD);
 }
 
-bool IEQPro::Park()
+bool PMC8::Park()
 {
+#if 0
+    // FIXME - (MSF) Currently only support parking at motor position (0, 0)
     targetRA  = GetAxis1Park();
     targetDEC = GetAxis2Park();
-    if (set_ieqpro_ra(PortFD, targetRA) == false || set_ieqpro_dec(PortFD, targetDEC) == false)
+    if (set_pmc8_radec(PortFD, r, d) == false)
     {
         DEBUG(INDI::Logger::DBG_ERROR, "Error setting RA/DEC.");
         return false;
     }
+#endif
 
-    if (park_ieqpro(PortFD))
+    if (park_pmc8(PortFD))
     {
-        char RAStr[64]={0}, DecStr[64]={0};
-        fs_sexa(RAStr, targetRA, 2, 3600);
-        fs_sexa(DecStr, targetDEC, 2, 3600);
+//        char RAStr[64]={0}, DecStr[64]={0};
+//        fs_sexa(RAStr, targetRA, 2, 3600);
+//        fs_sexa(DecStr, targetDEC, 2, 3600);
 
         TrackState = SCOPE_PARKING;
-        DEBUGF(INDI::Logger::DBG_SESSION, "Telescope parking in progress to RA: %s DEC: %s", RAStr, DecStr);
+//        DEBUGF(INDI::Logger::DBG_SESSION, "Telescope parking in progress to RA: %s DEC: %s", RAStr, DecStr);
+        DEBUG(INDI::Logger::DBG_SESSION, "Telescope parking in progress to motor position (0, 0)");
         return true;
     }
     else
         return false;
 }
 
-bool IEQPro::UnPark()
+bool PMC8::UnPark()
 {
-    if (unpark_ieqpro(PortFD))
+    if (unpark_pmc8(PortFD))
     {
         SetParked(false);
         TrackState = SCOPE_IDLE;
@@ -589,26 +456,28 @@ bool IEQPro::UnPark()
         return false;
 }
 
-bool IEQPro::Handshake()
+bool PMC8::Handshake()
 {
     if (isSimulation())
     {
-        set_sim_gps_status(GPS_DATA_OK);
-        set_sim_system_status(ST_STOPPED);
-        set_sim_track_rate(TR_SIDEREAL);
-        set_sim_slew_rate(SR_3);
-        set_sim_time_source(TS_GPS);
-        set_sim_hemisphere(HEMI_NORTH);
+        // FIXME - (MSF) Need to handle handshake for simulation
+//        set_sim_gps_status(GPS_DATA_OK);
+//        set_sim_system_status(ST_STOPPED);
+//        set_sim_track_rate(TR_SIDEREAL);
+//        set_sim_slew_rate(SR_3);
+//        set_sim_time_source(TS_GPS);
+//        set_sim_hemisphere(HEMI_NORTH);
     }
 
-    if (check_ieqpro_connection(PortFD) == false)
+    if (check_pmc8_connection(PortFD) == false)
         return false;
 
     return true;
 }
 
-bool IEQPro::updateTime(ln_date *utc, double utc_offset)
+bool PMC8::updateTime(ln_date *utc, double utc_offset)
 {
+#if 0
     struct ln_zonedate ltm;
 
     ln_date_to_zonedate(utc, &ltm, utc_offset * 3600.0);
@@ -640,10 +509,15 @@ bool IEQPro::updateTime(ln_date *utc, double utc_offset)
     DEBUG(INDI::Logger::DBG_SESSION, "Time and date updated.");
 
     return true;
+#else
+    DEBUG(INDI::Logger::DBG_ERROR, "PMC8::updateTime() not implemented!");
+    return false;
+#endif
 }
 
-bool IEQPro::updateLocation(double latitude, double longitude, double elevation)
+bool PMC8::updateLocation(double latitude, double longitude, double elevation)
 {
+#if 0
     INDI_UNUSED(elevation);
 
     if (longitude > 180)
@@ -668,19 +542,23 @@ bool IEQPro::updateLocation(double latitude, double longitude, double elevation)
     DEBUGF(INDI::Logger::DBG_SESSION, "Site location updated to Lat %.32s - Long %.32s", l, L);
 
     return true;
+#else
+    DEBUG(INDI::Logger::DBG_ERROR, "PMC8::updateLocation() not implemented!");
+    return false;
+#endif
 }
 
-void IEQPro::debugTriggered(bool enable)
+void PMC8::debugTriggered(bool enable)
 {
-    set_ieqpro_debug(enable);
+    set_pmc8_debug(enable);
 }
 
-void IEQPro::simulationTriggered(bool enable)
+void PMC8::simulationTriggered(bool enable)
 {
-    set_ieqpro_simulation(enable);
+    set_pmc8_simulation(enable);
 }
 
-bool IEQPro::MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command)
+bool PMC8::MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command)
 {
     if (TrackState == SCOPE_PARKED)
     {
@@ -691,7 +569,7 @@ bool IEQPro::MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command)
     switch (command)
     {
         case MOTION_START:
-            if (start_ieqpro_motion(PortFD, (dir == DIRECTION_NORTH ? IEQ_N : IEQ_S)) == false)
+            if (start_pmc8_motion(PortFD, (dir == DIRECTION_NORTH ? PMC8_N : PMC8_S)) == false)
             {
                 DEBUG(INDI::Logger::DBG_ERROR, "Error setting N/S motion direction.");
                 return false;
@@ -701,7 +579,7 @@ bool IEQPro::MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command)
             break;
 
         case MOTION_STOP:
-            if (stop_ieqpro_motion(PortFD, (dir == DIRECTION_NORTH ? IEQ_N : IEQ_S)) == false)
+            if (stop_pmc8_motion(PortFD, (dir == DIRECTION_NORTH ? PMC8_N : PMC8_S)) == false)
             {
                 DEBUG(INDI::Logger::DBG_ERROR, "Error stopping N/S motion.");
                 return false;
@@ -714,7 +592,7 @@ bool IEQPro::MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command)
     return true;
 }
 
-bool IEQPro::MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command)
+bool PMC8::MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command)
 {
     if (TrackState == SCOPE_PARKED)
     {
@@ -725,7 +603,7 @@ bool IEQPro::MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command)
     switch (command)
     {
         case MOTION_START:
-            if (start_ieqpro_motion(PortFD, (dir == DIRECTION_WEST ? IEQ_W : IEQ_E)) == false)
+            if (start_pmc8_motion(PortFD, (dir == DIRECTION_WEST ? PMC8_W : PMC8_E)) == false)
             {
                 DEBUG(INDI::Logger::DBG_ERROR, "Error setting N/S motion direction.");
                 return false;
@@ -735,7 +613,7 @@ bool IEQPro::MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command)
             break;
 
         case MOTION_STOP:
-            if (stop_ieqpro_motion(PortFD, (dir == DIRECTION_WEST ? IEQ_W : IEQ_E)) == false)
+            if (stop_pmc8_motion(PortFD, (dir == DIRECTION_WEST ? PMC8_W : PMC8_E)) == false)
             {
                 DEBUG(INDI::Logger::DBG_ERROR, "Error stopping W/E motion.");
                 return false;
@@ -748,44 +626,50 @@ bool IEQPro::MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command)
     return true;
 }
 
-IPState IEQPro::GuideNorth(float ms)
+#if 0
+// not implemented on PMC8
+IPState PMC8::GuideNorth(float ms)
 {
-    bool rc = start_ieqpro_guide(PortFD, IEQ_N, (int)ms);
+    bool rc = start_ieqpro_guide(PortFD, PMC8_N, (int)ms);
     return (rc ? IPS_OK : IPS_ALERT);
 }
 
-IPState IEQPro::GuideSouth(float ms)
+IPState PMC8::GuideSouth(float ms)
 {
-    bool rc = start_ieqpro_guide(PortFD, IEQ_S, (int)ms);
+    bool rc = start_ieqpro_guide(PortFD, PMC8_S, (int)ms);
     return (rc ? IPS_OK : IPS_ALERT);
 }
 
-IPState IEQPro::GuideEast(float ms)
+IPState PMC8::GuideEast(float ms)
 {
-    bool rc = start_ieqpro_guide(PortFD, IEQ_E, (int)ms);
+    bool rc = start_ieqpro_guide(PortFD, PMC8_E, (int)ms);
     return (rc ? IPS_OK : IPS_ALERT);
 }
 
-IPState IEQPro::GuideWest(float ms)
+IPState PMC8::GuideWest(float ms)
 {
-    bool rc = start_ieqpro_guide(PortFD, IEQ_W, (int)ms);
+    bool rc = start_ieqpro_guide(PortFD, PMC8_W, (int)ms);
     return (rc ? IPS_OK : IPS_ALERT);
 }
+#endif
 
-bool IEQPro::SetSlewRate(int index)
+#if 0
+// not implemented for PMC8
+bool PMC8::SetSlewRate(int index)
 {
     IEQ_SLEW_RATE rate = (IEQ_SLEW_RATE)index;
     return set_ieqpro_slew_rate(PortFD, rate);
 }
+#endif
 
-bool IEQPro::saveConfigItems(FILE *fp)
+bool PMC8::saveConfigItems(FILE *fp)
 {
     INDI::Telescope::saveConfigItems(fp);
 
     return true;
 }
 
-void IEQPro::mountSim()
+void PMC8::mountSim()
 {
     static struct timeval ltv;
     struct timeval tv;
@@ -873,7 +757,9 @@ void IEQPro::mountSim()
     set_sim_dec(currentDEC);
 }
 
-bool IEQPro::SetCurrentPark()
+#if 0
+// PMC8 only parks to motor position (0, 0) currently
+bool PMC8::SetCurrentPark()
 {
     SetAxis1Park(currentRA);
     SetAxis2Park(currentDEC);
@@ -881,28 +767,32 @@ bool IEQPro::SetCurrentPark()
     return true;
 }
 
-bool IEQPro::SetDefaultPark()
+bool PMC8::SetDefaultPark()
 {
     // By default set RA to HA
     SetAxis1Park(ln_get_apparent_sidereal_time(ln_get_julian_from_sys()));
 
     // Set DEC to 90 or -90 depending on the hemisphere
-    SetAxis2Park((HemisphereS[HEMI_NORTH].s == ISS_ON) ? 90 : -90);
+//    SetAxis2Park((HemisphereS[HEMI_NORTH].s == ISS_ON) ? 90 : -90);
+    SetAxis2Park(90);
 
     return true;
 }
+#endif
 
-bool IEQPro::SetTrackMode(uint8_t mode)
+bool PMC8::SetTrackMode(uint8_t mode)
 {
-    IEQ_TRACK_RATE rate = static_cast<IEQ_TRACK_RATE>(mode);
+    // FIXME - (MSF) Need to make sure track modes are handled properly!
+    PMC8_TRACK_RATE rate = static_cast<PMC8_TRACK_RATE>(mode);
 
-    if (set_ieqpro_track_mode(PortFD, rate))
+    if (set_pmc8_track_mode(PortFD, rate))
         return true;
 
     return false;
 }
-
-bool IEQPro::SetTrackRate(double raRate, double deRate)
+#if 0
+// PMC8 custom rate not implemented yet
+bool PMC8::SetTrackRate(double raRate, double deRate)
 {
     static bool deRateWarning = true;
 
@@ -926,9 +816,10 @@ bool IEQPro::SetTrackRate(double raRate, double deRate)
 
         return false;
 }
+#endif
 
-bool IEQPro::SetTrackEnabled(bool enabled)
+bool PMC8::SetTrackEnabled(bool enabled)
 {
-    return set_ieqpro_track_enabled(PortFD, enabled);
+    return set_pmc8_track_enabled(PortFD, enabled);
 }
 
