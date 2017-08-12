@@ -621,9 +621,9 @@ bool INDI::CCD::initProperties()
     /**********************************************/
 
     // Upload Mode
-    IUFillSwitch(&UploadS[0], "UPLOAD_CLIENT", "Client", ISS_ON);
-    IUFillSwitch(&UploadS[1], "UPLOAD_LOCAL", "Local", ISS_OFF);
-    IUFillSwitch(&UploadS[2], "UPLOAD_BOTH", "Both", ISS_OFF);
+    IUFillSwitch(&UploadS[UPLOAD_CLIENT], "UPLOAD_CLIENT", "Client", ISS_ON);
+    IUFillSwitch(&UploadS[UPLOAD_LOCAL], "UPLOAD_LOCAL", "Local", ISS_OFF);
+    IUFillSwitch(&UploadS[UPLOAD_BOTH], "UPLOAD_BOTH", "Both", ISS_OFF);
     IUFillSwitchVector(&UploadSP, UploadS, 3, getDeviceName(), "UPLOAD_MODE", "Upload", OPTIONS_TAB, IP_RW, ISR_1OFMANY,
                        0, IPS_IDLE);
 
@@ -1296,29 +1296,42 @@ bool INDI::CCD::ISNewSwitch(const char *dev, const char *name, ISState *states, 
 {
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
+        // Upload Mode
         if (!strcmp(name, UploadSP.name))
         {
             int prevMode = IUFindOnSwitchIndex(&UploadSP);
             IUUpdateSwitch(&UploadSP, states, names, n);
-            UploadSP.s = IPS_OK;
-            IDSetSwitch(&UploadSP, nullptr);
 
-            if (UploadS[0].s == ISS_ON)
+            if (UpdateCCDUploadMode(static_cast<CCD_UPLOAD_MODE>(IUFindOnSwitchIndex(&UploadSP))))
             {
-                DEBUG(INDI::Logger::DBG_SESSION, "Upload settings set to client only.");
-                if (prevMode != 0)
-                    deleteProperty(FileNameTP.name);
-            }
-            else if (UploadS[1].s == ISS_ON)
-            {
-                DEBUG(INDI::Logger::DBG_SESSION, "Upload settings set to local only.");
-                defineText(&FileNameTP);
+                if (UploadS[UPLOAD_CLIENT].s == ISS_ON)
+                {
+                    DEBUG(INDI::Logger::DBG_SESSION, "Upload settings set to client only.");
+                    if (prevMode != 0)
+                        deleteProperty(FileNameTP.name);
+                }
+                else if (UploadS[UPLOAD_LOCAL].s == ISS_ON)
+                {
+                    DEBUG(INDI::Logger::DBG_SESSION, "Upload settings set to local only.");
+                    defineText(&FileNameTP);
+                }
+                else
+                {
+                    DEBUG(INDI::Logger::DBG_SESSION, "Upload settings set to client and local.");
+                    defineText(&FileNameTP);
+                }
+
+                UploadSP.s = IPS_OK;
             }
             else
             {
-                DEBUG(INDI::Logger::DBG_SESSION, "Upload settings set to client and local.");
-                defineText(&FileNameTP);
+                IUResetSwitch(&UploadSP);
+                UploadS[prevMode].s = ISS_ON;
+                UploadSP.s = IPS_ALERT;
             }
+
+            IDSetSwitch(&UploadSP, nullptr);
+
             return true;
         }
 

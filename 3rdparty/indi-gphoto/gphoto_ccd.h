@@ -92,6 +92,9 @@ class GPhotoCCD : public INDI::CCD, public INDI::FocuserInterface
     void addFITSKeywords(fitsfile *fptr, CCDChip *targetChip);
     void TimerHit();
 
+    // Upload Mode
+    bool UpdateCCDUploadMode(CCD_UPLOAD_MODE mode) override;
+
     // Focusing
     bool SetFocuserSpeed(int speed);
     IPState MoveFocuser(FocusDirection dir, int speed, uint16_t duration);

@@ -654,18 +654,6 @@ bool GPhotoCCD::ISNewSwitch(const char *dev, const char *name, ISState *states, 
             return true;
         }
 
-        // Upload choice
-        if (!strcmp(name, UploadSP.name))
-        {
-            IUUpdateSwitch(&UploadSP, states, names, n);
-            UploadSP.s = IPS_OK;
-            IDSetSwitch(&UploadSP, NULL);
-
-            if (!sim)
-                gphoto_set_upload_settings(gphotodrv, IUFindOnSwitchIndex(&UploadSP));
-            return true;
-        }
-
         // Live preview
         if (!strcmp(name, livePreviewSP.name))
         {
@@ -1873,4 +1861,11 @@ void GPhotoCCD::addFITSKeywords(fitsfile *fptr, CCDChip *targetChip)
                 fits_update_key_s(fptr, TUINT, "ISOSPEED", &isoSpeed, "ISO Speed", &status);
         }
     }
+}
+
+bool GPhotoCCD::UpdateCCDUploadMode(CCD_UPLOAD_MODE mode)
+{
+    if (!sim)
+        gphoto_set_upload_settings(gphotodrv, mode);
+    return true;
 }

@@ -448,6 +448,8 @@ class INDI::CCD : public INDI::DefaultDevice, INDI::GuiderInterface
         CCD_HAS_STREAMING  = 1 << 8  /*!< Does the CCD support live video streaming?  */
     } CCDCapability;
 
+    typedef enum { UPLOAD_CLIENT, UPLOAD_LOCAL, UPLOAD_BOTH } CCD_UPLOAD_MODE;
+
     virtual bool initProperties();
     virtual bool updateProperties();
     virtual void ISGetProperties(const char *dev);
@@ -619,6 +621,15 @@ class INDI::CCD : public INDI::DefaultDevice, INDI::GuiderInterface
      * exposure is started.
      */
     virtual bool UpdateCCDFrameType(CCDChip::CCD_FRAME fType);
+
+    /**
+     * \brief INDI::CCD calls this function when client upload mode switch is updated.
+     * \param mode upload mode. UPLOAD_CLIENT only sends the upload the client application. UPLOAD_BOTH saves the frame and uploads it to the client. UPLOAD_LOCAL only saves
+     * the frame locally.
+     * \return true if mode is changed successfully, false otherwise.
+     * \note By default this function is implemented in the base class and returns true. Override if necessary.
+     */
+    virtual bool UpdateCCDUploadMode(CCD_UPLOAD_MODE mode) { INDI_UNUSED(mode); return true; }
 
     /**
      * \brief INDI::CCD calls this function when Guide frame type is updated by the client.
