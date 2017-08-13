@@ -156,6 +156,9 @@ bool SkywatcherAPIMount::Goto(double ra, double dec)
 {
     DEBUG(INDI::AlignmentSubsystem::DBG_ALIGNMENT, "SkywatcherAPIMount::Goto");
 
+    if (TrackState != SCOPE_IDLE)
+        Abort();
+
     DEBUGF(INDI::AlignmentSubsystem::DBG_ALIGNMENT, "RA %lf DEC %lf", ra, dec);
 
     if (ISS_ON == IUFindSwitch(&CoordSP, "TRACK")->s)
