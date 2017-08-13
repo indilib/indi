@@ -519,6 +519,7 @@ bool ASICCD::setupParams()
 
     VideoFormatSP.nsp = nVideoFormats;
     VideoFormatSP.sp  = VideoFormatS;
+    rememberVideoFormat = IUFindOnSwitchIndex(&VideoFormatSP);
 
     float x_pixel_size, y_pixel_size;
     int x_1, y_1, x_2, y_2;
@@ -700,7 +701,7 @@ bool ASICCD::ISNewSwitch(const char *dev, const char *name, ISState *states, cha
         }
 
         if (!strcmp(name, VideoFormatSP.name))
-        {
+        {            
 #if !defined(__APPLE__) && !defined(__CYGWIN__)
             if (Streamer->isBusy())
             {
@@ -710,40 +711,66 @@ bool ASICCD::ISNewSwitch(const char *dev, const char *name, ISState *states, cha
                 return true;
             }
 #endif
-
-            IUUpdateSwitch(&VideoFormatSP, states, names, n);
-
-            ASI_IMG_TYPE type = getImageType();
-
-            switch (type)
+            const char *targetFormat = IUFindOnSwitchName(states, names, n);
+            int targetIndex=-1;
+            for (int i=0; i < VideoFormatSP.nsp; i++)
             {
-                case ASI_IMG_RAW16:
-                    PrimaryCCD.setBPP(16);
-                    DEBUG(INDI::Logger::DBG_WARNING, "Warning: 16bit RAW is not supported on all hardware platforms.");
+                if (!strcmp(targetFormat, VideoFormatS[i].name))
+                {
+                    targetIndex=i;
                     break;
-
-                default:
-                    PrimaryCCD.setBPP(8);
-                    break;
+                }
             }
 
-            UpdateCCDFrame(PrimaryCCD.getSubX(), PrimaryCCD.getSubY(), PrimaryCCD.getSubW(), PrimaryCCD.getSubH());
+            if (targetIndex == -1)
+            {
+                VideoFormatSP.s = IPS_ALERT;
+                DEBUGF(INDI::Logger::DBG_ERROR, "Unable to locate format %s.", targetFormat);
+                IDSetSwitch(&VideoFormatSP, nullptr);
+                return true;
+            }
 
-            updateRecorderFormat();
-
-            VideoFormatSP.s = IPS_OK;
-            IDSetSwitch(&VideoFormatSP, nullptr);
-            return true;
+            return setVideoFormat(targetIndex);
         }
     }
 
     return INDI::CCD::ISNewSwitch(dev, name, states, names, n);
 }
 
+bool ASICCD::setVideoFormat(uint8_t index)
+{
+    IUResetSwitch(&VideoFormatSP);
+    VideoFormatS[index].s = ISS_ON;
+
+    ASI_IMG_TYPE type = getImageType();
+
+    switch (type)
+    {
+        case ASI_IMG_RAW16:
+            PrimaryCCD.setBPP(16);
+            DEBUG(INDI::Logger::DBG_WARNING, "Warning: 16bit RAW is not supported on all hardware platforms.");
+            break;
+
+        default:
+            PrimaryCCD.setBPP(8);
+            break;
+    }
+
+    UpdateCCDFrame(PrimaryCCD.getSubX(), PrimaryCCD.getSubY(), PrimaryCCD.getSubW(), PrimaryCCD.getSubH());
+
+    updateRecorderFormat();
+
+    IDSetSwitch(&VideoFormatSP, nullptr);
+
+    return true;
+}
+
 #if !defined(__APPLE__) && !defined(__CYGWIN__)
 bool ASICCD::StartStreaming()
 {
     ASI_IMG_TYPE type = getImageType();
+
+    rememberVideoFormat = IUFindOnSwitchIndex(&VideoFormatSP);
 
     if (type != ASI_IMG_Y8 && type != ASI_IMG_RGB24)
     {
@@ -785,6 +812,9 @@ bool ASICCD::StopStreaming()
     pthread_mutex_unlock(&condMutex);
     pthread_cond_signal(&cv);
     ASIStopVideoCapture(m_camInfo->CameraID);
+
+    if (IUFindOnSwitchIndex(&VideoFormatSP) != rememberVideoFormat)
+        setVideoFormat(rememberVideoFormat);
 
     return true;
 }
