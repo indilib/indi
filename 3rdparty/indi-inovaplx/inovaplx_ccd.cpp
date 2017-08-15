@@ -129,7 +129,7 @@ bool INovaCCD::Disconnect()
 
 const char * INovaCCD::getDefaultName()
 {
-    return "iNova CCD";
+    return "iNova PLX";
 }
 
 const char * INovaCCD::getDeviceName()
