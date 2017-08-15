@@ -1059,7 +1059,7 @@ void SkywatcherAPIMount::TimerHit()
                 TrackingSecs         = 0;
             }
             TrackingSecs++;
-            if (TrackingSecs % 20 == 0)
+            if (TrackingSecs % 60 == 0)
             {
                 DEBUGF(INDI::Logger::DBG_SESSION, "Tracking in progress (%d seconds elapsed)", TrackingSecs);
             }
