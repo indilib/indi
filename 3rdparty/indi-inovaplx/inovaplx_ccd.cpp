@@ -140,26 +140,28 @@ bool INovaCCD::Connect()
 {
 	int step = 0;
 	const char *Sn;
-	Sn = iNovaSDK_OpenCamera(1);
-	IDMessage(getDefaultName(), "SN: %s\n", Sn);
-	if(Sn[0] >= '0' && Sn[0] < '3')
-	 {
-	iNovaSDK_InitST4();
-	IDMessage(getDefaultName(), "Camera model is %s\n", iNovaSDK_GetName());
-	iNovaSDK_InitCamera(RESOLUTION_FULL);
-	step++;
-	maxW = iNovaSDK_GetImageWidth();
-	maxH = iNovaSDK_GetImageHeight();
-	iNovaSDK_SetFrameSpeed(FRAME_SPEED_LOW);
-	iNovaSDK_CancelLongExpTime();
-	iNovaSDK_OpenVideo();
-	threadsRunning = true;
-	RawData = (unsigned char *)malloc(iNovaSDK_GetArraySize() * (iNovaSDK_GetDataWide() > 0 ? 2 : 1));
-	pthread_create(&captureThread, NULL, capture_Thread, (void*)this);
-	CameraPropertiesNP.s = IPS_IDLE;
-	return true;
+	if(iNovaSDK_MaxCamera() > 0) {
+		Sn = iNovaSDK_OpenCamera(1);
+		IDMessage(getDefaultName(), "SN: %s\n", Sn);
+		if(Sn[0] >= '0' && Sn[0] < '3')
+		 {
+		iNovaSDK_InitST4();
+		IDMessage(getDefaultName(), "Camera model is %s\n", iNovaSDK_GetName());
+		iNovaSDK_InitCamera(RESOLUTION_FULL);
+		step++;
+		maxW = iNovaSDK_GetImageWidth();
+		maxH = iNovaSDK_GetImageHeight();
+		iNovaSDK_SetFrameSpeed(FRAME_SPEED_LOW);
+		iNovaSDK_CancelLongExpTime();
+		iNovaSDK_OpenVideo();
+		threadsRunning = true;
+		RawData = (unsigned char *)malloc(iNovaSDK_GetArraySize() * (iNovaSDK_GetDataWide() > 0 ? 2 : 1));
+		pthread_create(&captureThread, NULL, capture_Thread, (void*)this);
+		CameraPropertiesNP.s = IPS_IDLE;
+		return true;
+		}
+		iNovaSDK_CloseCamera();
 	}
-	iNovaSDK_CloseCamera();
 	IDMessage(getDefaultName(), "ERROR.");
 	return false;
 }

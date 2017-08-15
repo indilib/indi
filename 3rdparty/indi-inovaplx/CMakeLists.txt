@@ -41,5 +41,5 @@ install(TARGETS indi_inovaplx_ccd RUNTIME DESTINATION bin)
 
 endif (CFITSIO_FOUND)
 
-install(FILES indi_inovaplx_ccd.xml DESTINATION ${INDI_DATA_DIR})
-install(FILES indi_inovaplx_ccd_sk.xml DESTINATION ${INDI_DATA_DIR})
+install(FILES ${CMAKE_CURRENT_BINARY_DIR}/indi_inovaplx_ccd.xml DESTINATION ${INDI_DATA_DIR})
+install(FILES ${CMAKE_CURRENT_BINARY_DIR}/indi_inovaplx_ccd_sk.xml DESTINATION ${INDI_DATA_DIR})
