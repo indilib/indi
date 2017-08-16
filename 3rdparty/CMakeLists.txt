@@ -86,6 +86,7 @@ IF (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
     set(WITH_GIGE Off)
     set(WITH_DSI Off)
     set(WITH_MGEN Off)
+    set(WITH_RTLSDR Off)
 ENDIF ()
 # Dsi contains invalid C++ codes what does not compile with Clang
 IF ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "AppleClang" OR "${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
