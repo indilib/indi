@@ -1249,7 +1249,12 @@ bool GPhotoCCD::grabImage()
             if (fd == -1)
                 DEBUGF(INDI::Logger::DBG_ERROR, "Exposure failed to save image. Cannot create temp file %s", tmpfile);
             else
+            {
                 DEBUGF(INDI::Logger::DBG_ERROR, "Exposure failed to save image... %s", gp_result_as_string(ret));
+                // As suggested on INDI forums, this result could be misleading.
+                if (ret == GP_ERROR_DIRECTORY_NOT_FOUND)
+                    DEBUG(INDI::Logger::DBG_SESSION, "Make sure BULB switch is ON in the camera. Try setting AF switch to OFF.");
+            }
             unlink(tmpfile);
             return false;
         }
