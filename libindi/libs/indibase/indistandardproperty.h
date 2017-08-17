@@ -22,6 +22,13 @@
 
 #include "indibase.h"
 
+// For Windows, only use constexpr under Visual Studio 2015 or later
+#if !defined(_MSC_VER) || _MSC_VER >= 1900
+# define CONSTEXPR constexpr
+#else
+# define CONSTEXPR
+#endif
+
 namespace INDI
 {
 
@@ -75,7 +82,7 @@ public:
      * CONNECTION | SWITCH | CONNECT | OFF | Establish connection to device
      * CONNECTION | SWITCH | DISCONNECT | ON | Disconnect device
      */
-    static constexpr const char *CONNECTION = "CONNECTION";
+    static CONSTEXPR const char *CONNECTION = "CONNECTION";
 
     /*@}*/
 
@@ -93,7 +100,7 @@ public:
      * ---- | ---- | ------ | ------- | -----------
      * DEVICE_PORT | TEXT | PORT | /dev/ttyUSB0 | Device serial connection port
      */
-    static constexpr const char *DEVICE_PORT = "DEVICE_PORT";
+    static CONSTEXPR const char *DEVICE_PORT = "DEVICE_PORT";
 
     /**
      * @brief Toggle device auto search.
@@ -106,7 +113,7 @@ public:
      * DEVICE_AUTO_SEARCH | SWITCH | ENABLED | ON | Auto Search ON
      * DEVICE_AUTO_SEARCH | SWITCH | DISABLED | OFF | Auto Search OFF
      */
-    static constexpr const char *DEVICE_AUTO_SEARCH = "DEVICE_AUTO_SEARCH";
+    static CONSTEXPR const char *DEVICE_AUTO_SEARCH = "DEVICE_AUTO_SEARCH";
 
     /*@}*/
 
