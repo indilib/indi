@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 2.8)
 PROJECT(libqhy C CXX)
 
-set(LIBQHY_VERSION "0.1.9")
+set(LIBQHY_VERSION "0.1.10")
 set(LIBQHY_SOVERSION "0")
 
 SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-error")
