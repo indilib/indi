@@ -76,8 +76,7 @@ void ISSnoopDevice(XMLEle *root)
 }
 
 NSTEP::NSTEP()
-{
-    setDeviceName(NSTEP::getDefaultName());
+{    
     setVersion(1, 0);
     SetFocuserCapability(FOCUSER_CAN_ABORT | FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_REL_MOVE);
 }
@@ -152,7 +151,7 @@ bool NSTEP::updateProperties()
         }
         else
         {
-            IDMessage(getDeviceName(), "Failed to read position");
+            DEBUG(INDI::Logger::DBG_ERROR, "Failed to read position");
         }
         if (command(":RT", buf, 4))
         {
@@ -170,7 +169,7 @@ bool NSTEP::updateProperties()
                 }
                 else
                 {
-                    IDMessage(getDeviceName(), "Failed to read temperature change for compensation");
+                    DEBUG(INDI::Logger::DBG_ERROR, "Failed to read temperature change for compensation");
                 }
                 if (command(":RB", buf, 3))
                 {
@@ -181,7 +180,7 @@ bool NSTEP::updateProperties()
                 }
                 else
                 {
-                    IDMessage(getDeviceName(), "Failed to read temperature step for compensation");
+                    DEBUG(INDI::Logger::DBG_ERROR, "Failed to read temperature step for compensation");
                 }
                 if (command(":RG", buf, 1))
                 {
@@ -192,17 +191,17 @@ bool NSTEP::updateProperties()
                 }
                 else
                 {
-                    IDMessage(getDeviceName(), "Failed to read compensation mode");
+                    DEBUG(INDI::Logger::DBG_ERROR, "Failed to read compensation mode");
                 }
             }
             else
             {
-                IDMessage(getDeviceName(), "Temperature sensor is not connected");
+                DEBUG(INDI::Logger::DBG_ERROR, "Temperature sensor is not connected");
             }
         }
         else
         {
-            IDMessage(getDeviceName(), "Failed to read temperature");
+            DEBUG(INDI::Logger::DBG_ERROR, "Failed to read temperature");
         }
         if (command(":RS", buf, 3))
         {
@@ -218,12 +217,12 @@ bool NSTEP::updateProperties()
             }
             else
             {
-                IDMessage(getDeviceName(), "Failed to read step rate");
+                DEBUG(INDI::Logger::DBG_ERROR, "Failed to read step rate");
             }
         }
         else
         {
-            IDMessage(getDeviceName(), "Failed to read max step rate");
+            DEBUG(INDI::Logger::DBG_ERROR, "Failed to read max step rate");
         }
         if (command(":RW", buf, 1))
         {
@@ -235,7 +234,7 @@ bool NSTEP::updateProperties()
         }
         else
         {
-            IDMessage(getDeviceName(), "Failed to read stepping phase");
+            DEBUG(INDI::Logger::DBG_ERROR, "Failed to read stepping phase");
         }
     defineSwitch(&SteppingModeSP);
     }
@@ -256,7 +255,7 @@ bool NSTEP::Handshake()
 {
     if (isSimulation())
     {
-        IDMessage(getDeviceName(), "NStep simulation is connected.");
+        DEBUG(INDI::Logger::DBG_SESSION, "NStep simulation is connected.");
         return true;
     }
 
@@ -360,7 +359,7 @@ bool NSTEP::command(const char *request, char *response, int count)
     {
         char message[MAXRBUF];
         tty_error_msg(rc, message, MAXRBUF);
-        IDMessage(getDeviceName(), "%s", message);
+        DEBUGF(INDI::Logger::DBG_ERROR, "%s", message);
         pthread_mutex_unlock(&lock);
         return false;
     }
@@ -505,7 +504,7 @@ IPState NSTEP::moveFocuserRelative(FocusDirection dir, unsigned int ticks)
         }
 
         sprintf(buf, ":F%c%c%03d#", dir == FOCUS_INWARD ? '0' : '1', steppingMode, subTicks);
-        IDMessage(getDeviceName(), "About to send command %s", buf);
+        DEBUGF(INDI::Logger::DBG_DEBUG, "About to send command %s", buf);
         if (!command(buf, nullptr, 0))
         {
             FocusAbsPosNP.s = IPS_ALERT;
@@ -536,7 +535,7 @@ IPState NSTEP::moveFocuserRelative(FocusDirection dir, unsigned int ticks)
 
 IPState NSTEP::MoveAbsFocuser(uint32_t targetTicks)
 {
-    DEBUGF(INDI::Logger::DBG_DEBUG, "Focuser is moving to requested position %d", targetTicks);
+    DEBUGF(INDI::Logger::DBG_SESSION, "Focuser is moving to requested position %d", targetTicks);
 
     unsigned int newAbsPos = 0;
     IPState retCode        = IPS_ALERT;
@@ -589,7 +588,7 @@ void NSTEP::TimerHit()
         }
         else
         {
-            IDMessage(getDeviceName(), "Failed to read temperature");
+            DEBUG(INDI::Logger::DBG_ERROR, "Failed to read temperature");
         }
 
         if (command("S", buf, 1))
