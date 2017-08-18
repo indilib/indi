@@ -17,7 +17,7 @@
 *******************************************************************************/
 
 #include "connectionserial.h"
-
+#include "indistandardproperty.h"
 #include "indicom.h"
 #include "indilogger.h"
 
@@ -36,12 +36,12 @@ Serial::Serial(INDI::DefaultDevice *dev) : Interface(dev)
 #else
     IUFillText(&PortT[0], "PORT", "Port", "/dev/ttyUSB0");
 #endif
-    IUFillTextVector(&PortTP, PortT, 1, dev->getDeviceName(), "DEVICE_PORT", "Ports", CONNECTION_TAB, IP_RW, 60,
+    IUFillTextVector(&PortTP, PortT, 1, dev->getDeviceName(), INDI::SP::DEVICE_PORT, "Ports", CONNECTION_TAB, IP_RW, 60,
                      IPS_IDLE);
 
     IUFillSwitch(&AutoSearchS[0], "ENABLED", "Enabled", ISS_ON);
     IUFillSwitch(&AutoSearchS[1], "DISABLED", "Disabled", ISS_OFF);
-    IUFillSwitchVector(&AutoSearchSP, AutoSearchS, 2, dev->getDeviceName(), "DEVICE_AUTO_SEARCH", "Auto Search",
+    IUFillSwitchVector(&AutoSearchSP, AutoSearchS, 2, dev->getDeviceName(), INDI::SP::DEVICE_AUTO_SEARCH, "Auto Search",
                        CONNECTION_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
 
     IUFillSwitch(&RefreshS[0], "Scan Ports", "Scan Ports", ISS_OFF);
@@ -178,7 +178,7 @@ bool Serial::processHandshake()
     if (rc)
     {
         DEBUGF(INDI::Logger::DBG_SESSION, "%s is online.", getDeviceName());
-        device->saveConfig(true, "DEVICE_PORT");
+        device->saveConfig(true, INDI::SP::DEVICE_PORT);
         device->saveConfig(true, "DEVICE_BAUD_RATE");
     }
     else
@@ -224,13 +224,13 @@ bool Serial::Disconnect()
 void Serial::Activated()
 {
     device->defineText(&PortTP);
-    device->loadConfig(true, "DEVICE_PORT");
+    device->loadConfig(true, INDI::SP::DEVICE_PORT);
 
     device->defineSwitch(&BaudRateSP);
     device->loadConfig(true, "DEVICE_BAUD_RATE");
 
     device->defineSwitch(&AutoSearchSP);
-    device->loadConfig(true, "DEVICE_AUTO_SEARCH");
+    device->loadConfig(true, INDI::SP::DEVICE_AUTO_SEARCH);
 
     device->defineSwitch(&RefreshSP);
     Refresh(true);

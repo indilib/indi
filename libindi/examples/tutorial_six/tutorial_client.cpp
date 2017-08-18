@@ -130,7 +130,7 @@ void MyClient::newDevice(INDI::BaseDevice *dp)
 *************************************************************************************/
 void MyClient::newProperty(INDI::Property *property)
 {
-    if (strcmp(property->getDeviceName(), MYCCD) == 0 && strcmp(property->getName(), INDI::SP::CONNECTION) == 0)
+    if (strcmp(property->getDeviceName(), MYCCD) == 0 && strcmp(property->getName(), "CONNECTION") == 0)
     {
         connectDevice(MYCCD);
         return;

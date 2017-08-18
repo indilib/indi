@@ -17,6 +17,7 @@
  *******************************************************************************/
 
 #include "agent_imager.h"
+#include "indistandardproperty.h"
 
 #include <cstring>
 #include <memory>

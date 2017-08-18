@@ -21,6 +21,7 @@
 #include "base64.h"
 #include "config.h"
 #include "indicom.h"
+#include "indistandardproperty.h"
 #include "locale_compat.h"
 
 #include <cerrno>
