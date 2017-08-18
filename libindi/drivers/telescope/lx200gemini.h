@@ -35,6 +35,7 @@ class LX200Gemini : public LX200Generic
 
     virtual void ISGetProperties(const char *dev) override;
     virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
+    virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
 
   protected:
     virtual const char *getDefaultName() override;
@@ -59,8 +60,26 @@ class LX200Gemini : public LX200Generic
     bool sleepMount();
     bool wakeupMount();
 
+    bool getGeminiProperty(uint8_t propertyNumber, char* value, int maxLength);
+    bool setGeminiProperty(uint8_t propertyNumber, char* value);
+
     // Checksum for private commands
     uint8_t calculateChecksum(char *cmd);
+
+    INumber ManualSlewingSpeedN[1];
+    INumberVectorProperty ManualSlewingSpeedNP;
+
+    INumber GotoSlewingSpeedN[1];
+    INumberVectorProperty GotoSlewingSpeedNP;
+
+    INumber MoveSpeedN[1];
+    INumberVectorProperty MoveSpeedNP;
+
+    INumber GuidingSpeedN[1];
+    INumberVectorProperty GuidingSpeedNP;
+
+    INumber CenteringSpeedN[1];
+    INumberVectorProperty CenteringSpeedNP;
 
     ISwitch ParkSettingsS[3];
     ISwitchVectorProperty ParkSettingsSP;

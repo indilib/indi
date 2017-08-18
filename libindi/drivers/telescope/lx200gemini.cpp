@@ -31,6 +31,12 @@
 #include <cstring>
 #include <termios.h>
 
+#define MANUAL_SLEWING_SPEED_ID 120
+#define GOTO_SLEWING_SPEED_ID 140
+#define MOVE_SPEED_ID 145
+#define GUIDING_SPEED_ID 150
+#define CENTERING_SPEED_ID 170
+
 LX200Gemini::LX200Gemini()
 {
     setVersion(1, 3);
@@ -72,6 +78,25 @@ bool LX200Gemini::initProperties()
     IUFillSwitchVector(&StartupModeSP, StartupModeS, 3, getDeviceName(), "STARTUP_MODE", "Startup Mode",
                        MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
 
+    IUFillNumber(&ManualSlewingSpeedN[0], "MANUAL_SLEWING_SPEED", "Manual Slewing Speed", "%g", 20, 2000., 10., 800);
+    IUFillNumberVector(&ManualSlewingSpeedNP, ManualSlewingSpeedN, 1, getDeviceName(), "MANUAL_SLEWING_SPEED", "Manual Slewing Speed", OPTIONS_TAB, IP_RW,
+                       0, IPS_IDLE);
+
+    IUFillNumber(&GotoSlewingSpeedN[0], "GOTO_SLEWING_SPEED", "Goto Slewing Speed", "%g", 20, 2000., 10., 800);
+    IUFillNumberVector(&GotoSlewingSpeedNP, GotoSlewingSpeedN, 1, getDeviceName(), "GOTO_SLEWING_SPEED", "Goto Slewing Speed", OPTIONS_TAB, IP_RW,
+                       0, IPS_IDLE);
+
+    IUFillNumber(&MoveSpeedN[0], "MOVE_SPEED", "Move Speed", "%g", 20, 2000., 10., 10);
+    IUFillNumberVector(&MoveSpeedNP, MoveSpeedN, 1, getDeviceName(), "MOVE_SLEWING_SPEED", "Move Slewing Speed", OPTIONS_TAB, IP_RW,
+                       0, IPS_IDLE);
+
+    IUFillNumber(&GuidingSpeedN[0], "GUIDING_SPEED", "Guiding Speed", "%g", 0.2, 0.8, 0.1, 0.5);
+    IUFillNumberVector(&GuidingSpeedNP, GuidingSpeedN, 1, getDeviceName(), "GUIDING_SLEWING_SPEED", "Guiding Slewing Speed", OPTIONS_TAB, IP_RW,
+                       0, IPS_IDLE);
+
+    IUFillNumber(&CenteringSpeedN[0], "CENTERING_SPEED", "Centering Speed", "%g", 20, 2000., 10., 10);
+    IUFillNumberVector(&CenteringSpeedNP, CenteringSpeedN, 1, getDeviceName(), "CENTERING_SLEWING_SPEED", "Centering Slewing Speed", OPTIONS_TAB, IP_RW,
+                       0, IPS_IDLE);
 
     IUFillSwitch(&TrackModeS[GEMINI_TRACK_SIDEREAL], "TRACK_SIDEREAL", "Sidereal", ISS_ON);
     IUFillSwitch(&TrackModeS[GEMINI_TRACK_KING], "TRACK_CUSTOM", "King", ISS_OFF);
@@ -83,15 +108,55 @@ bool LX200Gemini::initProperties()
 
 bool LX200Gemini::updateProperties()
 {
+    const int MAX_VALUE_LENGTH = 32;
+    char value[MAX_VALUE_LENGTH];
+    uint speed = 0;
+
     LX200Generic::updateProperties();
 
     if (isConnected())
     {
         defineSwitch(&ParkSettingsSP);
+
+        if (getGeminiProperty(MANUAL_SLEWING_SPEED_ID, value, MAX_VALUE_LENGTH))
+        {
+            sscanf(value, "%d", &speed);
+            ManualSlewingSpeedN[0].value = speed;
+            defineNumber(&ManualSlewingSpeedNP);
+        }
+        if (getGeminiProperty(GOTO_SLEWING_SPEED_ID, value, MAX_VALUE_LENGTH))
+        {
+            sscanf(value, "%d", &speed);
+            GotoSlewingSpeedN[0].value = speed;
+            defineNumber(&GotoSlewingSpeedNP);
+        }
+        if (getGeminiProperty(MOVE_SPEED_ID, value, MAX_VALUE_LENGTH))
+        {
+            sscanf(value, "%d", &speed);
+            MoveSpeedN[0].value = speed;
+            defineNumber(&MoveSpeedNP);
+        }
+        if (getGeminiProperty(GUIDING_SPEED_ID, value, MAX_VALUE_LENGTH))
+        {
+            sscanf(value, "%f", &speed);
+            GuidingSpeedN[0].value = speed;
+            defineNumber(&GuidingSpeedNP);
+        }
+        if (getGeminiProperty(CENTERING_SPEED_ID, value, MAX_VALUE_LENGTH))
+        {
+            sscanf(value, "%d", &speed);
+            CenteringSpeedN[0].value = speed;
+            defineNumber(&CenteringSpeedNP);
+        }
     }
     else
     {
         deleteProperty(ParkSettingsSP.name);
+        deleteProperty(ManualSlewingSpeedNP.name);
+        deleteProperty(GotoSlewingSpeedNP.name);
+        deleteProperty(MoveSpeedNP.name);
+        deleteProperty(GuidingSpeedNP.name);
+        deleteProperty(CenteringSpeedNP.name);
     }
 
     return true;
@@ -121,6 +186,105 @@ bool LX200Gemini::ISNewSwitch(const char *dev, const char *name, ISState *states
     }
 
     return LX200Generic::ISNewSwitch(dev, name, states, names, n);
+}
+
+bool LX200Gemini::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
+{
+    char valueString[16] = {0};
+
+    if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
+    {
+        snprintf(valueString, 16, "%f", values[0]);
+
+        if (!strcmp(name, ManualSlewingSpeedNP.name))
+        {
+            DEBUGF(INDI::Logger::DBG_DEBUG, "Trying to set manual slewing speed of: %f\n", values[0]);
+
+            if (!isSimulation() && !setGeminiProperty(MANUAL_SLEWING_SPEED_ID, valueString))
+            {
+                ManualSlewingSpeedNP.s = IPS_ALERT;
+                IDSetNumber(&ManualSlewingSpeedNP, "Error setting manual slewing speed");
+                return false;
+            }
+
+            ManualSlewingSpeedNP.s    = IPS_OK;
+            ManualSlewingSpeedN[0].value = values[0];
+            IDSetNumber(&ManualSlewingSpeedNP, "Manual slewing speed set to %f", values[0]);
+
+            return true;
+        }
+        if (!strcmp(name, GotoSlewingSpeedNP.name))
+        {
+            DEBUGF(INDI::Logger::DBG_DEBUG, "Trying to set goto slewing speed of: %f\n", values[0]);
+
+            if (!isSimulation() && !setGeminiProperty(GOTO_SLEWING_SPEED_ID, valueString))
+            {
+                GotoSlewingSpeedNP.s = IPS_ALERT;
+                IDSetNumber(&GotoSlewingSpeedNP, "Error setting goto slewing speed");
+                return false;
+            }
+
+            GotoSlewingSpeedNP.s       = IPS_OK;
+            GotoSlewingSpeedN[0].value = values[0];
+            IDSetNumber(&GotoSlewingSpeedNP, "Goto slewing speed set to %f", values[0]);
+
+            return true;
+        }
+        if (!strcmp(name, MoveSpeedNP.name))
+        {
+            DEBUGF(INDI::Logger::DBG_DEBUG, "Trying to set move speed of: %f\n", values[0]);
+
+            if (!isSimulation() && !setGeminiProperty(MOVE_SPEED_ID, valueString))
+            {
+                MoveSpeedNP.s = IPS_ALERT;
+                IDSetNumber(&MoveSpeedNP, "Error setting move speed");
+                return false;
+            }
+
+            MoveSpeedNP.s       = IPS_OK;
+            MoveSpeedN[0].value = values[0];
+            IDSetNumber(&MoveSpeedNP, "Move speed set to %f", values[0]);
+
+            return true;
+        }
+        if (!strcmp(name, GuidingSpeedNP.name))
+        {
+            DEBUGF(INDI::Logger::DBG_DEBUG, "Trying to set guiding speed of: %f\n", values[0]);
+
+            if (!isSimulation() && !setGeminiProperty(MOVE_SPEED_ID, valueString))
+            {
+                GuidingSpeedNP.s = IPS_ALERT;
+                IDSetNumber(&GuidingSpeedNP, "Error setting guiding speed");
+                return false;
+            }
+
+            GuidingSpeedNP.s       = IPS_OK;
+            GuidingSpeedN[0].value = values[0];
+            IDSetNumber(&GuidingSpeedNP, "Guiding speed set to %f", values[0]);
+
+            return true;
+        }
+        if (!strcmp(name, CenteringSpeedNP.name))
+        {
+            DEBUGF(INDI::Logger::DBG_DEBUG, "Trying to set centering speed of: %f\n", values[0]);
+
+            if (!isSimulation() && !setGeminiProperty(MOVE_SPEED_ID, valueString))
+            {
+                CenteringSpeedNP.s = IPS_ALERT;
+                IDSetNumber(&CenteringSpeedNP, "Error setting centering speed");
+                return false;
+            }
+
+            CenteringSpeedNP.s       = IPS_OK;
+            CenteringSpeedN[0].value = values[0];
+            IDSetNumber(&CenteringSpeedNP, "Centering speed set to %f", values[0]);
+
+            return true;
+        }
+    }
+
+    //  If we didn't process it, continue up the chain, let somebody else give it a shot
+    return INDI::Telescope::ISNewNumber(dev, name, values, names, n);
 }
 
 bool LX200Gemini::checkConnection()
@@ -293,7 +457,7 @@ bool LX200Gemini::ReadScopeStatus()
 
 void LX200Gemini::syncSideOfPier()
 {
-    // Send ':Gv#'
+    // Send ':Gm#'
     const char *cmd = "#:Gm#";
     // Response
     char response[8] = { 0 };
@@ -364,7 +528,7 @@ bool LX200Gemini::UnPark()
 {
     wakeupMount();
 
-    TrackState = SCOPE_IDLE;
+    TrackState = SCOPE_TRACKING;
     return true;
 }
 
@@ -420,6 +584,73 @@ bool LX200Gemini::saveConfigItems(FILE *fp)
 
     IUSaveConfigSwitch(fp, &StartupModeSP);
     IUSaveConfigSwitch(fp, &ParkSettingsSP);
+
+    return true;
+}
+
+bool LX200Gemini::getGeminiProperty(uint8_t propertyNumber, char* value, int maxLength)
+{
+    int rc = TTY_OK;
+    int nbytes = 0;
+    char prefix[16] = {0};
+    char cmd[16] = {0};
+
+    snprintf(prefix, 16, "<%d:", propertyNumber);
+
+    uint8_t checksum = calculateChecksum(prefix);
+
+    snprintf(cmd, 16, "%s%c#", prefix, checksum);
+
+    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD: <%s>", cmd);
+
+    if ((rc = tty_write_string(PortFD, cmd, &nbytes)) != TTY_OK)
+    {
+        char errmsg[256];
+        tty_error_msg(rc, errmsg, 256);
+        DEBUGF(INDI::Logger::DBG_ERROR, "Error writing to device %s (%d)", errmsg, rc);
+        return false;
+    }
+
+    if ((rc = tty_read_section(PortFD, value, '#', GEMINI_TIMEOUT, &nbytes)) != TTY_OK)
+    {
+        char errmsg[256];
+        tty_error_msg(rc, errmsg, 256);
+        DEBUGF(INDI::Logger::DBG_ERROR, "Error reading from device %s (%d)", errmsg, rc);
+        return false;
+    }
+
+    value[nbytes - 1] = '\0';
+
+    tcflush(PortFD, TCIFLUSH);
+
+    DEBUGF(INDI::Logger::DBG_DEBUG, "RES: <%s>", value);
+    return true;
+}
+
+bool LX200Gemini::setGeminiProperty(uint8_t propertyNumber, char* value)
+{
+    int rc = TTY_OK;
+    int nbytes_written=0;
+    char prefix[16] = {0};
+    char cmd[16] = {0};
+
+    snprintf(prefix, 16, ">%d:%s", propertyNumber, value);
+
+    uint8_t checksum = calculateChecksum(prefix);
+
+    snprintf(cmd, 16, "%s%c#", prefix, checksum);
+
+    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD: <%s>", cmd);
+
+    if ((rc = tty_write_string(PortFD, cmd, &nbytes_written)) != TTY_OK)
+    {
+        char errmsg[256];
+        tty_error_msg(rc, errmsg, 256);
+        DEBUGF(INDI::Logger::DBG_ERROR, "Error writing to device %s (%d)", errmsg, rc);
+        return false;
+    }
+
+    tcflush(PortFD, TCIFLUSH);
 
     return true;
 }
