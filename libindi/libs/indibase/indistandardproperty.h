@@ -22,18 +22,11 @@
 
 #include "indibase.h"
 
-// For Windows, only use constexpr under Visual Studio 2015 or later
-#if !defined(_MSC_VER) || _MSC_VER >= 1900
-# define CONSTEXPR constexpr
-#else
-# define CONSTEXPR
-#endif
-
 namespace INDI
 {
 
 /**
- * @class INDI::StandardProperties
+ * @namespace SP
    @brief INDI Standard Properties are common properties standarized across drivers and clients alike.
 
 INDI does not place any special semantics on property names (i.e. properties are just texts, numbers, or switches that represent no physical function). While GUI clients can construct graphical representation of properties in order to permit the user to operate the device, we run into situations where clients and drivers need to agree on the exact meaning of some fundamental properties.
@@ -58,9 +51,8 @@ The standard properties are divided into the following categories:
 </ol>
 @author Jasem Mutlaq
 */
-class StandardProperty
+namespace SP
 {
-public:
     /**
      * \defgroup GeneralProperties Standard Properties - General: Common properties shared across devices of multiple genres.
      * The following tables describe standard properties pertaining to generic devices. The name of a standard property and its members must be
@@ -82,7 +74,7 @@ public:
      * CONNECTION | SWITCH | CONNECT | OFF | Establish connection to device
      * CONNECTION | SWITCH | DISCONNECT | ON | Disconnect device
      */
-    static CONSTEXPR const char *CONNECTION = "CONNECTION";
+    static const char *CONNECTION = "CONNECTION";
 
     /*@}*/
 
@@ -100,7 +92,7 @@ public:
      * ---- | ---- | ------ | ------- | -----------
      * DEVICE_PORT | TEXT | PORT | /dev/ttyUSB0 | Device serial connection port
      */
-    static CONSTEXPR const char *DEVICE_PORT = "DEVICE_PORT";
+    static const char *DEVICE_PORT = "DEVICE_PORT";
 
     /**
      * @brief Toggle device auto search.
@@ -113,13 +105,9 @@ public:
      * DEVICE_AUTO_SEARCH | SWITCH | ENABLED | ON | Auto Search ON
      * DEVICE_AUTO_SEARCH | SWITCH | DISABLED | OFF | Auto Search OFF
      */
-    static CONSTEXPR const char *DEVICE_AUTO_SEARCH = "DEVICE_AUTO_SEARCH";
+    static const char *DEVICE_AUTO_SEARCH = "DEVICE_AUTO_SEARCH";
 
     /*@}*/
 
-};
-
-// SP alias Shortcut for INDI::StandardProperty
-using SP = StandardProperty;
-
+}
 } // namespace INDI
