@@ -25,6 +25,7 @@
 #include "STAR2000.h"
 
 #include "STAR2kdriver.h"
+#include "indistandardproperty.h"
 
 #include <cstring>
 #include <memory>
@@ -129,7 +130,7 @@ bool STAR2000::initProperties()
     bool rc = INDI::DefaultDevice::initProperties();
 
     IUFillText(&PortT[0], "PORT", "Port", "/dev/ttyUSB0");
-    IUFillTextVector(&PortTP, PortT, 1, getDeviceName(), "DEVICE_PORT", "Ports", OPTIONS_TAB, IP_RW, 60, IPS_IDLE);
+    IUFillTextVector(&PortTP, PortT, 1, getDeviceName(), INDI::SP::DEVICE_PORT, "Ports", OPTIONS_TAB, IP_RW, 60, IPS_IDLE);
 
     initGuiderProperties(getDeviceName(), MAIN_CONTROL_TAB);
     addDebugControl();
@@ -161,7 +162,7 @@ void STAR2000::ISGetProperties(const char *dev)
 {
     INDI::DefaultDevice::ISGetProperties(dev);
     defineText(&PortTP);
-    loadConfig(true, "DEVICE_PORT");
+    loadConfig(true, INDI::SP::DEVICE_PORT);
 }
 
 bool STAR2000::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)

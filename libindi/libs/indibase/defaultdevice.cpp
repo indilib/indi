@@ -17,8 +17,8 @@
 *******************************************************************************/
 
 #include "defaultdevice.h"
-
 #include "indicom.h"
+#include "indistandardproperty.h"
 #include "connectionplugins/connectionserial.h"
 
 #include <cstdlib>

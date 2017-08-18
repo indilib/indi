@@ -38,7 +38,7 @@ extern "C" {
 
 #if defined(_MSC_VER)
 
-#include <cstring>
+#include <string.h>
 #include <malloc.h>
 
 typedef wchar_t locale_char_t;

@@ -23,6 +23,7 @@
 #include "joystick.h"
 
 #include "joystickdriver.h"
+#include "indistandardproperty.h"
 
 #include <memory>
 #include <cstring>
@@ -170,7 +171,7 @@ bool JoyStick::initProperties()
     INDI::DefaultDevice::initProperties();
 
     IUFillText(&PortT[0], "PORT", "Port", "/dev/input/js0");
-    IUFillTextVector(&PortTP, PortT, 1, getDeviceName(), "DEVICE_PORT", "Ports", OPTIONS_TAB, IP_RW, 60, IPS_IDLE);
+    IUFillTextVector(&PortTP, PortT, 1, getDeviceName(), INDI::SP::DEVICE_PORT, "Ports", OPTIONS_TAB, IP_RW, 60, IPS_IDLE);
 
     IUFillText(&JoystickInfoT[0], "JOYSTICK_NAME", "Name", "");
     IUFillText(&JoystickInfoT[1], "JOYSTICK_VERSION", "Version", "");
@@ -246,7 +247,7 @@ void JoyStick::ISGetProperties(const char *dev)
     INDI::DefaultDevice::ISGetProperties(dev);
 
     defineText(&PortTP);
-    loadConfig(true, "DEVICE_PORT");
+    loadConfig(true, INDI::SP::DEVICE_PORT);
 
     if (isConnected())
     {
