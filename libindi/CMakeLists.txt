@@ -167,7 +167,8 @@ SET(indiclient_C_SRC
 SET(indiclient_CXX_SRC
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/basedevice.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/baseclient.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indiproperty.cpp)
+    ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indiproperty.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indistandardproperty.cpp)
 
 IF (UNITY_BUILD)
     ENABLE_UNITY_BUILD(indiclient_c indiclient_C_SRC 10 c)
@@ -343,6 +344,7 @@ SET(indidriver_CXX_SRC
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indilightboxinterface.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indilogger.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indicontroller.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indistandardproperty.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/connectionplugins/connectioninterface.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/connectionplugins/connectionserial.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/connectionplugins/connectiontcp.cpp)

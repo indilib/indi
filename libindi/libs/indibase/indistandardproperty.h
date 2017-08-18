@@ -74,7 +74,7 @@ namespace SP
      * CONNECTION | SWITCH | CONNECT | OFF | Establish connection to device
      * CONNECTION | SWITCH | DISCONNECT | ON | Disconnect device
      */
-    static const char *CONNECTION = "CONNECTION";
+    extern const char *CONNECTION;
 
     /*@}*/
 
@@ -92,7 +92,7 @@ namespace SP
      * ---- | ---- | ------ | ------- | -----------
      * DEVICE_PORT | TEXT | PORT | /dev/ttyUSB0 | Device serial connection port
      */
-    static const char *DEVICE_PORT = "DEVICE_PORT";
+    extern const char *DEVICE_PORT;
 
     /**
      * @brief Toggle device auto search.
@@ -105,7 +105,7 @@ namespace SP
      * DEVICE_AUTO_SEARCH | SWITCH | ENABLED | ON | Auto Search ON
      * DEVICE_AUTO_SEARCH | SWITCH | DISABLED | OFF | Auto Search OFF
      */
-    static const char *DEVICE_AUTO_SEARCH = "DEVICE_AUTO_SEARCH";
+    extern const char *DEVICE_AUTO_SEARCH;
 
     /*@}*/
 
