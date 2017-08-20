@@ -21,7 +21,7 @@ i.e.
 #define USE_P_SENSOR
 #define USE_IRRADIANCE_SENSOR
 #define DHTPIN 3            // what pin DHT22 is connected to
-#define IR_RADIANCE_PIN 0   // what analouge pin IRRADIANCE is connecte to
+#define IR_RADIANCE_PIN 0   // what analog pin IRRADIANCE is connecte to
 
 #include "Wire.h"
 #include "Adafruit_BMP085.h"
@@ -54,6 +54,7 @@ void runMeteoStation() {
 
         if (!irSuccess) {
             Serial.println("Could not find a valid MLX90614 (IR) sensor, check wiring!\t");
+            irSuccess = mlx.begin(); //Retry for next iteration.
             IR = 0;
             Tir = 0;
         } else {
@@ -110,6 +111,7 @@ void runMeteoStation() {
 
         if (!bmpSuccess) {
             Serial.println("Could not find a valid BMP085 / BMP180 (P) sensor, check wiring!\t");
+            bmpSuccess = bmp.begin(); //Rety for next iteration.
             P = 0;
             Tp = 0;
         } else {
@@ -124,7 +126,7 @@ void runMeteoStation() {
         Serial.println("BMP sensor skipped, not defined!\t");
     #endif
 
-    // Read analouge Light sensor
+    // Read analog Light sensor
     #ifdef USE_IRRADIANCE_SENSOR
         Serial.println("IR Radiance read. No checks, see output value\t");
         Light = analogRead(IR_RADIANCE_PIN);
