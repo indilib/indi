@@ -19,9 +19,14 @@ IMPORTANT: Customize following values to match your setup
 #define USE_P_SENSOR   //USE BMP085 PRESSURE SENSOR. Comment if not.
 #define USE_IRRADIANCE_SENSOR   //USE IRRADIANCE SENSOR (solar cell). Comment if not.
 
-//Not everyone consider negative celsius as frezzing, define lower temperature limit.
+//Not everyone consider negative celsius as frezzing and other drivers will react to frezzing as an alert.
+//define temperature limit for issuing alert.
 //Default 0
 #define FREZZING 0
+
+//A multitude of solar cells can be used as IRRADIANCE sensor.
+//Set MINIMUM_DAYLIGHT to the IRRADIANCE output at start of dusk.
+#define MINIMUM_DAYLIGHT 100
 
 //All sensors (Thr=DHT22,Tir=MELEXIS and Tp=BMP085) include a ambient temperature
 //Chosse  that sensor, only one, is going to use for main Ambient Temperature:
@@ -140,7 +145,7 @@ IMPORTANT: Customize following values to match your setup
 
 float P,HR,IR,T,Tp,Thr,Tir,Dew,Light,Clouds,skyT;
 int cloudy,dewing,frezzing;
-bool irSuccess, bmpSuccess;
+bool irSuccess,bmpSuccess;
 
 #define TOTAL_ANALOG_PINS       11
 #define TOTAL_PINS              25
@@ -164,9 +169,7 @@ void setupMeteoStation(){
         }
 #endif //USE_P_SENSOR
 
-#ifdef USE_IRRADIANCE_SENSOR
-    ;
-#else
+#ifndef USE_IRRADIANCE_SENSOR
     Light=0;
 #endif //USE_IRRADIANCE_SENSOR
 
@@ -181,6 +184,9 @@ void runMeteoStation() {
     if (irSuccess) {
         Tir=mlx.readAmbientTempC();
         IR=mlx.readObjectTempC();
+    } else if (irSuccess=mlx.begin()) {
+        // Retry mlx.begin(), and clear IR sensor fail flag
+        digitalWrite(PIN_TO_DIGITAL(7), LOW);
     }
     
     Clouds=cloudIndex();
@@ -199,6 +205,9 @@ void runMeteoStation() {
     if (bmpSuccess) {
         Tp=bmp.readTemperature();
         P=bmp.readPressure();
+    } else if (bmpSuccess=bmp.begin()) {
+        // Retry bmp.begin(), and clear P sensor fail flag
+        digitalWrite(PIN_TO_DIGITAL(9), LOW);
     }
 #else
     //set P sensor fail flag
@@ -255,19 +264,19 @@ void checkMeteo() {
        digitalWrite(PIN_TO_DIGITAL(3), LOW); // disable internal pull-ups
     }
   
-   if (dewing==1) {
+    if (dewing==1) {
        digitalWrite(PIN_TO_DIGITAL(4), HIGH); // enable internal pull-ups
     } else {
        digitalWrite(PIN_TO_DIGITAL(4), LOW); // disable internal pull-ups
     }
 
-   if (frezzing == 1) {
+    if (frezzing == 1) {
        digitalWrite(PIN_TO_DIGITAL(5), HIGH); // enable internal pull-ups
     } else {
        digitalWrite(PIN_TO_DIGITAL(5), LOW); // disable internal pull-ups
     }
   
-    if (Light>500) {
+    if (Light>MINIMUM_DAYLIGHT) {
        digitalWrite(PIN_TO_DIGITAL(6), HIGH); // enable internal pull-ups
     } else {
        digitalWrite(PIN_TO_DIGITAL(6), LOW); // disable internal pull-ups
