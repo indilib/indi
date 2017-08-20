@@ -23,6 +23,7 @@
 #include "base64.h"
 #include "basedevice.h"
 #include "locale_compat.h"
+#include "indistandardproperty.h"
 
 #include <iostream>
 #include <string>
