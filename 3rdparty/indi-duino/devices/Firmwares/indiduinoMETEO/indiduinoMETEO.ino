@@ -157,7 +157,8 @@ void setupMeteoStation(){
             digitalWrite(PIN_TO_DIGITAL(7), HIGH);
             IR=0;
             Tir=0;
-        }
+        } else digitalWrite(PIN_TO_DIGITAL(7), LOW); //Make sure IR sensor fail flag is off on success
+
 #endif //USE_IR_SENSOR
 
 #ifdef USE_P_SENSOR
@@ -166,7 +167,8 @@ void setupMeteoStation(){
             digitalWrite(PIN_TO_DIGITAL(9), HIGH);
             Tp=0;
             P=0;
-        }
+        } else digitalWrite(PIN_TO_DIGITAL(9), LOW); //Make sure P sensor fail flag is off on success
+
 #endif //USE_P_SENSOR
 
 #ifndef USE_IRRADIANCE_SENSOR
