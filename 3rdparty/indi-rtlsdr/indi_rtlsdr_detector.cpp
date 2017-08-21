@@ -20,6 +20,7 @@
 #include "indi_rtlsdr_detector.h"
 #include <unistd.h>
 #include <indilogger.h>
+#include <libdspau.h>
 #include <memory>
 
 #define MAX_TRIES 20
@@ -187,10 +188,10 @@ bool RTLSDR::Connect()
     //SetTimer(POLLMS);
 
 	/* Set the sample rate */
-	rtlsdr_set_sample_rate(rtl_dev, 2048000);
+	rtlsdr_set_sample_rate(rtl_dev, 1000000);
 
 	/* Set the frequency */
-	rtlsdr_set_center_freq(rtl_dev, 100000000);
+	rtlsdr_set_center_freq(rtl_dev, 480000000);
 
 	/* Set the bandwidth */
 	//rtlsdr_set_tuner_bandwidth(rtl_dev, 10000);
@@ -209,7 +210,7 @@ bool RTLSDR::Connect()
 bool RTLSDR::Disconnect()
 {
 	rtlsdr_close(rtl_dev);
-    DEBUG(INDI::Logger::DBG_SESSION, "RTL-SDR Detector disconnected successfully!");
+	DEBUG(INDI::Logger::DBG_SESSION, "RTL-SDR Detector disconnected successfully!");
 	return true;
 }
 
@@ -230,7 +231,7 @@ bool RTLSDR::initProperties()
 	INDI::Detector::initProperties();
 
 	// We set the Detector capabilities
-	uint32_t cap = DETECTOR_CAN_ABORT | DETECTOR_HAS_CONTINUUM;
+	uint32_t cap = DETECTOR_CAN_ABORT | DETECTOR_HAS_CONTINUUM | DETECTOR_HAS_SPECTRUM;
 	SetDetectorCapability(cap);
 
 	// Add Debug, Simulator, and Configuration controls
@@ -265,8 +266,8 @@ bool RTLSDR::updateProperties()
 ***************************************************************************************/
 void RTLSDR::setupParams()
 {
-	// Our Detector is an 8 bit Detector, 2MSPS sample rate, 100MHz frequency 10Khz bandwidth.
-	SetDetectorParams(10000.0, 100000000.0, 2048000.0, 8);
+	// Our Detector is an 8 bit Detector, 100MHz frequency 1MHz bandwidth.
+	SetDetectorParams(1000000.0, 100000000.0, 8);
 }
 
 /**************************************************************************************
@@ -281,12 +282,6 @@ bool RTLSDR::StartCapture(float duration)
 
 	gettimeofday(&CapStart, nullptr);
 
-	// Let's calculate how much memory we need for the primary Detector buffer
-	int nbuf;
-	nbuf = PrimaryDetector.getSamplingFrequency() * PrimaryDetector.getCaptureDuration() * PrimaryDetector.getBPS() / 8;
-
-	PrimaryDetector.setFrameBufferSize(nbuf + 512);
-
 	InCapture = true;
 
 	// We're done
@@ -296,20 +291,20 @@ bool RTLSDR::StartCapture(float duration)
 /**************************************************************************************
 ** Client is updating capture settings
 ***************************************************************************************/
-bool RTLSDR::CaptureParamsUpdated(float bw, float capfreq, float samfreq, float bps)
+bool RTLSDR::CaptureParamsUpdated(float sr, float freq, float bps)
 {
     	INDI_UNUSED(bps);
-    	INDI_UNUSED(bw);
 	int r = 0;
-	r = rtlsdr_set_center_freq(rtl_dev, (uint32_t)capfreq);
+	r = rtlsdr_set_center_freq(rtl_dev, (uint32_t)freq);
 	if(r != 0)
 		return false;
-	r = rtlsdr_set_sample_rate(rtl_dev, (uint32_t)samfreq);
+	if(rtlsdr_get_center_freq(rtl_dev) != freq)
+		PrimaryDetector.setFrequency(rtlsdr_get_center_freq(rtl_dev));
+	r = rtlsdr_set_sample_rate(rtl_dev, (uint32_t)sr);
 	if(r != 0)
 		return false;
-	//r = rtlsdr_set_tuner_bandwidth(rtl_dev, (uint32_t)bw);
-	//if(r != 0)
-	//	return false;
+	if(rtlsdr_get_sample_rate(rtl_dev) != sr)
+		PrimaryDetector.setFrequency(rtlsdr_get_sample_rate(rtl_dev));
 	return true;
 }
 
@@ -359,7 +354,7 @@ void RTLSDR::TimerHit()
 		if (timeleft < 0.1)
 		{
 			/* We're done exposing */
-            DEBUG(INDI::Logger::DBG_SESSION, "Capture done, downloading image...");
+            		DEBUG(INDI::Logger::DBG_SESSION, "Capture done, downloading image...");
 
 			// Set exposure left to zero
 			PrimaryDetector.setCaptureLeft(0);
@@ -385,32 +380,42 @@ void RTLSDR::TimerHit()
 void RTLSDR::grabFrame()
 {
 	// Let's get a pointer to the frame buffer
-	uint8_t *image = PrimaryDetector.getFrameBuffer();
+	// Let's calculate how much memory we need for the primary Detector buffer
+	int len = PrimaryDetector.getSampleRate() * PrimaryDetector.getCaptureDuration();
+	uint8_t* data8 = (uint8_t*)malloc(len);
 
-	// Get width and height
-	int len  = PrimaryDetector.getSamplingFrequency() * PrimaryDetector.getCaptureDuration() * PrimaryDetector.getBPS() / 8;
 	int n_read = 0;
-	int b_read = 0;
+	int b_read = len;
 	int ntries = 0;
-retry:
-	int r = rtlsdr_read_sync(rtl_dev, image, len - b_read, &n_read);
+	while (b_read > 0) {
+		int r = rtlsdr_read_sync(rtl_dev, data8, b_read, &n_read);
 
-	if (r < 0) {
-		usleep(10000);
-        DEBUG(INDI::Logger::DBG_WARNING, "sync read failed.");
-		if(ntries ++ < MAX_TRIES)
-			goto retry;
-        DEBUG(INDI::Logger::DBG_ERROR, "Too much wrong reads, exiting.");
-		return;
+		if (r < 0) {
+			DEBUG(INDI::Logger::DBG_ERROR, "Error when reading frame");
+		}
+
+		b_read -= n_read;
+
+		if(ntries++ > 50) {
+	        	DEBUG(INDI::Logger::DBG_WARNING, "Short read, samples lost!");
+			break;
+		}
 	}
 
-	if (n_read < len) {
-		b_read = n_read;
-        DEBUG(INDI::Logger::DBG_WARNING, "Short read, samples lost!");
-		goto retry;
-	}
+	PrimaryDetector.setContinuumBufferSize(len);
+	uint8_t* continuum = PrimaryDetector.getContinuumBuffer();
+	memcpy(continuum, data8, len);
 
-    DEBUG(INDI::Logger::DBG_SESSION, "Download complete.");
+	double * data = new double[len];
+	for(int k = 0; k < len; k++)
+		data[k] = (double)data8[k];
+	data = dspau_spectrum(data, len, &len, magnitude_dbv);
+
+	PrimaryDetector.setSpectrumBufferSize(len);
+	double * spectrum = PrimaryDetector.getSpectrumBuffer();
+	memcpy(spectrum, data, len * sizeof(double));
+
+	DEBUG(INDI::Logger::DBG_SESSION, "Download complete.");
 
 	// Let INDI::Detector know we're done filling the image buffer
 	CaptureComplete(&PrimaryDetector);
