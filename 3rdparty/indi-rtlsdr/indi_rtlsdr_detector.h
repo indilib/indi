@@ -44,7 +44,7 @@ class RTLSDR : public INDI::Detector
 
 	// Detector specific functions
 	bool StartCapture(float duration);
-	bool CaptureParamsUpdated(float bw, float capfreq, float samfreq, float bps);
+	bool CaptureParamsUpdated(float sr, float freq, float bps);
 	bool AbortCapture();
 	void TimerHit();
 
