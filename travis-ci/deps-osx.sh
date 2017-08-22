@@ -19,7 +19,8 @@ brew install \
 	libraw \
 	libcfitsio \
 	libnova  \
-	librtlsdr
+	librtlsdr  \
+	libfftw3
 			
 brew cask install \
 	sbig-universal-driver
