@@ -156,7 +156,7 @@ endif (WITH_SBIG)
 
 ## INOVA
 if (WITH_INOVAPLX)
-find_package(INOVAPLX)
+find_package(INOVASDK)
 if (INOVASDK_FOUND)
 add_subdirectory(indi-inovaplx)
 else (INOVASDK_FOUND)
@@ -245,9 +245,15 @@ if (WITH_MGEN)
 add_subdirectory(indi-mgen)
 endif (WITH_MGEN)
 
-## Cloud Watcher
+## RTL-SDR
 if (WITH_RTLSDR)
+find_package(DSPAU)
+if (DSPAU_FOUND)
 add_subdirectory(indi-rtlsdr)
+else (DSPAU_FOUND)
+add_subdirectory(libdspau)
+SET(LIBRARIES_FOUND FALSE)
+endif (DSPAU_FOUND)
 endif (WITH_RTLSDR)
 
 #endif (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
@@ -278,7 +284,7 @@ if (WITH_SBIG AND NOT SBIG_FOUND)
 message(STATUS "libsbigudrv was not found and will now be built. Please install libsbigudrv first before running cmake again to install indi-sbig.")
 endif (WITH_SBIG AND NOT SBIG_FOUND)
 
-if (WITH_INOVAPLX AND NOT INOVASDK)
+if (WITH_INOVAPLX AND NOT INOVASDK_FOUND)
 message(STATUS "libinovasdk was not found and will now be built. Please install libinovasdk first before running cmake again to install indi-inovaplx.")
 endif (WITH_INOVAPLX AND NOT INOVASDK_FOUND)
 
@@ -293,6 +299,10 @@ endif (WITH_APOGEE AND NOT APOGEE_FOUND)
 if (WITH_FISHCAMP AND NOT FISHCAMP_FOUND)
 message(STATUS "libfishcamp was not found and will now be built. Please install libfishcamp first before running cmake again to install indi-fishcamp.")
 endif (WITH_FISHCAMP AND NOT FISHCAMP_FOUND)
+
+if (WITH_RTLSDR AND NOT DSPAU_FOUND)
+message(STATUS "libdspau was not found and will now be built. Please install libdspau first before running cmake again to install indi-rtlsdr.")
+endif (WITH_RTLSDR AND NOT DSPAU_FOUND)
 
 message(STATUS "####################################################################################################################################")
 endif (LIBRARIES_FOUND)

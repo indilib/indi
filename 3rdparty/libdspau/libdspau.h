@@ -43,7 +43,7 @@ enum dspau_conversiontype {
 * Return out if success.
 * Return NULL if any error occurs.
 */
-double* dspau_spectrum(double* data, double bandwidth, int *len, int conversion);
+double* dspau_spectrum(double* data, int *len, int conversion);
 
 /**
 * @brief A square law filter

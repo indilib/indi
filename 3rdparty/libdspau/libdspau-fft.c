@@ -21,7 +21,7 @@ double complex_phi(fftw_complex n)
 double * complex2mag(fftw_complex* rawFFT, int len)
 {
 	double * mag = (double*)malloc(sizeof(double) * len);
-	for (unsigned int i = 0; i < len; i++) {
+	for (int i = 0; i < len; i++) {
 		mag[i] = complex_mag(rawFFT [i]);
 	}
 
@@ -31,7 +31,7 @@ double * complex2mag(fftw_complex* rawFFT, int len)
 double * complex2magpow(fftw_complex* rawFFT, int len)
 {
 	double * magSquared = (double*)malloc(sizeof(double) * len);
-	for (unsigned int i = 0; i < len; i++) {
+	for (int i = 0; i < len; i++) {
 		double mag = complex_mag(rawFFT [i]);
 		magSquared [i] = mag * mag;
 	}
@@ -42,7 +42,7 @@ double * complex2magpow(fftw_complex* rawFFT, int len)
 double * complex2magsqrt(fftw_complex* rawFFT, int len)
 {
 	double * mag = (double*)malloc(sizeof(double) * len);
-	for (unsigned int i = 0; i < len; i++) {
+	for (int i = 0; i < len; i++) {
 		mag [i] = sqrt (complex_mag(rawFFT [i]));
 	}
 
@@ -52,7 +52,7 @@ double * complex2magsqrt(fftw_complex* rawFFT, int len)
 double * complex2magdbv(fftw_complex* rawFFT, int len)
 {
 	double * mag = (double*)malloc(sizeof(double) * len);
-	for (unsigned int i = 0; i < len; i++) {
+	for (int i = 0; i < len; i++) {
 		double magVal = complex_mag(rawFFT [i]);
 
 		if (magVal <= 0.0)
@@ -69,7 +69,7 @@ double * complex2phideg(fftw_complex* rawFFT, int len)
 	double sf = 180.0 / M_PI; // Degrees per Radian scale factor
 
 	double * phase = (double*)malloc(sizeof(double) * len);
-	for (unsigned int i = 0; i < len; i++) {
+	for (int i = 0; i < len; i++) {
 		phase [i] = complex_phi(rawFFT [i]) * sf;
 	}
 
@@ -79,14 +79,14 @@ double * complex2phideg(fftw_complex* rawFFT, int len)
 double * complex2phirad(fftw_complex* rawFFT, int len)
 {
 	double * phase = (double*)malloc(sizeof(double) * len);
-	for (unsigned int i = 0; i < len; i++) {
+	for (int i = 0; i < len; i++) {
 		phase [i] = complex_phi(rawFFT [i]);
 	}
 
 	return phase;
 }
 
-double * dspau_spectrum(double * data, double bandwidth, int *l, int conversion)
+double * dspau_spectrum(double * data, int *l, int conversion)
 {
 	int i = 0;
 	int len = *l;

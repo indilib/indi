@@ -409,7 +409,7 @@ void RTLSDR::grabFrame()
 	double * data = new double[len];
 	for(int k = 0; k < len; k++)
 		data[k] = (double)data8[k];
-	data = dspau_spectrum(data, len, &len, magnitude_dbv);
+	data = dspau_spectrum(data, &len, magnitude_dbv);
 
 	PrimaryDetector.setSpectrumBufferSize(len);
 	double * spectrum = PrimaryDetector.getSpectrumBuffer();
