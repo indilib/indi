@@ -86,6 +86,13 @@ void ISInit()
 void ISGetProperties(const char *dev)
 {
     ISInit();
+
+    if (cameraCount == 0)
+    {
+        IDMessage(nullptr, "No Moravian cameras detected. Power on?");
+        return;
+    }
+
     for (int i = 0; i < cameraCount; i++)
     {
         MICCD *camera = cameras[i];

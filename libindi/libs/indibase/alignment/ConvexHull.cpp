@@ -98,7 +98,7 @@ bool ConvexHull::AddOne(tVertex p)
     return true;
 }
 
-void ConvexHull::CheckEndpts(void)
+void ConvexHull::CheckEndpts()
 {
     int i;
     tFace fstart;
@@ -154,7 +154,7 @@ void ConvexHull::CheckEuler(int V, int E, int F)
         std::cerr << "2E = 3F\n";
 }
 
-void ConvexHull::Checks(void)
+void ConvexHull::Checks()
 {
     tVertex v;
     tEdge e;
@@ -187,7 +187,7 @@ void ConvexHull::Checks(void)
     CheckEndpts();
 }
 
-void ConvexHull::CleanEdges(void)
+void ConvexHull::CleanEdges()
 {
     tEdge e; /* Primary index into edge list. */
     tEdge t; /* Temporary edge pointer. */
@@ -228,7 +228,7 @@ void ConvexHull::CleanEdges(void)
     } while (e != edges);
 }
 
-void ConvexHull::CleanFaces(void)
+void ConvexHull::CleanFaces()
 {
     tFace f; /* Primary pointer into face list. */
     tFace t; /* Temporary pointer, for deleting. */
@@ -314,7 +314,7 @@ bool ConvexHull::Collinear(tVertex a, tVertex b, tVertex c)
            (b->v[X] - a->v[X]) * (c->v[Y] - a->v[Y]) - (b->v[Y] - a->v[Y]) * (c->v[X] - a->v[X]) == 0;
 }
 
-void ConvexHull::Consistency(void)
+void ConvexHull::Consistency()
 {
     tEdge e;
     int i, j;
@@ -344,7 +344,7 @@ void ConvexHull::Consistency(void)
         std::cerr << "Checks: edges consistent.\n";
 }
 
-void ConvexHull::ConstructHull(void)
+void ConvexHull::ConstructHull()
 {
     tVertex v, vnext;
 
@@ -370,7 +370,7 @@ void ConvexHull::ConstructHull(void)
     } while (v != vertices);
 }
 
-void ConvexHull::Convexity(void)
+void ConvexHull::Convexity()
 {
     tFace f;
     tVertex v;
@@ -402,7 +402,7 @@ void ConvexHull::Convexity(void)
         std::cerr << "Checks: convex.\n";
 }
 
-void ConvexHull::DoubleTriangle(void)
+void ConvexHull::DoubleTriangle()
 {
     tVertex v0, v1, v2, v3;
     tFace f0, f1 = nullptr;
@@ -458,7 +458,7 @@ void ConvexHull::DoubleTriangle(void)
     }
 }
 
-void ConvexHull::EdgeOrderOnFaces(void)
+void ConvexHull::EdgeOrderOnFaces()
 {
     tFace f = faces;
     tEdge newEdge;
@@ -623,7 +623,7 @@ void ConvexHull::MakeNewVertex(double x, double y, double z, int VertexId)
     }
 }
 
-ConvexHull::tEdge ConvexHull::MakeNullEdge(void)
+ConvexHull::tEdge ConvexHull::MakeNullEdge()
 {
     tEdge e;
 
@@ -635,7 +635,7 @@ ConvexHull::tEdge ConvexHull::MakeNullEdge(void)
     return e;
 }
 
-ConvexHull::tFace ConvexHull::MakeNullFace(void)
+ConvexHull::tFace ConvexHull::MakeNullFace()
 {
     tFace f;
 
@@ -650,7 +650,7 @@ ConvexHull::tFace ConvexHull::MakeNullFace(void)
     return f;
 }
 
-ConvexHull::tVertex ConvexHull::MakeNullVertex(void)
+ConvexHull::tVertex ConvexHull::MakeNullVertex()
 {
     tVertex v;
 
@@ -663,7 +663,7 @@ ConvexHull::tVertex ConvexHull::MakeNullVertex(void)
     return v;
 }
 
-void ConvexHull::Print(void)
+void ConvexHull::Print()
 {
     /* Pointers to vertices, edges, faces. */
     tVertex v;
@@ -936,7 +936,7 @@ void ConvexHull::PrintVertices(std::ofstream &Ofile)
         } while (vertices != temp);
 }
 
-void ConvexHull::ReadVertices(void)
+void ConvexHull::ReadVertices()
 {
     tVertex v;
     int x, y, z;
@@ -958,7 +958,7 @@ void ConvexHull::ReadVertices(void)
     }
 }
 
-void ConvexHull::Reset(void)
+void ConvexHull::Reset()
 {
     tVertex CurrentVertex = vertices;
     tEdge CurrentEdge     = edges;

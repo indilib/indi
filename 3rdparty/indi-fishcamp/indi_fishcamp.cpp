@@ -271,7 +271,7 @@ bool FishCampCCD::updateProperties()
 
 bool FishCampCCD::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
 {
-    if (strcmp(dev, getDeviceName()) == 0)
+    if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
         if (!strcmp(name, GainNP.name))
         {

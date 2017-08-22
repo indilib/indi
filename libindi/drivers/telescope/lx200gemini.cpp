@@ -28,23 +28,23 @@
 #include "indicom.h"
 #include "lx200driver.h"
 
-#include <string.h>
+#include <cstring>
 #include <termios.h>
 
 LX200Gemini::LX200Gemini()
 {
     setVersion(1, 3);
 
-    setLX200Capability(LX200_HAS_SITES | LX200_HAS_FOCUS | LX200_HAS_TRACK_MODE);
+    setLX200Capability(LX200_HAS_SITES | LX200_HAS_FOCUS);
 
     SetTelescopeCapability(TELESCOPE_CAN_PARK | TELESCOPE_CAN_SYNC | TELESCOPE_CAN_GOTO | TELESCOPE_CAN_ABORT |
-                               TELESCOPE_HAS_TIME | TELESCOPE_HAS_LOCATION | TELESCOPE_HAS_PIER_SIDE,
+                               TELESCOPE_HAS_TIME | TELESCOPE_HAS_LOCATION | TELESCOPE_HAS_PIER_SIDE | TELESCOPE_HAS_TRACK_MODE,
                            4);
 }
 
 const char *LX200Gemini::getDefaultName()
 {
-    return (char *)"Losmandy Gemini";
+    return (const char *)"Losmandy Gemini";
 }
 
 void LX200Gemini::ISGetProperties(const char *dev)
@@ -99,7 +99,7 @@ bool LX200Gemini::updateProperties()
 
 bool LX200Gemini::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
 {
-    if (!strcmp(dev, getDeviceName()))
+    if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
         if (!strcmp(name, StartupModeSP.name))
         {
@@ -248,7 +248,7 @@ bool LX200Gemini::isSlewComplete()
 
 bool LX200Gemini::ReadScopeStatus()
 {
-    if (isConnected() == false)
+    if (!isConnected())
         return false;
 
     if (isSimulation())
@@ -424,7 +424,7 @@ bool LX200Gemini::saveConfigItems(FILE *fp)
     return true;
 }
 
-bool LX200Gemini::SetTrackMode(int mode)
+bool LX200Gemini::SetTrackMode(uint8_t mode)
 {
     int rc = TTY_OK, nbytes_written=0;
     char prefix[16] = {0};

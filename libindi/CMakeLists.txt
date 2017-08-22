@@ -45,8 +45,8 @@ ENDIF ()
 
 set(INDI_SOVERSION "1")
 set(CMAKE_INDI_VERSION_MAJOR 1)
-set(CMAKE_INDI_VERSION_MINOR 4)
-set(CMAKE_INDI_VERSION_RELEASE 1)
+set(CMAKE_INDI_VERSION_MINOR 5)
+set(CMAKE_INDI_VERSION_RELEASE 0)
 set(CMAKE_INDI_VERSION_STRING "${CMAKE_INDI_VERSION_MAJOR}.${CMAKE_INDI_VERSION_MINOR}.${CMAKE_INDI_VERSION_RELEASE}")
 set(INDI_VERSION ${CMAKE_INDI_VERSION_MAJOR}.${CMAKE_INDI_VERSION_MINOR}.${CMAKE_INDI_VERSION_RELEASE})
 
@@ -167,7 +167,8 @@ SET(indiclient_C_SRC
 SET(indiclient_CXX_SRC
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/basedevice.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/baseclient.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indiproperty.cpp)
+    ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indiproperty.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indistandardproperty.cpp)
 
 IF (UNITY_BUILD)
     ENABLE_UNITY_BUILD(indiclient_c indiclient_C_SRC 10 c)
@@ -343,6 +344,7 @@ SET(indidriver_CXX_SRC
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indilightboxinterface.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indilogger.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indicontroller.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indistandardproperty.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/connectionplugins/connectioninterface.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/connectionplugins/connectionserial.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/connectionplugins/connectiontcp.cpp)
@@ -683,6 +685,19 @@ ENDIF ()
 add_executable(indi_lynx_focus ${focuslynx_SRC})
 target_link_libraries(indi_lynx_focus indidriver)
 install(TARGETS indi_lynx_focus RUNTIME DESTINATION bin)
+
+################ Optec Gemini Focuser Rotator ########
+
+SET(gemini_SRC
+    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/focuser/gemini.cpp)
+
+IF (UNITY_BUILD)
+    ENABLE_UNITY_BUILD(gemini gemini_SRC 10 cpp)
+ENDIF ()
+
+add_executable(indi_gemini_focus ${gemini_SRC})
+target_link_libraries(indi_gemini_focus indidriver)
+install(TARGETS indi_gemini_focus RUNTIME DESTINATION bin)
 
 ################ PerfectStar Focuser ################
 

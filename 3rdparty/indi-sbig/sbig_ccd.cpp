@@ -536,7 +536,7 @@ bool SBIGCCD::updateProperties()
 
 bool SBIGCCD::ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
 {
-    if (strcmp(dev, getDeviceName()) == 0)
+    if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
         if (strcmp(name, IpTP.name) == 0)
         {
@@ -564,7 +564,7 @@ bool SBIGCCD::ISNewText(const char *dev, const char *name, char *texts[], char *
 
 bool SBIGCCD::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
 {
-    if (strcmp(dev, getDeviceName()) == 0)
+    if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
         if (strcmp(name, PortSP.name) == 0)
         {
@@ -649,7 +649,7 @@ bool SBIGCCD::ISNewSwitch(const char *dev, const char *name, ISState *states, ch
 
 bool SBIGCCD::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
 {
-    if (strcmp(dev, getDeviceName()) == 0)
+    if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
         if (strcmp(name, FilterSlotNP.name) == 0)
         {
@@ -1313,7 +1313,6 @@ void SBIGCCD::TimerHit()
         if (isExposureDone(targetChip))
         {
             DEBUG(INDI::Logger::DBG_DEBUG, "Primay camera exposure done, downloading image...");
-            timeleft = 0;
             targetChip->setExposureLeft(0);
             InExposure = false;
 #ifdef ASYNC_READOUT
@@ -1339,7 +1338,6 @@ void SBIGCCD::TimerHit()
         if (isExposureDone(targetChip))
         {
             DEBUG(INDI::Logger::DBG_DEBUG, "Guide head exposure done, downloading image...");
-            timeleft = 0;
             targetChip->setExposureLeft(0);
             InGuideExposure = false;
 #ifdef ASYNC_READOUT
@@ -2583,6 +2581,9 @@ int SBIGCCD::CFWQuery(CFWResults *CFWr)
 
 int SBIGCCD::CFWGoto(CFWResults *CFWr, int position)
 {
+    if (CFWr == nullptr)
+        return CE_NO_ERROR;
+
     if (isSimulation())
     {
         CFWr->cfwPosition = position;

@@ -23,7 +23,7 @@
 
 #include "lx200driver.h"
 
-#include <string.h>
+#include <cstring>
 #include <unistd.h>
 
 #define LIBRARY_TAB  "Library"
@@ -35,6 +35,8 @@ LX200_OnStep::LX200_OnStep() : LX200Generic()
     currentSubCatalog = 0;
 
     setVersion(1, 0);
+
+    SetTelescopeCapability(GetTelescopeCapability() | TELESCOPE_CAN_CONTROL_TRACK);
 }
 
 const char *LX200_OnStep::getDefaultName()
@@ -92,9 +94,11 @@ bool LX200_OnStep::initProperties()
     IUFillNumberVector(&ElevationLimitNP, ElevationLimitN, 1, getDeviceName(), "Slew elevation Limit", "",
                        MAIN_CONTROL_TAB, IP_RW, 0, IPS_IDLE);
 
+    /*
     IUFillSwitch(&EnaTrackS[0], "ENABLE", "TrackOn/Off", ISS_OFF);
     IUFillSwitchVector(&EnaTrackSP, EnaTrackS, 1, getDeviceName(), "TELESCOPE_TRACK_ENABLE", "Tracking On/Off",
                        MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
+                       */
 
     IUFillSwitch(&ReticS[0], "PLUS", "Light", ISS_OFF);
     IUFillSwitch(&ReticS[1], "MOINS", "Dark", ISS_OFF);
@@ -113,14 +117,14 @@ bool LX200_OnStep::initProperties()
 
 void LX200_OnStep::ISGetProperties(const char *dev)
 {
-    if (dev && strcmp(dev, getDeviceName()))
+    if (dev != nullptr && strcmp(dev, getDeviceName()) != 0)
         return;
 
     LX200Generic::ISGetProperties(dev);
 
     if (isConnected())
     {
-        defineSwitch(&EnaTrackSP);
+        //defineSwitch(&EnaTrackSP);
         defineSwitch(&ReticSP);
         defineNumber(&ElevationLimitNP);
         defineText(&ObjectInfoTP);
@@ -138,7 +142,7 @@ bool LX200_OnStep::updateProperties()
 
     if (isConnected())
     {
-        defineSwitch(&EnaTrackSP);
+        //defineSwitch(&EnaTrackSP);
         defineSwitch(&ReticSP);
         defineText(&VersionTP);
         defineNumber(&ElevationLimitNP);
@@ -152,7 +156,7 @@ bool LX200_OnStep::updateProperties()
     }
     else
     {
-        deleteProperty(EnaTrackSP.name);
+        //deleteProperty(EnaTrackSP.name);
         deleteProperty(ReticSP.name);
         deleteProperty(VersionTP.name);
         deleteProperty(ElevationLimitNP.name);
@@ -168,7 +172,7 @@ bool LX200_OnStep::updateProperties()
 
 bool LX200_OnStep::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
 {
-    if (strcmp(dev, getDeviceName()) == 0)
+    if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
         if (!strcmp(name, ObjectNoNP.name))
         {
@@ -201,7 +205,7 @@ bool LX200_OnStep::ISNewNumber(const char *dev, const char *name, double values[
 
         if (!strcmp(name, MaxSlewRateNP.name))
         {
-            if (setMaxSlewRate(PortFD, (int)values[0] < 0))
+            if (setMaxSlewRate(PortFD, (int)values[0]) < 0)
             {
                 MaxSlewRateNP.s = IPS_ALERT;
                 IDSetNumber(&MaxSlewRateNP, "Error setting maximum slew rate.");
@@ -266,9 +270,10 @@ bool LX200_OnStep::ISNewSwitch(const char *dev, const char *name, ISState *state
 {
     int index = 0;
 
-    if (strcmp(dev, getDeviceName()) == 0)
+    if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
         // Track Enable Button
+        /*
         if (!strcmp(name, EnaTrackSP.name))
         {
             int ret = 0;
@@ -296,7 +301,7 @@ bool LX200_OnStep::ISNewSwitch(const char *dev, const char *name, ISState *state
             }
             LX200_OnStep::OnStepStat();
             return true;
-        }
+        }*/
 
         // Reticlue +/- Buttons
         if (!strcmp(name, ReticSP.name))
@@ -425,7 +430,7 @@ void LX200_OnStep::getBasicData()
     // process parent
     LX200Generic::getBasicData();
 
-    if (isSimulation() == false)
+    if (!isSimulation())
     {
         VersionTP.tp[0].text = new char[64];
         getVersionDate(PortFD, VersionTP.tp[0].text);
@@ -446,10 +451,10 @@ void LX200_OnStep::getBasicData()
 
 bool LX200_OnStep::UnPark()
 {
-    int ret = 0;
+    //int ret = 0;
 
     // First we unpark
-    if (isSimulation() == false)
+    if (!isSimulation())
     {
         if (UnParkOnStep(PortFD) < 0)
         {
@@ -458,11 +463,14 @@ bool LX200_OnStep::UnPark()
         }
     }
 
-    IDMessage(getDeviceName(), "OnStep UnParking telescope in progress... ");
+    DEBUG(INDI::Logger::DBG_SESSION, "OnStep UnParking telescope in progress... ");
     SetParked(false);
-    ret = EnaTrackOnStep(PortFD);
-    ParkSP.s   = IPS_OK;
+
+    //ret = EnaTrackOnStep(PortFD);
+    //ParkSP.s   = IPS_OK;
+    SetTrackEnabled(true);
     TrackState = SCOPE_TRACKING;
+
     return true;
 }
 
@@ -477,7 +485,8 @@ void LX200_OnStep::OnStepStat()
         switch (OSStat[i++])
         {
             case 'N':
-                strcpy(OnStepStatus, "Not Sleewing, "); // Not SCOPE_SLEWING
+                strcpy(OnStepStatus, "Idle, "); // Not SCOPE_SLEWING
+                TrackState = SCOPE_IDLE;
                 break;
             case 'H':
                 strcat(OnStepStatus, "At Home, "); // At Home
@@ -506,7 +515,7 @@ void LX200_OnStep::OnStepStat()
                 strcat(OnStepStatus, "Synced, "); // GPS Synced
                 break;
             case 'n':
-                strcat(OnStepStatus, "Sid, "); // Sidereal
+                strcat(OnStepStatus, "Sideral, "); // Sidereal
                 break;
             case 'W':
                 strcat(OnStepStatus, "PEC Auto, "); // PEC Auto Record
@@ -541,5 +550,23 @@ void LX200_OnStep::OnStepStat()
                 break;
         }
     }
-    DEBUG(INDI::Logger::DBG_ERROR, OnStepStatus);
+    DEBUG(INDI::Logger::DBG_DEBUG, OnStepStatus);
+}
+
+bool LX200_OnStep::SetTrackEnabled(bool enabled)
+{
+    int ret = 0;
+
+    if (enabled)
+        ret = EnaTrackOnStep(PortFD);
+    else
+        ret = DisTrackOnStep(PortFD);
+
+    if (ret == 5)
+    {
+        LX200_OnStep::OnStepStat();
+        return true;
+    }
+
+    return false;
 }

@@ -172,7 +172,7 @@
           <version>1.0</version>
         </device>
         <device label="Rigelsys NStep">
-          <driver name="NStep">indi_nstep_focus</driver>
+          <driver name="Rigelsys NStep">indi_nstep_focus</driver>
           <version>1.0</version>
         </device>
         <device label="MoonLite">
@@ -181,6 +181,10 @@
         </device>
         <device label="NightCrawler">
                 <driver name="NightCrawler">indi_nightcrawler_focus</driver>
+                <version>1.0</version>
+        </device>
+        <device label="Gemini Focusing Rotator">
+                <driver name="Gemini Focusing Rotator">indi_gemini_focus</driver>
                 <version>1.0</version>
         </device>
         <device label="USBFocusV3">

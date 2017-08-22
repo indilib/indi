@@ -20,7 +20,6 @@
 
 #include "indibase.h"
 #include "indiproperty.h"
-#include "indistandardproperty.h"
 
 #include <string>
 #include <vector>

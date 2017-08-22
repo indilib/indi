@@ -20,6 +20,8 @@
 
 #include "indicom.h"
 
+#define SYNSCAN_SLEW_RATES 9
+
 using namespace INDI::AlignmentSubsystem;
 
 // We declare an auto pointer to Synscan.
@@ -30,19 +32,19 @@ void ISGetProperties(const char *dev)
     synscan->ISGetProperties(dev);
 }
 
-void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int num)
+void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
 {
-    synscan->ISNewSwitch(dev, name, states, names, num);
+    synscan->ISNewSwitch(dev, name, states, names, n);
 }
 
-void ISNewText(const char *dev, const char *name, char *texts[], char *names[], int num)
+void ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
 {
-    synscan->ISNewText(dev, name, texts, names, num);
+    synscan->ISNewText(dev, name, texts, names, n);
 }
 
-void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int num)
+void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
 {
-    synscan->ISNewNumber(dev, name, values, names, num);
+    synscan->ISNewNumber(dev, name, values, names, n);
 }
 
 void ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[],
@@ -57,6 +59,7 @@ void ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], 
     INDI_UNUSED(names);
     INDI_UNUSED(n);
 }
+
 void ISSnoopDevice(XMLEle *root)
 {
     synscan->ISSnoopDevice(root);
@@ -68,31 +71,16 @@ SynscanMount::SynscanMount()
                                TELESCOPE_HAS_TIME | TELESCOPE_HAS_LOCATION,
                            SYNSCAN_SLEW_RATES);
     SetParkDataType(PARK_RA_DEC_ENCODER);
-    strcpy(LastParkRead, "");
-    SlewRate     = 5;
-    HasFailed    = true;
-    FirstConnect = true;
-}
-
-SynscanMount::~SynscanMount()
-{
-    //dtor
+    strncpy(LastParkRead, "", 1);
 }
 
 bool SynscanMount::Connect()
 {
-    bool rc = false;
-
     if (isConnected())
         return true;
 
     //rc=Connect(PortT[0].text, atoi(IUFindOnSwitch(&BaudRateSP)->name));
-    rc = INDI::Telescope::Connect();
-
-    if (rc)
-    {
-    }
-    return rc;
+    return INDI::Telescope::Connect();
 }
 
 const char *SynscanMount::getDefaultName()
@@ -125,16 +113,16 @@ bool SynscanMount::initProperties()
 
     return r;
 }
+
 void SynscanMount::ISGetProperties(const char *dev)
 {
     /* First we let our parent populate */
     INDI::Telescope::ISGetProperties(dev);
-
-    return;
 }
+
 bool SynscanMount::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
 {
-    if (strcmp(dev, getDeviceName()) == 0)
+    if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
         // It is for us
         ProcessAlignmentNumberProperties(this, name, values, names, n);
@@ -145,7 +133,7 @@ bool SynscanMount::ISNewNumber(const char *dev, const char *name, double values[
 
 bool SynscanMount::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
 {
-    if (strcmp(dev, getDeviceName()) == 0)
+    if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
         // It is for us
         ProcessAlignmentSwitchProperties(this, name, states, names, n);
@@ -157,7 +145,7 @@ bool SynscanMount::ISNewSwitch(const char *dev, const char *name, ISState *state
 bool SynscanMount::ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[],
                              char *formats[], char *names[], int n)
 {
-    if (strcmp(dev, getDeviceName()) == 0)
+    if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
         // It is for us
         ProcessAlignmentBLOBProperties(this, name, sizes, blobsizes, blobs, formats, names, n);
@@ -168,7 +156,7 @@ bool SynscanMount::ISNewBLOB(const char *dev, const char *name, int sizes[], int
 
 bool SynscanMount::ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
 {
-    if (strcmp(dev, getDeviceName()) == 0)
+    if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
         ProcessAlignmentTextProperties(this, name, texts, names, n);
     }
@@ -234,7 +222,6 @@ bool SynscanMount::AnalyzeHandset()
     tty_read(PortFD, str, 2, 2, &bytesRead);
     tmp = str[0];
     //fprintf(stderr,"Model %d\n",tmp);
-    MountModel = tmp;
     IDMessage(getDeviceName(), "Mount Model %d", tmp);
 
     bytesRead = 0;
@@ -447,7 +434,7 @@ bool SynscanMount::ReadScopeStatus()
             {
                 StopCount = 0;
             }
-            strcpy(LastParkRead, str);
+            strncpy(LastParkRead, str, sizeof(str));
         }
     }
 
@@ -480,7 +467,7 @@ bool SynscanMount::ReadScopeStatus()
 
     //  Before we pass this back to a client
     //  run it thru the alignment matrix to correct the data
-    ln_equ_posn eq;
+    ln_equ_posn eq { 0, 0 };
 
     eq = TelescopeToSky(ra, dec);
     //  Now feed the rest of the system with corrected data
@@ -521,7 +508,7 @@ bool SynscanMount::Goto(double ra, double dec)
     char str[20];
     int n1, n2;
     int numread, bytesWritten, bytesRead;
-    ln_equ_posn eq;
+    ln_equ_posn eq { 0, 0 };
     double RightAscension, Declination;
 
     //fprintf(stderr,"Enter Goto  %4.4lf %4.4lf\n",ra,dec);
@@ -566,7 +553,7 @@ bool SynscanMount::Park()
     char str[20];
     int numread, bytesWritten, bytesRead;
 
-    strcpy(LastParkRead, "");
+    strncpy(LastParkRead, "", 1);
     memset(str, 0, 3);
     tty_write(PortFD, "Ka", 2, &bytesWritten); //  test for an echo
     tty_read(PortFD, str, 2, 2, &bytesRead);   //  Read 2 bytes of response
@@ -645,17 +632,17 @@ bool SynscanMount::Abort()
 bool SynscanMount::MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command)
 {
     //fprintf(stderr,"MoveNS %d rate %d dir %d\n",command,SlewRate,dir);
-    if (command)
+    if (command != MOTION_START)
     {
         //fprintf(stderr,"Stop Motion N/S\n");
         PassthruCommand(37, 17, 2, 0, 0);
     }
     else
     {
-        int tt;
-        tt = SlewRate;
+        int tt = SlewRate;
+
         tt = tt << 16;
-        if (dir)
+        if (dir != DIRECTION_NORTH)
         {
             //fprintf(stderr,"Start Motion South\n");
             PassthruCommand(37, 17, 2, tt, 0);
@@ -674,17 +661,17 @@ bool SynscanMount::MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command)
 {
     //fprintf(stderr,"MoveWE %d rate %d dir %d\n",command,SlewRate,dir);
 
-    if (command)
+    if (command != MOTION_START)
     {
         //fprintf(stderr,"Stop Motion E/W\n");
         PassthruCommand(37, 16, 2, 0, 0);
     }
     else
     {
-        int tt;
-        tt = SlewRate;
+        int tt = SlewRate;
+
         tt = tt << 16;
-        if (dir)
+        if (dir != DIRECTION_WEST)
         {
             //fprintf(stderr,"Start Motion East\n");
             PassthruCommand(37, 16, 2, tt, 0);
@@ -711,9 +698,8 @@ int SynscanMount::PassthruCommand(int cmd, int target, int msgsize, int data, in
     char test[20];
     int bytesRead, bytesWritten;
     char a, b, c;
-    int tt;
+    int tt = data;
 
-    tt = data;
     a  = tt % 256;
     tt = tt >> 8;
     b  = tt % 256;
@@ -894,10 +880,11 @@ bool SynscanMount::updateTime(ln_date *utc, double utc_offset)
 
     //fprintf(stderr,"Update time\n");
     struct ln_zonedate ltm;
+
     ln_date_to_zonedate(utc, &ltm, utc_offset * 3600.0);
 
-    int yr;
-    yr = ltm.years;
+    int yr = ltm.years;
+
     yr = yr % 100;
 
     str[0] = 'H';
@@ -933,7 +920,7 @@ bool SynscanMount::updateLocation(double latitude, double longitude, double elev
     bool IsWest = false;
     double tmp = 0;
 
-    ln_lnlat_posn p1;
+    ln_lnlat_posn p1 { 0, 0 };
     lnh_lnlat_posn p2;
 
     //  call the alignment subsystem with our location
@@ -975,7 +962,7 @@ bool SynscanMount::updateLocation(double latitude, double longitude, double elev
 
         str[5] = p2.lng.degrees;
         str[6] = p2.lng.minutes;
-        s      = (p2.lng.seconds + 0.5); //  make an int, that's rounded
+        s      = (int)(p2.lng.seconds + 0.5); //  make an int, that's rounded
         str[7] = s;
         if (IsWest)
             str[8] = 1;
@@ -1002,7 +989,7 @@ bool SynscanMount::updateLocation(double latitude, double longitude, double elev
 
 bool SynscanMount::Sync(double ra, double dec)
 {
-    ln_equ_posn eq;
+    ln_equ_posn eq { 0, 0 };
     AlignmentDatabaseEntry NewEntry;
     double lst = 0, lha = 0;
 
@@ -1055,7 +1042,7 @@ bool SynscanMount::Sync(double ra, double dec)
 ln_equ_posn SynscanMount::TelescopeToSky(double ra, double dec)
 {
     double RightAscension, Declination;
-    ln_equ_posn eq;
+    ln_equ_posn eq { 0, 0 };
 
     if (GetAlignmentDatabase().size() > 1)
     {
@@ -1118,7 +1105,7 @@ ln_equ_posn SynscanMount::TelescopeToSky(double ra, double dec)
 
 ln_equ_posn SynscanMount::SkyToTelescope(double ra, double dec)
 {
-    ln_equ_posn eq;
+    ln_equ_posn eq { 0, 0 };
     TelescopeDirectionVector TDV;
     double RightAscension = 0, Declination = 0;
 

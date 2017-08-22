@@ -18,7 +18,9 @@ brew install \
 	gpsd \
 	libraw \
 	libcfitsio \
-	libnova 
+	libnova  \
+	librtlsdr  \
+	libfftw3
 			
 brew cask install \
 	sbig-universal-driver

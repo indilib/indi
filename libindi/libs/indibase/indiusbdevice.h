@@ -57,7 +57,7 @@ class INDI::USBDevice
     int FindEndpoints();
     int Open();
     void Close();
-    USBDevice(void);
+    USBDevice();
     USBDevice(libusb_device *dev);
-    virtual ~USBDevice(void);
+    virtual ~USBDevice();
 };

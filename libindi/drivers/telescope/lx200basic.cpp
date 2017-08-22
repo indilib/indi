@@ -29,9 +29,9 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110 - 1301  USA
 
 #include <libnova/sidereal_time.h>
 
-#include <math.h>
+#include <cmath>
 #include <memory>
-#include <string.h>
+#include <cstring>
 #include <unistd.h>
 
 #define POLLMS 1000
@@ -140,7 +140,7 @@ void LX200Basic::debugTriggered(bool enable)
 ***************************************************************************************/
 const char *LX200Basic::getDefaultName()
 {
-    return (char *)"LX200 Basic";
+    return (const char *)"LX200 Basic";
 }
 
 /**************************************************************************************
@@ -167,7 +167,7 @@ bool LX200Basic::initProperties()
 ***************************************************************************************/
 void LX200Basic::ISGetProperties(const char *dev)
 {
-    if (dev && strcmp(dev, getDeviceName()))
+    if (dev != nullptr && strcmp(dev, getDeviceName()) != 0)
         return;
 
     INDI::Telescope::ISGetProperties(dev);
@@ -230,7 +230,7 @@ bool LX200Basic::isSlewComplete()
 ***************************************************************************************/
 bool LX200Basic::ReadScopeStatus()
 {
-    if (isConnected() == false)
+    if (!isConnected())
         return false;
 
     if (isSimulation())
@@ -292,7 +292,7 @@ bool LX200Basic::Goto(double r, double d)
         usleep(100000);
     }
 
-    if (isSimulation() == false)
+    if (!isSimulation())
     {
         if (setObjectRA(PortFD, targetRA) < 0 || (setObjectDEC(PortFD, targetDEC)) < 0)
         {
@@ -327,14 +327,14 @@ bool LX200Basic::Sync(double ra, double dec)
 {
     char syncString[256]={0};
 
-    if (isSimulation() == false && (setObjectRA(PortFD, ra) < 0 || (setObjectDEC(PortFD, dec)) < 0))
+    if (!isSimulation() && (setObjectRA(PortFD, ra) < 0 || (setObjectDEC(PortFD, dec)) < 0))
     {
         EqNP.s = IPS_ALERT;
         IDSetNumber(&EqNP, "Error setting RA/DEC. Unable to Sync.");
         return false;
     }
 
-    if (isSimulation() == false && ::Sync(PortFD, syncString) < 0)
+    if (!isSimulation() && ::Sync(PortFD, syncString) < 0)
     {
         EqNP.s = IPS_ALERT;
         IDSetNumber(&EqNP, "Synchronization failed.");
@@ -358,7 +358,7 @@ bool LX200Basic::Sync(double ra, double dec)
 ***************************************************************************************/
 bool LX200Basic::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
 {
-    if (strcmp(dev, getDeviceName()) == 0)
+    if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
         if (!strcmp(name, SlewAccuracyNP.name))
         {
@@ -383,7 +383,7 @@ bool LX200Basic::ISNewNumber(const char *dev, const char *name, double values[],
 ***************************************************************************************/
 bool LX200Basic::Abort()
 {
-    if (isSimulation() == false && abortSlew(PortFD) < 0)
+    if (!isSimulation() && abortSlew(PortFD) < 0)
     {
         DEBUG(INDI::Logger::DBG_ERROR, "Failed to abort slew.");
         return false;

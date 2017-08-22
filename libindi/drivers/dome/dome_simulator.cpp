@@ -20,7 +20,7 @@
 
 #include "indicom.h"
 
-#include <math.h>
+#include <cmath>
 #include <memory>
 #include <unistd.h>
 
@@ -37,19 +37,19 @@ void ISGetProperties(const char *dev)
     domeSim->ISGetProperties(dev);
 }
 
-void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int num)
+void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
 {
-    domeSim->ISNewSwitch(dev, name, states, names, num);
+    domeSim->ISNewSwitch(dev, name, states, names, n);
 }
 
-void ISNewText(const char *dev, const char *name, char *texts[], char *names[], int num)
+void ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
 {
-    domeSim->ISNewText(dev, name, texts, names, num);
+    domeSim->ISNewText(dev, name, texts, names, n);
 }
 
-void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int num)
+void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
 {
-    domeSim->ISNewNumber(dev, name, values, names, num);
+    domeSim->ISNewNumber(dev, name, values, names, n);
 }
 
 void ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[],
@@ -122,13 +122,9 @@ bool DomeSim::SetupParms()
     return true;
 }
 
-DomeSim::~DomeSim()
-{
-}
-
 const char *DomeSim::getDefaultName()
 {
-    return (char *)"Dome Simulator";
+    return (const char *)"Dome Simulator";
 }
 
 bool DomeSim::updateProperties()
@@ -158,7 +154,7 @@ void DomeSim::TimerHit()
 {
     int nexttimer = 1000;
 
-    if (isConnected() == false)
+    if (!isConnected())
         return; //  No need to reset timer if we are not connected anymore
 
     if (DomeAbsPosNP.s == IPS_BUSY)
@@ -209,12 +205,11 @@ void DomeSim::TimerHit()
     //  Once every 10 seconds is more than sufficient
     //  with this added, dome simulator will now correctly track telescope simulator
     //  which does not emit new ra/dec co-ords if they are not changing
-    if (isParked() == false && TimeSinceUpdate++ > 9)
+    if (!isParked() && TimeSinceUpdate++ > 9)
     {
         TimeSinceUpdate = 0;
         UpdateMountCoords();
     }
-    return;
 }
 
 IPState DomeSim::Move(DomeDirection dir, DomeMotionCommand operation)

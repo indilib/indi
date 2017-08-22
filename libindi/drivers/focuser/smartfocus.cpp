@@ -20,12 +20,32 @@
 
 #include "indicom.h"
 
-#include <errno.h>
+#include <cerrno>
 #include <fcntl.h>
 #include <memory>
-#include <string.h>
+#include <cstring>
 #include <termios.h>
 #include <unistd.h>
+
+namespace
+{
+static constexpr const SmartFocus::Position PositionInvalid { static_cast<SmartFocus::Position>(0xFFFF) };
+// Interval to check the focuser state (in milliseconds)
+static constexpr const int TimerInterval { 500 };
+// in seconds
+static constexpr const int ReadTimeOut { 1 };
+
+// SmartFocus command and response characters
+static constexpr const char goto_position { 'g' };
+static constexpr const char stop_focuser { 's' };
+static constexpr const char read_id_register { 'b' };
+static constexpr const char read_id_respons { 'j' };
+static constexpr const char read_position { 'p' };
+static constexpr const char read_flags { 't' };
+static constexpr const char motion_complete { 'c' };
+static constexpr const char motion_error { 'r' };
+static constexpr const char motion_stopped { 's' };
+} // namespace
 
 std::unique_ptr<SmartFocus> smartFocus(new SmartFocus());
 
@@ -34,19 +54,19 @@ void ISGetProperties(const char *dev)
     smartFocus->ISGetProperties(dev);
 }
 
-void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int num)
+void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
 {
-    smartFocus->ISNewSwitch(dev, name, states, names, num);
+    smartFocus->ISNewSwitch(dev, name, states, names, n);
 }
 
-void ISNewText(const char *dev, const char *name, char *texts[], char *names[], int num)
+void ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
 {
-    smartFocus->ISNewText(dev, name, texts, names, num);
+    smartFocus->ISNewText(dev, name, texts, names, n);
 }
 
-void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int num)
+void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
 {
-    smartFocus->ISNewNumber(dev, name, values, names, num);
+    smartFocus->ISNewNumber(dev, name, values, names, n);
 }
 
 void ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[],
@@ -67,27 +87,12 @@ void ISSnoopDevice(XMLEle *root)
     smartFocus->ISSnoopDevice(root);
 }
 
-const SmartFocus::Position SmartFocus::PositionInvalid = static_cast<SmartFocus::Position>(0xFFFF);
-const int SmartFocus::TimerInterval                    = 500; // Interval to check the focuser state (in milliseconds)
-const int SmartFocus::ReadTimeOut                      = 1;   // (in seconds)
-
-// SmartFocus command and respons characters
-const char SmartFocus::goto_position    = 'g';
-const char SmartFocus::stop_focuser     = 's';
-const char SmartFocus::read_id_register = 'b';
-const char SmartFocus::read_id_respons  = 'j';
-const char SmartFocus::read_position    = 'p';
-const char SmartFocus::read_flags       = 't';
-const char SmartFocus::motion_complete  = 'c';
-const char SmartFocus::motion_error     = 'r';
-const char SmartFocus::motion_stopped   = 's';
-
-SmartFocus::SmartFocus(void) : position(0), state(Idle), timer_id(0)
+SmartFocus::SmartFocus()
 {
     SetFocuserCapability(FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_REL_MOVE | FOCUSER_CAN_ABORT);
 }
 
-bool SmartFocus::initProperties(void)
+bool SmartFocus::initProperties()
 {
     INDI::Focuser::initProperties();
 
@@ -122,7 +127,7 @@ bool SmartFocus::initProperties(void)
     return true;
 }
 
-bool SmartFocus::updateProperties(void)
+bool SmartFocus::updateProperties()
 {
     INDI::Focuser::updateProperties();
 
@@ -156,14 +161,14 @@ bool SmartFocus::Handshake()
     return true;
 }
 
-const char *SmartFocus::getDefaultName(void)
+const char *SmartFocus::getDefaultName()
 {
     return "SmartFocus";
 }
 
 bool SmartFocus::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
 {
-    if (strcmp(dev, getDeviceName()) == 0)
+    if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
         if (strcmp(name, MaxPositionNP.name) == 0)
         {
@@ -188,7 +193,7 @@ bool SmartFocus::ISNewNumber(const char *dev, const char *name, double values[],
 //  return INDI::Focuser::ISNewSwitch(dev,name,states,names,n);
 //}
 
-bool SmartFocus::AbortFocuser(void)
+bool SmartFocus::AbortFocuser()
 {
     bool result = true;
     if (!isSimulation() && SFisMoving())
@@ -238,9 +243,9 @@ IPState SmartFocus::MoveAbsFocuser(uint32_t targetPosition)
     return result;
 }
 
-IPState SmartFocus::MoveRelFocuser(FocusDirection dir, uint32_t distance)
+IPState SmartFocus::MoveRelFocuser(FocusDirection dir, uint32_t ticks)
 {
-    return MoveAbsFocuser(position + (dir == FOCUS_INWARD ? -distance : distance));
+    return MoveAbsFocuser(position + (dir == FOCUS_INWARD ? -ticks : ticks));
 }
 
 class NonBlockingIO
@@ -256,11 +261,11 @@ class NonBlockingIO
                          errno);
     }
 
-    ~NonBlockingIO(void)
+    ~NonBlockingIO()
     {
         if (flags != -1 && fcntl(fd, F_SETFL, flags) == -1)
             DEBUGFDEVICE(device, INDI::Logger::DBG_ERROR,
-                         "NonBlockinIO::~NonBlockingIO(void) fcntl set error: errno=%d", errno);
+                         "NonBlockinIO::~NonBlockingIO() fcntl set error: errno=%d", errno);
     }
 
   private:
@@ -269,7 +274,7 @@ class NonBlockingIO
     const int flags;
 };
 
-void SmartFocus::TimerHit(void)
+void SmartFocus::TimerHit()
 {
     // Wait for the end-of-motion character (c,r, or s) when the focuser is moving
     // due to a request from this driver. Otherwise, retrieve the current position
@@ -285,9 +290,9 @@ void SmartFocus::TimerHit(void)
         char respons;
         if (read(PortFD, &respons, sizeof(respons)) == sizeof(respons))
         {
-            DEBUGF(INDI::Logger::DBG_DEBUG, "TimerHit(void) received character: %c (0x%02x)", respons, respons);
+            DEBUGF(INDI::Logger::DBG_DEBUG, "TimerHit() received character: %c (0x%02x)", respons, respons);
             if (respons != motion_complete && respons != motion_error && respons != motion_stopped)
-                DEBUGF(INDI::Logger::DBG_ERROR, "TimerHit(void) received unexpected character: %c (0x%02x)", respons,
+                DEBUGF(INDI::Logger::DBG_ERROR, "TimerHit() received unexpected character: %c (0x%02x)", respons,
                        respons);
             state = Idle;
         }
@@ -303,7 +308,7 @@ bool SmartFocus::saveConfigItems(FILE *fp)
     return true;
 }
 
-bool SmartFocus::SFacknowledge(void)
+bool SmartFocus::SFacknowledge()
 {
     bool success = false;
     if (isSimulation())
@@ -327,7 +332,7 @@ bool SmartFocus::SFacknowledge(void)
     return success;
 }
 
-SmartFocus::Position SmartFocus::SFgetPosition(void)
+SmartFocus::Position SmartFocus::SFgetPosition()
 {
     Position result = PositionInvalid;
     if (isSimulation())
@@ -355,7 +360,7 @@ SmartFocus::Position SmartFocus::SFgetPosition(void)
     return result;
 }
 
-SmartFocus::Flags SmartFocus::SFgetFlags(void)
+SmartFocus::Flags SmartFocus::SFgetFlags()
 {
     Flags result = 0x00;
     if (!isSimulation())
@@ -380,7 +385,7 @@ SmartFocus::Flags SmartFocus::SFgetFlags(void)
     return result;
 }
 
-void SmartFocus::SFgetState(void)
+void SmartFocus::SFgetState()
 {
     const Flags flags = SFgetFlags();
 

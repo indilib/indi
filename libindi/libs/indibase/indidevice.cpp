@@ -21,7 +21,7 @@
 
 #include "IndiDevice.h"
 
-#include <string.h>
+#include <cstring>
 
 IndiDevice *device = nullptr;
 

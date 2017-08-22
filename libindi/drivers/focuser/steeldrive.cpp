@@ -22,9 +22,9 @@
 
 #include "indicom.h"
 
-#include <math.h>
+#include <cmath>
 #include <memory>
-#include <string.h>
+#include <cstring>
 #include <termios.h>
 #include <unistd.h>
 
@@ -47,19 +47,19 @@ void ISGetProperties(const char *dev)
     steelDrive->ISGetProperties(dev);
 }
 
-void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int num)
+void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
 {
-    steelDrive->ISNewSwitch(dev, name, states, names, num);
+    steelDrive->ISNewSwitch(dev, name, states, names, n);
 }
 
-void ISNewText(const char *dev, const char *name, char *texts[], char *names[], int num)
+void ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
 {
-    steelDrive->ISNewText(dev, name, texts, names, num);
+    steelDrive->ISNewText(dev, name, texts, names, n);
 }
 
-void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int num)
+void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
 {
-    steelDrive->ISNewNumber(dev, name, values, names, num);
+    steelDrive->ISNewNumber(dev, name, values, names, n);
 }
 
 void ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[],
@@ -84,14 +84,6 @@ SteelDrive::SteelDrive()
 {
     // Can move in Absolute & Relative motions, can AbortFocuser motion, and has variable speed.
     SetFocuserCapability(FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_REL_MOVE | FOCUSER_CAN_ABORT | FOCUSER_HAS_VARIABLE_SPEED);
-
-    sim             = false;
-    lastPos         = 0;
-    lastTemperature = 0;
-}
-
-SteelDrive::~SteelDrive()
-{
 }
 
 bool SteelDrive::initProperties()
@@ -272,10 +264,7 @@ bool SteelDrive::Ack()
 
     rc = sscanf(resp, ":FV%s#", hwVer);
 
-    if (rc > 0)
-        return true;
-    else
-        return false;
+    return rc > 0;
 }
 
 /************************************************************************************
@@ -1072,16 +1061,16 @@ bool SteelDrive::setAcceleration(unsigned short accel)
 * ***********************************************************************************/
 bool SteelDrive::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
 {
-    if (strcmp(dev, getDeviceName()) == 0)
+    if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
-        if (!strcmp(TemperatureCompensateSP.name, name))
+        if (strcmp(TemperatureCompensateSP.name, name) == 0)
         {
             int last_index = IUFindOnSwitchIndex(&TemperatureCompensateSP);
             IUUpdateSwitch(&TemperatureCompensateSP, states, names, n);
 
             bool rc = setTemperatureCompensation();
 
-            if (rc == false)
+            if (!rc)
             {
                 TemperatureCompensateSP.s = IPS_ALERT;
                 IUResetSwitch(&TemperatureCompensateSP);
@@ -1095,7 +1084,7 @@ bool SteelDrive::ISNewSwitch(const char *dev, const char *name, ISState *states,
             return true;
         }
 
-        if (!strcmp(ModelSP.name, name))
+        if (strcmp(ModelSP.name, name) == 0)
         {
             IUUpdateSwitch(&ModelSP, states, names, n);
 
@@ -1125,10 +1114,10 @@ bool SteelDrive::ISNewSwitch(const char *dev, const char *name, ISState *states,
 * ***********************************************************************************/
 bool SteelDrive::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
 {
-    if (strcmp(dev, getDeviceName()) == 0)
+    if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
         // Set Accelration
-        if (!strcmp(name, AccelerationNP.name))
+        if (strcmp(name, AccelerationNP.name) == 0)
         {
             if (setAcceleration((int)values[0]))
             {
@@ -1146,12 +1135,12 @@ bool SteelDrive::ISNewNumber(const char *dev, const char *name, double values[],
         }
 
         // Set Temperature Settings
-        if (!strcmp(name, TemperatureSettingNP.name))
+        if (strcmp(name, TemperatureSettingNP.name) == 0)
         {
             // Coeff is only needed when we enable or disable the temperature compensation. Here we only set the # of samples
             unsigned int targetSamples;
 
-            if (!strcmp(names[0], TemperatureSettingN[FOCUS_T_SAMPLES].name))
+            if (strcmp(names[0], TemperatureSettingN[FOCUS_T_SAMPLES].name) == 0)
                 targetSamples = (int)values[0];
             else
                 targetSamples = (int)values[1];
@@ -1179,7 +1168,7 @@ bool SteelDrive::ISNewNumber(const char *dev, const char *name, double values[],
         }
 
         // Set Custom Settings
-        if (!strcmp(name, CustomSettingNP.name))
+        if (strcmp(name, CustomSettingNP.name) == 0)
         {
             int i = IUFindOnSwitchIndex(&ModelSP);
 
@@ -1193,7 +1182,8 @@ bool SteelDrive::ISNewNumber(const char *dev, const char *name, double values[],
             }
 
             double maxTrip, gearRatio;
-            if (!strcmp(names[0], CustomSettingN[FOCUS_MAX_TRIP].name))
+
+            if (strcmp(names[0], CustomSettingN[FOCUS_MAX_TRIP].name) == 0)
             {
                 maxTrip   = values[0];
                 gearRatio = values[1];
@@ -1222,7 +1212,7 @@ bool SteelDrive::ISNewNumber(const char *dev, const char *name, double values[],
         }
 
         // Set Sync Position
-        if (!strcmp(name, SyncNP.name))
+        if (strcmp(name, SyncNP.name) == 0)
         {
             if (Sync((unsigned int)values[0]))
             {
@@ -1284,7 +1274,7 @@ bool SteelDrive::SetFocuserSpeed(int speed)
 
     rc = setSpeed(speed);
 
-    if (rc == false)
+    if (!rc)
         return false;
 
     currentSpeed = speed;
@@ -1301,7 +1291,7 @@ IPState SteelDrive::MoveFocuser(FocusDirection dir, int speed, uint16_t duration
     {
         bool rc = setSpeed(speed);
 
-        if (rc == false)
+        if (!rc)
             return IPS_ALERT;
     }
 
@@ -1328,7 +1318,7 @@ IPState SteelDrive::MoveAbsFocuser(uint32_t targetTicks)
 
     rc = moveFocuser(targetPos);
 
-    if (rc == false)
+    if (!rc)
         return IPS_ALERT;
 
     FocusAbsPosNP.s = IPS_BUSY;
@@ -1348,7 +1338,7 @@ IPState SteelDrive::MoveRelFocuser(FocusDirection dir, uint32_t ticks)
 
     rc = moveFocuser(newPosition);
 
-    if (rc == false)
+    if (!rc)
         return IPS_ALERT;
 
     FocusRelPosN[0].value = ticks;
@@ -1360,7 +1350,7 @@ IPState SteelDrive::MoveRelFocuser(FocusDirection dir, uint32_t ticks)
 
 void SteelDrive::TimerHit()
 {
-    if (isConnected() == false)
+    if (!isConnected())
         return;
 
     bool rc = updatePosition();
@@ -1503,7 +1493,7 @@ float SteelDrive::CalcTimeLeft(timeval start, float req)
 {
     double timesince;
     double timeleft;
-    struct timeval now;
+    struct timeval now { 0, 0 };
     gettimeofday(&now, nullptr);
 
     timesince =

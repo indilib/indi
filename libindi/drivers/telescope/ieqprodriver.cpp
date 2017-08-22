@@ -25,8 +25,8 @@
 
 #include <libnova/julian_day.h>
 
-#include <math.h>
-#include <string.h>
+#include <cmath>
+#include <cstring>
 #include <termios.h>
 #include <unistd.h>
 
@@ -226,12 +226,12 @@ bool get_ieqpro_firmware(int fd, FirmwareInfo *info)
 
     rc = get_ieqpro_model(fd, info);
 
-    if (rc == false)
+    if (!rc)
         return rc;
 
     rc = get_ieqpro_main_firmware(fd, info);
 
-    if (rc == false)
+    if (!rc)
         return rc;
 
     rc = get_ieqpro_radec_firmware(fd, info);
@@ -789,7 +789,7 @@ bool set_ieqpro_track_mode(int fd, IEQ_TRACK_RATE rate)
     return false;
 }
 
-bool set_ieqpro_custom_track_rate(int fd, double rate)
+bool set_ieqpro_custom_ra_track_rate(int fd, double rate)
 {
     char cmd[16];
     char sign;
@@ -805,6 +805,62 @@ bool set_ieqpro_custom_track_rate(int fd, double rate)
         sign = '+';
 
     snprintf(cmd, 16, ":RR%c%07.4f#", sign, fabs(rate));
+
+    DEBUGFDEVICE(ieqpro_device, INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
+
+    if (ieqpro_simulation)
+    {
+        strcpy(response, "1");
+        nbytes_read = strlen(response);
+    }
+    else
+    {
+        tcflush(fd, TCIFLUSH);
+
+        if ((errcode = tty_write(fd, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
+        {
+            tty_error_msg(errcode, errmsg, MAXRBUF);
+            DEBUGFDEVICE(ieqpro_device, INDI::Logger::DBG_ERROR, "%s", errmsg);
+            return false;
+        }
+
+        if ((errcode = tty_read(fd, response, 1, IEQPRO_TIMEOUT, &nbytes_read)))
+        {
+            tty_error_msg(errcode, errmsg, MAXRBUF);
+            DEBUGFDEVICE(ieqpro_device, INDI::Logger::DBG_ERROR, "%s", errmsg);
+            return false;
+        }
+    }
+
+    if (nbytes_read > 0)
+    {
+        response[nbytes_read] = '\0';
+        DEBUGFDEVICE(ieqpro_device, INDI::Logger::DBG_DEBUG, "RES (%s)", response);
+
+        tcflush(fd, TCIFLUSH);
+        return true;
+    }
+
+    DEBUGFDEVICE(ieqpro_device, INDI::Logger::DBG_ERROR, "Only received #%d bytes, expected 1.", nbytes_read);
+    return false;
+}
+
+bool set_ieqpro_custom_de_track_rate(int fd, double rate)
+{
+    char cmd[16];
+    char sign;
+    int errcode = 0;
+    char errmsg[MAXRBUF];
+    char response[8];
+    int nbytes_read    = 0;
+    int nbytes_written = 0;
+
+    if (rate < 0)
+        sign = '-';
+    else
+        sign = '+';
+
+    snprintf(cmd, 16, ":RD%c%07.4f#", sign, fabs(rate));
 
     DEBUGFDEVICE(ieqpro_device, INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
 
@@ -1019,6 +1075,7 @@ bool park_ieqpro(int fd)
 
     if (ieqpro_simulation)
     {
+        simInfo.rememberSystemStatus = simInfo.systemStatus;
         set_sim_system_status(ST_SLEWING);
         strcpy(response, "1");
         nbytes_read = strlen(response);
@@ -1125,7 +1182,8 @@ bool abort_ieqpro(int fd)
 
     if (ieqpro_simulation)
     {
-        simInfo.systemStatus = ST_STOPPED;
+        if (simInfo.systemStatus == ST_SLEWING)
+            simInfo.systemStatus =  simInfo.rememberSystemStatus;
         strcpy(response, "1");
         nbytes_read = strlen(response);
     }
@@ -1174,6 +1232,7 @@ bool slew_ieqpro(int fd)
 
     if (ieqpro_simulation)
     {
+        simInfo.rememberSystemStatus = simInfo.systemStatus;
         simInfo.systemStatus = ST_SLEWING;
         strcpy(response, "1");
         nbytes_read = strlen(response);
@@ -1232,6 +1291,57 @@ bool sync_ieqpro(int fd)
 
     if (ieqpro_simulation)
     {
+        strcpy(response, "1");
+        nbytes_read = strlen(response);
+    }
+    else
+    {
+        tcflush(fd, TCIFLUSH);
+
+        if ((errcode = tty_write(fd, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
+        {
+            tty_error_msg(errcode, errmsg, MAXRBUF);
+            DEBUGFDEVICE(ieqpro_device, INDI::Logger::DBG_ERROR, "%s", errmsg);
+            return false;
+        }
+
+        if ((errcode = tty_read(fd, response, 1, IEQPRO_TIMEOUT, &nbytes_read)))
+        {
+            tty_error_msg(errcode, errmsg, MAXRBUF);
+            DEBUGFDEVICE(ieqpro_device, INDI::Logger::DBG_ERROR, "%s", errmsg);
+            return false;
+        }
+    }
+
+    if (nbytes_read > 0)
+    {
+        response[nbytes_read] = '\0';
+        DEBUGFDEVICE(ieqpro_device, INDI::Logger::DBG_DEBUG, "RES (%s)", response);
+
+        tcflush(fd, TCIFLUSH);
+        return true;
+    }
+
+    DEBUGFDEVICE(ieqpro_device, INDI::Logger::DBG_ERROR, "Only received #%d bytes, expected 1.", nbytes_read);
+    return false;
+}
+
+bool set_ieqpro_track_enabled(int fd, bool enabled)
+{
+    char cmd[32];
+    int errcode = 0;
+    char errmsg[MAXRBUF];
+    char response[8];
+    int nbytes_read    = 0;
+    int nbytes_written = 0;
+
+    snprintf(cmd, 32, ":ST%d#", enabled ? 1 : 0);
+
+    DEBUGFDEVICE(ieqpro_device, INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
+
+    if (ieqpro_simulation)
+    {
+        simInfo.systemStatus = enabled ? ST_TRACKING_PEC_ON : ST_STOPPED;
         strcpy(response, "1");
         nbytes_read = strlen(response);
     }

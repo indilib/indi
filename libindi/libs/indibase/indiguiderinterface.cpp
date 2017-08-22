@@ -20,7 +20,7 @@
 
 #include "indiguiderinterface.h"
 
-#include <string.h>
+#include <cstring>
 
 INDI::GuiderInterface::GuiderInterface()
 {

@@ -544,8 +544,8 @@ int decode_jpeg_raw(unsigned char *jpeg_data, int len, int itype, int ctype, uns
 
         for (y = 0; y < 16; y++) // allocate a special buffer for the extra sampling depth
         {
-            row1_444[y] = (unsigned char *)malloc(dinfo.output_width * sizeof(char));
-            row2_444[y] = (unsigned char *)malloc(dinfo.output_width * sizeof(char));
+            row1_444[y] = (unsigned char *)malloc(dinfo.output_width * sizeof(unsigned char));
+            row2_444[y] = (unsigned char *)malloc(dinfo.output_width * sizeof(unsigned char));
         }
         scanarray[1] = row1_444;
         scanarray[2] = row2_444;

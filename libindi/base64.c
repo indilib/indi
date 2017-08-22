@@ -165,7 +165,7 @@ int from64tobits_fast(char *out, const char *in, int inlen)
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
+u#include <cstring>
 
 static void usage(char *me)
 {
@@ -248,7 +248,7 @@ int main(int ac, char *av[])
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
+#include <cstring>
 
 int main(int ac, char *av[])
 {

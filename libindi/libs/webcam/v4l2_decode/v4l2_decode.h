@@ -27,7 +27,7 @@
 #include <vector>
 
 #include <stdio.h>
-#include <stdlib.h>
+#include <cstdlib>
 
 #include <linux/videodev2.h>
 

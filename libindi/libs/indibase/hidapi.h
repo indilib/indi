@@ -99,7 +99,7 @@ struct hid_device_info
 	@returns
 		This function returns 0 on success and -1 on error.
 */
-int HID_API_EXPORT HID_API_CALL hid_init(void);
+int HID_API_EXPORT HID_API_CALL hid_init();
 
 /** @brief Finalize the HIDAPI library.
 
@@ -112,7 +112,7 @@ int HID_API_EXPORT HID_API_CALL hid_init(void);
     @returns
 		This function returns 0 on success and -1 on error.
 */
-int HID_API_EXPORT HID_API_CALL hid_exit(void);
+int HID_API_EXPORT HID_API_CALL hid_exit();
 
 /** @brief Enumerate the HID Devices.
 

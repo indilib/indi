@@ -26,7 +26,7 @@
 #include "dome.h"
 
 #include <memory>
-#include <string.h>
+#include <cstring>
 #include <unistd.h>
 
 std::unique_ptr<Dome> dome(new Dome());
@@ -36,19 +36,19 @@ void ISGetProperties(const char *dev)
     dome->ISGetProperties(dev);
 }
 
-void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int num)
+void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
 {
-    dome->ISNewSwitch(dev, name, states, names, num);
+    dome->ISNewSwitch(dev, name, states, names, n);
 }
 
-void ISNewText(const char *dev, const char *name, char *texts[], char *names[], int num)
+void ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
 {
-    dome->ISNewText(dev, name, texts, names, num);
+    dome->ISNewText(dev, name, texts, names, n);
 }
 
-void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int num)
+void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
 {
-    dome->ISNewNumber(dev, name, values, names, num);
+    dome->ISNewNumber(dev, name, values, names, n);
 }
 
 void ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[],
@@ -67,10 +67,6 @@ void ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], 
 void ISSnoopDevice(XMLEle *root)
 {
     dome->ISSnoopDevice(root);
-}
-
-Dome::Dome()
-{
 }
 
 /**************************************************************************************
@@ -147,9 +143,9 @@ bool Dome::updateProperties()
 *********************************************************************************************/
 bool Dome::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
 {
-    if (!strcmp(dev, getDeviceName()))
+    if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
-        if (!strcmp(name, ShutterSP.name))
+        if (strcmp(name, ShutterSP.name) == 0)
         {
             IUUpdateSwitch(&ShutterSP, states, names, n);
 

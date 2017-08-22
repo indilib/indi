@@ -35,7 +35,7 @@
 
 #include "indicom.h"
 
-#include <string.h>
+#include <cstring>
 #include <memory>
 #include <termios.h>
 
@@ -71,19 +71,19 @@ void ISGetProperties(const char *dev)
     nFocus->ISGetProperties(dev);
 }
 
-void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int num)
+void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
 {
-    nFocus->ISNewSwitch(dev, name, states, names, num);
+    nFocus->ISNewSwitch(dev, name, states, names, n);
 }
 
-void ISNewText(const char *dev, const char *name, char *texts[], char *names[], int num)
+void ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
 {
-    nFocus->ISNewText(dev, name, texts, names, num);
+    nFocus->ISNewText(dev, name, texts, names, n);
 }
 
-void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int num)
+void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
 {
-    nFocus->ISNewNumber(dev, name, values, names, num);
+    nFocus->ISNewNumber(dev, name, values, names, n);
 }
 
 void ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[],
@@ -107,10 +107,6 @@ void ISSnoopDevice(XMLEle *root)
 NFocus::NFocus()
 {
     SetFocuserCapability(FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_REL_MOVE);
-}
-
-NFocus::~NFocus()
-{
 }
 
 bool NFocus::initProperties()
@@ -219,7 +215,7 @@ int NFocus::SendCommand(char *rf_cmd)
 
     DEBUGF(INDI::Logger::DBG_DEBUG, "CMD <%s>", rf_cmd);
 
-    if (isSimulation() == false)
+    if (!isSimulation())
     {
         tcflush(PortFD, TCIOFLUSH);
 
@@ -242,7 +238,7 @@ int NFocus::SendRequest(char *rf_cmd)
 
     SendCommand(rf_cmd);
 
-    if (isSimulation() == false)
+    if (!isSimulation())
     {
         nbytes_read = ReadResponse(rf_cmd, strlen(rf_cmd), NF_TIMEOUT);
 
@@ -307,7 +303,7 @@ int NFocus::updateNFTemperature(double *value)
     char rf_cmd[32];
     int ret_read_tmp;
 
-    strcpy(rf_cmd, ":RT");
+    strncpy(rf_cmd, ":RT", 4);
 
     if ((ret_read_tmp = SendRequest(rf_cmd)) < 0)
         return ret_read_tmp;
@@ -398,7 +394,7 @@ int NFocus::updateNFMotorSettings(double *onTime, double *offTime, double *fastD
     return 0;
 }
 
-int NFocus::moveNFInward(double *value)
+int NFocus::moveNFInward(const double *value)
 {
     char rf_cmd[32];
     int ret_read_tmp;
@@ -407,7 +403,7 @@ int NFocus::moveNFInward(double *value)
     int newval = (int)(currentInOutScalar * (*value));
     DEBUGF(INDI::Logger::DBG_DEBUG, "Moving %d real steps but virtually counting %.0f", newval, *value);
 
-    if (isSimulation() == false)
+    if (!isSimulation())
     {
         do
         {
@@ -440,7 +436,7 @@ int NFocus::moveNFInward(double *value)
                 strncpy(rf_cmd, "S\0", 2);
                 if ((ret_read_tmp = SendRequest(rf_cmd)) < 0)
                     return ret_read_tmp;
-            } while ((int)atoi(rf_cmd));
+            } while (atoi(rf_cmd) != 0);
         } while (newval > 0);
     }
 
@@ -448,7 +444,7 @@ int NFocus::moveNFInward(double *value)
     return 0;
 }
 
-int NFocus::moveNFOutward(double *value)
+int NFocus::moveNFOutward(const double *value)
 {
     char rf_cmd[32];
     int ret_read_tmp;
@@ -457,7 +453,7 @@ int NFocus::moveNFOutward(double *value)
 
     int newval = (int)(*value);
 
-    if (isSimulation() == false)
+    if (!isSimulation())
     {
         do
         {
@@ -490,7 +486,7 @@ int NFocus::moveNFOutward(double *value)
                 strncpy(rf_cmd, "S\0", 2);
                 if ((ret_read_tmp = SendRequest(rf_cmd)) < 0)
                     return ret_read_tmp;
-            } while ((int)atoi(rf_cmd));
+            } while (atoi(rf_cmd) != 0);
         } while (newval > 0);
     }
 
@@ -498,7 +494,7 @@ int NFocus::moveNFOutward(double *value)
     return 0;
 }
 
-int NFocus::setNFAbsolutePosition(double *value)
+int NFocus::setNFAbsolutePosition(const double *value)
 {
     double newAbsPos = 0;
     int rc           = 0;
@@ -530,7 +526,7 @@ int NFocus::setNFMaxPosition(double *value)
 
     if (*value == MAXTRAVEL_READOUT)
     {
-        strcpy(rf_cmd, "FL000000");
+        strncpy(rf_cmd, "FL000000", 9);
     }
     else
     {
@@ -577,7 +573,7 @@ int NFocus::setNFMaxPosition(double *value)
     return 0;
 }
 
-int NFocus::syncNF(double *value)
+int NFocus::syncNF(const double *value)
 {
     char rf_cmd[32];
     char vl_tmp[6];
@@ -630,9 +626,9 @@ bool NFocus::ISNewNumber(const char *dev, const char *name, double values[], cha
 {
     int nset = 0, i = 0;
 
-    if (strcmp(dev, getDeviceName()) == 0)
+    if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
-        if (!strcmp(name, SettingsNP.name))
+        if (strcmp(name, SettingsNP.name) == 0)
         {
             /* new speed */
             double new_onTime    = 0;
@@ -649,17 +645,17 @@ bool NFocus::ISNewNumber(const char *dev, const char *name, double values[], cha
                 if (eqp == &SettingsN[0])
                 {
                     new_onTime = (values[i]);
-                    nset += new_onTime >= 10 && new_onTime <= 250;
+                    nset += static_cast<int>(new_onTime >= 10 && new_onTime <= 250);
                 }
                 else if (eqp == &SettingsN[1])
                 {
                     new_offTime = (values[i]);
-                    nset += new_offTime >= 1 && new_offTime <= 250;
+                    nset += static_cast<int>(new_offTime >= 1 && new_offTime <= 250);
                 }
                 else if (eqp == &SettingsN[2])
                 {
                     new_fastDelay = (values[i]);
-                    nset += new_fastDelay >= 1 && new_fastDelay <= 9;
+                    nset += static_cast<int>(new_fastDelay >= 1 && new_fastDelay <= 9);
                 }
             }
 
@@ -691,7 +687,7 @@ bool NFocus::ISNewNumber(const char *dev, const char *name, double values[], cha
             }
         }
 
-        if (!strcmp(name, InOutScalarNP.name))
+        if (strcmp(name, InOutScalarNP.name) == 0)
         {
             double new_ioscalar = 0;
 
@@ -706,7 +702,7 @@ bool NFocus::ISNewNumber(const char *dev, const char *name, double values[], cha
                     new_ioscalar = (values[i]);
 
                     /* limits */
-                    nset += new_ioscalar >= 0 && new_ioscalar <= 2;
+                    nset += static_cast<int>(new_ioscalar >= 0 && new_ioscalar <= 2);
                 }
 
                 if (nset == 1)
@@ -740,7 +736,7 @@ bool NFocus::ISNewNumber(const char *dev, const char *name, double values[], cha
             }
         }
 
-        if (!strcmp(name, MinMaxPositionNP.name))
+        if (strcmp(name, MinMaxPositionNP.name) == 0)
         {
             /* new positions */
             double new_min = 0;
@@ -755,12 +751,12 @@ bool NFocus::ISNewNumber(const char *dev, const char *name, double values[], cha
                 if (mmpp == &MinMaxPositionN[0])
                 {
                     new_min = (values[i]);
-                    nset += new_min >= 1 && new_min <= 65000;
+                    nset += static_cast<int>(new_min >= 1 && new_min <= 65000);
                 }
                 else if (mmpp == &MinMaxPositionN[1])
                 {
                     new_max = (values[i]);
-                    nset += new_max >= 1 && new_max <= 65000;
+                    nset += static_cast<int>(new_max >= 1 && new_max <= 65000);
                 }
             }
 
@@ -789,7 +785,7 @@ bool NFocus::ISNewNumber(const char *dev, const char *name, double values[], cha
             }
         }
 
-        if (!strcmp(name, MaxTravelNP.name))
+        if (strcmp(name, MaxTravelNP.name) == 0)
         {
             double new_maxt = 0;
             int ret         = -1;
@@ -803,7 +799,7 @@ bool NFocus::ISNewNumber(const char *dev, const char *name, double values[], cha
                 if (mmpp == &MaxTravelN[0])
                 {
                     new_maxt = (values[i]);
-                    nset += new_maxt >= 1 && new_maxt <= 64000;
+                    nset += static_cast<int>(new_maxt >= 1 && new_maxt <= 64000);
                 }
             }
             /* Did we process the one number? */
@@ -837,7 +833,7 @@ bool NFocus::ISNewNumber(const char *dev, const char *name, double values[], cha
         }
 
         // Sync
-        if (!strcmp(name, SyncNP.name))
+        if (strcmp(name, SyncNP.name) == 0)
         {
             double new_apos = values[0];
             int rc          = 0;

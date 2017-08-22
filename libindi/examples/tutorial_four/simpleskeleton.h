@@ -35,8 +35,8 @@
 class SimpleSkeleton : public INDI::DefaultDevice
 {
   public:
-    SimpleSkeleton();
-    ~SimpleSkeleton();
+    SimpleSkeleton() = default;
+    ~SimpleSkeleton() = default;
 
     virtual void ISGetProperties(const char *dev);
     virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n);

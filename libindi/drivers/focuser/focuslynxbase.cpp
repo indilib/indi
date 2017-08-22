@@ -22,9 +22,9 @@
 #include "indicom.h"
 #include "connectionplugins/connectionserial.h"
 
-#include <math.h>
+#include <cmath>
 #include <memory>
-#include <string.h>
+#include <cstring>
 #include <termios.h>
 #include <unistd.h>
 
@@ -226,7 +226,7 @@ bool FocusLynxBase::initProperties()
 * ***********************************************************************************/
 void FocusLynxBase::ISGetProperties(const char *dev)
 {
-    if (dev && strcmp(dev, getDeviceName()))
+    if (dev != nullptr && strcmp(dev, getDeviceName()) != 0)
         return;
 
     INDI::Focuser::ISGetProperties(dev);
@@ -430,10 +430,10 @@ const char *FocusLynxBase::getDefaultName()
 bool FocusLynxBase::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
 {
     DEBUGF(INDI::Logger::DBG_SESSION, "Device: %s", dev);
-    if (strcmp(dev, getDeviceName()) == 0)
+    if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
         // Models
-        if (!strcmp(ModelSP.name, name))
+        if (strcmp(ModelSP.name, name) == 0)
         {
             IUUpdateSwitch(&ModelSP, states, names, n);
             ModelSP.s = IPS_OK;
@@ -461,7 +461,7 @@ bool FocusLynxBase::ISNewSwitch(const char *dev, const char *name, ISState *stat
         }
 
         // Temperature Compensation
-        if (!strcmp(TemperatureCompensateSP.name, name))
+        if (strcmp(TemperatureCompensateSP.name, name) == 0)
         {
             int prevIndex = IUFindOnSwitchIndex(&TemperatureCompensateSP);
             IUUpdateSwitch(&TemperatureCompensateSP, states, names, n);
@@ -542,7 +542,7 @@ bool FocusLynxBase::ISNewSwitch(const char *dev, const char *name, ISState *stat
         }
 
         // Reset to Factory setting
-        if (!strcmp(ResetSP.name, name))
+        if (strcmp(ResetSP.name, name) == 0)
         {
             IUResetSwitch(&ResetSP);
             if (resetFactory())
@@ -601,7 +601,7 @@ bool FocusLynxBase::ISNewSwitch(const char *dev, const char *name, ISState *stat
 * ***********************************************************************************/
 bool FocusLynxBase::ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
 {
-    if (strcmp(dev, getDeviceName()) == 0)
+    if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
         // Set device nickname to the HUB itself
         if (!strcmp(name, HFocusNameTP.name))
@@ -623,7 +623,7 @@ bool FocusLynxBase::ISNewText(const char *dev, const char *name, char *texts[], 
 * ***********************************************************************************/
 bool FocusLynxBase::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
 {
-    if (strcmp(dev, getDeviceName()) == 0)
+    if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
         // Temperature Coefficient
         if (!strcmp(TemperatureCoeffNP.name, name))
@@ -663,7 +663,7 @@ bool FocusLynxBase::ISNewNumber(const char *dev, const char *name, double values
         }
 
         // Sync
-        if (!strcmp(SyncNP.name, name))
+        if (strcmp(SyncNP.name, name) == 0)
         {
             IUUpdateNumber(&SyncNP, values, names, n);
             if (sync(SyncN[0].value) == false)
@@ -676,7 +676,7 @@ bool FocusLynxBase::ISNewNumber(const char *dev, const char *name, double values
         }
 
         // Max Travel
-        if (!strcmp(MaxTravelNP.name, name))
+        if (strcmp(MaxTravelNP.name, name) == 0)
         {
             IUUpdateNumber(&MaxTravelNP, values, names, n);
 
@@ -2683,7 +2683,7 @@ IPState FocusLynxBase::MoveRelFocuser(FocusDirection dir, uint32_t ticks)
 * ***********************************************************************************/
 void FocusLynxBase::TimerHit()
 {
-    if (isConnected() == false)
+    if (!isConnected())
         return;
 
     if (configurationComplete == false)
@@ -2855,7 +2855,7 @@ float FocusLynxBase::calcTimeLeft(timeval start, float req)
 {
     double timesince;
     double timeleft;
-    struct timeval now;
+    struct timeval now { 0, 0 };
     gettimeofday(&now, nullptr);
 
     timesince =

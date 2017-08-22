@@ -27,12 +27,12 @@
 #include "defaultdevice.h"
 #include "indiguiderinterface.h"
 
-#include <time.h>
+#include <ctime>
 
 class STAR2000 : public INDI::GuiderInterface, public INDI::DefaultDevice
 {
   public:
-    STAR2000();
+    STAR2000() = default;
 
     virtual bool initProperties();
     virtual bool updateProperties();
@@ -58,25 +58,26 @@ class STAR2000 : public INDI::GuiderInterface, public INDI::DefaultDevice
     virtual IPState GuideEast(float ms);
     virtual IPState GuideWest(float ms);
 
-    /* STAR2000 box RS232 port */
-
-    ITextVectorProperty PortTP;
-    IText PortT[1];
-
   private:
     float CalcWEPulseTimeLeft();
     float CalcNSPulseTimeLeft();
 
-    bool InWEPulse;
-    float WEPulseRequest;
-    struct timeval WEPulseStart;
-    int WEtimerID;
+  public:
+    // STAR2000 box RS232 port
+    ITextVectorProperty PortTP;
+    IText PortT[1];
 
-    bool InNSPulse;
-    float NSPulseRequest;
-    struct timeval NSPulseStart;
-    int NStimerID;
+  private:
+    bool InWEPulse { false };
+    float WEPulseRequest { 0 };
+    struct timeval WEPulseStart { 0, 0 };
+    int WEtimerID { 0 };
 
-    int WEDir;
-    int NSDir;
+    bool InNSPulse { false };
+    float NSPulseRequest { 0 };
+    struct timeval NSPulseStart { 0, 0 };
+    int NStimerID { 0 };
+
+    int WEDir { 0 };
+    int NSDir { 0 };
 };

@@ -29,19 +29,19 @@ void ISGetProperties(const char *dev)
     telescope_sim->ISGetProperties(dev);
 }
 
-void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int num)
+void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
 {
-    telescope_sim->ISNewSwitch(dev, name, states, names, num);
+    telescope_sim->ISNewSwitch(dev, name, states, names, n);
 }
 
-void ISNewText(const char *dev, const char *name, char *texts[], char *names[], int num)
+void ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
 {
-    telescope_sim->ISNewText(dev, name, texts, names, num);
+    telescope_sim->ISNewText(dev, name, texts, names, n);
 }
 
-void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int num)
+void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
 {
-    telescope_sim->ISNewNumber(dev, name, values, names, num);
+    telescope_sim->ISNewNumber(dev, name, values, names, n);
 }
 
 void ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[],
@@ -55,22 +55,10 @@ void ISSnoopDevice(XMLEle *root)
     INDI_UNUSED(root);
 }
 
-// One definition rule (ODR) constants
-const long ScopeSim::MICROSTEPS_PER_REVOLUTION = 1000000;
-const double ScopeSim::MICROSTEPS_PER_DEGREE   = MICROSTEPS_PER_REVOLUTION / 360.0;
-const double ScopeSim::DEFAULT_SLEW_RATE       = MICROSTEPS_PER_DEGREE * 2.0;
-const long ScopeSim::MAX_DEC                   = 90.0 * MICROSTEPS_PER_DEGREE;
-const long ScopeSim::MIN_DEC                   = -90.0 * MICROSTEPS_PER_DEGREE;
-
-ScopeSim::ScopeSim() : AxisStatusDEC(STOPPED), AxisDirectionDEC(FORWARD),
-    AxisSlewRateDEC(DEFAULT_SLEW_RATE), CurrentEncoderMicrostepsDEC(0), GotoTargetMicrostepsDEC(0),
-    AxisStatusRA(STOPPED), AxisDirectionRA(FORWARD), AxisSlewRateRA(DEFAULT_SLEW_RATE),
-    CurrentEncoderMicrostepsRA(0), GotoTargetMicrostepsRA(0), TraceThisTickCount(0), TraceThisTick(false),
+ScopeSim::ScopeSim() :
     DBG_SIMULATOR(INDI::Logger::getInstance().addDebugLevel("Simulator Verbose", "SIMULATOR"))
 {
 }
-
-// Private methods
 
 bool ScopeSim::Abort()
 {
@@ -124,7 +112,7 @@ bool ScopeSim::Disconnect()
 
 const char *ScopeSim::getDefaultName()
 {
-    return (char *)"Simple Telescope Simulator";
+    return (const char *)"Simple Telescope Simulator";
 }
 
 bool ScopeSim::Goto(double ra, double dec)
@@ -145,7 +133,8 @@ bool ScopeSim::Goto(double ra, double dec)
     // Call the alignment subsystem to translate the celestial reference frame coordinate
     // into a telescope reference frame coordinate
     TelescopeDirectionVector TDV;
-    ln_hrz_posn AltAz;
+    ln_hrz_posn AltAz { 0, 0 };
+
     if (TransformCelestialToTelescope(ra, dec, 0.0, TDV))
     {
         // The alignment subsystem has successfully transformed my coordinate
@@ -156,7 +145,8 @@ bool ScopeSim::Goto(double ra, double dec)
         // The alignment subsystem cannot transform the coordinate.
         // Try some simple rotations using the stored observatory position if any
         bool HavePosition = false;
-        ln_lnlat_posn Position;
+        ln_lnlat_posn Position { 0, 0 };
+
         if ((nullptr != IUFindNumber(&LocationNP, "LAT")) && (0 != IUFindNumber(&LocationNP, "LAT")->value) &&
             (nullptr != IUFindNumber(&LocationNP, "LONG")) && (0 != IUFindNumber(&LocationNP, "LONG")->value))
         {
@@ -165,7 +155,8 @@ bool ScopeSim::Goto(double ra, double dec)
             Position.lng = IUFindNumber(&LocationNP, "LONG")->value;
             HavePosition = true;
         }
-        struct ln_equ_posn EquatorialCoordinates;
+        ln_equ_posn EquatorialCoordinates { 0, 0 };
+
         // libnova works in decimal degrees
         EquatorialCoordinates.ra  = ra * 360.0 / 24.0;
         EquatorialCoordinates.dec = dec;
@@ -283,7 +274,7 @@ bool ScopeSim::initProperties()
 bool ScopeSim::ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[],
                          char *formats[], char *names[], int n)
 {
-    if (strcmp(dev, getDeviceName()) == 0)
+    if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
         // Process alignment properties
         ProcessAlignmentBLOBProperties(this, name, sizes, blobsizes, blobs, formats, names, n);
@@ -296,7 +287,7 @@ bool ScopeSim::ISNewNumber(const char *dev, const char *name, double values[], c
 {
     //  first check if it's for our device
 
-    if (strcmp(dev, getDeviceName()) == 0)
+    if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
         // Process alignment properties
         ProcessAlignmentNumberProperties(this, name, values, names, n);
@@ -309,7 +300,7 @@ bool ScopeSim::ISNewNumber(const char *dev, const char *name, double values[], c
 
 bool ScopeSim::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
 {
-    if (strcmp(dev, getDeviceName()) == 0)
+    if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
         // Process alignment properties
         ProcessAlignmentSwitchProperties(this, name, states, names, n);
@@ -321,7 +312,7 @@ bool ScopeSim::ISNewSwitch(const char *dev, const char *name, ISState *states, c
 
 bool ScopeSim::ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
 {
-    if (strcmp(dev, getDeviceName()) == 0)
+    if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
         // Process alignment properties
         ProcessAlignmentTextProperties(this, name, texts, names, n);
@@ -356,19 +347,22 @@ bool ScopeSim::MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command)
 
 bool ScopeSim::ReadScopeStatus()
 {
-    struct ln_hrz_posn AltAz;
+    ln_hrz_posn AltAz { 0, 0 };
+
     AltAz.alt                    = double(CurrentEncoderMicrostepsDEC) / MICROSTEPS_PER_DEGREE;
     AltAz.az                     = double(CurrentEncoderMicrostepsRA) / MICROSTEPS_PER_DEGREE;
-    TelescopeDirectionVector TDV = TelescopeDirectionVectorFromAltitudeAzimuth(AltAz);
 
+    TelescopeDirectionVector TDV = TelescopeDirectionVectorFromAltitudeAzimuth(AltAz);
     double RightAscension, Declination;
+
     if (!TransformTelescopeToCelestial(TDV, RightAscension, Declination))
     {
         if (TraceThisTick)
             DEBUG(DBG_SIMULATOR, "ReadScopeStatus - TransformTelescopeToCelestial failed");
 
         bool HavePosition = false;
-        ln_lnlat_posn Position;
+        ln_lnlat_posn Position { 0, 0 };
+
         if ((nullptr != IUFindNumber(&LocationNP, "LAT")) && (0 != IUFindNumber(&LocationNP, "LAT")->value) &&
             (nullptr != IUFindNumber(&LocationNP, "LONG")) && (0 != IUFindNumber(&LocationNP, "LONG")->value))
         {
@@ -377,12 +371,15 @@ bool ScopeSim::ReadScopeStatus()
             Position.lng = IUFindNumber(&LocationNP, "LONG")->value;
             HavePosition = true;
         }
-        struct ln_equ_posn EquatorialCoordinates;
+        ln_equ_posn EquatorialCoordinates { 0, 0 };
+
         if (HavePosition)
         {
             if (TraceThisTick)
                 DEBUG(DBG_SIMULATOR, "ReadScopeStatus - HavePosition true");
+
             TelescopeDirectionVector RotatedTDV(TDV);
+
             switch (GetApproximateMountAlignment())
             {
                 case ZENITH:
@@ -433,11 +430,12 @@ bool ScopeSim::ReadScopeStatus()
 
 bool ScopeSim::Sync(double ra, double dec)
 {
-    struct ln_hrz_posn AltAz;
+    ln_hrz_posn AltAz { 0, 0 };
+    AlignmentDatabaseEntry NewEntry;
+
     AltAz.alt = double(CurrentEncoderMicrostepsDEC) / MICROSTEPS_PER_DEGREE;
     AltAz.az  = double(CurrentEncoderMicrostepsRA) / MICROSTEPS_PER_DEGREE;
 
-    AlignmentDatabaseEntry NewEntry;
     NewEntry.ObservationJulianDate = ln_get_julian_from_sys();
     NewEntry.RightAscension        = ra;
     NewEntry.Declination           = dec;
@@ -469,8 +467,8 @@ void ScopeSim::TimerHit()
     }
     // Simulate mount movement
 
-    static struct timeval ltv; // previous system time
-    struct timeval tv;         // new system time
+    static struct timeval ltv { 0, 0 }; // previous system time
+    struct timeval tv { 0, 0 };         // new system time
     double dt;                 // Elapsed time in seconds since last tick
 
     gettimeofday(&tv, nullptr);
@@ -698,17 +696,19 @@ void ScopeSim::TimerHit()
             // Continue or start tracking
             // Calculate where the mount needs to be in POLLMS time
             // POLLMS is hardcoded to be one second
-            double JulianOffset =
-                1.0 / (24.0 * 60 * 60); // TODO may need to make this longer to get a meaningful result
+            // TODO may need to make this longer to get a meaningful result
+            double JulianOffset = 1.0 / (24.0 * 60 * 60);
             TelescopeDirectionVector TDV;
-            ln_hrz_posn AltAz;
+            ln_hrz_posn AltAz { 0, 0 };
+
             if (TransformCelestialToTelescope(CurrentTrackingTarget.ra, CurrentTrackingTarget.dec, JulianOffset, TDV))
                 AltitudeAzimuthFromTelescopeDirectionVector(TDV, AltAz);
             else
             {
                 // Try a conversion with the stored observatory position if any
                 bool HavePosition = false;
-                ln_lnlat_posn Position;
+                ln_lnlat_posn Position { 0, 0 };
+
                 if ((nullptr != IUFindNumber(&LocationNP, "LAT")) && (0 != IUFindNumber(&LocationNP, "LAT")->value) &&
                     (nullptr != IUFindNumber(&LocationNP, "LONG")) && (0 != IUFindNumber(&LocationNP, "LONG")->value))
                 {
@@ -717,7 +717,8 @@ void ScopeSim::TimerHit()
                     Position.lng = IUFindNumber(&LocationNP, "LONG")->value;
                     HavePosition = true;
                 }
-                struct ln_equ_posn EquatorialCoordinates;
+                ln_equ_posn EquatorialCoordinates { 0, 0 };
+
                 // libnova works in decimal degrees
                 EquatorialCoordinates.ra  = CurrentTrackingTarget.ra * 360.0 / 24.0;
                 EquatorialCoordinates.dec = CurrentTrackingTarget.dec;

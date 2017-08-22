@@ -1471,11 +1471,12 @@ void IUSaveConfigBLOB(FILE *fp, const IBLOBVectorProperty *bvp)
         encblob        = malloc(4 * bp->bloblen / 3 + 4);
         l              = to64frombits(encblob, bp->blob, bp->bloblen);
         size_t written = 0;
-        size_t towrite = l;
+
         while ((int)written < l)
         {
-            towrite   = ((l - written) > 72) ? 72 : l - written;
-            size_t wr = fwrite(encblob + written, 1, towrite, fp);
+            size_t towrite = ((l - written) > 72) ? 72 : l - written;
+            size_t wr      = fwrite(encblob + written, 1, towrite, fp);
+
             fputc('\n', fp);
             if (wr > 0)
                 written += wr;
@@ -2005,11 +2006,12 @@ void IDSetBLOB(const IBLOBVectorProperty *bvp, const char *fmt, ...)
             printf("    enclen='%d'\n", l);
             printf("    format='%s'>\n", bp->format);
             size_t written = 0;
-            size_t towrite = l;
+
             while ((int)written < l)
             {
-                towrite   = ((l - written) > 72) ? 72 : l - written;
-                size_t wr = fwrite(encblob + written, 1, towrite, stdout);
+                size_t towrite = ((l - written) > 72) ? 72 : l - written;
+                size_t wr      = fwrite(encblob + written, 1, towrite, stdout);
+
                 if (wr > 0)
                     written += wr;
                 if ((written % 72) == 0)

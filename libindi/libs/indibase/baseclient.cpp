@@ -18,15 +18,16 @@
 
 #include "baseclient.h"
 
+#include "indistandardproperty.h"
 #include "base64.h"
 #include "basedevice.h"
 #include "locale_compat.h"
 
-#include <errno.h>
+#include <cerrno>
 #include <fcntl.h>
-#include <stdlib.h>
+#include <cstdlib>
 #include <stdarg.h>
-#include <string.h>
+#include <cstring>
 
 #ifdef _WINDOWS
 #include <WinSock2.h>
@@ -661,8 +662,48 @@ int INDI::BaseClient::messageCmd(XMLEle *root, char *errmsg)
 
     if (dp)
         dp->checkMessage(root);
+    else
+    {
+        XMLAtt *message;
+        XMLAtt *time_stamp;
+
+        char msgBuffer[MAXRBUF];
+
+        /* prefix our timestamp if not with msg */
+        time_stamp = findXMLAtt(root, "timestamp");
+
+        /* finally! the msg */
+        message = findXMLAtt(root, "message");
+        if (!message)
+        {
+            strncpy(errmsg, "No message content found.", MAXRBUF);
+            return -1;
+        }
+
+        if (time_stamp)
+            snprintf(msgBuffer, MAXRBUF, "%s: %s", valuXMLAtt(time_stamp), valuXMLAtt(message));
+        else
+        {
+            char ts[32];
+            struct tm *tp;
+            time_t t;
+            time(&t);
+            tp = gmtime(&t);
+            strftime(ts, sizeof(ts), "%Y-%m-%dT%H:%M:%S", tp);
+            snprintf(msgBuffer, MAXRBUF, "%s: %s", ts, valuXMLAtt(message));
+        }
+
+        std::string finalMsg = msgBuffer;
+
+        newUniversalMessage(finalMsg);
+    }
 
     return (0);
+}
+
+void INDI::BaseClient::newUniversalMessage(std::string message)
+{
+    IDLog("%s\n", message.c_str());
 }
 
 void INDI::BaseClient::sendNewText(ITextVectorProperty *tvp)

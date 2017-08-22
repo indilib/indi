@@ -29,9 +29,7 @@ class SimpleScope : public INDI::Telescope
     SimpleScope();
 
   protected:
-    // General device functions
-    bool Connect();
-    bool Disconnect();
+    bool Handshake();
     const char *getDefaultName();
     bool initProperties();
 
