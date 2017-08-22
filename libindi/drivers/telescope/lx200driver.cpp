@@ -374,7 +374,7 @@ int getCalendarDate(int fd, char *date)
         else
             strncpy(mell_prefix, "20", 3);
         /* We need to have it in YYYY-MM-DD ISO format */
-        snprintf(date, 16, "%s%02d/%02d/%02d", mell_prefix, yy, mm, dd);
+        snprintf(date, 16, "%s%02d-%02d-%02d", mell_prefix, yy, mm, dd);
     }
     return (0);
 }
@@ -383,6 +383,7 @@ int getTimeFormat(int fd, int *format)
 {
     DEBUGFDEVICE(lx200Name, DBG_SCOPE, "<%s>", __FUNCTION__);
     char read_buffer[RB_MAX_LEN]={0};
+    char formatString[6] = {0};
     int error_type;
     int nbytes_write = 0, nbytes_read = 0;
     int tMode;
@@ -404,7 +405,13 @@ int getTimeFormat(int fd, int *format)
 
     DEBUGFDEVICE(lx200Name, DBG_SCOPE, "RES <%s>", read_buffer);
 
-    nbytes_read = sscanf(read_buffer, "%d", &tMode);
+    // The Losmandy Gemini puts () around it's time format
+    if (strstr(read_buffer, "("))
+        strcpy(formatString, "(%d)");
+    else
+        strcpy(formatString, "%d");
+
+    nbytes_read = sscanf(read_buffer, formatString, &tMode);
 
     if (nbytes_read < 1)
         return -1;
