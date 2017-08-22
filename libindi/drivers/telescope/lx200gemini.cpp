@@ -111,6 +111,7 @@ bool LX200Gemini::updateProperties()
     const int MAX_VALUE_LENGTH = 32;
     char value[MAX_VALUE_LENGTH];
     uint speed = 0;
+    float guidingSpeed = 0.0;
 
     LX200Generic::updateProperties();
 
@@ -118,31 +119,31 @@ bool LX200Gemini::updateProperties()
     {
         defineSwitch(&ParkSettingsSP);
 
-        if (getGeminiProperty(MANUAL_SLEWING_SPEED_ID, value, MAX_VALUE_LENGTH))
+        if (getGeminiProperty(MANUAL_SLEWING_SPEED_ID, value))
         {
             sscanf(value, "%d", &speed);
             ManualSlewingSpeedN[0].value = speed;
             defineNumber(&ManualSlewingSpeedNP);
         }
-        if (getGeminiProperty(GOTO_SLEWING_SPEED_ID, value, MAX_VALUE_LENGTH))
+        if (getGeminiProperty(GOTO_SLEWING_SPEED_ID, value))
         {
             sscanf(value, "%d", &speed);
             GotoSlewingSpeedN[0].value = speed;
             defineNumber(&GotoSlewingSpeedNP);
         }
-        if (getGeminiProperty(MOVE_SPEED_ID, value, MAX_VALUE_LENGTH))
+        if (getGeminiProperty(MOVE_SPEED_ID, value))
         {
             sscanf(value, "%d", &speed);
             MoveSpeedN[0].value = speed;
             defineNumber(&MoveSpeedNP);
         }
-        if (getGeminiProperty(GUIDING_SPEED_ID, value, MAX_VALUE_LENGTH))
+        if (getGeminiProperty(GUIDING_SPEED_ID, value))
         {
-            sscanf(value, "%f", &speed);
-            GuidingSpeedN[0].value = speed;
+            sscanf(value, "%f", &guidingSpeed);
+            GuidingSpeedN[0].value = guidingSpeed;
             defineNumber(&GuidingSpeedNP);
         }
-        if (getGeminiProperty(CENTERING_SPEED_ID, value, MAX_VALUE_LENGTH))
+        if (getGeminiProperty(CENTERING_SPEED_ID, value))
         {
             sscanf(value, "%d", &speed);
             CenteringSpeedN[0].value = speed;
@@ -588,7 +589,7 @@ bool LX200Gemini::saveConfigItems(FILE *fp)
     return true;
 }
 
-bool LX200Gemini::getGeminiProperty(uint8_t propertyNumber, char* value, int maxLength)
+bool LX200Gemini::getGeminiProperty(uint8_t propertyNumber, char* value)
 {
     int rc = TTY_OK;
     int nbytes = 0;
@@ -667,6 +668,7 @@ bool LX200Gemini::SetTrackMode(uint8_t mode)
 
     snprintf(cmd, 16, "%s%c#", prefix, checksum);
 
+    DEBUG(INDI::Logger::DBG_ERROR, "Setting track mode");
     DEBUGF(INDI::Logger::DBG_DEBUG, "CMD: <%s>", cmd);
 
     if ((rc = tty_write_string(PortFD, cmd, &nbytes_written)) != TTY_OK)

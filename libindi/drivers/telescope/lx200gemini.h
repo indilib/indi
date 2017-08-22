@@ -60,7 +60,7 @@ class LX200Gemini : public LX200Generic
     bool sleepMount();
     bool wakeupMount();
 
-    bool getGeminiProperty(uint8_t propertyNumber, char* value, int maxLength);
+    bool getGeminiProperty(uint8_t propertyNumber, char* value);
     bool setGeminiProperty(uint8_t propertyNumber, char* value);
 
     // Checksum for private commands
