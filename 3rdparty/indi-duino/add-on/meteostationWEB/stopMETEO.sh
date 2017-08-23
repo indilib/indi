@@ -4,12 +4,23 @@
 # http://induino.wordpress.com 
 # 
 # NACHO MAS 2013
+# MAGNUS W. ERIKSEN 2017
 
 source meteoconfig.py
-if [ "$INDISERVER" = "localhost" ]
+
+if [[ "$INDISERVER" = "localhost" && "$INDITUNNEL" = "false" ]]
 then
-	killall indiserver
+    eval $KILLEXEC
+elif [[ "$INDISERVER" = "localhost" && "$INDITUNNEL" = "true" && "$INDISTARTREMOTE" = "true" ]]
+then
+    eval $REMOTEKILLEXEC
+elif [[ "$INDISERVER" = "localhost" && "$INDITUNNEL" = "true" && "$INDISTARTREMOTE" = "false" ]]
+then
+    echo "TODO: Kill remote tunnel" #TODO:
 fi
+
+unset IFS
+
 killall meteoRRD_updater.py
 killall meteoRRD_graph.py
 killall sounding.py
