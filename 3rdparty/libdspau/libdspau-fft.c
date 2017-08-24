@@ -88,6 +88,7 @@ int dspau_spectrum(double* in, double* out, int *c, int conversion)
 {
 	int i = 0;
 	int len = *c;
+	int ret = 0;
 	fftw_complex *fft_in, *fft_out;
 	fftw_plan p;
 	fft_in = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * len);
@@ -119,11 +120,12 @@ int dspau_spectrum(double* in, double* out, int *c, int conversion)
 		complex2phirad(fft_out, out, len);
 		break;
 	default:
-		return -1;
+		ret = -1;
+		break;
 	}
 	fftw_destroy_plan(p);
 	fftw_free(fft_in);
 	fftw_free(fft_out);
 	*c = len;
-	return 0;
+	return ret;
 }
