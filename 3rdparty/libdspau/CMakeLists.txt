@@ -18,6 +18,8 @@ include_directories( ${CMAKE_CURRENT_SOURCE_DIR})
 set(dspau_LIB_SRCS
    libdspau-fft.c
    libdspau-filters.c
+   libdspau-correlations.c
+   libdspau-stats.c
 )
 
 #build a shared library

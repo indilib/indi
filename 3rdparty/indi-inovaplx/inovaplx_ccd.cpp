@@ -121,6 +121,7 @@ bool INovaCCD::Connect()
 bool INovaCCD::Disconnect()
 {
     threadsRunning = false;
+    pthread_join(captureThread, NULL);
     iNovaSDK_SensorPowerDown();
     iNovaSDK_CloseVideo();
     iNovaSDK_CloseCamera();

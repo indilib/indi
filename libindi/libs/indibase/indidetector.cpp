@@ -92,12 +92,15 @@ DetectorDevice::~DetectorDevice()
 void DetectorDevice::setMinMaxStep(const char *property, const char *element, double min, double max, double step,
                             bool sendToClient)
 {
-    INumberVectorProperty *nvp = nullptr;
+    INumberVectorProperty *vp = nullptr;
 
     if (!strcmp(property, FramedCaptureNP.name))
-        nvp = &FramedCaptureNP;
+        vp = &FramedCaptureNP;
 
-    INumber *np = IUFindNumber(nvp, element);
+    if (!strcmp(property, DetectorSettingsNP.name))
+        vp = &DetectorSettingsNP;
+
+    INumber *np = IUFindNumber(vp, element);
     if (np)
     {
         np->min  = min;
@@ -105,7 +108,7 @@ void DetectorDevice::setMinMaxStep(const char *property, const char *element, do
         np->step = step;
 
         if (sendToClient)
-            IUUpdateMinMax(nvp);
+            IUUpdateMinMax(vp);
     }
 }
 
@@ -266,8 +269,8 @@ bool INDI::Detector::initProperties()
                        "Capture Abort", MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
 
     // PrimaryDetector Info
-    IUFillNumber(&PrimaryDetector.DetectorSettingsN[DetectorDevice::DETECTOR_SAMPLERATE], "DETECTOR_SAMPLERATE", "Sample rate (SPS)", "%18.2f", 0.01, 1.0e+15, 0.01, 1.0e+6);
-    IUFillNumber(&PrimaryDetector.DetectorSettingsN[DetectorDevice::DETECTOR_FREQUENCY], "DETECTOR_FREQUENCY", "Center frequency (Hz)", "%18.2f", 0.01, 1.0e+15, 0.01, 1.42e+9);
+    IUFillNumber(&PrimaryDetector.DetectorSettingsN[DetectorDevice::DETECTOR_SAMPLERATE], "DETECTOR_SAMPLERATE", "Sample rate (SPS)", "%16.2f", 0.01, 1.0e+15, 0.01, 1.0e+6);
+    IUFillNumber(&PrimaryDetector.DetectorSettingsN[DetectorDevice::DETECTOR_FREQUENCY], "DETECTOR_FREQUENCY", "Center frequency (Hz)", "%16.2f", 0.01, 1.0e+15, 0.01, 1.42e+9);
     IUFillNumber(&PrimaryDetector.DetectorSettingsN[DetectorDevice::DETECTOR_BITSPERSAMPLE], "DETECTOR_BITSPERSAMPLE", "Bits per sample", "%3.0f", 1, 64, 1, 8);
     IUFillNumberVector(&PrimaryDetector.DetectorSettingsNP, PrimaryDetector.DetectorSettingsN, 3, getDeviceName(), "DETECTOR_SETTINGS", "Detector Settings", CAPTURE_SETTINGS_TAB, IP_RW, 60, IPS_IDLE);
 

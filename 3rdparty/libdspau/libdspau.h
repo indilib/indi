@@ -34,83 +34,378 @@ enum dspau_conversiontype {
 
 /**
 * @brief Create a spectrum from a double array of values
-* @param data the input stream.
+* @param in the input stream. (input)
+* @param out the output stream. (output)
 * @param bandwidth the bandwidth of the spectrum.
-* @param len the length of the input stream.
+* @param len the length of the input stream (input/output).
 * @param conversion the output magnitude dspau_conversiontype type.
 * @return the output stream if successfull elaboration. NULL if an
 * error is encountered.
-* Return out if success.
-* Return NULL if any error occurs.
+* Return 0 if success.
+* Return -1 if any error occurs.
 */
-double* dspau_spectrum(double* data, int *len, int conversion);
+int dspau_spectrum(double* in, double* out, int *len, int conversion);
 
 /**
 * @brief A square law filter
-* @param data the input stream.
+* @param in the input stream. (input)
+* @param out the output stream. (output)
 * @param len the length of the input stream.
 * @return the output stream if successfull elaboration. NULL if an
 * error is encountered.
-* Return out if success.
-* Return NULL if any error occurs.
+* Return 0 if success.
+* Return -1 if any error occurs.
 */
-double* dspau_squarelawfilter(double* data, int len);
+int dspau_squarelawfilter(double* in, double* out, int len);
 
 /**
 * @brief A low pass filter
-* @param data the input stream.
+* @param in the input stream. (input)
+* @param out the output stream. (output)
 * @param len the length of the input stream.
 * @param samplingfrequency the sampling frequency of the input stream.
 * @param frequency the cutoff frequency of the filter.
 * @param q the cutoff slope.
 * @return the output stream if successfull elaboration. NULL if an
 * error is encountered.
-* Return out if success.
-* Return NULL if any error occurs.
+* Return 0 if success.
+* Return -1 if any error occurs.
 */
-double* dspau_lowpassfilter(double* data, int len, double samplingfrequency, double frequency, double q);
+int dspau_lowpassfilter(double* in, double* out, int len, double samplingfrequency, double frequency, double q);
 
 /**
 * @brief A high pass filter
-* @param data the input stream.
+* @param in the input stream. (input)
+* @param out the output stream. (output)
 * @param len the length of the input stream.
 * @param samplingfrequency the sampling frequency of the input stream.
 * @param frequency the cutoff frequency of the filter.
 * @param q the cutoff slope.
 * @return the output stream if successfull elaboration. NULL if an
 * error is encountered.
-* Return out if success.
-* Return NULL if any error occurs.
+* Return 0 if success.
+* Return -1 if any error occurs.
 */
-double* dspau_highpassfilter(double* data, int len, double samplingfrequency, double frequency, double q);
+int dspau_highpassfilter(double* in, double* out, int len, double samplingfrequency, double frequency, double q);
 
 /**
 * @brief A band pass filter
-* @param data the input stream.
+* @param in the input stream. (input)
+* @param out the output stream. (output)
 * @param len the length of the input stream.
 * @param samplingfrequency the sampling frequency of the input stream.
 * @param frequency the center frequency of the filter.
 * @param q the cutoff slope.
 * @return the output stream if successfull elaboration. NULL if an
 * error is encountered.
-* Return out if success.
-* Return NULL if any error occurs.
+* Return 0 if success.
+* Return -1 if any error occurs.
 */
-double* dspau_bandpassfilter(double* data, int len, double samplingfrequency, double frequency, double q);
+int dspau_bandpassfilter(double* in, double* out, int len, double samplingfrequency, double frequency, double q);
 
 /**
 * @brief A band reject filter
-* @param data the input stream.
+* @param in the input stream. (input)
+* @param out the output stream. (output)
 * @param len the length of the input stream.
 * @param samplingfrequency the sampling frequency of the input stream.
 * @param frequency the center frequency of the filter.
 * @param q the cutoff slope.
 * @return the output stream if successfull elaboration. NULL if an
 * error is encountered.
-* Return out if success.
-* Return NULL if any error occurs.
+* Return 0 if success.
+* Return -1 if any error occurs.
 */
-double* dspau_bandrejectfilter(double* data, int len, double samplingfrequency, double frequency, double q);
+int dspau_bandrejectfilter(double* in, double* out, int len, double samplingfrequency, double frequency, double q);
+
+/**
+* @brief An auto-correlator
+* @param in the input stream. (input)
+* @param out the output stream. (output)
+* @param len the length of the input stream (input/output).
+* @param skip skip n values at beginning (resulting len will be reduced).
+* @return the output stream if successfull elaboration. NULL if an
+* error is encountered.
+* Return 0 if success.
+* Return -1 if any error occurs.
+*/
+int dspau_autocorrelate(double* in, double* out, int *len, int skip);
+
+/**
+* @brief A cross-correlator
+* @param x the first input stream. (input)
+* @param y the second input stream. (input)
+* @param len the length of the input streams.
+* @return the resulting correlation degree.
+* Return the correlation degree.
+*/
+double dspau_crosscorrelate(double* x, double* y, int len);
+
+/**
+* @brief A band-pass auto-correlator (Warning: high memory usage!)
+* @param in the input stream. (input)
+* @param out the output stream. (output)
+* @param len the length of the input stream. (input/output)
+* @param skip skip n values at beginning (resulting len will be reduced).
+* @param Q the slope of the band-pass filters.
+* @return the output stream if successfull elaboration. NULL if an
+* error is encountered.
+* Return 0 if success.
+* Return -1 if any error occurs.
+*/
+int dspau_bandpasscorrelate(double* in, double* out, int *len, int skip, double Q);
+
+/**
+* @brief Gets minimum, mid, and maximum values of the input stream
+* @param in the input stream. (input)
+* @param len the length of the input stream.
+* @param min the minimum value (output).
+* @param max the maximum value (output).
+* @return the mid value (max - min) / 2 + min.
+* Return mid if success.
+*/
+double dspau_minmidmax(double* in, int len, double *min, double *max);
+
+/**
+* @brief A mean calculator
+* @param in the input stream. (input)
+* @param len the length of the input stream.
+* @return the mean value of the stream.
+* Return mean if success.
+*/
+double dspau_mean(double* in, int len);
+
+/**
+* @brief Subtract mean from stream
+* @param in the input stream. (input)
+* @param out the output stream. (output)
+* @param len the length of the input stream.
+* @return the output stream if successfull elaboration. NULL if an
+* error is encountered.
+* Return 0 if success.
+* Return -1 if any error occurs.
+*/
+int dspau_removemean(double* in, double* out, int len);
+
+/**
+* @brief Stretch minimum and maximum values of the input stream
+* @param in the input stream. (input)
+* @param out the output stream. (output)
+* @param len the length of the input stream.
+* @param min the desired minimum value.
+* @param max the desired maximum value.
+* @return the output stream if successfull elaboration. NULL if an
+* error is encountered.
+* Return 0 if success.
+* Return -1 if any error occurs.
+*/
+int dspau_stretch(double* in, double* out, int len, int min, int max);
+
+/**
+* @brief Normalize the input stream to the minimum and maximum values
+* @param in the input stream. (input)
+* @param out the output stream. (output)
+* @param len the length of the input stream.
+* @param min the clamping minimum value.
+* @param max the clamping maximum value.
+* @return the output stream if successfull elaboration. NULL if an
+* error is encountered.
+* Return 0 if success.
+* Return -1 if any error occurs.
+*/
+int dspau_normalize(double* in, double* out, int len, int min, int max);
+
+/**
+* @brief Convert an 8bit unsigned array into a double array
+* @param in the input stream. (input)
+* @param out the output stream. (output)
+* @param len the length of the input stream.
+* @return the output stream if successfull elaboration. NULL if an
+* error is encountered.
+* Return 0 if success.
+* Return -1 if any error occurs.
+*/
+int dspau_u8todouble(unsigned char* in, double* out, int len);
+
+/**
+* @brief Convert a 16bit unsigned array into a double array
+* @param in the input stream. (input)
+* @param out the output stream. (output)
+* @param len the length of the input stream.
+* @return the output stream if successfull elaboration. NULL if an
+* error is encountered.
+* Return 0 if success.
+* Return -1 if any error occurs.
+*/
+int dspau_u16todouble(unsigned short int* in, double* out, int len);
+
+/**
+* @brief Convert a 32bit unsigned array into a double array
+* @param in the input stream. (input)
+* @param out the output stream. (output)
+* @param len the length of the input stream.
+* @return the output stream if successfull elaboration. NULL if an
+* error is encountered.
+* Return 0 if success.
+* Return -1 if any error occurs.
+*/
+int dspau_u32todouble(unsigned int* in, double* out, int len);
+
+/**
+* @brief Convert a 64bit unsigned array into a double array
+* @param in the input stream. (input)
+* @param out the output stream. (output)
+* @param len the length of the input stream.
+* @return the output stream if successfull elaboration. NULL if an
+* error is encountered.
+* Return 0 if success.
+* Return -1 if any error occurs.
+*/
+int dspau_u64todouble(unsigned long int* in, double* out, int len);
+
+/**
+* @brief Convert an 8bit signed array into a double array
+* @param in the input stream. (input)
+* @param out the output stream. (output)
+* @param len the length of the input stream.
+* @return the output stream if successfull elaboration. NULL if an
+* error is encountered.
+* Return 0 if success.
+* Return -1 if any error occurs.
+*/
+int dspau_s8todouble(signed char* in, double* out, int len);
+
+/**
+* @brief Convert a 16bit signed array into a double array
+* @param in the input stream. (input)
+* @param out the output stream. (output)
+* @param len the length of the input stream.
+* @return the output stream if successfull elaboration. NULL if an
+* error is encountered.
+* Return 0 if success.
+* Return -1 if any error occurs.
+*/
+int dspau_s16todouble(signed short int* in, double* out, int len);
+
+/**
+* @brief Convert a 32bit signed array into a double array
+* @param in the input stream. (input)
+* @param out the output stream. (output)
+* @param len the length of the input stream.
+* @return the output stream if successfull elaboration. NULL if an
+* error is encountered.
+* Return 0 if success.
+* Return -1 if any error occurs.
+*/
+int dspau_s32todouble(signed int* in, double* out, int len);
+
+/**
+* @brief Convert a 64bit signed array into a double array
+* @param in the input stream. (input)
+* @param out the output stream. (output)
+* @param len the length of the input stream.
+* @return the output stream if successfull elaboration. NULL if an
+* error is encountered.
+* Return 0 if success.
+* Return -1 if any error occurs.
+*/
+int dspau_s64todouble(signed long int* in, double* out, int len);
+
+/**
+* @brief Convert a double array into a 8bit unsigned array
+* @param in the input stream. (input)
+* @param out the output stream. (output)
+* @param len the length of the input stream.
+* @return the output stream if successfull elaboration. NULL if an
+* error is encountered.
+* Return 0 if success.
+* Return -1 if any error occurs.
+*/
+int dspau_doubletou8(double* in, unsigned char* out, int len);
+
+/**
+* @brief Convert a double array into a 16bit unsigned array
+* @param in the input stream. (input)
+* @param out the output stream. (output)
+* @param len the length of the input stream.
+* @return the output stream if successfull elaboration. NULL if an
+* error is encountered.
+* Return 0 if success.
+* Return -1 if any error occurs.
+*/
+int dspau_doubletou16(double* in, unsigned short int* out, int len);
+
+/**
+* @brief Convert a double array into a 32bit unsigned array
+* @param in the input stream. (input)
+* @param out the output stream. (output)
+* @param len the length of the input stream.
+* @return the output stream if successfull elaboration. NULL if an
+* error is encountered.
+* Return 0 if success.
+* Return -1 if any error occurs.
+*/
+int dspau_doubletou32(double* in, unsigned int* out, int len);
+
+/**
+* @brief Convert a double array into a 64bit unsigned array
+* @param in the input stream. (input)
+* @param out the output stream. (output)
+* @param len the length of the input stream.
+* @return the output stream if successfull elaboration. NULL if an
+* error is encountered.
+* Return 0 if success.
+* Return -1 if any error occurs.
+*/
+int dspau_doubletou64(double* in, unsigned long int* out, int len);
+
+/**
+* @brief Convert a double array into an 8bit signed array
+* @param in the input stream. (input)
+* @param out the output stream. (output)
+* @param len the length of the input stream.
+* @return the output stream if successfull elaboration. NULL if an
+* error is encountered.
+* Return 0 if success.
+* Return -1 if any error occurs.
+*/
+int dspau_doubletos8(double* in, signed char* out, int len);
+
+/**
+* @brief Convert a double array into a 16bit signed array
+* @param in the input stream. (input)
+* @param out the output stream. (output)
+* @param len the length of the input stream.
+* @return the output stream if successfull elaboration. NULL if an
+* error is encountered.
+* Return 0 if success.
+* Return -1 if any error occurs.
+*/
+int dspau_doubletos16(double* in, signed short int* out, int len);
+
+/**
+* @brief Convert a double array into a 32bit signed array
+* @param in the input stream. (input)
+* @param out the output stream. (output)
+* @param len the length of the input stream.
+* @return the output stream if successfull elaboration. NULL if an
+* error is encountered.
+* Return 0 if success.
+* Return -1 if any error occurs.
+*/
+int dspau_doubletos32(double* in, signed int* out, int len);
+
+/**
+* @brief Convert a double array into a 64bit signed array
+* @param in the input stream. (input)
+* @param out the output stream. (output)
+* @param len the length of the input stream.
+* @return the output stream if successfull elaboration. NULL if an
+* error is encountered.
+* Return 0 if success.
+* Return -1 if any error occurs.
+*/
+int dspau_doubletos64(double* in, signed long int* out, int len);
 
 #ifdef  __cplusplus
 }
