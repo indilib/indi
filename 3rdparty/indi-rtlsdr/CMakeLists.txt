@@ -13,6 +13,7 @@ find_package(INDI REQUIRED)
 find_package(ZLIB REQUIRED)
 find_package(DSPAU REQUIRED)
 find_package(RTLSDR REQUIRED)
+find_package(Threads REQUIRED)
 
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/config.h.cmake ${CMAKE_CURRENT_BINARY_DIR}/config.h )
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/indi_rtlsdr.xml.cmake ${CMAKE_CURRENT_BINARY_DIR}/indi_rtlsdr.xml)
@@ -33,7 +34,7 @@ set(rtlsdr_SRCS
 
 add_executable(indi_rtlsdr_detector ${rtlsdr_SRCS})
 
-target_link_libraries(indi_rtlsdr_detector ${RTLSDR_LIBRARIES} ${DSPAU_LIBRARIES} ${INDI_LIBRARIES} ${CFITSIO_LIBRARIES} ${M_LIB})
+target_link_libraries(indi_rtlsdr_detector ${RTLSDR_LIBRARIES} ${DSPAU_LIBRARIES} ${INDI_LIBRARIES} ${CFITSIO_LIBRARIES} ${M_LIB} ${CMAKE_THREAD_LIBS_INIT})
 
 install(TARGETS indi_rtlsdr_detector RUNTIME DESTINATION bin)
 
