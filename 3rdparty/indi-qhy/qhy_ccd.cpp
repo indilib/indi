@@ -38,7 +38,7 @@
 
 #define POLLMS                  1000        /* Polling time (ms) */
 #define TEMP_THRESHOLD          0.2         /* Differential temperature threshold (C)*/
-#define MINIMUM_CCD_EXPOSURE    0.001       /* 0.001 seconds minimum exposure */
+#define MINIMUM_CCD_EXPOSURE    0.0001       /* 0.001 seconds minimum exposure */
 #define MAX_DEVICES             4           /* Max device cameraCount */
 
 //NB Disable for real driver
