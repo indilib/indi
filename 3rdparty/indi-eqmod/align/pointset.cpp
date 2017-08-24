@@ -369,17 +369,17 @@ char *PointSet::WriteDataFile(const char *filename)
         wordfree(&wexp);
         return (char *)("Badly formed filename");
     }
+    if (lnalignpos)
+    { // Why this ?
+        if ((fabs(lnalignpos->lng - IUFindNumber(telescope->getNumber("GEOGRAPHIC_COORD"), "LONG")->value)>1E-4) ||
+            (fabs(lnalignpos->lat - IUFindNumber(telescope->getNumber("GEOGRAPHIC_COORD"), "LAT")->value)>1E-4))
+            return (char *)("Can not mix alignment data from different sites (lng. and/or lat. differs)");
+    }
     //if (filename == NULL) return;
     if (!(fp = fopen(wexp.we_wordv[0], "w")))
     {
         wordfree(&wexp);
         return strerror(errno);
-    }
-    if (lnalignpos)
-    { // Why this ?
-        if ((lnalignpos->lng != IUFindNumber(telescope->getNumber("GEOGRAPHIC_COORD"), "LONG")->value) ||
-            (lnalignpos->lat != IUFindNumber(telescope->getNumber("GEOGRAPHIC_COORD"), "LAT")->value))
-            return (char *)("Can not mix alignment data from different sites (lng. and/or lat. differs)");
     }
     root = toXML();
 
