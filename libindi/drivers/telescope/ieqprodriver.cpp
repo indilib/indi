@@ -174,7 +174,7 @@ bool get_ieqpro_status(int fd, IEQInfo *info)
     if (ieqpro_simulation)
     {
         snprintf(response, 8, "%d%d%d%d%d%d#", simInfo.gpsStatus, simInfo.systemStatus, simInfo.trackRate,
-                 simInfo.slewRate + 1, simInfo.timeSource + 1, simInfo.hemisphere);
+                 simInfo.slewRate + 1, simInfo.timeSource, simInfo.hemisphere);
         nbytes_read = strlen(response);
     }
     else
@@ -207,7 +207,7 @@ bool get_ieqpro_status(int fd, IEQInfo *info)
             info->systemStatus = (IEQ_SYSTEM_STATUS)(response[1] - '0');
             info->trackRate    = (IEQ_TRACK_RATE)(response[2] - '0');
             info->slewRate     = (IEQ_SLEW_RATE)(response[3] - '0' - 1);
-            info->timeSource   = (IEQ_TIME_SOURCE)(response[4] - '0' - 1);
+            info->timeSource   = (IEQ_TIME_SOURCE)(response[4] - '0');
             info->hemisphere   = (IEQ_HEMISPHERE)(response[5] - '0');
 
             tcflush(fd, TCIFLUSH);
