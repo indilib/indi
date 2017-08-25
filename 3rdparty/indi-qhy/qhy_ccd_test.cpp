@@ -277,7 +277,7 @@ int main(int , char **)
     printf("ExpQHYCCDSingleFrame(pCamHandle) - start...\n");
     retVal = ExpQHYCCDSingleFrame(pCamHandle);
     printf("ExpQHYCCDSingleFrame(pCamHandle) - end...\n");
-    if (QHYCCD_ERROR != retVal)
+    if (QHYCCD_ERROR != (uint32_t) retVal)
     {
         printf("ExpQHYCCDSingleFrame success (%d).\n", retVal);
         if (QHYCCD_READ_DIRECTLY != retVal)
