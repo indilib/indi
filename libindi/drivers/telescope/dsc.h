@@ -28,22 +28,11 @@
 
 #include <libnova/ln_types.h>
 
-typedef struct SyncData
-{
-    double lst, jd;
-    double targetRA, targetDEC;
-    double telescopeRA, telescopeDEC;
-    double deltaRA, deltaDEC;
-    unsigned long targetRAEncoder, targetDECEncoder;
-    unsigned long telescopeRAEncoder, telescopeDECEncoder;
-    long deltaRAEncoder, deltaDECEncoder;
-} SyncData;
-
 class DSC : public INDI::Telescope, INDI::AlignmentSubsystem::AlignmentSubsystemForDrivers
 {
   public:
     DSC();
-    virtual ~DSC();
+    virtual ~DSC() = default;
 
     virtual bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n) override;
     virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
@@ -115,7 +104,7 @@ class DSC : public INDI::Telescope, INDI::AlignmentSubsystem::AlignmentSubsystem
     INumber SimEncoderN[2];
     INumberVectorProperty SimEncoderNP;
 
-    ln_lnlat_posn observer;
-    ln_hrz_posn encoderHorizontalCoordinates;
-    ln_equ_posn encoderEquatorialCoordinates;
+    ln_lnlat_posn observer { 0, 0 };
+    ln_hrz_posn encoderHorizontalCoordinates { 0, 0 };
+    ln_equ_posn encoderEquatorialCoordinates { 0, 0 };
 };

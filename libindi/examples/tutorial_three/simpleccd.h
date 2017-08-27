@@ -27,7 +27,7 @@
 class SimpleCCD : public INDI::CCD
 {
   public:
-    SimpleCCD();
+    SimpleCCD() = default;
 
   protected:
     // General device functions
@@ -50,10 +50,10 @@ class SimpleCCD : public INDI::CCD
     void grabImage();
 
     // Are we exposing?
-    bool InExposure;
+    bool InExposure { false };
     // Struct to keep timing
-    struct timeval ExpStart;
+    struct timeval ExpStart { 0, 0 };
 
-    float ExposureRequest;
-    float TemperatureRequest;
+    float ExposureRequest { 0 };
+    float TemperatureRequest { 0 };
 };

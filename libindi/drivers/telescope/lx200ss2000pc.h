@@ -25,14 +25,14 @@
 class LX200SS2000PC : public LX200Generic
 {
   public:
-    LX200SS2000PC(void);
+    LX200SS2000PC();
 
-    virtual const char *getDefaultName(void);
+    virtual const char *getDefaultName();
     virtual bool updateTime(ln_date *utc, double utc_offset);
 
   protected:
-    virtual void getBasicData(void);
-    virtual bool isSlewComplete(void);
+    virtual void getBasicData();
+    virtual bool isSlewComplete();
 
   private:
     bool getCalendarDate(int &year, int &month, int &day);

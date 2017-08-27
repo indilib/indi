@@ -27,7 +27,7 @@
 class SimpleDetector : public INDI::Detector
 {
   public:
-    SimpleDetector();
+    SimpleDetector() = default;
 
   protected:
     // General device functions
@@ -39,6 +39,7 @@ class SimpleDetector : public INDI::Detector
 
     // Detector specific functions
     bool StartCapture(float duration);
+    bool CaptureParamsUpdated(float bw, float freq, float bps);
     bool AbortCapture();
     int SetTemperature(double temperature);
     void TimerHit();
@@ -50,10 +51,10 @@ class SimpleDetector : public INDI::Detector
     void grabFrame();
 
     // Are we exposing?
-    bool InCapture;
+    bool InCapture { false };
     // Struct to keep timing
-    struct timeval CapStart;
+    struct timeval CapStart { 0, 0 };
 
-    float CaptureRequest;
-    float TemperatureRequest;
+    float CaptureRequest { 0 };
+    float TemperatureRequest { 0 };
 };

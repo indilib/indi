@@ -74,7 +74,6 @@ class EQMod : public INDI::Telescope, public INDI::GuiderInterface
     Align *align;
 #endif
 
-    TelescopeStatus RememberTrackState;
     int last_motion_ns;
     int last_motion_ew;
 
@@ -105,10 +104,8 @@ class EQMod : public INDI::Telescope, public INDI::GuiderInterface
     ILightVectorProperty *RAStatusLP           = NULL;
     ILightVectorProperty *DEStatusLP           = NULL;
     INumberVectorProperty *SlewSpeedsNP        = NULL;
-    ISwitchVectorProperty *HemisphereSP        = NULL;
-    ISwitchVectorProperty *TrackModeSP         = NULL;
+    ISwitchVectorProperty *HemisphereSP        = NULL;    
     ISwitchVectorProperty *TrackDefaultSP      = NULL;
-    INumberVectorProperty *TrackRatesNP        = NULL;
     INumberVectorProperty *HorizontalCoordNP   = NULL;
     INumberVectorProperty *StandardSyncNP      = NULL;
     INumberVectorProperty *StandardSyncPointNP = NULL;
@@ -237,6 +234,11 @@ class EQMod : public INDI::Telescope, public INDI::GuiderInterface
     bool SetCurrentPark();
     bool SetDefaultPark();
     bool Sync(double ra, double dec);
+
+    // Tracking
+    bool SetTrackMode(uint8_t mode);
+    bool SetTrackRate(double raRate, double deRate);
+    bool SetTrackEnabled(bool enabled);
 
     virtual bool saveConfigItems(FILE *fp);
 

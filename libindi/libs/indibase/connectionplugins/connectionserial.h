@@ -26,6 +26,14 @@
 
 namespace Connection
 {
+/**
+ * @brief The Serial class manages connection with serial devices including Bluetooth. Serial communication is still the predominat
+ * method to communicate with astronomical devices such as mounts, focusers, filter wheels..etc. The default connection
+ * parameters are 9600 8N1 (9600 Baud Rate, 8 data bits, no parity, 1 stop bit). All the parameters can be updated and read via
+ * the getters and setters of the class.
+ * The default port is <i>/dev/ttyUSB0</i> under Linux and <i>/dev/cu.usbserial</i> under MacOS. After serial connection is established
+ * successfully,
+ */
 class Serial : public Interface
 {
   public:

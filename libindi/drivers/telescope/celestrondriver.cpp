@@ -31,8 +31,8 @@
 
 #include <map>
 
-#include <string.h>
-#include <math.h>
+#include <cstring>
+#include <cmath>
 #include <termios.h>
 #include <unistd.h>
 
@@ -90,9 +90,19 @@ void set_sim_ra(double ra)
     simData.ra = ra;
 }
 
+double get_sim_ra()
+{
+    return simData.ra;
+}
+
 void set_sim_dec(double dec)
 {
     simData.dec = dec;
+}
+
+double get_sim_dec()
+{
+    return simData.dec;
 }
 
 void set_sim_az(double az)
@@ -183,14 +193,14 @@ bool get_celestron_firmware(int fd, FirmwareInfo *info)
     DEBUGDEVICE(celestron_device, INDI::Logger::DBG_DEBUG, "Getting controller version...");
     rc = get_celestron_version(fd, info);
 
-    if (rc == false)
+    if (!rc)
         return false;
 
     if (info->controllerVersion >= 2.2)
     {
         DEBUGDEVICE(celestron_device, INDI::Logger::DBG_DEBUG, "Getting controller model...");
         rc = get_celestron_model(fd, info);
-        if (rc == false)
+        if (!rc)
             return rc;
     }
     else
@@ -199,13 +209,13 @@ bool get_celestron_firmware(int fd, FirmwareInfo *info)
     DEBUGDEVICE(celestron_device, INDI::Logger::DBG_DEBUG, "Getting GPS firmware version...");
     rc = get_celestron_gps_firmware(fd, info);
 
-    if (rc == false)
+    if (!rc)
         return rc;
 
     DEBUGDEVICE(celestron_device, INDI::Logger::DBG_DEBUG, "Getting RA firmware version...");
     rc = get_celestron_ra_firmware(fd, info);
 
-    if (rc == false)
+    if (!rc)
         return rc;
 
     DEBUGDEVICE(celestron_device, INDI::Logger::DBG_DEBUG, "Getting DE firmware version...");

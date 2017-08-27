@@ -49,7 +49,7 @@ class Magellan1
     void handleError(ISwitchVectorProperty *svp, int err, const char *msg);
     void handleError(INumberVectorProperty *nvp, int err, const char *msg);
     void handleError(ITextVectorProperty *tvp, int err, const char *msg);
-    bool isTelescopeOn(void);
+    bool isTelescopeOn();
     void connectTelescope();
     void setCurrentDeviceName(const char *devName);
     void correctFault();

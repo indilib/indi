@@ -39,7 +39,7 @@ class FlipFlat : public INDI::DefaultDevice, public INDI::LightBoxInterface, pub
 {
   public:
     FlipFlat();
-    virtual ~FlipFlat();
+    virtual ~FlipFlat() = default;
 
     virtual bool initProperties();
     virtual void ISGetProperties(const char *dev);
@@ -81,11 +81,14 @@ class FlipFlat : public INDI::DefaultDevice, public INDI::LightBoxInterface, pub
     ITextVectorProperty FirmwareTP;
     IText FirmwareT[1];
 
-    int PortFD = -1;
-    int productID;
-    bool isFlipFlat;
-    uint8_t simulationWorkCounter = 0;
-    uint8_t prevCoverStatus, prevLightStatus, prevMotorStatus, prevBrightness;
+    int PortFD { -1 };
+    int productID { 0 };
+    bool isFlipFlat { false };
+    uint8_t simulationWorkCounter { 0 };
+    uint8_t prevCoverStatus { 0xFF };
+    uint8_t prevLightStatus { 0xFF };
+    uint8_t prevMotorStatus { 0xFF };
+    uint8_t prevBrightness { 0xFF };
 
-    Connection::Serial *serialConnection = NULL;
+    Connection::Serial *serialConnection { nullptr };
 };

@@ -26,7 +26,6 @@
 #include <string>
 
 #define TCFS_MAX_CMD      16
-#define TCFS_MAX_TRIES    3
 #define TCFS_ERROR_BUFFER 1024
 
 class TCFS : public INDI::Focuser
@@ -48,12 +47,6 @@ class TCFS : public INDI::Focuser
         FHOME,  // Focuser Home Command
     };
 
-    enum TCFSMode
-    {
-        TCFS_MANUAL_MODE,
-        TCFS_A_MODE,
-        TCFS_B_MODE
-    };
     enum TCFSError
     {
         NO_ERROR,
@@ -63,7 +56,7 @@ class TCFS : public INDI::Focuser
     };
 
     TCFS();
-    ~TCFS();
+    virtual ~TCFS() = default;
 
     // Standard INDI interface fucntions
     virtual bool Handshake();
@@ -75,30 +68,27 @@ class TCFS : public INDI::Focuser
     virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n);
 
   protected:
-    virtual IPState MoveAbsFocuser(uint32_t ticks);
+    virtual IPState MoveAbsFocuser(uint32_t targetTicks);
     virtual IPState MoveRelFocuser(FocusDirection dir, uint32_t ticks);
     virtual void TimerHit();
 
   private:
-    ISwitchVectorProperty *FocusPowerSP;
-    ISwitchVectorProperty *FocusModeSP;
-    ISwitchVectorProperty *FocusGotoSP;
-    INumberVectorProperty *FocusTemperatureNP;
-
     bool read_tcfs(bool silent = false);
-    bool dispatch_command(TCFSCommand command);
+    bool dispatch_command(TCFSCommand command_type);
 
-    // Variables
-    std::string default_port;
+    ISwitchVectorProperty *FocusPowerSP { nullptr };
+    ISwitchVectorProperty *FocusModeSP { nullptr };
+    ISwitchVectorProperty *FocusGotoSP { nullptr };
+    INumberVectorProperty *FocusTemperatureNP { nullptr };
 
-    int fd;
+    int fd { 0 };
     char command[TCFS_MAX_CMD];
     char response[TCFS_MAX_CMD];
 
-    unsigned int simulated_position;
-    float simulated_temperature;
+    unsigned int simulated_position { 3000 };
+    float simulated_temperature { 25.4 };
 
-    unsigned int targetTicks, targetPosition;
-    TCFSCommand currentCommand;
-    bool isTCFS3;
+    unsigned int targetTicks { 0 };
+    unsigned int targetPosition { 0 };
+    bool isTCFS3 { false };
 };

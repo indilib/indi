@@ -430,7 +430,7 @@ static DvrInfo *allocDvr()
     DvrInfo *dp = NULL;
     int dvi;
 
-    /* try to reuse a drivber slot, else add one */
+    /* try to reuse a driver slot, else add one */
     for (dvi = 0; dvi < ndvrinfo; dvi++)
         if (!(dp = &dvrinfo[dvi])->active)
             break;
@@ -445,6 +445,9 @@ static DvrInfo *allocDvr()
         }
         dp = &dvrinfo[ndvrinfo++];
     }
+
+    if (dp == NULL)
+        return NULL;
 
     /* rig up new dvrinfo entry */
     memset(dp, 0, sizeof(*dp));
@@ -1109,6 +1112,9 @@ static void newClient()
         }
         cp = &clinfo[nclinfo++];
     }
+
+    if (cp == NULL)
+        return;
 
     /* rig up new clinfo entry */
     memset(cp, 0, sizeof(*cp));

@@ -22,11 +22,9 @@
 
 class FilterSim : public INDI::FilterWheel
 {
-  protected:
-  private:
   public:
-    FilterSim();
-    virtual ~FilterSim();
+    FilterSim() = default;
+    virtual ~FilterSim() = default;
 
     const char *getDefaultName();
 

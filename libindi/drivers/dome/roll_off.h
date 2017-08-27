@@ -24,7 +24,7 @@ class RollOff : public INDI::Dome
 {
   public:
     RollOff();
-    virtual ~RollOff();
+    virtual ~RollOff() = default;
 
     virtual bool initProperties();
     const char *getDefaultName();
@@ -48,12 +48,11 @@ class RollOff : public INDI::Dome
     virtual bool getFullClosedLimitSwitch();
 
   private:
-    ISState fullOpenLimitSwitch;
-    ISState fullClosedLimitSwitch;
-
-    double MotionRequest;
-    struct timeval MotionStart;
     bool SetupParms();
-
     float CalcTimeLeft(timeval);
+
+    ISState fullOpenLimitSwitch { ISS_ON };
+    ISState fullClosedLimitSwitch { ISS_OFF };
+    double MotionRequest { 0 };
+    struct timeval MotionStart { 0, 0 };
 };

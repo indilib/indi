@@ -148,6 +148,13 @@ void ISInit()
 void ISGetProperties(const char *dev)
 {
     ISInit();
+
+    if (cameraCount == 0)
+    {
+        IDMessage(nullptr, "No QHY cameras detected. Power on?");
+        return;
+    }
+
     for (int i = 0; i < cameraCount; i++)
     {
         QHYCCD *camera = cameras[i];
@@ -1162,11 +1169,11 @@ IPState QHYCCD::GuideWest(float duration)
 
 bool QHYCCD::SelectFilter(int position)
 {
-    char targetpos;
+    char targetpos = 0;
     char currentpos[64];
     int checktimes = 0;
+    int ret = 0;
 
-    int ret;
     if (sim)
         ret = QHYCCD_SUCCESS;
     else
@@ -1243,7 +1250,7 @@ int QHYCCD::QueryFilter()
 
 bool QHYCCD::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
 {
-    if (strcmp(dev, getDeviceName()) == 0)
+    if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
         if (strcmp(name, CoolerSP.name) == 0)
         {
@@ -1261,7 +1268,7 @@ bool QHYCCD::ISNewSwitch(const char *dev, const char *name, ISState *states, cha
 
 bool QHYCCD::ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
 {
-    if (strcmp(dev, getDeviceName()) == 0)
+    if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
         //  This is for our device
         //  Now lets see if it's something we process here
@@ -1279,7 +1286,7 @@ bool QHYCCD::ISNewNumber(const char *dev, const char *name, double values[], cha
 {
     //  first check if it's for our device
     //IDLog("INDI::CCD::ISNewNumber %s\n",name);
-    if (strcmp(dev, getDeviceName()) == 0)
+    if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
         if (strcmp(name, FilterSlotNP.name) == 0)
         {

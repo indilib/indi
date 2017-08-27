@@ -28,8 +28,8 @@
 
 #include <libnova/transform.h>
 
-#include <math.h>
-#include <string.h>
+#include <cmath>
+#include <cstring>
 #include <unistd.h>
 #include <termios.h>
 
@@ -42,9 +42,9 @@ LX200AstroPhysics::LX200AstroPhysics() : LX200Generic()
     timeUpdated = locationUpdated = false;
     initStatus                    = MOUNTNOTINITIALIZED;
 
-    setLX200Capability(LX200_HAS_PULSE_GUIDING | LX200_HAS_TRACK_MODE);
+    setLX200Capability(LX200_HAS_PULSE_GUIDING);
 
-    SetTelescopeCapability(GetTelescopeCapability() | TELESCOPE_HAS_PIER_SIDE | TELESCOPE_HAS_PEC, 4);
+    SetTelescopeCapability(GetTelescopeCapability() | TELESCOPE_HAS_PIER_SIDE | TELESCOPE_HAS_PEC | TELESCOPE_CAN_CONTROL_TRACK | TELESCOPE_HAS_TRACK_RATE, 4);
 
     //ctor
     currentRA  = get_local_sideral_time(0);
@@ -75,6 +75,13 @@ bool LX200AstroPhysics::initProperties()
     IUFillNumberVector(&HorizontalCoordsNP, HorizontalCoordsN, 2, getDeviceName(), "HORIZONTAL_COORD",
                        "Horizontal Coords", MAIN_CONTROL_TAB, IP_RW, 120, IPS_IDLE);
 
+
+    // Max rate is 999.99999X for the GTOCP4.
+    // Using :RR998.9999#  just to be safe. 15.041067*998.99999 = 15026.02578
+    TrackRateN[AXIS_RA].min = -15026.0258;
+    TrackRateN[AXIS_RA].max = 15026.0258;
+    TrackRateN[AXIS_DE].min = -998.9999;
+    TrackRateN[AXIS_DE].max = 998.9999;
 
     // Motion speed of axis when pressing NSWE buttons
     IUFillSwitch(&SlewRateS[0], "12", "12x", ISS_OFF);
@@ -130,7 +137,6 @@ void LX200AstroPhysics::ISGetProperties(const char *dev)
         //defineText(&DeclinationAxisTP);
 
         /* Motion group */
-        defineSwitch(&TrackModeSP);
         defineSwitch(&APSlewSpeedSP);
         defineSwitch(&SwapSP);
         defineSwitch(&SyncCMRSP);
@@ -152,7 +158,6 @@ bool LX200AstroPhysics::updateProperties()
         //defineText(&DeclinationAxisTP);
 
         /* Motion group */
-        defineSwitch(&TrackModeSP);
         defineSwitch(&APSlewSpeedSP);
         defineSwitch(&SwapSP);
         defineSwitch(&SyncCMRSP);
@@ -165,7 +170,6 @@ bool LX200AstroPhysics::updateProperties()
         deleteProperty(StartUpSP.name);
         deleteProperty(VersionInfo.name);
         //deleteProperty(DeclinationAxisTP.name);
-        deleteProperty(TrackModeSP.name);
         deleteProperty(APSlewSpeedSP.name);
         deleteProperty(SwapSP.name);
         deleteProperty(SyncCMRSP.name);
@@ -216,9 +220,6 @@ bool LX200AstroPhysics::ISNewSwitch(const char *dev, const char *name, ISState *
 
             if (isSimulation())
             {
-                TrackModeSP.s = IPS_OK;
-                IDSetSwitch(&TrackModeSP, nullptr);
-
                 SlewRateSP.s = IPS_OK;
                 IDSetSwitch(&SlewRateSP, nullptr);
 
@@ -246,8 +247,7 @@ bool LX200AstroPhysics::ISNewSwitch(const char *dev, const char *name, ISState *
                     return false;
                 }
 
-                TrackModeSP.s = IPS_OK;
-                IDSetSwitch(&TrackModeSP, nullptr);
+                TrackState = (switch_nr != AP_TRACKING_OFF) ? SCOPE_TRACKING : SCOPE_IDLE;
 
                 // On most mounts SlewRateS defines the MoveTo AND Slew (GOTO) speeds
                 // lx200ap is different - some of the MoveTo speeds are not VALID
@@ -304,34 +304,6 @@ bool LX200AstroPhysics::ISNewSwitch(const char *dev, const char *name, ISState *
     }
 
     // =======================================
-    // Tracking Mode
-    // =======================================
-    if (!strcmp(name, TrackModeSP.name))
-    {
-        IUResetSwitch(&TrackModeSP);
-        IUUpdateSwitch(&TrackModeSP, states, names, n);
-        trackingMode = IUFindOnSwitchIndex(&TrackModeSP);
-
-        if (isSimulation() == false && (err = selectAPTrackingMode(PortFD, trackingMode) < 0))
-        {
-            DEBUGF(INDI::Logger::DBG_ERROR, "Error setting tracking mode (%d).", err);
-            return false;
-        }
-        TrackModeSP.s = IPS_OK;
-        IDSetSwitch(&TrackModeSP, nullptr);
-
-        /* What is this for?
-        if( trackingMode != 3) // not zero
-        {
-            AbortSlewSP.s = IPS_IDLE;
-            IDSetSwitch(&AbortSlewSP, nullptr);
-        }
-        */
-
-        return true;
-    }
-
-    // =======================================
     // Swap Buttons
     // =======================================
     if (!strcmp(name, SwapSP.name))
@@ -342,7 +314,7 @@ bool LX200AstroPhysics::ISNewSwitch(const char *dev, const char *name, ISState *
         IUUpdateSwitch(&SwapSP, states, names, n);
         currentSwap = IUFindOnSwitchIndex(&SwapSP);
 
-        if ((isSimulation() == false && (err = swapAPButtons(PortFD, currentSwap)) < 0))
+        if ((!isSimulation() && (err = swapAPButtons(PortFD, currentSwap)) < 0))
         {
             DEBUGF(INDI::Logger::DBG_ERROR, "Error swapping buttons (%d).", err);
             return false;
@@ -363,7 +335,7 @@ bool LX200AstroPhysics::ISNewSwitch(const char *dev, const char *name, ISState *
         IUUpdateSwitch(&APSlewSpeedSP, states, names, n);
         int slewRate = IUFindOnSwitchIndex(&APSlewSpeedSP);
 
-        if (isSimulation() == false && (err = selectAPSlewRate(PortFD, slewRate) < 0))
+        if (!isSimulation() && (err = selectAPSlewRate(PortFD, slewRate) < 0))
         {
             DEBUGF(INDI::Logger::DBG_ERROR, "Error setting move to rate (%d).", err);
             return false;
@@ -398,7 +370,7 @@ bool LX200AstroPhysics::ISNewSwitch(const char *dev, const char *name, ISState *
 
         int pecstate = IUFindOnSwitchIndex(&PECStateSP);
 
-        if (isSimulation() == false && (err = selectAPPECState(PortFD, pecstate) < 0))
+        if (!isSimulation() && (err = selectAPPECState(PortFD, pecstate) < 0))
         {
             DEBUGF(INDI::Logger::DBG_ERROR, "Error setting PEC state (%d).", err);
             return false;
@@ -495,7 +467,7 @@ bool LX200AstroPhysics::ReadScopeStatus()
         {
             DEBUG(INDI::Logger::DBG_DEBUG, "Parking slew is complete. Asking astrophysics mount to park...");
 
-            if (isSimulation() == false && setAPPark(PortFD) < 0)
+            if (!isSimulation() && setAPPark(PortFD) < 0)
             {
                 DEBUG(INDI::Logger::DBG_ERROR, "Parking Failed.");
                 return false;
@@ -576,11 +548,14 @@ bool LX200AstroPhysics::setBasicDataPart1()
     UnPark();
 
     // Stop
-    if (isSimulation() == false && (err = setAPMotionStop(PortFD)) < 0)
+    if (!isSimulation() && (err = setAPMotionStop(PortFD)) < 0)
     {
         DEBUGF(INDI::Logger::DBG_ERROR, "Stop motion (:Q#) failed, check the mount (%d): %s", strerror(err));
         return false;
     }
+
+    // AP always track after unpark? Must check
+    TrackState = SCOPE_TRACKING;
 
     return true;
 }
@@ -623,7 +598,7 @@ bool LX200AstroPhysics::Goto(double r, double d)
         usleep(100000);
     }
 
-    if (isSimulation() == false)
+    if (!isSimulation())
     {
         if (setAPObjectRA(PortFD, targetRA) < 0 || (setAPObjectDEC(PortFD, targetDEC)) < 0)
         {
@@ -676,7 +651,7 @@ bool LX200AstroPhysics::Sync(double ra, double dec)
 
     int syncType = IUFindOnSwitchIndex(&SyncCMRSP);
 
-    if (isSimulation() == false)
+    if (!isSimulation())
     {
         if (setAPObjectRA(PortFD, ra) < 0 || setAPObjectDEC(PortFD, dec) < 0)
         {
@@ -784,13 +759,13 @@ bool LX200AstroPhysics::updateLocation(double latitude, double longitude, double
         return true;
     }
 
-    if (isSimulation() == false && setAPSiteLongitude(PortFD, 360.0 - longitude) < 0)
+    if (!isSimulation() && setAPSiteLongitude(PortFD, 360.0 - longitude) < 0)
     {
         DEBUG(INDI::Logger::DBG_ERROR, "Error setting site longitude coordinates");
         return false;
     }
 
-    if (isSimulation() == false && setAPSiteLatitude(PortFD, latitude) < 0)
+    if (!isSimulation() && setAPSiteLatitude(PortFD, latitude) < 0)
     {
         DEBUG(INDI::Logger::DBG_ERROR, "Error setting site latitude coordinates");
         return false;
@@ -820,7 +795,7 @@ void LX200AstroPhysics::debugTriggered(bool enable)
 // ApSetSlew
 bool LX200AstroPhysics::SetSlewRate(int index)
 {
-    if (isSimulation() == false && selectAPMoveToRate(PortFD, index) < 0)
+    if (!isSimulation() && selectAPMoveToRate(PortFD, index) < 0)
     {
         SlewRateSP.s = IPS_ALERT;
         IDSetSwitch(&SlewRateSP, "Error setting slew mode.");
@@ -874,7 +849,7 @@ bool LX200AstroPhysics::Park()
 bool LX200AstroPhysics::UnPark()
 {
     // First we unpark astrophysics
-    if (isSimulation() == false)
+    if (!isSimulation())
     {
         if (setAPUnPark(PortFD) < 0)
         {
@@ -1003,6 +978,62 @@ bool LX200AstroPhysics::saveConfigItems(FILE *fp)
 
     IUSaveConfigSwitch(fp, &SyncCMRSP);
     IUSaveConfigSwitch(fp, &APSlewSpeedSP);
+
+    return true;
+}
+
+bool LX200AstroPhysics::SetTrackMode(uint8_t mode)
+{
+    int err=0;
+
+    if (mode == TRACK_CUSTOM)
+    {
+        if (!isSimulation() && (err = selectAPTrackingMode(PortFD, AP_TRACKING_SIDEREAL)) < 0)
+        {
+            DEBUGF(INDI::Logger::DBG_ERROR, "Error setting tracking mode (%d).", err);
+            return false;
+        }
+
+        return SetTrackRate(TrackRateN[AXIS_RA].value, TrackRateN[AXIS_DE].value);
+    }
+
+    if (!isSimulation() && (err = selectAPTrackingMode(PortFD, mode)) < 0)
+    {
+        DEBUGF(INDI::Logger::DBG_ERROR, "Error setting tracking mode (%d).", err);
+        return false;
+    }
+
+    return true;
+}
+
+bool LX200AstroPhysics::SetTrackEnabled(bool enabled)
+{
+   return SetTrackMode(enabled ? IUFindOnSwitchIndex(&TrackModeSP) : AP_TRACKING_OFF);
+}
+
+bool LX200AstroPhysics::SetTrackRate(double raRate, double deRate)
+{
+    // Convert to arcsecs/s to AP sidereal multiplier
+    /*
+    :RR0.0000#      =       normal sidereal tracking in RA - similar to  :RT2#
+    :RR+1.0000#     =       1 + normal sidereal     =       2X sidereal
+    :RR+9.0000#     =       9 + normal sidereal     =       10X sidereal
+    :RR-1.0000#     =       normal sidereal - 1     =       0 or Stop - similar to  :RT9#
+    :RR-11.0000#    =       normal sidereal - 11    =       -10X sidereal (East at 10X)
+
+    :RD0.0000#      =       normal zero rate for Dec.
+    :RD5.0000#      =       5 + normal zero rate    =       5X sidereal clockwise from above - equivalent to South
+    :RD-5.0000#     =       normal zero rate - 5    =       5X sidereal counter-clockwise from above - equivalent to North
+    */
+
+    double APRARate = (raRate - TRACKRATE_SIDEREAL) / TRACKRATE_SIDEREAL;
+    double APDERate = deRate / TRACKRATE_SIDEREAL;
+
+    if (!isSimulation())
+    {
+        if (setAPRATrackRate(PortFD, APRARate) < 0 || setAPDETrackRate(PortFD, APDERate) < 0)
+            return false;
+    }
 
     return true;
 }

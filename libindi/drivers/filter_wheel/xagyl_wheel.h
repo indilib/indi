@@ -51,7 +51,7 @@ class XAGYLWheel : public INDI::FilterWheel
     typedef enum { SET_SPEED, SET_JITTER, SET_THRESHOLD, SET_PULSE_WITDH, SET_POSITION } SET_COMMAND;
 
     XAGYLWheel();
-    virtual ~XAGYLWheel();
+    virtual ~XAGYLWheel() = default;
 
     virtual bool initProperties();
     virtual bool updateProperties();
@@ -103,13 +103,13 @@ class XAGYLWheel : public INDI::FilterWheel
 
     // Filter Offset
     INumberVectorProperty OffsetNP;
-    INumber *OffsetN;
+    INumber *OffsetN { nullptr };
 
     // Reset
     ISwitchVectorProperty ResetSP;
     ISwitch ResetS[4];
 
-    bool sim;
+    bool sim { false };
     SimData simData;
-    uint8_t firmwareVersion;
+    uint8_t firmwareVersion { 0 };
 };

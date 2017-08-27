@@ -25,8 +25,8 @@
 
 #include <libnova/transform.h>
 
-#include <math.h>
-#include <string.h>
+#include <cmath>
+#include <cstring>
 #include <termios.h>
 #include <unistd.h>
 
@@ -38,10 +38,8 @@ LX200ZEQ25::LX200ZEQ25()
 {
     setVersion(1, 0);
 
-    setLX200Capability(LX200_HAS_TRACK_MODE);
-
     SetTelescopeCapability(TELESCOPE_CAN_PARK | TELESCOPE_CAN_SYNC | TELESCOPE_CAN_GOTO | TELESCOPE_CAN_ABORT |
-                               TELESCOPE_HAS_TIME | TELESCOPE_HAS_LOCATION,
+                               TELESCOPE_HAS_TIME | TELESCOPE_HAS_LOCATION | TELESCOPE_HAS_TRACK_MODE,
                            9);
 }
 
@@ -99,7 +97,7 @@ bool LX200ZEQ25::updateProperties()
 
 const char *LX200ZEQ25::getDefaultName()
 {
-    return (char *)"ZEQ25";
+    return (const char *)"ZEQ25";
 }
 
 bool LX200ZEQ25::checkConnection()
@@ -151,9 +149,9 @@ bool LX200ZEQ25::checkConnection()
 
 bool LX200ZEQ25::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
 {
-    if (strcmp(dev, getDeviceName()) == 0)
+    if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
-        if (!strcmp(HomeSP.name, name))
+        if (strcmp(HomeSP.name, name) == 0)
         {
             // If already home, nothing to be done
             //if (HomeS[0].s == ISS_ON)
@@ -187,7 +185,7 @@ bool LX200ZEQ25::ISNewSwitch(const char *dev, const char *name, ISState *states,
 
 bool LX200ZEQ25::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
 {
-    if (!strcmp(dev, getDeviceName()))
+    if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
         // Guiding Rate
         if (!strcmp(name, GuideRateNP.name))
@@ -427,7 +425,7 @@ bool LX200ZEQ25::Goto(double r, double d)
         usleep(100000);
     }
 
-    if (isSimulation() == false)
+    if (!isSimulation())
     {
         if (setObjectRA(PortFD, targetRA) < 0 || (setObjectDEC(PortFD, targetDEC)) < 0)
         {
@@ -621,13 +619,13 @@ bool LX200ZEQ25::updateLocation(double latitude, double longitude, double elevat
     else
         final_longitude = longitude;
 
-    if (isSimulation() == false && setZEQ25Longitude(final_longitude) < 0)
+    if (!isSimulation() && setZEQ25Longitude(final_longitude) < 0)
     {
         DEBUG(INDI::Logger::DBG_ERROR, "Error setting site longitude coordinates");
         return false;
     }
 
-    if (isSimulation() == false && setZEQ25Latitude(latitude) < 0)
+    if (!isSimulation() && setZEQ25Latitude(latitude) < 0)
     {
         DEBUG(INDI::Logger::DBG_ERROR, "Error setting site latitude coordinates");
         return false;
@@ -737,7 +735,7 @@ bool LX200ZEQ25::MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command)
     switch (command)
     {
         case MOTION_START:
-            if (isSimulation() == false && moveZEQ25To(current_move) < 0)
+            if (!isSimulation() && moveZEQ25To(current_move) < 0)
             {
                 DEBUG(INDI::Logger::DBG_ERROR, "Error setting N/S motion direction.");
                 return false;
@@ -748,7 +746,7 @@ bool LX200ZEQ25::MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command)
             break;
 
         case MOTION_STOP:
-            if (isSimulation() == false && haltZEQ25Movement() < 0)
+            if (!isSimulation() && haltZEQ25Movement() < 0)
             {
                 DEBUG(INDI::Logger::DBG_ERROR, "Error stopping N/S motion.");
                 return false;
@@ -769,7 +767,7 @@ bool LX200ZEQ25::MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command)
     switch (command)
     {
         case MOTION_START:
-            if (isSimulation() == false && moveZEQ25To(current_move) < 0)
+            if (!isSimulation() && moveZEQ25To(current_move) < 0)
             {
                 DEBUG(INDI::Logger::DBG_ERROR, "Error setting W/E motion direction.");
                 return false;
@@ -779,7 +777,7 @@ bool LX200ZEQ25::MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command)
             break;
 
         case MOTION_STOP:
-            if (isSimulation() == false && haltZEQ25Movement() < 0)
+            if (!isSimulation() && haltZEQ25Movement() < 0)
             {
                 DEBUG(INDI::Logger::DBG_ERROR, "Error stopping W/E motion.");
                 return false;
@@ -837,7 +835,7 @@ int LX200ZEQ25::haltZEQ25Movement()
     return 0;
 }
 
-bool LX200ZEQ25::SetTrackMode(int mode)
+bool LX200ZEQ25::SetTrackMode(uint8_t mode)
 {
     return (setZEQ25TrackMode(mode) == 0);
 }
@@ -1025,7 +1023,7 @@ bool LX200ZEQ25::Park()
 bool LX200ZEQ25::UnPark()
 {
     // First we unpark astrophysics
-    if (isSimulation() == false)
+    if (!isSimulation())
     {
         if (setZEQ25UnPark() < 0)
         {
@@ -1079,7 +1077,7 @@ bool LX200ZEQ25::UnPark()
 
 bool LX200ZEQ25::ReadScopeStatus()
 {
-    if (isConnected() == false)
+    if (!isConnected())
         return false;
 
     if (isSimulation())

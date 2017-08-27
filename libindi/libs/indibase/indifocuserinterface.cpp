@@ -22,7 +22,7 @@
 
 #include "indilogger.h"
 
-#include <string.h>
+#include <cstring>
 
 INDI::FocuserInterface::FocuserInterface()
 {

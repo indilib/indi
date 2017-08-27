@@ -26,7 +26,7 @@
 class SimpleDevice : public INDI::DefaultDevice
 {
   public:
-    SimpleDevice();
+    SimpleDevice() = default;
 
   protected:
     bool Connect();

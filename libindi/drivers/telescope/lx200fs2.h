@@ -38,10 +38,6 @@ class LX200FS2 : public LX200Generic
 
     virtual bool saveConfigItems(FILE *fp);
 
-    // Time and Location
-    virtual bool updateLocation(double latitude, double longitude, double elevation);
-    virtual bool updateTime(ln_date *utc, double utc_offset);
-
     // Parking
     virtual bool Park();
     virtual bool UnPark();

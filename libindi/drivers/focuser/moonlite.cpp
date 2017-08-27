@@ -22,9 +22,10 @@
 
 #include "indicom.h"
 
-#include <math.h>
+#include <cmath>
+#include <cstring>
 #include <memory>
-#include <string.h>
+
 #include <termios.h>
 #include <unistd.h>
 
@@ -39,19 +40,19 @@ void ISGetProperties(const char *dev)
     moonLite->ISGetProperties(dev);
 }
 
-void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int num)
+void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
 {
-    moonLite->ISNewSwitch(dev, name, states, names, num);
+    moonLite->ISNewSwitch(dev, name, states, names, n);
 }
 
-void ISNewText(const char *dev, const char *name, char *texts[], char *names[], int num)
+void ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
 {
-    moonLite->ISNewText(dev, name, texts, names, num);
+    moonLite->ISNewText(dev, name, texts, names, n);
 }
 
-void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int num)
+void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
 {
-    moonLite->ISNewNumber(dev, name, values, names, num);
+    moonLite->ISNewNumber(dev, name, values, names, n);
 }
 
 void ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[],
@@ -76,13 +77,6 @@ MoonLite::MoonLite()
 {
     // Can move in Absolute & Relative motions, can AbortFocuser motion, and has variable speed.
     SetFocuserCapability(FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_REL_MOVE | FOCUSER_CAN_ABORT | FOCUSER_HAS_VARIABLE_SPEED);
-
-    lastPos         = 0;
-    lastTemperature = 0;
-}
-
-MoonLite::~MoonLite()
-{
 }
 
 bool MoonLite::initProperties()
@@ -220,10 +214,7 @@ bool MoonLite::Ack()
 
     rc = sscanf(resp, "%hX#", &pos);
 
-    if (rc > 0)
-        return true;
-    else
-        return false;
+    return rc > 0;
 }
 
 bool MoonLite::updateStepMode()
@@ -253,9 +244,9 @@ bool MoonLite::updateStepMode()
     resp[3] = '\0';
     IUResetSwitch(&StepModeSP);
 
-    if (!strcmp(resp, "FF#"))
+    if (strcmp(resp, "FF#") == 0)
         StepModeS[0].s = ISS_ON;
-    else if (!strcmp(resp, "00#"))
+    else if (strcmp(resp, "00#") == 0)
         StepModeS[1].s = ISS_ON;
     else
     {
@@ -421,15 +412,13 @@ bool MoonLite::isMoving()
     tcflush(PortFD, TCIOFLUSH);
 
     resp[3] = '\0';
-    if (!strcmp(resp, "01#"))
+    if (strcmp(resp, "01#") == 0)
         return true;
-    else if (!strcmp(resp, "00#"))
+    else if (strcmp(resp, "00#") == 0)
         return false;
-    else
-    {
-        DEBUGF(INDI::Logger::DBG_ERROR, "Unknown error: isMoving value (%s)", resp);
-        return false;
-    }
+
+    DEBUGF(INDI::Logger::DBG_ERROR, "Unknown error: isMoving value (%s)", resp);
+    return false;
 }
 
 bool MoonLite::setTemperatureCalibration(double calibration)
@@ -603,15 +592,18 @@ bool MoonLite::setTemperatureCompensation(bool enable)
 
 bool MoonLite::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
 {
-    if (strcmp(dev, getDeviceName()) == 0)
+    if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
         // Focus Step Mode
-        if (!strcmp(StepModeSP.name, name))
+        if (strcmp(StepModeSP.name, name) == 0)
         {
             bool rc          = false;
             int current_mode = IUFindOnSwitchIndex(&StepModeSP);
+
             IUUpdateSwitch(&StepModeSP, states, names, n);
+
             int target_mode = IUFindOnSwitchIndex(&StepModeSP);
+
             if (current_mode == target_mode)
             {
                 StepModeSP.s = IPS_OK;
@@ -623,7 +615,7 @@ bool MoonLite::ISNewSwitch(const char *dev, const char *name, ISState *states, c
             else
                 rc = setStepMode(FOCUS_FULL_STEP);
 
-            if (rc == false)
+            if (!rc)
             {
                 IUResetSwitch(&StepModeSP);
                 StepModeS[current_mode].s = ISS_ON;
@@ -637,14 +629,14 @@ bool MoonLite::ISNewSwitch(const char *dev, const char *name, ISState *states, c
             return true;
         }
 
-        if (!strcmp(TemperatureCompensateSP.name, name))
+        if (strcmp(TemperatureCompensateSP.name, name) == 0)
         {
             int last_index = IUFindOnSwitchIndex(&TemperatureCompensateSP);
             IUUpdateSwitch(&TemperatureCompensateSP, states, names, n);
 
             bool rc = setTemperatureCompensation((TemperatureCompensateS[0].s == ISS_ON));
 
-            if (rc == false)
+            if (!rc)
             {
                 TemperatureCompensateSP.s = IPS_ALERT;
                 IUResetSwitch(&TemperatureCompensateSP);
@@ -664,9 +656,9 @@ bool MoonLite::ISNewSwitch(const char *dev, const char *name, ISState *states, c
 
 bool MoonLite::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
 {
-    if (strcmp(dev, getDeviceName()) == 0)
+    if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
-        if (!strcmp(name, SyncNP.name))
+        if (strcmp(name, SyncNP.name) == 0)
         {
             IUUpdateNumber(&SyncNP, values, names, n);
             if (sync(SyncN[0].value))
@@ -677,7 +669,7 @@ bool MoonLite::ISNewNumber(const char *dev, const char *name, double values[], c
             return true;
         }
 
-        if (!strcmp(name, MaxTravelNP.name))
+        if (strcmp(name, MaxTravelNP.name) == 0)
         {
             IUUpdateNumber(&MaxTravelNP, values, names, n);
             MaxTravelNP.s = IPS_OK;
@@ -685,7 +677,7 @@ bool MoonLite::ISNewNumber(const char *dev, const char *name, double values[], c
             return true;
         }
 
-        if (!strcmp(name, TemperatureSettingNP.name))
+        if (strcmp(name, TemperatureSettingNP.name) == 0)
         {
             IUUpdateNumber(&TemperatureSettingNP, values, names, n);
             if (!setTemperatureCalibration(TemperatureSettingN[0].value) ||
@@ -725,7 +717,7 @@ bool MoonLite::SetFocuserSpeed(int speed)
 
     rc = setSpeed(speed);
 
-    if (rc == false)
+    if (!rc)
         return false;
 
     currentSpeed = speed;
@@ -742,7 +734,7 @@ IPState MoonLite::MoveFocuser(FocusDirection dir, int speed, uint16_t duration)
     {
         bool rc = setSpeed(speed);
 
-        if (rc == false)
+        if (!rc)
             return IPS_ALERT;
     }
 
@@ -772,7 +764,7 @@ IPState MoonLite::MoveAbsFocuser(uint32_t targetTicks)
 
     rc = MoveFocuser(targetPos);
 
-    if (rc == false)
+    if (!rc)
         return IPS_ALERT;
 
     FocusAbsPosNP.s = IPS_BUSY;
@@ -792,7 +784,7 @@ IPState MoonLite::MoveRelFocuser(FocusDirection dir, uint32_t ticks)
 
     rc = MoveFocuser(newPosition);
 
-    if (rc == false)
+    if (!rc)
         return IPS_ALERT;
 
     FocusRelPosN[0].value = ticks;
@@ -803,7 +795,7 @@ IPState MoonLite::MoveRelFocuser(FocusDirection dir, uint32_t ticks)
 
 void MoonLite::TimerHit()
 {
-    if (isConnected() == false)
+    if (!isConnected())
     {
         SetTimer(POLLMS);
         return;
@@ -847,7 +839,7 @@ void MoonLite::TimerHit()
 
     if (FocusAbsPosNP.s == IPS_BUSY || FocusRelPosNP.s == IPS_BUSY)
     {
-        if (isMoving() == false)
+        if (!isMoving())
         {
             FocusAbsPosNP.s = IPS_OK;
             FocusRelPosNP.s = IPS_OK;
@@ -880,7 +872,7 @@ float MoonLite::CalcTimeLeft(timeval start, float req)
 {
     double timesince;
     double timeleft;
-    struct timeval now;
+    struct timeval now { 0, 0 };
     gettimeofday(&now, nullptr);
 
     timesince =

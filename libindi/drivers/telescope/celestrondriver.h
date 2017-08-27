@@ -28,7 +28,7 @@
 
 typedef enum { GPS_OFF, GPS_ON } CELESTRON_GPS_STATUS;
 typedef enum { SR_1, SR_2, SR_3, SR_4, SR_5, SR_6, SR_7, SR_8, SR_9 } CELESTRON_SLEW_RATE;
-typedef enum { TRACK_OFF, TRACK_ALTAZ, TRACK_EQN, TRACK_EQS } CELESTRON_TRACK_MODE;
+typedef enum { TRACKING_OFF, TRACK_ALTAZ, TRACK_EQN, TRACK_EQS } CELESTRON_TRACK_MODE;
 typedef enum { RA_AXIS, DEC_AXIS } CELESTRON_AXIS;
 typedef enum { CELESTRON_N, CELESTRON_S, CELESTRON_W, CELESTRON_E } CELESTRON_DIRECTION;
 typedef enum { FW_MODEL, FW_VERSION, FW_GPS, FW_RA, FW_DEC } CELESTRON_FIRMWARE;
@@ -58,7 +58,9 @@ void set_sim_gps_status(CELESTRON_GPS_STATUS value);
 void set_sim_slew_rate(CELESTRON_SLEW_RATE value);
 void set_sim_slewing(bool isSlewing);
 void set_sim_ra(double ra);
+double get_sim_ra();
 void set_sim_dec(double dec);
+double get_sim_dec();
 void set_sim_az(double az);
 void set_sim_alt(double alt);
 

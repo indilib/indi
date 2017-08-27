@@ -25,9 +25,11 @@
 #include "STAR2000.h"
 
 #include "STAR2kdriver.h"
+#include "indistandardproperty.h"
 
+#include <cstring>
 #include <memory>
-#include <string.h>
+
 #include <unistd.h>
 
 #define POLLMS 250
@@ -40,19 +42,19 @@ void ISGetProperties(const char *dev)
     s2kGuide->ISGetProperties(dev);
 }
 
-void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int num)
+void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
 {
-    s2kGuide->ISNewSwitch(dev, name, states, names, num);
+    s2kGuide->ISNewSwitch(dev, name, states, names, n);
 }
 
-void ISNewText(const char *dev, const char *name, char *texts[], char *names[], int num)
+void ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
 {
-    s2kGuide->ISNewText(dev, name, texts, names, num);
+    s2kGuide->ISNewText(dev, name, texts, names, n);
 }
 
-void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int num)
+void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
 {
-    s2kGuide->ISNewNumber(dev, name, values, names, num);
+    s2kGuide->ISNewNumber(dev, name, values, names, n);
 }
 
 void ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[],
@@ -73,14 +75,9 @@ void ISSnoopDevice(XMLEle *root)
     INDI_UNUSED(root);
 }
 
-STAR2000::STAR2000()
-{
-    WEDir = NSDir = 0;
-}
-
 const char *STAR2000::getDefaultName()
 {
-    return (char *)"STAR2000";
+    return (const char *)"STAR2000";
 }
 
 bool STAR2000::Connect()
@@ -122,7 +119,7 @@ bool STAR2000::Disconnect()
 {
     IDMessage(getDeviceName(), "STAR200 box is offline.");
 
-    if (isSimulation() == false)
+    if (!isSimulation())
         DisconnectSTAR2k();
 
     return true;
@@ -133,7 +130,7 @@ bool STAR2000::initProperties()
     bool rc = INDI::DefaultDevice::initProperties();
 
     IUFillText(&PortT[0], "PORT", "Port", "/dev/ttyUSB0");
-    IUFillTextVector(&PortTP, PortT, 1, getDeviceName(), "DEVICE_PORT", "Ports", OPTIONS_TAB, IP_RW, 60, IPS_IDLE);
+    IUFillTextVector(&PortTP, PortT, 1, getDeviceName(), INDI::SP::DEVICE_PORT, "Ports", OPTIONS_TAB, IP_RW, 60, IPS_IDLE);
 
     initGuiderProperties(getDeviceName(), MAIN_CONTROL_TAB);
     addDebugControl();
@@ -165,14 +162,14 @@ void STAR2000::ISGetProperties(const char *dev)
 {
     INDI::DefaultDevice::ISGetProperties(dev);
     defineText(&PortTP);
-    loadConfig(true, "DEVICE_PORT");
+    loadConfig(true, INDI::SP::DEVICE_PORT);
 }
 
 bool STAR2000::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
 {
-    if (strcmp(dev, getDeviceName()) == 0)
+    if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
-        if (!strcmp(name, GuideNSNP.name) || !strcmp(name, GuideWENP.name))
+        if (strcmp(name, GuideNSNP.name) == 0 || strcmp(name, GuideWENP.name) == 0)
         {
             processGuiderProperties(name, values, names, n);
             return true;
@@ -195,7 +192,7 @@ bool STAR2000::ISNewText(const char *dev, const char *name, char *texts[], char 
         IUUpdateText(&PortTP, texts, names, n);
         IDSetText(&PortTP, nullptr);
 
-        return (true);
+        return true;
     }
 
     return INDI::DefaultDevice::ISNewText(dev, name, texts, names, n);
@@ -209,16 +206,16 @@ bool STAR2000::ISSnoopDevice(XMLEle *root)
 bool STAR2000::saveConfigItems(FILE *fp)
 {
     IUSaveConfigText(fp, &PortTP);
-    return (true);
+    return true;
 }
 
 float STAR2000::CalcWEPulseTimeLeft()
 {
     double timesince;
     double timeleft;
-    struct timeval now;
-    gettimeofday(&now, nullptr);
+    struct timeval now { 0, 0 };
 
+    gettimeofday(&now, nullptr);
     timesince = (double)(now.tv_sec * 1000.0 + now.tv_usec / 1000) -
                 (double)(WEPulseStart.tv_sec * 1000.0 + WEPulseStart.tv_usec / 1000);
     timesince = timesince / 1000;
@@ -231,7 +228,7 @@ float STAR2000::CalcNSPulseTimeLeft()
 {
     double timesince;
     double timeleft;
-    struct timeval now;
+    struct timeval now { 0, 0 };
     gettimeofday(&now, nullptr);
 
     timesince = (double)(now.tv_sec * 1000.0 + now.tv_usec / 1000) -

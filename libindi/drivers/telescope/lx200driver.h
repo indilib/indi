@@ -292,7 +292,7 @@ int SendPulseCmd(int fd, int direction, int duration_msec);
 /* Determines LX200 RA/DEC format, tries to set to long if found short */
 int checkLX200Format(int fd);
 /* return the controller_format enum value */
-int getLX200Format(void);
+int getLX200Format();
 /* Select a site from the LX200 controller */
 int selectSite(int fd, int siteNum);
 /* Select a catalog object */

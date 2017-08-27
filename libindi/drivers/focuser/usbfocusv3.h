@@ -89,7 +89,7 @@ class USBFocusV3 : public INDI::Focuser
 {
   public:
     USBFocusV3();
-    ~USBFocusV3();
+    virtual ~USBFocusV3() = default;
 
     typedef enum { FOCUS_HALF_STEP, FOCUS_FULL_STEP } FocusStepMode;
 
@@ -100,27 +100,13 @@ class USBFocusV3 : public INDI::Focuser
     virtual bool updateProperties() override;
     virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
     virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
-    virtual IPState MoveAbsFocuser(uint32_t ticks) override;
+    virtual IPState MoveAbsFocuser(uint32_t targetTicks) override;
     virtual IPState MoveRelFocuser(FocusDirection dir, uint32_t ticks) override;
     virtual bool SetFocuserSpeed(int speed) override;
     virtual bool AbortFocuser() override;
     virtual void TimerHit() override;
 
   private:
-    unsigned int direction; // 0 standard, 1 reverse
-    unsigned int stepmode;  // 0 full steps, 1 half steps
-    unsigned int speed;     // 2 average, 3 slow, 4 ultra slow
-    unsigned int stepsdeg;  // steps per degree for temperature compensation
-    unsigned int tcomp_thr; // temperature compensation threshold
-    unsigned int firmware;  // firmware version
-    unsigned int maxpos;    // maximum step position (0..65535)
-
-    double targetPos, lastPos, lastTemperature;
-    unsigned int currentSpeed;
-
-    struct timeval focusMoveStart;
-    float focusMoveRequest;
-
     bool oneMoreRead(char *response, unsigned int maxlen);
 
     void GetFocusParams();
@@ -138,16 +124,32 @@ class USBFocusV3 : public INDI::Focuser
     bool isMoving();
     bool Ack();
 
-    bool MoveFocuserUF(FocusDirection dir, unsigned int ticks);
+    bool MoveFocuserUF(FocusDirection dir, unsigned int rticks);
     bool setStepMode(FocusStepMode mode);
     bool setRotDir(unsigned int dir);
-    bool setMaxPos(unsigned int dir);
+    bool setMaxPos(unsigned int maxp);
     bool setSpeed(unsigned short drvspeed);
     bool setAutoTempCompThreshold(unsigned int thr);
     bool setTemperatureCoefficient(unsigned int coefficient);
     bool setTempCompSign(unsigned int sign);
     bool setTemperatureCompensation(bool enable);
     float CalcTimeLeft(timeval, float);
+
+    unsigned int direction { 0 }; // 0 standard, 1 reverse
+    unsigned int stepmode { 0 };  // 0 full steps, 1 half steps
+    unsigned int speed { 0 };     // 2 average, 3 slow, 4 ultra slow
+    unsigned int stepsdeg { 0 };  // steps per degree for temperature compensation
+    unsigned int tcomp_thr { 0 }; // temperature compensation threshold
+    unsigned int firmware { 0 };  // firmware version
+    unsigned int maxpos { 0 };    // maximum step position (0..65535)
+
+    double targetPos { 0 };
+    double lastPos { 0 };
+    double lastTemperature { 0 };
+    unsigned int currentSpeed { 0 };
+
+    struct timeval focusMoveStart { 0, 0 };
+    float focusMoveRequest { 0 };
 
     INumber TemperatureN[1];
     INumberVectorProperty TemperatureNP;

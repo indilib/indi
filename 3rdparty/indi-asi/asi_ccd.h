@@ -94,6 +94,8 @@ class ASICCD : public INDI::CCD
     void updateRecorderFormat();
     /** Control cooler */
     bool activateCooler(bool enable);
+    /** Set Video Format */
+    bool setVideoFormat(uint8_t index);
 
     char name[MAXINDIDEVICE];
 
@@ -112,6 +114,7 @@ class ASICCD : public INDI::CCD
 
     ISwitch *VideoFormatS;
     ISwitchVectorProperty VideoFormatSP;
+    uint8_t rememberVideoFormat = { 0 };
 
     double minimumExposureDuration = 0;
     struct timeval ExpStart;

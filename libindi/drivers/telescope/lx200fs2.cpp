@@ -23,15 +23,15 @@
 
 #include <libnova/transform.h>
 
-#include <math.h>
-#include <string.h>
+#include <cmath>
+#include <cstring>
 
 LX200FS2::LX200FS2() : LX200Generic()
 {
     setVersion(2, 1);
 
     SetTelescopeCapability(
-        TELESCOPE_CAN_PARK | TELESCOPE_CAN_SYNC | TELESCOPE_CAN_GOTO | TELESCOPE_CAN_ABORT | TELESCOPE_HAS_LOCATION, 4);
+        TELESCOPE_CAN_PARK | TELESCOPE_CAN_SYNC | TELESCOPE_CAN_GOTO | TELESCOPE_CAN_ABORT, 4);
 }
 
 bool LX200FS2::initProperties()
@@ -83,7 +83,7 @@ bool LX200FS2::updateProperties()
 
 bool LX200FS2::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
 {
-    if (strcmp(dev, getDeviceName()) == 0)
+    if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
         if (!strcmp(name, SlewAccuracyNP.name))
         {
@@ -105,7 +105,7 @@ bool LX200FS2::ISNewNumber(const char *dev, const char *name, double values[], c
 
 const char *LX200FS2::getDefaultName()
 {
-    return (char *)"Astro-Electronic FS-2";
+    return (const char *)"Astro-Electronic FS-2";
 }
 
 bool LX200FS2::isSlewComplete()
@@ -126,21 +126,6 @@ bool LX200FS2::saveConfigItems(FILE *fp)
 
     IUSaveConfigNumber(fp, &SlewAccuracyNP);
 
-    return true;
-}
-
-bool LX200FS2::updateLocation(double latitude, double longitude, double elevation)
-{
-    LocationN[LOCATION_ELEVATION].value = elevation;
-    LocationN[LOCATION_LONGITUDE].value = longitude;
-    LocationN[LOCATION_LATITUDE].value  = latitude;
-    return true;
-}
-
-bool LX200FS2::updateTime(ln_date *utc, double utc_offset)
-{
-    INDI_UNUSED(utc);
-    INDI_UNUSED(utc_offset);
     return true;
 }
 

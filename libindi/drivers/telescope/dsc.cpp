@@ -23,9 +23,9 @@
 
 #include "indicom.h"
 
+#include <cstring>
 #include <memory>
 #include <regex>
-#include <string.h>
 #include <termios.h>
 #include <unistd.h>
 
@@ -43,19 +43,19 @@ void ISGetProperties(const char *dev)
     dsc->ISGetProperties(dev);
 }
 
-void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int num)
+void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
 {
-    dsc->ISNewSwitch(dev, name, states, names, num);
+    dsc->ISNewSwitch(dev, name, states, names, n);
 }
 
-void ISNewText(const char *dev, const char *name, char *texts[], char *names[], int num)
+void ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
 {
-    dsc->ISNewText(dev, name, texts, names, num);
+    dsc->ISNewText(dev, name, texts, names, n);
 }
 
-void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int num)
+void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
 {
-    dsc->ISNewNumber(dev, name, values, names, num);
+    dsc->ISNewNumber(dev, name, values, names, n);
 }
 
 void ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[],
@@ -80,13 +80,9 @@ DSC::DSC()
     SetTelescopeCapability(TELESCOPE_CAN_SYNC | TELESCOPE_HAS_LOCATION, 0);
 }
 
-DSC::~DSC()
-{
-}
-
 const char *DSC::getDefaultName()
 {
-    return (char *)"Digital Setting Circle";
+    return (const char *)"Digital Setting Circle";
 }
 
 bool DSC::initProperties()
@@ -209,9 +205,9 @@ bool DSC::ISNewText(const char *dev, const char *name, char *texts[], char *name
 
 bool DSC::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
 {
-    if (strcmp(dev, getDeviceName()) == 0)
+    if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
-        if (!strcmp(name, AxisSettingsNP.name))
+        if (strcmp(name, AxisSettingsNP.name) == 0)
         {
             IUUpdateNumber(&AxisSettingsNP, values, names, n);
             AxisSettingsNP.s = IPS_OK;
@@ -219,7 +215,7 @@ bool DSC::ISNewNumber(const char *dev, const char *name, double values[], char *
             return true;
         }
 
-        /*if(!strcmp(name,EncoderOffsetNP.name))
+        /*if(strcmp(name,EncoderOffsetNP.name) == 0)
         {
             IUUpdateNumber(&EncoderOffsetNP, values, names, n);
             EncoderOffsetNP.s = IPS_OK;
@@ -227,7 +223,7 @@ bool DSC::ISNewNumber(const char *dev, const char *name, double values[], char *
             return true;
         }*/
 
-        if (!strcmp(name, SimEncoderNP.name))
+        if (strcmp(name, SimEncoderNP.name) == 0)
         {
             IUUpdateNumber(&SimEncoderNP, values, names, n);
             SimEncoderNP.s = IPS_OK;
@@ -243,9 +239,9 @@ bool DSC::ISNewNumber(const char *dev, const char *name, double values[], char *
 
 bool DSC::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
 {
-    if (strcmp(dev, getDeviceName()) == 0)
+    if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
-        if (!strcmp(name, ReverseSP.name))
+        if (strcmp(name, ReverseSP.name) == 0)
         {
             IUUpdateSwitch(&ReverseSP, states, names, n);
             ReverseSP.s = IPS_OK;
@@ -253,7 +249,7 @@ bool DSC::ISNewSwitch(const char *dev, const char *name, ISState *states, char *
             return true;
         }
 
-        if (!strcmp(name, MountTypeSP.name))
+        if (strcmp(name, MountTypeSP.name) == 0)
         {
             IUUpdateSwitch(&MountTypeSP, states, names, n);
             MountTypeSP.s = IPS_OK;
@@ -261,7 +257,7 @@ bool DSC::ISNewSwitch(const char *dev, const char *name, ISState *states, char *
             return true;
         }
 
-        if (!strcmp(name, AxisRangeSP.name))
+        if (strcmp(name, AxisRangeSP.name) == 0)
         {
             IUUpdateSwitch(&AxisRangeSP, states, names, n);
             AxisRangeSP.s = IPS_OK;
@@ -334,9 +330,10 @@ bool DSC::ReadScopeStatus()
     DEBUGF(INDI::Logger::DBG_DEBUG, "RES: %s", response);
 
     double Axis1Encoder = 0, Axis2Encoder = 0;
-    std::regex rgx("(\\+?\\-?\\d+)\\s(\\+?\\-?\\d+)");
+    std::regex rgx(R"((\+?\-?\d+)\s(\+?\-?\d+))");
     std::smatch match;
     std::string input(response);
+
     if (std::regex_search(input, match, rgx))
     {
         Axis1Encoder = atof(match.str(1).c_str());
@@ -406,7 +403,7 @@ bool DSC::ReadScopeStatus()
     double LST = get_local_sideral_time(observer.lng);
 
     // Final aligned equatorial position
-    ln_equ_posn eq;
+    ln_equ_posn eq { 0, 0 };
 
     // Now we proceed depending on mount type
     if (MountTypeS[MOUNT_EQUATORIAL].s == ISS_ON)
@@ -500,7 +497,7 @@ bool DSC::Sync(double ra, double dec)
 ln_equ_posn DSC::TelescopeEquatorialToSky()
 {
     double RightAscension, Declination;
-    ln_equ_posn eq;
+    ln_equ_posn eq { 0, 0 };
 
     if (GetAlignmentDatabase().size() > 1)
     {
@@ -537,14 +534,15 @@ ln_equ_posn DSC::TelescopeEquatorialToSky()
 
 ln_equ_posn DSC::TelescopeHorizontalToSky()
 {
-    ln_equ_posn eq;
+    ln_equ_posn eq { 0, 0 };
     TelescopeDirectionVector TDV = TelescopeDirectionVectorFromAltitudeAzimuth(encoderHorizontalCoordinates);
-
     double RightAscension, Declination;
+
     if (!TransformTelescopeToCelestial(TDV, RightAscension, Declination))
     {
-        struct ln_equ_posn EquatorialCoordinates;
+        struct ln_equ_posn EquatorialCoordinates { 0, 0 };
         TelescopeDirectionVector RotatedTDV(TDV);
+
         switch (GetApproximateMountAlignment())
         {
             case ZENITH:
@@ -595,7 +593,7 @@ bool DSC::updateLocation(double latitude, double longitude, double elevation)
 
 void DSC::simulationTriggered(bool enable)
 {
-    if (isConnected() == false)
+    if (!isConnected())
         return;
 
     if (enable)

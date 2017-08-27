@@ -24,12 +24,12 @@
 #include "lx200driver.h"
 
 #include <cmath>
-#include <string.h>
+#include <cstring>
 
 const int LX200SS2000PC::ShortTimeOut = 2;  // In seconds.
 const int LX200SS2000PC::LongTimeOut  = 10; // In seconds.
 
-LX200SS2000PC::LX200SS2000PC(void) : LX200Generic()
+LX200SS2000PC::LX200SS2000PC() : LX200Generic()
 {
     setVersion(1, 0);
     setLX200Capability(0);
@@ -38,7 +38,7 @@ LX200SS2000PC::LX200SS2000PC(void) : LX200Generic()
         TELESCOPE_CAN_SYNC | TELESCOPE_CAN_GOTO | TELESCOPE_CAN_ABORT | TELESCOPE_HAS_TIME | TELESCOPE_HAS_LOCATION, 4);    
 }
 
-const char *LX200SS2000PC::getDefaultName(void)
+const char *LX200SS2000PC::getDefaultName()
 {
     return const_cast<const char *>("SkySensor2000PC");
 }
@@ -82,7 +82,7 @@ bool LX200SS2000PC::updateTime(ln_date *utc, double utc_offset)
     return result;
 }
 
-void LX200SS2000PC::getBasicData(void)
+void LX200SS2000PC::getBasicData()
 {
     if (!isSimulation())
         checkLX200Format(PortFD);
@@ -90,7 +90,7 @@ void LX200SS2000PC::getBasicData(void)
     sendScopeTime();
 }
 
-bool LX200SS2000PC::isSlewComplete(void)
+bool LX200SS2000PC::isSlewComplete()
 {
     const double dx = targetRA - currentRA;
     const double dy = targetDEC - currentDEC;

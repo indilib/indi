@@ -29,7 +29,7 @@
 #include "baseclient.h"
 #include "basedevice.h"
 
-#include <string.h>
+#include <cstring>
 
 class WatchDogClient : public INDI::BaseClient
 {

@@ -752,12 +752,12 @@ extern void ISNewText(const char *dev, const char *name, char *texts[], char *na
 /** \brief Update the value of an existing number vector property.
     \param dev the name of the device.
     \param name the name of the number vector property to update.
-    \param doubles an array of number values.
+    \param values an array of number values.
     \param names parallel names to the array of number values.
     \param n the dimension of doubles[].
     \note You do not need to call this function, it is called by INDI when new number values arrive from the client.
 */
-extern void ISNewNumber(const char *dev, const char *name, double *doubles, char *names[], int n);
+extern void ISNewNumber(const char *dev, const char *name, double *values, char *names[], int n);
 
 /** \brief Update the value of an existing switch vector property.
     \param dev the name of the device.
@@ -844,7 +844,7 @@ extern const char *ruleStr(ISRule r);
 /** \return Returns a string representation of the supplied permission value. */
 extern const char *permStr(IPerm p);
 
-extern void xmlv1(void);
+extern void xmlv1();
 
 #ifdef __cplusplus
 }

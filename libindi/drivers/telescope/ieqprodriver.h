@@ -46,6 +46,7 @@ typedef struct
 {
     IEQ_GPS_STATUS gpsStatus;
     IEQ_SYSTEM_STATUS systemStatus;
+    IEQ_SYSTEM_STATUS rememberSystemStatus;
     IEQ_TRACK_RATE trackRate;
     IEQ_SLEW_RATE slewRate;
     IEQ_TIME_SOURCE timeSource;
@@ -111,8 +112,10 @@ bool get_ieqpro_utc_date_time(int fd, double *utc_hours, int *yy, int *mm, int *
 bool start_ieqpro_motion(int fd, IEQ_DIRECTION dir);
 bool stop_ieqpro_motion(int fd, IEQ_DIRECTION dir);
 bool set_ieqpro_slew_rate(int fd, IEQ_SLEW_RATE rate);
-bool set_ieqpro_custom_track_rate(int fd, double rate);
+bool set_ieqpro_custom_ra_track_rate(int fd, double rate);
+bool set_ieqpro_custom_de_track_rate(int fd, double rate);
 bool set_ieqpro_track_mode(int fd, IEQ_TRACK_RATE rate);
+bool set_ieqpro_track_enabled(int fd, bool enabled);
 bool abort_ieqpro(int fd);
 bool slew_ieqpro(int fd);
 bool sync_ieqpro(int fd);
