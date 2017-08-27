@@ -153,7 +153,6 @@
 		9D9F3D371F2B6B65004E5539 /* indiusbdevice.h in Headers */ = {isa = PBXBuildFile; fileRef = 9D9F3D351F2B6B65004E5539 /* indiusbdevice.h */; };
 		9D9F3D3C1F2B6C19004E5539 /* libusb.h in Headers */ = {isa = PBXBuildFile; fileRef = 9D9F3D3B1F2B6C19004E5539 /* libusb.h */; };
 		9D9F3D3F1F2B6C35004E5539 /* libusb-1.0.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 9D9F3D3E1F2B6C35004E5539 /* libusb-1.0.a */; };
-		9D9F3D401F2B6C3E004E5539 /* libusb-1.0.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 9D9F3D3E1F2B6C35004E5539 /* libusb-1.0.a */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -772,7 +771,6 @@
 				9D9F3D221F2B6ADD004E5539 /* libz.tbd in Frameworks */,
 				9D9F3D231F2B6ADD004E5539 /* Foundation.framework in Frameworks */,
 				9D9F3D241F2B6ADD004E5539 /* libindi.a in Frameworks */,
-				9D9F3D401F2B6C3E004E5539 /* libusb-1.0.a in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1458,7 +1456,7 @@
 								enabled = 1;
 							};
 							com.apple.Sandbox = {
-								enabled = 1;
+								enabled = 0;
 							};
 						};
 					};
