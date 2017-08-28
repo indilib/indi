@@ -22,9 +22,10 @@
 
 #include "indicom.h"
 
-#include <math.h>
+#include <cmath>
+#include <cstring>
 #include <memory>
-#include <string.h>
+
 #include <termios.h>
 #include <unistd.h>
 
@@ -43,19 +44,19 @@ void ISGetProperties(const char *dev)
     usbFocusV3->ISGetProperties(dev);
 }
 
-void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int num)
+void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
 {
-    usbFocusV3->ISNewSwitch(dev, name, states, names, num);
+    usbFocusV3->ISNewSwitch(dev, name, states, names, n);
 }
 
-void ISNewText(const char *dev, const char *name, char *texts[], char *names[], int num)
+void ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
 {
-    usbFocusV3->ISNewText(dev, name, texts, names, num);
+    usbFocusV3->ISNewText(dev, name, texts, names, n);
 }
 
-void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int num)
+void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
 {
-    usbFocusV3->ISNewNumber(dev, name, values, names, num);
+    usbFocusV3->ISNewNumber(dev, name, values, names, n);
 }
 
 void ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[],
@@ -80,13 +81,6 @@ USBFocusV3::USBFocusV3()
 {
     // Can move in Absolute & Relative motions, can AbortFocuser motion, and has variable speed.
     SetFocuserCapability(FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_REL_MOVE | FOCUSER_CAN_ABORT | FOCUSER_HAS_VARIABLE_SPEED);
-
-    lastPos         = 0;
-    lastTemperature = 0;
-}
-
-USBFocusV3::~USBFocusV3()
-{
 }
 
 bool USBFocusV3::initProperties()
@@ -270,7 +264,7 @@ bool USBFocusV3::Ack()
 
     } while (oneMoreRead(resp, UFORIDLEN));
 
-    if (!strncmp(resp, UFOID, UFORIDLEN))
+    if (strncmp(resp, UFOID, UFORIDLEN) == 0)
     {
         return true;
     }
@@ -569,7 +563,7 @@ bool USBFocusV3::updateSpeed()
             break;
     }
 
-    if (drvspeed)
+    if (drvspeed != 0)
     {
         currentSpeed         = drvspeed;
         FocusSpeedN[0].value = drvspeed;
@@ -620,7 +614,7 @@ bool USBFocusV3::setAutoTempCompThreshold(unsigned int thr)
 
         resp[UFORDONELEN] = '\0';
 
-        if (!strncmp(resp, UFORSDONE, strlen(UFORSDONE)))
+        if (strncmp(resp, UFORSDONE, strlen(UFORSDONE)) == 0)
         {
             tcomp_thr = thr;
             return true;
@@ -660,7 +654,7 @@ bool USBFocusV3::setTemperatureCoefficient(unsigned int coefficient)
 
         resp[UFORDONELEN] = '\0';
 
-        if (!strncmp(resp, UFORSDONE, strlen(UFORSDONE)))
+        if (strncmp(resp, UFORSDONE, strlen(UFORSDONE)) == 0)
         {
             stepsdeg = coefficient;
             return true;
@@ -800,7 +794,7 @@ bool USBFocusV3::setMaxPos(unsigned int maxp)
     char cmd[UFOCMMLEN + 1];
     char resp[UFORDONELEN + 1];
 
-    if ((maxp >= 1) || (maxp <= 65535))
+    if (maxp >= 1 && maxp <= 65535)
     {
         snprintf(cmd, UFOCMMLEN + 1, "%s%05u", UFOCSETMAX, maxp);
     }
@@ -838,7 +832,7 @@ bool USBFocusV3::setMaxPos(unsigned int maxp)
 
         resp[UFORDONELEN] = '\0';
 
-        if (!strncmp(resp, UFORSDONE, strlen(UFORSDONE)))
+        if (strncmp(resp, UFORSDONE, strlen(UFORSDONE)) == 0)
         {
             maxpos              = maxp;
             FocusAbsPosN[0].max = maxpos;
@@ -878,7 +872,7 @@ bool USBFocusV3::setSpeed(unsigned short drvspeed)
             break;
     }
 
-    if (spd)
+    if (spd != UFOPSPDERR)
     {
         snprintf(cmd, UFOCSLEN + 1, "%s%03u", UFOCSETSPEED, spd);
     }
@@ -916,7 +910,7 @@ bool USBFocusV3::setSpeed(unsigned short drvspeed)
 
         resp[UFORDONELEN] = '\0';
 
-        if (!strncmp(resp, UFORSDONE, strlen(UFORSDONE)))
+        if (strncmp(resp, UFORSDONE, strlen(UFORSDONE)) == 0)
         {
             speed = spd;
             return true;
@@ -990,7 +984,7 @@ bool USBFocusV3::setTempCompSign(unsigned int sign)
 
         resp[UFORDONELEN] = '\0';
 
-        if (!strncmp(resp, UFORSDONE, strlen(UFORSDONE)))
+        if (strncmp(resp, UFORSDONE, strlen(UFORSDONE)) == 0)
         {
             return true;
         }
@@ -1005,9 +999,9 @@ bool USBFocusV3::setTempCompSign(unsigned int sign)
 
 bool USBFocusV3::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
 {
-    if (strcmp(dev, getDeviceName()) == 0)
+    if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
-        if (!strcmp(StepModeSP.name, name))
+        if (strcmp(StepModeSP.name, name) == 0)
         {
             bool rc          = false;
             int current_mode = IUFindOnSwitchIndex(&StepModeSP);
@@ -1024,7 +1018,7 @@ bool USBFocusV3::ISNewSwitch(const char *dev, const char *name, ISState *states,
             else
                 rc = setStepMode(FOCUS_FULL_STEP);
 
-            if (rc == false)
+            if (!rc)
             {
                 IUResetSwitch(&StepModeSP);
                 StepModeS[current_mode].s = ISS_ON;
@@ -1038,7 +1032,7 @@ bool USBFocusV3::ISNewSwitch(const char *dev, const char *name, ISState *states,
             return true;
         }
 
-        if (!strcmp(RotDirSP.name, name))
+        if (strcmp(RotDirSP.name, name) == 0)
         {
             bool rc          = false;
             int current_mode = IUFindOnSwitchIndex(&RotDirSP);
@@ -1055,7 +1049,7 @@ bool USBFocusV3::ISNewSwitch(const char *dev, const char *name, ISState *states,
             else
                 rc = setRotDir(UFOPRDIR);
 
-            if (rc == false)
+            if (!rc)
             {
                 IUResetSwitch(&RotDirSP);
                 RotDirS[current_mode].s = ISS_ON;
@@ -1069,14 +1063,14 @@ bool USBFocusV3::ISNewSwitch(const char *dev, const char *name, ISState *states,
             return true;
         }
 
-        if (!strcmp(TemperatureCompensateSP.name, name))
+        if (strcmp(TemperatureCompensateSP.name, name) == 0)
         {
             int last_index = IUFindOnSwitchIndex(&TemperatureCompensateSP);
             IUUpdateSwitch(&TemperatureCompensateSP, states, names, n);
 
             bool rc = setTemperatureCompensation((TemperatureCompensateS[0].s == ISS_ON));
 
-            if (rc == false)
+            if (!rc)
             {
                 TemperatureCompensateSP.s = IPS_ALERT;
                 IUResetSwitch(&TemperatureCompensateSP);
@@ -1090,7 +1084,7 @@ bool USBFocusV3::ISNewSwitch(const char *dev, const char *name, ISState *states,
             return true;
         }
 
-        if (!strcmp(TempCompSignSP.name, name))
+        if (strcmp(TempCompSignSP.name, name) == 0)
         {
             bool rc          = false;
             int current_mode = IUFindOnSwitchIndex(&TempCompSignSP);
@@ -1107,7 +1101,7 @@ bool USBFocusV3::ISNewSwitch(const char *dev, const char *name, ISState *states,
             else
                 rc = setTempCompSign(UFOPPSIGN);
 
-            if (rc == false)
+            if (!rc)
             {
                 IUResetSwitch(&TempCompSignSP);
                 TempCompSignS[current_mode].s = ISS_ON;
@@ -1121,7 +1115,7 @@ bool USBFocusV3::ISNewSwitch(const char *dev, const char *name, ISState *states,
             return true;
         }
 
-        if (!strcmp(ResetSP.name, name))
+        if (strcmp(ResetSP.name, name) == 0)
         {
             IUResetSwitch(&ResetSP);
 
@@ -1140,9 +1134,9 @@ bool USBFocusV3::ISNewSwitch(const char *dev, const char *name, ISState *states,
 
 bool USBFocusV3::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
 {
-    if (strcmp(dev, getDeviceName()) == 0)
+    if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
-        if (!strcmp(name, MaxPositionNP.name))
+        if (strcmp(name, MaxPositionNP.name) == 0)
         {
             IUUpdateNumber(&MaxPositionNP, values, names, n);
             if (!setMaxPos(MaxPositionN[0].value))
@@ -1156,7 +1150,7 @@ bool USBFocusV3::ISNewNumber(const char *dev, const char *name, double values[],
             return true;
         }
 
-        if (!strcmp(name, TemperatureSettingNP.name))
+        if (strcmp(name, TemperatureSettingNP.name) == 0)
         {
             IUUpdateNumber(&TemperatureSettingNP, values, names, n);
             if (!setAutoTempCompThreshold(TemperatureSettingN[1].value) ||
@@ -1172,7 +1166,7 @@ bool USBFocusV3::ISNewNumber(const char *dev, const char *name, double values[],
             return true;
         }
 
-        if (!strcmp(name, FWversionNP.name))
+        if (strcmp(name, FWversionNP.name) == 0)
         {
             IUUpdateNumber(&FWversionNP, values, names, n);
             FWversionNP.s = IPS_OK;
@@ -1186,32 +1180,32 @@ bool USBFocusV3::ISNewNumber(const char *dev, const char *name, double values[],
 
 bool USBFocusV3::oneMoreRead(char *response, unsigned int maxlen)
 {
-    if (!strncmp(response, UFORSACK, std::min((unsigned int)strlen(UFORSACK), maxlen)))
+    if (strncmp(response, UFORSACK, std::min((unsigned int)strlen(UFORSACK), maxlen)) == 0)
     {
         return true;
     }
 
-    if (!strncmp(response, UFORSEQU, std::min((unsigned int)strlen(UFORSEQU), maxlen)))
+    if (strncmp(response, UFORSEQU, std::min((unsigned int)strlen(UFORSEQU), maxlen)) == 0)
     {
         return true;
     }
 
-    if (!strncmp(response, UFORSAUTO, std::min((unsigned int)strlen(UFORSAUTO), maxlen)))
+    if (strncmp(response, UFORSAUTO, std::min((unsigned int)strlen(UFORSAUTO), maxlen)) == 0)
     {
         return true;
     }
 
-    if (!strncmp(response, UFORSERR, std::min((unsigned int)strlen(UFORSERR), maxlen)))
+    if (strncmp(response, UFORSERR, std::min((unsigned int)strlen(UFORSERR), maxlen)) == 0)
     {
         return true;
     }
 
-    if (!strncmp(response, UFORSDONE, std::min((unsigned int)strlen(UFORSDONE), maxlen)))
+    if (strncmp(response, UFORSDONE, std::min((unsigned int)strlen(UFORSDONE), maxlen)) == 0)
     {
         return true;
     }
 
-    if (!strncmp(response, UFORSRESET, std::min((unsigned int)strlen(UFORSRESET), maxlen)))
+    if (strncmp(response, UFORSRESET, std::min((unsigned int)strlen(UFORSRESET), maxlen)) == 0)
     {
         return true;
     }
@@ -1260,7 +1254,7 @@ bool USBFocusV3::SetFocuserSpeed(int speed)
 
     rc = setSpeed(speed);
 
-    if (rc == false)
+    if (!rc)
         return false;
 
     currentSpeed = speed;
@@ -1286,7 +1280,7 @@ IPState USBFocusV3::MoveAbsFocuser(uint32_t targetTicks)
     else if (ticks > 0)
         rc = MoveFocuserUF(FOCUS_OUTWARD, (unsigned int)labs(ticks));
 
-    if (rc == false)
+    if (!rc)
         return IPS_ALERT;
 
     FocusAbsPosNP.s = IPS_BUSY;
@@ -1316,7 +1310,7 @@ IPState USBFocusV3::MoveRelFocuser(FocusDirection dir, uint32_t ticks)
 
     rc = MoveFocuserUF(dir, (unsigned int)ticks);
 
-    if (rc == false)
+    if (!rc)
         return IPS_ALERT;
 
     FocusRelPosN[0].value = ticks;
@@ -1327,7 +1321,7 @@ IPState USBFocusV3::MoveRelFocuser(FocusDirection dir, uint32_t ticks)
 
 void USBFocusV3::TimerHit()
 {
-    if (isConnected() == false)
+    if (!isConnected())
     {
         SetTimer(POLLMS);
         return;
@@ -1410,7 +1404,7 @@ float USBFocusV3::CalcTimeLeft(timeval start, float req)
 {
     double timesince;
     double timeleft;
-    struct timeval now;
+    struct timeval now { 0, 0 };
     gettimeofday(&now, nullptr);
 
     timesince =

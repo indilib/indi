@@ -23,12 +23,12 @@
 #define _GNU_SOURCE 1
 
 #include <unistd.h>
-#include <string.h>
+#include <cstring>
 #include <sys/stat.h>
 #include <fcntl.h>
-#include <errno.h>
+#include <cerrno>
 #include <stdio.h>
-#include <time.h>
+#include <ctime>
 #include <stdlib.h>
 
 #include "config.h"

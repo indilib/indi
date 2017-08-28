@@ -161,17 +161,17 @@ class ClientAPIForAlignmentDatabase
 
     // Private properties
 
-    INDI::BaseClient *BaseClient;
+    INDI::BaseClient *BaseClient { nullptr };
     pthread_cond_t DriverActionCompleteCondition;
     pthread_mutex_t DriverActionCompleteMutex;
-    bool DriverActionComplete;
-    INDI::BaseDevice *Device;
-    INDI::Property *MandatoryNumbers;
-    INDI::Property *OptionalBinaryBlob;
-    INDI::Property *PointsetSize;
-    INDI::Property *CurrentEntry;
-    INDI::Property *Action;
-    INDI::Property *Commit;
+    bool DriverActionComplete { false };
+    INDI::BaseDevice *Device { nullptr };
+    INDI::Property *MandatoryNumbers { nullptr };
+    INDI::Property *OptionalBinaryBlob { nullptr };
+    INDI::Property *PointsetSize { nullptr };
+    INDI::Property *CurrentEntry { nullptr };
+    INDI::Property *Action { nullptr };
+    INDI::Property *Commit { nullptr };
 };
 
 } // namespace AlignmentSubsystem

@@ -26,7 +26,7 @@ class SteelDrive : public INDI::Focuser
 {
   public:
     SteelDrive();
-    ~SteelDrive();
+    virtual ~SteelDrive() = default;
 
     typedef struct
     {
@@ -56,7 +56,7 @@ class SteelDrive : public INDI::Focuser
     virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n);
 
     virtual IPState MoveFocuser(FocusDirection dir, int speed, uint16_t duration);
-    virtual IPState MoveAbsFocuser(uint32_t ticks);
+    virtual IPState MoveAbsFocuser(uint32_t targetTicks);
     virtual IPState MoveRelFocuser(FocusDirection dir, unsigned int ticks);
     virtual bool SetFocuserSpeed(int speed);
     virtual bool AbortFocuser();
@@ -96,12 +96,16 @@ class SteelDrive : public INDI::Focuser
     float CalcTimeLeft(timeval, float);
     void updateFocusMaxRange(double maxTrip, double gearRatio);
 
-    double targetPos, lastPos, lastTemperature, simPosition;
-    unsigned int currentSpeed, temperatureUpdateCounter;
-    bool sim;
+    double targetPos { 0 };
+    double lastPos { 0 };
+    double lastTemperature { 0 };
+    double simPosition { 0 };
+    unsigned int currentSpeed { 0 };
+    unsigned int temperatureUpdateCounter { 0 };
+    bool sim { false };
 
-    struct timeval focusMoveStart;
-    float focusMoveRequest;
+    struct timeval focusMoveStart { 0, 0 };
+    float focusMoveRequest { 0 };
 
     INumber TemperatureN[1];
     INumberVectorProperty TemperatureNP;

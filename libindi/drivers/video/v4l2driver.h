@@ -158,8 +158,8 @@ class V4L2_Driver : public INDI::CCD
     ISwitchVectorProperty *ManualExposureSP;
 
     /* Initilization functions */
-    //virtual void connectCamera(void);
-    virtual void getBasicData(void);
+    //virtual void connectCamera();
+    virtual void getBasicData();
     void allocateBuffers();
     void releaseBuffers();
     void updateFrameSize();

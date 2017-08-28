@@ -24,7 +24,7 @@ class FocusSim : public INDI::Focuser
 {
   public:
     FocusSim();
-    virtual ~FocusSim();
+    virtual ~FocusSim() = default;
 
     const char *getDefaultName();
 
@@ -39,13 +39,13 @@ class FocusSim : public INDI::Focuser
     virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n);
 
     virtual IPState MoveFocuser(FocusDirection dir, int speed, uint16_t duration);
-    virtual IPState MoveAbsFocuser(uint32_t internalTicks);
-    virtual IPState MoveRelFocuser(FocusDirection dir, uint32_t internalTicks);
+    virtual IPState MoveAbsFocuser(uint32_t targetTicks);
+    virtual IPState MoveRelFocuser(FocusDirection dir, uint32_t ticks);
     virtual bool SetFocuserSpeed(int speed);
 
   private:
-    double internalTicks = 0;
-    double initTicks;
+    double internalTicks { 0 };
+    double initTicks { 0 };
 
     // Seeing in arcseconds
     INumberVectorProperty SeeingNP;

@@ -25,7 +25,7 @@
 #include "connectionplugins/connectionserial.h"
 
 #include <memory>
-#include <string.h>
+#include <cstring>
 #include <termios.h>
 
 #define FOCUSNAMEF1 "FocusLynx F1"
@@ -44,31 +44,31 @@ void ISGetProperties(const char *dev)
     lynxDriveF2->ISGetProperties(dev);
 }
 
-void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int num)
+void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
 {
     // Only call the corrected Focuser to execute evaluate the newSwitch
     if (!strcmp(dev, lynxDriveF1->getDeviceName()))
-        lynxDriveF1->ISNewSwitch(dev, name, states, names, num);
+        lynxDriveF1->ISNewSwitch(dev, name, states, names, n);
     else if (!strcmp(dev, lynxDriveF2->getDeviceName()))
-        lynxDriveF2->ISNewSwitch(dev, name, states, names, num);
+        lynxDriveF2->ISNewSwitch(dev, name, states, names, n);
 }
 
-void ISNewText(const char *dev, const char *name, char *texts[], char *names[], int num)
+void ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
 {
     // Only call the corrected Focuser to execute evaluate the newText
     if (!strcmp(dev, lynxDriveF1->getDeviceName()))
-        lynxDriveF1->ISNewText(dev, name, texts, names, num);
+        lynxDriveF1->ISNewText(dev, name, texts, names, n);
     else if (!strcmp(dev, lynxDriveF2->getDeviceName()))
-        lynxDriveF2->ISNewText(dev, name, texts, names, num);
+        lynxDriveF2->ISNewText(dev, name, texts, names, n);
 }
 
-void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int num)
+void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
 {
     // Only call the corrected Focuser to execute evaluate the newNumber
     if (!strcmp(dev, lynxDriveF1->getDeviceName()))
-        lynxDriveF1->ISNewNumber(dev, name, values, names, num);
+        lynxDriveF1->ISNewNumber(dev, name, values, names, n);
     else if (!strcmp(dev, lynxDriveF2->getDeviceName()))
-        lynxDriveF2->ISNewNumber(dev, name, values, names, num);
+        lynxDriveF2->ISNewNumber(dev, name, values, names, n);
 }
 
 void ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[],
@@ -288,7 +288,7 @@ bool FocusLynxF1::updateProperties()
 * ***********************************************************************************/
 void FocusLynxF1::ISGetProperties(const char *dev)
 {
-    if (dev && strcmp(dev, getDeviceName()))
+    if (dev != nullptr && strcmp(dev, getDeviceName()) != 0)
         return;
 
     FocusLynxBase::ISGetProperties(dev);
@@ -923,7 +923,7 @@ bool FocusLynxF2::Disconnect()
 * ***********************************************************************************/
 void FocusLynxF2::ISGetProperties(const char *dev)
 {
-    if (dev && strcmp(dev, getDeviceName()))
+    if (dev != nullptr && strcmp(dev, getDeviceName()) != 0)
         return;
 
     FocusLynxBase::ISGetProperties(dev);

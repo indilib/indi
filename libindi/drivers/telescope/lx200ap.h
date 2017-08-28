@@ -101,7 +101,7 @@ class LX200AstroPhysics : public LX200Generic
     INumberVectorProperty SlewAccuracyNP;
 
   private:
-    bool isMountInit(void);
+    bool isMountInit();
     bool setBasicDataPart0();
     bool setBasicDataPart1();
 

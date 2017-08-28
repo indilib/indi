@@ -28,7 +28,7 @@
 #include "connectionplugins/connectionserial.h"
 
 #include <memory>
-#include <string.h>
+#include <cstring>
 #include <termios.h>
 
 #define VANTAGE_CMD     8
@@ -76,19 +76,19 @@ void ISGetProperties(const char *dev)
     vantage->ISGetProperties(dev);
 }
 
-void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int num)
+void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
 {
-    vantage->ISNewSwitch(dev, name, states, names, num);
+    vantage->ISNewSwitch(dev, name, states, names, n);
 }
 
-void ISNewText(const char *dev, const char *name, char *texts[], char *names[], int num)
+void ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
 {
-    vantage->ISNewText(dev, name, texts, names, num);
+    vantage->ISNewText(dev, name, texts, names, n);
 }
 
-void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int num)
+void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
 {
-    vantage->ISNewNumber(dev, name, values, names, num);
+    vantage->ISNewNumber(dev, name, values, names, n);
 }
 
 void ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[],
@@ -113,13 +113,9 @@ Vantage::Vantage()
     setVersion(1, 0);
 }
 
-Vantage::~Vantage()
-{
-}
-
 const char *Vantage::getDefaultName()
 {
-    return (char *)"Vantage";
+    return (const char *)"Vantage";
 }
 
 bool Vantage::initProperties()
@@ -159,7 +155,7 @@ IPState Vantage::updateWeather()
     char command[VANTAGE_CMD];
     char response[VANTAGE_RES];
 
-    if (wakeup() == false)
+    if (!wakeup())
         return IPS_ALERT;
 
     strncpy(command, "LOOP 1", VANTAGE_CMD);
@@ -355,7 +351,7 @@ bool Vantage::ack()
     char command[VANTAGE_CMD];
     char response[VANTAGE_RES];
 
-    if (wakeup() == false)
+    if (!wakeup())
         return false;
 
     command[0] = 'V';
@@ -399,7 +395,7 @@ bool Vantage::ack()
 
     response[nbytes_read - 2] = 0;
 
-    if (strcmp(response, "OK"))
+    if (strcmp(response, "OK") != 0)
     {
         DEBUGF(INDI::Logger::DBG_ERROR, "Error response: %s", response);
         return false;

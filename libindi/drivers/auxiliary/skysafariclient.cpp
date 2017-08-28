@@ -27,7 +27,7 @@
 #include "skysafariclient.h"
 
 #include <cmath>
-#include <string.h>
+#include <cstring>
 
 /**************************************************************************************
 **

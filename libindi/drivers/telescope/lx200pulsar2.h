@@ -25,16 +25,16 @@
 class LX200Pulsar2 : public LX200Generic
 {
   public:
-    LX200Pulsar2(void);
-    virtual ~LX200Pulsar2(void) {}
+    LX200Pulsar2();
+    virtual ~LX200Pulsar2() {}
 
-    virtual const char *getDefaultName(void);
-    virtual bool Connect(void);
+    virtual const char *getDefaultName();
+    virtual bool Connect();
     virtual bool Handshake();
-    virtual bool ReadScopeStatus(void);
+    virtual bool ReadScopeStatus();
     virtual void ISGetProperties(const char *dev);
-    virtual bool initProperties(void);
-    virtual bool updateProperties(void);
+    virtual bool initProperties();
+    virtual bool updateProperties();
     virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n);
     virtual bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n);
 
@@ -42,7 +42,7 @@ class LX200Pulsar2 : public LX200Generic
     virtual bool SetSlewRate(int index);
     virtual bool MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command);
     virtual bool MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command);
-    virtual bool Abort(void);
+    virtual bool Abort();
 
     virtual IPState GuideNorth(float ms);
     virtual IPState GuideSouth(float ms);
@@ -53,14 +53,14 @@ class LX200Pulsar2 : public LX200Generic
     virtual bool updateLocation(double latitude, double longitude, double elevation);
 
     virtual bool Goto(double, double);
-    virtual bool Park(void);
+    virtual bool Park();
     virtual bool Sync(double ra, double dec);
-    virtual bool UnPark(void);
+    virtual bool UnPark();
 
-    virtual bool isSlewComplete(void);
-    virtual bool checkConnection(void);
+    virtual bool isSlewComplete();
+    virtual bool checkConnection();
 
-    virtual void getBasicData(void);
+    virtual void getBasicData();
 
     // Periodic error correction on or off
     ISwitchVectorProperty PeriodicErrorCorrectionSP;
@@ -73,13 +73,13 @@ class LX200Pulsar2 : public LX200Generic
     ISwitch RefractionCorrectionS[2];
 
   private:
-    void sendScopeLocation(void);
-    void sendScopeTime(void);
+    void sendScopeLocation();
+    void sendScopeTime();
 
-    void guideTimeout(void);
+    void guideTimeout();
     static void guideTimeoutHelper(void *p);
 
-    bool isSlewing(void);
+    bool isSlewing();
 
     bool just_started_slewing;
 };

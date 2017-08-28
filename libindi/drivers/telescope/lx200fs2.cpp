@@ -23,8 +23,8 @@
 
 #include <libnova/transform.h>
 
-#include <math.h>
-#include <string.h>
+#include <cmath>
+#include <cstring>
 
 LX200FS2::LX200FS2() : LX200Generic()
 {
@@ -83,7 +83,7 @@ bool LX200FS2::updateProperties()
 
 bool LX200FS2::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
 {
-    if (strcmp(dev, getDeviceName()) == 0)
+    if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
         if (!strcmp(name, SlewAccuracyNP.name))
         {
@@ -105,7 +105,7 @@ bool LX200FS2::ISNewNumber(const char *dev, const char *name, double values[], c
 
 const char *LX200FS2::getDefaultName()
 {
-    return (char *)"Astro-Electronic FS-2";
+    return (const char *)"Astro-Electronic FS-2";
 }
 
 bool LX200FS2::isSlewComplete()

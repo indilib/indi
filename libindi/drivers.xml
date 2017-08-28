@@ -172,7 +172,7 @@
           <version>1.0</version>
         </device>
         <device label="Rigelsys NStep">
-          <driver name="NStep">indi_nstep_focus</driver>
+          <driver name="Rigelsys NStep">indi_nstep_focus</driver>
           <version>1.0</version>
         </device>
         <device label="MoonLite">

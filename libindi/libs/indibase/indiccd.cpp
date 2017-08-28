@@ -37,8 +37,8 @@
 #include <regex>
 
 #include <dirent.h>
-#include <errno.h>
-#include <stdlib.h>
+#include <cerrno>
+#include <cstdlib>
 #include <zlib.h>
 #include <sys/stat.h>
 
@@ -621,9 +621,9 @@ bool INDI::CCD::initProperties()
     /**********************************************/
 
     // Upload Mode
-    IUFillSwitch(&UploadS[0], "UPLOAD_CLIENT", "Client", ISS_ON);
-    IUFillSwitch(&UploadS[1], "UPLOAD_LOCAL", "Local", ISS_OFF);
-    IUFillSwitch(&UploadS[2], "UPLOAD_BOTH", "Both", ISS_OFF);
+    IUFillSwitch(&UploadS[UPLOAD_CLIENT], "UPLOAD_CLIENT", "Client", ISS_ON);
+    IUFillSwitch(&UploadS[UPLOAD_LOCAL], "UPLOAD_LOCAL", "Local", ISS_OFF);
+    IUFillSwitch(&UploadS[UPLOAD_BOTH], "UPLOAD_BOTH", "Both", ISS_OFF);
     IUFillSwitchVector(&UploadSP, UploadS, 3, getDeviceName(), "UPLOAD_MODE", "Upload", OPTIONS_TAB, IP_RW, ISR_1OFMANY,
                        0, IPS_IDLE);
 
@@ -941,7 +941,7 @@ bool INDI::CCD::ISSnoopDevice(XMLEle *root)
 bool INDI::CCD::ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
 {
     //  first check if it's for our device
-    if (strcmp(dev, getDeviceName()) == 0)
+    if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
         //  This is for our device
         //  Now lets see if it's something we process here
@@ -953,11 +953,32 @@ bool INDI::CCD::ISNewText(const char *dev, const char *name, char *texts[], char
 
             // Update the property name!
             strncpy(EqNP.device, ActiveDeviceT[0].text, MAXINDIDEVICE);
-            IDSnoopDevice(ActiveDeviceT[0].text, "EQUATORIAL_EOD_COORD");
-            IDSnoopDevice(ActiveDeviceT[0].text, "TELESCOPE_INFO");
-            IDSnoopDevice(ActiveDeviceT[1].text, "ABS_ROTATOR_ANGLE");
-            IDSnoopDevice(ActiveDeviceT[2].text, "FILTER_SLOT");
-            IDSnoopDevice(ActiveDeviceT[2].text, "FILTER_NAME");
+            if (strlen(ActiveDeviceT[2].text) > 0)
+            {
+                IDSnoopDevice(ActiveDeviceT[0].text, "EQUATORIAL_EOD_COORD");
+                IDSnoopDevice(ActiveDeviceT[0].text, "TELESCOPE_INFO");
+            }
+            else
+            {
+                RA = std::numeric_limits<double>::quiet_NaN();
+                Dec = std::numeric_limits<double>::quiet_NaN();
+            }
+
+            if (strlen(ActiveDeviceT[1].text) > 0)
+                IDSnoopDevice(ActiveDeviceT[1].text, "ABS_ROTATOR_ANGLE");
+            else
+                MPSAS = std::numeric_limits<double>::quiet_NaN();
+
+            if (strlen(ActiveDeviceT[2].text) > 0)
+            {
+                IDSnoopDevice(ActiveDeviceT[2].text, "FILTER_SLOT");
+                IDSnoopDevice(ActiveDeviceT[2].text, "FILTER_NAME");
+            }
+            else
+            {
+                CurrentFilterSlot = -1;
+            }
+
             IDSnoopDevice(ActiveDeviceT[3].text, "SKY_QUALITY");
 
             // Tell children active devices was updated.
@@ -1005,7 +1026,7 @@ bool INDI::CCD::ISNewNumber(const char *dev, const char *name, double values[], 
 {
     //  first check if it's for our device
     //IDLog("INDI::CCD::ISNewNumber %s\n",name);
-    if (strcmp(dev, getDeviceName()) == 0)
+    if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
         if (!strcmp(name, "CCD_EXPOSURE"))
         {
@@ -1273,31 +1294,44 @@ bool INDI::CCD::ISNewNumber(const char *dev, const char *name, double values[], 
 
 bool INDI::CCD::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
 {
-    if (strcmp(dev, getDeviceName()) == 0)
+    if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
+        // Upload Mode
         if (!strcmp(name, UploadSP.name))
         {
             int prevMode = IUFindOnSwitchIndex(&UploadSP);
             IUUpdateSwitch(&UploadSP, states, names, n);
-            UploadSP.s = IPS_OK;
-            IDSetSwitch(&UploadSP, nullptr);
 
-            if (UploadS[0].s == ISS_ON)
+            if (UpdateCCDUploadMode(static_cast<CCD_UPLOAD_MODE>(IUFindOnSwitchIndex(&UploadSP))))
             {
-                DEBUG(INDI::Logger::DBG_SESSION, "Upload settings set to client only.");
-                if (prevMode != 0)
-                    deleteProperty(FileNameTP.name);
-            }
-            else if (UploadS[1].s == ISS_ON)
-            {
-                DEBUG(INDI::Logger::DBG_SESSION, "Upload settings set to local only.");
-                defineText(&FileNameTP);
+                if (UploadS[UPLOAD_CLIENT].s == ISS_ON)
+                {
+                    DEBUG(INDI::Logger::DBG_SESSION, "Upload settings set to client only.");
+                    if (prevMode != 0)
+                        deleteProperty(FileNameTP.name);
+                }
+                else if (UploadS[UPLOAD_LOCAL].s == ISS_ON)
+                {
+                    DEBUG(INDI::Logger::DBG_SESSION, "Upload settings set to local only.");
+                    defineText(&FileNameTP);
+                }
+                else
+                {
+                    DEBUG(INDI::Logger::DBG_SESSION, "Upload settings set to client and local.");
+                    defineText(&FileNameTP);
+                }
+
+                UploadSP.s = IPS_OK;
             }
             else
             {
-                DEBUG(INDI::Logger::DBG_SESSION, "Upload settings set to client and local.");
-                defineText(&FileNameTP);
+                IUResetSwitch(&UploadSP);
+                UploadS[prevMode].s = ISS_ON;
+                UploadSP.s = IPS_ALERT;
             }
+
+            IDSetSwitch(&UploadSP, nullptr);
+
             return true;
         }
 
@@ -1668,8 +1702,12 @@ void INDI::CCD::addFITSKeywords(fitsfile *fptr, CCDChip *targetChip)
     fits_update_key_s(fptr, TSTRING, "INSTRUME", fitsString, "CCD Name", &status);
 
     // Telescope
-    strncpy(fitsString, ActiveDeviceT[0].text, MAXINDIDEVICE);
-    fits_update_key_s(fptr, TSTRING, "TELESCOP", fitsString, "Telescope name", &status);
+    if (strlen(ActiveDeviceT[0].text) > 0)
+    {
+        strncpy(fitsString, ActiveDeviceT[0].text, MAXINDIDEVICE);
+        fits_update_key_s(fptr, TSTRING, "TELESCOP", fitsString, "Telescope name", &status);
+    }
+
 
     // Observer
     strncpy(fitsString, FITSHeaderT[FITS_OBSERVER].text, MAXINDIDEVICE);
@@ -1761,7 +1799,7 @@ void INDI::CCD::addFITSKeywords(fitsfile *fptr, CCDChip *targetChip)
 
     if (targetChip->getFrameType() == CCDChip::LIGHT_FRAME && !std::isnan(RA) && !std::isnan(Dec))
     {
-        ln_equ_posn epochPos, J2000Pos;
+        ln_equ_posn epochPos { 0, 0 }, J2000Pos { 0, 0 };
         epochPos.ra  = RA * 15.0;
         epochPos.dec = Dec;
 

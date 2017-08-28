@@ -106,16 +106,16 @@ extern "C" {
 #endif
 
 int ConnectTel(char *port);
-void DisconnectTel(void);
+void DisconnectTel();
 /* 0 if connection is OK, -1 otherwise */
-int CheckConnectTel(void);
+int CheckConnectTel();
 
 void SetRate(int newRate);
 void SetLimits(double limitLower, double limitHigher);
 int StartSlew(int direction);
 int StopSlew(int direction);
-double GetRA(void);
-double GetDec(void);
+double GetRA();
+double GetDec();
 int SlewToCoords(double newRA, double newDec);
 int SyncToCoords(double newRA, double newDec);
 int CheckCoords(double desRA, double desDec, double tolRA, double tolDEC);
@@ -123,8 +123,8 @@ int isScopeSlewing();
 int updateLocation(double lng, double lat);
 int updateTime(struct ln_date *utc, double utc_offset);
 
-void StopNSEW(void);
-int SetSlewRate(void);
+void StopNSEW();
+int SetSlewRate();
 
 int SyncLST(double newTime);
 int SyncLocalTime();

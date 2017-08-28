@@ -27,7 +27,7 @@
 #include "connectionplugins/connectionserial.h"
 #include "connectionplugins/connectiontcp.h"
 
-#include <string.h>
+#include <cstring>
 
 #define PARAMETERS_TAB "Parameters"
 
@@ -166,7 +166,7 @@ bool INDI::Weather::updateProperties()
 
 bool INDI::Weather::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
 {
-    if (strcmp(dev, getDeviceName()) == 0)
+    if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
         if (!strcmp(name, RefreshSP.name))
         {
@@ -184,7 +184,7 @@ bool INDI::Weather::ISNewSwitch(const char *dev, const char *name, ISState *stat
 bool INDI::Weather::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
 {
     //  first check if it's for our device
-    if (strcmp(dev, getDeviceName()) == 0)
+    if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
         if (strcmp(name, "GEOGRAPHIC_COORD") == 0)
         {
@@ -286,7 +286,7 @@ bool INDI::Weather::ISSnoopDevice(XMLEle *root)
 
 void INDI::Weather::TimerHit()
 {
-    if (isConnected() == false)
+    if (!isConnected())
         return;
 
     if (updateTimerID > 0)

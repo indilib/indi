@@ -24,10 +24,10 @@
 #include "connectionplugins/connectiontcp.h"
 
 #include <cmath>
-#include <errno.h>
+#include <cerrno>
 #include <pwd.h>
-#include <stdlib.h>
-#include <string.h>
+#include <cstdlib>
+#include <cstring>
 #include <unistd.h>
 #include <wordexp.h>
 
@@ -683,7 +683,7 @@ bool INDI::Telescope::MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command)
 bool INDI::Telescope::ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
 {
     //  first check if it's for our device
-    if (!strcmp(dev, getDeviceName()))
+    if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
         if (!strcmp(name, TimeTP.name))
         {
@@ -729,7 +729,7 @@ bool INDI::Telescope::ISNewText(const char *dev, const char *name, char *texts[]
 bool INDI::Telescope::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
 {
     //  first check if it's for our device
-    if (strcmp(dev, getDeviceName()) == 0)
+    if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
         ///////////////////////////////////
         // Goto & Sync for Equatorial Coords
@@ -890,7 +890,7 @@ bool INDI::Telescope::ISNewNumber(const char *dev, const char *name, double valu
             double preAxis1 = TrackRateN[AXIS_RA].value, preAxis2 = TrackRateN[AXIS_DE].value;
             bool rc = (IUUpdateNumber(&TrackRateNP, values, names, n) == 0);
 
-            if (rc == false)
+            if (!rc)
             {
                 TrackRateNP.s = IPS_ALERT;
                 IDSetNumber(&TrackRateNP, nullptr);
@@ -922,7 +922,7 @@ bool INDI::Telescope::ISNewNumber(const char *dev, const char *name, double valu
                 // All is fine, ask mount to change tracking rate
                 rc = SetTrackRate(TrackRateN[AXIS_RA].value, TrackRateN[AXIS_DE].value);
 
-                if (rc == false)
+                if (!rc)
                 {
                    TrackRateN[AXIS_RA].value = preAxis1;
                    TrackRateN[AXIS_DE].value = preAxis2;
@@ -944,7 +944,7 @@ bool INDI::Telescope::ISNewNumber(const char *dev, const char *name, double valu
 ***************************************************************************************/
 bool INDI::Telescope::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
 {
-    if (strcmp(dev, getDeviceName()) == 0)
+    if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
         //  This one is for us
         if (!strcmp(name, CoordSP.name))
@@ -1451,7 +1451,7 @@ void INDI::Telescope::TimerHit()
 
         rc = ReadScopeStatus();
 
-        if (rc == false)
+        if (!rc)
         {
             //  read was not good
             EqNP.s = lastEqState = IPS_ALERT;

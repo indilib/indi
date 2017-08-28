@@ -23,7 +23,7 @@
 
 #include "lx200driver.h"
 
-#include <string.h>
+#include <cstring>
 #include <unistd.h>
 
 #define LIBRARY_TAB  "Library"
@@ -117,7 +117,7 @@ bool LX200_OnStep::initProperties()
 
 void LX200_OnStep::ISGetProperties(const char *dev)
 {
-    if (dev && strcmp(dev, getDeviceName()))
+    if (dev != nullptr && strcmp(dev, getDeviceName()) != 0)
         return;
 
     LX200Generic::ISGetProperties(dev);
@@ -172,7 +172,7 @@ bool LX200_OnStep::updateProperties()
 
 bool LX200_OnStep::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
 {
-    if (strcmp(dev, getDeviceName()) == 0)
+    if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
         if (!strcmp(name, ObjectNoNP.name))
         {
@@ -205,7 +205,7 @@ bool LX200_OnStep::ISNewNumber(const char *dev, const char *name, double values[
 
         if (!strcmp(name, MaxSlewRateNP.name))
         {
-            if (setMaxSlewRate(PortFD, (int)values[0] < 0))
+            if (setMaxSlewRate(PortFD, (int)values[0]) < 0)
             {
                 MaxSlewRateNP.s = IPS_ALERT;
                 IDSetNumber(&MaxSlewRateNP, "Error setting maximum slew rate.");
@@ -270,7 +270,7 @@ bool LX200_OnStep::ISNewSwitch(const char *dev, const char *name, ISState *state
 {
     int index = 0;
 
-    if (strcmp(dev, getDeviceName()) == 0)
+    if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
         // Track Enable Button
         /*
@@ -430,7 +430,7 @@ void LX200_OnStep::getBasicData()
     // process parent
     LX200Generic::getBasicData();
 
-    if (isSimulation() == false)
+    if (!isSimulation())
     {
         VersionTP.tp[0].text = new char[64];
         getVersionDate(PortFD, VersionTP.tp[0].text);
@@ -454,7 +454,7 @@ bool LX200_OnStep::UnPark()
     //int ret = 0;
 
     // First we unpark
-    if (isSimulation() == false)
+    if (!isSimulation())
     {
         if (UnParkOnStep(PortFD) < 0)
         {

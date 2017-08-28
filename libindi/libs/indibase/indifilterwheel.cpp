@@ -22,7 +22,7 @@
 #include "connectionplugins/connectionserial.h"
 #include "connectionplugins/connectiontcp.h"
 
-#include <string.h>
+#include <cstring>
 
 INDI::FilterWheel::FilterWheel()
 {
@@ -124,7 +124,7 @@ bool INDI::FilterWheel::ISNewNumber(const char *dev, const char *name, double va
 {
     //  first check if it's for our device
     //IDLog("INDI::FilterWheel::ISNewNumber %s\n",name);
-    if (strcmp(dev, getDeviceName()) == 0)
+    if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
         //  This is for our device
         //  Now lets see if it's something we process here
@@ -145,7 +145,7 @@ bool INDI::FilterWheel::ISNewText(const char *dev, const char *name, char *texts
     //  Ok, lets see if this is a property wer process
     //IDLog("INDI::FilterWheel got %d new text items name %s\n",n,name);
     //  first check if it's for our device
-    if (strcmp(dev, getDeviceName()) == 0)
+    if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
         //  This is for our device
         //  Now lets see if it's something we process here

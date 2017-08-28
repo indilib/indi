@@ -39,19 +39,19 @@ void ISGetProperties(const char *dev)
     simpleDetector->ISGetProperties(dev);
 }
 
-void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int num)
+void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
 {
-    simpleDetector->ISNewSwitch(dev, name, states, names, num);
+    simpleDetector->ISNewSwitch(dev, name, states, names, n);
 }
 
-void ISNewText(const char *dev, const char *name, char *texts[], char *names[], int num)
+void ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
 {
-    simpleDetector->ISNewText(dev, name, texts, names, num);
+    simpleDetector->ISNewText(dev, name, texts, names, n);
 }
 
-void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int num)
+void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
 {
-    simpleDetector->ISNewNumber(dev, name, values, names, num);
+    simpleDetector->ISNewNumber(dev, name, values, names, n);
 }
 
 void ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[],
@@ -70,11 +70,6 @@ void ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], 
 void ISSnoopDevice(XMLEle *root)
 {
     simpleDetector->ISSnoopDevice(root);
-}
-
-SimpleDetector::SimpleDetector()
-{
-    InCapture = false;
 }
 
 /**************************************************************************************
@@ -116,7 +111,7 @@ bool SimpleDetector::initProperties()
     INDI::Detector::initProperties();
 
     // We set the Detector capabilities
-    uint32_t cap = DETECTOR_CAN_ABORT | DETECTOR_HAS_COOLER | DETECTOR_HAS_SHUTTER | DETECTOR_HAS_CONTINUUM;
+    uint32_t cap = DETECTOR_CAN_ABORT | DETECTOR_HAS_COOLER | DETECTOR_HAS_SHUTTER | DETECTOR_HAS_CONTINUUM | DETECTOR_HAS_SPECTRUM;
     SetDetectorCapability(cap);
 
     // Add Debug, Simulator, and Configuration controls
@@ -149,12 +144,11 @@ bool SimpleDetector::updateProperties()
 /**************************************************************************************
 ** Client is updating capture settings
 ***************************************************************************************/
-bool SimpleDetector::CaptureParamsUpdated(float bw, float capfreq, float samfreq, float bps)
+bool SimpleDetector::CaptureParamsUpdated(float sr, float freq, float bps)
 {
     	INDI_UNUSED(bps);
-    	INDI_UNUSED(capfreq);
-    	INDI_UNUSED(samfreq);
-    	INDI_UNUSED(bw);
+    	INDI_UNUSED(freq);
+    	INDI_UNUSED(sr);
 	return true;
 }
 
@@ -163,8 +157,8 @@ bool SimpleDetector::CaptureParamsUpdated(float bw, float capfreq, float samfreq
 ***************************************************************************************/
 void SimpleDetector::setupParams()
 {
-    // Our Detector is an 8 bit Detector, 2MSPS sample rate, 100MHz frequency 10Khz bandwidth.
-    SetDetectorParams(10000.0, 100000000.0, 2000000.0, 8);
+    // Our Detector is an 8 bit Detector, 100MHz frequency 1MHz samplerate.
+    SetDetectorParams(1000000.0, 100000000.0, 8);
 }
 
 /**************************************************************************************
@@ -178,12 +172,6 @@ bool SimpleDetector::StartCapture(float duration)
     PrimaryDetector.setCaptureDuration(duration);
 
     gettimeofday(&CapStart, nullptr);
-
-    // Let's calculate how much memory we need for the primary Detector buffer
-    int nbuf;
-    nbuf = PrimaryDetector.getSamplingFrequency() * PrimaryDetector.getCaptureDuration() * PrimaryDetector.getBPS() / 8;
-    nbuf += 512; //  leave a little extra at the end
-    PrimaryDetector.setFrameBufferSize(nbuf);
 
     InCapture = true;
 
@@ -218,7 +206,8 @@ float SimpleDetector::CalcTimeLeft()
 {
     double timesince;
     double timeleft;
-    struct timeval now;
+    struct timeval now { 0, 0 };
+
     gettimeofday(&now, nullptr);
 
     timesince = (double)(now.tv_sec * 1000.0 + now.tv_usec / 1000) -
@@ -236,7 +225,7 @@ void SimpleDetector::TimerHit()
 {
     long timeleft;
 
-    if (isConnected() == false)
+    if (!isConnected())
         return; //  No need to reset timer if we are not connected anymore
 
     if (InCapture)
@@ -296,7 +285,6 @@ void SimpleDetector::TimerHit()
     }
 
     SetTimer(POLLMS);
-    return;
 }
 
 /**************************************************************************************
@@ -304,15 +292,27 @@ void SimpleDetector::TimerHit()
 ***************************************************************************************/
 void SimpleDetector::grabFrame()
 {
-    // Let's get a pointer to the frame buffer
-    uint8_t *image = PrimaryDetector.getFrameBuffer();
-
-    // Get width and height
-    int len  = PrimaryDetector.getSamplingFrequency() * PrimaryDetector.getCaptureDuration() * PrimaryDetector.getBPS() / 8;
+    // Set length of continuum
+    int len  = PrimaryDetector.getSampleRate() * PrimaryDetector.getCaptureDuration() * PrimaryDetector.getBPS() / 8;
+    PrimaryDetector.setContinuumBufferSize(len);
+ 
+   // Let's get a pointer to the frame buffer
+    uint8_t *continuum = PrimaryDetector.getContinuumBuffer();
 
     // Fill buffer with random pattern
     for (int i = 0; i < len; i++)
-        image[i] = rand() % 255;
+        continuum[i] = rand() % 255;
+
+    // Set length of spectrum
+    len  = 1000;
+    PrimaryDetector.setSpectrumBufferSize(len);
+ 
+   // Let's get a pointer to the frame buffer
+    double *spectrum = PrimaryDetector.getSpectrumBuffer();
+
+    // Fill buffer with random pattern
+    for (int i = 0; i < len; i++)
+        spectrum[i] = rand() % 255;
 
     IDMessage(getDeviceName(), "Download complete.");
 

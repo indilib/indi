@@ -21,10 +21,10 @@
 
 #include "indicom.h"
 
-#include <math.h>
+#include <cmath>
+#include <cstring>
+#include <ctime>
 #include <memory>
-#include <string.h>
-#include <time.h>
 
 // We declare an auto pointer to RollOff.
 std::unique_ptr<RollOff> rollOff(new RollOff());
@@ -38,19 +38,19 @@ void ISGetProperties(const char *dev)
     rollOff->ISGetProperties(dev);
 }
 
-void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int num)
+void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
 {
-    rollOff->ISNewSwitch(dev, name, states, names, num);
+    rollOff->ISNewSwitch(dev, name, states, names, n);
 }
 
-void ISNewText(const char *dev, const char *name, char *texts[], char *names[], int num)
+void ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
 {
-    rollOff->ISNewText(dev, name, texts, names, num);
+    rollOff->ISNewText(dev, name, texts, names, n);
 }
 
-void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int num)
+void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
 {
-    rollOff->ISNewNumber(dev, name, values, names, num);
+    rollOff->ISNewNumber(dev, name, values, names, n);
 }
 
 void ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[],
@@ -73,10 +73,6 @@ void ISSnoopDevice(XMLEle *root)
 
 RollOff::RollOff()
 {
-    fullOpenLimitSwitch   = ISS_ON;
-    fullClosedLimitSwitch = ISS_OFF;
-    MotionRequest         = 0;
-
     SetDomeCapability(DOME_CAN_ABORT | DOME_CAN_PARK);
 }
 
@@ -136,13 +132,9 @@ bool RollOff::Disconnect()
     return true;
 }
 
-RollOff::~RollOff()
-{
-}
-
 const char *RollOff::getDefaultName()
 {
-    return (char *)"RollOff Simulator";
+    return (const char *)"RollOff Simulator";
 }
 
 bool RollOff::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
@@ -164,7 +156,7 @@ bool RollOff::updateProperties()
 
 void RollOff::TimerHit()
 {
-    if (isConnected() == false)
+    if (!isConnected())
         return; //  No need to reset timer if we are not connected anymore
 
     if (DomeMotionSP.s == IPS_BUSY)
@@ -244,12 +236,8 @@ IPState RollOff::Move(DomeDirection dir, DomeMotionCommand operation)
         SetTimer(1000);
         return IPS_BUSY;
     }
-    else
-    {
-        return (Dome::Abort() ? IPS_OK : IPS_ALERT);
-    }
 
-    return IPS_ALERT;
+    return (Dome::Abort() ? IPS_OK : IPS_ALERT);
 }
 
 IPState RollOff::Park()
@@ -281,7 +269,7 @@ bool RollOff::Abort()
     MotionRequest = -1;
 
     // If both limit switches are off, then we're neither parked nor unparked.
-    if (fullOpenLimitSwitch == false && fullClosedLimitSwitch == false)
+    if (fullOpenLimitSwitch == ISS_OFF && fullClosedLimitSwitch == ISS_OFF)
     {
         IUResetSwitch(&ParkSP);
         ParkSP.s = IPS_IDLE;
@@ -295,7 +283,7 @@ float RollOff::CalcTimeLeft(timeval start)
 {
     double timesince;
     double timeleft;
-    struct timeval now;
+    struct timeval now { 0, 0 };
     gettimeofday(&now, nullptr);
 
     timesince =

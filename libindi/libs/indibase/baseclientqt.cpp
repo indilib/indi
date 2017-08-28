@@ -23,11 +23,12 @@
 #include "base64.h"
 #include "basedevice.h"
 #include "locale_compat.h"
+#include "indistandardproperty.h"
 
 #include <iostream>
 #include <string>
 
-#include <stdlib.h>
+#include <cstdlib>
 
 #define MAXINDIBUF 49152
 

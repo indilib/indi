@@ -20,7 +20,7 @@
 
 #include "indidustcapinterface.h"
 
-#include <string.h>
+#include <cstring>
 
 INDI::DustCapInterface::DustCapInterface()
 {

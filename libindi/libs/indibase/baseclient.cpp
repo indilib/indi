@@ -18,15 +18,16 @@
 
 #include "baseclient.h"
 
+#include "indistandardproperty.h"
 #include "base64.h"
 #include "basedevice.h"
 #include "locale_compat.h"
 
-#include <errno.h>
+#include <cerrno>
 #include <fcntl.h>
-#include <stdlib.h>
+#include <cstdlib>
 #include <stdarg.h>
-#include <string.h>
+#include <cstring>
 
 #ifdef _WINDOWS
 #include <WinSock2.h>

@@ -35,19 +35,19 @@ void ISGetProperties(const char *dev)
     skycommander->ISGetProperties(dev);
 }
 
-void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int num)
+void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
 {
-    skycommander->ISNewSwitch(dev, name, states, names, num);
+    skycommander->ISNewSwitch(dev, name, states, names, n);
 }
 
-void ISNewText(const char *dev, const char *name, char *texts[], char *names[], int num)
+void ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
 {
-    skycommander->ISNewText(dev, name, texts, names, num);
+    skycommander->ISNewText(dev, name, texts, names, n);
 }
 
-void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int num)
+void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
 {
-    skycommander->ISNewNumber(dev, name, values, names, num);
+    skycommander->ISNewNumber(dev, name, values, names, n);
 }
 
 void ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[],
@@ -72,13 +72,9 @@ SkyCommander::SkyCommander()
     SetTelescopeCapability(0, 0);
 }
 
-SkyCommander::~SkyCommander()
-{
-}
-
 const char *SkyCommander::getDefaultName()
 {
-    return (char *)"SkyCommander";
+    return (const char *)"SkyCommander";
 }
 
 bool SkyCommander::Handshake()

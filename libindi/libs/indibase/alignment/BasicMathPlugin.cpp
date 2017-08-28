@@ -63,7 +63,8 @@ bool BasicMathPlugin::Initialise(InMemoryDatabase *pInMemoryDatabase)
         {
             AlignmentDatabaseEntry &Entry1 = SyncPoints[0];
             ln_equ_posn RaDec;
-            ln_lnlat_posn Position;
+            ln_lnlat_posn Position { 0, 0 };
+
             if (!pInMemoryDatabase->GetDatabaseReferencePosition(Position))
                 return false;
             RaDec.dec = Entry1.Declination;
@@ -161,7 +162,7 @@ bool BasicMathPlugin::Initialise(InMemoryDatabase *pInMemoryDatabase)
             RaDec2.dec = Entry2.Declination;
             // libnova works in decimal degrees so conversion is needed here
             RaDec2.ra = Entry2.RightAscension * 360.0 / 24.0;
-            ln_lnlat_posn Position;
+            ln_lnlat_posn Position { 0, 0 };
             if (!pInMemoryDatabase->GetDatabaseReferencePosition(Position))
                 return false;
 	    switch (ApproximateMountAlignment)
@@ -230,7 +231,7 @@ bool BasicMathPlugin::Initialise(InMemoryDatabase *pInMemoryDatabase)
             RaDec3.dec = Entry3.Declination;
             // libnova works in decimal degrees so conversion is needed here
             RaDec3.ra = Entry3.RightAscension * 360.0 / 24.0;
-            ln_lnlat_posn Position;
+            ln_lnlat_posn Position { 0, 0 };
             if (!pInMemoryDatabase->GetDatabaseReferencePosition(Position))
                 return false;
 	    switch (ApproximateMountAlignment)
@@ -280,7 +281,7 @@ bool BasicMathPlugin::Initialise(InMemoryDatabase *pInMemoryDatabase)
 
         default:
         {
-            ln_lnlat_posn Position;
+            ln_lnlat_posn Position { 0, 0 };
             if (!pInMemoryDatabase->GetDatabaseReferencePosition(Position))
                 return false;
 
@@ -437,7 +438,7 @@ bool BasicMathPlugin::TransformCelestialToTelescope(const double RightAscension,
     // libnova works in decimal degrees so conversion is needed here
     ActualRaDec.ra  = RightAscension * 360.0 / 24.0;
     ActualRaDec.dec = Declination;
-    ln_lnlat_posn Position;
+    ln_lnlat_posn Position { 0, 0 };
 
     if ((nullptr == pInMemoryDatabase) ||
         !pInMemoryDatabase->GetDatabaseReferencePosition(
@@ -672,8 +673,7 @@ bool BasicMathPlugin::TransformCelestialToTelescope(const double RightAscension,
 bool BasicMathPlugin::TransformTelescopeToCelestial(const TelescopeDirectionVector &ApparentTelescopeDirectionVector,
                                                     double &RightAscension, double &Declination)
 {
-    ln_lnlat_posn Position;
-    
+    ln_lnlat_posn Position { 0, 0 };
     ln_equ_posn ActualRaDec;
 
     ASSDEBUGF("Telescope to celestial - ApparentVector x %lf y %lf z %lf", ApparentTelescopeDirectionVector.x,

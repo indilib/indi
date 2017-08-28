@@ -32,14 +32,14 @@
  #define MAIN_TEST for a stand-alone test program.
  */
 
+#include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <math.h>
 #include <string.h>
 #include <time.h>
+#include <unistd.h>
 #include <sys/types.h>
 #include <sys/time.h>
-#include <unistd.h>
 
 #include "eventloop.h"
 
