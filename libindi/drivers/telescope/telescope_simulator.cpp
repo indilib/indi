@@ -202,6 +202,12 @@ bool ScopeSim::updateProperties()
             // If loading parking data is successful, we just set the default parking values.
             SetAxis1ParkDefault(HA);
             SetAxis2ParkDefault(DEC);
+
+            if (isParked())
+            {
+                currentRA = ParkPositionN[AXIS_RA].value;
+                currentDEC= ParkPositionN[AXIS_DE].value;
+            }
         }
         else
         {
