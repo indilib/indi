@@ -475,6 +475,34 @@ bool SkywatcherAPIMount::ISNewNumber(const char *dev, const char *name, double v
     {
         // It is for us
         ProcessAlignmentNumberProperties(this, name, values, names, n);
+        // Let our driver do sync operation in park position
+        if (strcmp(name, "EQUATORIAL_EOD_COORD") == 0)
+        {
+            double ra  = -1;
+            double dec = -100;
+
+            for (int x = 0; x < n; x++)
+            {
+                INumber *eqp = IUFindNumber(&EqNP, names[x]);
+                if (eqp == &EqN[AXIS_RA])
+                {
+                    ra = values[x];
+                }
+                else if (eqp == &EqN[AXIS_DE])
+                {
+                    dec = values[x];
+                }
+            }
+            if ((ra >= 0) && (ra <= 24) && (dec >= -90) && (dec <= 90))
+            {
+                ISwitch *sw = IUFindSwitch(&CoordSP, "SYNC");
+
+                if (sw != nullptr && sw->s == ISS_ON && isParked())
+                {
+                    return Sync(ra, dec);
+                }
+            }
+        }
     }
     // Pass it up the chain
     return INDI::Telescope::ISNewNumber(dev, name, values, names, n);
@@ -937,6 +965,35 @@ bool SkywatcherAPIMount::Sync(double ra, double dec)
         return false;
     if (!GetEncoder(AXIS2))
         return false;
+
+    // Syncing is treated specially when the telescope position is known in park position to spare
+    // "a huge-jump point" in the alignment model.
+    if (isParked())
+    {
+        ln_hrz_posn AltAz { 0, 0 };
+        TelescopeDirectionVector TDV;
+        double OrigAlt = 0;
+
+        if (TransformCelestialToTelescope(ra, dec, 0.0, TDV))
+        {
+            AltitudeAzimuthFromTelescopeDirectionVector(TDV, AltAz);
+            OrigAlt = AltAz.alt;
+            if (IsVirtuosoMount())
+            {
+                // The initial position of the Virtuoso mount is polar aligned when switched on.
+                // The altitude is corrected by the latitude.
+                if (IUFindNumber(&LocationNP, "LAT") != nullptr)
+                    AltAz.alt = AltAz.alt - IUFindNumber(&LocationNP, "LAT")->value;
+
+                AltAz.az = 180 + AltAz.az;
+            }
+            ZeroPositionEncoders[AXIS1] = PolarisPositionEncoders[AXIS1]-DegreesToMicrosteps(AXIS1, AltAz.az);
+            ZeroPositionEncoders[AXIS2] = PolarisPositionEncoders[AXIS2]-DegreesToMicrosteps(AXIS2, AltAz.alt);
+            MYDEBUGF(INDI::Logger::DBG_SESSION, "Sync (Alt: %lf Az: %lf) in park position", OrigAlt, AltAz.az);
+            GetAlignmentDatabase().clear();
+            return true;
+        }
+    }
 
     // The tracking seconds should be reset to restart the drift compensation
     ResetTrackingSeconds = true;
