@@ -55,6 +55,7 @@ SkywatcherAPI::SkywatcherAPI()
     DegreesPerMicrostep[AXIS1] = DegreesPerMicrostep[AXIS2] = 0;
     MicrostepsPerDegree[AXIS1] = MicrostepsPerDegree[AXIS2] = 0;
     CurrentEncoders[AXIS1] = CurrentEncoders[AXIS2] = 0;
+    PolarisPositionEncoders[AXIS1] = PolarisPositionEncoders[AXIS2] = 0;
     ZeroPositionEncoders[AXIS1] = ZeroPositionEncoders[AXIS2] = 0;
     SlewingSpeed[AXIS1] = SlewingSpeed[AXIS2] = 0;
 }
@@ -386,8 +387,10 @@ bool SkywatcherAPI::InitMount(bool recover)
     // These are used to define the arbitrary zero position vector for the axis
     if (!recover)
     {
-        ZeroPositionEncoders[AXIS1] = CurrentEncoders[AXIS1];
-        ZeroPositionEncoders[AXIS2] = CurrentEncoders[AXIS2];
+        PolarisPositionEncoders[AXIS1] = CurrentEncoders[AXIS1];
+        PolarisPositionEncoders[AXIS2] = CurrentEncoders[AXIS2];
+        ZeroPositionEncoders[AXIS1] = PolarisPositionEncoders[AXIS1];
+        ZeroPositionEncoders[AXIS2] = PolarisPositionEncoders[AXIS2];
     }
 
     if (!InitializeMC())

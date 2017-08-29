@@ -756,6 +756,24 @@ bool INDI::Telescope::ISNewNumber(const char *dev, const char *name, double valu
             }
             if ((ra >= 0) && (ra <= 24) && (dec >= -90) && (dec <= 90))
             {
+                // Check if it can sync
+                if (CanSync())
+                {
+                    ISwitch *sw;
+                    sw = IUFindSwitch(&CoordSP, "SYNC");
+                    if (sw != nullptr && sw->s == ISS_ON &&
+                        (!CanPark() || (CanPark() && isParked() && CanSyncInPark())))
+                    {
+                        rc = Sync(ra, dec);
+                        if (rc)
+                            EqNP.s = lastEqState = IPS_OK;
+                        else
+                            EqNP.s = lastEqState = IPS_ALERT;
+                        IDSetNumber(&EqNP, nullptr);
+                        return rc;
+                    }
+                }
+
                 // Check if it is already parked.
                 if (CanPark())
                 {
@@ -766,23 +784,6 @@ bool INDI::Telescope::ISNewNumber(const char *dev, const char *name, double valu
                         EqNP.s = lastEqState = IPS_IDLE;
                         IDSetNumber(&EqNP, nullptr);
                         return false;
-                    }
-                }
-
-                // Check if it can sync
-                if (CanSync())
-                {
-                    ISwitch *sw;
-                    sw = IUFindSwitch(&CoordSP, "SYNC");
-                    if ((sw != nullptr) && (sw->s == ISS_ON))
-                    {
-                        rc = Sync(ra, dec);
-                        if (rc)
-                            EqNP.s = lastEqState = IPS_OK;
-                        else
-                            EqNP.s = lastEqState = IPS_ALERT;
-                        IDSetNumber(&EqNP, nullptr);
-                        return rc;
                     }
                 }
 

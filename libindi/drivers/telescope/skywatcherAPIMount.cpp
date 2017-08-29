@@ -83,7 +83,7 @@ SkywatcherAPIMount::SkywatcherAPIMount()
 #endif
 
     SetTelescopeCapability(TELESCOPE_CAN_PARK | TELESCOPE_CAN_SYNC | TELESCOPE_CAN_GOTO | TELESCOPE_CAN_ABORT |
-                               TELESCOPE_HAS_TIME | TELESCOPE_HAS_LOCATION,
+                               TELESCOPE_HAS_TIME | TELESCOPE_HAS_LOCATION | TELESCOPE_CAN_SYNC_IN_PARK,
                            SLEWMODES);
 }
 
@@ -949,6 +949,35 @@ bool SkywatcherAPIMount::Sync(double ra, double dec)
         return false;
     if (!GetEncoder(AXIS2))
         return false;
+
+    // Syncing is treated specially when the telescope position is known in park position to spare
+    // "a huge-jump point" in the alignment model.
+    if (isParked())
+    {
+        ln_hrz_posn AltAz { 0, 0 };
+        TelescopeDirectionVector TDV;
+        double OrigAlt = 0;
+
+        if (TransformCelestialToTelescope(ra, dec, 0.0, TDV))
+        {
+            AltitudeAzimuthFromTelescopeDirectionVector(TDV, AltAz);
+            OrigAlt = AltAz.alt;
+            if (IsVirtuosoMount())
+            {
+                // The initial position of the Virtuoso mount is polar aligned when switched on.
+                // The altitude is corrected by the latitude.
+                if (IUFindNumber(&LocationNP, "LAT") != nullptr)
+                    AltAz.alt = AltAz.alt - IUFindNumber(&LocationNP, "LAT")->value;
+
+                AltAz.az = 180 + AltAz.az;
+            }
+            ZeroPositionEncoders[AXIS1] = PolarisPositionEncoders[AXIS1]-DegreesToMicrosteps(AXIS1, AltAz.az);
+            ZeroPositionEncoders[AXIS2] = PolarisPositionEncoders[AXIS2]-DegreesToMicrosteps(AXIS2, AltAz.alt);
+            MYDEBUGF(INDI::Logger::DBG_SESSION, "Sync (Alt: %lf Az: %lf) in park position", OrigAlt, AltAz.az);
+            GetAlignmentDatabase().clear();
+            return true;
+        }
+    }
 
     // The tracking seconds should be reset to restart the drift compensation
     ResetTrackingSeconds = true;
