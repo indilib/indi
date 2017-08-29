@@ -30,6 +30,7 @@
 #include <cstring>
 #include <unistd.h>
 #include <wordexp.h>
+#include <limits>
 
 namespace
 {
@@ -846,7 +847,7 @@ bool INDI::Telescope::ISNewNumber(const char *dev, const char *name, double valu
         ///////////////////////////////////
         if (strcmp(name, ParkPositionNP.name) == 0)
         {
-            double axis1 = NAN, axis2 = NAN;
+            double axis1 = std::numeric_limits<double>::quiet_NaN(), axis2 = std::numeric_limits<double>::quiet_NaN();
             for (int x = 0; x < n; x++)
             {
                 INumber *parkPosAxis = IUFindNumber(&ParkPositionNP, names[x]);
@@ -1678,6 +1679,11 @@ void INDI::Telescope::SetParkDataType(TelescopeParkData type)
                 IUFillNumber(&ParkPositionN[AXIS_DE], "PARK_DEC", "DEC (dd:mm:ss)", "%010.6m", -90, 90, 0, 0);
                 break;
 
+            case PARK_HA_DEC:
+                IUFillNumber(&ParkPositionN[AXIS_RA], "PARK_HA", "HA (hh:mm:ss)", "%010.6m", -12, 12, 0, 0);
+                IUFillNumber(&ParkPositionN[AXIS_DE], "PARK_DEC", "DEC (dd:mm:ss)", "%010.6m", -90, 90, 0, 0);
+                break;
+
             case PARK_AZ_ALT:
                 IUFillNumber(&ParkPositionN[AXIS_AZ], "PARK_AZ", "AZ D:M:S", "%10.6m", 0.0, 360.0, 0.0, 0);
                 IUFillNumber(&ParkPositionN[AXIS_ALT], "PARK_ALT", "Alt  D:M:S", "%10.6m", -90., 90.0, 0.0, 0);
@@ -1746,6 +1752,7 @@ bool INDI::Telescope::InitPark()
 
     SetParked(isParked());
 
+    DEBUGF(INDI::Logger::DBG_DEBUG, "InitPark Axis1 %g Axis2 %g", Axis1ParkPosition, Axis2ParkPosition);
     ParkPositionN[AXIS_RA].value = Axis1ParkPosition;
     ParkPositionN[AXIS_DE].value = Axis2ParkPosition;
     IDSetNumber(&ParkPositionNP, nullptr);
@@ -1835,18 +1842,28 @@ char *INDI::Telescope::LoadParkData()
         IsParked = true;
 
     int rc = 0;
-    rc     = sscanf(pcdataXMLEle(ParkpositionAxis1Xml), "%lf", &Axis1ParkPosition);
+    double axis1Pos = std::numeric_limits<double>::quiet_NaN();
+    double axis2Pos = std::numeric_limits<double>::quiet_NaN();
+
+    rc     = sscanf(pcdataXMLEle(ParkpositionAxis1Xml), "%lf", &axis1Pos);
     if (rc != 1)
     {
         return (char *)("Unable to parse Park Position Axis 1.");
     }
-    rc = sscanf(pcdataXMLEle(ParkpositionAxis2Xml), "%lf", &Axis2ParkPosition);
+    rc = sscanf(pcdataXMLEle(ParkpositionAxis2Xml), "%lf", &axis2Pos);
     if (rc != 1)
     {
         return (char *)("Unable to parse Park Position Axis 2.");
     }
 
-    return nullptr;
+    if (std::isnan(axis1Pos) == false && std::isnan(axis1Pos) == false)
+    {
+        Axis1ParkPosition = axis1Pos;
+        Axis2ParkPosition = axis2Pos;
+        return nullptr;
+    }
+
+    return (char *)("Failed to parse Park Position.");
 }
 
 bool INDI::Telescope::WriteParkData()
@@ -1892,9 +1909,9 @@ bool INDI::Telescope::WriteParkData()
 
     editXMLEle(ParkstatusXml, (IsParked ? "true" : "false"));
 
-    snprintf(pcdata, sizeof(pcdata), "%f", Axis1ParkPosition);
+    snprintf(pcdata, sizeof(pcdata), "%lf", Axis1ParkPosition);
     editXMLEle(ParkpositionAxis1Xml, pcdata);
-    snprintf(pcdata, sizeof(pcdata), "%f", Axis2ParkPosition);
+    snprintf(pcdata, sizeof(pcdata), "%lf", Axis2ParkPosition);
     editXMLEle(ParkpositionAxis2Xml, pcdata);
 
     prXMLEle(fp, ParkdataXmlRoot, 0);

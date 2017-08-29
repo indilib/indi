@@ -1051,12 +1051,24 @@ void SkywatcherAPIMount::TimerHit()
             {
                 DEBUG(INDI::Logger::DBG_SESSION, "Tracking started");
                 TrackingSecs = 0;
+                TrackedAltAz = CurrentAltAz;
             }
+
             // Restart the drift compensation after syncing
             if (ResetTrackingSeconds)
             {
                 ResetTrackingSeconds = false;
                 TrackingSecs         = 0;
+                TrackedAltAz         = CurrentAltAz;
+            }
+            double trackingDeltaAlt = std::abs(CurrentAltAz.alt-TrackedAltAz.alt);
+            double trackingDeltaAz = std::abs(CurrentAltAz.az-TrackedAltAz.az);
+
+            if (trackingDeltaAlt+trackingDeltaAz > 10.0)
+            {
+                IDMessage(nullptr, "Abort tracking after too much margin (%1.4f > 10)",
+                          trackingDeltaAlt+trackingDeltaAz);
+                Abort();
             }
             TrackingSecs++;
             if (TrackingSecs % 60 == 0)
