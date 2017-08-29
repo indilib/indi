@@ -41,11 +41,13 @@ LX200Gemini::LX200Gemini()
 {
     setVersion(1, 3);
 
-    setLX200Capability(LX200_HAS_SITES | LX200_HAS_FOCUS);
+    setLX200Capability(LX200_HAS_SITES | LX200_HAS_FOCUS | LX200_HAS_PULSE_GUIDING);
 
     SetTelescopeCapability(TELESCOPE_CAN_PARK | TELESCOPE_CAN_SYNC | TELESCOPE_CAN_GOTO | TELESCOPE_CAN_ABORT |
                                TELESCOPE_HAS_TIME | TELESCOPE_HAS_LOCATION | TELESCOPE_HAS_PIER_SIDE | TELESCOPE_HAS_TRACK_MODE,
                            4);
+
+    // TODO Implement TELESCOPE_CAN_CONTROL_TRACK
 }
 
 const char *LX200Gemini::getDefaultName()
