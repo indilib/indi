@@ -104,6 +104,7 @@ class INDI::Telescope : public INDI::DefaultDevice
     {
         PARK_NONE,
         PARK_RA_DEC,
+        PARK_HA_DEC,
         PARK_AZ_ALT,
         PARK_RA_DEC_ENCODER,
         PARK_AZ_ALT_ENCODER
