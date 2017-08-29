@@ -75,24 +75,12 @@ class SkywatcherAPIMount : public SkywatcherAPI,
     {
         MOTOR_CONTROL_FIRMWARE_VERSION,
         MOUNT_CODE,
+        MOUNT_NAME,
         IS_DC_MOTOR
     };
-    INumber BasicMountInfo[3];
-    INumberVectorProperty BasicMountInfoV;
-    enum
-    {
-        MT_EQ6,
-        MT_HEQ5,
-        MT_EQ5,
-        MT_EQ3,
-        MT_GT,
-        MT_MF,
-        MT_114GT,
-        MT_DOB,
-        MT_UNKNOWN
-    };
-    ISwitch MountType[9];
-    ISwitchVectorProperty MountTypeV;
+    IText BasicMountInfo[4];
+    ITextVectorProperty BasicMountInfoV;
+
     enum
     {
         MICROSTEPS_PER_REVOLUTION,

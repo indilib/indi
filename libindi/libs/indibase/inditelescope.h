@@ -157,6 +157,7 @@ class INDI::Telescope : public INDI::DefaultDevice
         TELESCOPE_HAS_TRACK_MODE    = 1 << 8,  /** Does the telescope have track modes (sidereal, lunar, solar..etc)? */
         TELESCOPE_CAN_CONTROL_TRACK = 1 << 9,  /** Can the telescope engage and disengage tracking? */
         TELESCOPE_HAS_TRACK_RATE    = 1 << 10,  /** Does the telescope have custom track rates? */
+        TELESCOPE_CAN_SYNC_IN_PARK  = 1 << 11, /** Can the telescope sync in park position? */
     } TelescopeCapability;
 
     Telescope();
@@ -207,6 +208,11 @@ class INDI::Telescope : public INDI::DefaultDevice
      * @return True if telescope can enagle and disengage tracking.
      */
     bool CanControlTrack() { return capability & TELESCOPE_CAN_CONTROL_TRACK; }
+
+    /**
+     * @return True if telescope can sync in park position.
+     */
+    bool CanSyncInPark() { return capability & TELESCOPE_CAN_SYNC_IN_PARK; }
 
     /**
      * @return True if telescope time can be updated.

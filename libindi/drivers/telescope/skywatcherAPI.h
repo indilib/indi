@@ -285,9 +285,12 @@ class SkywatcherAPI
     // SlewTo debugging
     long LastSlewToTarget[2];
 
-    // Encoder values
-    long CurrentEncoders[2];      // Current encoder value (microsteps).
-    long ZeroPositionEncoders[2]; // Zero position (initial) encoder value (microsteps).
+    /// Current encoder values (microsteps).
+    long CurrentEncoders[2];
+    /// Polaris position (initial) encoder values (microsteps).
+    long PolarisPositionEncoders[2];
+    /// Zero position encoder values (microsteps).
+    long ZeroPositionEncoders[2];
 
     AXISSTATUS AxesStatus[2];
     double SlewingSpeed[2];
