@@ -178,6 +178,7 @@ class SkywatcherAPIMount : public SkywatcherAPI,
     ln_equ_posn CurrentTrackingTarget { 0, 0 };
     long OldTrackingTarget[2] { 0, 0 };
     struct ln_hrz_posn CurrentAltAz { 0, 0 };
+    struct ln_hrz_posn TrackedAltAz { 0, 0 };
     bool ResetTrackingSeconds { false };
     int TrackingSecs { 0 };
 
