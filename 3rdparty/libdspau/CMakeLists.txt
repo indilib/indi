@@ -20,6 +20,8 @@ set(dspau_LIB_SRCS
    libdspau-filters.c
    libdspau-correlations.c
    libdspau-stats.c
+   libdspau-buffer.c
+   libdspau-convert.c
 )
 
 #build a shared library
