@@ -347,6 +347,10 @@ bool SkywatcherAPI::InitMount(bool recover)
 
     MountCode = MCVersion & 0xFF;
 
+    // Disable EQ mounts
+    if (MountCode < 0x80)
+        return false;
+
     //// NOTE: Simulator settings, Mount dependent Settings
 
     // Inquire Gear Rate
