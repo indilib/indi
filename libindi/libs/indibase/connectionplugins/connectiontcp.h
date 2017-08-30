@@ -50,6 +50,7 @@ class TCP : public Interface
     virtual uint32_t port() { return atoi(AddressT[0].text); }
 
     virtual bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n);
+    virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n);
     virtual bool saveConfigItems(FILE *fp);
 
     int getPortFD() const { return PortFD; }
@@ -60,6 +61,9 @@ class TCP : public Interface
     // IP Address/Port
     ITextVectorProperty AddressTP;
     IText AddressT[2];
+
+    ISwitch TcpUdpS[2];
+    ISwitchVectorProperty TcpUdpSP;
 
     int sockfd                   = -1;
     const uint8_t SOCKET_TIMEOUT = 5;
