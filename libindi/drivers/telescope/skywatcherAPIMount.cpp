@@ -149,7 +149,7 @@ bool SkywatcherAPIMount::Handshake()
 const char *SkywatcherAPIMount::getDefaultName()
 {
     //DEBUG(DBG_SCOPE, "SkywatcherAPIMount::getDefaultName\n");
-    return "skywatcherAPIMount";
+    return "Skywatcher Alt-Az Mount";
 }
 
 bool SkywatcherAPIMount::Goto(double ra, double dec)
