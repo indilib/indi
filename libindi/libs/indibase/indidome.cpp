@@ -160,7 +160,7 @@ bool INDI::Dome::initProperties()
     IUFillSwitch(&DomeShutterS[0], "SHUTTER_OPEN", "Open", ISS_OFF);
     IUFillSwitch(&DomeShutterS[1], "SHUTTER_CLOSE", "Close", ISS_ON);
     IUFillSwitchVector(&DomeShutterSP, DomeShutterS, 2, getDeviceName(), "DOME_SHUTTER", "Shutter", MAIN_CONTROL_TAB,
-                       IP_RW, ISR_1OFMANY, 60, IPS_OK);
+                       IP_RW, ISR_ATMOST1, 60, IPS_OK);
 
     IUFillSwitch(&ParkOptionS[0], "PARK_CURRENT", "Current", ISS_OFF);
     IUFillSwitch(&ParkOptionS[1], "PARK_DEFAULT", "Default", ISS_OFF);
@@ -966,8 +966,8 @@ bool INDI::Dome::GetTargetAz(double &Az, double &Alt, double &minAz, double &max
 
     DEBUGF(INDI::Logger::DBG_DEBUG, "JD: %g - MSD: %g", JD, MSD);
 
-    MountCenter.x = DomeMeasurementsN[DM_NORTH_DISPLACEMENT].value; // Positive to North
-    MountCenter.y = DomeMeasurementsN[DM_EAST_DISPLACEMENT].value;  // Positive to East
+    MountCenter.x = DomeMeasurementsN[DM_EAST_DISPLACEMENT].value; // Positive to East
+    MountCenter.y = DomeMeasurementsN[DM_NORTH_DISPLACEMENT].value;  // Positive to North
     MountCenter.z = DomeMeasurementsN[DM_UP_DISPLACEMENT].value;    // Positive Up
 
     DEBUGF(INDI::Logger::DBG_DEBUG, "MC.x: %g - MC.y: %g MC.z: %g", MountCenter.x, MountCenter.y, MountCenter.z);
