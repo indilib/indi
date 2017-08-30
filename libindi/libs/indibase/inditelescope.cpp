@@ -32,22 +32,9 @@
 #include <wordexp.h>
 #include <limits>
 
-namespace
-{
-// XML node names for scope config
-const std::string ScopeConfigRootXmlNode("scopeconfig");
-const std::string ScopeConfigDeviceXmlNode("device");
-const std::string ScopeConfigNameXmlNode("name");
-const std::string ScopeConfigScopeFocXmlNode("scopefoc");
-const std::string ScopeConfigScopeApXmlNode("scopeap");
-const std::string ScopeConfigGScopeFocXmlNode("gscopefoc");
-const std::string ScopeConfigGScopeApXmlNode("gscopeap");
-const std::string ScopeConfigLabelApXmlNode("label");
-}
-
 INDI::Telescope::Telescope()
-    : INDI::DefaultDevice(), ParkDataFileName(GetHomeDirectory() + "/.indi/ParkData.xml"),
-      ScopeConfigFileName(GetHomeDirectory() + "/.indi/ScopeConfig.xml")
+    : INDI::DefaultDevice(), ScopeConfigFileName(GetHomeDirectory() + "/.indi/ScopeConfig.xml"),
+      ParkDataFileName(GetHomeDirectory() + "/.indi/ParkData.xml")
 {
     capability     = 0;
     last_we_motion = last_ns_motion = -1;
