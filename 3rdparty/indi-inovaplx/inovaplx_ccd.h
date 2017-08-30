@@ -58,17 +58,17 @@ private:
     // Are we exposing?
     bool InExposure;
     bool threadsRunning;
-    bool FrameReady;
+//    bool FrameReady;
 
     unsigned char *RawData;
-    unsigned char *TmpData;
+//    unsigned char *TmpData;
 
     // Struct to keep timing
     struct timeval ExpStart;
     float ExposureRequest;
-    int GainRequest;
-    int BlackLevelRequest;
-    int timerID;
+//    int GainRequest;
+//    int BlackLevelRequest;
+//    int timerID;
     pthread_t captureThread;       
 
     // We declare the CCD properties
