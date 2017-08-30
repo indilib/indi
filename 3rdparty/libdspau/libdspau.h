@@ -245,7 +245,7 @@ DLL_EXPORT int dspau_sub(double* in1, double* in2, double* out, int len);
 * Return 0 if success.
 * Return -1 if any error occurs.
 */
-DLL_EXPORT int dspau_add(double* in1, double* in2, double* out, int len);
+DLL_EXPORT int dspau_sum(double* in1, double* in2, double* out, int len);
 
 /**
 * @brief Divide elements of one stream to another's
@@ -272,6 +272,58 @@ DLL_EXPORT int dspau_div(double* in1, double* in2, double* out, int len);
 * Return -1 if any error occurs.
 */
 DLL_EXPORT int dspau_mul(double* in1, double* in2, double* out, int len);
+
+/**
+* @brief Subtract a value from elements of the input stream
+* @param in the Numerators input stream. (input)
+* @param out the output stream. (output)
+* @param len the length of the input stream.
+* @param val the value to be subtracted.
+* @return the output stream if successfull elaboration. NULL if an
+* error is encountered.
+* Return 0 if success.
+* Return -1 if any error occurs.
+*/
+DLL_EXPORT int dspau_sub1(double* in, double* out, int len, double val);
+
+/**
+* @brief Sum elements of the input stream to a value
+* @param in the first input stream. (input)
+* @param out the output stream. (output)
+* @param len the length of the input stream.
+* @param val the value used for this operation.
+* @return the output stream if successfull elaboration. NULL if an
+* error is encountered.
+* Return 0 if success.
+* Return -1 if any error occurs.
+*/
+DLL_EXPORT int dspau_sum1(double* in, double* out, int len, double val);
+
+/**
+* @brief Divide elements of the input stream to a value
+* @param in the Numerators input stream. (input)
+* @param out the output stream. (output)
+* @param len the length of the input stream.
+* @param val the denominator.
+* @return the output stream if successfull elaboration. NULL if an
+* error is encountered.
+* Return 0 if success.
+* Return -1 if any error occurs.
+*/
+DLL_EXPORT int dspau_div1(double* in, double* out, int len, double val);
+
+/**
+* @brief Multiply elements of the input stream to a value
+* @param in the first input stream. (input)
+* @param out the output stream. (output)
+* @param len the length of the input stream.
+* @param val the value used for this operation.
+* @return the output stream if successfull elaboration. NULL if an
+* error is encountered.
+* Return 0 if success.
+* Return -1 if any error occurs.
+*/
+DLL_EXPORT int dspau_mul1(double* in, double* out, int len, double val);
 
 /**
 * @brief Median elements of the inut stream

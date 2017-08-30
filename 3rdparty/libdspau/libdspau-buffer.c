@@ -25,7 +25,7 @@
 
 int dspau_removemean(double* in, double* out, int len)
 {
-	double mean = dspau_mean(out, len);
+	double mean = dspau_mean(in, len);
 	for(int k = 0; k < len; k++)
 		out[k] = in[k] - mean;
 	return 0;
@@ -51,7 +51,7 @@ int dspau_normalize(double* in, double* out, int len, int min, int max)
 	return 0;
 }
 
-int dspau_diff(double* in1, double* in2, double* out, int len)
+int dspau_sub(double* in1, double* in2, double* out, int len)
 {
 	for(int k = 0; k < len; k++) {
 		out[k] = in1[k] - in2[k];
@@ -59,7 +59,7 @@ int dspau_diff(double* in1, double* in2, double* out, int len)
 	return 0;
 }
 
-int dspau_add(double* in1, double* in2, double* out, int len)
+int dspau_sum(double* in1, double* in2, double* out, int len)
 {
 	for(int k = 0; k < len; k++) {
 		out[k] = in1[k] + in2[k];
@@ -79,6 +79,38 @@ int dspau_mul(double* in1, double* in2, double* out, int len)
 {
 	for(int k = 0; k < len; k++) {
 		out[k] = in1[k] * in2[k];
+	}
+	return 0;
+}
+
+int dspau_sub1(double* in, double* out, int len, double val)
+{
+	for(int k = 0; k < len; k++) {
+		out[k] = in[k] - val;
+	}
+	return 0;
+}
+
+int dspau_sum1(double* in, double* out, int len, double val)
+{
+	for(int k = 0; k < len; k++) {
+		out[k] = in[k] + val;
+	}
+	return 0;
+}
+
+int dspau_div1(double* in, double* out, int len, double val)
+{
+	for(int k = 0; k < len; k++) {
+		out[k] = in[k] / val;
+	}
+	return 0;
+}
+
+int dspau_mul1(double* in, double* out, int len, double val)
+{
+	for(int k = 0; k < len; k++) {
+		out[k] = in[k] * val;
 	}
 	return 0;
 }
