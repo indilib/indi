@@ -400,7 +400,7 @@ void EQMod::ISGetProperties(const char *dev)
 #ifdef WITH_SCOPE_LIMITS
         if (horizon)
         {
-            horizon->updateProperties();
+            horizon->ISGetProperties();
         }
 #endif
 
