@@ -864,8 +864,7 @@ int setCalenderDate(int fd, int dd, int mm, int yy)
 {
     DEBUGFDEVICE(lx200Name, DBG_SCOPE, "<%s>", __FUNCTION__);
     char read_buffer[32];
-    //char dumpPlanetaryUpdateString[64];
-    char bool_return[2];
+    char dummy_buffer[32];
     int error_type;
     int nbytes_write = 0, nbytes_read = 0;
     yy = yy % 100;
@@ -879,7 +878,10 @@ int setCalenderDate(int fd, int dd, int mm, int yy)
     if ((error_type = tty_write_string(fd, read_buffer, &nbytes_write)) != TTY_OK)
         return error_type;
 
-    error_type = tty_read(fd, bool_return, 1, LX200_TIMEOUT, &nbytes_read);
+    error_type = tty_read_section(fd, read_buffer, '#', LX200_TIMEOUT, &nbytes_read);
+    // Read the next section whih has 24 blanks and then a #
+    // Can't just use the tcflush to clear the stream because it doesn't seem to work correctly on sockets
+    tty_read_section(fd, dummy_buffer, '#', LX200_TIMEOUT, &nbytes_read);
 
     tcflush(fd, TCIFLUSH);
 
@@ -889,19 +891,16 @@ int setCalenderDate(int fd, int dd, int mm, int yy)
         return error_type;
     }
 
-    bool_return[1] = '\0';
+    read_buffer[1] = '\0';
 
-    DEBUGFDEVICE(lx200Name, DBG_SCOPE, "RES <%s>", bool_return);
+    DEBUGFDEVICE(lx200Name, DBG_SCOPE, "RES <%s>", read_buffer);
 
-    if (bool_return[0] == '0')
+    if (read_buffer[0] == '0')
         return -1;
 
     /* Sleep 10ms before flushing. This solves some issues with LX200 compatible devices. */
     usleep(10000);
     tcflush(fd, TCIFLUSH);
-    /* Read dumped data */
-    //error_type = tty_read_section(fd, dumpPlanetaryUpdateString, '#', 1, &nbytes_read);
-    //error_type = tty_read_section(fd, dumpPlanetaryUpdateString, '#', 1, &nbytes_read);
 
     return 0;
 }
@@ -1096,6 +1095,7 @@ int setGPSFocuserSpeed(int fd, int speed)
         if ((error_type = tty_write_string(fd, ":FQ#", &nbytes_write)) != TTY_OK)
             return error_type;
 
+        tcflush(fd, TCIFLUSH);
         return 0;
     }
 
