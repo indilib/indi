@@ -31,6 +31,12 @@ namespace Connection
 class TCP : public Interface
 {
   public:
+    enum ConnectionType
+    {
+        TYPE_TCP = 0,
+        TYPE_UDP
+    };
+
     TCP(INDI::DefaultDevice *dev);
     virtual ~TCP();
 
@@ -56,6 +62,7 @@ class TCP : public Interface
     int getPortFD() const { return PortFD; }
     void setDefaultHost(const char *addressHost);
     void setDefaultPort(uint32_t addressPort);
+    void setConnectionType(int type);
 
   protected:
     // IP Address/Port

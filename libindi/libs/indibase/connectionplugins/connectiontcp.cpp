@@ -34,7 +34,7 @@ TCP::TCP(INDI::DefaultDevice *dev) : Interface(dev)
     // Address/Port
     IUFillText(&AddressT[0], "ADDRESS", "Address", "");
     IUFillText(&AddressT[1], "PORT", "Port", "");
-    IUFillTextVector(&AddressTP, AddressT, 2, getDeviceName(), "DEVICE_TCP_ADDRESS", "Server", CONNECTION_TAB,
+    IUFillTextVector(&AddressTP, AddressT, 2, getDeviceName(), "DEVICE_ADDRESS", "Server", CONNECTION_TAB,
                      IP_RW, 60, IPS_IDLE);
 
     IUFillSwitch(&TcpUdpS[0], "TCP", "TCP", ISS_ON);
@@ -71,6 +71,9 @@ bool TCP::ISNewSwitch(const char *dev, const char *name, ISState *states, char *
     {
         if (!strcmp(name, TcpUdpSP.name))
         {
+            IUUpdateSwitch(&TcpUdpSP, states, names, n);
+            TcpUdpSP.s = IPS_OK;
+
             IDSetSwitch(&TcpUdpSP, nullptr);
 
             return true;
@@ -158,7 +161,8 @@ bool TCP::Connect()
     if (rc)
     {
         DEBUGF(INDI::Logger::DBG_SESSION, "%s is online.", getDeviceName());
-        device->saveConfig(true, "DEVICE_TCP_ADDRESS");
+        device->saveConfig(true, "DEVICE_ADDRESS");
+        device->saveConfig(true, "CONNECTION_TYPE");
     }
     else
         DEBUG(INDI::Logger::DBG_DEBUG, "Handshake failed.");
@@ -180,12 +184,15 @@ bool TCP::Disconnect()
 void TCP::Activated()
 {
     device->defineText(&AddressTP);
-    device->loadConfig(true, "DEVICE_TCP_ADDRESS");
+    device->defineSwitch(&TcpUdpSP);
+    device->loadConfig(true, "DEVICE_ADDRESS");
+    device->loadConfig(true, "CONNECTION_TYPE");
 }
 
 void TCP::Deactivated()
 {
     device->deleteProperty(AddressTP.name);
+    device->deleteProperty(TcpUdpSP.name);
 }
 
 bool TCP::saveConfigItems(FILE *fp)
@@ -206,5 +213,12 @@ void TCP::setDefaultPort(uint32_t addressPort)
     char portStr[8];
     snprintf(portStr, 8, "%d", addressPort);
     IUSaveText(&AddressT[1], portStr);
+}
+
+void TCP::setConnectionType(int type)
+{
+    IUResetSwitch(&TcpUdpSP);
+    TcpUdpS[type].s = ISS_ON;
+    IDSetSwitch(&TcpUdpSP, nullptr);
 }
 }
