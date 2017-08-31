@@ -40,6 +40,8 @@ class LX200Gemini : public LX200Generic
   protected:
     virtual const char *getDefaultName() override;
 
+    virtual bool Connect() override;
+
     virtual bool initProperties() override ;
     virtual bool updateProperties() override;
 
@@ -50,6 +52,7 @@ class LX200Gemini : public LX200Generic
     virtual bool UnPark() override;
 
     virtual bool SetTrackMode(uint8_t mode) override;
+    virtual bool SetTrackEnabled(bool enabled) override;
 
     virtual bool checkConnection() override;
 
@@ -107,5 +110,30 @@ class LX200Gemini : public LX200Generic
         GEMINI_TRACK_SOLAR
 
     };
+
+    enum MovementState
+    {
+        NO_MOVEMENT,
+        TRACKING,
+        GUIDING,
+        CENTERING,
+        SLEWING,
+        STALLED
+    };
+
+    enum ParkingState
+    {
+        NOT_PARKED,
+        PARKED,
+        PARK_IN_PROGRESS
+    };
+
     const uint8_t GEMINI_TIMEOUT = 3;
+
+    void setTrackState(INDI::Telescope::TelescopeStatus state);
+    void updateMovementState();
+    MovementState getMovementState();
+    ParkingState getParkingState();
+
+    ParkingState priorParkingState = PARK_IN_PROGRESS;
 };
