@@ -12,6 +12,8 @@
 #include "DeviceStrHelpers.h" 
 #include "helpers.h" 
 #include <regex>
+#include <tr1/memory>
+#include <tr1/regex>
 
 //----------------------------------------------
 //      GET    DEVICE       VECT

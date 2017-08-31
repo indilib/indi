@@ -9,9 +9,9 @@
 * 
 */ 
 
-#include "GeeFx2.h" 
+//#include "GeeFx2.h"
 #include "ApnUsbSys.h"
-#include "Fx2Io.h" 
+//#include "Fx2Io.h"
 #include "apgHelper.h" 
 #include <algorithm>
 #include <cstring>  //for memset
