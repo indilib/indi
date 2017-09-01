@@ -239,7 +239,7 @@ void ApogeeCam::InitShutterCloseDelay()
 //      DEFAULT    CFG        CAM    FROM    ID
 void ApogeeCam::DefaultCfgCamFromId( const uint16_t CameraId )
 {
-    m_CamCfgData = std::tr1::shared_ptr<CApnCamData>( new CApnCamData );
+    m_CamCfgData = std::shared_ptr<CApnCamData>( new CApnCamData );
     m_CamCfgData->Set( apgHelper::GetCamCfgDir(), 
         apgHelper::GetCfgFileName(), CameraId );
 }
@@ -3242,11 +3242,11 @@ CamInfo::StrDb ApogeeCam::ReadStrDatabase()
 #endif
     if ( (m_PlatformType == CamModel::ASCENT) || (m_PlatformType == CamModel::ALTAF) )
     {
-        return std::tr1::dynamic_pointer_cast<AscentBasedIo>(m_CamIo)->ReadStrDatabase();
+        return std::dynamic_pointer_cast<AscentBasedIo>(m_CamIo)->ReadStrDatabase();
     }
     else
     {
-        return std::tr1::dynamic_pointer_cast<AspenIo>(m_CamIo)->ReadStrDatabase();
+        return std::dynamic_pointer_cast<AspenIo>(m_CamIo)->ReadStrDatabase();
     }
 }
 
@@ -3257,11 +3257,11 @@ void ApogeeCam::WriteStrDatabase(CamInfo::StrDb &info)
 #endif
     if ( (m_PlatformType == CamModel::ASCENT) || (m_PlatformType == CamModel::ALTAF) )
     {
-        std::tr1::dynamic_pointer_cast<AscentBasedIo>(m_CamIo)->WriteStrDatabase(info);
+        std::dynamic_pointer_cast<AscentBasedIo>(m_CamIo)->WriteStrDatabase(info);
     }
     else
     {
-        std::tr1::dynamic_pointer_cast<AspenIo>(m_CamIo)->WriteStrDatabase(info);
+        std::dynamic_pointer_cast<AspenIo>(m_CamIo)->WriteStrDatabase(info);
     }
 }
 
@@ -3273,7 +3273,7 @@ void ApogeeCam::UpdateAlta(const std::string FilenameCamCon, const std::string F
         return;
     }
 
-    std::tr1::dynamic_pointer_cast<AltaIo>(m_CamIo)->Program(
+    std::dynamic_pointer_cast<AltaIo>(m_CamIo)->Program(
                     FilenameCamCon,
                     FilenameBufCon, 
                     FilenameFx2, 
@@ -3291,7 +3291,7 @@ void ApogeeCam::UpdateAscentOrAltaF(const std::string FilenameFpga, const std::s
         return;
     }
 
-    std::tr1::dynamic_pointer_cast<AscentBasedIo>(m_CamIo)->Program(
+    std::dynamic_pointer_cast<AscentBasedIo>(m_CamIo)->Program(
                     FilenameFpga,
                     FilenameFx2, 
                     FilenameDescriptor, 
@@ -3305,7 +3305,7 @@ void ApogeeCam::UpdateAspen(const std::string FilenameFpga, const std::string Fi
         return;
     }
 
-    std::tr1::dynamic_pointer_cast<AspenIo>(m_CamIo)->Program(
+    std::dynamic_pointer_cast<AspenIo>(m_CamIo)->Program(
                     FilenameFpga, 
                     FilenameFx2, 
                     FilenameDescriptor, 

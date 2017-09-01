@@ -24,7 +24,7 @@ namespace
 
 //////////////////////////// 
 // CTOR 
-PromFx2Io::PromFx2Io( std::tr1::shared_ptr<IUsb> & usb,
+PromFx2Io::PromFx2Io( std::shared_ptr<IUsb> & usb,
                                             const uint32_t MaxBlocks, 
                                             const uint32_t MaxBanks ): 
                                             m_Usb( usb ),

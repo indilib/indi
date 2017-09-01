@@ -26,9 +26,9 @@ ApgLogger::ApgLogger() : m_level( ApgLogger::LEVEL_RELEASE )
 
     
 #ifdef WIN_OS
-        m_theLogger = std::tr1::shared_ptr<ILog>( new LoggerWin );
+        m_theLogger = std::shared_ptr<ILog>( new LoggerWin );
 #else
-    	m_theLogger = std::tr1::shared_ptr<ILog>( new LoggerSyslog );
+    	m_theLogger = std::shared_ptr<ILog>( new LoggerSyslog );
 #endif
    
     //TODO figure out how to read ini or another file

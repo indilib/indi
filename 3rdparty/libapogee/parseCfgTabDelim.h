@@ -40,7 +40,7 @@ namespace parseCfgTabDelim
        const std::string & fileName);
 
     void FetchMetaData(const std::string & fileName,
-        std::vector< std::tr1::shared_ptr<CamCfg::APN_CAMERA_METADATA> > & out);
+        std::vector< std::shared_ptr<CamCfg::APN_CAMERA_METADATA> > & out);
 
     CamCfg::APN_CAMERA_METADATA FetchMetaData(
         const std::string & fileName, uint16_t CamId );
