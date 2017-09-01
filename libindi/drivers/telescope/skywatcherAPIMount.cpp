@@ -149,7 +149,7 @@ bool SkywatcherAPIMount::Handshake()
 const char *SkywatcherAPIMount::getDefaultName()
 {
     //DEBUG(DBG_SCOPE, "SkywatcherAPIMount::getDefaultName\n");
-    return "skywatcherAPIMount";
+    return "Skywatcher Alt-Az Mount";
 }
 
 bool SkywatcherAPIMount::Goto(double ra, double dec)
@@ -319,24 +319,13 @@ bool SkywatcherAPIMount::initProperties()
     getSwitch("ALIGNMENT_SUBSYSTEM_ACTIVE")->sp[0].s = ISS_ON;
 
     // Set up property variables
-    IUFillNumber(&BasicMountInfo[MOTOR_CONTROL_FIRMWARE_VERSION], "MOTOR_CONTROL_FIRMWARE_VERSION",
-                 "Motor control fimware version", "%g", 0, 0xFFFFFF, 1, 0);
-    IUFillNumber(&BasicMountInfo[MOUNT_CODE], "MOUNT_CODE", "Mount code", "%g", 0, 0xFF, 1, 0);
-    IUFillNumber(&BasicMountInfo[IS_DC_MOTOR], "IS_DC_MOTOR", "Is DC motor (boolean)", "%g", 0, 1, 1, 0);
-    IUFillNumberVector(&BasicMountInfoV, BasicMountInfo, 3, getDeviceName(), "BASIC_MOUNT_INFO",
-                       "Basic mount information", DetailedMountInfoPage, IP_RO, 60, IPS_IDLE);
-
-    IUFillSwitch(&MountType[MT_EQ6], "EQ6", "EQ6", ISS_OFF);
-    IUFillSwitch(&MountType[MT_HEQ5], "HEQ5", "HEQ5", ISS_OFF);
-    IUFillSwitch(&MountType[MT_EQ5], "EQ5", "EQ5", ISS_OFF);
-    IUFillSwitch(&MountType[MT_EQ3], "EQ3", "EQ3", ISS_OFF);
-    IUFillSwitch(&MountType[MT_GT], "GT", "GT", ISS_OFF);
-    IUFillSwitch(&MountType[MT_MF], "MF", "MF", ISS_OFF);
-    IUFillSwitch(&MountType[MT_114GT], "114GT", "114GT", ISS_OFF);
-    IUFillSwitch(&MountType[MT_DOB], "DOB", "DOB", ISS_OFF);
-    IUFillSwitch(&MountType[MT_UNKNOWN], "UNKNOWN", "UNKNOWN", ISS_ON);
-    IUFillSwitchVector(&MountTypeV, MountType, 9, getDeviceName(), "MOUNT_TYPE", "Mount type", DetailedMountInfoPage,
-                       IP_RO, ISR_ATMOST1, 60, IPS_IDLE);
+    IUFillText(&BasicMountInfo[MOTOR_CONTROL_FIRMWARE_VERSION], "MOTOR_CONTROL_FIRMWARE_VERSION",
+               "Motor control firmware version", "-");
+    IUFillText(&BasicMountInfo[MOUNT_CODE], "MOUNT_CODE", "Mount code", "-");
+    IUFillText(&BasicMountInfo[MOUNT_NAME], "MOUNT_NAME", "Mount name", "-");
+    IUFillText(&BasicMountInfo[IS_DC_MOTOR], "IS_DC_MOTOR", "Is DC motor", "-");
+    IUFillTextVector(&BasicMountInfoV, BasicMountInfo, 4, getDeviceName(), "BASIC_MOUNT_INFO",
+                     "Basic mount information", DetailedMountInfoPage, IP_RO, 60, IPS_IDLE);
 
     IUFillNumber(&AxisOneInfo[MICROSTEPS_PER_REVOLUTION], "MICROSTEPS_PER_REVOLUTION", "Microsteps per revolution",
                  "%.0f", 0, 0xFFFFFF, 1, 0);
@@ -452,8 +441,7 @@ void SkywatcherAPIMount::ISGetProperties(const char *dev)
         // Define our connected only properties to the base driver
         // e.g. defineNumber(MyNumberVectorPointer);
         // This will register our properties and send a IDDefXXXX mewssage to any connected clients
-        defineNumber(&BasicMountInfoV);
-        defineSwitch(&MountTypeV);
+        defineText(&BasicMountInfoV);
         defineNumber(&AxisOneInfoV);
         defineSwitch(&AxisOneStateV);
         defineNumber(&AxisTwoInfoV);
@@ -487,6 +475,34 @@ bool SkywatcherAPIMount::ISNewNumber(const char *dev, const char *name, double v
     {
         // It is for us
         ProcessAlignmentNumberProperties(this, name, values, names, n);
+        // Let our driver do sync operation in park position
+        if (strcmp(name, "EQUATORIAL_EOD_COORD") == 0)
+        {
+            double ra  = -1;
+            double dec = -100;
+
+            for (int x = 0; x < n; x++)
+            {
+                INumber *eqp = IUFindNumber(&EqNP, names[x]);
+                if (eqp == &EqN[AXIS_RA])
+                {
+                    ra = values[x];
+                }
+                else if (eqp == &EqN[AXIS_DE])
+                {
+                    dec = values[x];
+                }
+            }
+            if ((ra >= 0) && (ra <= 24) && (dec >= -90) && (dec <= 90))
+            {
+                ISwitch *sw = IUFindSwitch(&CoordSP, "SYNC");
+
+                if (sw != nullptr && sw->s == ISS_ON && isParked())
+                {
+                    return Sync(ra, dec);
+                }
+            }
+        }
     }
     // Pass it up the chain
     return INDI::Telescope::ISNewNumber(dev, name, values, names, n);
@@ -950,6 +966,35 @@ bool SkywatcherAPIMount::Sync(double ra, double dec)
     if (!GetEncoder(AXIS2))
         return false;
 
+    // Syncing is treated specially when the telescope position is known in park position to spare
+    // "a huge-jump point" in the alignment model.
+    if (isParked())
+    {
+        ln_hrz_posn AltAz { 0, 0 };
+        TelescopeDirectionVector TDV;
+        double OrigAlt = 0;
+
+        if (TransformCelestialToTelescope(ra, dec, 0.0, TDV))
+        {
+            AltitudeAzimuthFromTelescopeDirectionVector(TDV, AltAz);
+            OrigAlt = AltAz.alt;
+            if (IsVirtuosoMount())
+            {
+                // The initial position of the Virtuoso mount is polar aligned when switched on.
+                // The altitude is corrected by the latitude.
+                if (IUFindNumber(&LocationNP, "LAT") != nullptr)
+                    AltAz.alt = AltAz.alt - IUFindNumber(&LocationNP, "LAT")->value;
+
+                AltAz.az = 180 + AltAz.az;
+            }
+            ZeroPositionEncoders[AXIS1] = PolarisPositionEncoders[AXIS1]-DegreesToMicrosteps(AXIS1, AltAz.az);
+            ZeroPositionEncoders[AXIS2] = PolarisPositionEncoders[AXIS2]-DegreesToMicrosteps(AXIS2, AltAz.alt);
+            MYDEBUGF(INDI::Logger::DBG_SESSION, "Sync (Alt: %lf Az: %lf) in park position", OrigAlt, AltAz.az);
+            GetAlignmentDatabase().clear();
+            return true;
+        }
+    }
+
     // The tracking seconds should be reset to restart the drift compensation
     ResetTrackingSeconds = true;
     // Might as well do this
@@ -1051,12 +1096,24 @@ void SkywatcherAPIMount::TimerHit()
             {
                 DEBUG(INDI::Logger::DBG_SESSION, "Tracking started");
                 TrackingSecs = 0;
+                TrackedAltAz = CurrentAltAz;
             }
+
             // Restart the drift compensation after syncing
             if (ResetTrackingSeconds)
             {
                 ResetTrackingSeconds = false;
                 TrackingSecs         = 0;
+                TrackedAltAz         = CurrentAltAz;
+            }
+            double trackingDeltaAlt = std::abs(CurrentAltAz.alt-TrackedAltAz.alt);
+            double trackingDeltaAz = std::abs(CurrentAltAz.az-TrackedAltAz.az);
+
+            if (trackingDeltaAlt+trackingDeltaAz > 10.0)
+            {
+                IDMessage(nullptr, "Abort tracking after too much margin (%1.4f > 10)",
+                          trackingDeltaAlt+trackingDeltaAz);
+                Abort();
             }
             TrackingSecs++;
             if (TrackingSecs % 60 == 0)
@@ -1280,8 +1337,7 @@ bool SkywatcherAPIMount::updateProperties()
         // This will register our properties and send a IDDefXXXX message to any connected clients
         // I have now idea why I have to do this here as well as in ISGetProperties. It makes me
         // concerned there is a design or implementation flaw somewhere.
-        defineNumber(&BasicMountInfoV);
-        defineSwitch(&MountTypeV);
+        defineText(&BasicMountInfoV);
         defineNumber(&AxisOneInfoV);
         defineSwitch(&AxisOneStateV);
         defineNumber(&AxisTwoInfoV);
@@ -1304,7 +1360,6 @@ bool SkywatcherAPIMount::updateProperties()
         // Delete any connected only properties from the base driver's list
         // e.g. deleteProperty(MyNumberVector.name);
         deleteProperty(BasicMountInfoV.name);
-        deleteProperty(MountTypeV.name);
         deleteProperty(AxisOneInfoV.name);
         deleteProperty(AxisOneStateV.name);
         deleteProperty(AxisTwoInfoV.name);
@@ -1401,82 +1456,34 @@ void SkywatcherAPIMount::UpdateDetailedMountInformation(bool InformClient)
 {
     bool BasicMountInfoHasChanged = false;
 
-    if (BasicMountInfo[MOTOR_CONTROL_FIRMWARE_VERSION].value != MCVersion)
+    if (std::string(BasicMountInfo[MOTOR_CONTROL_FIRMWARE_VERSION].text) != std::to_string(MCVersion))
     {
-        BasicMountInfo[MOTOR_CONTROL_FIRMWARE_VERSION].value = MCVersion;
-        BasicMountInfoHasChanged                             = true;
-    }
-    if (BasicMountInfo[MOUNT_CODE].value != MountCode)
-    {
-        BasicMountInfo[MOUNT_CODE].value = MountCode;
-        // Also tell the alignment subsystem
-        switch (MountCode)
-        {
-            case _114GT:
-            case DOB:
-                SetApproximateMountAlignmentFromMountType(ALTAZ);
-                break;
-
-            default:
-                SetApproximateMountAlignmentFromMountType(EQUATORIAL);
-                break;
-        }
+        IUSaveText(&BasicMountInfo[MOTOR_CONTROL_FIRMWARE_VERSION], std::to_string(MCVersion).c_str());
         BasicMountInfoHasChanged = true;
     }
-    if (BasicMountInfo[IS_DC_MOTOR].value != static_cast<double>(IsDCMotor))
+    if (std::string(BasicMountInfo[MOUNT_CODE].text) != std::to_string(MountCode))
     {
-        BasicMountInfo[IS_DC_MOTOR].value = static_cast<double>(IsDCMotor);
-        BasicMountInfoHasChanged          = true;
+        IUSaveText(&BasicMountInfo[MOUNT_CODE], std::to_string(MountCode).c_str());
+        SetApproximateMountAlignmentFromMountType(ALTAZ);
+        BasicMountInfoHasChanged = true;
+    }
+    if (std::string(BasicMountInfo[IS_DC_MOTOR].text) != std::to_string(IsDCMotor))
+    {
+        IUSaveText(&BasicMountInfo[IS_DC_MOTOR], std::to_string(IsDCMotor).c_str());
+        BasicMountInfoHasChanged = true;
     }
     if (BasicMountInfoHasChanged && InformClient)
-        IDSetNumber(&BasicMountInfoV, nullptr);
+        IDSetText(&BasicMountInfoV, nullptr);
 
-    int OldMountType = IUFindOnSwitchIndex(&MountTypeV);
-    int NewMountType;
-    switch (MountCode)
-    {
-        case 0x00:
-            NewMountType = MT_EQ6;
-            break;
-        case 0x01:
-            NewMountType = MT_HEQ5;
-            break;
-        case 0x02:
-            NewMountType = MT_EQ5;
-            break;
-        case 0x03:
-            NewMountType = MT_EQ3;
-            break;
-        case 0x80:
-            NewMountType = MT_GT;
-            break;
-        case 0x81:
-            NewMountType = MT_MF;
-            break;
-        case 0x82:
-            NewMountType = MT_114GT;
-            break;
-        case 0x90:
-            NewMountType = MT_DOB;
-            break;
-        default:
-            // My Virtuoso mount says it is an "AllView"...
-            if (IsVirtuosoMount())
-                NewMountType = MT_DOB;
-            else
-                NewMountType = MT_UNKNOWN;
-
-            break;
-    }
-    if (OldMountType != NewMountType)
-    {
-        IUResetSwitch(&MountTypeV);
-        MountType[NewMountType].s = ISS_ON;
-        if (InformClient)
-            IDSetSwitch(&MountTypeV, nullptr);
-    }
+    if (MountCode >= 128 && MountCode <= 143)
+        IUSaveText(&BasicMountInfo[MOUNT_NAME], "Az Goto");
+    if (MountCode >= 144 && MountCode <= 159)
+        IUSaveText(&BasicMountInfo[MOUNT_NAME], "Dob Goto");
+    if (MountCode >= 160)
+        IUSaveText(&BasicMountInfo[MOUNT_NAME], "AllView Goto");
 
     bool AxisOneInfoHasChanged = false;
+
     if (AxisOneInfo[MICROSTEPS_PER_REVOLUTION].value != MicrostepsPerRevolution[0])
     {
         AxisOneInfo[MICROSTEPS_PER_REVOLUTION].value = MicrostepsPerRevolution[0];

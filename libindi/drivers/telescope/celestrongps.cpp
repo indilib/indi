@@ -108,6 +108,7 @@ CelestronGPS::CelestronGPS()
 
     fwInfo.Version           = "Invalid";
     fwInfo.controllerVersion = 0;
+    fwInfo.controllerVariant = ISNEXSTAR;
 
     INDI::Logger::getInstance().addDebugLevel("Scope Verbose", "SCOPE");
 
@@ -201,7 +202,7 @@ bool CelestronGPS::updateProperties()
 {
     if (isConnected())
     {
-        uint32_t cap = TELESCOPE_CAN_GOTO | TELESCOPE_CAN_ABORT | TELESCOPE_CAN_PARK | TELESCOPE_HAS_TRACK_MODE | TELESCOPE_CAN_CONTROL_TRACK;
+        uint32_t cap = TELESCOPE_CAN_GOTO | TELESCOPE_CAN_ABORT | TELESCOPE_HAS_TRACK_MODE | TELESCOPE_CAN_CONTROL_TRACK;
 
         if (get_celestron_firmware(PortFD, &fwInfo))
         {
@@ -217,14 +218,38 @@ bool CelestronGPS::updateProperties()
             DEBUG(INDI::Logger::DBG_WARNING, "Failed to retrive firmware information.");
         }
 
-        if (fwInfo.controllerVersion <= 4.1)
+    /* Since issues have been observed with Starsense, enabe parking only with Nexstar controller       */
+
+    if (fwInfo.controllerVariant == ISSTARSENSE)
+	{
+		if (fwInfo.controllerVersion >= MINSTSENSVER)
+		{
+                    DEBUG(INDI::Logger::DBG_SESSION, "Starsense controller detected.");
+		}
+		else
+		{
+                    DEBUGF(INDI::Logger::DBG_WARNING, "Starsense controller detected, but firmware is too old. Current version is %4.2f, but minimum required version is %4.2f. Please update your Starsense firmware.", fwInfo.controllerVersion, MINSTSENSVER);
+		}
+	}
+	else
+	{    
+		cap |= TELESCOPE_CAN_PARK;
+	}
+
+        if (((fwInfo.controllerVariant == ISSTARSENSE) && 
+             (fwInfo.controllerVersion < MINSTSENSVER)) ||
+            ((fwInfo.controllerVariant == ISNEXSTAR) &&
+             (fwInfo.controllerVersion <= 4.1)))
         {
             DEBUG(INDI::Logger::DBG_WARNING, "Mount firmware does not support sync.");
         }
         else
             cap |= TELESCOPE_CAN_SYNC;
 
-        if (fwInfo.controllerVersion < 2.3)
+        if (((fwInfo.controllerVariant == ISSTARSENSE) && 
+             (fwInfo.controllerVersion < MINSTSENSVER)) ||
+            ((fwInfo.controllerVariant == ISNEXSTAR) &&
+             (fwInfo.controllerVersion < 2.3)))
         {
             DEBUG(INDI::Logger::DBG_WARNING, "Mount firmware does not support update of time and location settings.");
         }
@@ -351,7 +376,10 @@ bool CelestronGPS::Goto(double ra, double dec)
 
 bool CelestronGPS::Sync(double ra, double dec)
 {
-    if (fwInfo.controllerVersion <= 4.1)
+    if (((fwInfo.controllerVariant == ISSTARSENSE) && 
+         (fwInfo.controllerVersion < MINSTSENSVER)) ||
+        ((fwInfo.controllerVariant == ISNEXSTAR) &&
+         (fwInfo.controllerVersion <= 4.1)))
     {
         DEBUGF(INDI::Logger::DBG_WARNING, "Firmwre version 4.1 or higher is required to sync. Current version is %3.1f",
                fwInfo.controllerVersion);
@@ -914,7 +942,10 @@ bool CelestronGPS::updateLocation(double latitude, double longitude, double elev
 {
     INDI_UNUSED(elevation);
 
-    if (fwInfo.controllerVersion < 2.3)
+    if (((fwInfo.controllerVariant == ISSTARSENSE) && 
+         (fwInfo.controllerVersion < MINSTSENSVER)) ||
+        ((fwInfo.controllerVariant == ISNEXSTAR) &&
+         (fwInfo.controllerVersion < 2.3)))
     {
         DEBUGF(INDI::Logger::DBG_WARNING,
                "Firmwre version 2.3 or higher is required to update location. Current version is %3.1f",
@@ -927,7 +958,10 @@ bool CelestronGPS::updateLocation(double latitude, double longitude, double elev
 
 bool CelestronGPS::updateTime(ln_date *utc, double utc_offset)
 {
-    if (fwInfo.controllerVersion < 2.3)
+    if (((fwInfo.controllerVariant == ISSTARSENSE) && 
+         (fwInfo.controllerVersion < MINSTSENSVER)) ||
+        ((fwInfo.controllerVariant == ISNEXSTAR) &&
+         (fwInfo.controllerVersion < 2.3)))
     {
         DEBUGF(INDI::Logger::DBG_WARNING,
                "Firmwre version 2.3 or higher is required to update time. Current version is %3.1f",

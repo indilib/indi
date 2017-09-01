@@ -1,15 +1,15 @@
-/*!
+/*! 
 * This Source Code Form is subject to the terms of the Mozilla Public
 * License, v. 2.0. If a copy of the MPL was not distributed with this file,
 * You can obtain one at http://mozilla.org/MPL/2.0/.
 *
-* Copyright(c) 2009 Apogee Instruments, Inc.
-* \class CamUsbIo
+* Copyright(c) 2009 Apogee Instruments, Inc. 
+* \class CamUsbIo 
 * \brief Usb implementation of the ICamIo interface
-*
-*/
+* 
+*/ 
 
-#include "CamUsbIo.h"
+#include "CamUsbIo.h" 
 
 #include <sstream>
 #include <algorithm>
@@ -17,29 +17,29 @@
 
 #include <iostream>
 
-#include "apgHelper.h"
+#include "apgHelper.h" 
 #include "IUsb.h"
 #include "helpers.h"
 #include "ApnUsbSys.h"
 
 
 #ifdef WIN_OS
-   #include "GenTwoWinUSB.h"
+   #include "GenTwoWinUSB.h" 
 #else
-    #include "GenOneLinuxUSB.h"
+    #include "linux/GenOneLinuxUSB.h"
 #endif
 
 
 
-////////////////////////////
-// CTOR
+//////////////////////////// 
+// CTOR 
 CamUsbIo::CamUsbIo( const std::string & DeviceEnum, const uint32_t MaxBufSize,
-                                       const bool ApplyPad ) :
+                                       const bool ApplyPad ) : 
                                                    m_fileName( __FILE__ ),
                                                    m_ApplyPadding( ApplyPad ),
                                                    m_MaxBufSize( MaxBufSize )
 
-{
+{ 
 
     const uint16_t deviceNum = help::Str2uShort( DeviceEnum );
 
@@ -49,19 +49,19 @@ CamUsbIo::CamUsbIo( const std::string & DeviceEnum, const uint32_t MaxBufSize,
     m_Usb =  std::tr1::shared_ptr<IUsb>(new GenOneLinuxUSB( deviceNum ) );
 #endif
 
-
+  
 }
 
-////////////////////////////
-// DTOR
-CamUsbIo::~CamUsbIo()
-{
+//////////////////////////// 
+// DTOR 
+CamUsbIo::~CamUsbIo() 
+{ 
 
-}
+} 
 
-////////////////////////////
-// READ     REG
-uint16_t CamUsbIo::ReadReg( uint16_t reg ) const
+//////////////////////////// 
+// READ     REG 
+uint16_t CamUsbIo::ReadReg( uint16_t reg ) const 
 {
  #ifdef DEBUGGING_CAMERA
     const uint16_t val = m_Usb->ReadReg( reg );
@@ -69,14 +69,14 @@ uint16_t CamUsbIo::ReadReg( uint16_t reg ) const
     return val;
 #else
     return m_Usb->ReadReg( reg );
-#endif
+#endif    
 
-
+    
 }
 
-////////////////////////////
-// WRITE        REG
-void CamUsbIo::WriteReg( uint16_t reg, uint16_t val )
+//////////////////////////// 
+// WRITE        REG 
+void CamUsbIo::WriteReg( uint16_t reg, uint16_t val ) 
 {
 #ifdef DEBUGGING_CAMERA
     apgHelper::DebugMsg( "CamUsbIo::WriteReg -> reg = 0x%X, val = 0x%X", reg, val );
@@ -85,8 +85,8 @@ void CamUsbIo::WriteReg( uint16_t reg, uint16_t val )
     m_Usb->WriteReg( reg, val );
 }
 
-////////////////////////////
-// WRITE        SRMD
+//////////////////////////// 
+// WRITE        SRMD 
 void CamUsbIo::WriteSRMD( const uint16_t reg, const std::vector<uint16_t> & data )
 {
     std::vector<uint16_t>::const_iterator iter;
@@ -96,8 +96,8 @@ void CamUsbIo::WriteSRMD( const uint16_t reg, const std::vector<uint16_t> & data
     }
 }
 
-////////////////////////////
-// WRITE        MRMD
+//////////////////////////// 
+// WRITE        MRMD 
 void CamUsbIo::WriteMRMD(const uint16_t reg, const std::vector<uint16_t> & data )
 {
     std::vector<uint16_t>::const_iterator iter;
@@ -108,7 +108,7 @@ void CamUsbIo::WriteMRMD(const uint16_t reg, const std::vector<uint16_t> & data 
     }
 }
 
-////////////////////////////
+//////////////////////////// 
 // GET      USB     VENDOR      INFO
 void CamUsbIo::GetUsbVendorInfo( uint16_t & VendorId,
             uint16_t & ProductId, uint16_t  & DeviceId)
@@ -117,11 +117,11 @@ void CamUsbIo::GetUsbVendorInfo( uint16_t & VendorId,
 }
 
 
-////////////////////////////
+//////////////////////////// 
 // SETUP     IMG     XFER
-void CamUsbIo::SetupImgXfer(const uint16_t Rows,
+void CamUsbIo::SetupImgXfer(const uint16_t Rows, 
             const uint16_t Cols,
-            const uint16_t NumOfImages,
+            const uint16_t NumOfImages, 
             const bool IsBulkSeq)
 {
     if( IsBulkSeq )
@@ -142,10 +142,10 @@ void CamUsbIo::SetupImgXfer(const uint16_t Rows,
         //just get one image with this h and w
         m_Usb->SetupSingleImgXfer( Rows, Cols );
     }
-
+    
 }
 
-////////////////////////////
+//////////////////////////// 
 // CANCEL      IMG         XFER
 void CamUsbIo::CancelImgXfer()
 {
@@ -153,7 +153,7 @@ void CamUsbIo::CancelImgXfer()
 
 }
 
-////////////////////////////
+//////////////////////////// 
 // GET  IMAGE   DATA
 void CamUsbIo::GetImageData( std::vector<uint16_t> & data )
 {
@@ -164,8 +164,8 @@ void CamUsbIo::GetImageData( std::vector<uint16_t> & data )
     {
         data.resize( data.size() + PadSize );
     }
-
-    uint32_t NumBytesExpected =
+   
+    uint32_t NumBytesExpected = 
         apgHelper::SizeT2Uint32( data.size() ) * sizeof(uint16_t);
     std::vector<uint16_t>::iterator iter = data.begin();
 
@@ -179,84 +179,84 @@ void CamUsbIo::GetImageData( std::vector<uint16_t> & data )
         m_Usb->ReadImage(&(*iter),SizeToRead,ReceivedSize);
 
         NumBytesExpected -= ReceivedSize;
-
+        
         if( ReceivedSize != SizeToRead )
         {
             break;
         }
-
+        
         iter += ReceivedSize / sizeof(uint16_t);
     }
 
     if( NumBytesExpected )
     {
-        const uint32_t TotalBytes =
+        const uint32_t TotalBytes = 
              apgHelper::SizeT2Uint32( data.size() ) * sizeof(uint16_t);
         const uint32_t  DownloadedBytes = TotalBytes - NumBytesExpected;
         std::stringstream msg;
         msg << "GetImageData error - Expected " << data.size()*sizeof(uint16_t) << " bytes.";
         msg << "  Downloaded " <<  DownloadedBytes << " bytes.";
         msg << "  " << NumBytesExpected << " bytes remaining.";
-
-        apgHelper::throwRuntimeException( m_fileName, msg.str(),
+        
+        apgHelper::throwRuntimeException( m_fileName, msg.str(), 
             __LINE__, Apg::ErrorType_Critical );
     }
 
     //remove the padded data if it exists
     if( 0 < PadSize )
     {
-        int32_t offset =
+        int32_t offset =  
             apgHelper::SizeT2Int32( data.size() ) - PadSize;
         std::vector<uint16_t>::iterator iter = data.begin()+offset;
         data.erase( iter, data.end() );
     }
-
+    
 }
 
-////////////////////////////
+//////////////////////////// 
 // GET  STATUS
 void CamUsbIo::GetStatus(CameraStatusRegs::BasicStatus & status)
 {
     m_Usb->GetStatus( reinterpret_cast<uint8_t*>(&status),
         sizeof(status) );
 }
-
-////////////////////////////
+        
+//////////////////////////// 
 // GET  STATUS
 void CamUsbIo::GetStatus(CameraStatusRegs::AdvStatus & status)
 {
-    int MaxRetries = 2;
+	int MaxRetries = 2;
     for (int RetryNumber = 0; RetryNumber <= MaxRetries; RetryNumber++)
-    {
-        try
-        {
-            m_Usb->GetStatus( reinterpret_cast<uint8_t*>(&status),
-                sizeof(status) );
-            break;
-        }
-        catch(std::exception & err )
-        {
-            if ( RetryNumber == MaxRetries )
-            {
+	{
+		try
+		{
+			m_Usb->GetStatus( reinterpret_cast<uint8_t*>(&status),
+				sizeof(status) );
+			break;
+		}
+		catch(std::exception & err )
+		{
+			if ( RetryNumber == MaxRetries )
+			{
                 std::stringstream msg;
-                msg << "CamUsbIo::GetStatus (adv) failed after ";
-                msg << RetryNumber << " retries with error ";
-                msg <<  err.what();
-                apgHelper::throwRuntimeException( m_fileName, msg.str(),
-                    __LINE__, Apg::ErrorType_Critical );
-            }
-        }
-    }
+				msg << "CamUsbIo::GetStatus (adv) failed after ";
+				msg << RetryNumber << " retries with error ";
+				msg <<  err.what();
+				apgHelper::throwRuntimeException( m_fileName, msg.str(), 
+					__LINE__, Apg::ErrorType_Critical );
+			}
+		}
+	}
 }
 
-////////////////////////////
+//////////////////////////// 
 // GET       FIRMWARE    REV
 uint16_t CamUsbIo::GetFirmwareRev()
 {
     return ReadReg( CameraRegs::FIRMWARE_REV );
 }
 
-////////////////////////////
+//////////////////////////// 
 // GET  USB        FIRMWARE        VERSION
 std::string CamUsbIo::GetUsbFirmwareVersion()
  {
@@ -269,7 +269,7 @@ std::string CamUsbIo::GetUsbFirmwareVersion()
     return version;
  }
 
-////////////////////////////
+//////////////////////////// 
 //  GET  INFO
 std::string CamUsbIo::GetInfo()
 {
@@ -286,12 +286,12 @@ std::string CamUsbIo::GetInfo()
     result << "USB Device ID: " << did << "\n";
     result << "USB Driver Version: " << GetDriverVersion() << "\n";
     result << "USB Device Number: " << m_Usb->GetDeviceNum() << "\n";
-
+      
     return result.str();
 }
 
-////////////////////////////
-// READ       BUFCON          REG
+//////////////////////////// 
+// READ       BUFCON          REG 
 uint8_t CamUsbIo::ReadBufConReg( uint16_t reg )
 {
     uint8_t value = 0;
@@ -299,19 +299,19 @@ uint8_t CamUsbIo::ReadBufConReg( uint16_t reg )
         &value, sizeof(uint8_t) );
     return value;
 }
+	    
 
-
-////////////////////////////
-// WRITE       BUFCON          REG
-void CamUsbIo::WriteBufConReg( const uint16_t reg,
+//////////////////////////// 
+// WRITE       BUFCON          REG 
+void CamUsbIo::WriteBufConReg( const uint16_t reg, 
                                 uint8_t val )
 {
-    m_Usb->UsbRequestOut( VND_APOGEE_BUFCON_REG, reg, 0,
+    m_Usb->UsbRequestOut( VND_APOGEE_BUFCON_REG, reg, 0, 
         reinterpret_cast<uint8_t*>(&val), sizeof(uint8_t) );
 }
-
-////////////////////////////
-// READ       FX2          REG
+        
+//////////////////////////// 
+// READ       FX2          REG 
 uint8_t CamUsbIo::ReadFx2Reg( uint16_t reg )
 {
      uint8_t value = 0;
@@ -320,17 +320,17 @@ uint8_t CamUsbIo::ReadFx2Reg( uint16_t reg )
     return value;
 }
 
-////////////////////////////
-// WRITE       FX2         REG
+//////////////////////////// 
+// WRITE       FX2         REG 
 void CamUsbIo::WriteFx2Reg( uint16_t reg, uint8_t val )
 {
-    m_Usb->UsbRequestOut( VND_APOGEE_MEMRW, reg, 0,
+    m_Usb->UsbRequestOut( VND_APOGEE_MEMRW, reg, 0, 
         &val, sizeof(uint8_t) );
 
 }
 
 
-////////////////////////////
+//////////////////////////// 
 //  GET    PADDING
 int32_t CamUsbIo::GetPadding( const int32_t Num )
 {
@@ -355,14 +355,14 @@ int32_t CamUsbIo::GetPadding( const int32_t Num )
     return PadSize;
 }
 
-////////////////////////////
+//////////////////////////// 
 //      GET    DRIVER   VERSION
 std::string CamUsbIo::GetDriverVersion()
 {
     return m_Usb->GetDriverVersion();
 }
 
-////////////////////////////
+//////////////////////////// 
 // IS      ERROR
 bool CamUsbIo::IsError()
 {
@@ -370,7 +370,7 @@ bool CamUsbIo::IsError()
 }
 
 
-////////////////////////////
+//////////////////////////// 
 // PROGRESS        2          STDOUT
 void CamUsbIo::Progress2StdOut(const int32_t percentComplete)
 {
