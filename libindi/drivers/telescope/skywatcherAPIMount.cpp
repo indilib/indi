@@ -161,7 +161,7 @@ bool SkywatcherAPIMount::Goto(double ra, double dec)
 
     DEBUGF(INDI::AlignmentSubsystem::DBG_ALIGNMENT, "RA %lf DEC %lf", ra, dec);
 
-    if (ISS_ON == IUFindSwitch(&CoordSP, "TRACK")->s)
+    if (IUFindSwitch(&CoordSP, "TRACK")->s == ISS_ON || IUFindSwitch(&CoordSP, "SLEW")->s == ISS_ON)
     {
         char RAStr[32], DecStr[32];
         fs_sexa(RAStr, ra, 2, 3600);
