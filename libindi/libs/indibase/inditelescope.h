@@ -558,6 +558,12 @@ class INDI::Telescope : public INDI::DefaultDevice
     bool LoadScopeConfig();
 
     /**
+     * @brief Load scope settings from XML files.
+     * @return True if Config #1 exists otherwise false.
+     */
+    bool HasDefaultScopeConfig();
+
+    /**
      * \brief Save scope settings to XML files.
      */
     bool UpdateScopeConfig();

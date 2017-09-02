@@ -2519,7 +2519,7 @@ namespace
 
 //////////////////////////// 
 // CTOR 
-GeeFx2::GeeFx2(std::tr1::shared_ptr<Fx2Io> io, const bool Print2StdOut) : 
+GeeFx2::GeeFx2(std::shared_ptr<Fx2Io> io, const bool Print2StdOut) : 
                                                                                 Fx2Base(io, Print2StdOut),
                                                                                 m_fileName( __FILE__)
 { 

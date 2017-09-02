@@ -263,10 +263,14 @@ void INDI::Telescope::ISGetProperties(const char *dev)
     }
 
     defineNumber(&ScopeParametersNP);
-    loadConfig(true, "TELESCOPE_INFO");
     defineText(&ScopeConfigNameTP);
-    loadConfig(true, "SCOPE_CONFIG_NAME");
-
+    if (HasDefaultScopeConfig())
+    {
+        LoadScopeConfig();
+    } else {
+        loadConfig(true, "TELESCOPE_INFO");
+        loadConfig(true, "SCOPE_CONFIG_NAME");
+    }
     if (isConnected())
     {
         //  Now we add our telescope specific stuff
@@ -582,10 +586,13 @@ bool INDI::Telescope::saveConfigItems(FILE *fp)
     if (HasLocation())
         IUSaveConfigNumber(fp, &LocationNP);
 
-    if (ScopeParametersNP.s == IPS_OK)
-        IUSaveConfigNumber(fp, &ScopeParametersNP);
-    if (ScopeConfigNameTP.s == IPS_OK)
-        IUSaveConfigText(fp, &ScopeConfigNameTP);
+    if (!HasDefaultScopeConfig())
+    {
+        if (ScopeParametersNP.s == IPS_OK)
+            IUSaveConfigNumber(fp, &ScopeParametersNP);
+        if (ScopeConfigNameTP.s == IPS_OK)
+            IUSaveConfigText(fp, &ScopeConfigNameTP);
+    }
     if (SlewRateS != nullptr)
         IUSaveConfigSwitch(fp, &SlewRateSP);
     if (HasPECState())
@@ -2357,6 +2364,64 @@ bool INDI::Telescope::LoadScopeConfig()
     ScopeConfigNameTP.s = IPS_OK;
     IDSetText(&ScopeConfigNameTP, nullptr);
     delXMLEle(RootXmlNode);
+    return true;
+}
+
+bool INDI::Telescope::HasDefaultScopeConfig()
+{
+    if (!CheckFile(ScopeConfigFileName, false))
+    {
+        return false;
+    }
+    LilXML *XmlHandle      = newLilXML();
+    FILE *FilePtr          = fopen(ScopeConfigFileName.c_str(), "r");
+    XMLEle *RootXmlNode    = nullptr;
+    XMLEle *CurrentXmlNode = nullptr;
+    XMLAtt *Ap             = nullptr;
+    bool DeviceFound       = false;
+    char ErrMsg[512];
+
+    RootXmlNode = readXMLFile(FilePtr, XmlHandle, ErrMsg);
+    delLilXML(XmlHandle);
+    XmlHandle = nullptr;
+    if (!RootXmlNode)
+    {
+        return false;
+    }
+    if (std::string(tagXMLEle(RootXmlNode)) != ScopeConfigRootXmlNode)
+    {
+        delXMLEle(RootXmlNode);
+        return false;
+    }
+    CurrentXmlNode = nextXMLEle(RootXmlNode, 1);
+    // Find the current telescope in the config file
+    while (CurrentXmlNode)
+    {
+        if (std::string(tagXMLEle(CurrentXmlNode)) != ScopeConfigDeviceXmlNode)
+        {
+            CurrentXmlNode = nextXMLEle(RootXmlNode, 0);
+            continue;
+        }
+        Ap = findXMLAtt(CurrentXmlNode, ScopeConfigNameXmlNode.c_str());
+        if (Ap && !strcmp(valuXMLAtt(Ap), getDeviceName()))
+        {
+            DeviceFound = true;
+            break;
+        }
+        CurrentXmlNode = nextXMLEle(RootXmlNode, 0);
+    }
+    if (!DeviceFound)
+    {
+        delXMLEle(RootXmlNode);
+        return false;
+    }
+    // Check the existence of Config #1 node
+    CurrentXmlNode = findXMLEle(CurrentXmlNode, "config1");
+    if (!CurrentXmlNode)
+    {
+        delXMLEle(RootXmlNode);
+        return false;
+    }
     return true;
 }
 

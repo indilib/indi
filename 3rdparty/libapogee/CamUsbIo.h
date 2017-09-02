@@ -91,7 +91,7 @@ class CamUsbIo : public ICamIo
 
         bool m_Print2StdOut;
 
-         std::tr1::shared_ptr<IUsb> m_Usb; 
+         std::shared_ptr<IUsb> m_Usb; 
         const std::string m_fileName;
         bool m_ApplyPadding;
         uint32_t m_MaxBufSize;
