@@ -527,7 +527,118 @@ bool SkywatcherAPIMount::ISNewText(const char *dev, const char *name, char *text
         ProcessAlignmentTextProperties(this, name, texts, names, n);
     }
     // Pass it up the chain
-    return INDI::Telescope::ISNewText(dev, name, texts, names, n);
+    bool Ret =  INDI::Telescope::ISNewText(dev, name, texts, names, n);
+
+    // The scope config switch must be updated after the config is saved to disk
+    if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
+    {
+        if (name && std::string(name) == "SCOPE_CONFIG_NAME")
+        {
+            UpdateScopeConfigSwitch();
+        }
+    }
+    return Ret;
+}
+
+void SkywatcherAPIMount::UpdateScopeConfigSwitch()
+{
+    if (!CheckFile(ScopeConfigFileName, false))
+    {
+        DEBUGF(INDI::Logger::DBG_SESSION, "Can't open XML file (%s) for read", ScopeConfigFileName.c_str());
+        return;
+    }
+    LilXML *XmlHandle      = newLilXML();
+    FILE *FilePtr          = fopen(ScopeConfigFileName.c_str(), "r");
+    XMLEle *RootXmlNode    = nullptr;
+    XMLEle *CurrentXmlNode = nullptr;
+    XMLAtt *Ap             = nullptr;
+    bool DeviceFound       = false;
+    char ErrMsg[512];
+
+    RootXmlNode = readXMLFile(FilePtr, XmlHandle, ErrMsg);
+    delLilXML(XmlHandle);
+    XmlHandle = nullptr;
+    if (!RootXmlNode)
+    {
+        DEBUGF(INDI::Logger::DBG_SESSION, "Failed to parse XML file (%s): %s", ScopeConfigFileName.c_str(), ErrMsg);
+        return;
+    }
+    if (std::string(tagXMLEle(RootXmlNode)) != ScopeConfigRootXmlNode)
+    {
+        DEBUGF(INDI::Logger::DBG_SESSION, "Not a scope config XML file (%s)", ScopeConfigFileName.c_str());
+        delXMLEle(RootXmlNode);
+        return;
+    }
+    CurrentXmlNode = nextXMLEle(RootXmlNode, 1);
+    // Find the current telescope in the config file
+    while (CurrentXmlNode)
+    {
+        if (std::string(tagXMLEle(CurrentXmlNode)) != ScopeConfigDeviceXmlNode)
+        {
+            CurrentXmlNode = nextXMLEle(RootXmlNode, 0);
+            continue;
+        }
+        Ap = findXMLAtt(CurrentXmlNode, ScopeConfigNameXmlNode.c_str());
+        if (Ap && !strcmp(valuXMLAtt(Ap), getDeviceName()))
+        {
+            DeviceFound = true;
+            break;
+        }
+        CurrentXmlNode = nextXMLEle(RootXmlNode, 0);
+    }
+    if (!DeviceFound)
+    {
+        DEBUGF(INDI::Logger::DBG_SESSION, "No a scope config found for %s in the XML file (%s)", getDeviceName(),
+               ScopeConfigFileName.c_str());
+        delXMLEle(RootXmlNode);
+        return;
+    }
+    // Read the values
+    XMLEle *XmlNode       = nullptr;
+    XMLEle *DeviceXmlNode = CurrentXmlNode;
+    std::string ConfigName;
+
+    for (int i = 1; i < 7; ++i)
+    {
+        bool Found = true;
+
+        CurrentXmlNode = findXMLEle(DeviceXmlNode, ("config"+std::to_string(i)).c_str());
+        if (CurrentXmlNode)
+        {
+            XmlNode = findXMLEle(CurrentXmlNode, ScopeConfigLabelApXmlNode.c_str());
+            if (XmlNode)
+            {
+                ConfigName = pcdataXMLEle(XmlNode);
+            }
+        } else {
+            Found = false;
+        }
+        // Change the switch label
+        ISwitch *configSwitch = IUFindSwitch(&ScopeConfigsSP, ("SCOPE_CONFIG"+std::to_string(i)).c_str());
+
+        if (configSwitch != nullptr)
+        {
+            // The config is not used yet
+            if (!Found)
+            {
+                strncpy(configSwitch->label, ("Config #"+std::to_string(i)+" - Not used").c_str(), MAXINDILABEL);
+                continue;
+            }
+            // Empty switch label
+            if (ConfigName.empty())
+            {
+                strncpy(configSwitch->label, ("Config #"+std::to_string(i)+" - Untitled").c_str(), MAXINDILABEL);
+                continue;
+            }
+            strncpy(configSwitch->label, ("Config #"+std::to_string(i)+" - "+ConfigName).c_str(), MAXINDILABEL);
+        }
+    }
+    delXMLEle(RootXmlNode);
+    // Delete the joystick control to get the telescope config switch to the bottom of the page
+    deleteProperty("USEJOYSTICK");
+    // Recreate the switch control
+    deleteProperty(ScopeConfigsSP.name);
+    defineSwitch(&ScopeConfigsSP);
 }
 
 double SkywatcherAPIMount::GetSlewRate()
