@@ -1,43 +1,43 @@
-/*!
+/*! 
 * This Source Code Form is subject to the terms of the Mozilla Public
 * License, v. 2.0. If a copy of the MPL was not distributed with this file,
 * You can obtain one at http://mozilla.org/MPL/2.0/.
 *
-* Copyright(c) 2009 Apogee Instruments, Inc.
-* \class FindDeviceUsb
-* \brief searches through a number of usb devices looking for apogee devices
-*
-*/
+* Copyright(c) 2009 Apogee Instruments, Inc. 
+* \class FindDeviceUsb 
+* \brief searches through a number of usb devices looking for apogee devices 
+* 
+*/ 
 
-#include "FindDeviceUsb.h"
+#include "FindDeviceUsb.h" 
 
 #include <sstream>
 
-#include "AltaIo.h"
-#include "AscentBasedIo.h"
-#include "AspenIo.h"
-#include "apgHelper.h"
+#include "AltaIo.h" 
+#include "AscentBasedIo.h" 
+#include "AspenIo.h" 
+#include "apgHelper.h" 
 #include "helpers.h"
-#include "CameraInfo.h"
+#include "CameraInfo.h" 
 #include "CamHelpers.h"  // for vids and pids
 
 
 #if defined (WIN_OS)
-    #include "windozeHelpers.h"
+    #include "windozeHelpers.h" 
 #else
-    #include "linuxHelpers.h"
+    #include "linux/linuxHelpers.h"
 #endif
 
 
-////////////////////////////
-// DTOR
-FindDeviceUsb::~FindDeviceUsb()
-{
+//////////////////////////// 
+// DTOR 
+FindDeviceUsb::~FindDeviceUsb() 
+{ 
 
-}
+} 
 
-////////////////////////////
-// FIND
+//////////////////////////// 
+// FIND 
 std::string FindDeviceUsb::Find()
 {
     std::string result;
@@ -46,9 +46,9 @@ std::string FindDeviceUsb::Find()
         std::vector< std::vector<uint16_t> > devs = GetApgDevices();
 
         std::vector< std::vector<uint16_t> >::iterator iter;
-
+        
         for(iter = devs.begin(); iter != devs.end(); ++iter)
-        {
+	    {      
             const uint16_t vid = (*iter).at(1);
             const uint16_t pid = (*iter).at(2);
 
@@ -92,7 +92,7 @@ std::string FindDeviceUsb::Find()
                     if( UsbFrmwr::ASCENT_USB_PID == pid )
                     {
                             std::string content = "<d>address="+help::uShort2Str( (*iter).at(0) )+
-                                ",interface=usb,deviceType=camera," +
+                                ",interface=usb,deviceType=camera," + 
                                 AscentInfo( help::uShort2Str( (*iter).at(0) ) ) +"</d>";
                             result.append( content );
                     }
@@ -100,7 +100,7 @@ std::string FindDeviceUsb::Find()
                     if( UsbFrmwr::ASPEN_USB_PID == pid )
                     {
                         std::string content = "<d>address="+help::uShort2Str( (*iter).at(0) )+
-                            ",interface=usb,deviceType=camera," +
+                            ",interface=usb,deviceType=camera," + 
                             AspenInfo(help::uShort2Str( (*iter).at(0) ) ) + "</d>";
                         result.append( content );
                     }
@@ -114,44 +114,44 @@ std::string FindDeviceUsb::Find()
 
         throw;
     }
-
+    
     if( result.empty() )
     {
-        //no devices, return the no op string
-        result.append("<d></d>");
+    	//no devices, return the no op string
+    	result.append("<d></d>");
     }
 
     return result;
 }
 
 
-////////////////////////////
-//  ALTA   INFO
+//////////////////////////// 
+//  ALTA   INFO 
 std::string FindDeviceUsb::AltaInfo( const std::string & deviceAddr )
 {
-    AltaIo usbIo( CamModel::USB, deviceAddr );
+    AltaIo usbIo( CamModel::USB, deviceAddr );  
     return( MkCamInfoStr( usbIo.GetId(), usbIo.GetFirmwareRev() ) );
 
 }
 
-////////////////////////////
-//  ASCENT    INFO
+//////////////////////////// 
+//  ASCENT    INFO 
 std::string FindDeviceUsb::AscentInfo( const std::string & deviceAddr )
 {
-    AscentBasedIo usbIo( CamModel::USB, deviceAddr );
+    AscentBasedIo usbIo( CamModel::USB, deviceAddr );  
     return( MkCamInfoStr( usbIo.GetId(), usbIo.GetFirmwareRev() ) );
 }
 
-
-////////////////////////////
-//  ASPEN   INFO
+   
+//////////////////////////// 
+//  ASPEN   INFO 
 std::string FindDeviceUsb::AspenInfo( const std::string & deviceAddr )
 {
-    AspenIo usbIo( CamModel::USB, deviceAddr );
+    AspenIo usbIo( CamModel::USB, deviceAddr );  
     return( MkCamInfoStr( usbIo.GetId(), usbIo.GetFirmwareRev() ) );
 }
 
-////////////////////////////
+//////////////////////////// 
 //          MK       CAM       INFO       STR
 std::string FindDeviceUsb::MkCamInfoStr( const uint16_t Id, const uint16_t FrmwrRev )
 {
@@ -166,19 +166,19 @@ std::string FindDeviceUsb::MkCamInfoStr( const uint16_t Id, const uint16_t Frmwr
     return infoStr.str();
 }
 
-////////////////////////////
+//////////////////////////// 
 // GET		APG		DEVICES
 std::vector< std::vector<uint16_t> > FindDeviceUsb::GetApgDevices()
 {
 #ifdef WIN_OS
     //the winusbhelper is used by the com dll so
     //it doesn't have the apgHelper name space
-    //so we catch and log its error here and then
+    //so we catch and log its error here and then 
     //throw the full exception
     std::vector< std::vector<uint16_t> > result;
     try
     {
-        result  = windozeHelpers::GetDevicesWin();
+	    result  = windozeHelpers::GetDevicesWin();
     }
     catch( std::runtime_error & err )
     {
@@ -188,7 +188,7 @@ std::vector< std::vector<uint16_t> > FindDeviceUsb::GetApgDevices()
 
     return result;
 #else
-    return linuxHelpers::GetDevicesLinux();
+	return linuxHelpers::GetDevicesLinux();
 #endif
 }
 

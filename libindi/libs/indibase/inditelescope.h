@@ -104,6 +104,7 @@ class INDI::Telescope : public INDI::DefaultDevice
     {
         PARK_NONE,
         PARK_RA_DEC,
+        PARK_HA_DEC,
         PARK_AZ_ALT,
         PARK_RA_DEC_ENCODER,
         PARK_AZ_ALT_ENCODER
@@ -555,6 +556,12 @@ class INDI::Telescope : public INDI::DefaultDevice
      * @return True if all config values were loaded otherwise false.
      */
     bool LoadScopeConfig();
+
+    /**
+     * @brief Load scope settings from XML files.
+     * @return True if Config #1 exists otherwise false.
+     */
+    bool HasDefaultScopeConfig();
 
     /**
      * \brief Save scope settings to XML files.

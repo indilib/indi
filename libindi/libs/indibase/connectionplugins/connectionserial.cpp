@@ -54,7 +54,7 @@ Serial::Serial(INDI::DefaultDevice *dev) : Interface(dev)
     IUFillSwitch(&BaudRateS[3], "57600", "", ISS_OFF);
     IUFillSwitch(&BaudRateS[4], "115200", "", ISS_OFF);
     IUFillSwitch(&BaudRateS[5], "230400", "", ISS_OFF);
-    IUFillSwitchVector(&BaudRateSP, BaudRateS, 6, dev->getDeviceName(), "DEVICE_BAUD_RATE", "Baud Rate", CONNECTION_TAB,
+    IUFillSwitchVector(&BaudRateSP, BaudRateS, 6, dev->getDeviceName(), INDI::SP::DEVICE_BAUD_RATE, "Baud Rate", CONNECTION_TAB,
                        IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
 }
 
@@ -179,7 +179,7 @@ bool Serial::processHandshake()
     {
         DEBUGF(INDI::Logger::DBG_SESSION, "%s is online.", getDeviceName());
         device->saveConfig(true, INDI::SP::DEVICE_PORT);
-        device->saveConfig(true, "DEVICE_BAUD_RATE");
+        device->saveConfig(true, INDI::SP::DEVICE_BAUD_RATE);
     }
     else
         DEBUG(INDI::Logger::DBG_DEBUG, "Handshake failed.");
@@ -227,7 +227,7 @@ void Serial::Activated()
     device->loadConfig(true, INDI::SP::DEVICE_PORT);
 
     device->defineSwitch(&BaudRateSP);
-    device->loadConfig(true, "DEVICE_BAUD_RATE");
+    device->loadConfig(true, INDI::SP::DEVICE_BAUD_RATE);
 
     device->defineSwitch(&AutoSearchSP);
     device->loadConfig(true, INDI::SP::DEVICE_AUTO_SEARCH);

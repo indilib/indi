@@ -393,14 +393,14 @@ void EQMod::ISGetProperties(const char *dev)
 #ifdef WITH_ALIGN_GEEHALEL
         if (align)
         {
-            align->updateProperties();
+            align->ISGetProperties();
         }
 #endif
 
 #ifdef WITH_SCOPE_LIMITS
         if (horizon)
         {
-            horizon->updateProperties();
+            horizon->ISGetProperties();
         }
 #endif
 
@@ -444,8 +444,10 @@ bool EQMod::loadProperties()
     RAPPECSP            = getSwitch("RA_PPEC");
     DEPPECTrainingSP    = getSwitch("DE_PPEC_TRAINING");
     DEPPECSP            = getSwitch("DE_PPEC");
-#if defined WITH_ALIGN && defined WITH_ALIGN_GEEHALEL
+#ifdef WITH_ALIGN_GEEHALEL
     align->initProperties();
+#endif
+#if defined WITH_ALIGN && defined WITH_ALIGN_GEEHALEL
     IUFillSwitch(&AlignMethodS[0], "ALIGN_METHOD_EQMOD", "EQMod Align", ISS_ON);
     IUFillSwitch(&AlignMethodS[1], "ALIGN_METHOD_SUBSYSTEM", "Alignment Subsystem", ISS_OFF);
     IUFillSwitchVector(&AlignMethodSP, AlignMethodS, NARRAY(AlignMethodS), getDeviceName(), "ALIGN_METHOD",

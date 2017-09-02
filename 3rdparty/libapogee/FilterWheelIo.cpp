@@ -1,25 +1,25 @@
-/*!
+/*! 
 * This Source Code Form is subject to the terms of the Mozilla Public
 * License, v. 2.0. If a copy of the MPL was not distributed with this file,
 * You can obtain one at http://mozilla.org/MPL/2.0/.
 *
-* Copyright(c) 2010 Apogee Instruments, Inc.
+* Copyright(c) 2010 Apogee Instruments, Inc. 
 * \class FilterWheelIo
-* \brief Derived fx2 class for the usb filter wheel
-*
-*/
+* \brief Derived fx2 class for the usb filter wheel 
+* 
+*/ 
 
-#include "FilterWheelIo.h"
-#include "apgHelper.h"
-#include "PromFx2Io.h"
+#include "FilterWheelIo.h" 
+#include "apgHelper.h" 
+#include "PromFx2Io.h" 
 #include "IUsb.h"
 #include "ApnUsbSys.h"
-#include "helpers.h"
+#include "helpers.h" 
 
 #ifdef WIN_OS
-   #include "GenTwoWinUSB.h"
+   #include "GenTwoWinUSB.h" 
 #else
-    #include "GenOneLinuxUSB.h"
+    #include "linux/GenOneLinuxUSB.h"
 #endif
 
 #include <cstring>  //for memset
@@ -1288,31 +1288,31 @@ namespace
 
 }
 
-////////////////////////////
-// CTOR
+//////////////////////////// 
+// CTOR 
 FilterWheelIo::FilterWheelIo( const std::string & DeviceAddr ) : m_fileName( __FILE__)
-{
+{ 
     const uint16_t deviceNum = help::Str2uShort( DeviceAddr );
     #ifdef WIN_OS
-        m_Usb =  std::tr1::shared_ptr<IUsb>(new GenTwoWinUSB( deviceNum ) );
+        m_Usb =  std::shared_ptr<IUsb>(new GenTwoWinUSB( deviceNum ) );
 #else
-        m_Usb =  std::tr1::shared_ptr<IUsb>(new GenOneLinuxUSB( deviceNum ) );
+        m_Usb =  std::shared_ptr<IUsb>(new GenOneLinuxUSB( deviceNum ) );
 #endif
 
-}
+} 
 
-////////////////////////////
-// DTOR
-FilterWheelIo::~FilterWheelIo()
-{
+//////////////////////////// 
+// DTOR 
+FilterWheelIo::~FilterWheelIo() 
+{ 
 
-}
+} 
 
-////////////////////////////
+//////////////////////////// 
 // DOWNLOAD    FIRMWARE
 void FilterWheelIo::DownloadFirmware()
 {
-    std::vector<UsbFrmwr::IntelHexRec> frmwr =
+    std::vector<UsbFrmwr::IntelHexRec> frmwr = 
         UsbFrmwr::MakeRecVect( firmware );
 
     PromFx2Io pf( m_Usb,
@@ -1322,24 +1322,24 @@ void FilterWheelIo::DownloadFirmware()
     pf.FirmwareDownload( frmwr );
 }
 
-////////////////////////////
-//      PROGRAM
+//////////////////////////// 
+//      PROGRAM    
 void FilterWheelIo::Program( const std::string & FilenameFx2, const std::string & FilenameDescriptor)
 {
     //STEP 1
     //download usb firmware if we have to
-    uint16_t Vid  = 0;
+    uint16_t Vid  = 0; 
     uint16_t Pid = 0;
     uint16_t Did = 0;
     m_Usb->GetVendorInfo( Vid, Pid, Did );
     if ( UsbFrmwr::CYPRESS_VID == Vid )
-    {
+	{
         DownloadFirmware();
     }
 
     //STEP 2
     // initialize prom header information
-    Eeprom::Header hdr;
+	Eeprom::Header hdr;
     memset(&hdr, 0, sizeof( hdr ) );
     hdr.Size = sizeof( hdr );
     hdr.Version = Eeprom::HEADER_VERSION;
@@ -1371,7 +1371,7 @@ void FilterWheelIo::Program( const std::string & FilenameFx2, const std::string 
         HEADER_PROM_BLOCK, HEADER_PROM_ADDR);
 }
 
-////////////////////////////
+//////////////////////////// 
 //      GET     VENDOR         ID
 uint16_t FilterWheelIo::GetVendorId()
 {
@@ -1381,8 +1381,8 @@ uint16_t FilterWheelIo::GetVendorId()
 
     return VendorId;
 }
-
-////////////////////////////
+   
+//////////////////////////// 
 //      GET     PRODUCT         ID
 uint16_t FilterWheelIo::GetProductId()
 {
@@ -1393,7 +1393,7 @@ uint16_t FilterWheelIo::GetProductId()
     return ProductId;
 }
 
-////////////////////////////
+//////////////////////////// 
 //      GET     DEVICE        ID
 uint16_t FilterWheelIo::GetDeviceId()
 {
@@ -1404,7 +1404,7 @@ uint16_t FilterWheelIo::GetDeviceId()
     return DeviceId;
 }
 
-////////////////////////////
+//////////////////////////// 
 //      GET        USB     FIRMWARE        REV
 std::string FilterWheelIo::GetUsbFirmwareRev()
 {
@@ -1417,15 +1417,15 @@ std::string FilterWheelIo::GetUsbFirmwareRev()
     return version;
 }
 
-////////////////////////////
+//////////////////////////// 
 //          READ      CTRL      PORT
 void FilterWheelIo::ReadCtrlPort( uint8_t & control, uint8_t & pin )
 {
     uint16_t value = 0;
 
     m_Usb->UsbRequestIn( VND_APOGEE_CONTROL_PORT,
-                                           0,
-                                           USB_CTRL_PORT_VALUE,
+					                       0,
+					                       USB_CTRL_PORT_VALUE,
                                             reinterpret_cast<uint8_t*>(&value),
                                            sizeof(uint16_t) );
 
@@ -1434,15 +1434,15 @@ void FilterWheelIo::ReadCtrlPort( uint8_t & control, uint8_t & pin )
 }
 
 
-////////////////////////////
+//////////////////////////// 
 //      WRITE     CTRL      PORT
 void FilterWheelIo::WriteCtrlPort( const uint8_t control, const uint8_t pin )
 {
-    uint16_t value = static_cast<uint16_t>( ( pin << 8 ) | control );
+	uint16_t value = static_cast<uint16_t>( ( pin << 8 ) | control );
 
-     m_Usb->UsbRequestOut( VND_APOGEE_CONTROL_PORT,
-                                               0,
-                                               USB_CTRL_PORT_VALUE,
+	 m_Usb->UsbRequestOut( VND_APOGEE_CONTROL_PORT,
+								               0,
+								               USB_CTRL_PORT_VALUE,
                                                reinterpret_cast<uint8_t*>(&value),
                                                sizeof(uint16_t) );
 

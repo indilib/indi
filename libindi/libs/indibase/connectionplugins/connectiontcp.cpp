@@ -19,6 +19,7 @@
 #include "connectiontcp.h"
 
 #include "indilogger.h"
+#include "indistandardproperty.h"
 
 #include <cerrno>
 #include <netdb.h>

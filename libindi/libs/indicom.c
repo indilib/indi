@@ -185,8 +185,9 @@ int f_scansexa(const char *str0, /* input string */
 
     double a = 0, b = 0, c = 0;
     char str[128];
-    char *neg;
-    int r;
+    //char *neg;
+    uint8_t isNegative=0;
+    int r= 0;
 
     /* copy str0 so we can play with it */
     strncpy(str, str0, sizeof(str) - 1);
@@ -203,9 +204,16 @@ int f_scansexa(const char *str0, /* input string */
     }
     *i = 0;
 
-    neg = strchr(str, '-');
+    // This has problem process numbers in scientific notations e.g. 1e-06
+    /*neg = strchr(str, '-');
     if (neg)
         *neg = ' ';
+    */
+    if (str[0] == '-')
+    {
+        isNegative = 1;
+        str[0] = ' ';
+    }
 
     r = sscanf(str, "%lf%*[^0-9]%lf%*[^0-9]%lf", &a, &b, &c);
 
@@ -214,7 +222,7 @@ int f_scansexa(const char *str0, /* input string */
     if (r < 1)
         return (-1);
     *dp = a + b / 60 + c / 3600;
-    if (neg)
+    if (isNegative)
         *dp *= -1;
     return (0);
 }
