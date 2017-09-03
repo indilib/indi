@@ -445,6 +445,10 @@ int tty_read(int fd, char *buf, int nbytes, int timeout, int *nbytes_read)
     {
         numBytesToRead = nbytes + 8;
     }
+    else
+    {
+        numBytesToRead = nbytes;
+    }
 
     while (numBytesToRead > 0)
     {
