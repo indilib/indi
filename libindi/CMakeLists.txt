@@ -801,6 +801,15 @@ add_executable(indi_rolloff_dome ${rolloff_SRC})
 target_link_libraries(indi_rolloff_dome indidriver)
 install(TARGETS indi_rolloff_dome RUNTIME DESTINATION bin)
 
+################ NexDome ################
+set(nexdome_SRCS
+        ${CMAKE_CURRENT_SOURCE_DIR}/drivers/dome/nex_dome.cpp
+   )
+
+add_executable(indi_nexdome ${nexdome_SRCS})
+target_link_libraries(indi_nexdome indidriver)
+install(TARGETS indi_nexdome RUNTIME DESTINATION bin )
+
 ################ Baader Dome ################
 
 SET(baaderdome_SRC
