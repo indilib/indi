@@ -44,9 +44,9 @@ CamUsbIo::CamUsbIo( const std::string & DeviceEnum, const uint32_t MaxBufSize,
     const uint16_t deviceNum = help::Str2uShort( DeviceEnum );
 
 #ifdef WIN_OS
-        m_Usb =  std::tr1::shared_ptr<IUsb>(new GenTwoWinUSB( deviceNum ) );
+        m_Usb =  std::shared_ptr<IUsb>(new GenTwoWinUSB( deviceNum ) );
 #else
-    m_Usb =  std::tr1::shared_ptr<IUsb>(new GenOneLinuxUSB( deviceNum ) );
+    m_Usb =  std::shared_ptr<IUsb>(new GenOneLinuxUSB( deviceNum ) );
 #endif
 
   

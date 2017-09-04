@@ -27,7 +27,7 @@ AltaF::AltaF() :  CamGen2Base(CamModel::ALTAF),
                 m_fileName( __FILE__ )
 {
      //alloc and set the camera constants
-    m_CameraConsts = std::tr1::shared_ptr<PlatformData>( new AscentData() );
+    m_CameraConsts = std::shared_ptr<PlatformData>( new AscentData() );
 }
 
 //////////////////////////// 
@@ -87,11 +87,11 @@ void AltaF::OpenConnection( const std::string & ioType,
     UpdateCfgWithStrDbInfo();
 
     //set the camera mode fsm
-    m_CamMode = std::tr1::shared_ptr<ModeFsm>( new CamGen2ModeFsm(m_CamIo,
+    m_CamMode = std::shared_ptr<ModeFsm>( new CamGen2ModeFsm(m_CamIo,
         m_CamCfgData, m_FirmwareVersion) );
 
     //create the adc and pattern file handler object
-    m_CcdAcqSettings = std::tr1::shared_ptr<CcdAcqParams>( 
+    m_CcdAcqSettings = std::shared_ptr<CcdAcqParams>( 
         new CamGen2CcdAcqParams(m_CamCfgData,m_CamIo,m_CameraConsts) );
 
     m_IsConnected = true;
@@ -117,7 +117,7 @@ void AltaF::CreateCamIo(const std::string & ioType,
         
     CamModel::InterfaceType type = InterfaceHelper::DetermineInterfaceType( ioType );
 
-    m_CamIo = std::tr1::shared_ptr<CameraIo>( new AscentBasedIo( type,DeviceAddr ) );
+    m_CamIo = std::shared_ptr<CameraIo>( new AscentBasedIo( type,DeviceAddr ) );
 
 
     if( !m_CamIo )
@@ -141,7 +141,7 @@ void AltaF::CfgCamFromId( const uint16_t CameraId )
 //      UPDATE     CFG        WITH       STR    DB       INFO
 void AltaF::UpdateCfgWithStrDbInfo()
 {
-    CamInfo::StrDb infoStruct = std::tr1::dynamic_pointer_cast<AscentBasedIo>(
+    CamInfo::StrDb infoStruct = std::dynamic_pointer_cast<AscentBasedIo>(
         m_CamIo)->ReadStrDatabase();
 
     if( 0 != infoStruct.Ad1Gain.compare("Not Set") )
@@ -309,7 +309,7 @@ void AltaF::ExposureAndGetImgRC(uint16_t & r, uint16_t & c)
         // CamGen2CcdAcqParams::GetCcdImgCols() is used by
         // CcdAcqParams
         const uint16_t NUM_COLS = m_CcdAcqSettings->GetRoiNumCols() -  
-            std::tr1::dynamic_pointer_cast<CamGen2CcdAcqParams>(m_CcdAcqSettings)->GetOddColsAdjust();
+            std::dynamic_pointer_cast<CamGen2CcdAcqParams>(m_CcdAcqSettings)->GetOddColsAdjust();
 
          // double the number of adc latency pixels for dual readout systems
         const uint16_t PIXEL_SHIFT = m_CcdAcqSettings->GetPixelShift()*2;

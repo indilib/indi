@@ -558,6 +558,12 @@ class INDI::Telescope : public INDI::DefaultDevice
     bool LoadScopeConfig();
 
     /**
+     * @brief Load scope settings from XML files.
+     * @return True if Config #1 exists otherwise false.
+     */
+    bool HasDefaultScopeConfig();
+
+    /**
      * \brief Save scope settings to XML files.
      */
     bool UpdateScopeConfig();
@@ -698,7 +704,37 @@ class INDI::Telescope : public INDI::DefaultDevice
     Connection::Serial *serialConnection = NULL;
     Connection::TCP *tcpConnection       = NULL;
 
-  private:
+  // XML node names for scope config
+  const std::string ScopeConfigRootXmlNode { "scopeconfig" };
+  const std::string ScopeConfigDeviceXmlNode { "device" };
+  const std::string ScopeConfigNameXmlNode { "name" };
+  const std::string ScopeConfigScopeFocXmlNode { "scopefoc" };
+  const std::string ScopeConfigScopeApXmlNode { "scopeap" };
+  const std::string ScopeConfigGScopeFocXmlNode { "gscopefoc" };
+  const std::string ScopeConfigGScopeApXmlNode { "gscopeap" };
+  const std::string ScopeConfigLabelApXmlNode { "label" };
+
+  // A switch to apply custom aperture/focal length config
+    enum
+    {
+        SCOPE_CONFIG1,
+        SCOPE_CONFIG2,
+        SCOPE_CONFIG3,
+        SCOPE_CONFIG4,
+        SCOPE_CONFIG5,
+        SCOPE_CONFIG6
+    };
+    ISwitch ScopeConfigs[6];
+    ISwitchVectorProperty ScopeConfigsSP;
+
+    // Scope config name
+    ITextVectorProperty ScopeConfigNameTP;
+    IText ScopeConfigNameT[1];
+
+    /// The telescope/guide scope configuration file name
+    const std::string ScopeConfigFileName;
+
+private:
     bool processTimeInfo(const char *utc, const char *offset);
     bool processLocationInfo(double latitude, double longitude, double elevation);
 
@@ -723,24 +759,4 @@ class INDI::Telescope : public INDI::DefaultDevice
 
     uint8_t telescopeConnection = CONNECTION_SERIAL | CONNECTION_TCP;
     INDI::Controller *controller;
-
-    // A switch to apply custom aperture/focal length config
-    enum
-    {
-        SCOPE_CONFIG1,
-        SCOPE_CONFIG2,
-        SCOPE_CONFIG3,
-        SCOPE_CONFIG4,
-        SCOPE_CONFIG5,
-        SCOPE_CONFIG6
-    };
-    ISwitch ScopeConfigs[6];
-    ISwitchVectorProperty ScopeConfigsSP;
-
-    // Scope config name
-    ITextVectorProperty ScopeConfigNameTP;
-    IText ScopeConfigNameT[1];
-
-    /// The telescope/guide scope configuration file name
-    const std::string ScopeConfigFileName;
 };
