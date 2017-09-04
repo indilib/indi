@@ -44,6 +44,7 @@ class Align
     INumberVectorProperty *AlignTelescopeCoordsNP;
     ISwitchVectorProperty *AlignModeSP;
     INumberVectorProperty *AlignCountNP;
+    bool wasConnected = false;
 
     AlignData syncdata;
 

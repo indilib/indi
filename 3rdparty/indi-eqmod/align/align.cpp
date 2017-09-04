@@ -132,6 +132,7 @@ void Align::ISGetProperties()
         telescope->defineNumber(AlignCountNP);
         telescope->defineSwitch(AlignModeSP);
     }
+    wasConnected = telescope->isConnected();
 }
 
 bool Align::initProperties()
@@ -165,7 +166,7 @@ bool Align::updateProperties()
         telescope->defineSwitch(AlignModeSP);
         Init();
     }
-    else if (AlignDataBP)
+    else if (wasConnected)
     {
         telescope->deleteProperty(AlignDataBP->name);
         telescope->deleteProperty(AlignPointNP->name);
@@ -175,6 +176,7 @@ bool Align::updateProperties()
         telescope->deleteProperty(AlignModeSP->name);
         telescope->deleteProperty(AlignDataFileTP->name);
     }
+    wasConnected = telescope->isConnected();
     return true;
 }
 

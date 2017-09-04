@@ -105,6 +105,7 @@ void HorizonLimits::ISGetProperties()
         telescope->defineSwitch(HorizonLimitsOnLimitSP);
         telescope->defineSwitch(HorizonLimitsLimitGotoSP);
     }
+    wasConnected = telescope->isConnected();
 }
 
 
@@ -123,7 +124,7 @@ bool HorizonLimits::updateProperties()
         telescope->defineSwitch(HorizonLimitsLimitGotoSP);
         Init();
     }
-    else if (HorizonLimitsDataFileTP)
+    else if (wasConnected)
     {
         telescope->deleteProperty(HorizonLimitsDataFileTP->name);
         telescope->deleteProperty(HorizonLimitsDataFitsBP->name);
@@ -134,6 +135,7 @@ bool HorizonLimits::updateProperties()
         telescope->deleteProperty(HorizonLimitsOnLimitSP->name);
         telescope->deleteProperty(HorizonLimitsLimitGotoSP->name);
     }
+    wasConnected = telescope->isConnected();
     return true;
 }
 
