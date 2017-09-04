@@ -132,6 +132,7 @@ class EQMod : public INDI::Telescope, public INDI::GuiderInterface
     ISwitchVectorProperty *DEPPECTrainingSP = NULL;
     ISwitchVectorProperty *RAPPECSP         = NULL;
     ISwitchVectorProperty *DEPPECSP         = NULL;
+    bool wasConnected = false;
 
     enum Hemisphere
     {

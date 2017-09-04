@@ -42,6 +42,7 @@ class HorizonLimits
     ISwitchVectorProperty *HorizonLimitsFileOperationSP;
     ISwitchVectorProperty *HorizonLimitsOnLimitSP;
     ISwitchVectorProperty *HorizonLimitsLimitGotoSP;
+    bool wasConnected=false;
 
     std::vector<horizonpoint> *horizon;
     int horizonindex;

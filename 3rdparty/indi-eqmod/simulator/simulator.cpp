@@ -12,6 +12,7 @@ void EQModSimulator::Connect()
 {
     ISwitch *sw           = IUFindOnSwitch(SimModeSP);
     sksim                 = new SkywatcherSimulator();
+
     if (!strcmp(sw->name, "SIM_EQ6"))
     {
         sksim->setupVersion("020300");
@@ -125,7 +126,7 @@ bool EQModSimulator::updateProperties(bool enable)
       AlignDataBP=telescope->getBLOB("ALIGNDATA");
       */
     }
-    else
+    else if (isEnabled)
     {
         telescope->deleteProperty(SimModeSP->name);
         telescope->deleteProperty(SimWormNP->name);
@@ -134,6 +135,7 @@ bool EQModSimulator::updateProperties(bool enable)
         telescope->deleteProperty(SimHighSpeedSP->name);
         telescope->deleteProperty(SimMCVersionTP->name);
     }
+    isEnabled = enable;
 
     return true;
 }

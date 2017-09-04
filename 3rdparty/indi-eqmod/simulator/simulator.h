@@ -35,6 +35,7 @@ class EQModSimulator
     ISwitchVectorProperty *SimModeSP      = NULL;
     ISwitchVectorProperty *SimHighSpeedSP = NULL;
     ITextVectorProperty *SimMCVersionTP   = NULL;
+    bool isEnabled = false;
 
   public:
     EQModSimulator(INDI::Telescope *);

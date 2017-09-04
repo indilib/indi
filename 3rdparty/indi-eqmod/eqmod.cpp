@@ -406,6 +406,7 @@ void EQMod::ISGetProperties(const char *dev)
 
         simulator->updateProperties(isSimulation());
     }
+    wasConnected = isConnected();
 }
 
 bool EQMod::loadProperties()
@@ -609,7 +610,7 @@ bool EQMod::updateProperties()
             return (e.DefaultHandleException(this));
         }
     }
-    else
+    else if (wasConnected)
     {
         //if (MountInformationTP) {
         deleteProperty(GuideNSNP.name);
@@ -660,6 +661,7 @@ bool EQMod::updateProperties()
         //MountInformationTP=NULL;
         //}
     }
+    wasConnected = isConnected();
 #ifdef WITH_ALIGN_GEEHALEL
     if (align)
     {
