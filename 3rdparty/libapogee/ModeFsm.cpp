@@ -21,8 +21,8 @@
 
 //////////////////////////// 
 // CTOR 
-ModeFsm::ModeFsm( std::tr1::shared_ptr<CameraIo> & io,
-                 std::tr1::shared_ptr<CApnCamData> & camData, 
+ModeFsm::ModeFsm( std::shared_ptr<CameraIo> & io,
+                 std::shared_ptr<CApnCamData> & camData, 
                  uint16_t rev) :
                  m_fileName(__FILE__),
                  m_mode(Apg::CameraMode_Normal),
@@ -601,7 +601,7 @@ bool ModeFsm::IsInterlineCcd()
 
 //////////////////////////// 
 // UPDATE      APNCAM        DATA
-void  ModeFsm::UpdateApnCamData( std::tr1::shared_ptr<CApnCamData> & newCamData )
+void  ModeFsm::UpdateApnCamData( std::shared_ptr<CApnCamData> & newCamData )
 {
     m_CamData = newCamData;
 }

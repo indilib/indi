@@ -37,7 +37,6 @@
 
 #define POLLMS               1000  /* Polling time (ms) */
 #define TEMP_THRESHOLD       0.2   /* Differential temperature threshold (C)*/
-#define MINIMUM_CCD_EXPOSURE 0.001 /* 0.001 seconds minimum exposure */
 #define MAX_DEVICES          4     /* Max device cameraCount */
 
 //NB Disable for real driver
@@ -307,7 +306,7 @@ bool QHYCCD::initProperties()
                        IP_RW, 60, IPS_IDLE);
 
     // Set minimum exposure speed to 0.001 seconds
-    PrimaryCCD.setMinMaxStep("CCD_EXPOSURE", "CCD_EXPOSURE_VALUE", MINIMUM_CCD_EXPOSURE, 3600, 1, false);
+    //PrimaryCCD.setMinMaxStep("CCD_EXPOSURE", "CCD_EXPOSURE_VALUE", MINIMUM_CCD_EXPOSURE, 3600, 1, false);
 
     addAuxControls();
 
@@ -352,8 +351,23 @@ void QHYCCD::ISGetProperties(const char *dev)
 
 bool QHYCCD::updateProperties()
 {
+    double min=0, max=0, step=0;
+
+    // This must be executed BEFORE INDI::CCD::updateProperties()
+    // Since Primary CCD Exposure will be defined in there so we have to get its limits now
+    {
+        // Exposure limits in microseconds
+        int ret = GetQHYCCDParamMinMaxStep(camhandle, CONTROL_EXPOSURE, &min, &max, &step);
+        if (ret == QHYCCD_SUCCESS)
+            PrimaryCCD.setMinMaxStep("CCD_EXPOSURE", "CCD_EXPOSURE_VALUE", min/1e6, max/1e6, step/1e6, false);
+        else
+            PrimaryCCD.setMinMaxStep("CCD_EXPOSURE", "CCD_EXPOSURE_VALUE", 0.001, 3600, 1, false);
+
+            DEBUGF(INDI::Logger::DBG_DEBUG, "Exposure. Min: %g Max: %g Step %g", min, max, step);
+    }
+
+    // Define parent class properties
     INDI::CCD::updateProperties();
-    double min, max, step;
 
     if (isConnected())
     {
@@ -820,28 +834,29 @@ bool QHYCCD::StartExposure(float duration)
 #endif
     //AbortPrimaryFrame = false;
 
+    /*
     if (duration < MINIMUM_CCD_EXPOSURE)
     {
         DEBUGF(INDI::Logger::DBG_WARNING,
                "Exposure shorter than minimum duration %g s requested. Setting exposure time to %g s.", duration,
                MINIMUM_CCD_EXPOSURE);
         duration = MINIMUM_CCD_EXPOSURE;
-    }
+    }*/
 
     imageFrameType = PrimaryCCD.getFrameType();
 
-    if (imageFrameType == CCDChip::BIAS_FRAME)
+    /*if (imageFrameType == CCDChip::BIAS_FRAME)
     {
         duration = MINIMUM_CCD_EXPOSURE;
         DEBUGF(INDI::Logger::DBG_SESSION, "Bias Frame (s) : %g", duration);
     }
-    else if (imageFrameType == CCDChip::DARK_FRAME)
+    else*/
+    if (GetCCDCapability() & CCD_HAS_SHUTTER)
     {
-        ControlQHYCCDShutter(camhandle, MACHANICALSHUTTER_CLOSE);
-    }
-    else
-    {
-        ControlQHYCCDShutter(camhandle, MACHANICALSHUTTER_FREE);
+        if (imageFrameType == CCDChip::DARK_FRAME || imageFrameType == CCDChip::BIAS_FRAME)
+            ControlQHYCCDShutter(camhandle, MACHANICALSHUTTER_CLOSE);
+        else
+            ControlQHYCCDShutter(camhandle, MACHANICALSHUTTER_FREE);
     }
 
     DEBUGF(INDI::Logger::DBG_DEBUG, "Current exposure time is %f us", duration * 1000 * 1000);

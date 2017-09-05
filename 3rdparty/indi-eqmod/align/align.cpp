@@ -104,13 +104,33 @@ const char *Align::getDeviceName()
 void Align::Init()
 {
     char *loadres = NULL;
-    pointset->Init();
-    loadres = pointset->LoadDataFile(IUFindText(AlignDataFileTP, "ALIGNDATAFILENAME")->text);
-    if (loadres)
+    if (!pointset->isInitialized())
     {
-        IDMessage(telescope->getDeviceName(), "Can not load Align Data File %s: %s",
-                  IUFindText(AlignDataFileTP, "ALIGNDATAFILENAME")->text, loadres);
-        return;
+        pointset->Init();
+        loadres = pointset->LoadDataFile(IUFindText(AlignDataFileTP, "ALIGNDATAFILENAME")->text);
+        if (loadres)
+        {
+            IDMessage(telescope->getDeviceName(), "Can not load Align Data File %s: %s",
+                      IUFindText(AlignDataFileTP, "ALIGNDATAFILENAME")->text, loadres);
+            return;
+        }
+	IUFindNumber(AlignCountNP, "ALIGNCOUNT_POINTS")->value    = pointset->getNbPoints();
+	IUFindNumber(AlignCountNP, "ALIGNCOUNT_TRIANGLES")->value = pointset->getNbTriangles();
+	IDSetNumber(AlignCountNP, NULL);
+    }
+}
+
+void Align::ISGetProperties()
+{
+    if (telescope->isConnected())
+    {
+        telescope->defineText(AlignDataFileTP);
+        telescope->defineBLOB(AlignDataBP);
+        telescope->defineNumber(AlignPointNP);
+        telescope->defineSwitch(AlignListSP);
+        telescope->defineNumber(AlignTelescopeCoordsNP);
+        telescope->defineNumber(AlignCountNP);
+        telescope->defineSwitch(AlignModeSP);
     }
 }
 

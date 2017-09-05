@@ -13,6 +13,7 @@
 #if !defined(_APNUSBSYS_H__INCLUDED_)
 #define _APNUSBSYS_H__INCLUDED_
 
+#include <stdint.h>
 
 
 #define VND_ANCHOR_LOAD_INTERNAL		0xA0
