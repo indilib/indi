@@ -36,6 +36,8 @@ class EQModSimulator
     ISwitchVectorProperty *SimHighSpeedSP = NULL;
     ITextVectorProperty *SimMCVersionTP   = NULL;
 
+    bool defined=false;
+
   public:
     EQModSimulator(INDI::Telescope *);
     void Connect();
