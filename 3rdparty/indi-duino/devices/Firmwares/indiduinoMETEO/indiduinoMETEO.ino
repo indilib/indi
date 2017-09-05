@@ -144,7 +144,6 @@ IMPORTANT: Customize following values to match your setup
 
 #ifdef USE_DHT_SENSOR
   #include "dht.h"
-  #define DHTPIN 3         // what pin we're connected DHT22 to
   dht DHT;
 #endif //USE_DHT_SENSOR
 
@@ -152,11 +151,6 @@ IMPORTANT: Customize following values to match your setup
   #include "Adafruit_BMP085.h"
   Adafruit_BMP085 bmp;
 #endif //USE_P_SENSOR
-
-#ifdef USE_IRRADIANCE_SENSOR
-  #define IR_RADIANCE_PIN 0 // what analog pin we connected IRRACIANCE to
-#endif //USE_IRRADIANCE_SENSOR
-
 
 
 float P,HR,IR,T,Tp,Thr,Tir,Dew,Light,Clouds,skyT;
