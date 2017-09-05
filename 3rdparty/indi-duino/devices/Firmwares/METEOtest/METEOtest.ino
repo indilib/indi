@@ -1,7 +1,8 @@
 /* Induino METEOSTATION test firmware.
 Usefull to test if all the hardware work as
 expected prior to go further
-NACHO MAS 2013 
+NACHO MAS 2013
+Magnus W. Eriksen 2017
 
 This firmware is independent of indiduino
 drivers. Just load on your board and look 
@@ -36,7 +37,15 @@ float P,HR,IR,Tp,Thr,Tir,Light;
 bool irSuccess, bmpSuccess;
 
 void setupMeteoStation(){
+    // Initialize sensor readouts.    
+    IR = 0;
+    Tir = 0;
+    HR = 0;
+    Thr = 0;
+    Tp = 0;
+    P = 0;
     Light = 0.0;
+
     #ifdef USE_IR_SENSOR
         irSuccess = mlx.begin();
     #endif
@@ -64,8 +73,6 @@ void runMeteoStation() {
 
         Serial.println("IR read, done\t");
     #else
-        IR = 0;
-        Tir = 0;
         Serial.println("IR sensor skipped, not defined\t");
     #endif
 
@@ -100,8 +107,6 @@ void runMeteoStation() {
 
         Serial.println("DHT read, done\t");
     #else
-        HR = 0;
-        Thr = 0;
         Serial.println("DHT sensor skipped, not defined\t");
     #endif
 
@@ -121,15 +126,15 @@ void runMeteoStation() {
         }
 
     #else
-        Tp = 0;
-        P = 0;
         Serial.println("BMP sensor skipped, not defined!\t");
     #endif
 
     // Read analog Light sensor
     #ifdef USE_IRRADIANCE_SENSOR
-        Serial.println("IR Radiance read. No checks, see output value\t");
+        Serial.println("IR Radiance read. No checks, use flashlight and check output value\t");
         Light = analogRead(IR_RADIANCE_PIN);
+    #else
+        Serial.println("IR Radiance sensor skipped, not defined!.\t");
     #endif
 }
 
@@ -140,8 +145,8 @@ double dewPoint(double celsius, double humidity)
     double A0= 373.15/(273.15 + celsius);
     double SUM = -7.90298 * (A0-1);
     SUM += 5.02808 * log10(A0);
-    SUM += -1.3816e-7 * (pow(10, (11.344*(1-1/A0)))-1) ;
-    SUM += 8.1328e-3 * (pow(10,(-3.49149*(A0-1)))-1) ;
+    SUM += -1.3816e-7 * (pow(10, (11.344*(1-1/A0)))-1);
+    SUM += 8.1328e-3 * (pow(10,(-3.49149*(A0-1)))-1);
     SUM += log10(1013.246);
     double VP = pow(10, SUM-3) * humidity;
     double T = log(VP/0.61078);   // temp var
