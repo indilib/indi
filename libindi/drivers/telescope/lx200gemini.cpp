@@ -609,10 +609,10 @@ void LX200Gemini::updateMovementState()
 
         case TRACKING:
         case GUIDING:
-        case CENTERING:
             setTrackState(SCOPE_TRACKING);
             break;
 
+        case CENTERING:
         case SLEWING:
             setTrackState(SCOPE_SLEWING);
             break;
