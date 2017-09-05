@@ -1,11 +1,15 @@
 /* INDIDUINOMETEO FIRMWARE.
 NACHO MAS 2013. http://indiduino.wordpress.com
+Magnus W. Eriksen 2017 https://github.com/magnue
 
 Several modifications over indiduinoTemplate:
-.- Include  "i2cmaster.h",  "Adafruit_BMP085.h" and  "dht.h" libraries 
+.- Include  "i2cmaster.h",  "Adafruit_BMP085.h", "Adafruit_MLX90614.h" and  "dht.h" libraries
    to read the sensors.
+.- Add custimization of pinnumbers, and flags for frezzing and daylight.
+.- Allow user to disable any sensor(s) and its (their) code when compiling.
 .- Several additional functions to read the sensor and calculate flags,
    cloudcover and dew point.
+.- Extend event loop fail checks to awoid reading values from unreadable sensors (IR, P and DHT).
 .- Overwrite firmata TOTAL_ANALOG_PINS and TOTAL_PINS to make room for
    aditional (>6) analog calculate inputs.
 .- Use pullup resitor on inputs for signal flags.
@@ -13,47 +17,59 @@ Several modifications over indiduinoTemplate:
 IMPORTANT: Customize following values to match your setup
 */
 
-//Comment out if you setup don't include some sensor.
-#define USE_DHT_SENSOR   //USE DHT HUMITITY SENSOR. Comment if not.
-#define USE_IR_SENSOR   //USE MELEXIS IR SENSOR. Comment if not.
-#define USE_P_SENSOR   //USE BMP085 PRESSURE SENSOR. Comment if not.
+//Comment out if your setup don't include some sensor.
+#define USE_DHT_SENSOR          //USE DHT HUMITITY SENSOR. Comment if not.
+#define USE_IR_SENSOR           //USE MELEXIS IR SENSOR. Comment if not.
+#define USE_P_SENSOR            //USE BMP085 PRESSURE SENSOR. Comment if not.
 #define USE_IRRADIANCE_SENSOR   //USE IRRADIANCE SENSOR (solar cell). Comment if not.
 
-//Not everyone consider negative celsius as frezzing and other drivers will react to frezzing as an alert.
+//Not everyone consider zero celsius as frezzing and other drivers will react to frezzing as an alert.
 //define temperature limit for issuing alert.
 //Default 0
 #define FREZZING 0
 
-//A multitude of solar cells can be used as IRRADIANCE sensor.
-//Set MINIMUM_DAYLIGHT to the IRRADIANCE output at start of dusk.
-#define MINIMUM_DAYLIGHT 100
-
-//All sensors (Thr=DHT22,Tir=MELEXIS and Tp=BMP085) include a ambient temperature
+//All sensors (Thr=DHT22,Tir=MELEXIS and Tp=BMP[085,180]) include a ambient temperature
 //Chosse  that sensor, only one, is going to use for main Ambient Temperature:
 //#define T_MAIN_Thr
 //#define T_MAIN_Tir
 #define T_MAIN_Tp
 
-//Cloudy sky is warmer that clear sky. Thus sky temperature meassure by IR sensor
-//is a good indicator to estimate cloud cover. However IR really meassure the
-//temperatura of all the air column above increassing with ambient temperature.
-//So it is important include some correction factor:
-//From AAG Cloudwatcher formula. Need to improve futher.
-//http://www.aagware.eu/aag/cloudwatcher700/WebHelp/index.htm#page=Operational%20Aspects/23-TemperatureFactor-.htm
-//Sky temp correction factor. Tsky=Tsky_meassure - Tcorrection
-//Formula Tcorrection = (K1 / 100) * (Thr - K2 / 10) + (K3 / 100) * pow((exp (K4 / 1000* Thr)) , (K5 / 100));
-#define  K1 33.
-#define  K2 0.
-#define  K3 4.
-#define  K4 100.
-#define  K5 100.
+#ifdef USE_DHT_SENSOR
+  // what pin we're connected DHT22 to
+  #define DHTPIN 3
+#endif //USE_DHT_SENSOR
 
-//Clear sky corrected temperature (temp below means 0% clouds)
-#define CLOUD_TEMP_CLEAR  -8
-//Totally cover sky corrected temperature (temp above means 100% clouds)
-#define CLOUD_TEMP_OVERCAST  0
-//Activation treshold for cloudFlag (%)
-#define CLOUD_FLAG_PERCENT  30 
+#ifdef USE_IRRADIANCE_SENSOR
+  //A multitude of solar cells can be used as IRRADIANCE sensor.
+  //Set MINIMUM_DAYLIGHT to the IRRADIANCE output at start of dusk.
+  #define MINIMUM_DAYLIGHT 100
+
+   // what analog pin we connected IRRADCIANCE to
+  #define IR_RADIANCE_PIN 0
+#endif //USE_IRRADIANCE_SENSOR
+
+#ifdef USE_IR_SENSOR
+  //Cloudy sky is warmer that clear sky. Thus sky temperature meassure by IR sensor
+  //is a good indicator to estimate cloud cover. However IR really meassure the
+  //temperatura of all the air column above increassing with ambient temperature.
+  //So it is important include some correction factor:
+  //From AAG Cloudwatcher formula. Need to improve futher.
+  //http://www.aagware.eu/aag/cloudwatcher700/WebHelp/index.htm#page=Operational%20Aspects/23-TemperatureFactor-.htm
+  //Sky temp correction factor. Tsky=Tsky_meassure - Tcorrection
+  //Formula Tcorrection = (K1 / 100) * (Thr - K2 / 10) + (K3 / 100) * pow((exp (K4 / 1000* Thr)) , (K5 / 100));
+  #define  K1 33.
+  #define  K2 0.
+  #define  K3 4.
+  #define  K4 100.
+  #define  K5 100.
+
+  //Clear sky corrected temperature (temp below means 0% clouds)
+  #define CLOUD_TEMP_CLEAR  -8
+  //Totally cover sky corrected temperature (temp above means 100% clouds)
+  #define CLOUD_TEMP_OVERCAST  0
+  //Activation treshold for cloudFlag (%)
+  #define CLOUD_FLAG_PERCENT  30
+#endif //USE_IR_SENSOR
 
 
 
