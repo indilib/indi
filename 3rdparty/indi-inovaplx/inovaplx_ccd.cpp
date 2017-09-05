@@ -121,6 +121,7 @@ bool INovaCCD::Connect()
 bool INovaCCD::Disconnect()
 {
     threadsRunning = false;
+    pthread_join(captureThread, NULL);
     iNovaSDK_SensorPowerDown();
     iNovaSDK_CloseVideo();
     iNovaSDK_CloseCamera();
@@ -155,7 +156,11 @@ bool INovaCCD::initProperties()
 
     IUFillNumber(&CameraPropertiesN[CCD_GAIN_N], "CCD_GAIN_VALUE", "Gain", "%4.0f", 0, 1023, 1, 255);
     IUFillNumber(&CameraPropertiesN[CCD_BLACKLEVEL_N], "CCD_BLACKLEVEL_VALUE", "Black Level", "%3.0f", 0, 255, 1, 0);
-    IUFillNumberVector(&CameraPropertiesNP, CameraPropertiesN, 2, getDeviceName(), "CCD_PROPERTIES", "Camera properties", IMAGE_SETTINGS_TAB, IP_RW, 60, IPS_IDLE);
+    IUFillNumberVector(&CameraPropertiesNP, CameraPropertiesN, 2, getDeviceName(), "CCD_PROPERTIES", "Control", MAIN_CONTROL_TAB, IP_RW, 60, IPS_IDLE);
+
+    // Set minimum exposure speed to 0.001 seconds
+    PrimaryCCD.setMinMaxStep("CCD_EXPOSURE", "CCD_EXPOSURE_VALUE", 0.0001, 1000, 1, false);
+
     return true;
 
 }
@@ -217,7 +222,7 @@ bool INovaCCD::updateProperties()
 void INovaCCD::setupParams()
 {
     int bpp = iNovaSDK_GetDataWide() > 0 ? 16 : 8;
-    SetCCDParams(iNovaSDK_GetImageWidth(), iNovaSDK_GetImageHeight(), bpp, 5.4, 5.4);
+    SetCCDParams(iNovaSDK_GetImageWidth(), iNovaSDK_GetImageHeight(), bpp, iNovaSDK_GetPixelSizeX(), iNovaSDK_GetPixelSizeY());
 
     // Let's calculate how much memory we need for the primary CCD buffer
     int nbuf;
@@ -286,8 +291,8 @@ bool INovaCCD::ISNewNumber(const char *dev, const char *name, double values[], c
         iNovaSDK_SetAnalogGain(static_cast<int16_t>(CameraPropertiesN[CCD_GAIN_N].value));
         iNovaSDK_SetBlackLevel(static_cast<int16_t>(CameraPropertiesN[CCD_BLACKLEVEL_N].value));
 
+        CameraPropertiesNP.s = IPS_OK;
         IDSetNumber(&CameraPropertiesNP, NULL);
-        CameraPropertiesNP.s = IPS_IDLE;
         return true;
     }
 

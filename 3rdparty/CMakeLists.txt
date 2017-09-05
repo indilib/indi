@@ -87,12 +87,17 @@ IF (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
     set(WITH_FISHCAMP Off)
     set(WITH_GIGE Off)
     set(WITH_DSI Off)
+    set(WITH_QHY Off)
     set(WITH_MGEN Off)
     set(WITH_RTLSDR Off)
 ENDIF ()
 # Dsi contains invalid C++ codes what does not compile with Clang
 IF ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "AppleClang" OR "${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
     SET(WITH_DSI Off)
+ENDIF ()
+# Disable apogee with gcc 4.8 and earlier versions
+IF (CMAKE_COMPILER_IS_GNUCXX AND CMAKE_CXX_COMPILER_VERSION VERSION_LESS 4.9.0)
+    SET(WITH_APOGEE Off)
 ENDIF ()
 
 ## EQMod

@@ -160,7 +160,7 @@ bool INDI::Dome::initProperties()
     IUFillSwitch(&DomeShutterS[0], "SHUTTER_OPEN", "Open", ISS_OFF);
     IUFillSwitch(&DomeShutterS[1], "SHUTTER_CLOSE", "Close", ISS_ON);
     IUFillSwitchVector(&DomeShutterSP, DomeShutterS, 2, getDeviceName(), "DOME_SHUTTER", "Shutter", MAIN_CONTROL_TAB,
-                       IP_RW, ISR_1OFMANY, 60, IPS_OK);
+                       IP_RW, ISR_ATMOST1, 60, IPS_OK);
 
     IUFillSwitch(&ParkOptionS[0], "PARK_CURRENT", "Current", ISS_OFF);
     IUFillSwitch(&ParkOptionS[1], "PARK_DEFAULT", "Default", ISS_OFF);
@@ -966,20 +966,25 @@ bool INDI::Dome::GetTargetAz(double &Az, double &Alt, double &minAz, double &max
 
     DEBUGF(INDI::Logger::DBG_DEBUG, "JD: %g - MSD: %g", JD, MSD);
 
-    MountCenter.x = DomeMeasurementsN[DM_NORTH_DISPLACEMENT].value; // Positive to North
-    MountCenter.y = DomeMeasurementsN[DM_EAST_DISPLACEMENT].value;  // Positive to East
+    MountCenter.x = DomeMeasurementsN[DM_EAST_DISPLACEMENT].value; // Positive to East
+    MountCenter.y = DomeMeasurementsN[DM_NORTH_DISPLACEMENT].value;  // Positive to North
     MountCenter.z = DomeMeasurementsN[DM_UP_DISPLACEMENT].value;    // Positive Up
 
     DEBUGF(INDI::Logger::DBG_DEBUG, "MC.x: %g - MC.y: %g MC.z: %g", MountCenter.x, MountCenter.y, MountCenter.z);
 
     // Get hour angle in hours
-    hourAngle = MSD + observer.lng / 15.0 - mountEquatorialCoords.ra / 15.0;
+    hourAngle = rangeHA( MSD + observer.lng / 15.0 - mountEquatorialCoords.ra / 15.0);
 
     DEBUGF(INDI::Logger::DBG_DEBUG, "HA: %g  Lng: %g RA: %g", hourAngle, observer.lng, mountEquatorialCoords.ra);
 
-    // Get optical center point
+//  We are nt getting this from the mounts anyways
+/*
     if (OTASideS[0].s != ISS_ON)
         OTASide = -1;
+*/
+    //  figure out the pier side without help from the mount
+    if(hourAngle > 0) OTASide=-1;
+    else OTASide=1;
 
     OpticalCenter(MountCenter, OTASide * DomeMeasurementsN[DM_OTA_OFFSET].value, observer.lat, hourAngle, OptCenter);
 
@@ -1000,6 +1005,10 @@ bool INDI::Dome::GetTargetAz(double &Az, double &Alt, double &minAz, double &max
     OpticalVector(mountHoriztonalCoords.az, mountHoriztonalCoords.alt, OptVector);
     DEBUGF(INDI::Logger::DBG_DEBUG, "Mount Az: %g  Alt: %g", mountHoriztonalCoords.az, mountHoriztonalCoords.alt);
     DEBUGF(INDI::Logger::DBG_DEBUG, "OV.x: %g - OV.y: %g OV.z: %g", OptVector.x, OptVector.y, OptVector.z);
+
+    OptVector.x+=OptCenter.x;
+    OptVector.y+=OptCenter.y;
+    OptVector.z+=OptCenter.z;
 
     if (Intersection(OptCenter, OptVector, DomeMeasurementsN[DM_DOME_RADIUS].value, mu1, mu2))
     {

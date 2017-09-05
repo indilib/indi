@@ -1,3 +1,21 @@
+/*
+ *   libDSPAU - a digital signal processing library for astronomy usage
+ *   Copyright (C) 2017  Ilia Platone <info@iliaplatone.com>
+ *
+ *   This program is free software: you can redistribute it and/or modify
+ *   it under the terms of the GNU General Public License as published by
+ *   the Free Software Foundation, either version 3 of the License, or
+ *   (at your option) any later version.
+ *
+ *   This program is distributed in the hope that it will be useful,
+ *   but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *   GNU General Public License for more details.
+ *
+ *   You should have received a copy of the GNU General Public License
+ *   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
@@ -12,120 +30,102 @@ double complex_mag(fftw_complex n)
 
 double complex_phi(fftw_complex n)
 {
-	double ret = 0;
+	double out = 0;
 	if (n[0] != 0)
-		ret = atan (n[1] / n[0]);
-	return ret;
+		out = atan (n[1] / n[0]);
+	return out;
 }
 
-double * complex2mag(fftw_complex* rawFFT, int len)
+void complex2mag(fftw_complex* in, double* out, int len)
 {
-	double * mag = (double*)malloc(sizeof(double) * len);
 	for (int i = 0; i < len; i++) {
-		mag[i] = complex_mag(rawFFT [i]);
+		out [i] = complex_mag(in [i]);
 	}
-
-	return mag;
 }
 
-double * complex2magpow(fftw_complex* rawFFT, int len)
+void complex2magpow(fftw_complex* in, double* out, int len)
 {
-	double * magSquared = (double*)malloc(sizeof(double) * len);
 	for (int i = 0; i < len; i++) {
-		double mag = complex_mag(rawFFT [i]);
-		magSquared [i] = mag * mag;
+		out [i] = pow(complex_mag(in [i]), 2);
 	}
-
-	return magSquared;
 }
 
-double * complex2magsqrt(fftw_complex* rawFFT, int len)
+void complex2magsqrt(fftw_complex* in, double* out, int len)
 {
-	double * mag = (double*)malloc(sizeof(double) * len);
 	for (int i = 0; i < len; i++) {
-		mag [i] = sqrt (complex_mag(rawFFT [i]));
+		out [i] = sqrt (complex_mag(in [i]));
 	}
-
-	return mag;
 }
 
-double * complex2magdbv(fftw_complex* rawFFT, int len)
+void complex2magdbv(fftw_complex* in, double* out, int len)
 {
-	double * mag = (double*)malloc(sizeof(double) * len);
 	for (int i = 0; i < len; i++) {
-		double magVal = complex_mag(rawFFT [i]);
+		double magVal = complex_mag(in [i]);
 
 		if (magVal <= 0.0)
 			magVal = DBL_EPSILON;
 
-		mag [i] = 20 * log10 (magVal);
+		out [i] = 20 * log10 (magVal);
 	}
-
-	return mag;
 }
 
-double * complex2phideg(fftw_complex* rawFFT, int len)
+void complex2phideg(fftw_complex* in, double* out, int len)
 {
-	double sf = 180.0 / M_PI; // Degrees per Radian scale factor
-
-	double * phase = (double*)malloc(sizeof(double) * len);
+	double sf = 180.0 / M_PI;
 	for (int i = 0; i < len; i++) {
-		phase [i] = complex_phi(rawFFT [i]) * sf;
+		out [i] = complex_phi(in [i]) * sf;
 	}
-
-	return phase;
 }
 
-double * complex2phirad(fftw_complex* rawFFT, int len)
+void complex2phirad(fftw_complex* in, double* out, int len)
 {
-	double * phase = (double*)malloc(sizeof(double) * len);
 	for (int i = 0; i < len; i++) {
-		phase [i] = complex_phi(rawFFT [i]);
+		out [i] = complex_phi(in [i]);
 	}
-
-	return phase;
 }
 
-double * dspau_spectrum(double * data, int *l, int conversion)
+int dspau_spectrum(double* in, double* out, int *c, int conversion)
 {
 	int i = 0;
-	int len = *l;
-	fftw_complex *in, *out;
+	int len = *c;
+	int ret = 0;
+	fftw_complex *fft_in, *fft_out;
 	fftw_plan p;
-	in = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * len);
+	fft_in = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * len);
+	fft_out = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * len);
 	for(i = 0; i < len; i++) {
-		in[i][0] = data[i];
-		in[i][1] = 0;
+		fft_in[i][0] = in[i];
+		fft_in[i][1] = 0;
 	}
-	out = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * len);
-	p = fftw_plan_dft_1d(len, in, out, FFTW_FORWARD, FFTW_ESTIMATE);
+	p = fftw_plan_dft_1d(len, fft_in, fft_out, FFTW_FORWARD, FFTW_ESTIMATE);
 	fftw_execute(p);
-	double * spectrum = NULL;
+	len = (len / 2) - (len % 2);
 	switch (conversion) {
 	case magnitude:
-		spectrum = complex2mag(out, len);
+		complex2mag(fft_out, out, len);
 		break;
 	case magnitude_dbv:
-		spectrum = complex2magdbv(out, len);
+		complex2magdbv(fft_out, out, len);
 		break;
 	case magnitude_rooted:
-		spectrum = complex2magsqrt(out, len);
+		complex2magsqrt(fft_out, out, len);
 		break;
 	case magnitude_squared:
-		spectrum = complex2magpow(out, len);
+		complex2magpow(fft_out, out, len);
 		break;
 	case phase_degrees:
-		spectrum = complex2phideg(out, len);
+		complex2phideg(fft_out, out, len);
 		break;
 	case phase_radians:
-		spectrum = complex2phirad(out, len);
+		complex2phirad(fft_out, out, len);
 		break;
 	default:
-		return NULL;
+		ret = -1;
+		break;
 	}
 	fftw_destroy_plan(p);
-	fftw_free(in);
-	fftw_free(out);
-	*l /= 2;
-	return spectrum;
+	fftw_free(fft_in);
+	fftw_free(fft_out);
+	*c = len;
+	return ret;
 }

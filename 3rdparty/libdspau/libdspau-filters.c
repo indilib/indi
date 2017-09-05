@@ -1,7 +1,24 @@
+/*
+ *   libDSPAU - a digital signal processing library for astronomy usage
+ *   Copyright (C) 2017  Ilia Platone <info@iliaplatone.com>
+ *
+ *   This program is free software: you can redistribute it and/or modify
+ *   it under the terms of the GNU General Public License as published by
+ *   the Free Software Foundation, either version 3 of the License, or
+ *   (at your option) any later version.
+ *
+ *   This program is distributed in the hope that it will be useful,
+ *   but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *   GNU General Public License for more details.
+ *
+ *   You should have received a copy of the GNU General Public License
+ *   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
-#include <float.h>
 #include "libdspau.h"
 
 struct Coefficient {
@@ -18,47 +35,39 @@ struct Coefficient {
 	double y2;
 };
 
-double* dspau_squarelawfilter(double* y, int len)
+int dspau_squarelawfilter(double* in, double* out, int len)
 {
-	double mn = DBL_MAX, mx = DBL_MIN;
-	for(int i = 0; i < len; i++) {
-		mn = (y[i] < mn ? y[i] : mn);
-		mx = (y[i] > mx ? y[i] : mx);
-	}
-	double mean = (double)((mx - mn) / 2 + mn);
-	double* ret = y;
+	double mean = dspau_mean(in, len);
 	int val = 0;
 	for (int i = 0; i < len; i++) {
-		val = ret [i] - mean;
-		ret [i] = (ushort)(abs (val) + mean);
+		val = in [i] - mean;
+		out [i] = (abs (val) + mean);
 	}
-	return ret;
+	return 0;
 }
 
-double* dspau_lowpassfilter(double* y, int len, double SamplingFrequency, double Frequency, double Q)
+int dspau_lowpassfilter(double* in, double* out, int len, double SamplingFrequency, double Frequency, double Q)
 {
-	double* ret = (double*)malloc(sizeof(double) * len);
 	double RC = 1.0 / (Frequency * 2.0 * M_PI); 
-	double dt = 1.0 / SamplingFrequency; 
+	double dt = 1.0 / (SamplingFrequency * 2.0 * M_PI); 
 	double alpha = dt / (RC + dt) / Q;
-	ret [0] = y [0];
+	out [0] = in [0];
 	for (int i = 1; i < len; ++i) { 
-		ret [i] = (ushort)(ret [i - 1] + (alpha * (y [i] - ret [i - 1])));
+		out [i] = (out [i - 1] + (alpha * (in [i] - out [i - 1])));
 	}
-	return ret;
+	return 0;
 }
 
-double* dspau_highpassfilter(double* y, int len, double SamplingFrequency, double Frequency, double Q)
+int dspau_highpassfilter(double* in, double* out, int len, double SamplingFrequency, double Frequency, double Q)
 {
-	double* ret = (double*)malloc(sizeof(double) * len);
-	double RC = 1.0 / (Frequency * 2.0 * M_PI); 
-	double dt = 1.0 / SamplingFrequency; 
+	double RC = 1.0 / (Frequency * 2.0 * M_PI);
+	double dt = 1.0 / (SamplingFrequency * 2.0 * M_PI);
 	double alpha = dt / (RC + dt) / Q;
-	ret [0] = y [0];
+	out [0] = in [0];
 	for (int i = 1; i < len; ++i) { 
-		ret [i] = (ushort)(y[i] - (ret [i - 1] + (alpha * (y [i] - ret [i - 1]))));
+		out [i] = (in[i] - (out [i - 1] + (alpha * (in [i] - out [i - 1]))));
 	}
-	return ret;
+	return 0;
 }
 
 double dspau_singlefilter(double yin, struct Coefficient *coefficient) {
@@ -75,8 +84,7 @@ double dspau_singlefilter(double yin, struct Coefficient *coefficient) {
 	return yout;
 }
 
-double* dspau_bandrejectfilter(double* y, int len, double SamplingFrequency, double Frequency, double Q) {
-	double* ret = (double*)malloc(sizeof(double) * len);
+int dspau_bandrejectfilter(double* in, double* out, int len, double SamplingFrequency, double Frequency, double Q) {
 	double wo = 2.0 * M_PI * Frequency / SamplingFrequency;
 
 	struct Coefficient coefficient;
@@ -86,17 +94,24 @@ double* dspau_bandrejectfilter(double* y, int len, double SamplingFrequency, dou
 	coefficient.d1 = 2 * coefficient.e * coefficient.p;
 	coefficient.d2 = (2 * coefficient.e - 1);
 	for (int x = 0; x < len; x ++) {
-		ret [x + 0] = dspau_singlefilter (y [x], &coefficient);
+		out [x] = dspau_singlefilter (in [x], &coefficient);
 	}
-	return ret;
+	return 0;
 }
 
-double* dspau_bandpassfilter(double* y, int len, double SamplingFrequency, double Frequency, double Q) {
-	double* ret = dspau_bandrejectfilter (y, len, SamplingFrequency, Frequency, Q);
+int dspau_bandpassfilter(double* in, double* out, int len, double SamplingFrequency, double Frequency, double Q) {
+	double wo = 2.0 * M_PI * Frequency / SamplingFrequency;
+
+	struct Coefficient coefficient;
+	coefficient.e = 1 / (1 + tan (wo / (Q * 2)));
+	coefficient.p = cos (wo);
+	coefficient.d0 = coefficient.e;
+	coefficient.d1 = 2 * coefficient.e * coefficient.p;
+	coefficient.d2 = (2 * coefficient.e - 1);
 	for (int x = 0; x < len; x ++) {
-		ret [x] = y [x] - ret [x];
+		out [x] = in [x] - dspau_singlefilter (in [x], &coefficient);
 	}
-	return ret;
+	return 0;
 }
 
 

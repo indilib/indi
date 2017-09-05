@@ -25,9 +25,9 @@ ApgTimer::ApgTimer()
 { 
 
 #ifdef WIN_OS
-    m_timer = std::tr1::shared_ptr<ITimer>( new WinTimer );
+    m_timer = std::shared_ptr<ITimer>( new WinTimer );
 #else
-    m_timer = std::tr1::shared_ptr<ITimer>( new LinuxTimer );
+    m_timer = std::shared_ptr<ITimer>( new LinuxTimer );
 #endif
 
 } 

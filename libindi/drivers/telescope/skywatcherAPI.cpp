@@ -55,6 +55,7 @@ SkywatcherAPI::SkywatcherAPI()
     DegreesPerMicrostep[AXIS1] = DegreesPerMicrostep[AXIS2] = 0;
     MicrostepsPerDegree[AXIS1] = MicrostepsPerDegree[AXIS2] = 0;
     CurrentEncoders[AXIS1] = CurrentEncoders[AXIS2] = 0;
+    PolarisPositionEncoders[AXIS1] = PolarisPositionEncoders[AXIS2] = 0;
     ZeroPositionEncoders[AXIS1] = ZeroPositionEncoders[AXIS2] = 0;
     SlewingSpeed[AXIS1] = SlewingSpeed[AXIS2] = 0;
 }
@@ -209,6 +210,9 @@ bool SkywatcherAPI::GetMicrostepsPerRevolution(AXISID Axis)
     MicrostepsPerDegree[(int)Axis] = tmpMicrostepsPerRevolution / 360.0;
     DegreesPerMicrostep[(int)Axis] = 360.0 / tmpMicrostepsPerRevolution;
 
+    MYDEBUGF(INDI::Logger::DBG_SESSION, "Axis %d: %lf microsteps/degree, %lf microsteps/arcsec", Axis,
+             (double)tmpMicrostepsPerRevolution / 360.0, (double)tmpMicrostepsPerRevolution / 360.0 / 60 / 60);
+
     return true;
 }
 
@@ -347,6 +351,10 @@ bool SkywatcherAPI::InitMount(bool recover)
 
     MountCode = MCVersion & 0xFF;
 
+    // Disable EQ mounts
+    if (MountCode < 0x80)
+        return false;
+
     //// NOTE: Simulator settings, Mount dependent Settings
 
     // Inquire Gear Rate
@@ -386,8 +394,10 @@ bool SkywatcherAPI::InitMount(bool recover)
     // These are used to define the arbitrary zero position vector for the axis
     if (!recover)
     {
-        ZeroPositionEncoders[AXIS1] = CurrentEncoders[AXIS1];
-        ZeroPositionEncoders[AXIS2] = CurrentEncoders[AXIS2];
+        PolarisPositionEncoders[AXIS1] = CurrentEncoders[AXIS1];
+        PolarisPositionEncoders[AXIS2] = CurrentEncoders[AXIS2];
+        ZeroPositionEncoders[AXIS1] = PolarisPositionEncoders[AXIS1];
+        ZeroPositionEncoders[AXIS2] = PolarisPositionEncoders[AXIS2];
     }
 
     if (!InitializeMC())

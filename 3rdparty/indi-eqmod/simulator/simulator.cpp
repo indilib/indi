@@ -120,12 +120,14 @@ bool EQModSimulator::updateProperties(bool enable)
         telescope->defineNumber(SimMotorNP);
         telescope->defineSwitch(SimHighSpeedSP);
         telescope->defineText(SimMCVersionTP);
+
+        defined = true;
         /*
       AlignDataFileTP=telescope->getText("ALIGNDATAFILE");
       AlignDataBP=telescope->getBLOB("ALIGNDATA");
       */
     }
-    else
+    else if (defined)
     {
         telescope->deleteProperty(SimModeSP->name);
         telescope->deleteProperty(SimWormNP->name);

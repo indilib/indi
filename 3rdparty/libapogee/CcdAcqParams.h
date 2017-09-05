@@ -58,7 +58,7 @@ class CcdAcqParams
 
         void SetImagingRegs(const uint16_t FirmwareVer);
 
-        void UpdateApnCamData( std::tr1::shared_ptr<CApnCamData> & newCamData );
+        void UpdateApnCamData( std::shared_ptr<CApnCamData> & newCamData );
 
         void SetAdsSimMode(bool TurnOn);
         
@@ -96,9 +96,9 @@ class CcdAcqParams
 
        CcdAcqParams::CcdReadoutType GetReadoutType();
 
-       CcdAcqParams(std::tr1::shared_ptr<CApnCamData> & camData,
-            std::tr1::shared_ptr<CameraIo> & camIo,
-            std::tr1::shared_ptr<PlatformData> & platformData);
+       CcdAcqParams(std::shared_ptr<CApnCamData> & camData,
+            std::shared_ptr<CameraIo> & camIo,
+            std::shared_ptr<PlatformData> & platformData);
 
         void SetRoiPattern( uint16_t binning );
 
@@ -167,9 +167,9 @@ class CcdAcqParams
             CcdAcqParams::HPatternType ptype ) = 0;
 
         std::string m_fileName;
-        std::tr1::shared_ptr<CApnCamData> m_CamData;
-        std::tr1::shared_ptr<CameraIo> m_CamIo;
-        std::tr1::shared_ptr<PlatformData> m_PlatformData;
+        std::shared_ptr<CApnCamData> m_CamData;
+        std::shared_ptr<CameraIo> m_CamIo;
+        std::shared_ptr<PlatformData> m_PlatformData;
         Apg::Resolution m_AdcRes;
         Apg::AdcSpeed m_speed;
         uint16_t m_RoiStartRow;

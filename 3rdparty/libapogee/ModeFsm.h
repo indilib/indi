@@ -33,8 +33,8 @@ class ModeFsm
     public: 
     
 
-        ModeFsm( std::tr1::shared_ptr<CameraIo> & io,
-             std::tr1::shared_ptr<CApnCamData> & camData,
+        ModeFsm( std::shared_ptr<CameraIo> & io,
+             std::shared_ptr<CApnCamData> & camData,
              uint16_t rev);
         virtual ~ModeFsm();
 
@@ -55,7 +55,7 @@ class ModeFsm
         void SetFastSequence( bool TurnOn );
         bool IsFastSequenceOn();
 
-        void UpdateApnCamData( std::tr1::shared_ptr<CApnCamData> & newCamData );
+        void UpdateApnCamData( std::shared_ptr<CApnCamData> & newCamData );
 
         void SetTdiRows( uint16_t rows );
         uint16_t GetTdiRows() { return m_TdiRows; }
@@ -105,8 +105,8 @@ class ModeFsm
         virtual bool IsExternalTriggerAvailable( Apg::TriggerMode trigMode ) = 0;
 
         Apg::CameraMode m_mode;
-        std::tr1::shared_ptr<CameraIo> m_CamIo;
-        std::tr1::shared_ptr<CApnCamData> m_CamData;
+        std::shared_ptr<CameraIo> m_CamIo;
+        std::shared_ptr<CApnCamData> m_CamData;
         uint16_t m_FirmwareVersion;
 
         bool m_IsBulkDownloadOn;
