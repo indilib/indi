@@ -20,7 +20,6 @@
 
 #include "indibase.h"
 #include "indiproperty.h"
-#include "indistandardproperty.h"
 
 #include <string>
 #include <vector>
@@ -191,7 +190,7 @@ class INDI::BaseDevice
      * @return driver device interface descriptor.
      * @note For example, to know if the driver supports CCD interface, check the retruned value:
      @code{.cpp}
-      if (device->getDriverInterface() | CCD_INTERFACE)
+      if (device->getDriverInterface() & CCD_INTERFACE)
                cout << "We received a camera!" << endl;
      @endcode
      */

@@ -18,6 +18,7 @@
 
 #include "baseclient.h"
 
+#include "indistandardproperty.h"
 #include "base64.h"
 #include "basedevice.h"
 #include "locale_compat.h"
@@ -543,6 +544,11 @@ int INDI::BaseClient::delPropertyCmd(XMLEle *root, char *errmsg)
     if (ap)
     {
         INDI::Property *rProp = dp->getProperty(valuXMLAtt(ap));
+        if (rProp == nullptr)
+        {
+            snprintf(errmsg, MAXRBUF, "Cannot delete property %s as it is not defined yet. Check driver.", valuXMLAtt(ap));
+            return -1;
+        }
         removeProperty(rProp);
         int errCode = dp->removeProperty(valuXMLAtt(ap), errmsg);
 

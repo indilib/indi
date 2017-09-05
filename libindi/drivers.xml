@@ -145,10 +145,10 @@
                 <driver name="Telescope Simulator">indi_simulator_telescope</driver>
                 <version>1.0</version>
         </device>
-        <device label="Skywatcher API Mount" focal_length="" aperture="">
-                <driver name="Skywatcher API Mount">indi_skywatcherAPIMount</driver>
+        <device label="Skywatcher Alt-Az Mount" focal_length="" aperture="">
+                <driver name="Skywatcher Alt-Az Mount">indi_skywatcherAltAzMount</driver>
                 <version>1.0</version>
-        </device>        
+        </device>
         <device label="Telescope Scripting Gateway" focal_length="" aperture="">
           <driver name="Telescope  Scripting Gateway">indi_script_telescope</driver>
           <version>1.0</version>
@@ -172,7 +172,7 @@
           <version>1.0</version>
         </device>
         <device label="Rigelsys NStep">
-          <driver name="NStep">indi_nstep_focus</driver>
+          <driver name="Rigelsys NStep">indi_nstep_focus</driver>
           <version>1.0</version>
         </device>
         <device label="MoonLite">

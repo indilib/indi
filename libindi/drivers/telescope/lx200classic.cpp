@@ -174,7 +174,7 @@ bool LX200Classic::ISNewNumber(const char *dev, const char *name, double values[
 
         if (!strcmp(name, MaxSlewRateNP.name))
         {
-            if (setMaxSlewRate(PortFD, (int)values[0] < 0))
+            if (setMaxSlewRate(PortFD, (int)values[0]) < 0)
             {
                 MaxSlewRateNP.s = IPS_ALERT;
                 IDSetNumber(&MaxSlewRateNP, "Error setting maximum slew rate.");

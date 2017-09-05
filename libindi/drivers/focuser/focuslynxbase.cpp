@@ -52,23 +52,26 @@ FocusLynxBase::FocusLynxBase(const char *target)
 * ***********************************************************************************/
 FocusLynxBase::FocusLynxBase()
 {
-    lynxModels["OA"] = "Optec TCF-Lynx 2";
-    lynxModels["OB"] = "Optec TCF-Lynx 3";
-    lynxModels["OC"] = "Optec TCF-Lynx 2 with Extended Travel";
-    lynxModels["OD"] = "Optec Fast Focus Secondary Focuser";
-    lynxModels["OE"] = "Optec TCF-S Classic converted";
-    lynxModels["OF"] = "Optec TCF-S3 Classic converted";
+
+    lynxModels["Optec TCF-Lynx 2"] = "OA";
+    lynxModels["Optec TCF-Lynx 3"] = "OB";
+    lynxModels["Optec TCF-Lynx 2 with Extended Travel"] = "OC";
+    lynxModels["Optec Fast Focus Secondary Focuser"] = "OD";
+    lynxModels["Optec TCF-S Classic converted"] = "OE";
+    lynxModels["Optec TCF-S3 Classic converted"] = "OF";
     //  lynxModels["OG"] = "Optec Gemini (reserved for future use)";
-    lynxModels["FA"] = "FocusLynx QuickSync FT Hi-Torque";
-    lynxModels["FB"] = "FocusLynx QuickSync FT Hi-Speed";
+    lynxModels["FocusLynx QuickSync FT Hi-Torque"] = "FA";
+    lynxModels["FocusLynx QuickSync FT Hi-Speed"] = "FB";
     //  lynxModels["FC"] = "FocusLynx QuickSync SV (reserved for future use)";
-    lynxModels["FD"] = "DirectSync TEC with bipolar motor - higher speed";
-    lynxModels["FE"] = "FocusLynx QuickSync  Long Travel Hi-Torque";
-    lynxModels["FF"] = "FocusLynx QuickSync  Long Travel Hi-Speed";
-    lynxModels["SO"] = "FeatherTouch Motor Hi-Speed";
-    lynxModels["SP"] = "FeatherTouch Motor Hi-Torque";
-    lynxModels["SQ"] = "Starlight Instruments - FTM with MicroTouch";
-    lynxModels["TA"] = "Televue Focuser";
+    lynxModels["DirectSync TEC with bipolar motor - higher speed"] = "FD";
+    lynxModels["FocusLynx QuickSync  Long Travel Hi-Torque"] = "FE";
+    lynxModels["FocusLynx QuickSync Long Travel Hi-Speed"] = "FF";
+    lynxModels["FeatherTouch Motor PDMS"] = "FE";
+    lynxModels["FeatherTouch Motor Hi-Speed"] = "FE";
+    lynxModels["FeatherTouch Motor Hi-Speed"] = "SO";
+    lynxModels["FeatherTouch Motor Hi-Torque"] = "SP";
+    lynxModels["Starlight Instruments - FTM with MicroTouch"] = "SQ";
+    lynxModels["Televue Focuser"] = "TA";
 
     ModelS = nullptr;
 
@@ -185,7 +188,7 @@ bool FocusLynxBase::initProperties()
     for (iter = lynxModels.begin(); iter != lynxModels.end(); ++iter)
     {
         ModelS = (ISwitch *)realloc(ModelS, (nModels + 1) * sizeof(ISwitch));
-        IUFillSwitch(ModelS + nModels, (iter->first).c_str(), (iter->second).c_str(), ISS_OFF);
+        IUFillSwitch(ModelS + nModels, (iter->second).c_str(), (iter->first).c_str(), ISS_OFF);
         nModels++;
     }
     IUFillSwitchVector(&ModelSP, ModelS, nModels, getDeviceName(), "Model", "", MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1, 0,

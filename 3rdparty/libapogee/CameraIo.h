@@ -106,12 +106,12 @@ class DLL_EXPORT CameraIo
 //this code removes vc++ compiler warning C4251
 //from http://www.unknownroad.com/rtfm/VisualStudio/warningC4251.html
 #ifdef WIN_OS
-        template class DLL_EXPORT std::tr1::shared_ptr<ICamIo>;
-        template class DLL_EXPORT std::tr1::shared_ptr<CamRegMirror>;
+        template class DLL_EXPORT std::shared_ptr<ICamIo>;
+        template class DLL_EXPORT std::shared_ptr<CamRegMirror>;
 #endif
 
-        std::tr1::shared_ptr<ICamIo> m_Interface;
-        std::tr1::shared_ptr<CamRegMirror> m_RegMirror;
+        std::shared_ptr<ICamIo> m_Interface;
+        std::shared_ptr<CamRegMirror> m_RegMirror;
 
     private:
         std::string m_fileName;

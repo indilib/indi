@@ -26,7 +26,7 @@ namespace INDI
 {
 
 /**
- * @class INDI::StandardProperties
+ * @namespace INDI::SP
    @brief INDI Standard Properties are common properties standarized across drivers and clients alike.
 
 INDI does not place any special semantics on property names (i.e. properties are just texts, numbers, or switches that represent no physical function). While GUI clients can construct graphical representation of properties in order to permit the user to operate the device, we run into situations where clients and drivers need to agree on the exact meaning of some fundamental properties.
@@ -45,15 +45,15 @@ The standard properties are divided into the following categories:
 <li>@ref GeneralProperties "General Properties" shared across multiple devices.</li>
 <li>@ref Connection::Interface "Connection Properties"
 <ul>
-    <li>@ref SerialProperties "Serial Properties" used to communicate with and manager serial devices (including Bluetooth).</li>
+    <li>@ref SerialProperties "Serial Properties" used to communicate with and manage serial devices (including Bluetooth).</li>
+    <li>@ref TCPProperties "TCP Properties" used to communicate with and manage devices over the network.</li>
 </ul>
 </li>
 </ol>
 @author Jasem Mutlaq
 */
-class StandardProperty
+namespace SP
 {
-public:
     /**
      * \defgroup GeneralProperties Standard Properties - General: Common properties shared across devices of multiple genres.
      * The following tables describe standard properties pertaining to generic devices. The name of a standard property and its members must be
@@ -75,13 +75,13 @@ public:
      * CONNECTION | SWITCH | CONNECT | OFF | Establish connection to device
      * CONNECTION | SWITCH | DISCONNECT | ON | Disconnect device
      */
-    static constexpr const char *CONNECTION = "CONNECTION";
+    extern const char *CONNECTION;
 
     /*@}*/
 
     /**
-     * \defgroup SerialProperties Standard Properties - Serial: Properties used to communicate with and manage serial devices including
-     * bluetooth. Unless otherwise noted, all the properties are saved in the configuration file so that they are remembered across sessions.
+     * \defgroup SerialProperties Standard Properties - Serial: Properties used to communicate with and manage serial devices.
+     * Serial communication over RS232/485 and Bluetooth. Unless otherwise noted, all the properties are saved in the configuration file so that they are remembered across sessions.
      */
 
     /*@{*/
@@ -93,7 +93,7 @@ public:
      * ---- | ---- | ------ | ------- | -----------
      * DEVICE_PORT | TEXT | PORT | /dev/ttyUSB0 | Device serial connection port
      */
-    static constexpr const char *DEVICE_PORT = "DEVICE_PORT";
+    extern const char *DEVICE_PORT;
 
     /**
      * @brief Toggle device auto search.
@@ -106,13 +106,41 @@ public:
      * DEVICE_AUTO_SEARCH | SWITCH | ENABLED | ON | Auto Search ON
      * DEVICE_AUTO_SEARCH | SWITCH | DISABLED | OFF | Auto Search OFF
      */
-    static constexpr const char *DEVICE_AUTO_SEARCH = "DEVICE_AUTO_SEARCH";
+    extern const char *DEVICE_AUTO_SEARCH;
+
+    /**
+     * @brief Set device baud rate
+     * Name | Type | Member | Default | Description
+     * ---- | ---- | ------ | ------- | -----------
+     * DEVICE_BAUD_RATE | SWITCH | 9600 | ON | 9600
+     * DEVICE_BAUD_RATE | SWITCH | 19200 | OFF | 19200
+     * DEVICE_BAUD_RATE | SWITCH | 38400 | OFF | 38400
+     * DEVICE_BAUD_RATE | SWITCH | 57600 | OFF | 57600
+     * DEVICE_BAUD_RATE | SWITCH | 115200 | OFF | 115200
+     * DEVICE_BAUD_RATE | SWITCH | 230400 | OFF | 230400
+     */
+    extern const char *DEVICE_BAUD_RATE;
 
     /*@}*/
 
-};
+    /**
+     * \defgroup TCPProperties Standard Properties - TCP: Properties used to communicate with and manage devices over the network.
+     * Communication with devices over TCP/IP. Unless otherwise noted, all the properties are saved in the configuration file so that they are remembered across sessions.
+     */
 
-// SP alias Shortcut for INDI::StandardProperty
-using SP = StandardProperty;
+    /*@{*/
 
+    /**
+     * @brief Device hostname and port.
+     * It is part of Connection::TCPInterface to manage connections to devices over the network.
+     * Name | Type | Member | Default | Description
+     * ---- | ---- | ------ | ------- | -----------
+     * DEVICE_TCP_ADDRESS | TEXT | ADDRESS |  | Device hostname or IP Address
+     * DEVICE_TCP_ADDRESS | TEXT | PORT |  | Device port
+     */
+    extern const char *DEVICE_TCP_ADDRESS;
+
+    /*@}*/
+
+}
 } // namespace INDI

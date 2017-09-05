@@ -25,7 +25,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110 - 1301  USA
 
 #include <cmath>
 #include "v4l2driver.h"
-
+#include "indistandardproperty.h"
 #include "lx/Lx.h"
 #include "webcam/v4l2_record/stream_recorder.h"
 
@@ -77,7 +77,7 @@ bool V4L2_Driver::initProperties()
 
     /* Port */
     IUFillText(&PortT[0], "PORT", "Port", "/dev/video0");
-    IUFillTextVector(&PortTP, PortT, NARRAY(PortT), getDeviceName(), "DEVICE_PORT", "Ports", OPTIONS_TAB, IP_RW, 0,
+    IUFillTextVector(&PortTP, PortT, NARRAY(PortT), getDeviceName(), INDI::SP::DEVICE_PORT, "Ports", OPTIONS_TAB, IP_RW, 0,
                      IPS_IDLE);
 
     /* Color space */
@@ -169,7 +169,7 @@ void V4L2_Driver::ISGetProperties(const char *dev)
     INDI::CCD::ISGetProperties(dev);
 
     defineText(&PortTP);
-    loadConfig(true, "DEVICE_PORT");
+    loadConfig(true, INDI::SP::DEVICE_PORT);
 
     if (isConnected())
     {

@@ -19,7 +19,7 @@
 
 #ifdef WIN_OS
 #include <regex>
-#define OS_REGEX std::tr1
+#define OS_REGEX std::
 #else
 #include <boost/regex.hpp>
 #define OS_REGEX boost
@@ -389,7 +389,7 @@ CamCfg::APN_VPATTERN_FILE parseCfgTabDelim::FetchVerticalPattern(
 //////////////////////////// 
 // FETCH        META        DATA
 void parseCfgTabDelim::FetchMetaData(const std::string & fileName,
-        std::vector< std::tr1::shared_ptr<CamCfg::APN_CAMERA_METADATA> > & out)
+        std::vector< std::shared_ptr<CamCfg::APN_CAMERA_METADATA> > & out)
 {
     if( !IsCfgFile( fileName ) )
     {
@@ -418,7 +418,7 @@ void parseCfgTabDelim::FetchMetaData(const std::string & fileName,
             //on the output vector
             if( 0 ==  firstItem.compare("StartCcd"))
             {
-                std::tr1::shared_ptr<CamCfg::APN_CAMERA_METADATA> cfgData(
+                std::shared_ptr<CamCfg::APN_CAMERA_METADATA> cfgData(
                     new CamCfg::APN_CAMERA_METADATA() );
                
                 cfgData->Sensor = item.at(1);
@@ -500,14 +500,14 @@ void parseCfgTabDelim::FetchMetaData(const std::string & fileName,
 CamCfg::APN_CAMERA_METADATA parseCfgTabDelim::FetchMetaData(
         const std::string & fileName, uint16_t CamId )
 {
-     std::vector<std::tr1::shared_ptr<CamCfg::APN_CAMERA_METADATA> > newMetaVect;
+     std::vector<std::shared_ptr<CamCfg::APN_CAMERA_METADATA> > newMetaVect;
 
     parseCfgTabDelim::FetchMetaData( fileName, newMetaVect );
 
     //search for the input cam id
     bool found = false;
     CamCfg::APN_CAMERA_METADATA result;
-    std::vector<std::tr1::shared_ptr<CamCfg::APN_CAMERA_METADATA> >::iterator iter;
+    std::vector<std::shared_ptr<CamCfg::APN_CAMERA_METADATA> >::iterator iter;
     for( iter = newMetaVect.begin(); iter != newMetaVect.end(); ++iter )
     {
         if( CamId == (*iter)->CameraId )

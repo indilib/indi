@@ -19,6 +19,7 @@
 #include "connectiontcp.h"
 
 #include "indilogger.h"
+#include "indistandardproperty.h"
 
 #include <cerrno>
 #include <netdb.h>
@@ -34,7 +35,7 @@ TCP::TCP(INDI::DefaultDevice *dev) : Interface(dev)
     // Address/Port
     IUFillText(&AddressT[0], "ADDRESS", "Address", "");
     IUFillText(&AddressT[1], "PORT", "Port", "");
-    IUFillTextVector(&AddressTP, AddressT, 2, getDeviceName(), "DEVICE_TCP_ADDRESS", "TCP Server", CONNECTION_TAB,
+    IUFillTextVector(&AddressTP, AddressT, 2, getDeviceName(), INDI::SP::DEVICE_TCP_ADDRESS, "TCP Server", CONNECTION_TAB,
                      IP_RW, 60, IPS_IDLE);
 }
 
@@ -127,7 +128,7 @@ bool TCP::Connect()
     if (rc)
     {
         DEBUGF(INDI::Logger::DBG_SESSION, "%s is online.", getDeviceName());
-        device->saveConfig(true, "DEVICE_TCP_ADDRESS");
+        device->saveConfig(true, INDI::SP::DEVICE_TCP_ADDRESS);
     }
     else
         DEBUG(INDI::Logger::DBG_DEBUG, "Handshake failed.");
@@ -149,7 +150,7 @@ bool TCP::Disconnect()
 void TCP::Activated()
 {
     device->defineText(&AddressTP);
-    device->loadConfig(true, "DEVICE_TCP_ADDRESS");
+    device->loadConfig(true, INDI::SP::DEVICE_TCP_ADDRESS);
 }
 
 void TCP::Deactivated()

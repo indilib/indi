@@ -32,7 +32,7 @@ AscentBasedIo::AscentBasedIo(CamModel::InterfaceType type,
     switch( m_type )
     {
         case CamModel::USB:
-            m_Interface = std::tr1::shared_ptr<ICamIo>( new AscentBasedUsbIo( deviceAddr ) );
+            m_Interface = std::shared_ptr<ICamIo>( new AscentBasedUsbIo( deviceAddr ) );
         break;
 
         default:
@@ -60,7 +60,7 @@ void AscentBasedIo::Program(const std::string & FilenameFpga,
             const std::string & FilenameDescriptor,
             bool Print2StdOut)
 {
-    std::tr1::dynamic_pointer_cast<AscentBasedUsbIo>(m_Interface)->Program(
+    std::dynamic_pointer_cast<AscentBasedUsbIo>(m_Interface)->Program(
         FilenameFpga, FilenameFx2, FilenameDescriptor,Print2StdOut );
 }
 
@@ -68,7 +68,7 @@ void AscentBasedIo::Program(const std::string & FilenameFpga,
 //      WRITE        STR         DATA      BASE
 void AscentBasedIo::WriteStrDatabase( const CamInfo::StrDb & info )
 {
-    std::tr1::dynamic_pointer_cast<AscentBasedUsbIo>(
+    std::dynamic_pointer_cast<AscentBasedUsbIo>(
         m_Interface)->WriteStrDatabase( 
          CamInfo::MkStrVectFromStrDb( info )  );
 }
@@ -77,7 +77,7 @@ void AscentBasedIo::WriteStrDatabase( const CamInfo::StrDb & info )
 //      READ        STR         DATA      BASE
 CamInfo::StrDb AscentBasedIo::ReadStrDatabase()
 {
-     std::vector<std::string> result = std::tr1::dynamic_pointer_cast<AscentBasedUsbIo>(
+     std::vector<std::string> result = std::dynamic_pointer_cast<AscentBasedUsbIo>(
         m_Interface)->ReadStrDatabase();
 
      return(  CamInfo::MkStrDbFromStrVect( result ) );
