@@ -964,7 +964,7 @@ bool INDI::Dome::GetTargetAz(double &Az, double &Alt, double &minAz, double &max
     if (HaveLatLong == false)
     {
         triggerSnoop(ActiveDeviceT[0].text, "GEOGRAPHIC_COORD");
-        DEBUG(INDI::Logger::DBG_WARNING, "Geographic coordinates are not yet defined, triggering snope...");
+        DEBUG(INDI::Logger::DBG_WARNING, "Geographic coordinates are not yet defined, triggering snoop...");
         return false;
     }
 
