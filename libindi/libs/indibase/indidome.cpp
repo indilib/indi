@@ -961,6 +961,13 @@ bool INDI::Dome::GetTargetAz(double &Az, double &Alt, double &minAz, double &max
     double RadiusAtAlt;
     int OTASide = 1; /* Side of the telescope with respect of the mount, 1: east, -1: west*/
 
+    if (HaveLatLong == false)
+    {
+        triggerSnoop(ActiveDeviceT[0].text, "GEOGRAPHIC_COORD");
+        DEBUG(INDI::Logger::DBG_WARNING, "Geographic coordinates are not yet defined, triggering snope...");
+        return false;
+    }
+
     double JD  = ln_get_julian_from_sys();
     double MSD = ln_get_mean_sidereal_time(JD);
 
