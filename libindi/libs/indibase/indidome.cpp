@@ -1013,9 +1013,6 @@ bool INDI::Dome::GetTargetAz(double &Az, double &Alt, double &minAz, double &max
     DEBUGF(INDI::Logger::DBG_DEBUG, "Mount Az: %g  Alt: %g", mountHoriztonalCoords.az, mountHoriztonalCoords.alt);
     DEBUGF(INDI::Logger::DBG_DEBUG, "OV.x: %g - OV.y: %g OV.z: %g", OptVector.x, OptVector.y, OptVector.z);
 
-    OptVector.x+=OptCenter.x;
-    OptVector.y+=OptCenter.y;
-    OptVector.z+=OptCenter.z;
 
     if (Intersection(OptCenter, OptVector, DomeMeasurementsN[DM_DOME_RADIUS].value, mu1, mu2))
     {
@@ -1023,9 +1020,9 @@ bool INDI::Dome::GetTargetAz(double &Az, double &Alt, double &minAz, double &max
         if (mu1 < 0)
             mu1 = mu2;
 
-        DomeIntersect.x = OptCenter.x + mu1 * (OptVector.x - OptCenter.x);
-        DomeIntersect.y = OptCenter.y + mu1 * (OptVector.y - OptCenter.y);
-        DomeIntersect.z = OptCenter.z + mu1 * (OptVector.z - OptCenter.z);
+        DomeIntersect.x = OptCenter.x + mu1 * (OptVector.x);
+        DomeIntersect.y = OptCenter.y + mu1 * (OptVector.y);
+        DomeIntersect.z = OptCenter.z + mu1 * (OptVector.z);
 
         if (fabs(DomeIntersect.x) > 0.001)
         {
