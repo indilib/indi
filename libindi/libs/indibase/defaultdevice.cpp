@@ -353,18 +353,19 @@ bool INDI::DefaultDevice::ISNewSwitch(const char *dev, const char *name, ISState
             else if (!strcmp(names[i], "DISCONNECT") && (states[i] == ISS_ON))
             {
                 // If connected, then true to disconnect.
-                if (isConnected() == true)
+                bool connected = isConnected();
+                if (connected == true)
                     rc = Disconnect();
                 else
                     rc = true;
 
-                if (rc)
+                if (rc && connected) // Only update if previously connected
                 {
                     setConnected(false, IPS_IDLE);
                     updateProperties();
                 }
                 else
-                    setConnected(true, IPS_ALERT);
+                    setConnected(connected, IPS_ALERT); // revert to previous state
             }
         }
 
