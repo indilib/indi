@@ -116,10 +116,10 @@ bool INDI::Dome::initProperties()
     IUFillNumberVector(&DomeMeasurementsNP, DomeMeasurementsN, 6, getDeviceName(), "DOME_MEASUREMENTS", "Measurements",
                        DOME_SLAVING_TAB, IP_RW, 60, IPS_OK);
 
-    IUFillSwitch(&OTASideS[0], "DM_OTA_SIDE_EAST", "East", ISS_ON);
+    IUFillSwitch(&OTASideS[0], "DM_OTA_SIDE_EAST", "East", ISS_OFF);
     IUFillSwitch(&OTASideS[1], "DM_OTA_SIDE_WEST", "West", ISS_OFF);
     IUFillSwitchVector(&OTASideSP, OTASideS, 2, getDeviceName(), "DM_OTA_SIDE", "Meridian side", DOME_SLAVING_TAB,
-                       IP_RW, ISR_1OFMANY, 60, IPS_OK);
+                       IP_RW, ISR_ATMOST1, 60, IPS_OK);
 
     IUFillSwitch(&DomeAutoSyncS[0], "DOME_AUTOSYNC_ENABLE", "Enable", ISS_OFF);
     IUFillSwitch(&DomeAutoSyncS[1], "DOME_AUTOSYNC_DISABLE", "Disable", ISS_ON);
@@ -178,6 +178,7 @@ bool INDI::Dome::initProperties()
     IDSnoopDevice(ActiveDeviceT[0].text, "EQUATORIAL_EOD_COORD");
     IDSnoopDevice(ActiveDeviceT[0].text, "GEOGRAPHIC_COORD");
     IDSnoopDevice(ActiveDeviceT[0].text, "TELESCOPE_PARK");
+    IDSnoopDevice(ActiveDeviceT[0].text, "TELESCOPE_PIER_SIDE");
 
     IDSnoopDevice(ActiveDeviceT[1].text, "WEATHER_STATUS");
 
@@ -616,6 +617,7 @@ bool INDI::Dome::ISNewText(const char *dev, const char *name, char *texts[], cha
             IDSnoopDevice(ActiveDeviceT[0].text, "TARGET_EOD_COORD");
             IDSnoopDevice(ActiveDeviceT[0].text, "GEOGRAPHIC_COORD");
             IDSnoopDevice(ActiveDeviceT[0].text, "TELESCOPE_PARK");
+            IDSnoopDevice(ActiveDeviceT[0].text, "TELESCOPE_PIER_SIDE");
             IDSnoopDevice(ActiveDeviceT[1].text, "WEATHER_STATUS");
 
             return true;
@@ -654,6 +656,11 @@ bool INDI::Dome::ISSnoopDevice(XMLEle *root)
             if (rc_ra == 0 && rc_de == 0)
             {
                 //  everything parsed ok, so lets start the dome to moving
+		//  If this slew involves a meridan flip, then the slaving calcs will end up using
+		//  the wrong OTA side.  Lets set things up so our slaving code will calculate the side
+		//  for the target slew instead of using mount pier side info
+		OTASideSP.s=IPS_IDLE;
+		IDSetSwitch(&OTASideSP,nullptr);
                 //  and see if we can get there at the same time as the mount
                 mountEquatorialCoords.ra  = ra * 15.0;
                 mountEquatorialCoords.dec = de;
@@ -780,6 +787,32 @@ bool INDI::Dome::ISSnoopDevice(XMLEle *root)
 
             return true;
         }
+    }
+    if (!strcmp("TELESCOPE_PIER_SIDE", propName))
+    {
+	// set defaults to say we have no valid information from mount
+	bool isEast=false;
+	bool isWest=false;
+	OTASideS[0].s=ISS_OFF;
+	OTASideS[1].s=ISS_OFF;
+	OTASideSP.s=IPS_IDLE;
+	//  crack the message
+        for (ep = nextXMLEle(root, 1); ep != nullptr; ep = nextXMLEle(root, 0))
+        {
+            const char *elemName = findXMLAttValu(ep, "name");		
+
+            if (!strcmp(elemName, "PIER_EAST") && !strcmp(pcdataXMLEle(ep), "On"))
+                isEast = true;
+            else if (!strcmp(elemName, "PIER_WEST") && !strcmp(pcdataXMLEle(ep), "On"))
+                isWest = true;
+        }
+	//  update the switch
+	if(isEast) OTASideS[0].s=ISS_ON;
+	if(isWest) OTASideS[1].s=ISS_ON;
+	if(isWest || isEast) OTASideSP.s=IPS_OK;
+	//  and set it.  If we didn't get valid info, it'll be set to idle and neither 'button' pressed in the ui
+	IDSetSwitch(&OTASideSP,nullptr);
+	return true;
     }
 
     controller->ISSnoopDevice(root);
@@ -984,14 +1017,22 @@ bool INDI::Dome::GetTargetAz(double &Az, double &Alt, double &minAz, double &max
 
     DEBUGF(INDI::Logger::DBG_DEBUG, "HA: %g  Lng: %g RA: %g", hourAngle, observer.lng, mountEquatorialCoords.ra);
 
-//  We are nt getting this from the mounts anyways
-/*
-    if (OTASideS[0].s != ISS_ON)
-        OTASide = -1;
-*/
-    //  figure out the pier side without help from the mount
-    if(hourAngle > 0) OTASide=-1;
-    else OTASide=1;
+    //  this will have state OK if the mount sent us information
+    //  and it will be IDLE if not
+    if(OTASideSP.s==IPS_OK) {
+        // process info from the mount
+        if(OTASideS[0].s==ISS_ON) OTASide=-1;
+        else OTASide=1;
+    } else {
+    	//  figure out the pier side without help from the mount
+        if(hourAngle > 0) OTASide=-1;
+        else OTASide=1;
+	//  if we got here because we turned off the PIER_SIDE switches in a target goto
+        //  lets try get it back on
+        triggerSnoop(ActiveDeviceT[0].text, "TELESCOPE_PIER_SIDE");
+
+    }
+
 
     OpticalCenter(MountCenter, OTASide * DomeMeasurementsN[DM_OTA_OFFSET].value, observer.lat, hourAngle, OptCenter);
 
@@ -1003,7 +1044,7 @@ bool INDI::Dome::GetTargetAz(double &Az, double &Alt, double &minAz, double &max
     ln_get_hrz_from_equ(&mountEquatorialCoords, &observer, JD, &mountHoriztonalCoords);
 
     mountHoriztonalCoords.az += 180;
-    if (mountHoriztonalCoords.az > 360)
+    if (mountHoriztonalCoords.az >= 360)
         mountHoriztonalCoords.az -= 360;
     if (mountHoriztonalCoords.az < 0)
         mountHoriztonalCoords.az += 360;
@@ -1013,21 +1054,17 @@ bool INDI::Dome::GetTargetAz(double &Az, double &Alt, double &minAz, double &max
     DEBUGF(INDI::Logger::DBG_DEBUG, "Mount Az: %g  Alt: %g", mountHoriztonalCoords.az, mountHoriztonalCoords.alt);
     DEBUGF(INDI::Logger::DBG_DEBUG, "OV.x: %g - OV.y: %g OV.z: %g", OptVector.x, OptVector.y, OptVector.z);
 
-    OptVector.x+=OptCenter.x;
-    OptVector.y+=OptCenter.y;
-    OptVector.z+=OptCenter.z;
-
     if (Intersection(OptCenter, OptVector, DomeMeasurementsN[DM_DOME_RADIUS].value, mu1, mu2))
     {
         // If telescope is pointing over the horizon, the solution is mu1, else is mu2
         if (mu1 < 0)
             mu1 = mu2;
 
-        DomeIntersect.x = OptCenter.x + mu1 * (OptVector.x - OptCenter.x);
-        DomeIntersect.y = OptCenter.y + mu1 * (OptVector.y - OptCenter.y);
-        DomeIntersect.z = OptCenter.z + mu1 * (OptVector.z - OptCenter.z);
+        DomeIntersect.x = OptCenter.x + mu1 * (OptVector.x );
+        DomeIntersect.y = OptCenter.y + mu1 * (OptVector.y );
+        DomeIntersect.z = OptCenter.z + mu1 * (OptVector.z );
 
-        if (fabs(DomeIntersect.x) > 0.001)
+        if (fabs(DomeIntersect.x) > 0.00001)
         {
             yx = DomeIntersect.y / DomeIntersect.x;
             Az = 90 - 180 * atan(yx) / M_PI;
@@ -1049,7 +1086,7 @@ bool INDI::Dome::GetTargetAz(double &Az, double &Alt, double &minAz, double &max
                 Az = 270;
         }
 
-        if ((fabs(DomeIntersect.x) > 0.001) || (fabs(DomeIntersect.y) > 0.001))
+        if ((fabs(DomeIntersect.x) > 0.00001) || (fabs(DomeIntersect.y) > 0.00001))
             Alt = 180 *
                   atan(DomeIntersect.z /
                        sqrt((DomeIntersect.x * DomeIntersect.x) + (DomeIntersect.y * DomeIntersect.y))) /
