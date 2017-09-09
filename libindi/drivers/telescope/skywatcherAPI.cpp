@@ -210,6 +210,9 @@ bool SkywatcherAPI::GetMicrostepsPerRevolution(AXISID Axis)
     MicrostepsPerDegree[(int)Axis] = tmpMicrostepsPerRevolution / 360.0;
     DegreesPerMicrostep[(int)Axis] = 360.0 / tmpMicrostepsPerRevolution;
 
+    MYDEBUGF(INDI::Logger::DBG_SESSION, "Axis %d: %lf microsteps/degree, %lf microsteps/arcsec", Axis,
+             (double)tmpMicrostepsPerRevolution / 360.0, (double)tmpMicrostepsPerRevolution / 360.0 / 60 / 60);
+
     return true;
 }
 

@@ -30,7 +30,7 @@
 // We declare an auto pointer to ScopeSim.
 std::unique_ptr<ScopeSim> telescope_sim(new ScopeSim());
 
-#define GOTO_RATE      8        /* slew rate, degrees/s */
+#define GOTO_RATE      6.5      /* slew rate, degrees/s */
 #define SLEW_RATE      2.5      /* slew rate, degrees/s */
 #define FINE_SLEW_RATE 0.5      /* slew rate, degrees/s */
 
