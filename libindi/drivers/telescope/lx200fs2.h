@@ -44,6 +44,9 @@ class LX200FS2 : public LX200Generic
     virtual bool SetCurrentPark();
     virtual bool SetDefaultPark();
 
+    // Fake Location
+    virtual bool updateLocation(double latitude, double longitude, double elevation) override;
+
     INumber SlewAccuracyN[2];
     INumberVectorProperty SlewAccuracyNP;
 
