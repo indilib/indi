@@ -18,6 +18,7 @@
 */
 
 #include "indi_rtlsdr_detector.h"
+#include <math.h>
 #include <unistd.h>
 #include <indilogger.h>
 #include <libdspau.h>
@@ -26,6 +27,7 @@
 #define MAX_TRIES 20
 #define MAX_DEVICES 4
 #define SUBFRAME_SIZE 256
+#define SAMPLE_RATE 1000000
 
 const int POLLMS = 500; /* Polling interval 500 ms */
 
@@ -229,7 +231,7 @@ bool RTLSDR::initProperties()
 
 	PrimaryDetector.setMinMaxStep("DETECTOR_CAPTURE", "DETECTOR_CAPTURE_VALUE", 0.1, 10, 1, false);
 	PrimaryDetector.setMinMaxStep("DETECTOR_SETTINGS", "DETECTOR_FREQUENCY", 2.4e+7, 2.0e+9, 1, false);
-	PrimaryDetector.setMinMaxStep("DETECTOR_SETTINGS", "DETECTOR_SAMPLERATE", 1.0e+4, 2.0e+6, 1, false);
+	PrimaryDetector.setMinMaxStep("DETECTOR_SETTINGS", "DETECTOR_SAMPLERATE", 1, 1, 0, false);
 	PrimaryDetector.setMinMaxStep("DETECTOR_SETTINGS", "DETECTOR_BITSPERSAMPLE", 8, 8, 1, false);
 
 	// Add Debug, Simulator, and Configuration controls
@@ -277,7 +279,7 @@ bool RTLSDR::StartCapture(float duration)
 
 	// Since we have only have one Detector with one chip, we set the exposure duration of the primary Detector
 	PrimaryDetector.setCaptureDuration(duration);
-
+	PrimaryDetector.setSampleRate(1.0 / duration);
 	gettimeofday(&CapStart, nullptr);
 
 	InCapture = true;
@@ -292,19 +294,17 @@ bool RTLSDR::StartCapture(float duration)
 bool RTLSDR::CaptureParamsUpdated(float sr, float freq, float bps)
 {
     	INDI_UNUSED(bps);
+    	INDI_UNUSED(sr);
 	int r = 0;
-	InCapture = false;
 
 	r = rtlsdr_set_center_freq(rtl_dev, (uint32_t)freq);
 	if(r != 0)
 		return false;
 	if(rtlsdr_get_center_freq(rtl_dev) != freq)
 		PrimaryDetector.setFrequency(rtlsdr_get_center_freq(rtl_dev));
-	r = rtlsdr_set_sample_rate(rtl_dev, (uint32_t)sr);
+	r = rtlsdr_set_sample_rate(rtl_dev, 1000000);
 	if(r != 0)
 		return false;
-	if(rtlsdr_get_sample_rate(rtl_dev) != sr)
-		PrimaryDetector.setFrequency(rtlsdr_get_sample_rate(rtl_dev));
 
 	return true;
 }
@@ -371,31 +371,35 @@ void RTLSDR::TimerHit()
 ***************************************************************************************/
 void RTLSDR::grabData()
 {
-	int n_read, to_read;
-	int len = PrimaryDetector.getSampleRate() * PrimaryDetector.getCaptureDuration();
+	int n_read, to_read, b_read;
+	int len = SAMPLE_RATE * PrimaryDetector.getCaptureDuration();
 	len -= (len % SUBFRAME_SIZE) - SUBFRAME_SIZE;
 	if(len != PrimaryDetector.getContinuumBufferSize()) {
 		PrimaryDetector.setContinuumBufferSize(len); 
 		continuum = PrimaryDetector.getContinuumBuffer();
 	}
 	to_read = len;
-
+	b_read = 0;
+	unsigned char *tmp = (unsigned char *)malloc(len * sizeof(unsigned char));
 	rtlsdr_reset_buffer(rtl_dev);
-	while(to_read > 0) {
-		rtlsdr_read_sync(rtl_dev, continuum + (len - to_read), to_read, &n_read);
-		to_read -= n_read;
+	while(to_read > 0 && b_read < len) {
+		rtlsdr_read_sync(rtl_dev, tmp + b_read, to_read, &n_read);
+		b_read += n_read;
+		to_read = SUBFRAME_SIZE + ((len - b_read) % SUBFRAME_SIZE);
 	}
-
-        //Create the spectrum
 	double *tmp1 = (double *)malloc(len * sizeof(double));
 	double *tmp2 = (double *)malloc(len * sizeof(double));
-	dspau_u8todouble(continuum, tmp1, len);
+	dspau_u8todouble(tmp, tmp2, len);
+	dspau_squarelawfilter(tmp2, tmp1, len);
+	continuum[0] = (unsigned char)dspau_mean(tmp1, len);
+
+        //Create the spectrum
 	dspau_spectrum(tmp1, tmp2, &len, magnitude_rooted);
 	if(len != PrimaryDetector.getSpectrumBufferSize()) {
 		PrimaryDetector.setSpectrumBufferSize(len);
 		spectrum = PrimaryDetector.getSpectrumBuffer();
 	}
-	dspau_stretch(tmp2, spectrum, len, 0.0, 255.0);
+	dspau_stretch(tmp2, spectrum, len, 0.0, 1.0);
 	free(tmp1);
 	free(tmp2);
 

@@ -75,6 +75,7 @@ option(WITH_DSI "Install Meade DSI Driver" On)
 option(WITH_ASICAM "Install ZWO Optics ASI Driver" On)
 option(WITH_MGEN "Install MGen Autoguider" On)
 option(WITH_RTLSDR "Install RTL-SDR Receiver" On)
+option(WITH_RADIOSIM "Install RadioSim Receiver" On)
 
 # Add/remove cases for OSX
 IF (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
@@ -90,6 +91,7 @@ IF (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
     set(WITH_QHY Off)
     set(WITH_MGEN Off)
     set(WITH_RTLSDR Off)
+    set(WITH_RADIOSIM Off)
 ENDIF ()
 # Dsi contains invalid C++ codes what does not compile with Clang
 IF ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "AppleClang" OR "${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
@@ -256,6 +258,11 @@ add_subdirectory(libdspau)
 SET(LIBRARIES_FOUND FALSE)
 endif (DSPAU_FOUND)
 endif (WITH_RTLSDR)
+
+# RadioSim
+if (WITH_RADIOSIM)
+add_subdirectory(indi-radiosim)
+endif (WITH_RADIOSIM)
 
 #endif (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
 
