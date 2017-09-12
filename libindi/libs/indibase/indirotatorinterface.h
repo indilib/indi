@@ -28,13 +28,8 @@
    \brief Provides interface to implement Rotator functionality.
 
    A Rotator can be an independent device, or an embedded Rotator within another device (usually a rotating focuser). Child class must implement all the
-   pure virtual functions. Only absolute position Rotators are supported.
-
-   In order support Positoin Angle (-180 to +180, E of N), a multiplier and an offset are defined to the client to alter the raw angle values.
-
-   Final_Angle = Raw_Angle * Multiplier + Offset
-
-   By default, multipler = 1 and offset = 0. All internal calls are made using Final_Angle (Position Angle). The final angle is calculated and sent to clients.
+   pure virtual functions. Only absolute position Rotators are supported. Angle is ranged from 0 to 360 increasing clockwise when looking at the back
+   of the camera.
 
    \e IMPORTANT: initRotatorProperties() must be called before any other function to initilize the Rotator properties.
 
@@ -100,6 +95,11 @@ protected:
      */
     bool updateProperties(INDI::DefaultDevice *defaultDevice);
 
+    /** \brief Process Rotator number properties */
+    bool processNumber(const char *dev, const char *name, double values[], char *names[], int n);
+
+    /** \brief Process Rotator switch properties */
+    bool processSwitch(const char *dev, const char *name, ISState *states, char *names[], int n);
 
     /**
      * @brief GotoRotatorTicks Go to an absolute position.
@@ -109,8 +109,8 @@ protected:
     virtual IPState MoveAbsRotator(uint32_t ticks) = 0;
 
     /**
-     * @brief GotoRotatorAngle Go to specific position angle. Child class can decode raw angle from the current multiplier and offset settings.
-     * @param angle Target position angle in degrees.
+     * @brief GotoRotatorAngle Go to specific angle
+     * @param angle Target angle in degrees.
      * @return State of operation: IPS_OK is motion is completed, IPS_BUSY if motion in progress, IPS_ALERT on error.
      */
     virtual IPState MoveAngleRotator(double angle) = 0;
@@ -134,24 +134,11 @@ protected:
      */
     virtual bool AbortRotator();
 
-    /**
-     * @brief saveRotatorConfig Save Rotator properties in configuration file
-     * @param fp Pointer to configuration file
-     * @return True if successful, false otherwise.
-     */
-    bool saveRotatorConfig(FILE *fp);
-
-    /** \brief Process Rotator number properties */
-    bool processRotatorNumber(const char *dev, const char *name, double values[], char *names[], int n);
-
-    /** \brief Process Rotator switch properties */
-    bool processRotatorSwitch(const char *dev, const char *name, ISState *states, char *names[], int n);
-
     INumber RotatorAbsPosN[1];
     INumberVectorProperty RotatorAbsPosNP;
 
-    INumber RotatorPositionAngleN[1];
-    INumberVectorProperty RotatorPositionAngleNP;
+    INumber RotatorAbsAngleN[1];
+    INumberVectorProperty RotatorAbsAngleNP;
 
     INumber SyncRotatorN[1];
     INumberVectorProperty SyncRotatorNP;
@@ -161,9 +148,6 @@ protected:
 
     ISwitch HomeRotatorS[1];
     ISwitchVectorProperty HomeRotatorSP;
-
-    INumber RotatorAngleSettingN[2];
-    INumberVectorProperty RotatorAngleSettingNP;
 
     uint32_t rotatorCapability = 0;
     char rotatorName[MAXINDIDEVICE];

@@ -219,8 +219,8 @@ bool Gemini::initProperties()
     IUFillNumberVector(&RotatorAbsPosNP, RotatorAbsPosN, 1, getDeviceName(), "ABS_ROTATOR_POSITION", "Goto", ROTATOR_TAB, IP_RW, 0, IPS_IDLE );
 
     // Rotator Degree
-    IUFillNumber(&RotatorPositionAngleN[0], "ANGLE", "Degrees", "%.2f", 0, 360., 10., 0.);
-    IUFillNumberVector(&RotatorPositionAngleNP, RotatorPositionAngleN, 1, getDeviceName(), "ABS_ROTATOR_ANGLE", "Angle", ROTATOR_TAB, IP_RW, 0, IPS_IDLE );
+    IUFillNumber(&RotatorAbsAngleN[0], "ANGLE", "Degrees", "%.2f", 0, 360., 10., 0.);
+    IUFillNumberVector(&RotatorAbsAngleNP, RotatorAbsAngleN, 1, getDeviceName(), "ABS_ROTATOR_ANGLE", "Angle", ROTATOR_TAB, IP_RW, 0, IPS_IDLE );
 
     // Abort Rotator
     IUFillSwitch(&AbortRotatorS[0], "ABORT", "Abort", ISS_OFF);
@@ -298,7 +298,7 @@ bool Gemini::updateProperties()
 
         // Rotator Properties
         defineNumber(&RotatorAbsPosNP);
-        defineNumber(&RotatorPositionAngleNP);
+        defineNumber(&RotatorAbsAngleNP);
         defineSwitch(&AbortRotatorSP);
         defineSwitch(&RotatorGotoSP);
         defineSwitch(&RotatorBacklashCompensationSP);
@@ -336,7 +336,7 @@ bool Gemini::updateProperties()
 
         // Rotator Properties
         deleteProperty(RotatorAbsPosNP.name);
-        deleteProperty(RotatorPositionAngleNP.name);
+        deleteProperty(RotatorAbsAngleNP.name);
         deleteProperty(AbortRotatorSP.name);
         deleteProperty(RotatorGotoSP.name);
         deleteProperty(RotatorBacklashCompensationSP.name);
@@ -629,9 +629,9 @@ bool Gemini::ISNewSwitch(const char *dev, const char *name, ISState *states, cha
         {
             if (halt(DEVICE_ROTATOR))
             {
-                RotatorAbsPosNP.s = RotatorPositionAngleNP.s = RotatorGotoSP.s = IPS_IDLE;
+                RotatorAbsPosNP.s = RotatorAbsAngleNP.s = RotatorGotoSP.s = IPS_IDLE;
                 IDSetNumber(&RotatorAbsPosNP, nullptr);
-                IDSetNumber(&RotatorPositionAngleNP, nullptr);
+                IDSetNumber(&RotatorAbsAngleNP, nullptr);
                 IUResetSwitch(&RotatorGotoSP);
                 IDSetSwitch(&RotatorGotoSP, nullptr);
 
@@ -754,11 +754,11 @@ bool Gemini::ISNewNumber(const char *dev, const char *name, double values[], cha
         }
 
         // Set Rotator Absolute Angle
-        if (!strcmp(RotatorPositionAngleNP.name, name))
+        if (!strcmp(RotatorAbsAngleNP.name, name))
         {
-            IUUpdateNumber(&RotatorPositionAngleNP, values, names, n);
-            RotatorPositionAngleNP.s = MoveAbsRotatorAngle(RotatorPositionAngleN[0].value);
-            IDSetNumber(&RotatorPositionAngleNP, nullptr);
+            IUUpdateNumber(&RotatorAbsAngleNP, values, names, n);
+            RotatorAbsAngleNP.s = MoveAbsRotatorAngle(RotatorAbsAngleN[0].value);
+            IDSetNumber(&RotatorAbsAngleNP, nullptr);
             return true;
         }
 
@@ -1410,11 +1410,11 @@ bool Gemini::getRotatorStatus()
     if (rc == 2)
     {
         // Only send when above a threshold
-        double diffPA = fabs(RotatorPositionAngleN[0].value - currPA / 1000.0);
+        double diffPA = fabs(RotatorAbsAngleN[0].value - currPA / 1000.0);
         if (diffPA >= 0.01)
         {
-            RotatorPositionAngleN[0].value = currPA / 1000.0;
-            IDSetNumber(&RotatorPositionAngleNP, nullptr);
+            RotatorAbsAngleN[0].value = currPA / 1000.0;
+            IDSetNumber(&RotatorAbsAngleNP, nullptr);
         }
     }
     else
@@ -3091,7 +3091,7 @@ void Gemini::TimerHit()
         return;
     }
 
-    if (RotatorAbsPosNP.s == IPS_BUSY || RotatorPositionAngleNP.s == IPS_BUSY)
+    if (RotatorAbsPosNP.s == IPS_BUSY || RotatorAbsAngleNP.s == IPS_BUSY)
     {
         /*if (isSimulation())
         {
@@ -3125,16 +3125,16 @@ void Gemini::TimerHit()
             IDSetSwitch(&RotatorGotoSP, nullptr);
             RotatorAbsPosNP.s = IPS_OK;
             IDSetNumber(&RotatorAbsPosNP, nullptr);
-            RotatorPositionAngleNP.s = IPS_OK;
-            IDSetNumber(&RotatorPositionAngleNP, nullptr);
+            RotatorAbsAngleNP.s = IPS_OK;
+            IDSetNumber(&RotatorAbsAngleNP, nullptr);
             DEBUG(INDI::Logger::DBG_SESSION, "Rotator reached home position.");
         }
         else if (RotatorStatusL[STATUS_MOVING].s == IPS_IDLE)
         {
             RotatorAbsPosNP.s = IPS_OK;
             IDSetNumber(&RotatorAbsPosNP, nullptr);
-            RotatorPositionAngleNP.s = IPS_OK;
-            IDSetNumber(&RotatorPositionAngleNP, nullptr);
+            RotatorAbsAngleNP.s = IPS_OK;
+            IDSetNumber(&RotatorAbsAngleNP, nullptr);
             if (RotatorGotoSP.s == IPS_BUSY)
             {
                 IUResetSwitch(&RotatorGotoSP);
@@ -3300,7 +3300,7 @@ IPState Gemini::MoveAbsRotatorAngle(double angle)
             return IPS_ALERT;
     }
 
-    RotatorPositionAngleNP.s = IPS_BUSY;
+    RotatorAbsAngleNP.s = IPS_BUSY;
 
     tcflush(PortFD, TCIFLUSH);
 
