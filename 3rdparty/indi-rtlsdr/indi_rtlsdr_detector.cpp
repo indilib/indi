@@ -18,7 +18,6 @@
 */
 
 #include "indi_rtlsdr_detector.h"
-#include <math.h>
 #include <unistd.h>
 #include <indilogger.h>
 #include <libdspau.h>
@@ -27,7 +26,7 @@
 #define MAX_TRIES 20
 #define MAX_DEVICES 4
 #define SUBFRAME_SIZE 256
-#define SAMPLE_RATE 1000000
+#define SAMPLE_RATE 10000
 
 const int POLLMS = 500; /* Polling interval 500 ms */
 
@@ -375,33 +374,33 @@ void RTLSDR::grabData()
 	int len = SAMPLE_RATE * PrimaryDetector.getCaptureDuration();
 	len -= (len % SUBFRAME_SIZE) - SUBFRAME_SIZE;
 	if(len != PrimaryDetector.getContinuumBufferSize()) {
-		PrimaryDetector.setContinuumBufferSize(len); 
+		PrimaryDetector.setContinuumBufferSize(1); 
 		continuum = PrimaryDetector.getContinuumBuffer();
 	}
 	to_read = len;
 	b_read = 0;
-	unsigned char *tmp = (unsigned char *)malloc(len * sizeof(unsigned char));
+	unsigned char *data8 = (unsigned char *)malloc(len * sizeof(unsigned char));
+	double *data48 = (double *)malloc(len * sizeof(double));
+	double *flat48 = (double *)malloc(len * sizeof(double));
+	spectrum = (double *)realloc(spectrum, len * sizeof(double));
 	rtlsdr_reset_buffer(rtl_dev);
 	while(to_read > 0 && b_read < len) {
-		rtlsdr_read_sync(rtl_dev, tmp + b_read, to_read, &n_read);
+		rtlsdr_read_sync(rtl_dev, data8 + b_read, to_read, &n_read);
 		b_read += n_read;
 		to_read = SUBFRAME_SIZE + ((len - b_read) % SUBFRAME_SIZE);
 	}
-	double *tmp1 = (double *)malloc(len * sizeof(double));
-	double *tmp2 = (double *)malloc(len * sizeof(double));
-	dspau_u8todouble(tmp, tmp2, len);
-	dspau_squarelawfilter(tmp2, tmp1, len);
-	continuum[0] = (unsigned char)dspau_mean(tmp1, len);
+	dspau_u8todouble(data8, data48, len);
+	dspau_squarelawfilter(data48, flat48, len);
+	continuum[0] = (unsigned char)dspau_mean(flat48, len);
 
         //Create the spectrum
-	dspau_spectrum(tmp1, tmp2, &len, magnitude_rooted);
+	dspau_spectrum(data48, spectrum, &len, magnitude_rooted);
 	if(len != PrimaryDetector.getSpectrumBufferSize()) {
-		PrimaryDetector.setSpectrumBufferSize(len);
-		spectrum = PrimaryDetector.getSpectrumBuffer();
+		PrimaryDetector.setSpectrumBufferSize(len, false);
+		PrimaryDetector.setSpectrumBuffer(spectrum);
 	}
-	dspau_stretch(tmp2, spectrum, len, 0.0, 1.0);
-	free(tmp1);
-	free(tmp2);
+	free(data8);
+	free(data48);
 
 	DEBUG(INDI::Logger::DBG_SESSION, "Download complete.");
 
