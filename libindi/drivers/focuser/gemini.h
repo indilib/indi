@@ -216,8 +216,8 @@ protected:
     INumberVectorProperty RotatorAbsPosNP;
 
     // Rotator Degrees or PA (Position Angle)
-    INumber RotatorAbsAngleN[1];
-    INumberVectorProperty RotatorAbsAngleNP;
+    INumber RotatorPositionAngleN[1];
+    INumberVectorProperty RotatorPositionAngleNP;
 
     // Enable/Disable backlash
     ISwitch RotatorBacklashCompensationS[2];

@@ -21,8 +21,9 @@
 #pragma once
 
 #include "indifocuser.h"
+#include "indirotatorinterface.h"
 
-class NightCrawler : public INDI::Focuser
+class NightCrawler : public INDI::Focuser, public INDI::RotatorInterface
 {
   public:
 
@@ -39,13 +40,22 @@ class NightCrawler : public INDI::Focuser
     virtual bool ISNewSwitch (const char * dev, const char * name, ISState * states, char * names[], int n);
 
   protected:
+    // Focuser
     virtual IPState MoveAbsFocuser(uint32_t targetTicks);
     virtual IPState MoveRelFocuser(FocusDirection dir, uint32_t ticks);
+    virtual bool AbortFocuser();    
 
-    virtual bool AbortFocuser();
-    virtual void TimerHit();
 
+    // Rotator
+    virtual IPState MoveAbsRotator(uint32_t ticks);
+    virtual IPState HomeRotator();
+    virtual IPState MoveAngleRotator(double angle);
+    virtual bool SyncRotator(uint32_t ticks);
+    virtual bool AbortRotator();
+
+    // Misc.
     virtual bool saveConfigItems(FILE *fp);
+    virtual void TimerHit();
 
   private:
     // Get Firmware
@@ -83,22 +93,16 @@ class NightCrawler : public INDI::Focuser
     bool setDisplayBrightness(uint8_t value);
     bool setSleepBrightness(uint8_t value);
 
-    INumber RotatorAbsPosN[1];
-    INumberVectorProperty RotatorAbsPosNP;
-    INumber RotatorAbsAngleN[1];
-    INumberVectorProperty RotatorAbsAngleNP;
+
     INumber GotoAuxN[1];
     INumberVectorProperty GotoAuxNP;
 
     INumber SyncFocusN[1];
     INumberVectorProperty SyncFocusNP;
-    INumber SyncRotatorN[1];
-    INumberVectorProperty SyncRotatorNP;
+
     INumber SyncAuxN[1];
     INumberVectorProperty SyncAuxNP;
 
-    ISwitch AbortRotatorS[1];
-    ISwitchVectorProperty AbortRotatorSP;
     ISwitch AbortAuxS[1];
     ISwitchVectorProperty AbortAuxSP;
 
