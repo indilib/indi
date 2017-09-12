@@ -76,7 +76,7 @@ DetectorDevice::DetectorDevice()
     NAxis       = 2;
 
 
-    strncpy(captureExtention, "fits", MAXINDIBLOBFMT);
+    strncpy(captureExtention, "raw", MAXINDIBLOBFMT);
 }
 
 DetectorDevice::~DetectorDevice()
@@ -827,6 +827,7 @@ bool INDI::Detector::CaptureComplete(DetectorDevice *targetDevice)
                 fitsfile *fptr = nullptr;
 
                 naxes[0] = targetDevice->getContinuumBufferSize() * 8 / targetDevice->getBPS();
+		naxes[0] = naxes[0] < 1 ? 1 : naxes[0];
                 naxes[1] = 1;
 
                 switch (targetDevice->getBPS())
