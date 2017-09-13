@@ -57,6 +57,7 @@ option(WITH_EQMOD "Install EQMod Driver" On)
 option(WITH_NSE "Install Nexstar Evo Driver" On)
 option(WITH_SX "Install StarLight Xpress Driver" On)
 option(WITH_MAXDOME "Install MaxDomeII Driver" On)
+option(WITH_NEXDOME "Install NexDome Driver" On)
 option(WITH_SPECTRACYBER "Install Spectracyber Driver" On)
 option(WITH_CLOUDWATCHER "Install AAG Cloud Watcher Driver" On)
 option(WITH_MI "Install Moravian Driver" Off)
@@ -116,6 +117,11 @@ endif(WITH_SX)
 if (WITH_MAXDOME)
 add_subdirectory(indi-maxdomeii)
 endif(WITH_MAXDOME)
+
+## NexDome
+if (WITH_NEXDOME)
+add_subdirectory(indi-nexdome)
+endif(WITH_NEXDOME)
 
 ## SpectraCyber
 if (WITH_SPECTRACYBER)
