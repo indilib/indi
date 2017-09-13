@@ -578,14 +578,14 @@ void NexDome::ProcessDomeMessage(char *buf)
     b1=atof(&buf[1]);
     if((b1 != ShutterPosition)) {
       ShutterPosition=b1;
-      if((b1==90.0)) {
+      if(b1==90.0) {
         shutterState=SHUTTER_OPENED;
         DomeShutterSP.s=IPS_OK;
 	DomeShutterS[0].s=ISS_OFF;
 	DomeShutterS[1].s=ISS_OFF;
         IDSetSwitch(&DomeShutterSP,"Shutter is open");
       } else {
-        if((b1==-22.5)) {
+        if(b1==-22.5) {
           shutterState=SHUTTER_CLOSED;
           DomeShutterSP.s=IPS_IDLE;
 	  DomeShutterS[0].s=ISS_OFF;
