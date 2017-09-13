@@ -646,6 +646,13 @@ add_executable(indi_moonlite_focus ${moonlite_SRC})
 target_link_libraries(indi_moonlite_focus indidriver)
 install(TARGETS indi_moonlite_focus RUNTIME DESTINATION bin)
 
+################ Pegasus DMFC Focuser ################
+SET(pegasus_SRC
+    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/focuser/dmfc.cpp)
+
+add_executable(indi_dmfc_focus ${pegasus_SRC})
+target_link_libraries(indi_dmfc_focus indidriver)
+install(TARGETS indi_dmfc_focus RUNTIME DESTINATION bin)
 ################## USB Focus V3 ##################
 
 SET(usbfocusv3_SRC
