@@ -37,9 +37,9 @@ void INDI::RotatorInterface::initProperties(INDI::DefaultDevice *defaultDevice, 
     IUFillNumber(&RotatorAbsPosN[0], "ROTATOR_ABSOLUTE_POSITION", "Ticks", "%.f", 0., 0., 0., 0.);
     IUFillNumberVector(&RotatorAbsPosNP, RotatorAbsPosN, 1, defaultDevice->getDeviceName(), "ABS_ROTATOR_POSITION", "Goto", groupName, IP_RW, 0, IPS_IDLE );
 
-    // Rotator Position Angle
-    IUFillNumber(&RotatorAbsAngleN[0], "ANGLE", "Degrees", "%.2f", -180, 180., 10., 0.);
-    IUFillNumberVector(&RotatorAbsAngleNP, RotatorAbsAngleN, 1, defaultDevice->getDeviceName(), "ABS_ROTATOR_ANGLE", "Position Angle", groupName, IP_RW, 0, IPS_IDLE );
+    // Rotator Angle
+    IUFillNumber(&RotatorAbsAngleN[0], "ANGLE", "Degrees", "%.2f", 0, 360., 10., 0.);
+    IUFillNumberVector(&RotatorAbsAngleNP, RotatorAbsAngleN, 1, defaultDevice->getDeviceName(), "ABS_ROTATOR_ANGLE", "Angle", groupName, IP_RW, 0, IPS_IDLE );
 
     // Abort Rotator
     IUFillSwitch(&AbortRotatorS[0], "ABORT", "Abort", ISS_OFF);
