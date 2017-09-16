@@ -66,17 +66,17 @@ class INDI::RotatorInterface
     /**
      * @return Whether Rotator can abort.
      */
-    bool CanAbort() { return RotatorCapability & ROTATOR_CAN_ABORT;}
+    bool CanAbort() { return rotatorCapability & ROTATOR_CAN_ABORT;}
 
     /**
      * @return Whether Rotator can go to home position.
      */
-    bool CanHome()  { return RotatorCapability & ROTATOR_CAN_HOME;}
+    bool CanHome()  { return rotatorCapability & ROTATOR_CAN_HOME;}
 
     /**
      * @return Whether Rotator can sync ticks position to a new one.
      */
-    bool CanSync()  { return RotatorCapability & ROTATOR_CAN_SYNC;}
+    bool CanSync()  { return rotatorCapability & ROTATOR_CAN_SYNC;}
 
 protected:
 
