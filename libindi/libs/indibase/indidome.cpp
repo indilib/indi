@@ -178,7 +178,8 @@ bool INDI::Dome::initProperties()
     IDSnoopDevice(ActiveDeviceT[0].text, "EQUATORIAL_EOD_COORD");
     IDSnoopDevice(ActiveDeviceT[0].text, "GEOGRAPHIC_COORD");
     IDSnoopDevice(ActiveDeviceT[0].text, "TELESCOPE_PARK");
-    IDSnoopDevice(ActiveDeviceT[0].text, "TELESCOPE_PIER_SIDE");
+    if (CanAbsMove())
+        IDSnoopDevice(ActiveDeviceT[0].text, "TELESCOPE_PIER_SIDE");
 
     IDSnoopDevice(ActiveDeviceT[1].text, "WEATHER_STATUS");
 
@@ -617,7 +618,8 @@ bool INDI::Dome::ISNewText(const char *dev, const char *name, char *texts[], cha
             IDSnoopDevice(ActiveDeviceT[0].text, "TARGET_EOD_COORD");
             IDSnoopDevice(ActiveDeviceT[0].text, "GEOGRAPHIC_COORD");
             IDSnoopDevice(ActiveDeviceT[0].text, "TELESCOPE_PARK");
-            IDSnoopDevice(ActiveDeviceT[0].text, "TELESCOPE_PIER_SIDE");
+            if (CanAbsMove())
+                IDSnoopDevice(ActiveDeviceT[0].text, "TELESCOPE_PIER_SIDE");
             IDSnoopDevice(ActiveDeviceT[1].text, "WEATHER_STATUS");
 
             return true;
@@ -651,16 +653,16 @@ bool INDI::Dome::ISSnoopDevice(XMLEle *root)
                 rc_de = f_scansexa(pcdataXMLEle(ep), &de);
         }
         //  Dont start moving the dome till the mount has initialized all the variables
-        if (HaveRaDec)
+        if (HaveRaDec && CanAbsMove())
         {
             if (rc_ra == 0 && rc_de == 0)
             {
                 //  everything parsed ok, so lets start the dome to moving
-		//  If this slew involves a meridan flip, then the slaving calcs will end up using
-		//  the wrong OTA side.  Lets set things up so our slaving code will calculate the side
-		//  for the target slew instead of using mount pier side info
-		OTASideSP.s=IPS_IDLE;
-		IDSetSwitch(&OTASideSP,nullptr);
+                //  If this slew involves a meridan flip, then the slaving calcs will end up using
+                //  the wrong OTA side.  Lets set things up so our slaving code will calculate the side
+                //  for the target slew instead of using mount pier side info
+                OTASideSP.s=IPS_IDLE;
+                IDSetSwitch(&OTASideSP,nullptr);
                 //  and see if we can get there at the same time as the mount
                 mountEquatorialCoords.ra  = ra * 15.0;
                 mountEquatorialCoords.dec = de;
@@ -790,29 +792,29 @@ bool INDI::Dome::ISSnoopDevice(XMLEle *root)
     }
     if (!strcmp("TELESCOPE_PIER_SIDE", propName))
     {
-	// set defaults to say we have no valid information from mount
-	bool isEast=false;
-	bool isWest=false;
-	OTASideS[0].s=ISS_OFF;
-	OTASideS[1].s=ISS_OFF;
-	OTASideSP.s=IPS_IDLE;
-	//  crack the message
+        // set defaults to say we have no valid information from mount
+        bool isEast=false;
+        bool isWest=false;
+        OTASideS[0].s=ISS_OFF;
+        OTASideS[1].s=ISS_OFF;
+        OTASideSP.s=IPS_IDLE;
+        //  crack the message
         for (ep = nextXMLEle(root, 1); ep != nullptr; ep = nextXMLEle(root, 0))
         {
-            const char *elemName = findXMLAttValu(ep, "name");		
+            const char *elemName = findXMLAttValu(ep, "name");
 
             if (!strcmp(elemName, "PIER_EAST") && !strcmp(pcdataXMLEle(ep), "On"))
                 isEast = true;
             else if (!strcmp(elemName, "PIER_WEST") && !strcmp(pcdataXMLEle(ep), "On"))
                 isWest = true;
         }
-	//  update the switch
-	if(isEast) OTASideS[0].s=ISS_ON;
-	if(isWest) OTASideS[1].s=ISS_ON;
-	if(isWest || isEast) OTASideSP.s=IPS_OK;
-	//  and set it.  If we didn't get valid info, it'll be set to idle and neither 'button' pressed in the ui
-	IDSetSwitch(&OTASideSP,nullptr);
-	return true;
+        //  update the switch
+        if(isEast) OTASideS[0].s=ISS_ON;
+        if(isWest) OTASideS[1].s=ISS_ON;
+        if(isWest || isEast) OTASideSP.s=IPS_OK;
+        //  and set it.  If we didn't get valid info, it'll be set to idle and neither 'button' pressed in the ui
+        IDSetSwitch(&OTASideSP,nullptr);
+        return true;
     }
 
     controller->ISSnoopDevice(root);
@@ -1019,20 +1021,23 @@ bool INDI::Dome::GetTargetAz(double &Az, double &Alt, double &minAz, double &max
 
     //  this will have state OK if the mount sent us information
     //  and it will be IDLE if not
-    if(OTASideSP.s==IPS_OK) {
+    if(CanAbsMove() && OTASideSP.s==IPS_OK)
+    {
         // process info from the mount
         if(OTASideS[0].s==ISS_ON) OTASide=-1;
         else OTASide=1;
-    } else {
+    }
+    else
+    {
     	//  figure out the pier side without help from the mount
         if(hourAngle > 0) OTASide=-1;
         else OTASide=1;
-	//  if we got here because we turned off the PIER_SIDE switches in a target goto
+        //  if we got here because we turned off the PIER_SIDE switches in a target goto
         //  lets try get it back on
-        triggerSnoop(ActiveDeviceT[0].text, "TELESCOPE_PIER_SIDE");
+        if (CanAbsMove())
+            triggerSnoop(ActiveDeviceT[0].text, "TELESCOPE_PIER_SIDE");
 
     }
-
 
     OpticalCenter(MountCenter, OTASide * DomeMeasurementsN[DM_OTA_OFFSET].value, observer.lat, hourAngle, OptCenter);
 
