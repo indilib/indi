@@ -16,55 +16,83 @@
  Boston, MA 02110-1301, USA.
 *******************************************************************************/
 
-#ifndef INDI_FILTERWHEEL_H
-#define INDI_FILTERWHEEL_H
+#pragma once
 
 #include "defaultdevice.h"
-#include "indicontroller.h"
 #include "indifilterinterface.h"
 
 /**
  * \class INDI::FilterWheel
-   \brief Class to provide general functionality of a filter wheel device.
-
-   Developers need to subclass INDI::FilterWheel to implement any driver for filter wheels within INDI.
-
-\author Gerry Rozema, Jasem Mutlaq
-\see INDI::FilterInterface
-*/
-class INDI::FilterWheel: public INDI::DefaultDevice, public INDI::FilterInterface
+ * \brief Class to provide general functionality of a filter wheel device.
+ *
+ * Developers need to subclass INDI::FilterWheel to implement any driver for filter wheels within INDI.
+ *
+ * \author Gerry Rozema, Jasem Mutlaq
+ * \see INDI::FilterInterface
+ */
+class INDI::FilterWheel : public INDI::DefaultDevice, public INDI::FilterInterface
 {
-protected:
-
+  protected:
     FilterWheel();
     virtual ~FilterWheel();
 
-public:
+  public:
+    /**
+     * \struct FilterConnection
+     * \brief Holds the connection mode of the Filter.
+     */
+    enum
+    {
+        CONNECTION_NONE   = 1 << 0, /** Do not use any connection plugin */
+        CONNECTION_SERIAL = 1 << 1, /** For regular serial and bluetooth connections */
+        CONNECTION_TCP    = 1 << 2  /** For Wired and WiFI connections */
+    } FilterConnection;
 
     virtual bool initProperties();
     virtual bool updateProperties();
-    virtual void ISGetProperties (const char *dev);
-    virtual bool ISSnoopDevice (XMLEle *root);
-    virtual bool ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n);
-    virtual bool ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n);
-    virtual bool ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n);
+    virtual void ISGetProperties(const char *dev);
+    virtual bool ISSnoopDevice(XMLEle *root);
+    virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n);
+    virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n);
+    virtual bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n);
 
-    static void joystickHelper(const char * joystick_n, double mag, double angle, void *context);
-    static void buttonHelper(const char * button_n, ISState state, void *context);
+    static void joystickHelper(const char *joystick_n, double mag, double angle, void *context);
+    static void buttonHelper(const char *button_n, ISState state, void *context);
 
-   protected:
+    /**
+     * @brief setFilterConnection Set Filter connection mode. Child class should call this in the constructor before INDI::Filter registers
+     * any connection interfaces
+     * @param value ORed combination of FilterConnection values.
+     */
+    void setFilterConnection(const uint8_t &value);
 
+    /**
+     * @return Get current Filter connection mode
+     */
+    uint8_t getFilterConnection() const;
+
+  protected:
     virtual bool saveConfigItems(FILE *fp);
     virtual int QueryFilter();
     virtual bool SelectFilter(int);
     virtual bool SetFilterNames();
-    virtual bool GetFilterNames(const char* groupName);
+    virtual bool GetFilterNames(const char *groupName);
 
-    void processJoystick(const char * joystick_n, double mag, double angle);
-    void processButton(const char * button_n, ISState state);
+    /** \brief perform handshake with device to check communication */
+    virtual bool Handshake();
+
+    void processJoystick(const char *joystick_n, double mag, double angle);
+    void processButton(const char *button_n, ISState state);
 
     INDI::Controller *controller;
 
-};
+    Connection::Serial *serialConnection = NULL;
+    Connection::TCP *tcpConnection       = NULL;
 
-#endif // INDI::FilterWheel_H
+    /// For Serial & TCP connections
+    int PortFD = -1;
+
+  private:
+    bool callHandshake();
+    uint8_t filterConnection = CONNECTION_NONE;
+};

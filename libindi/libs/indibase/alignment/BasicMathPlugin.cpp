@@ -6,20 +6,24 @@
 
 #include "DriverCommon.h"
 
+#include <libnova/julian_day.h>
+
+#include <gsl/gsl_blas.h>
+#include <gsl/gsl_permutation.h>
+#include <gsl/gsl_linalg.h>
+
 #include <limits>
 #include <iostream>
 #include <map>
-#include <gsl/gsl_permutation.h>
-#include <gsl/gsl_linalg.h>
-#include <gsl/gsl_blas.h>
 
-namespace INDI {
-namespace AlignmentSubsystem {
-
+namespace INDI
+{
+namespace AlignmentSubsystem
+{
 BasicMathPlugin::BasicMathPlugin()
 {
-    pActualToApparentTransform = gsl_matrix_alloc(3,3);
-    pApparentToActualTransform = gsl_matrix_alloc(3,3);
+    pActualToApparentTransform = gsl_matrix_alloc(3, 3);
+    pApparentToActualTransform = gsl_matrix_alloc(3, 3);
 }
 
 // Destructor
@@ -32,10 +36,10 @@ BasicMathPlugin::~BasicMathPlugin()
 
 // Public methods
 
-bool BasicMathPlugin::Initialise(InMemoryDatabase* pInMemoryDatabase)
+bool BasicMathPlugin::Initialise(InMemoryDatabase *pInMemoryDatabase)
 {
     MathPlugin::Initialise(pInMemoryDatabase);
-    InMemoryDatabase::AlignmentDatabaseType& SyncPoints = pInMemoryDatabase->GetAlignmentDatabase();
+    InMemoryDatabase::AlignmentDatabaseType &SyncPoints = pInMemoryDatabase->GetAlignmentDatabase();
 
     /// See how many entries there are in the in memory database.
     /// - If just one use a hint to mounts approximate alignment, this can either be ZENITH,
@@ -54,10 +58,10 @@ bool BasicMathPlugin::Initialise(InMemoryDatabase* pInMemoryDatabase)
 
         case 1:
         {
-            AlignmentDatabaseEntry& Entry1 = SyncPoints[0];
+            AlignmentDatabaseEntry &Entry1 = SyncPoints[0];
             ln_equ_posn RaDec;
             ln_hrz_posn ActualSyncPoint1;
-            ln_lnlat_posn Position;
+            ln_lnlat_posn Position { 0, 0 };
             if (!pInMemoryDatabase->GetDatabaseReferencePosition(Position))
                 return false;
             RaDec.dec = Entry1.Declination;
@@ -65,12 +69,13 @@ bool BasicMathPlugin::Initialise(InMemoryDatabase* pInMemoryDatabase)
             RaDec.ra = Entry1.RightAscension * 360.0 / 24.0;
             ln_get_hrz_from_equ(&RaDec, &Position, Entry1.ObservationJulianDate, &ActualSyncPoint1);
             // Now express this coordinate as a normalised direction vector (a.k.a direction cosines)
-            TelescopeDirectionVector ActualDirectionCosine1 = TelescopeDirectionVectorFromAltitudeAzimuth(ActualSyncPoint1);
+            TelescopeDirectionVector ActualDirectionCosine1 =
+                TelescopeDirectionVectorFromAltitudeAzimuth(ActualSyncPoint1);
             TelescopeDirectionVector DummyActualDirectionCosine2;
             TelescopeDirectionVector DummyApparentDirectionCosine2;
             TelescopeDirectionVector DummyActualDirectionCosine3;
             TelescopeDirectionVector DummyApparentDirectionCosine3;
-            
+
             switch (ApproximateMountAlignment)
             {
                 case ZENITH:
@@ -84,10 +89,10 @@ bool BasicMathPlugin::Initialise(InMemoryDatabase* pInMemoryDatabase)
                 {
                     ln_equ_posn DummyRaDec;
                     ln_hrz_posn DummyAltAz;
-                    DummyRaDec.ra = 0.0;
+                    DummyRaDec.ra  = 0.0;
                     DummyRaDec.dec = 90.0;
                     ln_get_hrz_from_equ(&DummyRaDec, &Position, ln_get_julian_from_sys(), &DummyAltAz);
-                    DummyActualDirectionCosine2 = TelescopeDirectionVectorFromAltitudeAzimuth(DummyAltAz);
+                    DummyActualDirectionCosine2   = TelescopeDirectionVectorFromAltitudeAzimuth(DummyAltAz);
                     DummyApparentDirectionCosine2 = DummyActualDirectionCosine2;
                     break;
                 }
@@ -95,10 +100,10 @@ bool BasicMathPlugin::Initialise(InMemoryDatabase* pInMemoryDatabase)
                 {
                     ln_equ_posn DummyRaDec;
                     ln_hrz_posn DummyAltAz;
-                    DummyRaDec.ra = 0.0;
+                    DummyRaDec.ra  = 0.0;
                     DummyRaDec.dec = -90.0;
                     ln_get_hrz_from_equ(&DummyRaDec, &Position, ln_get_julian_from_sys(), &DummyAltAz);
-		    DummyActualDirectionCosine2 = TelescopeDirectionVectorFromAltitudeAzimuth(DummyAltAz);
+                    DummyActualDirectionCosine2   = TelescopeDirectionVectorFromAltitudeAzimuth(DummyAltAz);
                     DummyApparentDirectionCosine2 = DummyActualDirectionCosine2;
                     break;
                 }
@@ -108,34 +113,37 @@ bool BasicMathPlugin::Initialise(InMemoryDatabase* pInMemoryDatabase)
             DummyApparentDirectionCosine3 = Entry1.TelescopeDirection * DummyApparentDirectionCosine2;
             DummyApparentDirectionCosine3.Normalise();
             CalculateTransformMatrices(ActualDirectionCosine1, DummyActualDirectionCosine2, DummyActualDirectionCosine3,
-                                Entry1.TelescopeDirection, DummyApparentDirectionCosine2, DummyApparentDirectionCosine3,
-                                pActualToApparentTransform, pApparentToActualTransform);
+                                       Entry1.TelescopeDirection, DummyApparentDirectionCosine2,
+                                       DummyApparentDirectionCosine3, pActualToApparentTransform,
+                                       pApparentToActualTransform);
             return true;
         }
         case 2:
         {
             // First compute local horizontal coordinates for the two sync points
-            AlignmentDatabaseEntry& Entry1 = SyncPoints[0];
-            AlignmentDatabaseEntry& Entry2 = SyncPoints[1];
+            AlignmentDatabaseEntry &Entry1 = SyncPoints[0];
+            AlignmentDatabaseEntry &Entry2 = SyncPoints[1];
             ln_hrz_posn ActualSyncPoint1;
             ln_hrz_posn ActualSyncPoint2;
             ln_equ_posn RaDec1;
             ln_equ_posn RaDec2;
             RaDec1.dec = Entry1.Declination;
             // libnova works in decimal degrees so conversion is needed here
-            RaDec1.ra = Entry1.RightAscension * 360.0 / 24.0;
+            RaDec1.ra  = Entry1.RightAscension * 360.0 / 24.0;
             RaDec2.dec = Entry2.Declination;
             // libnova works in decimal degrees so conversion is needed here
             RaDec2.ra = Entry2.RightAscension * 360.0 / 24.0;
-            ln_lnlat_posn Position;
+            ln_lnlat_posn Position { 0, 0 };
             if (!pInMemoryDatabase->GetDatabaseReferencePosition(Position))
                 return false;
             ln_get_hrz_from_equ(&RaDec1, &Position, Entry1.ObservationJulianDate, &ActualSyncPoint1);
             ln_get_hrz_from_equ(&RaDec2, &Position, Entry2.ObservationJulianDate, &ActualSyncPoint2);
 
             // Now express these coordinates as normalised direction vectors (a.k.a direction cosines)
-            TelescopeDirectionVector ActualDirectionCosine1 = TelescopeDirectionVectorFromAltitudeAzimuth(ActualSyncPoint1);
-            TelescopeDirectionVector ActualDirectionCosine2 = TelescopeDirectionVectorFromAltitudeAzimuth(ActualSyncPoint2);
+            TelescopeDirectionVector ActualDirectionCosine1 =
+                TelescopeDirectionVectorFromAltitudeAzimuth(ActualSyncPoint1);
+            TelescopeDirectionVector ActualDirectionCosine2 =
+                TelescopeDirectionVectorFromAltitudeAzimuth(ActualSyncPoint2);
             TelescopeDirectionVector DummyActualDirectionCosine3;
             TelescopeDirectionVector DummyApparentDirectionCosine3;
             DummyActualDirectionCosine3 = ActualDirectionCosine1 * ActualDirectionCosine2;
@@ -145,17 +153,18 @@ bool BasicMathPlugin::Initialise(InMemoryDatabase* pInMemoryDatabase)
 
             // The third direction vectors is generated by taking the cross product of the first two
             CalculateTransformMatrices(ActualDirectionCosine1, ActualDirectionCosine2, DummyActualDirectionCosine3,
-                                Entry1.TelescopeDirection, Entry2.TelescopeDirection, DummyApparentDirectionCosine3,
-                                pActualToApparentTransform, pApparentToActualTransform);
+                                       Entry1.TelescopeDirection, Entry2.TelescopeDirection,
+                                       DummyApparentDirectionCosine3, pActualToApparentTransform,
+                                       pApparentToActualTransform);
             return true;
         }
 
         case 3:
         {
             // First compute local horizontal coordinates for the three sync points
-            AlignmentDatabaseEntry& Entry1 = SyncPoints[0];
-            AlignmentDatabaseEntry& Entry2 = SyncPoints[1];
-            AlignmentDatabaseEntry& Entry3 = SyncPoints[2];
+            AlignmentDatabaseEntry &Entry1 = SyncPoints[0];
+            AlignmentDatabaseEntry &Entry2 = SyncPoints[1];
+            AlignmentDatabaseEntry &Entry3 = SyncPoints[2];
             ln_hrz_posn ActualSyncPoint1;
             ln_hrz_posn ActualSyncPoint2;
             ln_hrz_posn ActualSyncPoint3;
@@ -164,14 +173,14 @@ bool BasicMathPlugin::Initialise(InMemoryDatabase* pInMemoryDatabase)
             ln_equ_posn RaDec3;
             RaDec1.dec = Entry1.Declination;
             // libnova works in decimal degrees so conversion is needed here
-            RaDec1.ra = Entry1.RightAscension * 360.0 / 24.0;
+            RaDec1.ra  = Entry1.RightAscension * 360.0 / 24.0;
             RaDec2.dec = Entry2.Declination;
             // libnova works in decimal degrees so conversion is needed here
-            RaDec2.ra = Entry2.RightAscension * 360.0 / 24.0;
+            RaDec2.ra  = Entry2.RightAscension * 360.0 / 24.0;
             RaDec3.dec = Entry3.Declination;
             // libnova works in decimal degrees so conversion is needed here
             RaDec3.ra = Entry3.RightAscension * 360.0 / 24.0;
-            ln_lnlat_posn Position;
+            ln_lnlat_posn Position { 0, 0 };
             if (!pInMemoryDatabase->GetDatabaseReferencePosition(Position))
                 return false;
             ln_get_hrz_from_equ(&RaDec1, &Position, Entry1.ObservationJulianDate, &ActualSyncPoint1);
@@ -179,20 +188,22 @@ bool BasicMathPlugin::Initialise(InMemoryDatabase* pInMemoryDatabase)
             ln_get_hrz_from_equ(&RaDec3, &Position, Entry3.ObservationJulianDate, &ActualSyncPoint3);
 
             // Now express these coordinates as normalised direction vectors (a.k.a direction cosines)
-            TelescopeDirectionVector ActualDirectionCosine1 = TelescopeDirectionVectorFromAltitudeAzimuth(ActualSyncPoint1);
-            TelescopeDirectionVector ActualDirectionCosine2 = TelescopeDirectionVectorFromAltitudeAzimuth(ActualSyncPoint2);
-            TelescopeDirectionVector ActualDirectionCosine3 = TelescopeDirectionVectorFromAltitudeAzimuth(ActualSyncPoint3);
+            TelescopeDirectionVector ActualDirectionCosine1 =
+                TelescopeDirectionVectorFromAltitudeAzimuth(ActualSyncPoint1);
+            TelescopeDirectionVector ActualDirectionCosine2 =
+                TelescopeDirectionVectorFromAltitudeAzimuth(ActualSyncPoint2);
+            TelescopeDirectionVector ActualDirectionCosine3 =
+                TelescopeDirectionVectorFromAltitudeAzimuth(ActualSyncPoint3);
 
             CalculateTransformMatrices(ActualDirectionCosine1, ActualDirectionCosine2, ActualDirectionCosine3,
-                                Entry1.TelescopeDirection, Entry2.TelescopeDirection, Entry3.TelescopeDirection,
-                                pActualToApparentTransform, pApparentToActualTransform);
+                                       Entry1.TelescopeDirection, Entry2.TelescopeDirection, Entry3.TelescopeDirection,
+                                       pActualToApparentTransform, pApparentToActualTransform);
             return true;
         }
 
-
         default:
         {
-            ln_lnlat_posn Position;
+            ln_lnlat_posn Position { 0, 0 };
             if (!pInMemoryDatabase->GetDatabaseReferencePosition(Position))
                 return false;
 
@@ -207,7 +218,8 @@ bool BasicMathPlugin::Initialise(InMemoryDatabase* pInMemoryDatabase)
 
             int VertexNumber = 1;
             // Add the rest of the vertices
-            for (InMemoryDatabase::AlignmentDatabaseType::const_iterator Itr = SyncPoints.begin(); Itr != SyncPoints.end(); Itr++)
+            for (InMemoryDatabase::AlignmentDatabaseType::const_iterator Itr = SyncPoints.begin();
+                 Itr != SyncPoints.end(); Itr++)
             {
                 ln_equ_posn RaDec;
                 ln_hrz_posn ActualSyncPoint;
@@ -216,10 +228,13 @@ bool BasicMathPlugin::Initialise(InMemoryDatabase* pInMemoryDatabase)
                 RaDec.ra = (*Itr).RightAscension * 360.0 / 24.0;
                 ln_get_hrz_from_equ(&RaDec, &Position, (*Itr).ObservationJulianDate, &ActualSyncPoint);
                 // Now express this coordinate as normalised direction vectors (a.k.a direction cosines)
-                TelescopeDirectionVector ActualDirectionCosine = TelescopeDirectionVectorFromAltitudeAzimuth(ActualSyncPoint);
+                TelescopeDirectionVector ActualDirectionCosine =
+                    TelescopeDirectionVectorFromAltitudeAzimuth(ActualSyncPoint);
                 ActualDirectionCosines.push_back(ActualDirectionCosine);
-                ActualConvexHull.MakeNewVertex(ActualDirectionCosine.x, ActualDirectionCosine.y, ActualDirectionCosine.z, VertexNumber);
-                ApparentConvexHull.MakeNewVertex((*Itr).TelescopeDirection.x, (*Itr).TelescopeDirection.y, (*Itr).TelescopeDirection.z, VertexNumber);
+                ActualConvexHull.MakeNewVertex(ActualDirectionCosine.x, ActualDirectionCosine.y,
+                                               ActualDirectionCosine.z, VertexNumber);
+                ApparentConvexHull.MakeNewVertex((*Itr).TelescopeDirection.x, (*Itr).TelescopeDirection.y,
+                                                 (*Itr).TelescopeDirection.z, VertexNumber);
                 VertexNumber++;
             }
             // I should only need to do this once but it is easier to do it twice
@@ -235,14 +250,15 @@ bool BasicMathPlugin::Initialise(InMemoryDatabase* pInMemoryDatabase)
 #ifdef CONVEX_HULL_DEBUGGING
             int ActualFaces = 0;
 #endif
-            if (NULL != CurrentFace)
+            if (nullptr != CurrentFace)
             {
                 do
                 {
 #ifdef CONVEX_HULL_DEBUGGING
                     ActualFaces++;
 #endif
-                    if ((0 == CurrentFace->vertex[0]->vnum) || (0 == CurrentFace->vertex[1]->vnum) || (0 == CurrentFace->vertex[2]->vnum))
+                    if ((0 == CurrentFace->vertex[0]->vnum) || (0 == CurrentFace->vertex[1]->vnum) ||
+                        (0 == CurrentFace->vertex[2]->vnum))
                     {
 #ifdef CONVEX_HULL_DEBUGGING
                         ASSDEBUGF("Initialise - Ignoring actual face %d", ActualFaces);
@@ -252,21 +268,19 @@ bool BasicMathPlugin::Initialise(InMemoryDatabase* pInMemoryDatabase)
                     {
 #ifdef CONVEX_HULL_DEBUGGING
                         ASSDEBUGF("Initialise - Processing actual face %d v1 %d v2 %d v3 %d", ActualFaces,
-                                                                        CurrentFace->vertex[0]->vnum,
-                                                                        CurrentFace->vertex[1]->vnum,
-                                                                        CurrentFace->vertex[2]->vnum);
+                                  CurrentFace->vertex[0]->vnum, CurrentFace->vertex[1]->vnum,
+                                  CurrentFace->vertex[2]->vnum);
 #endif
                         CalculateTransformMatrices(ActualDirectionCosines[CurrentFace->vertex[0]->vnum - 1],
-                                            ActualDirectionCosines[CurrentFace->vertex[1]->vnum - 1],
-                                            ActualDirectionCosines[CurrentFace->vertex[2]->vnum - 1],
-                                            SyncPoints[CurrentFace->vertex[0]->vnum - 1].TelescopeDirection,
-                                            SyncPoints[CurrentFace->vertex[1]->vnum - 1].TelescopeDirection,
-                                            SyncPoints[CurrentFace->vertex[2]->vnum - 1].TelescopeDirection,
-                                            CurrentFace->pMatrix, NULL);
+                                                   ActualDirectionCosines[CurrentFace->vertex[1]->vnum - 1],
+                                                   ActualDirectionCosines[CurrentFace->vertex[2]->vnum - 1],
+                                                   SyncPoints[CurrentFace->vertex[0]->vnum - 1].TelescopeDirection,
+                                                   SyncPoints[CurrentFace->vertex[1]->vnum - 1].TelescopeDirection,
+                                                   SyncPoints[CurrentFace->vertex[2]->vnum - 1].TelescopeDirection,
+                                                   CurrentFace->pMatrix, nullptr);
                     }
                     CurrentFace = CurrentFace->next;
-                }
-                while (CurrentFace != ActualConvexHull.faces);
+                } while (CurrentFace != ActualConvexHull.faces);
             }
 
             // One of these days I will optimise this
@@ -274,14 +288,15 @@ bool BasicMathPlugin::Initialise(InMemoryDatabase* pInMemoryDatabase)
 #ifdef CONVEX_HULL_DEBUGGING
             int ApparentFaces = 0;
 #endif
-            if (NULL != CurrentFace)
+            if (nullptr != CurrentFace)
             {
                 do
                 {
 #ifdef CONVEX_HULL_DEBUGGING
                     ApparentFaces++;
 #endif
-                    if ((0 == CurrentFace->vertex[0]->vnum) || (0 == CurrentFace->vertex[1]->vnum) || (0 == CurrentFace->vertex[2]->vnum))
+                    if ((0 == CurrentFace->vertex[0]->vnum) || (0 == CurrentFace->vertex[1]->vnum) ||
+                        (0 == CurrentFace->vertex[2]->vnum))
                     {
 #ifdef CONVEX_HULL_DEBUGGING
                         ASSDEBUGF("Initialise - Ignoring apparent face %d", ApparentFaces);
@@ -291,21 +306,19 @@ bool BasicMathPlugin::Initialise(InMemoryDatabase* pInMemoryDatabase)
                     {
 #ifdef CONVEX_HULL_DEBUGGING
                         ASSDEBUGF("Initialise - Processing apparent face %d v1 %d v2 %d v3 %d", ApparentFaces,
-                                                                        CurrentFace->vertex[0]->vnum,
-                                                                        CurrentFace->vertex[1]->vnum,
-                                                                        CurrentFace->vertex[2]->vnum);
+                                  CurrentFace->vertex[0]->vnum, CurrentFace->vertex[1]->vnum,
+                                  CurrentFace->vertex[2]->vnum);
 #endif
                         CalculateTransformMatrices(SyncPoints[CurrentFace->vertex[0]->vnum - 1].TelescopeDirection,
-                                            SyncPoints[CurrentFace->vertex[1]->vnum - 1].TelescopeDirection,
-                                            SyncPoints[CurrentFace->vertex[2]->vnum - 1].TelescopeDirection,
-                                            ActualDirectionCosines[CurrentFace->vertex[0]->vnum - 1],
-                                            ActualDirectionCosines[CurrentFace->vertex[1]->vnum - 1],
-                                            ActualDirectionCosines[CurrentFace->vertex[2]->vnum - 1],
-                                            CurrentFace->pMatrix, NULL);
+                                                   SyncPoints[CurrentFace->vertex[1]->vnum - 1].TelescopeDirection,
+                                                   SyncPoints[CurrentFace->vertex[2]->vnum - 1].TelescopeDirection,
+                                                   ActualDirectionCosines[CurrentFace->vertex[0]->vnum - 1],
+                                                   ActualDirectionCosines[CurrentFace->vertex[1]->vnum - 1],
+                                                   ActualDirectionCosines[CurrentFace->vertex[2]->vnum - 1],
+                                                   CurrentFace->pMatrix, nullptr);
                     }
                     CurrentFace = CurrentFace->next;
-                }
-                while (CurrentFace != ApparentConvexHull.faces);
+                } while (CurrentFace != ApparentConvexHull.faces);
             }
 
 #ifdef CONVEX_HULL_DEBUGGING
@@ -320,17 +333,20 @@ bool BasicMathPlugin::Initialise(InMemoryDatabase* pInMemoryDatabase)
     }
 }
 
-bool BasicMathPlugin::TransformCelestialToTelescope(const double RightAscension, const double Declination, double JulianOffset,
-                                                        TelescopeDirectionVector& ApparentTelescopeDirectionVector)
+bool BasicMathPlugin::TransformCelestialToTelescope(const double RightAscension, const double Declination,
+                                                    double JulianOffset,
+                                                    TelescopeDirectionVector &ApparentTelescopeDirectionVector)
 {
     ln_equ_posn ActualRaDec;
     ln_hrz_posn ActualAltAz;
     // libnova works in decimal degrees so conversion is needed here
-    ActualRaDec.ra = RightAscension * 360.0 / 24.0;
+    ActualRaDec.ra  = RightAscension * 360.0 / 24.0;
     ActualRaDec.dec = Declination;
-    ln_lnlat_posn Position;
+    ln_lnlat_posn Position { 0, 0 };
 
-    if ((NULL == pInMemoryDatabase) || !pInMemoryDatabase->GetDatabaseReferencePosition(Position)) // Should check that this the same as the current observing position
+    if ((nullptr == pInMemoryDatabase) ||
+        !pInMemoryDatabase->GetDatabaseReferencePosition(
+            Position)) // Should check that this the same as the current observing position
         return false;
 
     ln_get_hrz_from_equ(&ActualRaDec, &Position, ln_get_julian_from_sys() + JulianOffset, &ActualAltAz);
@@ -338,7 +354,7 @@ bool BasicMathPlugin::TransformCelestialToTelescope(const double RightAscension,
 
     TelescopeDirectionVector ActualVector = TelescopeDirectionVectorFromAltitudeAzimuth(ActualAltAz);
 
-    InMemoryDatabase::AlignmentDatabaseType& SyncPoints = pInMemoryDatabase->GetAlignmentDatabase();
+    InMemoryDatabase::AlignmentDatabaseType &SyncPoints = pInMemoryDatabase->GetAlignmentDatabase();
     switch (SyncPoints.size())
     {
         case 0:
@@ -387,7 +403,7 @@ bool BasicMathPlugin::TransformCelestialToTelescope(const double RightAscension,
         default:
         {
             gsl_matrix *pTransform;
-            gsl_matrix *pComputedTransform = NULL;
+            gsl_matrix *pComputedTransform = nullptr;
             // Scale the actual telescope direction vector to make sure it traverses the unit sphere.
             TelescopeDirectionVector ScaledActualVector = ActualVector * 2.0;
             // Shoot the scaled vector in the into the list of actual facets
@@ -396,7 +412,7 @@ bool BasicMathPlugin::TransformCelestialToTelescope(const double RightAscension,
 #ifdef CONVEX_HULL_DEBUGGING
             int ActualFaces = 0;
 #endif
-            if (NULL != CurrentFace)
+            if (nullptr != CurrentFace)
             {
                 do
                 {
@@ -404,7 +420,8 @@ bool BasicMathPlugin::TransformCelestialToTelescope(const double RightAscension,
                     ActualFaces++;
 #endif
                     // Ignore faces containg vertex 0 (nadir).
-                    if ((0 == CurrentFace->vertex[0]->vnum) || (0 == CurrentFace->vertex[1]->vnum) || (0 == CurrentFace->vertex[2]->vnum))
+                    if ((0 == CurrentFace->vertex[0]->vnum) || (0 == CurrentFace->vertex[1]->vnum) ||
+                        (0 == CurrentFace->vertex[2]->vnum))
                     {
 #ifdef CONVEX_HULL_DEBUGGING
                         ASSDEBUGF("Celestial to telescope - Ignoring actual face %d", ActualFaces);
@@ -414,9 +431,8 @@ bool BasicMathPlugin::TransformCelestialToTelescope(const double RightAscension,
                     {
 #ifdef CONVEX_HULL_DEBUGGING
                         ASSDEBUGF("Celestial to telescope - Processing actual face %d v1 %d v2 %d v3 %d", ActualFaces,
-                                                                            CurrentFace->vertex[0]->vnum,
-                                                                            CurrentFace->vertex[1]->vnum,
-                                                                            CurrentFace->vertex[2]->vnum);
+                                  CurrentFace->vertex[0]->vnum, CurrentFace->vertex[1]->vnum,
+                                  CurrentFace->vertex[2]->vnum);
 #endif
                         if (RayTriangleIntersection(ScaledActualVector,
                                                     ActualDirectionCosines[CurrentFace->vertex[0]->vnum - 1],
@@ -425,29 +441,30 @@ bool BasicMathPlugin::TransformCelestialToTelescope(const double RightAscension,
                             break;
                     }
                     CurrentFace = CurrentFace->next;
-                }
-                while (CurrentFace != ActualConvexHull.faces);
+                } while (CurrentFace != ActualConvexHull.faces);
                 if (CurrentFace == ActualConvexHull.faces)
                 {
                     // Find the three nearest points and build a transform
-                    std::map<double, const AlignmentDatabaseEntry*> NearestMap;
-                    for (InMemoryDatabase::AlignmentDatabaseType::const_iterator Itr = SyncPoints.begin(); Itr != SyncPoints.end(); Itr++)
+                    std::map<double, const AlignmentDatabaseEntry *> NearestMap;
+                    for (InMemoryDatabase::AlignmentDatabaseType::const_iterator Itr = SyncPoints.begin();
+                         Itr != SyncPoints.end(); Itr++)
                     {
                         ln_equ_posn RaDec;
                         ln_hrz_posn ActualPoint;
-                        RaDec.ra = (*Itr).RightAscension * 360.0 / 24.0;
+                        RaDec.ra  = (*Itr).RightAscension * 360.0 / 24.0;
                         RaDec.dec = (*Itr).Declination;
                         ln_get_hrz_from_equ(&RaDec, &Position, (*Itr).ObservationJulianDate, &ActualPoint);
-                        TelescopeDirectionVector ActualDirectionCosine = TelescopeDirectionVectorFromAltitudeAzimuth(ActualPoint);
+                        TelescopeDirectionVector ActualDirectionCosine =
+                            TelescopeDirectionVectorFromAltitudeAzimuth(ActualPoint);
                         NearestMap[(ActualDirectionCosine - ActualVector).Length()] = &(*Itr);
                     }
                     // First compute local horizontal coordinates for the three sync points
-                    std::map<double, const AlignmentDatabaseEntry*>::const_iterator Nearest = NearestMap.begin();
-                    const AlignmentDatabaseEntry* pEntry1 = (*Nearest).second;
+                    std::map<double, const AlignmentDatabaseEntry *>::const_iterator Nearest = NearestMap.begin();
+                    const AlignmentDatabaseEntry *pEntry1                                    = (*Nearest).second;
                     Nearest++;
-                    const AlignmentDatabaseEntry* pEntry2 = (*Nearest).second;
+                    const AlignmentDatabaseEntry *pEntry2 = (*Nearest).second;
                     Nearest++;
-                    const AlignmentDatabaseEntry* pEntry3 = (*Nearest).second;
+                    const AlignmentDatabaseEntry *pEntry3 = (*Nearest).second;
                     ln_hrz_posn ActualSyncPoint1;
                     ln_hrz_posn ActualSyncPoint2;
                     ln_hrz_posn ActualSyncPoint3;
@@ -456,10 +473,10 @@ bool BasicMathPlugin::TransformCelestialToTelescope(const double RightAscension,
                     ln_equ_posn RaDec3;
                     RaDec1.dec = pEntry1->Declination;
                     // libnova works in decimal degrees so conversion is needed here
-                    RaDec1.ra = pEntry1->RightAscension * 360.0 / 24.0;
+                    RaDec1.ra  = pEntry1->RightAscension * 360.0 / 24.0;
                     RaDec2.dec = pEntry2->Declination;
                     // libnova works in decimal degrees so conversion is needed here
-                    RaDec2.ra = pEntry2->RightAscension * 360.0 / 24.0;
+                    RaDec2.ra  = pEntry2->RightAscension * 360.0 / 24.0;
                     RaDec3.dec = pEntry3->Declination;
                     // libnova works in decimal degrees so conversion is needed here
                     RaDec3.ra = pEntry3->RightAscension * 360.0 / 24.0;
@@ -468,13 +485,16 @@ bool BasicMathPlugin::TransformCelestialToTelescope(const double RightAscension,
                     ln_get_hrz_from_equ(&RaDec3, &Position, pEntry3->ObservationJulianDate, &ActualSyncPoint3);
 
                     // Now express these coordinates as normalised direction vectors (a.k.a direction cosines)
-                    TelescopeDirectionVector ActualDirectionCosine1 = TelescopeDirectionVectorFromAltitudeAzimuth(ActualSyncPoint1);
-                    TelescopeDirectionVector ActualDirectionCosine2 = TelescopeDirectionVectorFromAltitudeAzimuth(ActualSyncPoint2);
-                    TelescopeDirectionVector ActualDirectionCosine3 = TelescopeDirectionVectorFromAltitudeAzimuth(ActualSyncPoint3);
+                    TelescopeDirectionVector ActualDirectionCosine1 =
+                        TelescopeDirectionVectorFromAltitudeAzimuth(ActualSyncPoint1);
+                    TelescopeDirectionVector ActualDirectionCosine2 =
+                        TelescopeDirectionVectorFromAltitudeAzimuth(ActualSyncPoint2);
+                    TelescopeDirectionVector ActualDirectionCosine3 =
+                        TelescopeDirectionVectorFromAltitudeAzimuth(ActualSyncPoint3);
                     pComputedTransform = gsl_matrix_alloc(3, 3);
                     CalculateTransformMatrices(ActualDirectionCosine1, ActualDirectionCosine2, ActualDirectionCosine3,
-                                            pEntry1->TelescopeDirection, pEntry2->TelescopeDirection, pEntry3->TelescopeDirection,
-                                            pComputedTransform, NULL);
+                                               pEntry1->TelescopeDirection, pEntry2->TelescopeDirection,
+                                               pEntry3->TelescopeDirection, pComputedTransform, nullptr);
                     pTransform = pComputedTransform;
                 }
                 else
@@ -496,7 +516,7 @@ bool BasicMathPlugin::TransformCelestialToTelescope(const double RightAscension,
             ApparentTelescopeDirectionVector.Normalise();
             gsl_vector_free(pGSLActualVector);
             gsl_vector_free(pGSLApparentVector);
-            if (NULL != pComputedTransform)
+            if (nullptr != pComputedTransform)
                 gsl_matrix_free(pComputedTransform);
             break;
         }
@@ -509,10 +529,10 @@ bool BasicMathPlugin::TransformCelestialToTelescope(const double RightAscension,
     return true;
 }
 
-bool BasicMathPlugin::TransformTelescopeToCelestial(const TelescopeDirectionVector& ApparentTelescopeDirectionVector, double& RightAscension, double& Declination)
+bool BasicMathPlugin::TransformTelescopeToCelestial(const TelescopeDirectionVector &ApparentTelescopeDirectionVector,
+                                                    double &RightAscension, double &Declination)
 {
-    ln_lnlat_posn Position;
-
+    ln_lnlat_posn Position { 0, 0 };
 
     ln_hrz_posn ApparentAltAz;
     ln_hrz_posn ActualAltAz;
@@ -521,12 +541,13 @@ bool BasicMathPlugin::TransformTelescopeToCelestial(const TelescopeDirectionVect
     AltitudeAzimuthFromTelescopeDirectionVector(ApparentTelescopeDirectionVector, ApparentAltAz);
     ASSDEBUGF("Telescope to celestial - Apparent Alt %lf Az %lf", ApparentAltAz.alt, ApparentAltAz.az);
 
-    if ((NULL == pInMemoryDatabase) || !pInMemoryDatabase->GetDatabaseReferencePosition(Position))
-    { // Should check that this the same as the current observing position
+    if ((nullptr == pInMemoryDatabase) || !pInMemoryDatabase->GetDatabaseReferencePosition(Position))
+    {
+        // Should check that this the same as the current observing position
         ASSDEBUG("No database or no position in database");
         return false;
     }
-    InMemoryDatabase::AlignmentDatabaseType& SyncPoints = pInMemoryDatabase->GetAlignmentDatabase();
+    InMemoryDatabase::AlignmentDatabaseType &SyncPoints = pInMemoryDatabase->GetAlignmentDatabase();
     switch (SyncPoints.size())
     {
         case 0:
@@ -550,13 +571,14 @@ bool BasicMathPlugin::TransformTelescopeToCelestial(const TelescopeDirectionVect
                     RotatedTDV.RotateAroundY(-90.0 - Position.lat);
                     break;
             }
-            ASSDEBUGF("ApparentVector x %lf y %lf z %lf", ApparentTelescopeDirectionVector.x, ApparentTelescopeDirectionVector.y, ApparentTelescopeDirectionVector.z);
+            ASSDEBUGF("ApparentVector x %lf y %lf z %lf", ApparentTelescopeDirectionVector.x,
+                      ApparentTelescopeDirectionVector.y, ApparentTelescopeDirectionVector.z);
             ASSDEBUGF("ActualVector x %lf y %lf z %lf", RotatedTDV.x, RotatedTDV.y, RotatedTDV.z);
             AltitudeAzimuthFromTelescopeDirectionVector(RotatedTDV, ActualAltAz);
             ln_get_equ_from_hrz(&ActualAltAz, &Position, ln_get_julian_from_sys(), &ActualRaDec);
             // libnova works in decimal degrees so conversion is needed here
             RightAscension = ActualRaDec.ra * 24.0 / 360.0;
-            Declination = ActualRaDec.dec;
+            Declination    = ActualRaDec.dec;
             break;
         }
         case 1:
@@ -582,7 +604,7 @@ bool BasicMathPlugin::TransformTelescopeToCelestial(const TelescopeDirectionVect
             ln_get_equ_from_hrz(&ActualAltAz, &Position, ln_get_julian_from_sys(), &ActualRaDec);
             // libnova works in decimal degrees so conversion is needed here
             RightAscension = ActualRaDec.ra * 24.0 / 360.0;
-            Declination = ActualRaDec.dec;
+            Declination    = ActualRaDec.dec;
             gsl_vector_free(pGSLActualVector);
             gsl_vector_free(pGSLApparentVector);
             break;
@@ -591,7 +613,7 @@ bool BasicMathPlugin::TransformTelescopeToCelestial(const TelescopeDirectionVect
         default:
         {
             gsl_matrix *pTransform;
-            gsl_matrix *pComputedTransform = NULL;
+            gsl_matrix *pComputedTransform = nullptr;
             // Scale the apparent telescope direction vector to make sure it traverses the unit sphere.
             TelescopeDirectionVector ScaledApparentVector = ApparentTelescopeDirectionVector * 2.0;
             // Shoot the scaled vector in the into the list of apparent facets
@@ -600,7 +622,7 @@ bool BasicMathPlugin::TransformTelescopeToCelestial(const TelescopeDirectionVect
 #ifdef CONVEX_HULL_DEBUGGING
             int ApparentFaces = 0;
 #endif
-            if (NULL != CurrentFace)
+            if (nullptr != CurrentFace)
             {
                 do
                 {
@@ -608,7 +630,8 @@ bool BasicMathPlugin::TransformTelescopeToCelestial(const TelescopeDirectionVect
                     ApparentFaces++;
 #endif
                     // Ignore faces containg vertex 0 (nadir).
-                    if ((0 == CurrentFace->vertex[0]->vnum) || (0 == CurrentFace->vertex[1]->vnum) || (0 == CurrentFace->vertex[2]->vnum))
+                    if ((0 == CurrentFace->vertex[0]->vnum) || (0 == CurrentFace->vertex[1]->vnum) ||
+                        (0 == CurrentFace->vertex[2]->vnum))
                     {
 #ifdef CONVEX_HULL_DEBUGGING
                         ASSDEBUGF("Celestial to telescope - Ignoring apparent face %d", ApparentFaces);
@@ -618,9 +641,8 @@ bool BasicMathPlugin::TransformTelescopeToCelestial(const TelescopeDirectionVect
                     {
 #ifdef CONVEX_HULL_DEBUGGING
                         ASSDEBUGF("TelescopeToCelestial - Processing apparent face %d v1 %d v2 %d v3 %d", ApparentFaces,
-                                                                        CurrentFace->vertex[0]->vnum,
-                                                                        CurrentFace->vertex[1]->vnum,
-                                                                        CurrentFace->vertex[2]->vnum);
+                                  CurrentFace->vertex[0]->vnum, CurrentFace->vertex[1]->vnum,
+                                  CurrentFace->vertex[2]->vnum);
 #endif
                         if (RayTriangleIntersection(ScaledApparentVector,
                                                     SyncPoints[CurrentFace->vertex[0]->vnum - 1].TelescopeDirection,
@@ -629,23 +651,23 @@ bool BasicMathPlugin::TransformTelescopeToCelestial(const TelescopeDirectionVect
                             break;
                     }
                     CurrentFace = CurrentFace->next;
-                }
-                while (CurrentFace != ApparentConvexHull.faces);
+                } while (CurrentFace != ApparentConvexHull.faces);
                 if (CurrentFace == ApparentConvexHull.faces)
                 {
                     // Find the three nearest points and build a transform
-                    std::map<double, const AlignmentDatabaseEntry*> NearestMap;
-                    for (InMemoryDatabase::AlignmentDatabaseType::const_iterator Itr = SyncPoints.begin(); Itr != SyncPoints.end(); Itr++)
+                    std::map<double, const AlignmentDatabaseEntry *> NearestMap;
+                    for (InMemoryDatabase::AlignmentDatabaseType::const_iterator Itr = SyncPoints.begin();
+                         Itr != SyncPoints.end(); Itr++)
                     {
                         NearestMap[((*Itr).TelescopeDirection - ApparentTelescopeDirectionVector).Length()] = &(*Itr);
                     }
                     // First compute local horizontal coordinates for the three sync points
-                    std::map<double, const AlignmentDatabaseEntry*>::const_iterator Nearest = NearestMap.begin();
-                    const AlignmentDatabaseEntry* pEntry1 = (*Nearest).second;
+                    std::map<double, const AlignmentDatabaseEntry *>::const_iterator Nearest = NearestMap.begin();
+                    const AlignmentDatabaseEntry *pEntry1                                    = (*Nearest).second;
                     Nearest++;
-                    const AlignmentDatabaseEntry* pEntry2 = (*Nearest).second;
+                    const AlignmentDatabaseEntry *pEntry2 = (*Nearest).second;
                     Nearest++;
-                    const AlignmentDatabaseEntry* pEntry3 = (*Nearest).second;
+                    const AlignmentDatabaseEntry *pEntry3 = (*Nearest).second;
                     ln_hrz_posn ActualSyncPoint1;
                     ln_hrz_posn ActualSyncPoint2;
                     ln_hrz_posn ActualSyncPoint3;
@@ -654,10 +676,10 @@ bool BasicMathPlugin::TransformTelescopeToCelestial(const TelescopeDirectionVect
                     ln_equ_posn RaDec3;
                     RaDec1.dec = pEntry1->Declination;
                     // libnova works in decimal degrees so conversion is needed here
-                    RaDec1.ra = pEntry1->RightAscension * 360.0 / 24.0;
+                    RaDec1.ra  = pEntry1->RightAscension * 360.0 / 24.0;
                     RaDec2.dec = pEntry2->Declination;
                     // libnova works in decimal degrees so conversion is needed here
-                    RaDec2.ra = pEntry2->RightAscension * 360.0 / 24.0;
+                    RaDec2.ra  = pEntry2->RightAscension * 360.0 / 24.0;
                     RaDec3.dec = pEntry3->Declination;
                     // libnova works in decimal degrees so conversion is needed here
                     RaDec3.ra = pEntry3->RightAscension * 360.0 / 24.0;
@@ -666,15 +688,19 @@ bool BasicMathPlugin::TransformTelescopeToCelestial(const TelescopeDirectionVect
                     ln_get_hrz_from_equ(&RaDec3, &Position, pEntry3->ObservationJulianDate, &ActualSyncPoint3);
 
                     // Now express these coordinates as normalised direction vectors (a.k.a direction cosines)
-                    TelescopeDirectionVector ActualDirectionCosine1 = TelescopeDirectionVectorFromAltitudeAzimuth(ActualSyncPoint1);
-                    TelescopeDirectionVector ActualDirectionCosine2 = TelescopeDirectionVectorFromAltitudeAzimuth(ActualSyncPoint2);
-                    TelescopeDirectionVector ActualDirectionCosine3 = TelescopeDirectionVectorFromAltitudeAzimuth(ActualSyncPoint3);
+                    TelescopeDirectionVector ActualDirectionCosine1 =
+                        TelescopeDirectionVectorFromAltitudeAzimuth(ActualSyncPoint1);
+                    TelescopeDirectionVector ActualDirectionCosine2 =
+                        TelescopeDirectionVectorFromAltitudeAzimuth(ActualSyncPoint2);
+                    TelescopeDirectionVector ActualDirectionCosine3 =
+                        TelescopeDirectionVectorFromAltitudeAzimuth(ActualSyncPoint3);
                     pComputedTransform = gsl_matrix_alloc(3, 3);
-                    CalculateTransformMatrices(pEntry1->TelescopeDirection, pEntry2->TelescopeDirection, pEntry3->TelescopeDirection,
-                                        ActualDirectionCosine1, ActualDirectionCosine2, ActualDirectionCosine3,
-                                        pComputedTransform, NULL);
+                    CalculateTransformMatrices(pEntry1->TelescopeDirection, pEntry2->TelescopeDirection,
+                                               pEntry3->TelescopeDirection, ActualDirectionCosine1,
+                                               ActualDirectionCosine2, ActualDirectionCosine3, pComputedTransform,
+                                               nullptr);
                     pTransform = pComputedTransform;
-               }
+                }
                 else
                     pTransform = CurrentFace->pMatrix;
             }
@@ -697,10 +723,10 @@ bool BasicMathPlugin::TransformTelescopeToCelestial(const TelescopeDirectionVect
             ln_get_equ_from_hrz(&ActualAltAz, &Position, ln_get_julian_from_sys(), &ActualRaDec);
             // libnova works in decimal degrees so conversion is needed here
             RightAscension = ActualRaDec.ra * 24.0 / 360.0;
-            Declination = ActualRaDec.dec;
+            Declination    = ActualRaDec.dec;
             gsl_vector_free(pGSLActualVector);
             gsl_vector_free(pGSLApparentVector);
-            if (NULL != pComputedTransform)
+            if (nullptr != pComputedTransform)
                 gsl_matrix_free(pComputedTransform);
             break;
         }
@@ -720,16 +746,19 @@ void BasicMathPlugin::Dump3(const char *Label, gsl_vector *pVector)
 void BasicMathPlugin::Dump3x3(const char *Label, gsl_matrix *pMatrix)
 {
     ASSDEBUGF("Matrix dump - %s", Label);
-    ASSDEBUGF("Row 0 %lf %lf %lf", gsl_matrix_get(pMatrix, 0, 0), gsl_matrix_get(pMatrix, 0, 1), gsl_matrix_get(pMatrix, 0, 2));
-    ASSDEBUGF("Row 1 %lf %lf %lf", gsl_matrix_get(pMatrix, 1, 0), gsl_matrix_get(pMatrix, 1, 1), gsl_matrix_get(pMatrix, 1, 2));
-    ASSDEBUGF("Row 2 %lf %lf %lf", gsl_matrix_get(pMatrix, 2, 0), gsl_matrix_get(pMatrix, 2, 1), gsl_matrix_get(pMatrix, 2, 2));
+    ASSDEBUGF("Row 0 %lf %lf %lf", gsl_matrix_get(pMatrix, 0, 0), gsl_matrix_get(pMatrix, 0, 1),
+              gsl_matrix_get(pMatrix, 0, 2));
+    ASSDEBUGF("Row 1 %lf %lf %lf", gsl_matrix_get(pMatrix, 1, 0), gsl_matrix_get(pMatrix, 1, 1),
+              gsl_matrix_get(pMatrix, 1, 2));
+    ASSDEBUGF("Row 2 %lf %lf %lf", gsl_matrix_get(pMatrix, 2, 0), gsl_matrix_get(pMatrix, 2, 1),
+              gsl_matrix_get(pMatrix, 2, 2));
 }
 
 /// Use gsl to compute the determinant of a 3x3 matrix
 double BasicMathPlugin::Matrix3x3Determinant(gsl_matrix *pMatrix)
 {
     gsl_permutation *pPermutation = gsl_permutation_alloc(3);
-    gsl_matrix *pDecomp = gsl_matrix_alloc(3,3);
+    gsl_matrix *pDecomp           = gsl_matrix_alloc(3, 3);
     int Signum;
     double Determinant;
 
@@ -748,9 +777,9 @@ double BasicMathPlugin::Matrix3x3Determinant(gsl_matrix *pMatrix)
 /// Use gsl to compute the inverse of a 3x3 matrix
 bool BasicMathPlugin::MatrixInvert3x3(gsl_matrix *pInput, gsl_matrix *pInversion)
 {
-    bool Retcode = true;
+    bool Retcode                  = true;
     gsl_permutation *pPermutation = gsl_permutation_alloc(3);
-    gsl_matrix *pDecomp = gsl_matrix_alloc(3,3);
+    gsl_matrix *pDecomp           = gsl_matrix_alloc(3, 3);
     int Signum;
 
     gsl_matrix_memcpy(pDecomp, pInput);
@@ -791,10 +820,9 @@ void BasicMathPlugin::MatrixVectorMultiply(gsl_matrix *pA, gsl_vector *pB, gsl_v
     gsl_blas_dgemv(CblasNoTrans, 1.0, pA, pB, 0.0, pC);
 }
 
-bool BasicMathPlugin::RayTriangleIntersection(TelescopeDirectionVector& Ray,
-                                                TelescopeDirectionVector& TriangleVertex1,
-                                                TelescopeDirectionVector& TriangleVertex2,
-                                                TelescopeDirectionVector& TriangleVertex3)
+bool BasicMathPlugin::RayTriangleIntersection(TelescopeDirectionVector &Ray, TelescopeDirectionVector &TriangleVertex1,
+                                              TelescopeDirectionVector &TriangleVertex2,
+                                              TelescopeDirectionVector &TriangleVertex3)
 {
     // Use Möller-Trumbore
 
@@ -803,12 +831,13 @@ bool BasicMathPlugin::RayTriangleIntersection(TelescopeDirectionVector& Ray,
     TelescopeDirectionVector Edge2 = TriangleVertex3 - TriangleVertex1;
 
     TelescopeDirectionVector P = Ray * Edge2; // cross product
-    double Determinant = Edge1 ^ P; // dot product
-    double InverseDeterminant = 1.0 / Determinant;
+    double Determinant         = Edge1 ^ P;   // dot product
+    double InverseDeterminant  = 1.0 / Determinant;
 
     // If the determinant is negative the triangle is backfacing
     // If the determinant is close to 0, the ray misses the triangle
-    if ((Determinant >  -std::numeric_limits<double>::epsilon()) && (Determinant < std::numeric_limits<double>::epsilon()))
+    if ((Determinant > -std::numeric_limits<double>::epsilon()) &&
+        (Determinant < std::numeric_limits<double>::epsilon()))
         return false;
 
     // I use zero as ray origin so
@@ -827,13 +856,13 @@ bool BasicMathPlugin::RayTriangleIntersection(TelescopeDirectionVector& Ray,
     //Calculate v parameter and test bound
     double v = (Ray ^ Q) * InverseDeterminant;
 
-    if (v < 0.0 || u + v  > 1.0)
+    if (v < 0.0 || u + v > 1.0)
         //The intersection lies outside of the triangle
         return false;
 
     double t = (Edge2 ^ Q) * InverseDeterminant;
 
-    if(t > std::numeric_limits<double>::epsilon())
+    if (t > std::numeric_limits<double>::epsilon())
     {
         //ray intersection
         return true;
@@ -842,7 +871,6 @@ bool BasicMathPlugin::RayTriangleIntersection(TelescopeDirectionVector& Ray,
     // No hit, no win
     return false;
 }
-
 
 } // namespace AlignmentSubsystem
 } // namespace INDI

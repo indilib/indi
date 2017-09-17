@@ -2,7 +2,7 @@
   NStep Focuser
   Copyright (c) 2016 Cloudmakers, s. r. o.
   All Rights Reserved.
-   
+
   Thanks to Rigel Systems, especially Gene Nolan and Leon Palmer,
   for their support in writing this driver.
 
@@ -21,48 +21,52 @@
   Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
-#ifndef NSTEP_H
-#define NSTEP_H
+#pragma once
 
-#include "indibase/indifocuser.h"
+#include "indifocuser.h"
 
-class NSTEP: public INDI::Focuser {
-private:
-  int PortFD;
-  char buf[MAXRBUF];
-  long sim_position, position;
-  int temperature;
-  char steppingMode;
-  pthread_mutex_t lock;
-  
-  INumber TempN[1];
-  INumberVectorProperty TempNP;
-  ISwitch TempCompS[2];
-  ISwitchVectorProperty TempCompSP;
-  INumber TempCompN[2];
-  INumberVectorProperty TempCompNP;
-  ISwitch SteppingModeS[3];
-  ISwitchVectorProperty SteppingModeSP;
-  
-  bool command(const char *request, char *response, int timeout);
-  
-public:
-  NSTEP();
-  ~NSTEP();
-  
-  virtual bool Handshake();
-  const char *getDefaultName();
-  
-  bool initProperties();
-  bool updateProperties();
-  
-  bool ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n);
-  bool ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n);
-  void TimerHit();
-  IPState MoveRelFocuser(FocusDirection dir, unsigned int ticks);
-  bool AbortFocuser();
-  bool SetFocuserSpeed(int speed);
-  bool saveConfigItems(FILE *fp);
+class NSTEP : public INDI::Focuser
+{
+  public:
+    NSTEP();
+    ~NSTEP();
+
+    virtual bool Handshake();
+    const char *getDefaultName();
+
+    bool initProperties();
+    bool updateProperties();
+
+    bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n);
+    bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n);
+    void TimerHit();
+    IPState MoveRelFocuser(FocusDirection dir, unsigned int ticks);
+    IPState MoveAbsFocuser(uint32_t targetTicks);
+    bool AbortFocuser();
+    bool SetFocuserSpeed(int speed);
+    bool saveConfigItems(FILE *fp);
+
+  private:
+    bool command(const char *request, char *response, int count);
+
+    IPState moveFocuserRelative(FocusDirection dir, unsigned int ticks);
+
+    char buf[MAXRBUF];
+    long sim_position { 0 };
+    long position { 0 };
+    int temperature { 0 };
+    char steppingMode { 0 };
+    char steppingPhase { 0 };
+    pthread_mutex_t lock;
+
+    INumber TempN[1];
+    INumberVectorProperty TempNP;
+    ISwitch TempCompS[2];
+    ISwitchVectorProperty TempCompSP;
+    INumber TempCompN[2];
+    INumberVectorProperty TempCompNP;
+    ISwitch SteppingModeS[3];
+    ISwitchVectorProperty SteppingModeSP;
+    ISwitch SteppingPhaseS[3];
+    ISwitchVectorProperty SteppingPhaseSP;
 };
-
-#endif // NSTEP_H

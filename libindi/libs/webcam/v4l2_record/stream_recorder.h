@@ -18,18 +18,18 @@
     License along with this library; if not, write to the Free Software
     Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
-*/ 
+*/
 
-#ifndef STREAM_RECORDER_H
-#define STREAM_RECORDER_H
+#pragma once
 
-#include <stdint.h>
+#include "indiccd.h"
+#include "indidevapi.h"
+#include "v4l2_record.h"
+
 #include <string>
 #include <map>
 
-#include <indiccd.h>
-#include <indidevapi.h>
-#include "v4l2_record.h"
+#include <stdint.h>
 
 /**
  * \class StreamRecorder
@@ -43,7 +43,7 @@
 */
 class StreamRecorder
 {
-public:
+  public:
     enum
     {
         RECORD_ON,
@@ -55,10 +55,10 @@ public:
     StreamRecorder(INDI::CCD *mainCCD);
     ~StreamRecorder();
 
-    virtual void ISGetProperties (const char *dev);
-    virtual bool ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n);
-    virtual bool ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n);
-    virtual bool ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n);
+    virtual void ISGetProperties(const char *dev);
+    virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n);
+    virtual bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n);
+    virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n);
 
     virtual bool initProperties();
     virtual bool updateProperties();
@@ -66,27 +66,27 @@ public:
     virtual bool saveConfigItems(FILE *fp);
 
     /**
-     * @brief newFrame CCD drivers call this function when a new frame is received. It is then streamed, or recorded, or both according to the settings in the streamer.
-     */
+         * @brief newFrame CCD drivers call this function when a new frame is received. It is then streamed, or recorded, or both according to the settings in the streamer.
+         */
     void newFrame();
     /**
-     * @brief recordStream Calls the backend recorder to record a single frame.
-     * @param deltams time in milliseconds since last frame
-     */
+         * @brief recordStream Calls the backend recorder to record a single frame.
+         * @param deltams time in milliseconds since last frame
+         */
     void recordStream(double deltams);
 
     /**
-     * @brief setStream Enables (starts) or disables (stops) streaming.
-     * @param enable True to enable, false to disable
-     * @return True if operation is successful, false otherwise.
-     */
+         * @brief setStream Enables (starts) or disables (stops) streaming.
+         * @param enable True to enable, false to disable
+         * @return True if operation is successful, false otherwise.
+         */
     bool setStream(bool enable);
 
     V4L2_Recorder *getRecorder() { return recorder; }
     bool isDirectRecording() { return direct_record; }
     bool isStreaming() { return is_streaming; }
     bool isRecording() { return is_recording; }
-    bool isBusy()      { return (isStreaming() || isRecording()); }
+    bool isBusy() { return (isStreaming() || isRecording()); }
     const char *getDeviceName() { return ccd->getDeviceName(); }
 
     void setRecorderSize(uint16_t width, uint16_t height);
@@ -94,14 +94,13 @@ public:
     void getStreamFrame(uint16_t *x, uint16_t *y, uint16_t *w, uint16_t *h);
     bool close();
 
-protected:
+  protected:
     INDI::CCD *ccd;
 
-private:
-
+  private:
     /* Utility for record file */
     int mkpath(std::string s, mode_t mode);
-    std::string expand(std::string fname, const std::map<std::string, std::string>& patterns);
+    std::string expand(std::string fname, const std::map<std::string, std::string> &patterns);
 
     bool startRecording();
     bool stopRecording();
@@ -161,8 +160,4 @@ private:
     // use bsd timers
     struct itimerval tframe1, tframe2;
     double mssum, framecountsec;
-
 };
-
-
-#endif // STREAM_RECORDER_H

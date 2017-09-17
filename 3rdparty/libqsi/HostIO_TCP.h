@@ -30,6 +30,11 @@ public:
 	virtual int SetStandardReadTimeout ( int ulTimeout);
 	virtual int SetStandardWriteTimeout( int ulTimeout);
 	virtual int SetIOTimeout(IOTimeout ioTimeout);
+	virtual int MaxBytesPerReadBlock();
+	virtual int WritePacket(UCHAR * pBuff, int iBuffLen, int * iBytesWritten);
+	virtual int ReadPacket(UCHAR * pBuff, int iBuffLen, int * iBytesRead);
+	virtual IOType GetTransferType();
+
 protected:
 	QSI_IOTimeouts	m_IOTimeouts;
 	QSILog			*m_log;

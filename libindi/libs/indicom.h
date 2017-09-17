@@ -33,26 +33,40 @@
 
 
     </ul>
-    
+
     \author Jason Harris
     \author Elwood C. Downey
     \author Jasem Mutlaq
 */
 
-#ifndef INDICOM_H
-#define INDICOM_H
+#pragma once
 
-#define J2000 2451545.0
+#define J2000       2451545.0
 #define ERRMSG_SIZE 1024
-#define INDI_DEBUG
 
-extern const char * Direction[];
-extern const char * SolarSystem[];
+#define STELLAR_DAY        86164.098903691
+#define TRACKRATE_SIDEREAL ((360.0 * 3600.0) / STELLAR_DAY)
+#define SOLAR_DAY          86400
+#define TRACKRATE_SOLAR    ((360.0 * 3600.0) / SOLAR_DAY)
+#define TRACKRATE_LUNAR    14.511415
+
+extern const char *Direction[];
+extern const char *SolarSystem[];
 
 struct ln_date;
 
 /* TTY Error Codes */
-enum TTY_ERROR { TTY_OK=0, TTY_READ_ERROR=-1, TTY_WRITE_ERROR=-2, TTY_SELECT_ERROR=-3, TTY_TIME_OUT=-4, TTY_PORT_FAILURE=-5, TTY_PARAM_ERROR=-6, TTY_ERRNO = -7};
+enum TTY_ERROR
+{
+    TTY_OK           = 0,
+    TTY_READ_ERROR   = -1,
+    TTY_WRITE_ERROR  = -2,
+    TTY_SELECT_ERROR = -3,
+    TTY_TIME_OUT     = -4,
+    TTY_PORT_FAILURE = -5,
+    TTY_PARAM_ERROR  = -6,
+    TTY_ERRNO        = -7
+};
 
 #ifdef __cplusplus
 extern "C" {
@@ -85,7 +99,6 @@ int tty_read(int fd, char *buf, int nbytes, int timeout, int *nbytes_read);
 
 int tty_read_section(int fd, char *buf, char stop_char, int timeout, int *nbytes_read);
 
-
 /** \brief Writes a buffer to fd.
     \param fd file descriptor
     \param buffer a null-terminated buffer to write to fd.
@@ -93,7 +106,7 @@ int tty_read_section(int fd, char *buf, char stop_char, int timeout, int *nbytes
     \param nbytes_written the number of bytes written
     \return On success, it returns TTY_OK, otherwise, a TTY_ERROR code.
 */
-int tty_write(int fd, const char * buffer, int nbytes, int *nbytes_written);
+int tty_write(int fd, const char *buffer, int nbytes, int *nbytes_written);
 
 /** \brief Writes a null terminated string to fd.
     \param fd file descriptor
@@ -101,8 +114,7 @@ int tty_write(int fd, const char * buffer, int nbytes, int *nbytes_written);
     \param nbytes_written the number of bytes written
     \return On success, it returns TTY_OK, otherwise, a TTY_ERROR code.
 */
-int tty_write_string(int fd, const char * buffer, int *nbytes_written);
-
+int tty_write_string(int fd, const char *buffer, int *nbytes_written);
 
 /** \brief Establishes a tty connection to a terminal device.
     \param device the device node. e.g. /dev/ttyS0
@@ -145,9 +157,9 @@ int tty_timeout(int fd, int timeout);
 /*@{*/
 
 /** \brief Converts a sexagesimal number to a string.
- 
+
    sprint the variable a in sexagesimal format into out[].
-	
+
   \param out a pointer to store the sexagesimal number.
   \param a the sexagesimal number to convert.
   \param w the number of spaces in the whole part.
@@ -157,20 +169,20 @@ int tty_timeout(int fd, int timeout);
  	  \li 3600:	\<w\>:mm:ss
  	  \li 600:	\<w\>:mm.m
  	  \li 60:	\<w\>:mm
-  
+
   \return number of characters written to out, not counting final null terminator.
  */
-int fs_sexa (char *out, double a, int w, int fracbase);
+int fs_sexa(char *out, double a, int w, int fracbase);
 
 /** \brief convert sexagesimal string str AxBxC to double.
 
     x can be anything non-numeric. Any missing A, B or C will be assumed 0. Optional - and + can be anywhere.
-    
+
     \param str0 string containing sexagesimal number.
     \param dp pointer to a double to store the sexagesimal number.
     \return return 0 if ok, -1 if can't find a thing.
  */
-int f_scansexa (const char *str0, double *dp);
+int f_scansexa(const char *str0, double *dp);
 
 /** \brief Extract ISO 8601 time and store it in a tm struct.
     \param timestr a string containing date and time in ISO 8601 format.
@@ -192,12 +204,12 @@ void getSexComponentsIID(double value, int *d, int *m, double *s);
 
     \note buf must be of length MAXINDIFORMAT at minimum
 */
-int numberFormat (char *buf, const char *format, double value);
+int numberFormat(char *buf, const char *format, double value);
 
 /** \brief Create an ISO 8601 formatted time stamp. The format is YYYY-MM-DDTHH:MM:SS
     \return The formatted time stamp.
 */
-const char *timestamp (void);
+const char *timestamp();
 
 /**
  * @brief rangeHA Limits the hour angle value to be between -12 ---> 12
@@ -246,7 +258,4 @@ double get_local_hour_angle(double local_sideral_time, double ra);
 
 #ifdef __cplusplus
 }
-#endif
-
-
 #endif

@@ -1,0 +1,34 @@
+RadioSim INDI Driver
+================
+
+This package provides the INDI driver for a simulated Radio dish antenna.
+
+Requirtments
+============
+
++ INDI >= v1.4 (http://www.indilib.org)
+
+	You need to install both indi and indi-devel to build this package.
+	
++ cfitsio
+
+	cfitsio-devel is required to compile support for FITS.
+	
+Installation
+============
+
+	See INSTALL
+	
+How to Use
+==========
+
+	You can use the RadioSim INDI Driver in any INDI-compatible client such as KStars or Xephem. 
+	
+	To run the driver from the command line:
+	
+	$ indiserver indi_radiosim_detector
+	
+	You can then connect to the driver from any client, the default port is 7624.
+	If you're using KStars, the driver will be automatically listed in KStars' Device Manager,
+	no further configuration is necessary.
+	 

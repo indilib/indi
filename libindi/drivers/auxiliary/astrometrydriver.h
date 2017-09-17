@@ -22,15 +22,15 @@
   file called LICENSE.
 *******************************************************************************/
 
-#ifndef ASTROMETRYDRIVER_H
-#define ASTROMETRYDRIVER_H
+#pragma once
 
 #include "defaultdevice.h"
 
+#include <pthread.h>
+
 class AstrometryDriver : public INDI::DefaultDevice
 {
-    public:
-
+  public:
     enum
     {
         ASTROMETRY_SETTINGS_BINARY,
@@ -47,22 +47,22 @@ class AstrometryDriver : public INDI::DefaultDevice
     };
 
     AstrometryDriver();
-    virtual ~AstrometryDriver();
+    ~AstrometryDriver() = default;
 
     virtual void ISGetProperties(const char *dev);
     virtual bool initProperties();
     virtual bool updateProperties();
 
-    virtual bool ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n);
-    virtual bool ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n);
-    virtual bool ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n);
-    virtual bool ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[], char *names[], int n);
-    virtual bool ISSnoopDevice (XMLEle *root);
+    virtual bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n);
+    virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n);
+    virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n);
+    virtual bool ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[],
+                           char *formats[], char *names[], int n);
+    virtual bool ISSnoopDevice(XMLEle *root);
 
-    static void * runSolverHelper(void *context);
+    static void *runSolverHelper(void *context);
 
-    protected:
-
+  protected:
     //  Generic indi device entries
     bool Connect();
     bool Disconnect();
@@ -93,18 +93,22 @@ class AstrometryDriver : public INDI::DefaultDevice
     IBLOB CCDDataB[1];
     IBLOBVectorProperty CCDDataBP;
 
-private:
-
+  private:
     // Run solver thread
     void runSolver();
 
-    // Process BLOB
-    bool processBLOB(const uint8_t *data, const uint32_t size);
+    /**
+     * @brief processBLOB Read blob FITS. Uncompress if necessary, write to temporary file, and run
+     * solver against it.
+     * @param data raw data FITS buffer
+     * @param size size of FITS data
+     * @param len size of raw data. If no compression is used then len = size. If compression is used,
+     * then len is the compressed buffer size and size is the uncompressed final valid data size.
+     * @return True if blob buffer was processed correctly and solver started, false otherwise.
+     */
+    bool processBLOB(uint8_t *data, uint32_t size, uint32_t len);
 
     // Thread for listenINDI()
     pthread_t solverThread;
     pthread_mutex_t lock;
-
 };
-
-#endif

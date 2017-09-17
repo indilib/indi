@@ -25,8 +25,7 @@
   file called LICENSE.
 *******************************************************************************/
 
-#ifndef WATCHDOG_H
-#define WATCHDOG_H
+#pragma once
 
 #include "defaultdevice.h"
 
@@ -34,23 +33,28 @@ class WatchDogClient;
 
 class WatchDog : public INDI::DefaultDevice
 {
-public:
-
-    typedef enum { WATCHDOG_IDLE, WATCHDOG_CLIENT_STARTED, WATCHDOG_MOUNT_PARKED, WATCHDOG_DOME_PARKED, WATCHDOG_COMPLETE, WATCHDOG_ERROR } ShutdownStages;
+  public:
+    typedef enum {
+        WATCHDOG_IDLE,
+        WATCHDOG_CLIENT_STARTED,
+        WATCHDOG_MOUNT_PARKED,
+        WATCHDOG_DOME_PARKED,
+        WATCHDOG_COMPLETE,
+        WATCHDOG_ERROR
+    } ShutdownStages;
     typedef enum { PARK_MOUNT, PARK_DOME, EXECUTE_SCRIPT } ShutdownProcedure;
 
     WatchDog();
     virtual ~WatchDog();
 
-    virtual void ISGetProperties (const char *dev);
+    virtual void ISGetProperties(const char *dev);
     //virtual bool ISSnoopDevice (XMLEle *root);
 
-    virtual bool ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n);
-    virtual bool ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n);
-    virtual bool ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n);
+    virtual bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n);
+    virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n);
+    virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n);
 
-protected:
-
+  protected:
     virtual bool initProperties();
     //virtual bool updateProperties();
 
@@ -62,20 +66,19 @@ protected:
 
     virtual bool saveConfigItems(FILE *fp);
 
-private:
-
+  private:
     void parkDome();
     void parkMount();
     void executeScript();
 
     INumberVectorProperty HeartBeatNP;
-    INumber               HeartBeatN[1];
+    INumber HeartBeatN[1];
 
-    ITextVectorProperty   SettingsTP;
-    IText                 SettingsT[3];
+    ITextVectorProperty SettingsTP;
+    IText SettingsT[3];
 
     ISwitchVectorProperty ShutdownProcedureSP;
-    ISwitch               ShutdownProcedureS[3];
+    ISwitch ShutdownProcedureS[3];
 
     ITextVectorProperty ActiveDeviceTP;
     IText ActiveDeviceT[2];
@@ -84,7 +87,4 @@ private:
     int watchDogTimer;
 
     ShutdownStages shutdownStage;
-
 };
-
-#endif

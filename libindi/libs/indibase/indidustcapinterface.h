@@ -18,11 +18,9 @@
 
 */
 
-#ifndef INDIDUSTINTERFACE_H
-#define INDIDUSTINTERFACE_H
+#pragma once
 
 #include "indibase.h"
-#include "indiapi.h"
 
 /**
  * \class INDI::DustCapInterface
@@ -35,41 +33,42 @@
 */
 class INDI::DustCapInterface
 {
-public:
+  public:
+    enum
+    {
+        CAP_PARK,
+        CAP_UNPARK
+    };
 
-    enum { CAP_PARK, CAP_UNPARK };
-
-protected:
+  protected:
     DustCapInterface();
     virtual ~DustCapInterface();
 
     /**
-     * @brief Park dust cap (close cover). Must be implemented by child.
-     * @return If command completed immediatly, return IPS_OK. If command is in progress, return IPS_BUSY. If there is an error, return IPS_ALERT
-     */
+         * @brief Park dust cap (close cover). Must be implemented by child.
+         * @return If command completed immediatly, return IPS_OK. If command is in progress, return IPS_BUSY. If there is an error, return IPS_ALERT
+         */
     virtual IPState ParkCap();
 
     /**
-     * @brief unPark dust cap (open cover). Must be implemented by child.
-     * @return If command completed immediatly, return IPS_OK. If command is in progress, return IPS_BUSY. If there is an error, return IPS_ALERT
-     */
+         * @brief unPark dust cap (open cover). Must be implemented by child.
+         * @return If command completed immediatly, return IPS_OK. If command is in progress, return IPS_BUSY. If there is an error, return IPS_ALERT
+         */
     virtual IPState UnParkCap();
 
     /** \brief Initilize dust cap properties. It is recommended to call this function within initProperties() of your primary device
-        \param deviceName Name of the primary device
-        \param groupName Group or tab name to be used to define focuser properties.
-    */
-    void initDustCapProperties(const char *deviceName, const char* groupName);
+            \param deviceName Name of the primary device
+            \param groupName Group or tab name to be used to define focuser properties.
+        */
+    void initDustCapProperties(const char *deviceName, const char *groupName);
 
     /** \brief Process dust cap switch properties */
-    bool processDustCapSwitch (const char *dev, const char *name, ISState *states, char *names[], int n);
+    bool processDustCapSwitch(const char *dev, const char *name, ISState *states, char *names[], int n);
 
     // Open/Close cover
     ISwitchVectorProperty ParkCapSP;
     ISwitch ParkCapS[2];
 
-private:
+  private:
     char dustCapName[MAXINDIDEVICE];
 };
-
-#endif // INDIDUSTCAPINTERFACE_H

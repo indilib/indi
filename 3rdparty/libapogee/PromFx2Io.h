@@ -31,7 +31,7 @@ class IUsb;
 class PromFx2Io 
 { 
     public: 
-        PromFx2Io( std::tr1::shared_ptr<IUsb> & usb,
+        PromFx2Io( std::shared_ptr<IUsb> & usb,
             uint32_t MaxBlocks, uint32_t MaxBanks );
         virtual ~PromFx2Io(); 
 
@@ -69,7 +69,7 @@ class PromFx2Io
             uint8_t Bank, uint8_t Block,
             uint8_t * data, uint32_t DataSzInBytes);
 
-        std::tr1::shared_ptr<IUsb> m_Usb; 
+        std::shared_ptr<IUsb> m_Usb; 
         uint32_t m_MaxBlocks;
         uint32_t m_MaxBanks;
         std::string m_fileName;

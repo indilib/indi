@@ -22,111 +22,102 @@
     Version with experimental pulse guide support. GC 04.12.2015
 */
 
-#ifndef CELESTRONGPS_H
-#define CELESTRONGPS_H
-
-#include <inditelescope.h>
-#include "indidevapi.h"
-#include "indicom.h"
-#include "indicontroller.h"
+#pragma once
 
 #include "celestrondriver.h"
 
-#define	POLLMS		1000		/* poll period, ms */
-
-//GUIDE: guider header
 #include "indiguiderinterface.h"
+#include "inditelescope.h"
+
+#define POLLMS 1000 /* poll period, ms */
 
 //GUIDE: guider parent
 class CelestronGPS : public INDI::Telescope, public INDI::GuiderInterface
 {
- public:
- CelestronGPS();
- virtual ~CelestronGPS() {}
+  public:
+    CelestronGPS();
+    virtual ~CelestronGPS() {}
 
- virtual const char *getDefaultName();
- virtual bool Handshake();
- virtual bool ReadScopeStatus();
- virtual void ISGetProperties(const char *dev);
- virtual bool ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n);
- virtual bool ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n);
- virtual bool initProperties();
- virtual bool updateProperties();
+    virtual const char *getDefaultName() override;
+    virtual bool Handshake() override;
+    virtual bool ReadScopeStatus() override;
+    virtual void ISGetProperties(const char *dev) override;
+    virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
+    virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
+    virtual bool initProperties() override;
+    virtual bool updateProperties() override;
 
- //GUIDE guideTimeout() funcion
- void guideTimeout(CELESTRON_DIRECTION calldir);
- 
-protected:
+    //GUIDE guideTimeout() funcion
+    void guideTimeout(CELESTRON_DIRECTION calldir);
 
- // Goto, Sync, and Motion
- bool Goto(double ra,double dec);
- //bool GotoAzAlt(double az, double alt);
- bool Sync(double ra, double dec);
- virtual bool MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command);
- virtual bool MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command);
- virtual bool Abort();
+  protected:
+    // Goto, Sync, and Motion
+    virtual bool Goto(double ra, double dec) override;
+    //bool GotoAzAlt(double az, double alt);
+    virtual bool Sync(double ra, double dec) override;
+    virtual bool MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command) override;
+    virtual bool MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command) override;
+    virtual bool Abort() override;
 
- // Time and Location
- virtual bool updateLocation(double latitude, double longitude, double elevation);
- virtual bool updateTime(ln_date *utc, double utc_offset);
+    // Time and Location
+    virtual bool updateLocation(double latitude, double longitude, double elevation) override;
+    virtual bool updateTime(ln_date *utc, double utc_offset) override;
 
- //GUIDE: guiding functions
- virtual IPState GuideNorth(float ms);
- virtual IPState GuideSouth(float ms);
- virtual IPState GuideEast(float ms);
- virtual IPState GuideWest(float ms);
+    //GUIDE: guiding functions
+    virtual IPState GuideNorth(float ms) override;
+    virtual IPState GuideSouth(float ms) override;
+    virtual IPState GuideEast(float ms) override;
+    virtual IPState GuideWest(float ms) override;
 
- //GUIDE guideTimeoutHelper() function
- static void guideTimeoutHelperN(void *p);
- static void guideTimeoutHelperS(void *p);
- static void guideTimeoutHelperW(void *p);
- static void guideTimeoutHelperE(void *p);
- 
- // Parking
- virtual bool Park();
- virtual bool UnPark();
- virtual void SetCurrentPark();
- virtual void SetDefaultPark();
+    //GUIDE guideTimeoutHelper() function
+    static void guideTimeoutHelperN(void *p);
+    static void guideTimeoutHelperS(void *p);
+    static void guideTimeoutHelperW(void *p);
+    static void guideTimeoutHelperE(void *p);
 
- virtual bool saveConfigItems(FILE *fp);
+    // Tracking
+    virtual bool SetTrackMode(uint8_t mode) override;
+    virtual bool SetTrackEnabled(bool enabled) override;
 
- virtual void simulationTriggered(bool enable);
+    // Parking
+    virtual bool Park() override;
+    virtual bool UnPark() override;
+    virtual bool SetCurrentPark() override;
+    virtual bool SetDefaultPark() override;
 
- void mountSim();
+    virtual bool saveConfigItems(FILE *fp) override;
 
- //GUIDE variables.
- int    GuideNSTID;
- int    GuideWETID;
- CELESTRON_DIRECTION guide_direction;
- 
- /* Firmware */
- IText   FirmwareT[5];
- ITextVectorProperty FirmwareTP;
+    virtual void simulationTriggered(bool enable) override;
 
- //INumberVectorProperty HorizontalCoordsNP;
- //INumber HorizontalCoordsN[2];
+    void mountSim();
 
- ISwitch TrackS[4];
- ISwitchVectorProperty TrackSP;
+    //GUIDE variables.
+    int GuideNSTID;
+    int GuideWETID;
+    CELESTRON_DIRECTION guide_direction;
 
- //GUIDE Pulse guide switch
- ISwitchVectorProperty UsePulseCmdSP;
- ISwitch UsePulseCmdS[2];
+    /* Firmware */
+    IText FirmwareT[5];
+    ITextVectorProperty FirmwareTP;
 
- ISwitchVectorProperty UseHibernateSP;
- ISwitch UseHibernateS[2];
- 
-private:  
+    //INumberVectorProperty HorizontalCoordsNP;
+    //INumber HorizontalCoordsN[2];
 
- bool setTrackMode(CELESTRON_TRACK_MODE mode);
+    //ISwitch TrackS[4];
+    //ISwitchVectorProperty TrackSP;
 
-  int PortFD;
-  double currentRA, currentDEC, currentAZ, currentALT;
-  double targetRA, targetDEC, targetAZ, targetALT;
+    //GUIDE Pulse guide switch
+    ISwitchVectorProperty UsePulseCmdSP;
+    ISwitch UsePulseCmdS[2];
 
-  FirmwareInfo fwInfo;
+    ISwitchVectorProperty UseHibernateSP;
+    ISwitch UseHibernateS[2];
 
+  private:
+    bool setTrackMode(CELESTRON_TRACK_MODE mode);
+
+    double currentRA, currentDEC, currentAZ, currentALT;
+    double targetRA, targetDEC, targetAZ, targetALT;
+
+    FirmwareInfo fwInfo;
 };
-
-#endif
-

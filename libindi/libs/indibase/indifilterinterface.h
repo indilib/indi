@@ -18,8 +18,7 @@
 
 */
 
-#ifndef INDIFILTERINTERFACE_H
-#define INDIFILTERINTERFACE_H
+#pragma once
 
 #include "indibase.h"
 
@@ -40,65 +39,74 @@
 */
 class INDI::FilterInterface
 {
-
-public:
-
+  public:
     /** \brief Return current filter position */
     virtual int QueryFilter() = 0;
 
-    /** \brief Select a new filter position
-        \return True if operation is successful, false otherwise */
+    /**
+     * \brief Select a new filter position
+     * \return True if operation is successful, false otherwise
+     */
     virtual bool SelectFilter(int position) = 0;
 
-    /** \brief Set filter names as defined by the client for each filter position.
-         The desired filter names are stored in FilterNameTP property. Filter names should be saved in hardware if possible.
-         \return True if successful, false if supported or failed operation
-    */
+    /**
+     * \brief Set filter names as defined by the client for each filter position.
+     * The desired filter names are stored in FilterNameTP property. Filter names should be
+     * saved in hardware if possible.
+     * \return True if successful, false if supported or failed operation
+     */
     virtual bool SetFilterNames() = 0;
 
-    /** \brief Obtains a list of filter names from the hardware and initilizes the FilterNameTP property. The function should check for the number of filters
-      available in the filter wheel and build the FilterNameTP property accordingly.
-      \param groupName group name for FilterNameTP property to be created.
-      \return True if successful, false if unsupported or failed operation
-      \see QSI CCD implementation of the FilterInterface. QSI CCD is available as a 3rd party INDI driver.
-    */
-    virtual bool GetFilterNames(const char* groupName) = 0;
+    /**
+     * \brief Obtains a list of filter names from the hardware and initializes the FilterNameTP
+     * property. The function should check for the number of filters available in the filter
+     * wheel and build the FilterNameTP property accordingly.
+     * \param groupName group name for FilterNameTP property to be created.
+     * \return True if successful, false if unsupported or failed operation
+     * \see QSI CCD implementation of the FilterInterface. QSI CCD is available as a 3rd party
+     * INDI driver.
+     */
+    virtual bool GetFilterNames(const char *groupName) = 0;
 
-    /** \brief The child class calls this function when the hardware successfully finished selecting a new filter wheel position
-        \param newpos New position of the filter wheel
-    */
+    /**
+     * \brief The child class calls this function when the hardware successfully finished
+     * selecting a new filter wheel position
+     * \param newpos New position of the filter wheel
+     */
     void SelectFilterDone(int newpos);
 
-
-protected:
-
+  protected:
     FilterInterface();
     ~FilterInterface();
 
-    /** \brief Initilize filter wheel properties. It is recommended to call this function within initProperties() of your primary device
-        \param deviceName Name of the primary device
-        \param groupName Group or tab name to be used to define filter wheel properties.
-    */
-    void initFilterProperties(const char *deviceName, const char* groupName);
+    /**
+     * \brief Initilize filter wheel properties. It is recommended to call this function within
+     * initProperties() of your primary device
+     * \param deviceName Name of the primary device
+     * \param groupName Group or tab name to be used to define filter wheel properties.
+     */
+    void initFilterProperties(const char *deviceName, const char *groupName);
 
-    /** \brief Process client request to change filter position. Call this function in the filter wheel
-         implementation class ISNewNumber function.
-        \param deviceName Name of the primary device
-        \param values values from ISNewNumber().
-        \param names names from ISNewNumber();
-    */
+    /**
+     * \brief Process client request to change filter position. Call this function in the
+     * filter wheel implementation class ISNewNumber function.
+     * \param deviceName Name of the primary device
+     * \param values values from ISNewNumber().
+     * \param names names from ISNewNumber();
+     */
     void processFilterSlot(const char *deviceName, double values[], char *names[]);
 
-    /** \brief Process client request to change filter name(s). Call this function in the filter wheel
-         implementation class ISNewText() function.
-        \param deviceName Name of the primary device
-        \param texts values from ISNewText().
-        \param names names from ISNewText();
-        \param n n from ISNewtext();
-    */
+    /**
+     * \brief Process client request to change filter name(s). Call this function in the filter
+     * wheel implementation class ISNewText() function.
+     * \param deviceName Name of the primary device
+     * \param texts values from ISNewText().
+     * \param names names from ISNewText();
+     * \param n n from ISNewtext();
+     */
     void processFilterName(const char *deviceName, char *texts[], char *names[], int n);
 
-    INumberVectorProperty FilterSlotNP;   //  A number vector for filter slot
+    INumberVectorProperty FilterSlotNP; //  A number vector for filter slot
     INumber FilterSlotN[1];
 
     ITextVectorProperty *FilterNameTP; //  A text vector that stores out physical port name
@@ -107,5 +115,3 @@ protected:
     int CurrentFilter;
     int TargetFilter;
 };
-
-#endif // INDIFILTERINTERFACE_H

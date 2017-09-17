@@ -40,45 +40,43 @@ void GuideExposureTimerCallback(void *p);
 void WEGuiderTimerCallback(void *p);
 void NSGuiderTimerCallback(void *p);
 
-class SSAGCCD : public INDI::CCD {
+class SSAGCCD : public INDI::CCD
+{
+  private:
+    OpenSSAG::SSAG *ssag;
+    float remaining;
 
-private:
-  OpenSSAG::SSAG *ssag;
-  float remaining;
+    INumber GainN[1];
+    INumberVectorProperty GainNP;
 
-  INumber GainN[1];
-  INumberVectorProperty GainNP;
+  public:
+    SSAGCCD();
 
-public:
-  SSAGCCD();
-  
-  const char *getDefaultName();
-  bool initProperties();
-  bool updateProperties();
-  bool Connect();
-  bool Disconnect();
-  bool StartExposure(float duration);
-  bool AbortExposure();
-  void TimerHit();
-  bool ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n);
-  IPState GuideWest(float time);
-  IPState GuideEast(float time);
-  IPState GuideNorth(float time);
-  IPState GuideSouth(float time);
+    const char *getDefaultName();
+    bool initProperties();
+    bool updateProperties();
+    bool Connect();
+    bool Disconnect();
+    bool StartExposure(float duration);
+    bool AbortExposure();
+    void TimerHit();
+    bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n);
+    IPState GuideWest(float time);
+    IPState GuideEast(float time);
+    IPState GuideNorth(float time);
+    IPState GuideSouth(float time);
 
-  void addFITSKeywords(fitsfile *fptr, CCDChip *targetChip);
-  bool saveConfigItems(FILE *fp);
+    void addFITSKeywords(fitsfile *fptr, CCDChip *targetChip);
+    bool saveConfigItems(FILE *fp);
 
-protected:
-  
-  friend void ::ISGetProperties(const char *dev);
-  friend void ::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int num);
-  friend void ::ISNewText(const char *dev, const char *name, char *texts[], char *names[], int num);
-  friend void ::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int num);
-  friend void ::ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[], char *names[], int n);
-  friend void ::ISSnoopDevice(XMLEle *root);
+  protected:
+    friend void ::ISGetProperties(const char *dev);
+    friend void ::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int num);
+    friend void ::ISNewText(const char *dev, const char *name, char *texts[], char *names[], int num);
+    friend void ::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int num);
+    friend void ::ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[],
+                            char *formats[], char *names[], int n);
+    friend void ::ISSnoopDevice(XMLEle *root);
 };
-
-
 
 #endif /* SSAGCCD_H_ */

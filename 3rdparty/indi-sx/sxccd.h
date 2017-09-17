@@ -27,11 +27,11 @@
   file called LICENSE.
 */
 
-#ifndef SXCCD_H_
-#define SXCCD_H_
+#pragma once
+
+#include "sxccdusb.h"
 
 #include <indiccd.h>
-#include "sxccdusb.h"
 
 void ExposureTimerCallback(void *p);
 void GuideExposureTimerCallback(void *p);
@@ -101,18 +101,15 @@ class SXCCD : public INDI::CCD
     void ISGetProperties(const char *dev);
     bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n);
 
-  friend void ::ExposureTimerCallback(void *p);
-  friend void ::GuideExposureTimerCallback(void *p);
-  friend void ::WEGuiderTimerCallback(void *p);
-  friend void ::NSGuiderTimerCallback(void *p);
-  friend void ::ISGetProperties(const char *dev);
-  friend void ::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int num);
-  friend void ::ISNewText(const char *dev, const char *name, char *texts[], char *names[], int num);
-  friend void ::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int num);
-  friend void ::ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[], char *names[], int n);
-  friend void ::ISSnoopDevice(XMLEle *root);
+    friend void ::ExposureTimerCallback(void *p);
+    friend void ::GuideExposureTimerCallback(void *p);
+    friend void ::WEGuiderTimerCallback(void *p);
+    friend void ::NSGuiderTimerCallback(void *p);
+    friend void ::ISGetProperties(const char *dev);
+    friend void ::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int num);
+    friend void ::ISNewText(const char *dev, const char *name, char *texts[], char *names[], int num);
+    friend void ::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int num);
+    friend void ::ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[],
+                            char *formats[], char *names[], int n);
+    friend void ::ISSnoopDevice(XMLEle *root);
 };
-
-
-
-#endif /* SXCCD_H_ */

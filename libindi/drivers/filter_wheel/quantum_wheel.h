@@ -16,22 +16,20 @@
  Boston, MA 02110-1301, USA.
 *******************************************************************************/
 
-#ifndef QFW_H
-#define QFW_H
+#pragma once
 
-#include <indifilterwheel.h>
+#include "indifilterwheel.h"
 
-class QFW: public INDI::FilterWheel {
-private:
-public:
-	QFW();
-    ~QFW();
+class QFW : public INDI::FilterWheel
+{
+  public:
+    QFW();
+    virtual ~QFW() = default;
 
     void debugTriggered(bool enable);
     void simulationTriggered(bool enable);
 
-    bool Connect();
-    bool Disconnect();
+    bool Handshake();
     const char *getDefaultName();
 
     bool initProperties();
@@ -42,7 +40,4 @@ public:
     bool SelectFilter(int);
     virtual bool SetFilterNames() { return true; }
     bool GetFilterNames(const char *);
-    int fd;
 };
-
-#endif // QFW_H

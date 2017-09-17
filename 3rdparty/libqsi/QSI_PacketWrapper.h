@@ -26,7 +26,6 @@ public:
 	~QSI_PacketWrapper();
     int PKT_SendPacket(IHostIO *connection, unsigned char * pTBuffer , unsigned char * pRxBuffer, 
                        bool bCheckQueues, IOTimeout ioTimout = IOTimeout_Normal);
-    int PKT_ReadBlock (IHostIO *connection, PVOID pRxBuffer, int BytesToRead, int * BytesReturned);
     int PKT_CheckQueues(IHostIO *connection);  // Returns number of characters in Rx & Tx queues
 
 private:

@@ -18,22 +18,21 @@
     Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
-#ifndef LX200_10MICRON_H
-#define LX200_10MICRON_H
+#pragma once
 
 #include "lx200generic.h"
 
 typedef enum {
-    GSTAT_TRACKING                    =  0,
-    GSTAT_STOPPED                     =  1,
-    GSTAT_PARKING                     =  2,
-    GSTAT_UNPARKING                   =  3,
-    GSTAT_SLEWING_TO_HOME             =  4,
-    GSTAT_PARKED                      =  5,
-    GSTAT_SLEWING_OR_STOPPING         =  6,
-    GSTAT_NOT_TRACKING_AND_NOT_MOVING =  7,
-    GSTAT_MOTORS_TOO_COLD             =  8,
-    GSTAT_TRACKING_OUTSIDE_LIMITS     =  9,
+    GSTAT_TRACKING                    = 0,
+    GSTAT_STOPPED                     = 1,
+    GSTAT_PARKING                     = 2,
+    GSTAT_UNPARKING                   = 3,
+    GSTAT_SLEWING_TO_HOME             = 4,
+    GSTAT_PARKED                      = 5,
+    GSTAT_SLEWING_OR_STOPPING         = 6,
+    GSTAT_NOT_TRACKING_AND_NOT_MOVING = 7,
+    GSTAT_MOTORS_TOO_COLD             = 8,
+    GSTAT_TRACKING_OUTSIDE_LIMITS     = 9,
     GSTAT_FOLLOWING_SATELLITE         = 10,
     GSTAT_NEED_USEROK                 = 11,
     GSTAT_UNKNOWN_STATUS              = 98,
@@ -42,36 +41,31 @@ typedef enum {
 
 class LX200_10MICRON : public LX200Generic
 {
-public:
+  public:
+    LX200_10MICRON();
+    ~LX200_10MICRON() {}
 
-    LX200_10MICRON(void);
-    ~LX200_10MICRON(void) {}
-
-    virtual const char *getDefaultName(void);
+    virtual const char *getDefaultName() override;
     virtual bool Handshake() override;
-    virtual bool initProperties(void);
-    virtual bool updateProperties(void);
-    virtual bool ReadScopeStatus(void);
-    virtual bool Park(void);
-    virtual bool UnPark(void);
+    virtual bool initProperties() override;
+    virtual bool updateProperties() override;
+    virtual bool ReadScopeStatus() override;
+    virtual bool Park() override;
+    virtual bool UnPark() override;
 
     // TODO move this thing elsewhere
     int monthToNumber(const char *monthName);
     int setStandardProcedureWithoutRead(int fd, const char *data);
 
-protected:
+  protected:
+    virtual void getBasicData() override;
 
-    virtual void getBasicData(void);
-
-    IText               ProductT[4];
+    IText ProductT[4];
     ITextVectorProperty ProductTP;
 
-private:
+  private:
     int fd = -1; // short notation for PortFD/sockfd
-    bool getMountInfo(void);
+    bool getMountInfo();
 
     int OldGstat = -1;
-    TelescopeStatus OldTrackState;
 };
-
-#endif

@@ -1,7 +1,7 @@
 /*
     Copyright (C) 2014 by geehalel <geehalel@gmail.com>
 
-    V4L2 Record 
+    V4L2 Record
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -17,14 +17,18 @@
     License along with this library; if not, write to the Free Software
     Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
-*/ 
+*/
 
-#ifndef V4L2_RECORD_H
-#define V4L2_RECORD_H
+#pragma once
+
+#include "indidevapi.h"
 
 #include <stdio.h>
-#include <stdlib.h>
+#include <cstdlib>
 #include <stdint.h>
+
+#include <vector>
+
 #ifdef OSX_EMBEDED_MODE
 #define v4l2_fourcc(a, b, c, d) ((uint32_t)(a) | ((uint32_t)(b) << 8) | ((uint32_t)(c) << 16) | ((uint32_t)(d) << 24))
 
@@ -40,49 +44,45 @@
 #else
 #include <linux/videodev2.h>
 #endif
-#include <indidevapi.h>
-
-#include <vector>
 
 class V4L2_Recorder
 {
-public:
+  public:
     V4L2_Recorder();
     virtual ~V4L2_Recorder();
 
-    virtual void init()=0;
+    virtual void init() = 0;
     virtual const char *getName();
     // true when direct encoding of pixel format
-    virtual bool setPixelFormat(uint32_t pixformat)=0;
+    virtual bool setPixelFormat(uint32_t pixformat) = 0;
     // set image size in pixels
-    virtual bool setSize(uint16_t width, uint16_t height)=0;
+    virtual bool setSize(uint16_t width, uint16_t height) = 0;
     // Set subframe frame dimensions that gets recorded
-    virtual bool setFrame(uint16_t x, uint16_t y, uint16_t width, uint16_t height)=0;
-    virtual bool open(const char *filename, char *errmsg)=0;
-    virtual bool close()=0;
+    virtual bool setFrame(uint16_t x, uint16_t y, uint16_t width, uint16_t height) = 0;
+    virtual bool open(const char *filename, char *errmsg)                          = 0;
+    virtual bool close()                                                           = 0;
     // when frame is in known encoding format
-    virtual bool writeFrame(unsigned char *frame)=0;
+    virtual bool writeFrame(unsigned char *frame) = 0;
     // default way to write a GREY frame
-    virtual bool writeFrameMono(unsigned char *frame)=0;
+    virtual bool writeFrameMono(unsigned char *frame) = 0;
     // default way to write a RGB24 frame
-    virtual bool writeFrameColor(unsigned char *frame)=0;
+    virtual bool writeFrameColor(unsigned char *frame) = 0;
     // prepare to write GREY frame
-    virtual void setDefaultMono()=0;
+    virtual void setDefaultMono() = 0;
     // prepare to write RGB24 frame
-    virtual void setDefaultColor()=0;
+    virtual void setDefaultColor() = 0;
     // If streaming is enabled, then any subframing is already done by the stream recorder
     // and no need to do any further subframing operations. Otherwise, subframing must be done.
     // This is to reduce process time and save memory for a dedicated subframe buffer
-    virtual void setStreamEnabled(bool enable)=0;
+    virtual void setStreamEnabled(bool enable) = 0;
 
-protected:
+  protected:
     const char *name;
-
 };
 
 class V4L2_Record
 {
-public:
+  public:
     V4L2_Record();
     ~V4L2_Record();
     std::vector<V4L2_Recorder *> getRecorderList();
@@ -90,10 +90,8 @@ public:
     V4L2_Recorder *getDefaultRecorder();
     void setRecorder(V4L2_Recorder *recorder);
 
-protected:
+  protected:
     std::vector<V4L2_Recorder *> recorder_list;
     V4L2_Recorder *current_recorder;
     V4L2_Recorder *default_recorder;
 };
-
-#endif // V4L2_RECORD_H

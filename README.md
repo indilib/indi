@@ -15,7 +15,7 @@ INDI is the defacto standard for open astronomical device control. INDI Library 
 On Debian/Ubuntu:
 
 ```
-sudo apt-get install libnova-dev libcfitsio3-dev libusb-1.0-0-dev zlib1g-dev libgsl0-dev build-essential cmake git libjpeg-dev libcurl4-gnutls-dev
+sudo apt-get install libnova-dev libcfitsio-dev libusb-1.0-0-dev zlib1g-dev libgsl-dev build-essential cmake git libjpeg-dev libcurl4-gnutls-dev qtbase5-dev
 ```
 ## Get the code
 ```
@@ -48,7 +48,7 @@ sudo make install
 The complete list of system dependancies for all drivers on Debian / Ubuntu
 
 ```
-sudo apt-get install libftdi-dev libgps-dev dcraw libgphoto2-dev libboost-dev libboost-regex-dev
+sudo apt-get install libftdi-dev libgps-dev libraw-dev libgphoto2-dev libboost-dev libboost-regex-dev
 ```
 
 To build **all** 3rd party drivers, you need to run cmake and make install **twice**. First time is to install any dependencies of the 3rd party drivers (for example indi-qsi depends on libqsi), and second time to install the actual drivers themselves.
@@ -101,6 +101,17 @@ INDI server is the public network access point where one or more INDI Clients ma
 ## [Tutorials](http://indilib.org/develop/tutorials.html)
 ## [![Join the chat at https://gitter.im/knro/indi](https://badges.gitter.im/knro/indi.svg)](https://gitter.im/knro/indi?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
+### How to create Github pull request (PR)
+
+How I submit a PR:
+1. Login with a Github account and fork the official INDI repository.
+2. Clone the official INDI repository and add the forked INDI repository as a remote (git remote add ...).
+3. Create a local Git branch (git co -b my_branch).
+4. Work on the patch and commit the changes.
+5. If it is ready push this branch to your fork repo (git push -f my_fork my_branch:my_branch).
+6. Go to the official repo's github website in a browser, it will popup a message to create a PR. Create it.
+7. Pushing updates to the PR: just update your branch (git push -f my_fork my_branch:my_branch)..
+
 # Unit tests
 
 In order to run the unit test suite you must first install the [Google Test Framework](https://github.com/google/googletest). You will need to build and install this from source code as Google does not recommend package managers for distributing distros.(This is because each build system is often unique and a one size fits all aproach does not work well).
@@ -116,6 +127,4 @@ cd test
 ctest -V
 ```
 
-For more details refer to teh scripts in the tavis-ci directory.
-
- 
+For more details refer to the scripts in the travis-ci directory.

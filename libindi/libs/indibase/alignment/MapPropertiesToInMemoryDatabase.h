@@ -6,15 +6,16 @@
  *
  */
 
-#ifndef INDI_ALIGNMENTSUBSYSTEM_MAPPROPERTIESTOINMEMORYDATABASE_H
-#define INDI_ALIGNMENTSUBSYSTEM_MAPPROPERTIESTOINMEMORYDATABASE_H
+#pragma once
 
-#include "../inditelescope.h"
 #include "InMemoryDatabase.h"
 
-namespace INDI {
-namespace AlignmentSubsystem {
+#include "inditelescope.h"
 
+namespace INDI
+{
+namespace AlignmentSubsystem
+{
 /*!
  * \class MapPropertiesToInMemoryDatabase
  * \brief An entry in the sync point database is defined by the following INDI properties
@@ -68,7 +69,7 @@ namespace AlignmentSubsystem {
  */
 class MapPropertiesToInMemoryDatabase : public InMemoryDatabase
 {
-public:
+  public:
     /// \brief Virtual destructor
     virtual ~MapPropertiesToInMemoryDatabase() {}
 
@@ -77,7 +78,7 @@ public:
     /// \brief Initialize alignment database properties. It is recommended to call this function within initProperties()
     /// of your primary device
     /// \param[in] pTelescope Pointer to the child INDI::Telecope class
-    void InitProperties(Telescope* pTelescope);
+    void InitProperties(Telescope *pTelescope);
 
     /// \brief Call this function from within the ISNewBLOB processing path. The function will
     /// handle any alignment database related properties.
@@ -89,7 +90,8 @@ public:
     /// \param[in] formats
     /// \param[in] names
     /// \param[in] n
-    void ProcessBlobProperties(Telescope* pTelescope, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[], char *names[], int n);
+    void ProcessBlobProperties(Telescope *pTelescope, const char *name, int sizes[], int blobsizes[], char *blobs[],
+                               char *formats[], char *names[], int n);
 
     /// \brief Call this function from within the ISNewNumber processing path. The function will
     /// handle any alignment database related properties.
@@ -98,7 +100,7 @@ public:
     /// \param[in] values value as passed by the client
     /// \param[in] names names as passed by the client
     /// \param[in] n number of values and names pair to process.
-    void ProcessNumberProperties(Telescope* pTelescope, const char *name, double values[], char *names[], int n);
+    void ProcessNumberProperties(Telescope *pTelescope, const char *name, double values[], char *names[], int n);
 
     /// \brief Call this function from within the ISNewSwitch processing path. The function will
     /// handle any alignment database related properties.
@@ -107,7 +109,7 @@ public:
     /// \param[in] states states as passed by the client
     /// \param[in] names names as passed by the client
     /// \param[in] n number of values and names pair to process.
-    void ProcessSwitchProperties(Telescope* pTelescope, const char *name, ISState *states, char *names[], int n);
+    void ProcessSwitchProperties(Telescope *pTelescope, const char *name, ISState *states, char *names[], int n);
 
     /// \brief Call this function from within the updateLocation processing path
     /// \param[in] latitude Site latitude in degrees.
@@ -118,7 +120,7 @@ public:
     /// \brief Call this function when the number of entries in the database changes
     void UpdateSize();
 
-private:
+  private:
     INumber AlignmentPointSetEntry[6];
     INumberVectorProperty AlignmentPointSetEntryV;
     IBLOB AlignmentPointSetPrivateBinaryData;
@@ -131,10 +133,7 @@ private:
     ISwitchVectorProperty AlignmentPointSetActionV;
     ISwitch AlignmentPointSetCommit;
     ISwitchVectorProperty AlignmentPointSetCommitV;
-
 };
 
 } // namespace AlignmentSubsystem
 } // namespace INDI
-
-#endif // INDI_ALIGNMENTSUBSYSTEM_MAPPROPERTIESTOINMEMORYDATABASE_H

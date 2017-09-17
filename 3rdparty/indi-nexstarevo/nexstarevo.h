@@ -1,52 +1,52 @@
-#ifndef NEXSTAREVO_H
-#define NEXSTAREVO_H
 
-#include <indiguiderinterface.h>
-#include <inditelescope.h>
-#include <alignment/AlignmentSubsystemForDrivers.h>
+#pragma once
+
 #include "NexStarAUXScope.h"
 
+#include <inditelescope.h>
+#include <alignment/AlignmentSubsystemForDrivers.h>
 
 class NexStarEvo : public INDI::Telescope, public INDI::AlignmentSubsystem::AlignmentSubsystemForDrivers
 {
-public:
+  public:
     NexStarEvo();
     ~NexStarEvo();
 
-    virtual void ISGetProperties (const char *dev);
-    virtual bool ISNewBLOB (const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[], char *names[], int n);
-    virtual bool ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n);
-    virtual bool ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n);
-    virtual bool ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n);
+    virtual void ISGetProperties(const char *dev) override;
+    virtual bool ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[],
+                           char *formats[], char *names[], int n) override;
+    virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
+    virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
+    virtual bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n) override;
 
-protected:
-    virtual bool initProperties();
-    virtual bool saveConfigItems(FILE *fp);
-    virtual bool Connect();
-    virtual bool Disconnect();
+  protected:
+    virtual bool initProperties() override;
+    virtual bool saveConfigItems(FILE *fp) override;
+    //virtual bool Connect() override;
+    virtual bool Handshake() override;
+    virtual bool Disconnect() override;
 
-    virtual const char *getDefaultName();
-    virtual ln_hrz_posn AltAzFromRaDec(double ra, double dec, double ts);
+    virtual const char *getDefaultName() override;
+    ln_hrz_posn AltAzFromRaDec(double ra, double dec, double ts);
 
-    virtual bool Sync(double ra, double dec);
-    virtual bool Goto(double ra,double dec);
-    virtual bool Abort();
-    virtual bool Park();
-    virtual bool UnPark();
-
+    virtual bool Sync(double ra, double dec) override;
+    virtual bool Goto(double ra, double dec) override;
+    virtual bool Abort() override;
+    virtual bool Park() override;
+    virtual bool UnPark() override;
 
     // TODO: Switch to AltAz from N-S/W-E
-    virtual bool MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command);
-    virtual bool MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command);
+    virtual bool MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command) override;
+    virtual bool MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command) override;
 
-    virtual bool ReadScopeStatus();
-    virtual void TimerHit();
+    virtual bool ReadScopeStatus() override;
+    virtual void TimerHit() override;
 
-    virtual bool updateLocation(double latitude, double longitude, double elevation);
-    
-    virtual bool trackingRequested();
+    virtual bool updateLocation(double latitude, double longitude, double elevation) override;
 
-private:
+    bool trackingRequested();
+
+  private:
     static const long STEPS_PER_REVOLUTION;
     static const double STEPS_PER_DEGREE;
     static const double DEFAULT_SLEW_RATE;
@@ -54,38 +54,50 @@ private:
     static const long MAX_ALT;
     static const long MIN_ALT;
 
-    NexStarAUXScope *scope;
+    NexStarAUXScope scope;
 
-    enum ScopeStatus_t {IDLE, SLEWING_FAST, APPROACH, SLEWING_SLOW, SLEWING_MANUAL, TRACKING};
+    enum ScopeStatus_t
+    {
+        IDLE,
+        SLEWING_FAST,
+        APPROACH,
+        SLEWING_SLOW,
+        SLEWING_MANUAL,
+        TRACKING
+    };
     ScopeStatus_t ScopeStatus;
 
-    enum AxisStatus { STOPPED, SLEWING };
-    enum AxisDirection { FORWARD, REVERSE };
-    
+    enum AxisStatus
+    {
+        STOPPED,
+        SLEWING
+    };
+    enum AxisDirection
+    {
+        FORWARD,
+        REVERSE
+    };
+
     AxisStatus AxisStatusALT;
     AxisDirection AxisDirectionALT;
-    double AxisSlewRateALT;
-    long CurrentALT;
-    long GotoTargetALT;
 
     AxisStatus AxisStatusAZ;
     AxisDirection AxisDirectionAZ;
-    double AxisSlewRateAZ;
-    long CurrentAZ;
-    long GotoTargetAZ;
 
     double Approach; // approach distance
 
     // Previous motion direction
     // TODO: Switch to AltAz from N-S/W-E
-    typedef enum { PREVIOUS_NS_MOTION_NORTH = DIRECTION_NORTH,
-                    PREVIOUS_NS_MOTION_SOUTH = DIRECTION_SOUTH,
-                    PREVIOUS_NS_MOTION_UNKNOWN = -1} PreviousNSMotion_t;
-    PreviousNSMotion_t PreviousNSMotion;
-    typedef enum { PREVIOUS_WE_MOTION_WEST = DIRECTION_WEST,
-                    PREVIOUS_WE_MOTION_EAST = DIRECTION_EAST,
-                    PREVIOUS_WE_MOTION_UNKNOWN = -1} PreviousWEMotion_t;
-    PreviousWEMotion_t PreviousWEMotion;
+    typedef enum {
+        PREVIOUS_NS_MOTION_NORTH   = DIRECTION_NORTH,
+        PREVIOUS_NS_MOTION_SOUTH   = DIRECTION_SOUTH,
+        PREVIOUS_NS_MOTION_UNKNOWN = -1
+    } PreviousNSMotion_t;
+    typedef enum {
+        PREVIOUS_WE_MOTION_WEST    = DIRECTION_WEST,
+        PREVIOUS_WE_MOTION_EAST    = DIRECTION_EAST,
+        PREVIOUS_WE_MOTION_UNKNOWN = -1
+    } PreviousWEMotion_t;
 
     // GoTo
     ln_equ_posn GoToTarget;
@@ -94,14 +106,10 @@ private:
     // Tracking
     ln_equ_posn CurrentTrackingTarget;
     ln_equ_posn NewTrackingTarget;
-    long OldTrackingTarget[2];
 
     // Tracing in timer tick
     int TraceThisTickCount;
     bool TraceThisTick;
 
     unsigned int DBG_NSEVO;
-
 };
-
-#endif // NEXSTAREVO_H

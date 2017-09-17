@@ -7,10 +7,6 @@ include(GNUInstallDirs)
 
 set(UDEVRULES_INSTALL_DIR "/lib/udev/rules.d" CACHE STRING "Base directory for udev rules")
 
-if (NOT WIN32 AND NOT ANDROID)
-set(CMAKE_CXX_FLAGS "-std=c++11 ${CMAKE_CXX_FLAGS}")
-endif(NOT WIN32 AND NOT ANDROID)
-
 find_package(CFITSIO REQUIRED)
 find_package(INDI REQUIRED)
 find_package(USB-1 REQUIRED)
@@ -38,6 +34,8 @@ elseif (CMAKE_HOST_SYSTEM_PROCESSOR MATCHES "x86_64")
 elseif (CMAKE_HOST_SYSTEM_PROCESSOR MATCHES "i[3-6]86")
     set(MILIB ${CMAKE_CURRENT_SOURCE_DIR}/libgxccd32.bin)
 endif ()
+
+include(CMakeCommon)
 
 ########### MI CCD ###########
 set(indi_miccd_SRCS

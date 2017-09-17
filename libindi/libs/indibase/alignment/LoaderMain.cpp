@@ -6,7 +6,7 @@ using namespace std;
 
 static LoaderClient Client;
 
-int main(int argc, char* argv[])
+int main(int argc, char *argv[])
 {
     Client.Initialise(argc, argv);
 

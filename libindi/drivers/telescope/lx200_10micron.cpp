@@ -20,37 +20,28 @@
     Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
-#include <math.h>
-#include <unistd.h>
-#include <termios.h>
-#include <sys/ioctl.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <netdb.h>
-
+#include "lx200_10micron.h"
 
 #include "indicom.h"
-#include "lx200_10micron.h"
 #include "lx200driver.h"
 
+#include <cstring>
+#include <termios.h>
+
 #define PRODUCT_TAB   "Product"
-#define LX200_TIMEOUT   5       /* FD timeout in seconds */
+#define LX200_TIMEOUT 5 /* FD timeout in seconds */
 
-LX200_10MICRON::LX200_10MICRON(void)
-  : LX200Generic()
+LX200_10MICRON::LX200_10MICRON() : LX200Generic()
 {
-    // LX200Generic via the TelescopeCapability settings are fine
-    hasFocus=false;
-
+    setLX200Capability(0);
     setVersion(1, 0);
 }
 
 // Called by INDI::DefaultDevice::ISGetProperties
 // Note that getDriverName calls ::getDefaultName which returns LX200 Generic
-const char *LX200_10MICRON::getDefaultName(void)
+const char *LX200_10MICRON::getDefaultName()
 {
-    return (const char *) "10micron";
+    return (const char *)"10micron";
 }
 
 // Called by either TCP Connect or Serial Port Connect
@@ -58,14 +49,16 @@ bool LX200_10MICRON::Handshake()
 {
     fd = PortFD;
 
-    if (isSimulation() == true) {
+    if (isSimulation() == true)
+    {
         DEBUG(INDI::Logger::DBG_SESSION, "Simulate Connect.");
         return true;
     }
 
     // Set Ultra Precision Mode #:U2# , replies like 15:58:19.49 instead of 15:21.2
     DEBUG(INDI::Logger::DBG_SESSION, "Setting Ultra Precision Mode.");
-    if (setCommandInt(fd, 2, "#:U") < 0) {
+    if (setCommandInt(fd, 2, "#:U") < 0)
+    {
         return false;
     }
 
@@ -73,8 +66,9 @@ bool LX200_10MICRON::Handshake()
 }
 
 // Called by ISGetProperties to initialize basic properties that are required all the time
-bool LX200_10MICRON::initProperties(void) {
-    const bool result = LX200Generic::initProperties();    
+bool LX200_10MICRON::initProperties()
+{
+    const bool result = LX200Generic::initProperties();
 
     // TODO initialize properties additional to INDI::Telescope
 
@@ -84,41 +78,35 @@ bool LX200_10MICRON::initProperties(void) {
 // this should move to some generic library
 int LX200_10MICRON::monthToNumber(const char *monthName)
 {
-    struct entry {
+    struct entry
+    {
         const char *name;
         int id;
     };
-    entry month_table[] = {
-        { "Jan", 1 },
-        { "Feb", 2 },
-        { "Mar", 3 },
-        { "Apr", 4 },
-        { "May", 5 },
-        { "Jun", 6 },
-        { "Jul", 7 },
-        { "Aug", 8 },
-        { "Sep", 9 },
-        { "Oct", 10 },
-        { "Nov", 11 },
-        { "Dec", 12 },
-        { NULL, 0 }
-    };
-    entry *p = month_table;
-    while (p->name != NULL) {
-      if (strcasecmp(p -> name, monthName) == 0)
-         return p->id;
-      ++p;
+    entry month_table[] = { { "Jan", 1 },  { "Feb", 2 },  { "Mar", 3 },  { "Apr", 4 }, { "May", 5 },
+                            { "Jun", 6 },  { "Jul", 7 },  { "Aug", 8 },  { "Sep", 9 }, { "Oct", 10 },
+                            { "Nov", 11 }, { "Dec", 12 }, { nullptr, 0 } };
+    entry *p            = month_table;
+    while (p->name != nullptr)
+    {
+        if (strcasecmp(p->name, monthName) == 0)
+            return p->id;
+        ++p;
     }
     return 0;
 }
 
 // Called by INDI::Telescope when connected state changes to add/remove properties
-bool LX200_10MICRON::updateProperties(void) {
+bool LX200_10MICRON::updateProperties()
+{
     bool result = LX200Generic::updateProperties();
 
-    if (isConnected()) {
+    if (isConnected())
+    {
         getBasicData();
-    } else {
+    }
+    else
+    {
         // delete properties from getBasicData
         deleteProperty(ProductTP.name);
 
@@ -131,10 +119,12 @@ bool LX200_10MICRON::updateProperties(void) {
 // The child class should call newRaDec() whenever a new value is read from the telescope.
 bool LX200_10MICRON::ReadScopeStatus()
 {
-    if (isConnected() == false) {
+    if (!isConnected())
+    {
         return false;
     }
-    if (isSimulation()) {
+    if (isSimulation())
+    {
         mountSim();
         return true;
     }
@@ -144,88 +134,97 @@ bool LX200_10MICRON::ReadScopeStatus()
     char data[80];
     char *term;
     int error_type;
-    int nbytes_write=0, nbytes_read=0;
+    int nbytes_write = 0, nbytes_read = 0;
     // DEBUGFDEVICE(getDefaultName(), DBG_SCOPE, "CMD <%s>", cmd);
-    if ( (error_type = tty_write_string(fd, cmd, &nbytes_write)) != TTY_OK) {
+    if ((error_type = tty_write_string(fd, cmd, &nbytes_write)) != TTY_OK)
+    {
         return false;
     }
     error_type = tty_read_section(fd, data, '#', LX200_TIMEOUT, &nbytes_read);
     tcflush(fd, TCIFLUSH);
-    if (error_type != TTY_OK) {
+    if (error_type != TTY_OK)
+    {
         return false;
     }
     term = strchr(data, '#');
-    if (term) {
+    if (term)
+    {
         *(term + 1) = '\0';
-    } else {
+    }
+    else
+    {
         return false;
     }
     DEBUGFDEVICE(getDefaultName(), DBG_SCOPE, "CMD <%s> RES <%s>", cmd, data);
 
     // Now parse the data
-    float RA_JNOW = 0.0;
-    float DEC_JNOW = 0.0;
+    float RA_JNOW   = 0.0;
+    float DEC_JNOW  = 0.0;
     char SideOfPier = 'x';
-    float AZ = 0.0;
-    float ALT = 0.0;
-    float Jdate = 0.0;
-    int Gstat = -1;
-    int SlewStatus = -1;
-    nbytes_read = sscanf(data, "%g,%g,%c,%g,%g,%g,%d,%d#", &RA_JNOW, &DEC_JNOW, &SideOfPier, &AZ, &ALT, &Jdate, &Gstat, &SlewStatus);
-    if (nbytes_read < 0) {
+    float AZ        = 0.0;
+    float ALT       = 0.0;
+    float Jdate     = 0.0;
+    int Gstat       = -1;
+    int SlewStatus  = -1;
+    nbytes_read = sscanf(data, "%g,%g,%c,%g,%g,%g,%d,%d#", &RA_JNOW, &DEC_JNOW, &SideOfPier, &AZ, &ALT, &Jdate, &Gstat,
+                         &SlewStatus);
+    if (nbytes_read < 0)
+    {
         return false;
     }
 
-    if (Gstat != OldGstat && OldGstat != -1) {
+    if (Gstat != OldGstat && OldGstat != -1)
+    {
         DEBUGF(INDI::Logger::DBG_SESSION, "Gstat changed from %d to %d", OldGstat, Gstat);
     }
-    switch (Gstat) {
-    case GSTAT_TRACKING:
-        TrackState = SCOPE_TRACKING;
-        break;
-    case GSTAT_STOPPED:
-        TrackState = SCOPE_IDLE;
-        break;
-    case GSTAT_PARKING:
-        TrackState = SCOPE_PARKING;
-        break;
-    case GSTAT_UNPARKING:
-        TrackState = SCOPE_TRACKING;
-        break;
-    case GSTAT_SLEWING_TO_HOME:
-        TrackState = SCOPE_SLEWING;
-        break;
-    case GSTAT_PARKED:
-        TrackState = SCOPE_PARKED;
-        if (isParked() == false)
-            SetParked(true);
-        break;
-    case GSTAT_SLEWING_OR_STOPPING:
-        TrackState = SCOPE_SLEWING;
-        break;
-    case GSTAT_NOT_TRACKING_AND_NOT_MOVING:
-        TrackState = SCOPE_IDLE;
-        break;
-    case GSTAT_MOTORS_TOO_COLD:
-        TrackState = SCOPE_IDLE;
-        break;
-    case GSTAT_TRACKING_OUTSIDE_LIMITS:
-        TrackState = SCOPE_TRACKING;
-        break;
-    case GSTAT_FOLLOWING_SATELLITE:
-        TrackState = SCOPE_TRACKING;
-        break;
-    case GSTAT_NEED_USEROK:
-        TrackState = SCOPE_IDLE;
-        break;
-    case GSTAT_UNKNOWN_STATUS:
-        TrackState = SCOPE_IDLE;
-        break;
-    case GSTAT_ERROR:
-        TrackState = SCOPE_IDLE;
-        break;
-    default:
-        return false;
+    switch (Gstat)
+    {
+        case GSTAT_TRACKING:
+            TrackState = SCOPE_TRACKING;
+            break;
+        case GSTAT_STOPPED:
+            TrackState = SCOPE_IDLE;
+            break;
+        case GSTAT_PARKING:
+            TrackState = SCOPE_PARKING;
+            break;
+        case GSTAT_UNPARKING:
+            TrackState = SCOPE_TRACKING;
+            break;
+        case GSTAT_SLEWING_TO_HOME:
+            TrackState = SCOPE_SLEWING;
+            break;
+        case GSTAT_PARKED:
+            TrackState = SCOPE_PARKED;
+            if (!isParked())
+                SetParked(true);
+            break;
+        case GSTAT_SLEWING_OR_STOPPING:
+            TrackState = SCOPE_SLEWING;
+            break;
+        case GSTAT_NOT_TRACKING_AND_NOT_MOVING:
+            TrackState = SCOPE_IDLE;
+            break;
+        case GSTAT_MOTORS_TOO_COLD:
+            TrackState = SCOPE_IDLE;
+            break;
+        case GSTAT_TRACKING_OUTSIDE_LIMITS:
+            TrackState = SCOPE_TRACKING;
+            break;
+        case GSTAT_FOLLOWING_SATELLITE:
+            TrackState = SCOPE_TRACKING;
+            break;
+        case GSTAT_NEED_USEROK:
+            TrackState = SCOPE_IDLE;
+            break;
+        case GSTAT_UNKNOWN_STATUS:
+            TrackState = SCOPE_IDLE;
+            break;
+        case GSTAT_ERROR:
+            TrackState = SCOPE_IDLE;
+            break;
+        default:
+            return false;
     }
 
     OldGstat = Gstat;
@@ -234,21 +233,22 @@ bool LX200_10MICRON::ReadScopeStatus()
 }
 
 // Called by updateProperties
-void LX200_10MICRON::getBasicData(void)
+void LX200_10MICRON::getBasicData()
 {
     DEBUGFDEVICE(getDefaultName(), DBG_SCOPE, "<%s>", __FUNCTION__);
 
     // cannot call LX200Generic::getBasicData(); as getTimeFormat :Gc# and getSiteName :GM# are not implemented on 10Micron
     // TODO delete SiteNameT SiteNameTP
-    if (isSimulation() == false) {
+    if (!isSimulation())
+    {
         getAlignment();
-	    checkLX200Format(fd);
-	    timeFormat = LX200_24;
+        checkLX200Format(fd);
+        timeFormat = LX200_24;
 
-	    if (getTrackFreq(PortFD, &TrackFreqN[0].value) < 0)
-	        IDMessage(getDeviceName(), "Failed to get tracking frequency from device.");
-	    else
-	        IDSetNumber(&TrackingFreqNP, NULL);
+        if (getTrackFreq(PortFD, &TrackFreqN[0].value) < 0)
+            IDMessage(getDeviceName(), "Failed to get tracking frequency from device.");
+        else
+            IDSetNumber(&TrackingFreqNP, nullptr);
 
         getMountInfo();
     }
@@ -257,7 +257,7 @@ void LX200_10MICRON::getBasicData(void)
 }
 
 // Called by getBasicData
-bool LX200_10MICRON::getMountInfo(void)
+bool LX200_10MICRON::getMountInfo()
 {
     DEBUG(INDI::Logger::DBG_SESSION, "Getting product info.");
     char ProductName[80];
@@ -276,11 +276,12 @@ bool LX200_10MICRON::getMountInfo(void)
     char FirmwareDate[80];
     snprintf(FirmwareDate, 80, "%04d-%02d-%02dT%s", yyyy, monthToNumber(mon), dd, FirmwareDate2);
 
-    IUFillText(&ProductT[0],"NAME","Product Name",ProductName);
-    IUFillText(&ProductT[1],"CONTROL_BOX","Control Box",ControlBox);
-    IUFillText(&ProductT[2],"FIRMWARE_VERSION","Firmware Version",FirmwareVersion);
-    IUFillText(&ProductT[3],"FIRMWARE_DATE","Firmware Date", FirmwareDate);
-    IUFillTextVector(&ProductTP,ProductT,4,getDeviceName(),"PRODUCT_INFO","Product",PRODUCT_TAB,IP_RO,60,IPS_IDLE);
+    IUFillText(&ProductT[0], "NAME", "Product Name", ProductName);
+    IUFillText(&ProductT[1], "CONTROL_BOX", "Control Box", ControlBox);
+    IUFillText(&ProductT[2], "FIRMWARE_VERSION", "Firmware Version", FirmwareVersion);
+    IUFillText(&ProductT[3], "FIRMWARE_DATE", "Firmware Date", FirmwareDate);
+    IUFillTextVector(&ProductTP, ProductT, 4, getDeviceName(), "PRODUCT_INFO", "Product", PRODUCT_TAB, IP_RO, 60,
+                     IPS_IDLE);
 
     defineText(&ProductTP);
     return true;
@@ -289,31 +290,33 @@ bool LX200_10MICRON::getMountInfo(void)
 // this should move to some generic library
 int LX200_10MICRON::setStandardProcedureWithoutRead(int fd, const char *data)
 {
-    char bool_return[2];
     int error_type;
-    int nbytes_write=0, nbytes_read=0;
+    int nbytes_write = 0;
 
     DEBUGFDEVICE(getDefaultName(), DBG_SCOPE, "CMD <%s>", data);
-    if ( (error_type = tty_write_string(fd, data, &nbytes_write)) != TTY_OK) {
+    if ((error_type = tty_write_string(fd, data, &nbytes_write)) != TTY_OK)
+    {
         return error_type;
     }
     tcflush(fd, TCIFLUSH);
     return 0;
 }
 
-bool LX200_10MICRON::Park(void)
+bool LX200_10MICRON::Park()
 {
     DEBUG(INDI::Logger::DBG_SESSION, "Parking.");
-    if (setStandardProcedureWithoutRead(fd, "#:KA#") < 0) {
+    if (setStandardProcedureWithoutRead(fd, "#:KA#") < 0)
+    {
         return false;
     }
     return true;
 }
 
-bool LX200_10MICRON::UnPark(void)
+bool LX200_10MICRON::UnPark()
 {
     DEBUG(INDI::Logger::DBG_SESSION, "Unparking.");
-    if (setStandardProcedureWithoutRead(fd, "#:PO#") < 0) {
+    if (setStandardProcedureWithoutRead(fd, "#:PO#") < 0)
+    {
         return false;
     }
     SetParked(false);

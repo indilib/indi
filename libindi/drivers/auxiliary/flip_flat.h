@@ -22,34 +22,35 @@
   file called LICENSE.
 *******************************************************************************/
 
-#ifndef FLIPFLAT_H
-#define FLIPFLAT_H
+#pragma once
 
 #include "defaultdevice.h"
 #include "indilightboxinterface.h"
 #include "indidustcapinterface.h"
 
+#include <stdint.h>
+
+namespace Connection
+{
+class Serial;
+}
+
 class FlipFlat : public INDI::DefaultDevice, public INDI::LightBoxInterface, public INDI::DustCapInterface
 {
-    public:
-
+  public:
     FlipFlat();
-    virtual ~FlipFlat();
+    virtual ~FlipFlat() = default;
 
     virtual bool initProperties();
-    virtual void ISGetProperties (const char *dev);
+    virtual void ISGetProperties(const char *dev);
     virtual bool updateProperties();
 
-    virtual bool ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n);
-    virtual bool ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n);
-    virtual bool ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n);
-    virtual bool ISSnoopDevice (XMLEle *root);
+    virtual bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n);
+    virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n);
+    virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n);
+    virtual bool ISSnoopDevice(XMLEle *root);
 
-    protected:
-
-    //  Generic indi device entries
-    bool Connect();
-    bool Disconnect();
+  protected:
     const char *getDefaultName();
 
     virtual bool saveConfigItems(FILE *fp);
@@ -63,17 +64,14 @@ class FlipFlat : public INDI::DefaultDevice, public INDI::LightBoxInterface, pub
     virtual bool SetLightBoxBrightness(uint16_t value);
     virtual bool EnableLightBox(bool enable);
 
-private:
-
+  private:
     bool getStartupData();
     bool ping();
     bool getStatus();
     bool getFirmwareVersion();
     bool getBrightness();
 
-    // Device physical port
-    ITextVectorProperty PortTP;
-    IText PortT[1];
+    bool Handshake();
 
     // Status
     ITextVectorProperty StatusTP;
@@ -83,12 +81,14 @@ private:
     ITextVectorProperty FirmwareTP;
     IText FirmwareT[1];
 
-    int PortFD;
-    int productID;
-    bool isFlipFlat;
-    uint8_t simulationWorkCounter=0;
-    uint8_t prevCoverStatus, prevLightStatus, prevMotorStatus, prevBrightness;
+    int PortFD { -1 };
+    int productID { 0 };
+    bool isFlipFlat { false };
+    uint8_t simulationWorkCounter { 0 };
+    uint8_t prevCoverStatus { 0xFF };
+    uint8_t prevLightStatus { 0xFF };
+    uint8_t prevMotorStatus { 0xFF };
+    uint8_t prevBrightness { 0xFF };
 
+    Connection::Serial *serialConnection { nullptr };
 };
-
-#endif

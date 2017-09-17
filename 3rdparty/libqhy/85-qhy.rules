@@ -34,6 +34,7 @@ ATTRS{idVendor}=="16c0", ATTRS{idProduct}=="296c", RUN+="/sbin/fxload -t fx2 -I 
 
 # Orion SSAG
 ATTRS{idVendor}=="1856", ATTRS{idProduct}=="0011", RUN+="/sbin/fxload -t fx2 -I /lib/firmware/qhy/QHY5.HEX -D $env{DEVNAME} -s /lib/firmware/qhy/QHY5LOADER.HEX"
+ATTRS{idVendor}=="1856", ATTRS{idProduct}=="0113", RUN+="/sbin/fxload -t fx2 -I /lib/firmware/qhy/QHY5.HEX -D $env{DEVNAME} -s /lib/firmware/qhy/QHY5LOADER.HEX"
 
 # CCD-Labs QGuider
 ATTRS{idVendor}=="1781", ATTRS{idProduct}=="0c7c", RUN+="/sbin/fxload -t fx2 -I /lib/firmware/qhy/QHY5.HEX -D $env{DEVNAME} -s /lib/firmware/qhy/QHY5LOADER.HEX"
@@ -60,6 +61,7 @@ ATTRS{idVendor}=="1618", ATTRS{idProduct}=="1200", RUN+="/sbin/fxload -t fx2 -I 
 ATTRS{idVendor}=="1618", ATTRS{idProduct}=="2850", RUN+="/sbin/fxload -t fx2 -I /lib/firmware/qhy/IMG2P.HEX -D $env{DEVNAME}"
 ATTRS{idVendor}=="1618", ATTRS{idProduct}=="b285", RUN+="/sbin/fxload -t fx2lp -I /lib/firmware/qhy/IMG2S.HEX -D $env{DEVNAME}"
 ATTRS{idVendor}=="1618", ATTRS{idProduct}=="0920", RUN+="/sbin/fxload -t fx2 -I /lib/firmware/qhy/QHY5II.HEX -D $env{DEVNAME}"
+ATTRS{idVendor}=="1618", ATTRS{idProduct}=="0921", RUN+="/sbin/fxload -t fx2 -I /lib/firmware/qhy/QHY5II.HEX -D $env{DEVNAME}"
 ATTRS{idVendor}=="1618", ATTRS{idProduct}=="8300", RUN+="/sbin/fxload -t fx2 -I /lib/firmware/qhy/QHY9S.HEX -D $env{DEVNAME}"
 ATTRS{idVendor}=="1618", ATTRS{idProduct}=="8310", RUN+="/sbin/fxload -t fx2lp -I /lib/firmware/qhy/IC8300.HEX -D $env{DEVNAME}"
 ATTRS{idVendor}=="1618", ATTRS{idProduct}=="6940", RUN+="/sbin/fxload -t fx2 -I /lib/firmware/qhy/QHY22.HEX -D $env{DEVNAME}"
@@ -78,19 +80,26 @@ ATTRS{idVendor}=="1618", ATTRS{idProduct}=="1620", RUN+="/sbin/fxload -t fx2lp -
 ATTRS{idVendor}=="1618", ATTRS{idProduct}=="1622", RUN+="/sbin/fxload -t fx2lp -I /lib/firmware/qhy/QHY16200A.HEX -D $env{DEVNAME}"
 ATTRS{idVendor}=="1618", ATTRS{idProduct}=="8320", RUN+="/sbin/fxload -t fx2lp -I /lib/firmware/qhy/IC90A.HEX -D $env{DEVNAME}"
 ATTRS{idVendor}=="1618", ATTRS{idProduct}=="8322", RUN+="/sbin/fxload -t fx2lp -I /lib/firmware/qhy/QHY90A.HEX -D $env{DEVNAME}"
-ATTRS{idVendor}=="1618", ATTRS{idProduct}=="695A", RUN+="/sbin/fxload -t fx2lp -I /lib/firmware/qhy/QHY695A.HEX -D $env{DEVNAME}"
-ATTRS{idVendor}=="1618", ATTRS{idProduct}=="814A", RUN+="/sbin/fxload -t fx2lp -I /lib/firmware/qhy/QHY814A.HEX -D $env{DEVNAME}"
+ATTRS{idVendor}=="1618", ATTRS{idProduct}=="695a", RUN+="/sbin/fxload -t fx2lp -I /lib/firmware/qhy/QHY695A.HEX -D $env{DEVNAME}"
+ATTRS{idVendor}=="1618", ATTRS{idProduct}=="814a", RUN+="/sbin/fxload -t fx2lp -I /lib/firmware/qhy/QHY814A.HEX -D $env{DEVNAME}"
 ATTRS{idVendor}=="1618", ATTRS{idProduct}=="1630", RUN+="/sbin/fxload -t fx2lp -I /lib/firmware/qhy/IC16803.HEX -D $env{DEVNAME}"
-ATTRS{idVendor}=="1618", ATTRS{idProduct}=="0290", RUN+="/sbin/fxload -t fx3 -I /lib/firmware/qhy/QHY5III290.img -D $env{DEVNAME}"
-ATTRS{idVendor}=="1618", ATTRS{idProduct}=="C290", RUN+="/sbin/fxload -t fx3 -I /lib/firmware/qhy/QHY290.img -D $env{DEVNAME}"
-ATTRS{idVendor}=="1618", ATTRS{idProduct}=="0224", RUN+="/sbin/fxload -t fx3 -I /lib/firmware/qhy/QHY5III224.img -D $env{DEVNAME}"
-ATTRS{idVendor}=="1618", ATTRS{idProduct}=="C224", RUN+="/sbin/fxload -t fx3 -I /lib/firmware/qhy/QHY224.img -D $env{DEVNAME}"
-ATTRS{idVendor}=="1618", ATTRS{idProduct}=="0178", RUN+="/sbin/fxload -t fx3 -I /lib/firmware/qhy/QHY5III178.img -D $env{DEVNAME}"
-ATTRS{idVendor}=="1618", ATTRS{idProduct}=="C178", RUN+="/sbin/fxload -t fx3 -I /lib/firmware/qhy/QHY178.img -D $env{DEVNAME}"
-ATTRS{idVendor}=="1618", ATTRS{idProduct}=="0174", RUN+="/sbin/fxload -t fx3 -I /lib/firmware/qhy/QHY5III174.img -D $env{DEVNAME}"
-ATTRS{idVendor}=="1618", ATTRS{idProduct}=="C174", RUN+="/sbin/fxload -t fx3 -I /lib/firmware/qhy/QHY174.img -D $env{DEVNAME}"
-ATTRS{idVendor}=="1618", ATTRS{idProduct}=="0185", RUN+="/sbin/fxload -t fx3 -I /lib/firmware/qhy/QHY5III185.img -D $env{DEVNAME}"
-ATTRS{idVendor}=="1618", ATTRS{idProduct}=="C163", RUN+="/sbin/fxload -t fx3 -I /lib/firmware/qhy/QHY163.img -D $env{DEVNAME}"
+ATTRS{idVendor}=="1618", ATTRS{idProduct}=="0290", RUN+="/usr/bin/fxload-libusb -t fx3 -i /lib/firmware/qhy/QHY5III290.img -p $env{BUSNUM},$env{DEVNUM}"
+ATTRS{idVendor}=="1618", ATTRS{idProduct}=="c290", RUN+="/usr/bin/fxload-libusb -t fx3 -i /lib/firmware/qhy/QHY290.img -p $env{BUSNUM},$env{DEVNUM}"
+ATTRS{idVendor}=="1618", ATTRS{idProduct}=="0224", RUN+="/usr/bin/fxload-libusb -t fx3 -i /lib/firmware/qhy/QHY5III224.img -p $env{BUSNUM},$env{DEVNUM}"
+ATTRS{idVendor}=="1618", ATTRS{idProduct}=="c224", RUN+="/usr/bin/fxload-libusb -t fx3 -i /lib/firmware/qhy/QHY224.img -p $env{BUSNUM},$env{DEVNUM}"
+ATTRS{idVendor}=="1618", ATTRS{idProduct}=="0178", RUN+="/usr/bin/fxload-libusb -t fx3 -i /lib/firmware/qhy/QHY5III178.img -p $env{BUSNUM},$env{DEVNUM}"
+ATTRS{idVendor}=="1618", ATTRS{idProduct}=="c178", RUN+="/usr/bin/fxload-libusb -t fx3 -i /lib/firmware/qhy/QHY178.img -p $env{BUSNUM},$env{DEVNUM}"
+ATTRS{idVendor}=="1618", ATTRS{idProduct}=="0174", RUN+="/usr/bin/fxload-libusb -t fx3 -i /lib/firmware/qhy/QHY5III174.img -p $env{BUSNUM},$env{DEVNUM}"
+ATTRS{idVendor}=="1618", ATTRS{idProduct}=="c174", RUN+="/usr/bin/fxload-libusb -t fx3 -i /lib/firmware/qhy/QHY174.img -p $env{BUSNUM},$env{DEVNUM}"
+ATTRS{idVendor}=="1618", ATTRS{idProduct}=="0185", RUN+="/usr/bin/fxload-libusb -t fx3 -i /lib/firmware/qhy/QHY5III185.img -p $env{BUSNUM},$env{DEVNUM}"
+ATTRS{idVendor}=="1618", ATTRS{idProduct}=="c163", RUN+="/usr/bin/fxload-libusb -t fx3 -i /lib/firmware/qhy/QHY163.img -p $env{BUSNUM},$env{DEVNUM}"
+ATTRS{idVendor}=="1618", ATTRS{idProduct}=="c183", RUN+="/usr/bin/fxload-libusb -t fx3 -i /lib/firmware/qhy/QHY183.img -p $env{BUSNUM},$env{DEVNUM}"
+ATTRS{idVendor}=="1618", ATTRS{idProduct}=="c165", RUN+="/usr/bin/fxload-libusb -t fx3 -i /lib/firmware/qhy/QHY165.img -p $env{BUSNUM},$env{DEVNUM}"
+ATTRS{idVendor}=="1618", ATTRS{idProduct}=="c167", RUN+="/usr/bin/fxload-libusb -t fx3 -i /lib/firmware/qhy/QHY168.img -p $env{BUSNUM},$env{DEVNUM}"
+ATTRS{idVendor}=="1618", ATTRS{idProduct}=="c247", RUN+="/usr/bin/fxload-libusb -t fx3 -i /lib/firmware/qhy/QHY247.img -p $env{BUSNUM},$env{DEVNUM}"
+ATTRS{idVendor}=="1618", ATTRS{idProduct}=="c128", RUN+="/usr/bin/fxload-libusb -t fx3 -i /lib/firmware/qhy/QHY128.img -p $env{BUSNUM},$env{DEVNUM}"
+ATTRS{idVendor}=="1618", ATTRS{idProduct}=="0940", RUN+="/sbin/fxload -t fx2lp -I /lib/firmware/qhy/POLEMASTER.HEX -D $env{DEVNAME}"
+
 LABEL="qhy_vidpid_end"
 
 # This is the ID presented once the firmware has been loaded.
@@ -104,7 +113,7 @@ LABEL="qhy-vipi"
 
 # Other Vendor
 SUBSYSTEMS=="usb", ATTRS{idVendor}=="16c0", MODE="0666"
-SUBSYSTEMS=="usb", ATTRS{idVendor}=="1856", ATTRS{idProduct}=="0011", MODE="0666"
+SUBSYSTEMS=="usb", ATTRS{idVendor}=="1856", MODE="0666"
 SUBSYSTEMS=="usb", ATTRS{idVendor}=="1781", ATTRS{idProduct}=="0c7c", MODE="0666"
 SUBSYSTEMS=="usb", ATTRS{idVendor}=="04b4", ATTRS{idProduct}=="8613", MODE="0666"
 SUBSYSTEMS=="usb", ATTRS{idVendor}=="0547", ATTRS{idProduct}=="1002", MODE="0666"

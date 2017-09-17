@@ -22,60 +22,90 @@
   file called LICENSE.
 *******************************************************************************/
 
-#ifndef INDIWEATHER_H
-#define INDIWEATHER_H
+#pragma once
+
+#include "defaultdevice.h"
 
 #include <list>
-#include <defaultdevice.h>
+
+namespace Connection
+{
+class Serial;
+class TCP;
+}
 
 /**
  * \class INDI::Weather
-   \brief Class to provide general functionality of a weather device.
-
-   The INDI::Weather provides a simple interface for weather devices. Parameters such as temperature, wind, humidity..etc can be added by the child class
-   as supported by the physical device. With each parameter, the caller specifies the minimum and maximum ranges of OK and WARNING zones. Any value outside of
-   the warning zone is automatically treated as ALERT.
-
-   The class also specifies the list of critical parameters for observatory operations. When any of the parameters changes state to WARNING or ALERT, then
-   the overall state of the WEATHER_STATUS propery reflects the worst state of any individual parameter. The WEATHER_STATUS property may be used by clients to determine whether to proceed with observation tasks or not, and
-   whether to take any safety measures to protect the observatory from severe weather conditions.
-
-   The child class should start by first adding all the weather parameters via the addParameter() function, then set all the critial parameters via the setCriticalParameter() function, and finally call
-   generateParameterRanges() function to generate all the parameter ranges properties.
-
-   Weather update period is controlled by the WEATHER_UPDATE property which stores the update period in seconds and calls updateWeather() every X seconds as given in the property.
-
-   \e IMPORTANT: GEOGRAPHIC_COORD stores latitude and longitude in INDI specific format, refer to <a href="http://indilib.org/develop/developer-manual/101-standard-properties.html">INDI Standard Properties</a> for details.
-
-\author Jasem Mutlaq
-*/
+ * \brief Class to provide general functionality of a weather device.
+ *
+ * The INDI::Weather provides a simple interface for weather devices. Parameters such as temperature,
+ * wind, humidity etc can be added by the child class as supported by the physical device. With each
+ * parameter, the caller specifies the minimum and maximum ranges of OK and WARNING zones. Any value
+ * outside of the warning zone is automatically treated as ALERT.
+ *
+ * The class also specifies the list of critical parameters for observatory operations. When any of
+ * the parameters changes state to WARNING or ALERT, then the overall state of the WEATHER_STATUS
+ * property reflects the worst state of any individual parameter. The WEATHER_STATUS property may be
+ * used by clients to determine whether to proceed with observation tasks or not, and
+ * whether to take any safety measures to protect the observatory from severe weather conditions.
+ *
+ * The child class should start by first adding all the weather parameters via the addParameter()
+ * function, then set all the critial parameters via the setCriticalParameter() function, and finally call
+ * generateParameterRanges() function to generate all the parameter ranges properties.
+ *
+ * Weather update period is controlled by the WEATHER_UPDATE property which stores the update period
+ * in seconds and calls updateWeather() every X seconds as given in the property.
+ *
+ * \e IMPORTANT: GEOGRAPHIC_COORD stores latitude and longitude in INDI specific format, refer to
+ * <a href="http://indilib.org/develop/developer-manual/101-standard-properties.html">INDI Standard
+ * Properties</a> for details.
+ *
+ * \author Jasem Mutlaq
+ */
 class INDI::Weather : public INDI::DefaultDevice
 {
-    public:
+  public:
+    enum WeatherLocation
+    {
+        LOCATION_LATITUDE,
+        LOCATION_LONGITUDE,
+        LOCATION_ELEVATION
+    };
 
-    enum WeatherLocation { LOCATION_LATITUDE, LOCATION_LONGITUDE, LOCATION_ELEVATION };
+    /** \struct WeatherConnection
+     * \brief Holds the connection mode of the Weather.
+     */
+    enum
+    {
+        CONNECTION_NONE   = 1 << 0, /** Do not use any connection plugin */
+        CONNECTION_SERIAL = 1 << 1, /** For regular serial and bluetooth connections */
+        CONNECTION_TCP    = 1 << 2  /** For Wired and WiFI connections */
+    } WeatherConnection;
 
     Weather();
     virtual ~Weather();
 
-    virtual bool initProperties();    
+    virtual bool initProperties();
     virtual bool updateProperties();
-    virtual bool ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n);
-    virtual bool ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n);
+    virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n);
+    virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n);
 
     virtual bool ISSnoopDevice(XMLEle *root);
 
-    protected:
-
+  protected:
     /**
-     * @brief updateWeather Update weather conditions from device or service. The function should not change the state of any property in the device as this is handled by INDI::Weather. It should only update
-     * the raw values.
-     * @return Return overall state. The state should be IPS_OK if data is valid. IPS_BUSY if weather update is in progress. IPS_ALERT is there is an error. The clients will only accept values with IPS_OK state.
+     * @brief updateWeather Update weather conditions from device or service. The function should
+     * not change the state of any property in the device as this is handled by INDI::Weather. It
+     * should only update the raw values.
+     * @return Return overall state. The state should be IPS_OK if data is valid. IPS_BUSY if
+     * weather update is in progress. IPS_ALERT is there is an error. The clients will only accept
+     * values with IPS_OK state.
      */
     virtual IPState updateWeather();
 
     /**
-     * @brief TimerHit Keep calling updateWeather() until it is successfull, if it fails upon first connection.
+     * @brief TimerHit Keep calling updateWeather() until it is successful, if it fails upon first
+     * connection.
      */
     virtual void TimerHit();
 
@@ -83,16 +113,18 @@ class INDI::Weather : public INDI::DefaultDevice
      *  \param latitude Site latitude in degrees.
      *  \param longitude Site latitude in degrees increasing eastward from Greenwich (0 to 360).
      *  \param elevation Site elevation in meters.
-        \return True if successful, false otherewise
-        \note This function performs no action unless subclassed by the child class if required.
-    */
+     *  \return True if successful, false otherwise
+     *  \note This function performs no action unless subclassed by the child class if required.
+     */
     virtual bool updateLocation(double latitude, double longitude, double elevation);
 
     /**
-     * @brief addParameter Add a physical weather measurable parameter to the weather driver. The weather value has three zones:
+     * @brief addParameter Add a physical weather measurable parameter to the weather driver.
+     * The weather value has three zones:
      * <ol>
      * <li>OK: Set minimum and maximum values for acceptable values.</li>
-     * <li>Warning: Set minimum and maximum values for values outside of Ok range and in the dangerous warning zone.</li>
+     * <li>Warning: Set minimum and maximum values for values outside of Ok range and in the
+     * dangerous warning zone.</li>
      * <li>Alert: Any value outsize of Ok and Warning zone is marked as Alert.</li>
      * </ol>
      * @param name Name of parameter
@@ -102,12 +134,14 @@ class INDI::Weather : public INDI::DefaultDevice
      * @param minimumWarning Minimum Warning value.
      * @param maximumWarning Maximum Warning value.
      */
-    void addParameter(std::string name, std::string label, double minimumOK, double maximumOK, double minimumWarning, double maximumWarning);
+    void addParameter(std::string name, std::string label, double minimumOK, double maximumOK, double minimumWarning,
+                      double maximumWarning);
 
     /**
-     * @brief setCriticalParameter Set parameter that is considered critical to the operation of the observatory. The parameter state can
-     * affect the overall weather driver state which signals the client to take appropiate action depending on the severity of the state.
-     * @param param Name of critial parameter.
+     * @brief setCriticalParameter Set parameter that is considered critical to the operation of the
+     * observatory. The parameter state can affect the overall weather driver state which signals
+     * the client to take appropriate action depending on the severity of the state.
+     * @param param Name of critical parameter.
      * @return True if critical parameter was set, false if parameter is not found.
      */
     bool setCriticalParameter(std::string param);
@@ -119,9 +153,24 @@ class INDI::Weather : public INDI::DefaultDevice
      */
     void setParameterValue(std::string name, double value);
 
+    /**
+     * @brief setWeatherConnection Set Weather connection mode. Child class should call this
+     * in the constructor before INDI::Weather registers any connection interfaces
+     * @param value ORed combination of WeatherConnection values.
+     */
+    void setWeatherConnection(const uint8_t &value);
+
+    /**
+     * @return Get current Weather connection mode
+     */
+    uint8_t getWeatherConnection() const;
+
     virtual bool saveConfigItems(FILE *fp);
 
-    //  A number vector that stores lattitude and longitude
+    /** \brief perform handshake with device to check communication */
+    virtual bool Handshake();
+
+    // A number vector that stores lattitude and longitude
     INumberVectorProperty LocationNP;
     INumber LocationN[3];
 
@@ -149,11 +198,17 @@ class INDI::Weather : public INDI::DefaultDevice
     INumber UpdatePeriodN[1];
     INumberVectorProperty UpdatePeriodNP;
 
-private:
+    Connection::Serial *serialConnection = NULL;
+    Connection::TCP *tcpConnection       = NULL;
+
+    int PortFD = -1;
+
+  private:
     bool processLocationInfo(double latitude, double longitude, double elevation);
     void createParameterRange(std::string name, std::string label);
     void updateWeatherState();
     int updateTimerID;
-};
 
-#endif // INDIWeather_H
+    bool callHandshake();
+    uint8_t weatherConnection = CONNECTION_SERIAL | CONNECTION_TCP;
+};

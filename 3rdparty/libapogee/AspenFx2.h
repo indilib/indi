@@ -20,7 +20,7 @@
 class GeeFx2 : public Fx2Base
 { 
     public: 
-        GeeFx2(std::tr1::shared_ptr<Fx2Io> io,
+        GeeFx2(std::shared_ptr<Fx2Io> io,
             const bool Print2StdOut);
         virtual ~GeeFx2(); 
 

@@ -23,23 +23,22 @@
 
  */
 
-#ifndef SBIG_CCD_H
-#define SBIG_CCD_H
+#pragma once
+
+#include "config.h"
 
 #include <indiccd.h>
 #include <indifilterinterface.h>
-#include <iostream>
+
 #ifdef OSX_EMBEDED_MODE
 #include <SBIGUDrv/SBIGUDrv.h>
 #else
 #include <sbigudrv.h>
 #endif
 
-#include "config.h"
+#include <string>
 
 //#define ASYNC_READOUT
-
-using namespace std;
 
 #define DEVICE struct usb_device *
 
@@ -69,26 +68,26 @@ using namespace std;
 const int INVALID_HANDLE_VALUE = -1; // for file operations
 //=============================================================================
 // SBIG temperature constants:
-const double T0 = 25.000;
-const double MAX_AD = 4096.000;
-const double R_RATIO_CCD = 2.570;
-const double R_BRIDGE_CCD = 10.000;
-const double DT_CCD = 25.000;
-const double R0 = 3.000;
-const double R_RATIO_AMBIENT = 7.791;
-const double R_BRIDGE_AMBIENT = 3.000;
-const double DT_AMBIENT = 45.000;
-const double MIN_CCD_TEMP = -70.0;
-const double MAX_CCD_TEMP = 40.0;
-const double CCD_TEMP_STEP = 0.1;
-const double DEF_CCD_TEMP = 0.0;
-const double TEMP_DIFF = 0.5;
+const double T0                   = 25.000;
+const double MAX_AD               = 4096.000;
+const double R_RATIO_CCD          = 2.570;
+const double R_BRIDGE_CCD         = 10.000;
+const double DT_CCD               = 25.000;
+const double R0                   = 3.000;
+const double R_RATIO_AMBIENT      = 7.791;
+const double R_BRIDGE_AMBIENT     = 3.000;
+const double DT_AMBIENT           = 45.000;
+const double MIN_CCD_TEMP         = -70.0;
+const double MAX_CCD_TEMP         = 40.0;
+const double CCD_TEMP_STEP        = 0.1;
+const double DEF_CCD_TEMP         = 0.0;
+const double TEMP_DIFF            = 0.5;
 const double CCD_COOLER_THRESHOLD = 95.0;
 
-const double MIN_POLLING_TIME = 1.0;
-const double MAX_POLLING_TIME = 3600.0;
+const double MIN_POLLING_TIME  = 1.0;
+const double MAX_POLLING_TIME  = 3600.0;
 const double STEP_POLLING_TIME = 1.0;
-const double CUR_POLLING_TIME = 10.0;
+const double CUR_POLLING_TIME  = 10.0;
 
 // CCD BINNING:
 const int CCD_BIN_1x1_I = 0;
@@ -98,10 +97,10 @@ const int CCD_BIN_9x9_I = 9;
 const int CCD_BIN_2x2_E = 7;
 const int CCD_BIN_3x3_E = 8;
 
-const double MIN_EXP_TIME = 0.0;
-const double MAX_EXP_TIME = 3600.0;
+const double MIN_EXP_TIME  = 0.0;
+const double MAX_EXP_TIME  = 3600.0;
 const double EXP_TIME_STEP = 0.01;
-const double DEF_EXP_TIME = 1.0;
+const double DEF_EXP_TIME  = 1.0;
 
 #ifdef USE_CFW_AUTO
 const int MAX_CFW_TYPES = 17;
@@ -109,234 +108,238 @@ const int MAX_CFW_TYPES = 17;
 const int MAX_CFW_TYPES = 16;
 #endif
 
-#define GET_BIG_ENDIAN(p) (((p & 0xff) << 8) | (p  >> 8))
+#define GET_BIG_ENDIAN(p) (((p & 0xff) << 8) | (p >> 8))
 
-typedef enum {
-  CCD_THERMISTOR,
-  AMBIENT_THERMISTOR
-} THERMISTOR_TYPE;
+typedef enum { CCD_THERMISTOR, AMBIENT_THERMISTOR } THERMISTOR_TYPE;
 
-class SBIGCCD: public INDI::CCD, public INDI::FilterInterface {
-public:
-  SBIGCCD();
-  virtual ~SBIGCCD();
-  const char *getDefaultName();
-  bool initProperties();
-  void ISGetProperties(const char *dev);
-  bool updateProperties();
-  bool Connect();
-  bool Disconnect();
-  bool StartExposure(float duration);
-  bool AbortExposure();
-  bool StartGuideExposure(float duration);
-  bool AbortGuideExposure();
-  virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n);
-  virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n);
-  virtual bool ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n);
-  void   updateTemperature();
-  static void updateTemperatureHelper(void *);
+class SBIGCCD : public INDI::CCD, public INDI::FilterInterface
+{
+  public:
+    SBIGCCD();
+    virtual ~SBIGCCD();
+
+    virtual const char *getDefaultName() override;
+    virtual bool initProperties() override;
+    virtual void ISGetProperties(const char *dev) override;
+    virtual bool updateProperties() override;
+    virtual bool Connect() override;
+    virtual bool Disconnect() override;
+    virtual bool StartExposure(float duration) override;
+    virtual bool AbortExposure() override;
+    virtual bool StartGuideExposure(float duration) override;
+    virtual bool AbortGuideExposure() override;
+    virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
+    virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
+    virtual bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n) override;
+    void updateTemperature();
+    static void updateTemperatureHelper(void *);
 #ifdef ASYNC_READOUT
-  static void * grabCCDHelper(void* context);
+    static void *grabCCDHelper(void *context);
 #endif
-  bool   isExposureDone(CCDChip *targetChip);
-  
-protected:
-  void TimerHit();
-  virtual int SetTemperature(double temperature);
-  virtual bool UpdateCCDFrame(int x, int y, int w, int h);
-  virtual bool UpdateGuiderFrame(int x, int y, int w, int h);
-  virtual bool UpdateCCDBin(int binx, int biny);
-  virtual bool UpdateGuiderBin(int binx, int biny);
-  virtual void addFITSKeywords(fitsfile *fptr, CCDChip *targetChip);
-  virtual bool UpdateCCDFrameType(CCDChip::CCD_FRAME fType);
-  virtual bool saveConfigItems(FILE *fp);
-  IPState GuideNorth(float);
-  IPState GuideSouth(float);
-  IPState GuideEast(float);
-  IPState GuideWest(float);
+    bool isExposureDone(CCDChip *targetChip);
 
-  // Filter Wheel CFW
-  virtual int QueryFilter();
-  virtual bool SelectFilter(int position);
-  virtual bool SetFilterNames();
-  virtual bool GetFilterNames(const char *groupName);
+  protected:
+    virtual void TimerHit() override;
+    virtual int SetTemperature(double temperature) override;
+    virtual bool UpdateCCDFrame(int x, int y, int w, int h) override;
+    virtual bool UpdateGuiderFrame(int x, int y, int w, int h) override;
+    virtual bool UpdateCCDBin(int binx, int biny) override;
+    virtual bool UpdateGuiderBin(int binx, int biny) override;
+    virtual void addFITSKeywords(fitsfile *fptr, CCDChip *targetChip) override;
+    virtual bool UpdateCCDFrameType(CCDChip::CCD_FRAME fType) override;
+    virtual bool saveConfigItems(FILE *fp) override;
+    virtual IPState GuideNorth(float) override;
+    virtual IPState GuideSouth(float) override;
+    virtual IPState GuideEast(float) override;
+    virtual IPState GuideWest(float) override;
 
-  int m_fd;
-  CAMERA_TYPE m_camera_type;
-  int m_drv_handle;
-  bool m_link_status;
-  string m_start_exposure_timestamp;
+    // Filter Wheel CFW
+    virtual int QueryFilter() override;
+    virtual bool SelectFilter(int position) override;
+    virtual bool SetFilterNames() override;
+    virtual bool GetFilterNames(const char *groupName) override;
 
-  void InitVars();
-  int OpenDriver();
-  int CloseDriver();
-  unsigned short CalcSetpoint(double temperature);
-  double CalcTemperature(short thermistorType, short ccdSetpoint);
-  double BcdPixel2double(ulong bcd);
+    int m_fd;
+    CAMERA_TYPE m_camera_type;
+    int m_drv_handle;
+    bool m_link_status;
+    std::string m_start_exposure_timestamp;
 
-private:
-  enum { GRAB_NO_CCD, GRAB_PRIMARY_CCD, GRAB_GUIDE_CCD };
+    void InitVars();
+    int OpenDriver();
+    int CloseDriver();
+    unsigned short CalcSetpoint(double temperature);
+    double CalcTemperature(short thermistorType, short ccdSetpoint);
+    double BcdPixel2double(ulong bcd);
 
-  DEVICE device;
-  char name[MAXINDINAME];
+  private:
+    enum
+    {
+        GRAB_NO_CCD,
+        GRAB_PRIMARY_CCD,
+        GRAB_GUIDE_CCD
+    };
 
-  IText ProductInfoT[2];
-  ITextVectorProperty ProductInfoTP;
+    DEVICE device;
+    char name[MAXINDINAME];
 
-  ISwitch PortS[8];
-  ISwitchVectorProperty PortSP;
-  int SBIGPortMap[8];
+    IText ProductInfoT[2];
+    ITextVectorProperty ProductInfoTP;
 
-  // IP Address
-  IText IpT[1];
-  ITextVectorProperty IpTP;
+    ISwitch PortS[8];
+    ISwitchVectorProperty PortSP;
+    int SBIGPortMap[8];
 
-  // TEMPERATURE GROUP:
-  ISwitch FanStateS[2];
-  ISwitchVectorProperty FanStateSP;
+    // IP Address
+    IText IpT[1];
+    ITextVectorProperty IpTP;
 
-  ISwitch CoolerS[2];
-  ISwitchVectorProperty CoolerSP;
+    // TEMPERATURE GROUP:
+    ISwitch FanStateS[2];
+    ISwitchVectorProperty FanStateSP;
 
-  INumber CoolerN[1];
-  INumberVectorProperty CoolerNP;
+    ISwitch CoolerS[2];
+    ISwitchVectorProperty CoolerSP;
 
-  // CFW GROUP:
-  IText FilterProdcutT[2];
-  ITextVectorProperty FilterProdcutTP;
+    INumber CoolerN[1];
+    INumberVectorProperty CoolerNP;
 
-  ISwitch FilterTypeS[MAX_CFW_TYPES];
-  ISwitchVectorProperty FilterTypeSP;
-  int SBIGFilterMap[MAX_CFW_TYPES];
+    // CFW GROUP:
+    IText FilterProdcutT[2];
+    ITextVectorProperty FilterProdcutTP;
 
-  ISwitch FilterConnectionS[2];
-  ISwitchVectorProperty FilterConnectionSP;
+    ISwitch FilterTypeS[MAX_CFW_TYPES];
+    ISwitchVectorProperty FilterTypeSP;
+    int SBIGFilterMap[MAX_CFW_TYPES];
 
-  double ccdTemp;
-  unsigned short *imageBuffer;
-  int timerID;
+    ISwitch FilterConnectionS[2];
+    ISwitchVectorProperty FilterConnectionSP;
 
-  CCDChip::CCD_FRAME imageFrameType;
+    double ccdTemp;
+    unsigned short *imageBuffer;
+    int timerID;
 
-  struct timeval ExpStart;
-  struct timeval GuideExpStart;
+    CCDChip::CCD_FRAME imageFrameType;
 
-  float ExposureRequest;
-  float GuideExposureRequest;
-  float TemperatureRequest;
+    struct timeval ExpStart;
+    struct timeval GuideExpStart;
 
-  float CalcTimeLeft(timeval,float);
-  bool grabImage(CCDChip *targetChip);
-  bool setupParams();
+    float ExposureRequest;
+    float GuideExposureRequest;
+    float TemperatureRequest;
 
-#ifdef  ASYNC_READOUT
-  /* Threading variables */
-  void *grabCCD();
-  pthread_t primary_thread;
-  int grabPredicate;
-  bool terminateThread;
+    float CalcTimeLeft(timeval, float);
+    bool grabImage(CCDChip *targetChip);
+    bool setupParams();
+
+#ifdef ASYNC_READOUT
+    /* Threading variables */
+    void *grabCCD();
+    pthread_t primary_thread;
+    int grabPredicate;
+    bool terminateThread;
 #endif
-  
-  bool sim;
-  bool isColor;
-  bool useExternalTrackingCCD;
-  bool hasGuideHead;
-  bool hasFilterWheel;
 
-  inline int GetFileDescriptor() { return(m_fd); }
-  inline void SetFileDescriptor(int val = -1) { m_fd = val; }
-  inline bool IsDeviceOpen() { return ((m_fd == -1) ? false : true); }
-  inline CAMERA_TYPE GetCameraType() { return(m_camera_type); }
-  inline void SetCameraType(CAMERA_TYPE val = NO_CAMERA) { m_camera_type = val; }
-  inline int GetDriverHandle() { return(m_drv_handle); }
-  inline void SetDriverHandle(int val = INVALID_HANDLE_VALUE) { m_drv_handle = val; }
-  inline bool GetLinkStatus() { return(m_link_status); }
-  inline void SetLinkStatus(bool val = false) { m_link_status = val; }
-  int SetDeviceName(const char*);
-  inline string GetStartExposureTimestamp() { return(m_start_exposure_timestamp); }
-  inline void  SetStartExposureTimestamp(const char *p) { m_start_exposure_timestamp = p; }
+    bool sim;
+    bool isColor;
+    bool useExternalTrackingCCD;
+    bool hasGuideHead;
+    bool hasFilterWheel;
 
-  // Driver Related Commands:
-  int GetCFWSelType();
-  int OpenDevice(uint32_t devType);
-  int CloseDevice();
-  int GetDriverInfo(GetDriverInfoParams *, void *);
-  int SetDriverHandle(SetDriverHandleParams *);
-  int GetDriverHandle(GetDriverHandleResults *);
+    inline int GetFileDescriptor() { return (m_fd); }
+    inline void SetFileDescriptor(int val = -1) { m_fd = val; }
+    inline bool IsDeviceOpen() { return ((m_fd == -1) ? false : true); }
+    inline CAMERA_TYPE GetCameraType() { return (m_camera_type); }
+    inline void SetCameraType(CAMERA_TYPE val = NO_CAMERA) { m_camera_type = val; }
+    inline int GetDriverHandle() { return (m_drv_handle); }
+    inline void SetDriverHandle(int val = INVALID_HANDLE_VALUE) { m_drv_handle = val; }
+    inline bool GetLinkStatus() { return (m_link_status); }
+    inline void SetLinkStatus(bool val = false) { m_link_status = val; }
+    int SetDeviceName(const char *);
+    inline std::string GetStartExposureTimestamp() { return (m_start_exposure_timestamp); }
+    inline void SetStartExposureTimestamp(const char *p) { m_start_exposure_timestamp = p; }
 
-  // Exposure Related Commands:
-  int StartExposure(StartExposureParams2 *);
-  int EndExposure(EndExposureParams *);
-  int StartReadout(StartReadoutParams *);
-  int ReadoutLine(ReadoutLineParams *, unsigned short *results, bool subtract);
-  int DumpLines(DumpLinesParams *);
-  int EndReadout(EndReadoutParams *);
+    // Driver Related Commands:
+    int GetCFWSelType();
+    int OpenDevice(uint32_t devType);
+    int CloseDevice();
+    int GetDriverInfo(GetDriverInfoParams *, void *);
+    int SetDriverHandle(SetDriverHandleParams *);
+    int GetDriverHandle(GetDriverHandleResults *);
 
-  // Temperature Related Commands:
-  int SetTemperatureRegulation(SetTemperatureRegulationParams *);
-  int SetTemperatureRegulation(double temp, bool enable = true);
-  int QueryTemperatureStatus(QueryTemperatureStatusResults *);
-  int QueryTemperatureStatus(bool &enabled, double &ccdTemp, double &setpointT, double &power);
+    // Exposure Related Commands:
+    int StartExposure(StartExposureParams2 *);
+    int EndExposure(EndExposureParams *);
+    int StartReadout(StartReadoutParams *);
+    int ReadoutLine(ReadoutLineParams *, unsigned short *results, bool subtract);
+    int DumpLines(DumpLinesParams *);
+    int EndReadout(EndReadoutParams *);
 
-  // External Control Commands:
-  int ActivateRelay(ActivateRelayParams *);
-  int PulseOut(PulseOutParams *);
-  int TxSerialBytes(TXSerialBytesParams *, TXSerialBytesResults *);
-  int GetSerialStatus(GetSerialStatusResults *);
-  int AoTipTilt(AOTipTiltParams *);
-  int AoSetFocus(AOSetFocusParams *);
-  int AoDelay(AODelayParams *);
-  int CFW(CFWParams *, CFWResults *);
+    // Temperature Related Commands:
+    int SetTemperatureRegulation(SetTemperatureRegulationParams *);
+    int SetTemperatureRegulation(double temp, bool enable = true);
+    int QueryTemperatureStatus(QueryTemperatureStatusResults *);
+    int QueryTemperatureStatus(bool &enabled, double &ccdTemp, double &setpointT, double &power);
 
-  // General Purpose Commands:
-  int EstablishLink();
-  int GetCcdInfo(GetCCDInfoParams *, void *);
-  void GetExtendedCCDInfo();
-  int QueryCommandStatus( QueryCommandStatusParams *, QueryCommandStatusResults *);
-  int MiscellaneousControl(MiscellaneousControlParams *);
-  int ReadOffset(ReadOffsetParams *, ReadOffsetResults *);
-  int GetLinkStatus(GetLinkStatusResults *);
-  char *GetErrorString(int err);
-  int SetDriverControl(SetDriverControlParams *);
-  int GetDriverControl(GetDriverControlParams *, GetDriverControlResults *);
-  int UsbAdControl(USBADControlParams *);
-  int QueryUsb(QueryUSBResults *);
-  int RwUsbI2c(RWUSBI2CParams *);
-  int BitIo(BitIOParams *, BitIOResults *);
+    // External Control Commands:
+    int ActivateRelay(ActivateRelayParams *);
+    int PulseOut(PulseOutParams *);
+    int TxSerialBytes(TXSerialBytesParams *, TXSerialBytesResults *);
+    int GetSerialStatus(GetSerialStatusResults *);
+    int AoTipTilt(AOTipTiltParams *);
+    int AoSetFocus(AOSetFocusParams *);
+    int AoDelay(AODelayParams *);
+    int CFW(CFWParams *, CFWResults *);
 
-  // SBIG's software interface to the Universal Driver Library function:
-  int SBIGUnivDrvCommand(PAR_COMMAND, void *, void *);
+    // General Purpose Commands:
+    int EstablishLink();
+    int GetCcdInfo(GetCCDInfoParams *, void *);
+    void GetExtendedCCDInfo();
+    int QueryCommandStatus(QueryCommandStatusParams *, QueryCommandStatusResults *);
+    int MiscellaneousControl(MiscellaneousControlParams *);
+    int ReadOffset(ReadOffsetParams *, ReadOffsetResults *);
+    int GetLinkStatus(GetLinkStatusResults *);
+    char *GetErrorString(int err);
+    int SetDriverControl(SetDriverControlParams *);
+    int GetDriverControl(GetDriverControlParams *, GetDriverControlResults *);
+    int UsbAdControl(USBADControlParams *);
+    int QueryUsb(QueryUSBResults *);
+    int RwUsbI2c(RWUSBI2CParams *);
+    int BitIo(BitIOParams *, BitIOResults *);
 
-  // High level functions:
-  bool CheckLink();
-  const char *GetCameraName();
-  const char *GetCameraID();
-  int getCCDSizeInfo(int ccd, int rm, int &frmW, int &frmH, double &pixW, double &pixH);
-  bool IsFanControlAvailable();
+    // SBIG's software interface to the Universal Driver Library function:
+    int SBIGUnivDrvCommand(PAR_COMMAND, void *, void *);
 
-  bool updateFrameProperties(CCDChip *targetChip);
-  int StartExposure(CCDChip *targetChip, double duration);
-  int AbortExposure(CCDChip *targetChip);
-  int GetSelectedCcdChip(int &ccd_request);
-  int getBinningMode(CCDChip *targetChip, int &binning);
-  int getFrameType(CCDChip *targetChip, CCDChip::CCD_FRAME *frameType);
-  int getShutterMode(CCDChip *targetChip, int &shutter);
+    // High level functions:
+    bool CheckLink();
+    const char *GetCameraName();
+    const char *GetCameraID();
+    int getCCDSizeInfo(int ccd, int rm, int &frmW, int &frmH, double &pixW, double &pixH);
+    bool IsFanControlAvailable();
 
-  int CFWConnect();
-  int CFWDisconnect();
-  int CFWInit(CFWResults *);
-  int CFWQuery(CFWResults*);
-  int CFWGoto(CFWResults *, int position);
-  int CFWGotoMonitor(CFWResults *);
+    bool updateFrameProperties(CCDChip *targetChip);
+    int StartExposure(CCDChip *targetChip, double duration);
+    int AbortExposure(CCDChip *targetChip);
+    int GetSelectedCcdChip(int &ccd_request);
+    int getBinningMode(CCDChip *targetChip, int &binning);
+    int getFrameType(CCDChip *targetChip, CCDChip::CCD_FRAME *frameType);
+    int getShutterMode(CCDChip *targetChip, int &shutter);
 
-  int readoutCCD(unsigned short left, unsigned short top, unsigned short width, unsigned short height, unsigned short *buffer, CCDChip *targetChip);
+    int CFWConnect();
+    int CFWDisconnect();
+    int CFWInit(CFWResults *);
+    int CFWQuery(CFWResults *);
+    int CFWGoto(CFWResults *, int position);
+    int CFWGotoMonitor(CFWResults *);
 
-  friend void ::ISGetProperties(const char *dev);
-  friend void ::ISSnoopDevice(XMLEle *root);
-  friend void ::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int num);
-  friend void ::ISNewText(const char *dev, const char *name, char *texts[], char *names[], int num);
-  friend void ::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int num);
-  friend void ::ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[], char *names[], int n);
+    int readoutCCD(unsigned short left, unsigned short top, unsigned short width, unsigned short height,
+                   unsigned short *buffer, CCDChip *targetChip);
+
+    friend void ::ISGetProperties(const char *dev);
+    friend void ::ISSnoopDevice(XMLEle *root);
+    friend void ::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int num);
+    friend void ::ISNewText(const char *dev, const char *name, char *texts[], char *names[], int num);
+    friend void ::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int num);
+    friend void ::ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[],
+                            char *formats[], char *names[], int n);
 };
-
-#endif // SBIG_CCD_H

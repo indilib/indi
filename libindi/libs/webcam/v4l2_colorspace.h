@@ -1,5 +1,5 @@
-#ifndef V4L2_COLORSPACE_H
-#define V4L2_COLORSPACE_H
+
+#pragma once
 
 #include <linux/videodev2.h>
 
@@ -14,24 +14,20 @@ extern "C" {
 /* sYCC (Y'CbCr encoding of sRGB) */
 #define YCBCR_ENC_SYCC 5
 /* SMPTE 240M -- Obsolete HDTV */
-#define YCBCR_ENC_SMPTE240M  8
-#define QUANTIZATION_FULL_RANGE  1
-#define QUANTIZATION_LIM_RANGE   2
-
-
+#define YCBCR_ENC_SMPTE240M     8
+#define QUANTIZATION_FULL_RANGE 1
+#define QUANTIZATION_LIM_RANGE  2
 
 void initColorSpace();
-const char * getColorSpaceName(struct v4l2_format *fmt);
+const char *getColorSpaceName(struct v4l2_format *fmt);
 unsigned int getYCbCrEncoding(struct v4l2_format *fmt);
-const char * getYCbCrEncodingName(struct v4l2_format *fmt);
+const char *getYCbCrEncodingName(struct v4l2_format *fmt);
 unsigned int getQuantization(struct v4l2_format *fmt);
-const char * getQuantizationName(struct v4l2_format *fmt);
+const char *getQuantizationName(struct v4l2_format *fmt);
 
 void rangeY8(unsigned char *buf, unsigned int len);
 void linearize(float *buf, unsigned int len, struct v4l2_format *fmt);
 
 #ifdef __cplusplus
 }
-#endif
-
 #endif

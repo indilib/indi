@@ -23,16 +23,15 @@
   file called LICENSE.
 *******************************************************************************/
 
-#ifndef WEATHERMETA_H
-#define WEATHERMETA_H
+#pragma once
 
 #include "defaultdevice.h"
 
 class WeatherMeta : public INDI::DefaultDevice
 {
-    public:
+  public:
     WeatherMeta();
-    virtual ~WeatherMeta();
+    virtual ~WeatherMeta() = default;
 
     //  Generic indi device entries
     bool Connect();
@@ -43,14 +42,13 @@ class WeatherMeta : public INDI::DefaultDevice
 
     virtual bool initProperties();
     virtual bool updateProperties();
-    virtual void ISGetProperties (const char *dev);
-    virtual bool ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n);
+    virtual void ISGetProperties(const char *dev);
+    virtual bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n);
 
-    protected:
-
+  protected:
     virtual bool saveConfigItems(FILE *fp);
 
-private:
+  private:
     void updateOverallState();
     void updateUpdatePeriod();
 
@@ -68,5 +66,3 @@ private:
 
     double updatePeriods[4];
 };
-
-#endif // WEATHERMETA_H

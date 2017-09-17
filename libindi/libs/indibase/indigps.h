@@ -22,10 +22,9 @@
   file called LICENSE.
 *******************************************************************************/
 
-#ifndef INDIGPS_H
-#define INDIGPS_H
+#pragma once
 
-#include <defaultdevice.h>
+#include "defaultdevice.h"
 
 /**
  * \class INDI::GPS
@@ -44,28 +43,31 @@
 */
 class INDI::GPS : public INDI::DefaultDevice
 {
-    public:
-
-    enum GPSLocation { LOCATION_LATITUDE, LOCATION_LONGITUDE, LOCATION_ELEVATION };
+  public:
+    enum GPSLocation
+    {
+        LOCATION_LATITUDE,
+        LOCATION_LONGITUDE,
+        LOCATION_ELEVATION
+    };
 
     GPS();
     virtual ~GPS();
 
     virtual bool initProperties();
     virtual bool updateProperties();
-    virtual bool ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n);
+    virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n);
 
-    protected:
-
+  protected:
     /**
-     * @brief updateGPS Retrieve Location & Time from GPS. Update LocationNP & TimeTP properties (value and state) without sending them to the client (i.e. IDSetXXX).
-     * @return Return overall state. The state should be IPS_OK if data is valid. IPS_BUSY if GPS fix is in progress. IPS_ALERT is there is an error. The clients will only accept values with IPS_OK state.
-     */
+         * @brief updateGPS Retrieve Location & Time from GPS. Update LocationNP & TimeTP properties (value and state) without sending them to the client (i.e. IDSetXXX).
+         * @return Return overall state. The state should be IPS_OK if data is valid. IPS_BUSY if GPS fix is in progress. IPS_ALERT is there is an error. The clients will only accept values with IPS_OK state.
+         */
     virtual IPState updateGPS();
 
     /**
-     * @brief TimerHit Keep calling updateGPS() until it is successfull, if it fails upon first connection.
-     */
+         * @brief TimerHit Keep calling updateGPS() until it is successfull, if it fails upon first connection.
+         */
     virtual void TimerHit();
 
     //  A number vector that stores lattitude and longitude
@@ -79,7 +81,4 @@ class INDI::GPS : public INDI::DefaultDevice
     // Refresh data
     ISwitch RefreshS[1];
     ISwitchVectorProperty RefreshSP;
-
 };
-
-#endif // INDIGPS_H

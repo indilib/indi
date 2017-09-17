@@ -77,7 +77,7 @@ public:
 	int OpenCamera( std::string acSerialNumber );
 	int OpenCamera( CameraID cID );
 	int CloseCamera( void );
-	int ReadImage( PVOID pvRxBuffer, int iBytesToRead , int * iBytesReturned);
+	int ReadImageByRow(PVOID pvRxBuffer, int RowsToRead, int ColumnsToRead, int iStride, int iPixelSize, int & iRowsRead);
 	int CMD_InitCamera( void );
 	int CMD_GetDeviceDetails( QSI_DeviceDetails & DeviceDetails );
 	int CMD_StartExposure( QSI_ExposureSettings ExposureSettings );
@@ -134,20 +134,22 @@ public:
 	int CMD_ExtTrigMode( BYTE action, BYTE polarity);
 
 	virtual BYTE EepromRead( USHORT address );
+	int GetMaxBytesPerReadBlock(void); // returns the maximum number of bytes in a block for the host to read. Based on the current connection.
 	
 	//////////////////////////////////////////////////////////////////////////////////////////
 	// Public Member Variables
 	//
+public:
 	bool m_bColorProfiling;
 	bool m_bTestBayerImage;
 	bool m_bCameraStateCacheInvalid;
 	//
 	bool m_bAutoZeroEnable;
-	DWORD m_dwAutoZeroSatThreshold;
-	DWORD m_dwAutoZeroMaxADU;
+	int m_dwAutoZeroSatThreshold;
+	int m_dwAutoZeroMaxADU;
 	//
-	DWORD m_dwAutoZeroSkipStartPixels;
-	DWORD m_dwAutoZeroSkipEndPixels;
+	int m_dwAutoZeroSkipStartPixels;
+	int m_dwAutoZeroSkipEndPixels;
 	bool m_bAutoZeroMedianNotMean;
 	//
 	HotPixelMap m_hpmMap;
@@ -178,6 +180,7 @@ private:
 	unsigned char		Rsp_Pkt[MAX_PKT_LENGTH];
 	QSI_DeviceDetails 	m_DeviceDetails;
 	QSI_AdvSettings 	m_UserRequestedAdvSettings;	// User requested Advanced Settings, may differ from camera by autogain or others
+	int					m_MaxBytesPerReadBlock;
 	
 	FilterWheel	m_fwWheel;
 

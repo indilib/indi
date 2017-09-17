@@ -21,8 +21,7 @@
 
 */
 
-#ifndef FLI_CCD_H
-#define FLI_CCD_H
+#pragma once
 
 #include <libfli.h>
 #include <indiccd.h>
@@ -32,8 +31,7 @@ using namespace std;
 
 class FLICCD : public INDI::CCD
 {
-public:
-
+  public:
     FLICCD();
     virtual ~FLICCD();
 
@@ -49,18 +47,18 @@ public:
     bool StartExposure(float duration);
     bool AbortExposure();
 
-    virtual bool ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n);
+    virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n);
 
-    protected:
-
+  protected:
     void TimerHit();
-    virtual int  SetTemperature(double temperature);
+    virtual int SetTemperature(double temperature);
     virtual bool UpdateCCDFrame(int x, int y, int w, int h);
     virtual bool UpdateCCDBin(int binx, int biny);
     virtual bool UpdateCCDFrameType(CCDChip::CCD_FRAME fType);
 
-    private:
+    virtual void debugTriggered(bool enable);
 
+  private:
     // Find FLI CCD
     bool findFLICCD(flidomain_t domain);
 
@@ -75,20 +73,19 @@ public:
 
     typedef struct
     {
-      flidomain_t domain;
-      char *dname;
-      char *name;
-      char model[32];
-      long HWRevision;
-      long FWRevision;
-      double x_pixel_size;
-      double y_pixel_size;
-      long Array_Area[4];
-      long Visible_Area[4];
-      int width, height;
-      double temperature;
+        flidomain_t domain;
+        char *dname;
+        char *name;
+        char model[32];
+        long HWRevision;
+        long FWRevision;
+        double x_pixel_size;
+        double y_pixel_size;
+        long Array_Area[4];
+        long Visible_Area[4];
+        int width, height;
+        double temperature;
     } cam_t;
-
 
     ISwitch PortS[4];
     ISwitchVectorProperty PortSP;
@@ -111,9 +108,4 @@ public:
 
     // Simulation mode
     bool sim;
-
-
-
 };
-
-#endif // FLI_CCD_H

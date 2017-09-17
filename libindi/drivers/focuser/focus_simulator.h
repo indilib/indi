@@ -16,16 +16,15 @@
  Boston, MA 02110-1301, USA.
 *******************************************************************************/
 
-#ifndef FOCUSSIM_H
-#define FOCUSSIM_H
+#pragma once
 
-#include "indibase/indifocuser.h"
+#include "indifocuser.h"
 
 class FocusSim : public INDI::Focuser
 {
-public:
+  public:
     FocusSim();
-    virtual ~FocusSim();
+    virtual ~FocusSim() = default;
 
     const char *getDefaultName();
 
@@ -36,18 +35,17 @@ public:
     bool Connect();
     bool Disconnect();
 
-    virtual bool ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n);
-    virtual bool ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n);
+    virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n);
+    virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n);
 
     virtual IPState MoveFocuser(FocusDirection dir, int speed, uint16_t duration);
-    virtual IPState MoveAbsFocuser(uint32_t internalTicks);
-    virtual IPState MoveRelFocuser(FocusDirection dir, uint32_t internalTicks);
+    virtual IPState MoveAbsFocuser(uint32_t targetTicks);
+    virtual IPState MoveRelFocuser(FocusDirection dir, uint32_t ticks);
     virtual bool SetFocuserSpeed(int speed);
 
-
-private:
-    double internalTicks=0;
-    double initTicks;
+  private:
+    double internalTicks { 0 };
+    double initTicks { 0 };
 
     // Seeing in arcseconds
     INumberVectorProperty SeeingNP;
@@ -58,9 +56,14 @@ private:
     INumber FWHMN[1];
 
     // Current mode of Focus simulator for testing purposes
-    enum { MODE_ALL, MODE_ABSOLUTE, MODE_RELATIVE, MODE_TIMER, MODE_COUNT};
+    enum
+    {
+        MODE_ALL,
+        MODE_ABSOLUTE,
+        MODE_RELATIVE,
+        MODE_TIMER,
+        MODE_COUNT
+    };
     ISwitchVectorProperty ModeSP;
     ISwitch ModeS[MODE_COUNT];
 };
-
-#endif

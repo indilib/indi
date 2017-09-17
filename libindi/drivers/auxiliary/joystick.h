@@ -20,21 +20,9 @@
   file called LICENSE.
 *******************************************************************************/
 
-#ifndef INDIJOYSTICK_H
-#define INDIJOYSTICK_H
+#pragma once
 
-#include <defaultdevice.h>
-
-/* Standard headers */
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <math.h>
-#include <unistd.h>
-#include <sys/time.h>
-
-#include <sys/time.h>
-#include <time.h>
+#include "defaultdevice.h"
 
 class JoyStickDriver;
 
@@ -45,26 +33,27 @@ class JoyStickDriver;
  */
 class JoyStick : public INDI::DefaultDevice
 {
-    public:
+  public:
     JoyStick();
     virtual ~JoyStick();
 
-    virtual bool initProperties();
-    virtual bool updateProperties();
-    virtual void ISGetProperties (const char *dev);
-    virtual bool ISSnoopDevice (XMLEle *root);
-    virtual bool ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n);
+    virtual bool initProperties() override;
+    virtual bool updateProperties() override;
+    virtual void ISGetProperties(const char *dev) override;
+    virtual bool ISSnoopDevice(XMLEle *root) override;
+    virtual bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n) override;
 
     static void joystickHelper(int joystick_n, double mag, double angle);
     static void axisHelper(int axis_n, int value);
     static void buttonHelper(int button_n, int value);
 
-    protected:
-
+  protected:
     //  Generic indi device entries
-    bool Connect();
-    bool Disconnect();
-    const char *getDefaultName();
+    virtual bool Connect() override;
+    virtual bool Disconnect() override;
+    virtual const char *getDefaultName() override;
+
+    bool saveConfigItems(FILE *fp) override;
 
     void setupParams();
 
@@ -89,5 +78,3 @@ class JoyStick : public INDI::DefaultDevice
 
     JoyStickDriver *driver;
 };
-
-#endif // INDIJOYSTICK_H

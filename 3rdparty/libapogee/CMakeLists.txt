@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 2.8)
 PROJECT(libapogee C CXX)
 
+set(CMAKE_CXX_STANDARD 11)
+
 LIST(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake_modules/")
 LIST(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/../../cmake_modules/")
 include(GNUInstallDirs)
@@ -21,69 +23,20 @@ find_package(Boost REQUIRED COMPONENTS regex)
 
 include_directories( ${CMAKE_CURRENT_BINARY_DIR})
 include_directories( ${CMAKE_CURRENT_SOURCE_DIR})
+include_directories( ${CMAKE_CURRENT_SOURCE_DIR}/linux)
 include_directories( ${Boost_INCLUDE_DIRS})
 include_directories( ${CURL_INCLUDE_DIR})
 
-set(libapogee_SRCS
-   GenOneLinuxUSB.cpp
-   linuxHelpers.cpp
-   LinuxTimer.cpp
-   LoggerSyslog.cpp
-   UdpSocketLinux.cpp
-   AltaCcdAcqParams.cpp
-   Alta.cpp
-   AspenData.cpp
-   AltaData.cpp
-   AltaEthernetIo.cpp
-   AltaF.cpp
-   AltaIo.cpp
-   AltaModeFsm.cpp
-   AltaUsbIo.cpp
-   apgHelper.cpp
-   ApgLogger.cpp
-   ApgTimer.cpp
-   ApnCamData.cpp
-   ApogeeCam.cpp
-   Ascent.cpp
-   AscentBasedIo.cpp
-   AscentBasedUsbIo.cpp
-   AscentData.cpp
-   CamCfgMatrix.cpp
-   CameraIo.cpp
-   CameraInfo.cpp
-   CameraStatusRegs.cpp
-   CamGen2Base.cpp
-   CamGen2CcdAcqParams.cpp
-   CamGen2ModeFsm.cpp
-   CamHelpers.cpp
-   CamRegMirror.cpp
-   CamUsbIo.cpp
-   CcdAcqParams.cpp
-   FilterWheelIo.cpp
-   FindDeviceEthernet.cpp
-   FindDeviceUsb.cpp
-   Aspen.cpp
-   AspenEthernetIo.cpp
-   AspenIo.cpp
-   AspenUsbIo.cpp
-   helpers.cpp
-   HiC.cpp
-   IAltaSerialPortIo.cpp
-   ICamIo.cpp
-   ILog.cpp
-   ImgFix.cpp
-   ITimer.cpp
-   libCurlWrap.cpp
-   LoggerException.cpp
-   ModeFsm.cpp
-   parseCfgTabDelim.cpp
-   PlatformData.cpp
-   IUsb.cpp
-   UdpSocketBase.cpp
-   ApogeeFilterWheel.cpp
-   PromFx2Io.cpp
-   Quad.cpp
-   )
+SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-error")
+SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-error")
+
+# Less error prone with libapogee upstream updates since they do not use CMake
+file(GLOB libapogee_SRCS ${CMAKE_CURRENT_SOURCE_DIR}/*.cpp ${CMAKE_CURRENT_SOURCE_DIR}/linux/*.cpp)
+
+# Windows file
+list(REMOVE_ITEM libapogee_SRCS "${CMAKE_CURRENT_SOURCE_DIR}/COMHelper.cpp")
+# Missing headers
+list(REMOVE_ITEM libapogee_SRCS "${CMAKE_CURRENT_SOURCE_DIR}/AspenFx2.cpp")
 
 add_library(apogee SHARED ${libapogee_SRCS})
 
@@ -93,7 +46,8 @@ target_link_libraries(apogee ${LIBUSB_1_LIBRARIES} ${CURL_LIBRARY} ${Boost_LIBRA
 
 install(TARGETS apogee LIBRARY DESTINATION lib)
 
-install( FILES ApogeeCam.h Alta.h AltaF.h Ascent.h CamGen2Base.h CameraInfo.h CameraStatusRegs.h Aspen.h FindDeviceEthernet.h FindDeviceUsb.h HiC.h ApogeeFilterWheel.h Quad.h DefDllExport.h versionNo.h doc.h ApgLogger.h LoggerSyslog.h DESTINATION include/libapogee COMPONENT Devel)
+file(GLOB libapogee_HEADERS ${CMAKE_CURRENT_SOURCE_DIR}/*.h)
+install( FILES ${libapogee_HEADERS} DESTINATION include/libapogee COMPONENT Devel)
 
 install(
    CODE "

@@ -41,7 +41,7 @@ If when the plugin is asked to translate a coordinate it only has a single conve
 This plugin works in an identical manner to the built in math plugin. The only difference being that [Markley's Singular Value Decomposition algorithm](http://www.control.auc.dk/~tb/best/aug23-Bak-svdalg.pdf) is used to calculate the transformation matrices. This is a highly robust method and forms the basis of the pointing system used in many professional telescope installations.
 
 ## Using the Alignment Subsystem from KStars
-The easiest way to use a telescope driver that supports the Alignment Subsystem is via an INDI aware client such as KStars. The following example uses the indi_SkywatcherAPIMount driver and a Synscan 114GT mount. If you are using a different driver then the name of that driver will appear in KStars not "skywatcherAPIMount".
+The easiest way to use a telescope driver that supports the Alignment Subsystem is via an INDI aware client such as KStars. The following example uses the indi_SkywatcherAltAzMount driver and a Synscan 114GT mount. If you are using a different driver then the name of that driver will appear in KStars not "skywatcherAPIMount".
 
 1. Firstly connect the mount to the computer that is to run the driver. I use a readily available PL2303 chip based serial to USB converter cable.
 2. From the handset utility menu select PC direct mode. As it is the computer that will be driving the mount not the handset, you can enter whatever values you want to get through the handset initialisation process.
@@ -73,15 +73,15 @@ The easiest way to use a telescope driver that supports the Alignment Subsystem 
 11. To create a sync point using KStars. First ensure your target star is visible in the KStars display. I usually do this using the "Pointing...Find Object" tool.
 ![Find Object Tool](findobject.png)
 
-12. Once you have the target in the KStars window right click on it and then hover your mouse over the "Sync" option in the "skywatcherAPIMount" sub-menu. Do not left click on the "Sync" option yet. N.B. The "Centre and Track" item in the main popup menu is nothing to do with your mount. It merely tells KStars to keep this object centered in the display window.
+12. Once you have the target in the KStars window right click on it and then hover your mouse over the "Sync" option in the "skywatcherAltAzMount" sub-menu. Do not left click on the "Sync" option yet. N.B. The "Centre and Track" item in the main popup menu is nothing to do with your mount. It merely tells KStars to keep this object centered in the display window.
 ![Object popup menu](objectpopup.png)
 
 13. Go back to your scope and centre the target in the eyepiece. Quickly get back to your computer and left click the mouse (be careful not to move it off the Sync menu item or you will have to right click to bring it up again). If you have been successful you should see the KStars telescope crosshairs displayed around the target.
 ![Crosshair Display](crosshair.png).
 
-14. The Alignment Subsystem is now in "one star" alignment mode. You can try this out by right clicking on your target star or a nearby star and selecting "Track" from the "skywatcherAPIMount" sub-menu. The further away the object you track is from the sync point star the less accurate the initial slew will be and the more quickly the tracked star will drift off centre. To correct this you need to add more sync points.
+14. The Alignment Subsystem is now in "one star" alignment mode. You can try this out by right clicking on your target star or a nearby star and selecting "Track" from the "skywatcherAltAzMount" sub-menu. The further away the object you track is from the sync point star the less accurate the initial slew will be and the more quickly the tracked star will drift off centre. To correct this you need to add more sync points.
 
-15. To add another sync point you can select a new target star in KStars and use the slew command from the "skywatcherAPIMount" sub-menu to approximately slew your scope onto the target. The procedure for adding the sync point is the same as before. With the default math plugin one achieves maximum accuracy for a particular triangular patch of sky when it is surrounded by three sync points. If more than three sync points are defined then more triangular patches will be added to the mesh.
+15. To add another sync point you can select a new target star in KStars and use the slew command from the "skywatcherAltAzMount" sub-menu to approximately slew your scope onto the target. The procedure for adding the sync point is the same as before. With the default math plugin one achieves maximum accuracy for a particular triangular patch of sky when it is surrounded by three sync points. If more than three sync points are defined then more triangular patches will be added to the mesh.
 
 16. If would be very useful if you could collect information on how well the alignment mechanism holds a star centred, measured in degrees of drift per second. Please share these on the indi-devel list.
 

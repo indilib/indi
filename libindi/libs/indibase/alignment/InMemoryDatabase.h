@@ -6,24 +6,25 @@
  *
  */
 
-#ifndef INDI_ALIGNMENTSUBSYSTEM_INMEMORYDATABASE_H
-#define INDI_ALIGNMENTSUBSYSTEM_INMEMORYDATABASE_H
+#pragma once
 
 #include "Common.h"
 
-#include <libnova.h>
+#include <libnova/ln_types.h>
+
 #include <vector>
 
-namespace INDI {
-namespace AlignmentSubsystem {
-
+namespace INDI
+{
+namespace AlignmentSubsystem
+{
 /// \class InMemoryDatabase
 /// \brief This class provides the driver side API to the in memory alignment database.
 class InMemoryDatabase
 {
-public:
+  public:
     /// \brief Default constructor
-    InMemoryDatabase() : LoadDatabaseCallback(0), DatabaseReferencePositionIsValid(false) {}
+    InMemoryDatabase();
 
     /// \brief Virtual destructor
     virtual ~InMemoryDatabase() {}
@@ -36,26 +37,26 @@ public:
     /// \param[in] CandidateEntry The candidate entry to check
     /// \param[in] Tolerance The % tolerance used in the checking process (default 0.1%)
     /// \return True if an entry already exists within the required tolerance
-    const bool CheckForDuplicateSyncPoint(const AlignmentDatabaseEntry& CandidateEntry, double Tolerance = 0.1) const;
+    bool CheckForDuplicateSyncPoint(const AlignmentDatabaseEntry &CandidateEntry, double Tolerance = 0.1) const;
 
     /// \brief Get a reference to the in memory database.
     /// \return A reference to the in memory database.
-    AlignmentDatabaseType& GetAlignmentDatabase() { return MySyncPoints; }
+    AlignmentDatabaseType &GetAlignmentDatabase() { return MySyncPoints; }
 
     /// \brief Get the database reference position
     /// \param[in] Position A pointer to a ln_lnlat_posn object to retunr the current position in
     /// \return True if successful
-    bool GetDatabaseReferencePosition(ln_lnlat_posn& Position);
+    bool GetDatabaseReferencePosition(ln_lnlat_posn &Position);
 
     /// \brief Load the database from persistent storage
     /// \param[in] DeviceName The name of the current device.
     /// \return True if successful
-    bool LoadDatabase(const char* DeviceName);
+    bool LoadDatabase(const char *DeviceName);
 
     /// \brief Save the database to persistent storage
     /// \param[in] DeviceName The name of the current device.
     /// \return True if successful
-    bool SaveDatabase(const char* DeviceName);
+    bool SaveDatabase(const char *DeviceName);
 
     /// \brief Set the database reference position
     /// \param[in] Latitude
@@ -69,8 +70,7 @@ public:
     /// \param[in] ThisPointer A pointer to the class object of the callback function
     void SetLoadDatabaseCallback(LoadDatabaseCallbackPointer_t CallbackPointer, void *ThisPointer);
 
-
-private:
+  private:
     AlignmentDatabaseType MySyncPoints;
     ln_lnlat_posn DatabaseReferencePosition;
     bool DatabaseReferencePositionIsValid;
@@ -80,5 +80,3 @@ private:
 
 } // namespace AlignmentSubsystem
 } // namespace INDI
-
-#endif // INDI_ALIGNMENTSUBSYSTEM_INMEMORYDATABASE_H

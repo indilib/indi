@@ -13,7 +13,7 @@ REVISION HISTORY
  *****************************************************************************************/
 
 #include "qsiapi.h"
-#include <stdio.h>
+#include <cstdio>
 #include <unistd.h>
 #include <iostream>
 #include <cmath>
@@ -24,9 +24,22 @@ REVISION HISTORY
 
 #ifdef HAVE_TIFFIO_H
 #include <tiffio.h>
-int WriteTIFF(unsigned short * buffer, int cols, int rows, char * filename);
 void AdjustImage(unsigned short * buffer, int cols, int rows, unsigned char * out);
-#endif
+#endif /* HAVE_TIFFIO_H */
+int WriteTIFF(unsigned short * buffer, int cols, int rows, char * filename);
+
+#ifdef HAVE_FITSIO_H
+#include <fitsio.h>
+#endif /* HAVE_FITSIO_H */
+int WriteFITS(unsigned short * buffer, int cols, int rows, char * filename);
+
+void	usage() {
+	std::cerr << "usage: qsidemo [ -ft ] [ -d directory ]" << std::endl;
+	std::cerr << "options:" << std::endl;
+	std::cerr << " -f         write images as FITS (if supported)" << std::endl;
+	std::cerr << " -t         write images as FITS (if supported)" << std::endl;
+	std::cerr << " -d <dir>   directory where to store the images" << std::endl;
+}
 
 int main(int argc, char** argv)
 {
@@ -36,6 +49,8 @@ int main(int argc, char** argv)
 	std::string info = "";
 	std::string modelNumber("");
 	char filename[256];
+	const char *dir = "/tmp";
+	const char	*extension = "tiff";
 	bool canSetTemp;
 	bool hasFilters;
 	short binX;
@@ -45,6 +60,48 @@ int main(int argc, char** argv)
 	long startX;
 	long startY;
 	int iNumFound;
+	bool	tiffoutput = false;
+	bool	fitsoutput = false;
+
+	int	c;
+	while (EOF != (c = getopt(argc, argv, "tfd:")))
+		switch (c) {
+		case 't':
+#if HAVE_TIFFIO_H
+			tiffoutput = true;
+#else
+			std::cerr << "no TIFF support" << std::endl;
+			exit(EXIT_FAILURE);
+#endif
+			break;
+		case 'f':
+#if HAVE_FITSIO_H
+			fitsoutput = true;
+#else
+			std::cerr << "no FITS support" << std::endl;
+			exit(EXIT_FAILURE);
+#endif
+			break;
+		case 'd':
+			dir = optarg;
+			break;
+		}
+
+	// for compatibility, of no option was present, and we have TIFF
+	// support, then we use tiff output
+#if HAVE_TIFFIO_H
+	if ((!tiffoutput) && (!fitsoutput)) {
+		tiffoutput = true;
+	}
+#endif
+
+	if ((tiffoutput) && (fitsoutput)) {
+		std::cerr << "you cannot request both TIFF and FITS." << std::endl;
+		exit(EXIT_FAILURE);
+	}
+	if (fitsoutput) {
+		extension = "fits";
+	}
 
 	QSICamera cam;
 
@@ -154,10 +211,16 @@ int main(int argc, char** argv)
 			cam.get_ImageArray(image);
 			std::cout << "exposure #" << i;
 
+			sprintf(filename, "%s/qsiimage%d.%s", dir, i, extension);
+			if (tiffoutput) {
 	#ifdef HAVE_TIFFIO_H
-			sprintf(filename, "/tmp/qsiimage%d.tif ", i);
-			WriteTIFF(image, x, y, filename);
+				WriteTIFF(image, x, y, filename);
 	#endif
+			} else if (fitsoutput) {
+	#ifdef HAVE_FITSIO_H
+				WriteFITS(image, x, y, filename);
+	#endif
+			}
 			std::cout << "\n";	
 			std::cout.flush();
 			delete [] image;
@@ -168,7 +231,7 @@ int main(int argc, char** argv)
 		return 0;
 
 	}
-	catch (std::runtime_error err)
+	catch (std::runtime_error &err)
 	{
 		std::string text = err.what();
 		std::cout << text << "\n";
@@ -180,9 +243,34 @@ int main(int argc, char** argv)
 	}
 }
 
+int	WriteFITS(unsigned short *buffer, int cols, int rows, char *filename) {
+#ifdef HAVE_FITSIO_H
+	int	status = 0;
+	fitsfile	*fits;
+	unlink(filename);
+	fits_create_file(&fits, filename, &status);
+	if (status) {
+		std::cerr << "cannot create file " << filename << std::endl;
+		return -1;
+	}
+	long	naxes[2] = { cols, rows };
+	fits_create_img(fits, SHORT_IMG, 2, naxes, &status);
+	long	fpixel[2] = { 1, 1 };
+	fits_write_pix(fits, TUSHORT, fpixel, cols * rows, buffer, &status);
+	fits_close_file(fits, &status);
+#else
+	std::cerr << "FITS not supported" << std::endl;
+	return -1;
+#endif
+}
+
 #ifdef HAVE_TIFFIO_H
+void AdjustImage(unsigned short * buffer, int cols, int rows, unsigned char * out);
+#endif /* HAVE_TIFFIO_H */
+
 int WriteTIFF(unsigned short * buffer, int cols, int rows, char * filename)
 {
+#ifdef HAVE_TIFFIO_H
 	TIFF *image;
 	unsigned char out[cols*rows];
 
@@ -191,7 +279,7 @@ int WriteTIFF(unsigned short * buffer, int cols, int rows, char * filename)
 	// Open the TIFF file
 	if((image = TIFFOpen(filename, "w")) == NULL)
 	{
-		printf("Could not open output.tif for writing\n");
+		printf("Could not open %s for writing\n", filename);
 		exit(1);
 	}
 	
@@ -219,8 +307,13 @@ int WriteTIFF(unsigned short * buffer, int cols, int rows, char * filename)
 	
 	// Close the file
 	TIFFClose(image);
+#else /* HAVE_TIFFIO_H */
+	std::cerr << "TIFF not supported" << std::endl;
+	return -1;
+#endif /* HAVE_TIFFIO_H */
 }
 
+#ifdef HAVE_TIFFIO_H
 void AdjustImage(unsigned short * buffer, int x, int y, unsigned char * out)
 {
 	//
@@ -279,4 +372,4 @@ void AdjustImage(unsigned short * buffer, int x, int y, unsigned char * out)
 	}
 	return;
 }
-#endif
+#endif /* HAVE_TIFFIO_H */

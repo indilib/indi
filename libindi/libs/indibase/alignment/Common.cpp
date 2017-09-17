@@ -6,20 +6,18 @@
  *
  */
 
-
-
 #include "Common.h"
 
 #include <gsl/gsl_matrix.h>
 #include <gsl/gsl_blas.h>
-#include <cmath>
 
-namespace INDI {
-namespace AlignmentSubsystem {
-
+namespace INDI
+{
+namespace AlignmentSubsystem
+{
 void TelescopeDirectionVector::RotateAroundY(double Angle)
 {
-    Angle = Angle * M_PI / 180.0;
+    Angle                       = Angle * M_PI / 180.0;
     gsl_vector *pGSLInputVector = gsl_vector_alloc(3);
     gsl_vector_set(pGSLInputVector, 0, x);
     gsl_vector_set(pGSLInputVector, 1, y);
@@ -45,7 +43,5 @@ void TelescopeDirectionVector::RotateAroundY(double Angle)
     gsl_matrix_free(pRotationMatrix);
 }
 
-
 } // namespace AlignmentSubsystem
 } // namespace INDI
-

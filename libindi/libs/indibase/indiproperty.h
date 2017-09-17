@@ -16,14 +16,12 @@
  Boston, MA 02110-1301, USA.
 *******************************************************************************/
 
-#ifndef INDI_INDIPROPERTY_H
-#define INDI_INDIPROPERTY_H
+#pragma once
 
 #include "indibase.h"
 
 namespace INDI
 {
-
 class BaseDevice;
 
 /**
@@ -34,7 +32,7 @@ class BaseDevice;
 */
 class Property
 {
-public:
+  public:
     Property();
     ~Property();
 
@@ -60,12 +58,12 @@ public:
     IPerm getPermission() const;
 
     INumberVectorProperty *getNumber();
-    ITextVectorProperty   *getText();
+    ITextVectorProperty *getText();
     ISwitchVectorProperty *getSwitch();
-    ILightVectorProperty  *getLight();
-    IBLOBVectorProperty   *getBLOB();
+    ILightVectorProperty *getLight();
+    IBLOBVectorProperty *getBLOB();
 
-private:
+  private:
     void *pPtr;
     BaseDevice *dp;
     INDI_PROPERTY_TYPE pType;
@@ -74,5 +72,3 @@ private:
 };
 
 } // namespace INDI
-
-#endif // INDI_INDIPROPERTY_H

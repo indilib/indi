@@ -16,18 +16,15 @@
  Boston, MA 02110-1301, USA.
 *******************************************************************************/
 
-#ifndef INDIBASEDRIVER_H
-#define INDIBASEDRIVER_H
+#pragma once
 
-#include <vector>
-#include <string>
-
-#include <locale.h>
-
-#include "indiapi.h"
-#include "indidevapi.h"
 #include "indibase.h"
 #include "indiproperty.h"
+
+#include <string>
+#include <vector>
+
+#include <stdint.h>
 
 #define MAXRBUF 2048
 
@@ -43,48 +40,50 @@
  */
 class INDI::BaseDevice
 {
-public:
+  public:
     BaseDevice();
     virtual ~BaseDevice();
 
     /*! INDI error codes. */
     enum INDI_ERROR
     {
-        INDI_DEVICE_NOT_FOUND=-1,       /*!< INDI Device was not found. */
-        INDI_PROPERTY_INVALID=-2,       /*!< Property has an invalid syntax or attribute. */
-        INDI_PROPERTY_DUPLICATED = -3,  /*!< INDI Device was not found. */
-        INDI_DISPATCH_ERROR=-4          /*!< Dispatching command to driver failed. */
+        INDI_DEVICE_NOT_FOUND    = -1, /*!< INDI Device was not found. */
+        INDI_PROPERTY_INVALID    = -2, /*!< Property has an invalid syntax or attribute. */
+        INDI_PROPERTY_DUPLICATED = -3, /*!< INDI Device was not found. */
+        INDI_DISPATCH_ERROR      = -4  /*!< Dispatching command to driver failed. */
     };
 
-    /** Interfaces define the class of devices the driver implements. A driver may implement one or more interfaces.
-    */
-    enum  DRIVER_INTERFACE
+    /**
+     * @brief The DRIVER_INTERFACE enum defines the class of devices the driver implements. A driver may implement one or more interfaces.
+     */
+    enum DRIVER_INTERFACE
     {
-        GENERAL_INTERFACE       = 0,                /**< Default interface for all INDI devices */
-        TELESCOPE_INTERFACE     = (1 << 0),         /**< Telescope interface, must subclass INDI::Telescope */
-        CCD_INTERFACE           = (1 << 1),         /**< CCD interface, must subclass INDI::CCD */
-        GUIDER_INTERFACE        = (1 << 2),         /**< Guider interface, must subclass INDI::GuiderInterface */
-        FOCUSER_INTERFACE       = (1 << 3),         /**< Focuser interface, must subclass INDI::FocuserInterface */
-        FILTER_INTERFACE        = (1 << 4),         /**< Filter interface, must subclass INDI::FilterInterface */
-        DOME_INTERFACE          = (1 << 5),         /**< Dome interface, must subclass INDI::Dome */
-        GPS_INTERFACE           = (1 << 6),         /**< GPS interface, must subclass INDI::GPS */
-        WEATHER_INTERFACE       = (1 << 7),         /**< Weather interface, must subclass INDI::Weather */
-        AO_INTERFACE            = (1 << 8),         /**< Adaptive Optics Interface */
-        DUSTCAP_INTERFACE       = (1 << 9),         /**< Dust Cap Interface */
-        LIGHTBOX_INTERFACE      = (1 << 10),        /**< Light Box Interface */
-        AUX_INTERFACE           = (1 << 15),        /**< Auxiliary interface */
+        GENERAL_INTERFACE   = 0,         /**< Default interface for all INDI devices */
+        TELESCOPE_INTERFACE = (1 << 0),  /**< Telescope interface, must subclass INDI::Telescope */
+        CCD_INTERFACE       = (1 << 1),  /**< CCD interface, must subclass INDI::CCD */
+        GUIDER_INTERFACE    = (1 << 2),  /**< Guider interface, must subclass INDI::GuiderInterface */
+        FOCUSER_INTERFACE   = (1 << 3),  /**< Focuser interface, must subclass INDI::FocuserInterface */
+        FILTER_INTERFACE    = (1 << 4),  /**< Filter interface, must subclass INDI::FilterInterface */
+        DOME_INTERFACE      = (1 << 5),  /**< Dome interface, must subclass INDI::Dome */
+        GPS_INTERFACE       = (1 << 6),  /**< GPS interface, must subclass INDI::GPS */
+        WEATHER_INTERFACE   = (1 << 7),  /**< Weather interface, must subclass INDI::Weather */
+        AO_INTERFACE        = (1 << 8),  /**< Adaptive Optics Interface */
+        DUSTCAP_INTERFACE   = (1 << 9),  /**< Dust Cap Interface */
+        LIGHTBOX_INTERFACE  = (1 << 10), /**< Light Box Interface */
+        DETECTOR_INTERFACE  = (1 << 11), /**< Detector interface, must subclass INDI::Detector */
+        AUX_INTERFACE       = (1 << 15), /**< Auxiliary interface */
     };
 
     /** \return Return vector number property given its name */
-    INumberVectorProperty * getNumber(const char *name);
+    INumberVectorProperty *getNumber(const char *name);
     /** \return Return vector text property given its name */
-    ITextVectorProperty * getText(const char *name);
+    ITextVectorProperty *getText(const char *name);
     /** \return Return vector switch property given its name */
-    ISwitchVectorProperty * getSwitch(const char *name);
+    ISwitchVectorProperty *getSwitch(const char *name);
     /** \return Return vector light property given its name */
-    ILightVectorProperty * getLight(const char *name);
+    ILightVectorProperty *getLight(const char *name);
     /** \return Return vector BLOB property given its name */
-    IBLOBVectorProperty * getBLOB(const char *name);
+    IBLOBVectorProperty *getBLOB(const char *name);
     /** \return Return property state */
     IPState getPropertyState(const char *name);
     /** \return Return property permission */
@@ -109,7 +108,7 @@ public:
         is the property type (Number, Text, Switch..etc).
 
     */
-    void * getRawProperty(const char *name, INDI_PROPERTY_TYPE type = INDI_UNKNOWN);
+    void *getRawProperty(const char *name, INDI_PROPERTY_TYPE type = INDI_UNKNOWN);
 
     /** \brief Return a property and its type given its name.
         \param name of property to be found.
@@ -117,21 +116,21 @@ public:
         \return If property is found, it is returned. To be used you must use static_cast with given the type of property
         returned.
     */
-    INDI::Property * getProperty(const char *name, INDI_PROPERTY_TYPE type = INDI_UNKNOWN);
+    INDI::Property *getProperty(const char *name, INDI_PROPERTY_TYPE type = INDI_UNKNOWN);
 
     /** \brief Return a list of all properties in the device.
     */
-    std::vector<INDI::Property *> * getProperties() { return &pAll; }
+    std::vector<INDI::Property *> *getProperties() { return &pAll; }
 
     /** \brief Build driver properties from a skeleton file.
         \param filename full path name of the file.
         \return true if successful, false otherwise.
 
     A skeloton file defines the properties supported by this driver. It is a list of defXXX elements enclosed by @<INDIDriver>@
- and @</INDIDriver>@ opening and closing tags. After the properties are created, they can be rerieved, manipulated, and defined
- to other clients.
+    and @</INDIDriver>@ opening and closing tags. After the properties are created, they can be rerieved, manipulated, and defined
+    to other clients.
 
- \see An example skeleton file can be found under examples/tutorial_four_sk.xml
+    \see An example skeleton file can be found under examples/tutorial_four_sk.xml
 
     */
     bool buildSkeleton(const char *filename);
@@ -150,11 +149,10 @@ public:
     /** \brief Add message to the driver's message queue.
         \param msg Message to add.
     */
-    void addMessage(std::string msg);
+    void addMessage(const std::string& msg);
 
-
-    void checkMessage (XMLEle *root);
-    void doMessage (XMLEle *msg);
+    void checkMessage(XMLEle *root);
+    void doMessage(XMLEle *msg);
 
     /** \return Returns a specific message. */
     std::string messageQueue(int index) const;
@@ -166,7 +164,7 @@ public:
     void setMediator(INDI::BaseMediator *med) { mediator = med; }
 
     /** \returns Get the meditator assigned to this driver */
-    INDI::BaseMediator * getMediator() { return mediator; }
+    INDI::BaseMediator *getMediator() { return mediator; }
 
     /** \return driver name
      *  \note This can only be valid if DRIVER_INFO is defined by the driver.
@@ -183,13 +181,22 @@ public:
      **/
     const char *getDriverVersion();
 
-    /** \return driver interface descriptor
-     *  \note This can only be valid if DRIVER_INFO is defined by the driver.
+    /** \brief
+     * \return
      **/
+
+    /**
+     * @brief getDriverInterface returns ORed values of @ref INDI::BaseDevice::DRIVER_INTERFACE "DRIVER_INTERFACE". It presents the device classes supported by the driver.
+     * @return driver device interface descriptor.
+     * @note For example, to know if the driver supports CCD interface, check the retruned value:
+     @code{.cpp}
+      if (device->getDriverInterface() & CCD_INTERFACE)
+               cout << "We received a camera!" << endl;
+     @endcode
+     */
     virtual uint16_t getDriverInterface();
 
-protected:
-
+  protected:
     /** \brief Build a property given the supplied XML element (defXXX)
       \param root XML element to parse and build.
       \param errmsg buffer to store error message in parsing fails.
@@ -197,12 +204,11 @@ protected:
     int buildProp(XMLEle *root, char *errmsg);
 
     /** \brief handle SetXXX commands from client */
-    int setValue (XMLEle *root, char * errmsg);
+    int setValue(XMLEle *root, char *errmsg);
     /** \brief Parse and store BLOB in the respective vector */
-    int setBLOB(IBLOBVectorProperty *pp, XMLEle * root, char * errmsg);
+    int setBLOB(IBLOBVectorProperty *pp, XMLEle *root, char *errmsg);
 
-private:
-
+  private:
     char *deviceID;
 
     std::vector<INDI::Property *> pAll;
@@ -216,7 +222,4 @@ private:
     friend class INDI::BaseClient;
     friend class INDI::BaseClientQt;
     friend class INDI::DefaultDevice;
-
 };
-
-#endif // INDIBASEDRIVER_H

@@ -5,10 +5,6 @@ LIST(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake_modules/")
 LIST(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/../../cmake_modules/")
 include(GNUInstallDirs)
 
-if (NOT WIN32 AND NOT ANDROID)
-set(CMAKE_CXX_FLAGS "-std=c++11 ${CMAKE_CXX_FLAGS}")
-endif(NOT WIN32 AND NOT ANDROID)
-
 set(RULES_INSTALL_DIR "/etc/udev/rules.d")
 set(FIRMWARE_INSTALL_DIR "/lib/firmware")
 
@@ -28,6 +24,8 @@ include_directories( ${CMAKE_CURRENT_SOURCE_DIR})
 include_directories( ${INDI_INCLUDE_DIR})
 include_directories( ${CFITSIO_INCLUDE_DIR})
 
+include(CMakeCommon)
+
 ########### DSI ###########
 set(indidsi_SRCS
    ${CMAKE_CURRENT_SOURCE_DIR}/dsi_ccd.cpp
@@ -42,6 +40,10 @@ set(indidsi_SRCS
    ${CMAKE_CURRENT_SOURCE_DIR}/DsiTypes.cpp
    ${CMAKE_CURRENT_SOURCE_DIR}/Util.cpp
    )
+
+IF (UNITY_BUILD)
+    ENABLE_UNITY_BUILD(indidsi indidsi_SRCS 10 cpp)
+ENDIF ()
 
 add_executable(indi_dsi_ccd ${indidsi_SRCS})
 

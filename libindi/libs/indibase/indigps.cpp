@@ -24,7 +24,9 @@
 
 #include "indigps.h"
 
-#define POLLMS  1000
+#include <cstring>
+
+#define POLLMS 1000
 
 INDI::GPS::GPS()
 {
@@ -40,16 +42,18 @@ bool INDI::GPS::initProperties()
     INDI::DefaultDevice::initProperties();
 
     IUFillSwitch(&RefreshS[0], "REFRESH", "GPS", ISS_OFF);
-    IUFillSwitchVector(&RefreshSP, RefreshS, 1, getDeviceName(), "GPS_REFRESH", "Refresh", MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
+    IUFillSwitchVector(&RefreshSP, RefreshS, 1, getDeviceName(), "GPS_REFRESH", "Refresh", MAIN_CONTROL_TAB, IP_RW,
+                       ISR_ATMOST1, 0, IPS_IDLE);
 
-    IUFillNumber(&LocationN[LOCATION_LATITUDE],"LAT","Lat (dd:mm:ss)","%010.6m",-90,90,0,0.0);
-    IUFillNumber(&LocationN[LOCATION_LONGITUDE],"LONG","Lon (dd:mm:ss)","%010.6m",0,360,0,0.0 );
-    IUFillNumber(&LocationN[LOCATION_ELEVATION],"ELEV","Elevation (m)","%g",-200,10000,0,0 );
-    IUFillNumberVector(&LocationNP,LocationN,3,getDeviceName(),"GEOGRAPHIC_COORD","Location",MAIN_CONTROL_TAB,IP_RO,60,IPS_OK);
+    IUFillNumber(&LocationN[LOCATION_LATITUDE], "LAT", "Lat (dd:mm:ss)", "%010.6m", -90, 90, 0, 0.0);
+    IUFillNumber(&LocationN[LOCATION_LONGITUDE], "LONG", "Lon (dd:mm:ss)", "%010.6m", 0, 360, 0, 0.0);
+    IUFillNumber(&LocationN[LOCATION_ELEVATION], "ELEV", "Elevation (m)", "%g", -200, 10000, 0, 0);
+    IUFillNumberVector(&LocationNP, LocationN, 3, getDeviceName(), "GEOGRAPHIC_COORD", "Location", MAIN_CONTROL_TAB,
+                       IP_RO, 60, IPS_OK);
 
-    IUFillText(&TimeT[0],"UTC","UTC Time",NULL);
-    IUFillText(&TimeT[1],"OFFSET","UTC Offset",NULL);
-    IUFillTextVector(&TimeTP,TimeT,2,getDeviceName(),"TIME_UTC","UTC",MAIN_CONTROL_TAB,IP_RO,60,IPS_IDLE);
+    IUFillText(&TimeT[0], "UTC", "UTC Time", nullptr);
+    IUFillText(&TimeT[1], "OFFSET", "UTC Offset", nullptr);
+    IUFillTextVector(&TimeTP, TimeT, 2, getDeviceName(), "TIME_UTC", "UTC", MAIN_CONTROL_TAB, IP_RO, 60, IPS_IDLE);
 
     return true;
 }
@@ -85,10 +89,9 @@ bool INDI::GPS::updateProperties()
     return true;
 }
 
-
 void INDI::GPS::TimerHit()
 {
-    if (isConnected() == false)
+    if (!isConnected())
         return;
 
     IPState state = updateGPS();
@@ -98,17 +101,17 @@ void INDI::GPS::TimerHit()
         // Ok or Alert
         case IPS_OK:
         case IPS_ALERT:
-        IDSetNumber(&LocationNP, NULL);
-        IDSetText(&TimeTP, NULL);
-        return;
+            IDSetNumber(&LocationNP, nullptr);
+            IDSetText(&TimeTP, nullptr);
+            return;
 
         // GPS fix is in progress
         case IPS_BUSY:
-        IDSetNumber(&LocationNP, NULL);
-        IDSetText(&TimeTP, NULL);
-        break;
+            IDSetNumber(&LocationNP, nullptr);
+            IDSetText(&TimeTP, nullptr);
+            break;
 
-    default:
+        default:
             break;
     }
 
@@ -117,19 +120,20 @@ void INDI::GPS::TimerHit()
 
 IPState INDI::GPS::updateGPS()
 {
-    DEBUG(INDI::Logger::DBG_ERROR, "updateGPS() must be implemented in GPS device child class to update TIME_UTC and GEOGRAPHIC_COORD properties.");
+    DEBUG(INDI::Logger::DBG_ERROR, "updateGPS() must be implemented in GPS device child class to update TIME_UTC and "
+                                   "GEOGRAPHIC_COORD properties.");
     return IPS_ALERT;
 }
 
-bool INDI::GPS::ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n)
+bool INDI::GPS::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
 {
-    if(strcmp(dev,getDeviceName())==0)
+    if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
         if (!strcmp(name, RefreshSP.name))
         {
             RefreshS[0].s = ISS_OFF;
-            RefreshSP.s = IPS_OK;
-            IDSetSwitch(&RefreshSP, NULL);
+            RefreshSP.s   = IPS_OK;
+            IDSetSwitch(&RefreshSP, nullptr);
 
             TimerHit();
         }

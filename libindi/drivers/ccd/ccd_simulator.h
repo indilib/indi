@@ -16,30 +16,23 @@
  Boston, MA 02110-1301, USA.
 *******************************************************************************/
 
-#ifndef CCDSIM_H
-#define CCDSIM_H
+#pragma once
 
-#include "indibase/indiccd.h"
-#include "indibase/indifilterinterface.h"
-
-/*  Some headers we need */
-#include <math.h>
-#include <sys/time.h>
-
+#include "indiccd.h"
+#include "indifilterinterface.h"
 
 class CCDSim : public INDI::CCD, public INDI::FilterInterface
 {
-public:
+  public:
     CCDSim();
-    virtual ~CCDSim();
+    virtual ~CCDSim() = default;
 
     const char *getDefaultName();
 
     bool initProperties();
     bool updateProperties();
 
-    void ISGetProperties (const char *dev);
-
+    void ISGetProperties(const char *dev);
 
     bool Connect();
     bool Disconnect();
@@ -50,109 +43,104 @@ public:
     bool AbortExposure();
     bool AbortGuideExposure();
 
-
     void TimerHit();
 
     int DrawCcdFrame(CCDChip *targetChip);
 
-    int DrawImageStar(CCDChip *targetChip, float,float,float);
-    int AddToPixel(CCDChip *targetChip, int,int,int);
+    int DrawImageStar(CCDChip *targetChip, float, float, float);
+    int AddToPixel(CCDChip *targetChip, int, int, int);
 
     IPState GuideNorth(float);
     IPState GuideSouth(float);
     IPState GuideEast(float);
     IPState GuideWest(float);
 
-    virtual bool ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n);
-    virtual bool ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n);
-    virtual bool ISNewText(	const char *dev, const char *name, char *texts[], char *names[], int num);
-    virtual bool ISSnoopDevice (XMLEle *root);
+    virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n);
+    virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n);
+    virtual bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n);
+    virtual bool ISSnoopDevice(XMLEle *root);
 
-    protected:
-
+  protected:
     virtual bool saveConfigItems(FILE *fp);
     virtual void activeDevicesUpdated();
     virtual int SetTemperature(double temperature);
 
-    private:
+  private:
+    float CalcTimeLeft(timeval, float);
+    bool SetupParms();
 
-        float TemperatureRequest;
+    // Filter
+    bool SelectFilter(int);
+    bool SetFilterNames() { return true; }
+    bool GetFilterNames(const char *groupName);
+    int QueryFilter();
 
-        float ExposureRequest;
-        struct timeval ExpStart;
+    float TemperatureRequest { 0 };
 
-        float GuideExposureRequest;
-        struct timeval GuideExpStart;
+    float ExposureRequest { 0 };
+    struct timeval ExpStart { 0, 0 };
 
-        float CalcTimeLeft(timeval,float);
+    float GuideExposureRequest { 0 };
+    struct timeval GuideExpStart { 0, 0 };
 
-        int testvalue;
-        int ShowStarField;
-        int bias;
-        int maxnoise;
-        int maxval;
-        int maxpix;
-        int minpix;
-        float skyglow;
-        float limitingmag;
-        float saturationmag;
-        float seeing;
-        float ImageScalex;
-        float ImageScaley;
-        float OAGoffset;
-        float rotationCW;
-        float TimeFactor;
-        //  our zero point calcs used for drawing stars
-        float k;
-        float z;
+    int testvalue { 0 };
+    bool ShowStarField { true };
+    int bias { 1500 };
+    int maxnoise { 20 };
+    int maxval { 65000 };
+    int maxpix { 0 };
+    int minpix { 65000 };
+    float skyglow { 40 };
+    float limitingmag { 11.5 };
+    float saturationmag { 2 };
+    float seeing { 3.5 };
+    float ImageScalex { 1.0 };
+    float ImageScaley { 1.0 };
+    //  An oag is offset this much from center of scope position (arcminutes)
+    float OAGoffset { 0 };
+    float rotationCW { 0 };
+    float TimeFactor { 1 };
+    //  our zero point calcs used for drawing stars
+    float k { 0 };
+    float z { 0 };
 
-        bool AbortGuideFrame;
-        bool AbortPrimaryFrame;
+    bool AbortGuideFrame { false };
+    bool AbortPrimaryFrame { false };
 
+    /// Guide rate is 7 arcseconds per second
+    float GuideRate { 7 };
 
-        float GuideRate;
+    /// Our PEPeriod is 8 minutes and we have a 22 arcsecond swing
+    float PEPeriod { 8*60 };
+    float PEMax { 11 };
 
-        float PEPeriod;
-        float PEMax;
+    double raPE { 0 };
+    double decPE { 0 };
+    bool usePE { false };
+    time_t RunStart;
 
-        double raPE,decPE;
-        bool usePE;
-        time_t RunStart;
+    float polarError { 0 };
+    float polarDrift { 0 };
 
-        float polarError;
-        float polarDrift;
+    //  And this lives in our simulator settings page
 
-        //  And this lives in our simulator settings page
+    INumberVectorProperty *SimulatorSettingsNV;
+    INumber SimulatorSettingsN[14];
 
-        INumberVectorProperty *SimulatorSettingsNV;
-        INumber SimulatorSettingsN[14];
+    ISwitch TimeFactorS[3];
+    ISwitchVectorProperty *TimeFactorSV;
 
-        ISwitch TimeFactorS[3];
-        ISwitchVectorProperty *TimeFactorSV;
+    //  We are going to snoop these from focuser
+    INumberVectorProperty FWHMNP;
+    INumber FWHMN[1];
 
-        bool SetupParms();
+    // We are going to snoop these from telescope
+    //INumber ScopeParametersN[4];
+    //INumberVectorProperty ScopeParametersNP;
 
-        //  We are going to snoop these from focuser
-        INumberVectorProperty FWHMNP;
-        INumber FWHMN[1];
+    INumberVectorProperty EqPENP;
+    INumber EqPEN[2];
 
-        // We are going to snoop these from telescope
-        //INumber ScopeParametersN[4];
-        //INumberVectorProperty ScopeParametersNP;
-
-        INumberVectorProperty EqPENP;
-        INumber EqPEN[2];
-
-        ISwitch CoolerS[2];
-        ISwitchVectorProperty CoolerSP;
-
-        // Filter
-        bool SelectFilter(int);
-        bool SetFilterNames() { return true; }
-        bool GetFilterNames(const char* groupName);
-        int QueryFilter();
-
-
+    ISwitch CoolerS[2];
+    ISwitchVectorProperty CoolerSP;
 };
-
-#endif // CCDSim_H

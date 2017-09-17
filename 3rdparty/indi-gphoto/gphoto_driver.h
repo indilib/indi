@@ -20,38 +20,51 @@
   file called LICENSE.
 *******************************************************************************/
 
-#ifndef _GPHOTO_DRIVER_H_
-#define _GPHOTO_DRIVER_H_
+#pragma once
 
 #include <gphoto2/gphoto2.h>
 
-#define GP_UPLOAD_CLIENT    0
-#define GP_UPLOAD_SDCARD    1
-#define GP_UPLOAD_ALL       2
+#define GP_UPLOAD_CLIENT 0
+#define GP_UPLOAD_SDCARD 1
+#define GP_UPLOAD_ALL    2
 
 typedef struct
 {
-    CameraWidget		*widget;
-    CameraWidgetType	type;
-    const char		*name;
-    const char		*parent;
-    int			readonly;
+    CameraWidget *widget;
+    CameraWidgetType type;
+    const char *name;
+    const char *parent;
+    int readonly;
     union {
-        int		toggle;
-        char		index;
-        char		*text;
-        float		num;
-        int		date;
+        int toggle;
+        char index;
+        char *text;
+        float num;
+        int date;
     } value;
-    int			choice_cnt;
-    char        **choices;
-    float			min;
-    float			max;
-    float			step;
+    int choice_cnt;
+    char **choices;
+    float min;
+    float max;
+    float step;
 } gphoto_widget;
 
 // EOS Release buttons settings
-enum { EOS_NONE, EOS_PRESS_HALF, EOS_PRESS_FULL, EOS_RELEASE_HALF, EOS_RELEASE_FULL, EOS_IMMEDIATE, EOS_PRESS_1, EOS_PRESS_2, EOS_PRESS_3, EOS_RELEASE_1, EOS_RELEASE_2, EOS_RELEASE_3 };
+enum
+{
+    EOS_NONE,
+    EOS_PRESS_HALF,
+    EOS_PRESS_FULL,
+    EOS_RELEASE_HALF,
+    EOS_RELEASE_FULL,
+    EOS_IMMEDIATE,
+    EOS_PRESS_1,
+    EOS_PRESS_2,
+    EOS_PRESS_3,
+    EOS_RELEASE_1,
+    EOS_RELEASE_2,
+    EOS_RELEASE_3
+};
 
 struct _gphoto_driver;
 typedef struct _gphoto_driver gphoto_driver;
@@ -59,17 +72,20 @@ typedef struct _gphoto_driver gphoto_driver;
 struct _gphoto_widget_list;
 typedef struct _gphoto_widget_list gphoto_widget_list;
 
-int gphoto_start_exposure(gphoto_driver *gphoto, unsigned int exptime_msec, int mirror_lock);
+int gphoto_start_exposure(gphoto_driver *gphoto, uint32_t exptime_usec, int mirror_lock);
 int gphoto_read_exposure(gphoto_driver *gphoto);
 int gphoto_read_exposure_fd(gphoto_driver *gphoto, int fd);
 void gphoto_set_upload_settings(gphoto_driver *gphoto, int setting);
+void gphoto_get_minmax_exposure(gphoto_driver *gphoto, double *min, double *max);
 char **gphoto_get_formats(gphoto_driver *gphoto, int *cnt);
 char **gphoto_get_iso(gphoto_driver *gphoto, int *cnt);
+char **gphoto_get_exposure_presets(gphoto_driver *gphoto, int *cnt);
 void gphoto_set_iso(gphoto_driver *gphoto, int iso);
 void gphoto_set_format(gphoto_driver *gphoto, int format);
 int gphoto_get_format_current(gphoto_driver *gphoto);
 int gphoto_get_iso_current(gphoto_driver *gphoto);
-gphoto_driver *gphoto_open(const char *shutter_release_port);
+gphoto_driver *gphoto_open(Camera *camera, GPContext *context, const char *model, const char *port,
+                           const char *shutter_release_port);
 int gphoto_close(gphoto_driver *gphoto);
 void gphoto_get_buffer(gphoto_driver *gphoto, const char **buffer, size_t *size);
 void gphoto_free_buffer(gphoto_driver *gphoto);
@@ -83,12 +99,12 @@ int gphoto_read_widget(gphoto_widget *widget);
 int gphoto_widget_changed(gphoto_widget *widget);
 int gphoto_get_dimensions(gphoto_driver *gphoto, int *width, int *height);
 int gphoto_auto_focus(gphoto_driver *gphoto, char *errMsg);
-int gphoto_manual_focus (gphoto_driver *gphoto, int xx, char *errMsg);
-int gphoto_capture_preview(gphoto_driver *gphoto,  CameraFile* previewFile, char *errMsg);
+int gphoto_manual_focus(gphoto_driver *gphoto, int xx, char *errMsg);
+int gphoto_capture_preview(gphoto_driver *gphoto, CameraFile *previewFile, char *errMsg);
 int gphoto_stop_preview(gphoto_driver *gphoto);
+int gphoto_get_capture_target(gphoto_driver *gphoto, int *capture_target);
+int gphoto_set_capture_target(gphoto_driver *gphoto, int capture_target);
 void gphoto_set_debug(const char *name);
 int gphoto_mirrorlock(gphoto_driver *gphoto, int msec);
 const char *gphoto_get_manufacturer(gphoto_driver *gphoto);
 const char *gphoto_get_model(gphoto_driver *gphoto);
-
-#endif

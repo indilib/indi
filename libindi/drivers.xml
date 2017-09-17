@@ -57,25 +57,25 @@
                 <driver name="Astro-Electronic FS-2">indi_lx200fs2</driver>
                 <version>2.0</version>
 	</device>
-        <device label="Paramount" focal_length="" aperture="">
-                <driver name="Paramount">indi_paramount</driver>
-                <version>0.1</version>
+        <device label="Avalon" focal_length="" aperture="">
+                <driver name="LX200 Basic">indi_lx200basic</driver>
+                <version>2.0</version>
         </device>
-        <device label="TheSky6" focal_length="" aperture="">
-                <driver name="Paramount">indi_paramount</driver>
+        <device label="Paramount" focal_length="" aperture="">
+                <driver name="Paramount">indi_paramount_telescope</driver>
                 <version>0.1</version>
         </device>
 	<device label="Orion Atlas" focal_length="" aperture="">
-                <driver name="SynScan">indi_synscan</driver>
+                <driver name="SynScan">indi_synscan_telescope</driver>
                 <version>1.0</version>
 	</device>
 	<device label="Sky Scan" focal_length="" aperture="">
-                <driver name="SynScan">indi_synscan</driver>
+                <driver name="SynScan">indi_synscan_telescope</driver>
 		<version>0.1</version>
 	</device>
         <device label="Losmandy Gemini" focal_length="" aperture="">
                 <driver name="Losmandy Gemini">indi_lx200gemini</driver>
-                <version>1.0</version>
+                <version>1.3</version>
         </device>
 	<device label="Mel Bartels" focal_length="" aperture="">
 		<driver name="LX200 Basic">indi_lx200basic</driver>
@@ -90,7 +90,7 @@
 		<version>1.0</version>
 	</device>	
         <device label="SynScan" focal_length="" aperture="">
-                <driver name="SynScan">indi_synscan</driver>
+                <driver name="SynScan">indi_synscan_telescope</driver>
                 <version>1.0</version>
         </device>
         <device label="SkySensor2000PC" focal_length="" aperture="">
@@ -125,8 +125,16 @@
                 <driver name="ZEQ25">indi_lx200zeq25</driver>
                 <version>1.0</version>
         </device>
+        <device label="GotoNova 8400 Kit" focal_length="" aperture="">
+                <driver name="GotoNova">indi_lx200gotonova</driver>
+                <version>1.0</version>
+        </device>
         <device label="Pulsar2" focal_length="" aperture="">
                 <driver name="Pulsar2">indi_lx200pulsar2</driver>
+                <version>1.0</version>
+        </device>
+        <device label="SkyCommander" focal_length="" aperture="">
+                <driver name="SkyCommander">indi_skycommander_telescope</driver>
                 <version>1.0</version>
         </device>
         <device label="LX200 10micron" focal_length="" aperture="">
@@ -137,13 +145,17 @@
                 <driver name="Telescope Simulator">indi_simulator_telescope</driver>
                 <version>1.0</version>
         </device>
-        <device label="Skywatcher API Mount" focal_length="" aperture="">
-                <driver name="Skywatcher API Mount">indi_skywatcherAPIMount</driver>
+        <device label="Skywatcher Alt-Az Mount" focal_length="" aperture="">
+                <driver name="Skywatcher Alt-Az Mount">indi_skywatcherAltAzMount</driver>
                 <version>1.0</version>
-        </device>        
+        </device>
         <device label="Telescope Scripting Gateway" focal_length="" aperture="">
           <driver name="Telescope  Scripting Gateway">indi_script_telescope</driver>
           <version>1.0</version>
+        </device>
+        <device label="Digital Setting Circle" focal_length="" aperture="">
+                <driver name="Digital Setting Circle">indi_dsc_telescope</driver>
+                <version>1.0</version>
         </device>
 </devGroup>
 <devGroup group="Focusers">
@@ -160,16 +172,28 @@
           <version>1.0</version>
         </device>
         <device label="Rigelsys NStep">
-          <driver name="NStep">indi_nstep_focus</driver>
+          <driver name="Rigelsys NStep">indi_nstep_focus</driver>
           <version>1.0</version>
         </device>
         <device label="MoonLite">
                 <driver name="MoonLite">indi_moonlite_focus</driver>
                 <version>1.0</version>
         </device>
+        <device label="NightCrawler">
+                <driver name="NightCrawler">indi_nightcrawler_focus</driver>
+                <version>1.0</version>
+        </device>
+        <device label="Gemini Focusing Rotator">
+                <driver name="Gemini Focusing Rotator">indi_gemini_focus</driver>
+                <version>1.0</version>
+        </device>
         <device label="USBFocusV3">
                 <driver name="USBFocusV3">indi_usbfocusv3_focus</driver>
                 <version>0.1</version>
+        </device>
+        <device label="Pegasus DMFC">
+                <driver name="Pegasus DMFC">indi_dmfc_focus</driver>
+                <version>1.0</version>
         </device>
         <device label="Microtouch">
                 <driver name="Microtouch">indi_microtouch_focus</driver>
@@ -235,10 +259,18 @@
             <driver name="Quantum Wheel">indi_quantum_wheel</driver>
             <version>0.1</version>
         </device>
+        <device label="TruTech Wheel">
+            <driver name="TruTech Wheel">indi_trutech_wheel</driver>
+            <version>0.1</version>
+        </device>
 </devGroup>
 <devGroup group="Auxiliary">
         <device label="Astrometry">
             <driver name="Astrometry">indi_astrometry</driver>
+            <version>0.1</version>
+        </device>
+        <device label="SkySafari">
+            <driver name="SkySafari">indi_skysafari</driver>
             <version>0.1</version>
         </device>
         <device label="WatchDog">

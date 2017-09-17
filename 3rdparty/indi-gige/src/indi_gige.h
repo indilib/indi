@@ -27,61 +27,60 @@
 
 using namespace std;
 
-class GigECCD: public INDI::CCD
+class GigECCD : public INDI::CCD
 {
-    public:
+  public:
+    GigECCD(arv::ArvCamera *camera);
+    virtual ~GigECCD();
 
-        GigECCD(arv::ArvCamera* camera);
-        virtual ~GigECCD();
+    const char *getDefaultName();
 
-        const char *getDefaultName();
+    bool initProperties();
+    bool updateProperties();
 
-        bool initProperties();
-        bool updateProperties();
+    bool Connect();
+    bool Disconnect();
 
-        bool Connect();
-        bool Disconnect();
+    bool StartExposure(float duration);
+    bool AbortExposure();
 
-        bool StartExposure(float duration);
-        bool AbortExposure();
+  protected:
+    void TimerHit();
+    virtual bool UpdateCCDFrame(int x, int y, int w, int h);
+    virtual bool UpdateCCDBin(int binx, int biny);
+    virtual bool UpdateCCDFrameType(CCDChip::CCD_FRAME fType);
 
-    protected:
+  private:
+    void _delete_indi_properties(void);
+    void _update_indi_properties(void);
+    bool _update_geometry(void);
+    void _update_image(uint8_t const *const data, size_t size);
+    static void _receive_image_hook(void *const class_ptr, uint8_t const *const data, size_t size);
 
-        void TimerHit();
-        virtual bool UpdateCCDFrame(int x, int y, int w, int h);
-        virtual bool UpdateCCDBin(int binx, int biny);
-        virtual bool UpdateCCDFrameType(CCDChip::CCD_FRAME fType);
+    void _handle_failed(void);
+    void _handle_timeout(struct timeval *const tv, uint32_t timeout_us);
 
-    private:
-        void _delete_indi_properties(void);
-        void _update_indi_properties(void);
-        bool _update_geometry(void);
-        void _update_image(uint8_t const * const data, size_t size);
-        static void _receive_image_hook(void* const class_ptr, uint8_t const *const data, size_t size);
+    arv::ArvCamera *camera;
+    char name[32];
+    int timer_id;
+    struct timeval exposure_start_time;
+    struct timeval exposure_transfer_time;
 
-        void _handle_failed(void);
-        void _handle_timeout(struct timeval* const tv, uint32_t timeout_us);
+    /* Indi properties */
 
-        arv::ArvCamera*  camera;
-        char             name[32];
-        int              timer_id;
-        struct timeval   exposure_start_time;
-        struct timeval   exposure_transfer_time;
+    INumber indiprop_gain[1];
+    INumberVectorProperty indiprop_gain_prop;
+    IText indiprop_info[3];
+    ITextVectorProperty indiprop_info_prop;
 
-        /* Indi properties */
+    virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n);
 
-        INumber indiprop_gain[1];
-        INumberVectorProperty indiprop_gain_prop;
-        IText indiprop_info[3];
-        ITextVectorProperty indiprop_info_prop;
-  
-        virtual bool ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n);
-
-        friend void ::ISGetProperties(const char *dev);
-        friend void ::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int num);
-        friend void ::ISNewText(const char *dev, const char *name, char *texts[], char *names[], int num);
-        friend void ::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int num);
-        friend void ::ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[], char *names[], int n);
+    friend void ::ISGetProperties(const char *dev);
+    friend void ::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int num);
+    friend void ::ISNewText(const char *dev, const char *name, char *texts[], char *names[], int num);
+    friend void ::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int num);
+    friend void ::ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[],
+                            char *formats[], char *names[], int n);
 };
 
 #endif // GENERIC_CCD_H
