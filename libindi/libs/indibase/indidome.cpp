@@ -1504,7 +1504,7 @@ bool INDI::Dome::WriteParkData()
     if (!ParkdeviceXml)
     {
         ParkdeviceXml = addXMLEle(ParkdataXmlRoot, "device");
-        addXMLAtt(ParkdeviceXml, "name", ParkDeviceName);
+        addXMLAtt(ParkdeviceXml, "name", ParkDeviceName == nullptr ? getDeviceName() : ParkDeviceName);
     }
 
     if (!ParkstatusXml)
