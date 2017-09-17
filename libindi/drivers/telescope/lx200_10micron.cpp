@@ -33,7 +33,7 @@
 
 LX200_10MICRON::LX200_10MICRON() : LX200Generic()
 {
-    setLX200Capability(0);
+    setLX200Capability(LX200_HAS_TRACKING_FREQ);
     setVersion(1, 0);
 }
 
