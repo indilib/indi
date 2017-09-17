@@ -630,9 +630,10 @@ bool CelestronGPS::Abort()
 
 bool CelestronGPS::Handshake()
 {
+    set_celestron_device(getDeviceName());
+
     if (isSimulation())
     {
-        set_celestron_device(getDeviceName());
         set_celestron_simulation(true);
         set_sim_slew_rate(SR_5);
         set_sim_ra(0);
