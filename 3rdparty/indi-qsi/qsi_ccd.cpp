@@ -179,9 +179,9 @@ bool QSICCD::initProperties()
     IUFillSwitchVector(&FilterSP, FilterS, 2, getDeviceName(), "FILTER_WHEEL_MOTION", "Turn Wheel", FILTER_TAB, IP_RW,
                        ISR_1OFMANY, 60, IPS_IDLE);
 
-    IUFillSwitch(&GainS[0], "High", "", ISS_ON);
-    IUFillSwitch(&GainS[1], "Low", "", ISS_OFF);
-    IUFillSwitch(&GainS[2], "Auto", "", ISS_OFF);
+    IUFillSwitch(&GainS[GAIN_HIGH], "High", "", ISS_ON);
+    IUFillSwitch(&GainS[GAIN_LOW], "Low", "", ISS_OFF);
+    IUFillSwitch(&GainS[GAIN_AUTO], "Auto", "", ISS_OFF);
     IUFillSwitchVector(&GainSP, GainS, 3, getDeviceName(), "Gain", "", OPTIONS_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
 
     IUFillSwitch(&FanS[0], "Off", "", ISS_OFF);
@@ -1039,6 +1039,10 @@ void QSICCD::addFITSKeywords(fitsfile *fptr, CCDChip *targetChip)
         DEBUGF(INDI::Logger::DBG_ERROR, "get_ElectronsPerADU failed. %s.", err.what());
         return;
     }
+
+    // 2017-09-17 JM: electronsPerADU is wrong in auto mode. So we have to change it manually here.
+    if (IUFindOnSwitchIndex(&GainSP) == GAIN_AUTO && PrimaryCCD.getBinX() > 1)
+        electronsPerADU = 1.1;
 
     fits_update_key_s(fptr, TDOUBLE, "EPERADU", &electronsPerADU, "Electrons per ADU", &status);
 }
