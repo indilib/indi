@@ -60,7 +60,6 @@ INDIPORT="7624"
 
 
 ##### INDI SETTINGS AND DEBUG #####
-#Except for "Basic indi", "Basic remote" and "Common" this section should not need editing.
 #1). Basic indi
 INDIDEVICE="MeteoStation"
 INDIDEVICEPORT="/dev/ttyUSB0"
@@ -75,7 +74,7 @@ EXECNOOUTPUT="&>/dev/null"
 
 
 ##### SSH TUNNEL AN INDI EXEC #####
-#Should not need to edit 2, 3, 4, 5 and 6
+#Should only need to edit #1), and only if using ssh
 #1). Key and user
 SSHKEYDIR="~/.ssh/id_rsa"
 SSHUSERNAME="magnus_e"
@@ -88,7 +87,7 @@ INDIEXEC="indiserver$INDIVERBOSE -f $INDIFIFODIR -p"
 DUINOEXEC="echo start indi_duino -n \\\"$INDIDEVICE\\\" -s \\\"$METEOSTATIONSKELETONDIR\\\" > $INDIFIFODIR"
 
 #3). Local exec
-INDILOCALEXEC="$KILLEXEC; rm $INDIFIFODIR; mkfifo $INDIFIFODIR; $INDIEXEC $INDIPORT & $DUINOEXEC$EXECNOOUTPUT"
+INDILOCALEXEC="$KILLEXEC; rm $INDIFIFODIR; mkfifo $INDIFIFODIR; $INDIEXEC $INDIPORT & $DUINOEXEC $EXECNOOUTPUT"
 
 #4). SSH tunnel
 SSHTUNNEL="-i $SSHKEYDIR $SSHUSERNAME@$SSHSERVER -p $SSHPORT -4 -L $INDIPORT:$INDISERVER:$INDIREMOTEPORT"
