@@ -16,33 +16,37 @@
  Boston, MA 02110-1301, USA.
 *******************************************************************************/
 
-#include <dirent.h> // for scandir
-#include <errno.h>  // for errno
-#include <string.h> // for strerror
+#include "connectionserial.h"
+#include "indistandardproperty.h"
 #include "indicom.h"
 #include "indilogger.h"
-#include "connectionserial.h"
+
+#include <dirent.h>
+#include <cerrno>
+#include <cstring>
 
 namespace Connection
 {
+extern const char *CONNECTION_TAB;
 
-extern const char * CONNECTION_TAB;
-
-Serial::Serial(INDI::DefaultDevice * dev) : Interface(dev)
+Serial::Serial(INDI::DefaultDevice *dev) : Interface(dev)
 {
 #ifdef __APPLE__
     IUFillText(&PortT[0], "PORT", "Port", "/dev/cu.usbserial");
 #else
     IUFillText(&PortT[0], "PORT", "Port", "/dev/ttyUSB0");
 #endif
-    IUFillTextVector(&PortTP, PortT, 1, dev->getDeviceName(), "DEVICE_PORT", "Ports", CONNECTION_TAB, IP_RW, 60, IPS_IDLE);
+    IUFillTextVector(&PortTP, PortT, 1, dev->getDeviceName(), INDI::SP::DEVICE_PORT, "Ports", CONNECTION_TAB, IP_RW, 60,
+                     IPS_IDLE);
 
     IUFillSwitch(&AutoSearchS[0], "ENABLED", "Enabled", ISS_ON);
     IUFillSwitch(&AutoSearchS[1], "DISABLED", "Disabled", ISS_OFF);
-    IUFillSwitchVector(&AutoSearchSP, AutoSearchS, 2, dev->getDeviceName(), "DEVICE_AUTO_SEARCH", "Auto Search", CONNECTION_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
+    IUFillSwitchVector(&AutoSearchSP, AutoSearchS, 2, dev->getDeviceName(), INDI::SP::DEVICE_AUTO_SEARCH, "Auto Search",
+                       CONNECTION_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
 
     IUFillSwitch(&RefreshS[0], "Scan Ports", "Scan Ports", ISS_OFF);
-    IUFillSwitchVector(&RefreshSP, RefreshS, 1, dev->getDeviceName(), "DEVICE_PORT_SCAN", "Refresh", CONNECTION_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
+    IUFillSwitchVector(&RefreshSP, RefreshS, 1, dev->getDeviceName(), "DEVICE_PORT_SCAN", "Refresh", CONNECTION_TAB,
+                       IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
 
     IUFillSwitch(&BaudRateS[0], "9600", "", ISS_ON);
     IUFillSwitch(&BaudRateS[1], "19200", "", ISS_OFF);
@@ -50,24 +54,25 @@ Serial::Serial(INDI::DefaultDevice * dev) : Interface(dev)
     IUFillSwitch(&BaudRateS[3], "57600", "", ISS_OFF);
     IUFillSwitch(&BaudRateS[4], "115200", "", ISS_OFF);
     IUFillSwitch(&BaudRateS[5], "230400", "", ISS_OFF);
-    IUFillSwitchVector(&BaudRateSP, BaudRateS, 6, dev->getDeviceName(), "DEVICE_BAUD_RATE", "Baud Rate", CONNECTION_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
+    IUFillSwitchVector(&BaudRateSP, BaudRateS, 6, dev->getDeviceName(), INDI::SP::DEVICE_BAUD_RATE, "Baud Rate", CONNECTION_TAB,
+                       IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
 }
 
 Serial::~Serial()
 {
-    delete [] SystemPortS;
+    delete[] SystemPortS;
 }
 
-bool Serial::ISNewText (const char * dev, const char * name, char * texts[], char * names[], int n)
+bool Serial::ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
 {
-    if(!strcmp(dev, device->getDeviceName()))
+    if (!strcmp(dev, device->getDeviceName()))
     {
         // Serial Port
-        if(!strcmp(name, PortTP.name))
+        if (!strcmp(name, PortTP.name))
         {
             IUUpdateText(&PortTP, texts, names, n);
             PortTP.s = IPS_OK;
-            IDSetText(&PortTP, NULL);
+            IDSetText(&PortTP, nullptr);
             return true;
         }
     }
@@ -75,15 +80,15 @@ bool Serial::ISNewText (const char * dev, const char * name, char * texts[], cha
     return false;
 }
 
-bool Serial::ISNewSwitch (const char * dev, const char * name, ISState * states, char * names[], int n)
+bool Serial::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
 {
-    if(!strcmp(dev, device->getDeviceName()))
+    if (!strcmp(dev, device->getDeviceName()))
     {
         if (!strcmp(name, BaudRateSP.name))
         {
             IUUpdateSwitch(&BaudRateSP, states, names, n);
             BaudRateSP.s = IPS_OK;
-            IDSetSwitch(&BaudRateSP, NULL);
+            IDSetSwitch(&BaudRateSP, nullptr);
             return true;
         }
 
@@ -96,10 +101,12 @@ bool Serial::ISNewSwitch (const char * dev, const char * name, ISState * states,
 
             // Only display message if there is an actual change
             if (wasEnabled == false && AutoSearchS[0].s == ISS_ON)
-                DEBUG(INDI::Logger::DBG_SESSION, "Auto search is enabled. When connecting, the driver shall attempt to communicate with all available system ports until a connection is established.");
+                DEBUG(INDI::Logger::DBG_SESSION, "Auto search is enabled. When connecting, the driver shall attempt to "
+                                                 "communicate with all available system ports until a connection is "
+                                                 "established.");
             else if (wasEnabled && AutoSearchS[1].s == ISS_ON)
                 DEBUG(INDI::Logger::DBG_SESSION, "Auo search is disabled.");
-            IDSetSwitch(&AutoSearchSP, NULL);
+            IDSetSwitch(&AutoSearchSP, nullptr);
 
             return true;
         }
@@ -107,7 +114,7 @@ bool Serial::ISNewSwitch (const char * dev, const char * name, ISState * states,
         if (!strcmp(name, RefreshSP.name))
         {
             RefreshSP.s = Refresh() ? IPS_OK : IPS_ALERT;
-            IDSetSwitch(&RefreshSP, NULL);
+            IDSetSwitch(&RefreshSP, nullptr);
             return true;
         }
 
@@ -115,15 +122,15 @@ bool Serial::ISNewSwitch (const char * dev, const char * name, ISState * states,
         {
             IUUpdateSwitch(&SystemPortSP, states, names, n);
 
-            ISwitch * sp = IUFindOnSwitch(&SystemPortSP);
+            ISwitch *sp = IUFindOnSwitch(&SystemPortSP);
             if (sp)
             {
                 IUSaveText(&PortT[0], sp->name);
-                IDSetText(&PortTP, NULL);
+                IDSetText(&PortTP, nullptr);
             }
 
             SystemPortSP.s = IPS_OK;
-            IDSetSwitch(&SystemPortSP, NULL);
+            IDSetSwitch(&SystemPortSP, nullptr);
 
             return true;
         }
@@ -135,22 +142,23 @@ bool Serial::ISNewSwitch (const char * dev, const char * name, ISState * states,
 bool Serial::Connect()
 {
     uint32_t baud = atoi(IUFindOnSwitch(&BaudRateSP)->name);
-    bool rc = Connect(PortT[0].text, baud);
+    bool rc       = Connect(PortT[0].text, baud);
 
     if (rc)
         rc = processHandshake();
 
     // Start auto-search if option was selected and IF we have system ports to try connecting to
-    if (rc == false && AutoSearchS[0].s == ISS_ON && SystemPortS != NULL)
+    if (rc == false && AutoSearchS[0].s == ISS_ON && SystemPortS != nullptr)
     {
-        DEBUGF(INDI::Logger::DBG_WARNING, "Communication with %s @ %d failed. Starting Auto Search...", PortT[0].text, baud);
+        DEBUGF(INDI::Logger::DBG_WARNING, "Communication with %s @ %d failed. Starting Auto Search...", PortT[0].text,
+               baud);
         for (int i = 0; i < SystemPortSP.nsp; i++)
         {
             DEBUGF(INDI::Logger::DBG_DEBUG, "Trying connection to %s @ %d ...", SystemPortS[i].name, baud);
             if (Connect(SystemPortS[i].name, baud))
             {
                 IUSaveText(&PortT[0], SystemPortS[i].name);
-                IDSetText(&PortTP, NULL);
+                IDSetText(&PortTP, nullptr);
                 rc = processHandshake();
                 if (rc)
                     return true;
@@ -170,8 +178,8 @@ bool Serial::processHandshake()
     if (rc)
     {
         DEBUGF(INDI::Logger::DBG_SESSION, "%s is online.", getDeviceName());
-        device->saveConfig(true, "DEVICE_PORT");
-        device->saveConfig(true, "DEVICE_BAUD_RATE");
+        device->saveConfig(true, INDI::SP::DEVICE_PORT);
+        device->saveConfig(true, INDI::SP::DEVICE_BAUD_RATE);
     }
     else
         DEBUG(INDI::Logger::DBG_DEBUG, "Handshake failed.");
@@ -179,7 +187,7 @@ bool Serial::processHandshake()
     return rc;
 }
 
-bool Serial::Connect(const char * port, uint32_t baud)
+bool Serial::Connect(const char *port, uint32_t baud)
 {
     if (device->isSimulation())
         return true;
@@ -189,7 +197,7 @@ bool Serial::Connect(const char * port, uint32_t baud)
 
     DEBUGF(INDI::Logger::DBG_DEBUG, "Connecting to %s", port);
 
-    if ( (connectrc = tty_connect(port, baud, 8, 0, 1, &PortFD)) != TTY_OK)
+    if ((connectrc = tty_connect(port, baud, wordSize, parity, stopBits, &PortFD)) != TTY_OK)
     {
         tty_error_msg(connectrc, errorMsg, MAXRBUF);
 
@@ -210,20 +218,19 @@ bool Serial::Disconnect()
         tty_disconnect(PortFD);
         PortFD = -1;
     }
-
     return true;
 }
 
 void Serial::Activated()
 {
     device->defineText(&PortTP);
-    device->loadConfig(true, "DEVICE_PORT");
+    device->loadConfig(true, INDI::SP::DEVICE_PORT);
 
     device->defineSwitch(&BaudRateSP);
-    device->loadConfig(true, "DEVICE_BAUD_RATE");
+    device->loadConfig(true, INDI::SP::DEVICE_BAUD_RATE);
 
     device->defineSwitch(&AutoSearchSP);
-    device->loadConfig(true, "DEVICE_AUTO_SEARCH");
+    device->loadConfig(true, INDI::SP::DEVICE_AUTO_SEARCH);
 
     device->defineSwitch(&RefreshSP);
     Refresh(true);
@@ -237,11 +244,11 @@ void Serial::Deactivated()
 
     device->deleteProperty(RefreshSP.name);
     device->deleteProperty(SystemPortSP.name);
-    delete [] SystemPortS;
-    SystemPortS = NULL;
+    delete[] SystemPortS;
+    SystemPortS = nullptr;
 }
 
-bool Serial::saveConfigItems(FILE * fp)
+bool Serial::saveConfigItems(FILE *fp)
 {
     IUSaveConfigText(fp, &PortTP);
     IUSaveConfigSwitch(fp, &BaudRateSP);
@@ -250,7 +257,7 @@ bool Serial::saveConfigItems(FILE * fp)
     return true;
 }
 
-void Serial::setDefaultPort(const char * defaultPort)
+void Serial::setDefaultPort(const char *defaultPort)
 {
     IUSaveText(&PortT[0], defaultPort);
 }
@@ -261,27 +268,28 @@ void Serial::setDefaultBaudRate(BaudRate newRate)
     BaudRateS[newRate].s = ISS_ON;
 }
 
-const uint32_t Serial::baud()
+uint32_t Serial::baud()
 {
     return atoi(IUFindOnSwitch(&BaudRateSP)->name);
 }
 
-int dev_file_select(const dirent * entry)
+int dev_file_select(const dirent *entry)
 {
 #if defined(__APPLE__)
-    static const char * filter_names[] = { "cu.", NULL};
+    static const char *filter_names[] = { "cu.", nullptr };
 #else
-    static const char * filter_names[] = { "ttyUSB", "ttyACM", "rfcomm", NULL};
+    static const char *filter_names[] = { "ttyUSB", "ttyACM", "rfcomm", nullptr };
 #endif
-    const char ** filter;
+    const char **filter;
+
     for (filter = filter_names; *filter; ++filter)
     {
-        if (strstr(entry->d_name, *filter) != NULL)
+        if (strstr(entry->d_name, *filter) != nullptr)
         {
-            return(true);
+            return (true);
         }
     }
-    return(false);
+    return (false);
 }
 
 bool Serial::Refresh(bool silent)
@@ -289,15 +297,15 @@ bool Serial::Refresh(bool silent)
     if (SystemPortS)
         device->deleteProperty(SystemPortSP.name);
 
-    delete [] SystemPortS;
-    SystemPortS = NULL;
+    delete[] SystemPortS;
+    SystemPortS = nullptr;
     std::vector<std::string> m_Ports;
 
-    struct dirent ** namelist;
+    struct dirent **namelist;
     int devCount = scandir("/dev", &namelist, dev_file_select, alphasort);
     if (devCount < 0)
     {
-        if (silent == false)
+        if (!silent)
             DEBUGF(INDI::Logger::DBG_ERROR, "Failed to scan directory /dev. Error: %s", strerror(errno));
     }
     else
@@ -312,7 +320,8 @@ bool Serial::Refresh(bool silent)
             }
             else
             {
-                DEBUGF(INDI::Logger::DBG_DEBUG, "Ignoring devices over %d : %s", m_Ports.size(), namelist[devCount]->d_name);
+                DEBUGF(INDI::Logger::DBG_DEBUG, "Ignoring devices over %d : %s", m_Ports.size(),
+                       namelist[devCount]->d_name);
             }
             free(namelist[devCount]);
         }
@@ -320,30 +329,32 @@ bool Serial::Refresh(bool silent)
     }
 
     int pCount = m_Ports.size();
+
     if (pCount == 0)
     {
-        if (silent == false)
+        if (!silent)
             DEBUG(INDI::Logger::DBG_WARNING, "No candidate ports found on the system.");
         return false;
     }
     else
     {
-        if (silent == false)
+        if (!silent)
             DEBUGF(INDI::Logger::DBG_SESSION, "Scan complete. Found %d port(s).", pCount);
     }
 
     SystemPortS = new ISwitch[pCount];
-    ISwitch * sp = SystemPortS;
+    ISwitch *sp = SystemPortS;
+
     for (int i = pCount - 1; i >= 0; i--)
     {
         IUFillSwitch(sp++, m_Ports[i].c_str(), m_Ports[i].c_str(), ISS_OFF);
     }
 
-    IUFillSwitchVector(&SystemPortSP, SystemPortS, pCount, device->getDeviceName(), "SYSTEM_PORTS", "System Ports", CONNECTION_TAB, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
+    IUFillSwitchVector(&SystemPortSP, SystemPortS, pCount, device->getDeviceName(), "SYSTEM_PORTS", "System Ports",
+                       CONNECTION_TAB, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
 
     device->defineSwitch(&SystemPortSP);
 
     return true;
 }
-
 }

@@ -20,39 +20,45 @@
   Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
-#include <stdio.h>
-#include <memory>
-#include <unistd.h>
-
-#include <indicom.h>
-
 #include "nstep.h"
 
-#define POLLMS  2000
+#include "indicom.h"
+
+#include <cstring>
+#include <memory>
+
+#define POLLMS 2000
+
+#define currentSpeed            SpeedN[0].value
+#define currentPosition         FocusAbsPosN[0].value
+#define currentTemperature      TemperatureN[0].value
+#define currentRelativeMovement FocusRelPosN[0].value
+#define currentAbsoluteMovement FocusAbsPosN[0].value
 
 std::unique_ptr<NSTEP> nstep(new NSTEP());
 
-void ISGetProperties(const char * dev)
+void ISGetProperties(const char *dev)
 {
     nstep->ISGetProperties(dev);
 }
 
-void ISNewSwitch(const char * dev, const char * name, ISState * states, char * names[], int num)
+void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
 {
-    nstep->ISNewSwitch(dev, name, states, names, num);
+    nstep->ISNewSwitch(dev, name, states, names, n);
 }
 
-void ISNewText(const char * dev, const char * name, char * texts[], char * names[], int num)
+void ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
 {
-    nstep->ISNewText(dev, name, texts, names, num);
+    nstep->ISNewText(dev, name, texts, names, n);
 }
 
-void ISNewNumber(const char * dev, const char * name, double values[], char * names[], int num)
+void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
 {
-    nstep->ISNewNumber(dev, name, values, names, num);
+    nstep->ISNewNumber(dev, name, values, names, n);
 }
 
-void ISNewBLOB(const char * dev, const char * name, int sizes[], int blobsizes[], char * blobs[], char * formats[], char * names[], int n)
+void ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[],
+               char *names[], int n)
 {
     INDI_UNUSED(dev);
     INDI_UNUSED(name);
@@ -64,141 +70,21 @@ void ISNewBLOB(const char * dev, const char * name, int sizes[], int blobsizes[]
     INDI_UNUSED(n);
 }
 
-void ISSnoopDevice(XMLEle * root)
+void ISSnoopDevice(XMLEle *root)
 {
     nstep->ISSnoopDevice(root);
 }
 
 NSTEP::NSTEP()
-{
-    setDeviceName(getDefaultName());
+{    
     setVersion(1, 0);
-    SetFocuserCapability(FOCUSER_CAN_ABORT | FOCUSER_CAN_REL_MOVE);
-    sim_position = 0;
+    SetFocuserCapability(FOCUSER_CAN_ABORT | FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_REL_MOVE);
 }
 
 NSTEP::~NSTEP()
 {
     if (isConnected())
-        Disconnect();
-}
-
-bool NSTEP::command(const char * request, char * response, int count)
-{
-    DEBUGF(INDI::Logger::DBG_DEBUG,  "Write [%s]", request);
-    if (isSimulation())
-    {
-        if (!strcmp(request, ":RT"))
-        {
-            strcpy(response, "+150");
-            DEBUGF(INDI::Logger::DBG_DEBUG,  "Read [%s]", response);
-            return true;
-        }
-        if (!strcmp(request, ":RP"))
-        {
-            sprintf(response, "%+07ld", sim_position);
-            DEBUGF(INDI::Logger::DBG_DEBUG,  "Read [%s]", response);
-            return true;
-        }
-        if (!strcmp(request, ":RS"))
-        {
-            strcpy(response, "100");
-            DEBUGF(INDI::Logger::DBG_DEBUG,  "Read [%s]", response);
-            return true;
-        }
-        if (!strcmp(request, ":RO"))
-        {
-            strcpy(response, "001");
-            DEBUGF(INDI::Logger::DBG_DEBUG,  "Read [%s]", response);
-            return true;
-        }
-        if (!strcmp(request, ":RA"))
-        {
-            strcpy(response, "+010");
-            DEBUGF(INDI::Logger::DBG_DEBUG,  "Read [%s]", response);
-            return true;
-        }
-        if (!strcmp(request, ":RB"))
-        {
-            strcpy(response, "005");
-            DEBUGF(INDI::Logger::DBG_DEBUG,  "Read [%s]", response);
-            return true;
-        }
-        if (!strcmp(request, ":RG"))
-        {
-            strcpy(response, "2");
-            DEBUGF(INDI::Logger::DBG_DEBUG,  "Read [%s]", response);
-            return true;
-        }
-        if (!strcmp(request, ":RW"))
-        {
-            strcpy(response, "0");
-            DEBUGF(INDI::Logger::DBG_DEBUG,  "Read [%s]", response);
-            return true;
-        }
-        if (!strcmp(request, "S"))
-        {
-            strcpy(response, "0");
-            DEBUGF(INDI::Logger::DBG_DEBUG,  "Read [%s]", response);
-            return true;
-        }
-        return true;
-    }
-    int actual, total;
-    pthread_mutex_lock(&lock);
-    int rc = TTY_OK;
-    if (request)
-        rc = tty_write(PortFD, request, strlen(request), &actual);
-    if (rc == TTY_OK && response)
-    {
-        total = 0;
-        while (rc == TTY_OK && count > 0)
-        {
-            rc = tty_read(PortFD, response + total, count, 5, &actual);
-            total += actual;
-            count -= actual;
-        }
-        response[total] = 0;
-    }
-    if (rc != TTY_OK)
-    {
-        char message[MAXRBUF];
-        tty_error_msg(rc, message, MAXRBUF);
-        IDMessage(getDeviceName(), "%s", message);
-        pthread_mutex_unlock(&lock);
-        return false;
-    }
-    DEBUGF(INDI::Logger::DBG_DEBUG,  "Read [%s]", response);
-    pthread_mutex_unlock(&lock);
-    return true;
-}
-
-const char * NSTEP::getDefaultName()
-{
-    return "NStep";
-}
-
-bool NSTEP::Handshake()
-{
-    if (isSimulation())
-    {
-        IDMessage(getDeviceName(), "NStep simulation is connected.");
-        return true;
-    }
-
-    char b = 0x06;
-    int actual;
-    int rc = tty_write(PortFD, &b, 1, &actual);
-    if (rc == TTY_OK)
-    {
-        rc = tty_read(PortFD, &b, 1, 5, &actual);
-        if (rc == TTY_OK && b == 'S')
-            return true;
-        else
-            return false;
-    }
-
-    return false;
+        NSTEP::Disconnect();
 }
 
 bool NSTEP::initProperties()
@@ -208,37 +94,46 @@ bool NSTEP::initProperties()
     addDebugControl();
     addSimulationControl();
 
-    FocusAbsPosN[0].min = -999999;
-    FocusAbsPosN[0].max = 999999;
+    FocusAbsPosN[0].min  = -999999;
+    FocusAbsPosN[0].max  = 999999;
     FocusAbsPosN[0].step = 1;
 
-    FocusRelPosN[0].min = -999;
-    FocusRelPosN[0].max = 999;
+    FocusRelPosN[0].min  = -999;
+    FocusRelPosN[0].max  = 999;
     FocusRelPosN[0].step = 1;
 
-    FocusSpeedN[0].min = 1;
-    FocusSpeedN[0].max = 254;
+    FocusSpeedN[0].min  = 1;
+    FocusSpeedN[0].max  = 254;
     FocusSpeedN[0].step = 1;
 
     FocusMotionSP.r = ISR_1OFMANY;
 
     IUFillSwitch(&TempCompS[0], "ENABLED", "Temperature compensation enabled", ISS_OFF);
     IUFillSwitch(&TempCompS[1], "DISABLED", "Temperature compensation disabled", ISS_ON);
-    IUFillSwitchVector(&TempCompSP, TempCompS, 2, getDeviceName(), "COMPENSATION_MODE", "Compensation mode", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 0, IPS_OK);
+    IUFillSwitchVector(&TempCompSP, TempCompS, 2, getDeviceName(), "COMPENSATION_MODE", "Compensation mode",
+                       MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 0, IPS_OK);
 
     IUFillNumber(&TempCompN[0], "TEMP_CHANGE", "Temperature change", "%.1f", -99, 99, 0.1, 0);
     IUFillNumber(&TempCompN[1], "TEMP_MOVE", "Compensation move", "%.0f", 0, 999, 1, 0);
-    IUFillNumberVector(&TempCompNP, TempCompN, 2, getDeviceName(), "COMPENSATION_SETTING", "Compensation settings", MAIN_CONTROL_TAB, IP_RW, 0, IPS_OK);
+    IUFillNumberVector(&TempCompNP, TempCompN, 2, getDeviceName(), "COMPENSATION_SETTING", "Compensation settings",
+                       MAIN_CONTROL_TAB, IP_RW, 0, IPS_OK);
 
     IUFillNumber(&TempN[0], "TEMPERATURE", "Temperature", "%.1f", 0, 999, 0, 0);
-    IUFillNumberVector(&TempNP, TempN, 1, getDeviceName(), "TEMPERATURE", "Temperature", MAIN_CONTROL_TAB, IP_RO, 0, IPS_OK);
+    IUFillNumberVector(&TempNP, TempN, 1, getDeviceName(), "TEMPERATURE", "Temperature", MAIN_CONTROL_TAB, IP_RO, 0,
+                       IPS_OK);
 
-    IUFillSwitch(&SteppingModeS[0], "WAVE", "Wave", ISS_ON);
+    IUFillSwitch(&SteppingPhaseS[0], "0", "0", ISS_ON);
+    IUFillSwitch(&SteppingPhaseS[1], "1", "1", ISS_OFF);
+    IUFillSwitch(&SteppingPhaseS[2], "2", "2", ISS_OFF);
+    IUFillSwitchVector(&SteppingPhaseSP, SteppingPhaseS, 3, getDeviceName(), "PHASE_WIRING", "Phase wiring",
+                       MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 0, IPS_OK);
+
+    IUFillSwitch(&SteppingModeS[0], "WAVE", "Wave", ISS_OFF);
     IUFillSwitch(&SteppingModeS[1], "HALF", "Half", ISS_OFF);
-    IUFillSwitch(&SteppingModeS[2], "FULL", "Full", ISS_OFF);
-    IUFillSwitchVector(&SteppingModeSP, SteppingModeS, 3, getDeviceName(), "STEPPING_MODE", "Stepping mode", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 0, IPS_OK);
-
-    FocusAbsPosNP.p = IP_RO;
+    IUFillSwitch(&SteppingModeS[2], "FULL", "Full", ISS_ON);
+    IUFillSwitchVector(&SteppingModeSP, SteppingModeS, 3, getDeviceName(), "STEPPING_MODE", "Stepping mode",
+                       MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 0, IPS_OK);
+    steppingMode = '2';
 
     return true;
 }
@@ -247,7 +142,7 @@ bool NSTEP::updateProperties()
 {
     if (isConnected())
     {
-        command(":CC1", NULL, 0);
+        command(":CC1", nullptr, 0);
         if (command(":RP", buf, 7))
         {
             sscanf(buf, "%ld", &position);
@@ -256,7 +151,7 @@ bool NSTEP::updateProperties()
         }
         else
         {
-            IDMessage(getDeviceName(), "Failed to read position");
+            DEBUG(INDI::Logger::DBG_ERROR, "Failed to read position");
         }
         if (command(":RT", buf, 4))
         {
@@ -274,7 +169,7 @@ bool NSTEP::updateProperties()
                 }
                 else
                 {
-                    IDMessage(getDeviceName(), "Failed to read temperature change for compensation");
+                    DEBUG(INDI::Logger::DBG_ERROR, "Failed to read temperature change for compensation");
                 }
                 if (command(":RB", buf, 3))
                 {
@@ -285,34 +180,34 @@ bool NSTEP::updateProperties()
                 }
                 else
                 {
-                    IDMessage(getDeviceName(), "Failed to read temperature step for compensation");
+                    DEBUG(INDI::Logger::DBG_ERROR, "Failed to read temperature step for compensation");
                 }
                 if (command(":RG", buf, 1))
                 {
-                    char value = *buf;
+                    char value     = *buf;
                     TempCompS[0].s = value == '2' ? ISS_ON : ISS_OFF;
-                    TempCompS[1].s = value == '0'  ? ISS_ON : ISS_OFF;
+                    TempCompS[1].s = value == '0' ? ISS_ON : ISS_OFF;
                     defineSwitch(&TempCompSP);
                 }
                 else
                 {
-                    IDMessage(getDeviceName(), "Failed to read compensation mode");
+                    DEBUG(INDI::Logger::DBG_ERROR, "Failed to read compensation mode");
                 }
             }
             else
             {
-                IDMessage(getDeviceName(), "Temperature sensor is not connected");
+                DEBUG(INDI::Logger::DBG_ERROR, "Temperature sensor is not connected");
             }
         }
         else
         {
-            IDMessage(getDeviceName(), "Failed to read temperature");
+            DEBUG(INDI::Logger::DBG_ERROR, "Failed to read temperature");
         }
         if (command(":RS", buf, 3))
         {
             int value;
             sscanf(buf, "%d", &value);
-            FocusSpeedN[0].max = value;
+            FocusSpeedN[0].min = value;
             if (command(":RO", buf, 3))
             {
                 int value;
@@ -322,25 +217,26 @@ bool NSTEP::updateProperties()
             }
             else
             {
-                IDMessage(getDeviceName(), "Failed to read step rate");
+                DEBUG(INDI::Logger::DBG_ERROR, "Failed to read step rate");
             }
         }
         else
         {
-            IDMessage(getDeviceName(), "Failed to read max step rate");
+            DEBUG(INDI::Logger::DBG_ERROR, "Failed to read max step rate");
         }
         if (command(":RW", buf, 1))
         {
-            steppingMode = *buf;
-            SteppingModeS[0].s = steppingMode == '0' ? ISS_ON : ISS_OFF;
-            SteppingModeS[1].s = steppingMode == '1' ? ISS_ON : ISS_OFF;
-            SteppingModeS[2].s = steppingMode == '2' ? ISS_ON : ISS_OFF;
-            defineSwitch(&SteppingModeSP);
+            steppingPhase        = *buf;
+            SteppingPhaseS[0].s = steppingPhase == '0' ? ISS_ON : ISS_OFF;
+            SteppingPhaseS[1].s = steppingPhase == '1' ? ISS_ON : ISS_OFF;
+            SteppingPhaseS[2].s = steppingPhase == '2' ? ISS_ON : ISS_OFF;
+            defineSwitch(&SteppingPhaseSP);
         }
         else
         {
-            IDMessage(getDeviceName(), "Failed to read stepping mode");
+            DEBUG(INDI::Logger::DBG_ERROR, "Failed to read stepping phase");
         }
+    defineSwitch(&SteppingModeSP);
     }
     else
     {
@@ -350,139 +246,329 @@ bool NSTEP::updateProperties()
         deleteProperty(TempCompSP.name);
         deleteProperty(FocusSpeedNP.name);
         deleteProperty(SteppingModeSP.name);
+        deleteProperty(SteppingPhaseSP.name);
     }
-    return INDI::Focuser::updateProperties();;
+    return INDI::Focuser::updateProperties();
 }
 
-bool NSTEP::ISNewSwitch (const char * dev, const char * name, ISState * states, char * names[], int n)
+bool NSTEP::Handshake()
 {
-    if (strcmp(dev, getDeviceName()) == 0)
+    if (isSimulation())
     {
-        if (!strcmp (name, TempCompSP.name))
+        DEBUG(INDI::Logger::DBG_SESSION, "NStep simulation is connected.");
+        return true;
+    }
+
+    char b = 0x06;
+    int actual = 0;
+    int rc = tty_write(PortFD, &b, 1, &actual);
+
+    if (rc == TTY_OK)
+    {
+        rc = tty_read(PortFD, &b, 1, 5, &actual);
+        if (rc == TTY_OK && b == 'S')
+            return true;
+    }
+    return false;
+}
+
+const char *NSTEP::getDefaultName()
+{
+    return "Rigelsys NStep";
+}
+
+bool NSTEP::command(const char *request, char *response, int count)
+{
+    DEBUGF(INDI::Logger::DBG_DEBUG, "Write [%s]", request);
+    if (isSimulation())
+    {
+        if (strcmp(request, ":RT") == 0)
+        {
+            strncpy(response, "+150", 5);
+            DEBUGF(INDI::Logger::DBG_DEBUG, "Read [%s]", response);
+            return true;
+        }
+        if (strcmp(request, ":RP") == 0)
+        {
+            sprintf(response, "%+07ld", sim_position);
+            DEBUGF(INDI::Logger::DBG_DEBUG, "Read [%s]", response);
+            return true;
+        }
+        if (strcmp(request, ":RS") == 0)
+        {
+            strncpy(response, "100", 4);
+            DEBUGF(INDI::Logger::DBG_DEBUG, "Read [%s]", response);
+            return true;
+        }
+        if (strcmp(request, ":RO") == 0)
+        {
+            strncpy(response, "001", 4);
+            DEBUGF(INDI::Logger::DBG_DEBUG, "Read [%s]", response);
+            return true;
+        }
+        if (strcmp(request, ":RA") == 0)
+        {
+            strncpy(response, "+010", 5);
+            DEBUGF(INDI::Logger::DBG_DEBUG, "Read [%s]", response);
+            return true;
+        }
+        if (strcmp(request, ":RB") == 0)
+        {
+            strncpy(response, "005", 4);
+            DEBUGF(INDI::Logger::DBG_DEBUG, "Read [%s]", response);
+            return true;
+        }
+        if (strcmp(request, ":RG") == 0)
+        {
+            strncpy(response, "2", 2);
+            DEBUGF(INDI::Logger::DBG_DEBUG, "Read [%s]", response);
+            return true;
+        }
+        if (strcmp(request, ":RW") == 0)
+        {
+            strncpy(response, "0", 2);
+            DEBUGF(INDI::Logger::DBG_DEBUG, "Read [%s]", response);
+            return true;
+        }
+        if (strcmp(request, "S") == 0)
+        {
+            strncpy(response, "0", 2);
+            DEBUGF(INDI::Logger::DBG_DEBUG, "Read [%s]", response);
+            return true;
+        }
+        return true;
+    }
+    int actual, total;
+    pthread_mutex_lock(&lock);
+    int rc = TTY_OK;
+
+    if (request != nullptr)
+        rc = tty_write(PortFD, request, strlen(request), &actual);
+    if (rc == TTY_OK && response != nullptr)
+    {
+        total = 0;
+        while (rc == TTY_OK && count > 0)
+        {
+            rc = tty_read(PortFD, response + total, count, 5, &actual);
+            total += actual;
+            count -= actual;
+        }
+        response[total] = 0;
+    }
+    if (rc != TTY_OK)
+    {
+        char message[MAXRBUF];
+        tty_error_msg(rc, message, MAXRBUF);
+        DEBUGF(INDI::Logger::DBG_ERROR, "%s", message);
+        pthread_mutex_unlock(&lock);
+        return false;
+    }
+    DEBUGF(INDI::Logger::DBG_DEBUG, "Read [%s]", response);
+    pthread_mutex_unlock(&lock);
+    return true;
+}
+
+bool NSTEP::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
+{
+    if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
+    {
+        if (strcmp(name, TempCompSP.name) == 0)
         {
             IUUpdateSwitch(&TempCompSP, states, names, n);
             TempCompSP.s = IPS_OK;
             if (TempCompS[0].s == ISS_ON)
             {
-                if (!command(":TA2", NULL, 0))
+                if (!command(":TA2", nullptr, 0))
                 {
                     TempCompSP.s = IPS_ALERT;
                 }
-                if (!command(":TC30#", NULL, 0))
+                if (!command(":TC30#", nullptr, 0))
                 {
                     TempCompSP.s = IPS_ALERT;
                 }
             }
             else
             {
-                if (!command(":TA0", NULL, 0))
+                if (!command(":TA0", nullptr, 0))
                 {
                     TempCompSP.s = IPS_ALERT;
                 }
             }
-            IDSetSwitch(&TempCompSP, NULL);
+            IDSetSwitch(&TempCompSP, nullptr);
             return true;
         }
-        if (!strcmp (name, SteppingModeSP.name))
+        if (strcmp(name, SteppingPhaseSP.name) == 0)
+        {
+            IUUpdateSwitch(&SteppingPhaseSP, states, names, n);
+            SteppingPhaseSP.s = IPS_OK;
+            if (SteppingPhaseS[0].s == ISS_ON)
+            {
+                steppingPhase = '0';
+                if (!command(":CW0", nullptr, 0))
+                {
+                    SteppingPhaseSP.s = IPS_ALERT;
+                }
+            }
+            else if (SteppingPhaseS[1].s == ISS_ON)
+            {
+                steppingPhase = '1';
+                if (!command(":CW1", nullptr, 0))
+                {
+                    SteppingPhaseSP.s = IPS_ALERT;
+                }
+            }
+            else if (SteppingPhaseS[2].s == ISS_ON)
+            {
+                steppingPhase = '2';
+                if (!command(":CW2", nullptr, 0))
+                {
+                    SteppingPhaseSP.s = IPS_ALERT;
+                }
+            }
+            IDSetSwitch(&SteppingPhaseSP, nullptr);
+            return true;
+        }
+        if (strcmp(name, SteppingModeSP.name) == 0)
         {
             IUUpdateSwitch(&SteppingModeSP, states, names, n);
             SteppingModeSP.s = IPS_OK;
             if (SteppingModeS[0].s == ISS_ON)
             {
                 steppingMode = '0';
-                if (!command(":CW0", NULL, 0))
-                {
-                    SteppingModeSP.s = IPS_ALERT;
-                }
             }
             else if (SteppingModeS[1].s == ISS_ON)
             {
                 steppingMode = '1';
-                if (!command(":CW1", NULL, 0))
-                {
-                    SteppingModeSP.s = IPS_ALERT;
-                }
             }
             else if (SteppingModeS[2].s == ISS_ON)
             {
                 steppingMode = '2';
-                if (!command(":CW2", NULL, 0))
-                {
-                    SteppingModeSP.s = IPS_ALERT;
-                }
             }
-            IDSetSwitch(&SteppingModeSP, NULL);
+            IDSetSwitch(&SteppingModeSP, nullptr);
             return true;
         }
     }
     return INDI::Focuser::ISNewSwitch(dev, name, states, names, n);
 }
 
-bool NSTEP::ISNewNumber (const char * dev, const char * name, double values[], char * names[], int n)
+bool NSTEP::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
 {
-    if(strcmp(dev, getDeviceName()) == 0)
+    if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
-        if (!strcmp(name, TempCompNP.name))
+        if (strcmp(name, TempCompNP.name) == 0)
         {
             IUUpdateNumber(&TempCompNP, values, names, n);
             PresetNP.s = IPS_OK;
             sprintf(buf, ":TT%+04d#", (int)(TempCompN[0].value * 10));
-            if (!command(buf, NULL, 0))
+            if (!command(buf, nullptr, 0))
             {
                 PresetNP.s = IPS_ALERT;
             }
             sprintf(buf, ":TS%03d#", (int)(TempCompN[1].value));
-            if (!command(buf, NULL, 0))
+            if (!command(buf, nullptr, 0))
             {
                 PresetNP.s = IPS_ALERT;
             }
-            IDSetNumber(&TempCompNP, NULL);
+            IDSetNumber(&TempCompNP, nullptr);
             return true;
         }
     }
     return INDI::Focuser::ISNewNumber(dev, name, values, names, n);
 }
 
+IPState NSTEP::moveFocuserRelative(FocusDirection dir, unsigned int ticks)
+{
+    unsigned int originalTicks = ticks;
+    unsigned int subTicks;
+
+    if (isSimulation())
+    {
+        if (dir == FOCUS_INWARD)
+            sim_position -= ticks;
+        else
+            sim_position += ticks;
+        return IPS_BUSY;
+    }
+
+    do
+    {
+        if (ticks > 999)
+        {
+            subTicks = 999;
+            ticks -= 999;
+        }
+        else
+        {
+            subTicks = ticks;
+            ticks = 0;
+        }
+
+        sprintf(buf, ":F%c%c%03d#", dir == FOCUS_INWARD ? '0' : '1', steppingMode, subTicks);
+        DEBUGF(INDI::Logger::DBG_DEBUG, "About to send command %s", buf);
+        if (!command(buf, nullptr, 0))
+        {
+            FocusAbsPosNP.s = IPS_ALERT;
+            IDSetNumber(&FocusAbsPosNP, nullptr);
+            return IPS_ALERT;
+        }
+        do
+        {
+            if (!command("S", buf, 1))
+            {
+                FocusAbsPosNP.s = IPS_ALERT;
+                IDSetNumber(&FocusAbsPosNP, nullptr);
+                return IPS_ALERT;
+            }
+        } while (*buf != '0');
+
+    } while (ticks > 0);
+
+    FocusAbsPosNP.s = IPS_BUSY;
+    if (dir == FOCUS_INWARD)
+        currentPosition -= originalTicks;
+    else
+        currentPosition += originalTicks;
+
+    IDSetNumber(&FocusAbsPosNP, nullptr);
+    return IPS_BUSY;
+}
+
+IPState NSTEP::MoveAbsFocuser(uint32_t targetTicks)
+{
+    DEBUGF(INDI::Logger::DBG_SESSION, "Focuser is moving to requested position %d", targetTicks);
+
+    unsigned int newAbsPos = 0;
+    IPState retCode        = IPS_ALERT;
+
+    if ((targetTicks - currentPosition) >= 0)
+    {
+        newAbsPos = targetTicks - currentPosition;
+        retCode   = moveFocuserRelative(FOCUS_OUTWARD, newAbsPos);
+    }
+    else if ((targetTicks - currentPosition) < 0)
+    {
+        newAbsPos = currentPosition - targetTicks;
+        retCode   = moveFocuserRelative(FOCUS_INWARD, newAbsPos);
+    }
+
+    return retCode;
+}
 
 IPState NSTEP::MoveRelFocuser(FocusDirection dir, unsigned int ticks)
 {
-    sprintf(buf, ":F%c%c%03d#", dir == FOCUS_INWARD ? '1' : '0', steppingMode, ticks);
-    if (command(buf, NULL, 0))
-    {
-        FocusAbsPosNP.s = IPS_BUSY;
-        IDSetNumber(&FocusAbsPosNP, NULL);
-        if (isSimulation())
-        {
-            if (dir == FOCUS_INWARD)
-                sim_position -= ticks;
-            else
-                sim_position += ticks;
-        }
-        return IPS_BUSY;
-    }
-    FocusAbsPosNP.s = IPS_ALERT;
-    IDSetNumber(&FocusAbsPosNP, NULL);
-    return IPS_ALERT;
+    return moveFocuserRelative(dir, ticks);
 }
 
 bool NSTEP::AbortFocuser()
 {
     sprintf(buf, ":F1%c000#", steppingMode);
-    if (command(buf, NULL, 0))
-    {
-        return true;
-    }
-    return false;
+    return command(buf, nullptr, 0);
 }
 
 bool NSTEP::SetFocuserSpeed(int speed)
 {
     sprintf(buf, ":CS%03d#", speed);
-    if (command(buf, buf, 2))
-    {
-        return true;
-    }
-    return false;
+    return command(buf, buf, 2);
 }
 
 void NSTEP::TimerHit()
@@ -495,49 +581,34 @@ void NSTEP::TimerHit()
             sscanf(buf, "%d", &tmp);
             if (tmp != temperature)
             {
-                temperature = tmp;
+                temperature    = tmp;
                 TempN[0].value = temperature / 10.0;
-                defineNumber(&TempNP);
+                IDSetNumber(&TempNP, nullptr);
             }
         }
         else
         {
-            IDMessage(getDeviceName(), "Failed to read temperature");
+            DEBUG(INDI::Logger::DBG_ERROR, "Failed to read temperature");
         }
-        if (command(":RP", buf, 7))
-        {
-            int tmp;
-            sscanf(buf, "%d", &tmp);
-            if (tmp != position)
-            {
-                position = tmp;
-                FocusAbsPosN[0].value = position;
-                defineNumber(&FocusAbsPosNP);
-            }
-        }
-        else
-        {
-            IDMessage(getDeviceName(), "Failed to read position");
-        }
+
         if (command("S", buf, 1))
         {
             if (*buf == '0' && FocusAbsPosNP.s == IPS_BUSY)
             {
                 FocusAbsPosNP.s = IPS_OK;
-                defineNumber(&FocusAbsPosNP);
+                IDSetNumber(&FocusAbsPosNP, nullptr);
                 FocusRelPosNP.s = IPS_OK;
-                defineNumber(&FocusRelPosNP);
+                IDSetNumber(&FocusRelPosNP, nullptr);
             }
         }
         SetTimer(POLLMS);
     }
 }
 
-
-bool NSTEP::saveConfigItems(FILE * fp)
+bool NSTEP::saveConfigItems(FILE *fp)
 {
     IUSaveConfigSwitch(fp, &TempCompSP);
+    IUSaveConfigSwitch(fp, &SteppingModeSP);
     IUSaveConfigNumber(fp, &TempCompNP);
     return INDI::Focuser::saveConfigItems(fp);
 }
-

@@ -25,8 +25,7 @@
   file called LICENSE.
 *******************************************************************************/
 
-#ifndef SKYSAFARI_H
-#define SKYSAFARI_H
+#pragma once
 
 #include "defaultdevice.h"
 
@@ -34,74 +33,81 @@ class SkySafariClient;
 
 class SkySafari : public INDI::DefaultDevice
 {
-    public:
+  public:
+    SkySafari();
+    virtual ~SkySafari();
 
-        SkySafari();
-        virtual ~SkySafari();
+    virtual void ISGetProperties(const char *dev);
+    //virtual bool ISSnoopDevice (XMLEle *root);
 
-        virtual void ISGetProperties (const char * dev);
-        //virtual bool ISSnoopDevice (XMLEle *root);
+    virtual bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n);
+    virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n);
+    virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n);
 
-        virtual bool ISNewText (const char * dev, const char * name, char * texts[], char * names[], int n);
-        virtual bool ISNewNumber (const char * dev, const char * name, double values[], char * names[], int n);
-        virtual bool ISNewSwitch (const char * dev, const char * name, ISState * states, char * names[], int n);
+  protected:
+    virtual bool initProperties();
+    //virtual bool updateProperties();
 
-    protected:
+    virtual void TimerHit();
 
-        virtual bool initProperties();
-        //virtual bool updateProperties();
+    virtual bool Connect();
+    virtual bool Disconnect();
+    virtual const char *getDefaultName();
 
-        virtual void TimerHit();
+    virtual bool saveConfigItems(FILE *fp);
 
-        virtual bool Connect();
-        virtual bool Disconnect();
-        virtual const char * getDefaultName();
+  private:
+    void processCommand(std::string cmd);
 
-        virtual bool saveConfigItems(FILE * fp);
+    bool startServer();
+    bool stopServer();
 
-    private:
+    bool sendSkySafari(const char *message);
 
-        void processCommand(std::string cmd);
+    void sendGeographicCoords();
+    void sendUTCtimedate();
 
-        bool startServer();
-        bool stopServer();
+    template <typename Out>
+    void split(const std::string &s, char delim, Out result);
+    std::vector<std::string> split(const std::string &s, char delim);
 
-        bool sendSkySafari(const char * message);
+    // Settings
+    ITextVectorProperty SettingsTP;
+    IText SettingsT[3];
+    enum
+    {
+        INDISERVER_HOST,
+        INDISERVER_PORT,
+        SKYSAFARI_PORT
+    };
 
-        void sendGeographicCoords();
-        void sendUTCtimedate();
+    // Active Devices
+    ITextVectorProperty ActiveDeviceTP;
+    IText ActiveDeviceT[1];
+    enum
+    {
+        ACTIVE_TELESCOPE
+    };
 
-        template<typename Out> void split(const std::string &s, char delim, Out result);
-        std::vector<std::string> split(const std::string &s, char delim);
+    // Server Control
+    ISwitchVectorProperty ServerControlSP;
+    ISwitch ServerControlS[2];
+    enum
+    {
+        SERVER_ENABLE,
+        SERVER_DISABLE
+    };
 
-        // Settings
-        ITextVectorProperty   SettingsTP;
-        IText                 SettingsT[3];
-        enum { INDISERVER_HOST, INDISERVER_PORT, SKYSAFARI_PORT };
+    // Our client
+    SkySafariClient *skySafariClient = nullptr;
 
-        // Active Devices
-        ITextVectorProperty ActiveDeviceTP;
-        IText ActiveDeviceT[1];
-        enum { ACTIVE_TELESCOPE };
+    int lsocket = -1, clientFD = -1;
 
-        // Server Control
-        ISwitchVectorProperty ServerControlSP;
-        ISwitch ServerControlS[2];
-        enum { SERVER_ENABLE, SERVER_DISABLE };
+    bool isSkySafariConnected = false, haveLatitude = false, haveLongitude = false;
+    bool haveUTCoffset = false, haveUTCtime = false, haveUTCdate = false;
 
-        // Our client
-        SkySafariClient * skySafariClient = nullptr;
-
-        int lsocket = -1, clientFD = -1;
-
-        bool isSkySafariConnected = false, haveLatitude = false, haveLongitude = false;
-        bool haveUTCoffset=false, haveUTCtime=false, haveUTCdate=false;
-
-        double siteLatitude = 0, siteLongitude = 0;
-        double RA = 0, DE = 0;
-        double timeUTCOffset=0;
-        int timeYear=0, timeMonth=0, timeDay=0, timeHour=0, timeMin=0, timeSec=0;
-
+    double siteLatitude = 0, siteLongitude = 0;
+    double RA = 0, DE = 0;
+    double timeUTCOffset = 0;
+    int timeYear = 0, timeMonth = 0, timeDay = 0, timeHour = 0, timeMin = 0, timeSec = 0;
 };
-
-#endif

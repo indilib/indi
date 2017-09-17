@@ -16,12 +16,10 @@
  Boston, MA 02110-1301, USA.
 *******************************************************************************/
 
-#ifndef INDIBASETYPES_H
-#define INDIBASETYPES_H
+#pragma once
 
 /*! INDI property type */
-typedef enum
-{
+typedef enum {
     INDI_NUMBER, /*!< INumberVectorProperty. */
     INDI_SWITCH, /*!< ISwitchVectorProperty. */
     INDI_TEXT,   /*!< ITextVectorProperty. */
@@ -31,40 +29,33 @@ typedef enum
 } INDI_PROPERTY_TYPE;
 
 /*! INDI Equatorial Axis type */
-typedef enum
-{
-    AXIS_RA,     /*!< Right Ascension Axis. */
-    AXIS_DE      /*!< Declination Axis. */
+typedef enum {
+    AXIS_RA, /*!< Right Ascension Axis. */
+    AXIS_DE  /*!< Declination Axis. */
 } INDI_EQ_AXIS;
 
 /*! INDI Horizontal Axis type */
-typedef enum
-{
-    AXIS_AZ,     /*!< Azimuth Axis. */
-    AXIS_ALT     /*!< Altitude Axis. */
+typedef enum {
+    AXIS_AZ, /*!< Azimuth Axis. */
+    AXIS_ALT /*!< Altitude Axis. */
 } INDI_HO_AXIS;
 
-/*! North/South Direction */
-typedef enum
-{
-    DIRECTION_NORTH,
-    DIRECTION_SOUTH
+/*! North/South Direction type */
+typedef enum {
+    DIRECTION_NORTH = 0, /*!< North direction */
+    DIRECTION_SOUTH      /*!< South direction */
 } INDI_DIR_NS;
 
-/*! West/East Direction */
-typedef enum
-{
-    DIRECTION_WEST,
-    DIRECTION_EAST
+/*! West/East Direction type */
+typedef enum {
+    DIRECTION_WEST = 0, /*!< West direction */
+    DIRECTION_EAST      /*!< East direction */
 } INDI_DIR_WE;
 
 /*! INDI Error Types */
-typedef enum
-{
-    INDI_DEVICE_NOT_FOUND   = -1,
-    INDI_PROPERTY_INVALID   = -2,
-    INDI_PROPERTY_DUPLICATED = -3,
-    INDI_DISPATCH_ERROR     = -4
+typedef enum {
+    INDI_DEVICE_NOT_FOUND    = -1, /*!< Device not found error */
+    INDI_PROPERTY_INVALID    = -2, /*!< Property invalid error */
+    INDI_PROPERTY_DUPLICATED = -3, /*!< Property duplicated error */
+    INDI_DISPATCH_ERROR      = -4  /*!< Dispatch error */
 } INDI_ERROR_TYPE;
-
-#endif // INDIBASETYPES_H

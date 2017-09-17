@@ -23,50 +23,46 @@
   file called LICENSE.
 *******************************************************************************/
 
-#ifndef WEATHERMETA_H
-#define WEATHERMETA_H
+#pragma once
 
 #include "defaultdevice.h"
 
 class WeatherMeta : public INDI::DefaultDevice
 {
-    public:
-        WeatherMeta();
-        virtual ~WeatherMeta();
+  public:
+    WeatherMeta();
+    virtual ~WeatherMeta() = default;
 
-        //  Generic indi device entries
-        bool Connect();
-        bool Disconnect();
-        const char * getDefaultName();
+    //  Generic indi device entries
+    bool Connect();
+    bool Disconnect();
+    const char *getDefaultName();
 
-        virtual bool ISSnoopDevice(XMLEle * root);
+    virtual bool ISSnoopDevice(XMLEle *root);
 
-        virtual bool initProperties();
-        virtual bool updateProperties();
-        virtual void ISGetProperties (const char * dev);
-        virtual bool ISNewText (const char * dev, const char * name, char * texts[], char * names[], int n);
+    virtual bool initProperties();
+    virtual bool updateProperties();
+    virtual void ISGetProperties(const char *dev);
+    virtual bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n);
 
-    protected:
+  protected:
+    virtual bool saveConfigItems(FILE *fp);
 
-        virtual bool saveConfigItems(FILE * fp);
+  private:
+    void updateOverallState();
+    void updateUpdatePeriod();
 
-    private:
-        void updateOverallState();
-        void updateUpdatePeriod();
+    // Active stations
+    IText ActiveDeviceT[4];
+    ITextVectorProperty ActiveDeviceTP;
 
-        // Active stations
-        IText ActiveDeviceT[4];
-        ITextVectorProperty ActiveDeviceTP;
+    // Stations status
+    ILight StationL[4];
+    ILightVectorProperty StationLP;
 
-        // Stations status
-        ILight StationL[4];
-        ILightVectorProperty StationLP;
+    // Update Period
+    INumber UpdatePeriodN[1];
+    INumberVectorProperty UpdatePeriodNP;
 
-        // Update Period
-        INumber UpdatePeriodN[1];
-        INumberVectorProperty UpdatePeriodNP;
-
-        double updatePeriods[4];
+    double updatePeriods[4];
 };
-
-#endif // WEATHERMETA_H

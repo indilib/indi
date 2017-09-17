@@ -1,3 +1,9 @@
+asi-common (0.7.0) xenial; urgency=medium
+
+  * Initial release.
+
+ -- Jasem Mutlaq <mutlaqja@ikarustech.com>  Tue, 04 Jul 2017 19:10:00 +0300
+
 asi-common (0.6.0504-1) xenial; urgency=medium
 
   * Initial release.

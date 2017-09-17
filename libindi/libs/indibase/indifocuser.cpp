@@ -17,10 +17,12 @@
 *******************************************************************************/
 
 #include "indifocuser.h"
+
+#include "indicontroller.h"
 #include "connectionplugins/connectionserial.h"
 #include "connectionplugins/connectiontcp.h"
 
-#include <string.h>
+#include <cstring>
 
 INDI::Focuser::Focuser()
 {
@@ -35,21 +37,22 @@ INDI::Focuser::~Focuser()
 
 bool INDI::Focuser::initProperties()
 {
-    DefaultDevice::initProperties();   //  let the base class flesh in what it wants
+    DefaultDevice::initProperties(); //  let the base class flesh in what it wants
 
-    initFocuserProperties(getDeviceName(),  MAIN_CONTROL_TAB);
+    initFocuserProperties(getDeviceName(), MAIN_CONTROL_TAB);
 
     // Presets
-    IUFillNumber(&PresetN[0], "Preset 1", "", "%6.2f", 0, 60000, 1000, 0);
-    IUFillNumber(&PresetN[1], "Preset 2", "", "%6.2f", 0, 60000, 1000, 0);
-    IUFillNumber(&PresetN[2], "Preset 3", "", "%6.2f", 0, 60000, 1000, 0);
+    IUFillNumber(&PresetN[0], "PRESET_1", "Preset 1", "%.f", 0, 100000, 1000, 0);
+    IUFillNumber(&PresetN[1], "PRESET_2", "Preset 2", "%.f", 0, 100000, 1000, 0);
+    IUFillNumber(&PresetN[2], "PRESET_3", "Preset 3", "%.f", 0, 100000, 1000, 0);
     IUFillNumberVector(&PresetNP, PresetN, 3, getDeviceName(), "Presets", "", "Presets", IP_RW, 0, IPS_IDLE);
 
     //Preset GOTO
     IUFillSwitch(&PresetGotoS[0], "Preset 1", "", ISS_OFF);
     IUFillSwitch(&PresetGotoS[1], "Preset 2", "", ISS_OFF);
     IUFillSwitch(&PresetGotoS[2], "Preset 3", "", ISS_OFF);
-    IUFillSwitchVector(&PresetGotoSP, PresetGotoS, 3, getDeviceName(), "Goto", "", "Presets", IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+    IUFillSwitchVector(&PresetGotoSP, PresetGotoS, 3, getDeviceName(), "Goto", "", "Presets", IP_RW, ISR_1OFMANY, 0,
+                       IPS_IDLE);
 
     addDebugControl();
 
@@ -64,27 +67,21 @@ bool INDI::Focuser::initProperties()
     if (focuserConnection & CONNECTION_SERIAL)
     {
         serialConnection = new Connection::Serial(this);
-        serialConnection->registerHandshake([&]()
-        {
-            return callHandshake();
-        });
+        serialConnection->registerHandshake([&]() { return callHandshake(); });
         registerConnection(serialConnection);
     }
 
     if (focuserConnection & CONNECTION_TCP)
     {
         tcpConnection = new Connection::TCP(this);
-        tcpConnection->registerHandshake([&]()
-        {
-            return callHandshake();
-        });
+        tcpConnection->registerHandshake([&]() { return callHandshake(); });
         registerConnection(tcpConnection);
     }
 
     return true;
 }
 
-void INDI::Focuser::ISGetProperties (const char * dev)
+void INDI::Focuser::ISGetProperties(const char *dev)
 {
     //  First we let our parent populate
     DefaultDevice::ISGetProperties(dev);
@@ -95,7 +92,7 @@ void INDI::Focuser::ISGetProperties (const char * dev)
 
 bool INDI::Focuser::updateProperties()
 {
-    if(isConnected())
+    if (isConnected())
     {
         //  Now we add our focusser specific stuff
         defineSwitch(&FocusMotionSP);
@@ -142,17 +139,16 @@ bool INDI::Focuser::updateProperties()
     return true;
 }
 
-
-bool INDI::Focuser::ISNewNumber (const char * dev, const char * name, double values[], char * names[], int n)
+bool INDI::Focuser::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
 {
     //  first check if it's for our device
-    if(strcmp(dev, getDeviceName()) == 0)
+    if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
         if (!strcmp(name, PresetNP.name))
         {
             IUUpdateNumber(&PresetNP, values, names, n);
             PresetNP.s = IPS_OK;
-            IDSetNumber(&PresetNP, NULL);
+            IDSetNumber(&PresetNP, nullptr);
 
             //saveConfig();
 
@@ -161,15 +157,14 @@ bool INDI::Focuser::ISNewNumber (const char * dev, const char * name, double val
 
         if (strstr(name, "FOCUS_"))
             return processFocuserNumber(dev, name, values, names, n);
-
     }
 
     return DefaultDevice::ISNewNumber(dev, name, values, names, n);
 }
 
-bool INDI::Focuser::ISNewSwitch (const char * dev, const char * name, ISState * states, char * names[], int n)
+bool INDI::Focuser::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
 {
-    if(strcmp(dev, getDeviceName()) == 0)
+    if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
         if (!strcmp(PresetGotoSP.name, name))
         {
@@ -179,15 +174,17 @@ bool INDI::Focuser::ISNewSwitch (const char * dev, const char * name, ISState * 
             if (PresetN[index].value < FocusAbsPosN[0].min)
             {
                 PresetGotoSP.s = IPS_ALERT;
-                IDSetSwitch(&PresetGotoSP, NULL);
-                DEBUGFDEVICE(dev, INDI::Logger::DBG_ERROR, "Requested position out of bound. Focus minimum position is %g", FocusAbsPosN[0].min);
+                IDSetSwitch(&PresetGotoSP, nullptr);
+                DEBUGFDEVICE(dev, INDI::Logger::DBG_ERROR,
+                             "Requested position out of bound. Focus minimum position is %g", FocusAbsPosN[0].min);
                 return false;
             }
             else if (PresetN[index].value > FocusAbsPosN[0].max)
             {
                 PresetGotoSP.s = IPS_ALERT;
-                IDSetSwitch(&PresetGotoSP, NULL);
-                DEBUGFDEVICE(dev, INDI::Logger::DBG_ERROR, "Requested position out of bound. Focus maximum position is %g", FocusAbsPosN[0].max);
+                IDSetSwitch(&PresetGotoSP, nullptr);
+                DEBUGFDEVICE(dev, INDI::Logger::DBG_ERROR,
+                             "Requested position out of bound. Focus maximum position is %g", FocusAbsPosN[0].max);
                 return false;
             }
 
@@ -195,19 +192,19 @@ bool INDI::Focuser::ISNewSwitch (const char * dev, const char * name, ISState * 
             if (rc >= 0)
             {
                 PresetGotoSP.s = IPS_OK;
-                DEBUGF(INDI::Logger::DBG_SESSION, "Moving to Preset %d with position %g.", index + 1, PresetN[index].value);
-                IDSetSwitch(&PresetGotoSP, NULL);
+                DEBUGF(INDI::Logger::DBG_SESSION, "Moving to Preset %d with position %g.", index + 1,
+                       PresetN[index].value);
+                IDSetSwitch(&PresetGotoSP, nullptr);
                 return true;
             }
 
             PresetGotoSP.s = IPS_ALERT;
-            IDSetSwitch(&PresetGotoSP, NULL);
+            IDSetSwitch(&PresetGotoSP, nullptr);
             return false;
         }
 
         if (strstr(name, "FOCUS_"))
             return processFocuserSwitch(dev, name, states, names, n);
-
     }
 
     controller->ISNewSwitch(dev, name, states, names, n);
@@ -216,14 +213,14 @@ bool INDI::Focuser::ISNewSwitch (const char * dev, const char * name, ISState * 
     return DefaultDevice::ISNewSwitch(dev, name, states, names, n);
 }
 
-bool INDI::Focuser::ISNewText (const char * dev, const char * name, char * texts[], char * names[], int n)
+bool INDI::Focuser::ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
 {
     controller->ISNewText(dev, name, texts, names, n);
 
     return DefaultDevice::ISNewText(dev, name, texts, names, n);
 }
 
-bool INDI::Focuser::ISSnoopDevice (XMLEle * root)
+bool INDI::Focuser::ISSnoopDevice(XMLEle *root)
 {
     controller->ISSnoopDevice(root);
 
@@ -235,7 +232,7 @@ bool INDI::Focuser::Handshake()
     return false;
 }
 
-bool INDI::Focuser::saveConfigItems(FILE * fp)
+bool INDI::Focuser::saveConfigItems(FILE *fp)
 {
     DefaultDevice::saveConfigItems(fp);
 
@@ -246,12 +243,12 @@ bool INDI::Focuser::saveConfigItems(FILE * fp)
     return true;
 }
 
-void INDI::Focuser::buttonHelper(const char * button_n, ISState state, void * context)
+void INDI::Focuser::buttonHelper(const char *button_n, ISState state, void *context)
 {
     static_cast<INDI::Focuser *>(context)->processButton(button_n, state);
 }
 
-void INDI::Focuser::processButton(const char * button_n, ISState state)
+void INDI::Focuser::processButton(const char *button_n, ISState state)
 {
     //ignore OFF
     if (state == ISS_OFF)
@@ -271,12 +268,12 @@ void INDI::Focuser::processButton(const char * button_n, ISState state)
             if (CanAbsMove() && FocusAbsPosNP.s != IPS_IDLE)
             {
                 FocusAbsPosNP.s = IPS_IDLE;
-                IDSetNumber(&FocusAbsPosNP, NULL);
+                IDSetNumber(&FocusAbsPosNP, nullptr);
             }
             if (CanRelMove() && FocusRelPosNP.s != IPS_IDLE)
             {
                 FocusRelPosNP.s = IPS_IDLE;
-                IDSetNumber(&FocusRelPosNP, NULL);
+                IDSetNumber(&FocusRelPosNP, nullptr);
             }
         }
         else
@@ -285,23 +282,23 @@ void INDI::Focuser::processButton(const char * button_n, ISState state)
             DEBUG(INDI::Logger::DBG_ERROR, "Aborting focuser failed.");
         }
 
-        IDSetSwitch(&AbortSP, NULL);
+        IDSetSwitch(&AbortSP, nullptr);
     }
     // Focus In
     else if (!strcmp(button_n, "Focus In"))
     {
         if (FocusMotionS[FOCUS_INWARD].s != ISS_ON)
         {
-            FocusMotionS[FOCUS_INWARD].s = ISS_ON;
+            FocusMotionS[FOCUS_INWARD].s  = ISS_ON;
             FocusMotionS[FOCUS_OUTWARD].s = ISS_OFF;
-            IDSetSwitch(&FocusMotionSP, NULL);
+            IDSetSwitch(&FocusMotionSP, nullptr);
         }
 
         if (HasVariableSpeed())
         {
-            rc = MoveFocuser(FOCUS_INWARD, FocusSpeedN[0].value, FocusTimerN[0].value);
+            rc             = MoveFocuser(FOCUS_INWARD, FocusSpeedN[0].value, FocusTimerN[0].value);
             FocusTimerNP.s = rc;
-            IDSetNumber(&FocusTimerNP, NULL);
+            IDSetNumber(&FocusTimerNP, nullptr);
         }
         else if (CanRelMove())
         {
@@ -309,13 +306,13 @@ void INDI::Focuser::processButton(const char * button_n, ISState state)
             if (rc == IPS_OK)
             {
                 FocusRelPosNP.s = IPS_OK;
-                IDSetNumber(&FocusRelPosNP, "Focuser moved %d steps inward", (int) FocusRelPosN[0].value);
-                IDSetNumber(&FocusAbsPosNP, NULL);
+                IDSetNumber(&FocusRelPosNP, "Focuser moved %d steps inward", (int)FocusRelPosN[0].value);
+                IDSetNumber(&FocusAbsPosNP, nullptr);
             }
             else if (rc == IPS_BUSY)
             {
                 FocusRelPosNP.s = IPS_BUSY;
-                IDSetNumber(&FocusAbsPosNP, "Focuser is moving %d steps inward...", (int) FocusRelPosN[0].value);
+                IDSetNumber(&FocusAbsPosNP, "Focuser is moving %d steps inward...", (int)FocusRelPosN[0].value);
             }
         }
     }
@@ -323,16 +320,16 @@ void INDI::Focuser::processButton(const char * button_n, ISState state)
     {
         if (FocusMotionS[FOCUS_OUTWARD].s != ISS_ON)
         {
-            FocusMotionS[FOCUS_INWARD].s = ISS_OFF;
+            FocusMotionS[FOCUS_INWARD].s  = ISS_OFF;
             FocusMotionS[FOCUS_OUTWARD].s = ISS_ON;
-            IDSetSwitch(&FocusMotionSP, NULL);
+            IDSetSwitch(&FocusMotionSP, nullptr);
         }
 
         if (HasVariableSpeed())
         {
-            rc = MoveFocuser(FOCUS_OUTWARD, FocusSpeedN[0].value, FocusTimerN[0].value);
+            rc             = MoveFocuser(FOCUS_OUTWARD, FocusSpeedN[0].value, FocusTimerN[0].value);
             FocusTimerNP.s = rc;
-            IDSetNumber(&FocusTimerNP, NULL);
+            IDSetNumber(&FocusTimerNP, nullptr);
         }
         else if (CanRelMove())
         {
@@ -340,13 +337,13 @@ void INDI::Focuser::processButton(const char * button_n, ISState state)
             if (rc == IPS_OK)
             {
                 FocusRelPosNP.s = IPS_OK;
-                IDSetNumber(&FocusRelPosNP, "Focuser moved %d steps outward", (int) FocusRelPosN[0].value);
-                IDSetNumber(&FocusAbsPosNP, NULL);
+                IDSetNumber(&FocusRelPosNP, "Focuser moved %d steps outward", (int)FocusRelPosN[0].value);
+                IDSetNumber(&FocusAbsPosNP, nullptr);
             }
             else if (rc == IPS_BUSY)
             {
                 FocusRelPosNP.s = IPS_BUSY;
-                IDSetNumber(&FocusAbsPosNP, "Focuser is moving %d steps outward...", (int) FocusRelPosN[0].value);
+                IDSetNumber(&FocusAbsPosNP, "Focuser is moving %d steps outward...", (int)FocusRelPosN[0].value);
             }
         }
     }

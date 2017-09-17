@@ -21,48 +21,52 @@
   Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
-#ifndef NSTEP_H
-#define NSTEP_H
+#pragma once
 
-#include "indibase/indifocuser.h"
+#include "indifocuser.h"
 
-class NSTEP: public INDI::Focuser
+class NSTEP : public INDI::Focuser
 {
-    private:
-        char buf[MAXRBUF];
-        long sim_position, position;
-        int temperature;
-        char steppingMode;
-        pthread_mutex_t lock;
+  public:
+    NSTEP();
+    ~NSTEP();
 
-        INumber TempN[1];
-        INumberVectorProperty TempNP;
-        ISwitch TempCompS[2];
-        ISwitchVectorProperty TempCompSP;
-        INumber TempCompN[2];
-        INumberVectorProperty TempCompNP;
-        ISwitch SteppingModeS[3];
-        ISwitchVectorProperty SteppingModeSP;
+    virtual bool Handshake();
+    const char *getDefaultName();
 
-        bool command(const char * request, char * response, int timeout);
+    bool initProperties();
+    bool updateProperties();
 
-    public:
-        NSTEP();
-        ~NSTEP();
+    bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n);
+    bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n);
+    void TimerHit();
+    IPState MoveRelFocuser(FocusDirection dir, unsigned int ticks);
+    IPState MoveAbsFocuser(uint32_t targetTicks);
+    bool AbortFocuser();
+    bool SetFocuserSpeed(int speed);
+    bool saveConfigItems(FILE *fp);
 
-        virtual bool Handshake();
-        const char * getDefaultName();
+  private:
+    bool command(const char *request, char *response, int count);
 
-        bool initProperties();
-        bool updateProperties();
+    IPState moveFocuserRelative(FocusDirection dir, unsigned int ticks);
 
-        bool ISNewSwitch (const char * dev, const char * name, ISState * states, char * names[], int n);
-        bool ISNewNumber (const char * dev, const char * name, double values[], char * names[], int n);
-        void TimerHit();
-        IPState MoveRelFocuser(FocusDirection dir, unsigned int ticks);
-        bool AbortFocuser();
-        bool SetFocuserSpeed(int speed);
-        bool saveConfigItems(FILE * fp);
+    char buf[MAXRBUF];
+    long sim_position { 0 };
+    long position { 0 };
+    int temperature { 0 };
+    char steppingMode { 0 };
+    char steppingPhase { 0 };
+    pthread_mutex_t lock;
+
+    INumber TempN[1];
+    INumberVectorProperty TempNP;
+    ISwitch TempCompS[2];
+    ISwitchVectorProperty TempCompSP;
+    INumber TempCompN[2];
+    INumberVectorProperty TempCompNP;
+    ISwitch SteppingModeS[3];
+    ISwitchVectorProperty SteppingModeSP;
+    ISwitch SteppingPhaseS[3];
+    ISwitchVectorProperty SteppingPhaseSP;
 };
-
-#endif // NSTEP_H

@@ -1,7 +1,5 @@
-#ifndef INDIBASE_H
-#define INDIBASE_H
 
-#include <stdint.h>
+#pragma once
 
 #include "indiapi.h"
 #include "indidevapi.h"
@@ -25,6 +23,7 @@
        It is the base class for all drivers and may \e only used by drivers directly, it cannot be used by clients.</li>
    <li>FilterInterface: Basic interface for filter wheels functions.</li>
    <li>GuiderInterface: Basic interface for guider (ST4) port functions.</li>
+   <li>RotatorInterface: Basic interface for Rotator functions.</li>
    <li>DustCapInterface: Basic interface remotely controlled dust covers.</li>
    <li>LightBoxInterface: Basic interface for remotely controlled light boxes/switches.</li>
    <li>CCD: Base class for CCD drivers. Provides basic support for single chip CCD and CCDs with a guide head as well.</li>
@@ -49,12 +48,14 @@ class BaseClientQt;
 class BaseDevice;
 class DefaultDevice;
 class FilterInterface;
+class RotatorInterface;
 class GuiderInterface;
 class FocuserInterface;
 class DomeInterface;
 class DustCapInterface;
 class LightBoxInterface;
 class CCD;
+class Detector;
 class Telescope;
 class FilterWheel;
 class Focuser;
@@ -73,75 +74,69 @@ class Logger;
 */
 class INDI::BaseMediator
 {
-    public:
-
-        /** \brief Emmited when a new device is created from INDI server.
+  public:
+    /** \brief Emmited when a new device is created from INDI server.
             \param dp Pointer to the base device instance
         */
-        virtual void newDevice(INDI::BaseDevice * dp)  = 0;
+    virtual void newDevice(INDI::BaseDevice *dp) = 0;
 
-        /** \brief Emmited when a device is deleted from INDI server.
+    /** \brief Emmited when a device is deleted from INDI server.
             \param dp Pointer to the base device instance.
 
         */
-        virtual void removeDevice(INDI::BaseDevice * dp)  = 0;
+    virtual void removeDevice(INDI::BaseDevice *dp) = 0;
 
-        /** \brief Emmited when a new property is created for an INDI driver.
+    /** \brief Emmited when a new property is created for an INDI driver.
             \param property Pointer to the Property Container
 
         */
-        virtual void newProperty(INDI::Property * property)  = 0;
+    virtual void newProperty(INDI::Property *property) = 0;
 
-
-        /** \brief Emmited when a property is deleted for an INDI driver.
+    /** \brief Emmited when a property is deleted for an INDI driver.
             \param property Pointer to the Property Container to remove.
 
         */
-        virtual void removeProperty(INDI::Property * property)  = 0;
+    virtual void removeProperty(INDI::Property *property) = 0;
 
-
-        /** \brief Emmited when a new BLOB value arrives from INDI server.
+    /** \brief Emmited when a new BLOB value arrives from INDI server.
             \param bp Pointer to filled and process BLOB.
         */
-        virtual void newBLOB(IBLOB * bp) = 0;
+    virtual void newBLOB(IBLOB *bp) = 0;
 
-        /** \brief Emmited when a new switch value arrives from INDI server.
+    /** \brief Emmited when a new switch value arrives from INDI server.
             \param svp Pointer to a switch vector property.
         */
-        virtual void newSwitch(ISwitchVectorProperty * svp) = 0;
+    virtual void newSwitch(ISwitchVectorProperty *svp) = 0;
 
-        /** \brief Emmited when a new number value arrives from INDI server.
+    /** \brief Emmited when a new number value arrives from INDI server.
             \param nvp Pointer to a number vector property.
         */
-        virtual void newNumber(INumberVectorProperty * nvp) = 0;
+    virtual void newNumber(INumberVectorProperty *nvp) = 0;
 
-        /** \brief Emmited when a new text value arrives from INDI server.
+    /** \brief Emmited when a new text value arrives from INDI server.
             \param tvp Pointer to a text vector property.
         */
-        virtual void newText(ITextVectorProperty * tvp) = 0;
+    virtual void newText(ITextVectorProperty *tvp) = 0;
 
-        /** \brief Emmited when a new light value arrives from INDI server.
+    /** \brief Emmited when a new light value arrives from INDI server.
             \param lvp Pointer to a light vector property.
         */
-        virtual void newLight(ILightVectorProperty * lvp) = 0;
+    virtual void newLight(ILightVectorProperty *lvp) = 0;
 
-        /** \brief Emmited when a new message arrives from INDI server.
+    /** \brief Emmited when a new message arrives from INDI server.
             \param dp pointer to the INDI device the message is sent to.
             \param messageID ID of the message that can be used to retrieve the message from the device's messageQueue() function.
         */
-        virtual void newMessage(INDI::BaseDevice * dp, int messageID) = 0;
+    virtual void newMessage(INDI::BaseDevice *dp, int messageID) = 0;
 
-        /** \brief Emmited when the server is connected.
+    /** \brief Emmited when the server is connected.
         */
-        virtual void serverConnected() = 0;
+    virtual void serverConnected() = 0;
 
-        /** \brief Emmited when the server gets disconnected.
+    /** \brief Emmited when the server gets disconnected.
             \param exit_code 0 if client was requested to disconnect from server. -1 if connection to server is terminated due to remote server disconnection.
         */
-        virtual void serverDisconnected(int exit_code) = 0;
+    virtual void serverDisconnected(int exit_code) = 0;
 
-        virtual ~BaseMediator() {}
-
+    virtual ~BaseMediator() {}
 };
-
-#endif // INDIBASE_H

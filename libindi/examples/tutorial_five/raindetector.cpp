@@ -15,33 +15,35 @@
     \author Jasem Mutlaq
 */
 
-#include <memory>
-
 #include "raindetector.h"
+
+#include <memory>
+#include <cstring>
 
 std::unique_ptr<RainDetector> rainDetector(new RainDetector());
 
-void ISGetProperties(const char * dev)
+void ISGetProperties(const char *dev)
 {
     rainDetector->ISGetProperties(dev);
 }
 
-void ISNewSwitch(const char * dev, const char * name, ISState * states, char * names[], int num)
+void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
 {
-    rainDetector->ISNewSwitch(dev, name, states, names, num);
+    rainDetector->ISNewSwitch(dev, name, states, names, n);
 }
 
-void ISNewText(	const char * dev, const char * name, char * texts[], char * names[], int num)
+void ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
 {
-    rainDetector->ISNewText(dev, name, texts, names, num);
+    rainDetector->ISNewText(dev, name, texts, names, n);
 }
 
-void ISNewNumber(const char * dev, const char * name, double values[], char * names[], int num)
+void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
 {
-    rainDetector->ISNewNumber(dev, name, values, names, num);
+    rainDetector->ISNewNumber(dev, name, values, names, n);
 }
 
-void ISNewBLOB (const char * dev, const char * name, int sizes[], int blobsizes[], char * blobs[], char * formats[], char * names[], int n)
+void ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[],
+               char *names[], int n)
 {
     INDI_UNUSED(dev);
     INDI_UNUSED(name);
@@ -53,13 +55,9 @@ void ISNewBLOB (const char * dev, const char * name, int sizes[], int blobsizes[
     INDI_UNUSED(n);
 }
 
-void ISSnoopDevice (XMLEle * root)
+void ISSnoopDevice(XMLEle *root)
 {
     rainDetector->ISSnoopDevice(root);
-}
-
-RainDetector::RainDetector()
-{
 }
 
 /**************************************************************************************
@@ -83,7 +81,7 @@ bool RainDetector::Disconnect()
 /**************************************************************************************
 ** INDI is asking us for our default device name
 ***************************************************************************************/
-const char * RainDetector::getDefaultName()
+const char *RainDetector::getDefaultName()
 {
     return "Rain Detector";
 }
@@ -101,10 +99,10 @@ bool RainDetector::initProperties()
 
     IUFillSwitch(&RainS[0], "On", "", ISS_OFF);
     IUFillSwitch(&RainS[1], "Off", "", ISS_OFF);
-    IUFillSwitchVector(&RainSP, RainS, 2, getDeviceName(), "Control Rain", "", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+    IUFillSwitchVector(&RainSP, RainS, 2, getDeviceName(), "Control Rain", "", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 0,
+                       IPS_IDLE);
 
     return true;
-
 }
 
 /********************************************************************************************
@@ -122,7 +120,7 @@ bool RainDetector::updateProperties()
         defineSwitch(&RainSP);
     }
     else
-        // We're disconnected
+    // We're disconnected
     {
         deleteProperty(RainLP.name);
         deleteProperty(RainSP.name);
@@ -134,11 +132,11 @@ bool RainDetector::updateProperties()
 /********************************************************************************************
 ** Client is asking us to update a switch
 *********************************************************************************************/
-bool RainDetector::ISNewSwitch (const char * dev, const char * name, ISState * states, char * names[], int n)
+bool RainDetector::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
 {
-    if (!strcmp(dev, getDeviceName()))
+    if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
-        if (!strcmp(name, RainSP.name))
+        if (strcmp(name, RainSP.name) == 0)
         {
             IUUpdateSwitch(&RainSP, states, names, n);
 
@@ -156,11 +154,10 @@ bool RainDetector::ISNewSwitch (const char * dev, const char * name, ISState * s
             }
 
             RainSP.s = IPS_OK;
-            IDSetSwitch(&RainSP, NULL);
+            IDSetSwitch(&RainSP, nullptr);
             return true;
         }
     }
 
     return INDI::DefaultDevice::ISNewSwitch(dev, name, states, names, n);
 }
-

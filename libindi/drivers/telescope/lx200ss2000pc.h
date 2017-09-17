@@ -18,33 +18,27 @@
 
 */
 
-#ifndef LX200SS2000PC_H
-#define LX200SS2000PC_H
+#pragma once
 
 #include "lx200generic.h"
 
 class LX200SS2000PC : public LX200Generic
 {
-    public:
-        LX200SS2000PC(void);
+  public:
+    LX200SS2000PC();
 
-        virtual const char * getDefaultName(void);
-        virtual bool updateProperties(void);
-        virtual bool updateTime      (ln_date * utc, double utc_offset);
+    virtual const char *getDefaultName();
+    virtual bool updateTime(ln_date *utc, double utc_offset);
 
-    protected:
-        virtual void getBasicData  (void);
-        virtual bool isSlewComplete(void);
+  protected:
+    virtual void getBasicData();
+    virtual bool isSlewComplete();
 
-    private:
-        bool getCalendarDate(int &year, int &month, int &day);
-        bool setCalenderDate(int  year, int  month, int  day);
-        bool setUTCOffset   (const int offset_in_hours);
+  private:
+    bool getCalendarDate(int &year, int &month, int &day);
+    bool setCalenderDate(int year, int month, int day);
+    bool setUTCOffset(const int offset_in_hours);
 
-        static const int ShortTimeOut;
-        static const int LongTimeOut;
+    static const int ShortTimeOut;
+    static const int LongTimeOut;
 };
-
-
-#endif
-

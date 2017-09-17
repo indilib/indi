@@ -81,6 +81,16 @@ EXPORTC uint32_t STDCALL ScanQHYCCD(void);
   */
 EXPORTC uint32_t STDCALL GetQHYCCDId(uint32_t index,char *id);
 
+/** \fn uint32_t GetQHYCCDModel(char *id, char *model)
+      \brief get camera model name by id
+          \param id the id of the camera
+          \param model the camera model
+          \return
+          on success,return QHYCCD_SUCCESS \n
+          another QHYCCD_ERROR code in failure
+  */
+EXPORTC uint32_t STDCALL GetQHYCCDModel(char *id, char *model);
+
 /** \fn qhyccd_handle *OpenQHYCCD(char *id)
       \brief open camera by camera id
 	  \param id the id for camera,each camera has only id

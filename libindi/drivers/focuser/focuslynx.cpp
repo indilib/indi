@@ -20,60 +20,59 @@
 // using namespace std;
 
 #include "focuslynx.h"
+
+#include "indicom.h"
 #include "connectionplugins/connectionserial.h"
 
-#include <stdio.h>
-#include <termios.h>
-#include <string.h>
-#include <sys/time.h>
-#include <unistd.h>
-#include <math.h>
 #include <memory>
+#include <cstring>
+#include <termios.h>
 
 #define FOCUSNAMEF1 "FocusLynx F1"
 #define FOCUSNAMEF2 "FocusLynx F2"
 
-#define FOCUSLYNX_TIMEOUT   2
+#define FOCUSLYNX_TIMEOUT 2
 
-#define HUB_SETTINGS_TAB  "Device"
+#define HUB_SETTINGS_TAB "Device"
 
 std::unique_ptr<FocusLynxF1> lynxDriveF1(new FocusLynxF1("F1"));
 std::unique_ptr<FocusLynxF2> lynxDriveF2(new FocusLynxF2("F2"));
 
-void ISGetProperties(const char * dev)
+void ISGetProperties(const char *dev)
 {
     lynxDriveF1->ISGetProperties(dev);
     lynxDriveF2->ISGetProperties(dev);
 }
 
-void ISNewSwitch(const char * dev, const char * name, ISState * states, char * names[], int num)
+void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
 {
     // Only call the corrected Focuser to execute evaluate the newSwitch
     if (!strcmp(dev, lynxDriveF1->getDeviceName()))
-        lynxDriveF1->ISNewSwitch(dev, name, states, names, num);
+        lynxDriveF1->ISNewSwitch(dev, name, states, names, n);
     else if (!strcmp(dev, lynxDriveF2->getDeviceName()))
-        lynxDriveF2->ISNewSwitch(dev, name, states, names, num);
+        lynxDriveF2->ISNewSwitch(dev, name, states, names, n);
 }
 
-void ISNewText( const char * dev, const char * name, char * texts[], char * names[], int num)
+void ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
 {
     // Only call the corrected Focuser to execute evaluate the newText
     if (!strcmp(dev, lynxDriveF1->getDeviceName()))
-        lynxDriveF1->ISNewText(dev, name, texts, names, num);
+        lynxDriveF1->ISNewText(dev, name, texts, names, n);
     else if (!strcmp(dev, lynxDriveF2->getDeviceName()))
-        lynxDriveF2->ISNewText(dev, name, texts, names, num);
+        lynxDriveF2->ISNewText(dev, name, texts, names, n);
 }
 
-void ISNewNumber(const char * dev, const char * name, double values[], char * names[], int num)
+void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
 {
     // Only call the corrected Focuser to execute evaluate the newNumber
     if (!strcmp(dev, lynxDriveF1->getDeviceName()))
-        lynxDriveF1->ISNewNumber(dev, name, values, names, num);
+        lynxDriveF1->ISNewNumber(dev, name, values, names, n);
     else if (!strcmp(dev, lynxDriveF2->getDeviceName()))
-        lynxDriveF2->ISNewNumber(dev, name, values, names, num);
+        lynxDriveF2->ISNewNumber(dev, name, values, names, n);
 }
 
-void ISNewBLOB (const char * dev, const char * name, int sizes[], int blobsizes[], char * blobs[], char * formats[], char * names[], int n)
+void ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[],
+               char *names[], int n)
 {
     INDI_UNUSED(dev);
     INDI_UNUSED(name);
@@ -85,7 +84,7 @@ void ISNewBLOB (const char * dev, const char * name, int sizes[], int blobsizes[
     INDI_UNUSED(n);
 }
 
-void ISSnoopDevice (XMLEle * root)
+void ISSnoopDevice(XMLEle *root)
 {
     // Also need to check the caller to avoid unsued function ??
     lynxDriveF1->ISSnoopDevice(root);
@@ -101,7 +100,7 @@ void ISSnoopDevice (XMLEle * root)
 /************************************************************************************
  *
 * ***********************************************************************************/
-FocusLynxF1::FocusLynxF1(const char * target)
+FocusLynxF1::FocusLynxF1(const char *target)
 {
     /* Override the original constructor
      * and give the Focuser target
@@ -165,7 +164,7 @@ bool FocusLynxF1::initProperties()
 /************************************************************************************
  *
 * ***********************************************************************************/
-const char * FocusLynxF1::getDefaultName()
+const char *FocusLynxF1::getDefaultName()
 {
     return FOCUSNAMEF1;
 }
@@ -202,7 +201,8 @@ bool FocusLynxF1::Connect()
     else if ((connectrc = tty_connect(serialConnection->port(), serialConnection->baud(), 8, 0, 1, &PortFD)) != TTY_OK)
     {
         tty_error_msg(connectrc, errorMsg, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_SESSION, "Failed to connect to port %s, rate %s. Error: %s", serialConnection->port(), serialConnection->baud(), errorMsg);
+        DEBUGF(INDI::Logger::DBG_SESSION, "Failed to connect to port %s, rate %s. Error: %s", serialConnection->port(),
+               serialConnection->baud(), errorMsg);
         PortFD = 0;
         return false;
     }
@@ -214,12 +214,15 @@ bool FocusLynxF1::Connect()
         SetTimer(POLLMS);
         if (isFromRemote)
             isFromRemote = false;
-        else lynxDriveF2->RemoteConnect();
+        else
+            lynxDriveF2->RemoteConnect();
 
         return true;
     }
 
-    DEBUG(INDI::Logger::DBG_SESSION, "Error retreiving data from FocusLynx, please ensure FocusLynx controller is powered and the port is correct.");
+    DEBUG(
+        INDI::Logger::DBG_SESSION,
+        "Error retreiving data from FocusLynx, please ensure FocusLynx controller is powered and the port is correct.");
     return false;
 }
 
@@ -239,7 +242,7 @@ bool FocusLynxF1::Disconnect()
 /************************************************************************************
  *
 * ***********************************************************************************/
-const int FocusLynxF1::getPortFD()
+int FocusLynxF1::getPortFD()
 // Would be used by F2 instance to communicate with teh HUB
 {
     DEBUGF(INDI::Logger::DBG_SESSION, "F1 PortFD : %d", PortFD);
@@ -283,9 +286,9 @@ bool FocusLynxF1::updateProperties()
 /************************************************************************************
  *
 * ***********************************************************************************/
-void FocusLynxF1::ISGetProperties(const char * dev)
+void FocusLynxF1::ISGetProperties(const char *dev)
 {
-    if(dev && strcmp(dev, getDeviceName()))
+    if (dev != nullptr && strcmp(dev, getDeviceName()) != 0)
         return;
 
     FocusLynxBase::ISGetProperties(dev);
@@ -296,14 +299,14 @@ void FocusLynxF1::ISGetProperties(const char * dev)
 * ***********************************************************************************/
 bool FocusLynxF1::getHubConfig()
 {
-    char cmd[32];
+    char cmd[32]={0};
     int errcode = 0;
     char errmsg[MAXRBUF];
-    char response[32];
-    int nbytes_read = 0;
+    char response[32]={0};
+    int nbytes_read    = 0;
     int nbytes_written = 0;
-    char key[16];
-    char text[32];
+    char key[16]={0};
+    char text[32]={0};
 
     /* Answer from the HUB
      <FHGETHUBINFO>!
@@ -337,7 +340,7 @@ bool FocusLynxF1::getHubConfig()
     }
     else
     {
-        if ( (errcode = tty_write(PortFD, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
+        if ((errcode = tty_write(PortFD, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
         {
             tty_error_msg(errcode, errmsg, MAXRBUF);
             DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
@@ -347,7 +350,7 @@ bool FocusLynxF1::getHubConfig()
         if (isResponseOK() == false)
             return false;
 
-        if ( (errcode = tty_read_section(PortFD, response, 0xA, FOCUSLYNX_TIMEOUT, &nbytes_read)) != TTY_OK)
+        if ((errcode = tty_read_section(PortFD, response, 0xA, FOCUSLYNX_TIMEOUT, &nbytes_read)) != TTY_OK)
         {
             tty_error_msg(errcode, errmsg, MAXRBUF);
             DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
@@ -372,7 +375,7 @@ bool FocusLynxF1::getHubConfig()
         strncpy(response, "Hub FVer = 1.0.9\n", 32);
         nbytes_read = strlen(response);
     }
-    else if ( (errcode = tty_read_section(PortFD, response, 0xA, FOCUSLYNX_TIMEOUT, &nbytes_read)) != TTY_OK)
+    else if ((errcode = tty_read_section(PortFD, response, 0xA, FOCUSLYNX_TIMEOUT, &nbytes_read)) != TTY_OK)
     {
         tty_error_msg(errcode, errmsg, MAXRBUF);
         DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
@@ -386,10 +389,10 @@ bool FocusLynxF1::getHubConfig()
     {
         HubTP.s = IPS_OK;
         IUSaveText(&HubT[0], text);
-        IDSetText(&HubTP, NULL);
+        IDSetText(&HubTP, nullptr);
 
         //Save localy the Version of the firmaware's Hub
-        strncpy (version, text, sizeof(version));
+        strncpy(version, text, sizeof(version));
 
         DEBUGF(INDI::Logger::DBG_DEBUG, "Text =  %s,  Key = %s", text, key);
     }
@@ -405,7 +408,7 @@ bool FocusLynxF1::getHubConfig()
         strncpy(response, "Sleeping = 0\n", 16);
         nbytes_read = strlen(response);
     }
-    else if ( (errcode = tty_read_section(PortFD, response, 0xA, FOCUSLYNX_TIMEOUT, &nbytes_read)) != TTY_OK)
+    else if ((errcode = tty_read_section(PortFD, response, 0xA, FOCUSLYNX_TIMEOUT, &nbytes_read)) != TTY_OK)
     {
         tty_error_msg(errcode, errmsg, MAXRBUF);
         DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
@@ -419,7 +422,7 @@ bool FocusLynxF1::getHubConfig()
     {
         HubTP.s = IPS_OK;
         IUSaveText(&HubT[1], text);
-        IDSetText(&HubTP, NULL);
+        IDSetText(&HubTP, nullptr);
 
         DEBUGF(INDI::Logger::DBG_DEBUG, "Text =  %s,  KEy = %s", text, key);
     }
@@ -435,7 +438,7 @@ bool FocusLynxF1::getHubConfig()
         strncpy(response, "Wired IP = 169.168.1.10\n", 32);
         nbytes_read = strlen(response);
     }
-    else if ( (errcode = tty_read_section(PortFD, response, 0xA, FOCUSLYNX_TIMEOUT, &nbytes_read)) != TTY_OK)
+    else if ((errcode = tty_read_section(PortFD, response, 0xA, FOCUSLYNX_TIMEOUT, &nbytes_read)) != TTY_OK)
     {
         tty_error_msg(errcode, errmsg, MAXRBUF);
         DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
@@ -449,7 +452,7 @@ bool FocusLynxF1::getHubConfig()
     {
         WiredTP.s = IPS_OK;
         IUSaveText(&WiredT[0], text);
-        IDSetText(&WiredTP, NULL);
+        IDSetText(&WiredTP, nullptr);
 
         DEBUGF(INDI::Logger::DBG_DEBUG, "Text =  %s,  KEy = %s", text, key);
     }
@@ -465,7 +468,7 @@ bool FocusLynxF1::getHubConfig()
         strncpy(response, "DHCPisOn = 1\n", 32);
         nbytes_read = strlen(response);
     }
-    else if ( (errcode = tty_read_section(PortFD, response, 0xA, FOCUSLYNX_TIMEOUT, &nbytes_read)) != TTY_OK)
+    else if ((errcode = tty_read_section(PortFD, response, 0xA, FOCUSLYNX_TIMEOUT, &nbytes_read)) != TTY_OK)
     {
         tty_error_msg(errcode, errmsg, MAXRBUF);
         DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
@@ -479,7 +482,7 @@ bool FocusLynxF1::getHubConfig()
     {
         WiredTP.s = IPS_OK;
         IUSaveText(&WiredT[1], text);
-        IDSetText(&WiredTP, NULL);
+        IDSetText(&WiredTP, nullptr);
 
         DEBUGF(INDI::Logger::DBG_DEBUG, "Text =  %s,  KEy = %s", text, key);
     }
@@ -495,7 +498,7 @@ bool FocusLynxF1::getHubConfig()
         strncpy(response, "WF Atchd = 1\n", 32);
         nbytes_read = strlen(response);
     }
-    else if ( (errcode = tty_read_section(PortFD, response, 0xA, FOCUSLYNX_TIMEOUT, &nbytes_read)) != TTY_OK)
+    else if ((errcode = tty_read_section(PortFD, response, 0xA, FOCUSLYNX_TIMEOUT, &nbytes_read)) != TTY_OK)
     {
         tty_error_msg(errcode, errmsg, MAXRBUF);
         DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
@@ -524,7 +527,7 @@ bool FocusLynxF1::getHubConfig()
         strncpy(response, "WF Conn  = 1\n", 32);
         nbytes_read = strlen(response);
     }
-    else if ( (errcode = tty_read_section(PortFD, response, 0xA, FOCUSLYNX_TIMEOUT, &nbytes_read)) != TTY_OK)
+    else if ((errcode = tty_read_section(PortFD, response, 0xA, FOCUSLYNX_TIMEOUT, &nbytes_read)) != TTY_OK)
     {
         tty_error_msg(errcode, errmsg, MAXRBUF);
         DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
@@ -553,7 +556,7 @@ bool FocusLynxF1::getHubConfig()
         strncpy(response, "WF FVer  = 1.0.0\n", 32);
         nbytes_read = strlen(response);
     }
-    else if ( (errcode = tty_read_section(PortFD, response, 0xA, FOCUSLYNX_TIMEOUT, &nbytes_read)) != TTY_OK)
+    else if ((errcode = tty_read_section(PortFD, response, 0xA, FOCUSLYNX_TIMEOUT, &nbytes_read)) != TTY_OK)
     {
         tty_error_msg(errcode, errmsg, MAXRBUF);
         DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
@@ -582,7 +585,7 @@ bool FocusLynxF1::getHubConfig()
         strncpy(response, "WF FV OK = 1\n", 32);
         nbytes_read = strlen(response);
     }
-    else if ( (errcode = tty_read_section(PortFD, response, 0xA, FOCUSLYNX_TIMEOUT, &nbytes_read)) != TTY_OK)
+    else if ((errcode = tty_read_section(PortFD, response, 0xA, FOCUSLYNX_TIMEOUT, &nbytes_read)) != TTY_OK)
     {
         tty_error_msg(errcode, errmsg, MAXRBUF);
         DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
@@ -611,7 +614,7 @@ bool FocusLynxF1::getHubConfig()
         strncpy(response, "WF SSID = FocusLynxConfig\n", 32);
         nbytes_read = strlen(response);
     }
-    else if ( (errcode = tty_read_section(PortFD, response, 0xA, FOCUSLYNX_TIMEOUT, &nbytes_read)) != TTY_OK)
+    else if ((errcode = tty_read_section(PortFD, response, 0xA, FOCUSLYNX_TIMEOUT, &nbytes_read)) != TTY_OK)
     {
         tty_error_msg(errcode, errmsg, MAXRBUF);
         DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
@@ -640,7 +643,7 @@ bool FocusLynxF1::getHubConfig()
         strncpy(response, "WF IP = 192.168.1.11\n", 32);
         nbytes_read = strlen(response);
     }
-    else if ( (errcode = tty_read_section(PortFD, response, 0xA, FOCUSLYNX_TIMEOUT, &nbytes_read)) != TTY_OK)
+    else if ((errcode = tty_read_section(PortFD, response, 0xA, FOCUSLYNX_TIMEOUT, &nbytes_read)) != TTY_OK)
     {
         tty_error_msg(errcode, errmsg, MAXRBUF);
         DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
@@ -669,7 +672,7 @@ bool FocusLynxF1::getHubConfig()
         strncpy(response, "WF SecMd = A\n", 32);
         nbytes_read = strlen(response);
     }
-    else if ( (errcode = tty_read_section(PortFD, response, 0xA, FOCUSLYNX_TIMEOUT, &nbytes_read)) != TTY_OK)
+    else if ((errcode = tty_read_section(PortFD, response, 0xA, FOCUSLYNX_TIMEOUT, &nbytes_read)) != TTY_OK)
     {
         tty_error_msg(errcode, errmsg, MAXRBUF);
         DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
@@ -698,7 +701,7 @@ bool FocusLynxF1::getHubConfig()
         strncpy(response, "WF SecKy =\n", 32);
         nbytes_read = strlen(response);
     }
-    else if ( (errcode = tty_read_section(PortFD, response, 0xA, FOCUSLYNX_TIMEOUT, &nbytes_read)) != TTY_OK)
+    else if ((errcode = tty_read_section(PortFD, response, 0xA, FOCUSLYNX_TIMEOUT, &nbytes_read)) != TTY_OK)
     {
         tty_error_msg(errcode, errmsg, MAXRBUF);
         DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
@@ -727,7 +730,7 @@ bool FocusLynxF1::getHubConfig()
         strncpy(response, "WF WepKI = 0\n", 32);
         nbytes_read = strlen(response);
     }
-    else if ( (errcode = tty_read_section(PortFD, response, 0xA, FOCUSLYNX_TIMEOUT, &nbytes_read)) != TTY_OK)
+    else if ((errcode = tty_read_section(PortFD, response, 0xA, FOCUSLYNX_TIMEOUT, &nbytes_read)) != TTY_OK)
     {
         tty_error_msg(errcode, errmsg, MAXRBUF);
         DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
@@ -756,7 +759,7 @@ bool FocusLynxF1::getHubConfig()
         DEBUGF(INDI::Logger::DBG_SESSION, "WifiT = %s", WifiT[0].text);
         WifiTP.s = IPS_IDLE;
     }
-    IDSetText(&WifiTP, NULL);
+    IDSetText(&WifiTP, nullptr);
 
     // END is reached
     if (isSimulation())
@@ -764,7 +767,7 @@ bool FocusLynxF1::getHubConfig()
         strncpy(response, "END\n", 16);
         nbytes_read = strlen(response);
     }
-    else if ( (errcode = tty_read_section(PortFD, response, 0xA, FOCUSLYNX_TIMEOUT, &nbytes_read)) != TTY_OK)
+    else if ((errcode = tty_read_section(PortFD, response, 0xA, FOCUSLYNX_TIMEOUT, &nbytes_read)) != TTY_OK)
     {
         tty_error_msg(errcode, errmsg, MAXRBUF);
         DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
@@ -803,7 +806,7 @@ bool FocusLynxF1::getHubConfig()
 /************************************************************************************
  *
 * ***********************************************************************************/
-int FocusLynxF1::getVersion(int * major, int * minor, int * sub)
+int FocusLynxF1::getVersion(int *major, int *minor, int *sub)
 // This methode have to be overided by child object
 /* For future use of implementation of new firmware 2.0.0
  * and give ability to keep compatible to actual 1.0.9
@@ -811,19 +814,19 @@ int FocusLynxF1::getVersion(int * major, int * minor, int * sub)
  * Not yet implemented in this version of the driver
  */
 {
-    char sMajor[8], sMinor[8], sSub[8];
-    int  rc = sscanf(version, "%[^.].%[^.].%s", sMajor, sMinor, sSub);
+    char sMajor[8]={0}, sMinor[8]={0}, sSub[8]={0};
+    int rc = sscanf(version, "%[^.].%[^.].%s", sMajor, sMinor, sSub);
 
     DEBUGF(INDI::Logger::DBG_DEBUG, "Version major: %s, minor: %s, subversion: %s", sMajor, sMinor, sSub);
     *major = atoi(sMajor);
     *minor = atoi(sMinor);
-    *sub = atoi(sSub);
+    *sub   = atoi(sSub);
 
     if (rc == 3)
         return *major;
-    else return 0;  // 0 Means error in this case
+    else
+        return 0; // 0 Means error in this case
 }
-
 
 /************************************************************************************
 *
@@ -834,7 +837,7 @@ int FocusLynxF1::getVersion(int * major, int * minor, int * sub)
 /************************************************************************************
  *
 * ***********************************************************************************/
-FocusLynxF2::FocusLynxF2(const char * target)
+FocusLynxF2::FocusLynxF2(const char *target)
 {
     setFocusTarget(target);
 
@@ -853,7 +856,7 @@ FocusLynxF2::~FocusLynxF2()
 /************************************************************************************
  *
 * ***********************************************************************************/
-const char * FocusLynxF2::getDefaultName()
+const char *FocusLynxF2::getDefaultName()
 {
     return FOCUSNAMEF2;
 }
@@ -870,7 +873,8 @@ bool FocusLynxF2::Connect()
     // When started by EKOS avoid infinity loop
     if (isFromRemote)
         isFromRemote = false;
-    else lynxDriveF1->RemoteConnect();
+    else
+        lynxDriveF1->RemoteConnect();
     PortFD = lynxDriveF1->getPortFD(); //Get the socket descriptor open by focuser F1 connect()
     DEBUGF(INDI::Logger::DBG_SESSION, "F2 PortFD : %d", PortFD);
 
@@ -889,7 +893,6 @@ bool FocusLynxF2::Connect()
         return false;
     }
 
-
     if (ack())
     {
         DEBUG(INDI::Logger::DBG_SESSION, "FocusLynx is online. Getting focus parameters...");
@@ -898,7 +901,9 @@ bool FocusLynxF2::Connect()
         return true;
     }
 
-    DEBUG(INDI::Logger::DBG_SESSION, "Error retreiving data from FocusLynx, please ensure FocusLynx controller is powered and the port is correct.");
+    DEBUG(
+        INDI::Logger::DBG_SESSION,
+        "Error retreiving data from FocusLynx, please ensure FocusLynx controller is powered and the port is correct.");
     return false;
 }
 
@@ -916,9 +921,9 @@ bool FocusLynxF2::Disconnect()
 /************************************************************************************
  *
 * ***********************************************************************************/
-void FocusLynxF2::ISGetProperties(const char * dev)
+void FocusLynxF2::ISGetProperties(const char *dev)
 {
-    if(dev && strcmp(dev, getDeviceName()))
+    if (dev != nullptr && strcmp(dev, getDeviceName()) != 0)
         return;
 
     FocusLynxBase::ISGetProperties(dev);

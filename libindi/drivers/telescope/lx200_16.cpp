@@ -19,26 +19,24 @@
 */
 
 #include "lx200_16.h"
+
+#include "indicom.h"
 #include "lx200driver.h"
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+#include <cmath>
+#include <cstring>
 #include <unistd.h>
-#include <math.h>
 
-#define LX16_TAB	"GPS/16 inch Features"
-
+#define LX16_TAB "GPS/16 inch Features"
 
 LX200_16::LX200_16() : LX200GPS()
 {
-
     MaxReticleFlashRate = 3;
 }
 
-const char * LX200_16::getDefaultName()
+const char *LX200_16::getDefaultName()
 {
-    return (const char *) "LX200 16";
+    return (const char *)"LX200 16";
 }
 
 bool LX200_16::initProperties()
@@ -47,26 +45,30 @@ bool LX200_16::initProperties()
 
     IUFillSwitch(&FanStatusS[0], "On", "", ISS_OFF);
     IUFillSwitch(&FanStatusS[1], "Off", "", ISS_OFF);
-    IUFillSwitchVector(&FanStatusSP, FanStatusS, 2, getDeviceName(), "Fan", "", LX16_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+    IUFillSwitchVector(&FanStatusSP, FanStatusS, 2, getDeviceName(), "Fan", "", LX16_TAB, IP_RW, ISR_1OFMANY, 0,
+                       IPS_IDLE);
 
     IUFillSwitch(&HomeSearchS[0], "Save Home", "", ISS_OFF);
     IUFillSwitch(&HomeSearchS[1], "Set Home", "", ISS_OFF);
-    IUFillSwitchVector(&HomeSearchSP, HomeSearchS, 2, getDeviceName(), "Home", "", LX16_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+    IUFillSwitchVector(&HomeSearchSP, HomeSearchS, 2, getDeviceName(), "Home", "", LX16_TAB, IP_RW, ISR_1OFMANY, 0,
+                       IPS_IDLE);
 
     IUFillSwitch(&FieldDeRotatorS[0], "On", "", ISS_OFF);
     IUFillSwitch(&FieldDeRotatorS[1], "Off", "", ISS_OFF);
-    IUFillSwitchVector(&FieldDeRotatorSP, FieldDeRotatorS, 2, getDeviceName(), "Field De-rotater", "", LX16_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+    IUFillSwitchVector(&FieldDeRotatorSP, FieldDeRotatorS, 2, getDeviceName(), "Field De-Rotator", "", LX16_TAB, IP_RW,
+                       ISR_1OFMANY, 0, IPS_IDLE);
 
     IUFillNumber(&HorizontalCoordsN[0], "ALT", "Alt  D:M:S", "%10.6m", -90., 90.0, 0.0, 0);
     IUFillNumber(&HorizontalCoordsN[1], "AZ", "Az D:M:S", "%10.6m", 0.0, 360.0, 0.0, 0);
-    IUFillNumberVector(&HorizontalCoordsNP, HorizontalCoordsN, 2, getDeviceName(), "HORIZONTAL_COORD", "Horizontal Coord", MAIN_CONTROL_TAB, IP_RW, 0, IPS_IDLE);
+    IUFillNumberVector(&HorizontalCoordsNP, HorizontalCoordsN, 2, getDeviceName(), "HORIZONTAL_COORD",
+                       "Horizontal Coord", MAIN_CONTROL_TAB, IP_RW, 0, IPS_IDLE);
 
     return true;
 }
 
-void LX200_16::ISGetProperties (const char * dev)
+void LX200_16::ISGetProperties(const char *dev)
 {
-    if(dev && strcmp(dev, getDeviceName()))
+    if (dev != nullptr && strcmp(dev, getDeviceName()) != 0)
         return;
 
     // process parent first
@@ -104,20 +106,19 @@ bool LX200_16::updateProperties()
     return true;
 }
 
-
-bool LX200_16::ISNewNumber (const char * dev, const char * name, double values[], char * names[], int n)
+bool LX200_16::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
 {
     double newAlt = 0, newAz = 0;
 
-    if(strcmp(dev, getDeviceName()) == 0)
+    if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
-        if ( !strcmp (name, HorizontalCoordsNP.name) )
+        if (!strcmp(name, HorizontalCoordsNP.name))
         {
             int i = 0, nset = 0;
 
             for (nset = i = 0; i < n; i++)
             {
-                INumber * horp = IUFindNumber (&HorizontalCoordsNP, names[i]);
+                INumber *horp = IUFindNumber(&HorizontalCoordsNP, names[i]);
                 if (horp == &HorizontalCoordsN[0])
                 {
                     newAlt = values[i];
@@ -132,7 +133,7 @@ bool LX200_16::ISNewNumber (const char * dev, const char * name, double values[]
 
             if (nset == 2)
             {
-                if (isSimulation() == false && (setObjAz(PortFD, newAz) < 0 || setObjAlt(PortFD, newAlt) < 0))
+                if (!isSimulation() && (setObjAz(PortFD, newAz) < 0 || setObjAlt(PortFD, newAlt) < 0))
                 {
                     HorizontalCoordsNP.s = IPS_ALERT;
                     IDSetNumber(&HorizontalCoordsNP, "Error setting Alt/Az.");
@@ -152,15 +153,15 @@ bool LX200_16::ISNewNumber (const char * dev, const char * name, double values[]
         }
     }
 
-    LX200GPS::ISNewNumber (dev, name, values, names, n);
+    LX200GPS::ISNewNumber(dev, name, values, names, n);
     return true;
 }
 
-bool LX200_16::ISNewSwitch (const char * dev, const char * name, ISState * states, char * names[], int n)
+bool LX200_16::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
 {
-    int index;
+    int index = 0;
 
-    if(strcmp(dev, getDeviceName()) == 0)
+    if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
         if (!strcmp(name, FanStatusSP.name))
         {
@@ -188,45 +189,48 @@ bool LX200_16::ISNewSwitch (const char * dev, const char * name, ISState * state
             }
 
             FanStatusSP.s = IPS_OK;
-            IDSetSwitch (&FanStatusSP, index == 0 ? "Fan is ON" : "Fan is OFF");
+            IDSetSwitch(&FanStatusSP, index == 0 ? "Fan is ON" : "Fan is OFF");
             return true;
         }
 
         if (!strcmp(name, HomeSearchSP.name))
         {
+            int ret = 0;
+
             IUResetSwitch(&HomeSearchSP);
             IUUpdateSwitch(&HomeSearchSP, states, names, n);
             index = IUFindOnSwitchIndex(&HomeSearchSP);
 
             if (index == 0)
-                seekHomeAndSave(PortFD);
+                ret = seekHomeAndSave(PortFD);
             else
-                seekHomeAndSet(PortFD);
+                ret = seekHomeAndSet(PortFD);
 
             HomeSearchSP.s = IPS_BUSY;
-            IDSetSwitch (&HomeSearchSP, index == 0 ? "Seek Home and Save" : "Seek Home and Set");
+            IDSetSwitch(&HomeSearchSP, index == 0 ? "Seek Home and Save" : "Seek Home and Set");
             return true;
         }
 
         if (!strcmp(name, FieldDeRotatorSP.name))
         {
+            int ret = 0;
+
             IUResetSwitch(&FieldDeRotatorSP);
             IUUpdateSwitch(&FieldDeRotatorSP, states, names, n);
             index = IUFindOnSwitchIndex(&FieldDeRotatorSP);
 
             if (index == 0)
-                turnFieldDeRotatorOn(PortFD);
+                ret = turnFieldDeRotatorOn(PortFD);
             else
-                turnFieldDeRotatorOff(PortFD);
+                ret = turnFieldDeRotatorOff(PortFD);
 
             FieldDeRotatorSP.s = IPS_OK;
-            IDSetSwitch (&FieldDeRotatorSP, index == 0 ? "Field deRotator is ON" : "Field deRotator is OFF");
+            IDSetSwitch(&FieldDeRotatorSP, index == 0 ? "Field deRotator is ON" : "Field deRotator is OFF");
             return true;
         }
     }
 
-
-    return LX200GPS::ISNewSwitch (dev, name, states, names, n);
+    return LX200GPS::ISNewSwitch(dev, name, states, names, n);
 }
 
 bool LX200_16::handleAltAzSlew()
@@ -241,7 +245,7 @@ bool LX200_16::handleAltAzSlew()
         usleep(100000);
     }
 
-    if (isSimulation() == false && slewToAltAz(PortFD))
+    if (!isSimulation() && slewToAltAz(PortFD))
     {
         HorizontalCoordsNP.s = IPS_ALERT;
         IDSetNumber(&HorizontalCoordsNP, "Slew is not possible.");
@@ -333,16 +337,15 @@ bool LX200_16::ReadScopeStatus()
             HorizontalCoordsNP.np[1].value = currentAZ;
 
             // accuracy threshold (3'), can be changed as desired.
-            if ( fabs(dx) <= 0.05 && fabs(dy) <= 0.05)
+            if (fabs(dx) <= 0.05 && fabs(dy) <= 0.05)
             {
-
                 HorizontalCoordsNP.s = IPS_OK;
-                currentAZ = targetAZ;
-                currentALT = targetALT;
-                IDSetNumber (&HorizontalCoordsNP, "Slew is complete.");
+                currentAZ            = targetAZ;
+                currentALT           = targetALT;
+                IDSetNumber(&HorizontalCoordsNP, "Slew is complete.");
             }
             else
-                IDSetNumber (&HorizontalCoordsNP, NULL);
+                IDSetNumber(&HorizontalCoordsNP, nullptr);
             break;
 
         case IPS_OK:
@@ -359,12 +362,12 @@ void LX200_16::getBasicData()
 {
     LX200GPS::getBasicData();
 
-    if (isSimulation() == false)
+    if (!isSimulation())
     {
         getLX200Az(PortFD, &currentAZ);
         getLX200Alt(PortFD, &currentALT);
         HorizontalCoordsNP.np[0].value = currentALT;
         HorizontalCoordsNP.np[1].value = currentAZ;
-        IDSetNumber (&HorizontalCoordsNP, NULL);
+        IDSetNumber(&HorizontalCoordsNP, nullptr);
     }
 }

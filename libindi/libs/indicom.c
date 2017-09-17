@@ -25,17 +25,29 @@
 
 #define _GNU_SOURCE 1
 
-#include <stdlib.h>
-#include <math.h>
-#include <stdio.h>
-#include <string.h>
-#include <fcntl.h>
+#include "indicom.h"
+
+#include "indidevapi.h"
+#include "locale_compat.h"
+
+#include "config.h"
+
+#if defined(HAVE_LIBNOVA)
+#include <libnova/julian_day.h>
+#include <libnova/sidereal_time.h>
+#endif // HAVE_LIBNOVA
+
 #include <errno.h>
+#include <fcntl.h>
+#include <math.h>
 #include <stdarg.h>
 #include <stdint.h>
-#include <locale.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <time.h>
 
-#ifdef  __APPLE__
+#ifdef __APPLE__
 #include <sys/param.h>
 #endif
 
@@ -43,12 +55,6 @@
 #include <IOKit/serial/ioss.h>
 #include <sys/ioctl.h>
 #endif
-
-#include <config.h>
-#include <libnova.h>
-
-#include "indicom.h"
-#include "indidevapi.h"
 
 #ifdef _WIN32
 #undef CX
@@ -59,24 +65,24 @@
 #include <unistd.h>
 #include <termios.h>
 #include <sys/param.h>
-#define PARITY_NONE    0
-#define PARITY_EVEN    1
-#define PARITY_ODD     2
+#define PARITY_NONE 0
+#define PARITY_EVEN 1
+#define PARITY_ODD  2
 #endif
 
-#if defined(  _MSC_VER )
+#if defined(_MSC_VER)
 #define snprintf _snprintf
 #pragma warning(push)
 ///@todo Introduce plattform indipendent safe functions as macros to fix this
-#pragma warning(disable: 4996)
+#pragma warning(disable : 4996)
 #endif
 
-#define MAXRBUF         2048
+#define MAXRBUF 2048
 
 int tty_debug = 0;
 
-#ifndef _WIN32
-int extractISOTime(const char * timestr, struct ln_date * iso_date)
+#if defined(HAVE_LIBNOVA)
+int extractISOTime(const char *timestr, struct ln_date *iso_date)
 {
     struct tm utm;
 
@@ -96,7 +102,6 @@ int extractISOTime(const char * timestr, struct ln_date * iso_date)
 }
 #endif
 
-
 /* sprint the variable a in sexagesimal format into out[].
  * w is the number of spaces for the whole part.
  * fracbase is the number of pieces a whole is to broken into; valid options:
@@ -107,10 +112,9 @@ int extractISOTime(const char * timestr, struct ln_date * iso_date)
  *	60:	<w>:mm
  * return number of characters written to out, not counting final '\0'.
  */
-int
-fs_sexa (char * out, double a, int w, int fracbase)
+int fs_sexa(char *out, double a, int w, int fracbase)
 {
-    char * out0 = out;
+    char *out0 = out;
     unsigned long n;
     int d;
     int f;
@@ -125,42 +129,42 @@ fs_sexa (char * out, double a, int w, int fracbase)
 
     /* convert to an integral number of whole portions */
     n = (unsigned long)(a * fracbase + 0.5);
-    d = n/fracbase;
-    f = n%fracbase;
+    d = n / fracbase;
+    f = n % fracbase;
 
     /* form the whole part; "negative 0" is a special case */
     if (isneg && d == 0)
-        out += snprintf (out, MAXINDIFORMAT, "%*s-0", w-2, "");
+        out += snprintf(out, MAXINDIFORMAT, "%*s-0", w - 2, "");
     else
-        out += snprintf (out, MAXINDIFORMAT, "%*d", w, isneg ? -d : d);
+        out += snprintf(out, MAXINDIFORMAT, "%*d", w, isneg ? -d : d);
 
     /* do the rest */
     switch (fracbase)
     {
-        case 60:	/* dd:mm */
-            m = f/(fracbase/60);
-            out += snprintf (out, MAXINDIFORMAT, ":%02d", m);
+        case 60: /* dd:mm */
+            m = f / (fracbase / 60);
+            out += snprintf(out, MAXINDIFORMAT, ":%02d", m);
             break;
-        case 600:	/* dd:mm.m */
-            out += snprintf (out, MAXINDIFORMAT, ":%02d.%1d", f/10, f%10);
+        case 600: /* dd:mm.m */
+            out += snprintf(out, MAXINDIFORMAT, ":%02d.%1d", f / 10, f % 10);
             break;
-        case 3600:	/* dd:mm:ss */
-            m = f/(fracbase/60);
-            s = f%(fracbase/60);
-            out += snprintf (out, MAXINDIFORMAT, ":%02d:%02d", m, s);
+        case 3600: /* dd:mm:ss */
+            m = f / (fracbase / 60);
+            s = f % (fracbase / 60);
+            out += snprintf(out, MAXINDIFORMAT, ":%02d:%02d", m, s);
             break;
-        case 36000:	/* dd:mm:ss.s*/
-            m = f/(fracbase/60);
-            s = f%(fracbase/60);
-            out += snprintf (out, MAXINDIFORMAT, ":%02d:%02d.%1d", m, s/10, s%10);
+        case 36000: /* dd:mm:ss.s*/
+            m = f / (fracbase / 60);
+            s = f % (fracbase / 60);
+            out += snprintf(out, MAXINDIFORMAT, ":%02d:%02d.%1d", m, s / 10, s % 10);
             break;
-        case 360000:	/* dd:mm:ss.ss */
-            m = f/(fracbase/60);
-            s = f%(fracbase/60);
-            out += snprintf (out, MAXINDIFORMAT, ":%02d:%02d.%02d", m, s/100, s%100);
+        case 360000: /* dd:mm:ss.ss */
+            m = f / (fracbase / 60);
+            s = f % (fracbase / 60);
+            out += snprintf(out, MAXINDIFORMAT, ":%02d:%02d.%02d", m, s / 100, s % 100);
             break;
         default:
-            printf ("fs_sexa: unknown fracbase: %d\n", fracbase);
+            printf("fs_sexa: unknown fracbase: %d\n", fracbase);
             return -1;
     }
 
@@ -172,68 +176,82 @@ fs_sexa (char * out, double a, int w, int fracbase)
  *   optional - and + can be anywhere.
  * return 0 if ok, -1 if can't find a thing.
  */
-int
-f_scansexa (
-    const char * str0,	/* input string */
-    double * dp)		/* cracked value, if return 0 */
+int f_scansexa(const char *str0, /* input string */
+               double *dp)       /* cracked value, if return 0 */
 {
-    char * orig = setlocale(LC_NUMERIC,"C");
+    locale_char_t *orig = indi_locale_C_numeric_push();
 
     double a = 0, b = 0, c = 0;
     char str[128];
-    char * neg;
-    int r;
+    //char *neg;
+    uint8_t isNegative=0;
+    int r= 0;
 
     /* copy str0 so we can play with it */
-    strncpy (str, str0, sizeof(str)-1);
-    str[sizeof(str)-1] = '\0';
+    strncpy(str, str0, sizeof(str) - 1);
+    str[sizeof(str) - 1] = '\0';
 
-    neg = strchr(str, '-');
+    /* remove any spaces */
+    char* i = str;
+    char* j = str;
+    while(*j != 0)
+    {
+        *i = *j++;
+        if(*i != ' ')
+            i++;
+    }
+    *i = 0;
+
+    // This has problem process numbers in scientific notations e.g. 1e-06
+    /*neg = strchr(str, '-');
     if (neg)
         *neg = ' ';
+    */
+    if (str[0] == '-')
+    {
+        isNegative = 1;
+        str[0] = ' ';
+    }
 
-    r = sscanf (str, "%lf%*[^0-9]%lf%*[^0-9]%lf", &a, &b, &c);
+    r = sscanf(str, "%lf%*[^0-9]%lf%*[^0-9]%lf", &a, &b, &c);
 
-    setlocale(LC_NUMERIC,orig);
+    indi_locale_C_numeric_pop(orig);
 
     if (r < 1)
         return (-1);
-    *dp = a + b/60 + c/3600;
-    if (neg)
+    *dp = a + b / 60 + c / 3600;
+    if (isNegative)
         *dp *= -1;
     return (0);
 }
 
-void getSexComponents(double value, int * d, int * m, int * s)
+void getSexComponents(double value, int *d, int *m, int *s)
 {
-
-    *d = (int32_t) fabs(value);
-    *m = (int32_t) ((fabs(value) - *d) * 60.0);
-    *s = (int32_t) rint(((fabs(value) - *d) * 60.0 - *m) *60.0);
+    *d = (int32_t)fabs(value);
+    *m = (int32_t)((fabs(value) - *d) * 60.0);
+    *s = (int32_t)rint(((fabs(value) - *d) * 60.0 - *m) * 60.0);
 
     if (value < 0)
         *d *= -1;
 }
 
-void getSexComponentsIID(double value, int * d, int * m, double * s)
+void getSexComponentsIID(double value, int *d, int *m, double *s)
 {
-
-    *d = (int32_t) fabs(value);
-    *m = (int32_t) ((fabs(value) - *d) * 60.0);
-    *s = (double) (((fabs(value) - *d) * 60.0 - *m) *60.0);
+    *d = (int32_t)fabs(value);
+    *m = (int32_t)((fabs(value) - *d) * 60.0);
+    *s = (double)(((fabs(value) - *d) * 60.0 - *m) * 60.0);
 
     if (value < 0)
         *d *= -1;
 }
 
 /* fill buf with properly formatted INumber string. return length */
-int
-numberFormat (char * buf, const char * format, double value)
+int numberFormat(char *buf, const char *format, double value)
 {
     int w, f, s;
     char m;
 
-    if (sscanf (format, "%%%d.%d%c", &w, &f, &m) == 3 && m == 'm')
+    if (sscanf(format, "%%%d.%d%c", &w, &f, &m) == 3 && m == 'm')
     {
         /* INDI sexi format */
         switch (f)
@@ -254,40 +272,38 @@ numberFormat (char * buf, const char * format, double value)
                 s = 60;
                 break;
         }
-        return (fs_sexa (buf, value, w-f, s));
+        return (fs_sexa(buf, value, w - f, s));
     }
     else
     {
         /* normal printf format */
-        return (snprintf (buf, MAXINDIFORMAT,  format, value));
+        return (snprintf(buf, MAXINDIFORMAT, format, value));
     }
 }
 
 /* log message locally.
  * this has nothing to do with XML or any Clients.
  */
-void
-IDLog (const char * fmt, ...)
+void IDLog(const char *fmt, ...)
 {
     va_list ap;
     /* JM: Since all INDI's stderr are timestampped now, we don't need to time stamp ID Log */
     /*fprintf (stderr, "%s ", timestamp());*/
-    va_start (ap, fmt);
-    vfprintf (stderr, fmt, ap);
-    va_end (ap);
+    va_start(ap, fmt);
+    vfprintf(stderr, fmt, ap);
+    va_end(ap);
 }
 
 /* return current system time in message format */
-const char *
-timestamp()
+const char *timestamp()
 {
     static char ts[32];
-    struct tm * tp;
+    struct tm *tp;
     time_t t;
 
-    time (&t);
-    tp = gmtime (&t);
-    strftime (ts, sizeof(ts), "%Y-%m-%dT%H:%M:%S", tp);
+    time(&t);
+    tp = gmtime(&t);
+    strftime(ts, sizeof(ts), "%Y-%m-%dT%H:%M:%S", tp);
     return (ts);
 }
 
@@ -299,6 +315,8 @@ void tty_set_debug(int debug)
 int tty_timeout(int fd, int timeout)
 {
 #if defined(_WIN32) || defined(ANDROID)
+    INDI_UNUSED(fd);
+    INDI_UNUSED(timeout);
     return TTY_ERRNO;
 #else
 
@@ -313,11 +331,11 @@ int tty_timeout(int fd, int timeout)
     FD_SET(fd, &readout);
 
     /* wait for 'timeout' seconds */
-    tv.tv_sec = timeout;
+    tv.tv_sec  = timeout;
     tv.tv_usec = 0;
 
     /* Wait till we have a change in the fd status */
-    retval = select (fd+1, &readout, NULL, NULL, &tv);
+    retval = select(fd + 1, &readout, NULL, NULL, &tv);
 
     /* Return 0 on successful fd change */
     if (retval > 0)
@@ -332,7 +350,7 @@ int tty_timeout(int fd, int timeout)
 #endif
 }
 
-int tty_write(int fd, const char * buf, int nbytes, int * nbytes_written)
+int tty_write(int fd, const char *buf, int nbytes, int *nbytes_written)
 {
 #ifdef _WIN32
     return TTY_ERRNO;
@@ -341,20 +359,19 @@ int tty_write(int fd, const char * buf, int nbytes, int * nbytes_written)
     if (fd == -1)
         return TTY_ERRNO;
 
-    int bytes_w = 0;
+    int bytes_w     = 0;
     *nbytes_written = 0;
 
     if (tty_debug)
     {
-        int i=0;
-        for (i=0; i < nbytes; i++)
-            IDLog("%s: buffer[%d]=%#X (%c)\n", __FUNCTION__, i, (unsigned char) buf[i], buf[i]);
+        int i = 0;
+        for (i = 0; i < nbytes; i++)
+            IDLog("%s: buffer[%d]=%#X (%c)\n", __FUNCTION__, i, (unsigned char)buf[i], buf[i]);
     }
 
     while (nbytes > 0)
     {
-
-        bytes_w = write(fd, buf+(*nbytes_written), nbytes);
+        bytes_w = write(fd, buf + (*nbytes_written), nbytes);
 
         if (bytes_w < 0)
             return TTY_WRITE_ERROR;
@@ -369,7 +386,7 @@ int tty_write(int fd, const char * buf, int nbytes, int * nbytes_written)
 #endif
 }
 
-int tty_write_string(int fd, const char * buf, int * nbytes_written)
+int tty_write_string(int fd, const char *buf, int *nbytes_written)
 {
 #ifdef _WIN32
     return TTY_ERRNO;
@@ -379,22 +396,20 @@ int tty_write_string(int fd, const char * buf, int * nbytes_written)
         return TTY_ERRNO;
 
     unsigned int nbytes;
-    int bytes_w = 0;
+    int bytes_w     = 0;
     *nbytes_written = 0;
 
     nbytes = strlen(buf);
 
     if (tty_debug)
     {
-        int i=0;
-        for (i=0; i < nbytes; i++)
-            IDLog("%s: buffer[%d]=%#X (%c)\n", __FUNCTION__, i, (unsigned char) buf[i], buf[i]);
+        for (int i = 0; i < (int)nbytes; i++)
+            IDLog("%s: buffer[%d]=%#X (%c)\n", __FUNCTION__, i, (unsigned char)buf[i], buf[i]);
     }
 
     while (nbytes > 0)
     {
-
-        bytes_w = write(fd, buf+(*nbytes_written), nbytes);
+        bytes_w = write(fd, buf + (*nbytes_written), nbytes);
 
         if (bytes_w < 0)
             return TTY_WRITE_ERROR;
@@ -409,7 +424,7 @@ int tty_write_string(int fd, const char * buf, int * nbytes_written)
 #endif
 }
 
-int tty_read(int fd, char * buf, int nbytes, int timeout, int * nbytes_read)
+int tty_read(int fd, char *buf, int nbytes, int timeout, int *nbytes_read)
 {
 #ifdef _WIN32
     return TTY_ERRNO;
@@ -419,10 +434,10 @@ int tty_read(int fd, char * buf, int nbytes, int timeout, int * nbytes_read)
         return TTY_ERRNO;
 
     int bytesRead = 0;
-    int err = 0;
-    *nbytes_read =0;
+    int err       = 0;
+    *nbytes_read  = 0;
 
-    if (nbytes <=0)
+    if (nbytes <= 0)
         return TTY_PARAM_ERROR;
 
     if (tty_debug)
@@ -430,25 +445,24 @@ int tty_read(int fd, char * buf, int nbytes, int timeout, int * nbytes_read)
 
     while (nbytes > 0)
     {
-        if ( (err = tty_timeout(fd, timeout)) )
+        if ((err = tty_timeout(fd, timeout)))
             return err;
 
-        bytesRead = read(fd, buf+(*nbytes_read), ((uint32_t) nbytes));
+        bytesRead = read(fd, buf + (*nbytes_read), ((uint32_t)nbytes));
 
-        if (bytesRead < 0 )
+        if (bytesRead < 0)
             return TTY_READ_ERROR;
 
         if (tty_debug)
         {
-            IDLog("%d bytes read and %d bytes remaining...\n", bytesRead, nbytes-bytesRead);
-            int i=0;
-            for (i=*nbytes_read; i < (*nbytes_read+bytesRead); i++)
-                IDLog("%s: buffer[%d]=%#X (%c)\n", __FUNCTION__, i, (unsigned char) buf[i], buf[i]);
+            IDLog("%d bytes read and %d bytes remaining...\n", bytesRead, nbytes - bytesRead);
+            int i = 0;
+            for (i = *nbytes_read; i < (*nbytes_read + bytesRead); i++)
+                IDLog("%s: buffer[%d]=%#X (%c)\n", __FUNCTION__, i, (unsigned char)buf[i], buf[i]);
         }
 
         *nbytes_read += bytesRead;
         nbytes -= bytesRead;
-
     }
 
     return TTY_OK;
@@ -456,7 +470,7 @@ int tty_read(int fd, char * buf, int nbytes, int timeout, int * nbytes_read)
 #endif
 }
 
-int tty_read_section(int fd, char * buf, char stop_char, int timeout, int * nbytes_read)
+int tty_read_section(int fd, char *buf, char stop_char, int timeout, int *nbytes_read)
 {
 #ifdef _WIN32
     return TTY_ERRNO;
@@ -466,23 +480,24 @@ int tty_read_section(int fd, char * buf, char stop_char, int timeout, int * nbyt
         return TTY_ERRNO;
 
     int bytesRead = 0;
-    int err = TTY_OK;
-    *nbytes_read = 0;
+    int err       = TTY_OK;
+    *nbytes_read  = 0;
 
-    uint8_t * read_char = 0;
+    uint8_t *read_char = 0;
 
     if (tty_debug)
-        IDLog("%s: Request to read until stop char '%c' with %d timeout for fd %d\n", __FUNCTION__, stop_char, timeout, fd);
+        IDLog("%s: Request to read until stop char '%c' with %d timeout for fd %d\n", __FUNCTION__, stop_char, timeout,
+              fd);
 
     for (;;)
     {
-        if ( (err = tty_timeout(fd, timeout)) )
+        if ((err = tty_timeout(fd, timeout)))
             return err;
 
-        read_char = buf+*nbytes_read;
+        read_char = (uint8_t*)(buf + *nbytes_read);
         bytesRead = read(fd, read_char, 1);
 
-        if (bytesRead < 0 )
+        if (bytesRead < 0)
             return TTY_READ_ERROR;
 
         if (tty_debug)
@@ -501,13 +516,13 @@ int tty_read_section(int fd, char * buf, char stop_char, int timeout, int * nbyt
 
 #if defined(BSD) && !defined(__GNU__)
 // BSD - OSX version
-int tty_connect(const char * device, int bit_rate, int word_size, int parity, int stop_bits, int * fd)
+int tty_connect(const char *device, int bit_rate, int word_size, int parity, int stop_bits, int *fd)
 {
-    int	t_fd = -1;
+    int t_fd = -1;
     int bps;
     char msg[80];
-    int	handshake;
-    struct termios	tty_setting;
+    int handshake;
+    struct termios tty_setting;
 
     // Open the serial port read/write, with no controlling terminal, and don't wait for a connection.
     // The O_NONBLOCK flag also causes subsequent I/O on the device to be non-blocking.
@@ -552,7 +567,7 @@ int tty_connect(const char * device, int bit_rate, int word_size, int parity, in
     // See tcsetattr(4) ("man 4 tcsetattr") and termios(4) ("man 4 termios") for details.
 
     cfmakeraw(&tty_setting);
-    tty_setting.c_cc[VMIN] = 1;
+    tty_setting.c_cc[VMIN]  = 1;
     tty_setting.c_cc[VTIME] = 10;
 
     // The baud rate, word length, and handshake options can be set as follows:
@@ -623,7 +638,7 @@ int tty_connect(const char * device, int bit_rate, int word_size, int parity, in
             return TTY_PARAM_ERROR;
     }
 
-    cfsetspeed(&tty_setting, bps);		// Set baud rate
+    cfsetspeed(&tty_setting, bps); // Set baud rate
     /* word size */
     switch (word_size)
     {
@@ -720,16 +735,16 @@ int tty_connect(const char * device, int bit_rate, int word_size, int parity, in
 
     handshake = TIOCM_DTR | TIOCM_RTS | TIOCM_CTS | TIOCM_DSR;
     if (ioctl(t_fd, TIOCMSET, &handshake) == -1)
-        // Set the modem lines depending on the bits set in handshake
+    // Set the modem lines depending on the bits set in handshake
     {
-        IDLog("Error setting handshake lines %s - %s(%d).\n",  device, strerror(errno), errno);
+        IDLog("Error setting handshake lines %s - %s(%d).\n", device, strerror(errno), errno);
     }
 
     // To read the state of the modem lines, use the following ioctl.
     // See tty(4) ("man 4 tty") and ioctl(2) ("man 2 ioctl") for details.
 
     if (ioctl(t_fd, TIOCMGET, &handshake) == -1)
-        // Store the state of the modem lines in handshake
+    // Store the state of the modem lines in handshake
     {
         IDLog("Error getting handshake lines %s - %s(%d).\n", device, strerror(errno), errno);
     }
@@ -757,7 +772,7 @@ int tty_connect(const char * device, int bit_rate, int word_size, int parity, in
     /* return success */
     return TTY_OK;
 
-    // Failure path
+// Failure path
 error:
     if (t_fd != -1)
     {
@@ -768,18 +783,18 @@ error:
     return TTY_PORT_FAILURE;
 }
 #else
-int tty_connect(const char * device, int bit_rate, int word_size, int parity, int stop_bits, int * fd)
+int tty_connect(const char *device, int bit_rate, int word_size, int parity, int stop_bits, int *fd)
 {
 #ifdef _WIN32
     return TTY_PORT_FAILURE;
 
 #else
-    int t_fd=-1;
+    int t_fd = -1;
     char msg[80];
     int bps;
     struct termios tty_setting;
 
-    if ( (t_fd = open(device, O_RDWR | O_NOCTTY )) == -1)
+    if ((t_fd = open(device, O_RDWR | O_NOCTTY)) == -1)
     {
         *fd = -1;
 
@@ -854,8 +869,7 @@ int tty_connect(const char * device, int bit_rate, int word_size, int parity, in
                 perror(msg);
             return TTY_PARAM_ERROR;
     }
-    if ((cfsetispeed(&tty_setting, bps) < 0) ||
-            (cfsetospeed(&tty_setting, bps) < 0))
+    if ((cfsetispeed(&tty_setting, bps) < 0) || (cfsetospeed(&tty_setting, bps) < 0))
     {
         perror("tty_connect: failed setting bit rate.");
         return TTY_PORT_FAILURE;
@@ -885,7 +899,7 @@ int tty_connect(const char * device, int bit_rate, int word_size, int parity, in
             break;
         default:
 
-            fprintf( stderr, "Default\n") ;
+            fprintf(stderr, "Default\n");
             if (snprintf(msg, sizeof(msg), "tty_connect: %d is not a valid data bit count.", word_size) < 0)
                 perror(NULL);
             else
@@ -907,7 +921,7 @@ int tty_connect(const char * device, int bit_rate, int word_size, int parity, in
             break;
         default:
 
-            fprintf( stderr, "Default1\n") ;
+            fprintf(stderr, "Default1\n");
             if (snprintf(msg, sizeof(msg), "tty_connect: %d is not a valid parity selection value.", parity) < 0)
                 perror(NULL);
             else
@@ -925,7 +939,7 @@ int tty_connect(const char * device, int bit_rate, int word_size, int parity, in
             tty_setting.c_cflag |= CSTOPB;
             break;
         default:
-            fprintf( stderr, "Default2\n") ;
+            fprintf(stderr, "Default2\n");
             if (snprintf(msg, sizeof(msg), "tty_connect: %d is not a valid stop bit count.", stop_bits) < 0)
                 perror(NULL);
             else
@@ -946,7 +960,7 @@ int tty_connect(const char * device, int bit_rate, int word_size, int parity, in
     Don't echo characters. Don't generate signals.
     Don't process any characters.*/
     tty_setting.c_lflag &= ~(ICANON | ECHO | ECHOE | ISIG | IEXTEN | NOFLSH | TOSTOP);
-    tty_setting.c_lflag |=  NOFLSH;
+    tty_setting.c_lflag |= NOFLSH;
 
     /* blocking read until 1 char arrives */
     tty_setting.c_cc[VMIN]  = 1;
@@ -970,7 +984,6 @@ int tty_connect(const char * device, int bit_rate, int word_size, int parity, in
 
 #endif
 
-
 int tty_disconnect(int fd)
 {
     if (fd == -1)
@@ -990,7 +1003,7 @@ int tty_disconnect(int fd)
 #endif
 }
 
-void tty_error_msg(int err_code, char * err_msg, int err_msg_len)
+void tty_error_msg(int err_code, char *err_msg, int err_msg_len)
 {
     char error_string[512];
 
@@ -1021,9 +1034,13 @@ void tty_error_msg(int err_code, char * err_msg, int err_msg_len)
 
         case TTY_PORT_FAILURE:
             if (errno == EACCES)
-                snprintf(error_string, 512, "Port failure Error: %s. Try adding your user to the dialout group and restart (sudo adduser $USER dialout)", strerror(errno));
+                snprintf(error_string, 512,
+                         "Port failure Error: %s. Try adding your user to the dialout group and restart (sudo adduser "
+                         "$USER dialout)",
+                         strerror(errno));
             else
-                snprintf(error_string, 512, "Port failure Error: %s. Check if device is connected to this port.", strerror(errno));
+                snprintf(error_string, 512, "Port failure Error: %s. Check if device is connected to this port.",
+                         strerror(errno));
 
             strncpy(err_msg, error_string, err_msg_len);
             break;
@@ -1040,14 +1057,11 @@ void tty_error_msg(int err_code, char * err_msg, int err_msg_len)
         default:
             strncpy(err_msg, "Error: unrecognized error code", err_msg_len);
             break;
-
-
     }
 }
 
 /* return static string corresponding to the given property or light state */
-const char *
-pstateStr (IPState s)
+const char *pstateStr(IPState s)
 {
     switch (s)
     {
@@ -1060,7 +1074,7 @@ pstateStr (IPState s)
         case IPS_ALERT:
             return ("Alert");
         default:
-            fprintf (stderr, "Impossible IPState %d\n", s);
+            fprintf(stderr, "Impossible IPState %d\n", s);
             return NULL;
     }
 }
@@ -1068,51 +1082,63 @@ pstateStr (IPState s)
 /* crack string into IPState.
  * return 0 if ok, else -1
  */
-int
-crackIPState (const char * str, IPState * ip)
+int crackIPState(const char *str, IPState *ip)
 {
-    if (!strcmp (str, "Idle"))  *ip = IPS_IDLE;
-    else if (!strcmp (str, "Ok"))    *ip = IPS_OK;
-    else if (!strcmp (str, "Busy"))  *ip = IPS_BUSY;
-    else if (!strcmp (str, "Alert")) *ip = IPS_ALERT;
-    else return (-1);
+    if (!strcmp(str, "Idle"))
+        *ip = IPS_IDLE;
+    else if (!strncmp(str, "Ok", 2))
+        *ip = IPS_OK;
+    else if (!strcmp(str, "Busy"))
+        *ip = IPS_BUSY;
+    else if (!strcmp(str, "Alert"))
+        *ip = IPS_ALERT;
+    else
+        return (-1);
     return (0);
 }
 
 /* crack string into ISState.
  * return 0 if ok, else -1
  */
-int
-crackISState (const char * str, ISState * ip)
+int crackISState(const char *str, ISState *ip)
 {
-    if (!strcmp (str, "On"))  *ip = ISS_ON;
-    else if (!strcmp (str, "Off")) *ip = ISS_OFF;
-    else return (-1);
+    if (!strncmp(str, "On", 2))
+        *ip = ISS_ON;
+    else if (!strcmp(str, "Off"))
+        *ip = ISS_OFF;
+    else
+        return (-1);
     return (0);
 }
 
-int
-crackIPerm (const char * str, IPerm * ip)
+int crackIPerm(const char *str, IPerm *ip)
 {
-    if (!strcmp (str, "rw"))  *ip = IP_RW;
-    else if (!strcmp (str, "ro")) *ip = IP_RO;
-    else if (!strcmp (str, "wo")) *ip = IP_WO;
-    else return (-1);
+    if (!strncmp(str, "rw", 2))
+        *ip = IP_RW;
+    else if (!strncmp(str, "ro", 2))
+        *ip = IP_RO;
+    else if (!strncmp(str, "wo", 2))
+        *ip = IP_WO;
+    else
+        return (-1);
     return (0);
 }
 
-int crackISRule (const char * str, ISRule * ip)
+int crackISRule(const char *str, ISRule *ip)
 {
-    if (!strcmp (str, "OneOfMany"))  *ip = ISR_1OFMANY;
-    else if (!strcmp (str, "AtMostOne")) *ip = ISR_ATMOST1;
-    else if (!strcmp (str, "AnyOfMany")) *ip = ISR_NOFMANY;
-    else return (-1);
+    if (!strcmp(str, "OneOfMany"))
+        *ip = ISR_1OFMANY;
+    else if (!strcmp(str, "AtMostOne"))
+        *ip = ISR_ATMOST1;
+    else if (!strcmp(str, "AnyOfMany"))
+        *ip = ISR_NOFMANY;
+    else
+        return (-1);
     return (0);
 }
 
 /* return static string corresponding to the given switch state */
-const char *
-sstateStr (ISState s)
+const char *sstateStr(ISState s)
 {
     switch (s)
     {
@@ -1121,14 +1147,13 @@ sstateStr (ISState s)
         case ISS_OFF:
             return ("Off");
         default:
-            fprintf (stderr, "Impossible ISState %d\n", s);
+            fprintf(stderr, "Impossible ISState %d\n", s);
             return NULL;
     }
 }
 
 /* return static string corresponding to the given Rule */
-const char *
-ruleStr (ISRule r)
+const char *ruleStr(ISRule r)
 {
     switch (r)
     {
@@ -1139,14 +1164,13 @@ ruleStr (ISRule r)
         case ISR_NOFMANY:
             return ("AnyOfMany");
         default:
-            fprintf (stderr, "Impossible ISRule %d\n", r);
+            fprintf(stderr, "Impossible ISRule %d\n", r);
             return NULL;
     }
 }
 
 /* return static string corresponding to the given IPerm */
-const char *
-permStr (IPerm p)
+const char *permStr(IPerm p)
 {
     switch (p)
     {
@@ -1157,38 +1181,36 @@ permStr (IPerm p)
         case IP_RW:
             return ("rw");
         default:
-            fprintf (stderr, "Impossible IPerm %d\n", p);
+            fprintf(stderr, "Impossible IPerm %d\n", p);
             return NULL;
     }
 }
 
 /* print the boilerplate comment introducing xml */
-void
-xmlv1()
+void xmlv1()
 {
-    printf ("<?xml version='1.0'?>\n");
+    printf("<?xml version='1.0'?>\n");
 }
 
 /* pull out device and name attributes from root.
  * return 0 if ok else -1 with reason in msg[].
  */
-int
-crackDN (XMLEle * root, char ** dev, char ** name, char msg[])
+int crackDN(XMLEle *root, char **dev, char **name, char msg[])
 {
-    XMLAtt * ap;
+    XMLAtt *ap;
 
-    ap = findXMLAtt (root, "device");
+    ap = findXMLAtt(root, "device");
     if (!ap)
     {
-        sprintf (msg, "%s requires 'device' attribute", tagXMLEle(root));
+        sprintf(msg, "%s requires 'device' attribute", tagXMLEle(root));
         return (-1);
     }
     *dev = valuXMLAtt(ap);
 
-    ap = findXMLAtt (root, "name");
+    ap = findXMLAtt(root, "name");
     if (!ap)
     {
-        sprintf (msg, "%s requires 'name' attribute", tagXMLEle(root));
+        sprintf(msg, "%s requires 'name' attribute", tagXMLEle(root));
         return (-1);
     }
     *name = valuXMLAtt(ap);
@@ -1197,75 +1219,69 @@ crackDN (XMLEle * root, char ** dev, char ** name, char msg[])
 }
 
 /* find a member of an IText vector, else NULL */
-IText *
-IUFindText  (const ITextVectorProperty * tvp, const char * name)
+IText *IUFindText(const ITextVectorProperty *tvp, const char *name)
 {
     int i;
 
     for (i = 0; i < tvp->ntp; i++)
-        if (strcmp (tvp->tp[i].name, name) == 0)
+        if (strcmp(tvp->tp[i].name, name) == 0)
             return (&tvp->tp[i]);
-    fprintf (stderr, "No IText '%s' in %s.%s\n",name,tvp->device,tvp->name);
+    fprintf(stderr, "No IText '%s' in %s.%s\n", name, tvp->device, tvp->name);
     return (NULL);
 }
 
 /* find a member of an INumber vector, else NULL */
-INumber *
-IUFindNumber(const INumberVectorProperty * nvp, const char * name)
+INumber *IUFindNumber(const INumberVectorProperty *nvp, const char *name)
 {
     int i;
 
     for (i = 0; i < nvp->nnp; i++)
-        if (strcmp (nvp->np[i].name, name) == 0)
+        if (strcmp(nvp->np[i].name, name) == 0)
             return (&nvp->np[i]);
-    fprintf(stderr,"No INumber '%s' in %s.%s\n",name,nvp->device,nvp->name);
+    fprintf(stderr, "No INumber '%s' in %s.%s\n", name, nvp->device, nvp->name);
     return (NULL);
 }
 
 /* find a member of an ISwitch vector, else NULL */
-ISwitch *
-IUFindSwitch(const ISwitchVectorProperty * svp, const char * name)
+ISwitch *IUFindSwitch(const ISwitchVectorProperty *svp, const char *name)
 {
     int i;
 
     for (i = 0; i < svp->nsp; i++)
-        if (strcmp (svp->sp[i].name, name) == 0)
+        if (strcmp(svp->sp[i].name, name) == 0)
             return (&svp->sp[i]);
-    fprintf(stderr,"No ISwitch '%s' in %s.%s\n",name,svp->device,svp->name);
+    fprintf(stderr, "No ISwitch '%s' in %s.%s\n", name, svp->device, svp->name);
     return (NULL);
 }
 
 /* find a member of an ILight vector, else NULL */
-ILight *
-IUFindLight(const ILightVectorProperty * lvp, const char * name)
+ILight *IUFindLight(const ILightVectorProperty *lvp, const char *name)
 {
     int i;
 
     for (i = 0; i < lvp->nlp; i++)
-        if (strcmp (lvp->lp[i].name, name) == 0)
+        if (strcmp(lvp->lp[i].name, name) == 0)
             return (&lvp->lp[i]);
-    fprintf(stderr,"No ILight '%s' in %s.%s\n",name,lvp->device,lvp->name);
+    fprintf(stderr, "No ILight '%s' in %s.%s\n", name, lvp->device, lvp->name);
     return (NULL);
 }
 
 /* find a member of an IBLOB vector, else NULL */
-IBLOB *
-IUFindBLOB(const IBLOBVectorProperty * bvp, const char * name)
+IBLOB *IUFindBLOB(const IBLOBVectorProperty *bvp, const char *name)
 {
     int i;
 
     for (i = 0; i < bvp->nbp; i++)
-        if (strcmp (bvp->bp[i].name, name) == 0)
+        if (strcmp(bvp->bp[i].name, name) == 0)
             return (&bvp->bp[i]);
-    fprintf(stderr,"No IBLOB '%s' in %s.%s\n",name,bvp->device,bvp->name);
+    fprintf(stderr, "No IBLOB '%s' in %s.%s\n", name, bvp->device, bvp->name);
     return (NULL);
 }
 
 /* find an ON member of an ISwitch vector, else NULL.
  * N.B. user must make sense of result with ISRule in mind.
  */
-ISwitch *
-IUFindOnSwitch(const ISwitchVectorProperty * svp)
+ISwitch *IUFindOnSwitch(const ISwitchVectorProperty *svp)
 {
     int i;
 
@@ -1277,7 +1293,7 @@ IUFindOnSwitch(const ISwitchVectorProperty * svp)
 }
 
 /* Find index of the ON member of an ISwitchVectorProperty */
-int IUFindOnSwitchIndex(const ISwitchVectorProperty * svp)
+int IUFindOnSwitchIndex(const ISwitchVectorProperty *svp)
 {
     int i;
 
@@ -1288,7 +1304,7 @@ int IUFindOnSwitchIndex(const ISwitchVectorProperty * svp)
 }
 
 /* Find name the ON member in the given states and names */
-const char * IUFindOnSwitchName(ISState *states, char *names[], int n)
+const char *IUFindOnSwitchName(ISState *states, char *names[], int n)
 {
     int i;
 
@@ -1299,8 +1315,7 @@ const char * IUFindOnSwitchName(ISState *states, char *names[], int n)
 }
 
 /* Set all switches to off */
-void
-IUResetSwitch(ISwitchVectorProperty * svp)
+void IUResetSwitch(ISwitchVectorProperty *svp)
 {
     int i;
 
@@ -1309,39 +1324,43 @@ IUResetSwitch(ISwitchVectorProperty * svp)
 }
 
 /* save malloced copy of newtext in tp->text, reusing if not first time */
-void
-IUSaveText (IText * tp, const char * newtext)
+void IUSaveText(IText *tp, const char *newtext)
 {
     /* seed for realloc */
     if (tp->text == NULL)
-        tp->text = malloc (1);
+        tp->text = malloc(1);
 
     /* copy in fresh string */
-    tp->text = strcpy (realloc (tp->text, strlen(newtext)+1), newtext);
+    tp->text = strcpy(realloc(tp->text, strlen(newtext) + 1), newtext);
 }
 
 double rangeHA(double r)
 {
     double res = r;
-    while (res< -12.0) res+=24.0;
-    while (res>= 12.0) res-=24.0;
+    while (res < -12.0)
+        res += 24.0;
+    while (res >= 12.0)
+        res -= 24.0;
     return res;
 }
-
 
 double range24(double r)
 {
     double res = r;
-    while (res<0.0) res+=24.0;
-    while (res>24.0) res-=24.0;
+    while (res < 0.0)
+        res += 24.0;
+    while (res > 24.0)
+        res -= 24.0;
     return res;
 }
 
 double range360(double r)
 {
     double res = r;
-    while (res<0.0) res+=360.0;
-    while (res>360.0) res-=360.0;
+    while (res < 0.0)
+        res += 360.0;
+    while (res > 360.0)
+        res -= 360.0;
     return res;
 }
 
@@ -1356,12 +1375,14 @@ double rangeDec(double decdegrees)
     return decdegrees;
 }
 
+#if defined(HAVE_LIBNOVA)
 double get_local_sideral_time(double longitude)
 {
-    double SD = ln_get_apparent_sidereal_time(ln_get_julian_from_sys()) - (360.0 - longitude)/15.0;
+    double SD = ln_get_apparent_sidereal_time(ln_get_julian_from_sys()) - (360.0 - longitude) / 15.0;
 
     return range24(SD);
 }
+#endif // HAVE_LIBNOVA
 
 double get_local_hour_angle(double sideral_time, double ra)
 {
@@ -1369,7 +1390,7 @@ double get_local_hour_angle(double sideral_time, double ra)
     return rangeHA(HA);
 }
 
-#if defined(  _MSC_VER )
+#if defined(_MSC_VER)
 #undef snprintf
 #pragma warning(pop)
 #endif

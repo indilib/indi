@@ -83,6 +83,8 @@ public:
 			strncat(m_szPath, "/.QSIConfig", MAX_PATH);
 		}
 
+		m_rc = SI_OK;
+
 		m_iError = 0;
 		return;
 	}
@@ -192,7 +194,6 @@ public:
 		std::string KeyPath = "/";
 		std::string FilterPath = "/";
 		std::string FilterNum = "0";
-		char buff[256];
 
 		if( bIsMainCamera )
 		  KeyPath = KEY_MainCamera + strSerialNumber + "/";
@@ -223,7 +224,6 @@ public:
 		std::string FilterPath = "/";
 		std::string FilterNum = "0";
 		std::string strValue = "0";
-		char buff[256];
 
 		if( bIsMainCamera )
 		  KeyPath = KEY_MainCamera + strSerialNumber + "/";
@@ -372,7 +372,6 @@ public:
 
 	int RegQueryValueEx(std::string strKeyPath, std::string strSubKeyName, int n0, int n1, int * piData, int dSize)
 	{
-		int iValue;
 		m_rc = m_ini.LoadFile(m_szPath);
 		if (m_rc < 0)
 			return -1;

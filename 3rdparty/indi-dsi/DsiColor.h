@@ -4,27 +4,20 @@
  *
  */
 
-#ifndef __DsiColor_hh
-#define __DsiColor_hh
+#pragma once
 
 #include "DsiDevice.h"
 
-namespace DSI {
+namespace DSI
+{
+class DsiColor : public Device
+{
+  private:
+  protected:
+    void initImager(const char *devname = 0);
 
-    class DsiColor : public Device {
-
-      private:
-
-      protected:
-
-        void initImager(const char *devname = 0);
-
-      public:
-
-        DsiColor(const char *devname = 0);
-        ~DsiColor();
-    };
+  public:
+    DsiColor(const char *devname = 0);
+    ~DsiColor();
 };
-
-#endif /* __DsiColor_hh */
-
+};

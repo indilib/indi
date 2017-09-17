@@ -25,10 +25,10 @@
   file called LICENSE.
 *******************************************************************************/
 
-#include <memory>
-#include <cstring>
-
 #include "watchdogclient.h"
+
+#include <cstring>
+#include <memory>
 
 /**************************************************************************************
 **
@@ -36,7 +36,7 @@
 WatchDogClient::WatchDogClient()
 {
     isReady = isRunning = mountOnline = domeOnline = false;
-    mountParkSP = domeParkSP = NULL;
+    mountParkSP = domeParkSP = nullptr;
 }
 
 /**************************************************************************************
@@ -44,13 +44,12 @@ WatchDogClient::WatchDogClient()
 ***************************************************************************************/
 WatchDogClient::~WatchDogClient()
 {
-
 }
 
 /**************************************************************************************
 **
 ***************************************************************************************/
-void WatchDogClient::newDevice(INDI::BaseDevice * dp)
+void WatchDogClient::newDevice(INDI::BaseDevice *dp)
 {
     IDLog("Receiving %s Device...\n", dp->getDeviceName());
 
@@ -66,7 +65,7 @@ void WatchDogClient::newDevice(INDI::BaseDevice * dp)
 /**************************************************************************************
 **
 *************************************************************************************/
-void WatchDogClient::newProperty(INDI::Property * property)
+void WatchDogClient::newProperty(INDI::Property *property)
 {
     if (!strcmp(property->getName(), "TELESCOPE_PARK"))
         mountParkSP = property->getSwitch();
@@ -97,12 +96,12 @@ void WatchDogClient::setDome(const std::string &value)
 ***************************************************************************************/
 bool WatchDogClient::parkDome()
 {
-    if (domeParkSP == NULL)
+    if (domeParkSP == nullptr)
         return false;
 
-    ISwitch * sw = IUFindSwitch(domeParkSP, "PARK");
+    ISwitch *sw = IUFindSwitch(domeParkSP, "PARK");
 
-    if (sw == NULL)
+    if (sw == nullptr)
         return false;
 
     IUResetSwitch(domeParkSP);
@@ -120,12 +119,12 @@ bool WatchDogClient::parkDome()
 ***************************************************************************************/
 bool WatchDogClient::parkMount()
 {
-    if (mountParkSP == NULL)
+    if (mountParkSP == nullptr)
         return false;
 
-    ISwitch * sw = IUFindSwitch(mountParkSP, "PARK");
+    ISwitch *sw = IUFindSwitch(mountParkSP, "PARK");
 
-    if (sw == NULL)
+    if (sw == nullptr)
         return false;
 
     IUResetSwitch(mountParkSP);

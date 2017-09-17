@@ -16,40 +16,41 @@
  Boston, MA 02110-1301, USA.
 *******************************************************************************/
 
-#include <stdio.h>
-#include <memory>
-#include <unistd.h>
-#include <fcntl.h>
-#include <termios.h>
-
 #include "quantum_wheel.h"
+
+#include "connectionplugins/connectionserial.h"
+
+#include <memory>
+#include <cstring>
+#include <unistd.h>
 
 #define VERSION_MAJOR 0
 #define VERSION_MINOR 2
 
 std::unique_ptr<QFW> qfw(new QFW());
 
-void ISGetProperties(const char * dev)
+void ISGetProperties(const char *dev)
 {
     qfw->ISGetProperties(dev);
 }
 
-void ISNewSwitch(const char * dev, const char * name, ISState * states, char * names[], int num)
+void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
 {
-    qfw->ISNewSwitch(dev, name, states, names, num);
+    qfw->ISNewSwitch(dev, name, states, names, n);
 }
 
-void ISNewText(const char * dev, const char * name, char * texts[], char * names[], int num)
+void ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
 {
-    qfw->ISNewText(dev, name, texts, names, num);
+    qfw->ISNewText(dev, name, texts, names, n);
 }
 
-void ISNewNumber(const char * dev, const char * name, double values[], char * names[], int num)
+void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
 {
-    qfw->ISNewNumber(dev, name, values, names, num);
+    qfw->ISNewNumber(dev, name, values, names, n);
 }
 
-void ISNewBLOB(const char * dev, const char * name, int sizes[], int blobsizes[], char * blobs[], char * formats[], char * names[], int n)
+void ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[],
+               char *names[], int n)
 {
     INDI_UNUSED(dev);
     INDI_UNUSED(name);
@@ -60,20 +61,16 @@ void ISNewBLOB(const char * dev, const char * name, int sizes[], int blobsizes[]
     INDI_UNUSED(names);
     INDI_UNUSED(n);
 }
-void ISSnoopDevice(XMLEle * root)
+void ISSnoopDevice(XMLEle *root)
 {
     qfw->ISSnoopDevice(root);
 }
 
 QFW::QFW()
 {
-    setDeviceName(getDefaultName());
+    setDeviceName(QFW::getDefaultName());
     setVersion(VERSION_MAJOR, VERSION_MINOR);
     setFilterConnection(CONNECTION_SERIAL | CONNECTION_TCP);
-}
-
-QFW::~QFW()
-{
 }
 
 void QFW::debugTriggered(bool enable)
@@ -86,17 +83,17 @@ void QFW::simulationTriggered(bool enable)
     INDI_UNUSED(enable);
 }
 
-const char * QFW::getDefaultName()
+const char *QFW::getDefaultName()
 {
-    return (char *) "Quantum Wheel";
+    return (const char *)"Quantum Wheel";
 }
 
-bool QFW::GetFilterNames(const char * groupName)
+bool QFW::GetFilterNames(const char *groupName)
 {
     char filterName[MAXINDINAME];
     char filterLabel[MAXINDILABEL];
     int MaxFilter = FilterSlotN[0].max;
-    if (FilterNameT != NULL)
+    if (FilterNameT != nullptr)
         delete FilterNameT;
     FilterNameT = new IText[MaxFilter];
     for (int i = 0; i < MaxFilter; i++)
@@ -105,7 +102,8 @@ bool QFW::GetFilterNames(const char * groupName)
         snprintf(filterLabel, MAXINDILABEL, "Filter #%d", i + 1);
         IUFillText(&FilterNameT[i], filterName, filterLabel, filterLabel);
     }
-    IUFillTextVector(FilterNameTP, FilterNameT, MaxFilter, getDeviceName(), "FILTER_NAME", "Filter", groupName, IP_RW, 0, IPS_IDLE);
+    IUFillTextVector(FilterNameTP, FilterNameT, MaxFilter, getDeviceName(), "FILTER_NAME", "Filter", groupName, IP_RW,
+                     0, IPS_IDLE);
     return true;
 }
 
@@ -119,7 +117,7 @@ bool QFW::Handshake()
     else
     {
         // check serial connection
-        if(PortFD < 0 || !isatty(PortFD))
+        if (PortFD < 0 || isatty(PortFD) == 0)
         {
             IDMessage(getDeviceName(), "Device /dev/ttyACM0 is not available\n");
             return false;
@@ -138,15 +136,14 @@ bool QFW::initProperties()
 
     FilterSlotN[0].min = 1;
     FilterSlotN[0].max = 7;
-    CurrentFilter = 1;
+    CurrentFilter      = 1;
 
     return true;
 }
 
-void QFW::ISGetProperties(const char * dev)
+void QFW::ISGetProperties(const char *dev)
 {
     INDI::FilterWheel::ISGetProperties(dev);
-    return;
 }
 
 int QFW::QueryFilter()
@@ -159,25 +156,25 @@ bool QFW::SelectFilter(int position)
     // count from 0 to 6 for positions 1 to 7
     position = position - 1;
 
-    if( position < 0 || position > 6 )
+    if (position < 0 || position > 6)
         return false;
 
     if (isSimulation())
     {
         CurrentFilter = position + 1;
-        SelectFilterDone (CurrentFilter);
+        SelectFilterDone(CurrentFilter);
         return true;
     }
     // goto
-    char targetpos[255];
-    char curpos[255];
+    char targetpos[255]={0};
+    char curpos[255]={0};
     int res;
 
     // format target position G[0-6]
     sprintf(targetpos, "G%d\r\n\n", position);
 
     // write command
-    write(PortFD, targetpos, strlen(targetpos));
+    res = write(PortFD, targetpos, strlen(targetpos));
 
     // format target marker P[0-6]
     sprintf(targetpos, "P%d\r\n", position);
@@ -186,14 +183,13 @@ bool QFW::SelectFilter(int position)
     do
     {
         usleep(100 * 1000);
-        res = read(PortFD, curpos, 255);
+        res         = read(PortFD, curpos, 255);
         curpos[res] = 0;
-    }
-    while( strncmp(targetpos, curpos, 2) != 0 );
+    } while (strncmp(targetpos, curpos, 2) != 0);
 
     // return current position to indi
     CurrentFilter = position + 1;
-    SelectFilterDone (CurrentFilter);
+    SelectFilterDone(CurrentFilter);
 
     return true;
 }

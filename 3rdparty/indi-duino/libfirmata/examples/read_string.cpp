@@ -15,19 +15,22 @@
 #include <stdlib.h>
 #include <firmata.h>
 
-int main(int argc, char** argv) {
-	if (argc < 2) {
-		fprintf(stderr,"Usage: read_string <serial port path> \n");
-		exit(1);
-	}
-	char* serial = argv[1];
-	Firmata* sf = new Firmata(serial);
-	while(true) {
-		sf->OnIdle();
-		usleep(10000);
-		printf("ARDUINO SAY: %s\n",sf->string_buffer);
-	}
+int main(int argc, char **argv)
+{
+    if (argc < 2)
+    {
+        fprintf(stderr, "Usage: read_string <serial port path> \n");
+        exit(1);
+    }
+    char *serial = argv[1];
+    Firmata *sf  = new Firmata(serial);
+    while (true)
+    {
+        sf->OnIdle();
+        usleep(10000);
+        printf("ARDUINO SAY: %s\n", sf->string_buffer);
+    }
 
-	delete sf;
-	return 0;
+    delete sf;
+    return 0;
 }

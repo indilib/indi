@@ -43,19 +43,19 @@
 
 #include "mgc.h"
 
-class MGIO_READ_DISPLAY_FRAME: MGC
+class MGIO_READ_DISPLAY_FRAME : MGC
 {
-public:
+  public:
     virtual IOByte opCode() const { return 0x5D; }
     virtual IOMode opMode() const { return OPM_APPLICATION; }
 
-protected:
-    static std::size_t const frame_size = (128*64)/8;
+  protected:
+    static std::size_t const frame_size = (128 * 64) / 8;
     IOBuffer bitmap_frame;
 
-public:
-    typedef std::array<unsigned char, frame_size*8> ByteFrame;
-    ByteFrame& get_frame(ByteFrame &frame) const
+  public:
+    typedef std::array<unsigned char, frame_size * 8> ByteFrame;
+    ByteFrame &get_frame(ByteFrame &frame) const
     {
         /* A display byte is 8 display bits shaping a column, LSB at the top
          *
@@ -70,7 +70,7 @@ public:
          * L15 D128[7] D129[7] D130[7]  --   D255[7]
          * ...
          */
-        for(unsigned int i = 0; i < frame.size(); i++)
+        for (unsigned int i = 0; i < frame.size(); i++)
         {
             unsigned int const c = i % 128;
             unsigned int const l = i / 128;
@@ -92,10 +92,10 @@ public:
         return frame;
     };
 
-public:
-    virtual IOResult ask(MGenDevice& root) throw (IOError)
+  public:
+    virtual IOResult ask(MGenDevice &root) //throw(IOError)
     {
-        if(CR_SUCCESS != MGC::ask(root))
+        if (CR_SUCCESS != MGC::ask(root))
             return CR_FAILURE;
 
         bitmap_frame.clear();
@@ -110,24 +110,26 @@ public:
          */
 
         /* We'll read 8 blocks of 128 bytes, not optimal, but it's working */
-        answer.resize(1+128);
+        answer.resize(1 + 128);
 
-        if(root.lock())
+        if (root.lock())
         {
-            for(unsigned int block = 0; block < 8*128; block += 128)
+            _D("reading UI frame",0);
+
+            for (unsigned int block = 0; block < 8 * 128; block += 128)
             {
                 /* Query is using 10 bits of the address over two bytes, then 1 byte for the count */
                 IOByte const length = 128;
-                query[2] = (unsigned char)((block&0x03FF)>>0);
-                query[3] = (unsigned char)((block&0x03FF)>>8);
-                query[4] = length;
+                query[2]            = (unsigned char)((block & 0x03FF) >> 0);
+                query[3]            = (unsigned char)((block & 0x03FF) >> 8);
+                query[4]            = length;
 
                 root.write(query);
                 /* Reply is SUBFUNC plus the frame block */
-                if(root.read(answer) < length + 1)
-                    _E("failed reading frame block, pushing back nonetheless","");
-                if(opCode() != answer[0])
-                    _E("failed acking frame block, command is desynced, pushing back nonetheless","");
+                if (root.read(answer) < length + 1)
+                    _E("failed reading frame block, pushing back nonetheless", "");
+                if (opCode() != answer[0])
+                    _E("failed acking frame block, command is desynced, pushing back nonetheless", "");
                 bitmap_frame.insert(bitmap_frame.end(), answer.begin() + 1, answer.end());
             }
 
@@ -140,15 +142,16 @@ public:
             answer.resize(1);
             root.read(answer);
 
+            _D("done reading UI frame",0);
+
             root.unlock();
         }
 
         return CR_SUCCESS;
     }
 
-public:
-    MGIO_READ_DISPLAY_FRAME():
-        MGC(IOBuffer { opCode(), 0x0D, 0, 0, 0 }, IOBuffer (1)), bitmap_frame(frame_size) {};
+  public:
+    MGIO_READ_DISPLAY_FRAME() : MGC(IOBuffer{ opCode(), 0x0D, 0, 0, 0 }, IOBuffer(1)), bitmap_frame(frame_size){};
 };
 
 #endif /* _3RDPARTY_INDI_MGEN_MGIO_READ_DISPLAY_FRAME_H_ */

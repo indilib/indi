@@ -20,45 +20,42 @@
 
 #include "perfectstar.h"
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <math.h>
-#include <string.h>
-
+#include <cmath>
+#include <cstring>
 #include <memory>
 
-#define POLLMS              1000            /* 1000 ms */
-#define PERFECTSTAR_TIMEOUT 1000            /* 1000 ms */
+#define POLLMS              1000 /* 1000 ms */
+#define PERFECTSTAR_TIMEOUT 1000 /* 1000 ms */
 
-#define FOCUS_SETTINGS_TAB  "Settings"
+#define FOCUS_SETTINGS_TAB "Settings"
 
 // We declare an auto pointer to PerfectStar.
 std::unique_ptr<PerfectStar> perfectStar(new PerfectStar());
 
-void ISPoll(void * p);
+void ISPoll(void *p);
 
-void ISGetProperties(const char * dev)
+void ISGetProperties(const char *dev)
 {
     perfectStar->ISGetProperties(dev);
 }
 
-void ISNewSwitch(const char * dev, const char * name, ISState * states, char * names[], int num)
+void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
 {
-    perfectStar->ISNewSwitch(dev, name, states, names, num);
+    perfectStar->ISNewSwitch(dev, name, states, names, n);
 }
 
-void ISNewText(	const char * dev, const char * name, char * texts[], char * names[], int num)
+void ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
 {
-    perfectStar->ISNewText(dev, name, texts, names, num);
+    perfectStar->ISNewText(dev, name, texts, names, n);
 }
 
-void ISNewNumber(const char * dev, const char * name, double values[], char * names[], int num)
+void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
 {
-    perfectStar->ISNewNumber(dev, name, values, names, num);
+    perfectStar->ISNewNumber(dev, name, values, names, n);
 }
 
-void ISNewBLOB (const char * dev, const char * name, int sizes[], int blobsizes[], char * blobs[], char * formats[], char * names[], int n)
+void ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[],
+               char *names[], int n)
 {
     INDI_UNUSED(dev);
     INDI_UNUSED(name);
@@ -70,7 +67,7 @@ void ISNewBLOB (const char * dev, const char * name, int sizes[], int blobsizes[
     INDI_UNUSED(n);
 }
 
-void ISSnoopDevice (XMLEle * root)
+void ISSnoopDevice(XMLEle *root)
 {
     perfectStar->ISSnoopDevice(root);
 }
@@ -79,15 +76,6 @@ PerfectStar::PerfectStar()
 {
     SetFocuserCapability(FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_REL_MOVE | FOCUSER_CAN_ABORT);
     setFocuserConnection(CONNECTION_NONE);
-
-    handle = 0;
-}
-
-PerfectStar::~PerfectStar()
-{
-    sim = false;
-    simPosition = 0;
-    status = PS_NOOP;
 }
 
 bool PerfectStar::Connect()
@@ -100,9 +88,9 @@ bool PerfectStar::Connect()
         return true;
     }
 
-    handle = hid_open(0x04D8, 0xF812, 0);
+    handle = hid_open(0x04D8, 0xF812, nullptr);
 
-    if(handle == NULL)
+    if (handle == nullptr)
     {
         DEBUG(INDI::Logger::DBG_ERROR, "No PerfectStar focuser found.");
         return false;
@@ -110,7 +98,7 @@ bool PerfectStar::Connect()
     else
         SetTimer(POLLMS);
 
-    return (handle != NULL);
+    return (handle != nullptr);
 }
 
 bool PerfectStar::Disconnect()
@@ -124,9 +112,9 @@ bool PerfectStar::Disconnect()
     return true;
 }
 
-const char * PerfectStar::getDefaultName()
+const char *PerfectStar::getDefaultName()
 {
-    return (char *)"PerfectStar";
+    return (const char *)"PerfectStar";
 }
 
 bool PerfectStar::initProperties()
@@ -135,7 +123,8 @@ bool PerfectStar::initProperties()
 
     // Max Position
     IUFillNumber(&MaxPositionN[0], "Steps", "", "%.f", 0, 500000, 0., 10000);
-    IUFillNumberVector(&MaxPositionNP, MaxPositionN, 1, getDeviceName(), "Max Position", "", FOCUS_SETTINGS_TAB, IP_RW, 0, IPS_IDLE);
+    IUFillNumberVector(&MaxPositionNP, MaxPositionN, 1, getDeviceName(), "Max Position", "", FOCUS_SETTINGS_TAB, IP_RW,
+                       0, IPS_IDLE);
 
     // Sync to a particular position
     IUFillNumber(&SyncN[0], "Ticks", "", "%.f", 0, 100000, 100., 0.);
@@ -144,10 +133,10 @@ bool PerfectStar::initProperties()
     FocusAbsPosN[0].min = SyncN[0].min = 0;
     FocusAbsPosN[0].max = SyncN[0].max = MaxPositionN[0].value;
     FocusAbsPosN[0].step = SyncN[0].step = MaxPositionN[0].value / 50.0;
-    FocusAbsPosN[0].value = 0;
+    FocusAbsPosN[0].value                = 0;
 
-    FocusRelPosN[0].max = (FocusAbsPosN[0].max - FocusAbsPosN[0].min) / 2;
-    FocusRelPosN[0].step = FocusRelPosN[0].max / 100.0;
+    FocusRelPosN[0].max   = (FocusAbsPosN[0].max - FocusAbsPosN[0].min) / 2;
+    FocusRelPosN[0].step  = FocusRelPosN[0].max / 100.0;
     FocusRelPosN[0].value = 100;
 
     addSimulationControl();
@@ -175,7 +164,7 @@ bool PerfectStar::updateProperties()
 
 void PerfectStar::TimerHit()
 {
-    if (isConnected() == false)
+    if (!isConnected())
         return;
 
     uint32_t currentTicks = 0;
@@ -191,18 +180,17 @@ void PerfectStar::TimerHit()
     {
         if (sim)
         {
-            if ( FocusAbsPosN[0].value < targetPosition)
+            if (FocusAbsPosN[0].value < targetPosition)
                 simPosition += 500;
             else
                 simPosition -= 500;
 
-            if (fabs(simPosition - targetPosition) < 500)
+            if (std::abs((int64_t)simPosition - (int64_t)targetPosition) < 500)
             {
                 FocusAbsPosN[0].value = targetPosition;
-                simPosition = FocusAbsPosN[0].value;
-                status = PS_NOOP;
+                simPosition           = FocusAbsPosN[0].value;
+                status                = PS_NOOP;
             }
-
 
             FocusAbsPosN[0].value = simPosition;
         }
@@ -212,7 +200,7 @@ void PerfectStar::TimerHit()
             if (FocusRelPosNP.s == IPS_BUSY)
             {
                 FocusRelPosNP.s = IPS_OK;
-                IDSetNumber(&FocusRelPosNP, NULL);
+                IDSetNumber(&FocusRelPosNP, nullptr);
             }
 
             FocusAbsPosNP.s = IPS_OK;
@@ -223,7 +211,7 @@ void PerfectStar::TimerHit()
             if (FocusRelPosNP.s == IPS_BUSY)
             {
                 FocusRelPosNP.s = IPS_OK;
-                IDSetNumber(&FocusRelPosNP, NULL);
+                IDSetNumber(&FocusRelPosNP, nullptr);
             }
 
             FocusAbsPosNP.s = IPS_OK;
@@ -231,18 +219,17 @@ void PerfectStar::TimerHit()
         }
     }
 
-    IDSetNumber(&FocusAbsPosNP, NULL);
+    IDSetNumber(&FocusAbsPosNP, nullptr);
 
     SetTimer(POLLMS);
 }
 
-bool PerfectStar::ISNewNumber (const char * dev, const char * name, double values[], char * names[], int n)
+bool PerfectStar::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
 {
-
-    if(strcmp(dev, getDeviceName()) == 0)
+    if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
         // Max Travel
-        if (!strcmp(MaxPositionNP.name, name))
+        if (strcmp(MaxPositionNP.name, name) == 0)
         {
             IUUpdateNumber(&MaxPositionNP, values, names, n);
 
@@ -252,63 +239,57 @@ bool PerfectStar::ISNewNumber (const char * dev, const char * name, double value
                 FocusAbsPosN[0].max = SyncN[0].max = MaxPositionN[0].value;
                 FocusAbsPosN[0].step = SyncN[0].step = MaxPositionN[0].value / 50.0;
 
-
-                FocusRelPosN[0].max = (FocusAbsPosN[0].max - FocusAbsPosN[0].min) / 2;
+                FocusRelPosN[0].max  = (FocusAbsPosN[0].max - FocusAbsPosN[0].min) / 2;
                 FocusRelPosN[0].step = FocusRelPosN[0].max / 100.0;
-                FocusRelPosN[0].min = 0;
+                FocusRelPosN[0].min  = 0;
 
                 IUUpdateMinMax(&FocusAbsPosNP);
                 IUUpdateMinMax(&FocusRelPosNP);
                 IUUpdateMinMax(&SyncNP);
 
-                DEBUGF(INDI::Logger::DBG_SESSION, "Focuser absolute limits: min (%g) max (%g)", FocusAbsPosN[0].min, FocusAbsPosN[0].max);
+                DEBUGF(INDI::Logger::DBG_SESSION, "Focuser absolute limits: min (%g) max (%g)", FocusAbsPosN[0].min,
+                       FocusAbsPosN[0].max);
             }
 
             MaxPositionNP.s = IPS_OK;
-            IDSetNumber(&MaxPositionNP, NULL);
+            IDSetNumber(&MaxPositionNP, nullptr);
             return true;
         }
 
         // Sync
-        if (!strcmp(SyncNP.name, name))
+        if (strcmp(SyncNP.name, name) == 0)
         {
             IUUpdateNumber(&SyncNP, values, names, n);
-            if (sync(SyncN[0].value) == false)
+            if (!sync(SyncN[0].value))
                 SyncNP.s = IPS_ALERT;
             else
                 SyncNP.s = IPS_OK;
 
-            IDSetNumber(&SyncNP, NULL);
+            IDSetNumber(&SyncNP, nullptr);
             return true;
         }
-
     }
 
     return INDI::Focuser::ISNewNumber(dev, name, values, names, n);
-
 }
 
-IPState PerfectStar::MoveAbsFocuser(uint32_t ticks)
+IPState PerfectStar::MoveAbsFocuser(uint32_t targetTicks)
 {
+    bool rc = setPosition(targetTicks);
 
-    bool rc = false;
-
-    rc = setPosition(ticks);
-
-    if (rc == false)
+    if (!rc)
         return IPS_ALERT;
 
-    targetPosition = ticks;
+    targetPosition = targetTicks;
 
     rc = setStatus(PS_GOTO);
 
-    if (rc == false)
+    if (!rc)
         return IPS_ALERT;
 
     FocusAbsPosNP.s = IPS_BUSY;
 
     return IPS_BUSY;
-
 }
 
 IPState PerfectStar::MoveRelFocuser(FocusDirection dir, uint32_t ticks)
@@ -346,7 +327,7 @@ bool PerfectStar::setPosition(uint32_t ticks)
 
     if (sim)
     {
-        rc = 2;
+        rc          = 2;
         response[0] = 0x28;
         response[1] = command[1];
     }
@@ -383,7 +364,7 @@ bool PerfectStar::setPosition(uint32_t ticks)
 
     if (sim)
     {
-        rc = 3;
+        rc          = 3;
         response[0] = command[0];
         response[1] = command[1];
         response[2] = command[2];
@@ -399,17 +380,15 @@ bool PerfectStar::setPosition(uint32_t ticks)
 
     DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%02X %02X %02X)", response[0], response[1], response[2]);
 
-
     targetPosition = ticks;
 
     // TODO add checking later
     return true;
 }
 
-bool PerfectStar::getPosition(uint32_t * ticks)
+bool PerfectStar::getPosition(uint32_t *ticks)
 {
-
-    int rc = 0;
+    int rc       = 0;
     uint32_t pos = 0;
     unsigned char command[1];
     unsigned char response[3];
@@ -423,7 +402,7 @@ bool PerfectStar::getPosition(uint32_t * ticks)
     DEBUGF(INDI::Logger::DBG_DEBUG, "CMD (%02X)", command[0]);
 
     if (sim)
-        rc  = 2;
+        rc = 2;
     else
         rc = hid_write(handle, command, 1);
 
@@ -435,7 +414,7 @@ bool PerfectStar::getPosition(uint32_t * ticks)
 
     if (sim)
     {
-        rc = 2;
+        rc          = 2;
         response[0] = command[0];
         response[1] = simPosition >> 16;
     }
@@ -472,7 +451,7 @@ bool PerfectStar::getPosition(uint32_t * ticks)
 
     if (sim)
     {
-        rc = 3;
+        rc          = 3;
         response[0] = command[0];
         response[1] = simPosition & 0xFF;
         response[2] = (simPosition & 0xFF00) >> 8;
@@ -496,7 +475,6 @@ bool PerfectStar::getPosition(uint32_t * ticks)
     DEBUGF(INDI::Logger::DBG_DEBUG, "Position: %ld", pos);
 
     return true;
-
 }
 
 bool PerfectStar::setStatus(PS_STATUS targetStatus)
@@ -523,11 +501,11 @@ bool PerfectStar::setStatus(PS_STATUS targetStatus)
 
     if (sim)
     {
-        rc = 3;
+        rc          = 3;
         response[0] = command[0];
         response[1] = 0;
         response[2] = command[1];
-        status = targetStatus;
+        status      = targetStatus;
         // Convert Goto to either "moving in" or "moving out" status
         if (status == PS_GOTO)
         {
@@ -556,11 +534,10 @@ bool PerfectStar::setStatus(PS_STATUS targetStatus)
         return false;
     }
 
-
     return true;
 }
 
-bool PerfectStar::getStatus(PS_STATUS * currentStatus)
+bool PerfectStar::getStatus(PS_STATUS *currentStatus)
 {
     int rc = 0;
     unsigned char command[1];
@@ -583,7 +560,7 @@ bool PerfectStar::getStatus(PS_STATUS * currentStatus)
 
     if (sim)
     {
-        rc = 2;
+        rc          = 2;
         response[0] = command[0];
         response[1] = status;
         // Halt/SetPos is state = 0 "not moving".
@@ -635,7 +612,6 @@ bool PerfectStar::getStatus(PS_STATUS * currentStatus)
     }
 
     return true;
-
 }
 
 bool PerfectStar::AbortFocuser()
@@ -647,7 +623,7 @@ bool PerfectStar::sync(uint32_t ticks)
 {
     bool rc = setPosition(ticks);
 
-    if (rc == false)
+    if (!rc)
         return false;
 
     simPosition = ticks;
@@ -657,7 +633,7 @@ bool PerfectStar::sync(uint32_t ticks)
     return rc;
 }
 
-bool PerfectStar::saveConfigItems(FILE * fp)
+bool PerfectStar::saveConfigItems(FILE *fp)
 {
     INDI::Focuser::saveConfigItems(fp);
 
@@ -665,4 +641,3 @@ bool PerfectStar::saveConfigItems(FILE * fp)
 
     return true;
 }
-

@@ -1295,21 +1295,21 @@ class DLL_EXPORT ApogeeCam
 //from http://www.unknownroad.com/rtfm/VisualStudio/warningC4251.html
 #ifdef WIN_OS
 #if _MSC_VER < 1600
-        template class DLL_EXPORT std::tr1::shared_ptr<CameraIo>;
-        template class DLL_EXPORT std::tr1::shared_ptr<PlatformData>;
-        template class DLL_EXPORT std::tr1::shared_ptr<CApnCamData>;
-        template class DLL_EXPORT std::tr1::shared_ptr<ModeFsm>;
-        template class DLL_EXPORT std::tr1::shared_ptr<CcdAcqParams>;
-        template class DLL_EXPORT std::tr1::shared_ptr<ApgTimer>;
+        template class DLL_EXPORT std::shared_ptr<CameraIo>;
+        template class DLL_EXPORT std::shared_ptr<PlatformData>;
+        template class DLL_EXPORT std::shared_ptr<CApnCamData>;
+        template class DLL_EXPORT std::shared_ptr<ModeFsm>;
+        template class DLL_EXPORT std::shared_ptr<CcdAcqParams>;
+        template class DLL_EXPORT std::shared_ptr<ApgTimer>;
 #endif
 #endif
 
-        std::tr1::shared_ptr<CameraIo> m_CamIo;
-        std::tr1::shared_ptr<PlatformData> m_CameraConsts;
-        std::tr1::shared_ptr<CApnCamData> m_CamCfgData;
-        std::tr1::shared_ptr<ModeFsm> m_CamMode;
-        std::tr1::shared_ptr<CcdAcqParams> m_CcdAcqSettings;
-        std::tr1::shared_ptr<ApgTimer> m_ExposureTimer;
+        std::shared_ptr<CameraIo> m_CamIo;
+        std::shared_ptr<PlatformData> m_CameraConsts;
+        std::shared_ptr<CApnCamData> m_CamCfgData;
+        std::shared_ptr<ModeFsm> m_CamMode;
+        std::shared_ptr<CcdAcqParams> m_CcdAcqSettings;
+        std::shared_ptr<ApgTimer> m_ExposureTimer;
 
         CamModel::PlatformType m_PlatformType;
         const std::string m_fileName;

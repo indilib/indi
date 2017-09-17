@@ -27,12 +27,12 @@ using namespace std;
 
 class FFMVCCD : public INDI::CCD
 {
-public:
+  public:
     FFMVCCD();
 
     virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n);
 
-protected:
+  protected:
     // General device functions
     bool Connect();
     bool Disconnect();
@@ -45,17 +45,16 @@ protected:
     bool AbortExposure();
     void TimerHit();
 
-private:
+  private:
     // Utility functions
     float CalcTimeLeft();
-    void  setupParams();
-    void  grabImage();
+    void setupParams();
+    void grabImage();
     dc1394error_t writeMicronReg(unsigned int offset, unsigned int val);
     dc1394error_t readMicronReg(unsigned int offset, unsigned int *val);
 
     dc1394error_t setGainVref(ISState iss);
     dc1394error_t setDigitalGain(ISState state);
-
 
     // Are we exposing?
     bool InExposure;
@@ -65,7 +64,7 @@ private:
 
     float ExposureRequest;
     float TemperatureRequest;
-    int   timerID;
+    int timerID;
     float max_exposure;
     float last_exposure_length;
     int sub_count;

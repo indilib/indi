@@ -16,51 +16,59 @@
  Boston, MA 02110-1301, USA.
  *******************************************************************************/
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <math.h>
-#include <unistd.h>
-#include <sys/time.h>
-#include <time.h>
-#include <memory>
-#include <stdarg.h>
-
-#include <sys/wait.h>
-#include <limits.h>
-
-#include <indicom.h>
-
 #include "dome_script.h"
 
-#define	POLLMS      2000
-#define MAXARGS     20
+#include "indicom.h"
 
-enum { SCRIPT_CONNECT = 1, SCRIPT_DISCONNECT, SCRIPT_STATUS, SCRIPT_OPEN, SCRIPT_CLOSE, SCRIPT_PARK, SCRIPT_UNPARK, SCRIPT_GOTO, SCRIPT_MOVE_CW, SCRIPT_MOVE_CCW, SCRIPT_ABORT, SCRIPT_COUNT } scripts;
+#include <cmath>
+#include <memory>
+#include <cstring>
+#include <unistd.h>
+#include <sys/wait.h>
+
+#define POLLMS  2000
+#define MAXARGS 20
+
+typedef enum
+{
+    SCRIPT_CONNECT = 1,
+    SCRIPT_DISCONNECT,
+    SCRIPT_STATUS,
+    SCRIPT_OPEN,
+    SCRIPT_CLOSE,
+    SCRIPT_PARK,
+    SCRIPT_UNPARK,
+    SCRIPT_GOTO,
+    SCRIPT_MOVE_CW,
+    SCRIPT_MOVE_CCW,
+    SCRIPT_ABORT,
+    SCRIPT_COUNT
+} scripts;
 
 std::unique_ptr<DomeScript> scope_script(new DomeScript());
 
-void ISGetProperties(const char * dev)
+void ISGetProperties(const char *dev)
 {
     scope_script->ISGetProperties(dev);
 }
 
-void ISNewSwitch(const char * dev, const char * name, ISState * states, char * names[], int num)
+void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
 {
-    scope_script->ISNewSwitch(dev, name, states, names, num);
+    scope_script->ISNewSwitch(dev, name, states, names, n);
 }
 
-void ISNewText(	const char * dev, const char * name, char * texts[], char * names[], int num)
+void ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
 {
-    scope_script->ISNewText(dev, name, texts, names, num);
+    scope_script->ISNewText(dev, name, texts, names, n);
 }
 
-void ISNewNumber(const char * dev, const char * name, double values[], char * names[], int num)
+void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
 {
-    scope_script->ISNewNumber(dev, name, values, names, num);
+    scope_script->ISNewNumber(dev, name, values, names, n);
 }
 
-void ISNewBLOB (const char * dev, const char * name, int sizes[], int blobsizes[], char * blobs[], char * formats[], char * names[], int n)
+void ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[],
+               char *names[], int n)
 {
     INDI_UNUSED(dev);
     INDI_UNUSED(name);
@@ -72,7 +80,7 @@ void ISNewBLOB (const char * dev, const char * name, int sizes[], int blobsizes[
     INDI_UNUSED(n);
 }
 
-void ISSnoopDevice (XMLEle * root)
+void ISSnoopDevice(XMLEle *root)
 {
     scope_script->ISSnoopDevice(root);
 }
@@ -80,16 +88,11 @@ void ISSnoopDevice (XMLEle * root)
 DomeScript::DomeScript()
 {
     SetDomeCapability(DOME_CAN_PARK | DOME_CAN_ABORT | DOME_CAN_ABS_MOVE | DOME_HAS_SHUTTER);
-    TimeSinceUpdate = 0;
 }
 
-DomeScript::~DomeScript()
+const char *DomeScript::getDefaultName()
 {
-}
-
-const char * DomeScript::getDefaultName()
-{
-    return (char *)"Dome Scripting Gateway";
+    return (const char *)"Dome Scripting Gateway";
 }
 
 bool DomeScript::initProperties()
@@ -112,31 +115,32 @@ bool DomeScript::initProperties()
     IUFillText(&ScriptsT[SCRIPT_MOVE_CW], "SCRIPT_MOVE_CW", "Move clockwise script", "move_cw.py");
     IUFillText(&ScriptsT[SCRIPT_MOVE_CCW], "SCRIPT_MOVE_CCW", "Move counter clockwise script", "move_ccw.py");
     IUFillText(&ScriptsT[SCRIPT_ABORT], "SCRIPT_ABORT", "Abort motion script", "abort.py");
-    IUFillTextVector(&ScriptsTP, ScriptsT, SCRIPT_COUNT, getDefaultName(), "SCRIPTS", "Scripts", OPTIONS_TAB, IP_RW, 60, IPS_IDLE);
+    IUFillTextVector(&ScriptsTP, ScriptsT, SCRIPT_COUNT, getDefaultName(), "SCRIPTS", "Scripts", OPTIONS_TAB, IP_RW, 60,
+                     IPS_IDLE);
     return true;
 }
 
-bool DomeScript::saveConfigItems(FILE * fp)
+bool DomeScript::saveConfigItems(FILE *fp)
 {
     INDI::Dome::saveConfigItems(fp);
     IUSaveConfigText(fp, &ScriptsTP);
     return true;
 }
 
-void DomeScript::ISGetProperties(const char * dev)
+void DomeScript::ISGetProperties(const char *dev)
 {
     INDI::Dome::ISGetProperties(dev);
     defineText(&ScriptsTP);
 }
 
-bool DomeScript::ISNewText(const char * dev, const char * name, char * texts[], char * names[], int n)
+bool DomeScript::ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
 {
-    if(!strcmp(dev, getDeviceName()))
+    if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
-        if(!strcmp(name, ScriptsTP.name))
+        if (strcmp(name, ScriptsTP.name) == 0)
         {
             IUUpdateText(&ScriptsTP, texts, names, n);
-            IDSetText(&ScriptsTP, NULL);
+            IDSetText(&ScriptsTP, nullptr);
             return true;
         }
     }
@@ -154,26 +158,30 @@ bool DomeScript::RunScript(int script, ...)
     else if (pid == 0)
     {
         char tmp[256];
-        strcpy(tmp, ScriptsT[script].text);
-        char ** args = (char **)malloc(MAXARGS * sizeof(char *));
-        int arg = 1;
-        char * p = tmp;
+
+        strncpy(tmp, ScriptsT[script].text, sizeof(tmp));
+
+        char **args = (char **)malloc(MAXARGS * sizeof(char *));
+        int arg     = 1;
+        char *p     = tmp;
+
         while (arg < MAXARGS)
         {
-            char * pp = strstr(p, " ");
-            if (pp == NULL)
+            char *pp = strstr(p, " ");
+
+            if (pp == nullptr)
                 break;
-            *pp++ = 0;
+            *pp++       = 0;
             args[arg++] = pp;
-            p = pp;
+            p           = pp;
         }
         va_list ap;
         va_start(ap, script);
         while (arg < MAXARGS)
         {
-            char * pp = va_arg(ap, char *);
+            char *pp    = va_arg(ap, char *);
             args[arg++] = pp;
-            if (pp == NULL)
+            if (pp == nullptr)
                 break;
         }
         va_end(ap);
@@ -215,14 +223,16 @@ void DomeScript::TimerHit()
 {
     if (!isConnected())
         return;
-    char * name = tmpnam(NULL);
-    bool status = RunScript(SCRIPT_STATUS, name, NULL);
+    char *name  = tmpnam(nullptr);
+    bool status = RunScript(SCRIPT_STATUS, name, nullptr);
     if (status)
     {
         int parked = 0, shutter = 0;
-        float az = 0;
-        FILE * file = fopen(name, "r");
-        fscanf(file, "%d %d %f", &parked, &shutter, &az);
+        float az   = 0;
+        FILE *file = fopen(name, "r");
+        int ret    = 0;
+
+        ret = fscanf(file, "%d %d %f", &parked, &shutter, &az);
         fclose(file);
         unlink(name);
         DomeAbsPosN[0].value = az = round(range360(az) * 10) / 10;
@@ -244,23 +254,24 @@ void DomeScript::TimerHit()
                 DEBUG(INDI::Logger::DBG_SESSION, "Unpark succesfully executed");
             }
         }
-        if (round(az * 10) != round(TargetAz * 10))
+        if (std::round(az * 10) != std::round(TargetAz * 10))
         {
-            DEBUGF(INDI::Logger::DBG_SESSION, "Moving %g -> %g %d", round(az * 10) / 10, round(TargetAz * 10) / 10, getDomeState());
-            IDSetNumber(&DomeAbsPosNP, NULL);
+            DEBUGF(INDI::Logger::DBG_SESSION, "Moving %g -> %g %d", std::round(az * 10) / 10,
+                   std::round(TargetAz * 10) / 10, getDomeState());
+            IDSetNumber(&DomeAbsPosNP, nullptr);
         }
         else if (getDomeState() == DOME_MOVING)
         {
             setDomeState(DOME_SYNCED);
-            IDSetNumber(&DomeAbsPosNP, NULL);
+            IDSetNumber(&DomeAbsPosNP, nullptr);
         }
         if (shutterState == SHUTTER_OPENED)
         {
             if (shutter == 0)
             {
-                shutterState = SHUTTER_CLOSED;
+                shutterState    = SHUTTER_CLOSED;
                 DomeShutterSP.s = IPS_OK;
-                IDSetSwitch(&DomeShutterSP, NULL);
+                IDSetSwitch(&DomeShutterSP, nullptr);
                 DEBUG(INDI::Logger::DBG_SESSION, "Shutter was succesfully closed");
             }
         }
@@ -268,9 +279,9 @@ void DomeScript::TimerHit()
         {
             if (shutter == 1)
             {
-                shutterState = SHUTTER_OPENED;
+                shutterState    = SHUTTER_OPENED;
                 DomeShutterSP.s = IPS_OK;
-                IDSetSwitch(&DomeShutterSP, NULL);
+                IDSetSwitch(&DomeShutterSP, nullptr);
                 DEBUG(INDI::Logger::DBG_SESSION, "Shutter was succesfully opened");
             }
         }
@@ -280,7 +291,7 @@ void DomeScript::TimerHit()
         DEBUG(INDI::Logger::DBG_ERROR, "Failed to read status");
     }
     SetTimer(POLLMS);
-    if(isParked() == false && TimeSinceUpdate++ > 4)
+    if (!isParked() && TimeSinceUpdate++ > 4)
     {
         TimeSinceUpdate = 0;
         UpdateMountCoords();
@@ -289,29 +300,31 @@ void DomeScript::TimerHit()
 
 bool DomeScript::Connect()
 {
-    if(isConnected())
+    if (isConnected())
         return true;
-    bool status = RunScript(SCRIPT_CONNECT, NULL);
+
+    bool status = RunScript(SCRIPT_CONNECT, nullptr);
+
     if (status)
     {
-        DEBUG(INDI::Logger::DBG_SESSION, "Succesfully connected");
+        DEBUG(INDI::Logger::DBG_SESSION, "Successfully connected");
     }
     return status;
 }
 
 bool DomeScript::Disconnect()
 {
-    bool status = RunScript(SCRIPT_DISCONNECT, NULL);
+    bool status = RunScript(SCRIPT_DISCONNECT, nullptr);
     if (status)
     {
-        DEBUG(INDI::Logger::DBG_SESSION, "Succesfully disconnected");
+        DEBUG(INDI::Logger::DBG_SESSION, "Successfully disconnected");
     }
     return status;
 }
 
 IPState DomeScript::Park()
 {
-    bool status = RunScript(SCRIPT_PARK, NULL);
+    bool status = RunScript(SCRIPT_PARK, nullptr);
     if (status)
     {
         return IPS_BUSY;
@@ -322,7 +335,7 @@ IPState DomeScript::Park()
 
 IPState DomeScript::UnPark()
 {
-    bool status = RunScript(SCRIPT_UNPARK, NULL);
+    bool status = RunScript(SCRIPT_UNPARK, nullptr);
     if (status)
     {
         return IPS_BUSY;
@@ -333,7 +346,7 @@ IPState DomeScript::UnPark()
 
 IPState DomeScript::ControlShutter(ShutterOperation operation)
 {
-    if (RunScript(operation == SHUTTER_OPEN ? SCRIPT_OPEN : SCRIPT_CLOSE, NULL))
+    if (RunScript(operation == SHUTTER_OPEN ? SCRIPT_OPEN : SCRIPT_CLOSE, nullptr))
     {
         return IPS_BUSY;
     }
@@ -345,7 +358,7 @@ IPState DomeScript::MoveAbs(double az)
 {
     char _az[16];
     snprintf(_az, 16, "%f", round(az * 10) / 10);
-    bool status = RunScript(SCRIPT_GOTO, _az, NULL);
+    bool status = RunScript(SCRIPT_GOTO, _az, nullptr);
     if (status)
     {
         TargetAz = az;
@@ -358,10 +371,10 @@ IPState DomeScript::Move(DomeDirection dir, DomeMotionCommand operation)
 {
     if (operation == MOTION_START)
     {
-        if (RunScript(dir == DOME_CW ? SCRIPT_MOVE_CW : SCRIPT_MOVE_CCW, NULL))
+        if (RunScript(dir == DOME_CW ? SCRIPT_MOVE_CW : SCRIPT_MOVE_CCW, nullptr))
         {
             DomeAbsPosNP.s = IPS_BUSY;
-            TargetAz = -1;
+            TargetAz       = -1;
         }
         else
         {
@@ -370,7 +383,7 @@ IPState DomeScript::Move(DomeDirection dir, DomeMotionCommand operation)
     }
     else
     {
-        if (RunScript(SCRIPT_ABORT, NULL))
+        if (RunScript(SCRIPT_ABORT, nullptr))
         {
             DomeAbsPosNP.s = IPS_IDLE;
         }
@@ -379,17 +392,16 @@ IPState DomeScript::Move(DomeDirection dir, DomeMotionCommand operation)
             DomeAbsPosNP.s = IPS_ALERT;
         }
     }
-    IDSetNumber(&DomeAbsPosNP, NULL);
+    IDSetNumber(&DomeAbsPosNP, nullptr);
     return ((operation == MOTION_START) ? IPS_BUSY : IPS_OK);
 }
 
 bool DomeScript::Abort()
 {
-    bool status = RunScript(SCRIPT_ABORT, NULL);
+    bool status = RunScript(SCRIPT_ABORT, nullptr);
     if (status)
     {
-        DEBUG(INDI::Logger::DBG_SESSION, "Succesfully aborted");
+        DEBUG(INDI::Logger::DBG_SESSION, "Successfully aborted");
     }
     return status;
 }
-

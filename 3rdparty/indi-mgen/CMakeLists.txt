@@ -5,8 +5,6 @@ LIST(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake_modules/")
 LIST(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/../../cmake_modules/")
 include(GNUInstallDirs)
 
-set(CMAKE_CXX_FLAGS "-std=c++0x ${CMAKE_CXX_FLAGS}")
-
 set(INDI_MGENAUTOGUIDER_VERSION_MAJOR 0)
 set(INDI_MGENAUTOGUIDER_VERSION_MINOR 1)
 
@@ -25,11 +23,17 @@ include_directories(${INDI_INCLUDE_DIR})
 include_directories(${FTDI1_INCLUDE_DIR})
 include_directories(${LIBUSB_1_INCLUDE_DIRS})
 
+include(CMakeCommon)
+
 ########### MGenAutoguider ###########
 set(indimgenautoguider_SRCS
    ${CMAKE_CURRENT_SOURCE_DIR}/mgenautoguider.cpp
    ${CMAKE_CURRENT_SOURCE_DIR}/mgen_device.cpp
    )
+
+IF (UNITY_BUILD)
+    ENABLE_UNITY_BUILD(indimgen indimgenautoguider_SRCS 10 cpp)
+ENDIF ()
 
 add_executable(indi_mgenautoguider ${indimgenautoguider_SRCS})
 

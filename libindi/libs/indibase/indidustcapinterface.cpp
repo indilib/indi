@@ -18,10 +18,9 @@
 
 */
 
-#include <string.h>
-
 #include "indidustcapinterface.h"
-#include "indilogger.h"
+
+#include <cstring>
 
 INDI::DustCapInterface::DustCapInterface()
 {
@@ -31,18 +30,21 @@ INDI::DustCapInterface::~DustCapInterface()
 {
 }
 
-void INDI::DustCapInterface::initDustCapProperties(const char * deviceName, const char * groupName)
+void INDI::DustCapInterface::initDustCapProperties(const char *deviceName, const char *groupName)
 {
     strncpy(dustCapName, deviceName, MAXINDIDEVICE);
 
     // Open/Close cover
     IUFillSwitch(&ParkCapS[CAP_PARK], "PARK", "Park", ISS_OFF);
     IUFillSwitch(&ParkCapS[CAP_UNPARK], "UNPARK", "Unpark", ISS_OFF);
-    IUFillSwitchVector(&ParkCapSP, ParkCapS, 2, deviceName, "CAP_PARK", "Dust Cover", groupName, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+    IUFillSwitchVector(&ParkCapSP, ParkCapS, 2, deviceName, "CAP_PARK", "Dust Cover", groupName, IP_RW, ISR_1OFMANY, 0,
+                       IPS_IDLE);
 }
 
-bool INDI::DustCapInterface::processDustCapSwitch (const char * dev, const char * name, ISState * states, char * names[], int n)
+bool INDI::DustCapInterface::processDustCapSwitch(const char *dev, const char *name, ISState *states, char *names[],
+                                                  int n)
 {
+    INDI_UNUSED(dev);
     // Park/UnPark Dust Cover
     if (!strcmp(ParkCapSP.name, name))
     {
@@ -59,7 +61,7 @@ bool INDI::DustCapInterface::processDustCapSwitch (const char * dev, const char 
             ParkCapS[prevSwitch].s = ISS_ON;
         }
 
-        IDSetSwitch(&ParkCapSP, NULL);
+        IDSetSwitch(&ParkCapSP, nullptr);
         return true;
     }
 

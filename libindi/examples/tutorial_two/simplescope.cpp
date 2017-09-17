@@ -19,23 +19,22 @@
     A simple GOTO telescope that simulator slewing operation.
 */
 
-#include <sys/time.h>
-#include <math.h>
-#include <memory>
-
 #include "simplescope.h"
+
 #include "indicom.h"
 
-const float SIDRATE  = 0.004178;			/* sidereal rate, degrees/s */
-const int   SLEW_RATE = 	1;  				/* slew rate, degrees/s */
-const int   POLLMS	 =	250;    			/* poll period, ms */
+#include <cmath>
+#include <memory>
+
+//const float SIDE_RATE = 0.004178; /* sidereal rate, degrees/s */
+const int SLEW_RATE = 1;        /* slew rate, degrees/s */
 
 std::unique_ptr<SimpleScope> simpleScope(new SimpleScope());
 
 /**************************************************************************************
 ** Return properties of device.
 ***************************************************************************************/
-void ISGetProperties (const char * dev)
+void ISGetProperties(const char *dev)
 {
     simpleScope->ISGetProperties(dev);
 }
@@ -43,7 +42,7 @@ void ISGetProperties (const char * dev)
 /**************************************************************************************
 ** Process new switch from client
 ***************************************************************************************/
-void ISNewSwitch (const char * dev, const char * name, ISState * states, char * names[], int n)
+void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
 {
     simpleScope->ISNewSwitch(dev, name, states, names, n);
 }
@@ -51,7 +50,7 @@ void ISNewSwitch (const char * dev, const char * name, ISState * states, char * 
 /**************************************************************************************
 ** Process new text from client
 ***************************************************************************************/
-void ISNewText (const char * dev, const char * name, char * texts[], char * names[], int n)
+void ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
 {
     simpleScope->ISNewText(dev, name, texts, names, n);
 }
@@ -59,7 +58,7 @@ void ISNewText (const char * dev, const char * name, char * texts[], char * name
 /**************************************************************************************
 ** Process new number from client
 ***************************************************************************************/
-void ISNewNumber (const char * dev, const char * name, double values[], char * names[], int n)
+void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
 {
     simpleScope->ISNewNumber(dev, name, values, names, n);
 }
@@ -67,7 +66,8 @@ void ISNewNumber (const char * dev, const char * name, double values[], char * n
 /**************************************************************************************
 ** Process new blob from client
 ***************************************************************************************/
-void ISNewBLOB (const char * dev, const char * name, int sizes[], int blobsizes[], char * blobs[], char * formats[], char * names[], int n)
+void ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[],
+               char *names[], int n)
 {
     simpleScope->ISNewBLOB(dev, name, sizes, blobsizes, blobs, formats, names, n);
 }
@@ -75,7 +75,7 @@ void ISNewBLOB (const char * dev, const char * name, int sizes[], int blobsizes[
 /**************************************************************************************
 ** Process snooped property from another driver
 ***************************************************************************************/
-void ISSnoopDevice (XMLEle * root)
+void ISSnoopDevice(XMLEle *root)
 {
     INDI_UNUSED(root);
 }
@@ -105,31 +105,19 @@ bool SimpleScope::initProperties()
 }
 
 /**************************************************************************************
-** Client is asking us to establish connection to the device
+** INDI is asking us to check communication with the device via a handshake
 ***************************************************************************************/
-bool SimpleScope::Connect()
+bool SimpleScope::Handshake()
 {
-    DEBUG(INDI::Logger::DBG_SESSION, "Simple Scope connected successfully!");
-
-    // Let's set a timer that checks telescopes status every POLLMS milliseconds.
-    SetTimer(POLLMS);
-
-    return true;
-}
-
-/**************************************************************************************
-** Client is asking us to terminate connection to the device
-***************************************************************************************/
-bool SimpleScope::Disconnect()
-{
-    DEBUG(INDI::Logger::DBG_SESSION, "Simple Scope disconnected successfully!");
+    // When communicating with a real mount, we check here if commands are receieved
+    // and acknolowedged by the mount. For SimpleScope, we simply return true.
     return true;
 }
 
 /**************************************************************************************
 ** INDI is asking us for our default device name
 ***************************************************************************************/
-const char * SimpleScope::getDefaultName()
+const char *SimpleScope::getDefaultName()
 {
     return "Simple Scope";
 }
@@ -139,9 +127,9 @@ const char * SimpleScope::getDefaultName()
 ***************************************************************************************/
 bool SimpleScope::Goto(double ra, double dec)
 {
-    targetRA = ra;
+    targetRA  = ra;
     targetDEC = dec;
-    char RAStr[64], DecStr[64];
+    char RAStr[64]={0}, DecStr[64]={0};
 
     // Parse the RA/DEC into strings
     fs_sexa(RAStr, targetRA, 2, 3600);
@@ -164,27 +152,28 @@ bool SimpleScope::Abort()
 {
     return true;
 }
+
 /**************************************************************************************
 ** Client is asking us to report telescope status
 ***************************************************************************************/
 bool SimpleScope::ReadScopeStatus()
 {
-    static struct timeval ltv;
-    struct timeval tv;
+    static struct timeval ltv { 0, 0 };
+    struct timeval tv { 0, 0 };
     double dt = 0, da_ra = 0, da_dec = 0, dx = 0, dy = 0;
     int nlocked;
 
     /* update elapsed time since last poll, don't presume exactly POLLMS */
-    gettimeofday (&tv, NULL);
+    gettimeofday(&tv, nullptr);
 
     if (ltv.tv_sec == 0 && ltv.tv_usec == 0)
         ltv = tv;
 
-    dt = tv.tv_sec - ltv.tv_sec + (tv.tv_usec - ltv.tv_usec) / 1e6;
+    dt  = tv.tv_sec - ltv.tv_sec + (tv.tv_usec - ltv.tv_usec) / 1e6;
     ltv = tv;
 
     // Calculate how much we moved since last time
-    da_ra = SLEW_RATE * dt;
+    da_ra  = SLEW_RATE * dt;
     da_dec = SLEW_RATE * dt;
 
     /* Process per current state. We check the state of EQUATORIAL_EOD_COORDS_REQUEST and act acoordingly */
@@ -240,15 +229,14 @@ bool SimpleScope::ReadScopeStatus()
             break;
     }
 
-    char RAStr[64], DecStr[64];
+    char RAStr[64]={0}, DecStr[64]={0};
 
     // Parse the RA/DEC into strings
     fs_sexa(RAStr, currentRA, 2, 3600);
     fs_sexa(DecStr, currentDEC, 2, 3600);
 
-    DEBUGF(DBG_SCOPE, "Current RA: %s Current DEC: %s", RAStr, DecStr );
+    DEBUGF(DBG_SCOPE, "Current RA: %s Current DEC: %s", RAStr, DecStr);
 
     NewRaDec(currentRA, currentDEC);
     return true;
 }
-

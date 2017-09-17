@@ -18,75 +18,72 @@
 
 */
 
-#ifndef MOONLITE_H
-#define MOONLITE_H
+#pragma once
 
-#include "indibase/indifocuser.h"
+#include "indifocuser.h"
 
 class MoonLite : public INDI::Focuser
 {
-    public:
-        MoonLite();
-        ~MoonLite();
+  public:
+    MoonLite();
+    virtual ~MoonLite() = default;
 
-        typedef enum { FOCUS_HALF_STEP, FOCUS_FULL_STEP } FocusStepMode;
+    typedef enum { FOCUS_HALF_STEP, FOCUS_FULL_STEP } FocusStepMode;
 
-        virtual bool Handshake();
-        const char * getDefaultName();
-        virtual bool initProperties();
-        virtual bool updateProperties();
-        virtual bool ISNewNumber (const char * dev, const char * name, double values[], char * names[], int n);
-        virtual bool ISNewSwitch (const char * dev, const char * name, ISState * states, char * names[], int n);
-        virtual IPState MoveFocuser(FocusDirection dir, int speed, uint16_t duration);
-        virtual IPState MoveAbsFocuser(uint32_t ticks);
-        virtual IPState MoveRelFocuser(FocusDirection dir, uint32_t ticks);
-        virtual bool SetFocuserSpeed(int speed);
-        virtual bool AbortFocuser();
-        virtual void TimerHit();
+    virtual bool Handshake();
+    const char *getDefaultName();
+    virtual bool initProperties();
+    virtual bool updateProperties();
+    virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n);
+    virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n);
+    virtual IPState MoveFocuser(FocusDirection dir, int speed, uint16_t duration);
+    virtual IPState MoveAbsFocuser(uint32_t targetTicks);
+    virtual IPState MoveRelFocuser(FocusDirection dir, uint32_t ticks);
+    virtual bool SetFocuserSpeed(int speed);
+    virtual bool AbortFocuser();
+    virtual void TimerHit();
 
-    private:
+  private:
+    void GetFocusParams();
+    bool sync(uint16_t offset);
+    bool updateStepMode();
+    bool updateTemperature();
+    bool updatePosition();
+    bool updateSpeed();
+    bool isMoving();
+    bool Ack();
 
-        double targetPos, lastPos, lastTemperature;
-        unsigned int currentSpeed;
+    bool MoveFocuser(unsigned int position);
+    bool setStepMode(FocusStepMode mode);
+    bool setSpeed(unsigned short speed);
+    bool setTemperatureCalibration(double calibration);
+    bool setTemperatureCoefficient(double coefficient);
+    bool setTemperatureCompensation(bool enable);
+    float CalcTimeLeft(timeval, float);
 
-        struct timeval focusMoveStart;
-        float focusMoveRequest;
+    double targetPos { 0 };
+    double lastPos { 0 };
+    double lastTemperature { 0 };
+    unsigned int currentSpeed { 0 };
 
-        void GetFocusParams();
-        bool sync(uint16_t offset);
-        bool updateStepMode();
-        bool updateTemperature();
-        bool updatePosition();
-        bool updateSpeed();
-        bool isMoving();
-        bool Ack();
+    struct timeval focusMoveStart { 0, 0 };
+    float focusMoveRequest { 0 };
 
-        bool MoveFocuser(unsigned int position);
-        bool setStepMode(FocusStepMode mode);
-        bool setSpeed(unsigned short speed);
-        bool setTemperatureCalibration(double calibration);
-        bool setTemperatureCoefficient(double coefficient);
-        bool setTemperatureCompensation(bool enable);
-        float CalcTimeLeft(timeval, float);
+    INumber TemperatureN[1];
+    INumberVectorProperty TemperatureNP;
 
-        INumber TemperatureN[1];
-        INumberVectorProperty TemperatureNP;
+    ISwitch StepModeS[2];
+    ISwitchVectorProperty StepModeSP;
 
-        ISwitch StepModeS[2];
-        ISwitchVectorProperty StepModeSP;
+    INumber MaxTravelN[1];
+    INumberVectorProperty MaxTravelNP;
 
-        INumber MaxTravelN[1];
-        INumberVectorProperty MaxTravelNP;
+    INumber TemperatureSettingN[2];
+    INumberVectorProperty TemperatureSettingNP;
 
-        INumber TemperatureSettingN[2];
-        INumberVectorProperty TemperatureSettingNP;
+    ISwitch TemperatureCompensateS[2];
+    ISwitchVectorProperty TemperatureCompensateSP;
 
-        ISwitch TemperatureCompensateS[2];
-        ISwitchVectorProperty TemperatureCompensateSP;
-
-        INumber SyncN[1];
-        INumberVectorProperty SyncNP;
-
+    INumber SyncN[1];
+    INumberVectorProperty SyncNP;
 };
-
-#endif // MOONLITE_H

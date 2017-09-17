@@ -22,47 +22,49 @@
   file called LICENSE.
 *******************************************************************************/
 
-#ifndef SQM_H
-#define SQM_H
+#pragma once
 
 #include "defaultdevice.h"
 
-namespace Connection
-{
-class TCP;
-}
-
 class SQM : public INDI::DefaultDevice
 {
-    public:
+  public:
+    SQM();
+    virtual ~SQM() = default;
 
-        SQM();
-        virtual ~SQM();
+    virtual bool initProperties();
+    virtual bool updateProperties();
 
-        virtual bool initProperties();
-        virtual bool updateProperties();
+    /**
+     * @struct SqmConnection
+     * @brief Holds the connection mode of the device.
+     */
+    enum
+    {
+        CONNECTION_NONE   = 1 << 0,
+        CONNECTION_SERIAL = 1 << 1,
+        CONNECTION_TCP    = 1 << 2
+    } SqmConnection;
 
-    protected:
+  protected:
+    const char *getDefaultName();
+    void TimerHit();
 
-        const char * getDefaultName();
-        void TimerHit();
+  private:
+    bool getReadings();
+    bool getDeviceInfo();
 
-    private:
+    // Readings
+    INumberVectorProperty AverageReadingNP;
+    INumber AverageReadingN[5];
 
-        bool getReadings();
-        bool getDeviceInfo();
+    // Device Information
+    INumberVectorProperty UnitInfoNP;
+    INumber UnitInfoN[4];
 
-        // Readings
-        INumberVectorProperty AverageReadingNP;
-        INumber AverageReadingN[5];
+    Connection::Serial *serialConnection { nullptr };
+    Connection::TCP *tcpConnection { nullptr };
 
-        // Device Information
-        INumberVectorProperty UnitInfoNP;
-        INumber UnitInfoN[4];
-
-        Connection::TCP * tcpConnection = NULL;
-
-        int PortFD = -1;
+    int PortFD { -1 };
+    uint8_t sqmConnection { CONNECTION_SERIAL | CONNECTION_TCP };
 };
-
-#endif

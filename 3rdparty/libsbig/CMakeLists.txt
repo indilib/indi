@@ -8,6 +8,9 @@ set(FIRMWARE_INSTALL_DIR "/lib/firmware")
 set(UDEVRULES_INSTALL_DIR "/lib/udev/rules.d" CACHE STRING "Base directory for udev rules")
 set(LIB_INSTALL_DIR "${CMAKE_INSTALL_PREFIX}/lib")
 
+SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-error")
+SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-error")
+
 IF(UNIX AND NOT WIN32 AND NOT APPLE)
  IF (CMAKE_HOST_SYSTEM_PROCESSOR MATCHES "armv6l")
     exec_program(cp ARGS ${CMAKE_CURRENT_SOURCE_DIR}/libsbigudrv_arm_v6.bin ${CMAKE_BINARY_DIR}/libsbigudrv.so.${SBIG_VERSION})

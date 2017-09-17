@@ -21,36 +21,44 @@
   The full GNU General Public License is included in this distribution in the
   file called LICENSE.
 *******************************************************************************/
+
 #include "STAR2000.h"
+
 #include "STAR2kdriver.h"
+#include "indistandardproperty.h"
+
+#include <cstring>
 #include <memory>
+
+#include <unistd.h>
 
 #define POLLMS 250
 
 // We declare an auto pointer to gpGuide.
 std::unique_ptr<STAR2000> s2kGuide(new STAR2000());
 
-void ISGetProperties(const char * dev)
+void ISGetProperties(const char *dev)
 {
     s2kGuide->ISGetProperties(dev);
 }
 
-void ISNewSwitch(const char * dev, const char * name, ISState * states, char * names[], int num)
+void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
 {
-    s2kGuide->ISNewSwitch(dev, name, states, names, num);
+    s2kGuide->ISNewSwitch(dev, name, states, names, n);
 }
 
-void ISNewText(	const char * dev, const char * name, char * texts[], char * names[], int num)
+void ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
 {
-    s2kGuide->ISNewText(dev, name, texts, names, num);
+    s2kGuide->ISNewText(dev, name, texts, names, n);
 }
 
-void ISNewNumber(const char * dev, const char * name, double values[], char * names[], int num)
+void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
 {
-    s2kGuide->ISNewNumber(dev, name, values, names, num);
+    s2kGuide->ISNewNumber(dev, name, values, names, n);
 }
 
-void ISNewBLOB (const char * dev, const char * name, int sizes[], int blobsizes[], char * blobs[], char * formats[], char * names[], int n)
+void ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[],
+               char *names[], int n)
 {
     INDI_UNUSED(dev);
     INDI_UNUSED(name);
@@ -62,51 +70,47 @@ void ISNewBLOB (const char * dev, const char * name, int sizes[], int blobsizes[
     INDI_UNUSED(n);
 }
 
-void ISSnoopDevice (XMLEle * root)
+void ISSnoopDevice(XMLEle *root)
 {
     INDI_UNUSED(root);
 }
 
-STAR2000::STAR2000()
+const char *STAR2000::getDefaultName()
 {
-    WEDir = NSDir = 0;
-}
-
-const char * STAR2000::getDefaultName()
-{
-    return (char *)"STAR2000";
+    return (const char *)"STAR2000";
 }
 
 bool STAR2000::Connect()
 {
     bool rc = false;
 
-    if(isConnected()) return true;
+    if (isConnected())
+        return true;
 
     rc = Connect(PortT[0].text);
 
-    if(rc)
+    if (rc)
         SetTimer(POLLMS);
 
     return rc;
-
 }
 
-bool STAR2000::Connect(char * port)
+bool STAR2000::Connect(char *port)
 {
     if (isSimulation())
     {
-        IDMessage (getDeviceName(), "Simulated STAR2000 box is online.");
+        IDMessage(getDeviceName(), "Simulated STAR2000 box is online.");
         return true;
     }
 
     if (ConnectSTAR2k(port) < 0)
     {
-        IDMessage(getDeviceName(), "Error connecting to port %s. Make sure you have BOTH write and read permission to your port.", port);
+        IDMessage(getDeviceName(),
+                  "Error connecting to port %s. Make sure you have BOTH write and read permission to your port.", port);
         return false;
     }
 
-    IDMessage (getDeviceName(), "STAR2000 box is online.");
+    IDMessage(getDeviceName(), "STAR2000 box is online.");
 
     return true;
 }
@@ -115,7 +119,7 @@ bool STAR2000::Disconnect()
 {
     IDMessage(getDeviceName(), "STAR200 box is offline.");
 
-    if (isSimulation() == false)
+    if (!isSimulation())
         DisconnectSTAR2k();
 
     return true;
@@ -123,18 +127,17 @@ bool STAR2000::Disconnect()
 
 bool STAR2000::initProperties()
 {
-
     bool rc = INDI::DefaultDevice::initProperties();
 
     IUFillText(&PortT[0], "PORT", "Port", "/dev/ttyUSB0");
-    IUFillTextVector(&PortTP, PortT, 1, getDeviceName(), "DEVICE_PORT", "Ports", OPTIONS_TAB, IP_RW, 60, IPS_IDLE);
+    IUFillTextVector(&PortTP, PortT, 1, getDeviceName(), INDI::SP::DEVICE_PORT, "Ports", OPTIONS_TAB, IP_RW, 60, IPS_IDLE);
 
     initGuiderProperties(getDeviceName(), MAIN_CONTROL_TAB);
     addDebugControl();
 
     setDriverInterface(TELESCOPE_INTERFACE);
 
-    return(rc);
+    return (rc);
 }
 
 bool STAR2000::updateProperties()
@@ -153,21 +156,20 @@ bool STAR2000::updateProperties()
     }
 
     return true;
-
 }
 
-void STAR2000::ISGetProperties (const char * dev)
+void STAR2000::ISGetProperties(const char *dev)
 {
     INDI::DefaultDevice::ISGetProperties(dev);
     defineText(&PortTP);
-    loadConfig(true, "DEVICE_PORT");
+    loadConfig(true, INDI::SP::DEVICE_PORT);
 }
 
-bool STAR2000::ISNewNumber (const char * dev, const char * name, double values[], char * names[], int n)
+bool STAR2000::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
 {
-    if(strcmp(dev, getDeviceName()) == 0)
+    if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
-        if (!strcmp(name, GuideNSNP.name) || !strcmp(name, GuideWENP.name))
+        if (strcmp(name, GuideNSNP.name) == 0 || strcmp(name, GuideWENP.name) == 0)
         {
             processGuiderProperties(name, values, names, n);
             return true;
@@ -177,46 +179,46 @@ bool STAR2000::ISNewNumber (const char * dev, const char * name, double values[]
     return INDI::DefaultDevice::ISNewNumber(dev, name, values, names, n);
 }
 
-bool STAR2000::ISNewSwitch (const char * dev, const char * name, ISState * states, char * names[], int n)
+bool STAR2000::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
 {
     return INDI::DefaultDevice::ISNewSwitch(dev, name, states, names, n);
 }
 
-bool STAR2000::ISNewText (const char * dev, const char * name, char * texts[], char * names[], int n)
+bool STAR2000::ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
 {
-    if(strcmp(name, PortTP.name) == 0)
+    if (strcmp(name, PortTP.name) == 0)
     {
         PortTP.s = IPS_OK;
         IUUpdateText(&PortTP, texts, names, n);
-        IDSetText(&PortTP, NULL);
+        IDSetText(&PortTP, nullptr);
 
-        return(true);
+        return true;
     }
 
     return INDI::DefaultDevice::ISNewText(dev, name, texts, names, n);
 }
 
-bool STAR2000::ISSnoopDevice (XMLEle * root)
+bool STAR2000::ISSnoopDevice(XMLEle *root)
 {
     return INDI::DefaultDevice::ISSnoopDevice(root);
 }
 
-bool STAR2000::saveConfigItems(FILE * fp)
+bool STAR2000::saveConfigItems(FILE *fp)
 {
     IUSaveConfigText(fp, &PortTP);
-    return(true);
+    return true;
 }
 
 float STAR2000::CalcWEPulseTimeLeft()
 {
     double timesince;
     double timeleft;
-    struct timeval now;
-    gettimeofday(&now, NULL);
+    struct timeval now { 0, 0 };
 
-    timesince = (double)(now.tv_sec * 1000.0 + now.tv_usec / 1000) - (double)(WEPulseStart.tv_sec * 1000.0 + WEPulseStart.tv_usec / 1000);
+    gettimeofday(&now, nullptr);
+    timesince = (double)(now.tv_sec * 1000.0 + now.tv_usec / 1000) -
+                (double)(WEPulseStart.tv_sec * 1000.0 + WEPulseStart.tv_usec / 1000);
     timesince = timesince / 1000;
-
 
     timeleft = WEPulseRequest - timesince;
     return timeleft;
@@ -226,30 +228,28 @@ float STAR2000::CalcNSPulseTimeLeft()
 {
     double timesince;
     double timeleft;
-    struct timeval now;
-    gettimeofday(&now, NULL);
+    struct timeval now { 0, 0 };
+    gettimeofday(&now, nullptr);
 
-    timesince = (double)(now.tv_sec * 1000.0 + now.tv_usec / 1000) - (double)(NSPulseStart.tv_sec * 1000.0 + NSPulseStart.tv_usec / 1000);
+    timesince = (double)(now.tv_sec * 1000.0 + now.tv_usec / 1000) -
+                (double)(NSPulseStart.tv_sec * 1000.0 + NSPulseStart.tv_usec / 1000);
     timesince = timesince / 1000;
-
 
     timeleft = NSPulseRequest - timesince;
     return timeleft;
 }
 
-
 void STAR2000::TimerHit()
 {
     float timeleft;
-    int rc;
 
-    if(InWEPulse)
+    if (InWEPulse)
     {
         timeleft = CalcWEPulseTimeLeft();
 
-        if(timeleft < 1.0)
+        if (timeleft < 1.0)
         {
-            if(timeleft > 0.25)
+            if (timeleft > 0.25)
             {
                 //  a quarter of a second or more
                 //  just set a tighter timer
@@ -257,7 +257,7 @@ void STAR2000::TimerHit()
             }
             else
             {
-                if(timeleft > 0.07)
+                if (timeleft > 0.07)
                 {
                     //  use an even tighter timer
                     WEtimerID = SetTimer(50);
@@ -265,7 +265,7 @@ void STAR2000::TimerHit()
                 else
                 {
                     //  it's real close now, so spin on it
-                    while(timeleft > 0)
+                    while (timeleft > 0)
                     {
                         int slv;
                         slv = 100000 * timeleft;
@@ -274,14 +274,12 @@ void STAR2000::TimerHit()
                         timeleft = CalcWEPulseTimeLeft();
                     }
 
-
                     StopPulse(WEDir);
                     InWEPulse = false;
 
                     // If we have another pulse, keep going
                     if (!InNSPulse)
                         SetTimer(250);
-
                 }
             }
         }
@@ -291,21 +289,21 @@ void STAR2000::TimerHit()
         }
     }
 
-    if(InNSPulse)
+    if (InNSPulse)
     {
         timeleft = CalcNSPulseTimeLeft();
 
-        if(timeleft < 1.0)
+        if (timeleft < 1.0)
         {
-            if(timeleft > 0.25)
+            if (timeleft > 0.25)
             {
                 //  a quarter of a second or more
                 //  just set a tighter timer
-                NStimerID =  SetTimer(250);
+                NStimerID = SetTimer(250);
             }
             else
             {
-                if(timeleft > 0.07)
+                if (timeleft > 0.07)
                 {
                     //  use an even tighter timer
                     NStimerID = SetTimer(50);
@@ -313,7 +311,7 @@ void STAR2000::TimerHit()
                 else
                 {
                     //  it's real close now, so spin on it
-                    while(timeleft > 0)
+                    while (timeleft > 0)
                     {
                         int slv;
                         slv = 100000 * timeleft;
@@ -332,12 +330,10 @@ void STAR2000::TimerHit()
             NStimerID = SetTimer(250);
         }
     }
-
 }
 
 IPState STAR2000::GuideNorth(float ms)
 {
-
     RemoveTimer(NStimerID);
 
     StartPulse(NORTH);
@@ -348,7 +344,6 @@ IPState STAR2000::GuideNorth(float ms)
 
     if (ms <= POLLMS)
     {
-
         usleep(ms * 1000);
 
         StopPulse(NORTH);
@@ -357,7 +352,7 @@ IPState STAR2000::GuideNorth(float ms)
     }
 
     NSPulseRequest = ms / 1000.0;
-    gettimeofday(&NSPulseStart, NULL);
+    gettimeofday(&NSPulseStart, nullptr);
     InNSPulse = true;
 
     NStimerID = SetTimer(ms - 50);
@@ -385,13 +380,12 @@ IPState STAR2000::GuideSouth(float ms)
     }
 
     NSPulseRequest = ms / 1000.0;
-    gettimeofday(&NSPulseStart, NULL);
+    gettimeofday(&NSPulseStart, nullptr);
     InNSPulse = true;
 
     NStimerID = SetTimer(ms - 50);
 
     return IPS_BUSY;
-
 }
 
 IPState STAR2000::GuideEast(float ms)
@@ -414,7 +408,7 @@ IPState STAR2000::GuideEast(float ms)
     }
 
     WEPulseRequest = ms / 1000.0;
-    gettimeofday(&WEPulseStart, NULL);
+    gettimeofday(&WEPulseStart, nullptr);
     InWEPulse = true;
 
     WEtimerID = SetTimer(ms - 50);
@@ -442,7 +436,7 @@ IPState STAR2000::GuideWest(float ms)
     }
 
     WEPulseRequest = ms / 1000.0;
-    gettimeofday(&WEPulseStart, NULL);
+    gettimeofday(&WEPulseStart, nullptr);
     InWEPulse = true;
 
     WEtimerID = SetTimer(ms - 50);

@@ -18,116 +18,117 @@
     Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
-#ifndef IEQPRO_H
-#define IEQPRO_H
+#pragma once
 
-#include "inditelescope.h"
-#include "indiguiderinterface.h"
-#include "indicontroller.h"
 #include "ieqprodriver.h"
+#include "indiguiderinterface.h"
+#include "inditelescope.h"
 
 class IEQPro : public INDI::Telescope, public INDI::GuiderInterface
 {
-    public:
-        IEQPro();
-        ~IEQPro();
+  public:
 
-        virtual bool ISNewNumber (const char * dev, const char * name, double values[], char * names[], int n);
-        virtual bool ISNewSwitch (const char * dev, const char * name, ISState * states, char * names[], int n);
+    IEQPro();
+    ~IEQPro();
 
-    protected:
+    virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
+    virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
 
-        virtual const char * getDefaultName();
+  protected:
+    virtual const char *getDefaultName() override;
 
-        virtual bool Handshake();
+    virtual bool Handshake() override;
 
-        virtual bool initProperties();
-        virtual bool updateProperties();
+    virtual bool initProperties() override;
+    virtual bool updateProperties() override;
 
-        virtual bool ReadScopeStatus();
+    virtual bool ReadScopeStatus() override;
 
-        virtual bool MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command);
-        virtual bool MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command);
+    virtual bool MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command) override;
+    virtual bool MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command) override;
 
-        virtual bool saveConfigItems(FILE * fp);
+    virtual bool saveConfigItems(FILE *fp) override;
 
-        virtual bool Park();
-        virtual bool UnPark();
+    virtual bool Park() override;
+    virtual bool UnPark() override;
 
-        virtual bool Sync(double ra, double dec);
-        virtual bool Goto(double, double);
-        virtual bool Abort();
+    virtual bool Sync(double ra, double dec) override;
+    virtual bool Goto(double, double) override;
+    virtual bool Abort() override;
 
-        virtual bool updateTime(ln_date * utc, double utc_offset);
-        virtual bool updateLocation(double latitude, double longitude, double elevation);
+    virtual bool updateTime(ln_date *utc, double utc_offset) override;
+    virtual bool updateLocation(double latitude, double longitude, double elevation) override;
 
-        virtual void debugTriggered(bool enable);
-        virtual void simulationTriggered(bool enable);
+    virtual void debugTriggered(bool enable) override;
+    virtual void simulationTriggered(bool enable) override;
 
-        // Parking
-        virtual bool SetCurrentPark();
-        virtual bool SetDefaultPark();
+    // Parking
+    virtual bool SetCurrentPark() override;
+    virtual bool SetDefaultPark() override;
 
-        // Slew Rate
-        bool SetSlewRate(int index);
+    // Track Mode
+    virtual bool SetTrackMode(uint8_t mode) override;
 
-        // Sim
-        void mountSim();
+    // Track Rate
+    virtual bool SetTrackRate(double raRate, double deRate) override;
 
-        // Guide
-        virtual IPState GuideNorth(float ms);
-        virtual IPState GuideSouth(float ms);
-        virtual IPState GuideEast(float ms);
-        virtual IPState GuideWest(float ms);
+    // Track On/Off
+    virtual bool SetTrackEnabled(bool enabled) override;
 
-    private:
+    // Slew Rate
+    virtual bool SetSlewRate(int index) override;
 
-        /**
+    // Sim
+    void mountSim();
+
+    // Guide
+    virtual IPState GuideNorth(float ms) override;
+    virtual IPState GuideSouth(float ms) override;
+    virtual IPState GuideEast(float ms) override;
+    virtual IPState GuideWest(float ms) override;
+
+  private:
+    /**
         * @brief getStartupData Get initial mount info on startup.
         */
-        void getStartupData();
+    void getStartupData();
 
-        /* Firmware */
-        IText   FirmwareT[5];
-        ITextVectorProperty FirmwareTP;
+    /* Firmware */
+    IText FirmwareT[5];
+    ITextVectorProperty FirmwareTP;
 
-        /* Tracking Mode */
-        ISwitchVectorProperty TrackModeSP;
-        ISwitch TrackModeS[4];
+    /* Tracking Mode */
+    //ISwitchVectorProperty TrackModeSP;
+    //ISwitch TrackModeS[4];
 
-        /* Custom Tracking Rate */
-        INumber CustomTrackRateN[1];
-        INumberVectorProperty CustomTrackRateNP;
+    /* Custom Tracking Rate */
+    //INumber CustomTrackRateN[1];
+    //INumberVectorProperty CustomTrackRateNP;
 
-        /* GPS Status */
-        ISwitch GPSStatusS[3];
-        ISwitchVectorProperty GPSStatusSP;
+    /* GPS Status */
+    ISwitch GPSStatusS[3];
+    ISwitchVectorProperty GPSStatusSP;
 
-        /* Time Source */
-        ISwitch TimeSourceS[3];
-        ISwitchVectorProperty TimeSourceSP;
+    /* Time Source */
+    ISwitch TimeSourceS[3];
+    ISwitchVectorProperty TimeSourceSP;
 
-        /* Hemisphere */
-        ISwitch HemisphereS[2];
-        ISwitchVectorProperty HemisphereSP;
+    /* Hemisphere */
+    ISwitch HemisphereS[2];
+    ISwitchVectorProperty HemisphereSP;
 
-        /* Home Control */
-        ISwitch HomeS[3];
-        ISwitchVectorProperty HomeSP;
+    /* Home Control */
+    ISwitch HomeS[3];
+    ISwitchVectorProperty HomeSP;
 
-        /* Guide Rate */
-        INumber GuideRateN[1];
-        INumberVectorProperty GuideRateNP;
+    /* Guide Rate */
+    INumber GuideRateN[1];
+    INumberVectorProperty GuideRateNP;
 
-        unsigned int DBG_SCOPE;
-        double currentRA, currentDEC;
-        double targetRA, targetDEC;
-        double parkRA, parkDEC;
+    unsigned int DBG_SCOPE;
+    double currentRA, currentDEC;
+    double targetRA, targetDEC;
 
-        IEQInfo scopeInfo;
-        FirmwareInfo firmwareInfo;
-
+    IEQInfo scopeInfo;
+    FirmwareInfo firmwareInfo;
 };
-
-#endif
-

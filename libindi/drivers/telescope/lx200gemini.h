@@ -23,53 +23,70 @@
     Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
-#ifndef LX200GEMINI_H
-#define LX200GEMINI_H
+#pragma once
 
 #include "lx200generic.h"
 
 class LX200Gemini : public LX200Generic
 {
-    public:
+  public:
+    LX200Gemini();
+    ~LX200Gemini() {}
 
-        LX200Gemini();
-        ~LX200Gemini() {}
+    virtual void ISGetProperties(const char *dev) override;
+    virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
 
-        virtual void ISGetProperties(const char * dev);
-        virtual bool ISNewSwitch (const char * dev, const char * name, ISState * states, char * names[], int n);
+  protected:
+    virtual const char *getDefaultName() override;
 
-    protected:
-        virtual const char * getDefaultName();
+    virtual bool initProperties() override ;
+    virtual bool updateProperties() override;
 
-        virtual bool initProperties();
-        virtual bool updateProperties();
+    virtual bool isSlewComplete() override;
+    virtual bool ReadScopeStatus() override;
 
-        virtual bool isSlewComplete();
-        virtual bool ReadScopeStatus();
+    virtual bool Park()override ;
+    virtual bool UnPark() override;
 
-        virtual bool Park();
-        virtual bool UnPark();
+    virtual bool SetTrackMode(uint8_t mode) override;
 
-        virtual bool checkConnection();
+    virtual bool checkConnection() override;
 
-        virtual bool saveConfigItems(FILE * fp);
+    virtual bool saveConfigItems(FILE *fp) override;
 
-    private:
-        void syncSideOfPier();
-        bool sleepMount();
-        bool wakeupMount();
+  private:
+    void syncSideOfPier();
+    bool sleepMount();
+    bool wakeupMount();
 
+    // Checksum for private commands
+    uint8_t calculateChecksum(char *cmd);
 
-        ISwitch ParkSettingsS[3];
-        ISwitchVectorProperty ParkSettingsSP;
-        enum { PARK_HOME, PARK_STARTUP, PARK_ZENITH };
+    ISwitch ParkSettingsS[3];
+    ISwitchVectorProperty ParkSettingsSP;
+    enum
+    {
+        PARK_HOME,
+        PARK_STARTUP,
+        PARK_ZENITH
+    };
 
-        ISwitch StartupModeS[3];
-        ISwitchVectorProperty StartupModeSP;
-        enum { COLD_START, WARM_START, WARM_RESTART };
+    ISwitch StartupModeS[3];
+    ISwitchVectorProperty StartupModeSP;
+    enum
+    {
+        COLD_START,
+        WARM_START,
+        WARM_RESTART
+    };
 
-        const uint8_t GEMINI_TIMEOUT = 3;
+    enum
+    {
+        GEMINI_TRACK_SIDEREAL,
+        GEMINI_TRACK_KING,
+        GEMINI_TRACK_LUNAR,
+        GEMINI_TRACK_SOLAR
 
+    };
+    const uint8_t GEMINI_TIMEOUT = 3;
 };
-
-#endif

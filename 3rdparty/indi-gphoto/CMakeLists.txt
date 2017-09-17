@@ -8,15 +8,13 @@ LIST(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake_modules/")
 LIST(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/../../cmake_modules/")
 include(GNUInstallDirs)
 
+set(UDEVRULES_INSTALL_DIR "/lib/udev/rules.d" CACHE STRING "Base directory for udev rules")
+
 SET(BIN_INSTALL_DIR "${CMAKE_INSTALL_PREFIX}/bin")
 SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall" )
 SET(CMAKE_CXX_FLAGS_DEBUG "-O0 -g -DDEBUG_FITS" )
 SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall" )
 SET(CMAKE_C_FLAGS_DEBUG "-O0 -g -DDEBUG_FITS" )
-
-if (NOT WIN32 AND NOT ANDROID)
-set(CMAKE_CXX_FLAGS "-std=c++11 ${CMAKE_CXX_FLAGS}")
-endif(NOT WIN32 AND NOT ANDROID)
 
 find_package(CFITSIO REQUIRED)
 find_package(INDI REQUIRED)
@@ -25,9 +23,12 @@ find_package(GPHOTO2 REQUIRED)
 find_package(Threads REQUIRED)
 find_package(JPEG REQUIRED)
 find_package(LibRaw REQUIRED)
+find_package(USB-1 REQUIRED)
 
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/config.h.cmake ${CMAKE_CURRENT_BINARY_DIR}/config.h )
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/indi_gphoto.xml.cmake ${CMAKE_CURRENT_BINARY_DIR}/indi_gphoto.xml )
+
+include(CMakeCommon)
 
 #find_program(DCRAW_EXECUTABLE NAMES dcraw
 #    PATHS
@@ -44,6 +45,7 @@ include_directories( ${INDI_INCLUDE_DIR})
 include_directories( ${CFITSIO_INCLUDE_DIR})
 include_directories( ${GPHOTO2_INCLUDE_DIR})
 include_directories( ${LibRaw_INCLUDE_DIR})
+include_directories( ${LIBUSB_1_INCLUDE_DIRS})
 
 #if (CMAKE_HOST_SYSTEM_PROCESSOR MATCHES "arm*")
 #add_definitions(-DUSE_THUMB_SIZE)
@@ -54,7 +56,14 @@ set(indigphoto_SRCS
    ${CMAKE_CURRENT_SOURCE_DIR}/gphoto_ccd.cpp
    ${CMAKE_CURRENT_SOURCE_DIR}/gphoto_driver.cpp
    ${CMAKE_CURRENT_SOURCE_DIR}/gphoto_readimage.cpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/dsusbdriver.cpp
    )
+
+IF (UNITY_BUILD)
+    ENABLE_UNITY_BUILD(indigphoto indi_gphotoSRCS 10 cpp)
+ENDIF ()
+
+SET_SOURCE_FILES_PROPERTIES(gphoto_readimage.cpp PROPERTIES COMPILE_FLAGS "-Wno-deprecated-declarations")
 
 add_executable(indi_gphoto_ccd ${indigphoto_SRCS})
 
@@ -67,3 +76,8 @@ exec_program(\"${CMAKE_COMMAND}\" ARGS -E create_symlink ${BIN_INSTALL_DIR}/indi
 set_target_properties(indi_gphoto_ccd PROPERTIES POST_INSTALL_SCRIPT ${CMAKE_CURRENT_BINARY_DIR}/make_gphoto_symlink.cmake)
 
 install(FILES ${CMAKE_CURRENT_BINARY_DIR}/indi_gphoto.xml DESTINATION ${INDI_DATA_DIR})
+
+# Disable automount for DSLR cameras
+IF (UNIX AND NOT APPLE)
+    install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/85-disable-dslr-automout.rules DESTINATION ${UDEVRULES_INSTALL_DIR})
+ENDIF ()

@@ -18,43 +18,40 @@
  Boston, MA 02110-1301, USA.
 *******************************************************************************/
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <termios.h>
-#include <unistd.h>
-
 #include "skycommander.h"
+
 #include "indicom.h"
 
 #include <memory>
+#include <termios.h>
 
-#define SKYCOMMANDER_TIMEOUT    3
+#define SKYCOMMANDER_TIMEOUT 3
 
 // We declare an auto pointer to SkyCommander.
 std::unique_ptr<SkyCommander> skycommander(new SkyCommander());
 
-void ISGetProperties(const char * dev)
+void ISGetProperties(const char *dev)
 {
     skycommander->ISGetProperties(dev);
 }
 
-void ISNewSwitch(const char * dev, const char * name, ISState * states, char * names[], int num)
+void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
 {
-    skycommander->ISNewSwitch(dev, name, states, names, num);
+    skycommander->ISNewSwitch(dev, name, states, names, n);
 }
 
-void ISNewText(	const char * dev, const char * name, char * texts[], char * names[], int num)
+void ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
 {
-    skycommander->ISNewText(dev, name, texts, names, num);
+    skycommander->ISNewText(dev, name, texts, names, n);
 }
 
-void ISNewNumber(const char * dev, const char * name, double values[], char * names[], int num)
+void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
 {
-    skycommander->ISNewNumber(dev, name, values, names, num);
+    skycommander->ISNewNumber(dev, name, values, names, n);
 }
 
-void ISNewBLOB (const char * dev, const char * name, int sizes[], int blobsizes[], char * blobs[], char * formats[], char * names[], int n)
+void ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[],
+               char *names[], int n)
 {
     INDI_UNUSED(dev);
     INDI_UNUSED(name);
@@ -65,7 +62,7 @@ void ISNewBLOB (const char * dev, const char * name, int sizes[], int blobsizes[
     INDI_UNUSED(names);
     INDI_UNUSED(n);
 }
-void ISSnoopDevice (XMLEle * root)
+void ISSnoopDevice(XMLEle *root)
 {
     skycommander->ISSnoopDevice(root);
 }
@@ -75,13 +72,9 @@ SkyCommander::SkyCommander()
     SetTelescopeCapability(0, 0);
 }
 
-SkyCommander::~SkyCommander()
+const char *SkyCommander::getDefaultName()
 {
-}
-
-const char * SkyCommander::getDefaultName()
-{
-    return (char *)"SkyCommander";
+    return (const char *)"SkyCommander";
 }
 
 bool SkyCommander::Handshake()
@@ -98,7 +91,7 @@ bool SkyCommander::ReadScopeStatus()
 
     tcflush(PortFD, TCIFLUSH);
 
-    if ( (rc = tty_write(PortFD, CR, 1, &nbytes_written)) != TTY_OK)
+    if ((rc = tty_write(PortFD, CR, 1, &nbytes_written)) != TTY_OK)
     {
         char errmsg[256];
         tty_error_msg(rc, errmsg, 256);
@@ -107,7 +100,7 @@ bool SkyCommander::ReadScopeStatus()
     }
 
     char coords[16];
-    if ( (rc = tty_read(PortFD, coords, 16, SKYCOMMANDER_TIMEOUT, &nbytes_read)) != TTY_OK)
+    if ((rc = tty_read(PortFD, coords, 16, SKYCOMMANDER_TIMEOUT, &nbytes_read)) != TTY_OK)
     {
         char errmsg[256];
         tty_error_msg(rc, errmsg, 256);

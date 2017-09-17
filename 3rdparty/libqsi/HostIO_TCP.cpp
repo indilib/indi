@@ -52,7 +52,7 @@ HostIO_TCP::HostIO_TCP(void)
 #else
 	m_TCP_Stack_OK = true;
 #endif 
-
+	m_sock = 0;
 	m_log->Write(2, _T("TCP/IP Constructor Done."));
 }
 
@@ -71,13 +71,13 @@ HostIO_TCP::~HostIO_TCP(void)
 int HostIO_TCP::ListDevices(std::vector<CameraID> &vID)
 {
 	QSI_Registry reg;
-	in_addr ipAddr;
 	vID.clear();
 //
 // TODO
 // No TCP devices for now
 //
 #ifdef HASTCPIP
+	in_addr ipAddr;	
 	ipAddr.S_un.S_addr = reg.GetIPv4Addresss(true, MAKEIPADDRESS(0,0,0,0));
 	CameraID cID("", ipAddr);
 	vID.push_back(cID);
@@ -225,8 +225,6 @@ int HostIO_TCP::Write(unsigned char * sendBuf, int bytesToSend, int *bytesSent )
 
 int HostIO_TCP::Read(unsigned char * recvBuf, int bytesRequested, int * bytesReceived)
 {
-	int bytesRecv = 0;
-
 	*bytesReceived = recv(m_sock, reinterpret_cast<char *>(recvBuf), bytesRequested, 0);
 	if (*bytesReceived == -1)
 	{
@@ -327,6 +325,26 @@ int HostIO_TCP::SetIOTimeout(IOTimeout ioTimeout)
 	}
 	m_log->Write(2,  _T("TCP/IP SetIOTimeouts Done."));
 	return SetTimeouts (iReadTO, iWriteTO)	;	
+}
+
+int HostIO_TCP::MaxBytesPerReadBlock()
+{
+	return 65536;
+}
+
+int HostIO_TCP::WritePacket(UCHAR * pBuff, int iBuffLen, int * iBytesWritten)
+{
+	return 0;
+}
+
+int HostIO_TCP::ReadPacket(UCHAR * pBuff, int iBuffLen, int * iBytesRead)
+{
+	return 0;
+}
+
+IOType HostIO_TCP::GetTransferType()
+{
+	return IOType_MultiRow;
 }
 
 int HostIO_TCP::TCPIP_ErrorDecode()

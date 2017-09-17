@@ -18,71 +18,58 @@
  Boston, MA 02110-1301, USA.
 *******************************************************************************/
 
-#ifndef CONNECTIONTCP_H
-#define CONNECTIONTCP_H
+#pragma once
 
 #include "connectioninterface.h"
 
+#include <stdint.h>
+#include <cstdlib>
+#include <string>
+
 namespace Connection
 {
+/**
+ * @brief The TCP class manages connection with devices over the network via TCP/IP.
+ * Upon successfull connection, reads & writes from and to the device are performed via the returned file descriptor
+ * using standard UNIX read/write functions.
+ */
 
 class TCP : public Interface
 {
+  public:
+    TCP(INDI::DefaultDevice *dev);
+    virtual ~TCP();
 
-    public:
+    virtual bool Connect();
 
-        TCP(INDI::DefaultDevice * dev);
-        virtual ~TCP();
+    virtual bool Disconnect();
 
-        virtual bool Connect();
+    virtual void Activated();
 
-        virtual bool Disconnect();
+    virtual void Deactivated();
 
-        virtual void Activated();
+    virtual std::string name() { return "CONNECTION_TCP"; }
 
-        virtual void Deactivated();
+    virtual std::string label() { return "Ethernet"; }
 
-        virtual const std::string name()
-        {
-            return "CONNECTION_TCP";
-        }
+    virtual const char *host() { return AddressT[0].text; }
+    virtual uint32_t port() { return atoi(AddressT[0].text); }
 
-        virtual const std::string label()
-        {
-            return "Ethernet";
-        }
+    virtual bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n);
+    virtual bool saveConfigItems(FILE *fp);
 
-        virtual const char * host()
-        {
-            return AddressT[0].text;
-        }
-        virtual const uint32_t port()
-        {
-            return atoi(AddressT[0].text);
-        }
+    int getPortFD() const { return PortFD; }
+    void setDefaultHost(const char *addressHost);
+    void setDefaultPort(uint32_t addressPort);
 
-        virtual bool ISNewText (const char * dev, const char * name, char * texts[], char * names[], int n);
-        virtual bool saveConfigItems(FILE * fp);
+  protected:
+    // IP Address/Port
+    ITextVectorProperty AddressTP;
+    IText AddressT[2];
 
-        const int getPortFD() const
-        {
-            return PortFD;
-        }
-        void setDefaultHost(const char * addressHost);
-        void setDefaultPort(uint32_t addressPort);
+    int sockfd                   = -1;
+    const uint8_t SOCKET_TIMEOUT = 5;
 
-    protected:
-
-        // IP Address/Port
-        ITextVectorProperty AddressTP;
-        IText AddressT[2];
-
-        int sockfd = -1;
-        const uint8_t SOCKET_TIMEOUT = 5;
-
-        int PortFD = -1;
+    int PortFD = -1;
 };
-
 }
-
-#endif
