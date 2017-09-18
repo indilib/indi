@@ -45,14 +45,22 @@ int dspau_autocorrelate(double* in, double* out, int *c, int skip)
 {
 	int len = *c;
 	int l = (len / 2) - (len % 2);
-	double* x;
+	double min, mid, max;
+	mid = dspau_minmidmax(in, len, &min, &max);
+	dspau_sub1(in, out, len, mid);
 	for(int i = skip; i < l; i++) {
-		x = in + i;
-		out[i - skip] = 0;
-		for(int j = 0; j < l; j++) {
-			out[i - skip] += in[j] * x[j];
+		double x1 = 0;
+		double x2 = 0;
+		double y = 0;
+		for(int j = skip; j < l; j++) {
+			y += out[j] * out[j + i];
+			x1 += out[j];
+			x2 += out[j + i];
 		}
+		out[i - skip] = y / (x1 * x2);
 	}
+	dspau_sub(&out[l], &out[l], &out[l], len - l);
+	mid = dspau_stretch(out, out, len, -1.0, 1.0);
 	*c = (l - skip);
 	return 0;
 }

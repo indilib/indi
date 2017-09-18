@@ -103,8 +103,8 @@ class CelestronGPS : public INDI::Telescope, public INDI::GuiderInterface
     //INumberVectorProperty HorizontalCoordsNP;
     //INumber HorizontalCoordsN[2];
 
-    ISwitch TrackS[4];
-    ISwitchVectorProperty TrackSP;
+    //ISwitch TrackS[4];
+    //ISwitchVectorProperty TrackSP;
 
     //GUIDE Pulse guide switch
     ISwitchVectorProperty UsePulseCmdSP;

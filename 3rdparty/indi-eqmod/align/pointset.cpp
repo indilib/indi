@@ -134,6 +134,7 @@ PointSet::PointSet(INDI::Telescope *t)
 {
     telescope  = t;
     lnalignpos = NULL;
+    PointSetInitialized = false;
 }
 
 const char *PointSet::getDeviceName()
@@ -241,12 +242,18 @@ int PointSet::getNbTriangles()
     return Triangulation->getFaces().size();
 }
 
+bool PointSet::isInitialized()
+{
+    return  PointSetInitialized;
+}
+
 void PointSet::Init()
 {
     //  PointSetMap=NULL;
     PointSetMap     = new std::map<HtmID, Point>();
     Triangulation   = new TriangulateCHull(PointSetMap);
     PointSetXmlRoot = NULL;
+    PointSetInitialized=true;
 }
 
 void PointSet::Reset()

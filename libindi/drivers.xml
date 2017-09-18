@@ -145,10 +145,10 @@
                 <driver name="Telescope Simulator">indi_simulator_telescope</driver>
                 <version>1.0</version>
         </device>
-        <device label="Skywatcher API Mount" focal_length="" aperture="">
-                <driver name="Skywatcher API Mount">indi_skywatcherAPIMount</driver>
+        <device label="Skywatcher Alt-Az Mount" focal_length="" aperture="">
+                <driver name="Skywatcher Alt-Az Mount">indi_skywatcherAltAzMount</driver>
                 <version>1.0</version>
-        </device>        
+        </device>
         <device label="Telescope Scripting Gateway" focal_length="" aperture="">
           <driver name="Telescope  Scripting Gateway">indi_script_telescope</driver>
           <version>1.0</version>
@@ -190,6 +190,10 @@
         <device label="USBFocusV3">
                 <driver name="USBFocusV3">indi_usbfocusv3_focus</driver>
                 <version>0.1</version>
+        </device>
+        <device label="Pegasus DMFC">
+                <driver name="Pegasus DMFC">indi_dmfc_focus</driver>
+                <version>1.0</version>
         </device>
         <device label="Microtouch">
                 <driver name="Microtouch">indi_microtouch_focus</driver>

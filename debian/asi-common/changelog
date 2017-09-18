@@ -1,3 +1,9 @@
+asi-common (0.8.0) xenial; urgency=medium
+
+  * Simplify rules, remove separate filter wheel rule.
+
+ -- Jasem Mutlaq <mutlaqja@ikarustech.com>  Mon, 18 Sep 2017 08:30:00 +0300
+
 asi-common (0.7.0) xenial; urgency=medium
 
   * Initial release.

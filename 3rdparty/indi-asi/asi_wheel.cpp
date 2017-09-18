@@ -162,9 +162,9 @@ ASIWHEEL::ASIWHEEL(int id, EFW_INFO info, bool enumerate)
     char str[100];
 
     if (enumerate)
-        snprintf(str, sizeof(str), "%s %d", info.Name, id);
+        snprintf(str, sizeof(str), "ASI %s %d", info.Name, id);
     else
-        strncpy(str, info.Name, sizeof(str));
+        snprintf(str, sizeof(str), "ASI %s", info.Name);
 
     fw_id              = id;
     CurrentFilter      = 0;
@@ -199,7 +199,7 @@ void ASIWHEEL::simulationTriggered(bool enable)
 
 const char *ASIWHEEL::getDefaultName()
 {
-    return (char *)"ASI Wheel";
+    return (char *)"ASI EFW";
 }
 
 bool ASIWHEEL::GetFilterNames(const char *groupName)
