@@ -31,7 +31,7 @@ LX200FS2::LX200FS2() : LX200Generic()
     setVersion(2, 1);
 
     SetTelescopeCapability(
-        TELESCOPE_CAN_PARK | TELESCOPE_CAN_SYNC | TELESCOPE_CAN_GOTO | TELESCOPE_CAN_ABORT, 4);
+        TELESCOPE_CAN_PARK | TELESCOPE_CAN_SYNC | TELESCOPE_CAN_GOTO | TELESCOPE_HAS_LOCATION | TELESCOPE_CAN_ABORT, 4);
 }
 
 bool LX200FS2::initProperties()
@@ -259,5 +259,13 @@ bool LX200FS2::SetDefaultPark()
     // Altitude = latitude of observer
     SetAxis2Park(LocationN[LOCATION_LATITUDE].value);
 
+    return true;
+}
+
+bool LX200FS2::updateLocation(double latitude, double longitude, double elevation)
+{
+    INDI_UNUSED(latitude);
+    INDI_UNUSED(longitude);
+    INDI_UNUSED(elevation);
     return true;
 }

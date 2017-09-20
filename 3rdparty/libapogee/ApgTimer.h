@@ -39,11 +39,11 @@ class DLL_EXPORT ApgTimer
 //from http://www.unknownroad.com/rtfm/VisualStudio/warningC4251.html
 #ifdef WIN_OS
 #if _MSC_VER < 1600
-        template class DLL_EXPORT std::tr1::shared_ptr<ITimer>;
+        template class DLL_EXPORT std::shared_ptr<ITimer>;
 #endif
 #endif
 
-        std::tr1::shared_ptr<ITimer> m_timer;
+        std::shared_ptr<ITimer> m_timer;
 }; 
 
 #endif

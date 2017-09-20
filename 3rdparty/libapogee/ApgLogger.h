@@ -56,7 +56,7 @@ class ApgLogger
         ApgLogger & operator=(ApgLogger  const&); 
         ~ApgLogger(); 
 
-        std::tr1::shared_ptr<ILog> m_theLogger;
+        std::shared_ptr<ILog> m_theLogger;
         ApgLogger::Level m_level;
 }; 
 

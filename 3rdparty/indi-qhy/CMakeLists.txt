@@ -13,7 +13,7 @@ find_package(USB-1 REQUIRED)
 find_package(Threads REQUIRED)
 
 set(INDI_QHY_VERSION_MAJOR 1)
-set(INDI_QHY_VERSION_MINOR 6)
+set(INDI_QHY_VERSION_MINOR 7)
 
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/config.h.cmake ${CMAKE_CURRENT_BINARY_DIR}/config.h )
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/indi_qhy.xml.cmake ${CMAKE_CURRENT_BINARY_DIR}/indi_qhy.xml )
@@ -50,4 +50,14 @@ endif (CMAKE_HOST_SYSTEM_PROCESSOR MATCHES "arm*")
 install(TARGETS indi_qhy_ccd RUNTIME DESTINATION bin )
 
 install(FILES ${CMAKE_CURRENT_BINARY_DIR}/indi_qhy.xml DESTINATION ${INDI_DATA_DIR})
+
+########### qhy_test_ccd ###########
+add_executable(qhy_ccd_test ${CMAKE_CURRENT_SOURCE_DIR}/qhy_ccd_test.cpp)
+target_link_libraries(qhy_ccd_test ${QHY_LIBRARIES} ${LIBUSB_1_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT})
+
+if (CMAKE_HOST_SYSTEM_PROCESSOR MATCHES "arm*")
+    target_link_libraries(qhy_ccd_test rt)
+endif (CMAKE_HOST_SYSTEM_PROCESSOR MATCHES "arm*")
+
+install(TARGETS qhy_ccd_test RUNTIME DESTINATION bin )
 

@@ -2,7 +2,7 @@
 <driversList>
  <devGroup group="CCDs">
    <device label="iNova PLX">
-     <driver name="iNova PLX">indi_inova_ccd</driver>
+     <driver name="iNova PLX">indi_inovaplx_ccd</driver>
      <version>@INOVAPLX_VERSION_MAJOR@.@INOVAPLX_VERSION_MINOR@</version>
    </device>
  </devGroup>

@@ -108,6 +108,7 @@ CelestronGPS::CelestronGPS()
 
     fwInfo.Version           = "Invalid";
     fwInfo.controllerVersion = 0;
+    fwInfo.controllerVariant = ISNEXSTAR;
 
     INDI::Logger::getInstance().addDebugLevel("Scope Verbose", "SCOPE");
 
@@ -185,7 +186,7 @@ void CelestronGPS::ISGetProperties(const char *dev)
     {
         //defineNumber(&HorizontalCoordsNP);
         defineSwitch(&SlewRateSP);
-        defineSwitch(&TrackSP);
+        //defineSwitch(&TrackSP);
 
         //GUIDE Define guiding properties
         defineSwitch(&UsePulseCmdSP);
@@ -201,7 +202,7 @@ bool CelestronGPS::updateProperties()
 {
     if (isConnected())
     {
-        uint32_t cap = TELESCOPE_CAN_GOTO | TELESCOPE_CAN_ABORT | TELESCOPE_CAN_PARK | TELESCOPE_HAS_TRACK_MODE | TELESCOPE_CAN_CONTROL_TRACK;
+        uint32_t cap = TELESCOPE_CAN_GOTO | TELESCOPE_CAN_ABORT;
 
         if (get_celestron_firmware(PortFD, &fwInfo))
         {
@@ -217,19 +218,49 @@ bool CelestronGPS::updateProperties()
             DEBUG(INDI::Logger::DBG_WARNING, "Failed to retrive firmware information.");
         }
 
-        if (fwInfo.controllerVersion <= 4.1)
+    /* Since issues have been observed with Starsense, enabe parking only with Nexstar controller       */
+
+    if (fwInfo.controllerVariant == ISSTARSENSE)
+	{
+		if (fwInfo.controllerVersion >= MINSTSENSVER)
+		{
+                    DEBUG(INDI::Logger::DBG_SESSION, "Starsense controller detected.");
+		}
+		else
+		{
+                    DEBUGF(INDI::Logger::DBG_WARNING, "Starsense controller detected, but firmware is too old. Current version is %4.2f, but minimum required version is %4.2f. Please update your Starsense firmware.", fwInfo.controllerVersion, MINSTSENSVER);
+		}
+	}
+	else
+	{    
+		cap |= TELESCOPE_CAN_PARK;
+	}
+
+        if (((fwInfo.controllerVariant == ISSTARSENSE) && 
+             (fwInfo.controllerVersion < MINSTSENSVER)) ||
+            ((fwInfo.controllerVariant == ISNEXSTAR) &&
+             (fwInfo.controllerVersion <= 4.1)))
         {
             DEBUG(INDI::Logger::DBG_WARNING, "Mount firmware does not support sync.");
         }
         else
             cap |= TELESCOPE_CAN_SYNC;
 
-        if (fwInfo.controllerVersion < 2.3)
+        if (((fwInfo.controllerVariant == ISSTARSENSE) && 
+             (fwInfo.controllerVersion < MINSTSENSVER)) ||
+            ((fwInfo.controllerVariant == ISNEXSTAR) &&
+             (fwInfo.controllerVersion < 2.3)))
         {
             DEBUG(INDI::Logger::DBG_WARNING, "Mount firmware does not support update of time and location settings.");
         }
         else
             cap |= TELESCOPE_HAS_TIME | TELESCOPE_HAS_LOCATION;
+
+
+        if (fwInfo.controllerVersion >= 2.3)
+            cap |= TELESCOPE_HAS_TRACK_MODE | TELESCOPE_CAN_CONTROL_TRACK;
+        else
+            DEBUG(INDI::Logger::DBG_WARNING, "Mount firmware does not support track mode.");
 
         SetTelescopeCapability(cap, 9);
 
@@ -258,25 +289,32 @@ bool CelestronGPS::updateProperties()
         defineNumber(&GuideNSNP);
         defineNumber(&GuideWENP);
 
-        CELESTRON_TRACK_MODE mode;
-        if (get_celestron_track_mode(PortFD, &mode))
+        // Track Mode (t) is only supported for 2.3+
+        if (fwInfo.controllerVersion >= 2.3)
         {
-            if (mode != TRACKING_OFF)
+            CELESTRON_TRACK_MODE mode;
+            if (get_celestron_track_mode(PortFD, &mode))
             {
-                IUResetSwitch(&TrackSP);
-                TrackS[mode-1].s = ISS_ON;
-                TrackSP.s      = IPS_OK;
+                if (mode != TRACKING_OFF)
+                {
+                    //IUResetSwitch(&TrackSP);
+                    IUResetSwitch(&TrackModeSP);
+                    TrackModeS[mode-1].s = ISS_ON;
+                    TrackModeSP.s      = IPS_OK;
 
-                TrackState = SCOPE_TRACKING;
+                    TrackState = SCOPE_TRACKING;
+                }
+                else
+                {
+                    DEBUG(INDI::Logger::DBG_SESSION, "Mount tracking is off.");
+                    TrackState = SCOPE_IDLE;
+                }
             }
             else
-            {
-                DEBUG(INDI::Logger::DBG_SESSION, "Mount tracking is off.");
-                TrackState = SCOPE_IDLE;
-            }
+                TrackModeSP.s = IPS_ALERT;
+
+            IDSetSwitch(&TrackModeSP, nullptr);
         }
-        else
-            TrackSP.s = IPS_ALERT;
 
         // JM 2014-04-14: User (davidw) reported AVX mount serial communication times out issuing "h" command with firmware 5.28
         // Therefore disabling query until it is fixed.
@@ -311,7 +349,7 @@ bool CelestronGPS::updateProperties()
         deleteProperty(GuideNSNP.name);
         deleteProperty(GuideWENP.name);
 
-        deleteProperty(TrackSP.name);
+        //deleteProperty(TrackSP.name);
         if (fwInfo.Version != "Invalid")
             deleteProperty(FirmwareTP.name);
     }
@@ -351,7 +389,10 @@ bool CelestronGPS::Goto(double ra, double dec)
 
 bool CelestronGPS::Sync(double ra, double dec)
 {
-    if (fwInfo.controllerVersion <= 4.1)
+    if (((fwInfo.controllerVariant == ISSTARSENSE) && 
+         (fwInfo.controllerVersion < MINSTSENSVER)) ||
+        ((fwInfo.controllerVariant == ISNEXSTAR) &&
+         (fwInfo.controllerVersion <= 4.1)))
     {
         DEBUGF(INDI::Logger::DBG_WARNING, "Firmwre version 4.1 or higher is required to sync. Current version is %3.1f",
                fwInfo.controllerVersion);
@@ -589,9 +630,10 @@ bool CelestronGPS::Abort()
 
 bool CelestronGPS::Handshake()
 {
+    set_celestron_device(getDeviceName());
+
     if (isSimulation())
     {
-        set_celestron_device(getDeviceName());
         set_celestron_simulation(true);
         set_sim_slew_rate(SR_5);
         set_sim_ra(0);
@@ -914,7 +956,10 @@ bool CelestronGPS::updateLocation(double latitude, double longitude, double elev
 {
     INDI_UNUSED(elevation);
 
-    if (fwInfo.controllerVersion < 2.3)
+    if (((fwInfo.controllerVariant == ISSTARSENSE) && 
+         (fwInfo.controllerVersion < MINSTSENSVER)) ||
+        ((fwInfo.controllerVariant == ISNEXSTAR) &&
+         (fwInfo.controllerVersion < 2.3)))
     {
         DEBUGF(INDI::Logger::DBG_WARNING,
                "Firmwre version 2.3 or higher is required to update location. Current version is %3.1f",
@@ -927,7 +972,10 @@ bool CelestronGPS::updateLocation(double latitude, double longitude, double elev
 
 bool CelestronGPS::updateTime(ln_date *utc, double utc_offset)
 {
-    if (fwInfo.controllerVersion < 2.3)
+    if (((fwInfo.controllerVariant == ISSTARSENSE) && 
+         (fwInfo.controllerVersion < MINSTSENSVER)) ||
+        ((fwInfo.controllerVariant == ISNEXSTAR) &&
+         (fwInfo.controllerVersion < 2.3)))
     {
         DEBUGF(INDI::Logger::DBG_WARNING,
                "Firmwre version 2.3 or higher is required to update time. Current version is %3.1f",
@@ -1084,7 +1132,7 @@ bool CelestronGPS::saveConfigItems(FILE *fp)
     INDI::Telescope::saveConfigItems(fp);
 
     IUSaveConfigSwitch(fp, &UseHibernateSP);
-    IUSaveConfigSwitch(fp, &TrackSP);
+    //IUSaveConfigSwitch(fp, &TrackSP);
     IUSaveConfigSwitch(fp, &UsePulseCmdSP);
 
     return true;

@@ -86,6 +86,7 @@ NightCrawler::NightCrawler()
 {
     // Can move in Absolute & Relative motions, can AbortFocuser motion, and has variable speed.
     SetFocuserCapability(FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_REL_MOVE | FOCUSER_CAN_ABORT);
+    SetRotatorCapability(ROTATOR_CAN_ABORT | ROTATOR_CAN_HOME | ROTATOR_CAN_SYNC);
 }
 
 bool NightCrawler::initProperties()
@@ -143,21 +144,7 @@ bool NightCrawler::initProperties()
     // Rotator Properties
     /////////////////////////////////////////////////////
 
-    // Rotator GOTO
-    IUFillNumber(&RotatorAbsPosN[0], "ROTATOR_ABSOLUTE_POSITION", "Ticks", "%.f", 0., 0., 0., 0.);
-    IUFillNumberVector(&RotatorAbsPosNP, RotatorAbsPosN, 1, getDeviceName(), "ABS_ROTATOR_POSITION", "Goto", ROTATOR_TAB, IP_RW, 0, IPS_IDLE );
-
-    // Rotator Degree
-    IUFillNumber(&RotatorAbsAngleN[0], "ANGLE", "Degrees", "%.2f", 0, 360., 10., 0.);
-    IUFillNumberVector(&RotatorAbsAngleNP, RotatorAbsAngleN, 1, getDeviceName(), "ABS_ROTATOR_ANGLE", "Angle", ROTATOR_TAB, IP_RW, 0, IPS_IDLE );
-
-    // Abort Rotator
-    IUFillSwitch(&AbortRotatorS[0], "ABORT", "Abort", ISS_OFF);
-    IUFillSwitchVector(&AbortRotatorSP, AbortRotatorS, 1, getDeviceName(), "ROTATOR_ABORT_MOTION", "Abort Motion", ROTATOR_TAB, IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
-
-    // Rotator Sync
-    IUFillNumber(&SyncRotatorN[0], "ROTATOR_SYNC_TICK", "Ticks", "%.f", 0, 100000., 0., 0.);
-    IUFillNumberVector(&SyncRotatorNP, SyncRotatorN, 1, getDeviceName(), "SYNC_ROTATOR", "Sync", ROTATOR_TAB, IP_RW, 0, IPS_IDLE );
+    INDI::RotatorInterface::initProperties(this, ROTATOR_TAB);
 
     // Rotator Step Delay
     IUFillNumber(&RotatorStepDelayN[0], "ROTATOR_STEP", "Value", "%.f", 7, 100., 1., 7.);
@@ -221,10 +208,7 @@ bool NightCrawler::updateProperties()
         defineSwitch(&FindHomeSP);
 
         // Rotator
-        defineNumber(&RotatorAbsPosNP);
-        defineNumber(&RotatorAbsAngleNP);
-        defineSwitch(&AbortRotatorSP);
-        defineNumber(&SyncRotatorNP);
+        INDI::RotatorInterface::updateProperties(this);
         defineNumber(&RotatorStepDelayNP);        
 
         // Aux
@@ -247,10 +231,7 @@ bool NightCrawler::updateProperties()
         deleteProperty(HomeSelectionSP.name);
 
         // Rotator
-        deleteProperty(RotatorAbsPosNP.name);
-        deleteProperty(RotatorAbsAngleNP.name);
-        deleteProperty(AbortRotatorSP.name);
-        deleteProperty(SyncRotatorNP.name);
+        INDI::RotatorInterface::updateProperties(this);
         deleteProperty(RotatorStepDelayNP.name);
 
         // Aux
@@ -515,22 +496,6 @@ bool NightCrawler::ISNewSwitch (const char * dev, const char * name, ISState * s
             IDSetSwitch(&EncoderSP, nullptr);
             return true;
         }
-        else if (strcmp(name, AbortRotatorSP.name) == 0)
-        {
-            AbortRotatorSP.s = stopMotor(MOTOR_ROTATOR) ? IPS_OK : IPS_ALERT;
-            IDSetSwitch(&AbortRotatorSP, nullptr);
-            if (AbortRotatorSP.s == IPS_OK)
-            {
-                if (RotatorAbsPosNP.s != IPS_OK)
-                {
-                    RotatorAbsPosNP.s = IPS_OK;
-                    RotatorAbsAngleNP.s = IPS_OK;
-                    IDSetNumber(&RotatorAbsPosNP, nullptr);
-                    IDSetNumber(&RotatorAbsAngleNP, nullptr);
-                }
-            }
-            return true;
-        }
         else if (strcmp(name, AbortAuxSP.name) == 0)
         {
             AbortAuxSP.s = stopMotor(MOTOR_AUX) ? IPS_OK : IPS_ALERT;
@@ -544,6 +509,11 @@ bool NightCrawler::ISNewSwitch (const char * dev, const char * name, ISState * s
                 }
             }
             return true;
+        }
+        else if (strstr(name, "ROTATOR"))
+        {
+            if (INDI::RotatorInterface::processSwitch(dev, name, states, names, n))
+                return true;
         }
     }
 
@@ -563,17 +533,7 @@ bool NightCrawler::ISNewNumber (const char * dev, const char * name, double valu
 
             IDSetNumber(&SyncFocusNP, nullptr);
             return true;
-        }
-        else if (strcmp(name, SyncRotatorNP.name) == 0)
-        {
-            bool rc = syncMotor(MOTOR_ROTATOR, static_cast<uint32_t>(values[0]));
-            SyncRotatorNP.s = rc ? IPS_OK : IPS_ALERT;
-            if (rc)
-                SyncRotatorN[0].value = values[0];
-
-            IDSetNumber(&SyncRotatorNP, nullptr);
-            return true;
-        }
+        }       
         else if (strcmp(name, SyncAuxNP.name) == 0)
         {
             bool rc = syncMotor(MOTOR_AUX, static_cast<uint32_t>(values[0]));
@@ -630,43 +590,7 @@ bool NightCrawler::ISNewNumber (const char * dev, const char * name, double valu
 
             IDSetNumber(&BrightnessNP, nullptr);
             return true;
-        }
-        else if (strcmp(name, RotatorAbsPosNP.name) == 0)
-        {
-           bool rc = gotoMotor(MOTOR_ROTATOR, static_cast<int32_t>(values[0]));
-
-           RotatorAbsPosNP.s = rc ? IPS_BUSY : IPS_OK;
-           IDSetNumber(&RotatorAbsPosNP, nullptr);
-           DEBUGF(INDI::Logger::DBG_SESSION, "Rotator moving to %.f ticks...", values[0]);
-           return true;
-        }
-        else if (strcmp(name, RotatorAbsAngleNP.name) == 0)
-        {
-           // Find shortest distance given target degree
-           double a=values[0];
-           double b=RotatorAbsAngleN[0].value;
-           double d=fabs(a-b);
-           double r=(d > 180) ? 360 - d : d;
-           int sign = (a - b >= 0 && a - b <= 180) || (a - b <=-180 && a- b>= -360) ? 1 : -1;
-
-           r *= sign;
-
-           double newTarget = (r+b) * ticksPerDegree;
-
-           if (newTarget < RotatorAbsPosN[0].min)
-               newTarget -= RotatorAbsPosN[0].min;
-           else if (newTarget > RotatorAbsPosN[0].max)
-               newTarget -= RotatorAbsPosN[0].max;
-
-           bool rc = gotoMotor(MOTOR_ROTATOR, static_cast<int32_t>(newTarget));
-
-           RotatorAbsPosNP.s = rc ? IPS_BUSY : IPS_OK;
-           RotatorAbsAngleNP.s = rc ? IPS_BUSY : IPS_OK;
-           IDSetNumber(&RotatorAbsAngleNP, nullptr);
-           IDSetNumber(&RotatorAbsPosNP, nullptr);
-           DEBUGF(INDI::Logger::DBG_SESSION, "Rotator moving to %.2f degrees (%.f ticks)...", values[0], newTarget);
-           return true;
-        }
+        }        
         else if (strcmp(name, GotoAuxNP.name) == 0)
         {
            bool rc = gotoMotor(MOTOR_AUX, static_cast<int32_t>(values[0]));
@@ -674,6 +598,11 @@ bool NightCrawler::ISNewNumber (const char * dev, const char * name, double valu
            IDSetNumber(&GotoAuxNP, nullptr);
            DEBUGF(INDI::Logger::DBG_SESSION, "Aux moving to %.f...", values[0]);
            return true;
+        }
+        else if (strstr(name, "ROTATOR"))
+        {
+            if (INDI::RotatorInterface::processNumber(dev, name, values, names, n))
+                return true;
         }
     }
 
@@ -1373,4 +1302,72 @@ bool NightCrawler::saveConfigItems(FILE *fp)
     IUSaveConfigNumber(fp, &AuxStepDelayNP);
 
     return true;
+}
+
+IPState NightCrawler::MoveAbsRotator(uint32_t ticks)
+{
+    bool rc = gotoMotor(MOTOR_ROTATOR, ticks);
+
+    if (rc)
+        return IPS_BUSY;
+
+    return IPS_ALERT;
+}
+
+IPState NightCrawler::HomeRotator()
+{
+    if (findHome(0x02))
+    {
+        FindHomeSP.s = IPS_BUSY;
+        FindHomeS[0].s = ISS_ON;
+        IDSetSwitch(&FindHomeSP, nullptr);
+        DEBUG(INDI::Logger::DBG_WARNING, "Homing process can take up to 10 minutes. You cannot control the unit until the process is fully complete.");
+        return IPS_BUSY;
+    }
+    else
+    {
+        FindHomeSP.s = IPS_ALERT;
+        FindHomeS[0].s = ISS_OFF;
+        IDSetSwitch(&FindHomeSP, nullptr);
+        DEBUG(INDI::Logger::DBG_ERROR, "Failed to start homing process.");
+        return IPS_ALERT;
+    }
+
+    return IPS_ALERT;
+}
+
+IPState NightCrawler::MoveAngleRotator(double angle)
+{
+    // Find shortest distance given target degree
+    double a=angle;
+    double b=RotatorAbsAngleN[0].value;
+    double d=fabs(a-b);
+    double r=(d > 180) ? 360 - d : d;
+    int sign = (a - b >= 0 && a - b <= 180) || (a - b <=-180 && a- b>= -360) ? 1 : -1;
+
+    r *= sign;
+
+    double newTarget = (r+b) * ticksPerDegree;
+
+    if (newTarget < RotatorAbsPosN[0].min)
+        newTarget -= RotatorAbsPosN[0].min;
+    else if (newTarget > RotatorAbsPosN[0].max)
+        newTarget -= RotatorAbsPosN[0].max;
+
+    bool rc = gotoMotor(MOTOR_ROTATOR, static_cast<int32_t>(newTarget));
+
+    if (rc)
+        return IPS_BUSY;
+
+    return IPS_ALERT;
+}
+
+bool NightCrawler::SyncRotator(uint32_t ticks)
+{
+    return syncMotor(MOTOR_ROTATOR, ticks);
+}
+
+bool NightCrawler::AbortRotator()
+{
+    return stopMotor(MOTOR_ROTATOR);
 }
