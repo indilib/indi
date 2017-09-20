@@ -337,6 +337,7 @@ SET(indidriver_CXX_SRC
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indiusbdevice.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indiguiderinterface.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indifilterinterface.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indirotatorinterface.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indidome.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indigps.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indiweather.cpp
@@ -645,6 +646,13 @@ add_executable(indi_moonlite_focus ${moonlite_SRC})
 target_link_libraries(indi_moonlite_focus indidriver)
 install(TARGETS indi_moonlite_focus RUNTIME DESTINATION bin)
 
+################ Pegasus DMFC Focuser ################
+SET(pegasus_SRC
+    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/focuser/dmfc.cpp)
+
+add_executable(indi_dmfc_focus ${pegasus_SRC})
+target_link_libraries(indi_dmfc_focus indidriver)
+install(TARGETS indi_dmfc_focus RUNTIME DESTINATION bin)
 ################## USB Focus V3 ##################
 
 SET(usbfocusv3_SRC
@@ -1167,6 +1175,7 @@ if (INDI_BUILD_DRIVERS OR INDI_BUILD_CLIENT OR INDI_BUILD_QT5_CLIENT)
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/inditelescope.h
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indiguiderinterface.h
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indifilterinterface.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indirotatorinterface.h
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indiproperty.h
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indistandardproperty.h
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indidome.h

@@ -510,7 +510,7 @@ class INDI::Dome : public INDI::DefaultDevice
 
     void triggerSnoop(const char *driverName, const char *propertyName);
 
-    INDI::Controller *controller;
+    INDI::Controller *controller = nullptr;
 
     DomeState domeState;
 
@@ -529,8 +529,8 @@ class INDI::Dome : public INDI::DefaultDevice
 
     double Axis1ParkPosition;
     double Axis1DefaultParkPosition;
-    bool HaveLatLong;
-    bool HaveRaDec;
+    bool HaveLatLong = false;
+    bool HaveRaDec = false;
 
     bool callHandshake();
     uint8_t domeConnection = CONNECTION_SERIAL | CONNECTION_TCP;

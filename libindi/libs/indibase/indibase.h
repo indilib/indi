@@ -23,6 +23,7 @@
        It is the base class for all drivers and may \e only used by drivers directly, it cannot be used by clients.</li>
    <li>FilterInterface: Basic interface for filter wheels functions.</li>
    <li>GuiderInterface: Basic interface for guider (ST4) port functions.</li>
+   <li>RotatorInterface: Basic interface for Rotator functions.</li>
    <li>DustCapInterface: Basic interface remotely controlled dust covers.</li>
    <li>LightBoxInterface: Basic interface for remotely controlled light boxes/switches.</li>
    <li>CCD: Base class for CCD drivers. Provides basic support for single chip CCD and CCDs with a guide head as well.</li>
@@ -47,6 +48,7 @@ class BaseClientQt;
 class BaseDevice;
 class DefaultDevice;
 class FilterInterface;
+class RotatorInterface;
 class GuiderInterface;
 class FocuserInterface;
 class DomeInterface;

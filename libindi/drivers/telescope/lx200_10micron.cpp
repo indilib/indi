@@ -33,7 +33,7 @@
 
 LX200_10MICRON::LX200_10MICRON() : LX200Generic()
 {
-    setLX200Capability(0);
+    setLX200Capability(LX200_HAS_TRACKING_FREQ);
     setVersion(1, 0);
 }
 
@@ -322,3 +322,13 @@ bool LX200_10MICRON::UnPark()
     SetParked(false);
     return true;
 }
+
+bool LX200_10MICRON::SyncConfigBehaviour(bool cmcfg)
+{
+    DEBUG(INDI::Logger::DBG_SESSION, "SyncConfig.");
+    if (setCommandInt(fd, cmcfg, "#:CMCFG") < 0) {
+        return false;
+    }
+    return true;
+}
+

@@ -485,7 +485,7 @@ bool LX200Generic::ReadScopeStatus()
             IDSetSwitch(&SlewRateSP, nullptr);
 
             TrackState = SCOPE_TRACKING;
-            IDMessage(getDeviceName(), "Slew is complete. Tracking...");
+            DEBUG(INDI::Logger::DBG_SESSION, "Slew is complete. Tracking...");
         }
     }
     else if (TrackState == SCOPE_PARKING)
@@ -661,7 +661,7 @@ bool LX200Generic::Park()
 
     ParkSP.s   = IPS_BUSY;
     TrackState = SCOPE_PARKING;
-    IDMessage(getDeviceName(), "Parking telescope in progress...");
+    DEBUG(INDI::Logger::DBG_SESSION, "Parking telescope in progress...");
     return true;
 }
 
@@ -754,7 +754,7 @@ bool LX200Generic::Abort()
             GuideNSTID = 0;
         }
 
-        IDMessage(getDeviceName(), "Guide aborted.");
+        DEBUG(INDI::Logger::DBG_SESSION, "Guide aborted.");
         IDSetNumber(&GuideNSNP, nullptr);
         IDSetNumber(&GuideWENP, nullptr);
 
@@ -825,7 +825,7 @@ bool LX200Generic::updateLocation(double latitude, double longitude, double elev
     fs_sexa(l, latitude, 3, 3600);
     fs_sexa(L, longitude, 4, 3600);
 
-    IDMessage(getDeviceName(), "Site location updated to Lat %.32s - Long %.32s", l, L);
+    DEBUGF(INDI::Logger::DBG_SESSION, "Site location updated to Lat %.32s - Long %.32s", l, L);
 
     return true;
 }
@@ -1265,7 +1265,7 @@ void LX200Generic::getBasicData()
         if (GetTelescopeCapability() & TELESCOPE_HAS_TIME)
         {
             if (getTimeFormat(PortFD, &timeFormat) < 0)
-                IDMessage(getDeviceName(), "Failed to retrieve time format from device.");
+                DEBUG(INDI::Logger::DBG_ERROR, "Failed to retrieve time format from device.");
             else
             {
                 int ret = 0;
@@ -1282,7 +1282,7 @@ void LX200Generic::getBasicData()
             SiteNameT[0].text = new char[64];
 
             if (getSiteName(PortFD, SiteNameT[0].text, currentSiteNum) < 0)
-                IDMessage(getDeviceName(), "Failed to get site name from device");
+                DEBUG(INDI::Logger::DBG_ERROR, "Failed to get site name from device");
             else
                 IDSetText(&SiteNameTP, nullptr);
         }
@@ -1291,7 +1291,7 @@ void LX200Generic::getBasicData()
         if (genericCapability & LX200_HAS_TRACKING_FREQ)
         {
             if (getTrackFreq(PortFD, &TrackFreqN[0].value) < 0)
-                IDMessage(getDeviceName(), "Failed to get tracking frequency from device.");
+                DEBUG(INDI::Logger::DBG_ERROR, "Failed to get tracking frequency from device.");
             else
                 IDSetNumber(&TrackingFreqNP, nullptr);
         }
