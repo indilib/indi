@@ -16,7 +16,9 @@ then
     eval $REMOTEKILLEXEC
 elif [[ "$INDISERVER" = "localhost" && "$INDITUNNEL" = "true" && "$INDISTARTREMOTE" = "false" ]]
 then
-    echo "TODO: Kill remote tunnel" #TODO:
+    PID=`cat /var/run/meteostationWEB.pid`
+    kill $PID
+    rm /var/run/meteostationWEB.pid
 fi
 
 unset IFS

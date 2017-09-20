@@ -10,15 +10,17 @@
 source meteoconfig.py
 
 ./stopMETEO.sh
+
 if [[ "$INDISERVER" = "localhost" && "$INDITUNNEL" = "false" ]]
 then
-    eval $INDILOCALEXEC
+    eval $INDILOCALEXEC &
 elif [[ "$INDISERVER" = "localhost" && "$INDITUNNEL" = "true" && "$INDISTARTREMOTE" = "true" ]]
 then
     eval $INDIREMOTEFORKEXEC
 elif [[ "$INDISERVER" = "localhost" && "$INDITUNNEL" = "true" && "$INDISTARTREMOTE" = "false" ]]
 then
     eval $INDIREMOTEEXEC
+    echo $! > /var/run/meteostationWEB.pid
 fi
 
 unset IFS

@@ -22,7 +22,7 @@ INDISTARTREMOTE="false"
 INDIPORT="7624"
 
 #2). Remote
-#by defining INDISERVER with hostname,
+#by defining INDISERVER with hostname or IP,
 #and leaving INDITUNNEL="false",
 #meteostationWEB will connect to indiserver at INDISERVER:INDIPORT
 #INDISERVER="FQDN or IP"
@@ -35,7 +35,7 @@ INDIPORT="7624"
 #and setting INDITUNNEL="true" and INDISTARTREMOTE="true",
 #then meteostationWEB will open a ssh connection to SSHSERVER:SSHPORT,
 #and start indiserver on remote machine on INDIREMOTEPORT,
-#and tunnel indiserver to INDISERVER:INDIPORT
+#and tunnel indiserver to localhost:INDIPORT
 #INDISERVER="localhost"
 #INDITUNNEL="true"
 #INDIPORT="7624"
@@ -48,7 +48,7 @@ INDIPORT="7624"
 #by defining INDISERVER as localhost,
 #and setting INDITUNNEL="true" and INDISTARTREMOTE="false",
 #then meteostationWEB will open a ssh connection to SSHSERVER:SSHPORT,
-#and tunnel indiserver on remote machine running on INDIREMOTEPORT to INDISERVER:INDIPORT
+#and tunnel indiserver on remote machine running on INDIREMOTEPORT to localhost:INDIPORT
 #INDISERVER="localhost"
 #INDITUNNEL="true"
 #INDIPORT="7624"
@@ -87,7 +87,7 @@ INDIEXEC="indiserver$INDIVERBOSE -f $INDIFIFODIR -p"
 DUINOEXEC="echo start indi_duino -n \\\"$INDIDEVICE\\\" -s \\\"$METEOSTATIONSKELETONDIR\\\" > $INDIFIFODIR"
 
 #3). Local exec
-INDILOCALEXEC="$KILLEXEC; rm $INDIFIFODIR; mkfifo $INDIFIFODIR; $INDIEXEC $INDIPORT & $DUINOEXEC $EXECNOOUTPUT"
+INDILOCALEXEC="$KILLEXEC; rm $INDIFIFODIR; mkfifo $INDIFIFODIR; $INDIEXEC $INDIPORT & $DUINOEXEC"
 
 #4). SSH tunnel
 SSHTUNNEL="-i $SSHKEYDIR $SSHUSERNAME@$SSHSERVER -p $SSHPORT -4 -L $INDIPORT:$INDISERVER:$INDIREMOTEPORT"
@@ -102,12 +102,12 @@ INDIREMOTEEXEC="ssh -fN -o ExitOnForwardFailure=yes $SSHTUNNEL $EXECNOOUTPUT"
 
 
 ##### SITE RELATED ####
-OWNERNAME="Nacho Mas"
-SITENAME="MADRID"
-ALTITUDE=630
+OWNERNAME="Magnus W. Eriksen"
+SITENAME="Observatory17b.com"
+ALTITUDE=10
 #Visit http://weather.uwyo.edu/upperair/sounding.html
 #See the sounding location close your site
-SOUNDINGSTATION="08221"
+SOUNDINGSTATION="ENZV"
 
 ##### RRD RELATED #####
 #PATH TO GRAPHs
@@ -115,8 +115,8 @@ CHARTPATH="./html/CHART/"
 #EUMETSAT lastimagen. Choose one from:
 #http://oiswww.eumetsat.org/IPPS/html/latestImages.html
 #This is nice but only work at daylight time:
-#EUMETSAT_LAST="http://oiswww.eumetsat.org/IPPS/html/latestImages/EUMETSAT_MSG_RGB-naturalcolor-westernEurope.jpg"
+#EUMETSAT_LAST="http://oiswww.eumetsat.org/IPPS/html/latestImages/EUMETSAT_MSG_RGBNatColour_WesternEurope.jpg"
 #This show rain
-#EUMETSAT_LAST="http://oiswww.eumetsat.org/IPPS/html/latestImages/EUMETSAT_MSG_MPE-westernEurope.jpg"
+#EUMETSAT_LAST="http://oiswww.eumetsat.org/IPPS/html/latestImages/EUMETSAT_MSG_MPE_WesternEurope.png"
 #and this cloud cover at IR 39. Work at night
-EUMETSAT_LAST="http://oiswww.eumetsat.org/IPPS/html/latestImages/EUMETSAT_MSG_IR039E-westernEurope.jpg"
+EUMETSAT_LAST="http://oiswww.eumetsat.org/IPPS/html/latestImages/EUMETSAT_MSG_IR039_WesternEurope.jpg"
