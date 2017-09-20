@@ -97,6 +97,7 @@ protected:
 
     ISwitch GainS[3];
     ISwitchVectorProperty GainSP;
+    enum { GAIN_HIGH, GAIN_LOW, GAIN_AUTO };
 
     ISwitch FanS[3];
     ISwitchVectorProperty FanSP;
