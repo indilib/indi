@@ -22,12 +22,12 @@
 
 #include "indirotator.h"
 
-class Pyrix : public INDI::Rotator
+class Pyxis : public INDI::Rotator
 {
   public:
 
-    Pyrix();
-    virtual ~Pyrix() = default;
+    Pyxis();
+    virtual ~Pyxis() = default;
 
     virtual bool Handshake();
     const char * getDefaultName();

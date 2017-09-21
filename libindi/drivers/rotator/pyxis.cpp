@@ -18,7 +18,7 @@
 
 */
 
-#include "pyrix.h"
+#include "pyxis.h"
 
 #include "indicom.h"
 #include "connectionplugins/connectionserial.h"
@@ -28,31 +28,31 @@
 #include <memory>
 #include <termios.h>
 
-#define PYRIX_TIMEOUT 3
+#define PYXIS_TIMEOUT 3
 #define PYRIX_CMD 6
 #define POLLMS 500
 #define SETTINGS_TAB    "Settings"
 
-std::unique_ptr<Pyrix> pyrix(new Pyrix());
+std::unique_ptr<Pyxis> pyxis(new Pyxis());
 
 void ISGetProperties(const char *dev)
 {
-    pyrix->ISGetProperties(dev);
+    pyxis->ISGetProperties(dev);
 }
 
 void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
 {
-    pyrix->ISNewSwitch(dev, name, states, names, n);
+    pyxis->ISNewSwitch(dev, name, states, names, n);
 }
 
 void ISNewText(	const char *dev, const char *name, char *texts[], char *names[], int n)
 {
-    pyrix->ISNewText(dev, name, texts, names, n);
+    pyxis->ISNewText(dev, name, texts, names, n);
 }
 
 void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
 {
-    pyrix->ISNewNumber(dev, name, values, names, n);
+    pyxis->ISNewNumber(dev, name, values, names, n);
 }
 
 void ISNewBLOB (const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[],
@@ -70,10 +70,10 @@ void ISNewBLOB (const char *dev, const char *name, int sizes[], int blobsizes[],
 
 void ISSnoopDevice (XMLEle *root)
 {
-    pyrix->ISSnoopDevice(root);
+    pyxis->ISSnoopDevice(root);
 }
 
-Pyrix::Pyrix()
+Pyxis::Pyxis()
 {
     // We do not have absolute ticks
     SetRotatorCapability(ROTATOR_CAN_HOME | ROTATOR_CAN_REVERSE);
@@ -81,7 +81,7 @@ Pyrix::Pyrix()
     setRotatorConnection(CONNECTION_SERIAL);
 }
 
-bool Pyrix::initProperties()
+bool Pyxis::initProperties()
 {
     INDI::Rotator::initProperties();
 
@@ -106,7 +106,7 @@ bool Pyrix::initProperties()
     return true;
 }
 
-bool Pyrix::Handshake()
+bool Pyxis::Handshake()
 {
     if (Ack())
         return true;
@@ -115,12 +115,12 @@ bool Pyrix::Handshake()
     return false;
 }
 
-const char * Pyrix::getDefaultName()
+const char * Pyxis::getDefaultName()
 {
-    return "Pyrix";
+    return "Pyxis";
 }
 
-bool Pyrix::updateProperties()
+bool Pyxis::updateProperties()
 {
     INDI::Rotator::updateProperties();
 
@@ -142,7 +142,7 @@ bool Pyrix::updateProperties()
     return true;
 }
 
-void Pyrix::queryParams()
+void Pyxis::queryParams()
 {
     ////////////////////////////////////////////
     // Reverse Parameter
@@ -161,7 +161,7 @@ void Pyrix::queryParams()
 
 }
 
-bool Pyrix::Ack()
+bool Pyxis::Ack()
 {
     const char *cmd = "CCLINK";
     char res[1] = {0};
@@ -180,7 +180,7 @@ bool Pyrix::Ack()
         return false;
     }
 
-    if ( (rc = tty_read(PortFD, res, 1, PYRIX_TIMEOUT, &nbytes_read)) != TTY_OK)
+    if ( (rc = tty_read(PortFD, res, 1, PYXIS_TIMEOUT, &nbytes_read)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
         DEBUGF(INDI::Logger::DBG_ERROR, "%s error: %s.", __FUNCTION__, errstr);
@@ -200,7 +200,7 @@ bool Pyrix::Ack()
     return true;
 }
 
-bool Pyrix::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
+bool Pyxis::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
 {
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
@@ -224,7 +224,7 @@ bool Pyrix::ISNewNumber(const char *dev, const char *name, double values[], char
 
 }
 
-bool Pyrix::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
+bool Pyxis::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
 {
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
@@ -307,7 +307,7 @@ bool Pyrix::ISNewSwitch(const char *dev, const char *name, ISState *states, char
     return Rotator::ISNewSwitch(dev, name, states, names, n);
 }
 
-bool Pyrix::setSteppingMode(uint8_t mode)
+bool Pyxis::setSteppingMode(uint8_t mode)
 {
     char cmd[PYRIX_CMD] = {0};
 
@@ -330,7 +330,7 @@ bool Pyrix::setSteppingMode(uint8_t mode)
     return true;
 }
 
-bool Pyrix::setRotationRate(uint8_t rate)
+bool Pyxis::setRotationRate(uint8_t rate)
 {
     char cmd[PYRIX_CMD] = {0};
 
@@ -355,7 +355,7 @@ bool Pyrix::setRotationRate(uint8_t rate)
     return true;
 }
 
-bool Pyrix::sleepController()
+bool Pyxis::sleepController()
 {
     const char *cmd = "CSLEEP";
 
@@ -376,7 +376,7 @@ bool Pyrix::sleepController()
     return true;
 }
 
-bool Pyrix::wakeupController()
+bool Pyxis::wakeupController()
 {
     const char *cmd = "CWAKEUP";
     char res[1] = { 0 };
@@ -395,7 +395,7 @@ bool Pyrix::wakeupController()
         return false;
     }
 
-    if ( (rc = tty_read(PortFD, res, 1, PYRIX_TIMEOUT, &nbytes_read)) != TTY_OK)
+    if ( (rc = tty_read(PortFD, res, 1, PYXIS_TIMEOUT, &nbytes_read)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
         DEBUGF(INDI::Logger::DBG_ERROR, "%s error: %s.", __FUNCTION__, errstr);
@@ -409,7 +409,7 @@ bool Pyrix::wakeupController()
     return (res[0] == '!');
 }
 
-IPState Pyrix::HomeRotator()
+IPState Pyxis::HomeRotator()
 {
     const char *cmd = "CHOMES";
 
@@ -430,7 +430,7 @@ IPState Pyrix::HomeRotator()
     return IPS_BUSY;
 }
 
-IPState Pyrix::MoveRotator(double angle)
+IPState Pyxis::MoveRotator(double angle)
 {
     char cmd[PYRIX_CMD] = {0};
 
@@ -453,7 +453,7 @@ IPState Pyrix::MoveRotator(double angle)
     return IPS_BUSY;
 }
 
-bool Pyrix::ReverseRotator(bool enabled)
+bool Pyxis::ReverseRotator(bool enabled)
 {
     char cmd[PYRIX_CMD] = {0};
 
@@ -476,7 +476,7 @@ bool Pyrix::ReverseRotator(bool enabled)
     return true;
 }
 
-void Pyrix::TimerHit()
+void Pyxis::TimerHit()
 {
     if (!isConnected() || PowerS[POWER_SLEEP].s == ISS_ON)
     {
@@ -519,13 +519,13 @@ void Pyrix::TimerHit()
     SetTimer(updatePeriodMS);
 }
 
-bool Pyrix::isMotionComplete()
+bool Pyxis::isMotionComplete()
 {
     int nbytes_read = 0, rc = -1;
     char errstr[MAXRBUF];
     char res[1] = { 0 };
 
-    if ( (rc = tty_read(PortFD, res, 1, PYRIX_TIMEOUT, &nbytes_read)) != TTY_OK)
+    if ( (rc = tty_read(PortFD, res, 1, PYXIS_TIMEOUT, &nbytes_read)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
         DEBUGF(INDI::Logger::DBG_ERROR, "%s error: %s.", __FUNCTION__, errstr);
@@ -552,7 +552,7 @@ bool Pyrix::isMotionComplete()
     return false;
 }
 
-bool Pyrix::getPA(uint16_t &PA)
+bool Pyxis::getPA(uint16_t &PA)
 {
     const char *cmd = "CGETPA";
     char res[4] = {0};
@@ -571,7 +571,7 @@ bool Pyrix::getPA(uint16_t &PA)
         return false;
     }
 
-    if ( (rc = tty_read(PortFD, res, 3, PYRIX_TIMEOUT, &nbytes_read)) != TTY_OK)
+    if ( (rc = tty_read(PortFD, res, 3, PYXIS_TIMEOUT, &nbytes_read)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
         DEBUGF(INDI::Logger::DBG_ERROR, "%s error: %s.", __FUNCTION__, errstr);
@@ -587,7 +587,7 @@ bool Pyrix::getPA(uint16_t &PA)
     return true;
 }
 
-int Pyrix::getReverseStatus()
+int Pyxis::getReverseStatus()
 {
     const char *cmd = "CMREAD";
     char res[1] = {0};
@@ -606,7 +606,7 @@ int Pyrix::getReverseStatus()
         return -1;
     }
 
-    if ( (rc = tty_read(PortFD, res, 1, PYRIX_TIMEOUT, &nbytes_read)) != TTY_OK)
+    if ( (rc = tty_read(PortFD, res, 1, PYXIS_TIMEOUT, &nbytes_read)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
         DEBUGF(INDI::Logger::DBG_ERROR, "%s error: %s.", __FUNCTION__, errstr);

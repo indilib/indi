@@ -761,14 +761,14 @@ add_executable(indi_nightcrawler_focus ${nightcrawler_SRC})
 target_link_libraries(indi_nightcrawler_focus indidriver)
 install(TARGETS indi_nightcrawler_focus RUNTIME DESTINATION bin)
 
-################ Pyrix Rotator ################
+################ Pyxis Rotator ################
 
-SET(pyrix_SRC
-    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/rotator/pyrix.cpp)
+SET(pyxis_SRC
+    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/rotator/pyxis.cpp)
 
-add_executable(indi_pyrix_rotator ${pyrix_SRC})
-target_link_libraries(indi_pyrix_rotator indidriver)
-install(TARGETS indi_pyrix_rotator RUNTIME DESTINATION bin)
+add_executable(indi_pyxis_rotator ${pyxis_SRC})
+target_link_libraries(indi_pyxis_rotator indidriver)
+install(TARGETS indi_pyxis_rotator RUNTIME DESTINATION bin)
 
 #################################################################################
 
