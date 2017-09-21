@@ -147,7 +147,7 @@ bool NightCrawler::initProperties()
     INDI::RotatorInterface::initProperties(this, ROTATOR_TAB);
 
     // Rotator Ticks
-    IUFillNumber(&RotatorAbsPosN[0], "ROTATOR_ABSOLUTE_POSITION", "Ticks", "%.f", 0., 100000., 0., 0.);
+    IUFillNumber(&RotatorAbsPosN[0], "ROTATOR_ABSOLUTE_POSITION", "Ticks", "%.f", 0., 100000., 1000., 0.);
     IUFillNumberVector(&RotatorAbsPosNP, RotatorAbsPosN, 1, getDeviceName(), "ABS_ROTATOR_POSITION", "Goto", ROTATOR_TAB, IP_RW, 0, IPS_IDLE );
 
     // Rotator Step Delay
@@ -672,14 +672,19 @@ void NightCrawler::TimerHit()
     bool sensorsUpdated=false;
 
     // #1 If we're homing, we check if homing is complete as we cannot check for anything else
-    if (FindHomeSP.s == IPS_BUSY)
+    if (FindHomeSP.s == IPS_BUSY || HomeRotatorSP.s == IPS_BUSY)
     {
         if (isHomingComplete())
         {
-            FindHomeSP.s = IPS_OK;
-            DEBUG(INDI::Logger::DBG_SESSION, "Homing is complete.");
+            HomeRotatorS[0].s = ISS_OFF;
+            HomeRotatorSP.s = IPS_OK;
+            IDSetSwitch(&HomeRotatorSP, nullptr);
+
             FindHomeS[0].s = ISS_OFF;
+            FindHomeSP.s = IPS_OK;
             IDSetSwitch(&FindHomeSP, nullptr);
+
+            DEBUG(INDI::Logger::DBG_SESSION, "Homing is complete.");
         }
 
         return;
@@ -1187,7 +1192,7 @@ bool NightCrawler::isHomingComplete()
     char res[16] = {0};
     int nbytes_read = 0, rc = -1;
 
-    if ( (rc = tty_read(PortFD, res, '#', NIGHTCRAWLER_TIMEOUT, &nbytes_read)) != TTY_OK)
+    if ( (rc = tty_read_section(PortFD, res, '#', NIGHTCRAWLER_TIMEOUT, &nbytes_read)) != TTY_OK)
     {
         // No error as we are waiting until controller returns "OK#"
         return false;
