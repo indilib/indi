@@ -494,28 +494,41 @@ void Pyxis::TimerHit()
         return;
     }
 
-    if (PA != static_cast<uint16_t>(GotoRotatorN[0].value))
-    {
-        GotoRotatorN[0].value = PA;
-        IDSetNumber(&GotoRotatorNP, nullptr);
-    }
-
     if (HomeRotatorSP.s == IPS_BUSY)
     {
-        //if (isMotionComplete())
-        if (PA == 0)
+        if (isMotionComplete())
         {
             HomeRotatorSP.s = IPS_OK;
             HomeRotatorS[0].s = ISS_OFF;
             IDSetSwitch(&HomeRotatorSP, nullptr);
             DEBUG(INDI::Logger::DBG_SESSION, "Homing is complete.");
         }
+        else
+        {
+            // Fast timer
+            SetTimer(100);
+            return;
+        }
     }
     else if (GotoRotatorNP.s == IPS_BUSY)
     {
-        //if (isMotionComplete() == false)
-        if (PA == targetPA)
+        if (isMotionComplete())
+        {
             GotoRotatorNP.s = IPS_OK;
+        }
+        else
+        {
+            // Fast timer
+            SetTimer(100);
+            return;
+        }
+        //if (PA == targetPA)
+    }
+
+    if (PA != static_cast<uint16_t>(GotoRotatorN[0].value))
+    {
+        GotoRotatorN[0].value = PA;
+        IDSetNumber(&GotoRotatorNP, nullptr);
     }
 
     SetTimer(updatePeriodMS);
@@ -543,7 +556,7 @@ bool Pyxis::isMotionComplete()
     else if (res[0] == 'F')
         return true;
     // Error
-    else
+    else if (HomeRotatorSP.s == IPS_BUSY)
     {
         HomeRotatorS[0].s = ISS_OFF;
         HomeRotatorSP.s = IPS_ALERT;
@@ -583,6 +596,9 @@ bool Pyxis::getPA(uint16_t &PA)
     tcflush(PortFD, TCIOFLUSH);
 
     DEBUGF(INDI::Logger::DBG_DEBUG, "RES <%s>", res);
+
+    if (res[0] == '!')
+        return false;
 
     PA = atoi(res);
 
