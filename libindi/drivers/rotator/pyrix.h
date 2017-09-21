@@ -32,12 +32,15 @@ class Pyrix : public INDI::Rotator
     virtual bool Handshake();
     const char * getDefaultName();
     virtual bool initProperties();
+    virtual bool updateProperties();
+
+    virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n);
+    virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n);
 
   protected:
     // Rotator Overrides
     virtual IPState HomeRotator();
     virtual IPState MoveRotator(double angle);
-    virtual bool SyncRotator(double angle);
     virtual bool ReverseRotator(bool enabled);
 
     // Misc.
@@ -45,10 +48,31 @@ class Pyrix : public INDI::Rotator
 
   private:    
     // Check if connection is OK
-    bool Ack();    
-    bool isHomingComplete();
+    bool Ack();
+    bool isMotionComplete();
+    bool getPA(uint16_t & PA);
+    int getReverseStatus();
+    bool setSteppingMode(uint8_t mode);
+    bool setRotationRate(uint8_t rate);
+    bool sleepController();
+    bool wakeupController();
 
-    uint32_t lastRotatorPosition { 0 };
-    uint32_t targetPosition { 0 };
+    void queryParams();
+
+    // Rotation Rate
+    INumber RotationRateN[1];
+    INumberVectorProperty RotationRateNP;
+
+    // Stepping
+    ISwitch SteppingS[2];
+    ISwitchVectorProperty SteppingSP;
+    enum { FULL_STEP, HALF_STEP};
+
+    // Power
+    ISwitch PowerS[2];
+    ISwitchVectorProperty PowerSP;
+    enum { POWER_SLEEP, POWER_WAKEUP};
+
+
 
 };

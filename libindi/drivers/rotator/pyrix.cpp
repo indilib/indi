@@ -29,9 +29,9 @@
 #include <termios.h>
 
 #define PYRIX_TIMEOUT 3
-
+#define PYRIX_CMD 6
 #define POLLMS 500
-#define SETTINGS_TAB "Settings"
+#define SETTINGS_TAB    "Settings"
 
 std::unique_ptr<Pyrix> pyrix(new Pyrix());
 
@@ -76,7 +76,7 @@ void ISSnoopDevice (XMLEle *root)
 Pyrix::Pyrix()
 {
     // We do not have absolute ticks
-    SetRotatorCapability(ROTATOR_CAN_HOME | ROTATOR_CAN_SYNC | ROTATOR_CAN_REVERSE);
+    SetRotatorCapability(ROTATOR_CAN_HOME | ROTATOR_CAN_REVERSE);
 
     setRotatorConnection(CONNECTION_SERIAL);
 }
@@ -84,6 +84,20 @@ Pyrix::Pyrix()
 bool Pyrix::initProperties()
 {
     INDI::Rotator::initProperties();
+
+    // Rotation Rate
+    IUFillNumber(&RotationRateN[0], "RATE", "Rate", "%.f", 0, 99, 10, 8);
+    IUFillNumberVector(&RotationRateNP, RotationRateN, 3, getDeviceName(), "ROTATION_RATE", "Rotation", SETTINGS_TAB, IP_RW, 0, IPS_IDLE);
+
+    // Stepping
+    IUFillSwitch(&SteppingS[FULL_STEP], "FULL_STEP", "Full", ISS_OFF);
+    IUFillSwitch(&SteppingS[HALF_STEP], "HALF_STEP", "Half", ISS_OFF);
+    IUFillSwitchVector(&SteppingSP, SteppingS, 2, getDeviceName(), "STEPPING_RATE", "Stepping", SETTINGS_TAB, IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
+
+    // Power
+    IUFillSwitch(&PowerS[POWER_SLEEP], "POWER_SLEEP", "Sleep", ISS_OFF);
+    IUFillSwitch(&PowerS[POWER_WAKEUP], "POWER_WAKEUP", "Wake Up", ISS_OFF);
+    IUFillSwitchVector(&PowerSP, PowerS, 2, getDeviceName(), "POWER_STATE", "Power", SETTINGS_TAB, IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
 
     updatePeriodMS = POLLMS;
 
@@ -106,21 +120,347 @@ const char * Pyrix::getDefaultName()
     return "Pyrix";
 }
 
-bool Pyrix::Ack()
+bool Pyrix::updateProperties()
 {
-    return false;
+    INDI::Rotator::updateProperties();
+
+    if (isConnected())
+    {
+        defineNumber(&RotationRateNP);
+        defineSwitch(&SteppingSP);
+        defineSwitch(&PowerSP);
+
+        queryParams();
+    }
+    else
+    {
+        deleteProperty(RotationRateNP.name);
+        deleteProperty(SteppingSP.name);
+        deleteProperty(PowerSP.name);
+    }
+
+    return true;
 }
 
-#if 0
-bool Pyrix::gotoMotor(MotorType type, int32_t position)
+void Pyrix::queryParams()
 {
-    char cmd[16] = {0};
-    char res[16] = {0};
+    ////////////////////////////////////////////
+    // Reverse Parameter
+    ////////////////////////////////////////////
+    int dir = getReverseStatus();
+    IUResetSwitch(&ReverseRotatorSP);
+    ReverseRotatorSP.s = IPS_OK;
+    if (dir == 0)
+        ReverseRotatorS[REVERSE_DISABLED].s = ISS_ON;
+    else if (dir == 1)
+        ReverseRotatorS[REVERSE_ENABLED].s = ISS_ON;
+    else
+        ReverseRotatorSP.s = IPS_ALERT;
+
+    IDSetSwitch(&ReverseRotatorSP, nullptr);
+
+}
+
+bool Pyrix::Ack()
+{
+    const char *cmd = "CCLINK";
+    char res[1] = {0};
 
     int nbytes_written = 0, nbytes_read = 0, rc = -1;
     char errstr[MAXRBUF];
 
-    snprintf(cmd, 16, "%dSN %d#", type+1, position);
+    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD <%s>", cmd);
+
+    tcflush(PortFD, TCIOFLUSH);
+
+    if ( (rc = tty_write(PortFD, cmd, PYRIX_CMD, &nbytes_written)) != TTY_OK)
+    {
+        tty_error_msg(rc, errstr, MAXRBUF);
+        DEBUGF(INDI::Logger::DBG_ERROR, "%s: %s.", __FUNCTION__, errstr);
+        return false;
+    }
+
+    if ( (rc = tty_read(PortFD, res, 1, PYRIX_TIMEOUT, &nbytes_read)) != TTY_OK)
+    {
+        tty_error_msg(rc, errstr, MAXRBUF);
+        DEBUGF(INDI::Logger::DBG_ERROR, "%s error: %s.", __FUNCTION__, errstr);
+        return false;
+    }
+
+    DEBUGF(INDI::Logger::DBG_DEBUG, "RES <%c>", res[0]);
+
+    tcflush(PortFD, TCIOFLUSH);
+
+    if (res[0] != '!')
+    {
+        DEBUG(INDI::Logger::DBG_ERROR, "Cannot establish communication. Check power is on and homing is complete.");
+        return false;
+    }
+
+    return true;
+}
+
+bool Pyrix::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
+{
+    if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
+    {
+        if (!strcmp(name, RotationRateNP.name))
+        {
+           bool rc = setRotationRate(static_cast<uint8_t>(values[0]));
+           if (rc)
+           {
+               RotationRateNP.s = IPS_OK;
+               RotationRateN[0].value = values[0];
+           }
+           else
+               RotationRateNP.s = IPS_ALERT;
+
+           IDSetNumber(&RotationRateNP, nullptr);
+           return true;
+        }
+    }
+
+    return Rotator::ISNewNumber(dev, name, values, names, n);
+
+}
+
+bool Pyrix::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
+{
+    if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
+    {
+        /////////////////////////////////////////////////////
+        // Stepping
+        ////////////////////////////////////////////////////
+        if (!strcmp(name, SteppingSP.name))
+        {
+            bool rc = false;
+            if (!strcmp(IUFindOnSwitchName(states, names, n), SteppingS[FULL_STEP].name))
+                rc = setSteppingMode(FULL_STEP);
+            else
+                rc = setSteppingMode(HALF_STEP);
+
+
+            if (rc)
+            {
+                IUUpdateSwitch(&SteppingSP, states, names, n);
+                SteppingSP.s = IPS_OK;
+            }
+            else
+                SteppingSP.s = IPS_ALERT;
+
+            IDSetSwitch(&SteppingSP, nullptr);
+            return true;
+        }
+
+        /////////////////////////////////////////////////////
+        // Power
+        ////////////////////////////////////////////////////
+        if (!strcmp(name, PowerSP.name))
+        {
+            bool rc = false;
+            if (!strcmp(IUFindOnSwitchName(states, names, n), PowerS[POWER_WAKEUP].name))
+            {
+                // If not sleeping
+                if (PowerS[POWER_SLEEP].s == ISS_OFF)
+                {
+                    PowerSP.s = IPS_OK;
+                    DEBUG(INDI::Logger::DBG_WARNING, "Controller is not in sleep mode.");
+                    IDSetSwitch(&PowerSP, nullptr);
+                    return true;
+                }
+
+                rc = wakeupController();
+
+                if (rc)
+                {
+                    IUResetSwitch(&PowerSP);
+                    PowerSP.s = IPS_OK;
+                    DEBUG(INDI::Logger::DBG_SESSION, "Controller is awake.");
+                }
+                else
+                    PowerSP.s = IPS_ALERT;
+
+                IDSetSwitch(&PowerSP, nullptr);
+                return true;
+            }
+            else
+            {
+                bool rc = sleepController();
+                IUResetSwitch(&PowerSP);
+                if (rc)
+                {
+                   PowerSP.s = IPS_OK;
+                   PowerS[POWER_SLEEP].s = ISS_ON;
+                   DEBUG(INDI::Logger::DBG_SESSION, "Controller in sleep mode. No functions can be used until controller is waken up.");
+                }
+                else
+                    PowerSP.s = IPS_ALERT;
+
+                IDSetSwitch(&PowerSP, nullptr);
+                return true;
+            }
+
+            return true;
+        }
+    }
+
+    return Rotator::ISNewSwitch(dev, name, states, names, n);
+}
+
+bool Pyrix::setSteppingMode(uint8_t mode)
+{
+    char cmd[PYRIX_CMD] = {0};
+
+    int nbytes_written = 0, rc = -1;
+    char errstr[MAXRBUF];
+
+    snprintf(cmd, PYRIX_CMD, "CZ%dxxx", mode);
+
+    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD <%s>", cmd);
+
+    tcflush(PortFD, TCIOFLUSH);
+
+    if ( (rc = tty_write(PortFD, cmd, PYRIX_CMD, &nbytes_written)) != TTY_OK)
+    {
+        tty_error_msg(rc, errstr, MAXRBUF);
+        DEBUGF(INDI::Logger::DBG_ERROR, "%s: %s.", __FUNCTION__, errstr);
+        return false;
+    }
+
+    return true;
+}
+
+bool Pyrix::setRotationRate(uint8_t rate)
+{
+    char cmd[PYRIX_CMD] = {0};
+
+    int nbytes_written = 0, rc = -1;
+    char errstr[MAXRBUF];
+
+    snprintf(cmd, PYRIX_CMD, "CTxx%02d", rate);
+
+    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD <%s>", cmd);
+
+    tcflush(PortFD, TCIOFLUSH);
+
+    if ( (rc = tty_write(PortFD, cmd, PYRIX_CMD, &nbytes_written)) != TTY_OK)
+    {
+        tty_error_msg(rc, errstr, MAXRBUF);
+        DEBUGF(INDI::Logger::DBG_ERROR, "%s: %s.", __FUNCTION__, errstr);
+        return false;
+    }
+
+    tcflush(PortFD, TCIOFLUSH);
+
+    return true;
+}
+
+bool Pyrix::sleepController()
+{
+    const char *cmd = "CSLEEP";
+
+    int nbytes_written = 0, rc = -1;
+    char errstr[MAXRBUF];
+
+    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD <%s>", cmd);
+
+    tcflush(PortFD, TCIOFLUSH);
+
+    if ( (rc = tty_write(PortFD, cmd, PYRIX_CMD, &nbytes_written)) != TTY_OK)
+    {
+        tty_error_msg(rc, errstr, MAXRBUF);
+        DEBUGF(INDI::Logger::DBG_ERROR, "%s: %s.", __FUNCTION__, errstr);
+        return false;
+    }
+
+    return true;
+}
+
+bool Pyrix::wakeupController()
+{
+    const char *cmd = "CWAKEUP";
+    char res[1] = { 0 };
+
+    int nbytes_written = 0, nbytes_read = 0, rc = -1;
+    char errstr[MAXRBUF];
+
+    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD <%s>", cmd);
+
+    tcflush(PortFD, TCIOFLUSH);
+
+    if ( (rc = tty_write(PortFD, cmd, PYRIX_CMD, &nbytes_written)) != TTY_OK)
+    {
+        tty_error_msg(rc, errstr, MAXRBUF);
+        DEBUGF(INDI::Logger::DBG_ERROR, "%s: %s.", __FUNCTION__, errstr);
+        return false;
+    }
+
+    if ( (rc = tty_read(PortFD, res, 1, PYRIX_TIMEOUT, &nbytes_read)) != TTY_OK)
+    {
+        tty_error_msg(rc, errstr, MAXRBUF);
+        DEBUGF(INDI::Logger::DBG_ERROR, "%s error: %s.", __FUNCTION__, errstr);
+        return false;
+    }
+
+    tcflush(PortFD, TCIOFLUSH);
+
+    DEBUGF(INDI::Logger::DBG_DEBUG, "RES <%c>", res[0]);
+
+    return (res[0] == '!');
+}
+
+IPState Pyrix::HomeRotator()
+{
+    const char *cmd = "CHOMES";
+
+    int nbytes_written = 0, rc = -1;
+    char errstr[MAXRBUF];
+
+    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD <%s>", cmd);
+
+    tcflush(PortFD, TCIOFLUSH);
+
+    if ( (rc = tty_write(PortFD, cmd, PYRIX_CMD, &nbytes_written)) != TTY_OK)
+    {
+        tty_error_msg(rc, errstr, MAXRBUF);
+        DEBUGF(INDI::Logger::DBG_ERROR, "%s: %s.", __FUNCTION__, errstr);
+        return IPS_ALERT;
+    }
+
+    return IPS_BUSY;
+}
+
+IPState Pyrix::MoveRotator(double angle)
+{
+    char cmd[PYRIX_CMD] = {0};
+
+    int nbytes_written = 0, rc = -1;
+    char errstr[MAXRBUF];
+
+    snprintf(cmd, PYRIX_CMD, "CPA%03d", static_cast<uint16_t>(round(angle)));
+
+    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD <%s>", cmd);
+
+    tcflush(PortFD, TCIOFLUSH);
+
+    if ( (rc = tty_write(PortFD, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
+    {
+        tty_error_msg(rc, errstr, MAXRBUF);
+        DEBUGF(INDI::Logger::DBG_ERROR, "%s: %s.", __FUNCTION__, errstr);
+        return IPS_ALERT;
+    }
+
+    return IPS_BUSY;
+}
+
+bool Pyrix::ReverseRotator(bool enabled)
+{
+    char cmd[PYRIX_CMD] = {0};
+
+    int nbytes_written = 0, rc = -1;
+    char errstr[MAXRBUF];
+
+    snprintf(cmd, PYRIX_CMD, "CD%dxxx", enabled ? 1 : 0);
 
     DEBUGF(INDI::Logger::DBG_DEBUG, "CMD <%s>", cmd);
 
@@ -133,47 +473,150 @@ bool Pyrix::gotoMotor(MotorType type, int32_t position)
         return false;
     }
 
-    if ( (rc = tty_read(PortFD, res, 1, Pyrix_TIMEOUT, &nbytes_read)) != TTY_OK)
+    return true;
+}
+
+void Pyrix::TimerHit()
+{
+    if (!isConnected() || PowerS[POWER_SLEEP].s == ISS_ON)
+    {
+        SetTimer(updatePeriodMS);
+        return;
+    }
+
+    if (HomeRotatorSP.s == IPS_BUSY)
+    {
+        if (isMotionComplete())
+        {
+            HomeRotatorSP.s = IPS_OK;
+            HomeRotatorS[0].s = ISS_OFF;
+            IDSetSwitch(&HomeRotatorSP, nullptr);
+            DEBUG(INDI::Logger::DBG_SESSION, "Homing is complete.");
+        }
+
+        SetTimer(updatePeriodMS);
+        return;
+    }
+
+    if (GotoRotatorNP.s == IPS_BUSY)
+    {
+        if (isMotionComplete() == false)
+        {
+            SetTimer(updatePeriodMS);
+            return;
+        }
+        else
+            GotoRotatorNP.s = IPS_OK;
+    }
+
+    uint16_t PA = 0;
+    if (getPA(PA) && PA != static_cast<uint16_t>(GotoRotatorN[0].value))
+    {
+        GotoRotatorN[0].value = PA;
+        IDSetNumber(&GotoRotatorNP, nullptr);
+    }
+
+    SetTimer(updatePeriodMS);
+}
+
+bool Pyrix::isMotionComplete()
+{
+    int nbytes_read = 0, rc = -1;
+    char errstr[MAXRBUF];
+    char res[1] = { 0 };
+
+    if ( (rc = tty_read(PortFD, res, 1, PYRIX_TIMEOUT, &nbytes_read)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
         DEBUGF(INDI::Logger::DBG_ERROR, "%s error: %s.", __FUNCTION__, errstr);
         return false;
     }
 
+    DEBUGF(INDI::Logger::DBG_DEBUG, "RES <%c>", res[0]);
+
+    // Homing still in progress
+    if (res[0] == '!')
+        return false;
+    // Homing is complete
+    else if (res[0] == 'F')
+        return true;
+    // Error
+    else
+    {
+        HomeRotatorS[0].s = ISS_OFF;
+        HomeRotatorSP.s = IPS_ALERT;
+        DEBUG(INDI::Logger::DBG_ERROR, "Homing failed. Check possible jam.");
+        tcflush(PortFD, TCIOFLUSH);
+    }
+
+    return false;
+}
+
+bool Pyrix::getPA(uint16_t &PA)
+{
+    const char *cmd = "CGETPA";
+    char res[4] = {0};
+
+    int nbytes_written = 0, nbytes_read = 0, rc = -1;
+    char errstr[MAXRBUF];
+
+    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD <%s>", cmd);
+
+    tcflush(PortFD, TCIOFLUSH);
+
+    if ( (rc = tty_write(PortFD, cmd, PYRIX_CMD, &nbytes_written)) != TTY_OK)
+    {
+        tty_error_msg(rc, errstr, MAXRBUF);
+        DEBUGF(INDI::Logger::DBG_ERROR, "%s: %s.", __FUNCTION__, errstr);
+        return false;
+    }
+
+    if ( (rc = tty_read(PortFD, res, 3, PYRIX_TIMEOUT, &nbytes_read)) != TTY_OK)
+    {
+        tty_error_msg(rc, errstr, MAXRBUF);
+        DEBUGF(INDI::Logger::DBG_ERROR, "%s error: %s.", __FUNCTION__, errstr);
+        return false;
+    }
+
+    tcflush(PortFD, TCIOFLUSH);
+
     DEBUGF(INDI::Logger::DBG_DEBUG, "RES <%s>", res);
 
-    return startMotor(type);
-}
-#endif
+    PA = atoi(res);
 
-IPState Pyrix::HomeRotator()
-{
-    return IPS_ALERT;
+    return true;
 }
 
-IPState Pyrix::MoveRotator(double angle)
+int Pyrix::getReverseStatus()
 {
-    INDI_UNUSED(angle);
-    return IPS_ALERT;
-}
+    const char *cmd = "CMREAD";
+    char res[1] = {0};
 
-bool Pyrix::SyncRotator(double angle)
-{
-    INDI_UNUSED(angle);
-    return false;
-}
+    int nbytes_written = 0, nbytes_read = 0, rc = -1;
+    char errstr[MAXRBUF];
 
-bool Pyrix::ReverseRotator(bool enabled)
-{
-    INDI_UNUSED(enabled);
-    return false;
-}
+    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD <%s>", cmd);
 
-void Pyrix::TimerHit()
-{
-    if (!isConnected())
+    tcflush(PortFD, TCIOFLUSH);
+
+    if ( (rc = tty_write(PortFD, cmd, PYRIX_CMD, &nbytes_written)) != TTY_OK)
     {
-        SetTimer(POLLMS);
-        return;
+        tty_error_msg(rc, errstr, MAXRBUF);
+        DEBUGF(INDI::Logger::DBG_ERROR, "%s: %s.", __FUNCTION__, errstr);
+        return -1;
     }
+
+    if ( (rc = tty_read(PortFD, res, 1, PYRIX_TIMEOUT, &nbytes_read)) != TTY_OK)
+    {
+        tty_error_msg(rc, errstr, MAXRBUF);
+        DEBUGF(INDI::Logger::DBG_ERROR, "%s error: %s.", __FUNCTION__, errstr);
+        return -1;
+    }
+
+    tcflush(PortFD, TCIOFLUSH);
+
+    DEBUGF(INDI::Logger::DBG_DEBUG, "RES <%c>", res[0]);
+
+    // Subtract from '0' to get actual number (0 or 1)
+    return (res[0] - 0x30);
 }
