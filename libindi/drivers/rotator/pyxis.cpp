@@ -485,14 +485,7 @@ void Pyxis::TimerHit()
     {
         SetTimer(updatePeriodMS);
         return;
-    }
-
-    uint16_t PA = 0;
-    if (getPA(PA) == false)
-    {
-        SetTimer(updatePeriodMS);
-        return;
-    }
+    }    
 
     if (HomeRotatorSP.s == IPS_BUSY)
     {
@@ -525,7 +518,8 @@ void Pyxis::TimerHit()
         //if (PA == targetPA)
     }
 
-    if (PA != static_cast<uint16_t>(GotoRotatorN[0].value))
+    uint16_t PA = 0;
+    if (getPA(PA) && (PA != static_cast<uint16_t>(GotoRotatorN[0].value)))
     {
         GotoRotatorN[0].value = PA;
         IDSetNumber(&GotoRotatorNP, nullptr);
