@@ -438,7 +438,9 @@ IPState Pyxis::MoveRotator(double angle)
     int nbytes_written = 0, rc = -1;
     char errstr[MAXRBUF];
 
-    snprintf(cmd, PYRIX_BUF, "CPA%03d", static_cast<uint16_t>(round(angle)));
+    targetPA = static_cast<uint16_t>(round(angle));
+
+    snprintf(cmd, PYRIX_BUF, "CPA%03d", targetPA);
 
     DEBUGF(INDI::Logger::DBG_DEBUG, "CMD <%s>", cmd);
 
@@ -485,36 +487,35 @@ void Pyxis::TimerHit()
         return;
     }
 
+    uint16_t PA = 0;
+    if (getPA(PA) == false)
+    {
+        SetTimer(updatePeriodMS);
+        return;
+    }
+
+    if (PA != static_cast<uint16_t>(GotoRotatorN[0].value))
+    {
+        GotoRotatorN[0].value = PA;
+        IDSetNumber(&GotoRotatorNP, nullptr);
+    }
+
     if (HomeRotatorSP.s == IPS_BUSY)
     {
-        if (isMotionComplete())
+        //if (isMotionComplete())
+        if (PA == 0)
         {
             HomeRotatorSP.s = IPS_OK;
             HomeRotatorS[0].s = ISS_OFF;
             IDSetSwitch(&HomeRotatorSP, nullptr);
             DEBUG(INDI::Logger::DBG_SESSION, "Homing is complete.");
         }
-
-        SetTimer(updatePeriodMS);
-        return;
     }
-
-    if (GotoRotatorNP.s == IPS_BUSY)
+    else if (GotoRotatorNP.s == IPS_BUSY)
     {
-        if (isMotionComplete() == false)
-        {
-            SetTimer(updatePeriodMS);
-            return;
-        }
-        else
+        //if (isMotionComplete() == false)
+        if (PA == targetPA)
             GotoRotatorNP.s = IPS_OK;
-    }
-
-    uint16_t PA = 0;
-    if (getPA(PA) && PA != static_cast<uint16_t>(GotoRotatorN[0].value))
-    {
-        GotoRotatorN[0].value = PA;
-        IDSetNumber(&GotoRotatorNP, nullptr);
     }
 
     SetTimer(updatePeriodMS);

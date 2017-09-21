@@ -73,6 +73,5 @@ class Pyxis : public INDI::Rotator
     ISwitchVectorProperty PowerSP;
     enum { POWER_SLEEP, POWER_WAKEUP};
 
-
-
+    uint16_t targetPA = {0};
 };
