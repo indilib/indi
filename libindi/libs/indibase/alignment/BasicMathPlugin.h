@@ -41,6 +41,9 @@ class BasicMathPlugin : public AlignmentSubsystemForMathPlugins
     virtual bool TransformTelescopeToCelestial(const TelescopeDirectionVector &ApparentTelescopeDirectionVector,
                                                double &RightAscension, double &Declination);
 
+    /// \brief Override for the base class virtual function
+    virtual std::string GetInternalDataRepresentation(std::string PluginDisplayName);
+    
   protected:
     /// \brief Calculate tranformation matrices from the supplied vectors
     /// \param[in] Alpha1 Pointer to the first coordinate in the alpha reference frame

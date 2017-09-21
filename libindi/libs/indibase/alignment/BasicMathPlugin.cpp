@@ -1131,6 +1131,100 @@ void BasicMathPlugin::RotationMatrixFromVectors(gsl_vector *pA, gsl_vector *pB, 
     gsl_matrix_free(vx2);
 }
 
+std::string BasicMathPlugin::GetInternalDataRepresentation(std::string PluginDisplayName)
+{
+    std::string repr = MathPlugin::GetInternalDataRepresentation(PluginDisplayName);
+    size_t InsertPosition = repr.find_last_of('\n');
+    std::string tail = repr.substr(InsertPosition + 1);
+    repr = repr.substr(0, InsertPosition + 1);
+    repr += "<InternalData>\n";
+    ConvexHull::tFace CurrentFace = ActualConvexHull.faces;
+    if (nullptr != CurrentFace)
+    {
+        char buf[32];
+	std::string strbuf;
+        repr += "  <ActualConvexHullFaces>\n";
+        do
+	{
+	    if ((0 != CurrentFace->vertex[0]->vnum) && (0 != CurrentFace->vertex[1]->vnum) &&
+		(0 != CurrentFace->vertex[2]->vnum))
+	    {
+	        repr += "    <Face>\n";
+		std::snprintf(buf, 32, "%d", CurrentFace->vertex[0]->vnum);
+		strbuf = buf;
+		repr += "      <Vertex>" + strbuf + "</Vertex>\n";
+		std::snprintf(buf, 32, "%d", CurrentFace->vertex[1]->vnum);
+		strbuf = buf;
+		repr += "      <Vertex>" + strbuf + "</Vertex>\n";
+		std::snprintf(buf, 32, "%d", CurrentFace->vertex[2]->vnum);
+		strbuf = buf;
+		repr += "      <Vertex>" + strbuf + "</Vertex>\n";
+		repr += "      <Matrix>\n";
+		for (int row = 0; row < 3; row++)
+		{
+		    std::snprintf(buf, 32, "%d", row);
+		    strbuf = buf;
+		    repr += "        <Row id='" + strbuf + "'>";
+		    for (int col = 0; col < 3; col++)
+		    {
+		        std::snprintf(buf, 32, "%lf", gsl_matrix_get(CurrentFace->pMatrix, row, col));
+			strbuf = buf;
+			repr += "<Cell>" + strbuf + "</Cell>";
+		    }
+		    repr += "</Row>\n";
+		}
+		repr += "      </Matrix>\n";  
+		repr += "    </Face>\n"; 
+	    }
+	    CurrentFace = CurrentFace->next;
+	}  while (CurrentFace != ActualConvexHull.faces);
+	repr += "  </ActualConvexHullFaces>\n";
+    }
+    CurrentFace = ApparentConvexHull.faces;
+    if (nullptr != CurrentFace)
+    {
+        char buf[32];
+	std::string strbuf;
+        repr += "  <ApparentConvexHullFaces>\n";
+        do
+	{
+	    if ((0 != CurrentFace->vertex[0]->vnum) && (0 != CurrentFace->vertex[1]->vnum) &&
+		(0 != CurrentFace->vertex[2]->vnum))
+	    {
+	        repr += "    <Face>\n";
+		std::snprintf(buf, 32, "%d", CurrentFace->vertex[0]->vnum);
+		strbuf = buf;
+		repr += "      <Vertex>" + strbuf + "</Vertex>\n";
+		std::snprintf(buf, 32, "%d", CurrentFace->vertex[1]->vnum);
+		strbuf = buf;
+		repr += "      <Vertex>" + strbuf + "</Vertex>\n";
+		std::snprintf(buf, 32, "%d", CurrentFace->vertex[2]->vnum);
+		strbuf = buf;
+		repr += "      <Vertex>" + strbuf + "</Vertex>\n";
+		repr += "      <Matrix>\n";
+		for (int row = 0; row < 3; row++)
+		{
+		    std::snprintf(buf, 32, "%d", row);
+		    strbuf = buf;
+		    repr += "        <Row id='" + strbuf + "'>";
+		    for (int col = 0; col < 3; col++)
+		    {
+		        std::snprintf(buf, 32, "%lf", gsl_matrix_get(CurrentFace->pMatrix, row, col));
+			strbuf = buf;
+			repr += "<Cell>" + strbuf + "</Cell>";
+		    }
+		    repr += "</Row>\n";
+		}
+		repr += "      </Matrix>\n";  
+		repr += "    </Face>\n"; 
+	    }
+	    CurrentFace = CurrentFace->next;
+	}  while (CurrentFace != ApparentConvexHull.faces);
+	repr += "  </ApparentConvexHullFaces>\n";
+    }
+    repr += "</InternalData>\n";
+    return repr + tail;
+}
   
 } // namespace AlignmentSubsystem
 } // namespace INDI

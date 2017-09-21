@@ -20,7 +20,7 @@ bool MathPlugin::Initialise(InMemoryDatabase *pInMemoryDatabase)
 
 std::string MathPlugin::GetInternalDataRepresentation(std::string PluginDisplayName)
 {
-  return "<AlignmentSubsystemData>\n<MathPlugin>"+PluginDisplayName+"</MathPlugin>\n"+GetDatabaseRepresentation()+"\n</AlignmentSubsystemData>";
+    return "<AlignmentSubsystemData>\n<MathPlugin>"+PluginDisplayName+"</MathPlugin>\n"+GetDatabaseRepresentation()+"\n</AlignmentSubsystemData>";
 }
 
 std::string MathPlugin::GetDatabaseRepresentation()
