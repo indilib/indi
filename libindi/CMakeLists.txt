@@ -334,6 +334,7 @@ SET(indidriver_CXX_SRC
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indifilterwheel.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indifocuserinterface.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indifocuser.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indirotator.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indiusbdevice.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indiguiderinterface.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indifilterinterface.cpp
@@ -628,15 +629,6 @@ add_executable(indi_nstep_focus ${nstep_SRC})
 target_link_libraries(indi_nstep_focus indidriver)
 install(TARGETS indi_nstep_focus RUNTIME DESTINATION bin)
 
-################ NightCrawler Focuser & Rotator ################
-
-SET(nightcrawler_SRC
-    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/focuser/nightcrawler.cpp)
-
-add_executable(indi_nightcrawler_focus ${nightcrawler_SRC})
-target_link_libraries(indi_nightcrawler_focus indidriver)
-install(TARGETS indi_nightcrawler_focus RUNTIME DESTINATION bin)
-
 ################ Moonlite Focuser ################
 
 SET(moonlite_SRC
@@ -694,19 +686,6 @@ add_executable(indi_lynx_focus ${focuslynx_SRC})
 target_link_libraries(indi_lynx_focus indidriver)
 install(TARGETS indi_lynx_focus RUNTIME DESTINATION bin)
 
-################ Optec Gemini Focuser Rotator ########
-
-SET(gemini_SRC
-    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/focuser/gemini.cpp)
-
-IF (UNITY_BUILD)
-    ENABLE_UNITY_BUILD(gemini gemini_SRC 10 cpp)
-ENDIF ()
-
-add_executable(indi_gemini_focus ${gemini_SRC})
-target_link_libraries(indi_gemini_focus indidriver)
-install(TARGETS indi_gemini_focus RUNTIME DESTINATION bin)
-
 ################ PerfectStar Focuser ################
 
 SET(perfectstar_SRC
@@ -753,6 +732,43 @@ install(TARGETS indi_tcfs_focus RUNTIME DESTINATION bin)
 file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/make_tcfs_symlink.cmake
 "exec_program(\"${CMAKE_COMMAND}\" ARGS -E create_symlink ${BIN_INSTALL_DIR}/indi_tcfs_focus \$ENV{DESTDIR}${BIN_INSTALL_DIR}/indi_tcfs3_focus)\n")
 set_target_properties(indi_tcfs_focus PROPERTIES POST_INSTALL_SCRIPT ${CMAKE_CURRENT_BINARY_DIR}/make_tcfs_symlink.cmake)
+
+#################################################################################
+
+#####################################
+######## Rotator GROUP #########
+#####################################
+
+################ Optec Gemini Focusing Rotator ########
+
+SET(gemini_SRC
+    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/rotator/gemini.cpp)
+
+IF (UNITY_BUILD)
+    ENABLE_UNITY_BUILD(gemini gemini_SRC 10 cpp)
+ENDIF ()
+
+add_executable(indi_gemini_focus ${gemini_SRC})
+target_link_libraries(indi_gemini_focus indidriver)
+install(TARGETS indi_gemini_focus RUNTIME DESTINATION bin)
+
+################ NightCrawler Focusing Rotator ################
+
+SET(nightcrawler_SRC
+    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/rotator/nightcrawler.cpp)
+
+add_executable(indi_nightcrawler_focus ${nightcrawler_SRC})
+target_link_libraries(indi_nightcrawler_focus indidriver)
+install(TARGETS indi_nightcrawler_focus RUNTIME DESTINATION bin)
+
+################ Pyrix Rotator ################
+
+SET(pyrix_SRC
+    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/rotator/pyrix.cpp)
+
+add_executable(indi_pyrix_rotator ${pyrix_SRC})
+target_link_libraries(indi_pyrix_rotator indidriver)
+install(TARGETS indi_pyrix_rotator RUNTIME DESTINATION bin)
 
 #################################################################################
 
@@ -1172,6 +1188,7 @@ if (INDI_BUILD_DRIVERS OR INDI_BUILD_CLIENT OR INDI_BUILD_QT5_CLIENT)
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indifilterwheel.h
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indifocuserinterface.h
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indifocuser.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indirotator.h
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/inditelescope.h
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indiguiderinterface.h
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indifilterinterface.h
