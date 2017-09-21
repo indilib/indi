@@ -440,6 +440,9 @@ IPState Pyxis::MoveRotator(double angle)
 
     targetPA = static_cast<uint16_t>(round(angle));
 
+    if (targetPA > 359)
+        targetPA = 0;
+
     snprintf(cmd, PYRIX_BUF, "CPA%03d", targetPA);
 
     DEBUGF(INDI::Logger::DBG_DEBUG, "CMD <%s>", cmd);
