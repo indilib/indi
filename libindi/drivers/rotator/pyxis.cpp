@@ -29,8 +29,9 @@
 #include <termios.h>
 
 #define PYXIS_TIMEOUT 3
+#define PYRIX_BUF 7
 #define PYRIX_CMD 6
-#define POLLMS 500
+#define POLLMS 1000
 #define SETTINGS_TAB    "Settings"
 
 std::unique_ptr<Pyxis> pyxis(new Pyxis());
@@ -87,7 +88,7 @@ bool Pyxis::initProperties()
 
     // Rotation Rate
     IUFillNumber(&RotationRateN[0], "RATE", "Rate", "%.f", 0, 99, 10, 8);
-    IUFillNumberVector(&RotationRateNP, RotationRateN, 3, getDeviceName(), "ROTATION_RATE", "Rotation", SETTINGS_TAB, IP_RW, 0, IPS_IDLE);
+    IUFillNumberVector(&RotationRateNP, RotationRateN, 1, getDeviceName(), "ROTATION_RATE", "Rotation", SETTINGS_TAB, IP_RW, 0, IPS_IDLE);
 
     // Stepping
     IUFillSwitch(&SteppingS[FULL_STEP], "FULL_STEP", "Full", ISS_OFF);
@@ -309,12 +310,12 @@ bool Pyxis::ISNewSwitch(const char *dev, const char *name, ISState *states, char
 
 bool Pyxis::setSteppingMode(uint8_t mode)
 {
-    char cmd[PYRIX_CMD] = {0};
+    char cmd[PYRIX_BUF] = {0};
 
     int nbytes_written = 0, rc = -1;
     char errstr[MAXRBUF];
 
-    snprintf(cmd, PYRIX_CMD, "CZ%dxxx", mode);
+    snprintf(cmd, PYRIX_BUF, "CZ%dxxx", mode);
 
     DEBUGF(INDI::Logger::DBG_DEBUG, "CMD <%s>", cmd);
 
@@ -332,12 +333,12 @@ bool Pyxis::setSteppingMode(uint8_t mode)
 
 bool Pyxis::setRotationRate(uint8_t rate)
 {
-    char cmd[PYRIX_CMD] = {0};
+    char cmd[PYRIX_BUF] = {0};
 
     int nbytes_written = 0, rc = -1;
     char errstr[MAXRBUF];
 
-    snprintf(cmd, PYRIX_CMD, "CTxx%02d", rate);
+    snprintf(cmd, PYRIX_BUF, "CTxx%02d", rate);
 
     DEBUGF(INDI::Logger::DBG_DEBUG, "CMD <%s>", cmd);
 
@@ -432,12 +433,12 @@ IPState Pyxis::HomeRotator()
 
 IPState Pyxis::MoveRotator(double angle)
 {
-    char cmd[PYRIX_CMD] = {0};
+    char cmd[PYRIX_BUF] = {0};
 
     int nbytes_written = 0, rc = -1;
     char errstr[MAXRBUF];
 
-    snprintf(cmd, PYRIX_CMD, "CPA%03d", static_cast<uint16_t>(round(angle)));
+    snprintf(cmd, PYRIX_BUF, "CPA%03d", static_cast<uint16_t>(round(angle)));
 
     DEBUGF(INDI::Logger::DBG_DEBUG, "CMD <%s>", cmd);
 
@@ -455,12 +456,12 @@ IPState Pyxis::MoveRotator(double angle)
 
 bool Pyxis::ReverseRotator(bool enabled)
 {
-    char cmd[PYRIX_CMD] = {0};
+    char cmd[PYRIX_BUF] = {0};
 
     int nbytes_written = 0, rc = -1;
     char errstr[MAXRBUF];
 
-    snprintf(cmd, PYRIX_CMD, "CD%dxxx", enabled ? 1 : 0);
+    snprintf(cmd, PYRIX_BUF, "CD%dxxx", enabled ? 1 : 0);
 
     DEBUGF(INDI::Logger::DBG_DEBUG, "CMD <%s>", cmd);
 
