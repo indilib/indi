@@ -184,6 +184,8 @@ bool INDI::RotatorInterface::updateProperties(INDI::DefaultDevice *defaultDevice
             defaultDevice->defineNumber(&SyncRotatorNP);
         if (CanHome())
             defaultDevice->defineSwitch(&HomeRotatorSP);
+        if (CanReverse())
+            defaultDevice->defineSwitch(&ReverseRotatorSP);
     }
     else
     {        
@@ -195,6 +197,8 @@ bool INDI::RotatorInterface::updateProperties(INDI::DefaultDevice *defaultDevice
             defaultDevice->deleteProperty(SyncRotatorNP.name);
         if (CanHome())
             defaultDevice->deleteProperty(HomeRotatorSP.name);
+        if (CanReverse())
+            defaultDevice->deleteProperty(ReverseRotatorSP.name);
     }
 
     return true;
