@@ -687,6 +687,7 @@ void NightCrawler::TimerHit()
             DEBUG(INDI::Logger::DBG_SESSION, "Homing is complete.");
         }
 
+        SetTimer(POLLMS);
         return;
     }
 
@@ -1195,6 +1196,7 @@ bool NightCrawler::isHomingComplete()
     if ( (rc = tty_read_section(PortFD, res, '#', NIGHTCRAWLER_TIMEOUT, &nbytes_read)) != TTY_OK)
     {
         // No error as we are waiting until controller returns "OK#"
+        DEBUG(INDI::Logger::DBG_DEBUG, "Waiting for NightCrawler to complete homing...");
         return false;
     }
 
