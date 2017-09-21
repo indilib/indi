@@ -94,9 +94,9 @@ protected:
     bool rotatorConfigurationComplete = false;
 
     // Rotator Overrides
-    virtual IPState HomeRotator();
-    virtual IPState MoveRotator(double angle);
-    virtual bool ReverseRotator(bool enabled);
+    virtual IPState HomeRotator() override;
+    virtual IPState MoveRotator(double angle) override;
+    virtual bool ReverseRotator(bool enabled) override;
 
   private:
     uint32_t focuserSimPosition=0;
