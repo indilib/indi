@@ -64,27 +64,41 @@ bool INDI::RotatorInterface::processNumber(const char *dev, const char *name, do
     if (dev != nullptr && strcmp(dev, rotatorName) == 0)
     {
         ////////////////////////////////////////////
+        // Move Absolute Angle
+        ////////////////////////////////////////////
+        if (strcmp(name, GotoRotatorNP.name) == 0)
+        {
+            if (values[0] == GotoRotatorN[0].value)
+            {
+                GotoRotatorNP.s = IPS_OK;
+                IDSetNumber(&GotoRotatorNP, nullptr);
+                return true;
+            }
+
+            GotoRotatorNP.s = MoveRotator(values[0]);
+            IDSetNumber(&GotoRotatorNP, nullptr);
+            if (GotoRotatorNP.s == IPS_BUSY)
+                DEBUGFDEVICE(rotatorName, INDI::Logger::DBG_SESSION, "Rotator moving to %.2f degrees...", values[0]);
+            return true;
+        }
+        ////////////////////////////////////////////
         // Sync
         ////////////////////////////////////////////
-        if (strcmp(name, SyncRotatorNP.name) == 0)
+        else if (strcmp(name, SyncRotatorNP.name) == 0)
         {
+            if (values[0] == GotoRotatorN[0].value)
+            {
+                SyncRotatorNP.s = IPS_OK;
+                IDSetNumber(&SyncRotatorNP, nullptr);
+                return true;
+            }
+
             bool rc = SyncRotator(values[0]);
             SyncRotatorNP.s = rc ? IPS_OK : IPS_ALERT;
             if (rc)
                 SyncRotatorN[0].value = values[0];
 
             IDSetNumber(&SyncRotatorNP, nullptr);
-            return true;
-        }        
-        ////////////////////////////////////////////
-        // Move Absolute Angle
-        ////////////////////////////////////////////
-        else if (strcmp(name, GotoRotatorNP.name) == 0)
-        {
-            GotoRotatorNP.s = MoveRotator(values[0]);
-            IDSetNumber(&GotoRotatorNP, nullptr);
-            if (GotoRotatorNP.s == IPS_BUSY)
-                DEBUGFDEVICE(rotatorName, INDI::Logger::DBG_SESSION, "Rotator moving to %.2f degrees...", values[0]);
             return true;
         }
     }
