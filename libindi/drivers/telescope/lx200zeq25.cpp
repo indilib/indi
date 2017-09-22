@@ -241,15 +241,15 @@ int LX200ZEQ25::gotoZEQ25Home()
 }
 
 bool LX200ZEQ25::isSlewComplete()
-{
-    char cmd[16];
+{    
     int errcode = 0;
     char errmsg[MAXRBUF];
     char response[8];
     int nbytes_read    = 0;
     int nbytes_written = 0;
 
-    strncpy(cmd, ":SE#", 16);
+    //strncpy(cmd, ":SE#", 16);
+    const char *cmd = ":SE#";
 
     DEBUGF(INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
 

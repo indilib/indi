@@ -30,6 +30,7 @@
    <li>Telescope: Base class for telescope drivers.</li>
    <li>FilterWheel: Base class for Filter Wheels. It implements the FilterInterface.</li>
    <li>Focuser: Base class for focusers.</li>
+   <li>Rotator: Base class for rotators.</li>
    <li>Dome: Base class for domes.</li>
    <li>GPS: Base class for GPS devices.</li>
    <li>Weather: Base class for Weather devices.</li>
@@ -59,6 +60,7 @@ class Detector;
 class Telescope;
 class FilterWheel;
 class Focuser;
+class Rotator;
 class Dome;
 class GPS;
 class Weather;

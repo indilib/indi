@@ -2132,7 +2132,7 @@ IPState EQMod::GuideNorth(float ms)
 {
     double rateshift = 0.0;
     rateshift        = TRACKRATE_SIDEREAL * IUFindNumber(GuideRateNP, "GUIDE_RATE_NS")->value;
-    DEBUGF(INDI::Logger::DBG_SESSION, "Timed guide North %d ms at rate %g", (int)(ms), rateshift);
+    DEBUGF(INDI::Logger::DBG_DEBUG, "Timed guide North %d ms at rate %g", (int)(ms), rateshift);
     if (DEInverted)
         rateshift = -rateshift;
     try
@@ -2166,7 +2166,7 @@ IPState EQMod::GuideSouth(float ms)
 {
     double rateshift = 0.0;
     rateshift        = TRACKRATE_SIDEREAL * IUFindNumber(GuideRateNP, "GUIDE_RATE_NS")->value;
-    DEBUGF(INDI::Logger::DBG_SESSION, "Timed guide South %d ms at rate %g", (int)(ms), rateshift);
+    DEBUGF(INDI::Logger::DBG_DEBUG, "Timed guide South %d ms at rate %g", (int)(ms), rateshift);
     if (DEInverted)
         rateshift = -rateshift;
     try
@@ -2199,7 +2199,7 @@ IPState EQMod::GuideEast(float ms)
 {
     double rateshift = 0.0;
     rateshift        = TRACKRATE_SIDEREAL * IUFindNumber(GuideRateNP, "GUIDE_RATE_WE")->value;
-    DEBUGF(INDI::Logger::DBG_SESSION, "Timed guide East %d ms at rate %g", (int)(ms), rateshift);
+    DEBUGF(INDI::Logger::DBG_DEBUG, "Timed guide East %d ms at rate %g", (int)(ms), rateshift);
     if (RAInverted)
         rateshift = -rateshift;
     try
@@ -2233,7 +2233,7 @@ IPState EQMod::GuideWest(float ms)
 {
     double rateshift = 0.0;
     rateshift        = TRACKRATE_SIDEREAL * IUFindNumber(GuideRateNP, "GUIDE_RATE_WE")->value;
-    DEBUGF(INDI::Logger::DBG_SESSION, "Timed guide West %d ms at rate %g", (int)(ms), rateshift);
+    DEBUGF(INDI::Logger::DBG_DEBUG, "Timed guide West %d ms at rate %g", (int)(ms), rateshift);
     if (RAInverted)
         rateshift = -rateshift;
     try

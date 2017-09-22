@@ -289,6 +289,10 @@
                 <driver name="Flip Flat">indi_flipflat</driver>
                 <version>1.0</version>
         </device>
+        <device label="Pyxis">
+                <driver name="Pyxis">indi_pyxis_rotator</driver>
+                <version>1.0</version>
+        </device>
         <device label="GPUSB">
                 <driver name="GPUSB">indi_gpusb</driver>
                 <version>0.1</version>

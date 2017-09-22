@@ -9,10 +9,10 @@
 </defNumberVector>
 <defNumberVector device="EQMod Mount" name="GUIDE_RATE" label="Guiding Rate" group="Motion Control" state="Idle" perm="rw">
 <defNumber name="GUIDE_RATE_WE" label="W/E Rate" format="%1.1f" min="0.0" max="1.0" step="0.1">
-0.3
+0.5
 </defNumber>
 <defNumber name="GUIDE_RATE_NS" label="N/S Rate" format="%1.1f" min="0.0" max="1.0" step="0.1">
-0.3
+0.5
 </defNumber>
 </defNumberVector>
 <defTextVector device="EQMod Mount" name="MOUNTINFORMATION" label="Mount Information" group="Firmware" state="Idle" perm="ro" message="Mount Info message">
