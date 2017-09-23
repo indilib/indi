@@ -16,9 +16,7 @@ then
     eval $REMOTEKILLEXEC
 elif [[ "$INDISERVER" = "localhost" && "$INDITUNNEL" = "true" && "$INDISTARTREMOTE" = "false" ]]
 then
-    PID=`cat /var/run/meteostationWEB.pid`
-    kill $PID
-    rm /var/run/meteostationWEB.pid
+    eval $SSHEXIT
 fi
 
 unset IFS

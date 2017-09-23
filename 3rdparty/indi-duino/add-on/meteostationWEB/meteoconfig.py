@@ -89,6 +89,12 @@ DUINOEXEC="echo start indi_duino -n \\\"$INDIDEVICE\\\" -s \\\"$METEOSTATIONSKEL
 #3). Local exec
 INDILOCALEXEC="$KILLEXEC; rm $INDIFIFODIR; mkfifo $INDIFIFODIR; $INDIEXEC $INDIPORT & $DUINOEXEC"
 
+#4). SSH
+CTRLSOCKET="meteo-ctrl-socket"
+SSH="ssh -M -S $CTRLSOCKET"
+SSHCHECK="ssh -S $CTRLSOCKET -O check $SSHUSERNAME@$SSHSERVER"
+SSHEXIT="ssh -S $CTRLSOCKET -O exit $SSHUSERNAME@$SSHSERVER"
+
 #4). SSH tunnel
 SSHTUNNEL="-i $SSHKEYDIR $SSHUSERNAME@$SSHSERVER -p $SSHPORT -4 -L $INDIPORT:$INDISERVER:$INDIREMOTEPORT"
 
@@ -97,8 +103,7 @@ INDIREMOTEFORKEXEC="ssh -f $SSHTUNNEL '$KILLEXEC; rm $INDIFIFODIR; mkfifo $INDIF
 REMOTEKILLEXEC="ssh -f $SSHTUNNEL '$KILLEXEC' $EXECNOOUTPUT"
 
 #6). Remote tunnel only
-INDIREMOTEEXEC="ssh -fN -o ExitOnForwardFailure=yes $SSHTUNNEL $EXECNOOUTPUT"
-
+INDIREMOTEEXEC="$SSH -fN -o ExitOnForwardFailure=yes $SSHTUNNEL"
 
 
 ##### SITE RELATED ####
@@ -117,6 +122,6 @@ CHARTPATH="./html/CHART/"
 #This is nice but only work at daylight time:
 #EUMETSAT_LAST="http://oiswww.eumetsat.org/IPPS/html/latestImages/EUMETSAT_MSG_RGBNatColour_WesternEurope.jpg"
 #This show rain
-#EUMETSAT_LAST="http://oiswww.eumetsat.org/IPPS/html/latestImages/EUMETSAT_MSG_MPE_WesternEurope.png"
+EUMETSAT_LAST="http://oiswww.eumetsat.org/IPPS/html/latestImages/EUMETSAT_MSG_MPE_WesternEurope.png"
 #and this cloud cover at IR 39. Work at night
-EUMETSAT_LAST="http://oiswww.eumetsat.org/IPPS/html/latestImages/EUMETSAT_MSG_IR039_WesternEurope.jpg"
+#EUMETSAT_LAST="http://oiswww.eumetsat.org/IPPS/html/latestImages/EUMETSAT_MSG_IR039_WesternEurope.jpg"

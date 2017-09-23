@@ -9,8 +9,6 @@
 
 source meteoconfig.py
 
-./stopMETEO.sh
-
 if [[ "$INDISERVER" = "localhost" && "$INDITUNNEL" = "false" ]]
 then
     eval $INDILOCALEXEC &
@@ -20,7 +18,7 @@ then
 elif [[ "$INDISERVER" = "localhost" && "$INDITUNNEL" = "true" && "$INDISTARTREMOTE" = "false" ]]
 then
     eval $INDIREMOTEEXEC
-    echo $! > /var/run/meteostationWEB.pid
+    eval $SSHCHECK
 fi
 
 unset IFS
