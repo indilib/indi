@@ -2445,14 +2445,26 @@ bool INDI::CCD::ExposureComplete(CCDChip *targetChip)
 
             fits_close_file(fptr, &status);
 
-            uploadFile(targetChip, memptr, memsize, sendImage, saveImage /*, useSolver*/);
+            bool rc = uploadFile(targetChip, memptr, memsize, sendImage, saveImage /*, useSolver*/);
 
             free(memptr);
+
+            if (rc == false)
+            {
+                targetChip->setExposureFailed();
+                return false;
+            }
         }
         else
         {
-            uploadFile(targetChip, targetChip->getFrameBuffer(), targetChip->getFrameBufferSize(), sendImage,
+            bool rc = uploadFile(targetChip, targetChip->getFrameBuffer(), targetChip->getFrameBufferSize(), sendImage,
                        saveImage);
+
+            if (rc == false)
+            {
+                targetChip->setExposureFailed();
+                return false;
+            }
         }
     }
 

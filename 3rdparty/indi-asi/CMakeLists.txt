@@ -11,8 +11,9 @@ find_package(ZLIB REQUIRED)
 find_package(USB-1 REQUIRED)
 find_package(Threads REQUIRED)
 
+# Using ASI SDK Version 0.6.0915 updated on 2017-09-18
 set(ASI_VERSION_MAJOR 0)
-set(ASI_VERSION_MINOR 5)
+set(ASI_VERSION_MINOR 6)
 
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/config.h.cmake ${CMAKE_CURRENT_BINARY_DIR}/config.h )
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/indi_asi.xml.cmake ${CMAKE_CURRENT_BINARY_DIR}/indi_asi.xml)

@@ -887,7 +887,10 @@ bool ASICCD::StartExposure(float duration)
     }
 
     if (errCode != ASI_SUCCESS)
+    {
+        DEBUG(INDI::Logger::DBG_WARNING, "ASI firmware might require an update to *compatible mode. Check http://www.indilib.org/devices/ccds/zwo-optics-asi-cameras.html for details.");
         return false;
+    }
 
     gettimeofday(&ExpStart, nullptr);
     if (ExposureRequest > VERBOSE_EXPOSURE)

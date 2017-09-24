@@ -191,6 +191,10 @@
                 <driver name="USBFocusV3">indi_usbfocusv3_focus</driver>
                 <version>0.1</version>
         </device>
+        <device label="Pegasus DMFC">
+                <driver name="Pegasus DMFC">indi_dmfc_focus</driver>
+                <version>1.0</version>
+        </device>
         <device label="Microtouch">
                 <driver name="Microtouch">indi_microtouch_focus</driver>
                 <version>0.1</version>
@@ -283,6 +287,10 @@
         </device>
         <device label="Flip Man">
                 <driver name="Flip Flat">indi_flipflat</driver>
+                <version>1.0</version>
+        </device>
+        <device label="Pyxis">
+                <driver name="Pyxis">indi_pyxis_rotator</driver>
                 <version>1.0</version>
         </device>
         <device label="GPUSB">
