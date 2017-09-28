@@ -1,7 +1,7 @@
 /*
-    GotoNova INDI driver
+    ioptronHC8406 INDI driver
+    Copyright (C) 2017 Nacho Mas. Base on GotoNova driver by Jasem Mutlaq
 
-    Copyright (C) 2017 Jasem Mutlaq
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -55,40 +55,32 @@ class ioptronHC8406 : public LX200Generic
     virtual bool UnPark() override;
 
   private:
-    int setGotoNovaStandardProcedure(int fd, const char *data);
+    int setioptronHC8406StandardProcedure(int fd, const char *data);
     void setGuidingEnabled(bool enable);
-    int GotonovaSyncCMR(char *matchedObject);
+    int ioptronHC8406SyncCMR(char *matchedObject);
 
     // Settings
-    int setGotoNovaLatitude(double Lat);
-    int setGotoNovaLongitude(double Long);
-    int setGotoNovaUTCOffset(double hours);
+    int setioptronHC8406Latitude(double Lat);
+    int setioptronHC8406Longitude(double Long);
+    int setioptronHC8406UTCOffset(double hours);
     int setCalenderDate(int fd, int dd, int mm, int yy);
 
     // Motion
-    int slewGotoNova();    
-
-    // Park
-    int setGotoNovaParkPosition(int position);
+    int slewioptronHC8406();    
 
     // Track Mode
-    int setGotoNovaTrackMode(int mode);
-    int getGotoNovaTrackMode(int *mode);
+    int setioptronHC8406TrackMode(int mode);
+    int getioptronHC8406TrackMode(int *mode);
 
     // Guide Rate
-    int setGotoNovaGuideRate(int rate);
-    int getGotoNovaGuideRate(int *rate);
+    int setioptronHC8406GuideRate(int rate);
+    int getioptronHC8406GuideRate(int *rate);
 
     // Pier Side
     void syncSideOfPier();
 
     // Simulation
     void mountSim();
-
-    // Custom Parking Position
-    ISwitch ParkPositionS[5];
-    ISwitchVectorProperty ParkPositionSP;
-    enum { PS_NORTH_POLE, PS_LEFT_VERTICAL, PS_LEFT_HORIZON, PS_RIGHT_VERTICAL, PS_RIGHT_HORIZON };
 
     // Sync type
     ISwitch SyncCMRS[2];

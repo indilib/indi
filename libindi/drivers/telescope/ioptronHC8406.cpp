@@ -1,7 +1,7 @@
 /*
-    GotoNova INDI driver
+    ioptronHC8406 INDI driver
 
-    Copyright (C) 2017 Jasem Mutlaq
+    Copyright (C) 2017 Nacho Mas. Base on GotoNova driver by Jasem Mutlaq
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -33,17 +33,16 @@
 /* Simulation Parameters */
 #define SLEWRATE 1        /* slew rate, degrees/s */
 #define SIDRATE  0.004178 /* sidereal rate, degrees/s */
-#define GOTONOVA_TIMEOUT 5 /* timeout */
-#define GOTONOVA_CALDATE_RESULT "                                #                                #" /* result of calendar date */
+#define ioptronHC8406_TIMEOUT 5 /* timeout */
+#define ioptronHC8406_CALDATE_RESULT "                                #                                #" /* result of calendar date */
 
 ioptronHC8406::ioptronHC8406()
 {
     setVersion(1, 0);
-
     setLX200Capability(LX200_HAS_FOCUS);
-
     SetTelescopeCapability(TELESCOPE_CAN_PARK | TELESCOPE_CAN_SYNC | TELESCOPE_CAN_GOTO | TELESCOPE_CAN_ABORT |
-                           TELESCOPE_HAS_TIME | TELESCOPE_HAS_LOCATION | TELESCOPE_HAS_TRACK_MODE,
+                           TELESCOPE_HAS_TIME | TELESCOPE_HAS_LOCATION | TELESCOPE_HAS_TRACK_MODE |    
+			   TELESCOPE_CAN_CONTROL_TRACK | TELESCOPE_HAS_TRACK_RATE,
                            4);
 }
 
@@ -51,11 +50,10 @@ bool ioptronHC8406::initProperties()
 {
     LX200Generic::initProperties();
 
-
-    strcpy(SlewRateS[0].label, "16x");
-    strcpy(SlewRateS[1].label, "64x");
-    strcpy(SlewRateS[2].label, "256x");
-    strcpy(SlewRateS[3].label, "512x");
+    strcpy(SlewRateS[0].label, "600x");
+    strcpy(SlewRateS[1].label, "900x");
+    strcpy(SlewRateS[2].label, "1200x");
+    strcpy(SlewRateS[3].label, "1200x");
 
     // Sync Type
     IUFillSwitch(&SyncCMRS[USE_REGULAR_SYNC], ":CM#", ":CM#", ISS_ON);
@@ -63,25 +61,16 @@ bool ioptronHC8406::initProperties()
     IUFillSwitchVector(&SyncCMRSP, SyncCMRS, 2, getDeviceName(), "SYNCCMR", "Sync", MOTION_TAB, IP_RW, ISR_1OFMANY, 0,
                        IPS_IDLE);
 
-    // Park Position
-    IUFillSwitch(&ParkPositionS[PS_NORTH_POLE], "North Pole", "", ISS_ON);
-    IUFillSwitch(&ParkPositionS[PS_LEFT_VERTICAL], "Left and Vertical", "", ISS_OFF);
-    IUFillSwitch(&ParkPositionS[PS_LEFT_HORIZON], "Left and Horizon", "", ISS_OFF);
-    IUFillSwitch(&ParkPositionS[PS_RIGHT_VERTICAL], "Right and Vertical", "", ISS_OFF);
-    IUFillSwitch(&ParkPositionS[PS_RIGHT_HORIZON], "Right and Horizon", "", ISS_OFF);
-    IUFillSwitchVector(&ParkPositionSP, ParkPositionS, 5, getDeviceName(), "PARKING_POSITION", "Parking Position", SITE_TAB, IP_RW, ISR_1OFMANY, 0,
-                       IPS_IDLE);
 
     // Guide Rate
-    IUFillSwitch(&GuideRateS[0], "1.0x", "", ISS_ON);
-    IUFillSwitch(&GuideRateS[1], "0.8x", "", ISS_OFF);
-    IUFillSwitch(&GuideRateS[2], "0.6x", "", ISS_OFF);
-    IUFillSwitch(&GuideRateS[3], "0.4x", "", ISS_OFF);
-    IUFillSwitchVector(&GuideRateSP, GuideRateS, 4, getDeviceName(), "GUIDE_RATE", "Guide Rate", MOTION_TAB, IP_RW, ISR_1OFMANY, 0,
+    IUFillSwitch(&GuideRateS[0], "0.25x", "", ISS_OFF);
+    IUFillSwitch(&GuideRateS[1], "0.50x", "", ISS_ON);
+    IUFillSwitch(&GuideRateS[2], "1.0x", "", ISS_OFF);
+    IUFillSwitchVector(&GuideRateSP, GuideRateS, 3, getDeviceName(), "GUIDE_RATE", "Guide Rate", MOTION_TAB, IP_RW, ISR_1OFMANY, 0,
                        IPS_IDLE);
 
     // Track Mode -- We do not support Custom so let's just define the first 3 properties
-    TrackModeSP.nsp = 3;
+    TrackModeSP.nsp = 4;
 
     return true;
 }
@@ -93,13 +82,11 @@ bool ioptronHC8406::updateProperties()
     if (isConnected())
     {
         defineSwitch(&SyncCMRSP);
-        defineSwitch(&ParkPositionSP);
         defineSwitch(&GuideRateSP);
     }
     else
     {
         deleteProperty(SyncCMRSP.name);
-        deleteProperty(ParkPositionSP.name);
         deleteProperty(GuideRateSP.name);
     }
 
@@ -162,30 +149,14 @@ bool ioptronHC8406::ISNewSwitch(const char *dev, const char *name, ISState *stat
 {
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
-        // Park Position
-        if (!strcmp(ParkPositionSP.name, name))
-        {
-            int currentSwitch = IUFindOnSwitchIndex(&ParkPositionSP);
-            IUUpdateSwitch(&ParkPositionSP, states, names, n);
-            if (setGotoNovaParkPosition(IUFindOnSwitchIndex(&ParkPositionSP)) == TTY_OK)
-                ParkPositionSP.s = IPS_OK;
-            else
-            {
-                IUResetSwitch(&ParkPositionSP);
-                ParkPositionS[currentSwitch].s = ISS_ON;
-                ParkPositionSP.s = IPS_ALERT;
-            }
 
-            IDSetSwitch(&ParkPositionSP, nullptr);
-            return true;
-        }
 
         // Guide Rate
         if (!strcmp(GuideRateSP.name, name))
         {
-            int currentSwitch = IUFindOnSwitchIndex(&ParkPositionSP);
+            int currentSwitch = IUFindOnSwitchIndex(&GuideRateSP);
             IUUpdateSwitch(&GuideRateSP, states, names, n);
-            if (setGotoNovaGuideRate(IUFindOnSwitchIndex(&GuideRateSP)) == TTY_OK)
+            if (setioptronHC8406GuideRate(IUFindOnSwitchIndex(&GuideRateSP)) == TTY_OK)
                 GuideRateSP.s = IPS_OK;
             else
             {
@@ -259,7 +230,7 @@ bool ioptronHC8406::isSlewComplete()
 void ioptronHC8406::getBasicData()
 {
     int guideRate=-1;
-    int rc = getGotoNovaGuideRate(&guideRate);
+    int rc = getioptronHC8406GuideRate(&guideRate);
     if (rc == TTY_OK)
     {
         IUResetSwitch(&GuideRateSP);
@@ -316,7 +287,7 @@ bool ioptronHC8406::Goto(double r, double d)
             return false;
         }
 
-        if (slewGotoNova() == 0)
+        if (slewioptronHC8406() == 0)
         {
             EqNP.s = IPS_ALERT;
             IDSetNumber(&EqNP, "Error Slewing to JNow RA %s - DEC %s\n", RAStr, DecStr);
@@ -357,7 +328,7 @@ bool ioptronHC8406::Sync(double ra, double dec)
             break;
 
         case USE_CMR_SYNC:
-            if (GotonovaSyncCMR(syncString) < 0)
+            if (ioptronHC8406SyncCMR(syncString) < 0)
                 syncOK = false;
             break;
 
@@ -387,7 +358,7 @@ bool ioptronHC8406::Sync(double ra, double dec)
     return true;
 }
 
-int ioptronHC8406::GotonovaSyncCMR(char *matchedObject)
+int ioptronHC8406::ioptronHC8406SyncCMR(char *matchedObject)
 {
     int error_type;
     int nbytes_write = 0;
@@ -414,7 +385,7 @@ int ioptronHC8406::GotonovaSyncCMR(char *matchedObject)
 }
 
 
-int ioptronHC8406::slewGotoNova()
+int ioptronHC8406::slewioptronHC8406()
 {
     DEBUGF(DBG_SCOPE, "<%s>", __FUNCTION__);
     char slewNum[2];
@@ -451,9 +422,12 @@ bool ioptronHC8406::SetSlewRate(int index)
     int errcode = 0;
     char errmsg[MAXRBUF];
     int nbytes_written = 0;
-
-    snprintf(cmd, 8, ":RC%d#", index);
-
+    //Only 3 speeds but base classe has 4. WORKAROUND
+    if (index<=2) {
+	    snprintf(cmd, 8, ":RS%d#", index);
+    } else {
+	    snprintf(cmd, 8, ":RS2#");
+    }
     DEBUGF(INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
 
     if ((errcode = tty_write(PortFD, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
@@ -492,7 +466,7 @@ bool ioptronHC8406::updateTime(ln_date *utc, double utc_offset)
         return false;
     }
 
-    if (setGotoNovaUTCOffset(utc_offset) < 0)
+    if (setioptronHC8406UTCOffset(utc_offset) < 0)
     {
         DEBUG(INDI::Logger::DBG_ERROR, "Error setting UTC Offset.");
         return false;
@@ -505,7 +479,7 @@ int ioptronHC8406::setCalenderDate(int fd, int dd, int mm, int yy)
 {
     char read_buffer[16];
     char response[67];
-    char good_result[] = GOTONOVA_CALDATE_RESULT;
+    char good_result[] = ioptronHC8406_CALDATE_RESULT;
     int error_type;
     int nbytes_write = 0, nbytes_read = 0;
     yy = yy % 100;
@@ -519,7 +493,7 @@ int ioptronHC8406::setCalenderDate(int fd, int dd, int mm, int yy)
     if ((error_type = tty_write_string(fd, read_buffer, &nbytes_write)) != TTY_OK)
         return error_type;
 
-    error_type = tty_read(fd, response, sizeof(response), GOTONOVA_TIMEOUT, &nbytes_read);
+    error_type = tty_read(fd, response, sizeof(response), ioptronHC8406_TIMEOUT, &nbytes_read);
 
     tcflush(fd, TCIFLUSH);
 
@@ -560,13 +534,13 @@ bool ioptronHC8406::updateLocation(double latitude, double longitude, double ele
     else
         final_longitude = longitude;
 
-    if (!isSimulation() && setGotoNovaLongitude(final_longitude) < 0)
+    if (!isSimulation() && setioptronHC8406Longitude(final_longitude) < 0)
     {
         DEBUG(INDI::Logger::DBG_ERROR, "Error setting site longitude coordinates");
         return false;
     }
 
-    if (!isSimulation() && setGotoNovaLatitude(latitude) < 0)
+    if (!isSimulation() && setioptronHC8406Latitude(latitude) < 0)
     {
         DEBUG(INDI::Logger::DBG_ERROR, "Error setting site latitude coordinates");
         return false;
@@ -581,7 +555,7 @@ bool ioptronHC8406::updateLocation(double latitude, double longitude, double ele
     return true;
 }
 
-int ioptronHC8406::setGotoNovaLongitude(double Long)
+int ioptronHC8406::setioptronHC8406Longitude(double Long)
 {
     int d, m, s;
     char sign;
@@ -596,10 +570,10 @@ int ioptronHC8406::setGotoNovaLongitude(double Long)
 
     snprintf(temp_string, sizeof(temp_string), ":Sg %c%03d*%02d:%02d#", sign, abs(d), m, s);
 
-    return (setGotoNovaStandardProcedure(PortFD, temp_string));
+    return (setioptronHC8406StandardProcedure(PortFD, temp_string));
 }
 
-int ioptronHC8406::setGotoNovaLatitude(double Lat)
+int ioptronHC8406::setioptronHC8406Latitude(double Lat)
 {
     int d, m, s;
     char sign;
@@ -614,10 +588,10 @@ int ioptronHC8406::setGotoNovaLatitude(double Lat)
 
     snprintf(temp_string, sizeof(temp_string), ":St %c%02d*%02d:%02d#", sign, abs(d), m, s);
 
-    return (setGotoNovaStandardProcedure(PortFD, temp_string));
+    return (setioptronHC8406StandardProcedure(PortFD, temp_string));
 }
 
-int ioptronHC8406::setGotoNovaUTCOffset(double hours)
+int ioptronHC8406::setioptronHC8406UTCOffset(double hours)
 {
     char temp_string[16];
     char sign;
@@ -632,10 +606,10 @@ int ioptronHC8406::setGotoNovaUTCOffset(double hours)
 
     snprintf(temp_string, sizeof(temp_string), ":SG %c%02d#", sign, abs(h));
 
-    return (setGotoNovaStandardProcedure(PortFD, temp_string));
+    return (setioptronHC8406StandardProcedure(PortFD, temp_string));
 }
 
-int ioptronHC8406::setGotoNovaStandardProcedure(int fd, const char *data)
+int ioptronHC8406::setioptronHC8406StandardProcedure(int fd, const char *data)
 {
     char bool_return[2];
     int error_type;
@@ -648,7 +622,7 @@ int ioptronHC8406::setGotoNovaStandardProcedure(int fd, const char *data)
 
     error_type = tty_read(fd, bool_return, 1, 5, &nbytes_read);
 
-    // JM: Hack from Jon in the INDI forums to fix longitude/latitude settings failure on GotoNova
+    // JM: Hack from Jon in the INDI forums to fix longitude/latitude settings failure on ioptronHC8406
     usleep(10000);
     tcflush(fd, TCIFLUSH);
     usleep(10000);
@@ -671,17 +645,17 @@ int ioptronHC8406::setGotoNovaStandardProcedure(int fd, const char *data)
 
 bool ioptronHC8406::SetTrackMode(uint8_t mode)
 {
-    return (setGotoNovaTrackMode(mode) == 0);
+    return (setioptronHC8406TrackMode(mode) == 0);
 }
 
-int ioptronHC8406::setGotoNovaTrackMode(int mode)
+int ioptronHC8406::setioptronHC8406TrackMode(int mode)
 {
     DEBUGF(DBG_SCOPE, "<%s>", __FUNCTION__);
 
     char cmd[8];
     snprintf(cmd, 8, ":STR%d#", mode);
 
-    return setGotoNovaStandardProcedure(PortFD, cmd);
+    return setioptronHC8406StandardProcedure(PortFD, cmd);
 }
 
 bool ioptronHC8406::Park()
@@ -690,7 +664,7 @@ bool ioptronHC8406::Park()
     int error_type;
     int nbytes_write = 0;
 
-    if ((error_type = tty_write_string(PortFD, ":PK#", &nbytes_write)) != TTY_OK)
+    if ((error_type = tty_write_string(PortFD, ":KA#", &nbytes_write)) != TTY_OK)
         return error_type;
 
     tcflush(PortFD, TCIFLUSH);
@@ -820,7 +794,7 @@ void ioptronHC8406::mountSim()
     NewRaDec(currentRA, currentDEC);
 }
 
-int ioptronHC8406::getGotoNovaGuideRate(int *rate)
+int ioptronHC8406::getioptronHC8406GuideRate(int *rate)
 {
     char cmd[]  = ":GGS#";
     int errcode = 0;
@@ -869,14 +843,14 @@ int ioptronHC8406::getGotoNovaGuideRate(int *rate)
     return -1;
 }
 
-int ioptronHC8406::setGotoNovaGuideRate(int rate)
+int ioptronHC8406::setioptronHC8406GuideRate(int rate)
 {
     char cmd[16];
     int errcode = 0;
     char errmsg[MAXRBUF];
     int nbytes_written = 0;
 
-    snprintf(cmd, 16, ":SGS%0d#", rate);
+    snprintf(cmd, 16, ":RG%0d#", rate);
 
     DEBUGF(INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
 
@@ -897,14 +871,6 @@ int ioptronHC8406::setGotoNovaGuideRate(int rate)
     return 0;
 }
 
-int ioptronHC8406::setGotoNovaParkPosition(int position)
-{
-    char temp_string[16];
-
-    snprintf(temp_string, sizeof(temp_string), ":STPKP%d#", position);
-
-    return (setGotoNovaStandardProcedure(PortFD, temp_string));
-}
 
 void ioptronHC8406::syncSideOfPier()
 {
@@ -952,7 +918,6 @@ bool ioptronHC8406::saveConfigItems(FILE *fp)
     LX200Generic::saveConfigItems(fp);
 
     IUSaveConfigSwitch(fp, &SyncCMRSP);
-    IUSaveConfigSwitch(fp, &ParkPositionSP);
 
     return true;
 }
