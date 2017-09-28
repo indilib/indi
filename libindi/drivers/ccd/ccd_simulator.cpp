@@ -84,7 +84,8 @@ CCDSim::CCDSim()
     raPE  = RA;
     decPE = Dec;
 
-    primaryFocalLength = 1280; //  focal length of the telescope in millimeters
+    primaryFocalLength = 900; //  focal length of the telescope in millimeters
+    guiderFocalLength  = 300;
 
     time(&RunStart);
 
@@ -268,6 +269,12 @@ int CCDSim::SetTemperature(double temperature)
 
 bool CCDSim::StartExposure(float duration)
 {
+    if (std::isnan(RA) && std::isnan(Dec))
+    {
+        DEBUG(INDI::Logger::DBG_ERROR, "Telescope coordinates missing. Make sure telescope is connected and its name is set in CCD Options.");
+        return false;
+    }
+
     //  for the simulator, we can just draw the frame now
     //  and it will get returned at the right time
     //  by the timer routines

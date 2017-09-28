@@ -3115,7 +3115,7 @@ void EQMod::timedguideNSCallback(void *userpointer)
         }
     }
     p->GuideComplete(AXIS_DE);
-    DEBUGDEVICE(p->getDeviceName(), INDI::Logger::DBG_SESSION, "End Timed guide North/South");
+    DEBUGDEVICE(p->getDeviceName(), INDI::Logger::DBG_DEBUG, "End Timed guide North/South");
     IERmTimer(p->GuideTimerNS);
 }
 
