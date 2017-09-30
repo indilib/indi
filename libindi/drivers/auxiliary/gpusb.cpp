@@ -98,16 +98,16 @@ bool GPUSB::Connect()
     bool rc = driver->Connect();
 
     if (rc)
-        IDMessage(getDeviceName(), "GPUSB is online.");
+        DEBUG(INDI::Logger::DBG_SESSION, "GPUSB is online.");
     else
-        IDMessage(getDeviceName(), "Error: cannot find GPUSB device.");
+        DEBUG(INDI::Logger::DBG_ERROR, "Error: cannot find GPUSB device.");
 
     return rc;
 }
 
 bool GPUSB::Disconnect()
 {
-    IDMessage(getDeviceName(), "GPSUSB is offline.");
+    DEBUG(INDI::Logger::DBG_SESSION, "GPSUSB is offline.");
 
     return driver->Disconnect();
 }
