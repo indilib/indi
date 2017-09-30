@@ -18,6 +18,12 @@
     Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
+/* SOCAT sniffer
+socat  -v  PTY,link=/tmp/serial,wait-slave,raw /dev/ttyUSB0,raw
+*/
+
+
+
 #include "ioptronHC8406.h"
 
 #include "indicom.h"
@@ -69,7 +75,7 @@ bool ioptronHC8406::initProperties()
     IUFillSwitchVector(&GuideRateSP, GuideRateS, 3, getDeviceName(), "GUIDE_RATE", "Guide Rate", MOTION_TAB, IP_RW, ISR_1OFMANY, 0,
                        IPS_IDLE);
 
-    // Track Mode -- We do not support Custom so let's just define the first 3 properties
+
     TrackModeSP.nsp = 4;
 
     return true;
@@ -186,58 +192,22 @@ bool ioptronHC8406::ISNewSwitch(const char *dev, const char *name, ISState *stat
 
 bool ioptronHC8406::isSlewComplete()
 {
-    int errcode = 0;
-    char errmsg[MAXRBUF];
-    char response[8];
-    int nbytes_read    = 0;
-    int nbytes_written = 0;
+    /* HC8406 doesn't have :SE# or :SE? command, thus we check if the slew is 
+       completed comparing targetRA/DEC with actual RA/DEC */
 
-    const char *cmd = ":SE?#";
+    float tolerance=5./3600.;  // 5 arcsec
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
+    if (abs(currentRA-targetRA) <= tolerance && abs(currentDEC-targetDEC) <= tolerance) 
+	return true;
 
-    if ((errcode = tty_write(PortFD, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
-    {
-        tty_error_msg(errcode, errmsg, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
-        return false;
-    }
-
-    if ((errcode = tty_read(PortFD, response, 1, 3, &nbytes_read)))
-    {
-        tty_error_msg(errcode, errmsg, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
-        return false;
-    }
-
-    if (nbytes_read > 0)
-    {
-        response[nbytes_read] = '\0';
-        DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", response);
-
-        tcflush(PortFD, TCIFLUSH);
-
-        if (response[0] == '0')
-            return true;
-        else
-            return false;
-    }
-
-    DEBUGF(INDI::Logger::DBG_ERROR, "Only received #%d bytes, expected 1.", nbytes_read);
     return false;
 }
 
 void ioptronHC8406::getBasicData()
 {
-    int guideRate=-1;
-    int rc = getioptronHC8406GuideRate(&guideRate);
-    if (rc == TTY_OK)
-    {
-        IUResetSwitch(&GuideRateSP);
-        GuideRateS[guideRate].s = ISS_ON;
-        GuideRateSP.s = IPS_OK;
-        IDSetSwitch(&GuideRateSP, nullptr);
-    }
+//TBD
+    sendScopeLocation();
+    sendScopeTime();
 }
 
 bool ioptronHC8406::Goto(double r, double d)
@@ -522,7 +492,7 @@ int ioptronHC8406::setCalenderDate(int fd, int dd, int mm, int yy)
 
 bool ioptronHC8406::updateLocation(double latitude, double longitude, double elevation)
 {
-    INDI_UNUSED(elevation);
+    //INDI_UNUSED(elevation);
 
     if (isSimulation())
         return true;
@@ -565,10 +535,11 @@ int ioptronHC8406::setioptronHC8406Longitude(double Long)
         sign = '+';
     else
         sign = '-';
+	Long=360-Long;
 
     getSexComponents(Long, &d, &m, &s);
 
-    snprintf(temp_string, sizeof(temp_string), ":Sg %c%03d*%02d:%02d#", sign, abs(d), m, s);
+    snprintf(temp_string, sizeof(temp_string), ":Sg %03d*%02d:%02d#", abs(d), m, s);
 
     return (setioptronHC8406StandardProcedure(PortFD, temp_string));
 }
@@ -627,6 +598,8 @@ int ioptronHC8406::setioptronHC8406StandardProcedure(int fd, const char *data)
     tcflush(fd, TCIFLUSH);
     usleep(10000);
 
+
+
     if (nbytes_read < 1)
         return error_type;
 
@@ -653,7 +626,17 @@ int ioptronHC8406::setioptronHC8406TrackMode(int mode)
     DEBUGF(DBG_SCOPE, "<%s>", __FUNCTION__);
 
     char cmd[8];
-    snprintf(cmd, 8, ":STR%d#", mode);
+    int mmode=0;
+    if (mode == 0 ) {
+	mmode=2;
+    } else if (mode ==1) {
+	mmode=1;
+    } else if (mode ==2) {
+	mmode=0;
+    } else if (mode ==3) {
+	mmode=9;
+    }
+    snprintf(cmd, 8, ":RT%d#", mmode);
 
     return setioptronHC8406StandardProcedure(PortFD, cmd);
 }
@@ -684,6 +667,8 @@ bool ioptronHC8406::UnPark()
 
 bool ioptronHC8406::ReadScopeStatus()
 {
+    //return true; //for debug 
+
     if (!isConnected())
         return false;
 
@@ -719,7 +704,7 @@ bool ioptronHC8406::ReadScopeStatus()
 
     NewRaDec(currentRA, currentDEC);
 
-    syncSideOfPier();
+    //syncSideOfPier();
 
     return true;
 }
@@ -921,3 +906,5 @@ bool ioptronHC8406::saveConfigItems(FILE *fp)
 
     return true;
 }
+
+

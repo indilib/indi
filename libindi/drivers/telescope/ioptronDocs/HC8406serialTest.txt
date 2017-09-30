@@ -1,0 +1,43 @@
+HC8406 CMD serial TEST
+V1.10 March 21, 2011
+UPGRADE INFO ON: http://www.ioptron.com/Articles.asp?ID=268
+
+INFO
+----
+# ->			repeat last command
+:GG# 			+08:00:00    UTC OffSet
+:Gg# 			-003*18:03#  longitud
+:Gt# 			+41*06:56#   latitude
+:GL# 			7:02:47.0#   local time
+:GS# 			20:12: 3.3#  Sideral Time
+:GR#  			2:12:57.4#   RA
+:GD#  			+90* 0: 0#   DEC
+:GA# 			+41* 6:55#   ALT
+:GZ#   			0* 0: 0#     AZ
+:GC#  			03:12:09#    Calendar day
+:pS#  			East#        pier side
+:FirmWareDate# 		:20110506#   
+:V#      		V1.00#
+
+COMMANDS
+--------
+:CM#  			Coordinates     matched.        #
+:CMR# 			Coordinates     matched.        #
+
+This only works if the mount is not stopped
+:RT0# --> 		Lunar
+:RT1# --> 		solar
+:RT2# --> 		sideral
+:RT9# -->               zero but not work!!
+
+:RG#  -->  Select guide speed for :Mn#,:Ms# ....
+:RG0,1,2 -->preselect guide speed 0.25x, 0.5x, 1.0x (HC shows it)
+:RC#  -->  Select center speed for :Mn#,:Ms# ....
+:RC0,1,2 -->preselect guide speed  (HC doesn't shows it)
+:Mn# :Ms# :Me# :Mw#  (move until :Q# at guiding or center speed :RG# or :RC#)
+:MnXXX# :MsXXX# :MeXXX# :MwXXX#  (move XXX ms at guiding speed)
+
+
+
+
+
