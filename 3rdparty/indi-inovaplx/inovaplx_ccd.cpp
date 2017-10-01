@@ -10,10 +10,8 @@
 #include <memory>
 #include "inovaplx_ccd.h"
 
-//float timerN;
-//float timerW;
-//float timerS;
-//float timerE;
+int timerNS;
+int timerWE;
 unsigned char DIR		  = 0xF;
 //unsigned char OLD_DIR	  = 0xF;
 const int POLLMS		   = 500;	   /* Polling interval 500 ms */
@@ -35,6 +33,24 @@ static void * capture_Thread(void * arg)
     INDI_UNUSED(arg);
     inova->CaptureThread();
     return nullptr;
+}
+
+static void timerWestEast(void * arg)
+{
+    INDI_UNUSED(arg);
+    DIR |= 0x09;
+    iNovaSDK_SendST4(DIR);
+    IERmCallback(timerWE);
+    timerWE = -1;
+}
+
+static void timerNorthSouth(void * arg)
+{
+    INDI_UNUSED(arg);
+    DIR |= 0x06;
+    iNovaSDK_SendST4(DIR);
+    IERmCallback(timerNS);
+    timerNS = -1;
 }
 
 void ISGetProperties(const char *dev)
@@ -369,45 +385,45 @@ void INovaCCD::TimerHit()
 
 IPState INovaCCD::GuideEast(float ms)
 {
-    DIR = 0x0E;
-    iNovaSDK_SendST4(DIR);
-    usleep(ms * 1000000);
-    DIR |= 0x09;
-    iNovaSDK_SendST4(DIR);
-    //timerE = IEAddTimer(ms, timerEast, (void *)this);
+    if(timerWE < 0) {
+        DIR |= 0x09;
+        DIR &= 0x0E;
+        iNovaSDK_SendST4(DIR);
+        timerWE = IEAddTimer(ms, timerWestEast, (void *)this);
+    }
     return IPS_IDLE;
 }
 
 IPState INovaCCD::GuideWest(float ms)
 {
-    DIR &= 0x07;
-    iNovaSDK_SendST4(DIR);
-    usleep(ms * 1000000);
-    DIR |= 0x09;
-    iNovaSDK_SendST4(DIR);
-    //timerW = IEAddTimer(ms, timerWest, (void *)this);
+    if(timerWE < 0) {
+        DIR |= 0x09;
+        DIR &= 0x07;
+        iNovaSDK_SendST4(DIR);
+        timerWE = IEAddTimer(ms, timerWestEast, (void *)this);
+    }
     return IPS_IDLE;
 }
 
 IPState INovaCCD::GuideNorth(float ms)
 {
-    DIR &= 0x0D;
-    iNovaSDK_SendST4(DIR);
-    usleep(ms * 1000000);
-    DIR |= 0x06;
-    iNovaSDK_SendST4(DIR);
-    //timerN = IEAddTimer(ms, timerNorth, (void *)this);
+    if(timerNS < 0) {
+        DIR |= 0x06;
+        DIR &= 0x0D;
+        iNovaSDK_SendST4(DIR);
+        timerNS = IEAddTimer(ms, timerNorthSouth, (void *)this);
+    }
     return IPS_IDLE;
 }
 
 IPState INovaCCD::GuideSouth(float ms)
 {
-    DIR &= 0x0B;
-    iNovaSDK_SendST4(DIR);
-    usleep(ms * 1000000);
-    DIR |= 0x06;
-    iNovaSDK_SendST4(DIR);
-    //timerS = IEAddTimer(ms, timerSouth, (void *)this);
+    if(timerNS < 0) {
+        DIR |= 0x06;
+        DIR &= 0x0B;
+        iNovaSDK_SendST4(DIR);
+        timerNS = IEAddTimer(ms, timerNorthSouth, (void *)this);
+    }
     return IPS_IDLE;
 }
 
