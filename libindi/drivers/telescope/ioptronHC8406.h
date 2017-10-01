@@ -22,6 +22,8 @@
 
 #include "lx200generic.h"
 
+
+
 class ioptronHC8406 : public LX200Generic
 {
   public:
@@ -53,7 +55,7 @@ class ioptronHC8406 : public LX200Generic
 
     virtual bool Park() override;
     virtual bool UnPark() override;
-
+    void sendScopeTime() ;
   private:
     int setioptronHC8406StandardProcedure(int fd, const char *data);
     void setGuidingEnabled(bool enable);

@@ -667,6 +667,7 @@ bool ioptronHC8406::UnPark()
 
 bool ioptronHC8406::ReadScopeStatus()
 {
+    
     //return true; //for debug 
 
     if (!isConnected())
@@ -704,6 +705,7 @@ bool ioptronHC8406::ReadScopeStatus()
 
     NewRaDec(currentRA, currentDEC);
 
+    sendScopeTime();
     //syncSideOfPier();
 
     return true;
@@ -907,4 +909,71 @@ bool ioptronHC8406::saveConfigItems(FILE *fp)
     return true;
 }
 
+
+void ioptronHC8406::sendScopeTime()
+{
+    char cdate[32]={0};
+    double ctime;
+    int h, m, s;
+    double lx200_utc_offset = 0;
+    int day, month, year, result;
+    struct tm ltm;
+    struct tm utm;
+    time_t time_epoch;
+
+    if (isSimulation())
+    {
+        snprintf(cdate, 32, "%d-%02d-%02dT%02d:%02d:%02d", 1979, 6, 25, 3, 30, 30);
+        IDLog("Telescope ISO date and time: %s\n", cdate);
+        IUSaveText(&TimeT[0], cdate);
+        IUSaveText(&TimeT[1], "3");
+        IDSetText(&TimeTP, nullptr);
+        return;
+    }
+
+    getCommandSexa(PortFD, &lx200_utc_offset, ":GG#");
+
+    // LX200 TimeT Offset is defined at the number of hours added to LOCAL TIME to get TimeT. This is contrary to the normal definition.
+    char utcStr[8]={0};
+    snprintf(utcStr, 8, "%02d",(int)lx200_utc_offset * -1);
+    IUSaveText(&TimeT[1], utcStr);
+
+    getLocalTime24(PortFD, &ctime);
+    getSexComponents(ctime, &h, &m, &s);
+
+    getCalendarDate(PortFD, cdate);
+    result = sscanf(cdate, "%d%*c%d%*c%d", &year, &month, &day);
+    if (result != 3)
+    {
+        DEBUG(INDI::Logger::DBG_ERROR, "Error reading date from Telescope.");
+        return;
+    }
+
+    // Let's fill in the local time
+    ltm.tm_sec  = s;
+    ltm.tm_min  = m;
+    ltm.tm_hour = h;
+    ltm.tm_mday = day;
+    ltm.tm_mon  = month - 1;
+    ltm.tm_year = year - 1900;
+
+    // Get time epoch
+    time_epoch = mktime(&ltm);
+
+    // Convert to TimeT
+    time_epoch -= (int)(atof(TimeT[1].text) * 3600.0);
+
+    // Get UTC (we're using localtime_r, but since we shifted time_epoch above by UTCOffset, we should be getting the real UTC time
+    localtime_r(&time_epoch, &utm);
+
+    /* Format it into ISO 8601 */
+    strftime(cdate, 32, "%Y-%m-%dT%H:%M:%S", &utm);
+    IUSaveText(&TimeT[0], cdate);
+
+    DEBUGF(INDI::Logger::DBG_DEBUG, "Mount controller Local Time: %02d:%02d:%02d", h, m, s);
+    DEBUGF(INDI::Logger::DBG_DEBUG, "Mount controller UTC Time: %s", TimeT[0].text);
+
+    // Let's send everything to the client
+    IDSetText(&TimeTP, nullptr);
+}
 

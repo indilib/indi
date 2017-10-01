@@ -30,6 +30,9 @@ This only works if the mount is not stopped
 :RT2# --> 		sideral
 :RT9# -->               zero but not work!!
 
+
+
+This speeds only are taken into account for protocol buttons, not for the HC Buttons
 :RG#  -->  Select guide speed for :Mn#,:Ms# ....
 :RG0,1,2 -->preselect guide speed 0.25x, 0.5x, 1.0x (HC shows it)
 :RC#  -->  Select center speed for :Mn#,:Ms# ....
