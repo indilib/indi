@@ -39,8 +39,8 @@ socat  -v  PTY,link=/tmp/serial,wait-slave,raw /dev/ttyUSB0,raw
 /* Simulation Parameters */
 #define SLEWRATE 1        /* slew rate, degrees/s */
 #define SIDRATE  0.004178 /* sidereal rate, degrees/s */
-#define ioptronHC8406_TIMEOUT 5 /* timeout */
-#define ioptronHC8406_CALDATE_RESULT "                                #                                #" /* result of calendar date */
+#define ioptronHC8406_TIMEOUT 1 /* timeout */
+#define ioptronHC8406_CALDATE_RESULT "                                #                 " /* result of calendar date */
 
 ioptronHC8406::ioptronHC8406()
 {
@@ -206,6 +206,7 @@ bool ioptronHC8406::isSlewComplete()
 void ioptronHC8406::getBasicData()
 {
 //TBD
+    UnPark();
     sendScopeLocation();
     sendScopeTime();
 }
@@ -454,12 +455,13 @@ int ioptronHC8406::setCalenderDate(int fd, int dd, int mm, int yy)
     int nbytes_write = 0, nbytes_read = 0;
     yy = yy % 100;
 
-    snprintf(read_buffer, sizeof(read_buffer), ":SC %02d/%02d/%02d#", mm, dd, yy);
+    snprintf(read_buffer, sizeof(read_buffer), ":SC %02d:%02d:%02d#", mm, dd, yy);
 
     DEBUGF(DBG_SCOPE, "CMD <%s>", read_buffer);
 
     tcflush(fd, TCIFLUSH);
-
+    /* Sleep 100ms before flushing. This solves some issues with LX200 compatible devices. */
+    //usleep(10);
     if ((error_type = tty_write_string(fd, read_buffer, &nbytes_write)) != TTY_OK)
         return error_type;
 
@@ -481,8 +483,7 @@ int ioptronHC8406::setCalenderDate(int fd, int dd, int mm, int yy)
         return 0;
     }
 
-    /* Sleep 10ms before flushing. This solves some issues with LX200 compatible devices. */
-    usleep(10000);
+
     tcflush(fd, TCIFLUSH);
 
     DEBUGF(INDI::Logger::DBG_DEBUG, "Set date failed! Response: <%s>", response);
@@ -583,7 +584,7 @@ int ioptronHC8406::setioptronHC8406UTCOffset(double hours)
 int ioptronHC8406::setioptronHC8406StandardProcedure(int fd, const char *data)
 {
     char bool_return[2];
-    int error_type;
+    int error_type=0;
     int nbytes_write = 0, nbytes_read = 0;
 
     DEBUGF(DBG_SCOPE, "CMD <%s>", data);
@@ -591,13 +592,14 @@ int ioptronHC8406::setioptronHC8406StandardProcedure(int fd, const char *data)
     if ((error_type = tty_write_string(fd, data, &nbytes_write)) != TTY_OK)
         return error_type;
 
-    error_type = tty_read(fd, bool_return, 1, 5, &nbytes_read);
+    //error_type = tty_read(fd, bool_return, 1, 5, &nbytes_read);
 
     // JM: Hack from Jon in the INDI forums to fix longitude/latitude settings failure on ioptronHC8406
+    /*
     usleep(10000);
     tcflush(fd, TCIFLUSH);
     usleep(10000);
-
+    */
 
 
     if (nbytes_read < 1)
@@ -781,54 +783,7 @@ void ioptronHC8406::mountSim()
     NewRaDec(currentRA, currentDEC);
 }
 
-int ioptronHC8406::getioptronHC8406GuideRate(int *rate)
-{
-    char cmd[]  = ":GGS#";
-    int errcode = 0;
-    char errmsg[MAXRBUF];
-    char response[8];
-    int nbytes_read    = 0;
-    int nbytes_written = 0;
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
-
-    if (isSimulation())
-    {
-        snprintf(response, 8, "%d#", IUFindOnSwitchIndex(&GuideRateSP));
-        nbytes_read = strlen(response);
-    }
-    else
-    {
-        tcflush(PortFD, TCIFLUSH);
-
-        if ((errcode = tty_write(PortFD, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
-        {
-            tty_error_msg(errcode, errmsg, MAXRBUF);
-            DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
-            return errcode;
-        }
-
-        if ((errcode = tty_read(PortFD, response, 1, 3, &nbytes_read)))
-        {
-            tty_error_msg(errcode, errmsg, MAXRBUF);
-            DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
-            return errcode;
-        }
-    }
-
-    if (nbytes_read > 0)
-    {
-        response[nbytes_read] = '\0';
-        DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", response);
-
-        *rate = atoi(response);
-
-        return 0;
-    }
-
-    DEBUGF(INDI::Logger::DBG_ERROR, "Only received #%d bytes, expected 1.", nbytes_read);
-    return -1;
-}
 
 int ioptronHC8406::setioptronHC8406GuideRate(int rate)
 {
@@ -909,13 +864,40 @@ bool ioptronHC8406::saveConfigItems(FILE *fp)
     return true;
 }
 
+int ioptronHC8406::getCommandString(int fd, char *data, const char *cmd)
+{
+    char *term;
+    int error_type;
+    int nbytes_write = 0, nbytes_read = 0;
+
+
+    if ((error_type = tty_write_string(fd, cmd, &nbytes_write)) != TTY_OK)
+        return error_type;
+
+    error_type = tty_read_section(fd, data, '#', ioptronHC8406_TIMEOUT, &nbytes_read);
+    tcflush(fd, TCIFLUSH);
+
+    if (error_type != TTY_OK)
+        return error_type;
+
+    term = strchr(data, '#');
+    if (term)
+        *term = '\0';
+
+
+
+    return 0;
+
+}
 
 void ioptronHC8406::sendScopeTime()
 {
     char cdate[32]={0};
     double ctime;
     int h, m, s;
+    int utc_h, utc_m, utc_s;
     double lx200_utc_offset = 0;
+    char utc_offset_res[32]={0};
     int day, month, year, result;
     struct tm ltm;
     struct tm utm;
@@ -931,12 +913,22 @@ void ioptronHC8406::sendScopeTime()
         return;
     }
 
-    getCommandSexa(PortFD, &lx200_utc_offset, ":GG#");
+    //getCommandSexa(PortFD, &lx200_utc_offset, ":GG#");
+    //tcflush(PortFD, TCIOFLUSH);
+    getCommandString(PortFD, utc_offset_res, ":GG#");
 
+    f_scansexa(utc_offset_res,&lx200_utc_offset);
+    result = sscanf(utc_offset_res, "%d%*c%d%*c%d", &utc_h, &utc_m, &utc_s);
+    if (result != 3)
+    {
+        DEBUG(INDI::Logger::DBG_ERROR, "Error reading UTC offset from Telescope.");
+        return;
+    }
+    DEBUGF(INDI::Logger::DBG_DEBUG, "<VAL> UTC offset: %d:%d:%d --->%g",utc_h,utc_m, utc_s, lx200_utc_offset);
     // LX200 TimeT Offset is defined at the number of hours added to LOCAL TIME to get TimeT. This is contrary to the normal definition.
-    char utcStr[8]={0};
-    snprintf(utcStr, 8, "%02d",(int)lx200_utc_offset * -1);
-    IUSaveText(&TimeT[1], utcStr);
+    DEBUGF(INDI::Logger::DBG_DEBUG, "<VAL> UTC offset str: %s",utc_offset_res);
+    IUSaveText(&TimeT[1], utc_offset_res);
+    //IUSaveText(&TimeT[1], lx200_utc_offset);
 
     getLocalTime24(PortFD, &ctime);
     getSexComponents(ctime, &h, &m, &s);

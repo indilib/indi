@@ -65,6 +65,7 @@ class ioptronHC8406 : public LX200Generic
     int setioptronHC8406Latitude(double Lat);
     int setioptronHC8406Longitude(double Long);
     int setioptronHC8406UTCOffset(double hours);
+    int getCommandString(int fd, char *data, const char *cmd);
     int setCalenderDate(int fd, int dd, int mm, int yy);
 
     // Motion
@@ -76,7 +77,7 @@ class ioptronHC8406 : public LX200Generic
 
     // Guide Rate
     int setioptronHC8406GuideRate(int rate);
-    int getioptronHC8406GuideRate(int *rate);
+
 
     // Pier Side
     void syncSideOfPier();
