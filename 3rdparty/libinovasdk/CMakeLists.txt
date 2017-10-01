@@ -27,8 +27,8 @@ ENDIF(UNIX AND NOT WIN32 AND NOT APPLE)
 
 # Make sure symbolic links are installed
 file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/make_inovasdk_symlink.cmake "
-exec_program(${CMAKE_COMMAND} ARGS -E create_symlink ${LIB_INSTALL_DIR}${LIB_POSTFIX}/libinovasdk.so.${INOVASDK_VERSION} ${LIB_INSTALL_DIR}${LIB_POSTFIX}/libinovasdk.so.${INOVASDK_SOVERSION})\n
-exec_program(${CMAKE_COMMAND} ARGS -E create_symlink ${LIB_INSTALL_DIR}${LIB_POSTFIX}/libinovasdk.so.${INOVASDK_SOVERSION} ${LIB_INSTALL_DIR}${LIB_POSTFIX}/libinovasdk.so)\n
+exec_program(${CMAKE_COMMAND} ARGS -E create_symlink libinovasdk.so.${INOVASDK_VERSION} ${LIB_INSTALL_DIR}${LIB_POSTFIX}/libinovasdk.so.${INOVASDK_SOVERSION})\n
+exec_program(${CMAKE_COMMAND} ARGS -E create_symlink libinovasdk.so.${INOVASDK_SOVERSION} ${LIB_INSTALL_DIR}${LIB_POSTFIX}/libinovasdk.so)\n
 ")
 
 install( FILES ${CMAKE_BINARY_DIR}/libinovasdk.so.${INOVASDK_VERSION} DESTINATION ${LIB_INSTALL_DIR}${LIB_POSTFIX})
