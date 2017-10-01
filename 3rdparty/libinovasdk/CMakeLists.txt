@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 2.8)
 PROJECT(libinovasdk C CXX)
 
-set(INOVASDK_VERSION "1.3.1")
+set(INOVASDK_VERSION "1.3.2")
 set(INOVASDK_SOVERSION "1")
 
 set(FIRMWARE_INSTALL_DIR "/lib/firmware")
