@@ -48,8 +48,9 @@ ioptronHC8406::ioptronHC8406()
     setLX200Capability(LX200_HAS_FOCUS);
     SetTelescopeCapability(TELESCOPE_CAN_PARK | TELESCOPE_CAN_SYNC | TELESCOPE_CAN_GOTO | TELESCOPE_CAN_ABORT |
                            TELESCOPE_HAS_TIME | TELESCOPE_HAS_LOCATION | TELESCOPE_HAS_TRACK_MODE |    
-			   TELESCOPE_CAN_CONTROL_TRACK | TELESCOPE_HAS_TRACK_RATE,
-                           4);
+			   TELESCOPE_CAN_CONTROL_TRACK | 3);
+TrackState == SCOPE_SLEWING;
+
 }
 
 bool ioptronHC8406::initProperties()
@@ -493,7 +494,7 @@ int ioptronHC8406::setCalenderDate(int fd, int dd, int mm, int yy)
 
 bool ioptronHC8406::updateLocation(double latitude, double longitude, double elevation)
 {
-    //INDI_UNUSED(elevation);
+    INDI_UNUSED(elevation);
 
     if (isSimulation())
         return true;
@@ -681,7 +682,10 @@ bool ioptronHC8406::ReadScopeStatus()
         return true;
     }
 
-    if (TrackState == SCOPE_SLEWING)
+    //if (IUFindSwitch(&CoordSP, "TRACK")->s == ISS_ON || IUFindSwitch(&CoordSP, "SLEW")->s == ISS_ON)
+
+
+    if (TrackState == SCOPE_SLEWING )
     {
         // Check if LX200 is done slewing
         if (isSlewComplete())
@@ -707,7 +711,7 @@ bool ioptronHC8406::ReadScopeStatus()
 
     NewRaDec(currentRA, currentDEC);
 
-    sendScopeTime();
+    //sendScopeTime();
     //syncSideOfPier();
 
     return true;
