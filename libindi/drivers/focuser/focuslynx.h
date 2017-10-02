@@ -22,6 +22,8 @@
 #include "focuslynxbase.h"
 
 #define POLLMS 1000
+#define FOCUSNAMEF1 "FocusLynx F1"
+#define FOCUSNAMEF2 "FocusLynx F2"
 
 class FocusLynxF1 : public FocusLynxBase
 {
@@ -35,9 +37,10 @@ class FocusLynxF1 : public FocusLynxBase
     virtual bool updateProperties() override;
     virtual bool initProperties() override;
     virtual void ISGetProperties(const char *dev) override;
-    virtual int getVersion(int *major, int *minor, int *sub) override;
     int getPortFD();
 
+    virtual void setSimulation(bool enable);
+    virtual void setDebug(bool enable);
   private:
     // Get functions
     bool getHubConfig();
@@ -53,9 +56,6 @@ class FocusLynxF1 : public FocusLynxBase
     //Network WIFI Info
     IText WifiT[9];
     ITextVectorProperty WifiTP;
-
-    // Store version of the firmawre form the HUB
-    char version[16];
 };
 
 class FocusLynxF2 : public FocusLynxBase
@@ -67,5 +67,10 @@ class FocusLynxF2 : public FocusLynxBase
     const char *getDefaultName() override;
     virtual bool Connect() override;
     virtual bool Disconnect() override;
-    virtual void ISGetProperties(const char *dev) override;
+    virtual bool RemoteDisconnect();
+    virtual bool initProperties();
+    virtual void ISGetProperties(const char *dev);
+    virtual void simulationTriggered(bool enable);
+    virtual void debugTriggered(bool enable);
 };
+
