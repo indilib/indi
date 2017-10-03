@@ -666,7 +666,7 @@ bool FocusLynxBase::ack()
     {
         const char *focusName = IUFindOnSwitch(&ModelSP)->label;
         strncpy(response, focusName, 32);
-        response[32] = '\0';
+        response[31] = '\0';
         nbytes_read = strlen(response) + 1;
     }
     else
@@ -790,12 +790,12 @@ bool FocusLynxBase::getFocusConfig()
     // Get Max Position
     if (isSimulation())
     {
-    if (isAbsolute == false)
-        // Value with high limit to give freedom to user of emulation range
-        snprintf(response, 32, "Max Pos = %06d\n", 100000);
-    else
-        // Value from the TCF-S absolute focuser
-        snprintf(response, 32, "Max Pos = %06d\n", 7000);
+        if (isAbsolute == false)
+            // Value with high limit to give freedom to user of emulation range
+            snprintf(response, 32, "Max Pos = %06d\n", 100000);
+        else
+            // Value from the TCF-S absolute focuser
+            snprintf(response, 32, "Max Pos = %06d\n", 7000);
         nbytes_read = strlen(response);
     }
     else if ((errcode = tty_read_section(PortFD, response, 0xA, LYNXFOCUS_TIMEOUT, &nbytes_read)) != TTY_OK)

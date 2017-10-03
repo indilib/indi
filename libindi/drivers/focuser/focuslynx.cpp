@@ -786,7 +786,7 @@ bool FocusLynxF1::getHubConfig()
 void FocusLynxF1::setSimulation(bool enable)
 {
     // call by F2 to set the Simulation option
-    INDI:DefaultDevice::setSimulation(enable);
+    INDI::DefaultDevice::setSimulation(enable);
 }
 
 /************************************************************************************
@@ -794,8 +794,8 @@ void FocusLynxF1::setSimulation(bool enable)
 * ***********************************************************************************/
 void FocusLynxF1::setDebug(bool enable)
 {
-  // Call by F2 to set the Debug option
-  INDI::DefaultDevice::setDebug(enable);
+    // Call by F2 to set the Debug option
+    INDI::DefaultDevice::setDebug(enable);
 }
 /************************************************************************************
 *
