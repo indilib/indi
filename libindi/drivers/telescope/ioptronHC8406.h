@@ -44,7 +44,7 @@ class ioptronHC8406 : public LX200Generic
 
     virtual bool ReadScopeStatus() override;
 
-    virtual bool SetSlewRate(int index) override;
+
     virtual bool SetTrackMode(uint8_t mode) override;
     virtual bool Goto(double, double) override;
     virtual bool Sync(double ra, double dec) override;
@@ -75,9 +75,17 @@ class ioptronHC8406 : public LX200Generic
     int setioptronHC8406TrackMode(int mode);
     int getioptronHC8406TrackMode(int *mode);
 
+    //Set move rates
+    int setMoveRate(int rate,int move_type);
+
     // Guide Rate
     int setioptronHC8406GuideRate(int rate);
 
+    // Center Rate
+    int setioptronHC8406CenterRate(int rate);
+
+    // Slew Rate
+    int setioptronHC8406SlewRate(int rate);
 
     // Pier Side
     void syncSideOfPier();
@@ -90,10 +98,20 @@ class ioptronHC8406 : public LX200Generic
     ISwitchVectorProperty SyncCMRSP;
     enum { USE_REGULAR_SYNC, USE_CMR_SYNC };
 
-
+    //Cursor move speed
+    ISwitch CursorMoveSpeedS[3];
+    ISwitchVectorProperty CursorMoveSpeedSP;
+    enum { USE_GUIDE_SPEED, USE_CENTERING_SPEED, USE_SLEW_SPEED };
+    int setioptronHC8406CursorMoveSpeed(int type);
     /* Guide Rate */
-    ISwitch GuideRateS[4];
+    ISwitch GuideRateS[3];
     ISwitchVectorProperty GuideRateSP;
 
-    bool isGuiding=false;
+    /* Center Rate */
+    ISwitch CenterRateS[4];
+    ISwitchVectorProperty CenterRateSP;
+
+    /* Center Rate */
+    ISwitch SlewRateS[3];
+    ISwitchVectorProperty SlewRateSP;
 };

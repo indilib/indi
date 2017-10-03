@@ -35,9 +35,9 @@ This only works if the mount is not stopped
 This speeds only are taken into account for protocol buttons, not for the HC Buttons
 :RG#  -->  Select guide speed for :Mn#,:Ms# ....
 :RG0,1,2 -->preselect guide speed 0.25x, 0.5x, 1.0x (HC shows it)
-:RC#  -->  Select center speed for :Mn#,:Ms# ....
+:RC#  -->  Select center speed for :Mn#,:Ms# .... (Not Works)
 :RC0,1,2 -->preselect guide speed  (HC doesn't shows it)
-:Mn# :Ms# :Me# :Mw#  (move until :Q# at guiding or center speed :RG# or :RC#)
+:Mn# :Ms# :Me# :Mw#  (move until :Q# at guiding or center speed :RG# (works)or :RC#(not work, use :RC0/1/2 instead))
 :MnXXX# :MsXXX# :MeXXX# :MwXXX#  (move XXX ms at guiding speed)
 
 

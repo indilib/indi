@@ -44,12 +44,10 @@ socat  -v  PTY,link=/tmp/serial,wait-slave,raw /dev/ttyUSB0,raw
 
 ioptronHC8406::ioptronHC8406()
 {
-    setVersion(1, 0);
+    setVersion(1, 1);
+    setDeviceName("ioptronHC8406");
     setLX200Capability(LX200_HAS_FOCUS);
-    SetTelescopeCapability(TELESCOPE_CAN_PARK | TELESCOPE_CAN_SYNC | TELESCOPE_CAN_GOTO | TELESCOPE_CAN_ABORT |
-                           TELESCOPE_HAS_TIME | TELESCOPE_HAS_LOCATION | TELESCOPE_HAS_TRACK_MODE |    
-			   TELESCOPE_CAN_CONTROL_TRACK | 3);
-TrackState == SCOPE_SLEWING;
+    SetTelescopeCapability(TELESCOPE_CAN_PARK | TELESCOPE_CAN_SYNC | TELESCOPE_CAN_GOTO | TELESCOPE_CAN_ABORT | TELESCOPE_HAS_TIME | TELESCOPE_HAS_LOCATION | TELESCOPE_HAS_TRACK_MODE  | 3);
 
 }
 
@@ -57,27 +55,41 @@ bool ioptronHC8406::initProperties()
 {
     LX200Generic::initProperties();
 
-    strcpy(SlewRateS[0].label, "600x");
-    strcpy(SlewRateS[1].label, "900x");
-    strcpy(SlewRateS[2].label, "1200x");
-    strcpy(SlewRateS[3].label, "1200x");
-
     // Sync Type
     IUFillSwitch(&SyncCMRS[USE_REGULAR_SYNC], ":CM#", ":CM#", ISS_ON);
     IUFillSwitch(&SyncCMRS[USE_CMR_SYNC], ":CMR#", ":CMR#", ISS_OFF);
-    IUFillSwitchVector(&SyncCMRSP, SyncCMRS, 2, getDeviceName(), "SYNCCMR", "Sync", MOTION_TAB, IP_RW, ISR_1OFMANY, 0,
-                       IPS_IDLE);
+    IUFillSwitchVector(&SyncCMRSP, SyncCMRS, 2, getDeviceName(), "SYNCCMR", "Sync", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 0,IPS_IDLE);
 
+    // Cursor move Guiding/Center
+    IUFillSwitch(&CursorMoveSpeedS[USE_GUIDE_SPEED], "Guide Speed", "", ISS_ON);
+    IUFillSwitch(&CursorMoveSpeedS[USE_CENTERING_SPEED], "Centering Speed", "", ISS_OFF);
+    IUFillSwitchVector(&CursorMoveSpeedSP, CursorMoveSpeedS, 2, getDeviceName(),
+	 "MOVE_SPEED", "Cursor Move Speed", MOTION_TAB, IP_RO, ISR_1OFMANY, 0,IPS_IDLE);
 
     // Guide Rate
     IUFillSwitch(&GuideRateS[0], "0.25x", "", ISS_OFF);
     IUFillSwitch(&GuideRateS[1], "0.50x", "", ISS_ON);
     IUFillSwitch(&GuideRateS[2], "1.0x", "", ISS_OFF);
-    IUFillSwitchVector(&GuideRateSP, GuideRateS, 3, getDeviceName(), "GUIDE_RATE", "Guide Rate", MOTION_TAB, IP_RW, ISR_1OFMANY, 0,
-                       IPS_IDLE);
+    IUFillSwitchVector(&GuideRateSP, GuideRateS, 3, getDeviceName(),
+          "GUIDE_RATE", "Guide Speed", MOTION_TAB, IP_RW, ISR_1OFMANY, 0,IPS_IDLE);
 
+    // Guide Rate
+    IUFillSwitch(&CenterRateS[0], "12x", "", ISS_OFF);
+    IUFillSwitch(&CenterRateS[1], "64x", "", ISS_ON);
+    IUFillSwitch(&CenterRateS[2], "600x", "", ISS_OFF);
+    IUFillSwitch(&CenterRateS[3], "1200x", "", ISS_OFF);
+    IUFillSwitchVector(&CenterRateSP, CenterRateS, 4, getDeviceName(),
+          "CENTER_RATE", "Center Speed", MOTION_TAB, IP_RW, ISR_1OFMANY, 0,IPS_IDLE);
 
-    TrackModeSP.nsp = 4;
+    // Slew Rate  //NOT WORK!!
+    IUFillSwitch(&SlewRateS[0], "600x", "", ISS_OFF);
+    IUFillSwitch(&SlewRateS[1], "900x", "", ISS_OFF);
+    IUFillSwitch(&SlewRateS[2], "1200x", "", ISS_ON);
+
+    IUFillSwitchVector(&SlewRateSP, SlewRateS, 3, getDeviceName(),
+          "SLEW_RATE", "Slew Speed", MOTION_TAB, IP_RW, ISR_1OFMANY, 0,IPS_IDLE);
+
+    TrackModeSP.nsp = 3;
 
     return true;
 }
@@ -90,11 +102,17 @@ bool ioptronHC8406::updateProperties()
     {
         defineSwitch(&SyncCMRSP);
         defineSwitch(&GuideRateSP);
+        defineSwitch(&CenterRateSP);
+        //defineSwitch(&SlewRateSP); //NOT WORK!!
+        defineSwitch(&CursorMoveSpeedSP);
     }
     else
     {
         deleteProperty(SyncCMRSP.name);
         deleteProperty(GuideRateSP.name);
+        deleteProperty(CenterRateSP.name);
+        //deleteProperty(SlewRateSP.name); //NOT WORK!!
+        deleteProperty(CursorMoveSpeedSP.name);
     }
 
     return true;
@@ -156,26 +174,6 @@ bool ioptronHC8406::ISNewSwitch(const char *dev, const char *name, ISState *stat
 {
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
-
-
-        // Guide Rate
-        if (!strcmp(GuideRateSP.name, name))
-        {
-            int currentSwitch = IUFindOnSwitchIndex(&GuideRateSP);
-            IUUpdateSwitch(&GuideRateSP, states, names, n);
-            if (setioptronHC8406GuideRate(IUFindOnSwitchIndex(&GuideRateSP)) == TTY_OK)
-                GuideRateSP.s = IPS_OK;
-            else
-            {
-                IUResetSwitch(&GuideRateSP);
-                GuideRateS[currentSwitch].s = ISS_ON;
-                GuideRateSP.s = IPS_ALERT;
-            }
-
-            IDSetSwitch(&GuideRateSP, nullptr);
-            return true;
-        }
-
         // Sync type
         if (!strcmp(name, SyncCMRSP.name))
         {
@@ -186,6 +184,87 @@ bool ioptronHC8406::ISNewSwitch(const char *dev, const char *name, ISState *stat
             IDSetSwitch(&SyncCMRSP, nullptr);
             return true;
         }
+
+        // Cursor move type
+        if (!strcmp(name, CursorMoveSpeedSP.name))
+        {
+            int currentSwitch = IUFindOnSwitchIndex(&CursorMoveSpeedSP);
+	    IUUpdateSwitch(&CursorMoveSpeedSP, states, names, n);
+            if (setioptronHC8406CursorMoveSpeed(IUFindOnSwitchIndex(&CursorMoveSpeedSP)) == TTY_OK)
+                CursorMoveSpeedSP.s = IPS_OK;
+            else
+            {
+                IUResetSwitch(&CursorMoveSpeedSP);
+                CursorMoveSpeedS[currentSwitch].s = ISS_ON;
+                CursorMoveSpeedSP.s = IPS_ALERT;
+            }
+            return true;
+        }
+
+        // Guide Rate
+        if (!strcmp(GuideRateSP.name, name))
+        {
+            int currentSwitch = IUFindOnSwitchIndex(&GuideRateSP);
+            IUUpdateSwitch(&GuideRateSP, states, names, n);
+            if (setioptronHC8406GuideRate(IUFindOnSwitchIndex(&GuideRateSP)) == TTY_OK)
+            {
+                GuideRateSP.s = IPS_OK;
+		//Shows guide speed selected
+		CursorMoveSpeedS[USE_GUIDE_SPEED].s = ISS_ON;
+		CursorMoveSpeedS[USE_CENTERING_SPEED].s = ISS_OFF;
+	        CursorMoveSpeedSP.s = IPS_OK;
+	        IDSetSwitch(&CursorMoveSpeedSP, nullptr);
+            } else {
+                IUResetSwitch(&GuideRateSP);
+                GuideRateS[currentSwitch].s = ISS_ON;
+                GuideRateSP.s = IPS_ALERT;
+            }
+
+            IDSetSwitch(&GuideRateSP, nullptr);
+            return true;
+        }
+
+        // Center Rate
+        if (!strcmp(CenterRateSP.name, name))
+        {
+            int currentSwitch = IUFindOnSwitchIndex(&CenterRateSP);
+            IUUpdateSwitch(&CenterRateSP, states, names, n);
+            if (setioptronHC8406CenterRate(IUFindOnSwitchIndex(&CenterRateSP)) == TTY_OK)
+	    {
+                CenterRateSP.s = IPS_OK;
+		//Shows centering speed selected
+		CursorMoveSpeedS[USE_GUIDE_SPEED].s = ISS_OFF;
+		CursorMoveSpeedS[USE_CENTERING_SPEED].s = ISS_ON;
+	        CursorMoveSpeedSP.s = IPS_OK;
+	        IDSetSwitch(&CursorMoveSpeedSP, nullptr);
+            } else {
+                IUResetSwitch(&CenterRateSP);
+                CenterRateS[currentSwitch].s = ISS_ON;
+                CenterRateSP.s = IPS_ALERT;
+            }
+
+            IDSetSwitch(&CenterRateSP, nullptr);
+            return true;
+        }
+
+        // Slew Rate
+        if (!strcmp(SlewRateSP.name, name))
+        {
+            int currentSwitch = IUFindOnSwitchIndex(&SlewRateSP);
+            IUUpdateSwitch(&SlewRateSP, states, names, n);
+            if (setioptronHC8406SlewRate(IUFindOnSwitchIndex(&SlewRateSP)) == TTY_OK)
+                SlewRateSP.s = IPS_OK;
+            else
+            {
+                IUResetSwitch(&SlewRateSP);
+                SlewRateS[currentSwitch].s = ISS_ON;
+                SlewRateSP.s = IPS_ALERT;
+            }
+
+            IDSetSwitch(&SlewRateSP, nullptr);
+            return true;
+        }
+
     }
 
     return LX200Generic::ISNewSwitch(dev, name, states, names, n);
@@ -385,32 +464,7 @@ int ioptronHC8406::slewioptronHC8406()
     return slewNum[0];
 }
 
-bool ioptronHC8406::SetSlewRate(int index)
-{
-    if (isSimulation())
-        return true;
 
-    char cmd[8];
-    int errcode = 0;
-    char errmsg[MAXRBUF];
-    int nbytes_written = 0;
-    //Only 3 speeds but base classe has 4. WORKAROUND
-    if (index<=2) {
-	    snprintf(cmd, 8, ":RS%d#", index);
-    } else {
-	    snprintf(cmd, 8, ":RS2#");
-    }
-    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
-
-    if ((errcode = tty_write(PortFD, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
-    {
-        tty_error_msg(errcode, errmsg, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
-        return false;
-    }
-
-    return true;
-}
 
 bool ioptronHC8406::updateTime(ln_date *utc, double utc_offset)
 {
@@ -791,19 +845,72 @@ void ioptronHC8406::mountSim()
 
 int ioptronHC8406::setioptronHC8406GuideRate(int rate)
 {
+	return setMoveRate(rate,USE_GUIDE_SPEED);
+}
+
+int ioptronHC8406::setioptronHC8406CenterRate(int rate)
+{
+	return setMoveRate(rate,USE_CENTERING_SPEED);
+}
+
+int ioptronHC8406::setioptronHC8406SlewRate(int rate)
+{
+	return setMoveRate(rate,USE_SLEW_SPEED);
+}
+
+int ioptronHC8406::setioptronHC8406CursorMoveSpeed(int type)
+{
+	return setMoveRate(-1,type);
+}
+
+int ioptronHC8406::setMoveRate(int rate,int move_type) 
+{
     char cmd[16];
     int errcode = 0;
     char errmsg[MAXRBUF];
     int nbytes_written = 0;
 
-    snprintf(cmd, 16, ":RG%0d#", rate);
-
-    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
-
     if (isSimulation())
     {
         return 0;
     }
+
+    if (rate>=0)
+    {
+	    switch (move_type)
+	    {
+	    case USE_GUIDE_SPEED:
+		snprintf(cmd, 16, ":RG%0d#", rate);
+        	break;
+	    case USE_CENTERING_SPEED:
+		snprintf(cmd, 16, ":RC%0d#", rate);
+        	break;
+	    case USE_SLEW_SPEED:
+		snprintf(cmd, 16, ":RS%0d#", rate);  //NOT WORK!!
+        	break;
+
+	    default:
+        	break;
+	    }
+    } else {
+	    switch (move_type)
+	    {
+	    case USE_GUIDE_SPEED:
+		snprintf(cmd, 16, ":RG#");
+        	break;
+	    case USE_CENTERING_SPEED:
+		snprintf(cmd, 16, ":RC#"); //NOT WORK!!
+        	break;
+	    case USE_SLEW_SPEED:
+		snprintf(cmd, 16, ":RS#"); //NOT WORK!!
+        	break;
+	    default:
+        	break;
+	    }
+    }
+
+    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
+
 
     tcflush(PortFD, TCIFLUSH);
 
