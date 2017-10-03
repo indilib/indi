@@ -98,19 +98,19 @@ bool JoyStick::Connect()
 
     if (rc)
     {
-        IDMessage(getDeviceName(), "Joystick is online.");
+        DEBUG(INDI::Logger::DBG_SESSION, "Joystick is online.");
 
         setupParams();
     }
     else
-        IDMessage(getDeviceName(), "Error: cannot find Joystick device.");
+        DEBUG(INDI::Logger::DBG_SESSION, "Error: cannot find Joystick device.");
 
     return rc;
 }
 
 bool JoyStick::Disconnect()
 {
-    IDMessage(getDeviceName(), "Joystick is offline.");
+    DEBUG(INDI::Logger::DBG_SESSION, "Joystick is offline.");
 
     return driver->Disconnect();
 }

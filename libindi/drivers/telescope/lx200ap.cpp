@@ -622,7 +622,7 @@ bool LX200AstroPhysics::Goto(double r, double d)
     TrackState = SCOPE_SLEWING;
     EqNP.s     = IPS_BUSY;
 
-    IDMessage(getDeviceName(), "Slewing to RA: %s - DEC: %s", RAStr, DecStr);
+    DEBUGF(INDI::Logger::DBG_SESSION, "Slewing to RA: %s - DEC: %s", RAStr, DecStr);
     return true;
 }
 
@@ -630,7 +630,7 @@ bool LX200AstroPhysics::Handshake()
 {
     if (isSimulation())
     {
-        IDMessage(getDeviceName(), "Simulated Astrophysics is online. Retrieving basic data...");
+        DEBUG(INDI::Logger::DBG_SESSION, "Simulated Astrophysics is online. Retrieving basic data...");
         return true;
     }
 
@@ -775,7 +775,7 @@ bool LX200AstroPhysics::updateLocation(double latitude, double longitude, double
     fs_sexa(l, latitude, 3, 3600);
     fs_sexa(L, longitude, 4, 3600);
 
-    IDMessage(getDeviceName(), "Site location updated to Lat %.32s - Long %.32s", l, L);
+    DEBUGF(INDI::Logger::DBG_SESSION, "Site location updated to Lat %.32s - Long %.32s", l, L);
 
     locationUpdated = true;
 
