@@ -267,17 +267,6 @@ bool FocusLynxF1::updateProperties()
 /************************************************************************************
  *
 * ***********************************************************************************/
-void FocusLynxF1::ISGetProperties(const char *dev)
-{
-    if (dev != nullptr && strcmp(dev, getDeviceName()) != 0)
-        return;
-
-    FocusLynxBase::ISGetProperties(dev);
-}
-
-/************************************************************************************
- *
-* ***********************************************************************************/
 bool FocusLynxF1::getHubConfig()
 {
     char cmd[32]={0};
@@ -908,20 +897,6 @@ bool FocusLynxF2::RemoteDisconnect()
   DEBUGF(INDI::Logger::DBG_SESSION,"Remote disconnection: %s is offline.", getDeviceName());
   DEBUGF(INDI::Logger::DBG_SESSION, "Value of F2 PortFD = %d", PortFD);
   return true;
-}
-
-/************************************************************************************
- *
-* ***********************************************************************************/
-void FocusLynxF2::ISGetProperties(const char *dev)
-{
-    if (dev != nullptr && strcmp(dev, getDeviceName()) != 0)
-        return;
-
-    FocusLynxBase::ISGetProperties(dev);
-    // Remove the port selector from the main tab of F2. Set only on F1 focuser
-    // FIXME
-    //deleteProperty(PortTP.name);
 }
 
 /************************************************************************************

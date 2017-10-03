@@ -36,7 +36,7 @@ class FocusLynxF1 : public FocusLynxBase
     virtual bool Disconnect() override;
     virtual bool updateProperties() override;
     virtual bool initProperties() override;
-    virtual void ISGetProperties(const char *dev) override;
+//    virtual void ISGetProperties(const char *dev) override;
     int getPortFD();
 
     virtual void setSimulation(bool enable);
@@ -68,9 +68,8 @@ class FocusLynxF2 : public FocusLynxBase
     virtual bool Connect() override;
     virtual bool Disconnect() override;
     virtual bool RemoteDisconnect();
-    virtual bool initProperties();
-    virtual void ISGetProperties(const char *dev);
-    virtual void simulationTriggered(bool enable);
-    virtual void debugTriggered(bool enable);
+    virtual bool initProperties() override;
+    virtual void simulationTriggered(bool enable) override;
+    virtual void debugTriggered(bool enable) override;
 };
 
