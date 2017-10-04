@@ -1934,7 +1934,6 @@ bool set_ieqpro_utc_offset(int fd, double offset)
     return false;
 }
 
-
 bool get_ieqpro_coords(int fd, double *ra, double *dec)
 {
     char cmd[]  = ":GEC#";

@@ -553,7 +553,6 @@ target_link_libraries(indi_dsc_telescope indidriver AlignmentDriver)
 
 install(TARGETS indi_dsc_telescope RUNTIME DESTINATION bin)
 
-
 ########### IEQ Pro / CEM60 #############
 SET(ieq_SRC
     ${CMAKE_CURRENT_SOURCE_DIR}/drivers/telescope/ieqprodriver.cpp
@@ -565,7 +564,7 @@ ENDIF ()
 
 add_executable(indi_ieq_telescope ${ieq_SRC})
 
-target_link_libraries(indi_ieq_telescope indidriver  ${NOVA_LIBRARIES})
+target_link_libraries(indi_ieq_telescope indidriver)
 
 install(TARGETS indi_ieq_telescope RUNTIME DESTINATION bin)
 
