@@ -28,6 +28,7 @@ InMemoryDatabase::InMemoryDatabase() : DatabaseReferencePositionIsValid(false),
 bool InMemoryDatabase::CheckForDuplicateSyncPoint(const AlignmentDatabaseEntry &CandidateEntry,
                                                   double Tolerance) const
 {
+    /*
     for (AlignmentDatabaseType::const_iterator iTr = MySyncPoints.begin(); iTr != MySyncPoints.end(); iTr++)
     {
         if (((std::abs((*iTr).RightAscension - CandidateEntry.RightAscension) < 24.0 * Tolerance / 100.0) &&
@@ -37,6 +38,7 @@ bool InMemoryDatabase::CheckForDuplicateSyncPoint(const AlignmentDatabaseEntry &
              (std::abs((*iTr).TelescopeDirection.z - CandidateEntry.TelescopeDirection.z) < Tolerance / 100.0)))
             return true;
     }
+    */
     return false;
 }
 
