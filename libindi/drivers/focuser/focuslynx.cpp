@@ -84,8 +84,8 @@ void ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], 
 
 void ISSnoopDevice(XMLEle *root)
 {
-    // not need to Snoop other devices
-    INDI_UNUSED(root);
+    lynxDriveF1->ISSnoopDevice(root);
+    lynxDriveF2->ISSnoopDevice(root);
 }
 
 /************************************************************************************

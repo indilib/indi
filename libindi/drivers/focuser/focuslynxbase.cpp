@@ -226,7 +226,7 @@ void FocusLynxBase::ISGetProperties(const char *dev)
     INDI::Focuser::ISGetProperties(dev);
 
     defineSwitch(&ModelSP);
-    loadConfig(true, "Models");
+    loadConfig(true, "Model");
 }
 
 /************************************************************************************
@@ -1683,7 +1683,7 @@ bool FocusLynxBase::setLedLevel(int level)
  *
 * ***********************************************************************************/
 bool FocusLynxBase::setDeviceNickname(const char *nickname)
-// Write via the connected port to the HUB the choiced nikname of he focuser
+// Write via the connected port to the HUB the choiced nikname of the focuser
 {
     char cmd[32];
     int errcode = 0;
