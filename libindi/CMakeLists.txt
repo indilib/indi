@@ -553,20 +553,6 @@ target_link_libraries(indi_dsc_telescope indidriver AlignmentDriver)
 
 install(TARGETS indi_dsc_telescope RUNTIME DESTINATION bin)
 
-########### IEQ 8406 #############
-SET(ieq45_8406_SRC
-    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/telescope/ieq45driver8406.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/telescope/ieq45.cpp)
-
-IF (UNITY_BUILD)
-    ENABLE_UNITY_BUILD(indi_ieq45_8406 ieq45_8406_SRC 10 cpp)
-ENDIF ()
-
-add_executable(indi_ieq45_8406_telescope ${ieq45_8406_SRC})
-
-target_link_libraries(indi_ieq45_8406_telescope indidriver)
-
-install(TARGETS indi_ieq45_8406_telescope RUNTIME DESTINATION bin)
 
 ########### IEQ Pro / CEM60 #############
 SET(ieq_SRC
