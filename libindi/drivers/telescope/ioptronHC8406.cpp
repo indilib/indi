@@ -18,6 +18,50 @@
     Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
+/*
+HC8406 CMD hardware TEST
+V1.10 March 21, 2011
+UPGRADE INFO ON: http://www.ioptron.com/Articles.asp?ID=268
+
+INFO
+----
+# ->			repeat last command
+:GG# 			+08:00:00    UTC OffSet
+:Gg# 			-003*18:03#  longitud
+:Gt# 			+41*06:56#   latitude
+:GL# 			7:02:47.0#   local time
+:GS# 			20:12: 3.3#  Sideral Time
+:GR#  			2:12:57.4#   RA
+:GD#  			+90* 0: 0#   DEC
+:GA# 			+41* 6:55#   ALT
+:GZ#   			0* 0: 0#     AZ
+:GC#  			03:12:09#    Calendar day
+:pS#  			East#        pier side
+:FirmWareDate# 		:20110506#   
+:V#      		V1.00#
+
+COMMANDS
+--------
+:CM#  			Coordinates     matched.        #
+:CMR# 			Coordinates     matched.        #
+
+This only works if the mount is not stopped (tracking)
+:RT0# --> 		Lunar
+:RT1# --> 		solar
+:RT2# --> 		sideral
+:RT9# -->               zero but not work!!
+
+!!!There isn't a command to start/stop tracking !!! You have to do manualy
+
+This speeds only are taken into account for protocol buttons, not for the HC Buttons
+:RG#  -->  Select guide speed for :Mn#,:Ms# ....
+:RG0,1,2 -->preselect guide speed 0.25x, 0.5x, 1.0x (HC shows it)
+:RC#  -->  Select center speed for :Mn#,:Ms# .... (Not Works)
+:RC0,1,2 -->preselect guide speed  (HC doesn't shows it)
+:Mn# :Ms# :Me# :Mw#  (move until :Q# at guiding or center speed :RG# (works)or :RC#(not work, use :RC0/1/2 instead))
+:MnXXX# :MsXXX# :MeXXX# :MwXXX#  (move XXX ms at guiding speed no mather what :RCx#,:RGX# or :RSX# was issue)
+*/
+
 /* SOCAT sniffer
 socat  -v  PTY,link=/tmp/serial,wait-slave,raw /dev/ttyUSB0,raw
 */
@@ -275,9 +319,9 @@ bool ioptronHC8406::isSlewComplete()
     /* HC8406 doesn't have :SE# or :SE? command, thus we check if the slew is 
        completed comparing targetRA/DEC with actual RA/DEC */
 
-    float tolerance=5./3600.;  // 5 arcsec
+    float tolerance=30/3600.;  // 5 arcsec
 
-    if (abs(currentRA-targetRA) <= tolerance && abs(currentDEC-targetDEC) <= tolerance) 
+    if (fabs(currentRA-targetRA) <= tolerance && fabs(currentDEC-targetDEC) <= tolerance) 
 	return true;
 
     return false;
@@ -299,6 +343,7 @@ bool ioptronHC8406::Goto(double r, double d)
 
     fs_sexa(RAStr, targetRA, 2, 3600);
     fs_sexa(DecStr, targetDEC, 2, 3600);
+    DEBUGF(INDI::Logger::DBG_DEBUG, "<GOTO RA/DEC> %s/%s",RAStr,DecStr);
 
     // If moving, let's stop it first.
     if (EqNP.s == IPS_BUSY)
@@ -338,7 +383,7 @@ bool ioptronHC8406::Goto(double r, double d)
             return false;
         }
 
-        if (slewioptronHC8406() == 0)
+        if (slewioptronHC8406() == 0)  //action
         {
             EqNP.s = IPS_ALERT;
             IDSetNumber(&EqNP, "Error Slewing to JNow RA %s - DEC %s\n", RAStr, DecStr);
@@ -349,8 +394,7 @@ bool ioptronHC8406::Goto(double r, double d)
 
     TrackState = SCOPE_SLEWING;
     EqNP.s     = IPS_BUSY;
-
-    IDMessage(getDeviceName(), "Slewing to RA: %s - DEC: %s", RAStr, DecStr);
+    DEBUGF(INDI::Logger::DBG_DEBUG, "Slewing to RA: %s - DEC: %s",RAStr,DecStr);
     return true;
 }
 
@@ -591,7 +635,8 @@ int ioptronHC8406::setioptronHC8406Longitude(double Long)
         sign = '+';
     else
         sign = '-';
-	Long=360-Long;
+
+    Long=360-Long;
 
     getSexComponents(Long, &d, &m, &s);
 
