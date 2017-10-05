@@ -692,14 +692,14 @@ int ioptronHC8406::setioptronHC8406StandardProcedure(int fd, const char *data)
     if ((error_type = tty_write_string(fd, data, &nbytes_write)) != TTY_OK)
         return error_type;
 
-    //error_type = tty_read(fd, bool_return, 1, 5, &nbytes_read);
+    error_type = tty_read(fd, bool_return, 1, 5, &nbytes_read);
 
     // JM: Hack from Jon in the INDI forums to fix longitude/latitude settings failure on ioptronHC8406
-    /*
+    
     usleep(10000);
     tcflush(fd, TCIFLUSH);
     usleep(10000);
-    */
+    
 
 
     if (nbytes_read < 1)
@@ -725,10 +725,14 @@ bool ioptronHC8406::SetTrackMode(uint8_t mode)
 
 int ioptronHC8406::setioptronHC8406TrackMode(int mode)
 {
-    DEBUGF(DBG_SCOPE, "<%s>", __FUNCTION__);
 
     char cmd[8];
     int mmode=0;
+    int error_type=0;
+    int nbytes_write = 0 ;
+
+    DEBUGF(DBG_SCOPE, "<%s>", __FUNCTION__);
+
     if (mode == 0 ) {
 	mmode=2;
     } else if (mode ==1) {
@@ -740,7 +744,13 @@ int ioptronHC8406::setioptronHC8406TrackMode(int mode)
     }
     snprintf(cmd, 8, ":RT%d#", mmode);
 
-    return setioptronHC8406StandardProcedure(PortFD, cmd);
+    DEBUGF(DBG_SCOPE, "CMD <%s>", cmd);
+    
+    //None return value so just write cmd and exit without reading the response
+    if ((error_type = tty_write_string(PortFD, cmd, &nbytes_write)) != TTY_OK)
+        return error_type;
+
+    return 0;
 }
 
 bool ioptronHC8406::Park()
