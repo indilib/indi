@@ -129,6 +129,10 @@
                 <driver name="GotoNova">indi_lx200gotonova</driver>
                 <version>1.0</version>
         </device>
+        <device label="ioptron HandController 8406" focal_length="" aperture="">
+                <driver name="ioptronHC8406">indi_ioptronHC8406</driver>
+                <version>1.0</version>
+        </device>
         <device label="Pulsar2" focal_length="" aperture="">
                 <driver name="Pulsar2">indi_lx200pulsar2</driver>
                 <version>1.0</version>
