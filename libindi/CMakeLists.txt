@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.0)
-PROJECT(libindi C CXX )
+PROJECT(libindi C CXX)
 
 # Tell CMake to run moc when necessary:
 set(CMAKE_AUTOMOC ON)
