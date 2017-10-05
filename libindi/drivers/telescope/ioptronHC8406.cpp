@@ -89,9 +89,9 @@ socat  -v  PTY,link=/tmp/serial,wait-slave,raw /dev/ttyUSB0,raw
 ioptronHC8406::ioptronHC8406()
 {
     setVersion(1, 1);
-    setDeviceName("ioptronHC8406");
+    //setDeviceName("ioptronHC8406");
     setLX200Capability(LX200_HAS_FOCUS);
-    SetTelescopeCapability(TELESCOPE_CAN_PARK | TELESCOPE_CAN_SYNC | TELESCOPE_CAN_GOTO | TELESCOPE_CAN_ABORT | TELESCOPE_HAS_TIME | TELESCOPE_HAS_LOCATION | TELESCOPE_HAS_TRACK_MODE  | 3);
+    SetTelescopeCapability(TELESCOPE_CAN_PARK | TELESCOPE_CAN_SYNC | TELESCOPE_CAN_GOTO | TELESCOPE_CAN_ABORT | TELESCOPE_HAS_TIME | TELESCOPE_HAS_LOCATION | TELESCOPE_HAS_TRACK_MODE);
 
 }
 
@@ -164,7 +164,7 @@ bool ioptronHC8406::updateProperties()
 
 const char *ioptronHC8406::getDefaultName()
 {
-    return (const char *)"ioptronHC9406";
+    return (const char *)"IOptron HC8406";
 }
 
 bool ioptronHC8406::checkConnection()
