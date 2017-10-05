@@ -86,13 +86,13 @@ socat  -v  PTY,link=/tmp/serial,wait-slave,raw /dev/ttyUSB0,raw
 #define ioptronHC8406_TIMEOUT 1 /* timeout */
 #define ioptronHC8406_CALDATE_RESULT "                                #                 " /* result of calendar date */
 
+
 ioptronHC8406::ioptronHC8406()
 {
     setVersion(1, 1);
     //setDeviceName("ioptronHC8406");
     setLX200Capability(LX200_HAS_FOCUS);
     SetTelescopeCapability(TELESCOPE_CAN_PARK | TELESCOPE_CAN_SYNC | TELESCOPE_CAN_GOTO | TELESCOPE_CAN_ABORT | TELESCOPE_HAS_TIME | TELESCOPE_HAS_LOCATION | TELESCOPE_HAS_TRACK_MODE);
-
 }
 
 bool ioptronHC8406::initProperties()
@@ -117,7 +117,7 @@ bool ioptronHC8406::initProperties()
     IUFillSwitchVector(&GuideRateSP, GuideRateS, 3, getDeviceName(),
           "GUIDE_RATE", "Guide Speed", MOTION_TAB, IP_RW, ISR_1OFMANY, 0,IPS_IDLE);
 
-    // Guide Rate
+    // Center Rate
     IUFillSwitch(&CenterRateS[0], "12x", "", ISS_OFF);
     IUFillSwitch(&CenterRateS[1], "64x", "", ISS_ON);
     IUFillSwitch(&CenterRateS[2], "600x", "", ISS_OFF);
@@ -330,6 +330,7 @@ bool ioptronHC8406::isSlewComplete()
 void ioptronHC8406::getBasicData()
 {
 //TBD
+    checkLX200Format(PortFD);
     UnPark();
     sendScopeLocation();
     sendScopeTime();
@@ -1119,7 +1120,8 @@ void ioptronHC8406::sendScopeTime()
     time_epoch = mktime(&ltm);
 
     // Convert to TimeT
-    time_epoch -= (int)(atof(TimeT[1].text) * 3600.0);
+    //time_epoch -= (int)(atof(TimeT[1].text) * 3600.0);
+    time_epoch -= (int)(lx200_utc_offset * 3600.0);
 
     // Get UTC (we're using localtime_r, but since we shifted time_epoch above by UTCOffset, we should be getting the real UTC time
     localtime_r(&time_epoch, &utm);
