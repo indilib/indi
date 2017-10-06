@@ -1,0 +1,18 @@
+Description: Do not cache downloaded files in memory
+             to plug a giant memory hole (see Debian
+             bug #372166)
+Author: Frederic Peters <fpeters@debian.org>
+Reviewed-by: Herbert Parentes Fortes Neto <hpfn@ig.com.br>
+Bug-Debian: https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=372166
+Last-Update: 2014-12-22
+--- a/libgphoto2/gphoto2-filesys.c
++++ b/libgphoto2/gphoto2-filesys.c
+@@ -1597,8 +1597,6 @@
+ 
+ #if 0
+ 	/* this disables LRU completely. */
+-	/* Cache this file */
+-	CR (gp_filesystem_set_file_noop (fs, folder, filename, type, file, context));
+ #endif
+ 
+ 	/*

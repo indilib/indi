@@ -1,0 +1,49 @@
+Description: To be Multi-Arch compatible.
+             See 689083 bug.
+Author: Herbert Parentes Fortes Neto <hpfn@ig.com.br>
+        Thanks to Francois Gouget <fgouget@free.fr>
+Last-Update: 2015-04-30
+Index: libgphoto2-2.5.7/gphoto2-config.in
+===================================================================
+--- libgphoto2-2.5.7.orig/gphoto2-config.in
++++ libgphoto2-2.5.7/gphoto2-config.in
+@@ -2,7 +2,7 @@
+ 
+ # leave these definitions here
+ # they are required for correct interpolation of
+-# @libdir@ and @includedir@ later on
++# libdir and includedir later on
+ prefix="@prefix@"
+ exec_prefix="@exec_prefix@"
+ 
+@@ -59,7 +59,7 @@ while test $# -gt 0; do
+        	;;
+ 
+     --libs)
+-        echo "-L@libdir@" -lgphoto2 -lgphoto2_port -lm
++        echo -lgphoto2 -lgphoto2_port -lm
+        	;;
+ 
+     *)
+Index: libgphoto2-2.5.7/libgphoto2_port/gphoto2-port-config.in
+===================================================================
+--- libgphoto2-2.5.7.orig/libgphoto2_port/gphoto2-port-config.in
++++ libgphoto2-2.5.7/libgphoto2_port/gphoto2-port-config.in
+@@ -2,7 +2,7 @@
+ 
+ # leave these definitions here
+ # they are required for correct interpolation of
+-# @libdir@ and @includedir@ later on
++# libdir and includedir later on
+ prefix="@prefix@"
+ exec_prefix="@exec_prefix@"
+ 
+@@ -59,7 +59,7 @@ while test $# -gt 0; do
+        	;;
+ 
+     --libs)
+-       	echo "-L@libdir@" -lgphoto2_port
++       	echo -lgphoto2_port
+        	;;
+ 
+     *)

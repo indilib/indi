@@ -1,0 +1,8 @@
+#10_disable_cache
+#11_hurd_no_path_max_bsdsource
+#libjpeg_turbo_1.5.0_fix.patch
+fix-typo_stv0674.c.patch
+fix-typo-canon.patch
+fix-typo-kodak.patch
+kFreeBSD-ENODATA.patch
+30_multiarch.patch
