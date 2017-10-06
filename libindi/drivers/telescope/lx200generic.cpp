@@ -42,6 +42,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110 - 1301  USA
   #include "lx200ss2000pc.h"
   #include "lx200zeq25.h"
   #include "lx200gotonova.h"
+  #include "ioptronHC8406.h"
 
   #include <libnova/sidereal_time.h>
 
@@ -140,6 +141,13 @@ void ISInit()
 
         if (telescope.get() == 0)
             telescope.reset(new LX200GotoNova());
+    }
+    else if (strstr(me, "indi_ioptronHC8406"))
+    {
+        IDLog("initializing from ioptron telescope Hand Controller HC8406 device...\n");
+
+        if (telescope.get() == 0)
+            telescope.reset(new ioptronHC8406());
     }
     else if (strstr(me, "indi_lx200pulsar2"))
     {
