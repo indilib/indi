@@ -5,7 +5,7 @@ Maintainer: Debian PhotoTools Maintainers <pkg-phototools-devel@lists.alioth.deb
 Uploaders: Herbert Parentes Fortes Neto <hpfn@debian.org>,
            Frederic Peters <fpeters@debian.org>,
            Gürkan Sengün <gurkan@phys.ethz.ch>
-Build-Depends: debhelper (>= 10),
+Build-Depends: debhelper (>= 9),
                dh-autoreconf,
                doxygen,
                graphviz,
