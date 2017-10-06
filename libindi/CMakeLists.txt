@@ -948,6 +948,15 @@ add_executable(indi_sqm_weather ${sqm_SRC})
 target_link_libraries(indi_sqm_weather indidriver)
 install(TARGETS indi_sqm_weather RUNTIME DESTINATION bin)
 
+########### Sky Quality Meter Simulator ###############
+
+SET(sqm_simulator_SRC
+    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/auxiliary/sqm_simulator.cpp)
+
+add_executable(indi_sqm_simulator ${sqm_simulator_SRC})
+target_link_libraries(indi_sqm_simulator indidriver)
+install(TARGETS indi_sqm_simulator RUNTIME DESTINATION bin)
+
 ########### Astrometry Driver ###############
 
 SET(astrometry_SRC
