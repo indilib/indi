@@ -319,7 +319,7 @@ bool ioptronHC8406::isSlewComplete()
     /* HC8406 doesn't have :SE# or :SE? command, thus we check if the slew is 
        completed comparing targetRA/DEC with actual RA/DEC */
 
-    float tolerance=30/3600.;  // 5 arcsec
+    float tolerance=5/3600.;  // 5 arcsec
 
     if (fabs(currentRA-targetRA) <= tolerance && fabs(currentDEC-targetDEC) <= tolerance) 
 	return true;
@@ -329,9 +329,8 @@ bool ioptronHC8406::isSlewComplete()
 
 void ioptronHC8406::getBasicData()
 {
-//TBD
-    checkLX200Format(PortFD);
     UnPark();
+    checkLX200Format(PortFD);
     sendScopeLocation();
     sendScopeTime();
 }
@@ -717,6 +716,13 @@ int ioptronHC8406::setioptronHC8406StandardProcedure(int fd, const char *data)
     DEBUGF(DBG_SCOPE, "CMD <%s> successful.", data);
 
     return 0;
+}
+
+bool ioptronHC8406::SetTrackEnabled(bool enabled)
+{
+    DEBUGF(INDI::Logger::DBG_WARNING, "<SetTrackEnabled> NOT A CMD IN HC8406 command set: %d",enabled);
+
+    return false;
 }
 
 bool ioptronHC8406::SetTrackMode(uint8_t mode)
