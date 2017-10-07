@@ -23,7 +23,7 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 #include "gason.h"
 
-#include <stdlib.h>
+#include <cstdlib>
 
 #define JSON_ZONE_SIZE  4096
 #define JSON_STACK_SIZE 32

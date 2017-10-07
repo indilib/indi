@@ -24,7 +24,7 @@ class DomeSim : public INDI::Dome
 {
   public:
     DomeSim();
-    virtual ~DomeSim();
+    virtual ~DomeSim() = default;
 
     virtual bool initProperties();
     const char *getDefaultName();

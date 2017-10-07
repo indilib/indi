@@ -22,8 +22,13 @@
 #include "dsusbdriver.h"
 
 #include <indilogger.h>
-
+#include <unistd.h>
 #include <string.h>
+
+#define SHUTTER_ON     0x01
+#define FOCUS_ON       0x02
+#define LED_RED        0x10
+#define LED_ON         0x20
 
 DSUSBDriver::DSUSBDriver(const char *device)
 {
@@ -58,26 +63,50 @@ bool DSUSBDriver::readState()
 
 bool DSUSBDriver::openShutter()
 {
-    readState();
+    uint8_t command = 0;
 
     DEBUGDEVICE(device, INDI::Logger::DBG_DEBUG, "DSUSB Opening Shutter ...");
-    uint8_t command = (infoByte | 0x01);
-    DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG, "CMD <%#02X>", infoByte);
-    int rc = WriteBulk(&command, 1, 1000);
-    DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG, "RC: %d", rc);
 
-    return (rc == 1);
+    // First assert focus then assert shutter as per Doug recommendations from Shoestring Astronomy
+    // LED = ON, COLOR = GREEN
+    command = (LED_ON | FOCUS_ON);
+    DEBUGDEVICE(device, INDI::Logger::DBG_DEBUG, "Asserting Focus ...");
+    DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG, "CMD <%#02X>", command);
+    WriteBulk(&command, 1, 1000);
+
+    // Wait 100 ms
+    usleep(100000);
+
+    // Assert Shutter
+    command |= SHUTTER_ON;
+    DEBUGDEVICE(device, INDI::Logger::DBG_DEBUG, "Asserting Shutter ...");
+    DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG, "CMD <%#02X>", command);
+    WriteBulk(&command, 1, 1000);
+
+    return true;
 }
 
 bool DSUSBDriver::closeShutter()
 {
-    readState();
+    uint8_t command = 0;
 
-    DEBUGDEVICE(device, INDI::Logger::DBG_DEBUG, "DSUSB Opening Shutter ...");
-    uint8_t command = (infoByte & 0xFE);
-    DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG, "CMD <%#02X>", infoByte);
-    int rc = WriteBulk(&command, 1, 1000);
-    DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG, "RC: %d", rc);
+    DEBUGDEVICE(device, INDI::Logger::DBG_DEBUG, "DSUSB Closing Shutter ...");
 
-    return (rc == 1);
+    // First deassert shutter then deassert focus as per Doug recommendations from Shoestring Astronomy
+    // LED = ON, COLOR = RED
+    command = (LED_ON | LED_RED | FOCUS_ON);
+    DEBUGDEVICE(device, INDI::Logger::DBG_DEBUG, "Deasserting Shutter ...");
+    DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG, "CMD <%#02X>", command);
+    WriteBulk(&command, 1, 1000);
+
+    // Wait 100 ms
+    usleep(100000);
+
+    // Deassert Focus
+    command = (LED_ON | LED_RED);
+    DEBUGDEVICE(device, INDI::Logger::DBG_DEBUG, "Deasserting Focus ...");
+    DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG, "CMD <%#02X>", command);
+    WriteBulk(&command, 1, 1000);
+
+    return true;
 }

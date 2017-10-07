@@ -27,10 +27,10 @@
 #include "indicom.h"
 #include "connectionplugins/connectionserial.h"
 
+#include <cerrno>
+#include <cstring>
 #include <memory>
-#include <string.h>
 #include <termios.h>
-#include <sys/errno.h>
 #include <sys/ioctl.h>
 
 // We declare an auto pointer to FlipFlat.
@@ -46,19 +46,19 @@ void ISGetProperties(const char *dev)
     flipflat->ISGetProperties(dev);
 }
 
-void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int num)
+void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
 {
-    flipflat->ISNewSwitch(dev, name, states, names, num);
+    flipflat->ISNewSwitch(dev, name, states, names, n);
 }
 
-void ISNewText(const char *dev, const char *name, char *texts[], char *names[], int num)
+void ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
 {
-    flipflat->ISNewText(dev, name, texts, names, num);
+    flipflat->ISNewText(dev, name, texts, names, n);
 }
 
-void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int num)
+void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
 {
-    flipflat->ISNewNumber(dev, name, values, names, num);
+    flipflat->ISNewNumber(dev, name, values, names, n);
 }
 
 void ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[],
@@ -82,13 +82,6 @@ void ISSnoopDevice(XMLEle *root)
 FlipFlat::FlipFlat() : LightBoxInterface(this, true)
 {
     setVersion(1, 0);
-    PortFD          = -1;
-    isFlipFlat      = false;
-    prevCoverStatus = prevLightStatus = prevMotorStatus = prevBrightness = 0xFF;
-}
-
-FlipFlat::~FlipFlat()
-{
 }
 
 bool FlipFlat::initProperties()
@@ -166,7 +159,7 @@ bool FlipFlat::updateProperties()
 
 const char *FlipFlat::getDefaultName()
 {
-    return (char *)"Flip Flat";
+    return (const char *)"Flip Flat";
 }
 
 bool FlipFlat::Handshake()
@@ -202,7 +195,7 @@ bool FlipFlat::Handshake()
         return false;
     }
 
-    if (ping() == false)
+    if (!ping())
     {
         DEBUG(INDI::Logger::DBG_ERROR, "Device ping failed.");
         return false;
@@ -221,7 +214,7 @@ bool FlipFlat::ISNewNumber(const char *dev, const char *name, double values[], c
 
 bool FlipFlat::ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
 {
-    if (strcmp(dev, getDeviceName()) == 0)
+    if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
         if (processLightBoxText(dev, name, texts, names, n))
             return true;
@@ -232,7 +225,7 @@ bool FlipFlat::ISNewText(const char *dev, const char *name, char *texts[], char 
 
 bool FlipFlat::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
 {
-    if (strcmp(dev, getDeviceName()) == 0)
+    if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
         if (processDustCapSwitch(dev, name, states, names, n))
             return true;
@@ -253,6 +246,8 @@ bool FlipFlat::ISSnoopDevice(XMLEle *root)
 
 bool FlipFlat::saveConfigItems(FILE *fp)
 {
+    INDI::DefaultDevice::saveConfigItems(fp);
+
     return saveLightBoxConfigItems(fp);
 }
 
@@ -294,7 +289,7 @@ bool FlipFlat::ping()
 
     DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", response);
 
-    char productString[3];
+    char productString[3] = { 0 };
     snprintf(productString, 3, "%s", response + 2);
 
     rc = sscanf(productString, "%d", &productID);
@@ -367,7 +362,7 @@ IPState FlipFlat::ParkCap()
     char expectedResponse[FLAT_RES];
     snprintf(expectedResponse, FLAT_RES, "*C%02d000", productID);
 
-    if (!strcmp(response, expectedResponse))
+    if (strcmp(response, expectedResponse) == 0)
     {
         // Set cover status to random value outside of range to force it to refresh
         prevCoverStatus = 10;
@@ -419,7 +414,7 @@ IPState FlipFlat::UnParkCap()
     char expectedResponse[FLAT_RES];
     snprintf(expectedResponse, FLAT_RES, "*O%02d000", productID);
 
-    if (!strcmp(response, expectedResponse))
+    if (strcmp(response, expectedResponse) == 0)
     {
         // Set cover status to random value outside of range to force it to refresh
         prevCoverStatus = 10;
@@ -480,10 +475,10 @@ bool FlipFlat::EnableLightBox(bool enable)
     else
         snprintf(expectedResponse, FLAT_RES, "*D%02d000", productID);
 
-    if (!strcmp(response, expectedResponse))
+    if (strcmp(response, expectedResponse) == 0)
         return true;
-    else
-        return false;
+
+    return false;
 }
 
 bool FlipFlat::getStatus()
@@ -690,7 +685,7 @@ bool FlipFlat::getFirmwareVersion()
 
     DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", response);
 
-    char versionString[4];
+    char versionString[4]={0};
     snprintf(versionString, 4, "%s", response + 4);
     IUSaveText(&FirmwareT[0], versionString);
     IDSetText(&FirmwareTP, nullptr);
@@ -700,7 +695,7 @@ bool FlipFlat::getFirmwareVersion()
 
 void FlipFlat::TimerHit()
 {
-    if (isConnected() == false)
+    if (!isConnected())
         return;
 
     getStatus();
@@ -746,7 +741,7 @@ bool FlipFlat::getBrightness()
 
     DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", response);
 
-    char brightnessString[4];
+    char brightnessString[4]={0};
     snprintf(brightnessString, 4, "%s", response + 4);
 
     int brightnessValue = 0;
@@ -808,7 +803,7 @@ bool FlipFlat::SetLightBoxBrightness(uint16_t value)
 
     DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", response);
 
-    char brightnessString[4];
+    char brightnessString[4]={0};
     snprintf(brightnessString, 4, "%s", response + 4);
 
     int brightnessValue = 0;

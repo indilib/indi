@@ -30,10 +30,10 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  * #define MAIN_TST to create standalone test program
  */
 
+#include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <ctype.h>
 
 #if defined(_MSC_VER)
 #define snprintf _snprintf
@@ -816,8 +816,8 @@ char *entityXML(char *s)
 {
     static char *malbuf;
     int nmalbuf = 0;
-    char *sret;
-    char *ep;
+    char *sret = NULL;
+    char *ep = NULL;
 
     /* scan for each entity, if any */
     for (sret = s; (ep = strpbrk(s, entities)) != NULL; s = ep + 1)
@@ -852,12 +852,13 @@ char *entityXML(char *s)
     /* return s if no entities, else malloc cleaned-up copy */
     if (sret == s)
     {
-        /* using s, so free any malloced memory from last time */
+        /* using s, so free any alloced memory from last time */
         if (malbuf)
         {
             free(malbuf);
             malbuf = NULL;
         }
+        return s;
     }
     else
     {
@@ -1244,6 +1245,9 @@ static void growString(String *sp, int c)
 /* append str to the String storage at *sp */
 static void appendString(String *sp, const char *str)
 {
+    if (!sp || !str)
+        return;
+
     int strl = strlen(str);
     int l    = sp->sl + strl + 1; /* need room for '\0' */
 
@@ -1254,13 +1258,19 @@ static void appendString(String *sp, const char *str)
         if (l > sp->sm)
             sp->s = (char *)moremem(sp->s, (sp->sm = l));
     }
-    strcpy(&sp->s[sp->sl], str);
-    sp->sl += strl;
+    if (sp->s)
+    {
+        strcpy(&sp->s[sp->sl], str);
+        sp->sl += strl;
+    }
 }
 
 /* init a String with a malloced string containing just \0 */
 static void newString(String *sp)
 {
+    if (!sp)
+        return;
+
     sp->s  = (char *)moremem(NULL, MINMEM);
     sp->sm = MINMEM;
     *sp->s = '\0';

@@ -50,6 +50,17 @@
  * should remove any additional properties it defined in updateProperties() if applicable</li>
  * </ul>
  *
+ * TrackState is used to monitor changes in Tracking state. There are three main tracking properties:
+ * + TrackMode: Changes tracking mode or rate. Common modes are TRACK_SIDEREAL, TRACK_LUNAR, TRACK_SOLAR, and TRACK_CUSTOM
+ * + TrackRate: If the mount supports custom tracking rates, it should set the capability flag TELESCOPE_HAS_TRACK_RATE. If the user
+ *              changes the custom tracking rates while the mount is tracking, it it sent to the child class via SetTrackRate(...) function.
+ *              The base class will reject any track rates that switch from positive to negative (reverse) tracking rates as the mount must be stopped before
+ *              such change takes place.
+ * + TrackState: Engages or Disengages tracking. When engaging tracking, the child class should take the necessary steps to set the appropiate TrackMode and TrackRate
+ *               properties before or after engaging tracking as governed by the mount protocol.
+ *
+ * Ideally, the child class should avoid changing property states directly within a function call from the base class as such state changes take place in the base class
+ * after checking the return values of such functions.
  * \author Jasem Mutlaq, Gerry Rozema
  * \see TelescopeSimulator and SynScan drivers for examples of implementations of INDI::Telescope.
  */
@@ -66,7 +77,7 @@ class INDI::Telescope : public INDI::DefaultDevice
     };
     enum TelescopeMotionCommand
     {
-        MOTION_START,
+        MOTION_START = 0,
         MOTION_STOP
     };
     enum TelescopeSlewRate
@@ -83,10 +94,17 @@ class INDI::Telescope : public INDI::DefaultDevice
         TRACK_LUNAR,
         TRACK_CUSTOM
     };
+    enum TelescopeTrackState
+    {
+        TRACK_ON,
+        TRACK_OFF,
+        TRACK_UNKNOWN
+    };
     enum TelescopeParkData
     {
         PARK_NONE,
         PARK_RA_DEC,
+        PARK_HA_DEC,
         PARK_AZ_ALT,
         PARK_RA_DEC_ENCODER,
         PARK_AZ_ALT_ENCODER
@@ -102,6 +120,13 @@ class INDI::Telescope : public INDI::DefaultDevice
         PIER_UNKNOWN = -1,
         PIER_WEST    = 0,
         PIER_EAST    = 1
+    };
+
+    enum TelescopePECState
+    {
+        PEC_UNKNOWN = -1,
+        PEC_OFF     = 0,
+        PEC_ON      = 1
     };
 
     /**
@@ -121,13 +146,17 @@ class INDI::Telescope : public INDI::DefaultDevice
      */
     enum
     {
-        TELESCOPE_CAN_GOTO      = 1 << 0, /** Can the telescope go to to specific coordinates? */
-        TELESCOPE_CAN_SYNC      = 1 << 1, /** Can the telescope sync to specific coordinates? */
-        TELESCOPE_CAN_PARK      = 1 << 2, /** Can the telescope park? */
-        TELESCOPE_CAN_ABORT     = 1 << 3, /** Can the telescope abort motion? */
-        TELESCOPE_HAS_TIME      = 1 << 4, /** Does the telescope have configurable date and time settings? */
-        TELESCOPE_HAS_LOCATION  = 1 << 5, /** Does the telescope have configuration location settings? */
-        TELESCOPE_HAS_PIER_SIDE = 1 << 6  /** Does the telescope have pier side property? */
+        TELESCOPE_CAN_GOTO          = 1 << 0, /** Can the telescope go to to specific coordinates? */
+        TELESCOPE_CAN_SYNC          = 1 << 1, /** Can the telescope sync to specific coordinates? */
+        TELESCOPE_CAN_PARK          = 1 << 2, /** Can the telescope park? */
+        TELESCOPE_CAN_ABORT         = 1 << 3, /** Can the telescope abort motion? */
+        TELESCOPE_HAS_TIME          = 1 << 4, /** Does the telescope have configurable date and time settings? */
+        TELESCOPE_HAS_LOCATION      = 1 << 5, /** Does the telescope have configuration location settings? */
+        TELESCOPE_HAS_PIER_SIDE     = 1 << 6, /** Does the telescope have pier side property? */
+        TELESCOPE_HAS_PEC           = 1 << 7,  /** Does the telescope have PEC playback? */
+        TELESCOPE_HAS_TRACK_MODE    = 1 << 8,  /** Does the telescope have track modes (sidereal, lunar, solar..etc)? */
+        TELESCOPE_CAN_CONTROL_TRACK = 1 << 9,  /** Can the telescope engage and disengage tracking? */
+        TELESCOPE_HAS_TRACK_RATE    = 1 << 10,  /** Does the telescope have custom track rates? */
     } TelescopeCapability;
 
     Telescope();
@@ -175,6 +204,11 @@ class INDI::Telescope : public INDI::DefaultDevice
     bool CanPark() { return capability & TELESCOPE_CAN_PARK; }
 
     /**
+     * @return True if telescope can enagle and disengage tracking.
+     */
+    bool CanControlTrack() { return capability & TELESCOPE_CAN_CONTROL_TRACK; }
+
+    /**
      * @return True if telescope time can be updated.
      */
     bool HasTime() { return capability & TELESCOPE_HAS_TIME; }
@@ -188,6 +222,21 @@ class INDI::Telescope : public INDI::DefaultDevice
      * @return True if telescope supports pier side property
      */
     bool HasPierSide() { return capability & TELESCOPE_HAS_PIER_SIDE; }
+
+    /**
+     * @return True if telescope supports PEC playback property
+     */
+    bool HasPECState() { return capability & TELESCOPE_HAS_PEC; }
+
+    /**
+     * @return True if telescope supports track modes
+     */
+    bool HasTrackMode() { return capability & TELESCOPE_HAS_TRACK_MODE; }
+
+    /**
+     * @return True if telescope supports custom tracking rates.
+     */
+    bool HasTrackRate() { return capability & TELESCOPE_HAS_TRACK_RATE; }
 
     /** \brief Called to initialize basic properties required all the time */
     virtual bool initProperties();
@@ -307,6 +356,9 @@ class INDI::Telescope : public INDI::DefaultDevice
     void setPierSide(TelescopePierSide side);
     TelescopePierSide getPierSide() { return currentPierSide; }
 
+    void setPECState(TelescopePECState state);
+    TelescopePECState getPECState() { return currentPECState; }
+
   protected:
     virtual bool saveConfigItems(FILE *fp);
 
@@ -381,12 +433,51 @@ class INDI::Telescope : public INDI::DefaultDevice
     virtual bool UnPark();
 
     /**
-     * \brief Abort telescope motion
+     * \brief Abort any telescope motion including tracking if possible.
      * \return True if successful, false otherwise
      * \note If not implemented by the child class, this function by default returns false with a
      * warning message.
      */
     virtual bool Abort();
+
+    /**
+     * @brief SetTrackMode Set active tracking mode. Do not change track state.
+     * @param mode Index of track mode.
+     * @return True if successful, false otherwise
+     * @note If not implemented by the child class, this function by default returns false with a
+     * warning message.
+     */
+    virtual bool SetTrackMode(uint8_t mode);
+
+    /**
+     * @brief SetTrackRate Set custom tracking rates.
+     * @param raRate RA tracking rate in arcsecs/s
+     * @param deRate DEC tracking rate in arcsecs/s
+     * @return True if successful, false otherwise
+     * @note If not implemented by the child class, this function by default returns false with a
+     * warning message.
+     */
+    virtual bool SetTrackRate(double raRate, double deRate);
+
+    /**
+     * @brief AddTrackMode
+     * @param name Name of track mode. It is recommended to use standard properties names such as TRACK_SIDEREAL..etc.
+     * @param label Label of track mode that appears at the client side.
+     * @param isDefault Set to true to mark the track mode as the default. Only one mode should be marked as default.
+     * @return Index of added track mode
+     * @note Child class should add all track modes be
+     */
+    virtual int AddTrackMode(const char *name, const char *label, bool isDefault=false);
+
+    /**
+     * @brief SetTrackEnabled Engages or disengages mount tracking. If there are no tracking modes available, it is assumed sidereal. Otherwise,
+     * whatever tracking mode should be activated or deactivated accordingly.
+     * @param enabled True to engage tracking, false to stop tracking completely.
+     * @return True if successful, false otherwise
+     * @note If not implemented by the child class, this function by default returns false with a
+     * warning message.
+     */
+    virtual bool SetTrackEnabled(bool enabled);
 
     /**
      * \brief Update telescope time, date, and UTC offset.
@@ -467,6 +558,12 @@ class INDI::Telescope : public INDI::DefaultDevice
     bool LoadScopeConfig();
 
     /**
+     * @brief Load scope settings from XML files.
+     * @return True if Config #1 exists otherwise false.
+     */
+    bool HasDefaultScopeConfig();
+
+    /**
      * \brief Save scope settings to XML files.
      */
     bool UpdateScopeConfig();
@@ -498,6 +595,11 @@ class INDI::Telescope : public INDI::DefaultDevice
      * are we slewing, tracking, or parked.
      */
     TelescopeStatus TrackState;
+
+    /**
+     * @brief RememberTrackState Remember last state of Track State to fall back to in case of errors or aborts.
+     */
+    TelescopeStatus RememberTrackState;
 
     // All telescopes should produce equatorial co-ordinates
     INumberVectorProperty EqNP;
@@ -571,6 +673,26 @@ class INDI::Telescope : public INDI::DefaultDevice
     // Pier Side
     TelescopePierSide lastPierSide, currentPierSide;
 
+    // PEC State
+    ISwitch PECStateS[2];
+    ISwitchVectorProperty PECStateSP;
+
+    // Track Mode
+    ISwitchVectorProperty TrackModeSP;
+    ISwitch *TrackModeS { nullptr };
+
+    // Track State
+    ISwitchVectorProperty TrackStateSP;
+    ISwitch TrackStateS[2];
+
+    // Track Rate
+    INumberVectorProperty TrackRateNP;
+    INumber TrackRateN[2];
+
+    // PEC State
+    TelescopePECState lastPECState, currentPECState;
+
+
     uint32_t capability;
     int last_we_motion, last_ns_motion;
 
@@ -582,7 +704,37 @@ class INDI::Telescope : public INDI::DefaultDevice
     Connection::Serial *serialConnection = NULL;
     Connection::TCP *tcpConnection       = NULL;
 
-  private:
+  // XML node names for scope config
+  const std::string ScopeConfigRootXmlNode { "scopeconfig" };
+  const std::string ScopeConfigDeviceXmlNode { "device" };
+  const std::string ScopeConfigNameXmlNode { "name" };
+  const std::string ScopeConfigScopeFocXmlNode { "scopefoc" };
+  const std::string ScopeConfigScopeApXmlNode { "scopeap" };
+  const std::string ScopeConfigGScopeFocXmlNode { "gscopefoc" };
+  const std::string ScopeConfigGScopeApXmlNode { "gscopeap" };
+  const std::string ScopeConfigLabelApXmlNode { "label" };
+
+  // A switch to apply custom aperture/focal length config
+    enum
+    {
+        SCOPE_CONFIG1,
+        SCOPE_CONFIG2,
+        SCOPE_CONFIG3,
+        SCOPE_CONFIG4,
+        SCOPE_CONFIG5,
+        SCOPE_CONFIG6
+    };
+    ISwitch ScopeConfigs[6];
+    ISwitchVectorProperty ScopeConfigsSP;
+
+    // Scope config name
+    ITextVectorProperty ScopeConfigNameTP;
+    IText ScopeConfigNameT[1];
+
+    /// The telescope/guide scope configuration file name
+    const std::string ScopeConfigFileName;
+
+private:
     bool processTimeInfo(const char *utc, const char *offset);
     bool processLocationInfo(double latitude, double longitude, double elevation);
 
@@ -607,24 +759,4 @@ class INDI::Telescope : public INDI::DefaultDevice
 
     uint8_t telescopeConnection = CONNECTION_SERIAL | CONNECTION_TCP;
     INDI::Controller *controller;
-
-    // A switch to apply custom aperture/focal length config
-    enum
-    {
-        SCOPE_CONFIG1,
-        SCOPE_CONFIG2,
-        SCOPE_CONFIG3,
-        SCOPE_CONFIG4,
-        SCOPE_CONFIG5,
-        SCOPE_CONFIG6
-    };
-    ISwitch ScopeConfigs[6];
-    ISwitchVectorProperty ScopeConfigsSP;
-
-    // Scope config name
-    ITextVectorProperty ScopeConfigNameTP;
-    IText ScopeConfigNameT[1];
-
-    /// The telescope/guide scope configuration file name
-    const std::string ScopeConfigFileName;
 };

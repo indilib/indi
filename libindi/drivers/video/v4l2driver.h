@@ -61,8 +61,6 @@ class V4L2_Driver : public INDI::CCD
     void stackFrame();
     void newFrame();
 
-    float exposureLeft;
-
   protected:
     virtual bool Connect();
     virtual bool Disconnect();
@@ -160,8 +158,8 @@ class V4L2_Driver : public INDI::CCD
     ISwitchVectorProperty *ManualExposureSP;
 
     /* Initilization functions */
-    //virtual void connectCamera(void);
-    virtual void getBasicData(void);
+    //virtual void connectCamera();
+    virtual void getBasicData();
     void allocateBuffers();
     void releaseBuffers();
     void updateFrameSize();
@@ -190,8 +188,11 @@ class V4L2_Driver : public INDI::CCD
     img_t *V4LFrame; /* Video frame */
 
     struct timeval capture_start; /* To calculate how long a frame take */
-    struct timeval capture_end;
+    //struct timeval capture_end;
     struct timeval exposure_duration;
+    struct timeval getElapsedExposure() const;
+    float getRemainingExposure() const;
+
     unsigned int stackMode;
     ulong frameBytes;
 

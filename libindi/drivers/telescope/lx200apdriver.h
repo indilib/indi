@@ -29,6 +29,12 @@
 #define setAPBackLashCompensation(fd, x, y, z) setCommandXYZ(fd, x, y, z, "#:Br")
 #define setAPMotionStop(fd)                    write(fd, "#:Q", 3)
 
+#define AP_TRACKING_SIDEREAL     0
+#define AP_TRACKING_SOLAR       1
+#define AP_TRACKING_LUNAR       2
+#define AP_TRACKING_CUSTOM      3
+#define AP_TRACKING_OFF         4
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -45,11 +51,14 @@ int APSyncCMR(int fd, char *matchedObject);
 int selectAPMoveToRate(int fd, int moveToRate);
 int selectAPSlewRate(int fd, int slewRate);
 int selectAPTrackingMode(int fd, int trackMode);
+int selectAPPECState(int fd, int pecstate);
 int swapAPButtons(int fd, int currentSwap);
 int setAPObjectRA(int fd, double ra);
 int setAPObjectDEC(int fd, double dec);
 int setAPSiteLongitude(int fd, double Long);
 int setAPSiteLatitude(int fd, double Lat);
+int setAPRATrackRate(int fd, double rate);
+int setAPDETrackRate(int fd, double rate);
 
 #ifdef __cplusplus
 }

@@ -41,10 +41,10 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110 - 1301  USA
 
 #include "indibase/basedevice.h"
 
+#include <cstring>
 #include <fstream>
 #include <iostream>
 #include <memory>
-#include <string.h>
 
 #define MYCCD "Simple CCD"
 
@@ -72,13 +72,6 @@ int main(int /*argc*/, char **/*argv*/)
 MyClient::MyClient()
 {
     ccd_simulator = nullptr;
-}
-
-/**************************************************************************************
-**
-***************************************************************************************/
-MyClient::~MyClient()
-{
 }
 
 /**************************************************************************************
@@ -126,7 +119,7 @@ void MyClient::takeExposure()
 ***************************************************************************************/
 void MyClient::newDevice(INDI::BaseDevice *dp)
 {
-    if (!strcmp(dp->getDeviceName(), MYCCD))
+    if (strcmp(dp->getDeviceName(), MYCCD) == 0)
         IDLog("Receiving %s Device...\n", dp->getDeviceName());
 
     ccd_simulator = dp;
@@ -137,13 +130,13 @@ void MyClient::newDevice(INDI::BaseDevice *dp)
 *************************************************************************************/
 void MyClient::newProperty(INDI::Property *property)
 {
-    if (!strcmp(property->getDeviceName(), MYCCD) && !strcmp(property->getName(), "CONNECTION"))
+    if (strcmp(property->getDeviceName(), MYCCD) == 0 && strcmp(property->getName(), "CONNECTION") == 0)
     {
         connectDevice(MYCCD);
         return;
     }
 
-    if (!strcmp(property->getDeviceName(), MYCCD) && !strcmp(property->getName(), "CCD_TEMPERATURE"))
+    if (strcmp(property->getDeviceName(), MYCCD) == 0 && strcmp(property->getName(), "CCD_TEMPERATURE") == 0)
     {
         if (ccd_simulator->isConnected())
         {
@@ -160,7 +153,7 @@ void MyClient::newProperty(INDI::Property *property)
 void MyClient::newNumber(INumberVectorProperty *nvp)
 {
     // Let's check if we get any new values for CCD_TEMPERATURE
-    if (!strcmp(nvp->name, "CCD_TEMPERATURE"))
+    if (strcmp(nvp->name, "CCD_TEMPERATURE") == 0)
     {
         IDLog("Receving new CCD Temperature: %g C\n", nvp->np[0].value);
 
@@ -177,7 +170,7 @@ void MyClient::newNumber(INumberVectorProperty *nvp)
 ***************************************************************************************/
 void MyClient::newMessage(INDI::BaseDevice *dp, int messageID)
 {
-    if (strcmp(dp->getDeviceName(), MYCCD))
+    if (strcmp(dp->getDeviceName(), MYCCD) != 0)
         return;
 
     IDLog("Recveing message from Server:\n\n########################\n%s\n########################\n\n",

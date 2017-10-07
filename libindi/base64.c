@@ -165,7 +165,7 @@ int from64tobits_fast(char *out, const char *in, int inlen)
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
+u#include <cstring>
 
 static void usage(char *me)
 {
@@ -248,7 +248,7 @@ int main(int ac, char *av[])
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
+#include <cstring>
 
 int main(int ac, char *av[])
 {
@@ -290,8 +290,3 @@ int main(int ac, char *av[])
     return (0);
 }
 #endif
-/* For RCS Only -- Do Not Edit */
-static char *rcsid[2] = {
-    (char *)rcsid,
-    "@(#) $RCSfile$ $Date: 2006-09-30 14:19:41 +0300 (Sat, 30 Sep 2006) $ $Revision: 590506 $ $Name:  $"
-};

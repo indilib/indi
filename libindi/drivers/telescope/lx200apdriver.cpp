@@ -22,15 +22,14 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110 - 1301  USA
 
 #endif
 
-/*ToDo: compare the routes with the new ones from lx200driver.c r111 */
-
+#include <cmath>
 #include "lx200apdriver.h"
 
 #include "indicom.h"
 #include "indilogger.h"
 #include "lx200driver.h"
 
-#include <string.h>
+#include <cstring>
 #include <unistd.h>
 
 #ifndef _WIN32
@@ -323,6 +322,41 @@ int APSyncCMR(int fd, char *matchedObject)
     return 0;
 }
 
+int selectAPPECState(int fd, int pecstate)
+{
+    int error_type;
+    int nbytes_write = 0;
+
+    switch (pecstate)
+    {
+    // PEC OFF
+    case 0:
+        DEBUGDEVICE(lx200ap_name, INDI::Logger::DBG_DEBUG, "selectAPPECState: Setting PEC OFF");
+        DEBUGFDEVICE(lx200ap_name, AP_DBG_SCOPE, "CMD <%s>", "#:p#");
+
+        if ((error_type = tty_write_string(fd, "#:p#", &nbytes_write)) != TTY_OK)
+            return error_type;
+
+        break;
+
+        // PEC ON
+    case 1:
+        DEBUGDEVICE(lx200ap_name, INDI::Logger::DBG_DEBUG, "selectAPPECState: Setting PEC ON");
+        DEBUGFDEVICE(lx200ap_name, AP_DBG_SCOPE, "CMD <%s>", "#:pP#");
+
+        if ((error_type = tty_write_string(fd, "#:pP#", &nbytes_write)) != TTY_OK)
+            return error_type;
+
+        break;
+
+    default:
+        return -1;
+        break;
+    }
+
+    return 0;
+}
+
 int selectAPMoveToRate(int fd, int moveToRate)
 {
     int error_type;
@@ -424,7 +458,7 @@ int selectAPTrackingMode(int fd, int trackMode)
     switch (trackMode)
     {
     /* Sidereal */
-    case 0:
+    case AP_TRACKING_SIDEREAL:
 
         DEBUGDEVICE(lx200ap_name, INDI::Logger::DBG_DEBUG,
                     "selectAPTrackingMode: Setting tracking mode to sidereal.");
@@ -435,7 +469,7 @@ int selectAPTrackingMode(int fd, int trackMode)
         break;
 
         /* Solar */
-    case 1:
+    case AP_TRACKING_SOLAR:
 
         DEBUGDEVICE(lx200ap_name, INDI::Logger::DBG_DEBUG, "selectAPTrackingMode: Setting tracking mode to solar.");
         DEBUGFDEVICE(lx200ap_name, AP_DBG_SCOPE, "CMD <%s>", "#:RT1#");
@@ -445,7 +479,7 @@ int selectAPTrackingMode(int fd, int trackMode)
         break;
 
         /* Lunar */
-    case 2:
+    case AP_TRACKING_LUNAR:
 
         DEBUGDEVICE(lx200ap_name, INDI::Logger::DBG_DEBUG, "selectAPTrackingMode: Setting tracking mode to lunar.");
         DEBUGFDEVICE(lx200ap_name, AP_DBG_SCOPE, "CMD <%s>", "#:RT0#");
@@ -454,8 +488,12 @@ int selectAPTrackingMode(int fd, int trackMode)
             return error_type;
         break;
 
+    case AP_TRACKING_CUSTOM:
+            DEBUGDEVICE(lx200ap_name, INDI::Logger::DBG_DEBUG, "selectAPTrackingMode: Setting tracking mode to Custom.");
+            break;
+
         /* Zero */
-    case 3:
+    case AP_TRACKING_OFF:
 
         DEBUGDEVICE(lx200ap_name, INDI::Logger::DBG_DEBUG, "selectAPTrackingMode: Setting tracking mode to Zero.");
         DEBUGFDEVICE(lx200ap_name, AP_DBG_SCOPE, "CMD <%s>", "#:RT9#");
@@ -558,4 +596,101 @@ int setAPSiteLatitude(int fd, double Lat)
     DEBUGFDEVICE(lx200ap_name, AP_DBG_SCOPE, "CMD <%s>", temp_string);
 
     return (setStandardProcedure(fd, temp_string));
+}
+
+int setAPRATrackRate(int fd, double rate)
+{
+    char cmd[16];
+    char sign;
+    int errcode = 0;
+    char errmsg[MAXRBUF];
+    char response[8];
+    int nbytes_read    = 0;
+    int nbytes_written = 0;
+
+    if (rate < 0)
+        sign = '-';
+    else
+        sign = '+';
+
+    snprintf(cmd, 16, ":RR%c%03.4f#", sign, fabs(rate));
+
+    DEBUGFDEVICE(lx200ap_name, INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
+
+    tcflush(fd, TCIFLUSH);
+
+    if ((errcode = tty_write(fd, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
+    {
+        tty_error_msg(errcode, errmsg, MAXRBUF);
+        DEBUGFDEVICE(lx200ap_name, INDI::Logger::DBG_ERROR, "%s", errmsg);
+        return errcode;
+    }
+
+    if ((errcode = tty_read(fd, response, 1, LX200_TIMEOUT, &nbytes_read)))
+    {
+        tty_error_msg(errcode, errmsg, MAXRBUF);
+        DEBUGFDEVICE(lx200ap_name, INDI::Logger::DBG_ERROR, "%s", errmsg);
+        return errcode;
+    }
+
+    if (nbytes_read > 0)
+    {
+        response[nbytes_read] = '\0';
+        DEBUGFDEVICE(lx200ap_name, INDI::Logger::DBG_DEBUG, "RES (%s)", response);
+
+        tcflush(fd, TCIFLUSH);
+        return 0;
+    }
+
+    DEBUGFDEVICE(lx200ap_name, INDI::Logger::DBG_ERROR, "Only received #%d bytes, expected 1.", nbytes_read);
+    return -1;
+}
+
+int setAPDETrackRate(int fd, double rate)
+{
+    char cmd[16];
+    char sign;
+    int errcode = 0;
+    char errmsg[MAXRBUF];
+    char response[8];
+    int nbytes_read    = 0;
+    int nbytes_written = 0;
+
+    if (rate < 0)
+        sign = '-';
+    else
+        sign = '+';
+
+    snprintf(cmd, 16, ":RD%c%03.4f#", sign, fabs(rate));
+
+    DEBUGFDEVICE(lx200ap_name, INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
+
+
+    tcflush(fd, TCIFLUSH);
+
+    if ((errcode = tty_write(fd, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
+    {
+        tty_error_msg(errcode, errmsg, MAXRBUF);
+        DEBUGFDEVICE(lx200ap_name, INDI::Logger::DBG_ERROR, "%s", errmsg);
+        return errcode;
+    }
+
+    if ((errcode = tty_read(fd, response, 1, LX200_TIMEOUT, &nbytes_read)))
+    {
+        tty_error_msg(errcode, errmsg, MAXRBUF);
+        DEBUGFDEVICE(lx200ap_name, INDI::Logger::DBG_ERROR, "%s", errmsg);
+        return errcode;
+    }
+
+    if (nbytes_read > 0)
+    {
+        response[nbytes_read] = '\0';
+        DEBUGFDEVICE(lx200ap_name, INDI::Logger::DBG_DEBUG, "RES (%s)", response);
+
+        tcflush(fd, TCIFLUSH);
+        return 0;
+    }
+
+    DEBUGFDEVICE(lx200ap_name, INDI::Logger::DBG_ERROR, "Only received #%d bytes, expected 1.", nbytes_read);
+    return -1;
 }

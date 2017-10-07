@@ -47,7 +47,7 @@ class AstrometryDriver : public INDI::DefaultDevice
     };
 
     AstrometryDriver();
-    virtual ~AstrometryDriver();
+    ~AstrometryDriver() = default;
 
     virtual void ISGetProperties(const char *dev);
     virtual bool initProperties();

@@ -24,7 +24,11 @@
 #include <string>
 #include <vector>
 
-#include <pthread.h>
+#include <thread>
+
+#ifdef _WINDOWS
+#include <WinSock2.h>
+#endif
 
 #define MAXRBUF 2048
 
@@ -100,6 +104,23 @@ class INDI::BaseClient : public INDI::BaseMediator
     /** \returns Returns a vector of all devices created in the client.
     */
     const std::vector<INDI::BaseDevice *> &getDevices() const { return cDevices; }
+
+    /**
+     * @brief getDevices Returns list of devices that belong to a particular @ref INDI::BaseDevice::DRIVER_INTERFACE "DRIVER_INTERFACE" class.
+     *
+     * For example, to get a list of guide cameras:
+     @code{.cpp}
+      std::vector<INDI::BaseDevice *> guideCameras;
+      getDevices(guideCameras, CCD_INTERFACE | GUIDE_INTERFACE);
+      for (INDI::BaseDevice *device : guideCameras)
+             cout << "Guide Camera Name: " << device->getDeviceName();
+     @endcode
+     * @param deviceList Supply device list to be filled by the function.
+     * @param driverInterface ORed DRIVER_INTERFACE values to select the desired class of devices.
+     * @return True if one or more devices are found for the supplied driverInterface, false if no matching devices found.
+
+     */
+    bool getDevices(std::vector<INDI::BaseDevice *> &deviceList, uint16_t driverInterface);
 
     /** \brief Set Binary Large Object policy mode
 
@@ -199,6 +220,13 @@ class INDI::BaseClient : public INDI::BaseMediator
     /**  Process messages */
     int messageCmd(XMLEle *root, char *errmsg);
 
+    /**
+     * @brief newUniversalMessage Universal messages are sent from INDI server without a specific device. It is addressed to the client overall.
+     * @param message content of message.
+     * @note The default implementation simply logs the message to stderr. Override to handle the message.
+     */
+    virtual void newUniversalMessage(std::string message);
+
   private:
     typedef struct
     {
@@ -221,16 +249,20 @@ class INDI::BaseClient : public INDI::BaseMediator
      */
     void clear();
 
-    pthread_t listen_thread;
+    std::thread *listen_thread=nullptr;
 
-    FILE *svrwfp; /* FILE * to talk to server */
+#ifdef _WINDOWS
+    SOCKET sockfd;
+#else
     int sockfd;
-
     int m_receiveFd;
     int m_sendFd;
+#endif
 
     // Listen to INDI server and process incoming messages
     void listenINDI();
+
+    void sendString(const char *fmt, ...);
 
     std::vector<INDI::BaseDevice *> cDevices;
     std::vector<std::string> cDeviceNames;

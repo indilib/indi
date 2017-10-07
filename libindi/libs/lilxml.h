@@ -84,7 +84,7 @@ typedef struct _LilXML LilXML;
 /** \brief Create a new lilxml parser.
     \return a pointer to the lilxml parser on success. NULL on failure.
 */
-extern LilXML *newLilXML(void);
+extern LilXML *newLilXML();
 
 /** \brief Delete a lilxml parser.
     \param lp a pointer to a lilxml parser to be deleted.

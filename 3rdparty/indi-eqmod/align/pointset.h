@@ -63,6 +63,7 @@ class PointSet
     Point *getPoint(HtmID htmid);
     int getNbPoints();
     int getNbTriangles();
+    bool isInitialized();
     void Init();
     void Reset();
     char *LoadDataFile(const char *filename);
@@ -89,6 +90,7 @@ class PointSet
   private:
     XMLEle *PointSetXmlRoot;
     std::map<HtmID, Point> *PointSetMap;
+    bool PointSetInitialized;
     TriangulateCHull *Triangulation;
     Face *currentFace;
     std::vector<HtmID> current;

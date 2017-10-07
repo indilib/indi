@@ -20,7 +20,7 @@
 
 /* Standard headers */
 
-#include <string.h>
+#include <cstring>
 #include <sys/stat.h>
 #include <stdio.h>
 #include <zlib.h>
@@ -643,7 +643,7 @@ void ISGetProperties(const char *dev)
     /* #1 Let's make sure everything has been initialized properly */
     ISInit();
     /* #2 Let's make sure that the client is asking for the properties of our device, otherwise ignore */
-    if (dev && strcmp(mydev, dev))
+    if (dev != nullptr && strcmp(mydev, dev))
         return;
 
     /* #3 Tell the client to create new properties */
@@ -701,7 +701,7 @@ void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names
 
     /* #2 Let's make sure that the client is asking to update the properties of our device, otherwise ignore */
 
-    if (dev && strcmp(dev, mydev))
+    if (dev != nullptr && strcmp(dev, mydev))
         return;
 
     /* #3 Now let's check if the property the client wants to change is the PowerSP (name: CONNECTION) property*/
@@ -1414,7 +1414,7 @@ void ISNewText(const char *dev, const char *name, char *texts[], char *names[], 
     ISInit();
 
     /* #2 Let's make sure that the client is asking to update the properties of our device, otherwise ignore */
-    if (dev && strcmp(dev, mydev))
+    if (dev != nullptr && strcmp(dev, mydev))
         return;
 
     if (!strcmp(name, PortTP.name))
@@ -1471,7 +1471,7 @@ void ISNewNumber(const char *dev, const char *name, double values[], char *names
     ISInit();
 
     /* #2 Let's make sure that the client is asking to update the properties of our device, otherwise ignore */
-    if (dev && strcmp(dev, mydev))
+    if (dev != nullptr && strcmp(dev, mydev))
         return;
 
     if (PowerS[0].s != ISS_ON)

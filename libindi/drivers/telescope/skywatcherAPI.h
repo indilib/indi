@@ -58,12 +58,13 @@ class SkywatcherAPI
         AXIS2 = 1
     };
 
-    static const double SIDEREALRATE;     // Radians per second
-    static const double MAX_SPEED;        // Radians per second
-    static const double LOW_SPEED_MARGIN; // Radians per second
+    // These values are in radians per second
+    static constexpr double SIDEREALRATE { (2 * M_PI / 86164.09065) };
+    static constexpr double MAX_SPEED { 500.0 };
+    static constexpr double LOW_SPEED_MARGIN { 128.0 * SIDEREALRATE };
 
     SkywatcherAPI();
-    virtual ~SkywatcherAPI();
+    virtual ~SkywatcherAPI() = default;
 
     unsigned long BCDstr2long(std::string &String);
     unsigned long Highstr2long(std::string &String);
@@ -251,7 +252,7 @@ class SkywatcherAPI
     bool IsInMotion(AXISID Axis);
 
     // Skywatcher mount status variables
-    unsigned long MCVersion; // Motor control board firmware version
+    unsigned long MCVersion { 0 }; // Motor control board firmware version
 
     enum MountType
     {
@@ -264,9 +265,9 @@ class SkywatcherAPI
         _114GT = 0x82,
         DOB    = 0x90
     };
-    unsigned long MountCode;
-    bool IsDCMotor;
-    bool SilentSlewMode;
+    unsigned long MountCode { 0 };
+    bool IsDCMotor { false };
+    bool SilentSlewMode { false };
 
     // Values from mount
     long MicrostepsPerRevolution[2];     // Number of microsteps for 360 degree revolution
@@ -284,16 +285,19 @@ class SkywatcherAPI
     // SlewTo debugging
     long LastSlewToTarget[2];
 
-    // Encoder values
-    long CurrentEncoders[2];      // Current encoder value (microsteps).
-    long ZeroPositionEncoders[2]; // Zero position (initial) encoder value (microsteps).
+    /// Current encoder values (microsteps).
+    long CurrentEncoders[2];
+    /// Polaris position (initial) encoder values (microsteps).
+    long PolarisPositionEncoders[2];
+    /// Zero position encoder values (microsteps).
+    long ZeroPositionEncoders[2];
 
     AXISSTATUS AxesStatus[2];
     double SlewingSpeed[2];
 
   protected:
     // Custom debug level
-    unsigned int DBG_SCOPE;
+    unsigned int DBG_SCOPE { 0 };
 
   private:
     enum TTY_ERROR
@@ -315,10 +319,10 @@ class SkywatcherAPI
     //    virtual int skywatcher_tty_disconnect(int fd) = 0;
     //    virtual void skywatcher_tty_error_msg(int err_code, char *err_msg, int err_msg_len) = 0;
     //    virtual int skywatcher_tty_timeout(int fd, int timeout) = 0;*/
-    int MyPortFD;
+    int MyPortFD { 0 };
 
 #ifdef INDI_DEBUG_LOGGING
   public:
-    INDI::Telescope *pChildTelescope;
+    INDI::Telescope *pChildTelescope { nullptr };
 #endif
 };

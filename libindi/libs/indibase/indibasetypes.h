@@ -40,16 +40,22 @@ typedef enum {
     AXIS_ALT /*!< Altitude Axis. */
 } INDI_HO_AXIS;
 
-/*! North/South Direction */
-typedef enum { DIRECTION_NORTH, DIRECTION_SOUTH } INDI_DIR_NS;
+/*! North/South Direction type */
+typedef enum {
+    DIRECTION_NORTH = 0, /*!< North direction */
+    DIRECTION_SOUTH      /*!< South direction */
+} INDI_DIR_NS;
 
-/*! West/East Direction */
-typedef enum { DIRECTION_WEST, DIRECTION_EAST } INDI_DIR_WE;
+/*! West/East Direction type */
+typedef enum {
+    DIRECTION_WEST = 0, /*!< West direction */
+    DIRECTION_EAST      /*!< East direction */
+} INDI_DIR_WE;
 
 /*! INDI Error Types */
 typedef enum {
-    INDI_DEVICE_NOT_FOUND    = -1,
-    INDI_PROPERTY_INVALID    = -2,
-    INDI_PROPERTY_DUPLICATED = -3,
-    INDI_DISPATCH_ERROR      = -4
+    INDI_DEVICE_NOT_FOUND    = -1, /*!< Device not found error */
+    INDI_PROPERTY_INVALID    = -2, /*!< Property invalid error */
+    INDI_PROPERTY_DUPLICATED = -3, /*!< Property duplicated error */
+    INDI_DISPATCH_ERROR      = -4  /*!< Dispatch error */
 } INDI_ERROR_TYPE;

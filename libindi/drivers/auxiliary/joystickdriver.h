@@ -28,7 +28,7 @@
 #include <functional>
 #include <fcntl.h>
 #include <pthread.h>
-#include <math.h>
+#include <cmath>
 #include <linux/joystick.h>
 #include <vector>
 #include <unistd.h>

@@ -11,9 +11,9 @@
 #include "basedevice.h"
 #include "indicom.h"
 
-#include <stdlib.h>
-#include <string.h>
-#include <sys/errno.h>
+#include <cerrno>
+#include <cstdlib>
+#include <cstring>
 #include <sys/stat.h>
 
 namespace INDI

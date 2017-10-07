@@ -22,12 +22,13 @@
 
 #include "base64.h"
 #include "basedevice.h"
+#include "locale_compat.h"
+#include "indistandardproperty.h"
 
 #include <iostream>
 #include <string>
 
-#include <locale.h>
-#include <stdlib.h>
+#include <cstdlib>
 
 #define MAXINDIBUF 49152
 
@@ -98,7 +99,8 @@ bool INDI::BaseClientQt::connectServer()
 
     serverConnected();
 
-    char *orig = setlocale(LC_NUMERIC, "C");
+    AutoCNumeric locale;
+
     QString getProp;
     if (cDeviceNames.empty())
     {
@@ -121,7 +123,6 @@ bool INDI::BaseClientQt::connectServer()
                 std::cerr << getProp.toLatin1().constData() << std::endl;
         }
     }
-    setlocale(LC_NUMERIC, orig);
 
     return true;
 }
@@ -168,7 +169,7 @@ void INDI::BaseClientQt::setDriverConnection(bool status, const char *deviceName
         return;
     }
 
-    drv_connection = drv->getSwitch("CONNECTION");
+    drv_connection = drv->getSwitch(INDI::SP::CONNECTION);
 
     if (drv_connection == nullptr)
         return;
@@ -331,6 +332,12 @@ int INDI::BaseClientQt::delPropertyCmd(XMLEle *root, char *errmsg)
     if (ap)
     {
         INDI::Property *rProp = dp->getProperty(valuXMLAtt(ap));
+        if (rProp == nullptr)
+        {
+            snprintf(errmsg, MAXRBUF, "Cannot delete property %s as it is not defined yet. Check driver.", valuXMLAtt(ap));
+            return -1;
+        }
+
         removeProperty(rProp);
         int errCode = dp->removeProperty(valuXMLAtt(ap), errmsg);
 
@@ -455,7 +462,7 @@ int INDI::BaseClientQt::messageCmd(XMLEle *root, char *errmsg)
 
 void INDI::BaseClientQt::sendNewText(ITextVectorProperty *tvp)
 {
-    char *orig = setlocale(LC_NUMERIC, "C");
+    AutoCNumeric locale;
 
     tvp->s = IPS_BUSY;
 
@@ -475,8 +482,6 @@ void INDI::BaseClientQt::sendNewText(ITextVectorProperty *tvp)
     prop += QString("</newTextVector>\n");
 
     client_socket.write(prop.toLatin1());
-
-    setlocale(LC_NUMERIC, orig);
 }
 
 void INDI::BaseClientQt::sendNewText(const char *deviceName, const char *propertyName, const char *elementName,
@@ -504,7 +509,7 @@ void INDI::BaseClientQt::sendNewText(const char *deviceName, const char *propert
 
 void INDI::BaseClientQt::sendNewNumber(INumberVectorProperty *nvp)
 {
-    char *orig = setlocale(LC_NUMERIC, "C");
+    AutoCNumeric locale;
 
     nvp->s = IPS_BUSY;
 
@@ -524,8 +529,6 @@ void INDI::BaseClientQt::sendNewNumber(INumberVectorProperty *nvp)
     prop += QString("</newNumberVector>\n");
 
     client_socket.write(prop.toLatin1());
-
-    setlocale(LC_NUMERIC, orig);
 }
 
 void INDI::BaseClientQt::sendNewNumber(const char *deviceName, const char *propertyName, const char *elementName,
@@ -786,6 +789,17 @@ void INDI::BaseClientQt::processSocketError(QAbstractSocket::SocketError socketE
     client_socket.close();
     // Let client handle server disconnection
     serverDisconnected(-1);
+}
+
+bool INDI::BaseClientQt::getDevices(std::vector<INDI::BaseDevice *> &deviceList, uint16_t driverInterface )
+{
+    for (INDI::BaseDevice *device : cDevices)
+    {
+        if (device->getDriverInterface() | driverInterface)
+            deviceList.push_back(device);
+    }
+
+    return (deviceList.size() > 0);
 }
 
 #if defined(_MSC_VER)

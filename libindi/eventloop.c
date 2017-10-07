@@ -32,14 +32,14 @@
  #define MAIN_TEST for a stand-alone test program.
  */
 
+#include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <math.h>
 #include <string.h>
 #include <time.h>
+#include <unistd.h>
 #include <sys/types.h>
 #include <sys/time.h>
-#include <unistd.h>
 
 #include "eventloop.h"
 
@@ -251,7 +251,14 @@ void rmTimer(int timer_id)
         tp[-1] = tp[0];
 
     /* shrink list */
-    timef = (TF *)realloc(timef, (--ntimef) * sizeof(TF));
+    ntimef--;
+    if (ntimef == 0)
+    {
+        free(timef);
+        timef = NULL;
+        return;
+    }
+    timef = (TF *)realloc(timef, ntimef * sizeof(TF));
 }
 
 /* add a new work procedure, fp, to be called with ud when nothing else to do.

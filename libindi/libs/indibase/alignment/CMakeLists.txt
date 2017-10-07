@@ -16,36 +16,42 @@ endif(SKYWATCHER_API_USE_INITIAL_JULIAN_DATE)
 ##################################################
 ####### INDI AlignmentDriver shared library ######
 ##################################################
-set (AlignmentDriver_SRCS
-        ${CMAKE_SOURCE_DIR}/libs/indibase/alignment/AlignmentSubsystemForDrivers.cpp
-        ${CMAKE_SOURCE_DIR}/libs/indibase/alignment/AlignmentSubsystemForMathPlugins.h
-        ${CMAKE_SOURCE_DIR}/libs/indibase/alignment/BasicMathPlugin.cpp
-        ${CMAKE_SOURCE_DIR}/libs/indibase/alignment/BuiltInMathPlugin.cpp
-        ${CMAKE_SOURCE_DIR}/libs/indibase/alignment/ConvexHull.cpp
-        ${CMAKE_SOURCE_DIR}/libs/indibase/alignment/DriverCommon.cpp
-        ${CMAKE_SOURCE_DIR}/libs/indibase/alignment/InMemoryDatabase.cpp
-        ${CMAKE_SOURCE_DIR}/libs/indibase/alignment/MapPropertiesToInMemoryDatabase.cpp
-        ${CMAKE_SOURCE_DIR}/libs/indibase/alignment/MathPlugin.cpp
-        ${CMAKE_SOURCE_DIR}/libs/indibase/alignment/MathPluginManagement.cpp
-        ${CMAKE_SOURCE_DIR}/libs/indibase/alignment/TelescopeDirectionVectorSupportFunctions.cpp
-        ${CMAKE_SOURCE_DIR}/libs/indibase/alignment/Common.cpp
-    )
+SET(AlignmentDriver_SRC
+    ${CMAKE_SOURCE_DIR}/libs/indibase/alignment/AlignmentSubsystemForDrivers.cpp ;
+    ${CMAKE_SOURCE_DIR}/libs/indibase/alignment/AlignmentSubsystemForMathPlugins.h ;
+    ${CMAKE_SOURCE_DIR}/libs/indibase/alignment/BasicMathPlugin.cpp ;
+    ${CMAKE_SOURCE_DIR}/libs/indibase/alignment/BuiltInMathPlugin.cpp ;
+    ${CMAKE_SOURCE_DIR}/libs/indibase/alignment/ConvexHull.cpp ;
+    ${CMAKE_SOURCE_DIR}/libs/indibase/alignment/DriverCommon.cpp ;
+    ${CMAKE_SOURCE_DIR}/libs/indibase/alignment/InMemoryDatabase.cpp ;
+    ${CMAKE_SOURCE_DIR}/libs/indibase/alignment/MapPropertiesToInMemoryDatabase.cpp ;
+    ${CMAKE_SOURCE_DIR}/libs/indibase/alignment/MathPlugin.cpp ;
+    ${CMAKE_SOURCE_DIR}/libs/indibase/alignment/MathPluginManagement.cpp ;
+    ${CMAKE_SOURCE_DIR}/libs/indibase/alignment/TelescopeDirectionVectorSupportFunctions.cpp ;
+    ${CMAKE_SOURCE_DIR}/libs/indibase/alignment/Common.cpp)
 
-if (CYGWIN)
-set (AlignmentDriver_SRCS ${AlignmentDriver_SRCS}
+IF (UNITY_BUILD)
+    ENABLE_UNITY_BUILD(AlignmentDriver AlignmentDriver_SRC 15 cpp)
+ENDIF ()
+
+IF (CYGWIN)
+    SET(AlignmentDriver_SRC ${AlignmentDriver_SRC}
         ${CMAKE_SOURCE_DIR}/libs/lilxml.c
         ${CMAKE_SOURCE_DIR}/libs/indicom.c)
-add_library(AlignmentDriver STATIC ${AlignmentDriver_SRCS})
-target_link_libraries(AlignmentDriver dl ${GSL_LIBRARIES} ${NOVA_LIBRARIES})
-else(CYGWIN)
-add_library(AlignmentDriver SHARED ${AlignmentDriver_SRCS})
-set_target_properties(AlignmentDriver PROPERTIES COMPILE_FLAGS "-fPIC")
-if (APPLE)
-target_link_libraries(AlignmentDriver dl -L/usr/local/lib ${GSL_LIBRARIES})
-else(APPLE)
-target_link_libraries(AlignmentDriver dl ${GSL_LIBRARIES})
-endif(APPLE)
-endif(CYGWIN)
+
+    add_library(AlignmentDriver STATIC ${AlignmentDriver_SRC})
+    target_link_libraries(AlignmentDriver dl ${GSL_LIBRARIES} ${NOVA_LIBRARIES})
+ELSE ()
+    add_library(AlignmentDriver SHARED ${AlignmentDriver_SRC})
+    set_target_properties(AlignmentDriver PROPERTIES COMPILE_FLAGS "-fPIC")
+    IF (APPLE)
+        target_link_libraries(AlignmentDriver dl -L/usr/local/lib ${GSL_LIBRARIES})
+    ELSE ()
+        # Force linking all referenced libraries because of libgsl is not linked against cblas library on Linux
+        SET(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -Wl,--no-as-needed")
+        target_link_libraries(AlignmentDriver dl ${GSL_LIBRARIES})
+    ENDIF ()
+ENDIF ()
 
 if (INDI_BUILD_QT5)
 qt5_use_modules(AlignmentDriver Network)
@@ -145,15 +151,15 @@ install(TARGETS indi_SVD_MathPlugin
     RUNTIME DESTINATION ${INDI_MATH_PLUGINS_DIRECTORY})
 
 ##################################################
-############ Skywatcher API Mount ################
+############ Skywatcher Alt-Az Mount ################
 ##################################################
-set(skywatcherAPIMount_SRCS
+set(skywatcherAltAzMount_SRCS
    ${CMAKE_SOURCE_DIR}/drivers/telescope/skywatcherAPIMount.cpp
    ${CMAKE_SOURCE_DIR}/drivers/telescope/skywatcherAPI.cpp )
 
-add_executable(indi_skywatcherAPIMount ${skywatcherAPIMount_SRCS})
-target_link_libraries(indi_skywatcherAPIMount indidriver AlignmentDriver)
+add_executable(indi_skywatcherAltAzMount ${skywatcherAltAzMount_SRCS})
+target_link_libraries(indi_skywatcherAltAzMount indidriver AlignmentDriver)
 
-install(TARGETS indi_skywatcherAPIMount RUNTIME DESTINATION bin )
+install(TARGETS indi_skywatcherAltAzMount RUNTIME DESTINATION bin)
 
 

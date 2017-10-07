@@ -17,12 +17,12 @@
 *******************************************************************************/
 
 #include "defaultdevice.h"
-
 #include "indicom.h"
+#include "indistandardproperty.h"
 #include "connectionplugins/connectionserial.h"
 
-#include <stdlib.h>
-#include <string.h>
+#include <cstdlib>
+#include <cstring>
 
 const char *COMMUNICATION_TAB = "Communication";
 const char *MAIN_CONTROL_TAB  = "Main Control";
@@ -73,7 +73,7 @@ bool INDI::DefaultDevice::loadConfig(bool silent, const char *property)
 
     pResult = IUReadConfig(nullptr, deviceID, property, silent ? 1 : 0, errmsg) == 0 ? true : false;
 
-    if (silent == false)
+    if (!silent)
     {
         if (pResult)
         {
@@ -134,7 +134,7 @@ bool INDI::DefaultDevice::saveAllConfigItems(FILE *fp)
             case INDI_SWITCH:
                 svp = static_cast<ISwitchVectorProperty *>(pPtr);
                 /* Never save CONNECTION property. Don't save switches with no switches on if the rule is one of many */
-                if (!strcmp(svp->name, "CONNECTION") || (svp->r == ISR_1OFMANY && !IUFindOnSwitch(svp)))
+                if (!strcmp(svp->name, INDI::SP::CONNECTION) || (svp->r == ISR_1OFMANY && !IUFindOnSwitch(svp)))
                     continue;
                 IUSaveConfigSwitch(fp, svp);
                 break;
@@ -163,7 +163,7 @@ bool INDI::DefaultDevice::saveConfig(bool silent, const char *property)
 
         if (fp == nullptr)
         {
-            if (silent == false)
+            if (!silent)
                 DEBUGF(INDI::Logger::DBG_ERROR, "Error saving configuration. %s", errmsg);
             return false;
         }
@@ -186,7 +186,7 @@ bool INDI::DefaultDevice::saveConfig(bool silent, const char *property)
 
         if (fp == nullptr)
         {
-            if (silent == false)
+            if (!silent)
                 DEBUGF(INDI::Logger::DBG_ERROR, "Error saving configuration. %s", errmsg);
             return false;
         }
@@ -324,6 +324,9 @@ bool INDI::DefaultDevice::ISNewSwitch(const char *dev, const char *name, ISState
     if (!svp)
         return false;
 
+    ////////////////////////////////////////////////////
+    // Connection
+    ////////////////////////////////////////////////////
     if (!strcmp(svp->name, ConnectionSP.name))
     {
         bool rc = false;
@@ -332,14 +335,14 @@ bool INDI::DefaultDevice::ISNewSwitch(const char *dev, const char *name, ISState
         {
             if (!strcmp(names[i], "CONNECT") && (states[i] == ISS_ON))
             {
-                // If not connected, attempt to connect
+                // If disconnected, try to connect.
                 if (isConnected() == false)
                 {
                     rc = Connect();
 
-                    // If connection is successful, set it thus
                     if (rc)
                     {
+                        // Connection is successful, set it to OK and updateProperties.
                         setConnected(true, IPS_OK);
                         updateProperties();
                     }
@@ -347,30 +350,36 @@ bool INDI::DefaultDevice::ISNewSwitch(const char *dev, const char *name, ISState
                         setConnected(false, IPS_ALERT);
                 }
                 else
-                    // Just tell client we're connected yes
+                    // Already connected, tell client we're connected already.
                     setConnected(true);
             }
             else if (!strcmp(names[i], "DISCONNECT") && (states[i] == ISS_ON))
             {
-                // If connected, then true to disconnect.
+                // If connected, try to disconnect.
                 if (isConnected() == true)
-                    rc = Disconnect();
-                else
-                    rc = true;
-
-                if (rc)
                 {
-                    setConnected(false, IPS_IDLE);
-                    updateProperties();
+                    rc = Disconnect();
+                    // Disconnection is successful, set it IDLE and updateProperties.
+                    if (rc)
+                    {
+                        setConnected(false, IPS_IDLE);
+                        updateProperties();
+                    }
+                    else
+                        setConnected(true, IPS_ALERT);
                 }
+                // Already disconnected, tell client we're disconnected already.
                 else
-                    setConnected(true, IPS_ALERT);
+                    setConnected(false, IPS_IDLE);
             }
         }
 
         return true;
     }
 
+    ////////////////////////////////////////////////////
+    // Connection Mode
+    ////////////////////////////////////////////////////
     if (!strcmp(name, ConnectionModeSP.name))
     {
         IUUpdateSwitch(&ConnectionModeSP, states, names, n);
@@ -400,6 +409,9 @@ bool INDI::DefaultDevice::ISNewSwitch(const char *dev, const char *name, ISState
         return true;
     }
 
+    ////////////////////////////////////////////////////
+    // Debug
+    ////////////////////////////////////////////////////
     if (!strcmp(svp->name, "DEBUG"))
     {
         IUUpdateSwitch(svp, states, names, n);
@@ -416,6 +428,9 @@ bool INDI::DefaultDevice::ISNewSwitch(const char *dev, const char *name, ISState
         return true;
     }
 
+    ////////////////////////////////////////////////////
+    // Simulation
+    ////////////////////////////////////////////////////
     if (!strcmp(svp->name, "SIMULATION"))
     {
         IUUpdateSwitch(svp, states, names, n);
@@ -430,6 +445,9 @@ bool INDI::DefaultDevice::ISNewSwitch(const char *dev, const char *name, ISState
         return true;
     }
 
+    ////////////////////////////////////////////////////
+    // Configuration
+    ////////////////////////////////////////////////////
     if (!strcmp(svp->name, "CONFIG_PROCESS"))
     {
         IUUpdateSwitch(svp, states, names, n);
@@ -455,6 +473,9 @@ bool INDI::DefaultDevice::ISNewSwitch(const char *dev, const char *name, ISState
         return true;
     }
 
+    ////////////////////////////////////////////////////
+    // Debugging and Logging Levels
+    ////////////////////////////////////////////////////
     if (!strcmp(svp->name, "DEBUG_LEVEL") || !strcmp(svp->name, "LOGGING_LEVEL") || !strcmp(svp->name, "LOG_OUTPUT"))
     {
         bool rc = Logger::ISNewSwitch(dev, name, states, names, n);
@@ -765,7 +786,7 @@ void INDI::DefaultDevice::resetProperties()
 void INDI::DefaultDevice::setConnected(bool status, IPState state, const char *msg)
 {
     ISwitch *sp                = nullptr;
-    ISwitchVectorProperty *svp = getSwitch("CONNECTION");
+    ISwitchVectorProperty *svp = getSwitch(INDI::SP::CONNECTION);
     if (!svp)
         return;
 
@@ -844,7 +865,7 @@ bool INDI::DefaultDevice::initProperties()
 
     IUFillSwitch(&ConnectionS[0], "CONNECT", "Connect", ISS_OFF);
     IUFillSwitch(&ConnectionS[1], "DISCONNECT", "Disconnect", ISS_ON);
-    IUFillSwitchVector(&ConnectionSP, ConnectionS, 2, getDeviceName(), "CONNECTION", "Connection", "Main Control",
+    IUFillSwitchVector(&ConnectionSP, ConnectionS, 2, getDeviceName(), INDI::SP::CONNECTION, "Connection", "Main Control",
                        IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
     registerProperty(&ConnectionSP, INDI_SWITCH);
 

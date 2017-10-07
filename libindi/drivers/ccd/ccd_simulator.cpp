@@ -18,11 +18,12 @@
 
 #include "ccd_simulator.h"
 
+#include "locale_compat.h"
+
 #include <libnova/julian_day.h>
 #include <libnova/precession.h>
 
-#include <locale.h>
-#include <math.h>
+#include <cmath>
 
 // We declare an auto pointer to ccdsim.
 std::unique_ptr<CCDSim> ccdsim(new CCDSim());
@@ -34,19 +35,19 @@ void ISGetProperties(const char *dev)
     ccdsim->ISGetProperties(dev);
 }
 
-void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int num)
+void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
 {
-    ccdsim->ISNewSwitch(dev, name, states, names, num);
+    ccdsim->ISNewSwitch(dev, name, states, names, n);
 }
 
-void ISNewText(const char *dev, const char *name, char *texts[], char *names[], int num)
+void ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
 {
-    ccdsim->ISNewText(dev, name, texts, names, num);
+    ccdsim->ISNewText(dev, name, texts, names, n);
 }
 
-void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int num)
+void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
 {
-    ccdsim->ISNewNumber(dev, name, values, names, num);
+    ccdsim->ISNewNumber(dev, name, values, names, n);
 }
 
 void ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[],
@@ -68,12 +69,6 @@ void ISSnoopDevice(XMLEle *root)
 
 CCDSim::CCDSim()
 {
-    //ctor
-    testvalue         = 0;
-    AbortGuideFrame   = false;
-    AbortPrimaryFrame = false;
-    ShowStarField     = true;
-
     uint32_t cap = 0;
 
     cap |= CCD_CAN_ABORT;
@@ -86,36 +81,13 @@ CCDSim::CCDSim()
 
     SetCCDCapability(cap);
 
-    polarError = 0;
-    polarDrift = 0;
-
-    usePE = false;
     raPE  = RA;
     decPE = Dec;
 
-    bias               = 1500;
-    maxnoise           = 20;
-    maxval             = 65000;
-    maxpix             = 0;
-    minpix             = 65000;
-    limitingmag        = 11.5;
-    saturationmag      = 2;
-    primaryFocalLength = 1280; //  focal length of the telescope in millimeters
-    OAGoffset          = 0;    //  An oag is offset this much from center of scope position (arcminutes);
-    skyglow            = 40;
+    primaryFocalLength = 900; //  focal length of the telescope in millimeters
+    guiderFocalLength  = 300;
 
-    seeing      = 3.5; //  fwhm of our stars
-    ImageScalex = 1.0; //  preset with a valid non-zero
-    ImageScaley = 1.0;
-    rotationCW  = 0;
     time(&RunStart);
-
-    //  Our PEPeriod is 8 minutes
-    //  and we have a 22 arcsecond swing
-    PEPeriod   = 8 * 60;
-    PEMax      = 11;
-    GuideRate  = 7; //  guide rate is 7 arcseconds per second
-    TimeFactor = 1;
 
     SimulatorSettingsNV = new INumberVectorProperty;
     TimeFactorSV        = new ISwitchVectorProperty;
@@ -166,14 +138,9 @@ bool CCDSim::Connect()
     return true;
 }
 
-CCDSim::~CCDSim()
-{
-    //dtor
-}
-
 const char *CCDSim::getDefaultName()
 {
-    return (char *)"CCD Simulator";
+    return (const char *)"CCD Simulator";
 }
 
 bool CCDSim::initProperties()
@@ -243,8 +210,6 @@ void CCDSim::ISGetProperties(const char *dev)
 
     defineNumber(SimulatorSettingsNV);
     defineSwitch(TimeFactorSV);
-
-    return;
 }
 
 bool CCDSim::updateProperties()
@@ -304,6 +269,12 @@ int CCDSim::SetTemperature(double temperature)
 
 bool CCDSim::StartExposure(float duration)
 {
+    if (std::isnan(RA) && std::isnan(Dec))
+    {
+        DEBUG(INDI::Logger::DBG_ERROR, "Telescope coordinates missing. Make sure telescope is connected and its name is set in CCD Options.");
+        return false;
+    }
+
     //  for the simulator, we can just draw the frame now
     //  and it will get returned at the right time
     //  by the timer routines
@@ -354,7 +325,7 @@ float CCDSim::CalcTimeLeft(timeval start, float req)
 {
     double timesince;
     double timeleft;
-    struct timeval now;
+    struct timeval now { 0, 0 };
     gettimeofday(&now, nullptr);
 
     timesince =
@@ -368,7 +339,7 @@ void CCDSim::TimerHit()
 {
     int nexttimer = 1000;
 
-    if (isConnected() == false)
+    if (!isConnected())
         return; //  No need to reset timer if we are not connected anymore
 
     if (InExposure)
@@ -479,7 +450,6 @@ void CCDSim::TimerHit()
     }
 
     SetTimer(nexttimer);
-    return;
 }
 
 int CCDSim::DrawCcdFrame(CCDChip *targetChip)
@@ -530,7 +500,7 @@ int CCDSim::DrawCcdFrame(CCDChip *targetChip)
         //  Now convert to radians
         PESpot = PESpot * 2.0 * 3.14159;
 
-        PEOffset = PEMax * sin(PESpot);
+        PEOffset = PEMax * std::sin(PESpot);
         //fprintf(stderr,"PEOffset = %4.2f arcseconds timesince %4.2f\n",PEOffset,timesince);
         PEOffset = PEOffset / 3600; //  convert to degrees
         //PeOffset=PeOffset/15;       //  ra is in h:mm
@@ -593,12 +563,13 @@ int CCDSim::DrawCcdFrame(CCDChip *targetChip)
         ImageScalex = Scalex;
         ImageScaley = Scaley;
 
-        if (usePE == false)
+        if (!usePE)
         {
             raPE  = RA;
             decPE = Dec;
 
-            ln_equ_posn epochPos, J2000Pos;
+            ln_equ_posn epochPos { 0, 0 }, J2000Pos { 0, 0 };
+
             epochPos.ra  = raPE * 15.0;
             epochPos.dec = decPE;
 
@@ -657,7 +628,8 @@ int CCDSim::DrawCcdFrame(CCDChip *targetChip)
 
         if (ftype == CCDChip::LIGHT_FRAME)
         {
-            char *orig = setlocale(LC_NUMERIC, "C");
+            AutoCNumeric locale;
+
             //sprintf(gsccmd,"gsc -c %8.6f %+8.6f -r 120 -m 0 9.1",rad+PEOffset,decPE);
             sprintf(gsccmd, "gsc -c %8.6f %+8.6f -r %4.1f -m 0 %4.2f -n 3000", rad + PEOffset, cameradec, radius,
                     lookuplimit);
@@ -735,19 +707,14 @@ int CCDSim::DrawCcdFrame(CCDChip *targetChip)
                     }
                 }
                 pclose(pp);
-                setlocale(LC_NUMERIC, orig);
             }
             else
             {
-                IDMessage(getDeviceName(),
-                          "Error looking up stars, is gsc installed with appropriate environment variables set ??");
-                //fprintf(stderr,"Error doing gsc lookup\n");
-                setlocale(LC_NUMERIC, orig);
+                DEBUG(INDI::Logger::DBG_ERROR, "Error looking up stars, is gsc installed with appropriate environment variables set ??");
             }
             if (drawn == 0)
             {
-                IDMessage(getDeviceName(),
-                          "Got no stars, is gsc installed with appropriate environment variables set ??");
+                DEBUG(INDI::Logger::DBG_ERROR, "Got no stars, is gsc installed with appropriate environment variables set ??");
             }
         }
         //fprintf(stderr,"Got %d stars from %d lines drew %d\n",stars,lines,drawn);
@@ -759,9 +726,9 @@ int CCDSim::DrawCcdFrame(CCDChip *targetChip)
         if (ftype == CCDChip::LIGHT_FRAME || ftype == CCDChip::FLAT_FRAME)
         {
             float skyflux;
-            float glow;
             //  calculate flux from our zero point and gain values
-            glow = skyglow;
+            float glow = skyglow;
+
             if (ftype == CCDChip::FLAT_FRAME)
             {
                 //  Assume flats are done with a diffuser
@@ -800,7 +767,7 @@ int CCDSim::DrawCcdFrame(CCDChip *targetChip)
                     vig = nwidth;
                     vig = vig * ImageScalex;
                     //  need to make this account for actual pixel size
-                    dc = sqrt(sx * sx * ImageScalex * ImageScalex + sy * sy * ImageScaley * ImageScaley);
+                    dc = std::sqrt(sx * sx * ImageScalex * ImageScalex + sy * sy * ImageScaley * ImageScaley);
                     //  now we have the distance from center, in arcseconds
                     //  now lets plot a gaussian falloff to the edges
                     //
@@ -927,12 +894,12 @@ int CCDSim::DrawImageStar(CCDChip *targetChip, float mag, float x, float y)
             float fp; //  flux this pixel;
 
             //  need to make this account for actual pixel size
-            dc = sqrt(sx * sx * ImageScalex * ImageScalex + sy * sy * ImageScaley * ImageScaley);
+            dc = std::sqrt(sx * sx * ImageScalex * ImageScalex + sy * sy * ImageScaley * ImageScaley);
             //  now we have the distance from center, in arcseconds
             //  This should be gaussian, but, for now we'll just go with
             //  a simple linear function
-            float fa;
-            fa = exp(-2.0 * 0.7 * (dc * dc) / seeing / seeing);
+            float fa = exp(-2.0 * 0.7 * (dc * dc) / seeing / seeing);
+
             fp = fa * flux;
 
             if (fp < 0)
@@ -1035,7 +1002,7 @@ IPState CCDSim::GuideWest(float v)
 
 bool CCDSim::ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
 {
-    if (strcmp(dev, getDeviceName()) == 0)
+    if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
         //  This is for our device
         //  Now lets see if it's something we process here
@@ -1053,7 +1020,7 @@ bool CCDSim::ISNewNumber(const char *dev, const char *name, double values[], cha
 {
     //  first check if it's for our device
     //IDLog("INDI::CCD::ISNewNumber %s\n",name);
-    if (strcmp(dev, getDeviceName()) == 0)
+    if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
         //  This is for our device
         //  Now lets see if it's something we process here
@@ -1086,7 +1053,7 @@ bool CCDSim::ISNewNumber(const char *dev, const char *name, double values[], cha
 
 bool CCDSim::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
 {
-    if (strcmp(dev, getDeviceName()) == 0)
+    if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
         if (strcmp(name, "ON_TIME_FACTOR") == 0)
         {
@@ -1116,7 +1083,7 @@ bool CCDSim::ISNewSwitch(const char *dev, const char *name, ISState *states, cha
         }
     }
 
-    if (!strcmp(name, CoolerSP.name))
+    if (strcmp(name, CoolerSP.name) == 0)
     {
         IUUpdateSwitch(&CoolerSP, states, names, n);
 
@@ -1165,7 +1132,7 @@ bool CCDSim::ISSnoopDevice(XMLEle *root)
         newdec = EqPEN[1].value;
         if ((newra != raPE) || (newdec != decPE))
         {
-            ln_equ_posn epochPos, J2000Pos;
+            ln_equ_posn epochPos { 0, 0 }, J2000Pos { 0, 0 };
             epochPos.ra  = newra * 15.0;
             epochPos.dec = newdec;
 

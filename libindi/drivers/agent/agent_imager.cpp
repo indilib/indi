@@ -17,9 +17,10 @@
  *******************************************************************************/
 
 #include "agent_imager.h"
+#include "indistandardproperty.h"
 
+#include <cstring>
 #include <memory>
-#include <string.h>
 
 #define DEVICE_NAME  "Imager Agent"
 #define DOWNLOAD_TAB "Download images"
@@ -38,19 +39,19 @@ void ISGetProperties(const char *dev)
     imager->ISGetProperties(dev);
 }
 
-void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int num)
+void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
 {
-    imager->ISNewSwitch(dev, name, states, names, num);
+    imager->ISNewSwitch(dev, name, states, names, n);
 }
 
-void ISNewText(const char *dev, const char *name, char *texts[], char *names[], int num)
+void ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
 {
-    imager->ISNewText(dev, name, texts, names, num);
+    imager->ISNewText(dev, name, texts, names, n);
 }
 
-void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int num)
+void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
 {
-    imager->ISNewNumber(dev, name, values, names, num);
+    imager->ISNewNumber(dev, name, values, names, n);
 }
 
 void ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[],
@@ -88,42 +89,39 @@ bool Imager::isFilterConnected()
     return StatusL[1].s == IPS_OK;
 }
 
-Imager::~Imager()
-{
-}
-
 void Imager::initiateNextFilter()
 {
-    if (isRunning())
+    if (!isRunning())
+        return;
+
+    if (group > 0 && image > 0 && group <= maxGroup && image <= maxImage)
     {
-        if (group > 0 && image > 0 && group <= maxGroup && image <= maxImage)
+        INumber *groupSettings = groups[group - 1]->GroupSettingsN;
+        int filterSlot         = groupSettings[2].value;
+
+        if (!isFilterConnected())
         {
-            INumber *groupSettings = groups[group - 1]->GroupSettingsN;
-            int filterSlot         = groupSettings[2].value;
-            if (!isFilterConnected())
+            if (filterSlot != 0)
             {
-                if (filterSlot)
-                {
-                    ProgressNP.s = IPS_ALERT;
-                    IDSetNumber(&ProgressNP, "Filter wheel is not connected");
-                    return;
-                }
-                else
-                {
-                    initiateNextCapture();
-                }
-            }
-            else if (filterSlot && FilterSlotN[0].value != filterSlot)
-            {
-                FilterSlotN[0].value = filterSlot;
-                sendNewNumber(&FilterSlotNP);
-                DEBUGF(INDI::Logger::DBG_DEBUG, "Group %d of %d, image %d of %d, filer %d, filter set initiated on %s",
-                       group, maxGroup, image, maxImage, (int)FilterSlotN[0].value, FilterSlotNP.device);
+                ProgressNP.s = IPS_ALERT;
+                IDSetNumber(&ProgressNP, "Filter wheel is not connected");
+                return;
             }
             else
             {
                 initiateNextCapture();
             }
+        }
+        else if (filterSlot != 0 && FilterSlotN[0].value != filterSlot)
+        {
+            FilterSlotN[0].value = filterSlot;
+            sendNewNumber(&FilterSlotNP);
+            DEBUGF(INDI::Logger::DBG_DEBUG, "Group %d of %d, image %d of %d, filer %d, filter set initiated on %s",
+                   group, maxGroup, image, maxImage, (int)FilterSlotN[0].value, FilterSlotNP.device);
+        }
+        else
+        {
+            initiateNextCapture();
         }
     }
 }
@@ -184,7 +182,7 @@ void Imager::initiateDownload()
 {
     int group = (int)DownloadN[0].value;
     int image = (int)DownloadN[1].value;
-    char name[128];
+    char name[128]={0};
     std::ifstream file;
 
     if (group == 0 || image == 0)
@@ -206,7 +204,7 @@ void Imager::initiateDownload()
         DEBUGF(INDI::Logger::DBG_DEBUG, "Group %d, image %d, download initiated", group, image);
         DownloadNP.s = IPS_BUSY;
         IDSetNumber(&DownloadNP, "Download initiated");
-        strcpy(FitsB[0].format, format);
+        strncpy(FitsB[0].format, format, sizeof(format));
         FitsB[0].blob    = data;
         FitsB[0].bloblen = FitsB[0].size = size;
         FitsBP.s                         = IPS_OK;
@@ -346,9 +344,9 @@ void Imager::ISGetProperties(const char *dev)
 
 bool Imager::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
 {
-    if (!strcmp(dev, DEVICE_NAME))
+    if (strcmp(dev, DEVICE_NAME) == 0)
     {
-        if (!strcmp(name, GroupCountNP.name))
+        if (strcmp(name, GroupCountNP.name) == 0)
         {
             for (int i = 0; i < maxGroup; i++)
                 groups[i]->deleteProperties();
@@ -362,7 +360,7 @@ bool Imager::ISNewNumber(const char *dev, const char *name, double values[], cha
             IDSetNumber(&GroupCountNP, nullptr);
             return true;
         }
-        if (!strcmp(name, DownloadNP.name))
+        if (strcmp(name, DownloadNP.name) == 0)
         {
             IUUpdateNumber(&DownloadNP, values, names, n);
             initiateDownload();
@@ -383,18 +381,18 @@ bool Imager::ISNewNumber(const char *dev, const char *name, double values[], cha
 
 bool Imager::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
 {
-    if (!strcmp(dev, DEVICE_NAME))
+    if (strcmp(dev, DEVICE_NAME) == 0)
     {
-        if (!strcmp(name, BatchSP.name))
+        if (strcmp(name, BatchSP.name) == 0)
         {
             for (int i = 0; i < n; i++)
             {
-                if (!strcmp(names[i], BatchS[0].name) && states[i] == ISS_ON)
+                if (strcmp(names[i], BatchS[0].name) == 0 && states[i] == ISS_ON)
                 {
                     if (!isRunning())
                         startBatch();
                 }
-                if (!strcmp(names[i], BatchS[1].name) && states[i] == ISS_ON)
+                if (strcmp(names[i], BatchS[1].name) == 0 && states[i] == ISS_ON)
                 {
                     if (isRunning())
                         abortBatch();
@@ -410,20 +408,20 @@ bool Imager::ISNewSwitch(const char *dev, const char *name, ISState *states, cha
 
 bool Imager::ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
 {
-    if (!strcmp(dev, DEVICE_NAME))
+    if (strcmp(dev, DEVICE_NAME) == 0)
     {
-        if (!strcmp(name, ControlledDeviceTP.name))
+        if (strcmp(name, ControlledDeviceTP.name) == 0)
         {
             IUUpdateText(&ControlledDeviceTP, texts, names, n);
             IDSetText(&ControlledDeviceTP, nullptr);
-            strcpy(StatusL[0].label, ControlledDeviceT[0].text);
-            strcpy(CCDImageExposureNP.device, ControlledDeviceT[0].text);
-            strcpy(CCDImageBinNP.device, ControlledDeviceT[0].text);
-            strcpy(StatusL[1].label, ControlledDeviceT[1].text);
-            strcpy(FilterSlotNP.device, ControlledDeviceT[1].text);
+            strncpy(StatusL[0].label, ControlledDeviceT[0].text, sizeof(StatusL[0].label));
+            strncpy(CCDImageExposureNP.device, ControlledDeviceT[0].text, sizeof(CCDImageExposureNP.device));
+            strncpy(CCDImageBinNP.device, ControlledDeviceT[0].text, sizeof(CCDImageBinNP.device));
+            strncpy(StatusL[1].label, ControlledDeviceT[1].text, sizeof(StatusL[1].label));
+            strncpy(FilterSlotNP.device, ControlledDeviceT[1].text, sizeof(FilterSlotNP.device));
             return true;
         }
-        if (!strcmp(name, ImageNameTP.name))
+        if (strcmp(name, ImageNameTP.name) == 0)
         {
             IUUpdateText(&ImageNameTP, texts, names, n);
             IDSetText(&ImageNameTP, nullptr);
@@ -476,21 +474,25 @@ void Imager::serverConnected()
 void Imager::newDevice(INDI::BaseDevice *dp)
 {
     const char *deviceName = dp->getDeviceName();
+
     DEBUGF(INDI::Logger::DBG_DEBUG, "Device %s detected", deviceName);
-    if (!strcmp(deviceName, controlledCCD))
+    if (strcmp(deviceName, controlledCCD) == 0)
         StatusL[0].s = IPS_BUSY;
-    if (!strcmp(deviceName, controlledFilterWheel))
+    if (strcmp(deviceName, controlledFilterWheel) == 0)
         StatusL[1].s = IPS_BUSY;
+
     IDSetLight(&StatusLP, nullptr);
 }
 
 void Imager::newProperty(INDI::Property *property)
 {
     const char *deviceName = property->getDeviceName();
-    if (!strcmp(property->getName(), "CONNECTION"))
+
+    if (strcmp(property->getName(), INDI::SP::CONNECTION) == 0)
     {
-        bool state = ((ISwitchVectorProperty *)property->getProperty())->sp[0].s;
-        if (!strcmp(deviceName, controlledCCD))
+        bool state = ((ISwitchVectorProperty *)property->getProperty())->sp[0].s != ISS_OFF;
+
+        if (strcmp(deviceName, controlledCCD) == 0)
         {
             if (state)
             {
@@ -502,7 +504,7 @@ void Imager::newProperty(INDI::Property *property)
                 DEBUGF(INDI::Logger::DBG_DEBUG, "Connecting %s", controlledCCD);
             }
         }
-        if (!strcmp(deviceName, controlledFilterWheel))
+        if (strcmp(deviceName, controlledFilterWheel) == 0)
         {
             if (state)
             {
@@ -516,7 +518,6 @@ void Imager::newProperty(INDI::Property *property)
         }
         IDSetLight(&StatusLP, nullptr);
     }
-    return;
 }
 
 void Imager::removeProperty(INDI::Property *property)
@@ -533,7 +534,7 @@ void Imager::newBLOB(IBLOB *bp)
 {
     if (ProgressNP.s == IPS_BUSY)
     {
-        char name[128];
+        char name[128]={0};
         std::ofstream file;
 
         strncpy(format, bp->format, 16);
@@ -570,10 +571,11 @@ void Imager::newBLOB(IBLOB *bp)
 void Imager::newSwitch(ISwitchVectorProperty *svp)
 {
     const char *deviceName = svp->device;
-    bool state             = svp->sp[0].s;
-    if (!strcmp(svp->name, "CONNECTION"))
+    bool state             = svp->sp[0].s != ISS_OFF;
+
+    if (strcmp(svp->name, INDI::SP::CONNECTION) == 0)
     {
-        if (!strcmp(deviceName, controlledCCD))
+        if (strcmp(deviceName, controlledCCD) == 0)
         {
             if (state)
             {
@@ -584,7 +586,7 @@ void Imager::newSwitch(ISwitchVectorProperty *svp)
                 StatusL[0].s = IPS_BUSY;
             }
         }
-        if (!strcmp(deviceName, controlledFilterWheel))
+        if (strcmp(deviceName, controlledFilterWheel) == 0)
         {
             if (state)
             {
@@ -602,17 +604,18 @@ void Imager::newSwitch(ISwitchVectorProperty *svp)
 void Imager::newNumber(INumberVectorProperty *nvp)
 {
     const char *deviceName = nvp->device;
-    if (!strcmp(deviceName, controlledCCD))
+
+    if (strcmp(deviceName, controlledCCD) == 0)
     {
-        if (!strcmp(nvp->name, "CCD_EXPOSURE"))
+        if (strcmp(nvp->name, "CCD_EXPOSURE") == 0)
         {
             ProgressN[2].value = nvp->np[0].value;
             IDSetNumber(&ProgressNP, nullptr);
         }
     }
-    if (!strcmp(deviceName, controlledFilterWheel))
+    if (strcmp(deviceName, controlledFilterWheel) == 0)
     {
-        if (!strcmp(nvp->name, "FILTER_SLOT"))
+        if (strcmp(nvp->name, "FILTER_SLOT") == 0)
         {
             FilterSlotN[0].value = nvp->np->value;
             if (nvp->s == IPS_OK)
@@ -624,13 +627,14 @@ void Imager::newNumber(INumberVectorProperty *nvp)
 void Imager::newText(ITextVectorProperty *tvp)
 {
     const char *deviceName = tvp->device;
-    if (!strcmp(deviceName, controlledCCD))
-    {
-        if (!strcmp(tvp->name, "CCD_FILE_PATH"))
-        {
-            char name[128];
 
-            strcpy(format, strrchr(tvp->tp[0].text, '.'));
+    if (strcmp(deviceName, controlledCCD) == 0)
+    {
+        if (strcmp(tvp->name, "CCD_FILE_PATH") == 0)
+        {
+            char name[128]={0};
+
+            strncpy(format, strrchr(tvp->tp[0].text, '.'), sizeof(format));
             sprintf(name, IMAGE_NAME, ImageNameT[0].text, ImageNameT[1].text, group, image, format);
             rename(tvp->tp[0].text, name);
             DEBUGF(INDI::Logger::DBG_DEBUG, "Group %d of %d, image %d of %d, saved to %s", group, maxGroup, image,

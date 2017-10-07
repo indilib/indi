@@ -25,6 +25,10 @@ set(indiaag_SRCS
    ${CMAKE_CURRENT_SOURCE_DIR}/CloudWatcherController.cpp
    )
 
+IF (UNITY_BUILD)
+    ENABLE_UNITY_BUILD(indiaag indiaag_SRCS 10 cpp)
+ENDIF ()
+
 add_executable(indi_aagcloudwatcher ${indiaag_SRCS})
 target_link_libraries(indi_aagcloudwatcher ${INDI_LIBRARIES})
 
@@ -32,6 +36,10 @@ set(test_SRCS
    ${CMAKE_CURRENT_SOURCE_DIR}/main.cpp
    ${CMAKE_CURRENT_SOURCE_DIR}/CloudWatcherController.cpp
    )
+
+IF (UNITY_BUILD)
+    ENABLE_UNITY_BUILD(test test_SRCS 10 cpp)
+ENDIF ()
 
 add_executable(aagcloudwatcher_test ${test_SRCS})
 

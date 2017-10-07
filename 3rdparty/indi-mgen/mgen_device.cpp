@@ -139,7 +139,8 @@ int MGenDevice::Connect(unsigned short vid, unsigned short pid)
                     if (devlist)
                         for (struct ftdi_device_list const *dev_index = devlist; dev_index; dev_index = dev_index->next)
                         {
-                            struct libusb_device_descriptor desc = { 0 };
+                            struct libusb_device_descriptor desc;
+                            memset(&desc,0,sizeof(desc));
 
                             if (libusb_get_device_descriptor(dev_index->dev, &desc) < 0)
                             {
@@ -229,7 +230,6 @@ int MGenDevice::setOpMode(IOMode const _mode)
             break;
 
         case OPM_UNKNOWN:
-        case OPM_BOOT:
         default:
             baudrate = 9600;
             break;
@@ -275,7 +275,7 @@ int MGenDevice::setOpMode(IOMode const _mode)
     return res;
 }
 
-int MGenDevice::write(IOBuffer const &query) throw(IOError)
+int MGenDevice::write(IOBuffer const &query) //throw(IOError)
 {
     if (!ftdi)
         return -1;
@@ -294,7 +294,7 @@ int MGenDevice::write(IOBuffer const &query) throw(IOError)
     return bytes_written;
 }
 
-int MGenDevice::read(IOBuffer &answer) throw(IOError)
+int MGenDevice::read(IOBuffer &answer) //throw(IOError)
 {
     if (!ftdi)
         return -1;
@@ -316,7 +316,7 @@ int MGenDevice::read(IOBuffer &answer) throw(IOError)
     return 0;
 }
 
-char const *const MGenDevice::DBG_OpModeString(IOMode mode)
+char const * MGenDevice::DBG_OpModeString(IOMode mode)
 {
     switch (mode)
     {
@@ -324,8 +324,6 @@ char const *const MGenDevice::DBG_OpModeString(IOMode mode)
             return "UNKNOWN";
         case OPM_COMPATIBLE:
             return "COMPATIBLE";
-        case OPM_BOOT:
-            return "BOOT";
         case OPM_APPLICATION:
             return "APPLICATION";
         default:

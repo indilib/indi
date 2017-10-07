@@ -18,7 +18,9 @@
 
 #include "temmadriver.h"
 
-#include "indicom.h"
+#include <indicom.h>
+
+#include <connectionplugins/connectionserial.h>
 
 #include <unistd.h>
 
@@ -34,19 +36,19 @@ void ISGetProperties(const char *dev)
     temma->ISGetProperties(dev);
 }
 
-void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int num)
+void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
 {
-    temma->ISNewSwitch(dev, name, states, names, num);
+    temma->ISNewSwitch(dev, name, states, names, n);
 }
 
-void ISNewText(const char *dev, const char *name, char *texts[], char *names[], int num)
+void ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
 {
-    temma->ISNewText(dev, name, texts, names, num);
+    temma->ISNewText(dev, name, texts, names, n);
 }
 
-void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int num)
+void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
 {
-    temma->ISNewNumber(dev, name, values, names, num);
+    temma->ISNewNumber(dev, name, values, names, n);
 }
 
 void ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[],
@@ -69,36 +71,10 @@ void ISSnoopDevice(XMLEle *root)
 TemmaMount::TemmaMount()
 {
     SetTelescopeCapability(TELESCOPE_CAN_PARK | TELESCOPE_CAN_ABORT | TELESCOPE_CAN_SYNC | TELESCOPE_CAN_GOTO |
-                               TELESCOPE_HAS_TIME | TELESCOPE_HAS_LOCATION,
+                               TELESCOPE_HAS_TIME | TELESCOPE_HAS_LOCATION | TELESCOPE_HAS_PIER_SIDE,
                            TEMMA_SLEW_RATES);
     //SetTelescopeCapability(TELESCOPE_CAN_PARK | TELESCOPE_CAN_ABORT | TELESCOPE_CAN_SYNC | TELESCOPE_CAN_GOTO | TELESCOPE_HAS_TIME | TELESCOPE_HAS_LOCATION);
     SetParkDataType(PARK_RA_DEC);
-    GotoInProgress   = false;
-    ParkInProgress   = false;
-    TemmaInitialized = false;
-    SlewRate         = 1;
-}
-
-TemmaMount::~TemmaMount()
-{
-    //dtor
-}
-
-bool TemmaMount::Connect()
-{
-    bool rc = false;
-
-    if (isConnected())
-        return true;
-
-    //rc=Connect(PortT[0].text, atoi(IUFindOnSwitch(&BaudRateSP)->name));
-    rc = INDI::Telescope::Connect();
-
-    if (rc)
-    {
-    }
-
-    return rc;
 }
 
 const char *TemmaMount::getDefaultName()
@@ -114,7 +90,7 @@ bool TemmaMount::initProperties()
     r = INDI::Telescope::initProperties();
 
     SetTelescopeCapability(TELESCOPE_CAN_PARK | TELESCOPE_CAN_ABORT | TELESCOPE_CAN_SYNC | TELESCOPE_CAN_GOTO |
-                               TELESCOPE_HAS_TIME | TELESCOPE_HAS_LOCATION,
+                               TELESCOPE_HAS_TIME | TELESCOPE_HAS_LOCATION| TELESCOPE_HAS_PIER_SIDE,
                            TEMMA_SLEW_RATES);
     //SetTelescopeCapability(TELESCOPE_CAN_PARK | TELESCOPE_CAN_ABORT | TELESCOPE_CAN_SYNC | TELESCOPE_CAN_GOTO | TELESCOPE_HAS_TIME | TELESCOPE_HAS_LOCATION);
     SetParkDataType(PARK_RA_DEC_ENCODER);
@@ -125,11 +101,18 @@ bool TemmaMount::initProperties()
     IUFillSwitchVector(&SlewRateSP, SlewRateS, 2, getDeviceName(), "TELESCOPE_SLEW_RATE", "Slew Rate", MOTION_TAB,
                        IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
-    /* How fast do we guide compared to sidereal rate */
+    //  Temma runs at 19200 8 e 1
+    serialConnection->setDefaultBaudRate(Connection::Serial::B_19200);
+    serialConnection->setParity(1);
+
+   /* How fast do we guide compared to sidereal rate */
+    // N.B. 2017-07-11 NOT used in driver, so disabling it
+    /*
     IUFillNumber(&GuideRateN[0], "GUIDE_RATE_WE", "W/E Rate", "%g", 0, 1, 0.1, 0.3);
     IUFillNumber(&GuideRateN[1], "GUIDE_RATE_NS", "N/S Rate", "%g", 0, 1, 0.1, 0.3);
     IUFillNumberVector(&GuideRateNP, GuideRateN, 2, getDeviceName(), "GUIDE_RATE", "Guiding Rate", MOTION_TAB, IP_RW, 0,
                        IPS_IDLE);
+    */
 
     //  probably want to debug this
     //addDebugControl();
@@ -146,33 +129,33 @@ bool TemmaMount::initProperties()
 
     return r;
 }
+
 void TemmaMount::ISGetProperties(const char *dev)
 {
     /* First we let our parent populate */
     INDI::Telescope::ISGetProperties(dev);
 
-    defineNumber(&GuideNSNP);
-    defineNumber(&GuideWENP);
+    //defineNumber(&GuideNSNP);
+    //defineNumber(&GuideWENP);
 
     // JM 2016-11-10: This is not used anywhere in the code now. Enable it again when you use it
     //defineNumber(&GuideRateNP);
-
-    return;
 }
+
 bool TemmaMount::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
 {
-    if (strcmp(dev, getDeviceName()) == 0)
+    if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
         // It is for us
         //  call upstream for guider properties
-        if (!strcmp(name, "GUIDE_RATE"))
+        /*if (!strcmp(name, "GUIDE_RATE"))
         {
             IUUpdateNumber(&GuideRateNP, values, names, n);
             GuideRateNP.s = IPS_OK;
             IDSetNumber(&GuideRateNP, nullptr);
             return true;
-        }
-        if (!strcmp(name, GuideNSNP.name) || !strcmp(name, GuideWENP.name))
+        }*/
+        if (strcmp(name, GuideNSNP.name) == 0 || strcmp(name, GuideWENP.name) == 0)
         {
             processGuiderProperties(name, values, names, n);
             return true;
@@ -186,7 +169,7 @@ bool TemmaMount::ISNewNumber(const char *dev, const char *name, double values[],
 
 bool TemmaMount::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
 {
-    if (strcmp(dev, getDeviceName()) == 0)
+    if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
         // It is for us
         ProcessAlignmentSwitchProperties(this, name, states, names, n);
@@ -198,7 +181,7 @@ bool TemmaMount::ISNewSwitch(const char *dev, const char *name, ISState *states,
 bool TemmaMount::ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[],
                            char *formats[], char *names[], int n)
 {
-    if (strcmp(dev, getDeviceName()) == 0)
+    if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
         // It is for us
         ProcessAlignmentBLOBProperties(this, name, sizes, blobsizes, blobs, formats, names, n);
@@ -209,7 +192,7 @@ bool TemmaMount::ISNewBLOB(const char *dev, const char *name, int sizes[], int b
 
 bool TemmaMount::ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
 {
-    if (strcmp(dev, getDeviceName()) == 0)
+    if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
         ProcessAlignmentTextProperties(this, name, texts, names, n);
     }
@@ -219,8 +202,7 @@ bool TemmaMount::ISNewText(const char *dev, const char *name, char *texts[], cha
 
 bool TemmaMount::updateProperties()
 {
-    INDI::Telescope::updateProperties();
-    DEBUG(INDI::Logger::DBG_SESSION, "Update Properties");
+    INDI::Telescope::updateProperties();    
 
     if (isConnected())
     {
@@ -260,6 +242,7 @@ bool TemmaMount::ReadScopeStatus()
     char str[26];
     int bytesWritten = 0;
     int numread = 0;
+    char side;
 
     //DEBUG(INDI::Logger::DBG_DEBUG,"Temma::ReadScopeStatus() %d\n",PortFD);
 
@@ -281,16 +264,31 @@ bool TemmaMount::ReadScopeStatus()
     //DEBUG(INDI::Logger::DBG_DEBUG,"%d  %d  %d\n",d,m,s);
     currentDEC = d * 3600 + m * 60 + s * 6;
     currentDEC /= 3600;
+    if(str[7]=='-') currentDEC*=-1;
 
-    NewRaDec(currentRA, currentDEC);
 
-    if (GotoInProgress)
-    {
+    side=str[13];
+    switch(side) {
+      case 'E':
+      setPierSide(PIER_EAST);
+      break;
+
+      case 'W':
+      setPierSide(PIER_WEST);
+      break;
+
+      case 'F':
+      if (GotoInProgress)
+      {
         //  lets see if our goto has finished
-        if (strstr(str, "F"))
+        if (strstr(str, "F") != nullptr)
         {
             DEBUG(INDI::Logger::DBG_DEBUG, "Goto finished");
             GotoInProgress = false;
+            // if we were in motion, change status from busy
+            // to ok
+            EqNP.s=IPS_OK;
+            IDSetNumber(&EqNP, nullptr);
             if (ParkInProgress)
             {
                 SetParked(true);
@@ -303,8 +301,17 @@ bool TemmaMount::ReadScopeStatus()
         else
         {
             DEBUG(INDI::Logger::DBG_DEBUG, "Goto in Progress");
+            //  make sure our status light shows busy
+            //  so domes dont chase this number
+            EqNP.s=IPS_BUSY;
+            IDSetNumber(&EqNP, nullptr);
         }
+      }
+      break;
+
     }
+
+    NewRaDec(currentRA, currentDEC);
 
     //GetTemmaLst();
 
@@ -528,11 +535,11 @@ bool TemmaMount::MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command)
     Slewbits |= 64; //  doc says always on
 
     DEBUGF(INDI::Logger::DBG_DEBUG, "Temma::MoveNS %d dir %d", command, dir);
-    if (!command)
+    if (command == MOTION_START)
     {
         if (SlewRate != 0)
             Slewbits |= 1;
-        if (dir)
+        if (dir != DIRECTION_NORTH)
         {
             DEBUG(INDI::Logger::DBG_DEBUG, "Start slew Dec Up");
             Slewbits |= 16;
@@ -575,11 +582,11 @@ bool TemmaMount::MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command)
     Slewbits |= 64; //  doc says always on
 
     DEBUGF(INDI::Logger::DBG_DEBUG, "Temma::MoveWE %d dir %d", command, dir);
-    if (!command)
+    if (command == MOTION_START)
     {
         if (SlewRate != 0)
             Slewbits |= 1;
-        if (dir)
+        if (dir != DIRECTION_WEST)
         {
             DEBUG(INDI::Logger::DBG_DEBUG, "Start slew East");
             Slewbits |= 2;
@@ -724,14 +731,13 @@ bool TemmaMount::updateTime(ln_date *utc, double utc_offset)
 bool TemmaMount::updateLocation(double latitude, double longitude, double elevation)
 {
     INDI_UNUSED(elevation);
-    bool DoFirstTimeStuff = false;
     double lst;
 
     Longitude = longitude;
-    Lattitude = latitude;
+    Latitude = latitude;
 
     DEBUG(INDI::Logger::DBG_DEBUG, "Temma::updateLocation");
-    //  A temma mount must have the LST and Lattitude set
+    //  A temma mount must have the LST and Latitude set
     //  Prior to these being set, reads will return garbage
     if (!TemmaInitialized)
     {
@@ -740,7 +746,6 @@ bool TemmaMount::updateLocation(double latitude, double longitude, double elevat
         //GetTemmaLattitude();
         SetTemmaLst();
         TemmaInitialized = true;
-        DoFirstTimeStuff = true;
 
         //  We were NOT intialized, so, in case there is not park position set
         //  Sync to the position of bar vertical, telescope pointed at pole
@@ -782,7 +787,7 @@ bool TemmaMount::updateLocation(double latitude, double longitude, double elevat
 ln_equ_posn TemmaMount::TelescopeToSky(double ra, double dec)
 {
     double RightAscension, Declination;
-    ln_equ_posn eq;
+    ln_equ_posn eq { 0, 0 };
 
     if (GetAlignmentDatabase().size() > 1)
     {
@@ -845,7 +850,7 @@ ln_equ_posn TemmaMount::TelescopeToSky(double ra, double dec)
 
 ln_equ_posn TemmaMount::SkyToTelescope(double ra, double dec)
 {
-    ln_equ_posn eq;
+    ln_equ_posn eq { 0, 0 };
     TelescopeDirectionVector TDV;
     double RightAscension, Declination;
 
@@ -935,8 +940,12 @@ bool TemmaMount::GetTemmaVersion()
     }
 
     DEBUGF(INDI::Logger::DBG_DEBUG, "Temma Version %d %s", numread, str);
-    if (str[0] != 'v')
+    if (str[0] != 'v') {
+        //  Sometimes there is garbage in the buffers and we dont get what we expect
+        //  Lets read a big chunk and assume it will time out
+fprintf(stderr,"Read Version failed %d %s\n",numread,str);
         return false;
+    }
     //if(str[0] != 'E' ) return false;
 
     return true;
@@ -952,7 +961,7 @@ bool TemmaMount::GetTemmaMotorStatus()
     numread = TemmaRead(str, 50);
 
     DEBUGF(INDI::Logger::DBG_DEBUG, "Temma motor %d: %s", numread, str);
-    if (strstr(str, "off"))
+    if (strstr(str, "off") != nullptr)
         MotorStatus = true;
     else
         MotorStatus = false;
@@ -999,10 +1008,10 @@ int TemmaMount::GetTemmaLst()
     for (int x = 1; x < 7; x++)
     {
         if ((str[x] < 48) || (str[x] > 57))
-            return false;
+            return 0;
     }
     // otherwise we read garbage
-    return true;
+    return 1;
 }
 
 bool TemmaMount::SetTemmaLst()
@@ -1024,6 +1033,7 @@ double TemmaMount::GetTemmaLattitude()
 {
     char str[50];
     int bytesWritten, numread;
+
     tty_write(PortFD, "i\r\n", 3, &bytesWritten); // get lattitude
     memset(str, 0, 50);
     numread = TemmaRead(str, 50);
@@ -1032,8 +1042,7 @@ double TemmaMount::GetTemmaLattitude()
     {
         DEBUGF(INDI::Logger::DBG_DEBUG, "%02x", (unsigned char)str[x]);
     }
-
-    return true;
+    return 1.0;
 }
 
 bool TemmaMount::SetTemmaLattitude(double lat)
@@ -1066,18 +1075,23 @@ bool TemmaMount::SetTemmaLattitude(double lat)
     return true;
 }
 
-#include <termios.h>
-#include <unistd.h>
-#include <fcntl.h>
-
 bool TemmaMount::Handshake()
 {
     DEBUG(INDI::Logger::DBG_DEBUG, "Calling get version");
+    /*
+        This is an ugly hack, but, it works
+        On first open we often dont get an immediate read from the temma
+        but it seems to read much more reliably if we enforce a short wait
+        between opening the port and doing the first query for version
+        
+    */
+    usleep(100);
     bool rc = GetTemmaVersion();
-    if (!rc)
-        return false;
 
-    rc = GetTemmaLst();
+    if (!rc)  {
+        return false;
+    }
+    rc = (GetTemmaLst() != 0);
     if (rc)
     {
         DEBUG(INDI::Logger::DBG_DEBUG, "Temma is intialized");
@@ -1125,11 +1139,13 @@ int TemmaMount::TemmaRead(char *buf, int size)
         }
         else
         {
+fprintf(stderr,"timed out reading %d\n",count);
             DEBUGF(INDI::Logger::DBG_DEBUG, "We timed out reading bytes %d", count);
             return 0;
         }
     }
     //  if we get here, we got more than size bytes, and still dont have a cr/lf
+fprintf(stderr,"Read error after %d bytes\n",bytesRead);
     DEBUGF(INDI::Logger::DBG_DEBUG, "Read return error after %d bytes", bytesRead);
     return -1;
 }

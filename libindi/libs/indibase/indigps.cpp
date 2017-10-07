@@ -24,7 +24,7 @@
 
 #include "indigps.h"
 
-#include <string.h>
+#include <cstring>
 
 #define POLLMS 1000
 
@@ -91,7 +91,7 @@ bool INDI::GPS::updateProperties()
 
 void INDI::GPS::TimerHit()
 {
-    if (isConnected() == false)
+    if (!isConnected())
         return;
 
     IPState state = updateGPS();
@@ -127,7 +127,7 @@ IPState INDI::GPS::updateGPS()
 
 bool INDI::GPS::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
 {
-    if (strcmp(dev, getDeviceName()) == 0)
+    if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
         if (!strcmp(name, RefreshSP.name))
         {

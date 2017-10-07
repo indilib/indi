@@ -23,8 +23,8 @@
 #include "indicom.h"
 #include "lx200driver.h"
 
-#include <math.h>
-#include <string.h>
+#include <cmath>
+#include <cstring>
 #include <unistd.h>
 
 #define LX16_TAB "GPS/16 inch Features"
@@ -55,7 +55,7 @@ bool LX200_16::initProperties()
 
     IUFillSwitch(&FieldDeRotatorS[0], "On", "", ISS_OFF);
     IUFillSwitch(&FieldDeRotatorS[1], "Off", "", ISS_OFF);
-    IUFillSwitchVector(&FieldDeRotatorSP, FieldDeRotatorS, 2, getDeviceName(), "Field De-rotater", "", LX16_TAB, IP_RW,
+    IUFillSwitchVector(&FieldDeRotatorSP, FieldDeRotatorS, 2, getDeviceName(), "Field De-Rotator", "", LX16_TAB, IP_RW,
                        ISR_1OFMANY, 0, IPS_IDLE);
 
     IUFillNumber(&HorizontalCoordsN[0], "ALT", "Alt  D:M:S", "%10.6m", -90., 90.0, 0.0, 0);
@@ -68,7 +68,7 @@ bool LX200_16::initProperties()
 
 void LX200_16::ISGetProperties(const char *dev)
 {
-    if (dev && strcmp(dev, getDeviceName()))
+    if (dev != nullptr && strcmp(dev, getDeviceName()) != 0)
         return;
 
     // process parent first
@@ -110,7 +110,7 @@ bool LX200_16::ISNewNumber(const char *dev, const char *name, double values[], c
 {
     double newAlt = 0, newAz = 0;
 
-    if (strcmp(dev, getDeviceName()) == 0)
+    if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
         if (!strcmp(name, HorizontalCoordsNP.name))
         {
@@ -133,7 +133,7 @@ bool LX200_16::ISNewNumber(const char *dev, const char *name, double values[], c
 
             if (nset == 2)
             {
-                if (isSimulation() == false && (setObjAz(PortFD, newAz) < 0 || setObjAlt(PortFD, newAlt) < 0))
+                if (!isSimulation() && (setObjAz(PortFD, newAz) < 0 || setObjAlt(PortFD, newAlt) < 0))
                 {
                     HorizontalCoordsNP.s = IPS_ALERT;
                     IDSetNumber(&HorizontalCoordsNP, "Error setting Alt/Az.");
@@ -161,7 +161,7 @@ bool LX200_16::ISNewSwitch(const char *dev, const char *name, ISState *states, c
 {
     int index = 0;
 
-    if (strcmp(dev, getDeviceName()) == 0)
+    if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
         if (!strcmp(name, FanStatusSP.name))
         {
@@ -245,7 +245,7 @@ bool LX200_16::handleAltAzSlew()
         usleep(100000);
     }
 
-    if (isSimulation() == false && slewToAltAz(PortFD))
+    if (!isSimulation() && slewToAltAz(PortFD))
     {
         HorizontalCoordsNP.s = IPS_ALERT;
         IDSetNumber(&HorizontalCoordsNP, "Slew is not possible.");
@@ -362,7 +362,7 @@ void LX200_16::getBasicData()
 {
     LX200GPS::getBasicData();
 
-    if (isSimulation() == false)
+    if (!isSimulation())
     {
         getLX200Az(PortFD, &currentAZ);
         getLX200Alt(PortFD, &currentALT);

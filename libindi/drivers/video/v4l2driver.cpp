@@ -23,8 +23,9 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110 - 1301  USA
 
 #endif
 
+#include <cmath>
 #include "v4l2driver.h"
-
+#include "indistandardproperty.h"
 #include "lx/Lx.h"
 #include "webcam/v4l2_record/stream_recorder.h"
 
@@ -76,7 +77,7 @@ bool V4L2_Driver::initProperties()
 
     /* Port */
     IUFillText(&PortT[0], "PORT", "Port", "/dev/video0");
-    IUFillTextVector(&PortTP, PortT, NARRAY(PortT), getDeviceName(), "DEVICE_PORT", "Ports", OPTIONS_TAB, IP_RW, 0,
+    IUFillTextVector(&PortTP, PortT, NARRAY(PortT), getDeviceName(), INDI::SP::DEVICE_PORT, "Ports", OPTIONS_TAB, IP_RW, 0,
                      IPS_IDLE);
 
     /* Color space */
@@ -162,13 +163,13 @@ void V4L2_Driver::initCamBase()
 
 void V4L2_Driver::ISGetProperties(const char *dev)
 {
-    if (dev && strcmp(getDeviceName(), dev))
+    if (dev != nullptr && strcmp(getDeviceName(), dev) != 0)
         return;
 
     INDI::CCD::ISGetProperties(dev);
 
     defineText(&PortTP);
-    loadConfig(true, "DEVICE_PORT");
+    loadConfig(true, INDI::SP::DEVICE_PORT);
 
     if (isConnected())
     {
@@ -290,11 +291,11 @@ bool V4L2_Driver::ISNewSwitch(const char *dev, const char *name, ISState *states
     unsigned int iopt;
 
     /* ignore if not ours */
-    if (dev && strcmp(getDeviceName(), dev))
+    if (dev != nullptr && strcmp(getDeviceName(), dev) != 0)
         return true;
 
     /* Input */
-    if ((!strcmp(name, InputsSP.name)))
+    if (strcmp(name, InputsSP.name) == 0)
     {
         //if ((StreamSP.s == IPS_BUSY) ||  (ExposeTimeNP->s == IPS_BUSY) || (RecordStreamSP.s == IPS_BUSY)) {
         if (PrimaryCCD.isExposing() || Streamer->isBusy())
@@ -344,7 +345,7 @@ bool V4L2_Driver::ISNewSwitch(const char *dev, const char *name, ISState *states
     }
 
     /* Capture Format */
-    if ((!strcmp(name, CaptureFormatsSP.name)))
+    if (strcmp(name, CaptureFormatsSP.name) == 0)
     {
         //if ((StreamSP.s == IPS_BUSY) ||  (ExposeTimeNP->s == IPS_BUSY) || (RecordStreamSP.s == IPS_BUSY)) {
         if (PrimaryCCD.isExposing() || Streamer->isBusy())
@@ -402,7 +403,7 @@ bool V4L2_Driver::ISNewSwitch(const char *dev, const char *name, ISState *states
     }
 
     /* Capture Size (Discrete) */
-    if ((!strcmp(name, CaptureSizesSP.name)))
+    if (strcmp(name, CaptureSizesSP.name) == 0)
     {
         //if ((StreamSP.s == IPS_BUSY) ||  (ExposeTimeNP->s == IPS_BUSY) || (RecordStreamSP.s == IPS_BUSY)) {
         if (PrimaryCCD.isExposing() || Streamer->isBusy())
@@ -451,7 +452,7 @@ bool V4L2_Driver::ISNewSwitch(const char *dev, const char *name, ISState *states
     }
 
     /* Frame Rate (Discrete) */
-    if ((!strcmp(name, FrameRatesSP.name)))
+    if (strcmp(name, FrameRatesSP.name) == 0)
     {
         if (PrimaryCCD.isExposing() || Streamer->isBusy())
         {
@@ -479,7 +480,7 @@ bool V4L2_Driver::ISNewSwitch(const char *dev, const char *name, ISState *states
     }
 
     /* Image Type */
-    if (!strcmp(name, ImageColorSP.name))
+    if (strcmp(name, ImageColorSP.name) == 0)
     {
         if (Streamer->isRecording())
         {
@@ -508,7 +509,7 @@ bool V4L2_Driver::ISNewSwitch(const char *dev, const char *name, ISState *states
     }
 
     /* Image Depth */
-    if (!strcmp(name, ImageDepthSP.name))
+    if (strcmp(name, ImageDepthSP.name) == 0)
     {
         if (Streamer->isRecording())
         {
@@ -532,7 +533,7 @@ bool V4L2_Driver::ISNewSwitch(const char *dev, const char *name, ISState *states
     }
 
     /* Stacking Mode */
-    if (!strcmp(name, StackModeSP.name))
+    if (strcmp(name, StackModeSP.name) == 0)
     {
         IUResetSwitch(&StackModeSP);
         IUUpdateSwitch(&StackModeSP, states, names, n);
@@ -553,7 +554,7 @@ bool V4L2_Driver::ISNewSwitch(const char *dev, const char *name, ISState *states
 
     /* V4L2 Options/Menus */
     for (iopt = 0; iopt < v4loptions; iopt++)
-        if (!strcmp(Options[iopt].name, name))
+        if (strcmp(Options[iopt].name, name) == 0)
             break;
     if (iopt < v4loptions)
     {
@@ -595,7 +596,7 @@ bool V4L2_Driver::ISNewSwitch(const char *dev, const char *name, ISState *states
     }
 
     /* ColorProcessing */
-    if (!strcmp(name, ColorProcessingSP.name))
+    if (strcmp(name, ColorProcessingSP.name) == 0)
     {
         if (ImageColorS[IMAGE_GRAYSCALE].s == ISS_ON)
         {
@@ -625,10 +626,10 @@ bool V4L2_Driver::ISNewText(const char *dev, const char *name, char *texts[], ch
     IText *tp;
 
     /* ignore if not ours */
-    if (dev && strcmp(getDeviceName(), dev))
+    if (dev != nullptr && strcmp(getDeviceName(), dev) != 0)
         return true;
 
-    if (!strcmp(name, PortTP.name))
+    if (strcmp(name, PortTP.name) == 0)
     {
         PortTP.s = IPS_OK;
         tp       = IUFindText(&PortTP, names[0]);
@@ -648,11 +649,11 @@ bool V4L2_Driver::ISNewNumber(const char *dev, const char *name, double values[]
     char errmsg[ERRMSGSIZ];
 
     /* ignore if not ours */
-    if (dev && strcmp(getDeviceName(), dev))
+    if (dev != nullptr && strcmp(getDeviceName(), dev) != 0)
         return true;
 
     /* Capture Size (Step/Continuous) */
-    if ((!strcmp(name, CaptureSizesNP.name)))
+    if (strcmp(name, CaptureSizesNP.name) == 0)
     {
         if (PrimaryCCD.isExposing() || Streamer->isBusy())
         {
@@ -666,7 +667,7 @@ bool V4L2_Driver::ISNewNumber(const char *dev, const char *name, double values[]
             unsigned int sizes[2], w = 0, h = 0;
             double rsizes[2];
 
-            if (!strcmp(names[0], "Width"))
+            if (strcmp(names[0], "Width") == 0)
             {
                 sizes[0] = values[0];
                 sizes[1] = values[1];
@@ -683,7 +684,7 @@ bool V4L2_Driver::ISNewNumber(const char *dev, const char *name, double values[]
                 IDSetNumber(&CaptureSizesNP, nullptr);
                 return false;
             }
-            if (!strcmp(names[0], "Width"))
+            if (strcmp(names[0], "Width") == 0)
             {
                 w         = v4l_base->getWidth();
                 rsizes[0] = (double)w;
@@ -712,20 +713,20 @@ bool V4L2_Driver::ISNewNumber(const char *dev, const char *name, double values[]
         }
     }
 
-    if (!strcmp(ImageAdjustNP.name, name))
+    if (strcmp(ImageAdjustNP.name, name) == 0)
     {
         ImageAdjustNP.s = IPS_IDLE;
 
         if (IUUpdateNumber(&ImageAdjustNP, values, names, n) < 0)
             return false;
 
-        unsigned int ctrl_id;
         for (int i = 0; i < ImageAdjustNP.nnp; i++)
         {
-            ctrl_id = *((unsigned int *)ImageAdjustNP.np[i].aux0);
+            unsigned int const ctrl_id = *((unsigned int *)ImageAdjustNP.np[i].aux0);
+            double const value = ImageAdjustNP.np[i].value;
 
-            DEBUGF(INDI::Logger::DBG_DEBUG, "  Setting %s (%s) to %d, ctrl_id = 0x%X", ImageAdjustNP.np[i].name,
-                   ImageAdjustNP.np[i].label, (int)ImageAdjustNP.np[i].value, ctrl_id);
+            DEBUGF(INDI::Logger::DBG_DEBUG, "  Setting %s (%s) to %f, ctrl_id = 0x%X", ImageAdjustNP.np[i].name,
+                   ImageAdjustNP.np[i].label, value, ctrl_id);
 
             if (v4l_base->setINTControl(ctrl_id, ImageAdjustNP.np[i].value, errmsg) < 0)
             {
@@ -736,6 +737,13 @@ bool V4L2_Driver::ISNewNumber(const char *dev, const char *name, double values[]
             /* Some controls may have been ajusted by the driver */
             /* a read is mandatory as VIDIOC_S_CTRL is write only and does not return the actual new value */
             v4l_base->getControl(ctrl_id, &(ImageAdjustNP.np[i].value), errmsg);
+
+            /* Warn the client if the control returned another value than what was set */
+            if(value != ImageAdjustNP.np[i].value)
+            {
+                DEBUGF(INDI::Logger::DBG_WARNING, "Control %s set to %f returned %f (ctrl_id =  0x%X)",
+                       ImageAdjustNP.np[i].label, value, ImageAdjustNP.np[i].value, ctrl_id);
+            }
         }
         ImageAdjustNP.s = IPS_OK;
         IDSetNumber(&ImageAdjustNP, nullptr);
@@ -762,7 +770,8 @@ bool V4L2_Driver::StartExposure(float duration)
         if (is_capturing)
         {
             DEBUGF(INDI::Logger::DBG_ERROR,
-                   "Cannot start new exposure until the current one completes (%.3f seconds left).", exposureLeft);
+                   "Cannot start new exposure until the current one completes (%.3f seconds left).",
+                   getRemainingExposure());
             return !(GetCCDCapability() & CCD_CAN_ABORT);
         }
     }
@@ -771,7 +780,6 @@ bool V4L2_Driver::StartExposure(float duration)
     {
         V4LFrame->expose = duration;
         PrimaryCCD.setExposureDuration(duration);
-        this->exposureLeft = duration;
 
         if (!lx->isEnabled() || lx->getLxmode() == LXSERIAL)
             start_capturing(false);
@@ -796,112 +804,138 @@ bool V4L2_Driver::setShutter(double duration)
     if (lx->isEnabled())
     {
         DEBUGF(INDI::Logger::DBG_SESSION, "Using long exposure mode for %.3f sec frame.", duration);
-        if (!startlongexposure(duration))
+        if (startlongexposure(duration))
+        {
+            DEBUGF(INDI::Logger::DBG_SESSION, "Started %.3f-second long exposure.", duration);
+            return true;
+        }
+        else
         {
             DEBUGF(INDI::Logger::DBG_WARNING,
                    "Unable to start %.3f-second long exposure, falling back to auto exposure", duration);
             return false;
         }
     }
-    else if (AbsExposureN && ManualExposureSP && (AbsExposureN->max >= (duration * 10000)) &&
-             (AbsExposureN->min <= (duration * 10000)))
+    else if (setManualExposure(duration))
     {
-        // INT control for manual exposure duration is an integer - log is cheating a bit
-        DEBUGF(INDI::Logger::DBG_SESSION, "Using device %d-tick manual exposure for %.3f-second exposure",
-               (int)(duration * 10000), duration);
-        if (!setManualExposure(duration))
-        {
-            DEBUGF(INDI::Logger::DBG_WARNING,
-                   "Unable to set %.3f-second manual exposure, falling back to auto exposure", duration);
-            return false;
-        }
+        exposure_duration.tv_sec  = (long) duration;
+        exposure_duration.tv_usec = (long) ((duration - (double) exposure_duration.tv_sec) * 1000000.0f);
 
-        timerclear(&exposure_duration);
-        exposure_duration.tv_sec  = (long)duration;
-        exposure_duration.tv_usec = (long)((duration - (double)exposure_duration.tv_sec) * 1000000.0);
+        gettimeofday(&capture_start, nullptr);
+        frameCount    = 0;
+        subframeCount = 0;
+
+        DEBUGF(INDI::Logger::DBG_SESSION, "Started %.3f-second manual exposure.", duration);
+        return true;
     }
     else
     {
-        DEBUGF(INDI::Logger::DBG_WARNING, "Failed %.3f-second manual exposure, out of device tick bounds [%d,%d]",
-               duration, AbsExposureN ? (int)AbsExposureN->min : 0, AbsExposureN ? (int)AbsExposureN->max : 0);
+        DEBUGF(INDI::Logger::DBG_WARNING, "Failed %.3f-second manual exposure, no adequate control is registered.",
+               duration);
         return false;
     }
-
-    gettimeofday(&capture_start, nullptr);
-    frameCount    = 0;
-    subframeCount = 0;
-    return true;
 }
 
 bool V4L2_Driver::setManualExposure(double duration)
 {
-    if (AbsExposureN == nullptr || ManualExposureSP == nullptr)
+    if (nullptr == AbsExposureN)
+    {
+        DEBUGF(INDI::Logger::DBG_ERROR, "Failed exposing, the absolute exposure duration control is undefined", "");
         return false;
+    }
 
     char errmsg[MAXRBUF];
-    unsigned int ctrl_id, ctrlindex;
 
-    // Manual mode should be set before changing Exposure (Auto)
-    if (ManualExposureSP->sp[0].s == ISS_OFF)
+    /* Manual mode should be set before changing Exposure (Auto), if possible.
+     * In some cases there might be no control available, so don't fail and try to continue.
+     */
+    if (ManualExposureSP)
     {
-        ManualExposureSP->sp[0].s = ISS_ON;
-        ManualExposureSP->sp[1].s = ISS_OFF;
-        ManualExposureSP->s       = IPS_IDLE;
-
-        if (ManualExposureSP->sp[0].aux != nullptr)
-            ctrlindex = *(unsigned int *)(ManualExposureSP->sp[0].aux);
-        else
-            ctrlindex = 0;
-
-        ctrl_id = (*((unsigned int *)ManualExposureSP->aux));
-        if (v4l_base->setOPTControl(ctrl_id, ctrlindex, errmsg) < 0)
+        if (ManualExposureSP->sp[0].s == ISS_OFF)
         {
-            ManualExposureSP->sp[0].s = ISS_OFF;
-            ManualExposureSP->sp[1].s = ISS_ON;
-            ManualExposureSP->s       = IPS_ALERT;
-            IDSetSwitch(ManualExposureSP, nullptr);
-            DEBUGF(INDI::Logger::DBG_ERROR, "Unable to adjust setting. %s", errmsg);
-            return false;
-        }
+            ManualExposureSP->sp[0].s = ISS_ON;
+            ManualExposureSP->sp[1].s = ISS_OFF;
+            ManualExposureSP->s       = IPS_IDLE;
 
-        ManualExposureSP->s = IPS_OK;
-        IDSetSwitch(ManualExposureSP, nullptr);
+            unsigned int const ctrlindex = ManualExposureSP->sp[0].aux ? *(unsigned int *)(ManualExposureSP->sp[0].aux) : 0;
+            unsigned int const ctrl_id = (*((unsigned int *)ManualExposureSP->aux));
+
+            if (v4l_base->setOPTControl(ctrl_id, ctrlindex, errmsg) < 0)
+            {
+                ManualExposureSP->sp[0].s = ISS_OFF;
+                ManualExposureSP->sp[1].s = ISS_ON;
+                ManualExposureSP->s       = IPS_ALERT;
+                IDSetSwitch(ManualExposureSP, nullptr);
+
+                DEBUGF(INDI::Logger::DBG_ERROR, "Unable to adjust manual/auto exposure control. %s", errmsg);
+                return false;
+            }
+
+            ManualExposureSP->s = IPS_OK;
+            IDSetSwitch(ManualExposureSP, nullptr);
+        }
+    }
+    else
+    {
+        DEBUGF(INDI::Logger::DBG_ERROR, "Failed switching to manual exposure, control is unavailable", "");
+        /* Don't fail, let the driver try to set the absolute duration, we'll see what happens */
+        /* return false; */
     }
 
     /* N.B. Check how this differs from one camera to another. This is just a proof of concept for now */
-    /* With DMx 21A04.AS, exposing twice with the same duration causes an incomplete frame to pop in the buffer list
-     * This can be worked around by verifying the buffer size, but it won't work for anything else than Y8/Y16, so set exposure unconditionally */
+    /* With DMx 21AU04.AS, exposing twice with the same duration causes an incomplete frame to pop in the buffer list
+     * This can be worked around by verifying the buffer size, but it won't work for anything else than Y8/Y16, so set
+     * exposure unconditionally */
     /*if (duration * 10000 != AbsExposureN->value)*/
-    {
-        double curVal       = AbsExposureN->value;
 
-        AbsExposureN->value = duration * 10000;
-        ctrl_id             = *((unsigned int *)AbsExposureN->aux0);
+    // INT control for manual exposure duration is an integer in 1/10000 seconds
+    long const ticks = lround(duration * 10000.0f);
+
+    if (AbsExposureN->min <= ticks && ticks <= AbsExposureN->max)
+    {
+        double const restoredValue = AbsExposureN->value;
+        AbsExposureN->value = ticks;
+
+        DEBUGF(INDI::Logger::DBG_DEBUG, "%.3f-second exposure translates to %ld 1/10,000th-second device ticks.",
+               duration, ticks);
+
+        unsigned int const ctrl_id = *((unsigned int *)AbsExposureN->aux0);
+
         if (v4l_base->setINTControl(ctrl_id, AbsExposureN->value, errmsg) < 0)
         {
             ImageAdjustNP.s     = IPS_ALERT;
-            AbsExposureN->value = curVal;
-            IDSetNumber(&ImageAdjustNP, "Unable to adjust AbsExposure. %s", errmsg);
+            AbsExposureN->value = restoredValue;
+            IDSetNumber(&ImageAdjustNP, "Failed requesting %.3f-second exposure to the driver (%s).", duration, errmsg);
             return false;
         }
 
         ImageAdjustNP.s = IPS_OK;
         IDSetNumber(&ImageAdjustNP, nullptr);
     }
+    else
+    {
+        DEBUGF(INDI::Logger::DBG_WARNING, "Failed %.3f-second manual exposure, out of device bounds [%.3f,%.3f].",
+               duration, (double) AbsExposureN->min / 10000.0f, (double) AbsExposureN->max / 10000.0f);
+        return false;
+    }
 
     return true;
 }
 
+/** \internal Timer callback.
+ *
+ * This provides a very rough estimation of the remaining exposure to the client.
+ */
 void V4L2_Driver::stdtimerCallback(void *userpointer)
 {
     V4L2_Driver *p = (V4L2_Driver *)userpointer;
-    p->exposureLeft -= 1.0f;
-    //DEBUGF(INDI::Logger::DBG_SESSION,"Exposure running, %f seconds left...",p->exposureLeft);
-    p->PrimaryCCD.setExposureLeft(p->exposureLeft);
-    if (1.0f < p->exposureLeft)
+    float remaining = p->getRemainingExposure();
+    //DEBUGF(INDI::Logger::DBG_SESSION,"Exposure running, %f seconds left...", remaining);
+    if (1.0f < remaining)
         p->stdtimer = IEAddTimer(1000, (IE_TCF *)stdtimerCallback, userpointer);
     else
         p->stdtimer = -1;
+    p->PrimaryCCD.setExposureLeft(remaining);
 }
 
 bool V4L2_Driver::start_capturing(bool do_stream)
@@ -915,7 +949,7 @@ bool V4L2_Driver::start_capturing(bool do_stream)
     if (is_capturing)
     {
         DEBUGF(INDI::Logger::DBG_WARNING, "Cannot start exposure while another is in progress (%.3f seconds left)",
-               exposureLeft);
+               getRemainingExposure());
         return false;
     }
 
@@ -941,9 +975,10 @@ bool V4L2_Driver::stop_capturing()
         return true;
     }
 
-    if (!Streamer->isBusy() && 0.0f < exposureLeft)
+    if (!Streamer->isBusy() && 0.0f < getRemainingExposure())
     {
-        DEBUGF(INDI::Logger::DBG_WARNING, "Stopping running exposure %.3f seconds before completion", exposureLeft);
+        DEBUGF(INDI::Logger::DBG_WARNING, "Stopping running exposure %.3f seconds before completion",
+               getRemainingExposure());
     }
 
     //if(Streamer->isDirectRecording())
@@ -1077,6 +1112,21 @@ void V4L2_Driver::stackFrame()
     }
 }
 
+struct timeval V4L2_Driver::getElapsedExposure() const
+{
+    struct timeval now = { .tv_sec = 0, .tv_usec = 0 }, elapsed = { .tv_sec = 0, .tv_usec = 0 };
+    gettimeofday(&now, nullptr);
+    timersub(&now, &capture_start, &elapsed);
+    return elapsed;
+}
+
+float V4L2_Driver::getRemainingExposure() const
+{
+    struct timeval elapsed = getElapsedExposure(), remaining = { .tv_sec = 0, .tv_usec = 0 };
+    timersub(&exposure_duration,&elapsed,&remaining);
+    return (float) remaining.tv_sec + (float) remaining.tv_usec / 1000000.0f;
+}
+
 void V4L2_Driver::newFrame()
 {
     if (Streamer->isBusy())
@@ -1143,7 +1193,6 @@ void V4L2_Driver::newFrame()
 
     if (PrimaryCCD.isExposing())
     {
-        struct timeval current_exposure;
 
         // Stack Mono frames
         if ((stackMode) && !(lx->isEnabled()) && !(ImageColorS[1].s == ISS_ON))
@@ -1151,8 +1200,7 @@ void V4L2_Driver::newFrame()
             stackFrame();
         }
 
-        gettimeofday(&capture_end, nullptr);
-        timersub(&capture_end, &capture_start, &current_exposure);
+        struct timeval const current_exposure = getElapsedExposure();
 
         if ((stackMode) && !(lx->isEnabled()) && !(ImageColorS[1].s == ISS_ON) &&
             (timercmp(&current_exposure, &exposure_duration, <)))
@@ -1379,7 +1427,7 @@ bool V4L2_Driver::Disconnect()
 
 const char *V4L2_Driver::getDefaultName()
 {
-    return (char *)"V4L2 CCD";
+    return (const char *)"V4L2 CCD";
 }
 
 /* Retrieves basic data from the device upon connection.*/
@@ -1439,6 +1487,9 @@ void V4L2_Driver::getBasicData()
 void V4L2_Driver::updateV4L2Controls()
 {
     unsigned int i;
+
+    DEBUGF(INDI::Logger::DBG_DEBUG,"Enumerating V4L2 controls...","");
+
     // #1 Query for INTEGER controls, and fill up the structure
     free(ImageAdjustNP.np);
     ImageAdjustNP.nnp = 0;
@@ -1447,32 +1498,47 @@ void V4L2_Driver::updateV4L2Controls()
     //defineNumber(&ImageAdjustNP);
     v4l_base->enumerate_ext_ctrl();
     useExtCtrl = false;
+
     if (v4l_base->queryExtControls(&ImageAdjustNP, &v4ladjustments, &Options, &v4loptions, getDeviceName(),
                                    IMAGE_BOOLEAN))
         useExtCtrl = true;
     else
         v4l_base->queryControls(&ImageAdjustNP, &v4ladjustments, &Options, &v4loptions, getDeviceName(), IMAGE_BOOLEAN);
+
     if (v4ladjustments > 0)
     {
+        DEBUGF(INDI::Logger::DBG_DEBUG,"Found %d V4L2 adjustments", v4ladjustments);
         defineNumber(&ImageAdjustNP);
 
         for (int i = 0; i < ImageAdjustNP.nnp; i++)
         {
-            if (!strcmp(ImageAdjustNP.np[i].label, "Exposure (Absolute)"))
+            if (strcmp(ImageAdjustNP.np[i].label, "Exposure (Absolute)") == 0 ||
+                strcmp(ImageAdjustNP.np[i].label, "Exposure Time, Absolute") == 0)
             {
                 AbsExposureN = ImageAdjustNP.np + i;
-                break;
+                DEBUGF(INDI::Logger::DBG_DEBUG,"- %s (used for absolute exposure duration)", ImageAdjustNP.np[i].label);
             }
+            else DEBUGF(INDI::Logger::DBG_DEBUG,"- %s", ImageAdjustNP.np[i].label);
         }
     }
+    DEBUGF(INDI::Logger::DBG_DEBUG,"Found %d V4L2 options", v4loptions);
     for (i = 0; i < v4loptions; i++)
     {
-        //IDLog("Def switch %d %s\n", i, Options[i].label);
         defineSwitch(&Options[i]);
 
-        if (!strcmp(Options[i].label, "Exposure, Auto"))
+        if (strcmp(Options[i].label, "Exposure, Auto") == 0 || strcmp(Options[i].label, "Auto Exposure") == 0)
+        {
             ManualExposureSP = Options + i;
+            DEBUGF(INDI::Logger::DBG_DEBUG,"- %s (used for manual/auto exposure control)", Options[i].label);
+        }
+        else DEBUGF(INDI::Logger::DBG_DEBUG,"- %s", Options[i].label);
     }
+
+    if(!AbsExposureN)
+        DEBUGF(INDI::Logger::DBG_WARNING,"Absolute exposure duration control is not possible on the device!","");
+
+    if(!ManualExposureSP)
+        DEBUGF(INDI::Logger::DBG_WARNING,"Manual/auto exposure control is not possible on the device!","");
 
     //v4l_base->enumerate_ctrl();
 }
@@ -1518,7 +1584,7 @@ bool V4L2_Driver::StopStreaming()
     {
         /* Strange situation indeed, but it's theoretically possible to try to stop streaming while exposing - safeguard actually */
         DEBUGF(INDI::Logger::DBG_WARNING, "Cannot stop streaming, exposure running (%.1f seconds remaining)",
-               exposureLeft);
+               getRemainingExposure());
         return false;
     }
 

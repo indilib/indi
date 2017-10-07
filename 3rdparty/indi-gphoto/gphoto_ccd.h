@@ -64,21 +64,21 @@ class GPhotoCCD : public INDI::CCD, public INDI::FocuserInterface
     explicit GPhotoCCD(const char *model, const char *port);
     virtual ~GPhotoCCD();
 
-    const char *getDefaultName();
+    const char *getDefaultName() override;
 
-    bool initProperties();
-    void ISGetProperties(const char *dev);
-    bool updateProperties();
+    bool initProperties() override;
+    void ISGetProperties(const char *dev) override;
+    bool updateProperties() override;
 
-    bool Connect();
-    bool Disconnect();
+    bool Connect() override;
+    bool Disconnect() override;
 
-    bool StartExposure(float duration);
-    bool UpdateCCDFrame(int x, int y, int w, int h);
+    bool StartExposure(float duration) override;
+    bool UpdateCCDFrame(int x, int y, int w, int h) override;
 
-    virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n);
-    virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n);
-    virtual bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n);
+    virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
+    virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
+    virtual bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n) override;
 
     static void ExposureUpdate(void *vp);
     void ExposureUpdate();
@@ -88,18 +88,21 @@ class GPhotoCCD : public INDI::CCD, public INDI::FocuserInterface
 
   protected:
     // Misc.
-    bool saveConfigItems(FILE *fp);
-    void addFITSKeywords(fitsfile *fptr, CCDChip *targetChip);
-    void TimerHit();
+    bool saveConfigItems(FILE *fp) override;
+    void addFITSKeywords(fitsfile *fptr, CCDChip *targetChip) override;
+    void TimerHit() override;
+
+    // Upload Mode
+    bool UpdateCCDUploadMode(CCD_UPLOAD_MODE mode) override;
 
     // Focusing
-    bool SetFocuserSpeed(int speed);
-    IPState MoveFocuser(FocusDirection dir, int speed, uint16_t duration);
+    bool SetFocuserSpeed(int speed) override;
+    IPState MoveFocuser(FocusDirection dir, int speed, uint16_t duration) override;
 
 // Streaming
 #ifdef __linux__
-    bool StartStreaming();
-    bool StopStreaming();
+    bool StartStreaming() override;
+    bool StopStreaming() override;
     bool captureLiveVideo();
 #endif
 

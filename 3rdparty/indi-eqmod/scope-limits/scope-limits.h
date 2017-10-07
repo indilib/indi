@@ -44,13 +44,14 @@ class HorizonLimits
     ISwitchVectorProperty *HorizonLimitsLimitGotoSP;
 
     std::vector<horizonpoint> *horizon;
-    unsigned int horizonindex;
+    int horizonindex;
 
     char *WriteDataFile(const char *filename);
     char *LoadDataFile(const char *filename);
     char errorline[128];
     char *sline;
-
+    bool HorizonInitialized;
+    
   public:
     HorizonLimits(INDI::Telescope *);
     virtual ~HorizonLimits();
@@ -58,6 +59,7 @@ class HorizonLimits
     const char *getDeviceName(); // used for logger
 
     virtual bool initProperties();
+    virtual void ISGetProperties();
     virtual bool updateProperties();
     virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n);
     virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n);
@@ -66,6 +68,7 @@ class HorizonLimits
                            char *formats[], char *names[], int n);
 
     virtual void Init();
+    virtual void Reset();
     virtual bool inLimits(double az, double alt);
     virtual bool inGotoLimits(double az, double alt);
     virtual bool checkLimits(double az, double alt, INDI::Telescope::TelescopeStatus status, bool ingoto);

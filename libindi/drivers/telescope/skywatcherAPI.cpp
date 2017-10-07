@@ -45,35 +45,20 @@ void AXISSTATUS::SetSlewingTo(bool forward, bool highspeed)
     HighSpeed      = highspeed;
 }
 
-// One definition rule (ODR) constants
-const double SkywatcherAPI::SIDEREALRATE     = (2 * M_PI / 86164.09065); // Radians per second
-const double SkywatcherAPI::LOW_SPEED_MARGIN = 128.0 * SIDEREALRATE;
-const double SkywatcherAPI::MAX_SPEED        = 500.0; // Radians per second
-
-// Constructor
-
-SkywatcherAPI::SkywatcherAPI() : SilentSlewMode(false)
+SkywatcherAPI::SkywatcherAPI()
 {
     // I add an additional debug level so I can log verbose scope status
     DBG_SCOPE = INDI::Logger::getInstance().addDebugLevel("Scope Verbose", "SCOPE");
-    MCVersion = 0;
 
     RadiansPerMicrostep[AXIS1] = RadiansPerMicrostep[AXIS2] = 0;
     MicrostepsPerRadian[AXIS1] = MicrostepsPerRadian[AXIS2] = 0;
     DegreesPerMicrostep[AXIS1] = DegreesPerMicrostep[AXIS2] = 0;
     MicrostepsPerDegree[AXIS1] = MicrostepsPerDegree[AXIS2] = 0;
     CurrentEncoders[AXIS1] = CurrentEncoders[AXIS2] = 0;
+    PolarisPositionEncoders[AXIS1] = PolarisPositionEncoders[AXIS2] = 0;
     ZeroPositionEncoders[AXIS1] = ZeroPositionEncoders[AXIS2] = 0;
     SlewingSpeed[AXIS1] = SlewingSpeed[AXIS2] = 0;
 }
-
-// Destructor
-
-SkywatcherAPI::~SkywatcherAPI()
-{
-}
-
-// Public methods
 
 unsigned long SkywatcherAPI::BCDstr2long(std::string &String)
 {
@@ -225,6 +210,9 @@ bool SkywatcherAPI::GetMicrostepsPerRevolution(AXISID Axis)
     MicrostepsPerDegree[(int)Axis] = tmpMicrostepsPerRevolution / 360.0;
     DegreesPerMicrostep[(int)Axis] = 360.0 / tmpMicrostepsPerRevolution;
 
+    MYDEBUGF(INDI::Logger::DBG_SESSION, "Axis %d: %lf microsteps/degree, %lf microsteps/arcsec", Axis,
+             (double)tmpMicrostepsPerRevolution / 360.0, (double)tmpMicrostepsPerRevolution / 360.0 / 60 / 60);
+
     return true;
 }
 
@@ -363,6 +351,10 @@ bool SkywatcherAPI::InitMount(bool recover)
 
     MountCode = MCVersion & 0xFF;
 
+    // Disable EQ mounts
+    if (MountCode < 0x80)
+        return false;
+
     //// NOTE: Simulator settings, Mount dependent Settings
 
     // Inquire Gear Rate
@@ -402,8 +394,10 @@ bool SkywatcherAPI::InitMount(bool recover)
     // These are used to define the arbitrary zero position vector for the axis
     if (!recover)
     {
-        ZeroPositionEncoders[AXIS1] = CurrentEncoders[AXIS1];
-        ZeroPositionEncoders[AXIS2] = CurrentEncoders[AXIS2];
+        PolarisPositionEncoders[AXIS1] = CurrentEncoders[AXIS1];
+        PolarisPositionEncoders[AXIS2] = CurrentEncoders[AXIS2];
+        ZeroPositionEncoders[AXIS1] = PolarisPositionEncoders[AXIS1];
+        ZeroPositionEncoders[AXIS2] = PolarisPositionEncoders[AXIS2];
     }
 
     if (!InitializeMC())
@@ -519,10 +513,7 @@ bool SkywatcherAPI::SetEncoder(AXISID Axis, long Microsteps)
 
     Long2BCDstr(Microsteps, Parameters);
 
-    if (!TalkWithAxis(Axis, 'L', Parameters, Response))
-        return false;
-
-    return true;
+    return TalkWithAxis(Axis, 'L', Parameters, Response);
 }
 
 bool SkywatcherAPI::SetGotoTargetOffset(AXISID Axis, long OffsetInMicrosteps)
@@ -532,10 +523,7 @@ bool SkywatcherAPI::SetGotoTargetOffset(AXISID Axis, long OffsetInMicrosteps)
 
     Long2BCDstr(OffsetInMicrosteps, Parameters);
 
-    if (!TalkWithAxis(Axis, 'H', Parameters, Response))
-        return false;
-
-    return true;
+    return TalkWithAxis(Axis, 'H', Parameters, Response);
 }
 
 /// Func - 0 Low speed slew to mode (goto)
@@ -550,10 +538,7 @@ bool SkywatcherAPI::SetMotionMode(AXISID Axis, char Func, char Direction)
     Parameters.push_back(Func);
     Parameters.push_back(Direction);
 
-    if (!TalkWithAxis(Axis, 'G', Parameters, Response))
-        return false;
-
-    return true;
+    return TalkWithAxis(Axis, 'G', Parameters, Response);
 }
 
 bool SkywatcherAPI::SetClockTicksPerMicrostep(AXISID Axis, long ClockTicksPerMicrostep)
@@ -563,10 +548,7 @@ bool SkywatcherAPI::SetClockTicksPerMicrostep(AXISID Axis, long ClockTicksPerMic
 
     Long2BCDstr(ClockTicksPerMicrostep, Parameters);
 
-    if (!TalkWithAxis(Axis, 'I', Parameters, Response))
-        return false;
-
-    return true;
+    return TalkWithAxis(Axis, 'I', Parameters, Response);
 }
 
 bool SkywatcherAPI::SetSlewModeDeccelerationRampLength(AXISID Axis, long Microsteps)
@@ -576,10 +558,7 @@ bool SkywatcherAPI::SetSlewModeDeccelerationRampLength(AXISID Axis, long Microst
 
     Long2BCDstr(Microsteps, Parameters);
 
-    if (!TalkWithAxis(Axis, 'U', Parameters, Response))
-        return false;
-
-    return true;
+    return TalkWithAxis(Axis, 'U', Parameters, Response);
 }
 
 bool SkywatcherAPI::SetSlewToModeDeccelerationRampLength(AXISID Axis, long Microsteps)
@@ -589,10 +568,7 @@ bool SkywatcherAPI::SetSlewToModeDeccelerationRampLength(AXISID Axis, long Micro
 
     Long2BCDstr(Microsteps, Parameters);
 
-    if (!TalkWithAxis(Axis, 'M', Parameters, Response))
-        return false;
-
-    return true;
+    return TalkWithAxis(Axis, 'M', Parameters, Response);
 }
 
 bool SkywatcherAPI::SetSwitch(bool OnOff)
@@ -605,9 +581,7 @@ bool SkywatcherAPI::SetSwitch(bool OnOff)
     else
         Parameters = "0";
 
-    if (!TalkWithAxis(AXIS1, 'O', Parameters, Response))
-        return false;
-    return true;
+    return TalkWithAxis(AXIS1, 'O', Parameters, Response);
 }
 
 void SkywatcherAPI::Slew(AXISID Axis, double SpeedInRadiansPerSecond, bool IgnoreSilentMode)
@@ -740,18 +714,16 @@ bool SkywatcherAPI::SlowStop(AXISID Axis)
     // Request a slow stop
     MYDEBUG(DBG_SCOPE, "SlowStop");
     std::string Parameters, Response;
-    if (!TalkWithAxis(Axis, 'K', Parameters, Response))
-        return false;
-    return true;
+
+    return TalkWithAxis(Axis, 'K', Parameters, Response);
 }
 
 bool SkywatcherAPI::StartMotion(AXISID Axis)
 {
     MYDEBUG(DBG_SCOPE, "StartMotion");
     std::string Parameters, Response;
-    if (!TalkWithAxis(Axis, 'J', Parameters, Response))
-        return false;
-    return true;
+
+    return TalkWithAxis(Axis, 'J', Parameters, Response);
 }
 
 bool SkywatcherAPI::TalkWithAxis(AXISID Axis, char Command, std::string &cmdDataStr, std::string &responseStr)
@@ -783,10 +755,7 @@ bool SkywatcherAPI::TalkWithAxis(AXISID Axis, char Command, std::string &cmdData
 
         if ((c == '=') || (c == '!'))
         {
-            if (c == '=')
-                mount_response = true;
-            else
-                mount_response = false;
+            mount_response = (c == '=');
             StartReading = true;
             continue;
         }
@@ -808,8 +777,5 @@ bool SkywatcherAPI::IsInMotion(AXISID Axis)
 {
     MYDEBUG(DBG_SCOPE, "IsInMotion");
 
-    if (AxesStatus[(int)Axis].Slewing || AxesStatus[(int)Axis].SlewingTo)
-        return true;
-
-    return false;
+    return AxesStatus[(int)Axis].Slewing || AxesStatus[(int)Axis].SlewingTo;
 }

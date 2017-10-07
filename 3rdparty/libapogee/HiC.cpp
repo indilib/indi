@@ -47,7 +47,7 @@ void HiC::SetSerialNumber(const std::string & num)
 //  GET        CAM        INFO 
 CamInfo::StrDb HiC::GetCamInfo()
 {
-	return std::tr1::dynamic_pointer_cast<AscentBasedIo>(
+	return std::dynamic_pointer_cast<AscentBasedIo>(
         m_CamIo)->ReadStrDatabase();
 }
        
@@ -55,7 +55,7 @@ CamInfo::StrDb HiC::GetCamInfo()
 //  SET        CAM        INFO 
 void HiC::SetCamInfo( CamInfo::StrDb & info )
 {
-	std::tr1::dynamic_pointer_cast<AscentBasedIo>(
+	std::dynamic_pointer_cast<AscentBasedIo>(
         m_CamIo)->WriteStrDatabase( info );
 }
 

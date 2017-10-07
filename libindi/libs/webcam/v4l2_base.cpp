@@ -39,12 +39,12 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <stdio.h>
-#include <errno.h>
+#include <cerrno>
 #include <sys/mman.h>
-#include <string.h>
+#include <cstring>
 #include <asm/types.h> /* for videodev2.h */
-#include <time.h>
-#include <math.h>
+#include <ctime>
+#include <cmath>
 #include <sys/time.h>
 
 /* Kernel headers version */
@@ -1335,7 +1335,7 @@ int V4L2_Base::init_device(char *errmsg)
     return 0;
 }
 
-void V4L2_Base::close_device(void)
+void V4L2_Base::close_device()
 {
     char errmsg[ERRMSGSIZ];
     uninit_device(errmsg);
@@ -1739,7 +1739,7 @@ int V4L2_Base::setcroprect(int x, int y, int w, int h, char *errmsg)
         if ((!cancrop) && (!softcrop))
         {
             cropset = false;
-            strncpy(errmsg, "No hardware and sofwtare cropping for this format", ERRMSGSIZ);
+            strncpy(errmsg, "No hardware and software cropping for this format.", ERRMSGSIZ);
             return -1;
         }
     }
@@ -1958,7 +1958,7 @@ void V4L2_Base::findMinMax()
     cerr << "Min X: " << xmin << " - Max X: " << xmax << " - Min Y: " << ymin << " - Max Y: " << ymax << endl;
 }
 
-void V4L2_Base::enumerate_ctrl(void)
+void V4L2_Base::enumerate_ctrl()
 {
     char errmsg[ERRMSGSIZ];
     CLEAR(queryctrl);
@@ -2035,7 +2035,7 @@ void V4L2_Base::enumerate_ctrl(void)
     }
 }
 
-void V4L2_Base::enumerate_menu(void)
+void V4L2_Base::enumerate_menu()
 {
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 5, 0))
     if (queryctrl.type == V4L2_CTRL_TYPE_MENU)
@@ -2589,8 +2589,12 @@ int V4L2_Base::setINTControl(unsigned int ctrl_id, double new_value, char *errms
     if ((queryctrl.flags & V4L2_CTRL_FLAG_READ_ONLY) || (queryctrl.flags & V4L2_CTRL_FLAG_GRABBED) ||
         (queryctrl.flags & V4L2_CTRL_FLAG_INACTIVE) || (queryctrl.flags & V4L2_CTRL_FLAG_VOLATILE))
     {
-        DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG, "Can not set control %.*s (%d)", (int)sizeof(queryctrl.name),
-                     queryctrl.name, queryctrl.flags);
+        DEBUGFDEVICE(deviceName, INDI::Logger::DBG_WARNING, "Setting INT control %.*s will fail, currently %s%s%s%s",
+                     (int)sizeof(queryctrl.name), queryctrl.name,
+                     queryctrl.flags&V4L2_CTRL_FLAG_READ_ONLY?"read only ":"",
+                     queryctrl.flags&V4L2_CTRL_FLAG_GRABBED?"grabbed ":"",
+                     queryctrl.flags&V4L2_CTRL_FLAG_INACTIVE?"inactive ":"",
+                     queryctrl.flags&V4L2_CTRL_FLAG_VOLATILE?"volatile":"");
         return 0;
     }
 
@@ -2601,7 +2605,11 @@ int V4L2_Base::setINTControl(unsigned int ctrl_id, double new_value, char *errms
     control.id    = ctrl_id;
     control.value = (int)new_value;
     if (-1 == XIOCTL(fd, VIDIOC_S_CTRL, &control))
+    {
+        DEBUGFDEVICE(deviceName, INDI::Logger::DBG_ERROR, "Setting INT control %.*s failed (%s)",
+               (int)sizeof(queryctrl.name), queryctrl.name, errmsg);
         return errno_exit("VIDIOC_S_CTRL", errmsg);
+    }
     return 0;
 }
 
@@ -2617,8 +2625,12 @@ int V4L2_Base::setOPTControl(unsigned int ctrl_id, unsigned int new_value, char 
     if ((queryctrl.flags & V4L2_CTRL_FLAG_READ_ONLY) || (queryctrl.flags & V4L2_CTRL_FLAG_GRABBED) ||
         (queryctrl.flags & V4L2_CTRL_FLAG_INACTIVE) || (queryctrl.flags & V4L2_CTRL_FLAG_VOLATILE))
     {
-        DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG, "Can not set control %.*s (%d)", (int)sizeof(queryctrl.name),
-                     queryctrl.name, queryctrl.flags);
+        DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG, "Setting OPT control %.*s will fail, currently %s%s%s%s",
+                     (int)sizeof(queryctrl.name), queryctrl.name,
+                     queryctrl.flags&V4L2_CTRL_FLAG_READ_ONLY?"read only ":"",
+                     queryctrl.flags&V4L2_CTRL_FLAG_GRABBED?"grabbed ":"",
+                     queryctrl.flags&V4L2_CTRL_FLAG_INACTIVE?"inactive ":"",
+                     queryctrl.flags&V4L2_CTRL_FLAG_VOLATILE?"volatile":"");
         return 0;
     }
 
@@ -2629,11 +2641,15 @@ int V4L2_Base::setOPTControl(unsigned int ctrl_id, unsigned int new_value, char 
     control.id    = ctrl_id;
     control.value = new_value;
     if (-1 == XIOCTL(fd, VIDIOC_S_CTRL, &control))
+    {
+        DEBUGFDEVICE(deviceName, INDI::Logger::DBG_ERROR, "Setting INT control %.*s failed (%s)",
+               (int)sizeof(queryctrl.name), queryctrl.name, errmsg);
         return errno_exit("VIDIOC_S_CTRL", errmsg);
+    }
     return 0;
 }
 
-bool V4L2_Base::enumerate_ext_ctrl(void)
+bool V4L2_Base::enumerate_ext_ctrl()
 {
     //struct v4l2_queryctrl queryctrl;
 

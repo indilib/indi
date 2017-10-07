@@ -23,21 +23,19 @@
 #include <libnova/sidereal_time.h>
 #include <libnova/transform.h>
 
-#include <math.h>
+#include <cmath>
+#include <cstring>
 #include <memory>
-#include <string.h>
 
 // We declare an auto pointer to ScopeSim.
 std::unique_ptr<ScopeSim> telescope_sim(new ScopeSim());
 
-#define GOTO_RATE      5        /* slew rate, degrees/s */
-#define SLEW_RATE      0.5      /* slew rate, degrees/s */
-#define FINE_SLEW_RATE 0.1      /* slew rate, degrees/s */
-#define SID_RATE       0.004178 /* sidereal rate, degrees/s */
+#define GOTO_RATE      6.5      /* slew rate, degrees/s */
+#define SLEW_RATE      2.5      /* slew rate, degrees/s */
+#define FINE_SLEW_RATE 0.5      /* slew rate, degrees/s */
 
-#define GOTO_LIMIT      5.5 /* Move at GOTO_RATE until distance from target is GOTO_LIMIT degrees */
-#define SLEW_LIMIT      1   /* Move at SLEW_LIMIT until distance from target is SLEW_LIMIT degrees */
-#define FINE_SLEW_LIMIT 0.5 /* Move at FINE_SLEW_RATE until distance from target is FINE_SLEW_LIMIT degrees */
+#define GOTO_LIMIT      5       /* Move at GOTO_RATE until distance from target is GOTO_LIMIT degrees */
+#define SLEW_LIMIT      1       /* Move at SLEW_LIMIT until distance from target is SLEW_LIMIT degrees */
 
 #define POLLMS 250 /* poll period, ms */
 
@@ -58,19 +56,19 @@ void ISGetProperties(const char *dev)
     telescope_sim->ISGetProperties(dev);
 }
 
-void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int num)
+void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
 {
-    telescope_sim->ISNewSwitch(dev, name, states, names, num);
+    telescope_sim->ISNewSwitch(dev, name, states, names, n);
 }
 
-void ISNewText(const char *dev, const char *name, char *texts[], char *names[], int num)
+void ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
 {
-    telescope_sim->ISNewText(dev, name, texts, names, num);
+    telescope_sim->ISNewText(dev, name, texts, names, n);
 }
 
-void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int num)
+void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
 {
-    telescope_sim->ISNewNumber(dev, name, values, names, num);
+    telescope_sim->ISNewNumber(dev, name, values, names, n);
 }
 
 void ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[],
@@ -92,29 +90,19 @@ void ISSnoopDevice(XMLEle *root)
 
 ScopeSim::ScopeSim()
 {
-    //ctor
-    currentRA  = 0;
-    currentDEC = 90;
-
-    forceMeridianFlip = false;
-
     DBG_SCOPE = INDI::Logger::getInstance().addDebugLevel("Scope Verbose", "SCOPE");
 
     SetTelescopeCapability(TELESCOPE_CAN_PARK | TELESCOPE_CAN_SYNC | TELESCOPE_CAN_GOTO | TELESCOPE_CAN_ABORT |
-                               TELESCOPE_HAS_TIME | TELESCOPE_HAS_LOCATION,
+                               TELESCOPE_HAS_TIME | TELESCOPE_HAS_LOCATION | TELESCOPE_HAS_TRACK_MODE | TELESCOPE_CAN_CONTROL_TRACK | TELESCOPE_HAS_TRACK_RATE,
                            4);
 
     /* initialize random seed: */
     srand(time(nullptr));
 }
 
-ScopeSim::~ScopeSim()
-{
-}
-
 const char *ScopeSim::getDefaultName()
 {
-    return (char *)"Telescope Simulator";
+    return (const char *)"Telescope Simulator";
 }
 
 bool ScopeSim::initProperties()
@@ -153,6 +141,10 @@ bool ScopeSim::initProperties()
     IUFillSwitchVector(&SlewRateSP, SlewRateS, 4, getDeviceName(), "TELESCOPE_SLEW_RATE", "Slew Rate", MOTION_TAB,
                        IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
+    // Add Tracking Modes
+    AddTrackMode("TRACK_SIDEREAL", "Sidereal", true);
+    AddTrackMode("TRACK_CUSTOM", "Custom");
+
     // Let's simulate it to be an F/7.5 120mm telescope
     ScopeParametersN[0].value = 120;
     ScopeParametersN[1].value = 900;
@@ -187,8 +179,6 @@ void ScopeSim::ISGetProperties(const char *dev)
         defineSwitch(&PEErrNSSP);
         defineSwitch(&PEErrWESP);
     }
-
-    return;
 }
 
 bool ScopeSim::updateProperties()
@@ -212,6 +202,12 @@ bool ScopeSim::updateProperties()
             // If loading parking data is successful, we just set the default parking values.
             SetAxis1ParkDefault(HA);
             SetAxis2ParkDefault(DEC);
+
+            if (isParked())
+            {
+                currentRA = ParkPositionN[AXIS_RA].value;
+                currentDEC= ParkPositionN[AXIS_DE].value;
+            }
         }
         else
         {
@@ -250,8 +246,8 @@ bool ScopeSim::Disconnect()
 
 bool ScopeSim::ReadScopeStatus()
 {
-    static struct timeval ltv;
-    struct timeval tv;
+    static struct timeval ltv { 0, 0 };
+    struct timeval tv { 0, 0 };
     double dt = 0, da_ra = 0, da_dec = 0, dx = 0, dy = 0, ra_guide_dt = 0, dec_guide_dt = 0;
     static double last_dx = 0, last_dy = 0;
     int nlocked, ns_guide_dir = -1, we_guide_dir = -1;
@@ -421,14 +417,21 @@ bool ScopeSim::ReadScopeStatus()
             break;
 
         case SCOPE_IDLE:
-            currentRA += (SID_RATE * dt) / 15.0;
-            currentRA = range24(currentRA);
-            break;
+                 //currentRA += (TRACKRATE_SIDEREAL/3600.0 * dt) / 15.0;
+                currentRA += (TrackRateN[AXIS_RA].value/3600.0 * dt) / 15.0;
+                currentRA = range24(currentRA);
+        break;
 
         case SCOPE_TRACKING:
-            /* tracking */
+            // In case of custom tracking rate
+            if (TrackModeS[1].s == ISS_ON)
+            {
+                currentRA  += ( ((TRACKRATE_SIDEREAL/3600.0) - (TrackRateN[AXIS_RA].value/3600.0)) * dt) / 15.0;
+                currentDEC += ( (TrackRateN[AXIS_DE].value/3600.0) * dt);
+            }
 
             dt *= 1000;
+
             if (guiderNSTarget[GUIDE_NORTH] > 0)
             {
                 DEBUGF(INDI::Logger::DBG_DEBUG, "Commanded to GUIDE NORTH for %g ms", guiderNSTarget[GUIDE_NORTH]);
@@ -454,7 +457,7 @@ bool ScopeSim::ReadScopeStatus()
 
             if (ns_guide_dir != -1)
             {
-                dec_guide_dt = SID_RATE * GuideRateN[DEC_AXIS].value * guiderNSTarget[ns_guide_dir] / 1000.0 *
+                dec_guide_dt = TrackRateN[AXIS_RA].value/3600.0 * GuideRateN[DEC_AXIS].value * guiderNSTarget[ns_guide_dir] / 1000.0 *
                                (ns_guide_dir == GUIDE_NORTH ? 1 : -1);
 
                 // If time remaining is more that dt, then decrement and
@@ -474,7 +477,7 @@ bool ScopeSim::ReadScopeStatus()
 
             if (we_guide_dir != -1)
             {
-                ra_guide_dt = SID_RATE / 15.0 * GuideRateN[RA_AXIS].value * guiderEWTarget[we_guide_dir] / 1000.0 *
+                ra_guide_dt = (TrackRateN[AXIS_RA].value/3600.0) / 15.0 * GuideRateN[RA_AXIS].value * guiderEWTarget[we_guide_dir] / 1000.0 *
                               (we_guide_dir == GUIDE_WEST ? -1 : 1);
 
                 if (guiderEWTarget[we_guide_dir] >= dt)
@@ -511,7 +514,7 @@ bool ScopeSim::ReadScopeStatus()
             fs_sexa(RA_TARGET, targetRA, 2, 3600);
             fs_sexa(DEC_TARGET, targetDEC, 2, 3600);
 
-            if ((dx != last_dx || dy != last_dy || ra_guide_dt || dec_guide_dt))
+            if (dx != last_dx || dy != last_dy || ra_guide_dt != 0.0 || dec_guide_dt != 0.0)
             {
                 last_dx = dx;
                 last_dy = dy;
@@ -555,7 +558,8 @@ bool ScopeSim::Goto(double r, double d)
     fs_sexa(RAStr, targetRA, 2, 3600);
     fs_sexa(DecStr, targetDEC, 2, 3600);
 
-    ln_equ_posn lnradec;
+    ln_equ_posn lnradec { 0, 0 };
+
     lnradec.ra  = (currentRA * 360) / 24.0;
     lnradec.dec = currentDEC;
 
@@ -631,7 +635,7 @@ bool ScopeSim::ISNewNumber(const char *dev, const char *name, double values[], c
 {
     //  first check if it's for our device
 
-    if (strcmp(dev, getDeviceName()) == 0)
+    if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
         if (strcmp(name, "GUIDE_RATE") == 0)
         {
@@ -641,7 +645,7 @@ bool ScopeSim::ISNewNumber(const char *dev, const char *name, double values[], c
             return true;
         }
 
-        if (!strcmp(name, GuideNSNP.name) || !strcmp(name, GuideWENP.name))
+        if (strcmp(name, GuideNSNP.name) == 0 || strcmp(name, GuideWENP.name) == 0)
         {
             processGuiderProperties(name, values, names, n);
             return true;
@@ -655,10 +659,10 @@ bool ScopeSim::ISNewNumber(const char *dev, const char *name, double values[], c
 
 bool ScopeSim::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
 {
-    if (strcmp(dev, getDeviceName()) == 0)
+    if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
         // Slew mode
-        if (!strcmp(name, SlewRateSP.name))
+        if (strcmp(name, SlewRateSP.name) == 0)
         {
             if (IUUpdateSwitch(&SlewRateSP, states, names, n) < 0)
                 return false;
@@ -676,13 +680,13 @@ bool ScopeSim::ISNewSwitch(const char *dev, const char *name, ISState *states, c
 
             if (PEErrNSS[DIRECTION_NORTH].s == ISS_ON)
             {
-                EqPEN[DEC_AXIS].value += SID_RATE * GuideRateN[DEC_AXIS].value;
-                DEBUGF(INDI::Logger::DBG_DEBUG, "Simulating PE in NORTH direction for value of %g", SID_RATE);
+                EqPEN[DEC_AXIS].value += TRACKRATE_SIDEREAL/3600.0 * GuideRateN[DEC_AXIS].value;
+                DEBUGF(INDI::Logger::DBG_DEBUG, "Simulating PE in NORTH direction for value of %g", TRACKRATE_SIDEREAL/3600.0);
             }
             else
             {
-                EqPEN[DEC_AXIS].value -= SID_RATE * GuideRateN[DEC_AXIS].value;
-                DEBUGF(INDI::Logger::DBG_DEBUG, "Simulating PE in SOUTH direction for value of %g", SID_RATE);
+                EqPEN[DEC_AXIS].value -= TRACKRATE_SIDEREAL/3600.0 * GuideRateN[DEC_AXIS].value;
+                DEBUGF(INDI::Logger::DBG_DEBUG, "Simulating PE in SOUTH direction for value of %g", TRACKRATE_SIDEREAL/3600.0);
             }
 
             IUResetSwitch(&PEErrNSSP);
@@ -700,13 +704,13 @@ bool ScopeSim::ISNewSwitch(const char *dev, const char *name, ISState *states, c
 
             if (PEErrWES[DIRECTION_WEST].s == ISS_ON)
             {
-                EqPEN[RA_AXIS].value -= SID_RATE / 15. * GuideRateN[RA_AXIS].value;
-                DEBUGF(INDI::Logger::DBG_DEBUG, "Simulator PE in WEST direction for value of %g", SID_RATE);
+                EqPEN[RA_AXIS].value -= TRACKRATE_SIDEREAL/3600.0 / 15. * GuideRateN[RA_AXIS].value;
+                DEBUGF(INDI::Logger::DBG_DEBUG, "Simulator PE in WEST direction for value of %g", TRACKRATE_SIDEREAL/3600.0);
             }
             else
             {
-                EqPEN[RA_AXIS].value += SID_RATE / 15. * GuideRateN[RA_AXIS].value;
-                DEBUGF(INDI::Logger::DBG_DEBUG, "Simulator PE in EAST direction for value of %g", SID_RATE);
+                EqPEN[RA_AXIS].value += TRACKRATE_SIDEREAL/3600.0 / 15. * GuideRateN[RA_AXIS].value;
+                DEBUGF(INDI::Logger::DBG_DEBUG, "Simulator PE in EAST direction for value of %g", TRACKRATE_SIDEREAL/3600.0);
             }
 
             IUResetSwitch(&PEErrWESP);
@@ -810,5 +814,24 @@ bool ScopeSim::SetDefaultPark()
     // Set DEC to 90 or -90 depending on the hemisphere
     SetAxis2Park((LocationN[LOCATION_LATITUDE].value > 0) ? 90 : -90);
 
+    return true;
+}
+
+bool ScopeSim::SetTrackMode(uint8_t mode)
+{
+    INDI_UNUSED(mode);
+    return true;
+}
+
+bool ScopeSim::SetTrackEnabled(bool enabled)
+{
+    INDI_UNUSED(enabled);
+    return true;
+}
+
+bool ScopeSim::SetTrackRate(double raRate, double deRate)
+{
+    INDI_UNUSED(raRate);
+    INDI_UNUSED(deRate);
     return true;
 }

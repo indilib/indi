@@ -64,7 +64,7 @@ class MGC
     IOBuffer answer;
 
     /** \brief Basic verifications to call before running the actual command implementation */
-    virtual IOResult ask(MGenDevice &root) throw(IOError)
+    virtual IOResult ask(MGenDevice &root) //throw(IOError)
     {
         if (opMode() != OPM_UNKNOWN && opMode() != root.getOpMode())
         {

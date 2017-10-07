@@ -45,7 +45,7 @@ class Microtouch : public INDI::Focuser
 {
   public:
     Microtouch();
-    ~Microtouch();
+    virtual ~Microtouch() = default;
 
     virtual bool Handshake();
     const char *getDefaultName();
@@ -54,19 +54,13 @@ class Microtouch : public INDI::Focuser
     virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n);
     virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n);
     virtual IPState MoveFocuser(FocusDirection dir, int speed, uint16_t duration);
-    virtual IPState MoveAbsFocuser(uint32_t ticks);
+    virtual IPState MoveAbsFocuser(uint32_t targetTicks);
     virtual IPState MoveRelFocuser(FocusDirection dir, uint32_t ticks);
     virtual bool SetFocuserSpeed(int speed);
     virtual bool AbortFocuser();
     virtual void TimerHit();
 
   private:
-    double targetPos, lastPos, lastTemperature;
-    unsigned int currentSpeed;
-
-    struct timeval focusMoveStart;
-    float focusMoveRequest;
-
     void GetFocusParams();
     bool reset();
     bool reset(double pos);
@@ -93,6 +87,14 @@ class Microtouch : public INDI::Focuser
     int WriteCmdGetInt(char cmd);
     bool WriteCmdSetInt(char cmd, int val);
     bool WriteCmdSetIntAsDigits(char cmd, int val);
+
+    double targetPos { 0 };
+    double lastPos { 0 };
+    double lastTemperature { 0 };
+    unsigned int currentSpeed { 0 };
+
+    struct timeval focusMoveStart { 0, 0 };
+    float focusMoveRequest { 0 };
 
     INumber TemperatureN[1];
     INumberVectorProperty TemperatureNP;

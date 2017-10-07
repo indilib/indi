@@ -28,21 +28,23 @@
 #include "indicom.h"
 #include "lx200driver.h"
 
-#include <string.h>
+#include <cstring>
 #include <termios.h>
 
 LX200Gemini::LX200Gemini()
 {
-    setVersion(1, 2);
+    setVersion(1, 3);
+
+    setLX200Capability(LX200_HAS_SITES | LX200_HAS_FOCUS);
 
     SetTelescopeCapability(TELESCOPE_CAN_PARK | TELESCOPE_CAN_SYNC | TELESCOPE_CAN_GOTO | TELESCOPE_CAN_ABORT |
-                               TELESCOPE_HAS_TIME | TELESCOPE_HAS_LOCATION | TELESCOPE_HAS_PIER_SIDE,
+                               TELESCOPE_HAS_TIME | TELESCOPE_HAS_LOCATION | TELESCOPE_HAS_PIER_SIDE | TELESCOPE_HAS_TRACK_MODE,
                            4);
 }
 
 const char *LX200Gemini::getDefaultName()
 {
-    return (char *)"Losmandy Gemini";
+    return (const char *)"Losmandy Gemini";
 }
 
 void LX200Gemini::ISGetProperties(const char *dev)
@@ -69,6 +71,13 @@ bool LX200Gemini::initProperties()
     IUFillSwitch(&StartupModeS[PARK_ZENITH], "WARM_RESTART", "Restart", ISS_OFF);
     IUFillSwitchVector(&StartupModeSP, StartupModeS, 3, getDeviceName(), "STARTUP_MODE", "Startup Mode",
                        MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
+
+
+    IUFillSwitch(&TrackModeS[GEMINI_TRACK_SIDEREAL], "TRACK_SIDEREAL", "Sidereal", ISS_ON);
+    IUFillSwitch(&TrackModeS[GEMINI_TRACK_KING], "TRACK_CUSTOM", "King", ISS_OFF);
+    IUFillSwitch(&TrackModeS[GEMINI_TRACK_LUNAR], "TRACK_LUNAR", "Lunar", ISS_OFF);
+    IUFillSwitch(&TrackModeS[GEMINI_TRACK_SOLAR], "TRACK_SOLAR", "Solar", ISS_OFF);
+
     return true;
 }
 
@@ -78,9 +87,6 @@ bool LX200Gemini::updateProperties()
 
     if (isConnected())
     {
-        deleteProperty(AlignmentSP.name);
-        deleteProperty(UsePulseCmdSP.name);
-        deleteProperty(TrackingFreqNP.name);
         defineSwitch(&ParkSettingsSP);
     }
     else
@@ -93,7 +99,7 @@ bool LX200Gemini::updateProperties()
 
 bool LX200Gemini::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
 {
-    if (!strcmp(dev, getDeviceName()))
+    if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
         if (!strcmp(name, StartupModeSP.name))
         {
@@ -123,12 +129,12 @@ bool LX200Gemini::checkConnection()
         return true;
 
     // Response
-    char response[2] = { 0 };
+    char response[8] = { 0 };
     int rc = 0, nbytes_read = 0, nbytes_written = 0;
 
     DEBUGF(INDI::Logger::DBG_DEBUG, "CMD: <%#02X>", 0x06);
 
-    tcflush(PortFD, TCIOFLUSH);
+    tcflush(PortFD, TCIFLUSH);
 
     char ack[1] = { 0x06 };
 
@@ -149,9 +155,9 @@ bool LX200Gemini::checkConnection()
         return false;
     }
 
-    response[1] = '\0';
+    //response[1] = '\0';
 
-    tcflush(PortFD, TCIOFLUSH);
+    tcflush(PortFD, TCIFLUSH);
 
     DEBUGF(INDI::Logger::DBG_DEBUG, "RES: <%s>", response);
 
@@ -209,7 +215,7 @@ bool LX200Gemini::isSlewComplete()
 
     DEBUGF(INDI::Logger::DBG_DEBUG, "CMD: <%s>", cmd);
 
-    tcflush(PortFD, TCIOFLUSH);
+    tcflush(PortFD, TCIFLUSH);
 
     if ((rc = tty_write(PortFD, cmd, 5, &nbytes_written)) != TTY_OK)
     {
@@ -230,7 +236,7 @@ bool LX200Gemini::isSlewComplete()
 
     response[1] = '\0';
 
-    tcflush(PortFD, TCIOFLUSH);
+    tcflush(PortFD, TCIFLUSH);
 
     DEBUGF(INDI::Logger::DBG_DEBUG, "RES: <%s>", response);
 
@@ -242,7 +248,7 @@ bool LX200Gemini::isSlewComplete()
 
 bool LX200Gemini::ReadScopeStatus()
 {
-    if (isConnected() == false)
+    if (!isConnected())
         return false;
 
     if (isSimulation())
@@ -259,7 +265,7 @@ bool LX200Gemini::ReadScopeStatus()
             IDSetSwitch(&SlewRateSP, nullptr);
 
             TrackState = SCOPE_TRACKING;
-            IDMessage(getDeviceName(), "Slew is complete. Tracking...");
+            DEBUG(INDI::Logger::DBG_SESSION, "Slew is complete. Tracking...");
         }
     }
     else if (TrackState == SCOPE_PARKING)
@@ -278,9 +284,9 @@ bool LX200Gemini::ReadScopeStatus()
         return false;
     }
 
-    syncSideOfPier();
-
     NewRaDec(currentRA, currentDEC);
+
+    syncSideOfPier();
 
     return true;
 }
@@ -290,12 +296,12 @@ void LX200Gemini::syncSideOfPier()
     // Send ':Gv#'
     const char *cmd = "#:Gm#";
     // Response
-    char response[2] = { 0 };
+    char response[8] = { 0 };
     int rc = 0, nbytes_read = 0, nbytes_written = 0;
 
     DEBUGF(INDI::Logger::DBG_DEBUG, "CMD: <%s>", cmd);
 
-    tcflush(PortFD, TCIOFLUSH);
+    tcflush(PortFD, TCIFLUSH);
 
     if ((rc = tty_write(PortFD, cmd, 5, &nbytes_written)) != TTY_OK)
     {
@@ -316,7 +322,7 @@ void LX200Gemini::syncSideOfPier()
 
     response[nbytes_read - 1] = '\0';
 
-    tcflush(PortFD, TCIOFLUSH);
+    tcflush(PortFD, TCIFLUSH);
 
     DEBUGF(INDI::Logger::DBG_DEBUG, "RES: <%s>", response);
 
@@ -339,7 +345,7 @@ bool LX200Gemini::Park()
 
     DEBUGF(INDI::Logger::DBG_DEBUG, "CMD: <%s>", cmd);
 
-    tcflush(PortFD, TCIOFLUSH);
+    tcflush(PortFD, TCIFLUSH);
 
     if ((rc = tty_write(PortFD, cmd, 5, &nbytes_written)) != TTY_OK)
     {
@@ -371,7 +377,7 @@ bool LX200Gemini::sleepMount()
 
     DEBUGF(INDI::Logger::DBG_DEBUG, "CMD: <%s>", cmd);
 
-    tcflush(PortFD, TCIOFLUSH);
+    tcflush(PortFD, TCIFLUSH);
 
     if ((rc = tty_write(PortFD, cmd, 5, &nbytes_written)) != TTY_OK)
     {
@@ -394,7 +400,7 @@ bool LX200Gemini::wakeupMount()
 
     DEBUGF(INDI::Logger::DBG_DEBUG, "CMD: <%s>", cmd);
 
-    tcflush(PortFD, TCIOFLUSH);
+    tcflush(PortFD, TCIFLUSH);
 
     if ((rc = tty_write(PortFD, cmd, 5, &nbytes_written)) != TTY_OK)
     {
@@ -416,4 +422,44 @@ bool LX200Gemini::saveConfigItems(FILE *fp)
     IUSaveConfigSwitch(fp, &ParkSettingsSP);
 
     return true;
+}
+
+bool LX200Gemini::SetTrackMode(uint8_t mode)
+{
+    int rc = TTY_OK, nbytes_written=0;
+    char prefix[16] = {0};
+    char cmd[16] = {0};
+
+    snprintf(prefix, 16, ">130:%d", mode + 131);
+
+    uint8_t checksum = calculateChecksum(prefix);
+
+    snprintf(cmd, 16, "%s%c#", prefix, checksum);
+
+    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD: <%s>", cmd);
+
+    if ((rc = tty_write_string(PortFD, cmd, &nbytes_written)) != TTY_OK)
+    {
+        char errmsg[256];
+        tty_error_msg(rc, errmsg, 256);
+        DEBUGF(INDI::Logger::DBG_ERROR, "Error writing to device %s (%d)", errmsg, rc);
+        return false;
+    }
+
+    tcflush(PortFD, TCIFLUSH);
+
+    return true;
+}
+
+uint8_t LX200Gemini::calculateChecksum(char *cmd)
+{
+    uint8_t result = cmd[0];
+
+    for (size_t i=1; i < strlen(cmd); i++)
+        result = result ^ cmd[i];
+
+    result = result % 128;
+    result += 64;
+
+    return result;
 }

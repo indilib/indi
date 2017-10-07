@@ -29,39 +29,9 @@ class TemmaMount : public INDI::Telescope,
                    public INDI::GuiderInterface,
                    public INDI::AlignmentSubsystem::AlignmentSubsystemForDrivers
 {
-  private:
-    double currentRA;
-    double currentDEC;
-    int TemmaRead(char *buf, int size);
-    bool GetTemmaVersion();
-    bool GetTemmaMotorStatus();
-    bool SetTemmaMotorStatus(bool);
-    bool SetTemmaLst();
-    int GetTemmaLst();
-    bool SetTemmaLattitude(double);
-    double GetTemmaLattitude();
-
-    bool TemmaSync(double, double);
-
-    ln_equ_posn TelescopeToSky(double ra, double dec);
-    ln_equ_posn SkyToTelescope(double ra, double dec);
-
-    bool MotorStatus;
-    bool GotoInProgress;
-    bool ParkInProgress;
-    bool TemmaInitialized;
-    double Longitude;
-    double Lattitude;
-    int SlewRate;
-    bool SlewActive;
-    unsigned char Slewbits;
-    //bool TemmaConnect(const char *port);
-    INumber GuideRateN[2];
-    INumberVectorProperty GuideRateNP;
-
   public:
     TemmaMount();
-    virtual ~TemmaMount();
+    virtual ~TemmaMount() = default;
 
     //bool initProperties();
     virtual bool Handshake();
@@ -71,7 +41,6 @@ class TemmaMount : public INDI::Telescope,
 
     virtual bool initProperties();
     virtual bool ReadScopeStatus();
-    virtual bool Connect();
     bool Goto(double, double);
     bool Park();
     bool UnPark();
@@ -100,4 +69,36 @@ class TemmaMount : public INDI::Telescope,
     virtual IPState GuideWest(float ms);
     //  Initial implementation doesn't need this one
     //virtual void GuideComplete(INDI_EQ_AXIS axis);
+
+private:
+    int TemmaRead(char *buf, int size);
+    bool GetTemmaVersion();
+    bool GetTemmaMotorStatus();
+    bool SetTemmaMotorStatus(bool);
+    bool SetTemmaLst();
+    int GetTemmaLst();
+    bool SetTemmaLattitude(double);
+    double GetTemmaLattitude();
+
+    bool TemmaSync(double, double);
+
+    ln_equ_posn TelescopeToSky(double ra, double dec);
+    ln_equ_posn SkyToTelescope(double ra, double dec);
+
+    //bool TemmaConnect(const char *port);
+
+    double currentRA { 0 };
+    double currentDEC { 0 };
+
+    bool MotorStatus { false };
+    bool GotoInProgress { false };
+    bool ParkInProgress { false };
+    bool TemmaInitialized { false };
+    double Longitude { 0 };
+    double Latitude { 0 };
+    int SlewRate { 1 };
+    bool SlewActive { false };
+    unsigned char Slewbits { 0 };
+    //INumber GuideRateN[2];
+    //INumberVectorProperty GuideRateNP;
 };

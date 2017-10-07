@@ -53,8 +53,9 @@ class INDI::BaseDevice
         INDI_DISPATCH_ERROR      = -4  /*!< Dispatching command to driver failed. */
     };
 
-    /** Interfaces define the class of devices the driver implements. A driver may implement one or more interfaces.
-    */
+    /**
+     * @brief The DRIVER_INTERFACE enum defines the class of devices the driver implements. A driver may implement one or more interfaces.
+     */
     enum DRIVER_INTERFACE
     {
         GENERAL_INTERFACE   = 0,         /**< Default interface for all INDI devices */
@@ -69,6 +70,8 @@ class INDI::BaseDevice
         AO_INTERFACE        = (1 << 8),  /**< Adaptive Optics Interface */
         DUSTCAP_INTERFACE   = (1 << 9),  /**< Dust Cap Interface */
         LIGHTBOX_INTERFACE  = (1 << 10), /**< Light Box Interface */
+        DETECTOR_INTERFACE  = (1 << 11), /**< Detector interface, must subclass INDI::Detector */
+        ROTATOR_INTERFACE   = (1 << 12), /**< Rotator interface, must subclass INDI::RotatorInterface */
         AUX_INTERFACE       = (1 << 15), /**< Auxiliary interface */
     };
 
@@ -179,9 +182,19 @@ class INDI::BaseDevice
      **/
     const char *getDriverVersion();
 
-    /** \return driver interface descriptor
-     *  \note This can only be valid if DRIVER_INFO is defined by the driver.
+    /** \brief
+     * \return
      **/
+
+    /**
+     * @brief getDriverInterface returns ORed values of @ref INDI::BaseDevice::DRIVER_INTERFACE "DRIVER_INTERFACE". It presents the device classes supported by the driver.
+     * @return driver device interface descriptor.
+     * @note For example, to know if the driver supports CCD interface, check the retruned value:
+     @code{.cpp}
+      if (device->getDriverInterface() & CCD_INTERFACE)
+               cout << "We received a camera!" << endl;
+     @endcode
+     */
     virtual uint16_t getDriverInterface();
 
   protected:

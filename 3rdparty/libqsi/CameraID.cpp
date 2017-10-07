@@ -26,10 +26,9 @@ CameraID::CameraID()
 	IPv4Addr.s_addr = 0;
 }
 
-CameraID::CameraID(std::string Serial, std::string SerialNumToOpen, std::string Desc, int vid, int pid)
+CameraID::CameraID(std::string Serial, std::string SerialNumToOpen, std::string Desc, int vid, int pid, ConnProto_t proto)
 {
-
-	this->ConnProto = CP_USB;
+	this->ConnProto = proto;
 	this->SerialNumber = Serial;
 	this->Description = Desc;
 	this->VendorID = vid;

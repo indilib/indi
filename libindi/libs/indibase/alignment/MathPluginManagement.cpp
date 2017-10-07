@@ -10,7 +10,7 @@
 
 #include <dirent.h>
 #include <dlfcn.h>
-#include <sys/errno.h>
+#include <cerrno>
 
 namespace INDI
 {
@@ -285,7 +285,7 @@ void MathPluginManagement::SetApproximateMountAlignmentFromMountType(MountType_t
 {
     if (EQUATORIAL == Type)
     {
-        ln_lnlat_posn Position;
+        ln_lnlat_posn Position { 0, 0 };
         if (CurrentInMemoryDatabase->GetDatabaseReferencePosition(Position))
         {
             if (Position.lat >= 0)

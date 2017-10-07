@@ -26,9 +26,9 @@
 #include "eventloop.h"
 #include "indicom.h"
 #include "indidevapi.h"
+#include "locale_compat.h"
 
 #include <errno.h>
-#include <locale.h>
 #include <pthread.h>
 #include <stdlib.h>
 #include <stdarg.h>
@@ -645,7 +645,7 @@ int IUSnoopNumber(XMLEle *root, INumberVectorProperty *nvp)
     (void)crackIPState(findXMLAttValu(root, "state"), &nvp->s);
 
     /* match each INumber with a oneNumber */
-    char *orig = setlocale(LC_NUMERIC, "C");
+    locale_char_t *orig = indi_locale_C_numeric_push();
     for (i = 0; i < nvp->nnp; i++)
     {
         for (ep = nextXMLEle(root, 1); ep; ep = nextXMLEle(root, 0))
@@ -654,7 +654,7 @@ int IUSnoopNumber(XMLEle *root, INumberVectorProperty *nvp)
             {
                 if (f_scansexa(pcdataXMLEle(ep), &nvp->np[i].value) < 0)
                 {
-                    setlocale(LC_NUMERIC, orig);
+                    indi_locale_C_numeric_pop(orig);
                     return (-1); /* bad number format */
                 }
                 break;
@@ -662,11 +662,11 @@ int IUSnoopNumber(XMLEle *root, INumberVectorProperty *nvp)
         }
         if (!ep)
         {
-            setlocale(LC_NUMERIC, orig);
+            indi_locale_C_numeric_pop(orig);
             return (-1); /* element not found */
         }
     }
-    setlocale(LC_NUMERIC, orig);
+    indi_locale_C_numeric_pop(orig);
 
     /* ok */
     return (0);
@@ -1015,7 +1015,7 @@ int dispatch(XMLEle *root, char msg[])
         }
 
         // Set locale to C and save previous value
-        char *orig = setlocale(LC_NUMERIC, "C");
+        locale_char_t *orig = indi_locale_C_numeric_push();
 
         /* pull out each name/value pair */
         for (n = 0, ep = nextXMLEle(root, 1); ep; ep = nextXMLEle(root, 0))
@@ -1034,7 +1034,7 @@ int dispatch(XMLEle *root, char msg[])
                         names     = (char **)realloc(names, newsz);
                     }
                     if (f_scansexa(pcdataXMLEle(ep), &doubles[n]) < 0)
-                        IDMessage(dev, "%s: Bad format %s", name, pcdataXMLEle(ep));
+                        IDMessage(dev, "[ERROR] %s: Bad format %s", name, pcdataXMLEle(ep));
                     else
                         names[n++] = valuXMLAtt(na);
                 }
@@ -1042,13 +1042,13 @@ int dispatch(XMLEle *root, char msg[])
         }
 
         // Reset locale settings to original value
-        setlocale(LC_NUMERIC, orig);
+        indi_locale_C_numeric_pop(orig);
 
         /* invoke driver if something to do, but not an error if not */
         if (n > 0)
             ISNewNumber(dev, name, doubles, names, n);
         else
-            IDMessage(dev, "%s: newNumberVector with no valid members", name);
+            IDMessage(dev, "[ERROR] %s: newNumberVector with no valid members", name);
         return (0);
     }
 
@@ -1094,7 +1094,7 @@ int dispatch(XMLEle *root, char msg[])
                         n++;
                     }
                     else
-                        IDMessage(dev, "%s: must be On or Off: %s", name, pcdataXMLEle(ep));
+                        IDMessage(dev, "[ERROR] %s: must be On or Off: %s", name, pcdataXMLEle(ep));
                 }
             }
         }
@@ -1103,7 +1103,7 @@ int dispatch(XMLEle *root, char msg[])
         if (n > 0)
             ISNewSwitch(dev, name, states, names, n);
         else
-            IDMessage(dev, "%s: newSwitchVector with no valid members", name);
+            IDMessage(dev, "[ERROR] %s: newSwitchVector with no valid members", name);
         return (0);
     }
 
@@ -1145,7 +1145,7 @@ int dispatch(XMLEle *root, char msg[])
         if (n > 0)
             ISNewText(dev, name, texts, names, n);
         else
-            IDMessage(dev, "%s: set with no valid members", name);
+            IDMessage(dev, "[ERROR] %s: set with no valid members", name);
         return (0);
     }
 
@@ -1212,7 +1212,7 @@ int dispatch(XMLEle *root, char msg[])
                 free(blobs[i]);
         }
         else
-            IDMessage(dev, "%s: newBLOBVector with no valid members", name);
+            IDMessage(dev, "[ERROR] %s: newBLOBVector with no valid members", name);
         return (0);
     }
 
@@ -1241,7 +1241,7 @@ int IUReadConfig(const char *filename, const char *dev, const char *property, in
     }
 
     if (nXMLEle(fproot) > 0 && silent != 1)
-        IDMessage(dev, "Loading device configuration...");
+        IDMessage(dev, "[INFO] Loading device configuration...");
 
     for (root = nextXMLEle(fproot, 1); root != NULL; root = nextXMLEle(fproot, 0))
     {
@@ -1261,7 +1261,7 @@ int IUReadConfig(const char *filename, const char *dev, const char *property, in
     }
 
     if (nXMLEle(fproot) > 0 && silent != 1)
-        IDMessage(dev, "Device configuration applied.");
+        IDMessage(dev, "[INFO] Device configuration applied.");
 
     fclose(fp);
     delXMLEle(fproot);
@@ -1387,14 +1387,14 @@ void IUSaveConfigTag(FILE *fp, int ctag, const char *dev, int silent)
     {
         fprintf(fp, "<INDIDriver>\n");
         if (silent != 1)
-            IDMessage(dev, "Saving device configuration...");
+            IDMessage(dev, "[INFO] Saving device configuration...");
     }
     /* Closing tag */
     else
     {
         fprintf(fp, "</INDIDriver>\n");
         if (silent != 1)
-            IDMessage(dev, "Device configuration saved.");
+            IDMessage(dev, "[INFO] Device configuration saved.");
     }
 }
 
@@ -1402,7 +1402,7 @@ void IUSaveConfigNumber(FILE *fp, const INumberVectorProperty *nvp)
 {
     int i;
 
-    char *orig = setlocale(LC_NUMERIC, "C");
+    locale_char_t *orig = indi_locale_C_numeric_push();
     fprintf(fp, "<newNumberVector device='%s' name='%s'>\n", nvp->device, nvp->name);
 
     for (i = 0; i < nvp->nnp; i++)
@@ -1414,7 +1414,7 @@ void IUSaveConfigNumber(FILE *fp, const INumberVectorProperty *nvp)
     }
 
     fprintf(fp, "</newNumberVector>\n");
-    setlocale(LC_NUMERIC, orig);
+    indi_locale_C_numeric_pop(orig);
 }
 
 void IUSaveConfigText(FILE *fp, const ITextVectorProperty *tvp)
@@ -1471,11 +1471,12 @@ void IUSaveConfigBLOB(FILE *fp, const IBLOBVectorProperty *bvp)
         encblob        = malloc(4 * bp->bloblen / 3 + 4);
         l              = to64frombits(encblob, bp->blob, bp->bloblen);
         size_t written = 0;
-        size_t towrite = l;
+
         while ((int)written < l)
         {
-            towrite   = ((l - written) > 72) ? 72 : l - written;
-            size_t wr = fwrite(encblob + written, 1, towrite, fp);
+            size_t towrite = ((l - written) > 72) ? 72 : l - written;
+            size_t wr      = fwrite(encblob + written, 1, towrite, fp);
+
             fputc('\n', fp);
             if (wr > 0)
                 written += wr;
@@ -1497,7 +1498,7 @@ void IDDefText(const ITextVectorProperty *tvp, const char *fmt, ...)
     pthread_mutex_lock(&stdout_mutex);
 
     xmlv1();
-    char *orig = setlocale(LC_NUMERIC, "C");
+    locale_char_t *orig = indi_locale_C_numeric_push();
     printf("<defTextVector\n");
     printf("  device='%s'\n", tvp->device);
     printf("  name='%s'\n", tvp->name);
@@ -1545,7 +1546,7 @@ void IDDefText(const ITextVectorProperty *tvp, const char *fmt, ...)
         SC->type = INDI_TEXT;
     }
 
-    setlocale(LC_NUMERIC, orig);
+    indi_locale_C_numeric_pop(orig);
     fflush(stdout);
 
     pthread_mutex_unlock(&stdout_mutex);
@@ -1560,7 +1561,7 @@ void IDDefNumber(const INumberVectorProperty *n, const char *fmt, ...)
     pthread_mutex_lock(&stdout_mutex);
 
     xmlv1();
-    char *orig = setlocale(LC_NUMERIC, "C");
+    locale_char_t *orig = indi_locale_C_numeric_push();
     printf("<defNumberVector\n");
     printf("  device='%s'\n", n->device);
     printf("  name='%s'\n", n->name);
@@ -1615,7 +1616,7 @@ void IDDefNumber(const INumberVectorProperty *n, const char *fmt, ...)
         SC->type = INDI_NUMBER;
     }
 
-    setlocale(LC_NUMERIC, orig);
+    indi_locale_C_numeric_pop(orig);
     fflush(stdout);
 
     pthread_mutex_unlock(&stdout_mutex);
@@ -1631,7 +1632,7 @@ void IDDefSwitch(const ISwitchVectorProperty *s, const char *fmt, ...)
     pthread_mutex_lock(&stdout_mutex);
 
     xmlv1();
-    char *orig = setlocale(LC_NUMERIC, "C");
+    locale_char_t *orig = indi_locale_C_numeric_push();
     printf("<defSwitchVector\n");
     printf("  device='%s'\n", s->device);
     printf("  name='%s'\n", s->name);
@@ -1680,7 +1681,7 @@ void IDDefSwitch(const ISwitchVectorProperty *s, const char *fmt, ...)
         SC->type = INDI_SWITCH;
     }
 
-    setlocale(LC_NUMERIC, orig);
+    indi_locale_C_numeric_pop(orig);
     fflush(stdout);
 
     pthread_mutex_unlock(&stdout_mutex);
@@ -1738,7 +1739,7 @@ void IDDefBLOB(const IBLOBVectorProperty *b, const char *fmt, ...)
     pthread_mutex_lock(&stdout_mutex);
 
     xmlv1();
-    char *orig = setlocale(LC_NUMERIC, "C");
+    locale_char_t *orig = indi_locale_C_numeric_push();
     printf("<defBLOBVector\n");
     printf("  device='%s'\n", b->device);
     printf("  name='%s'\n", b->name);
@@ -1785,7 +1786,7 @@ void IDDefBLOB(const IBLOBVectorProperty *b, const char *fmt, ...)
         SC->type = INDI_BLOB;
     }
 
-    setlocale(LC_NUMERIC, orig);
+    indi_locale_C_numeric_pop(orig);
     fflush(stdout);
 
     pthread_mutex_unlock(&stdout_mutex);
@@ -1799,7 +1800,7 @@ void IDSetText(const ITextVectorProperty *tvp, const char *fmt, ...)
     pthread_mutex_lock(&stdout_mutex);
 
     xmlv1();
-    char *orig = setlocale(LC_NUMERIC, "C");
+    locale_char_t *orig = indi_locale_C_numeric_push();
     printf("<setTextVector\n");
     printf("  device='%s'\n", tvp->device);
     printf("  name='%s'\n", tvp->name);
@@ -1827,7 +1828,7 @@ void IDSetText(const ITextVectorProperty *tvp, const char *fmt, ...)
     }
 
     printf("</setTextVector>\n");
-    setlocale(LC_NUMERIC, orig);
+    indi_locale_C_numeric_pop(orig);
     fflush(stdout);
 
     pthread_mutex_unlock(&stdout_mutex);
@@ -1841,7 +1842,7 @@ void IDSetNumber(const INumberVectorProperty *nvp, const char *fmt, ...)
     pthread_mutex_lock(&stdout_mutex);
 
     xmlv1();
-    char *orig = setlocale(LC_NUMERIC, "C");
+    locale_char_t *orig = indi_locale_C_numeric_push();
     printf("<setNumberVector\n");
     printf("  device='%s'\n", nvp->device);
     printf("  name='%s'\n", nvp->name);
@@ -1869,7 +1870,7 @@ void IDSetNumber(const INumberVectorProperty *nvp, const char *fmt, ...)
     }
 
     printf("</setNumberVector>\n");
-    setlocale(LC_NUMERIC, orig);
+    indi_locale_C_numeric_pop(orig);
     fflush(stdout);
 
     pthread_mutex_unlock(&stdout_mutex);
@@ -1883,7 +1884,7 @@ void IDSetSwitch(const ISwitchVectorProperty *svp, const char *fmt, ...)
     pthread_mutex_lock(&stdout_mutex);
 
     xmlv1();
-    char *orig = setlocale(LC_NUMERIC, "C");
+    locale_char_t *orig = indi_locale_C_numeric_push();
     printf("<setSwitchVector\n");
     printf("  device='%s'\n", svp->device);
     printf("  name='%s'\n", svp->name);
@@ -1911,7 +1912,7 @@ void IDSetSwitch(const ISwitchVectorProperty *svp, const char *fmt, ...)
     }
 
     printf("</setSwitchVector>\n");
-    setlocale(LC_NUMERIC, orig);
+    indi_locale_C_numeric_pop(orig);
     fflush(stdout);
 
     pthread_mutex_unlock(&stdout_mutex);
@@ -1964,7 +1965,7 @@ void IDSetBLOB(const IBLOBVectorProperty *bvp, const char *fmt, ...)
     pthread_mutex_lock(&stdout_mutex);
 
     xmlv1();
-    char *orig = setlocale(LC_NUMERIC, "C");
+    locale_char_t *orig = indi_locale_C_numeric_push();
     printf("<setBLOBVector\n");
     printf("  device='%s'\n", bvp->device);
     printf("  name='%s'\n", bvp->name);
@@ -2005,11 +2006,12 @@ void IDSetBLOB(const IBLOBVectorProperty *bvp, const char *fmt, ...)
             printf("    enclen='%d'\n", l);
             printf("    format='%s'>\n", bp->format);
             size_t written = 0;
-            size_t towrite = l;
+
             while ((int)written < l)
             {
-                towrite   = ((l - written) > 72) ? 72 : l - written;
-                size_t wr = fwrite(encblob + written, 1, towrite, stdout);
+                size_t towrite = ((l - written) > 72) ? 72 : l - written;
+                size_t wr      = fwrite(encblob + written, 1, towrite, stdout);
+
                 if (wr > 0)
                     written += wr;
                 if ((written % 72) == 0)
@@ -2026,7 +2028,7 @@ void IDSetBLOB(const IBLOBVectorProperty *bvp, const char *fmt, ...)
     }
 
     printf("</setBLOBVector>\n");
-    setlocale(LC_NUMERIC, orig);
+    indi_locale_C_numeric_pop(orig);
     fflush(stdout);
 
     pthread_mutex_unlock(&stdout_mutex);
@@ -2039,7 +2041,7 @@ void IUUpdateMinMax(const INumberVectorProperty *nvp)
 
     pthread_mutex_lock(&stdout_mutex);
     xmlv1();
-    char *orig = setlocale(LC_NUMERIC, "C");
+    locale_char_t *orig = indi_locale_C_numeric_push();
     printf("<setNumberVector\n");
     printf("  device='%s'\n", nvp->device);
     printf("  name='%s'\n", nvp->name);
@@ -2061,7 +2063,7 @@ void IUUpdateMinMax(const INumberVectorProperty *nvp)
     }
 
     printf("</setNumberVector>\n");
-    setlocale(LC_NUMERIC, orig);
+    indi_locale_C_numeric_pop(orig);
     fflush(stdout);
     pthread_mutex_unlock(&stdout_mutex);
 }

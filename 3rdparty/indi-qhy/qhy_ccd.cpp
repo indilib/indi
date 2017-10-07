@@ -37,7 +37,6 @@
 
 #define POLLMS               1000  /* Polling time (ms) */
 #define TEMP_THRESHOLD       0.2   /* Differential temperature threshold (C)*/
-#define MINIMUM_CCD_EXPOSURE 0.001 /* 0.001 seconds minimum exposure */
 #define MAX_DEVICES          4     /* Max device cameraCount */
 
 //NB Disable for real driver
@@ -148,6 +147,13 @@ void ISInit()
 void ISGetProperties(const char *dev)
 {
     ISInit();
+
+    if (cameraCount == 0)
+    {
+        IDMessage(nullptr, "No QHY cameras detected. Power on?");
+        return;
+    }
+
     for (int i = 0; i < cameraCount; i++)
     {
         QHYCCD *camera = cameras[i];
@@ -300,7 +306,7 @@ bool QHYCCD::initProperties()
                        IP_RW, 60, IPS_IDLE);
 
     // Set minimum exposure speed to 0.001 seconds
-    PrimaryCCD.setMinMaxStep("CCD_EXPOSURE", "CCD_EXPOSURE_VALUE", MINIMUM_CCD_EXPOSURE, 3600, 1, false);
+    //PrimaryCCD.setMinMaxStep("CCD_EXPOSURE", "CCD_EXPOSURE_VALUE", MINIMUM_CCD_EXPOSURE, 3600, 1, false);
 
     addAuxControls();
 
@@ -345,8 +351,23 @@ void QHYCCD::ISGetProperties(const char *dev)
 
 bool QHYCCD::updateProperties()
 {
+    double min=0, max=0, step=0;
+
+    // This must be executed BEFORE INDI::CCD::updateProperties()
+    // Since Primary CCD Exposure will be defined in there so we have to get its limits now
+    {
+        // Exposure limits in microseconds
+        int ret = GetQHYCCDParamMinMaxStep(camhandle, CONTROL_EXPOSURE, &min, &max, &step);
+        if (ret == QHYCCD_SUCCESS)
+            PrimaryCCD.setMinMaxStep("CCD_EXPOSURE", "CCD_EXPOSURE_VALUE", min/1e6, max/1e6, step/1e6, false);
+        else
+            PrimaryCCD.setMinMaxStep("CCD_EXPOSURE", "CCD_EXPOSURE_VALUE", 0.001, 3600, 1, false);
+
+            DEBUGF(INDI::Logger::DBG_DEBUG, "Exposure. Min: %g Max: %g Step %g", min, max, step);
+    }
+
+    // Define parent class properties
     INDI::CCD::updateProperties();
-    double min, max, step;
 
     if (isConnected())
     {
@@ -567,9 +588,9 @@ bool QHYCCD::Connect()
 
         // Disable the stream mode before connecting
         ret = SetQHYCCDStreamMode(camhandle, 0);
-        if (ret == QHYCCD_SUCCESS)
+        if (ret != QHYCCD_SUCCESS)
         {
-            DEBUGF(INDI::Logger::DBG_ERROR, "Error: Can't disable stream mode (%d)", ret);
+            DEBUGF(INDI::Logger::DBG_ERROR, "Error: Can not disable stream mode (%d)", ret);
         }
         ret = InitQHYCCD(camhandle);
         if (ret != QHYCCD_SUCCESS)
@@ -813,28 +834,29 @@ bool QHYCCD::StartExposure(float duration)
 #endif
     //AbortPrimaryFrame = false;
 
+    /*
     if (duration < MINIMUM_CCD_EXPOSURE)
     {
         DEBUGF(INDI::Logger::DBG_WARNING,
                "Exposure shorter than minimum duration %g s requested. Setting exposure time to %g s.", duration,
                MINIMUM_CCD_EXPOSURE);
         duration = MINIMUM_CCD_EXPOSURE;
-    }
+    }*/
 
     imageFrameType = PrimaryCCD.getFrameType();
 
-    if (imageFrameType == CCDChip::BIAS_FRAME)
+    /*if (imageFrameType == CCDChip::BIAS_FRAME)
     {
         duration = MINIMUM_CCD_EXPOSURE;
         DEBUGF(INDI::Logger::DBG_SESSION, "Bias Frame (s) : %g", duration);
     }
-    else if (imageFrameType == CCDChip::DARK_FRAME)
+    else*/
+    if (GetCCDCapability() & CCD_HAS_SHUTTER)
     {
-        ControlQHYCCDShutter(camhandle, MACHANICALSHUTTER_CLOSE);
-    }
-    else
-    {
-        ControlQHYCCDShutter(camhandle, MACHANICALSHUTTER_FREE);
+        if (imageFrameType == CCDChip::DARK_FRAME || imageFrameType == CCDChip::BIAS_FRAME)
+            ControlQHYCCDShutter(camhandle, MACHANICALSHUTTER_CLOSE);
+        else
+            ControlQHYCCDShutter(camhandle, MACHANICALSHUTTER_FREE);
     }
 
     DEBUGF(INDI::Logger::DBG_DEBUG, "Current exposure time is %f us", duration * 1000 * 1000);
@@ -1162,11 +1184,11 @@ IPState QHYCCD::GuideWest(float duration)
 
 bool QHYCCD::SelectFilter(int position)
 {
-    char targetpos;
+    char targetpos = 0;
     char currentpos[64];
     int checktimes = 0;
+    int ret = 0;
 
-    int ret;
     if (sim)
         ret = QHYCCD_SUCCESS;
     else
@@ -1243,7 +1265,7 @@ int QHYCCD::QueryFilter()
 
 bool QHYCCD::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
 {
-    if (strcmp(dev, getDeviceName()) == 0)
+    if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
         if (strcmp(name, CoolerSP.name) == 0)
         {
@@ -1261,7 +1283,7 @@ bool QHYCCD::ISNewSwitch(const char *dev, const char *name, ISState *states, cha
 
 bool QHYCCD::ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
 {
-    if (strcmp(dev, getDeviceName()) == 0)
+    if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
         //  This is for our device
         //  Now lets see if it's something we process here
@@ -1279,7 +1301,7 @@ bool QHYCCD::ISNewNumber(const char *dev, const char *name, double values[], cha
 {
     //  first check if it's for our device
     //IDLog("INDI::CCD::ISNewNumber %s\n",name);
-    if (strcmp(dev, getDeviceName()) == 0)
+    if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
         if (strcmp(name, FilterSlotNP.name) == 0)
         {

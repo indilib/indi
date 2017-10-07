@@ -22,7 +22,7 @@
 
 #include "indilogger.h"
 
-#include <string.h>
+#include <cstring>
 
 INDI::FocuserInterface::FocuserInterface()
 {
@@ -136,18 +136,21 @@ bool INDI::FocuserInterface::processFocuserNumber(const char *dev, const char *n
         {
             FocusAbsPosNP.s = IPS_OK;
             IUUpdateNumber(&FocusAbsPosNP, values, names, n);
-            IDSetNumber(&FocusAbsPosNP, "Focuser moved to position %d", newPos);
+            DEBUGFDEVICE(dev, INDI::Logger::DBG_SESSION, "Focuser moved to position %d", newPos);
+            IDSetNumber(&FocusAbsPosNP, nullptr);
             return true;
         }
         else if (ret == IPS_BUSY)
         {
             FocusAbsPosNP.s = IPS_BUSY;
-            IDSetNumber(&FocusAbsPosNP, "Focuser is moving to position %d", newPos);
+            DEBUGFDEVICE(dev, INDI::Logger::DBG_SESSION, "Focuser is moving to position %d", newPos);
+            IDSetNumber(&FocusAbsPosNP, nullptr);
             return true;
         }
 
         FocusAbsPosNP.s = IPS_ALERT;
-        IDSetNumber(&FocusAbsPosNP, "Focuser failed to move to new requested position.");
+        DEBUGDEVICE(dev, INDI::Logger::DBG_ERROR, "Focuser failed to move to new requested position.");
+        IDSetNumber(&FocusAbsPosNP, nullptr);
         return false;
     }
 
@@ -211,7 +214,8 @@ bool INDI::FocuserInterface::processFocuserNumber(const char *dev, const char *n
         }
 
         FocusRelPosNP.s = IPS_ALERT;
-        IDSetNumber(&FocusRelPosNP, "Focuser failed to move to new requested position.");
+        DEBUGDEVICE(dev, INDI::Logger::DBG_ERROR, "Focuser failed to move to new requested position.");
+        IDSetNumber(&FocusRelPosNP, nullptr);
         return false;
     }
 

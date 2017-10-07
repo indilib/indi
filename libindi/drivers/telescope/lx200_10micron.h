@@ -42,8 +42,8 @@ typedef enum {
 class LX200_10MICRON : public LX200Generic
 {
   public:
-    LX200_10MICRON(void);
-    ~LX200_10MICRON(void) {}
+    LX200_10MICRON();
+    ~LX200_10MICRON() {}
 
     virtual const char *getDefaultName() override;
     virtual bool Handshake() override;
@@ -52,6 +52,7 @@ class LX200_10MICRON : public LX200Generic
     virtual bool ReadScopeStatus() override;
     virtual bool Park() override;
     virtual bool UnPark() override;
+    virtual bool SyncConfigBehaviour(bool cmcfg);
 
     // TODO move this thing elsewhere
     int monthToNumber(const char *monthName);
@@ -65,7 +66,7 @@ class LX200_10MICRON : public LX200Generic
 
   private:
     int fd = -1; // short notation for PortFD/sockfd
-    bool getMountInfo(void);
+    bool getMountInfo();
 
     int OldGstat = -1;
 };

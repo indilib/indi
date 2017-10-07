@@ -26,6 +26,14 @@
 
 namespace Connection
 {
+/**
+ * @brief The Serial class manages connection with serial devices including Bluetooth. Serial communication is still the predominat
+ * method to communicate with astronomical devices such as mounts, focusers, filter wheels..etc. The default connection
+ * parameters are 9600 8N1 (9600 Baud Rate, 8 data bits, no parity, 1 stop bit). All the parameters can be updated and read via
+ * the getters and setters of the class.
+ * The default port is <i>/dev/ttyUSB0</i> under Linux and <i>/dev/cu.usbserial</i> under MacOS. After serial connection is established
+ * successfully,
+ */
 class Serial : public Interface
 {
   public:
@@ -90,7 +98,26 @@ class Serial : public Interface
      */
     bool Refresh(bool silent = false);
 
-  protected:
+    uint8_t getWordSize() const { return wordSize; }
+    /**
+     * @brief setWordSize Set word size to be used in the serial connection. Default 8
+     */
+    void setWordSize(const uint8_t &value) { wordSize = value; }
+
+    uint8_t getParity() const { return parity ; }
+    /**
+     * @brief setParity Set parity to be used in the serial connection. Default 0 (NONE)
+     * @param value 0 for NONE, 1 for EVEN, 2 for ODD
+     */
+    void setParity(const uint8_t &value) { parity = value; }
+
+    uint8_t getStopBits() const { return stopBits; }
+    /**
+     * @brief setStopBits Set stop bits to be used in the serial connection. Default 0
+     */
+    void setStopBits(const uint8_t &value) { stopBits = value ; }
+
+protected:
     /**
      * \brief Connect to serial port device. Default parameters are 8 bits, 1 stop bit, no parity.
      * Override if different from default.
@@ -120,5 +147,10 @@ class Serial : public Interface
     ISwitchVectorProperty RefreshSP;
 
     int PortFD = -1;
+
+    // Default 8N1 parameters
+    uint8_t wordSize=8;
+    uint8_t parity=0;
+    uint8_t stopBits=1;
 };
 }

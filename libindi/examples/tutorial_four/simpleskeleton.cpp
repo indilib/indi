@@ -36,9 +36,10 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110 - 1301  USA
 
 #include "simpleskeleton.h"
 
+#include <cstdlib>
+#include <cstring>
 #include <memory>
-#include <stdlib.h>
-#include <string.h>
+
 #include <sys/stat.h>
 
 /* Our simpleSkeleton auto pointer */
@@ -95,20 +96,6 @@ void ISSnoopDevice(XMLEle *root)
 }
 
 /**************************************************************************************
-**
-***************************************************************************************/
-SimpleSkeleton::SimpleSkeleton()
-{
-}
-
-/**************************************************************************************
-**
-***************************************************************************************/
-SimpleSkeleton::~SimpleSkeleton()
-{
-}
-
-/**************************************************************************************
 ** Initialize all properties & set default values.
 **************************************************************************************/
 bool SimpleSkeleton::initProperties()
@@ -122,7 +109,8 @@ bool SimpleSkeleton::initProperties()
     struct stat st;
 
     char *skel = getenv("INDISKEL");
-    if (skel)
+
+    if (skel != nullptr)
         buildSkeleton(skel);
     else if (stat(skelFileName, &st) == 0)
         buildSkeleton(skelFileName);
@@ -171,7 +159,7 @@ bool SimpleSkeleton::ISNewText(const char *dev, const char *name, char *texts[],
     INDI_UNUSED(names);
     INDI_UNUSED(n);
     // Ignore if not ours
-    if (strcmp(dev, getDeviceName()))
+    if (dev != nullptr && strcmp(dev, getDeviceName()) != 0)
         return false;
 
     return false;
@@ -183,22 +171,22 @@ bool SimpleSkeleton::ISNewText(const char *dev, const char *name, char *texts[],
 bool SimpleSkeleton::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
 {
     // Ignore if not ours
-    if (strcmp(dev, getDeviceName()))
+    if (dev != nullptr && strcmp(dev, getDeviceName()) != 0)
         return false;
 
     INumberVectorProperty *nvp = getNumber(name);
 
-    if (!nvp)
+    if (nvp == nullptr)
         return false;
 
-    if (isConnected() == false)
+    if (!isConnected())
     {
         nvp->s = IPS_ALERT;
         IDSetNumber(nvp, "Cannot change property while device is disconnected.");
         return false;
     }
 
-    if (!strcmp(nvp->name, "Number Property"))
+    if (strcmp(nvp->name, "Number Property") != 0)
     {
         IUUpdateNumber(nvp, values, names, n);
         nvp->s = IPS_OK;
@@ -218,27 +206,27 @@ bool SimpleSkeleton::ISNewSwitch(const char *dev, const char *name, ISState *sta
     int lightState = 0;
     int lightIndex = 0;
 
-    // ignore if not ours //
-    if (strcmp(dev, getDeviceName()))
+    // ignore if not ours
+    if (dev != nullptr && strcmp(dev, getDeviceName()) != 0)
         return false;
 
-    if (INDI::DefaultDevice::ISNewSwitch(dev, name, states, names, n) == true)
+    if (INDI::DefaultDevice::ISNewSwitch(dev, name, states, names, n))
         return true;
 
     ISwitchVectorProperty *svp = getSwitch(name);
     ILightVectorProperty *lvp  = getLight("Light Property");
 
-    if (isConnected() == false)
+    if (!isConnected())
     {
         svp->s = IPS_ALERT;
         IDSetSwitch(svp, "Cannot change property while device is disconnected.");
         return false;
     }
 
-    if (!svp || !lvp)
+    if (svp == nullptr || lvp == nullptr)
         return false;
 
-    if (!strcmp(svp->name, "Menu"))
+    if (strcmp(svp->name, "Menu") == 0)
     {
         IUUpdateSwitch(svp, states, names, n);
         ISwitch *onSW = IUFindOnSwitch(svp);
@@ -247,7 +235,7 @@ bool SimpleSkeleton::ISNewSwitch(const char *dev, const char *name, ISState *sta
         if (lightIndex < 0 || lightIndex > lvp->nlp)
             return false;
 
-        if (onSW)
+        if (onSW != nullptr)
         {
             lightState            = rand() % 4;
             svp->s                = IPS_OK;
@@ -267,28 +255,28 @@ bool SimpleSkeleton::ISNewSwitch(const char *dev, const char *name, ISState *sta
 bool SimpleSkeleton::ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[],
                                char *formats[], char *names[], int n)
 {
-    if (strcmp(dev, getDeviceName()))
+    if (dev != nullptr && strcmp(dev, getDeviceName()) != 0)
         return false;
 
     IBLOBVectorProperty *bvp = getBLOB(name);
 
-    if (!bvp)
+    if (bvp == nullptr)
         return false;
 
-    if (isConnected() == false)
+    if (!isConnected())
     {
         bvp->s = IPS_ALERT;
         IDSetBLOB(bvp, "Cannot change property while device is disconnected.");
         return false;
     }
 
-    if (!strcmp(bvp->name, "BLOB Test"))
+    if (strcmp(bvp->name, "BLOB Test") == 0)
     {
         IUUpdateBLOB(bvp, sizes, blobsizes, blobs, formats, names, n);
 
         IBLOB *bp = IUFindBLOB(bvp, names[0]);
 
-        if (!bp)
+        if (bp == nullptr)
             return false;
 
         IDLog("Received BLOB with name %s, format %s, and size %d, and bloblen %d\n", bp->name, bp->format, bp->size,

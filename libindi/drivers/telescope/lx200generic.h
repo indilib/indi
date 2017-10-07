@@ -40,57 +40,86 @@ class LX200Generic : public INDI::Telescope, public INDI::GuiderInterface
         LX200_HAS_ALIGNMENT_TYPE    = 1 << 2, /** Define Alignment Type */
         LX200_HAS_SITES             = 1 << 3, /** Define Sites */
         LX200_HAS_PULSE_GUIDING     = 1 << 4, /** Define Pulse Guiding */
-        LX200_HAS_TRACK_MODE        = 1 << 5  /** Define Track Mode */
     } LX200Capability;
 
     uint32_t getLX200Capability() const { return genericCapability; }
     void setLX200Capability(uint32_t cap) { genericCapability = cap; }
 
-    virtual const char *getDefaultName();
-    virtual const char *getDriverName();
-    virtual bool Handshake();
-    virtual bool ReadScopeStatus();
-    virtual void ISGetProperties(const char *dev);
-    virtual bool initProperties();
-    virtual bool updateProperties();
-    virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n);
-    virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n);
-    virtual bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n);
+    virtual const char *getDefaultName() override;
+    virtual const char *getDriverName() override;
+    virtual bool Handshake() override;
+    virtual bool ReadScopeStatus() override;
+    virtual void ISGetProperties(const char *dev) override;
+    virtual bool initProperties() override;
+    virtual bool updateProperties() override;
+    virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
+    virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
+    virtual bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n) override;
 
     void updateFocusTimer();
     void guideTimeout();
 
   protected:
-    virtual bool SetSlewRate(int index);
-    virtual bool SetTrackMode(int mode);
-    virtual bool MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command);
-    virtual bool MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command);
-    virtual bool Abort();
+    // Slew Rate
+    virtual bool SetSlewRate(int index) override;
+    // Track Mode (Sidereal, Solar..etc)
+    virtual bool SetTrackMode(uint8_t mode) override;
 
-    virtual bool updateTime(ln_date *utc, double utc_offset);
-    virtual bool updateLocation(double latitude, double longitude, double elevation);
+    // NSWE Motion Commands
+    virtual bool MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command) override;
+    virtual bool MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command) override;
 
-    virtual IPState GuideNorth(float ms);
-    virtual IPState GuideSouth(float ms);
-    virtual IPState GuideEast(float ms);
-    virtual IPState GuideWest(float ms);
+    // Abort ALL motion
+    virtual bool Abort() override;
 
-    virtual bool Goto(double, double);
-    virtual bool Park();
-    virtual bool Sync(double ra, double dec);
+    // Time and Location
+    virtual bool updateTime(ln_date *utc, double utc_offset) override;
+    virtual bool updateLocation(double latitude, double longitude, double elevation) override;
 
+    // Guide Commands
+    virtual IPState GuideNorth(float ms) override;
+    virtual IPState GuideSouth(float ms) override;
+    virtual IPState GuideEast(float ms) override;
+    virtual IPState GuideWest(float ms) override;
+
+    // Guide Pulse Commands
+    virtual int SendPulseCmd(int direction, int duration_msec);
+
+    // Goto
+    virtual bool Goto(double ra, double dec) override;
+
+    // Is slew over?
     virtual bool isSlewComplete();
+
+    // Park Mount
+    virtual bool Park() override;
+
+    // Sync coordinates
+    virtual bool Sync(double ra, double dec) override;
+
+    // Check if mount is responsive
     virtual bool checkConnection();
 
-    virtual bool saveConfigItems(FILE *fp);
+    // Save properties in config file
+    virtual bool saveConfigItems(FILE *fp) override;
 
-    virtual void debugTriggered(bool enable);
+    // Action to perform when Debug is turned on or off
+    virtual void debugTriggered(bool enable) override;
 
+    // Initial function to get data after connection is successful
     virtual void getBasicData();
+
+    // Send slew error message to client
     void slewError(int slewCode);
+
+    // Get mount alignment type (AltAz..etc)
     void getAlignment();
+
+    // Send Mount time and location settings to client
     void sendScopeTime();
     void sendScopeLocation();
+
+    // Simulate Mount in simulation mode
     void mountSim();
 
     static void updateFocusHelper(void *p);
@@ -114,10 +143,6 @@ class LX200Generic : public INDI::Telescope, public INDI::GuiderInterface
     /* Telescope Alignment Mode */
     ISwitchVectorProperty AlignmentSP;
     ISwitch AlignmentS[3];
-
-    /* Tracking Mode */
-    ISwitchVectorProperty TrackModeSP;
-    ISwitch TrackModeS[4];
 
     /* Tracking Frequency */
     INumberVectorProperty TrackingFreqNP;

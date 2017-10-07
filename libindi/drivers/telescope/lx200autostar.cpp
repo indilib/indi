@@ -22,7 +22,7 @@
 
 #include "lx200driver.h"
 
-#include <string.h>
+#include <cstring>
 
 #define FIRMWARE_TAB "Firmware data"
 
@@ -60,7 +60,7 @@ bool LX200Autostar::initProperties()
 
 void LX200Autostar::ISGetProperties(const char *dev)
 {
-    if (dev && strcmp(dev, getDeviceName()))
+    if (dev != nullptr && strcmp(dev, getDeviceName()) != 0)
         return;
 
     LX200Generic::ISGetProperties(dev);
@@ -100,7 +100,7 @@ bool LX200Autostar::updateProperties()
 
 bool LX200Autostar::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
 {
-    if (strcmp(dev, getDeviceName()) == 0)
+    if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
         // Focus speed
         if (!strcmp(name, FocusSpeedNP.name))
@@ -108,7 +108,7 @@ bool LX200Autostar::ISNewNumber(const char *dev, const char *name, double values
             if (IUUpdateNumber(&FocusSpeedNP, values, names, n) < 0)
                 return false;
 
-            if (isSimulation() == false)
+            if (!isSimulation())
                 setGPSFocuserSpeed(PortFD, ((int)FocusSpeedN[0].value));
             FocusSpeedNP.s = IPS_OK;
             IDSetNumber(&FocusSpeedNP, nullptr);
@@ -123,7 +123,7 @@ bool LX200Autostar::ISNewSwitch(const char *dev, const char *name, ISState *stat
 {
     int index = 0;
 
-    if (strcmp(dev, getDeviceName()) == 0)
+    if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
         // Focus Motion
         if (!strcmp(name, FocusMotionSP.name))
@@ -153,7 +153,7 @@ bool LX200Autostar::ISNewSwitch(const char *dev, const char *name, ISState *stat
                 return true;
             }
 
-            if (isSimulation() == false && setFocuserMotion(PortFD, index) < 0)
+            if (!isSimulation() && setFocuserMotion(PortFD, index) < 0)
             {
                 FocusMotionSP.s = IPS_ALERT;
                 IDSetSwitch(&FocusMotionSP, "Error setting focuser speed.");
@@ -185,7 +185,7 @@ void LX200Autostar::getBasicData()
     // process parent
     LX200Generic::getBasicData();
 
-    if (isSimulation() == false)
+    if (!isSimulation())
     {
         VersionTP.tp[0].text = new char[64];
         getVersionDate(PortFD, VersionTP.tp[0].text);

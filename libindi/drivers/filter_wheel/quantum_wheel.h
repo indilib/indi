@@ -22,10 +22,9 @@
 
 class QFW : public INDI::FilterWheel
 {
-  private:
   public:
     QFW();
-    ~QFW();
+    virtual ~QFW() = default;
 
     void debugTriggered(bool enable);
     void simulationTriggered(bool enable);

@@ -26,7 +26,7 @@ class TruTech : public INDI::FilterWheel
 {
   public:
     TruTech();
-    virtual ~TruTech();
+    virtual ~TruTech() = default;
 
     virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n);
 

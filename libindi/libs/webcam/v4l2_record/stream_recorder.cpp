@@ -26,8 +26,8 @@
 
 #include <zlib.h>
 
+#include <cerrno>
 #include <signal.h>
-#include <sys/errno.h>
 #include <sys/stat.h>
 
 const char *STREAM_TAB = "Streaming";
@@ -62,7 +62,7 @@ StreamRecorder::StreamRecorder(INDI::CCD *mainCCD)
     recorder->init();
     direct_record = false;
 
-    DEBUGF(INDI::Logger::DBG_SESSION, "Using default recorder (%s)", recorder->getName());
+    DEBUGF(INDI::Logger::DBG_DEBUG, "Using default recorder (%s)", recorder->getName());
 }
 
 StreamRecorder::~StreamRecorder()
@@ -127,7 +127,7 @@ bool StreamRecorder::initProperties()
 
 void StreamRecorder::ISGetProperties(const char *dev)
 {
-    if (dev && strcmp(getDeviceName(), dev))
+    if (dev != nullptr && strcmp(getDeviceName(), dev))
         return;
 
     if (ccd->isConnected())
@@ -586,7 +586,7 @@ bool StreamRecorder::stopRecording()
 
 bool StreamRecorder::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
 {
-    if (dev && strcmp(getDeviceName(), dev))
+    if (dev != nullptr && strcmp(getDeviceName(), dev))
         return true;
 
     /* Video Stream */
@@ -669,7 +669,7 @@ bool StreamRecorder::ISNewSwitch(const char *dev, const char *name, ISState *sta
 bool StreamRecorder::ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
 {
     /* ignore if not ours */
-    if (dev && strcmp(getDeviceName(), dev))
+    if (dev != nullptr && strcmp(getDeviceName(), dev))
         return true;
 
     if (!strcmp(name, RecordFileTP.name))
@@ -691,7 +691,7 @@ bool StreamRecorder::ISNewText(const char *dev, const char *name, char *texts[],
 bool StreamRecorder::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
 {
     /* ignore if not ours */
-    if (dev && strcmp(getDeviceName(), dev))
+    if (dev != nullptr && strcmp(getDeviceName(), dev))
         return true;
 
     /* Stream rate */

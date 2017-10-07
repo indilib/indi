@@ -25,15 +25,27 @@
 
 #define _GNU_SOURCE 1
 
+#include "indicom.h"
+
+#include "indidevapi.h"
+#include "locale_compat.h"
+
+#include "config.h"
+
+#if defined(HAVE_LIBNOVA)
+#include <libnova/julian_day.h>
+#include <libnova/sidereal_time.h>
+#endif // HAVE_LIBNOVA
+
 #include <errno.h>
 #include <fcntl.h>
-#include <locale.h>
 #include <math.h>
 #include <stdarg.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 
 #ifdef __APPLE__
 #include <sys/param.h>
@@ -43,12 +55,6 @@
 #include <IOKit/serial/ioss.h>
 #include <sys/ioctl.h>
 #endif
-
-#include <config.h>
-#include <libnova.h>
-
-#include "indicom.h"
-#include "indidevapi.h"
 
 #ifdef _WIN32
 #undef CX
@@ -75,7 +81,7 @@
 
 int tty_debug = 0;
 
-#ifndef _WIN32
+#if defined(HAVE_LIBNOVA)
 int extractISOTime(const char *timestr, struct ln_date *iso_date)
 {
     struct tm utm;
@@ -173,29 +179,48 @@ int fs_sexa(char *out, double a, int w, int fracbase)
 int f_scansexa(const char *str0, /* input string */
                double *dp)       /* cracked value, if return 0 */
 {
-    char *orig = setlocale(LC_NUMERIC, "C");
+    locale_char_t *orig = indi_locale_C_numeric_push();
 
     double a = 0, b = 0, c = 0;
     char str[128];
-    char *neg;
-    int r;
+    //char *neg;
+    uint8_t isNegative=0;
+    int r= 0;
 
     /* copy str0 so we can play with it */
     strncpy(str, str0, sizeof(str) - 1);
     str[sizeof(str) - 1] = '\0';
 
-    neg = strchr(str, '-');
+    /* remove any spaces */
+    char* i = str;
+    char* j = str;
+    while(*j != 0)
+    {
+        *i = *j++;
+        if(*i != ' ')
+            i++;
+    }
+    *i = 0;
+
+    // This has problem process numbers in scientific notations e.g. 1e-06
+    /*neg = strchr(str, '-');
     if (neg)
         *neg = ' ';
+    */
+    if (str[0] == '-')
+    {
+        isNegative = 1;
+        str[0] = ' ';
+    }
 
     r = sscanf(str, "%lf%*[^0-9]%lf%*[^0-9]%lf", &a, &b, &c);
 
-    setlocale(LC_NUMERIC, orig);
+    indi_locale_C_numeric_pop(orig);
 
     if (r < 1)
         return (-1);
     *dp = a + b / 60 + c / 3600;
-    if (neg)
+    if (isNegative)
         *dp *= -1;
     return (0);
 }
@@ -1350,12 +1375,14 @@ double rangeDec(double decdegrees)
     return decdegrees;
 }
 
+#if defined(HAVE_LIBNOVA)
 double get_local_sideral_time(double longitude)
 {
     double SD = ln_get_apparent_sidereal_time(ln_get_julian_from_sys()) - (360.0 - longitude) / 15.0;
 
     return range24(SD);
 }
+#endif // HAVE_LIBNOVA
 
 double get_local_hour_angle(double sideral_time, double ra)
 {

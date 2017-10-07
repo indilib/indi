@@ -21,12 +21,13 @@
 #include "base64.h"
 #include "config.h"
 #include "indicom.h"
+#include "indistandardproperty.h"
+#include "locale_compat.h"
 
-#include <locale.h>
-#include <stdlib.h>
-#include <string.h>
+#include <cerrno>
+#include <cstdlib>
+#include <cstring>
 #include <zlib.h>
-#include <sys/errno.h>
 #include <sys/stat.h>
 
 #if defined(_MSC_VER)
@@ -569,7 +570,7 @@ int INDI::BaseDevice::buildProp(XMLEle *root, char *errmsg)
 
     if (!strcmp(rtag, "defNumberVector"))
     {
-        char *orig = setlocale(LC_NUMERIC, "C");
+        AutoCNumeric locale;
 
         INDI::Property *indiProp   = new INDI::Property();
         INumberVectorProperty *nvp = new INumberVectorProperty;
@@ -648,8 +649,6 @@ int INDI::BaseDevice::buildProp(XMLEle *root, char *errmsg)
             delete (nvp);
             delete (indiProp);
         }
-
-        setlocale(LC_NUMERIC, orig);
     }
     else if (!strcmp(rtag, "defSwitchVector"))
     {
@@ -916,7 +915,7 @@ int INDI::BaseDevice::buildProp(XMLEle *root, char *errmsg)
 
 bool INDI::BaseDevice::isConnected()
 {
-    ISwitchVectorProperty *svp = getSwitch("CONNECTION");
+    ISwitchVectorProperty *svp = getSwitch(INDI::SP::CONNECTION);
     if (!svp)
         return false;
 
@@ -971,12 +970,9 @@ int INDI::BaseDevice::setValue(XMLEle *root, char *errmsg)
     ap = findXMLAtt(root, "timeout");
     if (ap)
     {
-        char *orig = setlocale(LC_NUMERIC, "C");
-
+        AutoCNumeric locale;
         timeout    = atof(valuXMLAtt(ap));
         timeoutSet = true;
-
-        setlocale(LC_NUMERIC, orig);
     }
 
     checkMessage(root);
@@ -996,7 +992,7 @@ int INDI::BaseDevice::setValue(XMLEle *root, char *errmsg)
         if (timeoutSet)
             nvp->timeout = timeout;
 
-        char *orig = setlocale(LC_NUMERIC, "C");
+        AutoCNumeric locale;
 
         for (ep = nextXMLEle(root, 1); ep != nullptr; ep = nextXMLEle(root, 0))
         {
@@ -1013,7 +1009,7 @@ int INDI::BaseDevice::setValue(XMLEle *root, char *errmsg)
                 np->max = atof(findXMLAttValu(ep, "max"));
         }
 
-        setlocale(LC_NUMERIC, orig);
+        locale.Restore();
 
         if (mediator)
             mediator->newNumber(nvp);

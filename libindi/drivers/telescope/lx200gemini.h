@@ -33,29 +33,34 @@ class LX200Gemini : public LX200Generic
     LX200Gemini();
     ~LX200Gemini() {}
 
-    virtual void ISGetProperties(const char *dev);
-    virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n);
+    virtual void ISGetProperties(const char *dev) override;
+    virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
 
   protected:
-    virtual const char *getDefaultName();
+    virtual const char *getDefaultName() override;
 
-    virtual bool initProperties();
-    virtual bool updateProperties();
+    virtual bool initProperties() override ;
+    virtual bool updateProperties() override;
 
-    virtual bool isSlewComplete();
-    virtual bool ReadScopeStatus();
+    virtual bool isSlewComplete() override;
+    virtual bool ReadScopeStatus() override;
 
-    virtual bool Park();
-    virtual bool UnPark();
+    virtual bool Park()override ;
+    virtual bool UnPark() override;
 
-    virtual bool checkConnection();
+    virtual bool SetTrackMode(uint8_t mode) override;
 
-    virtual bool saveConfigItems(FILE *fp);
+    virtual bool checkConnection() override;
+
+    virtual bool saveConfigItems(FILE *fp) override;
 
   private:
     void syncSideOfPier();
     bool sleepMount();
     bool wakeupMount();
+
+    // Checksum for private commands
+    uint8_t calculateChecksum(char *cmd);
 
     ISwitch ParkSettingsS[3];
     ISwitchVectorProperty ParkSettingsSP;
@@ -75,5 +80,13 @@ class LX200Gemini : public LX200Generic
         WARM_RESTART
     };
 
+    enum
+    {
+        GEMINI_TRACK_SIDEREAL,
+        GEMINI_TRACK_KING,
+        GEMINI_TRACK_LUNAR,
+        GEMINI_TRACK_SOLAR
+
+    };
     const uint8_t GEMINI_TIMEOUT = 3;
 };

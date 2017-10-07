@@ -1,3 +1,9 @@
+libqsi (7.6.0) xenial; urgency=low
+
+  * 7.6.0 release
+
+ -- Jasem Mutlaq <mutlaqja@ikarustech.com>  Mon, 9 Jul 2017 14:00:00 +0300
+
 libqsi (7.2.0) trusty; urgency=low
 
   * 7.2.0 release
