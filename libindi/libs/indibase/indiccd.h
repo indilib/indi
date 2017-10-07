@@ -29,7 +29,7 @@
 #include "indiguiderinterface.h"
 
 #include <fitsio.h>
-#include <libnova.h>
+#include <libnova/ln_types.h>
 
 #include <memory>
 #include <cstring>
