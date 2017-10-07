@@ -29,6 +29,7 @@
 #include "indiguiderinterface.h"
 
 #include <fitsio.h>
+#include <libnova.h>
 
 #include <memory>
 #include <cstring>
@@ -772,6 +773,15 @@ class INDI::CCD : public INDI::DefaultDevice, INDI::GuiderInterface
     // Rotator Angle
     double RotatorAngle;
 
+    // Airmas
+    double Airmass;
+
+    // Observer
+    ln_lnlat_posn observer;
+
+    // J2000 Position
+    ln_equ_posn J2000Pos;
+
     std::vector<std::string> FilterNames;
     int CurrentFilterSlot;
 
@@ -786,6 +796,13 @@ class INDI::CCD : public INDI::DefaultDevice, INDI::GuiderInterface
 
     ITextVectorProperty ActiveDeviceTP;
     IText ActiveDeviceT[4];
+    enum
+    {
+        SNOOP_MOUNT,
+        SNOOP_ROTATOR,
+        SNOOP_FILTER_WHEEL,
+        SNOOP_SQM
+    };
 
     INumber TemperatureN[1];
     INumberVectorProperty TemperatureNP;
