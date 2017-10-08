@@ -148,7 +148,7 @@ void LX200AstroPhysics::ISGetProperties(const char *dev)
 
 bool LX200AstroPhysics::updateProperties()
 {
-    INDI::Telescope::updateProperties();
+    LX200Generic::updateProperties();
 
     if (isConnected())
     {
