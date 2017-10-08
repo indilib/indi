@@ -29,7 +29,6 @@
 #include "indiguiderinterface.h"
 
 #include <fitsio.h>
-#include <libnova/ln_types.h>
 
 #include <memory>
 #include <cstring>
@@ -750,7 +749,13 @@ class INDI::CCD : public INDI::DefaultDevice, INDI::GuiderInterface
 
     void GuideComplete(INDI_EQ_AXIS axis);
 
+    // Epoch Position
     double RA, Dec;
+
+    // J2000 Position
+    double J2000RA;
+    double J2000DE;
+
     double primaryFocalLength, primaryAperture, guiderFocalLength, guiderAperture;
     bool InExposure;
     bool InGuideExposure;
@@ -775,12 +780,8 @@ class INDI::CCD : public INDI::DefaultDevice, INDI::GuiderInterface
 
     // Airmas
     double Airmass;
-
-    // Observer
-    ln_lnlat_posn observer;
-
-    // J2000 Position
-    ln_equ_posn J2000Pos;
+    double Latitude;
+    double Longitude;
 
     std::vector<std::string> FilterNames;
     int CurrentFilterSlot;
