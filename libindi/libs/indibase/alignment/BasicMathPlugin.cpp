@@ -930,6 +930,7 @@ bool BasicMathPlugin::TransformTelescopeToCelestial(const TelescopeDirectionVect
         }
     }
     //ASSDEBUGF("Telescope to Celestial - Actual Alt %lf Az %lf", ActualAltAz.alt, ActualAltAz.az);
+    RightAscension = range24(RightAscension);
     return true;
 }
 
