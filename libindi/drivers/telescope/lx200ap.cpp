@@ -823,7 +823,29 @@ bool LX200AstroPhysics::Park()
     fs_sexa(AltStr, parkAlt, 2, 3600);
     DEBUGF(INDI::Logger::DBG_DEBUG, "Parking to Az (%s) Alt (%s)...", AzStr, AltStr);
 
-    if (isSimulation() == false)
+    if (isSimulation())
+    {
+        ln_lnlat_posn observer;
+        observer.lat = LocationN[LOCATION_LATITUDE].value;
+        observer.lng = LocationN[LOCATION_LONGITUDE].value;
+        if (observer.lng > 180)
+            observer.lng -= 360;
+
+        ln_hrz_posn horizontalPos;
+        // Libnova south = 0, west = 90, north = 180, east = 270
+
+        horizontalPos.az = parkAz + 180;
+        if (horizontalPos.az > 360)
+            horizontalPos.az -= 360;
+        horizontalPos.alt = parkAlt;
+
+        ln_equ_posn equatorialPos;
+
+        ln_get_equ_from_hrz(&horizontalPos, &observer, ln_get_julian_from_sys(), &equatorialPos);
+
+        Goto(equatorialPos.ra / 15.0, equatorialPos.dec);
+    }
+    else
     {
         if (setAPObjectAZ(PortFD, parkAz) < 0 || setAPObjectAlt(PortFD, parkAlt) < 0)
         {
