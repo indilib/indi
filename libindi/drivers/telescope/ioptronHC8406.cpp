@@ -90,7 +90,6 @@ socat  -v  PTY,link=/tmp/serial,wait-slave,raw /dev/ttyUSB0,raw
 ioptronHC8406::ioptronHC8406()
 {
     setVersion(1, 1);
-    //setDeviceName("ioptronHC8406");
     setLX200Capability(LX200_HAS_FOCUS);
     SetTelescopeCapability(TELESCOPE_CAN_PARK | TELESCOPE_CAN_SYNC | TELESCOPE_CAN_GOTO | 
                       TELESCOPE_CAN_ABORT | TELESCOPE_HAS_TIME | TELESCOPE_HAS_LOCATION | 
@@ -220,6 +219,7 @@ bool ioptronHC8406::ISNewSwitch(const char *dev, const char *name, ISState *stat
 {
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
+
         // Sync type
         if (!strcmp(name, SyncCMRSP.name))
         {
@@ -375,6 +375,13 @@ bool ioptronHC8406::Goto(double r, double d)
         // sleep for 100 mseconds
         usleep(100000);
     }
+
+    // If parking/parked, let's unpark it first.
+    /*
+    if (TrackState == SCOPE_PARKING || TrackState == SCOPE_PARKED)
+    {
+	UnPark();
+    }*/
 
     if (!isSimulation())
     {
@@ -723,13 +730,12 @@ int ioptronHC8406::setioptronHC8406StandardProcedure(int fd, const char *data)
 bool ioptronHC8406::SetTrackEnabled(bool enabled)
 {
     DEBUGF(INDI::Logger::DBG_WARNING, "<SetTrackEnabled> NOT A CMD IN HC8406 command set: %d",enabled);
-
     return true;
 }
 
 bool ioptronHC8406::SetTrackMode(uint8_t mode)
 {
-    return (setioptronHC8406TrackMode(mode) == 0);
+    return (setioptronHC8406TrackMode(mode));
 }
 
 int ioptronHC8406::setioptronHC8406TrackMode(int mode)
@@ -770,8 +776,8 @@ bool ioptronHC8406::Park()
 
     if ((error_type = tty_write_string(PortFD, ":KA#", &nbytes_write)) != TTY_OK)
         return error_type;
-
     tcflush(PortFD, TCIFLUSH);
+    DEBUG(DBG_SCOPE, "CMD <:KA#>");
 
     EqNP.s     = IPS_BUSY;
     TrackState = SCOPE_PARKING;
@@ -800,16 +806,41 @@ bool ioptronHC8406::ReadScopeStatus()
         return true;
     }
 
-    //if (IUFindSwitch(&CoordSP, "TRACK")->s == ISS_ON || IUFindSwitch(&CoordSP, "SLEW")->s == ISS_ON)
-
+    switch (TrackState) {
+	case SCOPE_IDLE:
+	    DEBUG(INDI::Logger::DBG_WARNING, "<ReadScopeStatus> IDLE");		
+	    break;
+	case SCOPE_SLEWING:
+	    DEBUG(INDI::Logger::DBG_WARNING, "<ReadScopeStatus> SLEWING");		
+	    break;
+	case SCOPE_TRACKING:
+	    DEBUG(INDI::Logger::DBG_WARNING, "<ReadScopeStatus> TRACKING");		
+	    break;
+	case SCOPE_PARKING:
+	    DEBUG(INDI::Logger::DBG_WARNING, "<ReadScopeStatus> PARKING");		
+	    break;
+	case SCOPE_PARKED:
+	    DEBUG(INDI::Logger::DBG_WARNING, "<ReadScopeStatus> PARKED");		
+	    break;
+	default:
+	    DEBUG(INDI::Logger::DBG_WARNING, "<ReadScopeStatus> UNDEFINED");		
+	    break;
+    }
 
     if (TrackState == SCOPE_SLEWING )
     {
         // Check if LX200 is done slewing
         if (isSlewComplete())
         {
-            TrackState = SCOPE_TRACKING;
-            IDMessage(getDeviceName(), "Slew is complete. Tracking...");
+            if (IUFindSwitch(&CoordSP, "SYNC")->s == ISS_ON || IUFindSwitch(&CoordSP, "SLEW")->s == ISS_ON)  {
+		    SetTrackEnabled(false);
+	            TrackState = SCOPE_IDLE;
+	            DEBUG(INDI::Logger::DBG_WARNING, "Slew is complete. IDLE");
+	    } else {
+		    SetTrackEnabled(true);
+	            TrackState = SCOPE_TRACKING;
+	            DEBUG(INDI::Logger::DBG_WARNING, "Slew is complete. TRACKING");
+	    }
         }
     }
     else if (TrackState == SCOPE_PARKING)
@@ -817,6 +848,7 @@ bool ioptronHC8406::ReadScopeStatus()
         if (isSlewComplete())
         {
             SetParked(true);
+	    TrackState = SCOPE_PARKED;
         }
     }
 
