@@ -710,14 +710,11 @@ int CCDSim::DrawCcdFrame(CCDChip *targetChip)
             }
             else
             {
-                IDMessage(getDeviceName(),
-                          "Error looking up stars, is gsc installed with appropriate environment variables set ??");
-                //fprintf(stderr,"Error doing gsc lookup\n");
+                DEBUG(INDI::Logger::DBG_ERROR, "Error looking up stars, is gsc installed with appropriate environment variables set ??");
             }
             if (drawn == 0)
             {
-                IDMessage(getDeviceName(),
-                          "Got no stars, is gsc installed with appropriate environment variables set ??");
+                DEBUG(INDI::Logger::DBG_ERROR, "Got no stars, is gsc installed with appropriate environment variables set ??");
             }
         }
         //fprintf(stderr,"Got %d stars from %d lines drew %d\n",stars,lines,drawn);

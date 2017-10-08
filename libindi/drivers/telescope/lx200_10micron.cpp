@@ -246,7 +246,7 @@ void LX200_10MICRON::getBasicData()
         timeFormat = LX200_24;
 
         if (getTrackFreq(PortFD, &TrackFreqN[0].value) < 0)
-            IDMessage(getDeviceName(), "Failed to get tracking frequency from device.");
+            DEBUG(INDI::Logger::DBG_WARNING, "Failed to get tracking frequency from device.");
         else
             IDSetNumber(&TrackingFreqNP, nullptr);
 
