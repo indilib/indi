@@ -71,6 +71,7 @@ class INDI::BaseDevice
         DUSTCAP_INTERFACE   = (1 << 9),  /**< Dust Cap Interface */
         LIGHTBOX_INTERFACE  = (1 << 10), /**< Light Box Interface */
         DETECTOR_INTERFACE  = (1 << 11), /**< Detector interface, must subclass INDI::Detector */
+        ROTATOR_INTERFACE   = (1 << 12), /**< Rotator interface, must subclass INDI::RotatorInterface */
         AUX_INTERFACE       = (1 << 15), /**< Auxiliary interface */
     };
 

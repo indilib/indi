@@ -436,7 +436,7 @@ void Logger::print(const char *devicename, const unsigned int verbosityLevel, co
     }
 
     if ((configuration_ & screen_on) && screenlog)
-        IDMessage(devicename, "%s", msg);
+        IDMessage(devicename, "[%s] %s", Tags[rank(verbosityLevel)], msg);
 
     Logger::unlock();
 }

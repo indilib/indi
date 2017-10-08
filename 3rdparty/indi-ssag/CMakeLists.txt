@@ -11,6 +11,8 @@ find_package(USB-1 REQUIRED)
 #find_package(Threads REQUIRED)
 #find_package(CFITSIO REQUIRED)
 
+set(UDEVRULES_INSTALL_DIR "/lib/udev/rules.d" CACHE STRING "Base directory for udev rules")
+
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/indi_ssag.xml ${CMAKE_CURRENT_BINARY_DIR}/indi_ssag.xml )
 
 include_directories( ${CMAKE_CURRENT_BINARY_DIR})
@@ -40,4 +42,5 @@ endif (CMAKE_HOST_SYSTEM_PROCESSOR MATCHES "arm*")
 install(TARGETS indi_ssag_ccd RUNTIME DESTINATION bin )
 
 install(FILES ${CMAKE_CURRENT_BINARY_DIR}/indi_ssag.xml DESTINATION ${INDI_DATA_DIR})
+install(FILES 95-ssag.rules DESTINATION ${UDEVRULES_INSTALL_DIR})
 

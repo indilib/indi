@@ -84,7 +84,8 @@ CCDSim::CCDSim()
     raPE  = RA;
     decPE = Dec;
 
-    primaryFocalLength = 1280; //  focal length of the telescope in millimeters
+    primaryFocalLength = 900; //  focal length of the telescope in millimeters
+    guiderFocalLength  = 300;
 
     time(&RunStart);
 
@@ -268,6 +269,12 @@ int CCDSim::SetTemperature(double temperature)
 
 bool CCDSim::StartExposure(float duration)
 {
+    if (std::isnan(RA) && std::isnan(Dec))
+    {
+        DEBUG(INDI::Logger::DBG_ERROR, "Telescope coordinates missing. Make sure telescope is connected and its name is set in CCD Options.");
+        return false;
+    }
+
     //  for the simulator, we can just draw the frame now
     //  and it will get returned at the right time
     //  by the timer routines
@@ -703,14 +710,11 @@ int CCDSim::DrawCcdFrame(CCDChip *targetChip)
             }
             else
             {
-                IDMessage(getDeviceName(),
-                          "Error looking up stars, is gsc installed with appropriate environment variables set ??");
-                //fprintf(stderr,"Error doing gsc lookup\n");
+                DEBUG(INDI::Logger::DBG_ERROR, "Error looking up stars, is gsc installed with appropriate environment variables set ??");
             }
             if (drawn == 0)
             {
-                IDMessage(getDeviceName(),
-                          "Got no stars, is gsc installed with appropriate environment variables set ??");
+                DEBUG(INDI::Logger::DBG_ERROR, "Got no stars, is gsc installed with appropriate environment variables set ??");
             }
         }
         //fprintf(stderr,"Got %d stars from %d lines drew %d\n",stars,lines,drawn);
