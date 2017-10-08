@@ -92,7 +92,9 @@ ioptronHC8406::ioptronHC8406()
     setVersion(1, 1);
     //setDeviceName("ioptronHC8406");
     setLX200Capability(LX200_HAS_FOCUS);
-    SetTelescopeCapability(TELESCOPE_CAN_PARK | TELESCOPE_CAN_SYNC | TELESCOPE_CAN_GOTO | TELESCOPE_CAN_ABORT | TELESCOPE_HAS_TIME | TELESCOPE_HAS_LOCATION | TELESCOPE_HAS_TRACK_MODE);
+    SetTelescopeCapability(TELESCOPE_CAN_PARK | TELESCOPE_CAN_SYNC | TELESCOPE_CAN_GOTO | 
+                      TELESCOPE_CAN_ABORT | TELESCOPE_HAS_TIME | TELESCOPE_HAS_LOCATION | 
+                      TELESCOPE_HAS_TRACK_MODE | TELESCOPE_CAN_CONTROL_TRACK);
 }
 
 bool ioptronHC8406::initProperties()
@@ -100,15 +102,15 @@ bool ioptronHC8406::initProperties()
     LX200Generic::initProperties();
 
     // Sync Type
-    IUFillSwitch(&SyncCMRS[USE_REGULAR_SYNC], ":CM#", ":CM#", ISS_ON);
-    IUFillSwitch(&SyncCMRS[USE_CMR_SYNC], ":CMR#", ":CMR#", ISS_OFF);
-    IUFillSwitchVector(&SyncCMRSP, SyncCMRS, 2, getDeviceName(), "SYNCCMR", "Sync", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 0,IPS_IDLE);
+    IUFillSwitch(&SyncCMRS[USE_REGULAR_SYNC], "USE_REGULAR_SYNC", ":CM#", ISS_ON);
+    IUFillSwitch(&SyncCMRS[USE_CMR_SYNC], "USE_CMR_SYNC", ":CMR#", ISS_OFF);
+    IUFillSwitchVector(&SyncCMRSP, SyncCMRS, 2, getDeviceName(), "SYNC_MODE", "Sync", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 0,IPS_IDLE);
 
     // Cursor move Guiding/Center
-    IUFillSwitch(&CursorMoveSpeedS[USE_GUIDE_SPEED], "Guide Speed", "", ISS_ON);
-    IUFillSwitch(&CursorMoveSpeedS[USE_CENTERING_SPEED], "Centering Speed", "", ISS_OFF);
+    IUFillSwitch(&CursorMoveSpeedS[USE_GUIDE_SPEED],"USE_GUIDE_SPEED", "Guide Speed", ISS_ON);
+    IUFillSwitch(&CursorMoveSpeedS[USE_CENTERING_SPEED],"USE_CENTERING_SPEED", "Centering Speed", ISS_OFF);
     IUFillSwitchVector(&CursorMoveSpeedSP, CursorMoveSpeedS, 2, getDeviceName(),
-	 "MOVE_SPEED", "Cursor Move Speed", MOTION_TAB, IP_RO, ISR_1OFMANY, 0,IPS_IDLE);
+	 "CURSOR_MOVE_MODE", "Cursor Move Speed", MOTION_TAB, IP_RO, ISR_1OFMANY, 0,IPS_IDLE);
 
     // Guide Rate
     IUFillSwitch(&GuideRateS[0], "0.25x", "", ISS_OFF);
@@ -459,7 +461,7 @@ int ioptronHC8406::ioptronHC8406SyncCMR(char *matchedObject)
     int nbytes_write = 0;
     int nbytes_read  = 0;
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD <%s>", "#:CMR#");
+    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD <%s>", ":CMR#");
 
     if ((error_type = tty_write_string(PortFD, ":CMR#", &nbytes_write)) != TTY_OK)
         return error_type;
@@ -722,7 +724,7 @@ bool ioptronHC8406::SetTrackEnabled(bool enabled)
 {
     DEBUGF(INDI::Logger::DBG_WARNING, "<SetTrackEnabled> NOT A CMD IN HC8406 command set: %d",enabled);
 
-    return false;
+    return true;
 }
 
 bool ioptronHC8406::SetTrackMode(uint8_t mode)
