@@ -845,7 +845,7 @@ bool ioptronHC8406::ReadScopeStatus()
     }
     else if (TrackState == SCOPE_PARKING)
     {
-        if (isSlewComplete())
+        if (true || isSlewComplete()) // isSlewComplete() not work because is base on actual RA/DEC vs target RA/DEC. DO ALWAYS
         {
             SetParked(true);
 	    TrackState = SCOPE_PARKED;
