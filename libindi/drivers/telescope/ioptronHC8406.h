@@ -44,7 +44,7 @@ class ioptronHC8406 : public LX200Generic
 
     virtual bool ReadScopeStatus() override;
 
-
+    virtual bool SetTrackEnabled(bool enabled)  override;
     virtual bool SetTrackMode(uint8_t mode) override;
     virtual bool Goto(double, double) override;
     virtual bool Sync(double ra, double dec) override;

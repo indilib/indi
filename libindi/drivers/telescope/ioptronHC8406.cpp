@@ -86,13 +86,13 @@ socat  -v  PTY,link=/tmp/serial,wait-slave,raw /dev/ttyUSB0,raw
 #define ioptronHC8406_TIMEOUT 1 /* timeout */
 #define ioptronHC8406_CALDATE_RESULT "                                #                 " /* result of calendar date */
 
+
 ioptronHC8406::ioptronHC8406()
 {
     setVersion(1, 1);
     //setDeviceName("ioptronHC8406");
     setLX200Capability(LX200_HAS_FOCUS);
     SetTelescopeCapability(TELESCOPE_CAN_PARK | TELESCOPE_CAN_SYNC | TELESCOPE_CAN_GOTO | TELESCOPE_CAN_ABORT | TELESCOPE_HAS_TIME | TELESCOPE_HAS_LOCATION | TELESCOPE_HAS_TRACK_MODE);
-
 }
 
 bool ioptronHC8406::initProperties()
@@ -117,7 +117,7 @@ bool ioptronHC8406::initProperties()
     IUFillSwitchVector(&GuideRateSP, GuideRateS, 3, getDeviceName(),
           "GUIDE_RATE", "Guide Speed", MOTION_TAB, IP_RW, ISR_1OFMANY, 0,IPS_IDLE);
 
-    // Guide Rate
+    // Center Rate
     IUFillSwitch(&CenterRateS[0], "12x", "", ISS_OFF);
     IUFillSwitch(&CenterRateS[1], "64x", "", ISS_ON);
     IUFillSwitch(&CenterRateS[2], "600x", "", ISS_OFF);
@@ -319,7 +319,7 @@ bool ioptronHC8406::isSlewComplete()
     /* HC8406 doesn't have :SE# or :SE? command, thus we check if the slew is 
        completed comparing targetRA/DEC with actual RA/DEC */
 
-    float tolerance=30/3600.;  // 5 arcsec
+    float tolerance=5/3600.;  // 5 arcsec
 
     if (fabs(currentRA-targetRA) <= tolerance && fabs(currentDEC-targetDEC) <= tolerance) 
 	return true;
@@ -329,8 +329,8 @@ bool ioptronHC8406::isSlewComplete()
 
 void ioptronHC8406::getBasicData()
 {
-//TBD
     UnPark();
+    checkLX200Format(PortFD);
     sendScopeLocation();
     sendScopeTime();
 }
@@ -716,6 +716,13 @@ int ioptronHC8406::setioptronHC8406StandardProcedure(int fd, const char *data)
     DEBUGF(DBG_SCOPE, "CMD <%s> successful.", data);
 
     return 0;
+}
+
+bool ioptronHC8406::SetTrackEnabled(bool enabled)
+{
+    DEBUGF(INDI::Logger::DBG_WARNING, "<SetTrackEnabled> NOT A CMD IN HC8406 command set: %d",enabled);
+
+    return false;
 }
 
 bool ioptronHC8406::SetTrackMode(uint8_t mode)
@@ -1119,7 +1126,8 @@ void ioptronHC8406::sendScopeTime()
     time_epoch = mktime(&ltm);
 
     // Convert to TimeT
-    time_epoch -= (int)(atof(TimeT[1].text) * 3600.0);
+    //time_epoch -= (int)(atof(TimeT[1].text) * 3600.0);
+    time_epoch -= (int)(lx200_utc_offset * 3600.0);
 
     // Get UTC (we're using localtime_r, but since we shifted time_epoch above by UTCOffset, we should be getting the real UTC time
     localtime_r(&time_epoch, &utm);
