@@ -321,7 +321,7 @@ bool ioptronHC8406::isSlewComplete()
     /* HC8406 doesn't have :SE# or :SE? command, thus we check if the slew is 
        completed comparing targetRA/DEC with actual RA/DEC */
 
-    float tolerance=5/3600.;  // 5 arcsec
+    float tolerance=1/3600.;  // 5 arcsec
 
     if (fabs(currentRA-targetRA) <= tolerance && fabs(currentDEC-targetDEC) <= tolerance) 
 	return true;
@@ -729,8 +729,13 @@ int ioptronHC8406::setioptronHC8406StandardProcedure(int fd, const char *data)
 
 bool ioptronHC8406::SetTrackEnabled(bool enabled)
 {
-    DEBUGF(INDI::Logger::DBG_WARNING, "<SetTrackEnabled> NOT A CMD IN HC8406 command set: %d",enabled);
-    return true;
+    if (enabled) {
+     DEBUG(INDI::Logger::DBG_WARNING, "<SetTrackEnabled> START TRACKING AT SIDERAL SPEED (:RT2#)");
+     return setioptronHC8406TrackMode(0);
+    } else {
+     DEBUG(INDI::Logger::DBG_WARNING, "<SetTrackEnabled> STOP TRACKING (:RT9#)");
+     return setioptronHC8406TrackMode(3);
+    }
 }
 
 bool ioptronHC8406::SetTrackMode(uint8_t mode)
@@ -765,7 +770,7 @@ int ioptronHC8406::setioptronHC8406TrackMode(int mode)
     if ((error_type = tty_write_string(PortFD, cmd, &nbytes_write)) != TTY_OK)
         return error_type;
 
-    return 0;
+    return 1;
 }
 
 bool ioptronHC8406::Park()
@@ -832,20 +837,22 @@ bool ioptronHC8406::ReadScopeStatus()
         // Check if LX200 is done slewing
         if (isSlewComplete())
         {
+            usleep(1000000); //Wait until :MS# finish
             if (IUFindSwitch(&CoordSP, "SYNC")->s == ISS_ON || IUFindSwitch(&CoordSP, "SLEW")->s == ISS_ON)  {
-		    SetTrackEnabled(false);
 	            TrackState = SCOPE_IDLE;
 	            DEBUG(INDI::Logger::DBG_WARNING, "Slew is complete. IDLE");
+		    SetTrackEnabled(false);
 	    } else {
-		    SetTrackEnabled(true);
 	            TrackState = SCOPE_TRACKING;
 	            DEBUG(INDI::Logger::DBG_WARNING, "Slew is complete. TRACKING");
+		    SetTrackEnabled(true);
 	    }
         }
     }
     else if (TrackState == SCOPE_PARKING)
     {
-        if (true || isSlewComplete()) // isSlewComplete() not work because is base on actual RA/DEC vs target RA/DEC. DO ALWAYS
+        // isSlewComplete() not work because is base on actual RA/DEC vs target RA/DEC. DO ALWAYS
+        if (true || isSlewComplete()) 
         {
             SetParked(true);
 	    TrackState = SCOPE_PARKED;
