@@ -94,6 +94,7 @@ ioptronHC8406::ioptronHC8406()
     SetTelescopeCapability(TELESCOPE_CAN_PARK | TELESCOPE_CAN_SYNC | TELESCOPE_CAN_GOTO | 
                       TELESCOPE_CAN_ABORT | TELESCOPE_HAS_TIME | TELESCOPE_HAS_LOCATION | 
                       TELESCOPE_HAS_TRACK_MODE | TELESCOPE_CAN_CONTROL_TRACK);
+
 }
 
 bool ioptronHC8406::initProperties()
@@ -150,6 +151,7 @@ bool ioptronHC8406::updateProperties()
         defineSwitch(&CenterRateSP);
         //defineSwitch(&SlewRateSP); //NOT WORK!!
         defineSwitch(&CursorMoveSpeedSP);
+        ioptronHC8406Init();
     }
     else
     {
@@ -331,10 +333,20 @@ bool ioptronHC8406::isSlewComplete()
 
 void ioptronHC8406::getBasicData()
 {
-    UnPark();
     checkLX200Format(PortFD);
     sendScopeLocation();
     sendScopeTime();
+}
+
+void ioptronHC8406::ioptronHC8406Init()
+{
+    //This mount doesn't report anything so we send some CMD
+    //just to get syncronize with the GUI at start time
+    DEBUG(INDI::Logger::DBG_WARNING, "Sending init CMDs. Unpark, Stop tracking");
+    UnPark();
+    TrackState = SCOPE_IDLE;
+    SetTrackEnabled(false);    
+    setioptronHC8406GuideRate(1);
 }
 
 bool ioptronHC8406::Goto(double r, double d)
@@ -703,7 +715,7 @@ int ioptronHC8406::setioptronHC8406StandardProcedure(int fd, const char *data)
 
     error_type = tty_read(fd, bool_return, 1, 5, &nbytes_read);
 
-    // JM: Hack from Jon in the INDI forums to fix longitude/latitude settings failure on ioptronHC8406
+    // JM: Hack from Jon in the INDI forums to fix longitude/latitude settings failure 
     
     usleep(10000);
     tcflush(fd, TCIFLUSH);
