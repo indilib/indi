@@ -355,7 +355,7 @@ bool FLICFW::GetFilterNames(const char *groupName)
     char filterLabel[MAXINDILABEL];
 
     if (FilterNameT != NULL)
-        delete FilterNameT;
+        delete [] FilterNameT;
 
     FilterNameT = new IText[FLIFilter.count];
 

@@ -22,13 +22,6 @@
 #include <cstring>
 #include "indilogger.h"
 
-// Deprecated
-INDI::FilterInterface::FilterInterface()
-{
-    FilterNameTP = new ITextVectorProperty;
-    FilterNameT  = nullptr;
-}
-
 INDI::FilterInterface::FilterInterface(DefaultDevice *defaultDevice) : m_defaultDevice(defaultDevice)
 {
     FilterNameTP = new ITextVectorProperty;
@@ -53,6 +46,8 @@ bool INDI::FilterInterface::updateProperties()
     {
         // Define the Filter Slot and name properties
         m_defaultDevice->defineNumber(&FilterSlotNP);
+        if (FilterNameT == nullptr)
+            GetFilterNames(FILTER_TAB);
         if (FilterNameT != nullptr)
             m_defaultDevice->defineText(FilterNameTP);
     }
@@ -130,65 +125,13 @@ bool INDI::FilterInterface::processText(const char *dev, const char *name, char 
     return false;
 }
 
-// Deprecated
-void INDI::FilterInterface::initFilterProperties(const char *deviceName, const char *groupName)
+bool INDI::FilterInterface::saveConfigItems(FILE *fp)
 {
-    IUFillNumber(&FilterSlotN[0], "FILTER_SLOT_VALUE", "Filter", "%3.0f", 1.0, 12.0, 1.0, 1.0);
-    IUFillNumberVector(&FilterSlotNP, FilterSlotN, 1, deviceName, "FILTER_SLOT", "Filter Slot", groupName, IP_RW, 60,
-                       IPS_IDLE);
-}
+    IUSaveConfigNumber(fp, &FilterSlotNP);
+    if (FilterNameTP)
+        IUSaveConfigText(fp, FilterNameTP);
 
-// Deprecated
-void INDI::FilterInterface::processFilterSlot(const char *deviceName, double values[], char *names[])
-{
-    TargetFilter = values[0];
-
-    INumber *np = IUFindNumber(&FilterSlotNP, names[0]);
-
-    if (!np)
-    {
-        FilterSlotNP.s = IPS_ALERT;
-        DEBUGFDEVICE(deviceName, Logger::DBG_ERROR, "Unknown error. %s is not a member of %s property.", names[0],
-                     FilterSlotNP.name);
-        IDSetNumber(&FilterSlotNP, nullptr);
-        return;
-    }
-
-    if (TargetFilter < FilterSlotN[0].min || TargetFilter > FilterSlotN[0].max)
-    {
-        FilterSlotNP.s = IPS_ALERT;
-        DEBUGFDEVICE(deviceName, Logger::DBG_ERROR, "Error: valid range of filter is from %g to %g", FilterSlotN[0].min,
-                     FilterSlotN[0].max);
-        IDSetNumber(&FilterSlotNP, nullptr);
-        return;
-    }
-
-    FilterSlotNP.s = IPS_BUSY;
-    DEBUGFDEVICE(deviceName, Logger::DBG_SESSION, "Setting current filter to slot %d", TargetFilter);
-
-    if (SelectFilter(TargetFilter) == false)
-    {
-        FilterSlotNP.s = IPS_ALERT;
-    }
-
-    IDSetNumber(&FilterSlotNP, nullptr);
-    return;
-}
-
-// Deprecated
-void INDI::FilterInterface::processFilterName(const char *deviceName, char *texts[], char *names[], int n)
-{
-    FilterNameTP->s = IPS_OK;
-    IUUpdateText(FilterNameTP, texts, names, n);
-
-    if (SetFilterNames() == true)
-        IDSetText(FilterNameTP, nullptr);
-    else
-    {
-        FilterNameTP->s = IPS_ALERT;
-        DEBUGDEVICE(deviceName, Logger::DBG_ERROR, "Error updating names of filters.");
-        IDSetText(FilterNameTP, nullptr);
-    }
+    return true;
 }
 
 void INDI::FilterInterface::SelectFilterDone(int f)

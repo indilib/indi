@@ -30,29 +30,26 @@
 
 class ASIWHEEL : public INDI::FilterWheel
 {
-  private:
-    int fw_id;
-
   public:
     ASIWHEEL(int id, EFW_INFO info, bool enumerate);
     ~ASIWHEEL();
 
-    virtual void debugTriggered(bool enable) override;
-    virtual void simulationTriggered(bool enable) override;
+    char name[MAXINDIDEVICE];
+
+  protected:
 
     virtual bool Connect() override;
     virtual bool Disconnect() override;
     virtual const char *getDefaultName() override;
 
-    virtual bool initProperties() override;
-
-    virtual void ISGetProperties(const char *dev) override;
+    virtual bool initProperties() override;    
 
     virtual int QueryFilter() override;
     virtual bool SelectFilter(int) override;
     virtual void TimerHit() override;
     virtual bool SetFilterNames() override { return true; }
-    virtual bool GetFilterNames(const char *) override;
+    virtual bool GetFilterNames(const char *) override;    
 
-    char name[100];
+private:
+  int fw_id;
 };

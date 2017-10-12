@@ -71,7 +71,7 @@ class CCDSim : public INDI::CCD, public INDI::FilterInterface
 
     // Filter
     bool SelectFilter(int);
-    bool SetFilterNames() { return true; }
+    bool SetFilterNames();
     bool GetFilterNames(const char *groupName);
     int QueryFilter();
 

@@ -271,7 +271,7 @@ int SBIGCCD::CloseDevice()
 
 //==========================================================================
 
-SBIGCCD::SBIGCCD()
+SBIGCCD::SBIGCCD() : FilterInterface(this)
 {
     InitVars();
     int res = OpenDriver();
@@ -451,7 +451,7 @@ bool SBIGCCD::initProperties()
 
     IUSaveText(&BayerT[2], "BGGR");
 
-    initFilterProperties(getDeviceName(), FILTER_TAB);
+    INDI::FilterInterface::initProperties(FILTER_TAB);
 
     FilterSlotN[0].min = 1;
     FilterSlotN[0].max = MAX_CFW_TYPES;
@@ -555,7 +555,7 @@ bool SBIGCCD::ISNewText(const char *dev, const char *name, char *texts[], char *
         }
         if (strcmp(name, FilterNameTP->name) == 0)
         {
-            processFilterName(dev, texts, names, n);
+            INDI::FilterInterface::processText(dev, name, texts, names, n);
             return true;
         }
     }
@@ -653,7 +653,7 @@ bool SBIGCCD::ISNewNumber(const char *dev, const char *name, double values[], ch
     {
         if (strcmp(name, FilterSlotNP.name) == 0)
         {
-            processFilterSlot(dev, values, names);
+            INDI::FilterInterface::processNumber(dev, name, values, names, n);
             return true;
         }
     }
@@ -1280,20 +1280,15 @@ bool SBIGCCD::grabImage(CCDChip *targetChip)
     return true;
 }
 
-void SBIGCCD::addFITSKeywords(fitsfile *fptr, CCDChip *targetChip)
-{
-    INDI::CCD::addFITSKeywords(fptr, targetChip);
-    int status = 0;
-    fits_update_key_s(fptr, TSTRING, "INSTRUME", ProductInfoT[0].text, "CCD Name", &status);
-}
-
 bool SBIGCCD::saveConfigItems(FILE *fp)
 {
     INDI::CCD::saveConfigItems(fp);
     IUSaveConfigSwitch(fp, &PortSP);
     IUSaveConfigText(fp, &IpTP);
-    IUSaveConfigNumber(fp, &FilterSlotNP);
-    IUSaveConfigText(fp, FilterNameTP);
+
+    if (FilterNameT)
+        INDI::FilterInterface::saveConfigItems(fp);
+
     IUSaveConfigSwitch(fp, &FilterTypeSP);
     return true;
 }
@@ -2193,7 +2188,7 @@ bool SBIGCCD::GetFilterNames(const char *groupName)
     int MaxFilter = FilterSlotN[0].max;
     if (FilterNameT != NULL)
     {
-        delete FilterNameT;
+        delete [] FilterNameT;
     }
     FilterNameT = new IText[MaxFilter];
     for (int i = 0; i < MaxFilter; i++)

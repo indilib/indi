@@ -235,7 +235,7 @@ void ISSnoopDevice(XMLEle *root)
     }
 }
 
-QHYCCD::QHYCCD(const char *name)
+QHYCCD::QHYCCD(const char *name) : FilterInterface(this)
 {
     // Filter Limits, can we call QHY API to find filter maximum?
     FilterSlotN[0].min = 1;
@@ -270,7 +270,7 @@ const char *QHYCCD::getDefaultName()
 bool QHYCCD::initProperties()
 {
     INDI::CCD::initProperties();
-    initFilterProperties(getDeviceName(), FILTER_TAB);
+    INDI::FilterInterface::initProperties(FILTER_TAB);
 
     FilterSlotN[0].min = 1;
     FilterSlotN[0].max = 9;
@@ -1240,7 +1240,7 @@ bool QHYCCD::GetFilterNames(const char *groupName)
     int MaxFilter = FilterSlotN[0].max;
 
     if (FilterNameT != NULL)
-        delete FilterNameT;
+        delete [] FilterNameT;
 
     FilterNameT = new IText[MaxFilter];
 
@@ -1289,7 +1289,7 @@ bool QHYCCD::ISNewText(const char *dev, const char *name, char *texts[], char *n
         //  Now lets see if it's something we process here
         if (strcmp(name, FilterNameTP->name) == 0)
         {
-            processFilterName(dev, texts, names, n);
+            INDI::FilterInterface::processText(dev, name, texts, names, n);
             return true;
         }
     }
@@ -1305,7 +1305,7 @@ bool QHYCCD::ISNewNumber(const char *dev, const char *name, double values[], cha
     {
         if (strcmp(name, FilterSlotNP.name) == 0)
         {
-            processFilterSlot(getDeviceName(), values, names);
+            INDI::FilterInterface::processNumber(dev, name, values, names, n);
             return true;
         }
 
@@ -1479,8 +1479,7 @@ bool QHYCCD::saveConfigItems(FILE *fp)
 
     if (HasFilters)
     {
-        IUSaveConfigNumber(fp, &FilterSlotNP);
-        IUSaveConfigText(fp, FilterNameTP);
+        INDI::FilterInterface::saveConfigItems(fp);
     }
 
     if (HasGain)

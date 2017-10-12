@@ -77,12 +77,6 @@ class INDI::FilterInterface
 
   protected:
     /**
-     * @brief FilterInterface Default constructor
-     * @deprecated Use FilterInterface(INDI::DefaultDevice *defaultDevice)
-     */
-    FilterInterface();
-
-    /**
      * @brief FilterInterface Initiailize Filter Interface
      * @param defaultDevice default device that owns the interface
      */
@@ -109,34 +103,11 @@ class INDI::FilterInterface
     bool processText(const char *dev, const char *name, char *texts[], char *names[], int n);
 
     /**
-     * \brief Initilize filter wheel properties. It is recommended to call this function within
-     * initProperties() of your primary device
-     * \param deviceName Name of the primary device
-     * \param groupName Group or tab name to be used to define filter wheel properties.
-     * @deprecated Use initProperties()
+     * @brief saveConfigItems save Filter Names in config file
+     * @param fp pointer to config file
+     * @return Always return true
      */
-    void initFilterProperties(const char *deviceName, const char *groupName);
-
-    /**
-     * \brief Process client request to change filter position. Call this function in the
-     * filter wheel implementation class ISNewNumber function.
-     * \param deviceName Name of the primary device
-     * \param values values from ISNewNumber().
-     * \param names names from ISNewNumber();
-     * @deprecated Use processNumber
-     */
-    void processFilterSlot(const char *deviceName, double values[], char *names[]);
-
-    /**
-     * \brief Process client request to change filter name(s). Call this function in the filter
-     * wheel implementation class ISNewText() function.
-     * \param deviceName Name of the primary device
-     * \param texts values from ISNewText().
-     * \param names names from ISNewText();
-     * \param n n from ISNewtext();
-     * @deprecated use processText
-     */
-    void processFilterName(const char *deviceName, char *texts[], char *names[], int n);
+    bool saveConfigItems(FILE *fp);
 
     //  A number vector for filter slot
     INumberVectorProperty FilterSlotNP;

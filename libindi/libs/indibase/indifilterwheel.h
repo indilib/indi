@@ -34,7 +34,7 @@ class INDI::FilterWheel : public INDI::DefaultDevice, public INDI::FilterInterfa
 {
   protected:
     FilterWheel();
-    virtual ~FilterWheel();
+    virtual ~FilterWheel() = default;
 
   public:
     /**

@@ -585,7 +585,7 @@ bool XAGYLWheel::GetFilterNames(const char *groupName)
     int MaxFilter = FilterSlotN[0].max;
 
     if (FilterNameT != nullptr)
-        delete FilterNameT;
+        delete [] FilterNameT;
 
     FilterNameT = new IText[MaxFilter];
 

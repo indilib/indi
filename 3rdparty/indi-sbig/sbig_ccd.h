@@ -145,7 +145,6 @@ class SBIGCCD : public INDI::CCD, public INDI::FilterInterface
     virtual bool UpdateGuiderFrame(int x, int y, int w, int h) override;
     virtual bool UpdateCCDBin(int binx, int biny) override;
     virtual bool UpdateGuiderBin(int binx, int biny) override;
-    virtual void addFITSKeywords(fitsfile *fptr, CCDChip *targetChip) override;
     virtual bool UpdateCCDFrameType(CCDChip::CCD_FRAME fType) override;
     virtual bool saveConfigItems(FILE *fp) override;
     virtual IPState GuideNorth(float) override;

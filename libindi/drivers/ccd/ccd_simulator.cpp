@@ -67,7 +67,7 @@ void ISSnoopDevice(XMLEle *root)
     ccdsim->ISSnoopDevice(root);
 }
 
-CCDSim::CCDSim()
+CCDSim::CCDSim() : INDI::FilterInterface(this)
 {
     uint32_t cap = 0;
 
@@ -189,7 +189,7 @@ bool CCDSim::initProperties()
     IDSnoopDevice(ActiveDeviceT[0].text, "EQUATORIAL_PE");
     IDSnoopDevice(ActiveDeviceT[1].text, "FWHM");
 
-    initFilterProperties(getDeviceName(), FILTER_TAB);
+    INDI::FilterInterface::initProperties(FILTER_TAB);
 
     FilterSlotN[0].min = 1;
     FilterSlotN[0].max = 8;
@@ -230,17 +230,14 @@ bool CCDSim::updateProperties()
         }
 
         // Define the Filter Slot and name properties
-        defineNumber(&FilterSlotNP);
-        if (FilterNameT != nullptr)
-            defineText(FilterNameTP);
+        INDI::FilterInterface::updateProperties();
     }
     else
     {
         if (HasCooler())
             deleteProperty(CoolerSP.name);
 
-        deleteProperty(FilterSlotNP.name);
-        deleteProperty(FilterNameTP->name);
+        INDI::FilterInterface::updateProperties();
     }
 
     return true;
@@ -1008,7 +1005,7 @@ bool CCDSim::ISNewText(const char *dev, const char *name, char *texts[], char *n
         //  Now lets see if it's something we process here
         if (strcmp(name, FilterNameTP->name) == 0)
         {
-            processFilterName(dev, texts, names, n);
+            INDI::FilterInterface::processText(dev, name, texts, names, n);
             return true;
         }
     }
@@ -1042,7 +1039,7 @@ bool CCDSim::ISNewNumber(const char *dev, const char *name, double values[], cha
 
         if (strcmp(name, FilterSlotNP.name) == 0)
         {
-            processFilterSlot(getDeviceName(), values, names);
+            INDI::FilterInterface::processNumber(dev, name, values, names, n);
             return true;
         }
     }
@@ -1154,8 +1151,13 @@ bool CCDSim::ISSnoopDevice(XMLEle *root)
 
 bool CCDSim::saveConfigItems(FILE *fp)
 {
+    // Save CCD Config
     INDI::CCD::saveConfigItems(fp);
 
+    // Save Filter Wheel Config
+    INDI::FilterInterface::saveConfigItems(fp);
+
+    // Save CCD Simulator Config
     IUSaveConfigNumber(fp, SimulatorSettingsNV);
     IUSaveConfigSwitch(fp, TimeFactorSV);
 
@@ -1178,7 +1180,7 @@ bool CCDSim::GetFilterNames(const char *groupName)
     const char *filterDesignation[8] = { "Red", "Green", "Blue", "H_Alpha", "SII", "OIII", "LPR", "Luminosity" };
 
     if (FilterNameT != nullptr)
-        delete FilterNameT;
+        delete [] FilterNameT;
 
     FilterNameT = new IText[MaxFilter];
 
@@ -1198,4 +1200,10 @@ bool CCDSim::GetFilterNames(const char *groupName)
 int CCDSim::QueryFilter()
 {
     return CurrentFilter;
+}
+
+bool CCDSim::SetFilterNames()
+{
+    saveConfig();
+    return true;
 }

@@ -199,7 +199,7 @@ bool TruTech::GetFilterNames(const char *groupName)
     const char *filterDesignation[8] = { "Red", "Green", "Blue", "H_Alpha", "SII", "OIII", "LPR", "Luminosity" };
 
     if (FilterNameT != nullptr)
-        delete FilterNameT;
+        delete [] FilterNameT;
 
     FilterNameT = new IText[MaxFilter];
 
