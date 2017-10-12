@@ -66,7 +66,7 @@ extern char *me;
 #define LX200_SYNC  1
 
 /* Simulation Parameters */
-#define SLEWRATE 1        /* slew rate, degrees/s */
+#define SLEWRATE 5        /* slew rate, degrees/s */
 #define SIDRATE  0.004178 /* sidereal rate, degrees/s */
 
 /* send client definitions of all properties */

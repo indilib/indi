@@ -22,6 +22,8 @@
 #include <indicom.h>
 
 #include <termios.h>
+#include <cmath>
+#include <cstring>
 
 extern int DBG_SCOPE_STATUS;
 extern int DBG_COMM;

@@ -30,8 +30,10 @@
 #include <fitsio.h>
 
 #include <libnova/julian_day.h>
-#include <libnova/ln_types.h>
 #include <libnova/precession.h>
+#include <libnova/airmass.h>
+#include <libnova/transform.h>
+#include <libnova/ln_types.h>
 
 #include <cmath>
 #include <regex>
@@ -390,8 +392,13 @@ INDI::CCD::CCD()
 
     RA              = std::numeric_limits<double>::quiet_NaN();
     Dec             = std::numeric_limits<double>::quiet_NaN();
+    J2000RA         = std::numeric_limits<double>::quiet_NaN();
+    J2000DE         = std::numeric_limits<double>::quiet_NaN();
     MPSAS           = std::numeric_limits<double>::quiet_NaN();
     RotatorAngle    = std::numeric_limits<double>::quiet_NaN();
+    Airmass         = std::numeric_limits<double>::quiet_NaN();
+    Latitude        = std::numeric_limits<double>::quiet_NaN();
+    Longitude       = std::numeric_limits<double>::quiet_NaN();
     primaryAperture = primaryFocalLength = guiderAperture = guiderFocalLength - 1;
 }
 
@@ -666,12 +673,21 @@ bool INDI::CCD::initProperties()
                        60, IPS_IDLE);
 
     // Snoop properties of interest
-    IDSnoopDevice(ActiveDeviceT[0].text, "EQUATORIAL_EOD_COORD");
-    IDSnoopDevice(ActiveDeviceT[1].text, "ABS_ROTATOR_ANGLE");
-    IDSnoopDevice(ActiveDeviceT[0].text, "TELESCOPE_INFO");
-    IDSnoopDevice(ActiveDeviceT[2].text, "FILTER_SLOT");
-    IDSnoopDevice(ActiveDeviceT[2].text, "FILTER_NAME");
-    IDSnoopDevice(ActiveDeviceT[3].text, "SKY_QUALITY");
+
+    // Snoop mount
+    IDSnoopDevice(ActiveDeviceT[SNOOP_MOUNT].text, "EQUATORIAL_EOD_COORD");
+    IDSnoopDevice(ActiveDeviceT[SNOOP_MOUNT].text, "TELESCOPE_INFO");
+    IDSnoopDevice(ActiveDeviceT[SNOOP_MOUNT].text, "GEOGRAPHIC_COORD");
+
+    // Snoop Rotator
+    IDSnoopDevice(ActiveDeviceT[SNOOP_ROTATOR].text, "ABS_ROTATOR_ANGLE");
+
+    // Snoop Filter Wheel
+    IDSnoopDevice(ActiveDeviceT[SNOOP_FILTER_WHEEL].text, "FILTER_SLOT");
+    IDSnoopDevice(ActiveDeviceT[SNOOP_FILTER_WHEEL].text, "FILTER_NAME");
+
+    // Snoop Sky Quality Meter
+    IDSnoopDevice(ActiveDeviceT[SNOOP_SQM].text, "SKY_QUALITY");
 
     // Guider Interface
     initGuiderProperties(getDeviceName(), GUIDE_CONTROL_TAB);
@@ -934,6 +950,24 @@ bool INDI::CCD::ISSnoopDevice(XMLEle *root)
             }
         }
     }
+    else if (!strcmp(propName, "GEOGRAPHIC_COORD"))
+    {
+        for (ep = nextXMLEle(root, 1); ep != nullptr; ep = nextXMLEle(root, 0))
+        {
+            const char *name = findXMLAttValu(ep, "name");
+
+            if (!strcmp(name, "LONG"))
+            {
+                Longitude = atof(pcdataXMLEle(ep));
+                if (Longitude > 180)
+                    Longitude -= 360;
+            }
+            else if (!strcmp(name, "LAT"))
+            {
+                Latitude = atof(pcdataXMLEle(ep));
+            }
+        }
+    }
 
     return INDI::DefaultDevice::ISSnoopDevice(root);
 }
@@ -952,34 +986,40 @@ bool INDI::CCD::ISNewText(const char *dev, const char *name, char *texts[], char
             IDSetText(&ActiveDeviceTP, nullptr);
 
             // Update the property name!
-            strncpy(EqNP.device, ActiveDeviceT[0].text, MAXINDIDEVICE);
-            if (strlen(ActiveDeviceT[2].text) > 0)
+            strncpy(EqNP.device, ActiveDeviceT[SNOOP_MOUNT].text, MAXINDIDEVICE);
+            if (strlen(ActiveDeviceT[SNOOP_MOUNT].text) > 0)
             {
-                IDSnoopDevice(ActiveDeviceT[0].text, "EQUATORIAL_EOD_COORD");
-                IDSnoopDevice(ActiveDeviceT[0].text, "TELESCOPE_INFO");
+                IDSnoopDevice(ActiveDeviceT[SNOOP_MOUNT].text, "EQUATORIAL_EOD_COORD");
+                IDSnoopDevice(ActiveDeviceT[SNOOP_MOUNT].text, "TELESCOPE_INFO");
+                IDSnoopDevice(ActiveDeviceT[SNOOP_MOUNT].text, "GEOGRAPHIC_COORD");
             }
             else
             {
                 RA = std::numeric_limits<double>::quiet_NaN();
                 Dec = std::numeric_limits<double>::quiet_NaN();
+                J2000RA = std::numeric_limits<double>::quiet_NaN();
+                J2000DE = std::numeric_limits<double>::quiet_NaN();
+                Latitude = std::numeric_limits<double>::quiet_NaN();
+                Longitude = std::numeric_limits<double>::quiet_NaN();
+                Airmass = std::numeric_limits<double>::quiet_NaN();
             }
 
-            if (strlen(ActiveDeviceT[1].text) > 0)
-                IDSnoopDevice(ActiveDeviceT[1].text, "ABS_ROTATOR_ANGLE");
+            if (strlen(ActiveDeviceT[SNOOP_ROTATOR].text) > 0)
+                IDSnoopDevice(ActiveDeviceT[SNOOP_ROTATOR].text, "ABS_ROTATOR_ANGLE");
             else
                 MPSAS = std::numeric_limits<double>::quiet_NaN();
 
-            if (strlen(ActiveDeviceT[2].text) > 0)
+            if (strlen(ActiveDeviceT[SNOOP_FILTER_WHEEL].text) > 0)
             {
-                IDSnoopDevice(ActiveDeviceT[2].text, "FILTER_SLOT");
-                IDSnoopDevice(ActiveDeviceT[2].text, "FILTER_NAME");
+                IDSnoopDevice(ActiveDeviceT[SNOOP_FILTER_WHEEL].text, "FILTER_SLOT");
+                IDSnoopDevice(ActiveDeviceT[SNOOP_FILTER_WHEEL].text, "FILTER_NAME");
             }
             else
             {
                 CurrentFilterSlot = -1;
             }
 
-            IDSnoopDevice(ActiveDeviceT[3].text, "SKY_QUALITY");
+            IDSnoopDevice(ActiveDeviceT[SNOOP_SQM].text, "SKY_QUALITY");
 
             // Tell children active devices was updated.
             activeDevicesUpdated();
@@ -1052,7 +1092,34 @@ bool INDI::CCD::ISNewNumber(const char *dev, const char *name, double values[], 
             }
 
             if (StartExposure(ExposureTime))
+            {
+                if (PrimaryCCD.getFrameType() == CCDChip::LIGHT_FRAME && !std::isnan(RA) && !std::isnan(Dec))
+                {
+                    ln_equ_posn epochPos { 0, 0 }, J2000Pos { 0, 0 };
+                    epochPos.ra  = RA * 15.0;
+                    epochPos.dec = Dec;
+
+                    // Convert from JNow to J2000
+                    ln_get_equ_prec2(&epochPos, ln_get_julian_from_sys(), JD2000, &J2000Pos);
+
+                    J2000RA = J2000Pos.ra / 15.0;
+                    J2000DE = J2000Pos.dec;
+
+                    if (!std::isnan(Latitude) && !std::isnan(Longitude))
+                    {
+                        // Horizontal Coords
+                        ln_hrz_posn horizontalPos;
+                        ln_lnlat_posn observer;
+                        observer.lat = Latitude;
+                        observer.lng = Longitude;
+
+                        ln_get_hrz_from_equ(&epochPos, &observer, ln_get_julian_from_sys(), &horizontalPos);
+                        Airmass = ln_get_airmass(horizontalPos.alt, 750);
+                    }
+                }
+
                 PrimaryCCD.ImageExposureNP.s = IPS_BUSY;
+            }
             else
                 PrimaryCCD.ImageExposureNP.s = IPS_ALERT;
             IDSetNumber(&PrimaryCCD.ImageExposureNP, nullptr);
@@ -1795,24 +1862,14 @@ void INDI::CCD::addFITSKeywords(fitsfile *fptr, CCDChip *targetChip)
     if (!std::isnan(RotatorAngle))
     {
         fits_update_key_s(fptr, TDOUBLE, "ROTATANG", &MPSAS, "Rotator angle in degrees", &status);
-    }
+    }    
 
-    if (targetChip->getFrameType() == CCDChip::LIGHT_FRAME && !std::isnan(RA) && !std::isnan(Dec))
-    {
-        ln_equ_posn epochPos { 0, 0 }, J2000Pos { 0, 0 };
-        epochPos.ra  = RA * 15.0;
-        epochPos.dec = Dec;
-
-        // Convert from JNow to J2000
-        //TODO use exp_start instead of julian from system
-        ln_get_equ_prec2(&epochPos, ln_get_julian_from_sys(), JD2000, &J2000Pos);
-
-        double raJ2000  = J2000Pos.ra / 15.0;
-        double decJ2000 = J2000Pos.dec;
+    if (targetChip->getFrameType() == CCDChip::LIGHT_FRAME && !std::isnan(J2000RA) && !std::isnan(J2000DE))
+    {        
         char ra_str[32], de_str[32];
 
-        fs_sexa(ra_str, raJ2000, 2, 360000);
-        fs_sexa(de_str, decJ2000, 2, 360000);
+        fs_sexa(ra_str, J2000RA, 2, 360000);
+        fs_sexa(de_str, J2000DE, 2, 360000);
 
         char *raPtr = ra_str, *dePtr = de_str;
         while (*raPtr != '\0')
@@ -1828,6 +1885,9 @@ void INDI::CCD::addFITSKeywords(fitsfile *fptr, CCDChip *targetChip)
             dePtr++;
         }
 
+        if (!std::isnan(Airmass))
+            fits_update_key_s(fptr, TDOUBLE, "AIRMASS", &Airmass, "Airmass", &status);
+
         fits_update_key_s(fptr, TSTRING, "OBJCTRA", ra_str, "Object RA", &status);
         fits_update_key_s(fptr, TSTRING, "OBJCTDEC", de_str, "Object DEC", &status);
 
@@ -1839,9 +1899,9 @@ void INDI::CCD::addFITSKeywords(fitsfile *fptr, CCDChip *targetChip)
         // Add WCS Info
         if (WorldCoordS[0].s == ISS_ON && ValidCCDRotation && primaryFocalLength != -1)
         {
-            raJ2000 *= 15;
-            fits_update_key_s(fptr, TDOUBLE, "CRVAL1", &raJ2000, "CRVAL1", &status);
-            fits_update_key_s(fptr, TDOUBLE, "CRVAL2", &decJ2000, "CRVAL1", &status);
+            double J2000RAHours = J2000RA * 15;
+            fits_update_key_s(fptr, TDOUBLE, "CRVAL1", &J2000RAHours, "CRVAL1", &status);
+            fits_update_key_s(fptr, TDOUBLE, "CRVAL2", &J2000DE, "CRVAL1", &status);
 
             char radecsys[8] = "FK5";
             char ctype1[16]  = "RA---TAN";
@@ -2476,9 +2536,36 @@ bool INDI::CCD::ExposureComplete(CCDChip *targetChip)
         if (targetChip == &PrimaryCCD)
         {
             PrimaryCCD.ImageExposureN[0].value = ExposureTime;
-            PrimaryCCD.ImageExposureNP.s       = IPS_BUSY;
             if (StartExposure(ExposureTime))
+            {
+                // Record information required later in creation of FITS header
+                if (targetChip->getFrameType() == CCDChip::LIGHT_FRAME && !std::isnan(RA) && !std::isnan(Dec))
+                {
+                    ln_equ_posn epochPos { 0, 0 }, J2000Pos { 0, 0 };
+                    epochPos.ra  = RA * 15.0;
+                    epochPos.dec = Dec;
+
+                    // Convert from JNow to J2000
+                    ln_get_equ_prec2(&epochPos, ln_get_julian_from_sys(), JD2000, &J2000Pos);
+
+                    J2000RA = J2000Pos.ra / 15.0;
+                    J2000DE = J2000Pos.dec;
+
+                    if (!std::isnan(Latitude) && !std::isnan(Longitude))
+                    {
+                        // Horizontal Coords
+                        ln_hrz_posn horizontalPos;
+                        ln_lnlat_posn observer;
+                        observer.lat = Latitude;
+                        observer.lng = Longitude;
+
+                        ln_get_hrz_from_equ(&epochPos, &observer, ln_get_julian_from_sys(), &horizontalPos);
+                        Airmass = ln_get_airmass(horizontalPos.alt, 750);
+                    }
+                }
+
                 PrimaryCCD.ImageExposureNP.s = IPS_BUSY;
+            }
             else
             {
                 DEBUG(INDI::Logger::DBG_DEBUG, "Autoloop: Primary CCD Exposure Error!");
