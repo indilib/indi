@@ -2176,7 +2176,7 @@ bool SBIGCCD::SelectFilter(int position)
 bool SBIGCCD::SetFilterNames()
 {
     // Cannot save it in hardware, so let's just save it in the config file to be loaded later
-    saveConfig();
+    saveConfig(true, FilterNameTP->name);
     return true;
 }
 

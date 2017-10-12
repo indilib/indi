@@ -1228,7 +1228,7 @@ bool QHYCCD::SelectFilter(int position)
 bool QHYCCD::SetFilterNames()
 {
     // Cannot save it in hardware, so let's just save it in the config file to be loaded later
-    saveConfig();
+    saveConfig(true, FilterNameTP->name);
     return true;
 }
 
@@ -1321,7 +1321,6 @@ bool QHYCCD::ISNewNumber(const char *dev, const char *name, double values[], cha
             DEBUGF(INDI::Logger::DBG_SESSION, "Current %s value %f", GainNP.name, GainN[0].value);
             GainNP.s = IPS_OK;
             IDSetNumber(&GainNP, NULL);
-            //saveConfig();
             return true;
         }
 
@@ -1332,7 +1331,7 @@ bool QHYCCD::ISNewNumber(const char *dev, const char *name, double values[], cha
             DEBUGF(INDI::Logger::DBG_SESSION, "Current %s value %f", OffsetNP.name, OffsetN[0].value);
             OffsetNP.s = IPS_OK;
             IDSetNumber(&OffsetNP, NULL);
-            saveConfig();
+            saveConfig(true, OffsetNP.name);
             return true;
         }
 
@@ -1343,7 +1342,7 @@ bool QHYCCD::ISNewNumber(const char *dev, const char *name, double values[], cha
             DEBUGF(INDI::Logger::DBG_SESSION, "Current %s value %f", SpeedNP.name, SpeedN[0].value);
             SpeedNP.s = IPS_OK;
             IDSetNumber(&SpeedNP, NULL);
-            saveConfig();
+            saveConfig(true, SpeedNP.name);
             return true;
         }
 
@@ -1354,7 +1353,7 @@ bool QHYCCD::ISNewNumber(const char *dev, const char *name, double values[], cha
             DEBUGF(INDI::Logger::DBG_SESSION, "Current %s value %f", USBTrafficNP.name, USBTrafficN[0].value);
             USBTrafficNP.s = IPS_OK;
             IDSetNumber(&USBTrafficNP, NULL);
-            saveConfig();
+            saveConfig(true, USBTrafficNP.name);
             return true;
         }
     }

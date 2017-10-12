@@ -1554,7 +1554,7 @@ bool QSICCD::SetFilterNames()
     }
     delete [] filterDesignation;
 
-    saveConfig();
+    saveConfig(true, FilterNameTP->name);
 
     return true;
 }

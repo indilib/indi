@@ -1204,6 +1204,6 @@ int CCDSim::QueryFilter()
 
 bool CCDSim::SetFilterNames()
 {
-    saveConfig();
+    saveConfig(true);
     return true;
 }
