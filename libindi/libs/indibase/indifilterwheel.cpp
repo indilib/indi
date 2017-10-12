@@ -165,7 +165,8 @@ bool INDI::FilterWheel::saveConfigItems(FILE *fp)
     DefaultDevice::saveConfigItems(fp);
 
     IUSaveConfigNumber(fp, &FilterSlotNP);
-    IUSaveConfigText(fp, FilterNameTP);
+    if (FilterNameTP)
+        IUSaveConfigText(fp, FilterNameTP);
 
     controller->saveConfigItems(fp);
 
