@@ -1,5 +1,5 @@
 /*
-    Pyrix Pyrix Focuser & Rotator
+    Optec Pyrix Rotator
     Copyright (C) 2017 Jasem Mutlaq (mutlaqja@ikarustech.com)
 
     This library is free software; you can redistribute it and/or

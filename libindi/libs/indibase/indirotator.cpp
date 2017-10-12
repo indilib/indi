@@ -23,7 +23,7 @@
 
 #include <cstring>
 
-INDI::Rotator::Rotator()
+INDI::Rotator::Rotator() : INDI::RotatorInterface(this)
 {
 }
 
@@ -35,7 +35,7 @@ bool INDI::Rotator::initProperties()
 {
     DefaultDevice::initProperties();
 
-    RotatorInterface::initProperties(this, MAIN_CONTROL_TAB);
+    RotatorInterface::initProperties(MAIN_CONTROL_TAB);
 
     // Presets
     IUFillNumber(&PresetN[0], "PRESET_1", "Preset 1", "%.f", 0, 360, 10, 0);
@@ -77,7 +77,7 @@ void INDI::Rotator::ISGetProperties(const char *dev)
 
     // If connected, let's define properties.
     if (isConnected())
-        INDI::RotatorInterface::updateProperties(this);
+        INDI::RotatorInterface::updateProperties();
 
     return;
 }
@@ -88,7 +88,7 @@ bool INDI::Rotator::updateProperties()
     INDI::DefaultDevice::updateProperties();
 
     // #2 Update rotator interface properties
-    INDI::RotatorInterface::updateProperties(this);
+    INDI::RotatorInterface::updateProperties();
 
     if (isConnected())
     {        

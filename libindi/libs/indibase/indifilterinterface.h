@@ -84,6 +84,7 @@ class INDI::FilterInterface
      * initProperties() of your primary device
      * \param deviceName Name of the primary device
      * \param groupName Group or tab name to be used to define filter wheel properties.
+     * @deprecated
      */
     void initFilterProperties(const char *deviceName, const char *groupName);
 

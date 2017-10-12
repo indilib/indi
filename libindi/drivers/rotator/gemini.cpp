@@ -84,7 +84,7 @@ void ISSnoopDevice(XMLEle *root)
 /************************************************************************************
  *
 * ***********************************************************************************/
-Gemini::Gemini()
+Gemini::Gemini() : RotatorInterface(this)
 {
     focusMoveRequest = 0;
     focuserSimPosition      = 0;
@@ -217,7 +217,7 @@ bool Gemini::initProperties()
     IUFillLight(&RotatorStatusL[STATUS_REVERSE], "Reverse", "", IPS_IDLE);
     IUFillLightVector(&RotatorStatusLP, RotatorStatusL, 8, getDeviceName(), "ROTATOR_STATUS", "Rotator", STATUS_TAB, IPS_IDLE);
 
-    INDI::RotatorInterface::initProperties(this, ROTATOR_TAB);
+    INDI::RotatorInterface::initProperties(ROTATOR_TAB);
 
     // Rotator Ticks
     IUFillNumber(&RotatorAbsPosN[0], "ROTATOR_ABSOLUTE_POSITION", "Ticks", "%.f", 0., 0., 0., 0.);
@@ -299,7 +299,7 @@ bool Gemini::updateProperties()
         defineLight(&FocuserStatusLP);
 
         // Rotator Properties
-        INDI::RotatorInterface::updateProperties(this);
+        INDI::RotatorInterface::updateProperties();
         /*
 
         defineNumber(&RotatorAbsAngleNP);
@@ -341,7 +341,7 @@ bool Gemini::updateProperties()
         deleteProperty(FocuserStatusLP.name);
 
         // Rotator Properties
-        INDI::RotatorInterface::updateProperties(this);
+        INDI::RotatorInterface::updateProperties();
         /*
         deleteProperty(RotatorAbsAngleNP.name);
         deleteProperty(AbortRotatorSP.name);
