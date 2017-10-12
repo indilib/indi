@@ -76,6 +76,11 @@ UPGRADE INFO ON: http://www.ioptron.com/Articles.asp?ID=268
 :Mexxx#
 :Mwxxx#   ->Al this commands are broken. Only RA axes, the equivalent :Ms#,:Mn#... work.
 
+Summarizing:
+
+old firmware v1.10: is not possible to start/stop tracking. Guide/move commands OK
+new firmware v1.12: is possible to start/stop tracking. Guide/move commands NOT OK
+
 */
 
 /* SOCAT sniffer
