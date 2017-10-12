@@ -60,6 +60,22 @@ This speeds only are taken into account for protocol buttons, not for the HC But
 :RC0,1,2 -->preselect guide speed  (HC doesn't shows it)
 :Mn# :Ms# :Me# :Mw#  (move until :Q# at guiding or center speed :RG# (works)or :RC#(not work, use :RC0/1/2 instead))
 :MnXXX# :MsXXX# :MeXXX# :MwXXX#  (move XXX ms at guiding speed no mather what :RCx#,:RGX# or :RSX# was issue)
+
+Firmware update (HC v1.10 -> v1.12, also mainboard firmware)
+------------------------------------------------------------------
+HC8406 CMD hardware TEST
+V1.12 2011-08-12
+UPGRADE INFO ON: http://www.ioptron.com/Articles.asp?ID=268
+
+:RT9#     -> stop tracking
+:RT0#     -> start tracking at sidera speed. Formerly only preselect sideral speed but
+             not start the tracking itself
+
+:Me#
+:Mw#
+:Mexxx#
+:Mwxxx#   ->Al this commands are broken. Only RA axes, the equivalent :Ms#,:Mn#... work.
+
 */
 
 /* SOCAT sniffer
