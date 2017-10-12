@@ -76,15 +76,44 @@ class INDI::FilterInterface
     void SelectFilterDone(int newpos);
 
   protected:
+    /**
+     * @brief FilterInterface Default constructor
+     * @deprecated Use FilterInterface(INDI::DefaultDevice *defaultDevice)
+     */
     FilterInterface();
+
+    /**
+     * @brief FilterInterface Initiailize Filter Interface
+     * @param defaultDevice default device that owns the interface
+     */
+    explicit FilterInterface(INDI::DefaultDevice *defaultDevice);
     ~FilterInterface();
+
+    /**
+     * \brief Initilize filter wheel properties. It is recommended to call this function within
+     * initProperties() of your primary device
+     * \param groupName Group or tab name to be used to define filter wheel properties.
+     */
+    void initProperties(const char *groupName);
+
+    /**
+     * @brief updateProperties Defines or Delete proprties based on default device connection status
+     * @return True if all is OK, false otherwise.
+     */
+    bool updateProperties();
+
+    /** \brief Process number properties */
+    bool processNumber(const char *dev, const char *name, double values[], char *names[], int n);
+
+    /** \brief Process text properties */
+    bool processText(const char *dev, const char *name, char *texts[], char *names[], int n);
 
     /**
      * \brief Initilize filter wheel properties. It is recommended to call this function within
      * initProperties() of your primary device
      * \param deviceName Name of the primary device
      * \param groupName Group or tab name to be used to define filter wheel properties.
-     * @deprecated
+     * @deprecated Use initProperties()
      */
     void initFilterProperties(const char *deviceName, const char *groupName);
 
@@ -94,6 +123,7 @@ class INDI::FilterInterface
      * \param deviceName Name of the primary device
      * \param values values from ISNewNumber().
      * \param names names from ISNewNumber();
+     * @deprecated Use processNumber
      */
     void processFilterSlot(const char *deviceName, double values[], char *names[]);
 
@@ -104,15 +134,20 @@ class INDI::FilterInterface
      * \param texts values from ISNewText().
      * \param names names from ISNewText();
      * \param n n from ISNewtext();
+     * @deprecated use processText
      */
     void processFilterName(const char *deviceName, char *texts[], char *names[], int n);
 
-    INumberVectorProperty FilterSlotNP; //  A number vector for filter slot
+    //  A number vector for filter slot
+    INumberVectorProperty FilterSlotNP;
     INumber FilterSlotN[1];
 
-    ITextVectorProperty *FilterNameTP; //  A text vector that stores out physical port name
+     //  A text vector that stores out physical port name
+    ITextVectorProperty *FilterNameTP { nullptr };
     IText *FilterNameT;
 
     int CurrentFilter;
     int TargetFilter;
+
+    INDI::DefaultDevice *m_defaultDevice { nullptr };
 };
