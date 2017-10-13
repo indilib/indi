@@ -1,0 +1,990 @@
+/*******************************************************************************
+ ScopeDome Dome INDI Driver
+
+ Copyright(c) 2017 Jarno Paananen. All rights reserved.
+
+ based on:
+
+ ScopeDome Windows ASCOM driver version 5.1.30
+
+ and
+
+ Baader Planetarium Dome INDI Driver
+
+ Copyright(c) 2014 Jasem Mutlaq. All rights reserved.
+
+ Baader Dome INDI Driver
+
+ This library is free software; you can redistribute it and/or
+ modify it under the terms of the GNU Library General Public
+ License version 2 as published by the Free Software Foundation.
+ .
+ This library is distributed in the hope that it will be useful,
+ but WITHOUT ANY WARRANTY; without even the implied warranty of
+ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ Library General Public License for more details.
+ .
+ You should have received a copy of the GNU Library General Public License
+ along with this library; see the file COPYING.LIB.  If not, write to
+ the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
+ Boston, MA 02110-1301, USA.
+*******************************************************************************/
+
+#include "scopedome_dome.h"
+
+#include "indicom.h"
+#include "connectionplugins/connectionserial.h"
+
+#include <cmath>
+#include <cstring>
+#include <memory>
+#include <termios.h>
+
+// We declare an auto pointer to ScopeDome.
+std::unique_ptr<ScopeDome> scopeDome(new ScopeDome());
+
+#define POLLMS            1000 /* Update frequency 1000 ms */
+
+void ISPoll(void *p);
+
+void ISGetProperties(const char *dev)
+{
+    scopeDome->ISGetProperties(dev);
+}
+
+void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
+{
+    scopeDome->ISNewSwitch(dev, name, states, names, n);
+}
+
+void ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
+{
+    scopeDome->ISNewText(dev, name, texts, names, n);
+}
+
+void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
+{
+    scopeDome->ISNewNumber(dev, name, values, names, n);
+}
+
+void ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[],
+               char *names[], int n)
+{
+    INDI_UNUSED(dev);
+    INDI_UNUSED(name);
+    INDI_UNUSED(sizes);
+    INDI_UNUSED(blobsizes);
+    INDI_UNUSED(blobs);
+    INDI_UNUSED(formats);
+    INDI_UNUSED(names);
+    INDI_UNUSED(n);
+}
+
+void ISSnoopDevice(XMLEle *root)
+{
+    scopeDome->ISSnoopDevice(root);
+}
+
+ScopeDome::ScopeDome()
+{
+    targetAz         = 0;
+    shutterState     = SHUTTER_UNKNOWN;
+    simShutterStatus = SHUTTER_CLOSED;
+
+    status           = DOME_UNKNOWN;
+    targetShutter    = SHUTTER_CLOSE;
+
+    SetDomeCapability(DOME_CAN_ABORT | DOME_CAN_ABS_MOVE | DOME_CAN_REL_MOVE | DOME_CAN_PARK | DOME_HAS_SHUTTER);
+
+    stepsPerTurn = -1;
+
+    // Load dome inertia table if present
+    FILE* inertia = fopen("/home/jpaana/.indi/ScopeDome_DomeInertia_Table.txt", "r");
+    if (inertia)
+    {
+        // skip UTF-8 marker bytes
+        fseek(inertia, 3, SEEK_SET);
+        char line[100];
+        int lineNum = 0;
+
+        while(fgets(line, sizeof(line), inertia))
+        {
+            int step, result;
+            if(sscanf(line, "%d ;%d", &step, &result) != 2)
+            {
+                sscanf(line, "%d;%d", &step, &result);
+            }
+            if (step == lineNum)
+            {
+                inertiaTable.push_back(result);
+            }
+            lineNum++;
+        }
+        fclose(inertia);
+    }
+}
+
+bool ScopeDome::initProperties()
+{
+    INDI::Dome::initProperties();
+
+    IUFillNumber(&DomeHomePositionN[0], "DOME_HOME_POSITION", "AZ (deg)", "%6.2f", 0.0, 360.0, 1.0, 0.0);
+    IUFillNumberVector(&DomeHomePositionNP, DomeHomePositionN, 1, getDeviceName(), "DOME_HOME_POSITION", "Home sensor position", SITE_TAB, IP_RW,
+                   60, IPS_OK);
+
+    IUFillSwitch(&FindHomeS[0], "Start", "", ISS_OFF);
+    IUFillSwitchVector(&FindHomeSP, FindHomeS, 1, getDeviceName(), "Find home sensor", "", MAIN_CONTROL_TAB, IP_RW,
+                       ISR_ATMOST1, 0, IPS_IDLE);
+
+    IUFillSwitch(&PowerRelaysS[0], "CCD", "", ISS_OFF);
+    IUFillSwitch(&PowerRelaysS[1], "Telescope", "", ISS_OFF);
+    IUFillSwitch(&PowerRelaysS[2], "Light", "", ISS_OFF);
+    IUFillSwitch(&PowerRelaysS[3], "Fan", "", ISS_OFF);
+    IUFillSwitchVector(&PowerRelaysSP, PowerRelaysS, 4, getDeviceName(), "Power relays", "", MAIN_CONTROL_TAB, IP_RW,
+                       ISR_NOFMANY, 0, IPS_IDLE);
+
+    IUFillSwitch(&RelaysS[0], "Relay 1", "", ISS_OFF);
+    IUFillSwitch(&RelaysS[1], "Relay 2", "", ISS_OFF);
+    IUFillSwitch(&RelaysS[2], "Relay 3", "", ISS_OFF);
+    IUFillSwitch(&RelaysS[3], "Relay 4", "", ISS_OFF);
+    IUFillSwitchVector(&RelaysSP, RelaysS, 4, getDeviceName(), "Relays", "", MAIN_CONTROL_TAB, IP_RW,
+                       ISR_NOFMANY, 0, IPS_IDLE);
+
+    IUFillSwitch(&AutoCloseS[0], "Cloud sensor", "", ISS_OFF);
+    IUFillSwitch(&AutoCloseS[1], "Rain sensor", "", ISS_OFF);
+    IUFillSwitch(&AutoCloseS[2], "Free input", "", ISS_OFF);
+    IUFillSwitch(&AutoCloseS[3], "No power", "", ISS_OFF);
+    IUFillSwitch(&AutoCloseS[4], "Low dome battery", "", ISS_OFF);
+    IUFillSwitch(&AutoCloseS[5], "Low shutter battery", "", ISS_OFF);
+    IUFillSwitch(&AutoCloseS[6], "Bad weather", "", ISS_OFF);
+    IUFillSwitch(&AutoCloseS[7], "Lost connection", "", ISS_OFF);
+    IUFillSwitchVector(&AutoCloseSP, AutoCloseS, 8, getDeviceName(), "Close shutter automatically", "", SITE_TAB, IP_RW,
+                       ISR_NOFMANY, 0, IPS_IDLE);
+
+    IUFillNumber(&EnvironmentSensorsN[0], "SCOPEDOME_LINK_STRENGTH", "Shutter link strength", "%3.0f", 0.0, 100.0, 1.0, 0.0);
+    IUFillNumber(&EnvironmentSensorsN[1], "SCOPEDOME_SHUTTER_POWER", "Shutter internal power", "%2.2f", 0.0, 100.0, 1.0, 0.0);
+    IUFillNumber(&EnvironmentSensorsN[2], "SCOPEDOME_SHUTTER_BATTERY", "Shutter battery power", "%2.2f", 0.0, 100.0, 1.0, 0.0);
+    IUFillNumber(&EnvironmentSensorsN[3], "SCOPEDOME_CARD_POWER", "Card internal power", "%2.2f", 0.0, 100.0, 1.0, 0.0);
+    IUFillNumber(&EnvironmentSensorsN[4], "SCOPEDOME_CARD_BATTERY", "Card battery power", "%2.2f", 0.0, 100.0, 1.0, 0.0);
+    IUFillNumber(&EnvironmentSensorsN[5], "SCOPEDOME_TEMP_DOME_IN", "Temperature in dome", "%2.2f", -100.0, 100.0, 1.0, 0.0);
+    IUFillNumber(&EnvironmentSensorsN[6], "SCOPEDOME_TEMP_DOME_OUT", "Temperature outside dome", "%2.2f", -100.0, 100.0, 1.0, 0.0);
+    IUFillNumber(&EnvironmentSensorsN[7], "SCOPEDOME_TEMP_DOME_HUMIDITY", "Temperature humidity sensor", "%2.2f", -100.0, 100.0, 1.0, 0.0);
+    IUFillNumber(&EnvironmentSensorsN[8], "SCOPEDOME_HUMIDITY", "Humidity", "%3.2f", 0.0, 100.0, 1.0, 0.0);
+    IUFillNumber(&EnvironmentSensorsN[9], "SCOPEDOME_PRESSURE", "Pressure", "%4.1f", 0.0, 2000.0, 1.0, 0.0);
+    IUFillNumber(&EnvironmentSensorsN[10], "SCOPEDOME_DEW_POINT", "Dew point", "%2.2f", -100.0, 100.0, 1.0, 0.0);
+    IUFillNumberVector(&EnvironmentSensorsNP, EnvironmentSensorsN, 11, getDeviceName(), "SCOPEDOME_SENSORS", "Environment sensors", SITE_TAB, IP_RO,
+                   60, IPS_IDLE);
+
+    IUFillSwitch(&SensorsS[0], "Az counter", "", ISS_OFF);
+    IUFillSwitch(&SensorsS[1], "Rotate CCW", "", ISS_OFF);
+    IUFillSwitch(&SensorsS[2], "Dome at home", "", ISS_OFF);
+    IUFillSwitch(&SensorsS[3], "Shutter 1 open", "", ISS_OFF);
+    IUFillSwitch(&SensorsS[4], "Shutter 1 closed", "", ISS_OFF);
+    IUFillSwitch(&SensorsS[5], "Shutter 2 open", "", ISS_OFF);
+    IUFillSwitch(&SensorsS[6], "Shutter 2 closed", "", ISS_OFF);
+    IUFillSwitch(&SensorsS[7], "Scope at home", "", ISS_OFF);
+    IUFillSwitch(&SensorsS[8], "Rain sensor", "", ISS_OFF);
+    IUFillSwitch(&SensorsS[9], "Cloud sensor", "", ISS_OFF);
+    IUFillSwitch(&SensorsS[10], "Observatory safe", "", ISS_OFF);
+    IUFillSwitch(&SensorsS[11], "Rotary link", "", ISS_OFF);
+    IUFillSwitch(&SensorsS[12], "Free input", "", ISS_OFF);
+    IUFillSwitchVector(&SensorsSP, SensorsS, 13, getDeviceName(), "Input sensors", "", SITE_TAB, IP_RO, ISR_NOFMANY, 0, IPS_IDLE);
+
+    SetParkDataType(PARK_AZ);
+
+    addAuxControls();
+
+    // Set serial parameters
+    serialConnection->setDefaultBaudRate(Connection::Serial::B_115200);
+    return true;
+}
+
+/************************************************************************************
+ *
+* ***********************************************************************************/
+bool ScopeDome::SetupParms()
+{
+    targetAz = 0;
+
+    if (UpdatePosition())
+        IDSetNumber(&DomeAbsPosNP, nullptr);
+
+    if (UpdateShutterStatus())
+        IDSetSwitch(&DomeShutterSP, nullptr);
+
+    UpdateSensorStatus();
+    UpdateRelayStatus();
+
+    if (InitPark())
+    {
+        // If loading parking data is successful, we just set the default parking values.
+        SetAxis1ParkDefault(0);
+    }
+    else
+    {
+        // Otherwise, we set all parking data to default in case no parking data is found.
+        SetAxis1Park(0);
+        SetAxis1ParkDefault(0);
+    }
+
+    return true;
+}
+
+/************************************************************************************
+ *
+* ***********************************************************************************/
+bool ScopeDome::Handshake()
+{
+    return Ack();
+}
+
+/************************************************************************************
+ *
+* ***********************************************************************************/
+const char *ScopeDome::getDefaultName()
+{
+    return (const char *)"ScopeDome Dome";
+}
+
+/************************************************************************************
+ *
+* ***********************************************************************************/
+bool ScopeDome::updateProperties()
+{
+    INDI::Dome::updateProperties();
+
+    if (isConnected())
+    {
+        defineSwitch(&FindHomeSP);
+        defineSwitch(&AutoCloseSP);
+        defineSwitch(&PowerRelaysSP);
+        defineSwitch(&RelaysSP);
+        defineNumber(&DomeHomePositionNP);
+        defineNumber(&EnvironmentSensorsNP);
+        defineSwitch(&SensorsSP);
+        SetupParms();
+    }
+    else
+    {
+        deleteProperty(FindHomeSP.name);
+        deleteProperty(PowerRelaysSP.name);
+        deleteProperty(RelaysSP.name);
+        deleteProperty(SensorsSP.name);
+        deleteProperty(AutoCloseSP.name);
+        deleteProperty(DomeHomePositionNP.name);
+        deleteProperty(EnvironmentSensorsNP.name);
+    }
+
+    return true;
+}
+
+/************************************************************************************
+ *
+* ***********************************************************************************/
+bool ScopeDome::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
+{
+    if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
+    {
+        if (strcmp(name, FindHomeSP.name) == 0)
+        {
+            if (status != DOME_HOMING)
+            {
+                status = DOME_HOMING;
+                IUResetSwitch(&FindHomeSP);
+                DomeAbsPosNP.s = IPS_BUSY;
+                FindHomeSP.s  = IPS_BUSY;
+                IDSetSwitch(&FindHomeSP, nullptr);
+                writeCmd(FindHome);
+            }
+            return true;
+        }
+
+        if (strcmp(name, PowerRelaysSP.name) == 0)
+        {
+//            DEBUGF(INDI::Logger::DBG_DEBUG, "set relay: %d", n);
+            for (int i = 0; i < n; i++)
+            {
+                if (states[i] != PowerRelaysS[i].s)
+                {
+//                    DEBUGF(INDI::Logger::DBG_DEBUG, "%s = %d", names[i], states[i]);
+                    PowerRelaysS[i].s = states[i];
+                    switch(i)
+                    {
+                    case 0:
+                        // CCD
+                        setOutputState(OUT_CCD, states[i]);
+                        break;
+                    case 1:
+                        // Telescope
+                        setOutputState(OUT_SCOPE, states[i]);
+                        break;
+                    case 2:
+                        // Light
+                        setOutputState(OUT_LIGHT, states[i]);
+                        break;
+                    case 3:
+                        // Fan
+                        setOutputState(OUT_FAN, states[i]);
+                        break;
+                    }
+                }
+            }
+            IDSetSwitch(&PowerRelaysSP, nullptr);
+            return true;
+        }
+
+        if (strcmp(name, RelaysSP.name) == 0)
+        {
+//            DEBUGF(INDI::Logger::DBG_DEBUG, "set relay: %d", n);
+            for (int i = 0; i < n; i++)
+            {
+                if (states[i] != RelaysS[i].s)
+                {
+//                    DEBUGF(INDI::Logger::DBG_DEBUG, "%s = %d", names[i], states[i]);
+                    RelaysS[i].s = states[i];
+                    switch(i)
+                    {
+                    case 0:
+                        // Relay 1
+                        setOutputState(OUT_RELAY1, states[i]);
+                        break;
+                    case 1:
+                        // Relay 2
+                        setOutputState(OUT_RELAY2, states[i]);
+                        break;
+                    case 2:
+                        // Relay 3
+                        setOutputState(OUT_RELAY3, states[i]);
+                        break;
+                    case 3:
+                        // Relay 4
+                        setOutputState(OUT_RELAY4, states[i]);
+                        break;
+                    }
+                }
+            }
+            IDSetSwitch(&RelaysSP, nullptr);
+            return true;
+        }
+    }
+
+    return INDI::Dome::ISNewSwitch(dev, name, states, names, n);
+}
+
+
+
+bool ScopeDome::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
+{
+    if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
+    {
+        if (strcmp(name, DomeHomePositionNP.name) == 0)
+        {
+            IUUpdateNumber(&DomeHomePositionNP, values, names, n);
+            DomeHomePositionNP.s = IPS_OK;
+            IDSetNumber(&DomeHomePositionNP, nullptr);
+            return true;
+        }
+    }
+    return INDI::Dome::ISNewNumber(dev, name, values, names, n);
+}
+
+/************************************************************************************
+ *
+* ***********************************************************************************/
+bool ScopeDome::Ack()
+{
+    sim = isSimulation();
+
+    if (sim)
+    {
+        interface.reset(static_cast<ScopeDomeCard*>(new ScopeDomeSim()));
+    }
+    else
+    {
+        // TODO, detect card version and instantiate correct one
+        interface.reset(static_cast<ScopeDomeCard*>(new ScopeDomeUSB21(PortFD)));
+    }
+
+    return interface->detect();
+}
+
+/************************************************************************************
+ *
+* ***********************************************************************************/
+bool ScopeDome::UpdateShutterStatus()
+{
+    int rc = readBuffer(GetAllDigitalExt, 5, digitalSensorState);
+
+    //DEBUGF(INDI::Logger::DBG_DEBUG, "digitalext %x %x %x %x %x", digitalSensorState[0], digitalSensorState[1], digitalSensorState[2], digitalSensorState[3], digitalSensorState[4]);
+    SensorsS[0].s = getInputState(IN_ENCODER);
+    SensorsS[1].s = ISS_OFF; // ?
+    SensorsS[2].s = getInputState(IN_HOME);
+    SensorsS[3].s = getInputState(IN_OPEN1);
+    SensorsS[4].s = getInputState(IN_CLOSED1);
+    SensorsS[5].s = getInputState(IN_OPEN2);
+    SensorsS[6].s = getInputState(IN_CLOSED2);
+    SensorsS[7].s = getInputState(IN_S_HOME);
+    SensorsS[8].s = getInputState(IN_CLOUDS);
+    SensorsS[9].s = getInputState(IN_CLOUD);
+    SensorsS[10].s = getInputState(IN_SAFE);
+    SensorsS[11].s = getInputState(IN_ROT_LINK);
+    SensorsS[12].s = getInputState(IN_FREE);
+    SensorsSP.s = IPS_OK;
+    IDSetSwitch(&SensorsSP, nullptr);
+
+    DomeShutterSP.s = IPS_OK;
+    IUResetSwitch(&DomeShutterSP);
+
+    if (getInputState(IN_OPEN1) == ISS_ON) // shutter open switch triggered
+    {
+        if (shutterState == SHUTTER_MOVING && targetShutter == SHUTTER_OPEN)
+        {
+            DEBUGF(INDI::Logger::DBG_SESSION, "%s", GetShutterStatusString(SHUTTER_OPENED));
+            setOutputState(OUT_OPEN1, ISS_OFF);
+        }
+        shutterState                 = SHUTTER_OPENED;
+        DomeShutterS[SHUTTER_OPEN].s = ISS_ON;
+    }
+    else if (getInputState(IN_CLOSED1) == ISS_ON) // shutter closed switch triggered
+    {
+        if (shutterState == SHUTTER_MOVING && targetShutter == SHUTTER_CLOSE)
+        {
+            DEBUGF(INDI::Logger::DBG_SESSION, "%s", GetShutterStatusString(SHUTTER_CLOSED));
+            setOutputState(OUT_CLOSE1, ISS_OFF);
+        }
+        shutterState                  = SHUTTER_CLOSED;
+        DomeShutterS[SHUTTER_CLOSE].s = ISS_ON;
+    }
+    else
+    {
+        shutterState    = SHUTTER_MOVING;
+        DomeShutterSP.s = IPS_BUSY;
+    }
+    return true;
+}
+
+/************************************************************************************
+ *
+* ***********************************************************************************/
+bool ScopeDome::UpdatePosition()
+{
+    if (stepsPerTurn == -1)
+    {
+        stepsPerTurn = readU32(GetImpPerTurn);
+        DEBUGF(INDI::Logger::DBG_SESSION, "Steps per turn read as %d", stepsPerTurn);
+
+        homePosition = readS32(GetHomeSensorPosition);
+        DEBUGF(INDI::Logger::DBG_SESSION, "Home position read as %d", homePosition);
+    }
+
+    int counter = readS32(GetCounterExt);
+    //DEBUGF(INDI::Logger::DBG_SESSION, "Counter is %d", counter);
+
+    // We assume counter value 0 is at home sensor position
+    double az = ((double)counter*-360.0/stepsPerTurn) + DomeHomePositionN[0].value;
+    az = fmod(az, 360.0);
+    if (az < 0.0)
+    {
+        az += 360.0;
+    }
+    DomeAbsPosN[0].value = az;
+    return true;
+}
+
+
+/************************************************************************************
+ *
+* ***********************************************************************************/
+bool ScopeDome::UpdateSensorStatus()
+{
+    EnvironmentSensorsN[0].value = readU8(GetLinkStrength);
+    EnvironmentSensorsN[1].value = readFloat(GetAnalog1);
+    EnvironmentSensorsN[2].value = readFloat(GetAnalog2);
+    EnvironmentSensorsN[3].value = readFloat(GetMainAnalog1);
+    EnvironmentSensorsN[4].value = readFloat(GetMainAnalog2);
+    EnvironmentSensorsN[5].value = readFloat(GetTempIn);
+    EnvironmentSensorsN[6].value = readFloat(GetTempOut);
+    EnvironmentSensorsN[7].value = readFloat(GetTempHum);
+    EnvironmentSensorsN[8].value = readFloat(GetHum);
+    EnvironmentSensorsN[9].value = readFloat(GetPressure);
+    EnvironmentSensorsN[10].value = getDewPoint(EnvironmentSensorsN[8].value, EnvironmentSensorsN[7].value);
+    EnvironmentSensorsNP.s = IPS_OK;
+
+    IDSetNumber(&EnvironmentSensorsNP, nullptr);
+    return true;
+}
+
+/************************************************************************************
+ *
+* ***********************************************************************************/
+bool ScopeDome::UpdateRelayStatus()
+{
+    PowerRelaysS[0].s = getInputState(OUT_CCD);
+    PowerRelaysS[1].s = getInputState(OUT_SCOPE);
+    PowerRelaysS[2].s = getInputState(OUT_LIGHT);
+    PowerRelaysS[3].s = getInputState(OUT_FAN);
+    PowerRelaysSP.s = IPS_OK;
+    IDSetSwitch(&PowerRelaysSP, nullptr);
+
+    RelaysS[0].s = getInputState(OUT_RELAY1);
+    RelaysS[0].s = getInputState(OUT_RELAY1);
+    RelaysS[0].s = getInputState(OUT_RELAY1);
+    RelaysS[0].s = getInputState(OUT_RELAY1);
+    RelaysSP.s = IPS_OK;
+    IDSetSwitch(&RelaysSP, nullptr);
+    return true;
+}
+
+/************************************************************************************
+ *
+* ***********************************************************************************/
+void ScopeDome::TimerHit()
+{
+    if (!isConnected())
+        return; //  No need to reset timer if we are not connected anymore
+
+    currentStatus = readU16(GetStatus);
+    //DEBUGF(INDI::Logger::DBG_SESSION, "Status: %x", currentStatus);
+    UpdatePosition();
+
+    UpdateShutterStatus();
+    IDSetSwitch(&DomeShutterSP, nullptr);
+
+    if (status == DOME_HOMING)
+    {
+        if ((currentStatus & 8) == 0 && (digitalSensorState[2] & 0x20))
+        {
+            // Found home
+            status = DOME_READY;
+            targetAz = DomeHomePositionN[0].value;
+
+            // Reset counter
+            writeCmd(ResetCounter);
+
+            FindHomeSP.s  = IPS_OK;
+            DomeAbsPosNP.s  = IPS_OK;
+            IDSetSwitch(&FindHomeSP, nullptr);
+        }
+        IDSetNumber(&DomeAbsPosNP, nullptr);
+    }
+    else if (DomeAbsPosNP.s == IPS_BUSY)
+    {
+        if ((currentStatus & 2) == 0)
+        {
+            // Rotation idle, are we close enough?
+            double azDiff = targetAz - DomeAbsPosN[0].value;
+            if (azDiff > 180)
+            {
+                azDiff -= 360;
+            }
+            if (azDiff < -180)
+            {
+                azDiff += 360;
+            }
+            if (fabs(azDiff) < DomeParamN[0].value)
+            {
+                DomeAbsPosN[0].value = targetAz;
+                DEBUG(INDI::Logger::DBG_SESSION, "Dome reached requested azimuth angle.");
+
+                if (getDomeState() == DOME_PARKING)
+                    SetParked(true);
+                else if (getDomeState() == DOME_UNPARKING)
+                    SetParked(false);
+                else
+                    setDomeState(DOME_SYNCED);
+            }
+            else
+            {
+                // Refine azimuth
+                MoveAbs(targetAz);
+            }
+        }
+
+        IDSetNumber(&DomeAbsPosNP, nullptr);
+    }
+    else
+        IDSetNumber(&DomeAbsPosNP, nullptr);
+
+    static int tmpCounter = 0;
+    if (--tmpCounter <= 0)
+    {
+        UpdateSensorStatus();
+        tmpCounter = 10;
+    }
+
+    SetTimer(POLLMS);
+}
+
+/************************************************************************************
+ *
+* ***********************************************************************************/
+IPState ScopeDome::MoveAbs(double az)
+{
+    DEBUGF(INDI::Logger::DBG_DEBUG, "MoveAbs (%f)", az);
+    targetAz = az;
+    double azDiff = az - DomeAbsPosN[0].value;
+    DEBUGF(INDI::Logger::DBG_DEBUG, "azDiff = %f", azDiff);
+
+    // Make relative regardless if it passes az 0
+    if (azDiff > 180)
+    {
+        azDiff -= 360;
+    }
+    if (azDiff < -180)
+    {
+        azDiff += 360;
+    }
+
+    DEBUGF(INDI::Logger::DBG_DEBUG, "azDiff rel = %f", azDiff);
+
+    if (azDiff < 0)
+    {
+        uint16_t steps = (uint16_t)(-azDiff * stepsPerTurn / 360.0);
+        DEBUGF(INDI::Logger::DBG_DEBUG, "CCW (%d)", steps);
+        steps = compensateInertia(steps);
+        DEBUGF(INDI::Logger::DBG_DEBUG, "CCW inertia (%d)", steps);
+        int rc = writeU16(CCWRotation, steps);
+    }
+    else
+    {
+        uint16_t steps = (uint16_t)(azDiff * stepsPerTurn / 360.0);
+        DEBUGF(INDI::Logger::DBG_DEBUG, "CW (%d)", steps);
+        steps = compensateInertia(steps);
+        DEBUGF(INDI::Logger::DBG_DEBUG, "CW inertia (%d)", steps);
+        int rc = writeU16(CWRotation, steps);
+    }
+    return IPS_BUSY;
+}
+
+/************************************************************************************
+ *
+* ***********************************************************************************/
+IPState ScopeDome::MoveRel(double azDiff)
+{
+    targetAz = DomeAbsPosN[0].value + azDiff;
+
+    if (targetAz < DomeAbsPosN[0].min)
+        targetAz += DomeAbsPosN[0].max;
+    if (targetAz > DomeAbsPosN[0].max)
+        targetAz -= DomeAbsPosN[0].max;
+
+    // It will take a few cycles to reach final position
+    return MoveAbs(targetAz);
+}
+
+/************************************************************************************
+ *
+* ***********************************************************************************/
+IPState ScopeDome::Park()
+{
+    targetAz = GetAxis1Park();
+
+    return MoveAbs(targetAz);
+}
+
+/************************************************************************************
+ *
+* ***********************************************************************************/
+IPState ScopeDome::UnPark()
+{
+    return IPS_OK;
+}
+
+/************************************************************************************
+ *
+* ***********************************************************************************/
+IPState ScopeDome::ControlShutter(ShutterOperation operation)
+{
+        targetShutter = operation;
+    if (operation == SHUTTER_OPEN)
+    {
+        if (getInputState(IN_OPEN1))
+        {
+            DEBUG(INDI::Logger::DBG_SESSION, "Shutter already open");
+            return IPS_OK;
+        }
+        setOutputState(OUT_CLOSE1, ISS_OFF);
+        setOutputState(OUT_OPEN1, ISS_ON);
+    }
+    else
+    {
+        if (getInputState(IN_CLOSED1))
+        {
+            DEBUG(INDI::Logger::DBG_SESSION, "Shutter already closed");
+            return IPS_OK;
+        }
+        setOutputState(OUT_OPEN1, ISS_OFF);
+        setOutputState(OUT_CLOSE1, ISS_ON);
+    }
+
+    shutterState = SHUTTER_MOVING;
+    return IPS_BUSY;
+}
+
+/************************************************************************************
+ *
+* ***********************************************************************************/
+bool ScopeDome::Abort()
+{
+    writeCmd(Stop);
+    status = DOME_READY;
+    return true;
+}
+
+/************************************************************************************
+ *
+* ***********************************************************************************/
+bool ScopeDome::SaveEncoderPosition()
+{
+    return false;
+}
+
+/************************************************************************************
+ *
+* ***********************************************************************************/
+bool ScopeDome::saveConfigItems(FILE *fp)
+{
+    INDI::Dome::saveConfigItems(fp);
+
+    if (DomeHomePositionN != nullptr)
+        IUSaveConfigNumber(fp, &DomeHomePositionNP);
+
+    return true;
+}
+
+/************************************************************************************
+ *
+* ***********************************************************************************/
+bool ScopeDome::SetCurrentPark()
+{
+    SetAxis1Park(DomeAbsPosN[0].value);
+    return true;
+}
+/************************************************************************************
+ *
+* ***********************************************************************************/
+
+bool ScopeDome::SetDefaultPark()
+{
+    // By default set position to 90
+    SetAxis1Park(90);
+    return true;
+}
+
+
+/************************************************************************************
+ *
+* ***********************************************************************************/
+float ScopeDome::readFloat(ScopeDomeCommand cmd)
+{
+    float value;
+    ScopeDomeCommand c;
+    int rc = interface->write(cmd);
+    rc = interface->readBuf(c, 4, (uint8_t*)&value);
+//    DEBUGF(INDI::Logger::DBG_ERROR, "readFloat: %d %f", cmd, value);
+    return value;
+}
+
+uint8_t ScopeDome::readU8(ScopeDomeCommand cmd)
+{
+    uint8_t value;
+    ScopeDomeCommand c;
+    int rc = interface->write(cmd);
+    rc = interface->readBuf(c, 1, &value);
+//    DEBUGF(INDI::Logger::DBG_ERROR, "readU8: %d %x", cmd, value);
+    return value;
+}
+
+uint16_t ScopeDome::readU16(ScopeDomeCommand cmd)
+{
+    uint16_t value;
+    ScopeDomeCommand c;
+    int rc = interface->write(cmd);
+    rc = interface->readBuf(c, 2, (uint8_t*)&value);
+//    DEBUGF(INDI::Logger::DBG_ERROR, "readU16: %d %x", cmd, value);
+    return value;
+}
+
+uint32_t ScopeDome::readU32(ScopeDomeCommand cmd)
+{
+    uint32_t value;
+    ScopeDomeCommand c;
+    int rc = interface->write(cmd);
+    rc = interface->readBuf(c, 4, (uint8_t*)&value);
+//    DEBUGF(INDI::Logger::DBG_ERROR, "readU32: %d %x", cmd, value);
+    return value;
+}
+
+int32_t ScopeDome::readS32(ScopeDomeCommand cmd)
+{
+    int32_t value;
+    ScopeDomeCommand c;
+    int rc = interface->write(cmd);
+    rc = interface->readBuf(c, 4, (uint8_t*)&value);
+//    DEBUGF(INDI::Logger::DBG_ERROR, "readU32: %d %x", cmd, value);
+    return value;
+}
+
+int ScopeDome::readBuffer(ScopeDomeCommand cmd, int len, uint8_t* cbuf)
+{
+    int rc = interface->write(cmd);
+    return interface->readBuf(cmd, len, cbuf);
+}
+
+
+int ScopeDome::writeCmd(ScopeDomeCommand cmd)
+{
+    interface->write(cmd);
+    return interface->read(cmd);
+}
+
+int ScopeDome::writeU8(ScopeDomeCommand cmd, uint8_t value)
+{
+    interface->writeBuf(cmd, 1, &value);
+    return interface->read(cmd);
+}
+
+int ScopeDome::writeU16(ScopeDomeCommand cmd, uint16_t value)
+{
+    interface->writeBuf(cmd, 2, (uint8_t*)&value);
+    return interface->read(cmd);
+}
+
+int ScopeDome::writeU32(ScopeDomeCommand cmd, uint32_t value)
+{
+    interface->writeBuf(cmd, 4, (uint8_t*)&value);
+    return interface->read(cmd);
+}
+
+int ScopeDome::writeBuffer(ScopeDomeCommand cmd, int len, uint8_t* cbuf)
+{
+    interface->writeBuf(cmd, len, cbuf);
+    return interface->read(cmd);
+}
+
+ISState ScopeDome::getInputState(ScopeDomeDigitalIO channel)
+{
+    int ch = (int)channel;
+    int byte = ch >> 3;
+    uint8_t bit = 1 << (ch & 7);
+    return (digitalSensorState[byte] & bit)? ISS_ON:ISS_OFF;
+}
+
+int ScopeDome::setOutputState(ScopeDomeDigitalIO channel, ISState onOff)
+{
+    return writeU8(onOff == ISS_ON? SetDigitalChannel:ClearDigitalChannel, (int)channel);
+}
+
+
+/*
+ * Saturation Vapor Pressure formula for range -100..0 Deg. C.
+ * This is taken from
+ *   ITS-90 Formulations for Vapor Pressure, Frostpoint Temperature,
+ *   Dewpoint Temperature, and Enhancement Factors in the Range 100 to +100 C
+ * by Bob Hardy
+ * as published in "The Proceedings of the Third International Symposium on Humidity & Moisture",
+ * Teddington, London, England, April 1998
+ */
+static const float k0 = -5.8666426e3;
+static const float k1 = 2.232870244e1;
+static const float k2 = 1.39387003e-2;
+static const float k3 = -3.4262402e-5;
+static const float k4 = 2.7040955e-8;
+static const float k5 = 6.7063522e-1;
+
+static float pvsIce(float T)
+{
+    float lnP = k0/T + k1 + (k2 + (k3 + (k4*T))*T)*T + k5*log(T);
+    return exp(lnP);
+}
+
+/**
+ * Saturation Vapor Pressure formula for range 273..678 Deg. K.
+ * This is taken from the
+ *   Release on the IAPWS Industrial Formulation 1997
+ *   for the Thermodynamic Properties of Water and Steam
+ * by IAPWS (International Association for the Properties of Water and Steam),
+ * Erlangen, Germany, September 1997.
+ *
+ * This is Equation (30) in Section 8.1 "The Saturation-Pressure Equation (Basic Equation)"
+ */
+
+static const float n1 = 0.11670521452767e4;
+static const float n6 = 0.14915108613530e2;
+static const float n2 = -0.72421316703206e6;
+static const float n7 = -0.48232657361591e4;
+static const float n3 = -0.17073846940092e2;
+static const float n8 = 0.40511340542057e6;
+static const float n4 = 0.12020824702470e5;
+static const float n9 = -0.23855557567849;
+static const float n5 = -0.32325550322333e7;
+static const float n10 = 0.65017534844798e3;
+
+static float pvsWater(float T)
+{
+    float th= T+n9/(T-n10);
+    float A = (th+n1)*th+n2;;
+    float B = (n3*th+n4)*th+n5;
+    float C = (n6*th+n7)*th+n8;;
+
+    float p = 2.0f*C/(-B+sqrt(B*B-4.0f*A*C));
+    p *= p;
+    p *= p;
+    return p*1e6;
+}
+
+
+static const float C_OFFSET = 273.15f;
+static const float minT = 173; // -100 Deg. C.
+static const float maxT = 678;
+
+static float PVS(float T)
+{
+    if (T<minT || T>maxT)
+        return 0;
+    else if (T<C_OFFSET)
+        return pvsIce(T);
+    else
+        return pvsWater(T);
+}
+
+static float solve(float(*f)(float), float y, float x0)
+{
+    float x = x0;
+    int maxCount = 10;
+    int count = 0;
+    while(++count < maxCount)
+    {
+        float xNew;
+        float dx = x/1000;
+        float z = f(x);
+        xNew = x + dx*(y-z)/(f(x+dx)-z);
+        if (fabs((xNew-x)/xNew)<0.0001f)
+            return xNew;
+        x = xNew;
+    }
+    return 0;
+}
+
+
+float ScopeDome::getDewPoint(float RH, float T)
+{
+    T = T + C_OFFSET;
+    return solve(PVS, RH/100*PVS(T), T) - C_OFFSET;
+}
+
+
+uint16_t ScopeDome::compensateInertia(uint16_t steps)
+{
+    for (uint16_t out = 0; out < inertiaTable.size(); out++)
+    {
+        if (inertiaTable[out] > steps)
+        {
+            DEBUGF(INDI::Logger::DBG_SESSION, "inertia %d -> %d", steps, out - 1);
+            return out - 1;
+        }
+    }
+    DEBUGF(INDI::Logger::DBG_SESSION, "inertia passthrough %d", steps);
+    return steps; // pass value as such if we don't have enough data
+}
+
