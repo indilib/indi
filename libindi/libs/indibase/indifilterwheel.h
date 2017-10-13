@@ -34,7 +34,7 @@ class INDI::FilterWheel : public INDI::DefaultDevice, public INDI::FilterInterfa
 {
   protected:
     FilterWheel();
-    virtual ~FilterWheel();
+    virtual ~FilterWheel() = default;
 
   public:
     /**
@@ -75,8 +75,6 @@ class INDI::FilterWheel : public INDI::DefaultDevice, public INDI::FilterInterfa
     virtual bool saveConfigItems(FILE *fp);
     virtual int QueryFilter();
     virtual bool SelectFilter(int);
-    virtual bool SetFilterNames();
-    virtual bool GetFilterNames(const char *groupName);
 
     /** \brief perform handshake with device to check communication */
     virtual bool Handshake();

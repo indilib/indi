@@ -31,8 +31,8 @@
 
 #include <map>
 
-#include <string.h>
-#include <math.h>
+#include <cstring>
+#include <cmath>
 #include <termios.h>
 #include <unistd.h>
 
@@ -90,9 +90,19 @@ void set_sim_ra(double ra)
     simData.ra = ra;
 }
 
+double get_sim_ra()
+{
+    return simData.ra;
+}
+
 void set_sim_dec(double dec)
 {
     simData.dec = dec;
+}
+
+double get_sim_dec()
+{
+    return simData.dec;
 }
 
 void set_sim_az(double az)
@@ -183,14 +193,22 @@ bool get_celestron_firmware(int fd, FirmwareInfo *info)
     DEBUGDEVICE(celestron_device, INDI::Logger::DBG_DEBUG, "Getting controller version...");
     rc = get_celestron_version(fd, info);
 
+    if (!rc)
+        return false;
+
+    DEBUGDEVICE(celestron_device, INDI::Logger::DBG_DEBUG, "Getting controller variant...");
+    rc = get_celestron_variant(fd, info);
+
     if (rc == false)
         return false;
 
-    if (info->controllerVersion >= 2.2)
+    if (((info->controllerVariant == ISSTARSENSE) &&
+          info->controllerVersion >= MINSTSENSVER) ||
+        (info->controllerVersion >= 2.2))
     {
         DEBUGDEVICE(celestron_device, INDI::Logger::DBG_DEBUG, "Getting controller model...");
         rc = get_celestron_model(fd, info);
-        if (rc == false)
+        if (!rc)
             return rc;
     }
     else
@@ -199,13 +217,13 @@ bool get_celestron_firmware(int fd, FirmwareInfo *info)
     DEBUGDEVICE(celestron_device, INDI::Logger::DBG_DEBUG, "Getting GPS firmware version...");
     rc = get_celestron_gps_firmware(fd, info);
 
-    if (rc == false)
+    if (!rc)
         return rc;
 
     DEBUGDEVICE(celestron_device, INDI::Logger::DBG_DEBUG, "Getting RA firmware version...");
     rc = get_celestron_ra_firmware(fd, info);
 
-    if (rc == false)
+    if (!rc)
         return rc;
 
     DEBUGDEVICE(celestron_device, INDI::Logger::DBG_DEBUG, "Getting DE firmware version...");
@@ -274,6 +292,59 @@ bool get_celestron_version(int fd, FirmwareInfo *info)
 
     DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_ERROR, "Received #%d bytes, expected 3.", nbytes_read);
     return false;
+}
+
+bool get_celestron_variant (int fd, FirmwareInfo * info)
+{
+    char cmd[] = "v";
+    int errcode = 0;
+    char errmsg[MAXRBUF];
+    char response[16];
+    int nbytes_read = 0;
+    int nbytes_written = 0;
+
+    DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
+
+    if (celestron_simulation)
+    {
+        char res = 0x11;
+        snprintf(response, 16, "%c#", res);
+        nbytes_read = strlen(response);
+    }
+    else
+    {
+        tcflush(fd, TCIOFLUSH);
+
+        if ( (errcode = tty_write(fd, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
+        {
+            tty_error_msg(errcode, errmsg, MAXRBUF);
+            DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_ERROR, "%s", errmsg);
+            return false;
+        }
+
+        if ( (errcode = tty_read_section(fd, response, '#', CELESTRON_TIMEOUT, &nbytes_read)))
+        {
+            tty_error_msg(errcode, errmsg, MAXRBUF);
+            DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_ERROR, "%s", errmsg);
+            return false;
+        }
+    }
+
+    if (nbytes_read > 0)
+    {
+        response[nbytes_read] = '\0';
+        DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_DEBUG, "RES (%02X %02X)", response[0], response[1]);
+
+        if (nbytes_read == 2)
+        {
+            info->controllerVariant = response[0];
+            return true;
+        }
+    }
+
+    DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_ERROR, "Received #%d bytes, expected 2.", nbytes_read);
+    return false;
+
 }
 
 bool get_celestron_model(int fd, FirmwareInfo *info)

@@ -44,7 +44,7 @@ class LX200ZEQ25 : public LX200Generic
     virtual bool ReadScopeStatus() override;
 
     virtual bool SetSlewRate(int index) override;
-    virtual bool SetTrackMode(int mode) override;
+    virtual bool SetTrackMode(uint8_t mode) override;
     virtual bool Goto(double, double) override;
     virtual bool updateTime(ln_date *utc, double utc_offset) override;
     virtual bool updateLocation(double latitude, double longitude, double elevation) override;

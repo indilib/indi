@@ -31,7 +31,7 @@
 #include <fitsio.h>
 
 #include <memory>
-#include <string.h>
+#include <cstring>
 
 #include <stdint.h>
 
@@ -448,6 +448,8 @@ class INDI::CCD : public INDI::DefaultDevice, INDI::GuiderInterface
         CCD_HAS_STREAMING  = 1 << 8  /*!< Does the CCD support live video streaming?  */
     } CCDCapability;
 
+    typedef enum { UPLOAD_CLIENT, UPLOAD_LOCAL, UPLOAD_BOTH } CCD_UPLOAD_MODE;
+
     virtual bool initProperties();
     virtual bool updateProperties();
     virtual void ISGetProperties(const char *dev);
@@ -621,6 +623,15 @@ class INDI::CCD : public INDI::DefaultDevice, INDI::GuiderInterface
     virtual bool UpdateCCDFrameType(CCDChip::CCD_FRAME fType);
 
     /**
+     * \brief INDI::CCD calls this function when client upload mode switch is updated.
+     * \param mode upload mode. UPLOAD_CLIENT only sends the upload the client application. UPLOAD_BOTH saves the frame and uploads it to the client. UPLOAD_LOCAL only saves
+     * the frame locally.
+     * \return true if mode is changed successfully, false otherwise.
+     * \note By default this function is implemented in the base class and returns true. Override if necessary.
+     */
+    virtual bool UpdateCCDUploadMode(CCD_UPLOAD_MODE mode) { INDI_UNUSED(mode); return true; }
+
+    /**
      * \brief INDI::CCD calls this function when Guide frame type is updated by the client.
      * \param fType Frame type
      * \return true is CCD chip update is successful, false otherwise.
@@ -738,7 +749,13 @@ class INDI::CCD : public INDI::DefaultDevice, INDI::GuiderInterface
 
     void GuideComplete(INDI_EQ_AXIS axis);
 
+    // Epoch Position
     double RA, Dec;
+
+    // J2000 Position
+    double J2000RA;
+    double J2000DE;
+
     double primaryFocalLength, primaryAperture, guiderFocalLength, guiderAperture;
     bool InExposure;
     bool InGuideExposure;
@@ -758,6 +775,14 @@ class INDI::CCD : public INDI::DefaultDevice, INDI::GuiderInterface
     // Sky Quality
     double MPSAS;
 
+    // Rotator Angle
+    double RotatorAngle;
+
+    // Airmas
+    double Airmass;
+    double Latitude;
+    double Longitude;
+
     std::vector<std::string> FilterNames;
     int CurrentFilterSlot;
 
@@ -772,6 +797,13 @@ class INDI::CCD : public INDI::DefaultDevice, INDI::GuiderInterface
 
     ITextVectorProperty ActiveDeviceTP;
     IText ActiveDeviceT[4];
+    enum
+    {
+        SNOOP_MOUNT,
+        SNOOP_ROTATOR,
+        SNOOP_FILTER_WHEEL,
+        SNOOP_SQM
+    };
 
     INumber TemperatureN[1];
     INumberVectorProperty TemperatureNP;

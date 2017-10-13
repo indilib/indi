@@ -31,7 +31,7 @@
 #include <sys/time.h>
 
 /**
- * \brief Macro to configure the logger.
+ * @brief Macro to configure the logger.
  * Example of configuration of the Logger:
  * 	DEBUG_CONF("outputfile", Logger::file_on|Logger::screen_on, DBG_DEBUG, DBG_ERROR);
  */
@@ -41,7 +41,7 @@
     }
 
 /**
- * \brief Macro to print log messages.
+ * @brief Macro to print log messages.
  * Example of usage of the Logger:
  *	    DEBUG(DBG_DEBUG, "hello " << "world");
  */
@@ -63,7 +63,7 @@
 namespace INDI
 {
 /**
- * \class INDI::Logger
+ * @class INDI::Logger
  * @brief The Logger class is a simple logger to log messages to file and INDI clients. This is the implementation of a simple
  *  logger in C++. It is implemented as a Singleton, so it can be easily called through two DEBUG macros.
  * It is Pthread-safe. It allows to log on both file and screen, and to specify a verbosity threshold for both of them.
@@ -77,7 +77,7 @@ namespace INDI
  *
  *      -# Driver Debug: Use macro DEBUG(INDI::Logger::DBG_DEBUG, "My Driver Debug Message)
  *
- * \note Use DEBUGF macro if you have a variable list message. e.g. DEBUGF(INDI::Logger::DBG_SESSION, "Hello %s!", "There")
+ * @note Use DEBUGF macro if you have a variable list message. e.g. DEBUGF(INDI::Logger::DBG_SESSION, "Hello %s!", "There")
  *
  * The default \e active debug levels are Error, Warning, and Session. Driver Debug can be enabled by the client.
  *
@@ -87,10 +87,7 @@ namespace INDI
  */
 class Logger
 {
-  private:
-    /**
-         * \brief Type used for the configuration
-         */
+    /** Type used for the configuration */
     enum loggerConf_
     {
         L_nofile_   = 1 << 0,
@@ -100,71 +97,64 @@ class Logger
     };
 
 #ifdef LOGGER_MULTITHREAD
-    /**
-         * \brief Lock for mutual exclusion between different threads
-         */
+    /// Lock for mutual exclusion between different threads
     static pthread_mutex_t lock_;
 #endif
 
-    bool configured_;
+    bool configured_ { false };
 
-    /**
-         * \brief Pointer to the unique Logger (i.e., Singleton)
-         */
+    /** Pointer to the unique Logger (i.e., Singleton) */
     static Logger *m_;
 
     /**
-         * \brief Initial part of the name of the file used for Logging.
-         * Date and time are automatically appended.
-         */
+     * @brief Initial part of the name of the file used for Logging.
+     * Date and time are automatically appended.
+     */
     static std::string logFile_;
 
     /**
-         * \brief Directory where log file is stored. it is created under ~/.indi/logs/[DATE]/[DRIVER_EXEC]
-         */
+     * @brief Directory where log file is stored. it is created under ~/.indi/logs/[DATE]/[DRIVER_EXEC]
+     */
     static std::string logDir_;
 
     /**
-         * \brief Current configuration of the logger.
-         * Variable to know if logging on file and on screen are enabled.
-         * Note that if the log on file is enabled, it means that the
-         * logger has been already configured, therefore the stream is
-         * already open.
-         */
+     * @brief Current configuration of the logger.
+     * Variable to know if logging on file and on screen are enabled. Note that if the log on
+     * file is enabled, it means that the logger has been already configured, therefore the
+     * stream is already open.
+     */
     static loggerConf_ configuration_;
 
-    /**
-         * \brief Stream used when logging on a file
-         */
+    /// Stream used when logging on a file
     std::ofstream out_;
-
-    /**
-         * \brief Initial time (used to print relative times)
-         */
+    /// Initial time (used to print relative times)
     struct timeval initialTime_;
-
-    /**
-         * \brief Verbosity threshold for files
-         */
+    /// Verbosity threshold for files
     static unsigned int fileVerbosityLevel_;
-
-    /**
-         * \brief Verbosity threshold for screen
-         */
+    /// Verbosity threshold for screen
     static unsigned int screenVerbosityLevel_;
     static unsigned int rememberscreenlevel_;
 
+    /**
+     * @brief Constructor.
+     * It is a private constructor, called only by getInstance() and only the
+     * first time. It is called inside a lock, so lock inside this method
+     * is not required.
+     * It only initializes the initial time. All configuration is done inside the
+     * configure() method.
+     */
     Logger();
+
+    /**
+     * @brief Destructor.
+     * It only closes the file, if open, and cleans memory.
+     */
     ~Logger();
 
-    /**
-         * \brief Method to lock in case of multithreading
-         */
+    /** Method to lock in case of multithreading */
     inline static void lock();
 
-    /**
-         * \brief Method to unlock in case of multithreading
-         */
+    /** Method to unlock in case of multithreading */
     inline static void unlock();
 
     static INDI::DefaultDevice *parentDevice;
@@ -189,6 +179,7 @@ class Logger
         ISState state;
         unsigned int levelmask;
     };
+
     static const unsigned int defaultlevel = DBG_ERROR | DBG_WARNING | DBG_SESSION;
     static const unsigned int nlevels      = 8;
     static struct switchinit LoggingLevelSInit[nlevels];
@@ -206,16 +197,24 @@ class Logger
 
     static std::string getLogFile() { return logFile_; }
     static loggerConf_ getConfiguration() { return configuration_; }
+
+    /**
+     * @brief Method to get a reference to the object (i.e., Singleton)
+     * It is a static method.
+     * @return Reference to the object.
+     */
     static Logger &getInstance();
+
     static bool saveConfigItems(FILE *fp);
 
     /**
-         * @brief Adds a new debugging level to the driver.
-         *
-         * @param debugLevelName The descriptive debug level defined to the client. e.g. Scope Status
-         * @param LoggingLevelName the short logging level recorded in the logfile. e.g. SCOPE
-         * @return bitmask of the new debugging level to be used for any subsequent calls to DEBUG and DEBUGF to record events to this debug level.
-         */
+     * @brief Adds a new debugging level to the driver.
+     *
+     * @param debugLevelName The descriptive debug level defined to the client. e.g. Scope Status
+     * @param LoggingLevelName the short logging level recorded in the logfile. e.g. SCOPE
+     * @return bitmask of the new debugging level to be used for any subsequent calls to DEBUG and DEBUGF to
+     * record events to this debug level.
+     */
     int addDebugLevel(const char *debugLevelName, const char *LoggingLevelName);
 
     void print(const char *devicename, const unsigned int verbosityLevel, const std::string &sourceFile,
@@ -223,6 +222,15 @@ class Logger
                //const std::string& 	message,
                const char *message, ...);
 
+    /**
+     * @brief Method to configure the logger. Called by the DEBUG_CONF() macro. To make implementation
+     * easier, the old stream is always closed.
+     * Then, in case, it is open again in append mode.
+     * @param outputFile of the file used for logging
+     * @param configuration (i.e., log on file and on screen on or off)
+     * @param fileVerbosityLevel threshold for file
+     * @param screenVerbosityLevel threshold for screen
+     */
     void configure(const std::string &outputFile, const loggerConf configuration, const int fileVerbosityLevel,
                    const int screenVerbosityLevel);
 
@@ -233,9 +241,14 @@ class Logger
     static bool initProperties(INDI::DefaultDevice *device);
     static bool updateProperties(bool enable);
     static char Tags[nlevels][MAXINDINAME];
-    static unsigned int rank(unsigned int l);
 
-}; /* Class logger */
+    /**
+     * @brief Method used to print message called by the DEBUG() macro.
+     * @param i which debugging to query its rank. The lower the rank, the more priority it is.
+     * @return rank of debugging level requested.
+     */
+    static unsigned int rank(unsigned int l);
+};
 
 inline Logger::loggerConf operator|(Logger::loggerConf __a, Logger::loggerConf __b)
 {

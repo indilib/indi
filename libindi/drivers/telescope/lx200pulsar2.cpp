@@ -24,8 +24,8 @@
 #include "lx200driver.h"
 
 #include <cmath>
-#include <errno.h>
-#include <string.h>
+#include <cerrno>
+#include <cstring>
 #include <termios.h>
 #include <unistd.h>
 
@@ -71,7 +71,7 @@ void resynchronize(const int fd)
     class ACKChecker
     {
       public:
-        ACKChecker(void) : previous(Null) {}
+        ACKChecker() : previous(Null) {}
         bool operator()(const int c)
         {
             // We need two successful acknowledges
@@ -442,6 +442,7 @@ bool setDate(const int fd, const int dd, const int mm, const int yy)
         // Read dumped data
         char dumpPlanetaryUpdateString[64];
         int nbytes_read = 0;
+
         (void)tty_read_section(fd, dumpPlanetaryUpdateString, Termination, 1, &nbytes_read);
         (void)tty_read_section(fd, dumpPlanetaryUpdateString, Termination, 1, &nbytes_read);
     }
@@ -557,22 +558,21 @@ inline bool isParking(const int fd)
 }
 };
 
-LX200Pulsar2::LX200Pulsar2(void) : LX200Generic(), just_started_slewing(false)
+LX200Pulsar2::LX200Pulsar2() : LX200Generic(), just_started_slewing(false)
 {
     setVersion(1, 1);
     setLX200Capability(0);
 
     SetTelescopeCapability(TELESCOPE_CAN_SYNC | TELESCOPE_CAN_GOTO | TELESCOPE_CAN_PARK | TELESCOPE_CAN_ABORT |
-                               TELESCOPE_HAS_TIME | TELESCOPE_HAS_LOCATION | TELESCOPE_HAS_PIER_SIDE,
-                           4);
+                           TELESCOPE_HAS_TIME | TELESCOPE_HAS_LOCATION | TELESCOPE_HAS_PIER_SIDE, 4);
 }
 
-const char *LX200Pulsar2::getDefaultName(void)
+const char *LX200Pulsar2::getDefaultName()
 {
     return static_cast<const char *>("Pulsar2");
 }
 
-bool LX200Pulsar2::Connect(void)
+bool LX200Pulsar2::Connect()
 {
     const bool success = INDI::Telescope::Connect();
     if (success)
@@ -595,7 +595,7 @@ bool LX200Pulsar2::Handshake()
     return true;
 }
 
-bool LX200Pulsar2::ReadScopeStatus(void)
+bool LX200Pulsar2::ReadScopeStatus()
 {
     bool success = isConnected();
     if (success)
@@ -657,7 +657,7 @@ bool LX200Pulsar2::ReadScopeStatus(void)
 
 void LX200Pulsar2::ISGetProperties(const char *dev)
 {
-    if (dev && strcmp(dev, getDeviceName()))
+    if (dev != nullptr && strcmp(dev, getDeviceName()) != 0)
         return;
     LX200Generic::ISGetProperties(dev);
     if (isConnected())
@@ -668,7 +668,7 @@ void LX200Pulsar2::ISGetProperties(const char *dev)
     }
 }
 
-bool LX200Pulsar2::initProperties(void)
+bool LX200Pulsar2::initProperties()
 {
     const bool result = LX200Generic::initProperties();
     if (result)
@@ -692,7 +692,7 @@ bool LX200Pulsar2::initProperties(void)
     return result;
 }
 
-bool LX200Pulsar2::updateProperties(void)
+bool LX200Pulsar2::updateProperties()
 {
     LX200Generic::updateProperties();
 
@@ -715,7 +715,7 @@ bool LX200Pulsar2::updateProperties(void)
 
 bool LX200Pulsar2::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
 {
-    if (strcmp(dev, getDeviceName()) == 0)
+    if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
         if (strcmp(name, PierSideSP.name) == 0)
         {
@@ -825,7 +825,7 @@ bool LX200Pulsar2::ISNewSwitch(const char *dev, const char *name, ISState *state
 
 bool LX200Pulsar2::ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
 {
-    if (strcmp(dev, getDeviceName()) == 0)
+    if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
         // Nothing to do yet
     }
@@ -903,7 +903,7 @@ bool LX200Pulsar2::MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command)
     return success;
 }
 
-bool LX200Pulsar2::Abort(void)
+bool LX200Pulsar2::Abort()
 {
     const bool success = (isSimulation() || Pulsar2Commands::abortSlew(PortFD));
     if (success)
@@ -1200,7 +1200,7 @@ bool LX200Pulsar2::Goto(double r, double d)
     return true;
 }
 
-bool LX200Pulsar2::Park(void)
+bool LX200Pulsar2::Park()
 {
     if (!isSimulation())
     {
@@ -1301,14 +1301,13 @@ bool LX200Pulsar2::Sync(double ra, double dec)
         currentRA  = ra;
         currentDEC = dec;
         DEBUG(INDI::Logger::DBG_SESSION, "Synchronization successful.");
-        TrackState = SCOPE_IDLE;
         EqNP.s     = IPS_OK;
         NewRaDec(currentRA, currentDEC);
     }
     return result;
 }
 
-bool LX200Pulsar2::UnPark(void)
+bool LX200Pulsar2::UnPark()
 {
     if (!isSimulation())
     {
@@ -1332,7 +1331,7 @@ bool LX200Pulsar2::UnPark(void)
     return true;
 }
 
-bool LX200Pulsar2::isSlewComplete(void)
+bool LX200Pulsar2::isSlewComplete()
 {
     bool result = false;
     switch (TrackState)
@@ -1349,7 +1348,7 @@ bool LX200Pulsar2::isSlewComplete(void)
     return result;
 }
 
-bool LX200Pulsar2::checkConnection(void)
+bool LX200Pulsar2::checkConnection()
 {
     if (isSimulation())
         return true;
@@ -1376,7 +1375,7 @@ bool LX200Pulsar2::checkConnection(void)
     return false;
 }
 
-void LX200Pulsar2::getBasicData(void)
+void LX200Pulsar2::getBasicData()
 {
     if (!isSimulation())
     {
@@ -1448,7 +1447,7 @@ void LX200Pulsar2::getBasicData(void)
     sendScopeTime();
 }
 
-void LX200Pulsar2::sendScopeLocation(void)
+void LX200Pulsar2::sendScopeLocation()
 {
     LocationNP.s = IPS_OK;
     int dd = 29, mm = 30;
@@ -1484,7 +1483,7 @@ void LX200Pulsar2::sendScopeLocation(void)
     IDSetNumber(&LocationNP, nullptr);
 }
 
-void LX200Pulsar2::sendScopeTime(void)
+void LX200Pulsar2::sendScopeTime()
 {
     struct tm ltm;
     if (isSimulation())
@@ -1528,7 +1527,7 @@ void LX200Pulsar2::guideTimeoutHelper(void *p)
     static_cast<LX200Pulsar2 *>(p)->guideTimeout();
 }
 
-void LX200Pulsar2::guideTimeout(void)
+void LX200Pulsar2::guideTimeout()
 {
     const int use_pulse_cmd = IUFindOnSwitchIndex(&UsePulseCmdSP);
     if (guide_direction == -1)
@@ -1590,7 +1589,7 @@ void LX200Pulsar2::guideTimeout(void)
     }
 }
 
-bool LX200Pulsar2::isSlewing(void)
+bool LX200Pulsar2::isSlewing()
 {
     // A problem with the Pulsar controller is that the :YGi# command starts
     // returning the value 1 only a few seconds after a slew has been started.

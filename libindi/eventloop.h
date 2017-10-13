@@ -50,10 +50,10 @@ typedef void(TCF)(void *);
 extern "C" {
 #endif
 
-/** \fn void eventLoop(void)
+/** \fn void eventLoop()
     \brief Main calls this when ready to hand over control.
 */
-extern void eventLoop(void);
+extern void eventLoop();
 
 /** Register a new callback, \e fp, to be called with \e ud as argument when \e fd is ready.
 *

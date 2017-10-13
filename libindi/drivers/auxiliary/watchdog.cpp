@@ -29,7 +29,7 @@
 #include "watchdogclient.h"
 
 #include <memory>
-#include <string.h>
+#include <cstring>
 #include <unistd.h>
 #include <sys/wait.h>
 
@@ -43,19 +43,19 @@ void ISGetProperties(const char *dev)
     goodgirrrl->ISGetProperties(dev);
 }
 
-void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int num)
+void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
 {
-    goodgirrrl->ISNewSwitch(dev, name, states, names, num);
+    goodgirrrl->ISNewSwitch(dev, name, states, names, n);
 }
 
-void ISNewText(const char *dev, const char *name, char *texts[], char *names[], int num)
+void ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
 {
-    goodgirrrl->ISNewText(dev, name, texts, names, num);
+    goodgirrrl->ISNewText(dev, name, texts, names, n);
 }
 
-void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int num)
+void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
 {
-    goodgirrrl->ISNewNumber(dev, name, values, names, num);
+    goodgirrrl->ISNewNumber(dev, name, values, names, n);
 }
 
 void ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[],
@@ -94,7 +94,7 @@ WatchDog::~WatchDog()
 
 const char *WatchDog::getDefaultName()
 {
-    return (char *)"WatchDog";
+    return (const char *)"WatchDog";
 }
 
 bool WatchDog::Connect()
@@ -174,7 +174,7 @@ void WatchDog::ISGetProperties(const char *dev)
 bool WatchDog::ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
 {
     //  first check if it's for our device
-    if (strcmp(dev, getDeviceName()) == 0)
+    if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
         if (!strcmp(SettingsTP.name, name))
         {
@@ -210,7 +210,7 @@ bool WatchDog::ISNewText(const char *dev, const char *name, char *texts[], char 
 
 bool WatchDog::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
 {
-    if (strcmp(dev, getDeviceName()) == 0)
+    if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
         if (!strcmp(HeartBeatNP.name, name))
         {
@@ -259,7 +259,7 @@ bool WatchDog::ISNewNumber(const char *dev, const char *name, double values[], c
 
 bool WatchDog::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
 {
-    if (strcmp(dev, getDeviceName()) == 0)
+    if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
         if (!strcmp(ShutdownProcedureSP.name, name))
         {

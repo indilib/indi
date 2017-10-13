@@ -20,9 +20,9 @@
 
 #include "perfectstar.h"
 
-#include <math.h>
+#include <cmath>
+#include <cstring>
 #include <memory>
-#include <string.h>
 
 #define POLLMS              1000 /* 1000 ms */
 #define PERFECTSTAR_TIMEOUT 1000 /* 1000 ms */
@@ -39,19 +39,19 @@ void ISGetProperties(const char *dev)
     perfectStar->ISGetProperties(dev);
 }
 
-void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int num)
+void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
 {
-    perfectStar->ISNewSwitch(dev, name, states, names, num);
+    perfectStar->ISNewSwitch(dev, name, states, names, n);
 }
 
-void ISNewText(const char *dev, const char *name, char *texts[], char *names[], int num)
+void ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
 {
-    perfectStar->ISNewText(dev, name, texts, names, num);
+    perfectStar->ISNewText(dev, name, texts, names, n);
 }
 
-void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int num)
+void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
 {
-    perfectStar->ISNewNumber(dev, name, values, names, num);
+    perfectStar->ISNewNumber(dev, name, values, names, n);
 }
 
 void ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[],
@@ -76,15 +76,6 @@ PerfectStar::PerfectStar()
 {
     SetFocuserCapability(FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_REL_MOVE | FOCUSER_CAN_ABORT);
     setFocuserConnection(CONNECTION_NONE);
-
-    handle = 0;
-}
-
-PerfectStar::~PerfectStar()
-{
-    sim         = false;
-    simPosition = 0;
-    status      = PS_NOOP;
 }
 
 bool PerfectStar::Connect()
@@ -97,7 +88,7 @@ bool PerfectStar::Connect()
         return true;
     }
 
-    handle = hid_open(0x04D8, 0xF812, 0);
+    handle = hid_open(0x04D8, 0xF812, nullptr);
 
     if (handle == nullptr)
     {
@@ -123,7 +114,7 @@ bool PerfectStar::Disconnect()
 
 const char *PerfectStar::getDefaultName()
 {
-    return (char *)"PerfectStar";
+    return (const char *)"PerfectStar";
 }
 
 bool PerfectStar::initProperties()
@@ -173,7 +164,7 @@ bool PerfectStar::updateProperties()
 
 void PerfectStar::TimerHit()
 {
-    if (isConnected() == false)
+    if (!isConnected())
         return;
 
     uint32_t currentTicks = 0;
@@ -235,10 +226,10 @@ void PerfectStar::TimerHit()
 
 bool PerfectStar::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
 {
-    if (strcmp(dev, getDeviceName()) == 0)
+    if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
         // Max Travel
-        if (!strcmp(MaxPositionNP.name, name))
+        if (strcmp(MaxPositionNP.name, name) == 0)
         {
             IUUpdateNumber(&MaxPositionNP, values, names, n);
 
@@ -266,10 +257,10 @@ bool PerfectStar::ISNewNumber(const char *dev, const char *name, double values[]
         }
 
         // Sync
-        if (!strcmp(SyncNP.name, name))
+        if (strcmp(SyncNP.name, name) == 0)
         {
             IUUpdateNumber(&SyncNP, values, names, n);
-            if (sync(SyncN[0].value) == false)
+            if (!sync(SyncN[0].value))
                 SyncNP.s = IPS_ALERT;
             else
                 SyncNP.s = IPS_OK;
@@ -282,20 +273,18 @@ bool PerfectStar::ISNewNumber(const char *dev, const char *name, double values[]
     return INDI::Focuser::ISNewNumber(dev, name, values, names, n);
 }
 
-IPState PerfectStar::MoveAbsFocuser(uint32_t ticks)
+IPState PerfectStar::MoveAbsFocuser(uint32_t targetTicks)
 {
-    bool rc = false;
+    bool rc = setPosition(targetTicks);
 
-    rc = setPosition(ticks);
-
-    if (rc == false)
+    if (!rc)
         return IPS_ALERT;
 
-    targetPosition = ticks;
+    targetPosition = targetTicks;
 
     rc = setStatus(PS_GOTO);
 
-    if (rc == false)
+    if (!rc)
         return IPS_ALERT;
 
     FocusAbsPosNP.s = IPS_BUSY;
@@ -634,7 +623,7 @@ bool PerfectStar::sync(uint32_t ticks)
 {
     bool rc = setPosition(ticks);
 
-    if (rc == false)
+    if (!rc)
         return false;
 
     simPosition = ticks;

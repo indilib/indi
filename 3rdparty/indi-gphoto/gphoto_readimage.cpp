@@ -169,8 +169,8 @@ int read_ppm(FILE *handle, struct dcraw_header *header, uint8_t **memptr, size_t
 
     for (row = 0; row < height; row++)
     {
-        int len;
-        len = fread(ppm, 1, width * bpp, handle);
+        int len = fread(ppm, 1, width * bpp, handle);
+
         if (len != width * bpp)
         {
             DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG,
@@ -434,7 +434,7 @@ int read_jpeg(const char *filename, uint8_t **memptr, size_t *memsize, int *naxi
     /* this makes the library read from infile */
     jpeg_stdio_src(&cinfo, infile);
     /* reading the image header which contains image information */
-    jpeg_read_header(&cinfo, TRUE);
+    jpeg_read_header(&cinfo, (boolean)TRUE);
 
     /* Start decompression jpeg here */
     jpeg_start_decompress(&cinfo);
@@ -508,7 +508,7 @@ int read_jpeg_mem(unsigned char *inBuffer, unsigned long inSize, uint8_t **mempt
     jpeg_mem_src(&cinfo, inBuffer, inSize);
 
     /* reading the image header which contains image information */
-    jpeg_read_header(&cinfo, TRUE);
+    jpeg_read_header(&cinfo, (boolean)TRUE);
 
     /* Start decompression jpeg here */
     jpeg_start_decompress(&cinfo);

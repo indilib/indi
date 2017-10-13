@@ -43,7 +43,7 @@ class LX200GotoNova : public LX200Generic
     virtual bool ReadScopeStatus() override;
 
     virtual bool SetSlewRate(int index) override;
-    virtual bool SetTrackMode(int mode) override;
+    virtual bool SetTrackMode(uint8_t mode) override;
     virtual bool Goto(double, double) override;
     virtual bool Sync(double ra, double dec) override;
     virtual bool updateTime(ln_date *utc, double utc_offset) override;
@@ -63,6 +63,7 @@ class LX200GotoNova : public LX200Generic
     int setGotoNovaLatitude(double Lat);
     int setGotoNovaLongitude(double Long);
     int setGotoNovaUTCOffset(double hours);
+    int setCalenderDate(int fd, int dd, int mm, int yy);
 
     // Motion
     int slewGotoNova();    

@@ -63,6 +63,11 @@ class LX200AstroPhysics : public LX200Generic
     virtual bool updateLocation(double latitude, double longitude, double elevation) override;
     virtual bool SetSlewRate(int index) override;
 
+    // Tracking
+    virtual bool SetTrackMode(uint8_t mode) override;
+    virtual bool SetTrackEnabled(bool enabled) override;
+    virtual bool SetTrackRate(double raRate, double deRate) override;
+
     virtual bool saveConfigItems(FILE *fp) override;
 
     virtual void debugTriggered(bool enable) override;
@@ -96,7 +101,7 @@ class LX200AstroPhysics : public LX200Generic
     INumberVectorProperty SlewAccuracyNP;
 
   private:
-    bool isMountInit(void);
+    bool isMountInit();
     bool setBasicDataPart0();
     bool setBasicDataPart1();
 

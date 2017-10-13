@@ -1,7 +1,7 @@
 QHY CCD INSTALL
 ============
 
-You must have CMake >= 2.4.7 in order to build this package.
+You must have CMake >= 2.8 in order to build this package. QHY SDK Library v1.0.1+ is required.
 
 1) $ cmake -DCMAKE_INSTALL_PREFIX=/usr .
 2) $ make

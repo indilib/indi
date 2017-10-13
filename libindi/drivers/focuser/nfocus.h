@@ -31,14 +31,14 @@ class NFocus : public INDI::Focuser
 {
   public:
     NFocus();
-    ~NFocus();
+    virtual ~NFocus() = default;
 
     virtual bool Handshake();
     const char *getDefaultName();
     virtual bool initProperties();
     virtual bool updateProperties();
     virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n);
-    virtual IPState MoveAbsFocuser(uint32_t ticks);
+    virtual IPState MoveAbsFocuser(uint32_t targetTicks);
     virtual IPState MoveRelFocuser(FocusDirection dir, uint32_t ticks);
 
   protected:
@@ -53,13 +53,13 @@ class NFocus : public INDI::Focuser
 
     int updateNFTemperature(double *value);
     int updateNFInOutScalar(double *value);
-    int updateNFMotorSettings(double *duty, double *delay, double *ticks);
-    int moveNFInward(double *value);
-    int moveNFOutward(double *value);
+    int updateNFMotorSettings(double *onTime, double *offTime, double *fastDelay);
+    int moveNFInward(const double *value);
+    int moveNFOutward(const double *value);
     int getNFAbsolutePosition(double *value);
-    int setNFAbsolutePosition(double *value);
+    int setNFAbsolutePosition(const double *value);
     int setNFMaxPosition(double *value);
-    int syncNF(double *value);
+    int syncNF(const double *value);
 
     INumber TemperatureN[1];
     INumberVectorProperty TemperatureNP;

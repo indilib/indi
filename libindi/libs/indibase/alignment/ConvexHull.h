@@ -177,7 +177,7 @@ class ConvexHull
         that face is either the [0]th or [1]st endpoint of the [ith] edge of
         the face.
         */
-    void CheckEndpts(void);
+    void CheckEndpts();
 
     /** \brief CheckEuler checks Euler's relation, as well as its implications when
         all faces are known to be triangles.  Only prints positive information
@@ -188,17 +188,17 @@ class ConvexHull
     /** \brief Checks the consistency of the hull and prints the results to the
         standard error output.
         */
-    void Checks(void);
+    void Checks();
 
     /** \brief CleanEdges runs through the edge list and cleans up the structure.
         If there is a newface then it will put that face in place of the
         visible face and NULL out newface. It also deletes so marked edges.
         */
-    void CleanEdges(void);
+    void CleanEdges();
 
     /** \brief CleanFaces runs through the face list and deletes any face marked visible.
         */
-    void CleanFaces(void);
+    void CleanFaces();
 
     /** \brief CleanUp goes through each data structure list and clears all
         flags and NULLs out some pointers.  The order of processing
@@ -223,18 +223,18 @@ class ConvexHull
         adjacent faces have their endpoints in opposite order.  This verifies
         that the vertices are in counterclockwise order.
         */
-    void Consistency(void);
+    void Consistency();
 
     /** \brief ConstructHull adds the vertices to the hull one at a time.  The hull
         vertices are those in the list marked as onhull.
         */
-    void ConstructHull(void);
+    void ConstructHull();
 
     /** \brief Convexity checks that the volume between every face and every
         point is negative.  This shows that each point is inside every face
         and therefore the hull is convex.
         */
-    void Convexity(void);
+    void Convexity();
 
     /** \brief DoubleTriangle builds the initial double triangle.  It first finds 3
          noncollinear points and makes two faces out of them, in opposite order.
@@ -244,17 +244,17 @@ class ConvexHull
          3 newfaces to the fourth point are constructed and the data structures
          are cleaned up.
         */
-    void DoubleTriangle(void);
+    void DoubleTriangle();
 
     /** \brief EdgeOrderOnFaces: puts e0 between v0 and v1, e1 between v1 and v2,
           e2 between v2 and v0 on each face.  This should be unnecessary, alas.
           Not used in code, but useful for other purposes.
         */
-    void EdgeOrderOnFaces(void);
+    void EdgeOrderOnFaces();
 
     /** \brief Set the floating point to integer scaling factor
         */
-    int GetScaleFactor(void) const { return ScaleFactor; }
+    int GetScaleFactor() const { return ScaleFactor; }
 
     /** \brief MakeCcw puts the vertices in the face structure in counterclock wise
         order.  We want to store the vertices in the same
@@ -285,17 +285,17 @@ class ConvexHull
     /** \brief MakeNullEdge creates a new cell and initializes all pointers to NULL
         and sets all flags to off.  It returns a pointer to the empty cell.
         */
-    tEdge MakeNullEdge(void);
+    tEdge MakeNullEdge();
 
     /** \brief MakeNullFace creates a new face structure and initializes all of its
         flags to NULL and sets all the flags to off.  It returns a pointer
         to the empty cell.
         */
-    tFace MakeNullFace(void);
+    tFace MakeNullFace();
 
     /** \brief MakeNullVertex: Makes a vertex, nulls out fields.
         */
-    tVertex MakeNullVertex(void);
+    tVertex MakeNullVertex();
 
     /** \brief Print: Prints out the vertices and the faces.  Uses the vnum indices
         corresponding to the order in which the vertices were input.
@@ -303,7 +303,7 @@ class ConvexHull
         and does not scale the output to fit the page. It use on 3D hulls is not
         recommended.
         */
-    void Print(void);
+    void Print();
 
     /** \brief Prints the edges Ofile
         */
@@ -336,11 +336,11 @@ class ConvexHull
         the first line: the function looks for EOF instead.  Sets the global
         variable vertices via the add<> template function.
         */
-    void ReadVertices(void);
+    void ReadVertices();
 
     /** \brief Frees the vertices edges and faces lists and resets the debug and check flags.
         */
-    void Reset(void);
+    void Reset();
 
     /** \brief Set the floating point to integer scaling factor. If you want to tweak
         this a good value to start from may well be a little bit more than the resolution of the

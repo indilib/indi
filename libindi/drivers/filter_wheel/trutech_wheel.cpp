@@ -22,12 +22,10 @@
 
 #include "indicom.h"
 
+#include <cstring>
 #include <memory>
-#include <string.h>
 
 #define CMD_SIZE 5
-#define CMD_JUNK 64
-#define CMD_RESP 15
 
 //const uint8_t COMM_PRE  = 0x01;
 const uint8_t COMM_INIT = 0xA5;
@@ -43,19 +41,19 @@ void ISGetProperties(const char *dev)
     tru_wheel->ISGetProperties(dev);
 }
 
-void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int num)
+void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
 {
-    tru_wheel->ISNewSwitch(dev, name, states, names, num);
+    tru_wheel->ISNewSwitch(dev, name, states, names, n);
 }
 
-void ISNewText(const char *dev, const char *name, char *texts[], char *names[], int num)
+void ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
 {
-    tru_wheel->ISNewText(dev, name, texts, names, num);
+    tru_wheel->ISNewText(dev, name, texts, names, n);
 }
 
-void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int num)
+void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
 {
-    tru_wheel->ISNewNumber(dev, name, values, names, num);
+    tru_wheel->ISNewNumber(dev, name, values, names, n);
 }
 
 void ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[],
@@ -80,13 +78,9 @@ TruTech::TruTech()
     setFilterConnection(CONNECTION_SERIAL | CONNECTION_TCP);
 }
 
-TruTech::~TruTech()
-{
-}
-
 const char *TruTech::getDefaultName()
 {
-    return (char *)"TruTech Wheel";
+    return (const char *)"TruTech Wheel";
 }
 
 bool TruTech::initProperties()
@@ -119,9 +113,9 @@ bool TruTech::updateProperties()
 
 bool TruTech::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
 {
-    if (strcmp(dev, getDeviceName()) == 0)
+    if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
-        if (!strcmp(HomeSP.name, name))
+        if (strcmp(HomeSP.name, name) == 0)
         {
             int rc = 0, nbytes_written = 0;
             uint8_t type   = 0x03;
@@ -131,7 +125,7 @@ bool TruTech::ISNewSwitch(const char *dev, const char *name, ISState *states, ch
 
             DEBUGF(INDI::Logger::DBG_DEBUG, "CMD: %#02X %#02X %#02X %#02X", COMM_INIT, type, COMM_FILL, chksum);
 
-            if (isSimulation() == false &&
+            if (!isSimulation() &&
                 (rc = tty_write(PortFD, filter_command, CMD_SIZE, &nbytes_written)) != TTY_OK)
             {
                 char error_message[ERRMSG_SIZE];
@@ -176,7 +170,7 @@ bool TruTech::SelectFilter(int f)
 
     DEBUGF(INDI::Logger::DBG_DEBUG, "CMD: %#02X %#02X %#02X %#02X", COMM_INIT, type, f, chksum);
 
-    if (isSimulation() == false && (rc = tty_write(PortFD, filter_command, CMD_SIZE, &nbytes_written)) != TTY_OK)
+    if (!isSimulation() && (rc = tty_write(PortFD, filter_command, CMD_SIZE, &nbytes_written)) != TTY_OK)
     {
         char error_message[ERRMSG_SIZE];
         tty_error_msg(rc, error_message, ERRMSG_SIZE);
@@ -194,30 +188,4 @@ bool TruTech::SelectFilter(int f)
 void TruTech::TimerHit()
 {
     // Maybe needed later?
-}
-
-bool TruTech::GetFilterNames(const char *groupName)
-{
-    char filterName[MAXINDINAME];
-    char filterLabel[MAXINDILABEL];
-    int MaxFilter = FilterSlotN[0].max;
-
-    const char *filterDesignation[8] = { "Red", "Green", "Blue", "H_Alpha", "SII", "OIII", "LPR", "Luminosity" };
-
-    if (FilterNameT != nullptr)
-        delete FilterNameT;
-
-    FilterNameT = new IText[MaxFilter];
-
-    for (int i = 0; i < MaxFilter; i++)
-    {
-        snprintf(filterName, MAXINDINAME, "FILTER_SLOT_NAME_%d", i + 1);
-        snprintf(filterLabel, MAXINDILABEL, "Filter#%d", i + 1);
-        IUFillText(&FilterNameT[i], filterName, filterLabel, filterDesignation[i]);
-    }
-
-    IUFillTextVector(FilterNameTP, FilterNameT, MaxFilter, getDeviceName(), "FILTER_NAME", "Filter", groupName, IP_RW,
-                     0, IPS_IDLE);
-
-    return true;
 }

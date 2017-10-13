@@ -162,9 +162,9 @@ ASIWHEEL::ASIWHEEL(int id, EFW_INFO info, bool enumerate)
     char str[100];
 
     if (enumerate)
-        snprintf(str, sizeof(str), "%s %d", info.Name, id);
+        snprintf(str, sizeof(str), "ASI %s %d", info.Name, id);
     else
-        strncpy(str, info.Name, sizeof(str));
+        snprintf(str, sizeof(str), "ASI %s", info.Name);
 
     fw_id              = id;
     CurrentFilter      = 0;
@@ -177,48 +177,12 @@ ASIWHEEL::ASIWHEEL(int id, EFW_INFO info, bool enumerate)
 
 ASIWHEEL::~ASIWHEEL()
 {
-    if (isSimulation())
-    {
-        IDMessage(getDeviceName(), "simulation: disconnected");
-    }
-    else
-    {
-        Disconnect();
-    }
-}
-
-void ASIWHEEL::debugTriggered(bool enable)
-{
-    INDI_UNUSED(enable);
-}
-
-void ASIWHEEL::simulationTriggered(bool enable)
-{
-    INDI_UNUSED(enable);
+    Disconnect();
 }
 
 const char *ASIWHEEL::getDefaultName()
 {
-    return (char *)"ASI Wheel";
-}
-
-bool ASIWHEEL::GetFilterNames(const char *groupName)
-{
-    char filterName[MAXINDINAME];
-    char filterLabel[MAXINDILABEL];
-    int MaxFilter = FilterSlotN[0].max;
-    if (FilterNameT != NULL)
-        delete FilterNameT;
-    FilterNameT = new IText[MaxFilter];
-    for (int i = 0; i < MaxFilter; i++)
-    {
-        snprintf(filterName, MAXINDINAME, "FILTER_SLOT_NAME_%d", i + 1);
-        snprintf(filterLabel, MAXINDILABEL, "Filter #%d", i + 1);
-        IUFillText(&FilterNameT[i], filterName, filterLabel, filterLabel);
-    }
-    IUFillTextVector(FilterNameTP, FilterNameT, MaxFilter, getDeviceName(), "FILTER_NAME", "Filter", groupName, IP_RW,
-                     0, IPS_IDLE);
-    return true;
+    return (char *)"ASI EFW";
 }
 
 bool ASIWHEEL::Connect()
@@ -227,7 +191,7 @@ bool ASIWHEEL::Connect()
 
     if (isSimulation())
     {
-        IDMessage(getDeviceName(), "simulation: connected");
+        DEBUG(INDI::Logger::DBG_SESSION, "Simulation connected.");
         fw_id = 0;
     }
     else if (fw_id >= 0)
@@ -264,7 +228,7 @@ bool ASIWHEEL::Disconnect()
 
     if (isSimulation())
     {
-        IDMessage(getDeviceName(), "simulation: disconnected");
+        DEBUG(INDI::Logger::DBG_SESSION, "Simulation disconnected.");
     }
     else if (fw_id >= 0)
     {
@@ -285,12 +249,6 @@ bool ASIWHEEL::initProperties()
     addDebugControl();
     addSimulationControl();
     return true;
-}
-
-void ASIWHEEL::ISGetProperties(const char *dev)
-{
-    INDI::FilterWheel::ISGetProperties(dev);
-    return;
 }
 
 int ASIWHEEL::QueryFilter()

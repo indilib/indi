@@ -31,7 +31,7 @@ class WeatherMeta : public INDI::DefaultDevice
 {
   public:
     WeatherMeta();
-    virtual ~WeatherMeta();
+    virtual ~WeatherMeta() = default;
 
     //  Generic indi device entries
     bool Connect();

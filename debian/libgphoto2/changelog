@@ -1,8 +1,41 @@
-libgphoto2 (2.5.14) unstable; urgency=low
+libgphoto2 (2.5.15) unstable; urgency=low
 
-  * New upstream release.
+  * New upstream version 2.5.15
   
- -- Jasem Mutlaq <mutlaqja@ikarustech.com>  Wed, 06 Jun 2017 14:00:00 +0300
+ -- Jasem Mutlaq <mutlaqja@ikarustech.com>  Sat, 07 Oct 2017 00:20:00 +0300
+ 
+libgphoto2 (2.5.14-1) unstable; urgency=medium
+
+  * New upstream version 2.5.14
+  * debian/control:
+      - Bump STD-Version: from 3.9.8 to 4.0.0
+  * debian/copyright:
+      - Update.
+
+ -- Herbert Parentes Fortes Neto <hpfn@debian.org>  Sun, 16 Jul 2017 15:06:10 -0300
+
+libgphoto2 (2.5.13-3) unstable; urgency=medium
+
+  * Upload to unstable. 
+
+ -- Herbert Parentes Fortes Neto <hpfn@debian.org>  Sun, 18 Jun 2017 14:22:27 -0300
+
+libgphoto2 (2.5.13-2) experimental; urgency=medium
+
+  * debian/control:
+      - debhelper 10 on Build-Depends. 
+
+ -- Herbert Parentes Fortes Neto <hpfn@debian.org>  Sun, 30 Apr 2017 10:38:14 -0300
+
+libgphoto2 (2.5.13-1) experimental; urgency=medium
+
+  * New upstream version 2.5.13
+  * debian/compat:
+      - 10.
+  * debian/copyright:
+      - updated.
+
+ -- Herbert Parentes Fortes Neto <hpfn@debian.org>  Sun, 23 Apr 2017 10:24:38 -0300
 
 libgphoto2 (2.5.12-1) unstable; urgency=low
 

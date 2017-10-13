@@ -29,10 +29,16 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110 - 1301  USA
 #include "ieq45driver.h"
 #include "indicom.h"
 
+#include <stdio.h>
+#include <string.h>
+#include <math.h>
+#include <unistd.h>
+
+
 #include <memory>
 
 /* Our telescope auto pointer */
-std::unique_ptr<IEQ45Basic> telescope(0);
+std::unique_ptr<IEQ45Basic> telescope(new IEQ45Basic());
 
 const int POLLMS  = 100;     // Period of update, 1 second.
 const char *mydev = "IEQ45"; // Name of our device.
@@ -168,7 +174,8 @@ IEQ45Basic::~IEQ45Basic()
 ***************************************************************************************/
 void IEQ45Basic::init_properties()
 {
-    // Connection
+    // Connection#include <stdio.h>
+#include <string.h>
     IUFillSwitch(&ConnectS[0], "CONNECT", "Connect", ISS_OFF);
     IUFillSwitch(&ConnectS[1], "DISCONNECT", "Disconnect", ISS_ON);
     IUFillSwitchVector(&ConnectSP, ConnectS, NARRAY(ConnectS), mydev, "CONNECTION", "Connection", BASIC_GROUP, IP_RW,
@@ -209,7 +216,7 @@ void IEQ45Basic::init_properties()
 ***************************************************************************************/
 void IEQ45Basic::ISGetProperties(const char *dev)
 {
-    if (dev && strcmp(mydev, dev))
+    if (dev != nullptr && strcmp(mydev, dev))
         return;
 
     // Main Control

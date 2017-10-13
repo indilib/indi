@@ -1,8 +1,8 @@
 cmake_minimum_required(VERSION 2.8)
 PROJECT(libqhy C CXX)
 
-set(LIBQHY_VERSION "0.1.9")
-set(LIBQHY_SOVERSION "0")
+set(LIBQHY_VERSION "1.0.1")
+set(LIBQHY_SOVERSION "1")
 
 SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-error")
 SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-error")
@@ -45,8 +45,8 @@ ENDIF(UNIX AND NOT WIN32)
 
 # Make sure symbolic links are installed
 file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/make_libqhy_symlink.cmake "
-exec_program(${CMAKE_COMMAND} ARGS -E create_symlink ${LIB_INSTALL_DIR}${LIB_POSTFIX}/libqhy.so.${LIBQHY_VERSION} ${LIB_INSTALL_DIR}${LIB_POSTFIX}/libqhy.so.${LIBQHY_SOVERSION})\n
-exec_program(${CMAKE_COMMAND} ARGS -E create_symlink ${LIB_INSTALL_DIR}${LIB_POSTFIX}/libqhy.so.${LIBQHY_SOVERSION} ${LIB_INSTALL_DIR}${LIB_POSTFIX}/libqhy.so)\n
+exec_program(${CMAKE_COMMAND} ARGS -E create_symlink libqhy.so.${LIBQHY_VERSION} ${LIB_INSTALL_DIR}${LIB_POSTFIX}/libqhy.so.${LIBQHY_SOVERSION})\n
+exec_program(${CMAKE_COMMAND} ARGS -E create_symlink libqhy.so.${LIBQHY_SOVERSION} ${LIB_INSTALL_DIR}${LIB_POSTFIX}/libqhy.so)\n
 ")
 
 install(FILES qhyccd.h qhyccdcamdef.h qhyccderr.h qhyccdstruct.h log4z.h DESTINATION include/libqhy)

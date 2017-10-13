@@ -22,7 +22,7 @@
 
 #include "lx200driver.h"
 
-#include <string.h>
+#include <cstring>
 #include <unistd.h>
 
 #define GPS_TAB "Extended GPS Features"
@@ -91,7 +91,7 @@ bool LX200GPS::initProperties()
 
 void LX200GPS::ISGetProperties(const char *dev)
 {
-    if (dev && strcmp(dev, getDeviceName()))
+    if (dev != nullptr && strcmp(dev, getDeviceName()) != 0)
         return;
 
     // process parent first
@@ -151,7 +151,7 @@ bool LX200GPS::ISNewSwitch(const char *dev, const char *name, ISState *states, c
     int index = 0;
     char msg[64];
 
-    if (strcmp(dev, getDeviceName()) == 0)
+    if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
         /* GPS Power */
         if (!strcmp(name, GPSPowerSP.name))

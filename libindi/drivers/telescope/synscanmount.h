@@ -21,33 +21,11 @@
 #include "inditelescope.h"
 #include "alignment/AlignmentSubsystemForDrivers.h"
 
-#define SYNSCAN_SLEW_RATES 9
-
 class SynscanMount : public INDI::Telescope, public INDI::AlignmentSubsystem::AlignmentSubsystemForDrivers
 {
-  private:
-    double FirmwareVersion;
-    int MountModel;
-    char LastParkRead[20];
-    int NumPark;
-    int StopCount;
-    int SlewRate;
-    int PassthruCommand(int cmd, int target, int msgsize, int data, int numReturn);
-    double currentRA;
-    double currentDEC;
-
-    bool CanSetLocation;
-    bool ReadLatLong;
-    bool HasFailed;
-    bool FirstConnect;
-    //int NumSyncPoints;
-    bool AnalyzeHandset();
-    ln_equ_posn TelescopeToSky(double ra, double dec);
-    ln_equ_posn SkyToTelescope(double ra, double dec);
-
   public:
     SynscanMount();
-    virtual ~SynscanMount();
+    virtual ~SynscanMount() = default;
 
     //  overrides of base class virtual functions
     //bool initProperties();
@@ -79,4 +57,24 @@ class SynscanMount : public INDI::Telescope, public INDI::AlignmentSubsystem::Al
                            char *formats[], char *names[], int n);
     virtual bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n);
     bool Sync(double ra, double dec);
+
+  private:
+    int PassthruCommand(int cmd, int target, int msgsize, int data, int numReturn);
+    ln_equ_posn TelescopeToSky(double ra, double dec);
+    ln_equ_posn SkyToTelescope(double ra, double dec);
+    bool AnalyzeHandset();
+
+    double FirmwareVersion { 0 };
+    char LastParkRead[20];
+    int NumPark { 0 };
+    int StopCount { 0 };
+    int SlewRate { 5 };
+    double currentRA { 0 };
+    double currentDEC { 0 };
+
+    bool CanSetLocation { false };
+    bool ReadLatLong { false };
+    bool HasFailed { true };
+    bool FirstConnect { true };
+    //int NumSyncPoints { 0 };
 };

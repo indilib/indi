@@ -471,6 +471,7 @@ class INDI::DefaultDevice : public INDI::BaseDevice
     // Connection Plugins
     friend class Connection::Serial;
     friend class Connection::TCP;
+    friend class FilterInterface;
 
     bool defineDynamicProperties = true;
     bool deleteDynamicProperties = true;

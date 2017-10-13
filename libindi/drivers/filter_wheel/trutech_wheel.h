@@ -26,7 +26,7 @@ class TruTech : public INDI::FilterWheel
 {
   public:
     TruTech();
-    virtual ~TruTech();
+    virtual ~TruTech() = default;
 
     virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n);
 
@@ -38,9 +38,6 @@ class TruTech : public INDI::FilterWheel
     bool Handshake();
     bool SelectFilter(int);
     void TimerHit();
-
-    virtual bool SetFilterNames() { return true; }
-    virtual bool GetFilterNames(const char *groupName);
 
   private:
     ISwitch HomeS[1];

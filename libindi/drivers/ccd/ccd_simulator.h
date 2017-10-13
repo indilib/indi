@@ -25,7 +25,7 @@ class CCDSim : public INDI::CCD, public INDI::FilterInterface
 {
   public:
     CCDSim();
-    virtual ~CCDSim();
+    virtual ~CCDSim() = default;
 
     const char *getDefaultName();
 
@@ -57,7 +57,7 @@ class CCDSim : public INDI::CCD, public INDI::FilterInterface
 
     virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n);
     virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n);
-    virtual bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int num);
+    virtual bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n);
     virtual bool ISSnoopDevice(XMLEle *root);
 
   protected:
@@ -66,50 +66,59 @@ class CCDSim : public INDI::CCD, public INDI::FilterInterface
     virtual int SetTemperature(double temperature);
 
   private:
-    float TemperatureRequest;
-
-    float ExposureRequest;
-    struct timeval ExpStart;
-
-    float GuideExposureRequest;
-    struct timeval GuideExpStart;
-
     float CalcTimeLeft(timeval, float);
+    bool SetupParms();
 
-    int testvalue;
-    int ShowStarField;
-    int bias;
-    int maxnoise;
-    int maxval;
-    int maxpix;
-    int minpix;
-    float skyglow;
-    float limitingmag;
-    float saturationmag;
-    float seeing;
-    float ImageScalex;
-    float ImageScaley;
-    float OAGoffset;
-    float rotationCW;
-    float TimeFactor;
+    // Filter
+    bool SelectFilter(int);
+    int QueryFilter();
+
+    float TemperatureRequest { 0 };
+
+    float ExposureRequest { 0 };
+    struct timeval ExpStart { 0, 0 };
+
+    float GuideExposureRequest { 0 };
+    struct timeval GuideExpStart { 0, 0 };
+
+    int testvalue { 0 };
+    bool ShowStarField { true };
+    int bias { 1500 };
+    int maxnoise { 20 };
+    int maxval { 65000 };
+    int maxpix { 0 };
+    int minpix { 65000 };
+    float skyglow { 40 };
+    float limitingmag { 11.5 };
+    float saturationmag { 2 };
+    float seeing { 3.5 };
+    float ImageScalex { 1.0 };
+    float ImageScaley { 1.0 };
+    //  An oag is offset this much from center of scope position (arcminutes)
+    float OAGoffset { 0 };
+    float rotationCW { 0 };
+    float TimeFactor { 1 };
     //  our zero point calcs used for drawing stars
-    float k;
-    float z;
+    float k { 0 };
+    float z { 0 };
 
-    bool AbortGuideFrame;
-    bool AbortPrimaryFrame;
+    bool AbortGuideFrame { false };
+    bool AbortPrimaryFrame { false };
 
-    float GuideRate;
+    /// Guide rate is 7 arcseconds per second
+    float GuideRate { 7 };
 
-    float PEPeriod;
-    float PEMax;
+    /// Our PEPeriod is 8 minutes and we have a 22 arcsecond swing
+    float PEPeriod { 8*60 };
+    float PEMax { 11 };
 
-    double raPE, decPE;
-    bool usePE;
+    double raPE { 0 };
+    double decPE { 0 };
+    bool usePE { false };
     time_t RunStart;
 
-    float polarError;
-    float polarDrift;
+    float polarError { 0 };
+    float polarDrift { 0 };
 
     //  And this lives in our simulator settings page
 
@@ -118,8 +127,6 @@ class CCDSim : public INDI::CCD, public INDI::FilterInterface
 
     ISwitch TimeFactorS[3];
     ISwitchVectorProperty *TimeFactorSV;
-
-    bool SetupParms();
 
     //  We are going to snoop these from focuser
     INumberVectorProperty FWHMNP;
@@ -134,10 +141,4 @@ class CCDSim : public INDI::CCD, public INDI::FilterInterface
 
     ISwitch CoolerS[2];
     ISwitchVectorProperty CoolerSP;
-
-    // Filter
-    bool SelectFilter(int);
-    bool SetFilterNames() { return true; }
-    bool GetFilterNames(const char *groupName);
-    int QueryFilter();
 };

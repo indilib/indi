@@ -32,7 +32,7 @@
     gst-launch-1.0  -v videotestsrc  ! video/x-raw,format=\(string\)GRAY16_LE,width=1024,height=576,framerate=\(fraction\)25/1 ! filesink location =/tmp/videopipe
     ./gray16_to_v4l2 /dev/video8 < /tmp/videopipe &
     The C program ./gray16_to_v4l2 is adpated from https://github.com/umlaeute/v4l2loopback/blob/master/examples/yuv4mpeg_to_v4l2.c :
-    process_header/read_header calls are suppressed (copy_frames uses a while (1) loop), frame_width and frame_height are constant
+    process_header/read_header calls are suppressed (copy_frames uses a while (true) loop), frame_width and frame_height are constant
     and V4L2 pixel format is set to V4L2_PIX_FMT_Y16.
 
     To repeat an avi stream
@@ -63,7 +63,7 @@
 #include "../ccvt.h"
 #include "../v4l2_colorspace.h"
 
-#include <string.h> // memcpy
+#include <cstring> // memcpy
 
 V4L2_Builtin_Decoder::V4L2_Builtin_Decoder()
 {

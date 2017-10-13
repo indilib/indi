@@ -22,10 +22,9 @@
 
 class QFW : public INDI::FilterWheel
 {
-  private:
   public:
     QFW();
-    ~QFW();
+    virtual ~QFW() = default;
 
     void debugTriggered(bool enable);
     void simulationTriggered(bool enable);
@@ -39,6 +38,4 @@ class QFW : public INDI::FilterWheel
 
     int QueryFilter();
     bool SelectFilter(int);
-    virtual bool SetFilterNames() { return true; }
-    bool GetFilterNames(const char *);
 };

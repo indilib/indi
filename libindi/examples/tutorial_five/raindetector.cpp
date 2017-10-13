@@ -18,7 +18,7 @@
 #include "raindetector.h"
 
 #include <memory>
-#include <string.h>
+#include <cstring>
 
 std::unique_ptr<RainDetector> rainDetector(new RainDetector());
 
@@ -27,19 +27,19 @@ void ISGetProperties(const char *dev)
     rainDetector->ISGetProperties(dev);
 }
 
-void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int num)
+void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
 {
-    rainDetector->ISNewSwitch(dev, name, states, names, num);
+    rainDetector->ISNewSwitch(dev, name, states, names, n);
 }
 
-void ISNewText(const char *dev, const char *name, char *texts[], char *names[], int num)
+void ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
 {
-    rainDetector->ISNewText(dev, name, texts, names, num);
+    rainDetector->ISNewText(dev, name, texts, names, n);
 }
 
-void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int num)
+void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
 {
-    rainDetector->ISNewNumber(dev, name, values, names, num);
+    rainDetector->ISNewNumber(dev, name, values, names, n);
 }
 
 void ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[],
@@ -58,10 +58,6 @@ void ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], 
 void ISSnoopDevice(XMLEle *root)
 {
     rainDetector->ISSnoopDevice(root);
-}
-
-RainDetector::RainDetector()
-{
 }
 
 /**************************************************************************************
@@ -138,9 +134,9 @@ bool RainDetector::updateProperties()
 *********************************************************************************************/
 bool RainDetector::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
 {
-    if (!strcmp(dev, getDeviceName()))
+    if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
-        if (!strcmp(name, RainSP.name))
+        if (strcmp(name, RainSP.name) == 0)
         {
             IUUpdateSwitch(&RainSP, states, names, n);
 

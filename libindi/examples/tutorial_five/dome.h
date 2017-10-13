@@ -30,7 +30,7 @@
 class Dome : public INDI::DefaultDevice
 {
   public:
-    Dome();
+    Dome() = default;
     bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n);
     bool ISSnoopDevice(XMLEle *root);
 

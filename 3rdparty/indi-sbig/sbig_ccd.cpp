@@ -271,7 +271,7 @@ int SBIGCCD::CloseDevice()
 
 //==========================================================================
 
-SBIGCCD::SBIGCCD()
+SBIGCCD::SBIGCCD() : FilterInterface(this)
 {
     InitVars();
     int res = OpenDriver();
@@ -451,7 +451,7 @@ bool SBIGCCD::initProperties()
 
     IUSaveText(&BayerT[2], "BGGR");
 
-    initFilterProperties(getDeviceName(), FILTER_TAB);
+    INDI::FilterInterface::initProperties(FILTER_TAB);
 
     FilterSlotN[0].min = 1;
     FilterSlotN[0].max = MAX_CFW_TYPES;
@@ -536,7 +536,7 @@ bool SBIGCCD::updateProperties()
 
 bool SBIGCCD::ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
 {
-    if (strcmp(dev, getDeviceName()) == 0)
+    if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
         if (strcmp(name, IpTP.name) == 0)
         {
@@ -555,7 +555,7 @@ bool SBIGCCD::ISNewText(const char *dev, const char *name, char *texts[], char *
         }
         if (strcmp(name, FilterNameTP->name) == 0)
         {
-            processFilterName(dev, texts, names, n);
+            INDI::FilterInterface::processText(dev, name, texts, names, n);
             return true;
         }
     }
@@ -564,7 +564,7 @@ bool SBIGCCD::ISNewText(const char *dev, const char *name, char *texts[], char *
 
 bool SBIGCCD::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
 {
-    if (strcmp(dev, getDeviceName()) == 0)
+    if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
         if (strcmp(name, PortSP.name) == 0)
         {
@@ -649,11 +649,11 @@ bool SBIGCCD::ISNewSwitch(const char *dev, const char *name, ISState *states, ch
 
 bool SBIGCCD::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
 {
-    if (strcmp(dev, getDeviceName()) == 0)
+    if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
         if (strcmp(name, FilterSlotNP.name) == 0)
         {
-            processFilterSlot(dev, values, names);
+            INDI::FilterInterface::processNumber(dev, name, values, names, n);
             return true;
         }
     }
@@ -1280,20 +1280,15 @@ bool SBIGCCD::grabImage(CCDChip *targetChip)
     return true;
 }
 
-void SBIGCCD::addFITSKeywords(fitsfile *fptr, CCDChip *targetChip)
-{
-    INDI::CCD::addFITSKeywords(fptr, targetChip);
-    int status = 0;
-    fits_update_key_s(fptr, TSTRING, "INSTRUME", ProductInfoT[0].text, "CCD Name", &status);
-}
-
 bool SBIGCCD::saveConfigItems(FILE *fp)
 {
     INDI::CCD::saveConfigItems(fp);
     IUSaveConfigSwitch(fp, &PortSP);
     IUSaveConfigText(fp, &IpTP);
-    IUSaveConfigNumber(fp, &FilterSlotNP);
-    IUSaveConfigText(fp, FilterNameTP);
+
+    if (FilterNameT)
+        INDI::FilterInterface::saveConfigItems(fp);
+
     IUSaveConfigSwitch(fp, &FilterTypeSP);
     return true;
 }
@@ -1313,7 +1308,6 @@ void SBIGCCD::TimerHit()
         if (isExposureDone(targetChip))
         {
             DEBUG(INDI::Logger::DBG_DEBUG, "Primay camera exposure done, downloading image...");
-            timeleft = 0;
             targetChip->setExposureLeft(0);
             InExposure = false;
 #ifdef ASYNC_READOUT
@@ -1339,7 +1333,6 @@ void SBIGCCD::TimerHit()
         if (isExposureDone(targetChip))
         {
             DEBUG(INDI::Logger::DBG_DEBUG, "Guide head exposure done, downloading image...");
-            timeleft = 0;
             targetChip->setExposureLeft(0);
             InGuideExposure = false;
 #ifdef ASYNC_READOUT
@@ -2180,36 +2173,6 @@ bool SBIGCCD::SelectFilter(int position)
     return false;
 }
 
-bool SBIGCCD::SetFilterNames()
-{
-    // Cannot save it in hardware, so let's just save it in the config file to be loaded later
-    saveConfig();
-    return true;
-}
-
-bool SBIGCCD::GetFilterNames(const char *groupName)
-{
-    char filterName[MAXINDINAME];
-    char filterLabel[MAXINDILABEL];
-    char filterBand[MAXINDILABEL];
-    int MaxFilter = FilterSlotN[0].max;
-    if (FilterNameT != NULL)
-    {
-        delete FilterNameT;
-    }
-    FilterNameT = new IText[MaxFilter];
-    for (int i = 0; i < MaxFilter; i++)
-    {
-        snprintf(filterName, MAXINDINAME, "FILTER_SLOT_NAME_%d", i + 1);
-        snprintf(filterLabel, MAXINDILABEL, "Filter#%d", i + 1);
-        snprintf(filterBand, MAXINDILABEL, "Filter #%d", i + 1);
-        IUFillText(&FilterNameT[i], filterName, filterLabel, filterBand);
-    }
-    IUFillTextVector(FilterNameTP, FilterNameT, MaxFilter, getDeviceName(), "FILTER_NAME", "Filter", groupName, IP_RW,
-                     0, IPS_IDLE);
-    return true;
-}
-
 int SBIGCCD::QueryFilter()
 {
     return CurrentFilter;
@@ -2511,15 +2474,16 @@ int SBIGCCD::CFWConnect()
         }
         DEBUGF(INDI::Logger::DBG_DEBUG, "CFW min: 1 Max: %g Current Slot: %g", FilterSlotN[0].max,
                FilterSlotN[0].value);
+
         defineNumber(&FilterSlotNP);
-        DEBUG(INDI::Logger::DBG_DEBUG, "Loading FILTER_SLOT from config file...");
-        loadConfig(true, "FILTER_SLOT");
         if (FilterNameT == NULL)
-            GetFilterNames(FILTER_TAB);
+            GetFilterNames();
         if (FilterNameT)
             defineText(FilterNameTP);
-        DEBUG(INDI::Logger::DBG_DEBUG, "Loading FILTER_NAME from config file...");
-        loadConfig(true, "FILTER_NAME");
+
+        DEBUG(INDI::Logger::DBG_DEBUG, "Loading FILTER_SLOT from config file...");
+        loadConfig(true, "FILTER_SLOT");
+
         FilterConnectionSP.s = IPS_OK;
         DEBUG(INDI::Logger::DBG_SESSION, "CFW connected.");
         FilterConnectionS[0].s = ISS_ON;
@@ -2583,6 +2547,9 @@ int SBIGCCD::CFWQuery(CFWResults *CFWr)
 
 int SBIGCCD::CFWGoto(CFWResults *CFWr, int position)
 {
+    if (CFWr == nullptr)
+        return CE_NO_ERROR;
+
     if (isSimulation())
     {
         CFWr->cfwPosition = position;

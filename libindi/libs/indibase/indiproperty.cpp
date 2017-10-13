@@ -18,7 +18,7 @@
 
 #include "indiproperty.h"
 
-#include <stdlib.h>
+#include <cstdlib>
 
 INDI::Property::Property()
 {

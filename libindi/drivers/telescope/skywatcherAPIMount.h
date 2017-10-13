@@ -15,6 +15,7 @@
 
 #pragma once
 
+#include "indiguiderinterface.h"
 #include "skywatcherAPI.h"
 
 #include "alignment/AlignmentSubsystemForDrivers.h"
@@ -22,43 +23,61 @@
 typedef enum { PARK_COUNTERCLOCKWISE = 0, PARK_CLOCKWISE } ParkDirection_t;
 typedef enum { PARK_NORTH = 0, PARK_EAST, PARK_SOUTH, PARK_WEST } ParkPosition_t;
 
+struct GuidingPulse
+{
+    double DeltaAlt { 0 };
+    double DeltaAz { 0 };
+    int Duration { 0 };
+    int OriginalDuration { 0 };
+};
+
+
 class SkywatcherAPIMount : public SkywatcherAPI,
                            public INDI::Telescope,
+                           public INDI::GuiderInterface,
                            public INDI::AlignmentSubsystem::AlignmentSubsystemForDrivers
 {
   public:
     SkywatcherAPIMount();
-    virtual ~SkywatcherAPIMount();
+    virtual ~SkywatcherAPIMount() = default;
 
     //  overrides of base class virtual functions
-    virtual bool Abort();
-    virtual bool Handshake();
-    virtual const char *getDefaultName();
-    virtual bool Goto(double ra, double dec);
-    virtual bool initProperties();
-    virtual void ISGetProperties(const char *dev);
+    virtual bool Abort() override;
+    virtual bool Handshake() override;
+    virtual const char *getDefaultName() override;
+    virtual bool Goto(double ra, double dec) override;
+    virtual bool initProperties() override;
+    virtual void ISGetProperties(const char *dev) override;
     virtual bool ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[],
-                           char *formats[], char *names[], int n);
-    virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n);
-    virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n);
-    virtual bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n);
+                           char *formats[], char *names[], int n) override;
+    virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
+    virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
+    virtual bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n) override;
     double GetSlewRate();
-    virtual bool MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command);
-    virtual bool MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command);
+    virtual bool MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command) override;
+    virtual bool MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command) override;
     double GetParkDeltaAz(ParkDirection_t target_direction, ParkPosition_t target_position);
-    virtual bool Park();
-    virtual bool UnPark();
-    virtual bool ReadScopeStatus();
-    virtual bool saveConfigItems(FILE *fp);
-    virtual bool Sync(double ra, double dec);
-    virtual void TimerHit();
-    virtual bool updateLocation(double latitude, double longitude, double elevation);
-    virtual bool updateProperties();
+    virtual bool Park() override;
+    virtual bool UnPark() override;
+    virtual bool ReadScopeStatus() override;
+    virtual bool saveConfigItems(FILE *fp) override;
+    virtual bool Sync(double ra, double dec) override;
+    virtual void TimerHit() override;
+    virtual bool updateLocation(double latitude, double longitude, double elevation) override;
+    virtual bool updateProperties() override;
+    virtual IPState GuideNorth(float ms) override;
+    virtual IPState GuideSouth(float ms) override;
+    virtual IPState GuideEast(float ms) override;
+    virtual IPState GuideWest(float ms) override;
 
-  private:
+private:
+    void CalculateGuidePulses();
+    void ResetGuidePulses();
+    void ConvertGuideCorrection(double delta_ra, double delta_dec, double &delta_alt, double &delta_az);
+    void UpdateScopeConfigSwitch();
     // Overrides for the pure virtual functions in SkyWatcherAPI
-    int skywatcher_tty_read(int fd, char *buf, int nbytes, int timeout, int *nbytes_read);
-    int skywatcher_tty_write(int fd, const char *buffer, int nbytes, int *nbytes_written);
+    virtual int skywatcher_tty_read(int fd, char *buf, int nbytes, int timeout, int *nbytes_read) override;
+    virtual int skywatcher_tty_write(int fd, const char *buffer, int nbytes, int *nbytes_written) override;
 
     void SkywatcherMicrostepsFromTelescopeDirectionVector(
         const INDI::AlignmentSubsystem::TelescopeDirectionVector TelescopeDirectionVector, long &Axis1Microsteps,
@@ -70,29 +89,17 @@ class SkywatcherAPIMount : public SkywatcherAPI,
 
     // Properties
 
-    static const char *DetailedMountInfoPage;
+    static constexpr const char *DetailedMountInfoPage { "Detailed Mount Information" };
     enum
     {
         MOTOR_CONTROL_FIRMWARE_VERSION,
         MOUNT_CODE,
+        MOUNT_NAME,
         IS_DC_MOTOR
     };
-    INumber BasicMountInfo[3];
-    INumberVectorProperty BasicMountInfoV;
-    enum
-    {
-        MT_EQ6,
-        MT_HEQ5,
-        MT_EQ5,
-        MT_EQ3,
-        MT_GT,
-        MT_MF,
-        MT_114GT,
-        MT_DOB,
-        MT_UNKNOWN
-    };
-    ISwitch MountType[9];
-    ISwitchVectorProperty MountTypeV;
+    IText BasicMountInfo[4];
+    ITextVectorProperty BasicMountInfoV;
+
     enum
     {
         MICROSTEPS_PER_REVOLUTION,
@@ -120,12 +127,13 @@ class SkywatcherAPIMount : public SkywatcherAPI,
     enum
     {
         RAW_MICROSTEPS,
+        MICROSTEPS_PER_ARCSEC,
         OFFSET_FROM_INITIAL,
         DEGREES_FROM_INITIAL
     };
-    INumber AxisOneEncoderValues[3];
+    INumber AxisOneEncoderValues[4];
     INumberVectorProperty AxisOneEncoderValuesV;
-    INumber AxisTwoEncoderValues[3];
+    INumber AxisTwoEncoderValues[4];
     INumberVectorProperty AxisTwoEncoderValuesV;
 
     // A switch for silent/highspeed slewing modes
@@ -150,6 +158,10 @@ class SkywatcherAPIMount : public SkywatcherAPI,
     INumber SoftPecN;
     INumberVectorProperty SoftPecNP;
 
+    // Guiding rates (RA/Dec)
+    INumber GuidingRatesN[2];
+    INumberVectorProperty GuidingRatesNP;
+
     // A switch for park movement directions (clockwise/counterclockwise)
     ISwitch ParkMovementDirection[2];
     ISwitchVectorProperty ParkMovementDirectionSP;
@@ -162,33 +174,27 @@ class SkywatcherAPIMount : public SkywatcherAPI,
     ISwitch UnparkPosition[4];
     ISwitchVectorProperty UnparkPositionSP;
 
-    // Previous motion direction
-    typedef enum {
-        PREVIOUS_NS_MOTION_NORTH   = DIRECTION_NORTH,
-        PREVIOUS_NS_MOTION_SOUTH   = DIRECTION_SOUTH,
-        PREVIOUS_NS_MOTION_UNKNOWN = -1
-    } PreviousNSMotion_t;
-    PreviousNSMotion_t PreviousNSMotion;
-    typedef enum {
-        PREVIOUS_WE_MOTION_WEST    = DIRECTION_WEST,
-        PREVIOUS_WE_MOTION_EAST    = DIRECTION_EAST,
-        PREVIOUS_WE_MOTION_UNKNOWN = -1
-    } PreviousWEMotion_t;
-    PreviousWEMotion_t PreviousWEMotion;
-
     // Tracking
-    ln_equ_posn CurrentTrackingTarget;
-    long OldTrackingTarget[2];
-    struct ln_hrz_posn CurrentAltAz;
-    bool ResetTrackingSeconds;
-    int TrackingSecs;
+    ln_equ_posn CurrentTrackingTarget { 0, 0 };
+    long OldTrackingTarget[2] { 0, 0 };
+    struct ln_hrz_posn CurrentAltAz { 0, 0 };
+    struct ln_hrz_posn TrackedAltAz { 0, 0 };
+    bool ResetTrackingSeconds { false };
+    int TrackingMsecs { 0 };
+    double GuideDeltaAlt { 0 };
+    double GuideDeltaAz { 0 };
+    int TimeoutDuration { 500 };
 
     /// Save the serial port name
     std::string SerialPortName;
     /// Recover after disconnection
-    bool RecoverAfterReconnection;
+    bool RecoverAfterReconnection { false };
+
+    GuidingPulse NorthPulse;
+    GuidingPulse WestPulse;
+    std::vector<GuidingPulse> GuidingPulses;
 
 #ifdef USE_INITIAL_JULIAN_DATE
-    double InitialJulianDate;
+    double InitialJulianDate { 0 };
 #endif
 };

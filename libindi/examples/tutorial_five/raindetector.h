@@ -25,7 +25,7 @@
 class RainDetector : public INDI::DefaultDevice
 {
   public:
-    RainDetector();
+    RainDetector() = default;
     bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n);
 
   protected:

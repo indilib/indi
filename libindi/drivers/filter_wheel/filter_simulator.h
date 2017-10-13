@@ -22,11 +22,9 @@
 
 class FilterSim : public INDI::FilterWheel
 {
-  protected:
-  private:
   public:
-    FilterSim();
-    virtual ~FilterSim();
+    FilterSim() = default;
+    virtual ~FilterSim() = default;
 
     const char *getDefaultName();
 
@@ -34,7 +32,4 @@ class FilterSim : public INDI::FilterWheel
     bool Disconnect();
     bool SelectFilter(int);
     void TimerHit();
-
-    virtual bool SetFilterNames() { return true; }
-    virtual bool GetFilterNames(const char *groupName);
 };

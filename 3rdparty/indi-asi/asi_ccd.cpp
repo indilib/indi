@@ -41,7 +41,7 @@
 
 //#define USE_SIMULATION
 
-static int iNumofConnectCameras;
+static int iConnectedCamerasCount;
 static ASI_CAMERA_INFO *pASICameraInfo;
 static ASICCD *cameras[MAX_DEVICES];
 
@@ -50,7 +50,7 @@ pthread_mutex_t condMutex = PTHREAD_MUTEX_INITIALIZER;
 
 static void cleanup()
 {
-    for (int i = 0; i < iNumofConnectCameras; i++)
+    for (int i = 0; i < iConnectedCamerasCount; i++)
     {
         delete cameras[i];
     }
@@ -63,27 +63,27 @@ void ISInit()
     static bool isInit = false;
     if (!isInit)
     {
-        pASICameraInfo       = NULL;
-        iNumofConnectCameras = 0;
+        pASICameraInfo       = nullptr;
+        iConnectedCamerasCount = 0;
 
 #ifdef USE_SIMULATION
-        iNumofConnectCameras = 2;
-        ppASICameraInfo      = (ASI_CAMERA_INFO *)malloc(sizeof(ASI_CAMERA_INFO *) * iNumofConnectCameras);
+        iConnectedCamerasCount = 2;
+        ppASICameraInfo      = (ASI_CAMERA_INFO *)malloc(sizeof(ASI_CAMERA_INFO *) * iConnectedCamerasCount);
         strncpy(ppASICameraInfo[0]->Name, "ASI CCD #1", 64);
         strncpy(ppASICameraInfo[1]->Name, "ASI CCD #2", 64);
         cameras[0] = new ASICCD(ppASICameraInfo[0]);
         cameras[1] = new ASICCD(ppASICameraInfo[1]);
 #else
-        iNumofConnectCameras = ASIGetNumOfConnectedCameras();
-        if (iNumofConnectCameras > MAX_DEVICES)
-            iNumofConnectCameras = MAX_DEVICES;
-        pASICameraInfo = (ASI_CAMERA_INFO *)malloc(sizeof(ASI_CAMERA_INFO) * iNumofConnectCameras);
-        if (iNumofConnectCameras <= 0)
+        iConnectedCamerasCount = ASIGetNumOfConnectedCameras();
+        if (iConnectedCamerasCount > MAX_DEVICES)
+            iConnectedCamerasCount = MAX_DEVICES;
+        pASICameraInfo = (ASI_CAMERA_INFO *)malloc(sizeof(ASI_CAMERA_INFO) * iConnectedCamerasCount);
+        if (iConnectedCamerasCount <= 0)
             //Try sending IDMessage as well?
             IDLog("No ASI Cameras detected. Power on?");
         else
         {
-            for (int i = 0; i < iNumofConnectCameras; i++)
+            for (int i = 0; i < iConnectedCamerasCount; i++)
             {
                 ASIGetCameraProperty(pASICameraInfo + i, i);
                 cameras[i] = new ASICCD(pASICameraInfo + i);
@@ -99,13 +99,20 @@ void ISInit()
 void ISGetProperties(const char *dev)
 {
     ISInit();
-    for (int i = 0; i < iNumofConnectCameras; i++)
+
+    if (iConnectedCamerasCount == 0)
+    {
+        IDMessage(nullptr, "No ASI cameras detected. Power on?");
+        return;
+    }
+
+    for (int i = 0; i < iConnectedCamerasCount; i++)
     {
         ASICCD *camera = cameras[i];
-        if (dev == NULL || !strcmp(dev, camera->name))
+        if (dev == nullptr || !strcmp(dev, camera->name))
         {
             camera->ISGetProperties(dev);
-            if (dev != NULL)
+            if (dev != nullptr)
                 break;
         }
     }
@@ -114,13 +121,13 @@ void ISGetProperties(const char *dev)
 void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int num)
 {
     ISInit();
-    for (int i = 0; i < iNumofConnectCameras; i++)
+    for (int i = 0; i < iConnectedCamerasCount; i++)
     {
         ASICCD *camera = cameras[i];
-        if (dev == NULL || !strcmp(dev, camera->name))
+        if (dev == nullptr || !strcmp(dev, camera->name))
         {
             camera->ISNewSwitch(dev, name, states, names, num);
-            if (dev != NULL)
+            if (dev != nullptr)
                 break;
         }
     }
@@ -129,13 +136,13 @@ void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names
 void ISNewText(const char *dev, const char *name, char *texts[], char *names[], int num)
 {
     ISInit();
-    for (int i = 0; i < iNumofConnectCameras; i++)
+    for (int i = 0; i < iConnectedCamerasCount; i++)
     {
         ASICCD *camera = cameras[i];
-        if (dev == NULL || !strcmp(dev, camera->name))
+        if (dev == nullptr || !strcmp(dev, camera->name))
         {
             camera->ISNewText(dev, name, texts, names, num);
-            if (dev != NULL)
+            if (dev != nullptr)
                 break;
         }
     }
@@ -144,13 +151,13 @@ void ISNewText(const char *dev, const char *name, char *texts[], char *names[], 
 void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int num)
 {
     ISInit();
-    for (int i = 0; i < iNumofConnectCameras; i++)
+    for (int i = 0; i < iConnectedCamerasCount; i++)
     {
         ASICCD *camera = cameras[i];
-        if (dev == NULL || !strcmp(dev, camera->name))
+        if (dev == nullptr || !strcmp(dev, camera->name))
         {
             camera->ISNewNumber(dev, name, values, names, num);
-            if (dev != NULL)
+            if (dev != nullptr)
                 break;
         }
     }
@@ -173,7 +180,7 @@ void ISSnoopDevice(XMLEle *root)
 {
     ISInit();
 
-    for (int i = 0; i < iNumofConnectCameras; i++)
+    for (int i = 0; i < iConnectedCamerasCount; i++)
     {
         ASICCD *camera = cameras[i];
         camera->ISSnoopDevice(root);
@@ -183,9 +190,9 @@ void ISSnoopDevice(XMLEle *root)
 ASICCD::ASICCD(ASI_CAMERA_INFO *camInfo)
 {
     setVersion(ASI_VERSION_MAJOR, ASI_VERSION_MINOR);
-    ControlN     = NULL;
-    ControlS     = NULL;
-    pControlCaps = NULL;
+    ControlN     = nullptr;
+    ControlS     = nullptr;
+    pControlCaps = nullptr;
     m_camInfo    = camInfo;
 
     exposureRetries = 0;
@@ -225,13 +232,13 @@ bool ASICCD::initProperties()
     IUFillNumberVector(&CoolerNP, CoolerN, 1, getDeviceName(), "CCD_COOLER_POWER", "Cooling Power", MAIN_CONTROL_TAB,
                        IP_RO, 60, IPS_IDLE);
 
-    IUFillNumberVector(&ControlNP, NULL, 0, getDeviceName(), "CCD_CONTROLS", "Controls", CONTROL_TAB, IP_RW, 60,
+    IUFillNumberVector(&ControlNP, nullptr, 0, getDeviceName(), "CCD_CONTROLS", "Controls", CONTROL_TAB, IP_RW, 60,
                        IPS_IDLE);
 
-    IUFillSwitchVector(&ControlSP, NULL, 0, getDeviceName(), "CCD_CONTROLS_MODE", "Set Auto", CONTROL_TAB, IP_RW,
+    IUFillSwitchVector(&ControlSP, nullptr, 0, getDeviceName(), "CCD_CONTROLS_MODE", "Set Auto", CONTROL_TAB, IP_RW,
                        ISR_NOFMANY, 60, IPS_IDLE);
 
-    IUFillSwitchVector(&VideoFormatSP, NULL, 0, getDeviceName(), "CCD_VIDEO_FORMAT", "Format", CONTROL_TAB, IP_RW,
+    IUFillSwitchVector(&VideoFormatSP, nullptr, 0, getDeviceName(), "CCD_VIDEO_FORMAT", "Format", CONTROL_TAB, IP_RW,
                        ISR_1OFMANY, 60, IPS_IDLE);
 
     IUSaveText(&BayerT[2], getBayerString());
@@ -378,7 +385,7 @@ bool ASICCD::Connect()
     TemperatureUpdateCounter = 0;
 
 #if !defined(__APPLE__) && !defined(__CYGWIN__)
-    pthread_create(&primary_thread, NULL, &streamVideoHelper, this);
+    pthread_create(&primary_thread, nullptr, &streamVideoHelper, this);
 #endif
     DEBUG(INDI::Logger::DBG_SESSION, "Setting intital bandwidth to AUTO on connection.");
     if ((errCode = ASISetControlValue(m_camInfo->CameraID, ASI_BANDWIDTHOVERLOAD, 40, ASI_FALSE)) != ASI_SUCCESS)
@@ -466,7 +473,7 @@ bool ASICCD::setupParams()
     if (VideoFormatSP.nsp > 0)
         free(VideoFormatS);
 
-    VideoFormatS      = NULL;
+    VideoFormatS      = nullptr;
     int nVideoFormats = 0;
 
     for (int i = 0; i < 8; i++)
@@ -475,7 +482,7 @@ bool ASICCD::setupParams()
             break;
 
         nVideoFormats++;
-        VideoFormatS = VideoFormatS == NULL ? (ISwitch *)malloc(sizeof(ISwitch)) :
+        VideoFormatS = VideoFormatS == nullptr ? (ISwitch *)malloc(sizeof(ISwitch)) :
                                               (ISwitch *)realloc(VideoFormatS, nVideoFormats * sizeof(ISwitch));
 
         ISwitch *oneVF = VideoFormatS + (nVideoFormats - 1);
@@ -512,6 +519,7 @@ bool ASICCD::setupParams()
 
     VideoFormatSP.nsp = nVideoFormats;
     VideoFormatSP.sp  = VideoFormatS;
+    rememberVideoFormat = IUFindOnSwitchIndex(&VideoFormatSP);
 
     float x_pixel_size, y_pixel_size;
     int x_1, y_1, x_2, y_2;
@@ -542,7 +550,7 @@ bool ASICCD::setupParams()
     TemperatureN[0].value = pValue / 10.0;
 
     DEBUGF(INDI::Logger::DBG_SESSION, "The CCD Temperature is %f", TemperatureN[0].value);
-    IDSetNumber(&TemperatureNP, NULL);
+    IDSetNumber(&TemperatureNP, nullptr);
     //}
 
     ASIStopVideoCapture(m_camInfo->CameraID);
@@ -563,7 +571,7 @@ bool ASICCD::ISNewNumber(const char *dev, const char *name, double values[], cha
 {
     ASI_ERROR_CODE errCode = ASI_SUCCESS;
 
-    if (!strcmp(dev, getDeviceName()))
+    if (dev != nullptr && !strcmp(dev, getDeviceName()))
     {
         if (!strcmp(name, ControlNP.name))
         {
@@ -574,7 +582,7 @@ bool ASICCD::ISNewNumber(const char *dev, const char *name, double values[], cha
             if (IUUpdateNumber(&ControlNP, values, names, n) < 0)
             {
                 ControlNP.s = IPS_ALERT;
-                IDSetNumber(&ControlNP, NULL);
+                IDSetNumber(&ControlNP, nullptr);
                 return true;
             }
 
@@ -596,7 +604,7 @@ bool ASICCD::ISNewNumber(const char *dev, const char *name, double values[], cha
                     ControlNP.s = IPS_ALERT;
                     for (int i = 0; i < ControlNP.nnp; i++)
                         ControlN[i].value = oldValues[i];
-                    IDSetNumber(&ControlNP, NULL);
+                    IDSetNumber(&ControlNP, nullptr);
                     return false;
                 }
 
@@ -614,12 +622,12 @@ bool ASICCD::ISNewNumber(const char *dev, const char *name, double values[], cha
                         }
                     }
 
-                    IDSetSwitch(&ControlSP, NULL);
+                    IDSetSwitch(&ControlSP, nullptr);
                 }
             }
 
             ControlNP.s = IPS_OK;
-            IDSetNumber(&ControlNP, NULL);
+            IDSetNumber(&ControlNP, nullptr);
             return true;
         }
     }
@@ -631,14 +639,14 @@ bool ASICCD::ISNewSwitch(const char *dev, const char *name, ISState *states, cha
 {
     ASI_ERROR_CODE errCode = ASI_SUCCESS;
 
-    if (!strcmp(dev, getDeviceName()))
+    if (dev != nullptr && !strcmp(dev, getDeviceName()))
     {
         if (!strcmp(name, ControlSP.name))
         {
             if (IUUpdateSwitch(&ControlSP, states, names, n) < 0)
             {
                 ControlSP.s = IPS_ALERT;
-                IDSetSwitch(&ControlSP, NULL);
+                IDSetSwitch(&ControlSP, nullptr);
                 return true;
             }
 
@@ -662,8 +670,8 @@ bool ASICCD::ISNewSwitch(const char *dev, const char *name, ISState *states, cha
                                    ControlN[j].value, errCode);
                             ControlNP.s = IPS_ALERT;
                             ControlSP.s = IPS_ALERT;
-                            IDSetNumber(&ControlNP, NULL);
-                            IDSetSwitch(&ControlSP, NULL);
+                            IDSetNumber(&ControlNP, nullptr);
+                            IDSetSwitch(&ControlSP, nullptr);
                             return false;
                         }
 
@@ -674,7 +682,7 @@ bool ASICCD::ISNewSwitch(const char *dev, const char *name, ISState *states, cha
             }
 
             ControlSP.s = IPS_OK;
-            IDSetSwitch(&ControlSP, NULL);
+            IDSetSwitch(&ControlSP, nullptr);
             return true;
         }
 
@@ -693,44 +701,68 @@ bool ASICCD::ISNewSwitch(const char *dev, const char *name, ISState *states, cha
         }
 
         if (!strcmp(name, VideoFormatSP.name))
-        {
+        {            
 #if !defined(__APPLE__) && !defined(__CYGWIN__)
             if (Streamer->isBusy())
             {
                 VideoFormatSP.s = IPS_ALERT;
                 DEBUG(INDI::Logger::DBG_ERROR, "Cannot change format while streaming/recording.");
-                IDSetSwitch(&VideoFormatSP, NULL);
+                IDSetSwitch(&VideoFormatSP, nullptr);
                 return true;
             }
 #endif
-
-            IUUpdateSwitch(&VideoFormatSP, states, names, n);
-
-            ASI_IMG_TYPE type = getImageType();
-
-            switch (type)
+            const char *targetFormat = IUFindOnSwitchName(states, names, n);
+            int targetIndex=-1;
+            for (int i=0; i < VideoFormatSP.nsp; i++)
             {
-                case ASI_IMG_RAW16:
-                    PrimaryCCD.setBPP(16);
-                    DEBUG(INDI::Logger::DBG_WARNING, "Warning: 16bit RAW is not supported on all hardware platforms.");
+                if (!strcmp(targetFormat, VideoFormatS[i].name))
+                {
+                    targetIndex=i;
                     break;
-
-                default:
-                    PrimaryCCD.setBPP(8);
-                    break;
+                }
             }
 
-            UpdateCCDFrame(PrimaryCCD.getSubX(), PrimaryCCD.getSubY(), PrimaryCCD.getSubW(), PrimaryCCD.getSubH());
+            if (targetIndex == -1)
+            {
+                VideoFormatSP.s = IPS_ALERT;
+                DEBUGF(INDI::Logger::DBG_ERROR, "Unable to locate format %s.", targetFormat);
+                IDSetSwitch(&VideoFormatSP, nullptr);
+                return true;
+            }
 
-            updateRecorderFormat();
-
-            VideoFormatSP.s = IPS_OK;
-            IDSetSwitch(&VideoFormatSP, NULL);
-            return true;
+            return setVideoFormat(targetIndex);
         }
     }
 
     return INDI::CCD::ISNewSwitch(dev, name, states, names, n);
+}
+
+bool ASICCD::setVideoFormat(uint8_t index)
+{
+    IUResetSwitch(&VideoFormatSP);
+    VideoFormatS[index].s = ISS_ON;
+
+    ASI_IMG_TYPE type = getImageType();
+
+    switch (type)
+    {
+        case ASI_IMG_RAW16:
+            PrimaryCCD.setBPP(16);
+            DEBUG(INDI::Logger::DBG_WARNING, "Warning: 16bit RAW is not supported on all hardware platforms.");
+            break;
+
+        default:
+            PrimaryCCD.setBPP(8);
+            break;
+    }
+
+    UpdateCCDFrame(PrimaryCCD.getSubX(), PrimaryCCD.getSubY(), PrimaryCCD.getSubW(), PrimaryCCD.getSubH());
+
+    updateRecorderFormat();
+
+    IDSetSwitch(&VideoFormatSP, nullptr);
+
+    return true;
 }
 
 #if !defined(__APPLE__) && !defined(__CYGWIN__)
@@ -738,11 +770,13 @@ bool ASICCD::StartStreaming()
 {
     ASI_IMG_TYPE type = getImageType();
 
+    rememberVideoFormat = IUFindOnSwitchIndex(&VideoFormatSP);
+
     if (type != ASI_IMG_Y8 && type != ASI_IMG_RGB24)
     {
         IUResetSwitch(&VideoFormatSP);
         ISwitch *vf = IUFindSwitch(&VideoFormatSP, "ASI_IMG_Y8");
-        if (vf == NULL)
+        if (vf == nullptr)
             vf = IUFindSwitch(&VideoFormatSP, "ASI_IMG_RAW8");
 
         if (vf)
@@ -751,7 +785,7 @@ bool ASICCD::StartStreaming()
             DEBUGF(INDI::Logger::DBG_DEBUG, "Switching to %s video format.", vf->label);
             PrimaryCCD.setBPP(8);
             UpdateCCDFrame(PrimaryCCD.getSubX(), PrimaryCCD.getSubY(), PrimaryCCD.getSubW(), PrimaryCCD.getSubH());
-            IDSetSwitch(&VideoFormatSP, NULL);
+            IDSetSwitch(&VideoFormatSP, nullptr);
         }
         else
         {
@@ -778,6 +812,9 @@ bool ASICCD::StopStreaming()
     pthread_mutex_unlock(&condMutex);
     pthread_cond_signal(&cv);
     ASIStopVideoCapture(m_camInfo->CameraID);
+
+    if (IUFindOnSwitchIndex(&VideoFormatSP) != rememberVideoFormat)
+        setVideoFormat(rememberVideoFormat);
 
     return true;
 }
@@ -819,7 +856,7 @@ bool ASICCD::activateCooler(bool enable)
         CoolerS[1].s = enable ? ISS_OFF : ISS_ON;
         CoolerSP.s   = IPS_BUSY;
     }
-    IDSetSwitch(&CoolerSP, NULL);
+    IDSetSwitch(&CoolerSP, nullptr);
 
     return rc;
 }
@@ -850,9 +887,12 @@ bool ASICCD::StartExposure(float duration)
     }
 
     if (errCode != ASI_SUCCESS)
+    {
+        DEBUG(INDI::Logger::DBG_WARNING, "ASI firmware might require an update to *compatible mode. Check http://www.indilib.org/devices/ccds/zwo-optics-asi-cameras.html for details.");
         return false;
+    }
 
-    gettimeofday(&ExpStart, NULL);
+    gettimeofday(&ExpStart, nullptr);
     if (ExposureRequest > VERBOSE_EXPOSURE)
         DEBUGF(INDI::Logger::DBG_SESSION, "Taking a %g seconds frame...", ExposureRequest);
 
@@ -950,7 +990,7 @@ float ASICCD::calcTimeLeft(float duration, timeval *start_time)
     double timesince;
     double timeleft;
     struct timeval now;
-    gettimeofday(&now, NULL);
+    gettimeofday(&now, nullptr);
 
     timesince = (double)(now.tv_sec * 1000.0 + now.tv_usec / 1000) -
                 (double)(start_time->tv_sec * 1000.0 + start_time->tv_usec / 1000);
@@ -979,7 +1019,7 @@ int ASICCD::grabImage()
     if (type == ASI_IMG_RGB24)
     {
         buffer = (unsigned char *)malloc(width * height * nChannels);
-        if (buffer == NULL)
+        if (buffer == nullptr)
         {
             DEBUG(INDI::Logger::DBG_ERROR, "Not enough memory for RGB 24 buffer, aborting...");
             return -1;
@@ -1148,7 +1188,7 @@ void ASICCD::TimerHit()
             case IPS_IDLE:
             case IPS_OK:
                 if (fabs(currentTemperature - TemperatureN[0].value) > TEMP_THRESHOLD / 10.0)
-                    IDSetNumber(&TemperatureNP, NULL);
+                    IDSetNumber(&TemperatureNP, nullptr);
                 break;
 
             case IPS_ALERT:
@@ -1159,7 +1199,7 @@ void ASICCD::TimerHit()
                 if (fabs(TemperatureRequest - TemperatureN[0].value) <= TEMP_THRESHOLD)
                     TemperatureNP.s = IPS_OK;
 
-                IDSetNumber(&TemperatureNP, NULL);
+                IDSetNumber(&TemperatureNP, nullptr);
                 break;
         }
 
@@ -1180,7 +1220,7 @@ void ASICCD::TimerHit()
                     CoolerNP.s = IPS_IDLE;
             }
 
-            IDSetNumber(&CoolerNP, NULL);
+            IDSetNumber(&CoolerNP, nullptr);
         }
     }
 
@@ -1251,7 +1291,7 @@ IPState ASICCD::GuideNorth(float ms)
     }
 
     NSPulseRequest = ms / 1000.0;
-    gettimeofday(&NSPulseStart, NULL);
+    gettimeofday(&NSPulseStart, nullptr);
     InNSPulse = true;
 
     NStimerID = SetTimer(ms - 50);
@@ -1279,7 +1319,7 @@ IPState ASICCD::GuideSouth(float ms)
     }
 
     NSPulseRequest = ms / 1000.0;
-    gettimeofday(&NSPulseStart, NULL);
+    gettimeofday(&NSPulseStart, nullptr);
     InNSPulse = true;
 
     NStimerID = SetTimer(ms - 50);
@@ -1307,7 +1347,7 @@ IPState ASICCD::GuideEast(float ms)
     }
 
     WEPulseRequest = ms / 1000.0;
-    gettimeofday(&WEPulseStart, NULL);
+    gettimeofday(&WEPulseStart, nullptr);
     InWEPulse = true;
 
     WEtimerID = SetTimer(ms - 50);
@@ -1335,7 +1375,7 @@ IPState ASICCD::GuideWest(float ms)
     }
 
     WEPulseRequest = ms / 1000.0;
-    gettimeofday(&WEPulseStart, NULL);
+    gettimeofday(&WEPulseStart, nullptr);
     InWEPulse = true;
 
     WEtimerID = SetTimer(ms - 50);
@@ -1347,10 +1387,10 @@ void ASICCD::createControls(int piNumberOfControls)
 {
     ASI_ERROR_CODE errCode = ASI_SUCCESS;
 
-    INumber *control_number = NULL;
+    INumber *control_number = nullptr;
     int nWritableControls   = 0;
 
-    ISwitch *auto_switch = NULL;
+    ISwitch *auto_switch = nullptr;
     int nAutoSwitches    = 0;
 
     if (pControlCaps)
@@ -1422,7 +1462,7 @@ void ASICCD::createControls(int piNumberOfControls)
 
             DEBUGF(INDI::Logger::DBG_DEBUG, "Adding above control as writable control number %d", nWritableControls);
 
-            control_number = (control_number == NULL) ?
+            control_number = (control_number == nullptr) ?
                                  (INumber *)malloc(sizeof(INumber)) :
                                  (INumber *)realloc(control_number, nWritableControls * sizeof(INumber));
 
@@ -1441,7 +1481,7 @@ void ASICCD::createControls(int piNumberOfControls)
 
             DEBUGF(INDI::Logger::DBG_DEBUG, "Adding above control as auto control number %d", nAutoSwitches);
 
-            auto_switch = (auto_switch == NULL) ? (ISwitch *)malloc(sizeof(ISwitch)) :
+            auto_switch = (auto_switch == nullptr) ? (ISwitch *)malloc(sizeof(ISwitch)) :
                                                   (ISwitch *)realloc(auto_switch, nAutoSwitches * sizeof(ISwitch));
 
             char autoName[MAXINDINAME];
@@ -1520,8 +1560,8 @@ void ASICCD::updateControls()
         }
     }
 
-    IDSetNumber(&ControlNP, NULL);
-    IDSetSwitch(&ControlSP, NULL);
+    IDSetNumber(&ControlNP, nullptr);
+    IDSetSwitch(&ControlSP, nullptr);
 }
 
 void ASICCD::updateRecorderFormat()

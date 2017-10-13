@@ -30,16 +30,15 @@ Version with experimental pulse guide support. GC 04.12.2015
 
 #include <libnova/transform.h>
 
-#include <math.h>
+#include <cmath>
 #include <memory>
-#include <string.h>
+#include <cstring>
 #include <unistd.h>
 
 /* Simulation Parameters */
 #define GOTO_RATE       5        /* slew rate, degrees/s */
 #define SLEW_RATE       0.5      /* slew rate, degrees/s */
 #define FINE_SLEW_RATE  0.1      /* slew rate, degrees/s */
-#define SID_RATE        0.004178 /* sidereal rate, degrees/s */
 #define GOTO_LIMIT      5.5      /* Move at GOTO_RATE until distance from target is GOTO_LIMIT degrees */
 #define SLEW_LIMIT      1        /* Move at SLEW_LIMIT until distance from target is SLEW_LIMIT degrees */
 #define FINE_SLEW_LIMIT 0.5      /* Move at FINE_SLEW_RATE until distance from target is FINE_SLEW_LIMIT degrees */
@@ -109,6 +108,7 @@ CelestronGPS::CelestronGPS()
 
     fwInfo.Version           = "Invalid";
     fwInfo.controllerVersion = 0;
+    fwInfo.controllerVariant = ISNEXSTAR;
 
     INDI::Logger::getInstance().addDebugLevel("Scope Verbose", "SCOPE");
 
@@ -138,16 +138,9 @@ bool CelestronGPS::initProperties()
     IUFillTextVector(&FirmwareTP, FirmwareT, 5, getDeviceName(), "Firmware Info", "", MOUNTINFO_TAB, IP_RO, 0,
                      IPS_IDLE);
 
-    /*IUFillNumber(&HorizontalCoordsN[AXIS_AZ], "AZ", "Az D:M:S", "%10.6m", 0.0, 360.0, 0.0, 0);
-    IUFillNumber(&HorizontalCoordsN[AXIS_ALT], "ALT", "Alt  D:M:S", "%10.6m", -90., 90.0, 0.0, 0);
-    IUFillNumberVector(&HorizontalCoordsNP, HorizontalCoordsN, 2, getDeviceName(), "HORIZONTAL_COORD", "Horizontal Coord", MAIN_CONTROL_TAB, IP_RW, 0, IPS_IDLE);*/
-
-    IUFillSwitch(&TrackS[0], "TRACK_OFF", "Off", ISS_OFF);
-    IUFillSwitch(&TrackS[1], "TRACK_ALTAZ", "Alt/Az", ISS_OFF);
-    IUFillSwitch(&TrackS[2], "TRACK_EQN", "Eq North", ISS_OFF);
-    IUFillSwitch(&TrackS[3], "TRACK_EQS", "Eq South", ISS_OFF);
-    IUFillSwitchVector(&TrackSP, TrackS, 4, getDeviceName(), "TELESCOPE_TRACK_MODE", "Track Mode", MOUNTINFO_TAB, IP_RW,
-                       ISR_1OFMANY, 0, IPS_IDLE);
+    AddTrackMode("TRACK_ALTAZ", "Alt/Az");
+    AddTrackMode("TRACK_EQN", "Eq North", true);
+    AddTrackMode("TRACK_EQS", "Eq South");
 
     IUFillSwitch(&UseHibernateS[0], "Enable", "", ISS_OFF);
     IUFillSwitch(&UseHibernateS[1], "Disable", "", ISS_ON);
@@ -177,7 +170,7 @@ void CelestronGPS::ISGetProperties(const char *dev)
 {
     static bool configLoaded = false;
 
-    if (dev && strcmp(dev, getDeviceName()))
+    if (dev != nullptr && strcmp(dev, getDeviceName()) != 0)
         return;
 
     INDI::Telescope::ISGetProperties(dev);
@@ -193,7 +186,7 @@ void CelestronGPS::ISGetProperties(const char *dev)
     {
         //defineNumber(&HorizontalCoordsNP);
         defineSwitch(&SlewRateSP);
-        defineSwitch(&TrackSP);
+        //defineSwitch(&TrackSP);
 
         //GUIDE Define guiding properties
         defineSwitch(&UsePulseCmdSP);
@@ -209,7 +202,7 @@ bool CelestronGPS::updateProperties()
 {
     if (isConnected())
     {
-        uint32_t cap = TELESCOPE_CAN_GOTO | TELESCOPE_CAN_ABORT | TELESCOPE_CAN_PARK;
+        uint32_t cap = TELESCOPE_CAN_GOTO | TELESCOPE_CAN_ABORT;
 
         if (get_celestron_firmware(PortFD, &fwInfo))
         {
@@ -225,38 +218,54 @@ bool CelestronGPS::updateProperties()
             DEBUG(INDI::Logger::DBG_WARNING, "Failed to retrive firmware information.");
         }
 
-        if (fwInfo.controllerVersion <= 4.1)
+    /* Since issues have been observed with Starsense, enabe parking only with Nexstar controller       */
+
+    if (fwInfo.controllerVariant == ISSTARSENSE)
+	{
+		if (fwInfo.controllerVersion >= MINSTSENSVER)
+		{
+                    DEBUG(INDI::Logger::DBG_SESSION, "Starsense controller detected.");
+		}
+		else
+		{
+                    DEBUGF(INDI::Logger::DBG_WARNING, "Starsense controller detected, but firmware is too old. Current version is %4.2f, but minimum required version is %4.2f. Please update your Starsense firmware.", fwInfo.controllerVersion, MINSTSENSVER);
+		}
+	}
+	else
+	{    
+		cap |= TELESCOPE_CAN_PARK;
+	}
+
+        if (((fwInfo.controllerVariant == ISSTARSENSE) && 
+             (fwInfo.controllerVersion < MINSTSENSVER)) ||
+            ((fwInfo.controllerVariant == ISNEXSTAR) &&
+             (fwInfo.controllerVersion <= 4.1)))
         {
             DEBUG(INDI::Logger::DBG_WARNING, "Mount firmware does not support sync.");
         }
         else
             cap |= TELESCOPE_CAN_SYNC;
 
-        if (fwInfo.controllerVersion < 2.3)
+        if (((fwInfo.controllerVariant == ISSTARSENSE) && 
+             (fwInfo.controllerVersion < MINSTSENSVER)) ||
+            ((fwInfo.controllerVariant == ISNEXSTAR) &&
+             (fwInfo.controllerVersion < 2.3)))
         {
             DEBUG(INDI::Logger::DBG_WARNING, "Mount firmware does not support update of time and location settings.");
         }
         else
             cap |= TELESCOPE_HAS_TIME | TELESCOPE_HAS_LOCATION;
 
+
+        if (fwInfo.controllerVersion >= 2.3)
+            cap |= TELESCOPE_HAS_TRACK_MODE | TELESCOPE_CAN_CONTROL_TRACK;
+        else
+            DEBUG(INDI::Logger::DBG_WARNING, "Mount firmware does not support track mode.");
+
         SetTelescopeCapability(cap, 9);
 
         INDI::Telescope::updateProperties();
 
-        CELESTRON_TRACK_MODE mode;
-        if (get_celestron_track_mode(PortFD, &mode))
-        {
-            IUResetSwitch(&TrackSP);
-            TrackS[mode].s = ISS_ON;
-            TrackSP.s      = IPS_OK;
-
-            if (mode == TRACK_OFF)
-                DEBUG(INDI::Logger::DBG_SESSION, "Mount tracking is off.");
-        }
-        else
-            TrackSP.s = IPS_ALERT;
-
-        defineSwitch(&TrackSP);
         if (fwInfo.Version != "Invalid")
             defineText(&FirmwareTP);
 
@@ -279,6 +288,33 @@ bool CelestronGPS::updateProperties()
         defineSwitch(&UsePulseCmdSP);
         defineNumber(&GuideNSNP);
         defineNumber(&GuideWENP);
+
+        // Track Mode (t) is only supported for 2.3+
+        if (fwInfo.controllerVersion >= 2.3)
+        {
+            CELESTRON_TRACK_MODE mode;
+            if (get_celestron_track_mode(PortFD, &mode))
+            {
+                if (mode != TRACKING_OFF)
+                {
+                    //IUResetSwitch(&TrackSP);
+                    IUResetSwitch(&TrackModeSP);
+                    TrackModeS[mode-1].s = ISS_ON;
+                    TrackModeSP.s      = IPS_OK;
+
+                    TrackState = SCOPE_TRACKING;
+                }
+                else
+                {
+                    DEBUG(INDI::Logger::DBG_SESSION, "Mount tracking is off.");
+                    TrackState = SCOPE_IDLE;
+                }
+            }
+            else
+                TrackModeSP.s = IPS_ALERT;
+
+            IDSetSwitch(&TrackModeSP, nullptr);
+        }
 
         // JM 2014-04-14: User (davidw) reported AVX mount serial communication times out issuing "h" command with firmware 5.28
         // Therefore disabling query until it is fixed.
@@ -313,7 +349,7 @@ bool CelestronGPS::updateProperties()
         deleteProperty(GuideNSNP.name);
         deleteProperty(GuideWENP.name);
 
-        deleteProperty(TrackSP.name);
+        //deleteProperty(TrackSP.name);
         if (fwInfo.Version != "Invalid")
             deleteProperty(FirmwareTP.name);
     }
@@ -353,7 +389,10 @@ bool CelestronGPS::Goto(double ra, double dec)
 
 bool CelestronGPS::Sync(double ra, double dec)
 {
-    if (fwInfo.controllerVersion <= 4.1)
+    if (((fwInfo.controllerVariant == ISSTARSENSE) && 
+         (fwInfo.controllerVersion < MINSTSENSVER)) ||
+        ((fwInfo.controllerVariant == ISNEXSTAR) &&
+         (fwInfo.controllerVersion <= 4.1)))
     {
         DEBUGF(INDI::Logger::DBG_WARNING, "Firmwre version 4.1 or higher is required to sync. Current version is %3.1f",
                fwInfo.controllerVersion);
@@ -521,7 +560,7 @@ bool CelestronGPS::ReadScopeStatus()
             // are we done?
             if (is_scope_slewing(PortFD) == false)
             {
-                if (set_celestron_track_mode(PortFD, TRACK_OFF))
+                if (set_celestron_track_mode(PortFD, TRACKING_OFF))
                     DEBUG(INDI::Logger::DBG_DEBUG, "Mount tracking is off.");
 
                 SetParked(true);
@@ -591,9 +630,10 @@ bool CelestronGPS::Abort()
 
 bool CelestronGPS::Handshake()
 {
+    set_celestron_device(getDeviceName());
+
     if (isSimulation())
     {
-        set_celestron_device(getDeviceName());
         set_celestron_simulation(true);
         set_sim_slew_rate(SR_5);
         set_sim_ra(0);
@@ -605,7 +645,7 @@ bool CelestronGPS::Handshake()
     {
         DEBUG(INDI::Logger::DBG_SESSION, "Waking up mount...");
         bool rc = wakeup(PortFD);
-        if (rc == false)
+        if (!rc)
         {
             DEBUG(INDI::Logger::DBG_ERROR, "Waking up mount failed! Make sure mount is powered and connected. "
                                            "Hibernate requires firmware version >= 5.21");
@@ -626,31 +666,6 @@ bool CelestronGPS::ISNewSwitch(const char *dev, const char *name, ISState *state
 {
     if (!strcmp(getDeviceName(), dev))
     {
-        if (!strcmp(name, TrackSP.name))
-        {
-            // Don't update tracking if mount is already parked.
-            if (isParked())
-            {
-                TrackSP.s = IPS_IDLE;
-                IDSetSwitch(&TrackSP, nullptr);
-                return true;
-            }
-
-            for (int i = 0; i < n; i++)
-            {
-                if (!strcmp(names[i], "TRACK_OFF") && states[i] == ISS_ON)
-                    return setTrackMode(TRACK_OFF);
-                else if (!strcmp(names[i], "TRACK_ALTAZ") && states[i] == ISS_ON)
-                    return setTrackMode(TRACK_ALTAZ);
-                else if (!strcmp(names[i], "TRACK_EQN") && states[i] == ISS_ON)
-                    return setTrackMode(TRACK_EQN);
-                else if (!strcmp(names[i], "TRACK_EQS") && states[i] == ISS_ON)
-                    return setTrackMode(TRACK_EQS);
-            }
-
-            return false;
-        }
-
         // Enable/Disable hibernate
         if (!strcmp(name, UseHibernateSP.name))
         {
@@ -679,7 +694,7 @@ bool CelestronGPS::ISNewNumber(const char *dev, const char *name, double values[
 {
     //double newAlt=0, newAz=0;
 
-    if (!strcmp(dev, getDeviceName()))
+    if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
         /*if ( !strcmp (name, HorizontalCoordsNP.name) )
         {
@@ -851,9 +866,9 @@ void CelestronGPS::mountSim()
     /* Process per current state. We check the state of EQUATORIAL_COORDS and act acoordingly */
     switch (TrackState)
     {
-        case SCOPE_TRACKING:
-            /* RA moves at sidereal, Dec stands still */
-            currentRA += (SID_RATE * dt / 15.);
+        case SCOPE_IDLE:
+            currentRA = get_sim_ra() + (TRACKRATE_SIDEREAL/3600.0 * dt) / 15.0;
+            currentRA = range24(currentRA);
             break;
 
         case SCOPE_SLEWING:
@@ -941,7 +956,10 @@ bool CelestronGPS::updateLocation(double latitude, double longitude, double elev
 {
     INDI_UNUSED(elevation);
 
-    if (fwInfo.controllerVersion < 2.3)
+    if (((fwInfo.controllerVariant == ISSTARSENSE) && 
+         (fwInfo.controllerVersion < MINSTSENSVER)) ||
+        ((fwInfo.controllerVariant == ISNEXSTAR) &&
+         (fwInfo.controllerVersion < 2.3)))
     {
         DEBUGF(INDI::Logger::DBG_WARNING,
                "Firmwre version 2.3 or higher is required to update location. Current version is %3.1f",
@@ -954,7 +972,10 @@ bool CelestronGPS::updateLocation(double latitude, double longitude, double elev
 
 bool CelestronGPS::updateTime(ln_date *utc, double utc_offset)
 {
-    if (fwInfo.controllerVersion < 2.3)
+    if (((fwInfo.controllerVariant == ISSTARSENSE) && 
+         (fwInfo.controllerVersion < MINSTSENSVER)) ||
+        ((fwInfo.controllerVariant == ISNEXSTAR) &&
+         (fwInfo.controllerVersion < 2.3)))
     {
         DEBUGF(INDI::Logger::DBG_WARNING,
                "Firmwre version 2.3 or higher is required to update time. Current version is %3.1f",
@@ -1111,7 +1132,7 @@ bool CelestronGPS::saveConfigItems(FILE *fp)
     INDI::Telescope::saveConfigItems(fp);
 
     IUSaveConfigSwitch(fp, &UseHibernateSP);
-    IUSaveConfigSwitch(fp, &TrackSP);
+    //IUSaveConfigSwitch(fp, &TrackSP);
     IUSaveConfigSwitch(fp, &UsePulseCmdSP);
 
     return true;
@@ -1121,15 +1142,10 @@ bool CelestronGPS::setTrackMode(CELESTRON_TRACK_MODE mode)
 {
     if (set_celestron_track_mode(PortFD, mode))
     {
-        IUResetSwitch(&TrackSP);
-        TrackS[mode].s = ISS_ON;
-        TrackSP.s      = IPS_OK;
-        IDSetSwitch(&TrackSP, nullptr);
-
+        TrackState = (mode == TRACKING_OFF) ? SCOPE_IDLE : SCOPE_TRACKING;
         return true;
     }
 
-    TrackSP.s = IPS_ALERT;
     return false;
 }
 
@@ -1434,4 +1450,14 @@ void CelestronGPS::guideTimeout(CELESTRON_DIRECTION calldir)
     }
 
     DEBUG(INDI::Logger::DBG_WARNING, "GUIDE CMD COMPLETED");
+}
+
+bool CelestronGPS::SetTrackMode(uint8_t mode)
+{
+   return setTrackMode(static_cast<CELESTRON_TRACK_MODE>(mode+1));
+}
+
+bool CelestronGPS::SetTrackEnabled(bool enabled)
+{
+    return setTrackMode(enabled ? static_cast<CELESTRON_TRACK_MODE>(IUFindOnSwitchIndex(&TrackModeSP)+1) : TRACKING_OFF);
 }

@@ -20,8 +20,9 @@
 
 #include "indicom.h"
 
+#include <cstring>
 #include <memory>
-#include <string.h>
+
 #include <termios.h>
 
 #define XAGYL_MAXBUF 32
@@ -37,19 +38,19 @@ void ISGetProperties(const char *dev)
     xagylWheel->ISGetProperties(dev);
 }
 
-void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int num)
+void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
 {
-    xagylWheel->ISNewSwitch(dev, name, states, names, num);
+    xagylWheel->ISNewSwitch(dev, name, states, names, n);
 }
 
-void ISNewText(const char *dev, const char *name, char *texts[], char *names[], int num)
+void ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
 {
-    xagylWheel->ISNewText(dev, name, texts, names, num);
+    xagylWheel->ISNewText(dev, name, texts, names, n);
 }
 
-void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int num)
+void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
 {
-    xagylWheel->ISNewNumber(dev, name, values, names, num);
+    xagylWheel->ISNewNumber(dev, name, values, names, n);
 }
 
 void ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[],
@@ -71,10 +72,6 @@ void ISSnoopDevice(XMLEle *root)
 
 XAGYLWheel::XAGYLWheel()
 {
-    sim             = false;
-    OffsetN         = nullptr;
-    firmwareVersion = 0;
-
     simData.position   = 1;
     simData.speed      = 0xA;
     simData.pulseWidth = 1500;
@@ -90,13 +87,9 @@ XAGYLWheel::XAGYLWheel()
     setFilterConnection(CONNECTION_SERIAL | CONNECTION_TCP);
 }
 
-XAGYLWheel::~XAGYLWheel()
-{
-}
-
 const char *XAGYLWheel::getDefaultName()
 {
-    return (char *)"XAGYL Wheel";
+    return (const char *)"XAGYL Wheel";
 }
 
 bool XAGYLWheel::initProperties()
@@ -194,9 +187,9 @@ bool XAGYLWheel::Handshake()
 
 bool XAGYLWheel::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
 {
-    if (strcmp(dev, getDeviceName()) == 0)
+    if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
-        if (!strcmp(ResetSP.name, name))
+        if (strcmp(ResetSP.name, name) == 0)
         {
             IUUpdateSwitch(&ResetSP, states, names, n);
             int value = IUFindOnSwitchIndex(&ResetSP);
@@ -241,14 +234,15 @@ bool XAGYLWheel::ISNewSwitch(const char *dev, const char *name, ISState *states,
 
 bool XAGYLWheel::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
 {
-    if (strcmp(dev, getDeviceName()) == 0)
+    if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
-        if (!strcmp(OffsetNP.name, name))
+        if (strcmp(OffsetNP.name, name) == 0)
         {
             bool rc_offset = true;
+
             for (int i = 0; i < n; i++)
             {
-                if (!strcmp(names[i], OffsetN[i].name))
+                if (strcmp(names[i], OffsetN[i].name) == 0)
                 {
                     while (values[i] != OffsetN[i].value && rc_offset)
                     {
@@ -265,18 +259,18 @@ bool XAGYLWheel::ISNewNumber(const char *dev, const char *name, double values[],
             return true;
         }
 
-        if (!strcmp(SettingsNP.name, name))
+        if (strcmp(SettingsNP.name, name) == 0)
         {
             double newSpeed = 0, newJitter = 0, newThreshold = 0, newPulseWidth = 0;
             for (int i = 0; i < n; i++)
             {
-                if (!strcmp(names[i], SettingsN[SET_SPEED].name))
+                if (strcmp(names[i], SettingsN[SET_SPEED].name) == 0)
                     newSpeed = values[i];
-                else if (!strcmp(names[i], SettingsN[SET_JITTER].name))
+                else if (strcmp(names[i], SettingsN[SET_JITTER].name) == 0)
                     newJitter = values[i];
-                if (!strcmp(names[i], SettingsN[SET_THRESHOLD].name))
+                if (strcmp(names[i], SettingsN[SET_THRESHOLD].name) == 0)
                     newThreshold = values[i];
-                if (!strcmp(names[i], SettingsN[SET_PULSE_WITDH].name))
+                if (strcmp(names[i], SettingsN[SET_PULSE_WITDH].name) == 0)
                     newPulseWidth = values[i];
             }
 
@@ -572,7 +566,7 @@ void XAGYLWheel::TimerHit()
 {
     bool rc = getFilterPosition();
 
-    if (rc == false)
+    if (!rc)
     {
         SetTimer(500);
         return;
@@ -582,30 +576,6 @@ void XAGYLWheel::TimerHit()
         SelectFilterDone(CurrentFilter);
     else
         SetTimer(500);
-}
-
-bool XAGYLWheel::GetFilterNames(const char *groupName)
-{
-    char filterName[MAXINDINAME];
-    char filterLabel[MAXINDILABEL];
-    int MaxFilter = FilterSlotN[0].max;
-
-    if (FilterNameT != nullptr)
-        delete FilterNameT;
-
-    FilterNameT = new IText[MaxFilter];
-
-    for (int i = 0; i < MaxFilter; i++)
-    {
-        snprintf(filterName, MAXINDINAME, "FILTER_SLOT_NAME_%d", i + 1);
-        snprintf(filterLabel, MAXINDILABEL, "Filter#%d", i + 1);
-        IUFillText(&FilterNameT[i], filterName, filterLabel, filterLabel);
-    }
-
-    IUFillTextVector(FilterNameTP, FilterNameT, MaxFilter, getDeviceName(), "FILTER_NAME", "Filter", groupName, IP_RW,
-                     0, IPS_IDLE);
-
-    return true;
 }
 
 bool XAGYLWheel::getStartupData()
@@ -656,7 +626,7 @@ bool XAGYLWheel::getFilterPosition()
 {
     char resp[XAGYL_MAXBUF];
 
-    if (getCommand(INFO_FILTER_POSITION, resp) == false)
+    if (!getCommand(INFO_FILTER_POSITION, resp))
         return false;
 
     int rc = sscanf(resp, "P%d", &CurrentFilter);
@@ -674,7 +644,7 @@ bool XAGYLWheel::getMaximumSpeed()
 {
     char resp[XAGYL_MAXBUF];
 
-    if (getCommand(INFO_MAX_SPEED, resp) == false)
+    if (!getCommand(INFO_MAX_SPEED, resp))
         return false;
 
     int maxSpeed = 0;
@@ -685,15 +655,14 @@ bool XAGYLWheel::getMaximumSpeed()
         SettingsN[SET_SPEED].value = maxSpeed;
         return true;
     }
-    else
-        return false;
+    return false;
 }
 
 bool XAGYLWheel::getJitter()
 {
     char resp[XAGYL_MAXBUF];
 
-    if (getCommand(INFO_JITTER, resp) == false)
+    if (!getCommand(INFO_JITTER, resp))
         return false;
 
     int jitter = 0;
@@ -704,15 +673,14 @@ bool XAGYLWheel::getJitter()
         SettingsN[SET_JITTER].value = jitter;
         return true;
     }
-    else
-        return false;
+    return false;
 }
 
 bool XAGYLWheel::getThreshold()
 {
     char resp[XAGYL_MAXBUF];
 
-    if (getCommand(INFO_THRESHOLD, resp) == false)
+    if (!getCommand(INFO_THRESHOLD, resp))
         return false;
 
     int threshold = 0;
@@ -723,15 +691,14 @@ bool XAGYLWheel::getThreshold()
         SettingsN[SET_THRESHOLD].value = threshold;
         return true;
     }
-    else
-        return false;
+    return false;
 }
 
 bool XAGYLWheel::getPulseWidth()
 {
     char resp[XAGYL_MAXBUF];
 
-    if (getCommand(INFO_PULSE_WIDTH, resp) == false)
+    if (!getCommand(INFO_PULSE_WIDTH, resp))
         return false;
 
     int pulseWidth = 0;
@@ -742,15 +709,14 @@ bool XAGYLWheel::getPulseWidth()
         SettingsN[SET_PULSE_WITDH].value = pulseWidth;
         return true;
     }
-    else
-        return false;
+    return false;
 }
 
 bool XAGYLWheel::getMaxFilterSlots()
 {
     char resp[XAGYL_MAXBUF];
 
-    if (getCommand(INFO_MAX_SLOTS, resp) == false)
+    if (!getCommand(INFO_MAX_SLOTS, resp))
         return false;
 
     int maxFilterSlots = 0;
@@ -761,8 +727,7 @@ bool XAGYLWheel::getMaxFilterSlots()
         FilterSlotN[0].max = maxFilterSlots;
         return true;
     }
-    else
-        return false;
+    return false;
 }
 
 bool XAGYLWheel::reset(int value)

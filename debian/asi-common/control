@@ -10,4 +10,4 @@ Package: asi-common
 Architecture: all
 Multi-Arch: foreign
 Depends: ${misc:Depends}
-Description: support files for ASI camers, like udev rules
+Description: udev rules for ASI cameras and filter wheels.

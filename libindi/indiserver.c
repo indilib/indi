@@ -66,6 +66,7 @@
 #include <netinet/in.h>
 #include <sys/time.h>
 #include <sys/types.h>
+#include <sys/wait.h>
 #include <sys/stat.h>
 #include <sys/socket.h>
 
@@ -399,6 +400,7 @@ static void zombieRaised(int signum, siginfo_t *sig, void *data)
     {
         case SIGCHLD:
             fprintf(stderr, "Child process %d died\n", sig->si_pid);
+            waitpid(sig->si_pid, NULL, WNOHANG);
             break;
 
         default:
@@ -430,7 +432,7 @@ static DvrInfo *allocDvr()
     DvrInfo *dp = NULL;
     int dvi;
 
-    /* try to reuse a drivber slot, else add one */
+    /* try to reuse a driver slot, else add one */
     for (dvi = 0; dvi < ndvrinfo; dvi++)
         if (!(dp = &dvrinfo[dvi])->active)
             break;
@@ -445,6 +447,9 @@ static DvrInfo *allocDvr()
         }
         dp = &dvrinfo[ndvrinfo++];
     }
+
+    if (dp == NULL)
+        return NULL;
 
     /* rig up new dvrinfo entry */
     memset(dp, 0, sizeof(*dp));
@@ -1109,6 +1114,9 @@ static void newClient()
         }
         cp = &clinfo[nclinfo++];
     }
+
+    if (cp == NULL)
+        return;
 
     /* rig up new clinfo entry */
     memset(cp, 0, sizeof(*cp));

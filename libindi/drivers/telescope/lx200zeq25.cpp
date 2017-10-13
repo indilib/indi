@@ -25,8 +25,8 @@
 
 #include <libnova/transform.h>
 
-#include <math.h>
-#include <string.h>
+#include <cmath>
+#include <cstring>
 #include <termios.h>
 #include <unistd.h>
 
@@ -38,10 +38,8 @@ LX200ZEQ25::LX200ZEQ25()
 {
     setVersion(1, 0);
 
-    setLX200Capability(LX200_HAS_TRACK_MODE);
-
     SetTelescopeCapability(TELESCOPE_CAN_PARK | TELESCOPE_CAN_SYNC | TELESCOPE_CAN_GOTO | TELESCOPE_CAN_ABORT |
-                               TELESCOPE_HAS_TIME | TELESCOPE_HAS_LOCATION,
+                               TELESCOPE_HAS_TIME | TELESCOPE_HAS_LOCATION | TELESCOPE_HAS_TRACK_MODE,
                            9);
 }
 
@@ -99,7 +97,7 @@ bool LX200ZEQ25::updateProperties()
 
 const char *LX200ZEQ25::getDefaultName()
 {
-    return (char *)"ZEQ25";
+    return (const char *)"ZEQ25";
 }
 
 bool LX200ZEQ25::checkConnection()
@@ -151,9 +149,9 @@ bool LX200ZEQ25::checkConnection()
 
 bool LX200ZEQ25::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
 {
-    if (strcmp(dev, getDeviceName()) == 0)
+    if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
-        if (!strcmp(HomeSP.name, name))
+        if (strcmp(HomeSP.name, name) == 0)
         {
             // If already home, nothing to be done
             //if (HomeS[0].s == ISS_ON)
@@ -187,7 +185,7 @@ bool LX200ZEQ25::ISNewSwitch(const char *dev, const char *name, ISState *states,
 
 bool LX200ZEQ25::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
 {
-    if (!strcmp(dev, getDeviceName()))
+    if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
         // Guiding Rate
         if (!strcmp(name, GuideRateNP.name))
@@ -243,15 +241,15 @@ int LX200ZEQ25::gotoZEQ25Home()
 }
 
 bool LX200ZEQ25::isSlewComplete()
-{
-    char cmd[16];
+{    
     int errcode = 0;
     char errmsg[MAXRBUF];
     char response[8];
     int nbytes_read    = 0;
     int nbytes_written = 0;
 
-    strncpy(cmd, ":SE#", 16);
+    //strncpy(cmd, ":SE#", 16);
+    const char *cmd = ":SE#";
 
     DEBUGF(INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
 
@@ -427,7 +425,7 @@ bool LX200ZEQ25::Goto(double r, double d)
         usleep(100000);
     }
 
-    if (isSimulation() == false)
+    if (!isSimulation())
     {
         if (setObjectRA(PortFD, targetRA) < 0 || (setObjectDEC(PortFD, targetDEC)) < 0)
         {
@@ -448,7 +446,7 @@ bool LX200ZEQ25::Goto(double r, double d)
     TrackState = SCOPE_SLEWING;
     EqNP.s     = IPS_BUSY;
 
-    IDMessage(getDeviceName(), "Slewing to RA: %s - DEC: %s", RAStr, DecStr);
+    DEBUGF(INDI::Logger::DBG_SESSION, "Slewing to RA: %s - DEC: %s", RAStr, DecStr);
     return true;
 }
 
@@ -621,13 +619,13 @@ bool LX200ZEQ25::updateLocation(double latitude, double longitude, double elevat
     else
         final_longitude = longitude;
 
-    if (isSimulation() == false && setZEQ25Longitude(final_longitude) < 0)
+    if (!isSimulation() && setZEQ25Longitude(final_longitude) < 0)
     {
         DEBUG(INDI::Logger::DBG_ERROR, "Error setting site longitude coordinates");
         return false;
     }
 
-    if (isSimulation() == false && setZEQ25Latitude(latitude) < 0)
+    if (!isSimulation() && setZEQ25Latitude(latitude) < 0)
     {
         DEBUG(INDI::Logger::DBG_ERROR, "Error setting site latitude coordinates");
         return false;
@@ -637,7 +635,7 @@ bool LX200ZEQ25::updateLocation(double latitude, double longitude, double elevat
     fs_sexa(l, latitude, 3, 3600);
     fs_sexa(L, longitude, 4, 3600);
 
-    IDMessage(getDeviceName(), "Site location updated to Lat %.32s - Long %.32s", l, L);
+    DEBUGF(INDI::Logger::DBG_SESSION, "Site location updated to Lat %.32s - Long %.32s", l, L);
 
     return true;
 }
@@ -737,7 +735,7 @@ bool LX200ZEQ25::MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command)
     switch (command)
     {
         case MOTION_START:
-            if (isSimulation() == false && moveZEQ25To(current_move) < 0)
+            if (!isSimulation() && moveZEQ25To(current_move) < 0)
             {
                 DEBUG(INDI::Logger::DBG_ERROR, "Error setting N/S motion direction.");
                 return false;
@@ -748,7 +746,7 @@ bool LX200ZEQ25::MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command)
             break;
 
         case MOTION_STOP:
-            if (isSimulation() == false && haltZEQ25Movement() < 0)
+            if (!isSimulation() && haltZEQ25Movement() < 0)
             {
                 DEBUG(INDI::Logger::DBG_ERROR, "Error stopping N/S motion.");
                 return false;
@@ -769,7 +767,7 @@ bool LX200ZEQ25::MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command)
     switch (command)
     {
         case MOTION_START:
-            if (isSimulation() == false && moveZEQ25To(current_move) < 0)
+            if (!isSimulation() && moveZEQ25To(current_move) < 0)
             {
                 DEBUG(INDI::Logger::DBG_ERROR, "Error setting W/E motion direction.");
                 return false;
@@ -779,7 +777,7 @@ bool LX200ZEQ25::MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command)
             break;
 
         case MOTION_STOP:
-            if (isSimulation() == false && haltZEQ25Movement() < 0)
+            if (!isSimulation() && haltZEQ25Movement() < 0)
             {
                 DEBUG(INDI::Logger::DBG_ERROR, "Error stopping W/E motion.");
                 return false;
@@ -837,7 +835,7 @@ int LX200ZEQ25::haltZEQ25Movement()
     return 0;
 }
 
-bool LX200ZEQ25::SetTrackMode(int mode)
+bool LX200ZEQ25::SetTrackMode(uint8_t mode)
 {
     return (setZEQ25TrackMode(mode) == 0);
 }
@@ -1025,7 +1023,7 @@ bool LX200ZEQ25::Park()
 bool LX200ZEQ25::UnPark()
 {
     // First we unpark astrophysics
-    if (isSimulation() == false)
+    if (!isSimulation())
     {
         if (setZEQ25UnPark() < 0)
         {
@@ -1079,7 +1077,7 @@ bool LX200ZEQ25::UnPark()
 
 bool LX200ZEQ25::ReadScopeStatus()
 {
-    if (isConnected() == false)
+    if (!isConnected())
         return false;
 
     if (isSimulation())
@@ -1108,7 +1106,7 @@ bool LX200ZEQ25::ReadScopeStatus()
         if (isSlewComplete())
         {
             TrackState = SCOPE_TRACKING;
-            IDMessage(getDeviceName(), "Slew is complete. Tracking...");
+            DEBUG(INDI::Logger::DBG_SESSION, "Slew is complete. Tracking...");
         }
     }
     else if (TrackState == SCOPE_PARKING)

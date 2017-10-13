@@ -27,7 +27,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110 - 1301  USA
 #include "indicom.h"
 #include "indilogger.h"
 
-#include <string.h>
+#include <cstring>
 #include <unistd.h>
 
 #ifndef _WIN32
@@ -149,7 +149,7 @@ int SendPulseCmd(int fd, int direction, int duration_msec);
 /* Determines LX200 RA/DEC format, tries to set to long if found short */
 int checkLX200Format(int fd);
 /* return the controller_format enum value */
-int getLX200Format(void);
+int getLX200Format();
 /* Select a site from the LX200 controller */
 int selectSite(int fd, int siteNum);
 /* Select a catalog object */
@@ -1383,7 +1383,7 @@ int selectSubCatalog(int fd, int catalog, int subCatalog)
     return (setStandardProcedure(fd, read_buffer));
 }
 
-int getLX200Format(void)
+int getLX200Format()
 {
     return controller_format;
 }

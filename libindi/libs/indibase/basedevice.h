@@ -20,7 +20,6 @@
 
 #include "indibase.h"
 #include "indiproperty.h"
-#include "indistandardproperty.h"
 
 #include <string>
 #include <vector>
@@ -71,6 +70,8 @@ class INDI::BaseDevice
         AO_INTERFACE        = (1 << 8),  /**< Adaptive Optics Interface */
         DUSTCAP_INTERFACE   = (1 << 9),  /**< Dust Cap Interface */
         LIGHTBOX_INTERFACE  = (1 << 10), /**< Light Box Interface */
+        DETECTOR_INTERFACE  = (1 << 11), /**< Detector interface, must subclass INDI::Detector */
+        ROTATOR_INTERFACE   = (1 << 12), /**< Rotator interface, must subclass INDI::RotatorInterface */
         AUX_INTERFACE       = (1 << 15), /**< Auxiliary interface */
     };
 
@@ -190,7 +191,7 @@ class INDI::BaseDevice
      * @return driver device interface descriptor.
      * @note For example, to know if the driver supports CCD interface, check the retruned value:
      @code{.cpp}
-      if (device->getDriverInterface() | CCD_INTERFACE)
+      if (device->getDriverInterface() & CCD_INTERFACE)
                cout << "We received a camera!" << endl;
      @endcode
      */

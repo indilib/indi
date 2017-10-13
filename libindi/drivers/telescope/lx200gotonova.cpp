@@ -25,23 +25,25 @@
 
 #include <libnova/transform.h>
 
-#include <math.h>
-#include <string.h>
+#include <cmath>
+#include <cstring>
 #include <termios.h>
 #include <unistd.h>
 
 /* Simulation Parameters */
 #define SLEWRATE 1        /* slew rate, degrees/s */
 #define SIDRATE  0.004178 /* sidereal rate, degrees/s */
+#define GOTONOVA_TIMEOUT 5 /* timeout */
+#define GOTONOVA_CALDATE_RESULT "                                #                                #" /* result of calendar date */
 
 LX200GotoNova::LX200GotoNova()
 {
     setVersion(1, 0);
 
-    setLX200Capability(LX200_HAS_TRACK_MODE | LX200_HAS_FOCUS);
+    setLX200Capability(LX200_HAS_FOCUS);
 
     SetTelescopeCapability(TELESCOPE_CAN_PARK | TELESCOPE_CAN_SYNC | TELESCOPE_CAN_GOTO | TELESCOPE_CAN_ABORT |
-                           TELESCOPE_HAS_TIME | TELESCOPE_HAS_LOCATION,
+                           TELESCOPE_HAS_TIME | TELESCOPE_HAS_LOCATION | TELESCOPE_HAS_TRACK_MODE,
                            4);
 }
 
@@ -106,7 +108,7 @@ bool LX200GotoNova::updateProperties()
 
 const char *LX200GotoNova::getDefaultName()
 {
-    return (char *)"GotoNova";
+    return (const char *)"GotoNova";
 }
 
 bool LX200GotoNova::checkConnection()
@@ -158,7 +160,7 @@ bool LX200GotoNova::checkConnection()
 
 bool LX200GotoNova::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
 {
-    if (strcmp(dev, getDeviceName()) == 0)
+    if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
         // Park Position
         if (!strcmp(ParkPositionSP.name, name))
@@ -213,14 +215,13 @@ bool LX200GotoNova::ISNewSwitch(const char *dev, const char *name, ISState *stat
 
 bool LX200GotoNova::isSlewComplete()
 {
-    char cmd[16];
     int errcode = 0;
     char errmsg[MAXRBUF];
     char response[8];
     int nbytes_read    = 0;
     int nbytes_written = 0;
 
-    strncpy(cmd, ":SE?#", 16);
+    const char *cmd = ":SE?#";
 
     DEBUGF(INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
 
@@ -306,7 +307,7 @@ bool LX200GotoNova::Goto(double r, double d)
         usleep(100000);
     }
 
-    if (isSimulation() == false)
+    if (!isSimulation())
     {
         if (setObjectRA(PortFD, targetRA) < 0 || (setObjectDEC(PortFD, targetDEC)) < 0)
         {
@@ -327,7 +328,7 @@ bool LX200GotoNova::Goto(double r, double d)
     TrackState = SCOPE_SLEWING;
     EqNP.s     = IPS_BUSY;
 
-    IDMessage(getDeviceName(), "Slewing to RA: %s - DEC: %s", RAStr, DecStr);
+    DEBUGF(INDI::Logger::DBG_SESSION, "Slewing to RA: %s - DEC: %s", RAStr, DecStr);
     return true;
 }
 
@@ -337,7 +338,7 @@ bool LX200GotoNova::Sync(double ra, double dec)
 
     int syncType = IUFindOnSwitchIndex(&SyncCMRSP);
 
-    if (isSimulation() == false)
+    if (!isSimulation())
     {
         if (setObjectRA(PortFD, ra) < 0 || setObjectDEC(PortFD, dec) < 0)
         {
@@ -379,7 +380,6 @@ bool LX200GotoNova::Sync(double ra, double dec)
     DEBUGF(INDI::Logger::DBG_DEBUG, "%s Synchronization successful %s", (syncType == USE_REGULAR_SYNC ? "CM" : "CMR"), syncString);
     DEBUG(INDI::Logger::DBG_SESSION, "Synchronization successful.");
 
-    TrackState = SCOPE_IDLE;
     EqNP.s     = IPS_OK;
 
     NewRaDec(currentRA, currentDEC);
@@ -501,6 +501,51 @@ bool LX200GotoNova::updateTime(ln_date *utc, double utc_offset)
     return true;
 }
 
+int LX200GotoNova::setCalenderDate(int fd, int dd, int mm, int yy)
+{
+    char read_buffer[16];
+    char response[67];
+    char good_result[] = GOTONOVA_CALDATE_RESULT;
+    int error_type;
+    int nbytes_write = 0, nbytes_read = 0;
+    yy = yy % 100;
+
+    snprintf(read_buffer, sizeof(read_buffer), ":SC %02d/%02d/%02d#", mm, dd, yy);
+
+    DEBUGF(DBG_SCOPE, "CMD <%s>", read_buffer);
+
+    tcflush(fd, TCIFLUSH);
+
+    if ((error_type = tty_write_string(fd, read_buffer, &nbytes_write)) != TTY_OK)
+        return error_type;
+
+    error_type = tty_read(fd, response, sizeof(response), GOTONOVA_TIMEOUT, &nbytes_read);
+
+    tcflush(fd, TCIFLUSH);
+
+    if (nbytes_read < 1)
+    {   
+        DEBUG(INDI::Logger::DBG_ERROR, "Unable to read response");
+        return error_type;
+    }
+
+    response[nbytes_read] = '\0';
+
+    DEBUGF(DBG_SCOPE, "RES <%s>", response);
+
+    if (strncmp(response, good_result, strlen(good_result)) == 0) {
+        return 0;
+    }
+
+    /* Sleep 10ms before flushing. This solves some issues with LX200 compatible devices. */
+    usleep(10000);
+    tcflush(fd, TCIFLUSH);
+
+    DEBUGF(INDI::Logger::DBG_DEBUG, "Set date failed! Response: <%s>", response);
+
+    return -1;
+}
+
 bool LX200GotoNova::updateLocation(double latitude, double longitude, double elevation)
 {
     INDI_UNUSED(elevation);
@@ -515,13 +560,13 @@ bool LX200GotoNova::updateLocation(double latitude, double longitude, double ele
     else
         final_longitude = longitude;
 
-    if (isSimulation() == false && setGotoNovaLongitude(final_longitude) < 0)
+    if (!isSimulation() && setGotoNovaLongitude(final_longitude) < 0)
     {
         DEBUG(INDI::Logger::DBG_ERROR, "Error setting site longitude coordinates");
         return false;
     }
 
-    if (isSimulation() == false && setGotoNovaLatitude(latitude) < 0)
+    if (!isSimulation() && setGotoNovaLatitude(latitude) < 0)
     {
         DEBUG(INDI::Logger::DBG_ERROR, "Error setting site latitude coordinates");
         return false;
@@ -531,7 +576,7 @@ bool LX200GotoNova::updateLocation(double latitude, double longitude, double ele
     fs_sexa(l, latitude, 3, 3600);
     fs_sexa(L, longitude, 4, 3600);
 
-    IDMessage(getDeviceName(), "Site location updated to Lat %.32s - Long %.32s", l, L);
+    DEBUGF(INDI::Logger::DBG_SESSION, "Site location updated to Lat %.32s - Long %.32s", l, L);
 
     return true;
 }
@@ -549,7 +594,7 @@ int LX200GotoNova::setGotoNovaLongitude(double Long)
 
     getSexComponents(Long, &d, &m, &s);
 
-    snprintf(temp_string, sizeof(temp_string), ":Sg %c%03d:%02d:%02d#", sign, abs(d), m, s);
+    snprintf(temp_string, sizeof(temp_string), ":Sg %c%03d*%02d:%02d#", sign, abs(d), m, s);
 
     return (setGotoNovaStandardProcedure(PortFD, temp_string));
 }
@@ -567,7 +612,7 @@ int LX200GotoNova::setGotoNovaLatitude(double Lat)
 
     getSexComponents(Lat, &d, &m, &s);
 
-    snprintf(temp_string, sizeof(temp_string), ":St %c%02d:%02d:%02d#", sign, abs(d), m, s);
+    snprintf(temp_string, sizeof(temp_string), ":St %c%02d*%02d:%02d#", sign, abs(d), m, s);
 
     return (setGotoNovaStandardProcedure(PortFD, temp_string));
 }
@@ -585,7 +630,7 @@ int LX200GotoNova::setGotoNovaUTCOffset(double hours)
 
     getSexComponents(hours, &h, &m, &s);
 
-    snprintf(temp_string, sizeof(temp_string), ":SG %c%02d:%02d#", sign, abs(h), m);
+    snprintf(temp_string, sizeof(temp_string), ":SG %c%02d#", sign, abs(h));
 
     return (setGotoNovaStandardProcedure(PortFD, temp_string));
 }
@@ -624,7 +669,7 @@ int LX200GotoNova::setGotoNovaStandardProcedure(int fd, const char *data)
     return 0;
 }
 
-bool LX200GotoNova::SetTrackMode(int mode)
+bool LX200GotoNova::SetTrackMode(uint8_t mode)
 {
     return (setGotoNovaTrackMode(mode) == 0);
 }
@@ -665,7 +710,7 @@ bool LX200GotoNova::UnPark()
 
 bool LX200GotoNova::ReadScopeStatus()
 {
-    if (isConnected() == false)
+    if (!isConnected())
         return false;
 
     if (isSimulation())
@@ -680,7 +725,7 @@ bool LX200GotoNova::ReadScopeStatus()
         if (isSlewComplete())
         {
             TrackState = SCOPE_TRACKING;
-            IDMessage(getDeviceName(), "Slew is complete. Tracking...");
+            DEBUG(INDI::Logger::DBG_SESSION, "Slew is complete. Tracking...");
         }
     }
     else if (TrackState == SCOPE_PARKING)

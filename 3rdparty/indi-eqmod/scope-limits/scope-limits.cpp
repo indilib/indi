@@ -21,6 +21,8 @@
 
 #include <indicom.h>
 
+#include <cstring>
+
 #include <algorithm> // std::sort
 #include <wordexp.h>
 
@@ -36,6 +38,7 @@ HorizonLimits::HorizonLimits(INDI::Telescope *t)
     horizonindex = -1;
     strcpy(errorline, "Bad number format line     ");
     sline = errorline + 23;
+    HorizonInitialized=false;
 }
 
 HorizonLimits::~HorizonLimits()
@@ -49,18 +52,28 @@ const char *HorizonLimits::getDeviceName()
 {
     return telescope->getDeviceName();
 }
-
-void HorizonLimits::Init()
+void HorizonLimits::Reset()
 {
-    INumber *az  = IUFindNumber(HorizonLimitsPointNP, "HORIZONLIMITS_POINT_AZ");
-    INumber *alt = IUFindNumber(HorizonLimitsPointNP, "HORIZONLIMITS_POINT_ALT");
     if (horizon)
         horizon->erase(horizon->begin(), horizon->end());
-    horizonindex            = -1;
-    az->value               = 0.0;
-    alt->value              = 0.0;
-    HorizonLimitsPointNP->s = IPS_OK;
-    IDSetNumber(HorizonLimitsPointNP, NULL);
+}
+void HorizonLimits::Init()
+{
+    if (!HorizonInitialized)
+    {
+        char *res = LoadDataFile(IUFindText(HorizonLimitsDataFileTP, "HORIZONLIMITSFILENAME")->text);
+	if (res)
+	{
+	    DEBUGF(INDI::Logger::DBG_WARNING, "Can not load HorizonLimits Data File %s: %s",
+		     IUFindText(HorizonLimitsDataFileTP, "HORIZONLIMITSFILENAME")->text, res);
+	}
+	else
+	{
+	    DEBUGF(INDI::Logger::DBG_SESSION, "HorizonLimits: Data loaded from file %s",
+		     IUFindText(HorizonLimitsDataFileTP, "HORIZONLIMITSFILENAME")->text);
+	}
+    }
+    HorizonInitialized = true;
 }
 
 bool HorizonLimits::initProperties()
@@ -80,6 +93,22 @@ bool HorizonLimits::initProperties()
 
     return true;
 }
+
+void HorizonLimits::ISGetProperties()
+{
+    if (telescope->isConnected())
+    {
+        telescope->defineText(HorizonLimitsDataFileTP);
+        telescope->defineBLOB(HorizonLimitsDataFitsBP);
+        telescope->defineNumber(HorizonLimitsPointNP);
+        telescope->defineSwitch(HorizonLimitsTraverseSP);
+        telescope->defineSwitch(HorizonLimitsManageSP);
+        telescope->defineSwitch(HorizonLimitsFileOperationSP);
+        telescope->defineSwitch(HorizonLimitsOnLimitSP);
+        telescope->defineSwitch(HorizonLimitsLimitGotoSP);
+    }
+}
+
 
 bool HorizonLimits::updateProperties()
 {
@@ -176,10 +205,13 @@ bool HorizonLimits::ISNewSwitch(const char *dev, const char *name, ISState *stat
             {
                 if (horizonindex > 0)
                     horizonindex = horizonindex - 1;
+		else
+		    if (horizonindex == -1)
+		        horizonindex = horizon->size() - 1;
             }
             if (!strcmp(sw->name, "HORIZONLIMITSLISTNEXT"))
             {
-                if (horizonindex < (horizon->size() - 1))
+	      if (horizonindex < (int)(horizon->size() - 1))
                     horizonindex = horizonindex + 1;
             }
             if (!strcmp(sw->name, "HORIZONLIMITSLISTLAST"))
@@ -251,7 +283,7 @@ bool HorizonLimits::ISNewSwitch(const char *dev, const char *name, ISState *stat
             }
             else if (!strcmp(sw->name, "HORIZONLIMITSLISTDELETE"))
             {
-                if (!horizon || (horizonindex >= horizon->size()))
+	      if (!horizon || (horizonindex >= (int)horizon->size()))
                 {
                     DEBUG(INDI::Logger::DBG_WARNING, "Horizon Limits: Can not delete point");
                     HorizonLimitsManageSP->s = IPS_ALERT;
@@ -261,7 +293,7 @@ bool HorizonLimits::ISNewSwitch(const char *dev, const char *name, ISState *stat
                 DEBUGF(INDI::Logger::DBG_SESSION, "Horizon Limits: Deleted point Az = %f, Alt  = %f, Rank=%d",
                        horizon->at(horizonindex).az, horizon->at(horizonindex).alt, horizonindex);
                 horizon->erase(horizon->begin() + horizonindex);
-                if (horizonindex >= horizon->size())
+                if (horizonindex >= (int)horizon->size())
                     horizonindex = horizon->size() - 1;
                 az->value               = horizon->at(horizonindex).az;
                 alt->value              = horizon->at(horizonindex).alt;
@@ -393,15 +425,15 @@ char *HorizonLimits::WriteDataFile(const char *filename)
         return (char *)("Badly formed filename");
     }
 
+    if (!horizon)
+    {
+        return (char *)"No Horizon data";
+    }
+
     if (!(fp = fopen(wexp.we_wordv[0], "w")))
     {
         wordfree(&wexp);
         return strerror(errno);
-    }
-
-    if (!horizon)
-    {
-        return (char *)"No Horizon data";
     }
 
     setlocale(LC_NUMERIC, "C");
@@ -443,7 +475,7 @@ char *HorizonLimits::LoadDataFile(const char *filename)
         return strerror(errno);
     }
     wordfree(&wexp);
-    Init();
+    Reset();
     setlocale(LC_NUMERIC, "C");
 
     while ((read = getline(&line, &len, fp)) != -1)

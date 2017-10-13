@@ -24,7 +24,7 @@ class DomeScript : public INDI::Dome
 {
   public:
     DomeScript();
-    virtual ~DomeScript();
+    virtual ~DomeScript() = default;
 
     virtual const char *getDefaultName();
     virtual bool initProperties();
@@ -46,10 +46,11 @@ class DomeScript : public INDI::Dome
     virtual bool Abort();
 
   private:
-    ITextVectorProperty ScriptsTP;
-    IText ScriptsT[15];
-    double TargetAz;
-    int TimeSinceUpdate;
     bool ReadDomeStatus();
     bool RunScript(int script, ...);
+
+    ITextVectorProperty ScriptsTP;
+    IText ScriptsT[15];
+    double TargetAz { 0 };
+    int TimeSinceUpdate { 0 };
 };

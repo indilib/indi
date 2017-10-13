@@ -45,8 +45,8 @@ ENDIF ()
 
 set(INDI_SOVERSION "1")
 set(CMAKE_INDI_VERSION_MAJOR 1)
-set(CMAKE_INDI_VERSION_MINOR 4)
-set(CMAKE_INDI_VERSION_RELEASE 1)
+set(CMAKE_INDI_VERSION_MINOR 5)
+set(CMAKE_INDI_VERSION_RELEASE 0)
 set(CMAKE_INDI_VERSION_STRING "${CMAKE_INDI_VERSION_MAJOR}.${CMAKE_INDI_VERSION_MINOR}.${CMAKE_INDI_VERSION_RELEASE}")
 set(INDI_VERSION ${CMAKE_INDI_VERSION_MAJOR}.${CMAKE_INDI_VERSION_MINOR}.${CMAKE_INDI_VERSION_RELEASE})
 
@@ -167,7 +167,8 @@ SET(indiclient_C_SRC
 SET(indiclient_CXX_SRC
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/basedevice.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/baseclient.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indiproperty.cpp)
+    ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indiproperty.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indistandardproperty.cpp)
 
 IF (UNITY_BUILD)
     ENABLE_UNITY_BUILD(indiclient_c indiclient_C_SRC 10 c)
@@ -223,7 +224,8 @@ SET(indiclientqt_C_SRC
 SET(indiclientqt_CXX_SRC
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/basedevice.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/baseclientqt.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indiproperty.cpp)
+    ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indiproperty.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indistandardproperty.cpp)
 IF (UNITY_BUILD)
     ENABLE_UNITY_BUILD(indiclientqt_c indiclientqt_C_SRC 10 cpp)
     ENABLE_UNITY_BUILD(indiclientqt_cxx indiclientqt_CXX_SRC 10 cpp)
@@ -328,13 +330,16 @@ SET(indidriver_CXX_SRC
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/defaultdevice.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indiproperty.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indiccd.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indidetector.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/inditelescope.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indifilterwheel.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indifocuserinterface.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indifocuser.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indirotator.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indiusbdevice.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indiguiderinterface.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indifilterinterface.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indirotatorinterface.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indidome.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indigps.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indiweather.cpp
@@ -342,6 +347,7 @@ SET(indidriver_CXX_SRC
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indilightboxinterface.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indilogger.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indicontroller.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indistandardproperty.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/connectionplugins/connectioninterface.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/connectionplugins/connectionserial.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/connectionplugins/connectiontcp.cpp)
@@ -381,6 +387,9 @@ set_target_properties(indidriver PROPERTIES COMPILE_FLAGS "-fPIC")
 target_compile_definitions(indidriver PRIVATE "-DHAVE_LIBNOVA")
 set_target_properties(indidriver PROPERTIES VERSION ${CMAKE_INDI_VERSION_STRING} SOVERSION ${INDI_SOVERSION} OUTPUT_NAME indidriver)
 target_link_libraries(indidriver ${LIBUSB_1_LIBRARIES} ${NOVA_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${CFITSIO_LIBRARIES} ${M_LIB} ${ZLIB_LIBRARY} ${JPEG_LIBRARY})
+IF (UNIX AND NOT APPLE)
+    target_link_libraries(indidriver -lpthread)
+ENDIF ()
 install(TARGETS indidriver LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR})
 set(PKG_CONFIG_LIBS "${PKG_CONFIG_LIBS} -lindidriver -lindiAlignmentDriver")
 endif(CYGWIN)
@@ -444,7 +453,8 @@ SET(lx200generic_SRCS
     ${CMAKE_CURRENT_SOURCE_DIR}/drivers/telescope/lx200fs2.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/drivers/telescope/lx200ss2000pc.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/drivers/telescope/lx200_OnStep.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/telescope/lx200_10micron.cpp)
+    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/telescope/lx200_10micron.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/telescope/ioptronHC8406.cpp)
 
 IF (UNITY_BUILD)
     ENABLE_UNITY_BUILD(lx200generic lx200generic_SRCS 10 cpp)
@@ -457,19 +467,20 @@ target_link_libraries(indi_lx200generic indidriver)
 install(TARGETS indi_lx200generic RUNTIME DESTINATION bin )
 
 file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/make_lx200generic_symlink.cmake
-"exec_program(\"${CMAKE_COMMAND}\" ARGS -E create_symlink ${BIN_INSTALL_DIR}/indi_lx200generic \$ENV{DESTDIR}${BIN_INSTALL_DIR}/indi_lx200classic)\n
-exec_program(\"${CMAKE_COMMAND}\" ARGS -E create_symlink ${BIN_INSTALL_DIR}/indi_lx200generic \$ENV{DESTDIR}${BIN_INSTALL_DIR}/indi_lx200autostar)\n
-exec_program(\"${CMAKE_COMMAND}\" ARGS -E create_symlink ${BIN_INSTALL_DIR}/indi_lx200generic \$ENV{DESTDIR}${BIN_INSTALL_DIR}/indi_lx200_16)\n
-exec_program(\"${CMAKE_COMMAND}\" ARGS -E create_symlink ${BIN_INSTALL_DIR}/indi_lx200generic \$ENV{DESTDIR}${BIN_INSTALL_DIR}/indi_lx200gps)\n
-exec_program(\"${CMAKE_COMMAND}\" ARGS -E create_symlink ${BIN_INSTALL_DIR}/indi_lx200generic \$ENV{DESTDIR}${BIN_INSTALL_DIR}/indi_lx200ap)\n
-exec_program(\"${CMAKE_COMMAND}\" ARGS -E create_symlink ${BIN_INSTALL_DIR}/indi_lx200generic \$ENV{DESTDIR}${BIN_INSTALL_DIR}/indi_lx200gemini)\n
-exec_program(\"${CMAKE_COMMAND}\" ARGS -E create_symlink ${BIN_INSTALL_DIR}/indi_lx200generic \$ENV{DESTDIR}${BIN_INSTALL_DIR}/indi_lx200zeq25)\n
-exec_program(\"${CMAKE_COMMAND}\" ARGS -E create_symlink ${BIN_INSTALL_DIR}/indi_lx200generic \$ENV{DESTDIR}${BIN_INSTALL_DIR}/indi_lx200gotonova)\n
-exec_program(\"${CMAKE_COMMAND}\" ARGS -E create_symlink ${BIN_INSTALL_DIR}/indi_lx200generic \$ENV{DESTDIR}${BIN_INSTALL_DIR}/indi_lx200pulsar2)\n
-exec_program(\"${CMAKE_COMMAND}\" ARGS -E create_symlink ${BIN_INSTALL_DIR}/indi_lx200generic \$ENV{DESTDIR}${BIN_INSTALL_DIR}/indi_lx200fs2)\n
-exec_program(\"${CMAKE_COMMAND}\" ARGS -E create_symlink ${BIN_INSTALL_DIR}/indi_lx200generic \$ENV{DESTDIR}${BIN_INSTALL_DIR}/indi_lx200ss2000pc)\n
-exec_program(\"${CMAKE_COMMAND}\" ARGS -E create_symlink ${BIN_INSTALL_DIR}/indi_lx200generic \$ENV{DESTDIR}${BIN_INSTALL_DIR}/indi_lx200_OnStep)\n
-exec_program(\"${CMAKE_COMMAND}\" ARGS -E create_symlink ${BIN_INSTALL_DIR}/indi_lx200generic \$ENV{DESTDIR}${BIN_INSTALL_DIR}/indi_lx200_10micron)\n
+"exec_program(\"${CMAKE_COMMAND}\" ARGS -E create_symlink indi_lx200generic \$ENV{DESTDIR}${BIN_INSTALL_DIR}/indi_lx200classic)\n
+exec_program(\"${CMAKE_COMMAND}\" ARGS -E create_symlink indi_lx200generic \$ENV{DESTDIR}${BIN_INSTALL_DIR}/indi_lx200autostar)\n
+exec_program(\"${CMAKE_COMMAND}\" ARGS -E create_symlink indi_lx200generic \$ENV{DESTDIR}${BIN_INSTALL_DIR}/indi_lx200_16)\n
+exec_program(\"${CMAKE_COMMAND}\" ARGS -E create_symlink indi_lx200generic \$ENV{DESTDIR}${BIN_INSTALL_DIR}/indi_lx200gps)\n
+exec_program(\"${CMAKE_COMMAND}\" ARGS -E create_symlink indi_lx200generic \$ENV{DESTDIR}${BIN_INSTALL_DIR}/indi_lx200ap)\n
+exec_program(\"${CMAKE_COMMAND}\" ARGS -E create_symlink indi_lx200generic \$ENV{DESTDIR}${BIN_INSTALL_DIR}/indi_lx200gemini)\n
+exec_program(\"${CMAKE_COMMAND}\" ARGS -E create_symlink indi_lx200generic \$ENV{DESTDIR}${BIN_INSTALL_DIR}/indi_lx200zeq25)\n
+exec_program(\"${CMAKE_COMMAND}\" ARGS -E create_symlink indi_lx200generic \$ENV{DESTDIR}${BIN_INSTALL_DIR}/indi_lx200gotonova)\n
+exec_program(\"${CMAKE_COMMAND}\" ARGS -E create_symlink indi_lx200generic \$ENV{DESTDIR}${BIN_INSTALL_DIR}/indi_lx200pulsar2)\n
+exec_program(\"${CMAKE_COMMAND}\" ARGS -E create_symlink indi_lx200generic \$ENV{DESTDIR}${BIN_INSTALL_DIR}/indi_lx200fs2)\n
+exec_program(\"${CMAKE_COMMAND}\" ARGS -E create_symlink indi_lx200generic \$ENV{DESTDIR}${BIN_INSTALL_DIR}/indi_lx200ss2000pc)\n
+exec_program(\"${CMAKE_COMMAND}\" ARGS -E create_symlink indi_lx200generic \$ENV{DESTDIR}${BIN_INSTALL_DIR}/indi_lx200_OnStep)\n
+exec_program(\"${CMAKE_COMMAND}\" ARGS -E create_symlink indi_lx200generic \$ENV{DESTDIR}${BIN_INSTALL_DIR}/indi_lx200_10micron)\n
+exec_program(\"${CMAKE_COMMAND}\" ARGS -E create_symlink indi_lx200generic \$ENV{DESTDIR}${BIN_INSTALL_DIR}/indi_ioptronHC8406)\n
 ")
 set_target_properties(indi_lx200generic PROPERTIES POST_INSTALL_SCRIPT ${CMAKE_CURRENT_BINARY_DIR}/make_lx200generic_symlink.cmake)
 #################################################################################
@@ -624,15 +635,6 @@ add_executable(indi_nstep_focus ${nstep_SRC})
 target_link_libraries(indi_nstep_focus indidriver)
 install(TARGETS indi_nstep_focus RUNTIME DESTINATION bin)
 
-################ NightCrawler Focuser & Rotator ################
-
-SET(nightcrawler_SRC
-    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/focuser/nightcrawler.cpp)
-
-add_executable(indi_nightcrawler_focus ${nightcrawler_SRC})
-target_link_libraries(indi_nightcrawler_focus indidriver)
-install(TARGETS indi_nightcrawler_focus RUNTIME DESTINATION bin)
-
 ################ Moonlite Focuser ################
 
 SET(moonlite_SRC
@@ -642,6 +644,13 @@ add_executable(indi_moonlite_focus ${moonlite_SRC})
 target_link_libraries(indi_moonlite_focus indidriver)
 install(TARGETS indi_moonlite_focus RUNTIME DESTINATION bin)
 
+################ Pegasus DMFC Focuser ################
+SET(pegasus_SRC
+    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/focuser/dmfc.cpp)
+
+add_executable(indi_dmfc_focus ${pegasus_SRC})
+target_link_libraries(indi_dmfc_focus indidriver)
+install(TARGETS indi_dmfc_focus RUNTIME DESTINATION bin)
 ################## USB Focus V3 ##################
 
 SET(usbfocusv3_SRC
@@ -727,8 +736,45 @@ target_link_libraries(indi_tcfs_focus indidriver)
 install(TARGETS indi_tcfs_focus RUNTIME DESTINATION bin)
 
 file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/make_tcfs_symlink.cmake
-"exec_program(\"${CMAKE_COMMAND}\" ARGS -E create_symlink ${BIN_INSTALL_DIR}/indi_tcfs_focus \$ENV{DESTDIR}${BIN_INSTALL_DIR}/indi_tcfs3_focus)\n")
+"exec_program(\"${CMAKE_COMMAND}\" ARGS -E create_symlink indi_tcfs_focus \$ENV{DESTDIR}${BIN_INSTALL_DIR}/indi_tcfs3_focus)\n")
 set_target_properties(indi_tcfs_focus PROPERTIES POST_INSTALL_SCRIPT ${CMAKE_CURRENT_BINARY_DIR}/make_tcfs_symlink.cmake)
+
+#################################################################################
+
+#####################################
+######## Rotator GROUP #########
+#####################################
+
+################ Optec Gemini Focusing Rotator ########
+
+SET(gemini_SRC
+    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/rotator/gemini.cpp)
+
+IF (UNITY_BUILD)
+    ENABLE_UNITY_BUILD(gemini gemini_SRC 10 cpp)
+ENDIF ()
+
+add_executable(indi_gemini_focus ${gemini_SRC})
+target_link_libraries(indi_gemini_focus indidriver)
+install(TARGETS indi_gemini_focus RUNTIME DESTINATION bin)
+
+################ NightCrawler Focusing Rotator ################
+
+SET(nightcrawler_SRC
+    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/rotator/nightcrawler.cpp)
+
+add_executable(indi_nightcrawler_focus ${nightcrawler_SRC})
+target_link_libraries(indi_nightcrawler_focus indidriver)
+install(TARGETS indi_nightcrawler_focus RUNTIME DESTINATION bin)
+
+################ Pyxis Rotator ################
+
+SET(pyxis_SRC
+    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/rotator/pyxis.cpp)
+
+add_executable(indi_pyxis_rotator ${pyxis_SRC})
+target_link_libraries(indi_pyxis_rotator indidriver)
+install(TARGETS indi_pyxis_rotator RUNTIME DESTINATION bin)
 
 #################################################################################
 
@@ -901,6 +947,15 @@ SET(sqm_SRC
 add_executable(indi_sqm_weather ${sqm_SRC})
 target_link_libraries(indi_sqm_weather indidriver)
 install(TARGETS indi_sqm_weather RUNTIME DESTINATION bin)
+
+########### Sky Quality Meter Simulator ###############
+
+SET(sqm_simulator_SRC
+    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/auxiliary/sqm_simulator.cpp)
+
+add_executable(indi_simulator_sqm ${sqm_simulator_SRC})
+target_link_libraries(indi_simulator_sqm indidriver)
+install(TARGETS indi_simulator_sqm RUNTIME DESTINATION bin)
 
 ########### Astrometry Driver ###############
 
@@ -1144,12 +1199,15 @@ if (INDI_BUILD_DRIVERS OR INDI_BUILD_CLIENT OR INDI_BUILD_QT5_CLIENT)
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/basedevice.h
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/defaultdevice.h
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indiccd.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indidetector.h
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indifilterwheel.h
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indifocuserinterface.h
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indifocuser.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indirotator.h
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/inditelescope.h
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indiguiderinterface.h
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indifilterinterface.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indirotatorinterface.h
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indiproperty.h
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indistandardproperty.h
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indidome.h

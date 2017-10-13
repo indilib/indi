@@ -22,7 +22,7 @@
 
 #include "indilogger.h"
 
-#include <string.h>
+#include <cstring>
 
 INDI::LightBoxInterface::LightBoxInterface(DefaultDevice *device, bool isDimmable)
 {
@@ -101,7 +101,7 @@ bool INDI::LightBoxInterface::processLightBoxSwitch(const char *dev, const char 
 
             LightSP.s = rc ? IPS_OK : IPS_ALERT;
 
-            if (rc == false)
+            if (!rc)
             {
                 IUResetSwitch(&LightSP);
                 LightS[prevIndex].s = ISS_ON;

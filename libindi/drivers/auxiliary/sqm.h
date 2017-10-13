@@ -26,19 +26,25 @@
 
 #include "defaultdevice.h"
 
-namespace Connection
-{
-class TCP;
-}
-
 class SQM : public INDI::DefaultDevice
 {
   public:
     SQM();
-    virtual ~SQM();
+    virtual ~SQM() = default;
 
     virtual bool initProperties();
     virtual bool updateProperties();
+
+    /**
+     * @struct SqmConnection
+     * @brief Holds the connection mode of the device.
+     */
+    enum
+    {
+        CONNECTION_NONE   = 1 << 0,
+        CONNECTION_SERIAL = 1 << 1,
+        CONNECTION_TCP    = 1 << 2
+    } SqmConnection;
 
   protected:
     const char *getDefaultName();
@@ -56,7 +62,9 @@ class SQM : public INDI::DefaultDevice
     INumberVectorProperty UnitInfoNP;
     INumber UnitInfoN[4];
 
-    Connection::TCP *tcpConnection = NULL;
+    Connection::Serial *serialConnection { nullptr };
+    Connection::TCP *tcpConnection { nullptr };
 
-    int PortFD = -1;
+    int PortFD { -1 };
+    uint8_t sqmConnection { CONNECTION_SERIAL | CONNECTION_TCP };
 };

@@ -35,11 +35,11 @@ private:
     virtual void TimerHit() override;
     virtual bool updateLocation(double latitude, double longitude, double elevation) override;
 
-    static const long MICROSTEPS_PER_REVOLUTION;
-    static const double MICROSTEPS_PER_DEGREE;
-    static const double DEFAULT_SLEW_RATE;
-    static const long MAX_DEC;
-    static const long MIN_DEC;
+    static constexpr long MICROSTEPS_PER_REVOLUTION { 1000000 };
+    static constexpr double MICROSTEPS_PER_DEGREE { MICROSTEPS_PER_REVOLUTION / 360.0 };
+    static constexpr double DEFAULT_SLEW_RATE { MICROSTEPS_PER_DEGREE * 2.0 };
+    static constexpr long MAX_DEC { (long)(90.0 * MICROSTEPS_PER_DEGREE) };
+    static constexpr long MIN_DEC { (long)(-90.0 * MICROSTEPS_PER_DEGREE) };
 
     enum AxisStatus
     {
@@ -53,24 +53,24 @@ private:
         REVERSE
     };
 
-    AxisStatus AxisStatusDEC;
-    AxisDirection AxisDirectionDEC;
-    double AxisSlewRateDEC;
-    long CurrentEncoderMicrostepsDEC;
-    long GotoTargetMicrostepsDEC;
+    AxisStatus AxisStatusDEC { STOPPED };
+    AxisDirection AxisDirectionDEC { FORWARD };
+    double AxisSlewRateDEC { DEFAULT_SLEW_RATE };
+    long CurrentEncoderMicrostepsDEC { 0 };
+    long GotoTargetMicrostepsDEC { 0 };
 
-    AxisStatus AxisStatusRA;
-    AxisDirection AxisDirectionRA;
-    double AxisSlewRateRA;
-    long CurrentEncoderMicrostepsRA;
-    long GotoTargetMicrostepsRA;
+    AxisStatus AxisStatusRA { STOPPED };
+    AxisDirection AxisDirectionRA { FORWARD };
+    double AxisSlewRateRA { DEFAULT_SLEW_RATE };
+    long CurrentEncoderMicrostepsRA { 0 };
+    long GotoTargetMicrostepsRA { 0 };
 
     // Tracking
-    ln_equ_posn CurrentTrackingTarget;
+    ln_equ_posn CurrentTrackingTarget { 0, 0 };
 
     // Tracing in timer tick
-    int TraceThisTickCount;
-    bool TraceThisTick;
+    int TraceThisTickCount { 0 };
+    bool TraceThisTick { false };
 
-    unsigned int DBG_SIMULATOR;
+    unsigned int DBG_SIMULATOR { 0 };
 };
