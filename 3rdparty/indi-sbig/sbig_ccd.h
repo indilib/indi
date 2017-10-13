@@ -155,8 +155,6 @@ class SBIGCCD : public INDI::CCD, public INDI::FilterInterface
     // Filter Wheel CFW
     virtual int QueryFilter() override;
     virtual bool SelectFilter(int position) override;
-    virtual bool SetFilterNames() override;
-    virtual bool GetFilterNames(const char *groupName) override;
 
     int m_fd;
     CAMERA_TYPE m_camera_type;

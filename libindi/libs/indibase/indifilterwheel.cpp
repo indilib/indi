@@ -143,17 +143,6 @@ bool INDI::FilterWheel::SelectFilter(int)
     return false;
 }
 
-bool INDI::FilterWheel::SetFilterNames()
-{
-    return true;
-}
-
-bool INDI::FilterWheel::GetFilterNames(const char *groupName)
-{
-    INDI_UNUSED(groupName);
-    return false;
-}
-
 bool INDI::FilterWheel::ISSnoopDevice(XMLEle *root)
 {
     controller->ISSnoopDevice(root);

@@ -2173,36 +2173,6 @@ bool SBIGCCD::SelectFilter(int position)
     return false;
 }
 
-bool SBIGCCD::SetFilterNames()
-{
-    // Cannot save it in hardware, so let's just save it in the config file to be loaded later
-    saveConfig(true, FilterNameTP->name);
-    return true;
-}
-
-bool SBIGCCD::GetFilterNames(const char *groupName)
-{
-    char filterName[MAXINDINAME];
-    char filterLabel[MAXINDILABEL];
-    char filterBand[MAXINDILABEL];
-    int MaxFilter = FilterSlotN[0].max;
-    if (FilterNameT != NULL)
-    {
-        delete [] FilterNameT;
-    }
-    FilterNameT = new IText[MaxFilter];
-    for (int i = 0; i < MaxFilter; i++)
-    {
-        snprintf(filterName, MAXINDINAME, "FILTER_SLOT_NAME_%d", i + 1);
-        snprintf(filterLabel, MAXINDILABEL, "Filter#%d", i + 1);
-        snprintf(filterBand, MAXINDILABEL, "Filter #%d", i + 1);
-        IUFillText(&FilterNameT[i], filterName, filterLabel, filterBand);
-    }
-    IUFillTextVector(FilterNameTP, FilterNameT, MaxFilter, getDeviceName(), "FILTER_NAME", "Filter", groupName, IP_RW,
-                     0, IPS_IDLE);
-    return true;
-}
-
 int SBIGCCD::QueryFilter()
 {
     return CurrentFilter;
@@ -2504,15 +2474,16 @@ int SBIGCCD::CFWConnect()
         }
         DEBUGF(INDI::Logger::DBG_DEBUG, "CFW min: 1 Max: %g Current Slot: %g", FilterSlotN[0].max,
                FilterSlotN[0].value);
+
         defineNumber(&FilterSlotNP);
-        DEBUG(INDI::Logger::DBG_DEBUG, "Loading FILTER_SLOT from config file...");
-        loadConfig(true, "FILTER_SLOT");
         if (FilterNameT == NULL)
-            GetFilterNames(FILTER_TAB);
+            GetFilterNames();
         if (FilterNameT)
             defineText(FilterNameTP);
-        DEBUG(INDI::Logger::DBG_DEBUG, "Loading FILTER_NAME from config file...");
-        loadConfig(true, "FILTER_NAME");
+
+        DEBUG(INDI::Logger::DBG_DEBUG, "Loading FILTER_SLOT from config file...");
+        loadConfig(true, "FILTER_SLOT");
+
         FilterConnectionSP.s = IPS_OK;
         DEBUG(INDI::Logger::DBG_SESSION, "CFW connected.");
         FilterConnectionS[0].s = ISS_ON;

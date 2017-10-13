@@ -20,6 +20,8 @@
 
 #pragma once
 
+#include <string>
+#include <vector>
 #include "indibase.h"
 
 /**
@@ -52,21 +54,19 @@ class INDI::FilterInterface
     /**
      * \brief Set filter names as defined by the client for each filter position.
      * The desired filter names are stored in FilterNameTP property. Filter names should be
-     * saved in hardware if possible.
+     * saved in hardware if possible. The default implementation saves them in the configuration file.
      * \return True if successful, false if supported or failed operation
      */
-    virtual bool SetFilterNames() = 0;
+    virtual bool SetFilterNames();
 
     /**
      * \brief Obtains a list of filter names from the hardware and initializes the FilterNameTP
      * property. The function should check for the number of filters available in the filter
-     * wheel and build the FilterNameTP property accordingly.
-     * \param groupName group name for FilterNameTP property to be created.
-     * \return True if successful, false if unsupported or failed operation
-     * \see QSI CCD implementation of the FilterInterface. QSI CCD is available as a 3rd party
-     * INDI driver.
+     * wheel and build the FilterNameTP property accordingly. The default implementation loads the filter names from
+     * configuration file.
+     * \return True if successful, false if unsupported or failed operation     
      */
-    virtual bool GetFilterNames(const char *groupName) = 0;
+    virtual bool GetFilterNames();
 
     /**
      * \brief The child class calls this function when the hardware successfully finished
@@ -103,6 +103,11 @@ class INDI::FilterInterface
     bool processText(const char *dev, const char *name, char *texts[], char *names[], int n);
 
     /**
+     * @brief generateSampleFilters Generate sample 8-filter wheel and fill it sample filters
+     */
+    void generateSampleFilters();
+
+    /**
      * @brief saveConfigItems save Filter Names in config file
      * @param fp pointer to config file
      * @return Always return true
@@ -119,6 +124,7 @@ class INDI::FilterInterface
 
     int CurrentFilter;
     int TargetFilter;
+    bool loadingFromConfig = false;
 
     INDI::DefaultDevice *m_defaultDevice { nullptr };
 };

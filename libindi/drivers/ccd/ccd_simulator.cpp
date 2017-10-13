@@ -123,11 +123,7 @@ bool CCDSim::SetupParms()
 
     nbuf = PrimaryCCD.getXRes() * PrimaryCCD.getYRes() * PrimaryCCD.getBPP() / 8;
     nbuf += 512;
-    PrimaryCCD.setFrameBufferSize(nbuf);
-
-    // Only generate filter names if there are none initially
-    if (FilterNameT == nullptr)
-        GetFilterNames(FILTER_TAB);
+    PrimaryCCD.setFrameBufferSize(nbuf);    
 
     return true;
 }
@@ -1171,39 +1167,7 @@ bool CCDSim::SelectFilter(int f)
     return true;
 }
 
-bool CCDSim::GetFilterNames(const char *groupName)
-{
-    char filterName[MAXINDINAME];
-    char filterLabel[MAXINDILABEL];
-    int MaxFilter = FilterSlotN[0].max;
-
-    const char *filterDesignation[8] = { "Red", "Green", "Blue", "H_Alpha", "SII", "OIII", "LPR", "Luminosity" };
-
-    if (FilterNameT != nullptr)
-        delete [] FilterNameT;
-
-    FilterNameT = new IText[MaxFilter];
-
-    for (int i = 0; i < MaxFilter; i++)
-    {
-        snprintf(filterName, MAXINDINAME, "FILTER_SLOT_NAME_%d", i + 1);
-        snprintf(filterLabel, MAXINDILABEL, "Filter#%d", i + 1);
-        IUFillText(&FilterNameT[i], filterName, filterLabel, filterDesignation[i]);
-    }
-
-    IUFillTextVector(FilterNameTP, FilterNameT, MaxFilter, getDeviceName(), "FILTER_NAME", "Filter names", groupName,
-                     IP_RW, 0, IPS_IDLE);
-
-    return true;
-}
-
 int CCDSim::QueryFilter()
 {
     return CurrentFilter;
-}
-
-bool CCDSim::SetFilterNames()
-{
-    saveConfig(true);
-    return true;
 }

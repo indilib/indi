@@ -47,8 +47,11 @@ bool INDI::FilterInterface::updateProperties()
         // Define the Filter Slot and name properties
         m_defaultDevice->defineNumber(&FilterSlotNP);
         if (FilterNameT == nullptr)
-            GetFilterNames(FILTER_TAB);
-        if (FilterNameT != nullptr)
+        {
+            if (GetFilterNames() == true)
+                m_defaultDevice->defineText(FilterNameTP);
+        }
+        else
             m_defaultDevice->defineText(FilterNameTP);
     }
     else
@@ -103,10 +106,36 @@ bool INDI::FilterInterface::processNumber(const char *dev, const char *name, dou
 
 bool INDI::FilterInterface::processText(const char *dev, const char *name, char *texts[], char *names[], int n)
 {
-    if (dev && !strcmp(dev, m_defaultDevice->getDeviceName()) && FilterNameTP && !strcmp(name, FilterNameTP->name))
+    if (dev && !strcmp(dev, m_defaultDevice->getDeviceName()) && !strcmp(name, "FILTER_NAME"))
     {
-        FilterNameTP->s = IPS_OK;
+        // If this call due to config loading, let's delete existing dummy property and define the full one
+        if (loadingFromConfig)
+        {
+            loadingFromConfig = false;
+            m_defaultDevice->deleteProperty("FILTER_NAME");
+
+            char filterName[MAXINDINAME];
+            char filterLabel[MAXINDILABEL];
+
+            if (FilterNameT != nullptr)
+                delete [] FilterNameT;
+
+            FilterNameT = new IText[n];
+
+            for (int i = 0; i < n; i++)
+            {
+                snprintf(filterName, MAXINDINAME, "FILTER_SLOT_NAME_%d", i + 1);
+                snprintf(filterLabel, MAXINDILABEL, "Filter#%d", i + 1);
+                IUFillText(&FilterNameT[i], filterName, filterLabel, texts[i]);
+            }
+
+            IUFillTextVector(FilterNameTP, FilterNameT, n, m_defaultDevice->getDeviceName(), "FILTER_NAME", "Filter", FilterSlotNP.group, IP_RW, 0, IPS_IDLE);
+            m_defaultDevice->defineText(FilterNameTP);
+            return true;
+        }
+
         IUUpdateText(FilterNameTP, texts, names, n);
+        FilterNameTP->s = IPS_OK;
 
         if (SetFilterNames() == true)
         {
@@ -143,4 +172,47 @@ void INDI::FilterInterface::SelectFilterDone(int f)
     // Tell the clients we are done, and
     //  filter is now useable
     IDSetNumber(&FilterSlotNP, nullptr);
+}
+
+void INDI::FilterInterface::generateSampleFilters()
+{
+    char filterName[MAXINDINAME];
+    char filterLabel[MAXINDILABEL];
+    int MaxFilter = FilterSlotN[0].max;
+
+    const char *filterDesignation[8] = { "Red", "Green", "Blue", "H_Alpha", "SII", "OIII", "LPR", "Luminosity" };
+
+    if (FilterNameT != nullptr)
+        delete [] FilterNameT;
+
+    FilterNameT = new IText[MaxFilter];
+
+    for (int i = 0; i < MaxFilter; i++)
+    {
+        snprintf(filterName, MAXINDINAME, "FILTER_SLOT_NAME_%d", i + 1);
+        snprintf(filterLabel, MAXINDILABEL, "Filter#%d", i + 1);
+        IUFillText(&FilterNameT[i], filterName, filterLabel, i < 8 ? filterDesignation[i] : filterLabel);
+    }
+
+    IUFillTextVector(FilterNameTP, FilterNameT, MaxFilter, m_defaultDevice->getDeviceName(), "FILTER_NAME", "Filter", FilterSlotNP.group, IP_RW, 0, IPS_IDLE);
+}
+
+bool INDI::FilterInterface::GetFilterNames()
+{
+    // Load from config
+    if (FilterNameT == nullptr)
+    {
+        generateSampleFilters();
+        // If property is found, let's define it once loaded to the client and delete
+        // the generate sample filters above
+        if (m_defaultDevice->loadConfig(true, "FILTER_NAME"))
+            loadingFromConfig = true;
+    }
+
+    return true;
+}
+
+bool INDI::FilterInterface::SetFilterNames()
+{
+    return m_defaultDevice->saveConfig(true, "FILTER_NAME");
 }

@@ -47,8 +47,6 @@ class ASIWHEEL : public INDI::FilterWheel
     virtual int QueryFilter() override;
     virtual bool SelectFilter(int) override;
     virtual void TimerHit() override;
-    virtual bool SetFilterNames() override { return true; }
-    virtual bool GetFilterNames(const char *) override;    
 
 private:
   int fw_id;

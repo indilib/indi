@@ -464,13 +464,7 @@ bool QHYCCD::updateProperties()
 
         if (HasFilters)
         {
-            //Define the Filter Slot and name properties
-            defineNumber(&FilterSlotNP);
-
-            if (FilterNameT == NULL)
-                GetFilterNames(FILTER_TAB);
-            if (FilterNameT)
-                defineText(FilterNameTP);
+            INDI::FilterInterface::updateProperties();
         }
 
         if (HasUSBTraffic)
@@ -529,8 +523,7 @@ bool QHYCCD::updateProperties()
 
         if (HasFilters)
         {
-            deleteProperty(FilterSlotNP.name);
-            deleteProperty(FilterNameTP->name);
+            INDI::FilterInterface::updateProperties();
         }
 
         if (HasUSBTraffic)
@@ -1223,13 +1216,6 @@ bool QHYCCD::SelectFilter(int position)
         DEBUGF(INDI::Logger::DBG_ERROR, "Changing filter failed (%d)", ret);
 
     return false;
-}
-
-bool QHYCCD::SetFilterNames()
-{
-    // Cannot save it in hardware, so let's just save it in the config file to be loaded later
-    saveConfig(true, FilterNameTP->name);
-    return true;
 }
 
 bool QHYCCD::GetFilterNames(const char *groupName)

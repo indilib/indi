@@ -349,29 +349,6 @@ bool FLICFW::setupParams()
     return true;
 }
 
-bool FLICFW::GetFilterNames(const char *groupName)
-{
-    char filterName[MAXINDINAME];
-    char filterLabel[MAXINDILABEL];
-
-    if (FilterNameT != NULL)
-        delete [] FilterNameT;
-
-    FilterNameT = new IText[FLIFilter.count];
-
-    for (int i = 0; i < FLIFilter.count; i++)
-    {
-        snprintf(filterName, MAXINDINAME, "FILTER_SLOT_NAME_%d", i + 1);
-        snprintf(filterLabel, MAXINDILABEL, "Filter #%d", i + 1);
-        IUFillText(&FilterNameT[i], filterName, filterLabel, filterLabel);
-    }
-
-    IUFillTextVector(FilterNameTP, FilterNameT, FLIFilter.count, getDeviceName(), "FILTER_NAME", "Filter", groupName,
-                     IP_RW, 0, IPS_IDLE);
-
-    return true;
-}
-
 bool FLICFW::SelectFilter(int targetFilter)
 {
     int err     = 0;

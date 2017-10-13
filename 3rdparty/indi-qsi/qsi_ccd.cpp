@@ -217,10 +217,7 @@ bool QSICCD::updateProperties()
 
         if (filterCount > 0)
         {
-            defineSwitch(&FilterSP);
-            defineNumber(&FilterSlotNP);
-            if (FilterNameT != nullptr)
-                defineText(FilterNameTP);
+            INDI::FilterInterface::updateProperties();
         }
 
         manageDefaults();
@@ -247,10 +244,7 @@ bool QSICCD::updateProperties()
 
         if (filterCount > 0)
         {
-            deleteProperty(FilterSlotNP.name);
-            deleteProperty(FilterSP.name);
-            if (FilterNameT != nullptr)
-                deleteProperty(FilterNameTP->name);
+            INDI::FilterInterface::updateProperties();
         }
 
         rmTimer(timerID);
@@ -323,8 +317,8 @@ bool QSICCD::setupParams()
     }
 
     // Only generate filter names if there are none initially
-    if (FilterNameT == nullptr)
-        GetFilterNames(FILTER_TAB);
+    //if (FilterNameT == nullptr)
+        //GetFilterNames(FILTER_TAB);
 
     double minDuration = 0;
 
@@ -1497,7 +1491,7 @@ IPState QSICCD::GuideWest(float duration)
     return IPS_OK;
 }
 
-bool QSICCD::GetFilterNames(const char *groupName)
+bool QSICCD::GetFilterNames()
 {
     char filterName[MAXINDINAME];
     char filterLabel[MAXINDILABEL];
@@ -1529,7 +1523,7 @@ bool QSICCD::GetFilterNames(const char *groupName)
         snprintf(filterLabel, MAXINDILABEL, "Filter #%d", i + 1);
         IUFillText(&FilterNameT[i], filterName, filterLabel, filterDesignation[i].c_str());
     }
-    IUFillTextVector(FilterNameTP, FilterNameT, filterCount, getDeviceName(), "FILTER_NAME", "Filter", groupName, IP_RW, 1, IPS_IDLE);
+    IUFillTextVector(FilterNameTP, FilterNameT, filterCount, getDeviceName(), "FILTER_NAME", "Filter", FilterSlotNP.group, IP_RW, 1, IPS_IDLE);
     delete [] filterDesignation;
     return true;
 }
