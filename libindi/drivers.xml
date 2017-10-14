@@ -45,6 +45,10 @@
 		<driver name="AstroPhysics">indi_lx200ap</driver>
 		<version>1.0</version>
 	</device>
+        <device label="AstroPhysics">
+                <driver name="AstroPhysics">indi_lx200ap</driver>
+                <version>1.0</version>
+        </device>
         <device label="Celestron GPS">
 		<driver name="Celestron GPS">indi_celestron_gps</driver>
                 <version>3.0</version>
