@@ -283,7 +283,7 @@
         </device>
         <device label="WatchDog">
                 <driver name="WatchDog">indi_watchdog</driver>
-                <version>0.1</version>
+                <version>0.2</version>
         </device>
         <device label="Joystick">
                 <driver name="Joystick">indi_joystick</driver>
