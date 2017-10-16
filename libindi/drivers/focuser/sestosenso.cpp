@@ -475,7 +475,7 @@ bool SestoSenso::isCommandOK(const char *cmd)
         {
             tty_error_msg(rc, errstr, MAXRBUF);
             DEBUGF(INDI::Logger::DBG_ERROR, "%s error for command %s: %s.", __FUNCTION__, cmd, errstr);
-            return IPS_ALERT;
+            return false;
         }
     }
 
