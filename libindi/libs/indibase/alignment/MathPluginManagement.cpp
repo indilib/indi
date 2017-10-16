@@ -179,7 +179,7 @@ void MathPluginManagement::ProcessTextProperties(Telescope *pTelescope, const ch
 void MathPluginManagement::ProcessSwitchProperties(Telescope *pTelescope, const char *name, ISState *states,
                                                    char *names[], int n)
 {
-    DEBUGFDEVICE(pTelescope->getDeviceName(), INDI::Logger::DBG_DEBUG, "ProcessSwitchProperties - name(%s)", name);
+    //DEBUGFDEVICE(pTelescope->getDeviceName(), INDI::Logger::DBG_DEBUG, "ProcessSwitchProperties - name(%s)", name);
     if (strcmp(name, AlignmentSubsystemMathPluginsV.name) == 0)
     {
         int CurrentPlugin = IUFindOnSwitchIndex(&AlignmentSubsystemMathPluginsV);
