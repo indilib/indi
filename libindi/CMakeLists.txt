@@ -644,6 +644,15 @@ add_executable(indi_moonlite_focus ${moonlite_SRC})
 target_link_libraries(indi_moonlite_focus indidriver)
 install(TARGETS indi_moonlite_focus RUNTIME DESTINATION bin)
 
+
+################ Sesto Senso Focuser ################
+SET(sesto_SRC
+    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/focuser/sestosenso.cpp)
+
+add_executable(indi_sestosenso_focus ${sesto_SRC})
+target_link_libraries(indi_sestosenso_focus indidriver)
+install(TARGETS indi_sestosenso_focus RUNTIME DESTINATION bin)
+
 ################ Pegasus DMFC Focuser ################
 SET(pegasus_SRC
     ${CMAKE_CURRENT_SOURCE_DIR}/drivers/focuser/dmfc.cpp)
