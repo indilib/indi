@@ -228,7 +228,7 @@
                 <version>0.1</version>
         </device>
         <device label="Sesto Senso">
-                <driver name="Sesto Senso">indi_dmfc_focus</driver>
+                <driver name="Sesto Senso">indi_sestosenso_focus</driver>
                 <version>1.0</version>
         </device>
         <device label="FocusLynx">
