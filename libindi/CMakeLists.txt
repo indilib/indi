@@ -1040,6 +1040,15 @@ add_executable(indi_meta_weather ${weathermeta_SRC})
 target_link_libraries(indi_meta_weather indidriver)
 install(TARGETS indi_meta_weather RUNTIME DESTINATION bin )
 
+########### MBox Driver ###############
+
+SET(mbox_SRC
+    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/weather/mbox.cpp)
+
+add_executable(indi_mbox_weather ${mbox_SRC})
+target_link_libraries(indi_mbox_weather indidriver)
+install(TARGETS indi_mbox_weather RUNTIME DESTINATION bin)
+
 ########### Vantage Driver ###############
 
 SET(vantage_SRC
