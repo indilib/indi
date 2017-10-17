@@ -31,7 +31,7 @@
 
 #define SESTOSENSO_TIMEOUT 3
 
-#define POLLMS 250
+#define POLLMS 500
 
 std::unique_ptr<SestoSenso> sesto(new SestoSenso());
 
@@ -239,7 +239,7 @@ bool SestoSenso::updateTemperature()
     DEBUGF(INDI::Logger::DBG_DEBUG, "RES <%s>", resp);
 
     TemperatureN[0].value = atof(resp);
-    TemperatureNP.s = IPS_OK;
+    TemperatureNP.s = (TemperatureN[0].value == 99.00) ? IPS_IDLE : IPS_OK;
 
     return true;
 }
@@ -409,13 +409,16 @@ IPState SestoSenso::MoveAbsFocuser(uint32_t targetTicks)
         }
     }
 
-    if (isCommandOK("GT"))
+    return IPS_BUSY;
+
+    /*if (isCommandOK("GT"))
     {
         FocusAbsPosNP.s = IPS_BUSY;
         return IPS_BUSY;
     }
 
     return IPS_ALERT;
+    */
 }
 
 IPState SestoSenso::MoveRelFocuser(FocusDirection dir, uint32_t ticks)
