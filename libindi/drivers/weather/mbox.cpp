@@ -100,9 +100,9 @@ bool MBox::initProperties()
     IUFillSwitchVector(&ResetSP, ResetS, 1, getDeviceName(), "CALIBRATION_RESET", "Reset", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
     // Calibration Properties
-    IUFillNumber(&CalibrationN[CAL_TEMPERATURE], "CAL_TEMPERATURE", "Temperature", "%.f", -10, 10, 1, 0);
-    IUFillNumber(&CalibrationN[CAL_PRESSURE], "CAL_PRESSURE", "Pressure", "%.f", -10, 10, 1, 0);
-    IUFillNumber(&CalibrationN[CAL_HUMIDITY], "CAL_HUMIDITY", "Humidity", "%.f", -10, 10, 1, 0);
+    IUFillNumber(&CalibrationN[CAL_TEMPERATURE], "CAL_TEMPERATURE", "Temperature", "%.f", -50, 50, 1, 0);
+    IUFillNumber(&CalibrationN[CAL_PRESSURE], "CAL_PRESSURE", "Pressure", "%.f", -100, 100, 10, 0);
+    IUFillNumber(&CalibrationN[CAL_HUMIDITY], "CAL_HUMIDITY", "Humidity", "%.f", -50, 50, 1, 0);
     IUFillNumberVector(&CalibrationNP, CalibrationN, 3, getDeviceName(), "CALIBRATION", "Cabliration", MAIN_CONTROL_TAB, IP_RW, 0, IPS_IDLE);
 
     // Firmware Information
@@ -445,8 +445,8 @@ bool MBox::setCalibration()
     char errstr[MAXRBUF];
     char command[16] = {0};
 
-    // Pressure
-    snprintf(command, 16, ":calp,%d*", static_cast<int32_t>(CalibrationN[CAL_PRESSURE].value*10.0));
+    // Pressure. Times 100 since mbar -> Pascal conversion.
+    snprintf(command, 16, ":calp,%d*", static_cast<int32_t>(CalibrationN[CAL_PRESSURE].value*100.0));
 
     DEBUGF(INDI::Logger::DBG_DEBUG, "CMD <%s>", command);
 
