@@ -299,13 +299,14 @@ bool SestoSenso::isMotionComplete()
     if (isSimulation())
     {
         int32_t nextPos = FocusAbsPosN[0].value;
+        int32_t targPos = static_cast<int32_t>(targetPos);
 
-        if (static_cast<int32_t>(targetPos) > nextPos)
+        if (targPos > nextPos)
             nextPos += 250;
-        else if (static_cast<int32_t>(targetPos) < nextPos)
+        else if (targPos < nextPos)
             nextPos -= 250;
 
-        if (fabs(nextPos-targetPos) < 250)
+        if (fabs(nextPos-targPos) < 250)
             nextPos = targetPos;
         else if (nextPos < 0)
             nextPos = 0;
