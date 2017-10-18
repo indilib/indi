@@ -939,15 +939,6 @@ IF (UNIX AND NOT APPLE)
     INSTALL(FILES ${CMAKE_CURRENT_SOURCE_DIR}/drivers/auxiliary/99-flipflat.rules DESTINATION ${UDEVRULES_INSTALL_DIR})
 ENDIF ()
 
-########### USB_Dewpoint Driver ###############
-
-SET(usb_dewpoint_SRC
-    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/auxiliary/usb_dewpoint.cpp)
-
-add_executable(indi_usbdewpoint ${usb_dewpoint_SRC})
-target_link_libraries(indi_usbdewpoint indidriver)
-install(TARGETS indi_usbdewpoint RUNTIME DESTINATION bin)
-
 ########### Sky Quality Meter ###############
 
 SET(sqm_SRC
@@ -1066,6 +1057,15 @@ ENDIF ()
 add_executable(indi_wunderground_weather ${WunderGround_SRC})
 target_link_libraries(indi_wunderground_weather indidriver ${CURL_LIBRARIES})
 install(TARGETS indi_wunderground_weather RUNTIME DESTINATION bin)
+
+########### USB_Dewpoint Driver ###############
+
+SET(usb_dewpoint_SRC
+    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/weather/usb_dewpoint.cpp)
+
+add_executable(indi_usbdewpoint ${usb_dewpoint_SRC})
+target_link_libraries(indi_usbdewpoint indidriver)
+install(TARGETS indi_usbdewpoint RUNTIME DESTINATION bin)
 
 #####################################
 ############ INDI TOOLS #############

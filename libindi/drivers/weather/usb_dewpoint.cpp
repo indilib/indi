@@ -14,13 +14,14 @@
 
     You should have received a copy of the GNU Lesser General Public
     License along with this library; if not, write to the Free Software
-    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301
+   USA
 
 */
 
 #include "usb_dewpoint.h"
-#include "indicom.h"
 #include "connectionplugins/connectionserial.h"
+#include "indicom.h"
 
 #include <cmath>
 #include <cstring>
@@ -30,12 +31,6 @@
 #include <unistd.h>
 
 #define USBDEWPOINT_TIMEOUT 3
-
-#define POLLMS 250
-
-#define SRTUS 25000
-
-/***************************** Class USBDewpoint *******************************/
 
 std::unique_ptr<USBDewpoint> usbDewpoint(new USBDewpoint());
 
@@ -84,30 +79,21 @@ USBDewpoint::USBDewpoint()
 
 bool USBDewpoint::initProperties()
 {
-    DefaultDevice::initProperties();
+    INDI::Weather::initProperties();
+
+    addParameter("WEATHER_TEMPERATURE", "Ambient (C)", -10, 30, -20, 40);
+    addParameter("WEATHER_TEMPERATURE_CH1", "Channel 1 (C)", -10, 30, -20, 40);
+    addParameter("WEATHER_TEMPERATURE_CH2", "Channel 2 (C)", -10, 30, -20, 40);
+    addParameter("WEATHER_HUMIDITY", "Humidity %", 0, 100, 0, 100);
+    addParameter("WEATHER_DEWPOINT", "Dew Point (C)", 0, 100, 0, 100);
+
+    setCriticalParameter("WEATHER_TEMPERATURE");
 
     /* Channel duty cycles */
     IUFillNumber(&OutputsN[0], "CHANNEL1", "Channel 1", "%3.0f", 0., 100., 10., 0.);
     IUFillNumber(&OutputsN[1], "CHANNEL2", "Channel 2", "%3.0f", 0., 100., 10., 0.);
     IUFillNumber(&OutputsN[2], "CHANNEL3", "Channel 3", "%3.0f", 0., 100., 10., 0.);
     IUFillNumberVector(&OutputsNP, OutputsN, 3, getDeviceName(), "OUTPUT", "Outputs", MAIN_CONTROL_TAB, IP_RW, 0,
-                       IPS_IDLE);
-
-    /* Temperatures */
-    IUFillNumber(&TemperaturesN[0], "CHANNEL1", "Channel 1", "%3.2f", -50., 70., 0., 0.);
-    IUFillNumber(&TemperaturesN[1], "CHANNEL2", "Channel 2", "%3.2f", -50., 70., 0., 0.);
-    IUFillNumber(&TemperaturesN[2], "AMBIENT", "Ambient", "%3.2f", -50., 70., 0., 0.);
-    IUFillNumberVector(&TemperaturesNP, TemperaturesN, 3, getDeviceName(), "TEMPERATURES", "Temperatures",
-                       MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE);
-
-    /* Humidity */
-    IUFillNumber(&HumidityN[0], "HUMIDITY", "Humidity", "%3.2f", 0., 100., 0., 0.);
-    IUFillNumberVector(&HumidityNP, HumidityN, 1, getDeviceName(), "HUMIDITY", "Humidity", MAIN_CONTROL_TAB, IP_RO, 0,
-                       IPS_IDLE);
-
-    /* Dew point */
-    IUFillNumber(&DewpointN[0], "DEWPOINT", "Dew point", "%3.2f", -50., 70., 0., 0.);
-    IUFillNumberVector(&DewpointNP, DewpointN, 1, getDeviceName(), "DEWPOINT", "Dew point", MAIN_CONTROL_TAB, IP_RO, 0,
                        IPS_IDLE);
 
     /* Temperature calibration values */
@@ -148,29 +134,21 @@ bool USBDewpoint::initProperties()
     IUFillNumberVector(&FWversionNP, FWversionN, 1, getDeviceName(), "FW_VERSION", "Firmware", OPTIONS_TAB, IP_RO, 0,
                        IPS_IDLE);
 
-    setDriverInterface(AUX_INTERFACE);
-
     addDebugControl();
     addConfigurationControl();
     // No simulation control for now
 
-    serialConnection = new Connection::Serial(this);
-    serialConnection->registerHandshake([&]() { return Handshake(); });
-    registerConnection(serialConnection);
-
+    // Serial parameters 9600, 8N1 are default so no need to set here
     return true;
 }
 
 bool USBDewpoint::updateProperties()
 {
-    DefaultDevice::updateProperties();
+    INDI::Weather::updateProperties();
 
     if (isConnected())
     {
         defineNumber(&OutputsNP);
-        defineNumber(&TemperaturesNP);
-        defineNumber(&HumidityNP);
-        defineNumber(&DewpointNP);
         defineNumber(&CalibrationsNP);
         defineNumber(&ThresholdsNP);
         defineNumber(&AggressivityNP);
@@ -181,15 +159,12 @@ bool USBDewpoint::updateProperties()
 
         loadConfig(true);
 
+        readSettings();
         DEBUG(INDI::Logger::DBG_SESSION, "USB_Dewpoint paramaters updated, device ready for use.");
-        SetTimer(POLLMS);
     }
     else
     {
         deleteProperty(OutputsNP.name);
-        deleteProperty(TemperaturesNP.name);
-        deleteProperty(HumidityNP.name);
-        deleteProperty(DewpointNP.name);
         deleteProperty(CalibrationsNP.name);
         deleteProperty(ThresholdsNP.name);
         deleteProperty(AggressivityNP.name);
@@ -204,7 +179,6 @@ bool USBDewpoint::updateProperties()
 
 bool USBDewpoint::Handshake()
 {
-    PortFD = serialConnection->getPortFD();
     DEBUG(INDI::Logger::DBG_SESSION, "USB_Dewpoint is online. Getting device parameters...");
 
     char cmd[] = UDP_IDENTIFY_CMD;
@@ -479,6 +453,7 @@ bool USBDewpoint::ISNewSwitch(const char *dev, const char *name, ISState *states
             AutoModeSP.s    = IPS_BUSY;
             IDSetSwitch(&AutoModeSP, nullptr);
             setAutoMode(target_mode == 1);
+            readSettings();
             return true;
         }
         if (strcmp(LinkOut23SP.name, name) == 0)
@@ -488,6 +463,7 @@ bool USBDewpoint::ISNewSwitch(const char *dev, const char *name, ISState *states
             LinkOut23SP.s   = IPS_BUSY;
             IDSetSwitch(&LinkOut23SP, nullptr);
             setLinkMode(target_mode == 1);
+            readSettings();
             return true;
         }
         if (strcmp(ResetSP.name, name) == 0)
@@ -495,7 +471,10 @@ bool USBDewpoint::ISNewSwitch(const char *dev, const char *name, ISState *states
             IUResetSwitch(&ResetSP);
 
             if (reset())
+            {
                 ResetSP.s = IPS_OK;
+                readSettings();
+            }
             else
                 ResetSP.s = IPS_ALERT;
 
@@ -526,6 +505,7 @@ bool USBDewpoint::ISNewNumber(const char *dev, const char *name, double values[]
             setOutput(1, OutputsN[0].value);
             setOutput(2, OutputsN[1].value);
             setOutput(3, OutputsN[2].value);
+            readSettings();
             return true;
         }
         if (strcmp(name, CalibrationsNP.name) == 0)
@@ -534,6 +514,7 @@ bool USBDewpoint::ISNewNumber(const char *dev, const char *name, double values[]
             CalibrationsNP.s = IPS_BUSY;
             IDSetNumber(&CalibrationsNP, nullptr);
             setCalibrations(CalibrationsN[0].value, CalibrationsN[1].value, CalibrationsN[2].value);
+            readSettings();
             return true;
         }
         if (strcmp(name, ThresholdsNP.name) == 0)
@@ -542,6 +523,7 @@ bool USBDewpoint::ISNewNumber(const char *dev, const char *name, double values[]
             ThresholdsNP.s = IPS_BUSY;
             IDSetNumber(&ThresholdsNP, nullptr);
             setThresholds(ThresholdsN[0].value, ThresholdsN[1].value);
+            readSettings();
             return true;
         }
         if (strcmp(name, AggressivityNP.name) == 0)
@@ -550,6 +532,7 @@ bool USBDewpoint::ISNewNumber(const char *dev, const char *name, double values[]
             AggressivityNP.s = IPS_BUSY;
             IDSetNumber(&AggressivityNP, nullptr);
             setAggressivity(AggressivityN[0].value);
+            readSettings();
             return true;
         }
         if (strcmp(name, FWversionNP.name) == 0)
@@ -607,19 +590,12 @@ bool USBDewpoint::readSettings()
 
     if (ok == 16)
     {
-        TemperaturesN[0].value = temp1;
-        TemperaturesN[1].value = temp2;
-        TemperaturesN[2].value = temp_ambient;
-        TemperaturesNP.s       = IPS_OK;
-        IDSetNumber(&TemperaturesNP, nullptr);
+        setParameterValue("WEATHER_TEMPERATURE", temp_ambient);
+        setParameterValue("WEATHER_TEMPERATURE_CH1", temp1);
+        setParameterValue("WEATHER_TEMPERATURE_CH2", temp2);
 
-        HumidityN[0].value = humidity;
-        HumidityNP.s       = IPS_OK;
-        IDSetNumber(&HumidityNP, nullptr);
-
-        DewpointN[0].value = dewpoint;
-        DewpointNP.s       = IPS_OK;
-        IDSetNumber(&DewpointNP, nullptr);
+        setParameterValue("WEATHER_HUMIDITY", humidity);
+        setParameterValue("WEATHER_DEWPOINT", dewpoint);
 
         OutputsN[0].value = output1;
         OutputsN[1].value = output2;
@@ -655,14 +631,11 @@ bool USBDewpoint::readSettings()
     return true;
 }
 
-void USBDewpoint::TimerHit()
+IPState USBDewpoint::updateWeather()
 {
-    if (!isConnected())
+    if (readSettings())
     {
-        return;
+        return IPS_OK;
     }
-
-    // Get temperatures etc.
-    readSettings();
-    SetTimer(POLLMS);
+    return IPS_ALERT;
 }
