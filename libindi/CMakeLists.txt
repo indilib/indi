@@ -1018,8 +1018,17 @@ add_executable(indi_simulator_gps ${gpssimulator_SRC})
 target_link_libraries(indi_simulator_gps indidriver)
 install(TARGETS indi_simulator_gps RUNTIME DESTINATION bin)
 
+########### USB_Dewpoint Driver ###############
+
+SET(usb_dewpoint_SRC
+    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/auxiliary/usb_dewpoint.cpp)
+
+add_executable(indi_usbdewpoint ${usb_dewpoint_SRC})
+target_link_libraries(indi_usbdewpoint indidriver)
+install(TARGETS indi_usbdewpoint RUNTIME DESTINATION bin)
+
 #####################################
-############ AUX GROUP ##############
+########## WEATHER GROUP ############
 #####################################
 
 ########### Weather Meta Driver ###############
@@ -1057,15 +1066,6 @@ ENDIF ()
 add_executable(indi_wunderground_weather ${WunderGround_SRC})
 target_link_libraries(indi_wunderground_weather indidriver ${CURL_LIBRARIES})
 install(TARGETS indi_wunderground_weather RUNTIME DESTINATION bin)
-
-########### USB_Dewpoint Driver ###############
-
-SET(usb_dewpoint_SRC
-    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/weather/usb_dewpoint.cpp)
-
-add_executable(indi_usbdewpoint ${usb_dewpoint_SRC})
-target_link_libraries(indi_usbdewpoint indidriver)
-install(TARGETS indi_usbdewpoint RUNTIME DESTINATION bin)
 
 #####################################
 ############ INDI TOOLS #############

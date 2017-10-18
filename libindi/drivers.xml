@@ -309,6 +309,10 @@
                 <driver name="GPS Simulator">indi_simulator_gps</driver>
                 <version>0.1</version>
         </device>
+        <device label="USB_Dewpoint">
+                <driver name="USB_Dewpoint">indi_usbdewpoint</driver>
+                <version>1.0</version>
+        </device>
 </devGroup>
 <devGroup group="Domes">        
         <device label="Baader Dome">
@@ -343,10 +347,6 @@
         </device>
         <device label="Vantage">
                 <driver name="Vantage">indi_vantage_weather</driver>
-                <version>1.0</version>
-        </device>
-        <device label="USB_Dewpoint">
-                <driver name="USB_Dewpoint">indi_usbdewpoint</driver>
                 <version>1.0</version>
         </device>
 </devGroup>

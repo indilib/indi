@@ -20,7 +20,7 @@
 
 #pragma once
 
-#include "indiweather.h"
+#include <defaultdevice.h>
 
 /***************************** USB_Dewpoint Commands **************************/
 
@@ -71,23 +71,27 @@
 
 /******************************************************************************/
 
-class USBDewpoint : public INDI::Weather
+namespace Connection
+{
+class Serial;
+};
+
+class USBDewpoint : public INDI::DefaultDevice
 {
   public:
     USBDewpoint();
     virtual ~USBDewpoint() = default;
 
-    virtual bool Handshake() override;
     virtual const char *getDefaultName() override;
     virtual bool initProperties() override;
     virtual bool updateProperties() override;
     virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
     virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
-
-  protected:
-    virtual IPState updateWeather() override;
+    virtual void TimerHit() override;
 
   private:
+    bool Handshake();
+
     bool reset();
     bool readSettings();
 
@@ -98,14 +102,26 @@ class USBDewpoint : public INDI::Weather
     bool setLinkMode(bool enable);
     bool setAggressivity(unsigned int aggressivity);
 
+    Connection::Serial *serialConnection{ nullptr };
+    int PortFD{ -1 };
+
     INumber OutputsN[3];
     INumberVectorProperty OutputsNP;
+
+    INumber TemperaturesN[3];
+    INumberVectorProperty TemperaturesNP;
 
     INumber CalibrationsN[3];
     INumberVectorProperty CalibrationsNP;
 
     INumber ThresholdsN[2];
     INumberVectorProperty ThresholdsNP;
+
+    INumber HumidityN[1];
+    INumberVectorProperty HumidityNP;
+
+    INumber DewpointN[1];
+    INumberVectorProperty DewpointNP;
 
     INumber AggressivityN[1];
     INumberVectorProperty AggressivityNP;
