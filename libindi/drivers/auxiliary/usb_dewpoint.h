@@ -24,64 +24,51 @@
 
 /***************************** USB_Dewpoint Commands **************************/
 
-#define UFOCREADPARAM "SGETAL"
-#define UFOCDEVID     "SWHOIS"
-#define UFOCREADPOS   "FPOSRO"
-#define UFOCREADTEMP  "FTMPRO"
-#define UFOCMOVEOUT   "O"
-#define UFOCMOVEIN    "I"
-#define UFOCABORT     "FQUITx"
-#define UFOCSETMAX    "M"
-#define UFOCSETSPEED  "SMO"
-#define UFOCSETTCTHR  "SMA"
-#define UFOCSETSDIR   "SMROTH"
-#define UFOCSETRDIR   "SMROTT"
-#define UFOCSETFSTEPS "SMSTPF"
-#define UFOCSETHSTEPS "SMSTPD"
-#define UFOCSETSTDEG  "FLA"
-#define UFOCGETSIGN   "FTAXXA"
-#define UFOCSETSIGN   "FZAXX"
-#define UFOCSETAUTO   "FAMODE"
-#define UFOCSETMANU   "FMMODE"
-#define UFOCRESET     "SEERAZ"
+// All commands are exactly 6 bytes, no start/end markers
+#define UDP_CMD_LEN 6
+#define UDP_STATUS_CMD "SGETAL"
+#define UDP_OUTPUT_CMD "S%1uO%03u" // channel 1-3, power 0-100
+#define UDP_THRESHOLD_CMD "STHR%1u%1u" // channel 1-2, value 0-9
+#define UDP_CALIBRATION_CMD "SCA%1u%1u%1u" // channel 1-2-A, value 0-9
+#define UDP_LINK_CMD "SLINK%1u" // 0 or 1 to link channels 2 and 3
+#define UDP_AUTO_CMD "SAUTO%1u" // 0 or 1 to enable auto mode
+#define UDP_AGGRESSIVITY_CMD "SAGGR%1u" // 1-4 (1, 2, 5, 10)
+#define UDP_IDENTIFY_CMD "SWHOIS"
+#define UDP_RESET_CMD "SEERAZ"
 
 /**************************** USB_Dewpoint Constants **************************/
 
-#define UFOID "UFO"
+// Responses also include "\n"
+#define UDP_DONE_RESPONSE "DONE"
 
-#define UFORSACK   "*"
-#define UFORSEQU   "="
-#define UFORSAUTO  "AP"
-#define UFORSDONE  "DONE"
-#define UFORSERR   "ER="
-#define UFORSRESET "EEPROM RESET"
+// Status response is like:
+// ##22.37/22.62/23.35/50.77/12.55/0/0/0/0/0/0/2/2/0/0/4**
+// Fields in order:
+// temperature 1
+// temperature 2
+// temperature ambient
+// relative humidity
+// dew point
+// output 1
+// output 2
+// output 3
+// calibration 1
+// calibration 2
+// calibration ambient
+// threshold 1
+// threshold 2
+// auto mode
+// outputs linked
+// aggressivity
 
-#define UFOPSDIR   0 // standard direction
-#define UFOPRDIR   1 // reverse direction
-#define UFOPFSTEPS 0 // full steps
-#define UFOPHSTEPS 1 // half steps
-#define UFOPPSIGN  0 // positive temp. comp. sign
-#define UFOPNSIGN  1 // negative temp. comp. sign
+#define UDP_STATUS_RESPONSE "##%f/%f/%f/%f/%f/%u/%u/%u/%u/%u/%u/%u/%u/%u/%u/%u**"
+#define UDP_STATUS_START "##"
+#define UDP_STATUS_SEPARATOR "/"
+#define UDP_STATUS_END "**"
 
-#define UFOPSPDERR 0 // invalid speed
-#define UFOPSPDAV  2 // average speed
-#define UFOPSPDSL  3 // slow speed
-#define UFOPSPDUS  4 // ultra slow speed
+#define UDP_IDENTIFY_RESPONSE "UDP2(%u)" // Firmware version? Mine is "UDP2(1446)"
 
-#define UFORTEMPLEN 8  // maximum length of returned temperature string
-#define UFORSIGNLEN 3  // maximum length of temp. comp. sign string
-#define UFORPOSLEN  7  // maximum length of returned position string
-#define UFORSTLEN   26 // maximum length of returned status string
-#define UFORIDLEN   3  // maximum length of returned temperature string
-#define UFORDONELEN 4  // length of done response
 
-#define UFOCTLEN  6 // length of temp parameter setting commands
-#define UFOCMLEN  6 // length of move commands
-#define UFOCMMLEN 6 // length of max. move commands
-#define UFOCSLEN  6 // length of speed commands
-#define UFOCDLEN  6 // length of direction commands
-#define UFOCSMLEN 6 // length of step mode commands
-#define UFOCTCLEN 6 // length of temp compensation commands
 
 /******************************************************************************/
 
@@ -105,16 +92,19 @@ class USBDewpoint : public INDI::DefaultDevice
 
   private:
     bool Handshake();
-    bool getControllerStatus();
     bool oneMoreRead(char *response, unsigned int maxlen);
 
     bool reset();
-    bool updateSettings();
-    bool updateFWversion();
+    bool readSettings();
+
+    bool setOutput(unsigned int channel, unsigned int value);
+    bool setCalibrations(unsigned int ch1, unsigned int ch2, unsigned int ambient);
+    bool setThresholds(unsigned int ch1, unsigned int ch2);
+    bool setAutoMode(bool enable);
+    bool setLinkMode(bool enable);
+    bool setAggressivity(unsigned int aggressivity);
 
     bool Ack();
-
-    unsigned int firmware { 0 };  // firmware version
 
     Connection::Serial *serialConnection { nullptr };
     int PortFD { -1 };
@@ -134,13 +124,16 @@ class USBDewpoint : public INDI::DefaultDevice
     INumber HumidityN[1];
     INumberVectorProperty HumidityNP;
 
+    INumber DewpointN[1];
+    INumberVectorProperty DewpointNP;
+
     INumber AggressivityN[1];
     INumberVectorProperty AggressivityNP;
 
-    ISwitch AutoModeS[1];
+    ISwitch AutoModeS[2];
     ISwitchVectorProperty AutoModeSP;
 
-    ISwitch LinkOut23S[1];
+    ISwitch LinkOut23S[2];
     ISwitchVectorProperty LinkOut23SP;
 
     ISwitch ResetS[1];
