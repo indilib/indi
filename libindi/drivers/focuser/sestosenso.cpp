@@ -306,7 +306,7 @@ bool SestoSenso::isMotionComplete()
         else if (targPos < nextPos)
             nextPos -= 250;
 
-        if (fabs(nextPos-targPos) < 250)
+        if (abs(nextPos-targPos) < 250)
             nextPos = targetPos;
         else if (nextPos < 0)
             nextPos = 0;
