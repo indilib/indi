@@ -82,7 +82,6 @@ USBDewpoint::USBDewpoint()
     setVersion(1, 0);
 };
 
-
 bool USBDewpoint::initProperties()
 {
     DefaultDevice::initProperties();
@@ -91,8 +90,8 @@ bool USBDewpoint::initProperties()
     IUFillNumber(&OutputsN[0], "CHANNEL1", "Channel 1", "%3.0f", 0., 100., 10., 0.);
     IUFillNumber(&OutputsN[1], "CHANNEL2", "Channel 2", "%3.0f", 0., 100., 10., 0.);
     IUFillNumber(&OutputsN[2], "CHANNEL3", "Channel 3", "%3.0f", 0., 100., 10., 0.);
-    IUFillNumberVector(&OutputsNP, OutputsN, 3, getDeviceName(), "OUTPUT", "Outputs",
-                       MAIN_CONTROL_TAB, IP_RW, 0, IPS_IDLE);
+    IUFillNumberVector(&OutputsNP, OutputsN, 3, getDeviceName(), "OUTPUT", "Outputs", MAIN_CONTROL_TAB, IP_RW, 0,
+                       IPS_IDLE);
 
     /* Temperatures */
     IUFillNumber(&TemperaturesN[0], "CHANNEL1", "Channel 1", "%3.2f", -50., 70., 0., 0.);
@@ -103,44 +102,43 @@ bool USBDewpoint::initProperties()
 
     /* Humidity */
     IUFillNumber(&HumidityN[0], "HUMIDITY", "Humidity", "%3.2f", 0., 100., 0., 0.);
-    IUFillNumberVector(&HumidityNP, HumidityN, 1, getDeviceName(), "HUMIDITY", "Humidity",
-                       MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE);
+    IUFillNumberVector(&HumidityNP, HumidityN, 1, getDeviceName(), "HUMIDITY", "Humidity", MAIN_CONTROL_TAB, IP_RO, 0,
+                       IPS_IDLE);
 
     /* Dew point */
     IUFillNumber(&DewpointN[0], "DEWPOINT", "Dew point", "%3.2f", -50., 70., 0., 0.);
-    IUFillNumberVector(&DewpointNP, DewpointN, 1, getDeviceName(), "DEWPOINT", "Dew point",
-                       MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE);
+    IUFillNumberVector(&DewpointNP, DewpointN, 1, getDeviceName(), "DEWPOINT", "Dew point", MAIN_CONTROL_TAB, IP_RO, 0,
+                       IPS_IDLE);
 
     IUFillNumber(&CalibrationsN[0], "CHANNEL1", "Channel 1", "%1.0f", 0., 9., 1., 0.);
     IUFillNumber(&CalibrationsN[1], "CHANNEL2", "Channel 2", "%1.0f", 0., 9., 1., 0.);
     IUFillNumber(&CalibrationsN[2], "AMBIENT", "Ambient", "%1.0f", 0., 9., 1., 0.);
-    IUFillNumberVector(&CalibrationsNP, CalibrationsN, 3, getDeviceName(), "CALIBRATIONS", "Calibrations",
-                       OPTIONS_TAB, IP_RW, 0, IPS_IDLE);
+    IUFillNumberVector(&CalibrationsNP, CalibrationsN, 3, getDeviceName(), "CALIBRATIONS", "Calibrations", OPTIONS_TAB,
+                       IP_RW, 0, IPS_IDLE);
 
     IUFillNumber(&ThresholdsN[0], "CHANNEL1", "Channel 1", "%1.0f", 0., 9., 1., 0.);
     IUFillNumber(&ThresholdsN[1], "CHANNEL2", "Channel 2", "%1.0f", 0., 9., 1., 0.);
-    IUFillNumberVector(&ThresholdsNP, ThresholdsN, 2, getDeviceName(), "THRESHOLDS", "Thresholds",
-                       OPTIONS_TAB, IP_RW, 0, IPS_IDLE);
+    IUFillNumberVector(&ThresholdsNP, ThresholdsN, 2, getDeviceName(), "THRESHOLDS", "Thresholds", OPTIONS_TAB, IP_RW,
+                       0, IPS_IDLE);
 
     IUFillNumber(&AggressivityN[0], "AGGRESSIVITY", "Aggressivity", "%1.0f", 1., 4., 1., 1.);
-    IUFillNumberVector(&AggressivityNP, AggressivityN, 1, getDeviceName(), "AGGRESSIVITY", "Aggressivity",
-                       OPTIONS_TAB, IP_RW, 0, IPS_IDLE);
+    IUFillNumberVector(&AggressivityNP, AggressivityN, 1, getDeviceName(), "AGGRESSIVITY", "Aggressivity", OPTIONS_TAB,
+                       IP_RW, 0, IPS_IDLE);
 
     // AutoMode
     IUFillSwitch(&AutoModeS[0], "MANUAL", "Manual", ISS_OFF);
     IUFillSwitch(&AutoModeS[1], "AUTO", "Automatic", ISS_ON);
-    IUFillSwitchVector(&AutoModeSP, AutoModeS, 2, getDeviceName(), "MODE", "Operating mode", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 0,
-                       IPS_IDLE);
+    IUFillSwitchVector(&AutoModeSP, AutoModeS, 2, getDeviceName(), "MODE", "Operating mode", MAIN_CONTROL_TAB, IP_RW,
+                       ISR_1OFMANY, 0, IPS_IDLE);
 
     // LinkOut23
     IUFillSwitch(&LinkOut23S[0], "INDEPENDENT", "Independent", ISS_ON);
     IUFillSwitch(&LinkOut23S[1], "LINK", "Link", ISS_OFF);
-    IUFillSwitchVector(&LinkOut23SP, LinkOut23S, 2, getDeviceName(), "LINK23", "Link ch 2&3", OPTIONS_TAB, IP_RW, ISR_1OFMANY, 0,
-                       IPS_IDLE);
+    IUFillSwitchVector(&LinkOut23SP, LinkOut23S, 2, getDeviceName(), "LINK23", "Link ch 2&3", OPTIONS_TAB, IP_RW,
+                       ISR_1OFMANY, 0, IPS_IDLE);
     // Reset
     IUFillSwitch(&ResetS[0], "Reset", "", ISS_OFF);
-    IUFillSwitchVector(&ResetSP, ResetS, 1, getDeviceName(), "Reset", "", OPTIONS_TAB, IP_RW, ISR_1OFMANY, 0,
-                       IPS_IDLE);
+    IUFillSwitchVector(&ResetSP, ResetS, 1, getDeviceName(), "Reset", "", OPTIONS_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
     // Firmware version
     IUFillNumber(&FWversionN[0], "FIRMWARE", "Firmware Version", "%4.0f", 0., 65535., 1., 0.);
@@ -206,7 +204,7 @@ bool USBDewpoint::Handshake()
                getDeviceName());
 
         FWversionN[0].value = 42;
-        FWversionNP.s = IPS_OK;
+        FWversionNP.s       = IPS_OK;
         return true;
     }
 
@@ -249,7 +247,7 @@ bool USBDewpoint::Handshake()
     }
 
     FWversionN[0].value = firmware;
-    FWversionNP.s = IPS_OK;
+    FWversionNP.s       = IPS_OK;
     return true;
 }
 
@@ -260,7 +258,7 @@ const char *USBDewpoint::getDefaultName()
 
 bool USBDewpoint::setOutput(unsigned int channel, unsigned int value)
 {
-    char cmd[UDP_CMD_LEN+1];
+    char cmd[UDP_CMD_LEN + 1];
     int nbytes_written = 0, nbytes_read = 0, rc = -1;
     char errstr[MAXRBUF];
     char resp[64];
@@ -291,7 +289,7 @@ bool USBDewpoint::setOutput(unsigned int channel, unsigned int value)
 
 bool USBDewpoint::setCalibrations(unsigned int ch1, unsigned int ch2, unsigned int ambient)
 {
-    char cmd[UDP_CMD_LEN+1];
+    char cmd[UDP_CMD_LEN + 1];
     int nbytes_written = 0, nbytes_read = 0, rc = -1;
     char errstr[MAXRBUF];
     char resp[64];
@@ -322,7 +320,7 @@ bool USBDewpoint::setCalibrations(unsigned int ch1, unsigned int ch2, unsigned i
 
 bool USBDewpoint::setThresholds(unsigned int ch1, unsigned int ch2)
 {
-    char cmd[UDP_CMD_LEN+1];
+    char cmd[UDP_CMD_LEN + 1];
     int nbytes_written = 0, nbytes_read = 0, rc = -1;
     char errstr[MAXRBUF];
     char resp[64];
@@ -353,7 +351,7 @@ bool USBDewpoint::setThresholds(unsigned int ch1, unsigned int ch2)
 
 bool USBDewpoint::setAggressivity(unsigned int aggressivity)
 {
-    char cmd[UDP_CMD_LEN+1];
+    char cmd[UDP_CMD_LEN + 1];
     int nbytes_written = 0, nbytes_read = 0, rc = -1;
     char errstr[MAXRBUF];
     char resp[64];
@@ -414,12 +412,12 @@ bool USBDewpoint::reset()
 
 bool USBDewpoint::setAutoMode(bool enable)
 {
-    char cmd[UDP_CMD_LEN+1];
+    char cmd[UDP_CMD_LEN + 1];
     int nbytes_written = 0, nbytes_read = 0, rc = -1;
     char errstr[MAXRBUF];
     char resp[64];
 
-    sprintf(cmd, UDP_AUTO_CMD, enable?1:0);
+    sprintf(cmd, UDP_AUTO_CMD, enable ? 1 : 0);
 
     tcflush(PortFD, TCIOFLUSH);
 
@@ -445,12 +443,12 @@ bool USBDewpoint::setAutoMode(bool enable)
 
 bool USBDewpoint::setLinkMode(bool enable)
 {
-    char cmd[UDP_CMD_LEN+1];
+    char cmd[UDP_CMD_LEN + 1];
     int nbytes_written = 0, nbytes_read = 0, rc = -1;
     char errstr[MAXRBUF];
     char resp[64];
 
-    sprintf(cmd, UDP_LINK_CMD, enable?1:0);
+    sprintf(cmd, UDP_LINK_CMD, enable ? 1 : 0);
 
     tcflush(PortFD, TCIOFLUSH);
 
@@ -482,7 +480,7 @@ bool USBDewpoint::ISNewSwitch(const char *dev, const char *name, ISState *states
         {
             IUUpdateSwitch(&AutoModeSP, states, names, n);
             int target_mode = IUFindOnSwitchIndex(&AutoModeSP);
-            AutoModeSP.s = IPS_BUSY;
+            AutoModeSP.s    = IPS_BUSY;
             IDSetSwitch(&AutoModeSP, nullptr);
             setAutoMode(target_mode == 1);
             return true;
@@ -491,7 +489,7 @@ bool USBDewpoint::ISNewSwitch(const char *dev, const char *name, ISState *states
         {
             IUUpdateSwitch(&LinkOut23SP, states, names, n);
             int target_mode = IUFindOnSwitchIndex(&LinkOut23SP);
-            LinkOut23SP.s = IPS_BUSY;
+            LinkOut23SP.s   = IPS_BUSY;
             IDSetSwitch(&LinkOut23SP, nullptr);
             setLinkMode(target_mode == 1);
             return true;
@@ -607,64 +605,59 @@ bool USBDewpoint::readSettings()
     unsigned int threshold1, threshold2;
     unsigned int automode, linkout23, aggressivity;
 
-    int ok = sscanf(resp, UDP_STATUS_RESPONSE,
-                    &temp1, &temp2, &temp_ambient,
-                    &humidity, &dewpoint,
-                    &output1, &output2, &output3,
-                    &calibration1, &calibration2, &calibration_ambient,
-                    &threshold1, &threshold2,
-                    &automode, &linkout23, &aggressivity);
+    int ok = sscanf(resp, UDP_STATUS_RESPONSE, &temp1, &temp2, &temp_ambient, &humidity, &dewpoint, &output1, &output2,
+                    &output3, &calibration1, &calibration2, &calibration_ambient, &threshold1, &threshold2, &automode,
+                    &linkout23, &aggressivity);
 
     if (ok == 16)
     {
         TemperaturesN[0].value = temp1;
         TemperaturesN[1].value = temp2;
         TemperaturesN[2].value = temp_ambient;
-        TemperaturesNP.s = IPS_OK;
+        TemperaturesNP.s       = IPS_OK;
         IDSetNumber(&TemperaturesNP, nullptr);
 
         HumidityN[0].value = humidity;
-        HumidityNP.s = IPS_OK;
+        HumidityNP.s       = IPS_OK;
         IDSetNumber(&HumidityNP, nullptr);
 
         DewpointN[0].value = dewpoint;
-        DewpointNP.s = IPS_OK;
+        DewpointNP.s       = IPS_OK;
         IDSetNumber(&DewpointNP, nullptr);
 
         OutputsN[0].value = output1;
         OutputsN[1].value = output2;
         OutputsN[2].value = output3;
-        OutputsNP.s = IPS_OK;
+        OutputsNP.s       = IPS_OK;
         IDSetNumber(&OutputsNP, nullptr);
 
         CalibrationsN[0].value = calibration1;
         CalibrationsN[1].value = calibration2;
         CalibrationsN[2].value = calibration_ambient;
-        CalibrationsNP.s = IPS_OK;
+        CalibrationsNP.s       = IPS_OK;
         IDSetNumber(&CalibrationsNP, nullptr);
 
         ThresholdsN[0].value = threshold1;
         ThresholdsN[1].value = threshold2;
-        ThresholdsNP.s = IPS_OK;
+        ThresholdsNP.s       = IPS_OK;
         IDSetNumber(&ThresholdsNP, nullptr);
 
         IUResetSwitch(&AutoModeSP);
         AutoModeS[automode].s = ISS_ON;
-        AutoModeSP.s = IPS_OK;
+        AutoModeSP.s          = IPS_OK;
         IDSetSwitch(&AutoModeSP, nullptr);
 
         IUResetSwitch(&LinkOut23SP);
         LinkOut23S[linkout23].s = ISS_ON;
-        LinkOut23SP.s = IPS_OK;
+        LinkOut23SP.s           = IPS_OK;
         IDSetSwitch(&LinkOut23SP, nullptr);
 
         AggressivityN[0].value = aggressivity;
-        AggressivityNP.s = IPS_OK;
+        AggressivityNP.s       = IPS_OK;
         IDSetNumber(&AggressivityNP, nullptr);
     }
     return true;
 }
-
 
 void USBDewpoint::TimerHit()
 {

@@ -27,12 +27,12 @@
 // All commands are exactly 6 bytes, no start/end markers
 #define UDP_CMD_LEN 6
 #define UDP_STATUS_CMD "SGETAL"
-#define UDP_OUTPUT_CMD "S%1uO%03u" // channel 1-3, power 0-100
-#define UDP_THRESHOLD_CMD "STHR%1u%1u" // channel 1-2, value 0-9
+#define UDP_OUTPUT_CMD "S%1uO%03u"         // channel 1-3, power 0-100
+#define UDP_THRESHOLD_CMD "STHR%1u%1u"     // channel 1-2, value 0-9
 #define UDP_CALIBRATION_CMD "SCA%1u%1u%1u" // channel 1-2-A, value 0-9
-#define UDP_LINK_CMD "SLINK%1u" // 0 or 1 to link channels 2 and 3
-#define UDP_AUTO_CMD "SAUTO%1u" // 0 or 1 to enable auto mode
-#define UDP_AGGRESSIVITY_CMD "SAGGR%1u" // 1-4 (1, 2, 5, 10)
+#define UDP_LINK_CMD "SLINK%1u"            // 0 or 1 to link channels 2 and 3
+#define UDP_AUTO_CMD "SAUTO%1u"            // 0 or 1 to enable auto mode
+#define UDP_AGGRESSIVITY_CMD "SAGGR%1u"    // 1-4 (1, 2, 5, 10)
 #define UDP_IDENTIFY_CMD "SWHOIS"
 #define UDP_RESET_CMD "SEERAZ"
 
@@ -67,8 +67,6 @@
 #define UDP_STATUS_END "**"
 
 #define UDP_IDENTIFY_RESPONSE "UDP2(%u)" // Firmware version? Mine is "UDP2(1446)"
-
-
 
 /******************************************************************************/
 
@@ -106,8 +104,8 @@ class USBDewpoint : public INDI::DefaultDevice
 
     bool Ack();
 
-    Connection::Serial *serialConnection { nullptr };
-    int PortFD { -1 };
+    Connection::Serial *serialConnection{ nullptr };
+    int PortFD{ -1 };
 
     INumber OutputsN[3];
     INumberVectorProperty OutputsNP;
