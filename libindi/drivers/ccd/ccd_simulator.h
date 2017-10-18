@@ -24,6 +24,7 @@
 class CCDSim : public INDI::CCD, public INDI::FilterInterface
 {
   public:
+
     CCDSim();
     virtual ~CCDSim() = default;
 
@@ -33,6 +34,18 @@ class CCDSim : public INDI::CCD, public INDI::FilterInterface
     bool updateProperties();
 
     void ISGetProperties(const char *dev);
+
+    virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n);
+    virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n);
+    virtual bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n);
+    virtual bool ISSnoopDevice(XMLEle *root);
+
+#if !defined(__APPLE__) && !defined(__CYGWIN__)
+    static void *streamVideoHelper(void *context);
+    void *streamVideo();
+#endif
+
+protected:
 
     bool Connect();
     bool Disconnect();
@@ -55,17 +68,19 @@ class CCDSim : public INDI::CCD, public INDI::FilterInterface
     IPState GuideEast(float);
     IPState GuideWest(float);
 
-    virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n);
-    virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n);
-    virtual bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n);
-    virtual bool ISSnoopDevice(XMLEle *root);
-
-  protected:
     virtual bool saveConfigItems(FILE *fp);
     virtual void activeDevicesUpdated();
     virtual int SetTemperature(double temperature);
+    virtual bool UpdateCCDFrame(int x, int y, int w, int h);
+
+    // Streaming
+    #if !defined(__APPLE__) && !defined(__CYGWIN__)
+    virtual bool StartStreaming() override;
+    virtual bool StopStreaming() override;
+    #endif
 
   private:
+
     float CalcTimeLeft(timeval, float);
     bool SetupParms();
 
@@ -120,6 +135,12 @@ class CCDSim : public INDI::CCD, public INDI::FilterInterface
     float polarError { 0 };
     float polarDrift { 0 };
 
+    int streamPredicate;
+#if !defined(__APPLE__) && !defined(__CYGWIN__)
+    pthread_t primary_thread;
+#endif
+    bool terminateThread;
+
     //  And this lives in our simulator settings page
 
     INumberVectorProperty *SimulatorSettingsNV;
@@ -131,10 +152,6 @@ class CCDSim : public INDI::CCD, public INDI::FilterInterface
     //  We are going to snoop these from focuser
     INumberVectorProperty FWHMNP;
     INumber FWHMN[1];
-
-    // We are going to snoop these from telescope
-    //INumber ScopeParametersN[4];
-    //INumberVectorProperty ScopeParametersNP;
 
     INumberVectorProperty EqPENP;
     INumber EqPEN[2];

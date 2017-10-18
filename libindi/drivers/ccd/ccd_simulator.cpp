@@ -23,7 +23,17 @@
 #include <libnova/julian_day.h>
 #include <libnova/precession.h>
 
+#if !defined(__APPLE__) && !defined(__CYGWIN__)
+#include "libs/webcam/v4l2_record/stream_recorder.h"
+#endif
+
 #include <cmath>
+#include <unistd.h>
+
+pthread_cond_t cv         = PTHREAD_COND_INITIALIZER;
+pthread_mutex_t condMutex = PTHREAD_MUTEX_INITIALIZER;
+
+#define POLLMS  1000
 
 // We declare an auto pointer to ccdsim.
 std::unique_ptr<CCDSim> ccdsim(new CCDSim());
@@ -68,21 +78,12 @@ void ISSnoopDevice(XMLEle *root)
 }
 
 CCDSim::CCDSim() : INDI::FilterInterface(this)
-{
-    uint32_t cap = 0;
-
-    cap |= CCD_CAN_ABORT;
-    cap |= CCD_CAN_BIN;
-    cap |= CCD_CAN_SUBFRAME;
-    cap |= CCD_HAS_COOLER;
-    cap |= CCD_HAS_GUIDE_HEAD;
-    cap |= CCD_HAS_SHUTTER;
-    cap |= CCD_HAS_ST4_PORT;
-
-    SetCCDCapability(cap);
-
+{    
     raPE  = RA;
     decPE = Dec;
+
+    streamPredicate = 0;
+    terminateThread = false;
 
     primaryFocalLength = 900; //  focal length of the telescope in millimeters
     guiderFocalLength  = 300;
@@ -123,14 +124,32 @@ bool CCDSim::SetupParms()
 
     nbuf = PrimaryCCD.getXRes() * PrimaryCCD.getYRes() * PrimaryCCD.getBPP() / 8;
     nbuf += 512;
-    PrimaryCCD.setFrameBufferSize(nbuf);    
+    PrimaryCCD.setFrameBufferSize(nbuf);
+
+#if !defined(__APPLE__) && !defined(__CYGWIN__)
+    Streamer->setPixelFormat(V4L2_PIX_FMT_GREY);
+    Streamer->setRecorderSize(PrimaryCCD.getXRes(), PrimaryCCD.getYRes());
+#endif
 
     return true;
 }
 
 bool CCDSim::Connect()
 {
-    SetTimer(1000); //  start the timer
+#if !defined(__APPLE__) && !defined(__CYGWIN__)
+    pthread_create(&primary_thread, nullptr, &streamVideoHelper, this);
+#endif
+    return true;
+}
+
+bool CCDSim::Disconnect()
+{
+    pthread_mutex_lock(&condMutex);
+    streamPredicate = 1;
+    terminateThread = true;
+    pthread_cond_signal(&cv);
+    pthread_mutex_unlock(&condMutex);
+
     return true;
 }
 
@@ -185,6 +204,21 @@ bool CCDSim::initProperties()
     IDSnoopDevice(ActiveDeviceT[0].text, "EQUATORIAL_PE");
     IDSnoopDevice(ActiveDeviceT[1].text, "FWHM");
 
+    uint32_t cap = 0;
+
+    cap |= CCD_CAN_ABORT;
+    cap |= CCD_CAN_BIN;
+    cap |= CCD_CAN_SUBFRAME;
+    cap |= CCD_HAS_COOLER;
+    cap |= CCD_HAS_GUIDE_HEAD;
+    cap |= CCD_HAS_SHUTTER;
+    cap |= CCD_HAS_ST4_PORT;
+#if !defined(__APPLE__) && !defined(__CYGWIN__)
+    cap |= CCD_HAS_STREAMING;
+#endif
+
+    SetCCDCapability(cap);
+
     INDI::FilterInterface::initProperties(FILTER_TAB);
 
     FilterSlotN[0].min = 1;
@@ -227,6 +261,9 @@ bool CCDSim::updateProperties()
 
         // Define the Filter Slot and name properties
         INDI::FilterInterface::updateProperties();
+
+        updatePeriodMS = POLLMS;
+        SetTimer(updatePeriodMS);
     }
     else
     {
@@ -236,11 +273,6 @@ bool CCDSim::updateProperties()
         INDI::FilterInterface::updateProperties();
     }
 
-    return true;
-}
-
-bool CCDSim::Disconnect()
-{
     return true;
 }
 
@@ -330,7 +362,7 @@ float CCDSim::CalcTimeLeft(timeval start, float req)
 
 void CCDSim::TimerHit()
 {
-    int nexttimer = 1000;
+    uint32_t nextTimer = updatePeriodMS;
 
     if (!isConnected())
         return; //  No need to reset timer if we are not connected anymore
@@ -358,11 +390,12 @@ void CCDSim::TimerHit()
                 if (timeleft <= 0.001)
                 {
                     InExposure = false;
+                    PrimaryCCD.binFrame();
                     ExposureComplete(&PrimaryCCD);
                 }
                 else
                 {
-                    nexttimer = timeleft * 1000; //  set a shorter timer
+                    nextTimer = timeleft * 1000; //  set a shorter timer
                 }
             }
         }
@@ -389,7 +422,7 @@ void CCDSim::TimerHit()
                 InGuideExposure = false;
                 if (!AbortGuideFrame)
                 {
-                    //IDLog("Sending guider frame\n");
+                    GuideCCD.binFrame();
                     ExposureComplete(&GuideCCD);
                     if (InGuideExposure)
                     {
@@ -397,7 +430,7 @@ void CCDSim::TimerHit()
                         timeleft = CalcTimeLeft(GuideExpStart, GuideExposureRequest);
                         if (timeleft < 1.0)
                         {
-                            nexttimer = timeleft * 1000;
+                            nextTimer = timeleft * 1000;
                         }
                     }
                 }
@@ -409,7 +442,7 @@ void CCDSim::TimerHit()
             }
             else
             {
-                nexttimer = timeleft * 1000; //  set a shorter timer
+                nextTimer = timeleft * 1000; //  set a shorter timer
             }
         }
     }
@@ -442,19 +475,17 @@ void CCDSim::TimerHit()
         }
     }
 
-    SetTimer(nexttimer);
+    SetTimer(nextTimer);
 }
 
 int CCDSim::DrawCcdFrame(CCDChip *targetChip)
 {
-    //  Ok, lets just put a silly pattern into this
-    //  CCd frame is 16 bit data
-    unsigned short int *ptr;
-    unsigned short int val;
+    //  CCD frame is 16 bit data
+    uint16_t val;
     float ExposureTime;
     float targetFocalLength;
 
-    ptr = (unsigned short int *)targetChip->getFrameBuffer();
+    uint16_t *ptr = reinterpret_cast<uint16_t*>(targetChip->getFrameBuffer());
 
     if (targetChip->getXRes() == 500)
         ExposureTime = GuideExposureRequest;
@@ -740,7 +771,7 @@ int CCDSim::DrawCcdFrame(CCDChip *targetChip)
 
             unsigned short *pt;
 
-            pt = (unsigned short int *)targetChip->getFrameBuffer();
+            pt = (uint16_t *)targetChip->getFrameBuffer();
 
             nheight = targetChip->getSubH();
             nwidth  = targetChip->getSubW();
@@ -824,9 +855,7 @@ int CCDSim::DrawCcdFrame(CCDChip *targetChip)
             *ptr = val++;
             ptr++;
         }
-    }
-
-    targetChip->binFrame();
+    }    
 
     return 0;
 }
@@ -927,7 +956,7 @@ int CCDSim::AddToPixel(CCDChip *targetChip, int x, int y, int val)
                     int newval;
                     drew++;
 
-                    pt = (unsigned short int *)targetChip->getFrameBuffer();
+                    pt = (uint16_t *)targetChip->getFrameBuffer();
 
                     pt += (y * nwidth);
                     pt += x;
@@ -1171,3 +1200,99 @@ int CCDSim::QueryFilter()
 {
     return CurrentFilter;
 }
+
+#if !defined(__APPLE__) && !defined(__CYGWIN__)
+bool CCDSim::StartStreaming()
+{
+    pthread_mutex_lock(&condMutex);
+    streamPredicate = 1;
+    pthread_mutex_unlock(&condMutex);
+    pthread_cond_signal(&cv);
+
+    return true;
+}
+#endif
+
+#if !defined(__APPLE__) && !defined(__CYGWIN__)
+bool CCDSim::StopStreaming()
+{
+    pthread_mutex_lock(&condMutex);
+    streamPredicate = 0;
+    pthread_mutex_unlock(&condMutex);
+    pthread_cond_signal(&cv);
+
+    return true;
+}
+#endif
+
+bool CCDSim::UpdateCCDFrame(int x, int y, int w, int h)
+{
+#if !defined(__APPLE__) && !defined(__CYGWIN__)
+    long bin_width  = w / PrimaryCCD.getBinX();
+    long bin_height = h / PrimaryCCD.getBinY();
+
+    bin_width  = bin_width - (bin_width % 8);
+    bin_height = bin_height - (bin_height % 2);
+    Streamer->setRecorderSize(bin_width, bin_height);
+#endif
+
+    return INDI::CCD::UpdateCCDFrame(x,y,w,h);
+}
+
+#if !defined(__APPLE__) && !defined(__CYGWIN__)
+void *CCDSim::streamVideoHelper(void *context)
+{
+    return ((CCDSim *)context)->streamVideo();
+}
+
+void *CCDSim::streamVideo()
+{
+    uint8_t *streamBuffer = nullptr;
+    uint32_t streamBufferSize = 0;
+
+    while (true)
+    {
+        pthread_mutex_lock(&condMutex);
+
+        while (streamPredicate == 0)
+        {
+            pthread_cond_wait(&cv, &condMutex);
+            delete [] streamBuffer;
+            streamBufferSize = PrimaryCCD.getSubW()*PrimaryCCD.getSubH();
+            streamBuffer = new uint8_t[streamBufferSize];
+        }
+
+        if (terminateThread)
+            break;
+
+        // release condMutex
+        pthread_mutex_unlock(&condMutex);
+
+        // Simulate exposure time
+        usleep(ExposureRequest*1e6);
+
+        // 16 bit
+        DrawCcdFrame(&PrimaryCCD);
+
+        uint8_t *ccdBuffer = PrimaryCCD.getFrameBuffer();
+        uint8_t ccdBufferSize = PrimaryCCD.getFrameBufferSize();
+        uint16_t *simBuffer = reinterpret_cast<uint16_t*>(ccdBuffer);
+
+        // Downscale to 8bit
+        for (uint32_t i=0; i < streamBufferSize; i++)
+            streamBuffer[i] = simBuffer[i];
+
+        PrimaryCCD.setFrameBuffer(streamBuffer);
+        PrimaryCCD.setFrameBufferSize(streamBufferSize, false);
+
+        Streamer->newFrame();
+
+        PrimaryCCD.setFrameBuffer(ccdBuffer);
+        PrimaryCCD.setFrameBufferSize(ccdBufferSize, false);
+    }
+
+    delete [] streamBuffer;
+    pthread_mutex_unlock(&condMutex);
+    return 0;
+}
+#endif
