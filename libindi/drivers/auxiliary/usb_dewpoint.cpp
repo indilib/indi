@@ -110,44 +110,50 @@ bool USBDewpoint::initProperties()
     IUFillNumberVector(&DewpointNP, DewpointN, 1, getDeviceName(), "DEWPOINT", "Dew point", MAIN_CONTROL_TAB, IP_RO, 0,
                        IPS_IDLE);
 
+    /* Temperature calibration values */
     IUFillNumber(&CalibrationsN[0], "CHANNEL1", "Channel 1", "%1.0f", 0., 9., 1., 0.);
     IUFillNumber(&CalibrationsN[1], "CHANNEL2", "Channel 2", "%1.0f", 0., 9., 1., 0.);
     IUFillNumber(&CalibrationsN[2], "AMBIENT", "Ambient", "%1.0f", 0., 9., 1., 0.);
     IUFillNumberVector(&CalibrationsNP, CalibrationsN, 3, getDeviceName(), "CALIBRATIONS", "Calibrations", OPTIONS_TAB,
                        IP_RW, 0, IPS_IDLE);
 
+    /* Temperature threshold values */
     IUFillNumber(&ThresholdsN[0], "CHANNEL1", "Channel 1", "%1.0f", 0., 9., 1., 0.);
     IUFillNumber(&ThresholdsN[1], "CHANNEL2", "Channel 2", "%1.0f", 0., 9., 1., 0.);
     IUFillNumberVector(&ThresholdsNP, ThresholdsN, 2, getDeviceName(), "THRESHOLDS", "Thresholds", OPTIONS_TAB, IP_RW,
                        0, IPS_IDLE);
 
+    /* Heating aggressivity */
     IUFillNumber(&AggressivityN[0], "AGGRESSIVITY", "Aggressivity", "%1.0f", 1., 4., 1., 1.);
     IUFillNumberVector(&AggressivityNP, AggressivityN, 1, getDeviceName(), "AGGRESSIVITY", "Aggressivity", OPTIONS_TAB,
                        IP_RW, 0, IPS_IDLE);
 
-    // AutoMode
+    /*  Automatic mode enable */
     IUFillSwitch(&AutoModeS[0], "MANUAL", "Manual", ISS_OFF);
     IUFillSwitch(&AutoModeS[1], "AUTO", "Automatic", ISS_ON);
     IUFillSwitchVector(&AutoModeSP, AutoModeS, 2, getDeviceName(), "MODE", "Operating mode", MAIN_CONTROL_TAB, IP_RW,
                        ISR_1OFMANY, 0, IPS_IDLE);
 
-    // LinkOut23
+    /* Link channel 2 & 3 */
     IUFillSwitch(&LinkOut23S[0], "INDEPENDENT", "Independent", ISS_ON);
     IUFillSwitch(&LinkOut23S[1], "LINK", "Link", ISS_OFF);
     IUFillSwitchVector(&LinkOut23SP, LinkOut23S, 2, getDeviceName(), "LINK23", "Link ch 2&3", OPTIONS_TAB, IP_RW,
                        ISR_1OFMANY, 0, IPS_IDLE);
-    // Reset
+    /* Reset settings */
     IUFillSwitch(&ResetS[0], "Reset", "", ISS_OFF);
     IUFillSwitchVector(&ResetSP, ResetS, 1, getDeviceName(), "Reset", "", OPTIONS_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
-    // Firmware version
+    /* Firmware version */
     IUFillNumber(&FWversionN[0], "FIRMWARE", "Firmware Version", "%4.0f", 0., 65535., 1., 0.);
     IUFillNumberVector(&FWversionNP, FWversionN, 1, getDeviceName(), "FW_VERSION", "Firmware", OPTIONS_TAB, IP_RO, 0,
                        IPS_IDLE);
 
     setDriverInterface(AUX_INTERFACE);
 
-    addAuxControls();
+    addDebugControl();
+    addConfigurationControl();
+    // No simulation control for now
+
     serialConnection = new Connection::Serial(this);
     serialConnection->registerHandshake([&]() { return Handshake(); });
     registerConnection(serialConnection);
@@ -198,16 +204,6 @@ bool USBDewpoint::updateProperties()
 
 bool USBDewpoint::Handshake()
 {
-    if (isSimulation())
-    {
-        DEBUGF(INDI::Logger::DBG_SESSION, "Connected successfully to simulated %s. Retrieving startup data...",
-               getDeviceName());
-
-        FWversionN[0].value = 42;
-        FWversionNP.s       = IPS_OK;
-        return true;
-    }
-
     PortFD = serialConnection->getPortFD();
     DEBUG(INDI::Logger::DBG_SESSION, "USB_Dewpoint is online. Getting device parameters...");
 

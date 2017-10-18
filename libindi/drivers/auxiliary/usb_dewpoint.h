@@ -43,22 +43,23 @@
 
 // Status response is like:
 // ##22.37/22.62/23.35/50.77/12.55/0/0/0/0/0/0/2/2/0/0/4**
-// Fields in order:
-// temperature 1
-// temperature 2
+
+// Fields are in order:
+// temperature ch 1
+// temperature ch 2
 // temperature ambient
 // relative humidity
 // dew point
-// output 1
-// output 2
-// output 3
-// calibration 1
-// calibration 2
+// output ch 1
+// output ch 2
+// output ch 3
+// calibration ch 1
+// calibration ch 2
 // calibration ambient
-// threshold 1
-// threshold 2
+// threshold ch 1
+// threshold ch 2
 // auto mode
-// outputs linked
+// outputs ch 2 & 3 linked
 // aggressivity
 
 #define UDP_STATUS_RESPONSE "##%f/%f/%f/%f/%f/%u/%u/%u/%u/%u/%u/%u/%u/%u/%u/%u**"
@@ -90,7 +91,6 @@ class USBDewpoint : public INDI::DefaultDevice
 
   private:
     bool Handshake();
-    bool oneMoreRead(char *response, unsigned int maxlen);
 
     bool reset();
     bool readSettings();
@@ -101,8 +101,6 @@ class USBDewpoint : public INDI::DefaultDevice
     bool setAutoMode(bool enable);
     bool setLinkMode(bool enable);
     bool setAggressivity(unsigned int aggressivity);
-
-    bool Ack();
 
     Connection::Serial *serialConnection{ nullptr };
     int PortFD{ -1 };
