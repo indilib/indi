@@ -885,7 +885,7 @@ int CCDSim::DrawImageStar(CCDChip *targetChip, float mag, float x, float y)
     if (targetChip->getXRes() == 500)
         ExposureTime = GuideExposureRequest * 4;
     else
-        ExposureTime = ExposureRequest;
+        ExposureTime = (streamPredicate == 1) ? ExposureRequest * 20 : ExposureRequest;
 
     //  calculate flux from our zero point and gain values
     flux = pow(10, ((mag - z) * k / -2.5));
@@ -1271,16 +1271,16 @@ void *CCDSim::streamVideo()
         // Simulate exposure time
         usleep(ExposureRequest*1e6);
 
+        uint8_t *ccdBuffer = PrimaryCCD.getFrameBuffer();
+        uint32_t ccdBufferSize = PrimaryCCD.getFrameBufferSize();
+        uint16_t *simBuffer = reinterpret_cast<uint16_t*>(ccdBuffer);
+
         // 16 bit
         DrawCcdFrame(&PrimaryCCD);
 
-        uint8_t *ccdBuffer = PrimaryCCD.getFrameBuffer();
-        uint8_t ccdBufferSize = PrimaryCCD.getFrameBufferSize();
-        uint16_t *simBuffer = reinterpret_cast<uint16_t*>(ccdBuffer);
-
         // Downscale to 8bit
         for (uint32_t i=0; i < streamBufferSize; i++)
-            streamBuffer[i] = simBuffer[i];
+            streamBuffer[i] = std::max(0, std::min(static_cast<int>(simBuffer[i]), UINT8_MAX));
 
         PrimaryCCD.setFrameBuffer(streamBuffer);
         PrimaryCCD.setFrameBufferSize(streamBufferSize, false);
