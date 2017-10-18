@@ -644,6 +644,15 @@ add_executable(indi_moonlite_focus ${moonlite_SRC})
 target_link_libraries(indi_moonlite_focus indidriver)
 install(TARGETS indi_moonlite_focus RUNTIME DESTINATION bin)
 
+
+################ Sesto Senso Focuser ################
+SET(sesto_SRC
+    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/focuser/sestosenso.cpp)
+
+add_executable(indi_sestosenso_focus ${sesto_SRC})
+target_link_libraries(indi_sestosenso_focus indidriver)
+install(TARGETS indi_sestosenso_focus RUNTIME DESTINATION bin)
+
 ################ Pegasus DMFC Focuser ################
 SET(pegasus_SRC
     ${CMAKE_CURRENT_SOURCE_DIR}/drivers/focuser/dmfc.cpp)
@@ -1030,6 +1039,15 @@ SET(weathermeta_SRC
 add_executable(indi_meta_weather ${weathermeta_SRC})
 target_link_libraries(indi_meta_weather indidriver)
 install(TARGETS indi_meta_weather RUNTIME DESTINATION bin )
+
+########### MBox Driver ###############
+
+SET(mbox_SRC
+    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/weather/mbox.cpp)
+
+add_executable(indi_mbox_weather ${mbox_SRC})
+target_link_libraries(indi_mbox_weather indidriver)
+install(TARGETS indi_mbox_weather RUNTIME DESTINATION bin)
 
 ########### Vantage Driver ###############
 

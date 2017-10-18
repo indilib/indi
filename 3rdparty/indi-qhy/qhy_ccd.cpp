@@ -1218,32 +1218,6 @@ bool QHYCCD::SelectFilter(int position)
     return false;
 }
 
-bool QHYCCD::GetFilterNames(const char *groupName)
-{
-    char filterName[MAXINDINAME];
-    char filterLabel[MAXINDILABEL];
-    char filterBand[MAXINDILABEL];
-    int MaxFilter = FilterSlotN[0].max;
-
-    if (FilterNameT != NULL)
-        delete [] FilterNameT;
-
-    FilterNameT = new IText[MaxFilter];
-
-    for (int i = 0; i < MaxFilter; i++)
-    {
-        snprintf(filterName, MAXINDINAME, "FILTER_SLOT_NAME_%d", i + 1);
-        snprintf(filterLabel, MAXINDILABEL, "Filter#%d", i + 1);
-        snprintf(filterBand, MAXINDILABEL, "Filter #%d", i + 1);
-        IUFillText(&FilterNameT[i], filterName, filterLabel, filterBand);
-    }
-
-    IUFillTextVector(FilterNameTP, FilterNameT, MaxFilter, getDeviceName(), "FILTER_NAME", "Filter", groupName, IP_RW,
-                     0, IPS_IDLE);
-
-    return true;
-}
-
 int QHYCCD::QueryFilter()
 {
     return CurrentFilter;

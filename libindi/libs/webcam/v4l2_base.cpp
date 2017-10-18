@@ -202,6 +202,7 @@ bool V4L2_Base::is_compressed() const
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 17, 0))
     switch (fmt.fmt.pix.pixelformat)
     {
+        case V4L2_PIX_FMT_JPEG:
         case V4L2_PIX_FMT_MJPEG:
             DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG, "%s: format %c%c%c%c patched to be considered compressed",
                          __FUNCTION__, fmt.fmt.pix.pixelformat, fmt.fmt.pix.pixelformat >> 8,
