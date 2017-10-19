@@ -45,6 +45,8 @@ class LX200_10MICRON : public LX200Generic
     LX200_10MICRON();
     ~LX200_10MICRON() {}
 
+    virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n);
+
     virtual const char *getDefaultName() override;
     virtual bool Handshake() override;
     virtual bool initProperties() override;
@@ -64,9 +66,14 @@ class LX200_10MICRON : public LX200Generic
     IText ProductT[4];
     ITextVectorProperty ProductTP;
 
+    virtual int SetRefractionModelTemperature(double temperature);
+    INumber RefractionModelTemperatureN[1];
+    INumberVectorProperty RefractionModelTemperatureNP;
+
   private:
     int fd = -1; // short notation for PortFD/sockfd
     bool getMountInfo();
 
     int OldGstat = -1;
+
 };

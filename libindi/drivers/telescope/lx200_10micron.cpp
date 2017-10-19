@@ -27,6 +27,7 @@
 
 #include <cstring>
 #include <termios.h>
+#include <math.h>
 
 #define PRODUCT_TAB   "Product"
 #define LX200_TIMEOUT 5 /* FD timeout in seconds */
@@ -72,6 +73,10 @@ bool LX200_10MICRON::initProperties()
 
     // TODO initialize properties additional to INDI::Telescope
 
+    IUFillNumber(&RefractionModelTemperatureN[0], "TEMPERATURE", "Celsius", "%+6.1f", 0, 60, 0, 0.);
+    IUFillNumberVector(&RefractionModelTemperatureNP, RefractionModelTemperatureN, 1, getDeviceName(),
+        "REFRACTION_MODEL_TEMPERATURE", "Refraction model temperature", MAIN_CONTROL_TAB, IP_RW, 60, IPS_IDLE);
+
     return result;
 }
 
@@ -103,12 +108,16 @@ bool LX200_10MICRON::updateProperties()
 
     if (isConnected())
     {
+        defineNumber(&RefractionModelTemperatureNP);
+
         getBasicData();
     }
     else
     {
         // delete properties from getBasicData
         deleteProperty(ProductTP.name);
+
+        deleteProperty(RefractionModelTemperatureNP.name);
 
         // TODO delete new'ed stuff from getBasicData
     }
@@ -250,6 +259,14 @@ void LX200_10MICRON::getBasicData()
         else
             IDSetNumber(&TrackingFreqNP, nullptr);
 
+        char RefractionModelTemperature[80];
+        getCommandString(PortFD, RefractionModelTemperature, "#:GRTMP#");
+        float rmtemp;
+        sscanf(RefractionModelTemperature, "%f#", &rmtemp);
+        RefractionModelTemperatureN[0].value = (double) rmtemp;
+        DEBUGF(INDI::Logger::DBG_SESSION, "RefractionModelTemperature set to %0+6.1f degrees C", RefractionModelTemperatureN[0].value);
+        IDSetNumber(&RefractionModelTemperatureNP, nullptr);
+
         getMountInfo();
     }
     sendScopeLocation();
@@ -284,6 +301,7 @@ bool LX200_10MICRON::getMountInfo()
                      IPS_IDLE);
 
     defineText(&ProductTP);
+
     return true;
 }
 
@@ -326,9 +344,41 @@ bool LX200_10MICRON::UnPark()
 bool LX200_10MICRON::SyncConfigBehaviour(bool cmcfg)
 {
     DEBUG(INDI::Logger::DBG_SESSION, "SyncConfig.");
-    if (setCommandInt(fd, cmcfg, "#:CMCFG") < 0) {
+    if (setCommandInt(fd, cmcfg, "#:CMCFG") < 0)
+    {
         return false;
     }
     return true;
 }
 
+int LX200_10MICRON::SetRefractionModelTemperature(double temperature)
+{
+    char data[16];
+    snprintf(data, 16, "#:SRTMP%0+6.1f#", temperature);
+    return setStandardProcedure(fd, data);
+}
+
+bool LX200_10MICRON::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
+{
+    if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
+    {
+        if (strcmp(name, "REFRACTION_MODEL_TEMPERATURE") == 0)
+        {
+            IUUpdateNumber(&RefractionModelTemperatureNP, values, names, n);
+            if (0 != SetRefractionModelTemperature(RefractionModelTemperatureN[0].value))
+            {
+                DEBUG(INDI::Logger::DBG_ERROR, "SetRefractionModelTemperature error");
+                RefractionModelTemperatureNP.s = IPS_ALERT;
+                IDSetNumber(&RefractionModelTemperatureNP, nullptr);
+                return false;
+            }
+            RefractionModelTemperatureNP.s = IPS_OK;
+            IDSetNumber(&RefractionModelTemperatureNP, nullptr);
+            DEBUGF(INDI::Logger::DBG_SESSION, "RefractionModelTemperature set to %0+6.1f degrees C", RefractionModelTemperatureN[0].value);
+            return true;
+        }
+    }
+
+    // Let INDI::LX200Generic handle any other number properties
+    return LX200Generic::ISNewNumber(dev, name, values, names, n);
+}
