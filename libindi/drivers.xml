@@ -1,43 +1,43 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <driversList>
 <devGroup group="Telescopes">
-	<device label="LX200 Basic" focal_length="" aperture="">
+        <device label="LX200 Basic">
 		<driver name="LX200 Basic">indi_lx200basic</driver>
                 <version>2.0</version>
 	</device>
-        <device label="LX200 GPS" focal_length="" aperture="">
+        <device label="LX200 GPS">
                 <driver name="LX200 GPS">indi_lx200gps</driver>
                 <version>2.0</version>
         </device>
-	<device label="LX200 Autostar" focal_length="" aperture="">
+        <device label="LX200 Autostar">
 		<driver name="LX200 Autostar">indi_lx200autostar</driver>
 		<version>2.0</version>
 	</device>
-	<device label="LX200 Classic" focal_length="" aperture="">
+        <device label="LX200 Classic">
 		<driver name="LX200 Classic">indi_lx200classic</driver>
                 <version>2.0</version>
 	</device>
-        <device label="LX200 OnStep" focal_length="" aperture="">
+        <device label="LX200 OnStep">
                 <driver name="LX200 OnStep">indi_lx200_OnStep</driver>
                 <version>0.0</version>
         </device>	
-	<device label="LX200 16" focal_length="4064" aperture="406.4">
+        <device label="LX200 16">
 		<driver name="LX200 16">indi_lx200_16</driver>
 		<version>2.0</version>
 	</device>
-	<device label="LX90" focal_length="2000" aperture="203.2">
+        <device label="LX90">
                 <driver name="LX200 GPS">indi_lx200gps</driver>
 		<version>2.0</version>
 	</device>
-	<device label="ETX125" focal_length="1900" aperture="127">
+        <device label="ETX125">
                 <driver name="LX200 GPS">indi_lx200gps</driver>
 		<version>2.0</version>
 	</device>
-	<device label="ETX105" focal_length="1470" aperture="105">
+        <device label="ETX105">
                 <driver name="LX200 GPS">indi_lx200gps</driver>
 		<version>2.0</version>
 	</device>
-	<device label="ETX90"  focal_length="1250" aperture="88.9">
+        <device label="ETX90">
                 <driver name="LX200 GPS">indi_lx200gps</driver>
 		<version>2.0</version>
 	</device>
@@ -45,115 +45,123 @@
 		<driver name="AstroPhysics">indi_lx200ap</driver>
 		<version>1.0</version>
 	</device>
-	<device label="Celestron GPS" focal_length="" aperture="">
+        <device label="AstroPhysics">
+                <driver name="AstroPhysics">indi_lx200ap</driver>
+                <version>1.0</version>
+        </device>
+        <device label="Celestron GPS">
 		<driver name="Celestron GPS">indi_celestron_gps</driver>
                 <version>3.0</version>
 	</device>
-	<device label="Celestron NexStar" focal_length="" aperture="">
+        <device label="Celestron NexStar">
 		<driver name="Celestron GPS">indi_celestron_gps</driver>
                 <version>3.0</version>
 	</device>
-	<device label="Astro-Electronic FS-2" focal_length="" aperture="">
+        <device label="Astro-Electronic FS-2">
                 <driver name="Astro-Electronic FS-2">indi_lx200fs2</driver>
                 <version>2.0</version>
 	</device>
-        <device label="Avalon" focal_length="" aperture="">
+        <device label="Avalon">
                 <driver name="LX200 Basic">indi_lx200basic</driver>
                 <version>2.0</version>
         </device>
-        <device label="Paramount" focal_length="" aperture="">
+        <device label="Paramount">
                 <driver name="Paramount">indi_paramount_telescope</driver>
                 <version>0.1</version>
         </device>
-	<device label="Orion Atlas" focal_length="" aperture="">
+        <device label="Orion Atlas">
                 <driver name="SynScan">indi_synscan_telescope</driver>
                 <version>1.0</version>
 	</device>
-	<device label="Sky Scan" focal_length="" aperture="">
+        <device label="Sky Scan">
                 <driver name="SynScan">indi_synscan_telescope</driver>
 		<version>0.1</version>
 	</device>
-        <device label="Losmandy Gemini" focal_length="" aperture="">
+        <device label="Losmandy Gemini">
                 <driver name="Losmandy Gemini">indi_lx200gemini</driver>
                 <version>1.3</version>
         </device>
-	<device label="Mel Bartels" focal_length="" aperture="">
+        <device label="Mel Bartels">
 		<driver name="LX200 Basic">indi_lx200basic</driver>
 		<version>1.0</version>
 	</device>
-	<device label="Temma Takahashi" focal_length="" aperture="">
+        <device label="Temma Takahashi">
 		<driver name="Temma">indi_temma</driver>
 	  	<version>0.1</version>
         </device>
-	<device label="Argo Navis" focal_length="" aperture="">
+        <device label="Argo Navis">
 		<driver name="LX200 Basic">indi_lx200basic</driver>
 		<version>1.0</version>
 	</device>	
-        <device label="SynScan" focal_length="" aperture="">
+        <device label="SynScan">
                 <driver name="SynScan">indi_synscan_telescope</driver>
                 <version>1.0</version>
         </device>
-        <device label="SkySensor2000PC" focal_length="" aperture="">
+        <device label="SkySensor2000PC">
                 <driver name="SkySensor2000PC">indi_lx200ss2000pc</driver>
                 <version>0.1</version>
         </device>
-        <device label="iEQ45 Pro" focal_length="" aperture="">
+        <device label="iEQ45 Pro">
                 <driver name="iEQ">indi_ieq_telescope</driver>
                 <version>1.5</version>
         </device>
-        <device label="CEM60" focal_length="" aperture="">
+        <device label="CEM60">
                 <driver name="iEQ">indi_ieq_telescope</driver>
                 <version>1.5</version>
         </device>
-        <device label="CEM25" focal_length="" aperture="">
+        <device label="CEM25">
                 <driver name="iEQ">indi_ieq_telescope</driver>
                 <version>1.5</version>
         </device>
-        <device label="ZEQ25" focal_length="" aperture="">
+        <device label="ZEQ25">
                 <driver name="ZEQ25">indi_lx200zeq25</driver>
                 <version>1.0</version>
         </device>
-        <device label="iEQ30" focal_length="" aperture="">
+        <device label="iEQ30">
                 <driver name="ZEQ25">indi_lx200zeq25</driver>
                 <version>1.0</version>
         </device>
-        <device label="iEQ45" focal_length="" aperture="">
+        <device label="iEQ45">
                 <driver name="ZEQ25">indi_lx200zeq25</driver>
                 <version>1.0</version>
         </device>
-        <device label="SmartEQ" focal_length="" aperture="">
+        <device label="SmartEQ">
                 <driver name="ZEQ25">indi_lx200zeq25</driver>
                 <version>1.0</version>
         </device>
-        <device label="GotoNova 8400 Kit" focal_length="" aperture="">
+        <device label="GotoNova 8400 Kit">
                 <driver name="GotoNova">indi_lx200gotonova</driver>
                 <version>1.0</version>
         </device>
-        <device label="Pulsar2" focal_length="" aperture="">
+        <device label="IOptron HC8406">
+                <driver name="IOptron HC8406">indi_ioptronHC8406</driver>
+                <version>1.1</version>
+        </device>
+        <device label="Pulsar2">
                 <driver name="Pulsar2">indi_lx200pulsar2</driver>
                 <version>1.0</version>
         </device>
-        <device label="SkyCommander" focal_length="" aperture="">
+        <device label="SkyCommander">
                 <driver name="SkyCommander">indi_skycommander_telescope</driver>
                 <version>1.0</version>
         </device>
-        <device label="LX200 10micron" focal_length="" aperture="">
+        <device label="LX200 10micron">
                 <driver name="LX200 10micron">indi_lx200_10micron</driver>
                 <version>1.0</version>
         </device>
-        <device label="Telescope Simulator" focal_length="" aperture="">
+        <device label="Telescope Simulator">
                 <driver name="Telescope Simulator">indi_simulator_telescope</driver>
                 <version>1.0</version>
         </device>
-        <device label="Skywatcher Alt-Az Mount" focal_length="" aperture="">
+        <device label="Skywatcher Alt-Az Mount">
                 <driver name="Skywatcher Alt-Az Mount">indi_skywatcherAltAzMount</driver>
                 <version>1.0</version>
         </device>
-        <device label="Telescope Scripting Gateway" focal_length="" aperture="">
+        <device label="Telescope Scripting Gateway">
           <driver name="Telescope  Scripting Gateway">indi_script_telescope</driver>
           <version>1.0</version>
         </device>
-        <device label="Digital Setting Circle" focal_length="" aperture="">
+        <device label="Digital Setting Circle">
                 <driver name="Digital Setting Circle">indi_dsc_telescope</driver>
                 <version>1.0</version>
         </device>
@@ -194,7 +202,7 @@
         <device label="Pegasus DMFC">
                 <driver name="Pegasus DMFC">indi_dmfc_focus</driver>
                 <version>1.0</version>
-        </device>
+        </device>        
         <device label="Microtouch">
                 <driver name="Microtouch">indi_microtouch_focus</driver>
                 <version>0.1</version>
@@ -218,6 +226,10 @@
         <device label="Optec TCF-S3">
                 <driver name="Optec TCF-S">indi_tcfs3_focus</driver>
                 <version>0.1</version>
+        </device>
+        <device label="Sesto Senso">
+                <driver name="Sesto Senso">indi_sestosenso_focus</driver>
+                <version>1.0</version>
         </device>
         <device label="FocusLynx">
                 <driver name="FocusLynx">indi_lynx_focus</driver>
@@ -275,7 +287,7 @@
         </device>
         <device label="WatchDog">
                 <driver name="WatchDog">indi_watchdog</driver>
-                <version>0.1</version>
+                <version>0.2</version>
         </device>
         <device label="Joystick">
                 <driver name="Joystick">indi_joystick</driver>
@@ -287,6 +299,10 @@
         </device>
         <device label="Flip Man">
                 <driver name="Flip Flat">indi_flipflat</driver>
+                <version>1.0</version>
+        </device>
+        <device label="Pyxis">
+                <driver name="Pyxis">indi_pyxis_rotator</driver>
                 <version>1.0</version>
         </device>
         <device label="GPUSB">
@@ -331,6 +347,10 @@
         </device>
         <device label="WunderGround">
                 <driver name="WunderGround">indi_wunderground_weather</driver>
+                <version>1.0</version>
+        </device>
+        <device label="MBox">
+                <driver name="MBox">indi_mbox_weather</driver>
                 <version>1.0</version>
         </device>
         <device label="Vantage">

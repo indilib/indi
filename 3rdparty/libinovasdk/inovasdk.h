@@ -2,7 +2,7 @@
 #ifndef _INOVASDK_H
 #define _INOVASDK_H
 
-#define INOVASDK_VERSION 1.3.0 /*!< Current SDK version */
+#define INOVASDK_VERSION 1.3.2 /*!< Current SDK version */
 
 #define RESOLUTION_FULL 0 /*!< Full Resolution */
 #define RESOLUTION_ROI 1 /*!< ROI resolution */
@@ -48,15 +48,15 @@
 #define ROI_WIDTH_MASK		0xfff8
 #define ROI_HEIGHT_MASK		0xfffe
 
+#ifdef  __cplusplus
+#define CXX_EXPORT extern "C"
+#endif
 #ifdef _WIN32
-#define DLL_EXPORT __declspec(dllexport)
+#define DLL_EXPORT CXX_EXPORT __declspec(dllexport)
 #else
-#define DLL_EXPORT
+#define DLL_EXPORT CXX_EXPORT
 #endif
 
-#ifdef  __cplusplus
-extern "C" {
-#endif
 /*! \fn void iNovaSDK_MaxCamera()
  *  \brief Returns the number of cameras connected.
  */
@@ -334,8 +334,5 @@ DLL_EXPORT double iNovaSDK_GetPixelSizeY();
 *  \brief Returns the milliseconds elapsed from Epoch to the last frame taken.
 */
 DLL_EXPORT timeval iNovaSDK_GetLastFrameTime();
-#ifdef  __cplusplus
-}
-#endif
 
 #endif

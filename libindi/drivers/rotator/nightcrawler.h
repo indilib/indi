@@ -46,11 +46,10 @@ class NightCrawler : public INDI::Focuser, public INDI::RotatorInterface
     virtual bool AbortFocuser();    
 
 
-    // Rotator
-    virtual IPState MoveAbsRotator(uint32_t ticks);
+    // Rotator    
     virtual IPState HomeRotator();
-    virtual IPState MoveAngleRotator(double angle);
-    virtual bool SyncRotator(uint32_t ticks);
+    virtual IPState MoveRotator(double angle);
+    virtual bool SyncRotator(double angle);
     virtual bool AbortRotator();
 
     // Misc.
@@ -135,6 +134,10 @@ class NightCrawler : public INDI::Focuser, public INDI::RotatorInterface
     INumber BrightnessN[2];
     INumberVectorProperty BrightnessNP;
     enum { BRIGHTNESS_DISPLAY, BRIGHTNESS_SLEEP };
+
+    // Rotator Steps
+    INumber RotatorAbsPosN[1];
+    INumberVectorProperty RotatorAbsPosNP;
 
     double lastTemperature { 0 };
     double lastVoltage { 0 };

@@ -50,6 +50,7 @@ class INDI::RotatorInterface
         ROTATOR_CAN_ABORT          = 1 << 0, /** Can the Rotator abort motion once started? */
         ROTATOR_CAN_HOME           = 1 << 1, /** Can the Rotator go to home position? */
         ROTATOR_CAN_SYNC           = 1 << 2, /** Can the Rotator sync to specific tick? */
+        ROTATOR_CAN_REVERSE        = 1 << 3, /** Can the Rotator reverse direction? */
     } RotatorCapability;
 
     /**
@@ -78,22 +79,27 @@ class INDI::RotatorInterface
      */
     bool CanSync()  { return rotatorCapability & ROTATOR_CAN_SYNC;}
 
+    /**
+     * @return Whether Rotator can reverse direction.
+     */
+    bool CanReverse()  { return rotatorCapability & ROTATOR_CAN_REVERSE;}
+
 protected:
 
-    RotatorInterface();
+    explicit RotatorInterface(INDI::DefaultDevice *defaultDevice);
 
     /**
      * \brief Initilize Rotator properties. It is recommended to call this function within
      * initProperties() of your primary device
      * \param groupName Group or tab name to be used to define Rotator properties.
      */
-    void initProperties(INDI::DefaultDevice *defaultDevice, const char *groupName);
+    void initProperties(const char *groupName);
 
     /**
      * @brief updateRotatorProperties Define or Delete Rotator properties based on the connection status of the base device
      * @return True if successful, false otherwise.
      */
-    bool updateProperties(INDI::DefaultDevice *defaultDevice);
+    bool updateProperties();
 
     /** \brief Process Rotator number properties */
     bool processNumber(const char *dev, const char *name, double values[], char *names[], int n);
@@ -102,25 +108,18 @@ protected:
     bool processSwitch(const char *dev, const char *name, ISState *states, char *names[], int n);
 
     /**
-     * @brief GotoRotatorTicks Go to an absolute position.
-     * @param ticks Target ticks.
-     * @return State of operation: IPS_OK is motion is completed, IPS_BUSY if motion in progress, IPS_ALERT on error.
-     */
-    virtual IPState MoveAbsRotator(uint32_t ticks) = 0;
-
-    /**
-     * @brief GotoRotatorAngle Go to specific angle
+     * @brief MoveRotator Go to specific angle
      * @param angle Target angle in degrees.
      * @return State of operation: IPS_OK is motion is completed, IPS_BUSY if motion in progress, IPS_ALERT on error.
      */
-    virtual IPState MoveAngleRotator(double angle) = 0;
+    virtual IPState MoveRotator(double angle) = 0;
 
     /**
-     * @brief SyncRotator Set current absolute position as the supplied ticks.
-     * @param ticks Desired new position.
+     * @brief SyncRotator Set current angle as the supplied angle without moving the rotator.
+     * @param ticks Desired new angle.
      * @return True if successful, false otherwise.
      */
-    virtual bool SyncRotator(uint32_t ticks);
+    virtual bool SyncRotator(double angle);
 
     /**
      * @brief HomeRotator Go to home position.
@@ -129,16 +128,20 @@ protected:
     virtual IPState HomeRotator();
 
     /**
+     * @brief ReverseRotator Reverse the direction of the rotator. CW is usually the normal direction, and CCW is the reversed direction.
+     * @param enable if True, reverse direction. If false, revert to normal direction.
+     * @return True if successful, false otherwise.
+     */
+    virtual bool ReverseRotator(bool enabled);
+
+    /**
      * @brief AbortRotator Abort all motion
      * @return True if successful, false otherwise.
      */
     virtual bool AbortRotator();
 
-    INumber RotatorAbsPosN[1];
-    INumberVectorProperty RotatorAbsPosNP;
-
-    INumber RotatorAbsAngleN[1];
-    INumberVectorProperty RotatorAbsAngleNP;
+    INumber GotoRotatorN[1];
+    INumberVectorProperty GotoRotatorNP;
 
     INumber SyncRotatorN[1];
     INumberVectorProperty SyncRotatorNP;
@@ -149,6 +152,10 @@ protected:
     ISwitch HomeRotatorS[1];
     ISwitchVectorProperty HomeRotatorSP;
 
+    ISwitch ReverseRotatorS[2];
+    ISwitchVectorProperty ReverseRotatorSP;
+    enum { REVERSE_ENABLED, REVERSE_DISABLED };
+
     uint32_t rotatorCapability = 0;
-    char rotatorName[MAXINDIDEVICE];
+    INDI::DefaultDevice *m_defaultDevice { nullptr };
 };

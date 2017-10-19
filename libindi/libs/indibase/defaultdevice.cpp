@@ -186,9 +186,11 @@ bool INDI::DefaultDevice::saveConfig(bool silent, const char *property)
 
         if (fp == nullptr)
         {
-            if (!silent)
-                DEBUGF(INDI::Logger::DBG_ERROR, "Error saving configuration. %s", errmsg);
-            return false;
+            //if (!silent)
+             //   DEBUGF(INDI::Logger::DBG_ERROR, "Error saving configuration. %s", errmsg);
+            //return false;
+            // If we don't have an existing file pointer, save all properties.
+            return saveConfig(silent);
         }
 
         LilXML *lp   = newLilXML();

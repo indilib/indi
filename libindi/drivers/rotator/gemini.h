@@ -21,10 +21,11 @@
 #pragma once
 
 #include "indifocuser.h"
+#include "indirotatorinterface.h"
 
 #include <map>
 
-class Gemini : public INDI::Focuser
+class Gemini : public INDI::Focuser, public INDI::RotatorInterface
 {
   public:
     Gemini();    
@@ -91,6 +92,11 @@ protected:
     // Move from private to public to validate
     bool focuserConfigurationComplete = false;
     bool rotatorConfigurationComplete = false;
+
+    // Rotator Overrides
+    virtual IPState HomeRotator() override;
+    virtual IPState MoveRotator(double angle) override;
+    virtual bool ReverseRotator(bool enabled) override;
 
   private:
     uint32_t focuserSimPosition=0;
@@ -196,7 +202,6 @@ protected:
 
     IPState MoveAbsRotatorTicks(uint32_t targetTicks);
     IPState MoveAbsRotatorAngle(double angle);
-
     bool reverseRotator(bool enable);
 
     ////////////////////////////////////////////////////////////
@@ -207,17 +212,29 @@ protected:
     ILight RotatorStatusL[8];
     ILightVectorProperty RotatorStatusLP;
 
-    // Reverse Direction
-    ISwitch RotatorReverseS[2];
-    ISwitchVectorProperty RotatorReverseSP;
-
     // Rotator Steps
     INumber RotatorAbsPosN[1];
     INumberVectorProperty RotatorAbsPosNP;
 
+#if 0
+    // Reverse Direction
+    ISwitch RotatorReverseS[2];
+    ISwitchVectorProperty RotatorReverseSP;
+
+
+
     // Rotator Degrees or PA (Position Angle)
     INumber RotatorAbsAngleN[1];
     INumberVectorProperty RotatorAbsAngleNP;
+
+    // Abort
+    ISwitch AbortRotatorS[1];
+    ISwitchVectorProperty AbortRotatorSP;
+
+    // Go to home/center
+    ISwitch RotatorGotoS[2];
+    ISwitchVectorProperty RotatorGotoSP;
+#endif
 
     // Enable/Disable backlash
     ISwitch RotatorBacklashCompensationS[2];
@@ -230,14 +247,6 @@ protected:
     // Home On Start
     ISwitch RotatorHomeOnStartS[2];
     ISwitchVectorProperty RotatorHomeOnStartSP;
-
-    // Abort
-    ISwitch AbortRotatorS[1];
-    ISwitchVectorProperty AbortRotatorSP;
-
-    // Go to home/center
-    ISwitch RotatorGotoS[2];
-    ISwitchVectorProperty RotatorGotoSP;
 
     bool isRotatorHoming;
 

@@ -235,7 +235,7 @@ void ISSnoopDevice(XMLEle *root)
     }
 }
 
-QHYCCD::QHYCCD(const char *name)
+QHYCCD::QHYCCD(const char *name) : FilterInterface(this)
 {
     // Filter Limits, can we call QHY API to find filter maximum?
     FilterSlotN[0].min = 1;
@@ -270,7 +270,7 @@ const char *QHYCCD::getDefaultName()
 bool QHYCCD::initProperties()
 {
     INDI::CCD::initProperties();
-    initFilterProperties(getDeviceName(), FILTER_TAB);
+    INDI::FilterInterface::initProperties(FILTER_TAB);
 
     FilterSlotN[0].min = 1;
     FilterSlotN[0].max = 9;
@@ -464,13 +464,7 @@ bool QHYCCD::updateProperties()
 
         if (HasFilters)
         {
-            //Define the Filter Slot and name properties
-            defineNumber(&FilterSlotNP);
-
-            if (FilterNameT == NULL)
-                GetFilterNames(FILTER_TAB);
-            if (FilterNameT)
-                defineText(FilterNameTP);
+            INDI::FilterInterface::updateProperties();
         }
 
         if (HasUSBTraffic)
@@ -529,8 +523,7 @@ bool QHYCCD::updateProperties()
 
         if (HasFilters)
         {
-            deleteProperty(FilterSlotNP.name);
-            deleteProperty(FilterNameTP->name);
+            INDI::FilterInterface::updateProperties();
         }
 
         if (HasUSBTraffic)
@@ -1225,39 +1218,6 @@ bool QHYCCD::SelectFilter(int position)
     return false;
 }
 
-bool QHYCCD::SetFilterNames()
-{
-    // Cannot save it in hardware, so let's just save it in the config file to be loaded later
-    saveConfig();
-    return true;
-}
-
-bool QHYCCD::GetFilterNames(const char *groupName)
-{
-    char filterName[MAXINDINAME];
-    char filterLabel[MAXINDILABEL];
-    char filterBand[MAXINDILABEL];
-    int MaxFilter = FilterSlotN[0].max;
-
-    if (FilterNameT != NULL)
-        delete FilterNameT;
-
-    FilterNameT = new IText[MaxFilter];
-
-    for (int i = 0; i < MaxFilter; i++)
-    {
-        snprintf(filterName, MAXINDINAME, "FILTER_SLOT_NAME_%d", i + 1);
-        snprintf(filterLabel, MAXINDILABEL, "Filter#%d", i + 1);
-        snprintf(filterBand, MAXINDILABEL, "Filter #%d", i + 1);
-        IUFillText(&FilterNameT[i], filterName, filterLabel, filterBand);
-    }
-
-    IUFillTextVector(FilterNameTP, FilterNameT, MaxFilter, getDeviceName(), "FILTER_NAME", "Filter", groupName, IP_RW,
-                     0, IPS_IDLE);
-
-    return true;
-}
-
 int QHYCCD::QueryFilter()
 {
     return CurrentFilter;
@@ -1289,7 +1249,7 @@ bool QHYCCD::ISNewText(const char *dev, const char *name, char *texts[], char *n
         //  Now lets see if it's something we process here
         if (strcmp(name, FilterNameTP->name) == 0)
         {
-            processFilterName(dev, texts, names, n);
+            INDI::FilterInterface::processText(dev, name, texts, names, n);
             return true;
         }
     }
@@ -1305,7 +1265,7 @@ bool QHYCCD::ISNewNumber(const char *dev, const char *name, double values[], cha
     {
         if (strcmp(name, FilterSlotNP.name) == 0)
         {
-            processFilterSlot(getDeviceName(), values, names);
+            INDI::FilterInterface::processNumber(dev, name, values, names, n);
             return true;
         }
 
@@ -1321,7 +1281,6 @@ bool QHYCCD::ISNewNumber(const char *dev, const char *name, double values[], cha
             DEBUGF(INDI::Logger::DBG_SESSION, "Current %s value %f", GainNP.name, GainN[0].value);
             GainNP.s = IPS_OK;
             IDSetNumber(&GainNP, NULL);
-            //saveConfig();
             return true;
         }
 
@@ -1332,7 +1291,7 @@ bool QHYCCD::ISNewNumber(const char *dev, const char *name, double values[], cha
             DEBUGF(INDI::Logger::DBG_SESSION, "Current %s value %f", OffsetNP.name, OffsetN[0].value);
             OffsetNP.s = IPS_OK;
             IDSetNumber(&OffsetNP, NULL);
-            saveConfig();
+            saveConfig(true, OffsetNP.name);
             return true;
         }
 
@@ -1343,7 +1302,7 @@ bool QHYCCD::ISNewNumber(const char *dev, const char *name, double values[], cha
             DEBUGF(INDI::Logger::DBG_SESSION, "Current %s value %f", SpeedNP.name, SpeedN[0].value);
             SpeedNP.s = IPS_OK;
             IDSetNumber(&SpeedNP, NULL);
-            saveConfig();
+            saveConfig(true, SpeedNP.name);
             return true;
         }
 
@@ -1354,7 +1313,7 @@ bool QHYCCD::ISNewNumber(const char *dev, const char *name, double values[], cha
             DEBUGF(INDI::Logger::DBG_SESSION, "Current %s value %f", USBTrafficNP.name, USBTrafficN[0].value);
             USBTrafficNP.s = IPS_OK;
             IDSetNumber(&USBTrafficNP, NULL);
-            saveConfig();
+            saveConfig(true, USBTrafficNP.name);
             return true;
         }
     }
@@ -1479,8 +1438,7 @@ bool QHYCCD::saveConfigItems(FILE *fp)
 
     if (HasFilters)
     {
-        IUSaveConfigNumber(fp, &FilterSlotNP);
-        IUSaveConfigText(fp, FilterNameTP);
+        INDI::FilterInterface::saveConfigItems(fp);
     }
 
     if (HasGain)
