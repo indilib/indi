@@ -73,9 +73,13 @@ bool LX200_10MICRON::initProperties()
 
     // TODO initialize properties additional to INDI::Telescope
 
-    IUFillNumber(&RefractionModelTemperatureN[0], "TEMPERATURE", "Celsius", "%+6.1f", 0, 60, 0, 0.);
+    IUFillNumber(&RefractionModelTemperatureN[0], "TEMPERATURE", "Celsius", "%+6.1f", -999.9, 999.9, 0, 0.);
     IUFillNumberVector(&RefractionModelTemperatureNP, RefractionModelTemperatureN, 1, getDeviceName(),
         "REFRACTION_MODEL_TEMPERATURE", "Refraction model temperature", MAIN_CONTROL_TAB, IP_RW, 60, IPS_IDLE);
+
+    IUFillNumber(&RefractionModelPressureN[0], "PRESSURE", "hPa", "%6.1f", 0.0, 9999.9, 0, 0.);
+    IUFillNumberVector(&RefractionModelPressureNP, RefractionModelPressureN, 1, getDeviceName(),
+        "REFRACTION_MODEL_PRESSURE", "Refraction model pressure", MAIN_CONTROL_TAB, IP_RW, 60, IPS_IDLE);
 
     return result;
 }
@@ -109,6 +113,7 @@ bool LX200_10MICRON::updateProperties()
     if (isConnected())
     {
         defineNumber(&RefractionModelTemperatureNP);
+        defineNumber(&RefractionModelPressureNP);
 
         getBasicData();
     }
@@ -118,6 +123,7 @@ bool LX200_10MICRON::updateProperties()
         deleteProperty(ProductTP.name);
 
         deleteProperty(RefractionModelTemperatureNP.name);
+        deleteProperty(RefractionModelPressureNP.name);
 
         // TODO delete new'ed stuff from getBasicData
     }
@@ -264,8 +270,16 @@ void LX200_10MICRON::getBasicData()
         float rmtemp;
         sscanf(RefractionModelTemperature, "%f#", &rmtemp);
         RefractionModelTemperatureN[0].value = (double) rmtemp;
-        DEBUGF(INDI::Logger::DBG_SESSION, "RefractionModelTemperature set to %0+6.1f degrees C", RefractionModelTemperatureN[0].value);
+        DEBUGF(INDI::Logger::DBG_SESSION, "RefractionModelTemperature read to be %0+6.1f degrees C", RefractionModelTemperatureN[0].value);
         IDSetNumber(&RefractionModelTemperatureNP, nullptr);
+
+        char RefractionModelPressure[80];
+        getCommandString(PortFD, RefractionModelPressure, "#:GRPRS#");
+        float rmpres;
+        sscanf(RefractionModelPressure, "%f#", &rmpres);
+        RefractionModelPressureN[0].value = (double) rmpres;
+        DEBUGF(INDI::Logger::DBG_SESSION, "RefractionModelPressure read to be %06.1f hPa", RefractionModelPressureN[0].value);
+        IDSetNumber(&RefractionModelPressureNP, nullptr);
 
         getMountInfo();
     }
@@ -358,6 +372,13 @@ int LX200_10MICRON::SetRefractionModelTemperature(double temperature)
     return setStandardProcedure(fd, data);
 }
 
+int LX200_10MICRON::SetRefractionModelPressure(double pressure)
+{
+    char data[16];
+    snprintf(data, 16, "#:SRPRS%06.1f#", pressure);
+    return setStandardProcedure(fd, data);
+}
+
 bool LX200_10MICRON::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
 {
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
@@ -375,6 +396,21 @@ bool LX200_10MICRON::ISNewNumber(const char *dev, const char *name, double value
             RefractionModelTemperatureNP.s = IPS_OK;
             IDSetNumber(&RefractionModelTemperatureNP, nullptr);
             DEBUGF(INDI::Logger::DBG_SESSION, "RefractionModelTemperature set to %0+6.1f degrees C", RefractionModelTemperatureN[0].value);
+            return true;
+        }
+        if (strcmp(name, "REFRACTION_MODEL_PRESSURE") == 0)
+        {
+            IUUpdateNumber(&RefractionModelPressureNP, values, names, n);
+            if (0 != SetRefractionModelPressure(RefractionModelPressureN[0].value))
+            {
+                DEBUG(INDI::Logger::DBG_ERROR, "SetRefractionModelPressure error");
+                RefractionModelPressureNP.s = IPS_ALERT;
+                IDSetNumber(&RefractionModelPressureNP, nullptr);
+                return false;
+            }
+            RefractionModelPressureNP.s = IPS_OK;
+            IDSetNumber(&RefractionModelPressureNP, nullptr);
+            DEBUGF(INDI::Logger::DBG_SESSION, "RefractionModelPressure set to %06.1f hPa", RefractionModelPressureN[0].value);
             return true;
         }
     }

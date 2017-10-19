@@ -70,6 +70,10 @@ class LX200_10MICRON : public LX200Generic
     INumber RefractionModelTemperatureN[1];
     INumberVectorProperty RefractionModelTemperatureNP;
 
+    virtual int SetRefractionModelPressure(double pressure);
+    INumber RefractionModelPressureN[1];
+    INumberVectorProperty RefractionModelPressureNP;
+
   private:
     int fd = -1; // short notation for PortFD/sockfd
     bool getMountInfo();
