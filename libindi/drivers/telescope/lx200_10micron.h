@@ -77,6 +77,9 @@ class LX200_10MICRON : public LX200Generic
     INumber ModelCountN[1];
     INumberVectorProperty ModelCountNP;
 
+    INumber AlignmentStarsN[1];
+    INumberVectorProperty AlignmentStarsNP;
+
   private:
     int fd = -1; // short notation for PortFD/sockfd
     bool getMountInfo();

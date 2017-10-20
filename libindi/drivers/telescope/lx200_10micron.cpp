@@ -86,6 +86,10 @@ bool LX200_10MICRON::initProperties()
     IUFillNumberVector(&ModelCountNP, ModelCountN, 1, getDeviceName(),
         "MODEL_COUNT", "Models", ALIGNMENT_TAB, IP_RO, 60, IPS_IDLE);
 
+    IUFillNumber(&AlignmentStarsN[0], "COUNT", "#", "%.0f", 0, 999, 0, 0);
+    IUFillNumberVector(&AlignmentStarsNP, AlignmentStarsN, 1, getDeviceName(),
+        "ALIGNMENT_STARS", "Alignment stars", ALIGNMENT_TAB, IP_RO, 60, IPS_IDLE);
+
     return result;
 }
 
@@ -120,6 +124,7 @@ bool LX200_10MICRON::updateProperties()
         defineNumber(&RefractionModelTemperatureNP);
         defineNumber(&RefractionModelPressureNP);
         defineNumber(&ModelCountNP);
+        defineNumber(&AlignmentStarsNP);
 
         getBasicData();
     }
@@ -131,6 +136,7 @@ bool LX200_10MICRON::updateProperties()
         deleteProperty(RefractionModelTemperatureNP.name);
         deleteProperty(RefractionModelPressureNP.name);
         deleteProperty(ModelCountNP.name);
+        deleteProperty(AlignmentStarsNP.name);
 
         // TODO delete new'ed stuff from getBasicData
     }
@@ -293,6 +299,12 @@ void LX200_10MICRON::getBasicData()
         ModelCountN[0].value = (double) ModelCount;
         DEBUGF(INDI::Logger::DBG_SESSION, "%d Alignment Models", (int) ModelCountN[0].value);
         IDSetNumber(&ModelCountNP, nullptr);
+
+        int AlignmentStars;
+        getCommandInt(PortFD, &AlignmentStars, "#:getalst#");
+        AlignmentStarsN[0].value = (double) AlignmentStars;
+        DEBUGF(INDI::Logger::DBG_SESSION, "%d Alignment Stars", (int) AlignmentStarsN[0].value);
+        IDSetNumber(&AlignmentStarsNP, nullptr);
 
         getMountInfo();
     }
