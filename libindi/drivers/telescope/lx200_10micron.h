@@ -46,6 +46,7 @@ class LX200_10MICRON : public LX200Generic
     ~LX200_10MICRON() {}
 
     virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n);
+    virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n);
 
     virtual const char *getDefaultName() override;
     virtual bool Handshake() override;
@@ -56,9 +57,10 @@ class LX200_10MICRON : public LX200Generic
     virtual bool UnPark() override;
     virtual bool SyncConfigBehaviour(bool cmcfg);
 
-    // TODO move this thing elsewhere
+    // TODO move these things elsewhere
     int monthToNumber(const char *monthName);
     int setStandardProcedureWithoutRead(int fd, const char *data);
+    int setStandardProcedureAndExpect(int fd, const char *data, const char *expect);
 
   protected:
     virtual void getBasicData() override;
@@ -77,8 +79,18 @@ class LX200_10MICRON : public LX200Generic
     INumber ModelCountN[1];
     INumberVectorProperty ModelCountNP;
 
-    INumber AlignmentStarsN[1];
-    INumberVectorProperty AlignmentStarsNP;
+    INumber AlignmentPointsN[1];
+    INumberVectorProperty AlignmentPointsNP;
+
+    enum
+    {
+        ALIGN_IDLE,
+        ALIGN_START,
+        ALIGN_END,
+        ALIGN_COUNT
+    };
+    ISwitch AlignmentS[ALIGN_COUNT];
+    ISwitchVectorProperty AlignmentSP;
 
   private:
     int fd = -1; // short notation for PortFD/sockfd

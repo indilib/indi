@@ -86,9 +86,15 @@ bool LX200_10MICRON::initProperties()
     IUFillNumberVector(&ModelCountNP, ModelCountN, 1, getDeviceName(),
         "MODEL_COUNT", "Models", ALIGNMENT_TAB, IP_RO, 60, IPS_IDLE);
 
-    IUFillNumber(&AlignmentStarsN[0], "COUNT", "#", "%.0f", 0, 100, 0, 0);
-    IUFillNumberVector(&AlignmentStarsNP, AlignmentStarsN, 1, getDeviceName(),
-        "ALIGNMENT_STARS", "Alignment stars", ALIGNMENT_TAB, IP_RO, 60, IPS_IDLE);
+    IUFillNumber(&AlignmentPointsN[0], "COUNT", "#", "%.0f", 0, 100, 0, 0);
+    IUFillNumberVector(&AlignmentPointsNP, AlignmentPointsN, 1, getDeviceName(),
+        "ALIGNMENT_POINTS", "Points", ALIGNMENT_TAB, IP_RO, 60, IPS_IDLE);
+
+    IUFillSwitch(&AlignmentS[ALIGN_IDLE], "Idle", "Idle", ISS_ON);
+    IUFillSwitch(&AlignmentS[ALIGN_START], "Start", "Start", ISS_OFF);
+    IUFillSwitch(&AlignmentS[ALIGN_END], "End", "End", ISS_OFF);
+    IUFillSwitchVector(&AlignmentSP, AlignmentS, ALIGN_COUNT, getDeviceName(), "Alignment", "Alignment", ALIGNMENT_TAB,
+        IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
 
     return result;
 }
@@ -124,7 +130,8 @@ bool LX200_10MICRON::updateProperties()
         defineNumber(&RefractionModelTemperatureNP);
         defineNumber(&RefractionModelPressureNP);
         defineNumber(&ModelCountNP);
-        defineNumber(&AlignmentStarsNP);
+        defineNumber(&AlignmentPointsNP);
+        defineSwitch(&AlignmentSP);
 
         getBasicData();
     }
@@ -136,7 +143,8 @@ bool LX200_10MICRON::updateProperties()
         deleteProperty(RefractionModelTemperatureNP.name);
         deleteProperty(RefractionModelPressureNP.name);
         deleteProperty(ModelCountNP.name);
-        deleteProperty(AlignmentStarsNP.name);
+        deleteProperty(AlignmentPointsNP.name);
+        deleteProperty(AlignmentSP.name);
 
         // TODO delete new'ed stuff from getBasicData
     }
@@ -300,11 +308,11 @@ void LX200_10MICRON::getBasicData()
         DEBUGF(INDI::Logger::DBG_SESSION, "%d Alignment Models", (int) ModelCountN[0].value);
         IDSetNumber(&ModelCountNP, nullptr);
 
-        int AlignmentStars;
-        getCommandInt(PortFD, &AlignmentStars, "#:getalst#");
-        AlignmentStarsN[0].value = (double) AlignmentStars;
-        DEBUGF(INDI::Logger::DBG_SESSION, "%d Alignment Stars", (int) AlignmentStarsN[0].value);
-        IDSetNumber(&AlignmentStarsNP, nullptr);
+        int AlignmentPoints;
+        getCommandInt(PortFD, &AlignmentPoints, "#:getalst#");
+        AlignmentPointsN[0].value = (double) AlignmentPoints;
+        DEBUGF(INDI::Logger::DBG_SESSION, "%d Alignment Stars", (int) AlignmentPointsN[0].value);
+        IDSetNumber(&AlignmentPointsNP, nullptr);
 
         getMountInfo();
     }
@@ -356,6 +364,36 @@ int LX200_10MICRON::setStandardProcedureWithoutRead(int fd, const char *data)
         return error_type;
     }
     tcflush(fd, TCIFLUSH);
+    return 0;
+}
+int LX200_10MICRON::setStandardProcedureAndExpect(int fd, const char *data, const char *expect)
+{
+    char bool_return[2];
+    int error_type;
+    int nbytes_write = 0, nbytes_read = 0;
+
+    DEBUGFDEVICE(getDefaultName(), DBG_SCOPE, "CMD <%s>", data);
+
+    tcflush(fd, TCIFLUSH);
+
+    if ((error_type = tty_write_string(fd, data, &nbytes_write)) != TTY_OK)
+        return error_type;
+
+    error_type = tty_read(fd, bool_return, 1, LX200_TIMEOUT, &nbytes_read);
+
+    tcflush(fd, TCIFLUSH);
+
+    if (nbytes_read < 1)
+        return error_type;
+
+    if (bool_return[0] != expect[0])
+    {
+        DEBUGFDEVICE(getDefaultName(), DBG_SCOPE, "CMD <%s> failed.", data);
+        return -1;
+    }
+
+    DEBUGFDEVICE(getDefaultName(), DBG_SCOPE, "CMD <%s> successful.", data);
+
     return 0;
 }
 
@@ -451,4 +489,54 @@ bool LX200_10MICRON::ISNewNumber(const char *dev, const char *name, double value
 
     // Let INDI::LX200Generic handle any other number properties
     return LX200Generic::ISNewNumber(dev, name, values, names, n);
+}
+
+bool LX200_10MICRON::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
+{
+    if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
+    {
+        if (strcmp(AlignmentSP.name, name) == 0)
+        {
+            IUUpdateSwitch(&AlignmentSP, states, names, n);
+            uint32_t cap = 0;
+            int index    = IUFindOnSwitchIndex(&AlignmentSP);
+
+            switch (index)
+            {
+                case ALIGN_IDLE:
+                    break;
+
+                case ALIGN_START:
+                    if (0 != setStandardProcedureAndExpect(fd, "#:newalig#", "V"))
+                    {
+                        DEBUG(INDI::Logger::DBG_ERROR, "New alignment start error");
+                        AlignmentSP.s = IPS_ALERT;
+                        IDSetSwitch(&AlignmentSP, nullptr);
+                        return false;
+                    }
+                    break;
+
+                case ALIGN_END:
+                    if (0 != setStandardProcedureAndExpect(fd, "#:endalig#", "V"))
+                    {
+                        DEBUG(INDI::Logger::DBG_ERROR, "New alignment end error");
+                        AlignmentSP.s = IPS_ALERT;
+                        IDSetSwitch(&AlignmentSP, nullptr);
+                        return false;
+                    }
+                    break;
+
+                default:
+                    AlignmentSP.s = IPS_ALERT;
+                    IDSetSwitch(&AlignmentSP, "Unknown alignment index %d", index);
+                    return true;
+            }
+
+            AlignmentSP.s = IPS_OK;
+            IDSetSwitch(&AlignmentSP, nullptr);
+            return true;
+        }
+    }
+
+    return LX200Generic::ISNewSwitch(dev, name, states, names, n);
 }
