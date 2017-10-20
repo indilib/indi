@@ -66,7 +66,7 @@ extern char *me;
 #define LX200_SYNC  1
 
 /* Simulation Parameters */
-#define SLEWRATE 5        /* slew rate, degrees/s */
+#define LX200_GENERIC_SLEWRATE 5        /* slew rate, degrees/s */
 #define SIDRATE  0.004178 /* sidereal rate, degrees/s */
 
 /* send client definitions of all properties */
@@ -1177,7 +1177,7 @@ void LX200Generic::mountSim()
 
     dt  = tv.tv_sec - ltv.tv_sec + (tv.tv_usec - ltv.tv_usec) / 1e6;
     ltv = tv;
-    da  = SLEWRATE * dt;
+    da  = LX200_GENERIC_SLEWRATE * dt;
 
     /* Process per current state. We check the state of EQUATORIAL_COORDS and act acoordingly */
     switch (TrackState)
@@ -1218,7 +1218,7 @@ void LX200Generic::mountSim()
 
     case SCOPE_SLEWING:
     case SCOPE_PARKING:
-        /* slewing - nail it when both within one pulse @ SLEWRATE */
+        /* slewing - nail it when both within one pulse @ LX200_GENERIC_SLEWRATE */
         nlocked = 0;
 
         dx = targetRA - currentRA;

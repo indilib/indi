@@ -104,6 +104,7 @@ bool SynscanMount::initProperties()
 
     //  probably want to debug this
     addDebugControl();
+    addConfigurationControl();
 
     DEBUG(INDI::Logger::DBG_SESSION, "InitProperties");
     // Add alignment properties
@@ -179,6 +180,33 @@ bool SynscanMount::updateProperties()
     return true;
 }
 
+unsigned long SynscanMount::BCDstr2long(std::string &String)
+{
+    if (String.size() != 6)
+    {
+        return 0;
+    }
+    unsigned long value = 0;
+
+#define HEX(c) (((c) < 'A') ? ((c) - '0') : ((c) - 'A') + 10)
+
+    value = HEX(String[4]);
+    value <<= 4;
+    value |= HEX(String[5]);
+    value <<= 4;
+    value |= HEX(String[2]);
+    value <<= 4;
+    value |= HEX(String[3]);
+    value <<= 4;
+    value |= HEX(String[0]);
+    value <<= 4;
+    value |= HEX(String[1]);
+
+#undef HEX
+
+    return value;
+}
+
 bool SynscanMount::AnalyzeHandset()
 {
     bool rc = true;
@@ -192,7 +220,7 @@ bool SynscanMount::AnalyzeHandset()
     //  get the basics
     caps = GetTelescopeCapability();
 
-    IDMessage(getDeviceName(), "Detecting Synscan Handset Capabilities");
+//    IDMessage(getDeviceName(), "Detecting Synscan Handset Capabilities");
     rc = ReadLocation();
     if (rc)
     {
@@ -206,8 +234,9 @@ bool SynscanMount::AnalyzeHandset()
         //CanSetLocation=false;
     }
 
-    int tmp, tmp1, tmp2;
-    int bytesWritten, bytesRead;
+    int tmp { 0 };
+    int bytesWritten { 0 };
+    int bytesRead;
     char str[20];
 
     bytesRead = 0;
@@ -224,22 +253,39 @@ bool SynscanMount::AnalyzeHandset()
     //fprintf(stderr,"Model %d\n",tmp);
     IDMessage(getDeviceName(), "Mount Model %d", tmp);
 
+    // Read the handset version
+    std::string VersionString;
+    int tmp1 { 0 }, tmp2 { 0 };
+    unsigned long FwVersion { 0 };
+
     bytesRead = 0;
     memset(str, 0, 20);
     tty_write(PortFD, "V", 1, &bytesWritten);
-    tty_read(PortFD, str, 3, 2, &bytesRead);
-    tmp  = str[0];
-    tmp1 = str[1];
-    tmp2 = str[2];
-    //fprintf(stderr,"version %d %d %d\n",tmp,tmp1,tmp2);
+    tty_read(PortFD, str, 6, 2, &bytesRead);
+    if (bytesRead == 3)
+    {
+        tmp  = str[0];
+        tmp1 = str[1];
+        tmp2 = str[2];
+        FirmwareVersion = tmp2;
+        FirmwareVersion /= 100;
+        FirmwareVersion += tmp1;
+        FirmwareVersion /= 100;
+        FirmwareVersion += tmp;
+    } else {
+        VersionString = std::string(&str[0], 6);
+        FwVersion = BCDstr2long(VersionString);
+        FirmwareVersion = (double)FwVersion / 10000;
+    }
+    DEBUGF(INDI::Logger::DBG_SESSION, "READ: %d %ld FW version string: %c%c%c%c%c%c", (int)bytesRead, (long)FwVersion,
+           str[0], str[1], str[2], str[3], str[4], str[5]);
 
-    FirmwareVersion = tmp2;
-    FirmwareVersion /= 100;
-    FirmwareVersion += tmp1;
-    FirmwareVersion /= 100;
-    FirmwareVersion += tmp;
-    //fprintf(stderr,"FirmwareVersion %6.4f\n",FirmwareVersion);
-    IDMessage(getDeviceName(), "Handset Firmware Version %lf", FirmwareVersion);
+    DEBUGF(INDI::Logger::DBG_SESSION, "Firmware version: %lf", FirmwareVersion);
+    if (FirmwareVersion < 3.0)
+    {
+        IDMessage(nullptr, "Update Synscan firmware to V3.38/V4.38 or above");
+        DEBUG(INDI::Logger::DBG_SESSION, "Too old firmware version!");
+    }
 
     SetTelescopeCapability(caps, SYNSCAN_SLEW_RATES);
 
