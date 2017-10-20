@@ -86,7 +86,7 @@ bool LX200_10MICRON::initProperties()
     IUFillNumberVector(&ModelCountNP, ModelCountN, 1, getDeviceName(),
         "MODEL_COUNT", "Models", ALIGNMENT_TAB, IP_RO, 60, IPS_IDLE);
 
-    IUFillNumber(&AlignmentStarsN[0], "COUNT", "#", "%.0f", 0, 999, 0, 0);
+    IUFillNumber(&AlignmentStarsN[0], "COUNT", "#", "%.0f", 0, 100, 0, 0);
     IUFillNumberVector(&AlignmentStarsNP, AlignmentStarsN, 1, getDeviceName(),
         "ALIGNMENT_STARS", "Alignment stars", ALIGNMENT_TAB, IP_RO, 60, IPS_IDLE);
 
