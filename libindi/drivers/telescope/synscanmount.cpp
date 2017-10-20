@@ -277,7 +277,7 @@ bool SynscanMount::AnalyzeHandset()
         FwVersion = BCDstr2long(VersionString);
         FirmwareVersion = (double)FwVersion / 10000;
     }
-    DEBUGF(INDI::Logger::DBG_SESSION, "READ: %d FW version string: %c%c%c%c%c%c", (int)bytesRead,
+    DEBUGF(INDI::Logger::DBG_SESSION, "READ: %d %ld FW version string: %c%c%c%c%c%c", (int)bytesRead, (long)FwVersion,
            str[0], str[1], str[2], str[3], str[4], str[5]);
 
     DEBUGF(INDI::Logger::DBG_SESSION, "Firmware version: %lf", FirmwareVersion);
