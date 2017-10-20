@@ -111,7 +111,7 @@ socat  -v  PTY,link=/tmp/serial,wait-slave,raw /dev/ttyUSB0,raw
 ioptronHC8406::ioptronHC8406()
 {
     setVersion(1, 1);
-    setLX200Capability(LX200_HAS_FOCUS);
+    setLX200Capability(LX200_HAS_FOCUS | LX200_HAS_PULSE_GUIDING);
     SetTelescopeCapability(TELESCOPE_CAN_PARK | TELESCOPE_CAN_SYNC | TELESCOPE_CAN_GOTO | 
                       TELESCOPE_CAN_ABORT | TELESCOPE_HAS_TIME | TELESCOPE_HAS_LOCATION | 
                       TELESCOPE_HAS_TRACK_MODE | TELESCOPE_CAN_CONTROL_TRACK);
@@ -1215,5 +1215,44 @@ void ioptronHC8406::sendScopeTime()
 
     // Let's send everything to the client
     IDSetText(&TimeTP, nullptr);
+}
+
+int ioptronHC8406::SendPulseCmd(int direction, int duration_msec)
+{
+    DEBUGF(INDI::Logger::DBG_DEBUG, "<%s>", __FUNCTION__);
+    int rc = 0,  nbytes_written = 0;
+    char cmd[20];
+    if (duration_msec>=1000) {
+    	DEBUG(INDI::Logger::DBG_DEBUG, "ABORTING pulse guide. Pulse >999");
+	return 1;
+    }
+    switch (direction)
+    {
+        case LX200_NORTH:
+            sprintf(cmd, ":Mn%03d#", duration_msec);
+            break;
+        case LX200_SOUTH:
+            sprintf(cmd, ":Ms%03d#", duration_msec);
+            break;
+        case LX200_EAST:
+            sprintf(cmd, ":Me%03d#", duration_msec);
+            break;
+        case LX200_WEST:
+            sprintf(cmd, ":Mw%03d#", duration_msec);
+            break;
+        default:
+            return 1;
+    }
+    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD <%s>", cmd);
+
+    if ((rc = tty_write(PortFD, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
+    {
+        char errmsg[256];
+        tty_error_msg(rc, errmsg, 256);
+        DEBUGF(INDI::Logger::DBG_ERROR, "Error writing to device %s (%d)", errmsg, rc);
+        return 1;
+    }
+    tcflush(PortFD, TCIFLUSH);
+    return 0;
 }
 
