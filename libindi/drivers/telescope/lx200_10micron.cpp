@@ -30,6 +30,7 @@
 #include <math.h>
 
 #define PRODUCT_TAB   "Product"
+#define ALIGNMENT_TAB   "Alignment"
 #define LX200_TIMEOUT 5 /* FD timeout in seconds */
 
 LX200_10MICRON::LX200_10MICRON() : LX200Generic()
@@ -75,11 +76,15 @@ bool LX200_10MICRON::initProperties()
 
     IUFillNumber(&RefractionModelTemperatureN[0], "TEMPERATURE", "Celsius", "%+6.1f", -999.9, 999.9, 0, 0.);
     IUFillNumberVector(&RefractionModelTemperatureNP, RefractionModelTemperatureN, 1, getDeviceName(),
-        "REFRACTION_MODEL_TEMPERATURE", "Refraction model temperature", MAIN_CONTROL_TAB, IP_RW, 60, IPS_IDLE);
+        "REFRACTION_MODEL_TEMPERATURE", "Temperature", ALIGNMENT_TAB, IP_RW, 60, IPS_IDLE);
 
     IUFillNumber(&RefractionModelPressureN[0], "PRESSURE", "hPa", "%6.1f", 0.0, 9999.9, 0, 0.);
     IUFillNumberVector(&RefractionModelPressureNP, RefractionModelPressureN, 1, getDeviceName(),
-        "REFRACTION_MODEL_PRESSURE", "Refraction model pressure", MAIN_CONTROL_TAB, IP_RW, 60, IPS_IDLE);
+        "REFRACTION_MODEL_PRESSURE", "Pressure", ALIGNMENT_TAB, IP_RW, 60, IPS_IDLE);
+
+    IUFillNumber(&ModelCountN[0], "COUNT", "#", "%.0f", 0, 999, 0, 0);
+    IUFillNumberVector(&ModelCountNP, ModelCountN, 1, getDeviceName(),
+        "MODEL_COUNT", "Models", ALIGNMENT_TAB, IP_RO, 60, IPS_IDLE);
 
     return result;
 }
@@ -114,6 +119,7 @@ bool LX200_10MICRON::updateProperties()
     {
         defineNumber(&RefractionModelTemperatureNP);
         defineNumber(&RefractionModelPressureNP);
+        defineNumber(&ModelCountNP);
 
         getBasicData();
     }
@@ -124,6 +130,7 @@ bool LX200_10MICRON::updateProperties()
 
         deleteProperty(RefractionModelTemperatureNP.name);
         deleteProperty(RefractionModelPressureNP.name);
+        deleteProperty(ModelCountNP.name);
 
         // TODO delete new'ed stuff from getBasicData
     }
@@ -281,6 +288,12 @@ void LX200_10MICRON::getBasicData()
         DEBUGF(INDI::Logger::DBG_SESSION, "RefractionModelPressure read to be %06.1f hPa", RefractionModelPressureN[0].value);
         IDSetNumber(&RefractionModelPressureNP, nullptr);
 
+        int ModelCount;
+        getCommandInt(PortFD, &ModelCount, "#:modelcnt#");
+        ModelCountN[0].value = (double) ModelCount;
+        DEBUGF(INDI::Logger::DBG_SESSION, "%d Alignment Models", (int) ModelCountN[0].value);
+        IDSetNumber(&ModelCountNP, nullptr);
+
         getMountInfo();
     }
     sendScopeLocation();
@@ -413,6 +426,15 @@ bool LX200_10MICRON::ISNewNumber(const char *dev, const char *name, double value
             DEBUGF(INDI::Logger::DBG_SESSION, "RefractionModelPressure set to %06.1f hPa", RefractionModelPressureN[0].value);
             return true;
         }
+        /*
+        if (strcmp(name, "MODEL_COUNT") == 0)
+        {
+            IUUpdateNumber(&ModelCountNP, values, names, n);
+            IDSetNumber(&ModelCountNP, nullptr);
+            DEBUGF(INDI::Logger::DBG_SESSION, "ModelCount %d", ModelCountN[0].value);
+            return true;
+        }
+        */
     }
 
     // Let INDI::LX200Generic handle any other number properties
