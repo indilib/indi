@@ -280,10 +280,11 @@ bool SynscanMount::AnalyzeHandset()
     DEBUGF(INDI::Logger::DBG_SESSION, "READ: %d FW version string: %c%c%c%c%c%c", (int)bytesRead,
            str[0], str[1], str[2], str[3], str[4], str[5]);
 
-//    if (FirmwareVersion < 3.8)
+    DEBUGF(INDI::Logger::DBG_SESSION, "Firmware version: %lf", FirmwareVersion);
+    if (FirmwareVersion < 3.0)
     {
         IDMessage(nullptr, "Update Synscan firmware to V3.38/V4.38 or above");
-        DEBUGF(INDI::Logger::DBG_SESSION, "Too old firmware version: %lf", FirmwareVersion);
+        DEBUG(INDI::Logger::DBG_SESSION, "Too old firmware version!");
     }
 
     SetTelescopeCapability(caps, SYNSCAN_SLEW_RATES);
