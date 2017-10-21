@@ -62,7 +62,7 @@ class SynscanMount : public INDI::Telescope, public INDI::AlignmentSubsystem::Al
     int PassthruCommand(int cmd, int target, int msgsize, int data, int numReturn);
     ln_equ_posn TelescopeToSky(double ra, double dec);
     ln_equ_posn SkyToTelescope(double ra, double dec);
-    unsigned long BCDstr2long(std::string &String);
+    int HexStrToInteger(const std::string &str);
     bool AnalyzeHandset();
 
     double FirmwareVersion { 0 };
