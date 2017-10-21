@@ -79,8 +79,13 @@ bool SynscanMount::Connect()
     if (isConnected())
         return true;
 
-    //rc=Connect(PortT[0].text, atoi(IUFindOnSwitch(&BaudRateSP)->name));
-    return INDI::Telescope::Connect();
+    bool Ret = INDI::Telescope::Connect();
+
+    if (Ret)
+    {
+        AnalyzeHandset();
+    }
+    return Ret;
 }
 
 const char *SynscanMount::getDefaultName()
@@ -90,15 +95,11 @@ const char *SynscanMount::getDefaultName()
 
 bool SynscanMount::initProperties()
 {
-    bool r;
-
-    //fprintf(stderr,"Synscan initProperties\n");
-    //  call base class
-    r = INDI::Telescope::initProperties();
+    bool Ret = INDI::Telescope::initProperties();
 
     //SetTelescopeCapability(TELESCOPE_CAN_ABORT | TELESCOPE_CAN_SYNC | TELESCOPE_CAN_GOTO | TELESCOPE_HAS_TIME | TELESCOPE_HAS_LOCATION ,SYNSCAN_SLEW_RATES);
     SetTelescopeCapability(TELESCOPE_CAN_PARK | TELESCOPE_CAN_ABORT | TELESCOPE_CAN_SYNC | TELESCOPE_CAN_GOTO |
-                               TELESCOPE_HAS_TIME | TELESCOPE_HAS_LOCATION,
+                           TELESCOPE_HAS_TIME | TELESCOPE_HAS_LOCATION,
                            SYNSCAN_SLEW_RATES);
     SetParkDataType(PARK_RA_DEC_ENCODER);
 
@@ -106,19 +107,35 @@ bool SynscanMount::initProperties()
     addDebugControl();
     addConfigurationControl();
 
-    DEBUG(INDI::Logger::DBG_SESSION, "InitProperties");
     // Add alignment properties
     InitAlignmentProperties(this);
     // Force the alignment system to always be on
     getSwitch("ALIGNMENT_SUBSYSTEM_ACTIVE")->sp[0].s = ISS_ON;
 
-    return r;
+    // Set up property variables
+    IUFillText(&BasicMountInfo[(int)MountInfoItems::FwVersion], "FW_VERSION", "Firmware version", "-");
+    IUFillText(&BasicMountInfo[(int)MountInfoItems::MountCode], "MOUNT_CODE", "Mount code", "-");
+    IUFillText(&BasicMountInfo[(int)MountInfoItems::AlignmentStatus], "ALIGNMENT_STATUS", "Alignment status", "-");
+    IUFillText(&BasicMountInfo[(int)MountInfoItems::GotoStatus], "GOTO_STATUS", "Goto status", "-");
+    IUFillText(&BasicMountInfo[(int)MountInfoItems::MountPointingStatus], "MOUNT_POINTING_STATUS",
+               "Mount pointing status", "-");
+    IUFillText(&BasicMountInfo[(int)MountInfoItems::TrackingMode], "TRACKING_MODE", "Tracking mode", "-");
+    IUFillTextVector(&BasicMountInfoV, BasicMountInfo, 6, getDeviceName(), "BASIC_MOUNT_INFO",
+                     "Mount information", MountInfoPage.c_str(), IP_RO, 60, IPS_IDLE);
+
+    return Ret;
 }
 
 void SynscanMount::ISGetProperties(const char *dev)
 {
     /* First we let our parent populate */
     INDI::Telescope::ISGetProperties(dev);
+
+    if (isConnected())
+    {
+        UpdateMountInformation(false);
+        defineText(&BasicMountInfoV);
+    }
 }
 
 bool SynscanMount::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
@@ -172,9 +189,12 @@ bool SynscanMount::updateProperties()
 
     if (isConnected())
     {
+        UpdateMountInformation(false);
+        defineText(&BasicMountInfoV);
     }
     else
     {
+        deleteProperty(BasicMountInfoV.name);
     }
 
     return true;
@@ -257,6 +277,21 @@ bool SynscanMount::AnalyzeHandset()
     {
         IDMessage(nullptr, "Update Synscan firmware to V3.38/V4.38 or above");
         DEBUG(INDI::Logger::DBG_SESSION, "Too old firmware version!");
+    } else {
+        NewFirmware = true;
+    }
+    HandsetFwVersion = std::to_string(FirmwareVersion);
+
+    memset(str, 0, 2);
+    tty_write(PortFD, "m", 1, &bytesWritten);
+    tty_read(PortFD, str, 2, 2, &bytesRead);
+    if (str[1] == '#')
+    {
+        MountCode = (int)(unsigned char)str[0];
+        if (MountCode < 128)
+            SetApproximateMountAlignmentFromMountType(EQUATORIAL);
+        else
+            SetApproximateMountAlignmentFromMountType(ALTAZ);
     }
 
     SetTelescopeCapability(caps, SYNSCAN_SLEW_RATES);
@@ -275,10 +310,6 @@ bool SynscanMount::AnalyzeHandset()
         SetAxis1ParkDefault(0);
         SetAxis2ParkDefault(90);
     }
-
-    //SetApproximateMountAlignmentFromMountType(EQUATORIAL);
-    //SetApproximateMountAlignment(NORTH_CELESTIAL_POLE);
-
     return true;
 }
 
@@ -329,35 +360,60 @@ bool SynscanMount::ReadScopeStatus()
         }
     */
 
-    if (FirstConnect)
+    //  on subsequent passes, we just need to read the time
+    if (HasTime())
     {
-        //fprintf(stderr,"sending fake radec\n");
-        //NewRaDec(0,0);
-        //return true;
-        //  the first time we come thru, we need to figure out a few things about our handset
-        //  ie can it do date and time etc
-        AnalyzeHandset();
-        FirstConnect = false;
-        return true;
+        ReadTime();
     }
-    else
+    if (HasLocation())
     {
-        //  on subsequent passes, we just need to read the time
-        if (HasTime())
+        //  this flag is set when we get a new lat/long from the host
+        //  so we should go thru the read routine once now, so things update
+        //  correctly in the client displays
+        if (ReadLatLong)
         {
-            ReadTime();
-        }
-        if (HasLocation())
-        {
-            //  this flag is set when we get a new lat/long from the host
-            //  so we should go thru the read routine once now, so things update
-            //  correctly in the client displays
-            if (ReadLatLong)
-            {
-                ReadLocation();
-            }
+            ReadLocation();
         }
     }
+
+    // Query mount information
+    memset(str, 0, 2);
+    tty_write(PortFD, "J", 1, &bytesWritten);
+    numread = tty_read(PortFD, str, 2, 2, &bytesRead);
+    if (str[1] == '#')
+    {
+        AlignmentStatus = std::to_string((int)str[0]);
+    }
+    memset(str, 0, 2);
+    tty_write(PortFD, "L", 1, &bytesWritten);
+    numread = tty_read(PortFD, str, 2, 2, &bytesRead);
+    if (str[1] == '#')
+    {
+        GotoStatus = str[0];
+    }
+    memset(str, 0, 2);
+    tty_write(PortFD, "p", 1, &bytesWritten);
+    numread = tty_read(PortFD, str, 2, 2, &bytesRead);
+    if (str[1] == '#')
+    {
+        MountPointingStatus = str[0];
+    }
+    memset(str, 0, 2);
+    tty_write(PortFD, "t", 1, &bytesWritten);
+    numread = tty_read(PortFD, str, 2, 2, &bytesRead);
+    if (str[1] == '#')
+    {
+        if ((int)str[0] == 0)
+            TrackingMode = "Tracking off";
+        if ((int)str[0] == 1)
+            TrackingMode = "Alt/Az tracking";
+        if ((int)str[0] == 2)
+            TrackingMode = "EQ tracking";
+        if ((int)str[0] == 3)
+            TrackingMode = "PEC mode";
+    }
+
+    UpdateMountInformation(true);
 
     if (TrackState == SCOPE_SLEWING)
     {
@@ -542,6 +598,7 @@ bool SynscanMount::Goto(double ra, double dec)
     tty_read(PortFD, str, 2, 2, &bytesRead);   //  Read 2 bytes of response
     if (str[1] != '#')
     {
+        DEBUG(INDI::Logger::DBG_SESSION, "Wrong answer from the mount");
         //  this is not a correct echo
         //  so we are not talking to a mount properly
         return false;
@@ -558,6 +615,7 @@ bool SynscanMount::Goto(double ra, double dec)
     numread    = tty_read(PortFD, str, 1, 60, &bytesRead);
     if (bytesRead != 1 || str[0] != '#')
     {
+        DEBUG(INDI::Logger::DBG_SESSION, "Timeout waiting for scope to complete slewing.");
         if (isDebug())
             IDLog("Timeout waiting for scope to complete slewing.");
         return false;
@@ -954,7 +1012,6 @@ bool SynscanMount::updateLocation(double latitude, double longitude, double elev
     }
     else
     {
-        DEBUGF(INDI::Logger::DBG_SESSION, "Enter Update Location %4.6lf  %4.6lf\n", latitude, longitude);
         if (longitude > 180)
         {
             p1.lng = 360.0 - longitude;
@@ -966,6 +1023,8 @@ bool SynscanMount::updateLocation(double latitude, double longitude, double elev
         }
         p1.lat = latitude;
         ln_lnlat_to_hlnlat(&p1, &p2);
+        DEBUGF(INDI::Logger::DBG_SESSION, "Update location - latitude %d:%d:%1.2f longitude %d:%d:%1.2f\n",
+               p2.lat.degrees, p2.lat.minutes, p2.lat.seconds, p2.lng.degrees, p2.lng.minutes, p2.lng.seconds);
 
         str[0] = 'W';
         str[1] = p2.lat.degrees;
@@ -974,9 +1033,13 @@ bool SynscanMount::updateLocation(double latitude, double longitude, double elev
         s      = (int)tmp; //  put in an int that's rounded
         str[3] = s;
         if (p2.lat.neg == 0)
+        {
+            SetApproximateMountAlignment(NORTH_CELESTIAL_POLE);
             str[4] = 0;
-        else
+        } else {
+            SetApproximateMountAlignment(SOUTH_CELESTIAL_POLE);
             str[4] = 1;
+        }
 
         str[5] = p2.lng.degrees;
         str[6] = p2.lng.minutes;
@@ -992,11 +1055,7 @@ bool SynscanMount::updateLocation(double latitude, double longitude, double elev
         tty_read(PortFD, str, 1, 2, &bytesRead);
         if (str[0] != '#')
         {
-            fprintf(stderr, "Invalid return from set location\n");
-        }
-        else
-        {
-            //fprintf(stderr,"Set location returns correctly\n");
+            DEBUG(INDI::Logger::DBG_SESSION, "Invalid response for location setting");
         }
         //  want to read it on the next cycle, so we update the fields in the client
         ReadLatLong = true;
@@ -1187,4 +1246,43 @@ ln_equ_posn SynscanMount::SkyToTelescope(double ra, double dec)
     //eq.ra=ra;
     //eq.dec=dec;
     return eq;
+}
+
+void SynscanMount::UpdateMountInformation(bool inform_client)
+{
+    bool BasicMountInfoHasChanged = false;
+    std::string MountCodeStr = std::to_string(MountCode);
+
+    if (std::string(BasicMountInfo[(int)MountInfoItems::FwVersion].text) != HandsetFwVersion)
+    {
+        IUSaveText(&BasicMountInfo[(int)MountInfoItems::FwVersion], HandsetFwVersion.c_str());
+        BasicMountInfoHasChanged = true;
+    }
+    if (std::string(BasicMountInfo[(int)MountInfoItems::MountCode].text) != MountCodeStr)
+    {
+        IUSaveText(&BasicMountInfo[(int)MountInfoItems::MountCode], MountCodeStr.c_str());
+        BasicMountInfoHasChanged = true;
+    }
+    if (std::string(BasicMountInfo[(int)MountInfoItems::AlignmentStatus].text) != AlignmentStatus)
+    {
+        IUSaveText(&BasicMountInfo[(int)MountInfoItems::AlignmentStatus], AlignmentStatus.c_str());
+        BasicMountInfoHasChanged = true;
+    }
+    if (std::string(BasicMountInfo[(int)MountInfoItems::GotoStatus].text) != GotoStatus)
+    {
+        IUSaveText(&BasicMountInfo[(int)MountInfoItems::GotoStatus], GotoStatus.c_str());
+        BasicMountInfoHasChanged = true;
+    }
+    if (std::string(BasicMountInfo[(int)MountInfoItems::MountPointingStatus].text) != MountPointingStatus)
+    {
+        IUSaveText(&BasicMountInfo[(int)MountInfoItems::MountPointingStatus], MountPointingStatus.c_str());
+        BasicMountInfoHasChanged = true;
+    }
+    if (std::string(BasicMountInfo[(int)MountInfoItems::TrackingMode].text) != TrackingMode)
+    {
+        IUSaveText(&BasicMountInfo[(int)MountInfoItems::TrackingMode], TrackingMode.c_str());
+        BasicMountInfoHasChanged = true;
+    }
+    if (BasicMountInfoHasChanged && inform_client)
+        IDSetText(&BasicMountInfoV, nullptr);
 }

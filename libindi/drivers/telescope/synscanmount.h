@@ -64,6 +64,7 @@ class SynscanMount : public INDI::Telescope, public INDI::AlignmentSubsystem::Al
     ln_equ_posn SkyToTelescope(double ra, double dec);
     int HexStrToInteger(const std::string &str);
     bool AnalyzeHandset();
+    void UpdateMountInformation(bool inform_client);
 
     double FirmwareVersion { 0 };
     char LastParkRead[20];
@@ -76,6 +77,23 @@ class SynscanMount : public INDI::Telescope, public INDI::AlignmentSubsystem::Al
     bool CanSetLocation { false };
     bool ReadLatLong { false };
     bool HasFailed { true };
-    bool FirstConnect { true };
-    //int NumSyncPoints { 0 };
+    bool NewFirmware { false };
+    const std::string MountInfoPage { "Mount Information" };
+    enum class MountInfoItems
+    {
+        FwVersion,
+        MountCode,
+        AlignmentStatus,
+        GotoStatus,
+        MountPointingStatus,
+        TrackingMode
+    };
+    IText BasicMountInfo[6];
+    ITextVectorProperty BasicMountInfoV;
+    std::string HandsetFwVersion;
+    int MountCode;
+    std::string AlignmentStatus;
+    std::string GotoStatus;
+    std::string MountPointingStatus;
+    std::string TrackingMode;
 };
