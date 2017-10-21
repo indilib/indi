@@ -77,7 +77,7 @@ void ISSnoopDevice(XMLEle *root)
 USBDewpoint::USBDewpoint()
 {
     setVersion(1, 0);
-};
+}
 
 bool USBDewpoint::initProperties()
 {
