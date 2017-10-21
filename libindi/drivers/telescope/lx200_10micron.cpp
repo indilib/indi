@@ -35,7 +35,12 @@
 
 LX200_10MICRON::LX200_10MICRON() : LX200Generic()
 {
-    setLX200Capability(LX200_HAS_TRACKING_FREQ);
+    setLX200Capability( LX200_HAS_TRACKING_FREQ | LX200_HAS_SITES | LX200_HAS_PULSE_GUIDING );
+
+    SetTelescopeCapability( TELESCOPE_CAN_GOTO | TELESCOPE_CAN_SYNC | TELESCOPE_CAN_PARK | TELESCOPE_CAN_ABORT |
+        TELESCOPE_HAS_TIME | TELESCOPE_HAS_LOCATION | TELESCOPE_HAS_PIER_SIDE |
+        TELESCOPE_HAS_TRACK_MODE | TELESCOPE_CAN_CONTROL_TRACK | TELESCOPE_HAS_TRACK_RATE );
+
     setVersion(1, 0);
 }
 
@@ -96,6 +101,28 @@ bool LX200_10MICRON::initProperties()
     IUFillSwitchVector(&AlignmentSP, AlignmentS, ALIGN_COUNT, getDeviceName(), "Alignment", "Alignment", ALIGNMENT_TAB,
         IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
 
+    IUFillNumber(&MiniNewAlpN[AXIS_RA], "PRA", "Solved RA (hh:mm:ss)", "%010.6m", 0, 24, 0, 0);
+    IUFillNumber(&MiniNewAlpN[AXIS_DE], "PDEC", "Solved DEC (dd:mm:ss)", "%010.6m", -90, 90, 0, 0);
+    IUFillNumberVector(&MiniNewAlpNP, MiniNewAlpN, 2, getDeviceName(), "MINIMAL_NEW_ALIGNMENT_POINT",
+        "New Point", ALIGNMENT_TAB, IP_RW, 60, IPS_IDLE);
+
+    IUFillNumber(&NewAlpN[AXIS_RA], "MRA", "Mount RA (hh:mm:ss)", "%010.6m", 0, 24, 0, 0);
+    IUFillNumber(&NewAlpN[AXIS_DE], "MDEC", "Mount DEC (dd:mm:ss)", "%010.6m", -90, 90, 0, 0);
+    IUFillNumber(&NewAlpN[2], "MSIDE", "Pier Side (0=E 1=W)", "%.0f", 0, 1, 0, 0);
+    IUFillNumber(&NewAlpN[3], "PRA", "Solved RA (hh:mm:ss)", "%010.6m", 0, 24, 0, 0);
+    IUFillNumber(&NewAlpN[4], "PDEC", "Solved DEC (dd:mm:ss)", "%010.6m", -90, 90, 0, 0);
+    IUFillNumber(&NewAlpN[5], "SIDTIME", "Sidereal Time (hh:mm:ss)", "%010.6m", 0, 24, 0, 0);
+    IUFillNumberVector(&NewAlpNP, NewAlpN, 6, getDeviceName(), "NEW_ALIGNMENT_POINT",
+        "New Point", ALIGNMENT_TAB, IP_RW, 60, IPS_IDLE);
+
+    IUFillNumber(&NewAlignmentPointsN[0], "COUNT", "#", "%.0f", 0, 100, 0, 0);
+    IUFillNumberVector(&NewAlignmentPointsNP, NewAlignmentPointsN, 1, getDeviceName(),
+        "NEW_ALIGNMENT_POINTS", "New Points", ALIGNMENT_TAB, IP_RO, 60, IPS_IDLE);
+
+    IUFillText(&NewModelNameT[0], "NAME", "Model Name", "newmodel");
+    IUFillTextVector(&NewModelNameTP, NewModelNameT, 1, getDeviceName(), "NEW_MODEL_NAME", "New Name", ALIGNMENT_TAB,
+                     IP_RW, 60, IPS_IDLE);
+
     return result;
 }
 
@@ -132,6 +159,10 @@ bool LX200_10MICRON::updateProperties()
         defineNumber(&ModelCountNP);
         defineNumber(&AlignmentPointsNP);
         defineSwitch(&AlignmentSP);
+        defineNumber(&MiniNewAlpNP);
+        defineNumber(&NewAlpNP);
+        defineNumber(&NewAlignmentPointsNP);
+        defineText(&NewModelNameTP);
 
         getBasicData();
     }
@@ -145,6 +176,10 @@ bool LX200_10MICRON::updateProperties()
         deleteProperty(ModelCountNP.name);
         deleteProperty(AlignmentPointsNP.name);
         deleteProperty(AlignmentSP.name);
+        deleteProperty(MiniNewAlpNP.name);
+        deleteProperty(NewAlpNP.name);
+        deleteProperty(NewAlignmentPointsNP.name);
+        deleteProperty(NewModelNameTP.name);
 
         // TODO delete new'ed stuff from getBasicData
     }
@@ -193,27 +228,26 @@ bool LX200_10MICRON::ReadScopeStatus()
     }
     DEBUGFDEVICE(getDefaultName(), DBG_SCOPE, "CMD <%s> RES <%s>", cmd, data);
 
-    // Now parse the data
-    float RA_JNOW   = 0.0;
-    float DEC_JNOW  = 0.0;
-    char SideOfPier = 'x';
-    float AZ        = 0.0;
-    float ALT       = 0.0;
-    float Jdate     = 0.0;
-    int Gstat       = -1;
-    int SlewStatus  = -1;
-    nbytes_read = sscanf(data, "%g,%g,%c,%g,%g,%g,%d,%d#", &RA_JNOW, &DEC_JNOW, &SideOfPier, &AZ, &ALT, &Jdate, &Gstat,
-                         &SlewStatus);
+    // Now parse the data. This format may consist of more parts some day
+    nbytes_read = sscanf(data, "%g,%g,%c,%g,%g,%g,%d,%d#", &Ginfo.RA_JNOW, &Ginfo.DEC_JNOW, &Ginfo.SideOfPier,
+        &Ginfo.AZ, &Ginfo.ALT, &Ginfo.Jdate, &Ginfo.Gstat, &Ginfo.SlewStatus);
     if (nbytes_read < 0)
     {
         return false;
     }
 
-    if (Gstat != OldGstat && OldGstat != -1)
+    if (Ginfo.Gstat != OldGstat)
     {
-        DEBUGF(INDI::Logger::DBG_SESSION, "Gstat changed from %d to %d", OldGstat, Gstat);
+        if (OldGstat != GSTAT_UNSET)
+        {
+            DEBUGF(INDI::Logger::DBG_SESSION, "Gstat changed from %d to %d", OldGstat, Ginfo.Gstat);
+        }
+        else
+        {
+            DEBUGF(INDI::Logger::DBG_SESSION, "Gstat initialized at %d", Ginfo.Gstat);
+        }
     }
-    switch (Gstat)
+    switch (Ginfo.Gstat)
     {
         case GSTAT_TRACKING:
             TrackState = SCOPE_TRACKING;
@@ -263,8 +297,8 @@ bool LX200_10MICRON::ReadScopeStatus()
             return false;
     }
 
-    OldGstat = Gstat;
-    NewRaDec(RA_JNOW, DEC_JNOW);
+    OldGstat = Ginfo.Gstat;
+    NewRaDec(Ginfo.RA_JNOW, Ginfo.DEC_JNOW);
     return true;
 }
 
@@ -485,6 +519,23 @@ bool LX200_10MICRON::ISNewNumber(const char *dev, const char *name, double value
             return true;
         }
         */
+        if (strcmp(name, "MINIMAL_NEW_ALIGNMENT_POINT") == 0)
+        {
+            IUUpdateNumber(&MiniNewAlpNP, values, names, n);
+/*
+            if (0 != AddSyncPointHere(ModelSolvedJNowEqN[0].value))
+            {
+                DEBUG(INDI::Logger::DBG_ERROR, "AddSyncPointHere error");
+                ModelSolvedJNowEqNP.s = IPS_ALERT;
+                IDSetNumber(&ModelSolvedJNowEqNP, nullptr);
+                return false;
+            }
+*/
+            MiniNewAlpNP.s = IPS_OK;
+            IDSetNumber(&MiniNewAlpNP, nullptr);
+            DEBUGF(INDI::Logger::DBG_SESSION, "SolvedJNowEq set to %06.1f ", MiniNewAlpN[0].value);
+            return true;
+        }
     }
 
     // Let INDI::LX200Generic handle any other number properties

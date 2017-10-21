@@ -23,6 +23,7 @@
 #include "lx200generic.h"
 
 typedef enum {
+    GSTAT_UNSET                       = -999,
     GSTAT_TRACKING                    = 0,
     GSTAT_STOPPED                     = 1,
     GSTAT_PARKING                     = 2,
@@ -92,10 +93,32 @@ class LX200_10MICRON : public LX200Generic
     ISwitch AlignmentS[ALIGN_COUNT];
     ISwitchVectorProperty AlignmentSP;
 
+    INumber MiniNewAlpN[2];
+    INumberVectorProperty MiniNewAlpNP;
+
+    INumber NewAlpN[6];
+    INumberVectorProperty NewAlpNP;
+
+    INumber NewAlignmentPointsN[1];
+    INumberVectorProperty NewAlignmentPointsNP;
+
+    IText NewModelNameT[1];
+    ITextVectorProperty NewModelNameTP;
+
   private:
     int fd = -1; // short notation for PortFD/sockfd
     bool getMountInfo();
 
-    int OldGstat = -1;
+    int OldGstat = GSTAT_UNSET;
+    struct _Ginfo {
+        float RA_JNOW   = 0.0;
+        float DEC_JNOW  = 0.0;
+        char SideOfPier = 'x';
+        float AZ        = 0.0;
+        float ALT       = 0.0;
+        float Jdate     = 0.0;
+        int Gstat       = -1;
+        int SlewStatus  = -1;
+    } Ginfo;
 
 };
