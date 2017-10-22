@@ -227,7 +227,7 @@ SET(indiclientqt_CXX_SRC
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indiproperty.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indistandardproperty.cpp)
 IF (UNITY_BUILD)
-    ENABLE_UNITY_BUILD(indiclientqt_c indiclientqt_C_SRC 10 cpp)
+    ENABLE_UNITY_BUILD(indiclientqt_c indiclientqt_C_SRC 10 c)
     ENABLE_UNITY_BUILD(indiclientqt_cxx indiclientqt_CXX_SRC 10 cpp)
 ENDIF ()
 
@@ -1027,8 +1027,17 @@ add_executable(indi_simulator_gps ${gpssimulator_SRC})
 target_link_libraries(indi_simulator_gps indidriver)
 install(TARGETS indi_simulator_gps RUNTIME DESTINATION bin)
 
+########### USB_Dewpoint Driver ###############
+
+SET(usb_dewpoint_SRC
+    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/auxiliary/usb_dewpoint.cpp)
+
+add_executable(indi_usbdewpoint ${usb_dewpoint_SRC})
+target_link_libraries(indi_usbdewpoint indidriver)
+install(TARGETS indi_usbdewpoint RUNTIME DESTINATION bin)
+
 #####################################
-############ AUX GROUP ##############
+########## WEATHER GROUP ############
 #####################################
 
 ########### Weather Meta Driver ###############

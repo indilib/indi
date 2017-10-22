@@ -104,6 +104,7 @@ bool SynscanMount::initProperties()
 
     //  probably want to debug this
     addDebugControl();
+    addConfigurationControl();
 
     DEBUG(INDI::Logger::DBG_SESSION, "InitProperties");
     // Add alignment properties
@@ -179,6 +180,11 @@ bool SynscanMount::updateProperties()
     return true;
 }
 
+int SynscanMount::HexStrToInteger(const std::string &str)
+{
+    return std::stoi(str, nullptr, 16);
+}
+
 bool SynscanMount::AnalyzeHandset()
 {
     bool rc = true;
@@ -192,7 +198,7 @@ bool SynscanMount::AnalyzeHandset()
     //  get the basics
     caps = GetTelescopeCapability();
 
-    IDMessage(getDeviceName(), "Detecting Synscan Handset Capabilities");
+//    IDMessage(getDeviceName(), "Detecting Synscan Handset Capabilities");
     rc = ReadLocation();
     if (rc)
     {
@@ -206,15 +212,15 @@ bool SynscanMount::AnalyzeHandset()
         //CanSetLocation=false;
     }
 
-    int tmp, tmp1, tmp2;
-    int bytesWritten, bytesRead;
+    int tmp { 0 };
+    int bytesWritten { 0 };
+    int bytesRead;
     char str[20];
 
     bytesRead = 0;
     memset(str, 0, 20);
     tty_write(PortFD, "J", 1, &bytesWritten);
     tty_read(PortFD, str, 2, 2, &bytesRead);
-    tmp = str[0];
 
     bytesRead = 0;
     memset(str, 0, 20);
@@ -224,22 +230,34 @@ bool SynscanMount::AnalyzeHandset()
     //fprintf(stderr,"Model %d\n",tmp);
     IDMessage(getDeviceName(), "Mount Model %d", tmp);
 
+    // Read the handset version
     bytesRead = 0;
     memset(str, 0, 20);
     tty_write(PortFD, "V", 1, &bytesWritten);
-    tty_read(PortFD, str, 3, 2, &bytesRead);
-    tmp  = str[0];
-    tmp1 = str[1];
-    tmp2 = str[2];
-    //fprintf(stderr,"version %d %d %d\n",tmp,tmp1,tmp2);
+    tty_read(PortFD, str, 6, 2, &bytesRead);
+    if (bytesRead == 3)
+    {
+        int tmp1 { 0 }, tmp2 { 0 };
 
-    FirmwareVersion = tmp2;
-    FirmwareVersion /= 100;
-    FirmwareVersion += tmp1;
-    FirmwareVersion /= 100;
-    FirmwareVersion += tmp;
-    //fprintf(stderr,"FirmwareVersion %6.4f\n",FirmwareVersion);
-    IDMessage(getDeviceName(), "Handset Firmware Version %lf", FirmwareVersion);
+        tmp  = str[0];
+        tmp1 = str[1];
+        tmp2 = str[2];
+        FirmwareVersion = tmp2;
+        FirmwareVersion /= 100;
+        FirmwareVersion += tmp1;
+        FirmwareVersion /= 100;
+        FirmwareVersion += tmp;
+    } else {
+        FirmwareVersion = (double)HexStrToInteger(std::string(&str[0], 2));
+        FirmwareVersion += (double)HexStrToInteger(std::string(&str[2], 2)) / 100;
+        FirmwareVersion += (double)HexStrToInteger(std::string(&str[4], 2)) / 10000;
+    }
+    DEBUGF(INDI::Logger::DBG_SESSION, "Firmware version: %lf", FirmwareVersion);
+    if (FirmwareVersion < 3.38 || (FirmwareVersion >= 4.0 && FirmwareVersion < 4.38))
+    {
+        IDMessage(nullptr, "Update Synscan firmware to V3.38/V4.38 or above");
+        DEBUG(INDI::Logger::DBG_SESSION, "Too old firmware version!");
+    }
 
     SetTelescopeCapability(caps, SYNSCAN_SLEW_RATES);
 

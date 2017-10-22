@@ -450,9 +450,10 @@ bool SkywatcherAPIMount::initProperties()
                        MOTION_TAB, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
 
     // Guiding support
-    initGuiderProperties(getDeviceName(), GUIDE_TAB);
+    // TODO: Hide the auto-guide support now because it is not production-ready
+//    initGuiderProperties(getDeviceName(), GUIDE_TAB);
 
-    setDriverInterface(getDriverInterface() | GUIDER_INTERFACE);
+//    setDriverInterface(getDriverInterface() | GUIDER_INTERFACE);
 
     return true;
 }
