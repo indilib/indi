@@ -20,6 +20,8 @@
 
 #include "indicom.h"
 
+#include <ctime>
+
 #define SYNSCAN_SLEW_RATES 9
 
 using namespace INDI::AlignmentSubsystem;
@@ -108,8 +110,6 @@ bool SynscanMount::initProperties()
 
     // Add alignment properties
     InitAlignmentProperties(this);
-    // Force the alignment system to always be on
-    getSwitch("ALIGNMENT_SUBSYSTEM_ACTIVE")->sp[0].s = ISS_ON;
 
     // Set up property variables
     IUFillText(&BasicMountInfo[(int)MountInfoItems::FwVersion], "FW_VERSION", "Firmware version", "-");
@@ -208,36 +208,29 @@ bool SynscanMount::AnalyzeHandset()
 {
     bool rc = true;
     int caps = 0;
+    int tmp = 0;
+    int bytesWritten = 0;
+    int bytesRead;
+    char str[20];
 
     caps = GetTelescopeCapability();
+
     rc = ReadLocation();
     if (rc)
     {
         ReadTime();
     }
 
-    int tmp { 0 };
-    int bytesWritten { 0 };
-    int bytesRead;
-    char str[20];
-
     bytesRead = 0;
     memset(str, 0, 20);
     tty_write(PortFD, "J", 1, &bytesWritten);
     tty_read(PortFD, str, 2, 2, &bytesRead);
 
-    bytesRead = 0;
-    memset(str, 0, 20);
-    tty_write(PortFD, "m", 1, &bytesWritten);
-    tty_read(PortFD, str, 2, 2, &bytesRead);
-    tmp = str[0];
-    IDMessage(getDeviceName(), "Mount Model %d", tmp);
-
     // Read the handset version
     bytesRead = 0;
     memset(str, 0, 20);
     tty_write(PortFD, "V", 1, &bytesWritten);
-    tty_read(PortFD, str, 6, 2, &bytesRead);
+    tty_read(PortFD, str, 7, 2, &bytesRead);
     if (bytesRead == 3)
     {
         int tmp1 { 0 }, tmp2 { 0 };
@@ -268,9 +261,13 @@ bool SynscanMount::AnalyzeHandset()
     memset(str, 0, 2);
     tty_write(PortFD, "m", 1, &bytesWritten);
     tty_read(PortFD, str, 2, 2, &bytesRead);
-    if (str[1] == '#')
+    if (bytesRead == 2)
     {
-        MountCode = (int)(unsigned char)str[0];
+        // This workaround is needed because the firmware 3.39 sends these bytes swapped.
+        if (str[1] == '#')
+            MountCode = (int)*reinterpret_cast<unsigned char*>(&str[0]);
+        else
+            MountCode = (int)*reinterpret_cast<unsigned char*>(&str[1]);
         if (MountCode < 128)
             SetApproximateMountAlignmentFromMountType(EQUATORIAL);
         else
@@ -317,10 +314,12 @@ bool SynscanMount::ReadScopeStatus()
             IDLog("ReadStatus Echo Fail. %s\n", str);
         IDMessage(getDeviceName(), "Mount Not Responding");
         // Usually, Abort() recovers the communication
+        RecoverTrials++;
         Abort();
 //        HasFailed = true;
         return false;
     }
+    RecoverTrials = 0;
 
     /*
     //  With 3.37 firmware, on the older line of eq6 mounts
@@ -407,10 +406,7 @@ bool SynscanMount::ReadScopeStatus()
         //  lets see if it's complete
         //  This only works for ra/dec goto commands
         //  The goto complete flag doesn't trip for ALT/AZ commands
-        memset(str, 0, 3);
-        tty_write(PortFD, "L", 1, &bytesWritten);
-        numread = tty_read(PortFD, str, 2, 3, &bytesRead);
-        if (str[0] != 48)
+        if (GotoStatus != "0")
         {
             //  Nothing to do here
         }
@@ -418,8 +414,6 @@ bool SynscanMount::ReadScopeStatus()
         {
             if (TrackState == SCOPE_PARKING)
                 TrackState = SCOPE_PARKED;
-            else
-                TrackState = SCOPE_TRACKING;
         }
     }
     if (TrackState == SCOPE_PARKING)
@@ -519,19 +513,148 @@ bool SynscanMount::ReadScopeStatus()
     currentRA  = ra;
     currentDEC = dec;
 
-    if (getSwitch("ALIGNMENT_SUBSYSTEM_ACTIVE")->sp[0].s == ISS_OFF && NewFirmware)
-    {
-        NewRaDec(currentRA, currentDEC);
-        return true;
-    }
-
     //  Before we pass this back to a client
     //  run it thru the alignment matrix to correct the data
     ln_equ_posn eq { 0, 0 };
 
-    eq = TelescopeToSky(ra, dec);
+    if (getSwitch("ALIGNMENT_SUBSYSTEM_ACTIVE")->sp[0].s == ISS_ON)
+    {
+        eq = TelescopeToSky(ra, dec);
+    } else {
+        eq.ra  = currentRA;
+        eq.dec = currentDEC;
+    }
+
     //  Now feed the rest of the system with corrected data
     NewRaDec(eq.ra, eq.dec);
+
+    if (TrackState == SCOPE_SLEWING && (SlewTargetAz != -1 || SlewTargetAlt != -1))
+    {
+        ln_hrz_posn CurrentAltAz { 0, 0 };
+        double DiffAlt { 0 };
+        double DiffAz { 0 };
+
+        CurrentAltAz = GetAltAzPosition(eq.ra, eq.dec);
+        DiffAlt = CurrentAltAz.alt-SlewTargetAlt;
+        if (SlewTargetAlt != -1 && std::abs(DiffAlt) > 0.01)
+        {
+            int NewRate = 2;
+
+            if (std::abs(DiffAlt) > 4)
+            {
+                NewRate = 9;
+            } else
+            if (std::abs(DiffAlt) > 1.2)
+            {
+                NewRate = 7;
+            } else
+            if (std::abs(DiffAlt) > 0.5)
+            {
+                NewRate = 5;
+            } else
+            if (std::abs(DiffAlt) > 0.2)
+            {
+                NewRate = 4;
+            } else
+            if (std::abs(DiffAlt) > 0.025)
+            {
+                NewRate = 3;
+            }
+            DEBUGF(INDI::Logger::DBG_DEBUG, "Slewing Alt axis: %1.3f-%1.3f -> %1.3f (speed: %d)",
+                   CurrentAltAz.alt, SlewTargetAlt, CurrentAltAz.alt-SlewTargetAlt, CustomNSSlewRate);
+            if (NewRate != CustomNSSlewRate)
+            {
+                if (DiffAlt < 0)
+                {
+                    CustomNSSlewRate = NewRate;
+                    MoveNS(DIRECTION_NORTH, MOTION_START);
+                } else {
+                    CustomNSSlewRate = NewRate;
+                    MoveNS(DIRECTION_SOUTH, MOTION_START);
+                }
+            }
+        } else
+        if (SlewTargetAlt != -1 && std::abs(DiffAlt) < 0.01)
+        {
+            MoveNS(DIRECTION_NORTH, MOTION_STOP);
+            SlewTargetAlt = -1;
+            DEBUG(INDI::Logger::DBG_SESSION, "Slewing on Alt axis finished");
+        }
+        DiffAz = CurrentAltAz.az-SlewTargetAz;
+        if (DiffAz < -180)
+            DiffAz = (DiffAz+360)*2;
+        else
+        if (DiffAz > 180)
+            DiffAz = (DiffAz-360)*2;
+        if (SlewTargetAz != -1 && std::abs(DiffAz) > 0.01)
+        {
+            int NewRate = 2;
+
+            if (std::abs(DiffAz) > 4)
+            {
+                NewRate = 9;
+            } else
+            if (std::abs(DiffAz) > 1.2)
+            {
+                NewRate = 7;
+            } else
+            if (std::abs(DiffAz) > 0.5)
+            {
+                NewRate = 5;
+            } else
+            if (std::abs(DiffAz) > 0.2)
+            {
+                NewRate = 4;
+            } else
+            if (std::abs(DiffAz) > 0.025)
+            {
+                NewRate = 3;
+            }
+            DEBUGF(INDI::Logger::DBG_DEBUG, "Slewing Az axis: %1.3f-%1.3f -> %1.3f (speed: %d)",
+                   CurrentAltAz.az, SlewTargetAz, CurrentAltAz.az-SlewTargetAz, CustomWESlewRate);
+            if (NewRate != CustomWESlewRate)
+            {
+                if (DiffAz > 0)
+                {
+                    CustomWESlewRate = NewRate;
+                    MoveWE(DIRECTION_WEST, MOTION_START);
+                } else {
+                    CustomWESlewRate = NewRate;
+                    MoveWE(DIRECTION_EAST, MOTION_START);
+                }
+            }
+        } else
+        if (SlewTargetAz != -1 && std::abs(DiffAz) < 0.01)
+        {
+            MoveWE(DIRECTION_WEST, MOTION_STOP);
+            SlewTargetAz = -1;
+            DEBUG(INDI::Logger::DBG_SESSION, "Slewing on Az axis finished");
+        }
+        if (SlewTargetAz == -1 && SlewTargetAlt == -1)
+        {
+            TrackState = SCOPE_TRACKING;
+            DEBUG(INDI::Logger::DBG_SESSION, "Tracking started");
+            // Start tracking
+            str[0] = 'T';
+            // Check the mount type to choose tracking mode
+            if (MountCode >= 128)
+            {
+                // Alt/Az tracking mode
+                str[1] = 1;
+            } else {
+                // EQ tracking mode
+                str[1] = 2;
+            }
+            tty_write(PortFD, str, 2, &bytesWritten);
+            numread = tty_read(PortFD, str, 1, 2, &bytesRead);
+            if (bytesRead != 1 || str[0] != '#')
+            {
+                if (isDebug())
+                    IDLog("Timeout waiting for scope to stop tracking.");
+                return false;
+            }
+        }
+    }
 
     /*
 
@@ -566,7 +689,7 @@ bool SynscanMount::ReadScopeStatus()
 bool SynscanMount::Goto(double ra, double dec)
 {
     char str[20];
-    int numread, bytesWritten, bytesRead;
+    int bytesWritten, bytesRead;
     double TargetRA { 0 }, TargetDE { 0 };
     ln_hrz_posn TargetAltAz { 0, 0 };
 
@@ -579,9 +702,8 @@ bool SynscanMount::Goto(double ra, double dec)
         //  so we are not talking to a mount properly
         return false;
     }
-
     TrackState = SCOPE_SLEWING;
-    DEBUGF(INDI::Logger::DBG_SESSION, "Enter Goto %g %g", ra, dec);
+    DEBUGF(INDI::Logger::DBG_SESSION, "Goto - ra: %g de: %g", ra, dec);
     if (getSwitch("ALIGNMENT_SUBSYSTEM_ACTIVE")->sp[0].s == ISS_ON && NewFirmware)
     {
         ln_equ_posn eq { 0, 0 };
@@ -594,38 +716,11 @@ bool SynscanMount::Goto(double ra, double dec)
         TargetDE = dec;
     }
     TargetAltAz = GetAltAzPosition(TargetRA, TargetDE);
-    DEBUGF(INDI::Logger::DBG_SESSION, "Corrected Goto - ra: %g de: %g (az: %g alt: %g)", TargetRA, TargetDE,
+    DEBUGF(INDI::Logger::DBG_SESSION, "Goto - ra: %g de: %g (az: %g alt: %g)", ra, dec,
            TargetAltAz.az, TargetAltAz.alt);
-    // Assemble the Slow-Goto command for Az axis
-    int Az = (int)((TargetAltAz.az)*16777216 / 360);
 
-    str[0] = 'P';
-    str[1] = 4;
-    str[2] = 16;
-    str[3] = 23;
-    *reinterpret_cast<unsigned char*>(&str[4]) = (unsigned char)(Az / 65536);
-    Az -= (Az / 65536)*65536;
-    *reinterpret_cast<unsigned char*>(&str[5]) = (unsigned char)(Az / 256);
-    Az -= (Az / 256)*256;
-    *reinterpret_cast<unsigned char*>(&str[6]) = (unsigned char)Az;
-    str[7] = 0;
-    tty_write(PortFD, str, 8, &bytesWritten);
-    numread = tty_read(PortFD, str, 1, 2, &bytesRead);
-    // Assemble the Slow-Goto command for Alt axis
-    int Alt = (int)(TargetAltAz.alt*16777216 / 90);
-
-    str[0] = 'P';
-    str[1] = 4;
-    str[2] = 17;
-    str[3] = 23;
-    *reinterpret_cast<unsigned char*>(&str[4]) = (unsigned char)(Alt / 65536);
-    Alt -= (Alt / 65536)*65536;
-    *reinterpret_cast<unsigned char*>(&str[5]) = (unsigned char)(Alt / 256);
-    Alt -= (Alt / 256)*256;
-    *reinterpret_cast<unsigned char*>(&str[6]) = (unsigned char)Alt;
-    str[7] = 0;
-    tty_write(PortFD, str, 8, &bytesWritten);
-    numread = tty_read(PortFD, str, 1, 2, &bytesRead);
+    SlewTargetAz = TargetAltAz.az;
+    SlewTargetAlt = TargetAltAz.alt;
     return true;
 }
 
@@ -699,20 +794,27 @@ bool SynscanMount::SetDefaultPark()
 
 bool SynscanMount::Abort()
 {
+    if (TrackState == SCOPE_IDLE || RecoverTrials >= 3)
+        return true;
+
     char str[20];
     int numread, bytesWritten, bytesRead;
 
     DEBUG(INDI::Logger::DBG_SESSION, "Abort any motions");
     TrackState = SCOPE_IDLE;
+    SlewTargetAlt = -1;
+    SlewTargetAz = -1;
+    CustomNSSlewRate = -1;
+    CustomWESlewRate = -1;
     // Stop tracking
     str[0] = 'T';
     str[1] = 0;
     tty_write(PortFD, str, 2, &bytesWritten);
-    numread = tty_read(PortFD, str, 1, 60, &bytesRead);
+    numread = tty_read(PortFD, str, 1, 2, &bytesRead);
     if (bytesRead != 1 || str[0] != '#')
     {
         if (isDebug())
-            IDLog("Timeout waiting for scope to stop tracking.");
+            DEBUG(INDI::Logger::DBG_SESSION, "Timeout waiting for scope to stop tracking.");
         return false;
     }
 
@@ -734,7 +836,7 @@ bool SynscanMount::MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command)
     }
     else
     {
-        int tt = SlewRate;
+        int tt = (CustomNSSlewRate == -1 ? SlewRate : CustomNSSlewRate);
 
         tt = tt << 16;
         if (dir != DIRECTION_NORTH)
@@ -758,16 +860,16 @@ bool SynscanMount::MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command)
     }
     else
     {
-        int tt = SlewRate;
+        int tt = (CustomWESlewRate == -1 ? SlewRate : CustomWESlewRate);
 
         tt = tt << 16;
         if (dir != DIRECTION_WEST)
         {
-            PassthruCommand(37, 16, 2, tt, 0);
+            PassthruCommand(36, 16, 2, tt, 0);
         }
         else
         {
-            PassthruCommand(36, 16, 2, tt, 0);
+            PassthruCommand(37, 16, 2, tt, 0);
         }
     }
 
@@ -1092,7 +1194,7 @@ bool SynscanMount::Sync(double ra, double dec)
         DEBUGF(INDI::Logger::DBG_SESSION, "First sync - ra: %g de: %g (az: %g alt: %g)", ra, dec,
                TargetAltAz.az, TargetAltAz.alt);
         // Assemble the Reset Position command for Az axis
-        int Az = (int)((TargetAltAz.az)*16777216 / 360);
+        int Az = (int)(TargetAltAz.az*16777216 / 360);
 
         str[0] = 'P';
         str[1] = 4;
@@ -1107,7 +1209,7 @@ bool SynscanMount::Sync(double ra, double dec)
         tty_write(PortFD, str, 8, &bytesWritten);
         numread = tty_read(PortFD, str, 1, 2, &bytesRead);
         // Assemble the Reset Position command for Alt axis
-        int Alt = (int)(TargetAltAz.alt*16777216 / 90);
+        int Alt = (int)(TargetAltAz.alt*16777216 / 360);
 
         str[0] = 'P';
         str[1] = 4;
@@ -1123,7 +1225,8 @@ bool SynscanMount::Sync(double ra, double dec)
         numread = tty_read(PortFD, str, 1, 2, &bytesRead);
 
         FirstSync = true;
-        return true;
+        if (!(getSwitch("ALIGNMENT_SUBSYSTEM_ACTIVE")->sp[0].s == ISS_OFF && NewFirmware))
+            return true;
     }
     // Pass the sync operation to the handset
     if (getSwitch("ALIGNMENT_SUBSYSTEM_ACTIVE")->sp[0].s == ISS_OFF && NewFirmware)
@@ -1146,7 +1249,7 @@ bool SynscanMount::Sync(double ra, double dec)
         n2 = n2 << 8;
         sprintf((char *)str, "s%08X,%08X", n1, n2);
         memset(&str[18], 0, 1);
-        DEBUGF(INDI::Logger::DBG_SESSION, "Send Sync command to the handset (%s)", str);
+        DEBUGF(INDI::Logger::DBG_DEBUG, "Send Sync command to the handset (%s)", str);
         tty_write(PortFD, str, 18, &bytesWritten);
         TrackState = SCOPE_TRACKING;
 
@@ -1339,22 +1442,22 @@ ln_equ_posn SynscanMount::SkyToTelescope(double ra, double dec)
 
 ln_hrz_posn SynscanMount::GetAltAzPosition(double ra, double dec)
 {
-    ln_hrz_posn TargetAltAz { 0, 0 };
     ln_lnlat_posn Location { 0, 0 };
-    ln_equ_posn eq { 0, 0 };
+    ln_equ_posn Eq { 0, 0 };
+    ln_hrz_posn AltAz { 0, 0 };
 
     // Set the current location
     Location.lat = LocationN[LOCATION_LATITUDE].value;
     Location.lng = LocationN[LOCATION_LONGITUDE].value;
 
-    eq.ra  = ra*360.0 / 24.0;	//  this is wanted in degrees, not hours
-    eq.dec = dec;
-    ln_get_hrz_from_equ(&eq, &Location, ln_get_julian_from_sys(), &TargetAltAz);
-    TargetAltAz.az -= 180;
-    if (TargetAltAz.az < 0)
-        TargetAltAz.az += 360;
+    Eq.ra  = ra*360.0 / 24.0;
+    Eq.dec = dec;
+    ln_get_hrz_from_equ(&Eq, &Location, ln_get_julian_from_sys(), &AltAz);
+    AltAz.az -= 180;
+    if (AltAz.az < 0)
+        AltAz.az += 360;
 
-    return TargetAltAz;
+    return AltAz;
 }
 
 void SynscanMount::UpdateMountInformation(bool inform_client)

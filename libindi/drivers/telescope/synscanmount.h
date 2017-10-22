@@ -72,12 +72,17 @@ class SynscanMount : public INDI::Telescope, public INDI::AlignmentSubsystem::Al
     int NumPark { 0 };
     int StopCount { 0 };
     int SlewRate { 5 };
+    int CustomNSSlewRate { -1 };
+    int CustomWESlewRate { -1 };
+    double SlewTargetAlt { -1 };
+    double SlewTargetAz { -1 };
     double currentRA { 0 };
     double currentDEC { 0 };
     bool FirstSync { false };
     bool AlignmentStarted { false };
     bool CanSetLocation { false };
     bool ReadLatLong { false };
+    int RecoverTrials { 0 };
 //    bool HasFailed { true };
     bool NewFirmware { false };
     const std::string MountInfoPage { "Mount Information" };
@@ -93,7 +98,7 @@ class SynscanMount : public INDI::Telescope, public INDI::AlignmentSubsystem::Al
     IText BasicMountInfo[6];
     ITextVectorProperty BasicMountInfoV;
     std::string HandsetFwVersion;
-    int MountCode;
+    int MountCode { 0 };
     std::string AlignmentStatus;
     std::string GotoStatus;
     std::string MountPointingStatus;
