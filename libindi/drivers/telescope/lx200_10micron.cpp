@@ -430,6 +430,28 @@ int LX200_10MICRON::setStandardProcedureAndExpect(int fd, const char *data, cons
 
     return 0;
 }
+int LX200_10MICRON::setStandardProcedureAndReturnResponse(int fd, const char *data, char *response, int max_response_length)
+{
+    char bool_return[2];
+    int error_type;
+    int nbytes_write = 0, nbytes_read = 0;
+
+    DEBUGFDEVICE(getDefaultName(), DBG_SCOPE, "CMD <%s>", data);
+
+    tcflush(fd, TCIFLUSH);
+
+    if ((error_type = tty_write_string(fd, data, &nbytes_write)) != TTY_OK)
+        return error_type;
+
+    error_type = tty_read(fd, response, max_response_length, LX200_TIMEOUT, &nbytes_read);
+
+    tcflush(fd, TCIFLUSH);
+
+    if (nbytes_read < 1)
+        return error_type;
+
+    return 0;
+}
 
 bool LX200_10MICRON::Park()
 {
@@ -476,6 +498,52 @@ int LX200_10MICRON::SetRefractionModelPressure(double pressure)
     return setStandardProcedure(fd, data);
 }
 
+int LX200_10MICRON::AddSyncPoint(double MRa, double MDec, double MSide, double PRa, double PDec, double SidTime)
+{
+    char MRa_str[32], MDec_str[32];
+    fs_sexa(MRa_str, MRa, 0, 36000);
+    fs_sexa(MDec_str, MDec, 0, 3600);
+
+    char MSide_char;
+    ((int)MSide == 0) ? MSide_char = 'E' : MSide_char = 'W';
+
+    char PRa_str[32], PDec_str[32];
+    fs_sexa(PRa_str, PRa, 0, 36000);
+    fs_sexa(PDec_str, PDec, 0, 3600);
+
+    char SidTime_str[32];
+    fs_sexa(SidTime_str, SidTime, 0, 36000);
+
+    char command[80];
+    snprintf(command, 80, "#:newalpt%s,%s,%c,%s,%s,%s#", MRa_str, MDec_str, MSide_char, PRa_str, PDec_str, SidTime_str);
+    DEBUGF(INDI::Logger::DBG_SESSION, "AddSyncPoint %s", command);
+
+    char response[6];
+    if (0 != setStandardProcedureAndReturnResponse(fd, command, response, 5) || response[0] == 'E')
+    {
+        DEBUG(INDI::Logger::DBG_ERROR, "AddSyncPoint error");
+        return 1;
+    }
+    int points;
+    int nbytes_read = sscanf(response, "%d#", &points);
+    if (nbytes_read < 0)
+    {
+        DEBUG(INDI::Logger::DBG_ERROR, "AddSyncPoint response error");
+        return 1;
+    }
+    NewAlignmentPointsN[0].value = points;
+    IDSetNumber(&NewAlignmentPointsNP, nullptr);
+
+    return 0;
+}
+
+int LX200_10MICRON::AddSyncPointHere(double PRa, double PDec)
+{
+	double MRa, MDec, MSide, SidTime;
+    (toupper(Ginfo.SideOfPier) == 'E') ? MSide = 0 : MSide = 1;
+	return AddSyncPoint(Ginfo.RA_JNOW, Ginfo.DEC_JNOW, MSide, PRa, PDec, Ginfo.Jdate);
+}
+
 bool LX200_10MICRON::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
 {
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
@@ -510,7 +578,6 @@ bool LX200_10MICRON::ISNewNumber(const char *dev, const char *name, double value
             DEBUGF(INDI::Logger::DBG_SESSION, "RefractionModelPressure set to %06.1f hPa", RefractionModelPressureN[0].value);
             return true;
         }
-        /*
         if (strcmp(name, "MODEL_COUNT") == 0)
         {
             IUUpdateNumber(&ModelCountNP, values, names, n);
@@ -518,22 +585,41 @@ bool LX200_10MICRON::ISNewNumber(const char *dev, const char *name, double value
             DEBUGF(INDI::Logger::DBG_SESSION, "ModelCount %d", ModelCountN[0].value);
             return true;
         }
-        */
         if (strcmp(name, "MINIMAL_NEW_ALIGNMENT_POINT") == 0)
         {
             IUUpdateNumber(&MiniNewAlpNP, values, names, n);
-/*
-            if (0 != AddSyncPointHere(ModelSolvedJNowEqN[0].value))
+            if (0 != AddSyncPointHere(MiniNewAlpN[0].value, MiniNewAlpN[1].value))
             {
                 DEBUG(INDI::Logger::DBG_ERROR, "AddSyncPointHere error");
-                ModelSolvedJNowEqNP.s = IPS_ALERT;
-                IDSetNumber(&ModelSolvedJNowEqNP, nullptr);
+                MiniNewAlpNP.s = IPS_ALERT;
+                IDSetNumber(&MiniNewAlpNP, nullptr);
                 return false;
             }
-*/
             MiniNewAlpNP.s = IPS_OK;
             IDSetNumber(&MiniNewAlpNP, nullptr);
             DEBUGF(INDI::Logger::DBG_SESSION, "SolvedJNowEq set to %06.1f ", MiniNewAlpN[0].value);
+            return true;
+        }
+        if (strcmp(name, "NEW_ALIGNMENT_POINT") == 0)
+        {
+            IUUpdateNumber(&NewAlpNP, values, names, n);
+            if (0 != AddSyncPoint(NewAlpN[0].value, NewAlpN[1].value, NewAlpN[2].value, NewAlpN[3].value, NewAlpN[4].value, NewAlpN[5].value))
+            {
+                DEBUG(INDI::Logger::DBG_ERROR, "AddSyncPoint error");
+                NewAlpNP.s = IPS_ALERT;
+                IDSetNumber(&NewAlpNP, nullptr);
+                return false;
+            }
+            NewAlpNP.s = IPS_OK;
+            IDSetNumber(&NewAlpNP, nullptr);
+            DEBUGF(INDI::Logger::DBG_SESSION, "SolvedJNowEq set to %06.1f ", NewAlpN[0].value);
+            return true;
+        }
+        if (strcmp(name, "NEW_ALIGNMENT_POINTS") == 0)
+        {
+            IUUpdateNumber(&NewAlignmentPointsNP, values, names, n);
+            IDSetNumber(&NewAlignmentPointsNP, nullptr);
+            DEBUGF(INDI::Logger::DBG_SESSION, "New unnamed Model now has %d alignment points", NewAlignmentPointsN[0].value);
             return true;
         }
     }
@@ -590,4 +676,20 @@ bool LX200_10MICRON::ISNewSwitch(const char *dev, const char *name, ISState *sta
     }
 
     return LX200Generic::ISNewSwitch(dev, name, states, names, n);
+}
+
+bool LX200_10MICRON::ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
+{
+    if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
+    {
+        if (strcmp(name, "NEW_MODEL_NAME") == 0)
+        {
+            IUUpdateText(&NewModelNameTP, texts, names, n);
+            IDSetText(&NewModelNameTP, nullptr);
+            DEBUGF(INDI::Logger::DBG_SESSION, "Model saved with name %s", NewModelNameT[0].text);
+            NewModelNameTP.s = IPS_OK;
+            return true;
+        }
+    }
+    return LX200Generic::ISNewText(dev, name, texts, names, n);
 }

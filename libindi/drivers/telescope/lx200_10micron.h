@@ -48,6 +48,7 @@ class LX200_10MICRON : public LX200Generic
 
     virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n);
     virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n);
+    virtual bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n);
 
     virtual const char *getDefaultName() override;
     virtual bool Handshake() override;
@@ -58,10 +59,14 @@ class LX200_10MICRON : public LX200Generic
     virtual bool UnPark() override;
     virtual bool SyncConfigBehaviour(bool cmcfg);
 
+    int AddSyncPoint(double MRa, double MDec, double MSide, double PRa, double PDec, double SidTime);
+    int AddSyncPointHere(double PRa, double PDec);
+
     // TODO move these things elsewhere
     int monthToNumber(const char *monthName);
     int setStandardProcedureWithoutRead(int fd, const char *data);
     int setStandardProcedureAndExpect(int fd, const char *data, const char *expect);
+    int setStandardProcedureAndReturnResponse(int fd, const char *data, char *response, int max_response_length);
 
   protected:
     virtual void getBasicData() override;
