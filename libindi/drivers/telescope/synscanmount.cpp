@@ -653,7 +653,9 @@ bool SynscanMount::Park()
         return false;
     }
     //  Now we stop tracking
-    tty_write(PortFD, "T0", 2, &bytesWritten);
+    str[0] = 'T';
+    str[1] = 0;
+    tty_write(PortFD, str, 2, &bytesWritten);
     numread = tty_read(PortFD, str, 1, 60, &bytesRead);
     if (bytesRead != 1 || str[0] != '#')
     {
@@ -706,7 +708,21 @@ bool SynscanMount::SetDefaultPark()
 bool SynscanMount::Abort()
 {
     char str[20];
-    int bytesWritten, bytesRead;
+    int numread, bytesWritten, bytesRead;
+
+    DEBUG(INDI::Logger::DBG_SESSION, "Abort any motions");
+    TrackState = SCOPE_IDLE;
+    // Stop tracking
+    str[0] = 'T';
+    str[1] = 0;
+    tty_write(PortFD, str, 2, &bytesWritten);
+    numread = tty_read(PortFD, str, 1, 60, &bytesRead);
+    if (bytesRead != 1 || str[0] != '#')
+    {
+        if (isDebug())
+            IDLog("Timeout waiting for scope to stop tracking.");
+        return false;
+    }
 
     // Hmmm twice only stops it
     tty_write(PortFD, "M", 1, &bytesWritten);
