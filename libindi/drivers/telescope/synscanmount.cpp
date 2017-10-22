@@ -97,7 +97,6 @@ bool SynscanMount::initProperties()
 {
     bool Ret = INDI::Telescope::initProperties();
 
-    //SetTelescopeCapability(TELESCOPE_CAN_ABORT | TELESCOPE_CAN_SYNC | TELESCOPE_CAN_GOTO | TELESCOPE_HAS_TIME | TELESCOPE_HAS_LOCATION ,SYNSCAN_SLEW_RATES);
     SetTelescopeCapability(TELESCOPE_CAN_PARK | TELESCOPE_CAN_ABORT | TELESCOPE_CAN_SYNC | TELESCOPE_CAN_GOTO |
                            TELESCOPE_HAS_TIME | TELESCOPE_HAS_LOCATION,
                            SYNSCAN_SLEW_RATES);
@@ -210,26 +209,11 @@ bool SynscanMount::AnalyzeHandset()
     bool rc = true;
     int caps = 0;
 
-    //  call the parent
-    //r=INDI::Telescope::Connect();
-    //if( !r) {
-    //	return r;
-    //}
-    //  get the basics
     caps = GetTelescopeCapability();
-
-//    IDMessage(getDeviceName(), "Detecting Synscan Handset Capabilities");
     rc = ReadLocation();
     if (rc)
     {
-        CanSetLocation = true;
-        //caps |= TELESCOPE_HAS_LOCATION;
         ReadTime();
-        //if(rc) caps |= TELESCOPE_HAS_TIME;
-    }
-    else
-    {
-        //CanSetLocation=false;
     }
 
     int tmp { 0 };
@@ -247,7 +231,6 @@ bool SynscanMount::AnalyzeHandset()
     tty_write(PortFD, "m", 1, &bytesWritten);
     tty_read(PortFD, str, 2, 2, &bytesRead);
     tmp = str[0];
-    //fprintf(stderr,"Model %d\n",tmp);
     IDMessage(getDeviceName(), "Mount Model %d", tmp);
 
     // Read the handset version
@@ -298,13 +281,11 @@ bool SynscanMount::AnalyzeHandset()
 
     if (InitPark())
     {
-        //fprintf(stderr,"InitPark returns true\n");
         SetAxis1ParkDefault(0);
         SetAxis2ParkDefault(90);
     }
     else
     {
-        //fprintf(stderr,"InitPark returns false\n");
         SetAxis1Park(0);
         SetAxis2Park(90);
         SetAxis1ParkDefault(0);
@@ -320,9 +301,6 @@ bool SynscanMount::ReadScopeStatus()
     int numread;
     double ra, dec;
     long unsigned int n1, n2;
-
-    //IDLog("SynScan Read Status\n");
-    //tty_write(PortFD,(unsigned char *)"Ka",2, &bytesWritten);  //  test for an echo
 
     // Force the alignment subsystem to be on if the firmware is too old
     if (getSwitch("ALIGNMENT_SUBSYSTEM_ACTIVE")->sp[0].s == ISS_OFF && !NewFirmware)
@@ -444,7 +422,6 @@ bool SynscanMount::ReadScopeStatus()
     }
     if (TrackState == SCOPE_PARKING)
     {
-        //IDMessage(getDeviceName(),"Firmware %lf",FirmwareVersion);
         if (FirmwareVersion == 4.103500)
         {
             //  With this firmware the correct way
@@ -465,7 +442,6 @@ bool SynscanMount::ReadScopeStatus()
                 else
                 {
                     TrackState = SCOPE_PARKED;
-                    //IDMessage(getDeviceName(),"Telescope is Parked");
                     SetParked(true);
                 }
             }
@@ -531,10 +507,6 @@ bool SynscanMount::ReadScopeStatus()
     if (isDebug())
         IDLog("Bytes read is (%s)\n", str);
 
-    // bytes read is as expected
-    //sscanf((char *)str,"%x",&n1);
-    //sscanf((char *)&str[9],"%x",&n2);
-
     // JM read as unsigned long int, otherwise we get negative RA!
     sscanf(str, "%lx,%lx#", &n1, &n2);
 
@@ -597,7 +569,6 @@ bool SynscanMount::Goto(double ra, double dec)
     ln_equ_posn eq { 0, 0 };
     double RightAscension, Declination;
 
-    //fprintf(stderr,"Enter Goto  %4.4lf %4.4lf\n",ra,dec);
     DEBUGF(INDI::Logger::DBG_SESSION, "Enter Goto %g %g", ra, dec);
 
     eq             = SkyToTelescope(ra, dec);
@@ -736,10 +707,8 @@ bool SynscanMount::Abort()
 
 bool SynscanMount::MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command)
 {
-    //fprintf(stderr,"MoveNS %d rate %d dir %d\n",command,SlewRate,dir);
     if (command != MOTION_START)
     {
-        //fprintf(stderr,"Stop Motion N/S\n");
         PassthruCommand(37, 17, 2, 0, 0);
     }
     else
@@ -749,12 +718,10 @@ bool SynscanMount::MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command)
         tt = tt << 16;
         if (dir != DIRECTION_NORTH)
         {
-            //fprintf(stderr,"Start Motion South\n");
             PassthruCommand(37, 17, 2, tt, 0);
         }
         else
         {
-            //fprintf(stderr,"Start Motion North\n");
             PassthruCommand(36, 17, 2, tt, 0);
         }
     }
@@ -764,11 +731,8 @@ bool SynscanMount::MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command)
 
 bool SynscanMount::MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command)
 {
-    //fprintf(stderr,"MoveWE %d rate %d dir %d\n",command,SlewRate,dir);
-
     if (command != MOTION_START)
     {
-        //fprintf(stderr,"Stop Motion E/W\n");
         PassthruCommand(37, 16, 2, 0, 0);
     }
     else
@@ -778,12 +742,10 @@ bool SynscanMount::MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command)
         tt = tt << 16;
         if (dir != DIRECTION_WEST)
         {
-            //fprintf(stderr,"Start Motion East\n");
             PassthruCommand(37, 16, 2, tt, 0);
         }
         else
         {
-            //fprintf(stderr,"Start Motion West\n");
             PassthruCommand(36, 16, 2, tt, 0);
         }
     }
@@ -794,7 +756,6 @@ bool SynscanMount::MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command)
 bool SynscanMount::SetSlewRate(int s)
 {
     SlewRate = s + 1;
-    //fprintf(stderr,"Slew rate %d\n",SlewRate);
     return true;
 }
 
@@ -824,13 +785,7 @@ int SynscanMount::PassthruCommand(int cmd, int target, int msgsize, int data, in
 
     tty_write(PortFD, test, 8, &bytesWritten);
     memset(test, 0, 20);
-    //fprintf(stderr,"Start Passthru %d %d %d %d\n",cmd,target,msgsize,data);
     tty_read(PortFD, test, numReturn + 1, 2, &bytesRead);
-    //fprintf(stderr,"Got %d bytes\n",bytesRead);
-    //for(int x=0; x<bytesRead; x++) {
-    //    fprintf(stderr,"%x ",test[x]);
-    //}
-    //fprintf(stderr,"\n");
     if (numReturn > 0)
     {
         int retval = 0;
@@ -860,14 +815,12 @@ bool SynscanMount::ReadTime()
     bytesRead = 0;
     tty_write(PortFD, "h", 1, &bytesWritten);
     tty_read(PortFD, str, 9, 2, &bytesRead);
-    //fprintf(stderr,"Read Time returns %d\n",bytesRead);
     if (str[8] == '#')
     {
         ln_zonedate localTime;
         ln_date utcTime;
-
         int offset, daylightflag;
-        //fprintf(stderr,"Got a good terminator\n");
+
         localTime.hours   = str[0];
         localTime.minutes = str[1];
         localTime.seconds = str[2];
@@ -909,13 +862,11 @@ bool SynscanMount::ReadLocation()
     char str[20];
     int bytesWritten = 0, bytesRead = 0;
 
-    //fprintf(stderr,"Read Location\n");
-
     tty_write(PortFD, "Ka", 2, &bytesWritten); //  test for an echo
     tty_read(PortFD, str, 2, 2, &bytesRead);   //  Read 2 bytes of response
     if (str[1] != '#')
     {
-        fprintf(stderr, "bad echo in ReadLocation\n");
+        DEBUG(INDI::Logger::DBG_SESSION, "Bad echo in ReadLocation");
     }
     else
     {
@@ -968,7 +919,7 @@ bool SynscanMount::ReadLocation()
         }
         else
         {
-            fprintf(stderr, "Mount does not support setting location\n");
+            DEBUG(INDI::Logger::DBG_SESSION, "Mount does not support setting location");
         }
     }
     return false;
@@ -982,8 +933,6 @@ bool SynscanMount::updateTime(ln_date *utc, double utc_offset)
     //  start by formatting a time for the hand controller
     //  we are going to set controller to local time
     //
-
-    //fprintf(stderr,"Update time\n");
     struct ln_zonedate ltm;
 
     ln_date_to_zonedate(utc, &ltm, utc_offset * 3600.0);
@@ -1007,13 +956,8 @@ bool SynscanMount::updateTime(ln_date *utc, double utc_offset)
     tty_read(PortFD, str, 1, 2, &bytesRead);
     if (str[0] != '#')
     {
-        fprintf(stderr, "Invalid return from set time\n");
+        DEBUG(INDI::Logger::DBG_SESSION, "Invalid return from set time");
     }
-    else
-    {
-        //fprintf(stderr,"Set time returns correctly\n");
-    }
-
     return true;
 }
 
@@ -1106,7 +1050,8 @@ bool SynscanMount::Sync(double ra, double dec)
 
         tty_write(PortFD, "Ka", 2, &bytesWritten);  //  test for an echo
         tty_read(PortFD, str, 2, 2, &bytesRead);  //  Read 2 bytes of response
-        if (str[1] != '#') {
+        if (str[1] != '#')
+        {
             //  this is not a correct echo
             //  so we are not talking to a mount properly
             return false;
@@ -1250,9 +1195,6 @@ ln_equ_posn SynscanMount::SkyToTelescope(double ra, double dec)
     TelescopeDirectionVector TDV;
     double RightAscension = 0, Declination = 0;
 
-    /*
-    */
-
     if (GetAlignmentDatabase().size() > 1)
     {
         //  if the alignment system has been turned off
@@ -1307,8 +1249,6 @@ ln_equ_posn SynscanMount::SkyToTelescope(double ra, double dec)
 
     eq.ra  = RightAscension;
     eq.dec = Declination;
-    //eq.ra=ra;
-    //eq.dec=dec;
     return eq;
 }
 
