@@ -324,6 +324,12 @@ bool SynscanMount::ReadScopeStatus()
     //IDLog("SynScan Read Status\n");
     //tty_write(PortFD,(unsigned char *)"Ka",2, &bytesWritten);  //  test for an echo
 
+    // Force the alignment subsystem to be on if the firmware is too old
+    if (getSwitch("ALIGNMENT_SUBSYSTEM_ACTIVE")->sp[0].s == ISS_OFF && !NewFirmware)
+    {
+        getSwitch("ALIGNMENT_SUBSYSTEM_ACTIVE")->sp[0].s = ISS_ON;
+    }
+
     tty_write(PortFD, "Ka", 2, &bytesWritten); //  test for an echo
     tty_read(PortFD, str, 2, 2, &bytesRead);   //  Read 2 bytes of response
     if (str[1] != '#')
@@ -539,6 +545,12 @@ bool SynscanMount::ReadScopeStatus()
     currentRA  = ra;
     currentDEC = dec;
 
+    if (getSwitch("ALIGNMENT_SUBSYSTEM_ACTIVE")->sp[0].s == ISS_OFF && NewFirmware)
+    {
+        NewRaDec(currentRA, currentDEC);
+        return true;
+    }
+
     //  Before we pass this back to a client
     //  run it thru the alignment matrix to correct the data
     ln_equ_posn eq { 0, 0 };
@@ -591,7 +603,6 @@ bool SynscanMount::Goto(double ra, double dec)
     eq             = SkyToTelescope(ra, dec);
     RightAscension = eq.ra;
     Declination    = eq.dec;
-    DEBUGF(INDI::Logger::DBG_SESSION, "Corrected Goto %g %g", RightAscension, Declination);
 
     //  not fleshed in yet
     tty_write(PortFD, "Ka", 2, &bytesWritten); //  test for an echo
@@ -611,6 +622,8 @@ bool SynscanMount::Goto(double ra, double dec)
     n2 = n2 << 8;
     sprintf((char *)str, "r%08X,%08X", n1, n2);
     tty_write(PortFD, str, 18, &bytesWritten);
+    memset(&str[18], 0, 1);
+    DEBUGF(INDI::Logger::DBG_SESSION, "Corrected Goto %g %g (command %s)", RightAscension, Declination, str);
     TrackState = SCOPE_SLEWING;
     numread    = tty_read(PortFD, str, 1, 60, &bytesRead);
     if (bytesRead != 1 || str[0] != '#')
@@ -1066,11 +1079,46 @@ bool SynscanMount::updateLocation(double latitude, double longitude, double elev
 
 bool SynscanMount::Sync(double ra, double dec)
 {
+    DEBUGF(INDI::Logger::DBG_SESSION, "Sync %g %g -> %g %g", currentRA, currentDEC, ra, dec);
+
+    // Pass the sync operation to the handset
+    if (getSwitch("ALIGNMENT_SUBSYSTEM_ACTIVE")->sp[0].s == ISS_OFF && NewFirmware)
+    {
+        char str[20];
+        int n1, n2;
+        int numread, bytesWritten { 0 }, bytesRead { 0 };
+
+        tty_write(PortFD, "Ka", 2, &bytesWritten);  //  test for an echo
+        tty_read(PortFD, str, 2, 2, &bytesRead);  //  Read 2 bytes of response
+        if (str[1] != '#') {
+            //  this is not a correct echo
+            //  so we are not talking to a mount properly
+            return false;
+        }
+        n1 = ra * 0x1000000 / 24;
+        n2 = dec * 0x1000000 / 360;
+        n1 = n1 << 8;
+        n2 = n2 << 8;
+        sprintf((char *)str, "s%08X,%08X", n1, n2);
+        memset(&str[18], 0, 1);
+        DEBUGF(INDI::Logger::DBG_SESSION, "Send Sync command to the handset (%s)", str);
+        tty_write(PortFD, str, 18, &bytesWritten);
+        TrackState = SCOPE_TRACKING;
+
+        numread = tty_read(PortFD,str,1,60, &bytesRead);
+        if (bytesRead != 1 || str[0] != '#')
+        {
+            if (isDebug())
+                IDLog("Timeout waiting for scope to complete syncing.");
+
+            return false;
+        }
+        return true;
+    }
+
     ln_equ_posn eq { 0, 0 };
     AlignmentDatabaseEntry NewEntry;
     double lst = 0, lha = 0;
-
-    DEBUGF(INDI::Logger::DBG_SESSION, "Sync %g %g -> %g %g\n", currentRA, currentDEC, ra, dec);
 
     //  this is where we think we are pointed now
     //  and we need to set a sync point in the alignment database
