@@ -29,34 +29,34 @@ class SynscanMount : public INDI::Telescope, public INDI::AlignmentSubsystem::Al
 
     //  overrides of base class virtual functions
     //bool initProperties();
-    virtual void ISGetProperties(const char *dev);
-    virtual bool updateProperties();
-    virtual const char *getDefaultName();
+    virtual void ISGetProperties(const char *dev) override;
+    virtual bool updateProperties() override;
+    virtual const char *getDefaultName() override;
 
-    virtual bool initProperties();
-    virtual bool ReadScopeStatus();
-    virtual bool Connect();
-    bool Goto(double, double);
-    bool Park();
-    bool UnPark();
-    bool Abort();
-    bool SetSlewRate(int);
-    bool MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command);
-    bool MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command);
+    virtual bool initProperties() override;
+    virtual bool ReadScopeStatus() override;
+    virtual bool Connect() override;
+    virtual bool Goto(double, double) override;
+    virtual bool Park() override;
+    virtual bool UnPark() override;
+    virtual bool Abort() override;
+    virtual bool SetSlewRate(int index) override;
+    virtual bool MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command) override;
+    virtual bool MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command) override;
     bool ReadTime();
     bool ReadLocation();
-    bool updateLocation(double latitude, double longitude, double elevation);
-    bool updateTime(ln_date *utc, double utc_offset);
-    bool SetCurrentPark();
-    bool SetDefaultPark();
+    virtual bool updateLocation(double latitude, double longitude, double elevation) override;
+    virtual bool updateTime(ln_date *utc, double utc_offset) override;
+    virtual bool SetCurrentPark() override;
+    virtual bool SetDefaultPark() override;
 
     //  methods added for alignment subsystem
-    virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n);
-    virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n);
+    virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
+    virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
     virtual bool ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[],
-                           char *formats[], char *names[], int n);
-    virtual bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n);
-    bool Sync(double ra, double dec);
+                           char *formats[], char *names[], int n) override;
+    virtual bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n) override;
+    virtual bool Sync(double ra, double dec) override;
 
   private:
     int PassthruCommand(int cmd, int target, int msgsize, int data, int numReturn);
