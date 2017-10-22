@@ -566,18 +566,12 @@ bool SynscanMount::ReadScopeStatus()
 bool SynscanMount::Goto(double ra, double dec)
 {
     char str[20];
-    int n1, n2;
     int numread, bytesWritten, bytesRead;
     ln_equ_posn eq { 0, 0 };
-    double RightAscension, Declination;
+    double TargetRA { 0 }, TargetDE { 0 };
+    ln_lnlat_posn Location { 0, 0 };
+    ln_hrz_posn TargetAltAz { 0, 0 };
 
-    DEBUGF(INDI::Logger::DBG_SESSION, "Enter Goto %g %g", ra, dec);
-
-    eq             = SkyToTelescope(ra, dec);
-    RightAscension = eq.ra;
-    Declination    = eq.dec;
-
-    //  not fleshed in yet
     tty_write(PortFD, "Ka", 2, &bytesWritten); //  test for an echo
     tty_read(PortFD, str, 2, 2, &bytesRead);   //  Read 2 bytes of response
     if (str[1] != '#')
@@ -587,26 +581,58 @@ bool SynscanMount::Goto(double ra, double dec)
         //  so we are not talking to a mount properly
         return false;
     }
-    //  Ok, mount is alive and well
-    //  so, lets format up a goto command
-    n1 = RightAscension * 0x1000000 / 24;
-    n2 = Declination * 0x1000000 / 360;
-    n1 = n1 << 8;
-    n2 = n2 << 8;
-    sprintf((char *)str, "r%08X,%08X", n1, n2);
-    tty_write(PortFD, str, 18, &bytesWritten);
-    memset(&str[18], 0, 1);
-    DEBUGF(INDI::Logger::DBG_SESSION, "Corrected Goto %g %g (command %s)", RightAscension, Declination, str);
-    TrackState = SCOPE_SLEWING;
-    numread    = tty_read(PortFD, str, 1, 60, &bytesRead);
-    if (bytesRead != 1 || str[0] != '#')
-    {
-        DEBUG(INDI::Logger::DBG_SESSION, "Timeout waiting for scope to complete slewing.");
-        if (isDebug())
-            IDLog("Timeout waiting for scope to complete slewing.");
-        return false;
-    }
 
+    TrackState = SCOPE_SLEWING;
+    // Set the current location
+    Location.lat = LocationN[LOCATION_LATITUDE].value;
+    Location.lng = LocationN[LOCATION_LONGITUDE].value;
+    DEBUGF(INDI::Logger::DBG_SESSION, "Enter Goto %g %g", ra, dec);
+    if (getSwitch("ALIGNMENT_SUBSYSTEM_ACTIVE")->sp[0].s == ISS_ON && NewFirmware)
+    {
+        eq = SkyToTelescope(ra, dec);
+    } else {
+        eq.ra = ra;
+        eq.dec = dec;
+    }
+    TargetRA = eq.ra;
+    TargetDE = eq.dec;
+    eq.ra    = eq.ra*360.0 / 24.0;	//  this is wanted in degrees, not hours
+    ln_get_hrz_from_equ(&eq, &Location, ln_get_julian_from_sys(), &TargetAltAz);
+    TargetAltAz.az -= 180;
+    if (TargetAltAz.az < 0)
+        TargetAltAz.az += 360;
+    DEBUGF(INDI::Logger::DBG_SESSION, "Corrected Goto - ra: %g de: %g (az: %g alt: %g)", TargetRA, TargetDE,
+           TargetAltAz.az, TargetAltAz.alt);
+    // Assemble the Slow-Goto command for Az axis
+    int Az = (int)((TargetAltAz.az)*16777216 / 360);
+
+    str[0] = 'P';
+    str[1] = 4;
+    str[2] = 16;
+    str[3] = 23;
+    *reinterpret_cast<unsigned char*>(&str[4]) = (unsigned char)(Az / 65536);
+    Az -= (Az / 65536)*65536;
+    *reinterpret_cast<unsigned char*>(&str[5]) = (unsigned char)(Az / 256);
+    Az -= (Az / 256)*256;
+    *reinterpret_cast<unsigned char*>(&str[6]) = (unsigned char)Az;
+    str[7] = 0;
+    tty_write(PortFD, str, 8, &bytesWritten);
+    numread = tty_read(PortFD, str, 1, 2, &bytesRead);
+    // Assemble the Slow-Goto command for Alt axis
+    int Alt = (int)(TargetAltAz.alt*16777216 / 90);
+
+    str[0] = 'P';
+    str[1] = 4;
+    str[2] = 17;
+    str[3] = 23;
+    *reinterpret_cast<unsigned char*>(&str[4]) = (unsigned char)(Alt / 65536);
+    Alt -= (Alt / 65536)*65536;
+    *reinterpret_cast<unsigned char*>(&str[5]) = (unsigned char)(Alt / 256);
+    Alt -= (Alt / 256)*256;
+    *reinterpret_cast<unsigned char*>(&str[6]) = (unsigned char)Alt;
+    str[7] = 0;
+    tty_write(PortFD, str, 8, &bytesWritten);
+    numread = tty_read(PortFD, str, 1, 2, &bytesRead);
     return true;
 }
 
