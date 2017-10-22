@@ -76,7 +76,7 @@ class SynscanMount : public INDI::Telescope, public INDI::AlignmentSubsystem::Al
 
     bool CanSetLocation { false };
     bool ReadLatLong { false };
-    bool HasFailed { true };
+//    bool HasFailed { true };
     bool NewFirmware { false };
     const std::string MountInfoPage { "Mount Information" };
     enum class MountInfoItems

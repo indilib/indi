@@ -316,7 +316,9 @@ bool SynscanMount::ReadScopeStatus()
         if (isDebug())
             IDLog("ReadStatus Echo Fail. %s\n", str);
         IDMessage(getDeviceName(), "Mount Not Responding");
-        HasFailed = true;
+        // Usually, Abort() recovers the communication
+        Abort();
+//        HasFailed = true;
         return false;
     }
 
