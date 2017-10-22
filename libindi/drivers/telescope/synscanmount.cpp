@@ -567,9 +567,7 @@ bool SynscanMount::Goto(double ra, double dec)
 {
     char str[20];
     int numread, bytesWritten, bytesRead;
-    ln_equ_posn eq { 0, 0 };
     double TargetRA { 0 }, TargetDE { 0 };
-    ln_lnlat_posn Location { 0, 0 };
     ln_hrz_posn TargetAltAz { 0, 0 };
 
     tty_write(PortFD, "Ka", 2, &bytesWritten); //  test for an echo
@@ -583,24 +581,19 @@ bool SynscanMount::Goto(double ra, double dec)
     }
 
     TrackState = SCOPE_SLEWING;
-    // Set the current location
-    Location.lat = LocationN[LOCATION_LATITUDE].value;
-    Location.lng = LocationN[LOCATION_LONGITUDE].value;
     DEBUGF(INDI::Logger::DBG_SESSION, "Enter Goto %g %g", ra, dec);
     if (getSwitch("ALIGNMENT_SUBSYSTEM_ACTIVE")->sp[0].s == ISS_ON && NewFirmware)
     {
+        ln_equ_posn eq { 0, 0 };
+
         eq = SkyToTelescope(ra, dec);
+        TargetRA = eq.ra;
+        TargetDE = eq.dec;
     } else {
-        eq.ra = ra;
-        eq.dec = dec;
+        TargetRA = ra;
+        TargetDE = dec;
     }
-    TargetRA = eq.ra;
-    TargetDE = eq.dec;
-    eq.ra    = eq.ra*360.0 / 24.0;	//  this is wanted in degrees, not hours
-    ln_get_hrz_from_equ(&eq, &Location, ln_get_julian_from_sys(), &TargetAltAz);
-    TargetAltAz.az -= 180;
-    if (TargetAltAz.az < 0)
-        TargetAltAz.az += 360;
+    TargetAltAz = GetAltAzPosition(TargetRA, TargetDE);
     DEBUGF(INDI::Logger::DBG_SESSION, "Corrected Goto - ra: %g de: %g (az: %g alt: %g)", TargetRA, TargetDE,
            TargetAltAz.az, TargetAltAz.alt);
     // Assemble the Slow-Goto command for Az axis
@@ -1069,6 +1062,69 @@ bool SynscanMount::Sync(double ra, double dec)
 {
     DEBUGF(INDI::Logger::DBG_SESSION, "Sync %g %g -> %g %g", currentRA, currentDEC, ra, dec);
 
+    // The alignment model was reset
+    if (getSwitch("ALIGNMENT_SUBSYSTEM_ACTIVE")->sp[0].s == ISS_ON &&
+        GetAlignmentDatabase().size() == 0 && AlignmentStarted)
+    {
+        FirstSync = false;
+        AlignmentStarted = false;
+    }
+    // There are two cases when we need to do position reset:
+    // 1. Alignment subsystem is on. The first sync will have a big position jump. Do it with position reset instead.
+    // 2. Alignment subsystem is off. Syncing the current point does not reset the telescope position.
+    if (!FirstSync || (getSwitch("ALIGNMENT_SUBSYSTEM_ACTIVE")->sp[0].s == ISS_OFF && NewFirmware))
+    {
+        char str[20];
+        int numread, bytesWritten, bytesRead;
+        ln_hrz_posn TargetAltAz { 0, 0 };
+
+        tty_write(PortFD, "Ka", 2, &bytesWritten); //  test for an echo
+        tty_read(PortFD, str, 2, 2, &bytesRead);   //  Read 2 bytes of response
+        if (str[1] != '#')
+        {
+            DEBUG(INDI::Logger::DBG_SESSION, "Wrong answer from the mount");
+            //  this is not a correct echo
+            //  so we are not talking to a mount properly
+            return false;
+        }
+
+        TargetAltAz = GetAltAzPosition(ra, dec);
+        DEBUGF(INDI::Logger::DBG_SESSION, "First sync - ra: %g de: %g (az: %g alt: %g)", ra, dec,
+               TargetAltAz.az, TargetAltAz.alt);
+        // Assemble the Reset Position command for Az axis
+        int Az = (int)((TargetAltAz.az)*16777216 / 360);
+
+        str[0] = 'P';
+        str[1] = 4;
+        str[2] = 16;
+        str[3] = 4;
+        *reinterpret_cast<unsigned char*>(&str[4]) = (unsigned char)(Az / 65536);
+        Az -= (Az / 65536)*65536;
+        *reinterpret_cast<unsigned char*>(&str[5]) = (unsigned char)(Az / 256);
+        Az -= (Az / 256)*256;
+        *reinterpret_cast<unsigned char*>(&str[6]) = (unsigned char)Az;
+        str[7] = 0;
+        tty_write(PortFD, str, 8, &bytesWritten);
+        numread = tty_read(PortFD, str, 1, 2, &bytesRead);
+        // Assemble the Reset Position command for Alt axis
+        int Alt = (int)(TargetAltAz.alt*16777216 / 90);
+
+        str[0] = 'P';
+        str[1] = 4;
+        str[2] = 17;
+        str[3] = 4;
+        *reinterpret_cast<unsigned char*>(&str[4]) = (unsigned char)(Alt / 65536);
+        Alt -= (Alt / 65536)*65536;
+        *reinterpret_cast<unsigned char*>(&str[5]) = (unsigned char)(Alt / 256);
+        Alt -= (Alt / 256)*256;
+        *reinterpret_cast<unsigned char*>(&str[6]) = (unsigned char)Alt;
+        str[7] = 0;
+        tty_write(PortFD, str, 8, &bytesWritten);
+        numread = tty_read(PortFD, str, 1, 2, &bytesRead);
+
+        FirstSync = true;
+        return true;
+    }
     // Pass the sync operation to the handset
     if (getSwitch("ALIGNMENT_SUBSYSTEM_ACTIVE")->sp[0].s == ISS_OFF && NewFirmware)
     {
@@ -1148,6 +1204,7 @@ bool SynscanMount::Sync(double ra, double dec)
         UpdateSize();
         // Tell the math plugin to reinitialise
         Initialise(this);
+        AlignmentStarted = true;
         return true;
     }
     return false;
@@ -1278,6 +1335,26 @@ ln_equ_posn SynscanMount::SkyToTelescope(double ra, double dec)
     eq.ra  = RightAscension;
     eq.dec = Declination;
     return eq;
+}
+
+ln_hrz_posn SynscanMount::GetAltAzPosition(double ra, double dec)
+{
+    ln_hrz_posn TargetAltAz { 0, 0 };
+    ln_lnlat_posn Location { 0, 0 };
+    ln_equ_posn eq { 0, 0 };
+
+    // Set the current location
+    Location.lat = LocationN[LOCATION_LATITUDE].value;
+    Location.lng = LocationN[LOCATION_LONGITUDE].value;
+
+    eq.ra  = ra*360.0 / 24.0;	//  this is wanted in degrees, not hours
+    eq.dec = dec;
+    ln_get_hrz_from_equ(&eq, &Location, ln_get_julian_from_sys(), &TargetAltAz);
+    TargetAltAz.az -= 180;
+    if (TargetAltAz.az < 0)
+        TargetAltAz.az += 360;
+
+    return TargetAltAz;
 }
 
 void SynscanMount::UpdateMountInformation(bool inform_client)

@@ -62,6 +62,7 @@ class SynscanMount : public INDI::Telescope, public INDI::AlignmentSubsystem::Al
     int PassthruCommand(int cmd, int target, int msgsize, int data, int numReturn);
     ln_equ_posn TelescopeToSky(double ra, double dec);
     ln_equ_posn SkyToTelescope(double ra, double dec);
+    ln_hrz_posn GetAltAzPosition(double ra, double dec);
     int HexStrToInteger(const std::string &str);
     bool AnalyzeHandset();
     void UpdateMountInformation(bool inform_client);
@@ -73,7 +74,8 @@ class SynscanMount : public INDI::Telescope, public INDI::AlignmentSubsystem::Al
     int SlewRate { 5 };
     double currentRA { 0 };
     double currentDEC { 0 };
-
+    bool FirstSync { false };
+    bool AlignmentStarted { false };
     bool CanSetLocation { false };
     bool ReadLatLong { false };
 //    bool HasFailed { true };
