@@ -98,6 +98,8 @@ class LX200_10MICRON : public LX200Generic
     ISwitch AlignmentS[ALIGN_COUNT];
     ISwitchVectorProperty AlignmentSP;
 
+    INumber MiniNewAlpRON[4];
+    INumberVectorProperty MiniNewAlpRONP;
     INumber MiniNewAlpN[2];
     INumberVectorProperty MiniNewAlpNP;
 
@@ -124,6 +126,8 @@ class LX200_10MICRON : public LX200Generic
         float Jdate     = 0.0;
         int Gstat       = -1;
         int SlewStatus  = -1;
+        // added :
+        double SiderealTime = -1;
     } Ginfo;
 
 };

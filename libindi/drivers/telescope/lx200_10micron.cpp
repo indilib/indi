@@ -101,6 +101,12 @@ bool LX200_10MICRON::initProperties()
     IUFillSwitchVector(&AlignmentSP, AlignmentS, ALIGN_COUNT, getDeviceName(), "Alignment", "Alignment", ALIGNMENT_TAB,
         IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
 
+    IUFillNumber(&MiniNewAlpRON[AXIS_RA], "MRA", "Mount RA (hh:mm:ss)", "%010.6m", 0, 24, 0, 0);
+    IUFillNumber(&MiniNewAlpRON[AXIS_DE], "MDEC", "Mount DEC (dd:mm:ss)", "%010.6m", -90, 90, 0, 0);
+    IUFillNumber(&MiniNewAlpRON[2], "MSIDE", "Pier Side (0=E 1=W)", "%.0f", 0, 1, 0, 0);
+    IUFillNumber(&MiniNewAlpRON[3], "SIDTIME", "Sidereal Time (hh:mm:ss)", "%010.6m", 0, 24, 0, 0);
+    IUFillNumberVector(&MiniNewAlpRONP, MiniNewAlpRON, 4, getDeviceName(), "MINIMAL_NEW_ALIGNMENT_POINT_RO",
+        "Actual", ALIGNMENT_TAB, IP_RO, 60, IPS_IDLE);
     IUFillNumber(&MiniNewAlpN[AXIS_RA], "PRA", "Solved RA (hh:mm:ss)", "%010.6m", 0, 24, 0, 0);
     IUFillNumber(&MiniNewAlpN[AXIS_DE], "PDEC", "Solved DEC (dd:mm:ss)", "%010.6m", -90, 90, 0, 0);
     IUFillNumberVector(&MiniNewAlpNP, MiniNewAlpN, 2, getDeviceName(), "MINIMAL_NEW_ALIGNMENT_POINT",
@@ -115,7 +121,7 @@ bool LX200_10MICRON::initProperties()
     IUFillNumberVector(&NewAlpNP, NewAlpN, 6, getDeviceName(), "NEW_ALIGNMENT_POINT",
         "New Point", ALIGNMENT_TAB, IP_RW, 60, IPS_IDLE);
 
-    IUFillNumber(&NewAlignmentPointsN[0], "COUNT", "#", "%.0f", 0, 100, 0, 0);
+    IUFillNumber(&NewAlignmentPointsN[0], "COUNT", "#", "%.0f", 0, 100, 1, 0);
     IUFillNumberVector(&NewAlignmentPointsNP, NewAlignmentPointsN, 1, getDeviceName(),
         "NEW_ALIGNMENT_POINTS", "New Points", ALIGNMENT_TAB, IP_RO, 60, IPS_IDLE);
 
@@ -159,6 +165,7 @@ bool LX200_10MICRON::updateProperties()
         defineNumber(&ModelCountNP);
         defineNumber(&AlignmentPointsNP);
         defineSwitch(&AlignmentSP);
+        defineNumber(&MiniNewAlpRONP);
         defineNumber(&MiniNewAlpNP);
         defineNumber(&NewAlpNP);
         defineNumber(&NewAlignmentPointsNP);
@@ -176,6 +183,7 @@ bool LX200_10MICRON::updateProperties()
         deleteProperty(ModelCountNP.name);
         deleteProperty(AlignmentPointsNP.name);
         deleteProperty(AlignmentSP.name);
+        deleteProperty(MiniNewAlpRONP.name);
         deleteProperty(MiniNewAlpNP.name);
         deleteProperty(NewAlpNP.name);
         deleteProperty(NewAlignmentPointsNP.name);
@@ -299,6 +307,17 @@ bool LX200_10MICRON::ReadScopeStatus()
 
     OldGstat = Ginfo.Gstat;
     NewRaDec(Ginfo.RA_JNOW, Ginfo.DEC_JNOW);
+
+    // Update alignment Mini new alignment point fields
+    char LocalSiderealTimeS[80];
+    getCommandString(fd, LocalSiderealTimeS, "#:GS#");
+    f_scansexa(LocalSiderealTimeS, &Ginfo.SiderealTime);
+    MiniNewAlpRON[AXIS_RA].value = Ginfo.RA_JNOW;
+    MiniNewAlpRON[AXIS_DE].value = Ginfo.DEC_JNOW;
+    MiniNewAlpRON[2].value = (toupper(Ginfo.SideOfPier) == 'E') ? 0 : 1;
+    MiniNewAlpRON[3].value = Ginfo.SiderealTime;
+    IDSetNumber(&MiniNewAlpRONP, nullptr);
+
     return true;
 }
 
@@ -519,11 +538,16 @@ int LX200_10MICRON::AddSyncPoint(double MRa, double MDec, double MSide, double P
     DEBUGF(INDI::Logger::DBG_SESSION, "AddSyncPoint %s", command);
 
     char response[6];
+#if 1
     if (0 != setStandardProcedureAndReturnResponse(fd, command, response, 5) || response[0] == 'E')
     {
         DEBUG(INDI::Logger::DBG_ERROR, "AddSyncPoint error");
         return 1;
     }
+#else
+    NewAlignmentPointsN[0].value = NewAlignmentPointsN[0].value + 1;
+    sprintf(response, "%.0f#", NewAlignmentPointsN[0].value);
+#endif
     int points;
     int nbytes_read = sscanf(response, "%d#", &points);
     if (nbytes_read < 0)
@@ -541,7 +565,7 @@ int LX200_10MICRON::AddSyncPointHere(double PRa, double PDec)
 {
 	double MRa, MDec, MSide, SidTime;
     (toupper(Ginfo.SideOfPier) == 'E') ? MSide = 0 : MSide = 1;
-	return AddSyncPoint(Ginfo.RA_JNOW, Ginfo.DEC_JNOW, MSide, PRa, PDec, Ginfo.Jdate);
+	return AddSyncPoint(Ginfo.RA_JNOW, Ginfo.DEC_JNOW, MSide, PRa, PDec, Ginfo.SiderealTime);
 }
 
 bool LX200_10MICRON::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
@@ -581,8 +605,16 @@ bool LX200_10MICRON::ISNewNumber(const char *dev, const char *name, double value
         if (strcmp(name, "MODEL_COUNT") == 0)
         {
             IUUpdateNumber(&ModelCountNP, values, names, n);
+            ModelCountNP.s = IPS_OK;
             IDSetNumber(&ModelCountNP, nullptr);
             DEBUGF(INDI::Logger::DBG_SESSION, "ModelCount %d", ModelCountN[0].value);
+            return true;
+        }
+        if (strcmp(name, "MINIMAL_NEW_ALIGNMENT_POINT_RO") == 0)
+        {
+            IUUpdateNumber(&MiniNewAlpNP, values, names, n);
+            MiniNewAlpRONP.s = IPS_OK;
+            IDSetNumber(&MiniNewAlpRONP, nullptr);
             return true;
         }
         if (strcmp(name, "MINIMAL_NEW_ALIGNMENT_POINT") == 0)
@@ -597,7 +629,6 @@ bool LX200_10MICRON::ISNewNumber(const char *dev, const char *name, double value
             }
             MiniNewAlpNP.s = IPS_OK;
             IDSetNumber(&MiniNewAlpNP, nullptr);
-            DEBUGF(INDI::Logger::DBG_SESSION, "SolvedJNowEq set to %06.1f ", MiniNewAlpN[0].value);
             return true;
         }
         if (strcmp(name, "NEW_ALIGNMENT_POINT") == 0)
@@ -612,12 +643,12 @@ bool LX200_10MICRON::ISNewNumber(const char *dev, const char *name, double value
             }
             NewAlpNP.s = IPS_OK;
             IDSetNumber(&NewAlpNP, nullptr);
-            DEBUGF(INDI::Logger::DBG_SESSION, "SolvedJNowEq set to %06.1f ", NewAlpN[0].value);
             return true;
         }
         if (strcmp(name, "NEW_ALIGNMENT_POINTS") == 0)
         {
             IUUpdateNumber(&NewAlignmentPointsNP, values, names, n);
+            NewAlignmentPointsNP.s = IPS_OK;
             IDSetNumber(&NewAlignmentPointsNP, nullptr);
             DEBUGF(INDI::Logger::DBG_SESSION, "New unnamed Model now has %d alignment points", NewAlignmentPointsN[0].value);
             return true;
@@ -666,7 +697,7 @@ bool LX200_10MICRON::ISNewSwitch(const char *dev, const char *name, ISState *sta
                 default:
                     AlignmentSP.s = IPS_ALERT;
                     IDSetSwitch(&AlignmentSP, "Unknown alignment index %d", index);
-                    return true;
+                    return false;
             }
 
             AlignmentSP.s = IPS_OK;
@@ -685,9 +716,9 @@ bool LX200_10MICRON::ISNewText(const char *dev, const char *name, char *texts[],
         if (strcmp(name, "NEW_MODEL_NAME") == 0)
         {
             IUUpdateText(&NewModelNameTP, texts, names, n);
+            NewModelNameTP.s = IPS_OK;
             IDSetText(&NewModelNameTP, nullptr);
             DEBUGF(INDI::Logger::DBG_SESSION, "Model saved with name %s", NewModelNameT[0].text);
-            NewModelNameTP.s = IPS_OK;
             return true;
         }
     }
