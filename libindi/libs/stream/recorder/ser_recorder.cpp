@@ -34,6 +34,9 @@
 
 #define ERRMSGSIZ 1024
 
+namespace INDI
+{
+
 SER_Recorder::SER_Recorder()
 {
     name = "SER File Recorder";
@@ -507,4 +510,6 @@ void SER_Recorder::dateTo64BitTS(int32_t year, int32_t month, int32_t day, int32
 
     // Output result
     *p_ts = ts;
+}
+
 }

@@ -44,13 +44,17 @@
 #include <zlib.h>
 #include <sys/stat.h>
 
+#if 0
 #ifdef __linux__
-#include "webcam/v4l2_record/stream_recorder.h"
+#include "webcam/RecorderInterface/stream_recorder.h"
 #else
 class StreamRecorder
 {
 };
 #endif
+#endif
+
+#include "stream/streammanager.h"
 
 const char *IMAGE_SETTINGS_TAB = "Image Settings";
 const char *IMAGE_INFO_TAB     = "Image Info";
@@ -83,6 +87,9 @@ static int _ccd_mkdir(const char *dir, mode_t mode)
 
     return 0;
 }
+
+namespace INDI
+{
 
 CCDChip::CCDChip()
 {
@@ -368,7 +375,7 @@ void CCDChip::binFrame()
     BinFrame = rawFramePointer;
 }
 
-INDI::CCD::CCD()
+CCD::CCD()
 {
     //ctor
     capability = 0;
@@ -402,11 +409,11 @@ INDI::CCD::CCD()
     primaryAperture = primaryFocalLength = guiderAperture = guiderFocalLength - 1;
 }
 
-INDI::CCD::~CCD()
+CCD::~CCD()
 {
 }
 
-void INDI::CCD::SetCCDCapability(uint32_t cap)
+void CCD::SetCCDCapability(uint32_t cap)
 {
     capability = cap;
 
@@ -418,13 +425,13 @@ void INDI::CCD::SetCCDCapability(uint32_t cap)
 #ifdef __linux__
     if (HasStreaming() && Streamer.get() == nullptr)
     {
-        Streamer.reset(new StreamRecorder(this));
+        Streamer.reset(new StreamManager(this));
         Streamer->initProperties();
     }
 #endif
 }
 
-bool INDI::CCD::initProperties()
+bool CCD::initProperties()
 {
     DefaultDevice::initProperties(); //  let the base class flesh in what it wants
 
@@ -697,7 +704,7 @@ bool INDI::CCD::initProperties()
     return true;
 }
 
-void INDI::CCD::ISGetProperties(const char *dev)
+void CCD::ISGetProperties(const char *dev)
 {
     DefaultDevice::ISGetProperties(dev);
 
@@ -711,9 +718,9 @@ void INDI::CCD::ISGetProperties(const char *dev)
 #endif
 }
 
-bool INDI::CCD::updateProperties()
+bool CCD::updateProperties()
 {
-    //IDLog("INDI::CCD UpdateProperties isConnected returns %d %d\n",isConnected(),Connected);
+    //IDLog("CCD UpdateProperties isConnected returns %d %d\n",isConnected(),Connected);
     if (isConnected())
     {
         defineNumber(&PrimaryCCD.ImageExposureNP);
@@ -870,7 +877,7 @@ bool INDI::CCD::updateProperties()
     return true;
 }
 
-bool INDI::CCD::ISSnoopDevice(XMLEle *root)
+bool CCD::ISSnoopDevice(XMLEle *root)
 {
     XMLEle *ep           = nullptr;
     const char *propName = findXMLAttValu(root, "name");
@@ -969,10 +976,10 @@ bool INDI::CCD::ISSnoopDevice(XMLEle *root)
         }
     }
 
-    return INDI::DefaultDevice::ISSnoopDevice(root);
+    return DefaultDevice::ISSnoopDevice(root);
 }
 
-bool INDI::CCD::ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
+bool CCD::ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
 {
     //  first check if it's for our device
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
@@ -1059,13 +1066,13 @@ bool INDI::CCD::ISNewText(const char *dev, const char *name, char *texts[], char
         Streamer->ISNewText(dev, name, texts, names, n);
 #endif
 
-    return INDI::DefaultDevice::ISNewText(dev, name, texts, names, n);
+    return DefaultDevice::ISNewText(dev, name, texts, names, n);
 }
 
-bool INDI::CCD::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
+bool CCD::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
 {
     //  first check if it's for our device
-    //IDLog("INDI::CCD::ISNewNumber %s\n",name);
+    //IDLog("CCD::ISNewNumber %s\n",name);
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
         if (!strcmp(name, "CCD_EXPOSURE"))
@@ -1073,7 +1080,7 @@ bool INDI::CCD::ISNewNumber(const char *dev, const char *name, double values[], 
             if (PrimaryCCD.getFrameType() != CCDChip::BIAS_FRAME &&
                 (values[0] < PrimaryCCD.ImageExposureN[0].min || values[0] > PrimaryCCD.ImageExposureN[0].max))
             {
-                DEBUGF(INDI::Logger::DBG_ERROR, "Requested exposure value (%g) seconds out of bounds [%g,%g].",
+                DEBUGF(Logger::DBG_ERROR, "Requested exposure value (%g) seconds out of bounds [%g,%g].",
                        values[0], PrimaryCCD.ImageExposureN[0].min, PrimaryCCD.ImageExposureN[0].max);
                 PrimaryCCD.ImageExposureNP.s = IPS_ALERT;
                 IDSetNumber(&PrimaryCCD.ImageExposureNP, nullptr);
@@ -1088,7 +1095,7 @@ bool INDI::CCD::ISNewNumber(const char *dev, const char *name, double values[], 
             if (PrimaryCCD.ImageExposureNP.s == IPS_BUSY)
             {
                 if (CanAbort() && AbortExposure() == false)
-                    DEBUG(INDI::Logger::DBG_WARNING, "Warning: Aborting exposure failed.");
+                    DEBUG(Logger::DBG_WARNING, "Warning: Aborting exposure failed.");
             }
 
             if (StartExposure(ExposureTime))
@@ -1131,7 +1138,7 @@ bool INDI::CCD::ISNewNumber(const char *dev, const char *name, double values[], 
             if (GuideCCD.getFrameType() != CCDChip::BIAS_FRAME &&
                 (values[0] < GuideCCD.ImageExposureN[0].min || values[0] > GuideCCD.ImageExposureN[0].max))
             {
-                DEBUGF(INDI::Logger::DBG_ERROR, "Requested guide exposure value (%g) seconds out of bounds [%g,%g].",
+                DEBUGF(Logger::DBG_ERROR, "Requested guide exposure value (%g) seconds out of bounds [%g,%g].",
                        values[0], GuideCCD.ImageExposureN[0].min, GuideCCD.ImageExposureN[0].max);
                 GuideCCD.ImageExposureNP.s = IPS_ALERT;
                 IDSetNumber(&GuideCCD.ImageExposureNP, nullptr);
@@ -1291,7 +1298,7 @@ bool INDI::CCD::ISNewNumber(const char *dev, const char *name, double values[], 
             if (values[0] < TemperatureN[0].min || values[0] > TemperatureN[0].max)
             {
                 TemperatureNP.s = IPS_ALERT;
-                DEBUGF(INDI::Logger::DBG_ERROR, "Error: Bad temperature value! Range is [%.1f, %.1f] [C].",
+                DEBUGF(Logger::DBG_ERROR, "Error: Bad temperature value! Range is [%.1f, %.1f] [C].",
                        TemperatureN[0].min, TemperatureN[0].max);
                 IDSetNumber(&TemperatureNP, nullptr);
                 return false;
@@ -1344,7 +1351,7 @@ bool INDI::CCD::ISNewNumber(const char *dev, const char *name, double values[], 
             IDSetNumber(&CCDRotationNP, nullptr);
             ValidCCDRotation = true;
 
-            DEBUGF(INDI::Logger::DBG_SESSION, "CCD FOV rotation updated to %g degrees.", CCDRotationN[0].value);
+            DEBUGF(Logger::DBG_SESSION, "CCD FOV rotation updated to %g degrees.", CCDRotationN[0].value);
 
             return true;
         }
@@ -1359,7 +1366,7 @@ bool INDI::CCD::ISNewNumber(const char *dev, const char *name, double values[], 
     return DefaultDevice::ISNewNumber(dev, name, values, names, n);
 }
 
-bool INDI::CCD::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
+bool CCD::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
 {
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
@@ -1373,18 +1380,18 @@ bool INDI::CCD::ISNewSwitch(const char *dev, const char *name, ISState *states, 
             {
                 if (UploadS[UPLOAD_CLIENT].s == ISS_ON)
                 {
-                    DEBUG(INDI::Logger::DBG_SESSION, "Upload settings set to client only.");
+                    DEBUG(Logger::DBG_SESSION, "Upload settings set to client only.");
                     if (prevMode != 0)
                         deleteProperty(FileNameTP.name);
                 }
                 else if (UploadS[UPLOAD_LOCAL].s == ISS_ON)
                 {
-                    DEBUG(INDI::Logger::DBG_SESSION, "Upload settings set to local only.");
+                    DEBUG(Logger::DBG_SESSION, "Upload settings set to local only.");
                     defineText(&FileNameTP);
                 }
                 else
                 {
-                    DEBUG(INDI::Logger::DBG_SESSION, "Upload settings set to client and local.");
+                    DEBUG(Logger::DBG_SESSION, "Upload settings set to client and local.");
                     defineText(&FileNameTP);
                 }
 
@@ -1418,7 +1425,7 @@ bool INDI::CCD::ISNewSwitch(const char *dev, const char *name, ISState *states, 
 
             if (WorldCoordS[0].s == ISS_ON)
             {
-                DEBUG(INDI::Logger::DBG_WARNING, "World Coordinate System is enabled. CCD rotation must be set either "
+                DEBUG(Logger::DBG_WARNING, "World Coordinate System is enabled. CCD rotation must be set either "
                                                  "manually or by solving the image before proceeding to capture any "
                                                  "frames, otherwise the WCS information may be invalid.");
                 defineNumber(&CCDRotationNP);
@@ -1539,14 +1546,14 @@ bool INDI::CCD::ISNewSwitch(const char *dev, const char *name, ISState *states, 
             {
                 PrimaryCCD.setFrameType(CCDChip::BIAS_FRAME);
                 if (HasShutter() == false)
-                    DEBUG(INDI::Logger::DBG_WARNING,
+                    DEBUG(Logger::DBG_WARNING,
                           "The CCD does not have a shutter. Cover the camera in order to take a bias frame.");
             }
             else if (PrimaryCCD.FrameTypeS[2].s == ISS_ON)
             {
                 PrimaryCCD.setFrameType(CCDChip::DARK_FRAME);
                 if (HasShutter() == false)
-                    DEBUG(INDI::Logger::DBG_WARNING,
+                    DEBUG(Logger::DBG_WARNING,
                           "The CCD does not have a shutter. Cover the camera in order to take a dark frame.");
             }
             else if (PrimaryCCD.FrameTypeS[3].s == ISS_ON)
@@ -1572,14 +1579,14 @@ bool INDI::CCD::ISNewSwitch(const char *dev, const char *name, ISState *states, 
             {
                 GuideCCD.setFrameType(CCDChip::BIAS_FRAME);
                 if (HasShutter() == false)
-                    DEBUG(INDI::Logger::DBG_WARNING,
+                    DEBUG(Logger::DBG_WARNING,
                           "The CCD does not have a shutter. Cover the camera in order to take a bias frame.");
             }
             else if (GuideCCD.FrameTypeS[2].s == ISS_ON)
             {
                 GuideCCD.setFrameType(CCDChip::DARK_FRAME);
                 if (HasShutter() == false)
-                    DEBUG(INDI::Logger::DBG_WARNING,
+                    DEBUG(Logger::DBG_WARNING,
                           "The CCD does not have a shutter. Cover the camera in order to take a dark frame.");
             }
             else if (GuideCCD.FrameTypeS[3].s == ISS_ON)
@@ -1675,79 +1682,79 @@ bool INDI::CCD::ISNewSwitch(const char *dev, const char *name, ISState *states, 
     return DefaultDevice::ISNewSwitch(dev, name, states, names, n);
 }
 
-int INDI::CCD::SetTemperature(double temperature)
+int CCD::SetTemperature(double temperature)
 {
     INDI_UNUSED(temperature);
-    DEBUGF(INDI::Logger::DBG_WARNING, "INDI::CCD::SetTemperature %4.2f -  Should never get here", temperature);
+    DEBUGF(Logger::DBG_WARNING, "CCD::SetTemperature %4.2f -  Should never get here", temperature);
     return -1;
 }
 
-bool INDI::CCD::StartExposure(float duration)
+bool CCD::StartExposure(float duration)
 {
-    DEBUGF(INDI::Logger::DBG_WARNING, "INDI::CCD::StartExposure %4.2f -  Should never get here", duration);
+    DEBUGF(Logger::DBG_WARNING, "CCD::StartExposure %4.2f -  Should never get here", duration);
     return false;
 }
 
-bool INDI::CCD::StartGuideExposure(float duration)
+bool CCD::StartGuideExposure(float duration)
 {
-    DEBUGF(INDI::Logger::DBG_WARNING, "INDI::CCD::StartGuide Exposure %4.2f -  Should never get here", duration);
+    DEBUGF(Logger::DBG_WARNING, "CCD::StartGuide Exposure %4.2f -  Should never get here", duration);
     return false;
 }
 
-bool INDI::CCD::AbortExposure()
+bool CCD::AbortExposure()
 {
-    DEBUG(INDI::Logger::DBG_WARNING, "INDI::CCD::AbortExposure -  Should never get here");
+    DEBUG(Logger::DBG_WARNING, "CCD::AbortExposure -  Should never get here");
     return false;
 }
 
-bool INDI::CCD::AbortGuideExposure()
+bool CCD::AbortGuideExposure()
 {
-    DEBUG(INDI::Logger::DBG_WARNING, "INDI::CCD::AbortGuideExposure -  Should never get here");
+    DEBUG(Logger::DBG_WARNING, "CCD::AbortGuideExposure -  Should never get here");
     return false;
 }
 
-bool INDI::CCD::UpdateCCDFrame(int x, int y, int w, int h)
+bool CCD::UpdateCCDFrame(int x, int y, int w, int h)
 {
     // Just set value, unless HW layer overrides this and performs its own processing
     PrimaryCCD.setFrame(x, y, w, h);
     return true;
 }
 
-bool INDI::CCD::UpdateGuiderFrame(int x, int y, int w, int h)
+bool CCD::UpdateGuiderFrame(int x, int y, int w, int h)
 {
     GuideCCD.setFrame(x, y, w, h);
     return true;
 }
 
-bool INDI::CCD::UpdateCCDBin(int hor, int ver)
+bool CCD::UpdateCCDBin(int hor, int ver)
 {
     // Just set value, unless HW layer overrides this and performs its own processing
     PrimaryCCD.setBin(hor, ver);
     return true;
 }
 
-bool INDI::CCD::UpdateGuiderBin(int hor, int ver)
+bool CCD::UpdateGuiderBin(int hor, int ver)
 {
     // Just set value, unless HW layer overrides this and performs its own processing
     GuideCCD.setBin(hor, ver);
     return true;
 }
 
-bool INDI::CCD::UpdateCCDFrameType(CCDChip::CCD_FRAME fType)
+bool CCD::UpdateCCDFrameType(CCDChip::CCD_FRAME fType)
 {
     INDI_UNUSED(fType);
     // Child classes can override this
     return true;
 }
 
-bool INDI::CCD::UpdateGuiderFrameType(CCDChip::CCD_FRAME fType)
+bool CCD::UpdateGuiderFrameType(CCDChip::CCD_FRAME fType)
 {
     INDI_UNUSED(fType);
     // Child classes can override this
     return true;
 }
 
-void INDI::CCD::addFITSKeywords(fitsfile *fptr, CCDChip *targetChip)
+void CCD::addFITSKeywords(fitsfile *fptr, CCDChip *targetChip)
 {
     int status = 0;
     char frame_s[32];
@@ -1957,14 +1964,14 @@ void INDI::CCD::addFITSKeywords(fitsfile *fptr, CCDChip *targetChip)
     fits_write_comment(fptr, "Generated by INDI", &status);
 }
 
-void INDI::CCD::fits_update_key_s(fitsfile *fptr, int type, std::string name, void *p, std::string explanation,
+void CCD::fits_update_key_s(fitsfile *fptr, int type, std::string name, void *p, std::string explanation,
                                   int *status)
 {
     // this function is for removing warnings about deprecated string conversion to char* (from arg 5)
     fits_update_key(fptr, type, name.c_str(), p, const_cast<char *>(explanation.c_str()), status);
 }
 
-bool INDI::CCD::ExposureComplete(CCDChip *targetChip)
+bool CCD::ExposureComplete(CCDChip *targetChip)
 {
     bool sendImage = (UploadS[0].s == ISS_ON || UploadS[2].s == ISS_ON);
     bool saveImage = (UploadS[1].s == ISS_ON || UploadS[2].s == ISS_ON);
@@ -2313,7 +2320,7 @@ bool INDI::CCD::ExposureComplete(CCDChip *targetChip)
                 targetChip->RapidGuideDataN[1].value = ((double)sumY) / total;
                 targetChip->RapidGuideDataNP.s       = IPS_OK;
 
-                DEBUGF(INDI::Logger::DBG_DEBUG, "Guide Star X: %g Y: %g FIT: %g", targetChip->RapidGuideDataN[0].value,
+                DEBUGF(Logger::DBG_DEBUG, "Guide Star X: %g Y: %g FIT: %g", targetChip->RapidGuideDataN[0].value,
                        targetChip->RapidGuideDataN[1].value, targetChip->RapidGuideDataN[2].value);
             }
             else
@@ -2468,7 +2475,7 @@ bool INDI::CCD::ExposureComplete(CCDChip *targetChip)
             memptr  = malloc(memsize);
             if (!memptr)
             {
-                DEBUGF(INDI::Logger::DBG_ERROR, "Error: failed to allocate memory: %lu", (unsigned long)memsize);
+                DEBUGF(Logger::DBG_ERROR, "Error: failed to allocate memory: %lu", (unsigned long)memsize);
             }
 
             fits_create_memfile(&fptr, &memptr, &memsize, 2880, realloc, &status);
@@ -2477,7 +2484,7 @@ bool INDI::CCD::ExposureComplete(CCDChip *targetChip)
             {
                 fits_report_error(stderr, status); /* print out any error messages */
                 fits_get_errstatus(status, error_status);
-                DEBUGF(INDI::Logger::DBG_ERROR, "FITS Error: %s", error_status);
+                DEBUGF(Logger::DBG_ERROR, "FITS Error: %s", error_status);
                 return false;
             }
 
@@ -2487,7 +2494,7 @@ bool INDI::CCD::ExposureComplete(CCDChip *targetChip)
             {
                 fits_report_error(stderr, status); /* print out any error messages */
                 fits_get_errstatus(status, error_status);
-                DEBUGF(INDI::Logger::DBG_ERROR, "FITS Error: %s", error_status);
+                DEBUGF(Logger::DBG_ERROR, "FITS Error: %s", error_status);
                 return false;
             }
 
@@ -2499,7 +2506,7 @@ bool INDI::CCD::ExposureComplete(CCDChip *targetChip)
             {
                 fits_report_error(stderr, status); /* print out any error messages */
                 fits_get_errstatus(status, error_status);
-                DEBUGF(INDI::Logger::DBG_ERROR, "FITS Error: %s", error_status);
+                DEBUGF(Logger::DBG_ERROR, "FITS Error: %s", error_status);
                 return false;
             }
 
@@ -2568,7 +2575,7 @@ bool INDI::CCD::ExposureComplete(CCDChip *targetChip)
             }
             else
             {
-                DEBUG(INDI::Logger::DBG_DEBUG, "Autoloop: Primary CCD Exposure Error!");
+                DEBUG(Logger::DBG_DEBUG, "Autoloop: Primary CCD Exposure Error!");
                 PrimaryCCD.ImageExposureNP.s = IPS_ALERT;
             }
 
@@ -2582,7 +2589,7 @@ bool INDI::CCD::ExposureComplete(CCDChip *targetChip)
                 GuideCCD.ImageExposureNP.s = IPS_BUSY;
             else
             {
-                DEBUG(INDI::Logger::DBG_DEBUG, "Autoloop: Guide CCD Exposure Error!");
+                DEBUG(Logger::DBG_DEBUG, "Autoloop: Guide CCD Exposure Error!");
                 GuideCCD.ImageExposureNP.s = IPS_ALERT;
             }
 
@@ -2593,13 +2600,13 @@ bool INDI::CCD::ExposureComplete(CCDChip *targetChip)
     return true;
 }
 
-bool INDI::CCD::uploadFile(CCDChip *targetChip, const void *fitsData, size_t totalBytes, bool sendImage,
+bool CCD::uploadFile(CCDChip *targetChip, const void *fitsData, size_t totalBytes, bool sendImage,
                            bool saveImage /*, bool useSolver*/)
 {
     unsigned char *compressedData = nullptr;
     uLongf compressedBytes        = 0;
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "Uploading file. Ext: %s, Size: %d, sendImage? %s, saveImage? %s",
+    DEBUGF(Logger::DBG_DEBUG, "Uploading file. Ext: %s, Size: %d, sendImage? %s, saveImage? %s",
            targetChip->getImageExtension(), totalBytes, sendImage ? "Yes" : "No", saveImage ? "Yes" : "No");
 
     if (saveImage)
@@ -2617,7 +2624,7 @@ bool INDI::CCD::uploadFile(CCDChip *targetChip, const void *fitsData, size_t tot
 
         if (maxIndex < 0)
         {
-            DEBUGF(INDI::Logger::DBG_ERROR, "Error iterating directory %s. %s", UploadSettingsT[0].text,
+            DEBUGF(Logger::DBG_ERROR, "Error iterating directory %s. %s", UploadSettingsT[0].text,
                    strerror(errno));
             return false;
         }
@@ -2645,7 +2652,7 @@ bool INDI::CCD::uploadFile(CCDChip *targetChip, const void *fitsData, size_t tot
         fp = fopen(imageFileName, "w");
         if (fp == nullptr)
         {
-            DEBUGF(INDI::Logger::DBG_ERROR, "Unable to save image file (%s). %s", imageFileName, strerror(errno));
+            DEBUGF(Logger::DBG_ERROR, "Unable to save image file (%s). %s", imageFileName, strerror(errno));
             return false;
         }
 
@@ -2658,7 +2665,7 @@ bool INDI::CCD::uploadFile(CCDChip *targetChip, const void *fitsData, size_t tot
         // Save image file path
         IUSaveText(&FileNameT[0], imageFileName);
 
-        DEBUGF(INDI::Logger::DBG_SESSION, "Image saved to %s", imageFileName);
+        DEBUGF(Logger::DBG_SESSION, "Image saved to %s", imageFileName);
         FileNameTP.s = IPS_OK;
         IDSetText(&FileNameTP, nullptr);
     }
@@ -2672,7 +2679,7 @@ bool INDI::CCD::uploadFile(CCDChip *targetChip, const void *fitsData, size_t tot
         {
             if (compressedData)
                 free(compressedData);
-            DEBUG(INDI::Logger::DBG_ERROR, "Error: Ran out of memory compressing image");
+            DEBUG(Logger::DBG_ERROR, "Error: Ran out of memory compressing image");
             return false;
         }
 
@@ -2680,7 +2687,7 @@ bool INDI::CCD::uploadFile(CCDChip *targetChip, const void *fitsData, size_t tot
         if (r != Z_OK)
         {
             /* this should NEVER happen */
-            DEBUG(INDI::Logger::DBG_ERROR, "Error: Failed to compress image");
+            DEBUG(Logger::DBG_ERROR, "Error: Failed to compress image");
             free(compressedData);
             return false;
         }
@@ -2705,12 +2712,12 @@ bool INDI::CCD::uploadFile(CCDChip *targetChip, const void *fitsData, size_t tot
     if (compressedData)
         free(compressedData);
 
-    DEBUG(INDI::Logger::DBG_DEBUG, "Upload complete");
+    DEBUG(Logger::DBG_DEBUG, "Upload complete");
 
     return true;
 }
 
-void INDI::CCD::SetCCDParams(int x, int y, int bpp, float xf, float yf)
+void CCD::SetCCDParams(int x, int y, int bpp, float xf, float yf)
 {
     PrimaryCCD.setResolution(x, y);
     PrimaryCCD.setFrame(0, 0, x, y);
@@ -2720,7 +2727,7 @@ void INDI::CCD::SetCCDParams(int x, int y, int bpp, float xf, float yf)
     PrimaryCCD.setBPP(bpp);
 }
 
-void INDI::CCD::SetGuiderParams(int x, int y, int bpp, float xf, float yf)
+void CCD::SetGuiderParams(int x, int y, int bpp, float xf, float yf)
 {
     capability |= CCD_HAS_GUIDE_HEAD;
 
@@ -2730,7 +2737,7 @@ void INDI::CCD::SetGuiderParams(int x, int y, int bpp, float xf, float yf)
     GuideCCD.setBPP(bpp);
 }
 
-bool INDI::CCD::saveConfigItems(FILE *fp)
+bool CCD::saveConfigItems(FILE *fp)
 {
     DefaultDevice::saveConfigItems(fp);
 
@@ -2756,35 +2763,35 @@ bool INDI::CCD::saveConfigItems(FILE *fp)
     return true;
 }
 
-IPState INDI::CCD::GuideNorth(float ms)
+IPState CCD::GuideNorth(float ms)
 {
     INDI_UNUSED(ms);
-    DEBUG(INDI::Logger::DBG_ERROR, "The CCD does not support guiding.");
+    DEBUG(Logger::DBG_ERROR, "The CCD does not support guiding.");
     return IPS_ALERT;
 }
 
-IPState INDI::CCD::GuideSouth(float ms)
+IPState CCD::GuideSouth(float ms)
 {
     INDI_UNUSED(ms);
-    DEBUG(INDI::Logger::DBG_ERROR, "The CCD does not support guiding.");
+    DEBUG(Logger::DBG_ERROR, "The CCD does not support guiding.");
     return IPS_ALERT;
 }
 
-IPState INDI::CCD::GuideEast(float ms)
+IPState CCD::GuideEast(float ms)
 {
     INDI_UNUSED(ms);
-    DEBUG(INDI::Logger::DBG_ERROR, "The CCD does not support guiding.");
+    DEBUG(Logger::DBG_ERROR, "The CCD does not support guiding.");
     return IPS_ALERT;
 }
 
-IPState INDI::CCD::GuideWest(float ms)
+IPState CCD::GuideWest(float ms)
 {
     INDI_UNUSED(ms);
-    DEBUG(INDI::Logger::DBG_ERROR, "The CCD does not support guiding.");
+    DEBUG(Logger::DBG_ERROR, "The CCD does not support guiding.");
     return IPS_ALERT;
 }
 
-void INDI::CCD::getMinMax(double *min, double *max, CCDChip *targetChip)
+void CCD::getMinMax(double *min, double *max, CCDChip *targetChip)
 {
     int ind         = 0, i, j;
     int imageHeight = targetChip->getSubH() / targetChip->getBinY();
@@ -2855,7 +2862,7 @@ std::string regex_replace_compat(const std::string &input, const std::string &pa
     return s.str();
 }
 
-int INDI::CCD::getFileIndex(const char *dir, const char *prefix, const char *ext)
+int CCD::getFileIndex(const char *dir, const char *prefix, const char *ext)
 {
     INDI_UNUSED(ext);
 
@@ -2872,9 +2879,9 @@ int INDI::CCD::getFileIndex(const char *dir, const char *prefix, const char *ext
 
     if (stat(dir, &st) == -1)
     {
-        DEBUGF(INDI::Logger::DBG_DEBUG, "Creating directory %s...", dir);
+        DEBUGF(Logger::DBG_DEBUG, "Creating directory %s...", dir);
         if (_ccd_mkdir(dir, 0755) == -1)
-            DEBUGF(INDI::Logger::DBG_ERROR, "Error creating directory %s (%s)", dir, strerror(errno));
+            DEBUGF(Logger::DBG_ERROR, "Error creating directory %s (%s)", dir, strerror(errno));
     }
 
     dpdf = opendir(dir);
@@ -2909,19 +2916,21 @@ int INDI::CCD::getFileIndex(const char *dir, const char *prefix, const char *ext
     return (maxIndex + 1);
 }
 
-void INDI::CCD::GuideComplete(INDI_EQ_AXIS axis)
+void CCD::GuideComplete(INDI_EQ_AXIS axis)
 {
-    INDI::GuiderInterface::GuideComplete(axis);
+    GuiderInterface::GuideComplete(axis);
 }
 
-bool INDI::CCD::StartStreaming()
+bool CCD::StartStreaming()
 {
-    DEBUG(INDI::Logger::DBG_ERROR, "Streaming is not supported.");
+    DEBUG(Logger::DBG_ERROR, "Streaming is not supported.");
     return false;
 }
 
-bool INDI::CCD::StopStreaming()
+bool CCD::StopStreaming()
 {
-    DEBUG(INDI::Logger::DBG_ERROR, "Streaming is not supported.");
+    DEBUG(Logger::DBG_ERROR, "Streaming is not supported.");
     return false;
+}
+
 }

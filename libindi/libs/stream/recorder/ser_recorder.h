@@ -21,7 +21,7 @@
 
 #pragma once
 
-#include "v4l2_record.h"
+#include "recorderinterface.h".h"
 
 #include <cstdint>
 #include <stdio.h>
@@ -67,7 +67,10 @@ enum ser_color_id
 #define SER_BIG_ENDIAN    0
 #define SER_LITTLE_ENDIAN 1
 
-class SER_Recorder : public V4L2_Recorder
+namespace INDI
+{
+
+class SER_Recorder : public RecorderInterface
 {
   public:
     SER_Recorder();
@@ -127,3 +130,4 @@ class SER_Recorder : public V4L2_Recorder
     static const uint32_t m_days_in_400_years            = 303 * 365 + 97 * 366;
     static const uint64_t m_septaseconds_per_400_years   = m_days_in_400_years * m_septaseconds_per_day;
 };
+}

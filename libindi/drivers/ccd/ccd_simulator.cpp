@@ -24,7 +24,7 @@
 #include <libnova/precession.h>
 
 #if !defined(__APPLE__) && !defined(__CYGWIN__)
-#include "libs/webcam/v4l2_record/stream_recorder.h"
+#include "libs/webcam/RecorderInterface/stream_recorder.h"
 #endif
 
 #include <cmath>

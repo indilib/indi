@@ -22,6 +22,7 @@
 #pragma once
 
 #include "indidevapi.h"
+#include "stream/pixelformat.h"
 
 #include <stdio.h>
 #include <cstdlib>
@@ -29,6 +30,7 @@
 
 #include <vector>
 
+#if 0
 #ifdef OSX_EMBEDED_MODE
 #define v4l2_fourcc(a, b, c, d) ((uint32_t)(a) | ((uint32_t)(b) << 8) | ((uint32_t)(c) << 16) | ((uint32_t)(d) << 24))
 
@@ -44,17 +46,20 @@
 #else
 #include <linux/videodev2.h>
 #endif
+#endif
 
-class V4L2_Recorder
+namespace INDI
+{
+class RecorderInterface
 {
   public:
-    V4L2_Recorder();
-    virtual ~V4L2_Recorder();
+    RecorderInterface();
+    virtual ~RecorderInterface();
 
     virtual void init() = 0;
     virtual const char *getName();
     // true when direct encoding of pixel format
-    virtual bool setPixelFormat(uint32_t pixformat) = 0;
+    virtual bool setPixelFormat(PixelFormat format, uint8_t bitDepth=8) = 0;
     // set image size in pixels
     virtual bool setSize(uint16_t width, uint16_t height) = 0;
     // Set subframe frame dimensions that gets recorded
@@ -62,11 +67,11 @@ class V4L2_Recorder
     virtual bool open(const char *filename, char *errmsg)                          = 0;
     virtual bool close()                                                           = 0;
     // when frame is in known encoding format
-    virtual bool writeFrame(unsigned char *frame) = 0;
+    virtual bool writeFrame(uint8_t *frame) = 0;
     // default way to write a GREY frame
-    virtual bool writeFrameMono(unsigned char *frame) = 0;
+    virtual bool writeFrameMono(uint8_t *frame) = 0;
     // default way to write a RGB24 frame
-    virtual bool writeFrameColor(unsigned char *frame) = 0;
+    virtual bool writeFrameColor(uint8_t *frame) = 0;
     // prepare to write GREY frame
     virtual void setDefaultMono() = 0;
     // prepare to write RGB24 frame
@@ -80,18 +85,4 @@ class V4L2_Recorder
     const char *name;
 };
 
-class V4L2_Record
-{
-  public:
-    V4L2_Record();
-    ~V4L2_Record();
-    std::vector<V4L2_Recorder *> getRecorderList();
-    V4L2_Recorder *getRecorder();
-    V4L2_Recorder *getDefaultRecorder();
-    void setRecorder(V4L2_Recorder *recorder);
-
-  protected:
-    std::vector<V4L2_Recorder *> recorder_list;
-    V4L2_Recorder *current_recorder;
-    V4L2_Recorder *default_recorder;
-};
+}

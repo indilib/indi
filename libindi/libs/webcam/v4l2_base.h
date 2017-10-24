@@ -32,7 +32,7 @@
 //#include "indilogger.h"
 #include "v4l2_decode/v4l2_decode.h"
 // for direct recording
-#include "v4l2_record/v4l2_record.h"
+#include "stream/streammanager.h"
 
 #include <stdio.h>
 #include <cstdlib>
@@ -134,7 +134,7 @@ class V4L2_Base
     bool isstreamactive() { return streamactive; }
 
     void doDecode(bool);
-    void setRecorder(V4L2_Recorder *r);
+    void setRecorder(RecorderInterface *r);
     void doRecord(bool);
 
   protected:
@@ -206,8 +206,8 @@ class V4L2_Base
     V4L2_Decoder *decoder;
     bool dodecode;
 
-    V4L2_Record *v4l2_record;
-    V4L2_Recorder *recorder;
+    RecorderManager *recorderManager;
+    RecorderInterface *recorder;
     bool dorecord;
 
     int bpp;

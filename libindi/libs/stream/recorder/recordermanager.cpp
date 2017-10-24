@@ -1,7 +1,8 @@
 /*
+    Copyright (C) 2017 by Jasem Mutlaq <mutlaqja@ikarustech.com>
     Copyright (C) 2014 by geehalel <geehalel@gmail.com>
 
-    V4L2 Record
+    Recorder Manager
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -19,31 +20,21 @@
 
 */
 
-#include "v4l2_record.h"
+#include "recordermanager.h"
 #include "ser_recorder.h"
 
-V4L2_Recorder::V4L2_Recorder()
+namespace INDI
 {
-}
 
-V4L2_Recorder::~V4L2_Recorder()
-{
-}
-
-const char *V4L2_Recorder::getName()
-{
-    return name;
-}
-
-V4L2_Record::V4L2_Record()
+RecorderManager::RecorderManager()
 {
     recorder_list.push_back(new SER_Recorder());
     default_recorder = recorder_list.at(0);
 }
 
-V4L2_Record::~V4L2_Record()
+RecorderManager::~RecorderManager()
 {
-    std::vector<V4L2_Recorder *>::iterator it;
+    std::vector<RecorderManager *>::iterator it;
     for (it = recorder_list.begin(); it != recorder_list.end(); it++)
     {
         delete (*it);
@@ -51,22 +42,24 @@ V4L2_Record::~V4L2_Record()
     recorder_list.clear();
 }
 
-std::vector<V4L2_Recorder *> V4L2_Record::getRecorderList()
+std::vector<RecorderManager *> RecorderManager::getRecorderList()
 {
     return recorder_list;
 }
 
-V4L2_Recorder *V4L2_Record::getRecorder()
+RecorderManager *RecorderManager::getRecorder()
 {
     return current_recorder;
 }
 
-V4L2_Recorder *V4L2_Record::getDefaultRecorder()
+RecorderManager *RecorderManager::getDefaultRecorder()
 {
     return default_recorder;
 }
 
-void V4L2_Record::setRecorder(V4L2_Recorder *recorder)
+void RecorderManager::setRecorder(RecorderManager *recorder)
 {
     current_recorder = recorder;
+}
+
 }

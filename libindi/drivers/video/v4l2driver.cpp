@@ -27,7 +27,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110 - 1301  USA
 #include "v4l2driver.h"
 #include "indistandardproperty.h"
 #include "lx/Lx.h"
-#include "webcam/v4l2_record/stream_recorder.h"
+#include "webcam/RecorderInterface/stream_recorder.h"
 
 V4L2_Driver::V4L2_Driver()
 {

@@ -20,7 +20,7 @@
 
 */
 
-#include "stream_recorder.h"
+#include "streammanager.h"
 
 #include "indilogger.h"
 
@@ -32,7 +32,10 @@
 
 const char *STREAM_TAB = "Streaming";
 
-StreamRecorder::StreamRecorder(INDI::CCD *mainCCD)
+namespace INDI
+{
+
+StreamManager::StreamManager(INDI::CCD *mainCCD)
 {
     ccd = mainCCD;
 
@@ -57,21 +60,21 @@ StreamRecorder::StreamRecorder(INDI::CCD *mainCCD)
     signal(SIGALRM, SIG_IGN); //portable
     setitimer(ITIMER_REAL, &fpssettings, nullptr);
 
-    v4l2_record = new V4L2_Record();
-    recorder    = v4l2_record->getDefaultRecorder();
+    recorderManager = new RecorderManager();
+    recorder    = recorderManager->getDefaultRecorder();
     recorder->init();
     direct_record = false;
 
     DEBUGF(INDI::Logger::DBG_DEBUG, "Using default recorder (%s)", recorder->getName());
 }
 
-StreamRecorder::~StreamRecorder()
+StreamManager::~StreamManager()
 {
-    delete (v4l2_record);
+    delete (recorderManager);
     free(compressedFrame);
 }
 
-bool StreamRecorder::initProperties()
+bool StreamManager::initProperties()
 {
     /* Video Stream */
     IUFillSwitch(&StreamS[0], "STREAM_ON", "Stream On", ISS_OFF);
@@ -125,7 +128,7 @@ bool StreamRecorder::initProperties()
     return true;
 }
 
-void StreamRecorder::ISGetProperties(const char *dev)
+void StreamManager::ISGetProperties(const char *dev)
 {
     if (dev != nullptr && strcmp(getDeviceName(), dev))
         return;
@@ -143,7 +146,7 @@ void StreamRecorder::ISGetProperties(const char *dev)
     }
 }
 
-bool StreamRecorder::updateProperties()
+bool StreamManager::updateProperties()
 {
     if (ccd->isConnected())
     {
@@ -175,7 +178,7 @@ bool StreamRecorder::updateProperties()
     return true;
 }
 
-void StreamRecorder::newFrame()
+void StreamManager::newFrame()
 {
     double ms1, ms2, deltams;
 
@@ -222,7 +225,7 @@ void StreamRecorder::newFrame()
     }
 }
 
-void StreamRecorder::setRecorderSize(uint16_t width, uint16_t height)
+void StreamManager::setRecorderSize(uint16_t width, uint16_t height)
 {
     recorder->setSize(width, height);
     recorder->setFrame(0, 0, width, height);
@@ -245,133 +248,19 @@ void StreamRecorder::setRecorderSize(uint16_t width, uint16_t height)
     IUUpdateMinMax(&StreamFrameNP);
 }
 
-bool StreamRecorder::close()
+bool StreamManager::close()
 {
     return recorder->close();
 }
 
-bool StreamRecorder::setPixelFormat(uint32_t format)
+bool StreamManager::setPixelFormat(PixelFormat format, uint8_t bitDepth)
 {
-    direct_record = recorder->setPixelFormat(format);
+    direct_record = recorder->setPixelFormat(format, bitDepth);
     return true;
 }
 
-bool StreamRecorder::uploadStream()
-{
-    int ret                = 0;
-    uLongf compressedBytes = 0;
-    uLong totalBytes       = ccd->PrimaryCCD.getFrameBufferSize();
-    uint8_t *buffer        = ccd->PrimaryCCD.getFrameBuffer();
 
-    //memcpy(ccd->PrimaryCCD.getFrameBuffer(), buffer, ccd->PrimaryCCD.getFrameBufferSize());
-
-    // Binning for grayscale frames only for now
-    if (ccd->PrimaryCCD.getNAxis() == 2)
-    {
-        ccd->PrimaryCCD.binFrame();
-        totalBytes /= (ccd->PrimaryCCD.getBinX() * ccd->PrimaryCCD.getBinY());
-    }
-
-    int subX, subY, subW, subH;
-    subX = ccd->PrimaryCCD.getSubX();
-    subY = ccd->PrimaryCCD.getSubY();
-    subW = ccd->PrimaryCCD.getSubW();
-    subH = ccd->PrimaryCCD.getSubH();
-
-    // If stream frame was not yet initilized, let's do that now
-    if (StreamFrameN[CCDChip::FRAME_W].value == 0 || StreamFrameN[CCDChip::FRAME_H].value == 0)
-    {
-        int binFactor = 1;
-        if (ccd->PrimaryCCD.getNAxis() == 2)
-            binFactor = ccd->PrimaryCCD.getBinX();
-
-        StreamFrameN[CCDChip::FRAME_X].value = subX;
-        StreamFrameN[CCDChip::FRAME_Y].value = subY;
-        StreamFrameN[CCDChip::FRAME_W].value = subW / binFactor;
-        StreamFrameN[CCDChip::FRAME_W].value = subH / binFactor;
-        StreamFrameNP.s                      = IPS_IDLE;
-        IDSetNumber(&StreamFrameNP, nullptr);
-    }
-    // Check if we need to subframe
-    else if ((StreamFrameN[CCDChip::FRAME_W].value > 0 && StreamFrameN[CCDChip::FRAME_H].value > 0) &&
-             (StreamFrameN[CCDChip::FRAME_X].value != subX || StreamFrameN[CCDChip::FRAME_Y].value != subY ||
-              StreamFrameN[CCDChip::FRAME_W].value != subW || StreamFrameN[CCDChip::FRAME_H].value != subH))
-    {
-        // For MONO
-        if (ccd->PrimaryCCD.getNAxis() == 2)
-        {
-            int binFactor = (ccd->PrimaryCCD.getBinX() * ccd->PrimaryCCD.getBinY());
-            int offset =
-                ((subW * StreamFrameN[CCDChip::FRAME_Y].value) + StreamFrameN[CCDChip::FRAME_X].value) / binFactor;
-
-            uint8_t *srcBuffer  = buffer + offset;
-            uint8_t *destBuffer = buffer;
-
-            for (int i = 0; i < StreamFrameN[CCDChip::FRAME_H].value; i++)
-                memcpy(destBuffer + i * static_cast<int>(StreamFrameN[CCDChip::FRAME_W].value), srcBuffer + subW * i,
-                       StreamFrameN[CCDChip::FRAME_W].value);
-
-            totalBytes =
-                (StreamFrameN[CCDChip::FRAME_W].value * StreamFrameN[CCDChip::FRAME_H].value) / (binFactor * binFactor);
-        }
-        // For Color
-        else
-        {
-            // Subframe offset in source frame. i.e. where we start copying data from in the original data frame
-            int sourceOffset = (subW * StreamFrameN[CCDChip::FRAME_Y].value) + StreamFrameN[CCDChip::FRAME_X].value;
-            // Total bytes
-            totalBytes = (StreamFrameN[CCDChip::FRAME_W].value * StreamFrameN[CCDChip::FRAME_H].value) * 3;
-
-            // Copy each color component back into buffer. Since each subframed page is equal or small than source component
-            // no need to a new buffer
-
-            uint8_t *srcBuffer  = buffer + sourceOffset * 3;
-            uint8_t *destBuffer = buffer;
-
-            // RGB
-            for (int i = 0; i < StreamFrameN[CCDChip::FRAME_H].value; i++)
-                memcpy(destBuffer + i * static_cast<int>(StreamFrameN[CCDChip::FRAME_W].value * 3),
-                       srcBuffer + subW * 3 * i, StreamFrameN[CCDChip::FRAME_W].value * 3);
-        }
-    }
-
-    // Do we want to compress ?
-    if (ccd->PrimaryCCD.isCompressed())
-    {
-        /* Compress frame */
-        compressedFrame = (uint8_t *)realloc(compressedFrame, sizeof(uint8_t) * totalBytes + totalBytes / 64 + 16 + 3);
-        compressedBytes = sizeof(uint8_t) * totalBytes + totalBytes / 64 + 16 + 3;
-
-        ret = compress2(compressedFrame, &compressedBytes, buffer, totalBytes, 4);
-        if (ret != Z_OK)
-        {
-            /* this should NEVER happen */
-            DEBUGF(INDI::Logger::DBG_ERROR, "internal error - compression failed: %d", ret);
-            return false;
-        }
-
-        // Send it compressed
-        imageB->blob    = compressedFrame;
-        imageB->bloblen = compressedBytes;
-        imageB->size    = totalBytes;
-        strcpy(imageB->format, ".stream.z");
-    }
-    else
-    {
-        // Send it uncompressed
-        imageB->blob    = buffer;
-        imageB->bloblen = totalBytes;
-        imageB->size    = totalBytes;
-        strcpy(imageB->format, ".stream");
-    }
-
-    // Upload to client now
-    imageBP->s = IPS_OK;
-    IDSetBLOB(imageBP, nullptr);
-    return true;
-}
-
-void StreamRecorder::recordStream(double deltams)
+void StreamManager::recordStream(double deltams)
 {
     if (!is_recording)
         return;
@@ -405,7 +294,7 @@ void StreamRecorder::recordStream(double deltams)
     }
 }
 
-int StreamRecorder::mkpath(std::string s, mode_t mode)
+int StreamManager::mkpath(std::string s, mode_t mode)
 {
     size_t pre = 0, pos;
     std::string dir;
@@ -441,7 +330,7 @@ int StreamRecorder::mkpath(std::string s, mode_t mode)
     return mdret;
 }
 
-std::string StreamRecorder::expand(std::string fname, const std::map<std::string, std::string> &patterns)
+std::string StreamManager::expand(std::string fname, const std::map<std::string, std::string> &patterns)
 {
     std::string res = fname;
     std::size_t pos;
@@ -494,7 +383,7 @@ std::string StreamRecorder::expand(std::string fname, const std::map<std::string
     return res;
 }
 
-bool StreamRecorder::startRecording()
+bool StreamManager::startRecording()
 {
     char errmsg[MAXRBUF];
     std::string filename, expfilename, expfiledir;
@@ -570,7 +459,7 @@ bool StreamRecorder::startRecording()
     return true;
 }
 
-bool StreamRecorder::stopRecording()
+bool StreamManager::stopRecording()
 {
     if (!is_recording)
         return true;
@@ -584,7 +473,7 @@ bool StreamRecorder::stopRecording()
     return true;
 }
 
-bool StreamRecorder::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
+bool StreamManager::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
 {
     if (dev != nullptr && strcmp(getDeviceName(), dev))
         return true;
@@ -666,7 +555,7 @@ bool StreamRecorder::ISNewSwitch(const char *dev, const char *name, ISState *sta
     return true;
 }
 
-bool StreamRecorder::ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
+bool StreamManager::ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
 {
     /* ignore if not ours */
     if (dev != nullptr && strcmp(getDeviceName(), dev))
@@ -688,7 +577,7 @@ bool StreamRecorder::ISNewText(const char *dev, const char *name, char *texts[],
     return true;
 }
 
-bool StreamRecorder::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
+bool StreamManager::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
 {
     /* ignore if not ours */
     if (dev != nullptr && strcmp(getDeviceName(), dev))
@@ -757,7 +646,7 @@ bool StreamRecorder::ISNewNumber(const char *dev, const char *name, double value
     return true;
 }
 
-bool StreamRecorder::setStream(bool enable)
+bool StreamManager::setStream(bool enable)
 {
     if (enable)
     {
@@ -825,17 +714,19 @@ bool StreamRecorder::setStream(bool enable)
     return true;
 }
 
-bool StreamRecorder::saveConfigItems(FILE *fp)
+bool StreamManager::saveConfigItems(FILE *fp)
 {
     IUSaveConfigText(fp, &RecordFileTP);
     IUSaveConfigNumber(fp, &RecordOptionsNP);
     return true;
 }
 
-void StreamRecorder::getStreamFrame(uint16_t *x, uint16_t *y, uint16_t *w, uint16_t *h)
+void StreamManager::getStreamFrame(uint16_t *x, uint16_t *y, uint16_t *w, uint16_t *h)
 {
     *x = StreamFrameN[CCDChip::FRAME_X].value;
     *y = StreamFrameN[CCDChip::FRAME_Y].value;
     *w = StreamFrameN[CCDChip::FRAME_W].value;
     *h = StreamFrameN[CCDChip::FRAME_H].value;
+}
+
 }

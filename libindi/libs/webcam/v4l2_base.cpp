@@ -152,8 +152,8 @@ V4L2_Base::V4L2_Base()
     decoder->init();
     dodecode = true;
 
-    v4l2_record = new V4L2_Record();
-    recorder    = v4l2_record->getDefaultRecorder();
+    recorderInterface = new RecorderInterface();
+    recorder    = RecorderInterface->getDefaultRecorder();
     recorder->init();
     dorecord = false;
 
@@ -182,7 +182,7 @@ V4L2_Base::V4L2_Base()
 V4L2_Base::~V4L2_Base()
 {
     delete v4l2_decode;
-    delete v4l2_record;
+    delete RecorderInterface;
 }
 
 /** @brief Helper indicating whether current pixel format is compressed or not.
@@ -364,7 +364,7 @@ void V4L2_Base::doRecord(bool d)
     dorecord = d;
 }
 
-void V4L2_Base::setRecorder(V4L2_Recorder *r)
+void V4L2_Base::setRecorder(RecorderInterface *r)
 {
     recorder = r;
 }

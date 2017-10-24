@@ -24,7 +24,8 @@
 
 #include "indiccd.h"
 #include "indidevapi.h"
-#include "v4l2_record.h"
+#include "pixelformat.h"
+#include "stream/recorder/recordermanager.h"
 
 #include <string>
 #include <map>
@@ -41,7 +42,10 @@
 
 \author Jean-Luc Geehalel, Jasem Mutlaq
 */
-class StreamRecorder
+namespace INDI
+{
+
+class StreamManager
 {
   public:
     enum
@@ -52,8 +56,8 @@ class StreamRecorder
         RECORD_OFF
     };
 
-    StreamRecorder(INDI::CCD *mainCCD);
-    ~StreamRecorder();
+    StreamManager(INDI::CCD *mainCCD);
+    ~StreamManager();
 
     virtual void ISGetProperties(const char *dev);
     virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n);
@@ -82,7 +86,7 @@ class StreamRecorder
          */
     bool setStream(bool enable);
 
-    V4L2_Recorder *getRecorder() { return recorder; }
+    RecorderInterface *getRecorder() { return recorder; }
     bool isDirectRecording() { return direct_record; }
     bool isStreaming() { return is_streaming; }
     bool isRecording() { return is_recording; }
@@ -90,7 +94,7 @@ class StreamRecorder
     const char *getDeviceName() { return ccd->getDeviceName(); }
 
     void setRecorderSize(uint16_t width, uint16_t height);
-    bool setPixelFormat(uint32_t format);
+    bool setPixelFormat(PixelFormat format, uint8_t bitDepth=8);
     void getStreamFrame(uint16_t *x, uint16_t *y, uint16_t *w, uint16_t *h);
     bool close();
 
@@ -149,8 +153,8 @@ class StreamRecorder
     uint8_t *compressedFrame;
 
     // Record frames
-    V4L2_Record *v4l2_record;
-    V4L2_Recorder *recorder;
+    RecorderManager *recorderManager = nullptr;
+    RecorderInterface *recorder = nullptr;
     bool direct_record;
     std::string recordfiledir, recordfilename; /* in case we should move it */
 
@@ -161,3 +165,4 @@ class StreamRecorder
     struct itimerval tframe1, tframe2;
     double mssum, framecountsec;
 };
+}
