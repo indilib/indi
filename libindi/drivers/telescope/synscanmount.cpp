@@ -20,11 +20,14 @@
 
 #include "indicom.h"
 
-#include <ctime>
+#include <libnova/transform.h>
+#include <libnova/utility.h>
+
+#include <cmath>
+#include <memory>
+#include <cstring>
 
 #define SYNSCAN_SLEW_RATES 9
-
-using namespace INDI::AlignmentSubsystem;
 
 // We declare an auto pointer to Synscan.
 std::unique_ptr<SynscanMount> synscan(new SynscanMount());
@@ -108,9 +111,6 @@ bool SynscanMount::initProperties()
     addDebugControl();
     addConfigurationControl();
 
-    // Add alignment properties
-    InitAlignmentProperties(this);
-
     // Set up property variables
     IUFillText(&BasicMountInfo[(int)MountInfoItems::FwVersion], "FW_VERSION", "Firmware version", "-");
     IUFillText(&BasicMountInfo[(int)MountInfoItems::MountCode], "MOUNT_CODE", "Mount code", "-");
@@ -139,45 +139,22 @@ void SynscanMount::ISGetProperties(const char *dev)
 
 bool SynscanMount::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
 {
-    if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
-    {
-        // It is for us
-        ProcessAlignmentNumberProperties(this, name, values, names, n);
-    }
-    // Pass it up the chain
     return INDI::Telescope::ISNewNumber(dev, name, values, names, n);
 }
 
 bool SynscanMount::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
 {
-    if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
-    {
-        // It is for us
-        ProcessAlignmentSwitchProperties(this, name, states, names, n);
-    }
-    // Pass it up the chain
     return INDI::Telescope::ISNewSwitch(dev, name, states, names, n);
 }
 
 bool SynscanMount::ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[],
                              char *formats[], char *names[], int n)
 {
-    if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
-    {
-        // It is for us
-        ProcessAlignmentBLOBProperties(this, name, sizes, blobsizes, blobs, formats, names, n);
-    }
-    // Pass it up the chain
     return INDI::Telescope::ISNewBLOB(dev, name, sizes, blobsizes, blobs, formats, names, n);
 }
 
 bool SynscanMount::ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
 {
-    if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
-    {
-        ProcessAlignmentTextProperties(this, name, texts, names, n);
-    }
-    // Pass it up the chain
     return INDI::Telescope::ISNewText(dev, name, texts, names, n);
 }
 
@@ -268,10 +245,6 @@ bool SynscanMount::AnalyzeHandset()
             MountCode = (int)*reinterpret_cast<unsigned char*>(&str[0]);
         else
             MountCode = (int)*reinterpret_cast<unsigned char*>(&str[1]);
-        if (MountCode < 128)
-            SetApproximateMountAlignmentFromMountType(EQUATORIAL);
-        else
-            SetApproximateMountAlignmentFromMountType(ALTAZ);
     }
 
     SetTelescopeCapability(caps, SYNSCAN_SLEW_RATES);
@@ -298,12 +271,6 @@ bool SynscanMount::ReadScopeStatus()
     int numread;
     double ra, dec;
     long unsigned int n1, n2;
-
-    // Force the alignment subsystem to be on if the firmware is too old
-    if (getSwitch("ALIGNMENT_SUBSYSTEM_ACTIVE")->sp[0].s == ISS_OFF && !NewFirmware)
-    {
-        getSwitch("ALIGNMENT_SUBSYSTEM_ACTIVE")->sp[0].s = ISS_ON;
-    }
 
     tty_write(PortFD, "Ka", 2, &bytesWritten); //  test for an echo
     tty_read(PortFD, str, 2, 2, &bytesRead);   //  Read 2 bytes of response
@@ -494,7 +461,6 @@ bool SynscanMount::ReadScopeStatus()
     tty_write(PortFD, "e", 1, &bytesWritten);
     numread = tty_read(PortFD, str, 18, 1, &bytesRead);
     if (bytesRead != 18)
-    //if(str[17] != '#')
     {
         IDLog("read status bytes didn't get a full read\n");
         return false;
@@ -503,30 +469,14 @@ bool SynscanMount::ReadScopeStatus()
     if (isDebug())
         IDLog("Bytes read is (%s)\n", str);
 
-    // JM read as unsigned long int, otherwise we get negative RA!
     sscanf(str, "%lx,%lx#", &n1, &n2);
-
     ra  = (double)n1 / 0x100000000 * 24.0;
     dec = (double)n2 / 0x100000000 * 360.0;
-    //  we need uncorrected data to be saved
-    //  to use in a sync
-    currentRA  = ra;
-    currentDEC = dec;
-
-    //  Before we pass this back to a client
-    //  run it thru the alignment matrix to correct the data
-    ln_equ_posn eq { 0, 0 };
-
-    if (getSwitch("ALIGNMENT_SUBSYSTEM_ACTIVE")->sp[0].s == ISS_ON)
-    {
-        eq = TelescopeToSky(ra, dec);
-    } else {
-        eq.ra  = currentRA;
-        eq.dec = currentDEC;
-    }
+    CurrentRA  = ra;
+    CurrentDEC = dec;
 
     //  Now feed the rest of the system with corrected data
-    NewRaDec(eq.ra, eq.dec);
+    NewRaDec(ra, dec);
 
     if (TrackState == SCOPE_SLEWING && (SlewTargetAz != -1 || SlewTargetAlt != -1))
     {
@@ -534,7 +484,7 @@ bool SynscanMount::ReadScopeStatus()
         double DiffAlt { 0 };
         double DiffAz { 0 };
 
-        CurrentAltAz = GetAltAzPosition(eq.ra, eq.dec);
+        CurrentAltAz = GetAltAzPosition(ra, dec);
         DiffAlt = CurrentAltAz.alt-SlewTargetAlt;
         if (SlewTargetAlt != -1 && std::abs(DiffAlt) > 0.01)
         {
@@ -655,34 +605,6 @@ bool SynscanMount::ReadScopeStatus()
             }
         }
     }
-
-    /*
-
-        if(GetAlignmentDatabase().size() > 1) {
-
-        	double RightAscension,Declination;
-        	ln_equ_posn eq;
-        	TelescopeDirectionVector TDV;
-
-        	eq.ra=ra*360/24;
-        	eq.dec=dec;
-
-        	TDV=TelescopeDirectionVectorFromEquatorialCoordinates(eq);
-        	if (TransformTelescopeToCelestial( TDV, RightAscension, Declination)) {
-    	    if(RightAscension < 0) RightAscension+=24.0;
-    	    //fprintf(stderr,"new values %6.4f %6.4f %6.4f  %6.4f Deltas %3.0lf %3.0lf\n",ra,dec,RightAscension,Declination,(ra-RightAscension)*60,(dec-Declination)*60);
-
-        	} else {
-    	    //fprintf(stderr,"Conversion failed\n");
-                RightAscension=ra;
-                Declination=dec;
-        	}
-
-        	NewRaDec(RightAscension,Declination);
-        } else {
-        	NewRaDec(ra,dec);
-        }
-    */
     return true;
 }
 
@@ -690,7 +612,6 @@ bool SynscanMount::Goto(double ra, double dec)
 {
     char str[20];
     int bytesWritten, bytesRead;
-    double TargetRA { 0 }, TargetDE { 0 };
     ln_hrz_posn TargetAltAz { 0, 0 };
 
     tty_write(PortFD, "Ka", 2, &bytesWritten); //  test for an echo
@@ -703,20 +624,8 @@ bool SynscanMount::Goto(double ra, double dec)
         return false;
     }
     TrackState = SCOPE_SLEWING;
-    DEBUGF(INDI::Logger::DBG_SESSION, "Goto - ra: %g de: %g", ra, dec);
-    if (getSwitch("ALIGNMENT_SUBSYSTEM_ACTIVE")->sp[0].s == ISS_ON && NewFirmware)
-    {
-        ln_equ_posn eq { 0, 0 };
-
-        eq = SkyToTelescope(ra, dec);
-        TargetRA = eq.ra;
-        TargetDE = eq.dec;
-    } else {
-        TargetRA = ra;
-        TargetDE = dec;
-    }
-    TargetAltAz = GetAltAzPosition(TargetRA, TargetDE);
-    DEBUGF(INDI::Logger::DBG_SESSION, "Goto - ra: %g de: %g (az: %g alt: %g)", ra, dec,
+    TargetAltAz = GetAltAzPosition(ra, dec);
+    DEBUGF(INDI::Logger::DBG_DEBUG, "Goto - ra: %g de: %g (az: %g alt: %g)", ra, dec,
            TargetAltAz.az, TargetAltAz.alt);
 
     SlewTargetAz = TargetAltAz.az;
@@ -1086,6 +995,8 @@ bool SynscanMount::updateTime(ln_date *utc, double utc_offset)
 
 bool SynscanMount::updateLocation(double latitude, double longitude, double elevation)
 {
+    INDI_UNUSED(elevation);
+
     char str[20];
     int bytesWritten = 0, bytesRead = 0;
     int s = 0;
@@ -1094,9 +1005,6 @@ bool SynscanMount::updateLocation(double latitude, double longitude, double elev
 
     ln_lnlat_posn p1 { 0, 0 };
     lnh_lnlat_posn p2;
-
-    //  call the alignment subsystem with our location
-    UpdateLocation(latitude, longitude, elevation);
 
     LocationN[LOCATION_LATITUDE].value  = latitude;
     LocationN[LOCATION_LONGITUDE].value = longitude;
@@ -1130,10 +1038,8 @@ bool SynscanMount::updateLocation(double latitude, double longitude, double elev
         str[3] = s;
         if (p2.lat.neg == 0)
         {
-            SetApproximateMountAlignment(NORTH_CELESTIAL_POLE);
             str[4] = 0;
         } else {
-            SetApproximateMountAlignment(SOUTH_CELESTIAL_POLE);
             str[4] = 1;
         }
 
@@ -1162,282 +1068,67 @@ bool SynscanMount::updateLocation(double latitude, double longitude, double elev
 
 bool SynscanMount::Sync(double ra, double dec)
 {
-    DEBUGF(INDI::Logger::DBG_SESSION, "Sync %g %g -> %g %g", currentRA, currentDEC, ra, dec);
+    DEBUGF(INDI::Logger::DBG_SESSION, "Sync %g %g -> %g %g", CurrentRA, CurrentDEC, ra, dec);
 
-    // The alignment model was reset
-    if (getSwitch("ALIGNMENT_SUBSYSTEM_ACTIVE")->sp[0].s == ISS_ON &&
-        GetAlignmentDatabase().size() == 0 && AlignmentStarted)
+    char str[20];
+    int numread, bytesWritten, bytesRead;
+    ln_hrz_posn TargetAltAz { 0, 0 };
+
+    TargetAltAz = GetAltAzPosition(ra, dec);
+    DEBUGF(INDI::Logger::DBG_DEBUG, "Sync - ra: %g de: %g to az: %g alt: %g", ra, dec,
+           TargetAltAz.az, TargetAltAz.alt);
+    // Assemble the Reset Position command for Az axis
+    int Az = (int)(TargetAltAz.az*16777216 / 360);
+
+    str[0] = 'P';
+    str[1] = 4;
+    str[2] = 16;
+    str[3] = 4;
+    *reinterpret_cast<unsigned char*>(&str[4]) = (unsigned char)(Az / 65536);
+    Az -= (Az / 65536)*65536;
+    *reinterpret_cast<unsigned char*>(&str[5]) = (unsigned char)(Az / 256);
+    Az -= (Az / 256)*256;
+    *reinterpret_cast<unsigned char*>(&str[6]) = (unsigned char)Az;
+    str[7] = 0;
+    tty_write(PortFD, str, 8, &bytesWritten);
+    numread = tty_read(PortFD, str, 1, 2, &bytesRead);
+    // Assemble the Reset Position command for Alt axis
+    int Alt = (int)(TargetAltAz.alt*16777216 / 360);
+
+    str[0] = 'P';
+    str[1] = 4;
+    str[2] = 17;
+    str[3] = 4;
+    *reinterpret_cast<unsigned char*>(&str[4]) = (unsigned char)(Alt / 65536);
+    Alt -= (Alt / 65536)*65536;
+    *reinterpret_cast<unsigned char*>(&str[5]) = (unsigned char)(Alt / 256);
+    Alt -= (Alt / 256)*256;
+    *reinterpret_cast<unsigned char*>(&str[6]) = (unsigned char)Alt;
+    str[7] = 0;
+    tty_write(PortFD, str, 8, &bytesWritten);
+    numread = tty_read(PortFD, str, 1, 2, &bytesRead);
+
+    // Pass the sync command to the handset
+    int n1 = ra * 0x1000000 / 24;
+    int n2 = dec * 0x1000000 / 360;
+
+    n1 = n1 << 8;
+    n2 = n2 << 8;
+    sprintf((char*)str, "s%08X,%08X", n1, n2);
+    memset(&str[18], 0, 1);
+    DEBUGF(INDI::Logger::DBG_DEBUG, "Send Sync command to the handset (%s)", str);
+    tty_write(PortFD, str, 18, &bytesWritten);
+    TrackState = SCOPE_TRACKING;
+
+    numread = tty_read(PortFD,str,1,60, &bytesRead);
+    if (bytesRead != 1 || str[0] != '#')
     {
-        FirstSync = false;
-        AlignmentStarted = false;
+        if (isDebug())
+            IDLog("Timeout waiting for scope to complete syncing.");
+
+        return false;
     }
-    // There are two cases when we need to do position reset:
-    // 1. Alignment subsystem is on. The first sync will have a big position jump. Do it with position reset instead.
-    // 2. Alignment subsystem is off. Syncing the current point does not reset the telescope position.
-    if (!FirstSync || (getSwitch("ALIGNMENT_SUBSYSTEM_ACTIVE")->sp[0].s == ISS_OFF && NewFirmware))
-    {
-        char str[20];
-        int numread, bytesWritten, bytesRead;
-        ln_hrz_posn TargetAltAz { 0, 0 };
-
-        tty_write(PortFD, "Ka", 2, &bytesWritten); //  test for an echo
-        tty_read(PortFD, str, 2, 2, &bytesRead);   //  Read 2 bytes of response
-        if (str[1] != '#')
-        {
-            DEBUG(INDI::Logger::DBG_SESSION, "Wrong answer from the mount");
-            //  this is not a correct echo
-            //  so we are not talking to a mount properly
-            return false;
-        }
-
-        TargetAltAz = GetAltAzPosition(ra, dec);
-        DEBUGF(INDI::Logger::DBG_SESSION, "First sync - ra: %g de: %g (az: %g alt: %g)", ra, dec,
-               TargetAltAz.az, TargetAltAz.alt);
-        // Assemble the Reset Position command for Az axis
-        int Az = (int)(TargetAltAz.az*16777216 / 360);
-
-        str[0] = 'P';
-        str[1] = 4;
-        str[2] = 16;
-        str[3] = 4;
-        *reinterpret_cast<unsigned char*>(&str[4]) = (unsigned char)(Az / 65536);
-        Az -= (Az / 65536)*65536;
-        *reinterpret_cast<unsigned char*>(&str[5]) = (unsigned char)(Az / 256);
-        Az -= (Az / 256)*256;
-        *reinterpret_cast<unsigned char*>(&str[6]) = (unsigned char)Az;
-        str[7] = 0;
-        tty_write(PortFD, str, 8, &bytesWritten);
-        numread = tty_read(PortFD, str, 1, 2, &bytesRead);
-        // Assemble the Reset Position command for Alt axis
-        int Alt = (int)(TargetAltAz.alt*16777216 / 360);
-
-        str[0] = 'P';
-        str[1] = 4;
-        str[2] = 17;
-        str[3] = 4;
-        *reinterpret_cast<unsigned char*>(&str[4]) = (unsigned char)(Alt / 65536);
-        Alt -= (Alt / 65536)*65536;
-        *reinterpret_cast<unsigned char*>(&str[5]) = (unsigned char)(Alt / 256);
-        Alt -= (Alt / 256)*256;
-        *reinterpret_cast<unsigned char*>(&str[6]) = (unsigned char)Alt;
-        str[7] = 0;
-        tty_write(PortFD, str, 8, &bytesWritten);
-        numread = tty_read(PortFD, str, 1, 2, &bytesRead);
-
-        FirstSync = true;
-        if (!(getSwitch("ALIGNMENT_SUBSYSTEM_ACTIVE")->sp[0].s == ISS_OFF && NewFirmware))
-            return true;
-    }
-    // Pass the sync operation to the handset
-    if (getSwitch("ALIGNMENT_SUBSYSTEM_ACTIVE")->sp[0].s == ISS_OFF && NewFirmware)
-    {
-        char str[20];
-        int n1, n2;
-        int numread, bytesWritten { 0 }, bytesRead { 0 };
-
-        tty_write(PortFD, "Ka", 2, &bytesWritten);  //  test for an echo
-        tty_read(PortFD, str, 2, 2, &bytesRead);  //  Read 2 bytes of response
-        if (str[1] != '#')
-        {
-            //  this is not a correct echo
-            //  so we are not talking to a mount properly
-            return false;
-        }
-        n1 = ra * 0x1000000 / 24;
-        n2 = dec * 0x1000000 / 360;
-        n1 = n1 << 8;
-        n2 = n2 << 8;
-        sprintf((char *)str, "s%08X,%08X", n1, n2);
-        memset(&str[18], 0, 1);
-        DEBUGF(INDI::Logger::DBG_DEBUG, "Send Sync command to the handset (%s)", str);
-        tty_write(PortFD, str, 18, &bytesWritten);
-        TrackState = SCOPE_TRACKING;
-
-        numread = tty_read(PortFD,str,1,60, &bytesRead);
-        if (bytesRead != 1 || str[0] != '#')
-        {
-            if (isDebug())
-                IDLog("Timeout waiting for scope to complete syncing.");
-
-            return false;
-        }
-        return true;
-    }
-
-    ln_equ_posn eq { 0, 0 };
-    AlignmentDatabaseEntry NewEntry;
-    double lst = 0, lha = 0;
-
-    //  this is where we think we are pointed now
-    //  and we need to set a sync point in the alignment database
-
-    /*
-    //  working entirely in eq co-ordinates, this is all we need to do here
-    //  we need these numbers in degrees
-    eq.ra=currentRA*360.0/24.0;	//  this is wanted in degrees, not hours
-    eq.dec=currentDEC;
-    NewEntry.TelescopeDirection=TelescopeDirectionVectorFromEquatorialCoordinates(eq);
-
-    //  if working in alt/az co-ordinates, we need to do this as well
-    here.lat=LocationN[LOCATION_LATITUDE].value;
-    here.lng=LocationN[LOCATION_LONGITUDE].value;
-    ln_get_hrz_from_equ(&eq,&here,ln_get_julian_from_sys(),&altaz);
-    NewEntry.TelescopeDirection=TelescopeDirectionVectorFromAltitudeAzimuth(altaz);
-    */
-
-    //  if we are working in lha/dec co-ordinates, we need to do these steps
-    //  the steps above dont matter
-    lst = get_local_sideral_time(LocationN[LOCATION_LONGITUDE].value);
-    lha = get_local_hour_angle(lst, currentRA);
-    //  convert lha to degrees
-    lha                         = lha * 360.0 / 24.0;
-    eq.ra                       = lha;
-    eq.dec                      = currentDEC;
-    NewEntry.TelescopeDirection = TelescopeDirectionVectorFromLocalHourAngleDeclination(eq);
-
-    //  Flesh out the rest of the information for this sync point
-    NewEntry.ObservationJulianDate = ln_get_julian_from_sys();
-    NewEntry.RightAscension        = ra;
-    NewEntry.Declination           = dec;
-    NewEntry.PrivateDataSize       = 0;
-    if (!CheckForDuplicateSyncPoint(NewEntry))
-    {
-        GetAlignmentDatabase().push_back(NewEntry);
-        // Tell the client about size change
-        UpdateSize();
-        // Tell the math plugin to reinitialise
-        Initialise(this);
-        AlignmentStarted = true;
-        return true;
-    }
-    return false;
-}
-
-ln_equ_posn SynscanMount::TelescopeToSky(double ra, double dec)
-{
-    double RightAscension, Declination;
-    ln_equ_posn eq { 0, 0 };
-
-    if (GetAlignmentDatabase().size() > 1)
-    {
-        TelescopeDirectionVector TDV;
-
-        /*  Use this if we ar converting eq co-ords
-        //  but it's broken for now
-           	eq.ra=ra*360/24;
-           	eq.dec=dec;
-           	TDV=TelescopeDirectionVectorFromEquatorialCoordinates(eq);
-        */
-
-        /* This code does a conversion from ra/dec to alt/az
-        // before calling the alignment stuff
-            ln_lnlat_posn here;
-        	ln_hrz_posn altaz;
-
-        	here.lat=LocationN[LOCATION_LATITUDE].value;
-        	here.lng=LocationN[LOCATION_LONGITUDE].value;
-        	eq.ra=ra*360.0/24.0;	//  this is wanted in degrees, not hours
-        	eq.dec=dec;
-        	ln_get_hrz_from_equ(&eq,&here,ln_get_julian_from_sys(),&altaz);
-        	TDV=TelescopeDirectionVectorFromAltitudeAzimuth(altaz);
-        */
-
-        /*  and here we convert from ra/dec to hour angle / dec before calling alignment stuff */
-        double lha, lst;
-        lst = get_local_sideral_time(LocationN[LOCATION_LONGITUDE].value);
-        lha = get_local_hour_angle(lst, ra);
-        //  convert lha to degrees
-        lha    = lha * 360 / 24;
-        eq.ra  = lha;
-        eq.dec = dec;
-        TDV    = TelescopeDirectionVectorFromLocalHourAngleDeclination(eq);
-
-        if (TransformTelescopeToCelestial(TDV, RightAscension, Declination))
-        {
-            //  if we get here, the conversion was successful
-            //fprintf(stderr,"new values %6.4f %6.4f %6.4f  %6.4f Deltas %3.0lf %3.0lf\n",ra,dec,RightAscension,Declination,(ra-RightAscension)*60,(dec-Declination)*60);
-        }
-        else
-        {
-            //if the conversion failed, return raw data
-            RightAscension = ra;
-            Declination    = dec;
-        }
-    }
-    else
-    {
-        //  With less than 2 align points
-        // Just return raw data
-        RightAscension = ra;
-        Declination    = dec;
-    }
-
-    eq.ra  = RightAscension;
-    eq.dec = Declination;
-    return eq;
-}
-
-ln_equ_posn SynscanMount::SkyToTelescope(double ra, double dec)
-{
-    ln_equ_posn eq { 0, 0 };
-    TelescopeDirectionVector TDV;
-    double RightAscension = 0, Declination = 0;
-
-    if (GetAlignmentDatabase().size() > 1)
-    {
-        //  if the alignment system has been turned off
-        //  this transformation will fail, and we fall thru
-        //  to using raw co-ordinates from the mount
-        if (TransformCelestialToTelescope(ra, dec, 0.0, TDV))
-        {
-            /*  Initial attemp, using RA/DEC co-ordinates talking to alignment system
-            EquatorialCoordinatesFromTelescopeDirectionVector(TDV,eq);
-            RightAscension=eq.ra*24.0/360;
-            Declination=eq.dec;
-            if(RightAscension < 0) RightAscension+=24.0;
-            DEBUGF(INDI::Logger::DBG_SESSION,"Transformed Co-ordinates %g %g\n",RightAscension,Declination);
-            */
-
-            //  nasty altaz kludge, use al/az co-ordinates to talk to alignment system
-            /*
-                eq.ra=ra*360/24;
-                eq.dec=dec;
-                here.lat=LocationN[LOCATION_LATITUDE].value;
-                here.lng=LocationN[LOCATION_LONGITUDE].value;
-                ln_get_hrz_from_equ(&eq,&here,ln_get_julian_from_sys(),&altaz);
-            AltitudeAzimuthFromTelescopeDirectionVector(TDV,altaz);
-            //  now convert the resulting altaz into radec
-                ln_get_equ_from_hrz(&altaz,&here,ln_get_julian_from_sys(),&eq);
-            RightAscension=eq.ra*24.0/360.0;
-            Declination=eq.dec;
-                */
-
-            /* now lets convert from telescope to lha/dec */
-            double lst;
-            LocalHourAngleDeclinationFromTelescopeDirectionVector(TDV, eq);
-            //  and now we have to convert from lha back to RA
-            lst            = get_local_sideral_time(LocationN[LOCATION_LONGITUDE].value);
-            eq.ra          = eq.ra * 24 / 360;
-            RightAscension = lst - eq.ra;
-            RightAscension = range24(RightAscension);
-            Declination    = eq.dec;
-        }
-        else
-        {
-            DEBUGF(INDI::Logger::DBG_SESSION, "Transform failed, using raw co-ordinates %g %g\n", ra, dec);
-            RightAscension = ra;
-            Declination    = dec;
-        }
-    }
-    else
-    {
-        RightAscension = ra;
-        Declination    = dec;
-    }
-
-    eq.ra  = RightAscension;
-    eq.dec = Declination;
-    return eq;
+    return true;
 }
 
 ln_hrz_posn SynscanMount::GetAltAzPosition(double ra, double dec)
