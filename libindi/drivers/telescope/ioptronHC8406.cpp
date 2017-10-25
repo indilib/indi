@@ -1217,15 +1217,21 @@ void ioptronHC8406::sendScopeTime()
     IDSetText(&TimeTP, nullptr);
 }
 
-int ioptronHC8406::SendPulseCmd(int direction, int duration_msec)
+int ioptronHC8406::SendPulseCmd(int direction, int Tduration_msec)
 {
     DEBUGF(INDI::Logger::DBG_DEBUG, "<%s>", __FUNCTION__);
     int rc = 0,  nbytes_written = 0;
     char cmd[20];
-    if (duration_msec>=1000) {
-    	DEBUG(INDI::Logger::DBG_DEBUG, "ABORTING pulse guide. Pulse >999");
-	return 1;
+    int duration_msec,Rduration;
+    if (Tduration_msec >=1000) {
+	    duration_msec=999;    		    //limited to 999
+	    Rduration=Tduration_msec-duration_msec; //pending ms
+    } else {
+	    duration_msec=Tduration_msec;
+	    Rduration=0;
+       	    DEBUG(INDI::Logger::DBG_DEBUG, "Pulse %d <999 Sent only one",Tduration_msec);
     }
+
     switch (direction)
     {
         case LX200_NORTH:
@@ -1253,6 +1259,12 @@ int ioptronHC8406::SendPulseCmd(int direction, int duration_msec)
         return 1;
     }
     tcflush(PortFD, TCIFLUSH);
+
+    if (Rduration!=0) {
+    	DEBUGF(INDI::Logger::DBG_DEBUG, "pulse guide. Pulse >999. ms left:%d",Rduration);
+        usleep(1000000);   //wait until the previous one has fineshed
+        return SendPulseCmd(direction,Rduration);
+    }
     return 0;
 }
 
