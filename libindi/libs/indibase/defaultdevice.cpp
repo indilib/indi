@@ -984,7 +984,8 @@ bool INDI::DefaultDevice::Connect()
     if (rc)
     {
         saveConfig(true, "CONNECTION_MODE");
-        SetTimer(updatePeriodMS);
+        if (updatePeriodMS > 0)
+            SetTimer(updatePeriodMS);
     }
 
     return rc;
