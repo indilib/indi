@@ -30,6 +30,7 @@
 #include <memory>
 #include <cstring>
 #include <termios.h>
+#include <unistd.h>
 
 #define MBOX_TIMEOUT 5
 #define MBOX_BUF     64
@@ -138,7 +139,13 @@ bool MBox::updateProperties()
 
 bool MBox::Handshake()
 {
-    return ack();
+    if (ack())
+    {
+        getCalibration(false);
+        return true;
+    }
+
+    return false;
 }
 
 IPState MBox::updateWeather()
@@ -262,7 +269,7 @@ IPState MBox::updateWeather()
 
 bool MBox::ack()
 {
-    int nbytes_written = 0, nbytes_read = 0, rc = -1;
+    int nbytes_read = 0, rc = -1;
     char errstr[MAXRBUF];
     const char *command = ":calget*";
     char response[MBOX_BUF];
@@ -271,20 +278,12 @@ bool MBox::ack()
 
     if (isSimulation())
     {
+        strncpy(response, "MBox by Astromi.ch\r\n", 64);
         strncpy(response, "$PCAL,P,20,T,50,H,-10*79\r\n", 64);
         nbytes_read = strlen(response);
     }
     else
     {
-        tcflush(PortFD, TCIOFLUSH);
-
-        if ((rc = tty_write(PortFD, command, strlen(command), &nbytes_written)) != TTY_OK)
-        {
-            tty_error_msg(rc, errstr, MAXRBUF);
-            DEBUGF(INDI::Logger::DBG_ERROR, "%s error: %s.", __FUNCTION__, errstr);
-            return false;
-        }
-
         if ((rc = tty_read_section(PortFD, response, 0xA, MBOX_TIMEOUT, &nbytes_read)) != TTY_OK)
         {
             tty_error_msg(rc, errstr, MAXRBUF);
@@ -298,13 +297,10 @@ bool MBox::ack()
 
     DEBUGF(INDI::Logger::DBG_DEBUG, "RES <%s>", response);
 
-    if (verifyCRC(response) == false)
-    {
-        DEBUG(INDI::Logger::DBG_ERROR, "CRC check failed!");
-        return false;
-    }
+    if (strstr(response, "MBox"))
+        return true;
 
-    return true;
+    return false;
 }
 
 bool MBox::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
@@ -314,7 +310,7 @@ bool MBox::ISNewNumber(const char *dev, const char *name, double values[], char 
         if (!strcmp(name, CalibrationNP.name))
         {
             IUUpdateNumber(&CalibrationNP, values, names, n);
-            if (setCalibration() && getCalibration())
+            if (setCalibration())
                 CalibrationNP.s = IPS_OK;
             else
                 CalibrationNP.s = IPS_ALERT;
@@ -351,14 +347,15 @@ bool MBox::ISNewSwitch(const char *dev, const char *name, ISState *states, char 
     return INDI::Weather::ISNewSwitch(dev, name, states, names, n);
 }
 
-bool MBox::getCalibration()
+bool MBox::getCalibration(bool sendCommand)
 {
     int nbytes_written = 0, nbytes_read = 0, rc = -1;
     char errstr[MAXRBUF];
     const char *command = ":calget*";
     char response[MBOX_BUF];
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD <%s>", command);
+    if (sendCommand)
+        DEBUGF(INDI::Logger::DBG_DEBUG, "CMD <%s>", command);
 
     if (isSimulation())
     {
@@ -367,13 +364,16 @@ bool MBox::getCalibration()
     }
     else
     {
-        tcflush(PortFD, TCIOFLUSH);
-
-        if ((rc = tty_write(PortFD, command, strlen(command), &nbytes_written)) != TTY_OK)
+        if (sendCommand)
         {
-            tty_error_msg(rc, errstr, MAXRBUF);
-            DEBUGF(INDI::Logger::DBG_ERROR, "%s error: %s.", __FUNCTION__, errstr);
-            return false;
+            tcflush(PortFD, TCIOFLUSH);
+
+            if ((rc = tty_write(PortFD, command, strlen(command), &nbytes_written)) != TTY_OK)
+            {
+                tty_error_msg(rc, errstr, MAXRBUF);
+                DEBUGF(INDI::Logger::DBG_ERROR, "%s error: %s.", __FUNCTION__, errstr);
+                return false;
+            }
         }
 
         if ((rc = tty_read_section(PortFD, response, 0xA, MBOX_TIMEOUT, &nbytes_read)) != TTY_OK)
@@ -445,8 +445,8 @@ bool MBox::setCalibration()
     char errstr[MAXRBUF];
     char command[16] = {0};
 
-    // Pressure. Times 100 since mbar -> Pascal conversion.
-    snprintf(command, 16, ":calp,%d*", static_cast<int32_t>(CalibrationN[CAL_PRESSURE].value*100.0));
+    // Pressure.
+    snprintf(command, 16, ":calp,%d*", static_cast<int32_t>(CalibrationN[CAL_PRESSURE].value*10.0));
 
     DEBUGF(INDI::Logger::DBG_DEBUG, "CMD <%s>", command);
 
@@ -460,6 +460,9 @@ bool MBox::setCalibration()
             DEBUGF(INDI::Logger::DBG_ERROR, "%s error: %s.", __FUNCTION__, errstr);
             return false;
         }
+
+        // 100ms
+        usleep(100000);
     }
 
     // Temperature
@@ -477,6 +480,9 @@ bool MBox::setCalibration()
             DEBUGF(INDI::Logger::DBG_ERROR, "%s error: %s.", __FUNCTION__, errstr);
             return false;
         }
+
+        // 100ms
+        usleep(100000);
     }
 
     // Humidity
@@ -494,6 +500,9 @@ bool MBox::setCalibration()
             DEBUGF(INDI::Logger::DBG_ERROR, "%s error: %s.", __FUNCTION__, errstr);
             return false;
         }
+
+        // 100ms
+        usleep(100000);
     }
 
     return true;

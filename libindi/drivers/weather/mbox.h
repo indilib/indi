@@ -47,7 +47,7 @@ class MBox : public INDI::Weather
   private:
     bool ack();
     bool verifyCRC(const char *response);
-    bool getCalibration();
+    bool getCalibration(bool sendCommand=true);
     bool setCalibration();
     bool resetCalibration();
 
