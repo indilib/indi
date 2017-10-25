@@ -1229,7 +1229,7 @@ int ioptronHC8406::SendPulseCmd(int direction, int Tduration_msec)
     } else {
 	    duration_msec=Tduration_msec;
 	    Rduration=0;
-       	    DEBUG(INDI::Logger::DBG_DEBUG, "Pulse %d <999 Sent only one",Tduration_msec);
+       	    DEBUGF(INDI::Logger::DBG_DEBUG, "Pulse %d <999 Sent only one",Tduration_msec);
     }
 
     switch (direction)
