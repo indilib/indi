@@ -45,6 +45,10 @@
 		<driver name="AstroPhysics">indi_lx200ap</driver>
 		<version>1.0</version>
 	</device>
+        <device label="AstroPhysics">
+                <driver name="AstroPhysics">indi_lx200ap</driver>
+                <version>1.0</version>
+        </device>
         <device label="Celestron GPS">
 		<driver name="Celestron GPS">indi_celestron_gps</driver>
                 <version>3.0</version>
@@ -198,7 +202,7 @@
         <device label="Pegasus DMFC">
                 <driver name="Pegasus DMFC">indi_dmfc_focus</driver>
                 <version>1.0</version>
-        </device>
+        </device>        
         <device label="Microtouch">
                 <driver name="Microtouch">indi_microtouch_focus</driver>
                 <version>0.1</version>
@@ -222,6 +226,10 @@
         <device label="Optec TCF-S3">
                 <driver name="Optec TCF-S">indi_tcfs3_focus</driver>
                 <version>0.1</version>
+        </device>
+        <device label="Sesto Senso">
+                <driver name="Sesto Senso">indi_sestosenso_focus</driver>
+                <version>1.0</version>
         </device>
         <device label="FocusLynx">
                 <driver name="FocusLynx">indi_lynx_focus</driver>
@@ -279,7 +287,7 @@
         </device>
         <device label="WatchDog">
                 <driver name="WatchDog">indi_watchdog</driver>
-                <version>0.1</version>
+                <version>0.2</version>
         </device>
         <device label="Joystick">
                 <driver name="Joystick">indi_joystick</driver>
@@ -308,6 +316,10 @@
         <device label="GPS Simulator">
                 <driver name="GPS Simulator">indi_simulator_gps</driver>
                 <version>0.1</version>
+        </device>
+        <device label="USB_Dewpoint">
+                <driver name="USB_Dewpoint">indi_usbdewpoint</driver>
+                <version>1.0</version>
         </device>
 </devGroup>
 <devGroup group="Domes">        
@@ -339,6 +351,10 @@
         </device>
         <device label="WunderGround">
                 <driver name="WunderGround">indi_wunderground_weather</driver>
+                <version>1.0</version>
+        </device>
+        <device label="MBox">
+                <driver name="MBox">indi_mbox_weather</driver>
                 <version>1.0</version>
         </device>
         <device label="Vantage">

@@ -410,7 +410,7 @@ void INDI::CCD::SetCCDCapability(uint32_t cap)
 {
     capability = cap;
 
-    if (HasGuideHead())
+    if (HasST4Port())
         setDriverInterface(getDriverInterface() | GUIDER_INTERFACE);
     else
         setDriverInterface(getDriverInterface() & ~GUIDER_INTERFACE);

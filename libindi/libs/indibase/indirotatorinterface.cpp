@@ -25,34 +25,32 @@
 
 #include <cstring>
 
-INDI::RotatorInterface::RotatorInterface()
+INDI::RotatorInterface::RotatorInterface(DefaultDevice *defaultDevice) : m_defaultDevice(defaultDevice)
 {
 }
 
-void INDI::RotatorInterface::initProperties(INDI::DefaultDevice *defaultDevice, const char *groupName)
-{
-    strncpy(rotatorName, defaultDevice->getDeviceName(), MAXINDIDEVICE);
-
+void INDI::RotatorInterface::initProperties(const char *groupName)
+{    
     // Rotator Angle
     IUFillNumber(&GotoRotatorN[0], "ANGLE", "Angle", "%.2f", 0, 360., 10., 0.);
-    IUFillNumberVector(&GotoRotatorNP, GotoRotatorN, 1, defaultDevice->getDeviceName(), "ABS_ROTATOR_ANGLE", "Goto", groupName, IP_RW, 0, IPS_IDLE );
+    IUFillNumberVector(&GotoRotatorNP, GotoRotatorN, 1, m_defaultDevice->getDeviceName(), "ABS_ROTATOR_ANGLE", "Goto", groupName, IP_RW, 0, IPS_IDLE );
 
     // Abort Rotator
     IUFillSwitch(&AbortRotatorS[0], "ABORT", "Abort", ISS_OFF);
-    IUFillSwitchVector(&AbortRotatorSP, AbortRotatorS, 1, defaultDevice->getDeviceName(), "ROTATOR_ABORT_MOTION", "Abort Motion", groupName, IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
+    IUFillSwitchVector(&AbortRotatorSP, AbortRotatorS, 1, m_defaultDevice->getDeviceName(), "ROTATOR_ABORT_MOTION", "Abort Motion", groupName, IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
 
     // Rotator Sync
     IUFillNumber(&SyncRotatorN[0], "ANGLE", "Angle", "%.2f", 0, 360., 10., 0.);
-    IUFillNumberVector(&SyncRotatorNP, SyncRotatorN, 1, defaultDevice->getDeviceName(), "SYNC_ROTATOR_ANGLE", "Sync", groupName, IP_RW, 0, IPS_IDLE );
+    IUFillNumberVector(&SyncRotatorNP, SyncRotatorN, 1, m_defaultDevice->getDeviceName(), "SYNC_ROTATOR_ANGLE", "Sync", groupName, IP_RW, 0, IPS_IDLE );
 
     // Home Rotator
     IUFillSwitch(&HomeRotatorS[0], "HOME", "Start", ISS_OFF);
-    IUFillSwitchVector(&HomeRotatorSP, HomeRotatorS, 1, defaultDevice->getDeviceName(), "ROTATOR_HOME", "Homing", groupName, IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
+    IUFillSwitchVector(&HomeRotatorSP, HomeRotatorS, 1, m_defaultDevice->getDeviceName(), "ROTATOR_HOME", "Homing", groupName, IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
 
     // Reverse Direction
     IUFillSwitch(&ReverseRotatorS[REVERSE_ENABLED], "REVERSE_ENABLED", "Enable", ISS_OFF);
     IUFillSwitch(&ReverseRotatorS[REVERSE_DISABLED], "REVERSE_DISABLED", "Disable", ISS_ON);
-    IUFillSwitchVector(&ReverseRotatorSP, ReverseRotatorS, 2, defaultDevice->getDeviceName(), "ROTATOR_REVERSE", "Reverse", groupName, IP_RW, ISR_1OFMANY,
+    IUFillSwitchVector(&ReverseRotatorSP, ReverseRotatorS, 2, m_defaultDevice->getDeviceName(), "ROTATOR_REVERSE", "Reverse", groupName, IP_RW, ISR_1OFMANY,
                        0, IPS_IDLE);
 }
 
@@ -61,7 +59,7 @@ bool INDI::RotatorInterface::processNumber(const char *dev, const char *name, do
     INDI_UNUSED(names);
     INDI_UNUSED(n);
 
-    if (dev != nullptr && strcmp(dev, rotatorName) == 0)
+    if (dev != nullptr && strcmp(dev, m_defaultDevice->getDeviceName()) == 0)
     {
         ////////////////////////////////////////////
         // Move Absolute Angle
@@ -78,7 +76,7 @@ bool INDI::RotatorInterface::processNumber(const char *dev, const char *name, do
             GotoRotatorNP.s = MoveRotator(values[0]);
             IDSetNumber(&GotoRotatorNP, nullptr);
             if (GotoRotatorNP.s == IPS_BUSY)
-                DEBUGFDEVICE(rotatorName, INDI::Logger::DBG_SESSION, "Rotator moving to %.2f degrees...", values[0]);
+                DEBUGFDEVICE(m_defaultDevice->getDeviceName(), INDI::Logger::DBG_SESSION, "Rotator moving to %.2f degrees...", values[0]);
             return true;
         }
         ////////////////////////////////////////////
@@ -112,7 +110,7 @@ bool INDI::RotatorInterface::processSwitch(const char *dev, const char *name, IS
     INDI_UNUSED(names);
     INDI_UNUSED(n);
 
-    if (dev != nullptr && strcmp(dev, rotatorName) == 0)
+    if (dev != nullptr && strcmp(dev, m_defaultDevice->getDeviceName()) == 0)
     {
         ////////////////////////////////////////////
         // Abort
@@ -156,12 +154,12 @@ bool INDI::RotatorInterface::processSwitch(const char *dev, const char *name, IS
             {
                 IUUpdateSwitch(&ReverseRotatorSP, states, names, n);
                 ReverseRotatorSP.s = IPS_OK;
-                DEBUGFDEVICE(rotatorName, INDI::Logger::DBG_SESSION, "Rotator direction is %s.", (enabled ? "reversed" : "normal"));
+                DEBUGFDEVICE(m_defaultDevice->getDeviceName(), INDI::Logger::DBG_SESSION, "Rotator direction is %s.", (enabled ? "reversed" : "normal"));
             }
             else
             {
                 ReverseRotatorSP.s = IPS_ALERT;
-                DEBUGDEVICE(rotatorName, INDI::Logger::DBG_SESSION, "Rotator reverse direction failed.");
+                DEBUGDEVICE(m_defaultDevice->getDeviceName(), INDI::Logger::DBG_SESSION, "Rotator reverse direction failed.");
             }
 
             IDSetSwitch(&ReverseRotatorSP, nullptr);
@@ -172,33 +170,33 @@ bool INDI::RotatorInterface::processSwitch(const char *dev, const char *name, IS
     return false;
 }
 
-bool INDI::RotatorInterface::updateProperties(INDI::DefaultDevice *defaultDevice)
+bool INDI::RotatorInterface::updateProperties()
 {
-    if (defaultDevice->isConnected())
+    if (m_defaultDevice->isConnected())
     {
-        defaultDevice->defineNumber(&GotoRotatorNP);
+        m_defaultDevice->defineNumber(&GotoRotatorNP);
 
         if (CanAbort())
-            defaultDevice->defineSwitch(&AbortRotatorSP);
+            m_defaultDevice->defineSwitch(&AbortRotatorSP);
         if (CanSync())
-            defaultDevice->defineNumber(&SyncRotatorNP);
+            m_defaultDevice->defineNumber(&SyncRotatorNP);
         if (CanHome())
-            defaultDevice->defineSwitch(&HomeRotatorSP);
+            m_defaultDevice->defineSwitch(&HomeRotatorSP);
         if (CanReverse())
-            defaultDevice->defineSwitch(&ReverseRotatorSP);
+            m_defaultDevice->defineSwitch(&ReverseRotatorSP);
     }
     else
     {        
-        defaultDevice->deleteProperty(GotoRotatorNP.name);
+        m_defaultDevice->deleteProperty(GotoRotatorNP.name);
 
         if (CanAbort())
-            defaultDevice->deleteProperty(AbortRotatorSP.name);
+            m_defaultDevice->deleteProperty(AbortRotatorSP.name);
         if (CanSync())
-            defaultDevice->deleteProperty(SyncRotatorNP.name);
+            m_defaultDevice->deleteProperty(SyncRotatorNP.name);
         if (CanHome())
-            defaultDevice->deleteProperty(HomeRotatorSP.name);
+            m_defaultDevice->deleteProperty(HomeRotatorSP.name);
         if (CanReverse())
-            defaultDevice->deleteProperty(ReverseRotatorSP.name);
+            m_defaultDevice->deleteProperty(ReverseRotatorSP.name);
     }
 
     return true;
@@ -207,25 +205,25 @@ bool INDI::RotatorInterface::updateProperties(INDI::DefaultDevice *defaultDevice
 bool INDI::RotatorInterface::SyncRotator(double angle)
 {
     INDI_UNUSED(angle);
-    DEBUGDEVICE(rotatorName, INDI::Logger::DBG_ERROR, "Rotator does not support syncing.");
+    DEBUGDEVICE(m_defaultDevice->getDeviceName(), INDI::Logger::DBG_ERROR, "Rotator does not support syncing.");
     return false;
 }
 
 IPState INDI::RotatorInterface::HomeRotator()
 {
-    DEBUGDEVICE(rotatorName, INDI::Logger::DBG_ERROR, "Rotator does not support homing.");
+    DEBUGDEVICE(m_defaultDevice->getDeviceName(), INDI::Logger::DBG_ERROR, "Rotator does not support homing.");
     return IPS_ALERT;
 }
 
 bool INDI::RotatorInterface::AbortRotator()
 {
-    DEBUGDEVICE(rotatorName, INDI::Logger::DBG_ERROR, "Rotator does not support abort.");
+    DEBUGDEVICE(m_defaultDevice->getDeviceName(), INDI::Logger::DBG_ERROR, "Rotator does not support abort.");
     return false;
 }
 
 bool INDI::RotatorInterface::ReverseRotator(bool enabled)
 {
     INDI_UNUSED(enabled);
-    DEBUGDEVICE(rotatorName, INDI::Logger::DBG_ERROR, "Rotator does not support reverse.");
+    DEBUGDEVICE(m_defaultDevice->getDeviceName(), INDI::Logger::DBG_ERROR, "Rotator does not support reverse.");
     return false;
 }

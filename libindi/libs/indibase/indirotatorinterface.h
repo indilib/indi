@@ -86,20 +86,20 @@ class INDI::RotatorInterface
 
 protected:
 
-    RotatorInterface();
+    explicit RotatorInterface(INDI::DefaultDevice *defaultDevice);
 
     /**
      * \brief Initilize Rotator properties. It is recommended to call this function within
      * initProperties() of your primary device
      * \param groupName Group or tab name to be used to define Rotator properties.
      */
-    void initProperties(INDI::DefaultDevice *defaultDevice, const char *groupName);
+    void initProperties(const char *groupName);
 
     /**
      * @brief updateRotatorProperties Define or Delete Rotator properties based on the connection status of the base device
      * @return True if successful, false otherwise.
      */
-    bool updateProperties(INDI::DefaultDevice *defaultDevice);
+    bool updateProperties();
 
     /** \brief Process Rotator number properties */
     bool processNumber(const char *dev, const char *name, double values[], char *names[], int n);
@@ -157,5 +157,5 @@ protected:
     enum { REVERSE_ENABLED, REVERSE_DISABLED };
 
     uint32_t rotatorCapability = 0;
-    char rotatorName[MAXINDIDEVICE];
+    INDI::DefaultDevice *m_defaultDevice { nullptr };
 };
