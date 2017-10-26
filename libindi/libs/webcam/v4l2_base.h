@@ -41,6 +41,8 @@
 
 #define VIDEO_COMPRESSION_LEVEL 4
 
+class V4L2_Driver;
+
 enum
 {
     LX_ACTIVE = 0,
@@ -69,6 +71,7 @@ class V4L2_Base
     virtual int connectCam(const char *devpath, char *errmsg, int pixelFormat = -1, int width = -1, int height = -1);
     virtual void disconnectCam(bool stopcapture);
     char *getDeviceName();
+    void setDeviceName(const char *name);
     bool isLXmodCapable();
 
     /* Updates */
@@ -136,9 +139,7 @@ class V4L2_Base
     short getlxstate() { return lxstate; }
     bool isstreamactive() { return streamactive; }
 
-    void doDecode(bool);
-    void setRecorder(RecorderInterface *r);
-    void doRecord(bool);
+    void doDecode(bool);    
 
   protected:
     int xioctl(int fd, int request, void *arg, char const *const request_str);
@@ -211,7 +212,7 @@ class V4L2_Base
 
     int bpp;
 
-    friend class V4L2_Driver;
+    friend class ::V4L2_Driver;
 
     char deviceName[MAXINDIDEVICE];
 };

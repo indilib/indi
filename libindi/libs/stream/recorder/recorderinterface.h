@@ -58,6 +58,7 @@ class RecorderInterface
 
     virtual void init() = 0;
     virtual const char *getName();
+    virtual const char *getExtension() = 0;
     // true when direct encoding of pixel format
     virtual bool setPixelFormat(INDI_PIXEL_FORMAT pixelFormat, uint8_t pixelDepth=8) = 0;
     // set image size in pixels

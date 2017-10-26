@@ -303,7 +303,7 @@ IF (UNIX)
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/stream/streammanager.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/stream/recorder/recorderinterface.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/stream/recorder/recordermanager.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/libs/stream/recorder/ser_recorder.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/libs/stream/recorder/serrecorder.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/stream/encoder/encodermanager.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/stream/encoder/encoderinterface.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/stream/encoder/rawencoder.cpp
@@ -1182,19 +1182,31 @@ install( FILES drivers.xml ${CMAKE_CURRENT_SOURCE_DIR}/drivers/focuser/indi_tcfs
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/libindi.pc.cmake ${CMAKE_CURRENT_BINARY_DIR}/libindi.pc @ONLY)
 install(FILES ${CMAKE_CURRENT_BINARY_DIR}/libindi.pc DESTINATION ${PKGCONFIG_INSTALL_PREFIX})
 
-if (UNIX AND NOT APPLE)
+if (UNIX)
+    INSTALL(FILES
+            ${CMAKE_CURRENT_SOURCE_DIR}/libs/stream/streammanager.h
+            DESTINATION ${INCLUDE_INSTALL_DIR}/libindi/stream COMPONENT Devel)
+    INSTALL(FILES
+            ${CMAKE_CURRENT_SOURCE_DIR}/libs/stream/encoder/encodermanager.h
+            ${CMAKE_CURRENT_SOURCE_DIR}/libs/stream/encoder/encoderinterface.h
+            ${CMAKE_CURRENT_SOURCE_DIR}/libs/stream/encoder/rawencoder.h
+            DESTINATION ${INCLUDE_INSTALL_DIR}/libindi/stream/encoder COMPONENT Devel)
+   INSTALL(FILES
+            ${CMAKE_CURRENT_SOURCE_DIR}/libs/stream/recorder/recordermanager.h
+            ${CMAKE_CURRENT_SOURCE_DIR}/libs/stream/recorder/recorderinterface.h
+            ${CMAKE_CURRENT_SOURCE_DIR}/libs/stream/recorder/serrecorder.h
+            DESTINATION ${INCLUDE_INSTALL_DIR}/libindi/stream/recorder COMPONENT Devel)
+    if (NOT APPLE)
     INSTALL(FILES
             ${CMAKE_CURRENT_SOURCE_DIR}/libs/webcam/ccvt.h
             ${CMAKE_CURRENT_SOURCE_DIR}/libs/webcam/ccvt_types.h
-            ${CMAKE_CURRENT_SOURCE_DIR}/libs/webcam/RecorderInterface/RecorderInterface.h
-            ${CMAKE_CURRENT_SOURCE_DIR}/libs/webcam/RecorderInterface/ser_recorder.h
             ${CMAKE_CURRENT_SOURCE_DIR}/libs/webcam/v4l2_decode/v4l2_decode.h
             ${CMAKE_CURRENT_SOURCE_DIR}/libs/webcam/v4l2_decode/v4l2_builtin_decoder.h
-            ${CMAKE_CURRENT_SOURCE_DIR}/libs/webcam/RecorderInterface/stream_recorder.h
             ${CMAKE_CURRENT_SOURCE_DIR}/libs/webcam/ccvt_types.h
             ${CMAKE_CURRENT_SOURCE_DIR}/libs/webcam/v4l2_colorspace.h
             ${CMAKE_CURRENT_SOURCE_DIR}/libs/webcam/jpegutils.h
             DESTINATION ${INCLUDE_INSTALL_DIR}/libindi COMPONENT Devel)
+    ENDIF()
 ENDIF ()
 
 ###################################################################################################

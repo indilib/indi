@@ -21,7 +21,7 @@
 */
 
 #include "recordermanager.h"
-#include "ser_recorder.h"
+#include "serrecorder.h"
 
 namespace INDI
 {

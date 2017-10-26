@@ -150,14 +150,14 @@ bool V4L2_Driver::initProperties()
 
     SetCCDCapability(CCD_CAN_BIN | CCD_CAN_SUBFRAME | CCD_HAS_STREAMING | CCD_CAN_ABORT);
 
-    strncpy(v4l_base->deviceName, getDeviceName(), MAXINDIDEVICE);
+    v4l_base->setDeviceName(getDeviceName());
 
     return true;
 }
 
 void V4L2_Driver::initCamBase()
 {
-    v4l_base = new V4L2_Base();
+    v4l_base = new INDI::V4L2_Base();
 }
 
 void V4L2_Driver::ISGetProperties(const char *dev)
@@ -237,7 +237,7 @@ bool V4L2_Driver::updateProperties()
         SetCCDParams(V4LFrame->width, V4LFrame->height, V4LFrame->bpp, 5.6, 5.6);
         PrimaryCCD.setImageExtension("fits");
 
-        v4l_base->setRecorder(Streamer->getRecorder());
+        //v4l_base->setRecorder(Streamer->getRecorder());
 
         if (v4l_base->isLXmodCapable())
             lx->updateProperties();
@@ -947,6 +947,11 @@ void V4L2_Driver::stdtimerCallback(void *userpointer)
 
 bool V4L2_Driver::start_capturing(bool do_stream)
 {
+    // FIXME Must migrate completely to Stream
+    // The class shouldn't be making calls to encoder/recorder directly
+    // Stream? Yes or No
+    // Direct Record?
+    INDI_UNUSED(do_stream);
     if (Streamer->isBusy())
     {
         DEBUG(INDI::Logger::DBG_WARNING, "Cannot start exposure while streaming is in progress");
@@ -967,8 +972,8 @@ bool V4L2_Driver::start_capturing(bool do_stream)
         return false;
     }
 
-    if (do_stream)
-        v4l_base->doRecord(Streamer->isDirectRecording());
+    //if (do_stream)
+        //v4l_base->doRecord(Streamer->isDirectRecording());
 
     is_capturing = true;
     return true;
@@ -988,8 +993,9 @@ bool V4L2_Driver::stop_capturing()
                getRemainingExposure());
     }
 
+    // FIXME what to do with doRecord?
     //if(Streamer->isDirectRecording())
-    v4l_base->doRecord(false);
+    //v4l_base->doRecord(false);
 
     char errmsg[ERRMSGSIZ];
 
@@ -1609,7 +1615,7 @@ bool V4L2_Driver::saveConfigItems(FILE *fp)
     return Streamer->saveConfigItems(fp);
 }
 
-bool getPixelFormat(uint32_t v4l2format, INDI_PIXEL_FORMAT & pixelFormat, uint8_t & pixelDepth)
+bool V4L2_Driver::getPixelFormat(uint32_t v4l2format, INDI_PIXEL_FORMAT & pixelFormat, uint8_t & pixelDepth)
 {
     //IDLog("recorder: setpixelformat %d\n", format);
     pixelDepth = 8;
@@ -1627,7 +1633,7 @@ bool getPixelFormat(uint32_t v4l2format, INDI_PIXEL_FORMAT & pixelFormat, uint8_
 #endif
             pixelFormat = INDI_MONO;
 #ifdef V4L2_PIX_FMT_Y10
-            if (fv4l2format == V4L2_PIX_FMT_Y10)
+            if (v4l2format == V4L2_PIX_FMT_Y10)
                 pixelDepth = 10;
 #endif
 #ifdef V4L2_PIX_FMT_Y12

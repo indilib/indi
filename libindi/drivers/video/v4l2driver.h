@@ -179,7 +179,7 @@ class V4L2_Driver : public INDI::CCD
     virtual void updateV4L2Controls();
 
     /* Variables */
-    V4L2_Base *v4l_base;
+    INDI::V4L2_Base *v4l_base;
 
     char device_name[MAXINDIDEVICE];
 

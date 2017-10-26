@@ -33,12 +33,12 @@ const char *STREAM_TAB = "Streaming";
 namespace INDI
 {
 
-StreamManager::StreamManager(INDI::CCD *mainCCD)
+StreamManager::StreamManager(CCD *mainCCD)
 {
     currentCCD = mainCCD;
 
-    is_streaming = false;
-    is_recording = false;
+    m_isStreaming = false;
+    m_isRecording = false;
 
     // Timer
     // now use BSD setimer to avoi librt dependency
@@ -76,7 +76,7 @@ StreamManager::~StreamManager()
     delete (encoderManager);
 }
 
-bool StreamManager::getDeviceName()
+const char *StreamManager::getDeviceName()
 {
     return currentCCD->getDeviceName();
 }
@@ -132,6 +132,14 @@ bool StreamManager::initProperties()
     IUFillNumberVector(&StreamFrameNP, StreamFrameN, 4, getDeviceName(), "CCD_STREAM_FRAME", "Frame", STREAM_TAB, IP_RW,
                        60, IPS_IDLE);
 
+    // Encoder Selection
+    IUFillSwitch(&EncoderS[0], "RAW", "RAW", ISS_ON);
+    IUFillSwitchVector(&EncoderSP, EncoderS, NARRAY(EncoderS), getDeviceName(), "CCD_STREAM_ENCODER", "Encoder", STREAM_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+
+    // Recorder Selector
+    IUFillSwitch(&RecorderS[0], "SER", "SER", ISS_ON);
+    IUFillSwitchVector(&RecorderSP, RecorderS, NARRAY(RecorderS), getDeviceName(), "CCD_STREAM_RECORDER", "Recorder", STREAM_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+
     return true;
 }
 
@@ -150,6 +158,8 @@ void StreamManager::ISGetProperties(const char *dev)
         currentCCD->defineText(&RecordFileTP);
         currentCCD->defineNumber(&RecordOptionsNP);
         currentCCD->defineNumber(&StreamFrameNP);
+        currentCCD->defineSwitch(&EncoderSP);
+        currentCCD->defineSwitch(&RecorderSP);
     }
 }
 
@@ -168,6 +178,8 @@ bool StreamManager::updateProperties()
         currentCCD->defineText(&RecordFileTP);
         currentCCD->defineNumber(&RecordOptionsNP);
         currentCCD->defineNumber(&StreamFrameNP);
+        currentCCD->defineSwitch(&EncoderSP);
+        currentCCD->defineSwitch(&RecorderSP);
     }
     else
     {
@@ -179,6 +191,8 @@ bool StreamManager::updateProperties()
         currentCCD->deleteProperty(RecordStreamSP.name);
         currentCCD->deleteProperty(RecordOptionsNP.name);
         currentCCD->deleteProperty(StreamFrameNP.name);
+        currentCCD->deleteProperty(EncoderSP.name);
+        currentCCD->deleteProperty(RecorderSP.name);
 
         return true;
     }
@@ -262,7 +276,7 @@ bool StreamManager::close()
 
 bool StreamManager::setPixelFormat(INDI_PIXEL_FORMAT pixelFormat, uint8_t pixelDepth)
 {
-    direct_record = recorder->setPixelFormat(format, bitDepth);
+    direct_record = recorder->setPixelFormat(pixelFormat, pixelDepth);
     encoder->setPixelFormat(pixelFormat, pixelDepth);
     return true;
 }
@@ -270,7 +284,7 @@ bool StreamManager::setPixelFormat(INDI_PIXEL_FORMAT pixelFormat, uint8_t pixelD
 
 void StreamManager::recordStream(double deltams)
 {
-    if (!is_recording)
+    if (!m_isRecording)
         return;
 
     if (currentCCD->PrimaryCCD.getNAxis() == 2)
@@ -397,7 +411,7 @@ bool StreamManager::startRecording()
     std::string filename, expfilename, expfiledir;
     std::string filtername;
     std::map<std::string, std::string> patterns;
-    if (is_recording)
+    if (m_isRecording)
         return true;
 
     /* get filter name for pattern substitution */
@@ -414,8 +428,9 @@ bool StreamManager::startRecording()
         expfiledir += '/';
     recordfilename.assign(RecordFileTP.tp[1].text);
     expfilename = expand(recordfilename, patterns);
-    if (expfilename.substr(expfilename.size() - 4, 4) != ".ser")
-        expfilename += ".ser";
+    if (expfilename.substr(expfilename.size() - 4, 4) != recorder->getExtension())
+            expfilename += recorder->getExtension();
+
     filename = expfiledir + expfilename;
     //DEBUGF(INDI::Logger::DBG_SESSION, "Expanded file is %s", filename.c_str());
     //filename=recordfiledir+recordfilename;
@@ -434,7 +449,9 @@ bool StreamManager::startRecording()
         DEBUGF(INDI::Logger::DBG_WARNING, "Can not open record file: %s", errmsg);
         return false;
     }
+
     /* start capture */
+    // TODO direct recording should this be part of StreamManager?
     if (direct_record)
     {
         DEBUG(INDI::Logger::DBG_SESSION, "Using direct recording (no software cropping).");
@@ -455,7 +472,7 @@ bool StreamManager::startRecording()
     getitimer(ITIMER_REAL, &tframe1);
     mssum         = 0;
     framecountsec = 0;
-    if (is_streaming == false && currentCCD->StartStreaming() == false)
+    if (m_isStreaming == false && currentCCD->StartStreaming() == false)
     {
         DEBUG(INDI::Logger::DBG_ERROR, "Failed to start recording.");
         RecordStreamSP.s = IPS_ALERT;
@@ -463,18 +480,18 @@ bool StreamManager::startRecording()
         RecordStreamS[RECORD_OFF].s = ISS_ON;
         IDSetSwitch(&RecordStreamSP, nullptr);
     }
-    is_recording = true;
+    m_isRecording = true;
     return true;
 }
 
 bool StreamManager::stopRecording()
 {
-    if (!is_recording)
+    if (!m_isRecording)
         return true;
-    if (!is_streaming)
+    if (!m_isStreaming)
         currentCCD->StopStreaming();
 
-    is_recording = false;
+    m_isRecording = false;
     recorder->close();
     DEBUGF(INDI::Logger::DBG_SESSION, "Record Duration(millisec): %g -- Frame count: %d", recordDuration,
            recordframeCount);
@@ -505,13 +522,13 @@ bool StreamManager::ISNewSwitch(const char *dev, const char *name, ISState *stat
         return true;
     }
 
-    /* Record Stream */
+    // Record Stream
     if (!strcmp(name, RecordStreamSP.name))
     {
         int prevSwitch = IUFindOnSwitchIndex(&RecordStreamSP);
         IUUpdateSwitch(&RecordStreamSP, states, names, n);
 
-        if (is_recording && RecordStreamSP.sp[3].s != ISS_ON)
+        if (m_isRecording && RecordStreamSP.sp[3].s != ISS_ON)
         {
             IUResetSwitch(&RecordStreamSP);
             RecordStreamS[prevSwitch].s = ISS_ON;
@@ -523,7 +540,7 @@ bool StreamManager::ISNewSwitch(const char *dev, const char *name, ISState *stat
         if ((RecordStreamSP.sp[0].s == ISS_ON) || (RecordStreamSP.sp[1].s == ISS_ON) ||
             (RecordStreamSP.sp[2].s == ISS_ON))
         {
-            if (!is_recording)
+            if (!m_isRecording)
             {
                 RecordStreamSP.s = IPS_BUSY;
                 if (RecordStreamSP.sp[1].s == ISS_ON)
@@ -548,7 +565,7 @@ bool StreamManager::ISNewSwitch(const char *dev, const char *name, ISState *stat
         else
         {
             RecordStreamSP.s = IPS_IDLE;
-            if (is_recording)
+            if (m_isRecording)
             {
                 DEBUGF(INDI::Logger::DBG_SESSION, "Recording stream has been disabled. Frame count %d",
                        recordframeCount);
@@ -558,6 +575,46 @@ bool StreamManager::ISNewSwitch(const char *dev, const char *name, ISState *stat
 
         IDSetSwitch(&RecordStreamSP, nullptr);
         return true;
+    }
+
+    // Encoder Selection
+    if (!strcmp(name, EncoderSP.name))
+    {
+        IUUpdateSwitch(&EncoderSP, states, names, n);
+        EncoderSP.s = IPS_ALERT;
+
+        const char *selectedEncoder = IUFindOnSwitch(&EncoderSP)->name;
+
+        for (EncoderInterface *oneEncoder : encoderManager->getEncoderList())
+        {
+            if (!strcmp(selectedEncoder, oneEncoder->getName()))
+            {
+                encoderManager->setEncoder(oneEncoder);
+                encoder = oneEncoder;
+                EncoderSP.s = IPS_OK;
+            }
+        }
+        IDSetSwitch(&EncoderSP, nullptr);
+    }
+
+    // Recorder Selection
+    if (!strcmp(name, RecorderSP.name))
+    {
+        IUUpdateSwitch(&RecorderSP, states, names, n);
+        RecorderSP.s = IPS_ALERT;
+
+        const char *selectedRecorder = IUFindOnSwitch(&RecorderSP)->name;
+
+        for (RecorderInterface *oneRecorder : recorderManager->getRecorderList())
+        {
+            if (!strcmp(selectedRecorder, oneRecorder->getName()))
+            {
+                recorderManager->setRecorder(oneRecorder);
+                recorder = oneRecorder;
+                RecorderSP.s = IPS_OK;
+            }
+        }
+        IDSetSwitch(&RecorderSP, nullptr);
     }
 
     return true;
@@ -603,7 +660,7 @@ bool StreamManager::ISNewNumber(const char *dev, const char *name, double values
     /* Record Options */
     if (!strcmp(RecordOptionsNP.name, name))
     {
-        if (is_recording)
+        if (m_isRecording)
         {
             DEBUG(INDI::Logger::DBG_WARNING, "Recording device is busy");
             return false;
@@ -618,7 +675,7 @@ bool StreamManager::ISNewNumber(const char *dev, const char *name, double values
     /* Stream Frame */
     if (!strcmp(StreamFrameNP.name, name))
     {
-        if (is_recording)
+        if (m_isRecording)
         {
             DEBUG(INDI::Logger::DBG_WARNING, "Recording device is busy");
             return false;
@@ -658,7 +715,7 @@ bool StreamManager::setStream(bool enable)
 {
     if (enable)
     {
-        if (!is_streaming)
+        if (!m_isStreaming)
         {
             StreamSP.s       = IPS_BUSY;
             streamframeCount = 0;
@@ -685,7 +742,7 @@ bool StreamManager::setStream(bool enable)
                 return false;
             }
 
-            is_streaming = true;
+            m_isStreaming = true;
             IUResetSwitch(&StreamSP);
             StreamS[0].s = ISS_ON;
 
@@ -695,11 +752,11 @@ bool StreamManager::setStream(bool enable)
     else
     {
         StreamSP.s = IPS_IDLE;
-        if (is_streaming)
+        if (m_isStreaming)
         {
             DEBUGF(INDI::Logger::DBG_DEBUG, "The video stream has been disabled. Frame count %d", streamframeCount);
             //if (!is_exposing && !is_recording) stop_capturing();
-            if (!is_recording)
+            if (!m_isRecording)
             {
                 if (currentCCD->StopStreaming() == false)
                 {
@@ -712,7 +769,7 @@ bool StreamManager::setStream(bool enable)
 
             IUResetSwitch(&StreamSP);
             StreamS[1].s = ISS_ON;
-            is_streaming = false;
+            m_isStreaming = false;
 
             recorder->setStreamEnabled(false);
         }

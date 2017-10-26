@@ -2907,4 +2907,9 @@ bool V4L2_Base::queryExtControls(INumberVectorProperty *nvp, unsigned int *nnumb
 
     return true;
 }
+
+void V4L2_Base::setDeviceName(const char *name)
+{
+    strncpy(deviceName, name, MAXINDIDEVICE);
+}
 }

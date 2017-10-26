@@ -23,11 +23,12 @@
 #pragma once
 
 #include "indidevapi.h"
-#include "stream/recorder/recordermanager.h"
-#include "stream/encoder/encodermanager.h"
+#include "recorder/recordermanager.h"
+#include "encoder/encodermanager.h"
 
 #include <string>
 #include <map>
+#include <sys/time.h>
 
 #include <stdint.h>
 
@@ -89,8 +90,8 @@ class StreamManager
 
     RecorderInterface *getRecorder() { return recorder; }
     bool isDirectRecording() { return direct_record; }
-    bool isStreaming() { return is_streaming; }
-    bool isRecording() { return is_recording; }
+    bool isStreaming() { return m_isStreaming; }
+    bool isRecording() { return m_isRecording; }
     bool isBusy() { return (isStreaming() || isRecording()); }
     const char *getDeviceName();
 
@@ -144,8 +145,16 @@ class StreamManager
     IBLOBVectorProperty *imageBP;
     IBLOB *imageB;
 
-    bool is_streaming;
-    bool is_recording;
+    // Encoder Selector. It's static now but should this implemented as plugin interface?
+    ISwitch EncoderS[1];
+    ISwitchVectorProperty EncoderSP;
+
+    // Recorder Selector. Static but should be implmeneted as a dynamic plugin interface
+    ISwitch RecorderS[1];
+    ISwitchVectorProperty RecorderSP;
+
+    bool m_isStreaming;
+    bool m_isRecording;
 
     int streamframeCount;
     int recordframeCount;

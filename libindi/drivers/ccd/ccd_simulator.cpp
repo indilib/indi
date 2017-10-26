@@ -17,6 +17,7 @@
 *******************************************************************************/
 
 #include "ccd_simulator.h"
+#include "stream/streammanager.h"
 
 #include "locale_compat.h"
 

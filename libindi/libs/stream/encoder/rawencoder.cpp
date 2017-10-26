@@ -21,6 +21,7 @@
 
 #include "rawencoder.h"
 #include "stream/streammanager.h"
+#include "indiccd.h"
 
 #include <zlib.h>
 
@@ -29,7 +30,7 @@ namespace INDI
 
 RawEncoder::RawEncoder()
 {
-    name = "Raw Encoder";
+    name = "RAW";
     compressedFrame = (uint8_t *)malloc(1);
 }
 
