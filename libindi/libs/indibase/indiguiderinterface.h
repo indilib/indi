@@ -23,7 +23,7 @@
 #include "indibase.h"
 
 /**
- * @class INDI::GuiderInterface
+ * @class GuiderInterface
  * @brief Provides interface to implement guider (ST4) port functionality.
  *
  * The child class implements GuideXXXX() functions and returns:
@@ -41,7 +41,10 @@
  *
  * @author Jasem Mutlaq
  */
-class INDI::GuiderInterface
+namespace INDI
+{
+
+class GuiderInterface
 {
   public:
     /**
@@ -106,3 +109,4 @@ class INDI::GuiderInterface
     INumber GuideWEN[2];
     INumberVectorProperty GuideWENP;
 };
+}

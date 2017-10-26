@@ -28,9 +28,12 @@
 
 #define POLLMS  2000
 
-bool INDI::GPS::initProperties()
+namespace INDI
 {
-    INDI::DefaultDevice::initProperties();
+
+bool GPS::initProperties()
+{
+    DefaultDevice::initProperties();
 
     IUFillNumber(&PeriodN[0], "PERIOD", "Period (s)", "%.f", 0, 3600, 60.0, 0);
     IUFillNumberVector(&PeriodNP, PeriodN, 1, getDeviceName(), "GPS_REFRESH_PERIOD", "Refresh", MAIN_CONTROL_TAB, IP_RW, 0, IPS_IDLE);
@@ -54,9 +57,9 @@ bool INDI::GPS::initProperties()
     return true;
 }
 
-bool INDI::GPS::updateProperties()
+bool GPS::updateProperties()
 {
-    INDI::DefaultDevice::updateProperties();
+    DefaultDevice::updateProperties();
 
     if (isConnected())
     {
@@ -73,7 +76,7 @@ bool INDI::GPS::updateProperties()
         if (state != IPS_OK)
         {
             if (state == IPS_BUSY)
-                DEBUG(INDI::Logger::DBG_SESSION, "GPS fix is in progress...");
+                DEBUG(Logger::DBG_SESSION, "GPS fix is in progress...");
 
             timerID = SetTimer(POLLMS);
         }
@@ -97,7 +100,7 @@ bool INDI::GPS::updateProperties()
     return true;
 }
 
-void INDI::GPS::TimerHit()
+void GPS::TimerHit()
 {
     if (!isConnected())
     {
@@ -137,14 +140,14 @@ void INDI::GPS::TimerHit()
     return;
 }
 
-IPState INDI::GPS::updateGPS()
+IPState GPS::updateGPS()
 {
-    DEBUG(INDI::Logger::DBG_ERROR, "updateGPS() must be implemented in GPS device child class to update TIME_UTC and "
+    DEBUG(Logger::DBG_ERROR, "updateGPS() must be implemented in GPS device child class to update TIME_UTC and "
                                    "GEOGRAPHIC_COORD properties.");
     return IPS_ALERT;
 }
 
-bool INDI::GPS::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
+bool GPS::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
 {
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
@@ -159,10 +162,10 @@ bool INDI::GPS::ISNewSwitch(const char *dev, const char *name, ISState *states, 
         }
     }
 
-    return INDI::DefaultDevice::ISNewSwitch(dev, name, states, names, n);
+    return DefaultDevice::ISNewSwitch(dev, name, states, names, n);
 }
 
-bool INDI::GPS::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
+bool GPS::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
 {
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
@@ -178,13 +181,13 @@ bool INDI::GPS::ISNewNumber(const char *dev, const char *name, double values[], 
 
             if (PeriodN[0].value == 0)
             {
-                DEBUG(INDI::Logger::DBG_SESSION, "GPS Update Timer disabled.");
+                DEBUG(Logger::DBG_SESSION, "GPS Update Timer disabled.");
             }
             else
             {
                 timerID = SetTimer(PeriodN[0].value*1000);
                 if (prevPeriod == 0)
-                    DEBUG(INDI::Logger::DBG_SESSION, "GPS Update Timer enabled.");
+                    DEBUG(Logger::DBG_SESSION, "GPS Update Timer enabled.");
             }
 
             PeriodNP.s = IPS_OK;
@@ -197,10 +200,11 @@ bool INDI::GPS::ISNewNumber(const char *dev, const char *name, double values[], 
     return DefaultDevice::ISNewNumber(dev, name, values, names, n);
 }
 
-bool INDI::GPS::saveConfigItems(FILE *fp)
+bool GPS::saveConfigItems(FILE *fp)
 {
-    INDI::DefaultDevice::saveConfigItems(fp);
+    DefaultDevice::saveConfigItems(fp);
 
     IUSaveConfigNumber(fp, &PeriodNP);
     return true;
+}
 }

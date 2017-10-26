@@ -31,7 +31,10 @@
 
 #define PARAMETERS_TAB "Parameters"
 
-INDI::Weather::Weather()
+namespace INDI
+{
+
+Weather::Weather()
 {
     ParametersN        = nullptr;
     critialParametersL = nullptr;
@@ -41,7 +44,7 @@ INDI::Weather::Weather()
     nRanges           = 0;
 }
 
-INDI::Weather::~Weather()
+Weather::~Weather()
 {
     for (int i = 0; i < ParametersNP.nnp; i++)
     {
@@ -55,9 +58,9 @@ INDI::Weather::~Weather()
     free(critialParametersL);
 }
 
-bool INDI::Weather::initProperties()
+bool Weather::initProperties()
 {
-    INDI::DefaultDevice::initProperties();
+    DefaultDevice::initProperties();
 
     // Parameters
     IUFillNumberVector(&ParametersNP, nullptr, 0, getDeviceName(), "WEATHER_PARAMETERS", "Parameters", PARAMETERS_TAB,
@@ -108,9 +111,9 @@ bool INDI::Weather::initProperties()
     return true;
 }
 
-bool INDI::Weather::updateProperties()
+bool Weather::updateProperties()
 {
-    INDI::DefaultDevice::updateProperties();
+    DefaultDevice::updateProperties();
 
     if (isConnected())
     {
@@ -135,7 +138,7 @@ bool INDI::Weather::updateProperties()
         defineNumber(&LocationNP);
         defineText(&ActiveDeviceTP);
 
-        DEBUG(INDI::Logger::DBG_SESSION, "Weather update is in progress...");
+        DEBUG(Logger::DBG_SESSION, "Weather update is in progress...");
         TimerHit();
     }
     else
@@ -164,7 +167,7 @@ bool INDI::Weather::updateProperties()
     return true;
 }
 
-bool INDI::Weather::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
+bool Weather::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
 {
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
@@ -178,10 +181,10 @@ bool INDI::Weather::ISNewSwitch(const char *dev, const char *name, ISState *stat
         }
     }
 
-    return INDI::DefaultDevice::ISNewSwitch(dev, name, states, names, n);
+    return DefaultDevice::ISNewSwitch(dev, name, states, names, n);
 }
 
-bool INDI::Weather::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
+bool Weather::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
 {
     //  first check if it's for our device
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
@@ -214,7 +217,7 @@ bool INDI::Weather::ISNewNumber(const char *dev, const char *name, double values
             IDSetNumber(&UpdatePeriodNP, nullptr);
 
             if (UpdatePeriodN[0].value == 0)
-                DEBUG(INDI::Logger::DBG_SESSION, "Periodic updates are disabled.");
+                DEBUG(Logger::DBG_SESSION, "Periodic updates are disabled.");
             else
             {
                 if (updateTimerID > 0)
@@ -250,7 +253,7 @@ bool INDI::Weather::ISNewNumber(const char *dev, const char *name, double values
     return DefaultDevice::ISNewNumber(dev, name, values, names, n);
 }
 
-bool INDI::Weather::ISSnoopDevice(XMLEle *root)
+bool Weather::ISSnoopDevice(XMLEle *root)
 {
     XMLEle *ep           = nullptr;
     const char *propName = findXMLAttValu(root, "name");
@@ -281,10 +284,10 @@ bool INDI::Weather::ISSnoopDevice(XMLEle *root)
         }
     }
 
-    return INDI::DefaultDevice::ISSnoopDevice(root);
+    return DefaultDevice::ISSnoopDevice(root);
 }
 
-void INDI::Weather::TimerHit()
+void Weather::TimerHit()
 {
     if (!isConnected())
         return;
@@ -324,14 +327,14 @@ void INDI::Weather::TimerHit()
     updateTimerID = SetTimer(5000);
 }
 
-IPState INDI::Weather::updateWeather()
+IPState Weather::updateWeather()
 {
-    DEBUG(INDI::Logger::DBG_ERROR,
+    DEBUG(Logger::DBG_ERROR,
           "updateWeather() must be implemented in Weather device child class to update GEOGRAPHIC_COORD properties.");
     return IPS_ALERT;
 }
 
-bool INDI::Weather::updateLocation(double latitude, double longitude, double elevation)
+bool Weather::updateLocation(double latitude, double longitude, double elevation)
 {
     INDI_UNUSED(latitude);
     INDI_UNUSED(longitude);
@@ -340,7 +343,7 @@ bool INDI::Weather::updateLocation(double latitude, double longitude, double ele
     return true;
 }
 
-bool INDI::Weather::processLocationInfo(double latitude, double longitude, double elevation)
+bool Weather::processLocationInfo(double latitude, double longitude, double elevation)
 {
     // Do not update if not necessary
     if (latitude == LocationN[LOCATION_LATITUDE].value && longitude == LocationN[LOCATION_LONGITUDE].value &&
@@ -370,10 +373,10 @@ bool INDI::Weather::processLocationInfo(double latitude, double longitude, doubl
     }
 }
 
-void INDI::Weather::addParameter(std::string name, std::string label, double minimumOK, double maximumOK,
+void Weather::addParameter(std::string name, std::string label, double minimumOK, double maximumOK,
                                  double minimumWarning, double maximumWarning)
 {
-    DEBUGF(INDI::Logger::DBG_DEBUG, "Parameter %s is added. Ok (%g,%g) Warn (%g,%g)", name.c_str(), minimumOK,
+    DEBUGF(Logger::DBG_DEBUG, "Parameter %s is added. Ok (%g,%g) Warn (%g,%g)", name.c_str(), minimumOK,
            maximumOK, minimumWarning, maximumWarning);
 
     ParametersN = (ParametersN == nullptr) ? (INumber *)malloc(sizeof(INumber)) :
@@ -396,7 +399,7 @@ void INDI::Weather::addParameter(std::string name, std::string label, double min
     createParameterRange(name, label);
 }
 
-void INDI::Weather::setParameterValue(std::string name, double value)
+void Weather::setParameterValue(std::string name, double value)
 {
     for (int i = 0; i < ParametersNP.nnp; i++)
     {
@@ -408,7 +411,7 @@ void INDI::Weather::setParameterValue(std::string name, double value)
     }
 }
 
-bool INDI::Weather::setCriticalParameter(std::string param)
+bool Weather::setCriticalParameter(std::string param)
 {
     for (int i = 0; i < ParametersNP.nnp; i++)
     {
@@ -429,11 +432,11 @@ bool INDI::Weather::setCriticalParameter(std::string param)
         }
     }
 
-    DEBUGF(INDI::Logger::DBG_WARNING, "Unable to find parameter %s in list of existing parameters!", param.c_str());
+    DEBUGF(Logger::DBG_WARNING, "Unable to find parameter %s in list of existing parameters!", param.c_str());
     return false;
 }
 
-void INDI::Weather::updateWeatherState()
+void Weather::updateWeatherState()
 {
     if (critialParametersL == nullptr)
         return;
@@ -454,13 +457,13 @@ void INDI::Weather::updateWeatherState()
                 else if ((ParametersN[j].value >= minWarn) && (ParametersN[j].value <= maxWarn))
                 {
                     critialParametersL[i].s = IPS_BUSY;
-                    DEBUGF(INDI::Logger::DBG_WARNING, "Warning: Parameter %s value (%g) is in the warning zone!",
+                    DEBUGF(Logger::DBG_WARNING, "Warning: Parameter %s value (%g) is in the warning zone!",
                            ParametersN[j].label, ParametersN[j].value);
                 }
                 else
                 {
                     critialParametersL[i].s = IPS_ALERT;
-                    DEBUGF(INDI::Logger::DBG_WARNING, "Caution: Parameter %s value (%g) is in the danger zone!",
+                    DEBUGF(Logger::DBG_WARNING, "Caution: Parameter %s value (%g) is in the danger zone!",
                            ParametersN[j].label, ParametersN[j].value);
                 }
                 break;
@@ -475,7 +478,7 @@ void INDI::Weather::updateWeatherState()
     IDSetLight(&critialParametersLP, nullptr);
 }
 
-void INDI::Weather::createParameterRange(std::string name, std::string label)
+void Weather::createParameterRange(std::string name, std::string label)
 {
     ParametersRangeNP =
         (ParametersRangeNP == nullptr) ?
@@ -500,9 +503,9 @@ void INDI::Weather::createParameterRange(std::string name, std::string label)
     nRanges++;
 }
 
-bool INDI::Weather::saveConfigItems(FILE *fp)
+bool Weather::saveConfigItems(FILE *fp)
 {
-    INDI::DefaultDevice::saveConfigItems(fp);
+    DefaultDevice::saveConfigItems(fp);
 
     IUSaveConfigNumber(fp, &LocationNP);
     IUSaveConfigNumber(fp, &UpdatePeriodNP);
@@ -513,12 +516,12 @@ bool INDI::Weather::saveConfigItems(FILE *fp)
     return true;
 }
 
-bool INDI::Weather::Handshake()
+bool Weather::Handshake()
 {
     return false;
 }
 
-bool INDI::Weather::callHandshake()
+bool Weather::callHandshake()
 {
     if (weatherConnection > 0)
     {
@@ -531,20 +534,21 @@ bool INDI::Weather::callHandshake()
     return Handshake();
 }
 
-uint8_t INDI::Weather::getWeatherConnection() const
+uint8_t Weather::getWeatherConnection() const
 {
     return weatherConnection;
 }
 
-void INDI::Weather::setWeatherConnection(const uint8_t &value)
+void Weather::setWeatherConnection(const uint8_t &value)
 {
     uint8_t mask = CONNECTION_SERIAL | CONNECTION_TCP | CONNECTION_NONE;
 
     if (value == 0 || (mask & value) == 0)
     {
-        DEBUGF(INDI::Logger::DBG_ERROR, "Invalid connection mode %d", value);
+        DEBUGF(Logger::DBG_ERROR, "Invalid connection mode %d", value);
         return;
     }
 
     weatherConnection = value;
+}
 }

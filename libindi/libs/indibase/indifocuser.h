@@ -27,17 +27,20 @@ class Serial;
 class TCP;
 }
 /**
- * \class INDI::Focuser
+ * \class Focuser
    \brief Class to provide general functionality of a focuser device.
 
    Both relative and absolute focuser supported. Furthermore, if no position feedback is available from the focuser,
    an open-loop control is possible using timers, speed presets, and direction of motion.
-   Developers need to subclass INDI::Focuser to implement any driver for focusers within INDI.
+   Developers need to subclass Focuser to implement any driver for focusers within INDI.
 
 \author Jasem Mutlaq
 \author Gerry Rozema
 */
-class INDI::Focuser : public INDI::DefaultDevice, public INDI::FocuserInterface
+namespace INDI
+{
+
+class Focuser : public DefaultDevice, public FocuserInterface
 {
   public:
     Focuser();
@@ -62,7 +65,7 @@ class INDI::Focuser : public INDI::DefaultDevice, public INDI::FocuserInterface
     virtual bool ISSnoopDevice(XMLEle *root);
 
     /**
-         * @brief setFocuserConnection Set Focuser connection mode. Child class should call this in the constructor before INDI::Focuser registers
+         * @brief setFocuserConnection Set Focuser connection mode. Child class should call this in the constructor before Focuser registers
          * any connection interfaces
          * @param value ORed combination of FocuserConnection values.
          */
@@ -93,7 +96,7 @@ class INDI::Focuser : public INDI::DefaultDevice, public INDI::FocuserInterface
 
     void processButton(const char *button_n, ISState state);
 
-    INDI::Controller *controller;
+    Controller *controller;
 
     Connection::Serial *serialConnection = NULL;
     Connection::TCP *tcpConnection       = NULL;
@@ -104,3 +107,4 @@ class INDI::Focuser : public INDI::DefaultDevice, public INDI::FocuserInterface
     bool callHandshake();
     uint8_t focuserConnection = CONNECTION_SERIAL | CONNECTION_TCP;
 };
+}

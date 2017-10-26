@@ -23,15 +23,18 @@
 
 #include <cstring>
 
-INDI::Rotator::Rotator() : INDI::RotatorInterface(this)
+namespace INDI
+{
+
+Rotator::Rotator() : RotatorInterface(this)
 {
 }
 
-INDI::Rotator::~Rotator()
+Rotator::~Rotator()
 {
 }
 
-bool INDI::Rotator::initProperties()
+bool Rotator::initProperties()
 {
     DefaultDevice::initProperties();
 
@@ -71,24 +74,24 @@ bool INDI::Rotator::initProperties()
     return true;
 }
 
-void INDI::Rotator::ISGetProperties(const char *dev)
+void Rotator::ISGetProperties(const char *dev)
 {    
     DefaultDevice::ISGetProperties(dev);
 
     // If connected, let's define properties.
     if (isConnected())
-        INDI::RotatorInterface::updateProperties();
+        RotatorInterface::updateProperties();
 
     return;
 }
 
-bool INDI::Rotator::updateProperties()
+bool Rotator::updateProperties()
 {
     // #1 Update base device properties.
-    INDI::DefaultDevice::updateProperties();
+    DefaultDevice::updateProperties();
 
     // #2 Update rotator interface properties
-    INDI::RotatorInterface::updateProperties();
+    RotatorInterface::updateProperties();
 
     if (isConnected())
     {        
@@ -104,7 +107,7 @@ bool INDI::Rotator::updateProperties()
     return true;
 }
 
-bool INDI::Rotator::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
+bool Rotator::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
 {
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
@@ -119,7 +122,7 @@ bool INDI::Rotator::ISNewNumber(const char *dev, const char *name, double values
 
         if (strstr(name, "ROTATOR"))
         {
-          if (INDI::RotatorInterface::processNumber(dev, name, values, names, n))
+          if (RotatorInterface::processNumber(dev, name, values, names, n))
           return true;
         }
     }
@@ -127,7 +130,7 @@ bool INDI::Rotator::ISNewNumber(const char *dev, const char *name, double values
     return DefaultDevice::ISNewNumber(dev, name, values, names, n);
 }
 
-bool INDI::Rotator::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
+bool Rotator::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
 {
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
@@ -139,7 +142,7 @@ bool INDI::Rotator::ISNewSwitch(const char *dev, const char *name, ISState *stat
             if (MoveRotator(PresetN[index].value) != IPS_ALERT)
             {
                 PresetGotoSP.s = IPS_OK;
-                DEBUGF(INDI::Logger::DBG_SESSION, "Moving to Preset %d with angle %g degrees.", index + 1, PresetN[index].value);
+                DEBUGF(Logger::DBG_SESSION, "Moving to Preset %d with angle %g degrees.", index + 1, PresetN[index].value);
                 IDSetSwitch(&PresetGotoSP, nullptr);
                 return true;
             }
@@ -151,7 +154,7 @@ bool INDI::Rotator::ISNewSwitch(const char *dev, const char *name, ISState *stat
 
         if (strstr(name, "ROTATOR"))
         {
-            if (INDI::RotatorInterface::processSwitch(dev, name, states, names, n))
+            if (RotatorInterface::processSwitch(dev, name, states, names, n))
             return true;
         }
     }
@@ -159,12 +162,12 @@ bool INDI::Rotator::ISNewSwitch(const char *dev, const char *name, ISState *stat
     return DefaultDevice::ISNewSwitch(dev, name, states, names, n);
 }
 
-bool INDI::Rotator::Handshake()
+bool Rotator::Handshake()
 {
     return false;
 }
 
-bool INDI::Rotator::saveConfigItems(FILE *fp)
+bool Rotator::saveConfigItems(FILE *fp)
 {
     DefaultDevice::saveConfigItems(fp);
 
@@ -174,7 +177,7 @@ bool INDI::Rotator::saveConfigItems(FILE *fp)
     return true;
 }
 
-bool INDI::Rotator::callHandshake()
+bool Rotator::callHandshake()
 {
     if (rotatorConnection > 0)
     {
@@ -187,20 +190,21 @@ bool INDI::Rotator::callHandshake()
     return Handshake();
 }
 
-uint8_t INDI::Rotator::getRotatorConnection() const
+uint8_t Rotator::getRotatorConnection() const
 {
     return rotatorConnection;
 }
 
-void INDI::Rotator::setRotatorConnection(const uint8_t &value)
+void Rotator::setRotatorConnection(const uint8_t &value)
 {
     uint8_t mask = CONNECTION_SERIAL | CONNECTION_TCP | CONNECTION_NONE;
 
     if (value == 0 || (mask & value) == 0)
     {
-        DEBUGF(INDI::Logger::DBG_ERROR, "Invalid connection mode %d", value);
+        DEBUGF(Logger::DBG_ERROR, "Invalid connection mode %d", value);
         return;
     }
 
     rotatorConnection = value;
+}
 }

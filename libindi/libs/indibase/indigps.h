@@ -27,21 +27,24 @@
 #include "defaultdevice.h"
 
 /**
- * \class INDI::GPS
+ * \class GPS
    \brief Class to provide general functionality of a GPS device.
 
-   The INDI::GPS provides a simple interface for GPS devices. It reports time in INDI standard property TIME_UTC. Location is reported in INDI standard property GEOGRAPHIC_COORD
+   The GPS provides a simple interface for GPS devices. It reports time in INDI standard property TIME_UTC. Location is reported in INDI standard property GEOGRAPHIC_COORD
    Only one function is called by the INDI framework to update GPS data (updateGPS()). If the data is valid, it is sent to the client. If GPS data is not ready yet, updateGPS will
    be called every second until the data becomes available and then INDI sends the data to the client.
 
    updateGPS() is called upon successful connection and whenever the client requests a data refresh.
 
-   \example GPS Simulator is available under Auxiliary drivers as a sample implementation of INDI::GPS
+   \example GPS Simulator is available under Auxiliary drivers as a sample implementation of GPS
    \e IMPORTANT: GEOGRAPHIC_COORD stores latitude and longitude in INDI specific format, refer to <a href="http://indilib.org/develop/developer-manual/101-standard-properties.html">INDI Standard Properties</a> for details.
 
 \author Jasem Mutlaq
 */
-class INDI::GPS : public INDI::DefaultDevice
+namespace INDI
+{
+
+class GPS : public DefaultDevice
 {
   public:
     enum GPSLocation
@@ -96,3 +99,4 @@ class INDI::GPS : public INDI::DefaultDevice
 
     int timerID = -1;
 };
+}

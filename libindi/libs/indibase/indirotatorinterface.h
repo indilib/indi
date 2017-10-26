@@ -24,7 +24,7 @@
 #include <stdint.h>
 
 /**
- * \class INDI::RotatorInterface
+ * \class RotatorInterface
    \brief Provides interface to implement Rotator functionality.
 
    A Rotator can be an independent device, or an embedded Rotator within another device (usually a rotating focuser). Child class must implement all the
@@ -37,7 +37,10 @@
 
 \author Jasem Mutlaq
 */
-class INDI::RotatorInterface
+namespace INDI
+{
+
+class RotatorInterface
 {
   public:    
 
@@ -86,7 +89,7 @@ class INDI::RotatorInterface
 
 protected:
 
-    explicit RotatorInterface(INDI::DefaultDevice *defaultDevice);
+    explicit RotatorInterface(DefaultDevice *defaultDevice);
 
     /**
      * \brief Initilize Rotator properties. It is recommended to call this function within
@@ -157,5 +160,7 @@ protected:
     enum { REVERSE_ENABLED, REVERSE_DISABLED };
 
     uint32_t rotatorCapability = 0;
-    INDI::DefaultDevice *m_defaultDevice { nullptr };
+    DefaultDevice *m_defaultDevice { nullptr };
 };
+
+}
