@@ -304,6 +304,9 @@ IF (UNIX)
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/stream/recorder/recorderinterface.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/stream/recorder/recordermanager.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/stream/recorder/ser_recorder.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/libs/stream/encoder/encodermanager.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/libs/stream/encoder/encoderinterface.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/libs/stream/encoder/rawencoder.cpp
         )
     IF (UNITY_BUILD)
         ENABLE_UNITY_BUILD(libstream libstream_CXX_SRC 10 cpp)

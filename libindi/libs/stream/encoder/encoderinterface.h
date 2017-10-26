@@ -22,9 +22,7 @@
 #pragma once
 
 #include "indidevapi.h"
-#include "stream/pixelformat.h"
-#include "stream/streammanager.h"
-#include "indiccd.h"
+#include "indibasetypes.h"
 
 #include <stdio.h>
 #include <cstdlib>
@@ -35,20 +33,27 @@
 namespace INDI
 {
 
+class CCD;
+
 class EncoderInterface
 {
   public:
-    EncoderInterface(StreamManager *sm);
-    virtual ~EncoderInterface();
+    EncoderInterface();
+    virtual ~EncoderInterface() = default;
 
-    bool upload() = 0;
+    virtual void init(CCD *activeCCD);
+
+    virtual bool setPixelFormat(INDI_PIXEL_FORMAT pixelFormat, uint8_t pixelDepth);
+
+    virtual bool upload(IBLOB *bp, uint8_t *buffer, uint32_t size, bool isCompressed=false) = 0;
 
     const char *getName();
 
   protected:
     const char *name;
-    StreamManager *streamManager = nullptr;
     CCD *currentCCD = nullptr;
+    INDI_PIXEL_FORMAT pixelFormat;            // INDI Pixel Format
+    uint8_t pixelDepth = 8;                   // Bits per Pixels
 };
 
 }

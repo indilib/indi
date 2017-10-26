@@ -22,10 +22,9 @@
 
 #pragma once
 
-#include "indiccd.h"
 #include "indidevapi.h"
-#include "pixelformat.h"
 #include "stream/recorder/recordermanager.h"
+#include "stream/encoder/encodermanager.h"
 
 #include <string>
 #include <map>
@@ -45,6 +44,8 @@
 namespace INDI
 {
 
+class CCD;
+
 class StreamManager
 {
   public:
@@ -56,7 +57,7 @@ class StreamManager
         RECORD_OFF
     };
 
-    StreamManager(INDI::CCD *mainCCD);
+    StreamManager(CCD *mainCCD);
     ~StreamManager();
 
     virtual void ISGetProperties(const char *dev);
@@ -91,15 +92,15 @@ class StreamManager
     bool isStreaming() { return is_streaming; }
     bool isRecording() { return is_recording; }
     bool isBusy() { return (isStreaming() || isRecording()); }
-    const char *getDeviceName() { return ccd->getDeviceName(); }
+    const char *getDeviceName();
 
     void setRecorderSize(uint16_t width, uint16_t height);
-    bool setPixelFormat(PixelFormat format, uint8_t bitDepth=8);
+    bool setPixelFormat(INDI_PIXEL_FORMAT pixelFormat, uint8_t pixelDepth=8);
     void getStreamFrame(uint16_t *x, uint16_t *y, uint16_t *w, uint16_t *h);
     bool close();
 
   protected:
-    INDI::CCD *ccd;
+    CCD *currentCCD = nullptr;
 
   private:
     /* Utility for record file */
@@ -148,15 +149,17 @@ class StreamManager
 
     int streamframeCount;
     int recordframeCount;
-    double recordDuration;
+    double recordDuration;    
 
-    uint8_t *compressedFrame;
-
-    // Record frames
+    // Recorder
     RecorderManager *recorderManager = nullptr;
     RecorderInterface *recorder = nullptr;
     bool direct_record;
     std::string recordfiledir, recordfilename; /* in case we should move it */
+
+    // Encoders
+    EncoderManager *encoderManager = nullptr;
+    EncoderInterface *encoder = nullptr;
 
     // Measure FPS
     // timer_t fpstimer;

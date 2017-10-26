@@ -48,6 +48,9 @@ enum
     LX_ACCUMULATING
 };
 
+namespace INDI
+{
+
 class V4L2_Base
 {
   public:
@@ -206,13 +209,10 @@ class V4L2_Base
     V4L2_Decoder *decoder;
     bool dodecode;
 
-    RecorderManager *recorderManager;
-    RecorderInterface *recorder;
-    bool dorecord;
-
     int bpp;
 
     friend class V4L2_Driver;
 
     char deviceName[MAXINDIDEVICE];
 };
+}

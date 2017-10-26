@@ -26,20 +26,28 @@
 */
 
 #include "encoderinterface.h"
+#include "indiccd.h"
 
 namespace INDI
 {
-EncoderInterface::EncoderInterface(StreamManager *sm) : streamManager(sm)
-{
-    currentCCD = sm->ccd;
-}
-
-EncoderInterface::~EncoderInterface()
-{
+EncoderInterface::EncoderInterface()
+{    
 }
 
 const char *EncoderInterface::getName()
 {
     return name;
+}
+
+void EncoderInterface::init(CCD *activeCCD)
+{
+    currentCCD = activeCCD;
+}
+
+bool EncoderInterface::setPixelFormat(INDI_PIXEL_FORMAT pixelFormat, uint8_t pixelDepth)
+{
+    this->pixelFormat = pixelFormat;
+    this->pixelDepth = pixelDepth;
+    return true;
 }
 }

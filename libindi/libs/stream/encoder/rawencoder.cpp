@@ -22,102 +22,37 @@
 #include "rawencoder.h"
 #include "stream/streammanager.h"
 
+#include <zlib.h>
+
 namespace INDI
 {
 
-RawEncoder::RawEncoder(StreamManager *sm) : EncoderInterface(sm)
+RawEncoder::RawEncoder()
 {
-
+    name = "Raw Encoder";
+    compressedFrame = (uint8_t *)malloc(1);
 }
 
-bool RawEncoder::upload()
+RawEncoder::~RawEncoder()
 {
+    free(compressedFrame);
+}
 
-    int ret                = 0;
-    uLongf compressedBytes = 0;
-    uLong totalBytes       = currentCCD->PrimaryCCD.getFrameBufferSize();
-    uint8_t *buffer        = currentCCD->PrimaryCCD.getFrameBuffer();
+const char *RawEncoder::getDeviceName()
+{
+    return currentCCD->getDeviceName();
+}
 
-    //memcpy(currentCCD->PrimaryCCD.getFrameBuffer(), buffer, currentCCD->PrimaryCCD.getFrameBufferSize());
-
-    // Binning for grayscale frames only for now
-    if (currentCCD->PrimaryCCD.getNAxis() == 2)
-    {
-        currentCCD->PrimaryCCD.binFrame();
-        totalBytes /= (currentCCD->PrimaryCCD.getBinX() * currentCCD->PrimaryCCD.getBinY());
-    }
-
-    int subX, subY, subW, subH;
-    subX = currentCCD->PrimaryCCD.getSubX();
-    subY = currentCCD->PrimaryCCD.getSubY();
-    subW = currentCCD->PrimaryCCD.getSubW();
-    subH = currentCCD->PrimaryCCD.getSubH();
-
-    // If stream frame was not yet initilized, let's do that now
-    if (StreamFrameN[CCDChip::FRAME_W].value == 0 || StreamFrameN[CCDChip::FRAME_H].value == 0)
-    {
-        int binFactor = 1;
-        if (currentCCD->PrimaryCCD.getNAxis() == 2)
-            binFactor = currentCCD->PrimaryCCD.getBinX();
-
-        StreamFrameN[CCDChip::FRAME_X].value = subX;
-        StreamFrameN[CCDChip::FRAME_Y].value = subY;
-        StreamFrameN[CCDChip::FRAME_W].value = subW / binFactor;
-        StreamFrameN[CCDChip::FRAME_W].value = subH / binFactor;
-        StreamFrameNP.s                      = IPS_IDLE;
-        IDSetNumber(&StreamFrameNP, nullptr);
-    }
-    // Check if we need to subframe
-    else if ((StreamFrameN[CCDChip::FRAME_W].value > 0 && StreamFrameN[CCDChip::FRAME_H].value > 0) &&
-             (StreamFrameN[CCDChip::FRAME_X].value != subX || StreamFrameN[CCDChip::FRAME_Y].value != subY ||
-              StreamFrameN[CCDChip::FRAME_W].value != subW || StreamFrameN[CCDChip::FRAME_H].value != subH))
-    {
-        // For MONO
-        if (currentCCD->PrimaryCCD.getNAxis() == 2)
-        {
-            int binFactor = (currentCCD->PrimaryCCD.getBinX() * currentCCD->PrimaryCCD.getBinY());
-            int offset =
-                ((subW * StreamFrameN[CCDChip::FRAME_Y].value) + StreamFrameN[CCDChip::FRAME_X].value) / binFactor;
-
-            uint8_t *srcBuffer  = buffer + offset;
-            uint8_t *destBuffer = buffer;
-
-            for (int i = 0; i < StreamFrameN[CCDChip::FRAME_H].value; i++)
-                memcpy(destBuffer + i * static_cast<int>(StreamFrameN[CCDChip::FRAME_W].value), srcBuffer + subW * i,
-                       StreamFrameN[CCDChip::FRAME_W].value);
-
-            totalBytes =
-                (StreamFrameN[CCDChip::FRAME_W].value * StreamFrameN[CCDChip::FRAME_H].value) / (binFactor * binFactor);
-        }
-        // For Color
-        else
-        {
-            // Subframe offset in source frame. i.e. where we start copying data from in the original data frame
-            int sourceOffset = (subW * StreamFrameN[CCDChip::FRAME_Y].value) + StreamFrameN[CCDChip::FRAME_X].value;
-            // Total bytes
-            totalBytes = (StreamFrameN[CCDChip::FRAME_W].value * StreamFrameN[CCDChip::FRAME_H].value) * 3;
-
-            // Copy each color component back into buffer. Since each subframed page is equal or small than source component
-            // no need to a new buffer
-
-            uint8_t *srcBuffer  = buffer + sourceOffset * 3;
-            uint8_t *destBuffer = buffer;
-
-            // RGB
-            for (int i = 0; i < StreamFrameN[CCDChip::FRAME_H].value; i++)
-                memcpy(destBuffer + i * static_cast<int>(StreamFrameN[CCDChip::FRAME_W].value * 3),
-                       srcBuffer + subW * 3 * i, StreamFrameN[CCDChip::FRAME_W].value * 3);
-        }
-    }
-
+bool RawEncoder::upload(IBLOB *bp, uint8_t *buffer, uint32_t size, bool isCompressed)
+{
     // Do we want to compress ?
-    if (currentCCD->PrimaryCCD.isCompressed())
+    if (isCompressed)
     {
         /* Compress frame */
-        compressedFrame = (uint8_t *)realloc(compressedFrame, sizeof(uint8_t) * totalBytes + totalBytes / 64 + 16 + 3);
-        compressedBytes = sizeof(uint8_t) * totalBytes + totalBytes / 64 + 16 + 3;
+        compressedFrame = (uint8_t *)realloc(compressedFrame, sizeof(uint8_t) * size + size / 64 + 16 + 3);
+        uLongf compressedBytes = sizeof(uint8_t) * size + size / 64 + 16 + 3;
 
-        ret = compress2(compressedFrame, &compressedBytes, buffer, totalBytes, 4);
+        int ret = compress2(compressedFrame, &compressedBytes, buffer, size, 4);
         if (ret != Z_OK)
         {
             /* this should NEVER happen */
@@ -126,23 +61,20 @@ bool RawEncoder::upload()
         }
 
         // Send it compressed
-        imageB->blob    = compressedFrame;
-        imageB->bloblen = compressedBytes;
-        imageB->size    = totalBytes;
-        strcpy(imageB->format, ".stream.z");
+        bp->blob    = compressedFrame;
+        bp->bloblen = compressedBytes;
+        bp->size    = size;
+        strcpy(bp->format, ".stream.z");
     }
     else
     {
         // Send it uncompressed
-        imageB->blob    = buffer;
-        imageB->bloblen = totalBytes;
-        imageB->size    = totalBytes;
-        strcpy(imageB->format, ".stream");
+        bp->blob    = buffer;
+        bp->bloblen = size;
+        bp->size    = size;
+        strcpy(bp->format, ".stream");
     }
 
-    // Upload to client now
-    imageBP->s = IPS_OK;
-    IDSetBLOB(imageBP, nullptr);
     return true;
 }
 }

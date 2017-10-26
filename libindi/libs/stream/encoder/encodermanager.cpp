@@ -20,20 +20,20 @@
 */
 
 #include "encodermanager.h"
-#include "raw_encoder.h"
+#include "rawencoder.h"
 
 namespace INDI
 {
 
 EncoderManager::EncoderManager()
 {
-    encoder_list.push_back(new RAWEncoder());
+    encoder_list.push_back(new RawEncoder());
     default_encoder = encoder_list.at(0);
 }
 
 EncoderManager::~EncoderManager()
 {
-    std::vector<EncoderManager *>::iterator it;
+    std::vector<EncoderInterface *>::iterator it;
     for (it = encoder_list.begin(); it != encoder_list.end(); it++)
     {
         delete (*it);
@@ -41,22 +41,22 @@ EncoderManager::~EncoderManager()
     encoder_list.clear();
 }
 
-std::vector<EncoderManager *> EncoderManager::getEncoderList()
+std::vector<EncoderInterface *> EncoderManager::getEncoderList()
 {
     return encoder_list;
 }
 
-EncoderManager *EncoderManager::getEncoder()
+EncoderInterface *EncoderManager::getEncoder()
 {
     return current_encoder;
 }
 
-EncoderManager *EncoderManager::getDefaultRecorder()
+EncoderInterface *EncoderManager::getDefaultEncoder()
 {
     return default_encoder;
 }
 
-void EncoderManager::setEncoder(EncoderManager *encoder)
+void EncoderManager::setEncoder(EncoderInterface *encoder)
 {
     current_encoder = encoder;
 }

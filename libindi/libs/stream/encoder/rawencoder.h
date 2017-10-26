@@ -27,7 +27,14 @@ namespace INDI
 class RawEncoder : public EncoderInterface
 {
 public:
-    RawEncoder(StreamManager *sm);
+    RawEncoder();
+    ~RawEncoder();
+
+    bool upload(IBLOB *bp, uint8_t *buffer, uint32_t size, bool isCompressed) override;
+
+private:
+    const char *getDeviceName();
+    uint8_t *compressedFrame = nullptr;
 
 };
 

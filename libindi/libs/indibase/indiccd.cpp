@@ -25,6 +25,7 @@
 #include "indiccd.h"
 
 #include "indicom.h"
+#include "stream/streammanager.h"
 #include "locale_compat.h"
 
 #include <fitsio.h>
@@ -43,18 +44,6 @@
 #include <cstdlib>
 #include <zlib.h>
 #include <sys/stat.h>
-
-#if 0
-#ifdef __linux__
-#include "webcam/RecorderInterface/stream_recorder.h"
-#else
-class StreamRecorder
-{
-};
-#endif
-#endif
-
-#include "stream/streammanager.h"
 
 const char *IMAGE_SETTINGS_TAB = "Image Settings";
 const char *IMAGE_INFO_TAB     = "Image Info";

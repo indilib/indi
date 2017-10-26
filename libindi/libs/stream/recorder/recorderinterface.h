@@ -22,7 +22,7 @@
 #pragma once
 
 #include "indidevapi.h"
-#include "stream/pixelformat.h"
+#include "indibasetypes.h"
 
 #include <stdio.h>
 #include <cstdlib>
@@ -59,7 +59,7 @@ class RecorderInterface
     virtual void init() = 0;
     virtual const char *getName();
     // true when direct encoding of pixel format
-    virtual bool setPixelFormat(PixelFormat format, uint8_t bitDepth=8) = 0;
+    virtual bool setPixelFormat(INDI_PIXEL_FORMAT pixelFormat, uint8_t pixelDepth=8) = 0;
     // set image size in pixels
     virtual bool setSize(uint16_t width, uint16_t height) = 0;
     // Set subframe frame dimensions that gets recorded

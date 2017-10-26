@@ -21,7 +21,7 @@
 
 #pragma once
 
-#include "recorderinterface.h".h"
+#include "recorderinterface.h"
 
 #include <cstdint>
 #include <stdio.h>
@@ -77,7 +77,7 @@ class SER_Recorder : public RecorderInterface
     virtual ~SER_Recorder();
 
     virtual void init();
-    virtual bool setPixelFormat(uint32_t f);
+    virtual bool setPixelFormat(INDI_PIXEL_FORMAT pixelFormat, uint8_t pixelDepth);
     virtual bool setSize(uint16_t width, uint16_t height);
     virtual bool setFrame(uint16_t x, uint16_t y, uint16_t width, uint16_t height);
     virtual bool open(const char *filename, char *errmsg);

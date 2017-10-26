@@ -27,7 +27,6 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110 - 1301  USA
 #include "v4l2driver.h"
 #include "indistandardproperty.h"
 #include "lx/Lx.h"
-#include "webcam/RecorderInterface/stream_recorder.h"
 
 V4L2_Driver::V4L2_Driver()
 {
@@ -395,10 +394,18 @@ bool V4L2_Driver::ISNewSwitch(const char *dev, const char *name, ISState *states
             IDSetText(&CaptureColorSpaceTP, nullptr);
 #endif
             //direct_record=recorder->setpixelformat(v4l_base->fmt.fmt.pix.pixelformat);
-            Streamer->setPixelFormat(v4l_base->fmt.fmt.pix.pixelformat);
+            INDI_PIXEL_FORMAT pixelFormat;
+            uint8_t pixelDepth=8;
+            if (getPixelFormat(v4l_base->fmt.fmt.pix.pixelformat, pixelFormat, pixelDepth))
+            {
+                Streamer->setPixelFormat(pixelFormat, pixelDepth);
 
-            IDSetSwitch(&CaptureFormatsSP, "Capture format: %d. %s", index, CaptureFormatsSP.sp[index].name);
-            return true;
+                IDSetSwitch(&CaptureFormatsSP, "Capture format: %d. %s", index, CaptureFormatsSP.sp[index].name);
+                return true;
+            }
+            else
+                return false;
+
         }
     }
 
@@ -1480,7 +1487,11 @@ void V4L2_Driver::getBasicData()
     updateFrameSize();
     //direct_record=recorder->setpixelformat(v4l_base->fmt.fmt.pix.pixelformat);
     //recorder->setsize(w, h);
-    Streamer->setPixelFormat(v4l_base->fmt.fmt.pix.pixelformat);
+    INDI_PIXEL_FORMAT pixelFormat;
+    uint8_t pixelDepth=8;
+    if (getPixelFormat(v4l_base->fmt.fmt.pix.pixelformat, pixelFormat, pixelDepth))
+        Streamer->setPixelFormat(pixelFormat, pixelDepth);
+
     Streamer->setRecorderSize(w, h);
 }
 
@@ -1597,3 +1608,126 @@ bool V4L2_Driver::saveConfigItems(FILE *fp)
 
     return Streamer->saveConfigItems(fp);
 }
+
+bool getPixelFormat(uint32_t v4l2format, INDI_PIXEL_FORMAT & pixelFormat, uint8_t & pixelDepth)
+{
+    //IDLog("recorder: setpixelformat %d\n", format);
+    pixelDepth = 8;
+    switch (v4l2format)
+    {
+        case V4L2_PIX_FMT_GREY:
+#ifdef V4L2_PIX_FMT_Y10
+        case V4L2_PIX_FMT_Y10:
+#endif
+#ifdef V4L2_PIX_FMT_Y12
+        case V4L2_PIX_FMT_Y12:
+#endif
+#ifdef V4L2_PIX_FMT_Y16
+        case V4L2_PIX_FMT_Y16:
+#endif
+            pixelFormat = INDI_MONO;
+#ifdef V4L2_PIX_FMT_Y10
+            if (fv4l2format == V4L2_PIX_FMT_Y10)
+                pixelDepth = 10;
+#endif
+#ifdef V4L2_PIX_FMT_Y12
+            if (v4l2format == V4L2_PIX_FMT_Y12)
+                pixelDepth = 12;
+#endif
+#ifdef V4L2_PIX_FMT_Y16
+            if (v4l2format == V4L2_PIX_FMT_Y16)
+                pixelDepth = 16;
+#endif
+            return true;
+        case V4L2_PIX_FMT_SBGGR8:
+#ifdef V4L2_PIX_FMT_SBGGR10
+        case V4L2_PIX_FMT_SBGGR10:
+#endif
+#ifdef V4L2_PIX_FMT_SBGGR12
+        case V4L2_PIX_FMT_SBGGR12:
+#endif
+        case V4L2_PIX_FMT_SBGGR16:
+            pixelFormat = INDI_BAYER_BGGR;
+#ifdef V4L2_PIX_FMT_SBGGR10
+            if (v4l2format == V4L2_PIX_FMT_SBGGR10)
+                pixelDepth = 10;
+#endif
+#ifdef V4L2_PIX_FMT_SBGGR12
+            if (v4l2format == V4L2_PIX_FMT_SBGGR12)
+                pixelDepth = 12;
+#endif
+            if (v4l2format == V4L2_PIX_FMT_SBGGR16)
+                pixelDepth = 16;
+            return true;
+        case V4L2_PIX_FMT_SGBRG8:
+#ifdef V4L2_PIX_FMT_SGBRG10
+        case V4L2_PIX_FMT_SGBRG10:
+#endif
+#ifdef V4L2_PIX_FMT_SGBRG12
+        case V4L2_PIX_FMT_SGBRG12:
+#endif
+            pixelFormat = INDI_BAYER_GBRG;
+#ifdef V4L2_PIX_FMT_SGBRG10
+            if (v4l2format == V4L2_PIX_FMT_SGBRG10)
+                pixelDepth = 10;
+#endif
+#ifdef V4L2_PIX_FMT_SGBRG12
+            if (v4l2format == V4L2_PIX_FMT_SGBRG12)
+                pixelDepth = 12;
+#endif
+            return true;
+#if defined(V4L2_PIX_FMT_SGRBG8) || defined(V4L2_PIX_FMT_SGRBG10) || defined(V4L2_PIX_FMT_SGRBG12)
+#ifdef V4L2_PIX_FMT_SGRBG8
+        case V4L2_PIX_FMT_SGRBG8:
+#endif
+#ifdef V4L2_PIX_FMT_SGRBG10
+        case V4L2_PIX_FMT_SGRBG10:
+#endif
+#ifdef V4L2_PIX_FMT_SGRBG12
+        case V4L2_PIX_FMT_SGRBG12:
+#endif
+            pixelDepth = INDI_BAYER_GRBG;
+#ifdef V4L2_PIX_FMT_SGRBG10
+            if (v4l2format == V4L2_PIX_FMT_SGRBG10)
+                pixelDepth = 10;
+
+#endif
+#ifdef V4L2_PIX_FMT_SGRBG12
+            if (v4l2format == V4L2_PIX_FMT_SGRBG12)
+                pixelDepth = 12;
+#endif
+            return true;
+#endif
+#if defined(V4L2_PIX_FMT_SRGGB8) || defined(V4L2_PIX_FMT_SRGGB10) || defined(V4L2_PIX_FMT_SRGGB12)
+#ifdef V4L2_PIX_FMT_SRGGB8
+        case V4L2_PIX_FMT_SRGGB8:
+#endif
+#ifdef V4L2_PIX_FMT_SRGGB10
+        case V4L2_PIX_FMT_SRGGB10:
+#endif
+#ifdef V4L2_PIX_FMT_SRGGB12
+        case V4L2_PIX_FMT_SRGGB12:
+#endif
+            pixelFormat = INDI_BAYER_RGGB;
+#ifdef V4L2_PIX_FMT_SRGGB10
+            if (v4l2format == V4L2_PIX_FMT_SRGGB10)
+                pixelDepth = 10;
+#endif
+#ifdef V4L2_PIX_FMT_SRGGB12
+            if (v4l2format == V4L2_PIX_FMT_SRGGB12)
+                pixelDepth = 12;
+#endif
+            return true;
+#endif
+        case V4L2_PIX_FMT_RGB24:
+            pixelFormat = INDI_RGB;
+            return true;
+        case V4L2_PIX_FMT_BGR24:
+            pixelFormat = INDI_BGR;
+            return true;
+        default:
+            return false;
+    }
+}
+
+

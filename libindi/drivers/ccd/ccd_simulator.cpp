@@ -23,10 +23,6 @@
 #include <libnova/julian_day.h>
 #include <libnova/precession.h>
 
-#if !defined(__APPLE__) && !defined(__CYGWIN__)
-#include "libs/webcam/RecorderInterface/stream_recorder.h"
-#endif
-
 #include <cmath>
 #include <unistd.h>
 
@@ -126,10 +122,8 @@ bool CCDSim::SetupParms()
     nbuf += 512;
     PrimaryCCD.setFrameBufferSize(nbuf);
 
-#if !defined(__APPLE__) && !defined(__CYGWIN__)
-    Streamer->setPixelFormat(V4L2_PIX_FMT_GREY);
+    Streamer->setPixelFormat(INDI_MONO, 8);
     Streamer->setRecorderSize(PrimaryCCD.getXRes(), PrimaryCCD.getYRes());
-#endif
 
     return true;
 }
@@ -478,7 +472,7 @@ void CCDSim::TimerHit()
     SetTimer(nextTimer);
 }
 
-int CCDSim::DrawCcdFrame(CCDChip *targetChip)
+int CCDSim::DrawCcdFrame(INDI::CCDChip *targetChip)
 {
     //  CCD frame is 16 bit data
     uint16_t val;
@@ -648,9 +642,9 @@ int CCDSim::DrawCcdFrame(CCDChip *targetChip)
             lookuplimit = 11;
 
         //  if this is a light frame, we need a star field drawn
-        CCDChip::CCD_FRAME ftype = targetChip->getFrameType();
+        INDI::CCDChip::CCD_FRAME ftype = targetChip->getFrameType();
 
-        if (ftype == CCDChip::LIGHT_FRAME)
+        if (ftype == INDI::CCDChip::LIGHT_FRAME)
         {
             AutoCNumeric locale;
 
@@ -747,13 +741,13 @@ int CCDSim::DrawCcdFrame(CCDChip *targetChip)
         //  this is essentially the same math as drawing a dim star with
         //  fwhm equivalent to the full field of view
 
-        if (ftype == CCDChip::LIGHT_FRAME || ftype == CCDChip::FLAT_FRAME)
+        if (ftype == INDI::CCDChip::LIGHT_FRAME || ftype == INDI::CCDChip::FLAT_FRAME)
         {
             float skyflux;
             //  calculate flux from our zero point and gain values
             float glow = skyglow;
 
-            if (ftype == CCDChip::FLAT_FRAME)
+            if (ftype == INDI::CCDChip::FLAT_FRAME)
             {
                 //  Assume flats are done with a diffuser
                 //  in broad daylight, so, the sky magnitude
@@ -860,7 +854,7 @@ int CCDSim::DrawCcdFrame(CCDChip *targetChip)
     return 0;
 }
 
-int CCDSim::DrawImageStar(CCDChip *targetChip, float mag, float x, float y)
+int CCDSim::DrawImageStar(INDI::CCDChip *targetChip, float mag, float x, float y)
 {
     //float d;
     //float r;
@@ -935,7 +929,7 @@ int CCDSim::DrawImageStar(CCDChip *targetChip, float mag, float x, float y)
     return drew;
 }
 
-int CCDSim::AddToPixel(CCDChip *targetChip, int x, int y, int val)
+int CCDSim::AddToPixel(INDI::CCDChip *targetChip, int x, int y, int val)
 {
     int nwidth  = targetChip->getSubW();
     int nheight = targetChip->getSubH();

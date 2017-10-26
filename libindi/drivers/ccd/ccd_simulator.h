@@ -40,10 +40,8 @@ class CCDSim : public INDI::CCD, public INDI::FilterInterface
     virtual bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n);
     virtual bool ISSnoopDevice(XMLEle *root);
 
-#if !defined(__APPLE__) && !defined(__CYGWIN__)
     static void *streamVideoHelper(void *context);
     void *streamVideo();
-#endif
 
 protected:
 
@@ -58,10 +56,10 @@ protected:
 
     void TimerHit();
 
-    int DrawCcdFrame(CCDChip *targetChip);
+    int DrawCcdFrame(INDI::CCDChip *targetChip);
 
-    int DrawImageStar(CCDChip *targetChip, float, float, float);
-    int AddToPixel(CCDChip *targetChip, int, int, int);
+    int DrawImageStar(INDI::CCDChip *targetChip, float, float, float);
+    int AddToPixel(INDI::CCDChip *targetChip, int, int, int);
 
     IPState GuideNorth(float);
     IPState GuideSouth(float);

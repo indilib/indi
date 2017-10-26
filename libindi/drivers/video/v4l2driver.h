@@ -160,6 +160,7 @@ class V4L2_Driver : public INDI::CCD
     /* Initilization functions */
     //virtual void connectCamera();
     virtual void getBasicData();
+    bool getPixelFormat(uint32_t v4l2format, INDI_PIXEL_FORMAT & pixelFormat, uint8_t & pixelDepth);
     void allocateBuffers();
     void releaseBuffers();
     void updateFrameSize();

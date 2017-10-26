@@ -34,7 +34,7 @@ RecorderManager::RecorderManager()
 
 RecorderManager::~RecorderManager()
 {
-    std::vector<RecorderManager *>::iterator it;
+    std::vector<RecorderInterface *>::iterator it;
     for (it = recorder_list.begin(); it != recorder_list.end(); it++)
     {
         delete (*it);
@@ -42,22 +42,22 @@ RecorderManager::~RecorderManager()
     recorder_list.clear();
 }
 
-std::vector<RecorderManager *> RecorderManager::getRecorderList()
+std::vector<RecorderInterface *> RecorderManager::getRecorderList()
 {
     return recorder_list;
 }
 
-RecorderManager *RecorderManager::getRecorder()
+RecorderInterface *RecorderManager::getRecorder()
 {
     return current_recorder;
 }
 
-RecorderManager *RecorderManager::getDefaultRecorder()
+RecorderInterface *RecorderManager::getDefaultRecorder()
 {
     return default_recorder;
 }
 
-void RecorderManager::setRecorder(RecorderManager *recorder)
+void RecorderManager::setRecorder(RecorderInterface *recorder)
 {
     current_recorder = recorder;
 }

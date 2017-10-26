@@ -113,127 +113,41 @@ void SER_Recorder::init()
 {
 }
 
-bool SER_Recorder::setPixelFormat(unsigned int format) // V4L2_PIX_FMT used when encoding
+bool SER_Recorder::setPixelFormat(INDI_PIXEL_FORMAT pixelFormat, uint8_t pixelDepth)
 {
-    IDLog("recorder: setpixelformat %d\n", format);
-    serh.PixelDepth  = 8;
+    serh.PixelDepth  = pixelDepth;
     number_of_planes = 1;
-    switch (format)
+    switch (pixelFormat)
     {
-        case V4L2_PIX_FMT_GREY:
-#ifdef V4L2_PIX_FMT_Y10
-        case V4L2_PIX_FMT_Y10:
-#endif
-#ifdef V4L2_PIX_FMT_Y12
-        case V4L2_PIX_FMT_Y12:
-#endif
-#ifdef V4L2_PIX_FMT_Y16
-        case V4L2_PIX_FMT_Y16:
-#endif
-            serh.ColorID = SER_MONO;
-#ifdef V4L2_PIX_FMT_Y10
-            if (format == V4L2_PIX_FMT_Y10)
-                serh.PixelDepth = 10;
-#endif
-#ifdef V4L2_PIX_FMT_Y12
-            if (format == V4L2_PIX_FMT_Y12)
-                serh.PixelDepth = 12;
-#endif
-#ifdef V4L2_PIX_FMT_Y16
-            if (format == V4L2_PIX_FMT_Y16)
-                serh.PixelDepth = 16;
-#endif
-            return true;
-        case V4L2_PIX_FMT_SBGGR8:
-#ifdef V4L2_PIX_FMT_SBGGR10
-        case V4L2_PIX_FMT_SBGGR10:
-#endif
-#ifdef V4L2_PIX_FMT_SBGGR12
-        case V4L2_PIX_FMT_SBGGR12:
-#endif
-        case V4L2_PIX_FMT_SBGGR16:
-            serh.ColorID = SER_BAYER_BGGR;
-#ifdef V4L2_PIX_FMT_SBGGR10
-            if (format == V4L2_PIX_FMT_SBGGR10)
-                serh.PixelDepth = 10;
-#endif
-#ifdef V4L2_PIX_FMT_SBGGR12
-            if (format == V4L2_PIX_FMT_SBGGR12)
-                serh.PixelDepth = 12;
-#endif
-            if (format == V4L2_PIX_FMT_SBGGR16)
-                serh.PixelDepth = 16;
-            return true;
-        case V4L2_PIX_FMT_SGBRG8:
-#ifdef V4L2_PIX_FMT_SGBRG10
-        case V4L2_PIX_FMT_SGBRG10:
-#endif
-#ifdef V4L2_PIX_FMT_SGBRG12
-        case V4L2_PIX_FMT_SGBRG12:
-#endif
-            serh.ColorID = SER_BAYER_GBRG;
-#ifdef V4L2_PIX_FMT_SGBRG10
-            if (format == V4L2_PIX_FMT_SGBRG10)
-                serh.PixelDepth = 10;
-#endif
-#ifdef V4L2_PIX_FMT_SGBRG12
-            if (format == V4L2_PIX_FMT_SGBRG12)
-                serh.PixelDepth = 12;
-#endif
-            return true;
-#if defined(V4L2_PIX_FMT_SGRBG8) || defined(V4L2_PIX_FMT_SGRBG10) || defined(V4L2_PIX_FMT_SGRBG12)
-#ifdef V4L2_PIX_FMT_SGRBG8
-        case V4L2_PIX_FMT_SGRBG8:
-#endif
-#ifdef V4L2_PIX_FMT_SGRBG10
-        case V4L2_PIX_FMT_SGRBG10:
-#endif
-#ifdef V4L2_PIX_FMT_SGRBG12
-        case V4L2_PIX_FMT_SGRBG12:
-#endif
-            serh.ColorID = SER_BAYER_GRBG;
-#ifdef V4L2_PIX_FMT_SGRBG10
-            if (format == V4L2_PIX_FMT_SGRBG10)
-                serh.PixelDepth = 10;
-#endif
-#ifdef V4L2_PIX_FMT_SGRBG12
-            if (format == V4L2_PIX_FMT_SGRBG12)
-                serh.PixelDepth = 12;
-#endif
-            return true;
-#endif
-#if defined(V4L2_PIX_FMT_SRGGB8) || defined(V4L2_PIX_FMT_SRGGB10) || defined(V4L2_PIX_FMT_SRGGB12)
-#ifdef V4L2_PIX_FMT_SRGGB8
-        case V4L2_PIX_FMT_SRGGB8:
-#endif
-#ifdef V4L2_PIX_FMT_SRGGB10
-        case V4L2_PIX_FMT_SRGGB10:
-#endif
-#ifdef V4L2_PIX_FMT_SRGGB12
-        case V4L2_PIX_FMT_SRGGB12:
-#endif
-            serh.ColorID = SER_BAYER_RGGB;
-#ifdef V4L2_PIX_FMT_SRGGB10
-            if (format == V4L2_PIX_FMT_SRGGB10)
-                serh.PixelDepth = 10;
-#endif
-#ifdef V4L2_PIX_FMT_SRGGB12
-            if (format == V4L2_PIX_FMT_SRGGB12)
-                serh.PixelDepth = 12;
-#endif
-            return true;
-#endif
-        case V4L2_PIX_FMT_RGB24:
-            number_of_planes = 3;
-            serh.ColorID     = SER_RGB;
-            return true;
-        case V4L2_PIX_FMT_BGR24:
-            number_of_planes = 3;
-            serh.ColorID     = SER_BGR;
-            return true;
-        default:
-            return false;
+    case INDI_MONO:
+        serh.ColorID = SER_MONO;
+        break;
+
+    case INDI_BAYER_BGGR:
+        serh.ColorID = SER_BAYER_BGGR;
+        break;
+    case INDI_BAYER_GBRG:
+        serh.ColorID = SER_BAYER_GBRG;
+        break;
+    case INDI_BAYER_GRBG:
+        serh.ColorID = SER_BAYER_GRBG;
+        break;
+    case INDI_BAYER_RGGB:
+        serh.ColorID = SER_BAYER_RGGB;
+        break;
+    case INDI_RGB:
+        number_of_planes = 3;
+        serh.ColorID     = SER_RGB;
+        break;
+    case INDI_BGR:
+        number_of_planes = 3;
+        serh.ColorID     = SER_BGR;
+        break;
+    default:
+        return false;
     }
+
+    return true;
 }
 
 bool SER_Recorder::setFrame(uint16_t x, uint16_t y, uint16_t width, uint16_t height)
@@ -319,7 +233,7 @@ bool SER_Recorder::writeFrame(unsigned char *frame)
 bool SER_Recorder::writeFrameMono(unsigned char *frame)
 {
     if (isStreamingActive == false &&
-        (offsetX > 0 || offsetY > 0 || serh.ImageWidth != rawWidth || serh.ImageHeight != rawHeight))
+            (offsetX > 0 || offsetY > 0 || serh.ImageWidth != rawWidth || serh.ImageHeight != rawHeight))
     {
         int offset = ((rawWidth * offsetY) + offsetX);
 
@@ -338,7 +252,7 @@ bool SER_Recorder::writeFrameMono(unsigned char *frame)
 bool SER_Recorder::writeFrameColor(unsigned char *frame)
 {
     if (isStreamingActive == false &&
-        (offsetX > 0 || offsetY > 0 || serh.ImageWidth != rawWidth || serh.ImageHeight != rawHeight))
+            (offsetX > 0 || offsetY > 0 || serh.ImageWidth != rawWidth || serh.ImageHeight != rawHeight))
     {
         int offset = ((rawWidth * offsetY) + offsetX);
 
@@ -470,26 +384,26 @@ void SER_Recorder::dateTo64BitTS(int32_t year, int32_t month, int32_t day, int32
     {
         switch (mon)
         {
-            case 4:  // April
-            case 6:  // June
-            case 9:  // September
-            case 11: // Novenber
-                ts += (30 * m_septaseconds_per_day);
-                break;
-            case 2: // Feburary
-                if (is_leap_year(year))
-                {
-                    ts += (29 * m_septaseconds_per_day);
-                }
-                else
-                {
-                    ts += (28 * m_septaseconds_per_day);
-                }
+        case 4:  // April
+        case 6:  // June
+        case 9:  // September
+        case 11: // Novenber
+            ts += (30 * m_septaseconds_per_day);
+            break;
+        case 2: // Feburary
+            if (is_leap_year(year))
+            {
+                ts += (29 * m_septaseconds_per_day);
+            }
+            else
+            {
+                ts += (28 * m_septaseconds_per_day);
+            }
 
-                break;
-            default:
-                ts += (31 * m_septaseconds_per_day);
-                break;
+            break;
+        default:
+            ts += (31 * m_septaseconds_per_day);
+            break;
         }
     }
 
