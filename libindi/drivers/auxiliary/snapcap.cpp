@@ -100,6 +100,16 @@ bool SnapCap::initProperties()
     IUFillText(&FirmwareT[0], "Version", "", nullptr);
     IUFillTextVector(&FirmwareTP, FirmwareT, 1, getDeviceName(), "Firmware", "", MAIN_CONTROL_TAB, IP_RO, 60, IPS_IDLE);
 
+    // Abort and force open/close buttons
+    IUFillSwitch(&AbortS[0], "Abort", "", ISS_OFF);
+    IUFillSwitchVector(&AbortSP, AbortS, 1, getDeviceName(), "Abort", "", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 0,
+                       IPS_IDLE);
+
+    IUFillSwitch(&ForceS[0], "Off", "", ISS_ON);
+    IUFillSwitch(&ForceS[1], "On", "", ISS_OFF);
+    IUFillSwitchVector(&ForceSP, ForceS, 2, getDeviceName(), "Force movement", "", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY,
+                       0, IPS_IDLE);
+
     initDustCapProperties(getDeviceName(), MAIN_CONTROL_TAB);
     initLightBoxProperties(getDeviceName(), MAIN_CONTROL_TAB);
 
@@ -143,6 +153,8 @@ bool SnapCap::updateProperties()
         }
         defineText(&StatusTP);
         defineText(&FirmwareTP);
+        defineSwitch(&AbortSP);
+        defineSwitch(&ForceSP);
         getStartupData();
     }
     else
@@ -156,6 +168,8 @@ bool SnapCap::updateProperties()
         }
         deleteProperty(StatusTP.name);
         deleteProperty(FirmwareTP.name);
+        deleteProperty(AbortSP.name);
+        deleteProperty(ForceSP.name);
     }
 
     return true;
@@ -227,6 +241,20 @@ bool SnapCap::ISNewSwitch(const char *dev, const char *name, ISState *states, ch
 {
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
+        if (strcmp(AbortSP.name, name) == 0)
+        {
+            IUResetSwitch(&AbortSP);
+            AbortSP.s = Abort();
+            IDSetSwitch(&AbortSP, nullptr);
+            return true;
+        }
+        if (strcmp(ForceSP.name, name) == 0)
+        {
+            IUUpdateSwitch(&ForceSP, states, names, n);
+            IDSetSwitch(&AbortSP, nullptr);
+            return true;
+        }
+
         if (processDustCapSwitch(dev, name, states, names, n))
             return true;
 
@@ -280,7 +308,10 @@ IPState SnapCap::ParkCap()
 
     tcflush(PortFD, TCIOFLUSH);
 
-    strncpy(command, ">C000", SNAP_CMD);
+    if (ForceS[1].s == ISS_ON)
+        strncpy(command, ">c000", SNAP_CMD); // Force close command
+    else
+        strncpy(command, ">C000", SNAP_CMD);
 
     DEBUGF(INDI::Logger::DBG_DEBUG, "CMD (%s)", command);
 
@@ -305,7 +336,7 @@ IPState SnapCap::ParkCap()
 
     DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", response);
 
-    if (strcmp(response, "*C000") == 0)
+    if (strcmp(response, "*C000") == 0 || strcmp(response, "*c000") == 0)
     {
         // Set cover status to random value outside of range to force it to refresh
         prevCoverStatus   = 10;
@@ -331,7 +362,10 @@ IPState SnapCap::UnParkCap()
 
     tcflush(PortFD, TCIOFLUSH);
 
-    strncpy(command, ">O000", SNAP_CMD);
+    if (ForceS[1].s == ISS_ON)
+        strncpy(command, ">o000", SNAP_CMD); // Force open command
+    else
+        strncpy(command, ">O000", SNAP_CMD);
 
     DEBUGF(INDI::Logger::DBG_DEBUG, "CMD (%s)", command);
 
@@ -356,12 +390,62 @@ IPState SnapCap::UnParkCap()
 
     DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", response);
 
-    if (strcmp(response, "*O000") == 0)
+    if (strcmp(response, "*O000") == 0 || strcmp(response, "*o000") == 0)
     {
         // Set cover status to random value outside of range to force it to refresh
         prevCoverStatus   = 10;
         targetCoverStatus = 1;
         return IPS_BUSY;
+    }
+    else
+        return IPS_ALERT;
+}
+
+IPState SnapCap::Abort()
+{
+    if (isSimulation())
+    {
+        simulationWorkCounter = 0;
+        return IPS_OK;
+    }
+
+    int nbytes_written = 0, nbytes_read = 0, rc = -1;
+    char errstr[MAXRBUF];
+    char command[SNAP_CMD];
+    char response[SNAP_RES];
+
+    tcflush(PortFD, TCIOFLUSH);
+
+    strncpy(command, ">A000", SNAP_CMD);
+
+    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD (%s)", command);
+
+    command[SNAP_CMD - 2] = 0xD;
+    command[SNAP_CMD - 1] = 0xA;
+
+    if ((rc = tty_write(PortFD, command, SNAP_CMD, &nbytes_written)) != TTY_OK)
+    {
+        tty_error_msg(rc, errstr, MAXRBUF);
+        DEBUGF(INDI::Logger::DBG_ERROR, "%s error: %s.", command, errstr);
+        return IPS_ALERT;
+    }
+
+    if ((rc = tty_read_section(PortFD, response, 0xA, SNAP_TIMEOUT, &nbytes_read)) != TTY_OK)
+    {
+        tty_error_msg(rc, errstr, MAXRBUF);
+        DEBUGF(INDI::Logger::DBG_ERROR, "%s: %s.", command, errstr);
+        return IPS_ALERT;
+    }
+
+    response[nbytes_read - 2] = '\0';
+
+    DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", response);
+
+    if (strcmp(response, "*A000") == 0)
+    {
+        // Set cover status to random value outside of range to force it to refresh
+        prevCoverStatus = 10;
+        return IPS_OK;
     }
     else
         return IPS_ALERT;

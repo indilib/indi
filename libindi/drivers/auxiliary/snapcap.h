@@ -77,6 +77,8 @@ class SnapCap : public INDI::DefaultDevice, public INDI::LightBoxInterface, publ
 
     bool Handshake();
 
+    IPState Abort();
+
     // Status
     ITextVectorProperty StatusTP;
     IText StatusT[3];
@@ -84,6 +86,14 @@ class SnapCap : public INDI::DefaultDevice, public INDI::LightBoxInterface, publ
     // Firmware version
     ITextVectorProperty FirmwareTP;
     IText FirmwareT[1];
+
+    // Abort
+    ISwitch AbortS[1];
+    ISwitchVectorProperty AbortSP;
+
+    // Force open & close
+    ISwitch ForceS[2];
+    ISwitchVectorProperty ForceSP;
 
     int PortFD{ -1 };
     int productID{ 0 };
