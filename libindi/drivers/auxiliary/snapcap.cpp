@@ -170,11 +170,10 @@ bool SnapCap::Handshake()
 {
     if (isSimulation())
     {
-        DEBUGF(INDI::Logger::DBG_SESSION, "Connected successfuly to simulated %s. Retrieving startup data...",
+        DEBUGF(INDI::Logger::DBG_SESSION, "Connected successfully to simulated %s. Retrieving startup data...",
                getDeviceName());
 
         SetTimer(POLLMS);
-
         return true;
     }
 
@@ -375,7 +374,7 @@ bool SnapCap::EnableLightBox(bool enable)
     char command[SNAP_CMD];
     char response[SNAP_RES];
 
-    if (hasLight && ParkCapS[1].s == ISS_ON)
+    if (hasLight && ParkCapS[CAP_UNPARK].s == ISS_ON)
     {
         DEBUG(INDI::Logger::DBG_ERROR, "Cannot control light while cap is unparked.");
         return false;
@@ -437,7 +436,7 @@ bool SnapCap::getStatus()
     {
         if (ParkCapSP.s == IPS_BUSY && --simulationWorkCounter <= 0)
         {
-            ParkCapSP.s = IPS_OK;
+            ParkCapSP.s = IPS_IDLE;
             IDSetSwitch(&ParkCapSP, nullptr);
             simulationWorkCounter = 0;
         }
@@ -452,9 +451,9 @@ bool SnapCap::getStatus()
             response[2] = '0';
             // Parked/Closed
             if (ParkCapS[CAP_PARK].s == ISS_ON)
-                response[4] = '1';
-            else
                 response[4] = '2';
+            else
+                response[4] = '1';
         }
 
         response[3] = (LightS[FLAT_LIGHT_ON].s == ISS_ON) ? '1' : '0';
@@ -489,9 +488,9 @@ bool SnapCap::getStatus()
         DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", response);
     }
 
-    char motorStatus = *(response + 2) - '0';
-    char lightStatus = *(response + 3) - '0';
-    char coverStatus = *(response + 4) - '0';
+    char motorStatus = response[2] - '0';
+    char lightStatus = response[3] - '0';
+    char coverStatus = response[4] - '0';
 
     // Force cover status as it doesn't reflect moving state otherwise...
     if (motorStatus)
@@ -517,8 +516,8 @@ bool SnapCap::getStatus()
                 {
                     IUSaveText(&StatusT[0], "Open");
                     IUResetSwitch(&ParkCapSP);
-                    ParkCapS[1].s = ISS_ON;
-                    ParkCapSP.s   = IPS_OK;
+                    ParkCapS[CAP_UNPARK].s = ISS_ON;
+                    ParkCapSP.s            = IPS_OK;
                     DEBUG(INDI::Logger::DBG_SESSION, "Cover open.");
                     IDSetSwitch(&ParkCapSP, nullptr);
                 }
@@ -529,8 +528,8 @@ bool SnapCap::getStatus()
                 {
                     IUSaveText(&StatusT[0], "Closed");
                     IUResetSwitch(&ParkCapSP);
-                    ParkCapS[0].s = ISS_ON;
-                    ParkCapSP.s   = IPS_OK;
+                    ParkCapS[CAP_PARK].s = ISS_ON;
+                    ParkCapSP.s          = IPS_OK;
                     DEBUG(INDI::Logger::DBG_SESSION, "Cover closed.");
                     IDSetSwitch(&ParkCapSP, nullptr);
                 }
