@@ -287,10 +287,13 @@ void StreamManager::recordStream(double deltams)
     if (!m_isRecording)
         return;
 
-    if (currentCCD->PrimaryCCD.getNAxis() == 2)
+    recorder->writeFrame(currentCCD->PrimaryCCD.getFrameBuffer());
+
+    /*if (currentCCD->PrimaryCCD.getNAxis() == 2)
         recorder->writeFrameMono(currentCCD->PrimaryCCD.getFrameBuffer());
     else
         recorder->writeFrameColor(currentCCD->PrimaryCCD.getFrameBuffer());
+        */
 
     recordDuration += deltams;
     recordframeCount += 1;
@@ -450,6 +453,7 @@ bool StreamManager::startRecording()
         return false;
     }
 
+#if 0
     /* start capture */
     // TODO direct recording should this be part of StreamManager?
     if (direct_record)
@@ -466,6 +470,7 @@ bool StreamManager::startRecording()
         else
             recorder->setDefaultColor();
     }
+#endif
     recordDuration   = 0.0;
     recordframeCount = 0;
 

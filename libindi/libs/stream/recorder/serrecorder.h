@@ -1,7 +1,7 @@
 /*
     Copyright (C) 2014 by geehalel <geehalel@gmail.com>
 
-    V4L2 Record
+    SER Recorder
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -83,11 +83,7 @@ class SER_Recorder : public RecorderInterface
     virtual bool setFrame(uint16_t x, uint16_t y, uint16_t width, uint16_t height);
     virtual bool open(const char *filename, char *errmsg);
     virtual bool close();
-    virtual bool writeFrame(unsigned char *frame);
-    virtual bool writeFrameMono(unsigned char *frame);  // default way to write a GREY frame
-    virtual bool writeFrameColor(unsigned char *frame); // default way to write a RGB3 frame
-    virtual void setDefaultMono();                      // prepare to write GREY frame
-    virtual void setDefaultColor();                     // prepare to write RGB24 frame
+    virtual bool writeFrame(uint8_t *frame);
     virtual void setStreamEnabled(bool enable) { isStreamingActive = enable; }
 
     // Public constants

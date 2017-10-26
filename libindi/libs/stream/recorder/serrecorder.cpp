@@ -215,72 +215,50 @@ bool SER_Recorder::close()
     return true;
 }
 
-bool SER_Recorder::writeFrame(unsigned char *frame)
+bool SER_Recorder::writeFrame(uint8_t *frame)
 {
     if (!isRecordingActive)
         return false;
+
+    if (serh.ColorID == SER_MONO)
+    {
+        if (isStreamingActive == false &&
+                (offsetX > 0 || offsetY > 0 || serh.ImageWidth != rawWidth || serh.ImageHeight != rawHeight))
+        {
+            int offset = ((rawWidth * offsetY) + offsetX);
+
+            uint8_t *srcBuffer  = frame + offset;
+            uint8_t *destBuffer = frame;
+            int imageWidth      = serh.ImageWidth;
+            int imageHeight     = serh.ImageHeight;
+
+            for (int i = 0; i < imageHeight; i++)
+                memcpy(destBuffer + i * imageWidth, srcBuffer + rawWidth * i, imageWidth);
+        }
+    }
+    else
+    {
+        if (isStreamingActive == false &&
+                (offsetX > 0 || offsetY > 0 || serh.ImageWidth != rawWidth || serh.ImageHeight != rawHeight))
+        {
+            int offset = ((rawWidth * offsetY) + offsetX);
+
+            uint8_t *srcBuffer  = frame + offset * 3;
+            uint8_t *destBuffer = frame;
+            int imageWidth      = serh.ImageWidth;
+            int imageHeight     = serh.ImageHeight;
+
+            // RGB
+            for (int i = 0; i < imageHeight; i++)
+                memcpy(destBuffer + i * imageWidth * 3, srcBuffer + rawWidth * 3 * i, imageWidth * 3);
+        }
+   }
 
     frameStamps.push_back(getUTCTimeStamp());
 
     fwrite(frame, frame_size, 1, f);
     serh.FrameCount += 1;
     return true;
-}
-
-// ajouter une gestion plus fine du mode par defaut
-// setMono/setColor appelee par ImageTypeSP
-// setPixelDepth si Mono16
-bool SER_Recorder::writeFrameMono(unsigned char *frame)
-{
-    if (isStreamingActive == false &&
-            (offsetX > 0 || offsetY > 0 || serh.ImageWidth != rawWidth || serh.ImageHeight != rawHeight))
-    {
-        int offset = ((rawWidth * offsetY) + offsetX);
-
-        uint8_t *srcBuffer  = frame + offset;
-        uint8_t *destBuffer = frame;
-        int imageWidth      = serh.ImageWidth;
-        int imageHeight     = serh.ImageHeight;
-
-        for (int i = 0; i < imageHeight; i++)
-            memcpy(destBuffer + i * imageWidth, srcBuffer + rawWidth * i, imageWidth);
-    }
-
-    return writeFrame(frame);
-}
-
-bool SER_Recorder::writeFrameColor(unsigned char *frame)
-{
-    if (isStreamingActive == false &&
-            (offsetX > 0 || offsetY > 0 || serh.ImageWidth != rawWidth || serh.ImageHeight != rawHeight))
-    {
-        int offset = ((rawWidth * offsetY) + offsetX);
-
-        uint8_t *srcBuffer  = frame + offset * 3;
-        uint8_t *destBuffer = frame;
-        int imageWidth      = serh.ImageWidth;
-        int imageHeight     = serh.ImageHeight;
-
-        // RGB
-        for (int i = 0; i < imageHeight; i++)
-            memcpy(destBuffer + i * imageWidth * 3, srcBuffer + rawWidth * 3 * i, imageWidth * 3);
-    }
-
-    return writeFrame(frame);
-}
-
-void SER_Recorder::setDefaultMono()
-{
-    number_of_planes = 1;
-    serh.PixelDepth  = 8;
-    serh.ColorID     = SER_MONO;
-}
-
-void SER_Recorder::setDefaultColor()
-{
-    number_of_planes = 3;
-    serh.PixelDepth  = 8;
-    serh.ColorID     = SER_RGB;
 }
 
 // Copyright (C) 2015 Chris Garry
