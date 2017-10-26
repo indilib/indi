@@ -51,12 +51,13 @@ class INDI::GPS : public INDI::DefaultDevice
         LOCATION_ELEVATION
     };
 
-    GPS();
-    virtual ~GPS();
+    GPS() = default;
+    virtual ~GPS() = default;
 
     virtual bool initProperties();
     virtual bool updateProperties();
     virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n);
+    virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n);
 
   protected:
     /**
@@ -70,6 +71,13 @@ class INDI::GPS : public INDI::DefaultDevice
          */
     virtual void TimerHit();
 
+    /**
+     * @brief saveConfigItems Save refresh period
+     * @param fp pointer to config file
+     * @return True if all is OK
+     */
+    virtual bool saveConfigItems(FILE *fp);
+
     //  A number vector that stores lattitude and longitude
     INumberVectorProperty LocationNP;
     INumber LocationN[3];
@@ -81,4 +89,10 @@ class INDI::GPS : public INDI::DefaultDevice
     // Refresh data
     ISwitch RefreshS[1];
     ISwitchVectorProperty RefreshSP;
+
+    // Refresh Period
+    INumber PeriodN[1];
+    INumberVectorProperty PeriodNP;
+
+    int timerID = -1;
 };

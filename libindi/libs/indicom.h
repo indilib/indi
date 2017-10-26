@@ -65,7 +65,8 @@ enum TTY_ERROR
     TTY_TIME_OUT     = -4,
     TTY_PORT_FAILURE = -5,
     TTY_PARAM_ERROR  = -6,
-    TTY_ERRNO        = -7
+    TTY_ERRNO        = -7,
+    TTY_OVERFLOW     = -8
 };
 
 #ifdef __cplusplus
@@ -98,6 +99,18 @@ int tty_read(int fd, char *buf, int nbytes, int timeout, int *nbytes_read);
 */
 
 int tty_read_section(int fd, char *buf, char stop_char, int timeout, int *nbytes_read);
+
+/** \brief read buffer from terminal with a delimiter
+    \param fd file descriptor
+    \param buf pointer to store data. Must be initilized and big enough to hold data.
+    \param stop_char if the function encounters \e stop_char then it stops reading and returns the buffer.
+    \param nsize size of buf. If stop character is not encountered before nsize, the function aborts.
+    \param timeout number of seconds to wait for terminal before a timeout error is issued.
+    \param nbytes_read the number of bytes read.
+    \return On success, it returns TTY_OK, otherwise, a TTY_ERROR code.
+*/
+
+int tty_nread_section(int fd, char *buf, int nsize, char stop_char, int timeout, int *nbytes_read);
 
 /** \brief Writes a buffer to fd.
     \param fd file descriptor

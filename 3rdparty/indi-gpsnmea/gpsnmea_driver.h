@@ -1,7 +1,7 @@
 /*******************************************************************************
   Copyright(c) 2017 Jasem Mutlaq. All rights reserved.
 
-  INDI MBox Driver
+  INDI GPS NMEA Driver
 
   This program is free software; you can redistribute it and/or modify it
   under the terms of the GNU General Public License as published by the Free
@@ -24,48 +24,35 @@
 
 #pragma once
 
-#include "indiweather.h"
+#include <indigps.h>
 
-class MBox : public INDI::Weather
+class GPSNMEA : public INDI::GPS
 {
   public:
-    MBox();
-    virtual ~MBox() = default;
+    GPSNMEA();
+    virtual ~GPSNMEA() = default;
 
+    IText GPSstatusT[1];
+    ITextVectorProperty GPSstatusTP;
+
+    static void* parseNMEAHelper(void *);
+
+  protected:    
     //  Generic indi device entries
-    virtual bool Handshake() override;
     virtual const char *getDefaultName() override;
-
     virtual bool initProperties() override;
     virtual bool updateProperties() override;
-    virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
-    virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
+    virtual IPState updateGPS() override;
 
-  protected:
-    virtual IPState updateWeather() override;    
+private:
+    Connection::TCP *tcpConnection { nullptr };
+    bool isNMEA();
+    void parseNEMA();
 
-  private:
-    bool ack();
-    bool verifyCRC(const char *response);
-    bool getCalibration(bool sendCommand=true);
-    bool setCalibration();
-    bool resetCalibration();
+    int PortFD { -1 };
+    uint8_t timeoutCounter=0;
+    bool locationPending = true, timePending=true;
 
-    INumber CalibrationN[3];
-    INumberVectorProperty CalibrationNP;
-    enum
-    {
-        CAL_PRESSURE,
-        CAL_TEMPERATURE,
-        CAL_HUMIDITY
-    };
-
-    ISwitch ResetS[1];
-    ISwitchVectorProperty ResetSP;
-
-    IText FirmwareT[1];
-    ITextVectorProperty FirmwareTP;
-
-
-
+    pthread_mutex_t lock;
+    pthread_t nmeaThread;
 };
