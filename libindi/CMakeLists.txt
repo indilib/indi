@@ -299,6 +299,10 @@ ELSE ()
 ENDIF()
 
 IF (UNIX)
+find_package(Theora)
+IF (THEORA_FOUND)
+SET (theorarecorder_CXX_SRC ${CMAKE_CURRENT_SOURCE_DIR}/libs/stream/recorder/theorarecorder.cpp)
+ENDIF()
     SET(libstream_CXX_SRC
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/stream/streammanager.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/stream/recorder/recorderinterface.cpp
@@ -307,6 +311,7 @@ IF (UNIX)
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/stream/encoder/encodermanager.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/stream/encoder/encoderinterface.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/stream/encoder/rawencoder.cpp
+        ${theorarecorder_CXX_SRC}
         )
     IF (UNITY_BUILD)
         ENABLE_UNITY_BUILD(libstream libstream_CXX_SRC 10 cpp)
