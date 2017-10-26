@@ -397,18 +397,10 @@ bool V4L2_Driver::ISNewSwitch(const char *dev, const char *name, ISState *states
             INDI_PIXEL_FORMAT pixelFormat;
             uint8_t pixelDepth=8;
             if (getPixelFormat(v4l_base->fmt.fmt.pix.pixelformat, pixelFormat, pixelDepth))
-            {
                 Streamer->setPixelFormat(pixelFormat, pixelDepth);
 
-                IDSetSwitch(&CaptureFormatsSP, "Capture format: %d. %s", index, CaptureFormatsSP.sp[index].name);
-                return true;
-            }
-            else
-            {
-                CaptureFormatsSP.s = IPS_ALERT;
-                IDSetSwitch(&CaptureFormatsSP, nullptr);
-                return false;
-            }
+           IDSetSwitch(&CaptureFormatsSP, "Capture format: %d. %s", index, CaptureFormatsSP.sp[index].name);
+           return true;
         }
     }
 
@@ -514,6 +506,13 @@ bool V4L2_Driver::ISNewSwitch(const char *dev, const char *name, ISState *states
         }
 
         updateFrameSize();
+#if 0
+        INDI_PIXEL_FORMAT pixelFormat;
+        uint8_t pixelDepth=8;
+        if (getPixelFormat(v4l_base->fmt.fmt.pix.pixelformat, pixelFormat, pixelDepth))
+            Streamer->setPixelFormat(pixelFormat, pixelDepth);
+#endif
+        Streamer->setPixelFormat((ImageColorS[IMAGE_GRAYSCALE].s == ISS_ON) ? INDI_MONO : INDI_RGB, 8);
         IDSetSwitch(&ImageColorSP, nullptr);
         return true;
     }
