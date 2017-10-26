@@ -85,14 +85,15 @@ class SnapCap : public INDI::DefaultDevice, public INDI::LightBoxInterface, publ
     ITextVectorProperty FirmwareTP;
     IText FirmwareT[1];
 
-    int PortFD { -1 };
-    int productID { 0 };
-    bool hasLight { false };
-    uint8_t simulationWorkCounter { 0 };
-    uint8_t prevCoverStatus { 0xFF };
-    uint8_t prevLightStatus { 0xFF };
-    uint8_t prevMotorStatus { 0xFF };
-    uint8_t prevBrightness { 0xFF };
+    int PortFD{ -1 };
+    int productID{ 0 };
+    bool hasLight{ true };
+    uint8_t simulationWorkCounter{ 0 };
+    uint8_t targetCoverStatus{ 0xFF };
+    uint8_t prevCoverStatus{ 0xFF };
+    uint8_t prevLightStatus{ 0xFF };
+    uint8_t prevMotorStatus{ 0xFF };
+    uint8_t prevBrightness{ 0xFF };
 
-    Connection::Serial *serialConnection { nullptr };
+    Connection::Serial *serialConnection{ nullptr };
 };

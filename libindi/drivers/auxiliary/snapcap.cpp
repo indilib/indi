@@ -38,10 +38,10 @@
 // We declare an auto pointer to SnapCap.
 std::unique_ptr<SnapCap> snapcap(new SnapCap());
 
-#define SNAP_CMD     7
-#define SNAP_RES     8
+#define SNAP_CMD 7
+#define SNAP_RES 8
 #define SNAP_TIMEOUT 3
-#define POLLMS       1000
+#define POLLMS 1000
 
 void ISGetProperties(const char *dev)
 {
@@ -107,8 +107,9 @@ bool SnapCap::initProperties()
     LightIntensityN[0].max  = 255;
     LightIntensityN[0].step = 10;
 
-    // Set LIGHTBOX_INTERFACE later on connect after we verify whether if has light or not
-    setDriverInterface(AUX_INTERFACE | DUSTCAP_INTERFACE);
+    hasLight = true;
+
+    setDriverInterface(AUX_INTERFACE | LIGHTBOX_INTERFACE | DUSTCAP_INTERFACE);
 
     addAuxControls();
 
@@ -135,11 +136,11 @@ bool SnapCap::updateProperties()
     {
         defineSwitch(&ParkCapSP);
         if (hasLight)
-	{
-	   defineSwitch(&LightSP);
-	   defineNumber(&LightIntensityNP);
-	   updateLightBoxProperties();
-	}
+        {
+            defineSwitch(&LightSP);
+            defineNumber(&LightIntensityNP);
+            updateLightBoxProperties();
+        }
         defineText(&StatusTP);
         defineText(&FirmwareTP);
         getStartupData();
@@ -148,11 +149,11 @@ bool SnapCap::updateProperties()
     {
         deleteProperty(ParkCapSP.name);
         if (hasLight)
-	{
-	    deleteProperty(LightSP.name);
-	    deleteProperty(LightIntensityNP.name);
-	    updateLightBoxProperties();
-	}
+        {
+            deleteProperty(LightSP.name);
+            deleteProperty(LightIntensityNP.name);
+            updateLightBoxProperties();
+        }
         deleteProperty(StatusTP.name);
         deleteProperty(FirmwareTP.name);
     }
@@ -173,9 +174,6 @@ bool SnapCap::Handshake()
                getDeviceName());
 
         SetTimer(POLLMS);
-
-        setDriverInterface(AUX_INTERFACE | LIGHTBOX_INTERFACE | DUSTCAP_INTERFACE);
-        hasLight = true;
 
         return true;
     }
@@ -256,63 +254,7 @@ bool SnapCap::saveConfigItems(FILE *fp)
 
 bool SnapCap::ping()
 {
-    int nbytes_written = 0, nbytes_read = 0, rc = -1;
-    char errstr[MAXRBUF];
-    char command[SNAP_CMD];
-    char response[SNAP_RES];
-    int i = 0;
-
-    tcflush(PortFD, TCIOFLUSH);
-
-    strncpy(command, ">P000", SNAP_CMD);
-
-    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD (%s)", command);
-
-    command[SNAP_CMD - 2] = 0xD;
-    command[SNAP_CMD - 1] = 0xA;
-
-    for (i = 0; i < 3; i++)
-    {
-        if ((rc = tty_write(PortFD, command, SNAP_CMD, &nbytes_written)) != TTY_OK)
-            continue;
-
-        if ((rc = tty_read_section(PortFD, response, 0xA, 1, &nbytes_read)) != TTY_OK)
-            continue;
-        else
-            break;
-    }
-
-    if (i == 3)
-    {
-        tty_error_msg(rc, errstr, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "%s: %s.", command, errstr);
-        return false;
-    }
-
-    response[nbytes_read - 2] = '\0';
-
-    DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", response);
-
-    char productString[3] = { 0 };
-    snprintf(productString, 3, "%s", response + 2);
-
-    rc = sscanf(productString, "%d", &productID);
-
-    if (rc <= 0)
-    {
-        DEBUGF(INDI::Logger::DBG_ERROR, "Unable to parse input (%s)", response);
-        return false;
-    }
-
-    if (productID == 99)
-    {
-        setDriverInterface(AUX_INTERFACE | LIGHTBOX_INTERFACE | DUSTCAP_INTERFACE);
-        hasLight = true;
-    }
-    else
-        hasLight = false;
-
-    return true;
+    return getFirmwareVersion();
 }
 
 bool SnapCap::getStartupData()
@@ -367,7 +309,8 @@ IPState SnapCap::ParkCap()
     if (strcmp(response, "*C000") == 0)
     {
         // Set cover status to random value outside of range to force it to refresh
-        prevCoverStatus = 10;
+        prevCoverStatus   = 10;
+        targetCoverStatus = 2;
         return IPS_BUSY;
     }
     else
@@ -417,7 +360,8 @@ IPState SnapCap::UnParkCap()
     if (strcmp(response, "*O000") == 0)
     {
         // Set cover status to random value outside of range to force it to refresh
-        prevCoverStatus = 10;
+        prevCoverStatus   = 10;
+        targetCoverStatus = 1;
         return IPS_BUSY;
     }
     else
@@ -549,6 +493,11 @@ bool SnapCap::getStatus()
     char lightStatus = *(response + 3) - '0';
     char coverStatus = *(response + 4) - '0';
 
+    // Force cover status as it doesn't reflect moving state otherwise...
+    if (motorStatus)
+    {
+        coverStatus = 0;
+    }
     bool statusUpdated = false;
 
     if (coverStatus != prevCoverStatus)
@@ -560,29 +509,29 @@ bool SnapCap::getStatus()
         switch (coverStatus)
         {
             case 0:
-                IUSaveText(&StatusT[0], "Not Open/Closed");
+                IUSaveText(&StatusT[0], "Opening/closing");
                 break;
 
             case 1:
-                IUSaveText(&StatusT[0], "Closed");
-                if (ParkCapSP.s == IPS_BUSY || ParkCapSP.s == IPS_IDLE)
+                if ((targetCoverStatus == 1 && ParkCapSP.s == IPS_BUSY) || ParkCapSP.s == IPS_IDLE)
                 {
+                    IUSaveText(&StatusT[0], "Open");
                     IUResetSwitch(&ParkCapSP);
-                    ParkCapS[0].s = ISS_ON;
+                    ParkCapS[1].s = ISS_ON;
                     ParkCapSP.s   = IPS_OK;
-                    DEBUG(INDI::Logger::DBG_SESSION, "Cover closed.");
+                    DEBUG(INDI::Logger::DBG_SESSION, "Cover open.");
                     IDSetSwitch(&ParkCapSP, nullptr);
                 }
                 break;
 
             case 2:
-                IUSaveText(&StatusT[0], "Open");
-                if (ParkCapSP.s == IPS_BUSY || ParkCapSP.s == IPS_IDLE)
+                if ((targetCoverStatus == 2 && ParkCapSP.s == IPS_BUSY) || ParkCapSP.s == IPS_IDLE)
                 {
+                    IUSaveText(&StatusT[0], "Closed");
                     IUResetSwitch(&ParkCapSP);
-                    ParkCapS[1].s = ISS_ON;
+                    ParkCapS[0].s = ISS_ON;
                     ParkCapSP.s   = IPS_OK;
-                    DEBUG(INDI::Logger::DBG_SESSION, "Cover open.");
+                    DEBUG(INDI::Logger::DBG_SESSION, "Cover closed.");
                     IDSetSwitch(&ParkCapSP, nullptr);
                 }
                 break;
@@ -700,7 +649,7 @@ bool SnapCap::getFirmwareVersion()
 
     DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", response);
 
-    char versionString[4]={0};
+    char versionString[4] = { 0 };
     snprintf(versionString, 4, "%s", response + 2);
     IUSaveText(&FirmwareT[0], versionString);
     IDSetText(&FirmwareTP, nullptr);
@@ -757,7 +706,7 @@ bool SnapCap::getBrightness()
 
     DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", response);
 
-    char brightnessString[4]={0};
+    char brightnessString[4] = { 0 };
     snprintf(brightnessString, 4, "%s", response + 2);
 
     int brightnessValue = 0;
@@ -820,7 +769,7 @@ bool SnapCap::SetLightBoxBrightness(uint16_t value)
 
     DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", response);
 
-    char brightnessString[4]={0};
+    char brightnessString[4] = { 0 };
     snprintf(brightnessString, 4, "%s", response + 2);
 
     int brightnessValue = 0;
