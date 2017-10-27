@@ -407,6 +407,7 @@ add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/alignment)
 ########### Imager ##############
 set(imager_SRCS
         ${CMAKE_CURRENT_SOURCE_DIR}/drivers/agent/agent_imager.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/drivers/agent/group.cpp
    )
 
 add_executable(indi_imager_agent ${imager_SRCS})
