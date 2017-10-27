@@ -96,7 +96,6 @@ class SnapCap : public INDI::DefaultDevice, public INDI::LightBoxInterface, publ
     ISwitchVectorProperty ForceSP;
 
     int PortFD{ -1 };
-    int productID{ 0 };
     bool hasLight{ true };
     uint8_t simulationWorkCounter{ 0 };
     uint8_t targetCoverStatus{ 0xFF };
