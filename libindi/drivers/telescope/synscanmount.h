@@ -32,9 +32,10 @@ class SynscanMount : public INDI::Telescope
     virtual bool updateProperties() override;
     virtual const char *getDefaultName() override;
 
+    virtual bool Connect() override;
     virtual bool initProperties() override;
     virtual bool ReadScopeStatus() override;
-    virtual bool Connect() override;
+    bool StartTrackMode();
     virtual bool Goto(double, double) override;
     virtual bool Park() override;
     virtual bool UnPark() override;

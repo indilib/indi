@@ -582,28 +582,37 @@ bool SynscanMount::ReadScopeStatus()
         }
         if (SlewTargetAz == -1 && SlewTargetAlt == -1)
         {
-            TrackState = SCOPE_TRACKING;
-            DEBUG(INDI::Logger::DBG_SESSION, "Tracking started");
-            // Start tracking
-            str[0] = 'T';
-            // Check the mount type to choose tracking mode
-            if (MountCode >= 128)
-            {
-                // Alt/Az tracking mode
-                str[1] = 1;
-            } else {
-                // EQ tracking mode
-                str[1] = 2;
-            }
-            tty_write(PortFD, str, 2, &bytesWritten);
-            numread = tty_read(PortFD, str, 1, 2, &bytesRead);
-            if (bytesRead != 1 || str[0] != '#')
-            {
-                if (isDebug())
-                    IDLog("Timeout waiting for scope to stop tracking.");
-                return false;
-            }
+            StartTrackMode();
         }
+    }
+    return true;
+}
+
+bool SynscanMount::StartTrackMode()
+{
+    char str[20];
+    int numread, bytesWritten, bytesRead;
+
+    TrackState = SCOPE_TRACKING;
+    DEBUG(INDI::Logger::DBG_SESSION, "Tracking started");
+    // Start tracking
+    str[0] = 'T';
+    // Check the mount type to choose tracking mode
+    if (MountCode >= 128)
+    {
+        // Alt/Az tracking mode
+        str[1] = 1;
+    } else {
+        // EQ tracking mode
+        str[1] = 2;
+    }
+    tty_write(PortFD, str, 2, &bytesWritten);
+    numread = tty_read(PortFD, str, 1, 2, &bytesRead);
+    if (bytesRead != 1 || str[0] != '#')
+    {
+        if (isDebug())
+            IDLog("Timeout waiting for scope to stop tracking.");
+        return false;
     }
     return true;
 }
@@ -1068,6 +1077,9 @@ bool SynscanMount::updateLocation(double latitude, double longitude, double elev
 
 bool SynscanMount::Sync(double ra, double dec)
 {
+    // Abort any motion before syncing
+    Abort();
+
     DEBUGF(INDI::Logger::DBG_SESSION, "Sync %g %g -> %g %g", CurrentRA, CurrentDEC, ra, dec);
 
     char str[20];
@@ -1118,9 +1130,7 @@ bool SynscanMount::Sync(double ra, double dec)
     memset(&str[18], 0, 1);
     DEBUGF(INDI::Logger::DBG_DEBUG, "Send Sync command to the handset (%s)", str);
     tty_write(PortFD, str, 18, &bytesWritten);
-    TrackState = SCOPE_TRACKING;
-
-    numread = tty_read(PortFD,str,1,60, &bytesRead);
+    numread = tty_read(PortFD, str, 1, 60, &bytesRead);
     if (bytesRead != 1 || str[0] != '#')
     {
         if (isDebug())
@@ -1128,6 +1138,8 @@ bool SynscanMount::Sync(double ra, double dec)
 
         return false;
     }
+    // Start tracking again
+    StartTrackMode();
     return true;
 }
 
