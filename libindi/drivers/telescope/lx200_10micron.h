@@ -86,6 +86,7 @@ class LX200_10MICRON : public LX200Generic
         ALIGN_IDLE,
         ALIGN_START,
         ALIGN_END,
+        ALIGN_DELETE_CURRENT,
         ALIGN_COUNT
     };
 
@@ -168,5 +169,6 @@ class LX200_10MICRON : public LX200Generic
         // added :
         double SiderealTime = -1;
     } Ginfo;
+    int AlignmentState = ALIGN_IDLE;
 
 };
