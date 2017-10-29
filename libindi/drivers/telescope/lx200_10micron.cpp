@@ -101,24 +101,25 @@ bool LX200_10MICRON::initProperties()
     IUFillSwitchVector(&AlignmentSP, AlignmentS, ALIGN_COUNT, getDeviceName(), "Alignment", "Alignment", ALIGNMENT_TAB,
         IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
 
-    IUFillNumber(&MiniNewAlpRON[AXIS_RA], "MRA", "Mount RA (hh:mm:ss)", "%010.6m", 0, 24, 0, 0);
-    IUFillNumber(&MiniNewAlpRON[AXIS_DE], "MDEC", "Mount DEC (dd:mm:ss)", "%010.6m", -90, 90, 0, 0);
-    IUFillNumber(&MiniNewAlpRON[2], "MSIDE", "Pier Side (0=E 1=W)", "%.0f", 0, 1, 0, 0);
-    IUFillNumber(&MiniNewAlpRON[3], "SIDTIME", "Sidereal Time (hh:mm:ss)", "%010.6m", 0, 24, 0, 0);
-    IUFillNumberVector(&MiniNewAlpRONP, MiniNewAlpRON, 4, getDeviceName(), "MINIMAL_NEW_ALIGNMENT_POINT_RO",
+    IUFillNumber(&MiniNewAlpRON[MALPRO_MRA], "MRA", "Mount RA (hh:mm:ss)", "%010.6m", 0, 24, 0, 0);
+    IUFillNumber(&MiniNewAlpRON[MALPRO_MDEC], "MDEC", "Mount DEC (dd:mm:ss)", "%010.6m", -90, 90, 0, 0);
+    IUFillNumber(&MiniNewAlpRON[MALPRO_MSIDE], "MSIDE", "Pier Side (0=E 1=W)", "%.0f", 0, 1, 0, 0);
+    IUFillNumber(&MiniNewAlpRON[MALPRO_SIDTIME], "SIDTIME", "Sidereal Time (hh:mm:ss)", "%010.6m", 0, 24, 0, 0);
+    IUFillNumberVector(&MiniNewAlpRONP, MiniNewAlpRON, MALPRO_COUNT, getDeviceName(), "MINIMAL_NEW_ALIGNMENT_POINT_RO",
         "Actual", ALIGNMENT_TAB, IP_RO, 60, IPS_IDLE);
-    IUFillNumber(&MiniNewAlpN[AXIS_RA], "PRA", "Solved RA (hh:mm:ss)", "%010.6m", 0, 24, 0, 0);
-    IUFillNumber(&MiniNewAlpN[AXIS_DE], "PDEC", "Solved DEC (dd:mm:ss)", "%010.6m", -90, 90, 0, 0);
-    IUFillNumberVector(&MiniNewAlpNP, MiniNewAlpN, 2, getDeviceName(), "MINIMAL_NEW_ALIGNMENT_POINT",
+
+    IUFillNumber(&MiniNewAlpN[MALP_PRA], "PRA", "Solved RA (hh:mm:ss)", "%010.6m", 0, 24, 0, 0);
+    IUFillNumber(&MiniNewAlpN[MALP_PDEC], "PDEC", "Solved DEC (dd:mm:ss)", "%010.6m", -90, 90, 0, 0);
+    IUFillNumberVector(&MiniNewAlpNP, MiniNewAlpN, MALP_COUNT, getDeviceName(), "MINIMAL_NEW_ALIGNMENT_POINT",
         "New Point", ALIGNMENT_TAB, IP_RW, 60, IPS_IDLE);
 
-    IUFillNumber(&NewAlpN[AXIS_RA], "MRA", "Mount RA (hh:mm:ss)", "%010.6m", 0, 24, 0, 0);
-    IUFillNumber(&NewAlpN[AXIS_DE], "MDEC", "Mount DEC (dd:mm:ss)", "%010.6m", -90, 90, 0, 0);
-    IUFillNumber(&NewAlpN[2], "MSIDE", "Pier Side (0=E 1=W)", "%.0f", 0, 1, 0, 0);
-    IUFillNumber(&NewAlpN[3], "PRA", "Solved RA (hh:mm:ss)", "%010.6m", 0, 24, 0, 0);
-    IUFillNumber(&NewAlpN[4], "PDEC", "Solved DEC (dd:mm:ss)", "%010.6m", -90, 90, 0, 0);
-    IUFillNumber(&NewAlpN[5], "SIDTIME", "Sidereal Time (hh:mm:ss)", "%010.6m", 0, 24, 0, 0);
-    IUFillNumberVector(&NewAlpNP, NewAlpN, 6, getDeviceName(), "NEW_ALIGNMENT_POINT",
+    IUFillNumber(&NewAlpN[ALP_MRA], "MRA", "Mount RA (hh:mm:ss)", "%010.6m", 0, 24, 0, 0);
+    IUFillNumber(&NewAlpN[ALP_MDEC], "MDEC", "Mount DEC (dd:mm:ss)", "%010.6m", -90, 90, 0, 0);
+    IUFillNumber(&NewAlpN[ALP_MSIDE], "MSIDE", "Pier Side (0=E 1=W)", "%.0f", 0, 1, 0, 0);
+    IUFillNumber(&NewAlpN[ALP_SIDTIME], "SIDTIME", "Sidereal Time (hh:mm:ss)", "%010.6m", 0, 24, 0, 0);
+    IUFillNumber(&NewAlpN[ALP_PRA], "PRA", "Solved RA (hh:mm:ss)", "%010.6m", 0, 24, 0, 0);
+    IUFillNumber(&NewAlpN[ALP_PDEC], "PDEC", "Solved DEC (dd:mm:ss)", "%010.6m", -90, 90, 0, 0);
+    IUFillNumberVector(&NewAlpNP, NewAlpN, ALP_COUNT, getDeviceName(), "NEW_ALIGNMENT_POINT",
         "New Point", ALIGNMENT_TAB, IP_RW, 60, IPS_IDLE);
 
     IUFillNumber(&NewAlignmentPointsN[0], "COUNT", "#", "%.0f", 0, 100, 1, 0);
@@ -308,14 +309,14 @@ bool LX200_10MICRON::ReadScopeStatus()
     OldGstat = Ginfo.Gstat;
     NewRaDec(Ginfo.RA_JNOW, Ginfo.DEC_JNOW);
 
-    // Update alignment Mini new alignment point fields
+    // Update alignment Mini new alignment point Read-Only fields
     char LocalSiderealTimeS[80];
     getCommandString(fd, LocalSiderealTimeS, "#:GS#");
     f_scansexa(LocalSiderealTimeS, &Ginfo.SiderealTime);
-    MiniNewAlpRON[AXIS_RA].value = Ginfo.RA_JNOW;
-    MiniNewAlpRON[AXIS_DE].value = Ginfo.DEC_JNOW;
-    MiniNewAlpRON[2].value = (toupper(Ginfo.SideOfPier) == 'E') ? 0 : 1;
-    MiniNewAlpRON[3].value = Ginfo.SiderealTime;
+    MiniNewAlpRON[MALPRO_MRA].value = Ginfo.RA_JNOW;
+    MiniNewAlpRON[MALPRO_MDEC].value = Ginfo.DEC_JNOW;
+    MiniNewAlpRON[MALPRO_MSIDE].value = (toupper(Ginfo.SideOfPier) == 'E') ? 0 : 1;
+    MiniNewAlpRON[MALPRO_SIDTIME].value = Ginfo.SiderealTime;
     IDSetNumber(&MiniNewAlpRONP, nullptr);
 
     return true;
@@ -393,12 +394,12 @@ bool LX200_10MICRON::getMountInfo()
     char FirmwareDate[80];
     snprintf(FirmwareDate, 80, "%04d-%02d-%02dT%s", yyyy, monthToNumber(mon), dd, FirmwareDate2);
 
-    IUFillText(&ProductT[0], "NAME", "Product Name", ProductName);
-    IUFillText(&ProductT[1], "CONTROL_BOX", "Control Box", ControlBox);
-    IUFillText(&ProductT[2], "FIRMWARE_VERSION", "Firmware Version", FirmwareVersion);
-    IUFillText(&ProductT[3], "FIRMWARE_DATE", "Firmware Date", FirmwareDate);
-    IUFillTextVector(&ProductTP, ProductT, 4, getDeviceName(), "PRODUCT_INFO", "Product", PRODUCT_TAB, IP_RO, 60,
-                     IPS_IDLE);
+    IUFillText(&ProductT[PRODUCT_NAME], "NAME", "Product Name", ProductName);
+    IUFillText(&ProductT[PRODUCT_CONTROL_BOX], "CONTROL_BOX", "Control Box", ControlBox);
+    IUFillText(&ProductT[PRODUCT_FIRMWARE_VERSION], "FIRMWARE_VERSION", "Firmware Version", FirmwareVersion);
+    IUFillText(&ProductT[PRODUCT_FIRMWARE_DATE], "FIRMWARE_DATE", "Firmware Date", FirmwareDate);
+    IUFillTextVector(&ProductTP, ProductT, PRODUCT_COUNT, getDeviceName(), "PRODUCT_INFO", "Product", PRODUCT_TAB,
+            IP_RO, 60, IPS_IDLE);
 
     defineText(&ProductTP);
 
@@ -538,23 +539,20 @@ int LX200_10MICRON::AddSyncPoint(double MRa, double MDec, double MSide, double P
     DEBUGF(INDI::Logger::DBG_SESSION, "AddSyncPoint %s", command);
 
     char response[6];
-#if 1
     if (0 != setStandardProcedureAndReturnResponse(fd, command, response, 5) || response[0] == 'E')
     {
         DEBUG(INDI::Logger::DBG_ERROR, "AddSyncPoint error");
         return 1;
     }
-#else
-    NewAlignmentPointsN[0].value = NewAlignmentPointsN[0].value + 1;
-    sprintf(response, "%.0f#", NewAlignmentPointsN[0].value);
-#endif
+    response[4] = 0;
     int points;
-    int nbytes_read = sscanf(response, "%d#", &points);
+    int nbytes_read = sscanf(response, "%3d#", &points);
     if (nbytes_read < 0)
     {
-        DEBUG(INDI::Logger::DBG_ERROR, "AddSyncPoint response error");
+        DEBUGF(INDI::Logger::DBG_ERROR, "AddSyncPoint response error %d", nbytes_read);
         return 1;
     }
+    DEBUGF(INDI::Logger::DBG_SESSION, "AddSyncPoint responded [%4s], there are now %d new alignment points", response, points);
     NewAlignmentPointsN[0].value = points;
     IDSetNumber(&NewAlignmentPointsNP, nullptr);
 
@@ -563,9 +561,8 @@ int LX200_10MICRON::AddSyncPoint(double MRa, double MDec, double MSide, double P
 
 int LX200_10MICRON::AddSyncPointHere(double PRa, double PDec)
 {
-	double MRa, MDec, MSide, SidTime;
-    (toupper(Ginfo.SideOfPier) == 'E') ? MSide = 0 : MSide = 1;
-	return AddSyncPoint(Ginfo.RA_JNOW, Ginfo.DEC_JNOW, MSide, PRa, PDec, Ginfo.SiderealTime);
+    double MSide = (toupper(Ginfo.SideOfPier) == 'E') ? 0 : 1;
+    return AddSyncPoint(Ginfo.RA_JNOW, Ginfo.DEC_JNOW, MSide, PRa, PDec, Ginfo.SiderealTime);
 }
 
 bool LX200_10MICRON::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
@@ -620,7 +617,7 @@ bool LX200_10MICRON::ISNewNumber(const char *dev, const char *name, double value
         if (strcmp(name, "MINIMAL_NEW_ALIGNMENT_POINT") == 0)
         {
             IUUpdateNumber(&MiniNewAlpNP, values, names, n);
-            if (0 != AddSyncPointHere(MiniNewAlpN[0].value, MiniNewAlpN[1].value))
+            if (0 != AddSyncPointHere(MiniNewAlpN[MALP_PRA].value, MiniNewAlpN[MALP_PDEC].value))
             {
                 DEBUG(INDI::Logger::DBG_ERROR, "AddSyncPointHere error");
                 MiniNewAlpNP.s = IPS_ALERT;
@@ -634,7 +631,8 @@ bool LX200_10MICRON::ISNewNumber(const char *dev, const char *name, double value
         if (strcmp(name, "NEW_ALIGNMENT_POINT") == 0)
         {
             IUUpdateNumber(&NewAlpNP, values, names, n);
-            if (0 != AddSyncPoint(NewAlpN[0].value, NewAlpN[1].value, NewAlpN[2].value, NewAlpN[3].value, NewAlpN[4].value, NewAlpN[5].value))
+            if (0 != AddSyncPoint(NewAlpN[ALP_MRA].value, NewAlpN[ALP_MDEC].value, NewAlpN[ALP_MSIDE].value,
+                    NewAlpN[ALP_PRA].value, NewAlpN[ALP_PDEC].value, NewAlpN[ALP_SIDTIME].value))
             {
                 DEBUG(INDI::Logger::DBG_ERROR, "AddSyncPoint error");
                 NewAlpNP.s = IPS_ALERT;

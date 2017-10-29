@@ -22,27 +22,73 @@
 
 #include "lx200generic.h"
 
-typedef enum {
-    GSTAT_UNSET                       = -999,
-    GSTAT_TRACKING                    = 0,
-    GSTAT_STOPPED                     = 1,
-    GSTAT_PARKING                     = 2,
-    GSTAT_UNPARKING                   = 3,
-    GSTAT_SLEWING_TO_HOME             = 4,
-    GSTAT_PARKED                      = 5,
-    GSTAT_SLEWING_OR_STOPPING         = 6,
-    GSTAT_NOT_TRACKING_AND_NOT_MOVING = 7,
-    GSTAT_MOTORS_TOO_COLD             = 8,
-    GSTAT_TRACKING_OUTSIDE_LIMITS     = 9,
-    GSTAT_FOLLOWING_SATELLITE         = 10,
-    GSTAT_NEED_USEROK                 = 11,
-    GSTAT_UNKNOWN_STATUS              = 98,
-    GSTAT_ERROR                       = 99
-} _10MICRON_GSTAT;
-
 class LX200_10MICRON : public LX200Generic
 {
   public:
+
+    enum LX200_10MICRON_PRODUCT_INFO
+    {
+        PRODUCT_NAME,
+        PRODUCT_CONTROL_BOX,
+        PRODUCT_FIRMWARE_VERSION,
+        PRODUCT_FIRMWARE_DATE,
+        PRODUCT_COUNT
+    };
+
+    enum LX200_10MICRON_10MICRON_GSTAT
+    {
+        GSTAT_UNSET                       = -999,
+        GSTAT_TRACKING                    = 0,
+        GSTAT_STOPPED                     = 1,
+        GSTAT_PARKING                     = 2,
+        GSTAT_UNPARKING                   = 3,
+        GSTAT_SLEWING_TO_HOME             = 4,
+        GSTAT_PARKED                      = 5,
+        GSTAT_SLEWING_OR_STOPPING         = 6,
+        GSTAT_NOT_TRACKING_AND_NOT_MOVING = 7,
+        GSTAT_MOTORS_TOO_COLD             = 8,
+        GSTAT_TRACKING_OUTSIDE_LIMITS     = 9,
+        GSTAT_FOLLOWING_SATELLITE         = 10,
+        GSTAT_NEED_USEROK                 = 11,
+        GSTAT_UNKNOWN_STATUS              = 98,
+        GSTAT_ERROR                       = 99
+    };
+
+    enum LX200_10MICRON_ALIGNMENT_POINT
+    {
+        ALP_MRA,     // Mount Right Ascension
+        ALP_MDEC,    // Mount Declination
+        ALP_MSIDE,     // Mount Pier Side
+        ALP_SIDTIME, // Sidereal Time
+        ALP_PRA,     // Plate solved Right Ascension
+        ALP_PDEC,    // Plate solved Declination
+        ALP_COUNT
+    };
+
+    enum LX200_10MICRON_MINI_ALIGNMENT_POINT_RO
+    {
+        MALPRO_MRA,     // Mount Right Ascension
+        MALPRO_MDEC,    // Mount Declination
+        MALPRO_MSIDE,    // Mount Pier Side
+        MALPRO_SIDTIME, // Sidereal Time
+        MALPRO_COUNT
+    };
+
+    enum LX200_10MICRON_MINI_ALIGNMENT_POINT
+    {
+        MALP_PRA,  // Plate solved Right Ascension
+        MALP_PDEC, // Plate solved Declination
+        MALP_COUNT
+    };
+
+    enum LX200_10MICRON_ALIGNMENT_STATE
+    {
+        ALIGN_IDLE,
+        ALIGN_START,
+        ALIGN_END,
+        ALIGN_COUNT
+    };
+
     LX200_10MICRON();
     ~LX200_10MICRON() {}
 
@@ -88,22 +134,15 @@ class LX200_10MICRON : public LX200Generic
     INumber AlignmentPointsN[1];
     INumberVectorProperty AlignmentPointsNP;
 
-    enum
-    {
-        ALIGN_IDLE,
-        ALIGN_START,
-        ALIGN_END,
-        ALIGN_COUNT
-    };
     ISwitch AlignmentS[ALIGN_COUNT];
     ISwitchVectorProperty AlignmentSP;
 
-    INumber MiniNewAlpRON[4];
+    INumber MiniNewAlpRON[MALPRO_COUNT];
     INumberVectorProperty MiniNewAlpRONP;
-    INumber MiniNewAlpN[2];
+    INumber MiniNewAlpN[MALP_COUNT];
     INumberVectorProperty MiniNewAlpNP;
 
-    INumber NewAlpN[6];
+    INumber NewAlpN[ALP_COUNT];
     INumberVectorProperty NewAlpNP;
 
     INumber NewAlignmentPointsN[1];
