@@ -207,8 +207,7 @@ int jsonParse(char *s, char **endptr, JsonValue *value, JsonAllocator &allocator
                     *endptr = s;
                     return JSON_BAD_NUMBER;
                 }
-                break;
-
+                /* Falls through. */
             case '0':
             case '1':
             case '2':

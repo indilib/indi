@@ -519,7 +519,7 @@ bool IEQPro::Goto(double r, double d)
 
     TrackState = SCOPE_SLEWING;
 
-    IDMessage(getDeviceName(), "Slewing to RA: %s - DEC: %s", RAStr, DecStr);
+    DEBUGF(INDI::Logger::DBG_SESSION, "Slewing to RA: %s - DEC: %s", RAStr, DecStr);
     return true;
 }
 

@@ -567,6 +567,52 @@ int tty_read_section(int fd, char *buf, char stop_char, int timeout, int *nbytes
 #endif
 }
 
+int tty_nread_section(int fd, char *buf, int nsize, char stop_char, int timeout, int *nbytes_read)
+{
+#ifdef _WIN32
+    return TTY_ERRNO;
+#else
+
+    if (fd == -1)
+        return TTY_ERRNO;
+
+    int bytesRead = 0;
+    int err       = TTY_OK;
+    *nbytes_read  = 0;
+
+    uint8_t *read_char = 0;
+
+    if (tty_debug)
+        IDLog("%s: Request to read until stop char '%c' with %d timeout for fd %d\n", __FUNCTION__, stop_char, timeout,
+              fd);
+
+    for (;;)
+    {
+        if ((err = tty_timeout(fd, timeout)))
+            return err;
+
+        read_char = (uint8_t*)(buf + *nbytes_read);
+        bytesRead = read(fd, read_char, 1);
+
+        if (bytesRead < 0)
+            return TTY_READ_ERROR;
+
+        if (tty_debug)
+            IDLog("%s: buffer[%d]=%#X (%c)\n", __FUNCTION__, (*nbytes_read), *read_char, *read_char);
+
+        (*nbytes_read)++;
+
+        if (*read_char == stop_char)
+            return TTY_OK;
+        else if (*nbytes_read >= nsize)
+            return TTY_OVERFLOW;
+    }
+
+    return TTY_TIME_OUT;
+
+#endif
+}
+
 #if defined(BSD) && !defined(__GNU__)
 // BSD - OSX version
 int tty_connect(const char *device, int bit_rate, int word_size, int parity, int stop_bits, int *fd)
@@ -1105,6 +1151,10 @@ void tty_error_msg(int err_code, char *err_msg, int err_msg_len)
         case TTY_ERRNO:
             snprintf(error_string, 512, "%s", strerror(errno));
             strncpy(err_msg, error_string, err_msg_len);
+            break;
+
+        case TTY_OVERFLOW:
+            strncpy(err_msg, "Read overflow", err_msg_len);
             break;
 
         default:

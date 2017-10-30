@@ -42,6 +42,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110 - 1301  USA
   #include "lx200ss2000pc.h"
   #include "lx200zeq25.h"
   #include "lx200gotonova.h"
+  #include "ioptronHC8406.h"
 
   #include <libnova/sidereal_time.h>
 
@@ -65,7 +66,7 @@ extern char *me;
 #define LX200_SYNC  1
 
 /* Simulation Parameters */
-#define SLEWRATE 1        /* slew rate, degrees/s */
+#define LX200_GENERIC_SLEWRATE 5        /* slew rate, degrees/s */
 #define SIDRATE  0.004178 /* sidereal rate, degrees/s */
 
 /* send client definitions of all properties */
@@ -140,6 +141,13 @@ void ISInit()
 
         if (telescope.get() == 0)
             telescope.reset(new LX200GotoNova());
+    }
+    else if (strstr(me, "indi_ioptronHC8406"))
+    {
+        IDLog("initializing from ioptron telescope Hand Controller HC8406 device...\n");
+
+        if (telescope.get() == 0)
+            telescope.reset(new ioptronHC8406());
     }
     else if (strstr(me, "indi_lx200pulsar2"))
     {
@@ -485,7 +493,7 @@ bool LX200Generic::ReadScopeStatus()
             IDSetSwitch(&SlewRateSP, nullptr);
 
             TrackState = SCOPE_TRACKING;
-            IDMessage(getDeviceName(), "Slew is complete. Tracking...");
+            DEBUG(INDI::Logger::DBG_SESSION, "Slew is complete. Tracking...");
         }
     }
     else if (TrackState == SCOPE_PARKING)
@@ -661,7 +669,7 @@ bool LX200Generic::Park()
 
     ParkSP.s   = IPS_BUSY;
     TrackState = SCOPE_PARKING;
-    IDMessage(getDeviceName(), "Parking telescope in progress...");
+    DEBUG(INDI::Logger::DBG_SESSION, "Parking telescope in progress...");
     return true;
 }
 
@@ -754,7 +762,7 @@ bool LX200Generic::Abort()
             GuideNSTID = 0;
         }
 
-        IDMessage(getDeviceName(), "Guide aborted.");
+        DEBUG(INDI::Logger::DBG_SESSION, "Guide aborted.");
         IDSetNumber(&GuideNSNP, nullptr);
         IDSetNumber(&GuideWENP, nullptr);
 
@@ -825,7 +833,7 @@ bool LX200Generic::updateLocation(double latitude, double longitude, double elev
     fs_sexa(l, latitude, 3, 3600);
     fs_sexa(L, longitude, 4, 3600);
 
-    IDMessage(getDeviceName(), "Site location updated to Lat %.32s - Long %.32s", l, L);
+    DEBUGF(INDI::Logger::DBG_SESSION, "Site location updated to Lat %.32s - Long %.32s", l, L);
 
     return true;
 }
@@ -1169,7 +1177,7 @@ void LX200Generic::mountSim()
 
     dt  = tv.tv_sec - ltv.tv_sec + (tv.tv_usec - ltv.tv_usec) / 1e6;
     ltv = tv;
-    da  = SLEWRATE * dt;
+    da  = LX200_GENERIC_SLEWRATE * dt;
 
     /* Process per current state. We check the state of EQUATORIAL_COORDS and act acoordingly */
     switch (TrackState)
@@ -1210,7 +1218,7 @@ void LX200Generic::mountSim()
 
     case SCOPE_SLEWING:
     case SCOPE_PARKING:
-        /* slewing - nail it when both within one pulse @ SLEWRATE */
+        /* slewing - nail it when both within one pulse @ LX200_GENERIC_SLEWRATE */
         nlocked = 0;
 
         dx = targetRA - currentRA;
@@ -1265,7 +1273,7 @@ void LX200Generic::getBasicData()
         if (GetTelescopeCapability() & TELESCOPE_HAS_TIME)
         {
             if (getTimeFormat(PortFD, &timeFormat) < 0)
-                IDMessage(getDeviceName(), "Failed to retrieve time format from device.");
+                DEBUG(INDI::Logger::DBG_ERROR, "Failed to retrieve time format from device.");
             else
             {
                 int ret = 0;
@@ -1282,7 +1290,7 @@ void LX200Generic::getBasicData()
             SiteNameT[0].text = new char[64];
 
             if (getSiteName(PortFD, SiteNameT[0].text, currentSiteNum) < 0)
-                IDMessage(getDeviceName(), "Failed to get site name from device");
+                DEBUG(INDI::Logger::DBG_ERROR, "Failed to get site name from device");
             else
                 IDSetText(&SiteNameTP, nullptr);
         }
@@ -1291,7 +1299,7 @@ void LX200Generic::getBasicData()
         if (genericCapability & LX200_HAS_TRACKING_FREQ)
         {
             if (getTrackFreq(PortFD, &TrackFreqN[0].value) < 0)
-                IDMessage(getDeviceName(), "Failed to get tracking frequency from device.");
+                DEBUG(INDI::Logger::DBG_ERROR, "Failed to get tracking frequency from device.");
             else
                 IDSetNumber(&TrackingFreqNP, nullptr);
         }

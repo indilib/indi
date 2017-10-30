@@ -1316,8 +1316,9 @@ bool GPhotoCCD::grabImage()
         PrimaryCCD.setImageExtension("fits");
 
         // If subframing is requested
-        if (frameInitialized &&
-            (PrimaryCCD.getSubH() < PrimaryCCD.getYRes() || PrimaryCCD.getSubW() < PrimaryCCD.getXRes()))
+        /*if (frameInitialized &&
+                PrimaryCCD.getSubH() < PrimaryCCD.getYRes() || PrimaryCCD.getSubW() < PrimaryCCD.getXRes())*/
+        if (PrimaryCCD.getSubH() < w || PrimaryCCD.getSubW() < h)
         {
             DEBUG(INDI::Logger::DBG_DEBUG, "Subframing...");
 
@@ -1369,7 +1370,7 @@ bool GPhotoCCD::grabImage()
         else
         {
             // We need to initially set the frame dimensions for the first time since it is unknown at the time of connection.
-            frameInitialized = true;
+            //frameInitialized = true;
 
             PrimaryCCD.setFrame(0, 0, w, h);
             PrimaryCCD.setFrameBuffer(memptr);

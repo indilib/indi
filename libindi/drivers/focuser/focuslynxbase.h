@@ -22,7 +22,32 @@
 
 #include "indifocuser.h"
 
+#include <indifocuser.h>
+#include <indicom.h>
+#include "connectionplugins/connectionserial.h"
+#include "connectionplugins/connectiontcp.h"
+
 #include <map>
+#include <termios.h>
+#include <unistd.h>
+#include <memory>
+#include <cmath>
+#include <cstring>
+
+#define LYNXFOCUS_MAX_RETRIES          1
+#define LYNXFOCUS_TIMEOUT              2
+#define LYNXFOCUS_MAXBUF               16
+#define LYNXFOCUS_TEMPERATURE_FREQ     20      /* Update every 20 POLLMS cycles. For POLLMS 500ms = 10 seconds freq */
+#define LYNXFOCUS_POSITION_THRESHOLD    5      /* Only send position updates to client if the diff exceeds 5 steps */
+
+#define FOCUS_SETTINGS_TAB  "Settings"
+#define FOCUS_STATUS_TAB    "Status"
+#define HUB_SETTINGS_TAB    "Device"
+
+#define VERSION                 1
+#define SUBVERSION              3
+
+#define POLLMS  1000
 
 class FocusLynxBase : public INDI::Focuser
 {
@@ -57,8 +82,6 @@ class FocusLynxBase : public INDI::Focuser
         GOTO_HOME
     };
 
-    virtual bool Connect() override;
-    virtual bool Disconnect() override;
     virtual bool Handshake() override;
     virtual const char *getDefaultName() override;
     virtual bool initProperties() override;
@@ -75,8 +98,6 @@ class FocusLynxBase : public INDI::Focuser
     virtual IPState MoveFocuser(FocusDirection dir, int speed, uint16_t duration) override;
     virtual bool AbortFocuser() override;
     virtual void TimerHit() override;
-    bool RemoteDisconnect();
-    bool RemoteConnect();
     virtual int getVersion(int *major, int *minor, int *sub);
 
     void setFocusTarget(const char *target);
@@ -91,8 +112,6 @@ class FocusLynxBase : public INDI::Focuser
     bool ack();
     bool isResponseOK();
 
-    bool isFromRemote;
-
   protected:
     // Move from private to public to validate
     bool configurationComplete;
@@ -101,7 +120,14 @@ class FocusLynxBase : public INDI::Focuser
     ISwitch *ModelS;
     ISwitchVectorProperty ModelSP;
 
-  private:
+    // Led Intensity Value
+    INumber LedN[1];
+    INumberVectorProperty LedNP;
+
+    // Store version of the firmware from the HUB
+    char version[16];
+
+  private:  
     uint32_t simPosition;
     uint32_t targetPosition;
     uint32_t maxControllerTicks;
@@ -110,11 +136,7 @@ class FocusLynxBase : public INDI::Focuser
     bool simCompensationOn;
     char focusTarget[8];
 
-    //double targetPos, lastPos, lastTemperature, simPosition;
-    //unsigned int currentSpeed, temperaturegetCounter;
-
     std::map<std::string, std::string> lynxModels;
-    //  std::map<std::string, std::string> lynxModelsF2;
 
     struct timeval focusMoveStart;
     float focusMoveRequest;
@@ -163,11 +185,11 @@ class FocusLynxBase : public INDI::Focuser
     INumber TemperatureN[1];
     INumberVectorProperty TemperatureNP;
 
-    // Enable/Disable temperature compnesation
+    // Enable/Disable temperature compensation
     ISwitch TemperatureCompensateS[2];
     ISwitchVectorProperty TemperatureCompensateSP;
 
-    // Enable/Disable temperature compnesation on start
+    // Enable/Disable temperature compensation on start
     ISwitch TemperatureCompensateOnStartS[2];
     ISwitchVectorProperty TemperatureCompensateOnStartSP;
 
@@ -214,10 +236,6 @@ class FocusLynxBase : public INDI::Focuser
     // Focus name configure in the HUB
     IText HFocusNameT[1];
     ITextVectorProperty HFocusNameTP;
-
-    // Led Intensity Value
-    INumber LedN[1];
-    INumberVectorProperty LedNP;
 
     bool isAbsolute;
     bool isSynced;

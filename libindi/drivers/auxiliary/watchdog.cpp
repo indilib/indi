@@ -77,7 +77,7 @@ void ISSnoopDevice(XMLEle *root)
 
 WatchDog::WatchDog()
 {
-    setVersion(0, 1);
+    setVersion(0, 2);
     setDriverInterface(AUX_INTERFACE);
 
     watchdogClient = new WatchDogClient();
@@ -165,7 +165,9 @@ void WatchDog::ISGetProperties(const char *dev)
     defineSwitch(&ShutdownProcedureSP);
     defineText(&ActiveDeviceTP);
 
-    loadConfig(true);
+    // Only load config first time and not on subsequent client connections
+    if (watchDogTimer == -1)
+        loadConfig(true);
 
     //watchdogClient->setTelescope(ActiveDeviceT[0].text);
     //watchdogClient->setDome(ActiveDeviceT[1].text);
@@ -284,6 +286,8 @@ bool WatchDog::ISNewSwitch(const char *dev, const char *name, ISState *states, c
 
 bool WatchDog::saveConfigItems(FILE *fp)
 {
+    INDI::DefaultDevice::saveAllConfigItems(fp);
+
     IUSaveConfigNumber(fp, &HeartBeatNP);
     IUSaveConfigText(fp, &SettingsTP);
     IUSaveConfigText(fp, &ActiveDeviceTP);
