@@ -187,7 +187,7 @@ bool SynscanMount::AnalyzeHandset()
     int caps = 0;
     int tmp = 0;
     int bytesWritten = 0;
-    int bytesRead;
+    int bytesRead, numread;
     char str[20];
 
     caps = GetTelescopeCapability();
@@ -245,6 +245,15 @@ bool SynscanMount::AnalyzeHandset()
             MountCode = (int)*reinterpret_cast<unsigned char*>(&str[0]);
         else
             MountCode = (int)*reinterpret_cast<unsigned char*>(&str[1]);
+    }
+
+    // Check the tracking status
+    memset(str, 0, 2);
+    tty_write(PortFD, "t", 1, &bytesWritten);
+    numread = tty_read(PortFD, str, 2, 2, &bytesRead);
+    if (str[1] == '#' && (int)str[0] != 0)
+    {
+        TrackState = SCOPE_TRACKING;
     }
 
     SetTelescopeCapability(caps, SYNSCAN_SLEW_RATES);
