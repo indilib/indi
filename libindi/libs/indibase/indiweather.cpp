@@ -105,6 +105,8 @@ bool INDI::Weather::initProperties()
         registerConnection(tcpConnection);
     }
 
+    setDriverInterface(WEATHER_INTERFACE);
+
     return true;
 }
 

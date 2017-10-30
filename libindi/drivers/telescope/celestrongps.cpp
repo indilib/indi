@@ -186,7 +186,7 @@ void CelestronGPS::ISGetProperties(const char *dev)
     {
         //defineNumber(&HorizontalCoordsNP);
         defineSwitch(&SlewRateSP);
-        defineSwitch(&TrackSP);
+        //defineSwitch(&TrackSP);
 
         //GUIDE Define guiding properties
         defineSwitch(&UsePulseCmdSP);
@@ -202,7 +202,7 @@ bool CelestronGPS::updateProperties()
 {
     if (isConnected())
     {
-        uint32_t cap = TELESCOPE_CAN_GOTO | TELESCOPE_CAN_ABORT | TELESCOPE_HAS_TRACK_MODE | TELESCOPE_CAN_CONTROL_TRACK;
+        uint32_t cap = TELESCOPE_CAN_GOTO | TELESCOPE_CAN_ABORT;
 
         if (get_celestron_firmware(PortFD, &fwInfo))
         {
@@ -256,6 +256,12 @@ bool CelestronGPS::updateProperties()
         else
             cap |= TELESCOPE_HAS_TIME | TELESCOPE_HAS_LOCATION;
 
+
+        if (fwInfo.controllerVersion >= 2.3)
+            cap |= TELESCOPE_HAS_TRACK_MODE | TELESCOPE_CAN_CONTROL_TRACK;
+        else
+            DEBUG(INDI::Logger::DBG_WARNING, "Mount firmware does not support track mode.");
+
         SetTelescopeCapability(cap, 9);
 
         INDI::Telescope::updateProperties();
@@ -283,25 +289,32 @@ bool CelestronGPS::updateProperties()
         defineNumber(&GuideNSNP);
         defineNumber(&GuideWENP);
 
-        CELESTRON_TRACK_MODE mode;
-        if (get_celestron_track_mode(PortFD, &mode))
+        // Track Mode (t) is only supported for 2.3+
+        if (fwInfo.controllerVersion >= 2.3)
         {
-            if (mode != TRACKING_OFF)
+            CELESTRON_TRACK_MODE mode;
+            if (get_celestron_track_mode(PortFD, &mode))
             {
-                IUResetSwitch(&TrackSP);
-                TrackS[mode-1].s = ISS_ON;
-                TrackSP.s      = IPS_OK;
+                if (mode != TRACKING_OFF)
+                {
+                    //IUResetSwitch(&TrackSP);
+                    IUResetSwitch(&TrackModeSP);
+                    TrackModeS[mode-1].s = ISS_ON;
+                    TrackModeSP.s      = IPS_OK;
 
-                TrackState = SCOPE_TRACKING;
+                    TrackState = SCOPE_TRACKING;
+                }
+                else
+                {
+                    DEBUG(INDI::Logger::DBG_SESSION, "Mount tracking is off.");
+                    TrackState = SCOPE_IDLE;
+                }
             }
             else
-            {
-                DEBUG(INDI::Logger::DBG_SESSION, "Mount tracking is off.");
-                TrackState = SCOPE_IDLE;
-            }
+                TrackModeSP.s = IPS_ALERT;
+
+            IDSetSwitch(&TrackModeSP, nullptr);
         }
-        else
-            TrackSP.s = IPS_ALERT;
 
         // JM 2014-04-14: User (davidw) reported AVX mount serial communication times out issuing "h" command with firmware 5.28
         // Therefore disabling query until it is fixed.
@@ -336,7 +349,7 @@ bool CelestronGPS::updateProperties()
         deleteProperty(GuideNSNP.name);
         deleteProperty(GuideWENP.name);
 
-        deleteProperty(TrackSP.name);
+        //deleteProperty(TrackSP.name);
         if (fwInfo.Version != "Invalid")
             deleteProperty(FirmwareTP.name);
     }
@@ -617,9 +630,10 @@ bool CelestronGPS::Abort()
 
 bool CelestronGPS::Handshake()
 {
+    set_celestron_device(getDeviceName());
+
     if (isSimulation())
     {
-        set_celestron_device(getDeviceName());
         set_celestron_simulation(true);
         set_sim_slew_rate(SR_5);
         set_sim_ra(0);
@@ -1118,7 +1132,7 @@ bool CelestronGPS::saveConfigItems(FILE *fp)
     INDI::Telescope::saveConfigItems(fp);
 
     IUSaveConfigSwitch(fp, &UseHibernateSP);
-    IUSaveConfigSwitch(fp, &TrackSP);
+    //IUSaveConfigSwitch(fp, &TrackSP);
     IUSaveConfigSwitch(fp, &UsePulseCmdSP);
 
     return true;
@@ -1345,10 +1359,10 @@ void CelestronGPS::guideTimeout(CELESTRON_DIRECTION calldir)
 
     use_pulse_cmd = IUFindOnSwitchIndex(&UsePulseCmdSP);
 
-    DEBUG(INDI::Logger::DBG_DEBUG, " END-OF-TIMER");
-    DEBUGF(INDI::Logger::DBG_DEBUG, "   USE_PULSE_CMD = %i", use_pulse_cmd);
-    DEBUGF(INDI::Logger::DBG_DEBUG, "   GUIDE_DIRECTION = %i", (int)guide_direction);
-    DEBUGF(INDI::Logger::DBG_DEBUG, "   CALL_DIRECTION = %i", calldir);
+    //DEBUG(INDI::Logger::DBG_DEBUG, " END-OF-TIMER");
+    //DEBUGF(INDI::Logger::DBG_DEBUG, "   USE_PULSE_CMD = %i", use_pulse_cmd);
+    //DEBUGF(INDI::Logger::DBG_DEBUG, "   GUIDE_DIRECTION = %i", (int)guide_direction);
+    //DEBUGF(INDI::Logger::DBG_DEBUG, "   CALL_DIRECTION = %i", calldir);
 
 //    if (guide_direction == -1)
 //    {
@@ -1399,7 +1413,7 @@ void CelestronGPS::guideTimeout(CELESTRON_DIRECTION calldir)
         }
     }
 
-    DEBUG(INDI::Logger::DBG_DEBUG, " CALL SendPulseStatusCmd");
+    //DEBUG(INDI::Logger::DBG_DEBUG, " CALL SendPulseStatusCmd");
 
     bool pulseguide_state;
     if (!(SendPulseStatusCmd(PortFD, calldir, pulseguide_state)))
@@ -1410,12 +1424,12 @@ void CelestronGPS::guideTimeout(CELESTRON_DIRECTION calldir)
     {
         if (pulseguide_state)
         {
-            DEBUG(INDI::Logger::DBG_ERROR, " PULSE STILL IN PROGRESS, POSSIBLE MOUNT JAM.");
+            DEBUG(INDI::Logger::DBG_WARNING, " PULSE STILL IN PROGRESS, POSSIBLE MOUNT JAM.");
         }
-        else
-        {
-            DEBUG(INDI::Logger::DBG_WARNING, " PULSE COMPLETED");
-        }
+        //else
+        //{
+        //    DEBUG(INDI::Logger::DBG_WARNING, " PULSE COMPLETED");
+        //}
     }
 
     if (calldir == CELESTRON_N || calldir == CELESTRON_S)
@@ -1435,7 +1449,7 @@ void CelestronGPS::guideTimeout(CELESTRON_DIRECTION calldir)
         IDSetNumber(&GuideWENP, nullptr);
     }
 
-    DEBUG(INDI::Logger::DBG_WARNING, "GUIDE CMD COMPLETED");
+    //DEBUG(INDI::Logger::DBG_WARNING, "GUIDE CMD COMPLETED");
 }
 
 bool CelestronGPS::SetTrackMode(uint8_t mode)

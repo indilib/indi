@@ -1034,7 +1034,7 @@ int dispatch(XMLEle *root, char msg[])
                         names     = (char **)realloc(names, newsz);
                     }
                     if (f_scansexa(pcdataXMLEle(ep), &doubles[n]) < 0)
-                        IDMessage(dev, "%s: Bad format %s", name, pcdataXMLEle(ep));
+                        IDMessage(dev, "[ERROR] %s: Bad format %s", name, pcdataXMLEle(ep));
                     else
                         names[n++] = valuXMLAtt(na);
                 }
@@ -1048,7 +1048,7 @@ int dispatch(XMLEle *root, char msg[])
         if (n > 0)
             ISNewNumber(dev, name, doubles, names, n);
         else
-            IDMessage(dev, "%s: newNumberVector with no valid members", name);
+            IDMessage(dev, "[ERROR] %s: newNumberVector with no valid members", name);
         return (0);
     }
 
@@ -1094,7 +1094,7 @@ int dispatch(XMLEle *root, char msg[])
                         n++;
                     }
                     else
-                        IDMessage(dev, "%s: must be On or Off: %s", name, pcdataXMLEle(ep));
+                        IDMessage(dev, "[ERROR] %s: must be On or Off: %s", name, pcdataXMLEle(ep));
                 }
             }
         }
@@ -1103,7 +1103,7 @@ int dispatch(XMLEle *root, char msg[])
         if (n > 0)
             ISNewSwitch(dev, name, states, names, n);
         else
-            IDMessage(dev, "%s: newSwitchVector with no valid members", name);
+            IDMessage(dev, "[ERROR] %s: newSwitchVector with no valid members", name);
         return (0);
     }
 
@@ -1145,7 +1145,7 @@ int dispatch(XMLEle *root, char msg[])
         if (n > 0)
             ISNewText(dev, name, texts, names, n);
         else
-            IDMessage(dev, "%s: set with no valid members", name);
+            IDMessage(dev, "[ERROR] %s: set with no valid members", name);
         return (0);
     }
 
@@ -1212,7 +1212,7 @@ int dispatch(XMLEle *root, char msg[])
                 free(blobs[i]);
         }
         else
-            IDMessage(dev, "%s: newBLOBVector with no valid members", name);
+            IDMessage(dev, "[ERROR] %s: newBLOBVector with no valid members", name);
         return (0);
     }
 
@@ -1241,7 +1241,7 @@ int IUReadConfig(const char *filename, const char *dev, const char *property, in
     }
 
     if (nXMLEle(fproot) > 0 && silent != 1)
-        IDMessage(dev, "Loading device configuration...");
+        IDMessage(dev, "[INFO] Loading device configuration...");
 
     for (root = nextXMLEle(fproot, 1); root != NULL; root = nextXMLEle(fproot, 0))
     {
@@ -1261,7 +1261,7 @@ int IUReadConfig(const char *filename, const char *dev, const char *property, in
     }
 
     if (nXMLEle(fproot) > 0 && silent != 1)
-        IDMessage(dev, "Device configuration applied.");
+        IDMessage(dev, "[INFO] Device configuration applied.");
 
     fclose(fp);
     delXMLEle(fproot);
@@ -1387,14 +1387,14 @@ void IUSaveConfigTag(FILE *fp, int ctag, const char *dev, int silent)
     {
         fprintf(fp, "<INDIDriver>\n");
         if (silent != 1)
-            IDMessage(dev, "Saving device configuration...");
+            IDMessage(dev, "[INFO] Saving device configuration...");
     }
     /* Closing tag */
     else
     {
         fprintf(fp, "</INDIDriver>\n");
         if (silent != 1)
-            IDMessage(dev, "Device configuration saved.");
+            IDMessage(dev, "[INFO] Device configuration saved.");
     }
 }
 

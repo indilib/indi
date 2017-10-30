@@ -690,6 +690,7 @@ bool MoonLite::ISNewNumber(const char *dev, const char *name, double values[], c
 
             TemperatureSettingNP.s = IPS_OK;
             IDSetNumber(&TemperatureSettingNP, nullptr);
+            return true;
         }
     }
 

@@ -55,7 +55,7 @@ bool LX200_16::initProperties()
 
     IUFillSwitch(&FieldDeRotatorS[0], "On", "", ISS_OFF);
     IUFillSwitch(&FieldDeRotatorS[1], "Off", "", ISS_OFF);
-    IUFillSwitchVector(&FieldDeRotatorSP, FieldDeRotatorS, 2, getDeviceName(), "Field De-rotater", "", LX16_TAB, IP_RW,
+    IUFillSwitchVector(&FieldDeRotatorSP, FieldDeRotatorS, 2, getDeviceName(), "Field De-Rotator", "", LX16_TAB, IP_RW,
                        ISR_1OFMANY, 0, IPS_IDLE);
 
     IUFillNumber(&HorizontalCoordsN[0], "ALT", "Alt  D:M:S", "%10.6m", -90., 90.0, 0.0, 0);

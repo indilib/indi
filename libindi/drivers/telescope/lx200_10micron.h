@@ -52,6 +52,7 @@ class LX200_10MICRON : public LX200Generic
     virtual bool ReadScopeStatus() override;
     virtual bool Park() override;
     virtual bool UnPark() override;
+    virtual bool SyncConfigBehaviour(bool cmcfg);
 
     // TODO move this thing elsewhere
     int monthToNumber(const char *monthName);

@@ -75,7 +75,7 @@ protected:
     virtual IPState GuideEast(float);
     virtual IPState GuideWest(float);
 
-    virtual bool GetFilterNames(const char *groupName);
+    virtual bool GetFilterNames();
     virtual bool SetFilterNames();
     virtual bool SelectFilter(int);
     virtual int QueryFilter();
@@ -97,6 +97,7 @@ protected:
 
     ISwitch GainS[3];
     ISwitchVectorProperty GainSP;
+    enum { GAIN_HIGH, GAIN_LOW, GAIN_AUTO };
 
     ISwitch FanS[3];
     ISwitchVectorProperty FanSP;

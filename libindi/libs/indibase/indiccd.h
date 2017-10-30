@@ -749,7 +749,13 @@ class INDI::CCD : public INDI::DefaultDevice, INDI::GuiderInterface
 
     void GuideComplete(INDI_EQ_AXIS axis);
 
+    // Epoch Position
     double RA, Dec;
+
+    // J2000 Position
+    double J2000RA;
+    double J2000DE;
+
     double primaryFocalLength, primaryAperture, guiderFocalLength, guiderAperture;
     bool InExposure;
     bool InGuideExposure;
@@ -772,6 +778,11 @@ class INDI::CCD : public INDI::DefaultDevice, INDI::GuiderInterface
     // Rotator Angle
     double RotatorAngle;
 
+    // Airmas
+    double Airmass;
+    double Latitude;
+    double Longitude;
+
     std::vector<std::string> FilterNames;
     int CurrentFilterSlot;
 
@@ -786,6 +797,13 @@ class INDI::CCD : public INDI::DefaultDevice, INDI::GuiderInterface
 
     ITextVectorProperty ActiveDeviceTP;
     IText ActiveDeviceT[4];
+    enum
+    {
+        SNOOP_MOUNT,
+        SNOOP_ROTATOR,
+        SNOOP_FILTER_WHEEL,
+        SNOOP_SQM
+    };
 
     INumber TemperatureN[1];
     INumberVectorProperty TemperatureNP;

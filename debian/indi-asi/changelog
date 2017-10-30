@@ -1,3 +1,9 @@
+indi-asi (0.6) xenial; urgency=low
+
+  * Updated SDK.
+
+ -- Jasem Mutlaq <mutlaqja@ikarustech.com>  Sun, 10 Oct 2017 22:00:00 +0300
+
 indi-asi (0.5) vivid; urgency=low
 
   * Updated SDK. Name changed to indi-asi

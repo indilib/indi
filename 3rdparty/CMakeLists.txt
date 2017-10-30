@@ -57,6 +57,7 @@ option(WITH_EQMOD "Install EQMod Driver" On)
 option(WITH_NSE "Install Nexstar Evo Driver" On)
 option(WITH_SX "Install StarLight Xpress Driver" On)
 option(WITH_MAXDOME "Install MaxDomeII Driver" On)
+option(WITH_NEXDOME "Install NexDome Driver" On)
 option(WITH_SPECTRACYBER "Install Spectracyber Driver" On)
 option(WITH_CLOUDWATCHER "Install AAG Cloud Watcher Driver" On)
 option(WITH_MI "Install Moravian Driver" Off)
@@ -75,6 +76,8 @@ option(WITH_DSI "Install Meade DSI Driver" On)
 option(WITH_ASICAM "Install ZWO Optics ASI Driver" On)
 option(WITH_MGEN "Install MGen Autoguider" On)
 option(WITH_RTLSDR "Install RTL-SDR Receiver" On)
+option(WITH_RADIOSIM "Install RadioSim Receiver" On)
+option(WITH_GPSNMEA "Install GPS NMEA Driver" ON)
 
 # Add/remove cases for OSX
 IF (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
@@ -90,6 +93,7 @@ IF (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
     set(WITH_QHY Off)
     set(WITH_MGEN Off)
     set(WITH_RTLSDR Off)
+    set(WITH_RADIOSIM Off)
 ENDIF ()
 # Dsi contains invalid C++ codes what does not compile with Clang
 IF ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "AppleClang" OR "${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
@@ -114,6 +118,11 @@ endif(WITH_SX)
 if (WITH_MAXDOME)
 add_subdirectory(indi-maxdomeii)
 endif(WITH_MAXDOME)
+
+## NexDome
+if (WITH_NEXDOME)
+add_subdirectory(indi-nexdome)
+endif(WITH_NEXDOME)
 
 ## SpectraCyber
 if (WITH_SPECTRACYBER)
@@ -240,6 +249,11 @@ if (WITH_GPSD)
 add_subdirectory(indi-gpsd)
 endif (WITH_GPSD)
 
+## GPS NMEA
+if (WITH_GPSNMEA)
+add_subdirectory(indi-gpsnmea)
+endif(WITH_GPSNMEA)
+
 ## GIGE
 if (WITH_GIGE)
 add_subdirectory(indi-gige)
@@ -260,6 +274,11 @@ add_subdirectory(libdspau)
 SET(LIBRARIES_FOUND FALSE)
 endif (DSPAU_FOUND)
 endif (WITH_RTLSDR)
+
+# RadioSim
+if (WITH_RADIOSIM)
+add_subdirectory(indi-radiosim)
+endif (WITH_RADIOSIM)
 
 #endif (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
 

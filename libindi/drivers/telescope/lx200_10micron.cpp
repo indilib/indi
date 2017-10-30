@@ -33,7 +33,7 @@
 
 LX200_10MICRON::LX200_10MICRON() : LX200Generic()
 {
-    setLX200Capability(0);
+    setLX200Capability(LX200_HAS_TRACKING_FREQ);
     setVersion(1, 0);
 }
 
@@ -246,7 +246,7 @@ void LX200_10MICRON::getBasicData()
         timeFormat = LX200_24;
 
         if (getTrackFreq(PortFD, &TrackFreqN[0].value) < 0)
-            IDMessage(getDeviceName(), "Failed to get tracking frequency from device.");
+            DEBUG(INDI::Logger::DBG_WARNING, "Failed to get tracking frequency from device.");
         else
             IDSetNumber(&TrackingFreqNP, nullptr);
 
@@ -322,3 +322,13 @@ bool LX200_10MICRON::UnPark()
     SetParked(false);
     return true;
 }
+
+bool LX200_10MICRON::SyncConfigBehaviour(bool cmcfg)
+{
+    DEBUG(INDI::Logger::DBG_SESSION, "SyncConfig.");
+    if (setCommandInt(fd, cmcfg, "#:CMCFG") < 0) {
+        return false;
+    }
+    return true;
+}
+

@@ -66,6 +66,7 @@
 #include <netinet/in.h>
 #include <sys/time.h>
 #include <sys/types.h>
+#include <sys/wait.h>
 #include <sys/stat.h>
 #include <sys/socket.h>
 
@@ -399,6 +400,7 @@ static void zombieRaised(int signum, siginfo_t *sig, void *data)
     {
         case SIGCHLD:
             fprintf(stderr, "Child process %d died\n", sig->si_pid);
+            waitpid(sig->si_pid, NULL, WNOHANG);
             break;
 
         default:

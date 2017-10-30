@@ -90,7 +90,7 @@ The Alignment Subsystem provides two API classes and a support function class fo
 
     class ScopeSim : public INDI::Telescope, public INDI::GuiderInterface, public INDI::AlignmentSubsystem::AlignmentSubsystemForDrivers
 
-Somewhere in your drivers initProperties function add a call to AlignmentSubsystemForDrivers::InitProperties.
+Somewhere in your drivers initProperties function add a call to AlignmentSubsystemForDrivers::InitAlignmentProperties.
 
     bool ScopeSim::initProperties()
     {
@@ -103,7 +103,7 @@ Somewhere in your drivers initProperties function add a call to AlignmentSubsyst
         addDebugControl();
 
         // Add alignment properties
-        InitProperties(this);
+        InitAlignmentProperties(this);
 
         return true;
     }

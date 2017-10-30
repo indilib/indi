@@ -104,7 +104,7 @@ bool INDI::Telescope::initProperties()
     IUFillNumber(&LocationN[LOCATION_LONGITUDE], "LONG", "Lon (dd:mm:ss)", "%010.6m", 0, 360, 0, 0.0);
     IUFillNumber(&LocationN[LOCATION_ELEVATION], "ELEV", "Elevation (m)", "%g", -200, 10000, 0, 0);
     IUFillNumberVector(&LocationNP, LocationN, 3, getDeviceName(), "GEOGRAPHIC_COORD", "Scope Location", SITE_TAB,
-                       IP_RW, 60, IPS_OK);
+                       IP_RW, 60, IPS_IDLE);
 
     // Pier Side
     IUFillSwitch(&PierSideS[PIER_WEST], "PIER_WEST", "West (pointing east)", ISS_OFF);
