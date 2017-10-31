@@ -33,6 +33,7 @@ INDI::Focuser::Focuser()
 
 INDI::Focuser::~Focuser()
 {
+    delete (controller);
 }
 
 bool INDI::Focuser::initProperties()
