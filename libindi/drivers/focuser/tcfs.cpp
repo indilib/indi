@@ -115,6 +115,15 @@ bool TCFS::initProperties()
         DEBUG(INDI::Logger::DBG_DEBUG, "TCF-S detected. Updating maximum position value to 7000.");
     }
 
+    setDynamicPropertiesBehavior(false, false);
+
+    buildSkeleton("indi_tcfs_sk.xml");
+
+    FocusTemperatureNP = getNumber("FOCUS_TEMPERATURE");
+    FocusPowerSP       = getSwitch("FOCUS_POWER");
+    FocusModeSP        = getSwitch("FOCUS_MODE");
+    FocusGotoSP        = getSwitch("FOCUS_GOTO");
+
     // Default to 19200
     serialConnection->setDefaultBaudRate(Connection::Serial::B_19200);
 
@@ -135,16 +144,6 @@ bool TCFS::updateProperties()
 
     if (isConnected())
     {
-        buildSkeleton("indi_tcfs_sk.xml");
-
-        FocusTemperatureNP = getNumber("FOCUS_TEMPERATURE");
-        FocusPowerSP       = getSwitch("FOCUS_POWER");
-        FocusModeSP        = getSwitch("FOCUS_MODE");
-        FocusGotoSP        = getSwitch("FOCUS_GOTO");
-
-        FocusAbsPosNP.s       = IPS_OK;
-        FocusTemperatureNP->s = IPS_OK;
-        FocusModeSP->sp[0].s  = ISS_ON;
         defineSwitch(FocusGotoSP);
         defineNumber(FocusTemperatureNP);
         defineSwitch(FocusPowerSP);
@@ -209,13 +208,15 @@ bool TCFS::ISNewSwitch(const char *dev, const char *name, ISState *states, char 
 {
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
-        if (FocusPowerSP && !strcmp(FocusPowerSP->name, "FOCUS_POWER"))
+        if (!strcmp(FocusPowerSP->name, name))
         {
             IUUpdateSwitch(FocusPowerSP, states, names, n);
             bool sleep = false;
 
+            ISwitch *sp = IUFindOnSwitch(FocusPowerSP);
+
             // Sleep
-            if (!strcmp(IUFindOnSwitchName(states, names, n), "FOCUS_SLEEP"))
+            if (!strcmp(sp->name, "FOCUS_SLEEP"))
             {
                 dispatch_command(FSLEEP);
                 sleep = true;
@@ -287,15 +288,8 @@ bool TCFS::ISNewSwitch(const char *dev, const char *name, ISState *states, char 
         }
 
         // Do not process any command if focuser is asleep
-        if (FocusPowerSP && FocusPowerSP->sp[0].s == ISS_ON)
+        if (isConnected() && FocusPowerSP->sp[0].s == ISS_ON)
         {
-            /*FocusPowerSP->s = IPS_IDLE;
-            IUResetSwitch(FocusPowerSP);
-
-            if (strcmp(sProp->name, "FOCUS_MODE") == 0 && current_active_switch != nullptr)
-                current_active_switch->s = ISS_ON;
-
-            IDSetSwitch(sProp, "Focuser is still in sleep mode. Wake up in order to issue commands.");*/
             ISwitchVectorProperty *svp = getSwitch(name);
             if (svp)
             {
@@ -306,12 +300,14 @@ bool TCFS::ISNewSwitch(const char *dev, const char *name, ISState *states, char 
             return true;
         }
 
-        if (FocusModeSP && !strcmp(FocusModeSP->name, "FOCUS_MODE"))
+        if (!strcmp(FocusModeSP->name, name))
         {
             IUUpdateSwitch(FocusModeSP, states, names, n);
             FocusModeSP->s = IPS_OK;
 
-            if (!strcmp(IUFindOnSwitch(FocusModeSP)->name, "Manual"))
+            ISwitch *sp = IUFindOnSwitch(FocusModeSP);
+
+            if (!strcmp(sp->name, "Manual"))
             {
                 dispatch_command(FMMODE);
                 read_tcfs();
@@ -323,7 +319,7 @@ bool TCFS::ISNewSwitch(const char *dev, const char *name, ISState *states, char 
                     return true;
                 }
             }
-            else if (!strcmp(IUFindOnSwitch(FocusModeSP)->name, "Auto A"))
+            else if (!strcmp(sp->name, "Auto A"))
             {
                 dispatch_command(FAMODE);
                 read_tcfs();
@@ -352,7 +348,7 @@ bool TCFS::ISNewSwitch(const char *dev, const char *name, ISState *states, char 
             return true;
         }
 
-        if (FocusGotoSP && !strcmp(FocusGotoSP->name, "FOCUS_GOTO"))
+        if (!strcmp(FocusGotoSP->name, name))
         {
             if (FocusModeSP->sp[0].s != ISS_ON)
             {
@@ -362,17 +358,20 @@ bool TCFS::ISNewSwitch(const char *dev, const char *name, ISState *states, char 
                 return false;
             }
 
+            IUUpdateSwitch(FocusGotoSP, states, names, n);
             FocusGotoSP->s = IPS_BUSY;
 
+            ISwitch *sp = IUFindOnSwitch(FocusGotoSP);
+
             // Min
-            if (!strcmp(IUFindOnSwitch(FocusModeSP)->name, "FOCUS_MIN"))
+            if (!strcmp(sp->name, "FOCUS_MIN"))
             {
                 targetTicks = currentPosition;
                 MoveRelFocuser(FOCUS_INWARD, currentPosition);
                 IDSetSwitch(FocusGotoSP, "Moving focuser to minimum position...");
             }
             // Center
-            else if (!strcmp(IUFindOnSwitch(FocusModeSP)->name, "FOCUS_CENTER"))
+            else if (!strcmp(sp->name, "FOCUS_CENTER"))
             {
                 dispatch_command(FCENTR);
                 FocusAbsPosNP.s = FocusRelPosNP.s = IPS_BUSY;
@@ -382,7 +381,7 @@ bool TCFS::ISNewSwitch(const char *dev, const char *name, ISState *states, char 
                 return true;
             }
             // Max
-            else if (!strcmp(IUFindOnSwitch(FocusModeSP)->name, "FOCUS_MAX"))
+            else if (!strcmp(sp->name, "FOCUS_MAX"))
             {
                 unsigned int delta = 0;
                 delta              = FocusAbsPosN[0].max - currentPosition;
@@ -390,7 +389,7 @@ bool TCFS::ISNewSwitch(const char *dev, const char *name, ISState *states, char 
                 IDSetSwitch(FocusGotoSP, "Moving focuser to maximum position %g...", FocusAbsPosN[0].max);
             }
             // Home
-            else if (!strcmp(IUFindOnSwitch(FocusModeSP)->name, "FOCUS_HOME"))
+            else if (!strcmp(sp->name, "FOCUS_HOME"))
             {
                 dispatch_command(FHOME);
                 read_tcfs();
