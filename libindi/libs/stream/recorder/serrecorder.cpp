@@ -45,6 +45,8 @@ SER_Recorder::SER_Recorder()
     strncpy(serh.Instrume, "                      Unknown Instrument", 40);
     strncpy(serh.Telescope, "                       Unknown Telescope", 40);
     serh.LuID = 0;
+    serh.PixelDepth = 8;
+    number_of_planes=1;
     if (is_little_endian())
         serh.LittleEndian = SER_LITTLE_ENDIAN;
     else
