@@ -109,10 +109,6 @@ void SER_Recorder::write_header(ser_header *s)
     write_long_int_le(&(s->DateTime_UTC));
 }
 
-void SER_Recorder::init()
-{
-}
-
 bool SER_Recorder::setPixelFormat(INDI_PIXEL_FORMAT pixelFormat, uint8_t pixelDepth)
 {
     serh.PixelDepth  = pixelDepth;

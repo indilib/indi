@@ -57,8 +57,7 @@ StreamManager::StreamManager(CCD *mainCCD)
     setitimer(ITIMER_REAL, &fpssettings, nullptr);
 
     recorderManager = new RecorderManager();
-    recorder    = recorderManager->getDefaultRecorder();
-    recorder->init();
+    recorder    = recorderManager->getDefaultRecorder();    
     direct_record = false;
 
     DEBUGF(INDI::Logger::DBG_DEBUG, "Using default recorder (%s)", recorder->getName());
@@ -138,6 +137,7 @@ bool StreamManager::initProperties()
 
     // Recorder Selector
     IUFillSwitch(&RecorderS[0], "SER", "SER", ISS_ON);
+    IUFillSwitch(&RecorderS[1], "OGV", "OGV", ISS_OFF);
     IUFillSwitchVector(&RecorderSP, RecorderS, NARRAY(RecorderS), getDeviceName(), "CCD_STREAM_RECORDER", "Recorder", STREAM_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
     return true;
@@ -278,6 +278,9 @@ bool StreamManager::setPixelFormat(INDI_PIXEL_FORMAT pixelFormat, uint8_t pixelD
 {
     direct_record = recorder->setPixelFormat(pixelFormat, pixelDepth);
     encoder->setPixelFormat(pixelFormat, pixelDepth);
+
+    m_PixelFormat = pixelFormat;
+    m_PixelDepth  = pixelDepth;
     return true;
 }
 
@@ -595,7 +598,11 @@ bool StreamManager::ISNewSwitch(const char *dev, const char *name, ISState *stat
             if (!strcmp(selectedEncoder, oneEncoder->getName()))
             {
                 encoderManager->setEncoder(oneEncoder);
+
+                oneEncoder->setPixelFormat(m_PixelFormat, m_PixelDepth);
+
                 encoder = oneEncoder;
+
                 EncoderSP.s = IPS_OK;
             }
         }
@@ -615,7 +622,13 @@ bool StreamManager::ISNewSwitch(const char *dev, const char *name, ISState *stat
             if (!strcmp(selectedRecorder, oneRecorder->getName()))
             {
                 recorderManager->setRecorder(oneRecorder);
+
+                oneRecorder->setFrame(StreamFrameN[CCDChip::FRAME_X].value, StreamFrameN[CCDChip::FRAME_Y].value,
+                                   StreamFrameN[CCDChip::FRAME_W].value, StreamFrameN[CCDChip::FRAME_H].value);
+                oneRecorder->setPixelFormat(m_PixelFormat, m_PixelDepth);
+
                 recorder = oneRecorder;
+
                 RecorderSP.s = IPS_OK;
             }
         }

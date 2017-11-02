@@ -95,11 +95,6 @@ IF (INDI_CALCULATE_MINMAX)
 add_definitions(-DWITH_MINMAX)
 ENDIF(INDI_CALCULATE_MINMAX)
 
-#######################################  config.h  #################################################
-# Generate config.h from template
-configure_file(${CMAKE_CURRENT_SOURCE_DIR}/config.h.cmake ${CMAKE_CURRENT_BINARY_DIR}/config.h )
-configure_file(${CMAKE_CURRENT_SOURCE_DIR}/indiversion.h.cmake ${CMAKE_CURRENT_BINARY_DIR}/indiversion.h )
-
 ###################################################################################################
 #####################################  Components  ################################################
 ###################################################################################################
@@ -299,10 +294,12 @@ ELSE ()
 ENDIF()
 
 IF (UNIX)
-find_package(Theora)
-IF (THEORA_FOUND)
+find_package(OggTheora)
+IF (OGGTHEORA_FOUND)
+INCLUDE_DIRECTORIES(${THEORA_INCLUDE_DIRS})
+SET(HAVE_THEORA 1)
 SET (theorarecorder_CXX_SRC ${CMAKE_CURRENT_SOURCE_DIR}/libs/stream/recorder/theorarecorder.cpp)
-ENDIF()
+ENDIF(OGGTHEORA_FOUND)
     SET(libstream_CXX_SRC
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/stream/streammanager.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/stream/recorder/recorderinterface.cpp
@@ -388,7 +385,7 @@ find_package(Iconv REQUIRED)
 add_library(indidriver STATIC ${indidriver_C_SRC} ${indidriver_CXX_SRC} ${libstream_CXX_SRC} ${hidapi_SRCS})
 target_compile_definitions(indidriver PRIVATE "-DHAVE_LIBNOVA")
 set_target_properties(indidriver PROPERTIES VERSION ${CMAKE_INDI_VERSION_STRING} SOVERSION ${INDI_SOVERSION} OUTPUT_NAME indidriver)
-target_link_libraries(indidriver ${ICONV_LIBRARIES} ${LIBUSB_1_LIBRARIES} ${NOVA_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${CFITSIO_LIBRARIES} ${M_LIB} ${ZLIB_LIBRARY} ${JPEG_LIBRARY})
+target_link_libraries(indidriver ${ICONV_LIBRARIES} ${LIBUSB_1_LIBRARIES} ${NOVA_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${CFITSIO_LIBRARIES} ${OGGTHEORA_LIBRARIES} ${THEORA_LIBRARIES} ${M_LIB} ${ZLIB_LIBRARY} ${JPEG_LIBRARY})
 install(TARGETS indidriver ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR})
 else()
 ## Static indidriver Library
@@ -396,14 +393,14 @@ add_library(indidriverstatic STATIC ${indidriver_C_SRC} ${indidriver_CXX_SRC} ${
 set_target_properties(indidriverstatic PROPERTIES COMPILE_FLAGS "-fPIC")
 target_compile_definitions(indidriverstatic PRIVATE "-DHAVE_LIBNOVA")
 set_target_properties(indidriverstatic PROPERTIES VERSION ${CMAKE_INDI_VERSION_STRING} SOVERSION ${INDI_SOVERSION} OUTPUT_NAME indidriver)
-target_link_libraries(indidriverstatic ${LIBUSB_1_LIBRARIES} ${NOVA_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${CFITSIO_LIBRARIES} ${M_LIB} ${ZLIB_LIBRARY} ${JPEG_LIBRARY})
+target_link_libraries(indidriverstatic ${LIBUSB_1_LIBRARIES} ${NOVA_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${CFITSIO_LIBRARIES} ${OGGTHEORA_LIBRARIES} ${M_LIB} ${ZLIB_LIBRARY} ${JPEG_LIBRARY})
 install(TARGETS indidriverstatic ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR})
 ## Dynamic indidriver Library
 add_library(indidriver SHARED ${indidriver_C_SRC} ${indidriver_CXX_SRC} ${libstream_CXX_SRC} ${libwebcam_C_SRC} ${libwebcam_CXX_SRC} ${hidapi_SRCS})
 set_target_properties(indidriver PROPERTIES COMPILE_FLAGS "-fPIC")
 target_compile_definitions(indidriver PRIVATE "-DHAVE_LIBNOVA")
 set_target_properties(indidriver PROPERTIES VERSION ${CMAKE_INDI_VERSION_STRING} SOVERSION ${INDI_SOVERSION} OUTPUT_NAME indidriver)
-target_link_libraries(indidriver ${LIBUSB_1_LIBRARIES} ${NOVA_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${CFITSIO_LIBRARIES} ${M_LIB} ${ZLIB_LIBRARY} ${JPEG_LIBRARY})
+target_link_libraries(indidriver ${LIBUSB_1_LIBRARIES} ${NOVA_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${CFITSIO_LIBRARIES} ${OGGTHEORA_LIBRARIES} ${M_LIB} ${ZLIB_LIBRARY} ${JPEG_LIBRARY})
 IF (UNIX AND NOT APPLE)
     target_link_libraries(indidriver -lpthread)
 ENDIF ()
@@ -965,6 +962,15 @@ IF (UNIX AND NOT APPLE)
     INSTALL(FILES ${CMAKE_CURRENT_SOURCE_DIR}/drivers/auxiliary/99-flipflat.rules DESTINATION ${UDEVRULES_INSTALL_DIR})
 ENDIF ()
 
+########### SnapCap Driver ###############
+
+SET(snapcap_SRC
+    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/auxiliary/snapcap.cpp)
+
+add_executable(indi_snapcap ${snapcap_SRC})
+target_link_libraries(indi_snapcap indidriver)
+install(TARGETS indi_snapcap RUNTIME DESTINATION bin)
+
 ########### Sky Quality Meter ###############
 
 SET(sqm_SRC
@@ -1213,6 +1219,13 @@ if (UNIX)
             DESTINATION ${INCLUDE_INSTALL_DIR}/libindi COMPONENT Devel)
     ENDIF()
 ENDIF ()
+
+###################################################################################################
+#######################################  config.h  ################################################
+###################################################################################################
+# Generate config.h from template
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/config.h.cmake ${CMAKE_CURRENT_BINARY_DIR}/config.h )
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/indiversion.h.cmake ${CMAKE_CURRENT_BINARY_DIR}/indiversion.h )
 
 ###################################################################################################
 #########################################  Tests  #################################################

@@ -20,8 +20,14 @@
 
 */
 
+#include <config.h>
+
 #include "recordermanager.h"
 #include "serrecorder.h"
+
+#ifdef HAVE_THEORA
+#include "theorarecorder.h"
+#endif
 
 namespace INDI
 {
@@ -29,6 +35,9 @@ namespace INDI
 RecorderManager::RecorderManager()
 {
     recorder_list.push_back(new SER_Recorder());
+    #ifdef HAVE_THEORA
+    recorder_list.push_back(new TheoraRecorder());
+    #endif
     default_recorder = recorder_list.at(0);
 }
 

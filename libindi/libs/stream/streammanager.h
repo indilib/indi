@@ -150,7 +150,7 @@ class StreamManager
     ISwitchVectorProperty EncoderSP;
 
     // Recorder Selector. Static but should be implmeneted as a dynamic plugin interface
-    ISwitch RecorderS[1];
+    ISwitch RecorderS[2];
     ISwitchVectorProperty RecorderSP;
 
     bool m_isStreaming;
@@ -176,5 +176,8 @@ class StreamManager
     // use bsd timers
     struct itimerval tframe1, tframe2;
     double mssum, framecountsec;
+
+    INDI_PIXEL_FORMAT m_PixelFormat;
+    uint8_t m_PixelDepth;
 };
 }

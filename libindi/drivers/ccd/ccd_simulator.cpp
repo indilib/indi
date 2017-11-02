@@ -485,7 +485,7 @@ int CCDSim::DrawCcdFrame(INDI::CCDChip *targetChip)
     if (targetChip->getXRes() == 500)
         ExposureTime = GuideExposureRequest;
     else
-        ExposureTime = ExposureRequest;
+        ExposureTime = Streamer->isStreaming() ? ExposureRequest * 25 : ExposureRequest;
 
     if (TelescopeTypeS[TELESCOPE_PRIMARY].s == ISS_ON)
         targetFocalLength = primaryFocalLength;

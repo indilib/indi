@@ -76,7 +76,6 @@ class SER_Recorder : public RecorderInterface
     SER_Recorder();
     virtual ~SER_Recorder();
 
-    virtual void init();
     virtual const char *getExtension() { return ".ser"; }
     virtual bool setPixelFormat(INDI_PIXEL_FORMAT pixelFormat, uint8_t pixelDepth);
     virtual bool setSize(uint16_t width, uint16_t height);

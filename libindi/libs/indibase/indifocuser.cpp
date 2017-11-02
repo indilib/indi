@@ -36,6 +36,7 @@ Focuser::Focuser()
 
 Focuser::~Focuser()
 {
+    delete (controller);
 }
 
 bool Focuser::initProperties()

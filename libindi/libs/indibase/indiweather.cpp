@@ -108,6 +108,8 @@ bool Weather::initProperties()
         registerConnection(tcpConnection);
     }
 
+    setDriverInterface(WEATHER_INTERFACE);
+
     return true;
 }
 
@@ -253,7 +255,26 @@ bool Weather::ISNewNumber(const char *dev, const char *name, double values[], ch
     return DefaultDevice::ISNewNumber(dev, name, values, names, n);
 }
 
-bool Weather::ISSnoopDevice(XMLEle *root)
+bool INDI::Weather::ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
+{
+    //  first check if it's for our device
+    if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
+    {
+        if (!strcmp(name, ActiveDeviceTP.name))
+        {
+            ActiveDeviceTP.s = IPS_OK;
+            IUUpdateText(&ActiveDeviceTP, texts, names, n);
+            //  Update client display
+            IDSetText(&ActiveDeviceTP, nullptr);
+
+            IDSnoopDevice(ActiveDeviceT[0].text, "GEOGRAPHIC_COORD");
+            return true;
+        }
+    }
+    return DefaultDevice::ISNewText(dev, name, texts, names, n);
+}
+
+bool INDI::Weather::ISSnoopDevice(XMLEle *root)
 {
     XMLEle *ep           = nullptr;
     const char *propName = findXMLAttValu(root, "name");
@@ -507,6 +528,7 @@ bool Weather::saveConfigItems(FILE *fp)
 {
     DefaultDevice::saveConfigItems(fp);
 
+    IUSaveConfigText(fp, &ActiveDeviceTP);
     IUSaveConfigNumber(fp, &LocationNP);
     IUSaveConfigNumber(fp, &UpdatePeriodNP);
 

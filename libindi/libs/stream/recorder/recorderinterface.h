@@ -56,7 +56,6 @@ class RecorderInterface
     RecorderInterface();
     virtual ~RecorderInterface();
 
-    virtual void init() = 0;
     virtual const char *getName();
     virtual const char *getExtension() = 0;
     // true when direct encoding of pixel format
