@@ -67,7 +67,7 @@ void ISSnoopDevice(XMLEle *root)
     ccdsim->ISSnoopDevice(root);
 }
 
-CCDSim::CCDSim()
+CCDSim::CCDSim() : INDI::FilterInterface(this)
 {
     uint32_t cap = 0;
 
@@ -123,11 +123,7 @@ bool CCDSim::SetupParms()
 
     nbuf = PrimaryCCD.getXRes() * PrimaryCCD.getYRes() * PrimaryCCD.getBPP() / 8;
     nbuf += 512;
-    PrimaryCCD.setFrameBufferSize(nbuf);
-
-    // Only generate filter names if there are none initially
-    if (FilterNameT == nullptr)
-        GetFilterNames(FILTER_TAB);
+    PrimaryCCD.setFrameBufferSize(nbuf);    
 
     return true;
 }
@@ -189,7 +185,7 @@ bool CCDSim::initProperties()
     IDSnoopDevice(ActiveDeviceT[0].text, "EQUATORIAL_PE");
     IDSnoopDevice(ActiveDeviceT[1].text, "FWHM");
 
-    initFilterProperties(getDeviceName(), FILTER_TAB);
+    INDI::FilterInterface::initProperties(FILTER_TAB);
 
     FilterSlotN[0].min = 1;
     FilterSlotN[0].max = 8;
@@ -230,17 +226,14 @@ bool CCDSim::updateProperties()
         }
 
         // Define the Filter Slot and name properties
-        defineNumber(&FilterSlotNP);
-        if (FilterNameT != nullptr)
-            defineText(FilterNameTP);
+        INDI::FilterInterface::updateProperties();
     }
     else
     {
         if (HasCooler())
             deleteProperty(CoolerSP.name);
 
-        deleteProperty(FilterSlotNP.name);
-        deleteProperty(FilterNameTP->name);
+        INDI::FilterInterface::updateProperties();
     }
 
     return true;
@@ -1008,7 +1001,7 @@ bool CCDSim::ISNewText(const char *dev, const char *name, char *texts[], char *n
         //  Now lets see if it's something we process here
         if (strcmp(name, FilterNameTP->name) == 0)
         {
-            processFilterName(dev, texts, names, n);
+            INDI::FilterInterface::processText(dev, name, texts, names, n);
             return true;
         }
     }
@@ -1042,7 +1035,7 @@ bool CCDSim::ISNewNumber(const char *dev, const char *name, double values[], cha
 
         if (strcmp(name, FilterSlotNP.name) == 0)
         {
-            processFilterSlot(getDeviceName(), values, names);
+            INDI::FilterInterface::processNumber(dev, name, values, names, n);
             return true;
         }
     }
@@ -1154,8 +1147,13 @@ bool CCDSim::ISSnoopDevice(XMLEle *root)
 
 bool CCDSim::saveConfigItems(FILE *fp)
 {
+    // Save CCD Config
     INDI::CCD::saveConfigItems(fp);
 
+    // Save Filter Wheel Config
+    INDI::FilterInterface::saveConfigItems(fp);
+
+    // Save CCD Simulator Config
     IUSaveConfigNumber(fp, SimulatorSettingsNV);
     IUSaveConfigSwitch(fp, TimeFactorSV);
 
@@ -1166,32 +1164,6 @@ bool CCDSim::SelectFilter(int f)
 {
     CurrentFilter = f;
     SelectFilterDone(f);
-    return true;
-}
-
-bool CCDSim::GetFilterNames(const char *groupName)
-{
-    char filterName[MAXINDINAME];
-    char filterLabel[MAXINDILABEL];
-    int MaxFilter = FilterSlotN[0].max;
-
-    const char *filterDesignation[8] = { "Red", "Green", "Blue", "H_Alpha", "SII", "OIII", "LPR", "Luminosity" };
-
-    if (FilterNameT != nullptr)
-        delete FilterNameT;
-
-    FilterNameT = new IText[MaxFilter];
-
-    for (int i = 0; i < MaxFilter; i++)
-    {
-        snprintf(filterName, MAXINDINAME, "FILTER_SLOT_NAME_%d", i + 1);
-        snprintf(filterLabel, MAXINDILABEL, "Filter#%d", i + 1);
-        IUFillText(&FilterNameT[i], filterName, filterLabel, filterDesignation[i]);
-    }
-
-    IUFillTextVector(FilterNameTP, FilterNameT, MaxFilter, getDeviceName(), "FILTER_NAME", "Filter names", groupName,
-                     IP_RW, 0, IPS_IDLE);
-
     return true;
 }
 

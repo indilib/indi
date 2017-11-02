@@ -51,6 +51,8 @@ class ioptronHC8406 : public LX200Generic
     virtual bool updateTime(ln_date *utc, double utc_offset) override;
     virtual bool updateLocation(double latitude, double longitude, double elevation) override;
 
+    virtual int SendPulseCmd(int direction, int duration_msec) override;
+
     virtual bool saveConfigItems(FILE *fp) override;
 
     virtual bool Park() override;
@@ -58,8 +60,10 @@ class ioptronHC8406 : public LX200Generic
     void sendScopeTime() ;
   private:
     int setioptronHC8406StandardProcedure(int fd, const char *data);
-    void setGuidingEnabled(bool enable);
     int ioptronHC8406SyncCMR(char *matchedObject);
+
+    // Mount Initialization. 
+    void ioptronHC8406Init();
 
     // Settings
     int setioptronHC8406Latitude(double Lat);
@@ -73,7 +77,6 @@ class ioptronHC8406 : public LX200Generic
 
     // Track Mode
     int setioptronHC8406TrackMode(int mode);
-    int getioptronHC8406TrackMode(int *mode);
 
     //Set move rates
     int setMoveRate(int rate,int move_type);

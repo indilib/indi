@@ -1359,10 +1359,10 @@ void CelestronGPS::guideTimeout(CELESTRON_DIRECTION calldir)
 
     use_pulse_cmd = IUFindOnSwitchIndex(&UsePulseCmdSP);
 
-    DEBUG(INDI::Logger::DBG_DEBUG, " END-OF-TIMER");
-    DEBUGF(INDI::Logger::DBG_DEBUG, "   USE_PULSE_CMD = %i", use_pulse_cmd);
-    DEBUGF(INDI::Logger::DBG_DEBUG, "   GUIDE_DIRECTION = %i", (int)guide_direction);
-    DEBUGF(INDI::Logger::DBG_DEBUG, "   CALL_DIRECTION = %i", calldir);
+    //DEBUG(INDI::Logger::DBG_DEBUG, " END-OF-TIMER");
+    //DEBUGF(INDI::Logger::DBG_DEBUG, "   USE_PULSE_CMD = %i", use_pulse_cmd);
+    //DEBUGF(INDI::Logger::DBG_DEBUG, "   GUIDE_DIRECTION = %i", (int)guide_direction);
+    //DEBUGF(INDI::Logger::DBG_DEBUG, "   CALL_DIRECTION = %i", calldir);
 
 //    if (guide_direction == -1)
 //    {
@@ -1413,7 +1413,7 @@ void CelestronGPS::guideTimeout(CELESTRON_DIRECTION calldir)
         }
     }
 
-    DEBUG(INDI::Logger::DBG_DEBUG, " CALL SendPulseStatusCmd");
+    //DEBUG(INDI::Logger::DBG_DEBUG, " CALL SendPulseStatusCmd");
 
     bool pulseguide_state;
     if (!(SendPulseStatusCmd(PortFD, calldir, pulseguide_state)))
@@ -1424,12 +1424,12 @@ void CelestronGPS::guideTimeout(CELESTRON_DIRECTION calldir)
     {
         if (pulseguide_state)
         {
-            DEBUG(INDI::Logger::DBG_ERROR, " PULSE STILL IN PROGRESS, POSSIBLE MOUNT JAM.");
+            DEBUG(INDI::Logger::DBG_WARNING, " PULSE STILL IN PROGRESS, POSSIBLE MOUNT JAM.");
         }
-        else
-        {
-            DEBUG(INDI::Logger::DBG_WARNING, " PULSE COMPLETED");
-        }
+        //else
+        //{
+        //    DEBUG(INDI::Logger::DBG_WARNING, " PULSE COMPLETED");
+        //}
     }
 
     if (calldir == CELESTRON_N || calldir == CELESTRON_S)
@@ -1449,7 +1449,7 @@ void CelestronGPS::guideTimeout(CELESTRON_DIRECTION calldir)
         IDSetNumber(&GuideWENP, nullptr);
     }
 
-    DEBUG(INDI::Logger::DBG_WARNING, "GUIDE CMD COMPLETED");
+    //DEBUG(INDI::Logger::DBG_WARNING, "GUIDE CMD COMPLETED");
 }
 
 bool CelestronGPS::SetTrackMode(uint8_t mode)

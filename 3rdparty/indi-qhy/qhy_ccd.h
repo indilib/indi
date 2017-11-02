@@ -76,8 +76,6 @@ class QHYCCD : public INDI::CCD, public INDI::FilterInterface
     // Filter Wheel CFW
     virtual int QueryFilter() override;
     virtual bool SelectFilter(int position) override;
-    virtual bool SetFilterNames() override;
-    virtual bool GetFilterNames(const char *groupName) override;
 
 #ifndef __APPLE__
     // Streaming

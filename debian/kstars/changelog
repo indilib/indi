@@ -1,3 +1,9 @@
+kstars-bleeding (5:17.12) bionic; urgency=medium
+
+  * 17.12 Rolling Release. Version 2.8.7
+
+ -- Jasem Mutlaq <mutlaqja@ikarustech.com>  Wed, 1 Nov 2017 15:30:00 +0300
+
 kstars-bleeding (5:17.08) zesty; urgency=medium
 
   * 17.08 Rolling Release. Version 2.8.2

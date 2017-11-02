@@ -82,7 +82,7 @@ void ISSnoopDevice (XMLEle *root)
     tommyGoodBoy->ISSnoopDevice(root);
 }
 
-NightCrawler::NightCrawler()
+NightCrawler::NightCrawler() : RotatorInterface(this)
 {
     // Can move in Absolute & Relative motions, can AbortFocuser motion, and has variable speed.
     SetFocuserCapability(FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_REL_MOVE | FOCUSER_CAN_ABORT);
@@ -144,7 +144,7 @@ bool NightCrawler::initProperties()
     // Rotator Properties
     /////////////////////////////////////////////////////
 
-    INDI::RotatorInterface::initProperties(this, ROTATOR_TAB);
+    INDI::RotatorInterface::initProperties(ROTATOR_TAB);
 
     // Rotator Ticks
     IUFillNumber(&RotatorAbsPosN[0], "ROTATOR_ABSOLUTE_POSITION", "Ticks", "%.f", 0., 100000., 1000., 0.);
@@ -212,7 +212,7 @@ bool NightCrawler::updateProperties()
         defineSwitch(&FindHomeSP);
 
         // Rotator
-        INDI::RotatorInterface::updateProperties(this);
+        INDI::RotatorInterface::updateProperties();
         defineNumber(&RotatorAbsPosNP);
         defineNumber(&RotatorStepDelayNP);        
 
@@ -236,7 +236,7 @@ bool NightCrawler::updateProperties()
         deleteProperty(HomeSelectionSP.name);
 
         // Rotator
-        INDI::RotatorInterface::updateProperties(this);
+        INDI::RotatorInterface::updateProperties();
         deleteProperty(RotatorAbsPosNP.name);
         deleteProperty(RotatorStepDelayNP.name);
 
@@ -610,7 +610,7 @@ bool NightCrawler::ISNewNumber (const char * dev, const char * name, double valu
             RotatorAbsPosNP.s = (gotoMotor(MOTOR_ROTATOR, static_cast<int32_t>(values[0])) ? IPS_BUSY : IPS_ALERT);
             IDSetNumber(&RotatorAbsPosNP, nullptr);
             if (RotatorAbsPosNP.s == IPS_BUSY)
-                DEBUGFDEVICE(rotatorName, INDI::Logger::DBG_SESSION, "Rotator moving to %.f ticks...", values[0]);
+                DEBUGF(INDI::Logger::DBG_SESSION, "Rotator moving to %.f ticks...", values[0]);
             return true;
         }
         else if (strstr(name, "ROTATOR"))
