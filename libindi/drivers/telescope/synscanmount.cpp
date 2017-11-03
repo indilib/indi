@@ -21,6 +21,8 @@
 #include "indicom.h"
 
 #include <libnova/transform.h>
+// libnova specifies round() on old systems and it collides with the new gcc 5.x/6.x headers
+#define HAVE_ROUND
 #include <libnova/utility.h>
 
 #include <cmath>
