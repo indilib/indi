@@ -23,6 +23,7 @@
 
 #include <cstdlib>
 #include <cstring>
+#include <assert.h>
 
 const char *COMMUNICATION_TAB = "Communication";
 const char *MAIN_CONTROL_TAB  = "Main Control";
@@ -419,8 +420,7 @@ bool INDI::DefaultDevice::ISNewSwitch(const char *dev, const char *name, ISState
         IUUpdateSwitch(svp, states, names, n);
         ISwitch *sp = IUFindOnSwitch(svp);
 
-        if (!sp)
-            return false;
+        assert(sp != nullptr);
 
         if (!strcmp(sp->name, "ENABLE"))
             setDebug(true);
@@ -437,8 +437,8 @@ bool INDI::DefaultDevice::ISNewSwitch(const char *dev, const char *name, ISState
     {
         IUUpdateSwitch(svp, states, names, n);
         ISwitch *sp = IUFindOnSwitch(svp);
-        if (!sp)
-            return false;
+
+        assert(sp != nullptr);
 
         if (!strcmp(sp->name, "ENABLE"))
             setSimulation(true);
@@ -456,8 +456,8 @@ bool INDI::DefaultDevice::ISNewSwitch(const char *dev, const char *name, ISState
         ISwitch *sp = IUFindOnSwitch(svp);
         IUResetSwitch(svp);
         bool pResult = false;
-        if (!sp)
-            return false;
+
+        assert(sp != nullptr);
 
         if (!strcmp(sp->name, "CONFIG_LOAD"))
             pResult = loadConfig();
@@ -492,10 +492,11 @@ bool INDI::DefaultDevice::ISNewSwitch(const char *dev, const char *name, ISState
         return rc;
     }
 
+    bool rc = false;
     for (Connection::Interface *oneConnection : connections)
-        oneConnection->ISNewSwitch(dev, name, states, names, n);
+        rc |= oneConnection->ISNewSwitch(dev, name, states, names, n);
 
-    return false;
+    return rc;
 }
 
 bool INDI::DefaultDevice::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)

@@ -33,6 +33,7 @@ INDI::Focuser::Focuser()
 
 INDI::Focuser::~Focuser()
 {
+    delete (controller);
 }
 
 bool INDI::Focuser::initProperties()
@@ -177,7 +178,7 @@ bool INDI::Focuser::ISNewSwitch(const char *dev, const char *name, ISState *stat
                 IDSetSwitch(&PresetGotoSP, nullptr);
                 DEBUGFDEVICE(dev, INDI::Logger::DBG_ERROR,
                              "Requested position out of bound. Focus minimum position is %g", FocusAbsPosN[0].min);
-                return false;
+                return true;
             }
             else if (PresetN[index].value > FocusAbsPosN[0].max)
             {
@@ -185,7 +186,7 @@ bool INDI::Focuser::ISNewSwitch(const char *dev, const char *name, ISState *stat
                 IDSetSwitch(&PresetGotoSP, nullptr);
                 DEBUGFDEVICE(dev, INDI::Logger::DBG_ERROR,
                              "Requested position out of bound. Focus maximum position is %g", FocusAbsPosN[0].max);
-                return false;
+                return true;
             }
 
             int rc = MoveAbsFocuser(PresetN[index].value);
@@ -200,7 +201,7 @@ bool INDI::Focuser::ISNewSwitch(const char *dev, const char *name, ISState *stat
 
             PresetGotoSP.s = IPS_ALERT;
             IDSetSwitch(&PresetGotoSP, nullptr);
-            return false;
+            return true;
         }
 
         if (strstr(name, "FOCUS_"))

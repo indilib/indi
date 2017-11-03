@@ -31,7 +31,8 @@ Build-Depends: cmake,
                indi-bin (>= 1.4.0),
                wcslib-dev,
                libraw-dev,
-               libgsl-dev
+               libgsl-dev,
+               phonon4qt5-backend-vlc
 Standards-Version: 3.9.3
 Homepage: http://edu.kde.org/
 
