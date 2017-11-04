@@ -178,14 +178,22 @@ bool TCFS::Handshake()
     dispatch_command(FWAKUP);
     read_tcfs(response);
 
-    dispatch_command(FMMODE);
-    read_tcfs(response);
-
+    for(int retry=0; retry<5; retry++)
+    {
+        dispatch_command(FMMODE);
+        read_tcfs(response);
+        if (strcmp(response, "!") == 0)
+        {
+            tcflush(PortFD, TCIOFLUSH);
+            DEBUG(INDI::Logger::DBG_SESSION, "Successfully connected to TCF-S Focuser in Manual Mode.");
+            return true;
+        }
+    }
     tcflush(PortFD, TCIOFLUSH);
 
-    DEBUG(INDI::Logger::DBG_SESSION, "Successfully connected to TCF-S Focuser in Manual Mode.");
+    DEBUG(INDI::Logger::DBG_ERROR, "Failed connection to TCF-S Focuser.");
 
-    return true;
+    return false;
 }
 
 /****************************************************************
