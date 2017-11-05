@@ -667,6 +667,13 @@ add_executable(indi_sestosenso_focus ${sesto_SRC})
 target_link_libraries(indi_sestosenso_focus indidriver)
 install(TARGETS indi_sestosenso_focus RUNTIME DESTINATION bin)
 
+########### Lakeside ###########
+set(indilakeside_SRCS  ${CMAKE_CURRENT_SOURCE_DIR}/drivers/focuser/lakeside.cpp)
+
+add_executable(indi_lakeside_focus ${indilakeside_SRCS})
+target_link_libraries(indi_lakeside_focus indidriver)
+install(TARGETS indi_lakeside_focus RUNTIME DESTINATION bin )
+
 ################ Pegasus DMFC Focuser ################
 SET(pegasus_SRC
     ${CMAKE_CURRENT_SOURCE_DIR}/drivers/focuser/dmfc.cpp)
