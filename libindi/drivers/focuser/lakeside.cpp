@@ -1034,7 +1034,7 @@ bool Lakeside::setCalibration()
 }
 
 // Move focuser to "position" 
-bool Lakeside::MoveFocuser(unsigned int position)
+bool Lakeside::gotoPosition(unsigned int position)
 {
     int calc_steps=0;
     char cmd[LAKESIDE_LEN] = {0};
@@ -2180,6 +2180,27 @@ void Lakeside::GetFocusParams ()
 
 }
 
+IPState Lakeside::MoveRelFocuser(FocusDirection dir, uint32_t ticks)
+{
+    double newPosition = 0;
+    bool rc            = false;
+
+    if (dir == FOCUS_INWARD)
+        newPosition = FocusAbsPosN[0].value - ticks;
+    else
+        newPosition = FocusAbsPosN[0].value + ticks;
+
+    rc = gotoPosition(newPosition);
+
+    if (!rc)
+        return IPS_ALERT;
+
+    FocusRelPosN[0].value = ticks;
+    FocusRelPosNP.s       = IPS_BUSY;
+
+    return IPS_BUSY;
+}
+
 //
 // Main Lakeside Absolute movement routine
 //
@@ -2188,7 +2209,7 @@ IPState Lakeside::MoveAbsFocuser(uint32_t targetTicks)
     targetPos = targetTicks;
     bool rc = false;
 
-    rc = MoveFocuser(targetPos);
+    rc = gotoPosition(targetPos);
 
     // if MoveFocuser succeed, then move send successfully
     if (rc == true)

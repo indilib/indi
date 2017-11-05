@@ -42,6 +42,7 @@ protected:
 
     virtual bool Handshake();
     virtual IPState MoveAbsFocuser(uint32_t ticks);
+    virtual IPState MoveRelFocuser(FocusDirection dir, uint32_t ticks);
     virtual bool AbortFocuser();
     virtual void TimerHit();
 
@@ -79,7 +80,7 @@ private:
     bool SendCmd(const char *in_cmd);
     bool ReadBuffer(char* response);
   
-    bool MoveFocuser(unsigned int position);
+    bool gotoPosition(unsigned int position);
 
     bool setCalibration();
 
