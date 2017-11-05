@@ -95,11 +95,11 @@ bool LX200_10MICRON::initProperties()
     IUFillNumberVector(&AlignmentPointsNP, AlignmentPointsN, 1, getDeviceName(),
         "ALIGNMENT_POINTS", "Points", ALIGNMENT_TAB, IP_RO, 60, IPS_IDLE);
 
-    IUFillSwitch(&AlignmentS[ALIGN_IDLE], "Idle", "Idle", ISS_ON);
-    IUFillSwitch(&AlignmentS[ALIGN_START], "Start", "Start new model", ISS_OFF);
-    IUFillSwitch(&AlignmentS[ALIGN_END], "End", "End new model", ISS_OFF);
-    IUFillSwitch(&AlignmentS[ALIGN_DELETE_CURRENT], "Del", "Delete current model", ISS_OFF);
-    IUFillSwitchVector(&AlignmentSP, AlignmentS, ALIGN_COUNT, getDeviceName(), "Alignment", "Alignment", ALIGNMENT_TAB,
+    IUFillSwitch(&AlignmentStateS[ALIGN_IDLE], "Idle", "Idle", ISS_ON);
+    IUFillSwitch(&AlignmentStateS[ALIGN_START], "Start", "Start new model", ISS_OFF);
+    IUFillSwitch(&AlignmentStateS[ALIGN_END], "End", "End new model", ISS_OFF);
+    IUFillSwitch(&AlignmentStateS[ALIGN_DELETE_CURRENT], "Del", "Delete current model", ISS_OFF);
+    IUFillSwitchVector(&AlignmentSP, AlignmentStateS, ALIGN_COUNT, getDeviceName(), "Alignment", "Alignment", ALIGNMENT_TAB,
         IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
 
     IUFillNumber(&MiniNewAlpRON[MALPRO_MRA], "MRA", "Mount RA (hh:mm:ss)", "%010.6m", 0, 24, 0, 0);
@@ -300,6 +300,7 @@ bool LX200_10MICRON::ReadScopeStatus()
         default:
             return false;
     }
+    setPierSide(toupper(Ginfo.SideOfPier) ? INDI::Telescope::PIER_EAST : INDI::Telescope::PIER_WEST);
 
     OldGstat = Ginfo.Gstat;
     NewRaDec(Ginfo.RA_JNOW, Ginfo.DEC_JNOW);
@@ -452,7 +453,6 @@ int LX200_10MICRON::setStandardProcedureAndExpect(int fd, const char *data, cons
 }
 int LX200_10MICRON::setStandardProcedureAndReturnResponse(int fd, const char *data, char *response, int max_response_length)
 {
-    char bool_return[2];
     int error_type;
     int nbytes_write = 0, nbytes_read = 0;
 
@@ -676,7 +676,6 @@ bool LX200_10MICRON::ISNewSwitch(const char *dev, const char *name, ISState *sta
         if (strcmp(AlignmentSP.name, name) == 0)
         {
             IUUpdateSwitch(&AlignmentSP, states, names, n);
-            uint32_t cap = 0;
             int index    = IUFindOnSwitchIndex(&AlignmentSP);
 
             switch (index)
