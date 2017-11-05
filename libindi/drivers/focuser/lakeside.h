@@ -76,7 +76,7 @@ private:
     bool GetLakesideStatus();
 
     char DecodeBuffer(char* in_response);
-    bool SendCmd(char* in_cmd);
+    bool SendCmd(const char *in_cmd);
     bool ReadBuffer(char* response);
   
     bool MoveFocuser(unsigned int position);

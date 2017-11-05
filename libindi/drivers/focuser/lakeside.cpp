@@ -45,7 +45,8 @@ Modifications
 #include <memory>
 
 // tty_read_section timeout in seconds
-#define LAKESIDE_TIMEOUT   2
+#define LAKESIDE_TIMEOUT    2
+#define LAKESIDE_LEN        7
 
 // Max number of Timeouts for a tty_read_section
 // This is in case a buffer read is too fast
@@ -304,7 +305,7 @@ const char * Lakeside::getDefaultName()
 // Returns true  for successful write
 //         false for failed write
 //
-bool Lakeside::SendCmd(char* in_cmd)
+bool Lakeside::SendCmd(const char* in_cmd)
 {
     int nbytes_written=0, rc=-1;
     char errstr[MAXRBUF];
@@ -335,7 +336,7 @@ bool Lakeside::ReadBuffer(char* response)
 {
     int nbytes_read=0, rc=-1;
     char errstr[MAXRBUF];
-    char resp[7] = {0};
+    char resp[LAKESIDE_LEN] = {0};
 
     //strcpy(resp,"       ");
     // read until 0x23 (#) received
@@ -343,7 +344,7 @@ bool Lakeside::ReadBuffer(char* response)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
         DEBUGF(INDI::Logger::DBG_ERROR, "ReadBuffer: Read failed - %s",errstr);
-        strcpy(response,"ERROR");
+        strncpy(response,"ERROR", LAKESIDE_LEN);
         return false;
     }
     else
@@ -351,7 +352,7 @@ bool Lakeside::ReadBuffer(char* response)
         DEBUGF(INDI::Logger::DBG_DEBUG, "ReadBuffer: Received (%s)", resp);
     }
 
-    strcpy(response,resp);
+    strncpy(response,resp, LAKESIDE_LEN);
     return true;
 
 }
@@ -361,8 +362,8 @@ bool Lakeside::ReadBuffer(char* response)
 //
 bool Lakeside::LakesideOnline()
 {  
-    char resp[7] = {0};
-    char cmd[]="??#";
+    char resp[LAKESIDE_LEN] = {0};
+    const char *cmd="??#";
 
     //strcpy(resp,"       ");
 
@@ -400,7 +401,7 @@ bool Lakeside::LakesideOnline()
 bool Lakeside::updateMoveDirection()
 {
     int rc=-1, temp=-1;
-    char resp[7] = {0};
+    char resp[LAKESIDE_LEN] = {0};
     char cmd[]="?D#";
 
     if (!SendCmd(cmd))
@@ -520,7 +521,7 @@ char Lakeside::DecodeBuffer(char* in_response)
 //
 bool Lakeside::updateTemperature()
 {
-    char resp[7] = {0};
+    char resp[LAKESIDE_LEN] = {0};
     char cmd[]="?T#";
     char buffer_response='?';
 
@@ -558,7 +559,7 @@ bool Lakeside::updateTemperature()
 //
 bool Lakeside::updateTemperatureK()
 {
-    char resp[7] = {0};
+    char resp[LAKESIDE_LEN] = {0};
     char cmd[]="?K#";
     char buffer_response='?';
 
@@ -596,7 +597,7 @@ bool Lakeside::updateTemperatureK()
 //
 bool Lakeside::updatePosition()
 {
-    char resp[7] = {0};
+    char resp[LAKESIDE_LEN] = {0};
     char cmd[]="?P#";
     char buffer_response='?';
 
@@ -631,7 +632,7 @@ bool Lakeside::updatePosition()
 bool Lakeside::updateBacklash()
 {
     int rc=-1, temp=-1;
-    char resp[7] = {0};
+    char resp[LAKESIDE_LEN] = {0};
     char cmd[]="?B#";
 
     if (!SendCmd(cmd))
@@ -666,7 +667,7 @@ bool Lakeside::updateBacklash()
 bool Lakeside::updateSlope1Inc()
 {
     int rc=-1, temp=-1;
-    char resp[7];
+    char resp[LAKESIDE_LEN];
     char cmd[]="?1#";
 
     if (!SendCmd(cmd))
@@ -701,7 +702,7 @@ bool Lakeside::updateSlope1Inc()
 bool Lakeside::updateSlope2Inc()
 {
     int rc=-1, temp=-1;
-    char resp[7] = {0};
+    char resp[LAKESIDE_LEN] = {0};
     char cmd[]="?2#";
 
     if (!SendCmd(cmd))
@@ -736,7 +737,7 @@ bool Lakeside::updateSlope2Inc()
 bool Lakeside::updateSlope1Dir()
 {
     int rc=-1, temp=-1;
-    char resp[7] = {0};
+    char resp[LAKESIDE_LEN] = {0};
     char cmd[]="?a#";
 
     if (!SendCmd(cmd))
@@ -776,7 +777,7 @@ bool Lakeside::updateSlope1Dir()
 bool Lakeside::updateSlope2Dir()
 {
     int rc=-1, temp=-1;
-    char resp[7] = {0};
+    char resp[LAKESIDE_LEN] = {0};
     char cmd[]="?b#";
 
     if (!SendCmd(cmd))
@@ -816,7 +817,7 @@ bool Lakeside::updateSlope2Dir()
 bool Lakeside::updateSlope1Deadband()
 {
     int rc=-1, temp=-1;
-    char resp[7] = {0};
+    char resp[LAKESIDE_LEN] = {0};
     char cmd[]="?c#";
 
     if (!SendCmd(cmd))
@@ -851,7 +852,7 @@ bool Lakeside::updateSlope1Deadband()
 bool Lakeside::updateSlope2Deadband()
 {
     int rc=-1, temp=-1;
-    char resp[7] = {0};
+    char resp[LAKESIDE_LEN] = {0};
     char cmd[]="?d#";
 
     if (!SendCmd(cmd))
@@ -886,7 +887,7 @@ bool Lakeside::updateSlope2Deadband()
 bool Lakeside::updateSlope1Period()
 {
     int rc=-1, temp=-1;
-    char resp[7] = {0};
+    char resp[LAKESIDE_LEN] = {0};
     char cmd[]="?e#";
 
     if (!SendCmd(cmd))
@@ -921,7 +922,7 @@ bool Lakeside::updateSlope1Period()
 bool Lakeside::updateSlope2Period()
 {
     int rc=-1, temp=-1;
-    char resp[7] = {0};
+    char resp[LAKESIDE_LEN] = {0};
     char cmd[]="?f#";
 
     if (!SendCmd(cmd))
@@ -956,7 +957,7 @@ bool Lakeside::updateSlope2Period()
 bool Lakeside::updateMaxTravel()
 {
     int rc=-1, temp=-1;
-    char resp[7] = {0};
+    char resp[LAKESIDE_LEN] = {0};
     char cmd[]="?I#";
 
     if (!SendCmd(cmd))
@@ -991,7 +992,7 @@ bool Lakeside::updateMaxTravel()
 bool Lakeside::updateStepSize()
 {
     int rc=-1, temp=-1;
-    char resp[7] = {0};
+    char resp[LAKESIDE_LEN] = {0};
     char cmd[]="?S#";
 
     if (!SendCmd(cmd))
@@ -1036,7 +1037,7 @@ bool Lakeside::setCalibration()
 bool Lakeside::MoveFocuser(unsigned int position)
 {
     int calc_steps=0;
-    char cmd[7] = {0};
+    char cmd[LAKESIDE_LEN] = {0};
 
     // Lakeside only uses move NNNNN steps - goto step not available.
     // calculate as steps to move = current position - new position
@@ -1094,8 +1095,8 @@ bool Lakeside::MoveFocuser(unsigned int position)
 //
 bool Lakeside::setBacklash(int backlash )
 {    
-    char cmd[7] = {0};
-    char resp[7] = {0};
+    char cmd[LAKESIDE_LEN] = {0};
+    char resp[LAKESIDE_LEN] = {0};
 
     tcflush(PortFD, TCIOFLUSH);
 
@@ -1131,8 +1132,8 @@ bool Lakeside::setBacklash(int backlash )
 //
 bool Lakeside::setStepSize(int stepsize )
 {    
-    char cmd[7] = {0};
-    char resp[7] = {0};
+    char cmd[LAKESIDE_LEN] = {0};
+    char resp[LAKESIDE_LEN] = {0};
 
     tcflush(PortFD, TCIOFLUSH);
 
@@ -1179,16 +1180,16 @@ bool Lakeside::setMaxTravel(int /*maxtravel*/ )
 //        & does NOT reverse the CI / CO commands
 bool Lakeside::setMoveDirection(int direction)
 {
-    char cmd[7] = {0};
-    char resp[7] = {0};
+    char cmd[LAKESIDE_LEN] = {0};
+    char resp[LAKESIDE_LEN] = {0};
 
     tcflush(PortFD, TCIOFLUSH);
 
     if (direction == 0)
-        strcpy(cmd, "CRD0#");
+        strncpy(cmd, "CRD0#", LAKESIDE_LEN);
     else
         if (direction == 1)
-            strcpy(cmd, "CRD1#");
+            strncpy(cmd, "CRD1#", LAKESIDE_LEN);
         else
         {
             DEBUGF(INDI::Logger::DBG_ERROR, "setMoveDirection: Unknown direction (%d)", direction);
@@ -1227,15 +1228,15 @@ bool Lakeside::setTemperatureTracking(bool enable)
 {
     int nbytes_written=0, rc=-1;
     char errstr[MAXRBUF];
-    char cmd[7] = {0};
+    char cmd[LAKESIDE_LEN] = {0};
 
     // flush all
     tcflush(PortFD, TCIOFLUSH);
 
     if (enable)
-        strcpy(cmd, "CTN#");
+        strncpy(cmd, "CTN#", LAKESIDE_LEN);
     else
-        strcpy(cmd, "CTF#");
+        strncpy(cmd, "CTF#", LAKESIDE_LEN);
 
     if ( (rc = tty_write_string(PortFD, cmd, &nbytes_written)) != TTY_OK)
     {
@@ -1261,8 +1262,8 @@ bool Lakeside::setTemperatureTracking(bool enable)
 // Set which Active Temperature slope to use : 1 or 2
 bool Lakeside::setActiveTemperatureSlope(unsigned int active_slope)
 {
-    char cmd[7] = {0};
-    char resp[7] = {0};
+    char cmd[LAKESIDE_LEN] = {0};
+    char resp[LAKESIDE_LEN] = {0};
 
     // flush all
     tcflush(PortFD, TCIOFLUSH);
@@ -1304,8 +1305,8 @@ bool Lakeside::setActiveTemperatureSlope(unsigned int active_slope)
 //
 bool Lakeside::setSlope1Inc(unsigned int slope1_inc)
 {
-    char cmd[7] = {0};
-    char resp[7] = {0};
+    char cmd[LAKESIDE_LEN] = {0};
+    char resp[LAKESIDE_LEN] = {0};
 
     tcflush(PortFD, TCIOFLUSH);
 
@@ -1340,8 +1341,8 @@ bool Lakeside::setSlope1Inc(unsigned int slope1_inc)
 //
 bool Lakeside::setSlope2Inc(unsigned int slope2_inc)
 {
-    char cmd[7] = {0};
-    char resp[7] = {0};
+    char cmd[LAKESIDE_LEN] = {0};
+    char resp[LAKESIDE_LEN] = {0};
 
     tcflush(PortFD, TCIOFLUSH);
 
@@ -1376,8 +1377,8 @@ bool Lakeside::setSlope2Inc(unsigned int slope2_inc)
 //
 bool Lakeside::setSlope1Dir(unsigned int slope1_direction)
 {
-    char cmd[7] = {0};
-    char resp[7] = {0};
+    char cmd[LAKESIDE_LEN] = {0};
+    char resp[LAKESIDE_LEN] = {0};
 
     tcflush(PortFD, TCIOFLUSH);
 
@@ -1412,8 +1413,8 @@ bool Lakeside::setSlope1Dir(unsigned int slope1_direction)
 //
 bool Lakeside::setSlope2Dir(unsigned int slope2_direction)
 {
-    char cmd[7] = {0};
-    char resp[7] = {0};
+    char cmd[LAKESIDE_LEN] = {0};
+    char resp[LAKESIDE_LEN] = {0};
 
     tcflush(PortFD, TCIOFLUSH);
 
@@ -1448,8 +1449,8 @@ bool Lakeside::setSlope2Dir(unsigned int slope2_direction)
 //
 bool Lakeside::setSlope1Deadband(unsigned int slope1_deadband)
 {
-    char cmd[7] = {0};
-    char resp[7] = {0};
+    char cmd[LAKESIDE_LEN] = {0};
+    char resp[LAKESIDE_LEN] = {0};
 
     tcflush(PortFD, TCIOFLUSH);
 
@@ -1484,8 +1485,8 @@ bool Lakeside::setSlope1Deadband(unsigned int slope1_deadband)
 //
 bool Lakeside::setSlope2Deadband(unsigned int slope2_deadband)
 {
-    char cmd[7] = {0};
-    char resp[7] = {0};
+    char cmd[LAKESIDE_LEN] = {0};
+    char resp[LAKESIDE_LEN] = {0};
 
     tcflush(PortFD, TCIOFLUSH);
 
@@ -1520,8 +1521,8 @@ bool Lakeside::setSlope2Deadband(unsigned int slope2_deadband)
 //
 bool Lakeside::setSlope1Period(unsigned int slope1_period)
 {
-    char cmd[7] = {0};
-    char resp[7] = {0};
+    char cmd[LAKESIDE_LEN] = {0};
+    char resp[LAKESIDE_LEN] = {0};
 
     tcflush(PortFD, TCIOFLUSH);
 
@@ -1556,8 +1557,8 @@ bool Lakeside::setSlope1Period(unsigned int slope1_period)
 //
 bool Lakeside::setSlope2Period(unsigned int slope2_period)
 {
-    char cmd[7] = {0};
-    char resp[7] = {0};
+    char cmd[LAKESIDE_LEN] = {0};
+    char resp[LAKESIDE_LEN] = {0};
 
     tcflush(PortFD, TCIOFLUSH);
 
@@ -2276,14 +2277,15 @@ bool Lakeside::GetLakesideStatus()
 {
     int rc=-1, nbytes_read=0, count_timeouts=1, pos=0;
     char errstr[MAXRBUF];
-    char resp[7] = {0};
+    char resp[LAKESIDE_LEN] = {0};
     bool read_buffer=true;
     char buffer_response='?';
 
     // read buffer up to LAKESIDE_TIMEOUT_RETRIES times
     while (read_buffer)
     {
-        strcpy(resp,"       ");
+        //strcpy(resp,"       ");
+        memset(resp, 0, sizeof(resp));
         // read until 0x23 (#) received
         if ( (rc = tty_read_section(PortFD, resp, 0x23, LAKESIDE_TIMEOUT, &nbytes_read)) != TTY_OK)
         {
