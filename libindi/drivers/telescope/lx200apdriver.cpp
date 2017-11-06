@@ -694,3 +694,34 @@ int setAPDETrackRate(int fd, double rate)
     DEBUGFDEVICE(lx200ap_name, INDI::Logger::DBG_ERROR, "Only received #%d bytes, expected 1.", nbytes_read);
     return -1;
 }
+
+int APSendPulseCmd(int fd, int direction, int duration_msec)
+{
+    DEBUGFDEVICE(lx200ap_name, AP_DBG_SCOPE, "<%s>", __FUNCTION__);
+    int nbytes_write = 0;
+    char cmd[20];
+    switch (direction)
+    {
+        case LX200_NORTH:
+            sprintf(cmd, ":Mn%04d#", duration_msec);
+            break;
+        case LX200_SOUTH:
+            sprintf(cmd, ":Ms%04d#", duration_msec);
+	    break;
+        case LX200_EAST:
+            sprintf(cmd, ":Me%04d#", duration_msec);
+	    break;
+        case LX200_WEST:
+            sprintf(cmd, ":Mw%04d#", duration_msec);
+	    break;
+        default:
+            return 1;
+    }
+
+    DEBUGFDEVICE(lx200ap_name, AP_DBG_SCOPE, "CMD <%s>", cmd);
+
+    tty_write_string(fd, cmd, &nbytes_write);
+
+    tcflush(fd, TCIFLUSH);
+    return 0;
+}
