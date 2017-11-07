@@ -28,8 +28,8 @@ Modifications
 ..
 0.11  psjshep 17-Mar-2017 - changed PortT[0].text to serialConnection->port()
  */
-#define LAKESIDE_VERSION_MAJOR 0
-#define LAKESIDE_VERSION_MINOR 11
+#define LAKESIDE_VERSION_MAJOR 1
+#define LAKESIDE_VERSION_MINOR 0
 
 #include "lakeside.h"
 #include <config.h>
@@ -1034,7 +1034,7 @@ bool Lakeside::setCalibration()
 }
 
 // Move focuser to "position" 
-bool Lakeside::gotoPosition(unsigned int position)
+bool Lakeside::gotoPosition(uint32_t position)
 {
     int calc_steps=0;
     char cmd[LAKESIDE_LEN] = {0};
@@ -1047,7 +1047,7 @@ bool Lakeside::gotoPosition(unsigned int position)
     // MaxTravelN[0].value is set by "calibrate" via the control box, & read at connect
     if ( position > MaxTravelN[0].value )
     {
-        DEBUGF(INDI::Logger::DBG_ERROR, "Position requested (%d) is out of bounds between %g and %g", position, FocusAbsPosN[0].min, MaxTravelN[0].value);
+        DEBUGF(INDI::Logger::DBG_ERROR, "Position requested (%ld) is out of bounds between %g and %g", position, FocusAbsPosN[0].min, MaxTravelN[0].value);
         FocusAbsPosNP.s = IPS_ALERT;
         return false;
     }
@@ -1260,7 +1260,7 @@ bool Lakeside::setTemperatureTracking(bool enable)
 }
 
 // Set which Active Temperature slope to use : 1 or 2
-bool Lakeside::setActiveTemperatureSlope(unsigned int active_slope)
+bool Lakeside::setActiveTemperatureSlope(uint32_t active_slope)
 {
     char cmd[LAKESIDE_LEN] = {0};
     char resp[LAKESIDE_LEN] = {0};
@@ -1303,7 +1303,7 @@ bool Lakeside::setActiveTemperatureSlope(unsigned int active_slope)
 //
 // Set Slope 1 0.1 step increments
 //
-bool Lakeside::setSlope1Inc(unsigned int slope1_inc)
+bool Lakeside::setSlope1Inc(uint32_t slope1_inc)
 {
     char cmd[LAKESIDE_LEN] = {0};
     char resp[LAKESIDE_LEN] = {0};
@@ -1339,7 +1339,7 @@ bool Lakeside::setSlope1Inc(unsigned int slope1_inc)
 //
 // Set Slope 2 0.1 step increments
 //
-bool Lakeside::setSlope2Inc(unsigned int slope2_inc)
+bool Lakeside::setSlope2Inc(uint32_t slope2_inc)
 {
     char cmd[LAKESIDE_LEN] = {0};
     char resp[LAKESIDE_LEN] = {0};
@@ -1375,7 +1375,7 @@ bool Lakeside::setSlope2Inc(unsigned int slope2_inc)
 //
 // Set slope 1 direction 0 or 1
 //
-bool Lakeside::setSlope1Dir(unsigned int slope1_direction)
+bool Lakeside::setSlope1Dir(uint32_t slope1_direction)
 {
     char cmd[LAKESIDE_LEN] = {0};
     char resp[LAKESIDE_LEN] = {0};
@@ -1411,7 +1411,7 @@ bool Lakeside::setSlope1Dir(unsigned int slope1_direction)
 //
 // Set Slope 2 Direction 0 or 1
 //
-bool Lakeside::setSlope2Dir(unsigned int slope2_direction)
+bool Lakeside::setSlope2Dir(uint32_t slope2_direction)
 {
     char cmd[LAKESIDE_LEN] = {0};
     char resp[LAKESIDE_LEN] = {0};
@@ -1447,7 +1447,7 @@ bool Lakeside::setSlope2Dir(unsigned int slope2_direction)
 //
 // Set Slope 1 Deadband 0 - 255
 //
-bool Lakeside::setSlope1Deadband(unsigned int slope1_deadband)
+bool Lakeside::setSlope1Deadband(uint32_t slope1_deadband)
 {
     char cmd[LAKESIDE_LEN] = {0};
     char resp[LAKESIDE_LEN] = {0};
@@ -1483,7 +1483,7 @@ bool Lakeside::setSlope1Deadband(unsigned int slope1_deadband)
 //
 // Set Slope 1 Deadband 0 - 255
 //
-bool Lakeside::setSlope2Deadband(unsigned int slope2_deadband)
+bool Lakeside::setSlope2Deadband(uint32_t slope2_deadband)
 {
     char cmd[LAKESIDE_LEN] = {0};
     char resp[LAKESIDE_LEN] = {0};
@@ -1519,7 +1519,7 @@ bool Lakeside::setSlope2Deadband(unsigned int slope2_deadband)
 //
 // Set Slope 1 Period in minutes
 //
-bool Lakeside::setSlope1Period(unsigned int slope1_period)
+bool Lakeside::setSlope1Period(uint32_t slope1_period)
 {
     char cmd[LAKESIDE_LEN] = {0};
     char resp[LAKESIDE_LEN] = {0};
@@ -1555,7 +1555,7 @@ bool Lakeside::setSlope1Period(unsigned int slope1_period)
 //
 // Set Slope 2 Period in minutes
 //
-bool Lakeside::setSlope2Period(unsigned int slope2_period)
+bool Lakeside::setSlope2Period(uint32_t slope2_period)
 {
     char cmd[LAKESIDE_LEN] = {0};
     char resp[LAKESIDE_LEN] = {0};
@@ -2215,7 +2215,7 @@ IPState Lakeside::MoveAbsFocuser(uint32_t targetTicks)
     if (rc == true)
     {
         FocusAbsPosNP.s = IPS_BUSY;
-        DEBUG(INDI::Logger::DBG_DEBUG, "MoveAbsFocuser: returning IPS_BUSY");
+        //DEBUG(INDI::Logger::DBG_DEBUG, "MoveAbsFocuser: returning IPS_BUSY");
         return IPS_BUSY;
     }
     else
