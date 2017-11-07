@@ -63,7 +63,7 @@ class LX200AstroPhysics : public LX200Generic
     virtual bool updateLocation(double latitude, double longitude, double elevation) override;
     virtual bool SetSlewRate(int index) override;
 
-    virtual int  SendPulseCmd(int direction, int duration_msec);
+    virtual int  SendPulseCmd(int direction, int duration_msec) override;
 
     // Tracking
     virtual bool SetTrackMode(uint8_t mode) override;
