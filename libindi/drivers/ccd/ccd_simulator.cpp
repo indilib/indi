@@ -484,8 +484,10 @@ int CCDSim::DrawCcdFrame(INDI::CCDChip *targetChip)
 
     if (targetChip->getXRes() == 500)
         ExposureTime = GuideExposureRequest;
+    else if (Streamer->isStreaming())
+        ExposureTime = (ExposureRequest < 1) ? ExposureRequest * 100 : ExposureRequest * 2;
     else
-        ExposureTime = Streamer->isStreaming() ? ExposureRequest * 25 : ExposureRequest;
+        ExposureTime = ExposureRequest;
 
     if (TelescopeTypeS[TELESCOPE_PRIMARY].s == ISS_ON)
         targetFocalLength = primaryFocalLength;
@@ -716,7 +718,7 @@ int CCDSim::DrawCcdFrame(INDI::CCDChip *targetChip)
                         // Invert horizontally
                         ccdx = ccdW - ccdx;
 
-                        rc = DrawImageStar(targetChip, mag, ccdx, ccdy);
+                        rc = DrawImageStar(targetChip, mag, ccdx, ccdy, ExposureTime);
                         drawn += rc;
                         if (rc == 1)
                         {
@@ -855,7 +857,7 @@ int CCDSim::DrawCcdFrame(INDI::CCDChip *targetChip)
     return 0;
 }
 
-int CCDSim::DrawImageStar(INDI::CCDChip *targetChip, float mag, float x, float y)
+int CCDSim::DrawImageStar(INDI::CCDChip *targetChip, float mag, float x, float y, float ExposureTime)
 {
     //float d;
     //float r;
@@ -864,7 +866,6 @@ int CCDSim::DrawImageStar(INDI::CCDChip *targetChip, float mag, float x, float y
     int boxsizex = 5;
     int boxsizey = 5;
     float flux;
-    float ExposureTime;
 
     int subX = targetChip->getSubX();
     int subY = targetChip->getSubY();
@@ -876,11 +877,6 @@ int CCDSim::DrawImageStar(INDI::CCDChip *targetChip, float mag, float x, float y
         //  this star is not on the ccd frame anyways
         return 0;
     }
-
-    if (targetChip->getXRes() == 500)
-        ExposureTime = GuideExposureRequest * 4;
-    else
-        ExposureTime = (streamPredicate == 1) ? ExposureRequest * 20 : ExposureRequest;
 
     //  calculate flux from our zero point and gain values
     flux = pow(10, ((mag - z) * k / -2.5));
@@ -1255,6 +1251,8 @@ void *CCDSim::streamVideo()
             delete [] streamBuffer;
             streamBufferSize = PrimaryCCD.getSubW()*PrimaryCCD.getSubH();
             streamBuffer = new uint8_t[streamBufferSize];
+            // remove time factor contribution
+            ExposureRequest /= TimeFactor;
         }
 
         if (terminateThread)
@@ -1264,7 +1262,7 @@ void *CCDSim::streamVideo()
         pthread_mutex_unlock(&condMutex);
 
         // Simulate exposure time
-        usleep(ExposureRequest*1e6);
+        usleep(ExposureRequest*1e4);
 
         uint8_t *ccdBuffer = PrimaryCCD.getFrameBuffer();
         uint32_t ccdBufferSize = PrimaryCCD.getFrameBufferSize();

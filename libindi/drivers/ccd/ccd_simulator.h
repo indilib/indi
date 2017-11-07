@@ -58,7 +58,7 @@ protected:
 
     int DrawCcdFrame(INDI::CCDChip *targetChip);
 
-    int DrawImageStar(INDI::CCDChip *targetChip, float, float, float);
+    int DrawImageStar(INDI::CCDChip *targetChip, float, float, float, float ExposureTime);
     int AddToPixel(INDI::CCDChip *targetChip, int, int, int);
 
     IPState GuideNorth(float);

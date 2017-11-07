@@ -40,7 +40,7 @@ class TheoraRecorder : public RecorderInterface
 
     virtual const char *getExtension() { return ".ogv"; }
     virtual bool setPixelFormat(INDI_PIXEL_FORMAT pixelFormat, uint8_t pixelDepth);
-    virtual bool setSize(uint16_t width, uint16_t height);
+    virtual bool setSize(uint16_t width, uint16_t height);    
     virtual bool setFrame(uint16_t x, uint16_t y, uint16_t width, uint16_t height);
     virtual bool open(const char *filename, char *errmsg);
     virtual bool close();
@@ -60,6 +60,7 @@ class TheoraRecorder : public RecorderInterface
     bool allocateBuffers();
     //int theora_write_frame(th_ycbcr_buffer ycbcr, int last);
     int theora_write_frame(int last);
+    bool frac(double fration, uint32_t &num, uint32_t &den);
 
     th_ycbcr_buffer ycbcr;
     ogg_uint32_t video_fps_numerator = 24;

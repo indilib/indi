@@ -62,6 +62,8 @@ class RecorderInterface
     virtual bool setPixelFormat(INDI_PIXEL_FORMAT pixelFormat, uint8_t pixelDepth=8) = 0;
     // set full image size in pixels
     virtual bool setSize(uint16_t width, uint16_t height) = 0;
+    // Set exposure time in seconds
+    virtual bool setExposure(float duration) { m_Exposure = duration; return true; }
     // Set subframed dimensions that gets recorded
     virtual bool setFrame(uint16_t x, uint16_t y, uint16_t width, uint16_t height) = 0;
     virtual bool open(const char *filename, char *errmsg)                          = 0;
@@ -75,6 +77,7 @@ class RecorderInterface
 
   protected:
     const char *name;
+    float m_Exposure = 1;
 };
 
 }

@@ -425,7 +425,7 @@ bool StreamManager::startRecording()
     {
         filtername      = currentCCD->FilterNames.at(currentCCD->CurrentFilterSlot - 1);
         patterns["_F_"] = filtername;
-        DEBUGF(INDI::Logger::DBG_SESSION, "Adding filter pattern %s", filtername.c_str());
+        DEBUGF(INDI::Logger::DBG_DEBUG, "Adding filter pattern %s", filtername.c_str());
     }
     /* pattern substitution */
     recordfiledir.assign(RecordFileTP.tp[0].text);
