@@ -626,6 +626,13 @@ bool LX200AstroPhysics::Goto(double r, double d)
     return true;
 }
 
+
+int LX200AstroPhysics::SendPulseCmd(int direction, int duration_msec)
+{
+    return APSendPulseCmd(PortFD, direction, duration_msec);
+}
+
+
 bool LX200AstroPhysics::Handshake()
 {
     if (isSimulation())
