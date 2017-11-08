@@ -197,6 +197,7 @@ bool SynscanMount::AnalyzeHandset()
     rc = ReadLocation();
     if (rc)
     {
+        CanSetLocation = true;
         ReadTime();
     }
 
