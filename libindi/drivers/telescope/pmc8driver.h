@@ -103,7 +103,7 @@ bool get_pmc8_firmware(int fd, FirmwareInfo *info);
 /** Get Mount model */
 //bool get_ieqpro_model(int fd, FirmwareInfo *info);
 /** Get RA/DEC */
-bool get_pmc8_coords(int fd, double *ra, double *dec);
+bool get_pmc8_coords(int fd, double &ra, double &dec);
 /** Get UTC/Date/Time */
 //bool get_ieqpro_utc_date_time(int fd, double *utc_hours, int *yy, int *mm, int *dd, int *hh, int *minute, int *ss);
 

@@ -360,7 +360,7 @@ bool PMC8::ReadScopeStatus()
         scopeInfo = newInfo;
     }
 
-    rc = get_pmc8_coords(PortFD, &currentRA, &currentDEC);
+    rc = get_pmc8_coords(PortFD, currentRA, currentDEC);
 
     if (rc)
         NewRaDec(currentRA, currentDEC);

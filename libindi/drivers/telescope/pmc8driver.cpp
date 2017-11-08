@@ -781,6 +781,125 @@ bool start_ieqpro_guide(int fd, IEQ_DIRECTION dir, int ms)
 #endif
 
 
+// convert from axis position returned by controller to motor counts used in conversion to RA/DEC
+int convert_axispos_to_motor(int axispos)
+{
+    int r;
+
+    if (axispos > 8388608)
+        r = 0 - (16777216 - axispos);
+    else
+        r = axispos;
+
+    return r;
+}
+
+bool convert_ra_to_motor(double ra, INDI::Telescope::TelescopePierSide sop, int *mcounts)
+{
+    double motor_angle, hour_angle, sid_time;
+
+    sid_time = ln_get_apparent_sidereal_time(ln_get_julian_from_sys());
+
+    hour_angle = sid_time - ra;
+
+    // limit values to +/- 12 hours
+    if (hour_angle > 12)
+        hour_angle = hour_angle - 24;
+    else if (hour_angle <= -12)
+        hour_angle = hour_angle + 24;
+
+
+    if (sop == INDI::Telescope::PIER_EAST)
+        motor_angle = hour_angle - 6;
+    else if (sop == INDI::Telescope::PIER_WEST)
+        motor_angle = hour_angle + 6;
+    else
+        return false;
+
+    *mcounts = motor_angle * PMC8_AXIS0_SCALE / 24;
+
+    return true;
+}
+
+bool convert_motor_to_radec(int racounts, int deccounts, double &ra_value, double &dec_value)
+{
+    double motor_angle;
+    double hour_angle;
+    double sid_time;
+
+    sid_time = ln_get_apparent_sidereal_time(ln_get_julian_from_sys());
+
+    DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "sid_time = %f", sid_time);
+
+    motor_angle = (24.0 * racounts) / PMC8_AXIS0_SCALE;
+
+    DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "racounts = %d  motor_angle = %f", racounts, motor_angle);
+
+    if (deccounts < 0)
+        hour_angle = motor_angle + 6;
+    else
+        hour_angle = motor_angle - 6;
+
+    DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "hour_angle = %f", hour_angle);
+
+    ra_value = sid_time - hour_angle;
+
+    DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "ra_value  = %f", ra_value);
+
+    if (ra_value >= 24.0)
+        ra_value = ra_value - 24.0;
+    else if (ra_value < 0.0)
+         ra_value = ra_value + 24.0;
+
+    DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "ra_value (final) = %f", ra_value);
+
+    motor_angle = (360.0 * deccounts) / PMC8_AXIS1_SCALE;
+
+    if (motor_angle >= 0)
+        dec_value = 90 - motor_angle;
+    else
+        dec_value = 90 + motor_angle;
+
+    return true;
+}
+
+bool convert_dec_to_motor(double dec, INDI::Telescope::TelescopePierSide sop, int *mcounts)
+{
+    double motor_angle;
+
+    if (sop == INDI::Telescope::PIER_EAST)
+        motor_angle = (dec - 90.0);
+    else if (sop == INDI::Telescope::PIER_WEST)
+        motor_angle = -(dec - 90.0);
+    else
+        return false;
+
+     *mcounts = (motor_angle / 360.0) * PMC8_AXIS1_SCALE;
+
+     return true;
+}
+
+#if 0
+// need to work on this
+bool convert_motor_to_dec()
+{
+    Public Function MotorCounts_to_DEC(MC_value As Int32) As Double
+        Dim MotorAngle As Double
+        Dim DEC_value As Double
+
+        MotorAngle = (360.0# * MC_value) / Telescope.MountDECCounts
+
+        If MotorAngle >= 0 Then
+            DEC_value = 90 - MotorAngle
+        ElseIf MotorAngle < 0 Then
+            DEC_value = 90 + MotorAngle
+        End If
+
+        Return DEC_value
+    End Function
+}
+#endif
+
 bool set_pmc8_target_position_axis(int fd, PMC8_AXIS axis, int point)
 {
 
@@ -974,9 +1093,10 @@ bool get_pmc8_position_axis(int fd, PMC8_AXIS axis, int &point)
     char num_str[16]= {0};
 
     strcpy(num_str, "0X");
-    strncpy(num_str, response+4, 7);
+    strncat(num_str, response+4, 7);
 
-    point = atoi(num_str);
+    //point = atoi(num_str);
+    point = (int)strtol(num_str, NULL, 0);
 
     DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_DEBUG, "get pos num_str = %s atoi() returns %d", num_str, point);
 
@@ -987,13 +1107,26 @@ bool get_pmc8_position_axis(int fd, PMC8_AXIS axis, int &point)
 bool get_pmc8_position(int fd, int &rapoint, int &decpoint)
 {
     bool rc;
+    int axis_ra_pos, axis_dec_pos;
 
-    rc = get_pmc8_position_axis(fd, RA_AXIS, rapoint);
+    rc = get_pmc8_position_axis(fd, RA_AXIS, axis_ra_pos);
 
     if (!rc)
         return rc;
 
-    rc = get_pmc8_position_axis(fd, DEC_AXIS, decpoint);
+    rc = get_pmc8_position_axis(fd, DEC_AXIS, axis_dec_pos);
+
+    if (!rc)
+        return rc;
+
+    // convert from axis position to motor counts
+    rapoint = convert_axispos_to_motor(axis_ra_pos);
+    decpoint = convert_axispos_to_motor(axis_dec_pos);
+
+
+    DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_DEBUG, "ra  axis pos = 0x%x  motor_counts=%d",  axis_ra_pos,  rapoint);
+    DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_DEBUG, "dec axis pos = 0x%x  motor_counts=%d", axis_dec_pos, decpoint);
+
 
     return rc;
 }
@@ -1058,102 +1191,6 @@ bool abort_pmc8(int fd)
 
     return true;
 }
-
-bool convert_ra_to_motor(double ra, INDI::Telescope::TelescopePierSide sop, int *mcounts)
-{
-    double motor_angle, hour_angle, sid_time;
-
-    sid_time = ln_get_apparent_sidereal_time(ln_get_julian_from_sys());
-
-    hour_angle = sid_time - ra;
-
-    // limit values to +/- 12 hours
-    if (hour_angle > 12)
-        hour_angle = hour_angle - 24;
-    else if (hour_angle <= -12)
-        hour_angle = hour_angle + 24;
-
-
-    if (sop == INDI::Telescope::PIER_EAST)
-        motor_angle = hour_angle - 6;
-    else if (sop == INDI::Telescope::PIER_WEST)
-        motor_angle = hour_angle + 6;
-    else
-        return false;
-
-    *mcounts = motor_angle * PMC8_AXIS0_SCALE / 24;
-
-    return true;
-}
-
-bool convert_motor_to_radec(int racounts, int deccounts, double &ra_value, double &dec_value)
-{
-    double motor_angle;
-    double hour_angle;
-    double sid_time;
-
-    sid_time = ln_get_apparent_sidereal_time(ln_get_julian_from_sys());
-
-    motor_angle = (24.0 * racounts) / PMC8_AXIS0_SCALE;
-
-    if (deccounts < 0)
-        hour_angle = motor_angle + 6;
-    else
-        hour_angle = motor_angle - 6;
-
-    ra_value = sid_time - hour_angle;
-
-    if (ra_value >= 24.0)
-        ra_value = ra_value - 24.0;
-    else if (ra_value < 0.0)
-         ra_value = ra_value + 24.0;
-
-    motor_angle = (360.0 * deccounts) / PMC8_AXIS1_SCALE;
-
-    if (motor_angle >= 0)
-        dec_value = 90 - motor_angle;
-    else
-        dec_value = 90 + motor_angle;
-
-    return true;
-}
-
-bool convert_dec_to_motor(double dec, INDI::Telescope::TelescopePierSide sop, int *mcounts)
-{
-    double motor_angle;
-
-    if (sop == INDI::Telescope::PIER_EAST)
-        motor_angle = (dec - 90.0);
-    else if (sop == INDI::Telescope::PIER_WEST)
-        motor_angle = -(dec - 90.0);
-    else
-        return false;
-
-     *mcounts = (motor_angle / 360.0) * PMC8_AXIS1_SCALE;
-
-     return true;
-}
-
-#if 0
-// need to work on this
-bool convert_motor_to_dec()
-{
-    Public Function MotorCounts_to_DEC(MC_value As Int32) As Double
-        Dim MotorAngle As Double
-        Dim DEC_value As Double
-
-        MotorAngle = (360.0# * MC_value) / Telescope.MountDECCounts
-
-        If MotorAngle >= 0 Then
-            DEC_value = 90 - MotorAngle
-        ElseIf MotorAngle < 0 Then
-            DEC_value = 90 + MotorAngle
-        End If
-
-        Return DEC_value
-    End Function
-}
-#endif
 
 // "slew" on PMC8 is instantaneous once you set the target ra/dec
 // no concept of setting target and then starting a slew operation as two steps
@@ -1794,12 +1831,7 @@ bool set_ieqpro_utc_offset(int fd, double offset)
 }
 #endif
 
-bool get_pmc8_position_axis()
-{
-
-}
-
-bool get_pmc8_coords(int fd, double *ra, double *dec)
+bool get_pmc8_coords(int fd, double &ra, double &dec)
 {
     int racounts, deccounts;
     bool rc;
@@ -1812,7 +1844,13 @@ bool get_pmc8_coords(int fd, double *ra, double *dec)
         return false;
     }
 
+    // convert motor counts to ra/dec
+    convert_motor_to_radec(racounts, deccounts, ra, dec);
 
+    DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_DEBUG, "ra  motor_counts=%d  RA  = %f", racounts, ra);
+    DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_DEBUG, "dec motor_counts=%d  DEC = %f", deccounts, dec);
+
+    return rc;
 }
 
 #if 0
