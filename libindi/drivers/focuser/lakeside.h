@@ -21,10 +21,11 @@
 
 */
 
-#ifndef LAKESIDE_H
-#define LAKESIDE_H
+#pragma once
 
 #include "indifocuser.h"
+
+#include <cstdint>
 
 class Lakeside : public INDI::Focuser
 {
@@ -149,5 +150,3 @@ private:
     INumberVectorProperty Slope2PeriodNP;
 
 };
-
-#endif // LAKESIDE_H

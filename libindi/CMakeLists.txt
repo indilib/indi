@@ -657,6 +657,9 @@ install(TARGETS indi_sestosenso_focus RUNTIME DESTINATION bin)
 set(indilakeside_SRCS  ${CMAKE_CURRENT_SOURCE_DIR}/drivers/focuser/lakeside.cpp)
 
 add_executable(indi_lakeside_focus ${indilakeside_SRCS})
+IF (NOT "${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang" AND NOT "${CMAKE_CXX_COMPILER_ID}" STREQUAL "AppleClang")
+    set_target_properties(indi_lakeside_focus PROPERTIES COMPILE_FLAGS "-Wno-format-overflow")
+ENDIF ()
 target_link_libraries(indi_lakeside_focus indidriver)
 install(TARGETS indi_lakeside_focus RUNTIME DESTINATION bin )
 
