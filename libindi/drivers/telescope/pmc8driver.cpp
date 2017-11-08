@@ -145,7 +145,7 @@ bool check_pmc8_connection(int fd)
         {
             tcflush(fd, TCIFLUSH);
 
-            if ((errcode = tty_write(fd, initCMD, 3, &nbytes_written)) != TTY_OK)
+            if ((errcode = tty_write(fd, initCMD, strlen(initCMD), &nbytes_written)) != TTY_OK)
             {
                 tty_error_msg(errcode, errmsg, MAXRBUF);
                 DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "%s", errmsg);
@@ -153,7 +153,7 @@ bool check_pmc8_connection(int fd)
                 continue;
             }
 
-            if ((errcode = tty_read_section(fd, response, '#', PMC8_TIMEOUT, &nbytes_read)))
+            if ((errcode = tty_read_section(fd, response, '!', PMC8_TIMEOUT, &nbytes_read)))
             {
                 tty_error_msg(errcode, errmsg, MAXRBUF);
                 DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "%s", errmsg);
@@ -187,6 +187,11 @@ bool get_pmc8_status(int fd, PMC8Info *info)
     int nbytes_read    = 0;
     int nbytes_written = 0;
 
+#if 1
+    DEBUGDEVICE(pmc8_device, INDI::Logger::DBG_EXTRA_1, "gem_pmc8_status() not implemented!");
+    return false;
+
+#else
     DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_EXTRA_1, "CMD (%s)", cmd);
 
     if (pmc8_simulation)
@@ -240,6 +245,7 @@ bool get_pmc8_status(int fd, PMC8Info *info)
 
     DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "Only received #%d bytes, expected 7.", nbytes_read);
     return false;
+#endif
 }
 
 bool get_pmc8_model(int fd, FirmwareInfo *info)
@@ -714,7 +720,7 @@ bool set_pmc8_guide_rate(int fd, double rate)
 }
 
 // not yet implemented for PMC8
-bool get_ieqpro_guide_rate(int fd, double *rate)
+bool get_pmc8_guide_rate(int fd, double *rate)
 {
 
     DEBUGDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "get_pmc8_guide_rate not implemented!");

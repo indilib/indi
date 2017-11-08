@@ -118,8 +118,8 @@ bool stop_pmc8_motion(int fd, PMC8_DIRECTION dir);
 bool set_pmc8_track_mode(int fd, PMC8_TRACK_RATE rate);
 bool set_pmc8_track_enabled(int fd, bool enabled);
 bool abort_pmc8(int fd);
-bool slew_pmc8(int fd);
-bool sync_pmc8(int fd);
+bool slew_pmc8(int fd, double ra, double dec);
+bool sync_pmc8(int fd, double ra, double dec);
 bool set_pmc8_radec(int fd, double ra, double dec);
 INDI::Telescope::TelescopePierSide destSideOfPier(double ra, double dec);
 

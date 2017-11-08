@@ -197,6 +197,8 @@ void PMC8::getStartupData()
         IDSetText(&FirmwareTP, nullptr);
     }
 
+#if 0
+    // FIXME - (MSF) Need to implement guide rate functions
     DEBUG(INDI::Logger::DBG_DEBUG, "Getting guiding rate...");
     double guideRate = 0;
     if (get_pmc8_guide_rate(PortFD, &guideRate))
@@ -204,6 +206,8 @@ void PMC8::getStartupData()
         GuideRateN[0].value = guideRate;
         IDSetNumber(&GuideRateNP, nullptr);
     }
+#endif
+
 
 #if 0
     // FIXEME - (MSF) Need to handle southern hemisphere for DEC?
@@ -227,6 +231,8 @@ void PMC8::getStartupData()
     }
 #endif
 
+#if 0
+    // FIXME - (MSF) Need to implement simulation functionality
     if (isSimulation())
     {
         if (isParked())
@@ -234,6 +240,7 @@ void PMC8::getStartupData()
         else
             set_sim_system_status(ST_STOPPED);
     }
+#endif
 }
 
 bool PMC8::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
@@ -370,13 +377,7 @@ bool PMC8::Goto(double r, double d)
     fs_sexa(RAStr, targetRA, 2, 3600);
     fs_sexa(DecStr, targetDEC, 2, 3600);
 
-    if (set_pmc8_radec(PortFD, r, d) == false)
-    {
-        DEBUG(INDI::Logger::DBG_ERROR, "Error setting RA/DEC.");
-        return false;
-    }
-
-    if (slew_pmc8(PortFD) == false)
+    if (slew_pmc8(PortFD, r, d) == false)
     {
         DEBUG(INDI::Logger::DBG_ERROR, "Failed to slew.");
         return false;
@@ -390,13 +391,7 @@ bool PMC8::Goto(double r, double d)
 
 bool PMC8::Sync(double ra, double dec)
 {
-    if (set_pmc8_radec(PortFD, ra, dec) == false)
-    {
-        DEBUG(INDI::Logger::DBG_ERROR, "Error setting RA/DEC.");
-        return false;
-    }
-
-    if (sync_pmc8(PortFD) == false)
+    if (sync_pmc8(PortFD, ra, dec) == false)
     {
         DEBUG(INDI::Logger::DBG_ERROR, "Failed to sync.");
     }
@@ -651,16 +646,35 @@ IPState PMC8::GuideWest(float ms)
     bool rc = start_ieqpro_guide(PortFD, PMC8_W, (int)ms);
     return (rc ? IPS_OK : IPS_ALERT);
 }
-#endif
-
-#if 0
-// not implemented for PMC8
-bool PMC8::SetSlewRate(int index)
+#else
+IPState PMC8::GuideNorth(float ms)
 {
-    IEQ_SLEW_RATE rate = (IEQ_SLEW_RATE)index;
-    return set_ieqpro_slew_rate(PortFD, rate);
+    DEBUG(INDI::Logger::DBG_ERROR, "PMC8::GuideNorth(float ms) not implemented!");
+    return IPS_ALERT;
+}
+IPState PMC8::GuideSouth(float ms)
+{
+    DEBUG(INDI::Logger::DBG_ERROR, "PMC8::GuideSouth(float ms) not implemented!");
+    return IPS_ALERT;
+}
+IPState PMC8::GuideEast(float ms)
+{
+    DEBUG(INDI::Logger::DBG_ERROR, "PMC8::GuideEast(int index)) not implemented!");
+    return IPS_ALERT;
+}
+IPState PMC8::GuideWest(float ms)
+{
+    DEBUG(INDI::Logger::DBG_ERROR, "PMC8::GuideWest(float ms) not implemented!");
+    return IPS_ALERT;
 }
 #endif
+
+bool PMC8::SetSlewRate(int index)
+{
+    // According to PMC-Eight programmer reference the slew rate is always 25x the tracking rate!
+    DEBUG(INDI::Logger::DBG_ERROR, "PMC8::SetSlewRate(int index)) not implemented!");
+    return false;
+}
 
 bool PMC8::saveConfigItems(FILE *fp)
 {
@@ -741,10 +755,13 @@ void PMC8::mountSim()
 
             if (nlocked == 2)
             {
+                // FIXME - (MSF) need to implement sim functionality
+#if 0
                 if (TrackState == SCOPE_SLEWING)
                     set_sim_system_status(ST_TRACKING_PEC_OFF);
                 else
                     set_sim_system_status(ST_PARKED);
+#endif
             }
 
             break;
@@ -777,6 +794,18 @@ bool PMC8::SetDefaultPark()
     SetAxis2Park(90);
 
     return true;
+}
+#else
+bool PMC8::SetCurrentPark()
+{
+    DEBUG(INDI::Logger::DBG_ERROR, "PPMC8::SetCurrentPark() not implemented!");
+    return false;
+}
+
+bool PMC8::SetDefaultPark()
+{
+    DEBUG(INDI::Logger::DBG_ERROR, "PMC8::SetDefaultPark() not implemented!");
+    return false;
 }
 #endif
 
@@ -816,10 +845,22 @@ bool PMC8::SetTrackRate(double raRate, double deRate)
 
         return false;
 }
+#else
+bool PMC8::PMC8::SetTrackRate(double raRate, double deRate)
+{
+    DEBUG(INDI::Logger::DBG_ERROR, "PMC8::SetTrackRate not implemented!");
+    return false;
+}
 #endif
 
 bool PMC8::SetTrackEnabled(bool enabled)
 {
+    // FIXME - (MSF) Need to implement!
+#if 0
     return set_pmc8_track_enabled(PortFD, enabled);
+#else
+    DEBUG(INDI::Logger::DBG_ERROR, "PMC8::SetTrackEnabled not implemented!");
+    return false;
+#endif
 }
 
