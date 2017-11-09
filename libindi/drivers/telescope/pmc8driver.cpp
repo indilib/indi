@@ -50,6 +50,8 @@
 bool pmc8_debug                 = false;
 bool pmc8_simulation            = false;
 char pmc8_device[MAXINDIDEVICE] = "PMC8";
+double pmc8_latitude            = 0;  // must be kept updated by pmc8.cpp when it is changed!
+double pmc8_longitude           = 0;  // must be kept updated by pmc8.cpp when it is changed!
 PMC8Info simInfo;
 
 struct
@@ -74,6 +76,15 @@ void set_pmc8_simulation(bool enable)
 void set_pmc8_device(const char *name)
 {
     strncpy(pmc8_device, name, MAXINDIDEVICE);
+}
+
+void set_pmc8_location(double latitude, double longitude)
+{
+    pmc8_latitude = latitude;
+    pmc8_longitude = longitude;
+
+    DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_DEBUG, "Set PMC8 'lowlevel' lat:%f long:%f",pmc8_latitude, pmc8_longitude);
+
 }
 
 #if 0
@@ -501,6 +512,31 @@ bool set_pmc8_slew_rate(int fd, IEQ_SLEW_RATE rate)
 }
 #endif
 
+
+// convert mount count to 6 character two complement hex string
+void convert_motor_counts_to_hex(int val, char *hex)
+{
+    unsigned tmp;
+    char h[16];
+
+    if (val < 0)
+    {
+        tmp=abs(val);
+        tmp=~tmp;
+        tmp++;
+    }
+    else
+    {
+        tmp=val;
+    }
+
+    sprintf(h, "%08X", tmp);
+
+    strcpy(hex, h+2);
+
+    DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_DEBUG, "convert_motor_counts_to_hex val=%d, h=%s, hex=%s", val, h, hex);
+}
+
 // convert rate in arcsec/sidereal_second to internal PMC8 motor rate
 bool convert_rate_to_motor(float rate, int *mrate)
 {
@@ -533,7 +569,7 @@ bool set_pmc8_axis_rate(int fd, PMC8_AXIS axis, float rate)
 
     DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_DEBUG, "PMC8 internal rate %d for requested rate %f", rateval, rate);
 
-    snprintf(cmd, sizeof(cmd), "ESSr%d%05X!", axis, rateval);
+    snprintf(cmd, sizeof(cmd), "ESSr%d%04X!", axis, rateval);
 
     DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
 
@@ -562,7 +598,7 @@ bool set_pmc8_axis_rate(int fd, PMC8_AXIS axis, float rate)
         }
     }
 
-    if (nbytes_read == 13)
+    if (nbytes_read == 10)
     {
         response[nbytes_read] = '\0';
         DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_DEBUG, "RES (%s)", response);
@@ -595,64 +631,26 @@ bool set_pmc8_track_mode(int fd, PMC8_TRACK_RATE rate)
     return set_pmc8_axis_rate(fd, RA_AXIS, ratereal);
 }
 
-#if 0
-// not yet implemented for PMC8
-bool set_ieqpro_custom_ra_track_rate(int fd, double rate)
+bool set_pmc8_custom_ra_track_rate(int fd, double rate)
 {
-    char cmd[16];
-    char sign;
-    int errcode = 0;
-    char errmsg[MAXRBUF];
-    char response[8];
-    int nbytes_read    = 0;
-    int nbytes_written = 0;
+    bool rc;
 
-    if (rate < 0)
-        sign = '-';
-    else
-        sign = '+';
+    DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_DEBUG, "set_pmc8_custom_ra_track_rate() called rate=%f ", rate);
 
-    snprintf(cmd, 16, ":RR%c%07.4f#", sign, fabs(rate));
-
-    DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
 
     if (pmc8_simulation)
     {
-        strcpy(response, "1");
-        nbytes_read = strlen(response);
+        DEBUGDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "set_pmc8_custom_ra_track_rate simulation not implemented");
+
+        rc=false;
     }
     else
     {
-        tcflush(fd, TCIFLUSH);
-
-        if ((errcode = tty_write(fd, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
-        {
-            tty_error_msg(errcode, errmsg, MAXRBUF);
-            DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "%s", errmsg);
-            return false;
-        }
-
-        if ((errcode = tty_read(fd, response, 1, PMC8_TIMEOUT, &nbytes_read)))
-        {
-            tty_error_msg(errcode, errmsg, MAXRBUF);
-            DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "%s", errmsg);
-            return false;
-        }
+        rc=set_pmc8_axis_rate(fd, RA_AXIS, rate);
     }
 
-    if (nbytes_read > 0)
-    {
-        response[nbytes_read] = '\0';
-        DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_DEBUG, "RES (%s)", response);
-
-        tcflush(fd, TCIFLUSH);
-        return true;
-    }
-
-    DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "Only received #%d bytes, expected 1.", nbytes_read);
-    return false;
+    return rc;
 }
-#endif
 #if 0
 // not yet implemented for PMC8
 bool set_ieqpro_custom_de_track_rate(int fd, double rate)
@@ -796,18 +794,21 @@ int convert_axispos_to_motor(int axispos)
 
 bool convert_ra_to_motor(double ra, INDI::Telescope::TelescopePierSide sop, int *mcounts)
 {
-    double motor_angle, hour_angle, sid_time;
+    double motor_angle;
+    double hour_angle;
+    double lst;
 
-    sid_time = ln_get_apparent_sidereal_time(ln_get_julian_from_sys());
+    DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_DEBUG, "convert_ra_to_motor - ra=%f sop=%d", ra, sop);
 
-    hour_angle = sid_time - ra;
+    lst = get_local_sideral_time(pmc8_longitude);
+
+    hour_angle = lst- ra;
 
     // limit values to +/- 12 hours
     if (hour_angle > 12)
         hour_angle = hour_angle - 24;
     else if (hour_angle <= -12)
         hour_angle = hour_angle + 24;
-
 
     if (sop == INDI::Telescope::PIER_EAST)
         motor_angle = hour_angle - 6;
@@ -816,7 +817,12 @@ bool convert_ra_to_motor(double ra, INDI::Telescope::TelescopePierSide sop, int 
     else
         return false;
 
+    DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_DEBUG, "convert_ra_to_motor - lst = %f hour_angle=%f", lst, hour_angle);
+
     *mcounts = motor_angle * PMC8_AXIS0_SCALE / 24;
+
+    DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_DEBUG, "convert_ra_to_motor - motor_angle=%f *mcounts=%d", motor_angle, *mcounts);
+
 
     return true;
 }
@@ -825,33 +831,35 @@ bool convert_motor_to_radec(int racounts, int deccounts, double &ra_value, doubl
 {
     double motor_angle;
     double hour_angle;
-    double sid_time;
+    //double sid_time;
 
-    sid_time = ln_get_apparent_sidereal_time(ln_get_julian_from_sys());
+    double lst;
 
-    DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "sid_time = %f", sid_time);
+    lst = get_local_sideral_time(pmc8_longitude);
+
+    DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_DEBUG, "lst = %f", lst);
 
     motor_angle = (24.0 * racounts) / PMC8_AXIS0_SCALE;
 
-    DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "racounts = %d  motor_angle = %f", racounts, motor_angle);
+    DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_DEBUG, "racounts = %d  motor_angle = %f", racounts, motor_angle);
 
     if (deccounts < 0)
         hour_angle = motor_angle + 6;
     else
         hour_angle = motor_angle - 6;
 
-    DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "hour_angle = %f", hour_angle);
+    DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_DEBUG, "hour_angle = %f", hour_angle);
 
-    ra_value = sid_time - hour_angle;
+    ra_value = lst - hour_angle;
 
-    DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "ra_value  = %f", ra_value);
+    DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_DEBUG, "ra_value  = %f", ra_value);
 
     if (ra_value >= 24.0)
         ra_value = ra_value - 24.0;
     else if (ra_value < 0.0)
          ra_value = ra_value + 24.0;
 
-    DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "ra_value (final) = %f", ra_value);
+    DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_DEBUG, "ra_value (final) = %f", ra_value);
 
     motor_angle = (360.0 * deccounts) / PMC8_AXIS1_SCALE;
 
@@ -875,6 +883,9 @@ bool convert_dec_to_motor(double dec, INDI::Telescope::TelescopePierSide sop, in
         return false;
 
      *mcounts = (motor_angle / 360.0) * PMC8_AXIS1_SCALE;
+
+     DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_DEBUG, "convert_dec_to_motor dec = %f, sop = %d", dec, sop);
+     DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_DEBUG, "convert_dec_to_motor motor_angle = %f, motor_counts= %d", motor_angle, *mcounts);
 
      return true;
 }
@@ -904,6 +915,8 @@ bool set_pmc8_target_position_axis(int fd, PMC8_AXIS axis, int point)
 {
 
     char cmd[32];
+    char expresp[32];
+    char hexpt[16];
     int errcode = 0;
     char errmsg[MAXRBUF];
     char response[16];
@@ -917,11 +930,10 @@ bool set_pmc8_target_position_axis(int fd, PMC8_AXIS axis, int point)
         return true;
     }
 
-
-    snprintf(cmd, sizeof(cmd), "ESPt%d%d!", axis, point);
+    convert_motor_counts_to_hex(point, hexpt);
+    snprintf(cmd, sizeof(cmd), "ESPt%d%s!", axis, hexpt);
 
     DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
-
 
     tcflush(fd, TCIFLUSH);
 
@@ -944,10 +956,12 @@ bool set_pmc8_target_position_axis(int fd, PMC8_AXIS axis, int point)
     if (nbytes_read > 0)
         DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_DEBUG, "RES (%s)", response);
 
+    // compare to expected response
+    snprintf(expresp, sizeof(expresp), "ESGt%d%s!", axis, hexpt);
 
-    if (strncmp(cmd, response, strlen(cmd)))
+    if (strncmp(response, expresp, strlen(response)))
     {
-        DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "Axis Set Point cmd response incorrect: %s - expected %s", response, cmd);
+        DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "Axis Set Point cmd response incorrect: %s - expected %s", response, expresp);
         return false;
     }
 
@@ -1089,11 +1103,10 @@ bool get_pmc8_position_axis(int fd, PMC8_AXIS axis, int &point)
         return false;
     }
 
-
     char num_str[16]= {0};
 
     strcpy(num_str, "0X");
-    strncat(num_str, response+4, 7);
+    strncat(num_str, response+5, 6);
 
     //point = atoi(num_str);
     point = (int)strtol(num_str, NULL, 0);
@@ -1123,10 +1136,8 @@ bool get_pmc8_position(int fd, int &rapoint, int &decpoint)
     rapoint = convert_axispos_to_motor(axis_ra_pos);
     decpoint = convert_axispos_to_motor(axis_dec_pos);
 
-
     DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_DEBUG, "ra  axis pos = 0x%x  motor_counts=%d",  axis_ra_pos,  rapoint);
     DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_DEBUG, "dec axis pos = 0x%x  motor_counts=%d", axis_dec_pos, decpoint);
-
 
     return rc;
 }
@@ -1200,20 +1211,21 @@ bool slew_pmc8(int fd, double ra, double dec)
     int racounts, deccounts;
     INDI::Telescope::TelescopePierSide sop;
 
+    DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_DEBUG, "slew_pmc8: ra=%f  dec=%f", ra, dec);
 
     sop = destSideOfPier(ra, dec);
 
     rc = convert_ra_to_motor(ra, sop, &racounts);
     if (!rc)
     {
-        DEBUGDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "sync_pmc8: error convering RA to motor counts");
+        DEBUGDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "slew_pmc8: error convering RA to motor counts");
         return false;
     }
 
-    rc = convert_dec_to_motor(ra, sop, &deccounts);
+    rc = convert_dec_to_motor(dec, sop, &deccounts);
     if (!rc)
     {
-        DEBUGDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "sync_pmc8: error convering DEC to motor counts");
+        DEBUGDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "slew_pmc8: error convering DEC to motor counts");
         return false;
     }
 
@@ -1241,11 +1253,12 @@ bool slew_pmc8(int fd, double ra, double dec)
 
 INDI::Telescope::TelescopePierSide destSideOfPier(double ra, double dec)
 {
-    double hour_angle, sid_time;
+    double hour_angle;
+    double lst;
 
-    sid_time = ln_get_apparent_sidereal_time(ln_get_julian_from_sys());
+    lst = get_local_sideral_time(pmc8_longitude);
 
-    hour_angle = sid_time - ra;
+    hour_angle = lst - ra;
 
     // limit values to +/- 12 hours
     if (hour_angle > 12)

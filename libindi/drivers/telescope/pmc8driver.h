@@ -113,7 +113,7 @@ bool get_pmc8_coords(int fd, double &ra, double &dec);
 bool start_pmc8_motion(int fd, PMC8_DIRECTION dir);
 bool stop_pmc8_motion(int fd, PMC8_DIRECTION dir);
 //bool set_ieqpro_slew_rate(int fd, IEQ_SLEW_RATE rate);
-//bool set_ieqpro_custom_ra_track_rate(int fd, double rate);
+bool set_pmc8_custom_ra_track_rate(int fd, double rate);
 //bool set_ieqpro_custom_de_track_rate(int fd, double rate);
 bool set_pmc8_track_mode(int fd, PMC8_TRACK_RATE rate);
 bool set_pmc8_track_enabled(int fd, bool enabled);
@@ -146,6 +146,8 @@ bool get_pmc8_guide_rate(int fd, double *rate);
 /**************************************************************************
  Time & Location
 **************************************************************************/
+void set_pmc8_location(double latitude, double longitude);
+
 //bool set_ieqpro_longitude(int fd, double longitude);
 //bool set_ieqpro_latitude(int fd, double latitude);
 //bool get_ieqpro_longitude(int fd, double *longitude);

@@ -98,7 +98,8 @@ PMC8::PMC8()
     DBG_SCOPE = INDI::Logger::getInstance().addDebugLevel("Scope Verbose", "SCOPE");
 
     SetTelescopeCapability(TELESCOPE_CAN_PARK | TELESCOPE_CAN_SYNC | TELESCOPE_CAN_GOTO | TELESCOPE_CAN_ABORT |
-                           TELESCOPE_HAS_TRACK_MODE | TELESCOPE_CAN_CONTROL_TRACK | TELESCOPE_HAS_TRACK_RATE,
+                           TELESCOPE_HAS_TRACK_MODE | TELESCOPE_CAN_CONTROL_TRACK | TELESCOPE_HAS_TRACK_RATE |
+                           TELESCOPE_HAS_LOCATION,
                            4);
 }
 
@@ -175,7 +176,7 @@ bool PMC8::updateProperties()
        deleteProperty(GuideWENP.name);
        deleteProperty(GuideRateNP.name);
 
-        deleteProperty(FirmwareTP.name);
+       deleteProperty(FirmwareTP.name);
     }
 
     return true;
@@ -207,6 +208,32 @@ void PMC8::getStartupData()
         IDSetNumber(&GuideRateNP, nullptr);
     }
 #endif
+
+    // PMC8 doesn't store location permanently so read from config and set
+    // Convert to INDI standard longitude (0 to 360 Eastward)
+
+    double longitude;
+    double latitude;
+
+#if 0
+    // for testing
+    longitude = -78.0;
+    latitude = 35.5;
+
+    if (longitude < 0)
+        longitude += 360;
+
+    LocationN[LOCATION_LATITUDE].value  = latitude;
+    LocationN[LOCATION_LONGITUDE].value = longitude;
+    LocationNP.s                        = IPS_OK;
+    IDSetNumber(&LocationNP, nullptr);
+#endif
+
+    longitude = LocationN[LOCATION_LONGITUDE].value;
+    latitude = LocationN[LOCATION_LATITUDE].value;
+
+    // must also keep "low level" aware of position to convert motor counts to RA/DEC
+    set_pmc8_location(latitude, longitude);
 
 
 #if 0
@@ -377,6 +404,8 @@ bool PMC8::Goto(double r, double d)
     fs_sexa(RAStr, targetRA, 2, 3600);
     fs_sexa(DecStr, targetDEC, 2, 3600);
 
+    IDMessage(getDeviceName(), "Slewing to RA: %s - DEC: %s", RAStr, DecStr);
+
     if (slew_pmc8(PortFD, r, d) == false)
     {
         DEBUG(INDI::Logger::DBG_ERROR, "Failed to slew.");
@@ -385,7 +414,6 @@ bool PMC8::Goto(double r, double d)
 
     TrackState = SCOPE_SLEWING;
 
-    IDMessage(getDeviceName(), "Slewing to RA: %s - DEC: %s", RAStr, DecStr);
     return true;
 }
 
@@ -512,23 +540,13 @@ bool PMC8::updateTime(ln_date *utc, double utc_offset)
 
 bool PMC8::updateLocation(double latitude, double longitude, double elevation)
 {
-#if 0
     INDI_UNUSED(elevation);
 
     if (longitude > 180)
         longitude -= 360;
 
-    if (set_ieqpro_longitude(PortFD, longitude) == false)
-    {
-        DEBUG(INDI::Logger::DBG_ERROR, "Failed to set longitude.");
-        return false;
-    }
-
-    if (set_ieqpro_latitude(PortFD, latitude) == false)
-    {
-        DEBUG(INDI::Logger::DBG_ERROR, "Failed to set longitude.");
-        return false;
-    }
+    // must also keep "low level" aware of position to convert motor counts to RA/DEC
+    set_pmc8_location(latitude, longitude);
 
     char l[32]={0}, L[32]={0};
     fs_sexa(l, latitude, 3, 3600);
@@ -537,10 +555,6 @@ bool PMC8::updateLocation(double latitude, double longitude, double elevation)
     DEBUGF(INDI::Logger::DBG_SESSION, "Site location updated to Lat %.32s - Long %.32s", l, L);
 
     return true;
-#else
-    DEBUG(INDI::Logger::DBG_ERROR, "PMC8::updateLocation() not implemented!");
-    return false;
-#endif
 }
 
 void PMC8::debugTriggered(bool enable)
@@ -811,6 +825,8 @@ bool PMC8::SetDefaultPark()
 
 bool PMC8::SetTrackMode(uint8_t mode)
 {
+    DEBUGF(INDI::Logger::DBG_DEBUG, "PMC8::SetTrackMode called mode=%d", mode);
+
     // FIXME - (MSF) Need to make sure track modes are handled properly!
     PMC8_TRACK_RATE rate = static_cast<PMC8_TRACK_RATE>(mode);
 
@@ -819,48 +835,45 @@ bool PMC8::SetTrackMode(uint8_t mode)
 
     return false;
 }
-#if 0
-// PMC8 custom rate not implemented yet
+
 bool PMC8::SetTrackRate(double raRate, double deRate)
 {
     static bool deRateWarning = true;
+    double pmc8RARate;
 
-        if (TrackModeS[TR_CUSTOM].s != ISS_ON)
-        {
-            DEBUG(INDI::Logger::DBG_ERROR, "Can only set tracking rate if tracking mode is set to custom.");
-            return false;
-        }
+    DEBUGF(INDI::Logger::DBG_DEBUG, "PMC8::SetTrackRate called raRate=%f  deRate=%f", raRate, deRate);
 
-        // Convert to arcsecs/s to +/- 0.0100 accepted by
-        double ieqRARate = raRate - TRACKRATE_SIDEREAL;
-        if (deRate != 0 && deRateWarning)
-        {
-            // Only send warning once per session
-            deRateWarning = false;
-            DEBUG(INDI::Logger::DBG_WARNING, "Custom Declination tracking rate is not implemented yet.");
-        }
+    // Convert to arcsecs/s to +/- 0.0100 accepted by
+    //double pmc8RARate = raRate - TRACKRATE_SIDEREAL;
 
-        if (set_ieqpro_custom_ra_track_rate(PortFD, ieqRARate))
-            return true;
+    // (MSF) for now just send rate
+    pmc8RARate = raRate;
 
-        return false;
-}
-#else
-bool PMC8::PMC8::SetTrackRate(double raRate, double deRate)
-{
+    if (deRate != 0 && deRateWarning)
+    {
+        // Only send warning once per session
+        deRateWarning = false;
+        DEBUG(INDI::Logger::DBG_WARNING, "Custom Declination tracking rate is not implemented yet.");
+    }
+
+    if (set_pmc8_custom_ra_track_rate(PortFD, pmc8RARate))
+        return true;
+
     DEBUG(INDI::Logger::DBG_ERROR, "PMC8::SetTrackRate not implemented!");
     return false;
 }
-#endif
 
 bool PMC8::SetTrackEnabled(bool enabled)
 {
+
+    DEBUGF(INDI::Logger::DBG_DEBUG, "PMC8::SetTrackEnabled called enabled=%d", enabled);
+
     // FIXME - (MSF) Need to implement!
 #if 0
     return set_pmc8_track_enabled(PortFD, enabled);
 #else
-    DEBUG(INDI::Logger::DBG_ERROR, "PMC8::SetTrackEnabled not implemented!");
-    return false;
+    DEBUG(INDI::Logger::DBG_DEBUG, "PMC8::SetTrackEnabled just returns true for now");
+    return true;
 #endif
 }
 
