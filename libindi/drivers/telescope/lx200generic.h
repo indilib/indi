@@ -27,7 +27,7 @@ class LX200Generic : public INDI::Telescope, public INDI::GuiderInterface
 {
   public:
     LX200Generic();
-    virtual ~LX200Generic();
+    virtual ~LX200Generic() = default;
 
     /**
      * \struct LX200Capability

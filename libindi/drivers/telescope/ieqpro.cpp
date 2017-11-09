@@ -80,10 +80,6 @@ IEQPro::IEQPro()
 {
     set_ieqpro_device(getDeviceName());
 
-    //ctor
-    currentRA  = ln_get_apparent_sidereal_time(ln_get_julian_from_sys());
-    currentDEC = 90;
-
     scopeInfo.gpsStatus    = GPS_OFF;
     scopeInfo.systemStatus = ST_STOPPED;
     scopeInfo.trackRate    = TR_SIDEREAL;
@@ -96,10 +92,6 @@ IEQPro::IEQPro()
     SetTelescopeCapability(TELESCOPE_CAN_PARK | TELESCOPE_CAN_SYNC | TELESCOPE_CAN_GOTO | TELESCOPE_CAN_ABORT |
                            TELESCOPE_HAS_TIME | TELESCOPE_HAS_LOCATION | TELESCOPE_HAS_TRACK_MODE | TELESCOPE_CAN_CONTROL_TRACK | TELESCOPE_HAS_TRACK_RATE,
                            9);
-}
-
-IEQPro::~IEQPro()
-{
 }
 
 const char *IEQPro::getDefaultName()
@@ -175,6 +167,13 @@ bool IEQPro::initProperties()
 
     addAuxControls();
 
+    double longitude=0, latitude=90;
+    // Get value from config file if it exists.
+    IUGetConfigNumber(getDeviceName(), "GEOGRAPHIC_COORD", "LONG", &longitude);
+    currentRA  = get_local_sideral_time(longitude);
+    IUGetConfigNumber(getDeviceName(), "GEOGRAPHIC_COORD", "LAT", &latitude);
+    currentDEC = latitude > 0 ? 90 : -90;
+
     return true;
 }
 
@@ -235,25 +234,7 @@ void IEQPro::getStartupData()
     {
         GuideRateN[0].value = guideRate;
         IDSetNumber(&GuideRateNP, nullptr);
-    }
-
-    double HA  = ln_get_apparent_sidereal_time(ln_get_julian_from_sys());
-    double DEC = (HemisphereS[HEMI_NORTH].s == ISS_ON) ? 90 : -90;
-
-    if (InitPark())
-    {
-        // If loading parking data is successful, we just set the default parking values.
-        SetAxis1ParkDefault(HA);
-        SetAxis2ParkDefault(DEC);
-    }
-    else
-    {
-        // Otherwise, we set all parking data to default in case no parking data is found.
-        SetAxis1Park(HA);
-        SetAxis2Park(DEC);
-        SetAxis1ParkDefault(HA);
-        SetAxis2ParkDefault(DEC);
-    }
+    }    
 
     double utc_offset;
     int yy, dd, mm, hh, minute, ss;
@@ -286,6 +267,23 @@ void IEQPro::getStartupData()
         LocationNP.s                        = IPS_OK;
 
         IDSetNumber(&LocationNP, nullptr);
+    }
+
+    double DEC = (latitude > 0) ? 90 : -90;
+
+    if (InitPark())
+    {
+        // If loading parking data is successful, we just set the default parking values.
+        SetAxis1ParkDefault(currentRA);
+        SetAxis2ParkDefault(DEC);
+    }
+    else
+    {
+        // Otherwise, we set all parking data to default in case no parking data is found.
+        SetAxis1Park(currentRA);
+        SetAxis2Park(DEC);
+        SetAxis1ParkDefault(currentRA);
+        SetAxis2ParkDefault(DEC);
     }
 
     if (isSimulation())
@@ -881,8 +879,8 @@ bool IEQPro::SetCurrentPark()
 
 bool IEQPro::SetDefaultPark()
 {
-    // By default set RA to HA
-    SetAxis1Park(ln_get_apparent_sidereal_time(ln_get_julian_from_sys()));
+    // By default set RA to LST
+    SetAxis1Park(get_local_sideral_time(LocationN[LOCATION_LONGITUDE].value));
 
     // Set DEC to 90 or -90 depending on the hemisphere
     SetAxis2Park((HemisphereS[HEMI_NORTH].s == ISS_ON) ? 90 : -90);

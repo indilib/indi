@@ -239,9 +239,6 @@ LX200Generic::LX200Generic()
 
     DBG_SCOPE = INDI::Logger::getInstance().addDebugLevel("Scope Verbose", "SCOPE");
 
-    currentRA  = ln_get_apparent_sidereal_time(ln_get_julian_from_sys());
-    currentDEC = 90;
-
     setLX200Capability(LX200_HAS_FOCUS | LX200_HAS_TRACKING_FREQ | LX200_HAS_ALIGNMENT_TYPE | LX200_HAS_SITES |
                        LX200_HAS_PULSE_GUIDING);
 
@@ -252,9 +249,6 @@ LX200Generic::LX200Generic()
     DEBUG(INDI::Logger::DBG_DEBUG, "Initializing from Generic LX200 device...");
 }
 
-LX200Generic::~LX200Generic()
-{
-}
 
 void LX200Generic::debugTriggered(bool enable)
 {
@@ -346,6 +340,13 @@ bool LX200Generic::initProperties()
     addAuxControls();
 
     setDriverInterface(getDriverInterface() | GUIDER_INTERFACE);
+
+    double longitude=0, latitude=90;
+    // Get value from config file if it exists.
+    IUGetConfigNumber(getDeviceName(), "GEOGRAPHIC_COORD", "LONG", &longitude);
+    currentRA  = get_local_sideral_time(longitude);
+    IUGetConfigNumber(getDeviceName(), "GEOGRAPHIC_COORD", "LAT", &latitude);
+    currentDEC = latitude > 0 ? 90 : -90;
 
     return true;
 }

@@ -1312,6 +1312,63 @@ void IUSaveDefaultConfig(const char *source_config, const char *dest_config, con
     }
 }
 
+int IUGetConfigNumber(const char *dev, const char *property, const char *member, double *value)
+{
+    char *rname, *rdev;
+    XMLEle *root = NULL, *fproot = NULL;
+    char errmsg[MAXRBUF];
+    LilXML *lp = newLilXML();
+    int valueFound=0;
+
+    FILE *fp = IUGetConfigFP(NULL, dev, "r", errmsg);
+
+    if (fp == NULL)
+        return -1;
+
+    fproot = readXMLFile(fp, lp, errmsg);
+
+    if (fproot == NULL)
+    {
+        fclose(fp);
+        return -1;
+    }
+
+    for (root = nextXMLEle(fproot, 1); root != NULL; root = nextXMLEle(fproot, 0))
+    {
+        /* pull out device and name */
+        if (crackDN(root, &rdev, &rname, errmsg) < 0)
+        {
+            fclose(fp);
+            return -1;
+        }
+
+        // It doesn't belong to our device??
+        if (strcmp(dev, rdev))
+            continue;
+
+        if ((property && !strcmp(property, rname)) || property == NULL)
+        {
+            XMLEle *oneNumber = NULL;
+            for (oneNumber = nextXMLEle(root, 1); oneNumber != NULL; oneNumber = nextXMLEle(root, 0))
+            {
+                if (!strcmp(member, findXMLAttValu(oneNumber, "name")))
+                {
+                    *value = atof(pcdataXMLEle(oneNumber));
+                    valueFound = 1;
+                    break;
+                }
+            }
+            break;
+        }
+    }
+
+    fclose(fp);
+    delXMLEle(fproot);
+    delLilXML(lp);
+
+    return (valueFound == 1 ? 0 : -1);
+}
+
 /* send client a message for a specific device or at large if !dev */
 void IDMessage(const char *dev, const char *fmt, ...)
 {
