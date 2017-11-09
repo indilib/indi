@@ -180,6 +180,13 @@ bool Paramount::initProperties()
 
     addAuxControls();
 
+    double longitude=0, latitude=90;
+    // Get value from config file if it exists.
+    IUGetConfigNumber(getDeviceName(), "GEOGRAPHIC_COORD", "LONG", &longitude);
+    currentRA  = get_local_sideral_time(longitude);
+    IUGetConfigNumber(getDeviceName(), "GEOGRAPHIC_COORD", "LAT", &latitude);
+    currentDEC = latitude > 0 ? 90 : -90;
+
     return true;
 }
 
@@ -210,22 +217,20 @@ bool Paramount::updateProperties()
         defineNumber(&GuideWENP);
         defineNumber(&GuideRateNP);
 
-        double HA  = ln_get_apparent_sidereal_time(ln_get_julian_from_sys());
-        double DEC = 90;
-
+        // Initial currentRA and currentDEC to LST and +90 or -90
         if (InitPark())
         {
             // If loading parking data is successful, we just set the default parking values.
-            SetAxis1ParkDefault(HA);
-            SetAxis2ParkDefault(DEC);
+            SetAxis1ParkDefault(currentRA);
+            SetAxis2ParkDefault(currentDEC);
         }
         else
         {
             // Otherwise, we set all parking data to default in case no parking data is found.
-            SetAxis1Park(HA);
-            SetAxis2Park(DEC);
-            SetAxis1ParkDefault(HA);
-            SetAxis2ParkDefault(DEC);
+            SetAxis1Park(currentRA);
+            SetAxis2Park(currentDEC);
+            SetAxis1ParkDefault(currentRA);
+            SetAxis2ParkDefault(currentDEC);
         }
 
         SetParked(isTheSkyParked());
@@ -794,7 +799,7 @@ bool Paramount::SetCurrentPark()
 bool Paramount::SetDefaultPark()
 {
     // By default set RA to HA
-    SetAxis1Park(ln_get_apparent_sidereal_time(ln_get_julian_from_sys()));
+    SetAxis1Park(get_local_sideral_time(LocationN[LOCATION_LONGITUDE].value));
 
     // Set DEC to 90 or -90 depending on the hemisphere
     SetAxis2Park((LocationN[LOCATION_LATITUDE].value > 0) ? 90 : -90);
