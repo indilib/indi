@@ -1192,7 +1192,6 @@ int CCDSim::QueryFilter()
     return CurrentFilter;
 }
 
-#if !defined(__APPLE__) && !defined(__CYGWIN__)
 bool CCDSim::StartStreaming()
 {
     pthread_mutex_lock(&condMutex);
@@ -1202,9 +1201,7 @@ bool CCDSim::StartStreaming()
 
     return true;
 }
-#endif
 
-#if !defined(__APPLE__) && !defined(__CYGWIN__)
 bool CCDSim::StopStreaming()
 {
     pthread_mutex_lock(&condMutex);
@@ -1214,23 +1211,20 @@ bool CCDSim::StopStreaming()
 
     return true;
 }
-#endif
 
 bool CCDSim::UpdateCCDFrame(int x, int y, int w, int h)
 {
-#if !defined(__APPLE__) && !defined(__CYGWIN__)
+
     long bin_width  = w / PrimaryCCD.getBinX();
     long bin_height = h / PrimaryCCD.getBinY();
 
     bin_width  = bin_width - (bin_width % 8);
     bin_height = bin_height - (bin_height % 2);
     Streamer->setRecorderSize(bin_width, bin_height);
-#endif
 
     return INDI::CCD::UpdateCCDFrame(x,y,w,h);
 }
 
-#if !defined(__APPLE__) && !defined(__CYGWIN__)
 void *CCDSim::streamVideoHelper(void *context)
 {
     return ((CCDSim *)context)->streamVideo();
@@ -1288,4 +1282,3 @@ void *CCDSim::streamVideo()
     pthread_mutex_unlock(&condMutex);
     return 0;
 }
-#endif

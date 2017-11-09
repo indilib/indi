@@ -197,7 +197,7 @@ bool TheoraRecorder::open(const char *filename, char *errmsg)
     ti.pic_height = subH;
     ti.pic_x = 0;
     ti.pic_y = 0;
-    frac(1/m_Exposure, video_fps_numerator, video_fps_denominator);
+    frac(m_FPS, video_fps_numerator, video_fps_denominator);
     ti.fps_numerator = video_fps_numerator;
     ti.fps_denominator = video_fps_denominator;
     ti.aspect_numerator = video_aspect_numerator;
@@ -563,14 +563,14 @@ int TheoraRecorder::theora_write_frame(int last)
 ** Instead of keeping the sequence of continued fraction terms,
 ** we just keep the last partial product of these matrices.
 */
-bool TheoraRecorder::frac(double fration, uint32_t &num, uint32_t &den)
+bool TheoraRecorder::frac(double fps, uint32_t &num, uint32_t &den)
 {
     long m[2][2];
     double x, startx;
     long maxden;
     long ai;
 
-    startx = x = fration;
+    startx = x = fps;
     maxden = 100;
 
     /* initialize matrix */

@@ -28,63 +28,60 @@ class CCDSim : public INDI::CCD, public INDI::FilterInterface
     CCDSim();
     virtual ~CCDSim() = default;
 
-    const char *getDefaultName();
+    const char *getDefaultName() override;
 
-    bool initProperties();
-    bool updateProperties();
+    bool initProperties() override;
+    bool updateProperties() override;
 
-    void ISGetProperties(const char *dev);
+    void ISGetProperties(const char *dev) override;
 
-    virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n);
-    virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n);
-    virtual bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n);
-    virtual bool ISSnoopDevice(XMLEle *root);
+    virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
+    virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
+    virtual bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n) override;
+    virtual bool ISSnoopDevice(XMLEle *root) override;
 
     static void *streamVideoHelper(void *context);
     void *streamVideo();
 
 protected:
 
-    bool Connect();
-    bool Disconnect();
+    bool Connect() override;
+    bool Disconnect() override;
 
-    bool StartExposure(float duration);
-    bool StartGuideExposure(float);
+    bool StartExposure(float duration) override;
+    bool StartGuideExposure(float) override;
 
-    bool AbortExposure();
-    bool AbortGuideExposure();
+    bool AbortExposure() override;
+    bool AbortGuideExposure() override;
 
-    void TimerHit();
+    void TimerHit() override;
 
     int DrawCcdFrame(INDI::CCDChip *targetChip);
 
     int DrawImageStar(INDI::CCDChip *targetChip, float, float, float, float ExposureTime);
     int AddToPixel(INDI::CCDChip *targetChip, int, int, int);
 
-    IPState GuideNorth(float);
-    IPState GuideSouth(float);
-    IPState GuideEast(float);
-    IPState GuideWest(float);
+    IPState GuideNorth(float) override;
+    IPState GuideSouth(float) override;
+    IPState GuideEast(float) override;
+    IPState GuideWest(float) override;
 
-    virtual bool saveConfigItems(FILE *fp);
-    virtual void activeDevicesUpdated();
-    virtual int SetTemperature(double temperature);
-    virtual bool UpdateCCDFrame(int x, int y, int w, int h);
+    virtual bool saveConfigItems(FILE *fp) override;
+    virtual void activeDevicesUpdated() override;
+    virtual int SetTemperature(double temperature) override;
+    virtual bool UpdateCCDFrame(int x, int y, int w, int h) override;
 
-    // Streaming
-    #if !defined(__APPLE__) && !defined(__CYGWIN__)
     virtual bool StartStreaming() override;
     virtual bool StopStreaming() override;
-    #endif
+
+    // Filter
+    bool SelectFilter(int) override;
+    int QueryFilter() override;
 
   private:
 
     float CalcTimeLeft(timeval, float);
-    bool SetupParms();
-
-    // Filter
-    bool SelectFilter(int);
-    int QueryFilter();
+    bool SetupParms();    
 
     float TemperatureRequest { 0 };
 
@@ -134,9 +131,7 @@ protected:
     float polarDrift { 0 };
 
     int streamPredicate;
-#if !defined(__APPLE__) && !defined(__CYGWIN__)
     pthread_t primary_thread;
-#endif
     bool terminateThread;
 
     //  And this lives in our simulator settings page

@@ -94,8 +94,8 @@ bool StreamManager::initProperties()
                        "Streaming", STREAM_TAB, IP_RW, 60, IPS_IDLE);
 
     /* Measured FPS */
-    IUFillNumber(&FpsN[0], "EST_FPS", "Instant.", "%3.2f", 0.0, 999.0, 0.0, 30);
-    IUFillNumber(&FpsN[1], "AVG_FPS", "Average (1 sec.)", "%3.2f", 0.0, 999.0, 0.0, 30);
+    IUFillNumber(&FpsN[FPS_INSTANT], "EST_FPS", "Instant.", "%3.2f", 0.0, 999.0, 0.0, 30);
+    IUFillNumber(&FpsN[FPS_AVERAGE], "AVG_FPS", "Average (1 sec.)", "%3.2f", 0.0, 999.0, 0.0, 30);
     IUFillNumberVector(&FpsNP, FpsN, NARRAY(FpsN), getDeviceName(), "FPS", "FPS", STREAM_TAB, IP_RO, 60, IPS_IDLE);
 
     /* Frames to Drop */
@@ -105,7 +105,7 @@ bool StreamManager::initProperties()
     /* Record Frames */
     /* File */
     IUFillText(&RecordFileT[0], "RECORD_FILE_DIR", "Dir.", "/tmp/indi__D_");
-    IUFillText(&RecordFileT[1], "RECORD_FILE_NAME", "Name", "indi_record__T_.ser");
+    IUFillText(&RecordFileT[1], "RECORD_FILE_NAME", "Name", "indi_record__T_");
     IUFillTextVector(&RecordFileTP, RecordFileT, NARRAY(RecordFileT), getDeviceName(), "RECORD_FILE", "Record File",
                      STREAM_TAB, IP_RW, 0, IPS_IDLE);
 
@@ -427,6 +427,9 @@ bool StreamManager::startRecording()
         patterns["_F_"] = filtername;
         DEBUGF(INDI::Logger::DBG_DEBUG, "Adding filter pattern %s", filtername.c_str());
     }
+
+    recorder->setFPS(FpsN[FPS_AVERAGE].value);
+
     /* pattern substitution */
     recordfiledir.assign(RecordFileTP.tp[0].text);
     expfiledir = expand(recordfiledir, patterns);
@@ -801,6 +804,7 @@ bool StreamManager::saveConfigItems(FILE *fp)
 {
     IUSaveConfigText(fp, &RecordFileTP);
     IUSaveConfigNumber(fp, &RecordOptionsNP);
+    IUSaveConfigSwitch(fp, &RecorderSP);
     return true;
 }
 

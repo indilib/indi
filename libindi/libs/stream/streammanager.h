@@ -132,6 +132,7 @@ class StreamManager
     /* Measured FPS */
     INumber FpsN[2];
     INumberVectorProperty FpsNP;
+    enum { FPS_INSTANT, FPS_AVERAGE };
 
     /* Record Options */
     INumber RecordOptionsN[2];

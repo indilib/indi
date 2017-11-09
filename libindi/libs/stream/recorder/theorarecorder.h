@@ -60,7 +60,7 @@ class TheoraRecorder : public RecorderInterface
     bool allocateBuffers();
     //int theora_write_frame(th_ycbcr_buffer ycbcr, int last);
     int theora_write_frame(int last);
-    bool frac(double fration, uint32_t &num, uint32_t &den);
+    bool frac(double fps, uint32_t &num, uint32_t &den);
 
     th_ycbcr_buffer ycbcr;
     ogg_uint32_t video_fps_numerator = 24;

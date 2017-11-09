@@ -411,13 +411,11 @@ void CCD::SetCCDCapability(uint32_t cap)
     else
         setDriverInterface(getDriverInterface() & ~GUIDER_INTERFACE);
 
-#ifdef __linux__
     if (HasStreaming() && Streamer.get() == nullptr)
     {
         Streamer.reset(new StreamManager(this));
         Streamer->initProperties();
     }
-#endif
 }
 
 bool CCD::initProperties()
@@ -700,11 +698,8 @@ void CCD::ISGetProperties(const char *dev)
     defineText(&ActiveDeviceTP);
     loadConfig(true, "ACTIVE_DEVICES");
 
-// Streamer
-#ifdef __linux__
     if (HasStreaming())
         Streamer->ISGetProperties(dev);
-#endif
 }
 
 bool CCD::updateProperties()
@@ -858,10 +853,8 @@ bool CCD::updateProperties()
     }
 
 // Streamer
-#ifdef __linux__
     if (HasStreaming())
         Streamer->updateProperties();
-#endif
 
     return true;
 }
@@ -1050,10 +1043,8 @@ bool CCD::ISNewText(const char *dev, const char *name, char *texts[], char *name
     }
 
 // Streamer
-#ifdef __linux__
     if (HasStreaming())
         Streamer->ISNewText(dev, name, texts, names, n);
-#endif
 
     return DefaultDevice::ISNewText(dev, name, texts, names, n);
 }
@@ -1347,10 +1338,8 @@ bool CCD::ISNewNumber(const char *dev, const char *name, double values[], char *
     }
 
 // Streamer
-#ifdef __linux__
     if (HasStreaming())
         Streamer->ISNewNumber(dev, name, values, names, n);
-#endif
 
     return DefaultDevice::ISNewNumber(dev, name, values, names, n);
 }
@@ -1662,11 +1651,8 @@ bool CCD::ISNewSwitch(const char *dev, const char *name, ISState *states, char *
         }
     }
 
-// Streamer
-#ifdef __linux__
     if (HasStreaming())
         Streamer->ISNewSwitch(dev, name, states, names, n);
-#endif
 
     return DefaultDevice::ISNewSwitch(dev, name, states, names, n);
 }
@@ -2748,6 +2734,9 @@ bool CCD::saveConfigItems(FILE *fp)
 
     if (HasBayer())
         IUSaveConfigText(fp, &BayerTP);
+
+    if (HasStreaming())
+        Streamer->saveConfigItems(fp);
 
     return true;
 }
