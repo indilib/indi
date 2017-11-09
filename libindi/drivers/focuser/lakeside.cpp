@@ -1033,7 +1033,7 @@ bool Lakeside::setCalibration()
     return true;
 }
 
-// Move focuser to "position" 
+// Move focuser to "position"
 bool Lakeside::gotoPosition(uint32_t position)
 {
     int calc_steps=0;
@@ -2190,7 +2190,7 @@ IPState Lakeside::MoveRelFocuser(FocusDirection dir, uint32_t ticks)
     else
         newPosition = FocusAbsPosN[0].value + ticks;
 
-    rc = gotoPosition(newPosition);
+    rc = gotoPosition((uint32_t)newPosition);
 
     if (!rc)
         return IPS_ALERT;
@@ -2209,7 +2209,7 @@ IPState Lakeside::MoveAbsFocuser(uint32_t targetTicks)
     targetPos = targetTicks;
     bool rc = false;
 
-    rc = gotoPosition(targetPos);
+    rc = gotoPosition((uint32_t)targetPos);
 
     // if MoveFocuser succeed, then move send successfully
     if (rc == true)
