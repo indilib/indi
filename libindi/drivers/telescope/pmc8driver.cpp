@@ -800,7 +800,7 @@ bool convert_ra_to_motor(double ra, INDI::Telescope::TelescopePierSide sop, int 
 
     DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_DEBUG, "convert_ra_to_motor - ra=%f sop=%d", ra, sop);
 
-    lst = get_local_sideral_time(pmc8_longitude);
+    lst = get_local_sidereal_time(pmc8_longitude);
 
     hour_angle = lst- ra;
 
@@ -835,7 +835,7 @@ bool convert_motor_to_radec(int racounts, int deccounts, double &ra_value, doubl
 
     double lst;
 
-    lst = get_local_sideral_time(pmc8_longitude);
+    lst = get_local_sidereal_time(pmc8_longitude);
 
     DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_DEBUG, "lst = %f", lst);
 
@@ -1256,7 +1256,7 @@ INDI::Telescope::TelescopePierSide destSideOfPier(double ra, double dec)
     double hour_angle;
     double lst;
 
-    lst = get_local_sideral_time(pmc8_longitude);
+    lst = get_local_sidereal_time(pmc8_longitude);
 
     hour_angle = lst - ra;
 
