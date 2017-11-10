@@ -344,7 +344,7 @@ bool LX200Generic::initProperties()
     double longitude=0, latitude=90;
     // Get value from config file if it exists.
     IUGetConfigNumber(getDeviceName(), "GEOGRAPHIC_COORD", "LONG", &longitude);
-    currentRA  = get_local_sideral_time(longitude);
+    currentRA  = get_local_sidereal_time(longitude);
     IUGetConfigNumber(getDeviceName(), "GEOGRAPHIC_COORD", "LAT", &latitude);
     currentDEC = latitude > 0 ? 90 : -90;
 
