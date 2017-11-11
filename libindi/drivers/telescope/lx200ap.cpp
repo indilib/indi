@@ -1091,3 +1091,8 @@ bool LX200AstroPhysics::SetTrackRate(double raRate, double deRate)
 
     return true;
 }
+
+bool LX200AstroPhysics::getUTFOffset(double *offset)
+{
+    return (getAPUTCOffset(PortFD, offset) == 0);
+}

@@ -65,6 +65,8 @@ class LX200AstroPhysics : public LX200Generic
 
     virtual int  SendPulseCmd(int direction, int duration_msec) override;
 
+    virtual bool getUTFOffset(double *offset) override;
+
     // Tracking
     virtual bool SetTrackMode(uint8_t mode) override;
     virtual bool SetTrackEnabled(bool enabled) override;
