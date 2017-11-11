@@ -25,20 +25,29 @@
 class LX200SS2000PC : public LX200Generic
 {
   public:
-    LX200SS2000PC();
+    LX200SS2000PC(void);
 
-    virtual const char *getDefaultName();
+    virtual const char *getDefaultName(void);
     virtual bool updateTime(ln_date *utc, double utc_offset);
+    virtual bool initProperties();
+    virtual bool updateProperties();
+    virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n);
 
   protected:
-    virtual void getBasicData();
-    virtual bool isSlewComplete();
+    virtual void getBasicData(void);
+    virtual bool isSlewComplete(void);
+    virtual bool saveConfigItems(FILE *fp);
 
   private:
     bool getCalendarDate(int &year, int &month, int &day);
     bool setCalenderDate(int year, int month, int day);
     bool setUTCOffset(const int offset_in_hours);
 
+    INumber SlewAccuracyN[2];
+    INumberVectorProperty SlewAccuracyNP;
+
+    double Elevation, Latitud, Longitude;
     static const int ShortTimeOut;
     static const int LongTimeOut;
 };
+

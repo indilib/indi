@@ -24,12 +24,12 @@
 #include "lx200driver.h"
 
 #include <cmath>
-#include <cstring>
+#include <string.h>
 
 const int LX200SS2000PC::ShortTimeOut = 2;  // In seconds.
 const int LX200SS2000PC::LongTimeOut  = 10; // In seconds.
 
-LX200SS2000PC::LX200SS2000PC() : LX200Generic()
+LX200SS2000PC::LX200SS2000PC(void) : LX200Generic()
 {
     setVersion(1, 0);
     setLX200Capability(0);
@@ -38,7 +38,66 @@ LX200SS2000PC::LX200SS2000PC() : LX200Generic()
         TELESCOPE_CAN_SYNC | TELESCOPE_CAN_GOTO | TELESCOPE_CAN_ABORT | TELESCOPE_HAS_TIME | TELESCOPE_HAS_LOCATION, 4);    
 }
 
-const char *LX200SS2000PC::getDefaultName()
+bool LX200SS2000PC::initProperties()
+{
+    LX200Generic::initProperties();
+
+    IUFillNumber(&SlewAccuracyN[0], "SlewRA", "RA (arcmin)", "%10.6m", 0., 60., 1., 3.0);
+    IUFillNumber(&SlewAccuracyN[1], "SlewDEC", "Dec (arcmin)", "%10.6m", 0., 60., 1., 3.0);
+    IUFillNumberVector(&SlewAccuracyNP, SlewAccuracyN, NARRAY(SlewAccuracyN), getDeviceName(), "Slew Accuracy", "",
+                       OPTIONS_TAB, IP_RW, 0, IPS_IDLE);
+
+    return true;
+}
+
+bool LX200SS2000PC::updateProperties()
+{
+    INDI::Telescope::updateProperties();
+
+    if (isConnected())
+    {
+        defineNumber(&SlewAccuracyNP);
+    }
+    else
+    {
+        deleteProperty(SlewAccuracyNP.name);
+    }
+
+    return true;
+}
+
+bool LX200SS2000PC::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
+{
+    if (strcmp(dev, getDeviceName()) == 0)
+    {
+        if (!strcmp(name, SlewAccuracyNP.name))
+        {
+            if (IUUpdateNumber(&SlewAccuracyNP, values, names, n) < 0)
+                return false;
+
+            SlewAccuracyNP.s = IPS_OK;
+
+            if (SlewAccuracyN[0].value < 3 || SlewAccuracyN[1].value < 3)
+                IDSetNumber(&SlewAccuracyNP, "Warning: Setting the slew accuracy too low may result in a dead lock");
+
+            IDSetNumber(&SlewAccuracyNP, nullptr);
+            return true;
+        }
+    }
+
+    return LX200Generic::ISNewNumber(dev, name, values, names, n);
+}
+
+bool LX200SS2000PC::saveConfigItems(FILE *fp)
+{
+    INDI::Telescope::saveConfigItems(fp);
+
+    IUSaveConfigNumber(fp, &SlewAccuracyNP);
+
+    return true;
+}
+
+const char *LX200SS2000PC::getDefaultName(void)
 {
     return const_cast<const char *>("SkySensor2000PC");
 }
@@ -82,7 +141,7 @@ bool LX200SS2000PC::updateTime(ln_date *utc, double utc_offset)
     return result;
 }
 
-void LX200SS2000PC::getBasicData()
+void LX200SS2000PC::getBasicData(void)
 {
     if (!isSimulation())
         checkLX200Format(PortFD);
@@ -94,9 +153,7 @@ bool LX200SS2000PC::isSlewComplete()
 {
     const double dx = targetRA - currentRA;
     const double dy = targetDEC - currentDEC;
-    // These tolerances seem to work well. In case it turns out that these should be
-    // user definable check the FS2 driver on how to implement this.
-    return (fabs(dx) <= 0.01 && fabs(dy) <= 0.01);
+    return fabs(dx) <= (SlewAccuracyN[0].value / (900.0)) && fabs(dy) <= (SlewAccuracyN[1].value / 60.0);
 }
 
 bool LX200SS2000PC::getCalendarDate(int &year, int &month, int &day)
