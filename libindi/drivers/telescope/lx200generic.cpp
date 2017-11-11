@@ -27,32 +27,33 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110 - 1301  USA
 
   #endif
 
-  #include "lx200generic.h"
+#include "lx200generic.h"
 
-  #include "indicom.h"
-  #include "lx200_10micron.h"
-  #include "lx200_16.h"
-  #include "lx200_OnStep.h"
-  #include "lx200ap.h"
-  #include "lx200classic.h"
-  #include "lx200driver.h"
-  #include "lx200fs2.h"
-  #include "lx200gemini.h"
-  #include "lx200pulsar2.h"
-  #include "lx200ss2000pc.h"
-  #include "lx200zeq25.h"
-  #include "lx200gotonova.h"
-  #include "ioptronHC8406.h"
+#include "indicom.h"
+#include "lx200_10micron.h"
+#include "lx200_16.h"
+#include "lx200_OnStep.h"
+#include "lx200ap.h"
+#include "lx200classic.h"
+#include "lx200driver.h"
+#include "lx200fs2.h"
+#include "lx200gemini.h"
+#include "lx200pulsar2.h"
+#include "lx200ss2000pc.h"
+#include "lx200zeq25.h"
+#include "lx200gotonova.h"
+#include "ioptronHC8406.h"
 
-  #include <libnova/sidereal_time.h>
+#include <libnova/sidereal_time.h>
 
-  #include <cmath>
-  #include <memory>
-  #include <cstring>
-  #include <unistd.h>
+#include <cmath>
+#include <memory>
+#include <cstring>
+#include <unistd.h>
+#include <time.h>
 
-  // We declare an auto pointer to LX200Generic.
-  std::unique_ptr<LX200Generic> telescope;
+// We declare an auto pointer to LX200Generic.
+std::unique_ptr<LX200Generic> telescope;
 
 /* There is _one_ binary for all LX200 drivers, but each binary is renamed
 ** to its device name (i.e. lx200gps, lx200_16..etc). The main function will
@@ -1356,87 +1357,140 @@ void LX200Generic::getAlignment()
     IDSetSwitch(&AlignmentSP, nullptr);
 }
 
-void LX200Generic::sendScopeTime()
+bool LX200Generic::getLocalTime(char *timeString)
+{
+    if (isSimulation())
+    {
+        time_t now = time (NULL);
+        strftime(timeString, 32, "%T", localtime(&now));
+    }
+    else
+    {
+        double ctime=0;
+        int h, m, s;
+        getLocalTime24(PortFD, &ctime);
+        getSexComponents(ctime, &h, &m, &s);
+        snprintf(timeString, 32, "%02d:%02d:%02d", h, m, s);
+    }
+
+    return true;
+}
+
+bool LX200Generic::getLocalDate(char *dateString)
+{
+    if (isSimulation())
+    {
+        time_t now = time (NULL);
+        strftime(dateString, 32, "%F", localtime(&now));
+    }
+    else
+    {
+        getCalendarDate(PortFD, dateString);
+    }
+
+    return true;
+}
+
+bool LX200Generic::getUTFOffset(double *offset)
+{
+    if (isSimulation())
+    {
+        *offset = 3;
+        return true;
+    }
+
+    int lx200_utc_offset = 0;
+    getUTCOffset(PortFD, &lx200_utc_offset);
+    // LX200 TimeT Offset is defined at the number of hours added to LOCAL TIME to get TimeT. This is contrary to the normal definition.
+    *offset = lx200_utc_offset * -1;
+    return true;
+}
+
+bool LX200Generic::sendScopeTime()
 {
     char cdate[32]={0};
-    double ctime;
-    int h, m, s, lx200_utc_offset = 0;
-    int day, month, year, result;
+    char ctime[32]={0};
     struct tm ltm;
     struct tm utm;
     time_t time_epoch;
 
-    if (isSimulation())
+    double offset=0;
+    if (getUTFOffset(&offset))
     {
-        snprintf(cdate, 32, "%d-%02d-%02dT%02d:%02d:%02d", 1979, 6, 25, 3, 30, 30);
-        IDLog("Telescope ISO date and time: %s\n", cdate);
-        IUSaveText(&TimeT[0], cdate);
-        IUSaveText(&TimeT[1], "3");
-        IDSetText(&TimeTP, nullptr);
-        return;
+        char utcStr[8]={0};
+        snprintf(utcStr, 8, "%.2f", offset);
+        IUSaveText(&TimeT[1], utcStr);
+    }
+    else
+    {
+        DEBUG(INDI::Logger::DBG_WARNING, "Could not obtain UTC offset from mount!");
+        return false;
     }
 
-    getUTCOffset(PortFD, &lx200_utc_offset);
-
-    // LX200 TimeT Offset is defined at the number of hours added to LOCAL TIME to get TimeT. This is contrary to the normal definition.
-    char utcStr[8]={0};
-    snprintf(utcStr, 8, "%02d", lx200_utc_offset * -1);
-    IUSaveText(&TimeT[1], utcStr);
-
-    getLocalTime24(PortFD, &ctime);
-    getSexComponents(ctime, &h, &m, &s);
-
-    getCalendarDate(PortFD, cdate);
-    result = sscanf(cdate, "%4d-%2d-%2d", &year, &month, &day);
-    if (result != 3)
+    if (getLocalTime(ctime) == false)
     {
-        DEBUG(INDI::Logger::DBG_ERROR, "Error reading date from Telescope.");
-        return;
+        DEBUG(INDI::Logger::DBG_WARNING, "Could not obtain local time from mount!");
+        return false;
     }
 
-    // Let's fill in the local time
-    ltm.tm_sec  = s;
-    ltm.tm_min  = m;
-    ltm.tm_hour = h;
-    ltm.tm_mday = day;
-    ltm.tm_mon  = month - 1;
-    ltm.tm_year = year - 1900;
+    if (getLocalDate(cdate) == false)
+    {
+        DEBUG(INDI::Logger::DBG_WARNING, "Could not obtain local date from mount!");
+        return false;
+    }
 
-    // Get time epoch
+    // To ISO 8601 format in LOCAL TIME!
+    char datetime[64];
+    snprintf(datetime, 64, "%sT%s", cdate, ctime);
+
+    // Now that date+time are combined, let's get tm representation of it.
+    if (strptime(datetime, "%FT%T", &ltm) == NULL)
+    {
+        DEBUGF(INDI::Logger::DBG_WARNING, "Could not process mount date and time: %s", datetime);
+        return false;
+    }
+
+    // Get local time epoch in UNIX seconds
     time_epoch = mktime(&ltm);
 
-    // Convert to TimeT
-    time_epoch -= (int)(atof(TimeT[1].text) * 3600.0);
+    // LOCAL to UTC by subtracting offset.
+    time_epoch -= static_cast<int>(offset * 3600.0);
 
-    // Get UTC (we're using localtime_r, but since we shifted time_epoch above by UTCOffset, we should be getting the real UTC time
+    // Get UTC (we're using localtime_r, but since we shifted time_epoch above by UTCOffset, we should be getting the real UTC time)
     localtime_r(&time_epoch, &utm);
 
-    /* Format it into ISO 8601 */
+    // Format it into the final UTC ISO 8601
     strftime(cdate, 32, "%Y-%m-%dT%H:%M:%S", &utm);
     IUSaveText(&TimeT[0], cdate);
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "Mount controller Local Time: %02d:%02d:%02d", h, m, s);
     DEBUGF(INDI::Logger::DBG_DEBUG, "Mount controller UTC Time: %s", TimeT[0].text);
+    DEBUGF(INDI::Logger::DBG_DEBUG, "Mount controller UTC Offset: %s", TimeT[1].text);
 
     // Let's send everything to the client
     IDSetText(&TimeTP, nullptr);
+
+    return true;
 }
 
-void LX200Generic::sendScopeLocation()
+bool LX200Generic::sendScopeLocation()
 {
     int dd = 0, mm = 0;
 
     if (isSimulation())
     {
-        LocationNP.np[0].value = 29.5;
-        LocationNP.np[1].value = 48.0;
+        LocationNP.np[LOCATION_LATITUDE].value = 29.5;
+        LocationNP.np[LOCATION_LONGITUDE].value = 48.0;
+        LocationNP.np[LOCATION_ELEVATION].value = 10;
         LocationNP.s           = IPS_OK;
         IDSetNumber(&LocationNP, nullptr);
-        return;
+        return true;
     }
 
     if (getSiteLatitude(PortFD, &dd, &mm) < 0)
+    {
         DEBUG(INDI::Logger::DBG_WARNING, "Failed to get site latitude from device.");
+        return false;
+    }
     else
     {
         if (dd > 0)
@@ -1446,7 +1500,10 @@ void LX200Generic::sendScopeLocation()
     }
 
     if (getSiteLongitude(PortFD, &dd, &mm) < 0)
+    {
         DEBUG(INDI::Logger::DBG_WARNING, "Failed to get site longitude from device.");
+        return false;
+    }
     else
     {
         if (dd > 0)
@@ -1454,16 +1511,13 @@ void LX200Generic::sendScopeLocation()
         else
             LocationNP.np[1].value = (dd - mm / 60.0) * -1.0;
 
-        if (isDebug())
-        {
-            IDLog("Autostar Longitude: %d:%d\n", dd, mm);
-            IDLog("INDI Longitude: %g\n", LocationNP.np[1].value);
-        }
     }
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "Latitude: %g Longitude: %g", LocationN[LOCATION_LATITUDE].value, LocationN[LOCATION_LONGITUDE].value);
+    DEBUGF(INDI::Logger::DBG_DEBUG, "Mount Controller Latitude: %g Longitude: %g", LocationN[LOCATION_LATITUDE].value, LocationN[LOCATION_LONGITUDE].value);
 
     IDSetNumber(&LocationNP, nullptr);
+
+    return true;
 }
 
 IPState LX200Generic::GuideNorth(float ms)
