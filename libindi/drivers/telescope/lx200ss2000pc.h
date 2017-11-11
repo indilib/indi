@@ -46,7 +46,6 @@ class LX200SS2000PC : public LX200Generic
     INumber SlewAccuracyN[2];
     INumberVectorProperty SlewAccuracyNP;
 
-    double Elevation, Latitud, Longitude;
     static const int ShortTimeOut;
     static const int LongTimeOut;
 };
