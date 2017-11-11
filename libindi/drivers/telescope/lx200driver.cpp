@@ -374,7 +374,7 @@ int getCalendarDate(int fd, char *date)
         else
             strncpy(mell_prefix, "20", 3);
         /* We need to have it in YYYY-MM-DD ISO format */
-        snprintf(date, 16, "%s%02d/%02d/%02d", mell_prefix, yy, mm, dd);
+        snprintf(date, 32, "%s%02d-%02d-%02d", mell_prefix, yy, mm, dd);
     }
     return (0);
 }
