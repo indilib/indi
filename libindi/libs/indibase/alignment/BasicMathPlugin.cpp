@@ -719,8 +719,9 @@ bool BasicMathPlugin::TransformCelestialToTelescope(const double RightAscension,
 				break;
 			    }
 			}
-
-			NearestMap[(ActualDirectionCosine - ActualVector).Length()] = &(*Itr);
+			// geehalel: use great circle  distance https://en.wikipedia.org/wiki/Great-circle_distance#Vector_version
+			//NearestMap[(ActualDirectionCosine - ActualVector).Length()] = &(*Itr);
+			NearestMap[atan2((ActualDirectionCosine * ActualVector).Length(), ActualDirectionCosine ^ ActualVector)] = &(*Itr);
                     }
 		    /* geehalel: use a nearest algorithm
                     // First compute local horizontal coordinates for the three sync points
@@ -974,7 +975,11 @@ bool BasicMathPlugin::TransformTelescopeToCelestial(const TelescopeDirectionVect
 	    for (InMemoryDatabase::AlignmentDatabaseType::const_iterator Itr = SyncPoints.begin();
 		 Itr != SyncPoints.end(); Itr++)
 	    {	
-		NearestMap[((*Itr).TelescopeDirection - ApparentTelescopeDirectionVector).Length()] = &(*Itr);
+
+		// geehalel: use great circle  distance https://en.wikipedia.org/wiki/Great-circle_distance#Vector_version
+		//NearestMap[((*Itr).TelescopeDirection - ApparentTelescopeDirectionVector).Length()] = &(*Itr);
+		NearestMap[atan2(((*Itr).TelescopeDirection * ApparentTelescopeDirectionVector).Length(),
+				 (*Itr).TelescopeDirection ^ ApparentTelescopeDirectionVector)] = &(*Itr);
 	    }
 	    // geehalel: Get the nearest transform
 	    std::map<double, const AlignmentDatabaseEntry *>::const_iterator Nearest = NearestMap.begin();
@@ -1140,7 +1145,10 @@ bool BasicMathPlugin::TransformTelescopeToCelestial(const TelescopeDirectionVect
                     for (InMemoryDatabase::AlignmentDatabaseType::const_iterator Itr = SyncPoints.begin();
                          Itr != SyncPoints.end(); Itr++)
                     {
-                        NearestMap[((*Itr).TelescopeDirection - ApparentTelescopeDirectionVector).Length()] = &(*Itr);
+			// geehalel: use great circle  distance https://en.wikipedia.org/wiki/Great-circle_distance#Vector_version
+			//NearestMap[((*Itr).TelescopeDirection - ApparentTelescopeDirectionVector).Length()] = &(*Itr);
+			NearestMap[atan2(((*Itr).TelescopeDirection * ApparentTelescopeDirectionVector).Length(),
+				 (*Itr).TelescopeDirection ^ ApparentTelescopeDirectionVector)] = &(*Itr);	
                     }
                     // compute the transform
                     std::map<double, const AlignmentDatabaseEntry *>::const_iterator Nearest = NearestMap.begin();
