@@ -37,10 +37,13 @@ typedef enum {
     ST_HOME
 } IEQ_SYSTEM_STATUS;
 
-typedef enum { TR_SIDEREAL, TR_LUNAR, TR_SOLAR } PMC8_TRACK_RATE;
+typedef enum { PMC8_TRACK_SIDEREAL, PMC8_TRACK_LUNAR, PMC8_TRACK_SOLAR, PMC8_TRACK_CUSTOM } PMC8_TRACK_RATE;
+
 typedef enum { HEMI_SOUTH, HEMI_NORTH } IEQ_HEMISPHERE;
+
 //typedef enum { FW_MODEL, FW_BOARD, FW_CONTROLLER, FW_RA, FW_DEC } IEQ_FIRMWARE;
-typedef enum { RA_AXIS=0, DEC_AXIS=1 } PMC8_AXIS;
+
+typedef enum { PMC8_RA_AXIS=0, PMC8_DEC_AXIS=1 } PMC8_AXIS;
 typedef enum { PMC8_N, PMC8_S, PMC8_W, PMC8_E } PMC8_DIRECTION;
 
 //typedef struct
@@ -110,13 +113,19 @@ bool get_pmc8_coords(int fd, double &ra, double &dec);
 /**************************************************************************
  Motion
 **************************************************************************/
-bool start_pmc8_motion(int fd, PMC8_DIRECTION dir);
+bool start_pmc8_motion(int fd, PMC8_DIRECTION dir, int speedindex);
 bool stop_pmc8_motion(int fd, PMC8_DIRECTION dir);
+bool stop_pmc8_tracking_motion(int fd);
 //bool set_ieqpro_slew_rate(int fd, IEQ_SLEW_RATE rate);
 bool set_pmc8_custom_ra_track_rate(int fd, double rate);
-//bool set_ieqpro_custom_de_track_rate(int fd, double rate);
-bool set_pmc8_track_mode(int fd, PMC8_TRACK_RATE rate);
-bool set_pmc8_track_enabled(int fd, bool enabled);
+bool set_pmc8_custom_dec_track_rate(int fd, double rate);
+bool set_pmc8_custom_ra_slew_rate(int fd, double rate);
+bool set_pmc8_custom_dec_slew_rate(int fd, double rate);
+bool set_pmc8_track_mode(int fd, uint rate);
+//bool set_pmc8_track_enabled(int fd, bool enabled);
+bool get_pmc8_is_scope_slewing(int fd, bool &isslew);
+bool get_pmc8_direction_axis(int fd, PMC8_AXIS axis, int &dir);
+bool set_pmc8_direction_axis(int fd, PMC8_AXIS axis, int dir);
 bool abort_pmc8(int fd);
 bool slew_pmc8(int fd, double ra, double dec);
 bool sync_pmc8(int fd, double ra, double dec);
