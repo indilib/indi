@@ -130,7 +130,6 @@ bool PMC8::initProperties()
     AddTrackMode("TRACK_SIDEREAL", "Sidereal", true);
     AddTrackMode("TRACK_SOLAR", "Solar");
     AddTrackMode("TRACK_LUNAR", "Lunar");
-//    AddTrackMode("TRACK_KING", "King");
     AddTrackMode("TRACK_CUSTOM", "Custom");
 
     // Set TrackRate limits within +/- 0.0100 of Sidereal rate
@@ -139,15 +138,24 @@ bool PMC8::initProperties()
 //    TrackRateN[AXIS_DE].min = -0.01;
 //    TrackRateN[AXIS_DE].max = 0.01;
 
+    // relabel move speeds
+    strcpy(SlewRateSP.sp[0].label, "4x");
+    strcpy(SlewRateSP.sp[1].label, "16x");
+    strcpy(SlewRateSP.sp[2].label, "64x");
+    strcpy(SlewRateSP.sp[3].label, "256x");
+
+#if 0
+    // (MSF) not currently possible to set guide speed
 
     /* How fast do we guide compared to sidereal rate */
     IUFillNumber(&GuideRateN[0], "GUIDE_RATE", "x Sidereal", "%g", 0.1, 0.9, 0.1, 0.5);
     IUFillNumberVector(&GuideRateNP, GuideRateN, 1, getDeviceName(), "GUIDE_RATE", "Guiding Rate", MOTION_TAB, IP_RW, 0,
                        IPS_IDLE);
 
-    TrackState = SCOPE_IDLE;
-
     initGuiderProperties(getDeviceName(), MOTION_TAB);
+#endif
+
+    TrackState = SCOPE_IDLE;
 
     SetParkDataType(PARK_RA_DEC);
 
@@ -162,9 +170,11 @@ bool PMC8::updateProperties()
 
     if (isConnected())
     {
-        defineNumber(&GuideNSNP);
-        defineNumber(&GuideWENP);
-        defineNumber(&GuideRateNP);
+
+        // (MSF) not possible to control guiding parameters (yet)
+//        defineNumber(&GuideNSNP);
+//        defineNumber(&GuideWENP);
+//        defineNumber(&GuideRateNP);
 
         defineText(&FirmwareTP);
 
@@ -215,26 +225,11 @@ void PMC8::getStartupData()
     double longitude;
     double latitude;
 
-#if 0
-    // for testing
-    longitude = -78.0;
-    latitude = 35.5;
-
-    if (longitude < 0)
-        longitude += 360;
-
-    LocationN[LOCATION_LATITUDE].value  = latitude;
-    LocationN[LOCATION_LONGITUDE].value = longitude;
-    LocationNP.s                        = IPS_OK;
-    IDSetNumber(&LocationNP, nullptr);
-#endif
-
     longitude = LocationN[LOCATION_LONGITUDE].value;
     latitude = LocationN[LOCATION_LATITUDE].value;
 
     // must also keep "low level" aware of position to convert motor counts to RA/DEC
     set_pmc8_location(latitude, longitude);
-
 
 #if 0
     // FIXEME - (MSF) Need to handle southern hemisphere for DEC?
