@@ -170,7 +170,7 @@ bool IEQPro::initProperties()
     double longitude=0, latitude=90;
     // Get value from config file if it exists.
     IUGetConfigNumber(getDeviceName(), "GEOGRAPHIC_COORD", "LONG", &longitude);
-    currentRA  = get_local_sideral_time(longitude);
+    currentRA  = get_local_sidereal_time(longitude);
     IUGetConfigNumber(getDeviceName(), "GEOGRAPHIC_COORD", "LAT", &latitude);
     currentDEC = latitude > 0 ? 90 : -90;
 
@@ -880,7 +880,7 @@ bool IEQPro::SetCurrentPark()
 bool IEQPro::SetDefaultPark()
 {
     // By default set RA to LST
-    SetAxis1Park(get_local_sideral_time(LocationN[LOCATION_LONGITUDE].value));
+    SetAxis1Park(get_local_sidereal_time(LocationN[LOCATION_LONGITUDE].value));
 
     // Set DEC to 90 or -90 depending on the hemisphere
     SetAxis2Park((HemisphereS[HEMI_NORTH].s == ISS_ON) ? 90 : -90);

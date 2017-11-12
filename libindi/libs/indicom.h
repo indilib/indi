@@ -253,11 +253,11 @@ double range360(double r);
 double rangeDec(double r);
 
 /**
- * @brief get_local_sideral_time Returns local sideral time given longitude and system clock.
+ * @brief get_local_sidereal_time Returns local sideral time given longitude and system clock.
  * @param longitude Longitude in INDI format (0 to 360) increasing eastward.
- * @return Local Sideral Time.
+ * @return Local Sidereal Time.
  */
-double get_local_sideral_time(double longitude);
+double get_local_sidereal_time(double longitude);
 
 /**
  * @brief get_local_hour_angle Returns local hour angle of an object

@@ -23,7 +23,7 @@
 #include <cstring>
 #include <memory>
 
-#define POLLMS         100   /* 0.1s */
+#define POLLMS         500   /* 0.5s */
 #define HID_TIMEOUT    10000 /* 10s */
 #define FUDGE_FACTOR_H 1000
 #define FUDGE_FACTOR_L 885
