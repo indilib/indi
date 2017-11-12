@@ -624,7 +624,9 @@ bool BasicMathPlugin::TransformCelestialToTelescope(const double RightAscension,
 		}
 		}
 		
-		NearestMap[(ActualDirectionCosine - ActualVector).Length()] = &(*Itr);
+		// geehalel: use great circle  distance https://en.wikipedia.org/wiki/Great-circle_distance#Vector_version
+		//NearestMap[(ActualDirectionCosine - ActualVector).Length()] = &(*Itr);
+		NearestMap[atan2((ActualDirectionCosine * ActualVector).Length(), ActualDirectionCosine ^ ActualVector)] = &(*Itr);
 	    }
 	    // geehalel: Get the nearest transform
 	    std::map<double, const AlignmentDatabaseEntry *>::const_iterator Nearest = NearestMap.begin();
