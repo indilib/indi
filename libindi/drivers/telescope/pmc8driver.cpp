@@ -624,9 +624,9 @@ bool start_pmc8_motion(int fd, PMC8_DIRECTION dir, int mode)
     }
 
     if (rarate != 0)
-        set_pmc8_custom_ra_slew_rate(fd, rarate);
+        set_pmc8_custom_ra_move_rate(fd, rarate);
     if (decrate != 0)
-        set_pmc8_custom_dec_slew_rate(fd, decrate);
+        set_pmc8_custom_dec_move_rate(fd, decrate);
 
     return true;
 
@@ -699,12 +699,12 @@ bool stop_pmc8_motion(int fd, PMC8_DIRECTION dir)
     {
         case PMC8_N:
         case PMC8_S:
-            rc = set_pmc8_custom_dec_slew_rate(fd, 0);
+            rc = set_pmc8_custom_dec_move_rate(fd, 0);
             break;
 
         case PMC8_W:
         case PMC8_E:
-            rc = set_pmc8_custom_ra_slew_rate(fd, 0);
+            rc = set_pmc8_custom_ra_move_rate(fd, 0);
             break;
     }
 
@@ -804,8 +804,8 @@ bool convert_precise_rate_to_motor(float rate, int *mrate)
     return true;
 }
 
-// convert rate in arcsec/sidereal_second to internal PMC8 motor rate for slewing
-bool convert_slew_rate_to_motor(float rate, int *mrate)
+// convert rate in arcsec/sidereal_second to internal PMC8 motor rate for move action (not slewing)
+bool convert_move_rate_to_motor(float rate, int *mrate)
 {
 
     *mrate = (int)(rate*(PMC8_AXIS0_SCALE/ARCSEC_IN_CIRCLE));
@@ -818,7 +818,8 @@ bool convert_slew_rate_to_motor(float rate, int *mrate)
     return true;
 }
 
-bool set_pmc8_axis_slew_rate(int fd, PMC8_AXIS axis, float rate)
+// set speed for move action (MoveNS/MoveWE) NOT slews!
+bool set_pmc8_axis_move_rate(int fd, PMC8_AXIS axis, float rate)
 {
     char cmd[24];
     int errcode = 0;
@@ -838,7 +839,7 @@ bool set_pmc8_axis_slew_rate(int fd, PMC8_AXIS axis, float rate)
     if (!rc)
         return rc;
 
-    if (!convert_slew_rate_to_motor(fabs(rate), &rateval))
+    if (!convert_move_rate_to_motor(fabs(rate), &rateval))
     {
         DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "Error converting rate %f", rate);
         return false;
@@ -1048,57 +1049,57 @@ bool set_pmc8_custom_dec_track_rate(int fd, double rate)
 }
 #endif
 
-bool set_pmc8_custom_ra_slew_rate(int fd, double rate)
+bool set_pmc8_custom_ra_move_rate(int fd, double rate)
 {
     bool rc;
 
-    DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_DEBUG, "set_pmc8_custom_ra_slew_rate() called rate=%f ", rate);
+    DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_DEBUG, "set_pmc8_custom_ra move_rate() called rate=%f ", rate);
 
     // (MSF) safe guard for now - only all use to STOP slewing or MOVE commands with this
     if (fabs(rate) > PMC8_MOVE_RATE)
     {
-        DEBUGDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "set_pmc8_custom_ra_slew_rate only supports low rates currently");
+        DEBUGDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "set_pmc8_custom_ra_move rate only supports low rates currently");
 
         return false;
     }
 
     if (pmc8_simulation)
     {
-        DEBUGDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "set_pmc8_custom_ra_slew_rate simulation not implemented");
+        DEBUGDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "set_pmc8_custom_ra_move_rate simulation not implemented");
 
         rc=false;
     }
     else
     {
-        rc=set_pmc8_axis_slew_rate(fd, PMC8_RA_AXIS, rate);
+        rc=set_pmc8_axis_move_rate(fd, PMC8_RA_AXIS, rate);
     }
 
     return rc;
 }
 
 
-bool set_pmc8_custom_dec_slew_rate(int fd, double rate)
+bool set_pmc8_custom_dec_move_rate(int fd, double rate)
 {
     bool rc;
 
-    DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_DEBUG, "set_pmc8_custom_dec_slew_rate() called rate=%f ", rate);
+    DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_DEBUG, "set_pmc8_custom_dec_move_rate() called rate=%f ", rate);
 
     // (MSF) safe guard for now - only all use to STOP slewing with this
     if (fabs(rate) > PMC8_MOVE_RATE)
     {
-        DEBUGDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "set_pmc8_custom_dec_slew_rate only supports low rates currently");
+        DEBUGDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "set_pmc8_custom_dec_move_rate only supports low rates currently");
         return false;
     }
 
     if (pmc8_simulation)
     {
-        DEBUGDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "set_pmc8_custom_dec_slew_rate simulation not implemented");
+        DEBUGDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "set_pmc8_custom_dec_move_rate simulation not implemented");
 
         rc=false;
     }
     else
     {
-        rc=set_pmc8_axis_slew_rate(fd, PMC8_DEC_AXIS, rate);
+        rc=set_pmc8_axis_move_rate(fd, PMC8_DEC_AXIS, rate);
     }
 
     return rc;
@@ -1582,15 +1583,15 @@ bool abort_pmc8(int fd)
         return true;
     }
 
-    // stop slew rates
-    rc = set_pmc8_custom_ra_slew_rate(fd, 0);
+    // stop move/slew rates
+    rc = set_pmc8_custom_ra_move_rate(fd, 0);
     if (!rc)
     {
         DEBUGDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "Error stopping RA axis!");
         return false;
     }
 
-    rc = set_pmc8_custom_dec_slew_rate(fd, 0);
+    rc = set_pmc8_custom_dec_move_rate(fd, 0);
     if (!rc)
     {
         DEBUGDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "Error stopping DEC axis!");
