@@ -530,6 +530,9 @@ bool CelestronGPS::ReadScopeStatus()
     if (isSimulation())
         mountSim();
 
+    if (TrackState == SCOPE_PARKED)
+        return true;
+
     if (get_celestron_coords(PortFD, &currentRA, &currentDEC) == false)
     {
         DEBUG(INDI::Logger::DBG_ERROR, "Failed to read RA/DEC values.");
@@ -1143,6 +1146,7 @@ bool CelestronGPS::setTrackMode(CELESTRON_TRACK_MODE mode)
     if (set_celestron_track_mode(PortFD, mode))
     {
         TrackState = (mode == TRACKING_OFF) ? SCOPE_IDLE : SCOPE_TRACKING;
+        DEBUGF(INDI::Logger::DBG_DEBUG, "Tracking mode set to %s.", TrackModeS[mode].label);
         return true;
     }
 
