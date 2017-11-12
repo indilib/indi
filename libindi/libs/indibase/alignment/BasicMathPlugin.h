@@ -104,10 +104,14 @@ class BasicMathPlugin : public AlignmentSubsystemForMathPlugins
     void RotationMatrixFromVectors(gsl_vector *pA, gsl_vector *pB, gsl_matrix *pR);
       
     // Transformation matrixes for 1, 2 and 2 sync points case
+    // geehalel: adding a 2nd matrix for the 2 syncpoint case (nearest)
     gsl_matrix *pActualToApparentTransform;
+    gsl_matrix *pActualToApparentTransform_2;
     gsl_matrix *pApparentToActualTransform;
+    gsl_matrix *pApparentToActualTransform_2;
 
     // Convex hulls for 4+ sync points case
+    // geehalel used also for 3 point case
     ConvexHull ActualConvexHull;
     ConvexHull ApparentConvexHull;
     // Actual direction cosines for the 4+ case
