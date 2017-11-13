@@ -45,20 +45,19 @@ class MBox : public INDI::Weather
     virtual IPState updateWeather() override;    
 
   private:
-    bool ack();
+    typedef enum { ACK_OK_STARTUP, ACK_OK_INIT, ACK_ERROR } AckResponse;
+    typedef enum { CAL_PRESSURE, CAL_TEMPERATURE, CAL_HUMIDITY } CalibrationType;
+
+    AckResponse ack();
+
     bool verifyCRC(const char *response);
     bool getCalibration(bool sendCommand=true);
-    bool setCalibration();
+    bool setCalibration(CalibrationType type);
     bool resetCalibration();
 
     INumber CalibrationN[3];
     INumberVectorProperty CalibrationNP;
-    enum
-    {
-        CAL_PRESSURE,
-        CAL_TEMPERATURE,
-        CAL_HUMIDITY
-    };
+
 
     ISwitch ResetS[1];
     ISwitchVectorProperty ResetSP;

@@ -21,10 +21,11 @@
 
 */
 
-#ifndef LAKESIDE_H
-#define LAKESIDE_H
+#pragma once
 
 #include "indifocuser.h"
+
+#include <cstdint>
 
 class Lakeside : public INDI::Focuser
 {
@@ -49,7 +50,7 @@ protected:
 private:
 
     double targetPos, lastPos, lastTemperature;
-    unsigned int currentSpeed;
+    uint32_t currentSpeed;
 
     struct timeval focusMoveStart;
     float focusMoveRequest;
@@ -80,7 +81,7 @@ private:
     bool SendCmd(const char *in_cmd);
     bool ReadBuffer(char* response);
   
-    bool gotoPosition(unsigned int position);
+    bool gotoPosition(uint32_t position);
 
     bool setCalibration();
 
@@ -90,15 +91,15 @@ private:
     bool setMaxTravel(int);
     bool setMoveDirection(int direction);
 
-    bool setActiveTemperatureSlope(unsigned int active_slope);
-    bool setSlope1Inc(unsigned int slope1_inc);
-    bool setSlope1Dir(unsigned int slope1_direction);
-    bool setSlope1Deadband(unsigned int slope1_deadband);
-    bool setSlope1Period(unsigned int slope1_period);
-    bool setSlope2Inc(unsigned int slope2_inc);
-    bool setSlope2Dir(unsigned int slope2_direction);
-    bool setSlope2Deadband(unsigned int slope2_deadband);
-    bool setSlope2Period(unsigned int slope2_period);
+    bool setActiveTemperatureSlope(uint32_t active_slope);
+    bool setSlope1Inc(uint32_t slope1_inc);
+    bool setSlope1Dir(uint32_t slope1_direction);
+    bool setSlope1Deadband(uint32_t slope1_deadband);
+    bool setSlope1Period(uint32_t slope1_period);
+    bool setSlope2Inc(uint32_t slope2_inc);
+    bool setSlope2Dir(uint32_t slope2_direction);
+    bool setSlope2Deadband(uint32_t slope2_deadband);
+    bool setSlope2Period(uint32_t slope2_period);
 
     INumber TemperatureN[1];
     INumberVectorProperty TemperatureNP;
@@ -149,5 +150,3 @@ private:
     INumberVectorProperty Slope2PeriodNP;
 
 };
-
-#endif // LAKESIDE_H

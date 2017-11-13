@@ -174,7 +174,7 @@ bool check_celestron_connection(int fd)
         if (nbytes_read > 0)
         {
             response[nbytes_read] = '\0';
-            DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_DEBUG, "RES (%s)", response);
+            DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_DEBUG, "RES <%s>", response);
 
             if (!strcmp(response, "x#"))
                 return true;
@@ -241,7 +241,7 @@ bool get_celestron_version(int fd, FirmwareInfo *info)
     int nbytes_read    = 0;
     int nbytes_written = 0;
 
-    DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
+    DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_DEBUG, "CMD <%s>", cmd);
 
     if (celestron_simulation)
     {
@@ -303,7 +303,7 @@ bool get_celestron_variant (int fd, FirmwareInfo * info)
     int nbytes_read = 0;
     int nbytes_written = 0;
 
-    DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
+    DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_DEBUG, "CMD <%s>", cmd);
 
     if (celestron_simulation)
     {
@@ -356,7 +356,7 @@ bool get_celestron_model(int fd, FirmwareInfo *info)
     int nbytes_read    = 0;
     int nbytes_written = 0;
 
-    DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
+    DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_DEBUG, "CMD <%s>", cmd);
 
     if (celestron_simulation)
     {
@@ -853,7 +853,7 @@ bool start_celestron_motion(int fd, CELESTRON_DIRECTION dir, CELESTRON_SLEW_RATE
     if (nbytes_read > 0)
     {
         response[nbytes_read] = '\0';
-        DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_DEBUG, "RES (%s)", response);
+        DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_DEBUG, "RES <%s>", response);
 
         return true;
     }
@@ -916,7 +916,7 @@ bool stop_celestron_motion(int fd, CELESTRON_DIRECTION dir)
     if (nbytes_read > 0)
     {
         response[nbytes_read] = '\0';
-        DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_DEBUG, "RES (%s)", response);
+        DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_DEBUG, "RES <%s>", response);
         return true;
     }
 
@@ -926,14 +926,14 @@ bool stop_celestron_motion(int fd, CELESTRON_DIRECTION dir)
 
 bool abort_celestron(int fd)
 {
-    char cmd[]  = "M";
+    const char *cmd  = "M";
     int errcode = 0;
     char errmsg[MAXRBUF];
     char response[8];
     int nbytes_read    = 0;
     int nbytes_written = 0;
 
-    DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
+    DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_DEBUG, "CMD <%s>", cmd);
 
     if (celestron_simulation)
     {
@@ -962,7 +962,7 @@ bool abort_celestron(int fd)
     if (nbytes_read > 0)
     {
         response[nbytes_read] = '\0';
-        DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_DEBUG, "RES (%s)", response);
+        DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_DEBUG, "RES <%s>", response);
         return true;
     }
 
@@ -992,7 +992,7 @@ bool slew_celestron(int fd, double ra, double dec)
 
     snprintf(cmd, 16, "R%04X,%04X", ra_int, de_int);
 
-    DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
+    DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_DEBUG, "CMD <%s>", cmd);
 
     if (celestron_simulation)
     {
@@ -1022,7 +1022,7 @@ bool slew_celestron(int fd, double ra, double dec)
     if (nbytes_read > 0)
     {
         response[nbytes_read] = '\0';
-        DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_DEBUG, "RES (%s)", response);
+        DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_DEBUG, "RES <%s>", response);
 
         if (!strcmp(response, "#"))
         {
@@ -1041,7 +1041,7 @@ bool slew_celestron(int fd, double ra, double dec)
 
 bool slew_celestron_azalt(int fd, double latitude, double az, double alt)
 {
-    char cmd[16];
+    char cmd[16] = {0};
     int errcode = 0;
     char errmsg[MAXRBUF];
     char response[8];
@@ -1061,7 +1061,7 @@ bool slew_celestron_azalt(int fd, double latitude, double az, double alt)
 
     snprintf(cmd, 16, "B%04X,%04X", az_int, alt_int);
 
-    DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
+    DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_DEBUG, "CMD <%s>", cmd);
 
     if (celestron_simulation)
     {
@@ -1091,7 +1091,7 @@ bool slew_celestron_azalt(int fd, double latitude, double az, double alt)
     if (nbytes_read > 0)
     {
         response[nbytes_read] = '\0';
-        DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_DEBUG, "RES (%s)", response);
+        DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_DEBUG, "RES <%s>", response);
 
         if (!strcmp(response, "#"))
         {
@@ -1110,7 +1110,7 @@ bool slew_celestron_azalt(int fd, double latitude, double az, double alt)
 
 bool sync_celestron(int fd, double ra, double dec)
 {
-    char cmd[16];
+    char cmd[16] = {0};
     int errcode = 0;
     char errmsg[MAXRBUF];
     char response[8];
@@ -1129,7 +1129,7 @@ bool sync_celestron(int fd, double ra, double dec)
 
     snprintf(cmd, 16, "S%04X,%04X", ra_int, de_int);
 
-    DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
+    DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_DEBUG, "CMD <%s>", cmd);
 
     if (celestron_simulation)
     {
@@ -1160,7 +1160,7 @@ bool sync_celestron(int fd, double ra, double dec)
     if (nbytes_read > 0)
     {
         response[nbytes_read] = '\0';
-        DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_DEBUG, "RES (%s)", response);
+        DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_DEBUG, "RES <%s>", response);
 
         if (!strcmp(response, "#"))
         {
@@ -1179,14 +1179,14 @@ bool sync_celestron(int fd, double ra, double dec)
 
 bool get_celestron_coords(int fd, double *ra, double *dec)
 {
-    char cmd[]  = "E";
+    const char *cmd  = "E";
     int errcode = 0;
     char errmsg[MAXRBUF];
     char response[16];
     int nbytes_read    = 0;
     int nbytes_written = 0;
 
-    DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_EXTRA_1, "CMD (%s)", cmd);
+    DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_EXTRA_1, "CMD <%s>", cmd);
 
     if (celestron_simulation)
     {
@@ -1246,7 +1246,7 @@ bool get_celestron_coords(int fd, double *ra, double *dec)
         char RAStr[16], DecStr[16];
         fs_sexa(RAStr, *ra, 2, 3600);
         fs_sexa(DecStr, *dec, 2, 3600);
-        DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_EXTRA_1, "RES (%s) ==> RA-DEC (%s,%s)", response, RAStr,
+        DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_EXTRA_1, "RES <%s> ==> RA-DEC (%s,%s)", response, RAStr,
                      DecStr);
 
         return true;
@@ -1258,14 +1258,14 @@ bool get_celestron_coords(int fd, double *ra, double *dec)
 
 bool get_celestron_coords_azalt(int fd, double latitude, double *az, double *alt)
 {
-    char cmd[]  = "Z";
+    const char *cmd  = "Z";
     int errcode = 0;
     char errmsg[MAXRBUF];
     char response[16];
     int nbytes_read    = 0;
     int nbytes_written = 0;
 
-    DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_EXTRA_1, "CMD (%s)", cmd);
+    DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_EXTRA_1, "CMD <%c>", cmd[0]);
 
     if (celestron_simulation)
     {
@@ -1316,7 +1316,7 @@ bool get_celestron_coords_azalt(int fd, double latitude, double *az, double *alt
         char AzStr[16], AltStr[16];
         fs_sexa(AzStr, *az, 3, 3600);
         fs_sexa(AltStr, *alt, 2, 3600);
-        DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_EXTRA_1, "RES (%s) ==> AZM-ALT (%s,%s)", response, AzStr,
+        DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_EXTRA_1, "RES <%s> ==> AZM-ALT (%s,%s)", response, AzStr,
                      AltStr);
 
         return true;
@@ -1328,7 +1328,7 @@ bool get_celestron_coords_azalt(int fd, double latitude, double *az, double *alt
 
 bool set_celestron_location(int fd, double longitude, double latitude)
 {
-    char cmd[16];
+    char cmd[16] = {0};
     int errcode = 0;
     char errmsg[MAXRBUF];
     char response[8];
@@ -1385,7 +1385,7 @@ bool set_celestron_location(int fd, double longitude, double latitude)
     if (nbytes_read > 0)
     {
         response[nbytes_read] = '\0';
-        DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_DEBUG, "RES (%s)", response);
+        DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_DEBUG, "RES <%s>", response);
 
         return true;
     }
@@ -1396,7 +1396,7 @@ bool set_celestron_location(int fd, double longitude, double latitude)
 
 bool set_celestron_datetime(int fd, struct ln_date *utc, double utc_offset)
 {
-    char cmd[16];
+    char cmd[16] = {0};
     int errcode = 0;
     char errmsg[MAXRBUF];
     char response[8];
@@ -1454,7 +1454,7 @@ bool set_celestron_datetime(int fd, struct ln_date *utc, double utc_offset)
     if (nbytes_read > 0)
     {
         response[nbytes_read] = '\0';
-        DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_DEBUG, "RES (%s)", response);
+        DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_DEBUG, "RES <%s>", response);
 
         return true;
     }
@@ -1465,14 +1465,14 @@ bool set_celestron_datetime(int fd, struct ln_date *utc, double utc_offset)
 
 bool get_celestron_utc_date_time(int fd, double *utc_hours, int *yy, int *mm, int *dd, int *hh, int *minute, int *ss)
 {
-    char cmd[]  = "h";
+    const char *cmd  = "h";
     int errcode = 0;
     char errmsg[MAXRBUF];
     char response[32];
     int nbytes_read    = 0;
     int nbytes_written = 0;
 
-    DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
+    DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_DEBUG, "CMD <%c>", cmd[0]);
 
     if (celestron_simulation)
     {
@@ -1555,14 +1555,14 @@ bool get_celestron_utc_date_time(int fd, double *utc_hours, int *yy, int *mm, in
 
 bool is_scope_slewing(int fd)
 {
-    char cmd[]  = "L";
+    const char* cmd  = "L";
     int errcode = 0;
     char errmsg[MAXRBUF];
     char response[8];
     int nbytes_read    = 0;
     int nbytes_written = 0;
 
-    DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
+    DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_DEBUG, "CMD <%c>", cmd[0]);
 
     if (celestron_simulation)
     {
@@ -1595,7 +1595,7 @@ bool is_scope_slewing(int fd)
     if (nbytes_read > 0)
     {
         response[nbytes_read] = '\0';
-        DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_DEBUG, "RES (%s)", response);
+        DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_DEBUG, "RES <%s>", response);
 
         tcflush(fd, TCIFLUSH);
 
@@ -1611,14 +1611,14 @@ bool is_scope_slewing(int fd)
 
 bool get_celestron_track_mode(int fd, CELESTRON_TRACK_MODE *mode)
 {
-    char cmd[]  = "t";
+    const char *cmd  = "t";
     int errcode = 0;
     char errmsg[MAXRBUF];
     char response[8];
     int nbytes_read    = 0;
     int nbytes_written = 0;
 
-    DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
+    DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_DEBUG, "CMD <%c>", cmd[0]);
 
     if (celestron_simulation)
     {
@@ -1673,7 +1673,7 @@ bool set_celestron_track_mode(int fd, CELESTRON_TRACK_MODE mode)
     cmd[0] = 'T';
     cmd[1] = mode;
 
-    DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
+    DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_DEBUG, "CMD <%c><%c>", cmd[0], cmd[1]);
 
     if (celestron_simulation)
     {
@@ -1702,7 +1702,7 @@ bool set_celestron_track_mode(int fd, CELESTRON_TRACK_MODE mode)
     if (nbytes_read > 0)
     {
         response[nbytes_read] = '\0';
-        DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_DEBUG, "RES (%s)", response);
+        DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_DEBUG, "RES <%s>", response);
 
         if (!strcmp(response, "#"))
         {
@@ -1723,12 +1723,12 @@ bool set_celestron_track_mode(int fd, CELESTRON_TRACK_MODE mode)
 
 bool hibernate(int fd)
 {
-    char cmd[]  = "x#";
+    const char *cmd  = "x#";
     int errcode = 0;
     char errmsg[MAXRBUF];
     int nbytes_written = 0;
 
-    DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
+    DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_DEBUG, "CMD <%s>", cmd);
 
     if (celestron_simulation)
         return true;
@@ -1747,14 +1747,14 @@ bool hibernate(int fd)
 
 bool wakeup(int fd)
 {
-    char cmd[]  = "y#";
+    const char *cmd  = "y#";
     int errcode = 0;
     char errmsg[MAXRBUF];
     int nbytes_written = 0;
     int nbytes_read    = 0;
     char response[2];
 
-    DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
+    DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_DEBUG, "CMD <%s>", cmd);
 
     if (celestron_simulation)
         return true;
@@ -1778,7 +1778,7 @@ bool wakeup(int fd)
     if (nbytes_read > 0)
     {
         response[nbytes_read] = '\0';
-        DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_DEBUG, "RES (%s)", response);
+        DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_DEBUG, "RES <%s>", response);
 
         if (!strcmp(response, "#"))
         {

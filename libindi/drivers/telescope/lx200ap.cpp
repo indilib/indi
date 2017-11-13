@@ -44,11 +44,7 @@ LX200AstroPhysics::LX200AstroPhysics() : LX200Generic()
 
     setLX200Capability(LX200_HAS_PULSE_GUIDING);
 
-    SetTelescopeCapability(GetTelescopeCapability() | TELESCOPE_HAS_PIER_SIDE | TELESCOPE_HAS_PEC | TELESCOPE_CAN_CONTROL_TRACK | TELESCOPE_HAS_TRACK_RATE, 4);
-
-    //ctor
-    currentRA  = get_local_sideral_time(0);
-    currentDEC = 90;
+    SetTelescopeCapability(GetTelescopeCapability() | TELESCOPE_HAS_PIER_SIDE | TELESCOPE_HAS_PEC | TELESCOPE_CAN_CONTROL_TRACK | TELESCOPE_HAS_TRACK_RATE, 4);    
 }
 
 const char *LX200AstroPhysics::getDefaultName()
@@ -626,6 +622,13 @@ bool LX200AstroPhysics::Goto(double r, double d)
     return true;
 }
 
+
+int LX200AstroPhysics::SendPulseCmd(int direction, int duration_msec)
+{
+    return APSendPulseCmd(PortFD, direction, duration_msec);
+}
+
+
 bool LX200AstroPhysics::Handshake()
 {
     if (isSimulation())
@@ -1087,4 +1090,9 @@ bool LX200AstroPhysics::SetTrackRate(double raRate, double deRate)
     }
 
     return true;
+}
+
+bool LX200AstroPhysics::getUTFOffset(double *offset)
+{
+    return (getAPUTCOffset(PortFD, offset) == 0);
 }
