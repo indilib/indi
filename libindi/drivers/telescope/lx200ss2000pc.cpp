@@ -26,6 +26,10 @@
 #include <cmath>
 #include <string.h>
 
+#include <libnova/transform.h>
+#include <termios.h>
+#include <unistd.h>
+
 const int LX200SS2000PC::ShortTimeOut = 2;  // In seconds.
 const int LX200SS2000PC::LongTimeOut  = 10; // In seconds.
 
@@ -235,3 +239,107 @@ bool LX200SS2000PC::setUTCOffset(const int offset_in_hours)
     }
     return result;
 }
+
+bool LX200SS2000PC::updateLocation(double latitude, double longitude, double elevation)
+{
+    INDI_UNUSED(elevation);
+
+    if (isSimulation())
+        return true;
+
+    if (latitude == 0.0 && longitude == 0.0)
+        return true;
+
+    if (setLatitude(latitude) < 0)
+    {
+        DEBUG(INDI::Logger::DBG_ERROR, "Error setting site latitude coordinates");
+    }
+
+    if (setLongitude(longitude) < 0)
+    {
+        DEBUG(INDI::Logger::DBG_ERROR, "Error setting site longitude coordinates");
+        return false;
+    }
+
+    char slat[32], slong[32];
+    fs_sexa(slat, latitude, 3, 3600);
+    fs_sexa(slong, longitude, 4, 3600);
+
+    DEBUGF(INDI::Logger::DBG_SESSION, "Site location updated to Latitude: %.32s - Longitude: %.32s", slat, slong);
+
+    return true;
+}
+
+int LX200SS2000PC::setLatitude(double Lat)
+{
+    int d, m, s;
+    char sign;
+    char temp_string[32];
+
+    if (Lat > 0)
+        sign = '+';
+    else
+        sign = '-';
+
+    getSexComponents(Lat, &d, &m, &s);
+
+    snprintf(temp_string, sizeof(temp_string), ":St %c%02d*%02d:%02d#", sign, abs(d), m, s);
+
+    return (LX200SS2000PC::sendCommand(PortFD, temp_string));
+}
+
+int LX200SS2000PC::setLongitude(double Long)
+{
+    int d, m, s;
+    char temp_string[32];
+    double final_longitude;
+
+    if (Long > 180)
+        final_longitude = Long - 360.0;
+    else
+        final_longitude = Long;
+
+    getSexComponents(final_longitude, &d, &m, &s);
+
+    snprintf(temp_string, sizeof(temp_string), ":Sg %03d*%02d:%02d#", abs(d), m, s);
+
+    return (LX200SS2000PC::sendCommand(PortFD, temp_string));
+}
+
+int LX200SS2000PC::sendCommand(int fd, const char *data)
+{
+    char result[2];
+    int error_type;
+    int nbytes_write = 0, nbytes_read = 0;
+
+    tcflush(fd, TCIFLUSH);
+
+    if ((error_type = tty_write_string(fd, data, &nbytes_write)) != TTY_OK)
+    {
+        DEBUGF(INDI::Logger::DBG_SESSION, "Error writing string to tty: %s", data);
+        return error_type;
+    }
+
+    tcflush(fd, TCIFLUSH);
+
+    error_type = tty_read(fd, result, 1, ShortTimeOut, &nbytes_read);
+    if (error_type != TTY_OK) 
+    {
+        DEBUGF(INDI::Logger::DBG_SESSION, "error_type %d, result %c", error_type, result[0]);
+        return error_type;
+    }
+
+    if (nbytes_read < 1)
+    {
+        DEBUGF(INDI::Logger::DBG_SESSION, "nbytes less than 1 %d", 0);
+        return error_type;
+    }
+
+    if (result[0] == '0')
+    {
+        return -1;
+    }
+
+    return 0;
+}
+
