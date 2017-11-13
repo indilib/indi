@@ -62,14 +62,15 @@ bool pmc8_simulation            = false;
 char pmc8_device[MAXINDIDEVICE] = "PMC8";
 double pmc8_latitude            = 0;  // must be kept updated by pmc8.cpp when it is changed!
 double pmc8_longitude           = 0;  // must be kept updated by pmc8.cpp when it is changed!
+double pmc8_guide_rate = 0.5*15.0;    // default to 0.5 sidereal
 PMC8Info simPMC8Info;
 
 struct
 {
     double ra;
     double dec;
-    PMC8_DIRECTION raDirection;
-    PMC8_DIRECTION decDirection;
+    int raDirection;
+    int decDirection;
     double trackRate;
     double moveRate;
     double guide_rate;
@@ -381,16 +382,15 @@ bool get_pmc8_tracking_rate_axis(int fd, PMC8_AXIS axis, int &rate)
 
     if (pmc8_simulation)
     {
-        if (axis == PMC8_RA_AXIS)
+        if (axis == PMC8_AXIS_RA)
             rate = simPMC8Data.trackRate;
-        else if (axis == PMC8_DEC_AXIS)
+        else if (axis == PMC8_AXIS_DEC)
             rate = 0; // DEC tracking not supported yet
         else
             return false;
 
         return true;
     }
-
 
     tcflush(fd, TCIFLUSH);
 
@@ -446,9 +446,9 @@ bool get_pmc8_direction_axis(int fd, PMC8_AXIS axis, int &dir)
 
     if (pmc8_simulation)
     {
-        if (axis == PMC8_RA_AXIS)
+        if (axis == PMC8_AXIS_RA)
             dir = simPMC8Data.raDirection;
-        else if (axis == PMC8_DEC_AXIS)
+        else if (axis == PMC8_AXIS_DEC)
             dir = simPMC8Data.decDirection;
         else
             return false;
@@ -509,9 +509,9 @@ bool set_pmc8_direction_axis(int fd, PMC8_AXIS axis, int dir)
 
     if (pmc8_simulation)
     {
-        if (axis == PMC8_RA_AXIS)
+        if (axis == PMC8_AXIS_RA)
             simPMC8Data.raDirection = (PMC8_DIRECTION) dir;
-        else if (axis == PMC8_DEC_AXIS)
+        else if (axis == PMC8_AXIS_DEC)
             simPMC8Data.decDirection = (PMC8_DIRECTION) dir;
         else
             return false;
@@ -554,14 +554,14 @@ bool get_pmc8_is_scope_slewing(int fd, bool &isslew)
     int decrate;
     bool rc;
 
-    rc=get_pmc8_tracking_rate_axis(fd, PMC8_RA_AXIS, rarate);
+    rc=get_pmc8_tracking_rate_axis(fd, PMC8_AXIS_RA, rarate);
     if (!rc)
     {
         DEBUGDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "get_pmc8_is_scope_slewing(): Error reading RA tracking rate");
         return false;
     }
 
-    rc=get_pmc8_tracking_rate_axis(fd, PMC8_DEC_AXIS, decrate);
+    rc=get_pmc8_tracking_rate_axis(fd, PMC8_AXIS_DEC, decrate);
     if (!rc)
     {
         DEBUGDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "get_pmc8_is_scope_slewing(): Error reading DEC tracking rate");
@@ -851,8 +851,17 @@ bool convert_move_rate_to_motor(float rate, int *mrate)
     return true;
 }
 
-// set speed for move action (MoveNS/MoveWE) NOT slews!
-bool set_pmc8_axis_move_rate(int fd, PMC8_AXIS axis, float rate)
+// convert rate internal PMC8 motor rate to arcsec/sec for move action (not slewing)
+bool convert_motor_rate_to_move_rate(int mrate, float *rate)
+{
+    *rate = ((double)mrate)*ARCSEC_IN_CIRCLE/PMC8_AXIS0_SCALE;
+
+    return true;
+}
+
+// set speed for move action (MoveNS/MoveWE) NOT slews!  This version DOESNT handle direciton and expects a motor rate!
+// if fast is true dont wait on response!  Used for psuedo-pulse guide
+bool set_pmc8_axis_motor_rate(int fd, PMC8_AXIS axis, int mrate, bool fast)
 {
     char cmd[24];
     int errcode = 0;
@@ -863,49 +872,32 @@ bool set_pmc8_axis_move_rate(int fd, PMC8_AXIS axis, float rate)
     int rateval;
     bool rc;
 
-    // set direction
-    if (rate < 0)
-        rc=set_pmc8_direction_axis(fd, axis, 0);
-    else
-        rc=set_pmc8_direction_axis(fd, axis, 1);
-
-    if (!rc)
-        return rc;
-
-    if (!convert_move_rate_to_motor(fabs(rate), &rateval))
-    {
-        DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "Error converting rate %f", rate);
-        return false;
-    }
-
-    DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_DEBUG, "PMC8 internal rate %d for requested rate %f", rateval, rate);
-
-    snprintf(cmd, sizeof(cmd), "ESSr%d%04X!", axis, rateval);
+    snprintf(cmd, sizeof(cmd), "ESSr%d%04X!", axis, mrate);
 
     DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
 
     if (pmc8_simulation)
     {
-        simPMC8Data.moveRate = rate;
         return true;
     }
-    else
+
+    tcflush(fd, TCIFLUSH);
+
+    if ((errcode = tty_write(fd, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
     {
-        tcflush(fd, TCIFLUSH);
+        tty_error_msg(errcode, errmsg, MAXRBUF);
+        DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "%s", errmsg);
+        return false;
+    }
 
-        if ((errcode = tty_write(fd, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
-        {
-            tty_error_msg(errcode, errmsg, MAXRBUF);
-            DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "%s", errmsg);
-            return false;
-        }
+    if (fast)
+        return true;
 
-        if ((errcode = tty_read(fd, response, strlen(cmd), PMC8_TIMEOUT, &nbytes_read)))
-        {
-            tty_error_msg(errcode, errmsg, MAXRBUF);
-            DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "%s", errmsg);
-            return false;
-        }
+    if ((errcode = tty_read(fd, response, strlen(cmd), PMC8_TIMEOUT, &nbytes_read)))
+    {
+        tty_error_msg(errcode, errmsg, MAXRBUF);
+        DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "%s", errmsg);
+        return false;
     }
 
     if (nbytes_read == 10)
@@ -920,6 +912,40 @@ bool set_pmc8_axis_move_rate(int fd, PMC8_AXIS axis, float rate)
     DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "Only received #%d bytes, expected 10.", nbytes_read);
     return false;
 }
+
+// set speed for move action (MoveNS/MoveWE) NOT slews! This version accepts arcsec/sec as rate.
+// also handles direction
+bool set_pmc8_axis_move_rate(int fd, PMC8_AXIS axis, float rate)
+{
+    bool rc;
+    int motor_rate;
+
+    // set direction
+    if (rate < 0)
+        rc=set_pmc8_direction_axis(fd, axis, 0);
+    else
+        rc=set_pmc8_direction_axis(fd, axis, 1);
+
+    if (!rc)
+        return rc;
+
+    if (!convert_move_rate_to_motor(fabs(rate), &motor_rate))
+    {
+        DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "Error converting rate %f", rate);
+        return false;
+    }
+
+    rc = set_pmc8_axis_motor_rate(fd, axis, motor_rate, false);
+
+    if (pmc8_simulation)
+    {
+        simPMC8Data.moveRate = rate;
+        return true;
+    }
+
+    return rc;
+}
+
 
 
 #if 0
@@ -1035,7 +1061,7 @@ bool set_pmc8_custom_ra_track_rate(int fd, double rate)
     tcflush(fd, TCIFLUSH);
 
     // set direction to 1
-    return set_pmc8_direction_axis(fd, PMC8_RA_AXIS, 1);
+    return set_pmc8_direction_axis(fd, PMC8_AXIS_RA, 1);
 }
 
 
@@ -1055,7 +1081,7 @@ bool set_pmc8_custom_dec_track_rate(int fd, double rate)
     }
     else
     {
-        rc=set_pmc8_axis_rate(fd, PMC8_DEC_AXIS, rate);
+        rc=set_pmc8_axis_rate(fd, PMC8_AXIS_DEC, rate);
     }
 
     return rc;
@@ -1085,7 +1111,7 @@ bool set_pmc8_custom_ra_move_rate(int fd, double rate)
         return false;
     }
 
-    rc=set_pmc8_axis_move_rate(fd, PMC8_RA_AXIS, rate);
+    rc=set_pmc8_axis_move_rate(fd, PMC8_AXIS_RA, rate);
 
     return rc;
 }
@@ -1104,18 +1130,27 @@ bool set_pmc8_custom_dec_move_rate(int fd, double rate)
         return false;
     }
 
-    rc=set_pmc8_axis_move_rate(fd, PMC8_DEC_AXIS, rate);
+    rc=set_pmc8_axis_move_rate(fd, PMC8_AXIS_DEC, rate);
 
     return rc;
 }
 
+// rate is fraction of sidereal
 bool set_pmc8_guide_rate(int fd, double rate)
 {
+
+#if 1
+    INDI_UNUSED(fd);
+    pmc8_guide_rate = rate * 15.0;
+    DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "set_pmc8_guide_rate: guide rate set to %f arcsec/sec", pmc8_guide_rate);
+    return true;
+#else
     INDI_UNUSED(fd);
     INDI_UNUSED(rate);
 
     DEBUGDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "set_pmc8_guide_rate not implemented!");
     return false;
+#endif
 }
 
 // not yet implemented for PMC8
@@ -1128,59 +1163,174 @@ bool get_pmc8_guide_rate(int fd, double *rate)
     return false;
 }
 
-#if 0
-// not yet implemented for PMC8
-bool start_ieqpro_guide(int fd, IEQ_DIRECTION dir, int ms)
+bool start_pmc8_guide(int fd, PMC8_DIRECTION gdir, int ms)
 {
     char cmd[16];
     int errcode = 0;
     char errmsg[MAXRBUF];
     int nbytes_written = 0;
 
-    char dir_c = 0;
+    bool rc;
+    int cur_ra_rate;
+    int cur_dec_rate;
+    int cur_ra_dir;
+    int cur_dec_dir;
 
-    switch (dir)
+    // experimental implementation:
+    //  1) Get current rates
+    //  2) Set new rates based on guide direction
+    //  3) Wait guide duration
+    //  4) Set back to initial rates
+    //
+    // NOTE FIXME HACK: (MSF) This blocks for duration of guide correction!!
+    //
+
+    rc = get_pmc8_tracking_rate_axis(fd, PMC8_AXIS_RA, cur_ra_rate);
+
+    if (!rc)
     {
-        case IEQ_N:
-            dir_c = 'n';
+        DEBUGDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "pmc8_start_guide(): error reading current RA rate!");
+        return rc;
+    }
+
+    rc = get_pmc8_tracking_rate_axis(fd, PMC8_AXIS_DEC, cur_dec_rate);
+
+    if (!rc)
+    {
+        DEBUGDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "pmc8_start_guide(): error reading current DEC rate!");
+        return rc;
+    }
+
+    // if slewing abort
+    if ((cur_ra_rate > PMC8_MINSLEWRATE) || (cur_dec_rate > PMC8_MINSLEWRATE))
+    {
+        DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "pmc8_start_guide(): Cannot send guide correction while slewing! rarate=%d decrate=%d",
+                                                           cur_ra_rate, cur_dec_rate);
+        return rc;
+    }
+
+    rc = get_pmc8_direction_axis(fd, PMC8_AXIS_RA, cur_ra_dir);
+
+    if (!rc)
+    {
+        DEBUGDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "pmc8_start_guide(): error reading current RA DIR!");
+        return rc;
+    }
+
+    rc = get_pmc8_direction_axis(fd, PMC8_AXIS_DEC, cur_dec_dir);
+
+    if (!rc)
+    {
+        DEBUGDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "pmc8_start_guide(): error reading current DEC DIR!");
+        return rc;
+    }
+
+    // compute new rates
+    int new_ra_rate;
+    int new_dec_rate;
+    int new_ra_dir;
+    int new_dec_dir;
+
+    new_ra_rate = cur_ra_rate;
+    new_dec_rate = cur_dec_rate;
+    new_ra_dir = cur_ra_dir;
+    new_dec_dir = cur_dec_dir;
+
+    // FIXME - (MSF) hard code guide rate as 0.5 siedereal for testing
+    int guide_mrate;
+
+    // convert to motor rate
+    convert_move_rate_to_motor(pmc8_guide_rate, &guide_mrate);
+
+    switch (gdir)
+    {
+        case PMC8_N:
+            new_dec_rate = cur_dec_rate + guide_mrate;
             break;
 
-        case IEQ_S:
-            dir_c = 's';
+        case PMC8_S:
+            new_dec_rate = cur_dec_rate - guide_mrate;
             break;
 
-        case IEQ_W:
-            dir_c = 'w';
+        case PMC8_W:
+            new_ra_rate = cur_ra_rate + guide_mrate;
             break;
 
-        case IEQ_E:
-            dir_c = 'e';
+        case PMC8_E:
+            new_ra_rate = cur_ra_rate - guide_mrate;
             break;
     }
 
-    snprintf(cmd, 16, ":M%c%05d#", dir_c, ms);
-
-    DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
-
-    if (pmc8_simulation)
-        return true;
-    else
+    // see if we need to switch direction
+    if (new_ra_rate < 0)
     {
-        tcflush(fd, TCIFLUSH);
-
-        if ((errcode = tty_write(fd, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
-        {
-            tty_error_msg(errcode, errmsg, MAXRBUF);
-            DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "%s", errmsg);
-            return false;
-        }
+        new_ra_rate = abs(new_ra_rate);
+        if (cur_ra_dir == 0)
+            new_ra_dir = 1;
+        else
+            new_ra_dir = 0;
     }
 
-    tcflush(fd, TCIFLUSH);
+    if (new_dec_rate < 0)
+    {
+        new_dec_rate = abs(new_dec_rate);
+        if (cur_dec_dir == 0)
+            new_dec_dir = 1;
+        else
+            new_dec_dir = 0;
+    }
+
+    DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_DEBUG, "pmc8_start_guide(): gdir=%d dur=%d cur_ra_rate=%d cur_ra_dir=%d cur_dec_rate=%d cur_dec_dir=%d",
+                                                       gdir, ms, cur_ra_rate, cur_ra_dir, cur_dec_rate, cur_dec_dir);
+
+    DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_DEBUG, "pmc8_start_guide(): new_ra_rate=%d new_ra_dir=%d new_dec_rate=%d new_dec_dir=%d",
+                                                       new_ra_rate, new_ra_dir, new_dec_rate, new_dec_dir);
+
+    if ((new_ra_rate != cur_ra_rate) || (new_ra_dir != cur_ra_dir))
+    {
+        // not sure if best to flip dir or rate first!
+        if (new_ra_rate != cur_ra_rate)
+            set_pmc8_axis_motor_rate(fd, PMC8_AXIS_RA, new_ra_rate, true);
+        if (new_ra_dir != cur_ra_dir)
+            set_pmc8_direction_axis(fd, PMC8_AXIS_RA, new_ra_dir);
+    }
+
+    if ((new_dec_rate != cur_dec_rate) || (new_dec_dir != cur_dec_dir))
+    {
+        // not sure if best to flip dir or rate first!
+        if (new_dec_rate != cur_dec_rate)
+            set_pmc8_axis_motor_rate(fd, PMC8_AXIS_DEC, new_dec_rate, true);
+        if (new_dec_dir != cur_dec_dir)
+            set_pmc8_direction_axis(fd, PMC8_AXIS_DEC, new_dec_dir);
+    }
+
+    // wait duration
+    usleep(ms*1000);
+
+    // restore previous tracking - only change ones we need to!
+    if ((new_ra_rate != cur_ra_rate) || (new_ra_dir != cur_ra_dir))
+    {
+        // not sure if best to flip dir or rate first!
+//        if (new_ra_rate != cur_ra_rate)
+//            set_pmc8_axis_motor_rate(fd, PMC8_AXIS_RA, cur_ra_rate, true);
+        // FIXME - (MSF) for now restore sidereal tracking
+        if (new_ra_rate != cur_ra_rate)
+            set_pmc8_track_mode(fd, PMC8_TRACK_SIDEREAL);
+        if (new_ra_dir != cur_ra_dir)
+            set_pmc8_direction_axis(fd, PMC8_AXIS_RA, cur_ra_dir);
+    }
+
+    if ((new_dec_rate != cur_dec_rate) || (new_dec_dir != cur_dec_dir))
+    {
+        // not sure if best to flip dir or rate first!
+        if (new_dec_rate != cur_dec_rate)
+            set_pmc8_axis_motor_rate(fd, PMC8_AXIS_DEC, cur_dec_rate, true);
+        if (new_dec_dir != cur_dec_dir)
+            set_pmc8_direction_axis(fd, PMC8_AXIS_DEC, cur_dec_dir);
+    }
+
     return true;
 }
-#endif
-
 
 // convert from axis position returned by controller to motor counts used in conversion to RA/DEC
 int convert_axispos_to_motor(int axispos)
@@ -1351,12 +1501,12 @@ bool set_pmc8_target_position(int fd, int rapoint, int decpoint)
 {
     bool rc;
 
-    rc = set_pmc8_target_position_axis(fd, PMC8_RA_AXIS, rapoint);
+    rc = set_pmc8_target_position_axis(fd, PMC8_AXIS_RA, rapoint);
 
     if (!rc)
         return rc;
 
-    rc = set_pmc8_target_position_axis(fd, PMC8_DEC_AXIS, decpoint);
+    rc = set_pmc8_target_position_axis(fd, PMC8_AXIS_DEC, decpoint);
 
     return rc;
 }
@@ -1424,12 +1574,12 @@ bool set_pmc8_position(int fd, int rapoint, int decpoint)
 {
     bool rc;
 
-    rc = set_pmc8_position_axis(fd, PMC8_RA_AXIS, rapoint);
+    rc = set_pmc8_position_axis(fd, PMC8_AXIS_RA, rapoint);
 
     if (!rc)
         return rc;
 
-    rc = set_pmc8_position_axis(fd, PMC8_DEC_AXIS, decpoint);
+    rc = set_pmc8_position_axis(fd, PMC8_AXIS_DEC, decpoint);
 
     return rc;
 }
@@ -1502,12 +1652,12 @@ bool get_pmc8_position(int fd, int &rapoint, int &decpoint)
     bool rc;
     int axis_ra_pos, axis_dec_pos;
 
-    rc = get_pmc8_position_axis(fd, PMC8_RA_AXIS, axis_ra_pos);
+    rc = get_pmc8_position_axis(fd, PMC8_AXIS_RA, axis_ra_pos);
 
     if (!rc)
         return rc;
 
-    rc = get_pmc8_position_axis(fd, PMC8_DEC_AXIS, axis_dec_pos);
+    rc = get_pmc8_position_axis(fd, PMC8_AXIS_DEC, axis_dec_pos);
 
     if (!rc)
         return rc;

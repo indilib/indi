@@ -144,11 +144,11 @@ bool PMC8::initProperties()
     strcpy(SlewRateSP.sp[2].label, "64x");
     strcpy(SlewRateSP.sp[3].label, "256x");
 
-#if 0
+#if 1
     // (MSF) not currently possible to set guide speed
 
     /* How fast do we guide compared to sidereal rate */
-    IUFillNumber(&GuideRateN[0], "GUIDE_RATE", "x Sidereal", "%g", 0.1, 0.9, 0.1, 0.5);
+    IUFillNumber(&GuideRateN[0], "GUIDE_RATE", "x Sidereal", "%g", 0.1, 1.0, 0.1, 0.5);
     IUFillNumberVector(&GuideRateNP, GuideRateN, 1, getDeviceName(), "GUIDE_RATE", "Guiding Rate", MOTION_TAB, IP_RW, 0,
                        IPS_IDLE);
 
@@ -170,11 +170,10 @@ bool PMC8::updateProperties()
 
     if (isConnected())
     {
-
         // (MSF) not possible to control guiding parameters (yet)
-//        defineNumber(&GuideNSNP);
-//        defineNumber(&GuideWENP);
-//        defineNumber(&GuideRateNP);
+        defineNumber(&GuideNSNP);
+        defineNumber(&GuideWENP);
+        defineNumber(&GuideRateNP);
 
         defineText(&FirmwareTP);
 
@@ -273,7 +272,7 @@ bool PMC8::ISNewNumber(const char *dev, const char *name, double values[], char 
 {
     if (!strcmp(dev, getDeviceName()))
     {
-#if 0
+#if 1
         // FIXME - (MSF) will add setting guide rate when firmware supports
         // Guiding Rate
         if (!strcmp(name, GuideRateNP.name))
@@ -736,29 +735,29 @@ bool PMC8::MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command)
     return true;
 }
 
-#if 0
+#if 1
 // not implemented on PMC8
 IPState PMC8::GuideNorth(float ms)
 {
-    bool rc = start_ieqpro_guide(PortFD, PMC8_N, (int)ms);
+    bool rc = start_pmc8_guide(PortFD, PMC8_N, (int)ms);
     return (rc ? IPS_OK : IPS_ALERT);
 }
 
 IPState PMC8::GuideSouth(float ms)
 {
-    bool rc = start_ieqpro_guide(PortFD, PMC8_S, (int)ms);
+    bool rc = start_pmc8_guide(PortFD, PMC8_S, (int)ms);
     return (rc ? IPS_OK : IPS_ALERT);
 }
 
 IPState PMC8::GuideEast(float ms)
 {
-    bool rc = start_ieqpro_guide(PortFD, PMC8_E, (int)ms);
+    bool rc = start_pmc8_guide(PortFD, PMC8_E, (int)ms);
     return (rc ? IPS_OK : IPS_ALERT);
 }
 
 IPState PMC8::GuideWest(float ms)
 {
-    bool rc = start_ieqpro_guide(PortFD, PMC8_W, (int)ms);
+    bool rc = start_pmc8_guide(PortFD, PMC8_W, (int)ms);
     return (rc ? IPS_OK : IPS_ALERT);
 }
 #else

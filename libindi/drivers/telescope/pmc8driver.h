@@ -44,7 +44,7 @@ typedef enum { PMC8_MOVE_4X, PMC8_MOVE_16X, PMC8_MOVE_64X, PMC8_MOVE_256X } PMC8
 
 //typedef enum { FW_MODEL, FW_BOARD, FW_CONTROLLER, FW_RA, FW_DEC } IEQ_FIRMWARE;
 
-typedef enum { PMC8_RA_AXIS=0, PMC8_DEC_AXIS=1 } PMC8_AXIS;
+typedef enum { PMC8_AXIS_RA=0, PMC8_AXIS_DEC=1 } PMC8_AXIS;
 typedef enum { PMC8_N, PMC8_S, PMC8_W, PMC8_E } PMC8_DIRECTION;
 
 typedef struct
@@ -131,9 +131,9 @@ bool unpark_pmc8(int fd);
 /**************************************************************************
  Guide
 **************************************************************************/
-//bool set_pmc8_guide_rate(int fd, double rate);
+bool set_pmc8_guide_rate(int fd, double rate);
 //bool get_pmc8_guide_rate(int fd, double *rate);
-//bool start_ieqpro_guide(int fd, PMC8_DIRECTION dir, int ms);
+bool start_pmc8_guide(int fd, PMC8_DIRECTION gdir, int ms);
 
 /**************************************************************************
  Time & Location
