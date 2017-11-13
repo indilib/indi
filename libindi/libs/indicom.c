@@ -511,8 +511,7 @@ int tty_read_section(int fd, char *buf, char stop_char, int timeout, int *nbytes
     uint8_t *read_char = 0;
 
     if (tty_debug)
-        IDLog("%s: Request to read until stop char '%c' with %d timeout for fd %d\n", __FUNCTION__, stop_char, timeout,
-              fd);
+        IDLog("%s: Request to read until stop char '%#02X' with %d timeout for fd %d\n", __FUNCTION__, stop_char, timeout, fd);
 
     if (ttyGeminiUdpFormat)
     {
@@ -583,8 +582,7 @@ int tty_nread_section(int fd, char *buf, int nsize, char stop_char, int timeout,
     uint8_t *read_char = 0;
 
     if (tty_debug)
-        IDLog("%s: Request to read until stop char '%c' with %d timeout for fd %d\n", __FUNCTION__, stop_char, timeout,
-              fd);
+        IDLog("%s: Request to read until stop char '%#02X' with %d timeout for fd %d\n", __FUNCTION__, stop_char, timeout, fd);
 
     for (;;)
     {
@@ -1479,7 +1477,7 @@ double rangeDec(double decdegrees)
 }
 
 #if defined(HAVE_LIBNOVA)
-double get_local_sideral_time(double longitude)
+double get_local_sidereal_time(double longitude)
 {
     double SD = ln_get_apparent_sidereal_time(ln_get_julian_from_sys()) - (360.0 - longitude) / 15.0;
 
