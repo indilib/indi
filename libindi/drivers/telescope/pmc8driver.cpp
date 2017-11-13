@@ -47,11 +47,8 @@
 //         This value is from PMC8 SDK document
 #define PMC8_MAX_PRECISE_MOTOR_RATE 2641
 
-// rate for Move command is 256x sidereal
-#define PMC8_MOVE_RATE (15.0*256)
-
-// set max settable slew rate as move rate
-#define PMC8_MAX_SLEW_MOTOR_RATE (PMC8_MOVE_RATE)
+// set max settable slew rate as move rate as 256x sidereal
+#define PMC8_MAX_MOVE_MOTOR_RATE (256*15)
 
 // if tracking speed above this then mount is slewing
 // NOTE - (MSF) 55 is fine since sidereal rate is 53 in these units
@@ -65,14 +62,18 @@ bool pmc8_simulation            = false;
 char pmc8_device[MAXINDIDEVICE] = "PMC8";
 double pmc8_latitude            = 0;  // must be kept updated by pmc8.cpp when it is changed!
 double pmc8_longitude           = 0;  // must be kept updated by pmc8.cpp when it is changed!
-PMC8Info simInfo;
+PMC8Info simPMC8Info;
 
 struct
 {
     double ra;
     double dec;
+    PMC8_DIRECTION raDirection;
+    PMC8_DIRECTION decDirection;
+    double trackRate;
+    double moveRate;
     double guide_rate;
-} simData;
+} simPMC8Data;
 
 void set_pmc8_debug(bool enable)
 {
@@ -83,7 +84,7 @@ void set_pmc8_simulation(bool enable)
 {
     pmc8_simulation = enable;
     if (enable)
-        simData.guide_rate = 0.5;
+        simPMC8Data.guide_rate = 0.5;
 }
 
 void set_pmc8_device(const char *name)
@@ -100,52 +101,58 @@ void set_pmc8_location(double latitude, double longitude)
 
 }
 
+void set_pmc8_sim_system_status(PMC8_SYSTEM_STATUS value)
+{
+    simPMC8Info.systemStatus = value;
+
+    if (value == ST_PARKED)
+    {
+        double lst;
+        double ra;
+
+        lst = get_local_sidereal_time(pmc8_longitude);
+
+        ra = lst + 6;
+        if (ra > 24)
+            ra -= 24;
+
+        set_pmc8_sim_ra(ra);
+        set_pmc8_sim_dec(90.0);
+
+    }
+}
+
+void set_pmc8_sim_track_rate(PMC8_TRACK_RATE value)
+{
+    simPMC8Data.trackRate = value;
+}
+
+void set_pmc8_sim_move_rate(PMC8_MOVE_RATE value)
+{
+    simPMC8Data.moveRate = value;
+}
+
 #if 0
-void set_sim_gps_status(IEQ_GPS_STATUS value)
-{
-    simInfo.gpsStatus = value;
-}
-
-void set_sim_system_status(IEQ_SYSTEM_STATUS value)
-{
-    simInfo.systemStatus = value;
-}
-
-void set_sim_track_rate(IEQ_TRACK_RATE value)
-{
-    simInfo.trackRate = value;
-}
-
-void set_sim_slew_rate(IEQ_SLEW_RATE value)
-{
-    simInfo.slewRate = value;
-}
-
-void set_sim_time_source(IEQ_TIME_SOURCE value)
-{
-    simInfo.timeSource = value;
-}
-
 void set_sim_hemisphere(IEQ_HEMISPHERE value)
 {
-    simInfo.hemisphere = value;
+    simPMC8Info.hemisphere = value;
 }
 #endif // prob not needed pmc8
 
-void set_sim_ra(double ra)
+void set_pmc8_sim_ra(double ra)
 {
-    simData.ra = ra;
+    simPMC8Data.ra = ra;
 }
 
-void set_sim_dec(double dec)
+void set_pmc8_sim_dec(double dec)
 {
-    simData.dec = dec;
+    simPMC8Data.dec = dec;
 }
 
-void set_sim_guide_rate(double rate)
-{
-    simData.guide_rate = rate;
-}
+//void set_pmc8_sim_guide_rate(double rate)
+//{
+//    simPMC8Data.guide_rate = rate;
+//}
 
 bool check_pmc8_connection(int fd)
 {
@@ -202,6 +209,8 @@ bool check_pmc8_connection(int fd)
     return false;
 }
 
+// really dont think we need this since PMC8 doesnt give status
+#if 0
 bool get_pmc8_status(int fd, PMC8Info *info)
 {
     char cmd[]  = ":GAS#";
@@ -221,8 +230,8 @@ bool get_pmc8_status(int fd, PMC8Info *info)
     if (pmc8_simulation)
     {
         // FIXME - (MSF) Need to implement simcode for get status
-//        snprintf(response, 8, "%d%d%d%d%d%d#", simInfo.gpsStatus, simInfo.systemStatus, simInfo.trackRate,
-//                 simInfo.slewRate + 1, simInfo.timeSource + 1, simInfo.hemisphere);
+//        snprintf(response, 8, "%d%d%d%d%d%d#", simPMC8Info.gpsStatus, simPMC8Info.systemStatus, simPMC8Info.trackRate,
+//                 simPMC8Info.slewRate + 1, simPMC8Info.timeSource + 1, simPMC8Info.hemisphere);
 //        nbytes_read = strlen(response);
     }
     else
@@ -271,9 +280,12 @@ bool get_pmc8_status(int fd, PMC8Info *info)
     return false;
 #endif
 }
+#endif
 
 bool get_pmc8_model(int fd, FirmwareInfo *info)
 {
+    INDI_UNUSED(fd);
+
     // FIXME - only one model for now
     info->Model.assign("PMC-Eight");
     return true;
@@ -322,8 +334,6 @@ bool get_pmc8_main_firmware(int fd, FirmwareInfo *info)
 
         if (nbytes_read == 13)
         {
-            char firm[8] = {0};
-
             response[12] = '\0';
             strncpy(board, response+6, 6);
 
@@ -365,16 +375,22 @@ bool get_pmc8_tracking_rate_axis(int fd, PMC8_AXIS axis, int &rate)
     int nbytes_read    = 0;
     int nbytes_written = 0;
 
-
-    if (pmc8_simulation)
-    {
-        // FIXME - (MSF) - need to implement simulation code for setting point position
-        return true;
-    }
-
     snprintf(cmd, sizeof(cmd), "ESGr%d!", axis);
 
     DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
+
+    if (pmc8_simulation)
+    {
+        if (axis == PMC8_RA_AXIS)
+            rate = simPMC8Data.trackRate;
+        else if (axis == PMC8_DEC_AXIS)
+            rate = 0; // DEC tracking not supported yet
+        else
+            return false;
+
+        return true;
+    }
+
 
     tcflush(fd, TCIFLUSH);
 
@@ -417,7 +433,6 @@ bool get_pmc8_tracking_rate_axis(int fd, PMC8_AXIS axis, int &rate)
 
 bool get_pmc8_direction_axis(int fd, PMC8_AXIS axis, int &dir)
 {
-
     char cmd[32];
     int errcode = 0;
     char errmsg[MAXRBUF];
@@ -425,16 +440,21 @@ bool get_pmc8_direction_axis(int fd, PMC8_AXIS axis, int &dir)
     int nbytes_read    = 0;
     int nbytes_written = 0;
 
-
-    if (pmc8_simulation)
-    {
-        // FIXME - (MSF) - need to implement simulation code for setting point position
-        return true;
-    }
-
     snprintf(cmd, sizeof(cmd), "ESGd%d!", axis);
 
     DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
+
+    if (pmc8_simulation)
+    {
+        if (axis == PMC8_RA_AXIS)
+            dir = simPMC8Data.raDirection;
+        else if (axis == PMC8_DEC_AXIS)
+            dir = simPMC8Data.decDirection;
+        else
+            return false;
+
+        return true;
+    }
 
     tcflush(fd, TCIFLUSH);
 
@@ -483,16 +503,21 @@ bool set_pmc8_direction_axis(int fd, PMC8_AXIS axis, int dir)
     int nbytes_read    = 0;
     int nbytes_written = 0;
 
-
-    if (pmc8_simulation)
-    {
-        // FIXME - (MSF) - need to implement simulation code for setting point position
-        return true;
-    }
-
     snprintf(cmd, sizeof(cmd), "ESSd%d%d!", axis, dir);
 
     DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
+
+    if (pmc8_simulation)
+    {
+        if (axis == PMC8_RA_AXIS)
+            simPMC8Data.raDirection = (PMC8_DIRECTION) dir;
+        else if (axis == PMC8_DEC_AXIS)
+            simPMC8Data.decDirection = (PMC8_DIRECTION) dir;
+        else
+            return false;
+
+        return true;
+    }
 
     tcflush(fd, TCIFLUSH);
 
@@ -545,7 +570,16 @@ bool get_pmc8_is_scope_slewing(int fd, bool &isslew)
 
 //    DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_DEBUG, "get_pmc8_is_scope_slewing(): rarate=%d decreate=%d", rarate, decrate);
 
-    isslew = ((rarate > PMC8_MINSLEWRATE) || (decrate > PMC8_MINSLEWRATE));
+
+    if (pmc8_simulation)
+    {
+        isslew = (simPMC8Info.systemStatus == ST_SLEWING);
+        return true;
+    }
+    else
+    {
+        isslew = ((rarate > PMC8_MINSLEWRATE) || (decrate > PMC8_MINSLEWRATE));
+    }
 
 //    DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_DEBUG, "get_pmc8_is_scope_slewing(): isslew=%d", isslew);
 
@@ -581,7 +615,6 @@ int convert_movespeedindex_to_rate(int mode)
 bool start_pmc8_motion(int fd, PMC8_DIRECTION dir, int mode)
 {
     bool isslew;
-    int axis0_dir, axis1_dir;
 
     // check speed
     if (get_pmc8_is_scope_slewing(fd, isslew) == false)
@@ -602,10 +635,10 @@ bool start_pmc8_motion(int fd, PMC8_DIRECTION dir, int mode)
 
     reqrate = convert_movespeedindex_to_rate(mode);
 
-    if (reqrate > PMC8_MOVE_RATE)
-        reqrate = PMC8_MOVE_RATE;
-    else if (reqrate < -PMC8_MOVE_RATE)
-        reqrate = -PMC8_MOVE_RATE;
+    if (reqrate > PMC8_MAX_MOVE_MOTOR_RATE)
+        reqrate = PMC8_MAX_MOVE_MOTOR_RATE;
+    else if (reqrate < -PMC8_MAX_MOVE_MOTOR_RATE)
+        reqrate = -PMC8_MAX_MOVE_MOTOR_RATE;
 
     switch (dir)
     {
@@ -728,7 +761,7 @@ bool set_pmc8_slew_rate(int fd, IEQ_SLEW_RATE rate)
 
     if (pmc8_simulation)
     {
-        simInfo.slewRate = rate;
+        simPMC8Info.slewRate = rate;
         strcpy(response, "1");
         nbytes_read = strlen(response);
     }
@@ -810,10 +843,10 @@ bool convert_move_rate_to_motor(float rate, int *mrate)
 
     *mrate = (int)(rate*(PMC8_AXIS0_SCALE/ARCSEC_IN_CIRCLE));
 
-    if (*mrate > PMC8_MAX_SLEW_MOTOR_RATE)
-        *mrate = PMC8_MAX_SLEW_MOTOR_RATE;
-    else if (*mrate < -PMC8_MAX_SLEW_MOTOR_RATE)
-        *mrate = -PMC8_MAX_SLEW_MOTOR_RATE;
+    if (*mrate > PMC8_MAX_MOVE_MOTOR_RATE)
+        *mrate = PMC8_MAX_MOVE_MOTOR_RATE;
+    else if (*mrate < -PMC8_MAX_MOVE_MOTOR_RATE)
+        *mrate = -PMC8_MAX_MOVE_MOTOR_RATE;
 
     return true;
 }
@@ -853,8 +886,7 @@ bool set_pmc8_axis_move_rate(int fd, PMC8_AXIS axis, float rate)
 
     if (pmc8_simulation)
     {
-        // FIXME- (MSF) Add simulation support for set axis rate
-//        simInfo.trackRate = rate;
+        simPMC8Data.moveRate = rate;
         return true;
     }
     else
@@ -907,7 +939,7 @@ bool set_pmc8_track_enabled(int fd, bool enabled)
     if (pmc8_simulation)
     {
         // FIXME - (MSF) - need to implement pmc8 track enabled sim
-//        simInfo.systemStatus = enabled ? ST_TRACKING_PEC_ON : ST_STOPPED;
+//        simPMC8Info.systemStatus = enabled ? ST_TRACKING_PEC_ON : ST_STOPPED;
 //        strcpy(response, "1");
 //        nbytes_read = strlen(response);
 
@@ -945,18 +977,7 @@ bool set_pmc8_track_mode(int fd, uint rate)
 
 bool set_pmc8_custom_ra_track_rate(int fd, double rate)
 {
-    bool rc;
-
     DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_DEBUG, "set_pmc8_custom_ra_track_rate() called rate=%f ", rate);
-
-
-    if (pmc8_simulation)
-    {
-        DEBUGDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "set_pmc8_custom_ra_track_rate simulation not implemented");
-
-        return false;
-    }
-
 
     char cmd[24];
     int errcode = 0;
@@ -980,8 +1001,7 @@ bool set_pmc8_custom_ra_track_rate(int fd, double rate)
 
     if (pmc8_simulation)
     {
-        // FIXME- (MSF) Add simulation support for set axis rate
-//        simInfo.trackRate = rate;
+        simPMC8Data.trackRate = rate;
         return true;
     }
     else
@@ -1043,6 +1063,8 @@ bool set_pmc8_custom_dec_track_rate(int fd, double rate)
 #else
 bool set_pmc8_custom_dec_track_rate(int fd, double rate)
 {
+    INDI_UNUSED(fd);
+    INDI_UNUSED(rate);
 
     DEBUGDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "set_pmc8_custom_dec_track_rate not implemented!");
     return false;
@@ -1056,23 +1078,14 @@ bool set_pmc8_custom_ra_move_rate(int fd, double rate)
     DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_DEBUG, "set_pmc8_custom_ra move_rate() called rate=%f ", rate);
 
     // (MSF) safe guard for now - only all use to STOP slewing or MOVE commands with this
-    if (fabs(rate) > PMC8_MOVE_RATE)
+    if (fabs(rate) > PMC8_MAX_MOVE_MOTOR_RATE)
     {
         DEBUGDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "set_pmc8_custom_ra_move rate only supports low rates currently");
 
         return false;
     }
 
-    if (pmc8_simulation)
-    {
-        DEBUGDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "set_pmc8_custom_ra_move_rate simulation not implemented");
-
-        rc=false;
-    }
-    else
-    {
-        rc=set_pmc8_axis_move_rate(fd, PMC8_RA_AXIS, rate);
-    }
+    rc=set_pmc8_axis_move_rate(fd, PMC8_RA_AXIS, rate);
 
     return rc;
 }
@@ -1085,28 +1098,21 @@ bool set_pmc8_custom_dec_move_rate(int fd, double rate)
     DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_DEBUG, "set_pmc8_custom_dec_move_rate() called rate=%f ", rate);
 
     // (MSF) safe guard for now - only all use to STOP slewing with this
-    if (fabs(rate) > PMC8_MOVE_RATE)
+    if (fabs(rate) > PMC8_MAX_MOVE_MOTOR_RATE)
     {
         DEBUGDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "set_pmc8_custom_dec_move_rate only supports low rates currently");
         return false;
     }
 
-    if (pmc8_simulation)
-    {
-        DEBUGDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "set_pmc8_custom_dec_move_rate simulation not implemented");
-
-        rc=false;
-    }
-    else
-    {
-        rc=set_pmc8_axis_move_rate(fd, PMC8_DEC_AXIS, rate);
-    }
+    rc=set_pmc8_axis_move_rate(fd, PMC8_DEC_AXIS, rate);
 
     return rc;
 }
 
 bool set_pmc8_guide_rate(int fd, double rate)
 {
+    INDI_UNUSED(fd);
+    INDI_UNUSED(rate);
 
     DEBUGDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "set_pmc8_guide_rate not implemented!");
     return false;
@@ -1115,6 +1121,8 @@ bool set_pmc8_guide_rate(int fd, double rate)
 // not yet implemented for PMC8
 bool get_pmc8_guide_rate(int fd, double *rate)
 {
+    INDI_UNUSED(fd);
+    INDI_UNUSED(rate);
 
     DEBUGDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "get_pmc8_guide_rate not implemented!");
     return false;
@@ -1285,27 +1293,6 @@ bool convert_dec_to_motor(double dec, INDI::Telescope::TelescopePierSide sop, in
      return true;
 }
 
-#if 0
-// need to work on this
-bool convert_motor_to_dec()
-{
-    Public Function MotorCounts_to_DEC(MC_value As Int32) As Double
-        Dim MotorAngle As Double
-        Dim DEC_value As Double
-
-        MotorAngle = (360.0# * MC_value) / Telescope.MountDECCounts
-
-        If MotorAngle >= 0 Then
-            DEC_value = 90 - MotorAngle
-        ElseIf MotorAngle < 0 Then
-            DEC_value = 90 + MotorAngle
-        End If
-
-        Return DEC_value
-    End Function
-}
-#endif
-
 bool set_pmc8_target_position_axis(int fd, PMC8_AXIS axis, int point)
 {
 
@@ -1318,17 +1305,13 @@ bool set_pmc8_target_position_axis(int fd, PMC8_AXIS axis, int point)
     int nbytes_read    = 0;
     int nbytes_written = 0;
 
-
-    if (pmc8_simulation)
-    {
-        // FIXME - (MSF) - need to implement simulation code for setting target position
-        return true;
-    }
-
     convert_motor_counts_to_hex(point, hexpt);
     snprintf(cmd, sizeof(cmd), "ESPt%d%s!", axis, hexpt);
 
     DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
+
+    if (pmc8_simulation)
+        return true;
 
     tcflush(fd, TCIFLUSH);
 
@@ -1555,12 +1538,13 @@ bool park_pmc8(int fd)
 
 bool unpark_pmc8(int fd)
 {
+    INDI_UNUSED(fd);
+
     // nothing really to do for PMC8 there is no unpark command
 
     if (pmc8_simulation)
     {
-        // FIXME - (MSF) need to do something in simulation to show it is unparked?
-        DEBUGDEVICE(pmc8_device, INDI::Logger::DBG_DEBUG, "PMC8 unparked in simulation - need to add more code?");
+        set_pmc8_sim_system_status(ST_STOPPED);
         return true;
     }
 
@@ -1627,23 +1611,17 @@ bool slew_pmc8(int fd, double ra, double dec)
         return false;
     }
 
-    if (pmc8_simulation)
-    {
-        // FIXME - (MSF) need to implement pmc8 slew sim
-//        strcpy(response, "1");
-//        nbytes_read = strlen(response);
-        DEBUGDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "Need to implement PMC8 slew simulation");
-        return false;
-    }
-    else
-    {
-        rc = set_pmc8_target_position(fd, racounts, deccounts);
-    }
+    rc = set_pmc8_target_position(fd, racounts, deccounts);
 
     if (!rc)
     {
         DEBUGDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "Error slewing PMC8");
         return false;
+    }
+
+    if (pmc8_simulation)
+    {
+        set_pmc8_sim_system_status(ST_SLEWING);
     }
 
     return true;
@@ -1654,6 +1632,8 @@ INDI::Telescope::TelescopePierSide destSideOfPier(double ra, double dec)
     double hour_angle;
     double lst;
 
+    INDI_UNUSED(dec);
+
     lst = get_local_sidereal_time(pmc8_longitude);
 
     hour_angle = lst - ra;
@@ -1663,7 +1643,6 @@ INDI::Telescope::TelescopePierSide destSideOfPier(double ra, double dec)
         hour_angle = hour_angle - 24;
     else if (hour_angle <= -12)
         hour_angle = hour_angle + 24;
-
 
     if (hour_angle < 0.0)
         return INDI::Telescope::PIER_WEST;
@@ -2214,7 +2193,28 @@ bool get_pmc8_coords(int fd, double &ra, double &dec)
     int racounts, deccounts;
     bool rc;
 
-    rc = get_pmc8_position(fd, racounts, deccounts);
+    if (pmc8_simulation)
+    {
+        // sortof silly but convert simulated RA/DEC to counts so we can then convert
+        // back to RA/DEC to test that conversion code
+        INDI::Telescope::TelescopePierSide sop;
+
+        sop = destSideOfPier(simPMC8Data.ra, simPMC8Data.dec);
+
+        rc = convert_ra_to_motor(simPMC8Data.ra, sop, &racounts);
+
+        if (!rc)
+            return rc;
+
+        rc = convert_dec_to_motor(simPMC8Data.dec, sop, &deccounts);
+
+        if (!rc)
+            return rc;
+    }
+    else
+    {
+        rc = get_pmc8_position(fd, racounts, deccounts);
+    }
 
     if (!rc)
     {

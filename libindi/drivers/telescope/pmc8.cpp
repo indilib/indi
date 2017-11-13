@@ -32,7 +32,7 @@
 #include <string.h>
 
 /* Simulation Parameters */
-#define SLEWRATE 1          /* slew rate, degrees/s */
+#define SLEWRATE 3          /* slew rate, degrees/s */
 #define POLLMS   1000       /* poll period, ms */
 
 #define MOUNTINFO_TAB "Mount Info"
@@ -178,6 +178,10 @@ bool PMC8::updateProperties()
 
         defineText(&FirmwareTP);
 
+        // do not support part position
+        deleteProperty(ParkPositionNP.name);
+        deleteProperty(ParkOptionSP.name);
+
         getStartupData();
     }
     else
@@ -269,6 +273,7 @@ bool PMC8::ISNewNumber(const char *dev, const char *name, double values[], char 
 {
     if (!strcmp(dev, getDeviceName()))
     {
+#if 0
         // FIXME - (MSF) will add setting guide rate when firmware supports
         // Guiding Rate
         if (!strcmp(name, GuideRateNP.name))
@@ -290,6 +295,7 @@ bool PMC8::ISNewNumber(const char *dev, const char *name, double values[], char 
             processGuiderProperties(name, values, names, n);
             return true;
         }
+#endif
     }
 
     return INDI::Telescope::ISNewNumber(dev, name, values, names, n);
@@ -309,12 +315,12 @@ bool PMC8::ReadScopeStatus()
 {
     bool rc = false;
 
+    if (isSimulation())
+        mountSim();
+
 #if 0
 
     PMC8Info newInfo;
-
-    if (isSimulation())
-        mountSim();
 
     rc = get_pmc8_status(PortFD, &newInfo);
 
@@ -381,9 +387,11 @@ bool PMC8::ReadScopeStatus()
         IDSetSwitch(&TrackModeSP, nullptr);
 #endif
 
-        scopeInfo = newInfo;
+        // FIXME - (MSF) Need to figure out how to integrate this to simulation
+        //scopeInfo = newInfo;
     }
 #endif
+
    bool slewing;
 
    switch (TrackState)
@@ -436,6 +444,8 @@ bool PMC8::ReadScopeStatus()
                    if (stop_pmc8_tracking_motion(PortFD))
                        DEBUG(INDI::Logger::DBG_DEBUG, "Mount tracking is off.");
 
+
+
                    SetParked(true);
 
                    saveConfig(true);
@@ -447,8 +457,6 @@ bool PMC8::ReadScopeStatus()
             break;
     }
 
-
-
     rc = get_pmc8_coords(PortFD, currentRA, currentDEC);
 
     if (rc)
@@ -459,9 +467,10 @@ bool PMC8::ReadScopeStatus()
 
 bool PMC8::Goto(double r, double d)
 {
+    char RAStr[64]={0}, DecStr[64]={0};
+
     targetRA  = r;
     targetDEC = d;
-    char RAStr[64]={0}, DecStr[64]={0};
 
     fs_sexa(RAStr, targetRA, 2, 3600);
     fs_sexa(DecStr, targetDEC, 2, 3600);
@@ -555,13 +564,10 @@ bool PMC8::Handshake()
 {
     if (isSimulation())
     {
-        // FIXME - (MSF) Need to handle handshake for simulation
-//        set_sim_gps_status(GPS_DATA_OK);
-//        set_sim_system_status(ST_STOPPED);
-//        set_sim_track_rate(TR_SIDEREAL);
-//        set_sim_slew_rate(SR_3);
-//        set_sim_time_source(TS_GPS);
-//        set_sim_hemisphere(HEMI_NORTH);
+        set_pmc8_sim_system_status(ST_STOPPED);
+        set_pmc8_sim_track_rate(PMC8_TRACK_SIDEREAL);
+        set_pmc8_sim_move_rate(PMC8_MOVE_64X);
+//        set_pmc8_sim_hemisphere(HEMI_NORTH);
     }
 
     if (check_pmc8_connection(PortFD) == false)
@@ -572,7 +578,15 @@ bool PMC8::Handshake()
 
 bool PMC8::updateTime(ln_date *utc, double utc_offset)
 {
-#if 0
+    // mark unused
+    INDI_UNUSED(utc);
+    INDI_UNUSED(utc_offset);
+
+
+#if 1
+    DEBUG(INDI::Logger::DBG_ERROR, "PMC8::updateTime() not implemented!");
+    return false;
+#else
     struct ln_zonedate ltm;
 
     ln_date_to_zonedate(utc, &ltm, utc_offset * 3600.0);
@@ -604,9 +618,7 @@ bool PMC8::updateTime(ln_date *utc, double utc_offset)
     DEBUG(INDI::Logger::DBG_SESSION, "Time and date updated.");
 
     return true;
-#else
-    DEBUG(INDI::Logger::DBG_ERROR, "PMC8::updateTime() not implemented!");
-    return false;
+
 #endif
 }
 
@@ -616,6 +628,13 @@ bool PMC8::updateLocation(double latitude, double longitude, double elevation)
 
     if (longitude > 180)
         longitude -= 360;
+
+    // do not support Southern Hemisphere yet!
+    if (latitude < 0)
+    {
+        DEBUG(INDI::Logger::DBG_ERROR, "Southern Hemisphere not currently supported!");
+        return false;
+    }
 
     // must also keep "low level" aware of position to convert motor counts to RA/DEC
     set_pmc8_location(latitude, longitude);
@@ -745,21 +764,29 @@ IPState PMC8::GuideWest(float ms)
 #else
 IPState PMC8::GuideNorth(float ms)
 {
+    INDI_UNUSED(ms);
+
     DEBUG(INDI::Logger::DBG_ERROR, "PMC8::GuideNorth(float ms) not implemented!");
     return IPS_ALERT;
 }
 IPState PMC8::GuideSouth(float ms)
 {
+    INDI_UNUSED(ms);
+
     DEBUG(INDI::Logger::DBG_ERROR, "PMC8::GuideSouth(float ms) not implemented!");
     return IPS_ALERT;
 }
 IPState PMC8::GuideEast(float ms)
 {
+    INDI_UNUSED(ms);
+
     DEBUG(INDI::Logger::DBG_ERROR, "PMC8::GuideEast(int index)) not implemented!");
     return IPS_ALERT;
 }
 IPState PMC8::GuideWest(float ms)
 {
+    INDI_UNUSED(ms);
+
     DEBUG(INDI::Logger::DBG_ERROR, "PMC8::GuideWest(float ms) not implemented!");
     return IPS_ALERT;
 }
@@ -767,11 +794,8 @@ IPState PMC8::GuideWest(float ms)
 
 bool PMC8::SetSlewRate(int index)
 {
-#if 0
-    // According to PMC-Eight programmer reference the slew rate is always 25x the tracking rate!
-    DEBUG(INDI::Logger::DBG_ERROR, "PMC8::SetSlewRate(int index)) not implemented!");
-    return false;
-#endif
+
+    INDI_UNUSED(index);
 
     // slew rate is rate for MoveEW/MOVENE commands - not for GOTOs!!!
 
@@ -858,14 +882,19 @@ void PMC8::mountSim()
 
             if (nlocked == 2)
             {
-                // FIXME - (MSF) need to implement sim functionality
-#if 0
                 if (TrackState == SCOPE_SLEWING)
-                    set_sim_system_status(ST_TRACKING_PEC_OFF);
+                    set_pmc8_sim_system_status(ST_TRACKING);
                 else
-                    set_sim_system_status(ST_PARKED);
-#endif
+                    set_pmc8_sim_system_status(ST_PARKED);
             }
+
+            break;
+
+        case SCOPE_PARKED:
+            // setting system status to parked will automatically
+            // set the simulated RA/DEC to park position so reread
+            set_pmc8_sim_system_status(ST_PARKED);
+            get_pmc8_coords(PortFD, currentRA, currentDEC);
 
             break;
 
@@ -873,8 +902,8 @@ void PMC8::mountSim()
             break;
     }
 
-    set_sim_ra(currentRA);
-    set_sim_dec(currentDEC);
+    set_pmc8_sim_ra(currentRA);
+    set_pmc8_sim_dec(currentDEC);
 }
 
 #if 0
@@ -986,7 +1015,6 @@ bool PMC8::SetTrackEnabled(bool enabled)
 
     DEBUGF(INDI::Logger::DBG_DEBUG, "PMC8::SetTrackEnabled called enabled=%d", enabled);
 
-#if 1
     // need to determine current tracking mode and start tracking
     if (enabled)
     {
@@ -1017,10 +1045,5 @@ bool PMC8::SetTrackEnabled(bool enabled)
     }
 
     return true;
-
-#else
-    DEBUG(INDI::Logger::DBG_DEBUG, "PMC8::SetTrackEnabled just returns true for now");
-    return true;
-#endif
 }
 

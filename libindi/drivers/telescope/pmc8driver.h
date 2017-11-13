@@ -28,37 +28,30 @@
 
 typedef enum {
     ST_STOPPED,
-    ST_TRACKING_PEC_OFF,
+    ST_TRACKING,
     ST_SLEWING,
     ST_GUIDING,
     ST_MERIDIAN_FLIPPING,
-    ST_TRACKING_PEC_ON,
     ST_PARKED,
     ST_HOME
-} IEQ_SYSTEM_STATUS;
+} PMC8_SYSTEM_STATUS;
 
 typedef enum { PMC8_TRACK_SIDEREAL, PMC8_TRACK_LUNAR, PMC8_TRACK_SOLAR, PMC8_TRACK_CUSTOM } PMC8_TRACK_RATE;
 
-typedef enum { HEMI_SOUTH, HEMI_NORTH } IEQ_HEMISPHERE;
+typedef enum { PMC8_MOVE_4X, PMC8_MOVE_16X, PMC8_MOVE_64X, PMC8_MOVE_256X } PMC8_MOVE_RATE;
+
+//typedef enum { HEMI_SOUTH, HEMI_NORTH } PMC8_HEMISPHERE;
 
 //typedef enum { FW_MODEL, FW_BOARD, FW_CONTROLLER, FW_RA, FW_DEC } IEQ_FIRMWARE;
 
 typedef enum { PMC8_RA_AXIS=0, PMC8_DEC_AXIS=1 } PMC8_AXIS;
 typedef enum { PMC8_N, PMC8_S, PMC8_W, PMC8_E } PMC8_DIRECTION;
 
-//typedef struct
-//{
-//    IEQ_SYSTEM_STATUS systemStatus;
-//    IEQ_SYSTEM_STATUS rememberSystemStatus;
-//    IEQ_TRACK_RATE trackRate;
-//    IEQ_SLEW_RATE slewRate;
-//    IEQ_TIME_SOURCE timeSource;
-//    IEQ_HEMISPHERE hemisphere;
-//} IEQInfo;
-
 typedef struct
 {
-
+    PMC8_SYSTEM_STATUS systemStatus;
+    PMC8_SYSTEM_STATUS rememberSystemStatus;
+//    PMC8_HEMISPHERE hemisphere;
 } PMC8Info;
 
 typedef struct
@@ -78,14 +71,13 @@ void set_pmc8_device(const char *name);
 /**************************************************************************
  Simulation
 **************************************************************************/
-void set_sim_system_status(IEQ_SYSTEM_STATUS value);
-//void set_sim_track_rate(IEQ_TRACK_RATE value);
-//void set_sim_slew_rate(IEQ_SLEW_RATE value);
-//void set_sim_time_source(IEQ_TIME_SOURCE value);
+void set_pmc8_sim_system_status(PMC8_SYSTEM_STATUS value);
+void set_pmc8_sim_track_rate(PMC8_TRACK_RATE value);
+void set_pmc8_sim_move_rate(PMC8_MOVE_RATE value);
 //void set_sim_hemisphere(IEQ_HEMISPHERE value);
-void set_sim_ra(double ra);
-void set_sim_dec(double dec);
-void set_sim_guide_rate(double rate);
+void set_pmc8_sim_ra(double ra);
+void set_pmc8_sim_dec(double dec);
+//void set_sim_guide_rate(double rate);
 
 /**************************************************************************
  Diagnostics
@@ -99,16 +91,8 @@ bool check_pmc8_connection(int fd);
 bool get_pmc8_status(int fd, PMC8Info *info);
 /** Get All firmware informatin in addition to mount model */
 bool get_pmc8_firmware(int fd, FirmwareInfo *info);
-/** Get mainboard and controller firmware only */
-//bool get_ieqpro_main_firmware(int fd, FirmwareInfo *info);
-/** Get RA and DEC firmware info */
-//bool get_ieqpro_radec_firmware(int fd, FirmwareInfo *info);
-/** Get Mount model */
-//bool get_ieqpro_model(int fd, FirmwareInfo *info);
 /** Get RA/DEC */
 bool get_pmc8_coords(int fd, double &ra, double &dec);
-/** Get UTC/Date/Time */
-//bool get_ieqpro_utc_date_time(int fd, double *utc_hours, int *yy, int *mm, int *dd, int *hh, int *minute, int *ss);
 
 /**************************************************************************
  Motion
@@ -135,7 +119,7 @@ INDI::Telescope::TelescopePierSide destSideOfPier(double ra, double dec);
  Home
 **************************************************************************/
 //bool find_ieqpro_home(int fd);
-bool goto_pmc8_home(int fd);
+//bool goto_pmc8_home(int fd);
 //bool set_ieqpro_current_home(int fd);
 
 /**************************************************************************
@@ -147,9 +131,9 @@ bool unpark_pmc8(int fd);
 /**************************************************************************
  Guide
 **************************************************************************/
-bool set_pmc8_guide_rate(int fd, double rate);
-bool get_pmc8_guide_rate(int fd, double *rate);
-//bool start_ieqpro_guide(int fd, IEQ_DIRECTION dir, int ms);
+//bool set_pmc8_guide_rate(int fd, double rate);
+//bool get_pmc8_guide_rate(int fd, double *rate);
+//bool start_ieqpro_guide(int fd, PMC8_DIRECTION dir, int ms);
 
 /**************************************************************************
  Time & Location
