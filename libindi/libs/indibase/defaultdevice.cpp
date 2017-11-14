@@ -457,7 +457,13 @@ bool INDI::DefaultDevice::ISNewSwitch(const char *dev, const char *name, ISState
         IUResetSwitch(svp);
         bool pResult = false;
 
-        assert(sp != nullptr);
+        // Not suppose to happen (all switches off) but let's handle it anyway
+        if (sp == nullptr)
+        {
+            svp->s = IPS_IDLE;
+            IDSetSwitch(svp, nullptr);
+            return true;
+        }
 
         if (!strcmp(sp->name, "CONFIG_LOAD"))
             pResult = loadConfig();

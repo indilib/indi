@@ -286,7 +286,7 @@ bool WatchDog::ISNewSwitch(const char *dev, const char *name, ISState *states, c
 
 bool WatchDog::saveConfigItems(FILE *fp)
 {
-    INDI::DefaultDevice::saveAllConfigItems(fp);
+    INDI::DefaultDevice::saveConfigItems(fp);
 
     IUSaveConfigNumber(fp, &HeartBeatNP);
     IUSaveConfigText(fp, &SettingsTP);
