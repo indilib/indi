@@ -735,8 +735,7 @@ bool SynscanMount::Abort()
     numread = tty_read(PortFD, str, 1, 2, &bytesRead);
     if (bytesRead != 1 || str[0] != '#')
     {
-        if (isDebug())
-            DEBUG(INDI::Logger::DBG_SESSION, "Timeout waiting for scope to stop tracking.");
+        DEBUG(INDI::Logger::DBG_DEBUG, "Timeout waiting for scope to stop tracking.");
         return false;
     }
 
