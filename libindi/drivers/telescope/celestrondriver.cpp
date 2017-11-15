@@ -272,7 +272,7 @@ bool get_celestron_version(int fd, FirmwareInfo *info)
     if (nbytes_read > 0)
     {
         response[nbytes_read] = '\0';
-        DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_DEBUG, "RES (%02X %02X %02X)", response[0], response[1],
+        DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_DEBUG, "RES (%#02X %#02X %#02X)", response[0], response[1],
                      response[2]);
 
         if (nbytes_read == 3)
@@ -388,7 +388,7 @@ bool get_celestron_model(int fd, FirmwareInfo *info)
     if (nbytes_read > 0)
     {
         response[nbytes_read] = '\0';
-        DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_DEBUG, "RES (%02X %02X)", response[0], response[1]);
+        DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_DEBUG, "RES <%#02X %#02X>", response[0], response[1]);
 
         if (nbytes_read == 2)
         {
@@ -422,7 +422,7 @@ bool get_celestron_ra_firmware(int fd, FirmwareInfo *info)
     int nbytes_read    = 0;
     int nbytes_written = 0;
 
-    DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_DEBUG, "CMD (%02X %02X %02X %02X %02X %02X %02X %02X)", cmd[0],
+    DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_DEBUG, "CMD (%#02X %#02X %#02X %#02X %#02X %#02X %#02X %#02X)", cmd[0],
                  cmd[1], cmd[2], cmd[3], cmd[4], cmd[5], cmd[6], cmd[7]);
 
     if (celestron_simulation)
@@ -454,7 +454,7 @@ bool get_celestron_ra_firmware(int fd, FirmwareInfo *info)
     if (nbytes_read > 0)
     {
         response[nbytes_read] = '\0';
-        DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_DEBUG, "RES (%02X %02X %02X)", response[0], response[1],
+        DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_DEBUG, "RES <%#02X %#02X %#02X>", response[0], response[1],
                      response[2]);
 
         if (nbytes_read == 3)
@@ -484,7 +484,7 @@ bool get_celestron_dec_firmware(int fd, FirmwareInfo *info)
     int nbytes_read    = 0;
     int nbytes_written = 0;
 
-    DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_DEBUG, "CMD (%02X %02X %02X %02X %02X %02X %02X %02X)", cmd[0],
+    DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_DEBUG, "CMD <%#02X %#02X %#02X %#02X %#02X %#02X %#02X %#02X>", cmd[0],
                  cmd[1], cmd[2], cmd[3], cmd[4], cmd[5], cmd[6], cmd[7]);
 
     if (celestron_simulation)
@@ -516,7 +516,7 @@ bool get_celestron_dec_firmware(int fd, FirmwareInfo *info)
     if (nbytes_read > 0)
     {
         response[nbytes_read] = '\0';
-        DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_DEBUG, "RES (%02X %02X %02X)", response[0], response[1],
+        DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_DEBUG, "RES <%#02X %#02X %#02X>", response[0], response[1],
                      response[2]);
 
         if (nbytes_read == 3)
@@ -542,7 +542,7 @@ bool get_celestron_gps_firmware(int fd, FirmwareInfo *info)
     unsigned char cmd[] = { 0x50, 0x01, 0x10, 0xFE, 0x0, 0x0, 0x0, 0x02 };
     int errcode         = 0;
     char errmsg[MAXRBUF];
-    char response[16];
+    char response[16] = {0};
     int nbytes_read    = 0;
     int nbytes_written = 0;
 
@@ -642,7 +642,7 @@ bool get_celestron_gps_firmware(int fd, FirmwareInfo *info)
 int SendPulseCmd(int fd, CELESTRON_DIRECTION direction, signed char rate, unsigned char duration_csec)
 {
     DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_WARNING,
-                 " PULSE REQUEST: (FD:%02X, DIR:%02i, RATE:%02i, CSEC:%02i)", fd, direction, rate, duration_csec);
+                 " PULSE REQUEST: (FD:%#02X, DIR:%02i, RATE:%02i, CSEC:%02i)", fd, direction, rate, duration_csec);
 
     char cmd[]  = { 0x50, 0x04, 0x11, 0x26, 0x00, 0x00, 0x00, 0x00 };
     int errcode = 0;
@@ -678,7 +678,7 @@ int SendPulseCmd(int fd, CELESTRON_DIRECTION direction, signed char rate, unsign
     }
 
 #if 0
-    DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_WARNING, "CMD <%02X %02X %02X %02X %02X %02X %02X %02X>",
+    DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_WARNING, "CMD <%#02X %#02X %#02X %#02X %#02X %#02X %#02X %#02X>",
                  cmd[0], cmd[1], cmd[2], cmd[3], (unsigned char)cmd[4], (unsigned char)cmd[5], cmd[6], cmd[7]);
 #endif
 
@@ -715,7 +715,7 @@ int SendPulseCmd(int fd, CELESTRON_DIRECTION direction, signed char rate, unsign
     if (nbytes_read == 1)
     {
         response[nbytes_read] = '\0';
-        //DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_WARNING, "    NBYTES = %i, RESPONSE = %02X", nbytes_read,
+        //DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_WARNING, "    NBYTES = %i, RESPONSE = %#02X", nbytes_read,
         //             response[0]);
 
         return true;
@@ -727,7 +727,7 @@ int SendPulseCmd(int fd, CELESTRON_DIRECTION direction, signed char rate, unsign
 
 int SendPulseStatusCmd(int fd, CELESTRON_DIRECTION direction, bool &pulse_state)
 {
-    //DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_WARNING, " PULSE STATUS REQUEST: (FD:%02X, DIR:%02i)", fd,
+    //DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_WARNING, " PULSE STATUS REQUEST: (FD:%#02X, DIR:%02i)", fd,
     //             direction);
 
     char cmd[]  = { 0x50, 0x03, 0x11, 0x27, 0x00, 0x00, 0x00, 0x01 };
@@ -748,7 +748,7 @@ int SendPulseStatusCmd(int fd, CELESTRON_DIRECTION direction, bool &pulse_state)
             break;
     }
 
-    //DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_WARNING, "   COMMAND (%02X %02X %02X %02X %02X %02X %02X %02X)",
+    //DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_WARNING, "   COMMAND (%#02X %#02X %#02X %#02X %#02X %#02X %#02X %#02X)",
     //             cmd[0], cmd[1], cmd[2], cmd[3], cmd[4], cmd[5], cmd[6], cmd[7]);
 
     if (celestron_simulation)
@@ -781,7 +781,7 @@ int SendPulseStatusCmd(int fd, CELESTRON_DIRECTION direction, bool &pulse_state)
     if (nbytes_read == 2)
     {
         response[nbytes_read] = '\0';
-        //DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_WARNING, "    NBYTES = %i, RESPONSE = %02X %02X", nbytes_read,
+        //DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_WARNING, "    NBYTES = %i, RESPONSE = %#02X %#02X", nbytes_read,
         //             (unsigned char)response[0], (unsigned char)response[1]);
 
         if (response[0] == 0 && response[1] == '#')
@@ -794,7 +794,7 @@ int SendPulseStatusCmd(int fd, CELESTRON_DIRECTION direction, bool &pulse_state)
         }
         else
         {
-            DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_WARNING, "UNEXPECTED RESPONSE: %02X %02X", (unsigned char)response[0], (unsigned char)response[1]);
+            DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_WARNING, "UNEXPECTED RESPONSE: %#02X %#02X", (unsigned char)response[0], (unsigned char)response[1]);
             return false;
         }
 
@@ -840,7 +840,7 @@ bool start_celestron_motion(int fd, CELESTRON_DIRECTION dir, CELESTRON_SLEW_RATE
             break;
     }
 
-    DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_DEBUG, "CMD (%02X %02X %02X %02X %02X %02X %02X %02X)", cmd[0],
+    DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_DEBUG, "CMD (%#02X %#02X %#02X %#02X %#02X %#02X %#02X %#02X)", cmd[0],
                  cmd[1], cmd[2], cmd[3], cmd[4], cmd[5], cmd[6], cmd[7]);
 
     if (celestron_simulation)
@@ -903,7 +903,7 @@ bool stop_celestron_motion(int fd, CELESTRON_DIRECTION dir)
             break;
     }
 
-    DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_DEBUG, "CMD (%02X %02X %02X %02X %02X %02X %02X %02X)", cmd[0],
+    DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_DEBUG, "CMD (%#02X %#02X %#02X %#02X %#02X %#02X %#02X %#02X)", cmd[0],
                  cmd[1], cmd[2], cmd[3], cmd[4], cmd[5], cmd[6], cmd[7]);
 
     if (celestron_simulation)
@@ -1372,7 +1372,7 @@ bool set_celestron_location(int fd, double longitude, double latitude)
     cmd[7] = long_s;
     cmd[8] = long_d > 0 ? 0 : 1;
 
-    DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_DEBUG, "CMD (%02X %02X %02X %02X %02X %02X %02X %02X %02X)",
+    DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_DEBUG, "CMD (%#02X %#02X %#02X %#02X %#02X %#02X %#02X %#02X %#02X)",
                  cmd[0], cmd[1], cmd[2], cmd[3], cmd[4], cmd[5], cmd[6], cmd[7], cmd[8]);
 
     if (celestron_simulation)
@@ -1441,7 +1441,7 @@ bool set_celestron_datetime(int fd, struct ln_date *utc, double utc_offset)
     // Always assume standard time
     cmd[8] = 0;
 
-    DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_DEBUG, "CMD (%02X %02X %02X %02X %02X %02X %02X %02X %02X)",
+    DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_DEBUG, "CMD (%#02X %#02X %#02X %#02X %#02X %#02X %#02X %#02X %#02X)",
                  cmd[0], cmd[1], cmd[2], cmd[3], cmd[4], cmd[5], cmd[6], cmd[7], cmd[8]);
 
     if (celestron_simulation)
@@ -1528,7 +1528,7 @@ bool get_celestron_utc_date_time(int fd, double *utc_hours, int *yy, int *mm, in
     {
         response[nbytes_read] = '\0';
         unsigned char *res    = (unsigned char *)response;
-        DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_DEBUG, "RES (%02X %02X %02X %02X %02X %02X %02X %02X)", res[0],
+        DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_DEBUG, "RES (%#02X %#02X %#02X %#02X %#02X %#02X %#02X %#02X)", res[0],
                      res[1], res[2], res[3], res[4], res[5], res[6], res[7]);
 
         // HH MM SS MONTH DAY YEAR OFFSET DAYLIGHT
@@ -1665,7 +1665,7 @@ bool get_celestron_track_mode(int fd, CELESTRON_TRACK_MODE *mode)
     if (nbytes_read > 0)
     {
         response[nbytes_read] = '\0';
-        DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_DEBUG, "RES (%02X %02X)", response[0], response[1]);
+        DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_DEBUG, "RES (%#02X %#02X)", response[0], response[1]);
 
         tcflush(fd, TCIFLUSH);
 
