@@ -37,6 +37,12 @@ namespace Connection
 class TCP : public Interface
 {
   public:
+    enum ConnectionType
+    {
+        TYPE_TCP = 0,
+        TYPE_UDP
+    };
+
     TCP(INDI::DefaultDevice *dev);
     virtual ~TCP();
 
@@ -56,16 +62,21 @@ class TCP : public Interface
     virtual uint32_t port() { return atoi(AddressT[0].text); }
 
     virtual bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n);
+    virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n);
     virtual bool saveConfigItems(FILE *fp);
 
     int getPortFD() const { return PortFD; }
     void setDefaultHost(const char *addressHost);
     void setDefaultPort(uint32_t addressPort);
+    void setConnectionType(int type);
 
   protected:
     // IP Address/Port
     ITextVectorProperty AddressTP;
     IText AddressT[2];
+
+    ISwitch TcpUdpS[2];
+    ISwitchVectorProperty TcpUdpSP;
 
     int sockfd                   = -1;
     const uint8_t SOCKET_TIMEOUT = 5;

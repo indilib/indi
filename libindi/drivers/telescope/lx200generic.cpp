@@ -787,6 +787,14 @@ bool LX200Generic::updateTime(ln_date *utc, double utc_offset)
 
     DEBUGF(INDI::Logger::DBG_DEBUG, "New JD is %f", (float)JD);
 
+    // Meade defines UTC Offset as the offset ADDED to local time to yield UTC, which
+    // is the opposite of the standard definition of UTC offset!
+    if (setUTCOffset(PortFD, (utc_offset * -1.0)) < 0)
+    {
+        DEBUG(INDI::Logger::DBG_ERROR, "Error setting UTC Offset.");
+        return false;
+    }
+
     // Set Local Time
     if (setLocalTime(PortFD, ltm.hours, ltm.minutes, ltm.seconds) < 0)
     {
@@ -797,14 +805,6 @@ bool LX200Generic::updateTime(ln_date *utc, double utc_offset)
     if (setCalenderDate(PortFD, ltm.days, ltm.months, ltm.years) < 0)
     {
         DEBUG(INDI::Logger::DBG_ERROR, "Error setting local date.");
-        return false;
-    }
-
-    // Meade defines UTC Offset as the offset ADDED to local time to yield UTC, which
-    // is the opposite of the standard definition of UTC offset!
-    if (setUTCOffset(PortFD, (utc_offset * -1.0)) < 0)
-    {
-        DEBUG(INDI::Logger::DBG_ERROR, "Error setting UTC Offset.");
         return false;
     }
 
